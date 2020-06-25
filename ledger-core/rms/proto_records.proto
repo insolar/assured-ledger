@@ -30,7 +30,7 @@ message RecordExample {
     uint32 AsOf = 42 [(gogoproto.casttype)="PulseNumber"];
 }
 
-message ROutboundRequest { // RLifelineStart
+message ROutboundRequest { // RLifelineStart as well
     option (insproto.id) = 64;
 
     //*** Start of predefined section ***//
@@ -45,6 +45,37 @@ message ROutboundRequest { // RLifelineStart
     // Add custom fields here
     string Str = 40;
 }
+
+enum LineState {
+    Unknown = 0;
+    Started = 1;
+    Activated = 2;
+    BlockedByExpectMemory = 3;
+    BlockedByInboundCall = 4;
+    // ...
+    DirtyDeactivated = 126;
+    Deactivated = 127; // 1-byte varint
+}
+
+message RLineRecap {
+    option (insproto.id) = 65;
+
+    reserved 1 to 23, 26 to 39, 1792 to max;
+
+    Reference PrevRef = 24;
+    Reference RootRef = 25;
+
+    LineState LineState = 40;
+    Reference BlockedBy = 41;
+    Reference DirtyMemory = 42;
+    Reference ValidateMemory = 43;
+    Reference FinalizedMemory = 44;
+}
+
+message RPrevDropReport {
+    option (insproto.id) = 66;
+}
+
 
 // RLifelineStart
 // RLineActivate

@@ -6,7 +6,10 @@
 package datawriter
 
 import (
+	"fmt"
+
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -46,6 +49,24 @@ func LineCreate(lineRef reference.Global) smachine.CreateFunc {
 		sm.sd.lineRef = lineRef
 		return sm
 	}
+}
+
+func RegisterLine(ctx smachine.SharedStateContext, sd *LineSharedData) bool {
+	switch {
+	case sd.lineRef.IsZero():
+		panic(throw.IllegalState())
+	case !sd.limiter.IsZero():
+		panic(throw.IllegalState())
+	}
+
+	sd.limiter = smsync.NewSemaphore(0, fmt.Sprintf("SMLine{%d}.limiter", ctx.SlotLink().SlotID()))
+
+	sdl := ctx.Share(sd, 0)
+	if !ctx.Publish(LineKey(sd.lineRef), sdl) {
+		ctx.Unshare(sdl)
+		return false
+	}
+	return true
 }
 
 type LineDataLink struct {

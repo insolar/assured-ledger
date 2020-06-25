@@ -6,11 +6,9 @@
 package datawriter
 
 import (
-	"fmt"
-
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/datareader"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -26,11 +24,8 @@ type SMLine struct {
 	streamer  StreamDropCatalog
 
 	// input & shared
-	sd LineSharedData
-
-	// runtime
-	sdl DropDataLink
-	ssd *StreamSharedData
+	sd     LineSharedData
+	onFind smachine.BargeInWithParam
 }
 
 func (p *SMLine) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
@@ -52,58 +47,148 @@ func (p *SMLine) stepInit(ctx smachine.InitializationContext) smachine.StateUpda
 	case p.pulseSlot.State() != conveyor.Present:
 		return ctx.Error(throw.E("not a present pulse"))
 	case !p.sd.lineRef.IsSelfScope():
-		return ctx.Error(throw.E("wrong root"))
+		return ctx.Error(throw.E("wrong root - must be self"))
+	case !p.sd.lineRef.IsObjectReference():
+		return ctx.Error(throw.E("wrong root - must be object"))
 	}
 
-	p.sd.limiter = smsync.NewSemaphore(0, fmt.Sprintf("SMLine{%d}.limiter", ctx.SlotLink().SlotID()))
-
-	sdl := ctx.Share(&p.sd, 0)
-	if !ctx.Publish(LineKey(p.sd.lineRef), sdl) {
+	if !RegisterLine(ctx, &p.sd) {
 		panic(throw.IllegalState())
 	}
 
-	// ctx.SetDefaultMigration(p.migrate)
-	// ctx.SetDefaultErrorHandler(p.handleError)
+	ctx.SetDefaultMigration(p.migratePresentNotReady)
+	ctx.SetDefaultErrorHandler(p.handleError)
 	return ctx.Jump(p.stepFindDrop)
 }
 
 func (p *SMLine) stepFindDrop(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	sdl := p.streamer.GetOrCreate(ctx, p.pulseSlot.PulseNumber())
-	if sdl.IsZero() {
+	ssd := p.streamer.GetOrCreate(ctx, p.pulseSlot.PulseNumber())
+	if ssd == nil {
 		panic(throw.IllegalState())
 	}
-
-	p.ssd = sdl.GetSharedData(ctx)
-
-	readySync := p.ssd.GetReadySync()
+	readySync := ssd.GetReadySync()
 
 	if ctx.AcquireForThisStep(readySync) {
-		return ctx.Jump(p.stepStreamIsReady)
+		p.sd.jetDropID = ssd.GetJetDrop(p.sd.lineRef)
+		return ctx.Jump(p.stepDropIsCreated)
 	}
 
 	return ctx.Sleep().ThenJump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
 		if ctx.AcquireForThisStep(readySync) {
-			return ctx.Jump(p.stepStreamIsReady)
+			p.sd.jetDropID = ssd.GetJetDrop(p.sd.lineRef)
+			return ctx.Jump(p.stepDropIsCreated)
 		}
 		return ctx.Sleep().ThenRepeat()
 	})
 }
 
-func (p *SMLine) stepStreamIsReady(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	jetDropID := p.ssd.GetJetDrop(p.sd.lineRef)
-
-	p.sdl = p.cataloger.GetOrCreate(ctx, jetDropID)
-	if p.sdl.IsZero() {
+func (p *SMLine) stepDropIsCreated(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	sdl := p.cataloger.Get(ctx, p.sd.jetDropID)
+	if sdl.IsZero() {
 		panic(throw.IllegalState())
 	}
-}
 
+	var readySync smachine.SyncLink
+	sdl.MustAccess(func(sd *DropSharedData) {
+		readySync = sd.GetReadySync()
+	})
 
-func (p *SMLine) getDropID() JetDropID {
+	if ctx.AcquireForThisStep(readySync) {
+		sdl.MustAccess(func(sd *DropSharedData) {
+			p.sd.dropUpdater = sd.GetDropAssistant()
+		})
+		return ctx.Jump(p.stepDropIsReady)
+	}
 
+	return ctx.Sleep().ThenJump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
+		if ctx.AcquireForThisStep(readySync) {
+			sdl.MustAccess(func(sd *DropSharedData) {
+				p.sd.dropUpdater = sd.GetDropAssistant()
+			})
+			return ctx.Jump(p.stepDropIsReady)
+		}
+		return ctx.Sleep().ThenRepeat()
+	})
 }
 
 func (p *SMLine) stepDropIsReady(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	pn := p.pulseSlot.PulseNumber()
+	refPN := p.sd.lineRef.GetBase().GetPulseNumber()
 
+	switch {
+	case pn == refPN:
+		// This is creation
+		return ctx.Jump(p.stepLineIsReady)
+	case pn < refPN:
+		// It was before - find a recap
+		sm := &datareader.SMFindRecap{ RootRef: p.sd.lineRef }
+		return ctx.CallSubroutine(sm, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
+			if sm.RecapRec == nil {
+				// TODO Unknown object
+				panic(throw.NotImplemented())
+			}
+			p.sd.addRecap(sm.RecapRec, sm.RecapRef)
+			return ctx.Jump(p.stepLineIsReady)
+		})
+	default:
+		panic(throw.Impossible())
+	}
+}
+
+func (p *SMLine) stepLineIsReady(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	p.sd.valid = true
+	p.onFind = ctx.NewBargeInWithParam(func(v interface{}) smachine.BargeInCallbackFunc {
+		return func(ctx smachine.BargeInContext) smachine.StateUpdate {
+			return ctx.WakeUp()
+		}
+	})
+	ctx.ApplyAdjustment(p.sd.enableAccess())
+	ctx.SetDefaultMigration(p.migratePresent)
+	return ctx.Sleep().ThenJump(p.stepWaitForContextUpdates)
+}
+
+func (p *SMLine) stepWaitForContextUpdates(ctx smachine.ExecutionContext) smachine.StateUpdate {
+
+	for _, filamentRef := range p.sd.getMissingFilaments() {
+		ctx.NewChild(func(ctx smachine.ConstructionContext) smachine.StateMachine {
+			return &datareader.SMFindFilament{
+				FilamentRootRef: filamentRef,
+				FindCallback: p.onFind,
+			}
+		})
+	}
+
+	return ctx.Sleep().ThenRepeat()
+}
+
+func (p *SMLine) handleError(ctx smachine.FailureContext) {
+	sd := &LineSharedData{
+		lineRef: p.sd.lineRef,
+		limiter: p.sd.limiter,
+	}
+	sdl := ctx.Share(sd, smachine.ShareDataUnbound)
+	if !ctx.PublishReplacement(LineKey(sd.lineRef), sdl) {
+		panic(throw.Impossible())
+	}
+	ctx.ApplyAdjustment(sd.enableAccess())
+}
+
+func (p *SMLine) migratePresentNotReady(ctx smachine.MigrationContext) smachine.StateUpdate {
+	return ctx.Error(throw.E("failed to initialize"))
+}
+
+func (p *SMLine) migratePresent(ctx smachine.MigrationContext) smachine.StateUpdate {
+	p.sd.disableAccess()
+
+	ctx.SetDefaultMigration(p.migratePast)
+	return ctx.Jump(p.stepFinalize)
+}
+
+func (p *SMLine) migratePast(ctx smachine.MigrationContext) smachine.StateUpdate {
+	return ctx.Stop()
+}
+
+func (p *SMLine) stepFinalize(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	return ctx.Stop()
 }
 
