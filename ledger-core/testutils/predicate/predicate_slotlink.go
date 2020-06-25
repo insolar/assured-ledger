@@ -18,7 +18,7 @@ type SlotLinkFilter struct {
 	slotLink smachine.SlotLink
 }
 
-func (s SlotLinkFilter) IsSlotLink(event debuglogger.UpdateEvent) bool {
+func (s SlotLinkFilter) IsFromSlot(event debuglogger.UpdateEvent) bool {
 	return s.slotLink.SlotID() == event.Data.StepNo.SlotID()
 }
 
