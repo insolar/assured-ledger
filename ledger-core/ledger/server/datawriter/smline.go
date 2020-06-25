@@ -180,15 +180,12 @@ func (p *SMLine) migratePresentNotReady(ctx smachine.MigrationContext) smachine.
 func (p *SMLine) migratePresent(ctx smachine.MigrationContext) smachine.StateUpdate {
 	p.sd.disableAccess()
 
-	ctx.SetDefaultMigration(p.migratePast)
+	ctx.SetDefaultMigration(nil)
 	return ctx.Jump(p.stepFinalize)
 }
 
-func (p *SMLine) migratePast(ctx smachine.MigrationContext) smachine.StateUpdate {
-	return ctx.Stop()
-}
-
 func (p *SMLine) stepFinalize(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	// TODO some finalization for lines?
 	return ctx.Stop()
 }
 

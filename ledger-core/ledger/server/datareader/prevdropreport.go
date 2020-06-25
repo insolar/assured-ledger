@@ -13,7 +13,11 @@ type PrevDropReport struct {
 	ReportRec *rms.RPrevDropReport
 }
 
-func (p PrevDropReport) Equal(other PrevDropReport) bool {
+func (v PrevDropReport) IsZero() bool {
+	return v.ReportRec == nil
+}
+
+func (v PrevDropReport) Equal(other PrevDropReport) bool {
 
 }
 
