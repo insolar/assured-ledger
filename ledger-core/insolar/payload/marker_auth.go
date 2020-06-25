@@ -58,3 +58,11 @@ func (m *VDelegatedCallResponse) customSubject() (Reference, authSubjectMode) {
 func (m *VDelegatedRequestFinished) customSubject() (Reference, authSubjectMode) {
 	return m.GetCallee(), hasAuthSubject
 }
+
+func (m *VFindCallRequest) customSubject() (Reference, authSubjectMode) {
+	return m.GetCallee(), hasAuthSubject
+}
+
+func (m *VFindCallResponse) customSubject() (Reference, authSubjectMode) {
+	return m.GetCallee(), hasAuthSubjectForPrevPulse
+}
