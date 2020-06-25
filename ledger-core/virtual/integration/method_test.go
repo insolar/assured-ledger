@@ -69,14 +69,14 @@ func Method_PrepareObject(ctx context.Context, server *utils.Server, state paylo
 	server.WaitActiveThenIdleConveyor()
 }
 
-func tolerableState() contract.MethodIsolation {
+func tolerableFlags() contract.MethodIsolation {
 	return contract.MethodIsolation{
 		Interference: contract.CallTolerable,
 		State:        contract.CallDirty,
 	}
 }
 
-func intolerableState() contract.MethodIsolation {
+func intolerableFlags() contract.MethodIsolation {
 	return contract.MethodIsolation{
 		Interference: contract.CallIntolerable,
 		State:        contract.CallDirty,
@@ -363,20 +363,30 @@ func TestVirtual_CallMethodAfterPulseChange(t *testing.T) {
 
 // ordered A.Foo calls ordered B.Bar
 // ordered A.Foo calls unordered B.Bar
+// unordered A.Foo calls unordered B.Bar
 func TestVirtual_CallContractFromContract_Ordered(t *testing.T) {
 	table := []struct {
 		name   string
 		caseId string
-		stateB contract.MethodIsolation
+		flagsA contract.MethodIsolation
+		flagsB contract.MethodIsolation
 	}{
 		{
 			name:   "ordered A.Foo calls ordered B.Bar",
 			caseId: "C5086",
-			stateB: tolerableState(),
+			flagsA: tolerableFlags(),
+			flagsB: tolerableFlags(),
 		}, {
 			name:   "ordered A.Foo calls unordered B.Bar",
 			caseId: "C5087",
-			stateB: intolerableState(),
+			flagsA: tolerableFlags(),
+			flagsB: intolerableFlags(),
+		},
+		{
+			name:   "unordered A.Foo calls unordered B.Bar",
+			caseId: "C5140",
+			flagsA: intolerableFlags(),
+			flagsB: intolerableFlags(),
 		},
 	}
 	for _, test := range table {
@@ -439,8 +449,8 @@ func TestVirtual_CallContractFromContract_Ordered(t *testing.T) {
 				},
 			)
 
-			runnerMock.AddExecutionClassify("Foo", tolerableState(), nil)
-			runnerMock.AddExecutionClassify("Bar", test.stateB, nil)
+			runnerMock.AddExecutionClassify("Foo", test.flagsA, nil)
+			runnerMock.AddExecutionClassify("Bar", test.flagsB, nil)
 
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 			typedChecker.VCallRequest.SetResend(true).ExpectedCount(1)
@@ -457,7 +467,7 @@ func TestVirtual_CallContractFromContract_Ordered(t *testing.T) {
 
 			pl := payload.VCallRequest{
 				CallType:            payload.CTMethod,
-				CallFlags:           payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+				CallFlags:           payload.BuildCallFlags(test.flagsA.Interference, test.flagsA.State),
 				Caller:              server.GlobalCaller(),
 				Callee:              objectAGlobal,
 				CallSiteDeclaration: class,
@@ -489,11 +499,11 @@ func TestVirtual_Call_UnorderedMethod_From_OrderedMethod(t *testing.T) {
 		{
 			name:        "ordered A.Foo calls unordered A.Bar",
 			caseId:      "C5116",
-			stateSender: tolerableState(),
+			stateSender: tolerableFlags(),
 		}, {
 			name:        "unordered A.Foo calls unordered A.Bar",
 			caseId:      "C5122",
-			stateSender: intolerableState(),
+			stateSender: intolerableFlags(),
 		},
 	}
 	for _, test := range table {
@@ -552,7 +562,7 @@ func TestVirtual_Call_UnorderedMethod_From_OrderedMethod(t *testing.T) {
 			)
 
 			runnerMock.AddExecutionClassify("Foo", test.stateSender, nil)
-			runnerMock.AddExecutionClassify("Bar", intolerableState(), nil)
+			runnerMock.AddExecutionClassify("Bar", intolerableFlags(), nil)
 
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 			typedChecker.VCallRequest.SetResend(true).ExpectedCount(1)
@@ -591,6 +601,7 @@ func TestVirtual_Call_UnorderedMethod_From_OrderedMethod(t *testing.T) {
 }
 
 // A.New calls ordered B.Foo
+// A.New calls unordered B.Foo
 func TestVirtual_CallMethodFromConstructor_Ordered(t *testing.T) {
 	table := []struct {
 		name   string
@@ -600,11 +611,11 @@ func TestVirtual_CallMethodFromConstructor_Ordered(t *testing.T) {
 		{
 			name:   "A.New calls ordered B.Foo",
 			caseId: "C5091",
-			stateB: tolerableState(),
+			stateB: tolerableFlags(),
 		}, {
 			name:   "A.New calls unordered B.Foo",
 			caseId: "C5092",
-			stateB: intolerableState(),
+			stateB: intolerableFlags(),
 		},
 	}
 	for _, test := range table {
