@@ -186,7 +186,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 			expectedError:                 true,
 		},
 		{
-			name:                          "wrong call interference flag: expected intolerable, get tolerable",
+			name:                          "wrong call interference flag_expected intolerable, get tolerable",
 			testRailCase:                  "C4989",
 			PendingRequestTable:           object.NewRequestTable(),
 			requestRef:                    reference.NewSelf(gen.UniqueLocalRefWithPulse(pulse.OfNow())),
@@ -196,7 +196,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 			expectedError:                 true,
 		},
 		{
-			name:                        "wrong call interference flag: expected tolerable, get intolerable",
+			name:                        "wrong call interference flag_expected tolerable, get intolerable",
 			testRailCase:                "C5128",
 			PendingRequestTable:         object.NewRequestTable(),
 			requestRef:                  reference.NewSelf(gen.UniqueLocalRefWithPulse(pulse.OfNow())),
