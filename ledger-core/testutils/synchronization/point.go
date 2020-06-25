@@ -77,6 +77,6 @@ func NewPoint(count int) *Point {
 		count: count,
 
 		input:  make(chan struct{}, count),
-		output: make(chan struct{}, 0),
+		output: make(chan struct{}),
 	}
 }
