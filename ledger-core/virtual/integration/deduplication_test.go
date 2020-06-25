@@ -159,12 +159,11 @@ func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 	server.Init(ctx)
 
 	p1 := server.GetPulse().PulseNumber
+	server.IncrementPulseAndWaitIdle(ctx)
 
 	outgoing := server.RandomLocalWithPulse()
 	class := gen.UniqueGlobalRef()
 	object := gen.UniqueGlobalRef()
-
-	server.IncrementPulseAndWaitIdle(ctx)
 
 	report := &payload.VStateReport{
 		Status: payload.Ready,
