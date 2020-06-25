@@ -48,6 +48,15 @@ func (v SharedDataLink) IsUnbound() bool {
 	return v.link.s == nil
 }
 
+// Data is unbound / can't be invalidated and is always available.
+func (v SharedDataLink) IsDirectAccess() bool {
+	return v.IsUnbound() || v.isDirect()
+}
+
+func (v SharedDataLink) isDirect() bool {
+	return v.flags&ShareDataDirect != 0
+}
+
 func (v SharedDataLink) isOwnedBy(local *Slot) bool {
 	return v.link.s == nil || v.link.s == local
 }
@@ -60,7 +69,7 @@ func (v SharedDataLink) getData() interface{} {
 func (v SharedDataLink) getDataAndMachine() (*SlotMachine, interface{}) {
 	m := v.link.getActiveMachine()
 	if _, ok := v.data.(*uniqueSharedKey); ok {
-		if v.IsUnbound() || v.flags&ShareDataDirect != 0 { // shouldn't happen
+		if v.IsDirectAccess() { // shouldn't happen
 			panic("impossible")
 		}
 		if m != nil {
@@ -106,12 +115,26 @@ func (v SharedDataLink) IsAssignableTo(t interface{}) bool {
 // Panics when the underlying data is of a different type
 func (v SharedDataLink) EnsureType(t reflect.Type) {
 	if v.data == nil {
-		panic("illegal state")
+		panic(throw.IllegalState())
 	}
 	dt := reflect.TypeOf(v.data)
 	if !dt.AssignableTo(t) {
 		panic(fmt.Sprintf("type mismatch: actual=%v expected=%v", dt, t))
 	}
+}
+
+func (v SharedDataLink) TryDirectAccess() interface{} {
+	switch {
+	case v.data == nil:
+		panic(throw.IllegalState())
+	case v.IsUnbound():
+		return v.data
+	case v.isDirect():
+		if v.link.IsValid() {
+			return v.data
+		}
+	}
+	return nil
 }
 
 // Creates an accessor that will apply the given function to the shared data.
@@ -136,6 +159,16 @@ func (v SharedDataAccessor) IsZero() bool {
 // Convenience wrapper of ExecutionContext.UseShared()
 func (v SharedDataAccessor) TryUse(ctx ExecutionContext) SharedAccessReport {
 	return ctx.UseShared(v)
+}
+
+func (v SharedDataAccessor) TryUseDirectAccess() SharedAccessReport {
+	switch v.accessByOwner(nil) {
+	case Passed:
+		return SharedSlotAvailableAlways
+	case Impossible:
+		return SharedSlotAbsent
+	}
+	return SharedSlotRemoteBusy
 }
 
 func (v SharedDataAccessor) accessByOwner(local *Slot) Decision {

@@ -37,6 +37,7 @@ type SlotMachineConfig struct {
 
 type SlotAliasRegistry interface {
 	PublishAlias(key interface{}, slot SlotAliasValue) bool
+	ReplaceAlias(key interface{}, slot SlotAliasValue)
 	UnpublishAlias(key interface{})
 	GetPublishedAlias(key interface{}) SlotAliasValue
 }

@@ -8,6 +8,7 @@ package requests
 import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/datawriter"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/inspectsvc"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -35,7 +36,7 @@ type SMRegisterRecordSet struct {
 	hasMissings  bool
 
 	// results
-	updated     *datawriter.Future
+	updated     *buildersvc.Future
 }
 
 func (p *SMRegisterRecordSet) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
