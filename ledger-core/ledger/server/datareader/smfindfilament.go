@@ -8,6 +8,7 @@ package datareader
 import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 <<<<<<< HEAD
+<<<<<<< HEAD
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lineage"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -31,6 +32,8 @@ func (p *SMFindRecord) GetInitStateFor(smachine.StateMachine) smachine.InitFunc 
 
 func (p *SMFindRecord) stepInit(ctx smachine.InitializationContext) smachine.StateUpdate {
 =======
+=======
+>>>>>>> SMs
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -52,6 +55,9 @@ func (p *SMFindFilament) GetInitStateFor(smachine.StateMachine) smachine.InitFun
 }
 
 func (p *SMFindFilament) stepInit(ctx smachine.InitializationContext) smachine.StateUpdate {
+<<<<<<< HEAD
+>>>>>>> SMs
+=======
 >>>>>>> SMs
 	panic(throw.NotImplemented()) // TODO
 }
