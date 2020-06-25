@@ -355,7 +355,7 @@ type deduplicateMethodUsingPrevVETestInfo struct {
 
 func TestDeduplication_MethodUsingPrevVE(t *testing.T) {
 	t.Log("C5097")
-	t.Skip("https://insolar.atlassian.net/browse/PLAT-389")
+	t.Skip("https://insolar.atlassian.net/browse/PLAT-390")
 
 	table := []deduplicateMethodUsingPrevVETestInfo{
 		{

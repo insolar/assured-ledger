@@ -404,10 +404,10 @@ func (s *SMExecute) stepDeduplicateUsingPendingsTable(ctx smachine.ExecutionCont
 	return ctx.Jump(s.stepDeduplicateThroughPreviousExecutor)
 }
 
-type deduplicationBargeIn struct {
-	lookAt   pulse.Number
-	callee   reference.Global
-	outgoing reference.Global
+type DeduplicationBargeInKey struct {
+	LookAt   pulse.Number // TODO fill it correctly
+	Callee   reference.Global
+	Outgoing reference.Global
 }
 
 func (s *SMExecute) stepDeduplicateThroughPreviousExecutor(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -429,10 +429,9 @@ func (s *SMExecute) stepDeduplicateThroughPreviousExecutor(ctx smachine.Executio
 		}
 	})
 
-	bargeInKey := deduplicationBargeIn{
-		lookAt:   msg.LookAt,
-		callee:   msg.Callee,
-		outgoing: msg.Outgoing,
+	bargeInKey := DeduplicationBargeInKey{
+		Callee:   msg.Callee,
+		Outgoing: msg.Outgoing,
 	}
 
 	if !ctx.PublishGlobalAliasAndBargeIn(bargeInKey, bargeInCallback) {

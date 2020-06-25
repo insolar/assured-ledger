@@ -319,14 +319,14 @@ func TestSMExecute_DeduplicateThroughPreviousExecutor(t *testing.T) {
 			}).
 			PublishGlobalAliasAndBargeInMock.Set(
 			func(key interface{}, handler smachine.BargeInHolder) (b1 bool) {
-				res, ok := key.(deduplicationBargeIn)
+				res, ok := key.(DeduplicationBargeInKey)
 				if !ok {
 					panic("Unexpected message type")
 				}
 
-				require.Equal(t, smExecute.Payload.CallOutgoing.GetPulseNumber(), res.lookAt)
-				require.Equal(t, smExecute.execution.Outgoing, res.outgoing)
-				require.Equal(t, smExecute.execution.Object, res.callee)
+				require.Equal(t, smExecute.Payload.CallOutgoing.GetPulseNumber(), res.LookAt)
+				require.Equal(t, smExecute.execution.Outgoing, res.Outgoing)
+				require.Equal(t, smExecute.execution.Object, res.Callee)
 
 				return true
 			}).SleepMock.Set(

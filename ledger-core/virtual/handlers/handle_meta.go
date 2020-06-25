@@ -107,6 +107,8 @@ func (f FactoryMeta) Process(msg *statemachine.DispatcherMessage, pr pulse.Range
 			return targetPulse, &SMVDelegatedCallRequest{Meta: payloadMeta, Payload: obj}
 		case *payload.VDelegatedCallResponse:
 			return targetPulse, &SMVDelegatedCallResponse{Meta: payloadMeta, Payload: obj}
+		case *payload.VFindCallResponse:
+			return targetPulse, &SMVFindCallResponse{Meta: payloadMeta, Payload: obj}
 		default:
 			logger.Warn(errNoHandler{messageTypeID: payloadTypeID, messageType: payloadType})
 			return 0, nil
