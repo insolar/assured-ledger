@@ -11,7 +11,7 @@ kubeparams:
   bootstrapconfigrelpath: manifests/configuration/
   leaveinsolaraliveiffailed: true
   prometheus:
-    enabled: true
+    enabled: false
     manifestsrelpath: prometheus/
   logcollector:
     enabled: true
@@ -19,8 +19,6 @@ kubeparams:
 
 metricparams:
   quantiles: ["0.5", "0.8", "0.95", "0.99"]
-  prometheus:
-    host: "http://localhost/prometheus"
   webdav:
     timeout: "1m"
 #    host: "https://example.com"
