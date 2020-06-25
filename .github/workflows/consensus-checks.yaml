@@ -94,4 +94,4 @@ jobs:
           path: ${{ env.CORE_PATH }}/kube-nodes-output.tgz
       - name: cleanup
         if: always()
-        run: kubectl delete ns ${{fromJson(steps.set-vars.outputs.result).shortSha}}--ignore-not-found=true
+        run: kubectl delete ns ${{fromJson(steps.set-vars.outputs.result).shortSha}} --ignore-not-found=true
