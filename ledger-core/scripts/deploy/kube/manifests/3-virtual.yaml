@@ -85,6 +85,7 @@ spec:
               readOnly: true
             - name: certs-data
               mountPath: /etc/insolar/certs
+              readOnly: true
       volumes:
         - name: virtual-config
           configMap:
