@@ -56,7 +56,7 @@ func (p *AsyncCounter) AfterPositiveToZero(event debuglogger.UpdateEvent) bool {
 	return x > 0 && p.Count() == 0
 }
 
-func AfterAsyncCall(id smachine.AdapterID) func(debuglogger.UpdateEvent) bool {
+func AfterAsyncCall(id smachine.AdapterID) Func {
 	return func(event debuglogger.UpdateEvent) bool {
 		switch {
 		case event.Data.EventType != smachine.StepLoggerAdapterCall:
@@ -69,7 +69,7 @@ func AfterAsyncCall(id smachine.AdapterID) func(debuglogger.UpdateEvent) bool {
 	}
 }
 
-func AfterResultOfFirstAsyncCall(id smachine.AdapterID) func(debuglogger.UpdateEvent) bool {
+func AfterResultOfFirstAsyncCall(id smachine.AdapterID) Func {
 	hasCall := false
 	callID := uint64(0)
 	return func(event debuglogger.UpdateEvent) bool {
