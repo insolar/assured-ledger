@@ -143,6 +143,7 @@ func (p *PulseConveyor) AddInput(ctx context.Context, pn pulse.Number, event Inp
 type errMissingPN struct {
 	PN      pulse.Number
 	RemapPN pulse.Number `opt:""`
+	State   PulseSlotState `opt:""`
 }
 
 func (p *PulseConveyor) AddInputExt(ctx context.Context, pn pulse.Number, event InputEvent,
@@ -192,7 +193,7 @@ func (p *PulseConveyor) AddInputExt(ctx context.Context, pn pulse.Number, event 
 
 	case pulseState == Past:
 		if !p.pdm.TouchPulseData(targetPN) { // make sure - for PAST must always have the data
-			return throw.E("unknown data for past pulse", errMissingPN{PN: targetPN})
+			return throw.E("unknown data for pulse", errMissingPN{PN: targetPN, State: pulseState})
 		}
 
 		_, addedOk = pulseSlotMachine.innerMachine.AddNewByFunc(ctx, createFn, createDefaults)
@@ -225,13 +226,13 @@ func (p *PulseConveyor) AddInputExt(ctx context.Context, pn pulse.Number, event 
 		fallthrough
 
 	case !p.pdm.TouchPulseData(targetPN): // make sure - for PRESENT we must always have the data
-		return throw.E("unknown data for present pulse", errMissingPN{PN: targetPN})
+		return throw.E("unknown data for pulse", errMissingPN{PN: targetPN, State: pulseState})
 	default:
 		_, addedOk = pulseSlotMachine.innerMachine.AddNewByFunc(ctx, createFn, createDefaults)
 	}
 
 	if !addedOk {
-		return throw.E("ignored event", errMissingPN{PN: targetPN})
+		return throw.E("ignored event", errMissingPN{PN: targetPN, State: pulseState})
 	}
 
 	return nil
