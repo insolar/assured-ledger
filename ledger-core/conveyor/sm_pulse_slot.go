@@ -16,6 +16,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type PulseSlotConfig struct {
@@ -74,7 +75,7 @@ func (p *PulseSlotMachine) SlotLink() smachine.SlotLink {
 /* ================ Conveyor control ================== */
 
 func (p *PulseSlotMachine) activate(workerCtx context.Context,
-	addFn func(context.Context, smachine.StateMachine, smachine.CreateDefaultValues) smachine.SlotLink,
+	addFn func(context.Context, smachine.StateMachine, smachine.CreateDefaultValues) (smachine.SlotLink, bool),
 ) {
 	if !p.selfLink.IsZero() {
 		panic("illegal state")
@@ -83,7 +84,12 @@ func (p *PulseSlotMachine) activate(workerCtx context.Context,
 		p.innerMachine.AddDependency(&p.pulseSlot)
 	}
 
-	p.selfLink = addFn(workerCtx, p, smachine.CreateDefaultValues{TerminationHandler: p.onTerminate})
+	ok := false
+	p.selfLink, ok = addFn(workerCtx, p, smachine.CreateDefaultValues{TerminationHandler: p.onTerminate})
+	if !ok {
+		p.onTerminate(smachine.TerminationData{})
+		panic(throw.IllegalState())
+	}
 }
 
 func (p *PulseSlotMachine) setFuture(pd pulse.Data) {
@@ -223,6 +229,11 @@ func (p *PulseSlotMachine) preparePulseChange(ctx smachine.BargeInContext, _ Pre
 	// HERE - initiate state calculations
 	// =================
 
+	if !isSlotInitialized(ctx) {
+		// direct barge-in has arrived BEFORE completion of init step
+		// in this case we won't touch the slot
+		return ctx.Stay()
+	}
 	return ctx.JumpExt(smachine.SlotStep{Transition: p.stepPreparingChange, Flags: smachine.StepPriority})
 }
 
@@ -240,8 +251,21 @@ func (p *PulseSlotMachine) stepPreparingChange(ctx smachine.ExecutionContext) sm
 	return ctx.WaitAny().ThenRepeat()
 }
 
+// WARNING! this check doesn't cover the case of <replace_init>, but it is not a case here
+func isSlotInitialized(ctx smachine.BasicContext) bool {
+	sl, _ := ctx.SlotLink().GetStepLink()
+	return sl.StepNo() > 1
+}
+
 // Conveyor direct barge-in
 func (p *PulseSlotMachine) cancelPulseChange(ctx smachine.BargeInContext) smachine.StateUpdate {
+
+	if !isSlotInitialized(ctx) {
+		// direct barge-in has arrived BEFORE completion of init step
+		// in this case we won't touch the slot
+		return ctx.Stay()
+	}
+
 	return ctx.JumpExt(smachine.SlotStep{Transition: p.stepPresentLoop, Flags: smachine.StepPriority})
 }
 
