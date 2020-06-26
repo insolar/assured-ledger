@@ -34,6 +34,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/convlog"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/mock"
@@ -166,6 +167,7 @@ func newServerExt(ctx context.Context, t *testing.T, errorFilterFn logcommon.Err
 	virtualDispatcher.Runner = runnerService
 	virtualDispatcher.MessageSender = messageSender
 	virtualDispatcher.Affinity = s.JetCoordinatorMock
+	virtualDispatcher.AuthenticationService = authentication.NewService(ctx, virtualDispatcher.Affinity)
 
 	virtualDispatcher.CycleFn = s.onConveyorCycle
 	virtualDispatcher.EventlessSleep = -1 // disable EventlessSleep for proper WaitActiveThenIdleConveyor behavior
@@ -245,6 +247,10 @@ func (s *Server) ReplaceMachinesManager(manager machine.Manager) {
 
 func (s *Server) ReplaceCache(cache descriptor.Cache) {
 	s.Runner.Cache = cache
+}
+
+func (s *Server) ReplaceAuthenticationService(svc authentication.Service) {
+	s.virtual.AuthenticationService = svc
 }
 
 func (s *Server) AddInput(ctx context.Context, msg interface{}) error {

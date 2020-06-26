@@ -588,7 +588,6 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 		s.execution.Sequence++
 		s.outgoing.CallSequence = s.execution.Sequence
 		s.outgoingObject = reference.NewSelf(s.outgoing.CallOutgoing)
-		s.outgoing.DelegationSpec = s.getToken()
 	case execution.CallMethod:
 		if s.intolerableCall() && outgoing.Interference() == contract.CallTolerable {
 			err := throw.E("interference violation: ordered call from unordered call")
@@ -602,7 +601,6 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 		s.execution.Sequence++
 		s.outgoing.CallSequence = s.execution.Sequence
 		s.outgoingObject = s.outgoing.Callee
-		s.outgoing.DelegationSpec = s.getToken()
 	default:
 		panic(throw.IllegalValue())
 	}
@@ -642,6 +640,8 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 	} else {
 		s.outgoing.CallRequestFlags = payload.BuildCallRequestFlags(payload.SendResultDefault, payload.RepeatedCall)
 	}
+
+	s.outgoing.DelegationSpec = s.getToken()
 
 	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
 		err := svc.SendRole(goCtx, s.outgoing, node.DynamicRoleVirtualExecutor, s.outgoingObject, s.pulseSlot.CurrentPulseNumber())
