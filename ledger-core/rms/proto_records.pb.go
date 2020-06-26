@@ -350,66 +350,450 @@ func (m *RPrevDropReport) GetFieldMap() *insproto.FieldMap {
 	return nil
 }
 
+type RLineActivate struct {
+	FieldMap *insproto.FieldMap `protobuf:"bytes,19999,opt,name=FieldMap,proto3" json:"FieldMap,omitempty"`
+}
+
+func (m *RLineActivate) Reset()         { *m = RLineActivate{} }
+func (m *RLineActivate) String() string { return proto.CompactTextString(m) }
+func (*RLineActivate) ProtoMessage()    {}
+func (*RLineActivate) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f41a5838de60d5c2, []int{4}
+}
+func (m *RLineActivate) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *RLineActivate) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *RLineActivate) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RLineActivate.Merge(m, src)
+}
+func (m *RLineActivate) XXX_Size() int {
+	return m.ProtoSize()
+}
+func (m *RLineActivate) XXX_DiscardUnknown() {
+	xxx_messageInfo_RLineActivate.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RLineActivate proto.InternalMessageInfo
+
+func (m *RLineActivate) GetFieldMap() *insproto.FieldMap {
+	if m != nil {
+		return m.FieldMap
+	}
+	return nil
+}
+
+type RLineDeactivate struct {
+	FieldMap *insproto.FieldMap `protobuf:"bytes,19999,opt,name=FieldMap,proto3" json:"FieldMap,omitempty"`
+}
+
+func (m *RLineDeactivate) Reset()         { *m = RLineDeactivate{} }
+func (m *RLineDeactivate) String() string { return proto.CompactTextString(m) }
+func (*RLineDeactivate) ProtoMessage()    {}
+func (*RLineDeactivate) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f41a5838de60d5c2, []int{5}
+}
+func (m *RLineDeactivate) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *RLineDeactivate) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *RLineDeactivate) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RLineDeactivate.Merge(m, src)
+}
+func (m *RLineDeactivate) XXX_Size() int {
+	return m.ProtoSize()
+}
+func (m *RLineDeactivate) XXX_DiscardUnknown() {
+	xxx_messageInfo_RLineDeactivate.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RLineDeactivate proto.InternalMessageInfo
+
+func (m *RLineDeactivate) GetFieldMap() *insproto.FieldMap {
+	if m != nil {
+		return m.FieldMap
+	}
+	return nil
+}
+
+type RLineMemory struct {
+	Polymorph  uint32 `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph"`
+	RecordBody `protobuf:"bytes,19,opt,name=RecordBody,proto3,embedded=RecordBody" json:"RecordBody"`
+	FieldMap   *insproto.FieldMap `protobuf:"bytes,19999,opt,name=FieldMap,proto3" json:"FieldMap,omitempty"`
+}
+
+func (m *RLineMemory) Reset()         { *m = RLineMemory{} }
+func (m *RLineMemory) String() string { return proto.CompactTextString(m) }
+func (*RLineMemory) ProtoMessage()    {}
+func (*RLineMemory) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f41a5838de60d5c2, []int{6}
+}
+func (m *RLineMemory) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *RLineMemory) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *RLineMemory) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RLineMemory.Merge(m, src)
+}
+func (m *RLineMemory) XXX_Size() int {
+	return m.ProtoSize()
+}
+func (m *RLineMemory) XXX_DiscardUnknown() {
+	xxx_messageInfo_RLineMemory.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RLineMemory proto.InternalMessageInfo
+
+func (m *RLineMemory) GetPolymorph() uint32 {
+	if m != nil {
+		return m.Polymorph
+	}
+	return 0
+}
+
+func (m *RLineMemory) GetFieldMap() *insproto.FieldMap {
+	if m != nil {
+		return m.FieldMap
+	}
+	return nil
+}
+
+type RLineMemoryReuse struct {
+	FieldMap *insproto.FieldMap `protobuf:"bytes,19999,opt,name=FieldMap,proto3" json:"FieldMap,omitempty"`
+}
+
+func (m *RLineMemoryReuse) Reset()         { *m = RLineMemoryReuse{} }
+func (m *RLineMemoryReuse) String() string { return proto.CompactTextString(m) }
+func (*RLineMemoryReuse) ProtoMessage()    {}
+func (*RLineMemoryReuse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f41a5838de60d5c2, []int{7}
+}
+func (m *RLineMemoryReuse) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *RLineMemoryReuse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *RLineMemoryReuse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RLineMemoryReuse.Merge(m, src)
+}
+func (m *RLineMemoryReuse) XXX_Size() int {
+	return m.ProtoSize()
+}
+func (m *RLineMemoryReuse) XXX_DiscardUnknown() {
+	xxx_messageInfo_RLineMemoryReuse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RLineMemoryReuse proto.InternalMessageInfo
+
+func (m *RLineMemoryReuse) GetFieldMap() *insproto.FieldMap {
+	if m != nil {
+		return m.FieldMap
+	}
+	return nil
+}
+
+type RLineMemoryExpected struct {
+	FieldMap *insproto.FieldMap `protobuf:"bytes,19999,opt,name=FieldMap,proto3" json:"FieldMap,omitempty"`
+}
+
+func (m *RLineMemoryExpected) Reset()         { *m = RLineMemoryExpected{} }
+func (m *RLineMemoryExpected) String() string { return proto.CompactTextString(m) }
+func (*RLineMemoryExpected) ProtoMessage()    {}
+func (*RLineMemoryExpected) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f41a5838de60d5c2, []int{8}
+}
+func (m *RLineMemoryExpected) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *RLineMemoryExpected) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *RLineMemoryExpected) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RLineMemoryExpected.Merge(m, src)
+}
+func (m *RLineMemoryExpected) XXX_Size() int {
+	return m.ProtoSize()
+}
+func (m *RLineMemoryExpected) XXX_DiscardUnknown() {
+	xxx_messageInfo_RLineMemoryExpected.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RLineMemoryExpected proto.InternalMessageInfo
+
+func (m *RLineMemoryExpected) GetFieldMap() *insproto.FieldMap {
+	if m != nil {
+		return m.FieldMap
+	}
+	return nil
+}
+
+type RLineInboundRequest struct {
+	FieldMap *insproto.FieldMap `protobuf:"bytes,19999,opt,name=FieldMap,proto3" json:"FieldMap,omitempty"`
+}
+
+func (m *RLineInboundRequest) Reset()         { *m = RLineInboundRequest{} }
+func (m *RLineInboundRequest) String() string { return proto.CompactTextString(m) }
+func (*RLineInboundRequest) ProtoMessage()    {}
+func (*RLineInboundRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f41a5838de60d5c2, []int{9}
+}
+func (m *RLineInboundRequest) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *RLineInboundRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *RLineInboundRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RLineInboundRequest.Merge(m, src)
+}
+func (m *RLineInboundRequest) XXX_Size() int {
+	return m.ProtoSize()
+}
+func (m *RLineInboundRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_RLineInboundRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RLineInboundRequest proto.InternalMessageInfo
+
+func (m *RLineInboundRequest) GetFieldMap() *insproto.FieldMap {
+	if m != nil {
+		return m.FieldMap
+	}
+	return nil
+}
+
+type RInboundRequest struct {
+	FieldMap *insproto.FieldMap `protobuf:"bytes,19999,opt,name=FieldMap,proto3" json:"FieldMap,omitempty"`
+}
+
+func (m *RInboundRequest) Reset()         { *m = RInboundRequest{} }
+func (m *RInboundRequest) String() string { return proto.CompactTextString(m) }
+func (*RInboundRequest) ProtoMessage()    {}
+func (*RInboundRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f41a5838de60d5c2, []int{10}
+}
+func (m *RInboundRequest) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *RInboundRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *RInboundRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RInboundRequest.Merge(m, src)
+}
+func (m *RInboundRequest) XXX_Size() int {
+	return m.ProtoSize()
+}
+func (m *RInboundRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_RInboundRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RInboundRequest proto.InternalMessageInfo
+
+func (m *RInboundRequest) GetFieldMap() *insproto.FieldMap {
+	if m != nil {
+		return m.FieldMap
+	}
+	return nil
+}
+
+type RInboundResponse struct {
+	FieldMap *insproto.FieldMap `protobuf:"bytes,19999,opt,name=FieldMap,proto3" json:"FieldMap,omitempty"`
+}
+
+func (m *RInboundResponse) Reset()         { *m = RInboundResponse{} }
+func (m *RInboundResponse) String() string { return proto.CompactTextString(m) }
+func (*RInboundResponse) ProtoMessage()    {}
+func (*RInboundResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f41a5838de60d5c2, []int{11}
+}
+func (m *RInboundResponse) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *RInboundResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *RInboundResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RInboundResponse.Merge(m, src)
+}
+func (m *RInboundResponse) XXX_Size() int {
+	return m.ProtoSize()
+}
+func (m *RInboundResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_RInboundResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RInboundResponse proto.InternalMessageInfo
+
+func (m *RInboundResponse) GetFieldMap() *insproto.FieldMap {
+	if m != nil {
+		return m.FieldMap
+	}
+	return nil
+}
+
+type ROutboundResponse struct {
+	FieldMap *insproto.FieldMap `protobuf:"bytes,19999,opt,name=FieldMap,proto3" json:"FieldMap,omitempty"`
+}
+
+func (m *ROutboundResponse) Reset()         { *m = ROutboundResponse{} }
+func (m *ROutboundResponse) String() string { return proto.CompactTextString(m) }
+func (*ROutboundResponse) ProtoMessage()    {}
+func (*ROutboundResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f41a5838de60d5c2, []int{12}
+}
+func (m *ROutboundResponse) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *ROutboundResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *ROutboundResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ROutboundResponse.Merge(m, src)
+}
+func (m *ROutboundResponse) XXX_Size() int {
+	return m.ProtoSize()
+}
+func (m *ROutboundResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_ROutboundResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ROutboundResponse proto.InternalMessageInfo
+
+func (m *ROutboundResponse) GetFieldMap() *insproto.FieldMap {
+	if m != nil {
+		return m.FieldMap
+	}
+	return nil
+}
+
 func init() {
 	proto.RegisterEnum("rms.LineState", LineState_name, LineState_value)
 	proto.RegisterType((*RecordExample)(nil), "rms.RecordExample")
 	proto.RegisterType((*ROutboundRequest)(nil), "rms.ROutboundRequest")
 	proto.RegisterType((*RLineRecap)(nil), "rms.RLineRecap")
 	proto.RegisterType((*RPrevDropReport)(nil), "rms.RPrevDropReport")
+	proto.RegisterType((*RLineActivate)(nil), "rms.RLineActivate")
+	proto.RegisterType((*RLineDeactivate)(nil), "rms.RLineDeactivate")
+	proto.RegisterType((*RLineMemory)(nil), "rms.RLineMemory")
+	proto.RegisterType((*RLineMemoryReuse)(nil), "rms.RLineMemoryReuse")
+	proto.RegisterType((*RLineMemoryExpected)(nil), "rms.RLineMemoryExpected")
+	proto.RegisterType((*RLineInboundRequest)(nil), "rms.RLineInboundRequest")
+	proto.RegisterType((*RInboundRequest)(nil), "rms.RInboundRequest")
+	proto.RegisterType((*RInboundResponse)(nil), "rms.RInboundResponse")
+	proto.RegisterType((*ROutboundResponse)(nil), "rms.ROutboundResponse")
 }
 
 func init() { proto.RegisterFile("proto_records.proto", fileDescriptor_f41a5838de60d5c2) }
 
 var fileDescriptor_f41a5838de60d5c2 = []byte{
-	// 753 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x94, 0x41, 0x6f, 0xe3, 0x44,
-	0x14, 0xc7, 0x33, 0x89, 0xd9, 0x75, 0x26, 0x34, 0x31, 0x93, 0x80, 0xbc, 0x39, 0xd8, 0x55, 0x39,
-	0x10, 0x96, 0x6d, 0x22, 0x16, 0x09, 0x01, 0x42, 0x68, 0x6b, 0xda, 0x95, 0x88, 0x58, 0xb6, 0x9a,
-	0xc2, 0x5e, 0x91, 0x63, 0xbf, 0xa4, 0xa6, 0x8e, 0xc7, 0x8c, 0xc7, 0xa5, 0xe1, 0x00, 0xf9, 0x08,
-	0x15, 0x48, 0x48, 0x8d, 0x90, 0xe8, 0x11, 0x71, 0xe4, 0x13, 0xf4, 0x58, 0x89, 0x4b, 0x2f, 0x48,
-	0x39, 0xa0, 0x0a, 0x92, 0x0b, 0x12, 0xdf, 0xa0, 0x17, 0x90, 0xc7, 0x4e, 0x1a, 0x4a, 0x5b, 0x89,
-	0x4a, 0x3d, 0xc5, 0xef, 0xbd, 0xdf, 0xff, 0xbd, 0x99, 0xf7, 0xb7, 0x83, 0xab, 0x21, 0x67, 0x82,
-	0x7d, 0xca, 0xc1, 0x61, 0xdc, 0x8d, 0x9a, 0x32, 0x22, 0x05, 0xde, 0x8f, 0xea, 0xab, 0x3d, 0x4f,
-	0x6c, 0xc7, 0x9d, 0xa6, 0xc3, 0xfa, 0xad, 0x1e, 0xeb, 0xb1, 0x96, 0xac, 0x75, 0xe2, 0xae, 0x8c,
-	0x64, 0x20, 0x9f, 0x52, 0x4d, 0xfd, 0xd1, 0x02, 0xee, 0x05, 0x11, 0xf3, 0x6d, 0xde, 0xb2, 0xa3,
-	0x28, 0xe6, 0xe0, 0xae, 0xfa, 0xe0, 0xf6, 0x80, 0xb7, 0xd2, 0x9f, 0x55, 0x87, 0x71, 0x48, 0x90,
-	0xb4, 0x85, 0x17, 0x64, 0x53, 0xeb, 0x45, 0xde, 0xcf, 0x1e, 0x57, 0x7e, 0xc9, 0xe3, 0x25, 0x2a,
-	0x8f, 0xb4, 0xb1, 0x67, 0xf7, 0x43, 0x1f, 0xc8, 0x0a, 0x2e, 0x6e, 0x32, 0x7f, 0xd0, 0x67, 0x3c,
-	0xdc, 0xd6, 0xb5, 0x65, 0xd4, 0x58, 0xb2, 0x94, 0xe3, 0x53, 0x33, 0x47, 0xcf, 0xd3, 0xe4, 0x6d,
-	0x8c, 0x53, 0x91, 0xc5, 0xdc, 0x81, 0x5e, 0x5d, 0x46, 0x8d, 0xd2, 0xc3, 0x4a, 0x33, 0xe9, 0x7a,
-	0x9e, 0xb6, 0xd4, 0x44, 0x75, 0x72, 0x6a, 0x22, 0xba, 0x00, 0x93, 0x97, 0x71, 0x61, 0x4b, 0x70,
-	0xbd, 0x21, 0x35, 0x25, 0xa9, 0xb1, 0xbc, 0xc0, 0xe6, 0x83, 0x6c, 0x4a, 0x52, 0x25, 0x6f, 0x61,
-	0x85, 0x42, 0xf7, 0x75, 0xfd, 0x55, 0x49, 0x95, 0xb3, 0xce, 0x5d, 0xe0, 0x10, 0x38, 0x60, 0xd5,
-	0x12, 0xf0, 0xec, 0xbb, 0xe5, 0xe7, 0x29, 0x38, 0xf3, 0x2c, 0x95, 0x0a, 0xf2, 0x0a, 0x56, 0xd6,
-	0xa2, 0xa7, 0x5d, 0xfd, 0xbe, 0x3c, 0x78, 0x55, 0x92, 0xa7, 0x66, 0x69, 0x33, 0xf6, 0x23, 0xf8,
-	0x28, 0xee, 0x77, 0x80, 0x53, 0x09, 0x90, 0x07, 0x58, 0x7d, 0xec, 0x81, 0xef, 0x3e, 0xb1, 0x43,
-	0xfd, 0x87, 0xef, 0x91, 0x1c, 0x44, 0x9a, 0xb3, 0x65, 0x35, 0x67, 0x35, 0x79, 0x2a, 0xf4, 0x8e,
-	0x7a, 0x34, 0x36, 0xff, 0xfe, 0xf6, 0xaf, 0xdf, 0x0a, 0x6d, 0x45, 0x45, 0x9a, 0xd6, 0x56, 0xd4,
-	0x17, 0xb4, 0x6a, 0x5b, 0x51, 0x6b, 0x5a, 0xa3, 0x5d, 0x54, 0x87, 0x65, 0x6d, 0x38, 0x1c, 0x0e,
-	0xf3, 0x2b, 0x47, 0x79, 0xac, 0xd1, 0xa7, 0xb1, 0xe8, 0xb0, 0x38, 0x70, 0x29, 0x7c, 0x1e, 0x43,
-	0x24, 0x6e, 0x7b, 0xa1, 0x4d, 0x7c, 0x77, 0x93, 0xc3, 0x2e, 0x85, 0xae, 0xae, 0x5f, 0xba, 0xae,
-	0x74, 0xd8, 0x0c, 0x4a, 0x78, 0xca, 0x98, 0x48, 0xf8, 0x7b, 0xd7, 0xf1, 0x19, 0x44, 0x5e, 0x3a,
-	0x37, 0xac, 0xb8, 0xe8, 0xd1, 0xff, 0x5b, 0xa0, 0x72, 0x34, 0x36, 0x1f, 0xfd, 0x67, 0x79, 0x7a,
-	0x5b, 0x51, 0xeb, 0xff, 0x5e, 0xe1, 0xaf, 0x05, 0x8c, 0xe9, 0x87, 0x5e, 0x00, 0x14, 0x1c, 0x3b,
-	0xbc, 0xf5, 0xdb, 0x3d, 0xc4, 0xc5, 0x64, 0xd8, 0x96, 0xb0, 0x05, 0xc8, 0x3b, 0x96, 0x33, 0xc5,
-	0x3c, 0x3b, 0x33, 0x6b, 0x9e, 0x48, 0x34, 0x96, 0xcf, 0x9c, 0x1d, 0x70, 0xad, 0xc1, 0x15, 0xaf,
-	0x68, 0xa6, 0x99, 0x63, 0xe4, 0x4d, 0x5c, 0x5a, 0xf7, 0xb8, 0x18, 0x3c, 0x81, 0x3e, 0xe3, 0x03,
-	0xf9, 0x7a, 0x5e, 0xa5, 0x5a, 0x04, 0xc9, 0xbb, 0xb8, 0xfc, 0xcc, 0xf6, 0x3d, 0xd7, 0x16, 0x90,
-	0x49, 0x5f, 0xbb, 0x46, 0x7a, 0x81, 0x25, 0xef, 0xe1, 0xca, 0x63, 0x2f, 0xb0, 0x7d, 0xef, 0x4b,
-	0x70, 0x33, 0xf9, 0x83, 0x6b, 0xe4, 0x17, 0xe1, 0x1b, 0x78, 0xbc, 0x26, 0x3d, 0xbe, 0xc4, 0xd7,
-	0x0d, 0x5c, 0xa1, 0x89, 0x49, 0xeb, 0x9c, 0x85, 0x14, 0x42, 0xc6, 0xc5, 0x0d, 0xba, 0x5b, 0xf7,
-	0xf7, 0xd1, 0x82, 0x61, 0xa4, 0x84, 0xef, 0x7e, 0x12, 0xec, 0x04, 0xec, 0x8b, 0x40, 0xcb, 0x25,
-	0xc1, 0x96, 0xb0, 0xb9, 0x00, 0x57, 0x43, 0x64, 0x09, 0x17, 0xd7, 0x1c, 0xe1, 0xed, 0xda, 0x49,
-	0x98, 0x27, 0xf7, 0xf0, 0x8b, 0x73, 0x2f, 0x36, 0xf6, 0x42, 0x70, 0x44, 0x7a, 0x43, 0xad, 0x40,
-	0x74, 0x5c, 0x9b, 0x97, 0x3e, 0x08, 0xe4, 0x97, 0xfb, 0xbe, 0xed, 0xfb, 0x9a, 0x42, 0x6a, 0x58,
-	0x93, 0x56, 0xac, 0x83, 0x3d, 0x6f, 0xf5, 0x15, 0xa9, 0xe0, 0xd2, 0x62, 0xe2, 0x6b, 0xeb, 0xb3,
-	0xe3, 0x3f, 0x0c, 0xf4, 0xe3, 0xc4, 0x40, 0xc7, 0x13, 0x03, 0x9d, 0x4c, 0x0c, 0x34, 0x9e, 0x18,
-	0xe8, 0xf7, 0x89, 0x91, 0xdb, 0x9f, 0x1a, 0xb9, 0xc3, 0xa9, 0x81, 0x4e, 0xa6, 0x46, 0x6e, 0x3c,
-	0x35, 0x72, 0x7f, 0x1e, 0x98, 0xe8, 0xec, 0xc0, 0xbc, 0x93, 0x7e, 0xbc, 0xdf, 0x8c, 0xcc, 0xe7,
-	0x9e, 0x79, 0x91, 0x27, 0x0e, 0x47, 0x26, 0xfa, 0x69, 0x64, 0x12, 0x0a, 0x3d, 0x2f, 0x12, 0xc0,
-	0xd3, 0xf2, 0xc7, 0x83, 0x10, 0x7e, 0x1e, 0x99, 0xd9, 0x9f, 0xb3, 0x04, 0x19, 0xef, 0xdc, 0x91,
-	0xab, 0x79, 0xe3, 0x9f, 0x00, 0x00, 0x00, 0xff, 0xff, 0x13, 0x46, 0x44, 0x3b, 0x4d, 0x06, 0x00,
-	0x00,
+	// 856 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x56, 0x41, 0x6f, 0x1b, 0x45,
+	0x18, 0xf5, 0xc4, 0x4b, 0x6b, 0x8f, 0x49, 0x32, 0x1d, 0xbb, 0xd5, 0xc6, 0xc0, 0x6e, 0x64, 0x0e,
+	0x84, 0xd2, 0x38, 0xa2, 0x48, 0x08, 0x10, 0x42, 0x74, 0x9b, 0x04, 0xd5, 0xa2, 0x34, 0x9a, 0x40,
+	0xaf, 0x68, 0xbd, 0xfb, 0xd9, 0x5d, 0xba, 0xde, 0x59, 0x66, 0x67, 0x4b, 0xcd, 0x01, 0xfc, 0x13,
+	0x2a, 0x90, 0x90, 0x1a, 0x21, 0xd1, 0x23, 0xe2, 0xc8, 0x2f, 0x88, 0xc4, 0x25, 0x12, 0x97, 0x5c,
+	0x90, 0x72, 0x40, 0x11, 0x38, 0x17, 0x24, 0xfe, 0x41, 0x2f, 0xa0, 0x9d, 0x5d, 0x6f, 0xb6, 0xa5,
+	0x8d, 0xb0, 0xab, 0x9c, 0xb2, 0xf3, 0xcd, 0x7b, 0x6f, 0xbe, 0x79, 0x6f, 0x66, 0x62, 0x5c, 0x0f,
+	0x05, 0x97, 0xfc, 0x53, 0x01, 0x0e, 0x17, 0x6e, 0xd4, 0x56, 0x23, 0x5a, 0x16, 0x83, 0xa8, 0xb9,
+	0xda, 0xf7, 0xe4, 0xad, 0xb8, 0xdb, 0x76, 0xf8, 0x60, 0xad, 0xcf, 0xfb, 0x7c, 0x4d, 0xcd, 0x75,
+	0xe3, 0x9e, 0x1a, 0xa9, 0x81, 0xfa, 0x4a, 0x39, 0xcd, 0xf7, 0x0b, 0x70, 0x2f, 0x88, 0xb8, 0x6f,
+	0x8b, 0x35, 0x3b, 0x8a, 0x62, 0x01, 0xee, 0xaa, 0x0f, 0x6e, 0x1f, 0xc4, 0x5a, 0xfa, 0x67, 0xd5,
+	0xe1, 0x02, 0x12, 0x48, 0x2a, 0xe1, 0x05, 0xd9, 0xaa, 0xcd, 0xaa, 0x18, 0x64, 0x9f, 0xad, 0x5f,
+	0xe7, 0xf0, 0x3c, 0x53, 0x2d, 0x6d, 0xdc, 0xb5, 0x07, 0xa1, 0x0f, 0xb4, 0x85, 0xab, 0x5b, 0xdc,
+	0x1f, 0x0e, 0xb8, 0x08, 0x6f, 0xe9, 0x64, 0x19, 0xad, 0xcc, 0x5b, 0xda, 0xde, 0xa1, 0x59, 0x62,
+	0xc7, 0x65, 0xfa, 0x36, 0xc6, 0x29, 0xc9, 0xe2, 0xee, 0x50, 0xaf, 0x2f, 0xa3, 0x95, 0xda, 0xe5,
+	0xc5, 0x76, 0xa2, 0x7a, 0x5c, 0xb6, 0x2a, 0x09, 0x6b, 0xff, 0xd0, 0x44, 0xac, 0x00, 0xa6, 0x2f,
+	0xe3, 0xf2, 0xb6, 0x14, 0xfa, 0x8a, 0xe2, 0xd4, 0x14, 0xc7, 0xf2, 0x02, 0x5b, 0x0c, 0xb3, 0x55,
+	0x92, 0x59, 0xfa, 0x16, 0xd6, 0x18, 0xf4, 0x5e, 0xd7, 0x5f, 0x55, 0xa8, 0x85, 0x4c, 0xb9, 0x07,
+	0x02, 0x02, 0x07, 0xac, 0x46, 0x02, 0x7c, 0xf8, 0xdd, 0xf2, 0xf3, 0x0c, 0x9c, 0xbc, 0xca, 0x14,
+	0x83, 0xbe, 0x82, 0xb5, 0x2b, 0xd1, 0x8d, 0x9e, 0x7e, 0x51, 0x35, 0x5e, 0x57, 0xc8, 0x43, 0xb3,
+	0xb6, 0x15, 0xfb, 0x11, 0x7c, 0x14, 0x0f, 0xba, 0x20, 0x98, 0x02, 0xd0, 0x4b, 0xb8, 0xb2, 0xe9,
+	0x81, 0xef, 0x5e, 0xb7, 0x43, 0xfd, 0x87, 0xef, 0x91, 0x5a, 0x88, 0xb6, 0x27, 0x66, 0xb5, 0x27,
+	0x73, 0xaa, 0x2b, 0xf4, 0x4e, 0x65, 0xf7, 0xc0, 0xfc, 0xe7, 0xdb, 0xbf, 0x7f, 0x2f, 0x77, 0xb4,
+	0x0a, 0x22, 0xa4, 0xa3, 0x55, 0xce, 0x91, 0x7a, 0x47, 0xab, 0x34, 0xc8, 0x4a, 0xa7, 0x5a, 0x19,
+	0x2d, 0x90, 0xd1, 0x68, 0x34, 0x9a, 0x6b, 0xed, 0xce, 0x61, 0xc2, 0x6e, 0xc4, 0xb2, 0xcb, 0xe3,
+	0xc0, 0x65, 0xf0, 0x79, 0x0c, 0x91, 0x3c, 0x6d, 0x43, 0xdb, 0xf8, 0xec, 0x96, 0x80, 0x3b, 0x0c,
+	0x7a, 0xba, 0xfe, 0x44, 0xbb, 0xd2, 0xc5, 0x26, 0xa0, 0x04, 0xcf, 0x38, 0x97, 0x09, 0x7e, 0xe9,
+	0x24, 0x7c, 0x06, 0xa2, 0x17, 0x8e, 0x03, 0xab, 0x16, 0x33, 0x9a, 0xce, 0x40, 0x6d, 0xf7, 0xc0,
+	0x24, 0xff, 0x31, 0x4f, 0xef, 0x68, 0x95, 0xe6, 0xa3, 0x16, 0xfe, 0x56, 0xc6, 0x98, 0x7d, 0xe8,
+	0x05, 0xc0, 0xc0, 0xb1, 0xc3, 0x53, 0xdf, 0xdd, 0x65, 0x5c, 0x4d, 0x16, 0xdb, 0x96, 0xb6, 0x04,
+	0xb5, 0xc7, 0x85, 0x8c, 0x91, 0x57, 0x27, 0x61, 0xe5, 0x85, 0x84, 0x63, 0xf9, 0xdc, 0xb9, 0x0d,
+	0xae, 0x35, 0x7c, 0xca, 0x11, 0xcd, 0x38, 0x39, 0x8c, 0xbe, 0x89, 0x6b, 0xeb, 0x9e, 0x90, 0xc3,
+	0xeb, 0x30, 0xe0, 0x62, 0xa8, 0x8e, 0xe7, 0xd3, 0x58, 0x45, 0x20, 0x7d, 0x17, 0x2f, 0xdc, 0xb4,
+	0x7d, 0xcf, 0xb5, 0x25, 0x64, 0xd4, 0xd7, 0x4e, 0xa0, 0x3e, 0x86, 0xa5, 0xef, 0xe1, 0xc5, 0x4d,
+	0x2f, 0xb0, 0x7d, 0xef, 0x4b, 0x70, 0x33, 0xfa, 0xa5, 0x13, 0xe8, 0x8f, 0x83, 0x67, 0xc8, 0xb8,
+	0xae, 0x32, 0x7e, 0x42, 0xae, 0x1b, 0x78, 0x91, 0x25, 0x21, 0xad, 0x0b, 0x1e, 0x32, 0x08, 0xb9,
+	0x90, 0x33, 0xa8, 0x97, 0x5a, 0x57, 0xf1, 0xbc, 0x3a, 0x1d, 0x57, 0x1c, 0xe9, 0xdd, 0x49, 0xc2,
+	0x98, 0x5e, 0xa4, 0xa1, 0x7a, 0x49, 0x44, 0xd6, 0xc1, 0x9e, 0x5d, 0xe6, 0x7c, 0xeb, 0x17, 0x84,
+	0x6b, 0x4a, 0x27, 0x73, 0xeb, 0x94, 0x2f, 0xfa, 0xf4, 0x2d, 0x5e, 0xf8, 0x3f, 0x17, 0x6e, 0x13,
+	0x93, 0xc2, 0x26, 0x18, 0xc4, 0xd1, 0x2c, 0x6e, 0xe8, 0xad, 0x6b, 0xb8, 0x5e, 0xd0, 0xd9, 0xb8,
+	0x1b, 0x82, 0x23, 0xc1, 0x9d, 0x41, 0x6a, 0x29, 0x97, 0xba, 0x16, 0x3c, 0xf2, 0x90, 0x4e, 0x2f,
+	0xd5, 0x54, 0x51, 0x3f, 0xb3, 0xcc, 0x0b, 0xca, 0xa4, 0x5c, 0x26, 0x0a, 0x79, 0x30, 0x93, 0x49,
+	0x2f, 0xb6, 0x3e, 0xc0, 0xe7, 0x0a, 0xff, 0x1f, 0x66, 0x16, 0x7a, 0xe9, 0xe2, 0x3d, 0x54, 0x78,
+	0xb8, 0x68, 0x0d, 0x9f, 0xfd, 0x24, 0xb8, 0x1d, 0xf0, 0x2f, 0x02, 0x52, 0x4a, 0x06, 0xdb, 0xd2,
+	0x16, 0x12, 0x5c, 0x82, 0xe8, 0x3c, 0xae, 0x4e, 0xae, 0x8a, 0x4b, 0xe6, 0xe8, 0x12, 0x3e, 0x9f,
+	0xbf, 0x49, 0x69, 0x44, 0x69, 0x5c, 0xa4, 0x4c, 0x75, 0xdc, 0xc8, 0xa7, 0xb2, 0xad, 0x5e, 0xb5,
+	0x7d, 0x9f, 0x68, 0xb4, 0x81, 0x89, 0x7a, 0x92, 0x8e, 0xaf, 0x8b, 0x4b, 0xbe, 0xa2, 0x8b, 0xb8,
+	0x56, 0x2c, 0x7c, 0x6d, 0x7d, 0xb6, 0xf7, 0xa7, 0x81, 0x7e, 0x1c, 0x1b, 0x68, 0x6f, 0x6c, 0xa0,
+	0xfd, 0xb1, 0x81, 0x0e, 0xc6, 0x06, 0xfa, 0x63, 0x6c, 0x94, 0xee, 0x1d, 0x19, 0xa5, 0x07, 0x47,
+	0x06, 0xda, 0x3f, 0x32, 0x4a, 0x07, 0x47, 0x46, 0xe9, 0xaf, 0xfb, 0x26, 0x7a, 0x78, 0xdf, 0x3c,
+	0x93, 0x9e, 0xed, 0x6f, 0x76, 0xcc, 0xe7, 0x6e, 0x7a, 0x91, 0x27, 0x1f, 0xec, 0x98, 0xe8, 0xa7,
+	0x1d, 0x93, 0x32, 0xe8, 0x7b, 0x91, 0x04, 0x91, 0x4e, 0x7f, 0x3c, 0x0c, 0xe1, 0xe7, 0x1d, 0x33,
+	0xfb, 0x91, 0xa2, 0x80, 0x5c, 0x74, 0xcf, 0x28, 0x6b, 0xde, 0xf8, 0x37, 0x00, 0x00, 0xff, 0xff,
+	0x5e, 0xd0, 0x6f, 0x3f, 0x55, 0x09, 0x00, 0x00,
 }
 
 func (this *RecordExample) Equal(that interface{}) bool {
@@ -559,6 +943,228 @@ func (this *RPrevDropReport) Equal(that interface{}) bool {
 	}
 	return true
 }
+func (this *RLineActivate) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*RLineActivate)
+	if !ok {
+		that2, ok := that.(RLineActivate)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.FieldMap.Equal(that1.FieldMap) {
+		return false
+	}
+	return true
+}
+func (this *RLineDeactivate) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*RLineDeactivate)
+	if !ok {
+		that2, ok := that.(RLineDeactivate)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.FieldMap.Equal(that1.FieldMap) {
+		return false
+	}
+	return true
+}
+func (this *RLineMemory) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*RLineMemory)
+	if !ok {
+		that2, ok := that.(RLineMemory)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.Polymorph != that1.Polymorph {
+		return false
+	}
+	if !this.RecordBody.Equal(&that1.RecordBody) {
+		return false
+	}
+	if !this.FieldMap.Equal(that1.FieldMap) {
+		return false
+	}
+	return true
+}
+func (this *RLineMemoryReuse) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*RLineMemoryReuse)
+	if !ok {
+		that2, ok := that.(RLineMemoryReuse)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.FieldMap.Equal(that1.FieldMap) {
+		return false
+	}
+	return true
+}
+func (this *RLineMemoryExpected) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*RLineMemoryExpected)
+	if !ok {
+		that2, ok := that.(RLineMemoryExpected)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.FieldMap.Equal(that1.FieldMap) {
+		return false
+	}
+	return true
+}
+func (this *RLineInboundRequest) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*RLineInboundRequest)
+	if !ok {
+		that2, ok := that.(RLineInboundRequest)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.FieldMap.Equal(that1.FieldMap) {
+		return false
+	}
+	return true
+}
+func (this *RInboundRequest) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*RInboundRequest)
+	if !ok {
+		that2, ok := that.(RInboundRequest)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.FieldMap.Equal(that1.FieldMap) {
+		return false
+	}
+	return true
+}
+func (this *RInboundResponse) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*RInboundResponse)
+	if !ok {
+		that2, ok := that.(RInboundResponse)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.FieldMap.Equal(that1.FieldMap) {
+		return false
+	}
+	return true
+}
+func (this *ROutboundResponse) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*ROutboundResponse)
+	if !ok {
+		that2, ok := that.(ROutboundResponse)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.FieldMap.Equal(that1.FieldMap) {
+		return false
+	}
+	return true
+}
 func (m *RecordExample) Visit(ctx RecordVisitor) error {
 	if err := ctx.RecReference(m, 41, &m.Ref1); err != nil {
 		return err
@@ -665,13 +1271,13 @@ func (m *RecordExample) InitFieldMap(reset bool) *github_com_insolar_assured_led
 }
 
 func (m *ROutboundRequest) Visit(ctx RecordVisitor) error {
-	return ctx.Record(m, 64)
+	return ctx.Record(m, 16)
 }
 
-const TypeROutboundRequestPolymorthID uint64 = 64
+const TypeROutboundRequestPolymorthID uint64 = 16
 
 func (*ROutboundRequest) GetDefaultPolymorphID() uint64 {
-	return 64
+	return 16
 }
 
 func (m *ROutboundRequest) Marshal() (dAtA []byte, err error) {
@@ -749,7 +1355,7 @@ func (m *ROutboundRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	if i < len(dAtA) {
 		id := uint64(m.Polymorph)
 		if id == 0 {
-			id = 64
+			id = 16
 		}
 		i = encodeVarintProtoRecords(dAtA, i, uint64(id))
 		i--
@@ -769,13 +1375,13 @@ func (m *ROutboundRequest) InitFieldMap(reset bool) *github_com_insolar_assured_
 }
 
 func (m *RLineRecap) Visit(ctx RecordVisitor) error {
-	return ctx.Record(m, 65)
+	return ctx.Record(m, 19)
 }
 
-const TypeRLineRecapPolymorthID uint64 = 65
+const TypeRLineRecapPolymorthID uint64 = 19
 
 func (*RLineRecap) GetDefaultPolymorphID() uint64 {
-	return 65
+	return 19
 }
 
 func (m *RLineRecap) Marshal() (dAtA []byte, err error) {
@@ -890,7 +1496,7 @@ func (m *RLineRecap) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 			dAtA[i] = 0xc2
 		}
 	}
-	i = encodeVarintProtoRecords(dAtA, i, uint64(65))
+	i = encodeVarintProtoRecords(dAtA, i, uint64(19))
 	i--
 	dAtA[i] = 0x1
 	i--
@@ -907,13 +1513,7 @@ func (m *RLineRecap) InitFieldMap(reset bool) *github_com_insolar_assured_ledger
 }
 
 func (m *RPrevDropReport) Visit(ctx RecordVisitor) error {
-	return ctx.Record(m, 66)
-}
-
-const TypeRPrevDropReportPolymorthID uint64 = 66
-
-func (*RPrevDropReport) GetDefaultPolymorphID() uint64 {
-	return 66
+	return ctx.Record(m, 0)
 }
 
 func (m *RPrevDropReport) Marshal() (dAtA []byte, err error) {
@@ -937,7 +1537,56 @@ func (m *RPrevDropReport) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	var l, fieldEnd int
 	_, _ = l, fieldEnd
 	m.FieldMap.UnsetMap()
-	i = encodeVarintProtoRecords(dAtA, i, uint64(66))
+	if i < len(dAtA) {
+		i = encodeVarintProtoRecords(dAtA, i, uint64(0))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	m.FieldMap.PutMessage(i, len(dAtA), dAtA)
+	return len(dAtA) - i, nil
+}
+
+func (m *RPrevDropReport) InitFieldMap(reset bool) *github_com_insolar_assured_ledger_ledger_core_insproto.FieldMap {
+	if reset || m.FieldMap == nil {
+		m.FieldMap = &github_com_insolar_assured_ledger_ledger_core_insproto.FieldMap{}
+	}
+	return m.FieldMap
+}
+
+func (m *RLineActivate) Visit(ctx RecordVisitor) error {
+	return ctx.Record(m, 20)
+}
+
+const TypeRLineActivatePolymorthID uint64 = 20
+
+func (*RLineActivate) GetDefaultPolymorphID() uint64 {
+	return 20
+}
+
+func (m *RLineActivate) Marshal() (dAtA []byte, err error) {
+	size := m.ProtoSize()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RLineActivate) MarshalTo(dAtA []byte) (int, error) {
+	size := m.ProtoSize()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *RLineActivate) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l, fieldEnd int
+	_, _ = l, fieldEnd
+	m.FieldMap.UnsetMap()
+	i = encodeVarintProtoRecords(dAtA, i, uint64(20))
 	i--
 	dAtA[i] = 0x1
 	i--
@@ -946,7 +1595,403 @@ func (m *RPrevDropReport) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *RPrevDropReport) InitFieldMap(reset bool) *github_com_insolar_assured_ledger_ledger_core_insproto.FieldMap {
+func (m *RLineActivate) InitFieldMap(reset bool) *github_com_insolar_assured_ledger_ledger_core_insproto.FieldMap {
+	if reset || m.FieldMap == nil {
+		m.FieldMap = &github_com_insolar_assured_ledger_ledger_core_insproto.FieldMap{}
+	}
+	return m.FieldMap
+}
+
+func (m *RLineDeactivate) Visit(ctx RecordVisitor) error {
+	return ctx.Record(m, 21)
+}
+
+const TypeRLineDeactivatePolymorthID uint64 = 21
+
+func (*RLineDeactivate) GetDefaultPolymorphID() uint64 {
+	return 21
+}
+
+func (m *RLineDeactivate) Marshal() (dAtA []byte, err error) {
+	size := m.ProtoSize()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RLineDeactivate) MarshalTo(dAtA []byte) (int, error) {
+	size := m.ProtoSize()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *RLineDeactivate) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l, fieldEnd int
+	_, _ = l, fieldEnd
+	m.FieldMap.UnsetMap()
+	i = encodeVarintProtoRecords(dAtA, i, uint64(21))
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0x80
+	m.FieldMap.PutMessage(i, len(dAtA), dAtA)
+	return len(dAtA) - i, nil
+}
+
+func (m *RLineDeactivate) InitFieldMap(reset bool) *github_com_insolar_assured_ledger_ledger_core_insproto.FieldMap {
+	if reset || m.FieldMap == nil {
+		m.FieldMap = &github_com_insolar_assured_ledger_ledger_core_insproto.FieldMap{}
+	}
+	return m.FieldMap
+}
+
+func (m *RLineMemory) Visit(ctx RecordVisitor) error {
+	return ctx.Record(m, 22)
+}
+
+const TypeRLineMemoryPolymorthID uint64 = 22
+
+func (*RLineMemory) GetDefaultPolymorphID() uint64 {
+	return 22
+}
+
+func (m *RLineMemory) Marshal() (dAtA []byte, err error) {
+	size := m.ProtoSize()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RLineMemory) MarshalTo(dAtA []byte) (int, error) {
+	size := m.ProtoSize()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *RLineMemory) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l, fieldEnd int
+	_, _ = l, fieldEnd
+	m.FieldMap.UnsetMap()
+	{
+		size, err := m.RecordBody.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoRecords(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0x9a
+		}
+	}
+	if i < len(dAtA) {
+		id := uint64(m.Polymorph)
+		if id == 0 {
+			id = 22
+		}
+		i = encodeVarintProtoRecords(dAtA, i, uint64(id))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	m.FieldMap.PutMessage(i, len(dAtA), dAtA)
+	return len(dAtA) - i, nil
+}
+
+func (m *RLineMemory) InitFieldMap(reset bool) *github_com_insolar_assured_ledger_ledger_core_insproto.FieldMap {
+	if reset || m.FieldMap == nil {
+		m.FieldMap = &github_com_insolar_assured_ledger_ledger_core_insproto.FieldMap{}
+	}
+	return m.FieldMap
+}
+
+func (m *RLineMemoryReuse) Visit(ctx RecordVisitor) error {
+	return ctx.Record(m, 24)
+}
+
+const TypeRLineMemoryReusePolymorthID uint64 = 24
+
+func (*RLineMemoryReuse) GetDefaultPolymorphID() uint64 {
+	return 24
+}
+
+func (m *RLineMemoryReuse) Marshal() (dAtA []byte, err error) {
+	size := m.ProtoSize()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RLineMemoryReuse) MarshalTo(dAtA []byte) (int, error) {
+	size := m.ProtoSize()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *RLineMemoryReuse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l, fieldEnd int
+	_, _ = l, fieldEnd
+	m.FieldMap.UnsetMap()
+	i = encodeVarintProtoRecords(dAtA, i, uint64(24))
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0x80
+	m.FieldMap.PutMessage(i, len(dAtA), dAtA)
+	return len(dAtA) - i, nil
+}
+
+func (m *RLineMemoryReuse) InitFieldMap(reset bool) *github_com_insolar_assured_ledger_ledger_core_insproto.FieldMap {
+	if reset || m.FieldMap == nil {
+		m.FieldMap = &github_com_insolar_assured_ledger_ledger_core_insproto.FieldMap{}
+	}
+	return m.FieldMap
+}
+
+func (m *RLineMemoryExpected) Visit(ctx RecordVisitor) error {
+	return ctx.Record(m, 25)
+}
+
+const TypeRLineMemoryExpectedPolymorthID uint64 = 25
+
+func (*RLineMemoryExpected) GetDefaultPolymorphID() uint64 {
+	return 25
+}
+
+func (m *RLineMemoryExpected) Marshal() (dAtA []byte, err error) {
+	size := m.ProtoSize()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RLineMemoryExpected) MarshalTo(dAtA []byte) (int, error) {
+	size := m.ProtoSize()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *RLineMemoryExpected) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l, fieldEnd int
+	_, _ = l, fieldEnd
+	m.FieldMap.UnsetMap()
+	i = encodeVarintProtoRecords(dAtA, i, uint64(25))
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0x80
+	m.FieldMap.PutMessage(i, len(dAtA), dAtA)
+	return len(dAtA) - i, nil
+}
+
+func (m *RLineMemoryExpected) InitFieldMap(reset bool) *github_com_insolar_assured_ledger_ledger_core_insproto.FieldMap {
+	if reset || m.FieldMap == nil {
+		m.FieldMap = &github_com_insolar_assured_ledger_ledger_core_insproto.FieldMap{}
+	}
+	return m.FieldMap
+}
+
+func (m *RLineInboundRequest) Visit(ctx RecordVisitor) error {
+	return ctx.Record(m, 26)
+}
+
+const TypeRLineInboundRequestPolymorthID uint64 = 26
+
+func (*RLineInboundRequest) GetDefaultPolymorphID() uint64 {
+	return 26
+}
+
+func (m *RLineInboundRequest) Marshal() (dAtA []byte, err error) {
+	size := m.ProtoSize()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RLineInboundRequest) MarshalTo(dAtA []byte) (int, error) {
+	size := m.ProtoSize()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *RLineInboundRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l, fieldEnd int
+	_, _ = l, fieldEnd
+	m.FieldMap.UnsetMap()
+	i = encodeVarintProtoRecords(dAtA, i, uint64(26))
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0x80
+	m.FieldMap.PutMessage(i, len(dAtA), dAtA)
+	return len(dAtA) - i, nil
+}
+
+func (m *RLineInboundRequest) InitFieldMap(reset bool) *github_com_insolar_assured_ledger_ledger_core_insproto.FieldMap {
+	if reset || m.FieldMap == nil {
+		m.FieldMap = &github_com_insolar_assured_ledger_ledger_core_insproto.FieldMap{}
+	}
+	return m.FieldMap
+}
+
+func (m *RInboundRequest) Visit(ctx RecordVisitor) error {
+	return ctx.Record(m, 27)
+}
+
+const TypeRInboundRequestPolymorthID uint64 = 27
+
+func (*RInboundRequest) GetDefaultPolymorphID() uint64 {
+	return 27
+}
+
+func (m *RInboundRequest) Marshal() (dAtA []byte, err error) {
+	size := m.ProtoSize()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RInboundRequest) MarshalTo(dAtA []byte) (int, error) {
+	size := m.ProtoSize()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *RInboundRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l, fieldEnd int
+	_, _ = l, fieldEnd
+	m.FieldMap.UnsetMap()
+	i = encodeVarintProtoRecords(dAtA, i, uint64(27))
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0x80
+	m.FieldMap.PutMessage(i, len(dAtA), dAtA)
+	return len(dAtA) - i, nil
+}
+
+func (m *RInboundRequest) InitFieldMap(reset bool) *github_com_insolar_assured_ledger_ledger_core_insproto.FieldMap {
+	if reset || m.FieldMap == nil {
+		m.FieldMap = &github_com_insolar_assured_ledger_ledger_core_insproto.FieldMap{}
+	}
+	return m.FieldMap
+}
+
+func (m *RInboundResponse) Visit(ctx RecordVisitor) error {
+	return ctx.Record(m, 28)
+}
+
+const TypeRInboundResponsePolymorthID uint64 = 28
+
+func (*RInboundResponse) GetDefaultPolymorphID() uint64 {
+	return 28
+}
+
+func (m *RInboundResponse) Marshal() (dAtA []byte, err error) {
+	size := m.ProtoSize()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RInboundResponse) MarshalTo(dAtA []byte) (int, error) {
+	size := m.ProtoSize()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *RInboundResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l, fieldEnd int
+	_, _ = l, fieldEnd
+	m.FieldMap.UnsetMap()
+	i = encodeVarintProtoRecords(dAtA, i, uint64(28))
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0x80
+	m.FieldMap.PutMessage(i, len(dAtA), dAtA)
+	return len(dAtA) - i, nil
+}
+
+func (m *RInboundResponse) InitFieldMap(reset bool) *github_com_insolar_assured_ledger_ledger_core_insproto.FieldMap {
+	if reset || m.FieldMap == nil {
+		m.FieldMap = &github_com_insolar_assured_ledger_ledger_core_insproto.FieldMap{}
+	}
+	return m.FieldMap
+}
+
+func (m *ROutboundResponse) Visit(ctx RecordVisitor) error {
+	return ctx.Record(m, 29)
+}
+
+const TypeROutboundResponsePolymorthID uint64 = 29
+
+func (*ROutboundResponse) GetDefaultPolymorphID() uint64 {
+	return 29
+}
+
+func (m *ROutboundResponse) Marshal() (dAtA []byte, err error) {
+	size := m.ProtoSize()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ROutboundResponse) MarshalTo(dAtA []byte) (int, error) {
+	size := m.ProtoSize()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *ROutboundResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l, fieldEnd int
+	_, _ = l, fieldEnd
+	m.FieldMap.UnsetMap()
+	i = encodeVarintProtoRecords(dAtA, i, uint64(29))
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0x80
+	m.FieldMap.PutMessage(i, len(dAtA), dAtA)
+	return len(dAtA) - i, nil
+}
+
+func (m *ROutboundResponse) InitFieldMap(reset bool) *github_com_insolar_assured_ledger_ledger_core_insproto.FieldMap {
 	if reset || m.FieldMap == nil {
 		m.FieldMap = &github_com_insolar_assured_ledger_ledger_core_insproto.FieldMap{}
 	}
@@ -967,9 +2012,17 @@ func encodeVarintProtoRecords(dAtA []byte, offset int, v uint64) int {
 
 func init() {
 	RegisterRecordType(999999999, "", (*RecordExample)(nil))
-	RegisterRecordType(64, "", (*ROutboundRequest)(nil))
-	RegisterRecordType(65, "", (*RLineRecap)(nil))
-	RegisterRecordType(66, "", (*RPrevDropReport)(nil))
+	RegisterRecordType(16, "", (*ROutboundRequest)(nil))
+	RegisterRecordType(19, "", (*RLineRecap)(nil))
+	RegisterRecordType(20, "", (*RLineActivate)(nil))
+	RegisterRecordType(21, "", (*RLineDeactivate)(nil))
+	RegisterRecordType(22, "", (*RLineMemory)(nil))
+	RegisterRecordType(24, "", (*RLineMemoryReuse)(nil))
+	RegisterRecordType(25, "", (*RLineMemoryExpected)(nil))
+	RegisterRecordType(26, "", (*RLineInboundRequest)(nil))
+	RegisterRecordType(27, "", (*RInboundRequest)(nil))
+	RegisterRecordType(28, "", (*RInboundResponse)(nil))
+	RegisterRecordType(29, "", (*ROutboundResponse)(nil))
 }
 
 func (m *RecordExample) ProtoSize() (n int) {
@@ -1022,7 +2075,7 @@ func (m *ROutboundRequest) ProtoSize() (n int) {
 	if n > 0 {
 		id := uint64(m.Polymorph)
 		if id == 0 {
-			id = 64
+			id = 16
 		}
 		n += 2 + sovProtoRecords(id)
 	}
@@ -1056,7 +2109,7 @@ func (m *RLineRecap) ProtoSize() (n int) {
 	if l = m.FinalizedMemory.ProtoSize(); l > 0 {
 		n += 2 + l + sovProtoRecords(uint64(l))
 	}
-	n += 2 + sovProtoRecords(65)
+	n += 2 + sovProtoRecords(19)
 	return n
 }
 
@@ -1066,7 +2119,108 @@ func (m *RPrevDropReport) ProtoSize() (n int) {
 	}
 	var l int
 	_ = l
-	n += 2 + sovProtoRecords(66)
+	if n > 0 {
+		n += 2 + sovProtoRecords(0)
+	}
+	return n
+}
+
+func (m *RLineActivate) ProtoSize() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += 2 + sovProtoRecords(20)
+	return n
+}
+
+func (m *RLineDeactivate) ProtoSize() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += 2 + sovProtoRecords(21)
+	return n
+}
+
+func (m *RLineMemory) ProtoSize() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if l = m.RecordBody.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoRecords(uint64(l))
+	}
+	if n > 0 {
+		id := uint64(m.Polymorph)
+		if id == 0 {
+			id = 22
+		}
+		n += 2 + sovProtoRecords(id)
+	}
+	return n
+}
+
+func (m *RLineMemoryReuse) ProtoSize() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += 2 + sovProtoRecords(24)
+	return n
+}
+
+func (m *RLineMemoryExpected) ProtoSize() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += 2 + sovProtoRecords(25)
+	return n
+}
+
+func (m *RLineInboundRequest) ProtoSize() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += 2 + sovProtoRecords(26)
+	return n
+}
+
+func (m *RInboundRequest) ProtoSize() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += 2 + sovProtoRecords(27)
+	return n
+}
+
+func (m *RInboundResponse) ProtoSize() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += 2 + sovProtoRecords(28)
+	return n
+}
+
+func (m *ROutboundResponse) ProtoSize() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	n += 2 + sovProtoRecords(29)
 	return n
 }
 
@@ -1802,6 +2956,634 @@ func (m *RPrevDropReport) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func(
 		}
 		if fieldNum <= 0 {
 			return fmt.Errorf("proto: RPrevDropReport: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		m.FieldMap.UnsetMap()
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := skipFn(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				l = iNdEx
+				break
+			}
+			if skippy == 0 {
+				if skippy, err = skipProtoRecords(dAtA[iNdEx:]); err != nil {
+					return err
+				}
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	m.FieldMap.PutMessage(0, iNdEx, dAtA)
+	return nil
+}
+func (m *RLineActivate) Unmarshal(dAtA []byte) error {
+	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoRecords)
+}
+func (m *RLineActivate) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtoRecords
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RLineActivate: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RLineActivate: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		m.FieldMap.UnsetMap()
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := skipFn(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				l = iNdEx
+				break
+			}
+			if skippy == 0 {
+				if skippy, err = skipProtoRecords(dAtA[iNdEx:]); err != nil {
+					return err
+				}
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	m.FieldMap.PutMessage(0, iNdEx, dAtA)
+	return nil
+}
+func (m *RLineDeactivate) Unmarshal(dAtA []byte) error {
+	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoRecords)
+}
+func (m *RLineDeactivate) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtoRecords
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RLineDeactivate: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RLineDeactivate: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		m.FieldMap.UnsetMap()
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := skipFn(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				l = iNdEx
+				break
+			}
+			if skippy == 0 {
+				if skippy, err = skipProtoRecords(dAtA[iNdEx:]); err != nil {
+					return err
+				}
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	m.FieldMap.PutMessage(0, iNdEx, dAtA)
+	return nil
+}
+func (m *RLineMemory) Unmarshal(dAtA []byte) error {
+	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoRecords)
+}
+func (m *RLineMemory) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtoRecords
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RLineMemory: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RLineMemory: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		m.FieldMap.UnsetMap()
+		switch fieldNum {
+		case 16:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Polymorph", wireType)
+			}
+			m.Polymorph = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecords
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Polymorph |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 19:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RecordBody", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecords
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.RecordBody.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipFn(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				l = iNdEx
+				break
+			}
+			if skippy == 0 {
+				if skippy, err = skipProtoRecords(dAtA[iNdEx:]); err != nil {
+					return err
+				}
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	m.FieldMap.PutMessage(0, iNdEx, dAtA)
+	return nil
+}
+func (m *RLineMemoryReuse) Unmarshal(dAtA []byte) error {
+	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoRecords)
+}
+func (m *RLineMemoryReuse) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtoRecords
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RLineMemoryReuse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RLineMemoryReuse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		m.FieldMap.UnsetMap()
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := skipFn(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				l = iNdEx
+				break
+			}
+			if skippy == 0 {
+				if skippy, err = skipProtoRecords(dAtA[iNdEx:]); err != nil {
+					return err
+				}
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	m.FieldMap.PutMessage(0, iNdEx, dAtA)
+	return nil
+}
+func (m *RLineMemoryExpected) Unmarshal(dAtA []byte) error {
+	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoRecords)
+}
+func (m *RLineMemoryExpected) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtoRecords
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RLineMemoryExpected: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RLineMemoryExpected: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		m.FieldMap.UnsetMap()
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := skipFn(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				l = iNdEx
+				break
+			}
+			if skippy == 0 {
+				if skippy, err = skipProtoRecords(dAtA[iNdEx:]); err != nil {
+					return err
+				}
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	m.FieldMap.PutMessage(0, iNdEx, dAtA)
+	return nil
+}
+func (m *RLineInboundRequest) Unmarshal(dAtA []byte) error {
+	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoRecords)
+}
+func (m *RLineInboundRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtoRecords
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RLineInboundRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RLineInboundRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		m.FieldMap.UnsetMap()
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := skipFn(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				l = iNdEx
+				break
+			}
+			if skippy == 0 {
+				if skippy, err = skipProtoRecords(dAtA[iNdEx:]); err != nil {
+					return err
+				}
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	m.FieldMap.PutMessage(0, iNdEx, dAtA)
+	return nil
+}
+func (m *RInboundRequest) Unmarshal(dAtA []byte) error {
+	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoRecords)
+}
+func (m *RInboundRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtoRecords
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RInboundRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RInboundRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		m.FieldMap.UnsetMap()
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := skipFn(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				l = iNdEx
+				break
+			}
+			if skippy == 0 {
+				if skippy, err = skipProtoRecords(dAtA[iNdEx:]); err != nil {
+					return err
+				}
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	m.FieldMap.PutMessage(0, iNdEx, dAtA)
+	return nil
+}
+func (m *RInboundResponse) Unmarshal(dAtA []byte) error {
+	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoRecords)
+}
+func (m *RInboundResponse) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtoRecords
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RInboundResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RInboundResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		m.FieldMap.UnsetMap()
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := skipFn(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				l = iNdEx
+				break
+			}
+			if skippy == 0 {
+				if skippy, err = skipProtoRecords(dAtA[iNdEx:]); err != nil {
+					return err
+				}
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	m.FieldMap.PutMessage(0, iNdEx, dAtA)
+	return nil
+}
+func (m *ROutboundResponse) Unmarshal(dAtA []byte) error {
+	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoRecords)
+}
+func (m *ROutboundResponse) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtoRecords
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ROutboundResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ROutboundResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		m.FieldMap.UnsetMap()
 		switch fieldNum {
