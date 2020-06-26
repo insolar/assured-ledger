@@ -1,10 +1,8 @@
 @startuml
-state "Init" as T00_S001
-T00_S001 : StateMachine2
-[*] --> T00_S001
-T00_S001 --> T00_S002
-state "State0" as T00_S002
-T00_S002 : StateMachine2
-T00_S002 --[dashed]> T00_S002 : [!ctx.AcquireForThisStep()]\n[s.Yield]...\n[s.count<1000]...\nSleep, Yield, Repeat(math.MaxInt32)
-T00_S002 --[dashed]> T00_S002 : Yield
+Init : INHERITED
+Init --> State0 : Jump
+State0 : INHERITED
+State0 --> State0 : ThenJump
+State0 --> State0 : ThenRepeat
+State0 --> State0 : ThenRepeat
 @enduml
