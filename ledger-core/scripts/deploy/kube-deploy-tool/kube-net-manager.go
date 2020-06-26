@@ -6,10 +6,12 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -93,6 +95,12 @@ func (m *InsolarNetManager) waitForReady(netParams NetParams) error {
 	stopWaitingBootstrap := make(chan bool, 1)
 	defer func() { stopWaitingBootstrap <- true }()
 
+	reNamespace := regexp.MustCompile(`^\w+$`)
+	namespace := reNamespace.FindString(m.kubeParams.Namespace)
+	if namespace == "" {
+		return errors.New("bad 'namespace' param")
+	}
+
 	go func() {
 	loop:
 		for {
@@ -102,7 +110,7 @@ func (m *InsolarNetManager) waitForReady(netParams NetParams) error {
 			case <-time.After(time.Second):
 				args := []string{
 					"-n",
-					m.kubeParams.Namespace,
+					namespace,
 					"get",
 					"po",
 					"bootstrap",
