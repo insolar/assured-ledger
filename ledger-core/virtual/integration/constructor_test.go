@@ -64,9 +64,9 @@ func TestVirtual_Constructor_WithoutExecutor(t *testing.T) {
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
-		require.Equal(t, res.ReturnArguments, []byte("123"))
-		require.Equal(t, res.Callee, objectRef)
-		require.Equal(t, res.CallOutgoing, outgoing)
+		require.Equal(t, []byte("123"), res.ReturnArguments)
+		require.Equal(t, objectRef, res.Callee)
+		require.Equal(t, outgoing, res.CallOutgoing)
 
 		return false // no resend msg
 	})
@@ -119,8 +119,8 @@ func TestVirtual_Constructor_WithExecutor(t *testing.T) {
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
 	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
-		require.Equal(t, res.Callee, objectRef)
-		require.Equal(t, res.CallOutgoing, outgoing)
+		require.Equal(t, objectRef, res.Callee)
+		require.Equal(t, outgoing, res.CallOutgoing)
 
 		contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments)
 		require.NoError(t, sysErr)
@@ -225,9 +225,9 @@ func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
-		require.Equal(t, res.ReturnArguments, runnerResult)
-		require.Equal(t, res.Callee, objectRef)
-		require.Equal(t, res.CallOutgoing, outgoing)
+		require.Equal(t, runnerResult, res.ReturnArguments)
+		require.Equal(t, objectRef, res.Callee)
+		require.Equal(t, outgoing, res.CallOutgoing)
 		require.Equal(t, payload.CTConstructor, res.CallType)
 		require.Equal(t, flags, res.CallFlags)
 
@@ -306,9 +306,9 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
-		require.Equal(t, res.ReturnArguments, []byte("123"))
-		require.Equal(t, res.Callee, objectRef)
-		require.Equal(t, res.CallOutgoing, outgoing)
+		require.Equal(t, []byte("123"), res.ReturnArguments)
+		require.Equal(t, objectRef, res.Callee)
+		require.Equal(t, outgoing, res.CallOutgoing)
 
 		return false // no resend msg
 	})
@@ -584,8 +584,8 @@ func TestVirtual_Constructor_WrongConstructorName(t *testing.T) {
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
 	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
-		require.Equal(t, res.Callee, objectRef)
-		require.Equal(t, res.CallOutgoing, outgoing)
+		require.Equal(t, objectRef, res.Callee)
+		require.Equal(t, outgoing, res.CallOutgoing)
 
 		contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments)
 		require.Equal(t, &foundation.Error{"failed to execute request;\texecution error;\tfailed to find contracts constructor"}, contractErr)
