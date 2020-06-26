@@ -260,9 +260,6 @@ func (sm *SMObject) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 	sm.UnorderedExecute = smsync.NewSemaphore(30, "immutable calls").SyncLink()
 	sm.OrderedExecute = smsync.NewSemaphore(1, "mutable calls").SyncLink() // TODO here we need an ORDERED queue
 
-	sm.OrderedPendingListFilled = smsync.NewSemaphore(1, "ordered pending list filled").SyncLink()
-	sm.UnorderedPendingListFilled = smsync.NewSemaphore(1, "unordered pending list filled").SyncLink()
-
 	sdl := ctx.Share(&sm.SharedState, 0)
 	if !ctx.Publish(sm.Reference.String(), sdl) {
 		return ctx.Stop()
@@ -330,11 +327,6 @@ func (sm *SMObject) stepWaitState(ctx smachine.ExecutionContext) smachine.StateU
 func (sm *SMObject) stepGotState(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	if sm.PreviousExecutorOrderedPendingCount > 0 {
 		sm.createWaitPendingOrderedSM(ctx)
-		sm.createWaitOrderedPendingTableSM(ctx)
-	}
-
-	if sm.PreviousExecutorUnorderedPendingCount > 0 {
-		sm.createWaitUnorderedPendingTableSM(ctx)
 	}
 
 	return ctx.Jump(sm.stepReadyToWork)
@@ -347,38 +339,6 @@ func (sm *SMObject) stepReadyToWork(ctx smachine.ExecutionContext) smachine.Stat
 
 func (sm *SMObject) stepWaitIndefinitely(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	return ctx.Sleep().ThenRepeat()
-}
-
-func (sm *SMObject) createWaitOrderedPendingTableSM(ctx smachine.ExecutionContext) {
-	syncSM := SMAwaitTableFill{
-		sync: sm.OrderedPendingListFilled,
-	}
-
-	// syncSM acquire OrderedPendingListFilledCallback semaphore in init step.
-	ctx.InitChildWithPostInit(func(ctx smachine.ConstructionContext) smachine.StateMachine {
-		return &syncSM
-	}, func() {
-		sm.OrderedPendingListFilledCallback = syncSM.stop
-	})
-	if sm.OrderedPendingListFilledCallback.IsZero() {
-		panic(throw.IllegalState())
-	}
-}
-
-func (sm *SMObject) createWaitUnorderedPendingTableSM(ctx smachine.ExecutionContext) {
-	syncSM := SMAwaitTableFill{
-		sync: sm.UnorderedPendingListFilled,
-	}
-
-	// syncSM acquire UnorderedPendingListFilledCallback semaphore in init step.
-	ctx.InitChildWithPostInit(func(ctx smachine.ConstructionContext) smachine.StateMachine {
-		return &syncSM
-	}, func() {
-		sm.UnorderedPendingListFilledCallback = syncSM.stop
-	})
-	if sm.UnorderedPendingListFilledCallback.IsZero() {
-		panic(throw.IllegalState())
-	}
 }
 
 func (sm *SMObject) createWaitPendingOrderedSM(ctx smachine.ExecutionContext) {
