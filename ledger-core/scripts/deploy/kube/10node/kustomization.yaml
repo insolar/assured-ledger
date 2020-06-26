@@ -5,7 +5,31 @@ generatorOptions:
 bases:
   - ../aks
 patchesStrategicMerge:
+  - patch-nodes.yaml
   - patch-virtual.yaml
-  - patch-Ingress.yaml
-  - patch-wait-script.yaml
-  - patch-certs-pvc.yaml
+
+configMapGenerator:
+  - name: app-bootstrap
+    behavior: replace
+    files:
+      - run.sh=configuration/bootstrap.sh
+  - name: wait-script
+    behavior: replace
+    files:
+      - wait-for-bootstrap.sh=configuration/wait-for-bootstrap.sh
+  - name: bootstrap-yaml
+    behavior: replace
+    files:
+      - bootstrap.yaml=configuration/bootstrap-config.yaml
+  - name: virtual-config
+    behavior: replace
+    files:
+      - virtual-config.yaml=configuration/virtual-config.yaml
+  - name: pulsar-config
+    behavior: replace
+    files:
+      - pulsard.yaml=configuration/pulsar-config.yaml
+  - name: pulsewatcher-config
+    behavior: replace
+    files:
+      - pulsewatcher.yaml=configuration/pulsewatcher-config.yaml
