@@ -3,23 +3,22 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package inspectsvc
+package lineage
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/catalog"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 )
 
-type RegisterRequestSet struct {
-	Requests []*rms.LRegisterRequest
-	Excerpts []catalog.Excerpt
+type Record struct {
+	Excerpt catalog.Excerpt
+	RegRecord  *rms.LRegisterRequest
+
+	RegistrarSignature cryptkit.SignedDigest
 }
 
-func (v RegisterRequestSet) IsEmpty() bool {
-	return len(v.Requests) == 0
-}
-
-
-type InspectedRecordSet struct {
+func (v Record) Equal(record Record) bool {
 
 }
+
