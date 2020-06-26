@@ -6,79 +6,8 @@
 package lineage
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
-
-type RecordPolicy struct {
-	FieldPolicy
-	MemberOf PrecedenceGroup
-	CanFollow uint32
-}
-
-type FieldPolicy uint16
-
-const (
-	AllowEmptyRoot FieldPolicy = 1<<iota
-	AllowEmptyPrev
-	AllowEmptyReason
-	AllowRedirect
-	RequireRedirect
-//	RequireRejoin
-	FilamentStart
-	FilamentEnd
-	Branched
-	SideEffect
-	Recap // can follow up any record
-)
-
-type PrecedenceGroup uint8
-
-const (
-	_  PrecedenceGroup = iota
-	DropStartGroup
-	DropConnectGroup
-	DropGeneralGroup
-
-	LineActivateAbleGroup
-	LineActivatedGroup
-	LineStartGroup
-	LineInboundGroup
-
-	InboundFilamentGroup
-	OpenOutboundGroup
-)
-
-func p(fp FieldPolicy, memberOf PrecedenceGroup, canFollow... PrecedenceGroup) (r RecordPolicy) {
-	r.FieldPolicy = fp
-	r.MemberOf = memberOf
-	for _, m := range canFollow {
-		r.CanFollow |= 1<<m
-	}
-	return
-}
-
-var policies = []RecordPolicy{
-	rms.TypeRLifelineStartPolymorthID: p(0, LineStartGroup),
-	rms.TypeRSidelineStartPolymorthID: p(Branched, LineStartGroup),
-
-	rms.TypeRLineInboundRequestPolymorthID: p(FilamentStart, LineInboundGroup),
-	rms.TypeRInboundRequestPolymorthID: p(FilamentStart|Branched, InboundFilamentGroup, LineActivatedGroup),
-
-	rms.TypeROutboundRequestPolymorthID: p(0, OpenOutboundGroup, InboundFilamentGroup, LineInboundGroup),
-	rms.TypeROutboundResponsePolymorthID: p(0, InboundFilamentGroup, OpenOutboundGroup),
-	rms.TypeRInboundResponsePolymorthID: p(FilamentEnd, 0, InboundFilamentGroup, OpenOutboundGroup),
-
-
-	rms.TypeRLineActivatePolymorthID: p(SideEffect, LineActivatedGroup, LineActivateAbleGroup, LineStartGroup),
-	rms.TypeRLineDeactivatePolymorthID: p(FilamentEnd|SideEffect, 0),
-
-	rms.TypeRLineMemoryInitPolymorthID: p(0, LineActivateAbleGroup, LineStartGroup),
-	rms.TypeRLineMemoryPolymorthID: p(SideEffect, 0, LineInboundGroup, LineStartGroup),
-	rms.TypeRLineMemoryReusePolymorthID: p(SideEffect, 0, LineInboundGroup), // redirectTo(TypeRLineMemoryPolymorthID)
-	rms.TypeRLineMemoryExpectedPolymorthID: p(SideEffect, 0, LineInboundGroup), // blockUntil(TypeRLineMemoryPolymorthID)
-
-	rms.TypeRLineRecapPolymorthID: p(Recap, 0),
-}
 
 func GetRecordPolicy(recordType uint64) RecordPolicy {
 	if recordType >= uint64(len(policies)) {
@@ -87,10 +16,66 @@ func GetRecordPolicy(recordType uint64) RecordPolicy {
 	return policies[recordType]
 }
 
-func checkRecord(recordType uint64) {
-	switch recordType {
-	case rms.TypeRLifelineStartPolymorthID:
-		// root is empty, prev is empty
-	}
+type RecordPolicy struct {
+	FieldPolicy
+	CanFollow RecordTypeSet
+	RedirectTo RecordTypeSet
+}
 
+type RecordType uint32
+
+type FieldPolicy uint16
+
+const (
+	// EmptyRoot
+	// EmptyPrev
+	// AllowEmptyReason
+	// AllowRedirect
+	// RequireRedirect
+	FilamentStart FieldPolicy = 1<<iota
+	FilamentEnd
+	Branched
+	Unblocked // ?
+	SideEffect
+	OnlyHash
+	NextPulseOnly
+	Recap // can follow up any record
+)
+
+const maxRecordType = 1000
+
+var setLineStart = []RecordType{tRLifelineStart, tRSidelineStart}
+var setUnblockedLine = setOf(tRLineActivate, tRLineMemory, tRLineMemoryReuse, tRLineMemoryExpected, tRLineMemoryProvided)
+var setUnblockedInbound = []RecordType{tRLineInboundRequest, tRInboundRequest, tROutboundResponse}
+
+var policies = []RecordPolicy{
+	tRLifelineStart: 		{ FieldPolicy: FilamentStart },
+	tRSidelineStart: 		{ FieldPolicy: FilamentStart|Branched },
+
+	tRLineInboundRequest:	{ FieldPolicy: FilamentStart,			CanFollow: setUnblockedLine},
+	tRInboundRequest: 	 	{ FieldPolicy: FilamentStart|Branched,	CanFollow: setUnblockedLine},
+	tRInboundResponse:		{ FieldPolicy: FilamentEnd,				CanFollow: setOf(appendCopy(setUnblockedInbound, tROutboundRequest, tROutRetryableRequest, tROutRetryRequest)...)},
+	tROutboundRequest: 		{ FieldPolicy: 0,						CanFollow: setOf(setUnblockedInbound...)},
+	tROutRetryableRequest:	{ FieldPolicy: 0,						CanFollow: setOf(setUnblockedInbound...)},
+	tROutRetryRequest:		{ FieldPolicy: NextPulseOnly|OnlyHash,	CanFollow: setOf(tROutRetryableRequest, tROutRetryRequest), RedirectTo: setOf(tROutRetryableRequest)},
+	tROutboundResponse: 	{ FieldPolicy: 0,						CanFollow: setOf(tROutboundRequest, tROutRetryableRequest, tROutRetryRequest)},
+	tRLineActivate: 		{ FieldPolicy: SideEffect|Unblocked, 	CanFollow: setOf(appendCopy(setLineStart, tRLineMemoryInit, tRLineMemory)...)},
+	tRLineDeactivate: 		{ FieldPolicy: FilamentEnd|SideEffect, 	CanFollow: setUnblockedLine},
+	tRLineMemoryInit: 		{ FieldPolicy: 0, 						CanFollow: setOf(setLineStart...)},
+	tRLineMemory: 			{ FieldPolicy: SideEffect|Unblocked, 	CanFollow: setOf(tRLineInboundRequest, tRLineMemoryExpected)},
+	tRLineMemoryReuse: 		{ FieldPolicy: SideEffect|Unblocked, 	CanFollow: setOf(tRLineInboundRequest), RedirectTo: setOf(tRLineMemory, tRLineMemoryProvided) },
+	tRLineMemoryExpected: 	{ FieldPolicy: SideEffect|OnlyHash,		CanFollow: setOf(tRLineInboundRequest)},
+	tRLineMemoryProvided: 	{ FieldPolicy: Unblocked,				CanFollow: setOf(tRLineMemoryExpected)},
+	tRLineRecap:			{ FieldPolicy: Recap },
+}
+
+type BriefRecordInfo struct {
+	RecordType uint32
+	RootRef reference.Holder
+	RedirectTo *RedirectRecordInfo
+}
+
+type RedirectRecordInfo struct {
+	RecordType uint32
+	RedirectRef reference.Holder
 }

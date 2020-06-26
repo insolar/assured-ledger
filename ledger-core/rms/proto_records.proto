@@ -30,31 +30,10 @@ message RecordExample {
     uint32 AsOf = 42 [(gogoproto.casttype)="PulseNumber"];
 }
 
-message ROutboundRequest {
-    option (insproto.id) = 16;
-    // = 17 RLifelineStart
-    // = 18 RSidelineStart
-
-    //*** Start of predefined section ***//
-    reserved 1 to 15, 17 to 18, 20 to 23, 26 to 39, 1792 to max;
-    uint32 Polymorph = 16; // an explicit field is required to be able to alter record type
-    RecordBody RecordBody = 19 [(gogoproto.embed)=true];
-    //*** End of predefined section ***//
-
-    Reference PrevRef = 24;
-    Reference RootRef = 25;
-
-    // Add custom fields here
-    string Str = 40;
-}
-
 enum LineState {
     Unknown = 0;
     Started = 1;
     Activated = 2;
-    BlockedByExpectMemory = 3;
-    BlockedByInboundCall = 4;
-    // ...
     DirtyDeactivated = 126;
     Deactivated = 127; // 1-byte varint
 }
@@ -68,10 +47,12 @@ message RLineRecap {
     Reference RootRef = 25;
 
     LineState LineState = 40;
-    Reference BlockedBy = 41;
-    Reference DirtyMemory = 42;
-    Reference ValidateMemory = 43;
-    Reference FinalizedMemory = 44;
+    uint32    PrevRefType = 41;
+    // TODO redirection data for PrevRef
+
+    Reference DirtyMemory = 43;
+    Reference ValidateMemory = 44;
+    Reference FinalizedMemory = 45;
 }
 
 message RPrevDropReport {
@@ -89,32 +70,54 @@ message RLineDeactivate {
 message RLineMemory {
     option (insproto.id) = 22;
     // = 23 RLineMemoryInit
+    // = 24 RLineMemoryProvided
 
     reserved 1 to 15, 17 to 18, 20 to 23, 26 to 39, 1792 to max;
     uint32 Polymorph = 16; // an explicit field is required to be able to alter record type
     RecordBody RecordBody = 19 [(gogoproto.embed)=true];
 }
 
-message RLineMemoryReuse {
-    option (insproto.id) = 24;
-}
-
 message RLineMemoryExpected {
     option (insproto.id) = 25;
 }
 
-message RLineInboundRequest {
+message RLineMemoryReuse {
     option (insproto.id) = 26;
 }
 
-message RInboundRequest {
+message RLineInboundRequest {
     option (insproto.id) = 27;
 }
 
-message RInboundResponse {
+message RInboundRequest {
     option (insproto.id) = 28;
 }
 
-message ROutboundResponse {
+message RInboundResponse {
     option (insproto.id) = 29;
 }
+
+message ROutboundResponse {
+    option (insproto.id) = 30;
+}
+
+message ROutboundRequest {
+    option (insproto.id) = 31;
+    // = 32 RLifelineStart
+    // = 33 RSidelineStart
+    // = 34 ROutboundRetryableRequest
+    // = 35 ROutboundRetryRequest
+
+    //*** Start of predefined section ***//
+    reserved 1 to 15, 17 to 18, 20 to 23, 26 to 39, 1792 to max;
+    uint32 Polymorph = 16; // an explicit field is required to be able to alter record type
+    RecordBody RecordBody = 19 [(gogoproto.embed)=true];
+    //*** End of predefined section ***//
+
+    Reference PrevRef = 24;
+    Reference RootRef = 25;
+
+    // Add custom fields here
+    string Str = 40;
+}
+

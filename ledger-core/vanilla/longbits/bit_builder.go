@@ -7,6 +7,8 @@ package longbits
 
 import (
 	"math/bits"
+
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type BitBuilderOrder byte
@@ -36,6 +38,8 @@ func AppendBitBuilder(appendTo []byte, direction BitBuilderOrder) BitBuilder {
 	}
 }
 
+// var _ IndexedBits = &BitBuilder{} // TODO support IndexedBits
+
 // supports to be created as BitBuilder{} - it equals NewBitBuilder(LSB, 0)
 type BitBuilder struct {
 	bytes       []byte
@@ -48,7 +52,7 @@ func (p *BitBuilder) IsZero() bool {
 	return p.accInit == 0
 }
 
-func (p *BitBuilder) Len() int {
+func (p *BitBuilder) BitLen() int {
 	return len(p.bytes)<<3 + int(p.AlignOffset())
 }
 
@@ -323,6 +327,53 @@ func (p *BitBuilder) appendN1(bitCount int) {
 	}
 }
 
+func (p *BitBuilder) ToggleBit(index int) bool {
+	rightShift, _ := p.align()
+	normFn, _ := shifters(rightShift)
+
+	byteIndex, bitIndex := BitPos(index)
+	mask := normFn(1, bitIndex)
+
+	b := p.bytes[byteIndex] ^ mask
+	p.bytes[byteIndex] = b
+
+	return b & mask != 0
+}
+
+func (p *BitBuilder) SetBit(index, bit int) {
+	p.Set(index, bit != 0, false)
+}
+
+func (p *BitBuilder) Set(index int, bit, padding bool) {
+	p.ensure()
+	if index < 0 {
+		panic(throw.IllegalValue())
+	}
+
+	switch d := index - p.BitLen(); {
+	case d < 0:
+		rightShift, _ := p.align()
+		normFn, _ := shifters(rightShift)
+
+		byteIndex, bitIndex := BitPos(index)
+		mask := normFn(1, bitIndex)
+
+		if bit {
+			p.bytes[byteIndex] |= mask
+		} else {
+			p.bytes[byteIndex] &^= mask
+		}
+		return
+	case d > 0:
+		if padding {
+			p.appendN1(d)
+		} else {
+			p.appendN0(d)
+		}
+	}
+	p.Append(bit)
+}
+
 func (p *BitBuilder) AppendByte(b byte) {
 	p.ensure()
 
@@ -353,7 +404,7 @@ func (p *BitBuilder) dump() []byte { // nolint:unused
 	return bytes
 }
 
-func (p *BitBuilder) Done() ([]byte, int) {
+func (p *BitBuilder) Done() (b []byte, bitLen int) {
 	_, usedCount := p.align()
 
 	bytes := p.bytes
@@ -365,6 +416,30 @@ func (p *BitBuilder) Done() ([]byte, int) {
 		return bytes, (len(p.bytes)-1)<<3 + int(usedCount)
 	}
 	return bytes, len(p.bytes) << 3
+}
+
+func (p *BitBuilder) TrimZeros() (skippedPrefix int, b []byte) {
+	sb := p.bytes
+
+	for ;skippedPrefix < len(sb) && sb[skippedPrefix] == 0; skippedPrefix++ {}
+
+	sb = sb[skippedPrefix:]
+
+	if p.accumulator != 0 {
+		b = make([]byte, 0, len(sb) + 1)
+		b = append(b, sb...)
+		b = append(b, p.accumulator)
+		return
+	}
+
+	if len(sb) == 0 {
+		return 0, nil
+	}
+
+	tailIndex := len(sb) - 1
+	for ;tailIndex > 0 && sb[tailIndex] == 0; tailIndex-- {}
+	b = append([]byte(nil), sb[:tailIndex + 1]...)
+	return
 }
 
 func (p *BitBuilder) DoneToBytes() []byte {
