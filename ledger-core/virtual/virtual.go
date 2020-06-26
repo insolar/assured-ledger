@@ -109,8 +109,6 @@ func (lr *Dispatcher) Init(ctx context.Context) error {
 		MaxPastPulseAge:       1000,
 	}, nil, nil)
 
-	lr.AuthenticationService = authentication.NewService(ctx, lr.Affinity)
-
 	defaultHandlers := DefaultHandlersFactory{metaFactory: handlers.FactoryMeta{AuthService: lr.AuthenticationService}}.Classify
 	lr.Conveyor.SetFactoryFunc(defaultHandlers)
 
