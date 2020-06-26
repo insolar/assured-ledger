@@ -190,13 +190,19 @@ func (m *InsolarNetManager) stop(netParams NetParams) error {
 }
 
 func (m *InsolarNetManager) collectLogs(netParams NetParams) error {
+	reNamespace := regexp.MustCompile(`^\w+$`)
+	namespace := reNamespace.FindString(m.kubeParams.Namespace)
+	if namespace == "" {
+		return errors.New("bad 'namespace' param")
+	}
+
 	fmt.Println("start collecting pod logs")
 	for i := 0; i < int(netParams.NodesCount); i++ {
 		podName := "virtual-" + strconv.Itoa(i)
 		out, err := exec.Command(
 			Kubectl,
 			"-n",
-			m.kubeParams.Namespace,
+			namespace,
 			"logs",
 			podName,
 		).CombinedOutput()
@@ -227,9 +233,15 @@ func (m *InsolarNetManager) cleanLogDir() error {
 }
 
 func (m *InsolarNetManager) checkReady() (bool, error) {
+	reNamespace := regexp.MustCompile(`^\w+$`)
+	namespace := reNamespace.FindString(m.kubeParams.Namespace)
+	if namespace == "" {
+		return false, errors.New("bad 'namespace' param")
+	}
+
 	args := []string{
 		"-n",
-		m.kubeParams.Namespace,
+		namespace,
 		"exec",
 		"-i",
 		"deploy/pulsewatcher",
