@@ -122,12 +122,11 @@ func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 	server.Init(ctx)
 
 	p1 := server.GetPulse().PulseNumber
+	server.IncrementPulseAndWaitIdle(ctx)
 
 	outgoing := server.RandomLocalWithPulse()
 	class := gen.UniqueGlobalRef()
 	object := gen.UniqueGlobalRef()
-
-	server.IncrementPulseAndWaitIdle(ctx)
 
 	report := &payload.VStateReport{
 		Status: payload.Ready,
@@ -704,8 +703,8 @@ func (s *deduplicateMethodUsingPrevVETest) setMessageCheckers(
 		}
 
 		if testInfo.pending {
-			report.OrderedPendingCount = 1
-			report.OrderedPendingEarliestPulse = s.getP1()
+			report.UnorderedPendingCount = 1
+			report.UnorderedPendingEarliestPulse = s.getP1()
 		}
 
 		s.server.SendPayload(ctx, &report)
