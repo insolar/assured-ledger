@@ -5,7 +5,7 @@ generatorOptions:
 bases:
   - ../aks
 patchesStrategicMerge:
-  - nodes-patch.yaml
+  - patch-virtual.yaml
   - patch-Ingress.yaml
   - patch-wait-script.yaml
   - patch-certs-pvc.yaml
