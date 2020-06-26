@@ -1,6 +1,6 @@
 netparams:
 - nodescount: 8
-  waitinreadystate: 6m
+  waitinreadystate: 3m
   waitbootstrap: 360s
   waitready: 360s
 
