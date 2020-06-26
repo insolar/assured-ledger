@@ -190,6 +190,21 @@ func (p *PulseConveyor) AddInputExt(ctx context.Context, pn pulse.Number, event 
 		_, addedOk = pulseSlotMachine.innerMachine.AddNew(ctx,
 			newFutureEventSM(targetPN, &pulseSlotMachine.pulseSlot, createFn), createDefaults)
 
+	case pulseState == Past:
+		if !p.pdm.TouchPulseData(targetPN) { // make sure - for PAST must always have the data
+			return throw.E("unknown data for past pulse", errMissingPN{PN: targetPN})
+		}
+
+		_, addedOk = pulseSlotMachine.innerMachine.AddNewByFunc(ctx, createFn, createDefaults)
+		if addedOk || pulseSlotMachine.innerMachine.IsActive() {
+			break
+		}
+
+		// This is a dying past slot - redirect addition to antique
+		pulseSlotMachine = p.getAntiquePulseSlotMachine()
+		pulseState = Antique
+		fallthrough
+
 	case pulseState == Antique:
 		createDefaults.InheritAllDependencies = true // ensure inheritance
 
@@ -209,8 +224,8 @@ func (p *PulseConveyor) AddInputExt(ctx context.Context, pn pulse.Number, event 
 		}
 		fallthrough
 
-	case !p.pdm.TouchPulseData(targetPN): // make sure - for PAST and PRESENT we must always have the data ...
-		return throw.E("unknown data for pulse", errMissingPN{PN: targetPN})
+	case !p.pdm.TouchPulseData(targetPN): // make sure - for PRESENT we must always have the data
+		return throw.E("unknown data for present pulse", errMissingPN{PN: targetPN})
 	default:
 		_, addedOk = pulseSlotMachine.innerMachine.AddNewByFunc(ctx, createFn, createDefaults)
 	}

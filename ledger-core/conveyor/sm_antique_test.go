@@ -19,7 +19,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
-	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -65,8 +64,6 @@ func TestAntique_InheritPulseSlot(t *testing.T) {
 		pd = pd.CreateNextPulse(emptyEntropyFn)
 		require.NoError(t, conveyor.PreparePulseChange(nil))
 		require.NoError(t, conveyor.CommitPulseChange(pd.AsRange(), time.Now()))
-
-		flushEventQueue(conveyor)
 	}
 
 	wg := sync.WaitGroup{}
@@ -88,17 +85,6 @@ func TestAntique_InheritPulseSlot(t *testing.T) {
 	}
 
 	require.Equal(t, 1 + checkDepth, int(doneCounter.Load()))
-}
-
-func flushEventQueue(conveyor *PulseConveyor) 	{
-	// this is a way to make sure that conveyor has done all event queues
-	ch := make(synckit.ClosableSignalChannel)
-
-	conveyor.slotMachine.ScheduleCall(func(ctx smachine.MachineCallContext) {
-		close(ch)
-	}, false)
-
-	<-ch
 }
 
 type testAntiqueSM struct {
