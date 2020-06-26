@@ -235,13 +235,14 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 			panic(throw.NotImplemented())
 		}
 	} else if objectState != object.HasState {
-		panic(throw.E("no state on object after readyToWork", struct {
+		s.prepareExecutionError(throw.E("no state on object after readyToWork", struct {
 			ObjectReference string
 			State           object.State
 		}{
 			ObjectReference: s.execution.Object.String(),
 			State:           objectState,
 		}))
+		return ctx.Jump(s.stepSendCallResult)
 	}
 
 	s.semaphoreOrdered = semaphoreOrdered
