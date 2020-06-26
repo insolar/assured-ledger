@@ -75,6 +75,14 @@ jobs:
         run: kubectl apply -k ledger-core/scripts/deploy/kube/10node
       - name: wait for successfull rollout
         run: kubectl -n ${{fromJson(steps.set-vars.outputs.result).shortSha}} rollout status sts/virtual
+      - name: pulsewatcher
+        run: |
+          for try in {0..100}; do
+            if kubectl -n ${{fromJson(steps.set-vars.outputs.result).shortSha}} exec -i deploy/pulsewatcher -- bash -c 'pulsewatcher -c /etc/pulsewatcher/pulsewatcher.yaml -s' | grep 'READY' | grep -v 'NOT'; then
+              echo "network ready!"; exit 0
+            else echo -n '.'; sleep 5
+            fi
+          done
       - name: get some info
         run: kubectl -n ${{fromJson(steps.set-vars.outputs.result).shortSha}} get po
       - name: cleanup
