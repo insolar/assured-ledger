@@ -90,7 +90,7 @@ func (s *SMVStateRequest) stepWait(ctx smachine.ExecutionContext) smachine.State
 }
 
 func (s *SMVStateRequest) stepCheckCatalog(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	reportSharedState, stateFound := finalizedstate.GetSharedStateReport(ctx, s.Payload.Object, s.pulseSlot.PulseData().PulseNumber)
+	reportSharedState, stateFound := finalizedstate.GetSharedStateReport(ctx, s.Payload.Object)
 
 	if !stateFound {
 		return ctx.Jump(s.stepBuildMissing)
