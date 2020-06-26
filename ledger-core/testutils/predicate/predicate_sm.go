@@ -12,8 +12,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/debuglogger"
 )
 
-type Func = func(debuglogger.UpdateEvent) bool
-
 func AfterAnyStopOrError(event debuglogger.UpdateEvent) bool {
 	updateType := event.Update.UpdateType
 	return updateType == "stop" || updateType == "panic" || updateType == "error"

@@ -9,7 +9,7 @@ import (
 	"sync"
 
 	"github.com/insolar/assured-ledger/ledger-core/testutils/debuglogger"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/journal/predicate"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/predicate"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -21,8 +21,8 @@ func NewReplay(parent *Dispenser, size int) *Replay {
 		panic(throw.IllegalValue())
 	}
 	return &Replay{
-		parent:    parent,
-		events:    make([]debuglogger.UpdateEvent, 0, size),
+		parent: parent,
+		events: make([]debuglogger.UpdateEvent, 0, size),
 	}
 }
 
