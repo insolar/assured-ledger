@@ -187,8 +187,6 @@ func TestVirtual_Method_WithExecutor_ObjectIsNotExist(t *testing.T) {
 		outgoing     = server.RandomLocalWithPulse()
 	)
 
-	Method_PrepareObject(ctx, server, payload.Ready, reference.NewSelf(server.RandomLocalWithPulse()))
-
 	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 
 	expectedError := throw.E("no state on object after readyToWork", struct {
