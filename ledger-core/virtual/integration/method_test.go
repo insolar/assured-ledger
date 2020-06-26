@@ -30,6 +30,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 )
 
@@ -174,6 +175,8 @@ func TestVirtual_Method_WithExecutor(t *testing.T) {
 func TestVirtual_Method_WithExecutor_ObjectIsNotExist(t *testing.T) {
 	t.Log("C4974")
 
+	mc := minimock.NewController(t)
+
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
 	server.IncrementPulse(ctx)
@@ -181,9 +184,40 @@ func TestVirtual_Method_WithExecutor_ObjectIsNotExist(t *testing.T) {
 	var (
 		objectLocal  = server.RandomLocalWithPulse()
 		objectGlobal = reference.NewSelf(objectLocal)
+		outgoing     = server.RandomLocalWithPulse()
 	)
 
-	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal)
+	Method_PrepareObject(ctx, server, payload.Ready, reference.NewSelf(server.RandomLocalWithPulse()))
+
+	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
+
+	expectedError := throw.E("no state on object after readyToWork", struct {
+		ObjectReference string
+		State           object.State
+	}{
+		ObjectReference: objectGlobal.String(),
+		State:           object.Missing,
+	})
+
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker.VStateRequest.Set(func(request *payload.VStateRequest) bool {
+		assert.Equal(t, request.Object, objectGlobal)
+		return true
+	})
+	typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
+		assert.Equal(t, payload.Missing, report.Status)
+		return true
+	})
+	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
+		assert.Equal(t, res.Callee, objectGlobal)
+		assert.Equal(t, res.CallOutgoing, outgoing)
+
+		contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments)
+		require.NoError(t, sysErr)
+		require.Equal(t, expectedError.Error(), contractErr.Error())
+
+		return false // no resend msg
+	})
 
 	{
 		pl := payload.VCallRequest{
@@ -193,13 +227,20 @@ func TestVirtual_Method_WithExecutor_ObjectIsNotExist(t *testing.T) {
 			Callee:              objectGlobal,
 			CallSiteDeclaration: testwallet.GetClass(),
 			CallSiteMethod:      "GetBalance",
-			CallOutgoing:        server.RandomLocalWithPulse(),
+			CallOutgoing:        outgoing,
 			Arguments:           insolar.MustSerialize([]interface{}{}),
 		}
 		server.SendPayload(ctx, &pl)
-
-		// TODO fix it after implementation https://insolar.atlassian.net/browse/PLAT-395
 	}
+
+	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+
+	assert.Equal(t, 1, typedChecker.VCallResult.Count())
+	assert.Equal(t, 1, typedChecker.VStateRequest.Count())
+	assert.Equal(t, 1, typedChecker.VStateReport.Count())
+
+	mc.Finish()
 }
 
 func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
