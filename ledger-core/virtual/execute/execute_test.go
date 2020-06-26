@@ -197,6 +197,16 @@ func TestSMExecute_DeduplicationUsingPendingsTable(t *testing.T) {
 	smExecute = expectedInitState(ctx, smExecute)
 
 	{
+		// duplicate pending request doesnt exists
+		// expect jump
+		execCtx := smachine.NewExecutionContextMock(mc).
+			UseSharedMock.Set(shareddata.CallSharedDataAccessor).
+			JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepDeduplicateThroughPreviousExecutor))
+
+		smExecute.stepDeduplicateUsingPendingsTable(execCtx)
+	}
+
+	{
 		// duplicate pending request exists and is active
 		// expect SM stop
 		pendingList := smObject.PendingTable.GetList(contract.CallIntolerable)
@@ -211,33 +221,6 @@ func TestSMExecute_DeduplicationUsingPendingsTable(t *testing.T) {
 	}
 
 	{
-		// start deduplication before getting all pending requests
-		// expect going sleep
-		smObject.PendingTable = object.NewRequestTable()
-
-		execCtx := smachine.NewExecutionContextMock(mc).
-			UseSharedMock.Set(shareddata.CallSharedDataAccessor).
-			AcquireForThisStepMock.Return(false).
-			SleepMock.Return(
-			smachine.NewStateConditionalBuilderMock(mc).
-				ThenRepeatMock.Return(smachine.StateUpdate{}),
-		)
-
-		smExecute.stepDeduplicateUsingPendingsTable(execCtx)
-	}
-
-	{
-		// start deduplication after getting all pending requests
-		// expect jump
-		execCtx := smachine.NewExecutionContextMock(mc).
-			UseSharedMock.Set(shareddata.CallSharedDataAccessor).
-			AcquireForThisStepMock.Return(true).
-			JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepDeduplicateThroughPreviousExecutor))
-
-		smExecute.stepDeduplicateUsingPendingsTable(execCtx)
-	}
-
-	{
 		// duplicate pending request exists, but is finished
 		// expect jump
 		pendingList := smObject.PendingTable.GetList(contract.CallIntolerable)
@@ -246,7 +229,6 @@ func TestSMExecute_DeduplicationUsingPendingsTable(t *testing.T) {
 
 		execCtx := smachine.NewExecutionContextMock(mc).
 			UseSharedMock.Set(shareddata.CallSharedDataAccessor).
-			AcquireForThisStepMock.Return(true).
 			JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepDeduplicateThroughPreviousExecutor))
 
 		smExecute.stepDeduplicateUsingPendingsTable(execCtx)
@@ -324,7 +306,7 @@ func TestSMExecute_DeduplicateThroughPreviousExecutor(t *testing.T) {
 					panic("Unexpected message type")
 				}
 
-				require.Equal(t, smExecute.Payload.CallOutgoing.GetPulseNumber(), res.LookAt)
+				require.Equal(t, pulse.Number(0), res.LookAt)
 				require.Equal(t, smExecute.execution.Outgoing, res.Outgoing)
 				require.Equal(t, smExecute.execution.Object, res.Callee)
 
@@ -332,7 +314,7 @@ func TestSMExecute_DeduplicateThroughPreviousExecutor(t *testing.T) {
 			}).SleepMock.Set(
 			func() (c1 smachine.ConditionalBuilder) {
 				return smachine.NewStateConditionalBuilderMock(t).
-					ThenJumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepProcessFindCallResponse))
+					ThenJumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepWaitFindCallResponse))
 			})
 
 		smExecute.stepDeduplicateThroughPreviousExecutor(execCtx)
