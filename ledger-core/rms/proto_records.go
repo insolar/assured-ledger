@@ -8,7 +8,11 @@ package rms
 const (
 	TypeRLifelineStartPolymorthID = TypeROutboundRequestPolymorthID +1
 	TypeRSidelineStartPolymorthID = TypeROutboundRequestPolymorthID +2
+	TypeROutboundRetryableRequestPolymorthID = TypeROutboundRequestPolymorthID +3
+	TypeROutboundRetryRequestPolymorthID = TypeROutboundRequestPolymorthID +4
+
 	TypeRLineMemoryInitPolymorthID = TypeRLineMemoryPolymorthID +1
+	TypeRLineMemoryProvidedPolymorthID = TypeRLineMemoryPolymorthID +2
 )
 
 func init() {
