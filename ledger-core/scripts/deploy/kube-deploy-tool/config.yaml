@@ -1,5 +1,17 @@
 netparams:
-- nodescount: 8
+- nodescount: 10
+  waitinreadystate: 3m
+  waitbootstrap: 360s
+  waitready: 360s
+- nodescount: 20
+  waitinreadystate: 3m
+  waitbootstrap: 360s
+  waitready: 360s
+- nodescount: 50
+  waitinreadystate: 3m
+  waitbootstrap: 360s
+  waitready: 360s
+- nodescount: 100
   waitinreadystate: 3m
   waitbootstrap: 360s
   waitready: 360s
