@@ -9,6 +9,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/debuglogger"
 )
 
+type Func = func(debuglogger.UpdateEvent) bool
+
 func Never() Func {
 	return func(debuglogger.UpdateEvent) bool {
 		return false
@@ -51,5 +53,3 @@ func Or(predicates ...Func) Func {
 		return false
 	}
 }
-
-
