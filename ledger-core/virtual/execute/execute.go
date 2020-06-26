@@ -360,8 +360,8 @@ func (s *SMExecute) stepDeduplicate(ctx smachine.ExecutionContext) smachine.Stat
 
 func (s *SMExecute) stepDeduplicateUsingPendingsTable(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var (
-		isDuplicate       bool
-		isActive          bool
+		isDuplicate bool
+		isActive    bool
 	)
 	action := func(state *object.SharedState) {
 		pendingList := state.PendingTable.GetList(s.execution.Isolation.Interference)
@@ -383,11 +383,9 @@ func (s *SMExecute) stepDeduplicateUsingPendingsTable(ctx smachine.ExecutionCont
 		panic(throw.NotImplemented())
 	}
 
-	if isDuplicate {
-		if isActive {
-			ctx.Log().Warn("duplicate found as pending request")
-			return ctx.Stop()
-		}
+	if isDuplicate && isActive {
+		ctx.Log().Warn("duplicate found as pending request")
+		return ctx.Stop()
 	}
 
 	return ctx.Jump(s.stepDeduplicateThroughPreviousExecutor)
