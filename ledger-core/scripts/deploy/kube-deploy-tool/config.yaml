@@ -9,12 +9,12 @@ netparams:
   waitready: 10m
 - nodescount: 50
   waitinreadystate: 3m
-  waitbootstrap: 30m
-  waitready: 30m
+  waitbootstrap: 1h
+  waitready: 1h
 - nodescount: 100
   waitinreadystate: 3m
-  waitbootstrap: 60m
-  waitready: 60m
+  waitbootstrap: 2h
+  waitready: 2h
 
 kubeparams:
   env: aks
