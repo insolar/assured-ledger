@@ -69,29 +69,14 @@ jobs:
         working-directory: ${{ env.CORE_PATH }}
       - name: template GIT_SHA to deployment manifests
         run: |
-          sed -i "s/placeholder/${{ fromJson(steps.set-vars.outputs.result).shortSha }}/g" ledger-core/scripts/deploy/kube/aks/*.*
-          sed -i "s/placeholder/${{ fromJson(steps.set-vars.outputs.result).shortSha }}/g" ledger-core/scripts/deploy/kube/aks/configuration/*.*
-      - name: Run headless network and generate performance report
-        env:
-          KUBEDEPLOYTOOL_METRICPARAMS_WEBDAV_HOST: https://reports.garage.insolar.io
-          KUBEDEPLOYTOOL_METRICPARAMS_WEBDAV_USERNAME: ${{ secrets.WEBDAV_USERNAME }}
-          KUBEDEPLOYTOOL_METRICPARAMS_WEBDAV_PASSWORD: ${{ secrets.WEBDAV_PASSWORD }}
-          KUBEDEPLOYTOOL_METRICPARAMS_WEBDAV_DIRECTORY: consensus-checks
-          KUBEDEPLOYTOOL_METRICPARAMS_GIT_COMMIT: ${{ fromJson(steps.set-vars.outputs.result).shortSha }}
-          KUBEDEPLOYTOOL_METRICPARAMS_GIT_HEAD: ${{ fromJson(steps.set-vars.outputs.result).shortRef }}
-          KUBEDEPLOYTOOL_KUBEPARAMS_NAMESPACE: ${{ fromJson(steps.set-vars.outputs.result).shortSha }}
-          KUBEDEPLOYTOOL_METRICPARAMS_PROMETHEUS_HOST: "http://${{secrets.PROMETHEUS_USER}}:${{secrets.PROMETHEUS_PASS}}@prometheus.uscifarm.insolar.io"
-        run: bin/kube-deploy-tool --config=scripts/deploy/kube-deploy-tool/config.yaml
-        working-directory: ${{ env.CORE_PATH }}
-      - name: Aggregate logs into a single archive
-        if: always()
-        run: tar --warning=no-file-changed -cvzf ${{ env.CORE_PATH }}/kube-nodes-output.tgz /tmp/insolar/logs/* || true
-      - name: Upload logs to artifacts
-        if: always()
-        uses: actions/upload-artifact@v1
-        with:
-          name: kube-nodes-output
-          path: ${{ env.CORE_PATH }}/kube-nodes-output.tgz
+          sed -i "s/placeholder/${{ fromJson(steps.set-vars.outputs.result).shortSha }}/g" ledger-core/scripts/deploy/kube/*/*.*
+          sed -i "s/placeholder/${{ fromJson(steps.set-vars.outputs.result).shortSha }}/g" ledger-core/scripts/deploy/kube/*/configuration/*.*
+      - name: run 10node network
+        run: kubectl apply -k ledger-core/scripts/deploy/kube/10node
+      - name: wait for successfull rollout
+        run: kubectl -n ${{fromJson(steps.set-vars.outputs.result).shortSha}} rollout status sts/virtual
+      - name: get some info
+        run: kubectl -n ${{fromJson(steps.set-vars.outputs.result).shortSha}} get po
       - name: cleanup
         if: always()
         run: kubectl delete ns ${{fromJson(steps.set-vars.outputs.result).shortSha}} --ignore-not-found=true
