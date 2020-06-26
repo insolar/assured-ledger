@@ -211,5 +211,5 @@ func (c *StepController) PrepareMockedMessageSender(mc *minimock.Controller) {
 
 func (c *StepController) AddStateMachine(ctx context.Context, sm smachine.StateMachine) StateMachineHelper {
 	link, _ := c.SlotMachine.AddNew(ctx, sm, smachine.CreateDefaultValues{})
-	return NewStateMachineHelper(sm, link)
+	return NewStateMachineHelper(link)
 }
