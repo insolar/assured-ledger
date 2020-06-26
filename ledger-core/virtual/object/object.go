@@ -208,6 +208,7 @@ type SMObject struct {
 	readyToWorkCtl smsync.BoolConditionalLink
 
 	waitGetStateUntil time.Time
+	smFinalizer       *finalizedstate.SMStateFinalizer
 
 	// dependencies
 	messageSender messageSenderAdapter.MessageSender
@@ -250,7 +251,7 @@ func (sm *SMObject) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 
 	sm.initWaitGetStateUntil()
 
-	ctx.SetDefaultMigration(sm.migrate)
+	ctx.SetDefaultMigration(sm.stepMigrate)
 
 	return ctx.Jump(sm.stepGetState)
 }
@@ -341,7 +342,7 @@ func (sm *SMObject) createWaitPendingOrderedSM(ctx smachine.ExecutionContext) {
 	}
 }
 
-func (sm *SMObject) migrate(ctx smachine.MigrationContext) smachine.StateUpdate {
+func (sm *SMObject) stepMigrate(ctx smachine.MigrationContext) smachine.StateUpdate {
 	if sm.GetState() == Unknown {
 		ctx.Log().Trace("SMObject migration happened when object is not ready yet")
 		return ctx.Stop()
@@ -349,18 +350,18 @@ func (sm *SMObject) migrate(ctx smachine.MigrationContext) smachine.StateUpdate 
 
 	ctx.UnpublishAll()
 
-	smf := finalizedstate.SMStateFinalizer{
+	sm.smFinalizer = &finalizedstate.SMStateFinalizer{
 		Reference: sm.Reference,
 	}
 
 	sm.checkPendingCounters(ctx.Log())
-	smf.Report = sm.BuildStateReport()
+	sm.smFinalizer.Report = sm.BuildStateReport()
 	if sm.Descriptor() != nil {
-		smf.Report.ProvidedContent.LatestDirtyState = sm.BuildLatestDirtyState()
+		sm.smFinalizer.Report.ProvidedContent.LatestDirtyState = sm.BuildLatestDirtyState()
 	}
 
-	sdl := ctx.Share(&smf.Report, 0)
-	if !ctx.Publish(finalizedstate.BuildReportKey(sm.Reference, sm.pulseSlot.PulseData().PulseNumber), sdl) {
+	sdl := ctx.Share(&sm.smFinalizer.Report, 0)
+	if !ctx.Publish(finalizedstate.BuildReportKey(sm.Reference), sdl) {
 		ctx.Log().Warn(struct {
 			*log.Msg  `txt:"failed to publish state report"`
 			Reference string
@@ -370,9 +371,10 @@ func (sm *SMObject) migrate(ctx smachine.MigrationContext) smachine.StateUpdate 
 		return ctx.Error(fmt.Errorf("failed to publish state report"))
 	}
 
-	return ctx.Jump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
-		return ctx.ReplaceWith(&smf)
-	})
+	return ctx.Jump(sm.stepFinalize)
+}
+func (sm *SMObject) stepFinalize(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	return ctx.ReplaceWith(sm.smFinalizer)
 }
 
 type pendingCountersWarnMsg struct {
