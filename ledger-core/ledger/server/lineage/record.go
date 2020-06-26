@@ -8,6 +8,7 @@ package lineage
 import (
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/catalog"
 <<<<<<< HEAD
+<<<<<<< HEAD
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
@@ -59,6 +60,8 @@ func (v Record) GetRecordRef() reference.Holder {
 	}
 	return nil
 =======
+=======
+>>>>>>> Further work
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 )
@@ -72,6 +75,9 @@ type Record struct {
 
 func (v Record) Equal(record Record) bool {
 
+<<<<<<< HEAD
+>>>>>>> Further work
+=======
 >>>>>>> Further work
 }
 

@@ -6,6 +6,7 @@
 package lineage
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 type RecordPolicyProviderFunc = func (recordType RecordType) RecordPolicy
 
 func GetRecordPolicy(recordType RecordType) RecordPolicy {
@@ -85,6 +86,8 @@ var policies = []RecordPolicy{
 	tRLineRecap:	{
 		PolicyFlags: Recap|NextPulseOnly },
 =======
+=======
+>>>>>>> Further work
 import (
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 )
@@ -173,5 +176,8 @@ func checkRecord(recordType uint64) {
 		// root is empty, prev is empty
 	}
 
+<<<<<<< HEAD
+>>>>>>> Further work
+=======
 >>>>>>> Further work
 }

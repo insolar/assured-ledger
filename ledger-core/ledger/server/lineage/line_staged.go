@@ -7,6 +7,10 @@ package lineage
 
 import (
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc"
+>>>>>>> Further work
 =======
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc"
 >>>>>>> Further work
@@ -15,6 +19,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 var _ lineResolver = &LineStages{}
 
@@ -49,10 +54,16 @@ type StagedLine struct {
 	base reference.Local
 	pn   pulse.Number
 >>>>>>> Further work
+=======
+type StagedLine struct {
+	base reference.Local
+	pn   pulse.Number
+>>>>>>> Further work
 
 	earliest *updateStage
 	latest   *updateStage
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 	recordRefs    map[reference.LocalHash]recordNo
 	filamentRefs  map[reference.Local]filamentNo
@@ -194,6 +205,8 @@ func (p *LineStages) addStage(bundle *BundleResolver, stage *updateStage, prevFi
 
 	if p.latest != nil {
 =======
+=======
+>>>>>>> Further work
 	recordRefs    map[reference.Local]recordNo
 	filamentRefs  map[reference.Local]filamentNo
 
@@ -275,12 +288,16 @@ func (p *StagedLine) addStage(future *buildersvc.Future) {
 	if p.latest != nil {
 		stage.seqNo = p.latest.seqNo + 1
 		stage.filaments = p.latest.filaments
+<<<<<<< HEAD
+>>>>>>> Further work
+=======
 >>>>>>> Further work
 		p.latest.next = stage
 	} else {
 		p.earliest = stage
 	}
 	p.latest = stage
+<<<<<<< HEAD
 <<<<<<< HEAD
 
 	return true
@@ -558,6 +575,8 @@ func (p *LineStages) setAllocations(stage *updateStage, allocBase uint32) {
 }
 
 =======
+=======
+>>>>>>> Further work
 }
 
 func (p *StagedLine) trimStages() {
@@ -619,4 +638,7 @@ func (p *StagedLine) getRecord(recNo recordNo) *updateRecord {
 func (p *StagedLine) resolveRef(ref reference.Holder) (recordNo, error) {
 
 }
+<<<<<<< HEAD
+>>>>>>> Further work
+=======
 >>>>>>> Further work

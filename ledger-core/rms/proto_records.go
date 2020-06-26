@@ -9,6 +9,7 @@ const (
 	TypeRLifelineStartPolymorthID = TypeROutboundRequestPolymorthID +1
 	TypeRSidelineStartPolymorthID = TypeROutboundRequestPolymorthID +2
 <<<<<<< HEAD
+<<<<<<< HEAD
 	TypeROutboundRetryableRequestPolymorthID = TypeROutboundRequestPolymorthID +3
 	TypeROutboundRetryRequestPolymorthID = TypeROutboundRequestPolymorthID +4
 
@@ -35,6 +36,8 @@ func init() {
 	RegisterRecordType(TypeRLineMemoryInitPolymorthID, "", (*RLineMemoryInit)(nil))
 	RegisterRecordType(TypeRLineMemoryProvidedPolymorthID, "", (*RLineMemoryProvided)(nil))
 =======
+=======
+>>>>>>> Further work
 	TypeRLineMemoryInitPolymorthID = TypeRLineMemoryPolymorthID +1
 )
 
@@ -42,5 +45,8 @@ func init() {
 	RegisterRecordType(TypeRLifelineStartPolymorthID, "", (*ROutboundRequest)(nil))
 	RegisterRecordType(TypeRSidelineStartPolymorthID, "", (*ROutboundRequest)(nil))
 	RegisterRecordType(TypeRLineMemoryInitPolymorthID, "", (*RLineMemory)(nil))
+<<<<<<< HEAD
+>>>>>>> Further work
+=======
 >>>>>>> Further work
 }
