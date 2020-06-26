@@ -7,6 +7,7 @@ package lineage
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/catalog"
+<<<<<<< HEAD
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
@@ -57,5 +58,20 @@ func (v Record) GetRecordRef() reference.Holder {
 		return v.regReq.AnticipatedRef.Get()
 	}
 	return nil
+=======
+	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
+)
+
+type Record struct {
+	Excerpt catalog.Excerpt
+	RegRecord  *rms.LRegisterRequest
+
+	RegistrarSignature cryptkit.SignedDigest
+}
+
+func (v Record) Equal(record Record) bool {
+
+>>>>>>> Further work
 }
 
