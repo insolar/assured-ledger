@@ -365,12 +365,7 @@ func (s *SMExecute) stepDeduplicateUsingPendingsTable(ctx smachine.ExecutionCont
 	)
 	action := func(state *object.SharedState) {
 		pendingList := state.PendingTable.GetList(s.execution.Isolation.Interference)
-
-		if pendingList.Exist(s.execution.Outgoing) {
-			isDuplicate = true
-			isActive = pendingList.MustGetIsActive(s.execution.Outgoing)
-			return
-		}
+		isActive, isDuplicate = pendingList.GetState(s.execution.Outgoing)
 	}
 
 	switch s.objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {

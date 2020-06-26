@@ -67,12 +67,6 @@ type Info struct {
 	UnorderedPendingEarliestPulse pulse.Number
 	OrderedPendingEarliestPulse   pulse.Number
 
-	OrderedPendingListFilled   smachine.SyncLink
-	UnorderedPendingListFilled smachine.SyncLink
-
-	OrderedPendingListFilledCallback   smachine.BargeIn
-	UnorderedPendingListFilledCallback smachine.BargeIn
-
 	objectState State
 }
 
@@ -86,17 +80,6 @@ func (i *Info) SetState(state State) {
 
 func (i *Info) GetState() State {
 	return i.objectState
-}
-
-func (i *Info) SetPendingListFilled(ctx smachine.ExecutionContext, tolerance contract.InterferenceFlag) {
-	switch tolerance {
-	case contract.CallIntolerable:
-		ctx.CallBargeIn(i.UnorderedPendingListFilledCallback)
-	case contract.CallTolerable:
-		ctx.CallBargeIn(i.OrderedPendingListFilledCallback)
-	default:
-		panic(throw.IllegalValue())
-	}
 }
 
 func (i *Info) IncrementPotentialPendingCounter(isolation contract.MethodIsolation) {

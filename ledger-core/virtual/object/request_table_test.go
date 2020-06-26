@@ -142,8 +142,17 @@ func TestPendingList_MustGetIsActive(t *testing.T) {
 	RefOne := reference.NewSelf(objectOne)
 
 	rl := NewRequestList()
-	require.Panics(t, func() { rl.MustGetIsActive(RefOne) })
+	isActive, exist := rl.GetState(RefOne)
+	require.Equal(t, false, isActive)
+	require.Equal(t, false, exist)
 
 	rl.Add(RefOne)
-	require.Equal(t, true, rl.MustGetIsActive(RefOne))
+	isActive, exist = rl.GetState(RefOne)
+	require.Equal(t, true, isActive)
+	require.Equal(t, true, exist)
+
+	rl.Finish(RefOne)
+	isActive, exist = rl.GetState(RefOne)
+	require.Equal(t, false, isActive)
+	require.Equal(t, true, exist)
 }
