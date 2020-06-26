@@ -429,7 +429,7 @@ func (s *SMExecute) stepDeduplicateThroughPreviousExecutor(ctx smachine.Executio
 		}
 	}).WithoutAutoWakeUp().Start()
 
-	return ctx.Jump(s.stepWaitFindCallResponse)
+	return ctx.Sleep().ThenJump(s.stepWaitFindCallResponse)
 }
 
 func (s *SMExecute) stepWaitFindCallResponse(ctx smachine.ExecutionContext) smachine.StateUpdate {
