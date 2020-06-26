@@ -64,9 +64,9 @@ func TestVirtual_Constructor_WithoutExecutor(t *testing.T) {
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
-		require.Equal(t, res.ReturnArguments, []byte("123"))
-		require.Equal(t, res.Callee, objectRef)
-		require.Equal(t, res.CallOutgoing, outgoing)
+		require.Equal(t, []byte("123"), res.ReturnArguments)
+		require.Equal(t, objectRef, res.Callee)
+		require.Equal(t, outgoing, res.CallOutgoing)
 
 		return false // no resend msg
 	})
@@ -117,9 +117,14 @@ func TestVirtual_Constructor_WithExecutor(t *testing.T) {
 	}
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+
 	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
-		require.Equal(t, res.Callee, objectRef)
-		require.Equal(t, res.CallOutgoing, outgoing)
+		require.Equal(t, objectRef, res.Callee)
+		require.Equal(t, outgoing, res.CallOutgoing)
+
+		contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments)
+		require.NoError(t, sysErr)
+		require.Nil(t, contractErr)
 
 		return false // no resend msg
 	})
@@ -220,9 +225,9 @@ func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
-		require.Equal(t, res.ReturnArguments, runnerResult)
-		require.Equal(t, res.Callee, objectRef)
-		require.Equal(t, res.CallOutgoing, outgoing)
+		require.Equal(t, runnerResult, res.ReturnArguments)
+		require.Equal(t, objectRef, res.Callee)
+		require.Equal(t, outgoing, res.CallOutgoing)
 		require.Equal(t, payload.CTConstructor, res.CallType)
 		require.Equal(t, flags, res.CallFlags)
 
@@ -301,9 +306,9 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
-		require.Equal(t, res.ReturnArguments, []byte("123"))
-		require.Equal(t, res.Callee, objectRef)
-		require.Equal(t, res.CallOutgoing, outgoing)
+		require.Equal(t, []byte("123"), res.ReturnArguments)
+		require.Equal(t, objectRef, res.Callee)
+		require.Equal(t, outgoing, res.CallOutgoing)
 
 		return false // no resend msg
 	})
@@ -545,6 +550,56 @@ func TestVirtual_CallConstructorFromConstructor(t *testing.T) {
 
 	require.Equal(t, 1, typedChecker.VCallRequest.Count())
 	require.Equal(t, 2, typedChecker.VCallResult.Count())
+
+	mc.Finish()
+}
+
+func TestVirtual_Constructor_WrongConstructorName(t *testing.T) {
+	t.Log("C4977")
+
+	var (
+		mc = minimock.NewController(t)
+	)
+
+	server, ctx := utils.NewServer(nil, t)
+	defer server.Stop()
+
+	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
+
+	var (
+		isolation = contract.ConstructorIsolation()
+		outgoing  = server.RandomLocalWithPulse()
+		objectRef = reference.NewSelf(outgoing)
+	)
+
+	pl := payload.VCallRequest{
+		CallType:       payload.CTConstructor,
+		CallFlags:      payload.BuildCallFlags(isolation.Interference, isolation.State),
+		Callee:         testwallet.GetClass(),
+		CallSiteMethod: "NotExistingConstructorName",
+		CallOutgoing:   outgoing,
+		Arguments:      insolar.MustSerialize([]interface{}{}),
+	}
+
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+
+	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
+		require.Equal(t, objectRef, res.Callee)
+		require.Equal(t, outgoing, res.CallOutgoing)
+
+		contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments)
+		require.Equal(t, &foundation.Error{"failed to execute request;\texecution error;\tfailed to find contracts constructor"}, contractErr)
+		require.NoError(t, sysErr)
+
+		return false // no resend msg
+	})
+
+	server.SendPayload(ctx, &pl)
+
+	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+
+	assert.Equal(t, 1, typedChecker.VCallResult.Count())
 
 	mc.Finish()
 }
