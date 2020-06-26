@@ -524,7 +524,7 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) setMessageCheckers(
 				ApproverSignature: []byte("deadbeef"),
 			},
 		}
-		s.addPayload(ctx, &pl)
+		s.server.SendPayload(ctx, &pl)
 		return false
 	})
 	typedChecker.VDelegatedRequestFinished.Set(func(res *payload.VDelegatedRequestFinished) bool {
@@ -588,19 +588,11 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) waitMessagePublications(
 	require.Equal(t, expected, s.server.PublisherMock.GetCount())
 }
 
-func (s *stateReportCheckPendingCountersAndPulsesTest) addPayload(
-	ctx context.Context, pl payload.Marshaler,
-) {
-	me := s.server.JetCoordinatorMock.Me()
-	msg := utils.NewRequestWrapper(s.getCurrentPulse(), pl).SetSender(me).Finalize()
-	s.server.SendMessage(ctx, msg)
-}
-
 func (s *stateReportCheckPendingCountersAndPulsesTest) addPayloadAndWaitIdle(
 	ctx context.Context, pl payload.Marshaler,
 ) {
 	s.server.SuspendConveyorAndWaitThenResetActive()
-	s.addPayload(ctx, pl)
+	s.server.SendPayload(ctx, pl)
 	s.server.WaitActiveThenIdleConveyor()
 }
 
