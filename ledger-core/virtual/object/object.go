@@ -25,8 +25,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/callsummary"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object/finalizedstate"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/tables"
 )
 
 type State int32
@@ -49,13 +51,14 @@ type Info struct {
 	UnorderedExecute smachine.SyncLink
 	OrderedExecute   smachine.SyncLink
 	ReadyToWork      smachine.SyncLink
+	SummaryDone      smachine.SyncLink
 
 	AwaitPendingOrdered smachine.BargeIn
 
 	// KnownRequests holds requests that were seen on current pulse
-	KnownRequests WorkingTable
+	KnownRequests tables.WorkingTable
 	// PendingTable holds requests that are known to be processed by other executors
-	PendingTable PendingTable
+	PendingTable tables.PendingTable
 
 	PreviousExecutorUnorderedPendingCount uint8
 	PreviousExecutorOrderedPendingCount   uint8
@@ -210,8 +213,8 @@ func NewStateMachineObject(objectReference reference.Global) *SMObject {
 		SharedState: SharedState{
 			Info: Info{
 				Reference:     objectReference,
-				KnownRequests: NewWorkingTable(),
-				PendingTable:  NewRequestTable(),
+				KnownRequests: tables.NewWorkingTable(),
+				PendingTable:  tables.NewRequestTable(),
 			},
 		},
 	}
@@ -223,6 +226,7 @@ type SMObject struct {
 	SharedState
 
 	readyToWorkCtl smsync.BoolConditionalLink
+	summaryDoneCtl smsync.BoolConditionalLink
 
 	waitGetStateUntil time.Time
 	smFinalizer       *finalizedstate.SMStateFinalizer
@@ -257,6 +261,9 @@ func (sm *SMObject) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 
 	sm.readyToWorkCtl = smsync.NewConditionalBool(false, "readyToWork")
 	sm.ReadyToWork = sm.readyToWorkCtl.SyncLink()
+
+	sm.summaryDoneCtl = smsync.NewConditionalBool(false, "summaryDone")
+	sm.SummaryDone = sm.summaryDoneCtl.SyncLink()
 
 	sm.UnorderedExecute = smsync.NewSemaphore(30, "immutable calls").SyncLink()
 	sm.OrderedExecute = smsync.NewSemaphore(1, "mutable calls").SyncLink() // TODO here we need an ORDERED queue
@@ -417,8 +424,8 @@ func (sm *SMObject) stepMigrate(ctx smachine.MigrationContext) smachine.StateUpd
 		sm.smFinalizer.Report.ProvidedContent.LatestDirtyState = sm.BuildLatestDirtyState()
 	}
 
-	sdl := ctx.Share(&sm.smFinalizer.Report, 0)
-	if !ctx.Publish(finalizedstate.BuildReportKey(sm.Reference), sdl) {
+	sdlStateReport := ctx.Share(&sm.smFinalizer.Report, 0)
+	if !ctx.Publish(finalizedstate.BuildReportKey(sm.Reference), sdlStateReport) {
 		ctx.Log().Warn(struct {
 			*log.Msg  `txt:"failed to publish state report"`
 			Reference string
@@ -428,8 +435,63 @@ func (sm *SMObject) stepMigrate(ctx smachine.MigrationContext) smachine.StateUpd
 		return ctx.Error(fmt.Errorf("failed to publish state report"))
 	}
 
+	sdlCallSummarySync := ctx.Share(&sm.SummaryDone, 0)
+
+	if !ctx.Publish(callsummary.BuildSummarySyncKey(sm.Reference), sdlCallSummarySync) {
+		ctx.Log().Warn(struct {
+			*log.Msg  `txt:"failed to publish call summary sync key"`
+			Reference string
+		}{
+			Reference: sm.Reference.String(),
+		})
+		return ctx.Error(fmt.Errorf("failed to publish call summary sync key"))
+	}
+
+	return ctx.Jump(sm.stepPublishCallSummary)
+}
+
+func (sm *SMObject) stepPublishCallSummary(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	pulseNumber := sm.pulseSlot.PulseData().PulseNumber
+	summarySharedStateAccessor, ok := callsummary.GetSummarySMSharedAccessor(ctx, pulseNumber)
+
+	if !ok {
+		ctx.InitChild(func(ctx smachine.ConstructionContext) smachine.StateMachine {
+			return callsummary.NewStateMachineCallSummary(pulseNumber)
+		})
+
+		summarySharedStateAccessor, _ = callsummary.GetSummarySMSharedAccessor(ctx, pulseNumber)
+	}
+
+	action := func(shared *callsummary.SharedCallSummary) {
+		shared.Requests.AddObjectRequests(sm.Reference, sm.KnownRequests)
+
+		if !ctx.Unpublish(callsummary.BuildSummarySyncKey(sm.Reference)) {
+			ctx.Log().Warn(struct {
+				*log.Msg  `txt:"failed to unpublish call summary sync key"`
+				Reference string
+			}{
+				Reference: sm.Reference.String(),
+			})
+			ctx.Error(fmt.Errorf("failed to unpublish call summary sync key"))
+		}
+	}
+
+	switch summarySharedStateAccessor.Prepare(action).TryUse(ctx).GetDecision() {
+	case smachine.NotPassed:
+		return ctx.WaitShared(summarySharedStateAccessor.SharedDataLink).ThenRepeat()
+	case smachine.Impossible:
+		panic(throw.NotImplemented())
+	case smachine.Passed:
+		// go further
+	default:
+		panic(throw.Impossible())
+	}
+
+	ctx.ApplyAdjustment(sm.summaryDoneCtl.NewValue(true))
+
 	return ctx.Jump(sm.stepFinalize)
 }
+
 func (sm *SMObject) stepFinalize(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	return ctx.ReplaceWith(sm.smFinalizer)
 }
