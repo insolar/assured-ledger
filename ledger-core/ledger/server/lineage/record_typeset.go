@@ -24,3 +24,7 @@ func (v RecordTypeSet) Has(typ RecordType) bool {
 	}
 	return v.mask.BitBool(int(typ))
 }
+
+func (v RecordTypeSet) IsZero() bool {
+	return v.ofs == 0 && v.mask == nil
+}

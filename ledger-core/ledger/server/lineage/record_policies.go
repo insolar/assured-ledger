@@ -5,42 +5,14 @@
 
 package lineage
 
-import (
-	"github.com/insolar/assured-ledger/ledger-core/reference"
-)
+type RecordPolicyProviderFunc = func (recordType RecordType) RecordPolicy
 
-func GetRecordPolicy(recordType uint64) RecordPolicy {
-	if recordType >= uint64(len(policies)) {
+func GetRecordPolicy(recordType RecordType) RecordPolicy {
+	if recordType == 0 || int(recordType) >= len(policies) {
 		return RecordPolicy{}
 	}
 	return policies[recordType]
 }
-
-type RecordPolicy struct {
-	FieldPolicy
-	CanFollow RecordTypeSet
-	RedirectTo RecordTypeSet
-}
-
-type RecordType uint32
-
-type FieldPolicy uint16
-
-const (
-	// EmptyRoot
-	// EmptyPrev
-	// AllowEmptyReason
-	// AllowRedirect
-	// RequireRedirect
-	FilamentStart FieldPolicy = 1<<iota
-	FilamentEnd
-	Branched
-	Unblocked // ?
-	SideEffect
-	OnlyHash
-	NextPulseOnly
-	Recap // can follow up any record
-)
 
 const maxRecordType = 1000
 
@@ -49,8 +21,8 @@ var setUnblockedLine = setOf(tRLineActivate, tRLineMemory, tRLineMemoryReuse, tR
 var setUnblockedInbound = []RecordType{tRLineInboundRequest, tRInboundRequest, tROutboundResponse}
 
 var policies = []RecordPolicy{
-	tRLifelineStart: 		{ FieldPolicy: FilamentStart },
-	tRSidelineStart: 		{ FieldPolicy: FilamentStart|Branched },
+	tRLifelineStart: 		{ FieldPolicy: LineStart },
+	tRSidelineStart: 		{ FieldPolicy: LineStart|Branched },
 
 	tRLineInboundRequest:	{ FieldPolicy: FilamentStart,			CanFollow: setUnblockedLine},
 	tRInboundRequest: 	 	{ FieldPolicy: FilamentStart|Branched,	CanFollow: setUnblockedLine},
@@ -66,16 +38,5 @@ var policies = []RecordPolicy{
 	tRLineMemoryReuse: 		{ FieldPolicy: SideEffect|Unblocked, 	CanFollow: setOf(tRLineInboundRequest), RedirectTo: setOf(tRLineMemory, tRLineMemoryProvided) },
 	tRLineMemoryExpected: 	{ FieldPolicy: SideEffect|OnlyHash,		CanFollow: setOf(tRLineInboundRequest)},
 	tRLineMemoryProvided: 	{ FieldPolicy: Unblocked,				CanFollow: setOf(tRLineMemoryExpected)},
-	tRLineRecap:			{ FieldPolicy: Recap },
-}
-
-type BriefRecordInfo struct {
-	RecordType uint32
-	RootRef reference.Holder
-	RedirectTo *RedirectRecordInfo
-}
-
-type RedirectRecordInfo struct {
-	RecordType uint32
-	RedirectRef reference.Holder
+	tRLineRecap:			{ FieldPolicy: Recap|NextPulseOnly },
 }

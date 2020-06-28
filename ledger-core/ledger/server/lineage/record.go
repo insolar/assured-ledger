@@ -19,6 +19,6 @@ type Record struct {
 }
 
 func (v Record) Equal(record Record) bool {
-
+	return v.RegRecord.Equal(record.RegRecord)
 }
 

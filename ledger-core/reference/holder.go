@@ -74,6 +74,8 @@ func IsGlobalScope(ref Holder) bool {
 
 func Equal(ref0, ref1 Holder) bool {
 	switch {
+	case ref0 == ref1:
+		return true
 	case ref0 == nil || ref1 == nil:
 		return false
 	case ref1.GetLocal() != ref0.GetLocal():
