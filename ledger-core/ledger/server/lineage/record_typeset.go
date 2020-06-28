@@ -7,6 +7,7 @@ package lineage
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
+<<<<<<< HEAD
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -26,6 +27,10 @@ func setOf(x... RecordType) RecordTypeSet {
 	return RecordTypeSet{RecordType(skip<<3), b}
 }
 
+=======
+)
+
+>>>>>>> Further work
 type RecordTypeSet struct {
 	ofs  RecordType
 	mask longbits.BitSliceLSB
@@ -36,7 +41,11 @@ func (v RecordTypeSet) Has(typ RecordType) bool {
 		return false
 	}
 	typ -= v.ofs
+<<<<<<< HEAD
 	if (typ >> 3) >= RecordType(len(v.mask)) {
+=======
+	if typ >= RecordType(len(v.mask)) {
+>>>>>>> Further work
 		return false
 	}
 	return v.mask.BitBool(int(typ))
@@ -45,4 +54,7 @@ func (v RecordTypeSet) Has(typ RecordType) bool {
 func (v RecordTypeSet) IsZero() bool {
 	return v.ofs == 0 && v.mask == nil
 }
+<<<<<<< HEAD
 
+=======
+>>>>>>> Further work

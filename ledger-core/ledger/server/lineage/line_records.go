@@ -6,27 +6,43 @@
 package lineage
 
 import (
+<<<<<<< HEAD
 	"math"
+=======
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc"
+>>>>>>> Further work
 )
 
 type stageNo uint32
 type recordNo uint32
 type filamentNo uint32
 
+<<<<<<< HEAD
 const deadFilament = recordNo(math.MaxUint32)
 
+=======
+>>>>>>> Further work
 type updateStage struct {
 	seqNo stageNo
 	next  *updateStage // latter one
 
+<<<<<<< HEAD
 	tracker StageTracker
 	firstRec  recordNo
 
 	filaments     []filament
+=======
+	future    *buildersvc.Future
+	firstRec  recordNo
+
+	filaments    []filamentEndings
+	filamentCopy bool
+>>>>>>> Further work
 }
 
 type updateRecord = resolvedRecord
 
+<<<<<<< HEAD
 type StageTracker interface {
 	GetUpdateStatus() (isReady bool, allocationBase uint32)
 }
@@ -45,6 +61,10 @@ type filament struct {
 	recap recordNo
 	resolvedHead ResolvedDependency
 	state filamentState
+=======
+type filamentEndings struct {
+	earliest, latest recordNo
+>>>>>>> Further work
 }
 
 
@@ -52,7 +72,11 @@ type lineRecords struct {
 	records [][]updateRecord
 }
 
+<<<<<<< HEAD
 func (p *lineRecords) getNextRecNo() recordNo {
+=======
+func (p *lineRecords) getNextRecordNo() recordNo {
+>>>>>>> Further work
 	return recordNo(p.getCount())
 }
 

@@ -20,6 +20,7 @@ const (
 	RecordNotAvailable RecordType = math.MaxUint32
 )
 
+<<<<<<< HEAD
 type PolicyFlags uint32
 
 const (
@@ -38,10 +39,34 @@ const (
 
 type RecordPolicy struct {
 	PolicyFlags
+=======
+type FieldPolicy uint16
+
+const (
+	// EmptyRoot
+	// EmptyPrev
+	// AllowEmptyReason
+	// AllowRedirect
+	// RequireRedirect
+	LineStart FieldPolicy = 1<<iota
+	FilamentStart
+	FilamentEnd
+	Branched
+	SideEffect
+	OnlyHash
+	NextPulseOnly
+	Unblocked // ?
+	Recap // can follow up any record (Deactivate?)
+)
+
+type RecordPolicy struct {
+	FieldPolicy
+>>>>>>> Further work
 	CanFollow RecordTypeSet
 	RedirectTo RecordTypeSet
 }
 
+<<<<<<< HEAD
 type PolicyCheckDetails struct {
 	RecordType
 	LocalPN pulse.Number
@@ -53,30 +78,67 @@ func (v RecordPolicy) IsValid() bool {
 }
 
 func (v RecordPolicy) CheckRecordRef(lineBase reference.LocalHolder, ref reference.LocalHolder, details PolicyCheckDetails) error {
+=======
+func (v RecordPolicy) IsValid() bool {
+	return v.FieldPolicy != 0 || !v.CanFollow.IsZero()
+}
+
+func (v RecordPolicy) CheckRecordRef(lineBase reference.LocalHolder, localPN pulse.Number, ref reference.LocalHolder) error {
+>>>>>>> Further work
 	refLocal := ref.GetLocal()
 	if ss := refLocal.SubScope(); ss != reference.SubScopeLifeline {
 		return throw.E("invalid scope", struct { Actual reference.SubScope }{ ss })
 	}
 
 	switch {
+<<<<<<< HEAD
 	case v.PolicyFlags&LineStart == 0:
 		//
 	case v.PolicyFlags&BranchedStart == 0:
+=======
+	case v.FieldPolicy&LineStart == 0:
+		//
+	case v.FieldPolicy&Branched == 0:
+>>>>>>> Further work
 		if refLocal.GetLocal() != lineBase.GetLocal() {
 			return throw.E("must be self-ref")
 		}
 	}
 
+<<<<<<< HEAD
 	if pn := refLocal.GetPulseNumber(); details.LocalPN != pn {
 		return throw.E("wrong pulse number", struct { Expected, Actual pulse.Number }{ details.LocalPN, pn })
+=======
+	if pn := refLocal.GetPulseNumber(); localPN != pn {
+		return throw.E("wrong pulse number", struct { Expected, Actual pulse.Number }{ localPN, pn })
+>>>>>>> Further work
 	}
 
 	return nil
 }
 
+<<<<<<< HEAD
 func (v RecordPolicy) CheckRootRef(ref reference.Holder, details PolicyCheckDetails, resolverFn PolicyResolverFunc) error {
 	if ok, err := checkExact(ref, v.PolicyFlags&(LineStart|BranchedStart) != LineStart); !ok || err != nil {
 		return err
+=======
+func (v RecordPolicy) CheckRootRef(ref reference.Holder, policyFn RecordPolicyProviderFunc, resolverFn PolicyResolverFunc) error {
+	switch {
+	case v.FieldPolicy&(LineStart|Branched) == LineStart:
+		if !ref.IsEmpty() {
+			return throw.E("must be empty")
+		}
+		switch found, err := resolverFn(ref); {
+		case err != nil:
+			return err
+		case !found.IsZero():
+			return throw.E("already exists")
+		}
+		return nil
+
+	case ref.IsEmpty():
+		return throw.E("must be not empty")
+>>>>>>> Further work
 	}
 
 	switch found, err := resolverFn(ref); {
@@ -85,6 +147,7 @@ func (v RecordPolicy) CheckRootRef(ref reference.Holder, details PolicyCheckDeta
 	case found.IsZero():
 		return throw.E("missing record")
 	case found.RecordType == RecordNotAvailable:
+<<<<<<< HEAD
 	case details.PolicyProvider == nil:
 	case v.PolicyFlags&LineStart != 0:
 	default:
@@ -93,6 +156,15 @@ func (v RecordPolicy) CheckRootRef(ref reference.Holder, details PolicyCheckDeta
 		case !policy.IsValid():
 			msg = "unknown root type"
 		case policy.PolicyFlags& (LineStart|FilamentStart) == 0:
+=======
+	case policyFn == nil:
+	default:
+		msg := ""
+		switch policy := policyFn(found.RecordType); {
+		case !policy.IsValid():
+			msg = "unknown root type"
+		case policy.FieldPolicy & (LineStart|FilamentStart) == 0:
+>>>>>>> Further work
 			msg = "wrong root type"
 		default:
 			return nil
@@ -102,6 +174,7 @@ func (v RecordPolicy) CheckRootRef(ref reference.Holder, details PolicyCheckDeta
 	return nil
 }
 
+<<<<<<< HEAD
 func (v RecordPolicy) CheckPrevRef(rootRef, ref reference.Holder, details PolicyCheckDetails, resolverFn PolicyResolverFunc) (isFork bool, err error) {
 	err = v.checkPrevRef(rootRef, ref, details, resolverFn, &isFork)
 	return
@@ -120,21 +193,43 @@ func (v RecordPolicy) checkPrevRef(rootRef, ref reference.Holder, details Policy
 
 	found, err := resolverFn(ref)
 	switch {
+=======
+func (v RecordPolicy) CheckPrevRef(pn pulse.Number, ref reference.Holder, resolverFn PolicyResolverFunc) error {
+	switch {
+	case v.FieldPolicy&LineStart != 0:
+		if !ref.IsEmpty() {
+			return throw.E("must be empty")
+		}
+		return nil
+	case ref.IsEmpty():
+		return throw.E("must be not empty")
+	case v.FieldPolicy&NextPulseOnly == 0:
+	case ref.GetLocal().GetPulseNumber() >= pn:
+		return throw.E("must be prev pulse")
+	}
+
+	switch found, err := resolverFn(ref); {
+>>>>>>> Further work
 	case err != nil:
 		return err
 	case found.IsZero():
 		return throw.E("unknown record")
 	case found.RecordType == RecordNotAvailable:
+<<<<<<< HEAD
 		return nil
 	case v.PolicyFlags&Recap != 0:
 		if !reference.IsEmpty(found.RootRef) && !reference.Equal(rootRef, found.RootRef) {
 			return throw.E("filament crossing is forbidden")
 		}
 		return nil
+=======
+	case v.FieldPolicy&Recap != 0:
+>>>>>>> Further work
 	case v.CanFollow.Has(found.RecordType):
 	case found.RedirectToRef == nil:
 	case v.CanFollow.Has(found.RedirectToType):
 	default:
+<<<<<<< HEAD
 		return throw.E("wrong record sequence", struct{ PrevType RecordType }{found.RecordType})
 	}
 
@@ -213,6 +308,24 @@ func (v RecordPolicy) CheckRejoinRef(ref reference.Holder, details PolicyCheckDe
 func (v RecordPolicy) CheckRedirectRef(ref reference.Holder, resolverFn PolicyResolverFunc) error {
 	if ok, err := checkExact(ref, !v.RedirectTo.IsZero()); !ok || err != nil {
 		return err
+=======
+		return throw.E("wrong record sequence", struct { PrevType RecordType }{found.RecordType })
+	}
+	return nil
+}
+
+func (v RecordPolicy) CheckRejoinRef(pn pulse.Number, ref reference.Holder, resolverFn PolicyResolverFunc) error {
+	switch {
+	case v.FieldPolicy&SideEffect == 0:
+		if !ref.IsEmpty() {
+			return throw.E("must be empty")
+		}
+		return nil
+	case ref.IsEmpty():
+		return throw.E("must be not empty")
+	case ref.GetLocal().GetPulseNumber() != pn:
+		return throw.E("must be same pulse")
+>>>>>>> Further work
 	}
 
 	switch found, err := resolverFn(ref); {
@@ -220,16 +333,20 @@ func (v RecordPolicy) CheckRedirectRef(ref reference.Holder, resolverFn PolicyRe
 		return err
 	case found.IsZero():
 		return throw.E("unknown record")
+<<<<<<< HEAD
 	case found.RecordType == RecordNotAvailable:
 	case found.RedirectToRef != nil:
 		return throw.E("redirect to redirect is forbidden")
 	case v.RedirectTo.Has(found.RecordType):
 	default:
 		return throw.E("wrong redirect target", struct { PrevType RecordType }{found.RecordType })
+=======
+>>>>>>> Further work
 	}
 	return nil
 }
 
+<<<<<<< HEAD
 func (v RecordPolicy) CheckReasonRef(ref reference.Holder, resolverFn PolicyResolverFunc) error {
 	if ok, err := checkExact(ref, v.PolicyFlags&ReasonRequired != 0); !ok || err != nil {
 		return err
@@ -275,4 +392,30 @@ func (v RecordPolicy) CanBeRejoined() bool {
 
 func (v RecordPolicy) IsForkAllowed() bool {
 	return v.PolicyFlags&(FilamentStart|BranchedStart) == FilamentStart
+=======
+func (v RecordPolicy) CheckRedirectRef(ref reference.Holder, resolverFn PolicyResolverFunc) error {
+	if ref.IsEmpty() {
+
+	}
+}
+
+func (v RecordPolicy) IsAnyFilamentStart() bool {
+	return v.FieldPolicy&(LineStart|FilamentStart) != 0
+}
+
+func (v RecordPolicy) IsBranched() bool {
+	return v.FieldPolicy&Branched != 0
+}
+
+func (v RecordPolicy) IsFilamentStart() bool {
+	return v.FieldPolicy&FilamentStart != 0
+}
+
+func (v RecordPolicy) IsFilamentStartNotBranched() bool {
+	return v.FieldPolicy&(FilamentStart|Branched) == FilamentStart
+}
+
+func (v RecordPolicy) CanBeRejoined() bool {
+	return v.FieldPolicy&(SideEffect|FilamentEnd) == FilamentEnd
+>>>>>>> Further work
 }
