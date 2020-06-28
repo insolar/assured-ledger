@@ -35,6 +35,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/tables"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/shareddata"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/slotdebugger"
 )
@@ -162,7 +163,7 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 	assert.Equal(t, uint8(0), smObject.PotentialUnorderedPendingCount)
 
 	assert.Equal(t, 1, smObject.KnownRequests.Len())
-	assert.Equal(t, object.RequestProcessing, smObject.KnownRequests.GetList(contract.CallTolerable).GetState(smExecute.execution.Outgoing))
+	assert.Equal(t, tables.RequestProcessing, smObject.KnownRequests.GetList(contract.CallTolerable).GetState(smExecute.execution.Outgoing))
 
 	mc.Finish()
 }
@@ -217,7 +218,7 @@ func TestSMExecute_DeduplicationUsingPendingsTable(t *testing.T) {
 	{
 		// start deduplication before getting all pending requests
 		// expecting going sleep
-		smObject.PendingTable = object.NewRequestTable()
+		smObject.PendingTable = tables.NewRequestTable()
 
 		execCtx := smachine.NewExecutionContextMock(mc).
 			UseSharedMock.Set(shareddata.CallSharedDataAccessor).

@@ -25,23 +25,24 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/slotdebugger"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/tables"
 )
 
 var deadBeef = [...]byte{0xde, 0xad, 0xbe, 0xef}
 
 func TestSMVDelegatedCallRequest(t *testing.T) {
-	oneRandomOrderedTable := object.NewRequestTable()
+	oneRandomOrderedTable := tables.NewRequestTable()
 	oneRandomOrderedTable.GetList(contract.CallTolerable).Add(gen.UniqueGlobalRef())
 
-	oneRandomUnorderedTable := object.NewRequestTable()
+	oneRandomUnorderedTable := tables.NewRequestTable()
 	oneRandomUnorderedTable.GetList(contract.CallIntolerable).Add(gen.UniqueGlobalRef())
 
 	retryOrderedRequestRef := reference.NewSelf(gen.UniqueLocalRefWithPulse(pulse.OfNow()))
-	retryOrderedTable := object.NewRequestTable()
+	retryOrderedTable := tables.NewRequestTable()
 	oneRandomOrderedTable.GetList(contract.CallTolerable).Add(retryOrderedRequestRef)
 
 	retryUnorderedRequestRef := reference.NewSelf(gen.UniqueLocalRefWithPulse(pulse.OfNow()))
-	retryUnorderedTable := object.NewRequestTable()
+	retryUnorderedTable := tables.NewRequestTable()
 	oneRandomOrderedTable.GetList(contract.CallTolerable).Add(retryUnorderedRequestRef)
 
 	oneRandomOrderedRequest := reference.NewSelf(gen.UniqueLocalRefWithPulse(pulse.OfNow()))
@@ -57,13 +58,13 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 		ActiveUnorderedPendingCount   uint8
 		callFlags                     payload.CallFlags
 		expectedResponse              *payload.VDelegatedCallResponse
-		PendingRequestTable           object.PendingTable
+		PendingRequestTable           tables.PendingTable
 		expectedError                 bool
 	}{
 		{
 			name:                        "OK tolerable",
 			testRailCase:                "C5133",
-			PendingRequestTable:         object.NewRequestTable(),
+			PendingRequestTable:         tables.NewRequestTable(),
 			requestRef:                  oneRandomOrderedRequest,
 			OrderedPendingEarliestPulse: pulse.OfNow() - 100,
 			ActiveOrderedPendingCount:   1,
@@ -79,7 +80,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 		{
 			name:                          "OK intolerable",
 			testRailCase:                  "C5132",
-			PendingRequestTable:           object.NewRequestTable(),
+			PendingRequestTable:           tables.NewRequestTable(),
 			requestRef:                    oneRandomUnorderedRequest,
 			UnorderedPendingEarliestPulse: pulse.OfNow() - 100,
 			ActiveUnorderedPendingCount:   1,
@@ -128,7 +129,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 		{
 			name:                          "unexpected intolerable",
 			testRailCase:                  "C5131",
-			PendingRequestTable:           object.NewRequestTable(),
+			PendingRequestTable:           tables.NewRequestTable(),
 			requestRef:                    reference.NewSelf(gen.UniqueLocalRefWithPulse(pulse.OfNow() - 110)),
 			UnorderedPendingEarliestPulse: pulse.Unknown,
 			ActiveUnorderedPendingCount:   0,
@@ -138,7 +139,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 		{
 			name:                          "unexpected tolerable",
 			testRailCase:                  "C4985",
-			PendingRequestTable:           object.NewRequestTable(),
+			PendingRequestTable:           tables.NewRequestTable(),
 			requestRef:                    reference.NewSelf(gen.UniqueLocalRefWithPulse(pulse.OfNow() - 110)),
 			UnorderedPendingEarliestPulse: pulse.Unknown,
 			ActiveUnorderedPendingCount:   0,
@@ -148,7 +149,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 		{
 			name:                          "too old intolerable",
 			testRailCase:                  "C4984",
-			PendingRequestTable:           object.NewRequestTable(),
+			PendingRequestTable:           tables.NewRequestTable(),
 			requestRef:                    reference.NewSelf(gen.UniqueLocalRefWithPulse(pulse.OfNow() - 110)),
 			UnorderedPendingEarliestPulse: pulse.OfNow() - 100,
 			ActiveUnorderedPendingCount:   1,
@@ -158,7 +159,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 		{
 			name:                          "too old tolerable",
 			testRailCase:                  "C5130",
-			PendingRequestTable:           object.NewRequestTable(),
+			PendingRequestTable:           tables.NewRequestTable(),
 			requestRef:                    reference.NewSelf(gen.UniqueLocalRefWithPulse(pulse.OfNow() - 110)),
 			UnorderedPendingEarliestPulse: pulse.OfNow() - 100,
 			ActiveUnorderedPendingCount:   1,
@@ -188,7 +189,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 		{
 			name:                          "wrong call interference flag: expected intolerable, get tolerable",
 			testRailCase:                  "C4989",
-			PendingRequestTable:           object.NewRequestTable(),
+			PendingRequestTable:           tables.NewRequestTable(),
 			requestRef:                    reference.NewSelf(gen.UniqueLocalRefWithPulse(pulse.OfNow())),
 			UnorderedPendingEarliestPulse: pulse.OfNow() - 100,
 			ActiveUnorderedPendingCount:   1,
@@ -198,7 +199,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 		{
 			name:                        "wrong call interference flag: expected tolerable, get intolerable",
 			testRailCase:                "C5128",
-			PendingRequestTable:         object.NewRequestTable(),
+			PendingRequestTable:         tables.NewRequestTable(),
 			requestRef:                  reference.NewSelf(gen.UniqueLocalRefWithPulse(pulse.OfNow())),
 			OrderedPendingEarliestPulse: pulse.OfNow() - 100,
 			ActiveOrderedPendingCount:   1,
@@ -226,7 +227,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 						UnorderedPendingEarliestPulse:         tc.UnorderedPendingEarliestPulse,
 						PreviousExecutorOrderedPendingCount:   tc.ActiveOrderedPendingCount,
 						PreviousExecutorUnorderedPendingCount: tc.ActiveUnorderedPendingCount,
-						KnownRequests:                         object.NewWorkingTable(),
+						KnownRequests:                         tables.NewWorkingTable(),
 						ReadyToWork:                           smsync.NewConditional(1, "ReadyToWork").SyncLink(),
 						OrderedExecute:                        smsync.NewConditional(1, "MutableExecution").SyncLink(),
 						OrderedPendingListFilledCallback:      orderedBargeIn,
