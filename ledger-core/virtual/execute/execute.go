@@ -9,9 +9,6 @@ package execute
 
 import (
 	"context"
-	"errors"
-
-	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
@@ -30,6 +27,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 )
@@ -259,10 +257,15 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 }
 
 func (s *SMExecute) stepIsolationNegotiation(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	// if ExecutionError was prepared
+	if s.executionNewState != nil {
+		return ctx.Jump(s.stepSendCallResult)
+	}
+
 	if s.methodIsolation.IsZero() {
 		return s.runner.PrepareExecutionClassify(ctx, s.execution, func(isolation contract.MethodIsolation, err error) {
 			if err != nil {
-				panic(throw.W(err, "failed to classify method"))
+				s.prepareExecutionError(throw.W(err, "failed to classify method"))
 			}
 			s.methodIsolation = isolation
 		}).DelayedStart().Sleep().ThenRepeat()
@@ -518,9 +521,18 @@ func (s *SMExecute) stepExecuteDecideNextStep(ctx smachine.ExecutionContext) sma
 		// send VCallResult here
 		return ctx.Jump(s.stepSaveNewObject)
 	case execution.Error:
-		err := throw.W(newState.Error, "failed to execute request")
-		ctx.Log().Warn(err)
-		s.prepareExecutionError(err)
+		if d := new(runner.ErrorDetail); throw.FindDetail(newState.Error, d) {
+			switch d.Type {
+			case runner.DetailBadClassRef, runner.DetailEmptyClassRef:
+				s.prepareExecutionError(throw.E("bad class reference"))
+			}
+		} else {
+			s.prepareExecutionError(throw.W(newState.Error, "failed to execute request"))
+		}
+		ctx.Log().Warn(struct {
+			string
+			err error
+		}{"Failed to execute request", newState.Error})
 		return ctx.Jump(s.stepExecuteAborted)
 	case execution.Abort:
 		err := throw.E("execution aborted")
@@ -576,7 +588,6 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 		s.execution.Sequence++
 		s.outgoing.CallSequence = s.execution.Sequence
 		s.outgoingObject = reference.NewSelf(s.outgoing.CallOutgoing)
-		s.outgoing.DelegationSpec = s.getToken()
 	case execution.CallMethod:
 		if s.intolerableCall() && outgoing.Interference() == contract.CallTolerable {
 			err := throw.E("interference violation: ordered call from unordered call")
@@ -590,7 +601,6 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 		s.execution.Sequence++
 		s.outgoing.CallSequence = s.execution.Sequence
 		s.outgoingObject = s.outgoing.Callee
-		s.outgoing.DelegationSpec = s.getToken()
 	default:
 		panic(throw.IllegalValue())
 	}
@@ -625,11 +635,13 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 		outgoingRef := reference.NewRecordOf(s.outgoing.Caller, s.outgoing.CallOutgoing)
 
 		if !ctx.PublishGlobalAliasAndBargeIn(outgoingRef, bargeInCallback) {
-			return ctx.Error(errors.New("failed to publish bargeInCallback"))
+			return ctx.Error(throw.E("failed to publish bargeInCallback"))
 		}
 	} else {
 		s.outgoing.CallRequestFlags = payload.BuildCallRequestFlags(payload.SendResultDefault, payload.RepeatedCall)
 	}
+
+	s.outgoing.DelegationSpec = s.getToken()
 
 	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
 		err := svc.SendRole(goCtx, s.outgoing, node.DynamicRoleVirtualExecutor, s.outgoingObject, s.pulseSlot.CurrentPulseNumber())

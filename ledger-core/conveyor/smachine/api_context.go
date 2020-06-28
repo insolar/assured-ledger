@@ -302,6 +302,7 @@ type ExecutionContext interface {
 	// It is guaranteed that:
 	// 1) the child will start at the same migration state as the creator (caller of this function)
 	// 2) initialization of the new slot will happen before any migration
+	// 3) the child is created in the same SlotMachine as the creator
 	NewChild(CreateFunc) SlotLink
 	NewChildExt(CreateFunc, CreateDefaultValues) SlotLink
 

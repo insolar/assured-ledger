@@ -7,6 +7,7 @@ package conveyor
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 
@@ -44,14 +45,11 @@ func TestAntique_InheritPulseSlot(t *testing.T) {
 		MinCachePulseAge:      100,
 		MaxPastPulseAge:       1000,
 	}, func(_ pulse.Number, _ pulse.Range, input InputEvent) (pulse.Number, smachine.CreateFunc, error) {
-		require.Nil(t, input)
+		require.Equal(t, "inputEvent", input)
 		return 0, func(ctx smachine.ConstructionContext) smachine.StateMachine {
 			return &testAntiqueSM{counter: checkDepth, doneCounter: doneCounter, semaCounter: semaCounter}
 		}, nil
 	}, nil)
-
-	const hasActive = 1
-	const isIdle = 2
 
 	emerChan := make(chan struct{})
 	conveyor.StartWorker(emerChan, func() {})
@@ -62,23 +60,22 @@ func TestAntique_InheritPulseSlot(t *testing.T) {
 
 	require.NoError(t, conveyor.CommitPulseChange(pd.AsRange(), time.Now()))
 
-	pd = pd.CreateNextPulse(emptyEntropyFn)
-	require.NoError(t, conveyor.PreparePulseChange(nil))
-	require.NoError(t, conveyor.CommitPulseChange(pd.AsRange(), time.Now()))
-
-	pd = pd.CreateNextPulse(emptyEntropyFn)
-	require.NoError(t, conveyor.PreparePulseChange(nil))
-	require.NoError(t, conveyor.CommitPulseChange(pd.AsRange(), time.Now()))
-
-	pd = pd.CreateNextPulse(emptyEntropyFn)
-	require.NoError(t, conveyor.PreparePulseChange(nil))
-	require.NoError(t, conveyor.CommitPulseChange(pd.AsRange(), time.Now()))
-
-	require.NoError(t, conveyor.AddInput(ctx, firstPn, InputEvent(nil)))
-
-	for doneCounter.Load() == 0 {
-		time.Sleep(10 * time.Millisecond)
+	for i := 5; i > 0; i-- {
+		pd = pd.CreateNextPulse(emptyEntropyFn)
+		require.NoError(t, conveyor.PreparePulseChange(nil))
+		require.NoError(t, conveyor.CommitPulseChange(pd.AsRange(), time.Now()))
 	}
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+
+	require.NoError(t, conveyor.AddInputExt(ctx, firstPn, "inputEvent", smachine.CreateDefaultValues{
+		TerminationHandler: func(data smachine.TerminationData) {
+			wg.Done()
+		},
+	}))
+
+	wg.Wait()
 
 	for {
 		if active, _ := semaCounter.GetCounts(); active == 0 {
@@ -100,7 +97,7 @@ type testAntiqueSM struct {
 
 func (p *testAntiqueSM) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLink, injector *injector.DependencyInjector) {
 	if p.counter <= 0 {
-		injector.MustInject(&p.pulseSlot)
+		_ = injector.Inject(&p.pulseSlot)
 	}
 }
 
@@ -113,15 +110,20 @@ func (p *testAntiqueSM) GetStateMachineDeclaration() smachine.StateMachineDeclar
 }
 
 func (p *testAntiqueSM) stepInit(ctx smachine.InitializationContext) smachine.StateUpdate {
-	p.doneCounter.Add(1)
 	ctx.Acquire(p.semaCounter)
 
 	if p.counter <= 0 {
-		if p.pulseSlot.State() != Antique {
+		switch {
+		case p.pulseSlot == nil:
+			panic(throw.IllegalState())
+		case p.pulseSlot.State() != Antique:
 			panic(throw.IllegalState())
 		}
+		p.doneCounter.Add(1)
 		return ctx.Stop()
 	}
+
+	p.doneCounter.Add(1)
 	p.counter--
 	return ctx.Jump(p.stepGoDown)
 }

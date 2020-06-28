@@ -92,8 +92,9 @@ func (v SyncLink) GetLimit() (limit int, isAdjustable bool) {
 }
 
 func (v SyncLink) DebugPrint(maxCount int) {
+	limit, _ := v.GetLimit()
 	active, inactive := v.GetCounts()
-	fmt.Printf("%s[a=%d, i=%d] {", v.String(), active, inactive)
+	fmt.Printf("%s[l=%d, a=%d, i=%d] {", v.String(), limit, active, inactive)
 
 	lastQ := 0
 	hasQ := false

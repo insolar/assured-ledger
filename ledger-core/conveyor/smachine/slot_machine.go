@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type MigrationFunc func(migrationCount uint32)
@@ -418,7 +419,7 @@ func (m *SlotMachine) runTerminationHandler(th internalTerminationHandlerFunc, t
 
 /* -- Methods to create and start new machines ------------------------------ */
 
-func (m *SlotMachine) AddNew(ctx context.Context, sm StateMachine, defValues CreateDefaultValues) SlotLink {
+func (m *SlotMachine) AddNew(ctx context.Context, sm StateMachine, defValues CreateDefaultValues) (SlotLink, bool) {
 	switch {
 	case ctx != nil:
 		defValues.Context = ctx
@@ -430,7 +431,7 @@ func (m *SlotMachine) AddNew(ctx context.Context, sm StateMachine, defValues Cre
 	if ok {
 		m.syncQueue.AddAsyncUpdate(link, m._startAddedSlot)
 	}
-	return link
+	return link, ok
 }
 
 func (m *SlotMachine) AddNewByFunc(ctx context.Context, cf CreateFunc, defValues CreateDefaultValues) (SlotLink, bool) {
@@ -469,7 +470,7 @@ func (m *SlotMachine) prepareNewSlotWithDefaults(creator *Slot, fn CreateFunc, s
 func (m *SlotMachine) prepareNewSlot(creator *Slot, fn CreateFunc, sm StateMachine, defValues CreateDefaultValues) (SlotLink, bool) {
 	switch {
 	case (fn == nil) == (sm == nil):
-		panic("illegal value")
+		panic(throw.IllegalValue())
 	case !m.IsActive():
 		return SlotLink{}, false
 	}
@@ -641,7 +642,7 @@ func (m *SlotMachine) _startAddedSlot(link SlotLink, worker FixedSlotWorker) {
 	m.stopSlotWorking(slot, 0, worker)
 	list := m._updateSlotQueue(slot, false, activateSlot)
 	if list != nil {
-		panic("unexpected")
+		panic(throw.Impossible())
 	}
 }
 
@@ -668,7 +669,10 @@ func (m *SlotMachine) _updateSlotQueue(slot *Slot, inplaceUpdate bool, activatio
 			switch activation {
 			case activateSlot:
 				switch slot.QueueType() {
-				case ActiveSlots, WorkingSlots:
+				case ActiveSlots:
+					m.hotWaitOnly = false
+					return nil
+				case WorkingSlots:
 					return nil
 				}
 			case activateHotWaitSlot:
@@ -711,7 +715,7 @@ func (m *SlotMachine) _activateSlot(slot *Slot, mode slotActivationMode) {
 		switch {
 		case slot.isPriority():
 			m.prioritySlots.AddLast(slot)
-		//case slot.isBoosted():
+		// case slot.isBoosted():
 		//	m.boostedSlots.AddLast(slot)
 		default:
 			m.activeSlots.AddLast(slot)
