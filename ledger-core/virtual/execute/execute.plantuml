@@ -69,6 +69,7 @@ T01_U003 --[dashed]> T01_S017
 state "stepFinishRequest" as T01_S027
 T01_S027 : SMExecute
 T01_S027 --[dotted]> T01_S012
+T01_S027 --[dotted]> T01_S001
 T01_S027 --> T01_S025 : [s.migrationHappened]
 T01_S027 --[dashed]> T01_S027 : [smachine.NotPassed]\nWaitShared
 T01_S027 --> [*]
@@ -94,6 +95,7 @@ T01_S004 --> T01_S005
 state "stepIsolationNegotiation" as T01_S006
 T01_S006 : SMExecute
 T01_S006 --[dotted]> T01_S001
+T01_S006 --> T01_S026 : [s.executionNewState!=nil]
 state T01_U005 <<fork>>
 T01_S006 --> T01_U005 : [s.methodIsolation.IsZero()]
 T01_U005 --> T01_S007 : PrepareExecutionClassify(ctx)
@@ -109,11 +111,13 @@ T01_S024 --> T01_S026
 state "stepSendCallResult" as T01_S026
 T01_S026 : SMExecute
 T01_S026 --[dotted]> T01_S012
+T01_S026 --[dotted]> T01_S001
 T01_S026 --> T01_S022 : PrepareAsync(ctx).WithoutAutoWakeUp()
 T01_S026 --> T01_S027
 state "stepSendDelegatedRequestFinished" as T01_S025
 T01_S025 : SMExecute
 T01_S025 --[dotted]> T01_S012
+T01_S025 --[dotted]> T01_S001
 T01_S025 --> T01_S022 : PrepareAsync(ctx).WithoutAutoWakeUp()
 T01_S025 --> [*]
 state "stepSendOutgoing" as T01_S021

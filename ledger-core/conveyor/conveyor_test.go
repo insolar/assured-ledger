@@ -16,6 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
@@ -113,37 +114,51 @@ func TestNewPulseConveyor(t *testing.T) {
 	})
 }
 
+const maxPastPulseAge = 100
+
+func newTestPulseConveyor(ctx context.Context, t *testing.T, preFactoryFn func(pulse.Number, pulse.Range)) (*PulseConveyor, chan struct{}) {
+	instestlogger.SetTestOutput(t)
+
+	machineConfig := smachine.SlotMachineConfig{
+		PollingPeriod:   500 * time.Millisecond,
+		PollingTruncate: 1 * time.Millisecond,
+		SlotPageSize:    1000,
+		ScanCountLimit:  100000,
+	}
+
+	conveyor := NewPulseConveyor(ctx, PulseConveyorConfig{
+		ConveyorMachineConfig: machineConfig,
+		SlotMachineConfig:     machineConfig,
+		EventlessSleep:        100 * time.Millisecond,
+		MinCachePulseAge:      maxPastPulseAge / 2,
+		MaxPastPulseAge:       maxPastPulseAge,
+	}, func(pn pulse.Number, pr pulse.Range, input InputEvent) (pulse.Number, smachine.CreateFunc, error) {
+		require.Nil(t, input)
+		if preFactoryFn != nil {
+			preFactoryFn(pn, pr)
+		}
+		return 0, func(ctx smachine.ConstructionContext) smachine.StateMachine {
+			return &emptySM{}
+		}, nil
+	}, nil)
+
+	emerChan := make(chan struct{})
+	conveyor.StartWorker(emerChan, nil)
+	return conveyor, emerChan
+}
+
 func TestPulseConveyor_AddInput(t *testing.T) {
 	t.Run("no pulse yet", func(t *testing.T) {
 		defer testutils.LeakTester(t)
 
-		machineConfig := smachine.SlotMachineConfig{
-			PollingPeriod:   500 * time.Millisecond,
-			PollingTruncate: 1 * time.Millisecond,
-			SlotPageSize:    1000,
-			ScanCountLimit:  100000,
-		}
-
 		ctx := context.Background()
-
 		pn := pulse.Number(pulse.MinTimePulse + 1)
 
-		conveyor := NewPulseConveyor(ctx, PulseConveyorConfig{
-			ConveyorMachineConfig: machineConfig,
-			SlotMachineConfig:     machineConfig,
-			EventlessSleep:        100 * time.Millisecond,
-			MinCachePulseAge:      100,
-			MaxPastPulseAge:       1000,
-		}, func(inputPn pulse.Number, _ pulse.Range, input InputEvent) (pulse.Number, smachine.CreateFunc, error) {
-			require.Equal(t, pn, inputPn)
-			require.Nil(t, input)
-			return 0, func(ctx smachine.ConstructionContext) smachine.StateMachine {
-				return &emptySM{}
-			}, nil
-		}, nil)
+		conveyor, emerChan := newTestPulseConveyor(ctx, t, func(inputPN pulse.Number, pr pulse.Range) {
+			require.NotNil(t, pr)
+			require.Equal(t, pn, inputPN)
+		})
 
-		emerChan := make(chan struct{})
-		conveyor.StartWorker(emerChan, nil)
 		defer func() {
 			close(emerChan)
 			conveyor.Stop()
@@ -153,76 +168,35 @@ func TestPulseConveyor_AddInput(t *testing.T) {
 	})
 
 	t.Run("1 pulse", func(t *testing.T) {
-		machineConfig := smachine.SlotMachineConfig{
-			PollingPeriod:   500 * time.Millisecond,
-			PollingTruncate: 1 * time.Millisecond,
-			SlotPageSize:    1000,
-			ScanCountLimit:  100000,
-		}
-
 		ctx := context.Background()
-
 		pd := pulse.NewFirstPulsarData(10, longbits.Bits256{})
 		startPn := pd.PulseNumber
 		pn := startPn + pulse.Number(pd.NextPulseDelta)
 
-		conveyor := NewPulseConveyor(ctx, PulseConveyorConfig{
-			ConveyorMachineConfig: machineConfig,
-			SlotMachineConfig:     machineConfig,
-			EventlessSleep:        100 * time.Millisecond,
-			MinCachePulseAge:      100,
-			MaxPastPulseAge:       1000,
-		}, func(inputPn pulse.Number, _ pulse.Range, input InputEvent) (pulse.Number, smachine.CreateFunc, error) {
-			require.Equal(t, pn, inputPn)
-			require.Nil(t, input)
-			return 0, func(ctx smachine.ConstructionContext) smachine.StateMachine {
-				return &emptySM{}
-			}, nil
-		}, nil)
+		conveyor, emerChan := newTestPulseConveyor(ctx, t, func(inputPN pulse.Number, pr pulse.Range) {
+			require.NotNil(t, pr)
+			require.Equal(t, pn, inputPN)
+		})
 
-		emerChan := make(chan struct{})
-		conveyor.StartWorker(emerChan, nil)
 		defer func() {
 			close(emerChan)
 			conveyor.Stop()
 		}()
 
 		require.NoError(t, conveyor.CommitPulseChange(pd.AsRange(), time.Now()))
-
 		require.NoError(t, conveyor.AddInput(ctx, pn, InputEvent(nil)))
-
 		require.Error(t, conveyor.AddInput(ctx, 1, InputEvent(nil)))
 	})
 
 	t.Run("present pulse", func(t *testing.T) {
-		machineConfig := smachine.SlotMachineConfig{
-			PollingPeriod:   500 * time.Millisecond,
-			PollingTruncate: 1 * time.Millisecond,
-			SlotPageSize:    1000,
-			ScanCountLimit:  100000,
-		}
-
 		ctx := context.Background()
-
 		pd := pulse.NewFirstPulsarData(10, longbits.Bits256{})
 		startPn := pd.PulseNumber
 
-		conveyor := NewPulseConveyor(ctx, PulseConveyorConfig{
-			ConveyorMachineConfig: machineConfig,
-			SlotMachineConfig:     machineConfig,
-			EventlessSleep:        100 * time.Millisecond,
-			MinCachePulseAge:      100,
-			MaxPastPulseAge:       1000,
-		}, func(inputPn pulse.Number, _ pulse.Range, input InputEvent) (pulse.Number, smachine.CreateFunc, error) {
-			require.Equal(t, startPn, inputPn)
-			require.Nil(t, input)
-			return 0, func(ctx smachine.ConstructionContext) smachine.StateMachine {
-				return &emptySM{}
-			}, nil
-		}, nil)
-
-		emerChan := make(chan struct{})
-		conveyor.StartWorker(emerChan, nil)
+		conveyor, emerChan := newTestPulseConveyor(ctx, t, func(inputPN pulse.Number, pr pulse.Range) {
+			require.NotNil(t, pr)
+			require.Equal(t, startPn, inputPN)
+		})
 		defer func() {
 			close(emerChan)
 			conveyor.Stop()
@@ -234,38 +208,15 @@ func TestPulseConveyor_AddInput(t *testing.T) {
 	})
 
 	t.Run("past pulse, that has slots", func(t *testing.T) {
-		machineConfig := smachine.SlotMachineConfig{
-			PollingPeriod:   500 * time.Millisecond,
-			PollingTruncate: 1 * time.Millisecond,
-			SlotPageSize:    1000,
-			ScanCountLimit:  100000,
-		}
-
 		ctx := context.Background()
-
 		pd := pulse.NewFirstPulsarData(10, longbits.Bits256{})
-
 		firstPn := pd.PulseNumber
-
 		nextPd := pd.CreateNextPulse(emptyEntropyFn)
-
 		pn := nextPd.PulseNumber
 
-		conveyor := NewPulseConveyor(ctx, PulseConveyorConfig{
-			ConveyorMachineConfig: machineConfig,
-			SlotMachineConfig:     machineConfig,
-			EventlessSleep:        100 * time.Millisecond,
-			MinCachePulseAge:      100,
-			MaxPastPulseAge:       1000,
-		}, func(_ pulse.Number, _ pulse.Range, input InputEvent) (pulse.Number, smachine.CreateFunc, error) {
-			require.Nil(t, input)
-			return 0, func(ctx smachine.ConstructionContext) smachine.StateMachine {
-				return &emptySM{}
-			}, nil
-		}, nil)
-
-		emerChan := make(chan struct{})
-		conveyor.StartWorker(emerChan, nil)
+		conveyor, emerChan := newTestPulseConveyor(ctx, t, func(inputPN pulse.Number, pr pulse.Range) {
+			require.NotNil(t, pr)
+		})
 		defer func() {
 			close(emerChan)
 			conveyor.Stop()
@@ -280,6 +231,83 @@ func TestPulseConveyor_AddInput(t *testing.T) {
 		require.NoError(t, conveyor.CommitPulseChange(nextPd.AsRange(), time.Now()))
 
 		require.NoError(t, conveyor.AddInput(ctx, pn, InputEvent(nil)))
+	})
+
+	t.Run("antique pulse, never had pulseData", func(t *testing.T) {
+		ctx := context.Background()
+		pd := pulse.NewFirstPulsarData(10, longbits.Bits256{})
+		firstPn := pd.PulseNumber
+		nextPd := pd.CreateNextPulse(emptyEntropyFn)
+
+		conveyor, emerChan := newTestPulseConveyor(ctx, t, func(inputPN pulse.Number, pr pulse.Range) {
+			require.Nil(t, pr)
+			require.Equal(t, firstPn, inputPN)
+		})
+		defer func() {
+			close(emerChan)
+			conveyor.Stop()
+		}()
+
+		require.NoError(t, conveyor.CommitPulseChange(nextPd.AsRange(), time.Now()))
+
+		require.NoError(t, conveyor.AddInput(ctx, firstPn, InputEvent(nil)))
+	})
+
+	t.Run("antique pulse, cached pulseData", func(t *testing.T) {
+		ctx := context.Background()
+		const delta = 10
+		pd := pulse.NewFirstPulsarData(delta, longbits.Bits256{})
+		firstPn := pd.PulseNumber
+
+		conveyor, emerChan := newTestPulseConveyor(ctx, t, func(inputPN pulse.Number, pr pulse.Range) {
+			require.NotNil(t, pr)
+			require.Equal(t, firstPn, inputPN)
+		})
+		defer func() {
+			close(emerChan)
+			conveyor.Stop()
+		}()
+
+		require.NoError(t, conveyor.CommitPulseChange(pd.AsRange(), time.Now()))
+
+		// add less than cache limit
+		for i := (maxPastPulseAge / (2 * delta)) - 1; i > 0; i-- {
+			pd = pd.CreateNextPulse(emptyEntropyFn)
+			require.NoError(t, conveyor.PreparePulseChange(nil))
+			require.NoError(t, conveyor.CommitPulseChange(pd.AsRange(), time.Now()))
+		}
+
+		require.NoError(t, conveyor.AddInput(ctx, firstPn, InputEvent(nil)))
+	})
+
+
+	t.Run("antique pulse, evicted pulseData", func(t *testing.T) {
+		ctx := context.Background()
+		const delta = 10
+		pd := pulse.NewFirstPulsarData(delta, longbits.Bits256{})
+		firstPn := pd.PulseNumber
+
+		conveyor, emerChan := newTestPulseConveyor(ctx, t, func(inputPN pulse.Number, pr pulse.Range) {
+			require.Nil(t, pr)
+			require.Equal(t, firstPn, inputPN)
+		})
+		defer func() {
+			close(emerChan)
+			conveyor.Stop()
+		}()
+
+		require.NoError(t, conveyor.CommitPulseChange(pd.AsRange(), time.Now()))
+
+		// add more than cache limit
+		for i := (maxPastPulseAge / (2 * delta)) + 1; i > 0; i-- {
+			pd = pd.CreateNextPulse(emptyEntropyFn)
+			require.NoError(t, conveyor.PreparePulseChange(nil))
+			require.NoError(t, conveyor.CommitPulseChange(pd.AsRange(), time.Now()))
+		}
+
+		require.Nil(t, conveyor.pdm.getCachedPulseSlot(firstPn))
+
+		require.NoError(t, conveyor.AddInput(ctx, firstPn, InputEvent(nil)))
 	})
 }
 

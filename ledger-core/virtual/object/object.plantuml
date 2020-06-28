@@ -7,20 +7,15 @@ state "Init" as T00_S002
 T00_S002 : SMObject
 T00_S002 --> [*] : [(...).pulseSlot.State()!=conveyor.Present]
 T00_S002 --> [*] : [!ctx.Publish()]
-T00_S002 --> T00_S005 : Migrate: sm.migrate
-state "migrate" as T00_S010
-T00_S010 : SMObject
-T00_S010 --> [*] : [sm.GetState()==Unknown]
-T00_S010 --[dashed]> [*] : [!ctx.Publish()]\nError
-T00_S010 --> T00_S011
-state "migrate.1" as T00_S011
+T00_S002 --> T00_S005 : Migrate: sm.stepMigrate
+state "sm.messageSender" as T00_S004 <<sdlreceive>>
+state "stepFinalize" as T00_S011
 T00_S011 : SMObject
 T00_S011 --[dotted]> T00_S010
-state "smf" as T00_U001
+state "sm.smFinalizer" as T00_U001
 T00_U001 : SMObject
 T00_U001 : UNKNOWN 
 T00_S011 --[dashed]> T00_U001 : Migrate: <nil>\nReplace
-state "sm.messageSender" as T00_S004 <<sdlreceive>>
 state "stepGetState" as T00_S005
 T00_S005 : SMObject
 T00_S005 --[dotted]> T00_S010
@@ -31,6 +26,11 @@ state "stepGotState" as T00_S007
 T00_S007 : SMObject
 T00_S007 --[dotted]> T00_S010
 T00_S007 --> T00_S008
+state "stepMigrate" as T00_S010
+T00_S010 : SMObject
+T00_S010 --> [*] : [sm.GetState()==Unknown]
+T00_S010 --[dashed]> [*] : [!ctx.Publish()]\nError
+T00_S010 --> T00_S011
 state "stepReadyToWork" as T00_S008
 T00_S008 : SMObject
 T00_S008 --[dotted]> T00_S010

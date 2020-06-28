@@ -8,7 +8,6 @@ package finalizedstate
 import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
@@ -25,18 +24,16 @@ func (v SharedReportAccessor) Prepare(fn func(report payload.VStateReport)) smac
 
 type ReportKey struct {
 	ObjectReference reference.Global
-	Pulse           pulse.Number
 }
 
-func BuildReportKey(object reference.Global, pulse pulse.Number) ReportKey {
+func BuildReportKey(object reference.Global) ReportKey {
 	return ReportKey{
 		ObjectReference: object,
-		Pulse:           pulse,
 	}
 }
 
-func GetSharedStateReport(ctx smachine.InOrderStepContext, object reference.Global, pn pulse.Number) (SharedReportAccessor, bool) {
-	if v := ctx.GetPublishedLink(BuildReportKey(object, pn)); v.IsAssignableTo((*payload.VStateReport)(nil)) {
+func GetSharedStateReport(ctx smachine.InOrderStepContext, object reference.Global) (SharedReportAccessor, bool) {
+	if v := ctx.GetPublishedLink(BuildReportKey(object)); v.IsAssignableTo((*payload.VStateReport)(nil)) {
 		return SharedReportAccessor{v}, true
 	}
 	return SharedReportAccessor{}, false
