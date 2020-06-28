@@ -30,6 +30,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/tables"
 )
 
 /* -------- Utilities ------------- */
@@ -322,10 +323,10 @@ func (s *SMExecute) stepDeduplicate(ctx smachine.ExecutionContext) smachine.Stat
 		requestState := workingList.GetState(req)
 		switch requestState {
 		// processing started but not yet processing
-		case object.RequestStarted:
+		case tables.RequestStarted:
 			duplicate = true
 			return
-		case object.RequestProcessing:
+		case tables.RequestProcessing:
 			duplicate = true
 			// TODO: we may have result already, should resend
 			return

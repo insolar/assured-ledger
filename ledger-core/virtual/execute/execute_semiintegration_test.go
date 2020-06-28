@@ -21,6 +21,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/tables"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/slotdebugger"
 )
 
@@ -33,8 +34,8 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 		caller      = gen.UniqueGlobalRef()
 		sharedState = &object.SharedState{
 			Info: object.Info{
-				PendingTable:   object.NewRequestTable(),
-				KnownRequests:  object.NewWorkingTable(),
+				PendingTable:   tables.NewRequestTable(),
+				KnownRequests:  tables.NewWorkingTable(),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
 				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
 			},
@@ -106,8 +107,8 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 		callee      = gen.UniqueGlobalRef()
 		sharedState = &object.SharedState{
 			Info: object.Info{
-				PendingTable:   object.NewRequestTable(),
-				KnownRequests:  object.NewWorkingTable(),
+				PendingTable:   tables.NewRequestTable(),
+				KnownRequests:  tables.NewWorkingTable(),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
 				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
 			},
@@ -180,8 +181,8 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 		caller      = gen.UniqueGlobalRef()
 		sharedState = &object.SharedState{
 			Info: object.Info{
-				PendingTable:   object.NewRequestTable(),
-				KnownRequests:  object.NewWorkingTable(),
+				PendingTable:   tables.NewRequestTable(),
+				KnownRequests:  tables.NewWorkingTable(),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
 				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
 			},
@@ -262,8 +263,8 @@ func TestSMExecute_Semi_ConstructorOnMissingObject(t *testing.T) {
 		objectRef   = reference.NewSelf(outgoing)
 		sharedState = &object.SharedState{
 			Info: object.Info{
-				PendingTable:   object.NewRequestTable(),
-				KnownRequests:  object.NewWorkingTable(),
+				PendingTable:   tables.NewRequestTable(),
+				KnownRequests:  tables.NewWorkingTable(),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
 				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
 			},
@@ -337,8 +338,8 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 		objectRef   = reference.NewSelf(outgoing)
 		sharedState = &object.SharedState{
 			Info: object.Info{
-				PendingTable:   object.NewRequestTable(),
-				KnownRequests:  object.NewWorkingTable(),
+				PendingTable:   tables.NewRequestTable(),
+				KnownRequests:  tables.NewWorkingTable(),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
 				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
 			},
@@ -411,8 +412,8 @@ func TestSMExecute_Semi_MethodOnEmptyObject(t *testing.T) {
 		objectRef   = reference.NewSelf(outgoing)
 		sharedState = &object.SharedState{
 			Info: object.Info{
-				PendingTable:   object.NewRequestTable(),
-				KnownRequests:  object.NewWorkingTable(),
+				PendingTable:   tables.NewRequestTable(),
+				KnownRequests:  tables.NewWorkingTable(),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
 				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
 			},

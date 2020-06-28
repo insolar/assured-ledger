@@ -22,6 +22,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/tables"
 )
 
 type SMVDelegatedCallRequest struct {
@@ -115,7 +116,7 @@ func (s *SMVDelegatedCallRequest) stepProcessRequest(ctx smachine.ExecutionConte
 	action := func(state *object.SharedState) {
 		var (
 			oldestPulse                  pulse.Number
-			pendingList                  *object.PendingList
+			pendingList                  *tables.PendingList
 			previousExecutorPendingCount int
 		)
 
