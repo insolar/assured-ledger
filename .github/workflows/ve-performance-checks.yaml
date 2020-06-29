@@ -1,4 +1,4 @@
-name: ve-performance-checks # ve performance checks
+name: ve-performance check
 on:
   pull_request:
   schedule:
@@ -51,6 +51,7 @@ jobs:
         run: echo "${{secrets.CLOUD_KUBECONFIG}}" >> aks.yaml
       - name: Build docker images
         run: make docker-build
+        working-directory: ${{ env.CORE_PATH }}
       - name: Push assured ledger image to Azure container registry registry
         run: |
           docker login $ACR_HOST --username ${{secrets.ACR_SP_ID}} --password ${{secrets.ACR_SP_SECRET}}
