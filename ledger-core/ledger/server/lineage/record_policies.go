@@ -19,6 +19,7 @@ const maxRecordType = 1000
 var setLineStart = []RecordType{tRLifelineStart, tRSidelineStart}
 var setUnblockedLine = setOf(tRLineActivate, tRLineMemory, tRLineMemoryReuse, tRLineMemoryExpected, tRLineMemoryProvided)
 var setUnblockedInbound = []RecordType{tRLineInboundRequest, tRInboundRequest, tROutboundResponse}
+var setDirectActivate = setOf(appendCopy(setLineStart, tRLineMemoryInit)...)
 
 var policies = []RecordPolicy{
 	tRLifelineStart: 		{ FieldPolicy: LineStart|ReasonRequired },

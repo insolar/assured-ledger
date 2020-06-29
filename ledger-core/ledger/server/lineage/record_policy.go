@@ -42,11 +42,17 @@ type RecordPolicy struct {
 	RedirectTo RecordTypeSet
 }
 
+type PolicyCheckDetails struct {
+	RecordType
+	LocalPN pulse.Number
+	PolicyProvider RecordPolicyProviderFunc
+}
+
 func (v RecordPolicy) IsValid() bool {
 	return v.FieldPolicy != 0 || !v.CanFollow.IsZero()
 }
 
-func (v RecordPolicy) CheckRecordRef(lineBase reference.LocalHolder, localPN pulse.Number, ref reference.LocalHolder) error {
+func (v RecordPolicy) CheckRecordRef(lineBase reference.LocalHolder, ref reference.LocalHolder, details PolicyCheckDetails) error {
 	refLocal := ref.GetLocal()
 	if ss := refLocal.SubScope(); ss != reference.SubScopeLifeline {
 		return throw.E("invalid scope", struct { Actual reference.SubScope }{ ss })
@@ -61,14 +67,14 @@ func (v RecordPolicy) CheckRecordRef(lineBase reference.LocalHolder, localPN pul
 		}
 	}
 
-	if pn := refLocal.GetPulseNumber(); localPN != pn {
-		return throw.E("wrong pulse number", struct { Expected, Actual pulse.Number }{ localPN, pn })
+	if pn := refLocal.GetPulseNumber(); details.LocalPN != pn {
+		return throw.E("wrong pulse number", struct { Expected, Actual pulse.Number }{ details.LocalPN, pn })
 	}
 
 	return nil
 }
 
-func (v RecordPolicy) CheckRootRef(ref reference.Holder, policyFn RecordPolicyProviderFunc, resolverFn PolicyResolverFunc) error {
+func (v RecordPolicy) CheckRootRef(ref reference.Holder, details PolicyCheckDetails, resolverFn PolicyResolverFunc) error {
 	if ok, err := checkExact(ref, v.FieldPolicy&(LineStart|Branched) != LineStart); !ok || err != nil {
 		return err
 	}
@@ -79,11 +85,11 @@ func (v RecordPolicy) CheckRootRef(ref reference.Holder, policyFn RecordPolicyPr
 	case found.IsZero():
 		return throw.E("missing record")
 	case found.RecordType == RecordNotAvailable:
-	case policyFn == nil:
+	case details.PolicyProvider == nil:
 	case v.FieldPolicy&LineStart != 0:
 	default:
 		msg := ""
-		switch policy := policyFn(found.RecordType); {
+		switch policy := details.PolicyProvider(found.RecordType); {
 		case !policy.IsValid():
 			msg = "unknown root type"
 		case policy.FieldPolicy & (LineStart|FilamentStart) == 0:
@@ -96,14 +102,14 @@ func (v RecordPolicy) CheckRootRef(ref reference.Holder, policyFn RecordPolicyPr
 	return nil
 }
 
-func (v RecordPolicy) CheckPrevRef(pn pulse.Number, ref reference.Holder, resolverFn PolicyResolverFunc) error {
+func (v RecordPolicy) CheckPrevRef(ref reference.Holder, details PolicyCheckDetails, resolverFn PolicyResolverFunc) error {
 	if ok, err := checkExact(ref, v.FieldPolicy&LineStart == 0); !ok || err != nil {
 		return err
 	}
 
 	switch {
 	case v.FieldPolicy&NextPulseOnly == 0:
-	case ref.GetLocal().GetPulseNumber() >= pn:
+	case ref.GetLocal().GetPulseNumber() >= details.LocalPN:
 		return throw.E("must be prev pulse")
 	}
 
@@ -123,19 +129,19 @@ func (v RecordPolicy) CheckPrevRef(pn pulse.Number, ref reference.Holder, resolv
 	return nil
 }
 
-func (v RecordPolicy) CheckRejoinRef(pn pulse.Number, recType RecordType, ref reference.Holder, resolverFn PolicyResolverFunc) error {
-	switch {
-	case recType != tRLineActivate:
-		if ok, err := checkExact(ref, v.FieldPolicy&SideEffect != 0); !ok || err != nil {
-			return err
-		}
-	case reference.IsEmpty(ref):
-		// This is a special case
-		// TODO it is only allowed after line start or MemoryInit - needs proper data
-		return nil
+func (v RecordPolicy) CheckRejoinRef(ref reference.Holder, details PolicyCheckDetails, prevRecordType RecordType, resolverFn PolicyResolverFunc) error {
+	isSideEffect := v.FieldPolicy&SideEffect != 0
+
+	if isSideEffect && details.RecordType == tRLineActivate && setDirectActivate.Has(prevRecordType) {
+		// This is a special case - RLineActivate can be produced without side-effect when constructor had no outgoing calls
+		isSideEffect = false
 	}
 
-	if ref.GetLocal().GetPulseNumber() != pn {
+	if ok, err := checkExact(ref, isSideEffect); !ok || err != nil {
+		return err
+	}
+
+	if ref.GetLocal().GetPulseNumber() != details.LocalPN {
 		return throw.E("must be same pulse")
 	}
 

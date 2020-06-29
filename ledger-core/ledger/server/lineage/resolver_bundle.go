@@ -6,7 +6,6 @@
 package lineage
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -113,8 +112,13 @@ func (p *BundleResolver) Add(record Record) bool {
 	case !p.checkBase(base, "RedirectRef", upd.Excerpt.RedirectRef.Get()):
 	case !p.checkBase(base, "RejoinRef", upd.Excerpt.RejoinRef.Get()):
 	default:
-		localPN := p.resolver.getLocalPN()
-		if err := policy.CheckRecordRef(base, localPN, ref); err != nil {
+		details := PolicyCheckDetails{
+			RecordType:     recType,
+			LocalPN:        p.resolver.getLocalPN(),
+			PolicyProvider: p.policyProvider,
+		}
+
+		if err := policy.CheckRecordRef(base, ref, details); err != nil {
 			return p.addRefError("RecordRef", err)
 		}
 
@@ -141,8 +145,8 @@ func (p *BundleResolver) Add(record Record) bool {
 			switch {
 			case p.hasBranch:
 				return p.addError(throw.E("can only be one branch in bundle"))
-			case base.GetPulseNumber() == localPN:
-			case reference.PulseNumberOf(upd.Excerpt.ReasonRef.Get()) == localPN:
+			case base.GetPulseNumber() == details.LocalPN:
+			case reference.PulseNumberOf(upd.Excerpt.ReasonRef.Get()) == details.LocalPN:
 			default:
 				return p.addError(throw.E("can only be first in bundle"))
 			}
@@ -150,18 +154,18 @@ func (p *BundleResolver) Add(record Record) bool {
 			p.hasBranch = true
 		}
 
-		isResolved = p.resolveRecordDependencies(localPN, &upd, policy, recType)
+		isResolved = p.resolveRecordDependencies(&upd, policy, details)
 	}
 
 	p.records = append(p.records, upd)
 	return isResolved
 }
 
-func (p *BundleResolver) resolveRecordDependencies(localPN pulse.Number, upd *resolvedRecord, policy RecordPolicy, recType RecordType) bool {
+func (p *BundleResolver) resolveRecordDependencies(upd *resolvedRecord, policy RecordPolicy, details PolicyCheckDetails) bool {
 	isResolved := true
 	rootRef := upd.Excerpt.RootRef.Get()
 
-	if err := policy.CheckRootRef(rootRef, p.policyProvider, func(ref reference.Holder) (dep ResolvedDependency, _ error) {
+	if err := policy.CheckRootRef(rootRef, details, func(ref reference.Holder) (dep ResolvedDependency, _ error) {
 		if ok, filNo, dp := p.getLocalFilament(ref); ok {
 			if dp.IsZero() {
 				return ResolvedDependency{}, throw.E("not a root")
@@ -183,11 +187,14 @@ func (p *BundleResolver) resolveRecordDependencies(localPN pulse.Number, upd *re
 		p.addRefError("RootRef", err)
 	}
 
-	if err := policy.CheckPrevRef(localPN, upd.Excerpt.PrevRef.Get(), func(ref reference.Holder) (dep ResolvedDependency, _ error) {
+	prevRecordType := RecordType(0)
+
+	if err := policy.CheckPrevRef(upd.Excerpt.PrevRef.Get(), details, func(ref reference.Holder) (dep ResolvedDependency, _ error) {
 
 		if rd := p.findResolved(ref); rd != nil {
 			upd.prev = rd.recordNo
 			dep = rd.asResolvedDependency()
+			prevRecordType = dep.RecordType
 
 			switch {
 			case policy.IsBranched():
@@ -247,6 +254,7 @@ func (p *BundleResolver) resolveRecordDependencies(localPN pulse.Number, upd *re
 			return ResolvedDependency{}, throw.E("fork forbidden")
 		}
 
+		prevRecordType = dep.RecordType
 		return dep, nil
 
 	}); err != nil {
@@ -254,7 +262,7 @@ func (p *BundleResolver) resolveRecordDependencies(localPN pulse.Number, upd *re
 		p.addRefError("PrevRef", err)
 	}
 
-	if err := policy.CheckRejoinRef(localPN, recType, upd.Excerpt.RejoinRef.Get(), func(ref reference.Holder) (ResolvedDependency, error) {
+	if err := policy.CheckRejoinRef(upd.Excerpt.RejoinRef.Get(), details, prevRecordType, func(ref reference.Holder) (ResolvedDependency, error) {
 		// rejoin must be within the same record set
 		switch rd := p.findResolved(ref); {
 		case rd == nil:
