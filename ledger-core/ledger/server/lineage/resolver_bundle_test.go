@@ -20,9 +20,14 @@ func r(root reference.Holder, ref, prev reference.LocalHolder, rt RecordType, re
 	rec.Excerpt.ReasonRef.Set(reason)
 	b := root.GetBase()
 	rec.Excerpt.RootRef.Set(root)
+<<<<<<< HEAD
 	rec.regReq = &rms.LRegisterRequest{}
 	rec.RecRef = reference.New(b, ref.GetLocal())
 	rec.regReq.AnticipatedRef.Set(rec.RecRef)
+=======
+	rec.RegRecord = &rms.LRegisterRequest{}
+	rec.RegRecord.AnticipatedRef.Set(reference.New(b, ref.GetLocal()))
+>>>>>>> Further work
 	rec.Excerpt.PrevRef.Set(reference.New(b, prev.GetLocal()))
 	return
 }
@@ -31,9 +36,14 @@ func rStart(base reference.LocalHolder, reason reference.Holder) (rec Record) {
 	rec.Excerpt.RecordType = uint32(tRLifelineStart)
 	rec.Excerpt.ReasonRef.Set(reason)
 	b := base.GetLocal()
+<<<<<<< HEAD
 	rec.regReq = &rms.LRegisterRequest{}
 	rec.RecRef = reference.NewSelf(b)
 	rec.regReq.AnticipatedRef.Set(rec.RecRef)
+=======
+	rec.RegRecord = &rms.LRegisterRequest{}
+	rec.RegRecord.AnticipatedRef.Set(reference.NewSelf(b))
+>>>>>>> Further work
 	return
 }
 
@@ -41,6 +51,10 @@ func describe(br *BundleResolver) interface{} {
 	return br.errors
 }
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> Further work
 func TestBundleResolver_Create(t *testing.T) {
 	base := gen.UniqueLocalRef()
 
@@ -55,10 +69,17 @@ func TestBundleResolver_Create(t *testing.T) {
 	resolver.findFilamentMock.Return(0, ResolvedDependency{})
 
 	refReason := gen.UniqueGlobalRefWithPulse(base.GetPulseNumber())
+<<<<<<< HEAD
 	resolver.findOtherDependencyMock.Expect(refReason).Return(ResolvedDependency{RecordType: tROutboundRequest}, nil)
 
 	br := newBundleResolver(resolver, GetRecordPolicy)
 
+=======
+
+	br := newBundleResolver(resolver, GetRecordPolicy)
+
+	resolver.findLineAnyDependencyMock.Return(ResolvedDependency{RecordType: tROutboundRequest})
+>>>>>>> Further work
 
 	require.True(t, br.Add(rStart(base, refReason)), describe(br))
 
@@ -72,6 +93,7 @@ func TestBundleResolver_Create(t *testing.T) {
 
 	refInbound1 := gen.UniqueLocalRefWithPulse(base.GetPulseNumber())
 	require.True(t, br.Add(r(baseRef, refInbound1, refActivate, tRLineInboundRequest, refReason)), describe(br))
+<<<<<<< HEAD
 
 	require.Equal(t, 4, len(br.records))
 
@@ -84,6 +106,8 @@ func TestBundleResolver_Create(t *testing.T) {
 			require.Equal(t, rn + 2, r.next)
 		}
 	}
+=======
+>>>>>>> Further work
 }
 
 func TestBundleResolver_CreateWithCalls(t *testing.T) {
@@ -100,10 +124,18 @@ func TestBundleResolver_CreateWithCalls(t *testing.T) {
 	resolver.findFilamentMock.Return(0, ResolvedDependency{})
 
 	refReason := gen.UniqueGlobalRefWithPulse(base.GetPulseNumber())
+<<<<<<< HEAD
 	resolver.findOtherDependencyMock.Expect(refReason).Return(ResolvedDependency{RecordType: tROutboundRequest}, nil)
 
 	br := newBundleResolver(resolver, GetRecordPolicy)
 
+=======
+
+	br := newBundleResolver(resolver, GetRecordPolicy)
+
+	resolver.findLineAnyDependencyMock.Return(ResolvedDependency{RecordType: tROutboundRequest})
+
+>>>>>>> Further work
 	require.True(t, br.Add(rStart(base, refReason)), describe(br))
 
 	baseRef := reference.NewSelf(base)
@@ -119,6 +151,7 @@ func TestBundleResolver_CreateWithCalls(t *testing.T) {
 	refOutboundRs := gen.UniqueLocalRefWithPulse(base.GetPulseNumber())
 	require.True(t, br.Add(r(fil1Ref, refOutboundRs, refOutboundRq, tROutboundResponse, nil)), describe(br))
 
+<<<<<<< HEAD
 	refInbound1Rs := gen.UniqueLocalRefWithPulse(base.GetPulseNumber())
 	require.True(t, br.Add(r(fil1Ref, refInbound1Rs, refOutboundRs, tRInboundResponse, nil)), describe(br))
 
@@ -126,11 +159,18 @@ func TestBundleResolver_CreateWithCalls(t *testing.T) {
 
 	rec := r(baseRef, refMem, refInbound1, tRLineMemory, nil)
 	rec.Excerpt.RejoinRef.Set(reference.New(base, refInbound1Rs))
+=======
+	refMem := gen.UniqueLocalRefWithPulse(base.GetPulseNumber())
+
+	rec := r(baseRef, refMem, refInbound1, tRLineMemory, nil)
+	rec.Excerpt.RejoinRef.Set(reference.New(base, refOutboundRs))
+>>>>>>> Further work
 	require.True(t, br.Add(rec), describe(br))
 
 	refActivate := gen.UniqueLocalRefWithPulse(base.GetPulseNumber())
 
 	rec = r(baseRef, refActivate, refMem, tRLineActivate, nil)
+<<<<<<< HEAD
 	rec.Excerpt.RejoinRef.Set(reference.New(base, refInbound1Rs))
 	require.True(t, br.Add(rec), describe(br))
 
@@ -168,3 +208,9 @@ func TestBundleResolver_CreateWithCalls(t *testing.T) {
 }
 
 
+=======
+	rec.Excerpt.RejoinRef.Set(reference.New(base, refOutboundRs))
+	require.True(t, br.Add(rec), describe(br))
+}
+
+>>>>>>> Further work
