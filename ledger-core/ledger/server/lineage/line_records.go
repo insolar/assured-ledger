@@ -16,8 +16,16 @@ type updateStage struct {
 	tracker StageTracker
 	firstRec  recordNo
 
-	filaments    []filamentEndings
-	filamentCopy bool
+	filaments     []filament
+	filamentOwned bool
+}
+
+func (p *updateStage) modifyFilaments() {
+	if p.filamentOwned {
+		return
+	}
+	p.filamentOwned = true
+	p.filaments = append(make([]filament, 0, cap(p.filaments)), p.filaments...)
 }
 
 type updateRecord = resolvedRecord
@@ -26,8 +34,10 @@ type StageTracker interface {
 	IsCommitted() bool
 }
 
-type filamentEndings struct {
+type filament struct {
 	earliest, latest recordNo
+	recap recordNo
+	resolvedHead ResolvedDependency
 }
 
 

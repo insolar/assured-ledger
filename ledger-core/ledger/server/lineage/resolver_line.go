@@ -11,11 +11,13 @@ import (
 )
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/ledger/server/lineage.lineResolver -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/ledger/server/lineage.DependencyResolver -s _mock.go -g
 
 
 type DependencyResolver interface {
-	FindDependency(ref reference.Holder) ResolvedDependency
-	FindLocalDependency(root reference.Holder, ref reference.LocalHolder) ResolvedDependency
+	FindOtherDependency(ref reference.Holder) (ResolvedDependency, error)
+	// FindLineAnyDependency(root reference.Holder, ref reference.LocalHolder) ResolvedDependency
+	// FindLineDependency(root reference.Holder, ref reference.LocalHolder, mustBeOpen bool) (dep ResolvedDependency, recap recordNo)
 }
 
 type lineResolver interface {
@@ -24,6 +26,7 @@ type lineResolver interface {
 	getLineBase() reference.LocalHolder
 	getLocalPN() pulse.Number
 
+	findOtherDependency(ref reference.Holder) (ResolvedDependency, error)
 	findLineAnyDependency(root reference.Holder, ref reference.LocalHolder) ResolvedDependency
 	findLineDependency(root reference.Holder, ref reference.LocalHolder, mustBeOpen bool) (filNo filamentNo, dep ResolvedDependency, recap recordNo)
 	findLocalDependency(root reference.Holder, ref reference.LocalHolder, mustBeOpen bool) (filNo filamentNo, recNo recordNo, dep ResolvedDependency)

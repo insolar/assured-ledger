@@ -37,11 +37,16 @@ type BundleResolver struct {
 	maxRecNo recordNo // can't reference a record after this point
 	maxFilNo filamentNo
 
-	lastRecord reference.Holder
-	unresolved []UnresolvedDependency
-	errors     []error
-	hasBranch  bool
-	isResolved bool
+	resolveResults
+}
+
+type resolveResults struct {
+	lastRecord  reference.Holder
+	unresolved  []UnresolvedDependency
+	errors      []error
+	branchStart recordNo
+	isLineStart bool
+	isResolved  bool
 
 	records    []resolvedRecord
 }
@@ -74,10 +79,7 @@ func (p *BundleResolver) Reprocess() bool {
 		return false
 	}
 	records := p.records
-	p.records = nil
-	p.errors = nil
-	p.unresolved = nil
-	p.hasBranch = false
+	p.resolveResults = resolveResults{}
 
 	// NB! required filament(s) can be retrieved from prev drops
 	p.maxFilNo = p.resolver.getNextFilNo()
@@ -130,18 +132,19 @@ func (p *BundleResolver) Add(record Record) bool {
 			return p.addRefError("RecordRef", err)
 		case hasCopy:
 			return true
-		}
-
-		if policy.IsAnyFilamentStart() {
+		case policy.IsAnyFilamentStart():
 			if len(p.records) == 0 {
 				if p.maxRecNo > 1 {
-					p.hasBranch = true
+					p.branchStart = upd.recordNo
+				} else {
+					p.isLineStart = true
+					upd.filNo = 1
 				}
 				break
 			}
 
 			switch {
-			case p.hasBranch:
+			case p.branchStart != 0:
 				return p.addError(throw.E("can only be one branch in bundle"))
 			case base.GetPulseNumber() == details.LocalPN:
 			case reference.PulseNumberOf(upd.Excerpt.ReasonRef.Get()) == details.LocalPN:
@@ -149,7 +152,7 @@ func (p *BundleResolver) Add(record Record) bool {
 				return p.addError(throw.E("can only be first in bundle"))
 			}
 
-			p.hasBranch = true
+			p.branchStart = upd.recordNo
 		}
 
 		p.resolveRecordDependencies(&upd, policy, details)
@@ -306,21 +309,30 @@ func (p *BundleResolver) resolvePrevRef(upd *resolvedRecord, policy RecordPolicy
 }
 
 func (p *BundleResolver) resolveSupplementaryRef(rootRef, ref reference.Holder) (ResolvedDependency, error) {
+	if reference.IsEmpty(rootRef) || rootRef.GetBase() != ref.GetBase() {
+		switch dep, err := p.resolver.findOtherDependency(ref); {
+		case err != nil:
+			return ResolvedDependency{}, nil
+		case dep.IsNotAvailable():
+			p.addDependency(nil, ref)
+			fallthrough
+		default:
+			return dep, nil
+		}
+	}
+
 	filNo, recNo, dep := p.resolver.findLocalDependency(rootRef, ref, false)
 	switch {
 	case dep.IsZero():
-		dep = p.resolver.findLineAnyDependency(rootRef, ref)
-		switch {
+		switch dep = p.resolver.findLineAnyDependency(rootRef, ref); {
 		case dep.IsZero():
 			return dep, nil
 		case dep.IsNotAvailable():
-			if ref.GetBase() == rootRef.GetBase() {
-				p.addDependency(rootRef, ref)
-			} else {
-				p.addDependency(nil, ref)
-			}
+			p.addDependency(rootRef, ref)
+			fallthrough
+		default:
+			return dep, nil
 		}
-		return dep, nil
 	case dep.IsNotAvailable():
 		panic(throw.Impossible())
 	case recNo == 0 && filNo != 0:
