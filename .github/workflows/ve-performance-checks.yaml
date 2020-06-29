@@ -51,19 +51,13 @@ jobs:
         run: echo "${{secrets.CLOUD_KUBECONFIG}}" >> aks.yaml
       - name: Build docker images
         run: make docker-build
-        working-directory: ${{ env.CORE_PATH }}
       - name: Push assured ledger image to Azure container registry registry
         run: |
           docker login $ACR_HOST --username ${{secrets.ACR_SP_ID}} --password ${{secrets.ACR_SP_SECRET}}
           docker tag insolar/assured-ledger:latest $ACR_HOST/assured-ledger:"${{ fromJson(steps.set-vars.outputs.result).shortSha }}"
           docker push $ACR_HOST/assured-ledger:"${{ fromJson(steps.set-vars.outputs.result).shortSha }}"
       - name: copy docker auth secret
-        run:  |
-          ls -a
-          cd /home/runner/.docker/
-          ls -a
-          cp /home/runner/.docker/config.json ledger-core/scripts/deploy/kube/aks/dockerconfigjson
-        working-directory: ${{ env.CORE_PATH }}
+        run: cp /home/runner/.docker/config.json ledger-core/scripts/deploy/kube/aks/dockerconfigjson
       - name: template GIT_SHA to deployment manifests
         run: |
           sed -i "s/placeholder/${{ fromJson(steps.set-vars.outputs.result).shortSha }}/g" ledger-core/scripts/deploy/kube/*/*.*
