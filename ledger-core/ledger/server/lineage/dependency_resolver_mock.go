@@ -15,12 +15,15 @@ import (
 type DependencyResolverMock struct {
 	t minimock.Tester
 
+<<<<<<< HEAD
 	funcFindLineDependency          func(root reference.Holder, ref reference.LocalHolder) (r1 ResolvedDependency, err error)
 	inspectFuncFindLineDependency   func(root reference.Holder, ref reference.LocalHolder)
 	afterFindLineDependencyCounter  uint64
 	beforeFindLineDependencyCounter uint64
 	FindLineDependencyMock          mDependencyResolverMockFindLineDependency
 
+=======
+>>>>>>> Further work
 	funcFindOtherDependency          func(ref reference.Holder) (r1 ResolvedDependency, err error)
 	inspectFuncFindOtherDependency   func(ref reference.Holder)
 	afterFindOtherDependencyCounter  uint64
@@ -35,15 +38,19 @@ func NewDependencyResolverMock(t minimock.Tester) *DependencyResolverMock {
 		controller.RegisterMocker(m)
 	}
 
+<<<<<<< HEAD
 	m.FindLineDependencyMock = mDependencyResolverMockFindLineDependency{mock: m}
 	m.FindLineDependencyMock.callArgs = []*DependencyResolverMockFindLineDependencyParams{}
 
+=======
+>>>>>>> Further work
 	m.FindOtherDependencyMock = mDependencyResolverMockFindOtherDependency{mock: m}
 	m.FindOtherDependencyMock.callArgs = []*DependencyResolverMockFindOtherDependencyParams{}
 
 	return m
 }
 
+<<<<<<< HEAD
 type mDependencyResolverMockFindLineDependency struct {
 	mock               *DependencyResolverMock
 	defaultExpectation *DependencyResolverMockFindLineDependencyExpectation
@@ -261,6 +268,8 @@ func (m *DependencyResolverMock) MinimockFindLineDependencyInspect() {
 	}
 }
 
+=======
+>>>>>>> Further work
 type mDependencyResolverMockFindOtherDependency struct {
 	mock               *DependencyResolverMock
 	defaultExpectation *DependencyResolverMockFindOtherDependencyExpectation
@@ -480,8 +489,11 @@ func (m *DependencyResolverMock) MinimockFindOtherDependencyInspect() {
 // MinimockFinish checks that all mocked methods have been called the expected number of times
 func (m *DependencyResolverMock) MinimockFinish() {
 	if !m.minimockDone() {
+<<<<<<< HEAD
 		m.MinimockFindLineDependencyInspect()
 
+=======
+>>>>>>> Further work
 		m.MinimockFindOtherDependencyInspect()
 		m.t.FailNow()
 	}
@@ -506,6 +518,9 @@ func (m *DependencyResolverMock) MinimockWait(timeout mm_time.Duration) {
 func (m *DependencyResolverMock) minimockDone() bool {
 	done := true
 	return done &&
+<<<<<<< HEAD
 		m.MinimockFindLineDependencyDone() &&
+=======
+>>>>>>> Further work
 		m.MinimockFindOtherDependencyDone()
 }

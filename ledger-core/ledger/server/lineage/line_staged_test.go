@@ -18,7 +18,11 @@ func TestLineStages_Create(t *testing.T) {
 	base := gen.UniqueLocalRef()
 	resolver := NewDependencyResolverMock(t)
 
+<<<<<<< HEAD
 	line := &LineStages{ base: base, pn: base.GetPulseNumber(), cache: resolver }
+=======
+	line := LineStages{ base: base, pn: base.GetPulseNumber(), cache: resolver }
+>>>>>>> Further work
 	br := line.NewBundle()
 
 	refReason := gen.UniqueGlobalRefWithPulse(base.GetPulseNumber())
@@ -37,15 +41,20 @@ func TestLineStages_Create(t *testing.T) {
 	refInbound1 := gen.UniqueLocalRefWithPulse(base.GetPulseNumber())
 	require.True(t, br.Add(r(baseRef, refInbound1, refActivate, tRLineInboundRequest, refReason)), describe(br))
 
+<<<<<<< HEAD
 	require.True(t, line.AddBundle(br, &stubTracker{}), describe(br))
 
 	verifySequences(t, line)
+=======
+	line.AddBundle(br, &stubTracker{})
+>>>>>>> Further work
 }
 
 func TestLineStages_CreateWithCalls(t *testing.T) {
 	base := gen.UniqueLocalRef()
 	resolver := NewDependencyResolverMock(t)
 
+<<<<<<< HEAD
 	line := &LineStages{ base: base, pn: base.GetPulseNumber(), cache: resolver }
 	br := line.NewBundle()
 
@@ -197,10 +206,30 @@ func fillBundleWithOrderedCall(t *testing.T, base, prev reference.Local, br *Bun
 
 	refOutboundRq := gen.UniqueLocalRefWithPulse(base.GetPulseNumber())
 	require.True(t, br.Add(r(fil1Ref, refOutboundRq, refInboundOrd, tROutboundRequest, nil)), describe(br))
+=======
+	line := LineStages{ base: base, pn: base.GetPulseNumber(), cache: resolver }
+	br := line.NewBundle()
+
+	refReason := gen.UniqueGlobalRefWithPulse(base.GetPulseNumber())
+	resolver.FindOtherDependencyMock.Expect(refReason).Return(ResolvedDependency{RecordType: tROutboundRequest}, nil)
+
+	require.True(t, br.Add(rStart(base, refReason)), describe(br))
+
+	baseRef := reference.NewSelf(base)
+
+	refInbound1 := gen.UniqueLocalRefWithPulse(base.GetPulseNumber())
+	require.True(t, br.Add(r(baseRef, refInbound1, base, tRLineInboundRequest, reference.NewSelf(base))), describe(br))
+
+	fil1Ref := reference.New(base, refInbound1)
+
+	refOutboundRq := gen.UniqueLocalRefWithPulse(base.GetPulseNumber())
+	require.True(t, br.Add(r(fil1Ref, refOutboundRq, refInbound1, tROutboundRequest, nil)), describe(br))
+>>>>>>> Further work
 
 	refOutboundRs := gen.UniqueLocalRefWithPulse(base.GetPulseNumber())
 	require.True(t, br.Add(r(fil1Ref, refOutboundRs, refOutboundRq, tROutboundResponse, nil)), describe(br))
 
+<<<<<<< HEAD
 	refInboundOrdRs := gen.UniqueLocalRefWithPulse(base.GetPulseNumber())
 	require.True(t, br.Add(r(fil1Ref, refInboundOrdRs, refOutboundRs, tRInboundResponse, nil)), describe(br))
 
@@ -270,12 +299,34 @@ func verifySequences(t *testing.T, line *LineStages) {
 
 	// make sure that trunk is open
 	require.Equal(t, recordNo(0), line.get(line.latest.filaments[0].latest).next)
+=======
+	refMem := gen.UniqueLocalRefWithPulse(base.GetPulseNumber())
+
+	rec := r(baseRef, refMem, refInbound1, tRLineMemory, nil)
+	rec.Excerpt.RejoinRef.Set(reference.New(base, refOutboundRs))
+	require.True(t, br.Add(rec), describe(br))
+
+	refActivate := gen.UniqueLocalRefWithPulse(base.GetPulseNumber())
+
+	rec = r(baseRef, refActivate, refMem, tRLineActivate, nil)
+	rec.Excerpt.RejoinRef.Set(reference.New(base, refOutboundRs))
+	require.True(t, br.Add(rec), describe(br))
+
+	line.AddBundle(br, &stubTracker{})
+>>>>>>> Further work
 }
 
 type stubTracker struct {
 	committed bool
 }
 
+<<<<<<< HEAD
 func (p *stubTracker) GetUpdateStatus() (isReady bool, allocationBase uint32) {
 	return p.committed, 1
 }
+=======
+func (p *stubTracker) IsCommitted() bool {
+	return p.committed
+}
+
+>>>>>>> Further work
