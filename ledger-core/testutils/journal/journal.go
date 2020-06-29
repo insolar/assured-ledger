@@ -8,7 +8,7 @@ package journal
 import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/debuglogger"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/journal/predicate"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/predicate"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -22,8 +22,8 @@ func New() *Journal {
 
 type Journal struct {
 	dispenser Dispenser
-	replay *Replay
-	async *predicate.AsyncCounter
+	replay    *Replay
+	async     *predicate.AsyncCounter
 }
 
 func (p *Journal) InterceptSlotMachineLog(underlying smachine.SlotMachineLogger, stopSignal synckit.SignalChannel) smachine.SlotMachineLogger {

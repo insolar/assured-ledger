@@ -91,6 +91,15 @@ func Test_IsMessageFromVirtualLegitimate_WithToken(t *testing.T) {
 			name: "VDelegatedCallRequest",
 			msg:  &payload.VDelegatedCallRequest{},
 		},
+		// TODO decide what to do with this two cases PLAT-575
+		// {
+		// 	name: "VFindCallRequest",
+		// 	msg:  &payload.VFindCallRequest{},
+		// },
+		// {
+		// 	name: "VFindCallResponse",
+		// 	msg:  &payload.VFindCallResponse{},
+		// },
 	}
 
 	for _, testCase := range cases {
@@ -216,6 +225,15 @@ func Test_IsMessageFromVirtualLegitimate_WithoutToken(t *testing.T) {
 		{
 			name: "VDelegatedCallResponse",
 			msg:  &payload.VDelegatedCallResponse{},
+		},
+		{
+			name: "VFindCallRequest",
+			msg:  &payload.VFindCallRequest{},
+		},
+		{
+			name:             "VFindCallResponse",
+			msg:              &payload.VFindCallResponse{},
+			usePreviousPulse: true,
 		},
 	}
 

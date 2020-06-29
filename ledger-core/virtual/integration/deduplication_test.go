@@ -23,48 +23,13 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/synchronization"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/mock"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 )
-
-type SynchronizationPoint struct {
-	count int
-
-	input  chan struct{}
-	output chan struct{}
-}
-
-func (p *SynchronizationPoint) Synchronize() {
-	p.input <- struct{}{}
-
-	<-p.output
-}
-
-func (p *SynchronizationPoint) WaitAll(t *testing.T) {
-	for i := 0; i < p.count; i++ {
-		select {
-		case <-p.input:
-		case <-time.After(10 * time.Second):
-			t.Fatal("timeout: failed to wait until all goroutines are synced")
-		}
-	}
-
-	for i := 0; i < p.count; i++ {
-		p.output <- struct{}{}
-	}
-}
-
-func NewSynchronizationPoint(count int) *SynchronizationPoint {
-	return &SynchronizationPoint{
-		count: count,
-
-		input:  make(chan struct{}, count),
-		output: make(chan struct{}, 0),
-	}
-}
 
 func TestDeduplication_Constructor_DuringExecution(t *testing.T) {
 	t.Log("C4998")
@@ -92,7 +57,8 @@ func TestDeduplication_Constructor_DuringExecution(t *testing.T) {
 		CallOutgoing:   outgoing,
 	}
 
-	synchronizeExecution := NewSynchronizationPoint(1)
+	synchronizeExecution := synchronization.NewPoint(1)
+	defer synchronizeExecution.Done()
 
 	{
 		requestResult := requestresult.New([]byte("123"), gen.UniqueGlobalRef())
@@ -115,18 +81,15 @@ func TestDeduplication_Constructor_DuringExecution(t *testing.T) {
 	typedChecker.VStateReport.SetResend(true)
 
 	{
-		msg := server.WrapPayload(&pl).Finalize()
-		server.SendMessage(ctx, msg)
+		server.SendPayload(ctx, &pl)
 	}
 
-	server.WaitActiveThenIdleConveyor()
+	testutils.WaitSignalsTimed(t, 10*time.Second, synchronizeExecution.Wait())
 	server.IncrementPulse(ctx)
-
-	synchronizeExecution.WaitAll(t)
+	synchronizeExecution.WakeUp()
 
 	{
-		msg := server.WrapPayload(&pl).Finalize()
-		server.SendMessage(ctx, msg)
+		server.SendPayload(ctx, &pl)
 	}
 
 	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
@@ -203,9 +166,7 @@ func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 	}
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-	typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool {
-		return false
-	}).ExpectedCount(1)
+	typedChecker.VCallResult.SetResend(false).ExpectedCount(1)
 
 	pl := payload.VCallRequest{
 		CallType:       payload.CTMethod,

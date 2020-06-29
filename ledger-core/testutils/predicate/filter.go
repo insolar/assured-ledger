@@ -58,7 +58,7 @@ func newFilter(predicateFn func(debuglogger.UpdateEvent) bool, once bool, outFn 
 
 func sinkOut(canClose bool, outSink synckit.ClosableSignalChannel) {
 	select {
-	case outSink <- struct {}{}:
+	case outSink <- struct{}{}:
 	default:
 	}
 	if canClose {
