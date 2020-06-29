@@ -1015,6 +1015,8 @@ func TestVirtual_CallMethodFromConstructor_Unordered(t *testing.T) {
 
 	require.Equal(t, 1, typedChecker.VCallRequest.Count())
 	require.Equal(t, 2, typedChecker.VCallResult.Count())
+
+	mc.Finish()
 }
 
 // unordered A.Foo sends ordered outgoing and receives error
