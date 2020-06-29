@@ -35,7 +35,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
+	virtualTestutils "github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/shareddata"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/slotdebugger"
 )
@@ -500,6 +502,7 @@ func TestSMExecute_VCallResultPassedToSMObject(t *testing.T) {
 
 func TestSendVStateReportWithMissingState_IfConstructorWasInterruptedBeforeRunnerCall(t *testing.T) {
 	t.Log("C5084")
+	// TODO: remove this ignores after fix closing adapters on conveyor shutdown
 	defer testutils.LeakTester(t,
 		goleak.IgnoreTopFunction("github.com/insolar/assured-ledger/ledger-core/runner.(*worker).Run.func1"),
 		goleak.IgnoreTopFunction("github.com/insolar/assured-ledger/ledger-core/conveyor/smachine.startChannelWorkerUnlimParallel.func1"),
@@ -560,10 +563,96 @@ func TestSendVStateReportWithMissingState_IfConstructorWasInterruptedBeforeRunne
 			return false
 		}
 	})
-	select {
-	case <-vStateReportRecv:
-	case <-time.After(10 * time.Second):
+	virtualTestutils.WaitSignalsTimed(t, 10*time.Second, vStateReportRecv)
+
+	mc.Finish()
+}
+
+func TestSMExecute_StopWithoutMessagesIfPulseChangedBeforeOutgoing(t *testing.T) {
+	t.Log("C5101")
+	// TODO: remove this ignores after fix closing adapters on conveyor shutdown
+	defer testutils.LeakTester(t,
+		goleak.IgnoreTopFunction("github.com/insolar/assured-ledger/ledger-core/runner.(*worker).Run.func1"),
+		goleak.IgnoreTopFunction("github.com/insolar/assured-ledger/ledger-core/conveyor/smachine.startChannelWorkerUnlimParallel.func1"),
+	)
+	const stateMemory = "213"
+
+	var (
+		mc  = minimock.NewController(t)
+		ctx = context.Background()
+
+		class     = gen.UniqueGlobalRef()
+		caller    = gen.UniqueGlobalRef()
+		objectRef = gen.UniqueGlobalRef()
+
+		catalog     object.Catalog         = object.NewLocalCatalog()
+		authService authentication.Service = authentication.NewServiceMock(t)
+	)
+
+	slotMachine := slotdebugger.New(ctx, t)
+	slotMachine.PrepareMockedMessageSender(mc)
+	slotMachine.PrepareMockedRunner(ctx, mc)
+	slotMachine.AddInterfaceDependency(&catalog)
+	slotMachine.AddInterfaceDependency(&authService)
+
+	var vStateReportRecv = make(chan struct{})
+	checkMessage := func(msg payload.Marshaler) {
+		res, ok := msg.(*payload.VStateReport)
+		require.True(t, ok)
+		assert.Equal(t, objectRef, res.Object)
+		assert.Equal(t, payload.Ready, res.Status)
+		assert.Equal(t, int32(0), res.OrderedPendingCount)
+		assert.Equal(t, int32(0), res.UnorderedPendingCount)
+		assert.Equal(t, []byte(stateMemory), res.ProvidedContent.LatestDirtyState.State)
 		close(vStateReportRecv)
-		t.Error("timeout")
 	}
+	slotMachine.MessageSender.SendRole.SetCheckMessage(checkMessage)
+
+	outgoing := reference.NewRecordOf(objectRef, slotMachine.GenerateLocal())
+
+	slotMachine.RunnerMock.AddExecutionClassify(
+		outgoing.String(),
+		contract.MethodIsolation{Interference: contract.CallTolerable, State: contract.CallDirty},
+		nil,
+	)
+
+	smObject := object.NewStateMachineObject(objectRef)
+	smObject.SetState(object.HasState)
+	smObject.SetDescriptor(descriptor.NewObject(reference.Global{}, reference.Local{}, class, []byte(stateMemory), reference.Global{}))
+	slotMachine.AddStateMachine(ctx, smObject)
+
+	smExecute := SMExecute{
+		Payload: &payload.VCallRequest{
+			CallType:            payload.CTMethod,
+			Caller:              caller,
+			Callee:              objectRef,
+			CallFlags:           payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+			CallOutgoing:        outgoing,
+			CallSiteDeclaration: class,
+			CallSiteMethod:      "test",
+			Arguments:           insolar.MustSerialize([]interface{}{}),
+		},
+		Meta: &payload.Meta{
+			Sender: caller,
+		},
+	}
+	slotMachine.Start()
+	defer slotMachine.Stop()
+
+	smWrapper := slotMachine.AddStateMachine(ctx, &smExecute)
+	slotMachine.RunTil(smWrapper.BeforeStep(smExecute.stepStartRequestProcessing))
+	slotMachine.Migrate()
+	slotMachine.RunTil(smWrapper.AfterStop())
+
+	go slotMachine.RunTil(func(event debuglogger.UpdateEvent) bool {
+		select {
+		case <-vStateReportRecv:
+			return true
+		default:
+			return false
+		}
+	})
+	virtualTestutils.WaitSignalsTimed(t, 10*time.Second, vStateReportRecv)
+
+	mc.Finish()
 }
