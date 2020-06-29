@@ -113,6 +113,7 @@ func (p *BundleResolver) Add(record Record) bool {
 	case !p.checkBase(base, "PrevRef", upd.Excerpt.PrevRef.Get()):
 	case !p.checkBase(base, "RedirectRef", upd.Excerpt.RedirectRef.Get()):
 	case !p.checkBase(base, "RejoinRef", upd.Excerpt.RejoinRef.Get()):
+	case !p.checkGenericRef("ReasonRef", upd.Excerpt.ReasonRef.Get()):
 	default:
 		details := PolicyCheckDetails{
 			RecordType:     recType,
@@ -358,6 +359,16 @@ func (p *BundleResolver) checkBase(base reference.Local, fieldName string, ref r
 	}
 	if refBase := ref.GetBase(); base != refBase {
 		return p.addRefError(fieldName, throw.E("wrong base", struct{ Expected reference.Local }{base}))
+	}
+	return true
+}
+
+func (p *BundleResolver) checkGenericRef(fieldName string, ref reference.Holder) bool {
+	if ref == nil || ref.IsEmpty() {
+		return true
+	}
+	if refBase := ref.GetBase(); refBase.IsEmpty() {
+		return p.addRefError(fieldName, throw.E("empty base", struct{ Ref reference.Global }{reference.Copy(ref) }))
 	}
 	return true
 }
