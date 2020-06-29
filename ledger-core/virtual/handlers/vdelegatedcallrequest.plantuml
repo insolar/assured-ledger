@@ -1,15 +1,31 @@
 @startuml
-Init : INHERITED
-Init --> stepProcess : Jump
-stepProcess : INHERITED
-stepProcess --> stepWaitObjectReady : Jump
-stepWaitObjectReady : INHERITED
-stepWaitObjectReady --> stepProcessRequest : Jump
-stepWaitObjectReady --> stepWaitObjectReady : ThenRepeat
-stepWaitObjectReady --> stepWaitObjectReady : ThenRepeat
-stepProcessRequest : INHERITED
-stepProcessRequest --> stepBuildResponse : Jump
-stepProcessRequest --> stepProcessRequest : ThenRepeat
-stepBuildResponse : INHERITED
-stepBuildResponse --> [*]
+state "Init" as T01_S001
+T01_S001 : SMVDelegatedCallRequest
+[*] --> T01_S001
+T01_S001 --> T01_S002
+state "s.messageSender" as T01_S006 <<sdlreceive>>
+state "stepBuildResponse" as T01_S005
+T01_S005 : SMVDelegatedCallRequest
+T01_S005 --> T01_S006 : PrepareAsync(ctx).WithoutAutoWakeUp()
+T01_S005 --> [*]
+state "stepProcess" as T01_S002
+T01_S002 : SMVDelegatedCallRequest
+T01_S002 --> T01_S003
+state "stepProcessRequest" as T01_S004
+T01_S004 : SMVDelegatedCallRequest
+T01_S004 --[dashed]> T01_S004 : [smachine.NotPassed]\nWaitShared
+T01_S004 --[dashed]> [*] : [delegationOldRequest]\nError
+T01_S004 --[dashed]> [*] : [delegationFullTable]\nError
+T01_S004 --> T01_S005
+state "stepWaitObjectReady" as T01_S003
+T01_S003 : SMVDelegatedCallRequest
+T01_S003 --[dashed]> T01_S003 : [smachine.NotPassed]\n[(...).AcquireForThisStep().IsNotPassed()]...\nWaitShared, Sleep
+T01_S003 --> T01_S004
+state "GetInitStateFor" as T00_S001
+T00_S001 : dSMVDelegatedCallRequest
+[*] --> T00_S001
+state "s.Init" as T00_U001
+T00_U001 : dSMVDelegatedCallRequest
+T00_U001 : UNKNOWN 
+T00_S001 --> T00_U001
 @enduml

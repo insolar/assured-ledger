@@ -1,7 +1,19 @@
 @startuml
-Init : INHERITED
-Init --> stepProcess : Jump
-stepProcess : INHERITED
-stepProcess --> [*]
-stepProcess --> stepProcess : ThenRepeat
+state "Init" as T01_S001
+T01_S001 : SMVStateReport
+[*] --> T01_S001
+T01_S001 --> T01_S002
+state "stepProcess" as T01_S002
+T01_S002 : SMVStateReport
+T01_S002 --[dashed]> [*] : [(...).Payload.Status==payload.Unknown]\nError
+T01_S002 --[dashed]> [*] : [...>=payload.Empty&&s.gotLatestDirty()]\nError
+T01_S002 --[dashed]> T01_S002 : [smachine.NotPassed]\nWaitShared
+T01_S002 --> [*]
+state "GetInitStateFor" as T00_S001
+T00_S001 : dSMVStateReport
+[*] --> T00_S001
+state "s.Init" as T00_U001
+T00_U001 : dSMVStateReport
+T00_U001 : UNKNOWN 
+T00_S001 --> T00_U001
 @enduml
