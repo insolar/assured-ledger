@@ -78,7 +78,7 @@ func (wt *WorkingTable) Finish(
 
 func (wt *WorkingTable) Len() int {
 	size := 0
-	for _, list := range wt.requests {
+	for _, list := range wt.requests[1:] {
 		size += list.Count()
 	}
 	return size
