@@ -8,10 +8,12 @@ package pool
 import (
 	"context"
 	"io"
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/host"
 	"github.com/insolar/assured-ledger/ledger-core/network/transport"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/network"
@@ -22,6 +24,7 @@ type fakeConnection struct {
 }
 
 func (fakeConnection) Read(p []byte) (n int, err error) {
+	runtime.Goexit() // prevent watchRemoteClose from triggering and writing errors to log after test is finished
 	return 0, nil
 }
 
@@ -43,6 +46,8 @@ func newTransportMock(t *testing.T) transport.StreamTransport {
 }
 
 func TestNewConnectionPool(t *testing.T) {
+	instestlogger.SetTestOutput(t)
+
 	ctx := context.Background()
 	tr := newTransportMock(t)
 
@@ -64,5 +69,6 @@ func TestNewConnectionPool(t *testing.T) {
 	assert.Equal(t, conn2, conn3)
 
 	pool.CloseConnection(ctx, h)
+	pool.CloseConnection(ctx, h2)
 	pool.Reset()
 }

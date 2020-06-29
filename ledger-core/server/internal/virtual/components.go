@@ -27,6 +27,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/logwatermill"
+	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/metrics"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
@@ -34,6 +35,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner"
 	"github.com/insolar/assured-ledger/ledger-core/server/internal"
 	"github.com/insolar/assured-ledger/ledger-core/virtual"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/pulsemanager"
 )
 
@@ -46,6 +48,7 @@ type bootstrapComponents struct {
 
 func initBootstrapComponents(ctx context.Context, cfg configuration.Configuration) bootstrapComponents {
 	earlyComponents := component.NewManager(nil)
+	earlyComponents.SetLogger(global.Logger())
 
 	keyStore, err := keystore.NewKeyStore(cfg.KeysPath)
 	checkError(ctx, err, "failed to load KeyStore: ")
@@ -95,6 +98,7 @@ func initComponents(
 
 ) (*component.Manager, func()) {
 	cm := component.NewManager(nil)
+	cm.SetLogger(global.Logger())
 
 	// Watermill.
 	var (
@@ -130,6 +134,7 @@ func initComponents(
 	virtualDispatcher.Runner = runnerService
 	virtualDispatcher.MessageSender = messageSender
 	virtualDispatcher.Affinity = jc
+	virtualDispatcher.AuthenticationService = authentication.NewService(ctx, jc)
 
 	availabilityChecker := api.NewNetworkChecker(cfg.AvailabilityChecker)
 

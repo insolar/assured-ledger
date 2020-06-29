@@ -14,7 +14,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
@@ -84,7 +84,7 @@ func TestSMStateReport_SendVStateReport_IfDescriptorSet(t *testing.T) {
 		msgVStateReportCount++
 	}
 	messageService.SendRole.SetCheckMessage(checkMessageFn)
-	messageSender := messageService.NewAdapterMock().SetDefaultPrepareAsyncCall(inslogger.TestContext(t))
+	messageSender := messageService.NewAdapterMock().SetDefaultPrepareAsyncCall(instestlogger.TestContext(t))
 
 	smReport.messageSender = messageSender.Mock()
 
@@ -118,7 +118,7 @@ func TestSMStateReport_SendVStateReport_IfDescriptorNotSetAndStateEmpty(t *testi
 		msgVStateReportCount++
 	}
 	messageService.SendRole.SetCheckMessage(checkMessageFn)
-	messageSender := messageService.NewAdapterMock().SetDefaultPrepareAsyncCall(inslogger.TestContext(t))
+	messageSender := messageService.NewAdapterMock().SetDefaultPrepareAsyncCall(instestlogger.TestContext(t))
 
 	smReport.messageSender = messageSender.Mock()
 

@@ -15,7 +15,7 @@ type Range interface {
 	// LeftPrevDelta is PrevDelta associated with the left boundary (refers to a pulse _before_ the left boundary).
 	LeftPrevDelta() uint16
 
-	// RightBoundData returns a right bound of the range. MUST be a valid pulse data.
+	// RightBoundData returns a right bound of the range. MUST be a valid or expected pulse data.
 	RightBoundData() Data
 
 	// IsArticulated indicates that this range requires articulated pulses to be properly chained.
@@ -123,7 +123,7 @@ func checkSequence(data []Data) bool {
 var _ Range = OnePulseRange{}
 
 func NewOnePulseRange(data Data) OnePulseRange {
-	data.EnsurePulseData()
+	data.ensureRangeData()
 	return OnePulseRange{data}
 }
 
@@ -132,7 +132,7 @@ type OnePulseRange struct {
 }
 
 func (p OnePulseRange) IsValidNext(a Range) bool {
-	if p.data.NextPulseDelta != a.LeftPrevDelta() {
+	if p.data.NextPulseDelta == 0 || p.data.NextPulseDelta != a.LeftPrevDelta() {
 		return false
 	}
 	if n, ok := p.data.GetNextPulseNumber(); ok {

@@ -8,7 +8,7 @@ package journal
 import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/debuglogger"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/journal/predicate"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/predicate"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -21,7 +21,7 @@ func NewFeeder(underlying smachine.SlotMachineLogger, feedFn FeedFunc, stopSigna
 	}
 
 	feeder := &Feeder{
-		captor:  debuglogger.NewDebugMachineLoggerNoBlock(underlying, 100),
+		captor: debuglogger.NewDebugMachineLoggerNoBlock(underlying, 100),
 		feedFn: feedFn,
 	}
 	feeder.Start(stopSignal)
@@ -29,6 +29,7 @@ func NewFeeder(underlying smachine.SlotMachineLogger, feedFn FeedFunc, stopSigna
 }
 
 var _ smachine.SlotMachineLogger = &Feeder{}
+
 type captor = debuglogger.DebugMachineLogger
 
 type Feeder struct {
@@ -40,7 +41,7 @@ func (p *Feeder) Start(stopSignal synckit.SignalChannel) {
 	go func() {
 		for {
 			select {
-			case event, ok := <- p.captor.EventChan():
+			case event, ok := <-p.captor.EventChan():
 				switch {
 				case !ok || event.IsEmpty():
 					p.feedFn(event)
@@ -48,7 +49,7 @@ func (p *Feeder) Start(stopSignal synckit.SignalChannel) {
 				case p.feedFn(event) == predicate.RetainSubscriber:
 					continue
 				}
-			case <- stopSignal:
+			case <-stopSignal:
 				//
 			}
 

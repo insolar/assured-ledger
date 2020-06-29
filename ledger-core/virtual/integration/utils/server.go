@@ -21,7 +21,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodestorage"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
@@ -35,6 +34,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/convlog"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/mock"
@@ -98,7 +98,7 @@ func newServerExt(ctx context.Context, t *testing.T, errorFilterFn logcommon.Err
 	instestlogger.SetTestOutputWithErrorFilter(t, errorFilterFn)
 
 	if ctx == nil {
-		ctx = inslogger.TestContext(t)
+		ctx = instestlogger.TestContext(t)
 	}
 
 	s := Server{
@@ -167,6 +167,7 @@ func newServerExt(ctx context.Context, t *testing.T, errorFilterFn logcommon.Err
 	virtualDispatcher.Runner = runnerService
 	virtualDispatcher.MessageSender = messageSender
 	virtualDispatcher.Affinity = s.JetCoordinatorMock
+	virtualDispatcher.AuthenticationService = authentication.NewService(ctx, virtualDispatcher.Affinity)
 
 	virtualDispatcher.CycleFn = s.onConveyorCycle
 	virtualDispatcher.EventlessSleep = -1 // disable EventlessSleep for proper WaitActiveThenIdleConveyor behavior
@@ -248,6 +249,10 @@ func (s *Server) ReplaceCache(cache descriptor.Cache) {
 	s.Runner.Cache = cache
 }
 
+func (s *Server) ReplaceAuthenticationService(svc authentication.Service) {
+	s.virtual.AuthenticationService = svc
+}
+
 func (s *Server) AddInput(ctx context.Context, msg interface{}) error {
 	return s.virtual.Conveyor.AddInput(ctx, s.GetPulse().PulseNumber, msg)
 }
@@ -258,6 +263,10 @@ func (s *Server) GlobalCaller() reference.Global {
 
 func (s *Server) RandomLocalWithPulse() reference.Local {
 	return gen.UniqueLocalRefWithPulse(s.GetPulse().PulseNumber)
+}
+
+func (s *Server) RandomGlobalWithPulse() reference.Global {
+	return gen.UniqueGlobalRefWithPulse(s.GetPulse().PulseNumber)
 }
 
 func (s *Server) Stop() {

@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"math/rand"
 	"strings"
+	"testing"
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
@@ -22,8 +23,7 @@ import (
 	node2 "github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/log"
-	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
@@ -189,15 +189,12 @@ func initPulsar(ctx context.Context, delta uint16, ns InitializedNodes) {
 	}()
 }
 
-func initLogger(level log.Level) context.Context {
-	ctx := context.Background()
-
+func initLogger(t *testing.T) context.Context {
 	cfg := configuration.NewLog()
 	cfg.LLBufferSize = 0
-	cfg.Level = level.String()
-	cfg.Formatter = logcommon.TextFormat.String()
 
-	ctx, _ = inslogger.InitNodeLogger(ctx, cfg, "", "")
+	instestlogger.SetTestOutputWithCfg(t, cfg)
+	ctx, _ := inslogger.InitNodeLoggerByGlobal("", "")
 	return ctx
 }
 

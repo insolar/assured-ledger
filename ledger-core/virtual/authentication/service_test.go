@@ -15,7 +15,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/application/testwalletapi/statemachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
@@ -24,7 +24,7 @@ import (
 )
 
 func Test_IsMessageFromVirtualLegitimate_UnexpectedMessageType(t *testing.T) {
-	ctx := inslogger.TestContext(t)
+	ctx := instestlogger.TestContext(t)
 	authService := NewService(ctx, nil)
 
 	pdLeft := pulse.NewPulsarData(pulse.MinTimePulse<<1, 10, 10, longbits.Bits256{})
@@ -91,6 +91,15 @@ func Test_IsMessageFromVirtualLegitimate_WithToken(t *testing.T) {
 			name: "VDelegatedCallRequest",
 			msg:  &payload.VDelegatedCallRequest{},
 		},
+		// TODO decide what to do with this two cases PLAT-575
+		// {
+		// 	name: "VFindCallRequest",
+		// 	msg:  &payload.VFindCallRequest{},
+		// },
+		// {
+		// 	name: "VFindCallResponse",
+		// 	msg:  &payload.VFindCallResponse{},
+		// },
 	}
 
 	for _, testCase := range cases {
@@ -216,6 +225,15 @@ func Test_IsMessageFromVirtualLegitimate_WithoutToken(t *testing.T) {
 		{
 			name: "VDelegatedCallResponse",
 			msg:  &payload.VDelegatedCallResponse{},
+		},
+		{
+			name: "VFindCallRequest",
+			msg:  &payload.VFindCallRequest{},
+		},
+		{
+			name: "VFindCallResponse",
+			msg:  &payload.VFindCallResponse{},
+			usePreviousPulse: true,
 		},
 	}
 
@@ -350,7 +368,7 @@ func TestService_HasToSendToken(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			var (
-				ctx     = inslogger.TestContext(t)
+				ctx     = instestlogger.TestContext(t)
 				affMock = jet.NewAffinityHelperMock(t).MeMock.Return(selfRef)
 			)
 

@@ -14,10 +14,13 @@ type MachineCallContext interface {
 	SlotMachine() *SlotMachine
 	GetMachineID() string
 
-	AddNew(context.Context, StateMachine, CreateDefaultValues) SlotLink
+	AddNew(context.Context, StateMachine, CreateDefaultValues) (SlotLink, bool)
 	AddNewByFunc(context.Context, CreateFunc, CreateDefaultValues) (SlotLink, bool)
 
+	// CallDirectBargeIn executes (fn) like it was provided by the given slot (link).
+	// WARNING! USE with extreme caution, as it WILL interfere with normal SM behavior, including initialization.
 	CallDirectBargeIn(link StepLink, fn BargeInCallbackFunc) bool
+
 	CallBargeInWithParam(b BargeInWithParam, param interface{}) bool
 	CallBargeIn(b BargeIn) bool
 
@@ -30,7 +33,7 @@ type MachineCallContext interface {
 	Cleanup()
 	Stop()
 
-	//See SynchronizationContext
+	// See SynchronizationContext
 	ApplyAdjustment(SyncAdjustment) bool
 	Check(SyncLink) BoolDecision
 }

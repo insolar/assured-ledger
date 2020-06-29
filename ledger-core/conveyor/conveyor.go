@@ -16,6 +16,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type InputEvent = interface{}
@@ -139,6 +140,12 @@ func (p *PulseConveyor) AddInput(ctx context.Context, pn pulse.Number, event Inp
 	return p.AddInputExt(ctx, pn, event, smachine.CreateDefaultValues{})
 }
 
+type errMissingPN struct {
+	PN      pulse.Number
+	RemapPN pulse.Number `opt:""`
+	State   PulseSlotState `opt:""`
+}
+
 func (p *PulseConveyor) AddInputExt(ctx context.Context, pn pulse.Number, event InputEvent,
 	createDefaults smachine.CreateDefaultValues,
 ) error {
@@ -147,10 +154,17 @@ func (p *PulseConveyor) AddInputExt(ctx context.Context, pn pulse.Number, event 
 	case err != nil:
 		return err
 	case pulseSlotMachine == nil || pulseState == 0:
-		return fmt.Errorf("slotMachine is missing: pn=%v", pn)
+		return throw.E("slotMachine is missing", errMissingPN{PN: pn})
 	}
 
-	pr, _ := pulseSlotMachine.pulseSlot.pulseData.PulseRange()
+	var pr pulse.Range
+
+	if pulseState != Antique {
+		pr, _ = pulseSlotMachine.pulseSlot.PulseRange()
+	} else if pulseSlot := p.pdm.getCachedPulseSlot(targetPN); pulseSlot != nil {
+		pr, _ = pulseSlot.pulseData.PulseRange()
+	}
+
 	remapPN, createFn, err := p.factoryFn(targetPN, pr, event)
 	switch {
 	case createFn == nil || err != nil:
@@ -167,15 +181,30 @@ func (p *PulseConveyor) AddInputExt(ctx context.Context, pn pulse.Number, event 
 		}
 		fallthrough
 	default:
-		return fmt.Errorf("slotMachine is missing: remap pn=%v", remapPN)
+		return throw.E("slotMachine remap is missing", errMissingPN{PN: pn, RemapPN: remapPN})
 	}
 
+	addedOk := false
 	switch {
 	case pulseState == Future:
 		// event for future needs special handling - it must wait until the pulse will actually arrive
-		pulseSlotMachine.innerMachine.AddNew(ctx,
+		_, addedOk = pulseSlotMachine.innerMachine.AddNew(ctx,
 			newFutureEventSM(targetPN, &pulseSlotMachine.pulseSlot, createFn), createDefaults)
-		return nil
+
+	case pulseState == Past:
+		if !p.pdm.TouchPulseData(targetPN) { // make sure - for PAST must always have the data
+			return throw.E("unknown data for pulse", errMissingPN{PN: targetPN, State: pulseState})
+		}
+
+		_, addedOk = pulseSlotMachine.innerMachine.AddNewByFunc(ctx, createFn, createDefaults)
+		if addedOk || pulseSlotMachine.innerMachine.IsActive() {
+			break
+		}
+
+		// This is a dying past slot - redirect addition to antique
+		pulseSlotMachine = p.getAntiquePulseSlotMachine()
+		pulseState = Antique
+		fallthrough
 
 	case pulseState == Antique:
 		createDefaults.InheritAllDependencies = true // ensure inheritance
@@ -183,24 +212,27 @@ func (p *PulseConveyor) AddInputExt(ctx context.Context, pn pulse.Number, event 
 		// Antique events have individual pulse slots, while being executed in a single SlotMachine
 		if cps := p.pdm.getCachedPulseSlot(targetPN); cps != nil {
 			createDefaults.PutOverride(injector.GetDefaultInjectionID(cps), cps)
+			_, addedOk = pulseSlotMachine.innerMachine.AddNewByFunc(ctx, createFn, createDefaults)
 			break // add SM
 		}
 
 		if !p.pdm.IsRecentPastRange(pn) {
 			// for non-recent past HasPulseData() can be incorrect / incomplete
 			// we must use a longer procedure to get PulseData and utilize SM for it
-			pulseSlotMachine.innerMachine.AddNew(ctx,
+			_, addedOk = pulseSlotMachine.innerMachine.AddNew(ctx,
 				newAntiqueEventSM(targetPN, &pulseSlotMachine.pulseSlot, createFn), createDefaults)
-			return nil
+			break
 		}
 		fallthrough
 
-	case !p.pdm.TouchPulseData(targetPN): // make sure - for PAST and PRESENT we must always have the data ...
-		return fmt.Errorf("unknown data for pulse: pn=%v event=%v", targetPN, event)
+	case !p.pdm.TouchPulseData(targetPN): // make sure - for PRESENT we must always have the data
+		return throw.E("unknown data for pulse", errMissingPN{PN: targetPN, State: pulseState})
+	default:
+		_, addedOk = pulseSlotMachine.innerMachine.AddNewByFunc(ctx, createFn, createDefaults)
 	}
 
-	if _, ok := pulseSlotMachine.innerMachine.AddNewByFunc(ctx, createFn, createDefaults); !ok {
-		return fmt.Errorf("ignored event: pn=%v event=%v", targetPN, event)
+	if !addedOk {
+		return throw.E("ignored event", errMissingPN{PN: targetPN, State: pulseState})
 	}
 
 	return nil
@@ -243,7 +275,7 @@ func (p *PulseConveyor) mapToPulseSlotMachine(pn pulse.Number) (*PulseSlotMachin
 			return psm, presentPN, Present, nil
 		}
 		// present slot must be present
-		panic("illegal state")
+		panic(throw.IllegalState())
 	case !pn.IsTimePulse():
 		return nil, 0, 0, fmt.Errorf("pulse number is invalid: pn=%v", pn)
 	case pn < presentPN:
@@ -255,7 +287,7 @@ func (p *PulseConveyor) mapToPulseSlotMachine(pn pulse.Number) (*PulseSlotMachin
 		// check if the pulse is within PRESENT range (as it may include some skipped pulses)
 		if psm := p.getPulseSlotMachine(presentPN); psm == nil {
 			// present slot must be present
-			panic("illegal state")
+			panic(throw.IllegalState())
 		} else {
 			switch ps, ok := psm.pulseSlot._isAcceptedPresent(presentPN, pn); {
 			case ps == Past:
@@ -264,7 +296,7 @@ func (p *PulseConveyor) mapToPulseSlotMachine(pn pulse.Number) (*PulseSlotMachin
 			case !ok:
 				return nil, 0, 0, fmt.Errorf("pulse number is not allowed: pn=%v", pn)
 			case ps != Present:
-				panic("illegal state")
+				panic(throw.IllegalState())
 			}
 		}
 
@@ -287,7 +319,7 @@ func (p *PulseConveyor) getPulseSlotMachine(pn pulse.Number) *PulseSlotMachine {
 		if psm, ok := psv.(*PulseSlotMachine); ok {
 			return psm
 		}
-		panic("illegal state")
+		panic(throw.IllegalState())
 	}
 	return nil
 }
@@ -324,7 +356,7 @@ func (p *PulseConveyor) _publishPulseSlotMachine(pn pulse.Number, psm *PulseSlot
 	if psv, ok := p.slotMachine.TryPublish(pn, psm); !ok {
 		psm = psv.(*PulseSlotMachine)
 		if psm == nil {
-			panic("illegal state")
+			panic(throw.IllegalState())
 		}
 		return psm
 	}
@@ -342,7 +374,7 @@ func (p *PulseConveyor) _publishUninitializedPulseSlotMachine(pn pulse.Number) (
 	if psv, ok := p.slotMachine.TryPublish(pn, psm); !ok {
 		psm = psv.(*PulseSlotMachine)
 		if psm == nil {
-			panic("illegal state")
+			panic(throw.IllegalState())
 		}
 		return psm, false
 	}
@@ -369,14 +401,14 @@ func (p *PulseConveyor) PreparePulseChange(out PreparePulseChangeChannel) error 
 	return p.sendSignal(func(ctx smachine.MachineCallContext) {
 		if p.presentMachine == nil {
 			// wrong - first pulse can only be committed but not prepared
-			panic("illegal state")
+			panic(throw.IllegalState())
 		}
 		p.pdm.setPreparingPulse(out)
 		if !ctx.CallDirectBargeIn(p.presentMachine.SlotLink().GetAnyStepLink(), func(ctx smachine.BargeInContext) smachine.StateUpdate {
 			return p.presentMachine.preparePulseChange(ctx, out)
 		}) {
 			// TODO handle stuck PulseSlot - need to do p.pdm.unsetPreparingPulse(), then close(out) when relevant code is available on network side
-			panic("present slot is busy")
+			panic(throw.FailHere("present slot is busy"))
 		}
 	})
 }
@@ -385,11 +417,11 @@ func (p *PulseConveyor) CancelPulseChange() error {
 	return p.sendSignal(func(ctx smachine.MachineCallContext) {
 		if p.presentMachine == nil {
 			// wrong - first pulse can only be committed but not prepared
-			panic("illegal state")
+			panic(throw.IllegalState())
 		}
 		p.pdm.unsetPreparingPulse()
 		if !ctx.CallDirectBargeIn(p.presentMachine.SlotLink().GetAnyStepLink(), p.presentMachine.cancelPulseChange) {
-			panic("present slot is busy")
+			panic(throw.FailHere("present slot is busy"))
 		}
 	})
 }
@@ -404,20 +436,20 @@ func (p *PulseConveyor) CommitPulseChange(pr pulse.Range, pulseStart time.Time) 
 		if p.presentMachine == nil {
 			switch {
 			case p.getPulseSlotMachine(prevPresentPN) != nil:
-				panic("illegal state")
+				panic(throw.IllegalState())
 			case prevFuturePN == uninitializedFuture:
 				// ok
 			case p.getPulseSlotMachine(prevFuturePN) == nil:
-				panic("illegal state")
+				panic(throw.IllegalState())
 			}
 		} else {
 			switch {
 			case p.getPulseSlotMachine(prevPresentPN) != p.presentMachine:
-				panic("illegal state")
+				panic(throw.IllegalState())
 			case pr.LeftBoundNumber() != prevFuturePN:
-				panic("illegal state")
+				panic(throw.IllegalState())
 			case prevPresentPN.Next(pr.LeftPrevDelta()) != pr.LeftBoundNumber():
-				panic("illegal state")
+				panic(throw.IllegalState())
 			}
 		}
 
@@ -473,7 +505,7 @@ func (p *PulseConveyor) StopNoWait() {
 
 func (p *PulseConveyor) Stop() {
 	if p.stoppingChan == nil {
-		panic("illegal state")
+		panic(throw.IllegalState())
 	}
 	p.slotMachine.Stop()
 	<-p.stoppingChan
@@ -495,7 +527,7 @@ type PulseConveyorCycleFunc = func(CycleState)
 
 func (p *PulseConveyor) StartWorkerExt(emergencyStop <-chan struct{}, completedFn func(), cycleFn PulseConveyorCycleFunc) {
 	if p.machineWorker != nil {
-		panic("illegal state")
+		panic(throw.IllegalState())
 	}
 	p.machineWorker = sworker.NewAttachableSimpleSlotWorker()
 	ch := make(chan struct{})

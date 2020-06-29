@@ -31,38 +31,45 @@ T01_S009 --[dotted]> T01_S001
 T01_S009 --[dashed]> T01_S009 : [smachine.NotPassed]\n[(...).AcquireForThisStep().IsNotPassed()]...\nWaitShared, Sleep
 T01_S009 --> [*] : [isDuplicate]
 T01_S009 --> T01_S010
-state "stepExecuteAborted" as T01_S019
-T01_S019 : SMExecute
-T01_S019 --[dotted]> T01_S012
-T01_S019 --[dashed]> [*] : Error
+state "stepExecuteAborted" as T01_S020
+T01_S020 : SMExecute
+T01_S020 --[dotted]> T01_S012
+state T01_U001 <<fork>>
+T01_S020 --> T01_U001
+T01_U001 --> T01_S007 : PrepareExecutionAbort(ctx)
+T01_U001 --[dashed]> T01_S026
 state "stepExecuteContinue" as T01_S023
 T01_S023 : SMExecute
 T01_S023 --[dotted]> T01_S012
-state T01_U001 <<fork>>
-T01_S023 --> T01_U001
-T01_U001 --> T01_S007 : Migrate: s
-T01_U001 --[dashed]> T01_S017 : migrateDuringExecution\nPrepareExecutionContinue(ctx).
+state T01_U002 <<fork>>
+T01_S023 --> T01_U002
+T01_U002 --> T01_S007 : Migrate: s
+T01_U002 --[dashed]> T01_S017 : migrateDuringExecution\nPrepareExecutionContinue(ctx).
 state "stepExecuteDecideNextStep" as T01_S018
 T01_S018 : SMExecute
 T01_S018 --[dotted]> T01_S012
 T01_S018 --> T01_S024 : [execution.Done]
-T01_S018 --> T01_S019 : [execution.Abort]
-T01_S018 --> T01_S020 : [execution.OutgoingCall]
-state "stepExecuteOutgoing" as T01_S020
-T01_S020 : SMExecute
-T01_S020 --[dotted]> T01_S012
-T01_S020 --> T01_S021 : [s.outgoing!=nil]
-T01_S020 --> T01_S023
+T01_S018 --> T01_S020 : [execution.Error]
+T01_S018 --> T01_S020 : [execution.Abort]
+T01_S018 --> T01_S019 : [execution.OutgoingCall]
+state "stepExecuteOutgoing" as T01_S019
+T01_S019 : SMExecute
+T01_S019 --[dotted]> T01_S012
+T01_S019 --> T01_S023 : [s.intolerableCall()]
+T01_S019 --> T01_S023 : [...&&(...).Interference()==contract.CallTolerable]
+T01_S019 --> T01_S021 : [s.outgoing!=nil]
+T01_S019 --> T01_S023
 state "stepExecuteStart" as T01_S016
 T01_S016 : SMExecute
 T01_S016 --[dotted]> T01_S012
-state T01_U002 <<fork>>
-T01_S016 --> T01_U002
-T01_U002 --> T01_S007 : PrepareExecutionStart(ctx)
-T01_U002 --[dashed]> T01_S017
+state T01_U003 <<fork>>
+T01_S016 --> T01_U003
+T01_U003 --> T01_S007 : PrepareExecutionStart(ctx)
+T01_U003 --[dashed]> T01_S017
 state "stepFinishRequest" as T01_S027
 T01_S027 : SMExecute
 T01_S027 --[dotted]> T01_S012
+T01_S027 --[dotted]> T01_S001
 T01_S027 --> T01_S025 : [s.migrationHappened]
 T01_S027 --[dashed]> T01_S027 : [smachine.NotPassed]\nWaitShared
 T01_S027 --> [*]
@@ -74,10 +81,10 @@ state "stepGetDelegationToken.2" as T01_S015
 T01_S015 : SMExecute
 T01_S015 --[dotted]> T01_S012
 T01_S015 --> T01_S021 : [s.outgoingWasSent]
-state "DYNAMIC stepAfterTokenGet" as T01_U003
-T01_U003 : SMExecute
-T01_U003 : UNKNOWN 
-T01_S015 --> T01_U003
+state "DYNAMIC stepAfterTokenGet" as T01_U004
+T01_U004 : SMExecute
+T01_U004 : UNKNOWN 
+T01_S015 --> T01_U004
 state "stepGetDelegationToken.subroutineSM.1" as T01_S014 <<sdlreceive>>
 T01_S014 --> T01_S015 : Migrate: <nil>
 state "stepGetObject" as T01_S004
@@ -88,10 +95,11 @@ T01_S004 --> T01_S005
 state "stepIsolationNegotiation" as T01_S006
 T01_S006 : SMExecute
 T01_S006 --[dotted]> T01_S001
-state T01_U004 <<fork>>
-T01_S006 --> T01_U004 : [s.methodIsolation.IsZero()]
-T01_U004 --> T01_S007 : PrepareExecutionClassify(ctx)
-T01_U004 --[dashed]> T01_S006 : Sleep
+T01_S006 --> T01_S026 : [s.executionNewState!=nil]
+state T01_U005 <<fork>>
+T01_S006 --> T01_U005 : [s.methodIsolation.IsZero()]
+T01_U005 --> T01_S007 : PrepareExecutionClassify(ctx)
+T01_U005 --[dashed]> T01_S006 : Sleep
 T01_S006 --[dashed]> [*] : [err!=nil]\nError
 T01_S006 --> T01_S008
 state "stepSaveNewObject" as T01_S024
@@ -103,11 +111,13 @@ T01_S024 --> T01_S026
 state "stepSendCallResult" as T01_S026
 T01_S026 : SMExecute
 T01_S026 --[dotted]> T01_S012
+T01_S026 --[dotted]> T01_S001
 T01_S026 --> T01_S022 : PrepareAsync(ctx).WithoutAutoWakeUp()
 T01_S026 --> T01_S027
 state "stepSendDelegatedRequestFinished" as T01_S025
 T01_S025 : SMExecute
 T01_S025 --[dotted]> T01_S012
+T01_S025 --[dotted]> T01_S001
 T01_S025 --> T01_S022 : PrepareAsync(ctx).WithoutAutoWakeUp()
 T01_S025 --> [*]
 state "stepSendOutgoing" as T01_S021
@@ -139,8 +149,8 @@ T01_S005 --> T01_S006
 state "GetInitStateFor" as T00_S001
 T00_S001 : dSMExecute
 [*] --> T00_S001
-state "s.Init" as T00_U005
-T00_U005 : dSMExecute
-T00_U005 : UNKNOWN 
-T00_S001 --> T00_U005
+state "s.Init" as T00_U006
+T00_U006 : dSMExecute
+T00_U006 : UNKNOWN 
+T00_S001 --> T00_U006
 @enduml
