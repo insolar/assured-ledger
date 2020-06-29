@@ -19,7 +19,7 @@ type AnyLazy struct {
 	value goGoMarshaler
 }
 
-func (p *AnyLazy) Get() LazyValue {
+func (p *AnyLazy) TryGetLazy() LazyValue {
 	if vv, ok := p.value.(LazyValue); ok {
 		return vv
 	}
@@ -30,6 +30,16 @@ func (p *AnyLazy) Set(v GoGoSerializable) {
 	p.value = v
 }
 
+func (p *AnyLazy) TryGet() (isLazy bool, r GoGoSerializable) {
+	switch p.value.(type) {
+	case nil:
+		return false, nil
+	case LazyValue:
+		return true, nil
+	}
+	return false, p.value.(GoGoSerializable)
+}
+
 func (p *AnyLazy) ProtoSize() int {
 	if p.value != nil {
 		return p.value.ProtoSize()
@@ -38,11 +48,11 @@ func (p *AnyLazy) ProtoSize() int {
 }
 
 func (p *AnyLazy) Unmarshal(b []byte) error {
-	return p.UnmarshalCustom(b, true, GetRegistry().Get, nil)
+	return p.UnmarshalCustom(b, false, GetRegistry().Get)
 }
 
-func (p *AnyLazy) UnmarshalCustom(b []byte, copyBytes bool, typeFn func(uint64) reflect.Type, skipFn UnknownCallbackFunc) error {
-	v, err := p.unmarshalCustom(b, copyBytes, typeFn, skipFn)
+func (p *AnyLazy) UnmarshalCustom(b []byte, copyBytes bool, typeFn func(uint64) reflect.Type) error {
+	v, err := p.unmarshalCustom(b, copyBytes, typeFn)
 	if err != nil {
 		p.value = nil
 		return err
@@ -51,7 +61,7 @@ func (p *AnyLazy) UnmarshalCustom(b []byte, copyBytes bool, typeFn func(uint64) 
 	return nil
 }
 
-func (p *AnyLazy) unmarshalCustom(b []byte, copyBytes bool, typeFn func(uint64) reflect.Type, skipFn UnknownCallbackFunc) (LazyValue, error) {
+func (p *AnyLazy) unmarshalCustom(b []byte, copyBytes bool, typeFn func(uint64) reflect.Type) (LazyValue, error) {
 	_, t, err := UnmarshalType(b, typeFn)
 	if err != nil {
 		return LazyValue{}, err
@@ -59,7 +69,7 @@ func (p *AnyLazy) unmarshalCustom(b []byte, copyBytes bool, typeFn func(uint64) 
 	if copyBytes {
 		b = append([]byte(nil), b...)
 	}
-	return LazyValue{ b, skipFn, t }, nil
+	return LazyValue{ b, t }, nil
 }
 
 func (p *AnyLazy) MarshalTo(b []byte) (int, error) {
@@ -117,12 +127,12 @@ func (p *AnyLazy) Equal(that interface{}) bool {
 /************************/
 
 type anyLazy = AnyLazy
-type AnyLazyNoCopy struct {
+type AnyLazyCopy struct {
 	anyLazy
 }
 
-func (p *AnyLazyNoCopy) Unmarshal(b []byte) error {
-	return p.UnmarshalCustom(b, false, GetRegistry().Get, nil)
+func (p *AnyLazyCopy) Unmarshal(b []byte) error {
+	return p.UnmarshalCustom(b, true, GetRegistry().Get)
 }
 
 /************************/
@@ -136,7 +146,6 @@ type LazyValueReader interface {
 
 type LazyValue struct {
 	value []byte
-	skipFn UnknownCallbackFunc
 	vType  reflect.Type
 }
 
@@ -159,7 +168,7 @@ func (p LazyValue) Unmarshal() (GoGoSerializable, error) {
 	case p.vType == nil:
 		panic(throw.IllegalState())
 	}
-	return p.UnmarshalAsType(p.vType, p.skipFn)
+	return p.UnmarshalAsType(p.vType, nil)
 }
 
 var typeGoGoSerializable = reflect.TypeOf((*GoGoSerializable)(nil)).Elem()
@@ -211,4 +220,3 @@ func (p LazyValue) MarshalToSizedBuffer(b []byte) (int, error) {
 func (p LazyValue) MarshalText() ([]byte, error) {
 	return []byte(fmt.Sprintf("%T{[%d]byte, %v}", p, len(p.value), p.vType)), nil
 }
-
