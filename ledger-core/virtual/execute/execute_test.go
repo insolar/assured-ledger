@@ -859,3 +859,73 @@ func TestSMExecute_StopWithoutMessagesIfPulseChangedBeforeOutgoing(t *testing.T)
 
 	mc.Finish()
 }
+
+func TestSendVStateReportWithMissingState_IfConstructorWasInterruptedBeforeRunnerCall(t *testing.T) {
+	t.Log("C5084")
+	defer testutils.LeakTester(t,
+		goleak.IgnoreTopFunction("github.com/insolar/assured-ledger/ledger-core/runner.(*worker).Run.func1"),
+		goleak.IgnoreTopFunction("github.com/insolar/assured-ledger/ledger-core/conveyor/smachine.startChannelWorkerUnlimParallel.func1"),
+	)
+
+	var (
+		mc  = minimock.NewController(t)
+		ctx = context.Background()
+
+		class                              = gen.UniqueGlobalRef()
+		caller                             = gen.UniqueGlobalRef()
+		catalog     object.Catalog         = object.NewLocalCatalog()
+		authService authentication.Service = authentication.NewServiceMock(t)
+	)
+
+	slotMachine := slotdebugger.New(ctx, t)
+	slotMachine.PrepareRunner(ctx, mc)
+
+	slotMachine.AddInterfaceDependency(&catalog)
+	slotMachine.AddInterfaceDependency(&authService)
+
+	var vStateReportRecv = make(chan struct{})
+	slotMachine.PrepareMockedMessageSender(mc)
+	slotMachine.MessageSender.SendRole.SetCheckMessage(func(msg payload.Marshaler) {
+		res, ok := msg.(*payload.VStateReport)
+		require.True(t, ok)
+		require.Equal(t, payload.Missing, res.Status)
+		close(vStateReportRecv)
+	})
+
+	outgoing := slotMachine.GenerateLocal()
+
+	smExecute := SMExecute{
+		Payload: &payload.VCallRequest{
+			CallType:     payload.CTConstructor,
+			CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+			CallOutgoing: outgoing,
+
+			Caller:         caller,
+			Callee:         class,
+			CallSiteMethod: "New",
+		},
+		Meta: &payload.Meta{
+			Sender: caller,
+		},
+	}
+	slotMachine.Start()
+	defer slotMachine.Stop()
+
+	smWrapper := slotMachine.AddStateMachine(ctx, &smExecute)
+	slotMachine.RunTil(smWrapper.BeforeStep(smExecute.stepStartRequestProcessing))
+	slotMachine.Migrate()
+	go slotMachine.RunTil(func(event debuglogger.UpdateEvent) bool {
+		select {
+		case <-vStateReportRecv:
+			return true
+		default:
+			return false
+		}
+	})
+	select {
+	case <-vStateReportRecv:
+	case <-time.After(10 * time.Second):
+		close(vStateReportRecv)
+		t.Error("timeout")
+	}
+}
