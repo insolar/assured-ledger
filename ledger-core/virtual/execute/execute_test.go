@@ -485,7 +485,7 @@ func TestSMExecute_VCallResultPassedToSMObject(t *testing.T) {
 
 	require.Equal(t, 1, res.Count())
 
-	result, ok := res.GetResult(ref)
+	result, ok := smObject.KnownRequests.GetResults()[ref]
 
 	require.True(t, ok)
 	require.NotNil(t, result)

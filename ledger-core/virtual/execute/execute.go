@@ -408,10 +408,7 @@ func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) sm
 		objectDescriptor descriptor.Object
 	)
 	action := func(state *object.SharedState) {
-		reqRef := s.execution.Outgoing
-
-		reqList := state.KnownRequests.GetList(s.execution.Isolation.Interference)
-		if !reqList.SetActive(reqRef) {
+		if !state.KnownRequests.SetActive(s.execution.Isolation.Interference, s.execution.Outgoing) {
 			// if we come here then request should be in RequestStarted
 			// if it is not it is either somehow lost or it is already processing
 			panic(throw.Impossible())

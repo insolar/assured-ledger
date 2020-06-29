@@ -20,23 +20,63 @@ type WorkingTable struct {
 
 func NewWorkingTable() WorkingTable {
 	var rt WorkingTable
-	rt.requests = make([]*WorkingList, 3)
 
-	rt.requests[contract.CallTolerable] = NewWorkingList()
-	rt.requests[contract.CallIntolerable] = NewWorkingList()
+	lists := make([]*WorkingList, contract.InterferenceFlagCount)
+	for i := 1; i < contract.InterferenceFlagCount; i++ {
+		lists[i] = NewWorkingList()
+	}
+
+	rt.requests = lists
+
 	return rt
 }
 
-func (rt *WorkingTable) GetList(flag contract.InterferenceFlag) *WorkingList {
+func (wt *WorkingTable) GetList(flag contract.InterferenceFlag) *WorkingList {
 	if flag.IsZero() {
 		panic(throw.IllegalValue())
 	}
-	return rt.requests[flag]
+	return wt.requests[flag]
 }
 
-func (rt *WorkingTable) Len() int {
+func (wt *WorkingTable) GetResults() map[reference.Global]Summary {
+	return wt.results
+}
+
+func (wt *WorkingTable) Add(flag contract.InterferenceFlag, ref reference.Global) bool {
+	return wt.GetList(flag).Add(ref)
+}
+
+func (wt *WorkingTable) SetActive(flag contract.InterferenceFlag, ref reference.Global) bool {
+	if ok := wt.GetList(flag).SetActive(ref); ok {
+		wt.results[ref] = Summary{}
+
+		return true
+	}
+
+	return false
+}
+
+func (wt *WorkingTable) Finish(
+	flag contract.InterferenceFlag,
+	ref reference.Global,
+	result *payload.VCallResult,
+) bool {
+	if ok := wt.GetList(flag).Finish(ref); ok {
+		summary, ok := wt.results[ref]
+		if !ok {
+			panic(throw.IllegalState())
+		}
+		summary.result = result
+
+		return true
+	}
+
+	return false
+}
+
+func (wt *WorkingTable) Len() int {
 	size := 0
-	for _, list := range rt.requests {
+	for _, list := range wt.requests {
 		size += list.Count()
 	}
 	return size
@@ -72,14 +112,6 @@ func (rl *WorkingList) GetState(ref reference.Global) WorkingRequestState {
 	return rl.requests[ref]
 }
 
-func (wt *WorkingTable) GetResults() map[reference.Global]Summary {
-	return wt.results
-}
-
-func (rl *WorkingTable) Add(flag contract.InterferenceFlag, ref reference.Global) bool {
-	return rl.GetList(flag).Add(ref)
-}
-
 // Add adds reference.Global and update EarliestPulse if needed
 // returns true if added and false if already exists
 func (rl *WorkingList) Add(ref reference.Global) bool {
@@ -88,14 +120,6 @@ func (rl *WorkingList) Add(ref reference.Global) bool {
 	}
 	rl.requests[ref] = RequestStarted
 	return true
-}
-
-func (wt *WorkingTable) SetActive(flag contract.InterferenceFlag, ref reference.Global) bool {
-	if ok := wt.GetList(flag).SetActive(ref); ok {
-		wt.results[ref] = Summary{}
-	}
-
-	return false
 }
 
 func (rl *WorkingList) SetActive(ref reference.Global) bool {
@@ -130,18 +154,6 @@ func (rl *WorkingList) calculateEarliestActivePulse() {
 	}
 
 	rl.earliestActivePulse = min
-}
-
-func (wt *WorkingTable) Finish(flag contract.InterferenceFlag, ref reference.Global, result *payload.VCallResult) bool {
-	if ok := wt.GetList(flag).Finish(ref); ok {
-		summary, ok := wt.results[ref]
-		if !ok {
-			panic(throw.IllegalState())
-		}
-		summary.result = result
-	}
-
-	return true
 }
 
 func (rl *WorkingList) Finish(ref reference.Global) bool {
