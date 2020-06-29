@@ -2,26 +2,24 @@ package load
 
 import (
 	"context"
-	"errors"
-	"github.com/insolar/assured-ledger/ledger-core/load/util"
+	"net/http"
+
 	"github.com/skudasov/loadgen"
+
+	"github.com/insolar/assured-ledger/ledger-core/load/util"
 )
 
 type SetContractTestAttack struct {
 	loadgen.WithRunner
+	client *http.Client
 }
 
 func (a *SetContractTestAttack) Setup(hc loadgen.RunnerConfig) error {
-	util.HttpClient = util.CreateHTTPClient()
+	a.client = loadgen.NewLoggingHTTPClient(false, 10)
 	return nil
 }
+
 func (a *SetContractTestAttack) Do(ctx context.Context) loadgen.DoResult {
-	if len(loadgen.DefaultReadCSV(a)) == 0 {
-		return loadgen.DoResult{
-			Error:        errors.New("not data for test"),
-			RequestLabel: GetContractTestLabel,
-		}
-	}
 	var addAmountURL string
 	if len(a.GetManager().GeneratorConfig.Generator.Target) == 0 {
 		// set default
@@ -31,7 +29,7 @@ func (a *SetContractTestAttack) Do(ctx context.Context) loadgen.DoResult {
 	}
 
 	for _, reference := range loadgen.DefaultReadCSV(a) {
-		err := util.AddAmountToWallet(addAmountURL, reference, 100)
+		err := util.AddAmountToWallet(a.client, addAmountURL, reference, 100)
 		if err != nil {
 			return loadgen.DoResult{
 				Error:        err,
@@ -40,7 +38,6 @@ func (a *SetContractTestAttack) Do(ctx context.Context) loadgen.DoResult {
 		}
 	}
 	return loadgen.DoResult{
-		Error:        nil,
 		RequestLabel: SetContractTestLabel,
 	}
 }

@@ -21,7 +21,6 @@ import (
 )
 
 var (
-	HttpClient   *http.Client
 	defaultPorts = [2]string{"32302", "32304"}
 )
 
@@ -65,8 +64,8 @@ func PrepareReq(url string, body interface{}) (*http.Request, error) {
 }
 
 // Executes http.Request and returns response body.
-func DoReq(req *http.Request) ([]byte, error) {
-	postResp, err := HttpClient.Do(req)
+func DoReq(client *http.Client, req *http.Request) ([]byte, error) {
+	postResp, err := client.Do(req)
 	if err != nil {
 		return nil, errors.W(err, "problem with sending request")
 	}
@@ -106,18 +105,18 @@ func GetURL(path, host, port string) string {
 	return res
 }
 
-func SendAPIRequest(url string, body interface{}) ([]byte, error) {
+func SendAPIRequest(client *http.Client, url string, body interface{}) ([]byte, error) {
 	req, err := PrepareReq(url, body)
 	if err != nil {
 		return nil, errors.W(err, "problem with preparing request")
 	}
 
-	return DoReq(req)
+	return DoReq(client, req)
 }
 
 // Creates wallet and returns it's reference.
-func CreateSimpleWallet(url string) (string, error) {
-	rawResp, err := SendAPIRequest(url, nil)
+func CreateSimpleWallet(client *http.Client, url string) (string, error) {
+	rawResp, err := SendAPIRequest(client, url, nil)
 	if err != nil {
 		return "", errors.W(err, "failed to send request or get response body")
 	}
@@ -133,8 +132,8 @@ func CreateSimpleWallet(url string) (string, error) {
 }
 
 // Returns wallet balance.
-func GetWalletBalance(url, ref string) (uint, error) {
-	rawResp, err := SendAPIRequest(url, WalletGetBalanceRequestBody{Ref: ref})
+func GetWalletBalance(client *http.Client, url, ref string) (uint, error) {
+	rawResp, err := SendAPIRequest(client, url, WalletGetBalanceRequestBody{Ref: ref})
 	if err != nil {
 		return 0, errors.W(err, "failed to send request or get response body")
 	}
@@ -150,8 +149,8 @@ func GetWalletBalance(url, ref string) (uint, error) {
 }
 
 // Adds amount to wallet.
-func AddAmountToWallet(url, ref string, amount uint) error {
-	rawResp, err := SendAPIRequest(url, WalletAddAmountRequestBody{To: ref, Amount: amount})
+func AddAmountToWallet(client *http.Client, url, ref string, amount uint) error {
+	rawResp, err := SendAPIRequest(client, url, WalletAddAmountRequestBody{To: ref, Amount: amount})
 	if err != nil {
 		return errors.W(err, "failed to send request or get response body")
 	}

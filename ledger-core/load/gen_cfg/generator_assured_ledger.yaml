@@ -1,0 +1,18 @@
+host:
+  name: gha_runner
+  network_iface: en0
+remotes:
+generator:
+  target: http://127.0.0.1:32304
+  responseTimeoutSec: 20
+  rampUpStrategy: linear
+  verbose: true
+execution_mode: parallel
+checks:
+  handle_threshold_percent: 1.20
+root_package_name: assured-ledger/ledger-core
+load_scripts_dir: load
+timezone: Europe/Moscow
+logging:
+  level: debug
+  encoding: console
