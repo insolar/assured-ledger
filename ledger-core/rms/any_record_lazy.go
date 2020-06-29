@@ -19,7 +19,7 @@ type AnyRecordLazy struct {
 	anyLazy
 }
 
-func (p *AnyRecordLazy) Get() LazyRecordValue {
+func (p *AnyRecordLazy) TryGetLazy() LazyRecordValue {
 	if vv, ok := p.value.(LazyRecordValue); ok {
 		return vv
 	}
@@ -28,6 +28,16 @@ func (p *AnyRecordLazy) Get() LazyRecordValue {
 
 func (p *AnyRecordLazy) Set(v BasicRecord) {
 	p.value = v.(goGoMarshaler)
+}
+
+func (p *AnyRecordLazy) TryGet() (isLazy bool, r BasicRecord) {
+	switch p.value.(type) {
+	case nil:
+		return false, nil
+	case LazyRecordValue:
+		return true, nil
+	}
+	return false, p.value.(BasicRecord)
 }
 
 func (p *AnyRecordLazy) Visit(visitor RecordVisitor) error {
@@ -52,11 +62,16 @@ func (p *AnyRecordLazy) SetRecordPayloads(payloads RecordPayloads, digester cryp
 }
 
 func (p *AnyRecordLazy) Unmarshal(b []byte) error {
-	return p.UnmarshalCustom(b, true, GetRegistry().Get, nil)
+	return p.unmarshalCustom(b, false, GetRegistry().Get)
 }
 
-func (p *AnyRecordLazy) UnmarshalCustom(b []byte, copyBytes bool, typeFn func(uint64) reflect.Type, skipFn UnknownCallbackFunc) error {
-	v, err := p.unmarshalCustom(b, copyBytes, typeFn, skipFn)
+func (p *AnyRecordLazy) UnmarshalCustom(b []byte, copyBytes bool, typeFn func(uint64) reflect.Type) error {
+	return p.unmarshalCustom(b, copyBytes, typeFn)
+}
+
+
+func (p *AnyRecordLazy) unmarshalCustom(b []byte, copyBytes bool, typeFn func(uint64) reflect.Type) error {
+	v, err := p.anyLazy.unmarshalCustom(b, copyBytes, typeFn)
 	if err != nil {
 		p.value = nil
 		return err
@@ -100,12 +115,12 @@ func (p *AnyRecordLazy) Equal(that interface{}) bool {
 /************************/
 
 type anyRecordLazy = AnyRecordLazy
-type AnyRecordLazyNoCopy struct {
+type AnyRecordLazyCopy struct {
 	anyRecordLazy
 }
 
-func (p *AnyRecordLazyNoCopy) Unmarshal(b []byte) error {
-	return p.UnmarshalCustom(b, false, GetRegistry().Get, nil)
+func (p *AnyRecordLazyCopy) Unmarshal(b []byte) error {
+	return p.UnmarshalCustom(b, true, GetRegistry().Get)
 }
 
 /************************/
@@ -124,7 +139,7 @@ func (p LazyRecordValue) Unmarshal() (BasicRecord, error) {
 	case p.vType == nil:
 		panic(throw.IllegalState())
 	}
-	return p.UnmarshalAsType(p.vType, p.skipFn)
+	return p.UnmarshalAsType(p.vType, nil)
 }
 
 var typeBasicRecord = reflect.TypeOf((*BasicRecord)(nil)).Elem()
