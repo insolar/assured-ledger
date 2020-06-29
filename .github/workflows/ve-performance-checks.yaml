@@ -59,7 +59,7 @@ jobs:
           docker push $ACR_HOST/assured-ledger:"${{ fromJson(steps.set-vars.outputs.result).shortSha }}"
       - name: copy docker auth secret
         run:  |
-          la -a
+          ls -a
           cd /home/runner/.docker/
           ls -a
           cp /home/runner/.docker/config.json ledger-core/scripts/deploy/kube/aks/dockerconfigjson
