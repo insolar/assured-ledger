@@ -89,7 +89,7 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 		firstApprover  = gen.UniqueGlobalRef()
 		secondApprover = gen.UniqueGlobalRef()
 
-		vcallrequestCount, vdelegatedcallrequestCount = 0, 0
+		firstVCallRequest, firstVDelegatedCallRequest = true, true
 
 		firstExpectedToken = payload.CallDelegationToken{
 			TokenTypeAndFlags: payload.DelegationTokenTypeCall,
@@ -135,7 +135,6 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 				logger.Debug("ExecutionStart [A.Foo]")
 				server.IncrementPulseAndWaitIdle(ctx)
 				secondPulse = server.GetPulse().PulseNumber
-				require.Greater(t, secondPulse.AsUint32(), firstPulse.AsUint32())
 				firstExpectedToken.PulseNumber = secondPulse
 			},
 			&execution.Update{
@@ -180,10 +179,10 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 				},
 			}
 
-			if vdelegatedcallrequestCount == 0 {
+			if firstVDelegatedCallRequest {
 				assert.Zero(t, request.DelegationSpec)
 				msg.ResponseDelegationSpec.Approver = firstApprover
-				vdelegatedcallrequestCount++
+				firstVDelegatedCallRequest = false
 			} else {
 				assert.Equal(t, firstExpectedToken, request.DelegationSpec)
 				msg.ResponseDelegationSpec.Approver = secondApprover
@@ -200,17 +199,16 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 		typedChecker.VCallRequest.Set(func(request *payload.VCallRequest) bool {
 			assert.Equal(t, objectBGlobal, request.Callee)
 
-			if vcallrequestCount == 0 {
+			if firstVCallRequest {
 				assert.Equal(t, secondPulse, request.CallOutgoing.Pulse()) // new pulse
 				assert.Equal(t, firstExpectedToken, request.DelegationSpec)
 				assert.NotEqual(t, payload.RepeatedCall, request.CallRequestFlags.GetRepeatedCall())
 
 				server.IncrementPulseAndWaitIdle(ctx)
 				thirdPulse = server.GetPulse().PulseNumber
-				require.Greater(t, thirdPulse.AsUint32(), secondPulse.AsUint32())
 				secondExpectedToken.PulseNumber = thirdPulse
 				expectedVCallRequest.DelegationSpec = secondExpectedToken
-				vcallrequestCount++
+				firstVCallRequest = false
 				// request will be sent in previous pulse
 				// omit sending
 				return false
