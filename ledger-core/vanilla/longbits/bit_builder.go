@@ -358,10 +358,16 @@ func (p *BitBuilder) Set(index int, bit, padding bool) {
 		byteIndex, bitIndex := BitPos(index)
 		mask := normFn(1, bitIndex)
 
-		if bit {
-			p.bytes[byteIndex] |= mask
+		var pb *byte
+		if byteIndex == len(p.bytes) {
+			pb = &p.accumulator
 		} else {
-			p.bytes[byteIndex] &^= mask
+			pb = &p.bytes[byteIndex]
+		}
+		if bit {
+			*pb |= mask
+		} else {
+			*pb &^= mask
 		}
 		return
 	case d > 0:

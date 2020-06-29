@@ -5,10 +5,6 @@
 
 package lineage
 
-import (
-	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc"
-)
-
 type stageNo uint32
 type recordNo uint32
 type filamentNo uint32
@@ -17,7 +13,7 @@ type updateStage struct {
 	seqNo stageNo
 	next  *updateStage // latter one
 
-	future    *buildersvc.Future
+//	future    *buildersvc.Future
 	firstRec  recordNo
 
 	filaments    []filamentEndings

@@ -15,8 +15,22 @@ const (
 	TypeRLineMemoryProvidedPolymorthID = TypeRLineMemoryPolymorthID +2
 )
 
+type (
+	RLifelineStart = ROutboundRequest
+	RSidelineStart = ROutboundRequest
+	ROutboundRetryableRequest = ROutboundRequest
+	ROutboundRetryRequest = ROutboundRequest
+
+	RLineMemoryInit = RLineMemory
+	RLineMemoryProvided = RLineMemory
+)
+
 func init() {
-	RegisterRecordType(TypeRLifelineStartPolymorthID, "", (*ROutboundRequest)(nil))
-	RegisterRecordType(TypeRSidelineStartPolymorthID, "", (*ROutboundRequest)(nil))
-	RegisterRecordType(TypeRLineMemoryInitPolymorthID, "", (*RLineMemory)(nil))
+	RegisterRecordType(TypeRLifelineStartPolymorthID, "", (*RLifelineStart)(nil))
+	RegisterRecordType(TypeRSidelineStartPolymorthID, "", (*RSidelineStart)(nil))
+	RegisterRecordType(TypeROutboundRetryableRequestPolymorthID, "", (*ROutboundRetryableRequest)(nil))
+	RegisterRecordType(TypeROutboundRetryRequestPolymorthID, "", (*ROutboundRetryRequest)(nil))
+
+	RegisterRecordType(TypeRLineMemoryInitPolymorthID, "", (*RLineMemoryInit)(nil))
+	RegisterRecordType(TypeRLineMemoryProvidedPolymorthID, "", (*RLineMemoryProvided)(nil))
 }

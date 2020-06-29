@@ -28,13 +28,13 @@ func (p *LineAges) NewBundle() *BundleResolver {
 	return newBundleResolver(nil, GetRecordPolicy)
 }
 
-func (p *LineAges) trimStages() {
-	for ;p.earliest != p.latest;p.earliest = p.earliest.next {
-		if !p.earliest.future.IsCommitted() {
-			return
-		}
-	}
-}
+// func (p *LineAges) trimStages() {
+// 	for ;p.earliest != p.latest;p.earliest = p.earliest.next {
+// 		if !p.earliest.future.IsCommitted() {
+// 			return
+// 		}
+// 	}
+// }
 
 func (p *LineAges) getNextRecordNo() recordNo {
 	return recordNo((len(p.records) - 1) * cap(p.records[0]) + len(p.records[0]) + 1)

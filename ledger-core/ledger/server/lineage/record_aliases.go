@@ -7,8 +7,6 @@ package lineage
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/rms"
-	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
-	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 
@@ -40,20 +38,3 @@ const tRLineRecap = RecordType(rms.TypeRLineRecapPolymorthID)
 func appendCopy(v []RecordType, u... RecordType) []RecordType {
 	return append(append([]RecordType(nil), v...), u...)
 }
-
-func setOf(canFollow... RecordType) RecordTypeSet {
-	if len(canFollow) == 0 {
-		return RecordTypeSet{}
-	}
-
-	bb := longbits.NewBitBuilder(longbits.LSB, 32)
-	for _, mt := range canFollow {
-		if mt > maxRecordType {
-			panic(throw.IllegalValue())
-		}
-		bb.SetBit(int(mt), 1)
-	}
-	skip, b := bb.TrimZeros()
-	return RecordTypeSet{RecordType(skip<<8), b}
-}
-

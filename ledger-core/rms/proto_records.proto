@@ -41,7 +41,8 @@ enum LineState {
 message RLineRecap {
     option (insproto.id) = 19;
 
-    reserved 1 to 23, 26 to 39, 1792 to max;
+    reserved 1 to 18, 20 to 23, 26 to 39, 1792 to max;
+    RecordBody RecordBody = 19 [(gogoproto.embed)=true];
 
     Reference PrevRef = 24;
     Reference RootRef = 25;
@@ -57,14 +58,17 @@ message RLineRecap {
 
 message RPrevDropReport {
     option (insproto.id) = 0;
+    RecordBody RecordBody = 19 [(gogoproto.embed)=true];
 }
 
 message RLineActivate {
     option (insproto.id) = 20;
+    RecordBody RecordBody = 19 [(gogoproto.embed)=true];
 }
 
 message RLineDeactivate {
     option (insproto.id) = 21;
+    RecordBody RecordBody = 19 [(gogoproto.embed)=true];
 }
 
 message RLineMemory {
@@ -79,26 +83,32 @@ message RLineMemory {
 
 message RLineMemoryExpected {
     option (insproto.id) = 25;
+    RecordBody RecordBody = 19 [(gogoproto.embed)=true];
 }
 
 message RLineMemoryReuse {
     option (insproto.id) = 26;
+    RecordBody RecordBody = 19 [(gogoproto.embed)=true];
 }
 
 message RLineInboundRequest {
     option (insproto.id) = 27;
+    RecordBody RecordBody = 19 [(gogoproto.embed)=true];
 }
 
 message RInboundRequest {
     option (insproto.id) = 28;
+    RecordBody RecordBody = 19 [(gogoproto.embed)=true];
 }
 
 message RInboundResponse {
     option (insproto.id) = 29;
+    RecordBody RecordBody = 19 [(gogoproto.embed)=true];
 }
 
 message ROutboundResponse {
     option (insproto.id) = 30;
+    RecordBody RecordBody = 19 [(gogoproto.embed)=true];
 }
 
 message ROutboundRequest {
