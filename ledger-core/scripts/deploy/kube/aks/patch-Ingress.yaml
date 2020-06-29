@@ -1,0 +1,9 @@
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: api-proxy
+  annotations:
+    traefik.ingress.kubernetes.io/service.sticky: "true"
+spec:
+  rules:
+    - host: placeholder.uscifarm.insolar.io

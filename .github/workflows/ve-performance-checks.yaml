@@ -1,0 +1,83 @@
+name: ve-performance-checks # ve performance checks
+on:
+  pull_request:
+  schedule:
+    - cron: '0 0 * * *'
+env:
+  KUBECONFIG: "${{ github.workspace }}/aks.yaml"
+  GO_VERSION: 1.14
+  CI_GOMAXPROCS: 0
+  INSOLAR_LOG_LEVEL: warn
+  GOTEST: 'gotestsum --'
+  GOPATH: /home/runner/work/
+  GOPROXY: https://proxy.golang.org,https://goproxy.io,direct
+  CORE_PATH: /home/runner/work/assured-ledger/assured-ledger/ledger-core
+  USE_MANIFESTS: aks
+  ACR_HOST: usciregistry.azurecr.io
+jobs:
+  ve-performance:
+    name: ve-performance
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create short git sha and git ref vars
+        id: set-vars
+        uses: actions/github-script@v2
+        with:
+          script: |
+            const shortSha = context.sha.substring(0, 8);
+            let shortRef;
+            if (context.ref.search(/^refs\/pull/) > -1) {
+              shortRef = "pull-" + context.ref.match(/\d+/);
+            } else {
+              shortRef = context.ref.replace(/^refs\/(heads|tags)\//, "").replace(/\//g, "-");
+            }
+            const result = {
+              shortSha: shortSha,
+              shortRef: shortRef,
+            }
+            console.log(result);
+            return result;
+      - name: Checkout code
+        uses: actions/checkout@master
+      - name: Set up go ${{ env.GO_VERSION }}
+        uses: actions/setup-go@v1
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: Add bin to path
+        run: echo "::add-path::${{ env.GOPATH }}/bin"
+      - name: Add workspace/bin to path
+        run: echo "::add-path::$GITHUB_WORKSPACE/bin"
+      - name: save kubeconfig
+        run: echo "${{secrets.CLOUD_KUBECONFIG}}" >> aks.yaml
+      - name: Build docker images
+        run: make docker-build
+        working-directory: ${{ env.CORE_PATH }}
+      - name: Push assured ledger image to Azure container registry registry
+        run: |
+          docker login $ACR_HOST --username ${{secrets.ACR_SP_ID}} --password ${{secrets.ACR_SP_SECRET}}
+          docker tag insolar/assured-ledger:latest $ACR_HOST/assured-ledger:"${{ fromJson(steps.set-vars.outputs.result).shortSha }}"
+          docker push $ACR_HOST/assured-ledger:"${{ fromJson(steps.set-vars.outputs.result).shortSha }}"
+      - name: copy docker auth secret
+        run:  cp /home/runner/.docker/config.json ledger-core/scripts/deploy/kube/aks/dockerconfigjson
+        working-directory: ${{ env.CORE_PATH }}
+      - name: template GIT_SHA to deployment manifests
+        run: |
+          sed -i "s/placeholder/${{ fromJson(steps.set-vars.outputs.result).shortSha }}/g" ledger-core/scripts/deploy/kube/*/*.*
+          sed -i "s/placeholder/${{ fromJson(steps.set-vars.outputs.result).shortSha }}/g" ledger-core/scripts/deploy/kube/*/configuration/*.*
+      - name: run 10node network
+        run: kubectl apply -k ledger-core/scripts/deploy/kube/10node
+      - name: wait for successfull rollout
+        run: kubectl -n ${{fromJson(steps.set-vars.outputs.result).shortSha}} rollout status sts/virtual
+      - name: pulsewatcher
+        run: |
+          for try in {0..100}; do
+            if kubectl -n ${{fromJson(steps.set-vars.outputs.result).shortSha}} exec -i deploy/pulsewatcher -- bash -c 'pulsewatcher -c /etc/pulsewatcher/pulsewatcher.yaml -s' | grep 'READY' | grep -v 'NOT'; then
+              echo "network ready!"; exit 0
+            else echo -n '.'; sleep 5
+            fi
+          done
+      - name: get some info
+        run: kubectl -n ${{fromJson(steps.set-vars.outputs.result).shortSha}} get po
+      - name: cleanup
+        if: always()
+        run: kubectl delete ns ${{fromJson(steps.set-vars.outputs.result).shortSha}} --ignore-not-found=true
