@@ -39,6 +39,7 @@ type BundleResolver struct {
 	lastRecord reference.Holder
 	unresolved []UnresolvedDependency
 	errors     []error
+	hasBranch  bool
 
 	records    []resolvedRecord
 }
@@ -74,6 +75,7 @@ func (p *BundleResolver) Reprocess() bool {
 	p.records = nil
 	p.errors = nil
 	p.unresolved = nil
+	p.hasBranch = false
 
 	// NB! required filament(s) can be retrieved from prev drops
 	p.maxFilNo = p.resolver.getNextFilNo()
@@ -96,7 +98,8 @@ func (p *BundleResolver) Add(record Record) bool {
 	p.setLastRecord(ref)
 	defer p.setLastRecord(nil)
 
-	policy := GetRecordPolicy(RecordType(upd.Excerpt.RecordType))
+	recType := RecordType(upd.Excerpt.RecordType)
+	policy := GetRecordPolicy(recType)
 	if !policy.IsValid() {
 		return p.addError(throw.E("unknown type"))
 	}
@@ -127,24 +130,43 @@ func (p *BundleResolver) Add(record Record) bool {
 			return true
 		case p.findResolved(refLocal) != nil:
 			return p.addRefError("RecordRef", throw.E("duplicate"))
-		case !policy.IsAnyFilamentStart():
-		case len(p.records) != 0:
-			return p.addError(throw.E("can only be first in bundle"))
+		case policy.IsAnyFilamentStart():
+			if len(p.records) == 0 {
+				if p.maxRecNo > 1 {
+					p.hasBranch = true
+				}
+				break
+			}
+
+			switch {
+			case p.hasBranch:
+				return p.addError(throw.E("can only be one branch in bundle"))
+			case base.GetPulseNumber() == localPN:
+			case reference.PulseNumberOf(upd.Excerpt.ReasonRef.Get()) == localPN:
+			default:
+				return p.addError(throw.E("can only be first in bundle"))
+			}
+
+			p.hasBranch = true
 		}
 
-		isResolved = p.resolveRecordDependencies(localPN, &upd, policy)
+		isResolved = p.resolveRecordDependencies(localPN, &upd, policy, recType)
 	}
 
 	p.records = append(p.records, upd)
 	return isResolved
 }
 
-func (p *BundleResolver) resolveRecordDependencies(localPN pulse.Number, upd *resolvedRecord, policy RecordPolicy) bool {
+func (p *BundleResolver) resolveRecordDependencies(localPN pulse.Number, upd *resolvedRecord, policy RecordPolicy, recType RecordType) bool {
 	isResolved := true
 	rootRef := upd.Excerpt.RootRef.Get()
 
 	if err := policy.CheckRootRef(rootRef, p.policyProvider, func(ref reference.Holder) (dep ResolvedDependency, _ error) {
-		if ok, dp := p.getLocalFilament(ref); ok {
+		if ok, filNo, dp := p.getLocalFilament(ref); ok {
+			if dp.IsZero() {
+				return ResolvedDependency{}, throw.E("not a root")
+			}
+			upd.filNo = filNo
 			return dp, nil
 		}
 
@@ -232,7 +254,7 @@ func (p *BundleResolver) resolveRecordDependencies(localPN pulse.Number, upd *re
 		p.addRefError("PrevRef", err)
 	}
 
-	if err := policy.CheckRejoinRef(localPN, upd.Excerpt.RejoinRef.Get(), func(ref reference.Holder) (ResolvedDependency, error) {
+	if err := policy.CheckRejoinRef(localPN, recType, upd.Excerpt.RejoinRef.Get(), func(ref reference.Holder) (ResolvedDependency, error) {
 		// rejoin must be within the same record set
 		switch rd := p.findResolved(ref); {
 		case rd == nil:
@@ -265,8 +287,8 @@ func (p *BundleResolver) resolveRecordDependencies(localPN pulse.Number, upd *re
 				} else {
 					p.addDependency(nil, ref)
 				}
-				return dep, nil
 			}
+			return dep, nil
 		case dep.IsNotAvailable():
 			panic(throw.Impossible())
 		case recNo == 0 && filNo != 0:
@@ -288,6 +310,50 @@ func (p *BundleResolver) resolveRecordDependencies(localPN pulse.Number, upd *re
 	}); err != nil {
 		isResolved = false
 		p.addRefError("RedirectRef", err)
+	}
+
+	if err := policy.CheckReasonRef(upd.Excerpt.ReasonRef.Get(), func(ref reference.Holder) (ResolvedDependency, error) {
+
+		if rd := p.findResolved(ref); rd != nil {
+			return rd.asResolvedDependency(), nil
+		}
+
+		filNo, recNo, dep := p.resolver.findLocalDependency(rootRef, ref, false)
+		switch {
+		case dep.IsZero():
+			dep = p.resolver.findLineAnyDependency(rootRef, ref)
+			switch {
+			case dep.IsZero():
+				return dep, nil
+			case dep.IsNotAvailable():
+				isResolved = false
+				if ref.GetBase() == rootRef.GetBase() {
+					p.addDependency(rootRef, ref)
+				} else {
+					p.addDependency(nil, ref)
+				}
+			}
+			return dep, nil
+		case dep.IsNotAvailable():
+			panic(throw.Impossible())
+		case recNo == 0 && filNo != 0:
+			panic(throw.Impossible())
+		}
+
+		switch {
+		case recNo >= p.maxRecNo:
+			return ResolvedDependency{}, throw.E("forward reference")
+		case filNo >= p.maxFilNo:
+			return ResolvedDependency{}, throw.E("forward filament")
+		case filNo == 0:
+			return ResolvedDependency{}, throw.E("fork forbidden")
+		}
+
+		return dep, nil
+
+	}); err != nil {
+		isResolved = false
+		p.addRefError("ReasonRef", err)
 	}
 
 	return isResolved
@@ -312,7 +378,7 @@ func (p *BundleResolver) addError(err error) bool {
 }
 
 func (p *BundleResolver) checkBase(base reference.Local, fieldName string, ref reference.Holder) bool {
-	if ref.IsEmpty() {
+	if ref == nil || ref.IsEmpty() {
 		return true
 	}
 	if refBase := ref.GetBase(); base != refBase {
@@ -325,22 +391,27 @@ func (p *BundleResolver) setLastRecord(ref reference.Holder) {
 	p.lastRecord = ref
 }
 
-func (p *BundleResolver) getLocalFilament(root reference.Holder) (bool, ResolvedDependency) {
+func (p *BundleResolver) getLocalFilament(root reference.Holder) (bool, filamentNo, ResolvedDependency) {
 	switch {
 	case len(p.records) == 0:
 	case root == nil:
-	case !reference.Equal(root, p.records[0].RegRecord.AnticipatedRef.Get()):
-	case !p.records[0].Excerpt.RootRef.IsEmpty():
-		// not a filament
-		return true, ResolvedDependency{}
 	default:
-		r := p.records[0]
-		return true, ResolvedDependency{
-			RecordType:     RecordType(r.Excerpt.RecordType),
-			RootRef:        r.Excerpt.RootRef.Get(),
+		rd := p.findResolved(root)
+		if rd == nil {
+			break
+		}
+		rootRef := rd.Excerpt.RootRef.Get()
+		filNo := filamentNo(0) // special case - a new branch filament
+		if rootRef == nil {
+			filNo = 1
+		}
+
+		return true, filNo, ResolvedDependency{
+			RecordType:     RecordType(rd.Excerpt.RecordType),
+			RootRef:        rootRef,
 		}
 	}
-	return false, ResolvedDependency{}
+	return false, 0, ResolvedDependency{}
 }
 
 func (p *BundleResolver) findResolved(ref reference.LocalHolder) *resolvedRecord {

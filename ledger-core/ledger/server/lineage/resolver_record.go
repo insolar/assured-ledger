@@ -5,6 +5,10 @@
 
 package lineage
 
+import (
+	"github.com/insolar/assured-ledger/ledger-core/reference"
+)
+
 type resolvedRecord struct {
 	prev recordNo
 	next recordNo
@@ -28,7 +32,7 @@ func (p *resolvedRecord) asResolvedDependency() ResolvedDependency {
 		RecordType: RecordType(p.Excerpt.RecordType),
 		RootRef:    p.Excerpt.RootRef.Get(),
 	}
-	if redirectToRef := p.Excerpt.RedirectRef.Get(); !redirectToRef.IsEmpty() {
+	if redirectToRef := p.Excerpt.RedirectRef.Get(); !reference.IsEmpty(redirectToRef) {
 		rd.RedirectToRef = redirectToRef
 		rd.RedirectToType = p.redirectToType
 	}

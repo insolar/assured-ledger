@@ -33,6 +33,7 @@ const (
 	NextPulseOnly
 	Unblocked // ?
 	Recap // can follow up any record (Deactivate?)
+	ReasonRequired
 )
 
 type RecordPolicy struct {
@@ -68,21 +69,8 @@ func (v RecordPolicy) CheckRecordRef(lineBase reference.LocalHolder, localPN pul
 }
 
 func (v RecordPolicy) CheckRootRef(ref reference.Holder, policyFn RecordPolicyProviderFunc, resolverFn PolicyResolverFunc) error {
-	switch {
-	case v.FieldPolicy&(LineStart|Branched) == LineStart:
-		if !ref.IsEmpty() {
-			return throw.E("must be empty")
-		}
-		switch found, err := resolverFn(ref); {
-		case err != nil:
-			return err
-		case !found.IsZero():
-			return throw.E("already exists")
-		}
-		return nil
-
-	case ref.IsEmpty():
-		return throw.E("must be not empty")
+	if ok, err := checkExact(ref, v.FieldPolicy&(LineStart|Branched) != LineStart); !ok || err != nil {
+		return err
 	}
 
 	switch found, err := resolverFn(ref); {
@@ -92,6 +80,7 @@ func (v RecordPolicy) CheckRootRef(ref reference.Holder, policyFn RecordPolicyPr
 		return throw.E("missing record")
 	case found.RecordType == RecordNotAvailable:
 	case policyFn == nil:
+	case v.FieldPolicy&LineStart != 0:
 	default:
 		msg := ""
 		switch policy := policyFn(found.RecordType); {
@@ -108,14 +97,11 @@ func (v RecordPolicy) CheckRootRef(ref reference.Holder, policyFn RecordPolicyPr
 }
 
 func (v RecordPolicy) CheckPrevRef(pn pulse.Number, ref reference.Holder, resolverFn PolicyResolverFunc) error {
+	if ok, err := checkExact(ref, v.FieldPolicy&LineStart == 0); !ok || err != nil {
+		return err
+	}
+
 	switch {
-	case v.FieldPolicy&LineStart != 0:
-		if !ref.IsEmpty() {
-			return throw.E("must be empty")
-		}
-		return nil
-	case ref.IsEmpty():
-		return throw.E("must be not empty")
 	case v.FieldPolicy&NextPulseOnly == 0:
 	case ref.GetLocal().GetPulseNumber() >= pn:
 		return throw.E("must be prev pulse")
@@ -137,16 +123,19 @@ func (v RecordPolicy) CheckPrevRef(pn pulse.Number, ref reference.Holder, resolv
 	return nil
 }
 
-func (v RecordPolicy) CheckRejoinRef(pn pulse.Number, ref reference.Holder, resolverFn PolicyResolverFunc) error {
+func (v RecordPolicy) CheckRejoinRef(pn pulse.Number, recType RecordType, ref reference.Holder, resolverFn PolicyResolverFunc) error {
 	switch {
-	case v.FieldPolicy&SideEffect == 0:
-		if !ref.IsEmpty() {
-			return throw.E("must be empty")
+	case recType != tRLineActivate:
+		if ok, err := checkExact(ref, v.FieldPolicy&SideEffect != 0); !ok || err != nil {
+			return err
 		}
+	case reference.IsEmpty(ref):
+		// This is a special case
+		// TODO it is only allowed after line start or MemoryInit - needs proper data
 		return nil
-	case ref.IsEmpty():
-		return throw.E("must be not empty")
-	case ref.GetLocal().GetPulseNumber() != pn:
+	}
+
+	if ref.GetLocal().GetPulseNumber() != pn {
 		return throw.E("must be same pulse")
 	}
 
@@ -160,14 +149,8 @@ func (v RecordPolicy) CheckRejoinRef(pn pulse.Number, ref reference.Holder, reso
 }
 
 func (v RecordPolicy) CheckRedirectRef(ref reference.Holder, resolverFn PolicyResolverFunc) error {
-	switch {
-	case v.RedirectTo.IsZero():
-		if !ref.IsEmpty() {
-			return throw.E("must be empty")
-		}
-		return nil
-	case ref.IsEmpty():
-		return throw.E("must be not empty")
+	if ok, err := checkExact(ref, !v.RedirectTo.IsZero()); !ok || err != nil {
+		return err
 	}
 
 	switch found, err := resolverFn(ref); {
@@ -183,6 +166,33 @@ func (v RecordPolicy) CheckRedirectRef(ref reference.Holder, resolverFn PolicyRe
 		return throw.E("wrong redirect target", struct { PrevType RecordType }{found.RecordType })
 	}
 	return nil
+}
+
+func (v RecordPolicy) CheckReasonRef(ref reference.Holder, resolverFn PolicyResolverFunc) error {
+	if ok, err := checkExact(ref, v.FieldPolicy&ReasonRequired != 0); !ok || err != nil {
+		return err
+	}
+
+	switch found, err := resolverFn(ref); {
+	case err != nil:
+		return err
+	case found.IsZero():
+		return throw.E("unknown record")
+	}
+	return nil
+}
+
+func checkExact(ref reference.Holder, isRequired bool) (bool, error) {
+	switch {
+	case isRequired:
+		if reference.IsEmpty(ref) {
+			return false, throw.E("must be not empty")
+		}
+		return true, nil
+	case !reference.IsEmpty(ref):
+		return false, throw.E("must be empty")
+	}
+	return false, nil
 }
 
 func (v RecordPolicy) IsAnyFilamentStart() bool {

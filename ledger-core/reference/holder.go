@@ -5,7 +5,10 @@
 
 package reference
 
-import "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+import (
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+)
 
 type LocalHolder interface {
 	// GetLocal returns local portion of a full reference
@@ -36,6 +39,17 @@ func AsRecordID(v Holder) Local {
 		return v.GetLocal()
 	}
 	panic(throw.IllegalState())
+}
+
+func IsEmpty(ref Holder) bool {
+	return ref == nil || ref.IsEmpty()
+}
+
+func PulseNumberOf(ref LocalHolder) pulse.Number {
+	if ref == nil || ref.IsEmpty() {
+		return 0
+	}
+	return ref.GetLocal().GetPulseNumber()
 }
 
 func IsRecordScope(ref Holder) bool {
