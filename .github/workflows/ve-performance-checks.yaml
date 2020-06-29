@@ -58,7 +58,11 @@ jobs:
           docker tag insolar/assured-ledger:latest $ACR_HOST/assured-ledger:"${{ fromJson(steps.set-vars.outputs.result).shortSha }}"
           docker push $ACR_HOST/assured-ledger:"${{ fromJson(steps.set-vars.outputs.result).shortSha }}"
       - name: copy docker auth secret
-        run:  cp /home/runner/.docker/config.json ledger-core/scripts/deploy/kube/aks/dockerconfigjson
+        run:  |
+          la -a
+          cd /home/runner/.docker/
+          ls -a
+          cp /home/runner/.docker/config.json ledger-core/scripts/deploy/kube/aks/dockerconfigjson
         working-directory: ${{ env.CORE_PATH }}
       - name: template GIT_SHA to deployment manifests
         run: |
