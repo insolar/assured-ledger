@@ -20,24 +20,24 @@ const (
 	RecordNotAvailable RecordType = math.MaxUint32
 )
 
-type FieldPolicy uint16
+type PolicyFlags uint32
 
 const (
-	// RedirectToNothing
-	LineStart FieldPolicy = 1<<iota
+	LineStart PolicyFlags = 1<<iota
 	FilamentStart
 	FilamentEnd
-	Branched
+	BranchedStart
+	MustBeBranch
 	SideEffect
 	OnlyHash
 	NextPulseOnly
-	Unblocked // ?
+	BlockNextPulse
 	Recap // can follow up any record (Deactivate?)
 	ReasonRequired
 )
 
 type RecordPolicy struct {
-	FieldPolicy
+	PolicyFlags
 	CanFollow RecordTypeSet
 	RedirectTo RecordTypeSet
 }
@@ -49,7 +49,7 @@ type PolicyCheckDetails struct {
 }
 
 func (v RecordPolicy) IsValid() bool {
-	return v.FieldPolicy != 0 || !v.CanFollow.IsZero()
+	return v.PolicyFlags != 0 || !v.CanFollow.IsZero()
 }
 
 func (v RecordPolicy) CheckRecordRef(lineBase reference.LocalHolder, ref reference.LocalHolder, details PolicyCheckDetails) error {
@@ -59,9 +59,9 @@ func (v RecordPolicy) CheckRecordRef(lineBase reference.LocalHolder, ref referen
 	}
 
 	switch {
-	case v.FieldPolicy&LineStart == 0:
+	case v.PolicyFlags&LineStart == 0:
 		//
-	case v.FieldPolicy&Branched == 0:
+	case v.PolicyFlags&BranchedStart == 0:
 		if refLocal.GetLocal() != lineBase.GetLocal() {
 			return throw.E("must be self-ref")
 		}
@@ -75,7 +75,7 @@ func (v RecordPolicy) CheckRecordRef(lineBase reference.LocalHolder, ref referen
 }
 
 func (v RecordPolicy) CheckRootRef(ref reference.Holder, details PolicyCheckDetails, resolverFn PolicyResolverFunc) error {
-	if ok, err := checkExact(ref, v.FieldPolicy&(LineStart|Branched) != LineStart); !ok || err != nil {
+	if ok, err := checkExact(ref, v.PolicyFlags&(LineStart|BranchedStart) != LineStart); !ok || err != nil {
 		return err
 	}
 
@@ -86,13 +86,13 @@ func (v RecordPolicy) CheckRootRef(ref reference.Holder, details PolicyCheckDeta
 		return throw.E("missing record")
 	case found.RecordType == RecordNotAvailable:
 	case details.PolicyProvider == nil:
-	case v.FieldPolicy&LineStart != 0:
+	case v.PolicyFlags&LineStart != 0:
 	default:
 		msg := ""
 		switch policy := details.PolicyProvider(found.RecordType); {
 		case !policy.IsValid():
 			msg = "unknown root type"
-		case policy.FieldPolicy & (LineStart|FilamentStart) == 0:
+		case policy.PolicyFlags& (LineStart|FilamentStart) == 0:
 			msg = "wrong root type"
 		default:
 			return nil
@@ -102,35 +102,76 @@ func (v RecordPolicy) CheckRootRef(ref reference.Holder, details PolicyCheckDeta
 	return nil
 }
 
-func (v RecordPolicy) CheckPrevRef(ref reference.Holder, details PolicyCheckDetails, resolverFn PolicyResolverFunc) error {
-	if ok, err := checkExact(ref, v.FieldPolicy&LineStart == 0); !ok || err != nil {
-		return err
-	}
+func (v RecordPolicy) CheckPrevRef(rootRef, ref reference.Holder, details PolicyCheckDetails, resolverFn PolicyResolverFunc) (isFork bool, err error) {
+	err = func() error {
+		if ok, err := checkExact(ref, v.PolicyFlags&LineStart == 0); !ok || err != nil {
+			return err
+		}
 
-	switch {
-	case v.FieldPolicy&NextPulseOnly == 0:
-	case ref.GetLocal().GetPulseNumber() >= details.LocalPN:
-		return throw.E("must be prev pulse")
-	}
+		switch {
+		case v.PolicyFlags&NextPulseOnly == 0:
+		case ref.GetLocal().GetPulseNumber() >= details.LocalPN:
+			return throw.E("must be prev pulse")
+		}
 
-	switch found, err := resolverFn(ref); {
-	case err != nil:
-		return err
-	case found.IsZero():
-		return throw.E("unknown record")
-	case found.RecordType == RecordNotAvailable:
-	case v.FieldPolicy&Recap != 0:
-	case v.CanFollow.Has(found.RecordType):
-	case found.RedirectToRef == nil:
-	case v.CanFollow.Has(found.RedirectToType):
-	default:
-		return throw.E("wrong record sequence", struct { PrevType RecordType }{found.RecordType })
-	}
-	return nil
+		found, err := resolverFn(ref)
+		switch {
+		case err != nil:
+			return err
+		case found.IsZero():
+			return throw.E("unknown record")
+		case found.RecordType == RecordNotAvailable:
+			return nil
+		case v.PolicyFlags&Recap != 0:
+			return nil
+		case v.CanFollow.Has(found.RecordType):
+		case found.RedirectToRef == nil:
+		case v.CanFollow.Has(found.RedirectToType):
+		default:
+			return throw.E("wrong record sequence", struct{ PrevType RecordType }{found.RecordType})
+		}
+
+		prevPolicy := details.PolicyProvider(found.RecordType)
+
+		switch {
+		case prevPolicy.PolicyFlags&BlockNextPulse == 0:
+		case ref.GetLocal().GetPulseNumber() == details.LocalPN:
+		case found.RecordType == tRLineMemoryExpected:
+			switch details.RecordType {
+			case tRLineMemoryProvided, tRLineDeactivate:
+			default:
+				return throw.E("memory is expected")
+			}
+		default:
+			panic(throw.Unsupported())
+		}
+
+		switch {
+		case v.IsBranched():
+			// this is the start and the first record of a branch filament
+			// PrevRef doesn't need to be "open"
+			// upd.filNo = 0 // => filament is created in this batch
+			isFork = true
+		case reference.Equal(rootRef, ref):
+			// this is not start but a first record of a filament
+			if details.PolicyProvider(found.RecordType).IsForkAllowed() {
+				// PrevRef doesn't need to be "open"
+				// upd.filNo = 0 // => filament is created in this batch
+				isFork = true
+			}
+		case v.PolicyFlags&MustBeBranch != 0:
+			if reference.Equal(rootRef, found.RootRef) {
+				return throw.E("fork is required")
+			}
+		}
+
+		return nil
+	}()
+	return
 }
 
 func (v RecordPolicy) CheckRejoinRef(ref reference.Holder, details PolicyCheckDetails, prevRecordType RecordType, resolverFn PolicyResolverFunc) error {
-	isSideEffect := v.FieldPolicy&SideEffect != 0
+	isSideEffect := v.PolicyFlags&SideEffect != 0
 
 	if isSideEffect && details.RecordType == tRLineActivate && setDirectActivate.Has(prevRecordType) {
 		// This is a special case - RLineActivate can be produced without side-effect when constructor had no outgoing calls
@@ -175,7 +216,7 @@ func (v RecordPolicy) CheckRedirectRef(ref reference.Holder, resolverFn PolicyRe
 }
 
 func (v RecordPolicy) CheckReasonRef(ref reference.Holder, resolverFn PolicyResolverFunc) error {
-	if ok, err := checkExact(ref, v.FieldPolicy&ReasonRequired != 0); !ok || err != nil {
+	if ok, err := checkExact(ref, v.PolicyFlags&ReasonRequired != 0); !ok || err != nil {
 		return err
 	}
 
@@ -202,21 +243,21 @@ func checkExact(ref reference.Holder, isRequired bool) (bool, error) {
 }
 
 func (v RecordPolicy) IsAnyFilamentStart() bool {
-	return v.FieldPolicy&(LineStart|FilamentStart) != 0
+	return v.PolicyFlags&(LineStart|FilamentStart) != 0
 }
 
 func (v RecordPolicy) IsBranched() bool {
-	return v.FieldPolicy&Branched != 0
+	return v.PolicyFlags&BranchedStart != 0
 }
 
 func (v RecordPolicy) IsFilamentStart() bool {
-	return v.FieldPolicy&FilamentStart != 0
+	return v.PolicyFlags&FilamentStart != 0
 }
 
 func (v RecordPolicy) CanBeRejoined() bool {
-	return v.FieldPolicy&(SideEffect|FilamentEnd) == FilamentEnd
+	return v.PolicyFlags&(SideEffect|FilamentEnd) == FilamentEnd
 }
 
 func (v RecordPolicy) IsForkAllowed() bool {
-	return v.FieldPolicy&(FilamentStart|Branched) == FilamentStart
+	return v.PolicyFlags&(FilamentStart|BranchedStart) == FilamentStart
 }

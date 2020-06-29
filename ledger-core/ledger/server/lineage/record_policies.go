@@ -22,65 +22,65 @@ var setUnblockedInbound = []RecordType{tRLineInboundRequest, tRInboundRequest, t
 var setDirectActivate = setOf(appendCopy(setLineStart, tRLineMemoryInit)...)
 
 var policies = []RecordPolicy{
-	tRLifelineStart: 		{ FieldPolicy: LineStart|ReasonRequired },
-	tRSidelineStart: 		{ FieldPolicy: LineStart|Branched|ReasonRequired },
+	tRLifelineStart: 		{ PolicyFlags: LineStart|ReasonRequired },
+	tRSidelineStart: 		{ PolicyFlags: LineStart| BranchedStart |ReasonRequired },
 
 	tRLineInboundRequest:	{
-		FieldPolicy: FilamentStart|ReasonRequired,
-		CanFollow: setUnblockedLine},
+		PolicyFlags: FilamentStart|ReasonRequired,
+		CanFollow:   setUnblockedLine},
 
 	tRInboundRequest: 	 	{
-		FieldPolicy: FilamentStart|Branched|ReasonRequired,
-		CanFollow: setUnblockedLine},
+		PolicyFlags: FilamentStart| BranchedStart |ReasonRequired,
+		CanFollow:   setUnblockedLine},
 
 	tRInboundResponse:		{
-		FieldPolicy: FilamentEnd,
-		CanFollow: setOf(appendCopy(setUnblockedInbound, tROutboundRequest, tROutRetryableRequest, tROutRetryRequest)...)},
+		PolicyFlags: FilamentEnd| MustBeBranch,
+		CanFollow:   setOf(appendCopy(setUnblockedInbound, tROutboundRequest, tROutRetryableRequest, tROutRetryRequest)...)},
 
 	tROutboundRequest: 		{
-		FieldPolicy: 0,
-		CanFollow: setOf(setUnblockedInbound...)},
+		PolicyFlags: MustBeBranch,
+		CanFollow:   setOf(setUnblockedInbound...)},
 
 	tROutRetryableRequest:	{
-		FieldPolicy: 0,
-		CanFollow: setOf(setUnblockedInbound...)},
+		PolicyFlags: MustBeBranch,
+		CanFollow:   setOf(setUnblockedInbound...)},
 
 	tROutRetryRequest:		{
-		FieldPolicy: NextPulseOnly|OnlyHash,
-		CanFollow: setOf(tROutRetryableRequest, tROutRetryRequest), RedirectTo: setOf(tROutRetryableRequest)},
+		PolicyFlags: NextPulseOnly|OnlyHash,
+		CanFollow:   setOf(tROutRetryableRequest, tROutRetryRequest), RedirectTo: setOf(tROutRetryableRequest)},
 
 	tROutboundResponse: 	{
-		FieldPolicy: 0,
-		CanFollow: setOf(tROutboundRequest, tROutRetryableRequest, tROutRetryRequest)},
+		PolicyFlags: 0,
+		CanFollow:   setOf(tROutboundRequest, tROutRetryableRequest, tROutRetryRequest)},
 
-	tRLineActivate: 		{
-		FieldPolicy: SideEffect|Unblocked,
-		CanFollow: setOf(appendCopy(setLineStart, tRLineMemoryInit, tRLineMemory)...)},
+	tRLineActivate: 		{ // NB! Special behavior. See RecordPolicy.CheckRejoinRef CheckPrevRef
+		PolicyFlags: SideEffect,
+		CanFollow:   setOf(appendCopy(setLineStart, tRLineMemoryInit, tRLineMemory)...)},
 
-	tRLineDeactivate: 		{
-		FieldPolicy: FilamentEnd|SideEffect,
-		CanFollow: setUnblockedLine},
+	tRLineDeactivate: 		{ // NB! Special behavior. See RecordPolicy.CheckPrevRef
+		PolicyFlags: FilamentEnd|SideEffect,
+		CanFollow:   setUnblockedLine},
 
 	tRLineMemoryInit: 		{
-		FieldPolicy: 0,
-		CanFollow: setOf(setLineStart...)},
+		PolicyFlags: 0,
+		CanFollow:   setOf(setLineStart...)},
 
 	tRLineMemory: 			{
-		FieldPolicy: SideEffect|Unblocked,
-		CanFollow: setOf(tRLineInboundRequest, tRLineMemoryExpected)},
+		PolicyFlags: SideEffect,
+		CanFollow:   setOf(tRLineInboundRequest, tRLineMemoryExpected)},
 
 	tRLineMemoryReuse: 		{
-		FieldPolicy: SideEffect|Unblocked,
-		CanFollow: setOf(tRLineInboundRequest), RedirectTo: setOf(tRLineMemory, tRLineMemoryProvided) },
+		PolicyFlags: SideEffect,
+		CanFollow:   setOf(tRLineInboundRequest), RedirectTo: setOf(tRLineMemory, tRLineMemoryProvided) },
 
-	tRLineMemoryExpected: 	{
-		FieldPolicy: SideEffect|OnlyHash,
-		CanFollow: setOf(tRLineInboundRequest)},
+	tRLineMemoryExpected: 	{ // NB! Special behavior. See RecordPolicy.CheckPrevRef
+		PolicyFlags: SideEffect|OnlyHash|BlockNextPulse,
+		CanFollow:   setOf(tRLineInboundRequest)},
 
-	tRLineMemoryProvided: 	{
-		FieldPolicy: Unblocked,
-		CanFollow: setOf(tRLineMemoryExpected)},
+	tRLineMemoryProvided: 	{ // NB! Special behavior. See RecordPolicy.CheckPrevRef
+		PolicyFlags: 0,
+		CanFollow:   setOf(tRLineMemoryExpected)},
 
 	tRLineRecap:	{
-		FieldPolicy: Recap|NextPulseOnly },
+		PolicyFlags: Recap|NextPulseOnly },
 }

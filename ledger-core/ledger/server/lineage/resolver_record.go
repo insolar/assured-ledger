@@ -19,7 +19,6 @@ type resolvedRecord struct {
 	recapNo  recordNo
 
 	redirectToType RecordType
-//	policy RecordPolicy
 	Record
 }
 

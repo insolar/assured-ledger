@@ -39,7 +39,6 @@ func describe(br *BundleResolver) interface{} {
 	return br.errors
 }
 
-
 func TestBundleResolver_Create(t *testing.T) {
 	base := gen.UniqueLocalRef()
 

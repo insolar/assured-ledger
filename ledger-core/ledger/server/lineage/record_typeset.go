@@ -10,13 +10,13 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-func setOf(canFollow... RecordType) RecordTypeSet {
-	if len(canFollow) == 0 {
+func setOf(x... RecordType) RecordTypeSet {
+	if len(x) == 0 {
 		return RecordTypeSet{}
 	}
 
 	bb := longbits.NewBitBuilder(longbits.LSB, 32)
-	for _, mt := range canFollow {
+	for _, mt := range x {
 		if mt > maxRecordType {
 			panic(throw.IllegalValue())
 		}

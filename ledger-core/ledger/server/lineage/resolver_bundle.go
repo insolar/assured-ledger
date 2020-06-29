@@ -11,8 +11,10 @@ import (
 )
 
 type UnresolvedDependency struct {
-	RecordRef    reference.Holder // nil for dependency on filament root
-	LocalRootRef reference.Holder // nil for dependency on other lines
+	// RecordRef is nil for a dependency on filament root, defined by LocalRootRef
+	RecordRef    reference.Holder
+	// LocalRootRef is nil, when RecordRef belongs to a different line, otherwise LocalRootRef defines a filament root for the record
+	LocalRootRef reference.Holder
 }
 
 func newBundleResolver(resolver lineResolver, policyProvider RecordPolicyProviderFunc) *BundleResolver {
@@ -32,13 +34,14 @@ type BundleResolver struct {
 	resolver       lineResolver
 	policyProvider RecordPolicyProviderFunc
 
-	maxRecNo   recordNo // can't reference a record after this point
-	maxFilNo   filamentNo
+	maxRecNo recordNo // can't reference a record after this point
+	maxFilNo filamentNo
 
 	lastRecord reference.Holder
 	unresolved []UnresolvedDependency
 	errors     []error
 	hasBranch  bool
+	isResolved bool
 
 	records    []resolvedRecord
 }
@@ -96,14 +99,13 @@ func (p *BundleResolver) Add(record Record) bool {
 	ref := upd.RegRecord.AnticipatedRef.Get()
 	p.setLastRecord(ref)
 	defer p.setLastRecord(nil)
+	p.isResolved = true
 
 	recType := RecordType(upd.Excerpt.RecordType)
 	policy := GetRecordPolicy(recType)
 	if !policy.IsValid() {
 		return p.addError(throw.E("unknown type"))
 	}
-
-	isResolved := false
 
 	switch base := p.resolver.getLineBase().GetLocal(); {
 	case !p.checkBase(base, "RecordRef", ref):
@@ -122,19 +124,14 @@ func (p *BundleResolver) Add(record Record) bool {
 			return p.addRefError("RecordRef", err)
 		}
 
-		refLocal := ref.GetLocal()
-		switch foundNo, err := p.resolver.findCollision(refLocal, &upd.Record); {
+		switch hasCopy, err := p.checkCollision(&upd, ref); {
 		case err != nil:
 			return p.addRefError("RecordRef", err)
-		case foundNo != 0:
-			if foundNo >= p.maxRecNo {
-				panic(throw.IllegalState())
-			}
-			upd.recordNo = foundNo
+		case hasCopy:
 			return true
-		case p.findResolved(refLocal) != nil:
-			return p.addRefError("RecordRef", throw.E("duplicate"))
-		case policy.IsAnyFilamentStart():
+		}
+
+		if policy.IsAnyFilamentStart() {
 			if len(p.records) == 0 {
 				if p.maxRecNo > 1 {
 					p.hasBranch = true
@@ -154,15 +151,31 @@ func (p *BundleResolver) Add(record Record) bool {
 			p.hasBranch = true
 		}
 
-		isResolved = p.resolveRecordDependencies(&upd, policy, details)
+		p.resolveRecordDependencies(&upd, policy, details)
 	}
 
 	p.records = append(p.records, upd)
-	return isResolved
+	return p.isResolved
 }
 
-func (p *BundleResolver) resolveRecordDependencies(upd *resolvedRecord, policy RecordPolicy, details PolicyCheckDetails) bool {
-	isResolved := true
+func (p *BundleResolver) checkCollision(upd *resolvedRecord, ref reference.Holder) (bool, error) {
+	refLocal := ref.GetLocal()
+	switch foundNo, err := p.resolver.findCollision(refLocal, &upd.Record); {
+	case err != nil:
+		return false, err
+	case foundNo != 0:
+		if foundNo >= p.maxRecNo {
+			panic(throw.IllegalState())
+		}
+		upd.recordNo = foundNo
+		return true, nil
+	case p.findResolved(refLocal) != nil:
+		return false, throw.E("duplicate")
+	}
+	return false, nil
+}
+
+func (p *BundleResolver) resolveRecordDependencies(upd *resolvedRecord, policy RecordPolicy, details PolicyCheckDetails) {
 	rootRef := upd.Excerpt.RootRef.Get()
 
 	if err := policy.CheckRootRef(rootRef, details, func(ref reference.Holder) (dep ResolvedDependency, _ error) {
@@ -178,43 +191,70 @@ func (p *BundleResolver) resolveRecordDependencies(upd *resolvedRecord, policy R
 		case upd.filNo >= p.maxFilNo:
 			return ResolvedDependency{}, throw.E("forward filament")
 		case dep.IsNotAvailable():
-			isResolved = false
 			p.addDependency(ref, nil) // filament roots only
 		}
 		return
 	}); err != nil {
-		isResolved = false
 		p.addRefError("RootRef", err)
 	}
 
-	prevRecordType := RecordType(0)
+	prevRecordType := p.resolvePrevRef(upd, policy, details)
 
-	if err := policy.CheckPrevRef(upd.Excerpt.PrevRef.Get(), details, func(ref reference.Holder) (dep ResolvedDependency, _ error) {
+	if err := policy.CheckRejoinRef(upd.Excerpt.RejoinRef.Get(), details, prevRecordType, func(ref reference.Holder) (ResolvedDependency, error) {
+		// rejoin must be within the same record set
+		switch rd := p.findResolved(ref); {
+		case rd == nil:
+		case p.policyProvider(RecordType(rd.Excerpt.RecordType)).CanBeRejoined():
+			return ResolvedDependency{}, throw.E("rejoin forbidden")
+		default:
+			return rd.asResolvedDependency(), nil
+		}
+		return ResolvedDependency{}, nil
+
+	}); err != nil {
+		p.addRefError("RejoinRef", err)
+	}
+
+	if err := policy.CheckRedirectRef(upd.Excerpt.RedirectRef.Get(), func(ref reference.Holder) (ResolvedDependency, error) {
+		// RedirectRef is NOT supported to records in the same batch (meaningless)
+		dep, err := p.resolveSupplementaryRef(rootRef, ref)
+		if err != nil {
+			return ResolvedDependency{}, err
+		}
+
+		upd.redirectToType = dep.RedirectToType
+		return dep, nil
+
+	}); err != nil {
+		p.addRefError("RedirectRef", err)
+	}
+
+	if err := policy.CheckReasonRef(upd.Excerpt.ReasonRef.Get(), func(ref reference.Holder) (ResolvedDependency, error) {
+		if rd := p.findResolved(ref); rd != nil {
+			return rd.asResolvedDependency(), nil
+		}
+
+		return p.resolveSupplementaryRef(rootRef, ref)
+
+	}); err != nil {
+		p.addRefError("ReasonRef", err)
+	}
+
+}
+
+func (p *BundleResolver) resolvePrevRef(upd *resolvedRecord, policy RecordPolicy, details PolicyCheckDetails) (prevRecordType RecordType) {
+	var prevRecord *resolvedRecord
+	rootRef := upd.Excerpt.RootRef.Get()
+
+	if isFork, err := policy.CheckPrevRef(rootRef, upd.Excerpt.PrevRef.Get(), details, func(ref reference.Holder) (dep ResolvedDependency, _ error) {
 
 		if rd := p.findResolved(ref); rd != nil {
+			prevRecord = rd
+
 			upd.prev = rd.recordNo
+			upd.filNo = rd.filNo
 			dep = rd.asResolvedDependency()
 			prevRecordType = dep.RecordType
-
-			switch {
-			case policy.IsBranched():
-				// this is the start and the first record of a branch filament
-				// PrevRef doesn't need to be "open"
-				// upd.filNo = 0 // => filament is created in this batch
-				return dep, nil
-			case !reference.Equal(rootRef, ref):
-				// this is neither start nor first record of a filament
-			case p.policyProvider(dep.RecordType).IsForkAllowed():
-				// PrevRef doesn't need to be "open"
-				// upd.filNo = 0 // => filament is created in this batch
-				return dep, nil
-			}
-
-			if rd.next != 0 {
-				return ResolvedDependency{}, throw.E("fork forbidden")
-			}
-			upd.filNo = rd.filNo
-			rd.next = upd.recordNo
 			return dep, nil
 		}
 
@@ -233,7 +273,6 @@ func (p *BundleResolver) resolveRecordDependencies(upd *resolvedRecord, policy R
 			case dep.IsZero():
 				return
 			case dep.IsNotAvailable():
-				isResolved = false
 				p.addDependency(rootRef, ref)
 				return
 			case upd.recapNo == 0:
@@ -245,126 +284,53 @@ func (p *BundleResolver) resolveRecordDependencies(upd *resolvedRecord, policy R
 			panic(throw.Impossible())
 		}
 
-		switch {
-		case upd.prev >= p.maxRecNo:
-			return ResolvedDependency{}, throw.E("forward reference")
-		case upd.filNo >= p.maxFilNo:
-			return ResolvedDependency{}, throw.E("forward filament")
-		case upd.filNo == 0:
-			return ResolvedDependency{}, throw.E("fork forbidden")
+		if err := p.checkOrdering(upd.prev, upd.filNo); err != nil {
+			return ResolvedDependency{}, err
 		}
 
 		prevRecordType = dep.RecordType
 		return dep, nil
 
 	}); err != nil {
-		isResolved = false
 		p.addRefError("PrevRef", err)
-	}
-
-	if err := policy.CheckRejoinRef(upd.Excerpt.RejoinRef.Get(), details, prevRecordType, func(ref reference.Holder) (ResolvedDependency, error) {
-		// rejoin must be within the same record set
-		switch rd := p.findResolved(ref); {
-		case rd == nil:
-		case p.policyProvider(RecordType(rd.Excerpt.RecordType)).CanBeRejoined():
-			return ResolvedDependency{}, throw.E("rejoin forbidden")
-		default:
-			return rd.asResolvedDependency(), nil
+	} else if !isFork && prevRecord != nil {
+		if prevRecord.next != 0 {
+			p.addRefError("PrevRef", throw.E("fork forbidden"))
 		}
-		return ResolvedDependency{}, nil
-
-	}); err != nil {
-		isResolved = false
-		p.addRefError("RejoinRef", err)
+		prevRecord.next = upd.recordNo
+		upd.filNo = prevRecord.filNo
 	}
 
-	if err := policy.CheckRedirectRef(upd.Excerpt.RedirectRef.Get(), func(ref reference.Holder) (ResolvedDependency, error) {
-		// RedirectRef is NOT supported to records in the same batch (meaningless)
+	return
+}
 
-		filNo, recNo, dep := p.resolver.findLocalDependency(rootRef, ref, false)
+func (p *BundleResolver) resolveSupplementaryRef(rootRef, ref reference.Holder) (ResolvedDependency, error) {
+	filNo, recNo, dep := p.resolver.findLocalDependency(rootRef, ref, false)
+	switch {
+	case dep.IsZero():
+		dep = p.resolver.findLineAnyDependency(rootRef, ref)
 		switch {
 		case dep.IsZero():
-			dep = p.resolver.findLineAnyDependency(rootRef, ref)
-			switch {
-			case dep.IsZero():
-				return dep, nil
-			case dep.IsNotAvailable():
-				isResolved = false
-				if ref.GetBase() == rootRef.GetBase() {
-					p.addDependency(rootRef, ref)
-				} else {
-					p.addDependency(nil, ref)
-				}
-			}
 			return dep, nil
 		case dep.IsNotAvailable():
-			panic(throw.Impossible())
-		case recNo == 0 && filNo != 0:
-			panic(throw.Impossible())
-		}
-
-		switch {
-		case recNo >= p.maxRecNo:
-			return ResolvedDependency{}, throw.E("forward reference")
-		case filNo >= p.maxFilNo:
-			return ResolvedDependency{}, throw.E("forward filament")
-		case filNo == 0:
-			return ResolvedDependency{}, throw.E("fork forbidden")
-		}
-
-		upd.redirectToType = dep.RedirectToType
-		return dep, nil
-
-	}); err != nil {
-		isResolved = false
-		p.addRefError("RedirectRef", err)
-	}
-
-	if err := policy.CheckReasonRef(upd.Excerpt.ReasonRef.Get(), func(ref reference.Holder) (ResolvedDependency, error) {
-
-		if rd := p.findResolved(ref); rd != nil {
-			return rd.asResolvedDependency(), nil
-		}
-
-		filNo, recNo, dep := p.resolver.findLocalDependency(rootRef, ref, false)
-		switch {
-		case dep.IsZero():
-			dep = p.resolver.findLineAnyDependency(rootRef, ref)
-			switch {
-			case dep.IsZero():
-				return dep, nil
-			case dep.IsNotAvailable():
-				isResolved = false
-				if ref.GetBase() == rootRef.GetBase() {
-					p.addDependency(rootRef, ref)
-				} else {
-					p.addDependency(nil, ref)
-				}
+			if ref.GetBase() == rootRef.GetBase() {
+				p.addDependency(rootRef, ref)
+			} else {
+				p.addDependency(nil, ref)
 			}
-			return dep, nil
-		case dep.IsNotAvailable():
-			panic(throw.Impossible())
-		case recNo == 0 && filNo != 0:
-			panic(throw.Impossible())
 		}
-
-		switch {
-		case recNo >= p.maxRecNo:
-			return ResolvedDependency{}, throw.E("forward reference")
-		case filNo >= p.maxFilNo:
-			return ResolvedDependency{}, throw.E("forward filament")
-		case filNo == 0:
-			return ResolvedDependency{}, throw.E("fork forbidden")
-		}
-
 		return dep, nil
-
-	}); err != nil {
-		isResolved = false
-		p.addRefError("ReasonRef", err)
+	case dep.IsNotAvailable():
+		panic(throw.Impossible())
+	case recNo == 0 && filNo != 0:
+		panic(throw.Impossible())
 	}
 
-	return isResolved
+	if err := p.checkOrdering(recNo, filNo); err != nil {
+		return ResolvedDependency{}, err
+	}
+
+	return dep, nil
 }
 
 func (p *BundleResolver) addRefError(name string, err error) bool {
@@ -382,6 +348,7 @@ func (p *BundleResolver) addError(err error) bool {
 		err = throw.WithDetails(err, struct { Ref reference.Global }{ reference.Copy(p.lastRecord) })
 	}
 	p.errors = append(p.errors, err)
+	p.isResolved = false
 	return false
 }
 
@@ -444,6 +411,8 @@ func (p *BundleResolver) addDependency(root reference.Holder, ref reference.Hold
 		panic(throw.IllegalValue())
 	}
 
+	p.isResolved = false
+
 	for _, d := range p.unresolved {
 		if reference.Equal(ref, d.RecordRef) && reference.Equal(root, d.LocalRootRef) {
 			return
@@ -451,5 +420,17 @@ func (p *BundleResolver) addDependency(root reference.Holder, ref reference.Hold
 	}
 
 	p.unresolved = append(p.unresolved, UnresolvedDependency{ ref, root })
+}
+
+func (p *BundleResolver) checkOrdering(recNo recordNo, filNo filamentNo) error {
+	switch {
+	case recNo >= p.maxRecNo:
+		return throw.E("forward reference")
+	case filNo >= p.maxFilNo:
+		return throw.E("forward filament")
+	case filNo == 0:
+		return throw.E("fork forbidden")
+	}
+	return nil
 }
 
