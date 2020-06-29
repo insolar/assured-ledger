@@ -14,15 +14,16 @@ import (
 )
 
 type WorkingTable struct {
-	lists map[contract.InterferenceFlag]*WorkingList
+	requests []*WorkingList
+	results  map[reference.Global]Summary
 }
 
 func NewWorkingTable() WorkingTable {
 	var rt WorkingTable
-	rt.lists = make(map[contract.InterferenceFlag]*WorkingList)
+	rt.requests = make([]*WorkingList, 3)
 
-	rt.lists[contract.CallTolerable] = NewWorkingList()
-	rt.lists[contract.CallIntolerable] = NewWorkingList()
+	rt.requests[contract.CallTolerable] = NewWorkingList()
+	rt.requests[contract.CallIntolerable] = NewWorkingList()
 	return rt
 }
 
@@ -30,12 +31,12 @@ func (rt *WorkingTable) GetList(flag contract.InterferenceFlag) *WorkingList {
 	if flag.IsZero() {
 		panic(throw.IllegalValue())
 	}
-	return rt.lists[flag]
+	return rt.requests[flag]
 }
 
 func (rt *WorkingTable) Len() int {
 	size := 0
-	for _, list := range rt.lists {
+	for _, list := range rt.requests {
 		size += list.Count()
 	}
 	return size
@@ -50,33 +51,33 @@ const (
 	RequestFinished
 )
 
-type workingRequest struct {
-	state  WorkingRequestState
-	result *payload.VCallResult
-}
-
 type WorkingList struct {
 	earliestActivePulse pulse.Number
 	countActive         int
 	countFinish         int
-	requests            map[reference.Global]workingRequest
+	requests            map[reference.Global]WorkingRequestState
 }
 
 func NewWorkingList() *WorkingList {
 	return &WorkingList{
-		requests: make(map[reference.Global]workingRequest),
+		requests: make(map[reference.Global]WorkingRequestState),
 	}
 }
 
-func (rl WorkingList) GetState(ref reference.Global) WorkingRequestState {
-	return rl.requests[ref].state
+type Summary struct {
+	result *payload.VCallResult
 }
 
-func (rl WorkingList) GetResult(ref reference.Global) (*payload.VCallResult, bool) {
-	if res := rl.requests[ref].result; res != nil {
-		return res, true
-	}
-	return nil, false
+func (rl *WorkingList) GetState(ref reference.Global) WorkingRequestState {
+	return rl.requests[ref]
+}
+
+func (wt *WorkingTable) GetResults() map[reference.Global]Summary {
+	return wt.results
+}
+
+func (rl *WorkingTable) Add(flag contract.InterferenceFlag, ref reference.Global) bool {
+	return rl.GetList(flag).Add(ref)
 }
 
 // Add adds reference.Global and update EarliestPulse if needed
@@ -85,16 +86,24 @@ func (rl *WorkingList) Add(ref reference.Global) bool {
 	if _, exist := rl.requests[ref]; exist {
 		return false
 	}
-	rl.requests[ref] = workingRequest{state: RequestStarted}
+	rl.requests[ref] = RequestStarted
 	return true
 }
 
+func (wt *WorkingTable) SetActive(flag contract.InterferenceFlag, ref reference.Global) bool {
+	if ok := wt.GetList(flag).SetActive(ref); ok {
+		wt.results[ref] = Summary{}
+	}
+
+	return false
+}
+
 func (rl *WorkingList) SetActive(ref reference.Global) bool {
-	if rl.requests[ref].state != RequestStarted {
+	if rl.requests[ref] != RequestStarted {
 		return false
 	}
 
-	rl.requests[ref] = workingRequest{state: RequestProcessing}
+	rl.requests[ref] = RequestProcessing
 
 	rl.countActive++
 
@@ -110,7 +119,7 @@ func (rl *WorkingList) calculateEarliestActivePulse() {
 	min := pulse.Unknown
 
 	for ref := range rl.requests {
-		if rl.requests[ref].state != RequestProcessing {
+		if rl.requests[ref] != RequestProcessing {
 			continue // skip finished and not started
 		}
 
@@ -123,13 +132,25 @@ func (rl *WorkingList) calculateEarliestActivePulse() {
 	rl.earliestActivePulse = min
 }
 
-func (rl *WorkingList) Finish(ref reference.Global, result *payload.VCallResult) bool {
+func (wt *WorkingTable) Finish(flag contract.InterferenceFlag, ref reference.Global, result *payload.VCallResult) bool {
+	if ok := wt.GetList(flag).Finish(ref); ok {
+		summary, ok := wt.results[ref]
+		if !ok {
+			panic(throw.IllegalState())
+		}
+		summary.result = result
+	}
+
+	return true
+}
+
+func (rl *WorkingList) Finish(ref reference.Global) bool {
 	state := rl.GetState(ref)
 	if state == RequestUnknown {
 		return false
 	}
 
-	rl.requests[ref] = workingRequest{state: RequestFinished, result: result}
+	rl.requests[ref] = RequestFinished
 	rl.countActive--
 	rl.countFinish++
 

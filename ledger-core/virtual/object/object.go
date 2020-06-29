@@ -123,7 +123,7 @@ func (i *Info) FinishRequest(
 	default:
 		panic(throw.Unsupported())
 	}
-	i.KnownRequests.GetList(isolation.Interference).Finish(requestRef, result)
+	i.KnownRequests.Finish(isolation.Interference, requestRef, result)
 }
 
 func (i *Info) SetDescriptor(objectDescriptor descriptor.Object) {

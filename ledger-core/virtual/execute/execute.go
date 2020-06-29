@@ -315,23 +315,9 @@ func (s *SMExecute) stepDeduplicate(ctx smachine.ExecutionContext) smachine.Stat
 	duplicate := false
 
 	action := func(state *object.SharedState) {
-		req := s.execution.Outgoing
-
-		workingList := state.KnownRequests.GetList(s.execution.Isolation.Interference)
-
-		requestState := workingList.GetState(req)
-		switch requestState {
-		// processing started but not yet processing
-		case object.RequestStarted:
+		if !state.KnownRequests.Add(s.execution.Isolation.Interference, s.execution.Outgoing) {
 			duplicate = true
-			return
-		case object.RequestProcessing:
-			duplicate = true
-			// TODO: we may have result already, should resend
-			return
 		}
-
-		workingList.Add(req)
 	}
 
 	switch s.objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
