@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
@@ -18,13 +19,13 @@ import (
 )
 
 func TestWorkingTable(t *testing.T) {
-	rt := NewWorkingTable()
+	wt := NewWorkingTable()
 
-	assert.Equal(t, 0, rt.GetList(contract.CallIntolerable).Count())
-	assert.Equal(t, 0, len(rt.GetList(contract.CallTolerable).requests))
+	assert.Equal(t, 0, wt.GetList(contract.CallIntolerable).Count())
+	assert.Equal(t, 0, len(wt.GetList(contract.CallTolerable).requests))
 
-	assert.Equal(t, pulse.Number(0), rt.GetList(contract.CallIntolerable).earliestActivePulse)
-	assert.Equal(t, pulse.Number(0), rt.GetList(contract.CallTolerable).earliestActivePulse)
+	assert.Equal(t, pulse.Number(0), wt.GetList(contract.CallIntolerable).earliestActivePulse)
+	assert.Equal(t, pulse.Number(0), wt.GetList(contract.CallTolerable).earliestActivePulse)
 
 	pd := pulse.NewFirstPulsarData(10, longbits.Bits256{})
 	currentPulse := pd.PulseNumber
@@ -32,18 +33,39 @@ func TestWorkingTable(t *testing.T) {
 	object := gen.UniqueLocalRefWithPulse(currentPulse)
 	ref := reference.NewSelf(object)
 
-	intolerableList := rt.GetList(contract.CallIntolerable)
+	intolerableList := wt.GetList(contract.CallIntolerable)
 	assert.True(t, intolerableList.Add(ref))
 
-	assert.Equal(t, 1, rt.GetList(contract.CallIntolerable).Count())
-	assert.Equal(t, 0, rt.GetList(contract.CallTolerable).Count())
-	assert.Equal(t, pulse.Unknown, rt.GetList(contract.CallIntolerable).EarliestPulse())
+	assert.Equal(t, 1, wt.GetList(contract.CallIntolerable).Count())
+	assert.Equal(t, 0, wt.GetList(contract.CallTolerable).Count())
+	assert.Equal(t, pulse.Unknown, wt.GetList(contract.CallIntolerable).EarliestPulse())
 
 	assert.True(t, intolerableList.SetActive(ref))
 
-	assert.Equal(t, 1, rt.GetList(contract.CallIntolerable).Count())
-	assert.Equal(t, 0, rt.GetList(contract.CallTolerable).Count())
-	assert.Equal(t, currentPulse, rt.GetList(contract.CallIntolerable).EarliestPulse())
+	assert.Equal(t, 1, wt.GetList(contract.CallIntolerable).Count())
+	assert.Equal(t, 0, wt.GetList(contract.CallTolerable).Count())
+	assert.Equal(t, currentPulse, wt.GetList(contract.CallIntolerable).EarliestPulse())
+
+	assert.True(t, wt.Add(contract.CallTolerable, ref))
+	assert.False(t, wt.Add(contract.CallTolerable, ref))
+
+	assert.True(t, wt.SetActive(contract.CallTolerable, ref))
+	assert.False(t, wt.SetActive(contract.CallTolerable, ref))
+	assert.False(t, wt.SetActive(contract.CallTolerable, gen.UniqueGlobalRef()))
+
+	res := &payload.VCallResult{
+		Callee: gen.UniqueGlobalRef(),
+	}
+
+	assert.True(t, wt.Finish(contract.CallTolerable, ref, res))
+	assert.False(t, wt.Finish(contract.CallTolerable, ref, res))
+
+	results := wt.GetResults()
+
+	summary, ok := results[ref]
+	assert.True(t, ok)
+	assert.NotNil(t, summary.result)
+	assert.Equal(t, res.Callee, summary.result.Callee)
 }
 
 func TestWorkingList(t *testing.T) {

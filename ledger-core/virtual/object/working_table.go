@@ -28,6 +28,8 @@ func NewWorkingTable() WorkingTable {
 
 	rt.requests = lists
 
+	rt.results = make(map[reference.Global]Summary)
+
 	return rt
 }
 
@@ -62,11 +64,11 @@ func (wt *WorkingTable) Finish(
 	result *payload.VCallResult,
 ) bool {
 	if ok := wt.GetList(flag).Finish(ref); ok {
-		summary, ok := wt.results[ref]
+		_, ok := wt.results[ref]
 		if !ok {
 			panic(throw.IllegalState())
 		}
-		summary.result = result
+		wt.results[ref] = Summary{result: result}
 
 		return true
 	}
@@ -158,7 +160,7 @@ func (rl *WorkingList) calculateEarliestActivePulse() {
 
 func (rl *WorkingList) Finish(ref reference.Global) bool {
 	state := rl.GetState(ref)
-	if state == RequestUnknown {
+	if state == RequestUnknown || state == RequestFinished {
 		return false
 	}
 
