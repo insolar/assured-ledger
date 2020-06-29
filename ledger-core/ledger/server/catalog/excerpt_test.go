@@ -36,7 +36,7 @@ func TestExcerptReadFromLazy(t *testing.T) {
 	require.IsType(t, &rms.LRegisterRequest{}, msgU)
 
 	msg2 := msgU.(*rms.LRegisterRequest)
-	lazyRec := msg2.Get()
+	lazyRec := msg2.TryGetLazy()
 	require.False(t, lazyRec.IsZero())
 	require.False(t, lazyRec.IsEmpty())
 
