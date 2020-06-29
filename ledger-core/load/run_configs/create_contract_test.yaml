@@ -3,19 +3,22 @@ goroutines_dump: false
 http_timeout: 20
 steps:
 - name: load
-  execution_mode: sequence
+  execution_mode: sequence_validate
   handles:
   - name: create_contract_test
-    rps: 30
-    attack_time_sec: 60
-    ramp_up_sec: 60
+    rps: 500
+    attack_time_sec: 1800
+    ramp_up_sec: 1800
     ramp_up_strategy: linear
-    max_attackers: 200
+    max_attackers: 2000
     verbose: true
     do_timeout_sec: 40
     store_data: true
     csv_write: users.csv
     recycle_data: true
+    validation:
+      attack_time_sec: 10
+      threshold: 0.7
     stop_if:
       - type: error
         threshold: 0
