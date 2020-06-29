@@ -7,17 +7,17 @@ steps:
   handles:
   - name: create_contract_test
     rps: 500
-    attack_time_sec: 1800
-    ramp_up_sec: 1800
+    attack_time_sec: 400
+    ramp_up_sec: 400
     ramp_up_strategy: linear
-    max_attackers: 2000
+    max_attackers: 1000
     verbose: true
-    do_timeout_sec: 40
+    do_timeout_sec: 60
     store_data: true
     csv_write: users.csv
     recycle_data: true
     validation:
-      attack_time_sec: 10
+      attack_time_sec: 60
       threshold: 0.7
     stop_if:
       - type: error

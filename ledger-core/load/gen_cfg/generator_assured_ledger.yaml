@@ -3,7 +3,7 @@ host:
   network_iface: en0
 remotes:
 generator:
-  target: http://127.0.0.1:32304
+  target: placeholder
   responseTimeoutSec: 20
   rampUpStrategy: linear
   verbose: true

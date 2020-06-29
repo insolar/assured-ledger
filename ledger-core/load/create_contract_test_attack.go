@@ -15,7 +15,7 @@ type CreateContractTestAttack struct {
 }
 
 func (a *CreateContractTestAttack) Setup(hc loadgen.RunnerConfig) error {
-	a.client = loadgen.NewLoggingHTTPClient(false, 10)
+	a.client = loadgen.NewLoggingHTTPClient(false, 60)
 	return nil
 }
 func (a *CreateContractTestAttack) Do(ctx context.Context) loadgen.DoResult {
@@ -29,7 +29,7 @@ func (a *CreateContractTestAttack) Do(ctx context.Context) loadgen.DoResult {
 	if err != nil {
 		return loadgen.DoResult{
 			Error:        err,
-			RequestLabel: GetContractTestLabel,
+			RequestLabel: CreateContractTestLabel,
 		}
 	}
 	err = a.PutData(walletRef)

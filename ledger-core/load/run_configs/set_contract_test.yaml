@@ -12,7 +12,7 @@ steps:
     ramp_up_strategy: linear
     max_attackers: 2000
     verbose: true
-    do_timeout_sec: 40
+    do_timeout_sec: 60
     recycle_data: true
     csv_read: users.csv
     stop_if:

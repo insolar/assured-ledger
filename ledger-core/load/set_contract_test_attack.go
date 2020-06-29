@@ -15,14 +15,13 @@ type SetContractTestAttack struct {
 }
 
 func (a *SetContractTestAttack) Setup(hc loadgen.RunnerConfig) error {
-	a.client = loadgen.NewLoggingHTTPClient(false, 10)
+	a.client = loadgen.NewLoggingHTTPClient(false, 60)
 	return nil
 }
 
 func (a *SetContractTestAttack) Do(ctx context.Context) loadgen.DoResult {
 	var addAmountURL string
 	if len(a.GetManager().GeneratorConfig.Generator.Target) == 0 {
-		// set default
 		addAmountURL = util.GetURL(util.WalletAddAmountPath, "", "")
 	} else {
 		addAmountURL = a.GetManager().GeneratorConfig.Generator.Target + util.WalletAddAmountPath
@@ -33,7 +32,7 @@ func (a *SetContractTestAttack) Do(ctx context.Context) loadgen.DoResult {
 		if err != nil {
 			return loadgen.DoResult{
 				Error:        err,
-				RequestLabel: GetContractTestLabel,
+				RequestLabel: SetContractTestLabel,
 			}
 		}
 	}

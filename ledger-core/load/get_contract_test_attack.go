@@ -16,7 +16,7 @@ type GetContractTestAttack struct {
 }
 
 func (a *GetContractTestAttack) Setup(hc loadgen.RunnerConfig) error {
-	a.client = loadgen.NewLoggingHTTPClient(false, 10)
+	a.client = loadgen.NewLoggingHTTPClient(false, 60)
 	return nil
 }
 func (a *GetContractTestAttack) Do(ctx context.Context) loadgen.DoResult {
