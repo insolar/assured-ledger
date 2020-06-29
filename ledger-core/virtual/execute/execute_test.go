@@ -20,7 +20,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -60,7 +60,7 @@ func expectedInitState(ctx context.Context, sm SMExecute) SMExecute {
 
 func TestSMExecute_Init(t *testing.T) {
 	var (
-		ctx = instestlogger.TestContext(t)
+		ctx = inslogger.TestContext(t)
 		mc  = minimock.NewController(t)
 
 		pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
@@ -107,7 +107,7 @@ func TestSMExecute_Init(t *testing.T) {
 
 func TestSMExecute_StartRequestProcessing(t *testing.T) {
 	var (
-		ctx = instestlogger.TestContext(t)
+		ctx = inslogger.TestContext(t)
 		mc  = minimock.NewController(t)
 
 		pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
@@ -165,7 +165,7 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 
 func TestSMExecute_DeduplicationUsingPendingsTable(t *testing.T) {
 	var (
-		ctx = instestlogger.TestContext(t)
+		ctx = inslogger.TestContext(t)
 		mc  = minimock.NewController(t)
 
 		pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
@@ -242,7 +242,7 @@ func TestSMExecute_DeduplicationUsingPendingsTable(t *testing.T) {
 
 func TestSMExecute_DeduplicationForOldRequest(t *testing.T) {
 	var (
-		ctx = instestlogger.TestContext(t)
+		ctx = inslogger.TestContext(t)
 		mc  = minimock.NewController(t)
 
 		oldPd           = pulse.NewFirstPulsarData(10, longbits.Bits256{})
@@ -321,7 +321,7 @@ func TestSMExecute_TokenInOutgoingMessage(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			var (
-				ctx = instestlogger.TestContext(t)
+				ctx = inslogger.TestContext(t)
 				mc  = minimock.NewController(t)
 
 				pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
@@ -409,7 +409,7 @@ func TestSMExecute_TokenInOutgoingMessage(t *testing.T) {
 
 func TestSMExecute_VCallResultPassedToSMObject(t *testing.T) {
 	var (
-		ctx = instestlogger.TestContext(t)
+		ctx = inslogger.TestContext(t)
 		mc  = minimock.NewController(t)
 
 		pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
