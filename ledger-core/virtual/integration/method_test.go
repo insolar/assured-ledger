@@ -84,6 +84,33 @@ func intolerableFlags() contract.MethodIsolation {
 	}
 }
 
+// for happy path tests
+func assertCalleeResponse(t *testing.T, res *payload.VCallResult, objectCaller reference.Global, flagsCaller contract.MethodIsolation) {
+	require.Equal(t, payload.CTMethod, res.CallType)
+	require.Equal(t, objectCaller, res.Caller)
+	assert.Equal(t, flagsCaller.Interference, res.CallFlags.GetInterference()) // copy from VCallRequest
+	assert.Equal(t, flagsCaller.State, res.CallFlags.GetState())
+}
+
+// for happy path tests
+func assertCallerResponse(t *testing.T, res *payload.VCallResult, server *utils.Server, flagsCaller contract.MethodIsolation) {
+	require.Equal(t, payload.CTMethod, res.CallType)
+	require.Equal(t, server.GlobalCaller(), res.Caller)
+	assert.Equal(t, flagsCaller.Interference, res.CallFlags.GetInterference())
+	assert.Equal(t, flagsCaller.State, res.CallFlags.GetState())
+}
+
+// for happy path tests
+func assertCalleeRequest(t *testing.T, objectCaller reference.Global, objectCallee reference.Global, request *payload.VCallRequest, flagsCaller contract.MethodIsolation, server *utils.Server) {
+	assert.Equal(t, objectCallee, request.Callee)
+	assert.Equal(t, objectCaller, request.Caller)
+	assert.Equal(t, payload.CTMethod, request.CallType)
+	assert.Equal(t, flagsCaller.Interference, request.CallFlags.GetInterference())
+	assert.Equal(t, flagsCaller.State, request.CallFlags.GetState())
+	assert.Equal(t, uint32(1), request.CallSequence)
+	assert.Equal(t, server.GetPulse().PulseNumber, request.CallOutgoing.Pulse())
+}
+
 func TestVirtual_BadMethod_WithExecutor(t *testing.T) {
 	t.Log("C4976")
 
@@ -365,27 +392,24 @@ func TestVirtual_CallMethodAfterPulseChange(t *testing.T) {
 // ordered A.Foo calls ordered B.Bar
 // ordered A.Foo calls unordered B.Bar
 // unordered A.Foo calls unordered B.Bar
-func TestVirtual_CallContractFromContract_Ordered(t *testing.T) {
+func TestVirtual_CallContractFromContract(t *testing.T) {
+	t.Log("C5086")
 	table := []struct {
 		name   string
-		caseId string
 		flagsA contract.MethodIsolation
 		flagsB contract.MethodIsolation
 	}{
 		{
 			name:   "ordered A.Foo calls ordered B.Bar",
-			caseId: "C5086",
 			flagsA: tolerableFlags(),
 			flagsB: tolerableFlags(),
 		}, {
 			name:   "ordered A.Foo calls unordered B.Bar",
-			caseId: "C5087",
 			flagsA: tolerableFlags(),
 			flagsB: intolerableFlags(),
 		},
 		{
 			name:   "unordered A.Foo calls unordered B.Bar",
-			caseId: "C5140",
 			flagsA: intolerableFlags(),
 			flagsB: intolerableFlags(),
 		},
@@ -393,7 +417,6 @@ func TestVirtual_CallContractFromContract_Ordered(t *testing.T) {
 	for _, test := range table {
 		test := test
 		t.Run(test.name, func(t *testing.T) {
-			t.Log(test.caseId)
 
 			mc := minimock.NewController(t)
 
@@ -461,11 +484,7 @@ func TestVirtual_CallContractFromContract_Ordered(t *testing.T) {
 			// checks
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 			typedChecker.VCallRequest.Set(func(request *payload.VCallRequest) bool {
-				assert.Equal(t, objectBGlobal, request.Callee)
-				assert.Equal(t, objectAGlobal, request.Caller)
-				assert.Equal(t, payload.CTMethod, request.CallType)
-				assert.Equal(t, uint32(1), request.CallSequence)
-				assert.Equal(t, server.GetPulse().PulseNumber, request.CallOutgoing.Pulse())
+				assertCalleeRequest(t, objectAGlobal, objectBGlobal, request, test.flagsA, server)
 				return true // resend
 			})
 
@@ -473,16 +492,10 @@ func TestVirtual_CallContractFromContract_Ordered(t *testing.T) {
 				switch res.Callee {
 				case objectAGlobal:
 					require.Equal(t, []byte("finish A.Foo"), res.ReturnArguments)
-					require.Equal(t, payload.CTMethod, res.CallType)
-					require.Equal(t, server.GlobalCaller(), res.Caller)
-					assert.Equal(t, test.flagsA.Interference, res.CallFlags.GetInterference())
-					assert.Equal(t, test.flagsA.State, res.CallFlags.GetState())
+					assertCallerResponse(t, res, server, test.flagsA)
 				case objectBGlobal:
 					require.Equal(t, []byte("finish B.Bar"), res.ReturnArguments)
-					require.Equal(t, payload.CTMethod, res.CallType)
-					require.Equal(t, objectAGlobal, res.Caller)
-					assert.Equal(t, test.flagsB.Interference, res.CallFlags.GetInterference())
-					assert.Equal(t, test.flagsB.State, res.CallFlags.GetState())
+					assertCalleeResponse(t, res, objectAGlobal, test.flagsA)
 				default:
 					t.Fatalf("wrong Callee")
 				}
@@ -517,25 +530,22 @@ func TestVirtual_CallContractFromContract_Ordered(t *testing.T) {
 
 // ordered A.Foo calls unordered A.Bar
 // unordered A.Foo calls unordered A.Bar
-func TestVirtual_Call_UnorderedMethod_From_OrderedMethod(t *testing.T) {
+func TestVirtual_CallOtherMethodInObject(t *testing.T) {
+	t.Log("C5116")
 	table := []struct {
 		name        string
-		caseId      string
 		stateSender contract.MethodIsolation
 	}{
 		{
 			name:        "ordered A.Foo calls unordered A.Bar",
-			caseId:      "C5116",
 			stateSender: tolerableFlags(),
 		}, {
 			name:        "unordered A.Foo calls unordered A.Bar",
-			caseId:      "C5122",
 			stateSender: intolerableFlags(),
 		},
 	}
 	for _, test := range table {
 		t.Run(test.name, func(t *testing.T) {
-			t.Log(test.caseId)
 
 			mc := minimock.NewController(t)
 
@@ -594,13 +604,18 @@ func TestVirtual_Call_UnorderedMethod_From_OrderedMethod(t *testing.T) {
 			runnerMock.AddExecutionClassify("Bar", intolerableFlags(), nil)
 
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-			typedChecker.VCallRequest.SetResend(true).ExpectedCount(1)
+			typedChecker.VCallRequest.Set(func(request *payload.VCallRequest) bool {
+				assertCalleeRequest(t, objectAGlobal, objectAGlobal, request, test.stateSender, server)
+				return true // resend
+			})
 			typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
 				switch res.Caller {
 				case objectAGlobal:
 					require.Equal(t, []byte("finish A.Bar"), res.ReturnArguments)
+					assertCalleeResponse(t, res, objectAGlobal, test.stateSender)
 				default:
 					require.Equal(t, []byte("finish A.Foo"), res.ReturnArguments)
+					assertCallerResponse(t, res, server, test.stateSender)
 				}
 				// we should resend that message only if it's CallResult from A to A
 				return res.Caller == objectAGlobal
@@ -631,25 +646,22 @@ func TestVirtual_Call_UnorderedMethod_From_OrderedMethod(t *testing.T) {
 
 // A.New calls ordered B.Foo
 // A.New calls unordered B.Foo
-func TestVirtual_CallMethodFromConstructor_Ordered(t *testing.T) {
+func TestVirtual_CallMethodFromConstructor(t *testing.T) {
+	t.Log("C5091")
 	table := []struct {
 		name   string
-		caseId string
 		stateB contract.MethodIsolation
 	}{
 		{
 			name:   "A.New calls ordered B.Foo",
-			caseId: "C5091",
 			stateB: tolerableFlags(),
 		}, {
 			name:   "A.New calls unordered B.Foo",
-			caseId: "C5092",
 			stateB: intolerableFlags(),
 		},
 	}
 	for _, test := range table {
 		t.Run(test.name, func(t *testing.T) {
-			t.Log(test.caseId)
 
 			mc := minimock.NewController(t)
 
