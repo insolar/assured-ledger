@@ -10,49 +10,52 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
-var _ lineResolver = &LineResolver{}
+var _ lineResolver = &basicLineResolver{}
 
-type LineResolver struct {
+type basicLineResolver struct {
 	// local negative cache
 	// local positive cache
+	base    reference.Local
+	localPN pulse.Number
+
+	records lineRecords
+	recMap  map[reference.LocalHash]recordNo
+
 }
 
-func (p *LineResolver) getNextRecNo() recordNo {
+func (p *basicLineResolver) findLineAnyDependency(root reference.Holder, ref reference.LocalHolder) ResolvedDependency {
 	panic("implement me")
 }
 
-func (p *LineResolver) getNextFilNo() filamentNo {
+func (p *basicLineResolver) findLineDependency(root reference.Holder, ref reference.LocalHolder, mustBeOpen bool) (filNo filamentNo, dep ResolvedDependency, recap recordNo) {
 	panic("implement me")
 }
 
-func (p *LineResolver) getLineBase() reference.LocalHolder {
+func (p *basicLineResolver) findLocalDependency(root reference.Holder, ref reference.LocalHolder, mustBeOpen bool) (filNo filamentNo, recNo recordNo, dep ResolvedDependency) {
 	panic("implement me")
 }
 
-func (p *LineResolver) getLocalPN() pulse.Number {
+func (p *basicLineResolver) findFilament(root reference.LocalHolder) (filamentNo, ResolvedDependency) {
 	panic("implement me")
 }
 
-func (p *LineResolver) findDependency(ref reference.Holder) ResolvedDependency {
+func (p *basicLineResolver) findCollision(local reference.LocalHolder, record *Record) (recordNo, error) {
 	panic("implement me")
 }
 
-func (p *LineResolver) findLineDependencyWithRecap(root reference.Holder, ref reference.LocalHolder) (filNo filamentNo, recap recordNo, isOpen bool, dep ResolvedDependency) {
+func (p *basicLineResolver) getNextRecNo() recordNo {
+	return p.records.getNextRecordNo()
+}
+
+func (p *basicLineResolver) getNextFilNo() filamentNo {
 	panic("implement me")
 }
 
-func (p *LineResolver) findLineDependency(root reference.Holder, ref reference.LocalHolder) (recordNo, ResolvedDependency) {
-	panic("implement me")
+func (p *basicLineResolver) getLineBase() reference.LocalHolder {
+	return p.base
 }
 
-func (p *LineResolver) findLocalDependency(root reference.Holder, ref reference.LocalHolder) (filNo filamentNo, recNo recordNo, isOpen bool, dep ResolvedDependency) {
-	panic("implement me")
+func (p *basicLineResolver) getLocalPN() pulse.Number {
+	return p.localPN
 }
 
-func (p *LineResolver) findFilament(ref reference.LocalHolder) (f filamentNo, info ResolvedDependency) {
-	panic("implement me")
-}
-
-func (p *LineResolver) findCollision(local reference.LocalHolder, record *Record) (recordNo, error) {
-	panic("implement me")
-}

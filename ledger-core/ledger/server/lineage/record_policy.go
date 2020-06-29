@@ -43,11 +43,7 @@ type RecordPolicy struct {
 type FieldPolicy uint16
 
 const (
-	// EmptyRoot
-	// EmptyPrev
-	// AllowEmptyReason
-	// AllowRedirect
-	// RequireRedirect
+	// RedirectToNothing
 	LineStart FieldPolicy = 1<<iota
 	FilamentStart
 	FilamentEnd
@@ -394,9 +390,29 @@ func (v RecordPolicy) IsForkAllowed() bool {
 	return v.PolicyFlags&(FilamentStart|BranchedStart) == FilamentStart
 =======
 func (v RecordPolicy) CheckRedirectRef(ref reference.Holder, resolverFn PolicyResolverFunc) error {
-	if ref.IsEmpty() {
-
+	switch {
+	case v.RedirectTo.IsZero():
+		if !ref.IsEmpty() {
+			return throw.E("must be empty")
+		}
+		return nil
+	case ref.IsEmpty():
+		return throw.E("must be not empty")
 	}
+
+	switch found, err := resolverFn(ref); {
+	case err != nil:
+		return err
+	case found.IsZero():
+		return throw.E("unknown record")
+	case found.RecordType == RecordNotAvailable:
+	case found.RedirectToRef != nil:
+		return throw.E("redirect to redirect is forbidden")
+	case v.RedirectTo.Has(found.RecordType):
+	default:
+		return throw.E("wrong redirect target", struct { PrevType RecordType }{found.RecordType })
+	}
+	return nil
 }
 
 func (v RecordPolicy) IsAnyFilamentStart() bool {
@@ -411,11 +427,11 @@ func (v RecordPolicy) IsFilamentStart() bool {
 	return v.FieldPolicy&FilamentStart != 0
 }
 
-func (v RecordPolicy) IsFilamentStartNotBranched() bool {
-	return v.FieldPolicy&(FilamentStart|Branched) == FilamentStart
-}
-
 func (v RecordPolicy) CanBeRejoined() bool {
 	return v.FieldPolicy&(SideEffect|FilamentEnd) == FilamentEnd
 >>>>>>> Further work
+}
+
+func (v RecordPolicy) IsForkAllowed() bool {
+	return v.FieldPolicy&(FilamentStart|Branched) == FilamentStart
 }
