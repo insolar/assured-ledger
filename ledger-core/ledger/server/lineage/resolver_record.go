@@ -14,7 +14,6 @@ type resolvedRecord struct {
 	next recordNo
 
 	recordNo recordNo
-	stageNo  stageNo
 	filNo    filamentNo
 	recapNo  recordNo
 

@@ -13,7 +13,7 @@ type updateStage struct {
 	seqNo stageNo
 	next  *updateStage // latter one
 
-//	future    *buildersvc.Future
+	tracker StageTracker
 	firstRec  recordNo
 
 	filaments    []filamentEndings
@@ -21,6 +21,10 @@ type updateStage struct {
 }
 
 type updateRecord = resolvedRecord
+
+type StageTracker interface {
+	IsCommitted() bool
+}
 
 type filamentEndings struct {
 	earliest, latest recordNo
@@ -31,7 +35,7 @@ type lineRecords struct {
 	records [][]updateRecord
 }
 
-func (p *lineRecords) getNextRecordNo() recordNo {
+func (p *lineRecords) getNextRecNo() recordNo {
 	return recordNo(p.getCount())
 }
 
