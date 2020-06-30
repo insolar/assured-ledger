@@ -39,6 +39,18 @@ jobs:
             return result;
       - name: Checkout code
         uses: actions/checkout@master
+      - name: build test
+        working-directory: ${{ env.CORE_PATH }}
+        run: go build load/cmd/load/main.go -o loadtest
+      - name: start test
+        working-directory: ${{ env.CORE_PATH }}
+        run: NETWORK_NODES=5 .ledger-core/load/main -gen_config ledger-core/load/gen_config/generator_assured_ledger.yaml -config ledger-core/load/gen_config/generator_assured_ledger.yaml > runners.log
+      - name: Archive test logs to artifacts
+        uses: actions/upload-artifact@v1
+        working-directory: ${{ env.CORE_PATH }}
+        with:
+          name: 10nodes
+          path: ledger-core/load/runners.log
       - name: Set up go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v1
         with:
@@ -78,15 +90,6 @@ jobs:
           done
       - name: get some info
         run: kubectl -n ${{fromJson(steps.set-vars.outputs.result).shortSha}} get po
-      - name: build test
-        run: go build load/cmd/load/main.go -o loadtest
-      - name: start test
-        run: NETWORK_NODES=5 .ledger-core/load/main -gen_config ledger-core/load/gen_config/generator_assured_ledger.yaml -config ledger-core/load/gen_config/generator_assured_ledger.yaml > runners.log
-      - name: Archive test logs to artifacts
-        uses: actions/upload-artifact@v1
-        with:
-          name: 10nodes
-          path: ledger-core/load/runners.log
       - name: cleanup
         if: always()
         run: kubectl delete ns ${{fromJson(steps.set-vars.outputs.result).shortSha}} --ignore-not-found=true
