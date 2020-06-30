@@ -142,7 +142,7 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 
 	smExecute = expectedInitState(ctx, smExecute)
 
-	smObject.SharedState.Info.KnownRequests.GetList(callFlags.GetInterference()).Add(smExecute.execution.Outgoing)
+	smObject.SharedState.Info.KnownRequests.Add(callFlags.GetInterference(), smExecute.execution.Outgoing)
 
 	assert.Equal(t, uint8(0), smObject.PotentialOrderedPendingCount)
 	assert.Equal(t, uint8(0), smObject.PotentialUnorderedPendingCount)
@@ -463,7 +463,8 @@ func TestSMExecute_VCallResultPassedToSMObject(t *testing.T) {
 
 	smExecute = expectedInitState(ctx, smExecute)
 
-	smObject.KnownRequests.GetList(contract.CallTolerable).Add(ref)
+	smObject.KnownRequests.Add(contract.CallTolerable, ref)
+	smObject.KnownRequests.SetActive(contract.CallTolerable, ref)
 
 	{
 		execCtx := smachine.NewExecutionContextMock(mc).
@@ -485,7 +486,7 @@ func TestSMExecute_VCallResultPassedToSMObject(t *testing.T) {
 
 	require.Equal(t, 1, res.Count())
 
-	result, ok := res.GetResult(ref)
+	result, ok := smObject.KnownRequests.GetResults()[ref]
 
 	require.True(t, ok)
 	require.NotNil(t, result)

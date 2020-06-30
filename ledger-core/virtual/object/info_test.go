@@ -48,8 +48,8 @@ func TestInfo_GetEarliestPulse(t *testing.T) {
 			getKnownRequests: func() WorkingTable {
 				table := NewWorkingTable()
 				ref := reference.NewSelf(gen.UniqueLocalRefWithPulse(currentPulse))
-				table.GetList(tolerance).Add(ref)
-				table.GetList(tolerance).SetActive(ref)
+				table.GetList(tolerance).add(ref)
+				table.GetList(tolerance).setActive(ref)
 				return table
 			},
 			ExpectedEarliestPulse: currentPulse,
@@ -65,8 +65,8 @@ func TestInfo_GetEarliestPulse(t *testing.T) {
 			getKnownRequests: func() WorkingTable {
 				table := NewWorkingTable()
 				ref := reference.NewSelf(gen.UniqueLocalRefWithPulse(prevPulse))
-				table.GetList(tolerance).Add(ref)
-				table.GetList(tolerance).SetActive(ref)
+				table.GetList(tolerance).add(ref)
+				table.GetList(tolerance).setActive(ref)
 				return table
 			},
 			ExpectedEarliestPulse: prevPulse,

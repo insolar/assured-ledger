@@ -14,28 +14,68 @@ import (
 )
 
 type WorkingTable struct {
-	lists map[contract.InterferenceFlag]*WorkingList
+	requests [contract.InterferenceFlagCount - 1]*WorkingList
+	results  map[reference.Global]Summary
 }
 
 func NewWorkingTable() WorkingTable {
 	var rt WorkingTable
-	rt.lists = make(map[contract.InterferenceFlag]*WorkingList)
 
-	rt.lists[contract.CallTolerable] = NewWorkingList()
-	rt.lists[contract.CallIntolerable] = NewWorkingList()
+	for i := len(rt.requests) - 1; i >= 0; i-- {
+		rt.requests[i] = newWorkingList()
+	}
+
+	rt.results = make(map[reference.Global]Summary)
+
 	return rt
 }
 
-func (rt *WorkingTable) GetList(flag contract.InterferenceFlag) *WorkingList {
-	if flag.IsZero() {
-		panic(throw.IllegalValue())
+func (wt WorkingTable) GetList(flag contract.InterferenceFlag) *WorkingList {
+	if flag > 0 && int(flag) <= len(wt.requests) {
+		return wt.requests[flag - 1]
 	}
-	return rt.lists[flag]
+	panic(throw.IllegalValue())
 }
 
-func (rt *WorkingTable) Len() int {
+func (wt WorkingTable) GetResults() map[reference.Global]Summary {
+	return wt.results
+}
+
+func (wt WorkingTable) Add(flag contract.InterferenceFlag, ref reference.Global) bool {
+	return wt.GetList(flag).add(ref)
+}
+
+func (wt WorkingTable) SetActive(flag contract.InterferenceFlag, ref reference.Global) bool {
+	if ok := wt.GetList(flag).setActive(ref); ok {
+		wt.results[ref] = Summary{}
+
+		return true
+	}
+
+	return false
+}
+
+func (wt WorkingTable) Finish(
+	flag contract.InterferenceFlag,
+	ref reference.Global,
+	result *payload.VCallResult,
+) bool {
+	if ok := wt.GetList(flag).finish(ref); ok {
+		_, ok := wt.results[ref]
+		if !ok {
+			panic(throw.IllegalState())
+		}
+		wt.results[ref] = Summary{result: result}
+
+		return true
+	}
+
+	return false
+}
+
+func (wt *WorkingTable) Len() int {
 	size := 0
-	for _, list := range rt.lists {
+	for _, list := range wt.requests[1:] {
 		size += list.Count()
 	}
 	return size
@@ -50,51 +90,43 @@ const (
 	RequestFinished
 )
 
-type workingRequest struct {
-	state  WorkingRequestState
-	result *payload.VCallResult
-}
-
 type WorkingList struct {
 	earliestActivePulse pulse.Number
 	countActive         int
 	countFinish         int
-	requests            map[reference.Global]workingRequest
+	requests            map[reference.Global]WorkingRequestState
 }
 
-func NewWorkingList() *WorkingList {
+func newWorkingList() *WorkingList {
 	return &WorkingList{
-		requests: make(map[reference.Global]workingRequest),
+		requests: make(map[reference.Global]WorkingRequestState),
 	}
 }
 
-func (rl WorkingList) GetState(ref reference.Global) WorkingRequestState {
-	return rl.requests[ref].state
+type Summary struct {
+	result *payload.VCallResult
 }
 
-func (rl WorkingList) GetResult(ref reference.Global) (*payload.VCallResult, bool) {
-	if res := rl.requests[ref].result; res != nil {
-		return res, true
-	}
-	return nil, false
+func (rl *WorkingList) GetState(ref reference.Global) WorkingRequestState {
+	return rl.requests[ref]
 }
 
 // Add adds reference.Global and update EarliestPulse if needed
 // returns true if added and false if already exists
-func (rl *WorkingList) Add(ref reference.Global) bool {
+func (rl *WorkingList) add(ref reference.Global) bool {
 	if _, exist := rl.requests[ref]; exist {
 		return false
 	}
-	rl.requests[ref] = workingRequest{state: RequestStarted}
+	rl.requests[ref] = RequestStarted
 	return true
 }
 
-func (rl *WorkingList) SetActive(ref reference.Global) bool {
-	if rl.requests[ref].state != RequestStarted {
+func (rl *WorkingList) setActive(ref reference.Global) bool {
+	if rl.requests[ref] != RequestStarted {
 		return false
 	}
 
-	rl.requests[ref] = workingRequest{state: RequestProcessing}
+	rl.requests[ref] = RequestProcessing
 
 	rl.countActive++
 
@@ -110,7 +142,7 @@ func (rl *WorkingList) calculateEarliestActivePulse() {
 	min := pulse.Unknown
 
 	for ref := range rl.requests {
-		if rl.requests[ref].state != RequestProcessing {
+		if rl.requests[ref] != RequestProcessing {
 			continue // skip finished and not started
 		}
 
@@ -123,13 +155,13 @@ func (rl *WorkingList) calculateEarliestActivePulse() {
 	rl.earliestActivePulse = min
 }
 
-func (rl *WorkingList) Finish(ref reference.Global, result *payload.VCallResult) bool {
+func (rl *WorkingList) finish(ref reference.Global) bool {
 	state := rl.GetState(ref)
-	if state == RequestUnknown {
+	if state == RequestUnknown || state == RequestFinished {
 		return false
 	}
 
-	rl.requests[ref] = workingRequest{state: RequestFinished, result: result}
+	rl.requests[ref] = RequestFinished
 	rl.countActive--
 	rl.countFinish++
 
