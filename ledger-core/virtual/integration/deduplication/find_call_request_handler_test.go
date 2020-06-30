@@ -416,16 +416,14 @@ func (s *VFindCallRequestHandlingSuite) setMessageCheckers(
 	s.typedChecker.VCallResult.SetResend(false)
 
 	s.typedChecker.VDelegatedCallRequest.Set(func(req *payload.VDelegatedCallRequest) bool {
-		pl := payload.VDelegatedCallResponse{
-			ResponseDelegationSpec: payload.CallDelegationToken{
-				TokenTypeAndFlags: payload.DelegationTokenTypeCall,
-				PulseNumber:       s.server.GetPulse().PulseNumber,
-				Callee:            s.getObject(),
-				Outgoing:          s.getOutgoingRef(),
-				ApproverSignature: []byte("deadbeef"),
-			},
-		}
-		s.server.SendPayload(ctx, &pl)
+		delegationToken := s.server.DelegationToken(req.CallOutgoing, s.getCaller(), req.Callee)
+
+		s.server.SendPayload(ctx, &payload.VDelegatedCallResponse{
+			Callee:                 req.Callee,
+			CallIncoming:           req.CallIncoming,
+			ResponseDelegationSpec: delegationToken,
+		})
+
 		return false
 	})
 	s.typedChecker.VDelegatedRequestFinished.SetResend(false)
