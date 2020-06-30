@@ -88,6 +88,7 @@ func TestSMTestAPICall_Migrate_After_RegisterBargeIn(t *testing.T) {
 	var newBargeIn smachine.BargeInHolder
 	{
 		newOutgoingRef := reference.NewRecordOf(APICaller, newOutgoingCall)
+		require.NotEqual(t, newOutgoingRef, outgoingRef)
 		// check that we create new bargein
 		_, newBargeIn = slotMachine.SlotMachine.GetPublishedGlobalAliasAndBargeIn(newOutgoingRef)
 		require.NotNil(t, newBargeIn)
@@ -153,8 +154,9 @@ func TestSMTestAPICall_Migrate_After_SendRequest(t *testing.T) {
 	testutils.WaitSignalsTimed(t, 10*time.Second, messageSent)
 
 	response := &payload.VCallResult{
-		Caller: gen.UniqueGlobalRef(),
-		Callee: gen.UniqueGlobalRef(),
+		Caller:   gen.UniqueGlobalRef(),
+		Callee:   gen.UniqueGlobalRef(),
+		CallAsOf: gen.PulseNumber(),
 	}
 
 	// simulate received VCallResult
