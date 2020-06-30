@@ -13,9 +13,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callsummary"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object/finalizedstate"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/tables"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/shareddata"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -120,7 +120,7 @@ func TestSMObject_CallSummarySM(t *testing.T) {
 
 	{
 		scs := callsummary.SharedCallSummary{
-			Requests: tables.NewObjectRequestTable(),
+			Requests: callregistry.NewObjectRequestTable(),
 		}
 		sdl := smachine.NewUnboundSharedData(&scs)
 

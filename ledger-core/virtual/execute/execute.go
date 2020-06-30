@@ -9,7 +9,7 @@ package execute
 
 import (
 	"context"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/tables"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
@@ -765,7 +765,7 @@ func (s *SMExecute) stepPublishDataCallSummary(ctx smachine.ExecutionContext) sm
 				}
 
 				if callSummary.Result == nil {
-					requests.ResultsMap[ref] = tables.CallSummary{Result: s.execution.Result}
+					requests.ResultsMap[ref] = callregistry.CallSummary{Result: s.execution.Result}
 				}
 			}
 		}

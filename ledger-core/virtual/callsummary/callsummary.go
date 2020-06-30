@@ -12,7 +12,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/tables"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
 )
 
 // key for publish synclink, need for await publish call results after migration for specific object
@@ -47,7 +47,7 @@ type SMCallSummary struct {
 }
 
 type SharedCallSummary struct {
-	Requests tables.ObjectsRequestsTable
+	Requests callregistry.ObjectsRequestsTable
 }
 
 func (sm *SMCallSummary) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLink, _ *injector.DependencyInjector) {
@@ -62,7 +62,7 @@ func (sm *SMCallSummary) GetStateMachineDeclaration() smachine.StateMachineDecla
 }
 
 func (sm *SMCallSummary) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
-	sm.shared = SharedCallSummary{Requests: tables.NewObjectRequestTable()}
+	sm.shared = SharedCallSummary{Requests: callregistry.NewObjectRequestTable()}
 
 	sdl := ctx.Share(&sm.shared, 0)
 	if !ctx.Publish(SummarySharedKey{pulseNumber: sm.pulse}, sdl) {

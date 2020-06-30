@@ -24,10 +24,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callsummary"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object/finalizedstate"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/tables"
 )
 
 type State int32
@@ -55,9 +55,9 @@ type Info struct {
 	AwaitPendingOrdered smachine.BargeIn
 
 	// KnownRequests holds requests that were seen on current pulse
-	KnownRequests tables.WorkingTable
+	KnownRequests callregistry.WorkingTable
 	// PendingTable holds requests that are known to be processed by other executors
-	PendingTable tables.PendingTable
+	PendingTable callregistry.PendingTable
 
 	PreviousExecutorUnorderedPendingCount uint8
 	PreviousExecutorOrderedPendingCount   uint8
@@ -212,8 +212,8 @@ func NewStateMachineObject(objectReference reference.Global) *SMObject {
 		SharedState: SharedState{
 			Info: Info{
 				Reference:     objectReference,
-				KnownRequests: tables.NewWorkingTable(),
-				PendingTable:  tables.NewRequestTable(),
+				KnownRequests: callregistry.NewWorkingTable(),
+				PendingTable:  callregistry.NewRequestTable(),
 			},
 		},
 	}

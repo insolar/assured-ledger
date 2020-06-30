@@ -19,8 +19,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callsummary"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/tables"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/shareddata"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -71,7 +71,7 @@ func TestSMExecute_PublishVCallResultToCallSummarySM(t *testing.T) {
 	}
 
 	sharedCallSummary := callsummary.SharedCallSummary{
-		Requests: tables.NewObjectRequestTable(),
+		Requests: callregistry.NewObjectRequestTable(),
 	}
 
 	res := payload.VCallResult{
@@ -80,7 +80,7 @@ func TestSMExecute_PublishVCallResultToCallSummarySM(t *testing.T) {
 	}
 
 	{
-		workingTable := tables.NewWorkingTable()
+		workingTable := callregistry.NewWorkingTable()
 		workingTable.Add(contract.CallTolerable, ref)
 		workingTable.SetActive(contract.CallTolerable, ref)
 		workingTable.Finish(contract.CallTolerable, ref, &res)
