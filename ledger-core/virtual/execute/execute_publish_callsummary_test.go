@@ -60,7 +60,12 @@ func TestSMExecute_PublishVCallResultToCallSummarySM(t *testing.T) {
 
 	smExecute = expectedInitState(ctx, smExecute)
 
-	smExecute.execution.Result = &payload.VCallResult{}
+	res := payload.VCallResult{
+		Callee:       smGlobalRef,
+		CallOutgoing: gen.UniqueLocalRef(),
+	}
+
+	smExecute.execution.Result = &res
 	smExecute.migrationHappened = true
 
 	{
@@ -74,16 +79,10 @@ func TestSMExecute_PublishVCallResultToCallSummarySM(t *testing.T) {
 		Requests: callregistry.NewObjectRequestTable(),
 	}
 
-	res := payload.VCallResult{
-		Callee:       smGlobalRef,
-		CallOutgoing: gen.UniqueLocalRef(),
-	}
-
 	{
 		workingTable := callregistry.NewWorkingTable()
 		workingTable.Add(contract.CallTolerable, ref)
 		workingTable.SetActive(contract.CallTolerable, ref)
-		workingTable.Finish(contract.CallTolerable, ref, &res)
 
 		sharedCallSummary.Requests.AddObjectRequests(smGlobalRef, workingTable)
 	}
