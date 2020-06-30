@@ -28,97 +28,6 @@ import (
 
 type TestStep func(s *VFindCallRequestHandlingSuite, ctx context.Context, t *testing.T)
 
-func StepIncrementPulseToP3(s *VFindCallRequestHandlingSuite, ctx context.Context, t *testing.T) {
-	s.server.IncrementPulseAndWaitIdle(ctx)
-}
-
-func StepFindMessage(s *VFindCallRequestHandlingSuite, ctx context.Context, t *testing.T) {
-	findMsg := payload.VFindCallRequest{
-		LookAt:   s.getP1(),
-		Callee:   s.getObject(),
-		Outgoing: s.getOutgoingRef(),
-	}
-	s.addPayloadAndWaitIdle(ctx, &findMsg)
-}
-
-func StepMethodStart(s *VFindCallRequestHandlingSuite, ctx context.Context, t *testing.T) {
-	if s.executionPoint != nil {
-		panic(throw.IllegalState())
-	}
-	s.executionPoint = synchronization.NewPoint(1)
-
-	report := payload.VStateReport{
-		AsOf:   s.getP1(),
-		Status: payload.Ready,
-		Object: s.getObject(),
-
-		ProvidedContent: &payload.VStateReport_ProvidedContentBody{
-			LatestDirtyState: &payload.ObjectState{
-				Reference: gen.UniqueLocalRefWithPulse(s.getP1()),
-				Class:     s.getClass(),
-				State:     []byte("object memory"),
-			},
-		},
-	}
-	s.addPayloadAndWaitIdle(ctx, &report)
-
-	req := payload.VCallRequest{
-		CallType:       payload.CTMethod,
-		CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
-		Caller:         s.getCaller(),
-		Callee:         s.getObject(),
-		CallSiteMethod: "SomeMethod",
-		CallSequence:   1,
-		CallOutgoing:   s.getOutgoingLocal(),
-	}
-	s.addPayloadAndWaitIdle(ctx, &req)
-
-	testutils.WaitSignalsTimed(t, 10*time.Second, s.executionPoint.Wait())
-}
-
-func StepConstructorStart(s *VFindCallRequestHandlingSuite, ctx context.Context, t *testing.T) {
-	if s.executionPoint != nil {
-		panic(throw.IllegalState())
-	}
-	s.executionPoint = synchronization.NewPoint(1)
-
-	report := payload.VStateReport{
-		AsOf:   s.getP1(),
-		Status: payload.Missing,
-		Object: s.getObject(),
-	}
-	s.addPayloadAndWaitIdle(ctx, &report)
-
-	req := payload.VCallRequest{
-		CallType:       payload.CTConstructor,
-		CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
-		Caller:         s.getCaller(),
-		Callee:         s.getClass(),
-		CallSiteMethod: "New",
-		CallSequence:   1,
-		CallOutgoing:   s.getOutgoingLocal(),
-	}
-	s.addPayloadAndWaitIdle(ctx, &req)
-
-	testutils.WaitSignalsTimed(t, 10*time.Second, s.executionPoint.Wait())
-}
-
-func StepRequestFinish(s *VFindCallRequestHandlingSuite, _ context.Context, t *testing.T) {
-	s.executionPoint.WakeUp()
-
-	testutils.WaitSignalsTimed(t, 10*time.Second, s.executeIsFinished)
-}
-
-func StepMethodStartAndFinish(s *VFindCallRequestHandlingSuite, ctx context.Context, t *testing.T) {
-	StepMethodStart(s, ctx, t)
-	StepRequestFinish(s, ctx, t)
-}
-
-func StepConstructorStartAndFinish(s *VFindCallRequestHandlingSuite, ctx context.Context, t *testing.T) {
-	StepMethodStart(s, ctx, t)
-	StepRequestFinish(s, ctx, t)
-}
-
 // test handling of VFindCallRequest
 // three pulses: P1, P2, P3
 // always look at P2
@@ -273,6 +182,97 @@ func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
 			suite.finish()
 		})
 	}
+}
+
+func StepIncrementPulseToP3(s *VFindCallRequestHandlingSuite, ctx context.Context, t *testing.T) {
+	s.server.IncrementPulseAndWaitIdle(ctx)
+}
+
+func StepFindMessage(s *VFindCallRequestHandlingSuite, ctx context.Context, t *testing.T) {
+	findMsg := payload.VFindCallRequest{
+		LookAt:   s.getP1(),
+		Callee:   s.getObject(),
+		Outgoing: s.getOutgoingRef(),
+	}
+	s.addPayloadAndWaitIdle(ctx, &findMsg)
+}
+
+func StepMethodStart(s *VFindCallRequestHandlingSuite, ctx context.Context, t *testing.T) {
+	if s.executionPoint != nil {
+		panic(throw.IllegalState())
+	}
+	s.executionPoint = synchronization.NewPoint(1)
+
+	report := payload.VStateReport{
+		AsOf:   s.getP1(),
+		Status: payload.Ready,
+		Object: s.getObject(),
+
+		ProvidedContent: &payload.VStateReport_ProvidedContentBody{
+			LatestDirtyState: &payload.ObjectState{
+				Reference: gen.UniqueLocalRefWithPulse(s.getP1()),
+				Class:     s.getClass(),
+				State:     []byte("object memory"),
+			},
+		},
+	}
+	s.addPayloadAndWaitIdle(ctx, &report)
+
+	req := payload.VCallRequest{
+		CallType:       payload.CTMethod,
+		CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+		Caller:         s.getCaller(),
+		Callee:         s.getObject(),
+		CallSiteMethod: "SomeMethod",
+		CallSequence:   1,
+		CallOutgoing:   s.getOutgoingLocal(),
+	}
+	s.addPayloadAndWaitIdle(ctx, &req)
+
+	testutils.WaitSignalsTimed(t, 10*time.Second, s.executionPoint.Wait())
+}
+
+func StepConstructorStart(s *VFindCallRequestHandlingSuite, ctx context.Context, t *testing.T) {
+	if s.executionPoint != nil {
+		panic(throw.IllegalState())
+	}
+	s.executionPoint = synchronization.NewPoint(1)
+
+	report := payload.VStateReport{
+		AsOf:   s.getP1(),
+		Status: payload.Missing,
+		Object: s.getObject(),
+	}
+	s.addPayloadAndWaitIdle(ctx, &report)
+
+	req := payload.VCallRequest{
+		CallType:       payload.CTConstructor,
+		CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+		Caller:         s.getCaller(),
+		Callee:         s.getClass(),
+		CallSiteMethod: "New",
+		CallSequence:   1,
+		CallOutgoing:   s.getOutgoingLocal(),
+	}
+	s.addPayloadAndWaitIdle(ctx, &req)
+
+	testutils.WaitSignalsTimed(t, 10*time.Second, s.executionPoint.Wait())
+}
+
+func StepRequestFinish(s *VFindCallRequestHandlingSuite, _ context.Context, t *testing.T) {
+	s.executionPoint.WakeUp()
+
+	testutils.WaitSignalsTimed(t, 10*time.Second, s.executeIsFinished)
+}
+
+func StepMethodStartAndFinish(s *VFindCallRequestHandlingSuite, ctx context.Context, t *testing.T) {
+	StepMethodStart(s, ctx, t)
+	StepRequestFinish(s, ctx, t)
+}
+
+func StepConstructorStartAndFinish(s *VFindCallRequestHandlingSuite, ctx context.Context, t *testing.T) {
+	StepMethodStart(s, ctx, t)
+	StepRequestFinish(s, ctx, t)
 }
 
 type VFindCallRequestHandlingSuite struct {
