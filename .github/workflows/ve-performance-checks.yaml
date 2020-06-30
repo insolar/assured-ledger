@@ -39,15 +39,11 @@ jobs:
             return result;
       - name: Checkout code
         uses: actions/checkout@master
-      - name: Checkout loadgen
-        uses: actions/checkout@v2
-        with:
-          path: ./loadgen
-          repository: skudasov/loadgen
-      - name: build loadgen
+      - name: build test
+        working-directory: ${{ env.CORE_PATH }}
         run: |
-          cd loadgen
-          go build -o loadcli ${{ github.workspace }}/loadgen/cmd/
+          cd load
+          go build cmd/load/main.go
       - name: Set up go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v1
         with:
@@ -73,6 +69,7 @@ jobs:
           sed -i "s/placeholder/${{ fromJson(steps.set-vars.outputs.result).shortSha }}/g" ledger-core/scripts/deploy/kube/*/*.*
           sed -i "s/placeholder/${{ fromJson(steps.set-vars.outputs.result).shortSha }}/g" ledger-core/scripts/deploy/kube/*/configuration/*.*
           sed -i "s/placeholder/${{ fromJson(steps.set-vars.outputs.result).shortSha }}/g" ledger-core/load/gen_cfg/*.*
+          cat /home/runner/work/assured-ledger/assured-ledger/ledger-core/load/gen_cfg/generator_assured_ledger.yaml
       - name: run 10node network
         run: kubectl apply -k ledger-core/scripts/deploy/kube/10node
       - name: wait for successfull rollout
@@ -85,10 +82,11 @@ jobs:
             else echo -n '.'; sleep 5
             fi
           done
-      - name: get some info
-        run: kubectl -n ${{fromJson(steps.set-vars.outputs.result).shortSha}} get po
-      - name: start test
-        run: loadgen/loadcli -gen_config ledger-core/load/gen_config/generator_assured_ledger.yaml b darwin && NETWORK_NODES=10 ./load_suite -gen_config ledger-core/load/gen_config/generator_assured_ledger.yaml -config ledger-core/load/run_configs/all_sequence.yaml
+      - name: start test 10 node
+        run: |
+          cd ${{ env.CORE_PATH }}/load/
+          NETWORK_NODES=10 ./main -gen_config ${{ env.CORE_PATH }}/load/gen_cfg/generator_assured_ledger.yaml -config ${{ env.CORE_PATH }}/load/run_configs/all_sequence.yaml
+          ls -a
       - name: cleanup
         if: always()
         run: kubectl delete ns ${{fromJson(steps.set-vars.outputs.result).shortSha}} --ignore-not-found=true
@@ -104,8 +102,11 @@ jobs:
             else echo -n '.'; sleep 5
             fi
           done
-      - name: get some info
-        run: kubectl -n ${{fromJson(steps.set-vars.outputs.result).shortSha}} get po
+      - name: start test 20 node
+        run: |
+          cd ${{ env.CORE_PATH }}/load/
+          NETWORK_NODES=20 ./main -gen_config ${{ env.CORE_PATH }}/load/gen_cfg/generator_assured_ledger.yaml -config ${{ env.CORE_PATH }}/load/run_configs/all_sequence.yaml
+          ls -a
       - name: cleanup
         if: always()
         run: kubectl delete ns ${{fromJson(steps.set-vars.outputs.result).shortSha}} --ignore-not-found=true
