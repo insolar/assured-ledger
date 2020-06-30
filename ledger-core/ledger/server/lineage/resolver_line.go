@@ -16,7 +16,7 @@ import (
 
 type DependencyResolver interface {
 	FindOtherDependency(ref reference.Holder) (ResolvedDependency, error)
-	// FindLineAnyDependency(root reference.Holder, ref reference.LocalHolder) ResolvedDependency
+	FindLineAnyDependency(root reference.Holder, ref reference.LocalHolder) (ResolvedDependency, error)
 	// FindLineDependency(root reference.Holder, ref reference.LocalHolder, mustBeOpen bool) (dep ResolvedDependency, recap recordNo)
 }
 
@@ -27,7 +27,7 @@ type lineResolver interface {
 	getLocalPN() pulse.Number
 
 	findOtherDependency(ref reference.Holder) (ResolvedDependency, error)
-	findLineAnyDependency(root reference.Holder, ref reference.LocalHolder) ResolvedDependency
+	findLineAnyDependency(root reference.Holder, ref reference.LocalHolder) (ResolvedDependency, error)
 	findLineDependency(root reference.Holder, ref reference.LocalHolder, mustBeOpen bool) (filNo filamentNo, dep ResolvedDependency, recap recordNo)
 	findLocalDependency(root reference.Holder, ref reference.LocalHolder, mustBeOpen bool) (filNo filamentNo, recNo recordNo, dep ResolvedDependency)
 	findFilament(root reference.LocalHolder) (filamentNo, ResolvedDependency)

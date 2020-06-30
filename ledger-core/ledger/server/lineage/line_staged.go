@@ -78,10 +78,12 @@ func (p *LineStages) AddBundle(bundle *BundleResolver, tracker StageTracker) boo
 
 	bundle.maxRecNo += recDelta
 
+	defer bundle.setLastRecord(nil)
+
 	for i := range bundle.records {
 		rec := &bundle.records[i]
 
-		// bundle.setLastRecord()
+		bundle.setLastRecord(rec.GetRecordRef())
 
 		rec.recordNo += recDelta
 
@@ -98,14 +100,16 @@ func (p *LineStages) AddBundle(bundle *BundleResolver, tracker StageTracker) boo
 		case !bundle.isLineStart && RecordType(rec.Excerpt.RecordType) == tRSidelineStart: // TODO proper check for SidelineStart
 		case RecordType(rec.Excerpt.RecordType) == tRLineRecap:
 			if rec.recapNo != 0 {
-				panic(throw.IllegalState())
+				bundle.addError(throw.New("recap with recap"))
+				continue
 			}
 			isRecap = true
 		case rec.recapNo == 0:
-			// TODO recap is expected error
-			panic(throw.IllegalState())
+			bundle.addError(throw.New("recap is missing"))
+			continue
 		case rec.recapNo >= rec.prev:
-			panic(throw.IllegalState())
+			bundle.addError(throw.New("recap in future"))
+			continue
 		}
 
 		switch {
@@ -113,7 +117,8 @@ func (p *LineStages) AddBundle(bundle *BundleResolver, tracker StageTracker) boo
 		case rec.next >= firstRec:
 			rec.next += recDelta
 		case rec.next > 0:
-			panic(throw.IllegalState())
+			bundle.addError(throw.New("next in past"))
+			continue
 		}
 
 		switch {
@@ -121,21 +126,23 @@ func (p *LineStages) AddBundle(bundle *BundleResolver, tracker StageTracker) boo
 		case filNo != 0:
 			rec.filNo = filNo
 		case bundle.branchStart == 0 || bundle.branchHead == 0:
-			panic(throw.IllegalState())
+			bundle.addError(throw.New("inconsistent filament data"))
+			continue
 		case bundle.branchHead + recDelta != rec.recordNo:
-			panic(throw.IllegalState())
+			bundle.addError(throw.New("inconsistent filament head"))
+			continue
 		default:
 			stage.filaments = append(stage.filaments, filament{})
 			filNo = filamentNo(len(stage.filaments))
 			rec.filNo = filNo
-			filRoot = rec.RegRecord.AnticipatedRef.Get().GetLocal()
+			filRoot = rec.GetRecordRef().GetLocal()
 		}
 
 		switch filament := &stage.filaments[rec.filNo - 1]; {
 		case filament.earliest == 0:
 			if isRecap {
 				if filament.recap != 0 {
-					panic(throw.IllegalState())
+					panic(throw.Impossible())
 				}
 				filament.recap = rec.recordNo
 				// TODO resolvedHead
@@ -149,10 +156,12 @@ func (p *LineStages) AddBundle(bundle *BundleResolver, tracker StageTracker) boo
 			}
 
 		case filament.latest != rec.prev:
-			panic(throw.IllegalState())
+			bundle.addError(throw.New("inconsistent filament sequence"))
+			continue
 		default:
 			if rec.recapNo != 0 && filament.recap != rec.recapNo {
-				panic(throw.IllegalState())
+				bundle.addError(throw.New("inconsistent filament recap"))
+				continue
 			}
 			filament.latest = rec.recordNo
 			if rec.next == deadFilament {
@@ -167,8 +176,12 @@ func (p *LineStages) AddBundle(bundle *BundleResolver, tracker StageTracker) boo
 		switch bundle.records[latest - bundle.maxRecNo].next {
 		case 0, deadFilament:
 		default:
-			panic(throw.IllegalState())
+			bundle.addError(throw.New("inconsistent latest of filament"))
 		}
+	}
+
+	if !bundle.IsResolved() {
+		return false
 	}
 
 	if p.recordRefs == nil {
@@ -194,7 +207,7 @@ func (p *LineStages) AddBundle(bundle *BundleResolver, tracker StageTracker) boo
 		}
 
 		p.add(*rec)
-		key := rec.RegRecord.AnticipatedRef.Get().GetLocal().IdentityHash()
+		key := rec.GetRecordRef().GetLocal().IdentityHash()
 		p.recordRefs[key] = rec.recordNo
 	}
 
@@ -325,9 +338,12 @@ func (p *LineStages) findOtherDependency(ref reference.Holder) (ResolvedDependen
 	return p.cache.FindOtherDependency(ref)
 }
 
-func (p *LineStages) findLineAnyDependency(root reference.Holder, ref reference.LocalHolder) ResolvedDependency {
+func (p *LineStages) findLineAnyDependency(root reference.Holder, ref reference.LocalHolder) (ResolvedDependency, error) {
 	// TODO caching
-	return ResolvedDependency{}
+	if p.cache == nil || ref == nil || ref.IsEmpty() {
+		return ResolvedDependency{}, nil
+	}
+	return p.cache.FindLineAnyDependency(root, ref)
 }
 
 func (p *LineStages) findLineDependency(root reference.Holder, ref reference.LocalHolder, mustBeOpen bool) (filNo filamentNo, dep ResolvedDependency, recap recordNo) {

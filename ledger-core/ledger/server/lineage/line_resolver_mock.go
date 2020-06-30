@@ -28,7 +28,7 @@ type LineResolverMock struct {
 	beforefindFilamentCounter uint64
 	findFilamentMock          mLineResolverMockfindFilament
 
-	funcfindLineAnyDependency          func(root reference.Holder, ref reference.LocalHolder) (r1 ResolvedDependency)
+	funcfindLineAnyDependency          func(root reference.Holder, ref reference.LocalHolder) (r1 ResolvedDependency, err error)
 	inspectFuncfindLineAnyDependency   func(root reference.Holder, ref reference.LocalHolder)
 	afterfindLineAnyDependencyCounter  uint64
 	beforefindLineAnyDependencyCounter uint64
@@ -571,7 +571,8 @@ type LineResolverMockfindLineAnyDependencyParams struct {
 
 // LineResolverMockfindLineAnyDependencyResults contains results of the lineResolver.findLineAnyDependency
 type LineResolverMockfindLineAnyDependencyResults struct {
-	r1 ResolvedDependency
+	r1  ResolvedDependency
+	err error
 }
 
 // Expect sets up expected params for lineResolver.findLineAnyDependency
@@ -606,7 +607,7 @@ func (mmfindLineAnyDependency *mLineResolverMockfindLineAnyDependency) Inspect(f
 }
 
 // Return sets up results that will be returned by lineResolver.findLineAnyDependency
-func (mmfindLineAnyDependency *mLineResolverMockfindLineAnyDependency) Return(r1 ResolvedDependency) *LineResolverMock {
+func (mmfindLineAnyDependency *mLineResolverMockfindLineAnyDependency) Return(r1 ResolvedDependency, err error) *LineResolverMock {
 	if mmfindLineAnyDependency.mock.funcfindLineAnyDependency != nil {
 		mmfindLineAnyDependency.mock.t.Fatalf("LineResolverMock.findLineAnyDependency mock is already set by Set")
 	}
@@ -614,12 +615,12 @@ func (mmfindLineAnyDependency *mLineResolverMockfindLineAnyDependency) Return(r1
 	if mmfindLineAnyDependency.defaultExpectation == nil {
 		mmfindLineAnyDependency.defaultExpectation = &LineResolverMockfindLineAnyDependencyExpectation{mock: mmfindLineAnyDependency.mock}
 	}
-	mmfindLineAnyDependency.defaultExpectation.results = &LineResolverMockfindLineAnyDependencyResults{r1}
+	mmfindLineAnyDependency.defaultExpectation.results = &LineResolverMockfindLineAnyDependencyResults{r1, err}
 	return mmfindLineAnyDependency.mock
 }
 
 //Set uses given function f to mock the lineResolver.findLineAnyDependency method
-func (mmfindLineAnyDependency *mLineResolverMockfindLineAnyDependency) Set(f func(root reference.Holder, ref reference.LocalHolder) (r1 ResolvedDependency)) *LineResolverMock {
+func (mmfindLineAnyDependency *mLineResolverMockfindLineAnyDependency) Set(f func(root reference.Holder, ref reference.LocalHolder) (r1 ResolvedDependency, err error)) *LineResolverMock {
 	if mmfindLineAnyDependency.defaultExpectation != nil {
 		mmfindLineAnyDependency.mock.t.Fatalf("Default expectation is already set for the lineResolver.findLineAnyDependency method")
 	}
@@ -648,13 +649,13 @@ func (mmfindLineAnyDependency *mLineResolverMockfindLineAnyDependency) When(root
 }
 
 // Then sets up lineResolver.findLineAnyDependency return parameters for the expectation previously defined by the When method
-func (e *LineResolverMockfindLineAnyDependencyExpectation) Then(r1 ResolvedDependency) *LineResolverMock {
-	e.results = &LineResolverMockfindLineAnyDependencyResults{r1}
+func (e *LineResolverMockfindLineAnyDependencyExpectation) Then(r1 ResolvedDependency, err error) *LineResolverMock {
+	e.results = &LineResolverMockfindLineAnyDependencyResults{r1, err}
 	return e.mock
 }
 
 // findLineAnyDependency implements lineResolver
-func (mmfindLineAnyDependency *LineResolverMock) findLineAnyDependency(root reference.Holder, ref reference.LocalHolder) (r1 ResolvedDependency) {
+func (mmfindLineAnyDependency *LineResolverMock) findLineAnyDependency(root reference.Holder, ref reference.LocalHolder) (r1 ResolvedDependency, err error) {
 	mm_atomic.AddUint64(&mmfindLineAnyDependency.beforefindLineAnyDependencyCounter, 1)
 	defer mm_atomic.AddUint64(&mmfindLineAnyDependency.afterfindLineAnyDependencyCounter, 1)
 
@@ -672,7 +673,7 @@ func (mmfindLineAnyDependency *LineResolverMock) findLineAnyDependency(root refe
 	for _, e := range mmfindLineAnyDependency.findLineAnyDependencyMock.expectations {
 		if minimock.Equal(e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.r1
+			return e.results.r1, e.results.err
 		}
 	}
 
@@ -688,7 +689,7 @@ func (mmfindLineAnyDependency *LineResolverMock) findLineAnyDependency(root refe
 		if mm_results == nil {
 			mmfindLineAnyDependency.t.Fatal("No results are set for the LineResolverMock.findLineAnyDependency")
 		}
-		return (*mm_results).r1
+		return (*mm_results).r1, (*mm_results).err
 	}
 	if mmfindLineAnyDependency.funcfindLineAnyDependency != nil {
 		return mmfindLineAnyDependency.funcfindLineAnyDependency(root, ref)

@@ -99,7 +99,7 @@ func (p *BundleResolver) Add(record Record) bool {
 		Record:   record,
 	}
 
-	ref := upd.RegRecord.AnticipatedRef.Get()
+	ref := upd.GetRecordRef()
 	p.setLastRecord(ref)
 	defer p.setLastRecord(nil)
 	p.isResolved = true
@@ -338,7 +338,10 @@ func (p *BundleResolver) resolveSupplementaryRef(rootRef, ref reference.Holder) 
 	filNo, recNo, dep := p.resolver.findLocalDependency(rootRef, ref, false)
 	switch {
 	case dep.IsZero():
-		switch dep = p.resolver.findLineAnyDependency(rootRef, ref); {
+		var err error
+		switch dep, err = p.resolver.findLineAnyDependency(rootRef, ref); {
+		case err != nil:
+			return ResolvedDependency{}, err
 		case dep.IsZero():
 			return dep, nil
 		case dep.IsNotAvailable():
@@ -434,7 +437,7 @@ func (p *BundleResolver) findResolved(ref reference.LocalHolder) *resolvedRecord
 	refLocal := ref.GetLocal()
 	for i := range p.records {
 		r := &p.records[i]
-		l := r.RegRecord.AnticipatedRef.Get().GetLocal()
+		l := r.GetRecordRef().GetLocal()
 		if refLocal == l {
 			return r
 		}
