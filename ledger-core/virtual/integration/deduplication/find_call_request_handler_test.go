@@ -16,6 +16,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/synchronization"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
@@ -72,7 +73,6 @@ func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
 			expectedStatus: payload.UnknownCall,
 		},
 
-
 		{
 			name:   "found request, method, not pending, result",
 			events: []string{"reqMethodStart", "reqFinish", "P2->P3", "findMsg"},
@@ -107,38 +107,38 @@ func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
 		},
 
 		{
-			name:   "found request, constructor, not pending, result",
-			events: []string{"reqConstructorStart", "reqFinish", "P2->P3", "findMsg"},
+			name:                 "found request, constructor, not pending, result",
+			events:               []string{"reqConstructorStart", "reqFinish", "P2->P3", "findMsg"},
 			requestIsConstructor: true,
 
 			expectedStatus: payload.FoundCall,
 			expectedResult: true,
 		},
 		{
-			name:   "found request, constructor, not pending, result, early msg",
-			events: []string{"findMsg", "reqConstructorStart", "reqFinish", "P2->P3"},
+			name:                 "found request, constructor, not pending, result, early msg",
+			events:               []string{"findMsg", "reqConstructorStart", "reqFinish", "P2->P3"},
 			requestIsConstructor: true,
 
 			expectedStatus: payload.FoundCall,
 			expectedResult: true,
 		},
 		{
-			name:   "found request, constructor, pending, no result",
-			events: []string{"reqConstructorStart", "P2->P3", "findMsg"},
+			name:                 "found request, constructor, pending, no result",
+			events:               []string{"reqConstructorStart", "P2->P3", "findMsg"},
 			requestIsConstructor: true,
 
 			expectedStatus: payload.FoundCall,
 		},
 		{
-			name:   "found request, constructor, pending, no result, earlyMsg",
-			events: []string{"findMsg", "reqConstructorStart", "P2->P3"},
+			name:                 "found request, constructor, pending, no result, earlyMsg",
+			events:               []string{"findMsg", "reqConstructorStart", "P2->P3"},
 			requestIsConstructor: true,
 
 			expectedStatus: payload.FoundCall,
 		},
 		{
-			name:   "found request, constructor, pending, result",
-			events: []string{"reqConstructorStart", "P2->P3", "reqFinish", "findMsg"},
+			name:                 "found request, constructor, pending, result",
+			events:               []string{"reqConstructorStart", "P2->P3", "reqFinish", "findMsg"},
 			requestIsConstructor: true,
 
 			expectedStatus: payload.FoundCall,
@@ -213,8 +213,7 @@ type VFindCallRequestHandlingSuite struct {
 	object   reference.Global
 	outgoing reference.Local
 
-	startedSignal          chan struct{}
-	releaseSignal          chan struct{}
+	executionPoint         *synchronization.Point
 	executeIsFinished      synckit.SignalChannel
 	haveFindResponseSignal chan struct{}
 }
@@ -307,8 +306,10 @@ func (s *VFindCallRequestHandlingSuite) getOutgoingLocal() reference.Local {
 }
 
 func (s *VFindCallRequestHandlingSuite) startMethodRequest(ctx context.Context) {
-	s.startedSignal = make(chan struct{}, 0)
-	s.releaseSignal = make(chan struct{}, 0)
+	if s.executionPoint != nil {
+		panic(throw.IllegalState())
+	}
+	s.executionPoint = synchronization.NewPoint(1)
 
 	report := payload.VStateReport{
 		AsOf:   s.getP1(),
@@ -340,12 +341,14 @@ func (s *VFindCallRequestHandlingSuite) startMethodRequest(ctx context.Context) 
 func (s *VFindCallRequestHandlingSuite) startMethodRequestAndWait(t *testing.T, ctx context.Context) {
 	t.Helper()
 	s.startMethodRequest(ctx)
-	testutils.WaitSignalsTimed(t, 10*time.Second, s.startedSignal)
+	testutils.WaitSignalsTimed(t, 10*time.Second, s.executionPoint.Wait())
 }
 
 func (s *VFindCallRequestHandlingSuite) startConstructorRequest(ctx context.Context) {
-	s.startedSignal = make(chan struct{}, 0)
-	s.releaseSignal = make(chan struct{}, 0)
+	if s.executionPoint != nil {
+		panic(throw.IllegalState())
+	}
+	s.executionPoint = synchronization.NewPoint(1)
 
 	report := payload.VStateReport{
 		AsOf:   s.getP1(),
@@ -369,11 +372,11 @@ func (s *VFindCallRequestHandlingSuite) startConstructorRequest(ctx context.Cont
 func (s *VFindCallRequestHandlingSuite) startConstructorRequestAndWait(t *testing.T, ctx context.Context) {
 	t.Helper()
 	s.startConstructorRequest(ctx)
-	testutils.WaitSignalsTimed(t, 10*time.Second, s.startedSignal)
+	testutils.WaitSignalsTimed(t, 10*time.Second, s.executionPoint.Wait())
 }
 
 func (s *VFindCallRequestHandlingSuite) finishRequest() {
-	close(s.releaseSignal)
+	s.executionPoint.WakeUp()
 }
 
 func (s *VFindCallRequestHandlingSuite) finishRequestAndWait(t *testing.T) {
@@ -455,9 +458,7 @@ func (s *VFindCallRequestHandlingSuite) setRunnerMock() {
 
 	executionMock := s.runnerMock.AddExecutionMock("SomeMethod")
 	executionMock.AddStart(func(ctx execution.Context) {
-		close(s.startedSignal)
-
-		<-s.releaseSignal
+		s.executionPoint.Synchronize()
 	}, &execution.Update{
 		Type:   execution.Done,
 		Result: requestResult,
@@ -484,5 +485,6 @@ func (s *VFindCallRequestHandlingSuite) finish() {
 }
 
 func (s *VFindCallRequestHandlingSuite) stopServer() {
+	s.executionPoint.Done()
 	s.server.Stop()
 }
