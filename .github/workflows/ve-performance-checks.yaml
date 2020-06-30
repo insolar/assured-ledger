@@ -39,15 +39,6 @@ jobs:
             return result;
       - name: Checkout code
         uses: actions/checkout@master
-      - name: Checkout loadgen
-        uses: actions/checkout@v2
-        with:
-          path: ./loadgen
-          repository: skudasov/loadgen
-      - name: build loadgen
-        run: |
-          cd loadgen
-          go build -o loadcli ${{ github.workspace }}/loadgen/cmd/
       - name: Set up go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v1
         with:
@@ -87,8 +78,15 @@ jobs:
           done
       - name: get some info
         run: kubectl -n ${{fromJson(steps.set-vars.outputs.result).shortSha}} get po
+      - name: build test
+        run: go build load/cmd/load/main.go -o loadtest
       - name: start test
-        run: loadgen/loadcli -gen_config ledger-core/load/gen_config/generator_assured_ledger.yaml b darwin && NETWORK_NODES=10 ./load_suite -gen_config ledger-core/load/gen_config/generator_assured_ledger.yaml -config ledger-core/load/run_configs/all_sequence.yaml
+        run: NETWORK_NODES=5 .ledger-core/load/main -gen_config ledger-core/load/gen_config/generator_assured_ledger.yaml -config ledger-core/load/gen_config/generator_assured_ledger.yaml > runners.log
+      - name: Archive test logs to artifacts
+          uses: actions/upload-artifact@v1
+          with:
+            name: 10nodes
+            path: ledger-core/load/runners.log
       - name: cleanup
         if: always()
         run: kubectl delete ns ${{fromJson(steps.set-vars.outputs.result).shortSha}} --ignore-not-found=true
