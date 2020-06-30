@@ -316,23 +316,9 @@ func (s *SMExecute) stepDeduplicate(ctx smachine.ExecutionContext) smachine.Stat
 	duplicate := false
 
 	action := func(state *object.SharedState) {
-		req := s.execution.Outgoing
-
-		workingList := state.KnownRequests.GetList(s.execution.Isolation.Interference)
-
-		requestState := workingList.GetState(req)
-		switch requestState {
-		// processing started but not yet processing
-		case object.RequestStarted:
+		if !state.KnownRequests.Add(s.execution.Isolation.Interference, s.execution.Outgoing) {
 			duplicate = true
-			return
-		case object.RequestProcessing:
-			duplicate = true
-			// TODO: we may have result already, should resend
-			return
 		}
-
-		workingList.Add(req)
 	}
 
 	switch s.objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
@@ -423,10 +409,7 @@ func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) sm
 		objectDescriptor descriptor.Object
 	)
 	action := func(state *object.SharedState) {
-		reqRef := s.execution.Outgoing
-
-		reqList := state.KnownRequests.GetList(s.execution.Isolation.Interference)
-		if !reqList.SetActive(reqRef) {
+		if !state.KnownRequests.SetActive(s.execution.Isolation.Interference, s.execution.Outgoing) {
 			// if we come here then request should be in RequestStarted
 			// if it is not it is either somehow lost or it is already processing
 			panic(throw.Impossible())
@@ -589,7 +572,6 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 		s.execution.Sequence++
 		s.outgoing.CallSequence = s.execution.Sequence
 		s.outgoingObject = reference.NewSelf(s.outgoing.CallOutgoing)
-		s.outgoing.DelegationSpec = s.getToken()
 	case execution.CallMethod:
 		if s.intolerableCall() && outgoing.Interference() == contract.CallTolerable {
 			err := throw.E("interference violation: ordered call from unordered call")
@@ -603,7 +585,6 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 		s.execution.Sequence++
 		s.outgoing.CallSequence = s.execution.Sequence
 		s.outgoingObject = s.outgoing.Callee
-		s.outgoing.DelegationSpec = s.getToken()
 	default:
 		panic(throw.IllegalValue())
 	}
@@ -643,6 +624,8 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 	} else {
 		s.outgoing.CallRequestFlags = payload.BuildCallRequestFlags(payload.SendResultDefault, payload.RepeatedCall)
 	}
+
+	s.outgoing.DelegationSpec = s.getToken()
 
 	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
 		err := svc.SendRole(goCtx, s.outgoing, node.DynamicRoleVirtualExecutor, s.outgoingObject, s.pulseSlot.CurrentPulseNumber())
