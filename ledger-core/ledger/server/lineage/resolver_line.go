@@ -16,8 +16,7 @@ import (
 
 type DependencyResolver interface {
 	FindOtherDependency(ref reference.Holder) (ResolvedDependency, error)
-	FindLineAnyDependency(root reference.Holder, ref reference.LocalHolder) (ResolvedDependency, error)
-	// FindLineDependency(root reference.Holder, ref reference.LocalHolder, mustBeOpen bool) (dep ResolvedDependency, recap recordNo)
+	FindLineDependency(root reference.Holder, ref reference.LocalHolder) (ResolvedDependency, error)
 }
 
 type lineResolver interface {
@@ -27,9 +26,9 @@ type lineResolver interface {
 	getLocalPN() pulse.Number
 
 	findOtherDependency(ref reference.Holder) (ResolvedDependency, error)
-	findLineAnyDependency(root reference.Holder, ref reference.LocalHolder) (ResolvedDependency, error)
-	findLineDependency(root reference.Holder, ref reference.LocalHolder, mustBeOpen bool) (filNo filamentNo, dep ResolvedDependency, recap recordNo)
-	findLocalDependency(root reference.Holder, ref reference.LocalHolder, mustBeOpen bool) (filNo filamentNo, recNo recordNo, dep ResolvedDependency)
+	findLineDependency(root reference.Holder, ref reference.LocalHolder) (ResolvedDependency, error)
+	findChainedDependency(root reference.Holder, ref reference.LocalHolder, mustBeOpen bool) (filNo filamentNo, recNo recordNo, dep ResolvedDependency, recap recordNo)
+	findLocalDependency(root reference.LocalHolder, ref reference.LocalHolder) (filamentNo, recordNo, ResolvedDependency)
 	findFilament(root reference.LocalHolder) (filamentNo, ResolvedDependency)
 	findCollision(local reference.LocalHolder, record *Record) (recordNo, error)
 

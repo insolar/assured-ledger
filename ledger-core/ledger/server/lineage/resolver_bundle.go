@@ -268,23 +268,13 @@ func (p *BundleResolver) resolvePrevRef(upd *resolvedRecord, policy RecordPolicy
 		// 2. When rootRef == ref, then it has to be a non-Branched FilamentStart
 		// 3. otherwise - it has to be an open prev record
 
-		isBranchedStart := policy.IsBranched()
-		upd.filNo, upd.prev, dep = p.resolver.findLocalDependency(rootRef, ref, !isBranchedStart)
+		upd.filNo, upd.prev, dep, upd.recapNo = p.resolver.findChainedDependency(rootRef, ref, !policy.IsBranched())
 		switch {
 		case dep.IsZero():
-			upd.prev = 0 // not local
-			upd.filNo, dep, upd.recapNo = p.resolver.findLineDependency(rootRef, ref, !isBranchedStart)
-			switch {
-			case dep.IsZero():
-				return
-			case dep.IsNotAvailable():
-				p.addDependency(rootRef, ref)
-				return
-			case upd.recapNo == 0:
-				panic(throw.Impossible())
-			}
+			return
 		case dep.IsNotAvailable():
-			panic(throw.Impossible())
+			p.addDependency(rootRef, ref)
+			return
 		case upd.prev == 0 && upd.filNo != 0:
 			panic(throw.Impossible())
 		}
@@ -336,11 +326,11 @@ func (p *BundleResolver) resolveSupplementaryRef(rootRef, ref reference.Holder) 
 		}
 	}
 
-	filNo, recNo, dep := p.resolver.findLocalDependency(rootRef, ref, false)
+	filNo, recNo, dep := p.resolver.findLocalDependency(rootRef, ref)
 	switch {
 	case dep.IsZero():
 		var err error
-		switch dep, err = p.resolver.findLineAnyDependency(rootRef, ref); {
+		switch dep, err = p.resolver.findLineDependency(rootRef, ref); {
 		case err != nil:
 			return ResolvedDependency{}, err
 		case dep.IsZero():

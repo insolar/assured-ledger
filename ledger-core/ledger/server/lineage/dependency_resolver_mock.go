@@ -15,11 +15,11 @@ import (
 type DependencyResolverMock struct {
 	t minimock.Tester
 
-	funcFindLineAnyDependency          func(root reference.Holder, ref reference.LocalHolder) (r1 ResolvedDependency, err error)
-	inspectFuncFindLineAnyDependency   func(root reference.Holder, ref reference.LocalHolder)
-	afterFindLineAnyDependencyCounter  uint64
-	beforeFindLineAnyDependencyCounter uint64
-	FindLineAnyDependencyMock          mDependencyResolverMockFindLineAnyDependency
+	funcFindLineDependency          func(root reference.Holder, ref reference.LocalHolder) (r1 ResolvedDependency, err error)
+	inspectFuncFindLineDependency   func(root reference.Holder, ref reference.LocalHolder)
+	afterFindLineDependencyCounter  uint64
+	beforeFindLineDependencyCounter uint64
+	FindLineDependencyMock          mDependencyResolverMockFindLineDependency
 
 	funcFindOtherDependency          func(ref reference.Holder) (r1 ResolvedDependency, err error)
 	inspectFuncFindOtherDependency   func(ref reference.Holder)
@@ -35,8 +35,8 @@ func NewDependencyResolverMock(t minimock.Tester) *DependencyResolverMock {
 		controller.RegisterMocker(m)
 	}
 
-	m.FindLineAnyDependencyMock = mDependencyResolverMockFindLineAnyDependency{mock: m}
-	m.FindLineAnyDependencyMock.callArgs = []*DependencyResolverMockFindLineAnyDependencyParams{}
+	m.FindLineDependencyMock = mDependencyResolverMockFindLineDependency{mock: m}
+	m.FindLineDependencyMock.callArgs = []*DependencyResolverMockFindLineDependencyParams{}
 
 	m.FindOtherDependencyMock = mDependencyResolverMockFindOtherDependency{mock: m}
 	m.FindOtherDependencyMock.callArgs = []*DependencyResolverMockFindOtherDependencyParams{}
@@ -44,220 +44,220 @@ func NewDependencyResolverMock(t minimock.Tester) *DependencyResolverMock {
 	return m
 }
 
-type mDependencyResolverMockFindLineAnyDependency struct {
+type mDependencyResolverMockFindLineDependency struct {
 	mock               *DependencyResolverMock
-	defaultExpectation *DependencyResolverMockFindLineAnyDependencyExpectation
-	expectations       []*DependencyResolverMockFindLineAnyDependencyExpectation
+	defaultExpectation *DependencyResolverMockFindLineDependencyExpectation
+	expectations       []*DependencyResolverMockFindLineDependencyExpectation
 
-	callArgs []*DependencyResolverMockFindLineAnyDependencyParams
+	callArgs []*DependencyResolverMockFindLineDependencyParams
 	mutex    sync.RWMutex
 }
 
-// DependencyResolverMockFindLineAnyDependencyExpectation specifies expectation struct of the DependencyResolver.FindLineAnyDependency
-type DependencyResolverMockFindLineAnyDependencyExpectation struct {
+// DependencyResolverMockFindLineDependencyExpectation specifies expectation struct of the DependencyResolver.FindLineDependency
+type DependencyResolverMockFindLineDependencyExpectation struct {
 	mock    *DependencyResolverMock
-	params  *DependencyResolverMockFindLineAnyDependencyParams
-	results *DependencyResolverMockFindLineAnyDependencyResults
+	params  *DependencyResolverMockFindLineDependencyParams
+	results *DependencyResolverMockFindLineDependencyResults
 	Counter uint64
 }
 
-// DependencyResolverMockFindLineAnyDependencyParams contains parameters of the DependencyResolver.FindLineAnyDependency
-type DependencyResolverMockFindLineAnyDependencyParams struct {
+// DependencyResolverMockFindLineDependencyParams contains parameters of the DependencyResolver.FindLineDependency
+type DependencyResolverMockFindLineDependencyParams struct {
 	root reference.Holder
 	ref  reference.LocalHolder
 }
 
-// DependencyResolverMockFindLineAnyDependencyResults contains results of the DependencyResolver.FindLineAnyDependency
-type DependencyResolverMockFindLineAnyDependencyResults struct {
+// DependencyResolverMockFindLineDependencyResults contains results of the DependencyResolver.FindLineDependency
+type DependencyResolverMockFindLineDependencyResults struct {
 	r1  ResolvedDependency
 	err error
 }
 
-// Expect sets up expected params for DependencyResolver.FindLineAnyDependency
-func (mmFindLineAnyDependency *mDependencyResolverMockFindLineAnyDependency) Expect(root reference.Holder, ref reference.LocalHolder) *mDependencyResolverMockFindLineAnyDependency {
-	if mmFindLineAnyDependency.mock.funcFindLineAnyDependency != nil {
-		mmFindLineAnyDependency.mock.t.Fatalf("DependencyResolverMock.FindLineAnyDependency mock is already set by Set")
+// Expect sets up expected params for DependencyResolver.FindLineDependency
+func (mmFindLineDependency *mDependencyResolverMockFindLineDependency) Expect(root reference.Holder, ref reference.LocalHolder) *mDependencyResolverMockFindLineDependency {
+	if mmFindLineDependency.mock.funcFindLineDependency != nil {
+		mmFindLineDependency.mock.t.Fatalf("DependencyResolverMock.FindLineDependency mock is already set by Set")
 	}
 
-	if mmFindLineAnyDependency.defaultExpectation == nil {
-		mmFindLineAnyDependency.defaultExpectation = &DependencyResolverMockFindLineAnyDependencyExpectation{}
+	if mmFindLineDependency.defaultExpectation == nil {
+		mmFindLineDependency.defaultExpectation = &DependencyResolverMockFindLineDependencyExpectation{}
 	}
 
-	mmFindLineAnyDependency.defaultExpectation.params = &DependencyResolverMockFindLineAnyDependencyParams{root, ref}
-	for _, e := range mmFindLineAnyDependency.expectations {
-		if minimock.Equal(e.params, mmFindLineAnyDependency.defaultExpectation.params) {
-			mmFindLineAnyDependency.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmFindLineAnyDependency.defaultExpectation.params)
+	mmFindLineDependency.defaultExpectation.params = &DependencyResolverMockFindLineDependencyParams{root, ref}
+	for _, e := range mmFindLineDependency.expectations {
+		if minimock.Equal(e.params, mmFindLineDependency.defaultExpectation.params) {
+			mmFindLineDependency.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmFindLineDependency.defaultExpectation.params)
 		}
 	}
 
-	return mmFindLineAnyDependency
+	return mmFindLineDependency
 }
 
-// Inspect accepts an inspector function that has same arguments as the DependencyResolver.FindLineAnyDependency
-func (mmFindLineAnyDependency *mDependencyResolverMockFindLineAnyDependency) Inspect(f func(root reference.Holder, ref reference.LocalHolder)) *mDependencyResolverMockFindLineAnyDependency {
-	if mmFindLineAnyDependency.mock.inspectFuncFindLineAnyDependency != nil {
-		mmFindLineAnyDependency.mock.t.Fatalf("Inspect function is already set for DependencyResolverMock.FindLineAnyDependency")
+// Inspect accepts an inspector function that has same arguments as the DependencyResolver.FindLineDependency
+func (mmFindLineDependency *mDependencyResolverMockFindLineDependency) Inspect(f func(root reference.Holder, ref reference.LocalHolder)) *mDependencyResolverMockFindLineDependency {
+	if mmFindLineDependency.mock.inspectFuncFindLineDependency != nil {
+		mmFindLineDependency.mock.t.Fatalf("Inspect function is already set for DependencyResolverMock.FindLineDependency")
 	}
 
-	mmFindLineAnyDependency.mock.inspectFuncFindLineAnyDependency = f
+	mmFindLineDependency.mock.inspectFuncFindLineDependency = f
 
-	return mmFindLineAnyDependency
+	return mmFindLineDependency
 }
 
-// Return sets up results that will be returned by DependencyResolver.FindLineAnyDependency
-func (mmFindLineAnyDependency *mDependencyResolverMockFindLineAnyDependency) Return(r1 ResolvedDependency, err error) *DependencyResolverMock {
-	if mmFindLineAnyDependency.mock.funcFindLineAnyDependency != nil {
-		mmFindLineAnyDependency.mock.t.Fatalf("DependencyResolverMock.FindLineAnyDependency mock is already set by Set")
+// Return sets up results that will be returned by DependencyResolver.FindLineDependency
+func (mmFindLineDependency *mDependencyResolverMockFindLineDependency) Return(r1 ResolvedDependency, err error) *DependencyResolverMock {
+	if mmFindLineDependency.mock.funcFindLineDependency != nil {
+		mmFindLineDependency.mock.t.Fatalf("DependencyResolverMock.FindLineDependency mock is already set by Set")
 	}
 
-	if mmFindLineAnyDependency.defaultExpectation == nil {
-		mmFindLineAnyDependency.defaultExpectation = &DependencyResolverMockFindLineAnyDependencyExpectation{mock: mmFindLineAnyDependency.mock}
+	if mmFindLineDependency.defaultExpectation == nil {
+		mmFindLineDependency.defaultExpectation = &DependencyResolverMockFindLineDependencyExpectation{mock: mmFindLineDependency.mock}
 	}
-	mmFindLineAnyDependency.defaultExpectation.results = &DependencyResolverMockFindLineAnyDependencyResults{r1, err}
-	return mmFindLineAnyDependency.mock
+	mmFindLineDependency.defaultExpectation.results = &DependencyResolverMockFindLineDependencyResults{r1, err}
+	return mmFindLineDependency.mock
 }
 
-//Set uses given function f to mock the DependencyResolver.FindLineAnyDependency method
-func (mmFindLineAnyDependency *mDependencyResolverMockFindLineAnyDependency) Set(f func(root reference.Holder, ref reference.LocalHolder) (r1 ResolvedDependency, err error)) *DependencyResolverMock {
-	if mmFindLineAnyDependency.defaultExpectation != nil {
-		mmFindLineAnyDependency.mock.t.Fatalf("Default expectation is already set for the DependencyResolver.FindLineAnyDependency method")
+//Set uses given function f to mock the DependencyResolver.FindLineDependency method
+func (mmFindLineDependency *mDependencyResolverMockFindLineDependency) Set(f func(root reference.Holder, ref reference.LocalHolder) (r1 ResolvedDependency, err error)) *DependencyResolverMock {
+	if mmFindLineDependency.defaultExpectation != nil {
+		mmFindLineDependency.mock.t.Fatalf("Default expectation is already set for the DependencyResolver.FindLineDependency method")
 	}
 
-	if len(mmFindLineAnyDependency.expectations) > 0 {
-		mmFindLineAnyDependency.mock.t.Fatalf("Some expectations are already set for the DependencyResolver.FindLineAnyDependency method")
+	if len(mmFindLineDependency.expectations) > 0 {
+		mmFindLineDependency.mock.t.Fatalf("Some expectations are already set for the DependencyResolver.FindLineDependency method")
 	}
 
-	mmFindLineAnyDependency.mock.funcFindLineAnyDependency = f
-	return mmFindLineAnyDependency.mock
+	mmFindLineDependency.mock.funcFindLineDependency = f
+	return mmFindLineDependency.mock
 }
 
-// When sets expectation for the DependencyResolver.FindLineAnyDependency which will trigger the result defined by the following
+// When sets expectation for the DependencyResolver.FindLineDependency which will trigger the result defined by the following
 // Then helper
-func (mmFindLineAnyDependency *mDependencyResolverMockFindLineAnyDependency) When(root reference.Holder, ref reference.LocalHolder) *DependencyResolverMockFindLineAnyDependencyExpectation {
-	if mmFindLineAnyDependency.mock.funcFindLineAnyDependency != nil {
-		mmFindLineAnyDependency.mock.t.Fatalf("DependencyResolverMock.FindLineAnyDependency mock is already set by Set")
+func (mmFindLineDependency *mDependencyResolverMockFindLineDependency) When(root reference.Holder, ref reference.LocalHolder) *DependencyResolverMockFindLineDependencyExpectation {
+	if mmFindLineDependency.mock.funcFindLineDependency != nil {
+		mmFindLineDependency.mock.t.Fatalf("DependencyResolverMock.FindLineDependency mock is already set by Set")
 	}
 
-	expectation := &DependencyResolverMockFindLineAnyDependencyExpectation{
-		mock:   mmFindLineAnyDependency.mock,
-		params: &DependencyResolverMockFindLineAnyDependencyParams{root, ref},
+	expectation := &DependencyResolverMockFindLineDependencyExpectation{
+		mock:   mmFindLineDependency.mock,
+		params: &DependencyResolverMockFindLineDependencyParams{root, ref},
 	}
-	mmFindLineAnyDependency.expectations = append(mmFindLineAnyDependency.expectations, expectation)
+	mmFindLineDependency.expectations = append(mmFindLineDependency.expectations, expectation)
 	return expectation
 }
 
-// Then sets up DependencyResolver.FindLineAnyDependency return parameters for the expectation previously defined by the When method
-func (e *DependencyResolverMockFindLineAnyDependencyExpectation) Then(r1 ResolvedDependency, err error) *DependencyResolverMock {
-	e.results = &DependencyResolverMockFindLineAnyDependencyResults{r1, err}
+// Then sets up DependencyResolver.FindLineDependency return parameters for the expectation previously defined by the When method
+func (e *DependencyResolverMockFindLineDependencyExpectation) Then(r1 ResolvedDependency, err error) *DependencyResolverMock {
+	e.results = &DependencyResolverMockFindLineDependencyResults{r1, err}
 	return e.mock
 }
 
-// FindLineAnyDependency implements DependencyResolver
-func (mmFindLineAnyDependency *DependencyResolverMock) FindLineAnyDependency(root reference.Holder, ref reference.LocalHolder) (r1 ResolvedDependency, err error) {
-	mm_atomic.AddUint64(&mmFindLineAnyDependency.beforeFindLineAnyDependencyCounter, 1)
-	defer mm_atomic.AddUint64(&mmFindLineAnyDependency.afterFindLineAnyDependencyCounter, 1)
+// FindLineDependency implements DependencyResolver
+func (mmFindLineDependency *DependencyResolverMock) FindLineDependency(root reference.Holder, ref reference.LocalHolder) (r1 ResolvedDependency, err error) {
+	mm_atomic.AddUint64(&mmFindLineDependency.beforeFindLineDependencyCounter, 1)
+	defer mm_atomic.AddUint64(&mmFindLineDependency.afterFindLineDependencyCounter, 1)
 
-	if mmFindLineAnyDependency.inspectFuncFindLineAnyDependency != nil {
-		mmFindLineAnyDependency.inspectFuncFindLineAnyDependency(root, ref)
+	if mmFindLineDependency.inspectFuncFindLineDependency != nil {
+		mmFindLineDependency.inspectFuncFindLineDependency(root, ref)
 	}
 
-	mm_params := &DependencyResolverMockFindLineAnyDependencyParams{root, ref}
+	mm_params := &DependencyResolverMockFindLineDependencyParams{root, ref}
 
 	// Record call args
-	mmFindLineAnyDependency.FindLineAnyDependencyMock.mutex.Lock()
-	mmFindLineAnyDependency.FindLineAnyDependencyMock.callArgs = append(mmFindLineAnyDependency.FindLineAnyDependencyMock.callArgs, mm_params)
-	mmFindLineAnyDependency.FindLineAnyDependencyMock.mutex.Unlock()
+	mmFindLineDependency.FindLineDependencyMock.mutex.Lock()
+	mmFindLineDependency.FindLineDependencyMock.callArgs = append(mmFindLineDependency.FindLineDependencyMock.callArgs, mm_params)
+	mmFindLineDependency.FindLineDependencyMock.mutex.Unlock()
 
-	for _, e := range mmFindLineAnyDependency.FindLineAnyDependencyMock.expectations {
+	for _, e := range mmFindLineDependency.FindLineDependencyMock.expectations {
 		if minimock.Equal(e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
 			return e.results.r1, e.results.err
 		}
 	}
 
-	if mmFindLineAnyDependency.FindLineAnyDependencyMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmFindLineAnyDependency.FindLineAnyDependencyMock.defaultExpectation.Counter, 1)
-		mm_want := mmFindLineAnyDependency.FindLineAnyDependencyMock.defaultExpectation.params
-		mm_got := DependencyResolverMockFindLineAnyDependencyParams{root, ref}
+	if mmFindLineDependency.FindLineDependencyMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmFindLineDependency.FindLineDependencyMock.defaultExpectation.Counter, 1)
+		mm_want := mmFindLineDependency.FindLineDependencyMock.defaultExpectation.params
+		mm_got := DependencyResolverMockFindLineDependencyParams{root, ref}
 		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmFindLineAnyDependency.t.Errorf("DependencyResolverMock.FindLineAnyDependency got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+			mmFindLineDependency.t.Errorf("DependencyResolverMock.FindLineDependency got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
 
-		mm_results := mmFindLineAnyDependency.FindLineAnyDependencyMock.defaultExpectation.results
+		mm_results := mmFindLineDependency.FindLineDependencyMock.defaultExpectation.results
 		if mm_results == nil {
-			mmFindLineAnyDependency.t.Fatal("No results are set for the DependencyResolverMock.FindLineAnyDependency")
+			mmFindLineDependency.t.Fatal("No results are set for the DependencyResolverMock.FindLineDependency")
 		}
 		return (*mm_results).r1, (*mm_results).err
 	}
-	if mmFindLineAnyDependency.funcFindLineAnyDependency != nil {
-		return mmFindLineAnyDependency.funcFindLineAnyDependency(root, ref)
+	if mmFindLineDependency.funcFindLineDependency != nil {
+		return mmFindLineDependency.funcFindLineDependency(root, ref)
 	}
-	mmFindLineAnyDependency.t.Fatalf("Unexpected call to DependencyResolverMock.FindLineAnyDependency. %v %v", root, ref)
+	mmFindLineDependency.t.Fatalf("Unexpected call to DependencyResolverMock.FindLineDependency. %v %v", root, ref)
 	return
 }
 
-// FindLineAnyDependencyAfterCounter returns a count of finished DependencyResolverMock.FindLineAnyDependency invocations
-func (mmFindLineAnyDependency *DependencyResolverMock) FindLineAnyDependencyAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmFindLineAnyDependency.afterFindLineAnyDependencyCounter)
+// FindLineDependencyAfterCounter returns a count of finished DependencyResolverMock.FindLineDependency invocations
+func (mmFindLineDependency *DependencyResolverMock) FindLineDependencyAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmFindLineDependency.afterFindLineDependencyCounter)
 }
 
-// FindLineAnyDependencyBeforeCounter returns a count of DependencyResolverMock.FindLineAnyDependency invocations
-func (mmFindLineAnyDependency *DependencyResolverMock) FindLineAnyDependencyBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmFindLineAnyDependency.beforeFindLineAnyDependencyCounter)
+// FindLineDependencyBeforeCounter returns a count of DependencyResolverMock.FindLineDependency invocations
+func (mmFindLineDependency *DependencyResolverMock) FindLineDependencyBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmFindLineDependency.beforeFindLineDependencyCounter)
 }
 
-// Calls returns a list of arguments used in each call to DependencyResolverMock.FindLineAnyDependency.
+// Calls returns a list of arguments used in each call to DependencyResolverMock.FindLineDependency.
 // The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmFindLineAnyDependency *mDependencyResolverMockFindLineAnyDependency) Calls() []*DependencyResolverMockFindLineAnyDependencyParams {
-	mmFindLineAnyDependency.mutex.RLock()
+func (mmFindLineDependency *mDependencyResolverMockFindLineDependency) Calls() []*DependencyResolverMockFindLineDependencyParams {
+	mmFindLineDependency.mutex.RLock()
 
-	argCopy := make([]*DependencyResolverMockFindLineAnyDependencyParams, len(mmFindLineAnyDependency.callArgs))
-	copy(argCopy, mmFindLineAnyDependency.callArgs)
+	argCopy := make([]*DependencyResolverMockFindLineDependencyParams, len(mmFindLineDependency.callArgs))
+	copy(argCopy, mmFindLineDependency.callArgs)
 
-	mmFindLineAnyDependency.mutex.RUnlock()
+	mmFindLineDependency.mutex.RUnlock()
 
 	return argCopy
 }
 
-// MinimockFindLineAnyDependencyDone returns true if the count of the FindLineAnyDependency invocations corresponds
+// MinimockFindLineDependencyDone returns true if the count of the FindLineDependency invocations corresponds
 // the number of defined expectations
-func (m *DependencyResolverMock) MinimockFindLineAnyDependencyDone() bool {
-	for _, e := range m.FindLineAnyDependencyMock.expectations {
+func (m *DependencyResolverMock) MinimockFindLineDependencyDone() bool {
+	for _, e := range m.FindLineDependencyMock.expectations {
 		if mm_atomic.LoadUint64(&e.Counter) < 1 {
 			return false
 		}
 	}
 
 	// if default expectation was set then invocations count should be greater than zero
-	if m.FindLineAnyDependencyMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterFindLineAnyDependencyCounter) < 1 {
+	if m.FindLineDependencyMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterFindLineDependencyCounter) < 1 {
 		return false
 	}
 	// if func was set then invocations count should be greater than zero
-	if m.funcFindLineAnyDependency != nil && mm_atomic.LoadUint64(&m.afterFindLineAnyDependencyCounter) < 1 {
+	if m.funcFindLineDependency != nil && mm_atomic.LoadUint64(&m.afterFindLineDependencyCounter) < 1 {
 		return false
 	}
 	return true
 }
 
-// MinimockFindLineAnyDependencyInspect logs each unmet expectation
-func (m *DependencyResolverMock) MinimockFindLineAnyDependencyInspect() {
-	for _, e := range m.FindLineAnyDependencyMock.expectations {
+// MinimockFindLineDependencyInspect logs each unmet expectation
+func (m *DependencyResolverMock) MinimockFindLineDependencyInspect() {
+	for _, e := range m.FindLineDependencyMock.expectations {
 		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to DependencyResolverMock.FindLineAnyDependency with params: %#v", *e.params)
+			m.t.Errorf("Expected call to DependencyResolverMock.FindLineDependency with params: %#v", *e.params)
 		}
 	}
 
 	// if default expectation was set then invocations count should be greater than zero
-	if m.FindLineAnyDependencyMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterFindLineAnyDependencyCounter) < 1 {
-		if m.FindLineAnyDependencyMock.defaultExpectation.params == nil {
-			m.t.Error("Expected call to DependencyResolverMock.FindLineAnyDependency")
+	if m.FindLineDependencyMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterFindLineDependencyCounter) < 1 {
+		if m.FindLineDependencyMock.defaultExpectation.params == nil {
+			m.t.Error("Expected call to DependencyResolverMock.FindLineDependency")
 		} else {
-			m.t.Errorf("Expected call to DependencyResolverMock.FindLineAnyDependency with params: %#v", *m.FindLineAnyDependencyMock.defaultExpectation.params)
+			m.t.Errorf("Expected call to DependencyResolverMock.FindLineDependency with params: %#v", *m.FindLineDependencyMock.defaultExpectation.params)
 		}
 	}
 	// if func was set then invocations count should be greater than zero
-	if m.funcFindLineAnyDependency != nil && mm_atomic.LoadUint64(&m.afterFindLineAnyDependencyCounter) < 1 {
-		m.t.Error("Expected call to DependencyResolverMock.FindLineAnyDependency")
+	if m.funcFindLineDependency != nil && mm_atomic.LoadUint64(&m.afterFindLineDependencyCounter) < 1 {
+		m.t.Error("Expected call to DependencyResolverMock.FindLineDependency")
 	}
 }
 
@@ -480,7 +480,7 @@ func (m *DependencyResolverMock) MinimockFindOtherDependencyInspect() {
 // MinimockFinish checks that all mocked methods have been called the expected number of times
 func (m *DependencyResolverMock) MinimockFinish() {
 	if !m.minimockDone() {
-		m.MinimockFindLineAnyDependencyInspect()
+		m.MinimockFindLineDependencyInspect()
 
 		m.MinimockFindOtherDependencyInspect()
 		m.t.FailNow()
@@ -506,6 +506,6 @@ func (m *DependencyResolverMock) MinimockWait(timeout mm_time.Duration) {
 func (m *DependencyResolverMock) minimockDone() bool {
 	done := true
 	return done &&
-		m.MinimockFindLineAnyDependencyDone() &&
+		m.MinimockFindLineDependencyDone() &&
 		m.MinimockFindOtherDependencyDone()
 }

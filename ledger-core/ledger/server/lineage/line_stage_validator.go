@@ -69,7 +69,7 @@ func (p *stageValidator) adjustPrevAndRecap(rec *resolvedRecord) error {
 	return nil
 }
 
-func (p *stageValidator) addFilament(rec *resolvedRecord) error {
+func (p *stageValidator) _addFilament(rec *resolvedRecord) error {
 	switch {
 	case rec.filNo != 0:
 	case p.filNo != 0:
@@ -88,6 +88,10 @@ func (p *stageValidator) addFilament(rec *resolvedRecord) error {
 }
 
 func (p *stageValidator) applyFilament(rec *resolvedRecord) error {
+	if err := p._addFilament(rec); err != nil {
+		return err
+	}
+
 	filament := &p.stage.filaments[rec.filNo - 1]
 
 	switch {

@@ -124,3 +124,8 @@ func Copy(h Holder) Global {
 		return New(h.GetBase(), h.GetLocal())
 	}
 }
+
+func NormCopy(h Holder) Global {
+	// TODO scope normalization - local domain scope must be normalized to lifeline scope
+	return Copy(h)
+}

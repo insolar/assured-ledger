@@ -23,6 +23,7 @@ type LineStages struct {
 
 	recordRefs    map[reference.LocalHash]recordNo
 	filamentRefs  map[reference.Local]filamentNo
+	reasonRefs    map[reference.Global]recordNo
 
 	lineRecords
 }
@@ -74,17 +75,17 @@ func (p *LineStages) AddBundle(bundle *BundleResolver, tracker StageTracker) boo
 		rec := &bundle.records[i]
 		bundle.setLastRecord(rec.GetRecordRef())
 
+		if err := p.checkReason(rec); err != nil {
+			bundle.addError(err)
+			continue
+		}
+
 		if err := validator.adjustNext(rec); err != nil {
 			bundle.addError(err)
 			continue
 		}
 
 		if err := validator.adjustPrevAndRecap(rec); err != nil {
-			bundle.addError(err)
-			continue
-		}
-
-		if err := validator.addFilament(rec); err != nil {
 			bundle.addError(err)
 			continue
 		}
@@ -104,10 +105,25 @@ func (p *LineStages) AddBundle(bundle *BundleResolver, tracker StageTracker) boo
 		return false
 	}
 
+	return p.addStage(bundle, stage, prevFilamentCount, validator.filRoot)
+}
+
+func (p *LineStages) addStage(bundle *BundleResolver, stage *updateStage, prevFilamentCount int, filRoot reference.Local) bool {
+	cutOffRec := stage.firstRec
+
+	defer func() {
+		// block this bundle from being reused without reprocessing
+		bundle.addError(throw.New("discarded bundle"))
+		if cutOffRec > 0 {
+			p.restoreLatest(cutOffRec)
+		} else {
+			p.restoreEmpty()
+		}
+	}()
+
 	if p.recordRefs == nil {
 		p.recordRefs = map[reference.LocalHash]recordNo{}
 	}
-
 	if p.filamentRefs == nil {
 		p.filamentRefs = map[reference.Local]filamentNo{}
 	}
@@ -129,6 +145,7 @@ func (p *LineStages) AddBundle(bundle *BundleResolver, tracker StageTracker) boo
 		p.add(*rec)
 		key := rec.GetRecordRef().GetLocal().IdentityHash()
 		p.recordRefs[key] = rec.recordNo
+		p.putReason(rec)
 	}
 
 	if prevFilamentCount == 0 {
@@ -137,8 +154,10 @@ func (p *LineStages) AddBundle(bundle *BundleResolver, tracker StageTracker) boo
 	}
 
 	if prevFilamentCount != len(stage.filaments) {
-		p.filamentRefs[validator.filRoot] = filamentNo(len(stage.filaments))
+		p.filamentRefs[filRoot] = filamentNo(len(stage.filaments))
 	}
+
+	cutOffRec = deadFilament // disable cutoff by defer
 
 	if p.latest != nil {
 		p.latest.next = stage
@@ -146,9 +165,6 @@ func (p *LineStages) AddBundle(bundle *BundleResolver, tracker StageTracker) boo
 		p.earliest = stage
 	}
 	p.latest = stage
-
-	// block this bundle from being reused without reprocessing
-	bundle.addError(throw.New("discarded bundle"))
 
 	return true
 }
@@ -190,26 +206,35 @@ func (p *LineStages) RollbackUncommittedRecords() {
 		p.latest = p.earliest
 	case last == nil:
 		// there is nothing committed
-		*p = LineStages{
-			base:         p.base,
-			pn:           p.pn,
-			cache:        p.cache,
-		}
+		p.restoreEmpty()
 		return
 	default:
 		cutOffRec = p.earliest.firstRec
-		p.lineRecords.truncate(cutOffRec)
 		p.earliest = last
 	}
 	p.latest = p.earliest
 	p.earliest.next = nil
 
+	p.restoreLatest(cutOffRec)
+}
+
+func (p *LineStages) restoreLatest(cutOffRec recordNo) {
 	if cutOffRec == deadFilament {
 		// everything was committed
 		return
 	}
 
-	// cleanup the record map
+	// TODO use truncated records for cleanup
+	p.lineRecords.truncate(cutOffRec)
+
+	// cleanup reason map
+	for k, recNo := range p.reasonRefs {
+		if recNo >= cutOffRec {
+			delete(p.reasonRefs, k)
+		}
+	}
+
+	// cleanup record map
 	for k, recNo := range p.recordRefs {
 		if recordNo(len(p.recordRefs)) < cutOffRec {
 			break
@@ -219,7 +244,7 @@ func (p *LineStages) RollbackUncommittedRecords() {
 		}
 	}
 
-	// cleanup the filament map
+	// cleanup filament map
 	cutOffFil := filamentNo(len(p.latest.filaments) + 1)
 	for k, filNo := range p.filamentRefs {
 		if filamentNo(len(p.filamentRefs)) < cutOffFil {
@@ -236,6 +261,14 @@ func (p *LineStages) RollbackUncommittedRecords() {
 		if next := latestRec.next; next >= cutOffRec && next != deadFilament {
 			latestRec.next = 0
 		}
+	}
+}
+
+func (p *LineStages) restoreEmpty() {
+	*p = LineStages{
+		base:         p.base,
+		pn:           p.pn,
+		cache:        p.cache,
 	}
 }
 
@@ -258,36 +291,57 @@ func (p *LineStages) findOtherDependency(ref reference.Holder) (ResolvedDependen
 	return p.cache.FindOtherDependency(ref)
 }
 
-func (p *LineStages) findLineAnyDependency(root reference.Holder, ref reference.LocalHolder) (ResolvedDependency, error) {
+func (p *LineStages) findLineDependency(root reference.Holder, ref reference.LocalHolder) (ResolvedDependency, error) {
 	// TODO caching
 	if p.cache == nil || ref == nil || ref.IsEmpty() {
 		return ResolvedDependency{}, nil
 	}
-	return p.cache.FindLineAnyDependency(root, ref)
+	return p.cache.FindLineDependency(root, ref)
 }
 
-func (p *LineStages) findLineDependency(root reference.Holder, ref reference.LocalHolder, mustBeOpen bool) (filNo filamentNo, dep ResolvedDependency, recap recordNo) {
+func (p *LineStages) findChainedDependency(root reference.Holder, ref reference.LocalHolder, mustBeOpen bool) (filNo filamentNo, recNo recordNo, dep ResolvedDependency, recap recordNo) {
+	if filNo, rec := p._findLocalDependency(root, ref); rec != nil {
+		if filNo == 0 {
+			// this is filament mismatched - avoid further search
+			return 0, 0, ResolvedDependency{}, 0
+		}
+		recap := p.latest.filaments[filNo - 1].recap
+
+		if mustBeOpen && rec.next != 0 {
+			filNo = 0 // mark
+		}
+		return filNo, rec.recordNo, rec.asResolvedDependency(), recap
+	}
+
 	// TODO caching
-	return 0, ResolvedDependency{}, 0
+	// Open status should be checked by filaments
+	// if mustBeOpen && rec.next != 0 {
+	// 	filNo = 0 // mark
+	// }
+
+	return 0, 0, ResolvedDependency{}, 0
 }
 
-func (p *LineStages) findLocalDependency(root reference.Holder, ref reference.LocalHolder, mustBeOpen bool) (filNo filamentNo, recNo recordNo, dep ResolvedDependency) {
-	recNo = p.recordRefs[ref.GetLocal().IdentityHash()]
+func (p *LineStages) _findLocalDependency(root reference.LocalHolder, ref reference.LocalHolder) (filamentNo, *updateRecord) {
+	recNo := p.recordRefs[ref.GetLocal().IdentityHash()]
 	if recNo == 0 {
-		return 0, 0, ResolvedDependency{}
+		return 0, nil
 	}
-
-	filNo = p.filamentRefs[root.GetLocal()]
-	if filNo == 0 {
-		return 0, 0, ResolvedDependency{}
-	}
-
 	rec := p.get(recNo)
-	if mustBeOpen && rec.next != 0 {
-		filNo = 0 // mark
+
+	filNo := p.filamentRefs[root.GetLocal()]
+	if filNo != rec.filNo {
+		return 0, rec
 	}
 
-	return filNo, recNo, rec.asResolvedDependency()
+	return filNo, rec
+}
+
+func (p *LineStages) findLocalDependency(root reference.LocalHolder, ref reference.LocalHolder) (filamentNo, recordNo, ResolvedDependency) {
+	if filNo, rec := p._findLocalDependency(root, ref); filNo != 0 {
+		return filNo, rec.recordNo, rec.asResolvedDependency()
+	}
+	return 0, 0, ResolvedDependency{}
 }
 
 func (p *LineStages) findFilament(root reference.LocalHolder) (filamentNo, ResolvedDependency) {
@@ -309,4 +363,28 @@ func (p *LineStages) findCollision(local reference.LocalHolder, record *Record) 
 		return recNo, nil
 	}
 	return 0, throw.E("record content mismatch", struct { Existing, New Record	}{ found.Record, *record })
+}
+
+func (p *LineStages) checkReason(rec *resolvedRecord) error {
+	reasonRef := rec.Excerpt.ReasonRef.Get()
+	if reference.IsEmpty(reasonRef) {
+		return nil
+	}
+	normRef := reference.NormCopy(reasonRef)
+	if _, ok := p.reasonRefs[normRef]; !ok {
+		return nil
+	}
+	return throw.New("reused reason", struct { ReasonRef reference.Global }{ normRef })
+}
+
+func (p *LineStages) putReason(rec *resolvedRecord) {
+	reasonRef := rec.Excerpt.ReasonRef.Get()
+	if reference.IsEmpty(reasonRef) {
+		return
+	}
+	normRef := reference.NormCopy(reasonRef)
+	if p.reasonRefs == nil {
+		p.reasonRefs = map[reference.Global]recordNo{}
+	}
+	p.reasonRefs[normRef] = rec.recordNo
 }
