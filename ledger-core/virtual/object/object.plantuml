@@ -29,7 +29,7 @@ T00_S007 --> T00_S008
 state "stepMigrate" as T00_S010
 T00_S010 : SMObject
 T00_S010 --> [*] : [sm.GetState()==Unknown]
-T00_S010 --[dashed]> [*] : [!ctx.Publish()]\nError
+T00_S010 --> [*] : [!ctx.Publish()]\nError
 T00_S010 --> T00_S011
 state "stepReadyToWork" as T00_S008
 T00_S008 : SMObject

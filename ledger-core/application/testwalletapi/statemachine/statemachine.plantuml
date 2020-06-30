@@ -14,7 +14,7 @@ T00_S006 --> [*]
 state "stepRegisterBargeIn" as T00_S003
 T00_S003 : SMTestAPICall
 T00_S003 --[dotted]> T00_S001
-T00_S003 --[dashed]> [*] : [!(...).PublishGlobalAliasAndBargeIn()]\nError
+T00_S003 --> [*] : [!(...).PublishGlobalAliasAndBargeIn()]\nError
 T00_S003 --> T00_S004
 state "stepSendRequest" as T00_S004
 T00_S004 : SMTestAPICall

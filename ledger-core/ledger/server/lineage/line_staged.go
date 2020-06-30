@@ -310,7 +310,7 @@ func (p *LineStages) RollbackUncommittedRecords() {
 		}
 	}
 
-	// make open last records of filaments
+	// mark open last records of filaments
 	for _, f := range p.latest.filaments {
 		latestRec := p.get(f.latest)
 		if next := latestRec.next; next >= cutOffRec && next != deadFilament {

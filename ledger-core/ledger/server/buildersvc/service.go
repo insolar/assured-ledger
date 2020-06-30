@@ -8,6 +8,7 @@ package buildersvc
 import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type JetID uint32
@@ -15,11 +16,11 @@ type JetID uint32
 type JetDropID uint64
 
 func NewJetDropID(pn pulse.Number, id JetID) JetDropID {
-
+	panic(throw.NotImplemented())
 }
 
 func (v JetDropID) IsValid() bool {
-
+	panic(throw.NotImplemented())
 }
 
 type StreamDropAssistant interface {

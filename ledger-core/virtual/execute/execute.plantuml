@@ -5,7 +5,7 @@ T01_S002 : SMExecute
 T01_S002 --> T01_S003 : Migrate: s.migrationDefault
 state "migrateDuringExecution" as T01_S012
 T01_S012 : SMExecute
-T01_S012 --[dashed]> [*] : [...&&(...).delegationTokenSpec.IsZero()]\nError
+T01_S012 --> [*] : [...&&(...).delegationTokenSpec.IsZero()]\nError
 T01_S012 --> T01_S013
 state "migrationDefault" as T01_S001
 T01_S001 : SMExecute
@@ -86,7 +86,7 @@ T01_U004 : SMExecute
 T01_U004 : UNKNOWN 
 T01_S015 --> T01_U004
 state "stepGetDelegationToken.subroutineSM.1" as T01_S014 <<sdlreceive>>
-T01_S014 --> T01_S015 : Migrate: <nil>
+T01_S014 --> T01_S015
 state "stepGetObject" as T01_S004
 T01_S004 : SMExecute
 T01_S004 --[dotted]> T01_S001
@@ -100,7 +100,7 @@ state T01_U005 <<fork>>
 T01_S006 --> T01_U005 : [s.methodIsolation.IsZero()]
 T01_U005 --> T01_S007 : PrepareExecutionClassify(ctx)
 T01_U005 --[dashed]> T01_S006 : Sleep
-T01_S006 --[dashed]> [*] : [err!=nil]\nError
+T01_S006 --> [*] : [err!=nil]\nError
 T01_S006 --> T01_S008
 state "stepSaveNewObject" as T01_S024
 T01_S024 : SMExecute
@@ -123,7 +123,7 @@ T01_S025 --> [*]
 state "stepSendOutgoing" as T01_S021
 T01_S021 : SMExecute
 T01_S021 --[dotted]> T01_S012
-T01_S021 --[dashed]> [*] : [!(...).PublishGlobalAliasAndBargeIn()]\nError
+T01_S021 --> [*] : [!(...).PublishGlobalAliasAndBargeIn()]\nError
 T01_S021 --> T01_S022 : PrepareAsync(ctx).WithoutAutoWakeUp()
 T01_S021 --[dashed]> T01_S023 : Sleep
 state "stepStartRequestProcessing" as T01_S011
