@@ -1,6 +1,6 @@
 name: linux-checks # checks executed on Linux, only on pull requests
 on:
-  pull_request:
+  #pull_request:
 env:
   KUBECONFIG: k3s.yaml
   GO_VERSION: 1.14

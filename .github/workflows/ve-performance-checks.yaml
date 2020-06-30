@@ -28,6 +28,8 @@ jobs:
         run: |
           pwd
           ls -a
+          cd loadgen
+          ls -a
           go build -o loadcli /loadgen/loadgen/cmd/
           ls -a
       - name: Create short git sha and git ref vars
