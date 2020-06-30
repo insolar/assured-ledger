@@ -32,8 +32,9 @@ import (
 type VFindCallRequestHandlingTestInfo struct {
 	name string
 
-	events        []string
-	requestFromP1 bool
+	events               []string
+	requestFromP1        bool
+	requestIsConstructor bool
 
 	expectedStatus payload.VFindCallResponse_CallState
 	expectedResult bool
@@ -70,35 +71,75 @@ func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
 
 			expectedStatus: payload.UnknownCall,
 		},
+
+
 		{
-			name:   "found request, not pending, result",
-			events: []string{"reqStart", "reqFinish", "P2->P3", "findMsg"},
+			name:   "found request, method, not pending, result",
+			events: []string{"reqMethodStart", "reqFinish", "P2->P3", "findMsg"},
 
 			expectedStatus: payload.FoundCall,
 			expectedResult: true,
 		},
 		{
-			name:   "found request, not pending, result, early msg",
-			events: []string{"findMsg", "reqStart", "reqFinish", "P2->P3"},
+			name:   "found request, method, not pending, result, early msg",
+			events: []string{"findMsg", "reqMethodStart", "reqFinish", "P2->P3"},
 
 			expectedStatus: payload.FoundCall,
 			expectedResult: true,
 		},
 		{
-			name:   "found request, pending, no result",
-			events: []string{"reqStart", "P2->P3", "findMsg"},
+			name:   "found request, method, pending, no result",
+			events: []string{"reqMethodStart", "P2->P3", "findMsg"},
 
 			expectedStatus: payload.FoundCall,
 		},
 		{
-			name:   "found request, pending, no result, earlyMsg",
-			events: []string{"findMsg", "reqStart", "P2->P3"},
+			name:   "found request, method, pending, no result, earlyMsg",
+			events: []string{"findMsg", "reqMethodStart", "P2->P3"},
 
 			expectedStatus: payload.FoundCall,
 		},
 		{
-			name:   "found request, pending, result",
-			events: []string{"reqStart", "P2->P3", "reqFinish", "findMsg"},
+			name:   "found request, method, pending, result",
+			events: []string{"reqMethodStart", "P2->P3", "reqFinish", "findMsg"},
+
+			expectedStatus: payload.FoundCall,
+		},
+
+		{
+			name:   "found request, constructor, not pending, result",
+			events: []string{"reqConstructorStart", "reqFinish", "P2->P3", "findMsg"},
+			requestIsConstructor: true,
+
+			expectedStatus: payload.FoundCall,
+			expectedResult: true,
+		},
+		{
+			name:   "found request, constructor, not pending, result, early msg",
+			events: []string{"findMsg", "reqConstructorStart", "reqFinish", "P2->P3"},
+			requestIsConstructor: true,
+
+			expectedStatus: payload.FoundCall,
+			expectedResult: true,
+		},
+		{
+			name:   "found request, constructor, pending, no result",
+			events: []string{"reqConstructorStart", "P2->P3", "findMsg"},
+			requestIsConstructor: true,
+
+			expectedStatus: payload.FoundCall,
+		},
+		{
+			name:   "found request, constructor, pending, no result, earlyMsg",
+			events: []string{"findMsg", "reqConstructorStart", "P2->P3"},
+			requestIsConstructor: true,
+
+			expectedStatus: payload.FoundCall,
+		},
+		{
+			name:   "found request, constructor, pending, result",
+			events: []string{"reqConstructorStart", "P2->P3", "reqFinish", "findMsg"},
+			requestIsConstructor: true,
 
 			expectedStatus: payload.FoundCall,
 		},
@@ -114,13 +155,18 @@ func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
 			suite.initPulsesP1andP2(ctx)
 			suite.generateClass()
 			suite.generateCaller()
-			suite.generateObjectRef()
 
 			outgoingPulse := suite.getP2()
 			if test.requestFromP1 {
 				outgoingPulse = suite.getP1()
 			}
 			suite.generateOutgoing(outgoingPulse)
+
+			if test.requestIsConstructor {
+				suite.generateObjectRefFromOutgoing()
+			} else {
+				suite.generateObjectRef()
+			}
 
 			suite.setMessageCheckers(ctx, t, test)
 			suite.setRunnerMock()
@@ -134,8 +180,10 @@ func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
 						Outgoing: suite.getOutgoingRef(),
 					}
 					suite.addPayloadAndWaitIdle(ctx, &findMsg)
-				case "reqStart":
-					suite.startRequestAndWait(t, ctx)
+				case "reqMethodStart":
+					suite.startMethodRequestAndWait(t, ctx)
+				case "reqConstructorStart":
+					suite.startConstructorRequestAndWait(t, ctx)
 				case "reqFinish":
 					suite.finishRequestAndWait(t)
 				case "P2->P3":
@@ -224,6 +272,10 @@ func (s *VFindCallRequestHandlingSuite) generateObjectRef() {
 	s.object = reference.NewSelf(local)
 }
 
+func (s *VFindCallRequestHandlingSuite) generateObjectRefFromOutgoing() {
+	s.object = reference.NewSelf(s.outgoing)
+}
+
 func (s *VFindCallRequestHandlingSuite) generateOutgoing(p pulse.Number) {
 	s.outgoing = gen.UniqueLocalRefWithPulse(p)
 }
@@ -254,7 +306,7 @@ func (s *VFindCallRequestHandlingSuite) getOutgoingLocal() reference.Local {
 	return s.outgoing
 }
 
-func (s *VFindCallRequestHandlingSuite) startRequest(ctx context.Context) {
+func (s *VFindCallRequestHandlingSuite) startMethodRequest(ctx context.Context) {
 	s.startedSignal = make(chan struct{}, 0)
 	s.releaseSignal = make(chan struct{}, 0)
 
@@ -285,9 +337,38 @@ func (s *VFindCallRequestHandlingSuite) startRequest(ctx context.Context) {
 	s.addPayloadAndWaitIdle(ctx, &req)
 }
 
-func (s *VFindCallRequestHandlingSuite) startRequestAndWait(t *testing.T, ctx context.Context) {
+func (s *VFindCallRequestHandlingSuite) startMethodRequestAndWait(t *testing.T, ctx context.Context) {
 	t.Helper()
-	s.startRequest(ctx)
+	s.startMethodRequest(ctx)
+	testutils.WaitSignalsTimed(t, 10*time.Second, s.startedSignal)
+}
+
+func (s *VFindCallRequestHandlingSuite) startConstructorRequest(ctx context.Context) {
+	s.startedSignal = make(chan struct{}, 0)
+	s.releaseSignal = make(chan struct{}, 0)
+
+	report := payload.VStateReport{
+		AsOf:   s.getP1(),
+		Status: payload.Missing,
+		Object: s.getObject(),
+	}
+	s.addPayloadAndWaitIdle(ctx, &report)
+
+	req := payload.VCallRequest{
+		CallType:       payload.CTConstructor,
+		CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+		Caller:         s.getCaller(),
+		Callee:         s.getClass(),
+		CallSiteMethod: "New",
+		CallSequence:   1,
+		CallOutgoing:   s.getOutgoingLocal(),
+	}
+	s.addPayloadAndWaitIdle(ctx, &req)
+}
+
+func (s *VFindCallRequestHandlingSuite) startConstructorRequestAndWait(t *testing.T, ctx context.Context) {
+	t.Helper()
+	s.startConstructorRequest(ctx)
 	testutils.WaitSignalsTimed(t, 10*time.Second, s.startedSignal)
 }
 
