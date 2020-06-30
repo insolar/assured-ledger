@@ -44,11 +44,6 @@ jobs:
         run: |
           cd load
           go build cmd/load/main.go
-       - name: Archive test logs to artifacts
-        uses: actions/upload-artifact@v1
-        with:
-          name: 10nodes
-          path: ${{ github.workspace }}/assured-ledger/ledger-core/load/runners.log
       - name: Set up go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v1
         with:
