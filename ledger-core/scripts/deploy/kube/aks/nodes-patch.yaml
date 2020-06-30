@@ -5,16 +5,6 @@ metadata:
 spec:
   template:
     spec:
-      affinity:
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            - labelSelector:
-                matchExpressions:
-                  - key: app
-                    operator: In
-                    values:
-                      - virtual
-              topologyKey: kubernetes.io/hostname
       imagePullSecrets:
         - name: azurecr
       containers:
