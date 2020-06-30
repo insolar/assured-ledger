@@ -158,7 +158,7 @@ func TestSMObject_CallSummarySM(t *testing.T) {
 
 		smObject.stepPublishCallSummary(executionCtx)
 
-		res, ok := scs.Requests.GetObjectsCallResults(smObject.Reference)
+		res, ok := scs.Requests.GetObjectCallResults(smObject.Reference)
 
 		require.True(t, ok)
 		require.Equal(t, 2, len(res.CallResults))

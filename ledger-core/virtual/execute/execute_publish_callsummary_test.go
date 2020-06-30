@@ -132,7 +132,7 @@ func TestSMExecute_PublishVCallResultToCallSummarySM(t *testing.T) {
 		smExecute.stepPublishDataCallSummary(execCtx)
 	}
 
-	workingTable, ok := sharedCallSummary.Requests.GetObjectsCallResults(smGlobalRef)
+	workingTable, ok := sharedCallSummary.Requests.GetObjectCallResults(smGlobalRef)
 	require.Equal(t, 1, len(workingTable.CallResults))
 
 	result, ok := workingTable.CallResults[ref]

@@ -755,7 +755,7 @@ func (s *SMExecute) stepPublishDataCallSummary(ctx smachine.ExecutionContext) sm
 	if ok {
 		action := func(sharedCallSummary *callsummary.SharedCallSummary) {
 			ref := s.execution.Outgoing
-			requests, ok := sharedCallSummary.Requests.GetObjectsCallResults(s.execution.Object)
+			requests, ok := sharedCallSummary.Requests.GetObjectCallResults(s.execution.Object)
 			if !ok {
 				// we should have summary result for object if we finish operation.
 				panic(throw.Impossible())

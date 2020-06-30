@@ -24,7 +24,7 @@ func NewObjectRequestTable() ObjectsResultCallRegistry {
 	}
 }
 
-func (ort *ObjectsResultCallRegistry) GetObjectsCallResults(ref reference.Global) (*ObjectCallResults, bool) {
+func (ort *ObjectsResultCallRegistry) GetObjectCallResults(ref reference.Global) (*ObjectCallResults, bool) {
 	workingTable, ok := ort.objects[ref]
 	return workingTable, ok
 }
