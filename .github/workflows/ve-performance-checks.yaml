@@ -64,8 +64,17 @@ jobs:
           sed -i "s/placeholder/${{ fromJson(steps.set-vars.outputs.result).shortSha }}/g" ledger-core/scripts/deploy/kube/*/*.*
           sed -i "s/placeholder/${{ fromJson(steps.set-vars.outputs.result).shortSha }}/g" ledger-core/scripts/deploy/kube/*/configuration/*.*
           sed -i "s/placeholder/${{ fromJson(steps.set-vars.outputs.result).shortSha }}/g" ledger-core/load/gen_cfg/*.*
-      - name: install loadgentcli
-        run: go install ~/go/pkg/mod/github.com/skudasov/loadgen\@v0.0.9/cmd/loadcli.go
+      - name: Checkout loadgen
+          uses: actions/checkout@v2
+          with:
+            path: ./loadgen
+            repository: skudasov/loadgen
+      - name: build loadgen
+        run: |
+          pwd
+          ls -a
+          go build -o loadcli ./loadgen/loadgen/cmd/
+          ls -a
       - name: run 10node network
         run: kubectl apply -k ledger-core/scripts/deploy/kube/10node
       - name: wait for successfull rollout
