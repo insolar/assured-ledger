@@ -44,15 +44,7 @@ jobs:
         run: |
           cd load
           go build cmd/load/main.go
-          pwd
-          ls -a
-      - name: start test
-        run: |
-          cd ${{ env.CORE_PATH }}/load/
-          cat ${{ env.CORE_PATH }}/load/gen_cfg/generator_assured_ledger.yaml
-          cat ${{ env.CORE_PATH }}/load/run_configs/all_sequence.yaml
-          NETWORK_NODES=5 ./main -gen_config ${{ env.CORE_PATH }}/load/gen_cfg/generator_assured_ledger.yaml -config ${{ env.CORE_PATH }}/load/run_configs/all_sequence.yaml > runners.log
-      - name: Archive test logs to artifacts
+       - name: Archive test logs to artifacts
         uses: actions/upload-artifact@v1
         with:
           name: 10nodes
@@ -94,8 +86,11 @@ jobs:
             else echo -n '.'; sleep 5
             fi
           done
-      - name: get some info
-        run: kubectl -n ${{fromJson(steps.set-vars.outputs.result).shortSha}} get po
+      - name: start test 10 node
+          run: |
+            cd ${{ env.CORE_PATH }}/load/
+            NETWORK_NODES=10 ./main -gen_config ${{ env.CORE_PATH }}/load/gen_cfg/generator_assured_ledger.yaml -config ${{ env.CORE_PATH }}/load/run_configs/all_sequence.yaml
+            ls -a
       - name: cleanup
         if: always()
         run: kubectl delete ns ${{fromJson(steps.set-vars.outputs.result).shortSha}} --ignore-not-found=true
@@ -111,8 +106,11 @@ jobs:
             else echo -n '.'; sleep 5
             fi
           done
-      - name: get some info
-        run: kubectl -n ${{fromJson(steps.set-vars.outputs.result).shortSha}} get po
+      - name: start test 20 node
+          run: |
+            cd ${{ env.CORE_PATH }}/load/
+            NETWORK_NODES=20 ./main -gen_config ${{ env.CORE_PATH }}/load/gen_cfg/generator_assured_ledger.yaml -config ${{ env.CORE_PATH }}/load/run_configs/all_sequence.yaml
+            ls -a
       - name: cleanup
         if: always()
         run: kubectl delete ns ${{fromJson(steps.set-vars.outputs.result).shortSha}} --ignore-not-found=true
