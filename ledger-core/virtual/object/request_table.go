@@ -13,27 +13,27 @@ import (
 )
 
 type PendingTable struct {
-	lists [3]*PendingList
+	lists [contract.InterferenceFlagCount - 1]*PendingList
 }
 
 func NewRequestTable() PendingTable {
 	var rt PendingTable
 
-	for i := 1; i < contract.InterferenceFlagCount; i++ {
-		rt.lists[i] = NewRequestList()
+	for i := len(rt.lists) - 1; i >= 0; i-- {
+		rt.lists[i] = newRequestList()
 	}
 
 	return rt
 }
 
-func (rt *PendingTable) GetList(flag contract.InterferenceFlag) *PendingList {
-	if flag.IsZero() || flag >= contract.InterferenceFlagCount {
-		panic(throw.IllegalValue())
+func (rt PendingTable) GetList(flag contract.InterferenceFlag) *PendingList {
+	if flag > 0 && int(flag) <= len(rt.lists) {
+		return rt.lists[flag - 1]
 	}
-	return rt.lists[flag]
+	panic(throw.IllegalValue())
 }
 
-func (rt *PendingTable) Len() int {
+func (rt PendingTable) Len() int {
 	size := 0
 	for _, list := range rt.lists {
 		size += list.Count()
@@ -50,13 +50,13 @@ type PendingList struct {
 	requests      map[reference.Global]isActive
 }
 
-func NewRequestList() *PendingList {
+func newRequestList() *PendingList {
 	return &PendingList{
 		requests: make(map[reference.Global]isActive),
 	}
 }
 
-func (rl PendingList) Exist(ref reference.Global) bool {
+func (rl *PendingList) Exist(ref reference.Global) bool {
 	_, exist := rl.requests[ref]
 	return exist
 }
