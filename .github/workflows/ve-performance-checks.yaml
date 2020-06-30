@@ -47,10 +47,9 @@ jobs:
         run: NETWORK_NODES=5 .ledger-core/load/main -gen_config ledger-core/load/gen_config/generator_assured_ledger.yaml -config ledger-core/load/gen_config/generator_assured_ledger.yaml > runners.log
       - name: Archive test logs to artifacts
         uses: actions/upload-artifact@v1
-        working-directory: ${{ env.CORE_PATH }}
         with:
           name: 10nodes
-          path: ledger-core/load/runners.log
+          path: ${{ github.workspace }}/assured-ledger/ledger-core/load/runners.log
       - name: Set up go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v1
         with:
