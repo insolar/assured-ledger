@@ -19,10 +19,6 @@ jobs:
     name: ve-performance
     runs-on: ubuntu-latest
     steps:
-      - name: ifconfig
-        run: |
-          ifconfig -a
-          exit(1)
       - name: Create short git sha and git ref vars
         id: set-vars
         uses: actions/github-script@v2

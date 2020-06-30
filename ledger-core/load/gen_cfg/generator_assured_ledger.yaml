@@ -1,6 +1,6 @@
 host:
   name: gha_runner
-  network_iface: en0
+  network_iface: eth0
 remotes:
 generator:
   target: placeholder.uscifarm.insolar.io
