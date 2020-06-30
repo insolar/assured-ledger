@@ -458,7 +458,12 @@ func (sm *SMObject) stepPublishCallSummary(ctx smachine.ExecutionContext) smachi
 			return callsummary.NewStateMachineCallSummary(pulseNumber)
 		})
 
-		summarySharedStateAccessor, _ = callsummary.GetSummarySMSharedAccessor(ctx, pulseNumber)
+		summarySharedStateAccessor, ok = callsummary.GetSummarySMSharedAccessor(ctx, pulseNumber)
+
+		if !ok {
+			// we should get accessor always after InitChild in this step
+			panic(throw.IllegalState())
+		}
 	}
 
 	action := func(shared *callsummary.SharedCallSummary) {
