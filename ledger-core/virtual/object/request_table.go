@@ -13,13 +13,12 @@ import (
 )
 
 type PendingTable struct {
-	lists []*PendingList
+	lists [3]*PendingList
 }
 
 func NewRequestTable() PendingTable {
 	var rt PendingTable
 
-	rt.lists = make([]*PendingList, contract.InterferenceFlagCount)
 	for i := 1; i < contract.InterferenceFlagCount; i++ {
 		rt.lists[i] = NewRequestList()
 	}

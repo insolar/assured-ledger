@@ -14,14 +14,13 @@ import (
 )
 
 type WorkingTable struct {
-	requests []*WorkingList
+	requests [3]*WorkingList
 	results  map[reference.Global]Summary
 }
 
 func NewWorkingTable() WorkingTable {
 	var rt WorkingTable
 
-	rt.requests = make([]*WorkingList, contract.InterferenceFlagCount)
 	for i := 1; i < contract.InterferenceFlagCount; i++ {
 		rt.requests[i] = NewWorkingList()
 	}
