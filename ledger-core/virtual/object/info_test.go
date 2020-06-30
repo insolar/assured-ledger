@@ -6,6 +6,7 @@
 package object
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/virtual/tables"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -14,7 +15,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/tables"
 )
 
 func TestInfo_GetEarliestPulse(t *testing.T) {
@@ -49,8 +49,8 @@ func TestInfo_GetEarliestPulse(t *testing.T) {
 			getKnownRequests: func() tables.WorkingTable {
 				table := tables.NewWorkingTable()
 				ref := reference.NewSelf(gen.UniqueLocalRefWithPulse(currentPulse))
-				table.GetList(tolerance).add(ref)
-				table.GetList(tolerance).setActive(ref)
+				table.Add(tolerance, ref)
+				table.SetActive(tolerance, ref)
 				return table
 			},
 			ExpectedEarliestPulse: currentPulse,
@@ -66,8 +66,8 @@ func TestInfo_GetEarliestPulse(t *testing.T) {
 			getKnownRequests: func() tables.WorkingTable {
 				table := tables.NewWorkingTable()
 				ref := reference.NewSelf(gen.UniqueLocalRefWithPulse(prevPulse))
-				table.GetList(tolerance).add(ref)
-				table.GetList(tolerance).setActive(ref)
+				table.Add(tolerance, ref)
+				table.SetActive(tolerance, ref)
 				return table
 			},
 			ExpectedEarliestPulse: prevPulse,

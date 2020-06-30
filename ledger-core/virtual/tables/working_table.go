@@ -15,7 +15,7 @@ import (
 
 type WorkingTable struct {
 	requests [contract.InterferenceFlagCount - 1]*WorkingList
-	results  map[reference.Global]Summary
+	results  map[reference.Global]CallSummary
 }
 
 func NewWorkingTable() WorkingTable {
@@ -32,7 +32,7 @@ func NewWorkingTable() WorkingTable {
 
 func (wt WorkingTable) GetList(flag contract.InterferenceFlag) *WorkingList {
 	if flag > 0 && int(flag) <= len(wt.requests) {
-		return wt.requests[flag - 1]
+		return wt.requests[flag-1]
 	}
 	panic(throw.IllegalValue())
 }
