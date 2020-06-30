@@ -103,77 +103,79 @@ func (v RecordPolicy) CheckRootRef(ref reference.Holder, details PolicyCheckDeta
 }
 
 func (v RecordPolicy) CheckPrevRef(rootRef, ref reference.Holder, details PolicyCheckDetails, resolverFn PolicyResolverFunc) (isFork bool, err error) {
-	err = func() error {
-		if ok, err := checkExact(ref, v.PolicyFlags&LineStart == 0); !ok || err != nil {
-			return err
-		}
+	err = v.checkPrevRef(rootRef, ref, details, resolverFn, &isFork)
+	return
+}
 
-		switch {
-		case v.PolicyFlags&NextPulseOnly == 0:
-		case ref.GetLocal().GetPulseNumber() >= details.LocalPN:
-			return throw.E("must be prev pulse")
-		}
+func (v RecordPolicy) checkPrevRef(rootRef, ref reference.Holder, details PolicyCheckDetails, resolverFn PolicyResolverFunc, isFork *bool) error {
+	if ok, err := checkExact(ref, v.PolicyFlags&LineStart == 0); !ok || err != nil {
+		return err
+	}
 
-		found, err := resolverFn(ref)
-		switch {
-		case err != nil:
-			return err
-		case found.IsZero():
-			return throw.E("unknown record")
-		case found.RecordType == RecordNotAvailable:
-			return nil
-		case v.PolicyFlags&Recap != 0:
-			if !reference.IsEmpty(found.RootRef) && !reference.Equal(rootRef, found.RootRef) {
-				return throw.E("filament crossing is forbidden")
-			}
-			return nil
-		case v.CanFollow.Has(found.RecordType):
-		case found.RedirectToRef == nil:
-		case v.CanFollow.Has(found.RedirectToType):
-		default:
-			return throw.E("wrong record sequence", struct{ PrevType RecordType }{found.RecordType})
-		}
+	switch {
+	case v.PolicyFlags&NextPulseOnly == 0:
+	case ref.GetLocal().GetPulseNumber() >= details.LocalPN:
+		return throw.E("must be prev pulse")
+	}
 
-		prevPolicy := details.PolicyProvider(found.RecordType)
-
-		switch {
-		case prevPolicy.PolicyFlags&BlockNextPulse == 0:
-		case ref.GetLocal().GetPulseNumber() == details.LocalPN:
-		case found.RecordType == tRLineMemoryExpected:
-			switch details.RecordType {
-			case tRLineMemoryProvided, tRLineDeactivate:
-			default:
-				return throw.E("memory is expected")
-			}
-		default:
-			panic(throw.Unsupported())
-		}
-
-		switch {
-		case v.IsBranched():
-			// this is the start and the first record of a branch filament
-			// PrevRef doesn't need to be "open"
-			// upd.filNo = 0 // => filament is created in this batch
-			isFork = true
-		case reference.Equal(rootRef, ref):
-			// this is not start but a first record of a filament
-			if details.PolicyProvider(found.RecordType).IsForkAllowed() {
-				// PrevRef doesn't need to be "open"
-				// upd.filNo = 0 // => filament is created in this batch
-				isFork = true
-			}
-//		case v.PolicyFlags&MustBeBranch != 0:
-			// TODO protection from placing ROutboundRequest inline with RLineInboundRequest
-			// if reference.Equal(rootRef, found.RootRef) {
-			// 	return throw.E("fork is required")
-			// }
-		case !reference.IsEmpty(found.RootRef) && !reference.Equal(rootRef, found.RootRef):
+	found, err := resolverFn(ref)
+	switch {
+	case err != nil:
+		return err
+	case found.IsZero():
+		return throw.E("unknown record")
+	case found.RecordType == RecordNotAvailable:
+		return nil
+	case v.PolicyFlags&Recap != 0:
+		if !reference.IsEmpty(found.RootRef) && !reference.Equal(rootRef, found.RootRef) {
 			return throw.E("filament crossing is forbidden")
 		}
-
 		return nil
-	}()
-	return
+	case v.CanFollow.Has(found.RecordType):
+	case found.RedirectToRef == nil:
+	case v.CanFollow.Has(found.RedirectToType):
+	default:
+		return throw.E("wrong record sequence", struct{ PrevType RecordType }{found.RecordType})
+	}
+
+	prevPolicy := details.PolicyProvider(found.RecordType)
+
+	switch {
+	case prevPolicy.PolicyFlags&BlockNextPulse == 0:
+	case ref.GetLocal().GetPulseNumber() == details.LocalPN:
+	case found.RecordType == tRLineMemoryExpected:
+		switch details.RecordType {
+		case tRLineMemoryProvided, tRLineDeactivate:
+		default:
+			return throw.E("memory is expected")
+		}
+	default:
+		panic(throw.Unsupported())
+	}
+
+	switch {
+	case v.IsBranched():
+		// this is the start and the first record of a branch filament
+		// PrevRef doesn't need to be "open"
+		// upd.filNo = 0 // => filament is created in this batch
+		*isFork = true
+	case reference.Equal(rootRef, ref):
+		// this is not start but a first record of a filament
+		if details.PolicyProvider(found.RecordType).IsForkAllowed() {
+			// PrevRef doesn't need to be "open"
+			// upd.filNo = 0 // => filament is created in this batch
+			*isFork = true
+		}
+//		case v.PolicyFlags&MustBeBranch != 0:
+		// TODO protection from placing ROutboundRequest inline with RLineInboundRequest
+		// if reference.Equal(rootRef, found.RootRef) {
+		// 	return throw.E("fork is required")
+		// }
+	case !reference.IsEmpty(found.RootRef) && !reference.Equal(rootRef, found.RootRef):
+		return throw.E("filament crossing is forbidden")
+	}
+
+	return nil
 }
 
 func (v RecordPolicy) CheckRejoinRef(ref reference.Holder, details PolicyCheckDetails, prevRecordType RecordType, resolverFn PolicyResolverFunc) error {

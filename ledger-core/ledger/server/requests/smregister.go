@@ -186,6 +186,7 @@ func (p *SMRegisterRecordSet) stepSendResponse(ctx smachine.ExecutionContext) sm
 
 func (p *SMRegisterRecordSet) sendResponse(safe, ok bool) {
 	// TODO
+	_, _ = safe, ok
 	panic(throw.NotImplemented())
 }
 

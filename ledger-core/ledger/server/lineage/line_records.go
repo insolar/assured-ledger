@@ -34,10 +34,10 @@ type StageTracker interface {
 type filamentState uint8
 
 const (
-	started filamentState = iota
-	activated // not implemented
+	_  filamentState = iota // started
+	// activated
 	ended
-	deactivated // not implemented
+	// deactivated
 )
 
 type filament struct {

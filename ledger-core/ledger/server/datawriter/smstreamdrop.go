@@ -9,7 +9,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc"
-	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -60,32 +59,32 @@ func (p *SMStreamDropBuilder) stepInit(ctx smachine.InitializationContext) smach
 	return ctx.Jump(p.stepCreateStreamDrop)
 }
 
-func (p *SMStreamDropBuilder) getPrevDropPulseNumber() pulse.Number {
-	pr, _ := p.pulseSlot.PulseRange()
-
-	if !pr.IsArticulated() {
-		if pnd := pr.LeftPrevDelta(); pnd != 0 {
-			return pr.LeftBoundNumber().Prev(pnd)
-		}
-		return pulse.Unknown
-	}
-
-	prevPN := pulse.Unknown
-	captureNext := true
-	pr.EnumData(func(data pulse.Data) bool {
-		switch {
-		case data.PulseEpoch.IsArticulation():
-			captureNext = true
-		case !captureNext:
-		case data.IsFirstPulse():
-		default:
-			captureNext = false
-			prevPN = data.PrevPulseNumber()
-		}
-		return false
-	})
-	return prevPN
-}
+// func (p *SMStreamDropBuilder) getPrevDropPulseNumber() pulse.Number {
+// 	pr, _ := p.pulseSlot.PulseRange()
+//
+// 	if !pr.IsArticulated() {
+// 		if pnd := pr.LeftPrevDelta(); pnd != 0 {
+// 			return pr.LeftBoundNumber().Prev(pnd)
+// 		}
+// 		return pulse.Unknown
+// 	}
+//
+// 	prevPN := pulse.Unknown
+// 	captureNext := true
+// 	pr.EnumData(func(data pulse.Data) bool {
+// 		switch {
+// 		case data.PulseEpoch.IsArticulation():
+// 			captureNext = true
+// 		case !captureNext:
+// 		case data.IsFirstPulse():
+// 		default:
+// 			captureNext = false
+// 			prevPN = data.PrevPulseNumber()
+// 		}
+// 		return false
+// 	})
+// 	return prevPN
+// }
 
 func (p *SMStreamDropBuilder) stepCreateStreamDrop(ctx smachine.ExecutionContext) smachine.StateUpdate {
 

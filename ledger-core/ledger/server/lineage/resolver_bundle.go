@@ -40,6 +40,7 @@ type BundleResolver struct {
 	resolveResults
 }
 
+//nolint:unused
 type resolveResults struct {
 	lastRecord  reference.Holder
 	unresolved  []UnresolvedDependency
@@ -319,7 +320,7 @@ func (p *BundleResolver) resolvePrevRef(upd *resolvedRecord, policy RecordPolicy
 		upd.filNo = prevRecord.filNo
 	}
 
-	return
+	return prevRecordType
 }
 
 func (p *BundleResolver) resolveSupplementaryRef(rootRef, ref reference.Holder) (ResolvedDependency, error) {
@@ -406,7 +407,7 @@ func (p *BundleResolver) setLastRecord(ref reference.Holder) {
 	p.lastRecord = ref
 }
 
-func (p *BundleResolver) getLocalFilament(root reference.Holder) (bool, filamentNo, ResolvedDependency) {
+func (p *BundleResolver) getLocalFilament(root reference.LocalHolder) (bool, filamentNo, ResolvedDependency) {
 	switch {
 	case len(p.records) == 0:
 	case root == nil:

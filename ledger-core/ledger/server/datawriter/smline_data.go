@@ -25,7 +25,7 @@ type LineSharedData struct {
 
 	jetDropID   JetDropID
 	dropUpdater buildersvc.JetDropAssistant
-	recapRef    reference.Global
+	// recapRef    reference.Global
 }
 
 func (p *LineSharedData) LineRef() reference.Global {
@@ -67,6 +67,8 @@ func (p *LineSharedData) disableAccess() {
 }
 
 func (p *LineSharedData) addRecap(rec *rms.RLineRecap, ref reference.Global) {
+	_ = rec
+	_ = ref
 	panic(throw.NotImplemented())
 }
 
