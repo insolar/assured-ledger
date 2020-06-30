@@ -445,16 +445,31 @@ func (s *VFindCallRequestHandlingSuite) setRunnerMock() {
 		reference.Global{}, reference.Local{}, s.getClass(), []byte(""), reference.Global{},
 	)
 
-	requestResult := requestresult.New([]byte("execution"), gen.UniqueGlobalRef())
-	requestResult.SetAmend(newObjDescriptor, []byte("new memory"))
+	{
+		methodResult := requestresult.New([]byte("execution"), gen.UniqueGlobalRef())
+		methodResult.SetAmend(newObjDescriptor, []byte("new memory"))
 
-	executionMock := s.runnerMock.AddExecutionMock("SomeMethod")
-	executionMock.AddStart(func(ctx execution.Context) {
-		s.executionPoint.Synchronize()
-	}, &execution.Update{
-		Type:   execution.Done,
-		Result: requestResult,
-	})
+		executionMock := s.runnerMock.AddExecutionMock("SomeMethod")
+		executionMock.AddStart(func(ctx execution.Context) {
+			s.executionPoint.Synchronize()
+		}, &execution.Update{
+			Type:   execution.Done,
+			Result: methodResult,
+		})
+	}
+
+	{
+		constructorResult := requestresult.New([]byte("exection"), s.getObject())
+		constructorResult.SetActivate(reference.Global{}, s.getClass(), []byte("new memory"))
+
+		executionMock := s.runnerMock.AddExecutionMock("New")
+		executionMock.AddStart(func(ctx execution.Context) {
+			s.executionPoint.Synchronize()
+		}, &execution.Update{
+			Type:   execution.Done,
+			Result: constructorResult,
+		})
+	}
 }
 
 func (s *VFindCallRequestHandlingSuite) waitFindRequestResponse(
