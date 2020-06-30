@@ -65,7 +65,7 @@ jobs:
           sed -i "s/placeholder/${{ fromJson(steps.set-vars.outputs.result).shortSha }}/g" ledger-core/scripts/deploy/kube/*/configuration/*.*
           sed -i "s/placeholder/${{ fromJson(steps.set-vars.outputs.result).shortSha }}/g" ledger-core/load/gen_cfg/*.*
       - name: install loadgentcli
-        - run: go install ~/go/pkg/mod/github.com/skudasov/loadgen\@${version}/cmd/loadcli.go
+        run: go install ~/go/pkg/mod/github.com/skudasov/loadgen\@${version}/cmd/loadcli.go
       - name: run 10node network
         run: kubectl apply -k ledger-core/scripts/deploy/kube/10node
       - name: wait for successfull rollout
