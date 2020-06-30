@@ -3,7 +3,7 @@ host:
   network_iface: en0
 remotes:
 generator:
-  target: placeholder
+  target: placeholder.uscifarm.insolar.io
   responseTimeoutSec: 20
   rampUpStrategy: linear
   verbose: true

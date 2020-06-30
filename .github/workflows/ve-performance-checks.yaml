@@ -63,6 +63,9 @@ jobs:
         run: |
           sed -i "s/placeholder/${{ fromJson(steps.set-vars.outputs.result).shortSha }}/g" ledger-core/scripts/deploy/kube/*/*.*
           sed -i "s/placeholder/${{ fromJson(steps.set-vars.outputs.result).shortSha }}/g" ledger-core/scripts/deploy/kube/*/configuration/*.*
+          sed -i "s/placeholder/${{ fromJson(steps.set-vars.outputs.result).shortSha }}/g" ledger-core/load/gen_cfg/*.*
+      - name: install loadgentcli
+        - run: go install ~/go/pkg/mod/github.com/skudasov/loadgen\@${version}/cmd/loadcli.go
       - name: run 10node network
         run: kubectl apply -k ledger-core/scripts/deploy/kube/10node
       - name: wait for successfull rollout
@@ -77,6 +80,8 @@ jobs:
           done
       - name: get some info
         run: kubectl -n ${{fromJson(steps.set-vars.outputs.result).shortSha}} get po
+      - name: start test
+        run: loadcli -gen_config ledger-core/load/gen_config/generator_assured_ledger.yaml b darwin && NETWORK_NODES=20 ./load_suite -gen_config ledger-core/load/gen_config/generator_assured_ledger.yaml -config ledger-core/load/run_configs/all_sequence.yaml
       - name: cleanup
         if: always()
         run: kubectl delete ns ${{fromJson(steps.set-vars.outputs.result).shortSha}} --ignore-not-found=true
