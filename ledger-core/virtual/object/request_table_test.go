@@ -17,6 +17,22 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 )
 
+func BenchmarkPendingTable(b *testing.B) {
+	var x PendingTable
+	for i := 0; i < b.N; i++ {
+		x = NewRequestTable()
+	}
+	x = x
+}
+
+func BenchmarkWorkingTable(b *testing.B) {
+	var x WorkingTable
+	for i := 0; i < b.N; i++ {
+		x = NewWorkingTable()
+	}
+	x = x
+}
+
 func TestPendingTable(t *testing.T) {
 	rt := NewRequestTable()
 

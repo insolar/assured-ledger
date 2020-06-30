@@ -13,20 +13,22 @@ import (
 )
 
 type PendingTable struct {
-	lists map[contract.InterferenceFlag]*PendingList
+	lists []*PendingList
 }
 
 func NewRequestTable() PendingTable {
 	var rt PendingTable
-	rt.lists = make(map[contract.InterferenceFlag]*PendingList)
 
-	rt.lists[contract.CallTolerable] = NewRequestList()
-	rt.lists[contract.CallIntolerable] = NewRequestList()
+	rt.lists = make([]*PendingList, contract.InterferenceFlagCount)
+	for i := 1; i < contract.InterferenceFlagCount; i++ {
+		rt.lists[i] = NewRequestList()
+	}
+
 	return rt
 }
 
 func (rt *PendingTable) GetList(flag contract.InterferenceFlag) *PendingList {
-	if flag.IsZero() {
+	if flag.IsZero() || flag >= contract.InterferenceFlagCount {
 		panic(throw.IllegalValue())
 	}
 	return rt.lists[flag]
