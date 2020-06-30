@@ -14,15 +14,15 @@ import (
 )
 
 type WorkingTable struct {
-	requests [3]*WorkingList
+	requests [contract.InterferenceFlagCount - 1]*WorkingList
 	results  map[reference.Global]Summary
 }
 
 func NewWorkingTable() WorkingTable {
 	var rt WorkingTable
 
-	for i := 1; i < contract.InterferenceFlagCount; i++ {
-		rt.requests[i] = NewWorkingList()
+	for i := len(rt.requests) - 1; i >= 0; i-- {
+		rt.requests[i] = newWorkingList()
 	}
 
 	rt.results = make(map[reference.Global]Summary)
@@ -30,22 +30,22 @@ func NewWorkingTable() WorkingTable {
 	return rt
 }
 
-func (wt *WorkingTable) GetList(flag contract.InterferenceFlag) *WorkingList {
-	if flag.IsZero() || flag >= contract.InterferenceFlagCount {
-		panic(throw.IllegalValue())
+func (wt WorkingTable) GetList(flag contract.InterferenceFlag) *WorkingList {
+	if flag > 0 && int(flag) <= len(wt.requests) {
+		return wt.requests[flag - 1]
 	}
-	return wt.requests[flag]
+	panic(throw.IllegalValue())
 }
 
-func (wt *WorkingTable) GetResults() map[reference.Global]Summary {
+func (wt WorkingTable) GetResults() map[reference.Global]Summary {
 	return wt.results
 }
 
-func (wt *WorkingTable) Add(flag contract.InterferenceFlag, ref reference.Global) bool {
+func (wt WorkingTable) Add(flag contract.InterferenceFlag, ref reference.Global) bool {
 	return wt.GetList(flag).add(ref)
 }
 
-func (wt *WorkingTable) SetActive(flag contract.InterferenceFlag, ref reference.Global) bool {
+func (wt WorkingTable) SetActive(flag contract.InterferenceFlag, ref reference.Global) bool {
 	if ok := wt.GetList(flag).setActive(ref); ok {
 		wt.results[ref] = Summary{}
 
@@ -55,7 +55,7 @@ func (wt *WorkingTable) SetActive(flag contract.InterferenceFlag, ref reference.
 	return false
 }
 
-func (wt *WorkingTable) Finish(
+func (wt WorkingTable) Finish(
 	flag contract.InterferenceFlag,
 	ref reference.Global,
 	result *payload.VCallResult,
@@ -97,7 +97,7 @@ type WorkingList struct {
 	requests            map[reference.Global]WorkingRequestState
 }
 
-func NewWorkingList() *WorkingList {
+func newWorkingList() *WorkingList {
 	return &WorkingList{
 		requests: make(map[reference.Global]WorkingRequestState),
 	}

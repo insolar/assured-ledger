@@ -81,7 +81,7 @@ func TestWorkingList(t *testing.T) {
 	RefOne := reference.NewSelf(objectOne)
 	RefTwo := reference.NewSelf(objectTwo)
 
-	rl := NewWorkingList()
+	rl := newWorkingList()
 	assert.Equal(t, 0, rl.Count())
 	assert.Equal(t, 0, rl.CountFinish())
 	assert.Equal(t, 0, rl.CountActive())
@@ -146,7 +146,7 @@ func TestWorkingList_Finish(t *testing.T) {
 	objectTwo := gen.UniqueLocalRefWithPulse(nextPulseNumber)
 	RefTwo := reference.NewSelf(objectTwo)
 
-	rl := NewWorkingList()
+	rl := newWorkingList()
 
 	assert.Equal(t, true, rl.add(RefOne))
 	assert.Equal(t, 1, rl.Count())
