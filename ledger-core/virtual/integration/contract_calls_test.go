@@ -343,11 +343,7 @@ func TestVirtual_CallOtherMethodInObject(t *testing.T) {
 				CallOutgoing:        outgoingA,
 			}
 
-			beforeCount := server.PublisherMock.GetCount()
 			server.SendPayload(ctx, &pl)
-			if !server.PublisherMock.WaitCount(beforeCount+3, 10*time.Second) {
-				t.Fatal("failed to wait until all messages returned")
-			}
 
 			testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
 			testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
