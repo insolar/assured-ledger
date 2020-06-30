@@ -49,7 +49,7 @@ jobs:
       - name: start test
         run: |
           cd ${{ env.CORE_PATH }}/load/
-          cat ${{ env.CORE_PATH }}/load/gen_config/generator_assured_ledger.yaml
+          cat ${{ env.CORE_PATH }}/load/gen_cfg/generator_assured_ledger.yaml
           cat ${{ env.CORE_PATH }}/load/run_configs/all_sequence.yaml
           NETWORK_NODES=5 ./main -gen_config ${{ env.CORE_PATH }}/load/gen_config/generator_assured_ledger.yaml -config ${{ env.CORE_PATH }}/load/run_configs/all_sequence.yaml > runners.log
       - name: Archive test logs to artifacts
