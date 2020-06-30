@@ -38,10 +38,12 @@ func (p *LineSharedData) GetLimiter() smachine.SyncLink {
 
 func (p *LineSharedData) TryApplyRecordSet(set inspectsvc.InspectedRecordSet) (*buildersvc.Future, interface{}) {
 	p.ensureAccess()
+	panic(throw.NotImplemented())
 }
 
 func (p *LineSharedData) RequestMissings(missings interface{}, wakeup smachine.BargeInHolder) {
 	p.ensureAccess()
+	panic(throw.NotImplemented())
 }
 
 func (p *LineSharedData) ensureAccess() {
@@ -65,9 +67,9 @@ func (p *LineSharedData) disableAccess() {
 }
 
 func (p *LineSharedData) addRecap(rec *rms.RLineRecap, ref reference.Global) {
-
+	panic(throw.NotImplemented())
 }
 
 func (p *LineSharedData) getMissingFilaments() []reference.Global {
-
+	panic(throw.NotImplemented())
 }

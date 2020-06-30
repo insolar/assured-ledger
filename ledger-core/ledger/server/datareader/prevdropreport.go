@@ -7,6 +7,7 @@ package datareader
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type PrevDropReport struct {
@@ -18,6 +19,6 @@ func (v PrevDropReport) IsZero() bool {
 }
 
 func (v PrevDropReport) Equal(other PrevDropReport) bool {
-
+	panic(throw.NotImplemented())
 }
 

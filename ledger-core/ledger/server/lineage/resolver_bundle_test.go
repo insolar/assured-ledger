@@ -160,7 +160,7 @@ func TestBundleResolver_CreateWithCalls(t *testing.T) {
 	require.Equal(t, recordNo(6), br.records[1].next)
 	require.Equal(t, recordNo(4), br.records[2].next)
 	require.Equal(t, recordNo(5), br.records[3].next)
-	require.Equal(t, recordNo(0), br.records[4].next)
+	require.Equal(t, deadFilament, br.records[4].next)
 	require.Equal(t, recordNo(7), br.records[5].next)
 	require.Equal(t, recordNo(0), br.records[6].next)
 }
