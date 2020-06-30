@@ -69,7 +69,11 @@ func (p *stageValidator) adjustPrevAndRecap(rec *resolvedRecord) error {
 	return nil
 }
 
+<<<<<<< HEAD
 func (p *stageValidator) _addFilament(rec *resolvedRecord) error {
+=======
+func (p *stageValidator) addFilament(rec *resolvedRecord) error {
+>>>>>>> Proper recap logic
 	switch {
 	case rec.filNo != 0:
 	case p.filNo != 0:
@@ -88,10 +92,13 @@ func (p *stageValidator) _addFilament(rec *resolvedRecord) error {
 }
 
 func (p *stageValidator) applyFilament(rec *resolvedRecord) error {
+<<<<<<< HEAD
 	if err := p._addFilament(rec); err != nil {
 		return err
 	}
 
+=======
+>>>>>>> Proper recap logic
 	filament := &p.stage.filaments[rec.filNo - 1]
 
 	switch {
@@ -124,9 +131,15 @@ func (p *stageValidator) applyFilament(rec *resolvedRecord) error {
 	switch {
 	case filament.recap != 0:
 		panic(throw.Impossible())
+<<<<<<< HEAD
 	case rec.recapRec == nil:
 		return throw.New("recap body is missing")
 	case rec.recapRec.Type == rms.FilamentType_Lifeline:
+=======
+	case rec.RecapRec == nil:
+		return throw.New("recap body is missing")
+	case rec.RecapRec.Type == rms.FilamentType_Lifeline:
+>>>>>>> Proper recap logic
 		if rec.filNo != 1 {
 			return throw.New("recap mismatched line type")
 		}
@@ -134,7 +147,11 @@ func (p *stageValidator) applyFilament(rec *resolvedRecord) error {
 		return throw.New("recap mismatched filament type")
 	}
 
+<<<<<<< HEAD
 	switch rec.recapRec.State {
+=======
+	switch rec.RecapRec.State {
+>>>>>>> Proper recap logic
 	case rms.FilamentState_Unknown:
 		return throw.New("recap is invalid")
 	case rms.FilamentState_DirtyDeactivated, rms.FilamentState_Dead:
@@ -144,6 +161,7 @@ func (p *stageValidator) applyFilament(rec *resolvedRecord) error {
 
 	filament.recap = rec.recordNo
 	filament.resolvedHead = ResolvedDependency{
+<<<<<<< HEAD
 		RecordType:     RecordType(rec.recapRec.PrevType),
 		RootRef:        rec.Excerpt.RootRef.Get(),
 	}
@@ -154,6 +172,18 @@ func (p *stageValidator) applyFilament(rec *resolvedRecord) error {
 			return throw.New("recap inconsistent redirect")
 		}
 		filament.resolvedHead.RedirectToType = RecordType(rec.recapRec.RedirectToType)
+=======
+		RecordType:     RecordType(rec.RecapRec.PrevType),
+		RootRef:        rec.Excerpt.RootRef.Get(),
+	}
+
+	if rType := RecordType(rec.RecapRec.RedirectToType); rType != 0 {
+		filament.resolvedHead.RedirectToRef = rec.RecapRec.RedirectRef.Get()
+		if reference.IsEmpty(filament.resolvedHead.RedirectToRef) {
+			return throw.New("recap inconsistent redirect")
+		}
+		filament.resolvedHead.RedirectToType = RecordType(rec.RecapRec.RedirectToType)
+>>>>>>> Proper recap logic
 	}
 
 	return nil
