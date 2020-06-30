@@ -467,9 +467,14 @@ func (sm *SMObject) stepPublishCallSummary(ctx smachine.ExecutionContext) smachi
 	}
 
 	action := func(shared *callsummary.SharedCallSummary) {
-		shared.Requests.AddObjectCallResults(sm.Reference, callregistry.ObjectCallResults{
+		callResults := callregistry.ObjectCallResults{
 			CallResults: sm.KnownRequests.GetResults(),
-		})
+		}
+
+		if !shared.Requests.AddObjectCallResults(sm.Reference, callResults) {
+			// result for this object already exist
+			panic(throw.Impossible())
+		}
 
 		if !ctx.Unpublish(callsummary.BuildSummarySyncKey(sm.Reference)) {
 			ctx.Log().Warn(struct {

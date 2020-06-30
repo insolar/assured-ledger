@@ -84,7 +84,9 @@ func TestSMExecute_PublishVCallResultToCallSummarySM(t *testing.T) {
 		workingTable.Add(contract.CallTolerable, ref)
 		workingTable.SetActive(contract.CallTolerable, ref)
 
-		sharedCallSummary.Requests.AddObjectCallResults(smGlobalRef, workingTable)
+		sharedCallSummary.Requests.AddObjectCallResults(smGlobalRef, callregistry.ObjectCallResults{
+			CallResults: workingTable.GetResults(),
+		})
 	}
 
 	{

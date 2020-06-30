@@ -9,8 +9,6 @@ package execute
 
 import (
 	"context"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
-
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
@@ -754,26 +752,11 @@ func (s *SMExecute) stepPublishDataCallSummary(ctx smachine.ExecutionContext) sm
 
 	if ok {
 		action := func(sharedCallSummary *callsummary.SharedCallSummary) {
-			ref := s.execution.Outgoing
-			requests, ok := sharedCallSummary.Requests.GetObjectCallResults(s.execution.Object)
-			if !ok {
-				// we should have summary result for object if we finish operation.
-				panic(throw.Impossible())
-			}
-
-			callSummary, ok := requests.CallResults[ref]
-			if !ok {
-				// if we not have summary in resultMap, it mean we do not go through stepStartRequestProcessing,
-				// and we can't have a result here
-				panic(throw.Impossible())
-			}
-
-			if callSummary.Result != nil {
-				// we should not have result because migration was before we publish result in object
-				panic(throw.Impossible())
-			}
-
-			requests.CallResults[ref] = callregistry.CallSummary{Result: s.execution.Result}
+			sharedCallSummary.Requests.AddObjectCallResult(
+				s.execution.Object,
+				s.execution.Outgoing,
+				s.execution.Result,
+			)
 		}
 
 		switch callSummaryAccessor.Prepare(action).TryUse(ctx).GetDecision() {
