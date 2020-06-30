@@ -6,8 +6,6 @@
 package lineage
 
 import (
-	"errors"
-
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -39,6 +37,8 @@ func (p *LineStages) AddBundle(bundle *BundleResolver, tracker StageTracker) boo
 		panic(throw.IllegalValue())
 	case bundle == nil:
 		panic(throw.IllegalValue())
+	case bundle.IsEmpty():
+		return true
 	case !bundle.IsResolved():
 		return false
 	}
@@ -76,12 +76,13 @@ func (p *LineStages) AddBundle(bundle *BundleResolver, tracker StageTracker) boo
 
 	recDelta := stage.firstRec - firstRec
 
-	// block this bundle from being reused without reprocessing
-	bundle.addError(errors.New("discarded bundle"))
 	bundle.maxRecNo += recDelta
 
 	for i := range bundle.records {
 		rec := &bundle.records[i]
+
+		// bundle.setLastRecord()
+
 		rec.recordNo += recDelta
 
 		if rec.recapNo >= firstRec {
@@ -212,6 +213,9 @@ func (p *LineStages) AddBundle(bundle *BundleResolver, tracker StageTracker) boo
 		p.earliest = stage
 	}
 	p.latest = stage
+
+	// block this bundle from being reused without reprocessing
+	bundle.addError(throw.New("discarded bundle"))
 
 	return true
 }
