@@ -15,20 +15,20 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
 )
 
-// key for publish synclink, need for await publish call results after migration for specific object
 type SummarySyncKey struct {
 	objectRef reference.Global
 }
 
+// SummarySyncKey is used for publish synclink, need for await publish call results after migration for specific object
 func BuildSummarySyncKey(objectRef reference.Global) SummarySyncKey {
 	return SummarySyncKey{objectRef: objectRef}
 }
 
-// key for access shared state, SMCallSummary publish self data by this key
 type SummarySharedKey struct {
 	pulseNumber pulse.Number
 }
 
+// SummarySharedKey is used for access shared state, SMCallSummary publish self data by this key
 func BuildSummarySharedKey(pulse pulse.Number) SummarySharedKey {
 	return SummarySharedKey{pulseNumber: pulse}
 }
@@ -47,7 +47,7 @@ type SMCallSummary struct {
 }
 
 type SharedCallSummary struct {
-	Requests callregistry.ObjectsRequestsTable
+	Requests callregistry.ObjectsResultCallRegistry
 }
 
 func (sm *SMCallSummary) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLink, _ *injector.DependencyInjector) {

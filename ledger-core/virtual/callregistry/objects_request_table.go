@@ -9,26 +9,26 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
-// store request per object by object reference.
-type ObjectsRequestsTable struct {
-	knownRequests map[reference.Global]*CallResults
+// ObjectsResultCallRegistry is used for store results for all processed requests per object by object reference.
+type ObjectsResultCallRegistry struct {
+	objects map[reference.Global]*ObjectCallResults
 }
 
-type CallResults struct {
-	ResultsMap map[reference.Global]CallSummary
+type ObjectCallResults struct {
+	CallResults map[reference.Global]CallSummary
 }
 
-func NewObjectRequestTable() ObjectsRequestsTable {
-	return ObjectsRequestsTable{
-		knownRequests: make(map[reference.Global]*CallResults),
+func NewObjectRequestTable() ObjectsResultCallRegistry {
+	return ObjectsResultCallRegistry{
+		objects: make(map[reference.Global]*ObjectCallResults),
 	}
 }
 
-func (ort *ObjectsRequestsTable) GetObjectsKnownRequests(ref reference.Global) (*CallResults, bool) {
-	workingTable, ok := ort.knownRequests[ref]
+func (ort *ObjectsResultCallRegistry) GetObjectsCallResults(ref reference.Global) (*ObjectCallResults, bool) {
+	workingTable, ok := ort.objects[ref]
 	return workingTable, ok
 }
 
-func (ort *ObjectsRequestsTable) AddObjectRequests(ref reference.Global, knownRequests WorkingTable) {
-	ort.knownRequests[ref] = &CallResults{ResultsMap: knownRequests.results}
+func (ort *ObjectsResultCallRegistry) AddObjectCallResults(ref reference.Global, callResults ObjectCallResults) {
+	ort.objects[ref] = &callResults
 }

@@ -84,7 +84,7 @@ func TestSMExecute_PublishVCallResultToCallSummarySM(t *testing.T) {
 		workingTable.Add(contract.CallTolerable, ref)
 		workingTable.SetActive(contract.CallTolerable, ref)
 
-		sharedCallSummary.Requests.AddObjectRequests(smGlobalRef, workingTable)
+		sharedCallSummary.Requests.AddObjectCallResults(smGlobalRef, workingTable)
 	}
 
 	{
@@ -132,10 +132,10 @@ func TestSMExecute_PublishVCallResultToCallSummarySM(t *testing.T) {
 		smExecute.stepPublishDataCallSummary(execCtx)
 	}
 
-	workingTable, ok := sharedCallSummary.Requests.GetObjectsKnownRequests(smGlobalRef)
-	require.Equal(t, 1, len(workingTable.ResultsMap))
+	workingTable, ok := sharedCallSummary.Requests.GetObjectsCallResults(smGlobalRef)
+	require.Equal(t, 1, len(workingTable.CallResults))
 
-	result, ok := workingTable.ResultsMap[ref]
+	result, ok := workingTable.CallResults[ref]
 
 	require.True(t, ok)
 	require.NotNil(t, result.Result)

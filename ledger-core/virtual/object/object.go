@@ -467,7 +467,9 @@ func (sm *SMObject) stepPublishCallSummary(ctx smachine.ExecutionContext) smachi
 	}
 
 	action := func(shared *callsummary.SharedCallSummary) {
-		shared.Requests.AddObjectRequests(sm.Reference, sm.KnownRequests)
+		shared.Requests.AddObjectCallResults(sm.Reference, callregistry.ObjectCallResults{
+			CallResults: sm.KnownRequests.GetResults(),
+		})
 
 		if !ctx.Unpublish(callsummary.BuildSummarySyncKey(sm.Reference)) {
 			ctx.Log().Warn(struct {

@@ -755,13 +755,13 @@ func (s *SMExecute) stepPublishDataCallSummary(ctx smachine.ExecutionContext) sm
 	if ok {
 		action := func(sharedCallSummary *callsummary.SharedCallSummary) {
 			ref := s.execution.Outgoing
-			requests, ok := sharedCallSummary.Requests.GetObjectsKnownRequests(s.execution.Object)
+			requests, ok := sharedCallSummary.Requests.GetObjectsCallResults(s.execution.Object)
 			if !ok {
 				// we should have summary result for object if we finish operation.
 				panic(throw.Impossible())
 			}
 
-			callSummary, ok := requests.ResultsMap[ref]
+			callSummary, ok := requests.CallResults[ref]
 			if !ok {
 				// if we not have summary in resultMap, it mean we do not go through stepStartRequestProcessing,
 				// and we can't have a result here
@@ -773,7 +773,7 @@ func (s *SMExecute) stepPublishDataCallSummary(ctx smachine.ExecutionContext) sm
 				panic(throw.Impossible())
 			}
 
-			requests.ResultsMap[ref] = callregistry.CallSummary{Result: s.execution.Result}
+			requests.CallResults[ref] = callregistry.CallSummary{Result: s.execution.Result}
 		}
 
 		switch callSummaryAccessor.Prepare(action).TryUse(ctx).GetDecision() {

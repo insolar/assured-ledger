@@ -158,16 +158,16 @@ func TestSMObject_CallSummarySM(t *testing.T) {
 
 		smObject.stepPublishCallSummary(executionCtx)
 
-		res, ok := scs.Requests.GetObjectsKnownRequests(smObject.Reference)
+		res, ok := scs.Requests.GetObjectsCallResults(smObject.Reference)
 
 		require.True(t, ok)
-		require.Equal(t, 2, len(res.ResultsMap))
+		require.Equal(t, 2, len(res.CallResults))
 
-		actRes1, ok := res.ResultsMap[req1Ref]
+		actRes1, ok := res.CallResults[req1Ref]
 		require.True(t, ok)
 		require.Equal(t, &res1, actRes1.Result)
 
-		actRes2, ok := res.ResultsMap[req2Ref]
+		actRes2, ok := res.CallResults[req2Ref]
 		require.True(t, ok)
 		require.Equal(t, &res2, actRes2.Result)
 	}
