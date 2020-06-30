@@ -235,7 +235,7 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 			panic(throw.NotImplemented())
 		}
 	} else if objectState != object.HasState {
-		s.prepareExecutionError(throw.E("no state on object after readyToWork", struct {
+		s.prepareExecutionError(throw.E("object is not ready", struct {
 			ObjectReference string
 			State           object.State
 		}{

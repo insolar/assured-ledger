@@ -192,7 +192,7 @@ func TestVirtual_Method_WithExecutor_ObjectIsNotExist(t *testing.T) {
 
 	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 
-	expectedError := throw.E("no state on object after readyToWork", struct {
+	expectedError := throw.E("object is not ready", struct {
 		ObjectReference string
 		State           object.State
 	}{
