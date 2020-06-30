@@ -64,6 +64,21 @@ func TestBoundPublish(t *testing.T) {
 	require.True(t, ctx.Publish(key, data))
 }
 
+func TestBoundPublishUnpublish(t *testing.T) {
+	ctx := stubExecContext()
+
+	key := "test"
+	data := "testData"
+
+	require.True(t, ctx.Publish(key, data))
+	require.False(t, ctx.Publish(key, data))
+
+	require.True(t, ctx.Unpublish(key))
+
+	require.Nil(t, ctx.GetPublished(key))
+	require.True(t, ctx.Publish(key, data))
+}
+
 func TestUnboundPublish(t *testing.T) {
 	ctx := stubExecContext()
 
@@ -90,4 +105,3 @@ func TestUnboundPublish(t *testing.T) {
 	require.Equal(t, link, ctx.GetPublished(key))
 	require.False(t, ctx.Publish(key, data))
 }
-

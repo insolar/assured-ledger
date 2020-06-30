@@ -34,10 +34,10 @@ func (p *machineCallContext) Stop() {
 	p.m.Stop()
 }
 
-func (p *machineCallContext) AddNew(ctx context.Context, sm StateMachine, defValues CreateDefaultValues) SlotLink {
+func (p *machineCallContext) AddNew(ctx context.Context, sm StateMachine, defValues CreateDefaultValues) (SlotLink, bool) {
 	p.ensureValid()
 	if sm == nil {
-		panic("illegal value")
+		panic(throw.IllegalValue())
 	}
 
 	switch {
@@ -51,7 +51,7 @@ func (p *machineCallContext) AddNew(ctx context.Context, sm StateMachine, defVal
 	if ok {
 		p.m.startNewSlot(link.s, p.w)
 	}
-	return link
+	return link, ok
 }
 
 func (p *machineCallContext) AddNewByFunc(ctx context.Context, cf CreateFunc, defValues CreateDefaultValues) (SlotLink, bool) {
