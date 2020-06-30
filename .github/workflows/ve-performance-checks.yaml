@@ -45,7 +45,9 @@ jobs:
           path: ./loadgen
           repository: skudasov/loadgen
       - name: build loadgen
-        run: go build -o loadcli ${{ github.workspace }}/loadgen/cmd/
+        run: |
+          cd loadgen
+          go build -o loadcli ${{ github.workspace }}/loadgen/cmd/
       - name: Set up go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v1
         with:
