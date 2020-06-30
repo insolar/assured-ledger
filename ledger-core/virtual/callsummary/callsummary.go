@@ -19,7 +19,7 @@ type SummarySyncKey struct {
 	objectRef reference.Global
 }
 
-// SummarySyncKey is used for publish synclink, need for await publish call results after migration for specific object
+// BuildSummarySyncKey builds SummarySyncKey, which is used for publish synclink, need for await publish call results after migration for specific object
 func BuildSummarySyncKey(objectRef reference.Global) SummarySyncKey {
 	return SummarySyncKey{objectRef: objectRef}
 }
@@ -28,7 +28,7 @@ type SummarySharedKey struct {
 	pulseNumber pulse.Number
 }
 
-// SummarySharedKey is used for access shared state, SMCallSummary publish self data by this key
+// BuildSummarySharedKey builds SummarySharedKey, which is used for access shared state, SMCallSummary publish self data by this key
 func BuildSummarySharedKey(pulse pulse.Number) SummarySharedKey {
 	return SummarySharedKey{pulseNumber: pulse}
 }
