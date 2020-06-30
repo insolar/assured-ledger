@@ -9,6 +9,7 @@ package execute
 
 import (
 	"context"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/tables"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
@@ -31,7 +32,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callsummary"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/tables"
 )
 
 /* -------- Utilities ------------- */
@@ -722,7 +722,7 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 	return ctx.Jump(s.stepSendCallResult)
 }
 
-func (s *SMExecute) stepPublishCallSummaryData(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (s *SMExecute) stepAwaitSMCallSummary(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	syncAccessor, ok := callsummary.GetSummarySMSyncAccessor(ctx, s.execution.Object)
 
 	if ok {
@@ -746,6 +746,10 @@ func (s *SMExecute) stepPublishCallSummaryData(ctx smachine.ExecutionContext) sm
 		}
 	}
 
+	return ctx.Jump(s.stepPublishDataCallSummary)
+}
+
+func (s *SMExecute) stepPublishDataCallSummary(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	callSummaryAccessor, ok := callsummary.GetSummarySMSharedAccessor(ctx, s.pulseSlot.PulseData().PulseNumber)
 
 	if ok {
@@ -753,7 +757,16 @@ func (s *SMExecute) stepPublishCallSummaryData(ctx smachine.ExecutionContext) sm
 			ref := s.execution.Outgoing
 			requests, ok := sharedCallSummary.Requests.GetObjectsKnownRequests(s.execution.Object)
 			if ok {
-				requests.GetList(s.execution.Isolation.Interference).Finish(ref, s.execution.Result)
+				callSummary, ok := requests.ResultsMap[ref]
+				if !ok {
+					// if we not have summary in resultMap, it mean we do not go through stepStartRequestProcessing,
+					// and we can't have a result here
+					panic(throw.Impossible())
+				}
+
+				if callSummary.Result == nil {
+					requests.ResultsMap[ref] = tables.CallSummary{Result: s.execution.Result}
+				}
 			}
 		}
 
@@ -877,7 +890,7 @@ func (s *SMExecute) stepFinishRequest(ctx smachine.ExecutionContext) smachine.St
 	if s.migrationHappened {
 		// publish call result only if present
 		if s.execution.Result != nil {
-			return ctx.Jump(s.stepPublishCallSummaryData)
+			return ctx.Jump(s.stepAwaitSMCallSummary)
 		}
 		return ctx.Jump(s.stepSendDelegatedRequestFinished)
 	}

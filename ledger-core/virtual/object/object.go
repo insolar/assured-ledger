@@ -9,7 +9,6 @@ package object
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
@@ -278,7 +277,7 @@ func (sm *SMObject) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 
 	sm.initWaitGetStateUntil()
 
-	ctx.SetDefaultMigration(sm.stepMigrate)
+	ctx.SetDefaultMigration(sm.migrate)
 
 	return ctx.Jump(sm.stepGetState)
 }
@@ -406,7 +405,7 @@ func (sm *SMObject) createWaitPendingOrderedSM(ctx smachine.ExecutionContext) {
 	}
 }
 
-func (sm *SMObject) stepMigrate(ctx smachine.MigrationContext) smachine.StateUpdate {
+func (sm *SMObject) migrate(ctx smachine.MigrationContext) smachine.StateUpdate {
 	if sm.GetState() == Unknown {
 		ctx.Log().Trace("SMObject migration happened when object is not ready yet")
 		return ctx.Stop()
@@ -432,7 +431,7 @@ func (sm *SMObject) stepMigrate(ctx smachine.MigrationContext) smachine.StateUpd
 		}{
 			Reference: sm.Reference.String(),
 		})
-		return ctx.Error(fmt.Errorf("failed to publish state report"))
+		return ctx.Error(throw.New("failed to publish state report"))
 	}
 
 	sdlCallSummarySync := ctx.Share(&sm.SummaryDone, 0)
@@ -444,7 +443,7 @@ func (sm *SMObject) stepMigrate(ctx smachine.MigrationContext) smachine.StateUpd
 		}{
 			Reference: sm.Reference.String(),
 		})
-		return ctx.Error(fmt.Errorf("failed to publish call summary sync key"))
+		return ctx.Error(throw.New("failed to publish call summary sync key"))
 	}
 
 	return ctx.Jump(sm.stepPublishCallSummary)
@@ -472,7 +471,7 @@ func (sm *SMObject) stepPublishCallSummary(ctx smachine.ExecutionContext) smachi
 			}{
 				Reference: sm.Reference.String(),
 			})
-			ctx.Error(fmt.Errorf("failed to unpublish call summary sync key"))
+			ctx.Error(throw.New("failed to unpublish call summary sync key"))
 		}
 	}
 

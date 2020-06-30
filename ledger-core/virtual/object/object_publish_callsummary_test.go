@@ -17,6 +17,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object/finalizedstate"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/tables"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/shareddata"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -43,10 +44,12 @@ func TestSMObject_CallSummarySM(t *testing.T) {
 	req1Ref := reference.NewRecordOf(res1.Callee, res1.CallOutgoing)
 	req2Ref := reference.NewRecordOf(res2.Callee, res2.CallOutgoing)
 
-	smObject.SharedState.KnownRequests.GetList(contract.CallTolerable).Add(req1Ref)
-	smObject.SharedState.KnownRequests.GetList(contract.CallIntolerable).Add(req2Ref)
-	smObject.SharedState.KnownRequests.GetList(contract.CallTolerable).Finish(req1Ref, &res1)
-	smObject.SharedState.KnownRequests.GetList(contract.CallIntolerable).Finish(req2Ref, &res2)
+	smObject.SharedState.KnownRequests.Add(contract.CallTolerable, req1Ref)
+	smObject.SharedState.KnownRequests.Add(contract.CallIntolerable, req2Ref)
+	smObject.SharedState.KnownRequests.SetActive(contract.CallTolerable, req1Ref)
+	smObject.SharedState.KnownRequests.SetActive(contract.CallIntolerable, req2Ref)
+	smObject.SharedState.KnownRequests.Finish(contract.CallTolerable, req1Ref, &res1)
+	smObject.SharedState.KnownRequests.Finish(contract.CallIntolerable, req2Ref, &res2)
 
 	pulseNumber := smObject.pulseSlot.PulseData().PulseNumber
 
@@ -71,31 +74,48 @@ func TestSMObject_CallSummarySM(t *testing.T) {
 		sdlStateReport := smachine.NewUnboundSharedData(&payload.VStateReport{})
 		sdlSummarySync := smachine.NewUnboundSharedData(&smachine.SyncLink{})
 
-		migrationCtx := smachine.NewMigrationContextMock(mc).
-			LogMock.Return(smachine.Logger{}).
-			UnpublishAllMock.Expect().Return().
-			ShareMock.Set(func(data interface{}, flags smachine.ShareDataFlags) (s1 smachine.SharedDataLink) {
+		publishDuringMigrate := func(key interface{}, data interface{}) (b1 bool) {
+			assert.NotNil(t, data)
+
+			switch k := key.(type) {
+			case finalizedstate.ReportKey:
+				assert.Equal(t, finalizedstate.BuildReportKey(smObject.Reference), k)
+			case callsummary.SummarySyncKey:
+				assert.Equal(t, callsummary.BuildSummarySyncKey(smObject.Reference), k)
+			default:
+				t.Fatal("Unexpected published key")
+			}
+
+			switch data.(type) {
+			case smachine.SharedDataLink:
+			default:
+				t.Fatal("Unexpected published data")
+			}
+
+			return true
+		}
+
+		getSharedLink := func(data interface{}, flags smachine.ShareDataFlags) (s1 smachine.SharedDataLink) {
 			switch data.(type) {
 			case *payload.VStateReport:
 				return sdlStateReport
 			case *smachine.SyncLink:
 				return sdlSummarySync
 			default:
+				t.Fatal("unexpected shared data type")
 			}
-			panic("unexpected shared data")
-		}).
-			PublishMock.Set(func(key interface{}, data interface{}) (b1 bool) {
-			switch d := key.(type) {
-			case finalizedstate.ReportKey:
-				require.Equal(t, finalizedstate.BuildReportKey(smObject.Reference), d)
-			case callsummary.SummarySyncKey:
-				require.Equal(t, callsummary.BuildSummarySyncKey(smObject.Reference), d)
-			}
-			return true
-		}).
+
+			return smachine.SharedDataLink{}
+		}
+
+		migrationCtx := smachine.NewMigrationContextMock(mc).
+			LogMock.Return(smachine.Logger{}).
+			UnpublishAllMock.Expect().Return().
+			ShareMock.Set(getSharedLink).
+			PublishMock.Set(publishDuringMigrate).
 			JumpMock.Set(testutils.AssertJumpStep(t, smObject.stepPublishCallSummary))
 
-		smObject.stepMigrate(migrationCtx)
+		smObject.migrate(migrationCtx)
 	}
 
 	{
@@ -104,20 +124,27 @@ func TestSMObject_CallSummarySM(t *testing.T) {
 		}
 		sdl := smachine.NewUnboundSharedData(&scs)
 
-		firsCall := true
+		firstCall := true
+
+		getPublishedLink := func(key interface{}) (s1 smachine.SharedDataLink) {
+			var link smachine.SharedDataLink
+			switch key {
+			case callsummary.BuildSummarySharedKey(pulseNumber):
+				if firstCall {
+					firstCall = false
+					link = smachine.SharedDataLink{}
+				} else {
+					link = sdl
+				}
+			default:
+				t.Fatal("Unexpected key")
+			}
+
+			return link
+		}
 
 		executionCtx := smachine.NewExecutionContextMock(mc).
-			GetPublishedLinkMock.Set(func(key interface{}) (s1 smachine.SharedDataLink) {
-			if key == callsummary.BuildSummarySharedKey(pulseNumber) {
-				if firsCall {
-					firsCall = false
-					return smachine.SharedDataLink{}
-				} else {
-					return sdl
-				}
-			}
-			panic("Unexpected key")
-		}).
+			GetPublishedLinkMock.Set(getPublishedLink).
 			InitChildMock.Set(
 			func(c1 smachine.CreateFunc) (s1 smachine.SlotLink) {
 				callSummarySM := c1(smachine.NewConstructionContextMock(mc))
@@ -131,18 +158,18 @@ func TestSMObject_CallSummarySM(t *testing.T) {
 
 		smObject.stepPublishCallSummary(executionCtx)
 
-		requests, ok := scs.Requests.GetObjectsKnownRequests(smObject.Reference)
+		res, ok := scs.Requests.GetObjectsKnownRequests(smObject.Reference)
 
 		require.True(t, ok)
-		require.Equal(t, 2, requests.Len())
+		require.Equal(t, 2, len(res.ResultsMap))
 
-		actRes1, ok := requests.GetList(contract.CallTolerable).GetResult(req1Ref)
+		actRes1, ok := res.ResultsMap[req1Ref]
 		require.True(t, ok)
-		require.Equal(t, &res1, actRes1)
+		require.Equal(t, &res1, actRes1.Result)
 
-		actRes2, ok := requests.GetList(contract.CallIntolerable).GetResult(req2Ref)
+		actRes2, ok := res.ResultsMap[req2Ref]
 		require.True(t, ok)
-		require.Equal(t, &res2, actRes2)
+		require.Equal(t, &res2, actRes2.Result)
 	}
 
 	mc.Finish()

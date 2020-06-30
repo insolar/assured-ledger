@@ -25,7 +25,7 @@ func NewWorkingTable() WorkingTable {
 		rt.requests[i] = newWorkingList()
 	}
 
-	rt.results = make(map[reference.Global]Summary)
+	rt.results = make(map[reference.Global]CallSummary)
 
 	return rt
 }
@@ -37,7 +37,7 @@ func (wt WorkingTable) GetList(flag contract.InterferenceFlag) *WorkingList {
 	panic(throw.IllegalValue())
 }
 
-func (wt WorkingTable) GetResults() map[reference.Global]Summary {
+func (wt WorkingTable) GetResults() map[reference.Global]CallSummary {
 	return wt.results
 }
 
@@ -47,7 +47,7 @@ func (wt WorkingTable) Add(flag contract.InterferenceFlag, ref reference.Global)
 
 func (wt WorkingTable) SetActive(flag contract.InterferenceFlag, ref reference.Global) bool {
 	if ok := wt.GetList(flag).setActive(ref); ok {
-		wt.results[ref] = Summary{}
+		wt.results[ref] = CallSummary{}
 
 		return true
 	}
@@ -65,7 +65,7 @@ func (wt WorkingTable) Finish(
 		if !ok {
 			panic(throw.IllegalState())
 		}
-		wt.results[ref] = Summary{result: result}
+		wt.results[ref] = CallSummary{Result: result}
 
 		return true
 	}
@@ -103,8 +103,8 @@ func newWorkingList() *WorkingList {
 	}
 }
 
-type Summary struct {
-	result *payload.VCallResult
+type CallSummary struct {
+	Result *payload.VCallResult
 }
 
 func (rl *WorkingList) GetState(ref reference.Global) WorkingRequestState {

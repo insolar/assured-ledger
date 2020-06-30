@@ -15,8 +15,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/tables"
 )
 
-type pulseNumber = pulse.Number
-
+// key for publish synclink, need for await publish call results after migration for specific object
 type SummarySyncKey struct {
 	objectRef reference.Global
 }
@@ -25,8 +24,9 @@ func BuildSummarySyncKey(objectRef reference.Global) SummarySyncKey {
 	return SummarySyncKey{objectRef: objectRef}
 }
 
+// key for access shared state, SMCallSummary publish self data by this key
 type SummarySharedKey struct {
-	pulseNumber
+	pulseNumber pulse.Number
 }
 
 func BuildSummarySharedKey(pulse pulse.Number) SummarySharedKey {

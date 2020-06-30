@@ -11,20 +11,24 @@ import (
 
 // store request per object by object reference.
 type ObjectsRequestsTable struct {
-	knownRequests map[reference.Global]*WorkingTable
+	knownRequests map[reference.Global]*CallResults
+}
+
+type CallResults struct {
+	ResultsMap map[reference.Global]CallSummary
 }
 
 func NewObjectRequestTable() ObjectsRequestsTable {
 	return ObjectsRequestsTable{
-		knownRequests: make(map[reference.Global]*WorkingTable),
+		knownRequests: make(map[reference.Global]*CallResults),
 	}
 }
 
-func (ort *ObjectsRequestsTable) GetObjectsKnownRequests(ref reference.Global) (*WorkingTable, bool) {
+func (ort *ObjectsRequestsTable) GetObjectsKnownRequests(ref reference.Global) (*CallResults, bool) {
 	workingTable, ok := ort.knownRequests[ref]
 	return workingTable, ok
 }
 
 func (ort *ObjectsRequestsTable) AddObjectRequests(ref reference.Global, knownRequests WorkingTable) {
-	ort.knownRequests[ref] = &knownRequests
+	ort.knownRequests[ref] = &CallResults{ResultsMap: knownRequests.results}
 }
