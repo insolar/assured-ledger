@@ -187,6 +187,8 @@ func TestVirtual_Method_WithExecutor_ObjectIsNotExist(t *testing.T) {
 		outgoing     = server.RandomLocalWithPulse()
 	)
 
+	Method_PrepareObject(ctx, server, payload.Missing, objectGlobal)
+
 	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 
 	expectedError := throw.E("no state on object after readyToWork", struct {
@@ -198,14 +200,6 @@ func TestVirtual_Method_WithExecutor_ObjectIsNotExist(t *testing.T) {
 	})
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-	typedChecker.VStateRequest.Set(func(request *payload.VStateRequest) bool {
-		assert.Equal(t, request.Object, objectGlobal)
-		return true
-	})
-	typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
-		assert.Equal(t, payload.Missing, report.Status)
-		return true
-	})
 	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
 		assert.Equal(t, res.Callee, objectGlobal)
 		assert.Equal(t, res.CallOutgoing, outgoing)
@@ -235,8 +229,6 @@ func TestVirtual_Method_WithExecutor_ObjectIsNotExist(t *testing.T) {
 	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 	assert.Equal(t, 1, typedChecker.VCallResult.Count())
-	assert.Equal(t, 1, typedChecker.VStateRequest.Count())
-	assert.Equal(t, 1, typedChecker.VStateReport.Count())
 
 	mc.Finish()
 }
