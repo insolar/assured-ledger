@@ -9,7 +9,6 @@ package execute
 
 import (
 	"context"
-
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
