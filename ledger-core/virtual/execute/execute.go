@@ -273,13 +273,14 @@ func (s *SMExecute) stepIsolationNegotiation(ctx smachine.ExecutionContext) smac
 
 	negotiatedIsolation, err := negotiateIsolation(s.methodIsolation, s.execution.Isolation)
 	if err != nil {
-		return ctx.Error(throw.W(err, "failed to negotiate", struct {
+		s.prepareExecutionError(throw.W(err, "failed to negotiate", struct {
 			methodIsolation contract.MethodIsolation
 			callIsolation   contract.MethodIsolation
 		}{
 			methodIsolation: s.methodIsolation,
 			callIsolation:   s.execution.Isolation,
 		}))
+		return ctx.Jump(s.stepSendCallResult)
 	}
 	s.execution.Isolation = negotiatedIsolation
 
@@ -819,6 +820,7 @@ func (s *SMExecute) stepSendCallResult(ctx smachine.ExecutionContext) smachine.S
 	}).WithoutAutoWakeUp().Start()
 
 	return ctx.Jump(s.stepFinishRequest)
+
 }
 
 func (s *SMExecute) stepFinishRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
