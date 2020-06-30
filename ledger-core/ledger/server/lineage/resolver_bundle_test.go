@@ -20,8 +20,8 @@ func r(root reference.Holder, ref, prev reference.LocalHolder, rt RecordType, re
 	rec.Excerpt.ReasonRef.Set(reason)
 	b := root.GetBase()
 	rec.Excerpt.RootRef.Set(root)
-	rec.RegRecord = &rms.LRegisterRequest{}
-	rec.RegRecord.AnticipatedRef.Set(reference.New(b, ref.GetLocal()))
+	rec.RegReq = &rms.LRegisterRequest{}
+	rec.RegReq.AnticipatedRef.Set(reference.New(b, ref.GetLocal()))
 	rec.Excerpt.PrevRef.Set(reference.New(b, prev.GetLocal()))
 	return
 }
@@ -30,8 +30,8 @@ func rStart(base reference.LocalHolder, reason reference.Holder) (rec Record) {
 	rec.Excerpt.RecordType = uint32(tRLifelineStart)
 	rec.Excerpt.ReasonRef.Set(reason)
 	b := base.GetLocal()
-	rec.RegRecord = &rms.LRegisterRequest{}
-	rec.RegRecord.AnticipatedRef.Set(reference.NewSelf(b))
+	rec.RegReq = &rms.LRegisterRequest{}
+	rec.RegReq.AnticipatedRef.Set(reference.NewSelf(b))
 	return
 }
 

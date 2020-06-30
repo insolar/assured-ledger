@@ -13,20 +13,21 @@ import (
 )
 
 type Record struct {
-	Excerpt catalog.Excerpt
-	RegRecord  *rms.LRegisterRequest
+	Excerpt  catalog.Excerpt
+	RegReq   *rms.LRegisterRequest
+	RecapRec *rms.RLineRecap
 
 	RegistrarSignature cryptkit.SignedDigest
 }
 
 func (v Record) Equal(record Record) bool {
-	return v.RegRecord != nil && v.RegRecord.Equal(record.RegRecord)
+	return v.RegReq != nil && v.RegReq.Equal(record.RegReq)
 }
 
 func (v Record) GetRecordRef() reference.Holder {
-	if v.RegRecord == nil {
+	if v.RegReq == nil {
 		return nil
 	}
-	return v.RegRecord.AnticipatedRef.Get()
+	return v.RegReq.AnticipatedRef.Get()
 }
 

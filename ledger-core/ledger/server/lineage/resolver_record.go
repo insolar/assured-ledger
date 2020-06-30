@@ -36,3 +36,11 @@ func (p *resolvedRecord) asResolvedDependency() ResolvedDependency {
 	}
 	return rd
 }
+
+func (p *resolvedRecord) IsRecap() bool {
+	return RecordType(p.Excerpt.RecordType) == tRLineRecap // TODO proper check for LineRecap
+}
+
+func (p *resolvedRecord) IsSidelineStart() bool {
+	return RecordType(p.Excerpt.RecordType) == tRSidelineStart // TODO proper check for SidelineStart
+}

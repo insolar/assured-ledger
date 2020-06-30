@@ -66,118 +66,38 @@ func (p *LineStages) AddBundle(bundle *BundleResolver, tracker StageTracker) boo
 		stage.filaments = append(stage.filaments, filament{})
 	}
 
-	filNo := filamentNo(0)
-	var filRoot reference.Local
-
-	firstRec := bundle.maxRecNo
-	if firstRec > stage.firstRec {
-		panic(throw.IllegalState())
-	}
-
-	recDelta := stage.firstRec - firstRec
-
-	bundle.maxRecNo += recDelta
+	validator := newValidator(bundle, stage)
 
 	defer bundle.setLastRecord(nil)
 
 	for i := range bundle.records {
 		rec := &bundle.records[i]
-
 		bundle.setLastRecord(rec.GetRecordRef())
 
-		rec.recordNo += recDelta
-
-		if rec.recapNo >= firstRec {
-			rec.recapNo += recDelta
-		}
-
-		isRecap := false
-		switch {
-		case rec.prev >= firstRec:
-			rec.prev += recDelta
-		case rec.prev > 0:
-		case bundle.isLineStart && rec.recordNo == 1:
-		case !bundle.isLineStart && RecordType(rec.Excerpt.RecordType) == tRSidelineStart: // TODO proper check for SidelineStart
-		case RecordType(rec.Excerpt.RecordType) == tRLineRecap:
-			if rec.recapNo != 0 {
-				bundle.addError(throw.New("recap with recap"))
-				continue
-			}
-			isRecap = true
-		case rec.recapNo == 0:
-			bundle.addError(throw.New("recap is missing"))
-			continue
-		case rec.recapNo >= rec.prev:
-			bundle.addError(throw.New("recap in future"))
+		if err := validator.adjustNext(rec); err != nil {
+			bundle.addError(err)
 			continue
 		}
 
-		switch {
-		case rec.next == deadFilament:
-		case rec.next >= firstRec:
-			rec.next += recDelta
-		case rec.next > 0:
-			bundle.addError(throw.New("next in past"))
+		if err := validator.adjustPrevAndRecap(rec); err != nil {
+			bundle.addError(err)
 			continue
 		}
 
-		switch {
-		case rec.filNo != 0:
-		case filNo != 0:
-			rec.filNo = filNo
-		case bundle.branchStart == 0 || bundle.branchHead == 0:
-			bundle.addError(throw.New("inconsistent filament data"))
+		if err := validator.addFilament(rec); err != nil {
+			bundle.addError(err)
 			continue
-		case bundle.branchHead + recDelta != rec.recordNo:
-			bundle.addError(throw.New("inconsistent filament head"))
-			continue
-		default:
-			stage.filaments = append(stage.filaments, filament{})
-			filNo = filamentNo(len(stage.filaments))
-			rec.filNo = filNo
-			filRoot = rec.GetRecordRef().GetLocal()
 		}
 
-		switch filament := &stage.filaments[rec.filNo - 1]; {
-		case filament.earliest == 0:
-			if isRecap {
-				if filament.recap != 0 {
-					panic(throw.Impossible())
-				}
-				filament.recap = rec.recordNo
-				// TODO resolvedHead
-				break
-			}
-			filament.earliest = rec.recordNo
-			filament.latest = rec.recordNo
-			filament.resolvedHead = rec.asResolvedDependency()
-			if rec.next == deadFilament {
-				filament.state = ended
-			}
-
-		case filament.latest != rec.prev:
-			bundle.addError(throw.New("inconsistent filament sequence"))
+		if err := validator.applyFilament(rec); err != nil {
+			bundle.addError(err)
 			continue
-		default:
-			if rec.recapNo != 0 && filament.recap != rec.recapNo {
-				bundle.addError(throw.New("inconsistent filament recap"))
-				continue
-			}
-			filament.latest = rec.recordNo
-			if rec.next == deadFilament {
-				filament.state = ended
-			}
 		}
 	}
 
-	if filNo > 0 {
-		// sanity check
-		latest := stage.filaments[filNo - 1].latest
-		switch bundle.records[latest - bundle.maxRecNo].next {
-		case 0, deadFilament:
-		default:
-			bundle.addError(throw.New("inconsistent latest of filament"))
-		}
+	if err := validator.postCheck(); err != nil {
+		bundle.addError(err)
+		return false
 	}
 
 	if !bundle.IsResolved() {
@@ -217,7 +137,7 @@ func (p *LineStages) AddBundle(bundle *BundleResolver, tracker StageTracker) boo
 	}
 
 	if prevFilamentCount != len(stage.filaments) {
-		p.filamentRefs[filRoot] = filamentNo(len(stage.filaments))
+		p.filamentRefs[validator.filRoot] = filamentNo(len(stage.filaments))
 	}
 
 	if p.latest != nil {

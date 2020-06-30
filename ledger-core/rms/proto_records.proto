@@ -30,30 +30,55 @@ message RecordExample {
     uint32 AsOf = 42 [(gogoproto.casttype)="PulseNumber"];
 }
 
-enum LineState {
+enum FilamentState {
     Unknown = 0;
     Started = 1;
     Activated = 2;
     DirtyDeactivated = 126;
-    Deactivated = 127; // 1-byte varint
+    Dead = 127; // 1-byte varint
+}
+
+enum FilamentType {
+    Lifeline = 0;
+    Sideline = 1;
+
+    InboundFilament = 16;
 }
 
 message RLineRecap {
     option (insproto.id) = 19;
 
-    reserved 1 to 18, 20 to 23, 26 to 39, 1792 to max;
+    reserved 1 to 18, 20 to 23, 26, 28 to 39, 1792 to max;
     RecordBody RecordBody = 19 [(gogoproto.embed)=true];
 
     Reference PrevRef = 24;
     Reference RootRef = 25;
+    Reference RedirectRef = 27;
 
-    LineState LineState = 40;
-    uint32    PrevRefType = 41;
-    // TODO redirection data for PrevRef
+    FilamentState State = 40;
+    FilamentType  Type = 41;
+    uint32        PrevType = 42;
+    uint32        RedirectToType = 43;
 
-    Reference DirtyMemory = 43;
-    Reference ValidateMemory = 44;
-    Reference FinalizedMemory = 45;
+    repeated MemoryRecap Memory = 50;
+}
+
+enum MemorySafety {
+    UnknownSafety = 0;
+    Dirty = 1;
+    Validated = 2;
+    Final = 3;
+}
+
+message MemoryRecap {
+    option (insproto.id) = 0;
+    option (insproto.fields_mapping) = false;
+    option (insproto.message_mapping) = false;
+    option (insproto.context) = "";
+    MemorySafety Safety = 20;
+    Reference Memory = 21;
+//    Reference Class = 22;
+//    Reference Code = 23;
 }
 
 message RPrevDropReport {

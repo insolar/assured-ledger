@@ -37,7 +37,7 @@ func TestLineStages_Create(t *testing.T) {
 	refInbound1 := gen.UniqueLocalRefWithPulse(base.GetPulseNumber())
 	require.True(t, br.Add(r(baseRef, refInbound1, refActivate, tRLineInboundRequest, refReason)), describe(br))
 
-	require.True(t, line.AddBundle(br, &stubTracker{}))
+	require.True(t, line.AddBundle(br, &stubTracker{}), describe(br))
 
 	verifySequences(t, line)
 }
@@ -66,7 +66,7 @@ func TestLineStages_CreateWithCalls(t *testing.T) {
 	last := fillBundleWithOrderedCall(t, base, base, br, reference.NewSelf(base), true)
 
 	st1 := &stubTracker{}
-	require.True(t, line.AddBundle(br, st1))
+	require.True(t, line.AddBundle(br, st1), describe(br))
 
 	br = line.NewBundle()
 
@@ -80,11 +80,11 @@ func TestLineStages_CreateWithCalls(t *testing.T) {
 	br2 := line.NewBundle()
 	fillBundleWithUnorderedCall(t, base, last, br2, refReason3)
 	st2 := &stubTracker{}
-	require.True(t, line.AddBundle(br2, st2))
+	require.True(t, line.AddBundle(br2, st2), describe(br2))
 
 	// not conflicting bundles can be added in any order
 	st3 := &stubTracker{}
-	require.True(t, line.AddBundle(br, st3))
+	require.True(t, line.AddBundle(br, st3), describe(br))
 
 	require.Equal(t, recordNo(17), line.getNextRecNo())
 	require.Equal(t, stageNo(1), line.earliest.seqNo)
@@ -135,7 +135,7 @@ func TestLineStages_Rollback(t *testing.T) {
 	last := fillBundleWithOrderedCall(t, base, base, br, reference.NewSelf(base), true)
 
 	st1 := &stubTracker{}
-	require.True(t, line.AddBundle(br, st1))
+	require.True(t, line.AddBundle(br, st1), describe(br))
 	verifySequences(t, line)
 
 
@@ -150,7 +150,7 @@ func TestLineStages_Rollback(t *testing.T) {
 	br = line.NewBundle()
 	fillBundleWithUnorderedCall(t, base, last, br, refReason2)
 	st2 := &stubTracker{}
-	require.True(t, line.AddBundle(br, st2))
+	require.True(t, line.AddBundle(br, st2), describe(br))
 	verifySequences(t, line)
 
 	trimAt := line.getNextRecNo()
@@ -158,7 +158,7 @@ func TestLineStages_Rollback(t *testing.T) {
 	br = line.NewBundle()
 	fillBundleWithOrderedCall(t, base, last, br, refReason3, false)
 	st3 := &stubTracker{}
-	require.True(t, line.AddBundle(br, st3))
+	require.True(t, line.AddBundle(br, st3), describe(br))
 	verifySequences(t, line)
 
 	require.Equal(t, recordNo(17), line.getNextRecNo())
@@ -177,7 +177,7 @@ func TestLineStages_Rollback(t *testing.T) {
 	br = line.NewBundle()
 	fillBundleWithUnorderedCall(t, base, last, br, refReason4)
 	st4 := &stubTracker{}
-	require.True(t, line.AddBundle(br, st4))
+	require.True(t, line.AddBundle(br, st4), describe(br))
 	st4.committed = true
 
 	line.RollbackUncommittedRecords()
