@@ -19,19 +19,6 @@ jobs:
     name: ve-performance
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout loadgen
-        uses: actions/checkout@v2
-        with:
-          path: ./loadgen
-          repository: skudasov/loadgen
-      - name: build loadgen
-        run: |
-          pwd
-          ls -a
-          cd loadgen
-          ls -a
-          go build -o loadcli /loadgen/loadgen/cmd/
-          ls -a
       - name: Create short git sha and git ref vars
         id: set-vars
         uses: actions/github-script@v2
@@ -52,6 +39,19 @@ jobs:
             return result;
       - name: Checkout code
         uses: actions/checkout@master
+      - name: Checkout loadgen
+        uses: actions/checkout@v2
+        with:
+          path: ./loadgen
+          repository: skudasov/loadgen
+      - name: build loadgen
+        run: |
+          pwd
+          ls -a
+          cd loadgen
+          ls -a
+          go build -o loadcli ${{ github.workspace }}/loadgen/cmd/
+          ls -a
       - name: Set up go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v1
         with:
