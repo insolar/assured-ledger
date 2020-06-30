@@ -6,12 +6,19 @@
 package object
 
 import (
+<<<<<<< HEAD
 	"testing"
 
+=======
+>>>>>>> PLAT-388: Implemented SMCallSummary  (#383)
 	"github.com/gojuno/minimock/v3"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
+<<<<<<< HEAD
+=======
+	"github.com/insolar/assured-ledger/ledger-core/reference"
+>>>>>>> PLAT-388: Implemented SMCallSummary  (#383)
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
@@ -20,6 +27,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/shareddata"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+<<<<<<< HEAD
+=======
+	"testing"
+>>>>>>> PLAT-388: Implemented SMCallSummary  (#383)
 )
 
 func TestSMObject_CallSummarySM(t *testing.T) {
@@ -34,6 +45,7 @@ func TestSMObject_CallSummarySM(t *testing.T) {
 
 	res1 := payload.VCallResult{
 		Callee:       smObject.Reference,
+<<<<<<< HEAD
 		CallOutgoing: gen.UniqueGlobalRef(),
 	}
 	res2 := payload.VCallResult{
@@ -43,6 +55,17 @@ func TestSMObject_CallSummarySM(t *testing.T) {
 
 	req1Ref := res1.CallOutgoing
 	req2Ref := res2.CallOutgoing
+=======
+		CallOutgoing: gen.UniqueLocalRef(),
+	}
+	res2 := payload.VCallResult{
+		Callee:       smObject.Reference,
+		CallOutgoing: gen.UniqueLocalRef(),
+	}
+
+	req1Ref := reference.NewRecordOf(res1.Callee, res1.CallOutgoing)
+	req2Ref := reference.NewRecordOf(res2.Callee, res2.CallOutgoing)
+>>>>>>> PLAT-388: Implemented SMCallSummary  (#383)
 
 	smObject.SharedState.KnownRequests.Add(contract.CallTolerable, req1Ref)
 	smObject.SharedState.KnownRequests.Add(contract.CallIntolerable, req2Ref)

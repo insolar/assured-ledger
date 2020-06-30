@@ -6,8 +6,11 @@
 package execute
 
 import (
+<<<<<<< HEAD
 	"testing"
 
+=======
+>>>>>>> PLAT-388: Implemented SMCallSummary  (#383)
 	"github.com/gojuno/minimock/v3"
 	"github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
@@ -25,6 +28,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callsummary"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/shareddata"
 	"github.com/stretchr/testify/require"
+<<<<<<< HEAD
+=======
+	"testing"
+>>>>>>> PLAT-388: Implemented SMCallSummary  (#383)
 )
 
 func TestSMExecute_PublishVCallResultToCallSummarySM(t *testing.T) {
@@ -34,20 +41,34 @@ func TestSMExecute_PublishVCallResultToCallSummarySM(t *testing.T) {
 
 		pd          = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 		pulseSlot   = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
+<<<<<<< HEAD
 		outgoingRef = reference.NewRecordOf(gen.UniqueGlobalRef(), gen.UniqueLocalRefWithPulse(pd.PulseNumber))
+=======
+		smObjectID  = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
+		smGlobalRef = reference.NewSelf(smObjectID)
+>>>>>>> PLAT-388: Implemented SMCallSummary  (#383)
 
 		callFlags = payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty)
 	)
 
+<<<<<<< HEAD
 	class := gen.UniqueGlobalRef()
+=======
+	ref := gen.UniqueGlobalRef()
+>>>>>>> PLAT-388: Implemented SMCallSummary  (#383)
 
 	request := &payload.VCallRequest{
 		CallType:            payload.CTConstructor,
 		CallFlags:           callFlags,
 		CallSiteDeclaration: testwallet.GetClass(),
 		CallSiteMethod:      "New",
+<<<<<<< HEAD
 		CallOutgoing:        outgoingRef,
 		Callee:              class,
+=======
+		CallOutgoing:        smObjectID,
+		Callee:              ref,
+>>>>>>> PLAT-388: Implemented SMCallSummary  (#383)
 		Arguments:           insolar.MustSerialize([]interface{}{}),
 	}
 
@@ -56,11 +77,21 @@ func TestSMExecute_PublishVCallResultToCallSummarySM(t *testing.T) {
 		pulseSlot: &pulseSlot,
 	}
 
+<<<<<<< HEAD
 	smExecute = expectedInitState(ctx, smExecute)
 
 	res := payload.VCallResult{
 		Callee:       class,
 		CallOutgoing: outgoingRef,
+=======
+	ref = reference.NewRecordOf(request.Callee, request.CallOutgoing)
+
+	smExecute = expectedInitState(ctx, smExecute)
+
+	res := payload.VCallResult{
+		Callee:       smGlobalRef,
+		CallOutgoing: gen.UniqueLocalRef(),
+>>>>>>> PLAT-388: Implemented SMCallSummary  (#383)
 	}
 
 	smExecute.execution.Result = &res
@@ -79,10 +110,17 @@ func TestSMExecute_PublishVCallResultToCallSummarySM(t *testing.T) {
 
 	{
 		workingTable := callregistry.NewWorkingTable()
+<<<<<<< HEAD
 		workingTable.Add(contract.CallTolerable, outgoingRef)
 		workingTable.SetActive(contract.CallTolerable, outgoingRef)
 
 		sharedCallSummary.Requests.AddObjectCallResults(outgoingRef, callregistry.ObjectCallResults{
+=======
+		workingTable.Add(contract.CallTolerable, ref)
+		workingTable.SetActive(contract.CallTolerable, ref)
+
+		sharedCallSummary.Requests.AddObjectCallResults(smGlobalRef, callregistry.ObjectCallResults{
+>>>>>>> PLAT-388: Implemented SMCallSummary  (#383)
 			CallResults: workingTable.GetResults(),
 		})
 	}
@@ -132,10 +170,17 @@ func TestSMExecute_PublishVCallResultToCallSummarySM(t *testing.T) {
 		smExecute.stepPublishDataCallSummary(execCtx)
 	}
 
+<<<<<<< HEAD
 	workingTable, ok := sharedCallSummary.Requests.GetObjectCallResults(outgoingRef)
 	require.Equal(t, 1, len(workingTable.CallResults))
 
 	result, ok := workingTable.CallResults[outgoingRef]
+=======
+	workingTable, ok := sharedCallSummary.Requests.GetObjectCallResults(smGlobalRef)
+	require.Equal(t, 1, len(workingTable.CallResults))
+
+	result, ok := workingTable.CallResults[ref]
+>>>>>>> PLAT-388: Implemented SMCallSummary  (#383)
 
 	require.True(t, ok)
 	require.NotNil(t, result.Result)
