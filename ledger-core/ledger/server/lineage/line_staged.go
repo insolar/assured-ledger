@@ -47,12 +47,12 @@ func (p *LineStages) AddBundle(bundle *BundleResolver, tracker StageTracker) boo
 	stage := &updateStage{ tracker: tracker }
 	if p.latest != nil {
 		stage.seqNo = p.latest.seqNo + 1
-		stage.filaments = p.latest.filaments
-		prevFilamentCount = len(stage.filaments)
+		f := p.latest.filaments
+		prevFilamentCount = len(f)
+		stage.filaments = append(make([]filament, 0, prevFilamentCount + 1), f...)
 	} else {
 		stage.seqNo = 1
 		stage.filaments = make([]filament, 0, 2)
-		stage.filamentOwned = true
 	}
 	stage.firstRec = p.getNextRecNo()
 
@@ -63,7 +63,6 @@ func (p *LineStages) AddBundle(bundle *BundleResolver, tracker StageTracker) boo
 	case bundle.records[0].filNo != 1:
 		panic(throw.IllegalState())
 	default:
-		stage.modifyFilaments()
 		stage.filaments = append(stage.filaments, filament{})
 	}
 
@@ -119,12 +118,11 @@ func (p *LineStages) AddBundle(bundle *BundleResolver, tracker StageTracker) boo
 		case rec.filNo != 0:
 		case filNo != 0:
 			rec.filNo = filNo
-		case bundle.branchStart == 0:
+		case bundle.branchStart == 0 || bundle.branchHead == 0:
 			panic(throw.IllegalState())
-		case bundle.branchStart + recDelta != rec.recordNo:
+		case bundle.branchHead + recDelta != rec.recordNo:
 			panic(throw.IllegalState())
 		default:
-			stage.modifyFilaments()
 			stage.filaments = append(stage.filaments, filament{})
 			filNo = filamentNo(len(stage.filaments))
 			rec.filNo = filNo
@@ -133,7 +131,6 @@ func (p *LineStages) AddBundle(bundle *BundleResolver, tracker StageTracker) boo
 
 		switch filament := &stage.filaments[rec.filNo - 1]; {
 		case filament.earliest == 0:
-			stage.modifyFilaments()
 			if isRecap {
 				if filament.recap != 0 {
 					panic(throw.IllegalState())
@@ -149,7 +146,6 @@ func (p *LineStages) AddBundle(bundle *BundleResolver, tracker StageTracker) boo
 		case filament.latest != rec.prev:
 			panic(throw.IllegalState())
 		default:
-			stage.modifyFilaments()
 			filament.latest = rec.recordNo
 			if rec.recapNo != 0 && filament.recap != rec.recapNo {
 				panic(throw.IllegalState())
@@ -224,7 +220,6 @@ func (p *LineStages) trimCommittedStages() (last *updateStage) {
 		if next == nil {
 			return
 		}
-		next.filamentOwned = true
 		p.earliest = next
 	}
 	return
@@ -300,7 +295,7 @@ func (p *LineStages) findFilament(root reference.LocalHolder) (filamentNo, Resol
 		return 0, ResolvedDependency{}
 	}
 
-	return filNo, p.latest.filaments[filNo].resolvedHead
+	return filNo, p.latest.filaments[filNo - 1].resolvedHead
 }
 
 func (p *LineStages) findCollision(local reference.LocalHolder, record *Record) (recordNo, error) {

@@ -123,6 +123,9 @@ func (v RecordPolicy) CheckPrevRef(rootRef, ref reference.Holder, details Policy
 		case found.RecordType == RecordNotAvailable:
 			return nil
 		case v.PolicyFlags&Recap != 0:
+			if !reference.IsEmpty(found.RootRef) && !reference.Equal(rootRef, found.RootRef) {
+				return throw.E("filament crossing is forbidden")
+			}
 			return nil
 		case v.CanFollow.Has(found.RecordType):
 		case found.RedirectToRef == nil:
@@ -159,10 +162,13 @@ func (v RecordPolicy) CheckPrevRef(rootRef, ref reference.Holder, details Policy
 				// upd.filNo = 0 // => filament is created in this batch
 				isFork = true
 			}
-		case v.PolicyFlags&MustBeBranch != 0:
-			if reference.Equal(rootRef, found.RootRef) {
-				return throw.E("fork is required")
-			}
+//		case v.PolicyFlags&MustBeBranch != 0:
+			// TODO protection from placing ROutboundRequest inline with RLineInboundRequest
+			// if reference.Equal(rootRef, found.RootRef) {
+			// 	return throw.E("fork is required")
+			// }
+		case !reference.IsEmpty(found.RootRef) && !reference.Equal(rootRef, found.RootRef):
+			return throw.E("filament crossing is forbidden")
 		}
 
 		return nil
@@ -186,12 +192,19 @@ func (v RecordPolicy) CheckRejoinRef(ref reference.Holder, details PolicyCheckDe
 		return throw.E("must be same pulse")
 	}
 
-	switch found, err := resolverFn(ref); {
+	found, err := resolverFn(ref)
+	switch {
 	case err != nil:
 		return err
 	case found.IsZero():
 		return throw.E("unknown record")
 	}
+
+	joinPolicy := details.PolicyProvider(found.RecordType)
+	if !joinPolicy.CanBeRejoined() {
+		return throw.E("rejoin forbidden")
+	}
+
 	return nil
 }
 

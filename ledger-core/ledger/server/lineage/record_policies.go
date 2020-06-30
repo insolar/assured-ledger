@@ -53,7 +53,7 @@ var policies = []RecordPolicy{
 		PolicyFlags: 0,
 		CanFollow:   setOf(tROutboundRequest, tROutRetryableRequest, tROutRetryRequest)},
 
-	tRLineActivate: 		{ // NB! Special behavior. See RecordPolicy.CheckRejoinRef CheckPrevRef
+	tRLineActivate: 		{ // NB! Special behavior. See RecordPolicy.CheckRejoinRef
 		PolicyFlags: SideEffect,
 		CanFollow:   setOf(appendCopy(setLineStart, tRLineMemoryInit, tRLineMemory)...)},
 

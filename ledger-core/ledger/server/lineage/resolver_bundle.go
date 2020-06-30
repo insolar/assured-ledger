@@ -45,6 +45,7 @@ type resolveResults struct {
 	unresolved  []UnresolvedDependency
 	errors      []error
 	branchStart recordNo
+	branchHead  recordNo
 	isLineStart bool
 	isResolved  bool
 
@@ -206,11 +207,7 @@ func (p *BundleResolver) resolveRecordDependencies(upd *resolvedRecord, policy R
 
 	if err := policy.CheckRejoinRef(upd.Excerpt.RejoinRef.Get(), details, prevRecordType, func(ref reference.Holder) (ResolvedDependency, error) {
 		// rejoin must be within the same record set
-		switch rd := p.findResolved(ref); {
-		case rd == nil:
-		case p.policyProvider(RecordType(rd.Excerpt.RecordType)).CanBeRejoined():
-			return ResolvedDependency{}, throw.E("rejoin forbidden")
-		default:
+		if rd := p.findResolved(ref); rd != nil {
 			return rd.asResolvedDependency(), nil
 		}
 		return ResolvedDependency{}, nil
@@ -250,7 +247,7 @@ func (p *BundleResolver) resolvePrevRef(upd *resolvedRecord, policy RecordPolicy
 	var prevRecord *resolvedRecord
 	rootRef := upd.Excerpt.RootRef.Get()
 
-	if isFork, err := policy.CheckPrevRef(rootRef, upd.Excerpt.PrevRef.Get(), details, func(ref reference.Holder) (dep ResolvedDependency, _ error) {
+	isFork, err := policy.CheckPrevRef(rootRef, upd.Excerpt.PrevRef.Get(), details, func(ref reference.Holder) (dep ResolvedDependency, _ error) {
 
 		if rd := p.findResolved(ref); rd != nil {
 			prevRecord = rd
@@ -267,7 +264,7 @@ func (p *BundleResolver) resolvePrevRef(upd *resolvedRecord, policy RecordPolicy
 		// 2. When rootRef == ref, then it has to be a non-Branched FilamentStart
 		// 3. otherwise - it has to be an open prev record
 
-		isBranchedStart := !policy.IsBranched()
+		isBranchedStart := policy.IsBranched()
 		upd.filNo, upd.prev, dep = p.resolver.findLocalDependency(rootRef, ref, !isBranchedStart)
 		switch {
 		case dep.IsZero():
@@ -295,9 +292,23 @@ func (p *BundleResolver) resolvePrevRef(upd *resolvedRecord, policy RecordPolicy
 		prevRecordType = dep.RecordType
 		return dep, nil
 
-	}); err != nil {
+	})
+
+	switch {
+	case err != nil:
 		p.addRefError("PrevRef", err)
-	} else if !isFork && prevRecord != nil {
+	case isFork:
+		if p.branchHead != 0 {
+			p.addRefError("PrevRef", throw.E("can only be one branch in bundle"))
+		}
+		switch upd.recordNo - p.branchStart {
+		case 0, 1:
+			p.branchHead = upd.recordNo
+		default:
+			p.addRefError("PrevRef", throw.E("misplaced branch fork"))
+		}
+		upd.filNo = 0
+	case prevRecord != nil:
 		if prevRecord.next != 0 {
 			p.addRefError("PrevRef", throw.E("fork forbidden"))
 		}
