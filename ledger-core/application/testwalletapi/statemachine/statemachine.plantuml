@@ -1,24 +1,10 @@
 @startuml
-state "Init" as T00_S002
-T00_S002 : SMTestAPICall
-[*] --> T00_S002
-T00_S002 --> T00_S003 : Migrate: s.migrationDefault
-state "migrationDefault" as T00_S001
-T00_S001 : SMTestAPICall
-T00_S001 --> T00_S004
-state "s.messageSender" as T00_S005 <<sdlreceive>>
-state "stepProcessResult" as T00_S006
-T00_S006 : SMTestAPICall
-T00_S006 --[dotted]> T00_S001
-T00_S006 --> [*]
-state "stepRegisterBargeIn" as T00_S003
-T00_S003 : SMTestAPICall
-T00_S003 --[dotted]> T00_S001
-T00_S003 --[dashed]> [*] : [!(...).PublishGlobalAliasAndBargeIn()]\nError
-T00_S003 --> T00_S004
-state "stepSendRequest" as T00_S004
-T00_S004 : SMTestAPICall
-T00_S004 --[dotted]> T00_S001
-T00_S004 --> T00_S005 : PrepareAsync(ctx).WithoutAutoWakeUp()
-T00_S004 --[dashed]> T00_S006 : Sleep
+Init : INHERITED
+Init --> stepRegisterBargeIn : Jump
+stepRegisterBargeIn : INHERITED
+stepRegisterBargeIn --> stepSendRequest : JumpExt
+stepRegisterBargeIn -[#DarkGreen]-> migrateBeforeSendRequest : JumpExt+(StepMigration)
+stepSendRequest : INHERITED
+migrateBeforeSendRequest : INHERITED
+migrateBeforeSendRequest --> stepRegisterBargeIn : Jump
 @enduml
