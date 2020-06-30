@@ -6,7 +6,10 @@ import (
 	"time"
 
 	"github.com/gojuno/minimock/v3"
+<<<<<<< HEAD
 	"github.com/stretchr/testify/assert"
+=======
+>>>>>>> PLAT-537: integration tests for handler of VFindCallRequest (#404)
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
@@ -46,6 +49,10 @@ type VFindCallRequestHandlingTestInfo struct {
 
 func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
 	t.Log("C5115")
+<<<<<<< HEAD
+=======
+	t.Skip("https://insolar.atlassian.net/browse/PLAT-389")
+>>>>>>> PLAT-537: integration tests for handler of VFindCallRequest (#404)
 
 	table := []VFindCallRequestHandlingTestInfo{
 		{
@@ -91,13 +98,21 @@ func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
 		},
 		{
 			name:   "found request, method, pending, no result",
+<<<<<<< HEAD
 			events: []TestStep{StepMethodStart, StepIncrementPulseToP3, StepFindMessage, StepRequestFinish},
+=======
+			events: []TestStep{StepMethodStart, StepIncrementPulseToP3, StepFindMessage},
+>>>>>>> PLAT-537: integration tests for handler of VFindCallRequest (#404)
 
 			expectedStatus: payload.FoundCall,
 		},
 		{
 			name:   "found request, method, pending, no result, earlyMsg",
+<<<<<<< HEAD
 			events: []TestStep{StepFindMessage, StepMethodStart, StepIncrementPulseToP3, StepRequestFinish},
+=======
+			events: []TestStep{StepFindMessage, StepMethodStart, StepIncrementPulseToP3},
+>>>>>>> PLAT-537: integration tests for handler of VFindCallRequest (#404)
 
 			expectedStatus: payload.FoundCall,
 		},
@@ -126,14 +141,22 @@ func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
 		},
 		{
 			name:                 "found request, constructor, pending, no result",
+<<<<<<< HEAD
 			events:               []TestStep{StepConstructorStart, StepIncrementPulseToP3, StepFindMessage, StepRequestFinish},
+=======
+			events:               []TestStep{StepConstructorStart, StepIncrementPulseToP3, StepFindMessage},
+>>>>>>> PLAT-537: integration tests for handler of VFindCallRequest (#404)
 			requestIsConstructor: true,
 
 			expectedStatus: payload.FoundCall,
 		},
 		{
 			name:                 "found request, constructor, pending, no result, earlyMsg",
+<<<<<<< HEAD
 			events:               []TestStep{StepFindMessage, StepConstructorStart, StepIncrementPulseToP3, StepRequestFinish},
+=======
+			events:               []TestStep{StepFindMessage, StepConstructorStart, StepIncrementPulseToP3},
+>>>>>>> PLAT-537: integration tests for handler of VFindCallRequest (#404)
 			requestIsConstructor: true,
 
 			expectedStatus: payload.FoundCall,
@@ -164,9 +187,17 @@ func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
 			}
 			suite.generateOutgoing(outgoingPulse)
 
+<<<<<<< HEAD
 			suite.isConstructor = test.requestIsConstructor
 
 			suite.generateObjectRef()
+=======
+			if test.requestIsConstructor {
+				suite.generateObjectRefFromOutgoing()
+			} else {
+				suite.generateObjectRef()
+			}
+>>>>>>> PLAT-537: integration tests for handler of VFindCallRequest (#404)
 
 			suite.setMessageCheckers(ctx, t, test)
 			suite.setRunnerMock()
@@ -177,12 +208,15 @@ func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
 
 			suite.waitFindRequestResponse(t)
 
+<<<<<<< HEAD
 			if suite.finalizedMessageSent != nil {
 				testutils.WaitSignalsTimed(t, 10*time.Second, suite.finalizedMessageSent)
 			}
 
 			testutils.WaitSignalsTimed(t, 10*time.Second, suite.server.Journal.WaitAllAsyncCallsDone())
 
+=======
+>>>>>>> PLAT-537: integration tests for handler of VFindCallRequest (#404)
 			suite.finish()
 		})
 	}
@@ -194,7 +228,11 @@ func StepIncrementPulseToP3(s *VFindCallRequestHandlingSuite, ctx context.Contex
 
 func StepFindMessage(s *VFindCallRequestHandlingSuite, ctx context.Context, t *testing.T) {
 	findMsg := payload.VFindCallRequest{
+<<<<<<< HEAD
 		LookAt:   s.getP2(),
+=======
+		LookAt:   s.getP1(),
+>>>>>>> PLAT-537: integration tests for handler of VFindCallRequest (#404)
 		Callee:   s.getObject(),
 		Outgoing: s.getOutgoingRef(),
 	}
@@ -229,10 +267,16 @@ func StepMethodStart(s *VFindCallRequestHandlingSuite, ctx context.Context, t *t
 		Callee:         s.getObject(),
 		CallSiteMethod: "SomeMethod",
 		CallSequence:   1,
+<<<<<<< HEAD
 		CallOutgoing:   s.getOutgoingRef(),
 	}
 	s.addPayloadAndWaitIdle(ctx, &req)
 	s.finalizedMessageSent = make(chan struct{})
+=======
+		CallOutgoing:   s.getOutgoingLocal(),
+	}
+	s.addPayloadAndWaitIdle(ctx, &req)
+>>>>>>> PLAT-537: integration tests for handler of VFindCallRequest (#404)
 
 	testutils.WaitSignalsTimed(t, 10*time.Second, s.executionPoint.Wait())
 }
@@ -257,10 +301,16 @@ func StepConstructorStart(s *VFindCallRequestHandlingSuite, ctx context.Context,
 		Callee:         s.getClass(),
 		CallSiteMethod: "New",
 		CallSequence:   1,
+<<<<<<< HEAD
 		CallOutgoing:   s.getOutgoingRef(),
 	}
 	s.addPayloadAndWaitIdle(ctx, &req)
 	s.finalizedMessageSent = make(chan struct{})
+=======
+		CallOutgoing:   s.getOutgoingLocal(),
+	}
+	s.addPayloadAndWaitIdle(ctx, &req)
+>>>>>>> PLAT-537: integration tests for handler of VFindCallRequest (#404)
 
 	testutils.WaitSignalsTimed(t, 10*time.Second, s.executionPoint.Wait())
 }
@@ -277,7 +327,11 @@ func StepMethodStartAndFinish(s *VFindCallRequestHandlingSuite, ctx context.Cont
 }
 
 func StepConstructorStartAndFinish(s *VFindCallRequestHandlingSuite, ctx context.Context, t *testing.T) {
+<<<<<<< HEAD
 	StepConstructorStart(s, ctx, t)
+=======
+	StepMethodStart(s, ctx, t)
+>>>>>>> PLAT-537: integration tests for handler of VFindCallRequest (#404)
 	StepRequestFinish(s, ctx, t)
 }
 
@@ -294,9 +348,12 @@ type VFindCallRequestHandlingSuite struct {
 	object   reference.Global
 	outgoing reference.Local
 
+<<<<<<< HEAD
 	isConstructor        bool
 	finalizedMessageSent chan struct{}
 
+=======
+>>>>>>> PLAT-537: integration tests for handler of VFindCallRequest (#404)
 	executionPoint         *synchronization.Point
 	executeIsFinished      synckit.SignalChannel
 	haveFindResponseSignal chan struct{}
@@ -350,15 +407,25 @@ func (s *VFindCallRequestHandlingSuite) generateCaller() {
 }
 
 func (s *VFindCallRequestHandlingSuite) generateObjectRef() {
+<<<<<<< HEAD
 	if s.isConstructor {
 		s.object = reference.NewRecordOf(s.caller, s.outgoing)
 		return
 	}
+=======
+>>>>>>> PLAT-537: integration tests for handler of VFindCallRequest (#404)
 	p := s.getP1()
 	local := gen.UniqueLocalRefWithPulse(p)
 	s.object = reference.NewSelf(local)
 }
 
+<<<<<<< HEAD
+=======
+func (s *VFindCallRequestHandlingSuite) generateObjectRefFromOutgoing() {
+	s.object = reference.NewSelf(s.outgoing)
+}
+
+>>>>>>> PLAT-537: integration tests for handler of VFindCallRequest (#404)
 func (s *VFindCallRequestHandlingSuite) generateOutgoing(p pulse.Number) {
 	s.outgoing = gen.UniqueLocalRefWithPulse(p)
 }
@@ -380,7 +447,17 @@ func (s *VFindCallRequestHandlingSuite) getClass() reference.Global {
 }
 
 func (s *VFindCallRequestHandlingSuite) getOutgoingRef() reference.Global {
+<<<<<<< HEAD
 	return reference.NewRecordOf(s.caller, s.outgoing)
+=======
+	callee := s.getObject() // TODO: FIXME: PLAT-558: should be caller
+
+	return reference.NewRecordOf(callee, s.outgoing)
+}
+
+func (s *VFindCallRequestHandlingSuite) getOutgoingLocal() reference.Local {
+	return s.outgoing
+>>>>>>> PLAT-537: integration tests for handler of VFindCallRequest (#404)
 }
 
 func (s *VFindCallRequestHandlingSuite) setMessageCheckers(
@@ -390,6 +467,7 @@ func (s *VFindCallRequestHandlingSuite) setMessageCheckers(
 ) {
 
 	s.typedChecker.VFindCallResponse.Set(func(res *payload.VFindCallResponse) bool {
+<<<<<<< HEAD
 		defer func() {
 			close(s.haveFindResponseSignal)
 		}()
@@ -403,15 +481,33 @@ func (s *VFindCallRequestHandlingSuite) setMessageCheckers(
 			require.Equal(t, s.getOutgoingRef(), res.CallResult.CallOutgoing)
 		}
 
+=======
+		require.Equal(t, s.getObject(), res.Callee)
+		require.Equal(t, s.getOutgoingRef(), res.Outgoing)
+		require.Equal(t, testInfo.expectedStatus, res.Status)
+
+		if testInfo.expectedResult {
+			require.NotNil(t, res.CallResult)
+			require.Equal(t, res.CallResult.CallOutgoing, s.getOutgoingLocal())
+		}
+
+		close(s.haveFindResponseSignal)
+
+>>>>>>> PLAT-537: integration tests for handler of VFindCallRequest (#404)
 		return false
 	})
 
 	s.typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
+<<<<<<< HEAD
 		assert.Equal(t, s.getP2(), report.AsOf)
 		assert.Equal(t, s.getObject(), report.Object)
 		if s.finalizedMessageSent != nil {
 			close(s.finalizedMessageSent)
 		}
+=======
+		require.Equal(t, s.getP2(), report.AsOf)
+		require.Equal(t, s.getObject(), report.Object)
+>>>>>>> PLAT-537: integration tests for handler of VFindCallRequest (#404)
 		return false
 	})
 
@@ -431,12 +527,20 @@ func (s *VFindCallRequestHandlingSuite) setMessageCheckers(
 	s.typedChecker.VDelegatedRequestFinished.SetResend(false)
 
 	s.typedChecker.VFindCallRequest.Set(func(req *payload.VFindCallRequest) bool {
+<<<<<<< HEAD
 		assert.Equal(t, s.getP2(), req.LookAt)
 		assert.Equal(t, s.getObject(), req.Callee)
 		assert.Equal(t, s.getOutgoingRef(), req.Outgoing)
 
 		pl := payload.VFindCallResponse{
 			LookedAt: s.getP2(),
+=======
+		require.Equal(t, s.getP1(), req.LookAt)
+		require.Equal(t, s.getObject(), req.Callee)
+		require.Equal(t, s.getOutgoingRef(), req.Outgoing)
+
+		pl := payload.VFindCallResponse{
+>>>>>>> PLAT-537: integration tests for handler of VFindCallRequest (#404)
 			Callee:   s.getObject(),
 			Outgoing: s.getOutgoingRef(),
 			Status:   payload.MissingCall,
@@ -501,8 +605,12 @@ func (s *VFindCallRequestHandlingSuite) finish() {
 }
 
 func (s *VFindCallRequestHandlingSuite) stopServer() {
+<<<<<<< HEAD
 	if s.executionPoint != nil {
 		s.executionPoint.Done()
 	}
+=======
+	s.executionPoint.Done()
+>>>>>>> PLAT-537: integration tests for handler of VFindCallRequest (#404)
 	s.server.Stop()
 }
