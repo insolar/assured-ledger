@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package object
+package callregistry
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
@@ -28,7 +28,7 @@ func NewRequestTable() PendingTable {
 
 func (rt PendingTable) GetList(flag contract.InterferenceFlag) *PendingList {
 	if flag > 0 && int(flag) <= len(rt.lists) {
-		return rt.lists[flag - 1]
+		return rt.lists[flag-1]
 	}
 	panic(throw.IllegalValue())
 }

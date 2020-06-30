@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package object
+package callregistry
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
@@ -15,7 +15,7 @@ import (
 
 type WorkingTable struct {
 	requests [contract.InterferenceFlagCount - 1]*WorkingList
-	results  map[reference.Global]Summary
+	results  map[reference.Global]CallSummary
 }
 
 func NewWorkingTable() WorkingTable {
@@ -25,19 +25,19 @@ func NewWorkingTable() WorkingTable {
 		rt.requests[i] = newWorkingList()
 	}
 
-	rt.results = make(map[reference.Global]Summary)
+	rt.results = make(map[reference.Global]CallSummary)
 
 	return rt
 }
 
 func (wt WorkingTable) GetList(flag contract.InterferenceFlag) *WorkingList {
 	if flag > 0 && int(flag) <= len(wt.requests) {
-		return wt.requests[flag - 1]
+		return wt.requests[flag-1]
 	}
 	panic(throw.IllegalValue())
 }
 
-func (wt WorkingTable) GetResults() map[reference.Global]Summary {
+func (wt WorkingTable) GetResults() map[reference.Global]CallSummary {
 	return wt.results
 }
 
@@ -47,7 +47,7 @@ func (wt WorkingTable) Add(flag contract.InterferenceFlag, ref reference.Global)
 
 func (wt WorkingTable) SetActive(flag contract.InterferenceFlag, ref reference.Global) bool {
 	if ok := wt.GetList(flag).setActive(ref); ok {
-		wt.results[ref] = Summary{}
+		wt.results[ref] = CallSummary{}
 
 		return true
 	}
@@ -65,7 +65,7 @@ func (wt WorkingTable) Finish(
 		if !ok {
 			panic(throw.IllegalState())
 		}
-		wt.results[ref] = Summary{result: result}
+		wt.results[ref] = CallSummary{Result: result}
 
 		return true
 	}
@@ -103,8 +103,8 @@ func newWorkingList() *WorkingList {
 	}
 }
 
-type Summary struct {
-	result *payload.VCallResult
+type CallSummary struct {
+	Result *payload.VCallResult
 }
 
 func (rl *WorkingList) GetState(ref reference.Global) WorkingRequestState {

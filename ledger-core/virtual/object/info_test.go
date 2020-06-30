@@ -6,6 +6,7 @@
 package object
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -24,8 +25,8 @@ func TestInfo_GetEarliestPulse(t *testing.T) {
 
 	for _, tc := range []struct {
 		name                  string
-		getPendingTable       func() PendingTable
-		getKnownRequests      func() WorkingTable
+		getPendingTable       func() callregistry.PendingTable
+		getKnownRequests      func() callregistry.WorkingTable
 		ExpectedEarliestPulse pulse.Number
 	}{
 		{
@@ -35,8 +36,8 @@ func TestInfo_GetEarliestPulse(t *testing.T) {
 		},
 		{
 			name: "only pending",
-			getPendingTable: func() PendingTable {
-				table := NewRequestTable()
+			getPendingTable: func() callregistry.PendingTable {
+				table := callregistry.NewRequestTable()
 				ref := reference.NewSelf(gen.UniqueLocalRefWithPulse(currentPulse))
 				table.GetList(tolerance).Add(ref)
 				return table
@@ -45,28 +46,28 @@ func TestInfo_GetEarliestPulse(t *testing.T) {
 		},
 		{
 			name: "only known",
-			getKnownRequests: func() WorkingTable {
-				table := NewWorkingTable()
+			getKnownRequests: func() callregistry.WorkingTable {
+				table := callregistry.NewWorkingTable()
 				ref := reference.NewSelf(gen.UniqueLocalRefWithPulse(currentPulse))
-				table.GetList(tolerance).add(ref)
-				table.GetList(tolerance).setActive(ref)
+				table.Add(tolerance, ref)
+				table.SetActive(tolerance, ref)
 				return table
 			},
 			ExpectedEarliestPulse: currentPulse,
 		},
 		{
 			name: "both",
-			getPendingTable: func() PendingTable {
-				table := NewRequestTable()
+			getPendingTable: func() callregistry.PendingTable {
+				table := callregistry.NewRequestTable()
 				ref := reference.NewSelf(gen.UniqueLocalRefWithPulse(currentPulse))
 				table.GetList(tolerance).Add(ref)
 				return table
 			},
-			getKnownRequests: func() WorkingTable {
-				table := NewWorkingTable()
+			getKnownRequests: func() callregistry.WorkingTable {
+				table := callregistry.NewWorkingTable()
 				ref := reference.NewSelf(gen.UniqueLocalRefWithPulse(prevPulse))
-				table.GetList(tolerance).add(ref)
-				table.GetList(tolerance).setActive(ref)
+				table.Add(tolerance, ref)
+				table.SetActive(tolerance, ref)
 				return table
 			},
 			ExpectedEarliestPulse: prevPulse,
@@ -74,8 +75,8 @@ func TestInfo_GetEarliestPulse(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			info := Info{
-				PendingTable:  NewRequestTable(),
-				KnownRequests: NewWorkingTable(),
+				PendingTable:  callregistry.NewRequestTable(),
+				KnownRequests: callregistry.NewWorkingTable(),
 			}
 			if tc.getPendingTable != nil {
 				info.PendingTable = tc.getPendingTable()
