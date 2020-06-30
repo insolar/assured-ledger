@@ -294,7 +294,7 @@ func (m *LRegisterRequest) Visit(ctx MessageVisitor) error {
 	return ctx.Message(m, 1200)
 }
 
-const TypeLRegisterRequestPolymorthID uint64 = 1200
+const TypeLRegisterRequestPolymorthID = 1200
 
 func (*LRegisterRequest) GetDefaultPolymorphID() uint64 {
 	return 1200
@@ -395,7 +395,7 @@ func (m *LRegisterResponse) Visit(ctx MessageVisitor) error {
 	return ctx.Message(m, 1203)
 }
 
-const TypeLRegisterResponsePolymorthID uint64 = 1203
+const TypeLRegisterResponsePolymorthID = 1203
 
 func (*LRegisterResponse) GetDefaultPolymorphID() uint64 {
 	return 1203
