@@ -176,6 +176,7 @@ func TestVirtual_CallContractFromContract(t *testing.T) {
 			{
 				typedChecker.VCallRequest.Set(func(request *payload.VCallRequest) bool {
 					assertVCallRequest(t, objectAGlobal, objectBGlobal, request, test.flagsA)
+					assert.Equal(t, byteArguments, request.Arguments)
 					assert.Equal(t, outgoingCallRef, request.CallReason)
 					assert.Equal(t, server.GetPulse().PulseNumber, request.CallOutgoing.Pulse())
 					return true // resend
@@ -312,6 +313,7 @@ func TestVirtual_CallOtherMethodInObject(t *testing.T) {
 			{
 				typedChecker.VCallRequest.Set(func(request *payload.VCallRequest) bool {
 					assertVCallRequest(t, objectAGlobal, objectAGlobal, request, test.stateSender)
+					assert.Equal(t, byteArguments, request.Arguments)
 					assert.Equal(t, outgoingCallRef, request.CallReason)
 					assert.Equal(t, server.GetPulse().PulseNumber, request.CallOutgoing.Pulse())
 					return true // resend
