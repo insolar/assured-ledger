@@ -820,7 +820,6 @@ func (s *SMExecute) stepSendCallResult(ctx smachine.ExecutionContext) smachine.S
 	}).WithoutAutoWakeUp().Start()
 
 	return ctx.Jump(s.stepFinishRequest)
-
 }
 
 func (s *SMExecute) stepFinishRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
