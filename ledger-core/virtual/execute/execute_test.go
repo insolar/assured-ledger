@@ -142,7 +142,7 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 
 	smExecute = expectedInitState(ctx, smExecute)
 
-	smObject.SharedState.Info.KnownRequests.GetList(callFlags.GetInterference()).Add(smExecute.execution.Outgoing)
+	smObject.SharedState.Info.KnownRequests.Add(callFlags.GetInterference(), smExecute.execution.Outgoing)
 
 	assert.Equal(t, uint8(0), smObject.PotentialOrderedPendingCount)
 	assert.Equal(t, uint8(0), smObject.PotentialUnorderedPendingCount)
