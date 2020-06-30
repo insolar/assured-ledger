@@ -149,7 +149,8 @@ func (p *SMLine) stepLineIsReady(ctx smachine.ExecutionContext) smachine.StateUp
 
 func (p *SMLine) stepWaitForContextUpdates(ctx smachine.ExecutionContext) smachine.StateUpdate {
 
-	for _, filamentRef := range p.sd.getMissingFilaments() {
+	for _, fr := range p.sd.getMissingFilaments() {
+		filamentRef := fr
 		ctx.NewChild(func(ctx smachine.ConstructionContext) smachine.StateMachine {
 			return &datareader.SMFindFilament{
 				FilamentRootRef: filamentRef,

@@ -6,6 +6,8 @@
 package requests
 
 import (
+	"runtime"
+
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc"
@@ -186,7 +188,9 @@ func (p *SMRegisterRecordSet) stepSendResponse(ctx smachine.ExecutionContext) sm
 
 func (p *SMRegisterRecordSet) sendResponse(safe, ok bool) {
 	// TODO
-	_, _ = safe, ok
+	if safe == ok {
+		runtime.KeepAlive(ok)
+	}
 	panic(throw.NotImplemented())
 }
 

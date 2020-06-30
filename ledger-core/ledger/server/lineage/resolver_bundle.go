@@ -40,7 +40,7 @@ type BundleResolver struct {
 	resolveResults
 }
 
-//nolint:unused
+//nolint:structcheck
 type resolveResults struct {
 	lastRecord  reference.Holder
 	unresolved  []UnresolvedDependency
