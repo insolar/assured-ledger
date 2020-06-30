@@ -44,19 +44,19 @@ func (ort ObjectsResultCallRegistry) AddObjectCallResult(objectRef reference.Glo
 	requests, ok := ort.GetObjectCallResults(objectRef)
 	if !ok {
 		// we should have summary result for object if we finish operation.
-		panic(throw.Impossible())
+		panic(throw.IllegalState())
 	}
 
 	callSummary, ok := requests.CallResults[reqRef]
 	if !ok {
 		// if we not have summary in resultMap, it mean we do not go through stepStartRequestProcessing,
 		// and we can't have a result here
-		panic(throw.Impossible())
+		panic(throw.IllegalState())
 	}
 
 	if callSummary.Result != nil {
 		// we should not have result because migration was before we publish result in object
-		panic(throw.Impossible())
+		panic(throw.IllegalState())
 	}
 
 	requests.CallResults[reqRef] = CallSummary{Result: result}
