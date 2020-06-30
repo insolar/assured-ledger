@@ -65,10 +65,10 @@ jobs:
           sed -i "s/placeholder/${{ fromJson(steps.set-vars.outputs.result).shortSha }}/g" ledger-core/scripts/deploy/kube/*/configuration/*.*
           sed -i "s/placeholder/${{ fromJson(steps.set-vars.outputs.result).shortSha }}/g" ledger-core/load/gen_cfg/*.*
       - name: Checkout loadgen
-          uses: actions/checkout@v2
-          with:
-            path: ./loadgen
-            repository: skudasov/loadgen
+        uses: actions/checkout@v2
+        with:
+          path: ./loadgen
+          repository: skudasov/loadgen
       - name: build loadgen
         run: |
           pwd
