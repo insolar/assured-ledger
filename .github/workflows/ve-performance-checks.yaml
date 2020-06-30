@@ -41,7 +41,10 @@ jobs:
         uses: actions/checkout@master
       - name: build test
         working-directory: ${{ env.CORE_PATH }}
-        run: go build load/cmd/load/main.go
+        run: |
+          go build load/cmd/load/main.go
+          pwd
+          ls -a
       - name: start test
         run: NETWORK_NODES=5 .${{ env.CORE_PATH }}/main -gen_config ledger-core/load/gen_config/generator_assured_ledger.yaml -config ledger-core/load/gen_config/generator_assured_ledger.yaml > runners.log
       - name: Archive test logs to artifacts
