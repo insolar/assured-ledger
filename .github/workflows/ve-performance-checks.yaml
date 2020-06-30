@@ -43,16 +43,7 @@ jobs:
         working-directory: ${{ env.CORE_PATH }}
         run: go build load/cmd/load/main.go
       - name: start test
-        run: |
-          cd ${{ env.CORE_PATH }}
-          ls -a
-          cd load
-          ls -a
-          cd cmd
-          ls -a
-          cd load
-          ls -a
-          NETWORK_NODES=5 .${{ env.CORE_PATH }}/load/cmd/load/main -gen_config ledger-core/load/gen_config/generator_assured_ledger.yaml -config ledger-core/load/gen_config/generator_assured_ledger.yaml > runners.log
+        run: NETWORK_NODES=5 .${{ env.CORE_PATH }}/main -gen_config ledger-core/load/gen_config/generator_assured_ledger.yaml -config ledger-core/load/gen_config/generator_assured_ledger.yaml > runners.log
       - name: Archive test logs to artifacts
         uses: actions/upload-artifact@v1
         with:
