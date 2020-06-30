@@ -21,6 +21,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 )
 
@@ -115,7 +116,7 @@ func (s *SMVDelegatedCallRequest) stepProcessRequest(ctx smachine.ExecutionConte
 	action := func(state *object.SharedState) {
 		var (
 			oldestPulse                  pulse.Number
-			pendingList                  *object.PendingList
+			pendingList                  *callregistry.PendingList
 			previousExecutorPendingCount int
 		)
 
