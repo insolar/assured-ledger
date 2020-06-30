@@ -18,7 +18,7 @@ func TestLineStages_Create(t *testing.T) {
 	base := gen.UniqueLocalRef()
 	resolver := NewDependencyResolverMock(t)
 
-	line := LineStages{ base: base, pn: base.GetPulseNumber(), cache: resolver }
+	line := &LineStages{ base: base, pn: base.GetPulseNumber(), cache: resolver }
 	br := line.NewBundle()
 
 	refReason := gen.UniqueGlobalRefWithPulse(base.GetPulseNumber())
@@ -37,14 +37,16 @@ func TestLineStages_Create(t *testing.T) {
 	refInbound1 := gen.UniqueLocalRefWithPulse(base.GetPulseNumber())
 	require.True(t, br.Add(r(baseRef, refInbound1, refActivate, tRLineInboundRequest, refReason)), describe(br))
 
-	line.AddBundle(br, &stubTracker{})
+	require.True(t, line.AddBundle(br, &stubTracker{}))
+
+	verifySequences(t, line)
 }
 
 func TestLineStages_CreateWithCalls(t *testing.T) {
 	base := gen.UniqueLocalRef()
 	resolver := NewDependencyResolverMock(t)
 
-	line := LineStages{ base: base, pn: base.GetPulseNumber(), cache: resolver }
+	line := &LineStages{ base: base, pn: base.GetPulseNumber(), cache: resolver }
 	br := line.NewBundle()
 
 	reasons := map[reference.Global]struct{}{}
@@ -63,7 +65,8 @@ func TestLineStages_CreateWithCalls(t *testing.T) {
 
 	last := fillBundleWithOrderedCall(t, base, base, br, reference.NewSelf(base), true)
 
-	line.AddBundle(br, &stubTracker{})
+	st1 := &stubTracker{}
+	require.True(t, line.AddBundle(br, st1))
 
 	br = line.NewBundle()
 
@@ -76,11 +79,113 @@ func TestLineStages_CreateWithCalls(t *testing.T) {
 
 	br2 := line.NewBundle()
 	fillBundleWithUnorderedCall(t, base, last, br2, refReason3)
-	line.AddBundle(br2, &stubTracker{})
+	st2 := &stubTracker{}
+	require.True(t, line.AddBundle(br2, st2))
 
 	// not conflicting bundles can be added in any order
-	line.AddBundle(br, &stubTracker{})
+	st3 := &stubTracker{}
+	require.True(t, line.AddBundle(br, st3))
+
+	require.Equal(t, recordNo(17), line.getNextRecNo())
+	require.Equal(t, stageNo(1), line.earliest.seqNo)
+	require.Equal(t, stageNo(3), line.latest.seqNo)
+
+	line.TrimCommittedStages()
+
+	require.Equal(t, stageNo(1), line.earliest.seqNo)
+	require.NotNil(t, line.earliest.tracker)
+
+	st1.committed = true
+	line.TrimCommittedStages()
+
+	require.Equal(t, stageNo(2), line.earliest.seqNo)
+	require.NotNil(t, line.earliest.tracker)
+
+	st2.committed = true
+	st3.committed = true
+	line.TrimCommittedStages()
+
+	require.Equal(t, stageNo(3), line.earliest.seqNo)
+	require.Nil(t, line.earliest.tracker)
+
+	verifySequences(t, line)
 }
+
+func TestLineStages_Rollback(t *testing.T) {
+	base := gen.UniqueLocalRef()
+	resolver := NewDependencyResolverMock(t)
+
+	line := &LineStages{ base: base, pn: base.GetPulseNumber(), cache: resolver }
+	br := line.NewBundle()
+
+	reasons := map[reference.Global]struct{}{}
+
+	resolver.FindOtherDependencyMock.Set(func(ref reference.Holder) (ResolvedDependency, error) {
+		if _, ok := reasons[reference.Copy(ref)]; ok {
+			return ResolvedDependency{RecordType: tROutboundRequest}, nil
+		}
+		return ResolvedDependency{}, nil
+	})
+
+	refReason1 := gen.UniqueGlobalRefWithPulse(base.GetPulseNumber())
+	reasons[refReason1] = struct {}{}
+
+	require.True(t, br.Add(rStart(base, refReason1)), describe(br))
+
+	last := fillBundleWithOrderedCall(t, base, base, br, reference.NewSelf(base), true)
+
+	st1 := &stubTracker{}
+	require.True(t, line.AddBundle(br, st1))
+	verifySequences(t, line)
+
+
+	refReason2 := gen.UniqueGlobalRefWithPulse(base.GetPulseNumber())
+	refReason3 := gen.UniqueGlobalRefWithPulse(base.GetPulseNumber())
+	refReason4 := gen.UniqueGlobalRefWithPulse(base.GetPulseNumber())
+	reasons[refReason2] = struct {}{}
+	reasons[refReason3] = struct {}{}
+	reasons[refReason4] = struct {}{}
+
+
+	br = line.NewBundle()
+	fillBundleWithUnorderedCall(t, base, last, br, refReason2)
+	st2 := &stubTracker{}
+	require.True(t, line.AddBundle(br, st2))
+	verifySequences(t, line)
+
+	trimAt := line.getNextRecNo()
+
+	br = line.NewBundle()
+	fillBundleWithOrderedCall(t, base, last, br, refReason3, false)
+	st3 := &stubTracker{}
+	require.True(t, line.AddBundle(br, st3))
+	verifySequences(t, line)
+
+	require.Equal(t, recordNo(17), line.getNextRecNo())
+
+	st1.committed = true
+	st2.committed = true
+	line.RollbackUncommittedRecords()
+
+	require.Equal(t, trimAt, line.getNextRecNo())
+	require.Equal(t, stageNo(2), line.earliest.seqNo)
+	require.Equal(t, stageNo(2), line.latest.seqNo)
+	require.Nil(t, line.earliest.tracker)
+
+	verifySequences(t, line)
+
+	br = line.NewBundle()
+	fillBundleWithUnorderedCall(t, base, last, br, refReason4)
+	st4 := &stubTracker{}
+	require.True(t, line.AddBundle(br, st4))
+	st4.committed = true
+
+	line.RollbackUncommittedRecords()
+	require.Equal(t, recordNo(16), line.getNextRecNo())
+
+	verifySequences(t, line)
+}
+
 
 func fillBundleWithOrderedCall(t *testing.T, base, prev reference.Local, br *BundleResolver, orderedReasonRef reference.Holder, addActivate bool) reference.Local {
 	baseRef := reference.NewSelf(base)
@@ -124,7 +229,7 @@ func fillBundleWithUnorderedCall(t *testing.T, base, prev reference.Local, br *B
 	fil2Ref := reference.New(base, refInboundUnord)
 	refOutboundRs2 := gen.UniqueLocalRefWithPulse(base.GetPulseNumber())
 
-	require.True(t, br.Add(r(baseRef, refInboundUnord, base, tRInboundRequest, unorderedReasonRef)), describe(br))
+	require.True(t, br.Add(r(baseRef, refInboundUnord, prev, tRInboundRequest, unorderedReasonRef)), describe(br))
 
 	refOutboundRq2 := gen.UniqueLocalRefWithPulse(base.GetPulseNumber())
 	require.True(t, br.Add(r(fil2Ref, refOutboundRq2, refInboundUnord, tROutboundRequest, nil)), describe(br))
@@ -135,6 +240,36 @@ func fillBundleWithUnorderedCall(t *testing.T, base, prev reference.Local, br *B
 	require.True(t, br.Add(r(fil2Ref, refInboundUnordRs, refOutboundRs2, tRInboundResponse, nil)), describe(br))
 
 	return refInboundUnordRs
+}
+
+func verifySequences(t *testing.T, line *LineStages) {
+	for i := range line.records[0] {
+		recNo := recordNo(i + 1)
+		rec := line.get(recNo)
+		// fmt.Printf("%2d: %+v\n", recNo, *rec)
+		require.NotNil(t, rec)
+
+		require.Equal(t, recNo, rec.recordNo, i)
+
+		if i == 0 {
+			require.Zero(t, rec.prev, i)
+			require.Equal(t, filamentNo(1), rec.filNo, i)
+		} else {
+			require.NotZero(t, rec.prev, i)
+			require.Less(t, uint32(rec.prev), uint32(recNo), i)
+		}
+
+		require.NotZero(t, rec.filNo, i)
+		if rec.next != 0 {
+			require.Greater(t, uint32(rec.next), uint32(recNo), i)
+		} else {
+			latest := line.latest.filaments[rec.filNo - 1].latest
+			require.Equal(t, latest, recNo, i)
+		}
+	}
+
+	// make sure that trunk is open
+	require.Equal(t, recordNo(0), line.get(line.latest.filaments[0].latest).next)
 }
 
 type stubTracker struct {

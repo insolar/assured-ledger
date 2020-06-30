@@ -108,6 +108,7 @@ func (p *LineStages) AddBundle(bundle *BundleResolver, tracker StageTracker) boo
 		}
 
 		switch {
+		case rec.next == deadFilament:
 		case rec.next >= firstRec:
 			rec.next += recDelta
 		case rec.next > 0:
@@ -142,13 +143,19 @@ func (p *LineStages) AddBundle(bundle *BundleResolver, tracker StageTracker) boo
 			filament.earliest = rec.recordNo
 			filament.latest = rec.recordNo
 			filament.resolvedHead = rec.asResolvedDependency()
+			if rec.next == deadFilament {
+				filament.state = ended
+			}
 
 		case filament.latest != rec.prev:
 			panic(throw.IllegalState())
 		default:
-			filament.latest = rec.recordNo
 			if rec.recapNo != 0 && filament.recap != rec.recapNo {
 				panic(throw.IllegalState())
+			}
+			filament.latest = rec.recordNo
+			if rec.next == deadFilament {
+				filament.state = ended
 			}
 		}
 	}
@@ -156,7 +163,9 @@ func (p *LineStages) AddBundle(bundle *BundleResolver, tracker StageTracker) boo
 	if filNo > 0 {
 		// sanity check
 		latest := stage.filaments[filNo - 1].latest
-		if bundle.records[latest - bundle.maxRecNo].next != 0 {
+		switch bundle.records[latest - bundle.maxRecNo].next {
+		case 0, deadFilament:
+		default:
 			panic(throw.IllegalState())
 		}
 	}
@@ -174,6 +183,13 @@ func (p *LineStages) AddBundle(bundle *BundleResolver, tracker StageTracker) boo
 
 		if stage.firstRec + recordNo(i) != rec.recordNo {
 			panic(throw.Impossible())
+		}
+
+		if prev := rec.prev; prev > 0 && prev < stage.firstRec {
+			prevRec := p.get(prev)
+			if prevRec.next == 0 && prevRec.filNo == rec.filNo {
+				prevRec.next = rec.recordNo
+			}
 		}
 
 		p.add(*rec)
@@ -229,16 +245,61 @@ func (p *LineStages) RollbackUncommittedRecords() {
 	if p.earliest == nil {
 		return
 	}
-	last := p.trimCommittedStages()
-	if p.earliest.tracker == nil {
+
+	cutOffRec := deadFilament
+	switch last := p.trimCommittedStages(); {
+	case p.earliest.tracker == nil:
 		// committed all
 		p.latest = p.earliest
-	} else {
-		p.lineRecords.truncate(p.earliest.firstRec)
+	case last == nil:
+		// there is nothing committed
+		*p = LineStages{
+			base:         p.base,
+			pn:           p.pn,
+			cache:        p.cache,
+		}
+		return
+	default:
+		cutOffRec = p.earliest.firstRec
+		p.lineRecords.truncate(cutOffRec)
 		p.earliest = last
 	}
 	p.latest = p.earliest
 	p.earliest.next = nil
+
+	if cutOffRec == deadFilament {
+		// everything was committed
+		return
+	}
+
+	// cleanup the record map
+	for k, recNo := range p.recordRefs {
+		if recordNo(len(p.recordRefs)) < cutOffRec {
+			break
+		}
+		if recNo >= cutOffRec {
+			delete(p.recordRefs, k)
+		}
+	}
+
+	// cleanup the filament map
+	cutOffFil := filamentNo(len(p.latest.filaments) + 1)
+	for k, filNo := range p.filamentRefs {
+		if filamentNo(len(p.filamentRefs)) < cutOffFil {
+			break
+		}
+		if filNo >= cutOffFil {
+			delete(p.filamentRefs, k)
+		}
+	}
+
+	// make open last records of filaments
+	for _, f := range p.latest.filaments {
+		latestRec := p.get(f.latest)
+		if next := latestRec.next; next >= cutOffRec && next != deadFilament {
+			latestRec.next = 0
+		}
+	}
 }
 
 func (p *LineStages) getNextFilNo() filamentNo {

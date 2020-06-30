@@ -5,9 +5,15 @@
 
 package lineage
 
+import (
+	"math"
+)
+
 type stageNo uint32
 type recordNo uint32
 type filamentNo uint32
+
+const deadFilament = recordNo(math.MaxUint32)
 
 type updateStage struct {
 	seqNo stageNo
@@ -25,10 +31,20 @@ type StageTracker interface {
 	IsCommitted() bool
 }
 
+type filamentState uint8
+
+const (
+	started filamentState = iota
+	activated // not implemented
+	ended
+	deactivated // not implemented
+)
+
 type filament struct {
 	earliest, latest recordNo
 	recap recordNo // TODO ending recordNo
 	resolvedHead ResolvedDependency
+	state filamentState
 }
 
 

@@ -155,6 +155,9 @@ func (p *BundleResolver) Add(record Record) bool {
 
 			p.branchStart = upd.recordNo
 		}
+		if policy.PolicyFlags&FilamentEnd != 0 {
+			upd.next = deadFilament
+		}
 
 		p.resolveRecordDependencies(&upd, policy, details)
 	}
