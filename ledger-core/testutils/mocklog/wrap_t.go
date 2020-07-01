@@ -27,11 +27,16 @@ type Tester interface {
 }
 
 func T(t Tester) Tester {
+<<<<<<< HEAD
 	switch t.(type) {
 	case nil:
 		return nil
 	case stackReport:
 		return t
+=======
+	if t == nil {
+		return nil
+>>>>>>> Helper for minimock to report full stacktrace
 	}
 	return stackReport{t}
 }
