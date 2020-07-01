@@ -2,8 +2,8 @@ dumptransport: false
 goroutines_dump: false
 http_timeout: 20
 steps:
-- name: load
-  execution_mode: sequence_validate
+- name: setup contracts
+  execution_mode: sequence
   handles:
   - name: create_contract_test
     rps: 10
@@ -16,13 +16,13 @@ steps:
     store_data: true
     csv_write: users.csv
     recycle_data: true
-    validation:
-      attack_time_sec: 10
-      threshold: 0.7
     stop_if:
       - type: error
         threshold: 0
         interval: 1
+- name: load
+  execution_mode: sequence_validate
+  handles:
   - name: get_contract_test
     rps: 500
     attack_time_sec: 300
