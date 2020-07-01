@@ -144,7 +144,7 @@ func (p *SMRegisterRecordSet) stepApplyRecordSet(ctx smachine.ExecutionContext) 
 			return false
 		default:
 			p.hasMissings = true
-			sd.RequestMissings(missings, ctx.NewBargeIn().WithWakeUp())
+			sd.RequestDependencies(missings, ctx.NewBargeIn().WithWakeUp())
 			return true
 		}
 	}) {

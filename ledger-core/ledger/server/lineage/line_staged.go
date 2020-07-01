@@ -13,6 +13,28 @@ import (
 
 var _ lineResolver = &LineStages{}
 
+func NewStages(base reference.Local, pn pulse.Number, cache DependencyResolver) *LineStages {
+	switch {
+	case base.IsEmpty():
+		panic(throw.IllegalValue())
+	case base.SubScope() != reference.SubScopeLifeline:
+		panic(throw.IllegalValue())
+	default:
+		switch basePN := base.GetPulseNumber(); {
+		case !basePN.IsTimePulse():
+			panic(throw.IllegalValue())
+		case pn < basePN:
+			panic(throw.IllegalValue())
+		}
+	}
+
+	return &LineStages{
+		base: base,
+		pn: pn,
+		cache: cache,
+	}
+}
+
 type LineStages struct {
 	base  reference.Local
 	pn    pulse.Number
@@ -218,6 +240,32 @@ func (p *LineStages) RollbackUncommittedRecords() {
 	p.restoreLatest(cutOffRec)
 }
 
+func (p *LineStages) RollbackLastBundle(tracker StageTracker) {
+	switch {
+	case tracker == nil:
+		panic(throw.IllegalValue())
+	case p.latest == nil:
+		panic(throw.IllegalState())
+	case p.latest.tracker != tracker:
+		panic(throw.IllegalValue())
+	}
+
+	if p.latest == p.earliest {
+		p.restoreEmpty()
+		return
+	}
+
+	next := p.earliest.next
+	for ; next != p.latest; next = next.next {}
+
+	cutOffRec := p.latest.firstRec
+	next.next = nil
+	p.latest = next
+
+	p.restoreLatest(cutOffRec)
+}
+
+
 func (p *LineStages) restoreLatest(cutOffRec recordNo) {
 	if cutOffRec == deadFilament {
 		// everything was committed
@@ -396,3 +444,4 @@ func (p *LineStages) putReason(rec *resolvedRecord) {
 	}
 	p.reasonRefs[normRef] = rec.recordNo
 }
+

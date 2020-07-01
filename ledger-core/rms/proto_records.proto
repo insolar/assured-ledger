@@ -48,17 +48,17 @@ enum FilamentType {
 message RLineRecap {
     option (insproto.id) = 19;
 
-    reserved 1 to 18, 20 to 23, 26, 28 to 39, 1792 to max;
+    reserved 1 to 18, 20 to 23, 26 to 39, 1792 to max;
     RecordBody RecordBody = 19 [(gogoproto.embed)=true];
 
     Reference PrevRef = 24;
     Reference RootRef = 25;
-    Reference RedirectRef = 27;
 
     FilamentState State = 40;
     FilamentType  Type = 41;
     uint32        PrevType = 42;
     uint32        RedirectToType = 43;
+    Reference     PrevRedirectRef = 44;
 
     repeated MemoryRecap Memory = 50;
 }

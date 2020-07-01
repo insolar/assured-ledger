@@ -15,6 +15,7 @@ import (
 )
 
 type JetDropID = buildersvc.JetDropID
+
 type JetDropKey JetDropID
 
 type DropCataloger interface {

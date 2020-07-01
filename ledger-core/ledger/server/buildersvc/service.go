@@ -6,6 +6,7 @@
 package buildersvc
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lineage"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -23,6 +24,11 @@ func (v JetDropID) IsValid() bool {
 	panic(throw.NotImplemented())
 }
 
+func (v JetDropID) GetPulseNumber() pulse.Number {
+
+}
+
+
 type StreamDropAssistant interface {
 	CalculateJetDrop(reference.Holder) JetDropID
 	CreateJetDropAssistant(id JetID) JetDropAssistant
@@ -30,6 +36,7 @@ type StreamDropAssistant interface {
 
 type JetDropAssistant interface {
 	JetDropAssistant()
+	AddRecords(future *Future, br *lineage.BundleResolver) bool
 }
 
 

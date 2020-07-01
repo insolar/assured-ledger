@@ -23,3 +23,7 @@ func (v RegisterRequestSet) IsEmpty() bool {
 type InspectedRecordSet struct {
 
 }
+
+func (v InspectedRecordSet) IsEmpty() bool {
+	return len(v.Requests) == 0
+}
