@@ -453,7 +453,7 @@ func (s *SMExecute) stepProcessFindCallResponse(ctx smachine.ExecutionContext) s
 			}
 		}).WithoutAutoWakeUp().Start()
 
-		return ctx.Jump(s.stepFinishRequest)
+		return ctx.Stop()
 
 	case payload.MissingCall:
 	case payload.UnknownCall:
