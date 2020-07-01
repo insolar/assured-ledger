@@ -443,11 +443,11 @@ func (s *SMExecute) stepProcessFindCallResponse(ctx smachine.ExecutionContext) s
 	switch s.findCallResponse.Status {
 	case payload.FoundCall:
 		if s.findCallResponse.CallResult == nil {
-			ctx.Log().Warn("request found on previous executor, but there was no result")
+			ctx.Log().Trace("request found on previous executor, but there was no result")
 			return ctx.Stop()
 		}
 
-		ctx.Log().Warn("request found on previous executor, resend result")
+		ctx.Log().Trace("request found on previous executor, resending result")
 
 		target := s.Meta.Sender
 		s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
