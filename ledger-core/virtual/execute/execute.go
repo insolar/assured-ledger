@@ -372,6 +372,10 @@ func (s *SMExecute) stepDeduplicateUsingPendingsTable(ctx smachine.ExecutionCont
 		return ctx.Stop()
 	}
 
+	if s.outgoingFromSlotPulse() {
+		return ctx.Jump(s.stepTakeLock)
+	}
+
 	if s.isConstructor && objectState == object.Missing {
 		return ctx.Jump(s.stepTakeLock)
 

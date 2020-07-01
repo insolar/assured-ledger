@@ -280,7 +280,7 @@ func TestVirtual_StateReport_CheckPendingCountersAndPulses(t *testing.T) {
 
 			suite.createPulseP5(ctx)
 			expectedPublished++                  // expect StateReport
-			expectedPublished += len(test.start) // expect request to get token for each pending
+			expectedPublished += 2*len(test.start) // expect GetToken + FindRequest
 			suite.waitMessagePublications(ctx, t, expectedPublished)
 
 			suite.releaseNewlyCreatedPendings()
@@ -544,6 +544,19 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) setMessageCheckers(
 
 		return false
 	})
+	typedChecker.VFindCallRequest.Set(func(req *payload.VFindCallRequest) bool {
+		//require.Equal(t, s.getPulse(3), req.LookAt)
+		require.Equal(t, s.getObject(), req.Callee)
+
+		pl := payload.VFindCallResponse{
+			Callee:     s.getObject(),
+			Outgoing:   req.Outgoing,
+			Status:     payload.MissingCall,
+		}
+		s.server.SendPayload(ctx, &pl)
+
+		return false
+	})
 }
 
 func (s *stateReportCheckPendingCountersAndPulsesTest) getPulse(
@@ -581,6 +594,7 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) waitMessagePublications(
 	t *testing.T,
 	expected int,
 ) {
+	t.Helper()
 	if !s.server.PublisherMock.WaitCount(expected, 10*time.Second) {
 		panic("timeout waiting for messages on publisher")
 	}
