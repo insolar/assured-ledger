@@ -178,7 +178,7 @@ func Test_Execute_stepIsolationNegotiation(t *testing.T) {
 			execCtx := smachine.NewExecutionContextMock(mc)
 
 			if tc.expectedError {
-				// expected SM stop with Error
+				// expected SM sends an error in stepSendCallResult
 				execCtx.JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepSendCallResult))
 			} else {
 				execCtx.JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepDeduplicate))
