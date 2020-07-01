@@ -300,9 +300,9 @@ func (p *LineStages) findLineDependency(root reference.Holder, ref reference.Loc
 }
 
 func (p *LineStages) findChainedDependency(root reference.Holder, ref reference.LocalHolder, mustBeOpen bool) (filNo filamentNo, recNo recordNo, dep ResolvedDependency, recap recordNo) {
-	if filNo, rec := p._findLocalDependency(root, ref); rec != nil {
+	if ok, filNo, rec := p._findLocalDependency(root, ref); ok {
 		if filNo == 0 {
-			// this is filament mismatched - avoid further search
+			// this is filament mismatched or nil refs - avoid further search
 			return 0, 0, ResolvedDependency{}, 0
 		}
 		recap := p.latest.filaments[filNo - 1].recap
@@ -313,32 +313,40 @@ func (p *LineStages) findChainedDependency(root reference.Holder, ref reference.
 		return filNo, rec.recordNo, rec.asResolvedDependency(), recap
 	}
 
-	// TODO caching
-	// Open status should be checked by filaments
-	// if mustBeOpen && rec.next != 0 {
-	// 	filNo = 0 // mark
-	// }
+	if p.cache != nil {
+		// TODO implement
+		// Open status should be checked by filaments
+		// if mustBeOpen && rec.next != 0 {
+		// 	filNo = 0 // mark
+		// }
+		_, _ = p.cache.FindLineDependency(root, ref)
+		panic(throw.NotImplemented())
+	}
 
 	return 0, 0, ResolvedDependency{}, 0
 }
 
-func (p *LineStages) _findLocalDependency(root reference.LocalHolder, ref reference.LocalHolder) (filamentNo, *updateRecord) {
+func (p *LineStages) _findLocalDependency(root reference.LocalHolder, ref reference.LocalHolder) (bool, filamentNo, *updateRecord) {
+	if root == nil || ref == nil || root.IsEmpty() || ref.IsEmpty() {
+		return true, 0, nil
+	}
+
 	recNo := p.recordRefs[ref.GetLocal().IdentityHash()]
 	if recNo == 0 {
-		return 0, nil
+		return false, 0, nil
 	}
 	rec := p.get(recNo)
 
 	filNo := p.filamentRefs[root.GetLocal()]
 	if filNo != rec.filNo {
-		return 0, rec
+		return true, 0, rec
 	}
 
-	return filNo, rec
+	return true, filNo, rec
 }
 
 func (p *LineStages) findLocalDependency(root reference.LocalHolder, ref reference.LocalHolder) (filamentNo, recordNo, ResolvedDependency) {
-	if filNo, rec := p._findLocalDependency(root, ref); filNo != 0 {
+	if _, filNo, rec := p._findLocalDependency(root, ref); filNo != 0 {
 		return filNo, rec.recordNo, rec.asResolvedDependency()
 	}
 	return 0, 0, ResolvedDependency{}

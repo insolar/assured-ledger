@@ -40,7 +40,7 @@ type LineResolverMock struct {
 	beforefindLineDependencyCounter uint64
 	findLineDependencyMock          mLineResolverMockfindLineDependency
 
-	funcfindLocalDependency          func(root reference.LocalHolder, ref reference.LocalHolder) (filNo filamentNo, recNo recordNo, dep ResolvedDependency)
+	funcfindLocalDependency          func(root reference.LocalHolder, ref reference.LocalHolder) (f1 filamentNo, r1 recordNo, r2 ResolvedDependency)
 	inspectFuncfindLocalDependency   func(root reference.LocalHolder, ref reference.LocalHolder)
 	afterfindLocalDependencyCounter  uint64
 	beforefindLocalDependencyCounter uint64
@@ -1008,9 +1008,9 @@ type LineResolverMockfindLocalDependencyParams struct {
 
 // LineResolverMockfindLocalDependencyResults contains results of the lineResolver.findLocalDependency
 type LineResolverMockfindLocalDependencyResults struct {
-	filNo filamentNo
-	recNo recordNo
-	dep   ResolvedDependency
+	f1 filamentNo
+	r1 recordNo
+	r2 ResolvedDependency
 }
 
 // Expect sets up expected params for lineResolver.findLocalDependency
@@ -1045,7 +1045,7 @@ func (mmfindLocalDependency *mLineResolverMockfindLocalDependency) Inspect(f fun
 }
 
 // Return sets up results that will be returned by lineResolver.findLocalDependency
-func (mmfindLocalDependency *mLineResolverMockfindLocalDependency) Return(filNo filamentNo, recNo recordNo, dep ResolvedDependency) *LineResolverMock {
+func (mmfindLocalDependency *mLineResolverMockfindLocalDependency) Return(f1 filamentNo, r1 recordNo, r2 ResolvedDependency) *LineResolverMock {
 	if mmfindLocalDependency.mock.funcfindLocalDependency != nil {
 		mmfindLocalDependency.mock.t.Fatalf("LineResolverMock.findLocalDependency mock is already set by Set")
 	}
@@ -1053,12 +1053,12 @@ func (mmfindLocalDependency *mLineResolverMockfindLocalDependency) Return(filNo 
 	if mmfindLocalDependency.defaultExpectation == nil {
 		mmfindLocalDependency.defaultExpectation = &LineResolverMockfindLocalDependencyExpectation{mock: mmfindLocalDependency.mock}
 	}
-	mmfindLocalDependency.defaultExpectation.results = &LineResolverMockfindLocalDependencyResults{filNo, recNo, dep}
+	mmfindLocalDependency.defaultExpectation.results = &LineResolverMockfindLocalDependencyResults{f1, r1, r2}
 	return mmfindLocalDependency.mock
 }
 
 //Set uses given function f to mock the lineResolver.findLocalDependency method
-func (mmfindLocalDependency *mLineResolverMockfindLocalDependency) Set(f func(root reference.LocalHolder, ref reference.LocalHolder) (filNo filamentNo, recNo recordNo, dep ResolvedDependency)) *LineResolverMock {
+func (mmfindLocalDependency *mLineResolverMockfindLocalDependency) Set(f func(root reference.LocalHolder, ref reference.LocalHolder) (f1 filamentNo, r1 recordNo, r2 ResolvedDependency)) *LineResolverMock {
 	if mmfindLocalDependency.defaultExpectation != nil {
 		mmfindLocalDependency.mock.t.Fatalf("Default expectation is already set for the lineResolver.findLocalDependency method")
 	}
@@ -1087,13 +1087,13 @@ func (mmfindLocalDependency *mLineResolverMockfindLocalDependency) When(root ref
 }
 
 // Then sets up lineResolver.findLocalDependency return parameters for the expectation previously defined by the When method
-func (e *LineResolverMockfindLocalDependencyExpectation) Then(filNo filamentNo, recNo recordNo, dep ResolvedDependency) *LineResolverMock {
-	e.results = &LineResolverMockfindLocalDependencyResults{filNo, recNo, dep}
+func (e *LineResolverMockfindLocalDependencyExpectation) Then(f1 filamentNo, r1 recordNo, r2 ResolvedDependency) *LineResolverMock {
+	e.results = &LineResolverMockfindLocalDependencyResults{f1, r1, r2}
 	return e.mock
 }
 
 // findLocalDependency implements lineResolver
-func (mmfindLocalDependency *LineResolverMock) findLocalDependency(root reference.LocalHolder, ref reference.LocalHolder) (filNo filamentNo, recNo recordNo, dep ResolvedDependency) {
+func (mmfindLocalDependency *LineResolverMock) findLocalDependency(root reference.LocalHolder, ref reference.LocalHolder) (f1 filamentNo, r1 recordNo, r2 ResolvedDependency) {
 	mm_atomic.AddUint64(&mmfindLocalDependency.beforefindLocalDependencyCounter, 1)
 	defer mm_atomic.AddUint64(&mmfindLocalDependency.afterfindLocalDependencyCounter, 1)
 
@@ -1111,7 +1111,7 @@ func (mmfindLocalDependency *LineResolverMock) findLocalDependency(root referenc
 	for _, e := range mmfindLocalDependency.findLocalDependencyMock.expectations {
 		if minimock.Equal(e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.filNo, e.results.recNo, e.results.dep
+			return e.results.f1, e.results.r1, e.results.r2
 		}
 	}
 
@@ -1127,7 +1127,7 @@ func (mmfindLocalDependency *LineResolverMock) findLocalDependency(root referenc
 		if mm_results == nil {
 			mmfindLocalDependency.t.Fatal("No results are set for the LineResolverMock.findLocalDependency")
 		}
-		return (*mm_results).filNo, (*mm_results).recNo, (*mm_results).dep
+		return (*mm_results).f1, (*mm_results).r1, (*mm_results).r2
 	}
 	if mmfindLocalDependency.funcfindLocalDependency != nil {
 		return mmfindLocalDependency.funcfindLocalDependency(root, ref)
