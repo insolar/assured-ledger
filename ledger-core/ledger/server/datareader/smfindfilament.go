@@ -7,27 +7,28 @@ package datareader
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lineage"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-var _ smachine.StateMachine = &SMFindFilament{}
+var _ smachine.StateMachine = &SMFindRecord{}
 
-type SMFindFilament struct {
+type SMFindRecord struct {
 	smachine.StateMachineDeclTemplate
-	FilamentRootRef reference.Global
+
+	Unresolved lineage.UnresolvedDependency
 	FindCallback    smachine.BargeInWithParam
 }
 
-func (p *SMFindFilament) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
+func (p *SMFindRecord) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
 	return p
 }
 
-func (p *SMFindFilament) GetInitStateFor(smachine.StateMachine) smachine.InitFunc {
+func (p *SMFindRecord) GetInitStateFor(smachine.StateMachine) smachine.InitFunc {
 	return p.stepInit
 }
 
-func (p *SMFindFilament) stepInit(ctx smachine.InitializationContext) smachine.StateUpdate {
+func (p *SMFindRecord) stepInit(ctx smachine.InitializationContext) smachine.StateUpdate {
 	panic(throw.NotImplemented()) // TODO
 }
 

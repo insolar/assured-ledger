@@ -10,24 +10,52 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
+
+func NewRegRecord(excerpt catalog.Excerpt, req *rms.LRegisterRequest) Record {
+	return Record{
+		Excerpt:            excerpt,
+		RecRef:             req.AnticipatedRef.Get(),
+		regReq:             req,
+	}
+}
+
+func NewRecapRecord(excerpt catalog.Excerpt, recRef reference.Holder, recap *rms.RLineRecap) Record {
+	switch {
+	case recRef == nil:
+		panic(throw.IllegalValue())
+	case recap == nil:
+		panic(throw.IllegalValue())
+	}
+
+	return Record{
+		Excerpt:            excerpt,
+		RecRef:             recRef,
+		recapRec:           recap,
+	}
+}
 
 type Record struct {
 	Excerpt  catalog.Excerpt
-	RegReq   *rms.LRegisterRequest
-	RecapRec *rms.RLineRecap
-
+	RecRef   reference.Holder
 	RegistrarSignature cryptkit.SignedDigest
+
+	regReq   *rms.LRegisterRequest
+	recapRec *rms.RLineRecap
 }
 
 func (v Record) Equal(record Record) bool {
-	return v.RegReq != nil && v.RegReq.Equal(record.RegReq)
+	return v.regReq != nil && v.regReq.Equal(record.regReq)
 }
 
 func (v Record) GetRecordRef() reference.Holder {
-	if v.RegReq == nil {
-		return nil
+	if v.RecRef != nil {
+		return v.RecRef
 	}
-	return v.RegReq.AnticipatedRef.Get()
+	if v.regReq != nil {
+		return v.regReq.AnticipatedRef.Get()
+	}
+	return nil
 }
 

@@ -35,7 +35,7 @@ type SMRegisterRecordSet struct {
 	// runtime
 	sdl          datawriter.LineDataLink
 	inspectedSet *inspectsvc.InspectedRecordSet
-	hasMissings  bool
+	hasRequested bool
 
 	// results
 	updated     *buildersvc.Future
@@ -136,15 +136,16 @@ func (p *SMRegisterRecordSet) stepApplyRecordSet(ctx smachine.ExecutionContext) 
 	}
 
 	switch p.sdl.TryAccess(ctx, func(sd *datawriter.LineSharedData) (wakeup bool) {
-		switch future, missings := sd.TryApplyRecordSet(*p.inspectedSet); {
-		case missings == nil:
+		switch future, bundle := sd.TryApplyRecordSet(*p.inspectedSet); {
+		case bundle == nil:
 			p.updated = future
 			return false
-		case p.hasMissings:
+		case p.hasRequested:
+			//
 			return false
 		default:
-			p.hasMissings = true
-			sd.RequestDependencies(missings, ctx.NewBargeIn().WithWakeUp())
+			p.hasRequested = true
+			sd.RequestDependencies(bundle, ctx.NewBargeIn().WithWakeUp())
 			return true
 		}
 	}) {

@@ -127,7 +127,7 @@ func (p *SMLine) stepDropIsReady(ctx smachine.ExecutionContext) smachine.StateUp
 				// TODO Unknown object
 				panic(throw.NotImplemented())
 			}
-			p.sd.addRecap(sm.RecapRec, sm.RecapRef)
+			p.sd.addRecap(sm.RecapRef, sm.RecapRec)
 			return ctx.Jump(p.stepLineIsReady)
 		})
 	default:
@@ -149,12 +149,12 @@ func (p *SMLine) stepLineIsReady(ctx smachine.ExecutionContext) smachine.StateUp
 
 func (p *SMLine) stepWaitForContextUpdates(ctx smachine.ExecutionContext) smachine.StateUpdate {
 
-	for _, fr := range p.sd.getMissingFilaments() {
-		filamentRef := fr
+	for _, ur := range p.sd.getUnresolved() {
+		unresolved := ur
 		ctx.NewChild(func(ctx smachine.ConstructionContext) smachine.StateMachine {
-			return &datareader.SMFindFilament{
-				FilamentRootRef: filamentRef,
-				FindCallback: p.onFind,
+			return &datareader.SMFindRecord{
+				Unresolved: unresolved,
+				FindCallback:    p.onFind,
 			}
 		})
 	}

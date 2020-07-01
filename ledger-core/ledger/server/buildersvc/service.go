@@ -25,7 +25,7 @@ func (v JetDropID) IsValid() bool {
 }
 
 func (v JetDropID) GetPulseNumber() pulse.Number {
-
+	panic(throw.NotImplemented())
 }
 
 
@@ -37,6 +37,7 @@ type StreamDropAssistant interface {
 type JetDropAssistant interface {
 	JetDropAssistant()
 	AddRecords(future *Future, br *lineage.BundleResolver) bool
+	GetResolver() lineage.DependencyResolver
 }
 
 

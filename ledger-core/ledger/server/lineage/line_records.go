@@ -42,7 +42,7 @@ const (
 
 type filament struct {
 	earliest, latest recordNo
-	recap recordNo // TODO ending recordNo
+	recap recordNo
 	resolvedHead ResolvedDependency
 	state filamentState
 }

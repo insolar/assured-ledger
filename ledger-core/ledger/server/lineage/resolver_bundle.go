@@ -10,13 +10,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-type UnresolvedDependency struct {
-	// RecordRef is nil for a dependency on filament root, defined by LocalRootRef
-	RecordRef    reference.Holder
-	// LocalRootRef is nil, when RecordRef belongs to a different line, otherwise LocalRootRef defines a filament root for the record
-	LocalRootRef reference.Holder
-}
-
 func newBundleResolver(resolver lineResolver, policyProvider RecordPolicyProviderFunc) *BundleResolver {
 	if policyProvider == nil {
 		panic(throw.IllegalValue())
@@ -268,12 +261,18 @@ func (p *BundleResolver) resolvePrevRef(upd *resolvedRecord, policy RecordPolicy
 		// 2. When rootRef == ref, then it has to be a non-Branched FilamentStart
 		// 3. otherwise - it has to be an open prev record
 
-		upd.filNo, upd.prev, dep, upd.recapNo = p.resolver.findChainedDependency(rootRef, ref, !policy.IsBranched())
+		mustBeOpen := !policy.IsBranched()
+		upd.filNo, upd.prev, dep, upd.recapNo = p.resolver.findChainedDependency(rootRef, ref, mustBeOpen)
 		switch {
 		case dep.IsZero():
 			return
 		case dep.IsNotAvailable():
-			p.addDependency(rootRef, ref)
+			if mustBeOpen {
+				p.addDependency(rootRef, ref)
+			} else {
+				p.addDependency(nil, ref)
+			}
+
 			return
 		case upd.prev == 0 && upd.filNo != 0:
 			panic(throw.Impossible())
@@ -336,7 +335,7 @@ func (p *BundleResolver) resolveSupplementaryRef(rootRef, ref reference.Holder) 
 		case dep.IsZero():
 			return dep, nil
 		case dep.IsNotAvailable():
-			p.addDependency(rootRef, ref)
+			p.addDependency(nil, ref)
 			fallthrough
 		default:
 			return dep, nil
@@ -445,7 +444,7 @@ func (p *BundleResolver) addDependency(root reference.Holder, ref reference.Hold
 	p.isResolved = false
 
 	for _, d := range p.unresolved {
-		if reference.Equal(ref, d.RecordRef) && reference.Equal(root, d.LocalRootRef) {
+		if reference.Equal(ref, d.RecordRef) && reference.Equal(root, d.RecapRootRef) {
 			return
 		}
 	}
