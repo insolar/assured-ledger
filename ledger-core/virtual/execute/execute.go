@@ -458,8 +458,6 @@ func (s *SMExecute) stepProcessFindCallResponse(ctx smachine.ExecutionContext) s
 	case payload.MissingCall:
 	case payload.UnknownCall:
 		// execute it
-		break
-
 	default:
 		panic(throw.Impossible())
 	}
