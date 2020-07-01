@@ -411,8 +411,7 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) startNewPending(
 	intFlag contract.InterferenceFlag,
 ) {
 	pulseNumber := s.getPulse(1)
-	outgoingLocal := gen.UniqueLocalRefWithPulse(pulseNumber)
-	outgoing := reference.NewRecordOf(s.getObject(), outgoingLocal)
+	outgoing := reference.NewRecordOf(s.getObject(), gen.UniqueLocalRefWithPulse(pulseNumber))
 	key := outgoing.String()
 
 	if s.newPendingsReleaser == nil {
@@ -450,7 +449,7 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) startNewPending(
 		Callee:         s.getObject(),
 		CallSiteMethod: "Some",
 		CallSequence:   1,
-		CallOutgoing:   outgoingLocal,
+		CallOutgoing:   outgoing,
 	}
 	s.addPayloadAndWaitIdle(ctx, &pl)
 

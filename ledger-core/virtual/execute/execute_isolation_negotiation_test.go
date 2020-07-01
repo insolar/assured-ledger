@@ -144,8 +144,7 @@ func Test_Execute_stepIsolationNegotiation(t *testing.T) {
 
 				pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 				pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-				smObjectID      = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
-				smGlobalRef     = reference.NewSelf(smObjectID)
+				smGlobalRef     = reference.NewRecordOf(gen.UniqueGlobalRef(), gen.UniqueLocalRefWithPulse(pd.PulseNumber))
 				smObject        = object.NewStateMachineObject(smGlobalRef)
 				sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 			)
@@ -155,7 +154,7 @@ func Test_Execute_stepIsolationNegotiation(t *testing.T) {
 				CallFlags:           payload.BuildCallFlags(tc.callIsolation.Interference, tc.callIsolation.State),
 				CallSiteDeclaration: testwallet.GetClass(),
 				CallSiteMethod:      "New",
-				CallOutgoing:        smObjectID,
+				CallOutgoing:        smGlobalRef,
 				Arguments:           insolar.MustSerialize([]interface{}{}),
 			}
 

@@ -84,7 +84,7 @@ func TestConstructor_SamePulse(t *testing.T) {
 
 			var (
 				isolation = contract.ConstructorIsolation()
-				outgoing  = server.RandomLocalWithPulse()
+				outgoing  = server.BuildRandomOutgoingWithPulse()
 				class     = gen.UniqueGlobalRef()
 			)
 
@@ -100,7 +100,7 @@ func TestConstructor_SamePulse(t *testing.T) {
 				requestResult := requestresult.New([]byte("123"), gen.UniqueGlobalRef())
 				requestResult.SetActivate(gen.UniqueGlobalRef(), class, []byte("234"))
 
-				executionMock := runnerMock.AddExecutionMock(utils.CalculateOutgoing(pl).String())
+				executionMock := runnerMock.AddExecutionMock(outgoing.String())
 				executionMock.AddStart(test.executionFn, &execution.Update{
 					Type:   execution.Done,
 					Result: requestResult,

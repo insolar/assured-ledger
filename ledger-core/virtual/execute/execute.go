@@ -9,6 +9,7 @@ package execute
 
 import (
 	"context"
+
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
@@ -109,13 +110,13 @@ func (s *SMExecute) prepareExecution(ctx context.Context) {
 
 	if s.Payload.CallType == payload.CTConstructor {
 		s.isConstructor = true
-		s.execution.Object = reference.NewSelf(s.Payload.CallOutgoing)
+		s.execution.Object = s.Payload.CallOutgoing
 	} else {
 		s.execution.Object = s.Payload.Callee
 	}
 
-	s.execution.Incoming = reference.NewRecordOf(s.Payload.Caller, s.Payload.CallOutgoing)
-	s.execution.Outgoing = reference.NewRecordOf(s.Payload.Callee, s.Payload.CallOutgoing)
+	s.execution.Incoming = reference.NewRecordOf(s.Payload.Callee, s.Payload.CallOutgoing.GetLocal())
+	s.execution.Outgoing = s.Payload.CallOutgoing
 
 	s.execution.Isolation = contract.MethodIsolation{
 		Interference: s.Payload.CallFlags.GetInterference(),
@@ -176,7 +177,7 @@ func (s *SMExecute) stepGetObject(ctx smachine.ExecutionContext) smachine.StateU
 }
 
 func (s *SMExecute) outgoingFromSlotPulse() bool {
-	outgoingPulse := s.Payload.CallOutgoing.GetPulseNumber()
+	outgoingPulse := s.Payload.CallOutgoing.GetLocal().GetPulseNumber()
 	slotPulse := s.pulseSlot.PulseData().GetPulseNumber()
 	return outgoingPulse == slotPulse
 }
@@ -568,10 +569,10 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 		}
 
 		s.outgoing = outgoing.ConstructVCallRequest(s.execution)
-		s.outgoing.CallOutgoing = gen.UniqueLocalRefWithPulse(pulseNumber)
+		s.outgoing.CallOutgoing = reference.NewRecordOf(s.outgoing.Caller, gen.UniqueLocalRefWithPulse(pulseNumber))
 		s.execution.Sequence++
 		s.outgoing.CallSequence = s.execution.Sequence
-		s.outgoingObject = reference.NewSelf(s.outgoing.CallOutgoing)
+		s.outgoingObject = s.outgoing.CallOutgoing
 	case execution.CallMethod:
 		if s.intolerableCall() && outgoing.Interference() == contract.CallTolerable {
 			err := throw.E("interference violation: ordered call from unordered call")
@@ -581,7 +582,7 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 		}
 
 		s.outgoing = outgoing.ConstructVCallRequest(s.execution)
-		s.outgoing.CallOutgoing = gen.UniqueLocalRefWithPulse(pulseNumber)
+		s.outgoing.CallOutgoing = reference.NewRecordOf(s.outgoing.Caller, gen.UniqueLocalRefWithPulse(pulseNumber))
 		s.execution.Sequence++
 		s.outgoing.CallSequence = s.execution.Sequence
 		s.outgoingObject = s.outgoing.Callee
@@ -616,7 +617,7 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 			}
 		})
 
-		outgoingRef := reference.NewRecordOf(s.outgoing.Caller, s.outgoing.CallOutgoing)
+		outgoingRef := s.outgoing.CallOutgoing
 
 		if !ctx.PublishGlobalAliasAndBargeIn(outgoingRef, bargeInCallback) {
 			return ctx.Error(throw.E("failed to publish bargeInCallback"))
@@ -844,19 +845,14 @@ func (s *SMExecute) stepSendCallResult(ctx smachine.ExecutionContext) smachine.S
 	)
 
 	msg := payload.VCallResult{
-		CallType:           s.Payload.CallType,
-		CallFlags:          s.Payload.CallFlags,
-		CallAsOf:           s.Payload.CallAsOf,
-		Caller:             s.Payload.Caller,
-		Callee:             s.execution.Object,
-		ResultFlags:        nil,
-		CallOutgoing:       s.Payload.CallOutgoing,
-		CallIncoming:       reference.Local{},
-		PayloadHash:        nil,
-		CallIncomingResult: reference.Local{},
-		EntryHeadHash:      nil,
-		ReturnArguments:    executionResult,
-		DelegationSpec:     s.getToken(),
+		CallType:        s.Payload.CallType,
+		CallFlags:       s.Payload.CallFlags,
+		CallAsOf:        s.Payload.CallAsOf,
+		Caller:          s.Payload.Caller,
+		Callee:          s.execution.Object,
+		CallOutgoing:    s.Payload.CallOutgoing,
+		ReturnArguments: executionResult,
+		DelegationSpec:  s.getToken(),
 	}
 
 	// save result for future pass to SMObject

@@ -44,7 +44,7 @@ func TestSMTestAPICall_Migrate_After_RegisterBargeIn(t *testing.T) {
 		CallFlags:           payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 		CallSiteDeclaration: testwallet.GetClass(),
 		CallSiteMethod:      "New",
-		CallOutgoing:        gen.UniqueLocalRef(),
+		CallOutgoing:        gen.UniqueGlobalRef(),
 		Arguments:           insolar.MustSerialize([]interface{}{}),
 	}
 
@@ -64,9 +64,7 @@ func TestSMTestAPICall_Migrate_After_RegisterBargeIn(t *testing.T) {
 	require.NotEqual(t, APICaller, smRequest.requestPayload.Caller)
 	slotMachine.RunTil(smWrapper.AfterStep(smRequest.stepRegisterBargeIn))
 
-	outgoingCall := smRequest.requestPayload.CallOutgoing
-
-	outgoingRef := reference.NewRecordOf(APICaller, outgoingCall)
+	outgoingRef := smRequest.requestPayload.CallOutgoing
 	_, bargeIn := slotMachine.SlotMachine.GetPublishedGlobalAliasAndBargeIn(outgoingRef)
 	require.NotNil(t, bargeIn)
 
@@ -82,15 +80,13 @@ func TestSMTestAPICall_Migrate_After_RegisterBargeIn(t *testing.T) {
 	}
 
 	slotMachine.RunTil(smWrapper.AfterStep(smRequest.stepRegisterBargeIn))
-	newOutgoingCall := smRequest.requestPayload.CallOutgoing
+	newOutgoingRef := smRequest.requestPayload.CallOutgoing
 	var newBargeIn smachine.BargeInHolder
 	{
-		newOutgoingRef := reference.NewRecordOf(APICaller, newOutgoingCall)
 		require.NotEqual(t, newOutgoingRef, outgoingRef)
 		// check that we create new bargein
 		_, newBargeIn = slotMachine.SlotMachine.GetPublishedGlobalAliasAndBargeIn(newOutgoingRef)
 		require.NotNil(t, newBargeIn)
-		require.NotEqual(t, outgoingCall, newOutgoingCall)
 	}
 }
 
@@ -109,7 +105,7 @@ func TestSMTestAPICall_Migrate_After_SendRequest(t *testing.T) {
 		CallFlags:           payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 		CallSiteDeclaration: testwallet.GetClass(),
 		CallSiteMethod:      "New",
-		CallOutgoing:        gen.UniqueLocalRef(),
+		CallOutgoing:        gen.UniqueGlobalRef(),
 		Arguments:           insolar.MustSerialize([]interface{}{}),
 	}
 
@@ -126,8 +122,7 @@ func TestSMTestAPICall_Migrate_After_SendRequest(t *testing.T) {
 
 	slotMachine.RunTil(smWrapper.AfterStep(smRequest.stepRegisterBargeIn))
 
-	outgoingCall := smRequest.requestPayload.CallOutgoing
-	outgoingRef := reference.NewRecordOf(APICaller, outgoingCall)
+	outgoingRef := smRequest.requestPayload.CallOutgoing
 	_, bargeIn := slotMachine.SlotMachine.GetPublishedGlobalAliasAndBargeIn(outgoingRef)
 	require.NotNil(t, bargeIn)
 
@@ -135,7 +130,7 @@ func TestSMTestAPICall_Migrate_After_SendRequest(t *testing.T) {
 	slotMachine.MessageSender.SendRole.Set(func(_ context.Context, msg payload.Marshaler, role node.DynamicRole, object reference.Global, pn pulse.Number, _ ...messagesender.SendOption) error {
 		res := msg.(*payload.VCallRequest)
 		// ensure that both times request is the same
-		assert.Equal(t, outgoingCall, res.CallOutgoing)
+		assert.Equal(t, outgoingRef, res.CallOutgoing)
 		assert.Equal(t, node.DynamicRoleVirtualExecutor, role)
 		assert.Equal(t, request.Callee, object)
 
