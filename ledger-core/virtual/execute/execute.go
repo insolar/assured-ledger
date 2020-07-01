@@ -46,6 +46,8 @@ type SMExecute struct {
 	semaphoreUnordered smachine.SyncLink
 	execution          execution.Context
 	objectSharedState  object.SharedStateAccessor
+	hasState           bool
+	duplicateFinished  bool
 
 	// execution step
 	executionNewState   *execution.Update
@@ -321,15 +323,20 @@ func (s *SMExecute) stepDeduplicate(ctx smachine.ExecutionContext) smachine.Stat
 	var (
 		deduplicateAction DeduplicationAction
 		msg               *payload.VCallResult
+		err               error
 	)
 
 	// deduplication algorithm
 	action := func(state *object.SharedState) {
-		deduplicateAction, msg = s.deduplicate(state)
+		deduplicateAction, msg, err = s.deduplicate(state)
 	}
 
 	if stepUpdate := s.shareObjectAccess(ctx, action); !stepUpdate.IsEmpty() {
 		return stepUpdate
+	}
+
+	if err != nil {
+		panic(err)
 	}
 
 	switch deduplicateAction {
@@ -403,13 +410,17 @@ func (s *SMExecute) stepWaitFindCallResponse(ctx smachine.ExecutionContext) smac
 }
 
 func (s *SMExecute) stepProcessFindCallResponse(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	switch s.findCallResponse.Status {
-	case payload.FoundCall:
-		if s.findCallResponse.CallResult == nil {
-			ctx.Log().Trace("request found on previous executor, but there was no result")
-			return ctx.Stop()
+	switch {
+	case s.findCallResponse.Status == payload.FoundCall && s.findCallResponse.CallResult == nil:
+		ctx.Log().Trace("request found on previous executor, but there was no result")
+
+		if s.isConstructor && (s.hasState || s.duplicateFinished) {
+			panic(throw.NotImplemented())
 		}
 
+		return ctx.Stop()
+
+	case s.findCallResponse.Status == payload.FoundCall && s.findCallResponse.CallResult != nil:
 		ctx.Log().Trace("request found on previous executor, resending result")
 
 		target := s.Meta.Sender
@@ -424,14 +435,18 @@ func (s *SMExecute) stepProcessFindCallResponse(ctx smachine.ExecutionContext) s
 
 		return ctx.Stop()
 
-	case payload.MissingCall:
-	case payload.UnknownCall:
-		// execute it
+	case s.findCallResponse.Status == payload.MissingCall:
+		fallthrough
+	case s.findCallResponse.Status == payload.UnknownCall:
+		if s.isConstructor {
+			panic(throw.Impossible())
+		}
+
+		return ctx.Jump(s.stepTakeLock)
 	default:
 		panic(throw.Impossible())
 	}
 
-	return ctx.Jump(s.stepTakeLock)
 }
 
 func (s *SMExecute) stepTakeLock(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -962,7 +977,7 @@ func (s *SMExecute) shareObjectAccess(
 	}
 }
 
-func (s *SMExecute) deduplicate(state *object.SharedState) (DeduplicationAction, *payload.VCallResult) {
+func (s *SMExecute) deduplicate(state *object.SharedState) (DeduplicationAction, *payload.VCallResult, error) {
 	// if we can not add to request table, this mean that we already have operation in progress or completed
 	if !state.KnownRequests.Add(s.execution.Isolation.Interference, s.execution.Outgoing) {
 		results := state.KnownRequests.GetResults()
@@ -971,28 +986,33 @@ func (s *SMExecute) deduplicate(state *object.SharedState) (DeduplicationAction,
 
 		// get result only if exist, if result == nil this mean that other SM now during execution
 		if ok && summary.Result != nil {
-			return SendResultAndStop, summary.Result
+			return SendResultAndStop, summary.Result, nil
 		}
 
 		// stop current sm because other sm still in progress and not send result
-		return Stop, nil
+		return Stop, nil, nil
 	}
 
 	// deduplicate through pending table
 	if !s.outgoingFromSlotPulse() {
 		pendingList := state.PendingTable.GetList(s.execution.Isolation.Interference)
+		filledTable := uint8(pendingList.Count()) == state.PreviousExecutorOrderedPendingCount
 		isActive, isDuplicate := pendingList.GetState(s.execution.Outgoing)
 
-		if isDuplicate && isActive {
-			return Stop, nil
+		s.hasState = state.GetState() == object.HasState
+		s.duplicateFinished = isDuplicate && !isActive
+
+		switch {
+		case isDuplicate && isActive:
+			return Stop, nil, nil
+		case s.isConstructor && state.GetState() == object.Missing:
+			return ContinueExecute, nil, nil
+		case s.isConstructor && !s.hasState && filledTable && !isDuplicate:
+			return Stop, nil, throw.NotImplemented()
 		}
 
-		if s.isConstructor && state.GetState() == object.Missing {
-			return ContinueExecute, nil
-		}
-
-		return DeduplicateThroughPreviousExecutor, nil
+		return DeduplicateThroughPreviousExecutor, nil, nil
 	}
 
-	return ContinueExecute, nil
+	return ContinueExecute, nil, nil
 }

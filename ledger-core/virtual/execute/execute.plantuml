@@ -121,10 +121,10 @@ T01_S006 --> T01_S008
 state "stepProcessFindCallResponse" as T01_S012
 T01_S012 : SMExecute
 T01_S012 --[dotted]> T01_S001
-T01_S012 --> [*] : [(...).findCallResponse.CallResult==nil]
+T01_S012 --> [*] : [...&&(...).findCallResponse.CallResult==nil]
 T01_S012 --> T01_S010 : PrepareAsync(ctx).WithoutAutoWakeUp()
-T01_S012 --> [*] : [payload.FoundCall]
-T01_S012 --> T01_S013
+T01_S012 --> [*] : [...&&(...).findCallResponse.CallResult!=nil]
+T01_S012 --> T01_S013 : [(...).findCallResponse.Status==payload.UnknownCall]
 state "stepPublishDataCallSummary" as T01_S028
 T01_S028 : SMExecute
 T01_S028 --[dotted]> T01_S015
