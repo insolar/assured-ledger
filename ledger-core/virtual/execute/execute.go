@@ -273,7 +273,7 @@ func (s *SMExecute) stepIsolationNegotiation(ctx smachine.ExecutionContext) smac
 
 	negotiatedIsolation, err := negotiateIsolation(s.methodIsolation, s.execution.Isolation)
 	if err != nil {
-		s.prepareExecutionError(throw.W(err, "failed to negotiate", struct {
+		s.prepareExecutionError(throw.W(err, "failed to negotiate call isolation params", struct {
 			methodIsolation contract.MethodIsolation
 			callIsolation   contract.MethodIsolation
 		}{

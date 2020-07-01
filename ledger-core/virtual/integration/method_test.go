@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gojuno/minimock/v3"
+	"github.com/insolar/assured-ledger/ledger-core/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1011,7 +1012,7 @@ func Test_CallMethodWithBadIsolationFlags(t *testing.T) {
 
 	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 
-	expectedError := throw.W(throw.IllegalValue(), "failed to negotiate", struct {
+	expectedError := throw.W(throw.IllegalValue(), "failed to negotiate call isolation params", struct {
 		methodIsolation contract.MethodIsolation
 		callIsolation   contract.MethodIsolation
 	}{
