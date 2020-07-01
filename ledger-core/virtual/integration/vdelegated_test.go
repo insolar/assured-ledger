@@ -95,7 +95,7 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 
 func TestVirtual_VDelegatedCallRequest_GetBalance(t *testing.T) {
 	t.Log("C4982")
-	t.Skip("PLAT-449")
+	t.Skip("https://insolar.atlassian.net/browse/PLAT-449")
 	// flaky test, need to think about how to do it better, maybe move to half-integration
 
 	server, ctx := utils.NewServer(nil, t)
