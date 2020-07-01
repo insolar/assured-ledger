@@ -397,6 +397,8 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 }
 
 func TestSMExecute_Semi_MethodOnEmptyObject(t *testing.T) {
+	// skip flaky test
+	t.Skip("https://insolar.atlassian.net/browse/PLAT-497")
 	var (
 		mc  = minimock.NewController(t)
 		ctx = instestlogger.TestContext(t)
