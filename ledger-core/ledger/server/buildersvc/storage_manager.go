@@ -6,6 +6,7 @@
 package buildersvc
 
 import (
+<<<<<<< HEAD
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lineage"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
@@ -93,3 +94,19 @@ func (v StorageLocator) ChapterOffset() uint32 {
 func (v StorageLocator) Offset() uint64 {
 	return uint64(v) & 0xFFFF_FFFF_FFFF
 }
+=======
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lineage"
+)
+
+type storageManager struct {
+	writePipe chan struct{}
+	// pulsePrepare signal
+	// pulseCancel signal
+}
+
+type writeBundle struct {
+	jetDrop JetDropID
+	bundle  lineage.BundleResolver
+	future  *Future
+}
+>>>>>>> Draft
