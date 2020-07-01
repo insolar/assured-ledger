@@ -157,7 +157,7 @@ func TestPendingList_MustGetIsActive(t *testing.T) {
 	objectOne := gen.UniqueLocalRefWithPulse(currentPulse)
 	RefOne := reference.NewSelf(objectOne)
 
-	rl := NewRequestList()
+	rl := newRequestList()
 	isActive, exist := rl.GetState(RefOne)
 	require.Equal(t, false, isActive)
 	require.Equal(t, false, exist)

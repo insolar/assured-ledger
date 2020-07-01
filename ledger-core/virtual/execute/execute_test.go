@@ -255,7 +255,8 @@ func TestSMExecute_DeduplicateThroughPreviousExecutor(t *testing.T) {
 		oldPd           = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 		pd              = pulse.NewPulsarData(oldPd.NextPulseNumber(), oldPd.NextPulseDelta, oldPd.NextPulseDelta, longbits.Bits256{})
 		pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-		outgoingRef     = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
+		callerRef       = gen.UniqueGlobalRef()
+		outgoingRef     = reference.NewRecordOf(callerRef, gen.UniqueLocalRefWithPulse(pd.PulseNumber))
 		objectRef       = gen.UniqueGlobalRef()
 		smObject        = object.NewStateMachineObject(objectRef)
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
@@ -281,9 +282,9 @@ func TestSMExecute_DeduplicateThroughPreviousExecutor(t *testing.T) {
 	checkMessage := func(msg payload.Marshaler) {
 		switch msg0 := msg.(type) {
 		case *payload.VFindCallRequest:
-			require.Equal(t, request.CallOutgoing.GetPulseNumber(), msg0.LookAt)
+			require.Equal(t, request.CallOutgoing.GetLocal().GetPulseNumber(), msg0.LookAt)
 			require.Equal(t, objectRef, msg0.Callee)
-			require.Equal(t, reference.NewRecordOf(request.Callee, request.CallOutgoing), msg0.Outgoing)
+			require.Equal(t, request.CallOutgoing, msg0.Outgoing)
 		default:
 			panic("Unexpected message type")
 		}
@@ -341,7 +342,8 @@ func TestSMExecute_ProcessFindCallResponse(t *testing.T) {
 		oldPd           = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 		pd              = pulse.NewPulsarData(oldPd.NextPulseNumber(), oldPd.NextPulseDelta, oldPd.NextPulseDelta, longbits.Bits256{})
 		pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-		outgoingRef     = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
+		callerRef       = gen.UniqueGlobalRef()
+		outgoingRef     = reference.NewRecordOf(callerRef, gen.UniqueLocalRefWithPulse(pd.PulseNumber))
 		objectRef       = gen.UniqueGlobalRef()
 		smObject        = object.NewStateMachineObject(objectRef)
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
