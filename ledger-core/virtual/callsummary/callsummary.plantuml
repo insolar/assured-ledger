@@ -1,0 +1,17 @@
+@startuml
+state "GetInitStateFor" as T00_S001
+T00_S001 : SMCallSummary
+[*] --> T00_S001
+T00_S001 --> T00_S002
+state "Init" as T00_S002
+T00_S002 : SMCallSummary
+T00_S002 --> [*] : [!ctx.Publish()]
+T00_S002 --> T00_S004 : Migrate: sm.stepMigrate
+state "stepLoop" as T00_S004
+T00_S004 : SMCallSummary
+T00_S004 --[dotted]> T00_S003
+T00_S004 --[dashed]> T00_S004 : Sleep
+state "stepMigrate" as T00_S003
+T00_S003 : SMCallSummary
+T00_S003 --> [*]
+@enduml
