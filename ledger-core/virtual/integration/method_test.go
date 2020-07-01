@@ -1003,7 +1003,7 @@ func Test_CallMethodWithBadIsolationFlags(t *testing.T) {
 	var (
 		objectLocal  = server.RandomLocalWithPulse()
 		objectGlobal = reference.NewSelf(objectLocal)
-		outgoing     = server.RandomLocalWithPulse()
+		outgoing     = server.BuildRandomOutgoingWithPulse()
 	)
 
 	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal)
