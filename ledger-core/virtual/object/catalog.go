@@ -82,7 +82,12 @@ func (p LocalCatalog) Create(ctx smachine.ExecutionContext, objectReference refe
 		return NewStateMachineObject(objectReference)
 	})
 
-	accessor, _ := p.TryGet(ctx, objectReference)
+	accessor, ok := p.TryGet(ctx, objectReference)
+
+	if !ok {
+		// we should get accessor always after InitChild in this step
+		panic(throw.IllegalState())
+	}
 	return accessor
 }
 
@@ -98,10 +103,13 @@ func (p LocalCatalog) GetOrCreate(ctx smachine.ExecutionContext, objectReference
 		return NewStateMachineObject(objectReference)
 	})
 
-	if accessor, ok := p.TryGet(ctx, objectReference); ok {
-		return accessor
+	accessor, ok := p.TryGet(ctx, objectReference)
+
+	if !ok {
+		// we should get accessor always after InitChild in this step
+		panic(throw.IllegalState())
 	}
-	panic(throw.IllegalState())
+	return accessor
 }
 
 // //////////////////////////////////////
