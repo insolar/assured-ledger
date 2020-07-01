@@ -41,9 +41,9 @@ steps:
         threshold: 0
         interval: 1
   - name: set_contract_test
-    rps: 500
-    attack_time_sec: 300
-    ramp_up_sec: 300
+    rps: 1000
+    attack_time_sec: 600
+    ramp_up_sec: 600
     ramp_up_strategy: linear
     max_attackers: 1000
     verbose: true
