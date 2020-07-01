@@ -44,7 +44,8 @@ jobs:
         run: |
           cd load
           go build cmd/load/main.go
-          echo $(date +"%F-%H-%M")-${GITHUB_REF##*/}-${{fromJson(steps.set-vars.outputs.result).shortSha}}.png
+          fileName = $(date +"%F-%H-%M")-${{fromJson(steps.set-vars.outputs.result).shortSha}}.png
+          echo 'https://reports.garage.insolar.io/ve-perf-tests/"$fileName"'
       - name: Set up go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v1
         with:
@@ -114,4 +115,4 @@ jobs:
           cd ${{ env.CORE_PATH }}/load/
           ./main -gen_config -gen_config ${{ env.CORE_PATH }}/load/gen_cfg/generator_assured_ledger.yaml scaling_report scaling.csv out.png
           fileName = $(date +"%F-%H-%M")-${{fromJson(steps.set-vars.outputs.result).shortSha}}.png
-          curl -basic --user '${{ secrets.WEBDAV_USERNAME }}:${{ secrets.WEBDAV_PASSWORD }}' -T 'out.png' '"$fileName"'
+          curl -basic --user '${{ secrets.WEBDAV_USERNAME }}:${{ secrets.WEBDAV_PASSWORD }}' -T 'out.png' 'https://reports.garage.insolar.io/ve-perf-tests/"$fileName"'
