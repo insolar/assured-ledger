@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package object
+package callregistry
 
 import (
 	"testing"
@@ -64,8 +64,8 @@ func TestWorkingTable(t *testing.T) {
 
 	summary, ok := results[ref]
 	assert.True(t, ok)
-	assert.NotNil(t, summary.result)
-	assert.Equal(t, res.Callee, summary.result.Callee)
+	assert.NotNil(t, summary.Result)
+	assert.Equal(t, res.Callee, summary.Result.Callee)
 }
 
 func TestWorkingList(t *testing.T) {
