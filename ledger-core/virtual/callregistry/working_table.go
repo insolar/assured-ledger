@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package object
+package callregistry
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
@@ -14,43 +14,40 @@ import (
 )
 
 type WorkingTable struct {
-	requests []*WorkingList
-	results  map[reference.Global]Summary
+	requests [contract.InterferenceFlagCount - 1]*WorkingList
+	results  map[reference.Global]CallSummary
 }
 
 func NewWorkingTable() WorkingTable {
 	var rt WorkingTable
 
-	lists := make([]*WorkingList, contract.InterferenceFlagCount)
-	for i := 1; i < contract.InterferenceFlagCount; i++ {
-		lists[i] = NewWorkingList()
+	for i := len(rt.requests) - 1; i >= 0; i-- {
+		rt.requests[i] = newWorkingList()
 	}
 
-	rt.requests = lists
-
-	rt.results = make(map[reference.Global]Summary)
+	rt.results = make(map[reference.Global]CallSummary)
 
 	return rt
 }
 
-func (wt *WorkingTable) GetList(flag contract.InterferenceFlag) *WorkingList {
-	if flag.IsZero() {
-		panic(throw.IllegalValue())
+func (wt WorkingTable) GetList(flag contract.InterferenceFlag) *WorkingList {
+	if flag > 0 && int(flag) <= len(wt.requests) {
+		return wt.requests[flag-1]
 	}
-	return wt.requests[flag]
+	panic(throw.IllegalValue())
 }
 
-func (wt *WorkingTable) GetResults() map[reference.Global]Summary {
+func (wt WorkingTable) GetResults() map[reference.Global]CallSummary {
 	return wt.results
 }
 
-func (wt *WorkingTable) Add(flag contract.InterferenceFlag, ref reference.Global) bool {
-	return wt.GetList(flag).Add(ref)
+func (wt WorkingTable) Add(flag contract.InterferenceFlag, ref reference.Global) bool {
+	return wt.GetList(flag).add(ref)
 }
 
-func (wt *WorkingTable) SetActive(flag contract.InterferenceFlag, ref reference.Global) bool {
-	if ok := wt.GetList(flag).SetActive(ref); ok {
-		wt.results[ref] = Summary{}
+func (wt WorkingTable) SetActive(flag contract.InterferenceFlag, ref reference.Global) bool {
+	if ok := wt.GetList(flag).setActive(ref); ok {
+		wt.results[ref] = CallSummary{}
 
 		return true
 	}
@@ -58,17 +55,17 @@ func (wt *WorkingTable) SetActive(flag contract.InterferenceFlag, ref reference.
 	return false
 }
 
-func (wt *WorkingTable) Finish(
+func (wt WorkingTable) Finish(
 	flag contract.InterferenceFlag,
 	ref reference.Global,
 	result *payload.VCallResult,
 ) bool {
-	if ok := wt.GetList(flag).Finish(ref); ok {
+	if ok := wt.GetList(flag).finish(ref); ok {
 		_, ok := wt.results[ref]
 		if !ok {
 			panic(throw.IllegalState())
 		}
-		wt.results[ref] = Summary{result: result}
+		wt.results[ref] = CallSummary{Result: result}
 
 		return true
 	}
@@ -100,14 +97,14 @@ type WorkingList struct {
 	requests            map[reference.Global]WorkingRequestState
 }
 
-func NewWorkingList() *WorkingList {
+func newWorkingList() *WorkingList {
 	return &WorkingList{
 		requests: make(map[reference.Global]WorkingRequestState),
 	}
 }
 
-type Summary struct {
-	result *payload.VCallResult
+type CallSummary struct {
+	Result *payload.VCallResult
 }
 
 func (rl *WorkingList) GetState(ref reference.Global) WorkingRequestState {
@@ -116,7 +113,7 @@ func (rl *WorkingList) GetState(ref reference.Global) WorkingRequestState {
 
 // Add adds reference.Global and update EarliestPulse if needed
 // returns true if added and false if already exists
-func (rl *WorkingList) Add(ref reference.Global) bool {
+func (rl *WorkingList) add(ref reference.Global) bool {
 	if _, exist := rl.requests[ref]; exist {
 		return false
 	}
@@ -124,7 +121,7 @@ func (rl *WorkingList) Add(ref reference.Global) bool {
 	return true
 }
 
-func (rl *WorkingList) SetActive(ref reference.Global) bool {
+func (rl *WorkingList) setActive(ref reference.Global) bool {
 	if rl.requests[ref] != RequestStarted {
 		return false
 	}
@@ -158,7 +155,7 @@ func (rl *WorkingList) calculateEarliestActivePulse() {
 	rl.earliestActivePulse = min
 }
 
-func (rl *WorkingList) Finish(ref reference.Global) bool {
+func (rl *WorkingList) finish(ref reference.Global) bool {
 	state := rl.GetState(ref)
 	if state == RequestUnknown || state == RequestFinished {
 		return false
