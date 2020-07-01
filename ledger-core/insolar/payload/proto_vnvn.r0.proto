@@ -50,7 +50,7 @@ message VCallRequest {
     int32 CallRequestFlags = 40 [(gogoproto.casttype) = "CallRequestFlags"];
     Reference KnownCalleeIncoming = 41;
     bytes EntryHeadHash = 42;
-    LocalReference CallOutgoing = 43;
+    Reference CallOutgoing = 43;
     uint32 TXExpiry = 44 [(gogoproto.casttype) = "PulseNumber"];
 
     bytes SecurityContext = 45;
@@ -69,8 +69,8 @@ message VCallResult {
     Reference Callee = 24;
 
     bytes ResultFlags = 25;
-    LocalReference CallOutgoing = 26;
-    LocalReference CallIncoming = 27;
+    Reference CallOutgoing = 26;
+    Reference CallIncoming = 27;
 
     bytes PayloadHash = 28;
     CallDelegationToken DelegationSpec = 29;

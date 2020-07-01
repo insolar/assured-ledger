@@ -34,7 +34,7 @@ type DebugStepLogger struct {
 	smachine.StepLogger
 
 	sm          smachine.StateMachine
-	events      chan<- UpdateEvent
+	events      *updateChan
 	continueSig synckit.SignalChannel
 }
 
@@ -49,12 +49,12 @@ func (c DebugStepLogger) CreateAsyncLogger(context.Context, *smachine.StepLogger
 func (c DebugStepLogger) LogInternal(data smachine.StepLoggerData, updateType string) {
 	c.StepLogger.LogInternal(data, updateType)
 
-	c.events <- UpdateEvent{
+	c.events.send(UpdateEvent{
 		notEmpty: true,
 		SM:       c.sm,
 		Data:     data,
 		Update:   smachine.StepLoggerUpdateData{UpdateType: updateType},
-	}
+	})
 
 	<-c.continueSig
 }
@@ -62,12 +62,12 @@ func (c DebugStepLogger) LogInternal(data smachine.StepLoggerData, updateType st
 func (c DebugStepLogger) LogUpdate(data smachine.StepLoggerData, update smachine.StepLoggerUpdateData) {
 	c.StepLogger.LogUpdate(data, update)
 
-	c.events <- UpdateEvent{
+	c.events.send(UpdateEvent{
 		notEmpty: true,
 		SM:       c.sm,
 		Data:     data,
 		Update:   update,
-	}
+	})
 
 	<-c.continueSig
 }
@@ -81,12 +81,12 @@ func (c DebugStepLogger) LogTestEvent(data smachine.StepLoggerData, customEvent 
 		c.StepLogger.LogTestEvent(data, customEvent)
 	}
 
-	c.events <- UpdateEvent{
+	c.events.send(UpdateEvent{
 		notEmpty:    true,
 		SM:          c.sm,
 		Data:        data,
 		CustomEvent: customEvent,
-	}
+	})
 
 	<-c.continueSig
 }
@@ -94,12 +94,12 @@ func (c DebugStepLogger) LogTestEvent(data smachine.StepLoggerData, customEvent 
 func (c DebugStepLogger) LogEvent(data smachine.StepLoggerData, customEvent interface{}, fields []logfmt.LogFieldMarshaller) {
 	c.StepLogger.LogEvent(data, customEvent, fields)
 
-	c.events <- UpdateEvent{
+	c.events.send(UpdateEvent{
 		notEmpty:    true,
 		SM:          c.sm,
 		Data:        data,
 		CustomEvent: customEvent,
-	}
+	})
 
 	<-c.continueSig
 }
@@ -107,34 +107,13 @@ func (c DebugStepLogger) LogEvent(data smachine.StepLoggerData, customEvent inte
 func (c DebugStepLogger) LogAdapter(data smachine.StepLoggerData, adapterID smachine.AdapterID, callID uint64, fields []logfmt.LogFieldMarshaller) {
 	c.StepLogger.LogAdapter(data, adapterID, callID, fields)
 
-	switch data.Flags.AdapterFlags() {
-	case smachine.StepLoggerAdapterAsyncResult, smachine.StepLoggerAdapterAsyncCancel,
-	     smachine.StepLoggerAdapterAsyncExpiredResult, smachine.StepLoggerAdapterAsyncExpiredCancel:
-
-	    // These events are sent from an adapter and may arrive after the debug logger was stopped
-	    // so this defer is to protect from such case.
-
-		defer func() {
-			switch r := recover().(type) {
-			case nil:
-				//
-			case error:
-				if r.Error() != "send on closed channel" {
-					panic(r)
-				}
-			default:
-				panic(r)
-			}
-		}()
-	}
-
-	c.events <- UpdateEvent{
+	c.events.send(UpdateEvent{
 		notEmpty:  true,
 		SM:        c.sm,
 		Data:      data,
 		AdapterID: adapterID,
 		CallID:    callID,
-	}
+	})
 
 	<-c.continueSig
 }
@@ -143,7 +122,7 @@ type LoggerSlotPredicateFn func(smachine.StateMachine, smachine.TracerID) bool
 
 type DebugMachineLogger struct {
 	underlying   smachine.SlotMachineLogger
-	events       chan UpdateEvent
+	events       *updateChan
 	continueStep synckit.ClosableSignalChannel
 }
 
@@ -189,12 +168,13 @@ func (v DebugMachineLogger) continueAll() {
 	}
 }
 
-func (v DebugMachineLogger) GetEvent() UpdateEvent {
-	return <-v.events
+func (v DebugMachineLogger) GetEvent() (ev UpdateEvent) {
+	 ev, _ = v.events.receive()
+	 return
 }
 
 func (v DebugMachineLogger) EventChan() <-chan UpdateEvent {
-	return v.events
+	return v.events.events
 }
 
 func (v DebugMachineLogger) Continue() {
@@ -206,14 +186,13 @@ func (v DebugMachineLogger) Continue() {
 func (v DebugMachineLogger) FlushEvents(flushDone synckit.SignalChannel, closeEvents bool) {
 	for {
 		select {
-		case _, ok := <-v.events:
+		case _, ok := <- v.events.events:
 			if !ok {
 				return
 			}
 		case <-flushDone:
 			if closeEvents {
-				close(v.events)
-				for range v.events {}
+				v.events.close()
 			}
 			return
 		}
@@ -223,7 +202,7 @@ func (v DebugMachineLogger) FlushEvents(flushDone synckit.SignalChannel, closeEv
 func NewDebugMachineLogger(underlying smachine.SlotMachineLogger) DebugMachineLogger {
 	return DebugMachineLogger{
 		underlying:    underlying,
-		events:        make(chan UpdateEvent, 1),
+		events:        &updateChan{ events: make(chan UpdateEvent, 1) },
 		continueStep:  make(chan struct{}),
 	}
 }
@@ -234,6 +213,6 @@ func NewDebugMachineLoggerNoBlock(underlying smachine.SlotMachineLogger, eventBu
 	}
 	return DebugMachineLogger{
 		underlying:    underlying,
-		events:        make(chan UpdateEvent, eventBufLimit),
+		events:        &updateChan{ events: make(chan UpdateEvent, eventBufLimit) },
 	}
 }

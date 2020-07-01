@@ -20,6 +20,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 )
@@ -95,8 +96,6 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 
 func TestVirtual_VDelegatedCallRequest_GetBalance(t *testing.T) {
 	t.Log("C4982")
-	t.Skip("PLAT-449")
-	// flaky test, need to think about how to do it better, maybe move to half-integration
 
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
@@ -108,6 +107,8 @@ func TestVirtual_VDelegatedCallRequest_GetBalance(t *testing.T) {
 		delegatedRequest   = make(chan struct{}, 0)
 		getBalanceResponse = make(chan struct{}, 0)
 	)
+
+	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	typedChecker.VDelegatedCallResponse.Set(func(response *payload.VDelegatedCallResponse) bool {
@@ -122,7 +123,7 @@ func TestVirtual_VDelegatedCallRequest_GetBalance(t *testing.T) {
 		close(getBalanceResponse)
 		return false // no resend msg
 	})
-	server.WaitIdleConveyor()
+	server.IncrementPulseAndWaitIdle(ctx)
 
 	{
 		// send VStateReport: save wallet
@@ -141,8 +142,7 @@ func TestVirtual_VDelegatedCallRequest_GetBalance(t *testing.T) {
 				},
 			},
 		}
-		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, payloadMeta).SetSender(server.JetCoordinatorMock.Me()).Finalize()
-		server.SendMessage(ctx, msg)
+		server.SendPayload(ctx, payloadMeta)
 	}
 	server.WaitActiveThenIdleConveyor()
 
@@ -156,8 +156,7 @@ func TestVirtual_VDelegatedCallRequest_GetBalance(t *testing.T) {
 			CallSiteMethod: "GetBalance",
 			Arguments:      insolar.MustSerialize([]interface{}{}),
 		}
-		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
-		server.SendMessage(ctx, msg)
+		server.SendPayload(ctx, &pl)
 	}
 	server.WaitActiveThenIdleConveyor()
 
@@ -168,8 +167,7 @@ func TestVirtual_VDelegatedCallRequest_GetBalance(t *testing.T) {
 			Callee:       objectRef,
 			CallFlags:    payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
 		}
-		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
-		server.SendMessage(ctx, msg)
+		server.SendPayload(ctx, &pl)
 	}
 
 	select {
@@ -181,7 +179,8 @@ func TestVirtual_VDelegatedCallRequest_GetBalance(t *testing.T) {
 	}
 
 	testutils.WaitSignalsTimed(t, 10*time.Second, getBalanceResponse)
+	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
-	server.WaitIdleConveyor()
 	mc.Finish()
 }
