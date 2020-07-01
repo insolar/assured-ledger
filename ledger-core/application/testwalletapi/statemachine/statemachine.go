@@ -29,8 +29,7 @@ type SMTestAPICall struct {
 	requestPayload  payload.VCallRequest
 	responsePayload payload.VCallResult
 
-	messageAlreadySent   bool
-	registeredBargeInRef reference.Global
+	messageAlreadySent bool
 
 	// injected arguments
 	pulseSlot     *conveyor.PulseSlot
@@ -89,19 +88,16 @@ func (s *SMTestAPICall) stepRegisterBargeIn(ctx smachine.ExecutionContext) smach
 	if !ctx.PublishGlobalAliasAndBargeIn(outgoingRef, bargeInCallback) {
 		return ctx.Error(errors.New("failed to publish bargeInCallback"))
 	}
-	s.registeredBargeInRef = outgoingRef
 
 	return ctx.JumpExt(smachine.SlotStep{
 		Transition: s.stepSendRequest,
-		Migration:  s.migrateBeforeSendRequest,
+		Migration: func(ctx smachine.MigrationContext) smachine.StateUpdate {
+			if !ctx.UnpublishGlobalAlias(outgoingRef) {
+				panic("global alias must exist")
+			}
+			return ctx.Jump(s.stepRegisterBargeIn)
+		},
 	})
-}
-
-func (s *SMTestAPICall) migrateBeforeSendRequest(ctx smachine.MigrationContext) smachine.StateUpdate {
-	if !ctx.UnpublishGlobalAlias(s.registeredBargeInRef) {
-		panic("global alias must exist")
-	}
-	return ctx.Jump(s.stepRegisterBargeIn)
 }
 
 func (s *SMTestAPICall) stepSendRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {

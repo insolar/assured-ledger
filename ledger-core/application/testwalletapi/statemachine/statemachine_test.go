@@ -62,7 +62,6 @@ func TestSMTestAPICall_Migrate_After_RegisterBargeIn(t *testing.T) {
 	slotMachine.RunTil(smWrapper.BeforeStep(smRequest.stepRegisterBargeIn))
 
 	require.NotEqual(t, APICaller, smRequest.requestPayload.Caller)
-	require.True(t, smRequest.registeredBargeInRef.IsEmpty())
 	slotMachine.RunTil(smWrapper.AfterStep(smRequest.stepRegisterBargeIn))
 
 	outgoingCall := smRequest.requestPayload.CallOutgoing
@@ -73,11 +72,10 @@ func TestSMTestAPICall_Migrate_After_RegisterBargeIn(t *testing.T) {
 
 	require.Equal(t, APICaller, smRequest.requestPayload.Caller)
 	require.NotEmpty(t, smRequest.requestPayload.CallOutgoing)
-	require.Equal(t, outgoingRef, smRequest.registeredBargeInRef)
 
 	{
 		slotMachine.Migrate()
-		slotMachine.RunTil(smWrapper.AfterMigrate(smRequest.migrateBeforeSendRequest))
+		slotMachine.RunTil(smWrapper.AfterAnyMigrate())
 		// check that we remove bargein after migrate
 		_, bargeIn = slotMachine.SlotMachine.GetPublishedGlobalAliasAndBargeIn(outgoingRef)
 		require.Nil(t, bargeIn)
@@ -93,7 +91,6 @@ func TestSMTestAPICall_Migrate_After_RegisterBargeIn(t *testing.T) {
 		_, newBargeIn = slotMachine.SlotMachine.GetPublishedGlobalAliasAndBargeIn(newOutgoingRef)
 		require.NotNil(t, newBargeIn)
 		require.NotEqual(t, outgoingCall, newOutgoingCall)
-		require.Equal(t, newOutgoingRef, smRequest.registeredBargeInRef)
 	}
 }
 
