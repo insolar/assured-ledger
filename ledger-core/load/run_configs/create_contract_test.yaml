@@ -6,11 +6,11 @@ steps:
   execution_mode: sequence_validate
   handles:
   - name: create_contract_test
-    rps: 500
+    rps: 10
     attack_time_sec: 400
     ramp_up_sec: 400
     ramp_up_strategy: linear
-    max_attackers: 1000
+    max_attackers: 10
     verbose: true
     do_timeout_sec: 60
     store_data: true

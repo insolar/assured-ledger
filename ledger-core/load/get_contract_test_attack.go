@@ -16,19 +16,13 @@ type GetContractTestAttack struct {
 }
 
 func (a *GetContractTestAttack) Setup(hc loadgen.RunnerConfig) error {
-	a.client = loadgen.NewLoggingHTTPClient(false, 60)
+	a.client = loadgen.NewLoggingHTTPClient(a.GetManager().SuiteConfig.DumpTransport, 60)
 	return nil
 }
 func (a *GetContractTestAttack) Do(ctx context.Context) loadgen.DoResult {
-	var getBalanceURL string
-	if len(a.GetManager().GeneratorConfig.Generator.Target) == 0 {
-		// set default
-		getBalanceURL = util.GetURL(util.WalletGetBalancePath, "", "")
-	} else {
-		getBalanceURL = a.GetManager().GeneratorConfig.Generator.Target + util.WalletGetBalancePath
-	}
+	url := a.GetManager().GeneratorConfig.Generator.Target + util.WalletGetBalancePath
 	reference := loadgen.DefaultReadCSV(a)
-	balance, err := util.GetWalletBalance(a.client, getBalanceURL, reference[0])
+	balance, err := util.GetWalletBalance(a.client, url, reference[0])
 	if err != nil {
 		return loadgen.DoResult{
 			Error:        err,

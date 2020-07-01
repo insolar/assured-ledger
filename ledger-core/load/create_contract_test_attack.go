@@ -15,17 +15,12 @@ type CreateContractTestAttack struct {
 }
 
 func (a *CreateContractTestAttack) Setup(hc loadgen.RunnerConfig) error {
-	a.client = loadgen.NewLoggingHTTPClient(false, 60)
+	a.client = loadgen.NewLoggingHTTPClient(a.GetManager().SuiteConfig.DumpTransport, 60)
 	return nil
 }
 func (a *CreateContractTestAttack) Do(ctx context.Context) loadgen.DoResult {
-	var walletCreateURL string
-	if len(a.GetManager().GeneratorConfig.Generator.Target) == 0 {
-		walletCreateURL = util.GetURL(util.WalletCreatePath, "", "")
-	} else {
-		walletCreateURL = a.GetManager().GeneratorConfig.Generator.Target + util.WalletCreatePath
-	}
-	walletRef, err := util.CreateSimpleWallet(a.client, walletCreateURL)
+	url := a.GetManager().GeneratorConfig.Generator.Target + util.WalletCreatePath
+	walletRef, err := util.CreateSimpleWallet(a.client, url)
 	if err != nil {
 		return loadgen.DoResult{
 			Error:        err,

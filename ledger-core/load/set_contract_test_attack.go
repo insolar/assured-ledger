@@ -15,27 +15,21 @@ type SetContractTestAttack struct {
 }
 
 func (a *SetContractTestAttack) Setup(hc loadgen.RunnerConfig) error {
-	a.client = loadgen.NewLoggingHTTPClient(false, 60)
+	a.client = loadgen.NewLoggingHTTPClient(a.GetManager().SuiteConfig.DumpTransport, 60)
 	return nil
 }
 
 func (a *SetContractTestAttack) Do(ctx context.Context) loadgen.DoResult {
-	var addAmountURL string
-	if len(a.GetManager().GeneratorConfig.Generator.Target) == 0 {
-		addAmountURL = util.GetURL(util.WalletAddAmountPath, "", "")
-	} else {
-		addAmountURL = a.GetManager().GeneratorConfig.Generator.Target + util.WalletAddAmountPath
-	}
-
-	for _, reference := range loadgen.DefaultReadCSV(a) {
-		err := util.AddAmountToWallet(a.client, addAmountURL, reference, 100)
-		if err != nil {
-			return loadgen.DoResult{
-				Error:        err,
-				RequestLabel: SetContractTestLabel,
-			}
+	url := a.GetManager().GeneratorConfig.Generator.Target + util.WalletAddAmountPath
+	reference := loadgen.DefaultReadCSV(a)
+	err := util.AddAmountToWallet(a.client, url, reference[0], 100)
+	if err != nil {
+		return loadgen.DoResult{
+			Error:        err,
+			RequestLabel: SetContractTestLabel,
 		}
 	}
+
 	return loadgen.DoResult{
 		RequestLabel: SetContractTestLabel,
 	}
