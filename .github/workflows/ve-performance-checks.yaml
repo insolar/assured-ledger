@@ -87,7 +87,6 @@ jobs:
         run: |
           cd ${{ env.CORE_PATH }}/load/
           NETWORK_NODES=10 ./main -gen_config ${{ env.CORE_PATH }}/load/gen_cfg/generator_assured_ledger.yaml -config ${{ env.CORE_PATH }}/load/run_configs/all_sequence.yaml
-          ls -a
       - name: cleanup
         if: always()
         run: kubectl delete ns ${{fromJson(steps.set-vars.outputs.result).shortSha}} --ignore-not-found=true
@@ -107,7 +106,6 @@ jobs:
         run: |
           cd ${{ env.CORE_PATH }}/load/
           NETWORK_NODES=20 ./main -gen_config ${{ env.CORE_PATH }}/load/gen_cfg/generator_assured_ledger.yaml -config ${{ env.CORE_PATH }}/load/run_configs/all_sequence.yaml
-          ls -a
       - name: cleanup
         if: always()
         run: kubectl delete ns ${{fromJson(steps.set-vars.outputs.result).shortSha}} --ignore-not-found=true
@@ -120,4 +118,4 @@ jobs:
           curl -s ${{secrets.VE_NOTIFY_SLACK_URL}} -d '{"text":"VE test finished for https://github.com/'$GITHUB_REPOSITORY'/pull/${GITHUB_REF##*/}'\nChart: https://reports.garage.insolar.io/ve-perf-tests/"$fileName"\nHave a look! @'$GITHUB_ACTOR'"}'
       - name: Send faild to slack
         if: failure()
-          run: curl -s ${{secrets.SLACK_URL}} -d '{"text":"VE test failed for https://github.com/'$GITHUB_REPOSITORY'/pull/'${GITHUB_REF##*/}'\nHave a look! @'$GITHUB_ACTOR'"}'
+        run: curl -s ${{secrets.VE_NOTIFY_SLACK_URL}} -d '{"text":"VE test failed for https://github.com/'$GITHUB_REPOSITORY'/pull/'${GITHUB_REF##*/}'\nHave a look! @'$GITHUB_ACTOR'"}'
