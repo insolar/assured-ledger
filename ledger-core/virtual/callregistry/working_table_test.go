@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package object
+package callregistry
 
 import (
 	"testing"
@@ -34,13 +34,13 @@ func TestWorkingTable(t *testing.T) {
 	ref := reference.NewSelf(object)
 
 	intolerableList := wt.GetList(contract.CallIntolerable)
-	assert.True(t, intolerableList.Add(ref))
+	assert.True(t, intolerableList.add(ref))
 
 	assert.Equal(t, 1, wt.GetList(contract.CallIntolerable).Count())
 	assert.Equal(t, 0, wt.GetList(contract.CallTolerable).Count())
 	assert.Equal(t, pulse.Unknown, wt.GetList(contract.CallIntolerable).EarliestPulse())
 
-	assert.True(t, intolerableList.SetActive(ref))
+	assert.True(t, intolerableList.setActive(ref))
 
 	assert.Equal(t, 1, wt.GetList(contract.CallIntolerable).Count())
 	assert.Equal(t, 0, wt.GetList(contract.CallTolerable).Count())
@@ -64,8 +64,8 @@ func TestWorkingTable(t *testing.T) {
 
 	summary, ok := results[ref]
 	assert.True(t, ok)
-	assert.NotNil(t, summary.result)
-	assert.Equal(t, res.Callee, summary.result.Callee)
+	assert.NotNil(t, summary.Result)
+	assert.Equal(t, res.Callee, summary.Result.Callee)
 }
 
 func TestWorkingList(t *testing.T) {
@@ -81,54 +81,54 @@ func TestWorkingList(t *testing.T) {
 	RefOne := reference.NewSelf(objectOne)
 	RefTwo := reference.NewSelf(objectTwo)
 
-	rl := NewWorkingList()
+	rl := newWorkingList()
 	assert.Equal(t, 0, rl.Count())
 	assert.Equal(t, 0, rl.CountFinish())
 	assert.Equal(t, 0, rl.CountActive())
 	assert.Equal(t, pulse.Number(0), rl.EarliestPulse())
 
-	assert.Equal(t, true, rl.Add(RefOne))
+	assert.Equal(t, true, rl.add(RefOne))
 	assert.Equal(t, RequestStarted, rl.GetState(RefOne))
-	assert.Equal(t, true, rl.SetActive(RefOne))
+	assert.Equal(t, true, rl.setActive(RefOne))
 	assert.Equal(t, 1, rl.Count())
 	assert.Equal(t, 0, rl.CountFinish())
 	assert.Equal(t, 1, rl.CountActive())
 	assert.Equal(t, nextPulseNumber, rl.EarliestPulse())
 
-	assert.Equal(t, false, rl.Add(RefOne))
-	assert.Equal(t, false, rl.SetActive(RefOne))
+	assert.Equal(t, false, rl.add(RefOne))
+	assert.Equal(t, false, rl.setActive(RefOne))
 	assert.Equal(t, RequestProcessing, rl.GetState(RefOne))
 	assert.Equal(t, 1, rl.Count())
 	assert.Equal(t, 0, rl.CountFinish())
 	assert.Equal(t, 1, rl.CountActive())
 	assert.Equal(t, nextPulseNumber, rl.EarliestPulse())
 
-	assert.Equal(t, true, rl.Add(RefOld))
+	assert.Equal(t, true, rl.add(RefOld))
 	assert.Equal(t, RequestProcessing, rl.GetState(RefOne))
 	assert.Equal(t, RequestStarted, rl.GetState(RefOld))
-	assert.Equal(t, true, rl.SetActive(RefOld))
+	assert.Equal(t, true, rl.setActive(RefOld))
 	assert.Equal(t, 2, rl.Count())
 	assert.Equal(t, 0, rl.CountFinish())
 	assert.Equal(t, 2, rl.CountActive())
 	assert.Equal(t, pd.PulseNumber, rl.EarliestPulse())
 
-	assert.Equal(t, true, rl.Add(RefTwo))
+	assert.Equal(t, true, rl.add(RefTwo))
 	assert.Equal(t, RequestProcessing, rl.GetState(RefOne))
 	assert.Equal(t, RequestProcessing, rl.GetState(RefOld))
 	assert.Equal(t, RequestStarted, rl.GetState(RefTwo))
-	assert.Equal(t, true, rl.SetActive(RefTwo))
+	assert.Equal(t, true, rl.setActive(RefTwo))
 	assert.Equal(t, 3, rl.Count())
 	assert.Equal(t, pd.PulseNumber, rl.EarliestPulse())
 	assert.Equal(t, 0, rl.CountFinish())
 	assert.Equal(t, 3, rl.CountActive())
 
-	rl.Finish(RefOne)
+	rl.finish(RefOne)
 	assert.Equal(t, pd.PulseNumber, rl.EarliestPulse()) // doesn't change
 	assert.Equal(t, 1, rl.CountFinish())
 	assert.Equal(t, 2, rl.CountActive())
 
 	// try to finish ref that not in list
-	successFinish := rl.Finish(reference.NewSelf(gen.UniqueLocalRefWithPulse(currentPulse)))
+	successFinish := rl.finish(reference.NewSelf(gen.UniqueLocalRefWithPulse(currentPulse)))
 	assert.Equal(t, false, successFinish)
 	assert.Equal(t, 1, rl.CountFinish())
 	assert.Equal(t, 2, rl.CountActive())
@@ -146,25 +146,25 @@ func TestWorkingList_Finish(t *testing.T) {
 	objectTwo := gen.UniqueLocalRefWithPulse(nextPulseNumber)
 	RefTwo := reference.NewSelf(objectTwo)
 
-	rl := NewWorkingList()
+	rl := newWorkingList()
 
-	assert.Equal(t, true, rl.Add(RefOne))
+	assert.Equal(t, true, rl.add(RefOne))
 	assert.Equal(t, 1, rl.Count())
-	assert.Equal(t, true, rl.SetActive(RefOne))
+	assert.Equal(t, true, rl.setActive(RefOne))
 	assert.Equal(t, RequestProcessing, rl.GetState(RefOne))
 	assert.Equal(t, currentPulse, rl.earliestActivePulse)
 	assert.Equal(t, 0, rl.CountFinish())
 	assert.Equal(t, 1, rl.CountActive())
 
-	assert.Equal(t, true, rl.Add(RefTwo))
+	assert.Equal(t, true, rl.add(RefTwo))
 	assert.Equal(t, 2, rl.Count())
-	assert.Equal(t, true, rl.SetActive(RefTwo))
+	assert.Equal(t, true, rl.setActive(RefTwo))
 	assert.Equal(t, RequestProcessing, rl.GetState(RefTwo))
 	assert.Equal(t, currentPulse, rl.earliestActivePulse)
 	assert.Equal(t, 0, rl.CountFinish())
 	assert.Equal(t, 2, rl.CountActive())
 
-	rl.Finish(RefOne)
+	rl.finish(RefOne)
 
 	assert.Equal(t, 1, rl.CountFinish())
 	assert.Equal(t, 1, rl.CountActive())
