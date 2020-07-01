@@ -28,7 +28,7 @@ type updateStage struct {
 type updateRecord = resolvedRecord
 
 type StageTracker interface {
-	IsCommitted() bool
+	GetUpdateStatus() (isReady bool, allocationBase uint32)
 }
 
 type filamentState uint8

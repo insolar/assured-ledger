@@ -276,7 +276,6 @@ type stubTracker struct {
 	committed bool
 }
 
-func (p *stubTracker) IsCommitted() bool {
-	return p.committed
+func (p *stubTracker) GetUpdateStatus() (isReady bool, allocationBase uint32) {
+	return p.committed, 1
 }
-

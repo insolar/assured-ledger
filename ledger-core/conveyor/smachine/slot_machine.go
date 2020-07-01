@@ -1100,11 +1100,37 @@ func (m *SlotMachine) activateDependantByDetachable(links []StepLink, ignore Slo
 		return true
 	}
 
-	m.syncQueue.AddAsyncUpdate(SlotLink{}, func(_ SlotLink, worker FixedSlotWorker) {
+	if !m.syncQueue.AddAsyncUpdate(SlotLink{}, func(_ SlotLink, worker FixedSlotWorker) {
 		m.activateDependants(links, ignore, worker)
-	})
+	}) {
+		// don't loose activations of other SlotMachines because of stopping of this one
+		activateDependantWithoutWorker(links, ignore)
+	}
 	return true
 }
+
+func activateDependantWithoutWorker(links []StepLink, ignore SlotLink) {
+	n := len(links)
+	lm := links[0].getActiveMachine()
+	from := 0
+	for i := 1; i <= n; i++ {
+		var m *SlotMachine
+		if i < n {
+			m = links[i].getActiveMachine()
+		}
+		switch {
+		case m == lm:
+			continue
+		case lm != nil:
+			lm.syncQueue.AddAsyncUpdate(SlotLink{}, func(_ SlotLink, worker FixedSlotWorker) {
+				lm.activateDependants(links[from:i], ignore, worker)
+			})
+		}
+		lm = m
+		from = i
+	}
+}
+
 
 func (m *SlotMachine) GetStoppingSignal() <-chan struct{} {
 	return m.syncQueue.GetStoppingSignal()

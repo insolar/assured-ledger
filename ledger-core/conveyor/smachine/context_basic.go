@@ -474,7 +474,7 @@ func (p *slotContext) ApplyAdjustment(adj SyncAdjustment) bool {
 	p.ensureValid()
 
 	if adj.controller == nil {
-		panic("illegal value")
+		panic(throw.IllegalValue())
 	}
 
 	released, activate := adj.controller.AdjustLimit(adj.adjustment, adj.isAbsolute)
@@ -484,4 +484,21 @@ func (p *slotContext) ApplyAdjustment(adj SyncAdjustment) bool {
 
 	// actually, we MUST NOT stop a slot from outside
 	return len(released) > 0
+}
+
+func ApplyAdjustmentAsync(adj SyncAdjustment) bool {
+	if adj.controller == nil {
+		panic(throw.IllegalValue())
+	}
+
+	released, activate := adj.controller.AdjustLimit(adj.adjustment, adj.isAbsolute)
+	n := len(released)
+	switch {
+	case n == 0:
+		return false
+	case activate:
+		// can only start slots
+		activateDependantWithoutWorker(released, SlotLink{})
+	}
+	return true
 }

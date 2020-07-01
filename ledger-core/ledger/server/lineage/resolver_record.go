@@ -17,6 +17,8 @@ type resolvedRecord struct {
 	filNo    filamentNo
 	recapNo  recordNo
 
+	storageIndex uint32
+
 	redirectToType RecordType
 	Record
 }

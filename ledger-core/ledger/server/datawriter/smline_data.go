@@ -71,7 +71,7 @@ func (p *LineSharedData) applyBundle(br *lineage.BundleResolver) (*buildersvc.Fu
 		return nil, br
 	}
 
-	future := &buildersvc.Future{}
+	future := buildersvc.NewFuture("")
 	if !p.data.AddBundle(br, future) {
 		return nil, br
 	}

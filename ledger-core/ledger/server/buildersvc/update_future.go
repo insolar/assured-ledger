@@ -6,18 +6,59 @@
 package buildersvc
 
 import (
+	"math"
+
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-type Future struct {
+func NewFuture(name string) *Future {
+	return &Future{
+		ready: smsync.NewConditionalBool(false, "drop-future" + name),
+	}
+}
 
+type Future struct {
+	ready     smsync.BoolConditionalLink
+	committed atomickit.Uint32
 }
 
 func (p *Future) GetReadySync() smachine.SyncLink {
-	panic(throw.NotImplemented())
+	return p.ready.SyncLink()
 }
 
-func (p *Future) IsCommitted() bool {
-	panic(throw.NotImplemented())
+func (p *Future) GetUpdateStatus() (isReady bool, allocationBase uint32) {
+	switch v := p.committed.Load(); {
+	case v == 0:
+		return false, 0
+	case v == math.MaxUint32:
+		return true, 0
+	default:
+		return true, v
+	}
+}
+
+func (p *Future) SetCommitted(committed bool, allocatedBase uint32) {
+	if !p.TrySetCommitted(committed, allocatedBase) {
+		panic(throw.IllegalState())
+	}
+}
+
+func (p *Future) TrySetCommitted(committed bool, allocatedBase uint32) bool {
+	switch {
+	case allocatedBase == math.MaxUint32:
+		panic(throw.IllegalValue())
+	case allocatedBase == 0:
+		panic(throw.IllegalValue())
+	case !committed:
+		allocatedBase = math.MaxUint32
+	}
+	if !p.committed.CompareAndSwap(0, allocatedBase) {
+		return false
+	}
+
+	smachine.ApplyAdjustmentAsync(p.ready.NewValue(true))
+	return true
 }

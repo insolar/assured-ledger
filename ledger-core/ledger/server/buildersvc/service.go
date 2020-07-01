@@ -40,7 +40,6 @@ type JetDropAssistant interface {
 	GetResolver() lineage.DependencyResolver
 }
 
-
 type Service interface {
 	CreateStreamDrop(pulse.Range, /* jetTree, population */) (StreamDropAssistant, []JetID)
 }

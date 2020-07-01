@@ -197,17 +197,20 @@ func (p *LineStages) TrimCommittedStages() {
 
 func (p *LineStages) trimCommittedStages() (last *updateStage) {
 	for p.earliest != nil {
-		switch tr := p.earliest.tracker; {
-		case tr == nil:
-			//
-		case !tr.IsCommitted():
-			return
-		default:
+		next := p.earliest.next
+
+		if tr := p.earliest.tracker; tr != nil {
+			isReady, allocBase := tr.GetUpdateStatus()
+			if !isReady {
+				return
+			}
 			p.earliest.tracker = nil
+			if allocBase > 0 {
+				p.setAllocations(p.earliest, allocBase)
+			}
 		}
 		last = p.earliest
 
-		next := p.earliest.next
 		if next == nil {
 			return
 		}
@@ -443,5 +446,19 @@ func (p *LineStages) putReason(rec *resolvedRecord) {
 		p.reasonRefs = map[reference.Global]recordNo{}
 	}
 	p.reasonRefs[normRef] = rec.recordNo
+}
+
+func (p *LineStages) setAllocations(stage *updateStage, allocBase uint32) {
+	max := uint32(0)
+	if stage.next == nil {
+		max = uint32(p.getNextRecNo() - stage.firstRec)
+	} else {
+		max = uint32(stage.next.firstRec - stage.firstRec)
+	}
+
+	for i := uint32(0); i < max; i++ {
+		rec := p.get(stage.firstRec + recordNo(i))
+		rec.storageIndex = allocBase + i
+	}
 }
 
