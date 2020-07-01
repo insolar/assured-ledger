@@ -44,7 +44,7 @@ jobs:
         run: |
           cd load
           go build cmd/load/main.go
-          fileName = $(date +"%F-%H-%M")-${{fromJson(steps.set-vars.outputs.result).shortSha}}.png
+          fileName=($(date +"%F-%H-%M")-${{fromJson(steps.set-vars.outputs.result).shortSha}}.png)
           echo 'https://reports.garage.insolar.io/ve-perf-tests/"$fileName"'
       - name: Set up go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v1
