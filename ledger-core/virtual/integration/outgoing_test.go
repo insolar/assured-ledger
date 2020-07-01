@@ -75,9 +75,8 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 			State:        contract.CallDirty,
 		}
 
-		callOutgoing    = server.RandomLocalWithPulse()
 		objectAGlobal   = reference.NewSelf(server.RandomLocalWithPulse())
-		outgoingCallRef = reference.NewRecordOf(objectAGlobal, callOutgoing)
+		outgoingCallRef = reference.NewRecordOf(objectAGlobal, server.RandomLocalWithPulse())
 
 		classB        = gen.UniqueGlobalRef()
 		objectBGlobal = reference.NewSelf(server.RandomLocalWithPulse())
@@ -200,7 +199,7 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 			assert.Equal(t, objectBGlobal, request.Callee)
 
 			if firstVCallRequest {
-				assert.Equal(t, secondPulse, request.CallOutgoing.Pulse()) // new pulse
+				assert.Equal(t, secondPulse, request.CallOutgoing.GetLocal().Pulse()) // new pulse
 				assert.Equal(t, firstExpectedToken, request.DelegationSpec)
 				assert.NotEqual(t, payload.RepeatedCall, request.CallRequestFlags.GetRepeatedCall())
 
@@ -214,7 +213,7 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 				return false
 			}
 
-			assert.Equal(t, secondPulse, request.CallOutgoing.Pulse()) // the same pulse
+			assert.Equal(t, secondPulse, request.CallOutgoing.GetLocal().Pulse()) // the same pulse
 
 			// reRequest -> check all fields
 			expectedVCallRequest.CallOutgoing = request.CallOutgoing
@@ -235,7 +234,7 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 		typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
 			assert.Equal(t, objectAGlobal, res.Callee)
 			assert.Equal(t, []byte("finish A.Foo"), res.ReturnArguments)
-			assert.Equal(t, int(firstPulse), int(res.CallOutgoing.Pulse()))
+			assert.Equal(t, int(firstPulse), int(res.CallOutgoing.GetLocal().Pulse()))
 			assert.Equal(t, secondExpectedToken, res.DelegationSpec)
 			return false
 		})
@@ -247,7 +246,7 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 		Caller:         statemachine.APICaller,
 		Callee:         objectAGlobal,
 		CallSiteMethod: "Foo",
-		CallOutgoing:   callOutgoing,
+		CallOutgoing:   outgoingCallRef,
 	}
 
 	msg := server.WrapPayload(&pl).SetSender(statemachine.APICaller).Finalize()
