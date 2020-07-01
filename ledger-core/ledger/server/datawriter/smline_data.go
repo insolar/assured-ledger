@@ -168,11 +168,11 @@ func (p *LineSharedData) addSoloRecord(rec lineage.Record) *buildersvc.Future {
 	panic(err)
 }
 
-func (p *LineSharedData) addRecord(ref reference.Global, rec lineage.ResolvedDependency) {
-	p.ensureAccess()
-	// TODO
-	p.deps.ResolveDependency(ref)
-}
+// func (p *LineSharedData) addRecord(ref reference.Global, rec lineage.ResolvedDependency) {
+// 	p.ensureAccess()
+// 	// TODO
+// 	p.deps.ResolveDependency(ref)
+// }
 
 func (p *LineSharedData) getUnresolved() UnresolvedDependencyMap {
 	p.ensureAccess()
