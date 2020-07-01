@@ -310,10 +310,10 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 			State:        contract.CallDirty,
 		}
 
-		classA          = gen.UniqueGlobalRef()
-		callOutgoing    = server.RandomLocalWithPulse()
-		objectAGlobal   = reference.NewSelf(callOutgoing)
-		outgoingCallRef = reference.NewRecordOf(classA, callOutgoing)
+		classA   = gen.UniqueGlobalRef()
+		outgoing = server.BuildRandomOutgoingWithPulse()
+
+		outgoingCallRef = gen.UniqueGlobalRef()
 
 		classB        = gen.UniqueGlobalRef()
 		objectBGlobal = reference.NewSelf(server.RandomLocalWithPulse())
@@ -330,16 +330,16 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 		firstExpectedToken = payload.CallDelegationToken{
 			TokenTypeAndFlags: payload.DelegationTokenTypeCall,
 			PulseNumber:       0, // fill later
-			Callee:            objectAGlobal,
-			Outgoing:          outgoingCallRef,
+			Callee:            outgoing,
+			Outgoing:          outgoing,
 			DelegateTo:        server.JetCoordinatorMock.Me(),
 			Approver:          firstApprover,
 		}
 		secondExpectedToken = payload.CallDelegationToken{
 			TokenTypeAndFlags: payload.DelegationTokenTypeCall,
 			PulseNumber:       0, // fill later
-			Callee:            objectAGlobal,
-			Outgoing:          outgoingCallRef,
+			Callee:            outgoing,
+			Outgoing:          outgoing,
 			DelegateTo:        server.JetCoordinatorMock.Me(),
 			Approver:          secondApprover,
 		}
@@ -348,7 +348,7 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 			CallType:         payload.CTMethod,
 			CallFlags:        payload.BuildCallFlags(barIsolation.Interference, barIsolation.State),
 			Callee:           objectBGlobal,
-			Caller:           objectAGlobal,
+			Caller:           outgoing,
 			CallSequence:     1,
 			CallSiteMethod:   "Bar",
 			CallReason:       outgoingCallRef,
@@ -359,7 +359,9 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 
 	// add ExecutionMocks to runnerMock
 	{
-		outgoingCall := execution.NewRPCBuilder(outgoingCallRef, objectAGlobal).CallMethod(objectBGlobal, classB, "Bar", []byte("123"))
+		outgoingCall := execution.NewRPCBuilder(outgoingCallRef, outgoing).CallMethod(objectBGlobal, classB, "Bar", []byte("123"))
+		objectAResult := requestresult.New([]byte("finish A.New"), outgoing)
+		objectAResult.SetActivate(reference.Global{}, classA, []byte("state A"))
 		objectAExecutionMock := runnerMock.AddExecutionMock("New")
 		objectAExecutionMock.AddStart(
 			func(_ execution.Context) {
@@ -379,7 +381,7 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 			},
 			&execution.Update{
 				Type:   execution.Done,
-				Result: requestresult.New([]byte("finish A.New"), objectAGlobal),
+				Result: objectAResult,
 			},
 		)
 	}
@@ -388,13 +390,13 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 	{
 		typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
 			// check for pending counts must be in tests: call constructor/call terminal method
-			assert.Equal(t, objectAGlobal, report.Object)
+			assert.Equal(t, outgoing, report.Object)
 			assert.Equal(t, payload.Empty, report.Status)
 			assert.Zero(t, report.DelegationSpec)
 			return false
 		})
 		typedChecker.VDelegatedCallRequest.Set(func(request *payload.VDelegatedCallRequest) bool {
-			assert.Equal(t, objectAGlobal, request.Callee)
+			assert.Equal(t, outgoing, request.Callee)
 
 			msg := payload.VDelegatedCallResponse{
 				Callee: request.Callee,
@@ -420,7 +422,7 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 			return false
 		})
 		typedChecker.VDelegatedRequestFinished.Set(func(finished *payload.VDelegatedRequestFinished) bool {
-			assert.Equal(t, objectAGlobal, finished.Callee)
+			assert.Equal(t, outgoing, finished.Callee)
 			assert.Equal(t, secondExpectedToken, finished.DelegationSpec)
 			return false
 		})
@@ -428,7 +430,7 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 			assert.Equal(t, objectBGlobal, request.Callee)
 
 			if firstVCallRequest {
-				assert.Equal(t, secondPulse, request.CallOutgoing.Pulse()) // new pulse
+				assert.Equal(t, secondPulse, request.CallOutgoing.GetLocal().Pulse()) // new pulse
 				assert.Equal(t, firstExpectedToken, request.DelegationSpec)
 				assert.NotEqual(t, payload.RepeatedCall, request.CallRequestFlags.GetRepeatedCall())
 
@@ -442,7 +444,7 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 				return false
 			}
 
-			assert.Equal(t, secondPulse, request.CallOutgoing.Pulse()) // the same pulse
+			assert.Equal(t, secondPulse, request.CallOutgoing.GetLocal().Pulse()) // the same pulse
 
 			// reRequest -> check all fields
 			expectedVCallRequest.CallOutgoing = request.CallOutgoing
@@ -461,9 +463,9 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 			return false
 		})
 		typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
-			assert.Equal(t, objectAGlobal, res.Callee)
+			assert.Equal(t, outgoing, res.Callee)
 			assert.Equal(t, []byte("finish A.New"), res.ReturnArguments)
-			assert.Equal(t, int(firstPulse), int(res.CallOutgoing.Pulse()))
+			assert.Equal(t, int(firstPulse), int(res.CallOutgoing.GetLocal().Pulse()))
 			assert.Equal(t, secondExpectedToken, res.DelegationSpec)
 			return false
 		})
@@ -475,7 +477,7 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 		Caller:         statemachine.APICaller,
 		Callee:         classA,
 		CallSiteMethod: "New",
-		CallOutgoing:   callOutgoing,
+		CallOutgoing:   outgoing,
 	}
 
 	msg := server.WrapPayload(&pl).SetSender(statemachine.APICaller).Finalize()
