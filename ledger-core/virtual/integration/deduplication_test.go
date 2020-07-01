@@ -47,9 +47,11 @@ func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
 
+	helper := utils.NewHelper(server)
+
 	p1 := server.GetPulse().PulseNumber
 
-	outgoing := server.RandomLocalWithPulse()
+	outgoing := helper.BuildObjectOutgoing()
 	class := gen.UniqueGlobalRef()
 	object := gen.UniqueGlobalRef()
 
@@ -134,9 +136,11 @@ func TestDeduplication_SecondCallOfMethodAfterExecution(t *testing.T) {
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
 
+	helper := utils.NewHelper(server)
+
 	p1 := server.GetPulse().PulseNumber
 
-	outgoing := server.RandomLocalWithPulse()
+	outgoing := helper.BuildObjectOutgoing()
 	class := gen.UniqueGlobalRef()
 	object := gen.UniqueGlobalRef()
 
@@ -460,7 +464,7 @@ type deduplicateMethodUsingPrevVETest struct {
 	class    reference.Global
 	caller   reference.Global
 	object   reference.Global
-	outgoing reference.Local
+	outgoing reference.Global
 	pending  reference.Global
 
 	numberOfExecutions int
@@ -516,7 +520,7 @@ func (s *deduplicateMethodUsingPrevVETest) generateOutgoing(ctx context.Context)
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	s.outgoing = gen.UniqueLocalRefWithPulse(p)
+	s.outgoing = reference.NewRecordOf(s.caller, gen.UniqueLocalRefWithPulse(p))
 }
 
 func (s *deduplicateMethodUsingPrevVETest) generateClass(ctx context.Context) {
@@ -548,15 +552,13 @@ func (s *deduplicateMethodUsingPrevVETest) getClass() reference.Global {
 }
 
 func (s *deduplicateMethodUsingPrevVETest) getOutgoingRef() reference.Global {
-	callee := s.getObject() // TODO: FIXME: PLAT-558: should be caller
-
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	return reference.NewRecordOf(callee, s.outgoing)
+	return reference.NewRecordOf(s.getCaller(), s.outgoing.GetLocal())
 }
 
-func (s *deduplicateMethodUsingPrevVETest) getOutgoingLocal() reference.Local {
+func (s *deduplicateMethodUsingPrevVETest) getOutgoingLocal() reference.Global {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 

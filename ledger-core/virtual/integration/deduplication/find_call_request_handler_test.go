@@ -223,7 +223,7 @@ func StepMethodStart(s *VFindCallRequestHandlingSuite, ctx context.Context, t *t
 		Callee:         s.getObject(),
 		CallSiteMethod: "SomeMethod",
 		CallSequence:   1,
-		CallOutgoing:   s.getOutgoingLocal(),
+		CallOutgoing:   s.getOutgoingRef(),
 	}
 	s.addPayloadAndWaitIdle(ctx, &req)
 
@@ -250,7 +250,7 @@ func StepConstructorStart(s *VFindCallRequestHandlingSuite, ctx context.Context,
 		Callee:         s.getClass(),
 		CallSiteMethod: "New",
 		CallSequence:   1,
-		CallOutgoing:   s.getOutgoingLocal(),
+		CallOutgoing:   s.getOutgoingRef(),
 	}
 	s.addPayloadAndWaitIdle(ctx, &req)
 
@@ -342,7 +342,7 @@ func (s *VFindCallRequestHandlingSuite) generateCaller() {
 
 func (s *VFindCallRequestHandlingSuite) generateObjectRef() {
 	if s.isConstructor {
-		s.object = reference.NewSelf(s.outgoing)
+		s.object = reference.NewRecordOf(s.caller, s.outgoing)
 		return
 	}
 	p := s.getP1()
@@ -371,16 +371,7 @@ func (s *VFindCallRequestHandlingSuite) getClass() reference.Global {
 }
 
 func (s *VFindCallRequestHandlingSuite) getOutgoingRef() reference.Global {
-	callee := s.getObject() // TODO: FIXME: PLAT-558: should be caller
-	if s.isConstructor {
-		callee = s.class
-	}
-
-	return reference.NewRecordOf(callee, s.outgoing)
-}
-
-func (s *VFindCallRequestHandlingSuite) getOutgoingLocal() reference.Local {
-	return s.outgoing
+	return reference.NewRecordOf(s.caller, s.outgoing)
 }
 
 func (s *VFindCallRequestHandlingSuite) setMessageCheckers(
@@ -399,7 +390,7 @@ func (s *VFindCallRequestHandlingSuite) setMessageCheckers(
 
 		if testInfo.expectedResult {
 			require.NotNil(t, res.CallResult)
-			assert.Equal(t, s.getOutgoingLocal(), res.CallResult.CallOutgoing)
+			require.Equal(t, s.getOutgoingRef(), res.CallResult.CallOutgoing)
 		}
 
 		return false
