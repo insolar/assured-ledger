@@ -72,7 +72,7 @@ type SMExecute struct {
 	delegationTokenSpec payload.CallDelegationToken
 	stepAfterTokenGet   smachine.SlotStep
 
-	VFindCallResponse *payload.VFindCallResponse
+	findCallResponse *payload.VFindCallResponse
 }
 
 /* -------- Declaration ------------- */
@@ -405,7 +405,7 @@ func (s *SMExecute) stepDeduplicateThroughPreviousExecutor(ctx smachine.Executio
 		}
 
 		return func(ctx smachine.BargeInContext) smachine.StateUpdate {
-			s.VFindCallResponse = res
+			s.findCallResponse = res
 			return ctx.WakeUp()
 		}
 	})
@@ -433,16 +433,16 @@ func (s *SMExecute) stepDeduplicateThroughPreviousExecutor(ctx smachine.Executio
 }
 
 func (s *SMExecute) stepWaitFindCallResponse(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if s.VFindCallResponse == nil {
+	if s.findCallResponse == nil {
 		ctx.Sleep().ThenRepeat()
 	}
 	return ctx.Jump(s.stepProcessFindCallResponse)
 }
 
 func (s *SMExecute) stepProcessFindCallResponse(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	switch s.VFindCallResponse.Status {
+	switch s.findCallResponse.Status {
 	case payload.FoundCall:
-		if s.VFindCallResponse.CallResult == nil {
+		if s.findCallResponse.CallResult == nil {
 			ctx.Log().Warn("request found on previous executor, but there was no result")
 			return ctx.Stop()
 		}
@@ -451,7 +451,7 @@ func (s *SMExecute) stepProcessFindCallResponse(ctx smachine.ExecutionContext) s
 
 		target := s.Meta.Sender
 		s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
-			err := svc.SendTarget(goCtx, s.VFindCallResponse.CallResult, target)
+			err := svc.SendTarget(goCtx, s.findCallResponse.CallResult, target)
 			return func(ctx smachine.AsyncResultContext) {
 				if err != nil {
 					ctx.Log().Error("failed to send message", err)

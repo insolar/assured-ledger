@@ -375,7 +375,7 @@ func TestSMExecute_ProcessFindCallResponse(t *testing.T) {
 	smExecute = expectedInitState(ctx, smExecute)
 
 	{
-		smExecute.VFindCallResponse = &payload.VFindCallResponse{Status: payload.MissingCall}
+		smExecute.findCallResponse = &payload.VFindCallResponse{Status: payload.MissingCall}
 		pendingList := smObject.PendingTable.GetList(contract.CallIntolerable)
 		pendingList.Add(smExecute.execution.Outgoing)
 
@@ -386,7 +386,7 @@ func TestSMExecute_ProcessFindCallResponse(t *testing.T) {
 	}
 
 	{
-		smExecute.VFindCallResponse = &payload.VFindCallResponse{Status: payload.UnknownCall}
+		smExecute.findCallResponse = &payload.VFindCallResponse{Status: payload.UnknownCall}
 		pendingList := smObject.PendingTable.GetList(contract.CallIntolerable)
 		pendingList.Add(smExecute.execution.Outgoing)
 
@@ -397,7 +397,7 @@ func TestSMExecute_ProcessFindCallResponse(t *testing.T) {
 	}
 
 	{
-		smExecute.VFindCallResponse = &payload.VFindCallResponse{
+		smExecute.findCallResponse = &payload.VFindCallResponse{
 			Status:     payload.FoundCall,
 			CallResult: nil,
 		}
@@ -414,7 +414,7 @@ func TestSMExecute_ProcessFindCallResponse(t *testing.T) {
 
 	{
 		returnArguments := []byte{1, 2, 3}
-		smExecute.VFindCallResponse = &payload.VFindCallResponse{
+		smExecute.findCallResponse = &payload.VFindCallResponse{
 			Status: payload.FoundCall,
 			CallResult: &payload.VCallResult{
 				ReturnArguments: returnArguments,
