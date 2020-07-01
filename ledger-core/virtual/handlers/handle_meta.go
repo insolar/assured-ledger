@@ -37,6 +37,7 @@ type errNoHandler struct {
 
 type FactoryMeta struct {
 	AuthService authentication.Service
+	Ctx         context.Context
 }
 
 func (f FactoryMeta) Process(msg *statemachine.DispatcherMessage, pr pulse.Range) (pulse.Number, smachine.CreateFunc, error) {
@@ -48,7 +49,7 @@ func (f FactoryMeta) Process(msg *statemachine.DispatcherMessage, pr pulse.Range
 		panic("TraceID is empty")
 	}
 
-	goCtx, _ := inslogger.WithTraceField(context.Background(), traceID)
+	goCtx, _ := inslogger.WithTraceField(f.Ctx, traceID)
 	goCtx, logger := inslogger.WithField(goCtx, "component", "sm")
 
 	payloadBytes := payloadMeta.Payload

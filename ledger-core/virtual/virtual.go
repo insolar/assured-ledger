@@ -34,7 +34,7 @@ func (f DefaultHandlersFactory) Classify(pn pulse.Number, pr pulse.Range, input 
 	case *virtualStateMachine.DispatcherMessage:
 		if pr == nil {
 			return 0, nil, throw.E("event is too old", struct {
-				PN pulse.Number
+				PN        pulse.Number
 				InputType interface{} `fmt:"%T"`
 			}{pn, input})
 		}
@@ -44,7 +44,7 @@ func (f DefaultHandlersFactory) Classify(pn pulse.Number, pr pulse.Range, input 
 		return 0, testWalletAPIStateMachine.Handler(event), nil
 	default:
 		panic(throw.E("unknown event type", struct {
-			PN pulse.Number
+			PN        pulse.Number
 			InputType interface{} `fmt:"%T"`
 		}{pn, input}))
 	}
@@ -109,7 +109,8 @@ func (lr *Dispatcher) Init(ctx context.Context) error {
 		MaxPastPulseAge:       1000,
 	}, nil, nil)
 
-	defaultHandlers := DefaultHandlersFactory{metaFactory: handlers.FactoryMeta{AuthService: lr.AuthenticationService}}.Classify
+	defaultHandlers := DefaultHandlersFactory{
+		metaFactory: handlers.FactoryMeta{AuthService: lr.AuthenticationService, Ctx: ctx}}.Classify
 	lr.Conveyor.SetFactoryFunc(defaultHandlers)
 
 	lr.runnerAdapter = lr.Runner.CreateAdapter(ctx)
