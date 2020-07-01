@@ -7,3 +7,17 @@ metadata:
 spec:
   rules:
     - host: placeholder.uscifarm.insolar.io
+      http:
+        paths:
+          - backend:
+              serviceName: platform-network
+              servicePort: 19101
+            path: /api
+          - backend:
+              serviceName: platform-network
+              servicePort: 19001
+            path: /admin-api
+          - backend:
+              serviceName: platform-network
+              servicePort: 32301
+            path: /wallet
