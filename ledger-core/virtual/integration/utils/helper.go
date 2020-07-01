@@ -20,6 +20,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 )
 
+func CalculateOutgoing(pl payload.VCallRequest) reference.Global {
+	return reference.NewRecordOf(pl.Callee, pl.CallOutgoing)
+}
+
 type Helper struct {
 	server *Server
 	class  reference.Global
@@ -34,10 +38,6 @@ func NewHelper(srv *Server) *Helper {
 
 func (h *Helper) GetObjectClass() reference.Global {
 	return h.class
-}
-
-func (h *Helper) calculateOutgoing(pl payload.VCallRequest) reference.Global {
-	return reference.NewRecordOf(pl.Callee, pl.CallOutgoing)
 }
 
 func (h *Helper) CreateObject(ctx context.Context, t *testing.T) reference.Global {
@@ -56,7 +56,7 @@ func (h *Helper) CreateObject(ctx context.Context, t *testing.T) reference.Globa
 		CallOutgoing:   gen.UniqueLocalRefWithPulse(pn),
 		Arguments:      plArguments,
 	}
-	objectReference := h.calculateOutgoing(pl)
+	objectReference := CalculateOutgoing(pl)
 
 	{
 		keyExtractor := func(ctx execution.Context) string { return ctx.Outgoing.String() }
