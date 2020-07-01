@@ -44,7 +44,7 @@ func TestAntique_InheritPulseSlot(t *testing.T) {
 		SlotMachineConfig:     machineConfig,
 		MinCachePulseAge:      100,
 		MaxPastPulseAge:       1000,
-	}, func(_ pulse.Number, _ pulse.Range, input InputEvent) (pulse.Number, smachine.CreateFunc, error) {
+	}, func(_ context.Context, _ pulse.Number, _ pulse.Range, input InputEvent) (pulse.Number, smachine.CreateFunc, error) {
 		require.Equal(t, "inputEvent", input)
 		return 0, func(ctx smachine.ConstructionContext) smachine.StateMachine {
 			return &testAntiqueSM{counter: checkDepth, doneCounter: doneCounter, semaCounter: semaCounter}
@@ -84,15 +84,15 @@ func TestAntique_InheritPulseSlot(t *testing.T) {
 		time.Sleep(10 * time.Millisecond)
 	}
 
-	require.Equal(t, 1 + checkDepth, int(doneCounter.Load()))
+	require.Equal(t, 1+checkDepth, int(doneCounter.Load()))
 }
 
 type testAntiqueSM struct {
 	smachine.StateMachineDeclTemplate
-	pulseSlot *PulseSlot
+	pulseSlot   *PulseSlot
 	semaCounter smachine.SyncLink
 	doneCounter *atomickit.Uint32
-	counter   int
+	counter     int
 }
 
 func (p *testAntiqueSM) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLink, injector *injector.DependencyInjector) {

@@ -120,6 +120,13 @@ type errUnknownPayload struct {
 }
 
 func (c *conveyorDispatcher) Process(msg *message.Message) error {
+	ctx := context.Background()
+	ctx, _ = inslogger.WithTraceField(ctx, msg.Metadata.Get(defaults.TraceID))
+	ctx, _ = inslogger.WithField(ctx, "component", "sm")
+	return c.ProcessWithContext(ctx, msg)
+}
+
+func (c *conveyorDispatcher) ProcessWithContext(ctx context.Context, msg *message.Message) error {
 	msg.Ack()
 	_, pl, err := rms.Unmarshal(msg.Payload)
 	if err != nil {
@@ -130,7 +137,6 @@ func (c *conveyorDispatcher) Process(msg *message.Message) error {
 		return throw.E("unexpected type", errUnknownPayload{ExpectedType: "payload.Meta", GotType: pl})
 	}
 
-	ctx, _ := inslogger.WithTraceField(context.Background(), msg.Metadata.Get(defaults.TraceID))
 	return c.conveyor.AddInput(ctx, plMeta.Pulse, &DispatcherMessage{
 		MessageMeta: msg.Metadata,
 		PayloadMeta: plMeta,

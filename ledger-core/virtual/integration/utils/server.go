@@ -21,7 +21,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodestorage"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
+	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -74,6 +76,8 @@ type Server struct {
 
 	// top-level caller ID
 	caller reference.Global
+
+	LogInterceptor *LogInterceptor
 }
 
 type ConveyorCycleFunc func(c *conveyor.PulseConveyor, hasActive, isIdle bool)
@@ -186,6 +190,7 @@ func newServerExt(ctx context.Context, t *testing.T, errorFilterFn logcommon.Err
 }
 
 func (s *Server) Init(ctx context.Context) {
+
 	if err := s.virtual.Init(ctx); err != nil {
 		panic(err)
 	}
@@ -231,8 +236,8 @@ func (s *Server) IncrementPulseAndWaitIdle(ctx context.Context) {
 	s.WaitActiveThenIdleConveyor()
 }
 
-func (s *Server) SendMessage(_ context.Context, msg *message.Message) {
-	if err := s.virtual.FlowDispatcher.Process(msg); err != nil {
+func (s *Server) SendMessage(ctx context.Context, msg *message.Message) {
+	if err := s.virtual.FlowDispatcher.ProcessWithContext(ctx, msg); err != nil {
 		panic(err)
 	}
 }
@@ -449,4 +454,10 @@ func (s *Server) WrapPayload(pl payload.Marshaler) *RequestWrapper {
 func (s *Server) SendPayload(ctx context.Context, pl payload.Marshaler) {
 	msg := s.WrapPayload(pl).Finalize()
 	s.SendMessage(ctx, msg)
+}
+
+func (s *Server) SetLogInterceptor(ctx context.Context) context.Context {
+	s.LogInterceptor = &LogInterceptor{EmbeddedLogger: inslogger.FromContext(ctx).Embeddable()}
+	ctx = inslogger.SetLogger(ctx, log.WrapEmbeddedLogger(s.LogInterceptor))
+	return ctx
 }

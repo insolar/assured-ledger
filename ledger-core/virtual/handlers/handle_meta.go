@@ -39,7 +39,7 @@ type FactoryMeta struct {
 	AuthService authentication.Service
 }
 
-func (f FactoryMeta) Process(msg *statemachine.DispatcherMessage, pr pulse.Range) (pulse.Number, smachine.CreateFunc, error) {
+func (f FactoryMeta) Process(ctx context.Context, msg *statemachine.DispatcherMessage, pr pulse.Range) (pulse.Number, smachine.CreateFunc, error) {
 	payloadMeta := msg.PayloadMeta
 	messageMeta := msg.MessageMeta
 
@@ -48,8 +48,7 @@ func (f FactoryMeta) Process(msg *statemachine.DispatcherMessage, pr pulse.Range
 		panic("TraceID is empty")
 	}
 
-	goCtx, _ := inslogger.WithTraceField(context.Background(), traceID)
-	goCtx, logger := inslogger.WithField(goCtx, "component", "sm")
+	logger := inslogger.FromContext(ctx)
 
 	payloadBytes := payloadMeta.Payload
 	payloadTypeID, payloadObj, err := rms.Unmarshal(payloadBytes)
@@ -69,7 +68,7 @@ func (f FactoryMeta) Process(msg *statemachine.DispatcherMessage, pr pulse.Range
 		panic(throw.Impossible())
 	}
 
-	mustReject, err := f.AuthService.IsMessageFromVirtualLegitimate(goCtx, payloadObj, payloadMeta.Sender, pr)
+	mustReject, err := f.AuthService.IsMessageFromVirtualLegitimate(ctx, payloadObj, payloadMeta.Sender, pr)
 	if err != nil {
 		logger.Warn(throw.W(err, "illegitimate msg", struct {
 			messageTypeID uint64
@@ -116,9 +115,9 @@ func (f FactoryMeta) Process(msg *statemachine.DispatcherMessage, pr pulse.Range
 			return 0, nil
 		}
 	}(); sm != nil {
-		return pn, func(ctx smachine.ConstructionContext) smachine.StateMachine {
-			ctx.SetContext(goCtx)
-			ctx.SetTracerID(traceID)
+		return pn, func(constructorCtx smachine.ConstructionContext) smachine.StateMachine {
+			constructorCtx.SetContext(ctx)
+			constructorCtx.SetTracerID(traceID)
 			return sm
 		}, nil
 	}
