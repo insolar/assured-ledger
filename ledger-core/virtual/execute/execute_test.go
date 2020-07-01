@@ -177,13 +177,13 @@ func TestSMExecute_DeduplicationUsingPendingsTable(t *testing.T) {
 		ctx = instestlogger.TestContext(t)
 		mc  = minimock.NewController(t)
 
-		pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
-		pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-		smObjectID      = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
-		caller          = gen.UniqueGlobalRef()
-		smGlobalRef     = reference.NewRecordOf(caller, smObjectID)
-		smObject        = object.NewStateMachineObject(smGlobalRef)
-		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
+		pd                = pulse.NewFirstPulsarData(10, longbits.Bits256{})
+		pulseSlot         = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
+		caller            = gen.UniqueGlobalRef()
+		constructorOutRef = reference.NewRecordOf(caller, gen.UniqueLocalRefWithPulse(pd.PulseNumber))
+		objectRef         = reference.NewSelf(constructorOutRef.GetLocal())
+		smObject          = object.NewStateMachineObject(objectRef)
+		sharedStateData   = smachine.NewUnboundSharedData(&smObject.SharedState)
 
 		callFlags = payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty)
 	)
@@ -194,7 +194,7 @@ func TestSMExecute_DeduplicationUsingPendingsTable(t *testing.T) {
 		CallFlags:           callFlags,
 		CallSiteDeclaration: testwallet.GetClass(),
 		CallSiteMethod:      "New",
-		CallOutgoing:        smGlobalRef,
+		CallOutgoing:        constructorOutRef,
 		Arguments:           insolar.MustSerialize([]interface{}{}),
 	}
 
@@ -211,7 +211,7 @@ func TestSMExecute_DeduplicationUsingPendingsTable(t *testing.T) {
 		// expect jump
 		execCtx := smachine.NewExecutionContextMock(mc).
 			UseSharedMock.Set(shareddata.CallSharedDataAccessor).
-			JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepDeduplicateThroughPreviousExecutor))
+			JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepTakeLock))
 
 		smExecute.stepDeduplicateUsingPendingsTable(execCtx)
 	}
@@ -239,7 +239,7 @@ func TestSMExecute_DeduplicationUsingPendingsTable(t *testing.T) {
 
 		execCtx := smachine.NewExecutionContextMock(mc).
 			UseSharedMock.Set(shareddata.CallSharedDataAccessor).
-			JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepDeduplicateThroughPreviousExecutor))
+			JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepTakeLock))
 
 		smExecute.stepDeduplicateUsingPendingsTable(execCtx)
 	}
