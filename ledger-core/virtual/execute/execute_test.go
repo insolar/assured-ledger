@@ -32,6 +32,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/debuglogger"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/messagesender"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/mocklog"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
@@ -337,7 +338,7 @@ func TestSMExecute_DeduplicateThroughPreviousExecutor(t *testing.T) {
 func TestSMExecute_ProcessFindCallResponse(t *testing.T) {
 	var (
 		ctx = instestlogger.TestContext(t)
-		mc  = minimock.NewController(t)
+		mc  = minimock.NewController(mocklog.T(t))
 
 		oldPd           = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 		pd              = pulse.NewPulsarData(oldPd.NextPulseNumber(), oldPd.NextPulseDelta, oldPd.NextPulseDelta, longbits.Bits256{})
@@ -442,7 +443,7 @@ func TestSMExecute_ProcessFindCallResponse(t *testing.T) {
 
 		execCtx := smachine.NewExecutionContextMock(mc).
 			LogMock.Return(smachine.Logger{}).
-			JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepFinishRequest))
+			StopMock.Return(smachine.StateUpdate{})
 
 		smExecute.stepProcessFindCallResponse(execCtx)
 	}
