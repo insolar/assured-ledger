@@ -253,7 +253,7 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged_Without_SideEffect(t *test
 
 func TestVirtual_SendDelegatedFinished_IfPulseChanged_Constructor(t *testing.T) {
 	t.Log("C4988")
-	t.Skip("skipped until PLAT-304")
+	t.Skip("https://insolar.atlassian.net/browse/PLAT-304")
 
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
