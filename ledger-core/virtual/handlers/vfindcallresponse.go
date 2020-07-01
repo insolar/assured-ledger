@@ -49,6 +49,7 @@ func (s *SMVFindCallResponse) Init(ctx smachine.InitializationContext) smachine.
 
 func (s *SMVFindCallResponse) stepProcess(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	key := execute.DeduplicationBargeInKey{
+		LookAt: s.Payload.LookedAt,
 		Callee: s.Payload.Callee,
 		Outgoing: s.Payload.Outgoing,
 	}

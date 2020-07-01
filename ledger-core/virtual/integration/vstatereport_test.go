@@ -545,10 +545,11 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) setMessageCheckers(
 		return false
 	})
 	typedChecker.VFindCallRequest.Set(func(req *payload.VFindCallRequest) bool {
-		//require.Equal(t, s.getPulse(3), req.LookAt)
+		require.Equal(t, s.getPulse(3), req.LookAt)
 		require.Equal(t, s.getObject(), req.Callee)
 
 		pl := payload.VFindCallResponse{
+			LookedAt:   s.getPulse(3),
 			Callee:     s.getObject(),
 			Outgoing:   req.Outgoing,
 			Status:     payload.MissingCall,

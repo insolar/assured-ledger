@@ -283,7 +283,7 @@ func TestSMExecute_DeduplicateThroughPreviousExecutor(t *testing.T) {
 	checkMessage := func(msg payload.Marshaler) {
 		switch msg0 := msg.(type) {
 		case *payload.VFindCallRequest:
-			require.Equal(t, request.CallOutgoing.GetLocal().GetPulseNumber(), msg0.LookAt)
+			require.Equal(t, oldPd.PulseNumber, msg0.LookAt)
 			require.Equal(t, objectRef, msg0.Callee)
 			require.Equal(t, request.CallOutgoing, msg0.Outgoing)
 		default:
@@ -318,7 +318,7 @@ func TestSMExecute_DeduplicateThroughPreviousExecutor(t *testing.T) {
 					panic("Unexpected message type")
 				}
 
-				require.Equal(t, pulse.Number(0), res.LookAt)
+				require.Equal(t, oldPd.PulseNumber, res.LookAt)
 				require.Equal(t, smExecute.execution.Outgoing, res.Outgoing)
 				require.Equal(t, smExecute.execution.Object, res.Callee)
 

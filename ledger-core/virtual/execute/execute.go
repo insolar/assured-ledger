@@ -385,14 +385,15 @@ func (s *SMExecute) stepDeduplicateUsingPendingsTable(ctx smachine.ExecutionCont
 }
 
 type DeduplicationBargeInKey struct {
-	LookAt   pulse.Number // TODO fill it correctly
+	LookAt   pulse.Number
 	Callee   reference.Global
 	Outgoing reference.Global
 }
 
 func (s *SMExecute) stepDeduplicateThroughPreviousExecutor(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	lookAt := s.pulseSlot.PulseData().PrevPulseNumber()
 	msg := payload.VFindCallRequest{
-		LookAt:   s.Payload.CallOutgoing.GetLocal().GetPulseNumber(),
+		LookAt:   lookAt,
 		Callee:   s.execution.Object,
 		Outgoing: s.execution.Outgoing,
 	}
@@ -410,6 +411,7 @@ func (s *SMExecute) stepDeduplicateThroughPreviousExecutor(ctx smachine.Executio
 	})
 
 	bargeInKey := DeduplicationBargeInKey{
+		LookAt:   lookAt,
 		Callee:   msg.Callee,
 		Outgoing: msg.Outgoing,
 	}

@@ -651,6 +651,7 @@ func (s *deduplicateMethodUsingPrevVETest) setMessageCheckers(
 			require.Equal(t, s.getOutgoingRef(), req.Outgoing)
 
 			response := payload.VFindCallResponse{
+				LookedAt: s.getP1(),
 				Callee:   s.getObject(),
 				Outgoing: s.getOutgoingRef(),
 				Status:   testInfo.findRequestStatus,
