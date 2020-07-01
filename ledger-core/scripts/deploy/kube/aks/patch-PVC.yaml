@@ -11,3 +11,17 @@ spec:
     requests:
       storage: 50M
   storageClassName: azurefile
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  finalizers: []
+  name: keys-volume
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 50M
+  storageClassName: azurefile

@@ -55,16 +55,16 @@ spec:
             - name: pulsar-config
               mountPath: /etc/pulsar
               readOnly: true
-            - name: node-keys
+            - name: keys-data
               mountPath: /etc/insolar/keys
               readOnly: true
       volumes:
         - name: pulsar-config
           configMap:
             name: pulsar-config
-        - name: node-keys
-          secret:
-            secretName: node-keys
+        - name: keys-data
+          persistentVolumeClaim:
+            claimName: keys-volume
         - name: wait-script
           configMap:
             defaultMode: 0550

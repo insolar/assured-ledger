@@ -13,7 +13,7 @@ patchesStrategicMerge:
   - nodes-patch.yaml
   - patch-Ingress.yaml
   - patch-wait-script.yaml
-  - patch-certs-pvc.yaml
+  - patch-PVC.yaml
 images:
   - name: insolar/assured-ledger
     newName: usciregistry.azurecr.io/assured-ledger
@@ -24,10 +24,6 @@ secretGenerator:
       - .dockerconfigjson=dockerconfigjson
     type: kubernetes.io/dockerconfigjson
 configMapGenerator:
-  - name: app-bootstrap
-    behavior: replace
-    files:
-      - run.sh=configuration/bootstrap.sh
   - name: wait-script
     behavior: replace
     files:

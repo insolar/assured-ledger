@@ -1,6 +1,6 @@
+---
 apiVersion: networking.k8s.io/v1beta1
 kind: Ingress
-$patch: delete
 metadata:
   name: api-proxy
   annotations:
