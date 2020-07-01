@@ -7,7 +7,7 @@ generatorOptions:
   disableNameSuffixHash: true
 resources:
   - 0-Namespace.yaml
-  - 0-certs-pvc.yaml
+  - 0-PVC.yaml
   - 1-bootstrap.yaml
   - 2-platform-network-Service.yaml
   - 3-pulsar.yaml

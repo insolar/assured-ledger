@@ -1,11 +1,12 @@
 #!/bin/bash -e
 # BE CAREFUL, THIS FILE DIFFERS FROM PL 1.X
+NAMESPACE=${INSOLAR_NAMESPACE:-"insolar"}
 apt-get update -qq
 apt-get install curl -y -qq
 curl -L https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/amd64/kubectl -o /usr/bin/kubectl
 chmod +x /usr/bin/kubectl
 if (kubectl get secret node-keys -o yaml | grep -q 'pulsar-0.json'); then echo "Bootstrap data already present, exiting"; exit; fi
-kubectl -n insolar create secret generic node-keys
+kubectl -n $NAMESPACE create secret generic node-keys
 INSOLAR_BIN=${INSOLAR_BIN:-"insolar"}
 BOOTSTRAP_CONFIG=${BOOTSTRAP_CONFIG:-"/etc/bootstrap/bootstrap.yaml"}
 CONFIGS_DIR=${CONFIGS_DIR:-"/var/data/bootstrap/configs/"}
@@ -52,4 +53,4 @@ ${INSOLAR_BIN} bootstrap -c "$BOOTSTRAP_CONFIG" --propernames=true
 MY_BIN_DIR=$( dirname "${BASH_SOURCE[0]}" )
 #todo fix cert path configuration in insolar
 cp /go/src/github.com/insolar/assured-ledger/virtual-*.json /var/data/certs-data/
-kubectl -n insolar create secret generic node-keys  --from-file=/var/data/bootstrap/discovery-keys --dry-run=client -o yaml | kubectl -n insolar apply -f -
+cp /var/data/bootstrap/discovery-keys/* /var/data/keys-data/

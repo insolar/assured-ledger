@@ -1,13 +1,12 @@
 apiVersion: networking.k8s.io/v1beta1
 kind: Ingress
-$patch: delete
 metadata:
   name: api-proxy
   annotations:
     traefik.ingress.kubernetes.io/service.sticky: "true"
 spec:
   rules:
-    - host: localhost
+    - host: placeholder.uscifarm.insolar.io
       http:
         paths:
           - backend:

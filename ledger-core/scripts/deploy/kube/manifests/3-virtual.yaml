@@ -80,19 +80,16 @@ spec:
             - name: virtual-config
               mountPath: /etc/insolar
               readOnly: true
-            - name: node-keys
-              mountPath: /etc/insolar/keys
-              readOnly: true
             - name: certs-data
               mountPath: /etc/insolar/certs
+              readOnly: true
+            - name: keys-data
+              mountPath: /etc/insolar/keys
               readOnly: true
       volumes:
         - name: virtual-config
           configMap:
             name: virtual-config
-        - name: node-keys
-          secret:
-            secretName: node-keys
         - name: wait-script
           configMap:
             defaultMode: 0550
@@ -100,3 +97,6 @@ spec:
         - name: certs-data
           persistentVolumeClaim:
             claimName: certs-volume
+        - name: keys-data
+          persistentVolumeClaim:
+            claimName: keys-volume

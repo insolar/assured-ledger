@@ -1,0 +1,11 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: bootstrap
+spec:
+  containers:
+    - name: gen
+      env:
+        - name: INSOLAR_NAMESPACE
+          value: placeholder

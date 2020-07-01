@@ -6,6 +6,7 @@ generatorOptions:
 resources:
   - 0-Namespace.yaml
   - 0-StorageClass-AKS.yaml
+  - Ingress.yaml
 bases:
   - ../manifests
 patchesStrategicMerge:

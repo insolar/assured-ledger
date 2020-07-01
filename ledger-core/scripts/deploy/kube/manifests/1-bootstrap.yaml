@@ -45,6 +45,9 @@ spec:
       image: insolar/assured-ledger:latest
       imagePullPolicy: IfNotPresent
       command: ["bash", "-c", "bash /app/bootstrap/run.sh"]
+      env:
+        - name: INSOLAR_NAMESPACE
+          value: insolar
       volumeMounts:
         - name: bootstrap-yaml
           mountPath: /etc/bootstrap
@@ -53,6 +56,8 @@ spec:
           mountPath: /app/bootstrap
         - name: certs-data
           mountPath: /var/data/certs-data
+        - name: keys-data
+          mountPath: /var/data/keys-data
   volumes:
     - name: bootstrap-yaml
       configMap:
@@ -63,3 +68,6 @@ spec:
     - name: certs-data
       persistentVolumeClaim:
         claimName: certs-volume
+    - name: keys-data
+      persistentVolumeClaim:
+        claimName: keys-volume
