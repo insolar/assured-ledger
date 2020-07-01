@@ -27,11 +27,16 @@ type Tester interface {
 }
 
 func T(t Tester) Tester {
+<<<<<<< HEAD
 	switch t.(type) {
 	case nil:
 		return nil
 	case stackReport:
 		return t
+=======
+	if t == nil {
+		return nil
+>>>>>>> a5c7a348f4a9fc5b0e5a5e84affe42b6c8a7bc66
 	}
 	return stackReport{t}
 }
