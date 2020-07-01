@@ -9,7 +9,6 @@ package execute
 
 import (
 	"context"
-
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
@@ -28,6 +27,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/callsummary"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 )
@@ -315,23 +315,9 @@ func (s *SMExecute) stepDeduplicate(ctx smachine.ExecutionContext) smachine.Stat
 	duplicate := false
 
 	action := func(state *object.SharedState) {
-		req := s.execution.Outgoing
-
-		workingList := state.KnownRequests.GetList(s.execution.Isolation.Interference)
-
-		requestState := workingList.GetState(req)
-		switch requestState {
-		// processing started but not yet processing
-		case object.RequestStarted:
+		if !state.KnownRequests.Add(s.execution.Isolation.Interference, s.execution.Outgoing) {
 			duplicate = true
-			return
-		case object.RequestProcessing:
-			duplicate = true
-			// TODO: we may have result already, should resend
-			return
 		}
-
-		workingList.Add(req)
 	}
 
 	switch s.objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
@@ -422,10 +408,7 @@ func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) sm
 		objectDescriptor descriptor.Object
 	)
 	action := func(state *object.SharedState) {
-		reqRef := s.execution.Outgoing
-
-		reqList := state.KnownRequests.GetList(s.execution.Isolation.Interference)
-		if !reqList.SetActive(reqRef) {
+		if !state.KnownRequests.SetActive(s.execution.Isolation.Interference, s.execution.Outgoing) {
 			// if we come here then request should be in RequestStarted
 			// if it is not it is either somehow lost or it is already processing
 			panic(throw.Impossible())
@@ -737,6 +720,60 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 	return ctx.Jump(s.stepSendCallResult)
 }
 
+func (s *SMExecute) stepAwaitSMCallSummary(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	syncAccessor, ok := callsummary.GetSummarySMSyncAccessor(ctx, s.execution.Object)
+
+	if ok {
+		var syncLink smachine.SyncLink
+
+		switch syncAccessor.Prepare(func(link *smachine.SyncLink) {
+			syncLink = *link
+		}).TryUse(ctx).GetDecision() {
+		case smachine.NotPassed:
+			return ctx.WaitShared(syncAccessor.SharedDataLink).ThenRepeat()
+		case smachine.Impossible:
+			panic(throw.NotImplemented())
+		case smachine.Passed:
+			// go further
+		default:
+			panic(throw.Impossible())
+		}
+
+		if ctx.AcquireForThisStep(syncLink).IsNotPassed() {
+			return ctx.Sleep().ThenRepeat()
+		}
+	}
+
+	return ctx.Jump(s.stepPublishDataCallSummary)
+}
+
+func (s *SMExecute) stepPublishDataCallSummary(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	callSummaryAccessor, ok := callsummary.GetSummarySMSharedAccessor(ctx, s.pulseSlot.PulseData().PulseNumber)
+
+	if ok {
+		action := func(sharedCallSummary *callsummary.SharedCallSummary) {
+			sharedCallSummary.Requests.AddObjectCallResult(
+				s.execution.Object,
+				s.execution.Outgoing,
+				s.execution.Result,
+			)
+		}
+
+		switch callSummaryAccessor.Prepare(action).TryUse(ctx).GetDecision() {
+		case smachine.NotPassed:
+			return ctx.WaitShared(callSummaryAccessor.SharedDataLink).ThenRepeat()
+		case smachine.Impossible:
+			panic(throw.NotImplemented())
+		case smachine.Passed:
+			// go further
+		default:
+			panic(throw.Impossible())
+		}
+	}
+
+	return ctx.Jump(s.stepSendDelegatedRequestFinished)
+}
+
 func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var lastState *payload.ObjectState = nil
 
@@ -840,6 +877,10 @@ func (s *SMExecute) stepSendCallResult(ctx smachine.ExecutionContext) smachine.S
 
 func (s *SMExecute) stepFinishRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	if s.migrationHappened {
+		// publish call result only if present
+		if s.execution.Result != nil {
+			return ctx.Jump(s.stepAwaitSMCallSummary)
+		}
 		return ctx.Jump(s.stepSendDelegatedRequestFinished)
 	}
 

@@ -269,6 +269,10 @@ func (s *Server) RandomGlobalWithPulse() reference.Global {
 	return gen.UniqueGlobalRefWithPulse(s.GetPulse().PulseNumber)
 }
 
+func (s *Server) DelegationToken(outgoing reference.Global, to reference.Global, object reference.Global) payload.CallDelegationToken {
+	return s.virtual.AuthenticationService.GetCallDelegationToken(outgoing, to, s.GetPulse().PulseNumber, object)
+}
+
 func (s *Server) Stop() {
 	defer close(s.fullStop)
 
