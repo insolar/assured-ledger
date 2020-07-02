@@ -37,7 +37,7 @@ func tolerableFlags() contract.MethodIsolation {
 func intolerableFlags() contract.MethodIsolation {
 	return contract.MethodIsolation{
 		Interference: contract.CallIntolerable,
-		State:        contract.CallDirty,
+		State:        contract.CallValidated,
 	}
 }
 

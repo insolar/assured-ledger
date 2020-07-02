@@ -9,6 +9,7 @@ package execute
 
 import (
 	"context"
+
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
@@ -671,6 +672,10 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 		memory []byte
 		class  reference.Global
 	)
+
+	if s.intolerableCall() {
+		s.executionNewState.Result = requestresult.New(executionNewState.Result(), executionNewState.ObjectReference())
+	}
 
 	if s.deactivate {
 		oldRequestResult := s.executionNewState.Result

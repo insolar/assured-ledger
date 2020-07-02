@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/gojuno/minimock/v3"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
@@ -23,11 +25,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestVirtual_Method_One_PulseChanged(t *testing.T) {
-	t.Log("C5102") // todo fix testrail cases
+	t.Log("C5211")
 	table := []struct {
 		name             string
 		isolation        contract.MethodIsolation
@@ -160,6 +161,7 @@ func TestVirtual_Method_One_PulseChanged(t *testing.T) {
 						assert.Zero(t, request.DelegationSpec)
 						isFirstToken = false
 					} else {
+						assert.NotEmpty(t, firstTokenValue)
 						assert.Equal(t, firstTokenValue, request.DelegationSpec)
 					}
 
@@ -187,11 +189,11 @@ func TestVirtual_Method_One_PulseChanged(t *testing.T) {
 				typedChecker.VDelegatedRequestFinished.Set(func(finished *payload.VDelegatedRequestFinished) bool {
 					assert.Equal(t, object, finished.Callee)
 					assert.Equal(t, expectedToken, finished.DelegationSpec)
-					// if test.isolation == tolerableFlags() {
-					// 	assert.NotEmpty(t, finished.LatestState)
-					// } else {
-					// 	assert.Empty(t, finished.LatestState)
-					// }
+					if test.isolation == tolerableFlags() {
+						assert.NotEmpty(t, finished.LatestState)
+					} else {
+						assert.Empty(t, finished.LatestState)
+					}
 					return false
 				})
 				typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
