@@ -11,6 +11,7 @@ import (
 
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
@@ -223,5 +224,207 @@ func TestVirtual_Method_One_PulseChanged(t *testing.T) {
 			mc.Finish()
 
 		})
+	}
+}
+
+func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
+	t.Log("C5104")
+
+	mc := minimock.NewController(t)
+
+	server, ctx := utils.NewUninitializedServer(nil, t)
+	defer server.Stop()
+
+	logger := inslogger.FromContext(ctx)
+
+	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 4)
+
+	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
+		return execution.Request.CallSiteMethod
+	})
+	{
+		server.ReplaceRunner(runnerMock)
+		server.Init(ctx)
+		server.IncrementPulseAndWaitIdle(ctx)
+	}
+
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+
+	var (
+		outgoing = server.BuildRandomOutgoingWithPulse()
+		object   = reference.NewSelf(server.RandomLocalWithPulse())
+
+		p1 = server.GetPulse().PulseNumber
+
+		approver = gen.UniqueGlobalRef()
+
+		pl1, pl2, pl3, pl4 payload.VCallRequest
+		token              payload.CallDelegationToken
+	)
+
+	Method_PrepareObject(ctx, server, payload.Ready, object)
+
+	synchronizeExecution := synchronization.NewPoint(4)
+
+	// prepare requests
+	{
+		pl1 = buildPayloadForMethod(object, outgoing, "OrderedMethod1", payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty))
+		pl2 = buildPayloadForMethod(object, outgoing, "OrderedMethod2", payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty))
+		pl3 = buildPayloadForMethod(object, outgoing, "UnorderedMethod1", payload.BuildCallFlags(contract.CallIntolerable, contract.CallValidated))
+		pl4 = buildPayloadForMethod(object, outgoing, "UnorderedMethod2", payload.BuildCallFlags(contract.CallIntolerable, contract.CallValidated))
+	}
+	// add ExecutionMocks to runnerMock
+	{
+		// OrderedMethod1
+		{
+			runnerMock.AddExecutionClassify("OrderedMethod1", tolerableFlags(), nil)
+			newObjDescriptor := descriptor.NewObject(
+				reference.Global{}, reference.Local{}, gen.UniqueGlobalRef(), []byte(""), reference.Global{},
+			)
+
+			requestResult := requestresult.New([]byte("call result"), gen.UniqueGlobalRef())
+			requestResult.SetAmend(newObjDescriptor, []byte("new memory"))
+
+			objectExecutionMock := runnerMock.AddExecutionMock("OrderedMethod1")
+			objectExecutionMock.AddStart(
+				func(_ execution.Context) {
+					logger.Debug("ExecutionStart [OrderedMethod1]")
+					synchronizeExecution.Synchronize()
+				},
+				&execution.Update{
+					Type:   execution.Done,
+					Result: requestResult,
+				},
+			)
+		}
+		// OrderedMethod2
+		{
+			runnerMock.AddExecutionClassify("OrderedMethod2", tolerableFlags(), nil)
+			newObjDescriptor := descriptor.NewObject(
+				reference.Global{}, reference.Local{}, gen.UniqueGlobalRef(), []byte(""), reference.Global{},
+			)
+
+			requestResult := requestresult.New([]byte("call result"), gen.UniqueGlobalRef())
+			requestResult.SetAmend(newObjDescriptor, []byte("new memory"))
+
+			objectExecutionMock := runnerMock.AddExecutionMock("OrderedMethod2")
+			objectExecutionMock.AddStart(
+				func(_ execution.Context) {
+					logger.Debug("ExecutionStart [OrderedMethod2]")
+					synchronizeExecution.Synchronize()
+				},
+				&execution.Update{
+					Type:   execution.Done,
+					Result: requestResult,
+				},
+			)
+		}
+		// UnorderedMethod1
+		{
+			runnerMock.AddExecutionClassify("UnorderedMethod1", intolerableFlags(), nil)
+			objectExecutionMock := runnerMock.AddExecutionMock("UnorderedMethod1")
+			objectExecutionMock.AddStart(
+				func(_ execution.Context) {
+					logger.Debug("ExecutionStart [UnorderedMethod1]")
+					synchronizeExecution.Synchronize()
+				},
+				&execution.Update{
+					Type: execution.Done,
+				},
+			)
+		}
+		// UnorderedMethod2
+		{
+			runnerMock.AddExecutionClassify("UnorderedMethod2", intolerableFlags(), nil)
+			objectExecutionMock := runnerMock.AddExecutionMock("UnorderedMethod2")
+			objectExecutionMock.AddStart(
+				func(_ execution.Context) {
+					logger.Debug("ExecutionStart [UnorderedMethod2]")
+					synchronizeExecution.Synchronize()
+				},
+				&execution.Update{
+					Type: execution.Done,
+				},
+			)
+		}
+	}
+	// add checks to typedChecker
+	{
+		typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
+			assert.Equal(t, int32(1), report.OrderedPendingCount)
+			assert.Equal(t, int32(2), report.UnorderedPendingCount)
+			assert.Equal(t, object, report.Object)
+			assert.Equal(t, payload.Ready, report.Status)
+			assert.Zero(t, report.DelegationSpec)
+			return false
+		})
+		typedChecker.VDelegatedCallRequest.Set(func(request *payload.VDelegatedCallRequest) bool {
+			p2 := server.GetPulse().PulseNumber
+
+			assert.Equal(t, object, request.Callee)
+			assert.Zero(t, request.DelegationSpec)
+
+			token = payload.CallDelegationToken{
+				TokenTypeAndFlags: payload.DelegationTokenTypeCall,
+				PulseNumber:       p2,
+				Callee:            request.Callee,
+				Outgoing:          request.CallOutgoing,
+				DelegateTo:        server.JetCoordinatorMock.Me(),
+				Approver:          approver,
+			}
+			msg := payload.VDelegatedCallResponse{
+				Callee:                 request.Callee,
+				ResponseDelegationSpec: token,
+			}
+
+			server.SendPayload(ctx, &msg)
+			return false
+		})
+		typedChecker.VDelegatedRequestFinished.Set(func(finished *payload.VDelegatedRequestFinished) bool {
+			assert.Equal(t, object, finished.Callee)
+			assert.Equal(t, token, finished.DelegationSpec)
+			return false
+		})
+		typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
+			assert.Equal(t, object, res.Callee)
+			assert.Equal(t, []byte("call result"), res.ReturnArguments)
+			assert.Equal(t, p1, res.CallOutgoing.GetLocal().Pulse())
+			assert.Equal(t, token, res.DelegationSpec)
+			return false
+		})
+	}
+
+	{
+		server.SendPayload(ctx, &pl1)
+		server.SendPayload(ctx, &pl2)
+		server.SendPayload(ctx, &pl3)
+		server.SendPayload(ctx, &pl4)
+	}
+
+	testutils.WaitSignalsTimed(t, 30*time.Second, synchronizeExecution.Wait())
+	server.IncrementPulseAndWaitIdle(ctx)
+	synchronizeExecution.WakeUp()
+
+	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+
+	{
+		require.Equal(t, 1, typedChecker.VStateReport.Count())
+		require.Equal(t, 4, typedChecker.VDelegatedCallRequest.Count())
+		require.Equal(t, 4, typedChecker.VDelegatedRequestFinished.Count())
+		require.Equal(t, 4, typedChecker.VCallResult.Count())
+	}
+
+	mc.Finish()
+
+}
+
+func buildPayloadForMethod(object reference.Global, outgoing reference.Global, methodName string, flags payload.CallFlags) payload.VCallRequest {
+	return payload.VCallRequest{
+		CallType:       payload.CTMethod,
+		CallFlags:      flags,
+		Callee:         object,
+		CallSiteMethod: methodName,
+		CallOutgoing:   outgoing,
 	}
 }
