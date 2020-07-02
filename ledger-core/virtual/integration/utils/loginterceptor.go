@@ -36,29 +36,3 @@ func (lc *LogInterceptor) NewEvent(level logcommon.Level) func(args []interface{
 		}
 	}
 }
-
-func (lc *LogInterceptor) Copy() logcommon.EmbeddedLoggerBuilder {
-	builder := lc.EmbeddedLogger.Copy()
-	return LogCheckBuilder{EmbeddedLoggerBuilder: builder, parent: lc}
-}
-
-type LogCheckBuilder struct {
-	logcommon.EmbeddedLoggerBuilder
-	parent *LogInterceptor
-}
-
-func (lcb LogCheckBuilder) CopyTemplateLogger(params logcommon.CopyLoggerParams) logcommon.EmbeddedLogger {
-	logger := lcb.EmbeddedLoggerBuilder.CopyTemplateLogger(params)
-	return &LogInterceptor{
-		EmbeddedLogger: logger,
-		EventHandler:   lcb.parent.EventHandler,
-	}
-}
-
-func (lcb LogCheckBuilder) CreateNewLogger(params logcommon.NewLoggerParams) (logcommon.EmbeddedLogger, error) {
-	logger, err := lcb.EmbeddedLoggerBuilder.CreateNewLogger(params)
-	return &LogInterceptor{
-		EmbeddedLogger: logger,
-		EventHandler:   lcb.parent.EventHandler,
-	}, err
-}

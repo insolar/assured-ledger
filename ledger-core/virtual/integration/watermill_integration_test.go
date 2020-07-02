@@ -85,7 +85,7 @@ func TestWatermill_HandleErrorCorrect(t *testing.T) {
 		subscriber = gochannel.NewGoChannel(gochannel.Config{}, wmLogger)
 	)
 	cnt := 0
-	conveyorDispatcher := newDispatcherWithConveyor(func(_ pulse.Number, _ pulse.Range, _ conveyor.InputEvent) (pulse.Number, smachine.CreateFunc, error) {
+	conveyorDispatcher := newDispatcherWithConveyor(func(_ context.Context, _ pulse.Number, _ pulse.Range, _ conveyor.InputEvent) (pulse.Number, smachine.CreateFunc, error) {
 		cnt++
 		return 0, nil, throw.E(errorMsg)
 	})
@@ -114,7 +114,7 @@ func TestWatermill_HandlePanicCorrect(t *testing.T) {
 		subscriber = gochannel.NewGoChannel(gochannel.Config{}, wmLogger)
 	)
 	cnt := 0
-	conveyorDispatcher := newDispatcherWithConveyor(func(_ pulse.Number, _ pulse.Range, _ conveyor.InputEvent) (pulse.Number, smachine.CreateFunc, error) {
+	conveyorDispatcher := newDispatcherWithConveyor(func(_ context.Context, _ pulse.Number, _ pulse.Range, _ conveyor.InputEvent) (pulse.Number, smachine.CreateFunc, error) {
 		cnt++
 		panic(throw.E(panicMsg))
 	})

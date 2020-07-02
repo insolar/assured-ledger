@@ -29,7 +29,7 @@ type DefaultHandlersFactory struct {
 	metaFactory handlers.FactoryMeta
 }
 
-func (f DefaultHandlersFactory) Classify(pn pulse.Number, pr pulse.Range, input conveyor.InputEvent) (pulse.Number, smachine.CreateFunc, error) {
+func (f DefaultHandlersFactory) Classify(ctx context.Context, pn pulse.Number, pr pulse.Range, input conveyor.InputEvent) (pulse.Number, smachine.CreateFunc, error) {
 	switch event := input.(type) {
 	case *virtualStateMachine.DispatcherMessage:
 		if pr == nil {
@@ -39,7 +39,7 @@ func (f DefaultHandlersFactory) Classify(pn pulse.Number, pr pulse.Range, input 
 			}{pn, input})
 		}
 
-		return f.metaFactory.Process(event, pr)
+		return f.metaFactory.Process(ctx, event, pr)
 	case *testWalletAPIStateMachine.TestAPICall:
 		return 0, testWalletAPIStateMachine.Handler(event), nil
 	default:
@@ -109,8 +109,7 @@ func (lr *Dispatcher) Init(ctx context.Context) error {
 		MaxPastPulseAge:       1000,
 	}, nil, nil)
 
-	defaultHandlers := DefaultHandlersFactory{
-		metaFactory: handlers.FactoryMeta{AuthService: lr.AuthenticationService, Ctx: ctx}}.Classify
+	defaultHandlers := DefaultHandlersFactory{metaFactory: handlers.FactoryMeta{AuthService: lr.AuthenticationService}}.Classify
 	lr.Conveyor.SetFactoryFunc(defaultHandlers)
 
 	lr.runnerAdapter = lr.Runner.CreateAdapter(ctx)
