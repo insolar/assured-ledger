@@ -185,8 +185,7 @@ func (p *DebugMachineLogger) Continue() {
 }
 
 func (p *DebugMachineLogger) Abort() {
-	p.abort.Set()
-	p.continueAll()
+	p.abort.DoSet(p.continueAll)
 }
 
 func (p *DebugMachineLogger) FlushEvents(flushDone synckit.SignalChannel, closeEvents bool) {
