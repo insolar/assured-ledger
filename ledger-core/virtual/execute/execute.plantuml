@@ -3,6 +3,11 @@ state "Init" as T01_S002
 T01_S002 : SMExecute
 [*] --> T01_S002
 T01_S002 --> T01_S003 : Migrate: s.migrationDefault
+state "StepWaitExecutionResult" as T01_S021
+T01_S021 : SMExecute
+T01_S021 --[dotted]> T01_S016
+T01_S021 --[dashed]> T01_S021 : [s.executionNewState==nil]\nSleep
+T01_S021 --> T01_S022
 state "migrateDuringExecution" as T01_S016
 T01_S016 : SMExecute
 T01_S016 --[dashed]> [*] : [...&&(...).delegationTokenSpec.IsZero()]\nError
@@ -115,7 +120,7 @@ state T01_U005 <<fork>>
 T01_S006 --> T01_U005 : [s.methodIsolation.IsZero()]
 T01_U005 --> T01_S007 : PrepareExecutionClassify(ctx)
 T01_U005 --[dashed]> T01_S006 : Sleep
-T01_S006 --[dashed]> [*] : [err!=nil]\nError
+T01_S006 --> T01_S031 : [err!=nil]
 T01_S006 --> T01_S008
 state "stepProcessFindCallResponse" as T01_S013
 T01_S013 : SMExecute
@@ -164,11 +169,6 @@ T01_S014 : SMExecute
 T01_S014 --[dotted]> T01_S001
 T01_S014 --[dashed]> T01_S014 : [ctx.Acquire().IsNotPassed()]\nSleep
 T01_S014 --> T01_S015
-state "stepWaitExecutionResult" as T01_S021
-T01_S021 : SMExecute
-T01_S021 --[dotted]> T01_S016
-T01_S021 --[dashed]> T01_S021 : [s.executionNewState==nil]\nSleep
-T01_S021 --> T01_S022
 state "stepWaitFindCallResponse" as T01_S012
 T01_S012 : SMExecute
 T01_S012 --[dotted]> T01_S001
