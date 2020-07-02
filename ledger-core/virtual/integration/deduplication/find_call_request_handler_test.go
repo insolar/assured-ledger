@@ -177,7 +177,7 @@ func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
 
 			suite.waitFindRequestResponse(t)
 
-			suite.finish()
+			suite.finish(t)
 		})
 	}
 }
@@ -482,7 +482,9 @@ func (s *VFindCallRequestHandlingSuite) addPayloadAndWaitIdle(
 	s.server.WaitActiveThenIdleConveyor()
 }
 
-func (s *VFindCallRequestHandlingSuite) finish() {
+func (s *VFindCallRequestHandlingSuite) finish(t *testing.T) {
+	testutils.WaitSignalsTimed(t, 10*time.Second, s.server.Journal.WaitAllAsyncCallsDone())
+	s.server.WaitIdleConveyor()
 	s.mc.Finish()
 }
 
