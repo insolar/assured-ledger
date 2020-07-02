@@ -66,11 +66,10 @@ func (s service) checkDelegationToken(expectedVE reference.Global, token payload
 			}{ExpectedVE: expectedVE.String(), Approver: token.Approver.String()})
 	}
 
-	if sender.Equal(s.affinity.Me()) {
-		return throw.New("current node cannot be equal to sender of message with token",
-			struct {
-				Sender string
-			}{Sender: sender.String()})
+	if sender.Equal(token.Approver) {
+		return throw.WithSeverity(throw.New("sender cannot be approver of the token", struct {
+			Sender string
+		}{Sender: sender.String()}), throw.FraudSeverity)
 	}
 	return nil
 }
@@ -90,11 +89,12 @@ func (s service) getExpectedVE(ctx context.Context, subjectRef reference.Global,
 
 func (s service) IsMessageFromVirtualLegitimate(ctx context.Context, payloadObj interface{}, sender reference.Global, pr pulse.Range) (bool, error) {
 	verifyForPulse := pr.RightBoundData().PulseNumber
-	subjectRef, usePrev, ok := payload.GetSenderAuthenticationSubjectAndPulse(payloadObj)
-	switch {
-	case !ok:
+	subjectRef, mode, ok := payload.GetSenderAuthenticationSubjectAndPulse(payloadObj)
+	if !ok {
 		return false, throw.New("Unexpected message type")
-	case usePrev:
+	}
+	switch mode {
+	case payload.UsePrevPulse:
 		if !pr.IsArticulated() {
 			if prevDelta := pr.LeftPrevDelta(); prevDelta > 0 {
 				if prevPN, ok := pr.LeftBoundNumber().TryPrev(prevDelta); ok {
@@ -106,6 +106,12 @@ func (s service) IsMessageFromVirtualLegitimate(ctx context.Context, payloadObj 
 		// this is either a first pulse or the node is just started. In both cases we should allow the message to run
 		// but have to indicate that it has to be rejected
 		verifyForPulse = pulse.Unknown
+	case payload.UseAnyPulse:
+		return false, nil
+	case payload.UseCurrentPulse:
+		//
+	default:
+		panic(throw.IllegalValue())
 	}
 
 	if subjectRef.Equal(statemachine.APICaller) {

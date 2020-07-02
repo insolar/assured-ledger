@@ -91,15 +91,6 @@ func Test_IsMessageFromVirtualLegitimate_WithToken(t *testing.T) {
 			name: "VDelegatedCallRequest",
 			msg:  &payload.VDelegatedCallRequest{},
 		},
-		// TODO decide what to do with this two cases PLAT-575
-		// {
-		// 	name: "VFindCallRequest",
-		// 	msg:  &payload.VFindCallRequest{},
-		// },
-		// {
-		// 	name: "VFindCallResponse",
-		// 	msg:  &payload.VFindCallResponse{},
-		// },
 	}
 
 	for _, testCase := range cases {
@@ -132,16 +123,13 @@ func Test_IsMessageFromVirtualLegitimate_WithToken(t *testing.T) {
 			require.False(t, mustReject)
 		})
 
-		t.Run("Sender_equals_to_current_node:"+testCase.name, func(t *testing.T) {
+		t.Run("Sender_equals_approver:"+testCase.name, func(t *testing.T) {
 			ctx := context.Background()
 
-			refs := gen.UniqueGlobalRefs(2)
-			sender := refs[0]
-			selfRef := refs[1]
+			sender := gen.UniqueGlobalRef()
 
 			jetCoordinatorMock := jet.NewAffinityHelperMock(t).
-				QueryRoleMock.Return([]reference.Global{selfRef}, nil).
-				MeMock.Return(sender)
+				QueryRoleMock.Return([]reference.Global{sender}, nil)
 
 			authService := NewService(ctx, jetCoordinatorMock)
 
@@ -149,14 +137,14 @@ func Test_IsMessageFromVirtualLegitimate_WithToken(t *testing.T) {
 
 			token := payload.CallDelegationToken{
 				TokenTypeAndFlags: payload.DelegationTokenTypeCall,
-				Approver:          selfRef,
+				Approver:          sender,
 			}
 
 			reflect.ValueOf(testCase.msg).MethodByName("Reset").Call([]reflect.Value{})
 			insertToken(token, testCase.msg)
 
 			_, err := authService.IsMessageFromVirtualLegitimate(ctx, testCase.msg, sender, rg)
-			require.Contains(t, err.Error(), "current node cannot be equal to sender of message with token")
+			require.Contains(t, err.Error(), "sender cannot be approver of the token")
 		})
 
 		t.Run("ExpectedVE_not_equals_to_Approver:"+testCase.name, func(t *testing.T) {
@@ -191,10 +179,10 @@ func Test_IsMessageFromVirtualLegitimate_WithToken(t *testing.T) {
 
 func Test_IsMessageFromVirtualLegitimate_WithoutToken(t *testing.T) {
 	cases := []struct {
-		name             string
-		msg              interface{}
-		testRailCase     string
-		usePreviousPulse bool
+		name         string
+		msg          interface{}
+		testRailCase string
+		mode         payload.AuthSubjectMode
 	}{
 		{
 			name: "VCallRequest",
@@ -209,18 +197,18 @@ func Test_IsMessageFromVirtualLegitimate_WithoutToken(t *testing.T) {
 			msg:  &payload.VStateRequest{},
 		},
 		{
-			name:             "VStateReport",
-			msg:              &payload.VStateReport{},
-			usePreviousPulse: true,
+			name: "VStateReport",
+			msg:  &payload.VStateReport{},
+			mode: payload.UsePrevPulse,
 		},
 		{
 			name: "VDelegatedRequestFinished",
 			msg:  &payload.VDelegatedRequestFinished{},
 		},
 		{
-			name:             "VDelegatedCallRequest",
-			msg:              &payload.VDelegatedCallRequest{},
-			usePreviousPulse: true,
+			name: "VDelegatedCallRequest",
+			msg:  &payload.VDelegatedCallRequest{},
+			mode: payload.UsePrevPulse,
 		},
 		{
 			name: "VDelegatedCallResponse",
@@ -233,7 +221,7 @@ func Test_IsMessageFromVirtualLegitimate_WithoutToken(t *testing.T) {
 		{
 			name: "VFindCallResponse",
 			msg:  &payload.VFindCallResponse{},
-			usePreviousPulse: true,
+			mode: payload.UseAnyPulse,
 		},
 	}
 
@@ -275,8 +263,14 @@ func Test_IsMessageFromVirtualLegitimate_WithoutToken(t *testing.T) {
 
 			authService := NewService(ctx, jetCoordinatorMock)
 
-			_, err := authService.IsMessageFromVirtualLegitimate(ctx, testCase.msg, badSender, pulseRange)
-			require.Contains(t, err.Error(), "unexpected sender")
+			mustReject, err := authService.IsMessageFromVirtualLegitimate(ctx, testCase.msg, badSender, pulseRange)
+			if testCase.mode == payload.UseAnyPulse {
+				require.NoError(t, err)
+				require.False(t, mustReject)
+			} else {
+				require.Contains(t, err.Error(), "unexpected sender")
+				require.False(t, mustReject)
+			}
 		})
 
 		t.Run("MustReject_if_message_requires_prev_pulse_for_check:"+testCase.name, func(t *testing.T) {
@@ -295,7 +289,7 @@ func Test_IsMessageFromVirtualLegitimate_WithoutToken(t *testing.T) {
 
 			mustReject, err := authService.IsMessageFromVirtualLegitimate(ctx, testCase.msg, sender, pr)
 			require.NoError(t, err)
-			if testCase.usePreviousPulse {
+			if testCase.mode == payload.UsePrevPulse {
 				require.True(t, mustReject)
 			} else {
 				require.False(t, mustReject)
@@ -316,9 +310,15 @@ func Test_IsMessageFromVirtualLegitimate_WithoutToken(t *testing.T) {
 
 			rg := pulse.NewSequenceRange([]pulse.Data{pulse.NewPulsarData(pulse.MinTimePulse<<1, 10, 1, longbits.Bits256{})})
 
-			require.Panics(t, func() {
-				authService.IsMessageFromVirtualLegitimate(ctx, testCase.msg, sender, rg)
-			})
+			if testCase.mode == payload.UseAnyPulse {
+				mustReject, err := authService.IsMessageFromVirtualLegitimate(ctx, testCase.msg, sender, rg)
+				require.NoError(t, err)
+				require.False(t, mustReject)
+			} else {
+				require.Panics(t, func() {
+					authService.IsMessageFromVirtualLegitimate(ctx, testCase.msg, sender, rg)
+				})
+			}
 		})
 
 		t.Run("Cannot_calculate_role:"+testCase.name, func(t *testing.T) {
@@ -337,9 +337,15 @@ func Test_IsMessageFromVirtualLegitimate_WithoutToken(t *testing.T) {
 
 			rg := pulse.NewSequenceRange([]pulse.Data{pulse.NewPulsarData(pulse.MinTimePulse<<1, 10, 1, longbits.Bits256{})})
 
-			_, err := authService.IsMessageFromVirtualLegitimate(ctx, testCase.msg, sender, rg)
-			require.Contains(t, err.Error(), "can't calculate role")
-			require.Contains(t, err.Error(), calcErrorMsg)
+			mustReject, err := authService.IsMessageFromVirtualLegitimate(ctx, testCase.msg, sender, rg)
+			if testCase.mode == payload.UseAnyPulse {
+				require.NoError(t, err)
+				require.False(t, mustReject)
+			} else {
+				require.Contains(t, err.Error(), "can't calculate role")
+				require.Contains(t, err.Error(), calcErrorMsg)
+				require.False(t, mustReject)
+			}
 		})
 	}
 }

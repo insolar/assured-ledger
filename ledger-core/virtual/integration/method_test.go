@@ -1022,3 +1022,71 @@ func TestVirtual_CallContractTwoTimes(t *testing.T) {
 
 	mc.Finish()
 }
+
+func Test_CallMethodWithBadIsolationFlags(t *testing.T) {
+	t.Log("C4979")
+
+	mc := minimock.NewController(t)
+
+	server, ctx := utils.NewServer(nil, t)
+	defer server.Stop()
+	server.IncrementPulse(ctx)
+
+	var (
+		objectLocal  = server.RandomLocalWithPulse()
+		objectGlobal = reference.NewSelf(objectLocal)
+		outgoing     = server.BuildRandomOutgoingWithPulse()
+	)
+
+	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal)
+
+	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
+
+	expectedError := throw.W(throw.IllegalValue(), "failed to negotiate call isolation params", struct {
+		methodIsolation contract.MethodIsolation
+		callIsolation   contract.MethodIsolation
+	}{
+		methodIsolation: contract.MethodIsolation{
+			Interference: contract.CallTolerable,
+			State:        contract.CallDirty,
+		},
+		callIsolation: contract.MethodIsolation{
+			Interference: contract.CallIntolerable,
+			State:        contract.CallValidated,
+		},
+	})
+
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
+		assert.Equal(t, res.Callee, objectGlobal)
+		assert.Equal(t, res.CallOutgoing, outgoing)
+
+		contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments)
+		require.NoError(t, sysErr)
+		require.NotNil(t, contractErr)
+		require.Equal(t, expectedError.Error(), contractErr.Error())
+
+		return false // no resend msg
+	})
+
+	{
+		pl := payload.VCallRequest{
+			CallType:            payload.CTMethod,
+			CallFlags:           payload.BuildCallFlags(contract.CallIntolerable, contract.CallValidated),
+			Caller:              server.GlobalCaller(),
+			Callee:              objectGlobal,
+			CallSiteDeclaration: testwallet.GetClass(),
+			CallSiteMethod:      "Accept",
+			CallOutgoing:        outgoing,
+			Arguments:           insolar.MustSerialize([]interface{}{}),
+		}
+		server.SendPayload(ctx, &pl)
+	}
+
+	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+
+	assert.Equal(t, 1, typedChecker.VCallResult.Count())
+
+	mc.Finish()
+}
