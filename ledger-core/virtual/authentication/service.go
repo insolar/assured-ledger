@@ -90,11 +90,11 @@ func (s service) getExpectedVE(ctx context.Context, subjectRef reference.Global,
 
 func (s service) IsMessageFromVirtualLegitimate(ctx context.Context, payloadObj interface{}, sender reference.Global, pr pulse.Range) (bool, error) {
 	verifyForPulse := pr.RightBoundData().PulseNumber
-	subjectRef, usePrev, ok := payload.GetSenderAuthenticationSubjectAndPulse(payloadObj)
+	subjectRef, mode, ok := payload.GetSenderAuthenticationSubjectAndPulse(payloadObj)
 	switch {
 	case !ok:
 		return false, throw.New("Unexpected message type")
-	case usePrev:
+	case mode == payload.UsePrevPulse:
 		if !pr.IsArticulated() {
 			if prevDelta := pr.LeftPrevDelta(); prevDelta > 0 {
 				if prevPN, ok := pr.LeftBoundNumber().TryPrev(prevDelta); ok {
@@ -106,6 +106,8 @@ func (s service) IsMessageFromVirtualLegitimate(ctx context.Context, payloadObj 
 		// this is either a first pulse or the node is just started. In both cases we should allow the message to run
 		// but have to indicate that it has to be rejected
 		verifyForPulse = pulse.Unknown
+	case mode == payload.UseAnyPulse:
+		return false, nil
 	}
 
 	if subjectRef.Equal(statemachine.APICaller) {
