@@ -66,8 +66,8 @@ func (s service) checkDelegationToken(expectedVE reference.Global, token payload
 			}{ExpectedVE: expectedVE.String(), Approver: token.Approver.String()})
 	}
 
-	if sender.Equal(s.affinity.Me()) {
-		return throw.New("current node cannot be equal to sender of message with token",
+	if sender.Equal(token.Approver) {
+		return throw.New("sender cannot be approver of the token",
 			struct {
 				Sender string
 			}{Sender: sender.String()})
