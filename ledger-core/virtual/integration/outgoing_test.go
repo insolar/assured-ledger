@@ -320,29 +320,13 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 
 		firstPulse  = server.GetPulse().PulseNumber
 		secondPulse pulse.Number
-		thirdPulse  pulse.Number
 
 		firstApprover  = gen.UniqueGlobalRef()
 		secondApprover = gen.UniqueGlobalRef()
 
 		firstVCallRequest, firstVDelegatedCallRequest = true, true
 
-		firstExpectedToken = payload.CallDelegationToken{
-			TokenTypeAndFlags: payload.DelegationTokenTypeCall,
-			PulseNumber:       0, // fill later
-			Callee:            outgoing,
-			Outgoing:          outgoing,
-			DelegateTo:        server.JetCoordinatorMock.Me(),
-			Approver:          firstApprover,
-		}
-		secondExpectedToken = payload.CallDelegationToken{
-			TokenTypeAndFlags: payload.DelegationTokenTypeCall,
-			PulseNumber:       0, // fill later
-			Callee:            outgoing,
-			Outgoing:          outgoing,
-			DelegateTo:        server.JetCoordinatorMock.Me(),
-			Approver:          secondApprover,
-		}
+		firstExpectedToken, secondExpectedToken payload.CallDelegationToken
 
 		expectedVCallRequest = payload.VCallRequest{
 			CallType:         payload.CTMethod,
@@ -367,7 +351,6 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 			func(_ execution.Context) {
 				server.IncrementPulseAndWaitIdle(ctx)
 				secondPulse = server.GetPulse().PulseNumber
-				firstExpectedToken.PulseNumber = secondPulse
 			},
 			&execution.Update{
 				Type:     execution.OutgoingCall,
@@ -397,25 +380,36 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 		})
 		typedChecker.VDelegatedCallRequest.Set(func(request *payload.VDelegatedCallRequest) bool {
 			assert.Equal(t, outgoing, request.Callee)
+			assert.Equal(t, outgoing, request.CallOutgoing)
 
-			msg := payload.VDelegatedCallResponse{
-				Callee: request.Callee,
-				ResponseDelegationSpec: payload.CallDelegationToken{
+			msg := payload.VDelegatedCallResponse{Callee: request.Callee}
+
+			if firstVDelegatedCallRequest {
+				assert.Zero(t, request.DelegationSpec)
+
+				firstExpectedToken = payload.CallDelegationToken{
 					TokenTypeAndFlags: payload.DelegationTokenTypeCall,
 					PulseNumber:       server.GetPulse().PulseNumber,
 					Callee:            request.Callee,
 					Outgoing:          request.CallOutgoing,
 					DelegateTo:        server.JetCoordinatorMock.Me(),
-				},
-			}
-
-			if firstVDelegatedCallRequest {
-				assert.Zero(t, request.DelegationSpec)
-				msg.ResponseDelegationSpec.Approver = firstApprover
+					Approver:          firstApprover,
+				}
+				msg.ResponseDelegationSpec = firstExpectedToken
 				firstVDelegatedCallRequest = false
 			} else {
 				assert.Equal(t, firstExpectedToken, request.DelegationSpec)
-				msg.ResponseDelegationSpec.Approver = secondApprover
+
+				secondExpectedToken = payload.CallDelegationToken{
+					TokenTypeAndFlags: payload.DelegationTokenTypeCall,
+					PulseNumber:       server.GetPulse().PulseNumber,
+					Callee:            request.Callee,
+					Outgoing:          request.CallOutgoing,
+					DelegateTo:        server.JetCoordinatorMock.Me(),
+					Approver:          secondApprover,
+				}
+				msg.ResponseDelegationSpec = secondExpectedToken
+				expectedVCallRequest.DelegationSpec = secondExpectedToken
 			}
 
 			server.SendPayload(ctx, &msg)
@@ -435,9 +429,6 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 				assert.NotEqual(t, payload.RepeatedCall, request.CallRequestFlags.GetRepeatedCall())
 
 				server.IncrementPulseAndWaitIdle(ctx)
-				thirdPulse = server.GetPulse().PulseNumber
-				secondExpectedToken.PulseNumber = thirdPulse
-				expectedVCallRequest.DelegationSpec = secondExpectedToken
 				firstVCallRequest = false
 				// request will be sent in previous pulse
 				// omit sending
