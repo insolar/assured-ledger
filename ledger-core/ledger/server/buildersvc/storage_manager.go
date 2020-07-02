@@ -6,17 +6,22 @@
 package buildersvc
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lineage"
 )
 
 type storageManager struct {
-	writePipe chan struct{}
+	writePipe chan writeBundle
 	// pulsePrepare signal
 	// pulseCancel signal
 }
 
 type writeBundle struct {
-	jetDrop JetDropID
+	jetDrop jet.DropID
 	bundle  lineage.BundleResolver
 	future  *Future
+}
+
+type DropStorage interface {
+	CreateDropRange
 }

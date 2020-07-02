@@ -4,7 +4,3 @@
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
 package buildersvc
-
-type DropStorage interface {
-
-}

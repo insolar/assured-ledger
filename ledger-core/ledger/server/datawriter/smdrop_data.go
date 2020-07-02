@@ -8,6 +8,7 @@ package datawriter
 import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/datareader"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
@@ -15,7 +16,7 @@ import (
 )
 
 type DropSharedData struct {
-	id      JetDropID
+	id      jet.LegID
 	updater buildersvc.JetDropAssistant
 	ready   smsync.BoolConditionalLink
 	prevReport smachine.BargeInWithParam

@@ -8,6 +8,7 @@ package datawriter
 import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -27,7 +28,7 @@ type SMStreamDropBuilder struct {
 	sd *StreamSharedData
 
 	// runtime
-	jets      []buildersvc.JetID
+	jets      []jet.PrefixedID
 }
 
 func (p *SMStreamDropBuilder) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
@@ -111,9 +112,9 @@ func (p *SMStreamDropBuilder) stepCreateJetDrops(ctx smachine.ExecutionContext) 
 
 	pn := p.pulseSlot.PulseNumber()
 	for _, jetID := range p.jets {
-		jetDropID := buildersvc.NewJetDropID(pn, jetID)
-		updater := p.sd.jetAssist.CreateJetDropAssistant(jetID)
-		p.cataloger.Create(ctx, jetDropID, updater)
+		legID := jetID.AsLeg(pn)
+		updater := p.sd.jetAssist.CreateJetDropAssistant(jetID.ID())
+		p.cataloger.Create(ctx, legID, updater)
 	}
 
 	ctx.ApplyAdjustment(p.sd.enableAccess())

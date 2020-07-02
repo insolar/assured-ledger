@@ -8,7 +8,7 @@ package dropbag
 import (
 	"io"
 
-	"github.com/insolar/assured-ledger/ledger-core/drafts/jetid"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/keyset"
@@ -16,14 +16,14 @@ import (
 
 type DropStorageManager interface {
 	// will actually open CompositeDropStorage that may have multiple DropStorage(s) incorporated
-	OpenStorage(jetId jetid.ShortJetId, pn pulse.Number) (DropStorage, error)
+	OpenStorage(jetId jet.PrefixedID, pn pulse.Number) (DropStorage, error)
 	OpenPulseStorage(pn pulse.Number) (CompositeDropPerPulseData, error)
 
 	// each storage is lazy-closed, but can be explicitly marked for closing
 	UnusedStorage(CompositeDropStorage)
 
 	// returns nil when the required storage is not open
-	GetOpenedStorage(jetId jetid.ShortJetId, pn pulse.Number) DropStorage
+	GetOpenedStorage(jetId jet.PrefixedID, pn pulse.Number) DropStorage
 
 	BuildStorage(pr pulse.Range) CompositeDropStorageBuilder
 }
@@ -53,7 +53,7 @@ type CompositeDropStorage interface {
 	PerPulseData() CompositeDropPerPulseData
 
 	// identified by the latest pulse in a range of the drop
-	GetDropStorage(jetId jetid.ShortJetId, pn pulse.Number) DropStorage
+	GetDropStorage(jetId jet.PrefixedID, pn pulse.Number) DropStorage
 
 	// Jets
 	// Cabinet -> StorageCabinet
@@ -82,8 +82,8 @@ type DropJetTree interface {
 	MinDepth() uint8
 	MaxDepth() uint8
 	Count() int
-	PrefixToJetId(prefix jetid.Prefix) jetid.ShortJetId
-	KeyToJetId(keyset.Key) jetid.ShortJetId
+	PrefixToJetId(prefix jet.Prefix) jet.PrefixedID
+	KeyToJetId(keyset.Key) jet.PrefixedID
 }
 
 type DropStorage interface {
@@ -91,7 +91,7 @@ type DropStorage interface {
 
 	Composite() CompositeDropStorage
 
-	JetId() jetid.FullJetId
+	JetId() jet.LegID
 	PulseNumber() pulse.Number // the rightmost/latest pulse number of this drop
 	PerPulseData() DropPerPulseData
 

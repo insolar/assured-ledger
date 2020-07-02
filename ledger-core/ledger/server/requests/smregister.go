@@ -63,7 +63,7 @@ func (p *SMRegisterRecordSet) stepInit(ctx smachine.InitializationContext) smach
 		return ctx.Error(throw.E("empty record set"))
 	}
 
-	ctx.SetDefaultMigration(p.migrate)
+	ctx.SetDefaultMigration(p.migratePresent)
 	ctx.SetDefaultErrorHandler(p.handleError)
 	return ctx.Jump(p.stepFindLine)
 }
@@ -177,13 +177,25 @@ func (p *SMRegisterRecordSet) stepWaitUpdated(ctx smachine.ExecutionContext) sma
 	return ctx.Jump(p.stepSendResponse)
 }
 
-func (p *SMRegisterRecordSet) migrate(ctx smachine.MigrationContext) smachine.StateUpdate {
-	ctx.SetDefaultMigration(nil)
-	return ctx.Jump(p.stepSendResponse)
+func (p *SMRegisterRecordSet) migratePresent(ctx smachine.MigrationContext) smachine.StateUpdate {
+	ctx.SetDefaultMigration(p.migratePast)
+	return ctx.Stay()
+}
+
+func (p *SMRegisterRecordSet) migratePast(ctx smachine.MigrationContext) smachine.StateUpdate {
+	return ctx.Stop()
 }
 
 func (p *SMRegisterRecordSet) stepSendResponse(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	p.sendResponse(true, p.updated != nil && p.updated.IsCommitted())
+	committed := false
+	if p.updated != nil {
+		ready := false
+		ready, committed = p.updated.GetCommitStatus()
+		if !ready {
+			panic(throw.Impossible())
+		}
+	}
+	p.sendResponse(true, committed)
 	return ctx.Stop()
 }
 

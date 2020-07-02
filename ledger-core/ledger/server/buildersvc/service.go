@@ -6,42 +6,24 @@
 package buildersvc
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lineage"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-type JetID uint32
-
-type JetDropID uint64
-
-func NewJetDropID(pn pulse.Number, id JetID) JetDropID {
-	panic(throw.NotImplemented())
-}
-
-func (v JetDropID) IsValid() bool {
-	panic(throw.NotImplemented())
-}
-
-func (v JetDropID) GetPulseNumber() pulse.Number {
-	panic(throw.NotImplemented())
-}
-
-
 type StreamDropAssistant interface {
-	CalculateJetDrop(reference.Holder) JetDropID
-	CreateJetDropAssistant(id JetID) JetDropAssistant
+	CalculateJetDrop(reference.Holder) jet.DropID
+	CreateJetDropAssistant(id jet.ID) JetDropAssistant
 }
 
 type JetDropAssistant interface {
-	JetDropAssistant()
 	AddRecords(future *Future, br *lineage.BundleResolver) bool
 	GetResolver() lineage.DependencyResolver
 }
 
 type Service interface {
-	CreateStreamDrop(pulse.Range, /* jetTree, population */) (StreamDropAssistant, []JetID)
+	CreateStreamDrop(pulse.Range, /* jetTree, population */) (StreamDropAssistant, []jet.PrefixedID)
 }
 
 var _ Service = &serviceImpl{}
@@ -52,7 +34,7 @@ func NewService() Service {
 
 type serviceImpl struct {}
 
-func (p *serviceImpl) CreateStreamDrop(pulse.Range) (StreamDropAssistant, []JetID) {
+func (p *serviceImpl) CreateStreamDrop(pulse.Range) (StreamDropAssistant, []jet.PrefixedID) {
 	panic("implement me")
 }
 

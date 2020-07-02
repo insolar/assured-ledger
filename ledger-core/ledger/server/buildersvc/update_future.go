@@ -40,6 +40,17 @@ func (p *Future) GetUpdateStatus() (isReady bool, allocationBase uint32) {
 	}
 }
 
+func (p *Future) GetCommitStatus() (isReady, isCommitted bool) {
+	switch v := p.committed.Load(); {
+	case v == 0:
+		return false, false
+	case v == math.MaxUint32:
+		return true, false
+	default:
+		return true, true
+	}
+}
+
 func (p *Future) SetCommitted(committed bool, allocatedBase uint32) {
 	if !p.TrySetCommitted(committed, allocatedBase) {
 		panic(throw.IllegalState())

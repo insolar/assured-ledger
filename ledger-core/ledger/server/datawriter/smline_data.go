@@ -46,7 +46,7 @@ func (p *LineSharedData) ensureDataAccess() {
 		panic(throw.IllegalState())
 	}
 	if p.data == nil {
-		p.data = lineage.NewStages(p.lineRef.GetBase(), p.jetDropID.GetPulseNumber(), p.dropUpdater.GetResolver())
+		p.data = lineage.NewStages(p.lineRef.GetBase(), p.jetDropID.CreatedAt(), p.dropUpdater.GetResolver())
 	}
 }
 

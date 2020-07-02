@@ -10,28 +10,28 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-type JetDropID = buildersvc.JetDropID
-
-type JetDropKey JetDropID
+type JetDropKey jet.DropID
 
 type DropCataloger interface {
-	Create(ctx smachine.ExecutionContext, dropID JetDropID, updater buildersvc.JetDropAssistant) DropDataLink
-	Get(ctx smachine.SharedStateContext, dropID JetDropID) DropDataLink
+	Create(ctx smachine.ExecutionContext, dropID jet.LegID, updater buildersvc.JetDropAssistant) DropDataLink
+	Get(ctx smachine.SharedStateContext, dropID jet.DropID) DropDataLink
 }
 
 var _ DropCataloger = &DropCatalog{}
 type DropCatalog struct {}
 
-func (*DropCatalog) Create(ctx smachine.ExecutionContext, dropID JetDropID, updater buildersvc.JetDropAssistant) DropDataLink {
+func (*DropCatalog) Create(ctx smachine.ExecutionContext, legID jet.LegID, updater buildersvc.JetDropAssistant) DropDataLink {
+	dropID := legID.AsDrop()
 	if ctx.GetPublished(JetDropKey(dropID)) != nil {
 		panic(throw.IllegalState())
 	}
 
-	ctx.InitChild(JetDropCreate(dropID, updater))
+	ctx.InitChild(JetDropCreate(legID, updater))
 
 	switch sdl := ctx.GetPublishedLink(JetDropKey(dropID)); {
 	case sdl.IsZero():
@@ -43,7 +43,7 @@ func (*DropCatalog) Create(ctx smachine.ExecutionContext, dropID JetDropID, upda
 	}
 }
 
-func (*DropCatalog) Get(ctx smachine.SharedStateContext, dropID JetDropID) DropDataLink {
+func (*DropCatalog) Get(ctx smachine.SharedStateContext, dropID jet.DropID) DropDataLink {
 	switch sdl := ctx.GetPublishedLink(JetDropKey(dropID)); {
 	case sdl.IsZero():
 	case sdl.IsAssignableTo(&DropDataLink{}):
@@ -52,10 +52,10 @@ func (*DropCatalog) Get(ctx smachine.SharedStateContext, dropID JetDropID) DropD
 	return DropDataLink{}
 }
 
-func JetDropCreate(dropID JetDropID, updater buildersvc.JetDropAssistant) smachine.CreateFunc {
+func JetDropCreate(legID jet.LegID, updater buildersvc.JetDropAssistant) smachine.CreateFunc {
 	return func(smachine.ConstructionContext) smachine.StateMachine {
 		sm := &SMJetDropBuilder{}
-		sm.sd.id = dropID
+		sm.sd.id = legID
 		sm.sd.updater = updater
 		return sm
 	}

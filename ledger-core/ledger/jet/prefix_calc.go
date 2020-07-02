@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package jetid
+package jet
 
 import (
 	"fmt"
@@ -23,7 +23,7 @@ const SplitMedian = 7 // makes 0 vs 1 ratio like [0..6] vs [7..15]
 //		...
 //		bitPrefix, bitPrefixLen = prefixTree.GetPrefix(bitPrefix)
 //
-func NewJetPrefixCalc() PrefixCalc {
+func NewPrefixCalc() PrefixCalc {
 	return PrefixCalc{4, SplitMedian}
 }
 

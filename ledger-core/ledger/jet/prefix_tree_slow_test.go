@@ -5,7 +5,7 @@
 
 // +build slowtest
 
-package jetid
+package jet
 
 import (
 	"bytes"
