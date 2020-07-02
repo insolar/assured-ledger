@@ -3,6 +3,11 @@ state "Init" as T01_S002
 T01_S002 : SMExecute
 [*] --> T01_S002
 T01_S002 --> T01_S003 : Migrate: s.migrationDefault
+state "StepWaitExecutionResult" as T01_S017
+T01_S017 : SMExecute
+T01_S017 --[dotted]> T01_S012
+T01_S017 --[dashed]> T01_S017 : [s.executionNewState==nil]\nSleep
+T01_S017 --> T01_S018
 state "migrateDuringExecution" as T01_S012
 T01_S012 : SMExecute
 T01_S012 --[dashed]> [*] : [...&&(...).delegationTokenSpec.IsZero()]\nError
@@ -107,7 +112,7 @@ state T01_U005 <<fork>>
 T01_S006 --> T01_U005 : [s.methodIsolation.IsZero()]
 T01_U005 --> T01_S007 : PrepareExecutionClassify(ctx)
 T01_U005 --[dashed]> T01_S006 : Sleep
-T01_S006 --[dashed]> [*] : [err!=nil]\nError
+T01_S006 --> T01_S028 : [err!=nil]
 T01_S006 --> T01_S008
 state "stepPublishDataCallSummary" as T01_S026
 T01_S026 : SMExecute
@@ -149,11 +154,6 @@ T01_S010 : SMExecute
 T01_S010 --[dotted]> T01_S001
 T01_S010 --[dashed]> T01_S010 : [ctx.Acquire().IsNotPassed()]\nSleep
 T01_S010 --> T01_S011
-state "stepWaitExecutionResult" as T01_S017
-T01_S017 : SMExecute
-T01_S017 --[dotted]> T01_S012
-T01_S017 --[dashed]> T01_S017 : [s.executionNewState==nil]\nSleep
-T01_S017 --> T01_S018
 state "stepWaitObjectReady" as T01_S005
 T01_S005 : SMExecute
 T01_S005 --[dotted]> T01_S001
