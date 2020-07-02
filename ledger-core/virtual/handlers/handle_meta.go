@@ -70,7 +70,6 @@ func (f FactoryMeta) Process(msg *statemachine.DispatcherMessage, pr pulse.Range
 
 	logger.Info(logProcessing{
 		messageType: fmt.Sprintf("id=%d, type=%s", payloadTypeID, payloadType.String()),
-		pulseData:   pr,
 	})
 
 	targetPulse := pr.RightBoundData().PulseNumber
