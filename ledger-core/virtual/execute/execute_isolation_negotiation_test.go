@@ -10,7 +10,6 @@ import (
 
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
@@ -178,11 +177,8 @@ func Test_Execute_stepIsolationNegotiation(t *testing.T) {
 			execCtx := smachine.NewExecutionContextMock(mc)
 
 			if tc.expectedError {
-				// expected SM stop with Error
-				execCtx.ErrorMock.Set(func(e1 error) (s1 smachine.StateUpdate) {
-					require.Error(t, e1)
-					return smachine.StateUpdate{}
-				})
+				// expected SM sends an error in stepSendCallResult
+				execCtx.JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepSendCallResult))
 			} else {
 				execCtx.JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepDeduplicate))
 			}

@@ -112,7 +112,7 @@ state T01_U005 <<fork>>
 T01_S006 --> T01_U005 : [s.methodIsolation.IsZero()]
 T01_U005 --> T01_S007 : PrepareExecutionClassify(ctx)
 T01_U005 --[dashed]> T01_S006 : Sleep
-T01_S006 --[dashed]> [*] : [err!=nil]\nError
+T01_S006 --> T01_S028 : [err!=nil]
 T01_S006 --> T01_S008
 state "stepPublishDataCallSummary" as T01_S026
 T01_S026 : SMExecute
