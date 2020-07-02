@@ -53,3 +53,22 @@ func Or(predicates ...Func) Func {
 		return false
 	}
 }
+
+func Sequence(predicates ...Func) Func {
+	pos := 0
+
+	return func(event debuglogger.UpdateEvent) bool {
+		if pos == len(predicates) {
+			return true
+		}
+
+		if predicates[pos](event) == true {
+			pos++
+
+			if pos == len(predicates) {
+				return true
+			}
+		}
+		return false
+	}
+}

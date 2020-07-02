@@ -19,6 +19,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/predicate"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/synchronization"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
@@ -209,8 +210,15 @@ func TestVirtual_Method_One_PulseChanged(t *testing.T) {
 
 			testutils.WaitSignalsTimed(t, 10*time.Second, synchronizeExecution.Wait())
 			for i := 0; i < test.countChangePulse; i++ {
-				tokenRequestDone := server.Journal.WaitStopOf(&execute.SMDelegatedTokenRequest{}, 1)
+				tokenRequestDone := server.Journal.Wait(
+					predicate.Sequence(
+						predicate.NewSMTypeFilter(&execute.SMDelegatedTokenRequest{}, predicate.AfterAnyStopOrError),
+						predicate.NewSMTypeFilter(&execute.SMExecute{}, predicate.AfterStep((&execute.SMExecute{}).StepWaitExecutionResult)),
+					),
+				)
+
 				server.IncrementPulseAndWaitIdle(ctx)
+
 				testutils.WaitSignalsTimed(t, 10*time.Second, tokenRequestDone)
 			}
 			synchronizeExecution.WakeUp()
