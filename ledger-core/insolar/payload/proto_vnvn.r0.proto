@@ -224,8 +224,9 @@ message VFindCallResponse {
         UnknownCall = 1;
         FoundCall = 2;
     }
-    Reference Callee = 20;
-    Reference Outgoing = 21;
-    CallState Status = 22;
-    VCallResult CallResult = 23 [(gogoproto.nullable) = true];
+    uint32 LookedAt = 20 [(gogoproto.casttype) = "PulseNumber"];
+    Reference Callee = 21;
+    Reference Outgoing = 22;
+    CallState Status = 23;
+    VCallResult CallResult = 24 [(gogoproto.nullable) = true];
 }
