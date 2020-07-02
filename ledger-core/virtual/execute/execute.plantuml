@@ -120,7 +120,7 @@ T01_S006 --> T01_S008
 state "stepProcessFindCallResponse" as T01_S013
 T01_S013 : SMExecute
 T01_S013 --[dotted]> T01_S001
-T01_S013 --> [*] : [(...).VFindCallResponse.CallResult==nil]
+T01_S013 --> [*] : [(...).findCallResponse.CallResult==nil]
 T01_S013 --> T01_S011 : PrepareAsync(ctx).WithoutAutoWakeUp()
 T01_S013 --> [*] : [payload.FoundCall]
 T01_S013 --> T01_S014
