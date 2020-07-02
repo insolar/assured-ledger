@@ -180,7 +180,9 @@ func (p *DebugMachineLogger) Continue() {
 }
 
 func (p *DebugMachineLogger) Abort() {
-	p.abort.DoSet(p.continueAll)
+	if p.abort.Set() {
+		p.continueAll()
+	}
 }
 
 func (p *DebugMachineLogger) FlushEvents(flushDone synckit.SignalChannel, closeEvents bool) {
