@@ -205,9 +205,10 @@ func (p *DebugMachineLogger) waitContinue() {
 	if p.abort.IsSet() {
 		runtime.Goexit()
 	}
-	if p.continueStep != nil {
-		<- p.continueStep
+	if p.continueStep == nil {
+		return
 	}
+	<- p.continueStep
 	if p.abort.IsSet() {
 		runtime.Goexit()
 	}
