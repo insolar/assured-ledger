@@ -35,7 +35,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
+	virtualTestutils "github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/shareddata"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/slotdebugger"
 )
@@ -48,13 +50,13 @@ func expectedInitState(ctx context.Context, sm SMExecute) SMExecute {
 
 	if sm.Payload.CallType == payload.CTConstructor {
 		sm.isConstructor = true
-		sm.execution.Object = reference.NewSelf(sm.Payload.CallOutgoing)
+		sm.execution.Object = sm.Payload.CallOutgoing
 	} else {
 		sm.execution.Object = sm.Payload.Callee
 	}
 
-	sm.execution.Incoming = reference.NewRecordOf(sm.Payload.Caller, sm.Payload.CallOutgoing)
-	sm.execution.Outgoing = reference.NewRecordOf(sm.Payload.Callee, sm.Payload.CallOutgoing)
+	sm.execution.Incoming = reference.NewRecordOf(sm.Payload.Callee, sm.Payload.CallOutgoing.GetLocal())
+	sm.execution.Outgoing = sm.Payload.CallOutgoing
 
 	sm.execution.Isolation = contract.MethodIsolation{
 		Interference: sm.Payload.CallFlags.GetInterference(),
@@ -71,7 +73,8 @@ func TestSMExecute_Init(t *testing.T) {
 		pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 		pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
 		smObjectID      = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
-		smGlobalRef     = reference.NewSelf(smObjectID)
+		caller          = gen.UniqueGlobalRef()
+		smGlobalRef     = reference.NewRecordOf(caller, smObjectID)
 		smObject        = object.NewStateMachineObject(smGlobalRef)
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 
@@ -84,7 +87,8 @@ func TestSMExecute_Init(t *testing.T) {
 		CallFlags:           callFlags,
 		CallSiteDeclaration: testwallet.GetClass(),
 		CallSiteMethod:      "New",
-		CallOutgoing:        smObjectID,
+		Caller:              caller,
+		CallOutgoing:        smGlobalRef,
 		Arguments:           insolar.MustSerialize([]interface{}{}),
 	}
 
@@ -118,7 +122,8 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 		pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 		pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
 		smObjectID      = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
-		smGlobalRef     = reference.NewSelf(smObjectID)
+		caller          = gen.UniqueGlobalRef()
+		smGlobalRef     = reference.NewRecordOf(caller, smObjectID)
 		smObject        = object.NewStateMachineObject(smGlobalRef)
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 
@@ -129,9 +134,10 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 	request := &payload.VCallRequest{
 		CallType:            payload.CTConstructor,
 		CallFlags:           callFlags,
+		Caller:              caller,
 		CallSiteDeclaration: testwallet.GetClass(),
 		CallSiteMethod:      "New",
-		CallOutgoing:        smObjectID,
+		CallOutgoing:        smGlobalRef,
 		Arguments:           insolar.MustSerialize([]interface{}{}),
 	}
 
@@ -176,7 +182,8 @@ func TestSMExecute_DeduplicationUsingPendingsTable(t *testing.T) {
 		pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 		pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
 		smObjectID      = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
-		smGlobalRef     = reference.NewSelf(smObjectID)
+		caller          = gen.UniqueGlobalRef()
+		smGlobalRef     = reference.NewRecordOf(caller, smObjectID)
 		smObject        = object.NewStateMachineObject(smGlobalRef)
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 
@@ -189,7 +196,7 @@ func TestSMExecute_DeduplicationUsingPendingsTable(t *testing.T) {
 		CallFlags:           callFlags,
 		CallSiteDeclaration: testwallet.GetClass(),
 		CallSiteMethod:      "New",
-		CallOutgoing:        smObjectID,
+		CallOutgoing:        smGlobalRef,
 		Arguments:           insolar.MustSerialize([]interface{}{}),
 	}
 
@@ -253,7 +260,8 @@ func TestSMExecute_DeduplicationForOldRequest(t *testing.T) {
 		oldPd           = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 		pd              = pulse.NewPulsarData(oldPd.NextPulseNumber(), oldPd.NextPulseDelta, oldPd.PrevPulseDelta, longbits.Bits256{})
 		pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-		outgoingRef     = gen.UniqueLocalRefWithPulse(oldPd.PulseNumber)
+		caller          = gen.UniqueGlobalRef()
+		outgoingRef     = reference.NewRecordOf(caller, gen.UniqueLocalRefWithPulse(oldPd.PulseNumber))
 		objectRef       = gen.UniqueGlobalRef()
 		smObject        = object.NewStateMachineObject(objectRef)
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
@@ -264,6 +272,7 @@ func TestSMExecute_DeduplicationForOldRequest(t *testing.T) {
 	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 	request := &payload.VCallRequest{
 		CallType:            payload.CTMethod,
+		Caller:              caller,
 		Callee:              objectRef,
 		CallFlags:           callFlags,
 		CallSiteDeclaration: testwallet.GetClass(),
@@ -332,7 +341,8 @@ func TestSMExecute_TokenInOutgoingMessage(t *testing.T) {
 				pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 				pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
 				smObjectID      = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
-				smGlobalRef     = reference.NewSelf(smObjectID)
+				caller          = gen.UniqueGlobalRef()
+				smGlobalRef     = reference.NewRecordOf(caller, smObjectID)
 				smObject        = object.NewStateMachineObject(smGlobalRef)
 				sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 
@@ -343,9 +353,10 @@ func TestSMExecute_TokenInOutgoingMessage(t *testing.T) {
 			request := &payload.VCallRequest{
 				CallType:            payload.CTConstructor,
 				CallFlags:           callFlags,
+				Caller:              caller,
 				CallSiteDeclaration: testwallet.GetClass(),
 				CallSiteMethod:      "New",
-				CallOutgoing:        smObjectID,
+				CallOutgoing:        smGlobalRef,
 				Arguments:           insolar.MustSerialize([]interface{}{}),
 			}
 
@@ -420,14 +431,13 @@ func TestSMExecute_VCallResultPassedToSMObject(t *testing.T) {
 		pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 		pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
 		smObjectID      = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
-		smGlobalRef     = reference.NewSelf(smObjectID)
+		caller          = gen.UniqueGlobalRef()
+		smGlobalRef     = reference.NewRecordOf(caller, smObjectID)
 		smObject        = object.NewStateMachineObject(smGlobalRef)
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 
 		callFlags = payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty)
 	)
-
-	ref := gen.UniqueGlobalRef()
 
 	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 	request := &payload.VCallRequest{
@@ -435,8 +445,9 @@ func TestSMExecute_VCallResultPassedToSMObject(t *testing.T) {
 		CallFlags:           callFlags,
 		CallSiteDeclaration: testwallet.GetClass(),
 		CallSiteMethod:      "New",
-		CallOutgoing:        smObjectID,
-		Callee:              ref,
+		CallOutgoing:        smGlobalRef,
+		Callee:              gen.UniqueGlobalRef(),
+		Caller:              caller,
 		Arguments:           insolar.MustSerialize([]interface{}{}),
 	}
 
@@ -460,12 +471,10 @@ func TestSMExecute_VCallResultPassedToSMObject(t *testing.T) {
 		}),
 	}
 
-	ref = reference.NewRecordOf(request.Callee, request.CallOutgoing)
-
 	smExecute = expectedInitState(ctx, smExecute)
 
-	smObject.KnownRequests.Add(contract.CallTolerable, ref)
-	smObject.KnownRequests.SetActive(contract.CallTolerable, ref)
+	smObject.KnownRequests.Add(contract.CallTolerable, request.CallOutgoing)
+	smObject.KnownRequests.SetActive(contract.CallTolerable, request.CallOutgoing)
 
 	{
 		execCtx := smachine.NewExecutionContextMock(mc).
@@ -483,13 +492,9 @@ func TestSMExecute_VCallResultPassedToSMObject(t *testing.T) {
 	}
 	require.Equal(t, 1, smObject.KnownRequests.Len())
 
-	res := smObject.KnownRequests.GetList(contract.CallTolerable)
+	result, ok := smObject.KnownRequests.GetResults()[smGlobalRef]
 
-	require.Equal(t, 1, res.Count())
-
-	result, ok := smObject.KnownRequests.GetResults()[ref]
-
-	require.True(t, ok)
+	require.True(t, ok, "object not in map")
 	require.NotNil(t, result)
 
 	mc.Finish()
@@ -497,6 +502,7 @@ func TestSMExecute_VCallResultPassedToSMObject(t *testing.T) {
 
 func TestSendVStateReportWithMissingState_IfConstructorWasInterruptedBeforeRunnerCall(t *testing.T) {
 	t.Log("C5084")
+	// TODO: remove this ignores after fix closing adapters on conveyor shutdown
 	defer testutils.LeakTester(t,
 		goleak.IgnoreTopFunction("github.com/insolar/assured-ledger/ledger-core/runner.(*worker).Run.func1"),
 		goleak.IgnoreTopFunction("github.com/insolar/assured-ledger/ledger-core/conveyor/smachine.startChannelWorkerUnlimParallel.func1"),
@@ -527,7 +533,7 @@ func TestSendVStateReportWithMissingState_IfConstructorWasInterruptedBeforeRunne
 		close(vStateReportRecv)
 	})
 
-	outgoing := slotMachine.GenerateLocal()
+	outgoing := reference.NewRecordOf(caller, slotMachine.GenerateLocal())
 
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
@@ -557,10 +563,96 @@ func TestSendVStateReportWithMissingState_IfConstructorWasInterruptedBeforeRunne
 			return false
 		}
 	})
-	select {
-	case <-vStateReportRecv:
-	case <-time.After(10 * time.Second):
+	virtualTestutils.WaitSignalsTimed(t, 10*time.Second, vStateReportRecv)
+
+	mc.Finish()
+}
+
+func TestSMExecute_StopWithoutMessagesIfPulseChangedBeforeOutgoing(t *testing.T) {
+	t.Log("C5101")
+	// TODO: remove this ignores after fix closing adapters on conveyor shutdown
+	defer testutils.LeakTester(t,
+		goleak.IgnoreTopFunction("github.com/insolar/assured-ledger/ledger-core/runner.(*worker).Run.func1"),
+		goleak.IgnoreTopFunction("github.com/insolar/assured-ledger/ledger-core/conveyor/smachine.startChannelWorkerUnlimParallel.func1"),
+	)
+	const stateMemory = "213"
+
+	var (
+		mc  = minimock.NewController(t)
+		ctx = context.Background()
+
+		class     = gen.UniqueGlobalRef()
+		caller    = gen.UniqueGlobalRef()
+		objectRef = gen.UniqueGlobalRef()
+
+		catalog     object.Catalog         = object.NewLocalCatalog()
+		authService authentication.Service = authentication.NewServiceMock(t)
+	)
+
+	slotMachine := slotdebugger.New(ctx, t)
+	slotMachine.PrepareMockedMessageSender(mc)
+	slotMachine.PrepareMockedRunner(ctx, mc)
+	slotMachine.AddInterfaceDependency(&catalog)
+	slotMachine.AddInterfaceDependency(&authService)
+
+	var vStateReportRecv = make(chan struct{})
+	checkMessage := func(msg payload.Marshaler) {
+		res, ok := msg.(*payload.VStateReport)
+		require.True(t, ok)
+		assert.Equal(t, objectRef, res.Object)
+		assert.Equal(t, payload.Ready, res.Status)
+		assert.Equal(t, int32(0), res.OrderedPendingCount)
+		assert.Equal(t, int32(0), res.UnorderedPendingCount)
+		assert.Equal(t, []byte(stateMemory), res.ProvidedContent.LatestDirtyState.State)
 		close(vStateReportRecv)
-		t.Error("timeout")
 	}
+	slotMachine.MessageSender.SendRole.SetCheckMessage(checkMessage)
+
+	outgoing := reference.NewRecordOf(objectRef, slotMachine.GenerateLocal())
+
+	slotMachine.RunnerMock.AddExecutionClassify(
+		outgoing.String(),
+		contract.MethodIsolation{Interference: contract.CallTolerable, State: contract.CallDirty},
+		nil,
+	)
+
+	smObject := object.NewStateMachineObject(objectRef)
+	smObject.SetState(object.HasState)
+	smObject.SetDescriptor(descriptor.NewObject(reference.Global{}, reference.Local{}, class, []byte(stateMemory), reference.Global{}))
+	slotMachine.AddStateMachine(ctx, smObject)
+
+	smExecute := SMExecute{
+		Payload: &payload.VCallRequest{
+			CallType:            payload.CTMethod,
+			Caller:              caller,
+			Callee:              objectRef,
+			CallFlags:           payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+			CallOutgoing:        outgoing,
+			CallSiteDeclaration: class,
+			CallSiteMethod:      "test",
+			Arguments:           insolar.MustSerialize([]interface{}{}),
+		},
+		Meta: &payload.Meta{
+			Sender: caller,
+		},
+	}
+	slotMachine.Start()
+	defer slotMachine.Stop()
+
+	smWrapper := slotMachine.AddStateMachine(ctx, &smExecute)
+	slotMachine.RunTil(smWrapper.BeforeStep(smExecute.stepStartRequestProcessing))
+	slotMachine.Migrate()
+	slotMachine.RunTil(smWrapper.AfterStop())
+
+	go slotMachine.RunTil(func(event debuglogger.UpdateEvent) bool {
+		select {
+		case <-vStateReportRecv:
+			return true
+		default:
+			return false
+		}
+	})
+	virtualTestutils.WaitSignalsTimed(t, 10*time.Second, vStateReportRecv)
+
+	mc.Finish()
 }

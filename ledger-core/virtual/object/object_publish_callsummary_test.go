@@ -6,11 +6,12 @@
 package object
 
 import (
+	"testing"
+
 	"github.com/gojuno/minimock/v3"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
@@ -19,7 +20,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/shareddata"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestSMObject_CallSummarySM(t *testing.T) {
@@ -34,15 +34,15 @@ func TestSMObject_CallSummarySM(t *testing.T) {
 
 	res1 := payload.VCallResult{
 		Callee:       smObject.Reference,
-		CallOutgoing: gen.UniqueLocalRef(),
+		CallOutgoing: gen.UniqueGlobalRef(),
 	}
 	res2 := payload.VCallResult{
 		Callee:       smObject.Reference,
-		CallOutgoing: gen.UniqueLocalRef(),
+		CallOutgoing: gen.UniqueGlobalRef(),
 	}
 
-	req1Ref := reference.NewRecordOf(res1.Callee, res1.CallOutgoing)
-	req2Ref := reference.NewRecordOf(res2.Callee, res2.CallOutgoing)
+	req1Ref := res1.CallOutgoing
+	req2Ref := res2.CallOutgoing
 
 	smObject.SharedState.KnownRequests.Add(contract.CallTolerable, req1Ref)
 	smObject.SharedState.KnownRequests.Add(contract.CallIntolerable, req2Ref)

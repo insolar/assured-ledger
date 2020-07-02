@@ -41,12 +41,10 @@ func TestVDelegatedCallRequest(t *testing.T) {
 	slotMachine.PrepareMockedMessageSender(mc)
 
 	var (
-		caller         = gen.UniqueGlobalRef()
-		callee         = gen.UniqueGlobalRef()
-		outgoing       = gen.UniqueLocalRefWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
-		objectGlobal   = reference.NewSelf(outgoing)
-		outgoingGlobal = reference.NewRecordOf(callee, outgoing)
-		tokenKey       = DelegationTokenAwaitKey{outgoingGlobal}
+		caller       = gen.UniqueGlobalRef()
+		callee       = gen.UniqueGlobalRef()
+		objectGlobal = reference.NewRecordOf(caller, slotMachine.GenerateLocal())
+		tokenKey     = DelegationTokenAwaitKey{objectGlobal}
 
 		migrationPulse pulse.Number
 
@@ -54,7 +52,7 @@ func TestVDelegatedCallRequest(t *testing.T) {
 			Payload: &payload.VCallRequest{
 				CallType:     payload.CTConstructor,
 				CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
-				CallOutgoing: outgoing,
+				CallOutgoing: objectGlobal,
 
 				Caller: caller,
 				Callee: callee,
@@ -98,11 +96,11 @@ func TestVDelegatedCallRequest(t *testing.T) {
 		})
 
 	{
-		slotMachine.RunnerMock.AddExecutionClassify(outgoingGlobal.String(), contract.MethodIsolation{
+		slotMachine.RunnerMock.AddExecutionClassify(objectGlobal.String(), contract.MethodIsolation{
 			Interference: contract.CallTolerable,
 			State:        contract.CallDirty,
 		}, nil)
-		slotMachine.RunnerMock.AddExecutionMock(outgoingGlobal.String()).AddStart(
+		slotMachine.RunnerMock.AddExecutionMock(objectGlobal.String()).AddStart(
 			nil,
 			&execution.Update{
 				Type:   execution.Done,
@@ -127,7 +125,7 @@ func TestVDelegatedCallRequest(t *testing.T) {
 		require.False(t, slotLink.IsZero())
 
 		ok := bargeInHolder.CallWithParam(&payload.VDelegatedCallResponse{
-			ResponseDelegationSpec: payload.CallDelegationToken{Outgoing: outgoingGlobal},
+			ResponseDelegationSpec: payload.CallDelegationToken{Outgoing: objectGlobal},
 		})
 		require.True(t, ok)
 	}
@@ -136,7 +134,7 @@ func TestVDelegatedCallRequest(t *testing.T) {
 		slotMachine.RunTil(smWrapper.AfterStep(smExecute.stepAfterTokenGet.Transition))
 
 		require.NotNil(t, smExecute.delegationTokenSpec)
-		require.Equal(t, outgoingGlobal, smExecute.delegationTokenSpec.Outgoing)
+		require.Equal(t, objectGlobal, smExecute.delegationTokenSpec.Outgoing)
 	}
 
 	{

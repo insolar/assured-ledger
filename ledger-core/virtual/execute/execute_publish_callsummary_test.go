@@ -6,6 +6,8 @@
 package execute
 
 import (
+	"testing"
+
 	"github.com/gojuno/minimock/v3"
 	"github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
@@ -23,7 +25,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callsummary"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/shareddata"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestSMExecute_PublishVCallResultToCallSummarySM(t *testing.T) {
@@ -33,21 +34,20 @@ func TestSMExecute_PublishVCallResultToCallSummarySM(t *testing.T) {
 
 		pd          = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 		pulseSlot   = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-		smObjectID  = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
-		smGlobalRef = reference.NewSelf(smObjectID)
+		outgoingRef = reference.NewRecordOf(gen.UniqueGlobalRef(), gen.UniqueLocalRefWithPulse(pd.PulseNumber))
 
 		callFlags = payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty)
 	)
 
-	ref := gen.UniqueGlobalRef()
+	class := gen.UniqueGlobalRef()
 
 	request := &payload.VCallRequest{
 		CallType:            payload.CTConstructor,
 		CallFlags:           callFlags,
 		CallSiteDeclaration: testwallet.GetClass(),
 		CallSiteMethod:      "New",
-		CallOutgoing:        smObjectID,
-		Callee:              ref,
+		CallOutgoing:        outgoingRef,
+		Callee:              class,
 		Arguments:           insolar.MustSerialize([]interface{}{}),
 	}
 
@@ -56,13 +56,11 @@ func TestSMExecute_PublishVCallResultToCallSummarySM(t *testing.T) {
 		pulseSlot: &pulseSlot,
 	}
 
-	ref = reference.NewRecordOf(request.Callee, request.CallOutgoing)
-
 	smExecute = expectedInitState(ctx, smExecute)
 
 	res := payload.VCallResult{
-		Callee:       smGlobalRef,
-		CallOutgoing: gen.UniqueLocalRef(),
+		Callee:       class,
+		CallOutgoing: outgoingRef,
 	}
 
 	smExecute.execution.Result = &res
@@ -81,10 +79,10 @@ func TestSMExecute_PublishVCallResultToCallSummarySM(t *testing.T) {
 
 	{
 		workingTable := callregistry.NewWorkingTable()
-		workingTable.Add(contract.CallTolerable, ref)
-		workingTable.SetActive(contract.CallTolerable, ref)
+		workingTable.Add(contract.CallTolerable, outgoingRef)
+		workingTable.SetActive(contract.CallTolerable, outgoingRef)
 
-		sharedCallSummary.Requests.AddObjectCallResults(smGlobalRef, callregistry.ObjectCallResults{
+		sharedCallSummary.Requests.AddObjectCallResults(outgoingRef, callregistry.ObjectCallResults{
 			CallResults: workingTable.GetResults(),
 		})
 	}
@@ -134,10 +132,10 @@ func TestSMExecute_PublishVCallResultToCallSummarySM(t *testing.T) {
 		smExecute.stepPublishDataCallSummary(execCtx)
 	}
 
-	workingTable, ok := sharedCallSummary.Requests.GetObjectCallResults(smGlobalRef)
+	workingTable, ok := sharedCallSummary.Requests.GetObjectCallResults(outgoingRef)
 	require.Equal(t, 1, len(workingTable.CallResults))
 
-	result, ok := workingTable.CallResults[ref]
+	result, ok := workingTable.CallResults[outgoingRef]
 
 	require.True(t, ok)
 	require.NotNil(t, result.Result)
