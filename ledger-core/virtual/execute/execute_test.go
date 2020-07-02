@@ -323,11 +323,8 @@ func TestSMExecute_DeduplicateThroughPreviousExecutor(t *testing.T) {
 				require.Equal(t, smExecute.execution.Object, res.Callee)
 
 				return true
-			}).SleepMock.Set(
-			func() (c1 smachine.ConditionalBuilder) {
-				return smachine.NewStateConditionalBuilderMock(t).
-					ThenJumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepWaitFindCallResponse))
-			})
+			}).
+			JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepWaitFindCallResponse))
 
 		smExecute.stepDeduplicateThroughPreviousExecutor(execCtx)
 	}
