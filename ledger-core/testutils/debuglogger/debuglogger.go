@@ -131,11 +131,6 @@ type DebugMachineLogger struct {
 func (p *DebugMachineLogger) CreateStepLogger(ctx context.Context, sm smachine.StateMachine, traceID smachine.TracerID) smachine.StepLogger {
 	underlying := p.underlying.CreateStepLogger(ctx, sm, traceID)
 
-	continueStep := synckit.SignalChannel(p.continueStep)
-	if continueStep == nil {
-		continueStep = synckit.ClosedChannel()
-	}
-
 	return DebugStepLogger{
 		StepLogger: underlying,
 		sm:         sm,
