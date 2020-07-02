@@ -158,7 +158,7 @@ state "stepWaitObjectReady" as T01_S005
 T01_S005 : SMExecute
 T01_S005 --[dotted]> T01_S001
 T01_S005 --[dashed]> T01_S005 : [smachine.NotPassed]\n[(...).AcquireForThisStep().IsNotPassed()]...\nWaitShared, Sleep
-T01_S005 --> T01_S026 : [objectState!=object.HasState]
+T01_S005 --> T01_S028 : [objectState!=object.HasState]
 T01_S005 --> T01_S006
 state "GetInitStateFor" as T00_S001
 T00_S001 : dSMExecute
