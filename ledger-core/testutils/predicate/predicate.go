@@ -69,7 +69,7 @@ func ChainOf(predicates ...Func) Func {
 			return true
 		}
 
-		if predicates[pos](event) == true {
+		if predicates[pos](event) {
 			pos++
 
 			if pos == len(predicates) {
