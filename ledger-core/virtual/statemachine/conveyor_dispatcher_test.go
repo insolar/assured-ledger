@@ -39,7 +39,7 @@ func newDispatcherWithConveyor(factoryFn conveyor.PulseEventFactoryFunc) dispatc
 		MinCachePulseAge:      100,
 		MaxPastPulseAge:       1000,
 	}, factoryFn, nil)
-	return NewConveyorDispatcher(pulseConveyor)
+	return NewConveyorDispatcher(ctx, pulseConveyor)
 }
 
 func TestConveyorDispatcher_ErrorUnmarshalHandling(t *testing.T) {

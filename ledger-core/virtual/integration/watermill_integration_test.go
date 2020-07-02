@@ -46,7 +46,7 @@ func newDispatcherWithConveyor(factoryFn conveyor.PulseEventFactoryFunc) dispatc
 		MinCachePulseAge:      100,
 		MaxPastPulseAge:       1000,
 	}, factoryFn, nil)
-	return statemachine.NewConveyorDispatcher(pulseConveyor)
+	return statemachine.NewConveyorDispatcher(ctx, pulseConveyor)
 }
 
 type WatermillLogErrorHandler func(logger *logwatermill.WatermillLogAdapter, msg string, err error, fields watermill.LogFields) bool

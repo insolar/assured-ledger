@@ -18,5 +18,4 @@ type Dispatcher interface {
 	BeginPulse(ctx context.Context, pulse pulsestor.Pulse)
 	ClosePulse(ctx context.Context, pulse pulsestor.Pulse)
 	Process(msg *message.Message) error
-	ProcessWithContext(ctx context.Context, msg *message.Message) error
 }

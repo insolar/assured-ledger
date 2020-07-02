@@ -6,33 +6,59 @@
 package utils
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/log/logfmt"
 )
 
-type LogEventHandler = func(arg interface{})
+type LogInterceptHandler = func(interface{})
 
-type LogInterceptor struct {
-	logcommon.EmbeddedLogger
-	EventHandler LogEventHandler
+func InterceptLog(logger log.Logger, interceptFn LogInterceptHandler) log.Logger {
+	if interceptFn == nil {
+		return logger
+	}
+
+	embedded := logger.Embeddable()
+	li := logInterceptor{embedded, interceptFn}
+	if _, ok := embedded.(logcommon.EmbeddedLoggerOptional); ok {
+		return log.WrapEmbeddedLogger(logInterceptorWithFields{li})
+	}
+	return log.WrapEmbeddedLogger(li)
 }
 
-func (lc *LogInterceptor) NewEventStruct(level logcommon.Level) func(i interface{}, marshallers []logfmt.LogFieldMarshaller) {
+type logInterceptor struct {
+	logcommon.EmbeddedLogger
+	interceptFn LogInterceptHandler
+}
+
+func (lc logInterceptor) NewEventStruct(level logcommon.Level) func(i interface{}, marshallers []logfmt.LogFieldMarshaller) {
 	return func(i interface{}, marshallers []logfmt.LogFieldMarshaller) {
 		lc.EmbeddedLogger.NewEventStruct(level)(i, marshallers)
-		if lc.EventHandler != nil {
-			lc.EventHandler(i)
+		lc.interceptFn(i)
+	}
+}
+
+func (lc logInterceptor) NewEvent(level logcommon.Level) func(args []interface{}) {
+	return func(args []interface{}) {
+		lc.EmbeddedLogger.NewEvent(level)(args)
+		if len(args) > 0 {
+			lc.interceptFn(args[0])
 		}
 	}
 }
 
-func (lc *LogInterceptor) NewEvent(level logcommon.Level) func(args []interface{}) {
-	return func(args []interface{}) {
-		lc.EmbeddedLogger.NewEvent(level)(args)
-		if lc.EventHandler != nil {
-			if len(args) > 0 {
-				lc.EventHandler(args[0])
-			}
-		}
-	}
+var _ logcommon.EmbeddedLoggerOptional = logInterceptorWithFields{}
+
+type logInterceptorWithFields struct {
+	logInterceptor
 }
+
+func (lc logInterceptorWithFields) WithFields(fields map[string]interface{}) logcommon.EmbeddedLogger {
+	return lc.EmbeddedLogger.(logInterceptorWithFields).WithFields(fields)
+}
+
+func (lc logInterceptorWithFields) WithField(name string, value interface{}) logcommon.EmbeddedLogger {
+	return lc.EmbeddedLogger.(logInterceptorWithFields).WithField(name, value)
+}
+
+
