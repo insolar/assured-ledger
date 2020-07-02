@@ -12,7 +12,6 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/defaults"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/dispatcher"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
@@ -33,6 +32,7 @@ const (
 )
 
 type conveyorDispatcher struct {
+	ctx           context.Context
 	conveyor      *conveyor.PulseConveyor
 	state         dispatcherInitializationState
 	previousPulse pulse.Number
@@ -120,13 +120,6 @@ type errUnknownPayload struct {
 }
 
 func (c *conveyorDispatcher) Process(msg *message.Message) error {
-	ctx := context.Background()
-	ctx, _ = inslogger.WithTraceField(ctx, msg.Metadata.Get(defaults.TraceID))
-	ctx, _ = inslogger.WithField(ctx, "component", "sm")
-	return c.ProcessWithContext(ctx, msg)
-}
-
-func (c *conveyorDispatcher) ProcessWithContext(ctx context.Context, msg *message.Message) error {
 	msg.Ack()
 	_, pl, err := rms.Unmarshal(msg.Payload)
 	if err != nil {
@@ -137,12 +130,12 @@ func (c *conveyorDispatcher) ProcessWithContext(ctx context.Context, msg *messag
 		return throw.E("unexpected type", errUnknownPayload{ExpectedType: "payload.Meta", GotType: pl})
 	}
 
-	return c.conveyor.AddInput(ctx, plMeta.Pulse, &DispatcherMessage{
+	return c.conveyor.AddInput(c.ctx, plMeta.Pulse, &DispatcherMessage{
 		MessageMeta: msg.Metadata,
 		PayloadMeta: plMeta,
 	})
 }
 
-func NewConveyorDispatcher(conveyor *conveyor.PulseConveyor) dispatcher.Dispatcher {
-	return &conveyorDispatcher{conveyor: conveyor}
+func NewConveyorDispatcher(ctx context.Context, conveyor *conveyor.PulseConveyor) dispatcher.Dispatcher {
+	return &conveyorDispatcher{ ctx: ctx, conveyor: conveyor}
 }

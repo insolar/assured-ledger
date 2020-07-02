@@ -69,7 +69,8 @@ func TestAntique_InheritPulseSlot(t *testing.T) {
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 
-	require.NoError(t, conveyor.AddInputExt(ctx, firstPn, "inputEvent", smachine.CreateDefaultValues{
+	require.NoError(t, conveyor.AddInputExt(firstPn, "inputEvent", smachine.CreateDefaultValues{
+		Context: ctx,
 		TerminationHandler: func(data smachine.TerminationData) {
 			wg.Done()
 		},

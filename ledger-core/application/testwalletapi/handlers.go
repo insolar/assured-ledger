@@ -392,6 +392,7 @@ func (s *TestWalletServer) runWalletRequest(ctx context.Context, req payload.VCa
 	)
 
 	createDefaults := smachine.CreateDefaultValues{
+		Context: ctx,
 		TerminationHandler: func(data smachine.TerminationData) {
 			defer func() {
 				close(readyChan)
@@ -407,7 +408,7 @@ func (s *TestWalletServer) runWalletRequest(ctx context.Context, req payload.VCa
 		TracerID: trace.ID(ctx),
 	}
 
-	err = s.feeder.AddInputExt(ctx, latestPulse.PulseNumber, call, createDefaults)
+	err = s.feeder.AddInputExt(latestPulse.PulseNumber, call, createDefaults)
 	if err != nil {
 		return nil, throw.W(err, "Failed to add call to conveyor", nil)
 	}
