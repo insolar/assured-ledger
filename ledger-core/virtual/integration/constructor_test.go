@@ -685,9 +685,9 @@ func TestVirtual_Constructor_PulseChangedWhileOutgoing(t *testing.T) {
 		typedChecker.VDelegatedRequestFinished.Set(func(finished *payload.VDelegatedRequestFinished) bool {
 			assert.Equal(t, payload.CTConstructor, finished.CallType)
 			assert.Equal(t, callFlags, finished.CallFlags)
-			assert.NotNil(t, finished.LatestState)
 			assert.Equal(t, outgoing, finished.CallOutgoing)
 			assert.Equal(t, outgoing, finished.Callee)
+			require.NotNil(t, finished.LatestState)
 			assert.Equal(t, []byte("234"), finished.LatestState.State)
 			assert.Equal(t, delegationToken, finished.DelegationSpec)
 			return false
