@@ -80,16 +80,15 @@ func TestVirtual_Method_One_PulseChanged(t *testing.T) {
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
 			var (
-				outgoing        = server.RandomLocalWithPulse()
-				object          = reference.NewSelf(outgoing)
-				outgoingCallRef = reference.NewRecordOf(object, outgoing)
+				outgoing = server.BuildRandomOutgoingWithPulse()
+				object   = reference.NewSelf(server.RandomLocalWithPulse())
 
 				p1 = server.GetPulse().PulseNumber
 
 				expectedToken = payload.CallDelegationToken{
 					TokenTypeAndFlags: payload.DelegationTokenTypeCall,
 					Callee:            object,
-					Outgoing:          outgoingCallRef,
+					Outgoing:          outgoing,
 					DelegateTo:        server.JetCoordinatorMock.Me(),
 				}
 				firstTokenValue payload.CallDelegationToken
@@ -187,7 +186,7 @@ func TestVirtual_Method_One_PulseChanged(t *testing.T) {
 				typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
 					assert.Equal(t, object, res.Callee)
 					assert.Equal(t, []byte("call result"), res.ReturnArguments)
-					assert.Equal(t, p1, res.CallOutgoing.Pulse())
+					assert.Equal(t, p1, res.CallOutgoing.GetLocal().Pulse())
 					assert.Equal(t, expectedToken, res.DelegationSpec)
 					return false
 				})
@@ -200,7 +199,7 @@ func TestVirtual_Method_One_PulseChanged(t *testing.T) {
 				tokenRequestDone := server.Journal.Wait(
 					predicate.Sequence(
 						predicate.NewSMTypeFilter(&execute.SMDelegatedTokenRequest{}, predicate.AfterAnyStopOrError),
-						predicate.NewSMTypeFilter(&execute.SMExecute{}, predicate.AfterStep((&execute.SMExecute{}).StepWaitExecutionResult)),
+						predicate.NewSMTypeFilter(&execute.SMExecute{}, predicate.BeforeStep((&execute.SMExecute{}).StepWaitExecutionResult)),
 					),
 				)
 
