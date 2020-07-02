@@ -8,6 +8,7 @@ package datawriter
 import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/catalog"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/inspectsvc"
@@ -25,7 +26,7 @@ type LineSharedData struct {
 	ready   bool
 	valid   bool
 
-	jetDropID   JetDropID
+	jetDropID   jet.DropID
 	dropUpdater buildersvc.JetDropAssistant
 
 	data *lineage.LineStages
