@@ -393,6 +393,7 @@ func (s *VFindCallRequestHandlingSuite) setMessageCheckers(
 		defer func() {
 			close(s.haveFindResponseSignal)
 		}()
+		assert.Equal(t, s.getP2(), res.LookedAt)
 		assert.Equal(t, s.getObject(), res.Callee)
 		assert.Equal(t, s.getOutgoingRef(), res.Outgoing)
 		assert.Equal(t, testInfo.expectedStatus, res.Status)
@@ -435,6 +436,7 @@ func (s *VFindCallRequestHandlingSuite) setMessageCheckers(
 		assert.Equal(t, s.getOutgoingRef(), req.Outgoing)
 
 		pl := payload.VFindCallResponse{
+			LookedAt: s.getP2(),
 			Callee:   s.getObject(),
 			Outgoing: s.getOutgoingRef(),
 			Status:   payload.MissingCall,
