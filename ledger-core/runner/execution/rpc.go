@@ -102,18 +102,16 @@ func (e CallConstructor) ParentRequestReference() reference.Global {
 }
 
 func (e CallConstructor) ConstructVCallRequest(execution Context) *payload.VCallRequest {
-	execution.Sequence++
-
 	return &payload.VCallRequest{
 		CallType:            payload.CTConstructor,
 		CallFlags:           payload.BuildCallFlags(execution.Isolation.Interference, execution.Isolation.State),
 		Caller:              e.parentObjectReference,
 		Callee:              e.class,
 		CallSiteMethod:      e.constructor,
-		CallSequence:        execution.Sequence,
+		CallSequence:        0, // must be filled in the caller
 		CallReason:          e.parentRequestReference,
 		KnownCalleeIncoming: reference.Global{},
-		CallOutgoing:        reference.Local{}, // must be filled in the caller
+		CallOutgoing:        reference.Global{}, // must be filled in the caller
 		Arguments:           e.arguments,
 	}
 }
@@ -161,17 +159,15 @@ func (e CallMethod) ParentRequestReference() reference.Global {
 }
 
 func (e CallMethod) ConstructVCallRequest(execution Context) *payload.VCallRequest {
-	execution.Sequence++
-
 	return &payload.VCallRequest{
 		CallType:       payload.CTMethod,
 		CallFlags:      payload.BuildCallFlags(execution.Isolation.Interference, execution.Isolation.State),
 		Caller:         e.parentObjectReference,
 		Callee:         e.object,
 		CallSiteMethod: e.method,
-		CallSequence:   execution.Sequence,
+		CallSequence:   0, // must be filled in the caller
 		CallReason:     e.parentRequestReference,
-		CallOutgoing:   reference.Local{}, // must be filled in the caller
+		CallOutgoing:   reference.Global{}, // must be filled in the caller
 		Arguments:      e.arguments,
 	}
 }

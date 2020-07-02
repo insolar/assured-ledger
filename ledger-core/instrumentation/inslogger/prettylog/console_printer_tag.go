@@ -5,7 +5,7 @@
 
 // +build convlogtxt copylogtxt
 
-package instestlogger
+package prettylog
 
 import (
 	"io"
@@ -22,7 +22,7 @@ func init() {
 }
 
 func copyConsoleOutputConfig() consprint.Config {
-	d := ConsoleWriterDefaults
+	d := Defaults
 	return consprint.Config{
 		NoColor:    d.NoColor,
 		TimeFormat: d.TimeFormat,

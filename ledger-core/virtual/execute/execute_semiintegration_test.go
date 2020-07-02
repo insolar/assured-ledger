@@ -16,10 +16,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/slotdebugger"
 )
@@ -27,14 +28,14 @@ import (
 func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 	var (
 		mc  = minimock.NewController(t)
-		ctx = inslogger.TestContext(t)
+		ctx = instestlogger.TestContext(t)
 
 		class       = gen.UniqueGlobalRef()
 		caller      = gen.UniqueGlobalRef()
 		sharedState = &object.SharedState{
 			Info: object.Info{
-				PendingTable:   object.NewRequestTable(),
-				KnownRequests:  object.NewWorkingTable(),
+				PendingTable:   callregistry.NewRequestTable(),
+				KnownRequests:  callregistry.NewWorkingTable(),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
 				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
 			},
@@ -45,8 +46,7 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 
-	outgoing := gen.UniqueLocalRefWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
-	objectRef := reference.NewSelf(outgoing)
+	outgoing := reference.NewRecordOf(caller, slotMachine.GenerateLocal())
 
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
@@ -75,7 +75,7 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
 		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 
-		catalogWrapper.AddObject(objectRef, smObjectAccessor)
+		catalogWrapper.AddObject(outgoing, smObjectAccessor)
 		catalogWrapper.AllowAccessMode(object.CatalogMockAccessGetOrCreate)
 	}
 
@@ -99,15 +99,15 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 	var (
 		mc  = minimock.NewController(t)
-		ctx = inslogger.TestContext(t)
+		ctx = instestlogger.TestContext(t)
 
 		class       = gen.UniqueGlobalRef()
 		caller      = gen.UniqueGlobalRef()
 		callee      = gen.UniqueGlobalRef()
 		sharedState = &object.SharedState{
 			Info: object.Info{
-				PendingTable:   object.NewRequestTable(),
-				KnownRequests:  object.NewWorkingTable(),
+				PendingTable:   callregistry.NewRequestTable(),
+				KnownRequests:  callregistry.NewWorkingTable(),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
 				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
 			},
@@ -118,8 +118,7 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 
-	outgoing := gen.UniqueLocalRefWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
-	objectRef := reference.NewSelf(outgoing)
+	outgoing := reference.NewRecordOf(caller, slotMachine.GenerateLocal())
 
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
@@ -148,7 +147,7 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
 		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 
-		catalogWrapper.AddObject(objectRef, smObjectAccessor)
+		catalogWrapper.AddObject(outgoing, smObjectAccessor)
 		catalogWrapper.AllowAccessMode(object.CatalogMockAccessGetOrCreate)
 	}
 
@@ -174,14 +173,14 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 func TestSMExecute_MigrateAfterLock(t *testing.T) {
 	var (
 		mc  = minimock.NewController(t)
-		ctx = inslogger.TestContext(t)
+		ctx = instestlogger.TestContext(t)
 
 		class       = gen.UniqueGlobalRef()
 		caller      = gen.UniqueGlobalRef()
 		sharedState = &object.SharedState{
 			Info: object.Info{
-				PendingTable:   object.NewRequestTable(),
-				KnownRequests:  object.NewWorkingTable(),
+				PendingTable:   callregistry.NewRequestTable(),
+				KnownRequests:  callregistry.NewWorkingTable(),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
 				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
 			},
@@ -192,8 +191,7 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 
-	outgoing := gen.UniqueLocalRefWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
-	objectRef := reference.NewSelf(outgoing)
+	outgoing := reference.NewRecordOf(caller, slotMachine.GenerateLocal())
 
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
@@ -222,7 +220,7 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
 		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 
-		catalogWrapper.AddObject(objectRef, smObjectAccessor)
+		catalogWrapper.AddObject(outgoing, smObjectAccessor)
 		catalogWrapper.AllowAccessMode(object.CatalogMockAccessGetOrCreate)
 	}
 
@@ -248,7 +246,7 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 func TestSMExecute_Semi_ConstructorOnMissingObject(t *testing.T) {
 	var (
 		mc  = minimock.NewController(t)
-		ctx = inslogger.TestContext(t)
+		ctx = instestlogger.TestContext(t)
 	)
 
 	slotMachine := slotdebugger.NewWithIgnoreAllError(ctx, t)
@@ -258,12 +256,11 @@ func TestSMExecute_Semi_ConstructorOnMissingObject(t *testing.T) {
 	var (
 		class       = gen.UniqueGlobalRef()
 		caller      = gen.UniqueGlobalRef()
-		outgoing    = slotMachine.GenerateLocal()
-		objectRef   = reference.NewSelf(outgoing)
+		outgoing    = reference.NewRecordOf(caller, slotMachine.GenerateLocal())
 		sharedState = &object.SharedState{
 			Info: object.Info{
-				PendingTable:   object.NewRequestTable(),
-				KnownRequests:  object.NewWorkingTable(),
+				PendingTable:   callregistry.NewRequestTable(),
+				KnownRequests:  callregistry.NewWorkingTable(),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
 				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
 			},
@@ -299,7 +296,7 @@ func TestSMExecute_Semi_ConstructorOnMissingObject(t *testing.T) {
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
 		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 
-		catalogWrapper.AddObject(objectRef, smObjectAccessor)
+		catalogWrapper.AddObject(outgoing, smObjectAccessor)
 		catalogWrapper.AllowAccessMode(object.CatalogMockAccessGetOrCreate)
 	}
 
@@ -323,7 +320,7 @@ func TestSMExecute_Semi_ConstructorOnMissingObject(t *testing.T) {
 func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 	var (
 		mc  = minimock.NewController(t)
-		ctx = inslogger.TestContext(t)
+		ctx = instestlogger.TestContext(t)
 	)
 
 	slotMachine := slotdebugger.NewWithIgnoreAllError(ctx, t)
@@ -333,12 +330,11 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 	var (
 		class       = gen.UniqueGlobalRef()
 		caller      = gen.UniqueGlobalRef()
-		outgoing    = gen.UniqueLocalRef()
-		objectRef   = reference.NewSelf(outgoing)
+		outgoing    = reference.NewRecordOf(caller, slotMachine.GenerateLocal())
 		sharedState = &object.SharedState{
 			Info: object.Info{
-				PendingTable:   object.NewRequestTable(),
-				KnownRequests:  object.NewWorkingTable(),
+				PendingTable:   callregistry.NewRequestTable(),
+				KnownRequests:  callregistry.NewWorkingTable(),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
 				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
 			},
@@ -374,7 +370,7 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
 		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 
-		catalogWrapper.AddObject(objectRef, smObjectAccessor)
+		catalogWrapper.AddObject(outgoing, smObjectAccessor)
 		catalogWrapper.AllowAccessMode(object.CatalogMockAccessGetOrCreate)
 	}
 
@@ -398,7 +394,7 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 func TestSMExecute_Semi_MethodOnEmptyObject(t *testing.T) {
 	var (
 		mc  = minimock.NewController(t)
-		ctx = inslogger.TestContext(t)
+		ctx = instestlogger.TestContext(t)
 	)
 
 	slotMachine := slotdebugger.NewWithIgnoreAllError(ctx, t)
@@ -407,12 +403,12 @@ func TestSMExecute_Semi_MethodOnEmptyObject(t *testing.T) {
 
 	var (
 		caller      = slotMachine.GenerateGlobal()
-		outgoing    = slotMachine.GenerateLocal()
-		objectRef   = reference.NewSelf(outgoing)
+		objectRef   = slotMachine.GenerateGlobal()
+		outgoing    = reference.NewRecordOf(slotMachine.GenerateGlobal(), slotMachine.GenerateLocal())
 		sharedState = &object.SharedState{
 			Info: object.Info{
-				PendingTable:   object.NewRequestTable(),
-				KnownRequests:  object.NewWorkingTable(),
+				PendingTable:   callregistry.NewRequestTable(),
+				KnownRequests:  callregistry.NewWorkingTable(),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
 				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
 			},

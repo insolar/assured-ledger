@@ -36,13 +36,12 @@ func (h *Helper) GetObjectClass() reference.Global {
 	return h.class
 }
 
-func (h *Helper) calculateOutgoing(pl payload.VCallRequest) reference.Global {
-	return reference.NewRecordOf(pl.Callee, pl.CallOutgoing)
+func (h *Helper) BuildObjectOutgoing() reference.Global {
+	return reference.NewRecordOf(h.server.GlobalCaller(), gen.UniqueLocalRefWithPulse(h.server.GetPulse().PulseNumber))
 }
 
 func (h *Helper) CreateObject(ctx context.Context, t *testing.T) reference.Global {
 	var (
-		pn          = h.server.GetPulse().PulseNumber
 		isolation   = contract.ConstructorIsolation()
 		plArguments = insolar.MustSerialize([]interface{}{})
 	)
@@ -53,10 +52,10 @@ func (h *Helper) CreateObject(ctx context.Context, t *testing.T) reference.Globa
 		Caller:         h.server.GlobalCaller(),
 		Callee:         h.class,
 		CallSiteMethod: "New",
-		CallOutgoing:   gen.UniqueLocalRefWithPulse(pn),
+		CallOutgoing:   h.BuildObjectOutgoing(),
 		Arguments:      plArguments,
 	}
-	objectReference := h.calculateOutgoing(pl)
+	objectReference := pl.CallOutgoing
 
 	{
 		keyExtractor := func(ctx execution.Context) string { return ctx.Outgoing.String() }

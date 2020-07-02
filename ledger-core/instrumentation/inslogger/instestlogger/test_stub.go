@@ -3,22 +3,18 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-// +build !convlogtxt,!copylogtxt
-
 package instestlogger
 
 import (
-	"io"
-
 	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
 )
 
-const ConvertJSONLogForConsole = false
+var _ logcommon.TestingLogger = &stubT{}
 
-func ConvertJSONConsoleOutput(in io.Writer) io.Writer {
-	return in
-}
+type stubT struct {}
 
-func ConvertJSONTestingOutput(in logcommon.TestingLogger) logcommon.TestingLogger {
-	return in
-}
+func (p *stubT) Helper()              {}
+func (p *stubT) Log(...interface{})   {}
+func (p *stubT) Error(...interface{}) {}
+func (p *stubT) Fatal(...interface{}) {}
+func (p *stubT) cleanup(bool)         {}

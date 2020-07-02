@@ -19,6 +19,24 @@ type TestingLogger interface {
 	Fatal(...interface{})
 }
 
+type TestingLoggerWrapper interface {
+	UnwrapTesting() TestingLogger
+}
+
+func IsBasedOn(t, lookFor TestingLogger) bool {
+	for t != nil {
+		if t == lookFor {
+			return true
+		}
+		if w, ok := t.(TestingLoggerWrapper); ok {
+			t = w.UnwrapTesting()
+			continue
+		}
+		break
+	}
+	return false
+}
+
 type ErrorFilterFunc = func(string) bool
 
 type TestingLoggerOutput struct {

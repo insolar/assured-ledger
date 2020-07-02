@@ -10,6 +10,7 @@ import (
 
 	"github.com/insolar/component-manager"
 
+	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
@@ -61,6 +62,7 @@ func NewKeyBoundCryptographyService(privateKey crypto.PrivateKey) cryptography.S
 	cryptographyService := NewCryptographyService()
 
 	cm := component.NewManager(nil)
+	cm.SetLogger(global.Logger())
 
 	cm.Register(platformCryptographyScheme)
 	cm.Inject(keyStore, cryptographyService, keyProcessor)
@@ -77,6 +79,7 @@ func NewStorageBoundCryptographyService(path string) (cryptography.Service, erro
 	cryptographyService := NewCryptographyService()
 
 	cm := component.NewManager(nil)
+	cm.SetLogger(global.Logger())
 
 	cm.Register(platformCryptographyScheme, keyStore)
 	cm.Inject(cryptographyService, keyProcessor)

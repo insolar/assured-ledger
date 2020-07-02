@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 )
@@ -19,7 +20,7 @@ import (
 func TestNewStreamHandler(t *testing.T) {
 	defer testutils.LeakTester(t)
 
-	ctx := inslogger.TestContext(t)
+	ctx := instestlogger.TestContext(t)
 
 	requestHandler := func(ctx context.Context, p *packet.ReceivedPacket) {
 		inslogger.FromContext(ctx).Info("requestHandler")

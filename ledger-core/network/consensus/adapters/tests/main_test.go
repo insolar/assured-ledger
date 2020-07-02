@@ -15,12 +15,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus"
 )
 
 const (
-	defaultLogLevel       = log.DebugLevel
 	defaultPulseDelta     = 2
 	defaultTestDuration   = defaultPulseDelta * time.Second * 10
 	defaultStartCaseAfter = 1 * time.Second
@@ -33,9 +31,9 @@ var strategy = NewDelayNetStrategy(DelayStrategyConf{
 	SpikeProbability: 0.1,
 })
 
-var ctx = initLogger(defaultLogLevel)
-
 func TestConsensusJoin(t *testing.T) {
+	ctx := initLogger(t)
+
 	nodes, err := generateNodes(0, 1, 3, 5, nil)
 	require.NoError(t, err)
 
@@ -65,6 +63,8 @@ func TestConsensusJoin(t *testing.T) {
 }
 
 func TestConsensusLeave(t *testing.T) {
+	ctx := initLogger(t)
+
 	nodes, err := generateNodes(0, 1, 3, 5, nil)
 	require.NoError(t, err)
 
@@ -86,6 +86,8 @@ func TestConsensusLeave(t *testing.T) {
 }
 
 func TestConsensusDrop(t *testing.T) {
+	ctx := initLogger(t)
+
 	nodes, err := generateNodes(0, 1, 3, 5, nil)
 	require.NoError(t, err)
 
@@ -106,6 +108,8 @@ func TestConsensusDrop(t *testing.T) {
 
 func TestConsensusJoinLeave(t *testing.T) {
 	t.Skip("Until phase 4 ready")
+
+	ctx := initLogger(t)
 
 	nodes, err := generateNodes(0, 1, 3, 5, nil)
 	require.NoError(t, err)
@@ -158,6 +162,8 @@ func TestConsensusJoinLeave(t *testing.T) {
 func TestConsensusJoinDrop(t *testing.T) {
 	t.Skip("Until phase 4 ready")
 
+	ctx := initLogger(t)
+
 	nodes, err := generateNodes(0, 1, 3, 5, nil)
 	require.NoError(t, err)
 
@@ -205,6 +211,8 @@ func TestConsensusJoinDrop(t *testing.T) {
 }
 
 func TestConsensusDropLeave(t *testing.T) {
+	ctx := initLogger(t)
+
 	nodes, err := generateNodes(0, 1, 3, 5, nil)
 	require.NoError(t, err)
 
@@ -245,6 +253,8 @@ func TestConsensusDropLeave(t *testing.T) {
 
 func TestConsensusAll(t *testing.T) {
 	t.Skip("Until phase 4 ready")
+
+	ctx := initLogger(t)
 
 	nodes, err := generateNodes(0, 1, 3, 5, nil)
 	require.NoError(t, err)

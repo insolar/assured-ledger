@@ -19,12 +19,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/introspector/introproto"
 )
 
 func TestIntrospector_Server(t *testing.T) {
-	ctx := inslogger.TestContext(t)
+	ctx := instestlogger.TestContext(t)
 
 	l, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err, "listener bind on random port without error")
@@ -50,7 +50,7 @@ func TestIntrospector_Server(t *testing.T) {
 }
 
 func TestIntrospector_Server_FilterMessages(t *testing.T) {
-	ctx := inslogger.TestContext(t)
+	ctx := instestlogger.TestContext(t)
 
 	mockState := map[string]struct{}{}
 	pubMock := NewPublisherServerMock(t)

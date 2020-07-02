@@ -18,9 +18,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
@@ -31,7 +32,7 @@ import (
 
 func TestSMExecute_MigrationDuringSendOutgoing(t *testing.T) {
 	var (
-		ctx = inslogger.TestContext(t)
+		ctx = instestlogger.TestContext(t)
 		mc  = minimock.NewController(t)
 
 		pd         = pulse.NewFirstPulsarData(10, longbits.Bits256{})
@@ -51,7 +52,7 @@ func TestSMExecute_MigrationDuringSendOutgoing(t *testing.T) {
 			CallFlags:           callFlags,
 			CallSiteDeclaration: testwallet.GetClass(),
 			CallSiteMethod:      "New",
-			CallOutgoing:        smObjectID,
+			CallOutgoing:        reference.New(gen.UniqueLocalRef(), smObjectID),
 			Arguments:           insolar.MustSerialize([]interface{}{}),
 		},
 		pulseSlot: &pulseSlot,

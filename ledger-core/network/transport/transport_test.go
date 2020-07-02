@@ -11,9 +11,10 @@ import (
 	"log"
 	"testing"
 
-	"github.com/stretchr/testify/suite"
-
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
+
+	"github.com/stretchr/testify/suite"
 
 	"github.com/insolar/component-manager"
 
@@ -143,6 +144,7 @@ func (s *suiteTest) TestDatagramTransport() {
 }
 
 func TestFakeTransport(t *testing.T) {
+	instestlogger.SetTestOutput(t)
 
 	cfg1 := configuration.Transport{Protocol: "TCP", Address: "127.0.0.1:8080"}
 	cfg2 := configuration.Transport{Protocol: "TCP", Address: "127.0.0.1:4200"}
@@ -154,6 +156,8 @@ func TestFakeTransport(t *testing.T) {
 }
 
 func TestTransport(t *testing.T) {
+	instestlogger.SetTestOutput(t)
+
 	cfg1 := configuration.Transport{Protocol: "TCP", Address: "127.0.0.1:0"}
 	cfg2 := configuration.Transport{Protocol: "TCP", Address: "127.0.0.1:0"}
 
