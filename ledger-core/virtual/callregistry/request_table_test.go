@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package object
+package callregistry
 
 import (
 	"testing"
@@ -16,6 +16,22 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 )
+
+func BenchmarkPendingTable(b *testing.B) {
+	var x PendingTable
+	for i := 0; i < b.N; i++ {
+		x = NewRequestTable()
+	}
+	x = x
+}
+
+func BenchmarkWorkingTable(b *testing.B) {
+	var x WorkingTable
+	for i := 0; i < b.N; i++ {
+		x = NewWorkingTable()
+	}
+	x = x
+}
 
 func TestPendingTable(t *testing.T) {
 	rt := NewRequestTable()
@@ -53,7 +69,7 @@ func TestPendingList(t *testing.T) {
 	RefOne := reference.NewSelf(objectOne)
 	RefTwo := reference.NewSelf(objectTwo)
 
-	rl := NewRequestList()
+	rl := newRequestList()
 	require.Equal(t, 0, rl.Count())
 	require.Equal(t, 0, rl.CountFinish())
 	require.Equal(t, 0, rl.CountActive())
@@ -114,7 +130,7 @@ func TestPendingList_Finish(t *testing.T) {
 	objectTwo := gen.UniqueLocalRefWithPulse(nextPulseNumber)
 	RefTwo := reference.NewSelf(objectTwo)
 
-	rl := NewRequestList()
+	rl := newRequestList()
 
 	require.Equal(t, true, rl.Add(RefOne))
 	require.Equal(t, 1, rl.Count())

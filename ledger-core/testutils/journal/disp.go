@@ -9,12 +9,12 @@ import (
 	"sync"
 
 	"github.com/insolar/assured-ledger/ledger-core/testutils/debuglogger"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/journal/predicate"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/predicate"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type Dispenser struct {
-	lock sync.RWMutex
+	lock        sync.RWMutex
 	subscribers []predicate.SubscriberFunc
 	freeItems   []uint32
 	stopped     bool

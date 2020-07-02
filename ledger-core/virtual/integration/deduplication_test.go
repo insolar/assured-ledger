@@ -23,86 +23,12 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/synchronization"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/mock"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 )
-
-func TestDeduplication_Constructor_DuringExecution(t *testing.T) {
-	t.Log("C4998")
-
-	server, ctx := utils.NewUninitializedServer(nil, t)
-	defer server.Stop()
-
-	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 2)
-
-	runnerMock := logicless.NewServiceMock(ctx, t, nil)
-	server.ReplaceRunner(runnerMock)
-	server.Init(ctx)
-
-	var (
-		isolation = contract.ConstructorIsolation()
-		outgoing  = server.RandomLocalWithPulse()
-		class     = gen.UniqueGlobalRef()
-	)
-
-	pl := payload.VCallRequest{
-		CallType:       payload.CTConstructor,
-		CallFlags:      payload.BuildCallFlags(isolation.Interference, isolation.State),
-		Callee:         class,
-		CallSiteMethod: "New",
-		CallOutgoing:   outgoing,
-	}
-
-	synchronizeExecution := synchronization.NewPoint(1)
-	defer synchronizeExecution.Done()
-
-	{
-		requestResult := requestresult.New([]byte("123"), gen.UniqueGlobalRef())
-		requestResult.SetActivate(gen.UniqueGlobalRef(), class, []byte("234"))
-
-		executionMock := runnerMock.AddExecutionMock(calculateOutgoing(pl).String())
-		executionMock.AddStart(func(ctx execution.Context) {
-			synchronizeExecution.Synchronize()
-		}, &execution.Update{
-			Type:   execution.Done,
-			Result: requestResult,
-		})
-	}
-
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, t, server)
-	typedChecker.VCallResult.SetResend(false)
-	typedChecker.VDelegatedCallRequest.SetResend(true)
-	typedChecker.VDelegatedCallResponse.SetResend(true)
-	typedChecker.VDelegatedRequestFinished.SetResend(true)
-	typedChecker.VStateReport.SetResend(true)
-
-	{
-		server.SendPayload(ctx, &pl)
-	}
-
-	testutils.WaitSignalsTimed(t, 10*time.Second, synchronizeExecution.Wait())
-	server.IncrementPulse(ctx)
-	synchronizeExecution.WakeUp()
-
-	{
-		server.SendPayload(ctx, &pl)
-	}
-
-	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
-	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
-
-	{
-		assert.Equal(t, 1, typedChecker.VCallResult.Count())
-		assert.Equal(t, 1, typedChecker.VDelegatedCallRequest.Count())
-		assert.Equal(t, 1, typedChecker.VDelegatedCallResponse.Count())
-		assert.Equal(t, 1, typedChecker.VDelegatedCallRequest.Count())
-		assert.Equal(t, 1, typedChecker.VStateReport.Count())
-	}
-}
 
 func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 	t.Log("C5095")
@@ -121,9 +47,11 @@ func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
 
+	helper := utils.NewHelper(server)
+
 	p1 := server.GetPulse().PulseNumber
 
-	outgoing := server.RandomLocalWithPulse()
+	outgoing := helper.BuildObjectOutgoing()
 	class := gen.UniqueGlobalRef()
 	object := gen.UniqueGlobalRef()
 
@@ -208,9 +136,11 @@ func TestDeduplication_SecondCallOfMethodAfterExecution(t *testing.T) {
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
 
+	helper := utils.NewHelper(server)
+
 	p1 := server.GetPulse().PulseNumber
 
-	outgoing := server.RandomLocalWithPulse()
+	outgoing := helper.BuildObjectOutgoing()
 	class := gen.UniqueGlobalRef()
 	object := gen.UniqueGlobalRef()
 
@@ -534,7 +464,7 @@ type deduplicateMethodUsingPrevVETest struct {
 	class    reference.Global
 	caller   reference.Global
 	object   reference.Global
-	outgoing reference.Local
+	outgoing reference.Global
 	pending  reference.Global
 
 	numberOfExecutions int
@@ -590,7 +520,7 @@ func (s *deduplicateMethodUsingPrevVETest) generateOutgoing(ctx context.Context)
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	s.outgoing = gen.UniqueLocalRefWithPulse(p)
+	s.outgoing = reference.NewRecordOf(s.caller, gen.UniqueLocalRefWithPulse(p))
 }
 
 func (s *deduplicateMethodUsingPrevVETest) generateClass(ctx context.Context) {
@@ -622,15 +552,13 @@ func (s *deduplicateMethodUsingPrevVETest) getClass() reference.Global {
 }
 
 func (s *deduplicateMethodUsingPrevVETest) getOutgoingRef() reference.Global {
-	callee := s.getObject() // TODO: FIXME: PLAT-558: should be caller
-
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	return reference.NewRecordOf(callee, s.outgoing)
+	return reference.NewRecordOf(s.getCaller(), s.outgoing.GetLocal())
 }
 
-func (s *deduplicateMethodUsingPrevVETest) getOutgoingLocal() reference.Local {
+func (s *deduplicateMethodUsingPrevVETest) getOutgoingLocal() reference.Global {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 

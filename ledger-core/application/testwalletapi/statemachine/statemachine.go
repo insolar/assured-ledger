@@ -62,21 +62,15 @@ func (s *SMTestAPICall) GetStateMachineDeclaration() smachine.StateMachineDeclar
 	return testAPICallSMDeclarationInstance
 }
 
-func (s *SMTestAPICall) migrationDefault(ctx smachine.MigrationContext) smachine.StateUpdate {
-	ctx.Log().Trace("Resend message")
-	return ctx.Jump(s.stepSendRequest)
-}
-
 func (s *SMTestAPICall) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
-	ctx.SetDefaultMigration(s.migrationDefault)
-
-	s.requestPayload.Caller = APICaller
-	s.requestPayload.CallOutgoing = gen.UniqueLocalRefWithPulse(s.pulseSlot.PulseData().PulseNumber)
-
 	return ctx.Jump(s.stepRegisterBargeIn)
 }
 
 func (s *SMTestAPICall) stepRegisterBargeIn(ctx smachine.ExecutionContext) smachine.StateUpdate {
+
+	s.requestPayload.Caller = APICaller
+	s.requestPayload.CallOutgoing = reference.NewRecordOf(APICaller, gen.UniqueLocalRefWithPulse(s.pulseSlot.PulseData().PulseNumber))
+
 	bargeInCallback := ctx.NewBargeInWithParam(func(param interface{}) smachine.BargeInCallbackFunc {
 		res, ok := param.(*payload.VCallResult)
 		if !ok || res == nil {
@@ -90,12 +84,19 @@ func (s *SMTestAPICall) stepRegisterBargeIn(ctx smachine.ExecutionContext) smach
 		}
 	})
 
-	outgoingRef := reference.NewRecordOf(s.requestPayload.Caller, s.requestPayload.CallOutgoing)
-	if !ctx.PublishGlobalAliasAndBargeIn(outgoingRef, bargeInCallback) {
+	if !ctx.PublishGlobalAliasAndBargeIn(s.requestPayload.CallOutgoing, bargeInCallback) {
 		return ctx.Error(errors.New("failed to publish bargeInCallback"))
 	}
 
-	return ctx.Jump(s.stepSendRequest)
+	return ctx.JumpExt(smachine.SlotStep{
+		Transition: s.stepSendRequest,
+		Migration: func(ctx smachine.MigrationContext) smachine.StateUpdate {
+			if !ctx.UnpublishGlobalAlias(s.requestPayload.CallOutgoing) {
+				panic("global alias must exist")
+			}
+			return ctx.Jump(s.stepRegisterBargeIn)
+		},
+	})
 }
 
 func (s *SMTestAPICall) stepSendRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -104,7 +105,7 @@ func (s *SMTestAPICall) stepSendRequest(ctx smachine.ExecutionContext) smachine.
 	case payload.CTMethod:
 		obj = s.requestPayload.Callee
 	case payload.CTConstructor:
-		obj = reference.NewSelf(s.requestPayload.CallOutgoing)
+		obj = s.requestPayload.CallOutgoing
 	default:
 		panic(throw.IllegalValue())
 	}
@@ -125,11 +126,17 @@ func (s *SMTestAPICall) stepSendRequest(ctx smachine.ExecutionContext) smachine.
 		}
 	}).WithoutAutoWakeUp().Start()
 
-	return ctx.Sleep().ThenJump(s.stepProcessResult)
+	return ctx.Sleep().ThenJumpExt(smachine.SlotStep{
+		Transition: s.stepProcessResult,
+		Migration:  s.migrateBeforeProcessResult,
+	})
+}
+
+func (s *SMTestAPICall) migrateBeforeProcessResult(ctx smachine.MigrationContext) smachine.StateUpdate {
+	return ctx.Jump(s.stepSendRequest)
 }
 
 func (s *SMTestAPICall) stepProcessResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	ctx.SetDefaultTerminationResult(s.responsePayload)
-
 	return ctx.Stop()
 }

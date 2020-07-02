@@ -122,7 +122,7 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged_WithSideEffect(t *testing.
 			Callee:              objectGlobal,
 			CallSiteDeclaration: class,
 			CallSiteMethod:      "AddAmount",
-			CallOutgoing:        server.RandomLocalWithPulse(),
+			CallOutgoing:        server.BuildRandomOutgoingWithPulse(),
 			Arguments:           insolar.MustSerialize([]interface{}{}),
 		}
 
@@ -131,7 +131,7 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged_WithSideEffect(t *testing.
 		result := requestresult.New(makeEmptyResult(), objectGlobal)
 		result.SetAmend(newObjectDescriptor, newState)
 
-		key := calculateOutgoing(pl).String()
+		key := pl.CallOutgoing.String()
 		runnerMock.AddExecutionMock(key).
 			AddStart(func(execution execution.Context) {
 				server.IncrementPulse(ctx)
@@ -219,11 +219,11 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged_Without_SideEffect(t *test
 			Callee:              objectGlobal,
 			CallSiteDeclaration: class,
 			CallSiteMethod:      "AddAmount",
-			CallOutgoing:        server.RandomLocalWithPulse(),
+			CallOutgoing:        server.BuildRandomOutgoingWithPulse(),
 			Arguments:           insolar.MustSerialize([]interface{}{}),
 		}
 
-		key := calculateOutgoing(pl).String()
+		key := pl.CallOutgoing.String()
 		runnerMock.AddExecutionMock(key).
 			AddStart(func(execution execution.Context) {
 				server.IncrementPulse(ctx)
@@ -253,7 +253,7 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged_Without_SideEffect(t *test
 
 func TestVirtual_SendDelegatedFinished_IfPulseChanged_Constructor(t *testing.T) {
 	t.Log("C4988")
-	t.Skip("skipped until PLAT-304")
+	t.Skip("https://insolar.atlassian.net/browse/PLAT-304")
 
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
