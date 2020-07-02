@@ -134,20 +134,7 @@ func TestVirtual_Method_One_PulseChanged(t *testing.T) {
 			// add checks to typedChecker
 			{
 				typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
-					if test.isolation == tolerableFlags() {
-						logger.Debug("AssertOrdered")
-						assert.Equal(t, int32(1), report.OrderedPendingCount)
-						assert.Equal(t, outgoing.Pulse(), report.OrderedPendingEarliestPulse)
-						assert.Equal(t, outgoing.Pulse(), report.AsOf)
-						assert.NotEmpty(t, report.ProvidedContent.LatestDirtyState.State)
-					} else {
-						logger.Debug("AssertUnordered")
-						assert.Equal(t, int32(1), report.UnorderedPendingCount)
-						assert.Equal(t, outgoing.Pulse(), report.UnorderedPendingEarliestPulse)
-						assert.Equal(t, outgoing.Pulse(), report.AsOf)
-						assert.NotEmpty(t, report.ProvidedContent.LatestDirtyState.State)
-					}
-
+					// check for pending counts must be in tests: call terminal method case C5104
 					assert.Equal(t, object, report.Object)
 					assert.Equal(t, payload.Ready, report.Status)
 					assert.Zero(t, report.DelegationSpec)
