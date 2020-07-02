@@ -241,6 +241,10 @@ func (s *Server) ReplaceRunner(svc runner.Service) {
 	s.virtual.Runner = svc
 }
 
+func (s *Server) OverrideConveyorFactoryLogContext(ctx context.Context) {
+	s.virtual.FactoryLogContextOverride = ctx
+}
+
 func (s *Server) ReplaceMachinesManager(manager machine.Manager) {
 	s.Runner.Manager = manager
 }
