@@ -12,7 +12,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
-	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 )
 
@@ -54,10 +53,6 @@ func (s *SMVCallRequest) Init(ctx smachine.InitializationContext) smachine.State
 }
 
 func (s *SMVCallRequest) stepExecute(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if s.pulseSlot.State() != conveyor.Present {
-		ctx.Error(throw.New("Skip processing of VCallRequest since it comes to past pulse"))
-		return ctx.Stop()
-	}
 	return ctx.Replace(func(ctx smachine.ConstructionContext) smachine.StateMachine {
 		return &execute.SMExecute{Meta: s.Meta, Payload: s.Payload}
 	})
