@@ -149,3 +149,26 @@ func TestPendingList_Finish(t *testing.T) {
 	require.Equal(t, 1, rl.CountActive())
 	require.Equal(t, nextPulseNumber, rl.earliestPulse)
 }
+
+func TestPendingList_MustGetIsActive(t *testing.T) {
+	pd := pulse.NewFirstPulsarData(10, longbits.Bits256{})
+	currentPulse := pd.PulseNumber
+
+	objectOne := gen.UniqueLocalRefWithPulse(currentPulse)
+	RefOne := reference.NewSelf(objectOne)
+
+	rl := newRequestList()
+	isActive, exist := rl.GetState(RefOne)
+	require.Equal(t, false, isActive)
+	require.Equal(t, false, exist)
+
+	rl.Add(RefOne)
+	isActive, exist = rl.GetState(RefOne)
+	require.Equal(t, true, isActive)
+	require.Equal(t, true, exist)
+
+	rl.Finish(RefOne)
+	isActive, exist = rl.GetState(RefOne)
+	require.Equal(t, false, isActive)
+	require.Equal(t, true, exist)
+}

@@ -218,8 +218,6 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 				caller           = gen.UniqueGlobalRef()
 				outgoing         = gen.UniqueLocalRef()
 				objectRef        = reference.NewSelf(outgoing)
-				orderedBargeIn   = smachine.BargeIn{}
-				unorderedBargeIn = smachine.BargeIn{}
 				sharedState      = &object.SharedState{
 					Info: object.Info{
 						PendingTable:                          tc.PendingRequestTable,
@@ -230,8 +228,6 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 						KnownRequests:                         callregistry.NewWorkingTable(),
 						ReadyToWork:                           smsync.NewConditional(1, "ReadyToWork").SyncLink(),
 						OrderedExecute:                        smsync.NewConditional(1, "MutableExecution").SyncLink(),
-						OrderedPendingListFilledCallback:      orderedBargeIn,
-						UnorderedPendingListFilledCallback:    unorderedBargeIn,
 					},
 				}
 				callFlags = tc.callFlags

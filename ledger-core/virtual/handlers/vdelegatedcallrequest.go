@@ -154,10 +154,6 @@ func (s *SMVDelegatedCallRequest) stepProcessRequest(ctx smachine.ExecutionConte
 			// request was already in the list we will delegate token, maybe it is repeated call
 			return
 		}
-
-		if pendingList.Count() == previousExecutorPendingCount {
-			state.SetPendingListFilled(ctx, callTolerance)
-		}
 	}
 
 	switch s.objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
