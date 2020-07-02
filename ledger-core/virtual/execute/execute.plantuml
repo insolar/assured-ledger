@@ -36,7 +36,7 @@ T01_S010 : SMExecute
 T01_S010 --[dotted]> T01_S001
 T01_S010 --[dashed]> [*] : [!(...).PublishGlobalAliasAndBargeIn()]\nError
 T01_S010 --> T01_S011 : PrepareAsync(ctx).WithoutAutoWakeUp()
-T01_S010 --[dashed]> T01_S012 : Sleep
+T01_S010 --> T01_S012
 state "stepDeduplicateUsingPendingsTable" as T01_S009
 T01_S009 : SMExecute
 T01_S009 --[dotted]> T01_S001
@@ -172,6 +172,7 @@ T01_S021 --> T01_S022
 state "stepWaitFindCallResponse" as T01_S012
 T01_S012 : SMExecute
 T01_S012 --[dotted]> T01_S001
+T01_S012 --[dashed]> T01_S012 : [s.findCallResponse==nil]\nSleep
 T01_S012 --> T01_S013
 state "stepWaitObjectReady" as T01_S005
 T01_S005 : SMExecute
