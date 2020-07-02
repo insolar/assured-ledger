@@ -129,6 +129,10 @@ func (s *SMExecute) migrationDefault(ctx smachine.MigrationContext) smachine.Sta
 }
 
 func (s *SMExecute) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
+	if s.pulseSlot.State() != conveyor.Present {
+		ctx.Log().Trace("stop execution since we are not in present pulse")
+		return ctx.Stop()
+	}
 	s.prepareExecution(ctx.GetContext())
 
 	ctx.SetDefaultMigration(s.migrationDefault)
