@@ -91,15 +91,6 @@ func Test_IsMessageFromVirtualLegitimate_WithToken(t *testing.T) {
 			name: "VDelegatedCallRequest",
 			msg:  &payload.VDelegatedCallRequest{},
 		},
-		// TODO decide what to do with this two cases PLAT-575
-		// {
-		// 	name: "VFindCallRequest",
-		// 	msg:  &payload.VFindCallRequest{},
-		// },
-		// {
-		// 	name: "VFindCallResponse",
-		// 	msg:  &payload.VFindCallResponse{},
-		// },
 	}
 
 	for _, testCase := range cases {
@@ -132,16 +123,13 @@ func Test_IsMessageFromVirtualLegitimate_WithToken(t *testing.T) {
 			require.False(t, mustReject)
 		})
 
-		t.Run("Sender_equals_to_current_node:"+testCase.name, func(t *testing.T) {
+		t.Run("Sender_equals_approver:"+testCase.name, func(t *testing.T) {
 			ctx := context.Background()
 
-			refs := gen.UniqueGlobalRefs(2)
-			sender := refs[0]
-			selfRef := refs[1]
+			sender := gen.UniqueGlobalRef()
 
 			jetCoordinatorMock := jet.NewAffinityHelperMock(t).
-				QueryRoleMock.Return([]reference.Global{selfRef}, nil).
-				MeMock.Return(sender)
+				QueryRoleMock.Return([]reference.Global{sender}, nil)
 
 			authService := NewService(ctx, jetCoordinatorMock)
 
@@ -149,14 +137,14 @@ func Test_IsMessageFromVirtualLegitimate_WithToken(t *testing.T) {
 
 			token := payload.CallDelegationToken{
 				TokenTypeAndFlags: payload.DelegationTokenTypeCall,
-				Approver:          selfRef,
+				Approver:          sender,
 			}
 
 			reflect.ValueOf(testCase.msg).MethodByName("Reset").Call([]reflect.Value{})
 			insertToken(token, testCase.msg)
 
 			_, err := authService.IsMessageFromVirtualLegitimate(ctx, testCase.msg, sender, rg)
-			require.Contains(t, err.Error(), "current node cannot be equal to sender of message with token")
+			require.Contains(t, err.Error(), "sender cannot be approver of the token")
 		})
 
 		t.Run("ExpectedVE_not_equals_to_Approver:"+testCase.name, func(t *testing.T) {
