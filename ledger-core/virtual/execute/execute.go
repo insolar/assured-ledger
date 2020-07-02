@@ -484,10 +484,10 @@ func (s *SMExecute) stepExecuteStart(ctx smachine.ExecutionContext) smachine.Sta
 		if s.executionNewState == nil {
 			panic(throw.IllegalValue())
 		}
-	}).DelayedStart().ThenJump(s.stepWaitExecutionResult)
+	}).DelayedStart().ThenJump(s.StepWaitExecutionResult)
 }
 
-func (s *SMExecute) stepWaitExecutionResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (s *SMExecute) StepWaitExecutionResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	if s.executionNewState == nil {
 		return ctx.Sleep().ThenRepeat()
 	}
@@ -663,7 +663,7 @@ func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.
 		if s.executionNewState == nil {
 			panic(throw.IllegalState())
 		}
-	}).DelayedStart().ThenJump(s.stepWaitExecutionResult)
+	}).DelayedStart().ThenJump(s.StepWaitExecutionResult)
 }
 
 func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -673,6 +673,10 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 		memory []byte
 		class  reference.Global
 	)
+
+	if s.intolerableCall() {
+		s.executionNewState.Result = requestresult.New(executionNewState.Result(), executionNewState.ObjectReference())
+	}
 
 	if s.deactivate {
 		oldRequestResult := s.executionNewState.Result
