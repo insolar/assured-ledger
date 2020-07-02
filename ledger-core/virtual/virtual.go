@@ -68,11 +68,12 @@ type Dispatcher struct {
 	Affinity              jet.AffinityHelper
 
 	EventlessSleep time.Duration
+	FactoryLogContextOverride context.Context
 
 	runnerAdapter        runner.ServiceAdapter
 	messageSenderAdapter messageSenderAdapter.MessageSender
 
-	stopFunc context.CancelFunc
+	stopFunc                  context.CancelFunc
 }
 
 func NewDispatcher() *Dispatcher {
@@ -114,6 +115,8 @@ func (lr *Dispatcher) Init(ctx context.Context) error {
 
 	defaultHandlers := DefaultHandlersFactory{}
 	defaultHandlers.AuthService = lr.AuthenticationService
+	defaultHandlers.LogContextOverride = lr.FactoryLogContextOverride
+
 	lr.Conveyor.SetFactoryFunc(defaultHandlers.Classify)
 
 	lr.runnerAdapter = lr.Runner.CreateAdapter(ctx)

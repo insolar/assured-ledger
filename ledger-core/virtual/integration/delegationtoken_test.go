@@ -80,7 +80,7 @@ func TestDelegationToken(t *testing.T) {
 				}
 			}
 			logger := utils.InterceptLog(inslogger.FromContext(ctx), logHandler)
-			ctx = inslogger.SetLogger(ctx, logger)
+			server.OverrideConveyorFactoryLogContext(inslogger.SetLogger(ctx, logger))
 
 			server.Init(ctx)
 
