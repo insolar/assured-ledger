@@ -722,16 +722,21 @@ func TestSendVStateReportWithMissingState_IfConstructorWasInterruptedBeforeRunne
 	slotMachine.AddInterfaceDependency(&catalog)
 	slotMachine.AddInterfaceDependency(&authService)
 
+	outgoing := reference.NewRecordOf(caller, slotMachine.GenerateLocal())
+
 	var vStateReportRecv = make(chan struct{})
 	slotMachine.PrepareMockedMessageSender(mc)
 	slotMachine.MessageSender.SendRole.SetCheckMessage(func(msg payload.Marshaler) {
 		res, ok := msg.(*payload.VStateReport)
 		require.True(t, ok)
-		require.Equal(t, payload.Missing, res.Status)
+		assert.Equal(t, payload.Missing, res.Status)
+		assert.Equal(t, outgoing, res.Object)
+		assert.Equal(t, int32(0), res.OrderedPendingCount)
+		assert.Equal(t, int32(0), res.UnorderedPendingCount)
+		assert.Empty(t, res.LatestDirtyState)
+		assert.Empty(t, res.LatestValidatedState)
 		close(vStateReportRecv)
 	})
-
-	outgoing := reference.NewRecordOf(caller, slotMachine.GenerateLocal())
 
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
