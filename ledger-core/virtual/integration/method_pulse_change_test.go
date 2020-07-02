@@ -197,7 +197,7 @@ func TestVirtual_Method_One_PulseChanged(t *testing.T) {
 			testutils.WaitSignalsTimed(t, 10*time.Second, synchronizeExecution.Wait())
 			for i := 0; i < test.countChangePulse; i++ {
 				tokenRequestDone := server.Journal.Wait(
-					predicate.Sequence(
+					predicate.ChainOf(
 						predicate.NewSMTypeFilter(&execute.SMDelegatedTokenRequest{}, predicate.AfterAnyStopOrError),
 						predicate.NewSMTypeFilter(&execute.SMExecute{}, predicate.BeforeStep((&execute.SMExecute{}).StepWaitExecutionResult)),
 					),

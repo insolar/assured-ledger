@@ -54,7 +54,14 @@ func Or(predicates ...Func) Func {
 	}
 }
 
-func Sequence(predicates ...Func) Func {
+// ChainOf will wait for all predicates to fire on different steps
+// for example:
+// ChainOf(X1, X2, X3) will wait for:
+// * predicate X1 eventually to return true
+// * predicate X2 eventually to return true (no more checks of X1 ever)
+// * and predicate X3 eventually to return true (no checks of X1 and X2)
+// and only then it'll return true
+func ChainOf(predicates ...Func) Func {
 	pos := 0
 
 	return func(event debuglogger.UpdateEvent) bool {
