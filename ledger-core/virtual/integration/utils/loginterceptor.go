@@ -54,11 +54,9 @@ type logInterceptorWithFields struct {
 }
 
 func (lc logInterceptorWithFields) WithFields(fields map[string]interface{}) logcommon.EmbeddedLogger {
-	return lc.EmbeddedLogger.(logInterceptorWithFields).WithFields(fields)
+	return logInterceptorWithFields{logInterceptor{lc.EmbeddedLogger.(logcommon.EmbeddedLoggerOptional).WithFields(fields), lc.interceptFn}}
 }
 
 func (lc logInterceptorWithFields) WithField(name string, value interface{}) logcommon.EmbeddedLogger {
-	return lc.EmbeddedLogger.(logInterceptorWithFields).WithField(name, value)
+	return logInterceptorWithFields{logInterceptor{lc.EmbeddedLogger.(logcommon.EmbeddedLoggerOptional).WithField(name, value), lc.interceptFn}}
 }
-
-
