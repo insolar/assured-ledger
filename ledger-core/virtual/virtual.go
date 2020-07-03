@@ -43,8 +43,8 @@ func (f DefaultHandlersFactory) Classify(ctx context.Context, input conveyor.Inp
 
 		targetPN, createFn, err := f.Process(ctx, event, ic.PulseRange)
 		return conveyor.InputSetup{
-			Target:    targetPN,
-			CreateFn:  createFn,
+			TargetPulse: targetPN,
+			CreateFn:    createFn,
 		}, err
 
 	case *testWalletAPIStateMachine.TestAPICall:

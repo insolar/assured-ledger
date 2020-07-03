@@ -97,7 +97,7 @@ func preparePreInit(initFn InitFunc, preInitFn PreInitHandlerFunc, sm StateMachi
 		postError := preInitFn(ctx, sm)
 		su := initFn(ctx)
 		if postError != nil {
-			ctx.Error(postError)
+			return ctx.Error(postError)
 		}
 		return su
 	}

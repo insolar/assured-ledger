@@ -31,9 +31,9 @@ type InputContext struct {
 }
 
 type InputSetup struct {
-	Target   pulse.Number
-	CreateFn smachine.CreateFunc
-	PreInitFn smachine.PreInitHandlerFunc
+	TargetPulse pulse.Number
+	CreateFn    smachine.CreateFunc
+	PreInitFn   smachine.PreInitHandlerFunc
 }
 
 type EventInputer interface {
@@ -179,11 +179,11 @@ func (p *PulseConveyor) AddInputExt(pn pulse.Number, event InputEvent,
 	case err != nil || setup.CreateFn == nil:
 		return err
 
-	case setup.Target == targetPN || setup.Target == pn || setup.Target.IsUnknown():
+	case setup.TargetPulse == targetPN || setup.TargetPulse == pn || setup.TargetPulse.IsUnknown():
 		//
 
-	case setup.Target.IsTimePulse():
-		if pulseSlotMachine, targetPN, pulseState, err = p.mapToPulseSlotMachine(setup.Target); err != nil {
+	case setup.TargetPulse.IsTimePulse():
+		if pulseSlotMachine, targetPN, pulseState, err = p.mapToPulseSlotMachine(setup.TargetPulse); err != nil {
 			return err
 		}
 		if pulseSlotMachine != nil && pulseState != 0 {
@@ -191,7 +191,7 @@ func (p *PulseConveyor) AddInputExt(pn pulse.Number, event InputEvent,
 		}
 		fallthrough
 	default:
-		return throw.E("slotMachine remap is missing", errMissingPN{PN: pn, RemapPN: setup.Target})
+		return throw.E("slotMachine remap is missing", errMissingPN{PN: pn, RemapPN: setup.TargetPulse})
 	}
 
 	createFn := setup.CreateFn
