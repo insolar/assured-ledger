@@ -11,19 +11,21 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-func newBufferSlice(pageNo, pageOfs uint32, target []byte) *BufferSlice {
+func newBufferSlice(page *bufferPage, pageOfs uint32, target []byte) *BufferSlice {
 	switch n := len(target); {
 	case n == 0:
+		panic(throw.IllegalValue())
+	case page == nil:
 		panic(throw.IllegalValue())
 	case n != cap(target):
 		target = target[:n:n]
 	}
-	return &BufferSlice{pageNo, pageOfs, target}
+	return &BufferSlice{page, pageOfs, target}
 }
 
 var _ io.ReaderFrom = &BufferSlice{}
 type BufferSlice struct {
-	pageNo  uint32
+	page    *bufferPage
 	pageOfs uint32
 	target  []byte
 }
@@ -42,6 +44,7 @@ func (p *BufferSlice) ReadFrom(r io.Reader) (int64, error) {
 
 func (p *BufferSlice) done() {
 	p.target = p.target[:0]
+	p.page.wait.Done()
 }
 
 func (p *BufferSlice) MustCopyExact(b []byte) {
@@ -62,7 +65,7 @@ func (p *BufferSlice) MustReadFrom(r io.Reader) {
 }
 
 func (p *BufferSlice) PageNo() uint32 {
-	return p.pageNo
+	return p.page.pageNo
 }
 
 func (p *BufferSlice) SliceOfs() uint32 {

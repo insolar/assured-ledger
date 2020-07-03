@@ -33,7 +33,7 @@ func (p *PagedBuffer) allocatePage(ln int) (*bufferPage, uint32, []byte) {
 	allocateLen := uint32(ln)
 
 	if allocateLen > p.pageBytes {
-		p.allocateLargePage(allocateLen)
+		return p.allocateLargePage(allocateLen)
 	}
 
 	cur := p.getCurrentPage()
@@ -43,6 +43,7 @@ func (p *PagedBuffer) allocatePage(ln int) (*bufferPage, uint32, []byte) {
 
 	for {
 		if ofs, buf := cur.allocateWrite(allocateLen); buf != nil {
+			cur.wait.Done()
 			return cur, ofs, buf
 		}
 		cur = p.allocateNewPage(cur)
@@ -62,10 +63,9 @@ func (p *PagedBuffer) allocateNewPage(old *bufferPage) *bufferPage {
 
 func (p *PagedBuffer) _connectPage(new *bufferPage) *bufferPage {
 	old := p.current
-	new.prev = old
 	if old != nil {
+		old.next = new
 		new.pageNo = old.pageNo + 1
-		new.absPos = old.absPos + uint64(old.used.Load())
 	} else {
 		p.earliest = new
 	}
@@ -79,6 +79,7 @@ func (p *PagedBuffer) allocateLargePage(ln uint32) (*bufferPage, uint32, []byte)
 	if b == nil {
 		panic(throw.Impossible())
 	}
+	defer page.wait.Done()
 
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
@@ -93,29 +94,38 @@ func (p *PagedBuffer) allocateLargePage(ln uint32) (*bufferPage, uint32, []byte)
 
 func (p *PagedBuffer) AllocateWrite(ln int) *BufferSlice {
 	pg, ofs, b := p.allocatePage(ln)
-	return newBufferSlice(pg.pageNo, ofs, b)
+	return newBufferSlice(pg, ofs, b)
 }
 
-func (p *PagedBuffer) _flushPages() *bufferPage {
+func (p *PagedBuffer) flushPages() *bufferPage {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
-	if p.current == nil || p.current.used.Load() == 0 {
+	cur := p.current
+	if cur == nil || cur.used.Load() == 0 {
 		return nil
 	}
+	first := p.earliest
+	if first == nil {
+		panic(throw.Impossible())
+	}
 
-
+	pg := newFlushedPage(cur.pageNo + 1)
+	p.current = pg
+	p.earliest = pg
+	return first
 }
 
-func (p *PagedBuffer) FlushPages() {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-
-
+func (p *PagedBuffer) FlushPages() *FlushedPages {
+	first := p.flushPages()
+	if first == nil {
+		return nil
+	}
+	return &FlushedPages{ first:first }
 }
 
-func newFlushedPage(capacity uint32) *bufferPage {
-	return &bufferPage{ buffer: make([]byte, capacity, capacity) }
+func newFlushedPage(pageNo uint32) *bufferPage {
+	return &bufferPage{ pageNo:pageNo }
 }
 
 func newBufferPage(capacity uint32) *bufferPage {
@@ -125,8 +135,8 @@ func newBufferPage(capacity uint32) *bufferPage {
 type bufferPage struct {
 	pageNo uint32
 	used   atomickit.Uint32
-	absPos uint64
-	prev   *bufferPage
+	wait   sync.WaitGroup
+	next   *bufferPage
 	buffer []byte
 }
 
@@ -138,6 +148,7 @@ func (p *bufferPage) allocateWrite(ln uint32) (ofs uint32, b []byte) {
 		case next > uint32(cap(p.buffer)):
 			return 0, nil
 		case p.used.CompareAndSwap(used, next):
+			p.wait.Add(2) // +1 for allocation cycle, +1 for writer
 			return used, p.buffer[used:next]
 		}
 	}
