@@ -26,7 +26,6 @@ type logProcessing struct {
 	*log.Msg `txt:"processing message"`
 
 	messageType string
-	pulseData   pulse.Range
 }
 
 type errNoHandler struct {
