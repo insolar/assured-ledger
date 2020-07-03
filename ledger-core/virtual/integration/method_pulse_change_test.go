@@ -14,9 +14,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	testwalletProxy "github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
@@ -241,7 +243,7 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 
 	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 4)
 
-	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
+	runnerMock := logicless.NewServiceMock(ctx, t, func(execution execution.Context) string {
 		return execution.Request.CallSiteMethod
 	})
 	{
@@ -259,28 +261,64 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 
 		approver = gen.UniqueGlobalRef()
 
-		token payload.CallDelegationToken
+		token   payload.CallDelegationToken
+		content *payload.VStateReport_ProvidedContentBody
 
 		request = payload.VCallRequest{
 			CallType: payload.CTMethod,
 			Caller:   server.GlobalCaller(),
 			Callee:   object,
-			// set flags and method name later
+			// set flags, outgoing and method name later
 		}
 	)
 
-	Method_PrepareObject(ctx, server, payload.Ready, object)
+	// create object state
+	{
+		content = &payload.VStateReport_ProvidedContentBody{
+			LatestDirtyState: &payload.ObjectState{
+				Reference: reference.Local{},
+				Class:     testwalletProxy.GetClass(),
+				State:     makeRawWalletState(initialBalance),
+			},
+		}
+
+		payload := &payload.VStateReport{
+			Status:                        payload.Ready,
+			Object:                        object,
+			UnorderedPendingEarliestPulse: pulse.OfNow(),
+			ProvidedContent:               content,
+		}
+
+		server.WaitIdleConveyor()
+		server.SendPayload(ctx, payload)
+		server.WaitActiveThenIdleConveyor()
+	}
 
 	synchronizeExecution := synchronization.NewPoint(3)
 
 	// add checks to typedChecker
 	{
 		typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
-			assert.Equal(t, int32(1), report.OrderedPendingCount)
-			assert.Equal(t, int32(2), report.UnorderedPendingCount)
-			assert.Equal(t, object, report.Object)
 			assert.Equal(t, payload.Ready, report.Status)
+			assert.Equal(t, p1, report.AsOf)
+			assert.Equal(t, object, report.Object)
 			assert.Zero(t, report.DelegationSpec)
+
+			assert.Equal(t, int32(2), report.UnorderedPendingCount)
+			assert.Equal(t, p1, report.UnorderedPendingEarliestPulse)
+
+			assert.Equal(t, int32(1), report.OrderedPendingCount)
+			assert.Equal(t, p1, report.OrderedPendingEarliestPulse)
+
+			assert.Zero(t, report.PreRegisteredQueueCount)
+			assert.Empty(t, report.PreRegisteredEarliestPulse)
+
+			assert.Empty(t, report.PriorityCallQueueCount)
+			assert.Empty(t, report.LatestValidatedState)
+			assert.Empty(t, report.LatestValidatedCode)
+			assert.NotEmpty(t, report.LatestDirtyState)
+			assert.Empty(t, report.LatestDirtyCode)
+			assert.Equal(t, content, report.ProvidedContent)
 			return false
 		})
 		typedChecker.VDelegatedCallRequest.Set(func(request *payload.VDelegatedCallRequest) bool {
@@ -307,14 +345,14 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 		})
 		typedChecker.VDelegatedRequestFinished.Set(func(finished *payload.VDelegatedRequestFinished) bool {
 			assert.Equal(t, object, finished.Callee)
-			// assert.Equal(t, token, finished.DelegationSpec)
+			assert.NotEmpty(t, finished.DelegationSpec)
 			return false
 		})
 		typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
 			assert.Equal(t, object, res.Callee)
 			assert.Equal(t, []byte("call result"), res.ReturnArguments)
 			assert.Equal(t, p1, res.CallOutgoing.GetLocal().Pulse())
-			// assert.Equal(t, token, res.DelegationSpec)
+			assert.NotEmpty(t, res.DelegationSpec)
 			return false
 		})
 	}
@@ -355,9 +393,7 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 		objectExecutionMock.AddStart(
 			func(_ execution.Context) {
 				logger.Debug("ExecutionStart [" + req.CallSiteMethod + "]")
-				if i != 1 {
-					synchronizeExecution.Synchronize()
-				}
+				synchronizeExecution.Synchronize()
 			},
 			&execution.Update{
 				Type:   execution.Done,
@@ -371,7 +407,7 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 	server.IncrementPulseAndWaitIdle(ctx)
 	synchronizeExecution.WakeUp()
 
-	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+	testutils.WaitSignalsTimed(t, 30*time.Second, executeDone)
 	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 	{
