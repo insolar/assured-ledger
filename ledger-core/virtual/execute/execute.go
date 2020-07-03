@@ -237,15 +237,26 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 			// attempt to create object that is deactivated :(
 			panic(throw.NotImplemented())
 		}
-	} else if objectState != object.HasState {
-		s.prepareExecutionError(throw.E("object does not exist", struct {
-			ObjectReference string
-			State           object.State
-		}{
-			ObjectReference: s.execution.Object.String(),
-			State:           objectState,
-		}))
-		return ctx.Jump(s.stepSendCallResult)
+	} else {
+		// if not constructor
+		switch objectState {
+		case object.Unknown:
+			panic(throw.Impossible())
+		case object.Missing:
+			s.prepareExecutionError(throw.E("object does not exist", struct {
+				ObjectReference string
+				State           object.State
+			}{
+				ObjectReference: s.execution.Object.String(),
+				State:           objectState,
+			}))
+		case object.Empty:
+			panic(throw.NotImplemented())
+		case object.Inactive:
+			panic(throw.NotImplemented())
+		case object.HasState:
+			// ok
+		}
 	}
 
 	s.semaphoreOrdered = semaphoreOrdered
