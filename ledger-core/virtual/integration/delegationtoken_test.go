@@ -109,7 +109,7 @@ func TestDelegationToken_CheckTokenField(t *testing.T) {
 			delegationToken = server.DelegationToken(reference.NewRecordOf(class, outgoing.GetLocal()), server.GlobalCaller(), outgoing)
 			switch {
 			case test.fakeCaller:
-				delegationToken.Callee = server.RandomGlobalWithPulse()
+				delegationToken.Caller = server.RandomGlobalWithPulse()
 			case test.fakeCallee:
 				delegationToken.Callee = server.RandomGlobalWithPulse()
 			case test.fakeOutgoing:
