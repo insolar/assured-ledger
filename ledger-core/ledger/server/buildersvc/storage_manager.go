@@ -15,11 +15,24 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 )
 
-type storageManager struct {
-	writePipe chan writeBundle
-	// pulsePrepare signal
-	// pulseCancel signal
+func newStorageWriter(pn pulse.Number) *storageManager {
+	return &storageManager{
+		writeChan: make(chan writeBundle, 32),
+		oobChan: make(chan oobEvent, 2),
+	}
 }
+
+type storageManager struct {
+	writeChan chan writeBundle // close on pulse change
+	oobChan   chan oobEvent    // close on pulse change
+}
+
+type oobEvent struct {
+	// suspend & get NSH
+	// resume
+}
+
+
 
 type writeBundle struct {
 	jetDrop jet.DropID
