@@ -132,10 +132,6 @@ func Test_PendingBlocksExecution(t *testing.T) {
 				assert.Equal(t, smObject.OrderedExecute, resultSM.(*SMAwaitDelegate).sync)
 				resultSM.(*SMAwaitDelegate).stop = smachine.NewNoopBargeIn(smachine.DeadStepLink())
 				cb2()
-			case *SMAwaitTableFill:
-				assert.Equal(t, smObject.OrderedPendingListFilled, resultSM.(*SMAwaitTableFill).sync)
-				resultSM.(*SMAwaitTableFill).stop = smachine.NewNoopBargeIn(smachine.DeadStepLink())
-				cb2()
 			default:
 				t.Error("unexpected InitChildWithPostInit call")
 			}
@@ -182,7 +178,7 @@ func TestSMObject_Semi_CheckAwaitDelegateIsStarted(t *testing.T) {
 
 	slotMachine.RunTil(smWrapper.BeforeStep(smObject.stepReadyToWork))
 
-	require.Equal(t, 3, slotMachine.GetOccupiedSlotCount())
+	require.Equal(t, 2, slotMachine.GetOccupiedSlotCount())
 
 	mc.Finish()
 }

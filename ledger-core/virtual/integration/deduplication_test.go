@@ -50,12 +50,11 @@ func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 	helper := utils.NewHelper(server)
 
 	p1 := server.GetPulse().PulseNumber
+	server.IncrementPulseAndWaitIdle(ctx)
 
 	outgoing := helper.BuildObjectOutgoing()
 	class := gen.UniqueGlobalRef()
 	object := gen.UniqueGlobalRef()
-
-	server.IncrementPulseAndWaitIdle(ctx)
 
 	report := &payload.VStateReport{
 		Status: payload.Ready,
@@ -246,7 +245,6 @@ type deduplicateMethodUsingPrevVETestInfo struct {
 
 func TestDeduplication_MethodUsingPrevVE(t *testing.T) {
 	t.Log("C5097")
-	t.Skip("https://insolar.atlassian.net/browse/PLAT-390")
 
 	table := []deduplicateMethodUsingPrevVETestInfo{
 		{
@@ -420,7 +418,7 @@ func TestDeduplication_MethodUsingPrevVE(t *testing.T) {
 
 			request := payload.VCallRequest{
 				CallType:       payload.CTMethod,
-				CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+				CallFlags:      payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
 				Caller:         suite.getCaller(),
 				Callee:         suite.getObject(),
 				CallSiteMethod: "SomeMethod",
@@ -591,7 +589,7 @@ func (s *deduplicateMethodUsingPrevVETest) confirmPending(
 	pl := payload.VDelegatedCallRequest{
 		Callee:       s.getObject(),
 		CallOutgoing: s.pending,
-		CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+		CallFlags:    payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
 	}
 
 	s.addPayloadAndWaitIdle(ctx, &pl)
@@ -603,7 +601,7 @@ func (s *deduplicateMethodUsingPrevVETest) finishPending(
 	pl := payload.VDelegatedRequestFinished{
 		Callee:       s.getObject(),
 		CallOutgoing: s.pending,
-		CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+		CallFlags:    payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
 	}
 	s.addPayloadAndWaitIdle(ctx, &pl)
 }
@@ -633,14 +631,18 @@ func (s *deduplicateMethodUsingPrevVETest) setMessageCheckers(
 		}
 
 		if testInfo.pending {
-			report.OrderedPendingCount = 1
-			report.OrderedPendingEarliestPulse = s.getP1()
+			report.UnorderedPendingCount = 1
+			report.UnorderedPendingEarliestPulse = s.getP1()
 		}
 
 		s.server.SendPayload(ctx, &report)
 
 		return false // no resend msg
 	}).ExpectedCount(1)
+
+	if testInfo.confirmPending {
+		s.typedChecker.VDelegatedCallResponse.SetResend(false)
+	}
 
 	if testInfo.expectFindRequestMessage {
 		s.typedChecker.VFindCallRequest.Set(func(req *payload.VFindCallRequest) bool {
@@ -649,6 +651,7 @@ func (s *deduplicateMethodUsingPrevVETest) setMessageCheckers(
 			require.Equal(t, s.getOutgoingRef(), req.Outgoing)
 
 			response := payload.VFindCallResponse{
+				LookedAt: s.getP1(),
 				Callee:   s.getObject(),
 				Outgoing: s.getOutgoingRef(),
 				Status:   testInfo.findRequestStatus,
@@ -657,7 +660,7 @@ func (s *deduplicateMethodUsingPrevVETest) setMessageCheckers(
 			if testInfo.findRequestHasResult {
 				response.CallResult = &payload.VCallResult{
 					CallType:        payload.CTMethod,
-					CallFlags:       payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+					CallFlags:       payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
 					Caller:          s.getCaller(),
 					Callee:          s.getObject(),
 					CallOutgoing:    s.getOutgoingLocal(),
@@ -673,7 +676,7 @@ func (s *deduplicateMethodUsingPrevVETest) setMessageCheckers(
 	if testInfo.expectResultMessage {
 		s.typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
 			require.Equal(t, payload.CTMethod, res.CallType)
-			flags := payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty)
+			flags := payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty)
 			require.Equal(t, flags, res.CallFlags)
 			require.Equal(t, s.getCaller(), res.Caller)
 			require.Equal(t, s.getObject(), res.Callee)
@@ -691,7 +694,7 @@ func (s *deduplicateMethodUsingPrevVETest) setMessageCheckers(
 }
 
 func (s *deduplicateMethodUsingPrevVETest) setRunnerMock() {
-	isolation := contract.MethodIsolation{Interference: contract.CallTolerable, State: contract.CallDirty}
+	isolation := contract.MethodIsolation{Interference: contract.CallIntolerable, State: contract.CallDirty}
 	s.runnerMock.AddExecutionClassify("SomeMethod", isolation, nil)
 
 	newObjDescriptor := descriptor.NewObject(

@@ -14,15 +14,12 @@ import (
 	"github.com/stretchr/testify/require"
 
 	testwalletProxy "github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
-	"github.com/insolar/assured-ledger/ledger-core/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 )
 
 func TestVirtual_VDelegatedCallRequest(t *testing.T) {
@@ -92,95 +89,4 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 	{
 		assert.Equal(t, 1, typedChecker.VDelegatedCallResponse.Count())
 	}
-}
-
-func TestVirtual_VDelegatedCallRequest_GetBalance(t *testing.T) {
-	t.Log("C4982")
-
-	server, ctx := utils.NewServer(nil, t)
-	defer server.Stop()
-
-	var (
-		mc                 = minimock.NewController(t)
-		testBalance        = uint32(500)
-		objectRef          = gen.UniqueGlobalRef()
-		delegatedRequest   = make(chan struct{}, 0)
-		getBalanceResponse = make(chan struct{}, 0)
-	)
-
-	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
-
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-	typedChecker.VDelegatedCallResponse.Set(func(response *payload.VDelegatedCallResponse) bool {
-		require.Equal(t, objectRef, response.ResponseDelegationSpec.Callee)
-
-		delegatedRequest <- struct{}{}
-		return false // no resend msg
-	})
-	typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool {
-		require.Equal(t, objectRef, result.Callee)
-
-		close(getBalanceResponse)
-		return false // no resend msg
-	})
-	server.IncrementPulseAndWaitIdle(ctx)
-
-	{
-		// send VStateReport: save wallet
-		stateID := gen.UniqueLocalRefWithPulse(server.GetPulse().PulseNumber)
-		rawWalletState := makeRawWalletState(testBalance)
-		payloadMeta := &payload.VStateReport{
-			Status:                        payload.Ready,
-			Object:                        objectRef,
-			UnorderedPendingCount:         1,
-			UnorderedPendingEarliestPulse: pulse.OfNow(),
-			ProvidedContent: &payload.VStateReport_ProvidedContentBody{
-				LatestDirtyState: &payload.ObjectState{
-					Reference: stateID,
-					Class:     testwalletProxy.GetClass(),
-					State:     rawWalletState,
-				},
-			},
-		}
-		server.SendPayload(ctx, payloadMeta)
-	}
-	server.WaitActiveThenIdleConveyor()
-
-	{
-		// send VCallRequest
-		pl := payload.VCallRequest{
-			CallType:       payload.CTMethod,
-			CallFlags:      payload.BuildCallFlags(contract.CallIntolerable, contract.CallValidated),
-			Callee:         objectRef,
-			Caller:         server.GlobalCaller(),
-			CallSiteMethod: "GetBalance",
-			Arguments:      insolar.MustSerialize([]interface{}{}),
-		}
-		server.SendPayload(ctx, &pl)
-	}
-	server.WaitActiveThenIdleConveyor()
-
-	{
-		// send VDelegatedCallRequest
-		pl := payload.VDelegatedCallRequest{
-			CallOutgoing: reference.NewSelf(gen.UniqueLocalRefWithPulse(pulse.OfNow() + 100)),
-			Callee:       objectRef,
-			CallFlags:    payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
-		}
-		server.SendPayload(ctx, &pl)
-	}
-
-	select {
-	case <-getBalanceResponse:
-		require.FailNow(t, "GetBalance response appeared before VDelegatedCallRequest")
-	case <-delegatedRequest:
-	case <-time.After(10 * time.Second):
-		require.FailNow(t, "timeout")
-	}
-
-	testutils.WaitSignalsTimed(t, 10*time.Second, getBalanceResponse)
-	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
-	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
-
-	mc.Finish()
 }

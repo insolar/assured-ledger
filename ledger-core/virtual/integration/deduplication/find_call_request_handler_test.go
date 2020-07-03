@@ -177,6 +177,12 @@ func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
 
 			suite.waitFindRequestResponse(t)
 
+			if suite.finalizedMessageSent != nil {
+				testutils.WaitSignalsTimed(t, 10*time.Second, suite.finalizedMessageSent)
+			}
+
+			testutils.WaitSignalsTimed(t, 10*time.Second, suite.server.Journal.WaitAllAsyncCallsDone())
+
 			suite.finish()
 		})
 	}
@@ -226,6 +232,7 @@ func StepMethodStart(s *VFindCallRequestHandlingSuite, ctx context.Context, t *t
 		CallOutgoing:   s.getOutgoingRef(),
 	}
 	s.addPayloadAndWaitIdle(ctx, &req)
+	s.finalizedMessageSent = make(chan struct{})
 
 	testutils.WaitSignalsTimed(t, 10*time.Second, s.executionPoint.Wait())
 }
@@ -253,6 +260,7 @@ func StepConstructorStart(s *VFindCallRequestHandlingSuite, ctx context.Context,
 		CallOutgoing:   s.getOutgoingRef(),
 	}
 	s.addPayloadAndWaitIdle(ctx, &req)
+	s.finalizedMessageSent = make(chan struct{})
 
 	testutils.WaitSignalsTimed(t, 10*time.Second, s.executionPoint.Wait())
 }
@@ -286,7 +294,8 @@ type VFindCallRequestHandlingSuite struct {
 	object   reference.Global
 	outgoing reference.Local
 
-	isConstructor bool
+	isConstructor        bool
+	finalizedMessageSent chan struct{}
 
 	executionPoint         *synchronization.Point
 	executeIsFinished      synckit.SignalChannel
@@ -384,6 +393,7 @@ func (s *VFindCallRequestHandlingSuite) setMessageCheckers(
 		defer func() {
 			close(s.haveFindResponseSignal)
 		}()
+		assert.Equal(t, s.getP2(), res.LookedAt)
 		assert.Equal(t, s.getObject(), res.Callee)
 		assert.Equal(t, s.getOutgoingRef(), res.Outgoing)
 		assert.Equal(t, testInfo.expectedStatus, res.Status)
@@ -399,6 +409,9 @@ func (s *VFindCallRequestHandlingSuite) setMessageCheckers(
 	s.typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
 		assert.Equal(t, s.getP2(), report.AsOf)
 		assert.Equal(t, s.getObject(), report.Object)
+		if s.finalizedMessageSent != nil {
+			close(s.finalizedMessageSent)
+		}
 		return false
 	})
 
@@ -423,6 +436,7 @@ func (s *VFindCallRequestHandlingSuite) setMessageCheckers(
 		assert.Equal(t, s.getOutgoingRef(), req.Outgoing)
 
 		pl := payload.VFindCallResponse{
+			LookedAt: s.getP2(),
 			Callee:   s.getObject(),
 			Outgoing: s.getOutgoingRef(),
 			Status:   payload.MissingCall,

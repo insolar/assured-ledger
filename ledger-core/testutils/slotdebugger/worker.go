@@ -52,10 +52,9 @@ func (w *worker) Start() {
 				nextPollTime time.Time
 			)
 			eventMark := w.slotMachine.internalSignal.Mark()
-			fn := func(worker smachine.AttachedSlotWorker) {
+			workerFactory.AttachTo(machine, w.slotMachine.externalSignal.Mark(), math.MaxUint32, func(worker smachine.AttachedSlotWorker) {
 				repeatNow, nextPollTime = machine.ScanOnce(0, worker)
-			}
-			workerFactory.AttachTo(machine, w.slotMachine.externalSignal.Mark(), math.MaxUint32, fn)
+			})
 
 			if !machine.IsActive() {
 				break
