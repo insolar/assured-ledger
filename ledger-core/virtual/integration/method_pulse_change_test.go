@@ -6,6 +6,7 @@
 package integration
 
 import (
+	"strconv"
 	"testing"
 	"time"
 
@@ -258,26 +259,26 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 
 		approver = gen.UniqueGlobalRef()
 
-		pl1, pl2, pl3, pl4 payload.VCallRequest
-		token              payload.CallDelegationToken
+		token payload.CallDelegationToken
+
+		request = payload.VCallRequest{
+			CallType:     payload.CTMethod,
+			Caller:       server.GlobalCaller(),
+			Callee:       object,
+			CallOutgoing: outgoing,
+			// set flags and method name later
+		}
 	)
 
 	Method_PrepareObject(ctx, server, payload.Ready, object)
 
-	synchronizeExecution := synchronization.NewPoint(4)
+	synchronizeExecution := synchronization.NewPoint(2)
 
-	// prepare requests
-	{
-		pl1 = buildPayloadForMethod(object, outgoing, "OrderedMethod1", payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty))
-		pl2 = buildPayloadForMethod(object, outgoing, "OrderedMethod2", payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty))
-		pl3 = buildPayloadForMethod(object, outgoing, "UnorderedMethod1", payload.BuildCallFlags(contract.CallIntolerable, contract.CallValidated))
-		pl4 = buildPayloadForMethod(object, outgoing, "UnorderedMethod2", payload.BuildCallFlags(contract.CallIntolerable, contract.CallValidated))
-	}
 	// add ExecutionMocks to runnerMock
 	{
 		// OrderedMethod1
 		{
-			runnerMock.AddExecutionClassify("OrderedMethod1", tolerableFlags(), nil)
+			runnerMock.AddExecutionClassify("ordered0", tolerableFlags(), nil)
 			newObjDescriptor := descriptor.NewObject(
 				reference.Global{}, reference.Local{}, gen.UniqueGlobalRef(), []byte(""), reference.Global{},
 			)
@@ -285,10 +286,10 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 			requestResult := requestresult.New([]byte("call result"), gen.UniqueGlobalRef())
 			requestResult.SetAmend(newObjDescriptor, []byte("new memory"))
 
-			objectExecutionMock := runnerMock.AddExecutionMock("OrderedMethod1")
+			objectExecutionMock := runnerMock.AddExecutionMock("ordered0")
 			objectExecutionMock.AddStart(
 				func(_ execution.Context) {
-					logger.Debug("ExecutionStart [OrderedMethod1]")
+					logger.Debug("ExecutionStart [ordered0]")
 					synchronizeExecution.Synchronize()
 				},
 				&execution.Update{
@@ -299,7 +300,7 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 		}
 		// OrderedMethod2
 		{
-			runnerMock.AddExecutionClassify("OrderedMethod2", tolerableFlags(), nil)
+			runnerMock.AddExecutionClassify("ordered1", tolerableFlags(), nil)
 			newObjDescriptor := descriptor.NewObject(
 				reference.Global{}, reference.Local{}, gen.UniqueGlobalRef(), []byte(""), reference.Global{},
 			)
@@ -307,10 +308,10 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 			requestResult := requestresult.New([]byte("call result"), gen.UniqueGlobalRef())
 			requestResult.SetAmend(newObjDescriptor, []byte("new memory"))
 
-			objectExecutionMock := runnerMock.AddExecutionMock("OrderedMethod2")
+			objectExecutionMock := runnerMock.AddExecutionMock("ordered1")
 			objectExecutionMock.AddStart(
 				func(_ execution.Context) {
-					logger.Debug("ExecutionStart [OrderedMethod2]")
+					logger.Debug("ExecutionStart [ordered1]")
 					synchronizeExecution.Synchronize()
 				},
 				&execution.Update{
@@ -321,29 +322,33 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 		}
 		// UnorderedMethod1
 		{
-			runnerMock.AddExecutionClassify("UnorderedMethod1", intolerableFlags(), nil)
-			objectExecutionMock := runnerMock.AddExecutionMock("UnorderedMethod1")
+			runnerMock.AddExecutionClassify("unordered2", intolerableFlags(), nil)
+			objectExecutionMock := runnerMock.AddExecutionMock("unordered2")
+			result := requestresult.New([]byte("345"), object)
 			objectExecutionMock.AddStart(
 				func(_ execution.Context) {
-					logger.Debug("ExecutionStart [UnorderedMethod1]")
+					logger.Debug("ExecutionStart [unordered2]")
 					synchronizeExecution.Synchronize()
 				},
 				&execution.Update{
-					Type: execution.Done,
+					Type:   execution.Done,
+					Result: result,
 				},
 			)
 		}
 		// UnorderedMethod2
 		{
-			runnerMock.AddExecutionClassify("UnorderedMethod2", intolerableFlags(), nil)
-			objectExecutionMock := runnerMock.AddExecutionMock("UnorderedMethod2")
+			runnerMock.AddExecutionClassify("unordered3", intolerableFlags(), nil)
+			objectExecutionMock := runnerMock.AddExecutionMock("unordered3")
+			result := requestresult.New([]byte("345"), object)
 			objectExecutionMock.AddStart(
 				func(_ execution.Context) {
-					logger.Debug("ExecutionStart [UnorderedMethod2]")
+					logger.Debug("ExecutionStart [unordered3]")
 					synchronizeExecution.Synchronize()
 				},
 				&execution.Update{
-					Type: execution.Done,
+					Type:   execution.Done,
+					Result: result,
 				},
 			)
 		}
@@ -394,14 +399,20 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 		})
 	}
 
-	{
-		server.SendPayload(ctx, &pl1)
-		server.SendPayload(ctx, &pl2)
-		server.SendPayload(ctx, &pl3)
-		server.SendPayload(ctx, &pl4)
+	for i := int64(0); i < 4; i++ {
+		req := request
+		switch i {
+		case 0, 1:
+			req.CallSiteMethod = "ordered" + strconv.FormatInt(i, 10)
+			req.CallFlags = payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty)
+		case 2, 3:
+			req.CallSiteMethod = "unordered" + strconv.FormatInt(i, 10)
+			req.CallFlags = payload.BuildCallFlags(contract.CallIntolerable, contract.CallValidated)
+		}
+		server.SendPayload(ctx, &req)
 	}
 
-	testutils.WaitSignalsTimed(t, 30*time.Second, synchronizeExecution.Wait())
+	testutils.WaitSignalsTimed(t, 400*time.Second, synchronizeExecution.Wait())
 	server.IncrementPulseAndWaitIdle(ctx)
 	synchronizeExecution.WakeUp()
 
@@ -417,14 +428,4 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 
 	mc.Finish()
 
-}
-
-func buildPayloadForMethod(object reference.Global, outgoing reference.Global, methodName string, flags payload.CallFlags) payload.VCallRequest {
-	return payload.VCallRequest{
-		CallType:       payload.CTMethod,
-		CallFlags:      flags,
-		Callee:         object,
-		CallSiteMethod: methodName,
-		CallOutgoing:   outgoing,
-	}
 }
