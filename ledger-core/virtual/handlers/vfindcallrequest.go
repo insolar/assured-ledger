@@ -177,6 +177,7 @@ func (s *SMVFindCallRequest) stepSendResponse(ctx smachine.ExecutionContext) sma
 	target := s.Meta.Sender
 
 	msg := payload.VFindCallResponse{
+		LookedAt:   s.Payload.LookAt,
 		Callee:     s.Payload.Callee,
 		Outgoing:   s.Payload.Outgoing,
 		Status:     s.status,
