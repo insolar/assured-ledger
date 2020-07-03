@@ -1,0 +1,19 @@
+@startuml
+state "Init" as T01_S001
+T01_S001 : SMVFindCallResponse
+[*] --> T01_S001
+T01_S001 --> T01_S002
+state "stepProcess" as T01_S002
+T01_S002 : SMVFindCallResponse
+T01_S002 --[dashed]> [*] : [link.IsZero()]\nError
+T01_S002 --[dashed]> [*] : [bargeInCallback==nil]\nError
+T01_S002 --[dashed]> [*] : [!done]\nError
+T01_S002 --> [*]
+state "GetInitStateFor" as T00_S001
+T00_S001 : dSMVFindCallResponse
+[*] --> T00_S001
+state "s.Init" as T00_U001
+T00_U001 : dSMVFindCallResponse
+T00_U001 : UNKNOWN 
+T00_S001 --> T00_U001
+@enduml
