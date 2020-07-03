@@ -30,24 +30,32 @@ type DefaultHandlersFactory struct {
 	handlers.FactoryMeta
 }
 
-func (f DefaultHandlersFactory) Classify(ctx context.Context, pn pulse.Number, pr pulse.Range, input conveyor.InputEvent) (pulse.Number, smachine.CreateFunc, error) {
+func (f DefaultHandlersFactory) Classify(ctx context.Context, input conveyor.InputEvent, ic conveyor.InputContext) (conveyor.InputSetup, error) {
 	switch event := input.(type) {
 	case *virtualStateMachine.DispatcherMessage:
-		if pr == nil {
-			return 0, nil, throw.E("event is too old", struct {
+		if ic.PulseRange == nil {
+			return conveyor.InputSetup{},
+			throw.E("event is too old", struct {
 				PN        pulse.Number
 				InputType interface{} `fmt:"%T"`
-			}{pn, input})
+			}{ic.PulseNumber, input})
 		}
 
-		return f.Process(ctx, event, pr)
+		targetPN, createFn, err := f.Process(ctx, event, ic.PulseRange)
+		return conveyor.InputSetup{
+			Target:    targetPN,
+			CreateFn:  createFn,
+		}, err
+
 	case *testWalletAPIStateMachine.TestAPICall:
-		return 0, testWalletAPIStateMachine.Handler(event), nil
+		return conveyor.InputSetup{
+			CreateFn: testWalletAPIStateMachine.Handler(event),
+		}, nil
 	default:
 		panic(throw.E("unknown event type", struct {
 			PN        pulse.Number
 			InputType interface{} `fmt:"%T"`
-		}{pn, input}))
+		}{ic.PulseNumber, input}))
 	}
 }
 

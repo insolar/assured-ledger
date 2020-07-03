@@ -199,8 +199,6 @@ type InOrderStepContext interface {
 
 	// Error stops SM by calling an error handler.
 	Error(error) StateUpdate
-	// deprecated
-	Errorf(msg string, a ...interface{}) StateUpdate
 	// Stop creates an update to stop the current SM.
 	Stop() StateUpdate
 

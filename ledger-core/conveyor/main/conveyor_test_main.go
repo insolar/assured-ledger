@@ -36,10 +36,12 @@ func main() {
 		SlotAliasRegistry: &conveyor2.GlobalAliases{},
 	}
 
-	factoryFn := func(_ context.Context, pn pulse.Number, _ pulse.Range, v conveyor2.InputEvent) (pulse.Number, smachine.CreateFunc, error) {
-		return 0, func(ctx smachine.ConstructionContext) smachine.StateMachine {
-			sm := &AppEventSM{eventValue: v, pn: pn}
-			return sm
+	factoryFn := func(_ context.Context, v conveyor2.InputEvent, ic conveyor2.InputContext) (conveyor2.InputSetup, error) {
+		return conveyor2.InputSetup{
+			CreateFn: func(ctx smachine.ConstructionContext) smachine.StateMachine {
+				sm := &AppEventSM{eventValue: v, pn: ic.PulseNumber}
+				return sm
+			},
 		}, nil
 	}
 	machineConfig.SlotMachineLogger = convlog.MachineLogger{}
