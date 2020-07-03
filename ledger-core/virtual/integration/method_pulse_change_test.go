@@ -355,7 +355,9 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 		objectExecutionMock.AddStart(
 			func(_ execution.Context) {
 				logger.Debug("ExecutionStart [" + req.CallSiteMethod + "]")
-				synchronizeExecution.Synchronize()
+				if i != 1 {
+					synchronizeExecution.Synchronize()
+				}
 			},
 			&execution.Update{
 				Type:   execution.Done,
@@ -380,5 +382,4 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 	}
 
 	mc.Finish()
-
 }
