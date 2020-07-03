@@ -51,7 +51,7 @@ func TestDelegationToken_CheckTokenField(t *testing.T) {
 		},
 		{
 			name:         "Fail with wrong outgoing in token",
-			testRailID:   "C5198",
+			testRailID:   "C5199",
 			fakeCaller:   false,
 			fakeCallee:   false,
 			fakeOutgoing: true,
