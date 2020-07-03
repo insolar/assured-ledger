@@ -25,10 +25,3 @@ metricparams:
   quantiles: ["0.5", "0.8", "0.95", "0.99"]
   webdav:
     timeout: "1m"
-#    host: "https://example.com"
-#    username: "user"
-#    password: "pass"
-#    directory: "testrun"
-#  git:
-#    head: "master"
-#    commit: "deadbeef"
