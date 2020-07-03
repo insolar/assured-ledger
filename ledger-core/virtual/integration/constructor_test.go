@@ -27,6 +27,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/synchronization"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
@@ -770,4 +771,75 @@ func TestVirtual_Constructor_PulseChangedWhileOutgoing(t *testing.T) {
 	}
 
 	mc.Finish()
+}
+
+func TestVirtual_Constructor_IsolationNegotiation(t *testing.T) {
+	t.Log("C5031")
+	table := []struct {
+		name      string
+		isolation contract.MethodIsolation
+	}{
+		{
+			name:      "call constructor with intolerable and dirty flags",
+			isolation: contract.MethodIsolation{Interference: contract.CallIntolerable, State: contract.CallDirty},
+		},
+		{
+			name:      "call constructor with tolerable and validated flags",
+			isolation: contract.MethodIsolation{Interference: contract.CallTolerable, State: contract.CallValidated},
+		},
+		{
+			name:      "call constructor with intolerable and validated flags",
+			isolation: contract.MethodIsolation{Interference: contract.CallIntolerable, State: contract.CallValidated},
+		},
+	}
+
+	for _, test := range table {
+		t.Run(test.name, func(t *testing.T) {
+			mc := minimock.NewController(t)
+
+			server, ctx := utils.NewServer(nil, t)
+			defer server.Stop()
+
+			executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
+
+			outgoing := server.BuildRandomOutgoingWithPulse()
+
+			expectedError := throw.W(throw.IllegalValue(), "failed to negotiate call isolation params", struct {
+				methodIsolation contract.MethodIsolation
+				callIsolation   contract.MethodIsolation
+			}{
+				methodIsolation: contract.ConstructorIsolation(),
+				callIsolation:   test.isolation,
+			})
+
+			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+			typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool {
+				require.Equal(t, outgoing, result.Callee)
+				require.Equal(t, outgoing, result.CallOutgoing)
+
+				contractErr, sysErr := foundation.UnmarshalMethodResult(result.ReturnArguments)
+				require.NoError(t, sysErr)
+				require.NotNil(t, contractErr)
+				require.Equal(t, expectedError.Error(), contractErr.Error())
+
+				return false // no resend msg
+			})
+
+			pl := payload.VCallRequest{
+				CallType:       payload.CTConstructor,
+				CallFlags:      payload.BuildCallFlags(test.isolation.Interference, test.isolation.State),
+				Callee:         testwallet.GetClass(),
+				CallSiteMethod: "New",
+				CallOutgoing:   outgoing,
+			}
+			server.SendPayload(ctx, &pl)
+
+			testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+			testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+
+			require.Equal(t, 1, typedChecker.VCallResult.Count())
+
+			mc.Finish()
+		})
+	}
 }
