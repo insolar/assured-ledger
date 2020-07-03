@@ -69,12 +69,6 @@ type InitializationContextMock struct {
 	beforeErrorCounter uint64
 	ErrorMock          mInitializationContextMockError
 
-	funcErrorf          func(msg string, a ...interface{}) (s1 StateUpdate)
-	inspectFuncErrorf   func(msg string, a ...interface{})
-	afterErrorfCounter  uint64
-	beforeErrorfCounter uint64
-	ErrorfMock          mInitializationContextMockErrorf
-
 	funcGetContext          func() (c1 context.Context)
 	inspectFuncGetContext   func()
 	afterGetContextCounter  uint64
@@ -301,9 +295,6 @@ func NewInitializationContextMock(t minimock.Tester) *InitializationContextMock 
 
 	m.ErrorMock = mInitializationContextMockError{mock: m}
 	m.ErrorMock.callArgs = []*InitializationContextMockErrorParams{}
-
-	m.ErrorfMock = mInitializationContextMockErrorf{mock: m}
-	m.ErrorfMock.callArgs = []*InitializationContextMockErrorfParams{}
 
 	m.GetContextMock = mInitializationContextMockGetContext{mock: m}
 
@@ -2328,222 +2319,6 @@ func (m *InitializationContextMock) MinimockErrorInspect() {
 	// if func was set then invocations count should be greater than zero
 	if m.funcError != nil && mm_atomic.LoadUint64(&m.afterErrorCounter) < 1 {
 		m.t.Error("Expected call to InitializationContextMock.Error")
-	}
-}
-
-type mInitializationContextMockErrorf struct {
-	mock               *InitializationContextMock
-	defaultExpectation *InitializationContextMockErrorfExpectation
-	expectations       []*InitializationContextMockErrorfExpectation
-
-	callArgs []*InitializationContextMockErrorfParams
-	mutex    sync.RWMutex
-}
-
-// InitializationContextMockErrorfExpectation specifies expectation struct of the InitializationContext.Errorf
-type InitializationContextMockErrorfExpectation struct {
-	mock    *InitializationContextMock
-	params  *InitializationContextMockErrorfParams
-	results *InitializationContextMockErrorfResults
-	Counter uint64
-}
-
-// InitializationContextMockErrorfParams contains parameters of the InitializationContext.Errorf
-type InitializationContextMockErrorfParams struct {
-	msg string
-	a   []interface{}
-}
-
-// InitializationContextMockErrorfResults contains results of the InitializationContext.Errorf
-type InitializationContextMockErrorfResults struct {
-	s1 StateUpdate
-}
-
-// Expect sets up expected params for InitializationContext.Errorf
-func (mmErrorf *mInitializationContextMockErrorf) Expect(msg string, a ...interface{}) *mInitializationContextMockErrorf {
-	if mmErrorf.mock.funcErrorf != nil {
-		mmErrorf.mock.t.Fatalf("InitializationContextMock.Errorf mock is already set by Set")
-	}
-
-	if mmErrorf.defaultExpectation == nil {
-		mmErrorf.defaultExpectation = &InitializationContextMockErrorfExpectation{}
-	}
-
-	mmErrorf.defaultExpectation.params = &InitializationContextMockErrorfParams{msg, a}
-	for _, e := range mmErrorf.expectations {
-		if minimock.Equal(e.params, mmErrorf.defaultExpectation.params) {
-			mmErrorf.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmErrorf.defaultExpectation.params)
-		}
-	}
-
-	return mmErrorf
-}
-
-// Inspect accepts an inspector function that has same arguments as the InitializationContext.Errorf
-func (mmErrorf *mInitializationContextMockErrorf) Inspect(f func(msg string, a ...interface{})) *mInitializationContextMockErrorf {
-	if mmErrorf.mock.inspectFuncErrorf != nil {
-		mmErrorf.mock.t.Fatalf("Inspect function is already set for InitializationContextMock.Errorf")
-	}
-
-	mmErrorf.mock.inspectFuncErrorf = f
-
-	return mmErrorf
-}
-
-// Return sets up results that will be returned by InitializationContext.Errorf
-func (mmErrorf *mInitializationContextMockErrorf) Return(s1 StateUpdate) *InitializationContextMock {
-	if mmErrorf.mock.funcErrorf != nil {
-		mmErrorf.mock.t.Fatalf("InitializationContextMock.Errorf mock is already set by Set")
-	}
-
-	if mmErrorf.defaultExpectation == nil {
-		mmErrorf.defaultExpectation = &InitializationContextMockErrorfExpectation{mock: mmErrorf.mock}
-	}
-	mmErrorf.defaultExpectation.results = &InitializationContextMockErrorfResults{s1}
-	return mmErrorf.mock
-}
-
-//Set uses given function f to mock the InitializationContext.Errorf method
-func (mmErrorf *mInitializationContextMockErrorf) Set(f func(msg string, a ...interface{}) (s1 StateUpdate)) *InitializationContextMock {
-	if mmErrorf.defaultExpectation != nil {
-		mmErrorf.mock.t.Fatalf("Default expectation is already set for the InitializationContext.Errorf method")
-	}
-
-	if len(mmErrorf.expectations) > 0 {
-		mmErrorf.mock.t.Fatalf("Some expectations are already set for the InitializationContext.Errorf method")
-	}
-
-	mmErrorf.mock.funcErrorf = f
-	return mmErrorf.mock
-}
-
-// When sets expectation for the InitializationContext.Errorf which will trigger the result defined by the following
-// Then helper
-func (mmErrorf *mInitializationContextMockErrorf) When(msg string, a ...interface{}) *InitializationContextMockErrorfExpectation {
-	if mmErrorf.mock.funcErrorf != nil {
-		mmErrorf.mock.t.Fatalf("InitializationContextMock.Errorf mock is already set by Set")
-	}
-
-	expectation := &InitializationContextMockErrorfExpectation{
-		mock:   mmErrorf.mock,
-		params: &InitializationContextMockErrorfParams{msg, a},
-	}
-	mmErrorf.expectations = append(mmErrorf.expectations, expectation)
-	return expectation
-}
-
-// Then sets up InitializationContext.Errorf return parameters for the expectation previously defined by the When method
-func (e *InitializationContextMockErrorfExpectation) Then(s1 StateUpdate) *InitializationContextMock {
-	e.results = &InitializationContextMockErrorfResults{s1}
-	return e.mock
-}
-
-// Errorf implements InitializationContext
-func (mmErrorf *InitializationContextMock) Errorf(msg string, a ...interface{}) (s1 StateUpdate) {
-	mm_atomic.AddUint64(&mmErrorf.beforeErrorfCounter, 1)
-	defer mm_atomic.AddUint64(&mmErrorf.afterErrorfCounter, 1)
-
-	if mmErrorf.inspectFuncErrorf != nil {
-		mmErrorf.inspectFuncErrorf(msg, a...)
-	}
-
-	mm_params := &InitializationContextMockErrorfParams{msg, a}
-
-	// Record call args
-	mmErrorf.ErrorfMock.mutex.Lock()
-	mmErrorf.ErrorfMock.callArgs = append(mmErrorf.ErrorfMock.callArgs, mm_params)
-	mmErrorf.ErrorfMock.mutex.Unlock()
-
-	for _, e := range mmErrorf.ErrorfMock.expectations {
-		if minimock.Equal(e.params, mm_params) {
-			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.s1
-		}
-	}
-
-	if mmErrorf.ErrorfMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmErrorf.ErrorfMock.defaultExpectation.Counter, 1)
-		mm_want := mmErrorf.ErrorfMock.defaultExpectation.params
-		mm_got := InitializationContextMockErrorfParams{msg, a}
-		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmErrorf.t.Errorf("InitializationContextMock.Errorf got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
-		}
-
-		mm_results := mmErrorf.ErrorfMock.defaultExpectation.results
-		if mm_results == nil {
-			mmErrorf.t.Fatal("No results are set for the InitializationContextMock.Errorf")
-		}
-		return (*mm_results).s1
-	}
-	if mmErrorf.funcErrorf != nil {
-		return mmErrorf.funcErrorf(msg, a...)
-	}
-	mmErrorf.t.Fatalf("Unexpected call to InitializationContextMock.Errorf. %v %v", msg, a)
-	return
-}
-
-// ErrorfAfterCounter returns a count of finished InitializationContextMock.Errorf invocations
-func (mmErrorf *InitializationContextMock) ErrorfAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmErrorf.afterErrorfCounter)
-}
-
-// ErrorfBeforeCounter returns a count of InitializationContextMock.Errorf invocations
-func (mmErrorf *InitializationContextMock) ErrorfBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmErrorf.beforeErrorfCounter)
-}
-
-// Calls returns a list of arguments used in each call to InitializationContextMock.Errorf.
-// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmErrorf *mInitializationContextMockErrorf) Calls() []*InitializationContextMockErrorfParams {
-	mmErrorf.mutex.RLock()
-
-	argCopy := make([]*InitializationContextMockErrorfParams, len(mmErrorf.callArgs))
-	copy(argCopy, mmErrorf.callArgs)
-
-	mmErrorf.mutex.RUnlock()
-
-	return argCopy
-}
-
-// MinimockErrorfDone returns true if the count of the Errorf invocations corresponds
-// the number of defined expectations
-func (m *InitializationContextMock) MinimockErrorfDone() bool {
-	for _, e := range m.ErrorfMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.ErrorfMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterErrorfCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcErrorf != nil && mm_atomic.LoadUint64(&m.afterErrorfCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockErrorfInspect logs each unmet expectation
-func (m *InitializationContextMock) MinimockErrorfInspect() {
-	for _, e := range m.ErrorfMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to InitializationContextMock.Errorf with params: %#v", *e.params)
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.ErrorfMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterErrorfCounter) < 1 {
-		if m.ErrorfMock.defaultExpectation.params == nil {
-			m.t.Error("Expected call to InitializationContextMock.Errorf")
-		} else {
-			m.t.Errorf("Expected call to InitializationContextMock.Errorf with params: %#v", *m.ErrorfMock.defaultExpectation.params)
-		}
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcErrorf != nil && mm_atomic.LoadUint64(&m.afterErrorfCounter) < 1 {
-		m.t.Error("Expected call to InitializationContextMock.Errorf")
 	}
 }
 
@@ -8600,8 +8375,6 @@ func (m *InitializationContextMock) MinimockFinish() {
 
 		m.MinimockErrorInspect()
 
-		m.MinimockErrorfInspect()
-
 		m.MinimockGetContextInspect()
 
 		m.MinimockGetDefaultTerminationResultInspect()
@@ -8697,7 +8470,6 @@ func (m *InitializationContextMock) minimockDone() bool {
 		m.MinimockCallBargeInWithParamDone() &&
 		m.MinimockCheckDone() &&
 		m.MinimockErrorDone() &&
-		m.MinimockErrorfDone() &&
 		m.MinimockGetContextDone() &&
 		m.MinimockGetDefaultTerminationResultDone() &&
 		m.MinimockGetPublishedDone() &&
