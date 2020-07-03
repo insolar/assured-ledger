@@ -59,7 +59,7 @@ func TestDelegationToken_CheckTokenField(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			t.Log("C5197")
+			t.Log(test.testRailID)
 
 			mc := minimock.NewController(t)
 
