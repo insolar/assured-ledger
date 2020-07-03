@@ -34,3 +34,7 @@ func (p *GlobalAliases) PublishAlias(key interface{}, slot smachine.SlotAliasVal
 	_, loaded := p.m.LoadOrStore(key, slot)
 	return !loaded
 }
+
+func (p *GlobalAliases) ReplaceAlias(key interface{}, slot smachine.SlotAliasValue) {
+	p.m.Store(key, slot)
+}

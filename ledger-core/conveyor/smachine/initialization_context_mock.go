@@ -159,6 +159,12 @@ type InitializationContextMock struct {
 	beforePublishGlobalAliasAndBargeInCounter uint64
 	PublishGlobalAliasAndBargeInMock          mInitializationContextMockPublishGlobalAliasAndBargeIn
 
+	funcPublishReplacement          func(key interface{}, data interface{}) (b1 bool)
+	inspectFuncPublishReplacement   func(key interface{}, data interface{})
+	afterPublishReplacementCounter  uint64
+	beforePublishReplacementCounter uint64
+	PublishReplacementMock          mInitializationContextMockPublishReplacement
+
 	funcRelease          func(s1 SyncLink) (b1 bool)
 	inspectFuncRelease   func(s1 SyncLink)
 	afterReleaseCounter  uint64
@@ -335,6 +341,9 @@ func NewInitializationContextMock(t minimock.Tester) *InitializationContextMock 
 
 	m.PublishGlobalAliasAndBargeInMock = mInitializationContextMockPublishGlobalAliasAndBargeIn{mock: m}
 	m.PublishGlobalAliasAndBargeInMock.callArgs = []*InitializationContextMockPublishGlobalAliasAndBargeInParams{}
+
+	m.PublishReplacementMock = mInitializationContextMockPublishReplacement{mock: m}
+	m.PublishReplacementMock.callArgs = []*InitializationContextMockPublishReplacementParams{}
 
 	m.ReleaseMock = mInitializationContextMockRelease{mock: m}
 	m.ReleaseMock.callArgs = []*InitializationContextMockReleaseParams{}
@@ -5190,6 +5199,222 @@ func (m *InitializationContextMock) MinimockPublishGlobalAliasAndBargeInInspect(
 	}
 }
 
+type mInitializationContextMockPublishReplacement struct {
+	mock               *InitializationContextMock
+	defaultExpectation *InitializationContextMockPublishReplacementExpectation
+	expectations       []*InitializationContextMockPublishReplacementExpectation
+
+	callArgs []*InitializationContextMockPublishReplacementParams
+	mutex    sync.RWMutex
+}
+
+// InitializationContextMockPublishReplacementExpectation specifies expectation struct of the InitializationContext.PublishReplacement
+type InitializationContextMockPublishReplacementExpectation struct {
+	mock    *InitializationContextMock
+	params  *InitializationContextMockPublishReplacementParams
+	results *InitializationContextMockPublishReplacementResults
+	Counter uint64
+}
+
+// InitializationContextMockPublishReplacementParams contains parameters of the InitializationContext.PublishReplacement
+type InitializationContextMockPublishReplacementParams struct {
+	key  interface{}
+	data interface{}
+}
+
+// InitializationContextMockPublishReplacementResults contains results of the InitializationContext.PublishReplacement
+type InitializationContextMockPublishReplacementResults struct {
+	b1 bool
+}
+
+// Expect sets up expected params for InitializationContext.PublishReplacement
+func (mmPublishReplacement *mInitializationContextMockPublishReplacement) Expect(key interface{}, data interface{}) *mInitializationContextMockPublishReplacement {
+	if mmPublishReplacement.mock.funcPublishReplacement != nil {
+		mmPublishReplacement.mock.t.Fatalf("InitializationContextMock.PublishReplacement mock is already set by Set")
+	}
+
+	if mmPublishReplacement.defaultExpectation == nil {
+		mmPublishReplacement.defaultExpectation = &InitializationContextMockPublishReplacementExpectation{}
+	}
+
+	mmPublishReplacement.defaultExpectation.params = &InitializationContextMockPublishReplacementParams{key, data}
+	for _, e := range mmPublishReplacement.expectations {
+		if minimock.Equal(e.params, mmPublishReplacement.defaultExpectation.params) {
+			mmPublishReplacement.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmPublishReplacement.defaultExpectation.params)
+		}
+	}
+
+	return mmPublishReplacement
+}
+
+// Inspect accepts an inspector function that has same arguments as the InitializationContext.PublishReplacement
+func (mmPublishReplacement *mInitializationContextMockPublishReplacement) Inspect(f func(key interface{}, data interface{})) *mInitializationContextMockPublishReplacement {
+	if mmPublishReplacement.mock.inspectFuncPublishReplacement != nil {
+		mmPublishReplacement.mock.t.Fatalf("Inspect function is already set for InitializationContextMock.PublishReplacement")
+	}
+
+	mmPublishReplacement.mock.inspectFuncPublishReplacement = f
+
+	return mmPublishReplacement
+}
+
+// Return sets up results that will be returned by InitializationContext.PublishReplacement
+func (mmPublishReplacement *mInitializationContextMockPublishReplacement) Return(b1 bool) *InitializationContextMock {
+	if mmPublishReplacement.mock.funcPublishReplacement != nil {
+		mmPublishReplacement.mock.t.Fatalf("InitializationContextMock.PublishReplacement mock is already set by Set")
+	}
+
+	if mmPublishReplacement.defaultExpectation == nil {
+		mmPublishReplacement.defaultExpectation = &InitializationContextMockPublishReplacementExpectation{mock: mmPublishReplacement.mock}
+	}
+	mmPublishReplacement.defaultExpectation.results = &InitializationContextMockPublishReplacementResults{b1}
+	return mmPublishReplacement.mock
+}
+
+//Set uses given function f to mock the InitializationContext.PublishReplacement method
+func (mmPublishReplacement *mInitializationContextMockPublishReplacement) Set(f func(key interface{}, data interface{}) (b1 bool)) *InitializationContextMock {
+	if mmPublishReplacement.defaultExpectation != nil {
+		mmPublishReplacement.mock.t.Fatalf("Default expectation is already set for the InitializationContext.PublishReplacement method")
+	}
+
+	if len(mmPublishReplacement.expectations) > 0 {
+		mmPublishReplacement.mock.t.Fatalf("Some expectations are already set for the InitializationContext.PublishReplacement method")
+	}
+
+	mmPublishReplacement.mock.funcPublishReplacement = f
+	return mmPublishReplacement.mock
+}
+
+// When sets expectation for the InitializationContext.PublishReplacement which will trigger the result defined by the following
+// Then helper
+func (mmPublishReplacement *mInitializationContextMockPublishReplacement) When(key interface{}, data interface{}) *InitializationContextMockPublishReplacementExpectation {
+	if mmPublishReplacement.mock.funcPublishReplacement != nil {
+		mmPublishReplacement.mock.t.Fatalf("InitializationContextMock.PublishReplacement mock is already set by Set")
+	}
+
+	expectation := &InitializationContextMockPublishReplacementExpectation{
+		mock:   mmPublishReplacement.mock,
+		params: &InitializationContextMockPublishReplacementParams{key, data},
+	}
+	mmPublishReplacement.expectations = append(mmPublishReplacement.expectations, expectation)
+	return expectation
+}
+
+// Then sets up InitializationContext.PublishReplacement return parameters for the expectation previously defined by the When method
+func (e *InitializationContextMockPublishReplacementExpectation) Then(b1 bool) *InitializationContextMock {
+	e.results = &InitializationContextMockPublishReplacementResults{b1}
+	return e.mock
+}
+
+// PublishReplacement implements InitializationContext
+func (mmPublishReplacement *InitializationContextMock) PublishReplacement(key interface{}, data interface{}) (b1 bool) {
+	mm_atomic.AddUint64(&mmPublishReplacement.beforePublishReplacementCounter, 1)
+	defer mm_atomic.AddUint64(&mmPublishReplacement.afterPublishReplacementCounter, 1)
+
+	if mmPublishReplacement.inspectFuncPublishReplacement != nil {
+		mmPublishReplacement.inspectFuncPublishReplacement(key, data)
+	}
+
+	mm_params := &InitializationContextMockPublishReplacementParams{key, data}
+
+	// Record call args
+	mmPublishReplacement.PublishReplacementMock.mutex.Lock()
+	mmPublishReplacement.PublishReplacementMock.callArgs = append(mmPublishReplacement.PublishReplacementMock.callArgs, mm_params)
+	mmPublishReplacement.PublishReplacementMock.mutex.Unlock()
+
+	for _, e := range mmPublishReplacement.PublishReplacementMock.expectations {
+		if minimock.Equal(e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.b1
+		}
+	}
+
+	if mmPublishReplacement.PublishReplacementMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmPublishReplacement.PublishReplacementMock.defaultExpectation.Counter, 1)
+		mm_want := mmPublishReplacement.PublishReplacementMock.defaultExpectation.params
+		mm_got := InitializationContextMockPublishReplacementParams{key, data}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmPublishReplacement.t.Errorf("InitializationContextMock.PublishReplacement got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmPublishReplacement.PublishReplacementMock.defaultExpectation.results
+		if mm_results == nil {
+			mmPublishReplacement.t.Fatal("No results are set for the InitializationContextMock.PublishReplacement")
+		}
+		return (*mm_results).b1
+	}
+	if mmPublishReplacement.funcPublishReplacement != nil {
+		return mmPublishReplacement.funcPublishReplacement(key, data)
+	}
+	mmPublishReplacement.t.Fatalf("Unexpected call to InitializationContextMock.PublishReplacement. %v %v", key, data)
+	return
+}
+
+// PublishReplacementAfterCounter returns a count of finished InitializationContextMock.PublishReplacement invocations
+func (mmPublishReplacement *InitializationContextMock) PublishReplacementAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmPublishReplacement.afterPublishReplacementCounter)
+}
+
+// PublishReplacementBeforeCounter returns a count of InitializationContextMock.PublishReplacement invocations
+func (mmPublishReplacement *InitializationContextMock) PublishReplacementBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmPublishReplacement.beforePublishReplacementCounter)
+}
+
+// Calls returns a list of arguments used in each call to InitializationContextMock.PublishReplacement.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmPublishReplacement *mInitializationContextMockPublishReplacement) Calls() []*InitializationContextMockPublishReplacementParams {
+	mmPublishReplacement.mutex.RLock()
+
+	argCopy := make([]*InitializationContextMockPublishReplacementParams, len(mmPublishReplacement.callArgs))
+	copy(argCopy, mmPublishReplacement.callArgs)
+
+	mmPublishReplacement.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockPublishReplacementDone returns true if the count of the PublishReplacement invocations corresponds
+// the number of defined expectations
+func (m *InitializationContextMock) MinimockPublishReplacementDone() bool {
+	for _, e := range m.PublishReplacementMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.PublishReplacementMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterPublishReplacementCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcPublishReplacement != nil && mm_atomic.LoadUint64(&m.afterPublishReplacementCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockPublishReplacementInspect logs each unmet expectation
+func (m *InitializationContextMock) MinimockPublishReplacementInspect() {
+	for _, e := range m.PublishReplacementMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to InitializationContextMock.PublishReplacement with params: %#v", *e.params)
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.PublishReplacementMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterPublishReplacementCounter) < 1 {
+		if m.PublishReplacementMock.defaultExpectation.params == nil {
+			m.t.Error("Expected call to InitializationContextMock.PublishReplacement")
+		} else {
+			m.t.Errorf("Expected call to InitializationContextMock.PublishReplacement with params: %#v", *m.PublishReplacementMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcPublishReplacement != nil && mm_atomic.LoadUint64(&m.afterPublishReplacementCounter) < 1 {
+		m.t.Error("Expected call to InitializationContextMock.PublishReplacement")
+	}
+}
+
 type mInitializationContextMockRelease struct {
 	mock               *InitializationContextMock
 	defaultExpectation *InitializationContextMockReleaseExpectation
@@ -8405,6 +8630,8 @@ func (m *InitializationContextMock) MinimockFinish() {
 
 		m.MinimockPublishGlobalAliasAndBargeInInspect()
 
+		m.MinimockPublishReplacementInspect()
+
 		m.MinimockReleaseInspect()
 
 		m.MinimockReleaseAllInspect()
@@ -8485,6 +8712,7 @@ func (m *InitializationContextMock) minimockDone() bool {
 		m.MinimockPublishDone() &&
 		m.MinimockPublishGlobalAliasDone() &&
 		m.MinimockPublishGlobalAliasAndBargeInDone() &&
+		m.MinimockPublishReplacementDone() &&
 		m.MinimockReleaseDone() &&
 		m.MinimockReleaseAllDone() &&
 		m.MinimockRestoreStepDone() &&

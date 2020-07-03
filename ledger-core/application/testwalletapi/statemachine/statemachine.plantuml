@@ -18,6 +18,6 @@ T00_S003 --[dotted]> T00_S004
 T00_S003 --> T00_S005
 state "stepSend" as T00_S002
 T00_S002 : SMTestAPICall
-T00_S002 --[dashed]> [*] : [!(...).PublishGlobalAliasAndBargeIn()]\nError
+T00_S002 --> [*] : [!(...).PublishGlobalAliasAndBargeIn()]\nError
 T00_S002 --> T00_S005 : Migrate: s.migrateResend
 @enduml

@@ -53,6 +53,10 @@ func (p *PulseSlot) State() PulseSlotState {
 	return ps
 }
 
+func (p *PulseSlot) PulseNumber() pulse.Number {
+	return p.PulseData().PulseNumber
+}
+
 func (p *PulseSlot) PulseData() pulse.Data {
 	pd, _ := p.pulseData.PulseData()
 	if pd.IsEmpty() {

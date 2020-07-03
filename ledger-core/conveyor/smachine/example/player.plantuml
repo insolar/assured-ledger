@@ -34,5 +34,5 @@ state "stepStartTheGame.2" as T00_S008
 T00_S008 : PlayerSM
 T00_S008 --> T00_S009
 state "stepStartTheGame.gameSM.1" as T00_S007 <<sdlreceive>>
-T00_S007 --> T00_S008 : Migrate: <nil>
+T00_S007 --> T00_S008
 @enduml

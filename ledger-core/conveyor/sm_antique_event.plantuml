@@ -9,7 +9,7 @@ state "DYNAMIC createFn" as T00_U001
 T00_U001 : antiqueEventSM
 T00_U001 : UNKNOWN 
 T00_S004 --> T00_U001 : [cps!=nil]
-T00_S004 --[dashed]> [*] : Error
+T00_S004 --> [*] : Error
 state "stepInit" as T00_S002
 T00_S002 : antiqueEventSM
 T00_S002 --> T00_S003
