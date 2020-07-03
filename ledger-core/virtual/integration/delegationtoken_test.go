@@ -20,7 +20,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
@@ -65,9 +64,6 @@ func TestDelegationToken_CheckTokenField(t *testing.T) {
 
 			server, ctx := utils.NewUninitializedServer(nil, t)
 			defer server.Stop()
-
-			runnerMock := logicless.NewServiceMock(ctx, mc, nil)
-			server.ReplaceRunner(runnerMock)
 
 			jetCoordinatorMock := jet.NewAffinityHelperMock(t)
 			auth := authentication.NewService(ctx, jetCoordinatorMock)
