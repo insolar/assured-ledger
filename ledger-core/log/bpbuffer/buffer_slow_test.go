@@ -37,13 +37,13 @@ func Test_BackpressureBuffer_Deviations(t *testing.T) {
 		test_BackpressureBuffer_Deviations(t, threads, iterations, 0, 5, false, generateDelay, writeDelay)
 	})
 
-	for _, threads := range []int{1, 10, 100, 1000} {
-		iterations := 5000 / threads
+	for _, threads := range []int{1, 10, /* 100, 1000 */} {
+		iterations := 1000 / threads
 		if iterations > 1000 {
 			iterations = 1000
 		}
-		for _, bufSize := range []int{10, 100, 1000} {
-			for _, parWrites := range []int{1, 5, 10, 100} {
+		for _, bufSize := range []int{10, /* 100, */ 1000} {
+			for _, parWrites := range []int{1, 5, 10, /* 100 */} {
 				if parWrites > threads {
 					continue
 				}
