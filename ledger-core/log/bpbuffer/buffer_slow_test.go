@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-// +build slowtest
+// + build slowtest
 
 package bpbuffer
 
@@ -43,7 +43,7 @@ func Test_BackpressureBuffer_Deviations(t *testing.T) {
 			iterations = 1000
 		}
 		for _, bufSize := range []int{10, /* 100, */ 1000} {
-			for _, parWrites := range []int{1, 5, /*10,*/ 100} {
+			for _, parWrites := range []int{1, 5, 10, /* 100 */} {
 				if parWrites > threads {
 					continue
 				}
