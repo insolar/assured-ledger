@@ -16,8 +16,17 @@ type uniqueSharedKey struct {
 	valueType reflect.Type
 }
 
+func (p *slotContext) ensureForShareData() {
+	switch {
+	case p.mode >= updCtxInit:
+	case p.mode == updCtxFail:
+	default:
+		panic(throw.IllegalState())
+	}
+}
+
 func (p *slotContext) Share(data interface{}, flags ShareDataFlags) SharedDataLink {
-	p.ensureAtLeast(updCtxInit)
+	p.ensureForShareData()
 	ensureShareValue(data)
 
 	switch {
@@ -35,7 +44,7 @@ func (p *slotContext) Share(data interface{}, flags ShareDataFlags) SharedDataLi
 }
 
 func (p *slotContext) Unshare(link SharedDataLink) bool {
-	p.ensureAtLeast(updCtxInit)
+	p.ensureForShareData()
 
 	switch {
 	case link.IsZero():
@@ -48,7 +57,7 @@ func (p *slotContext) Unshare(link SharedDataLink) bool {
 }
 
 func (p *slotContext) Publish(key, data interface{}) bool {
-	p.ensureAtLeast(updCtxInit)
+	p.ensureForShareData()
 	ensurePublishKey(key)
 
 	if sdl, ok := data.(SharedDataLink); ok && sdl.IsUnbound() {
@@ -59,18 +68,25 @@ func (p *slotContext) Publish(key, data interface{}) bool {
 	return p.s.registerBoundAlias(key, data)
 }
 
+func (p *slotContext) PublishReplacement(key, data interface{}) bool {
+	p.ensureForShareData()
+	ensurePublishKey(key)
+	ensurePublishValue(data)
+	return p.s.replaceBoundAlias(key, data)
+}
+
 func (p *slotContext) Unpublish(key interface{}) bool {
-	p.ensureAtLeast(updCtxInit)
+	p.ensureForShareData()
 	return p.s.unregisterAlias(key)
 }
 
 func (p *slotContext) UnpublishAll() {
-	p.ensureAtLeast(updCtxInit)
+	p.ensureForShareData()
 	p.s.machine.unregisterBoundAliases(p.s.GetSlotID())
 }
 
 func (p *slotContext) GetPublished(key interface{}) interface{} {
-	p.ensureAtLeast(updCtxInit)
+	p.ensureValid()
 	if v, ok := p.s.machine.getPublished(key); ok {
 		return v
 	}
@@ -82,24 +98,24 @@ func (p *slotContext) PublishGlobalAlias(key interface{}) bool {
 }
 
 func (p *slotContext) PublishGlobalAliasAndBargeIn(key interface{}, b BargeInHolder) bool {
-	p.ensureAtLeast(updCtxInit)
+	p.ensureForShareData()
 	ensurePublishKey(key)
 	return p.s.registerBoundAlias(globalAliasKey{key}, SlotAliasValue{Link: p.s.NewLink(), BargeIn: b})
 }
 
 func (p *slotContext) UnpublishGlobalAlias(key interface{}) bool {
-	p.ensureAtLeast(updCtxInit)
+	p.ensureForShareData()
 	return p.s.unregisterBoundAlias(globalAliasKey{key})
 }
 
 func (p *slotContext) GetPublishedGlobalAlias(key interface{}) SlotLink {
-	p.ensureAtLeast(updCtxInit)
+	p.ensureValid()
 	av := p.s.machine.getGlobalPublished(key)
 	return av.Link
 }
 
 func (p *slotContext) GetPublishedGlobalAliasAndBargeIn(key interface{}) (SlotLink, BargeInHolder) {
-	p.ensureAtLeast(updCtxInit)
+	p.ensureValid()
 	av := p.s.machine.getGlobalPublished(key)
 	return av.Link, av.BargeIn
 }

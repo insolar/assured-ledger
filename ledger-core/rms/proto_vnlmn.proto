@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+package rms;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+import "github.com/insolar/assured-ledger/ledger-core/insproto/ins.proto";
+import "rms.proto";
+// import "proto_records.proto";
+
+option (insproto.notation_all) = true;
+option (insproto.context_all) = "MessageVisitor";
+option (insproto.context_method_all) = "Visit";
+option (insproto.message_ctx_apply_all) = "Message";
+option (insproto.register_all) = "RegisterMessageType";
+option (insproto.projection_names) = "Head";
+option (gogoproto.goproto_getters_all) = true;
+option (gogoproto.equal_all) = true;
+
+// LStateRequest / LStateReport
+// LRegisterRequest / LRegisterResponse
+// LRegisterDedupRequest
+
+enum RegistrationFlags {
+    Undefined = 0;
+    Fast = 1;
+    Safe = 2;
+    FastSafe = 3;
+}
+
+message LRegisterRequest {
+    option (insproto.id) = 1200;
+    // = 1201 LRegisterLifelineRequest
+    // = 1202 LRegisterSidelineRequest
+
+    //*** Start of predefined section ***//
+    reserved 1 to 18, 20 to 1799;
+    AnyRecordLazy Record = 19 [(gogoproto.embed) = true, (insproto.ctx_apply)="MsgRecord"]; // put proper Record type here
+    //*** End of predefined section ***//
+
+    // Add here custom fields
+
+    RegistrationFlags Flags = 1800;
+    Reference AnticipatedRef = 1801;
+    Binary    ProducerSignature = 1802;
+    Reference ProducedBy = 1803;
+    // Token  ProducerToken = 1804;
+}
+
+message LRegisterResponse {
+    option (insproto.id) = 1203;
+
+    //*** Start of predefined section ***//
+    reserved 1 to 1799;
+    //*** End of predefined section ***//
+
+    // Add here custom fields
+
+    RegistrationFlags Flags = 1800;
+    Reference AnticipatedRef = 1801;
+
+    Binary    RegistrarSignature = 1805;
+    // Reference RegisteredBy = 1806;
+    // Token  RegistrarToken = 1807;
+}

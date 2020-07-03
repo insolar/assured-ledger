@@ -11,8 +11,8 @@ T00_S002 --> T00_S005 : Migrate: sm.migrate
 state "migrate" as T00_S010
 T00_S010 : SMObject
 T00_S010 --> [*] : [sm.GetState()==Unknown]
-T00_S010 --[dashed]> [*] : [!ctx.Publish()]\nError
-T00_S010 --[dashed]> [*] : [!ctx.Publish()]\nError
+T00_S010 --> [*] : [!ctx.Publish()]\nError
+T00_S010 --> [*] : [!ctx.Publish()]\nError
 T00_S010 --> T00_S011
 state "sm.messageSender" as T00_S004 <<sdlreceive>>
 state "stepFinalize" as T00_S012

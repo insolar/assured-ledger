@@ -17,7 +17,7 @@ func MarshalMessageWithPayloadsToBytes(m BasicMessage) ([]byte, error) {
 	ms := m.(GoGoSerializable)
 
 	ctx := &msgMarshalContext{m: m}
-	if err := m.SetupContext(ctx); err != nil {
+	if err := m.Visit(ctx); err != nil {
 		return nil, err
 	}
 
@@ -91,7 +91,7 @@ func UnmarshalMessageWithPayloadsFromBytes(b []byte, digester cryptkit.DataDiges
 
 	if m, ok := um.(BasicMessage); ok {
 		ctx := &msgMarshalContext{m: m}
-		if err := m.SetupContext(ctx); err != nil {
+		if err := m.Visit(ctx); err != nil {
 			return id, nil, err
 		}
 
