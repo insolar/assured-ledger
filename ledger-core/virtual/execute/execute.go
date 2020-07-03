@@ -250,6 +250,7 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 				ObjectReference: s.execution.Object.String(),
 				State:           objectState,
 			}))
+			return ctx.Jump(s.stepSendCallResult)
 		case object.Empty:
 			panic(throw.NotImplemented())
 		case object.Inactive:
