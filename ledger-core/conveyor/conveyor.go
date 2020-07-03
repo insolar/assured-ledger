@@ -135,7 +135,7 @@ func (p *PulseConveyor) GetPublishedGlobalAliasAndBargeIn(key interface{}) (smac
 }
 
 func (p *PulseConveyor) AddInput(ctx context.Context, pn pulse.Number, event InputEvent) error {
-	return p.AddInputExt(pn, event, smachine.CreateDefaultValues{ Context: ctx })
+	return p.AddInputExt(pn, event, smachine.CreateDefaultValues{Context: ctx})
 }
 
 type errMissingPN struct {
@@ -186,6 +186,7 @@ func (p *PulseConveyor) AddInputExt(pn pulse.Number, event InputEvent,
 	switch {
 	case pulseState == Future:
 		// event for future needs special handling - it must wait until the pulse will actually arrive
+		//nolint:staticcheck
 		_, addedOk = pulseSlotMachine.innerMachine.AddNew(nil,
 			newFutureEventSM(targetPN, &pulseSlotMachine.pulseSlot, createFn), createDefaults)
 
@@ -194,7 +195,7 @@ func (p *PulseConveyor) AddInputExt(pn pulse.Number, event InputEvent,
 			return throw.E("unknown data for pulse", errMissingPN{PN: targetPN, State: pulseState})
 		}
 
-		_, addedOk = pulseSlotMachine.innerMachine.AddNewByFunc(nil, createFn, createDefaults)
+		_, addedOk = pulseSlotMachine.innerMachine.AddNewByFunc(nil, createFn, createDefaults) //nolint:staticcheck
 		if addedOk || pulseSlotMachine.innerMachine.IsActive() {
 			break
 		}
@@ -210,6 +211,7 @@ func (p *PulseConveyor) AddInputExt(pn pulse.Number, event InputEvent,
 		// Antique events have individual pulse slots, while being executed in a single SlotMachine
 		if cps := p.pdm.getCachedPulseSlot(targetPN); cps != nil {
 			createDefaults.PutOverride(injector.GetDefaultInjectionID(cps), cps)
+			//nolint:staticcheck
 			_, addedOk = pulseSlotMachine.innerMachine.AddNewByFunc(nil, createFn, createDefaults)
 			break // add SM
 		}
@@ -217,6 +219,7 @@ func (p *PulseConveyor) AddInputExt(pn pulse.Number, event InputEvent,
 		if !p.pdm.IsRecentPastRange(pn) {
 			// for non-recent past HasPulseData() can be incorrect / incomplete
 			// we must use a longer procedure to get PulseData and utilize SM for it
+			//nolint:staticcheck
 			_, addedOk = pulseSlotMachine.innerMachine.AddNew(nil,
 				newAntiqueEventSM(targetPN, &pulseSlotMachine.pulseSlot, createFn), createDefaults)
 			break
@@ -226,6 +229,7 @@ func (p *PulseConveyor) AddInputExt(pn pulse.Number, event InputEvent,
 	case !p.pdm.TouchPulseData(targetPN): // make sure - for PRESENT we must always have the data
 		return throw.E("unknown data for pulse", errMissingPN{PN: targetPN, State: pulseState})
 	default:
+		//nolint:staticcheck
 		_, addedOk = pulseSlotMachine.innerMachine.AddNewByFunc(nil, createFn, createDefaults)
 	}
 
