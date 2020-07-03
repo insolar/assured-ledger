@@ -105,7 +105,7 @@ func (s *TestWalletServer) Create(w http.ResponseWriter, req *http.Request) {
 		ref             reference.Global
 		contractCallErr *foundation.Error
 	)
-	err = foundation.UnmarshalMethodResultSimplified(walletRes.ReturnArguments, &ref, &contractCallErr)
+	err = foundation.UnmarshalMethodResultSimplified(walletRes, &ref, &contractCallErr)
 	switch {
 	case err != nil:
 		result.Error = errors.W(err, "Failed to unmarshal response").Error()
@@ -197,7 +197,7 @@ func (s *TestWalletServer) Transfer(w http.ResponseWriter, req *http.Request) {
 	}
 
 	var contractCallErr *foundation.Error
-	err = foundation.UnmarshalMethodResultSimplified(walletRes.ReturnArguments, &contractCallErr)
+	err = foundation.UnmarshalMethodResultSimplified(walletRes, &contractCallErr)
 	switch {
 	case err != nil:
 		result.Error = throw.W(err, "Failed to unmarshal response", nil).Error()
@@ -279,7 +279,7 @@ func (s *TestWalletServer) GetBalance(w http.ResponseWriter, req *http.Request) 
 		contractCallErr *foundation.Error
 	)
 
-	err = foundation.UnmarshalMethodResultSimplified(walletRes.ReturnArguments, &amount, &contractCallErr)
+	err = foundation.UnmarshalMethodResultSimplified(walletRes, &amount, &contractCallErr)
 	switch {
 	case err != nil:
 		result.Error = throw.W(err, "Failed to unmarshal response", nil).Error()
@@ -361,7 +361,7 @@ func (s *TestWalletServer) AddAmount(w http.ResponseWriter, req *http.Request) {
 	}
 
 	var contractCallErr *foundation.Error
-	err = foundation.UnmarshalMethodResultSimplified(walletRes.ReturnArguments, &contractCallErr)
+	err = foundation.UnmarshalMethodResultSimplified(walletRes, &contractCallErr)
 
 	switch {
 	case err != nil:
@@ -373,7 +373,7 @@ func (s *TestWalletServer) AddAmount(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func (s *TestWalletServer) runWalletRequest(ctx context.Context, req payload.VCallRequest) (*payload.VCallResult, error) {
+func (s *TestWalletServer) runWalletRequest(ctx context.Context, req payload.VCallRequest) ([]byte, error) {
 	latestPulse, err := s.accessor.Latest(ctx)
 	if err != nil {
 		return nil, throw.W(err, "Failed to get latest pulse", nil)
@@ -388,7 +388,7 @@ func (s *TestWalletServer) runWalletRequest(ctx context.Context, req payload.VCa
 
 	var (
 		fail error
-		res  payload.VCallResult
+		res  []byte
 	)
 
 	createDefaults := smachine.CreateDefaultValues{
@@ -399,7 +399,7 @@ func (s *TestWalletServer) runWalletRequest(ctx context.Context, req payload.VCa
 
 			fail = data.Error
 
-			resData, ok := data.Result.(payload.VCallResult)
+			resData, ok := data.Result.([]byte)
 			if ok {
 				res = resData
 			}
@@ -425,7 +425,7 @@ func (s *TestWalletServer) runWalletRequest(ctx context.Context, req payload.VCa
 		return nil, throw.W(fail, "Failed to process request", nil)
 	}
 
-	return &res, nil
+	return res, nil
 }
 
 func (s *TestWalletServer) mustWriteResult(w http.ResponseWriter, res interface{}) { // nolint:interfacer
