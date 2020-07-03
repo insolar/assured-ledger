@@ -157,9 +157,9 @@ func (sm *AppEventSM) migrateToClosing(ctx smachine.MigrationContext) smachine.S
 }
 
 func (sm *AppEventSM) stepClosingRun(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if su, wait := ctx.WaitAnyUntil(sm.expiry).ThenRepeatOrElse(); wait {
+	if wait := ctx.WaitAnyUntil(sm.expiry); wait.GetDecision().IsNotPassed() {
 		ctx.Log().Trace(fmt.Sprint("wait: ", sm.eventValue, sm.pn))
-		return su
+		return wait.ThenRepeat()
 	}
 	ctx.Log().Trace(fmt.Sprint("stop: ", sm.eventValue, sm.pn, "late=", time.Since(sm.expiry)))
 	return ctx.Stop()

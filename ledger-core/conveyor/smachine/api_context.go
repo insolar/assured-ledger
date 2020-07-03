@@ -372,8 +372,6 @@ type StateConditionalBuilder interface {
 	ConditionalBuilder
 	// Returns information about the condition being already satisfied
 	Decider
-	// ThenRepeatOrElse - when the conditional requires wait, then return (Repeat(), true), otherwise returns ({}, false)
-	ThenRepeatOrElse() (StateUpdate, bool)
 	// ThenRepeatOrJump - when the conditional requires wait, then returns Repeat(), otherwise Jump()
 	ThenRepeatOrJump(StateFunc) StateUpdate
 	// ThenRepeatOrJumpExt - when the conditional requires wait, then returns Repeat(), otherwise JumpExt()
