@@ -36,7 +36,7 @@ func main() {
 		SlotAliasRegistry: &conveyor2.GlobalAliases{},
 	}
 
-	factoryFn := func(pn pulse.Number, _ pulse.Range, v conveyor2.InputEvent) (pulse.Number, smachine.CreateFunc, error) {
+	factoryFn := func(_ context.Context, pn pulse.Number, _ pulse.Range, v conveyor2.InputEvent) (pulse.Number, smachine.CreateFunc, error) {
 		return 0, func(ctx smachine.ConstructionContext) smachine.StateMachine {
 			sm := &AppEventSM{eventValue: v, pn: pn}
 			return sm

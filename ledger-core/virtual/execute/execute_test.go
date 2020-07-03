@@ -32,6 +32,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/debuglogger"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/messagesender"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/mocklog"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
@@ -179,13 +180,13 @@ func TestSMExecute_DeduplicationUsingPendingsTable(t *testing.T) {
 		ctx = instestlogger.TestContext(t)
 		mc  = minimock.NewController(t)
 
-		pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
-		pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-		smObjectID      = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
-		caller          = gen.UniqueGlobalRef()
-		smGlobalRef     = reference.NewRecordOf(caller, smObjectID)
-		smObject        = object.NewStateMachineObject(smGlobalRef)
-		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
+		pd                = pulse.NewFirstPulsarData(10, longbits.Bits256{})
+		pulseSlot         = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
+		caller            = gen.UniqueGlobalRef()
+		constructorOutRef = reference.NewRecordOf(caller, gen.UniqueLocalRefWithPulse(pd.PulseNumber))
+		objectRef         = reference.NewSelf(constructorOutRef.GetLocal())
+		smObject          = object.NewStateMachineObject(objectRef)
+		sharedStateData   = smachine.NewUnboundSharedData(&smObject.SharedState)
 
 		callFlags = payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty)
 	)
@@ -196,7 +197,7 @@ func TestSMExecute_DeduplicationUsingPendingsTable(t *testing.T) {
 		CallFlags:           callFlags,
 		CallSiteDeclaration: testwallet.GetClass(),
 		CallSiteMethod:      "New",
-		CallOutgoing:        smGlobalRef,
+		CallOutgoing:        constructorOutRef,
 		Arguments:           insolar.MustSerialize([]interface{}{}),
 	}
 
@@ -209,7 +210,17 @@ func TestSMExecute_DeduplicationUsingPendingsTable(t *testing.T) {
 	smExecute = expectedInitState(ctx, smExecute)
 
 	{
-		// duplicate pending request exists
+		// duplicate pending request doesnt exists
+		// expect jump
+		execCtx := smachine.NewExecutionContextMock(mc).
+			UseSharedMock.Set(shareddata.CallSharedDataAccessor).
+			JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepTakeLock))
+
+		smExecute.stepDeduplicateUsingPendingsTable(execCtx)
+	}
+
+	{
+		// duplicate pending request exists and is active
 		// expect SM stop
 		pendingList := smObject.PendingTable.GetList(contract.CallIntolerable)
 		pendingList.Add(smExecute.execution.Outgoing)
@@ -223,30 +234,217 @@ func TestSMExecute_DeduplicationUsingPendingsTable(t *testing.T) {
 	}
 
 	{
-		// start deduplication before getting all pending requests
-		// expecting going sleep
-		smObject.PendingTable = callregistry.NewRequestTable()
+		// duplicate pending request exists, but is finished
+		// expect jump
+		pendingList := smObject.PendingTable.GetList(contract.CallIntolerable)
+		pendingList.Add(smExecute.execution.Outgoing)
+		pendingList.Finish(smExecute.execution.Outgoing)
 
 		execCtx := smachine.NewExecutionContextMock(mc).
 			UseSharedMock.Set(shareddata.CallSharedDataAccessor).
-			AcquireForThisStepMock.Return(false).
-			SleepMock.Return(
-			smachine.NewStateConditionalBuilderMock(mc).
-				ThenRepeatMock.Return(smachine.StateUpdate{}),
-		)
+			JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepTakeLock))
 
 		smExecute.stepDeduplicateUsingPendingsTable(execCtx)
 	}
 
+	mc.Finish()
+}
+
+func TestSMExecute_DeduplicateThroughPreviousExecutor(t *testing.T) {
+	var (
+		ctx = instestlogger.TestContext(t)
+		mc  = minimock.NewController(t)
+
+		oldPd           = pulse.NewFirstPulsarData(10, longbits.Bits256{})
+		pd              = pulse.NewPulsarData(oldPd.NextPulseNumber(), oldPd.NextPulseDelta, oldPd.NextPulseDelta, longbits.Bits256{})
+		pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
+		callerRef       = gen.UniqueGlobalRef()
+		outgoingRef     = reference.NewRecordOf(callerRef, gen.UniqueLocalRefWithPulse(pd.PulseNumber))
+		objectRef       = gen.UniqueGlobalRef()
+		smObject        = object.NewStateMachineObject(objectRef)
+		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
+
+		callFlags = payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty)
+	)
+
+	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
+	request := &payload.VCallRequest{
+		CallType:            payload.CTMethod,
+		Callee:              objectRef,
+		CallFlags:           callFlags,
+		CallSiteDeclaration: testwallet.GetClass(),
+		CallSiteMethod:      "Method",
+		CallOutgoing:        outgoingRef,
+		Arguments:           insolar.MustSerialize([]interface{}{}),
+	}
+
+	messageSender := messagesender.NewServiceMockWrapper(mc)
+	messageSenderAdapter := messageSender.NewAdapterMock()
+	messageSenderAdapter.SetDefaultPrepareAsyncCall(ctx)
+
+	checkMessage := func(msg payload.Marshaler) {
+		switch msg0 := msg.(type) {
+		case *payload.VFindCallRequest:
+			require.Equal(t, oldPd.PulseNumber, msg0.LookAt)
+			require.Equal(t, objectRef, msg0.Callee)
+			require.Equal(t, request.CallOutgoing, msg0.Outgoing)
+		default:
+			panic("Unexpected message type")
+		}
+	}
+	messageSender.SendRole.SetCheckMessage(checkMessage)
+
+	smExecute := SMExecute{
+		Payload:           request,
+		pulseSlot:         &pulseSlot,
+		objectSharedState: smObjectAccessor,
+		messageSender:     messageSenderAdapter.Mock(),
+	}
+	smExecute = expectedInitState(ctx, smExecute)
+
 	{
-		// start deduplication after getting all pending requests
-		// expecting jump
+		// expect publish bargeIn and send VFindCallRequest
+
+		pendingList := smObject.PendingTable.GetList(contract.CallIntolerable)
+		pendingList.Add(smExecute.execution.Outgoing)
+
 		execCtx := smachine.NewExecutionContextMock(mc).
-			UseSharedMock.Set(shareddata.CallSharedDataAccessor).
-			AcquireForThisStepMock.Return(true).
+			NewBargeInWithParamMock.Set(
+			func(applyFunc smachine.BargeInApplyFunc) smachine.BargeInWithParam {
+				return smachine.BargeInWithParam{}
+			}).
+			PublishGlobalAliasAndBargeInMock.Set(
+			func(key interface{}, handler smachine.BargeInHolder) (b1 bool) {
+				res, ok := key.(DeduplicationBargeInKey)
+				if !ok {
+					panic("Unexpected message type")
+				}
+
+				require.Equal(t, oldPd.PulseNumber, res.LookAt)
+				require.Equal(t, smExecute.execution.Outgoing, res.Outgoing)
+				require.Equal(t, smExecute.execution.Object, res.Callee)
+
+				return true
+			}).
+			JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepWaitFindCallResponse))
+
+		smExecute.stepDeduplicateThroughPreviousExecutor(execCtx)
+	}
+
+	mc.Finish()
+}
+
+func TestSMExecute_ProcessFindCallResponse(t *testing.T) {
+	var (
+		ctx = instestlogger.TestContext(t)
+		mc  = minimock.NewController(mocklog.T(t))
+
+		oldPd           = pulse.NewFirstPulsarData(10, longbits.Bits256{})
+		pd              = pulse.NewPulsarData(oldPd.NextPulseNumber(), oldPd.NextPulseDelta, oldPd.NextPulseDelta, longbits.Bits256{})
+		pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
+		callerRef       = gen.UniqueGlobalRef()
+		outgoingRef     = reference.NewRecordOf(callerRef, gen.UniqueLocalRefWithPulse(pd.PulseNumber))
+		objectRef       = gen.UniqueGlobalRef()
+		smObject        = object.NewStateMachineObject(objectRef)
+		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
+
+		callFlags = payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty)
+
+		sender = gen.UniqueGlobalRef()
+	)
+
+	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
+	request := &payload.VCallRequest{
+		CallType:            payload.CTMethod,
+		Callee:              objectRef,
+		CallFlags:           callFlags,
+		CallSiteDeclaration: testwallet.GetClass(),
+		CallSiteMethod:      "Method",
+		CallOutgoing:        outgoingRef,
+		Arguments:           insolar.MustSerialize([]interface{}{}),
+	}
+
+	smExecute := SMExecute{
+		Payload:           request,
+		pulseSlot:         &pulseSlot,
+		objectSharedState: smObjectAccessor,
+		Meta:              &payload.Meta{Sender: sender},
+	}
+
+	smExecute = expectedInitState(ctx, smExecute)
+
+	{
+		smExecute.findCallResponse = &payload.VFindCallResponse{Status: payload.MissingCall}
+		pendingList := smObject.PendingTable.GetList(contract.CallIntolerable)
+		pendingList.Add(smExecute.execution.Outgoing)
+
+		execCtx := smachine.NewExecutionContextMock(mc).
 			JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepTakeLock))
 
-		smExecute.stepDeduplicateUsingPendingsTable(execCtx)
+		smExecute.stepProcessFindCallResponse(execCtx)
+	}
+
+	{
+		smExecute.findCallResponse = &payload.VFindCallResponse{Status: payload.UnknownCall}
+		pendingList := smObject.PendingTable.GetList(contract.CallIntolerable)
+		pendingList.Add(smExecute.execution.Outgoing)
+
+		execCtx := smachine.NewExecutionContextMock(mc).
+			JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepTakeLock))
+
+		smExecute.stepProcessFindCallResponse(execCtx)
+	}
+
+	{
+		smExecute.findCallResponse = &payload.VFindCallResponse{
+			Status:     payload.FoundCall,
+			CallResult: nil,
+		}
+
+		pendingList := smObject.PendingTable.GetList(contract.CallIntolerable)
+		pendingList.Add(smExecute.execution.Outgoing)
+
+		execCtx := smachine.NewExecutionContextMock(mc).
+			LogMock.Return(smachine.Logger{}).
+			StopMock.Return(smachine.StateUpdate{})
+
+		smExecute.stepProcessFindCallResponse(execCtx)
+	}
+
+	{
+		returnArguments := []byte{1, 2, 3}
+		smExecute.findCallResponse = &payload.VFindCallResponse{
+			Status: payload.FoundCall,
+			CallResult: &payload.VCallResult{
+				ReturnArguments: returnArguments,
+			},
+		}
+
+		messageSender := messagesender.NewServiceMockWrapper(mc)
+		messageSenderAdapter := messageSender.NewAdapterMock()
+		messageSenderAdapter.SetDefaultPrepareAsyncCall(ctx)
+		checkMessage := func(msg payload.Marshaler) {
+			switch msg0 := msg.(type) {
+			case *payload.VCallResult:
+				require.Equal(t, returnArguments, msg0.ReturnArguments)
+			default:
+				panic("Unexpected message type")
+			}
+		}
+		checkTarget := func(target reference.Global) {
+			require.Equal(t, smExecute.Meta.Sender, target)
+		}
+
+		messageSender.SendTarget.SetCheckMessage(checkMessage)
+		messageSender.SendTarget.SetCheckTarget(checkTarget)
+
+		smExecute.messageSender = messageSenderAdapter.Mock()
+
+		execCtx := smachine.NewExecutionContextMock(mc).
+			LogMock.Return(smachine.Logger{}).
+			StopMock.Return(smachine.StateUpdate{})
+
+		smExecute.stepProcessFindCallResponse(execCtx)
 	}
 
 	mc.Finish()
@@ -524,16 +722,21 @@ func TestSendVStateReportWithMissingState_IfConstructorWasInterruptedBeforeRunne
 	slotMachine.AddInterfaceDependency(&catalog)
 	slotMachine.AddInterfaceDependency(&authService)
 
+	outgoing := reference.NewRecordOf(caller, slotMachine.GenerateLocal())
+
 	var vStateReportRecv = make(chan struct{})
 	slotMachine.PrepareMockedMessageSender(mc)
 	slotMachine.MessageSender.SendRole.SetCheckMessage(func(msg payload.Marshaler) {
 		res, ok := msg.(*payload.VStateReport)
 		require.True(t, ok)
-		require.Equal(t, payload.Missing, res.Status)
+		assert.Equal(t, payload.Missing, res.Status)
+		assert.Equal(t, outgoing, res.Object)
+		assert.Equal(t, int32(0), res.OrderedPendingCount)
+		assert.Equal(t, int32(0), res.UnorderedPendingCount)
+		assert.Empty(t, res.LatestDirtyState)
+		assert.Empty(t, res.LatestValidatedState)
 		close(vStateReportRecv)
 	})
-
-	outgoing := reference.NewRecordOf(caller, slotMachine.GenerateLocal())
 
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
