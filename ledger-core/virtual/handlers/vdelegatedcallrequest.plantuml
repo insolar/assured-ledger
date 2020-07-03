@@ -14,8 +14,8 @@ T01_S002 --> T01_S003
 state "stepProcessRequest" as T01_S004
 T01_S004 : SMVDelegatedCallRequest
 T01_S004 --[dashed]> T01_S004 : [smachine.NotPassed]\nWaitShared
-T01_S004 --[dashed]> [*] : [delegationOldRequest]\nError
-T01_S004 --[dashed]> [*] : [delegationFullTable]\nError
+T01_S004 --> [*] : [delegationOldRequest]\nError
+T01_S004 --> [*] : [delegationFullTable]\nError
 T01_S004 --> T01_S005
 state "stepWaitObjectReady" as T01_S003
 T01_S003 : SMVDelegatedCallRequest

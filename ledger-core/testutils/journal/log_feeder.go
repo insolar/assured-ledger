@@ -30,7 +30,7 @@ func NewFeeder(underlying smachine.SlotMachineLogger, feedFn FeedFunc, stopSigna
 
 var _ smachine.SlotMachineLogger = &Feeder{}
 
-type captor = debuglogger.DebugMachineLogger
+type captor = *debuglogger.DebugMachineLogger
 
 type Feeder struct {
 	captor

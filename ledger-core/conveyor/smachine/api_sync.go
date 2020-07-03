@@ -46,19 +46,22 @@ type SynchronizationContext interface {
 	// Panics on zero or incorrectly initialized value.
 	Release(SyncLink) bool
 
+	minimalSynchronizationContext
+}
+
+type minimalSynchronizationContext interface {
 	// Releases a holder of this SM for any sync object if present.
 	// Returns true when a holder of a sync object was released.
 	// NB! Some sync objects (e.g. conditionals) may release a passed holder automatically, hence this function will return false as well.
 	// Panics on zero or incorrectly initialized value.
 	ReleaseAll() bool
 
-	//ReleaseAll() bool
-
 	// Applies the given adjustment to a relevant sync object. SM doesn't need to acquire the relevant sync object.
 	// Returns true when at least one holder of the sync object was affected.
 	// Panics on zero or incorrectly initialized value.
 	ApplyAdjustment(SyncAdjustment) bool
 }
+
 
 func NewSyncLink(controller DependencyController) SyncLink {
 	if controller == nil {

@@ -11,7 +11,11 @@ import (
 	"time"
 
 	"github.com/gojuno/minimock/v3"
+
+	"github.com/insolar/assured-ledger/ledger-core/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -58,10 +62,9 @@ func Method_PrepareObject(ctx context.Context, server *utils.Server, state paylo
 	}
 
 	payload := &payload.VStateReport{
-		Status:                        state,
-		Object:                        object,
-		UnorderedPendingEarliestPulse: pulse.OfNow(),
-		ProvidedContent:               content,
+		Status:          state,
+		Object:          object,
+		ProvidedContent: content,
 	}
 
 	server.WaitIdleConveyor()
@@ -169,7 +172,8 @@ func TestVirtual_Method_WithExecutor(t *testing.T) {
 
 func TestVirtual_Method_WithExecutor_ObjectIsNotExist(t *testing.T) {
 	t.Log("C4974")
-	t.Skip("https://insolar.atlassian.net/browse/PLAT-395")
+
+	mc := minimock.NewController(t)
 
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
@@ -178,9 +182,32 @@ func TestVirtual_Method_WithExecutor_ObjectIsNotExist(t *testing.T) {
 	var (
 		objectLocal  = server.RandomLocalWithPulse()
 		objectGlobal = reference.NewSelf(objectLocal)
+		outgoing     = server.BuildRandomOutgoingWithPulse()
 	)
 
-	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal)
+	Method_PrepareObject(ctx, server, payload.Missing, objectGlobal)
+
+	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
+
+	expectedError := throw.E("object does not exist", struct {
+		ObjectReference string
+		State           object.State
+	}{
+		ObjectReference: objectGlobal.String(),
+		State:           object.Missing,
+	})
+
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
+		assert.Equal(t, res.Callee, objectGlobal)
+		assert.Equal(t, res.CallOutgoing, outgoing)
+
+		contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments)
+		require.NoError(t, sysErr)
+		require.Equal(t, expectedError.Error(), contractErr.Error())
+
+		return false // no resend msg
+	})
 
 	{
 		pl := payload.VCallRequest{
@@ -190,12 +217,18 @@ func TestVirtual_Method_WithExecutor_ObjectIsNotExist(t *testing.T) {
 			Callee:              objectGlobal,
 			CallSiteDeclaration: testwallet.GetClass(),
 			CallSiteMethod:      "GetBalance",
-			CallOutgoing:        server.BuildRandomOutgoingWithPulse(),
+			CallOutgoing:        outgoing,
+			Arguments:           insolar.MustSerialize([]interface{}{}),
 		}
 		server.SendPayload(ctx, &pl)
-
-		// TODO fix it after implementation https://insolar.atlassian.net/browse/PLAT-395
 	}
+
+	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+
+	assert.Equal(t, 1, typedChecker.VCallResult.Count())
+
+	mc.Finish()
 }
 
 func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
@@ -478,6 +511,8 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 	server.Init(ctx)
 	server.IncrementPulseAndWaitIdle(ctx)
 
+	p := server.GetPulse().PulseNumber
+
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
 	var (
@@ -493,7 +528,9 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 		objectB2Global = reference.NewSelf(server.RandomLocalWithPulse())
 		objectB3Global = reference.NewSelf(server.RandomLocalWithPulse())
 
-		outgoingCallRef = gen.UniqueGlobalRef()
+		outgoingCallRef = reference.NewRecordOf(
+			server.GlobalCaller(), server.RandomLocalWithPulse(),
+		)
 	)
 
 	// create objects
@@ -604,7 +641,7 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 			assert.Equal(t, payload.CTMethod, request.CallType)
 			assert.Equal(t, outgoingCallRef, request.CallReason)
 			assert.Equal(t, callFlags, request.CallFlags)
-			assert.Equal(t, server.GetPulse().PulseNumber, request.CallOutgoing.GetLocal().Pulse())
+			assert.Equal(t, p, request.CallOutgoing.GetLocal().Pulse())
 
 			switch request.Callee {
 			case objectB1Global:
@@ -633,15 +670,15 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 			case objectB1Global:
 				require.Equal(t, []byte("finish B1.Bar"), res.ReturnArguments)
 				require.Equal(t, outgoingA, res.Caller)
-				require.Equal(t, server.GetPulse().PulseNumber, res.CallOutgoing.GetLocal().Pulse())
+				require.Equal(t, p, res.CallOutgoing.GetLocal().Pulse())
 			case objectB2Global:
 				require.Equal(t, []byte("finish B2.Bar"), res.ReturnArguments)
 				require.Equal(t, outgoingA, res.Caller)
-				require.Equal(t, server.GetPulse().PulseNumber, res.CallOutgoing.GetLocal().Pulse())
+				require.Equal(t, p, res.CallOutgoing.GetLocal().Pulse())
 			case objectB3Global:
 				require.Equal(t, []byte("finish B3.Bar"), res.ReturnArguments)
 				require.Equal(t, outgoingA, res.Caller)
-				require.Equal(t, server.GetPulse().PulseNumber, res.CallOutgoing.GetLocal().Pulse())
+				require.Equal(t, p, res.CallOutgoing.GetLocal().Pulse())
 			default:
 				t.Fatal("wrong Callee")
 			}
@@ -658,8 +695,7 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 		CallSiteMethod: "Foo",
 		CallOutgoing:   outgoingCallRef,
 	}
-	msg := server.WrapPayload(&pl).Finalize()
-	server.SendMessage(ctx, msg)
+	server.SendPayload(ctx, &pl)
 
 	// wait for all calls and SMs
 	testutils.WaitSignalsTimed(t, 20*time.Second, executeDone)
@@ -986,6 +1022,74 @@ func TestVirtual_CallContractTwoTimes(t *testing.T) {
 
 	require.Equal(t, 4, typedChecker.VCallRequest.Count())
 	require.Equal(t, 2, typedChecker.VCallResult.Count())
+
+	mc.Finish()
+}
+
+func Test_CallMethodWithBadIsolationFlags(t *testing.T) {
+	t.Log("C4979")
+
+	mc := minimock.NewController(t)
+
+	server, ctx := utils.NewServer(nil, t)
+	defer server.Stop()
+	server.IncrementPulse(ctx)
+
+	var (
+		objectLocal  = server.RandomLocalWithPulse()
+		objectGlobal = reference.NewSelf(objectLocal)
+		outgoing     = server.BuildRandomOutgoingWithPulse()
+	)
+
+	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal)
+
+	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
+
+	expectedError := throw.W(throw.IllegalValue(), "failed to negotiate call isolation params", struct {
+		methodIsolation contract.MethodIsolation
+		callIsolation   contract.MethodIsolation
+	}{
+		methodIsolation: contract.MethodIsolation{
+			Interference: contract.CallTolerable,
+			State:        contract.CallDirty,
+		},
+		callIsolation: contract.MethodIsolation{
+			Interference: contract.CallIntolerable,
+			State:        contract.CallValidated,
+		},
+	})
+
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
+		assert.Equal(t, res.Callee, objectGlobal)
+		assert.Equal(t, res.CallOutgoing, outgoing)
+
+		contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments)
+		require.NoError(t, sysErr)
+		require.NotNil(t, contractErr)
+		require.Equal(t, expectedError.Error(), contractErr.Error())
+
+		return false // no resend msg
+	})
+
+	{
+		pl := payload.VCallRequest{
+			CallType:            payload.CTMethod,
+			CallFlags:           payload.BuildCallFlags(contract.CallIntolerable, contract.CallValidated),
+			Caller:              server.GlobalCaller(),
+			Callee:              objectGlobal,
+			CallSiteDeclaration: testwallet.GetClass(),
+			CallSiteMethod:      "Accept",
+			CallOutgoing:        outgoing,
+			Arguments:           insolar.MustSerialize([]interface{}{}),
+		}
+		server.SendPayload(ctx, &pl)
+	}
+
+	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+
+	assert.Equal(t, 1, typedChecker.VCallResult.Count())
 
 	mc.Finish()
 }

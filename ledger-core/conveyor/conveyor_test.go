@@ -56,7 +56,7 @@ func (sm *emptySM) stepInit(ctx smachine.InitializationContext) smachine.StateUp
 	return ctx.Stop()
 }
 
-func handleFactory(_ pulse.Number, _ pulse.Range, input InputEvent) (pulse.Number, smachine.CreateFunc, error) {
+func handleFactory(_ context.Context, _ pulse.Number, _ pulse.Range, input InputEvent) (pulse.Number, smachine.CreateFunc, error) {
 	switch input.(type) {
 	default:
 		panic(fmt.Sprintf("unknown event type, got %T", input))
@@ -132,7 +132,7 @@ func newTestPulseConveyor(ctx context.Context, t *testing.T, preFactoryFn func(p
 		EventlessSleep:        100 * time.Millisecond,
 		MinCachePulseAge:      maxPastPulseAge / 2,
 		MaxPastPulseAge:       maxPastPulseAge,
-	}, func(pn pulse.Number, pr pulse.Range, input InputEvent) (pulse.Number, smachine.CreateFunc, error) {
+	}, func(_ context.Context, pn pulse.Number, pr pulse.Range, input InputEvent) (pulse.Number, smachine.CreateFunc, error) {
 		require.Nil(t, input)
 		if preFactoryFn != nil {
 			preFactoryFn(pn, pr)
@@ -280,7 +280,6 @@ func TestPulseConveyor_AddInput(t *testing.T) {
 		require.NoError(t, conveyor.AddInput(ctx, firstPn, InputEvent(nil)))
 	})
 
-
 	t.Run("antique pulse, evicted pulseData", func(t *testing.T) {
 		ctx := context.Background()
 		const delta = 10
@@ -333,7 +332,7 @@ func TestPulseConveyor_Cache(t *testing.T) {
 		EventlessSleep:        100 * time.Millisecond,
 		MinCachePulseAge:      100,
 		MaxPastPulseAge:       1000,
-	}, func(_ pulse.Number, _ pulse.Range, input InputEvent) (pulse.Number, smachine.CreateFunc, error) {
+	}, func(_ context.Context, _ pulse.Number, _ pulse.Range, input InputEvent) (pulse.Number, smachine.CreateFunc, error) {
 		t.FailNow()
 		return 0, nil, nil
 	}, nil)

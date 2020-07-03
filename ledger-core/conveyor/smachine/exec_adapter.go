@@ -5,12 +5,16 @@
 
 package smachine
 
+import (
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+)
+
 func NewExecutionAdapter(adapterID AdapterID, executor AdapterExecutor) ExecutionAdapter {
-	if adapterID.IsEmpty() {
-		panic("illegal value")
-	}
-	if executor == nil {
-		panic("illegal value")
+	switch {
+	case adapterID.IsEmpty():
+		panic(throw.IllegalValue())
+	case executor == nil:
+		panic(throw.IllegalValue())
 	}
 	return ExecutionAdapter{adapterID, executor}
 }

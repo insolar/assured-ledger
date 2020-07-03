@@ -6,6 +6,7 @@
 package integration
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -18,6 +19,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
@@ -25,6 +27,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/synchronization"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
@@ -622,6 +626,10 @@ func TestVirtual_Constructor_PulseChangedWhileOutgoing(t *testing.T) {
 
 	runnerMock := logicless.NewServiceMock(ctx, mc, nil)
 	server.ReplaceRunner(runnerMock)
+
+	authService := authentication.NewServiceMock(t)
+	server.ReplaceAuthenticationService(authService)
+
 	server.Init(ctx)
 
 	var (
@@ -646,41 +654,59 @@ func TestVirtual_Constructor_PulseChangedWhileOutgoing(t *testing.T) {
 	}
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-	typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
-		assert.Equal(t, outgoing, report.Object)
-		assert.Equal(t, payload.Empty, report.Status)
-		assert.Equal(t, int32(1), report.OrderedPendingCount)
-		assert.Equal(t, int32(0), report.UnorderedPendingCount)
-		return false
-	})
-	typedChecker.VDelegatedCallRequest.Set(func(msg *payload.VDelegatedCallRequest) bool {
-		delegationToken = server.DelegationToken(msg.CallOutgoing, server.GlobalCaller(), msg.Callee)
-		server.SendPayload(ctx, &payload.VDelegatedCallResponse{
-			Callee:                 msg.Callee,
-			CallIncoming:           msg.CallIncoming,
-			ResponseDelegationSpec: delegationToken,
+
+	// add type checks
+	{
+		typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
+			assert.Equal(t, outgoing, report.Object)
+			assert.Equal(t, payload.Empty, report.Status)
+			assert.Equal(t, int32(1), report.OrderedPendingCount)
+			assert.Equal(t, constructorPulse, report.OrderedPendingEarliestPulse)
+			assert.Equal(t, int32(0), report.UnorderedPendingCount)
+			assert.Empty(t, report.UnorderedPendingEarliestPulse)
+			assert.Empty(t, report.LatestDirtyState)
+			assert.Empty(t, report.LatestValidatedState)
+
+			assert.Zero(t, report.DelegationSpec)
+			return false
 		})
-		return false
-	})
-	typedChecker.VDelegatedRequestFinished.Set(func(finished *payload.VDelegatedRequestFinished) bool {
-		assert.Equal(t, payload.CTConstructor, finished.CallType)
-		assert.Equal(t, callFlags, finished.CallFlags)
-		assert.NotNil(t, finished.LatestState)
-		assert.Equal(t, outgoing, finished.CallOutgoing)
-		assert.Equal(t, []byte("234"), finished.LatestState.State)
-		return false
-	})
-	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
-		assert.Equal(t, []byte("123"), res.ReturnArguments)
-		assert.Equal(t, outgoing, res.Callee)
-		assert.Equal(t, outgoing, res.CallOutgoing)
-		assert.Equal(t, payload.CTConstructor, res.CallType)
-		assert.Equal(t, callFlags, res.CallFlags)
-		return false
-	})
+		typedChecker.VDelegatedCallRequest.Set(func(msg *payload.VDelegatedCallRequest) bool {
+			assert.Zero(t, msg.DelegationSpec)
+			assert.Equal(t, outgoing, msg.Callee)
+			assert.Equal(t, outgoing, msg.CallOutgoing)
+
+			delegationToken = server.DelegationToken(msg.CallOutgoing, server.GlobalCaller(), msg.Callee)
+			server.SendPayload(ctx, &payload.VDelegatedCallResponse{
+				Callee:                 msg.Callee,
+				CallIncoming:           msg.CallIncoming,
+				ResponseDelegationSpec: delegationToken,
+			})
+			return false
+		})
+		typedChecker.VDelegatedRequestFinished.Set(func(finished *payload.VDelegatedRequestFinished) bool {
+			assert.Equal(t, payload.CTConstructor, finished.CallType)
+			assert.Equal(t, callFlags, finished.CallFlags)
+			assert.Equal(t, outgoing, finished.CallOutgoing)
+			assert.Equal(t, outgoing, finished.Callee)
+			require.NotNil(t, finished.LatestState)
+			assert.Equal(t, []byte("234"), finished.LatestState.State)
+			assert.Equal(t, delegationToken, finished.DelegationSpec)
+			return false
+		})
+		typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
+			assert.Equal(t, []byte("123"), res.ReturnArguments)
+			assert.Equal(t, outgoing, res.Callee)
+			assert.Equal(t, outgoing, res.CallOutgoing)
+			assert.Equal(t, payload.CTConstructor, res.CallType)
+			assert.Equal(t, callFlags, res.CallFlags)
+			assert.Equal(t, delegationToken, res.DelegationSpec)
+			return false
+		})
+	}
 
 	synchronizeExecution := synchronization.NewPoint(1)
 
+	// add executionMock
 	{
 		requestResult := requestresult.New([]byte("123"), outgoing)
 		requestResult.SetActivate(reference.Global{}, class, []byte("234"))
@@ -692,6 +718,29 @@ func TestVirtual_Constructor_PulseChangedWhileOutgoing(t *testing.T) {
 				Type:   execution.Done,
 				Result: requestResult,
 			})
+	}
+
+	// add authService mock functions
+	{
+		authService.HasToSendTokenMock.Set(func(token payload.CallDelegationToken) (b1 bool) {
+			assert.Equal(t, outgoing, token.Callee)
+			return true
+		})
+		authService.IsMessageFromVirtualLegitimateMock.Set(func(ctx context.Context, payloadObj interface{}, sender reference.Global, pr pulse.Range) (mustReject bool, err error) {
+			assert.Equal(t, server.GlobalCaller(), sender)
+			return false, nil
+		})
+		authService.GetCallDelegationTokenMock.Set(func(outgoingRef reference.Global, to reference.Global, pn pulse.Number, object reference.Global) (c1 payload.CallDelegationToken) {
+			assert.Equal(t, outgoing, object)
+			return payload.CallDelegationToken{
+				TokenTypeAndFlags: payload.DelegationTokenTypeCall,
+				PulseNumber:       server.GetPulse().PulseNumber,
+				Callee:            object,
+				Outgoing:          outgoingRef,
+				DelegateTo:        to,
+				Approver:          server.GlobalCaller(),
+			}
+		})
 	}
 
 	server.SendPayload(ctx, &pl)
@@ -722,4 +771,75 @@ func TestVirtual_Constructor_PulseChangedWhileOutgoing(t *testing.T) {
 	}
 
 	mc.Finish()
+}
+
+func TestVirtual_Constructor_IsolationNegotiation(t *testing.T) {
+	t.Log("C5031")
+	table := []struct {
+		name      string
+		isolation contract.MethodIsolation
+	}{
+		{
+			name:      "call constructor with intolerable and dirty flags",
+			isolation: contract.MethodIsolation{Interference: contract.CallIntolerable, State: contract.CallDirty},
+		},
+		{
+			name:      "call constructor with tolerable and validated flags",
+			isolation: contract.MethodIsolation{Interference: contract.CallTolerable, State: contract.CallValidated},
+		},
+		{
+			name:      "call constructor with intolerable and validated flags",
+			isolation: contract.MethodIsolation{Interference: contract.CallIntolerable, State: contract.CallValidated},
+		},
+	}
+
+	for _, test := range table {
+		t.Run(test.name, func(t *testing.T) {
+			mc := minimock.NewController(t)
+
+			server, ctx := utils.NewServer(nil, t)
+			defer server.Stop()
+
+			executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
+
+			outgoing := server.BuildRandomOutgoingWithPulse()
+
+			expectedError := throw.W(throw.IllegalValue(), "failed to negotiate call isolation params", struct {
+				methodIsolation contract.MethodIsolation
+				callIsolation   contract.MethodIsolation
+			}{
+				methodIsolation: contract.ConstructorIsolation(),
+				callIsolation:   test.isolation,
+			})
+
+			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+			typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool {
+				require.Equal(t, outgoing, result.Callee)
+				require.Equal(t, outgoing, result.CallOutgoing)
+
+				contractErr, sysErr := foundation.UnmarshalMethodResult(result.ReturnArguments)
+				require.NoError(t, sysErr)
+				require.NotNil(t, contractErr)
+				require.Equal(t, expectedError.Error(), contractErr.Error())
+
+				return false // no resend msg
+			})
+
+			pl := payload.VCallRequest{
+				CallType:       payload.CTConstructor,
+				CallFlags:      payload.BuildCallFlags(test.isolation.Interference, test.isolation.State),
+				Callee:         testwallet.GetClass(),
+				CallSiteMethod: "New",
+				CallOutgoing:   outgoing,
+			}
+			server.SendPayload(ctx, &pl)
+
+			testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+			testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+
+			require.Equal(t, 1, typedChecker.VCallResult.Count())
+
+			mc.Finish()
+		})
+	}
 }

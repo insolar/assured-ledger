@@ -100,42 +100,8 @@ type ConstructionContext interface {
 
 type StepLoggerUpdateFunc func(StepLogger, StepLoggerFactoryFunc) StepLogger
 
-/* A context parent for all regular step contexts */
-type InOrderStepContext interface {
+type SharedStateContext interface {
 	BasicContext
-	SynchronizationContext
-
-	// SetDefaultMigration sets a handler for migrations. Is applied when current SlotStep has no migration handler.
-	// MUST be fast as it blocks whole SlotMachine and can't be detached.
-	SetDefaultMigration(MigrateFunc)
-	// SetDefaultErrorHandler sets a handler for errors and panics. Is applied when current SlotStep has no error handler.
-	// MUST be fast as it blocks whole SlotMachine and can't be detached.
-	SetDefaultErrorHandler(ErrorHandlerFunc)
-	// SetDefaultFlags sets default flags that are merged when SlotStep is set.
-	SetDefaultFlags(StepFlags)
-	// SetDefaultTerminationResult sets a default value to be passed to TerminationHandlerFunc when the slot stops.
-	SetDefaultTerminationResult(interface{})
-	// GetDefaultTerminationResult returns a value from the last SetDefaultTerminationResult().
-	GetDefaultTerminationResult() interface{}
-
-	// SetDynamicBoost marks this slot for priority on scheduling and sync queues. Overrides automatic boost.
-	SetDynamicBoost(bool)
-
-	// Log returns a slot logger for this context. It is only valid while this context is valid.
-	Log() Logger
-	// SetLogTracing sets tracing mode for the slot. Actual impact depends on implementation of a logger.
-	SetLogTracing(bool)
-	// UpdateDefaultStepLogger overrides default step logger. Current logger is provided as argument. Update func can return nil.
-	UpdateDefaultStepLogger(StepLoggerUpdateFunc)
-
-	// Jump creates an update to go to the next step. Flags, migrate and error handlers are provided by SetDefaultXXX()
-	Jump(StateFunc) StateUpdate
-	// JumpExt creates an update to the next step with flags, migrate and error handlers.
-	// Flags are merged with SetDefaultFlags() unless StepResetAllFlags is included.
-	// Transition must not be nil, other handlers will use SetDefaultXXX() when nil
-	JumpExt(SlotStep) StateUpdate
-	// RestoreStep is similar to JumpExt, but also can apply sleep state when SlotStep was received from AffectedStep.
-	RestoreStep(SlotStep) StateUpdate
 
 	// Share creates a lazy link to the provided data. Link is invalidated when this SM is stopped.
 	// This SM is always has a safe access when active. The shared data is guaranteed to be accessed by only one SM.
@@ -162,6 +128,11 @@ type InOrderStepContext interface {
 	Unpublish(key interface{}) bool
 	// UnpublishAll removes all keys published by this SM, except for SharedDataLink with ShareDataUnbound.
 	UnpublishAll()
+
+	// PublishReplacement updates value for the given key ONLY if key exists and is bound to this slot.
+	// When the replacement data is unbound, then the key will also be unbound from this slot.
+	// Returns true when key was present and was bound to this slot.
+	PublishReplacement(key, data interface{}) bool
 
 	// GetPublished reads data shared by Publish().
 	// Visibility of key/data is limited by the SlotMachine running this SM.
@@ -196,6 +167,44 @@ type InOrderStepContext interface {
 	// When (key) is unknown, then zero/empty SlotLink is returned.
 	// When barge-in was not set for the (key), then nil holder is returned.
 	GetPublishedGlobalAliasAndBargeIn(key interface{}) (SlotLink, BargeInHolder)
+}
+
+/* A context parent for all regular step contexts */
+type InOrderStepContext interface {
+	SharedStateContext
+	SynchronizationContext
+
+	// SetDefaultMigration sets a handler for migrations. Is applied when current SlotStep has no migration handler.
+	// MUST be fast as it blocks whole SlotMachine and can't be detached.
+	SetDefaultMigration(MigrateFunc)
+	// SetDefaultErrorHandler sets a handler for errors and panics. Is applied when current SlotStep has no error handler.
+	// MUST be fast as it blocks whole SlotMachine and can't be detached.
+	SetDefaultErrorHandler(ErrorHandlerFunc)
+	// SetDefaultFlags sets default flags that are merged when SlotStep is set.
+	SetDefaultFlags(StepFlags)
+	// SetDefaultTerminationResult sets a default value to be passed to TerminationHandlerFunc when the slot stops.
+	SetDefaultTerminationResult(interface{})
+	// GetDefaultTerminationResult returns a value from the last SetDefaultTerminationResult().
+	GetDefaultTerminationResult() interface{}
+
+	// SetDynamicBoost marks this slot for priority on scheduling and sync queues. Overrides automatic boost.
+	SetDynamicBoost(bool)
+
+	// Log returns a slot logger for this context. It is only valid while this context is valid.
+	Log() Logger
+	// SetLogTracing sets tracing mode for the slot. Actual impact depends on implementation of a logger.
+	SetLogTracing(bool)
+	// UpdateDefaultStepLogger overrides default step logger. Current logger is provided as argument. Update func can return nil.
+	UpdateDefaultStepLogger(StepLoggerUpdateFunc)
+
+	// Jump creates an update to go to the next step. Flags, migrate and error handlers are provided by SetDefaultXXX()
+	Jump(StateFunc) StateUpdate
+	// JumpExt creates an update to the next step with flags, migrate and error handlers.
+	// Flags are merged with SetDefaultFlags() unless StepResetAllFlags is included.
+	// Transition must not be nil, other handlers will use SetDefaultXXX() when nil
+	JumpExt(SlotStep) StateUpdate
+	// RestoreStep is similar to JumpExt, but also can apply sleep state when SlotStep was received from AffectedStep.
+	RestoreStep(SlotStep) StateUpdate
 
 	// Error stops SM by calling an error handler.
 	Error(error) StateUpdate
@@ -231,7 +240,6 @@ const (
 	// WARNING! Must NOT keep references to SM or its fields.
 	// Data is bound to SM and will be invalidated after stop.
 	// But keeping such SharedDataLink will retain the data in memory even when invalidated.
-	// Use of ShareDataDirect can be used by a subroutine SM to keep data accessible after termination of subroutine SM.
 	// ShareDataDirect is overridden by ShareDataUnbound.
 	ShareDataDirect
 )
@@ -472,7 +480,8 @@ type SubroutineStartContext interface {
 }
 
 type FailureContext interface {
-	BasicContext
+	SharedStateContext
+	minimalSynchronizationContext
 
 	// AffectedStep is a step the slot is at
 	AffectedStep() SlotStep
