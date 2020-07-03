@@ -61,10 +61,10 @@ func (p *Future) TrySetCommitted(committed bool, allocatedBase uint32) bool {
 	switch {
 	case allocatedBase == math.MaxUint32:
 		panic(throw.IllegalValue())
-	case allocatedBase == 0:
-		panic(throw.IllegalValue())
 	case !committed:
 		allocatedBase = math.MaxUint32
+	case allocatedBase == 0:
+		panic(throw.IllegalValue())
 	}
 	if !p.committed.CompareAndSwap(0, allocatedBase) {
 		return false
