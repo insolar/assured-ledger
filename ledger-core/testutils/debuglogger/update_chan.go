@@ -7,6 +7,7 @@ package debuglogger
 
 import (
 	"runtime"
+	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
 )
@@ -37,9 +38,17 @@ func (p *updateChan) close() {
 		break
 	}
 
-	for p.state.Load() > lowThreshold {
-		runtime.Gosched()
-		for range p.events {}
+	for i := 0; p.state.Load() > lowThreshold; i++ {
+		if i > 10 {
+			time.Sleep(time.Millisecond)
+		} else {
+			runtime.Gosched()
+		}
+
+		select {
+		case <- p.events:
+		default:
+		}
 	}
 
 	close(p.events)
