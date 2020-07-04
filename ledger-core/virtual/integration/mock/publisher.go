@@ -59,15 +59,14 @@ func (p *PublisherMock) GetCount() int {
 }
 
 func (p *PublisherMock) WaitCount(count int, timeout time.Duration) bool {
+	timeoutCh := time.After(timeout)
 	for {
 		if p.messageCount() >= count {
 			return true
 		}
-		started := time.Now()
 		select {
 		case <-p.messageNotifier:
-			timeout -= time.Since(started)
-		case <-time.After(timeout):
+		case <-timeoutCh:
 			return false
 		}
 	}
