@@ -40,7 +40,7 @@ func NewPublisherMock() *PublisherMock {
 	}
 }
 
-func (p *PublisherMock) messageCount() int {
+func (p *PublisherMock) GetCount() int {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 
@@ -54,14 +54,10 @@ func (p *PublisherMock) messageCountUpdate(count int) {
 	p.messageCounter += count
 }
 
-func (p *PublisherMock) GetCount() int {
-	return p.messageCounter
-}
-
 func (p *PublisherMock) WaitCount(count int, timeout time.Duration) bool {
 	timeoutCh := time.After(timeout)
 	for {
-		if p.messageCount() >= count {
+		if p.GetCount() >= count {
 			return true
 		}
 		select {
