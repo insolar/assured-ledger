@@ -320,12 +320,9 @@ func TestHostNetwork_WrongHandler(t *testing.T) {
 	s := newHostSuite(t)
 	defer s.Stop()
 
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-
 	handler := func(ctx context.Context, r network.ReceivedPacket) (network.Packet, error) {
 		inslogger.FromContext(ctx).Info("handler triggered")
-		wg.Done()
+		require.Fail(t, "shouldn't be called")
 		return s.n2.BuildResponse(ctx, r, nil), nil
 	}
 	s.n2.RegisterRequestHandler(types.Unknown, handler)
@@ -336,12 +333,12 @@ func TestHostNetwork_WrongHandler(t *testing.T) {
 	require.NoError(t, err)
 	f, err := s.n1.SendRequest(s.ctx1, types.Pulse, &packet.PulseRequest{}, ref)
 	require.NoError(t, err)
-	f.Cancel()
 
-	// should timeout because there is no handler set for Ping packet
-	result := network.WaitTimeout(&wg, time.Millisecond*100)
-	require.False(t, result)
-	wg.Done()
+	r, err := f.WaitResponse(time.Minute)
+	require.NoError(t, err)
+
+	d := r.GetResponse().GetError().Error
+	require.NotEmpty(t, d)
 }
 
 func TestStartStopSend(t *testing.T) {
