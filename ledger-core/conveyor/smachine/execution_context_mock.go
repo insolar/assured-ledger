@@ -76,12 +76,6 @@ type ExecutionContextMock struct {
 	beforeErrorCounter uint64
 	ErrorMock          mExecutionContextMockError
 
-	funcErrorf          func(msg string, a ...interface{}) (s1 StateUpdate)
-	inspectFuncErrorf   func(msg string, a ...interface{})
-	afterErrorfCounter  uint64
-	beforeErrorfCounter uint64
-	ErrorfMock          mExecutionContextMockErrorf
-
 	funcGetContext          func() (c1 context.Context)
 	inspectFuncGetContext   func()
 	afterGetContextCounter  uint64
@@ -443,9 +437,6 @@ func NewExecutionContextMock(t minimock.Tester) *ExecutionContextMock {
 
 	m.ErrorMock = mExecutionContextMockError{mock: m}
 	m.ErrorMock.callArgs = []*ExecutionContextMockErrorParams{}
-
-	m.ErrorfMock = mExecutionContextMockErrorf{mock: m}
-	m.ErrorfMock.callArgs = []*ExecutionContextMockErrorfParams{}
 
 	m.GetContextMock = mExecutionContextMockGetContext{mock: m}
 
@@ -2745,222 +2736,6 @@ func (m *ExecutionContextMock) MinimockErrorInspect() {
 	// if func was set then invocations count should be greater than zero
 	if m.funcError != nil && mm_atomic.LoadUint64(&m.afterErrorCounter) < 1 {
 		m.t.Error("Expected call to ExecutionContextMock.Error")
-	}
-}
-
-type mExecutionContextMockErrorf struct {
-	mock               *ExecutionContextMock
-	defaultExpectation *ExecutionContextMockErrorfExpectation
-	expectations       []*ExecutionContextMockErrorfExpectation
-
-	callArgs []*ExecutionContextMockErrorfParams
-	mutex    sync.RWMutex
-}
-
-// ExecutionContextMockErrorfExpectation specifies expectation struct of the ExecutionContext.Errorf
-type ExecutionContextMockErrorfExpectation struct {
-	mock    *ExecutionContextMock
-	params  *ExecutionContextMockErrorfParams
-	results *ExecutionContextMockErrorfResults
-	Counter uint64
-}
-
-// ExecutionContextMockErrorfParams contains parameters of the ExecutionContext.Errorf
-type ExecutionContextMockErrorfParams struct {
-	msg string
-	a   []interface{}
-}
-
-// ExecutionContextMockErrorfResults contains results of the ExecutionContext.Errorf
-type ExecutionContextMockErrorfResults struct {
-	s1 StateUpdate
-}
-
-// Expect sets up expected params for ExecutionContext.Errorf
-func (mmErrorf *mExecutionContextMockErrorf) Expect(msg string, a ...interface{}) *mExecutionContextMockErrorf {
-	if mmErrorf.mock.funcErrorf != nil {
-		mmErrorf.mock.t.Fatalf("ExecutionContextMock.Errorf mock is already set by Set")
-	}
-
-	if mmErrorf.defaultExpectation == nil {
-		mmErrorf.defaultExpectation = &ExecutionContextMockErrorfExpectation{}
-	}
-
-	mmErrorf.defaultExpectation.params = &ExecutionContextMockErrorfParams{msg, a}
-	for _, e := range mmErrorf.expectations {
-		if minimock.Equal(e.params, mmErrorf.defaultExpectation.params) {
-			mmErrorf.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmErrorf.defaultExpectation.params)
-		}
-	}
-
-	return mmErrorf
-}
-
-// Inspect accepts an inspector function that has same arguments as the ExecutionContext.Errorf
-func (mmErrorf *mExecutionContextMockErrorf) Inspect(f func(msg string, a ...interface{})) *mExecutionContextMockErrorf {
-	if mmErrorf.mock.inspectFuncErrorf != nil {
-		mmErrorf.mock.t.Fatalf("Inspect function is already set for ExecutionContextMock.Errorf")
-	}
-
-	mmErrorf.mock.inspectFuncErrorf = f
-
-	return mmErrorf
-}
-
-// Return sets up results that will be returned by ExecutionContext.Errorf
-func (mmErrorf *mExecutionContextMockErrorf) Return(s1 StateUpdate) *ExecutionContextMock {
-	if mmErrorf.mock.funcErrorf != nil {
-		mmErrorf.mock.t.Fatalf("ExecutionContextMock.Errorf mock is already set by Set")
-	}
-
-	if mmErrorf.defaultExpectation == nil {
-		mmErrorf.defaultExpectation = &ExecutionContextMockErrorfExpectation{mock: mmErrorf.mock}
-	}
-	mmErrorf.defaultExpectation.results = &ExecutionContextMockErrorfResults{s1}
-	return mmErrorf.mock
-}
-
-//Set uses given function f to mock the ExecutionContext.Errorf method
-func (mmErrorf *mExecutionContextMockErrorf) Set(f func(msg string, a ...interface{}) (s1 StateUpdate)) *ExecutionContextMock {
-	if mmErrorf.defaultExpectation != nil {
-		mmErrorf.mock.t.Fatalf("Default expectation is already set for the ExecutionContext.Errorf method")
-	}
-
-	if len(mmErrorf.expectations) > 0 {
-		mmErrorf.mock.t.Fatalf("Some expectations are already set for the ExecutionContext.Errorf method")
-	}
-
-	mmErrorf.mock.funcErrorf = f
-	return mmErrorf.mock
-}
-
-// When sets expectation for the ExecutionContext.Errorf which will trigger the result defined by the following
-// Then helper
-func (mmErrorf *mExecutionContextMockErrorf) When(msg string, a ...interface{}) *ExecutionContextMockErrorfExpectation {
-	if mmErrorf.mock.funcErrorf != nil {
-		mmErrorf.mock.t.Fatalf("ExecutionContextMock.Errorf mock is already set by Set")
-	}
-
-	expectation := &ExecutionContextMockErrorfExpectation{
-		mock:   mmErrorf.mock,
-		params: &ExecutionContextMockErrorfParams{msg, a},
-	}
-	mmErrorf.expectations = append(mmErrorf.expectations, expectation)
-	return expectation
-}
-
-// Then sets up ExecutionContext.Errorf return parameters for the expectation previously defined by the When method
-func (e *ExecutionContextMockErrorfExpectation) Then(s1 StateUpdate) *ExecutionContextMock {
-	e.results = &ExecutionContextMockErrorfResults{s1}
-	return e.mock
-}
-
-// Errorf implements ExecutionContext
-func (mmErrorf *ExecutionContextMock) Errorf(msg string, a ...interface{}) (s1 StateUpdate) {
-	mm_atomic.AddUint64(&mmErrorf.beforeErrorfCounter, 1)
-	defer mm_atomic.AddUint64(&mmErrorf.afterErrorfCounter, 1)
-
-	if mmErrorf.inspectFuncErrorf != nil {
-		mmErrorf.inspectFuncErrorf(msg, a...)
-	}
-
-	mm_params := &ExecutionContextMockErrorfParams{msg, a}
-
-	// Record call args
-	mmErrorf.ErrorfMock.mutex.Lock()
-	mmErrorf.ErrorfMock.callArgs = append(mmErrorf.ErrorfMock.callArgs, mm_params)
-	mmErrorf.ErrorfMock.mutex.Unlock()
-
-	for _, e := range mmErrorf.ErrorfMock.expectations {
-		if minimock.Equal(e.params, mm_params) {
-			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.s1
-		}
-	}
-
-	if mmErrorf.ErrorfMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmErrorf.ErrorfMock.defaultExpectation.Counter, 1)
-		mm_want := mmErrorf.ErrorfMock.defaultExpectation.params
-		mm_got := ExecutionContextMockErrorfParams{msg, a}
-		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmErrorf.t.Errorf("ExecutionContextMock.Errorf got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
-		}
-
-		mm_results := mmErrorf.ErrorfMock.defaultExpectation.results
-		if mm_results == nil {
-			mmErrorf.t.Fatal("No results are set for the ExecutionContextMock.Errorf")
-		}
-		return (*mm_results).s1
-	}
-	if mmErrorf.funcErrorf != nil {
-		return mmErrorf.funcErrorf(msg, a...)
-	}
-	mmErrorf.t.Fatalf("Unexpected call to ExecutionContextMock.Errorf. %v %v", msg, a)
-	return
-}
-
-// ErrorfAfterCounter returns a count of finished ExecutionContextMock.Errorf invocations
-func (mmErrorf *ExecutionContextMock) ErrorfAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmErrorf.afterErrorfCounter)
-}
-
-// ErrorfBeforeCounter returns a count of ExecutionContextMock.Errorf invocations
-func (mmErrorf *ExecutionContextMock) ErrorfBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmErrorf.beforeErrorfCounter)
-}
-
-// Calls returns a list of arguments used in each call to ExecutionContextMock.Errorf.
-// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmErrorf *mExecutionContextMockErrorf) Calls() []*ExecutionContextMockErrorfParams {
-	mmErrorf.mutex.RLock()
-
-	argCopy := make([]*ExecutionContextMockErrorfParams, len(mmErrorf.callArgs))
-	copy(argCopy, mmErrorf.callArgs)
-
-	mmErrorf.mutex.RUnlock()
-
-	return argCopy
-}
-
-// MinimockErrorfDone returns true if the count of the Errorf invocations corresponds
-// the number of defined expectations
-func (m *ExecutionContextMock) MinimockErrorfDone() bool {
-	for _, e := range m.ErrorfMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.ErrorfMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterErrorfCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcErrorf != nil && mm_atomic.LoadUint64(&m.afterErrorfCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockErrorfInspect logs each unmet expectation
-func (m *ExecutionContextMock) MinimockErrorfInspect() {
-	for _, e := range m.ErrorfMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to ExecutionContextMock.Errorf with params: %#v", *e.params)
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.ErrorfMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterErrorfCounter) < 1 {
-		if m.ErrorfMock.defaultExpectation.params == nil {
-			m.t.Error("Expected call to ExecutionContextMock.Errorf")
-		} else {
-			m.t.Errorf("Expected call to ExecutionContextMock.Errorf with params: %#v", *m.ErrorfMock.defaultExpectation.params)
-		}
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcErrorf != nil && mm_atomic.LoadUint64(&m.afterErrorfCounter) < 1 {
-		m.t.Error("Expected call to ExecutionContextMock.Errorf")
 	}
 }
 
@@ -13151,8 +12926,6 @@ func (m *ExecutionContextMock) MinimockFinish() {
 
 		m.MinimockErrorInspect()
 
-		m.MinimockErrorfInspect()
-
 		m.MinimockGetContextInspect()
 
 		m.MinimockGetDefaultTerminationResultInspect()
@@ -13293,7 +13066,6 @@ func (m *ExecutionContextMock) minimockDone() bool {
 		m.MinimockCallSubroutineDone() &&
 		m.MinimockCheckDone() &&
 		m.MinimockErrorDone() &&
-		m.MinimockErrorfDone() &&
 		m.MinimockGetContextDone() &&
 		m.MinimockGetDefaultTerminationResultDone() &&
 		m.MinimockGetPendingCallCountDone() &&
