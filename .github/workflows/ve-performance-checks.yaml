@@ -47,6 +47,7 @@ jobs:
       - name: debug
         run: |
           cd ${{ env.CORE_PATH }}
+          chmod 777 ${{ env.CORE_PATH }}/load/gen_cfg/generator_assured_ledger.yaml
           go run ~/work/pkg/mod/github.com/skudasov/loadgen@v0.0.11/cmd/loadcli.go -gen_config ${{ env.CORE_PATH }}/load/gen_cfg/generator_assured_ledger.yaml scaling_report ${{ env.CORE_PATH }}/load/scaling.csv out.png
           pwd
           ls -a
