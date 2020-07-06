@@ -46,6 +46,7 @@ jobs:
           go build cmd/load/main.go
       - name: debug
         run: |
+          cd ${{ env.CORE_PATH }}
           go run ~/work/pkg/mod/github.com/skudasov/loadgen@v0.0.11/cmd/loadcli.go -gen_config ~/load/gen_cfg/generator_assured_ledger.yaml scaling_report ~/load/scaling.csv out.png
           filename=$(date +"%F-%H-%M")-${{fromJson(steps.set-vars.outputs.result).shortSha}}.png
           curl -basic --user ${{ secrets.WEBDAV_USERNAME }}:${{ secrets.WEBDAV_PASSWORD }} -T out.png https://reports.garage.insolar.io/ve-perf-tests/$filename
