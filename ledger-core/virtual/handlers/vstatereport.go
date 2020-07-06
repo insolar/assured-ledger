@@ -8,6 +8,7 @@
 package handlers
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/log"
@@ -25,6 +26,7 @@ type SMVStateReport struct {
 
 	// dependencies
 	objectCatalog object.Catalog
+	pulseSlot     *conveyor.PulseSlot
 }
 
 var dSMVStateReportInstance smachine.StateMachineDeclaration = &dSMVStateReport{}
@@ -37,6 +39,7 @@ func (*dSMVStateReport) InjectDependencies(sm smachine.StateMachine, _ smachine.
 	s := sm.(*SMVStateReport)
 
 	injector.MustInject(&s.objectCatalog)
+	injector.MustInject(&s.pulseSlot)
 }
 
 func (*dSMVStateReport) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc {
@@ -51,6 +54,10 @@ func (s *SMVStateReport) GetStateMachineDeclaration() smachine.StateMachineDecla
 }
 
 func (s *SMVStateReport) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
+	if s.pulseSlot.State() != conveyor.Present {
+		ctx.Log().Trace("stop processing VStateReport since we are not in present pulse")
+		return ctx.Stop()
+	}
 	return ctx.Jump(s.stepProcess)
 }
 

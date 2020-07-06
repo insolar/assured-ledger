@@ -8,6 +8,7 @@
 package handlers
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
@@ -17,8 +18,9 @@ import (
 
 type SMVFindCallResponse struct {
 	// input arguments
-	Meta    *payload.Meta
-	Payload *payload.VFindCallResponse
+	Meta      *payload.Meta
+	Payload   *payload.VFindCallResponse
+	pulseSlot *conveyor.PulseSlot
 }
 
 /* -------- Declaration ------------- */
@@ -29,7 +31,9 @@ type dSMVFindCallResponse struct {
 	smachine.StateMachineDeclTemplate
 }
 
-func (*dSMVFindCallResponse) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLink, _ *injector.DependencyInjector) {
+func (*dSMVFindCallResponse) InjectDependencies(sm smachine.StateMachine, _ smachine.SlotLink, injector *injector.DependencyInjector) {
+	s := sm.(*SMVFindCallResponse)
+	injector.MustInject(&s.pulseSlot)
 }
 
 func (*dSMVFindCallResponse) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc {
@@ -44,13 +48,17 @@ func (s *SMVFindCallResponse) GetStateMachineDeclaration() smachine.StateMachine
 }
 
 func (s *SMVFindCallResponse) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
+	if s.pulseSlot.State() != conveyor.Present {
+		ctx.Log().Trace("stop processing VFindCallResponse since we are not in present pulse")
+		return ctx.Stop()
+	}
 	return ctx.Jump(s.stepProcess)
 }
 
 func (s *SMVFindCallResponse) stepProcess(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	key := execute.DeduplicationBargeInKey{
-		LookAt: s.Payload.LookedAt,
-		Callee: s.Payload.Callee,
+		LookAt:   s.Payload.LookedAt,
+		Callee:   s.Payload.Callee,
 		Outgoing: s.Payload.Outgoing,
 	}
 

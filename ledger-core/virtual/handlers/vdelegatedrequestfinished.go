@@ -66,6 +66,7 @@ func (s *SMVDelegatedRequestFinished) GetStateMachineDeclaration() smachine.Stat
 }
 
 func (s *SMVDelegatedRequestFinished) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
+
 	return ctx.Jump(s.stepGetObject)
 }
 

@@ -66,6 +66,10 @@ func (s *SMVDelegatedCallRequest) GetStateMachineDeclaration() smachine.StateMac
 }
 
 func (s *SMVDelegatedCallRequest) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
+	if s.pulseSlot.State() != conveyor.Present {
+		ctx.Log().Trace("stop processing VDelegatedCallRequest since we are not in present pulse")
+		return ctx.Stop()
+	}
 	return ctx.Jump(s.stepProcess)
 }
 
