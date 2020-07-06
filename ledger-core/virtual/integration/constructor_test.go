@@ -750,6 +750,10 @@ func TestVirtual_Constructor_PulseChangedWhileOutgoing(t *testing.T) {
 
 	synchronizeExecution.WakeUp()
 
+	synchronizeExecution.Done()
+	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+
 	msgVStateRequest := payload.VStateRequest{
 		AsOf:   constructorPulse,
 		Object: outgoing,
@@ -758,9 +762,7 @@ func TestVirtual_Constructor_PulseChangedWhileOutgoing(t *testing.T) {
 	server.SendPayload(ctx, &msgVStateRequest)
 	server.WaitActiveThenIdleConveyor()
 
-	synchronizeExecution.Done()
-	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
-	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+	testutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(2))
 
 	{
 		assert.Equal(t, 1, typedChecker.VCallResult.Count())
