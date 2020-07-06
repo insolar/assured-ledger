@@ -114,10 +114,6 @@ jobs:
         if: always()
         run: kubectl delete ns ${{fromJson(steps.set-vars.outputs.result).shortSha}} --ignore-not-found=true
       - name: Send report
-        uses: actions/checkout@v2
-        with:
-          path: ./loadgen
-          repository: /skudasov/loadgen
         run: |
           cd loadgen
           ./main -gen_config -gen_config ${{ env.CORE_PATH }}/load/gen_cfg/generator_assured_ledger.yaml scaling_report scaling.csv out.png
