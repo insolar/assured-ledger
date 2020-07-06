@@ -45,7 +45,9 @@ jobs:
           cd load
           go build cmd/load/main.go
       - name: debug
-        run: find . -name loadcli.go
+        run: |
+          cd ~
+          find . -name loadcli.go
       - name: Set up go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v1
         with:
