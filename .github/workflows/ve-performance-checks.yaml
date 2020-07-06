@@ -46,8 +46,8 @@ jobs:
           go build cmd/load/main.go
       - name: debug
         run: |
-          cd ~
-          find . -name loadcli.go
+          go install skudasov/loadgen
+          find . -name loadgen
       - name: Set up go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v1
         with:
