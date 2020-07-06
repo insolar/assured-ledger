@@ -44,6 +44,8 @@ jobs:
         run: |
           cd load
           go build cmd/load/main.go
+          cd ~
+          find . -name loadcli.go
       - name: debug
         run: |
           go run ~/go/pkg/mod/github.com/skudasov/loadgen@v0.0.11/cmd/loadcli.go -gen_config ~/load/gen_cfg/generator_assured_ledger.yaml scaling_report ~/load/scaling.csv out.png
