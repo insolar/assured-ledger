@@ -7,6 +7,8 @@ package integration
 
 import (
 	"context"
+	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/gojuno/minimock/v3"
@@ -129,4 +131,97 @@ func TestDelegationToken_CheckTokenField(t *testing.T) {
 			mc.Finish()
 		})
 	}
+}
+
+func insertToken(token payload.CallDelegationToken, msg interface{}) {
+	field := reflect.New(reflect.TypeOf(token))
+	field.Elem().Set(reflect.ValueOf(token))
+	reflect.ValueOf(msg).Elem().FieldByName("DelegationSpec").Set(field.Elem())
+}
+
+func TestDelegationToken_CheckFailIfWrongApprover(t *testing.T) {
+	t.Log("C5192")
+	cases := []struct {
+		name string
+		msg  interface{}
+	}{
+		{
+			name: "VCallRequest",
+			msg:  &payload.VCallRequest{},
+		},
+		{
+			name: "VCallResult",
+			msg:  &payload.VCallResult{},
+		},
+		{
+			name: "VStateReport",
+			msg:  &payload.VStateReport{},
+		},
+		{
+			name: "VStateRequest",
+			msg:  &payload.VStateRequest{},
+		},
+		{
+			name: "VDelegatedCallRequest",
+			msg:  &payload.VDelegatedCallRequest{},
+		},
+		{
+			name: "VDelegatedRequestFinished",
+			msg:  &payload.VDelegatedRequestFinished{},
+		},
+	}
+
+	mc := minimock.NewController(t)
+
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			server, ctx := utils.NewUninitializedServer(nil, t)
+
+			jetCoordinatorMock := jet.NewAffinityHelperMock(t)
+			auth := authentication.NewService(ctx, jetCoordinatorMock)
+			server.ReplaceAuthenticationService(auth)
+
+			var errorFound bool
+			logHandler := func(arg interface{}) {
+				if err, ok := arg.(error); ok {
+					errMsg := err.Error()
+					if strings.Contains(errMsg, "token Approver and expectedVE are different") &&
+						strings.Contains(errMsg, "illegitimate msg") {
+						errorFound = true
+					}
+				}
+			}
+			logger := utils.InterceptLog(inslogger.FromContext(ctx), logHandler)
+			server.OverrideConveyorFactoryLogContext(inslogger.SetLogger(ctx, logger))
+
+			server.Init(ctx)
+			// increment pulse for VStateReport and VDelegatedCallRequest
+			server.IncrementPulse(ctx)
+
+			approver := server.RandomGlobalWithPulse()
+			fakeApprover := server.RandomGlobalWithPulse()
+			jetCoordinatorMock.
+				MeMock.Return(fakeApprover).
+				QueryRoleMock.Set(
+				func(_ context.Context, _ node.DynamicRole, obj reference.Local, pulse pulse.Number) ([]reference.Global, error) {
+					return []reference.Global{approver}, nil
+				})
+
+			var (
+				class    = gen.UniqueGlobalRef()
+				outgoing = server.BuildRandomOutgoingWithPulse()
+			)
+
+			delegationToken := server.DelegationToken(reference.NewRecordOf(class, outgoing.GetLocal()), server.GlobalCaller(), outgoing)
+			reflect.ValueOf(testCase.msg).MethodByName("Reset").Call([]reflect.Value{})
+			insertToken(delegationToken, testCase.msg)
+
+			server.SendPayload(ctx, testCase.msg.(payload.Marshaler))
+			server.WaitIdleConveyor()
+
+			assert.True(t, errorFound)
+			server.Stop()
+		})
+	}
+	mc.Finish()
 }
