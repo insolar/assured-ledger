@@ -180,8 +180,8 @@ func (s *SMVDelegatedRequestFinished) updateSharedState(
 		}
 		if pendingList.CountActive() == 0 {
 			// If we do not have pending ordered, release sync object.
-			if !ctx.CallBargeIn(state.AwaitPendingOrdered) {
-				ctx.Log().Warn("AwaitPendingOrdered BargeIn receive false")
+			if !ctx.CallBargeIn(state.SignalPendingsFinished) {
+				ctx.Log().Warn("SignalPendingsFinished BargeIn receive false")
 			}
 		}
 	}
