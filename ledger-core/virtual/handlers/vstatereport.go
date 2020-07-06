@@ -58,7 +58,14 @@ func (s *SMVStateReport) Init(ctx smachine.InitializationContext) smachine.State
 		ctx.Log().Warn("stop processing VStateReport since we are not in present pulse")
 		return ctx.Stop()
 	}
+
+	ctx.SetDefaultMigration(s.migrationDefault)
 	return ctx.Jump(s.stepProcess)
+}
+
+func (s *SMVStateReport) migrationDefault(ctx smachine.MigrationContext) smachine.StateUpdate {
+	ctx.Log().Trace("stop processing VStateReport since pulse was changed")
+	return ctx.Stop()
 }
 
 type stateAlreadyExistsErrorMsg struct {

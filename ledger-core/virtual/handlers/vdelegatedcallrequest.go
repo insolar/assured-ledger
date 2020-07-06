@@ -70,7 +70,14 @@ func (s *SMVDelegatedCallRequest) Init(ctx smachine.InitializationContext) smach
 		ctx.Log().Trace("stop processing VDelegatedCallRequest since we are not in present pulse")
 		return ctx.Stop()
 	}
+
+	ctx.SetDefaultMigration(s.migrationDefault)
 	return ctx.Jump(s.stepProcess)
+}
+
+func (s *SMVDelegatedCallRequest) migrationDefault(ctx smachine.MigrationContext) smachine.StateUpdate {
+	ctx.Log().Trace("stop processing VDelegatedCallRequest since pulse was changed")
+	return ctx.Stop()
 }
 
 func (s *SMVDelegatedCallRequest) stepProcess(ctx smachine.ExecutionContext) smachine.StateUpdate {

@@ -52,7 +52,13 @@ func (s *SMVFindCallResponse) Init(ctx smachine.InitializationContext) smachine.
 		ctx.Log().Warn("stop processing VFindCallResponse since we are not in present pulse")
 		return ctx.Stop()
 	}
+	ctx.SetDefaultMigration(s.migrationDefault)
 	return ctx.Jump(s.stepProcess)
+}
+
+func (s *SMVFindCallResponse) migrationDefault(ctx smachine.MigrationContext) smachine.StateUpdate {
+	ctx.Log().Trace("stop processing VFindCallResponse since pulse was changed")
+	return ctx.Stop()
 }
 
 func (s *SMVFindCallResponse) stepProcess(ctx smachine.ExecutionContext) smachine.StateUpdate {
