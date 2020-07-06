@@ -2,6 +2,7 @@
 state "Init" as T01_S001
 T01_S001 : SMVFindCallResponse
 [*] --> T01_S001
+T01_S001 --> [*] : [(...).pulseSlot.State()!=conveyor.Present]
 T01_S001 --> T01_S002
 state "stepProcess" as T01_S002
 T01_S002 : SMVFindCallResponse
