@@ -15,7 +15,7 @@ import (
 
 // aliases for more convenient using in .proto file (no need to use full path)
 // because alias in the same package
-type MessageContext = rms.MessageContext
+type MessageContext = rms.MessageVisitor
 
 func RegisterMessageType(id uint64, special string, t proto.Message) {
 	rms.RegisterMessageType(id, special, t)

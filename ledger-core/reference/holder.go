@@ -5,7 +5,10 @@
 
 package reference
 
-import "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+import (
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+)
 
 type LocalHolder interface {
 	// GetLocal returns local portion of a full reference
@@ -38,16 +41,36 @@ func AsRecordID(v Holder) Local {
 	panic(throw.IllegalState())
 }
 
+func IsEmpty(ref Holder) bool {
+	return ref == nil || ref.IsEmpty()
+}
+
+func PulseNumberOf(ref LocalHolder) pulse.Number {
+	if ref == nil || ref.IsEmpty() {
+		return 0
+	}
+	return ref.GetLocal().GetPulseNumber()
+}
+
 func IsRecordScope(ref Holder) bool {
-	return ref.GetBase().IsEmpty() && !ref.GetLocal().IsEmpty() && ref.GetLocal().SubScope() == baseScopeLifeline
+	if !ref.GetBase().IsEmpty() {
+		return false
+	}
+	local := ref.GetLocal()
+	return !local.IsEmpty() && local.SubScope() == baseScopeLifeline
 }
 
 func IsObjectReference(ref Holder) bool {
-	return !ref.GetBase().IsEmpty() && !ref.GetLocal().IsEmpty() && ref.GetLocal().SubScope() == baseScopeLifeline
+	if ref.GetBase().IsEmpty() {
+		return false
+	}
+	local := ref.GetLocal()
+	return !local.IsEmpty() && local.SubScope() == baseScopeLifeline
 }
 
 func IsSelfScope(ref Holder) bool {
-	return ref.GetBase() == ref.GetLocal()
+	local := ref.GetLocal()
+	return !local.IsEmpty() && ref.GetBase() == local
 }
 
 func IsLifelineScope(ref Holder) bool {
@@ -65,6 +88,8 @@ func IsGlobalScope(ref Holder) bool {
 
 func Equal(ref0, ref1 Holder) bool {
 	switch {
+	case ref0 == ref1:
+		return true
 	case ref0 == nil || ref1 == nil:
 		return false
 	case ref1.GetLocal() != ref0.GetLocal():
@@ -98,4 +123,9 @@ func Copy(h Holder) Global {
 	default:
 		return New(h.GetBase(), h.GetLocal())
 	}
+}
+
+func NormCopy(h Holder) Global {
+	// TODO scope normalization - local domain scope must be normalized to lifeline scope
+	return Copy(h)
 }

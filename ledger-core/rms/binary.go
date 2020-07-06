@@ -10,7 +10,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/protokit"
 )
 
-var _ GoGoSerializable = &Binary{}
+var _ GoGoSerializableWithText = &Binary{}
 var _ longbits.FixedReader = &Binary{}
 
 type Binary struct {
