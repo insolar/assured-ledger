@@ -112,4 +112,5 @@ jobs:
         run: |
           cd ${{ env.CORE_PATH }}/load/
           ./main -gen_config -gen_config ${{ env.CORE_PATH }}/load/gen_cfg/generator_assured_ledger.yaml scaling_report scaling.csv out.png
-          curl -basic --user '${{ secrets.WEBDAV_USERNAME }}:${{ secrets.WEBDAV_PASSWORD }}' -T 'out.png' 'https://reports.garage.insolar.io/ve-perf-tests/$(date +"%F-%H-%M")-${{fromJson(steps.set-vars.outputs.result).shortSha}}.png'
+          filename=$(date +"%F-%H-%M")-${{fromJson(steps.set-vars.outputs.result).shortSha}}.png
+          curl -basic --user ${{ secrets.WEBDAV_USERNAME }}:${{ secrets.WEBDAV_PASSWORD }} -T out.png https://reports.garage.insolar.io/ve-perf-tests/$filename
