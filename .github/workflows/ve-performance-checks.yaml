@@ -49,7 +49,7 @@ jobs:
           cd ${{ env.CORE_PATH }}
           go run ~/work/pkg/mod/github.com/skudasov/loadgen@v0.0.12/cmd/loadcli.go -gen_config ${{ env.CORE_PATH }}/load/gen_cfg/generator_assured_ledger.yaml scaling_report ${{ env.CORE_PATH }}/load/scaling.csv out.png
           filename=$(date +"%F-%H-%M")-${{fromJson(steps.set-vars.outputs.result).shortSha}}.png
-          curl -basic --user '${{ secrets.WEBDAV_USERNAME }}:${{ secrets.WEBDAV_PASSWORD }}' -T 'chart/out.png https://reports.garage.insolar.io/ve-perf-tests/${filename}'
+          curl -basic --user '${{ secrets.WEBDAV_USERNAME }}:${{ secrets.WEBDAV_PASSWORD }}' -T chart/out.png 'https://reports.garage.insolar.io/ve-perf-tests/${filename}'
       - name: Set up go ${{ env.GO_VERSION }}
         uses: actions/setup-go@v1
         with:
