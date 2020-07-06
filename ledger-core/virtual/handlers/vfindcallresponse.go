@@ -49,7 +49,7 @@ func (s *SMVFindCallResponse) GetStateMachineDeclaration() smachine.StateMachine
 
 func (s *SMVFindCallResponse) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
 	if s.pulseSlot.State() != conveyor.Present {
-		ctx.Log().Trace("stop processing VFindCallResponse since we are not in present pulse")
+		ctx.Log().Warn("stop processing VFindCallResponse since we are not in present pulse")
 		return ctx.Stop()
 	}
 	return ctx.Jump(s.stepProcess)

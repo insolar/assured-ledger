@@ -2,6 +2,7 @@
 state "Init" as T01_S001
 T01_S001 : SMVDelegatedRequestFinished
 [*] --> T01_S001
+T01_S001 --> [*] : [(...).pulseSlot.State()!=conveyor.Present]
 T01_S001 --> T01_S002
 state "awaitObjectReady" as T01_S003
 T01_S003 : SMVDelegatedRequestFinished
