@@ -9,13 +9,14 @@ package jet
 
 import (
 	"bytes"
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
 
 func TestPrefixTree_SerializeCombinations(t *testing.T) {
-	t.Run("raw only", func(t *testing.T) {
+	t.Run("raw   only", func(t *testing.T) {
 		t.Parallel()
 		ser := PrefixTreeSerializer{}
 		pt := PrefixTree{}
@@ -39,6 +40,24 @@ func TestPrefixTree_SerializeCombinations(t *testing.T) {
 		t.Log("Max size: ", m)
 		require.Less(t, m, maxUncompressedSize)
 		require.Less(t, m, 1500)
+	})
+
+	t.Run("enum tree", func(t *testing.T) {
+		t.Parallel()
+		pt := PrefixTree{}
+		pt.Init()
+		_ = generateTree(t, &pt, 0, 0, func(t *testing.T, pt *PrefixTree) int {
+			count := 0
+			pt.Enum(func(prefix Prefix, depth uint8) bool {
+				count++
+				return false
+			})
+			jetCount := pt.Count()
+			if count != jetCount {
+				require.Equal(t, jetCount, count)
+			}
+			return 0
+		})
 	})
 }
 
@@ -90,22 +109,29 @@ func checkTree(t *testing.T, pt *PrefixTree, ser PrefixTreeSerializer) int {
 	if ser.UseLZW {
 		buf := bytes.Buffer{}
 		buf.Grow(len(serBytes))
-		require.NoError(t, ser.postSerialize(serBytes, &buf))
+		if err := ser.postSerialize(serBytes, &buf); err != nil {
+			require.NoError(t, err) // test performance tweak
+		}
 
 		bufBytes := buf.Bytes()
 		if bufBytes[0] != RawSerializeV1 {
 			packedSz = len(bufBytes)
 			serBytes = bufBytes
 		}
+		// t.Logf("%5d	%2d	%2d	%5d	%2.2f	%5d 	%2d%% \n",
+		// 	jetCount, pt.MinDepth(), pt.MaxDepth(),
+		// 	sz, float32(sz<<3)/float32(jetCount),
+		// 	packedSz,
+		// 	packedSz*100/sz,
+		// )
+	} else {
+		// t.Logf("%5d	%2d	%2d	%5d	%2.2f \n",
+		// 	jetCount, pt.MinDepth(), pt.MaxDepth(),
+		// 	sz, float32(sz<<3)/float32(jetCount),
+		// )
+		runtime.KeepAlive(jetCount)
 	}
-
-	t.Logf("%5d	%2d	%2d	%5d	%2.2f	%5d 	%2d%% \n",
-		jetCount, pt.MinDepth(), pt.MaxDepth(),
-		sz, float32(sz<<3)/float32(jetCount),
-		packedSz,
-		packedSz*100/sz,
-	)
-	//t.Log(hex.Dump(buf.Bytes()))
+	// t.Log(hex.Dump(buf.Bytes()))
 
 	checkSerialized(t, pt, bytes.NewBuffer(serBytes))
 
@@ -114,6 +140,11 @@ func checkTree(t *testing.T, pt *PrefixTree, ser PrefixTreeSerializer) int {
 
 func checkSerialized(t *testing.T, pt *PrefixTree, buf *bytes.Buffer) {
 	pt2 := PrefixTree{}
-	require.NoError(t, PrefixTreeDeserializer{}.DeserializeTo(&pt2, buf))
-	require.Equal(t, *pt, pt2)
+	err := PrefixTreeDeserializer{}.DeserializeTo(&pt2, buf)
+	if err != nil {
+		require.NoError(t, err) // test performance tweak
+	}
+	if *pt != pt2 {
+		require.Equal(t, *pt, pt2) // test performance tweak
+	}
 }

@@ -15,9 +15,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-var _ smachine.StateMachine = &SMJetDropBuilder{}
+var _ smachine.StateMachine = &SMDropBuilder{}
 
-type SMJetDropBuilder struct {
+type SMDropBuilder struct {
 	smachine.StateMachineDeclTemplate
 
 	pulseSlot *conveyor.PulseSlot
@@ -26,19 +26,19 @@ type SMJetDropBuilder struct {
 	prevReport datareader.PrevDropReport
 }
 
-func (p *SMJetDropBuilder) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
+func (p *SMDropBuilder) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
 	return p
 }
 
-func (p *SMJetDropBuilder) GetInitStateFor(smachine.StateMachine) smachine.InitFunc {
+func (p *SMDropBuilder) GetInitStateFor(smachine.StateMachine) smachine.InitFunc {
 	return p.stepInit
 }
 
-func (p *SMJetDropBuilder) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLink, injector *injector.DependencyInjector) {
+func (p *SMDropBuilder) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLink, injector *injector.DependencyInjector) {
 	injector.MustInject(&p.pulseSlot)
 }
 
-func (p *SMJetDropBuilder) stepInit(ctx smachine.InitializationContext) smachine.StateUpdate {
+func (p *SMDropBuilder) stepInit(ctx smachine.InitializationContext) smachine.StateUpdate {
 	if p.pulseSlot.State() != conveyor.Present {
 		return ctx.Error(throw.E("not a present pulse"))
 	}
@@ -63,7 +63,7 @@ func (p *SMJetDropBuilder) stepInit(ctx smachine.InitializationContext) smachine
 
 const passiveWaitPortion = 50
 
-func (p *SMJetDropBuilder) getPassiveDeadline(startedAt time.Time, pulseDelta uint16) time.Time {
+func (p *SMDropBuilder) getPassiveDeadline(startedAt time.Time, pulseDelta uint16) time.Time {
 	switch {
 	case startedAt.IsZero():
 		panic(throw.IllegalValue())
@@ -73,7 +73,7 @@ func (p *SMJetDropBuilder) getPassiveDeadline(startedAt time.Time, pulseDelta ui
 	return startedAt.Add(time.Second * time.Duration(pulseDelta) / passiveWaitPortion)
 }
 
-func (p *SMJetDropBuilder) stepWaitPrevDrop(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (p *SMDropBuilder) stepWaitPrevDrop(ctx smachine.ExecutionContext) smachine.StateUpdate {
 
 	passiveUntil := p.getPassiveDeadline(p.pulseSlot.PulseStartedAt(), p.pulseSlot.PulseData().NextPulseDelta)
 	return ctx.Jump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -84,7 +84,7 @@ func (p *SMJetDropBuilder) stepWaitPrevDrop(ctx smachine.ExecutionContext) smach
 	})
 }
 
-func (p *SMJetDropBuilder) stepFindPrevDrop(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (p *SMDropBuilder) stepFindPrevDrop(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	ctx.NewChild(func(smachine.ConstructionContext) smachine.StateMachine {
 		return &datareader.SMFindDrop{
 			Assistant: p.sd.updater,
@@ -98,7 +98,7 @@ func (p *SMJetDropBuilder) stepFindPrevDrop(ctx smachine.ExecutionContext) smach
 	return ctx.Jump(p.stepDropStart)
 }
 
-func (p *SMJetDropBuilder) stepDropStart(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (p *SMDropBuilder) stepDropStart(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	if p.prevReport.IsZero() {
 		return ctx.Sleep().ThenRepeat()
 	}
@@ -107,25 +107,25 @@ func (p *SMJetDropBuilder) stepDropStart(ctx smachine.ExecutionContext) smachine
 	return ctx.Jump(p.stepWaitPast)
 }
 
-func (p *SMJetDropBuilder) stepWaitPast(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (p *SMDropBuilder) stepWaitPast(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	return ctx.Sleep().ThenRepeat()
 }
 
-func (p *SMJetDropBuilder) migratePresent(ctx smachine.MigrationContext) smachine.StateUpdate {
+func (p *SMDropBuilder) migratePresent(ctx smachine.MigrationContext) smachine.StateUpdate {
 	ctx.SetDefaultMigration(p.migratePast)
 	return ctx.Jump(p.stepFinalize)
 }
 
-func (p *SMJetDropBuilder) migratePast(ctx smachine.MigrationContext) smachine.StateUpdate {
+func (p *SMDropBuilder) migratePast(ctx smachine.MigrationContext) smachine.StateUpdate {
 	return ctx.Stop()
 }
 
-func (p *SMJetDropBuilder) stepFinalize(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (p *SMDropBuilder) stepFinalize(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	// TODO drop finalization
 	return ctx.Stop()
 }
 
-func (p *SMJetDropBuilder) receivePrevReport(report datareader.PrevDropReport, ctx smachine.BargeInContext) (wakeup bool) {
+func (p *SMDropBuilder) receivePrevReport(report datareader.PrevDropReport, ctx smachine.BargeInContext) (wakeup bool) {
 	switch {
 	case !p.prevReport.IsZero():
 		if p.prevReport.Equal(report) {
@@ -145,7 +145,7 @@ func (p *SMJetDropBuilder) receivePrevReport(report datareader.PrevDropReport, c
 	return true
 }
 
-func (p *SMJetDropBuilder) verifyPrevReport(report datareader.PrevDropReport) bool {
+func (p *SMDropBuilder) verifyPrevReport(report datareader.PrevDropReport) bool {
 	// TODO verification vs jet tree etc
 	return true
 }

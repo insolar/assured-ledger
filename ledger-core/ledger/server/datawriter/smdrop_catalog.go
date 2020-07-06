@@ -54,7 +54,7 @@ func (*DropCatalog) Get(ctx smachine.SharedStateContext, dropID jet.DropID) Drop
 
 func JetDropCreate(legID jet.LegID, updater buildersvc.JetDropAssistant) smachine.CreateFunc {
 	return func(smachine.ConstructionContext) smachine.StateMachine {
-		sm := &SMJetDropBuilder{}
+		sm := &SMDropBuilder{}
 		sm.sd.id = legID
 		sm.sd.updater = updater
 		return sm

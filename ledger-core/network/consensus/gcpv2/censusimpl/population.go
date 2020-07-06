@@ -13,6 +13,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles"
@@ -639,7 +640,7 @@ func (p *roleRecord) GetAssignmentByPower(metric uint64,
 	if assigned.GetNodeID() != excludeID {
 		return assigned, excluded
 	}
-	panic("not possible")
+	panic(throw.Impossible())
 }
 
 func (p *roleRecord) GetAssignmentByCount(metric uint64,
@@ -671,7 +672,7 @@ func (p *roleRecord) GetAssignmentByCount(metric uint64,
 	if assigned.GetNodeID() != excludeID {
 		return assigned, excluded
 	}
-	panic("not possible")
+	panic(throw.Impossible())
 }
 
 // may return garbage if used without proper checks

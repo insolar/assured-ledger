@@ -3,11 +3,13 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package jet
+package jetbalancer
 
 import (
 	"fmt"
 	"io"
+
+	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 )
 
 const SplitMedian = 7 // makes 0 vs 1 ratio like [0..6] vs [7..15]
@@ -39,7 +41,7 @@ type PrefixCalc struct {
 }
 
 // Converts data[:OverlapOfs + (prefixLen)/2] into prefixLen bits.
-func (p PrefixCalc) FromSlice(prefixLen int, data []byte) Prefix {
+func (p PrefixCalc) FromSlice(prefixLen int, data []byte) jet.Prefix {
 	switch {
 	case prefixLen < 0 || prefixLen > 32:
 		panic("illegal value")
@@ -51,7 +53,7 @@ func (p PrefixCalc) FromSlice(prefixLen int, data []byte) Prefix {
 }
 
 // Converts data[:OverlapOfs + (prefixLen)/2] into prefixLen bits.
-func (p PrefixCalc) FromReader(prefixLen int, data io.Reader) (Prefix, error) {
+func (p PrefixCalc) FromReader(prefixLen int, data io.Reader) (jet.Prefix, error) {
 	switch {
 	case prefixLen < 0 || prefixLen > 32:
 		panic("illegal value")
@@ -72,9 +74,9 @@ func (p PrefixCalc) FromReader(prefixLen int, data io.Reader) (Prefix, error) {
 	return p.fromSlice(prefixLen, dataBuf), nil
 }
 
-func (p PrefixCalc) fromSlice(prefixLen int, data []byte) Prefix {
-	result := Prefix(0)
-	bit := Prefix(1)
+func (p PrefixCalc) fromSlice(prefixLen int, data []byte) jet.Prefix {
+	result := jet.Prefix(0)
+	bit := jet.Prefix(1)
 
 	for i, d := range data {
 		if p.OverlapOfs > 0 {
@@ -101,3 +103,5 @@ func (p PrefixCalc) fromSlice(prefixLen int, data []byte) Prefix {
 
 	panic(fmt.Errorf("insufficient data length"))
 }
+
+

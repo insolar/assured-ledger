@@ -14,7 +14,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-type Tree = PrefixTree
+type Tree = *PrefixTree
 
 type ID uint16
 
@@ -47,6 +47,11 @@ type PrefixedID uint32 // JetPrefix + 5bit length
 const (
 	prefixedLenBits = 8
 	prefixedLenOfs = 32 - prefixedLenBits
+)
+
+const (
+	GenesisPrefixedID PrefixedID = 1<<prefixedLenOfs
+	UnknownPrefixedID PrefixedID = 0
 )
 
 func (v PrefixedID) ID() ID {
@@ -111,7 +116,7 @@ func (v LegID) AsDrop() DropID {
 
 /***************************************************************/
 
-type DropID uint64 // ID + Split/Merge Pulse
+type DropID uint64 // ID + current Pulse
 
 func (v DropID) IsValid() bool {
 	_, ok := v.prefixedID().PrefixLength()
@@ -133,4 +138,6 @@ func (v DropID) CreatedAt() pulse.Number {
 func (v DropID) String() string {
 	return fmt.Sprintf("%v@%d", v.ID(), v.CreatedAt())
 }
+
+type Prefix uint32
 
