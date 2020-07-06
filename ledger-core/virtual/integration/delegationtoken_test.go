@@ -6,7 +6,6 @@
 package integration
 
 import (
-	"context"
 	"reflect"
 	"strings"
 	"testing"
@@ -16,10 +15,8 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -87,10 +84,7 @@ func TestDelegationToken_CheckTokenField(t *testing.T) {
 			jetCaller := server.RandomGlobalWithPulse()
 			jetCoordinatorMock.
 				MeMock.Return(jetCaller).
-				QueryRoleMock.Set(
-				func(_ context.Context, _ node.DynamicRole, obj reference.Local, pulse pulse.Number) ([]reference.Global, error) {
-					return []reference.Global{jetCaller}, nil
-				})
+				QueryRoleMock.Return([]reference.Global{jetCaller}, nil)
 
 			var (
 				isolation = contract.ConstructorIsolation()
@@ -202,10 +196,7 @@ func TestDelegationToken_CheckFailIfWrongApprover(t *testing.T) {
 			fakeApprover := server.RandomGlobalWithPulse()
 			jetCoordinatorMock.
 				MeMock.Return(fakeApprover).
-				QueryRoleMock.Set(
-				func(_ context.Context, _ node.DynamicRole, obj reference.Local, pulse pulse.Number) ([]reference.Global, error) {
-					return []reference.Global{approver}, nil
-				})
+				QueryRoleMock.Return([]reference.Global{approver}, nil)
 
 			var (
 				class    = gen.UniqueGlobalRef()
@@ -288,10 +279,7 @@ func TestDelegationToken_CheckFailIfSenderEqApprover(t *testing.T) {
 
 			jetCoordinatorMock.
 				MeMock.Return(server.GlobalCaller()).
-				QueryRoleMock.Set(
-				func(_ context.Context, _ node.DynamicRole, obj reference.Local, pulse pulse.Number) ([]reference.Global, error) {
-					return []reference.Global{server.GlobalCaller()}, nil
-				})
+				QueryRoleMock.Return([]reference.Global{server.GlobalCaller()}, nil)
 
 			var (
 				class    = gen.UniqueGlobalRef()
