@@ -86,6 +86,7 @@ jobs:
         run: |
           cd ${{ env.CORE_PATH }}/load/
           NETWORK_NODES=10 ./main -gen_config ${{ env.CORE_PATH }}/load/gen_cfg/generator_assured_ledger.yaml -config ${{ env.CORE_PATH }}/load/run_configs/all_sequence.yaml
+          cat scaling.csv
       - name: cleanup
         if: always()
         run: kubectl delete ns ${{fromJson(steps.set-vars.outputs.result).shortSha}} --ignore-not-found=true
@@ -105,6 +106,7 @@ jobs:
         run: |
           cd ${{ env.CORE_PATH }}/load/
           NETWORK_NODES=20 ./main -gen_config ${{ env.CORE_PATH }}/load/gen_cfg/generator_assured_ledger.yaml -config ${{ env.CORE_PATH }}/load/run_configs/all_sequence.yaml
+          cat scaling.csv
       - name: cleanup
         if: always()
         run: kubectl delete ns ${{fromJson(steps.set-vars.outputs.result).shortSha}} --ignore-not-found=true
