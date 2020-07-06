@@ -68,7 +68,6 @@ func TestDelegationToken_CheckTokenField(t *testing.T) {
 			defer server.Stop()
 
 			jetCoordinatorMock := jet.NewAffinityHelperMock(t)
-			jetCoordinatorMock.QueryRoleMock.Return([]reference.Global{server.GlobalCaller()}, nil)
 			auth := authentication.NewService(ctx, jetCoordinatorMock)
 			server.ReplaceAuthenticationService(auth)
 
