@@ -63,27 +63,30 @@ func (f FactoryMeta) Process(ctx context.Context, msg *statemachine.DispatcherMe
 		panic(throw.Impossible())
 	}
 
-	mustReject, err := f.AuthService.IsMessageFromVirtualLegitimate(ctx, payloadObj, payloadMeta.Sender, pr)
-	if err != nil {
-		logger.Warnm(throw.W(err, "illegitimate msg", struct {
-			messageTypeID uint64
-			messageType   reflect.Type
-			incomingPulse pulse.Number
-			targetPulse   pulse.Number
-		}{
-			messageTypeID: payloadTypeID,
-			messageType:   payloadType,
-			incomingPulse: payloadMeta.Pulse,
-			targetPulse:   targetPulse,
-		}),
-		traceField)
+	// skip legitimate check for future PN
+	if !payloadMeta.Pulse.IsAfter(pr.RightBoundData().PulseNumber) {
+		mustReject, err := f.AuthService.IsMessageFromVirtualLegitimate(ctx, payloadObj, payloadMeta.Sender, pr)
+		if err != nil {
+			logger.Warnm(throw.W(err, "illegitimate msg", struct {
+				messageTypeID uint64
+				messageType   reflect.Type
+				incomingPulse pulse.Number
+				targetPulse   pulse.Number
+			}{
+				messageTypeID: payloadTypeID,
+				messageType:   payloadType,
+				incomingPulse: payloadMeta.Pulse,
+				targetPulse:   targetPulse,
+			}),
+				traceField)
 
-		return pulse.Unknown, nil, nil
-	}
+			return pulse.Unknown, nil, nil
+		}
 
-	if mustReject {
-		// when this flag is set, then the relevant SM has to stop asap and send negative answer
-		return pulse.Unknown, nil, throw.NotImplemented()
+		if mustReject {
+			// when this flag is set, then the relevant SM has to stop asap and send negative answer
+			return pulse.Unknown, nil, throw.NotImplemented()
+		}
 	}
 
 	if pn, sm := func() (pulse.Number, smachine.StateMachine) {
