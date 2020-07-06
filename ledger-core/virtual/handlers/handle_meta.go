@@ -45,13 +45,12 @@ func (f FactoryMeta) Process(ctx context.Context, msg *statemachine.DispatcherMe
 	if logCtx == nil {
 		logCtx = ctx
 	}
-	logger := inslogger.FromContext(logCtx)
-	traceField := inslogger.TraceField(traceID)
+	logCtx, logger := inslogger.WithTraceField(logCtx, traceID)
 
 	payloadBytes := payloadMeta.Payload
 	payloadTypeID, payloadObj, err := rms.Unmarshal(payloadBytes)
 	if err != nil {
-		logger.Warnm(throw.WithSeverity(throw.W(err, "invalid msg"), throw.ViolationSeverity), traceField)
+		logger.Warnm(throw.WithSeverity(throw.W(err, "invalid msg"), throw.ViolationSeverity))
 		return pulse.Unknown, nil, nil
 	}
 
@@ -61,23 +60,21 @@ func (f FactoryMeta) Process(ctx context.Context, msg *statemachine.DispatcherMe
 		Message         string
 		PayloadTypeID   uint64
 		PayloadTypeName string
-	}{"processing message", payloadTypeID, payloadType.String()},
-		traceField)
+	}{"processing message", payloadTypeID, payloadType.String()})
 
 	targetPulse := pr.RightBoundData().PulseNumber
 	if targetPulse != payloadMeta.Pulse {
 		panic(throw.Impossible())
 	}
 
-	mustReject, err := f.AuthService.IsMessageFromVirtualLegitimate(ctx, payloadObj, payloadMeta.Sender, pr)
+	mustReject, err := f.AuthService.IsMessageFromVirtualLegitimate(logCtx, payloadObj, payloadMeta.Sender, pr)
 	if err != nil {
 		logger.Warn(throw.W(err, "illegitimate msg", skippedMessage{
 			messageTypeID: payloadTypeID,
 			messageType:   payloadType,
 			incomingPulse: payloadMeta.Pulse,
 			targetPulse:   targetPulse,
-		}),
-			traceField)
+		}))
 
 		return pulse.Unknown, nil, nil
 	}
@@ -118,13 +115,12 @@ func (f FactoryMeta) Process(ctx context.Context, msg *statemachine.DispatcherMe
 				Msg             string
 				PayloadTypeID   uint64
 				PayloadTypeName string
-			}{"no handler for message type", payloadTypeID, payloadType.String()},
-				traceField)
+			}{"no handler for message type", payloadTypeID, payloadType.String()})
 			return 0, nil
 		}
 	}(); sm != nil {
 		return pn, func(constructorCtx smachine.ConstructionContext) smachine.StateMachine {
-			constructorCtx.SetContext(ctx)
+			constructorCtx.SetContext(logCtx)
 			constructorCtx.SetTracerID(traceID)
 			return sm
 		}, nil
