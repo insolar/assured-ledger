@@ -10,6 +10,7 @@ import (
 	"io"
 
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 const SplitMedian = 7 // makes 0 vs 1 ratio like [0..6] vs [7..15]
@@ -44,7 +45,7 @@ type PrefixCalc struct {
 func (p PrefixCalc) FromSlice(prefixLen int, data []byte) jet.Prefix {
 	switch {
 	case prefixLen < 0 || prefixLen > 32:
-		panic("illegal value")
+		panic(throw.IllegalValue())
 	case prefixLen == 0:
 		return 0
 	}
@@ -56,9 +57,9 @@ func (p PrefixCalc) FromSlice(prefixLen int, data []byte) jet.Prefix {
 func (p PrefixCalc) FromReader(prefixLen int, data io.Reader) (jet.Prefix, error) {
 	switch {
 	case prefixLen < 0 || prefixLen > 32:
-		panic("illegal value")
+		panic(throw.IllegalValue())
 	case data == nil:
-		panic("illegal value")
+		panic(throw.IllegalValue())
 	case prefixLen == 0:
 		return 0, nil
 	}
@@ -80,6 +81,7 @@ func (p PrefixCalc) fromSlice(prefixLen int, data []byte) jet.Prefix {
 
 	for i, d := range data {
 		if p.OverlapOfs > 0 {
+			// TODO check quality of distribution because of XOR
 			d ^= data[i+int(p.OverlapOfs)]
 		}
 

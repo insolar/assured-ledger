@@ -76,17 +76,28 @@ func (p *serviceImpl) CreatePlash(pr pulse.Range, tree jet.Tree, population cens
 	})
 
 	pa.calc = p.allocationStrategy.CreateCalculator(pa.pulseData.PulseEntropy, population)
-	jet2nodes := pa.calc.AllocationOfJets(jets)
+
+	pn := pa.pulseData.PulseNumber
+	jet2nodes := pa.calc.AllocationOfJets(jets, pn)
+
+	if len(jet2nodes) != len(jets) {
+		panic(throw.IllegalState())
+	}
 
 	localNodeID := node.ShortNodeID(0)
 	var nodeMap map[node.ShortNodeID]*dropAssistant
 
 	result := jets[:0]
 
-	for jetPID, assignedNodeID := range jet2nodes {
+	for _, jetPID := range jets {
+
+		jetID := jetPID.ID()
 		var da *dropAssistant
 
-		switch {
+		switch assignedNodeID := jet2nodes[jetID]; {
+		case localNodeID.IsAbsent():
+			panic(throw.IllegalState())
+
 		case localNodeID == assignedNodeID:
 			result = append(result, jetPID)
 			da = &dropAssistant{}
@@ -104,7 +115,7 @@ func (p *serviceImpl) CreatePlash(pr pulse.Range, tree jet.Tree, population cens
 			nodeMap[assignedNodeID] = da
 		}
 		da.pa = pa
-		pa.dropAssists[jetPID.ID()] = da
+		pa.dropAssists[jetID] = da
 	}
 
 	// TODO write down shared data?
@@ -129,15 +140,15 @@ func (p *plashAssistant) CalculateJetDrop(holder reference.Holder) jet.DropID {
 	}
 
 	base := holder.GetBase()
-	dropID := p.calc.AllocationOfLine(base)
+	jetPrefix := p.calc.AllocationOfLine(base)
+	jetPrefix, _ = p.tree.GetPrefix(jetPrefix)
 
-	switch da := p.dropAssists[dropID.ID()]; {
+	jetID := jet.ID(jetPrefix)
+	switch da := p.dropAssists[jetID]; {
 	case da == nil:
 		panic(throw.Impossible())
-	case dropID.CreatedAt() != p.pulseData.PulseNumber:
-		panic(throw.Impossible())
 	case da.isLocal():
-		return dropID
+		return jetID.AsDrop(p.pulseData.PulseNumber)
 	}
 
 	return 0
