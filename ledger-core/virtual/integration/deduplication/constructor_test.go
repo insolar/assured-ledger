@@ -72,6 +72,9 @@ func TestConstructor_SamePulse_WhileExecution(t *testing.T) {
 		CallOutgoing:   outgoing,
 	}
 
+	awaitStopFirstSM := server.Journal.WaitStopOf(&execute.SMExecute{}, 2)
+	awaitStopSecondSM := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
+
 	{
 		// send first call request
 		server.SendPayload(ctx, &pl)
@@ -86,12 +89,12 @@ func TestConstructor_SamePulse_WhileExecution(t *testing.T) {
 	}
 
 	// second SMExecute should stop in deduplication algorithm and she should not send result because she started during execution first machine
-	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitStopOf(&execute.SMExecute{}, 1))
+	testutils.WaitSignalsTimed(t, 10*time.Second, awaitStopSecondSM)
 
 	// wakeup first SMExecute
 	synchronizeExecution.WakeUp()
 
-	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitStopOf(&execute.SMExecute{}, 1))
+	testutils.WaitSignalsTimed(t, 10*time.Second, awaitStopFirstSM)
 	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 	{
@@ -143,13 +146,16 @@ func TestConstructor_SamePulse_AfterExecution(t *testing.T) {
 		CallOutgoing:   outgoing,
 	}
 
+	awaitStopFirstSM := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
+	awaitStopSecondSM := server.Journal.WaitStopOf(&execute.SMExecute{}, 2)
+
 	{
 		// send first call request
 		server.SendPayload(ctx, &pl)
 	}
 
 	// await first SMExecute go completed work (after complete SMExecute publish result to table in SMObject)
-	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitStopOf(&execute.SMExecute{}, 1))
+	testutils.WaitSignalsTimed(t, 10*time.Second, awaitStopFirstSM)
 
 	{
 		// send second call request
@@ -157,7 +163,7 @@ func TestConstructor_SamePulse_AfterExecution(t *testing.T) {
 	}
 
 	// second SMExecute should send result again because she started after first machine complete
-	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitStopOf(&execute.SMExecute{}, 1))
+	testutils.WaitSignalsTimed(t, 10*time.Second, awaitStopSecondSM)
 	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 	{
