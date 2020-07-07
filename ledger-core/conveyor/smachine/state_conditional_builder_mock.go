@@ -38,12 +38,6 @@ type StateConditionalBuilderMock struct {
 	beforeThenRepeatCounter uint64
 	ThenRepeatMock          mStateConditionalBuilderMockThenRepeat
 
-	funcThenRepeatOrElse          func() (s1 StateUpdate, b1 bool)
-	inspectFuncThenRepeatOrElse   func()
-	afterThenRepeatOrElseCounter  uint64
-	beforeThenRepeatOrElseCounter uint64
-	ThenRepeatOrElseMock          mStateConditionalBuilderMockThenRepeatOrElse
-
 	funcThenRepeatOrJump          func(s1 StateFunc) (s2 StateUpdate)
 	inspectFuncThenRepeatOrJump   func(s1 StateFunc)
 	afterThenRepeatOrJumpCounter  uint64
@@ -73,8 +67,6 @@ func NewStateConditionalBuilderMock(t minimock.Tester) *StateConditionalBuilderM
 	m.ThenJumpExtMock.callArgs = []*StateConditionalBuilderMockThenJumpExtParams{}
 
 	m.ThenRepeatMock = mStateConditionalBuilderMockThenRepeat{mock: m}
-
-	m.ThenRepeatOrElseMock = mStateConditionalBuilderMockThenRepeatOrElse{mock: m}
 
 	m.ThenRepeatOrJumpMock = mStateConditionalBuilderMockThenRepeatOrJump{mock: m}
 	m.ThenRepeatOrJumpMock.callArgs = []*StateConditionalBuilderMockThenRepeatOrJumpParams{}
@@ -801,150 +793,6 @@ func (m *StateConditionalBuilderMock) MinimockThenRepeatInspect() {
 	}
 }
 
-type mStateConditionalBuilderMockThenRepeatOrElse struct {
-	mock               *StateConditionalBuilderMock
-	defaultExpectation *StateConditionalBuilderMockThenRepeatOrElseExpectation
-	expectations       []*StateConditionalBuilderMockThenRepeatOrElseExpectation
-}
-
-// StateConditionalBuilderMockThenRepeatOrElseExpectation specifies expectation struct of the StateConditionalBuilder.ThenRepeatOrElse
-type StateConditionalBuilderMockThenRepeatOrElseExpectation struct {
-	mock *StateConditionalBuilderMock
-
-	results *StateConditionalBuilderMockThenRepeatOrElseResults
-	Counter uint64
-}
-
-// StateConditionalBuilderMockThenRepeatOrElseResults contains results of the StateConditionalBuilder.ThenRepeatOrElse
-type StateConditionalBuilderMockThenRepeatOrElseResults struct {
-	s1 StateUpdate
-	b1 bool
-}
-
-// Expect sets up expected params for StateConditionalBuilder.ThenRepeatOrElse
-func (mmThenRepeatOrElse *mStateConditionalBuilderMockThenRepeatOrElse) Expect() *mStateConditionalBuilderMockThenRepeatOrElse {
-	if mmThenRepeatOrElse.mock.funcThenRepeatOrElse != nil {
-		mmThenRepeatOrElse.mock.t.Fatalf("StateConditionalBuilderMock.ThenRepeatOrElse mock is already set by Set")
-	}
-
-	if mmThenRepeatOrElse.defaultExpectation == nil {
-		mmThenRepeatOrElse.defaultExpectation = &StateConditionalBuilderMockThenRepeatOrElseExpectation{}
-	}
-
-	return mmThenRepeatOrElse
-}
-
-// Inspect accepts an inspector function that has same arguments as the StateConditionalBuilder.ThenRepeatOrElse
-func (mmThenRepeatOrElse *mStateConditionalBuilderMockThenRepeatOrElse) Inspect(f func()) *mStateConditionalBuilderMockThenRepeatOrElse {
-	if mmThenRepeatOrElse.mock.inspectFuncThenRepeatOrElse != nil {
-		mmThenRepeatOrElse.mock.t.Fatalf("Inspect function is already set for StateConditionalBuilderMock.ThenRepeatOrElse")
-	}
-
-	mmThenRepeatOrElse.mock.inspectFuncThenRepeatOrElse = f
-
-	return mmThenRepeatOrElse
-}
-
-// Return sets up results that will be returned by StateConditionalBuilder.ThenRepeatOrElse
-func (mmThenRepeatOrElse *mStateConditionalBuilderMockThenRepeatOrElse) Return(s1 StateUpdate, b1 bool) *StateConditionalBuilderMock {
-	if mmThenRepeatOrElse.mock.funcThenRepeatOrElse != nil {
-		mmThenRepeatOrElse.mock.t.Fatalf("StateConditionalBuilderMock.ThenRepeatOrElse mock is already set by Set")
-	}
-
-	if mmThenRepeatOrElse.defaultExpectation == nil {
-		mmThenRepeatOrElse.defaultExpectation = &StateConditionalBuilderMockThenRepeatOrElseExpectation{mock: mmThenRepeatOrElse.mock}
-	}
-	mmThenRepeatOrElse.defaultExpectation.results = &StateConditionalBuilderMockThenRepeatOrElseResults{s1, b1}
-	return mmThenRepeatOrElse.mock
-}
-
-//Set uses given function f to mock the StateConditionalBuilder.ThenRepeatOrElse method
-func (mmThenRepeatOrElse *mStateConditionalBuilderMockThenRepeatOrElse) Set(f func() (s1 StateUpdate, b1 bool)) *StateConditionalBuilderMock {
-	if mmThenRepeatOrElse.defaultExpectation != nil {
-		mmThenRepeatOrElse.mock.t.Fatalf("Default expectation is already set for the StateConditionalBuilder.ThenRepeatOrElse method")
-	}
-
-	if len(mmThenRepeatOrElse.expectations) > 0 {
-		mmThenRepeatOrElse.mock.t.Fatalf("Some expectations are already set for the StateConditionalBuilder.ThenRepeatOrElse method")
-	}
-
-	mmThenRepeatOrElse.mock.funcThenRepeatOrElse = f
-	return mmThenRepeatOrElse.mock
-}
-
-// ThenRepeatOrElse implements StateConditionalBuilder
-func (mmThenRepeatOrElse *StateConditionalBuilderMock) ThenRepeatOrElse() (s1 StateUpdate, b1 bool) {
-	mm_atomic.AddUint64(&mmThenRepeatOrElse.beforeThenRepeatOrElseCounter, 1)
-	defer mm_atomic.AddUint64(&mmThenRepeatOrElse.afterThenRepeatOrElseCounter, 1)
-
-	if mmThenRepeatOrElse.inspectFuncThenRepeatOrElse != nil {
-		mmThenRepeatOrElse.inspectFuncThenRepeatOrElse()
-	}
-
-	if mmThenRepeatOrElse.ThenRepeatOrElseMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmThenRepeatOrElse.ThenRepeatOrElseMock.defaultExpectation.Counter, 1)
-
-		mm_results := mmThenRepeatOrElse.ThenRepeatOrElseMock.defaultExpectation.results
-		if mm_results == nil {
-			mmThenRepeatOrElse.t.Fatal("No results are set for the StateConditionalBuilderMock.ThenRepeatOrElse")
-		}
-		return (*mm_results).s1, (*mm_results).b1
-	}
-	if mmThenRepeatOrElse.funcThenRepeatOrElse != nil {
-		return mmThenRepeatOrElse.funcThenRepeatOrElse()
-	}
-	mmThenRepeatOrElse.t.Fatalf("Unexpected call to StateConditionalBuilderMock.ThenRepeatOrElse.")
-	return
-}
-
-// ThenRepeatOrElseAfterCounter returns a count of finished StateConditionalBuilderMock.ThenRepeatOrElse invocations
-func (mmThenRepeatOrElse *StateConditionalBuilderMock) ThenRepeatOrElseAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmThenRepeatOrElse.afterThenRepeatOrElseCounter)
-}
-
-// ThenRepeatOrElseBeforeCounter returns a count of StateConditionalBuilderMock.ThenRepeatOrElse invocations
-func (mmThenRepeatOrElse *StateConditionalBuilderMock) ThenRepeatOrElseBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmThenRepeatOrElse.beforeThenRepeatOrElseCounter)
-}
-
-// MinimockThenRepeatOrElseDone returns true if the count of the ThenRepeatOrElse invocations corresponds
-// the number of defined expectations
-func (m *StateConditionalBuilderMock) MinimockThenRepeatOrElseDone() bool {
-	for _, e := range m.ThenRepeatOrElseMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.ThenRepeatOrElseMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterThenRepeatOrElseCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcThenRepeatOrElse != nil && mm_atomic.LoadUint64(&m.afterThenRepeatOrElseCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockThenRepeatOrElseInspect logs each unmet expectation
-func (m *StateConditionalBuilderMock) MinimockThenRepeatOrElseInspect() {
-	for _, e := range m.ThenRepeatOrElseMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Error("Expected call to StateConditionalBuilderMock.ThenRepeatOrElse")
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.ThenRepeatOrElseMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterThenRepeatOrElseCounter) < 1 {
-		m.t.Error("Expected call to StateConditionalBuilderMock.ThenRepeatOrElse")
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcThenRepeatOrElse != nil && mm_atomic.LoadUint64(&m.afterThenRepeatOrElseCounter) < 1 {
-		m.t.Error("Expected call to StateConditionalBuilderMock.ThenRepeatOrElse")
-	}
-}
-
 type mStateConditionalBuilderMockThenRepeatOrJump struct {
 	mock               *StateConditionalBuilderMock
 	defaultExpectation *StateConditionalBuilderMockThenRepeatOrJumpExpectation
@@ -1386,8 +1234,6 @@ func (m *StateConditionalBuilderMock) MinimockFinish() {
 
 		m.MinimockThenRepeatInspect()
 
-		m.MinimockThenRepeatOrElseInspect()
-
 		m.MinimockThenRepeatOrJumpInspect()
 
 		m.MinimockThenRepeatOrJumpExtInspect()
@@ -1418,7 +1264,6 @@ func (m *StateConditionalBuilderMock) minimockDone() bool {
 		m.MinimockThenJumpDone() &&
 		m.MinimockThenJumpExtDone() &&
 		m.MinimockThenRepeatDone() &&
-		m.MinimockThenRepeatOrElseDone() &&
 		m.MinimockThenRepeatOrJumpDone() &&
 		m.MinimockThenRepeatOrJumpExtDone()
 }

@@ -65,6 +65,8 @@ func (s *Slot) prepareSlotInit(creator *Slot, fn CreateFunc, sm StateMachine, de
 		panic(fmt.Errorf("illegal state - initialization is missing: %v", sm))
 	}
 
+	initFn = preparePreInit(initFn, defValues.PreInitializationHandler, sm)
+
 	// Setup Slot counters etc
 	switch {
 	case creator == nil:
@@ -85,6 +87,20 @@ func (s *Slot) prepareSlotInit(creator *Slot, fn CreateFunc, sm StateMachine, de
 	s.shadowMigrate = buildShadowMigrator(localInjects, s.declaration.GetShadowMigrateFor(sm))
 
 	return initFn
+}
+
+func preparePreInit(initFn InitFunc, preInitFn PreInitHandlerFunc, sm StateMachine) InitFunc {
+	if preInitFn == nil {
+		return initFn
+	}
+	return func(ctx InitializationContext) StateUpdate {
+		postError := preInitFn(ctx, sm)
+		su := initFn(ctx)
+		if postError != nil {
+			return ctx.Error(postError)
+		}
+		return su
+	}
 }
 
 // Both prepareSubroutineInit and prepareSlotInit MUST be in-line
