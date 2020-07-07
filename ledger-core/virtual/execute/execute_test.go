@@ -214,12 +214,16 @@ func TestSMExecute_DeduplicationUsingPendingsTable(t *testing.T) {
 		// expect jump
 		execCtx := smachine.NewExecutionContextMock(mc).
 			UseSharedMock.Set(shareddata.CallSharedDataAccessor).
+			LogMock.Return(smachine.Logger{}).
 			JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepTakeLock))
 
-		smExecute.stepDeduplicateUsingPendingsTable(execCtx)
+		smExecute.stepDeduplicate(execCtx)
 	}
 
 	{
+		// reset tables
+		smObject.KnownRequests = callregistry.NewWorkingTable()
+		smObject.PendingTable = callregistry.NewRequestTable()
 		// duplicate pending request exists and is active
 		// expect SM stop
 		pendingList := smObject.PendingTable.GetList(contract.CallIntolerable)
@@ -230,10 +234,14 @@ func TestSMExecute_DeduplicationUsingPendingsTable(t *testing.T) {
 			LogMock.Return(smachine.Logger{}).
 			StopMock.Return(smachine.StateUpdate{})
 
-		smExecute.stepDeduplicateUsingPendingsTable(execCtx)
+		smExecute.stepDeduplicate(execCtx)
 	}
 
 	{
+		// reset tables
+		smObject.KnownRequests = callregistry.NewWorkingTable()
+		smObject.PendingTable = callregistry.NewRequestTable()
+
 		// duplicate pending request exists, but is finished
 		// expect jump
 		pendingList := smObject.PendingTable.GetList(contract.CallIntolerable)
@@ -242,9 +250,10 @@ func TestSMExecute_DeduplicationUsingPendingsTable(t *testing.T) {
 
 		execCtx := smachine.NewExecutionContextMock(mc).
 			UseSharedMock.Set(shareddata.CallSharedDataAccessor).
+			LogMock.Return(smachine.Logger{}).
 			JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepTakeLock))
 
-		smExecute.stepDeduplicateUsingPendingsTable(execCtx)
+		smExecute.stepDeduplicate(execCtx)
 	}
 
 	mc.Finish()
