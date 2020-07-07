@@ -44,11 +44,12 @@ func TestAntique_InheritPulseSlot(t *testing.T) {
 		SlotMachineConfig:     machineConfig,
 		MinCachePulseAge:      100,
 		MaxPastPulseAge:       1000,
-	}, func(_ context.Context, _ pulse.Number, _ pulse.Range, input InputEvent) (pulse.Number, smachine.CreateFunc, error) {
+	}, func(_ context.Context, input InputEvent, ic InputContext) (InputSetup, error) {
 		require.Equal(t, "inputEvent", input)
-		return 0, func(ctx smachine.ConstructionContext) smachine.StateMachine {
-			return &testAntiqueSM{counter: checkDepth, doneCounter: doneCounter, semaCounter: semaCounter}
-		}, nil
+		return InputSetup{
+			CreateFn: func(ctx smachine.ConstructionContext) smachine.StateMachine {
+				return &testAntiqueSM{counter: checkDepth, doneCounter: doneCounter, semaCounter: semaCounter}
+			}}, nil
 	}, nil)
 
 	emerChan := make(chan struct{})
