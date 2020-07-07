@@ -1013,7 +1013,7 @@ func (s *SMExecute) stepSendExistingCallResult(ctx smachine.ExecutionContext) sm
 
 		summary, ok := results[s.execution.Outgoing]
 
-		// Get result only if exist, if result == nil this mean that other SM now during execution
+		// get result only if exist, if result == nil this mean that other SM now during execution
 		if ok && summary.Result != nil {
 			found = true
 			msg = summary.Result

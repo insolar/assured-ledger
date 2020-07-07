@@ -129,9 +129,7 @@ func TestConstructor_SamePulse_AfterExecution(t *testing.T) {
 		requestResult.SetActivate(gen.UniqueGlobalRef(), class, []byte("234"))
 
 		executionMock := runnerMock.AddExecutionMock(outgoing.String())
-		executionMock.AddStart(func(ctx execution.Context) {
-
-		}, &execution.Update{
+		executionMock.AddStart(nil, &execution.Update{
 			Type:   execution.Done,
 			Result: requestResult,
 		})
