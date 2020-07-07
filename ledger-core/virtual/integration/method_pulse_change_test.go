@@ -423,11 +423,22 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 	t.Log("C5237")
 	t.Skip("https://insolar.atlassian.net/browse/PLAT-618")
-
-	table := []contract.MethodIsolation{tolerableFlags(), intolerableFlags()}
+	table := []struct {
+		name      string
+		isolation contract.MethodIsolation
+	}{
+		{
+			name:      "ordered call when constructor execution is pending",
+			isolation: tolerableFlags(),
+		},
+		{
+			name:      "unordered call when constructor execution is pending",
+			isolation: intolerableFlags(),
+		},
+	}
 
 	for _, test := range table {
-		t.Run(getTestNameByIsolation(test)+" call when constructor execution is pending", func(t *testing.T) {
+		t.Run(test.name, func(t *testing.T) {
 			mc := minimock.NewController(t)
 
 			server, ctx := utils.NewUninitializedServer(nil, t)
@@ -469,6 +480,7 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 					AsOf:                        p1,
 					OrderedPendingCount:         1,
 					OrderedPendingEarliestPulse: p1,
+					ProvidedContent:             nil,
 				}
 
 				server.SendPayload(ctx, payload)
@@ -477,7 +489,7 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 
 			// add ExecutionMock to runnerMock
 			{
-				runnerMock.AddExecutionClassify("SomeMethod", test, nil)
+				runnerMock.AddExecutionClassify("SomeMethod", test.isolation, nil)
 				requestResult := requestresult.New([]byte("call result"), gen.UniqueGlobalRef())
 
 				objectExecutionMock := runnerMock.AddExecutionMock("SomeMethod")
@@ -520,7 +532,7 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 			{
 				pl := payload.VCallRequest{
 					CallType:            payload.CTMethod,
-					CallFlags:           payload.BuildCallFlags(test.Interference, test.State),
+					CallFlags:           payload.BuildCallFlags(test.isolation.Interference, test.isolation.State),
 					Caller:              server.GlobalCaller(),
 					Callee:              object,
 					CallSiteDeclaration: class,
@@ -561,15 +573,4 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 			mc.Finish()
 		})
 	}
-}
-
-func getTestNameByIsolation(testIsolation contract.MethodIsolation) string {
-	var name string
-	switch testIsolation {
-	case tolerableFlags():
-		name = "ordered"
-	case intolerableFlags():
-		name = "unordered"
-	}
-	return name
 }
