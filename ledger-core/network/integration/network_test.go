@@ -21,7 +21,7 @@ import (
 )
 
 func TestNetworkConsensusManyTimes(t *testing.T) {
-	t.SkipNow()
+	t.Parallel()
 	s := startNetworkSuite(t)
 	defer s.stopNetworkSuite()
 
@@ -30,6 +30,7 @@ func TestNetworkConsensusManyTimes(t *testing.T) {
 }
 
 func TestJoinerNodeConnect(t *testing.T) {
+	t.Parallel()
 	s := startNetworkSuite(t)
 	defer s.stopNetworkSuite()
 
@@ -42,6 +43,7 @@ func TestJoinerNodeConnect(t *testing.T) {
 }
 
 func TestNodeConnectInvalidVersion(t *testing.T) {
+	t.Parallel()
 	s := startNetworkSuite(t)
 	defer s.stopNetworkSuite()
 

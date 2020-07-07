@@ -23,7 +23,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
-	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus"
 	"github.com/insolar/assured-ledger/ledger-core/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -68,14 +67,10 @@ const (
 const cacheDir = "network_cache/"
 
 func initLogger(ctx context.Context, t *testing.T, level log.Level) context.Context {
-	cfg := configuration.NewLog()
-	cfg.LLBufferSize = 0
-	cfg.Level = level.String()
-	cfg.Formatter = logcommon.TextFormat.String()
+	instestlogger.SetTestOutputWithIgnoreAllErrors(t)
+	global.SetLevel(level)
 
-	instestlogger.SetTestOutputWithCfg(t, cfg)
-
-	ctx, _ = inslogger.InitNodeLogger(ctx, cfg, "", "")
+	ctx, _ = inslogger.InitNodeLoggerByGlobal("", "")
 	return ctx
 }
 
@@ -117,8 +112,6 @@ func newConsensusSuite(t *testing.T, bootstrapCount, nodesCount int) *consensusS
 
 // Setup creates and run network with bootstrap and common nodes once before run all tests in the suite
 func (s *consensusSuite) Setup() {
-	instestlogger.SetTestOutput(s.t)
-	
 	var err error
 	s.pulsar, err = NewTestPulsar(reqTimeoutMs, pulseDelta)
 	require.NoError(s.t, err)
