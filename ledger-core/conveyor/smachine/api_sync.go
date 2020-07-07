@@ -160,6 +160,18 @@ func (v SyncAdjustment) IsEmpty() bool {
 	return v.controller == nil || !v.isAbsolute && v.adjustment == 0
 }
 
+func (v SyncAdjustment) String() string {
+	name := SyncLink{v.controller}.String()
+	switch {
+	case v.isAbsolute:
+		return fmt.Sprintf("%s[=%d]", name, v.adjustment)
+	case v.adjustment < 0:
+		return fmt.Sprintf("%s[%d]", name, v.adjustment)
+	default:
+		return fmt.Sprintf("%s[+%d]", name, v.adjustment)
+	}
+}
+
 /* ============================================== */
 
 type SlotDependencyFlags uint8
