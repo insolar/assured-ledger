@@ -961,16 +961,7 @@ func (s *SMExecute) stepSendCallResult(ctx smachine.ExecutionContext) smachine.S
 	// save result for future pass to SMObject
 	s.execution.Result = &msg
 
-	target := s.Meta.Sender
-
-	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
-		err := svc.SendTarget(goCtx, &msg, target)
-		return func(ctx smachine.AsyncResultContext) {
-			if err != nil {
-				ctx.Log().Error("failed to send message", err)
-			}
-		}
-	}).WithoutAutoWakeUp().Start()
+	s.sendResult(ctx, &msg)
 
 	return ctx.Jump(s.stepFinishRequest)
 }
@@ -1036,16 +1027,7 @@ func (s *SMExecute) stepSendExistingCallResult(ctx smachine.ExecutionContext) sm
 		return ctx.Stop()
 	}
 
-	target := s.Meta.Sender
-
-	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
-		err := svc.SendTarget(goCtx, msg, target)
-		return func(ctx smachine.AsyncResultContext) {
-			if err != nil {
-				ctx.Log().Error("failed to send message", err)
-			}
-		}
-	}).WithoutAutoWakeUp().Start()
+	s.sendResult(ctx, msg)
 
 	return ctx.Stop()
 }
@@ -1061,4 +1043,17 @@ func (s *SMExecute) getToken() payload.CallDelegationToken {
 		return payload.CallDelegationToken{}
 	}
 	return s.delegationTokenSpec
+}
+
+func (s *SMExecute) sendResult(ctx smachine.ExecutionContext, msg *payload.VCallResult) {
+	target := s.Meta.Sender
+
+	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
+		err := svc.SendTarget(goCtx, msg, target)
+		return func(ctx smachine.AsyncResultContext) {
+			if err != nil {
+				ctx.Log().Error("failed to send message", err)
+			}
+		}
+	}).WithoutAutoWakeUp().Start()
 }
