@@ -208,8 +208,6 @@ type InOrderStepContext interface {
 
 	// Error stops SM by calling an error handler.
 	Error(error) StateUpdate
-	// deprecated
-	Errorf(msg string, a ...interface{}) StateUpdate
 	// Stop creates an update to stop the current SM.
 	Stop() StateUpdate
 
@@ -382,8 +380,6 @@ type StateConditionalBuilder interface {
 	ConditionalBuilder
 	// Returns information about the condition being already satisfied
 	Decider
-	// ThenRepeatOrElse - when the conditional requires wait, then return (Repeat(), true), otherwise returns ({}, false)
-	ThenRepeatOrElse() (StateUpdate, bool)
 	// ThenRepeatOrJump - when the conditional requires wait, then returns Repeat(), otherwise Jump()
 	ThenRepeatOrJump(StateFunc) StateUpdate
 	// ThenRepeatOrJumpExt - when the conditional requires wait, then returns Repeat(), otherwise JumpExt()

@@ -11,6 +11,16 @@ import (
 	"sync"
 )
 
+type Emojer interface {
+	RegisterNode(string, requester.Node)
+	GetEmoji(n requester.Node) string
+}
+
+type NoEmoji struct{}
+
+func (e *NoEmoji) RegisterNode(string, requester.Node) {}
+func (e *NoEmoji) GetEmoji(requester.Node) string      { return "" }
+
 type Emoji struct {
 	mu        sync.RWMutex
 	registred map[uint32]string
