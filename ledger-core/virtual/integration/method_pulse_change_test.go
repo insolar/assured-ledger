@@ -436,6 +436,7 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 			isolation: intolerableFlags(),
 		},
 	}
+
 	for _, test := range table {
 		t.Run(test.name, func(t *testing.T) {
 			mc := minimock.NewController(t)
@@ -458,15 +459,18 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
 			var (
-				object            = reference.NewSelf(server.RandomLocalWithPulse())
-				createObjOutgoing = server.BuildRandomOutgoingWithPulse()
-				p1                = server.GetPulse().PulseNumber
-				getDelegated      = false
-				delegationToken   payload.CallDelegationToken
+				class           = gen.UniqueGlobalRef()
+				object          = server.BuildRandomOutgoingWithPulse()
+				outgoingP1      = server.BuildRandomOutgoingWithPulse()
+				dirtyStateRef   = server.RandomLocalWithPulse()
+				p1              = server.GetPulse().PulseNumber
+				getDelegated    = false
+				delegationToken payload.CallDelegationToken
 			)
 
 			server.IncrementPulseAndWaitIdle(ctx)
 			p2 := server.GetPulse().PulseNumber
+			outgoingP2 := server.BuildRandomOutgoingWithPulse()
 
 			// create object state
 			{
@@ -476,13 +480,14 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 					AsOf:                        p1,
 					OrderedPendingCount:         1,
 					OrderedPendingEarliestPulse: p1,
+					ProvidedContent:             nil,
 				}
 
 				server.SendPayload(ctx, payload)
 				server.WaitActiveThenIdleConveyor()
 			}
 
-			// add ExecutionMocks to runnerMock
+			// add ExecutionMock to runnerMock
 			{
 				runnerMock.AddExecutionClassify("SomeMethod", test.isolation, nil)
 				requestResult := requestresult.New([]byte("call result"), gen.UniqueGlobalRef())
@@ -492,9 +497,9 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 					func(ctx execution.Context) {
 						logger.Debug("ExecutionStart [SomeMethod]")
 						require.Equal(t, object, ctx.Request.Callee)
-						// check new obj state (after completed constructor call)
+						require.Equal(t, []byte("new object memory"), ctx.ObjectDescriptor.Memory())
+						require.Equal(t, dirtyStateRef, ctx.ObjectDescriptor.StateID())
 						require.True(t, getDelegated)
-						// require.Equal(t, []byte("new object memory"), ctx.Request.Arguments) // todo
 					},
 					&execution.Update{
 						Type:   execution.Done,
@@ -530,39 +535,37 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 					CallFlags:           payload.BuildCallFlags(test.isolation.Interference, test.isolation.State),
 					Caller:              server.GlobalCaller(),
 					Callee:              object,
-					CallSiteDeclaration: gen.UniqueGlobalRef(),
+					CallSiteDeclaration: class,
 					CallSiteMethod:      "SomeMethod",
-					CallOutgoing:        server.BuildRandomOutgoingWithPulse(),
+					CallOutgoing:        outgoingP2,
 				}
 				server.SendPayload(ctx, &pl)
 			}
-
 			// VDelegatedCallRequest
 			{
 				delegatedRequest := payload.VDelegatedCallRequest{
 					Callee:       object,
-					CallOutgoing: createObjOutgoing,
+					CallOutgoing: outgoingP1,
 					CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 				}
 				server.SendPayload(ctx, &delegatedRequest)
 			}
-
-			// VDelegatedRequestFinishe
+			// VDelegatedRequestFinished
 			{
 				finished := payload.VDelegatedRequestFinished{
 					Callee:       object,
-					CallOutgoing: createObjOutgoing,
+					CallOutgoing: outgoingP1,
 					CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 					LatestState: &payload.ObjectState{
-						Reference: reference.Local{},
-						Class:     testwalletProxy.GetClass(),
+						Reference: dirtyStateRef,
+						Class:     class,
 						State:     []byte("new object memory"),
 					},
 				}
 				server.SendPayload(ctx, &finished)
 			}
 
-			testutils.WaitSignalsTimed(t, 30*time.Second, executeDone)
+			testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
 			testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 			require.Equal(t, 1, typedChecker.VCallResult.Count())
