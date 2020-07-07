@@ -1045,7 +1045,7 @@ func (s *SMExecute) getToken() payload.CallDelegationToken {
 	return s.delegationTokenSpec
 }
 
-func (s *SMExecute) sendResult(ctx smachine.ExecutionContext, message *payload.VCallResult) {
+func (s *SMExecute) sendResult(ctx smachine.ExecutionContext, message payload.Marshaler) {
 	target := s.Meta.Sender
 
 	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
