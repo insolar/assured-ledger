@@ -1045,11 +1045,11 @@ func (s *SMExecute) getToken() payload.CallDelegationToken {
 	return s.delegationTokenSpec
 }
 
-func (s *SMExecute) sendResult(ctx smachine.ExecutionContext, msg *payload.VCallResult) {
+func (s *SMExecute) sendResult(ctx smachine.ExecutionContext, message *payload.VCallResult) {
 	target := s.Meta.Sender
 
 	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
-		err := svc.SendTarget(goCtx, msg, target)
+		err := svc.SendTarget(goCtx, message, target)
 		return func(ctx smachine.AsyncResultContext) {
 			if err != nil {
 				ctx.Log().Error("failed to send message", err)
