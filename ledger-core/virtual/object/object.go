@@ -238,6 +238,7 @@ func (sm *SMObject) GetStateMachineDeclaration() smachine.StateMachineDeclaratio
 
 func (sm *SMObject) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
 	if sm.pulseSlot.State() != conveyor.Present {
+		ctx.Log().Trace("stop creating SMObject since we are not in present pulse")
 		return ctx.Stop()
 	}
 
