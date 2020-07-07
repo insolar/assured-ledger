@@ -126,6 +126,7 @@ func (s *SMExecute) prepareExecution(ctx context.Context) {
 }
 
 func (s *SMExecute) migrationDefault(ctx smachine.MigrationContext) smachine.StateUpdate {
+	ctx.Log().Trace("stop processing SMExecute since pulse was changed")
 	return ctx.Stop()
 }
 
