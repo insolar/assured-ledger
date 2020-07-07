@@ -3,9 +3,9 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-// +build networktest
+// + build slowtest
 
-package tests
+package integration
 
 import (
 	"context"
@@ -21,6 +21,7 @@ import (
 )
 
 func TestNetworkConsensusManyTimes(t *testing.T) {
+	t.SkipNow()
 	s := startNetworkSuite(t)
 	defer s.stopNetworkSuite()
 
@@ -57,6 +58,7 @@ func TestNodeConnectInvalidVersion(t *testing.T) {
 }
 
 func TestNodeLeave(t *testing.T) {
+	// t.Skip("FIXME - may cause os.Exit")
 	s := startNetworkSuite(t)
 	defer s.stopNetworkSuite()
 
@@ -75,7 +77,7 @@ func TestNodeLeave(t *testing.T) {
 }
 
 func TestNodeGracefulLeave(t *testing.T) {
-	t.Skip("FIXME node GracefulStop")
+	//	t.Skip("FIXME node GracefulStop")
 	s := startNetworkSuite(t)
 	defer s.stopNetworkSuite()
 
@@ -89,6 +91,7 @@ func TestNodeGracefulLeave(t *testing.T) {
 	s.AssertWorkingNodesCountDelta(0)
 	s.AssertActiveNodesCountDelta(0)
 }
+
 
 func TestNodeLeaveAtETA(t *testing.T) {
 	t.Skip("FIXME")
@@ -142,8 +145,6 @@ func TestNodeComeAfterAnotherNodeSendLeaveETA(t *testing.T) {
 	t.Skip("FIXME")
 	s := startNetworkSuite(t)
 	defer s.stopNetworkSuite()
-
-	t.Skip("fix testcase in TESTNET 2.0")
 
 	leavingNode := s.newNetworkNode("leavingNode")
 	s.preInitNode(leavingNode)
@@ -213,7 +214,7 @@ func TestNodeComeAfterAnotherNodeSendLeaveETA(t *testing.T) {
 }
 
 func TestDiscoveryDown(t *testing.T) {
-	t.Skip("FIXME")
+//	t.Skip("FIXME")
 	s := startNetworkSuite(t)
 	defer s.stopNetworkSuite()
 
@@ -233,7 +234,7 @@ func flushNodeKeeper(keeper network.NodeKeeper) {
 }
 
 func TestDiscoveryRestart(t *testing.T) {
-	t.Skip("FIXME")
+//	t.Skip("FIXME")
 	s := startNetworkSuite(t)
 	defer s.stopNetworkSuite()
 
@@ -262,7 +263,7 @@ func TestDiscoveryRestart(t *testing.T) {
 }
 
 func TestDiscoveryRestartNoWait(t *testing.T) {
-	t.Skip("FIXME")
+//	t.Skip("FIXME")
 	s := startNetworkSuite(t)
 	defer s.stopNetworkSuite()
 
@@ -291,30 +292,16 @@ func TestDiscoveryRestartNoWait(t *testing.T) {
 	require.Equal(t, s.getNodesCount(), len(activeNodes))
 }
 
-// func (s *consensusSuite) TestJoinerSplitPackets() {
-//	s.CheckBootstrapCount()
-//
-//	testNode := s.newNetworkNode("testNode")
-//	s.SetCommunicationPolicyForNode(testNode.id, SplitCase)
-//	s.preInitNode(testNode)
-//
-//	s.InitNode(testNode)
-//	s.StartNode(testNode)
-//	defer func(s *consensusSuite) {
-//		s.StopNode(testNode)
-//	}(s)
-//
-//	s.waitForConsensus(1)
-//
-//	s.AssertActiveNodesCountDelta(0)
-//
-//	s.waitForConsensus(1)
-//
-//	s.AssertActiveNodesCountDelta(1)
-//	s.AssertWorkingNodesCountDelta(0)
-//
-//	s.waitForConsensus(2)
-//
-//	s.AssertActiveNodesCountDelta(1)
-//	s.AssertWorkingNodesCountDelta(1)
-// }
+func TestBootstrap(t *testing.T) {
+	s := startBootstrapSuite(t)
+	defer s.stopBootstrapSuite()
+
+	s.StartNodesNetwork(s.bootstrapNodes)
+
+	s.waitForConsensus(2)
+	s.AssertActiveNodesCountDelta(0)
+
+	s.waitForConsensus(1)
+	s.AssertActiveNodesCountDelta(0)
+	s.AssertWorkingNodesCountDelta(0)
+}

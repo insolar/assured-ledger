@@ -3,9 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-// +build networktest
-
-package tests
+package integration
 
 import (
 	"fmt"
@@ -52,9 +50,10 @@ func (s *bootstrapSuite) Setup() {
 }
 
 func (s *bootstrapSuite) stopBootstrapSuite() {
-	inslogger.FromContext(s.ctx).Info("stopNetworkSuite")
+	logger := inslogger.FromContext(s.ctx)
+	logger.Info("stopNetworkSuite")
 
-	suiteLogger.Info("Stop bootstrap nodes")
+	logger.Info("Stop bootstrap nodes")
 	for _, n := range s.bootstrapNodes {
 		err := n.componentManager.Stop(n.ctx)
 		assert.NoError(s.t, err)
@@ -76,23 +75,9 @@ func newBootstraptSuite(t *testing.T, bootstrapCount int) *bootstrapSuite {
 }
 
 func startBootstrapSuite(t *testing.T) *bootstrapSuite {
-	t.Skip("Skip until fix consensus bugs")
+//	t.Skip("Skip until fix consensus bugs")
 
 	s := newBootstraptSuite(t, 11)
 	s.Setup()
 	return s
-}
-
-func TestBootstrap(t *testing.T) {
-	s := startBootstrapSuite(t)
-	defer s.stopBootstrapSuite()
-
-	s.StartNodesNetwork(s.bootstrapNodes)
-
-	s.waitForConsensus(2)
-	s.AssertActiveNodesCountDelta(0)
-
-	s.waitForConsensus(1)
-	s.AssertActiveNodesCountDelta(0)
-	s.AssertWorkingNodesCountDelta(0)
 }
