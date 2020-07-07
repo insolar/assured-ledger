@@ -3,9 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-// +build networktest
-
-package tests
+package integration
 
 import (
 	"context"
@@ -25,7 +23,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
-	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus"
 	"github.com/insolar/assured-ledger/ledger-core/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -61,23 +58,19 @@ const (
 	UseFakeTransport = false
 	UseFakeBootstrap = true
 
-	reqTimeoutMs     int32 = 2000
-	pulseDelta       int32 = 4
-	consensusMin           = 5 // minimum count of participants that can survive when one node leaves
-	maxPulsesForJoin       = 3
+	reqTimeoutMs		= 2000
+	pulseDelta			= 4
+//	consensusMin		= 5 // minimum count of participants that can survive when one node leaves
+	maxPulsesForJoin	= 3
 )
 
 const cacheDir = "network_cache/"
 
 func initLogger(ctx context.Context, t *testing.T, level log.Level) context.Context {
-	cfg := configuration.NewLog()
-	cfg.LLBufferSize = 0
-	cfg.Level = level.String()
-	cfg.Formatter = logcommon.TextFormat.String()
+	instestlogger.SetTestOutputWithIgnoreAllErrors(t)
+	global.SetLevel(level)
 
-	instestlogger.SetTestOutputWithCfg()
-
-	ctx, _ = inslogger.InitNodeLogger(ctx, cfg, "", "")
+	ctx, _ = inslogger.InitNodeLoggerByGlobal("", "")
 	return ctx
 }
 
@@ -119,8 +112,6 @@ func newConsensusSuite(t *testing.T, bootstrapCount, nodesCount int) *consensusS
 
 // Setup creates and run network with bootstrap and common nodes once before run all tests in the suite
 func (s *consensusSuite) Setup() {
-	instestlogger.SetTestOutput(s.t)
-	
 	var err error
 	s.pulsar, err = NewTestPulsar(reqTimeoutMs, pulseDelta)
 	require.NoError(s.t, err)
@@ -578,7 +569,7 @@ func (s *testSuite) preInitNode(node *networkNode) {
 		keystore.NewInplaceKeyStore(node.privateKey),
 		serviceNetwork,
 		keyProc,
-		testutils.NewContractRequesterMock(s.t),
+//		testutils.NewContractRequesterMock(s.t),
 	)
 	node.serviceNetwork = serviceNetwork
 
