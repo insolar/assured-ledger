@@ -2,7 +2,6 @@
 state "Init" as T01_S002
 T01_S002 : SMExecute
 [*] --> T01_S002
-T01_S002 --> [*] : [(...).pulseSlot.State()!=conveyor.Present]
 T01_S002 --> T01_S003 : Migrate: s.migrationDefault
 state "StepWaitExecutionResult" as T01_S021
 T01_S021 : SMExecute
