@@ -419,3 +419,155 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 
 	mc.Finish()
 }
+
+func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
+	t.Log("C5237")
+	t.Skip("https://insolar.atlassian.net/browse/PLAT-618")
+	table := []struct {
+		name      string
+		isolation contract.MethodIsolation
+	}{
+		{
+			name:      "ordered call when constructor execution is pending",
+			isolation: tolerableFlags(),
+		},
+		{
+			name:      "unordered call when constructor execution is pending",
+			isolation: intolerableFlags(),
+		},
+	}
+	for _, test := range table {
+		t.Run(test.name, func(t *testing.T) {
+			mc := minimock.NewController(t)
+
+			server, ctx := utils.NewUninitializedServer(nil, t)
+			defer server.Stop()
+
+			logger := inslogger.FromContext(ctx)
+			executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
+
+			runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
+				return execution.Request.CallSiteMethod
+			})
+			{
+				server.ReplaceRunner(runnerMock)
+				server.Init(ctx)
+				server.IncrementPulseAndWaitIdle(ctx)
+			}
+
+			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+
+			var (
+				object            = reference.NewSelf(server.RandomLocalWithPulse())
+				createObjOutgoing = server.BuildRandomOutgoingWithPulse()
+				p1                = server.GetPulse().PulseNumber
+				getDelegated      = false
+				delegationToken   payload.CallDelegationToken
+			)
+
+			server.IncrementPulseAndWaitIdle(ctx)
+			p2 := server.GetPulse().PulseNumber
+
+			// create object state
+			{
+				payload := &payload.VStateReport{
+					Status:                      payload.Empty,
+					Object:                      object,
+					AsOf:                        p1,
+					OrderedPendingCount:         1,
+					OrderedPendingEarliestPulse: p1,
+				}
+
+				server.SendPayload(ctx, payload)
+				server.WaitActiveThenIdleConveyor()
+			}
+
+			// add ExecutionMocks to runnerMock
+			{
+				runnerMock.AddExecutionClassify("SomeMethod", test.isolation, nil)
+				requestResult := requestresult.New([]byte("call result"), gen.UniqueGlobalRef())
+
+				objectExecutionMock := runnerMock.AddExecutionMock("SomeMethod")
+				objectExecutionMock.AddStart(
+					func(ctx execution.Context) {
+						logger.Debug("ExecutionStart [SomeMethod]")
+						require.Equal(t, object, ctx.Request.Callee)
+						// check new obj state (after completed constructor call)
+						require.True(t, getDelegated)
+						// require.Equal(t, []byte("new object memory"), ctx.Request.Arguments) // todo
+					},
+					&execution.Update{
+						Type:   execution.Done,
+						Result: requestResult,
+					},
+				)
+			}
+
+			// add checks to typedChecker
+			{
+				typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
+					assert.Equal(t, object, res.Callee)
+					assert.Equal(t, []byte("call result"), res.ReturnArguments)
+					assert.Equal(t, p2, res.CallOutgoing.GetLocal().Pulse())
+					assert.Empty(t, res.DelegationSpec)
+					return false
+				})
+				typedChecker.VDelegatedRequestFinished.Set(func(res *payload.VDelegatedRequestFinished) bool {
+					getDelegated = true
+					require.Equal(t, delegationToken, res.DelegationSpec)
+					return false
+				})
+				typedChecker.VDelegatedCallResponse.Set(func(res *payload.VDelegatedCallResponse) bool {
+					delegationToken = res.ResponseDelegationSpec
+					return false
+				})
+			}
+
+			// VCallRequest
+			{
+				pl := payload.VCallRequest{
+					CallType:            payload.CTMethod,
+					CallFlags:           payload.BuildCallFlags(test.isolation.Interference, test.isolation.State),
+					Caller:              server.GlobalCaller(),
+					Callee:              object,
+					CallSiteDeclaration: gen.UniqueGlobalRef(),
+					CallSiteMethod:      "SomeMethod",
+					CallOutgoing:        server.BuildRandomOutgoingWithPulse(),
+				}
+				server.SendPayload(ctx, &pl)
+			}
+
+			// VDelegatedCallRequest
+			{
+				delegatedRequest := payload.VDelegatedCallRequest{
+					Callee:       object,
+					CallOutgoing: createObjOutgoing,
+					CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+				}
+				server.SendPayload(ctx, &delegatedRequest)
+			}
+
+			// VDelegatedRequestFinishe
+			{
+				finished := payload.VDelegatedRequestFinished{
+					Callee:       object,
+					CallOutgoing: createObjOutgoing,
+					CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+					LatestState: &payload.ObjectState{
+						Reference: reference.Local{},
+						Class:     testwalletProxy.GetClass(),
+						State:     []byte("new object memory"),
+					},
+				}
+				server.SendPayload(ctx, &finished)
+			}
+
+			testutils.WaitSignalsTimed(t, 30*time.Second, executeDone)
+			testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+
+			require.Equal(t, 1, typedChecker.VCallResult.Count())
+
+			mc.Finish()
+		})
+	}
+}
