@@ -762,7 +762,7 @@ func TestVirtual_Constructor_PulseChangedWhileOutgoing(t *testing.T) {
 	server.SendPayload(ctx, &msgVStateRequest)
 	server.WaitActiveThenIdleConveyor()
 
-	testutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(2))
+	testutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 2))
 
 	{
 		assert.Equal(t, 1, typedChecker.VCallResult.Count())

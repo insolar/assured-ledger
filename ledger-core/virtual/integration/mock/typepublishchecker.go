@@ -7,7 +7,7 @@ package mock
 
 import (
 	"context"
-	mm_time "time"
+	"time"
 
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/gojuno/minimock/v3"
@@ -44,8 +44,8 @@ func (p PubVCallRequestMock) Count() int {
 	return p.parent.Handlers.VCallRequest.count.Load()
 }
 
-func (p PubVCallRequestMock) Wait(count int) synckit.SignalChannel {
-	return waitCounterIndefinitely(&p.parent.Handlers.VCallRequest.count, count)
+func (p PubVCallRequestMock) Wait(ctx context.Context, count int) synckit.SignalChannel {
+	return waitCounterIndefinitely(ctx, &p.parent.Handlers.VCallRequest.count, count)
 }
 
 // ============================================================================
@@ -75,8 +75,8 @@ func (p PubVCallResultMock) Count() int {
 	return p.parent.Handlers.VCallResult.count.Load()
 }
 
-func (p PubVCallResultMock) Wait(count int) synckit.SignalChannel {
-	return waitCounterIndefinitely(&p.parent.Handlers.VCallResult.count, count)
+func (p PubVCallResultMock) Wait(ctx context.Context, count int) synckit.SignalChannel {
+	return waitCounterIndefinitely(ctx, &p.parent.Handlers.VCallResult.count, count)
 }
 
 // ============================================================================
@@ -106,8 +106,8 @@ func (p PubVDelegatedCallRequestMock) Count() int {
 	return p.parent.Handlers.VDelegatedCallRequest.count.Load()
 }
 
-func (p PubVDelegatedCallRequestMock) Wait(count int) synckit.SignalChannel {
-	return waitCounterIndefinitely(&p.parent.Handlers.VDelegatedCallRequest.count, count)
+func (p PubVDelegatedCallRequestMock) Wait(ctx context.Context, count int) synckit.SignalChannel {
+	return waitCounterIndefinitely(ctx, &p.parent.Handlers.VDelegatedCallRequest.count, count)
 }
 
 // ============================================================================
@@ -137,8 +137,8 @@ func (p PubVDelegatedCallResponseMock) Count() int {
 	return p.parent.Handlers.VDelegatedCallResponse.count.Load()
 }
 
-func (p PubVDelegatedCallResponseMock) Wait(count int) synckit.SignalChannel {
-	return waitCounterIndefinitely(&p.parent.Handlers.VDelegatedCallResponse.count, count)
+func (p PubVDelegatedCallResponseMock) Wait(ctx context.Context, count int) synckit.SignalChannel {
+	return waitCounterIndefinitely(ctx, &p.parent.Handlers.VDelegatedCallResponse.count, count)
 }
 
 // ============================================================================
@@ -168,8 +168,8 @@ func (p PubVDelegatedRequestFinishedMock) Count() int {
 	return p.parent.Handlers.VDelegatedRequestFinished.count.Load()
 }
 
-func (p PubVDelegatedRequestFinishedMock) Wait(count int) synckit.SignalChannel {
-	return waitCounterIndefinitely(&p.parent.Handlers.VDelegatedRequestFinished.count, count)
+func (p PubVDelegatedRequestFinishedMock) Wait(ctx context.Context, count int) synckit.SignalChannel {
+	return waitCounterIndefinitely(ctx, &p.parent.Handlers.VDelegatedRequestFinished.count, count)
 }
 
 // ============================================================================
@@ -199,8 +199,8 @@ func (p PubVStateRequestMock) Count() int {
 	return p.parent.Handlers.VStateRequest.count.Load()
 }
 
-func (p PubVStateRequestMock) Wait(count int) synckit.SignalChannel {
-	return waitCounterIndefinitely(&p.parent.Handlers.VStateRequest.count, count)
+func (p PubVStateRequestMock) Wait(ctx context.Context, count int) synckit.SignalChannel {
+	return waitCounterIndefinitely(ctx, &p.parent.Handlers.VStateRequest.count, count)
 }
 
 // ============================================================================
@@ -230,8 +230,8 @@ func (p PubVStateReportMock) Count() int {
 	return p.parent.Handlers.VStateReport.count.Load()
 }
 
-func (p PubVStateReportMock) Wait(count int) synckit.SignalChannel {
-	return waitCounterIndefinitely(&p.parent.Handlers.VStateReport.count, count)
+func (p PubVStateReportMock) Wait(ctx context.Context, count int) synckit.SignalChannel {
+	return waitCounterIndefinitely(ctx, &p.parent.Handlers.VStateReport.count, count)
 }
 
 // ============================================================================
@@ -261,8 +261,8 @@ func (p PubVFindCallRequestMock) Count() int {
 	return p.parent.Handlers.VFindCallRequest.count.Load()
 }
 
-func (p PubVFindCallRequestMock) Wait(count int) synckit.SignalChannel {
-	return waitCounterIndefinitely(&p.parent.Handlers.VFindCallRequest.count, count)
+func (p PubVFindCallRequestMock) Wait(ctx context.Context, count int) synckit.SignalChannel {
+	return waitCounterIndefinitely(ctx, &p.parent.Handlers.VFindCallRequest.count, count)
 }
 
 // ============================================================================
@@ -292,8 +292,8 @@ func (p PubVFindCallResponseMock) Count() int {
 	return p.parent.Handlers.VFindCallResponse.count.Load()
 }
 
-func (p PubVFindCallResponseMock) Wait(count int) synckit.SignalChannel {
-	return waitCounterIndefinitely(&p.parent.Handlers.VFindCallResponse.count, count)
+func (p PubVFindCallResponseMock) Wait(ctx context.Context, count int) synckit.SignalChannel {
+	return waitCounterIndefinitely(ctx, &p.parent.Handlers.VFindCallResponse.count, count)
 }
 
 // ============================================================================
@@ -657,8 +657,8 @@ func (p *TypePublishChecker) MinimockFinish() {
 }
 
 // MinimockWait waits for all mocked methods to be called the expected number of times
-func (p *TypePublishChecker) MinimockWait(timeout mm_time.Duration) {
-	timeoutCh := mm_time.After(timeout)
+func (p *TypePublishChecker) MinimockWait(timeout time.Duration) {
+	timeoutCh := time.After(timeout)
 	for {
 		if p.minimockDone() {
 			return
@@ -667,12 +667,12 @@ func (p *TypePublishChecker) MinimockWait(timeout mm_time.Duration) {
 		case <-timeoutCh:
 			p.MinimockFinish()
 			return
-		case <-mm_time.After(10 * mm_time.Millisecond):
+		case <-time.After(10 * time.Millisecond):
 		}
 	}
 }
 
-func waitCounterIndefinitely(counter *atomickit.Int, count int) synckit.SignalChannel {
+func waitCounterIndefinitely(ctx context.Context, counter *atomickit.Int, count int) synckit.SignalChannel {
 	ch := make(synckit.ClosableSignalChannel)
 	go func() {
 		defer close(ch)
@@ -682,7 +682,11 @@ func waitCounterIndefinitely(counter *atomickit.Int, count int) synckit.SignalCh
 			if c >= count {
 				return
 			}
-			mm_time.Sleep(1*mm_time.Millisecond)
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(1 * time.Millisecond):
+			}
 		}
 	}()
 	return ch
