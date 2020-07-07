@@ -113,7 +113,7 @@ func (p *SMPlash) stepCreateJetDrops(ctx smachine.ExecutionContext) smachine.Sta
 	pn := p.pulseSlot.PulseNumber()
 	for _, jetID := range p.jets {
 		legID := jetID.AsLeg(pn)
-		updater := p.sd.jetAssist.CreateJetDropAssistant(jetID.ID())
+		updater := p.sd.jetAssist.GetJetDropAssistant(jetID.ID())
 		p.cataloger.Create(ctx, legID, updater)
 	}
 
