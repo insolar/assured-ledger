@@ -8,7 +8,7 @@ steps:
   - name: create_contract_test
     rps: 10
     attack_time_sec: 100
-    ramp_up_sec: 15
+    ramp_up_sec: 1
     ramp_up_strategy: linear
     max_attackers: 20
     verbose: true
@@ -24,9 +24,9 @@ steps:
   execution_mode: sequence_validate
   handles:
   - name: get_contract_test
-    rps: 500
-    attack_time_sec: 300
-    ramp_up_sec: 300
+    rps: 1000
+    attack_time_sec: 1800
+    ramp_up_sec: 1800
     ramp_up_strategy: linear
     max_attackers: 1000
     verbose: true
@@ -42,8 +42,8 @@ steps:
         interval: 1
   - name: set_contract_test
     rps: 1000
-    attack_time_sec: 600
-    ramp_up_sec: 600
+    attack_time_sec: 1800
+    ramp_up_sec: 1800
     ramp_up_strategy: linear
     max_attackers: 1000
     verbose: true
