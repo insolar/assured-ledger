@@ -327,46 +327,7 @@ func (s *SMExecute) stepDeduplicate(ctx smachine.ExecutionContext) smachine.Stat
 
 	// deduplication algorithm
 	action := func(state *object.SharedState) {
-		// if we can not add to request table, this mean that we already have operation in progress or comepleted
-		if !state.KnownRequests.Add(s.execution.Isolation.Interference, s.execution.Outgoing) {
-			ctx.Log().Warn("duplicate found")
-			results := state.KnownRequests.GetResults()
-
-			summary, ok := results[s.execution.Outgoing]
-
-			// get result only if exist, if result == nil this mean that other SM now during execution
-			if ok && summary.Result != nil {
-				msg = summary.Result
-				deduplicateAction = SendResultAndStop
-				return
-			}
-
-			// stop current sm because other sm still in progress and not send result
-			deduplicateAction = Stop
-			return
-		}
-
-		// deduplicate through pending table
-		if !s.outgoingFromSlotPulse() {
-			pendingList := state.PendingTable.GetList(s.execution.Isolation.Interference)
-			isActive, isDuplicate := pendingList.GetState(s.execution.Outgoing)
-
-			if isDuplicate && isActive {
-				ctx.Log().Warn("duplicate found as pending request")
-				deduplicateAction = Stop
-				return
-			}
-
-			if s.isConstructor && state.GetState() == object.Missing {
-				deduplicateAction = ContinueExecute
-				return
-			}
-
-			deduplicateAction = DeduplicateThroughPreviousExecutor
-			return
-		}
-
-		deduplicateAction = ContinueExecute
+		deduplicateAction = s.deduplicate(state, msg)
 	}
 
 	if stepUpdate, ok := s.shareObjectAccess(ctx, action); !ok {
@@ -1001,4 +962,40 @@ func (s *SMExecute) shareObjectAccess(
 	default:
 		panic(throw.Impossible())
 	}
+}
+
+func (s *SMExecute) deduplicate(state *object.SharedState, msg *payload.VCallResult) DeduplicationAction {
+	// if we can not add to request table, this mean that we already have operation in progress or completed
+	if !state.KnownRequests.Add(s.execution.Isolation.Interference, s.execution.Outgoing) {
+		results := state.KnownRequests.GetResults()
+
+		summary, ok := results[s.execution.Outgoing]
+
+		// get result only if exist, if result == nil this mean that other SM now during execution
+		if ok && summary.Result != nil {
+			msg = summary.Result
+			return SendResultAndStop
+		}
+
+		// stop current sm because other sm still in progress and not send result
+		return Stop
+	}
+
+	// deduplicate through pending table
+	if !s.outgoingFromSlotPulse() {
+		pendingList := state.PendingTable.GetList(s.execution.Isolation.Interference)
+		isActive, isDuplicate := pendingList.GetState(s.execution.Outgoing)
+
+		if isDuplicate && isActive {
+			return Stop
+		}
+
+		if s.isConstructor && state.GetState() == object.Missing {
+			return ContinueExecute
+		}
+
+		return DeduplicateThroughPreviousExecutor
+	}
+
+	return ContinueExecute
 }
