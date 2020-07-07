@@ -225,32 +225,34 @@ func TestDelegationToken_IsMessageFromVirtualLegitimate(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Log(testCase.testRailID)
 
-			mc := minimock.NewController(t)
-
 			for _, testMsg := range messages {
 				t.Run(testMsg.name, func(t *testing.T) {
+					mc := minimock.NewController(t)
+
 					server, ctx := utils.NewUninitializedServer(nil, t)
 
-					jetCoordinatorMock := jet.NewAffinityHelperMock(t)
+					jetCoordinatorMock := jet.NewAffinityHelperMock(mc)
 					auth := authentication.NewService(ctx, jetCoordinatorMock)
 					server.ReplaceAuthenticationService(auth)
 
 					var errorFound bool
 					logHandler := func(arg interface{}) {
-						if err, ok := arg.(error); ok {
-							for _, severity := range testCase.errorSeverity {
-								if s, sok := throw.GetSeverity(err); sok && s != severity {
-									return
-								}
-							}
-							errMsg := err.Error()
-							for _, errTemplate := range testCase.errorMessages {
-								if !strings.Contains(errMsg, errTemplate) {
-									return
-								}
-							}
-							errorFound = true
+						err, ok := arg.(error)
+						if !ok {
+							return
 						}
+						for _, severity := range testCase.errorSeverity {
+							if s, sok := throw.GetSeverity(err); sok && s != severity {
+								return
+							}
+						}
+						errMsg := err.Error()
+						for _, errTemplate := range testCase.errorMessages {
+							if !strings.Contains(errMsg, errTemplate) {
+								return
+							}
+						}
+						errorFound = true
 					}
 					logger := utils.InterceptLog(inslogger.FromContext(ctx), logHandler)
 					server.OverrideConveyorFactoryLogContext(inslogger.SetLogger(ctx, logger))
@@ -281,10 +283,8 @@ func TestDelegationToken_IsMessageFromVirtualLegitimate(t *testing.T) {
 							TokenTypeAndFlags: payload.DelegationTokenTypeUninitialized,
 						}
 					} else {
-						var (
-							class    = gen.UniqueGlobalRef()
-							outgoing = server.BuildRandomOutgoingWithPulse()
-						)
+						class := gen.UniqueGlobalRef()
+						outgoing := server.BuildRandomOutgoingWithPulse()
 						delegationToken = server.DelegationToken(reference.NewRecordOf(class, outgoing.GetLocal()), server.GlobalCaller(), outgoing)
 					}
 					reflect.ValueOf(testMsg.msg).MethodByName("Reset").Call([]reflect.Value{})
@@ -295,9 +295,9 @@ func TestDelegationToken_IsMessageFromVirtualLegitimate(t *testing.T) {
 
 					assert.True(t, errorFound)
 					server.Stop()
+					mc.Finish()
 				})
 			}
-			mc.Finish()
 		})
 	}
 }
