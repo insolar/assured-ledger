@@ -349,9 +349,10 @@ func (s *SMExecute) stepDeduplicate(ctx smachine.ExecutionContext) smachine.Stat
 		panic(throw.Impossible())
 	}
 
+	// if we have duplicate, we should try to send execution result
 	if duplicate {
 		ctx.Log().Warn("duplicate found")
-		return ctx.Stop()
+		return ctx.Jump(s.stepSendExistingCallResult)
 	}
 
 	if !s.outgoingFromSlotPulse() {
@@ -997,6 +998,54 @@ func (s *SMExecute) stepFinishRequest(ctx smachine.ExecutionContext) smachine.St
 	default:
 		panic(throw.Impossible())
 	}
+
+	return ctx.Stop()
+}
+
+func (s *SMExecute) stepSendExistingCallResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	var (
+		msg   *payload.VCallResult
+		found bool
+	)
+
+	action := func(state *object.SharedState) {
+		results := state.KnownRequests.GetResults()
+
+		summary, ok := results[s.execution.Outgoing]
+
+		// Get result only if exist, if result == nil this mean that other SM now during execution
+		if ok && summary.Result != nil {
+			found = true
+			msg = summary.Result
+		}
+	}
+
+	switch s.objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
+	case smachine.NotPassed:
+		return ctx.WaitShared(s.objectSharedState.SharedDataLink).ThenRepeat()
+	case smachine.Impossible:
+		panic(throw.NotImplemented())
+	case smachine.Passed:
+		// go further
+	default:
+		panic(throw.Impossible())
+	}
+
+	// if result not found, nothing to send
+	if !found {
+		return ctx.Stop()
+	}
+
+	target := s.Meta.Sender
+
+	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
+		err := svc.SendTarget(goCtx, msg, target)
+		return func(ctx smachine.AsyncResultContext) {
+			if err != nil {
+				ctx.Log().Error("failed to send message", err)
+			}
+		}
+	}).WithoutAutoWakeUp().Start()
 
 	return ctx.Stop()
 }

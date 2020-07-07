@@ -122,7 +122,6 @@ func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 
 func TestDeduplication_SecondCallOfMethodAfterExecution(t *testing.T) {
 	t.Log("C5096")
-	t.Skip("https://insolar.atlassian.net/browse/PLAT-551")
 
 	mc := minimock.NewController(t)
 
@@ -139,11 +138,11 @@ func TestDeduplication_SecondCallOfMethodAfterExecution(t *testing.T) {
 
 	p1 := server.GetPulse().PulseNumber
 
+	server.IncrementPulseAndWaitIdle(ctx)
+
 	outgoing := helper.BuildObjectOutgoing()
 	class := gen.UniqueGlobalRef()
 	object := gen.UniqueGlobalRef()
-
-	server.IncrementPulseAndWaitIdle(ctx)
 
 	report := &payload.VStateReport{
 		Status: payload.Ready,
