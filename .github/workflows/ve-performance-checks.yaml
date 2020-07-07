@@ -70,6 +70,25 @@ jobs:
           sed -i "s/placeholder/${{ fromJson(steps.set-vars.outputs.result).shortSha }}/g" ledger-core/scripts/deploy/kube/*/configuration/*.*
           sed -i "s/placeholder/${{ fromJson(steps.set-vars.outputs.result).shortSha }}/g" ledger-core/load/gen_cfg/*.*
           cat /home/runner/work/assured-ledger/assured-ledger/ledger-core/load/gen_cfg/generator_assured_ledger.yaml
+      - name: run 5node network
+        run: kubectl apply -k ledger-core/scripts/deploy/kube/5node
+      - name: wait for successfull rollout
+        run: kubectl -n ${{fromJson(steps.set-vars.outputs.result).shortSha}} rollout status sts/virtual
+      - name: pulsewatcher
+        run: |
+          for try in {0..100}; do
+            if kubectl -n ${{fromJson(steps.set-vars.outputs.result).shortSha}} exec -i deploy/pulsewatcher -- bash -c 'pulsewatcher -c /etc/pulsewatcher/pulsewatcher.yaml -s' | grep 'READY' | grep -v 'NOT'; then
+              echo "network ready!"; exit 0
+            else echo -n '.'; sleep 5
+            fi
+          done
+      - name: start test 5 node
+        run: |
+          cd ${{ env.CORE_PATH }}/load/
+          NETWORK_NODES=5 ./main -gen_config ${{ env.CORE_PATH }}/load/gen_cfg/generator_assured_ledger.yaml -config ${{ env.CORE_PATH }}/load/run_configs/all_sequence.yaml
+          cat scaling.csv
+      - name: cleanup
+        run: kubectl delete ns ${{fromJson(steps.set-vars.outputs.result).shortSha}} --ignore-not-found=true
       - name: run 10node network
         run: kubectl apply -k ledger-core/scripts/deploy/kube/10node
       - name: wait for successfull rollout
@@ -88,7 +107,25 @@ jobs:
           NETWORK_NODES=10 ./main -gen_config ${{ env.CORE_PATH }}/load/gen_cfg/generator_assured_ledger.yaml -config ${{ env.CORE_PATH }}/load/run_configs/all_sequence.yaml
           cat scaling.csv
       - name: cleanup
-        if: always()
+        run: kubectl delete ns ${{fromJson(steps.set-vars.outputs.result).shortSha}} --ignore-not-found=true
+      - name: run 15node network
+        run: kubectl apply -k ledger-core/scripts/deploy/kube/15node
+      - name: wait for successfull rollout
+        run: kubectl -n ${{fromJson(steps.set-vars.outputs.result).shortSha}} rollout status sts/virtual
+      - name: pulsewatcher
+        run: |
+          for try in {0..100}; do
+            if kubectl -n ${{fromJson(steps.set-vars.outputs.result).shortSha}} exec -i deploy/pulsewatcher -- bash -c 'pulsewatcher -c /etc/pulsewatcher/pulsewatcher.yaml -s' | grep 'READY' | grep -v 'NOT'; then
+              echo "network ready!"; exit 0
+            else echo -n '.'; sleep 5
+            fi
+          done
+      - name: start test 15 node
+        run: |
+          cd ${{ env.CORE_PATH }}/load/
+          NETWORK_NODES=15 ./main -gen_config ${{ env.CORE_PATH }}/load/gen_cfg/generator_assured_ledger.yaml -config ${{ env.CORE_PATH }}/load/run_configs/all_sequence.yaml
+          cat scaling.csv
+      - name: cleanup
         run: kubectl delete ns ${{fromJson(steps.set-vars.outputs.result).shortSha}} --ignore-not-found=true
       - name: run 20node network
         run: kubectl apply -k ledger-core/scripts/deploy/kube/20node
