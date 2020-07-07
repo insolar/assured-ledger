@@ -11,27 +11,28 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
-	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type JetDropKey jet.DropID
 
 type DropCataloger interface {
-	Create(ctx smachine.ExecutionContext, dropID jet.LegID, updater buildersvc.JetDropAssistant) DropDataLink
+	Create(ctx smachine.ExecutionContext, dropID jet.ExactID, pn pulse.Number) DropDataLink
 	Get(ctx smachine.SharedStateContext, dropID jet.DropID) DropDataLink
 }
 
 var _ DropCataloger = &DropCatalog{}
 type DropCatalog struct {}
 
-func (*DropCatalog) Create(ctx smachine.ExecutionContext, legID jet.LegID, updater buildersvc.JetDropAssistant) DropDataLink {
-	dropID := legID.AsDrop()
+func (*DropCatalog) Create(ctx smachine.ExecutionContext, jetID jet.ExactID, pn pulse.Number) DropDataLink {
+	dropID := jetID.AsDrop(pn)
+
 	if ctx.GetPublished(JetDropKey(dropID)) != nil {
 		panic(throw.IllegalState())
 	}
 
-	ctx.InitChild(JetDropCreate(legID, updater))
+	ctx.InitChild(JetDropCreate(dropID))
 
 	switch sdl := ctx.GetPublishedLink(JetDropKey(dropID)); {
 	case sdl.IsZero():
@@ -52,11 +53,10 @@ func (*DropCatalog) Get(ctx smachine.SharedStateContext, dropID jet.DropID) Drop
 	return DropDataLink{}
 }
 
-func JetDropCreate(legID jet.LegID, updater buildersvc.JetDropAssistant) smachine.CreateFunc {
+func JetDropCreate(dropID jet.DropID) smachine.CreateFunc {
 	return func(smachine.ConstructionContext) smachine.StateMachine {
 		sm := &SMDropBuilder{}
-		sm.sd.id = legID
-		sm.sd.updater = updater
+		sm.sd.id = dropID
 		return sm
 	}
 }

@@ -57,6 +57,10 @@ func (p *BundleResolver) GetUnresolvedDependencies() []UnresolvedDependency {
 	return p.unresolved
 }
 
+func (p *BundleResolver) HasErrors() bool {
+	return len(p.errors) > 0
+}
+
 func (p *BundleResolver) GetErrors() []error {
 	return p.errors
 }
@@ -463,4 +467,3 @@ func (p *BundleResolver) checkOrdering(recNo recordNo, filNo filamentNo) error {
 	}
 	return nil
 }
-

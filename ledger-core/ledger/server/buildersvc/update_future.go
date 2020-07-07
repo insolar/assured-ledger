@@ -23,41 +23,26 @@ func NewFuture(name string) *Future {
 type Future struct {
 	ready     smsync.BoolConditionalLink
 	committed atomickit.Uint32
+	err 	  error
 }
 
 func (p *Future) GetReadySync() smachine.SyncLink {
 	return p.ready.SyncLink()
 }
 
-func (p *Future) GetUpdateStatus() (isReady bool, allocationBase uint32) {
+// GetFutureResult can only be used after SyncLink is triggered
+func (p *Future) GetFutureResult() (isReady bool, allocationBase uint32, err error) {
 	switch v := p.committed.Load(); {
 	case v == 0:
-		return false, 0
+		return false, 0, nil
 	case v == math.MaxUint32:
-		return true, 0
+		return true, 0, p.err
 	default:
-		return true, v
+		return true, v, nil
 	}
 }
 
-func (p *Future) GetCommitStatus() (isReady, isCommitted bool) {
-	switch v := p.committed.Load(); {
-	case v == 0:
-		return false, false
-	case v == math.MaxUint32:
-		return true, false
-	default:
-		return true, true
-	}
-}
-
-func (p *Future) SetCommitted(committed bool, allocatedBase uint32) {
-	if !p.TrySetCommitted(committed, allocatedBase) {
-		panic(throw.IllegalState())
-	}
-}
-
-func (p *Future) TrySetCommitted(committed bool, allocatedBase uint32) bool {
+func (p *Future) TrySetFutureResult(committed bool, allocatedBase uint32, err error) bool {
 	switch {
 	case allocatedBase == math.MaxUint32:
 		panic(throw.IllegalValue())
@@ -65,10 +50,13 @@ func (p *Future) TrySetCommitted(committed bool, allocatedBase uint32) bool {
 		allocatedBase = math.MaxUint32
 	case allocatedBase == 0:
 		panic(throw.IllegalValue())
+	case err != nil:
+		panic(throw.IllegalValue())
 	}
 	if !p.committed.CompareAndSwap(0, allocatedBase) {
 		return false
 	}
+	p.err = err
 
 	smachine.ApplyAdjustmentAsync(p.ready.NewValue(true))
 	return true

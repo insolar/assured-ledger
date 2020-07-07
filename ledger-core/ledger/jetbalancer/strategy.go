@@ -28,7 +28,7 @@ type MaterialAllocationCalculator interface {
 
 	// AllocationOfJets MUST receive list of all jets, otherwise allocation may be incorrect.
 	// This requirements for all jets is intended to support balanced distribution algorithms.
-	AllocationOfJets([]jet.PrefixedID, pulse.Number) map[jet.ID]node.ShortNodeID
+	AllocationOfJets([]jet.ExactID, pulse.Number) map[jet.ID]node.ShortNodeID
 }
 
 type HashFactoryFunc = func() hash.Hash
@@ -92,7 +92,7 @@ func (v defaultMaterialAllocationCalc) metricOfDrop(jt jet.DropID) uint64 {
 	return encoding.Uint64(b[:])
 }
 
-func (v defaultMaterialAllocationCalc) AllocationOfJets(jets []jet.PrefixedID, pn pulse.Number) map[jet.ID]node.ShortNodeID {
+func (v defaultMaterialAllocationCalc) AllocationOfJets(jets []jet.ExactID, pn pulse.Number) map[jet.ID]node.ShortNodeID {
 	// TODO implement a balanced allocation function
 	result := map[jet.ID]node.ShortNodeID{}
 	for _, jt := range jets {

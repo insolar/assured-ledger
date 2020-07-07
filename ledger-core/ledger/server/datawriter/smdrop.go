@@ -87,8 +87,6 @@ func (p *SMDropBuilder) stepWaitPrevDrop(ctx smachine.ExecutionContext) smachine
 func (p *SMDropBuilder) stepFindPrevDrop(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	ctx.NewChild(func(smachine.ConstructionContext) smachine.StateMachine {
 		return &datareader.SMFindDrop{
-			Assistant: p.sd.updater,
-
 			// this is safe as relevant fields are immutable
 			// and inside this method there is a barge-in
 			ReportFn: p.sd.SetPrevDropReport,

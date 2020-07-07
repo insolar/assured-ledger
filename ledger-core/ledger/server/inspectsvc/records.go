@@ -31,7 +31,3 @@ func (v InspectedRecordSet) IsEmpty() bool {
 func (v InspectedRecordSet) Count() int {
 	return len(v.Records)
 }
-
-func (v InspectedRecordSet) IsEmpty() bool {
-	return len(v.Requests) == 0
-}

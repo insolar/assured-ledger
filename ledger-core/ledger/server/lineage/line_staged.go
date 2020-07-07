@@ -200,7 +200,7 @@ func (p *LineStages) trimCommittedStages() (last *updateStage) {
 		next := p.earliest.next
 
 		if tr := p.earliest.tracker; tr != nil {
-			isReady, allocBase := tr.GetUpdateStatus()
+			isReady, allocBase, _ := tr.GetFutureResult()
 			if !isReady {
 				return
 			}

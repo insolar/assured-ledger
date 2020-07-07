@@ -95,14 +95,14 @@ func TestLineStages_CreateWithCalls(t *testing.T) {
 	require.Equal(t, stageNo(1), line.earliest.seqNo)
 	require.NotNil(t, line.earliest.tracker)
 
-	st1.committed = true
+	st1.ready = true
 	line.TrimCommittedStages()
 
 	require.Equal(t, stageNo(2), line.earliest.seqNo)
 	require.NotNil(t, line.earliest.tracker)
 
-	st2.committed = true
-	st3.committed = true
+	st2.ready = true
+	st3.ready = true
 	line.TrimCommittedStages()
 
 	require.Equal(t, stageNo(3), line.earliest.seqNo)
@@ -163,8 +163,8 @@ func TestLineStages_Rollback(t *testing.T) {
 
 	require.Equal(t, recordNo(17), line.getNextRecNo())
 
-	st1.committed = true
-	st2.committed = true
+	st1.ready = true
+	st2.ready = true
 	line.RollbackUncommittedRecords()
 
 	require.Equal(t, trimAt, line.getNextRecNo())
@@ -178,7 +178,7 @@ func TestLineStages_Rollback(t *testing.T) {
 	fillBundleWithUnorderedCall(t, base, last, br, refReason4)
 	st4 := &stubTracker{}
 	require.True(t, line.AddBundle(br, st4), describe(br))
-	st4.committed = true
+	st4.ready = true
 
 	line.RollbackUncommittedRecords()
 	require.Equal(t, recordNo(16), line.getNextRecNo())
@@ -273,9 +273,9 @@ func verifySequences(t *testing.T, line *LineStages) {
 }
 
 type stubTracker struct {
-	committed bool
+	ready bool
 }
 
-func (p *stubTracker) GetUpdateStatus() (isReady bool, allocationBase uint32) {
-	return p.committed, 1
+func (p *stubTracker) GetFutureResult() (isReady bool, allocationBase uint32, err error) {
+	return p.ready, 1, nil
 }

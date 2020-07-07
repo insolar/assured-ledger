@@ -16,21 +16,31 @@ import (
 
 type Tree = *PrefixTree
 
+type Prefix uint32
+
+func (v Prefix) AsID() ID {
+	return ID(v)
+}
+
 type ID uint16
 
-func (v ID) MinLen() int {
+func (v ID) BitLen() int {
 	return bits.Len16(uint16(v))
 }
 
-func (v ID) AsPrefixed(prefixLen uint8) PrefixedID {
-	if prefixLen > 16 {
+func (v ID) AsExact(bitLen uint8) ExactID {
+	switch {
+	case bitLen > 16:
+		panic(throw.IllegalValue())
+	case v >>bitLen != 0:
 		panic(throw.IllegalValue())
 	}
-	return (PrefixedID(prefixLen) << prefixedLenOfs) | PrefixedID(v)
+
+	return (ExactID(bitLen) << exactLenOfs) | ExactID(v)
 }
 
-func (v ID) AsLeg(prefixLen uint8, createdAt pulse.Number) LegID {
-	return v.AsPrefixed(prefixLen).AsLeg(createdAt)
+func (v ID) AsLeg(bitLen uint8, createdAt pulse.Number) LegID {
+	return v.AsExact(bitLen).AsLeg(createdAt)
 }
 
 func (v ID) AsDrop(createdAt pulse.Number) DropID {
@@ -42,64 +52,71 @@ func (v ID) AsDrop(createdAt pulse.Number) DropID {
 
 /***************************************************************/
 
-type PrefixedID uint32 // JetPrefix + 5bit length
+type ExactID uint32 // ID + MSB 8bit length
 
 const (
-	prefixedLenBits = 8
-	prefixedLenOfs = 32 - prefixedLenBits
+	exactLenBits = 8
+	exactLenOfs  = 32 - exactLenBits
 )
 
 const (
-	GenesisPrefixedID PrefixedID = 1<<prefixedLenOfs
-	UnknownPrefixedID PrefixedID = 0
+	GenesisExactID ExactID = 1<< exactLenOfs
+	UnknownExactID ExactID = 0
 )
 
-func (v PrefixedID) ID() ID {
+func (v ExactID) ID() ID {
 	return ID(v)
 }
 
-func (v PrefixedID) Prefix() Prefix {
-	return Prefix(v.ID())
+func (v ExactID) BitLen() uint8 {
+	n, ok := v.bitLength()
+	if !ok {
+		panic(throw.IllegalState())
+	}
+	return n
 }
 
-func (v PrefixedID) PrefixLength() (uint8, bool) {
-	if n := uint8(v >> prefixedLenOfs); n > 0 {
+func (v ExactID) bitLength() (uint8, bool) {
+	if n := uint8(v >> exactLenOfs); n > 0 {
 		return n - 1, true
 	}
 	return 0, false
 }
 
-func (v PrefixedID) HasLength() bool {
-	_, ok := v.PrefixLength()
+func (v ExactID) HasLength() bool {
+	_, ok := v.bitLength()
 	return ok
 }
 
-func (v PrefixedID) AsLeg(createdAt pulse.Number) LegID {
+func (v ExactID) AsDrop(pn pulse.Number) DropID {
+	return v.ID().AsDrop(pn)
+}
+
+func (v ExactID) AsLeg(createdAt pulse.Number) LegID {
 	if !createdAt.IsTimePulse() {
 		panic(throw.IllegalValue())
 	}
 	return LegID(createdAt) | (LegID(v)<<32)
 }
 
-func (v PrefixedID) String() string {
-	if n, ok := v.PrefixLength(); ok {
-		return fmt.Sprintf("0x%02X[%d]", v.Prefix(), n)
+func (v ExactID) String() string {
+	if n, ok := v.bitLength(); ok {
+		return fmt.Sprintf("0x%02X[%d]", v.ID(), n)
 	} else {
-		return fmt.Sprintf("0x%02X[]", v.Prefix())
+		return fmt.Sprintf("0x%02X[]", v.ID())
 	}
 }
 
 /***************************************************************/
 
-type LegID uint64 // PrefixedID + Split/Merge Pulse
+type LegID uint64 // ExactID + Split/Merge Pulse
 
 func (v LegID) IsValid() bool {
-	_, ok := v.PrefixedID().PrefixLength()
-	return ok && pulse.IsValidAsPulseNumber(int(v&math.MaxUint32))
+	return v.ExactID().HasLength() && pulse.IsValidAsPulseNumber(int(v&math.MaxUint32))
 }
 
-func (v LegID) PrefixedID() PrefixedID {
-	return PrefixedID(v>>32)
+func (v LegID) ExactID() ExactID {
+	return ExactID(v>>32)
 }
 
 func (v LegID) CreatedAt() pulse.Number {
@@ -107,11 +124,11 @@ func (v LegID) CreatedAt() pulse.Number {
 }
 
 func (v LegID) String() string {
-	return fmt.Sprintf("%v@%d", v.PrefixedID(), v.CreatedAt())
+	return fmt.Sprintf("%v@%v", v.ExactID(), v.CreatedAt())
 }
 
 func (v LegID) AsDrop() DropID {
-	return v.PrefixedID().ID().AsDrop(v.CreatedAt())
+	return v.ExactID().ID().AsDrop(v.CreatedAt())
 }
 
 /***************************************************************/
@@ -119,16 +136,15 @@ func (v LegID) AsDrop() DropID {
 type DropID uint64 // ID + current Pulse
 
 func (v DropID) IsValid() bool {
-	_, ok := v.prefixedID().PrefixLength()
-	return !ok && pulse.IsValidAsPulseNumber(int(v&math.MaxUint32))
+	return !v.exactID().HasLength() && pulse.IsValidAsPulseNumber(int(v&math.MaxUint32))
 }
 
-func (v DropID) prefixedID() PrefixedID {
-	return PrefixedID(v>>32)
+func (v DropID) exactID() ExactID {
+	return ExactID(v>>32)
 }
 
 func (v DropID) ID() ID {
-	return v.prefixedID().ID()
+	return v.exactID().ID()
 }
 
 func (v DropID) CreatedAt() pulse.Number {
@@ -138,6 +154,4 @@ func (v DropID) CreatedAt() pulse.Number {
 func (v DropID) String() string {
 	return fmt.Sprintf("%v@%d", v.ID(), v.CreatedAt())
 }
-
-type Prefix uint32
 

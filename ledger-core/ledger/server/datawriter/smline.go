@@ -95,7 +95,7 @@ func (p *SMLine) stepDropIsCreated(ctx smachine.ExecutionContext) smachine.State
 
 	if ctx.AcquireForThisStep(readySync) {
 		sdl.MustAccess(func(sd *DropSharedData) {
-			p.sd.dropUpdater = sd.GetDropAssistant()
+			p.sd.onDropReady(sd)
 		})
 		return ctx.Jump(p.stepDropIsReady)
 	}
@@ -103,7 +103,7 @@ func (p *SMLine) stepDropIsCreated(ctx smachine.ExecutionContext) smachine.State
 	return ctx.Sleep().ThenJump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
 		if ctx.AcquireForThisStep(readySync) {
 			sdl.MustAccess(func(sd *DropSharedData) {
-				p.sd.dropUpdater = sd.GetDropAssistant()
+				p.sd.onDropReady(sd)
 			})
 			return ctx.Jump(p.stepDropIsReady)
 		}
@@ -127,7 +127,7 @@ func (p *SMLine) stepDropIsReady(ctx smachine.ExecutionContext) smachine.StateUp
 				// TODO Unknown object
 				panic(throw.NotImplemented())
 			}
-			p.sd.addRecap(sm.RecapRef, sm.RecapRec)
+			// TODO p.sd.addRecap(sm.RecapRef, sm.RecapRec)
 			return ctx.Jump(p.stepLineIsReady)
 		})
 	default:

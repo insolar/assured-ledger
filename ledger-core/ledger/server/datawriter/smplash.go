@@ -28,7 +28,7 @@ type SMPlash struct {
 	sd *PlashSharedData
 
 	// runtime
-	jets      []jet.PrefixedID
+	jets      []jet.ExactID
 }
 
 func (p *SMPlash) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
@@ -57,7 +57,7 @@ func (p *SMPlash) stepInit(ctx smachine.InitializationContext) smachine.StateUpd
 	}
 
 	ctx.SetDefaultMigration(p.migratePresent)
-	return ctx.Jump(p.stepCreateStreamDrop)
+	return ctx.Jump(p.stepCreatePlush)
 }
 
 // func (p *SMPlash) getPrevDropPulseNumber() pulse.Number {
@@ -87,13 +87,13 @@ func (p *SMPlash) stepInit(ctx smachine.InitializationContext) smachine.StateUpd
 // 	return prevPN
 // }
 
-func (p *SMPlash) stepCreateStreamDrop(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (p *SMPlash) stepCreatePlush(ctx smachine.ExecutionContext) smachine.StateUpdate {
 
 	// TODO get jetTree, online population
 
 	pr := p.sd.pr
 	return p.builderSvc.PrepareAsync(ctx, func(svc buildersvc.Service) smachine.AsyncResultFunc {
-		jetAssist, jets := svc.CreatePlash(pr)
+		jetAssist, jets := svc.CreatePlash(pr, nil, nil)
 
 		return func(ctx smachine.AsyncResultContext) {
 			if jetAssist == nil {
@@ -112,9 +112,7 @@ func (p *SMPlash) stepCreateJetDrops(ctx smachine.ExecutionContext) smachine.Sta
 
 	pn := p.pulseSlot.PulseNumber()
 	for _, jetID := range p.jets {
-		legID := jetID.AsLeg(pn)
-		updater := p.sd.jetAssist.GetJetDropAssistant(jetID.ID())
-		p.cataloger.Create(ctx, legID, updater)
+		p.cataloger.Create(ctx, jetID, pn)
 	}
 
 	ctx.ApplyAdjustment(p.sd.enableAccess())

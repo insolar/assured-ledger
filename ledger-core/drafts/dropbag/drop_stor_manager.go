@@ -16,14 +16,14 @@ import (
 
 type DropStorageManager interface {
 	// will actually open CompositeDropStorage that may have multiple DropStorage(s) incorporated
-	OpenStorage(jetId jet.PrefixedID, pn pulse.Number) (DropStorage, error)
+	OpenStorage(jetId jet.ExactID, pn pulse.Number) (DropStorage, error)
 	OpenPulseStorage(pn pulse.Number) (CompositeDropPerPulseData, error)
 
 	// each storage is lazy-closed, but can be explicitly marked for closing
 	UnusedStorage(CompositeDropStorage)
 
 	// returns nil when the required storage is not open
-	GetOpenedStorage(jetId jet.PrefixedID, pn pulse.Number) DropStorage
+	GetOpenedStorage(jetId jet.ExactID, pn pulse.Number) DropStorage
 
 	BuildStorage(pr pulse.Range) CompositeDropStorageBuilder
 }
@@ -53,7 +53,7 @@ type CompositeDropStorage interface {
 	PerPulseData() CompositeDropPerPulseData
 
 	// identified by the latest pulse in a range of the drop
-	GetDropStorage(jetId jet.PrefixedID, pn pulse.Number) DropStorage
+	GetDropStorage(jetId jet.ExactID, pn pulse.Number) DropStorage
 
 	// Jets
 	// Cabinet -> StorageCabinet
@@ -82,8 +82,8 @@ type DropJetTree interface {
 	MinDepth() uint8
 	MaxDepth() uint8
 	Count() int
-	PrefixToJetId(prefix jet.Prefix) jet.PrefixedID
-	KeyToJetId(keyset.Key) jet.PrefixedID
+	PrefixToJetId(prefix jet.Prefix) jet.ExactID
+	KeyToJetId(keyset.Key) jet.ExactID
 }
 
 type DropStorage interface {

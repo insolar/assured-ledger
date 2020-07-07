@@ -17,21 +17,21 @@ import (
 )
 
 type PlashAssistant interface {
+	PreparePulseChange(/* callback */)
+	CancelPulseChange()
+	CommitPulseChange()
+
 	CalculateJetDrop(reference.Holder) jet.DropID
-	GetJetDropAssistant(id jet.ID) JetDropAssistant
-}
-
-type AddFuture interface {
-	TrySetCommitted(committed bool, allocatedBase uint32) bool
-}
-
-type JetDropAssistant interface {
-	AddRecords(future AddFuture, br *lineage.BundleResolver) bool
 	GetResolver() lineage.DependencyResolver
 }
 
+type AppendFuture interface {
+	TrySetFutureResult(committed bool, allocatedBase uint32, err error) bool
+}
+
 type Service interface {
-	CreatePlash(pulse.Range, jet.Tree, census.OnlinePopulation) (PlashAssistant, []jet.PrefixedID)
+	CreatePlash(pulse.Range, jet.Tree, census.OnlinePopulation) (PlashAssistant, []jet.ExactID)
+	AppendToDrop(jet.DropID, AppendFuture, *lineage.BundleResolver)
 }
 
 var _ Service = &serviceImpl{}
@@ -44,7 +44,11 @@ type serviceImpl struct {
 	allocationStrategy jetbalancer.MaterialAllocationStrategy
 }
 
-func (p *serviceImpl) CreatePlash(pr pulse.Range, tree jet.Tree, population census.OnlinePopulation) (PlashAssistant, []jet.PrefixedID) {
+func (p *serviceImpl) AppendToDrop(id jet.DropID, future AppendFuture, resolver *lineage.BundleResolver) {
+	panic("implement me")
+}
+
+func (p *serviceImpl) CreatePlash(pr pulse.Range, tree jet.Tree, population census.OnlinePopulation) (PlashAssistant, []jet.ExactID) {
 	if population == nil {
 		panic(throw.IllegalValue())
 	}
@@ -61,17 +65,17 @@ func (p *serviceImpl) CreatePlash(pr pulse.Range, tree jet.Tree, population cens
 		pa.tree.Init()
 
 		// TODO genesis
-		return pa, []jet.PrefixedID{jet.GenesisPrefixedID}
+		return pa, []jet.ExactID{jet.GenesisExactID}
 	}
 
 	pa.tree = *tree
 	pa.tree.SetPropagate() // grants O(1) to find jet
 
 	jetCount := pa.tree.Count()
-	jets := make([]jet.PrefixedID, 0, jetCount)
+	jets := make([]jet.ExactID, 0, jetCount)
 
 	pa.tree.Enum(func(prefix jet.Prefix, depth uint8) bool {
-		jets = append(jets, jet.ID(prefix).AsPrefixed(depth))
+		jets = append(jets, jet.ID(prefix).AsExact(depth))
 		return false
 	})
 
@@ -131,6 +135,22 @@ type plashAssistant struct {
 	dropAssists map[jet.ID]*dropAssistant
 }
 
+func (p *plashAssistant) PreparePulseChange() {
+	panic("implement me")
+}
+
+func (p *plashAssistant) CancelPulseChange() {
+	panic("implement me")
+}
+
+func (p *plashAssistant) CommitPulseChange() {
+	panic("implement me")
+}
+
+func (p *plashAssistant) GetResolver() lineage.DependencyResolver {
+	panic("implement me")
+}
+
 func (p *plashAssistant) CalculateJetDrop(holder reference.Holder) jet.DropID {
 	switch {
 	case reference.IsEmpty(holder):
@@ -143,7 +163,7 @@ func (p *plashAssistant) CalculateJetDrop(holder reference.Holder) jet.DropID {
 	jetPrefix := p.calc.AllocationOfLine(base)
 	jetPrefix, _ = p.tree.GetPrefix(jetPrefix)
 
-	jetID := jet.ID(jetPrefix)
+	jetID := jetPrefix.AsID()
 	switch da := p.dropAssists[jetID]; {
 	case da == nil:
 		panic(throw.Impossible())
@@ -154,7 +174,7 @@ func (p *plashAssistant) CalculateJetDrop(holder reference.Holder) jet.DropID {
 	return 0
 }
 
-func (p *plashAssistant) GetJetDropAssistant(id jet.ID) JetDropAssistant {
+func (p *plashAssistant) getDropAssistant(id jet.ID) *dropAssistant {
 	if p.dropAssists == nil {
 		panic(throw.IllegalState())
 	}
@@ -162,37 +182,28 @@ func (p *plashAssistant) GetJetDropAssistant(id jet.ID) JetDropAssistant {
 	switch assist, ok := p.dropAssists[id]; {
 	case !ok:
 		return nil
-	case assist == nil: // to avoid a chance for interface-nil
+	case assist == nil:
 		panic(throw.IllegalState())
 	default:
 		return assist
 	}
 }
 
-func (p *plashAssistant) getResolver() lineage.DependencyResolver {
-	// TODO getResolver
-	return nil
-}
-
-func (p *plashAssistant) addRecords(pid jet.PrefixedID, br *lineage.BundleResolver, future AddFuture) bool {
-
+func (p *plashAssistant) addRecords(pid jet.ExactID, br *lineage.BundleResolver, future AppendFuture) bool {
+	panic(throw.NotImplemented())
 }
 
 // TODO a configuration set for conveyor that provides adapters and input-SM mapper
 
 type dropAssistant struct {
 	nodeID node.ShortNodeID
-	dropID jet.PrefixedID
+	dropID jet.ExactID
 	pa     *plashAssistant
 }
 
-func (p *dropAssistant) AddRecords(future AddFuture, br *lineage.BundleResolver) bool {
+func (p *dropAssistant) AddRecords(future AppendFuture, br *lineage.BundleResolver) bool {
 	// TODO check if drop was properly initialized
 	return p.pa.addRecords(p.dropID, br, future)
-}
-
-func (p *dropAssistant) GetResolver() lineage.DependencyResolver {
-	return p.pa.getResolver()
 }
 
 func (p *dropAssistant) isLocal() bool {

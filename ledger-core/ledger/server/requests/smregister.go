@@ -118,7 +118,7 @@ func (p *SMRegisterRecordSet) stepLineIsReady(ctx smachine.ExecutionContext) sma
 	}
 
 	if !isValid {
-		return ctx.Jump(p.stepSendResponse)
+		return ctx.Jump(p.stepSendFinalResponse)
 	}
 
 	// do chaining, hashing and signing via adapter
@@ -135,11 +135,16 @@ func (p *SMRegisterRecordSet) stepApplyRecordSet(ctx smachine.ExecutionContext) 
 		return ctx.Sleep().ThenRepeat()
 	}
 
+	var errors []error
 	switch p.sdl.TryAccess(ctx, func(sd *datawriter.LineSharedData) (wakeup bool) {
-		switch future, bundle := sd.TryApplyRecordSet(*p.inspectedSet); {
+		switch future, bundle := sd.TryApplyRecordSet(ctx, *p.inspectedSet); {
 		case bundle == nil:
 			p.updated = future
 			return false
+		case bundle.HasErrors():
+			errors = bundle.GetErrors()
+			return false
+
 		case p.hasRequested:
 			//
 			return false
@@ -157,28 +162,35 @@ func (p *SMRegisterRecordSet) stepApplyRecordSet(ctx smachine.ExecutionContext) 
 		panic(throw.IllegalState())
 	}
 
-	if p.updated == nil {
+	switch {
+	case len(errors) > 0:
+		p.sendFailResponse(ctx, errors...)
+		return ctx.Stop()
+
+	case p.updated == nil:
 		return ctx.Sleep().ThenRepeat()
+
+	case p.getFlags() & rms.RegistrationFlags_Fast != 0:
+		p.sendResponse(ctx, false)
 	}
 
-	if p.getFlags() & rms.RegistrationFlags_Fast != 0 {
-		p.sendResponse(false, true)
-	}
-
+	ctx.ReleaseAll()
 	return ctx.Jump(p.stepWaitUpdated)
 }
 
 func (p *SMRegisterRecordSet) stepWaitUpdated(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	ctx.ReleaseAll()
-
 	if !ctx.Acquire(p.updated.GetReadySync()) {
 		return ctx.Sleep().ThenRepeat()
 	}
-	return ctx.Jump(p.stepSendResponse)
+	return ctx.Jump(p.stepSendFinalResponse)
 }
 
 func (p *SMRegisterRecordSet) migratePresent(ctx smachine.MigrationContext) smachine.StateUpdate {
 	ctx.SetDefaultMigration(p.migratePast)
+
+	if p.updated == nil {
+		return ctx.Jump(p.stepSendFinalResponse)
+	}
 	return ctx.Stay()
 }
 
@@ -186,23 +198,39 @@ func (p *SMRegisterRecordSet) migratePast(ctx smachine.MigrationContext) smachin
 	return ctx.Stop()
 }
 
-func (p *SMRegisterRecordSet) stepSendResponse(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	committed := false
-	if p.updated != nil {
-		ready := false
-		ready, committed = p.updated.GetCommitStatus()
-		if !ready {
-			panic(throw.Impossible())
+func (p *SMRegisterRecordSet) stepSendFinalResponse(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	if p.updated == nil {
+		p.sendFailResponse(ctx, throw.E("cancelled"))
+	} else {
+		switch ready, alloc, err := p.updated.GetFutureResult(); {
+		case !ready:
+			p.sendFailResponse(ctx, throw.E("aborted"))
+		case err != nil:
+			p.sendFailResponse(ctx, err)
+		case alloc == 0:
+			p.sendFailResponse(ctx, throw.E("rejected"))
+		default:
+			p.sendResponse(ctx, true)
 		}
 	}
-	p.sendResponse(true, committed)
 	return ctx.Stop()
 }
 
-func (p *SMRegisterRecordSet) sendResponse(safe, ok bool) {
+func (p *SMRegisterRecordSet) sendResponse(ctx smachine.ExecutionContext, safe bool) {
 	// TODO
-	if safe == ok {
-		runtime.KeepAlive(ok)
+	if safe {
+		runtime.KeepAlive(ctx)
+	}
+	panic(throw.NotImplemented())
+}
+
+func (p *SMRegisterRecordSet) sendFailResponse(ctx smachine.ExecutionContext, errors ...error) {
+	if len(errors) == 0 || errors[0] == nil {
+		panic(throw.IllegalState())
+	}
+	// TODO
+	if ctx != nil {
+		runtime.KeepAlive(ctx)
 	}
 	panic(throw.NotImplemented())
 }
@@ -215,7 +243,7 @@ func (p *SMRegisterRecordSet) getFlags() rms.RegistrationFlags {
 	return p.recordSet.Requests[0].Flags
 }
 
-func (p *SMRegisterRecordSet) handleError(smachine.FailureContext) {
-	p.sendResponse(true, false)
+func (p *SMRegisterRecordSet) handleError(ctx smachine.FailureContext) {
+// TODO p.sendResponse(ctx, ctx.GetError())
 }
 
