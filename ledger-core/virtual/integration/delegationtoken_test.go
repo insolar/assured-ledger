@@ -148,7 +148,7 @@ type testCase struct {
 	approverVE    veSetMode
 	currentVE     veSetMode
 	errorMessages []string
-	errorSeverity []throw.Severity
+	errorSeverity throw.Severity
 }
 
 func TestDelegationToken_IsMessageFromVirtualLegitimate(t *testing.T) {
@@ -163,7 +163,7 @@ func TestDelegationToken_IsMessageFromVirtualLegitimate(t *testing.T) {
 				"unexpected sender",
 				"illegitimate msg",
 			},
-			errorSeverity: []throw.Severity{},
+			errorSeverity: 0,
 		},
 		{
 			name:       "Fail if sender eq approver",
@@ -175,9 +175,7 @@ func TestDelegationToken_IsMessageFromVirtualLegitimate(t *testing.T) {
 				"sender cannot be approver of the token",
 				"illegitimate msg",
 			},
-			errorSeverity: []throw.Severity{
-				throw.FraudSeverity,
-			},
+			errorSeverity: throw.FraudSeverity,
 		},
 		{
 			name:       "Fail if wrong approver",
@@ -189,7 +187,7 @@ func TestDelegationToken_IsMessageFromVirtualLegitimate(t *testing.T) {
 				"token Approver and expectedVE are different",
 				"illegitimate msg",
 			},
-			errorSeverity: []throw.Severity{},
+			errorSeverity: 0,
 		},
 	}
 	messages := []struct {
@@ -240,8 +238,8 @@ func TestDelegationToken_IsMessageFromVirtualLegitimate(t *testing.T) {
 					if !ok {
 						return
 					}
-					for _, severity := range testCase.errorSeverity {
-						if s, sok := throw.GetSeverity(err); sok && s != severity {
+					if testCase.errorSeverity > 0 {
+						if s, sok := throw.GetSeverity(err); (sok && s != testCase.errorSeverity) || !sok {
 							return
 						}
 					}
