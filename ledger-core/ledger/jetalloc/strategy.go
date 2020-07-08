@@ -85,7 +85,7 @@ func (v defaultMaterialAllocationCalc) metricOfDrop(jt jet.DropID) uint64 {
 	h := v.hashFactory()
 	var b [8]byte
 	encoding.PutUint64(b[:], uint64(jt))
-	h.Write(b[:])
+	_, _ = h.Write(b[:])
 	_, _ = v.entropy.WriteTo(h)
 	h.Sum(b[:0])
 

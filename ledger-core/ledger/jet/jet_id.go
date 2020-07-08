@@ -102,9 +102,8 @@ func (v ExactID) AsLeg(createdAt pulse.Number) LegID {
 func (v ExactID) String() string {
 	if n, ok := v.bitLength(); ok {
 		return fmt.Sprintf("0x%02X[%d]", v.ID(), n)
-	} else {
-		return fmt.Sprintf("0x%02X[]", v.ID())
 	}
+	return fmt.Sprintf("0x%02X[]", v.ID())
 }
 
 /***************************************************************/

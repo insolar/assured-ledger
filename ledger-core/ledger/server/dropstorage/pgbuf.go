@@ -129,7 +129,7 @@ func newFlushedPage(pageNo uint32) *bufferPage {
 }
 
 func newBufferPage(capacity uint32) *bufferPage {
-	return &bufferPage{ buffer: make([]byte, capacity, capacity) }
+	return &bufferPage{ buffer: make([]byte, capacity) }
 }
 
 type bufferPage struct {

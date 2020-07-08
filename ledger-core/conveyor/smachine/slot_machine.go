@@ -1122,8 +1122,9 @@ func activateDependantWithoutWorker(links []StepLink, ignore SlotLink) {
 		case m == lm:
 			continue
 		case lm != nil:
+			subset := links[from:i]
 			lm.syncQueue.AddAsyncUpdate(SlotLink{}, func(_ SlotLink, worker FixedSlotWorker) {
-				lm.activateDependants(links[from:i], ignore, worker)
+				lm.activateDependants(subset, ignore, worker)
 			})
 		}
 		lm = m
