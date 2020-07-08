@@ -35,7 +35,7 @@ T01_S003 --> T01_S004
 state "stepDeduplicate" as T01_S008
 T01_S008 : SMExecute
 T01_S008 --[dotted]> T01_S001
-T01_S008 --> T01_S008 : [!ok]
+T01_S008 --> T01_S008 : [!stepUpdate.IsEmpty()]
 T01_S008 --> [*] : [Stop]
 T01_S008 --> [*] : [SendResultAndStop]
 T01_S008 --> T01_S009 : [DeduplicateThroughPreviousExecutor]
@@ -87,7 +87,7 @@ T01_S031 --[dotted]> T01_S015
 T01_S031 --[dotted]> T01_S001
 T01_S031 --> T01_S027 : [s.execution.Result!=nil]
 T01_S031 --> T01_S029 : [s.migrationHappened]
-T01_S031 --> T01_S031 : [!ok]
+T01_S031 --> T01_S031 : [!stepUpdate.IsEmpty()]
 T01_S031 --> [*]
 state "stepGetDelegationToken" as T01_S016
 T01_S016 : SMExecute
@@ -106,7 +106,7 @@ T01_S017 --> T01_S018
 state "stepGetObject" as T01_S004
 T01_S004 : SMExecute
 T01_S004 --[dotted]> T01_S001
-T01_S004 --> T01_S004 : [!ok]
+T01_S004 --> T01_S004 : [!stepUpdate.IsEmpty()]
 T01_S004 --> T01_S005
 state "stepIsolationNegotiation" as T01_S006
 T01_S006 : SMExecute
@@ -135,7 +135,7 @@ state "stepSaveNewObject" as T01_S026
 T01_S026 : SMExecute
 T01_S026 --[dotted]> T01_S015
 T01_S026 --> T01_S030 : [(...).migrationHappened||s.newObjectDescriptor==nil]
-T01_S026 --> T01_S026 : [!ok]
+T01_S026 --> T01_S026 : [!stepUpdate.IsEmpty()]
 T01_S026 --> T01_S030
 state "stepSendCallResult" as T01_S030
 T01_S030 : SMExecute
@@ -157,7 +157,7 @@ T01_S024 --[dashed]> T01_S025 : Sleep
 state "stepStartRequestProcessing" as T01_S014
 T01_S014 : SMExecute
 T01_S014 --[dotted]> T01_S001
-T01_S014 --> T01_S014 : [!ok]
+T01_S014 --> T01_S014 : [!stepUpdate.IsEmpty()]
 T01_S014 --> T01_S019 : Migrate: s.migrateDuringExecution
 state "stepTakeLock" as T01_S013
 T01_S013 : SMExecute
@@ -172,7 +172,7 @@ T01_S011 --> T01_S012
 state "stepWaitObjectReady" as T01_S005
 T01_S005 : SMExecute
 T01_S005 --[dotted]> T01_S001
-T01_S005 --[dashed]> T01_S005 : [!ok]\n[(...).AcquireForThisStep().IsNotPassed()]...\nSleep
+T01_S005 --[dashed]> T01_S005 : [!stepUpdate.IsEmpty()]\n[(...).AcquireForThisStep().IsNotPassed()]...\nSleep
 T01_S005 --> T01_S030 : [object.Missing]
 T01_S005 --> T01_S006
 state "GetInitStateFor" as T00_S001

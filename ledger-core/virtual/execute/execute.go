@@ -164,7 +164,7 @@ func (s *SMExecute) stepGetObject(ctx smachine.ExecutionContext) smachine.StateU
 			}
 		}
 
-		if stepUpdate, ok := s.shareObjectAccess(ctx, action); !ok {
+		if stepUpdate := s.shareObjectAccess(ctx, action); !stepUpdate.IsEmpty() {
 			return stepUpdate
 		}
 	}
@@ -203,7 +203,7 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 		objectState = state.GetState()
 	}
 
-	if stepUpdate, ok := s.shareObjectAccess(ctx, action); !ok {
+	if stepUpdate := s.shareObjectAccess(ctx, action); !stepUpdate.IsEmpty() {
 		return stepUpdate
 	}
 
@@ -330,7 +330,7 @@ func (s *SMExecute) stepDeduplicate(ctx smachine.ExecutionContext) smachine.Stat
 		deduplicateAction, msg = s.deduplicate(state)
 	}
 
-	if stepUpdate, ok := s.shareObjectAccess(ctx, action); !ok {
+	if stepUpdate := s.shareObjectAccess(ctx, action); !stepUpdate.IsEmpty() {
 		return stepUpdate
 	}
 
@@ -468,7 +468,7 @@ func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) sm
 		objectDescriptor = state.Descriptor()
 	}
 
-	if stepUpdate, ok := s.shareObjectAccess(ctx, action); !ok {
+	if stepUpdate := s.shareObjectAccess(ctx, action); !stepUpdate.IsEmpty() {
 		return stepUpdate
 	}
 
@@ -754,7 +754,7 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 		}
 	}
 
-	if stepUpdate, ok := s.shareObjectAccess(ctx, action); !ok {
+	if stepUpdate := s.shareObjectAccess(ctx, action); !stepUpdate.IsEmpty() {
 		return stepUpdate
 	}
 
@@ -915,7 +915,7 @@ func (s *SMExecute) stepFinishRequest(ctx smachine.ExecutionContext) smachine.St
 		state.FinishRequest(s.execution.Isolation, s.execution.Outgoing, s.execution.Result)
 	}
 
-	if stepUpdate, ok := s.shareObjectAccess(ctx, action); !ok {
+	if stepUpdate := s.shareObjectAccess(ctx, action); !stepUpdate.IsEmpty() {
 		return stepUpdate
 	}
 
@@ -951,14 +951,14 @@ func (s *SMExecute) sendResult(ctx smachine.ExecutionContext, message payload.Ma
 func (s *SMExecute) shareObjectAccess(
 	ctx smachine.ExecutionContext,
 	action func(state *object.SharedState),
-) (smachine.StateUpdate, bool) {
+) smachine.StateUpdate {
 	switch s.objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
 	case smachine.NotPassed:
-		return ctx.WaitShared(s.objectSharedState.SharedDataLink).ThenRepeat(), false
+		return ctx.WaitShared(s.objectSharedState.SharedDataLink).ThenRepeat()
 	case smachine.Impossible:
 		panic(throw.NotImplemented())
 	case smachine.Passed:
-		return smachine.StateUpdate{}, true
+		return smachine.StateUpdate{}
 	default:
 		panic(throw.Impossible())
 	}
