@@ -129,7 +129,7 @@ func TestVirtual_BadMethod_WithExecutor(t *testing.T) {
 }
 
 func TestVirtual_Method_WithExecutor(t *testing.T) {
-	t.Log("C4923")
+	t.Log("C5088")
 
 	var (
 		mc = minimock.NewController(t)
@@ -137,6 +137,8 @@ func TestVirtual_Method_WithExecutor(t *testing.T) {
 
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
+
+	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 	server.IncrementPulseAndWaitIdle(ctx)
 
 	var (
@@ -160,12 +162,12 @@ func TestVirtual_Method_WithExecutor(t *testing.T) {
 		CallOutgoing:        server.BuildRandomOutgoingWithPulse(),
 	}
 
-	countBefore := server.PublisherMock.GetCount()
 	server.SendPayload(ctx, &pl)
 
-	if !server.PublisherMock.WaitCount(countBefore+1, 10*time.Second) {
-		t.Error("failed to wait for result")
-	}
+	testutils.WaitSignalsTimed(t, 20*time.Second, executeDone)
+	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+
+	require.Equal(t, 1, typedChecker.VCallResult.Count())
 
 	mc.Finish()
 }
@@ -1102,7 +1104,7 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 	defer server.Stop()
 
 	logger := inslogger.FromContext(ctx)
-	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 2)
+	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 
 	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
 		return execution.Request.CallSiteMethod
@@ -1118,20 +1120,15 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 	var (
 		class  = gen.UniqueGlobalRef()
 		object = reference.NewSelf(server.RandomLocalWithPulse())
-		// outgoingP1      = server.BuildRandomOutgoingWithPulse()
-		p1 = server.GetPulse().PulseNumber
+		p1     = server.GetPulse().PulseNumber
 	)
 
 	server.IncrementPulseAndWaitIdle(ctx)
 	outgoingP2 := server.BuildRandomOutgoingWithPulse()
-	// p2              := server.GetPulse().PulseNumber
 
 	// add ExecutionMock to runnerMock
 	{
-		runnerMock.AddExecutionClassify("SomeMethod", contract.MethodIsolation{
-			Interference: contract.CallIntolerable,
-			State:        contract.CallDirty,
-		}, nil)
+		runnerMock.AddExecutionClassify("SomeMethod", intolerableFlags(), nil)
 		requestResult := requestresult.New([]byte("call result"), gen.UniqueGlobalRef())
 
 		objectExecutionMock := runnerMock.AddExecutionMock("SomeMethod")
@@ -1139,6 +1136,7 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 			func(ctx execution.Context) {
 				logger.Debug("ExecutionStart [SomeMethod]")
 				require.Equal(t, object, ctx.Request.Callee)
+				require.Equal(t, []byte("new object memory"), ctx.ObjectDescriptor.Memory())
 			},
 			&execution.Update{
 				Type:   execution.Done,
@@ -1164,7 +1162,7 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 			LatestDirtyState: &payload.ObjectState{
 				Reference: reference.Local{},
 				Class:     testwalletProxy.GetClass(),
-				State:     makeRawWalletState(initialBalance),
+				State:     []byte("new object memory"),
 			},
 		}
 
@@ -1174,9 +1172,7 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 			Object:          object,
 			ProvidedContent: content,
 		}
-
-		server.SendMessage(ctx, utils.NewRequestWrapper(req.AsOf, &report).SetSender(server.JetCoordinatorMock.Me()).Finalize())
-
+		server.SendPayload(ctx, &report)
 		return false // no resend msg
 	})
 
@@ -1184,7 +1180,6 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 		require.Equal(t, []byte("call result"), res.ReturnArguments)
 		require.Equal(t, object, res.Callee)
 		require.Equal(t, outgoingP2, res.CallOutgoing)
-
 		return false // no resend msg
 	})
 
@@ -1192,7 +1187,7 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 	{
 		pl := payload.VCallRequest{
 			CallType:            payload.CTMethod,
-			CallFlags:           payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
+			CallFlags:           payload.BuildCallFlags(contract.CallIntolerable, contract.CallValidated),
 			Caller:              server.GlobalCaller(),
 			Callee:              object,
 			CallSiteDeclaration: class,
