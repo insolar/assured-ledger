@@ -23,7 +23,18 @@ type InputEvent = interface{}
 
 // PulseEventFactoryFunc should return pulse.Unknown or current.Pulse when SM doesn't need to be put into a different pulse slot.
 // Arg (pulse.Range) can be nil for future slot.
-type PulseEventFactoryFunc = func(context.Context, pulse.Number, pulse.Range, InputEvent) (pulse.Number, smachine.CreateFunc, error)
+type PulseEventFactoryFunc = func(context.Context, InputEvent, InputContext) (InputSetup, error)
+
+type InputContext struct {
+	PulseNumber pulse.Number
+	PulseRange  pulse.Range
+}
+
+type InputSetup struct {
+	TargetPulse pulse.Number
+	CreateFn    smachine.CreateFunc
+	PreInitFn   smachine.PreInitHandlerFunc
+}
 
 type EventInputer interface {
 	AddInput(ctx context.Context, pn pulse.Number, event InputEvent) error
@@ -163,15 +174,16 @@ func (p *PulseConveyor) AddInputExt(pn pulse.Number, event InputEvent,
 		pr, _ = pulseSlot.pulseData.PulseRange()
 	}
 
-	remapPN, createFn, err := p.factoryFn(createDefaults.Context, targetPN, pr, event)
+	setup, err := p.factoryFn(createDefaults.Context, event, InputContext{ targetPN, pr })
 	switch {
-	case createFn == nil || err != nil:
+	case err != nil || setup.CreateFn == nil:
 		return err
 
-	case remapPN == targetPN || remapPN == pn || remapPN.IsUnknown():
+	case setup.TargetPulse == targetPN || setup.TargetPulse == pn || setup.TargetPulse.IsUnknown():
 		//
-	case remapPN.IsTimePulse():
-		if pulseSlotMachine, targetPN, pulseState, err = p.mapToPulseSlotMachine(remapPN); err != nil {
+
+	case setup.TargetPulse.IsTimePulse():
+		if pulseSlotMachine, targetPN, pulseState, err = p.mapToPulseSlotMachine(setup.TargetPulse); err != nil {
 			return err
 		}
 		if pulseSlotMachine != nil && pulseState != 0 {
@@ -179,7 +191,12 @@ func (p *PulseConveyor) AddInputExt(pn pulse.Number, event InputEvent,
 		}
 		fallthrough
 	default:
-		return throw.E("slotMachine remap is missing", errMissingPN{PN: pn, RemapPN: remapPN})
+		return throw.E("slotMachine remap is missing", errMissingPN{PN: pn, RemapPN: setup.TargetPulse})
+	}
+
+	createFn := setup.CreateFn
+	if setup.PreInitFn != nil {
+		createDefaults.PreInitializationHandler = setup.PreInitFn
 	}
 
 	addedOk := false

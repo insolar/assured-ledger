@@ -22,7 +22,14 @@ import (
 
 type FactoryMeta struct {
 	LogContextOverride context.Context
-	AuthService authentication.Service
+	AuthService        authentication.Service
+}
+
+type skippedMessage struct {
+	messageTypeID uint64
+	messageType   reflect.Type
+	incomingPulse pulse.Number
+	targetPulse   pulse.Number
 }
 
 func (f FactoryMeta) Process(ctx context.Context, msg *statemachine.DispatcherMessage, pr pulse.Range) (pulse.Number, smachine.CreateFunc, error) {
@@ -38,30 +45,28 @@ func (f FactoryMeta) Process(ctx context.Context, msg *statemachine.DispatcherMe
 	if logCtx == nil {
 		logCtx = ctx
 	}
-	logger := inslogger.FromContext(logCtx)
-	traceField := inslogger.TraceField(traceID)
-
+	logCtx, logger := inslogger.WithTraceField(logCtx, traceID)
 
 	payloadBytes := payloadMeta.Payload
 	payloadTypeID, payloadObj, err := rms.Unmarshal(payloadBytes)
 	if err != nil {
-		logger.Warnm(throw.WithSeverity(throw.W(err, "invalid msg"), throw.ViolationSeverity), traceField)
+		logger.Warnm(throw.WithSeverity(throw.W(err, "invalid msg"), throw.ViolationSeverity))
 		return pulse.Unknown, nil, nil
 	}
 
 	payloadType := rms.GetRegistry().Get(payloadTypeID)
 
 	logger.Infom(struct {
-		Message string
-		PayloadTypeID uint64
+		Message         string
+		PayloadTypeID   uint64
 		PayloadTypeName string
-	} { "processing message", payloadTypeID, payloadType.String() },
-	traceField)
+	}{"processing message", payloadTypeID, payloadType.String()})
 
 	targetPulse := pr.RightBoundData().PulseNumber
 	if targetPulse != payloadMeta.Pulse {
 		panic(throw.Impossible())
 	}
+
 
 	// skip legitimate check for future PN
 	if !payloadMeta.Pulse.IsAfter(pr.RightBoundData().PulseNumber) {
@@ -77,8 +82,7 @@ func (f FactoryMeta) Process(ctx context.Context, msg *statemachine.DispatcherMe
 				messageType:   payloadType,
 				incomingPulse: payloadMeta.Pulse,
 				targetPulse:   targetPulse,
-			}),
-				traceField)
+			}), )
 
 			return pulse.Unknown, nil, nil
 		}
@@ -111,16 +115,15 @@ func (f FactoryMeta) Process(ctx context.Context, msg *statemachine.DispatcherMe
 			return targetPulse, &SMVFindCallResponse{Meta: payloadMeta, Payload: obj}
 		default:
 			logger.Warnm(struct {
-				Msg string
-				PayloadTypeID uint64
+				Msg             string
+				PayloadTypeID   uint64
 				PayloadTypeName string
-			} { "no handler for message type", payloadTypeID, payloadType.String() },
-			traceField)
+			}{"no handler for message type", payloadTypeID, payloadType.String()})
 			return 0, nil
 		}
 	}(); sm != nil {
 		return pn, func(constructorCtx smachine.ConstructionContext) smachine.StateMachine {
-			constructorCtx.SetContext(ctx)
+			constructorCtx.SetContext(logCtx)
 			constructorCtx.SetTracerID(traceID)
 			return sm
 		}, nil

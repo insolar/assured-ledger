@@ -8,6 +8,7 @@
 package handlers
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
@@ -28,6 +29,7 @@ type SMVDelegatedRequestFinished struct {
 
 	// dependencies
 	objectCatalog object.Catalog
+	pulseSlot     *conveyor.PulseSlot
 }
 
 type stateIsNotReady struct {
@@ -52,6 +54,7 @@ func (*dSMVDelegatedRequestFinished) InjectDependencies(sm smachine.StateMachine
 	s := sm.(*SMVDelegatedRequestFinished)
 
 	injector.MustInject(&s.objectCatalog)
+	injector.MustInject(&s.pulseSlot)
 }
 
 func (*dSMVDelegatedRequestFinished) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc {
@@ -66,7 +69,18 @@ func (s *SMVDelegatedRequestFinished) GetStateMachineDeclaration() smachine.Stat
 }
 
 func (s *SMVDelegatedRequestFinished) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
+	if s.pulseSlot.State() != conveyor.Present {
+		ctx.Log().Warn("stop processing VDelegatedRequestFinished since we are not in present pulse")
+		return ctx.Stop()
+	}
+	ctx.SetDefaultMigration(s.migrationDefault)
+
 	return ctx.Jump(s.stepGetObject)
+}
+
+func (s *SMVDelegatedRequestFinished) migrationDefault(ctx smachine.MigrationContext) smachine.StateUpdate {
+	ctx.Log().Trace("stop processing SMVDelegatedRequestFinished since pulse was changed")
+	return ctx.Stop()
 }
 
 func (s *SMVDelegatedRequestFinished) stepGetObject(ctx smachine.ExecutionContext) smachine.StateUpdate {
