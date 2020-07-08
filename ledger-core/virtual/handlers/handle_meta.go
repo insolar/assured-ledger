@@ -67,6 +67,7 @@ func (f FactoryMeta) Process(ctx context.Context, msg *statemachine.DispatcherMe
 		panic(throw.Impossible())
 	}
 
+	// don't check sender for future pulses in R0
 	if !pr.RightBoundData().IsExpectedPulse() {
 		mustReject, err := f.AuthService.IsMessageFromVirtualLegitimate(logCtx, payloadObj, payloadMeta.Sender, pr)
 		if err != nil {
