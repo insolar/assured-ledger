@@ -3,6 +3,7 @@ apiVersion: traefik.containo.us/v1alpha1
 kind: IngressRoute
 metadata:
   name: uscifarm
+  namespace: kube-system
 spec:
   entryPoints:
     - https
@@ -11,6 +12,7 @@ spec:
     match: Host(`placeholder.uscifarm.insolar.io`) && PathPrefix(`/api`)
     services:
     - name: platform-network
+      namespace: placeholder
       port: 19101
       weight: 1
       passHostHeader: true
@@ -20,6 +22,7 @@ spec:
     match: Host(`placeholder.uscifarm.insolar.io`) && PathPrefix(`/admin-api`)
     services:
     - name: platform-network
+      namespace: placeholder
       port: 19001
       weight: 1
       passHostHeader: true
@@ -29,6 +32,7 @@ spec:
     match: Host(`placeholder.uscifarm.insolar.io`) && PathPrefix(`/wallet`)
     services:
     - name: platform-network
+      namespace: placeholder
       port: 32301
       weight: 1
       passHostHeader: true
@@ -36,5 +40,3 @@ spec:
         flushInterval: 100ms
   tls:
     secretName: wildcard
-    options:
-      namespace: kube-system
