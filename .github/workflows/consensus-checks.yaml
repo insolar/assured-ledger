@@ -80,7 +80,7 @@ jobs:
           KUBEDEPLOYTOOL_METRICPARAMS_GIT_COMMIT: ${{ fromJson(steps.set-vars.outputs.result).shortSha }}
           KUBEDEPLOYTOOL_METRICPARAMS_GIT_HEAD: ${{ fromJson(steps.set-vars.outputs.result).shortRef }}
           KUBEDEPLOYTOOL_KUBEPARAMS_NAMESPACE: ${{ fromJson(steps.set-vars.outputs.result).shortSha }}
-          KUBEDEPLOYTOOL_METRICPARAMS_PROMETHEUS_HOST: "http://${{secrets.PROMETHEUS_USER}}:${{secrets.PROMETHEUS_PASS}}@prometheus.uscifarm.insolar.io"
+          KUBEDEPLOYTOOL_METRICPARAMS_PROMETHEUS_HOST: "https://${{secrets.PROMETHEUS_USER}}:${{secrets.PROMETHEUS_PASS}}@prometheus.uscifarm.insolar.io"
         run: bin/kube-deploy-tool --config=scripts/deploy/kube-deploy-tool/config.yaml
         working-directory: ${{ env.CORE_PATH }}
       - name: Aggregate logs into a single archive
