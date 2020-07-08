@@ -7,6 +7,7 @@ package servicenetwork
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/ThreeDotsLabs/watermill"
@@ -47,8 +48,6 @@ func (p *PublisherMock) Close() error {
 }
 
 func prepareNetwork(t *testing.T, cfg configuration.Configuration) *ServiceNetwork {
-	instestlogger.SetTestOutputWithIgnoreAllErrors(t)
-
 	serviceNetwork, err := NewServiceNetwork(cfg, component.NewManager(nil))
 	require.NoError(t, err)
 
@@ -63,6 +62,12 @@ func prepareNetwork(t *testing.T, cfg configuration.Configuration) *ServiceNetwo
 
 func TestSendMessageHandler_ReceiverNotSet(t *testing.T) {
 	cfg := configuration.NewConfiguration()
+	instestlogger.SetTestOutputWithErrorFilter(t, func(s string) bool {
+		if strings.Contains(s, "failed to send message: Receiver in message metadata is not set") {
+			return false
+		}
+		return true
+	})
 
 	serviceNetwork := prepareNetwork(t, cfg)
 
