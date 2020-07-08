@@ -7,9 +7,11 @@ package debuglogger
 
 import (
 	"context"
+	"runtime"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/log/logfmt"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -34,8 +36,7 @@ type DebugStepLogger struct {
 	smachine.StepLogger
 
 	sm          smachine.StateMachine
-	events      chan<- UpdateEvent
-	continueSig synckit.SignalChannel
+	parent      *DebugMachineLogger
 }
 
 func (c DebugStepLogger) CanLogEvent(smachine.StepLoggerEvent, smachine.StepLogLevel) bool {
@@ -49,27 +50,27 @@ func (c DebugStepLogger) CreateAsyncLogger(context.Context, *smachine.StepLogger
 func (c DebugStepLogger) LogInternal(data smachine.StepLoggerData, updateType string) {
 	c.StepLogger.LogInternal(data, updateType)
 
-	c.events <- UpdateEvent{
+	c.parent.events.send(UpdateEvent{
 		notEmpty: true,
 		SM:       c.sm,
 		Data:     data,
 		Update:   smachine.StepLoggerUpdateData{UpdateType: updateType},
-	}
+	})
 
-	<-c.continueSig
+	c.parent.waitContinue()
 }
 
 func (c DebugStepLogger) LogUpdate(data smachine.StepLoggerData, update smachine.StepLoggerUpdateData) {
 	c.StepLogger.LogUpdate(data, update)
 
-	c.events <- UpdateEvent{
+	c.parent.events.send(UpdateEvent{
 		notEmpty: true,
 		SM:       c.sm,
 		Data:     data,
 		Update:   update,
-	}
+	})
 
-	<-c.continueSig
+	c.parent.waitContinue()
 }
 
 func (c DebugStepLogger) CanLogTestEvent() bool {
@@ -81,159 +82,152 @@ func (c DebugStepLogger) LogTestEvent(data smachine.StepLoggerData, customEvent 
 		c.StepLogger.LogTestEvent(data, customEvent)
 	}
 
-	c.events <- UpdateEvent{
+	c.parent.events.send(UpdateEvent{
 		notEmpty:    true,
 		SM:          c.sm,
 		Data:        data,
 		CustomEvent: customEvent,
-	}
+	})
 
-	<-c.continueSig
+	c.parent.waitContinue()
 }
 
 func (c DebugStepLogger) LogEvent(data smachine.StepLoggerData, customEvent interface{}, fields []logfmt.LogFieldMarshaller) {
 	c.StepLogger.LogEvent(data, customEvent, fields)
 
-	c.events <- UpdateEvent{
+	c.parent.events.send(UpdateEvent{
 		notEmpty:    true,
 		SM:          c.sm,
 		Data:        data,
 		CustomEvent: customEvent,
-	}
+	})
 
-	<-c.continueSig
+	c.parent.waitContinue()
 }
 
 func (c DebugStepLogger) LogAdapter(data smachine.StepLoggerData, adapterID smachine.AdapterID, callID uint64, fields []logfmt.LogFieldMarshaller) {
 	c.StepLogger.LogAdapter(data, adapterID, callID, fields)
 
-	switch data.Flags.AdapterFlags() {
-	case smachine.StepLoggerAdapterAsyncResult, smachine.StepLoggerAdapterAsyncCancel,
-	     smachine.StepLoggerAdapterAsyncExpiredResult, smachine.StepLoggerAdapterAsyncExpiredCancel:
-
-	    // These events are sent from an adapter and may arrive after the debug logger was stopped
-	    // so this defer is to protect from such case.
-
-		defer func() {
-			switch r := recover().(type) {
-			case nil:
-				//
-			case error:
-				if r.Error() != "send on closed channel" {
-					panic(r)
-				}
-			default:
-				panic(r)
-			}
-		}()
-	}
-
-	c.events <- UpdateEvent{
+	c.parent.events.send(UpdateEvent{
 		notEmpty:  true,
 		SM:        c.sm,
 		Data:      data,
 		AdapterID: adapterID,
 		CallID:    callID,
-	}
+	})
 
-	<-c.continueSig
+	c.parent.waitContinue()
 }
 
 type LoggerSlotPredicateFn func(smachine.StateMachine, smachine.TracerID) bool
 
 type DebugMachineLogger struct {
 	underlying   smachine.SlotMachineLogger
-	events       chan UpdateEvent
+	events       updateChan
 	continueStep synckit.ClosableSignalChannel
+	abort        atomickit.OnceFlag
 }
 
-func (v DebugMachineLogger) CreateStepLogger(ctx context.Context, sm smachine.StateMachine, traceID smachine.TracerID) smachine.StepLogger {
-	underlying := v.underlying.CreateStepLogger(ctx, sm, traceID)
-
-	continueStep := synckit.SignalChannel(v.continueStep)
-	if continueStep == nil {
-		continueStep = synckit.ClosedChannel()
-	}
+func (p *DebugMachineLogger) CreateStepLogger(ctx context.Context, sm smachine.StateMachine, traceID smachine.TracerID) smachine.StepLogger {
+	underlying := p.underlying.CreateStepLogger(ctx, sm, traceID)
 
 	return DebugStepLogger{
-		StepLogger:  underlying,
-		sm:          sm,
-		events:      v.events,
-		continueSig: continueStep,
+		StepLogger: underlying,
+		sm:         sm,
+		parent:     p,
 	}
 }
 
-func (v DebugMachineLogger) LogMachineInternal(slotMachineData smachine.SlotMachineData, msg string) {
-	v.underlying.LogMachineInternal(slotMachineData, msg)
+func (p *DebugMachineLogger) LogMachineInternal(slotMachineData smachine.SlotMachineData, msg string) {
+	p.underlying.LogMachineInternal(slotMachineData, msg)
 }
 
-func (v DebugMachineLogger) LogMachineCritical(slotMachineData smachine.SlotMachineData, msg string) {
-	v.underlying.LogMachineCritical(slotMachineData, msg)
+func (p *DebugMachineLogger) LogMachineCritical(slotMachineData smachine.SlotMachineData, msg string) {
+	p.underlying.LogMachineCritical(slotMachineData, msg)
 }
 
-func (v DebugMachineLogger) LogStopping(m *smachine.SlotMachine) {
-	v.underlying.LogStopping(m)
-	v.continueAll()
+func (p *DebugMachineLogger) LogStopping(m *smachine.SlotMachine) {
+	p.underlying.LogStopping(m)
+	p.continueAll()
 }
 
-func (v DebugMachineLogger) continueAll() {
-	if v.continueStep != nil {
+func (p *DebugMachineLogger) continueAll() {
+	if p.continueStep != nil {
 		select {
-		case _, ok := <- v.continueStep:
+		case _, ok := <- p.continueStep:
 			if !ok {
 				return
 			}
 		default:
 		}
-		close(v.continueStep)
+		close(p.continueStep)
 	}
 }
 
-func (v DebugMachineLogger) GetEvent() UpdateEvent {
-	return <-v.events
+func (p *DebugMachineLogger) GetEvent() (ev UpdateEvent) {
+	 ev, _ = p.events.receive()
+	 return
 }
 
-func (v DebugMachineLogger) EventChan() <-chan UpdateEvent {
-	return v.events
+func (p *DebugMachineLogger) EventChan() <-chan UpdateEvent {
+	return p.events.events
 }
 
-func (v DebugMachineLogger) Continue() {
-	if v.continueStep != nil {
-		v.continueStep <- struct{}{}
+func (p *DebugMachineLogger) Continue() {
+	if p.continueStep != nil {
+		p.continueStep <- struct{}{}
 	}
 }
 
-func (v DebugMachineLogger) FlushEvents(flushDone synckit.SignalChannel, closeEvents bool) {
+func (p *DebugMachineLogger) Abort() {
+	if p.abort.Set() {
+		p.continueAll()
+	}
+}
+
+func (p *DebugMachineLogger) FlushEvents(flushDone synckit.SignalChannel, closeEvents bool) {
 	for {
 		select {
-		case _, ok := <-v.events:
+		case _, ok := <- p.events.events:
 			if !ok {
 				return
 			}
 		case <-flushDone:
 			if closeEvents {
-				close(v.events)
-				for range v.events {}
+				p.events.close()
 			}
 			return
 		}
 	}
 }
 
-func NewDebugMachineLogger(underlying smachine.SlotMachineLogger) DebugMachineLogger {
-	return DebugMachineLogger{
+func (p *DebugMachineLogger) waitContinue() {
+	if p.abort.IsSet() {
+		runtime.Goexit()
+	}
+	if p.continueStep == nil {
+		return
+	}
+	<- p.continueStep
+	if p.abort.IsSet() {
+		runtime.Goexit()
+	}
+}
+
+func NewDebugMachineLogger(underlying smachine.SlotMachineLogger) *DebugMachineLogger {
+	return &DebugMachineLogger{
 		underlying:    underlying,
-		events:        make(chan UpdateEvent, 1),
+		events:        updateChan{ events: make(chan UpdateEvent, 1) },
 		continueStep:  make(chan struct{}),
 	}
 }
 
-func NewDebugMachineLoggerNoBlock(underlying smachine.SlotMachineLogger, eventBufLimit int) DebugMachineLogger {
+func NewDebugMachineLoggerNoBlock(underlying smachine.SlotMachineLogger, eventBufLimit int) *DebugMachineLogger {
 	if eventBufLimit <= 0 {
 		panic(throw.IllegalValue())
 	}
-	return DebugMachineLogger{
+	return &DebugMachineLogger{
 		underlying:    underlying,
-		events:        make(chan UpdateEvent, eventBufLimit),
+		events:        updateChan{ events: make(chan UpdateEvent, eventBufLimit) },
 	}
 }

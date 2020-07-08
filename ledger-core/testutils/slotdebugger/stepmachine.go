@@ -92,7 +92,7 @@ func newController(ctx context.Context, t *testing.T, filterFn logcommon.ErrorFi
 
 	w := &StepController{
 		ctx:         ctx,
-		debugLogger: &debugLogger,
+		debugLogger: debugLogger,
 	}
 	w.SlotMachine = smachine.NewSlotMachine(machineConfig,
 		w.internalSignal.NextBroadcast,
@@ -168,6 +168,7 @@ func (c *StepController) RunTil(predicate func(event debuglogger.UpdateEvent) bo
 func (c *StepController) Stop() {
 	c.watchdog.Stop()
 
+	c.debugLogger.Abort()
 	c.SlotMachine.Stop()
 
 	c.debugLogger.FlushEvents(c.worker.finishedSignal(), true)

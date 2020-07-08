@@ -9,8 +9,6 @@ import "insolar/payload/localtypes.proto";
 option (insproto.notation_all) = true;
 option (insproto.zeroable_all) = true;
 option (gogoproto.goproto_enum_prefix_all) = false;
-option (insproto.context_all) = "MessageContext";
-option (insproto.message_ctx_apply_all) = "Message";
 option (insproto.register_all) = "RegisterMessageType";
 
 enum CallTypeNew {
@@ -52,7 +50,7 @@ message VCallRequest {
     int32 CallRequestFlags = 40 [(gogoproto.casttype) = "CallRequestFlags"];
     Reference KnownCalleeIncoming = 41;
     bytes EntryHeadHash = 42;
-    LocalReference CallOutgoing = 43;
+    Reference CallOutgoing = 43;
     uint32 TXExpiry = 44 [(gogoproto.casttype) = "PulseNumber"];
 
     bytes SecurityContext = 45;
@@ -71,8 +69,8 @@ message VCallResult {
     Reference Callee = 24;
 
     bytes ResultFlags = 25;
-    LocalReference CallOutgoing = 26;
-    LocalReference CallIncoming = 27;
+    Reference CallOutgoing = 26;
+    Reference CallIncoming = 27;
 
     bytes PayloadHash = 28;
     CallDelegationToken DelegationSpec = 29;
@@ -224,8 +222,9 @@ message VFindCallResponse {
         UnknownCall = 1;
         FoundCall = 2;
     }
-    Reference Callee = 20;
-    Reference Outgoing = 21;
-    CallState Status = 22;
-    VCallResult CallResult = 23 [(gogoproto.nullable) = true];
+    uint32 LookedAt = 20 [(gogoproto.casttype) = "PulseNumber"];
+    Reference Callee = 21;
+    Reference Outgoing = 22;
+    CallState Status = 23;
+    VCallResult CallResult = 24 [(gogoproto.nullable) = true];
 }

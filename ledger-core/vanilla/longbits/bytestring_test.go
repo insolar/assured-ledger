@@ -167,7 +167,7 @@ func TestByteString_BitPos(t *testing.T) {
 		},
 	} {
 		if tc.panic != nil {
-			require.PanicsWithValue(t, *tc.panic, func() { tc.ByteString.BitPos(tc.index) }, tc.ByteString)
+			require.Panics(t, func() { tc.ByteString.BitPos(tc.index) }, tc.ByteString)
 			continue
 		}
 		bytePos, bitPos := tc.ByteString.BitPos(tc.index)

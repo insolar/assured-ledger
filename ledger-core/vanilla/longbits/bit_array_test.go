@@ -12,42 +12,22 @@ import (
 )
 
 func TestBitPos(t *testing.T) {
-	t.Run("illegal", func(t *testing.T) {
-		require.PanicsWithValue(t, "illegal value", func() { BitPos(-1) })
-	})
+	require.Panics(t, func() { BitPos(-1) })
 
-	t.Run("ok", func(t *testing.T) {
-		for i, tc := range []struct {
-			input   int
-			bytePos int
-			bitPos  uint8
-		}{
-			{
-				input:   0,
-				bytePos: 0,
-				bitPos:  0,
-			},
-			{
-				input:   1,
-				bytePos: 0,
-				bitPos:  1,
-			},
-			{
-				input:   2,
-				bytePos: 0,
-				bitPos:  2,
-			},
-			{
-				input:   10,
-				bytePos: 1,
-				bitPos:  2,
-			},
-		} {
-			bytePos, bitPos := BitPos(tc.input)
-			require.Equal(t, tc.bytePos, bytePos, "%d: bytePos", i)
-			require.Equal(t, tc.bitPos, bitPos, "%d: bitPos", i)
-		}
-	})
+	for i, tc := range []struct {
+		input   int
+		bytePos int
+		bitPos  uint8
+	}{
+		{ 0, 0, 0},
+		{ 1, 0, 1},
+		{ 2, 0, 2},
+		{ 10, 1, 2},
+	} {
+		bytePos, bitPos := BitPos(tc.input)
+		require.Equal(t, tc.bytePos, bytePos, "%d: bytePos", i)
+		require.Equal(t, tc.bitPos, bitPos, "%d: bitPos", i)
+	}
 }
 
 func newString(s string) *string {
@@ -83,10 +63,10 @@ func TestBitSlice_BitBool(t *testing.T) {
 		},
 	} {
 		if tc.panic != nil {
-			require.PanicsWithValue(t, *tc.panic, func() { BitSlice(tc.slice).BitBool(tc.index) })
+			require.Panics(t, func() { BitSliceLSB(tc.slice).BitBool(tc.index) })
 			continue
 		}
-		require.Equal(t, tc.res, BitSlice(tc.slice).BitBool(tc.index))
+		require.Equal(t, tc.res, BitSliceLSB(tc.slice).BitBool(tc.index))
 	}
 }
 
@@ -119,18 +99,18 @@ func TestBitSlice_BitValue(t *testing.T) {
 		},
 	} {
 		if tc.panic != nil {
-			require.PanicsWithValue(t, *tc.panic, func() { BitSlice(tc.slice).BitValue(tc.index) })
+			require.Panics(t, func() { BitSliceLSB(tc.slice).BitValue(tc.index) })
 			continue
 		}
-		require.Equal(t, tc.res, BitSlice(tc.slice).BitValue(tc.index))
+		require.Equal(t, tc.res, BitSliceLSB(tc.slice).BitValue(tc.index))
 	}
 }
 
 func TestBitSlice_BitLen(t *testing.T) {
-	require.Equal(t, 0, BitSlice(nil).BitLen())
-	require.Equal(t, 0, BitSlice([]byte{}).BitLen())
-	require.Equal(t, 8, BitSlice([]byte{0x1}).BitLen())
-	require.Equal(t, 16, BitSlice([]byte{0x1, 0x10}).BitLen())
+	require.Equal(t, 0, BitSliceLSB(nil).BitLen())
+	require.Equal(t, 0, BitSliceLSB([]byte{}).BitLen())
+	require.Equal(t, 8, BitSliceLSB([]byte{0x1}).BitLen())
+	require.Equal(t, 16, BitSliceLSB([]byte{0x1, 0x10}).BitLen())
 }
 
 func TestBitSlice_SearchBit(t *testing.T) {
@@ -191,15 +171,15 @@ func TestBitSlice_SearchBit(t *testing.T) {
 		},
 	} {
 		if tc.panic != nil {
-			require.PanicsWithValue(t, *tc.panic, func() { BitSlice(tc.slice).SearchBit(tc.startAt, tc.bit) })
+			require.Panics(t, func() { BitSliceLSB(tc.slice).SearchBit(tc.startAt, tc.bit) })
 			continue
 		}
-		require.Equal(t, tc.res, BitSlice(tc.slice).SearchBit(tc.startAt, tc.bit))
+		require.Equal(t, tc.res, BitSliceLSB(tc.slice).SearchBit(tc.startAt, tc.bit))
 	}
 }
 
 func TestBitSlice_Byte(t *testing.T) {
-	require.Equal(t, byte(0x1), BitSlice([]byte{0x1}).Byte(0))
-	require.Equal(t, byte(0x10), BitSlice([]byte{0x1, 0x10}).Byte(1))
-	require.PanicsWithValue(t, "out of bounds", func() { BitSlice([]byte{0x1}).Byte(1) })
+	require.Equal(t, byte(0x1), BitSliceLSB([]byte{0x1}).Byte(0))
+	require.Equal(t, byte(0x10), BitSliceLSB([]byte{0x1, 0x10}).Byte(1))
+	require.Panics(t, func() { BitSliceLSB([]byte{0x1}).Byte(1) })
 }

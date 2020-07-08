@@ -46,7 +46,7 @@ func newDispatcherWithConveyor(factoryFn conveyor.PulseEventFactoryFunc) dispatc
 		MinCachePulseAge:      100,
 		MaxPastPulseAge:       1000,
 	}, factoryFn, nil)
-	return statemachine.NewConveyorDispatcher(pulseConveyor)
+	return statemachine.NewConveyorDispatcher(ctx, pulseConveyor)
 }
 
 type WatermillLogErrorHandler func(logger *logwatermill.WatermillLogAdapter, msg string, err error, fields watermill.LogFields) bool
@@ -85,10 +85,11 @@ func TestWatermill_HandleErrorCorrect(t *testing.T) {
 		subscriber = gochannel.NewGoChannel(gochannel.Config{}, wmLogger)
 	)
 	cnt := 0
-	conveyorDispatcher := newDispatcherWithConveyor(func(_ pulse.Number, _ pulse.Range, _ conveyor.InputEvent) (pulse.Number, smachine.CreateFunc, error) {
-		cnt++
-		return 0, nil, throw.E(errorMsg)
-	})
+	conveyorDispatcher := newDispatcherWithConveyor(
+		func(context.Context, conveyor.InputEvent, conveyor.InputContext) (conveyor.InputSetup, error) {
+			cnt++
+			return conveyor.InputSetup{}, throw.E(errorMsg)
+		})
 	wmStop := startWatermill(ctx, wmLogger, subscriber, conveyorDispatcher.Process)
 	defer wmStop()
 	meta := payload.Meta{Pulse: pulse.Number(pulse.MinTimePulse + 1)}
@@ -114,10 +115,12 @@ func TestWatermill_HandlePanicCorrect(t *testing.T) {
 		subscriber = gochannel.NewGoChannel(gochannel.Config{}, wmLogger)
 	)
 	cnt := 0
-	conveyorDispatcher := newDispatcherWithConveyor(func(_ pulse.Number, _ pulse.Range, _ conveyor.InputEvent) (pulse.Number, smachine.CreateFunc, error) {
-		cnt++
-		panic(throw.E(panicMsg))
-	})
+	conveyorDispatcher := newDispatcherWithConveyor(
+		func(context.Context, conveyor.InputEvent, conveyor.InputContext) (conveyor.InputSetup, error) {
+			cnt++
+			panic(throw.E(panicMsg))
+		})
+
 	wmStop := startWatermill(ctx, wmLogger, subscriber, conveyorDispatcher.Process)
 	defer wmStop()
 	meta := payload.Meta{Pulse: pulse.Number(pulse.MinTimePulse + 1)}

@@ -5,64 +5,60 @@
 
 package payload
 
-type authSubjectMode uint8
+type AuthSubjectMode uint8
 
 const (
-	_ authSubjectMode = iota
-	hasAuthSubject
-	hasAuthSubjectForPrevPulse
+	_ AuthSubjectMode = iota
+	UseCurrentPulse
+	UsePrevPulse
+	UseAnyPulse
 )
 
-func GetSenderAuthenticationSubjectAndPulse(msg interface{}) (ref Reference, usePrevPulse, ok bool) {
+func GetSenderAuthenticationSubjectAndPulse(msg interface{}) (ref Reference, mode AuthSubjectMode, ok bool) {
 	type customAuthSubject interface {
-		customSubject() (Reference, authSubjectMode)
+		customSubject() (Reference, AuthSubjectMode)
 	}
 
 	switch m := msg.(type) {
 	case customAuthSubject:
 		ref, mode := m.customSubject()
-		switch mode {
-		case hasAuthSubjectForPrevPulse:
-			return ref, true, true
-		case hasAuthSubject:
-			return ref, false, true
-		}
+		return ref, mode, true
 	case interface{ GetCaller() Reference }:
-		return m.GetCaller(), false, true
+		return m.GetCaller(), UseCurrentPulse, true
 	}
-	return Reference{}, false, false
+	return Reference{}, UseCurrentPulse, false
 }
 
-func (m *VStateRequest) customSubject() (Reference, authSubjectMode) {
-	return m.GetObject(), hasAuthSubject
+func (m *VStateRequest) customSubject() (Reference, AuthSubjectMode) {
+	return m.GetObject(), UseCurrentPulse
 }
 
-func (m *VCallResult) customSubject() (Reference, authSubjectMode) {
-	return m.GetCallee(), hasAuthSubject
+func (m *VCallResult) customSubject() (Reference, AuthSubjectMode) {
+	return m.GetCallee(), UseCurrentPulse
 }
 
-func (m *VStateReport) customSubject() (Reference, authSubjectMode) {
-	return m.GetObject(), hasAuthSubjectForPrevPulse
+func (m *VStateReport) customSubject() (Reference, AuthSubjectMode) {
+	return m.GetObject(), UsePrevPulse
 }
 
-func (m *VDelegatedCallRequest) customSubject() (Reference, authSubjectMode) {
-	return m.GetCallee(), hasAuthSubjectForPrevPulse
+func (m *VDelegatedCallRequest) customSubject() (Reference, AuthSubjectMode) {
+	return m.GetCallee(), UsePrevPulse
 }
 
-func (m *VDelegatedCallResponse) customSubject() (Reference, authSubjectMode) {
-	return m.GetCallee(), hasAuthSubject
+func (m *VDelegatedCallResponse) customSubject() (Reference, AuthSubjectMode) {
+	return m.GetCallee(), UseCurrentPulse
 }
 
 // customSubject returns hasAuthSubject ( i.e. for current pulse ) since VDelegatedRequestFinished can come only with
 // delegation token and subject is going to be considered as Approver of this delegation token
-func (m *VDelegatedRequestFinished) customSubject() (Reference, authSubjectMode) {
-	return m.GetCallee(), hasAuthSubject
+func (m *VDelegatedRequestFinished) customSubject() (Reference, AuthSubjectMode) {
+	return m.GetCallee(), UseCurrentPulse
 }
 
-func (m *VFindCallRequest) customSubject() (Reference, authSubjectMode) {
-	return m.GetCallee(), hasAuthSubject
+func (m *VFindCallRequest) customSubject() (Reference, AuthSubjectMode) {
+	return m.GetCallee(), UseCurrentPulse
 }
 
-func (m *VFindCallResponse) customSubject() (Reference, authSubjectMode) {
-	return m.GetCallee(), hasAuthSubjectForPrevPulse
+func (m *VFindCallResponse) customSubject() (Reference, AuthSubjectMode) {
+	return m.GetCallee(), UseAnyPulse
 }

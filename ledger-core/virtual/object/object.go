@@ -9,7 +9,6 @@ package object
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
@@ -25,6 +24,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/callsummary"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object/finalizedstate"
 )
@@ -41,6 +42,8 @@ const (
 
 const waitStatePulsePercent = 10
 
+const UnorderedMaxParallelism = 30
+
 type Info struct {
 	Reference   reference.Global
 	descriptor  descriptor.Object
@@ -49,13 +52,14 @@ type Info struct {
 	UnorderedExecute smachine.SyncLink
 	OrderedExecute   smachine.SyncLink
 	ReadyToWork      smachine.SyncLink
+	SummaryDone      smachine.SyncLink
 
-	AwaitPendingOrdered smachine.BargeIn
+	SignalPendingsFinished smachine.BargeIn
 
 	// KnownRequests holds requests that were seen on current pulse
-	KnownRequests WorkingTable
+	KnownRequests callregistry.WorkingTable
 	// PendingTable holds requests that are known to be processed by other executors
-	PendingTable PendingTable
+	PendingTable callregistry.PendingTable
 
 	PreviousExecutorUnorderedPendingCount uint8
 	PreviousExecutorOrderedPendingCount   uint8
@@ -66,12 +70,6 @@ type Info struct {
 
 	UnorderedPendingEarliestPulse pulse.Number
 	OrderedPendingEarliestPulse   pulse.Number
-
-	OrderedPendingListFilled   smachine.SyncLink
-	UnorderedPendingListFilled smachine.SyncLink
-
-	OrderedPendingListFilledCallback   smachine.BargeIn
-	UnorderedPendingListFilledCallback smachine.BargeIn
 
 	objectState State
 }
@@ -86,17 +84,6 @@ func (i *Info) SetState(state State) {
 
 func (i *Info) GetState() State {
 	return i.objectState
-}
-
-func (i *Info) SetPendingListFilled(ctx smachine.ExecutionContext, tolerance contract.InterferenceFlag) {
-	switch tolerance {
-	case contract.CallIntolerable:
-		ctx.CallBargeIn(i.UnorderedPendingListFilledCallback)
-	case contract.CallTolerable:
-		ctx.CallBargeIn(i.OrderedPendingListFilledCallback)
-	default:
-		panic(throw.IllegalValue())
-	}
 }
 
 func (i *Info) IncrementPotentialPendingCounter(isolation contract.MethodIsolation) {
@@ -123,7 +110,7 @@ func (i *Info) FinishRequest(
 	default:
 		panic(throw.Unsupported())
 	}
-	i.KnownRequests.GetList(isolation.Interference).Finish(requestRef, result)
+	i.KnownRequests.Finish(isolation.Interference, requestRef, result)
 }
 
 func (i *Info) SetDescriptor(objectDescriptor descriptor.Object) {
@@ -210,8 +197,8 @@ func NewStateMachineObject(objectReference reference.Global) *SMObject {
 		SharedState: SharedState{
 			Info: Info{
 				Reference:     objectReference,
-				KnownRequests: NewWorkingTable(),
-				PendingTable:  NewRequestTable(),
+				KnownRequests: callregistry.NewWorkingTable(),
+				PendingTable:  callregistry.NewRequestTable(),
 			},
 		},
 	}
@@ -222,7 +209,10 @@ type SMObject struct {
 
 	SharedState
 
-	readyToWorkCtl smsync.BoolConditionalLink
+	readyToWorkCtl        smsync.BoolConditionalLink
+	orderedSemaphoreCtl   smsync.SemaphoreLink
+	unorderedSemaphoreCtl smsync.SemaphoreLink
+	summaryDoneCtl        smsync.BoolConditionalLink
 
 	waitGetStateUntil time.Time
 	smFinalizer       *finalizedstate.SMStateFinalizer
@@ -252,17 +242,21 @@ func (sm *SMObject) GetStateMachineDeclaration() smachine.StateMachineDeclaratio
 
 func (sm *SMObject) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
 	if sm.pulseSlot.State() != conveyor.Present {
+		ctx.Log().Trace("stop creating SMObject since we are not in present pulse")
 		return ctx.Stop()
 	}
 
 	sm.readyToWorkCtl = smsync.NewConditionalBool(false, "readyToWork")
 	sm.ReadyToWork = sm.readyToWorkCtl.SyncLink()
 
-	sm.UnorderedExecute = smsync.NewSemaphore(30, "immutable calls").SyncLink()
-	sm.OrderedExecute = smsync.NewSemaphore(1, "mutable calls").SyncLink() // TODO here we need an ORDERED queue
+	sm.summaryDoneCtl = smsync.NewConditionalBool(false, "summaryDone")
+	sm.SummaryDone = sm.summaryDoneCtl.SyncLink()
 
-	sm.OrderedPendingListFilled = smsync.NewSemaphore(1, "ordered pending list filled").SyncLink()
-	sm.UnorderedPendingListFilled = smsync.NewSemaphore(1, "unordered pending list filled").SyncLink()
+	sm.unorderedSemaphoreCtl = smsync.NewSemaphore(0, "unordered calls")
+	sm.UnorderedExecute = sm.unorderedSemaphoreCtl.SyncLink()
+
+	sm.orderedSemaphoreCtl = smsync.NewSemaphore(0, "ordered calls")
+	sm.OrderedExecute = sm.orderedSemaphoreCtl.SyncLink()
 
 	sdl := ctx.Share(&sm.SharedState, 0)
 	if !ctx.Publish(sm.Reference.String(), sdl) {
@@ -271,7 +265,7 @@ func (sm *SMObject) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 
 	sm.initWaitGetStateUntil()
 
-	ctx.SetDefaultMigration(sm.stepMigrate)
+	ctx.SetDefaultMigration(sm.migrate)
 
 	return ctx.Jump(sm.stepGetState)
 }
@@ -329,13 +323,16 @@ func (sm *SMObject) stepWaitState(ctx smachine.ExecutionContext) smachine.StateU
 }
 
 func (sm *SMObject) stepGotState(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if sm.PreviousExecutorOrderedPendingCount > 0 {
-		sm.createWaitPendingOrderedSM(ctx)
-		sm.createWaitOrderedPendingTableSM(ctx)
+	if sm.PreviousExecutorOrderedPendingCount == 0 {
+		sm.releaseOrderedExecutionPath(ctx)
+		sm.releaseUnorderedExecutionPath(ctx)
+	} else if sm.GetState() != Empty {
+		sm.releaseUnorderedExecutionPath(ctx)
 	}
 
-	if sm.PreviousExecutorUnorderedPendingCount > 0 {
-		sm.createWaitUnorderedPendingTableSM(ctx)
+	if sm.PreviousExecutorOrderedPendingCount > 0 {
+		sm.SignalPendingsFinished = ctx.NewBargeIn().
+			WithJump(sm.stepReleaseExecutionPaths)
 	}
 
 	return ctx.Jump(sm.stepReadyToWork)
@@ -350,56 +347,21 @@ func (sm *SMObject) stepWaitIndefinitely(ctx smachine.ExecutionContext) smachine
 	return ctx.Sleep().ThenRepeat()
 }
 
-func (sm *SMObject) createWaitOrderedPendingTableSM(ctx smachine.ExecutionContext) {
-	syncSM := SMAwaitTableFill{
-		sync: sm.OrderedPendingListFilled,
-	}
-
-	// syncSM acquire OrderedPendingListFilledCallback semaphore in init step.
-	ctx.InitChildWithPostInit(func(ctx smachine.ConstructionContext) smachine.StateMachine {
-		return &syncSM
-	}, func() {
-		sm.OrderedPendingListFilledCallback = syncSM.stop
-	})
-	if sm.OrderedPendingListFilledCallback.IsZero() {
-		panic(throw.IllegalState())
-	}
+func (sm *SMObject) stepReleaseExecutionPaths(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	sm.releaseOrderedExecutionPath(ctx)
+	sm.releaseUnorderedExecutionPath(ctx)
+	return ctx.Jump(sm.stepWaitIndefinitely)
 }
 
-func (sm *SMObject) createWaitUnorderedPendingTableSM(ctx smachine.ExecutionContext) {
-	syncSM := SMAwaitTableFill{
-		sync: sm.UnorderedPendingListFilled,
-	}
-
-	// syncSM acquire UnorderedPendingListFilledCallback semaphore in init step.
-	ctx.InitChildWithPostInit(func(ctx smachine.ConstructionContext) smachine.StateMachine {
-		return &syncSM
-	}, func() {
-		sm.UnorderedPendingListFilledCallback = syncSM.stop
-	})
-	if sm.UnorderedPendingListFilledCallback.IsZero() {
-		panic(throw.IllegalState())
-	}
+func (sm *SMObject) releaseOrderedExecutionPath(ctx smachine.ExecutionContext) {
+	ctx.ApplyAdjustment(sm.orderedSemaphoreCtl.NewValue(1))
 }
 
-func (sm *SMObject) createWaitPendingOrderedSM(ctx smachine.ExecutionContext) {
-	syncSM := SMAwaitDelegate{
-		sync: sm.OrderedExecute,
-	}
-
-	// syncSM acquire OrderedExecute semaphore in init step.
-	ctx.InitChildWithPostInit(func(ctx smachine.ConstructionContext) smachine.StateMachine {
-		return &syncSM
-	}, func() {
-		sm.AwaitPendingOrdered = syncSM.stop
-	})
-
-	if sm.AwaitPendingOrdered.IsZero() {
-		panic(throw.IllegalState())
-	}
+func (sm *SMObject) releaseUnorderedExecutionPath(ctx smachine.ExecutionContext) {
+	ctx.ApplyAdjustment(sm.unorderedSemaphoreCtl.NewValue(UnorderedMaxParallelism))
 }
 
-func (sm *SMObject) stepMigrate(ctx smachine.MigrationContext) smachine.StateUpdate {
+func (sm *SMObject) migrate(ctx smachine.MigrationContext) smachine.StateUpdate {
 	if sm.GetState() == Unknown {
 		ctx.Log().Trace("SMObject migration happened when object is not ready yet")
 		return ctx.Stop()
@@ -417,19 +379,86 @@ func (sm *SMObject) stepMigrate(ctx smachine.MigrationContext) smachine.StateUpd
 		sm.smFinalizer.Report.ProvidedContent.LatestDirtyState = sm.BuildLatestDirtyState()
 	}
 
-	sdl := ctx.Share(&sm.smFinalizer.Report, 0)
-	if !ctx.Publish(finalizedstate.BuildReportKey(sm.Reference), sdl) {
+	sdlStateReport := ctx.Share(&sm.smFinalizer.Report, 0)
+	if !ctx.Publish(finalizedstate.BuildReportKey(sm.Reference), sdlStateReport) {
 		ctx.Log().Warn(struct {
 			*log.Msg  `txt:"failed to publish state report"`
 			Reference string
 		}{
 			Reference: sm.Reference.String(),
 		})
-		return ctx.Error(fmt.Errorf("failed to publish state report"))
+		return ctx.Error(throw.New("failed to publish state report"))
 	}
+
+	sdlCallSummarySync := ctx.Share(&sm.SummaryDone, 0)
+
+	if !ctx.Publish(callsummary.BuildSummarySyncKey(sm.Reference), sdlCallSummarySync) {
+		ctx.Log().Warn(struct {
+			*log.Msg  `txt:"failed to publish call summary sync key"`
+			Reference string
+		}{
+			Reference: sm.Reference.String(),
+		})
+		return ctx.Error(throw.New("failed to publish call summary sync key"))
+	}
+
+	return ctx.Jump(sm.stepPublishCallSummary)
+}
+
+func (sm *SMObject) stepPublishCallSummary(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	pulseNumber := sm.pulseSlot.PulseData().PulseNumber
+	summarySharedStateAccessor, ok := callsummary.GetSummarySMSharedAccessor(ctx, pulseNumber)
+
+	if !ok {
+		ctx.InitChild(func(ctx smachine.ConstructionContext) smachine.StateMachine {
+			return callsummary.NewStateMachineCallSummary(pulseNumber)
+		})
+
+		summarySharedStateAccessor, ok = callsummary.GetSummarySMSharedAccessor(ctx, pulseNumber)
+
+		if !ok {
+			// we should get accessor always after InitChild in this step
+			panic(throw.IllegalState())
+		}
+	}
+
+	action := func(shared *callsummary.SharedCallSummary) {
+		callResults := callregistry.ObjectCallResults{
+			CallResults: sm.KnownRequests.GetResults(),
+		}
+
+		if !shared.Requests.AddObjectCallResults(sm.Reference, callResults) {
+			// result for this object already exist
+			panic(throw.Impossible())
+		}
+
+		if !ctx.Unpublish(callsummary.BuildSummarySyncKey(sm.Reference)) {
+			ctx.Log().Warn(struct {
+				*log.Msg  `txt:"failed to unpublish call summary sync key"`
+				Reference string
+			}{
+				Reference: sm.Reference.String(),
+			})
+			ctx.Error(throw.New("failed to unpublish call summary sync key"))
+		}
+	}
+
+	switch summarySharedStateAccessor.Prepare(action).TryUse(ctx).GetDecision() {
+	case smachine.NotPassed:
+		return ctx.WaitShared(summarySharedStateAccessor.SharedDataLink).ThenRepeat()
+	case smachine.Impossible:
+		panic(throw.NotImplemented())
+	case smachine.Passed:
+		// go further
+	default:
+		panic(throw.Impossible())
+	}
+
+	ctx.ApplyAdjustment(sm.summaryDoneCtl.NewValue(true))
 
 	return ctx.Jump(sm.stepFinalize)
 }
+
 func (sm *SMObject) stepFinalize(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	return ctx.ReplaceWith(sm.smFinalizer)
 }

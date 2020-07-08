@@ -31,7 +31,7 @@ import (
 )
 
 var client http.Client
-var emoji *Emoji
+var emoji Emojer
 var startTime time.Time
 
 const (
@@ -293,12 +293,17 @@ type nodeStatus struct {
 }
 
 func main() {
-	var configFile string
-	var useJSONFormat bool
-	var singleOutput bool
+	var (
+		configFile    string
+		useJSONFormat bool
+		singleOutput  bool
+		showEmoji     bool
+	)
 	pflag.StringVarP(&configFile, "config", "c", "", "config file")
 	pflag.BoolVarP(&useJSONFormat, "json", "j", false, "use JSON format")
 	pflag.BoolVarP(&singleOutput, "single", "s", false, "single output")
+	pflag.BoolVarP(&showEmoji, "emoji", "e", false, "show emoji")
+
 	pflag.Parse()
 
 	conf, err := pulsewatcher.ReadConfig(configFile)
@@ -320,7 +325,12 @@ func main() {
 		Timeout:   conf.Timeout,
 	}
 
-	emoji = NewEmoji()
+	if showEmoji {
+		emoji = NewEmoji()
+	} else {
+		emoji = &NoEmoji{}
+	}
+
 	var results []nodeStatus
 	var ready bool
 	startTime = time.Now()

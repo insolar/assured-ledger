@@ -20,16 +20,33 @@ const (
 	PrioritizePartialAcquire
 )
 
-func newSemaphoreChild(parent *semaphoreSync, flags SemaphoreChildFlags, value int, name string) *hierarchySync {
+type SemaChildLink struct {
+	ctl *hierarchySync
+}
+
+func (v SemaChildLink) IsZero() bool {
+	return v.ctl == nil
+}
+
+func (v SemaChildLink) NewDelta(delta int) smachine.SyncAdjustment {
+	return smachine.NewSyncAdjustment(v.ctl, delta, false)
+}
+
+func (v SemaChildLink) NewValue(value int) smachine.SyncAdjustment {
+	return smachine.NewSyncAdjustment(v.ctl, value, true)
+}
+
+func (v SemaChildLink) SyncLink() smachine.SyncLink {
+	return smachine.NewSyncLink(v.ctl)
+}
+
+func newSemaphoreChild(parent *semaphoreSync, flags SemaphoreChildFlags, value int, isAdjustable bool, name string) *hierarchySync {
 	if parent == nil {
-		panic("illegal value")
+		panic(throw.IllegalValue())
 	}
-	if value <= 0 {
-		panic("illegal value")
-	}
-	//panic("not implemented")
 	sema := &hierarchySync{}
 
+	sema.isAdjustable = isAdjustable
 	sema.controller.parentSync = parent
 	parentFlags := parent.controller.awaiters.queue.flags
 	sema.controller.queue.flags = parentFlags
@@ -108,7 +125,7 @@ func (p *hierarchySync) CreateDependency(holder smachine.SlotLink, flags smachin
 }
 
 func (p *hierarchySync) GetLimit() (limit int, isAdjustable bool) {
-	return p.controller.workerLimit, isAdjustable
+	return p.controller.workerLimit, p.isAdjustable
 }
 
 func (p *hierarchySync) AdjustLimit(limit int, absolute bool) (deps []smachine.StepLink, activate bool) {
@@ -116,7 +133,7 @@ func (p *hierarchySync) AdjustLimit(limit int, absolute bool) (deps []smachine.S
 	defer p.controller.awaiters.mutex.Unlock()
 
 	if !p.isAdjustable {
-		panic("illegal state")
+		panic(throw.IllegalState())
 	}
 
 	if ok, newLimit := applyWrappedAdjustment(p.controller.workerLimit, limit, math.MinInt32, math.MaxInt32, absolute); ok {
@@ -131,7 +148,15 @@ func (p *hierarchySync) AdjustLimit(limit int, absolute bool) (deps []smachine.S
 		// can't revoke from an active
 		return nil, false
 	}
-	return p.controller.adjustLimit(delta, p.controller.getParentAwaitQueue())
+
+	deps, activate = p.controller.adjustLimit(delta, p.controller.getParentAwaitQueue())
+	// NB! MUST NOT immediately release these slots as they were added to parent's wait queue
+	if n := len(deps); activate && n > 0 {
+		p.controller.workerAtParentCount += n
+		deps = p.controller.pushParentAwaiters()
+	}
+
+	return
 }
 
 func (p *hierarchySync) GetCounts() (active, inactive int) {
@@ -269,4 +294,8 @@ func (p *subSemaQueueController) tryPartialAcquire(entry *dependencyQueueEntry, 
 
 	p.getParentAwaitQueue().addSlotWithPriority(entry, p.flags&PrioritizePartialAcquire != 0)
 	return smachine.NotPassed
+}
+
+func (p *subSemaQueueController) pushParentAwaiters() []smachine.StepLink {
+	return p.parentSync.controller.pullAwaiters()
 }

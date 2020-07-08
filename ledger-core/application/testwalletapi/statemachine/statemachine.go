@@ -18,6 +18,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -25,11 +26,14 @@ import (
 
 var APICaller, _ = reference.GlobalObjectFromString("insolar:0AAABAnRB0CKuqXTeTfQNTolmyixqQGMJz5sVvW81Dng")
 
+const MaxRepeats = 3
+
 type SMTestAPICall struct {
 	requestPayload  payload.VCallRequest
-	responsePayload payload.VCallResult
+	responsePayload []byte
 
-	messageAlreadySent bool
+	object           reference.Global
+	messageSentTimes int
 
 	// injected arguments
 	pulseSlot     *conveyor.PulseSlot
@@ -62,60 +66,89 @@ func (s *SMTestAPICall) GetStateMachineDeclaration() smachine.StateMachineDeclar
 	return testAPICallSMDeclarationInstance
 }
 
-func (s *SMTestAPICall) migrationDefault(ctx smachine.MigrationContext) smachine.StateUpdate {
-	ctx.Log().Trace("Resend message")
-	return ctx.Jump(s.stepSendRequest)
-}
-
 func (s *SMTestAPICall) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
-	ctx.SetDefaultMigration(s.migrationDefault)
-
-	s.requestPayload.Caller = APICaller
-	s.requestPayload.CallOutgoing = gen.UniqueLocalRefWithPulse(s.pulseSlot.PulseData().PulseNumber)
-
-	return ctx.Jump(s.stepRegisterBargeIn)
+	return ctx.Jump(s.stepSend)
 }
 
-func (s *SMTestAPICall) stepRegisterBargeIn(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	bargeInCallback := ctx.NewBargeInWithParam(func(param interface{}) smachine.BargeInCallbackFunc {
+func (s *SMTestAPICall) stepSend(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	s.requestPayload.Caller = APICaller
+	outLocal := gen.UniqueLocalRefWithPulse(s.pulseSlot.CurrentPulseNumber())
+	s.requestPayload.CallOutgoing = reference.NewRecordOf(APICaller, outLocal)
+
+	switch s.requestPayload.CallType {
+	case payload.CTMethod:
+		s.object = s.requestPayload.Callee
+	case payload.CTConstructor:
+		s.object = reference.NewSelf(outLocal)
+	default:
+		panic(throw.IllegalValue())
+	}
+
+	bargeIn := s.newBargeIn(ctx)
+
+	if !ctx.PublishGlobalAliasAndBargeIn(s.requestPayload.CallOutgoing, bargeIn) {
+		return ctx.Error(errors.New("failed to publish bargeInCallback"))
+	}
+
+	s.sendRequest(ctx)
+
+	ctx.SetDefaultMigration(s.migrateResend)
+
+	return ctx.Jump(s.stepProcessResult)
+}
+
+func (s *SMTestAPICall) stepResend(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	s.sendRequest(ctx)
+	return ctx.Jump(s.stepProcessResult)
+}
+
+func (s *SMTestAPICall) migrateResend(ctx smachine.MigrationContext) smachine.StateUpdate {
+	if s.messageSentTimes >= MaxRepeats {
+		res, err := foundation.MarshalMethodErrorResult(throw.New("timeout: exceeded resend limit"))
+		if err != nil {
+			panic(throw.W(err, "couldn't marshal error"))
+		}
+		s.responsePayload = res
+
+		return ctx.Jump(s.stepProcessResult)
+	}
+	return ctx.Jump(s.stepResend)
+}
+
+func (s *SMTestAPICall) stepProcessResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	if s.responsePayload == nil {
+		return ctx.Sleep().ThenRepeat()
+	}
+
+	ctx.SetDefaultTerminationResult(s.responsePayload)
+	return ctx.Stop()
+}
+
+func (s *SMTestAPICall) newBargeIn(ctx smachine.ExecutionContext) smachine.BargeInWithParam {
+	return ctx.NewBargeInWithParam(func(param interface{}) smachine.BargeInCallbackFunc {
 		res, ok := param.(*payload.VCallResult)
 		if !ok || res == nil {
 			panic(throw.IllegalValue())
 		}
 
 		return func(ctx smachine.BargeInContext) smachine.StateUpdate {
-			s.responsePayload = *res
+			s.responsePayload = res.ReturnArguments
 
 			return ctx.WakeUp()
 		}
 	})
-
-	outgoingRef := reference.NewRecordOf(s.requestPayload.Caller, s.requestPayload.CallOutgoing)
-	if !ctx.PublishGlobalAliasAndBargeIn(outgoingRef, bargeInCallback) {
-		return ctx.Error(errors.New("failed to publish bargeInCallback"))
-	}
-	return ctx.Jump(s.stepSendRequest)
 }
 
-func (s *SMTestAPICall) stepSendRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	var obj reference.Global
-	switch s.requestPayload.CallType {
-	case payload.CTMethod:
-		obj = s.requestPayload.Callee
-	case payload.CTConstructor:
-		obj = reference.NewSelf(s.requestPayload.CallOutgoing)
-	default:
-		panic(throw.IllegalValue())
-	}
-
+func (s *SMTestAPICall) sendRequest(ctx smachine.ExecutionContext) {
 	payloadData := s.requestPayload
-	if s.messageAlreadySent {
+
+	if s.messageSentTimes > 0 {
 		payloadData.CallRequestFlags.WithRepeatedCall(payload.RepeatedCall)
 	}
 
 	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
-		err := svc.SendRole(goCtx, &payloadData, node.DynamicRoleVirtualExecutor, obj, s.pulseSlot.CurrentPulseNumber())
-		s.messageAlreadySent = true
+		err := svc.SendRole(goCtx, &payloadData, node.DynamicRoleVirtualExecutor, s.object, s.pulseSlot.CurrentPulseNumber())
+		s.messageSentTimes++
 		return func(ctx smachine.AsyncResultContext) {
 			if err != nil {
 				ctx.Log().Error("failed to send message", err)
@@ -123,12 +156,4 @@ func (s *SMTestAPICall) stepSendRequest(ctx smachine.ExecutionContext) smachine.
 			}
 		}
 	}).WithoutAutoWakeUp().Start()
-
-	return ctx.Sleep().ThenJump(s.stepProcessResult)
-}
-
-func (s *SMTestAPICall) stepProcessResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	ctx.SetDefaultTerminationResult(s.responsePayload)
-
-	return ctx.Stop()
 }

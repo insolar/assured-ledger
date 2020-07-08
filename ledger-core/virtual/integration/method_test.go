@@ -11,15 +11,18 @@ import (
 	"time"
 
 	"github.com/gojuno/minimock/v3"
+
+	"github.com/insolar/assured-ledger/ledger-core/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
 	testwalletProxy "github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
-	"github.com/insolar/assured-ledger/ledger-core/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
@@ -59,10 +62,9 @@ func Method_PrepareObject(ctx context.Context, server *utils.Server, state paylo
 	}
 
 	payload := &payload.VStateReport{
-		Status:                        state,
-		Object:                        object,
-		UnorderedPendingEarliestPulse: pulse.OfNow(),
-		ProvidedContent:               content,
+		Status:          state,
+		Object:          object,
+		ProvidedContent: content,
 	}
 
 	server.WaitIdleConveyor()
@@ -83,7 +85,7 @@ func TestVirtual_BadMethod_WithExecutor(t *testing.T) {
 		class        = testwallet.GetClass()
 		objectLocal  = server.RandomLocalWithPulse()
 		objectGlobal = reference.NewSelf(objectLocal)
-		outgoing     = server.RandomLocalWithPulse()
+		outgoing     = server.BuildRandomOutgoingWithPulse()
 	)
 
 	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal)
@@ -113,7 +115,6 @@ func TestVirtual_BadMethod_WithExecutor(t *testing.T) {
 			CallSiteDeclaration: class,
 			CallSiteMethod:      "random",
 			CallOutgoing:        outgoing,
-			Arguments:           insolar.MustSerialize([]interface{}{}),
 		}
 
 		server.SendPayload(ctx, &pl)
@@ -152,14 +153,11 @@ func TestVirtual_Method_WithExecutor(t *testing.T) {
 	pl := payload.VCallRequest{
 		CallType:            payload.CTMethod,
 		CallFlags:           payload.BuildCallFlags(contract.CallIntolerable, contract.CallValidated),
-		CallAsOf:            0,
 		Caller:              server.GlobalCaller(),
 		Callee:              objectGlobal,
 		CallSiteDeclaration: class,
 		CallSiteMethod:      "GetBalance",
-		CallRequestFlags:    0,
-		CallOutgoing:        server.RandomLocalWithPulse(),
-		Arguments:           insolar.MustSerialize([]interface{}{}),
+		CallOutgoing:        server.BuildRandomOutgoingWithPulse(),
 	}
 
 	countBefore := server.PublisherMock.GetCount()
@@ -175,6 +173,8 @@ func TestVirtual_Method_WithExecutor(t *testing.T) {
 func TestVirtual_Method_WithExecutor_ObjectIsNotExist(t *testing.T) {
 	t.Log("C4974")
 
+	mc := minimock.NewController(t)
+
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
 	server.IncrementPulse(ctx)
@@ -182,9 +182,32 @@ func TestVirtual_Method_WithExecutor_ObjectIsNotExist(t *testing.T) {
 	var (
 		objectLocal  = server.RandomLocalWithPulse()
 		objectGlobal = reference.NewSelf(objectLocal)
+		outgoing     = server.BuildRandomOutgoingWithPulse()
 	)
 
-	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal)
+	Method_PrepareObject(ctx, server, payload.Missing, objectGlobal)
+
+	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
+
+	expectedError := throw.E("object does not exist", struct {
+		ObjectReference string
+		State           object.State
+	}{
+		ObjectReference: objectGlobal.String(),
+		State:           object.Missing,
+	})
+
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
+		assert.Equal(t, res.Callee, objectGlobal)
+		assert.Equal(t, res.CallOutgoing, outgoing)
+
+		contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments)
+		require.NoError(t, sysErr)
+		require.Equal(t, expectedError.Error(), contractErr.Error())
+
+		return false // no resend msg
+	})
 
 	{
 		pl := payload.VCallRequest{
@@ -194,21 +217,24 @@ func TestVirtual_Method_WithExecutor_ObjectIsNotExist(t *testing.T) {
 			Callee:              objectGlobal,
 			CallSiteDeclaration: testwallet.GetClass(),
 			CallSiteMethod:      "GetBalance",
-			CallOutgoing:        server.RandomLocalWithPulse(),
+			CallOutgoing:        outgoing,
 			Arguments:           insolar.MustSerialize([]interface{}{}),
 		}
 		server.SendPayload(ctx, &pl)
-
-		// TODO fix it after implementation https://insolar.atlassian.net/browse/PLAT-395
 	}
+
+	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+
+	assert.Equal(t, 1, typedChecker.VCallResult.Count())
+
+	mc.Finish()
 }
 
 func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 	t.Log("C4930")
 
-	var (
-		mc = minimock.NewController(t)
-	)
+	mc := minimock.NewController(t)
 
 	server, ctx := utils.NewUninitializedServer(nil, t)
 	defer server.Stop()
@@ -253,23 +279,21 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 		countBefore := server.PublisherMock.GetCount()
 
 		for i := 0; i < 2; i++ {
-			callOutgoing := server.RandomLocalWithPulse()
+			callOutgoing := server.BuildRandomOutgoingWithPulse()
 
 			pl := payload.VCallRequest{
 				CallType:            payload.CTMethod,
 				CallFlags:           payload.BuildCallFlags(contract.CallIntolerable, contract.CallValidated),
-				CallAsOf:            0,
 				Caller:              server.GlobalCaller(),
 				Callee:              objectGlobal,
 				CallSiteDeclaration: class,
 				CallSiteMethod:      "GetBalance",
 				CallOutgoing:        callOutgoing,
-				Arguments:           insolar.MustSerialize([]interface{}{}),
 			}
 
 			result := requestresult.New([]byte("345"), objectGlobal)
 
-			key := calculateOutgoing(pl).String()
+			key := callOutgoing.String()
 			runnerMock.AddExecutionMock(key).
 				AddStart(checkExecution, &execution.Update{
 					Type:   execution.Done,
@@ -312,9 +336,7 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 func TestVirtual_CallMethodAfterPulseChange(t *testing.T) {
 	t.Log("C4870")
 
-	var (
-		mc = minimock.NewController(t)
-	)
+	mc := minimock.NewController(t)
 
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
@@ -347,868 +369,126 @@ func TestVirtual_CallMethodAfterPulseChange(t *testing.T) {
 	mc.Finish()
 }
 
-// ordered A.Foo calls ordered B.Bar
-func TestVirtual_CallContractFromContract_Ordered(t *testing.T) {
-	t.Log("C5086")
-
-	mc := minimock.NewController(t)
-
-	server, ctx := utils.NewUninitializedServer(nil, t)
-	defer server.Stop()
-
-	logger := inslogger.FromContext(ctx)
-
-	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
-		return execution.Request.CallSiteMethod
-	})
-	server.ReplaceRunner(runnerMock)
-	server.Init(ctx)
-	server.IncrementPulseAndWaitIdle(ctx)
-
-	var (
-		class = gen.UniqueGlobalRef()
-
-		objectAGlobal = reference.NewSelf(server.RandomLocalWithPulse())
-		objectBGlobal = reference.NewSelf(server.RandomLocalWithPulse())
-
-		flags = contract.MethodIsolation{
-			Interference: contract.CallTolerable,
-			State:        contract.CallDirty,
-		}
-	)
-
-	Method_PrepareObject(ctx, server, payload.Ready, objectAGlobal)
-	Method_PrepareObject(ctx, server, payload.Ready, objectBGlobal)
-
-	outgoingCall := execution.NewRPCBuilder(gen.UniqueGlobalRef(), objectAGlobal).CallMethod(objectBGlobal, class, "Bar", []byte{})
-	objectAExecutionMock := runnerMock.AddExecutionMock("Foo")
-	objectAExecutionMock.AddStart(
-		func(ctx execution.Context) {
-			require.Equal(t, objectAGlobal, ctx.Request.Callee)
-			logger.Debug("ExecutionStart [A.Foo]")
-		},
-		&execution.Update{
-			Type:     execution.OutgoingCall,
-			Error:    nil,
-			Outgoing: outgoingCall,
-		},
-	)
-	objectAExecutionMock.AddContinue(
-		func(result []byte) {
-			logger.Debug("ExecutionContinue [A.Foo]")
-		},
-		&execution.Update{
-			Type:   execution.Done,
-			Result: requestresult.New([]byte("finish A.Foo"), objectAGlobal),
-		},
-	)
-
-	runnerMock.AddExecutionMock("Bar").AddStart(
-		func(ctx execution.Context) {
-			require.Equal(t, objectBGlobal, ctx.Request.Callee)
-			logger.Debug("ExecutionStart [B.Bar]")
-		},
-		&execution.Update{
-			Type:   execution.Done,
-			Result: requestresult.New([]byte("finish B.Bar"), objectBGlobal),
-		},
-	)
-
-	runnerMock.AddExecutionClassify("Foo", flags, nil)
-	runnerMock.AddExecutionClassify("Bar", flags, nil)
-
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-	typedChecker.VCallRequest.SetResend(true).ExpectedCount(1)
-	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
-		switch res.Callee {
-		case objectAGlobal:
-			require.Equal(t, []byte("finish A.Foo"), res.ReturnArguments)
-		case objectBGlobal:
-			require.Equal(t, []byte("finish B.Bar"), res.ReturnArguments)
-		}
-		// we should resend that message only if it's CallResult from B to A
-		return res.Caller == objectAGlobal
-	}).ExpectedCount(2)
-
-	pl := payload.VCallRequest{
-		CallType:            payload.CTMethod,
-		CallFlags:           payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
-		Caller:              server.GlobalCaller(),
-		Callee:              objectAGlobal,
-		CallSiteDeclaration: class,
-		CallSiteMethod:      "Foo",
-		CallOutgoing:        server.RandomLocalWithPulse(),
-		Arguments:           insolar.MustSerialize([]interface{}{}),
-	}
-
-	beforeCount := server.PublisherMock.GetCount()
-	server.SendPayload(ctx, &pl)
-	if !server.PublisherMock.WaitCount(beforeCount+3, 10*time.Second) {
-		t.Fatal("failed to wait until all messages returned")
-	}
-
-	server.WaitActiveThenIdleConveyor()
-	mc.Finish()
-}
-
-// ordered A.Foo calls unordered B.Bar
-func TestVirtual_CallContractFromContract_Unordered(t *testing.T) {
-	t.Log("C5087")
-
-	mc := minimock.NewController(t)
-
-	server, ctx := utils.NewUninitializedServer(nil, t)
-	defer server.Stop()
-
-	logger := inslogger.FromContext(ctx)
-
-	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
-		return execution.Request.CallSiteMethod
-	})
-	server.ReplaceRunner(runnerMock)
-	server.Init(ctx)
-	server.IncrementPulseAndWaitIdle(ctx)
-
-	var (
-		class = gen.UniqueGlobalRef()
-
-		objectAGlobal = reference.NewSelf(server.RandomLocalWithPulse())
-		objectBGlobal = reference.NewSelf(server.RandomLocalWithPulse())
-	)
-
-	Method_PrepareObject(ctx, server, payload.Ready, objectAGlobal)
-	Method_PrepareObject(ctx, server, payload.Ready, objectBGlobal)
-
-	outgoingCall := execution.NewRPCBuilder(gen.UniqueGlobalRef(), objectAGlobal).CallMethod(objectBGlobal, class, "Bar", []byte{})
-	objectAExecutionMock := runnerMock.AddExecutionMock("Foo")
-	objectAExecutionMock.AddStart(
-		func(ctx execution.Context) {
-			require.Equal(t, objectAGlobal, ctx.Request.Callee)
-			logger.Debug("ExecutionStart [A.Foo]")
-		},
-		&execution.Update{
-			Type:     execution.OutgoingCall,
-			Error:    nil,
-			Outgoing: outgoingCall,
-		},
-	)
-	objectAExecutionMock.AddContinue(
-		func(result []byte) {
-			logger.Debug("ExecutionContinue [A.Foo]")
-		},
-		&execution.Update{
-			Type:   execution.Done,
-			Result: requestresult.New([]byte("finish A.Foo"), objectAGlobal),
-		},
-	)
-
-	runnerMock.AddExecutionMock("Bar").AddStart(
-		func(ctx execution.Context) {
-			require.Equal(t, objectBGlobal, ctx.Request.Callee)
-			logger.Debug("ExecutionStart [B.Bar]")
-		},
-		&execution.Update{
-			Type:   execution.Done,
-			Result: requestresult.New([]byte("finish B.Bar"), objectBGlobal),
-		},
-	)
-
-	runnerMock.AddExecutionClassify("Foo", contract.MethodIsolation{Interference: contract.CallTolerable, State: contract.CallDirty}, nil)
-	runnerMock.AddExecutionClassify("Bar", contract.MethodIsolation{Interference: contract.CallIntolerable, State: contract.CallDirty}, nil)
-
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-	typedChecker.VCallRequest.SetResend(true).ExpectedCount(1)
-	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
-		switch res.Callee {
-		case objectAGlobal:
-			require.Equal(t, []byte("finish A.Foo"), res.ReturnArguments)
-		case objectBGlobal:
-			require.Equal(t, []byte("finish B.Bar"), res.ReturnArguments)
-		}
-		// we should resend that message only if it's CallResult from B to A
-		return res.Caller == objectAGlobal
-	}).ExpectedCount(2)
-
-	pl := payload.VCallRequest{
-		CallType:            payload.CTMethod,
-		CallFlags:           payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
-		Caller:              server.GlobalCaller(),
-		Callee:              objectAGlobal,
-		CallSiteDeclaration: class,
-		CallSiteMethod:      "Foo",
-		CallOutgoing:        server.RandomLocalWithPulse(),
-		Arguments:           insolar.MustSerialize([]interface{}{}),
-	}
-
-	beforeCount := server.PublisherMock.GetCount()
-	server.SendPayload(ctx, &pl)
-	if !server.PublisherMock.WaitCount(beforeCount+3, 10*time.Second) {
-		t.Fatal("failed to wait until all messages returned")
-	}
-
-	server.WaitActiveThenIdleConveyor()
-	mc.Finish()
-}
-
-// ordered A.Foo calls unordered A.Bar
-func TestVirtual_Call_UnorderedMethod_From_OrderedMethod(t *testing.T) {
-	t.Log("C5116")
-
-	mc := minimock.NewController(t)
-
-	server, ctx := utils.NewUninitializedServer(nil, t)
-	defer server.Stop()
-
-	logger := inslogger.FromContext(ctx)
-
-	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
-		return execution.Request.CallSiteMethod
-	})
-	server.ReplaceRunner(runnerMock)
-	server.Init(ctx)
-	server.IncrementPulseAndWaitIdle(ctx)
-
-	var (
-		class         = gen.UniqueGlobalRef()
-		objectAGlobal = reference.NewSelf(server.RandomLocalWithPulse())
-	)
-
-	Method_PrepareObject(ctx, server, payload.Ready, objectAGlobal)
-
-	outgoingCall := execution.NewRPCBuilder(gen.UniqueGlobalRef(), objectAGlobal).CallMethod(objectAGlobal, class, "Bar", []byte{})
-	objectAExecutionMock := runnerMock.AddExecutionMock("Foo")
-	objectAExecutionMock.AddStart(
-		func(ctx execution.Context) {
-			logger.Debug("ExecutionStart [A.Foo]")
-		},
-		&execution.Update{
-			Type:     execution.OutgoingCall,
-			Error:    nil,
-			Outgoing: outgoingCall,
-		},
-	)
-	objectAExecutionMock.AddContinue(
-		func(result []byte) {
-			logger.Debug("ExecutionContinue [A.Foo]")
-		},
-		&execution.Update{
-			Type:   execution.Done,
-			Result: requestresult.New([]byte("finish A.Foo"), objectAGlobal),
-		},
-	)
-
-	runnerMock.AddExecutionMock("Bar").AddStart(
-		func(ctx execution.Context) {
-			logger.Debug("ExecutionStart [A.Bar]")
-		},
-		&execution.Update{
-			Type:   execution.Done,
-			Result: requestresult.New([]byte("finish A.Bar"), objectAGlobal),
-		},
-	)
-
-	runnerMock.AddExecutionClassify("Foo", contract.MethodIsolation{Interference: contract.CallTolerable, State: contract.CallDirty}, nil)
-	runnerMock.AddExecutionClassify("Bar", contract.MethodIsolation{Interference: contract.CallIntolerable, State: contract.CallDirty}, nil)
-
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-	typedChecker.VCallRequest.SetResend(true).ExpectedCount(1)
-	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
-		switch res.Caller {
-		case objectAGlobal:
-			require.Equal(t, []byte("finish A.Bar"), res.ReturnArguments)
-		default:
-			require.Equal(t, []byte("finish A.Foo"), res.ReturnArguments)
-		}
-		// we should resend that message only if it's CallResult from A to A
-		return res.Caller == objectAGlobal
-	}).ExpectedCount(2)
-
-	pl := payload.VCallRequest{
-		CallType:            payload.CTMethod,
-		CallFlags:           payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
-		Caller:              server.GlobalCaller(),
-		Callee:              objectAGlobal,
-		CallSiteDeclaration: class,
-		CallSiteMethod:      "Foo",
-		CallOutgoing:        server.RandomLocalWithPulse(),
-		Arguments:           insolar.MustSerialize([]interface{}{}),
-	}
-
-	beforeCount := server.PublisherMock.GetCount()
-	server.SendPayload(ctx, &pl)
-	if !server.PublisherMock.WaitCount(beforeCount+3, 10*time.Second) {
-		t.Fatal("failed to wait until all messages returned")
-	}
-
-	server.WaitActiveThenIdleConveyor()
-	mc.Finish()
-}
-
-// unordered A.Foo calls unordered A.Bar
-func TestVirtual_Call_UnorderedMethod_From_UnorderedMethod(t *testing.T) {
-	t.Log("C5122")
-
-	mc := minimock.NewController(t)
-
-	server, ctx := utils.NewUninitializedServer(nil, t)
-	defer server.Stop()
-
-	logger := inslogger.FromContext(ctx)
-
-	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
-		return execution.Request.CallSiteMethod
-	})
-	server.ReplaceRunner(runnerMock)
-	server.Init(ctx)
-	server.IncrementPulseAndWaitIdle(ctx)
-
-	var (
-		flags         = contract.MethodIsolation{Interference: contract.CallIntolerable, State: contract.CallDirty}
-		class         = gen.UniqueGlobalRef()
-		objectAGlobal = reference.NewSelf(server.RandomLocalWithPulse())
-	)
-
-	Method_PrepareObject(ctx, server, payload.Ready, objectAGlobal)
-
-	outgoingCall := execution.NewRPCBuilder(gen.UniqueGlobalRef(), objectAGlobal).CallMethod(objectAGlobal, class, "Bar", []byte{})
-	objectAExecutionMock := runnerMock.AddExecutionMock("Foo")
-	objectAExecutionMock.AddStart(
-		func(ctx execution.Context) {
-			logger.Debug("ExecutionStart [A.Foo]")
-		},
-		&execution.Update{
-			Type:     execution.OutgoingCall,
-			Error:    nil,
-			Outgoing: outgoingCall,
-		},
-	)
-	objectAExecutionMock.AddContinue(
-		func(result []byte) {
-			logger.Debug("ExecutionContinue [A.Foo]")
-		},
-		&execution.Update{
-			Type:   execution.Done,
-			Result: requestresult.New([]byte("finish A.Foo"), objectAGlobal),
-		},
-	)
-
-	runnerMock.AddExecutionMock("Bar").AddStart(
-		func(ctx execution.Context) {
-			logger.Debug("ExecutionStart [A.Bar]")
-		},
-		&execution.Update{
-			Type:   execution.Done,
-			Result: requestresult.New([]byte("finish A.Bar"), objectAGlobal),
-		},
-	)
-
-	runnerMock.AddExecutionClassify("Foo", flags, nil)
-	runnerMock.AddExecutionClassify("Bar", flags, nil)
-
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-	typedChecker.VCallRequest.SetResend(true).ExpectedCount(1)
-	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
-		switch res.Caller {
-		case objectAGlobal:
-			require.Equal(t, []byte("finish A.Bar"), res.ReturnArguments)
-		default:
-			require.Equal(t, []byte("finish A.Foo"), res.ReturnArguments)
-		}
-		// we should resend that message only if it's CallResult from A to A
-		return res.Caller == objectAGlobal
-	}).ExpectedCount(2)
-
-	pl := payload.VCallRequest{
-		CallType:            payload.CTMethod,
-		CallFlags:           payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
-		Caller:              server.GlobalCaller(),
-		Callee:              objectAGlobal,
-		CallSiteDeclaration: class,
-		CallSiteMethod:      "Foo",
-		CallOutgoing:        server.RandomLocalWithPulse(),
-		Arguments:           insolar.MustSerialize([]interface{}{}),
-	}
-
-	beforeCount := server.PublisherMock.GetCount()
-	server.SendPayload(ctx, &pl)
-	if !server.PublisherMock.WaitCount(beforeCount+3, 10*time.Second) {
-		t.Fatal("failed to wait until all messages returned")
-	}
-
-	server.WaitActiveThenIdleConveyor()
-	mc.Finish()
-}
-
-// A.New calls ordered B.Foo
-func TestVirtual_CallMethodFromConstructor_Ordered(t *testing.T) {
-	t.Log("C5091")
-
-	mc := minimock.NewController(t)
-
-	server, ctx := utils.NewUninitializedServer(nil, t)
-	defer server.Stop()
-
-	logger := inslogger.FromContext(ctx)
-
-	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 2)
-
-	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
-		return execution.Request.CallSiteMethod
-	})
-	server.ReplaceRunner(runnerMock)
-	server.Init(ctx)
-	server.IncrementPulseAndWaitIdle(ctx)
-
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-
-	var (
-		isolation = contract.ConstructorIsolation()
-		callFlags = payload.BuildCallFlags(isolation.Interference, isolation.State)
-
-		classA        = gen.UniqueGlobalRef()
-		outgoingA     = server.RandomLocalWithPulse()
-		objectAGlobal = reference.NewSelf(outgoingA)
-
-		classB        = gen.UniqueGlobalRef()
-		objectBGlobal = reference.NewSelf(server.RandomLocalWithPulse())
-
-		outgoingCallRef = gen.UniqueGlobalRef()
-	)
-
-	Method_PrepareObject(ctx, server, payload.Ready, objectBGlobal)
-
-	// add ExecutionMocks to runnerMock
-	{
-		outgoingCall := execution.NewRPCBuilder(outgoingCallRef, objectAGlobal).CallMethod(objectBGlobal, classB, "Foo", []byte("123"))
-		objectAResult := requestresult.New([]byte("finish A.New"), objectAGlobal)
-		objectAResult.SetActivate(reference.Global{}, classA, []byte("state A"))
-		objectAExecutionMock := runnerMock.AddExecutionMock("New")
-		objectAExecutionMock.AddStart(
-			func(ctx execution.Context) {
-				logger.Debug("ExecutionStart [A.New]")
-				require.Equal(t, classA, ctx.Request.Callee)
-				require.Equal(t, outgoingA, ctx.Request.CallOutgoing)
-			},
-			&execution.Update{
-				Type:     execution.OutgoingCall,
-				Error:    nil,
-				Outgoing: outgoingCall,
-			},
-		)
-		objectAExecutionMock.AddContinue(
-			func(result []byte) {
-				logger.Debug("ExecutionContinue [A.New]")
-				require.Equal(t, []byte("finish B.Foo"), result)
-			},
-			&execution.Update{
-				Type:   execution.Done,
-				Result: objectAResult,
-			},
-		)
-
-		runnerMock.AddExecutionMock("Foo").AddStart(
-			func(ctx execution.Context) {
-				logger.Debug("ExecutionStart [B.Foo]")
-				require.Equal(t, objectBGlobal, ctx.Request.Callee)
-				require.Equal(t, objectAGlobal, ctx.Request.Caller)
-				require.Equal(t, []byte("123"), ctx.Request.Arguments)
-			},
-			&execution.Update{
-				Type:   execution.Done,
-				Result: requestresult.New([]byte("finish B.Foo"), objectBGlobal),
-			},
-		)
-
-		runnerMock.AddExecutionClassify("Foo", contract.MethodIsolation{Interference: contract.CallTolerable, State: contract.CallDirty}, nil)
-	}
-
-	// add checks to typedChecker
-	{
-		typedChecker.VCallRequest.Set(func(request *payload.VCallRequest) bool {
-			assert.Equal(t, objectBGlobal, request.Callee)
-			assert.Equal(t, objectAGlobal, request.Caller)
-			assert.Equal(t, []byte("123"), request.Arguments)
-			assert.Equal(t, payload.CTMethod, request.CallType)
-			assert.Equal(t, uint32(1), request.CallSequence)
-			assert.Equal(t, outgoingCallRef, request.CallReason)
-			assert.Equal(t, callFlags, request.CallFlags)
-			assert.Equal(t, server.GetPulse().PulseNumber, request.CallOutgoing.Pulse())
-			return true // resend
-		})
-		typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
-			assert.Equal(t, callFlags, res.CallFlags)
-
-			switch res.Callee {
-			case objectAGlobal:
-				require.Equal(t, []byte("finish A.New"), res.ReturnArguments)
-				require.Equal(t, payload.CTConstructor, res.CallType)
-				require.Equal(t, server.GlobalCaller(), res.Caller)
-				require.Equal(t, outgoingA, res.CallOutgoing)
-			case objectBGlobal:
-				require.Equal(t, []byte("finish B.Foo"), res.ReturnArguments)
-				require.Equal(t, payload.CTMethod, res.CallType)
-				require.Equal(t, objectAGlobal, res.Caller)
-				require.Equal(t, server.GetPulse().PulseNumber, res.CallOutgoing.Pulse())
-
-			default:
-				t.Fatalf("wrong Callee")
-			}
-			// we should resend that message only if it's CallResult from B to A
-			return res.Caller == objectAGlobal
-		})
-	}
-
-	pl := payload.VCallRequest{
-		CallType:       payload.CTConstructor,
-		CallFlags:      callFlags,
-		Caller:         server.GlobalCaller(),
-		Callee:         classA,
-		CallSiteMethod: "New",
-		CallOutgoing:   outgoingA,
-	}
-	msg := server.WrapPayload(&pl).Finalize()
-	server.SendMessage(ctx, msg)
-
-	// wait for all calls and SMs
-	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
-	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
-
-	require.Equal(t, 1, typedChecker.VCallRequest.Count())
-	require.Equal(t, 2, typedChecker.VCallResult.Count())
-
-	mc.Finish()
-}
-
-// A.New calls unordered B.Foo
-func TestVirtual_CallMethodFromConstructor_Unordered(t *testing.T) {
-	t.Log("C5092")
-
-	mc := minimock.NewController(t)
-
-	server, ctx := utils.NewUninitializedServer(nil, t)
-	defer server.Stop()
-
-	logger := inslogger.FromContext(ctx)
-
-	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 2)
-
-	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
-		return execution.Request.CallSiteMethod
-	})
-	server.ReplaceRunner(runnerMock)
-	server.Init(ctx)
-	server.IncrementPulseAndWaitIdle(ctx)
-
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-
-	var (
-		isolation = contract.ConstructorIsolation()
-		callFlags = payload.BuildCallFlags(isolation.Interference, isolation.State)
-
-		classA        = gen.UniqueGlobalRef()
-		outgoingA     = server.RandomLocalWithPulse()
-		objectAGlobal = reference.NewSelf(outgoingA)
-
-		classB        = gen.UniqueGlobalRef()
-		objectBGlobal = reference.NewSelf(server.RandomLocalWithPulse())
-
-		outgoingCallRef = gen.UniqueGlobalRef()
-	)
-
-	Method_PrepareObject(ctx, server, payload.Ready, objectBGlobal)
-
-	// add ExecutionMocks to runnerMock
-	{
-		outgoingCall := execution.NewRPCBuilder(outgoingCallRef, objectAGlobal).CallMethod(objectBGlobal, classB, "Foo", []byte("123"))
-		objectAResult := requestresult.New([]byte("finish A.New"), objectAGlobal)
-		objectAResult.SetActivate(reference.Global{}, classA, []byte("state A"))
-		objectAExecutionMock := runnerMock.AddExecutionMock("New")
-		objectAExecutionMock.AddStart(
-			func(ctx execution.Context) {
-				logger.Debug("ExecutionStart [A.New]")
-				require.Equal(t, classA, ctx.Request.Callee)
-				require.Equal(t, outgoingA, ctx.Request.CallOutgoing)
-			},
-			&execution.Update{
-				Type:     execution.OutgoingCall,
-				Error:    nil,
-				Outgoing: outgoingCall,
-			},
-		)
-		objectAExecutionMock.AddContinue(
-			func(result []byte) {
-				logger.Debug("ExecutionContinue [A.New]")
-				require.Equal(t, []byte("finish B.Foo"), result)
-			},
-			&execution.Update{
-				Type:   execution.Done,
-				Result: objectAResult,
-			},
-		)
-
-		runnerMock.AddExecutionMock("Foo").AddStart(
-			func(ctx execution.Context) {
-				logger.Debug("ExecutionStart [B.Foo]")
-				require.Equal(t, objectBGlobal, ctx.Request.Callee)
-				require.Equal(t, objectAGlobal, ctx.Request.Caller)
-				require.Equal(t, []byte("123"), ctx.Request.Arguments)
-			},
-			&execution.Update{
-				Type:   execution.Done,
-				Result: requestresult.New([]byte("finish B.Foo"), objectBGlobal),
-			},
-		)
-
-		runnerMock.AddExecutionClassify("Foo", contract.MethodIsolation{Interference: contract.CallIntolerable, State: contract.CallDirty}, nil)
-	}
-
-	// add checks to typedChecker
-	{
-		typedChecker.VCallRequest.Set(func(request *payload.VCallRequest) bool {
-			assert.Equal(t, objectBGlobal, request.Callee)
-			assert.Equal(t, objectAGlobal, request.Caller)
-			assert.Equal(t, []byte("123"), request.Arguments)
-			assert.Equal(t, payload.CTMethod, request.CallType)
-			assert.Equal(t, uint32(1), request.CallSequence)
-			assert.Equal(t, outgoingCallRef, request.CallReason)
-			assert.Equal(t, callFlags, request.CallFlags)
-			assert.Equal(t, server.GetPulse().PulseNumber, request.CallOutgoing.Pulse())
-			return true // resend
-		})
-		typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
-			assert.Equal(t, callFlags, res.CallFlags)
-
-			switch res.Callee {
-			case objectAGlobal:
-				require.Equal(t, []byte("finish A.New"), res.ReturnArguments)
-				require.Equal(t, payload.CTConstructor, res.CallType)
-				require.Equal(t, server.GlobalCaller(), res.Caller)
-				require.Equal(t, outgoingA, res.CallOutgoing)
-			case objectBGlobal:
-				require.Equal(t, []byte("finish B.Foo"), res.ReturnArguments)
-				require.Equal(t, payload.CTMethod, res.CallType)
-				require.Equal(t, objectAGlobal, res.Caller)
-				require.Equal(t, server.GetPulse().PulseNumber, res.CallOutgoing.Pulse())
-
-			default:
-				t.Fatalf("wrong Callee")
-			}
-			// we should resend that message only if it's CallResult from B to A
-			return res.Caller == objectAGlobal
-		})
-	}
-
-	pl := payload.VCallRequest{
-		CallType:       payload.CTConstructor,
-		CallFlags:      callFlags,
-		Caller:         server.GlobalCaller(),
-		Callee:         classA,
-		CallSiteMethod: "New",
-		CallOutgoing:   outgoingA,
-	}
-	msg := server.WrapPayload(&pl).Finalize()
-	server.SendMessage(ctx, msg)
-
-	// wait for all calls and SMs
-	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
-	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
-
-	require.Equal(t, 1, typedChecker.VCallRequest.Count())
-	require.Equal(t, 2, typedChecker.VCallResult.Count())
-}
-
-// unordered A.Foo sends ordered outgoing and receives error
 func TestVirtual_CallContractFromContract_InterferenceViolation(t *testing.T) {
 	t.Log("C4980")
-
-	mc := minimock.NewController(t)
-
-	server, ctx := utils.NewUninitializedServer(nil, t)
-	defer server.Stop()
-
-	logger := inslogger.FromContext(ctx)
-
-	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
-
-	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
-		return execution.Request.CallSiteMethod
-	})
-	server.ReplaceRunner(runnerMock)
-	server.Init(ctx)
-	server.IncrementPulseAndWaitIdle(ctx)
-	var (
-		class = gen.UniqueGlobalRef()
-
-		objectAGlobal = reference.NewSelf(server.RandomLocalWithPulse())
-
-		flags = contract.MethodIsolation{
-			Interference: contract.CallIntolerable,
-			State:        contract.CallDirty,
-		}
-	)
-
-	Method_PrepareObject(ctx, server, payload.Ready, objectAGlobal)
-
-	outgoingCallRef := gen.UniqueGlobalRef()
-
-	expectedError, err := foundation.MarshalMethodErrorResult(throw.E("interference violation: ordered call from unordered call"))
-	require.NoError(t, err)
-
-	expectedResult := []byte("finish A.Foo")
-
-	outgoingCall := execution.NewRPCBuilder(outgoingCallRef, objectAGlobal).CallMethod(objectAGlobal, class, "Bar", []byte("123")).SetInterference(contract.CallTolerable)
-	objectAExecutionMock := runnerMock.AddExecutionMock("Foo")
-	objectAExecutionMock.AddStart(
-		func(ctx execution.Context) {
-			assert.Equal(t, objectAGlobal, ctx.Object)
-			assert.Equal(t, flags, ctx.Isolation)
-			logger.Debug("ExecutionStart [A.Foo]")
+	table := []struct {
+		name         string
+		caseId       string
+		outgoingCall string
+	}{
+		{
+			name:         "unordered A.Foo sends ordered outgoing and receives error, call method",
+			outgoingCall: "method",
+		}, {
+			name:         "unordered A.Foo sends ordered outgoing and receives error, call constructor",
+			outgoingCall: "constructor",
 		},
-		&execution.Update{
-			Type:     execution.OutgoingCall,
-			Error:    nil,
-			Outgoing: outgoingCall,
-		},
-	).AddContinue(func(result []byte) {
-		assert.Equal(t, expectedError, result)
-
-	}, &execution.Update{
-		Type:   execution.Done,
-		Result: requestresult.New(expectedResult, objectAGlobal),
-	})
-
-	runnerMock.AddExecutionClassify("Foo", flags, nil)
-
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
-		switch res.Callee {
-		case objectAGlobal:
-			assert.Equal(t, expectedResult, res.ReturnArguments)
-		default:
-			assert.Fail(t, "unexpected VCallResult")
-		}
-		return false
-	})
-
-	pl := payload.VCallRequest{
-		CallType:            payload.CTMethod,
-		CallFlags:           payload.BuildCallFlags(flags.Interference, flags.State),
-		Caller:              server.GlobalCaller(),
-		Callee:              objectAGlobal,
-		CallSiteDeclaration: class,
-		CallSiteMethod:      "Foo",
-		CallOutgoing:        server.RandomLocalWithPulse(),
-		Arguments:           insolar.MustSerialize([]interface{}{}),
 	}
+	for _, test := range table {
+		t.Run(test.name, func(t *testing.T) {
 
-	server.SendPayload(ctx, &pl)
-	{
-		testutils.WaitSignalsTimed(t, 20*time.Second, executeDone)
-		testutils.WaitSignalsTimed(t, 20*time.Second, server.Journal.WaitAllAsyncCallsDone())
-	}
+			mc := minimock.NewController(t)
 
-	require.Equal(t, 0, typedChecker.VCallRequest.Count())
-	require.Equal(t, 1, typedChecker.VCallResult.Count())
+			server, ctx := utils.NewUninitializedServer(nil, t)
+			defer server.Stop()
 
-	mc.Finish()
-}
+			logger := inslogger.FromContext(ctx)
 
-// unordered A.Foo sends ordered outgoing and receives error
-func TestVirtual_CallConstructorFromContract_InterferenceViolation(t *testing.T) {
-	t.Log("C5203")
+			executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 
-	mc := minimock.NewController(t)
+			runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
+				return execution.Request.CallSiteMethod
+			})
+			server.ReplaceRunner(runnerMock)
+			server.Init(ctx)
+			server.IncrementPulseAndWaitIdle(ctx)
+			var (
+				class = gen.UniqueGlobalRef()
 
-	server, ctx := utils.NewUninitializedServer(nil, t)
-	defer server.Stop()
+				objectAGlobal = reference.NewSelf(server.RandomLocalWithPulse())
 
-	logger := inslogger.FromContext(ctx)
+				flags = contract.MethodIsolation{
+					Interference: contract.CallIntolerable,
+					State:        contract.CallDirty,
+				}
+				outgoingCall  execution.RPC
+				expectedError []byte
+				err           error
+			)
 
-	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
+			Method_PrepareObject(ctx, server, payload.Ready, objectAGlobal)
 
-	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
-		return execution.Request.CallSiteMethod
-	})
-	server.ReplaceRunner(runnerMock)
-	server.Init(ctx)
-	server.IncrementPulseAndWaitIdle(ctx)
-	var (
-		class = gen.UniqueGlobalRef()
+			outgoingCallRef := gen.UniqueGlobalRef()
 
-		objectAGlobal = reference.NewSelf(server.RandomLocalWithPulse())
+			switch test.outgoingCall {
+			case "method":
+				expectedError, err = foundation.MarshalMethodErrorResult(throw.E("interference violation: ordered call from unordered call"))
+				require.NoError(t, err)
+				outgoingCall = execution.NewRPCBuilder(outgoingCallRef, objectAGlobal).CallMethod(objectAGlobal, class, "Bar", byteArguments).SetInterference(contract.CallTolerable)
+			case "constructor":
+				expectedError, err = foundation.MarshalMethodErrorResult(throw.E("interference violation: constructor call from unordered call"))
+				require.NoError(t, err)
+				outgoingCall = execution.NewRPCBuilder(outgoingCallRef, objectAGlobal).CallConstructor(class, "Bar", byteArguments)
+			default:
+				assert.Fail(t, "unexpected outgoingCall type")
 
-		flags = contract.MethodIsolation{
-			Interference: contract.CallIntolerable,
-			State:        contract.CallDirty,
-		}
-	)
+			}
+			expectedResult := []byte("finish A.Foo")
+			objectAExecutionMock := runnerMock.AddExecutionMock("Foo")
+			objectAExecutionMock.AddStart(
+				func(ctx execution.Context) {
+					assert.Equal(t, objectAGlobal, ctx.Object)
+					assert.Equal(t, flags, ctx.Isolation)
+					logger.Debug("ExecutionStart [A.Foo]")
+				},
+				&execution.Update{
+					Type:     execution.OutgoingCall,
+					Error:    nil,
+					Outgoing: outgoingCall,
+				},
+			).AddContinue(func(result []byte) {
+				assert.Equal(t, expectedError, result)
 
-	Method_PrepareObject(ctx, server, payload.Ready, objectAGlobal)
+			}, &execution.Update{
+				Type:   execution.Done,
+				Result: requestresult.New(expectedResult, objectAGlobal),
+			})
 
-	outgoingCallRef := gen.UniqueGlobalRef()
+			runnerMock.AddExecutionClassify("Foo", flags, nil)
 
-	expectedError, err := foundation.MarshalMethodErrorResult(throw.E("interference violation: constructor call from unordered call"))
-	require.NoError(t, err)
+			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+			typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
+				switch res.Callee {
+				case objectAGlobal:
+					assert.Equal(t, expectedResult, res.ReturnArguments)
+				default:
+					assert.Fail(t, "unexpected VCallResult")
+				}
+				return false
+			})
 
-	expectedResult := []byte("finish A.Foo")
+			pl := payload.VCallRequest{
+				CallType:            payload.CTMethod,
+				CallFlags:           payload.BuildCallFlags(flags.Interference, flags.State),
+				Caller:              server.GlobalCaller(),
+				Callee:              objectAGlobal,
+				CallSiteDeclaration: class,
+				CallSiteMethod:      "Foo",
+				CallOutgoing:        server.BuildRandomOutgoingWithPulse(),
+			}
 
-	outgoingCall := execution.NewRPCBuilder(outgoingCallRef, objectAGlobal).CallConstructor(class, "Bar", []byte("123"))
-	objectAExecutionMock := runnerMock.AddExecutionMock("Foo")
-	objectAExecutionMock.
-		AddStart(
-			func(ctx execution.Context) {
-				assert.Equal(t, objectAGlobal, ctx.Object)
-				assert.Equal(t, flags, ctx.Isolation)
-				logger.Debug("ExecutionStart [A.Foo]")
-			},
-			&execution.Update{
-				Type:     execution.OutgoingCall,
-				Error:    nil,
-				Outgoing: outgoingCall,
-			},
-		).
-		AddContinue(func(result []byte) {
-			assert.Equal(t, expectedError, result)
+			server.SendPayload(ctx, &pl)
+			{
+				testutils.WaitSignalsTimed(t, 20*time.Second, executeDone)
+				testutils.WaitSignalsTimed(t, 20*time.Second, server.Journal.WaitAllAsyncCallsDone())
+			}
 
-		}, &execution.Update{
-			Type:   execution.Done,
-			Result: requestresult.New(expectedResult, objectAGlobal),
+			require.Equal(t, 0, typedChecker.VCallRequest.Count())
+			require.Equal(t, 1, typedChecker.VCallResult.Count())
+
+			mc.Finish()
 		})
-
-	runnerMock.AddExecutionClassify("Foo", flags, nil)
-
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
-		switch res.Callee {
-		case objectAGlobal:
-			assert.Equal(t, expectedResult, res.ReturnArguments)
-		default:
-			assert.Fail(t, "unexpected VCallResult")
-		}
-		return false
-	})
-
-	pl := payload.VCallRequest{
-		CallType:            payload.CTMethod,
-		CallFlags:           payload.BuildCallFlags(flags.Interference, flags.State),
-		Caller:              server.GlobalCaller(),
-		Callee:              objectAGlobal,
-		CallSiteDeclaration: class,
-		CallSiteMethod:      "Foo",
-		CallOutgoing:        server.RandomLocalWithPulse(),
-		Arguments:           insolar.MustSerialize([]interface{}{}),
 	}
-
-	server.SendPayload(ctx, &pl)
-	{
-		testutils.WaitSignalsTimed(t, 20*time.Second, executeDone)
-		testutils.WaitSignalsTimed(t, 20*time.Second, server.Journal.WaitAllAsyncCallsDone())
-	}
-
-	require.Equal(t, 0, typedChecker.VCallRequest.Count())
-	require.Equal(t, 1, typedChecker.VCallResult.Count())
-
-	mc.Finish()
 }
 
 // A.Foo calls ordered B1.Bar, B2.Bar, B3.Bar
@@ -1231,26 +511,31 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 	server.Init(ctx)
 	server.IncrementPulseAndWaitIdle(ctx)
 
+	p := server.GetPulse().PulseNumber
+
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
 	var (
 		flags     = contract.MethodIsolation{Interference: contract.CallTolerable, State: contract.CallDirty}
 		callFlags = payload.BuildCallFlags(flags.Interference, flags.State)
 
-		outgoingA     = server.RandomLocalWithPulse()
-		objectAGlobal = reference.NewSelf(outgoingA)
+		outgoingA = server.BuildRandomOutgoingWithPulse()
 
-		classB         = gen.UniqueGlobalRef()
+		classB1        = gen.UniqueGlobalRef()
+		classB2        = gen.UniqueGlobalRef()
+		classB3        = gen.UniqueGlobalRef()
 		objectB1Global = reference.NewSelf(server.RandomLocalWithPulse())
 		objectB2Global = reference.NewSelf(server.RandomLocalWithPulse())
 		objectB3Global = reference.NewSelf(server.RandomLocalWithPulse())
 
-		outgoingCallRef = gen.UniqueGlobalRef()
+		outgoingCallRef = reference.NewRecordOf(
+			server.GlobalCaller(), server.RandomLocalWithPulse(),
+		)
 	)
 
 	// create objects
 	{
-		Method_PrepareObject(ctx, server, payload.Ready, objectAGlobal)
+		Method_PrepareObject(ctx, server, payload.Ready, outgoingA)
 		Method_PrepareObject(ctx, server, payload.Ready, objectB1Global)
 		Method_PrepareObject(ctx, server, payload.Ready, objectB2Global)
 		Method_PrepareObject(ctx, server, payload.Ready, objectB3Global)
@@ -1258,18 +543,18 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 
 	// add ExecutionMocks to runnerMock
 	{
-		builder := execution.NewRPCBuilder(outgoingCallRef, objectAGlobal)
-		objectAExecutionMock := runnerMock.AddExecutionMock(objectAGlobal.String())
+		builder := execution.NewRPCBuilder(outgoingCallRef, outgoingA)
+		objectAExecutionMock := runnerMock.AddExecutionMock(outgoingA.String())
 		objectAExecutionMock.AddStart(
 			func(ctx execution.Context) {
 				logger.Debug("ExecutionStart [A.Foo]")
 				require.Equal(t, server.GlobalCaller(), ctx.Request.Caller)
-				require.Equal(t, objectAGlobal, ctx.Request.Callee)
-				require.Equal(t, outgoingA, ctx.Request.CallOutgoing)
+				require.Equal(t, outgoingA, ctx.Request.Callee)
+				require.Equal(t, outgoingCallRef, ctx.Request.CallOutgoing)
 			},
 			&execution.Update{
 				Type:     execution.OutgoingCall,
-				Outgoing: builder.CallMethod(objectB1Global, classB, "Bar", []byte("B1")),
+				Outgoing: builder.CallMethod(objectB1Global, classB1, "Bar", []byte("B1")),
 			},
 		)
 
@@ -1280,7 +565,7 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 			},
 			&execution.Update{
 				Type:     execution.OutgoingCall,
-				Outgoing: builder.CallMethod(objectB2Global, classB, "Bar", []byte("B2")),
+				Outgoing: builder.CallMethod(objectB2Global, classB2, "Bar", []byte("B2")),
 			},
 		)
 		objectAExecutionMock.AddContinue(
@@ -1290,7 +575,7 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 			},
 			&execution.Update{
 				Type:     execution.OutgoingCall,
-				Outgoing: builder.CallMethod(objectB3Global, classB, "Bar", []byte("B3")),
+				Outgoing: builder.CallMethod(objectB3Global, classB3, "Bar", []byte("B3")),
 			},
 		)
 		objectAExecutionMock.AddContinue(
@@ -1300,7 +585,7 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 			},
 			&execution.Update{
 				Type:   execution.Done,
-				Result: requestresult.New([]byte("finish A.Foo"), objectAGlobal),
+				Result: requestresult.New([]byte("finish A.Foo"), outgoingA),
 			},
 		)
 
@@ -1308,7 +593,7 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 			func(ctx execution.Context) {
 				logger.Debug("ExecutionStart [B1.Bar]")
 				require.Equal(t, objectB1Global, ctx.Request.Callee)
-				require.Equal(t, objectAGlobal, ctx.Request.Caller)
+				require.Equal(t, outgoingA, ctx.Request.Caller)
 				require.Equal(t, []byte("B1"), ctx.Request.Arguments)
 			},
 			&execution.Update{
@@ -1321,7 +606,7 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 			func(ctx execution.Context) {
 				logger.Debug("ExecutionStart [B2.Bar]")
 				require.Equal(t, objectB2Global, ctx.Request.Callee)
-				require.Equal(t, objectAGlobal, ctx.Request.Caller)
+				require.Equal(t, outgoingA, ctx.Request.Caller)
 				require.Equal(t, []byte("B2"), ctx.Request.Arguments)
 			},
 			&execution.Update{
@@ -1334,7 +619,7 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 			func(ctx execution.Context) {
 				logger.Debug("ExecutionStart [B3.Bar]")
 				require.Equal(t, objectB3Global, ctx.Request.Callee)
-				require.Equal(t, objectAGlobal, ctx.Request.Caller)
+				require.Equal(t, outgoingA, ctx.Request.Caller)
 				require.Equal(t, []byte("B3"), ctx.Request.Arguments)
 			},
 			&execution.Update{
@@ -1343,7 +628,7 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 			},
 		)
 
-		runnerMock.AddExecutionClassify(objectAGlobal.String(), flags, nil)
+		runnerMock.AddExecutionClassify(outgoingA.String(), flags, nil)
 		runnerMock.AddExecutionClassify(objectB1Global.String(), flags, nil)
 		runnerMock.AddExecutionClassify(objectB2Global.String(), flags, nil)
 		runnerMock.AddExecutionClassify(objectB3Global.String(), flags, nil)
@@ -1352,11 +637,11 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 	// add checks to typedChecker
 	{
 		typedChecker.VCallRequest.Set(func(request *payload.VCallRequest) bool {
-			assert.Equal(t, objectAGlobal, request.Caller)
+			assert.Equal(t, outgoingA, request.Caller)
 			assert.Equal(t, payload.CTMethod, request.CallType)
 			assert.Equal(t, outgoingCallRef, request.CallReason)
 			assert.Equal(t, callFlags, request.CallFlags)
-			assert.Equal(t, server.GetPulse().PulseNumber, request.CallOutgoing.Pulse())
+			assert.Equal(t, p, request.CallOutgoing.GetLocal().Pulse())
 
 			switch request.Callee {
 			case objectB1Global:
@@ -1378,27 +663,27 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 			assert.Equal(t, callFlags, res.CallFlags)
 
 			switch res.Callee {
-			case objectAGlobal:
+			case outgoingA:
 				require.Equal(t, []byte("finish A.Foo"), res.ReturnArguments)
 				require.Equal(t, server.GlobalCaller(), res.Caller)
-				require.Equal(t, outgoingA, res.CallOutgoing)
+				require.Equal(t, outgoingCallRef, res.CallOutgoing)
 			case objectB1Global:
 				require.Equal(t, []byte("finish B1.Bar"), res.ReturnArguments)
-				require.Equal(t, objectAGlobal, res.Caller)
-				require.Equal(t, server.GetPulse().PulseNumber, res.CallOutgoing.Pulse())
+				require.Equal(t, outgoingA, res.Caller)
+				require.Equal(t, p, res.CallOutgoing.GetLocal().Pulse())
 			case objectB2Global:
 				require.Equal(t, []byte("finish B2.Bar"), res.ReturnArguments)
-				require.Equal(t, objectAGlobal, res.Caller)
-				require.Equal(t, server.GetPulse().PulseNumber, res.CallOutgoing.Pulse())
+				require.Equal(t, outgoingA, res.Caller)
+				require.Equal(t, p, res.CallOutgoing.GetLocal().Pulse())
 			case objectB3Global:
 				require.Equal(t, []byte("finish B3.Bar"), res.ReturnArguments)
-				require.Equal(t, objectAGlobal, res.Caller)
-				require.Equal(t, server.GetPulse().PulseNumber, res.CallOutgoing.Pulse())
+				require.Equal(t, outgoingA, res.Caller)
+				require.Equal(t, p, res.CallOutgoing.GetLocal().Pulse())
 			default:
 				t.Fatal("wrong Callee")
 			}
 			// we should resend that message only if it's CallResult from B to A
-			return res.Caller == objectAGlobal
+			return res.Caller == outgoingA
 		})
 	}
 
@@ -1406,13 +691,11 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 		CallType:       payload.CTMethod,
 		CallFlags:      callFlags,
 		Caller:         server.GlobalCaller(),
-		Callee:         objectAGlobal,
+		Callee:         outgoingA,
 		CallSiteMethod: "Foo",
-		CallOutgoing:   outgoingA,
-		Arguments:      insolar.MustSerialize([]interface{}{}),
+		CallOutgoing:   outgoingCallRef,
 	}
-	msg := server.WrapPayload(&pl).Finalize()
-	server.SendMessage(ctx, msg)
+	server.SendPayload(ctx, &pl)
 
 	// wait for all calls and SMs
 	testutils.WaitSignalsTimed(t, 20*time.Second, executeDone)
@@ -1471,8 +754,8 @@ func TestVirtual_Method_Have_ObjectState(t *testing.T) {
 
 			var (
 				class             = gen.UniqueGlobalRef()
-				objectLocal       = server.RandomLocalWithPulse()
-				objectGlobal      = reference.NewSelf(objectLocal)
+				objectRef         = server.BuildRandomOutgoingWithPulse()
+				outgoingRef       = server.BuildRandomOutgoingWithPulse()
 				dirtyStateRef     = server.RandomLocalWithPulse()
 				dirtyState        = reference.NewSelf(dirtyStateRef)
 				validatedStateRef = server.RandomLocalWithPulse()
@@ -1486,7 +769,7 @@ func TestVirtual_Method_Have_ObjectState(t *testing.T) {
 			{ // send object state to server
 				pl := payload.VStateReport{
 					Status:               payload.Ready,
-					Object:               objectGlobal,
+					Object:               objectRef,
 					LatestValidatedState: validatedState,
 					LatestDirtyState:     dirtyState,
 					ProvidedContent: &payload.VStateReport_ProvidedContentBody{
@@ -1513,8 +796,8 @@ func TestVirtual_Method_Have_ObjectState(t *testing.T) {
 
 			{
 				typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
-					require.Equal(t, res.ReturnArguments, []byte("345"))
-					require.Equal(t, res.Callee, objectGlobal)
+					require.Equal(t, []byte("345"), res.ReturnArguments)
+					require.Equal(t, objectRef, res.Callee)
 
 					return false // no resend msg
 				})
@@ -1522,22 +805,20 @@ func TestVirtual_Method_Have_ObjectState(t *testing.T) {
 				pl := payload.VCallRequest{
 					CallType:            payload.CTMethod,
 					CallFlags:           payload.BuildCallFlags(contract.CallIntolerable, test.state),
-					CallAsOf:            0,
 					Caller:              server.GlobalCaller(),
-					Callee:              objectGlobal,
+					Callee:              objectRef,
 					CallSiteDeclaration: class,
 					CallSiteMethod:      "Test",
-					CallOutgoing:        objectLocal,
-					Arguments:           insolar.MustSerialize([]interface{}{}),
+					CallOutgoing:        outgoingRef,
 				}
 
-				key := calculateOutgoing(pl).String()
+				key := pl.CallOutgoing.String()
 				runnerMock.AddExecutionMock(key).
 					AddStart(func(ctx execution.Context) {
-						require.Equal(t, objectGlobal, ctx.Object)
+						require.Equal(t, objectRef, ctx.Object)
 						require.Equal(t, test.state, ctx.Request.CallFlags.GetState())
 						require.Equal(t, test.state, ctx.Isolation.State)
-						require.Equal(t, objectGlobal, ctx.ObjectDescriptor.HeadRef())
+						require.Equal(t, objectRef, ctx.ObjectDescriptor.HeadRef())
 						stateClass, err := ctx.ObjectDescriptor.Class()
 						require.NoError(t, err)
 						require.Equal(t, class, stateClass)
@@ -1551,7 +832,7 @@ func TestVirtual_Method_Have_ObjectState(t *testing.T) {
 						}
 					}, &execution.Update{
 						Type:   execution.Done,
-						Result: requestresult.New([]byte("345"), objectGlobal),
+						Result: requestresult.New([]byte("345"), outgoingRef),
 					})
 				runnerMock.AddExecutionClassify(key, contract.MethodIsolation{
 					Interference: contract.CallIntolerable,
@@ -1586,7 +867,6 @@ func TestVirtual_CallContractTwoTimes(t *testing.T) {
 		return execution.Request.CallOutgoing.String()
 	})
 	server.ReplaceRunner(runnerMock)
-
 	server.Init(ctx)
 	server.IncrementPulseAndWaitIdle(ctx)
 
@@ -1601,11 +881,8 @@ func TestVirtual_CallContractTwoTimes(t *testing.T) {
 		classB        = gen.UniqueGlobalRef()
 		objectBGlobal = reference.NewSelf(server.RandomLocalWithPulse())
 
-		outgoingFirstCall  = server.RandomLocalWithPulse()
-		outgoingSecondCall = server.RandomLocalWithPulse()
-
-		outgoingReasonFirst  = reference.NewSelf(outgoingFirstCall)
-		outgoingReasonSecond = reference.NewSelf(outgoingSecondCall)
+		outgoingFirstCall  = server.BuildRandomOutgoingWithPulse()
+		outgoingSecondCall = server.BuildRandomOutgoingWithPulse()
 	)
 
 	// create objects
@@ -1616,7 +893,7 @@ func TestVirtual_CallContractTwoTimes(t *testing.T) {
 
 	// add ExecutionMocks to runnerMock
 	{
-		firstBuilder := execution.NewRPCBuilder(outgoingReasonFirst, objectAGlobal)
+		firstBuilder := execution.NewRPCBuilder(outgoingFirstCall, objectAGlobal)
 		objectAExecutionFirstMock := runnerMock.AddExecutionMock(outgoingFirstCall.String())
 		objectAExecutionFirstMock.AddStart(nil,
 			&execution.Update{
@@ -1643,7 +920,7 @@ func TestVirtual_CallContractTwoTimes(t *testing.T) {
 			},
 		)
 
-		secondBuilder := execution.NewRPCBuilder(outgoingReasonSecond, objectAGlobal)
+		secondBuilder := execution.NewRPCBuilder(outgoingSecondCall, objectAGlobal)
 		objectAExecutionSecondMock := runnerMock.AddExecutionMock(outgoingSecondCall.String())
 		objectAExecutionSecondMock.AddStart(nil,
 			&execution.Update{
@@ -1745,6 +1022,109 @@ func TestVirtual_CallContractTwoTimes(t *testing.T) {
 
 	require.Equal(t, 4, typedChecker.VCallRequest.Count())
 	require.Equal(t, 2, typedChecker.VCallResult.Count())
+
+	mc.Finish()
+}
+
+func Test_CallMethodWithBadIsolationFlags(t *testing.T) {
+	t.Log("C4979")
+
+	mc := minimock.NewController(t)
+
+	server, ctx := utils.NewServer(nil, t)
+	defer server.Stop()
+	server.IncrementPulse(ctx)
+
+	var (
+		objectLocal  = server.RandomLocalWithPulse()
+		objectGlobal = reference.NewSelf(objectLocal)
+		outgoing     = server.BuildRandomOutgoingWithPulse()
+	)
+
+	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal)
+
+	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
+
+	expectedError := throw.W(throw.IllegalValue(), "failed to negotiate call isolation params", struct {
+		methodIsolation contract.MethodIsolation
+		callIsolation   contract.MethodIsolation
+	}{
+		methodIsolation: contract.MethodIsolation{
+			Interference: contract.CallTolerable,
+			State:        contract.CallDirty,
+		},
+		callIsolation: contract.MethodIsolation{
+			Interference: contract.CallIntolerable,
+			State:        contract.CallValidated,
+		},
+	})
+
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
+		assert.Equal(t, res.Callee, objectGlobal)
+		assert.Equal(t, res.CallOutgoing, outgoing)
+
+		contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments)
+		require.NoError(t, sysErr)
+		require.NotNil(t, contractErr)
+		require.Equal(t, expectedError.Error(), contractErr.Error())
+
+		return false // no resend msg
+	})
+
+	{
+		pl := payload.VCallRequest{
+			CallType:            payload.CTMethod,
+			CallFlags:           payload.BuildCallFlags(contract.CallIntolerable, contract.CallValidated),
+			Caller:              server.GlobalCaller(),
+			Callee:              objectGlobal,
+			CallSiteDeclaration: testwallet.GetClass(),
+			CallSiteMethod:      "Accept",
+			CallOutgoing:        outgoing,
+			Arguments:           insolar.MustSerialize([]interface{}{}),
+		}
+		server.SendPayload(ctx, &pl)
+	}
+
+	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+
+	assert.Equal(t, 1, typedChecker.VCallResult.Count())
+
+	mc.Finish()
+}
+
+func TestVirtual_FutureMessageAddedToSlot(t *testing.T) {
+	t.Log("C5318")
+
+	mc := minimock.NewController(t)
+
+	server, ctx := utils.NewServer(nil, t)
+	defer server.Stop()
+	server.IncrementPulse(ctx)
+
+	var (
+		objectLocal  = server.RandomLocalWithPulse()
+		objectGlobal = reference.NewSelf(objectLocal)
+	)
+
+	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal)
+
+	executeDone := server.Journal.WaitAnyActivityOf(&execute.SMExecute{}, 1)
+
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool { return false })
+	typedChecker.VStateReport.Set(func(res *payload.VStateReport) bool { return false })
+
+	{
+		pl := payload.VCallRequest{}
+		server.SendPayloadAsFuture(ctx, &pl)
+	}
+
+	server.IncrementPulse(ctx)
+
+	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 	mc.Finish()
 }

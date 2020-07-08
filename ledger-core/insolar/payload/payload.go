@@ -14,8 +14,6 @@ import (
 
 const (
 	MessageHashSize = 28
-	MorphFieldNum   = 16
-	MorpyFieldType  = 0 // Varint
 )
 
 type MessageHash [MessageHashSize]byte

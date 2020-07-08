@@ -33,7 +33,7 @@ state "State5.2" as T00_S010
 T00_S010 : StateMachine1
 T00_S010 --> T00_S011
 state "State5.subroutineSM.1" as T00_S009 <<sdlreceive>>
-T00_S009 --> T00_S010 : Migrate: <nil>
+T00_S009 --> T00_S010
 state "State6" as T00_S011
 T00_S011 : StateMachine1
 T00_S011 --> [*]

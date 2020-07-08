@@ -39,7 +39,7 @@ func newDispatcherWithConveyor(factoryFn conveyor.PulseEventFactoryFunc) dispatc
 		MinCachePulseAge:      100,
 		MaxPastPulseAge:       1000,
 	}, factoryFn, nil)
-	return NewConveyorDispatcher(pulseConveyor)
+	return NewConveyorDispatcher(ctx, pulseConveyor)
 }
 
 func TestConveyorDispatcher_ErrorUnmarshalHandling(t *testing.T) {
@@ -66,7 +66,7 @@ func TestConveyorDispatcher_WrongMetaTypeHandling(t *testing.T) {
 
 func TestConveyorDispatcher_PanicInAddInputHandling(t *testing.T) {
 	msgDispatcher := newDispatcherWithConveyor(
-		func(_ pulse.Number, _ pulse.Range, _ conveyor.InputEvent) (pulse.Number, smachine.CreateFunc, error) {
+		func(context.Context, conveyor.InputEvent, conveyor.InputContext) (conveyor.InputSetup, error) {
 			panic(throw.E("handler panic"))
 		})
 	meta := payload.Meta{Pulse: pulse.Number(pulse.MinTimePulse + 1)}
@@ -81,9 +81,8 @@ func TestConveyorDispatcher_PanicInAddInputHandling(t *testing.T) {
 
 func TestConveyorDispatcher_ErrorInAddInputHandling(t *testing.T) {
 	msgDispatcher := newDispatcherWithConveyor(
-		func(_ pulse.Number, _ pulse.Range, _ conveyor.InputEvent) (pulse.Number, smachine.CreateFunc, error) {
-			return 0, nil, throw.E("handler error")
-
+		func(context.Context, conveyor.InputEvent, conveyor.InputContext) (conveyor.InputSetup, error) {
+			return conveyor.InputSetup{}, throw.E("handler error")
 		})
 	meta := payload.Meta{Pulse: pulse.Number(pulse.MinTimePulse + 1)}
 	metaPl, _ := meta.Marshal()

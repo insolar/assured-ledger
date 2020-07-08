@@ -12,7 +12,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-var _ GoGoSerializable = &RecordBody{}
+var _ GoGoSerializableWithText = &RecordBody{}
 
 const maxExtensionCount = 0x7F
 
