@@ -6,7 +6,6 @@ generatorOptions:
 resources:
   - 0-Namespace.yaml
   - 0-StorageClass-AKS.yaml
-  - Ingress.yaml
   - uscifarm-ingressroute.yaml
 bases:
   - ../manifests
