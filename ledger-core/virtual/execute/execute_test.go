@@ -214,7 +214,6 @@ func TestSMExecute_DeduplicationUsingPendingsTableRequestNotExist(t *testing.T) 
 		// expect jump
 		execCtx := smachine.NewExecutionContextMock(mc).
 			UseSharedMock.Set(shareddata.CallSharedDataAccessor).
-			//LogMock.Return(smachine.Logger{}).
 			JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepTakeLock))
 
 		smExecute.stepDeduplicate(execCtx)
@@ -223,7 +222,7 @@ func TestSMExecute_DeduplicationUsingPendingsTableRequestNotExist(t *testing.T) 
 	mc.Finish()
 }
 
-func TestSMExecute_DeduplicationUsingPendingsTableExist(t *testing.T) {
+func TestSMExecute_DeduplicationUsingPendingsTableRequestExist(t *testing.T) {
 	var (
 		ctx = instestlogger.TestContext(t)
 		mc  = minimock.NewController(t)

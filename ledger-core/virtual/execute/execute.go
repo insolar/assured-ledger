@@ -327,10 +327,7 @@ func (s *SMExecute) stepDeduplicate(ctx smachine.ExecutionContext) smachine.Stat
 
 	// deduplication algorithm
 	action := func(state *object.SharedState) {
-		deduplicateAction0, msg0 := s.deduplicate(state)
-
-		deduplicateAction = deduplicateAction0
-		msg = msg0
+		deduplicateAction, msg = s.deduplicate(state)
 	}
 
 	if stepUpdate, ok := s.shareObjectAccess(ctx, action); !ok {
