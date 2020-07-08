@@ -202,13 +202,11 @@ func (p *SMRegisterRecordSet) stepSendFinalResponse(ctx smachine.ExecutionContex
 	if p.updated == nil {
 		p.sendFailResponse(ctx, throw.E("cancelled"))
 	} else {
-		switch ready, alloc, err := p.updated.GetFutureResult(); {
+		switch ready, err := p.updated.GetFutureResult(); {
 		case !ready:
 			p.sendFailResponse(ctx, throw.E("aborted"))
 		case err != nil:
 			p.sendFailResponse(ctx, err)
-		case alloc == 0:
-			p.sendFailResponse(ctx, throw.E("rejected"))
 		default:
 			p.sendResponse(ctx, true)
 		}

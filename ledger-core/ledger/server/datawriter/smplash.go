@@ -10,6 +10,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -89,11 +90,16 @@ func (p *SMPlash) stepInit(ctx smachine.InitializationContext) smachine.StateUpd
 
 func (p *SMPlash) stepCreatePlush(ctx smachine.ExecutionContext) smachine.StateUpdate {
 
+	var (
+		tree jet.Tree
+		pop census.OnlinePopulation
+	)
+
 	// TODO get jetTree, online population
 
 	pr := p.sd.pr
 	return p.builderSvc.PrepareAsync(ctx, func(svc buildersvc.Service) smachine.AsyncResultFunc {
-		jetAssist, jets := svc.CreatePlash(pr, nil, nil)
+		jetAssist, jets := svc.CreatePlash(pr, tree, pop)
 
 		return func(ctx smachine.AsyncResultContext) {
 			if jetAssist == nil {

@@ -13,6 +13,10 @@ type Entry = rms.CatalogEntry
 type Ordinal uint32
 type ExtensionID uint32
 
+const (
+	SameAsBodyExtensionID ExtensionID = 0
+)
+
 type SectionEntry struct {
 	ExtensionID
 	Data []byte

@@ -59,3 +59,26 @@ func (v Record) GetRecordRef() reference.Holder {
 	return nil
 }
 
+func (v Record) IsValid() bool {
+	switch {
+	case reference.IsEmpty(v.GetRecordRef()):
+		return false
+	case v.regReq != nil:
+		return !v.regReq.AnyRecordLazy.IsZero()
+	case v.recapRec != nil:
+		return true
+	default:
+		panic(throw.IllegalState())
+	}
+}
+
+func (v Record) AsBasicRecord() rms.BasicRecord {
+	switch {
+	case v.regReq != nil:
+		return &v.regReq.AnyRecordLazy
+	case v.recapRec != nil:
+		return v.recapRec
+	default:
+		panic(throw.IllegalState())
+	}
+}

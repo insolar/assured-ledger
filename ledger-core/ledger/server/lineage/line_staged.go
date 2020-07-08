@@ -6,6 +6,7 @@
 package lineage
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/catalog"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -200,13 +201,16 @@ func (p *LineStages) trimCommittedStages() (last *updateStage) {
 		next := p.earliest.next
 
 		if tr := p.earliest.tracker; tr != nil {
-			isReady, allocBase, _ := tr.GetFutureResult()
+			isReady, allocations := tr.GetFutureAllocation()
 			if !isReady {
 				return
 			}
 			p.earliest.tracker = nil
-			if allocBase > 0 {
-				p.setAllocations(p.earliest, allocBase)
+			if len(allocations) > 0 {
+				p.setAllocations(p.earliest, allocations)
+			} else {
+				// TODO rollback and reapply
+				panic(throw.NotImplemented())
 			}
 		}
 		last = p.earliest
@@ -448,7 +452,7 @@ func (p *LineStages) putReason(rec *resolvedRecord) {
 	p.reasonRefs[normRef] = rec.recordNo
 }
 
-func (p *LineStages) setAllocations(stage *updateStage, allocBase uint32) {
+func (p *LineStages) setAllocations(stage *updateStage, allocBase []catalog.DirectoryIndex) {
 	max := uint32(0)
 	if stage.next == nil {
 		max = uint32(p.getNextRecNo() - stage.firstRec)
@@ -456,9 +460,13 @@ func (p *LineStages) setAllocations(stage *updateStage, allocBase uint32) {
 		max = uint32(stage.next.firstRec - stage.firstRec)
 	}
 
+	if max != uint32(len(allocBase)) {
+		panic(throw.IllegalState())
+	}
+
 	for i := uint32(0); i < max; i++ {
 		rec := p.get(stage.firstRec + recordNo(i))
-		rec.storageIndex = allocBase + i
+		rec.storageIndex = allocBase[i]
 	}
 }
 

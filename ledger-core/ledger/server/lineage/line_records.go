@@ -7,6 +7,8 @@ package lineage
 
 import (
 	"math"
+
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/catalog"
 )
 
 type stageNo uint32
@@ -28,7 +30,7 @@ type updateStage struct {
 type updateRecord = resolvedRecord
 
 type StageTracker interface {
-	GetFutureResult() (isReady bool, allocationBase uint32, err error)
+	GetFutureAllocation() (isReady bool, allocations []catalog.DirectoryIndex)
 }
 
 type filamentState uint8

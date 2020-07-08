@@ -6,6 +6,7 @@
 package lineage
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/catalog"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
@@ -17,7 +18,7 @@ type resolvedRecord struct {
 	filNo    filamentNo
 	recapNo  recordNo
 
-	storageIndex uint32
+	storageIndex catalog.DirectoryIndex
 
 	redirectToType RecordType
 	Record

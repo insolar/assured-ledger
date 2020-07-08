@@ -6,35 +6,31 @@
 package cabinet
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/catalog"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
-type BatchID uint32
-type BatchIDFeed <-chan BatchID
+type BundleCompletedFunc = func([]catalog.DirectoryIndex)
 
-type Writer interface {
-	// known SectionID
-	CommitConfirmations() BatchIDFeed
-	StartBatch(jet.DropID) EntryBatchWriter
-	TruncateWrite() BatchID
+type DropWriter interface {
+	WriteBundle(entries []WriteBundleEntry, completedFn BundleCompletedFunc)
 }
 
-type EntryBatchWriter interface {
-	BatchID() BatchID
-	CommitBatch()
-//	RollbackBatch()
-	WriteEntry(SectionID, reference.Holder, func(EntryWriter)) bool
+type EntryWriterFunc = func (catalog.DirectoryIndex, []catalog.StorageLocator) MarshalerTo
+
+type WriteBundleEntry struct {
+	Directory catalog.SectionID
+	EntryKey  reference.Holder
+	Entry     EntryWriterFunc
+	Payloads  []SectionPayload
+}
+
+type SectionPayload struct {
+	Section catalog.SectionID
+	Payload MarshalerTo
 }
 
 type MarshalerTo interface {
 	ProtoSize() int
 	MarshalTo([]byte) (int, error)
 }
-
-type EntryWriter interface {
-	DirectoryIndex() DirectoryIndex
-	WritePayload(SectionID, MarshalerTo) StorageLocator
-	WriteEntry(MarshalerTo) StorageLocator
-}
-

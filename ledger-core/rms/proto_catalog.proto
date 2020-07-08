@@ -14,7 +14,7 @@ message RecordExcerptForCatalogEntry {
     reserved 1 to 15, 17 to 18, 40 to max;
 
     uint32 RecordType = 16;
-    Binary RecordBodyHash = 19;
+    // Binary RecordBodyHash = 19;
 
     // MUST match with Excerpt portion of CatalogEntry
     Reference PrevRef = 24;
@@ -22,6 +22,11 @@ message RecordExcerptForCatalogEntry {
     Reference ReasonRef = 26;
     Reference RedirectRef = 27;
     Reference RejoinRef = 28;
+}
+
+message RecordBodyForLazy {
+    option (insproto.id) = 0;
+    RecordBody RecordBody = 19;
 }
 
 message CatalogEntry {

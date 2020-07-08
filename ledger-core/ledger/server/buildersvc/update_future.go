@@ -6,11 +6,11 @@
 package buildersvc
 
 import (
-	"math"
+	"sync"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
-	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/catalog"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -22,41 +22,62 @@ func NewFuture(name string) *Future {
 
 type Future struct {
 	ready     smsync.BoolConditionalLink
-	committed atomickit.Uint32
-	err 	  error
+
+	mutex       sync.Mutex
+	allocations []catalog.DirectoryIndex
+	err 	    error
 }
 
 func (p *Future) GetReadySync() smachine.SyncLink {
 	return p.ready.SyncLink()
 }
 
-// GetFutureResult can only be used after SyncLink is triggered
-func (p *Future) GetFutureResult() (isReady bool, allocationBase uint32, err error) {
-	switch v := p.committed.Load(); {
-	case v == 0:
-		return false, 0, nil
-	case v == math.MaxUint32:
-		return true, 0, p.err
+func (p *Future) GetFutureAllocation() (isReady bool, allocations []catalog.DirectoryIndex) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	switch {
+	case p.err != nil:
+		return true, nil
+	case p.allocations == nil:
+		return false, nil
 	default:
-		return true, v, nil
+		return true, p.allocations
 	}
 }
 
-func (p *Future) TrySetFutureResult(committed bool, allocatedBase uint32, err error) bool {
+func (p *Future) GetFutureResult() (isReady bool, err error) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
 	switch {
-	case allocatedBase == math.MaxUint32:
-		panic(throw.IllegalValue())
-	case !committed:
-		allocatedBase = math.MaxUint32
-	case allocatedBase == 0:
-		panic(throw.IllegalValue())
+	case p.err != nil:
+		return true, p.err
+	case p.allocations == nil:
+		return false, nil
+	case len(p.allocations) == 0:
+		return true, throw.IllegalState()
+	default:
+		return true, nil
+	}
+}
+
+func (p *Future) TrySetFutureResult(allocations []catalog.DirectoryIndex, err error) bool {
+	switch {
 	case err != nil:
+		if len(allocations) != 0 {
+			panic(throw.IllegalValue())
+		}
+	case len(allocations) == 0:
 		panic(throw.IllegalValue())
 	}
-	if !p.committed.CompareAndSwap(0, allocatedBase) {
+
+	p.mutex.Lock()
+	if p.err != nil || p.allocations != nil {
+		p.mutex.Unlock()
 		return false
 	}
-	p.err = err
+	p.allocations, p.err = allocations, err
+	p.mutex.Unlock()
 
 	smachine.ApplyAdjustmentAsync(p.ready.NewValue(true))
 	return true

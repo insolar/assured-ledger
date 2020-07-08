@@ -19,6 +19,10 @@ type AnyLazy struct {
 	value goGoMarshaler
 }
 
+func (p *AnyRecordLazy) IsZero() bool {
+	return p.value == nil
+}
+
 func (p *AnyLazy) TryGetLazy() LazyValue {
 	if vv, ok := p.value.(LazyValue); ok {
 		return vv
