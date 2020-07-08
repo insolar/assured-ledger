@@ -67,27 +67,26 @@ func (f FactoryMeta) Process(ctx context.Context, msg *statemachine.DispatcherMe
 		panic(throw.Impossible())
 	}
 
-
-	// skip legitimate check for future PN
-	if !payloadMeta.Pulse.IsAfter(pr.RightBoundData().PulseNumber) {
-		mustReject, err := f.AuthService.IsMessageFromVirtualLegitimate(ctx, payloadObj, payloadMeta.Sender, pr)
+	if !pr.RightBoundData().IsExpectedPulse() {
+		mustReject, err := f.AuthService.IsMessageFromVirtualLegitimate(logCtx, payloadObj, payloadMeta.Sender, pr)
 		if err != nil {
-			logger.Warnm(throw.W(err, "illegitimate msg", struct {
-				messageTypeID uint64
-				messageType   reflect.Type
-				incomingPulse pulse.Number
-				targetPulse   pulse.Number
-			}{
+			logger.Warn(throw.W(err, "illegitimate msg", skippedMessage{
 				messageTypeID: payloadTypeID,
 				messageType:   payloadType,
 				incomingPulse: payloadMeta.Pulse,
 				targetPulse:   targetPulse,
-			}), )
+			}))
 
 			return pulse.Unknown, nil, nil
 		}
 
 		if mustReject {
+			logger.Warn(throw.W(err, "rejected msg", skippedMessage{
+				messageTypeID: payloadTypeID,
+				messageType:   payloadType,
+				incomingPulse: payloadMeta.Pulse,
+				targetPulse:   targetPulse,
+			}))
 			// when this flag is set, then the relevant SM has to stop asap and send negative answer
 			return pulse.Unknown, nil, throw.NotImplemented()
 		}
