@@ -762,8 +762,13 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 	action := func(state *object.SharedState) {
 		state.Info.SetDescriptor(s.newObjectDescriptor)
 
-		if state.GetState() == object.Empty {
+		switch state.GetState() {
+		case object.HasState:
+			// ok
+		case object.Empty, object.Missing:
 			state.SetState(object.HasState)
+		default:
+			panic(throw.IllegalState())
 		}
 	}
 
