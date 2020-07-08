@@ -16,10 +16,6 @@ spec:
       passHostHeader: true
       responseForwarding:
         flushInterval: 100ms
-  tls:
-    secretName: wildcard
-    options:
-      namespace: kube-system
   - kind: Rule
     match: Host(`placeholder.uscifarm.insolar.io`) && PathPrefix(`/admin-api`)
     services:
@@ -29,10 +25,6 @@ spec:
       passHostHeader: true
       responseForwarding:
         flushInterval: 100ms
-  tls:
-    secretName: wildcard
-    options:
-      namespace: kube-system
   - kind: Rule
     match: Host(`placeholder.uscifarm.insolar.io`) && PathPrefix(`/wallet`)
     services:
