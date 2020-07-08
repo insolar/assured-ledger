@@ -27,8 +27,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 )
 
@@ -178,7 +178,7 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged_Without_SideEffect(t *test
 	server, ctx := utils.NewUninitializedServer(nil, t)
 	defer server.Stop()
 
-	delegateDone := server.Journal.WaitStopOf(&object.SMAwaitDelegate{}, 1)
+	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 
 	runnerMock := logicless.NewServiceMock(ctx, mc, nil)
 	server.ReplaceRunner(runnerMock)
@@ -239,7 +239,7 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged_Without_SideEffect(t *test
 		server.SendPayload(ctx, &pl)
 	}
 
-	testutils.WaitSignalsTimed(t, 10*time.Second, delegateDone)
+	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
 	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 	{

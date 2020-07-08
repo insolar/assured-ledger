@@ -414,6 +414,7 @@ type AsyncResultContext interface {
 type BargeInApplyFunc func(interface{}) BargeInCallbackFunc
 type BargeInCallbackFunc func(ctx BargeInContext) StateUpdate
 
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/conveyor/smachine.BargeInBuilder -o ./ -s _mock.go -g
 type BargeInBuilder interface {
 	// WithJumpExt creates a BargeIn that will change SM's step and wake it up
 	WithJumpExt(SlotStep) BargeIn
