@@ -80,8 +80,6 @@ type Dispatcher struct {
 
 	runnerAdapter        runner.ServiceAdapter
 	messageSenderAdapter messageSenderAdapter.MessageSender
-
-	stopFunc                  context.CancelFunc
 }
 
 func NewDispatcher() *Dispatcher {
@@ -151,7 +149,6 @@ func (lr *Dispatcher) Start(_ context.Context) error {
 
 func (lr *Dispatcher) Stop(_ context.Context) error {
 	lr.ConveyorWorker.Stop()
-	lr.stopFunc()
 
 	return nil
 }
