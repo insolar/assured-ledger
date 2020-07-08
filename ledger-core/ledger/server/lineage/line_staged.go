@@ -6,7 +6,7 @@
 package lineage
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/ledger/server/catalog"
+	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -452,7 +452,7 @@ func (p *LineStages) putReason(rec *resolvedRecord) {
 	p.reasonRefs[normRef] = rec.recordNo
 }
 
-func (p *LineStages) setAllocations(stage *updateStage, allocBase []catalog.DirectoryIndex) {
+func (p *LineStages) setAllocations(stage *updateStage, allocBase []ledger.DirectoryIndex) {
 	max := uint32(0)
 	if stage.next == nil {
 		max = uint32(p.getNextRecNo() - stage.firstRec)

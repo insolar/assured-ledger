@@ -37,12 +37,15 @@ func NewRecapRecord(excerpt catalog.Excerpt, recRef reference.Holder, recap *rms
 }
 
 type Record struct {
-	Excerpt  catalog.Excerpt
-	RecRef   reference.Holder
+	Excerpt            catalog.Excerpt
+	RecRef             reference.Holder
+	RecapRef           reference.Holder
+	ProducedBy         reference.Holder
+	RegisteredBy	   reference.Holder
 	RegistrarSignature cryptkit.SignedDigest
 
-	regReq   *rms.LRegisterRequest
-	recapRec *rms.RLineRecap
+	regReq     *rms.LRegisterRequest
+	recapRec   *rms.RLineRecap
 }
 
 func (v Record) Equal(record Record) bool {

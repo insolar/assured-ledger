@@ -10,7 +10,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
-	"github.com/insolar/assured-ledger/ledger-core/ledger/server/catalog"
+	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -24,7 +24,7 @@ type Future struct {
 	ready     smsync.BoolConditionalLink
 
 	mutex       sync.Mutex
-	allocations []catalog.DirectoryIndex
+	allocations []ledger.DirectoryIndex
 	err 	    error
 }
 
@@ -32,7 +32,7 @@ func (p *Future) GetReadySync() smachine.SyncLink {
 	return p.ready.SyncLink()
 }
 
-func (p *Future) GetFutureAllocation() (isReady bool, allocations []catalog.DirectoryIndex) {
+func (p *Future) GetFutureAllocation() (isReady bool, allocations []ledger.DirectoryIndex) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 	switch {
@@ -61,7 +61,7 @@ func (p *Future) GetFutureResult() (isReady bool, err error) {
 	}
 }
 
-func (p *Future) TrySetFutureResult(allocations []catalog.DirectoryIndex, err error) bool {
+func (p *Future) TrySetFutureResult(allocations []ledger.DirectoryIndex, err error) bool {
 	switch {
 	case err != nil:
 		if len(allocations) != 0 {

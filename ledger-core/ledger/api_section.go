@@ -3,7 +3,14 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package catalog
+package ledger
+
+type Ordinal uint32
+type ExtensionID uint32
+
+const (
+	SameAsBodyExtensionID ExtensionID = 0
+)
 
 type SectionID uint16
 
@@ -14,12 +21,12 @@ const (
 	// DefaultEntrySection is to store catalog entries of a drop.
 	DefaultEntrySection
 
-	// DefaultDataSection is to store data indefinitely (except for wiping out & evictions)
-	DefaultDataSection
-
 	// DefaultDustSection is to store data temporarily with no exact guarantees of retention time after finalization.
 	DefaultDustSection
 )
+
+// DefaultDataSection is to store data indefinitely (except for wiping out & evictions)
+const DefaultDataSection = DefaultEntrySection
 
 type DirectoryIndex uint64
 
@@ -31,8 +38,8 @@ func (v DirectoryIndex) SectionID() SectionID {
 	return SectionID(v >> 48)
 }
 
-func (v DirectoryIndex) Index() uint32 {
-	return uint32(v)
+func (v DirectoryIndex) Ordinal() Ordinal {
+	return Ordinal(v)
 }
 
 type ChapterID uint32

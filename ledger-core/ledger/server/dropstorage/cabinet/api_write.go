@@ -6,28 +6,29 @@
 package cabinet
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/ledger/server/catalog"
+	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
-type BundleCompletedFunc = func([]catalog.DirectoryIndex)
+type BundleCompletedFunc = func([]ledger.DirectoryIndex) bool
 
 type DropWriter interface {
 	WriteBundle(entries []WriteBundleEntry, completedFn BundleCompletedFunc)
 }
 
-type EntryWriterFunc = func (catalog.DirectoryIndex, []catalog.StorageLocator) MarshalerTo
+type EntryWriterFunc = func (ledger.DirectoryIndex, []ledger.StorageLocator) MarshalerTo
 
 type WriteBundleEntry struct {
-	Directory catalog.SectionID
 	EntryKey  reference.Holder
-	Entry     EntryWriterFunc
+	EntryFn   EntryWriterFunc
 	Payloads  []SectionPayload
+	Directory ledger.SectionID
 }
 
 type SectionPayload struct {
-	Section catalog.SectionID
 	Payload MarshalerTo
+	Extension ledger.ExtensionID
+	Section ledger.SectionID
 }
 
 type MarshalerTo interface {

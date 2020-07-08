@@ -26,13 +26,15 @@ var _ = math.Inf
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
 type RecordExcerptForCatalogEntry struct {
-	RecordType uint32 `protobuf:"varint,16,opt,name=RecordType,proto3" json:"RecordType"`
+	RecordType     uint32 `protobuf:"varint,16,opt,name=RecordType,proto3" json:"RecordType"`
+	RecordBodyHash Binary `protobuf:"bytes,19,opt,name=RecordBodyHash,proto3" json:"RecordBodyHash"`
 	// MUST match with Excerpt portion of CatalogEntry
-	PrevRef     Reference `protobuf:"bytes,24,opt,name=PrevRef,proto3" json:"PrevRef"`
-	RootRef     Reference `protobuf:"bytes,25,opt,name=RootRef,proto3" json:"RootRef"`
-	ReasonRef   Reference `protobuf:"bytes,26,opt,name=ReasonRef,proto3" json:"ReasonRef"`
-	RedirectRef Reference `protobuf:"bytes,27,opt,name=RedirectRef,proto3" json:"RedirectRef"`
-	RejoinRef   Reference `protobuf:"bytes,28,opt,name=RejoinRef,proto3" json:"RejoinRef"`
+	PrevRef           Reference `protobuf:"bytes,24,opt,name=PrevRef,proto3" json:"PrevRef"`
+	RootRef           Reference `protobuf:"bytes,25,opt,name=RootRef,proto3" json:"RootRef"`
+	ReasonRef         Reference `protobuf:"bytes,26,opt,name=ReasonRef,proto3" json:"ReasonRef"`
+	RedirectRef       Reference `protobuf:"bytes,27,opt,name=RedirectRef,proto3" json:"RedirectRef"`
+	RejoinRef         Reference `protobuf:"bytes,28,opt,name=RejoinRef,proto3" json:"RejoinRef"`
+	ProducerSignature Binary    `protobuf:"bytes,39,opt,name=ProducerSignature,proto3" json:"ProducerSignature"`
 }
 
 func (m *RecordExcerptForCatalogEntry) Reset()         { *m = RecordExcerptForCatalogEntry{} }
@@ -71,6 +73,13 @@ func (m *RecordExcerptForCatalogEntry) GetRecordType() uint32 {
 	return 0
 }
 
+func (m *RecordExcerptForCatalogEntry) GetRecordBodyHash() Binary {
+	if m != nil {
+		return m.RecordBodyHash
+	}
+	return Binary{}
+}
+
 func (m *RecordExcerptForCatalogEntry) GetPrevRef() Reference {
 	if m != nil {
 		return m.PrevRef
@@ -104,6 +113,13 @@ func (m *RecordExcerptForCatalogEntry) GetRejoinRef() Reference {
 		return m.RejoinRef
 	}
 	return Reference{}
+}
+
+func (m *RecordExcerptForCatalogEntry) GetProducerSignature() Binary {
+	if m != nil {
+		return m.ProducerSignature
+	}
+	return Binary{}
 }
 
 type RecordBodyForLazy struct {
@@ -149,12 +165,12 @@ func (m *RecordBodyForLazy) GetRecordBody() RecordBody {
 type CatalogEntry struct {
 	// Start of fixed-size portion.
 	// Use of fixed-size fields allows direct memory mapping for fast access to a few critical fields
-	RecordType     uint32      `protobuf:"fixed32,16,opt,name=RecordType,proto3" json:"RecordType"`
-	BodyLoc        uint64      `protobuf:"fixed64,17,opt,name=BodyLoc,proto3" json:"BodyLoc"`
-	PayloadLoc     uint64      `protobuf:"fixed64,18,opt,name=PayloadLoc,proto3" json:"PayloadLoc"`
-	RecordBodyHash Binary      `protobuf:"bytes,19,opt,name=RecordBodyHash,proto3" json:"RecordBodyHash"`
-	InDropOrdinal  uint32      `protobuf:"fixed32,20,opt,name=InDropOrdinal,proto3" json:"InDropOrdinal"`
-	ExtensionLoc   ExtLocators `protobuf:"bytes,21,opt,name=ExtensionLoc,proto3" json:"ExtensionLoc"`
+	RecordType     uint32         `protobuf:"fixed32,16,opt,name=RecordType,proto3" json:"RecordType"`
+	BodyLoc        StorageLocator `protobuf:"fixed64,17,opt,name=BodyLoc,proto3,casttype=StorageLocator" json:"BodyLoc"`
+	PayloadLoc     StorageLocator `protobuf:"fixed64,18,opt,name=PayloadLoc,proto3,casttype=StorageLocator" json:"PayloadLoc"`
+	Ordinal        CatalogOrdinal `protobuf:"fixed32,19,opt,name=Ordinal,proto3,casttype=CatalogOrdinal" json:"Ordinal"`
+	ExtensionLoc   ExtLocators    `protobuf:"bytes,20,opt,name=ExtensionLoc,proto3" json:"ExtensionLoc"`
+	RecordBodyHash Binary         `protobuf:"bytes,21,opt,name=RecordBodyHash,proto3" json:"RecordBodyHash"`
 	// Start of Excerpt portion
 	// MUST match with RecordExcerpt
 	PrevRef           Reference `protobuf:"bytes,24,opt,name=PrevRef,proto3" json:"PrevRef"`
@@ -162,11 +178,12 @@ type CatalogEntry struct {
 	ReasonRef         Reference `protobuf:"bytes,26,opt,name=ReasonRef,proto3" json:"ReasonRef"`
 	RedirectRef       Reference `protobuf:"bytes,27,opt,name=RedirectRef,proto3" json:"RedirectRef"`
 	RejoinRef         Reference `protobuf:"bytes,28,opt,name=RejoinRef,proto3" json:"RejoinRef"`
+	ProducerSignature Binary    `protobuf:"bytes,39,opt,name=ProducerSignature,proto3" json:"ProducerSignature"`
 	RecapRef          Reference `protobuf:"bytes,40,opt,name=RecapRef,proto3" json:"RecapRef"`
-	ProducerSignature Binary    `protobuf:"bytes,41,opt,name=ProducerSignature,proto3" json:"ProducerSignature"`
 	ProducedBy        Reference `protobuf:"bytes,42,opt,name=ProducedBy,proto3" json:"ProducedBy"`
 	// Token ProducerToken = 43;
-	RegistrarSignature Binary `protobuf:"bytes,44,opt,name=RegistrarSignature,proto3" json:"RegistrarSignature"`
+	RegistrarSignature Binary    `protobuf:"bytes,44,opt,name=RegistrarSignature,proto3" json:"RegistrarSignature"`
+	RegisteredBy       Reference `protobuf:"bytes,45,opt,name=RegisteredBy,proto3" json:"RegisteredBy"`
 }
 
 func (m *CatalogEntry) Reset()         { *m = CatalogEntry{} }
@@ -205,30 +222,23 @@ func (m *CatalogEntry) GetRecordType() uint32 {
 	return 0
 }
 
-func (m *CatalogEntry) GetBodyLoc() uint64 {
+func (m *CatalogEntry) GetBodyLoc() StorageLocator {
 	if m != nil {
 		return m.BodyLoc
 	}
 	return 0
 }
 
-func (m *CatalogEntry) GetPayloadLoc() uint64 {
+func (m *CatalogEntry) GetPayloadLoc() StorageLocator {
 	if m != nil {
 		return m.PayloadLoc
 	}
 	return 0
 }
 
-func (m *CatalogEntry) GetRecordBodyHash() Binary {
+func (m *CatalogEntry) GetOrdinal() CatalogOrdinal {
 	if m != nil {
-		return m.RecordBodyHash
-	}
-	return Binary{}
-}
-
-func (m *CatalogEntry) GetInDropOrdinal() uint32 {
-	if m != nil {
-		return m.InDropOrdinal
+		return m.Ordinal
 	}
 	return 0
 }
@@ -238,6 +248,13 @@ func (m *CatalogEntry) GetExtensionLoc() ExtLocators {
 		return m.ExtensionLoc
 	}
 	return ExtLocators{}
+}
+
+func (m *CatalogEntry) GetRecordBodyHash() Binary {
+	if m != nil {
+		return m.RecordBodyHash
+	}
+	return Binary{}
 }
 
 func (m *CatalogEntry) GetPrevRef() Reference {
@@ -275,18 +292,18 @@ func (m *CatalogEntry) GetRejoinRef() Reference {
 	return Reference{}
 }
 
-func (m *CatalogEntry) GetRecapRef() Reference {
-	if m != nil {
-		return m.RecapRef
-	}
-	return Reference{}
-}
-
 func (m *CatalogEntry) GetProducerSignature() Binary {
 	if m != nil {
 		return m.ProducerSignature
 	}
 	return Binary{}
+}
+
+func (m *CatalogEntry) GetRecapRef() Reference {
+	if m != nil {
+		return m.RecapRef
+	}
+	return Reference{}
 }
 
 func (m *CatalogEntry) GetProducedBy() Reference {
@@ -303,7 +320,15 @@ func (m *CatalogEntry) GetRegistrarSignature() Binary {
 	return Binary{}
 }
 
+func (m *CatalogEntry) GetRegisteredBy() Reference {
+	if m != nil {
+		return m.RegisteredBy
+	}
+	return Reference{}
+}
+
 type ExtLocators struct {
+	Ext []ExtLocator `protobuf:"bytes,17,rep,name=Ext,proto3" json:"Ext"`
 }
 
 func (m *ExtLocators) Reset()         { *m = ExtLocators{} }
@@ -335,55 +360,116 @@ func (m *ExtLocators) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_ExtLocators proto.InternalMessageInfo
 
+func (m *ExtLocators) GetExt() []ExtLocator {
+	if m != nil {
+		return m.Ext
+	}
+	return nil
+}
+
+type ExtLocator struct {
+	ExtensionID ExtensionID    `protobuf:"fixed32,17,opt,name=ExtensionID,proto3,casttype=ExtensionID" json:"ExtensionID"`
+	PayloadLoc  StorageLocator `protobuf:"fixed64,18,opt,name=PayloadLoc,proto3,casttype=StorageLocator" json:"PayloadLoc"`
+}
+
+func (m *ExtLocator) Reset()         { *m = ExtLocator{} }
+func (m *ExtLocator) String() string { return proto.CompactTextString(m) }
+func (*ExtLocator) ProtoMessage()    {}
+func (*ExtLocator) Descriptor() ([]byte, []int) {
+	return fileDescriptor_cb898eec77add237, []int{4}
+}
+func (m *ExtLocator) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *ExtLocator) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *ExtLocator) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ExtLocator.Merge(m, src)
+}
+func (m *ExtLocator) XXX_Size() int {
+	return m.ProtoSize()
+}
+func (m *ExtLocator) XXX_DiscardUnknown() {
+	xxx_messageInfo_ExtLocator.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ExtLocator proto.InternalMessageInfo
+
+func (m *ExtLocator) GetExtensionID() ExtensionID {
+	if m != nil {
+		return m.ExtensionID
+	}
+	return 0
+}
+
+func (m *ExtLocator) GetPayloadLoc() StorageLocator {
+	if m != nil {
+		return m.PayloadLoc
+	}
+	return 0
+}
+
 func init() {
 	proto.RegisterType((*RecordExcerptForCatalogEntry)(nil), "rms.RecordExcerptForCatalogEntry")
 	proto.RegisterType((*RecordBodyForLazy)(nil), "rms.RecordBodyForLazy")
 	proto.RegisterType((*CatalogEntry)(nil), "rms.CatalogEntry")
 	proto.RegisterType((*ExtLocators)(nil), "rms.ExtLocators")
+	proto.RegisterType((*ExtLocator)(nil), "rms.ExtLocator")
 }
 
 func init() { proto.RegisterFile("proto_catalog.proto", fileDescriptor_cb898eec77add237) }
 
 var fileDescriptor_cb898eec77add237 = []byte{
-	// 593 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe4, 0x94, 0xcf, 0x6e, 0xd3, 0x4c,
-	0x14, 0xc5, 0xed, 0x7e, 0x51, 0x9b, 0x4e, 0xda, 0x7e, 0xce, 0x04, 0x24, 0x53, 0x8a, 0x5b, 0x45,
-	0x2c, 0x4c, 0xd5, 0x24, 0xa8, 0xfc, 0x91, 0xe8, 0x06, 0x08, 0xa4, 0x82, 0x28, 0x12, 0x91, 0x61,
-	0x8f, 0x26, 0xf6, 0xc4, 0x35, 0x4a, 0x7c, 0xa3, 0x6b, 0x07, 0xc5, 0xac, 0xf2, 0x08, 0x6c, 0x58,
-	0xb0, 0x63, 0xc9, 0x63, 0xb0, 0xcc, 0xb2, 0xcb, 0x88, 0x05, 0x82, 0x64, 0xc3, 0x63, 0xa0, 0x19,
-	0x3b, 0xad, 0x03, 0xad, 0x79, 0x00, 0x56, 0xf1, 0xdc, 0xf9, 0x9d, 0x7b, 0x8e, 0xee, 0xcc, 0x84,
-	0x94, 0x06, 0x08, 0x21, 0xbc, 0xb6, 0x59, 0xc8, 0x7a, 0xe0, 0x56, 0xe5, 0x8a, 0xfe, 0x87, 0xfd,
-	0x60, 0xbb, 0xe2, 0x7a, 0xe1, 0xc9, 0xb0, 0x53, 0xb5, 0xa1, 0x5f, 0x73, 0xc1, 0x85, 0x9a, 0xdc,
-	0xeb, 0x0c, 0xbb, 0x72, 0x25, 0x17, 0xf2, 0x2b, 0xd6, 0x6c, 0x3f, 0x4a, 0xe1, 0x9e, 0x1f, 0x40,
-	0x8f, 0x61, 0x8d, 0x05, 0xc1, 0x10, 0xb9, 0x53, 0xe9, 0x71, 0xc7, 0xe5, 0x58, 0x8b, 0x7f, 0x2a,
-	0x36, 0x20, 0x17, 0x48, 0xdc, 0xc2, 0xf3, 0x83, 0xa4, 0xc3, 0x3a, 0xf6, 0x93, 0xcf, 0xf2, 0xd7,
-	0x15, 0xb2, 0x63, 0x71, 0x1b, 0xd0, 0x69, 0x8c, 0x6c, 0x8e, 0x83, 0xf0, 0x18, 0xf0, 0x49, 0x1c,
-	0xb1, 0xe1, 0x87, 0x18, 0xd1, 0x9b, 0x84, 0xc4, 0xfb, 0xaf, 0xa2, 0x01, 0xd7, 0xb5, 0x3d, 0xd5,
-	0xdc, 0xac, 0xe7, 0x26, 0xdf, 0x76, 0x15, 0x2b, 0x55, 0xa7, 0x55, 0xb2, 0xd6, 0x46, 0xfe, 0xd6,
-	0xe2, 0x5d, 0x5d, 0xdf, 0x53, 0xcd, 0xc2, 0xe1, 0x56, 0x55, 0x78, 0x58, 0xbc, 0xcb, 0x91, 0xfb,
-	0x36, 0x4f, 0x24, 0x0b, 0x48, 0xf0, 0x16, 0x40, 0x28, 0xf8, 0x6b, 0x59, 0x7c, 0x02, 0xd1, 0x43,
-	0xb2, 0x6e, 0x71, 0x16, 0x80, 0x2f, 0x14, 0xdb, 0x19, 0x8a, 0x73, 0x8c, 0xde, 0x27, 0x05, 0x8b,
-	0x3b, 0x1e, 0x72, 0x5b, 0xfa, 0x5c, 0xcf, 0x50, 0xa5, 0xc1, 0xd8, 0xeb, 0x0d, 0x78, 0xd2, 0x6b,
-	0x27, 0xdb, 0x2b, 0xc1, 0x9a, 0xb9, 0xbc, 0xaa, 0x69, 0xcd, 0x5c, 0xbe, 0xa8, 0x95, 0x9a, 0xf9,
-	0xbc, 0xa9, 0x8d, 0xc7, 0xe3, 0xf1, 0x4a, 0xb9, 0x4d, 0x8a, 0xf1, 0x8c, 0xea, 0xe0, 0x44, 0xc7,
-	0x80, 0x2d, 0xf6, 0x2e, 0xa2, 0xf7, 0x16, 0x03, 0x15, 0x45, 0xbd, 0x24, 0xfb, 0xff, 0x9f, 0xf4,
-	0x5f, 0x94, 0x97, 0x27, 0x2c, 0x2a, 0x47, 0xb9, 0x2f, 0xd3, 0x5d, 0xa5, 0xfc, 0x61, 0x95, 0x6c,
-	0xfc, 0xe5, 0x78, 0xd6, 0x2e, 0x38, 0x1e, 0x83, 0xac, 0x89, 0x26, 0x2d, 0xb0, 0xf5, 0xe2, 0x9e,
-	0x6a, 0xae, 0x2e, 0xc6, 0x9b, 0x14, 0x45, 0x97, 0x36, 0x8b, 0x7a, 0xc0, 0x1c, 0x81, 0xd0, 0x14,
-	0x92, 0xaa, 0xd3, 0x07, 0x64, 0xeb, 0x3c, 0xd0, 0x33, 0x16, 0x9c, 0x24, 0xe9, 0x0b, 0x32, 0x7d,
-	0xdd, 0xf3, 0x19, 0x2e, 0x92, 0xff, 0x06, 0xd2, 0x7d, 0xb2, 0xf9, 0xdc, 0x7f, 0x8a, 0x30, 0x78,
-	0x81, 0x8e, 0xe7, 0xb3, 0x9e, 0x7e, 0x25, 0x95, 0x74, 0x79, 0x8b, 0x1e, 0x91, 0x8d, 0xc6, 0x28,
-	0xe4, 0x7e, 0xe0, 0x81, 0x2f, 0xe2, 0x5c, 0x95, 0x26, 0x9a, 0x34, 0x69, 0x8c, 0xc2, 0x16, 0xd8,
-	0x2c, 0x04, 0x0c, 0x12, 0xf1, 0x12, 0xfb, 0xaf, 0xdf, 0x43, 0x7a, 0x9b, 0xe4, 0x2d, 0x6e, 0xb3,
-	0x81, 0x90, 0x98, 0x19, 0x92, 0x33, 0x8a, 0x3e, 0x24, 0xc5, 0x36, 0x82, 0x33, 0xb4, 0x39, 0xbe,
-	0xf4, 0x5c, 0x9f, 0x85, 0x43, 0xe4, 0xfa, 0xad, 0xcb, 0xce, 0xf5, 0x4f, 0x96, 0xde, 0x25, 0x24,
-	0x29, 0x3a, 0xf5, 0x48, 0xdf, 0xcf, 0x30, 0x4d, 0x71, 0xf4, 0x31, 0xa1, 0x16, 0x77, 0xbd, 0x20,
-	0x44, 0x96, 0xf2, 0x3d, 0xb8, 0xcc, 0xf7, 0x02, 0xf8, 0xec, 0xcd, 0xdd, 0xd0, 0xcc, 0x72, 0x89,
-	0x14, 0x52, 0x57, 0x23, 0x7e, 0x2c, 0xf5, 0x83, 0xc9, 0x0f, 0x43, 0xfd, 0x3c, 0x33, 0xd4, 0xc9,
-	0xcc, 0x50, 0x4f, 0x67, 0x86, 0x3a, 0x9d, 0x19, 0xea, 0xf7, 0x99, 0xa1, 0xbc, 0x9f, 0x1b, 0xca,
-	0xa7, 0xb9, 0xa1, 0x9e, 0xce, 0x0d, 0x65, 0x3a, 0x37, 0x94, 0x9f, 0x1f, 0x77, 0xd5, 0xce, 0xaa,
-	0xfc, 0x43, 0xbc, 0xf3, 0x2b, 0x00, 0x00, 0xff, 0xff, 0xf8, 0xb6, 0xa3, 0x70, 0xa8, 0x05, 0x00,
-	0x00,
+	// 683 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xec, 0x95, 0xb1, 0x6f, 0xd3, 0x4e,
+	0x14, 0xc7, 0xed, 0x5f, 0xa2, 0x26, 0xbd, 0xf4, 0x57, 0x9c, 0x0b, 0x20, 0x53, 0x8a, 0x13, 0x45,
+	0x48, 0x8d, 0x50, 0x93, 0x54, 0x85, 0x56, 0xd0, 0x85, 0x62, 0x48, 0x05, 0x55, 0x25, 0xa2, 0x2b,
+	0x3b, 0xba, 0xda, 0x57, 0xd7, 0x28, 0xf5, 0x45, 0xe7, 0x0b, 0x8a, 0x99, 0xc2, 0x7f, 0xc0, 0xca,
+	0xc6, 0xd8, 0x3f, 0x83, 0xb1, 0x63, 0x27, 0x94, 0xa9, 0x82, 0x64, 0xe1, 0x5f, 0x80, 0x09, 0xdd,
+	0xf9, 0xd2, 0xb8, 0xd0, 0x1a, 0x89, 0x81, 0x89, 0x29, 0xbe, 0x7b, 0x9f, 0xef, 0xfb, 0x3e, 0xdf,
+	0xbd, 0x17, 0x83, 0x52, 0x97, 0x51, 0x4e, 0x5f, 0x3a, 0x98, 0xe3, 0x0e, 0xf5, 0x1a, 0x72, 0x05,
+	0x33, 0xec, 0x30, 0x5c, 0xa8, 0x7b, 0x3e, 0x3f, 0xe8, 0xed, 0x35, 0x1c, 0x7a, 0xd8, 0xf4, 0xa8,
+	0x47, 0x9b, 0x32, 0xb6, 0xd7, 0xdb, 0x97, 0x2b, 0xb9, 0x90, 0x4f, 0xb1, 0x66, 0x61, 0x33, 0x81,
+	0xfb, 0x41, 0x48, 0x3b, 0x98, 0x35, 0x71, 0x18, 0xf6, 0x18, 0x71, 0xeb, 0x1d, 0xe2, 0x7a, 0x84,
+	0x35, 0xe3, 0x9f, 0xba, 0x43, 0x19, 0x11, 0x48, 0x9c, 0xc2, 0x0f, 0x42, 0x95, 0x61, 0x96, 0x1d,
+	0xaa, 0xc7, 0xea, 0xa7, 0x0c, 0x58, 0x44, 0xc4, 0xa1, 0xcc, 0x6d, 0xf5, 0x1d, 0xc2, 0xba, 0x7c,
+	0x8b, 0xb2, 0xc7, 0x71, 0x89, 0xad, 0x80, 0xb3, 0x08, 0xde, 0x06, 0x20, 0x8e, 0xbf, 0x88, 0xba,
+	0xc4, 0x34, 0x2a, 0x7a, 0xed, 0x7f, 0x3b, 0x7b, 0x7c, 0x5a, 0xd6, 0x50, 0x62, 0x1f, 0x3e, 0x00,
+	0xf3, 0xf1, 0xca, 0xa6, 0x6e, 0xf4, 0x14, 0x87, 0x07, 0x66, 0xa9, 0xa2, 0xd7, 0x0a, 0xab, 0x85,
+	0x86, 0xb0, 0xb2, 0xfd, 0x00, 0xb3, 0x48, 0xc9, 0x7e, 0x02, 0x61, 0x03, 0xe4, 0xda, 0x8c, 0xbc,
+	0x46, 0x64, 0xdf, 0x34, 0xa5, 0x66, 0x5e, 0x6a, 0x10, 0xd9, 0x27, 0x8c, 0x04, 0x0e, 0x51, 0xb2,
+	0x09, 0x24, 0x78, 0x44, 0x29, 0x17, 0xfc, 0x8d, 0x34, 0x5e, 0x41, 0x70, 0x15, 0xcc, 0x22, 0x82,
+	0x43, 0x1a, 0x08, 0xc5, 0x42, 0x8a, 0x62, 0x8a, 0xc1, 0x75, 0x50, 0x40, 0xc4, 0xf5, 0x19, 0x71,
+	0xa4, 0xcf, 0xcd, 0x14, 0x55, 0x12, 0x8c, 0xbd, 0x5e, 0x51, 0x5f, 0x7a, 0x2d, 0xa6, 0x7b, 0x29,
+	0x0c, 0x3e, 0x04, 0xc5, 0x36, 0xa3, 0x6e, 0xcf, 0x21, 0x6c, 0xd7, 0xf7, 0x02, 0xcc, 0x7b, 0x8c,
+	0x98, 0x4b, 0x97, 0x9d, 0xde, 0xaf, 0xec, 0x76, 0x36, 0xaf, 0x1b, 0xc6, 0x76, 0x36, 0x5f, 0x34,
+	0x4a, 0xdb, 0xf9, 0x7c, 0xcd, 0x18, 0x0c, 0x06, 0x83, 0xff, 0xaa, 0x6d, 0x50, 0x9c, 0x1e, 0xf4,
+	0x16, 0x65, 0x3b, 0xf8, 0x4d, 0x04, 0xd7, 0x26, 0x97, 0x29, 0x36, 0xd5, 0x15, 0x5d, 0x51, 0x05,
+	0x4e, 0xb6, 0xcf, 0xdf, 0xae, 0xd8, 0xd9, 0xc8, 0x7e, 0x1c, 0x96, 0xb5, 0xea, 0xb7, 0x19, 0x30,
+	0xf7, 0x9b, 0xd6, 0xc8, 0x5d, 0xd0, 0x1a, 0x2b, 0x20, 0x27, 0x92, 0xec, 0x50, 0xc7, 0x2c, 0x56,
+	0xf4, 0xda, 0x8c, 0x7d, 0x5d, 0x20, 0xdf, 0x4f, 0xcb, 0xf3, 0xbb, 0x9c, 0x32, 0xec, 0x91, 0x1d,
+	0xea, 0x60, 0x4e, 0x19, 0x9a, 0x60, 0x70, 0x1d, 0x80, 0x36, 0x8e, 0x3a, 0x14, 0xbb, 0x42, 0x04,
+	0x53, 0x45, 0x09, 0x52, 0x38, 0x3d, 0x67, 0xae, 0x1f, 0xe0, 0x8e, 0x7c, 0xb5, 0xdc, 0x54, 0xa4,
+	0xca, 0x56, 0x51, 0x34, 0xc1, 0xe0, 0x06, 0x98, 0x6b, 0xf5, 0x39, 0x09, 0x42, 0x9f, 0x06, 0xc2,
+	0xeb, 0xaa, 0x3c, 0x11, 0x43, 0x9e, 0x48, 0xab, 0xcf, 0x95, 0x49, 0xa8, 0xde, 0xea, 0x1c, 0x7b,
+	0x41, 0xcb, 0x5f, 0xfb, 0xd7, 0xf2, 0x7f, 0xa7, 0xe5, 0xe1, 0x0a, 0xc8, 0x23, 0xe2, 0xe0, 0xae,
+	0xf0, 0xac, 0xa5, 0x78, 0x9e, 0x51, 0xf0, 0x1e, 0x00, 0x2a, 0x8d, 0x6b, 0x47, 0xe6, 0x9d, 0x14,
+	0x4d, 0x82, 0x83, 0x8f, 0x00, 0x44, 0xc4, 0xf3, 0x43, 0xce, 0x70, 0xa2, 0xd2, 0xe5, 0xcb, 0x2a,
+	0xbd, 0x00, 0x86, 0xf7, 0xc1, 0x5c, 0xbc, 0x4b, 0x98, 0xb4, 0xae, 0xa7, 0x58, 0x9f, 0x23, 0xcf,
+	0xe6, 0xfa, 0x96, 0xb1, 0x54, 0xdd, 0x04, 0x85, 0x44, 0x3f, 0xc2, 0x25, 0x90, 0x69, 0xf5, 0xb9,
+	0x59, 0xac, 0x64, 0xce, 0x06, 0x78, 0x1a, 0x56, 0xc9, 0x04, 0xb1, 0x91, 0x3f, 0x1a, 0x96, 0x35,
+	0x39, 0xbd, 0x6f, 0x75, 0x00, 0xa6, 0x0c, 0x5c, 0x93, 0x09, 0xe3, 0x6e, 0x7e, 0xf6, 0x44, 0x4e,
+	0x66, 0xce, 0x2e, 0xa9, 0x79, 0x49, 0x86, 0x50, 0x72, 0xf1, 0xa7, 0xa3, 0x19, 0xff, 0x83, 0xd8,
+	0xcb, 0xc7, 0x5f, 0x2c, 0xfd, 0x68, 0x64, 0xe9, 0xc7, 0x23, 0x4b, 0x3f, 0x19, 0x59, 0xfa, 0x70,
+	0x64, 0xe9, 0x9f, 0x47, 0x96, 0xf6, 0x6e, 0x6c, 0x69, 0x1f, 0xc6, 0x96, 0x7e, 0x32, 0xb6, 0xb4,
+	0xe1, 0xd8, 0xd2, 0xbe, 0xbe, 0x2f, 0xeb, 0x7b, 0x33, 0xf2, 0x0b, 0x75, 0xf7, 0x47, 0x00, 0x00,
+	0x00, 0xff, 0xff, 0x33, 0x00, 0x23, 0xb4, 0x39, 0x07, 0x00, 0x00,
 }
 
 func (this *RecordExcerptForCatalogEntry) Equal(that interface{}) bool {
@@ -408,6 +494,9 @@ func (this *RecordExcerptForCatalogEntry) Equal(that interface{}) bool {
 	if this.RecordType != that1.RecordType {
 		return false
 	}
+	if !this.RecordBodyHash.Equal(&that1.RecordBodyHash) {
+		return false
+	}
 	if !this.PrevRef.Equal(&that1.PrevRef) {
 		return false
 	}
@@ -421,6 +510,9 @@ func (this *RecordExcerptForCatalogEntry) Equal(that interface{}) bool {
 		return false
 	}
 	if !this.RejoinRef.Equal(&that1.RejoinRef) {
+		return false
+	}
+	if !this.ProducerSignature.Equal(&that1.ProducerSignature) {
 		return false
 	}
 	return true
@@ -477,13 +569,13 @@ func (this *CatalogEntry) Equal(that interface{}) bool {
 	if this.PayloadLoc != that1.PayloadLoc {
 		return false
 	}
-	if !this.RecordBodyHash.Equal(&that1.RecordBodyHash) {
-		return false
-	}
-	if this.InDropOrdinal != that1.InDropOrdinal {
+	if this.Ordinal != that1.Ordinal {
 		return false
 	}
 	if !this.ExtensionLoc.Equal(&that1.ExtensionLoc) {
+		return false
+	}
+	if !this.RecordBodyHash.Equal(&that1.RecordBodyHash) {
 		return false
 	}
 	if !this.PrevRef.Equal(&that1.PrevRef) {
@@ -501,16 +593,19 @@ func (this *CatalogEntry) Equal(that interface{}) bool {
 	if !this.RejoinRef.Equal(&that1.RejoinRef) {
 		return false
 	}
-	if !this.RecapRef.Equal(&that1.RecapRef) {
+	if !this.ProducerSignature.Equal(&that1.ProducerSignature) {
 		return false
 	}
-	if !this.ProducerSignature.Equal(&that1.ProducerSignature) {
+	if !this.RecapRef.Equal(&that1.RecapRef) {
 		return false
 	}
 	if !this.ProducedBy.Equal(&that1.ProducedBy) {
 		return false
 	}
 	if !this.RegistrarSignature.Equal(&that1.RegistrarSignature) {
+		return false
+	}
+	if !this.RegisteredBy.Equal(&that1.RegisteredBy) {
 		return false
 	}
 	return true
@@ -532,6 +627,41 @@ func (this *ExtLocators) Equal(that interface{}) bool {
 	if that1 == nil {
 		return this == nil
 	} else if this == nil {
+		return false
+	}
+	if len(this.Ext) != len(that1.Ext) {
+		return false
+	}
+	for i := range this.Ext {
+		if !this.Ext[i].Equal(&that1.Ext[i]) {
+			return false
+		}
+	}
+	return true
+}
+func (this *ExtLocator) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*ExtLocator)
+	if !ok {
+		that2, ok := that.(ExtLocator)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.ExtensionID != that1.ExtensionID {
+		return false
+	}
+	if this.PayloadLoc != that1.PayloadLoc {
 		return false
 	}
 	return true
@@ -556,6 +686,20 @@ func (m *RecordExcerptForCatalogEntry) MarshalToSizedBuffer(dAtA []byte) (int, e
 	_ = i
 	var l, fieldEnd int
 	_, _ = l, fieldEnd
+	{
+		size, err := m.ProducerSignature.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoCatalog(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x2
+			i--
+			dAtA[i] = 0xba
+		}
+	}
 	{
 		size, err := m.RejoinRef.MarshalToSizedBuffer(dAtA[:i])
 		if err != nil {
@@ -624,6 +768,20 @@ func (m *RecordExcerptForCatalogEntry) MarshalToSizedBuffer(dAtA []byte) (int, e
 			dAtA[i] = 0x1
 			i--
 			dAtA[i] = 0xc2
+		}
+	}
+	{
+		size, err := m.RecordBodyHash.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoCatalog(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0x9a
 		}
 	}
 	if i < len(dAtA) {
@@ -701,6 +859,20 @@ func (m *CatalogEntry) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	var l, fieldEnd int
 	_, _ = l, fieldEnd
 	{
+		size, err := m.RegisteredBy.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoCatalog(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x2
+			i--
+			dAtA[i] = 0xea
+		}
+	}
+	{
 		size, err := m.RegistrarSignature.MarshalToSizedBuffer(dAtA[:i])
 		if err != nil {
 			return 0, err
@@ -729,20 +901,6 @@ func (m *CatalogEntry) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		}
 	}
 	{
-		size, err := m.ProducerSignature.MarshalToSizedBuffer(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		if size > 0 {
-			i -= size
-			i = encodeVarintProtoCatalog(dAtA, i, uint64(size))
-			i--
-			dAtA[i] = 0x2
-			i--
-			dAtA[i] = 0xca
-		}
-	}
-	{
 		size, err := m.RecapRef.MarshalToSizedBuffer(dAtA[:i])
 		if err != nil {
 			return 0, err
@@ -754,6 +912,20 @@ func (m *CatalogEntry) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 			dAtA[i] = 0x2
 			i--
 			dAtA[i] = 0xc2
+		}
+	}
+	{
+		size, err := m.ProducerSignature.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoCatalog(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x2
+			i--
+			dAtA[i] = 0xba
 		}
 	}
 	{
@@ -827,7 +999,7 @@ func (m *CatalogEntry) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		}
 	}
 	{
-		size, err := m.ExtensionLoc.MarshalToSizedBuffer(dAtA[:i])
+		size, err := m.RecordBodyHash.MarshalToSizedBuffer(dAtA[:i])
 		if err != nil {
 			return 0, err
 		}
@@ -840,16 +1012,8 @@ func (m *CatalogEntry) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 			dAtA[i] = 0xaa
 		}
 	}
-	if m.InDropOrdinal != 0 {
-		i -= 4
-		encoding_binary.LittleEndian.PutUint32(dAtA[i:], uint32(m.InDropOrdinal))
-		i--
-		dAtA[i] = 0x1
-		i--
-		dAtA[i] = 0xa5
-	}
 	{
-		size, err := m.RecordBodyHash.MarshalToSizedBuffer(dAtA[:i])
+		size, err := m.ExtensionLoc.MarshalToSizedBuffer(dAtA[:i])
 		if err != nil {
 			return 0, err
 		}
@@ -859,8 +1023,16 @@ func (m *CatalogEntry) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 			i--
 			dAtA[i] = 0x1
 			i--
-			dAtA[i] = 0x9a
+			dAtA[i] = 0xa2
 		}
+	}
+	if m.Ordinal != 0 {
+		i -= 4
+		encoding_binary.LittleEndian.PutUint32(dAtA[i:], uint32(m.Ordinal))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x9d
 	}
 	if m.PayloadLoc != 0 {
 		i -= 8
@@ -909,6 +1081,61 @@ func (m *ExtLocators) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l, fieldEnd int
 	_, _ = l, fieldEnd
+	if len(m.Ext) > 0 {
+		for iNdEx := len(m.Ext) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.Ext[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintProtoCatalog(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0x8a
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *ExtLocator) Marshal() (dAtA []byte, err error) {
+	size := m.ProtoSize()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ExtLocator) MarshalTo(dAtA []byte) (int, error) {
+	size := m.ProtoSize()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *ExtLocator) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l, fieldEnd int
+	_, _ = l, fieldEnd
+	if m.PayloadLoc != 0 {
+		i -= 8
+		encoding_binary.LittleEndian.PutUint64(dAtA[i:], uint64(m.PayloadLoc))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x91
+	}
+	if m.ExtensionID != 0 {
+		i -= 4
+		encoding_binary.LittleEndian.PutUint32(dAtA[i:], uint32(m.ExtensionID))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x8d
+	}
 	if i < len(dAtA) {
 		i = encodeVarintProtoCatalog(dAtA, i, uint64(0))
 		i--
@@ -937,6 +1164,9 @@ func (m *RecordExcerptForCatalogEntry) ProtoSize() (n int) {
 	}
 	var l int
 	_ = l
+	if l = m.RecordBodyHash.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoCatalog(uint64(l))
+	}
 	if l = m.PrevRef.ProtoSize(); l > 0 {
 		n += 2 + l + sovProtoCatalog(uint64(l))
 	}
@@ -950,6 +1180,9 @@ func (m *RecordExcerptForCatalogEntry) ProtoSize() (n int) {
 		n += 2 + l + sovProtoCatalog(uint64(l))
 	}
 	if l = m.RejoinRef.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoCatalog(uint64(l))
+	}
+	if l = m.ProducerSignature.ProtoSize(); l > 0 {
 		n += 2 + l + sovProtoCatalog(uint64(l))
 	}
 	if n > 0 {
@@ -985,13 +1218,13 @@ func (m *CatalogEntry) ProtoSize() (n int) {
 	if m.PayloadLoc != 0 {
 		n += 10
 	}
-	if l = m.RecordBodyHash.ProtoSize(); l > 0 {
-		n += 2 + l + sovProtoCatalog(uint64(l))
-	}
-	if m.InDropOrdinal != 0 {
+	if m.Ordinal != 0 {
 		n += 6
 	}
 	if l = m.ExtensionLoc.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoCatalog(uint64(l))
+	}
+	if l = m.RecordBodyHash.ProtoSize(); l > 0 {
 		n += 2 + l + sovProtoCatalog(uint64(l))
 	}
 	if l = m.PrevRef.ProtoSize(); l > 0 {
@@ -1009,16 +1242,19 @@ func (m *CatalogEntry) ProtoSize() (n int) {
 	if l = m.RejoinRef.ProtoSize(); l > 0 {
 		n += 2 + l + sovProtoCatalog(uint64(l))
 	}
-	if l = m.RecapRef.ProtoSize(); l > 0 {
+	if l = m.ProducerSignature.ProtoSize(); l > 0 {
 		n += 2 + l + sovProtoCatalog(uint64(l))
 	}
-	if l = m.ProducerSignature.ProtoSize(); l > 0 {
+	if l = m.RecapRef.ProtoSize(); l > 0 {
 		n += 2 + l + sovProtoCatalog(uint64(l))
 	}
 	if l = m.ProducedBy.ProtoSize(); l > 0 {
 		n += 2 + l + sovProtoCatalog(uint64(l))
 	}
 	if l = m.RegistrarSignature.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoCatalog(uint64(l))
+	}
+	if l = m.RegisteredBy.ProtoSize(); l > 0 {
 		n += 2 + l + sovProtoCatalog(uint64(l))
 	}
 	if n > 0 {
@@ -1033,6 +1269,27 @@ func (m *ExtLocators) ProtoSize() (n int) {
 	}
 	var l int
 	_ = l
+	if len(m.Ext) > 0 {
+		for _, e := range m.Ext {
+			l = e.ProtoSize()
+			n += 2 + l + sovProtoCatalog(uint64(l))
+		}
+	}
+	return n
+}
+
+func (m *ExtLocator) ProtoSize() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.ExtensionID != 0 {
+		n += 6
+	}
+	if m.PayloadLoc != 0 {
+		n += 10
+	}
 	if n > 0 {
 		n += 2 + sovProtoCatalog(0)
 	}
@@ -1096,6 +1353,39 @@ func (m *RecordExcerptForCatalogEntry) UnmarshalWithUnknownCallback(dAtA []byte,
 					break
 				}
 			}
+		case 19:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RecordBodyHash", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoCatalog
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoCatalog
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoCatalog
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.RecordBodyHash.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		case 24:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PrevRef", wireType)
@@ -1258,6 +1548,39 @@ func (m *RecordExcerptForCatalogEntry) UnmarshalWithUnknownCallback(dAtA []byte,
 				return io.ErrUnexpectedEOF
 			}
 			if err := m.RejoinRef.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 39:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ProducerSignature", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoCatalog
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoCatalog
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoCatalog
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.ProducerSignature.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -1436,7 +1759,7 @@ func (m *CatalogEntry) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 			if (iNdEx + 8) > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.BodyLoc = uint64(encoding_binary.LittleEndian.Uint64(dAtA[iNdEx:]))
+			m.BodyLoc = StorageLocator(encoding_binary.LittleEndian.Uint64(dAtA[iNdEx:]))
 			iNdEx += 8
 		case 18:
 			if wireType != 1 {
@@ -1446,52 +1769,19 @@ func (m *CatalogEntry) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 			if (iNdEx + 8) > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.PayloadLoc = uint64(encoding_binary.LittleEndian.Uint64(dAtA[iNdEx:]))
+			m.PayloadLoc = StorageLocator(encoding_binary.LittleEndian.Uint64(dAtA[iNdEx:]))
 			iNdEx += 8
 		case 19:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RecordBodyHash", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoCatalog
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoCatalog
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoCatalog
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.RecordBodyHash.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 20:
 			if wireType != 5 {
-				return fmt.Errorf("proto: wrong wireType = %d for field InDropOrdinal", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Ordinal", wireType)
 			}
-			m.InDropOrdinal = 0
+			m.Ordinal = 0
 			if (iNdEx + 4) > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.InDropOrdinal = uint32(encoding_binary.LittleEndian.Uint32(dAtA[iNdEx:]))
+			m.Ordinal = CatalogOrdinal(encoding_binary.LittleEndian.Uint32(dAtA[iNdEx:]))
 			iNdEx += 4
-		case 21:
+		case 20:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ExtensionLoc", wireType)
 			}
@@ -1521,6 +1811,39 @@ func (m *CatalogEntry) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 				return io.ErrUnexpectedEOF
 			}
 			if err := m.ExtensionLoc.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 21:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RecordBodyHash", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoCatalog
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoCatalog
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoCatalog
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.RecordBodyHash.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -1689,6 +2012,39 @@ func (m *CatalogEntry) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 				return err
 			}
 			iNdEx = postIndex
+		case 39:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ProducerSignature", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoCatalog
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoCatalog
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoCatalog
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.ProducerSignature.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		case 40:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field RecapRef", wireType)
@@ -1719,39 +2075,6 @@ func (m *CatalogEntry) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 				return io.ErrUnexpectedEOF
 			}
 			if err := m.RecapRef.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 41:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ProducerSignature", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowProtoCatalog
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthProtoCatalog
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthProtoCatalog
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.ProducerSignature.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -1821,6 +2144,39 @@ func (m *CatalogEntry) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 				return err
 			}
 			iNdEx = postIndex
+		case 45:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RegisteredBy", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoCatalog
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoCatalog
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoCatalog
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.RegisteredBy.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipFn(dAtA[iNdEx:])
@@ -1883,6 +2239,122 @@ func (m *ExtLocators) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]by
 			return fmt.Errorf("proto: ExtLocators: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		case 17:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Ext", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoCatalog
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoCatalog
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoCatalog
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Ext = append(m.Ext, ExtLocator{})
+			if err := m.Ext[len(m.Ext)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipFn(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				l = iNdEx
+				break
+			}
+			if skippy == 0 {
+				if skippy, err = skipProtoCatalog(dAtA[iNdEx:]); err != nil {
+					return err
+				}
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthProtoCatalog
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *ExtLocator) Unmarshal(dAtA []byte) error {
+	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoCatalog)
+}
+func (m *ExtLocator) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtoCatalog
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ExtLocator: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ExtLocator: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 17:
+			if wireType != 5 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ExtensionID", wireType)
+			}
+			m.ExtensionID = 0
+			if (iNdEx + 4) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ExtensionID = ExtensionID(encoding_binary.LittleEndian.Uint32(dAtA[iNdEx:]))
+			iNdEx += 4
+		case 18:
+			if wireType != 1 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PayloadLoc", wireType)
+			}
+			m.PayloadLoc = 0
+			if (iNdEx + 8) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PayloadLoc = StorageLocator(encoding_binary.LittleEndian.Uint64(dAtA[iNdEx:]))
+			iNdEx += 8
 		default:
 			iNdEx = preIndex
 			skippy, err := skipFn(dAtA[iNdEx:])

@@ -10,39 +10,3 @@ import (
 )
 
 type Entry = rms.CatalogEntry
-type Ordinal uint32
-type ExtensionID uint32
-
-const (
-	SameAsBodyExtensionID ExtensionID = 0
-)
-
-type SectionEntry struct {
-	ExtensionID
-	Data []byte
-}
-
-type WriteEntry struct {
-	Entry
-	Body       SectionEntry
-	Payload    SectionEntry
-	Extensions []SectionEntry
-}
-
-type WriteBundle struct {
-	Entries    []WriteEntry
-	CallbackFn func(WrittenBundle)
-}
-
-type WrittenEntry struct {
-	EntryLoc   StorageLocator
-	BodyLoc    StorageLocator
-	PayloadLoc StorageLocator
-	ExtLocs    []StorageLocator
-}
-
-type WrittenBundle struct {
-	First   Ordinal
-	Entries []WrittenEntry
-}
-

@@ -10,7 +10,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/ledger/server/catalog"
+	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 )
@@ -277,9 +277,9 @@ type stubTracker struct {
 	ready int
 }
 
-func (p *stubTracker) GetFutureAllocation() (isReady bool, allocations []catalog.DirectoryIndex) {
+func (p *stubTracker) GetFutureAllocation() (isReady bool, allocations []ledger.DirectoryIndex) {
 	if p.ready == 0 {
 		return false, nil
 	}
-	return true, make([]catalog.DirectoryIndex, p.ready)
+	return true, make([]ledger.DirectoryIndex, p.ready)
 }
