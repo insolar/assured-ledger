@@ -148,6 +148,7 @@ func (s *SMVDelegatedRequestFinished) updateSharedState(
 	// Update object state.
 	if s.hasLatestState() {
 		state.SetDescriptor(s.latestState())
+		s.updateObjectState(state)
 	}
 
 	pendingList := state.PendingTable.GetList(s.Payload.CallFlags.GetInterference())
@@ -184,6 +185,17 @@ func (s *SMVDelegatedRequestFinished) updateSharedState(
 				ctx.Log().Warn("SignalPendingsFinished BargeIn receive false")
 			}
 		}
+	}
+}
+
+func (s *SMVDelegatedRequestFinished) updateObjectState(state *object.SharedState) {
+	switch state.GetState() {
+	case object.Empty:
+		state.SetState(object.HasState)
+	case object.HasState:
+		// ok
+	default:
+		panic(throw.Impossible())
 	}
 }
 
