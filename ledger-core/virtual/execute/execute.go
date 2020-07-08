@@ -327,7 +327,10 @@ func (s *SMExecute) stepDeduplicate(ctx smachine.ExecutionContext) smachine.Stat
 
 	// deduplication algorithm
 	action := func(state *object.SharedState) {
-		deduplicateAction = s.deduplicate(state, msg)
+		deduplicateAction0, msg0 := s.deduplicate(state)
+
+		deduplicateAction = deduplicateAction0
+		msg = msg0
 	}
 
 	if stepUpdate, ok := s.shareObjectAccess(ctx, action); !ok {
@@ -964,7 +967,7 @@ func (s *SMExecute) shareObjectAccess(
 	}
 }
 
-func (s *SMExecute) deduplicate(state *object.SharedState, msg *payload.VCallResult) DeduplicationAction {
+func (s *SMExecute) deduplicate(state *object.SharedState) (DeduplicationAction, *payload.VCallResult) {
 	// if we can not add to request table, this mean that we already have operation in progress or completed
 	if !state.KnownRequests.Add(s.execution.Isolation.Interference, s.execution.Outgoing) {
 		results := state.KnownRequests.GetResults()
@@ -973,12 +976,11 @@ func (s *SMExecute) deduplicate(state *object.SharedState, msg *payload.VCallRes
 
 		// get result only if exist, if result == nil this mean that other SM now during execution
 		if ok && summary.Result != nil {
-			msg = summary.Result
-			return SendResultAndStop
+			return SendResultAndStop, summary.Result
 		}
 
 		// stop current sm because other sm still in progress and not send result
-		return Stop
+		return Stop, nil
 	}
 
 	// deduplicate through pending table
@@ -987,15 +989,15 @@ func (s *SMExecute) deduplicate(state *object.SharedState, msg *payload.VCallRes
 		isActive, isDuplicate := pendingList.GetState(s.execution.Outgoing)
 
 		if isDuplicate && isActive {
-			return Stop
+			return Stop, nil
 		}
 
 		if s.isConstructor && state.GetState() == object.Missing {
-			return ContinueExecute
+			return ContinueExecute, nil
 		}
 
-		return DeduplicateThroughPreviousExecutor
+		return DeduplicateThroughPreviousExecutor, nil
 	}
 
-	return ContinueExecute
+	return ContinueExecute, nil
 }
