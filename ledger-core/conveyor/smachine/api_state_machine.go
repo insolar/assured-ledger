@@ -137,11 +137,15 @@ type TerminationData struct {
 	Error   error
 }
 
+type PreInitHandlerFunc = func (InitializationContext, StateMachine) (postInitError error)
+
 type CreateDefaultValues struct {
 	Context                context.Context
 	Parent                 SlotLink
 	OverriddenDependencies map[string]interface{}
 	InheritAllDependencies bool
+
+	PreInitializationHandler PreInitHandlerFunc
 
 	// TerminationHandler provides a special termination handler that will be invoked AFTER termination of SM.
 	// This handler is invoked with data from GetDefaultTerminationResult() and error (if any).

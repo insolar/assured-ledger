@@ -49,7 +49,17 @@ func (s *SMVCallRequest) GetStateMachineDeclaration() smachine.StateMachineDecla
 }
 
 func (s *SMVCallRequest) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
+	if s.pulseSlot.State() != conveyor.Present {
+		ctx.Log().Trace("stop processing VCallRequest since we are not in present pulse")
+		return ctx.Stop()
+	}
+	ctx.SetDefaultMigration(s.migrationDefault)
 	return ctx.Jump(s.stepExecute)
+}
+
+func (s *SMVCallRequest) migrationDefault(ctx smachine.MigrationContext) smachine.StateUpdate {
+	ctx.Log().Trace("stop processing VCallRequest since pulse was changed")
+	return ctx.Stop()
 }
 
 func (s *SMVCallRequest) stepExecute(ctx smachine.ExecutionContext) smachine.StateUpdate {
