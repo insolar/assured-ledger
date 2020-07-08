@@ -37,7 +37,7 @@ func tolerableFlags() contract.MethodIsolation {
 func intolerableFlags() contract.MethodIsolation {
 	return contract.MethodIsolation{
 		Interference: contract.CallIntolerable,
-		State:        contract.CallDirty,
+		State:        contract.CallValidated,
 	}
 }
 
@@ -47,12 +47,12 @@ func assertVCallResult(t *testing.T,
 	objectCaller reference.Global,
 	objectCallee reference.Global,
 	flagsCaller contract.MethodIsolation,
-	outgoing reference.Local) {
+	outgoing reference.Global) {
 
 	require.Equal(t, payload.CTMethod, res.CallType)
 	require.Equal(t, objectCaller, res.Caller)
 	require.Equal(t, objectCallee, res.Callee)
-	require.Equal(t, outgoing.Pulse(), res.CallOutgoing.Pulse())
+	require.Equal(t, outgoing.GetLocal().Pulse(), res.CallOutgoing.GetLocal().Pulse())
 	assert.Equal(t, flagsCaller.Interference, res.CallFlags.GetInterference()) // copy from VCallRequest
 	assert.Equal(t, flagsCaller.State, res.CallFlags.GetState())
 }
@@ -117,8 +117,8 @@ func TestVirtual_CallContractFromContract(t *testing.T) {
 			var (
 				class = gen.UniqueGlobalRef()
 
-				outgoingA       = server.RandomLocalWithPulse()
-				objectAGlobal   = reference.NewSelf(outgoingA)
+				outgoingA       = server.BuildRandomOutgoingWithPulse()
+				objectAGlobal   = gen.UniqueGlobalRef()
 				outgoingCallRef = gen.UniqueGlobalRef()
 				objectBGlobal   = reference.NewSelf(server.RandomLocalWithPulse())
 			)
@@ -178,7 +178,7 @@ func TestVirtual_CallContractFromContract(t *testing.T) {
 					assertVCallRequest(t, objectAGlobal, objectBGlobal, request, test.flagsA)
 					assert.Equal(t, byteArguments, request.Arguments)
 					assert.Equal(t, outgoingCallRef, request.CallReason)
-					assert.Equal(t, server.GetPulse().PulseNumber, request.CallOutgoing.Pulse())
+					assert.Equal(t, server.GetPulse().PulseNumber, request.CallOutgoing.GetLocal().Pulse())
 					return true // resend
 				})
 
@@ -258,8 +258,8 @@ func TestVirtual_CallOtherMethodInObject(t *testing.T) {
 
 			var (
 				class           = gen.UniqueGlobalRef()
-				outgoingA       = server.RandomLocalWithPulse()
-				objectAGlobal   = reference.NewSelf(outgoingA)
+				outgoingA       = server.BuildRandomOutgoingWithPulse()
+				objectAGlobal   = gen.UniqueGlobalRef()
 				outgoingCallRef = gen.UniqueGlobalRef()
 			)
 
@@ -315,7 +315,7 @@ func TestVirtual_CallOtherMethodInObject(t *testing.T) {
 					assertVCallRequest(t, objectAGlobal, objectAGlobal, request, test.stateSender)
 					assert.Equal(t, byteArguments, request.Arguments)
 					assert.Equal(t, outgoingCallRef, request.CallReason)
-					assert.Equal(t, server.GetPulse().PulseNumber, request.CallOutgoing.Pulse())
+					assert.Equal(t, server.GetPulse().PulseNumber, request.CallOutgoing.GetLocal().Pulse())
 					return true // resend
 				})
 
@@ -395,8 +395,8 @@ func TestVirtual_CallMethodFromConstructor(t *testing.T) {
 				callFlags = tolerableFlags()
 
 				classA        = gen.UniqueGlobalRef()
-				outgoingA     = server.RandomLocalWithPulse()
-				objectAGlobal = reference.NewSelf(outgoingA)
+				outgoingA     = server.BuildRandomOutgoingWithPulse()
+				objectAGlobal = outgoingA
 
 				classB        = gen.UniqueGlobalRef()
 				objectBGlobal = reference.NewSelf(server.RandomLocalWithPulse())
@@ -456,7 +456,7 @@ func TestVirtual_CallMethodFromConstructor(t *testing.T) {
 				typedChecker.VCallRequest.Set(func(request *payload.VCallRequest) bool {
 					assertVCallRequest(t, objectAGlobal, objectBGlobal, request, callFlags)
 					assert.Equal(t, outgoingCallRef, request.CallReason)
-					assert.Equal(t, server.GetPulse().PulseNumber, request.CallOutgoing.Pulse())
+					assert.Equal(t, server.GetPulse().PulseNumber, request.CallOutgoing.GetLocal().Pulse())
 					return true // resend
 				})
 				typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
@@ -473,7 +473,7 @@ func TestVirtual_CallMethodFromConstructor(t *testing.T) {
 						require.Equal(t, []byte("finish B.Foo"), res.ReturnArguments)
 						require.Equal(t, payload.CTMethod, res.CallType)
 						require.Equal(t, objectAGlobal, res.Caller)
-						require.Equal(t, server.GetPulse().PulseNumber, res.CallOutgoing.Pulse())
+						require.Equal(t, server.GetPulse().PulseNumber, res.CallOutgoing.GetLocal().Pulse())
 
 					default:
 						t.Fatalf("wrong Callee")

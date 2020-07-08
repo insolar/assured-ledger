@@ -152,13 +152,6 @@ func (c *conditionalUpdate) GetDecision() Decision {
 	return c.decision
 }
 
-func (c *conditionalUpdate) ThenRepeatOrElse() (StateUpdate, bool) {
-	if c.GetDecision().IsNotPassed() {
-		return c.ThenRepeat(), true
-	}
-	return StateUpdate{}, false
-}
-
 func (c *conditionalUpdate) ThenRepeatOrJump(fn StateFunc) StateUpdate {
 	if c.GetDecision().IsNotPassed() {
 		return c.ThenRepeat()

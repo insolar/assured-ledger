@@ -10,7 +10,6 @@ import (
 
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
@@ -145,8 +144,7 @@ func Test_Execute_stepIsolationNegotiation(t *testing.T) {
 
 				pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 				pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-				smObjectID      = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
-				smGlobalRef     = reference.NewSelf(smObjectID)
+				smGlobalRef     = reference.NewRecordOf(gen.UniqueGlobalRef(), gen.UniqueLocalRefWithPulse(pd.PulseNumber))
 				smObject        = object.NewStateMachineObject(smGlobalRef)
 				sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 			)
@@ -156,7 +154,7 @@ func Test_Execute_stepIsolationNegotiation(t *testing.T) {
 				CallFlags:           payload.BuildCallFlags(tc.callIsolation.Interference, tc.callIsolation.State),
 				CallSiteDeclaration: testwallet.GetClass(),
 				CallSiteMethod:      "New",
-				CallOutgoing:        smObjectID,
+				CallOutgoing:        smGlobalRef,
 				Arguments:           insolar.MustSerialize([]interface{}{}),
 			}
 
@@ -179,11 +177,8 @@ func Test_Execute_stepIsolationNegotiation(t *testing.T) {
 			execCtx := smachine.NewExecutionContextMock(mc)
 
 			if tc.expectedError {
-				// expected SM stop with Error
-				execCtx.ErrorMock.Set(func(e1 error) (s1 smachine.StateUpdate) {
-					require.Error(t, e1)
-					return smachine.StateUpdate{}
-				})
+				// expected SM sends an error in stepSendCallResult
+				execCtx.JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepSendCallResult))
 			} else {
 				execCtx.JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepDeduplicate))
 			}

@@ -42,6 +42,8 @@ const (
 
 const waitStatePulsePercent = 10
 
+const UnorderedMaxParallelism = 30
+
 type Info struct {
 	Reference   reference.Global
 	descriptor  descriptor.Object
@@ -52,7 +54,7 @@ type Info struct {
 	ReadyToWork      smachine.SyncLink
 	SummaryDone      smachine.SyncLink
 
-	AwaitPendingOrdered smachine.BargeIn
+	SignalPendingsFinished smachine.BargeIn
 
 	// KnownRequests holds requests that were seen on current pulse
 	KnownRequests callregistry.WorkingTable
@@ -69,12 +71,6 @@ type Info struct {
 	UnorderedPendingEarliestPulse pulse.Number
 	OrderedPendingEarliestPulse   pulse.Number
 
-	OrderedPendingListFilled   smachine.SyncLink
-	UnorderedPendingListFilled smachine.SyncLink
-
-	OrderedPendingListFilledCallback   smachine.BargeIn
-	UnorderedPendingListFilledCallback smachine.BargeIn
-
 	objectState State
 }
 
@@ -88,17 +84,6 @@ func (i *Info) SetState(state State) {
 
 func (i *Info) GetState() State {
 	return i.objectState
-}
-
-func (i *Info) SetPendingListFilled(ctx smachine.ExecutionContext, tolerance contract.InterferenceFlag) {
-	switch tolerance {
-	case contract.CallIntolerable:
-		ctx.CallBargeIn(i.UnorderedPendingListFilledCallback)
-	case contract.CallTolerable:
-		ctx.CallBargeIn(i.OrderedPendingListFilledCallback)
-	default:
-		panic(throw.IllegalValue())
-	}
 }
 
 func (i *Info) IncrementPotentialPendingCounter(isolation contract.MethodIsolation) {
@@ -224,8 +209,10 @@ type SMObject struct {
 
 	SharedState
 
-	readyToWorkCtl smsync.BoolConditionalLink
-	summaryDoneCtl smsync.BoolConditionalLink
+	readyToWorkCtl        smsync.BoolConditionalLink
+	orderedSemaphoreCtl   smsync.SemaphoreLink
+	unorderedSemaphoreCtl smsync.SemaphoreLink
+	summaryDoneCtl        smsync.BoolConditionalLink
 
 	waitGetStateUntil time.Time
 	smFinalizer       *finalizedstate.SMStateFinalizer
@@ -255,6 +242,7 @@ func (sm *SMObject) GetStateMachineDeclaration() smachine.StateMachineDeclaratio
 
 func (sm *SMObject) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
 	if sm.pulseSlot.State() != conveyor.Present {
+		ctx.Log().Trace("stop creating SMObject since we are not in present pulse")
 		return ctx.Stop()
 	}
 
@@ -264,11 +252,11 @@ func (sm *SMObject) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 	sm.summaryDoneCtl = smsync.NewConditionalBool(false, "summaryDone")
 	sm.SummaryDone = sm.summaryDoneCtl.SyncLink()
 
-	sm.UnorderedExecute = smsync.NewSemaphore(30, "immutable calls").SyncLink()
-	sm.OrderedExecute = smsync.NewSemaphore(1, "mutable calls").SyncLink() // TODO here we need an ORDERED queue
+	sm.unorderedSemaphoreCtl = smsync.NewSemaphore(0, "unordered calls")
+	sm.UnorderedExecute = sm.unorderedSemaphoreCtl.SyncLink()
 
-	sm.OrderedPendingListFilled = smsync.NewSemaphore(1, "ordered pending list filled").SyncLink()
-	sm.UnorderedPendingListFilled = smsync.NewSemaphore(1, "unordered pending list filled").SyncLink()
+	sm.orderedSemaphoreCtl = smsync.NewSemaphore(0, "ordered calls")
+	sm.OrderedExecute = sm.orderedSemaphoreCtl.SyncLink()
 
 	sdl := ctx.Share(&sm.SharedState, 0)
 	if !ctx.Publish(sm.Reference.String(), sdl) {
@@ -335,13 +323,16 @@ func (sm *SMObject) stepWaitState(ctx smachine.ExecutionContext) smachine.StateU
 }
 
 func (sm *SMObject) stepGotState(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if sm.PreviousExecutorOrderedPendingCount > 0 {
-		sm.createWaitPendingOrderedSM(ctx)
-		sm.createWaitOrderedPendingTableSM(ctx)
+	if sm.PreviousExecutorOrderedPendingCount == 0 {
+		sm.releaseOrderedExecutionPath(ctx)
+		sm.releaseUnorderedExecutionPath(ctx)
+	} else if sm.GetState() != Empty {
+		sm.releaseUnorderedExecutionPath(ctx)
 	}
 
-	if sm.PreviousExecutorUnorderedPendingCount > 0 {
-		sm.createWaitUnorderedPendingTableSM(ctx)
+	if sm.PreviousExecutorOrderedPendingCount > 0 {
+		sm.SignalPendingsFinished = ctx.NewBargeIn().
+			WithJump(sm.stepReleaseExecutionPaths)
 	}
 
 	return ctx.Jump(sm.stepReadyToWork)
@@ -356,53 +347,18 @@ func (sm *SMObject) stepWaitIndefinitely(ctx smachine.ExecutionContext) smachine
 	return ctx.Sleep().ThenRepeat()
 }
 
-func (sm *SMObject) createWaitOrderedPendingTableSM(ctx smachine.ExecutionContext) {
-	syncSM := SMAwaitTableFill{
-		sync: sm.OrderedPendingListFilled,
-	}
-
-	// syncSM acquire OrderedPendingListFilledCallback semaphore in init step.
-	ctx.InitChildWithPostInit(func(ctx smachine.ConstructionContext) smachine.StateMachine {
-		return &syncSM
-	}, func() {
-		sm.OrderedPendingListFilledCallback = syncSM.stop
-	})
-	if sm.OrderedPendingListFilledCallback.IsZero() {
-		panic(throw.IllegalState())
-	}
+func (sm *SMObject) stepReleaseExecutionPaths(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	sm.releaseOrderedExecutionPath(ctx)
+	sm.releaseUnorderedExecutionPath(ctx)
+	return ctx.Jump(sm.stepWaitIndefinitely)
 }
 
-func (sm *SMObject) createWaitUnorderedPendingTableSM(ctx smachine.ExecutionContext) {
-	syncSM := SMAwaitTableFill{
-		sync: sm.UnorderedPendingListFilled,
-	}
-
-	// syncSM acquire UnorderedPendingListFilledCallback semaphore in init step.
-	ctx.InitChildWithPostInit(func(ctx smachine.ConstructionContext) smachine.StateMachine {
-		return &syncSM
-	}, func() {
-		sm.UnorderedPendingListFilledCallback = syncSM.stop
-	})
-	if sm.UnorderedPendingListFilledCallback.IsZero() {
-		panic(throw.IllegalState())
-	}
+func (sm *SMObject) releaseOrderedExecutionPath(ctx smachine.ExecutionContext) {
+	ctx.ApplyAdjustment(sm.orderedSemaphoreCtl.NewValue(1))
 }
 
-func (sm *SMObject) createWaitPendingOrderedSM(ctx smachine.ExecutionContext) {
-	syncSM := SMAwaitDelegate{
-		sync: sm.OrderedExecute,
-	}
-
-	// syncSM acquire OrderedExecute semaphore in init step.
-	ctx.InitChildWithPostInit(func(ctx smachine.ConstructionContext) smachine.StateMachine {
-		return &syncSM
-	}, func() {
-		sm.AwaitPendingOrdered = syncSM.stop
-	})
-
-	if sm.AwaitPendingOrdered.IsZero() {
-		panic(throw.IllegalState())
-	}
+func (sm *SMObject) releaseUnorderedExecutionPath(ctx smachine.ExecutionContext) {
+	ctx.ApplyAdjustment(sm.unorderedSemaphoreCtl.NewValue(UnorderedMaxParallelism))
 }
 
 func (sm *SMObject) migrate(ctx smachine.MigrationContext) smachine.StateUpdate {

@@ -8,7 +8,7 @@ T00_S004 : AppEventSM
 T00_S004 --> T00_S005 : Migrate: <nil>
 state "stepClosingRun" as T00_S005
 T00_S005 : AppEventSM
-T00_S005 --> T00_S005 : [wait]
+T00_S005 --> T00_S005 : [wait.GetDecision().IsNotPassed()]
 T00_S005 --> [*]
 state "stepInit" as T00_S002
 T00_S002 : AppEventSM

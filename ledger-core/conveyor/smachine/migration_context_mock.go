@@ -69,12 +69,6 @@ type MigrationContextMock struct {
 	beforeErrorCounter uint64
 	ErrorMock          mMigrationContextMockError
 
-	funcErrorf          func(msg string, a ...interface{}) (s1 StateUpdate)
-	inspectFuncErrorf   func(msg string, a ...interface{})
-	afterErrorfCounter  uint64
-	beforeErrorfCounter uint64
-	ErrorfMock          mMigrationContextMockErrorf
-
 	funcGetContext          func() (c1 context.Context)
 	inspectFuncGetContext   func()
 	afterGetContextCounter  uint64
@@ -164,6 +158,12 @@ type MigrationContextMock struct {
 	afterPublishGlobalAliasAndBargeInCounter  uint64
 	beforePublishGlobalAliasAndBargeInCounter uint64
 	PublishGlobalAliasAndBargeInMock          mMigrationContextMockPublishGlobalAliasAndBargeIn
+
+	funcPublishReplacement          func(key interface{}, data interface{}) (b1 bool)
+	inspectFuncPublishReplacement   func(key interface{}, data interface{})
+	afterPublishReplacementCounter  uint64
+	beforePublishReplacementCounter uint64
+	PublishReplacementMock          mMigrationContextMockPublishReplacement
 
 	funcRelease          func(s1 SyncLink) (b1 bool)
 	inspectFuncRelease   func(s1 SyncLink)
@@ -319,9 +319,6 @@ func NewMigrationContextMock(t minimock.Tester) *MigrationContextMock {
 	m.ErrorMock = mMigrationContextMockError{mock: m}
 	m.ErrorMock.callArgs = []*MigrationContextMockErrorParams{}
 
-	m.ErrorfMock = mMigrationContextMockErrorf{mock: m}
-	m.ErrorfMock.callArgs = []*MigrationContextMockErrorfParams{}
-
 	m.GetContextMock = mMigrationContextMockGetContext{mock: m}
 
 	m.GetDefaultTerminationResultMock = mMigrationContextMockGetDefaultTerminationResult{mock: m}
@@ -361,6 +358,9 @@ func NewMigrationContextMock(t minimock.Tester) *MigrationContextMock {
 
 	m.PublishGlobalAliasAndBargeInMock = mMigrationContextMockPublishGlobalAliasAndBargeIn{mock: m}
 	m.PublishGlobalAliasAndBargeInMock.callArgs = []*MigrationContextMockPublishGlobalAliasAndBargeInParams{}
+
+	m.PublishReplacementMock = mMigrationContextMockPublishReplacement{mock: m}
+	m.PublishReplacementMock.callArgs = []*MigrationContextMockPublishReplacementParams{}
 
 	m.ReleaseMock = mMigrationContextMockRelease{mock: m}
 	m.ReleaseMock.callArgs = []*MigrationContextMockReleaseParams{}
@@ -2280,222 +2280,6 @@ func (m *MigrationContextMock) MinimockErrorInspect() {
 	// if func was set then invocations count should be greater than zero
 	if m.funcError != nil && mm_atomic.LoadUint64(&m.afterErrorCounter) < 1 {
 		m.t.Error("Expected call to MigrationContextMock.Error")
-	}
-}
-
-type mMigrationContextMockErrorf struct {
-	mock               *MigrationContextMock
-	defaultExpectation *MigrationContextMockErrorfExpectation
-	expectations       []*MigrationContextMockErrorfExpectation
-
-	callArgs []*MigrationContextMockErrorfParams
-	mutex    sync.RWMutex
-}
-
-// MigrationContextMockErrorfExpectation specifies expectation struct of the MigrationContext.Errorf
-type MigrationContextMockErrorfExpectation struct {
-	mock    *MigrationContextMock
-	params  *MigrationContextMockErrorfParams
-	results *MigrationContextMockErrorfResults
-	Counter uint64
-}
-
-// MigrationContextMockErrorfParams contains parameters of the MigrationContext.Errorf
-type MigrationContextMockErrorfParams struct {
-	msg string
-	a   []interface{}
-}
-
-// MigrationContextMockErrorfResults contains results of the MigrationContext.Errorf
-type MigrationContextMockErrorfResults struct {
-	s1 StateUpdate
-}
-
-// Expect sets up expected params for MigrationContext.Errorf
-func (mmErrorf *mMigrationContextMockErrorf) Expect(msg string, a ...interface{}) *mMigrationContextMockErrorf {
-	if mmErrorf.mock.funcErrorf != nil {
-		mmErrorf.mock.t.Fatalf("MigrationContextMock.Errorf mock is already set by Set")
-	}
-
-	if mmErrorf.defaultExpectation == nil {
-		mmErrorf.defaultExpectation = &MigrationContextMockErrorfExpectation{}
-	}
-
-	mmErrorf.defaultExpectation.params = &MigrationContextMockErrorfParams{msg, a}
-	for _, e := range mmErrorf.expectations {
-		if minimock.Equal(e.params, mmErrorf.defaultExpectation.params) {
-			mmErrorf.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmErrorf.defaultExpectation.params)
-		}
-	}
-
-	return mmErrorf
-}
-
-// Inspect accepts an inspector function that has same arguments as the MigrationContext.Errorf
-func (mmErrorf *mMigrationContextMockErrorf) Inspect(f func(msg string, a ...interface{})) *mMigrationContextMockErrorf {
-	if mmErrorf.mock.inspectFuncErrorf != nil {
-		mmErrorf.mock.t.Fatalf("Inspect function is already set for MigrationContextMock.Errorf")
-	}
-
-	mmErrorf.mock.inspectFuncErrorf = f
-
-	return mmErrorf
-}
-
-// Return sets up results that will be returned by MigrationContext.Errorf
-func (mmErrorf *mMigrationContextMockErrorf) Return(s1 StateUpdate) *MigrationContextMock {
-	if mmErrorf.mock.funcErrorf != nil {
-		mmErrorf.mock.t.Fatalf("MigrationContextMock.Errorf mock is already set by Set")
-	}
-
-	if mmErrorf.defaultExpectation == nil {
-		mmErrorf.defaultExpectation = &MigrationContextMockErrorfExpectation{mock: mmErrorf.mock}
-	}
-	mmErrorf.defaultExpectation.results = &MigrationContextMockErrorfResults{s1}
-	return mmErrorf.mock
-}
-
-//Set uses given function f to mock the MigrationContext.Errorf method
-func (mmErrorf *mMigrationContextMockErrorf) Set(f func(msg string, a ...interface{}) (s1 StateUpdate)) *MigrationContextMock {
-	if mmErrorf.defaultExpectation != nil {
-		mmErrorf.mock.t.Fatalf("Default expectation is already set for the MigrationContext.Errorf method")
-	}
-
-	if len(mmErrorf.expectations) > 0 {
-		mmErrorf.mock.t.Fatalf("Some expectations are already set for the MigrationContext.Errorf method")
-	}
-
-	mmErrorf.mock.funcErrorf = f
-	return mmErrorf.mock
-}
-
-// When sets expectation for the MigrationContext.Errorf which will trigger the result defined by the following
-// Then helper
-func (mmErrorf *mMigrationContextMockErrorf) When(msg string, a ...interface{}) *MigrationContextMockErrorfExpectation {
-	if mmErrorf.mock.funcErrorf != nil {
-		mmErrorf.mock.t.Fatalf("MigrationContextMock.Errorf mock is already set by Set")
-	}
-
-	expectation := &MigrationContextMockErrorfExpectation{
-		mock:   mmErrorf.mock,
-		params: &MigrationContextMockErrorfParams{msg, a},
-	}
-	mmErrorf.expectations = append(mmErrorf.expectations, expectation)
-	return expectation
-}
-
-// Then sets up MigrationContext.Errorf return parameters for the expectation previously defined by the When method
-func (e *MigrationContextMockErrorfExpectation) Then(s1 StateUpdate) *MigrationContextMock {
-	e.results = &MigrationContextMockErrorfResults{s1}
-	return e.mock
-}
-
-// Errorf implements MigrationContext
-func (mmErrorf *MigrationContextMock) Errorf(msg string, a ...interface{}) (s1 StateUpdate) {
-	mm_atomic.AddUint64(&mmErrorf.beforeErrorfCounter, 1)
-	defer mm_atomic.AddUint64(&mmErrorf.afterErrorfCounter, 1)
-
-	if mmErrorf.inspectFuncErrorf != nil {
-		mmErrorf.inspectFuncErrorf(msg, a...)
-	}
-
-	mm_params := &MigrationContextMockErrorfParams{msg, a}
-
-	// Record call args
-	mmErrorf.ErrorfMock.mutex.Lock()
-	mmErrorf.ErrorfMock.callArgs = append(mmErrorf.ErrorfMock.callArgs, mm_params)
-	mmErrorf.ErrorfMock.mutex.Unlock()
-
-	for _, e := range mmErrorf.ErrorfMock.expectations {
-		if minimock.Equal(e.params, mm_params) {
-			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.s1
-		}
-	}
-
-	if mmErrorf.ErrorfMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmErrorf.ErrorfMock.defaultExpectation.Counter, 1)
-		mm_want := mmErrorf.ErrorfMock.defaultExpectation.params
-		mm_got := MigrationContextMockErrorfParams{msg, a}
-		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmErrorf.t.Errorf("MigrationContextMock.Errorf got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
-		}
-
-		mm_results := mmErrorf.ErrorfMock.defaultExpectation.results
-		if mm_results == nil {
-			mmErrorf.t.Fatal("No results are set for the MigrationContextMock.Errorf")
-		}
-		return (*mm_results).s1
-	}
-	if mmErrorf.funcErrorf != nil {
-		return mmErrorf.funcErrorf(msg, a...)
-	}
-	mmErrorf.t.Fatalf("Unexpected call to MigrationContextMock.Errorf. %v %v", msg, a)
-	return
-}
-
-// ErrorfAfterCounter returns a count of finished MigrationContextMock.Errorf invocations
-func (mmErrorf *MigrationContextMock) ErrorfAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmErrorf.afterErrorfCounter)
-}
-
-// ErrorfBeforeCounter returns a count of MigrationContextMock.Errorf invocations
-func (mmErrorf *MigrationContextMock) ErrorfBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmErrorf.beforeErrorfCounter)
-}
-
-// Calls returns a list of arguments used in each call to MigrationContextMock.Errorf.
-// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmErrorf *mMigrationContextMockErrorf) Calls() []*MigrationContextMockErrorfParams {
-	mmErrorf.mutex.RLock()
-
-	argCopy := make([]*MigrationContextMockErrorfParams, len(mmErrorf.callArgs))
-	copy(argCopy, mmErrorf.callArgs)
-
-	mmErrorf.mutex.RUnlock()
-
-	return argCopy
-}
-
-// MinimockErrorfDone returns true if the count of the Errorf invocations corresponds
-// the number of defined expectations
-func (m *MigrationContextMock) MinimockErrorfDone() bool {
-	for _, e := range m.ErrorfMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.ErrorfMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterErrorfCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcErrorf != nil && mm_atomic.LoadUint64(&m.afterErrorfCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockErrorfInspect logs each unmet expectation
-func (m *MigrationContextMock) MinimockErrorfInspect() {
-	for _, e := range m.ErrorfMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to MigrationContextMock.Errorf with params: %#v", *e.params)
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.ErrorfMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterErrorfCounter) < 1 {
-		if m.ErrorfMock.defaultExpectation.params == nil {
-			m.t.Error("Expected call to MigrationContextMock.Errorf")
-		} else {
-			m.t.Errorf("Expected call to MigrationContextMock.Errorf with params: %#v", *m.ErrorfMock.defaultExpectation.params)
-		}
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcErrorf != nil && mm_atomic.LoadUint64(&m.afterErrorfCounter) < 1 {
-		m.t.Error("Expected call to MigrationContextMock.Errorf")
 	}
 }
 
@@ -5364,6 +5148,222 @@ func (m *MigrationContextMock) MinimockPublishGlobalAliasAndBargeInInspect() {
 	// if func was set then invocations count should be greater than zero
 	if m.funcPublishGlobalAliasAndBargeIn != nil && mm_atomic.LoadUint64(&m.afterPublishGlobalAliasAndBargeInCounter) < 1 {
 		m.t.Error("Expected call to MigrationContextMock.PublishGlobalAliasAndBargeIn")
+	}
+}
+
+type mMigrationContextMockPublishReplacement struct {
+	mock               *MigrationContextMock
+	defaultExpectation *MigrationContextMockPublishReplacementExpectation
+	expectations       []*MigrationContextMockPublishReplacementExpectation
+
+	callArgs []*MigrationContextMockPublishReplacementParams
+	mutex    sync.RWMutex
+}
+
+// MigrationContextMockPublishReplacementExpectation specifies expectation struct of the MigrationContext.PublishReplacement
+type MigrationContextMockPublishReplacementExpectation struct {
+	mock    *MigrationContextMock
+	params  *MigrationContextMockPublishReplacementParams
+	results *MigrationContextMockPublishReplacementResults
+	Counter uint64
+}
+
+// MigrationContextMockPublishReplacementParams contains parameters of the MigrationContext.PublishReplacement
+type MigrationContextMockPublishReplacementParams struct {
+	key  interface{}
+	data interface{}
+}
+
+// MigrationContextMockPublishReplacementResults contains results of the MigrationContext.PublishReplacement
+type MigrationContextMockPublishReplacementResults struct {
+	b1 bool
+}
+
+// Expect sets up expected params for MigrationContext.PublishReplacement
+func (mmPublishReplacement *mMigrationContextMockPublishReplacement) Expect(key interface{}, data interface{}) *mMigrationContextMockPublishReplacement {
+	if mmPublishReplacement.mock.funcPublishReplacement != nil {
+		mmPublishReplacement.mock.t.Fatalf("MigrationContextMock.PublishReplacement mock is already set by Set")
+	}
+
+	if mmPublishReplacement.defaultExpectation == nil {
+		mmPublishReplacement.defaultExpectation = &MigrationContextMockPublishReplacementExpectation{}
+	}
+
+	mmPublishReplacement.defaultExpectation.params = &MigrationContextMockPublishReplacementParams{key, data}
+	for _, e := range mmPublishReplacement.expectations {
+		if minimock.Equal(e.params, mmPublishReplacement.defaultExpectation.params) {
+			mmPublishReplacement.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmPublishReplacement.defaultExpectation.params)
+		}
+	}
+
+	return mmPublishReplacement
+}
+
+// Inspect accepts an inspector function that has same arguments as the MigrationContext.PublishReplacement
+func (mmPublishReplacement *mMigrationContextMockPublishReplacement) Inspect(f func(key interface{}, data interface{})) *mMigrationContextMockPublishReplacement {
+	if mmPublishReplacement.mock.inspectFuncPublishReplacement != nil {
+		mmPublishReplacement.mock.t.Fatalf("Inspect function is already set for MigrationContextMock.PublishReplacement")
+	}
+
+	mmPublishReplacement.mock.inspectFuncPublishReplacement = f
+
+	return mmPublishReplacement
+}
+
+// Return sets up results that will be returned by MigrationContext.PublishReplacement
+func (mmPublishReplacement *mMigrationContextMockPublishReplacement) Return(b1 bool) *MigrationContextMock {
+	if mmPublishReplacement.mock.funcPublishReplacement != nil {
+		mmPublishReplacement.mock.t.Fatalf("MigrationContextMock.PublishReplacement mock is already set by Set")
+	}
+
+	if mmPublishReplacement.defaultExpectation == nil {
+		mmPublishReplacement.defaultExpectation = &MigrationContextMockPublishReplacementExpectation{mock: mmPublishReplacement.mock}
+	}
+	mmPublishReplacement.defaultExpectation.results = &MigrationContextMockPublishReplacementResults{b1}
+	return mmPublishReplacement.mock
+}
+
+//Set uses given function f to mock the MigrationContext.PublishReplacement method
+func (mmPublishReplacement *mMigrationContextMockPublishReplacement) Set(f func(key interface{}, data interface{}) (b1 bool)) *MigrationContextMock {
+	if mmPublishReplacement.defaultExpectation != nil {
+		mmPublishReplacement.mock.t.Fatalf("Default expectation is already set for the MigrationContext.PublishReplacement method")
+	}
+
+	if len(mmPublishReplacement.expectations) > 0 {
+		mmPublishReplacement.mock.t.Fatalf("Some expectations are already set for the MigrationContext.PublishReplacement method")
+	}
+
+	mmPublishReplacement.mock.funcPublishReplacement = f
+	return mmPublishReplacement.mock
+}
+
+// When sets expectation for the MigrationContext.PublishReplacement which will trigger the result defined by the following
+// Then helper
+func (mmPublishReplacement *mMigrationContextMockPublishReplacement) When(key interface{}, data interface{}) *MigrationContextMockPublishReplacementExpectation {
+	if mmPublishReplacement.mock.funcPublishReplacement != nil {
+		mmPublishReplacement.mock.t.Fatalf("MigrationContextMock.PublishReplacement mock is already set by Set")
+	}
+
+	expectation := &MigrationContextMockPublishReplacementExpectation{
+		mock:   mmPublishReplacement.mock,
+		params: &MigrationContextMockPublishReplacementParams{key, data},
+	}
+	mmPublishReplacement.expectations = append(mmPublishReplacement.expectations, expectation)
+	return expectation
+}
+
+// Then sets up MigrationContext.PublishReplacement return parameters for the expectation previously defined by the When method
+func (e *MigrationContextMockPublishReplacementExpectation) Then(b1 bool) *MigrationContextMock {
+	e.results = &MigrationContextMockPublishReplacementResults{b1}
+	return e.mock
+}
+
+// PublishReplacement implements MigrationContext
+func (mmPublishReplacement *MigrationContextMock) PublishReplacement(key interface{}, data interface{}) (b1 bool) {
+	mm_atomic.AddUint64(&mmPublishReplacement.beforePublishReplacementCounter, 1)
+	defer mm_atomic.AddUint64(&mmPublishReplacement.afterPublishReplacementCounter, 1)
+
+	if mmPublishReplacement.inspectFuncPublishReplacement != nil {
+		mmPublishReplacement.inspectFuncPublishReplacement(key, data)
+	}
+
+	mm_params := &MigrationContextMockPublishReplacementParams{key, data}
+
+	// Record call args
+	mmPublishReplacement.PublishReplacementMock.mutex.Lock()
+	mmPublishReplacement.PublishReplacementMock.callArgs = append(mmPublishReplacement.PublishReplacementMock.callArgs, mm_params)
+	mmPublishReplacement.PublishReplacementMock.mutex.Unlock()
+
+	for _, e := range mmPublishReplacement.PublishReplacementMock.expectations {
+		if minimock.Equal(e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.b1
+		}
+	}
+
+	if mmPublishReplacement.PublishReplacementMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmPublishReplacement.PublishReplacementMock.defaultExpectation.Counter, 1)
+		mm_want := mmPublishReplacement.PublishReplacementMock.defaultExpectation.params
+		mm_got := MigrationContextMockPublishReplacementParams{key, data}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmPublishReplacement.t.Errorf("MigrationContextMock.PublishReplacement got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmPublishReplacement.PublishReplacementMock.defaultExpectation.results
+		if mm_results == nil {
+			mmPublishReplacement.t.Fatal("No results are set for the MigrationContextMock.PublishReplacement")
+		}
+		return (*mm_results).b1
+	}
+	if mmPublishReplacement.funcPublishReplacement != nil {
+		return mmPublishReplacement.funcPublishReplacement(key, data)
+	}
+	mmPublishReplacement.t.Fatalf("Unexpected call to MigrationContextMock.PublishReplacement. %v %v", key, data)
+	return
+}
+
+// PublishReplacementAfterCounter returns a count of finished MigrationContextMock.PublishReplacement invocations
+func (mmPublishReplacement *MigrationContextMock) PublishReplacementAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmPublishReplacement.afterPublishReplacementCounter)
+}
+
+// PublishReplacementBeforeCounter returns a count of MigrationContextMock.PublishReplacement invocations
+func (mmPublishReplacement *MigrationContextMock) PublishReplacementBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmPublishReplacement.beforePublishReplacementCounter)
+}
+
+// Calls returns a list of arguments used in each call to MigrationContextMock.PublishReplacement.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmPublishReplacement *mMigrationContextMockPublishReplacement) Calls() []*MigrationContextMockPublishReplacementParams {
+	mmPublishReplacement.mutex.RLock()
+
+	argCopy := make([]*MigrationContextMockPublishReplacementParams, len(mmPublishReplacement.callArgs))
+	copy(argCopy, mmPublishReplacement.callArgs)
+
+	mmPublishReplacement.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockPublishReplacementDone returns true if the count of the PublishReplacement invocations corresponds
+// the number of defined expectations
+func (m *MigrationContextMock) MinimockPublishReplacementDone() bool {
+	for _, e := range m.PublishReplacementMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.PublishReplacementMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterPublishReplacementCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcPublishReplacement != nil && mm_atomic.LoadUint64(&m.afterPublishReplacementCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockPublishReplacementInspect logs each unmet expectation
+func (m *MigrationContextMock) MinimockPublishReplacementInspect() {
+	for _, e := range m.PublishReplacementMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to MigrationContextMock.PublishReplacement with params: %#v", *e.params)
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.PublishReplacementMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterPublishReplacementCounter) < 1 {
+		if m.PublishReplacementMock.defaultExpectation.params == nil {
+			m.t.Error("Expected call to MigrationContextMock.PublishReplacement")
+		} else {
+			m.t.Errorf("Expected call to MigrationContextMock.PublishReplacement with params: %#v", *m.PublishReplacementMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcPublishReplacement != nil && mm_atomic.LoadUint64(&m.afterPublishReplacementCounter) < 1 {
+		m.t.Error("Expected call to MigrationContextMock.PublishReplacement")
 	}
 }
 
@@ -8973,8 +8973,6 @@ func (m *MigrationContextMock) MinimockFinish() {
 
 		m.MinimockErrorInspect()
 
-		m.MinimockErrorfInspect()
-
 		m.MinimockGetContextInspect()
 
 		m.MinimockGetDefaultTerminationResultInspect()
@@ -9004,6 +9002,8 @@ func (m *MigrationContextMock) MinimockFinish() {
 		m.MinimockPublishGlobalAliasInspect()
 
 		m.MinimockPublishGlobalAliasAndBargeInInspect()
+
+		m.MinimockPublishReplacementInspect()
 
 		m.MinimockReleaseInspect()
 
@@ -9076,7 +9076,6 @@ func (m *MigrationContextMock) minimockDone() bool {
 		m.MinimockCallSubroutineDone() &&
 		m.MinimockCheckDone() &&
 		m.MinimockErrorDone() &&
-		m.MinimockErrorfDone() &&
 		m.MinimockGetContextDone() &&
 		m.MinimockGetDefaultTerminationResultDone() &&
 		m.MinimockGetPublishedDone() &&
@@ -9092,6 +9091,7 @@ func (m *MigrationContextMock) minimockDone() bool {
 		m.MinimockPublishDone() &&
 		m.MinimockPublishGlobalAliasDone() &&
 		m.MinimockPublishGlobalAliasAndBargeInDone() &&
+		m.MinimockPublishReplacementDone() &&
 		m.MinimockReleaseDone() &&
 		m.MinimockReleaseAllDone() &&
 		m.MinimockRestoreStepDone() &&

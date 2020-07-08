@@ -67,7 +67,8 @@ type Server struct {
 	// wait and suspend operations
 
 	// finalization
-	fullStop synckit.ClosableSignalChannel
+	fullStop    synckit.ClosableSignalChannel
+	ctxCancelFn context.CancelFunc
 
 	// components for testing http api
 	testWalletServer *testwalletapi.TestWalletServer
@@ -100,10 +101,12 @@ func newServerExt(ctx context.Context, t *testing.T, errorFilterFn logcommon.Err
 	if ctx == nil {
 		ctx = instestlogger.TestContext(t)
 	}
+	ctx, cancelFn := context.WithCancel(ctx)
 
 	s := Server{
-		caller:   gen.UniqueGlobalRef(),
-		fullStop: make(synckit.ClosableSignalChannel),
+		caller:      gen.UniqueGlobalRef(),
+		fullStop:    make(synckit.ClosableSignalChannel),
+		ctxCancelFn: cancelFn,
 	}
 
 	// Pulse-related components
@@ -241,6 +244,10 @@ func (s *Server) ReplaceRunner(svc runner.Service) {
 	s.virtual.Runner = svc
 }
 
+func (s *Server) OverrideConveyorFactoryLogContext(ctx context.Context) {
+	s.virtual.FactoryLogContextOverride = ctx
+}
+
 func (s *Server) ReplaceMachinesManager(manager machine.Manager) {
 	s.Runner.Manager = manager
 }
@@ -265,6 +272,10 @@ func (s *Server) RandomLocalWithPulse() reference.Local {
 	return gen.UniqueLocalRefWithPulse(s.GetPulse().PulseNumber)
 }
 
+func (s *Server) BuildRandomOutgoingWithPulse() reference.Global {
+	return reference.NewRecordOf(s.GlobalCaller(), s.RandomLocalWithPulse())
+}
+
 func (s *Server) RandomGlobalWithPulse() reference.Global {
 	return gen.UniqueGlobalRefWithPulse(s.GetPulse().PulseNumber)
 }
@@ -276,6 +287,7 @@ func (s *Server) DelegationToken(outgoing reference.Global, to reference.Global,
 func (s *Server) Stop() {
 	defer close(s.fullStop)
 
+	s.ctxCancelFn()
 	s.virtual.Conveyor.Stop()
 	_ = s.testWalletServer.Stop(context.Background())
 	_ = s.messageSender.Close()

@@ -66,7 +66,18 @@ func (s *SMVDelegatedCallRequest) GetStateMachineDeclaration() smachine.StateMac
 }
 
 func (s *SMVDelegatedCallRequest) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
+	if s.pulseSlot.State() != conveyor.Present {
+		ctx.Log().Trace("stop processing VDelegatedCallRequest since we are not in present pulse")
+		return ctx.Stop()
+	}
+
+	ctx.SetDefaultMigration(s.migrationDefault)
 	return ctx.Jump(s.stepProcess)
+}
+
+func (s *SMVDelegatedCallRequest) migrationDefault(ctx smachine.MigrationContext) smachine.StateUpdate {
+	ctx.Log().Trace("stop processing VDelegatedCallRequest since pulse was changed")
+	return ctx.Stop()
 }
 
 func (s *SMVDelegatedCallRequest) stepProcess(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -153,10 +164,6 @@ func (s *SMVDelegatedCallRequest) stepProcessRequest(ctx smachine.ExecutionConte
 			}{Reference: s.Payload.CallOutgoing.String()})
 			// request was already in the list we will delegate token, maybe it is repeated call
 			return
-		}
-
-		if pendingList.Count() == previousExecutorPendingCount {
-			state.SetPendingListFilled(ctx, callTolerance)
 		}
 	}
 

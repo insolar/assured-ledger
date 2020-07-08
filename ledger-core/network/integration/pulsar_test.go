@@ -3,9 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-// +build networktest
-
-package tests
+package integration
 
 import (
 	"context"
@@ -36,12 +34,12 @@ type TestPulsar interface {
 	component.Stopper
 }
 
-func NewTestPulsar(requestsTimeoutMs, pulseDelta int32) (TestPulsar, error) {
+func NewTestPulsar(requestsTimeoutMs, pulseDelta int) (TestPulsar, error) {
 
 	return &testPulsar{
 		generator:         &entropygenerator.StandardEntropyGenerator{},
-		reqTimeoutMs:      requestsTimeoutMs,
-		pulseDelta:        pulseDelta,
+		reqTimeoutMs:      int32(requestsTimeoutMs),
+		pulseDelta:        uint16(pulseDelta),
 		cancellationToken: make(chan struct{}),
 	}, nil
 }
@@ -54,7 +52,7 @@ type testPulsar struct {
 	activityMutex sync.Mutex
 
 	reqTimeoutMs int32
-	pulseDelta   int32
+	pulseDelta   uint16
 
 	cancellationToken chan struct{}
 }
@@ -112,13 +110,13 @@ func (tp *testPulsar) Continue() {
 
 func (tp *testPulsar) distribute(ctx context.Context) {
 	timeNow := time.Now()
-	pulseNumber := pulsestor.Number(pulse.OfTime(timeNow))
+	pulseNumber := pulse.OfTime(timeNow)
 
 	pls := pulsestor.Pulse{
 		PulseNumber:      pulseNumber,
 		Entropy:          tp.generator.GenerateEntropy(),
-		NextPulseNumber:  pulseNumber + pulsestor.Number(tp.pulseDelta),
-		PrevPulseNumber:  pulseNumber - pulsestor.Number(tp.pulseDelta),
+		NextPulseNumber:  pulseNumber.Next(tp.pulseDelta),
+		PrevPulseNumber:  pulseNumber - pulse.Number(tp.pulseDelta),
 		EpochPulseNumber: pulseNumber.AsEpoch(),
 		OriginID:         [16]byte{206, 41, 229, 190, 7, 240, 162, 155, 121, 245, 207, 56, 161, 67, 189, 0},
 	}
@@ -149,11 +147,11 @@ func (tp *testPulsar) distribute(ctx context.Context) {
 }
 
 func (tp *testPulsar) incrementPulse(pulse pulsestor.Pulse) pulsestor.Pulse {
-	newPulseNumber := pulse.PulseNumber + pulsestor.Number(tp.pulseDelta)
+	newPulseNumber := pulse.PulseNumber.Next(tp.pulseDelta)
 	newPulse := pulsestor.Pulse{
 		PulseNumber:      newPulseNumber,
 		Entropy:          tp.generator.GenerateEntropy(),
-		NextPulseNumber:  newPulseNumber + pulsestor.Number(tp.pulseDelta),
+		NextPulseNumber:  newPulseNumber.Next(tp.pulseDelta),
 		PrevPulseNumber:  pulse.PulseNumber,
 		EpochPulseNumber: pulse.EpochPulseNumber,
 		OriginID:         pulse.OriginID,

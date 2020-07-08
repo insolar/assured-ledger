@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gojuno/minimock/v3"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
@@ -45,7 +46,6 @@ type VFindCallRequestHandlingTestInfo struct {
 
 func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
 	t.Log("C5115")
-	t.Skip("https://insolar.atlassian.net/browse/PLAT-389")
 
 	table := []VFindCallRequestHandlingTestInfo{
 		{
@@ -91,13 +91,13 @@ func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
 		},
 		{
 			name:   "found request, method, pending, no result",
-			events: []TestStep{StepMethodStart, StepIncrementPulseToP3, StepFindMessage},
+			events: []TestStep{StepMethodStart, StepIncrementPulseToP3, StepFindMessage, StepRequestFinish},
 
 			expectedStatus: payload.FoundCall,
 		},
 		{
 			name:   "found request, method, pending, no result, earlyMsg",
-			events: []TestStep{StepFindMessage, StepMethodStart, StepIncrementPulseToP3},
+			events: []TestStep{StepFindMessage, StepMethodStart, StepIncrementPulseToP3, StepRequestFinish},
 
 			expectedStatus: payload.FoundCall,
 		},
@@ -126,14 +126,14 @@ func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
 		},
 		{
 			name:                 "found request, constructor, pending, no result",
-			events:               []TestStep{StepConstructorStart, StepIncrementPulseToP3, StepFindMessage},
+			events:               []TestStep{StepConstructorStart, StepIncrementPulseToP3, StepFindMessage, StepRequestFinish},
 			requestIsConstructor: true,
 
 			expectedStatus: payload.FoundCall,
 		},
 		{
 			name:                 "found request, constructor, pending, no result, earlyMsg",
-			events:               []TestStep{StepFindMessage, StepConstructorStart, StepIncrementPulseToP3},
+			events:               []TestStep{StepFindMessage, StepConstructorStart, StepIncrementPulseToP3, StepRequestFinish},
 			requestIsConstructor: true,
 
 			expectedStatus: payload.FoundCall,
@@ -164,11 +164,9 @@ func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
 			}
 			suite.generateOutgoing(outgoingPulse)
 
-			if test.requestIsConstructor {
-				suite.generateObjectRefFromOutgoing()
-			} else {
-				suite.generateObjectRef()
-			}
+			suite.isConstructor = test.requestIsConstructor
+
+			suite.generateObjectRef()
 
 			suite.setMessageCheckers(ctx, t, test)
 			suite.setRunnerMock()
@@ -178,6 +176,12 @@ func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
 			}
 
 			suite.waitFindRequestResponse(t)
+
+			if suite.finalizedMessageSent != nil {
+				testutils.WaitSignalsTimed(t, 10*time.Second, suite.finalizedMessageSent)
+			}
+
+			testutils.WaitSignalsTimed(t, 10*time.Second, suite.server.Journal.WaitAllAsyncCallsDone())
 
 			suite.finish()
 		})
@@ -190,7 +194,7 @@ func StepIncrementPulseToP3(s *VFindCallRequestHandlingSuite, ctx context.Contex
 
 func StepFindMessage(s *VFindCallRequestHandlingSuite, ctx context.Context, t *testing.T) {
 	findMsg := payload.VFindCallRequest{
-		LookAt:   s.getP1(),
+		LookAt:   s.getP2(),
 		Callee:   s.getObject(),
 		Outgoing: s.getOutgoingRef(),
 	}
@@ -225,9 +229,10 @@ func StepMethodStart(s *VFindCallRequestHandlingSuite, ctx context.Context, t *t
 		Callee:         s.getObject(),
 		CallSiteMethod: "SomeMethod",
 		CallSequence:   1,
-		CallOutgoing:   s.getOutgoingLocal(),
+		CallOutgoing:   s.getOutgoingRef(),
 	}
 	s.addPayloadAndWaitIdle(ctx, &req)
+	s.finalizedMessageSent = make(chan struct{})
 
 	testutils.WaitSignalsTimed(t, 10*time.Second, s.executionPoint.Wait())
 }
@@ -252,9 +257,10 @@ func StepConstructorStart(s *VFindCallRequestHandlingSuite, ctx context.Context,
 		Callee:         s.getClass(),
 		CallSiteMethod: "New",
 		CallSequence:   1,
-		CallOutgoing:   s.getOutgoingLocal(),
+		CallOutgoing:   s.getOutgoingRef(),
 	}
 	s.addPayloadAndWaitIdle(ctx, &req)
+	s.finalizedMessageSent = make(chan struct{})
 
 	testutils.WaitSignalsTimed(t, 10*time.Second, s.executionPoint.Wait())
 }
@@ -271,7 +277,7 @@ func StepMethodStartAndFinish(s *VFindCallRequestHandlingSuite, ctx context.Cont
 }
 
 func StepConstructorStartAndFinish(s *VFindCallRequestHandlingSuite, ctx context.Context, t *testing.T) {
-	StepMethodStart(s, ctx, t)
+	StepConstructorStart(s, ctx, t)
 	StepRequestFinish(s, ctx, t)
 }
 
@@ -287,6 +293,9 @@ type VFindCallRequestHandlingSuite struct {
 	caller   reference.Global
 	object   reference.Global
 	outgoing reference.Local
+
+	isConstructor        bool
+	finalizedMessageSent chan struct{}
 
 	executionPoint         *synchronization.Point
 	executeIsFinished      synckit.SignalChannel
@@ -341,13 +350,13 @@ func (s *VFindCallRequestHandlingSuite) generateCaller() {
 }
 
 func (s *VFindCallRequestHandlingSuite) generateObjectRef() {
+	if s.isConstructor {
+		s.object = reference.NewRecordOf(s.caller, s.outgoing)
+		return
+	}
 	p := s.getP1()
 	local := gen.UniqueLocalRefWithPulse(p)
 	s.object = reference.NewSelf(local)
-}
-
-func (s *VFindCallRequestHandlingSuite) generateObjectRefFromOutgoing() {
-	s.object = reference.NewSelf(s.outgoing)
 }
 
 func (s *VFindCallRequestHandlingSuite) generateOutgoing(p pulse.Number) {
@@ -371,13 +380,7 @@ func (s *VFindCallRequestHandlingSuite) getClass() reference.Global {
 }
 
 func (s *VFindCallRequestHandlingSuite) getOutgoingRef() reference.Global {
-	callee := s.getObject() // TODO: FIXME: PLAT-558: should be caller
-
-	return reference.NewRecordOf(callee, s.outgoing)
-}
-
-func (s *VFindCallRequestHandlingSuite) getOutgoingLocal() reference.Local {
-	return s.outgoing
+	return reference.NewRecordOf(s.caller, s.outgoing)
 }
 
 func (s *VFindCallRequestHandlingSuite) setMessageCheckers(
@@ -387,23 +390,28 @@ func (s *VFindCallRequestHandlingSuite) setMessageCheckers(
 ) {
 
 	s.typedChecker.VFindCallResponse.Set(func(res *payload.VFindCallResponse) bool {
-		require.Equal(t, s.getObject(), res.Callee)
-		require.Equal(t, s.getOutgoingRef(), res.Outgoing)
-		require.Equal(t, testInfo.expectedStatus, res.Status)
+		defer func() {
+			close(s.haveFindResponseSignal)
+		}()
+		assert.Equal(t, s.getP2(), res.LookedAt)
+		assert.Equal(t, s.getObject(), res.Callee)
+		assert.Equal(t, s.getOutgoingRef(), res.Outgoing)
+		assert.Equal(t, testInfo.expectedStatus, res.Status)
 
 		if testInfo.expectedResult {
 			require.NotNil(t, res.CallResult)
-			require.Equal(t, res.CallResult.CallOutgoing, s.getOutgoingLocal())
+			require.Equal(t, s.getOutgoingRef(), res.CallResult.CallOutgoing)
 		}
-
-		close(s.haveFindResponseSignal)
 
 		return false
 	})
 
 	s.typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
-		require.Equal(t, s.getP2(), report.AsOf)
-		require.Equal(t, s.getObject(), report.Object)
+		assert.Equal(t, s.getP2(), report.AsOf)
+		assert.Equal(t, s.getObject(), report.Object)
+		if s.finalizedMessageSent != nil {
+			close(s.finalizedMessageSent)
+		}
 		return false
 	})
 
@@ -423,11 +431,12 @@ func (s *VFindCallRequestHandlingSuite) setMessageCheckers(
 	s.typedChecker.VDelegatedRequestFinished.SetResend(false)
 
 	s.typedChecker.VFindCallRequest.Set(func(req *payload.VFindCallRequest) bool {
-		require.Equal(t, s.getP1(), req.LookAt)
-		require.Equal(t, s.getObject(), req.Callee)
-		require.Equal(t, s.getOutgoingRef(), req.Outgoing)
+		assert.Equal(t, s.getP2(), req.LookAt)
+		assert.Equal(t, s.getObject(), req.Callee)
+		assert.Equal(t, s.getOutgoingRef(), req.Outgoing)
 
 		pl := payload.VFindCallResponse{
+			LookedAt: s.getP2(),
 			Callee:   s.getObject(),
 			Outgoing: s.getOutgoingRef(),
 			Status:   payload.MissingCall,
@@ -492,6 +501,8 @@ func (s *VFindCallRequestHandlingSuite) finish() {
 }
 
 func (s *VFindCallRequestHandlingSuite) stopServer() {
-	s.executionPoint.Done()
+	if s.executionPoint != nil {
+		s.executionPoint.Done()
+	}
 	s.server.Stop()
 }
