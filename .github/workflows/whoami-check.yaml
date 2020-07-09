@@ -37,16 +37,13 @@ jobs:
         run: echo "::add-path::$GITHUB_WORKSPACE/bin"
       - name: save kubeconfig
         run: echo "${{secrets.CLOUD_KUBECONFIG}}" >> aks.yaml
-      - name: Build docker images
-        run: make docker-build
-        working-directory: ${{ env.CORE_PATH }}
       - name: template GIT_SHA to deployment manifests
         run: |
           sed -i "s/placeholder/${GITHUB_SHA:0:8}/g" ledger-core/scripts/deploy/kube/*/*.*
           sed -i "s/placeholder/${GITHUB_SHA:0:8}/g" ledger-core/scripts/deploy/kube/*/configuration/*.*
           sed -i "s/placeholder/${GITHUB_SHA:0:8}/g" ledger-core/load/gen_cfg/*.*
           cat /home/runner/work/assured-ledger/assured-ledger/ledger-core/load/gen_cfg/generator_assured_ledger_whoami.yaml
-      - name: run 5node network
+      - name: run network
         run: kubectl apply -k ledger-core/scripts/deploy/kube/whoami
       - name: wait for successfull rollout
         run: kubectl -n ${GITHUB_SHA:0:8} rollout status sts/virtual

@@ -7,7 +7,6 @@ spec:
     - host: placeholder.uscifarm.insolar.io
       http:
         paths:
-            path: /whoami
           - backend:
               serviceName: whoami
               servicePort: 19101
