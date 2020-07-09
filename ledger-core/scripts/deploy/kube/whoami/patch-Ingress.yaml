@@ -8,14 +8,14 @@ spec:
       http:
         paths:
           - backend:
-              serviceName: platform-network
+              serviceName: whoami
               servicePort: 19101
             path: /api
           - backend:
-              serviceName: platform-network
+              serviceName: whoami
               servicePort: 19001
             path: /admin-api
           - backend:
-              serviceName: platform-network
+              serviceName: whoami
               servicePort: 32301
             path: /wallet

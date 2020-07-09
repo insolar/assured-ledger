@@ -4,7 +4,7 @@ on:
     branches:
       - staging
       - trying
-  pull_request:
+  #pull_request:
 env:
   KUBECONFIG: k3s.yaml
   GO_VERSION: 1.14

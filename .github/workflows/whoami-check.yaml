@@ -1,0 +1,47 @@
+name: whoami check
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+env:
+  KUBECONFIG: "${{ github.workspace }}/aks.yaml"
+  GO_VERSION: 1.14
+  CI_GOMAXPROCS: 0
+  INSOLAR_LOG_LEVEL: warn
+  GOTEST: 'gotestsum --'
+  GOPATH: /home/runner/work/
+  GOPROXY: https://proxy.golang.org,https://goproxy.io,direct
+  CORE_PATH: /home/runner/work/assured-ledger/assured-ledger/ledger-core
+  USE_MANIFESTS: aks
+  ACR_HOST: usciregistry.azurecr.io
+jobs:
+  ve-performance:
+    name: ve-performance
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@master
+      - name: build test
+        working-directory: ${{ env.CORE_PATH }}
+        run: |
+          cd load
+          go build cmd/load/main.go
+      - name: save kubeconfig
+        run: echo "${{secrets.CLOUD_KUBECONFIG}}" >> aks.yaml
+      - name: template GIT_SHA to deployment manifests
+        run: |
+          sed -i "s/placeholder/${GITHUB_SHA:0:8}/g" ledger-core/scripts/deploy/kube/*/*.*
+          sed -i "s/placeholder/${GITHUB_SHA:0:8}/g" ledger-core/scripts/deploy/kube/*/configuration/*.*
+          sed -i "s/placeholder/${GITHUB_SHA:0:8}/g" ledger-core/load/gen_cfg/*.*
+          cat /home/runner/work/assured-ledger/assured-ledger/ledger-core/load/gen_cfg/generator_assured_ledger_whoami.yaml
+      - name: run network
+        run: kubectl apply -k ledger-core/scripts/deploy/kube/whoami
+      - name: start test
+        run: |
+          sleep 10s
+          cd ${{ env.CORE_PATH }}/load/
+          NETWORK_NODES=5 ./main -gen_config ${{ env.CORE_PATH }}/load/gen_cfg/generator_assured_ledger_whoami.yaml -config ${{ env.CORE_PATH }}/load/run_configs/all_sequence_debug_whoami.yaml
+      - name: cleanup
+        if: always()
+        run: kubectl delete ns ${GITHUB_SHA:0:8} --ignore-not-found=true
