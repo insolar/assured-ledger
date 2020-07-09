@@ -396,7 +396,7 @@ func TestVirtual_CallMethodFromConstructor(t *testing.T) {
 
 				classA        = gen.UniqueGlobalRef()
 				outgoingA     = server.BuildRandomOutgoingWithPulse()
-				objectAGlobal = outgoingA
+				objectAGlobal = reference.NewSelf(outgoingA.GetLocal())
 
 				classB        = gen.UniqueGlobalRef()
 				objectBGlobal = reference.NewSelf(server.RandomLocalWithPulse())

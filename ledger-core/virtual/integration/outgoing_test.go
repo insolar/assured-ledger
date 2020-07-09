@@ -313,8 +313,9 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 			State:        contract.CallDirty,
 		}
 
-		classA   = gen.UniqueGlobalRef()
-		outgoing = server.BuildRandomOutgoingWithPulse()
+		classA    = gen.UniqueGlobalRef()
+		outgoing  = server.BuildRandomOutgoingWithPulse()
+		objectRef = reference.NewSelf(outgoing.GetLocal())
 
 		outgoingCallRef = gen.UniqueGlobalRef()
 
@@ -376,13 +377,13 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 	{
 		typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
 			// check for pending counts must be in tests: call constructor/call terminal method
-			assert.Equal(t, outgoing, report.Object)
+			assert.Equal(t, objectRef, report.Object)
 			assert.Equal(t, payload.Empty, report.Status)
 			assert.Zero(t, report.DelegationSpec)
 			return false
 		})
 		typedChecker.VDelegatedCallRequest.Set(func(request *payload.VDelegatedCallRequest) bool {
-			assert.Equal(t, outgoing, request.Callee)
+			assert.Equal(t, objectRef, request.Callee)
 			assert.Equal(t, outgoing, request.CallOutgoing)
 
 			msg := payload.VDelegatedCallResponse{Callee: request.Callee}
@@ -419,7 +420,7 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 			return false
 		})
 		typedChecker.VDelegatedRequestFinished.Set(func(finished *payload.VDelegatedRequestFinished) bool {
-			assert.Equal(t, outgoing, finished.Callee)
+			assert.Equal(t, objectRef, finished.Callee)
 			assert.Equal(t, secondExpectedToken, finished.DelegationSpec)
 			return false
 		})
@@ -457,7 +458,7 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 			return false
 		})
 		typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
-			assert.Equal(t, outgoing, res.Callee)
+			assert.Equal(t, objectRef, res.Callee)
 			assert.Equal(t, []byte("finish A.New"), res.ReturnArguments)
 			assert.Equal(t, int(firstPulse), int(res.CallOutgoing.GetLocal().Pulse()))
 			assert.Equal(t, secondExpectedToken, res.DelegationSpec)

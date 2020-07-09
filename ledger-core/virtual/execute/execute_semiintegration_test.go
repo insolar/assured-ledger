@@ -47,6 +47,7 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 	slotMachine.PrepareRunner(ctx, mc)
 
 	outgoing := reference.NewRecordOf(caller, slotMachine.GenerateLocal())
+	objectRef := reference.NewSelf(outgoing.GetLocal())
 
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
@@ -75,7 +76,7 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
 		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 
-		catalogWrapper.AddObject(outgoing, smObjectAccessor)
+		catalogWrapper.AddObject(objectRef, smObjectAccessor)
 		catalogWrapper.AllowAccessMode(object.CatalogMockAccessGetOrCreate)
 	}
 
@@ -119,6 +120,7 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 	slotMachine.PrepareRunner(ctx, mc)
 
 	outgoing := reference.NewRecordOf(caller, slotMachine.GenerateLocal())
+	objectRef := reference.NewSelf(outgoing.GetLocal())
 
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
@@ -147,7 +149,7 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
 		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 
-		catalogWrapper.AddObject(outgoing, smObjectAccessor)
+		catalogWrapper.AddObject(objectRef, smObjectAccessor)
 		catalogWrapper.AllowAccessMode(object.CatalogMockAccessGetOrCreate)
 	}
 
@@ -192,6 +194,7 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 	slotMachine.PrepareRunner(ctx, mc)
 
 	outgoing := reference.NewRecordOf(caller, slotMachine.GenerateLocal())
+	objectRef := reference.NewSelf(outgoing.GetLocal())
 
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
@@ -220,7 +223,7 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
 		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 
-		catalogWrapper.AddObject(outgoing, smObjectAccessor)
+		catalogWrapper.AddObject(objectRef, smObjectAccessor)
 		catalogWrapper.AllowAccessMode(object.CatalogMockAccessGetOrCreate)
 	}
 
@@ -257,6 +260,7 @@ func TestSMExecute_Semi_ConstructorOnMissingObject(t *testing.T) {
 		class       = gen.UniqueGlobalRef()
 		caller      = gen.UniqueGlobalRef()
 		outgoing    = reference.NewRecordOf(caller, slotMachine.GenerateLocal())
+		objectRef   = reference.NewSelf(outgoing.GetLocal())
 		sharedState = &object.SharedState{
 			Info: object.Info{
 				PendingTable:   callregistry.NewRequestTable(),
@@ -296,7 +300,7 @@ func TestSMExecute_Semi_ConstructorOnMissingObject(t *testing.T) {
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
 		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 
-		catalogWrapper.AddObject(outgoing, smObjectAccessor)
+		catalogWrapper.AddObject(objectRef, smObjectAccessor)
 		catalogWrapper.AllowAccessMode(object.CatalogMockAccessGetOrCreate)
 	}
 
@@ -331,6 +335,7 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 		class       = gen.UniqueGlobalRef()
 		caller      = gen.UniqueGlobalRef()
 		outgoing    = reference.NewRecordOf(caller, slotMachine.GenerateLocal())
+		objectRef   = reference.NewSelf(outgoing.GetLocal())
 		sharedState = &object.SharedState{
 			Info: object.Info{
 				PendingTable:   callregistry.NewRequestTable(),
@@ -370,7 +375,7 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
 		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 
-		catalogWrapper.AddObject(outgoing, smObjectAccessor)
+		catalogWrapper.AddObject(objectRef, smObjectAccessor)
 		catalogWrapper.AllowAccessMode(object.CatalogMockAccessGetOrCreate)
 	}
 
