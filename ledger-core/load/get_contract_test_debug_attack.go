@@ -19,7 +19,7 @@ func (a *GetContractTestDebugAttack) Setup(hc loadgen.RunnerConfig) error {
 	return nil
 }
 func (a *GetContractTestDebugAttack) Do(ctx context.Context) loadgen.DoResult {
-	url := a.GetManager().GeneratorConfig.Generator.Target + "/bench"
+	url := a.GetManager().GeneratorConfig.Generator.Target
 	err := util.GetDebug200(a.client, url)
 	if err != nil {
 		return loadgen.DoResult{
