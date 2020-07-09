@@ -7,6 +7,7 @@ package statemachine
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
@@ -121,6 +122,10 @@ func (c ConveyorLogger) LogUpdate(data smachine.StepLoggerData, updateData smach
 	}
 	if updateData.InactivityNano > 0 {
 		logMsg.InactivityTime = updateData.InactivityNano.Nanoseconds()
+	}
+
+	if logMsg.Message == "execution: unsupported" {
+		fmt.Print()
 	}
 
 	if err := data.Error; err != nil {

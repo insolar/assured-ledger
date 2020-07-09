@@ -464,12 +464,12 @@ func TestVirtual_CallMethodFromConstructor(t *testing.T) {
 					assert.Equal(t, callFlags.Interference, res.CallFlags.GetInterference())
 
 					switch res.Callee {
-					case objectAGlobal:
+					case reference.NewSelf(objectAGlobal.GetLocal()):
 						require.Equal(t, []byte("finish A.New"), res.ReturnArguments)
 						require.Equal(t, payload.CTConstructor, res.CallType)
 						require.Equal(t, server.GlobalCaller(), res.Caller)
 						require.Equal(t, outgoingA, res.CallOutgoing)
-					case objectBGlobal:
+					case reference.NewSelf(objectBGlobal.GetLocal()):
 						require.Equal(t, []byte("finish B.Foo"), res.ReturnArguments)
 						require.Equal(t, payload.CTMethod, res.CallType)
 						require.Equal(t, objectAGlobal, res.Caller)

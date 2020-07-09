@@ -71,7 +71,7 @@ func TestVDelegatedCallRequest(t *testing.T) {
 
 		sharedStateData := smachine.NewUnboundSharedData(&object.SharedState{
 			Info: object.Info{
-				Reference:      objectGlobal,
+				Reference:      reference.NewSelf(objectGlobal.GetLocal()),
 				PendingTable:   callregistry.NewRequestTable(),
 				KnownRequests:  callregistry.NewWorkingTable(),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
@@ -81,7 +81,7 @@ func TestVDelegatedCallRequest(t *testing.T) {
 
 		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 
-		catalogWrapper.AddObject(objectGlobal, smObjectAccessor)
+		catalogWrapper.AddObject(reference.NewSelf(objectGlobal.GetLocal()), smObjectAccessor)
 		catalogWrapper.AllowAccessMode(object.CatalogMockAccessGetOrCreate)
 	}
 
@@ -90,7 +90,7 @@ func TestVDelegatedCallRequest(t *testing.T) {
 			res, ok := msg.(*payload.VDelegatedCallRequest)
 			require.True(t, ok)
 			require.NotNil(t, res)
-			require.Equal(t, objectGlobal, object)
+			require.Equal(t, reference.NewSelf(objectGlobal.GetLocal()), object)
 			require.Equal(t, migrationPulse, pn)
 			return nil
 		})
