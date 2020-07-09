@@ -246,7 +246,7 @@ func (test *DeduplicationDifferentPulsesCase) run(t *testing.T) {
 		previousPulse = test.Server.GetPulse().PulseNumber
 		outgoingLocal = gen.UniqueLocalRefWithPulse(previousPulse)
 		outgoing      = reference.NewRecordOf(test.Server.GlobalCaller(), outgoingLocal)
-		object        = outgoing
+		object        = reference.NewSelf(outgoingLocal)
 		executeDone   = test.Server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 		foundError    = synckit.ClosedChannel()
 
@@ -270,7 +270,7 @@ func (test *DeduplicationDifferentPulsesCase) run(t *testing.T) {
 
 	// populate needed VFindCallResponse fields
 	if test.VFindCall != nil {
-		test.VFindCall.Callee = outgoing
+		test.VFindCall.Callee = object
 		test.VFindCall.Outgoing = outgoing
 	}
 
@@ -281,13 +281,13 @@ func (test *DeduplicationDifferentPulsesCase) run(t *testing.T) {
 		} else {
 			test.VDelegatedCall.CallOutgoing = outgoing
 		}
-		test.VDelegatedCall.Callee = outgoing
+		test.VDelegatedCall.Callee = object
 		test.VDelegatedCall.CallFlags = payload.BuildCallFlags(isolation.Interference, isolation.State)
 	}
 
 	if test.VDelegatedRequestFinished != nil {
 		test.VDelegatedRequestFinished.CallOutgoing = outgoing
-		test.VDelegatedRequestFinished.Callee = outgoing
+		test.VDelegatedRequestFinished.Callee = object
 		test.VDelegatedRequestFinished.CallFlags = payload.BuildCallFlags(isolation.Interference, isolation.State)
 	}
 

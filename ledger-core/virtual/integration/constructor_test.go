@@ -52,6 +52,7 @@ func TestVirtual_Constructor_WithoutExecutor(t *testing.T) {
 
 	var (
 		outgoingRef = server.BuildRandomOutgoingWithPulse()
+		objectRef   = reference.NewSelf(outgoingRef.GetLocal())
 	)
 
 	pl := payload.VCallRequest{
@@ -65,7 +66,7 @@ func TestVirtual_Constructor_WithoutExecutor(t *testing.T) {
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
 		require.Equal(t, []byte("123"), res.ReturnArguments)
-		require.Equal(t, outgoingRef, res.Callee)
+		require.Equal(t, objectRef, res.Callee)
 		require.Equal(t, outgoingRef, res.CallOutgoing)
 
 		return false // no resend msg
@@ -104,6 +105,7 @@ func TestVirtual_Constructor_WithExecutor(t *testing.T) {
 	var (
 		isolation = contract.ConstructorIsolation()
 		outgoing  = server.BuildRandomOutgoingWithPulse()
+		objectRef = reference.NewSelf(outgoing.GetLocal())
 	)
 
 	pl := payload.VCallRequest{
@@ -118,7 +120,7 @@ func TestVirtual_Constructor_WithExecutor(t *testing.T) {
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
 	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
-		require.Equal(t, outgoing, res.Callee)
+		require.Equal(t, objectRef, res.Callee)
 		require.Equal(t, outgoing, res.CallOutgoing)
 
 		contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments)
@@ -159,16 +161,21 @@ func TestVirtual_Constructor_BadClassRef(t *testing.T) {
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	randomCallee := server.RandomGlobalWithPulse()
 
+	object1Ref := reference.NewSelf(outgoingOne.GetLocal())
+	object2Ref := reference.NewSelf(outgoingTwo.GetLocal())
+
 	leftMessages := map[reference.Global]struct{}{
-		outgoingOne: struct{}{},
-		outgoingTwo: struct{}{},
+		object1Ref: struct{}{},
+		object2Ref: struct{}{},
 	}
 	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
 		if _, ok := leftMessages[res.Callee]; !ok {
 			require.FailNow(t, "unexpected Callee")
 		}
-		require.Equal(t, res.Callee, res.CallOutgoing)
-		delete(leftMessages, res.CallOutgoing)
+		objectRef := reference.NewSelf(res.CallOutgoing.GetLocal())
+
+		require.Equal(t, res.Callee, objectRef)
+		delete(leftMessages, objectRef)
 
 		require.Equal(t, expectedError, res.ReturnArguments)
 
@@ -225,6 +232,7 @@ func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
 
 	var (
 		outgoing     = server.BuildRandomOutgoingWithPulse()
+		objectRef    = reference.NewSelf(outgoing.GetLocal())
 		runnerResult = []byte("123")
 	)
 
@@ -242,7 +250,7 @@ func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
 		require.Equal(t, runnerResult, res.ReturnArguments)
-		require.Equal(t, outgoing, res.Callee)
+		require.Equal(t, objectRef, res.Callee)
 		require.Equal(t, outgoing, res.CallOutgoing)
 		require.Equal(t, payload.CTConstructor, res.CallType)
 		require.Equal(t, flags, res.CallFlags)
@@ -293,7 +301,8 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 	server.IncrementPulseAndWaitIdle(ctx)
 
 	var (
-		outgoing = server.BuildRandomOutgoingWithPulse()
+		outgoing  = server.BuildRandomOutgoingWithPulse()
+		objectRef = reference.NewSelf(outgoing.GetLocal())
 	)
 
 	pl := payload.VCallRequest{
@@ -322,7 +331,7 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
 		require.Equal(t, []byte("123"), res.ReturnArguments)
-		require.Equal(t, outgoing, res.Callee)
+		require.Equal(t, objectRef, res.Callee)
 		require.Equal(t, outgoing, res.CallOutgoing)
 
 		return false // no resend msg
@@ -362,8 +371,9 @@ func TestVirtual_Constructor_NoVFindCallRequestWhenMissing(t *testing.T) {
 	server.Init(ctx)
 
 	var (
-		p1       = server.GetPulse().PulseNumber
-		outgoing = server.BuildRandomOutgoingWithPulse()
+		p1        = server.GetPulse().PulseNumber
+		outgoing  = server.BuildRandomOutgoingWithPulse()
+		objectRef = reference.NewSelf(outgoing.GetLocal())
 	)
 
 	server.IncrementPulseAndWaitIdle(ctx)
@@ -372,7 +382,7 @@ func TestVirtual_Constructor_NoVFindCallRequestWhenMissing(t *testing.T) {
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	typedChecker.VStateRequest.Set(func(req *payload.VStateRequest) bool {
 		require.Equal(t, p1, req.AsOf)
-		require.Equal(t, outgoing, req.Object)
+		require.Equal(t, objectRef, req.Object)
 
 		flags := payload.StateRequestContentFlags(0)
 		flags.Set(
@@ -386,7 +396,7 @@ func TestVirtual_Constructor_NoVFindCallRequestWhenMissing(t *testing.T) {
 		report := payload.VStateReport{
 			Status: payload.Missing,
 			AsOf:   p1,
-			Object: outgoing,
+			Object: objectRef,
 		}
 
 		server.SendMessage(ctx, utils.NewRequestWrapper(p2, &report).SetSender(server.JetCoordinatorMock.Me()).Finalize())
@@ -395,7 +405,7 @@ func TestVirtual_Constructor_NoVFindCallRequestWhenMissing(t *testing.T) {
 	})
 	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
 		require.Equal(t, []byte("123"), res.ReturnArguments)
-		require.Equal(t, outgoing, res.Callee)
+		require.Equal(t, objectRef, res.Callee)
 		require.Equal(t, outgoing, res.CallOutgoing)
 
 		return false // no resend msg
@@ -404,8 +414,8 @@ func TestVirtual_Constructor_NoVFindCallRequestWhenMissing(t *testing.T) {
 		expected := &payload.VStateReport{
 			Status:           payload.Ready,
 			AsOf:             p2,
-			Object:           outgoing,
-			LatestDirtyState: outgoing,
+			Object:           objectRef,
+			LatestDirtyState: objectRef,
 			ProvidedContent: &payload.VStateReport_ProvidedContentBody{
 				LatestDirtyState: &payload.ObjectState{
 					State: []byte("some memory"),
@@ -413,8 +423,8 @@ func TestVirtual_Constructor_NoVFindCallRequestWhenMissing(t *testing.T) {
 				},
 			},
 		}
-		expected.ProvidedContent.LatestDirtyState.Reference =
-			report.ProvidedContent.LatestDirtyState.Reference
+		expected.ProvidedContent.LatestDirtyState.Reference = report.ProvidedContent.LatestDirtyState.Reference
+
 		assert.Equal(t, expected, report)
 
 		return false
@@ -483,6 +493,7 @@ func TestVirtual_CallConstructorFromConstructor(t *testing.T) {
 
 		classA    = gen.UniqueGlobalRef()
 		outgoingA = server.BuildRandomOutgoingWithPulse()
+		objectA   = reference.NewSelf(outgoingA.GetLocal())
 
 		classB        = gen.UniqueGlobalRef()
 		objectBGlobal = reference.NewSelf(server.RandomLocalWithPulse())
@@ -553,7 +564,7 @@ func TestVirtual_CallConstructorFromConstructor(t *testing.T) {
 			assert.Equal(t, callFlags, res.CallFlags)
 
 			switch res.Callee {
-			case outgoingA:
+			case objectA:
 				require.Equal(t, []byte("finish A.New"), res.ReturnArguments)
 				require.Equal(t, server.GlobalCaller(), res.Caller)
 				require.Equal(t, outgoingA, res.CallOutgoing)
@@ -603,6 +614,7 @@ func TestVirtual_Constructor_WrongConstructorName(t *testing.T) {
 	var (
 		isolation = contract.ConstructorIsolation()
 		outgoing  = server.BuildRandomOutgoingWithPulse()
+		objectRef = reference.NewSelf(outgoing.GetLocal())
 	)
 
 	pl := payload.VCallRequest{
@@ -617,7 +629,7 @@ func TestVirtual_Constructor_WrongConstructorName(t *testing.T) {
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
 	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
-		require.Equal(t, outgoing, res.Callee)
+		require.Equal(t, objectRef, res.Callee)
 		require.Equal(t, outgoing, res.CallOutgoing)
 
 		contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments)
@@ -659,8 +671,9 @@ func TestVirtual_Constructor_PulseChangedWhileOutgoing(t *testing.T) {
 		isolation = contract.ConstructorIsolation()
 		callFlags = payload.BuildCallFlags(isolation.Interference, isolation.State)
 
-		class    = gen.UniqueGlobalRef()
-		outgoing = server.BuildRandomOutgoingWithPulse()
+		class     = gen.UniqueGlobalRef()
+		outgoing  = server.BuildRandomOutgoingWithPulse()
+		objectRef = reference.NewSelf(outgoing.GetLocal())
 
 		constructorPulse = server.GetPulse().PulseNumber
 
@@ -681,7 +694,7 @@ func TestVirtual_Constructor_PulseChangedWhileOutgoing(t *testing.T) {
 	// add type checks
 	{
 		typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
-			assert.Equal(t, outgoing, report.Object)
+			assert.Equal(t, objectRef, report.Object)
 			assert.Equal(t, payload.Empty, report.Status)
 			assert.Equal(t, int32(1), report.OrderedPendingCount)
 			assert.Equal(t, constructorPulse, report.OrderedPendingEarliestPulse)
@@ -695,7 +708,7 @@ func TestVirtual_Constructor_PulseChangedWhileOutgoing(t *testing.T) {
 		})
 		typedChecker.VDelegatedCallRequest.Set(func(msg *payload.VDelegatedCallRequest) bool {
 			assert.Zero(t, msg.DelegationSpec)
-			assert.Equal(t, outgoing, msg.Callee)
+			assert.Equal(t, objectRef, msg.Callee)
 			assert.Equal(t, outgoing, msg.CallOutgoing)
 
 			delegationToken = server.DelegationToken(msg.CallOutgoing, server.GlobalCaller(), msg.Callee)
@@ -710,7 +723,7 @@ func TestVirtual_Constructor_PulseChangedWhileOutgoing(t *testing.T) {
 			assert.Equal(t, payload.CTConstructor, finished.CallType)
 			assert.Equal(t, callFlags, finished.CallFlags)
 			assert.Equal(t, outgoing, finished.CallOutgoing)
-			assert.Equal(t, outgoing, finished.Callee)
+			assert.Equal(t, objectRef, finished.Callee)
 			require.NotNil(t, finished.LatestState)
 			assert.Equal(t, []byte("234"), finished.LatestState.State)
 			assert.Equal(t, delegationToken, finished.DelegationSpec)
@@ -718,8 +731,8 @@ func TestVirtual_Constructor_PulseChangedWhileOutgoing(t *testing.T) {
 		})
 		typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
 			assert.Equal(t, []byte("123"), res.ReturnArguments)
-			assert.Equal(t, outgoing, res.Callee)
 			assert.Equal(t, outgoing, res.CallOutgoing)
+			assert.Equal(t, objectRef, res.Callee)
 			assert.Equal(t, payload.CTConstructor, res.CallType)
 			assert.Equal(t, callFlags, res.CallFlags)
 			assert.Equal(t, delegationToken, res.DelegationSpec)
@@ -746,7 +759,7 @@ func TestVirtual_Constructor_PulseChangedWhileOutgoing(t *testing.T) {
 	// add authService mock functions
 	{
 		authService.HasToSendTokenMock.Set(func(token payload.CallDelegationToken) (b1 bool) {
-			assert.Equal(t, outgoing, token.Callee)
+			assert.Equal(t, objectRef, token.Callee)
 			return true
 		})
 		authService.IsMessageFromVirtualLegitimateMock.Set(func(ctx context.Context, payloadObj interface{}, sender reference.Global, pr pulse.Range) (mustReject bool, err error) {
@@ -754,7 +767,7 @@ func TestVirtual_Constructor_PulseChangedWhileOutgoing(t *testing.T) {
 			return false, nil
 		})
 		authService.GetCallDelegationTokenMock.Set(func(outgoingRef reference.Global, to reference.Global, pn pulse.Number, object reference.Global) (c1 payload.CallDelegationToken) {
-			assert.Equal(t, outgoing, object)
+			assert.Equal(t, objectRef, object)
 			return payload.CallDelegationToken{
 				TokenTypeAndFlags: payload.DelegationTokenTypeCall,
 				PulseNumber:       server.GetPulse().PulseNumber,
@@ -779,7 +792,7 @@ func TestVirtual_Constructor_PulseChangedWhileOutgoing(t *testing.T) {
 
 	msgVStateRequest := payload.VStateRequest{
 		AsOf:   constructorPulse,
-		Object: outgoing,
+		Object: objectRef,
 	}
 
 	server.SendPayload(ctx, &msgVStateRequest)
@@ -828,6 +841,7 @@ func TestVirtual_Constructor_IsolationNegotiation(t *testing.T) {
 			executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 
 			outgoing := server.BuildRandomOutgoingWithPulse()
+			objectRef := reference.NewSelf(outgoing.GetLocal())
 
 			expectedError := throw.W(throw.IllegalValue(), "failed to negotiate call isolation params", struct {
 				methodIsolation contract.MethodIsolation
@@ -839,7 +853,7 @@ func TestVirtual_Constructor_IsolationNegotiation(t *testing.T) {
 
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 			typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool {
-				require.Equal(t, outgoing, result.Callee)
+				require.Equal(t, objectRef, result.Callee)
 				require.Equal(t, outgoing, result.CallOutgoing)
 
 				contractErr, sysErr := foundation.UnmarshalMethodResult(result.ReturnArguments)
