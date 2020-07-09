@@ -232,7 +232,7 @@ func TestVirtual_Method_WithExecutor_ObjectIsNotExist(t *testing.T) {
 }
 
 func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
-	t.Log("C4930")
+	t.Log("C5094")
 
 	mc := minimock.NewController(t)
 
@@ -1090,6 +1090,42 @@ func Test_CallMethodWithBadIsolationFlags(t *testing.T) {
 	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 	assert.Equal(t, 1, typedChecker.VCallResult.Count())
+
+	mc.Finish()
+}
+
+func TestVirtual_FutureMessageAddedToSlot(t *testing.T) {
+	t.Log("C5318")
+	t.Skip("https://insolar.atlassian.net/browse/PLAT-615")
+
+	mc := minimock.NewController(t)
+
+	server, ctx := utils.NewServer(nil, t)
+	defer server.Stop()
+	server.IncrementPulse(ctx)
+
+	var (
+		objectLocal  = server.RandomLocalWithPulse()
+		objectGlobal = reference.NewSelf(objectLocal)
+	)
+
+	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal)
+
+	executeDone := server.Journal.WaitAnyActivityOf(&execute.SMExecute{}, 1)
+
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool { return false })
+	typedChecker.VStateReport.Set(func(res *payload.VStateReport) bool { return false })
+
+	{
+		pl := payload.VCallRequest{}
+		server.SendPayloadAsFuture(ctx, &pl)
+	}
+
+	server.IncrementPulse(ctx)
+
+	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 	mc.Finish()
 }
