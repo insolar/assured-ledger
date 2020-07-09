@@ -415,7 +415,13 @@ func TestVirtual_Method_WithoutExecutor_Ordered(t *testing.T) {
 
 		testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 		testutils.WaitSignalsTimed(t, 10*time.Second, awaitStopFirstSM)
-		assert.Equal(t, 0, typedChecker.VCallResult.Count()) // why 0 here?
+		server.WaitActiveThenIdleConveyor()
+
+		if !server.PublisherMock.WaitCount(countBefore+1, 10*time.Second) {
+			t.Error("failed to wait for result")
+		}
+
+		assert.Equal(t, 1, typedChecker.VCallResult.Count())
 
 		// now second request can reach sync point
 		testutils.WaitSignalsTimed(t, 10*time.Second, synchronizeExecution.Wait())
@@ -424,7 +430,7 @@ func TestVirtual_Method_WithoutExecutor_Ordered(t *testing.T) {
 
 		synchronizeExecution.Done()
 
-		if !server.PublisherMock.WaitCount(countBefore+1, 10*time.Second) {
+		if !server.PublisherMock.WaitCount(countBefore+2, 10*time.Second) {
 			t.Error("failed to wait for result")
 		}
 	}
