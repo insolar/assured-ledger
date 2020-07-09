@@ -84,6 +84,9 @@ jobs:
           KUBEDEPLOYTOOL_METRICPARAMS_PROMETHEUS_HOST: "https://${{secrets.PROMETHEUS_USER}}:${{secrets.PROMETHEUS_PASS}}@prometheus.uscifarm.insolar.io/prometheus"
         run: bin/kube-deploy-tool --config=scripts/deploy/kube-deploy-tool/config.yaml
         working-directory: ${{ env.CORE_PATH }}
+      - name: remove ingressroute from kube-system
+        if: always()
+        run: kubectl delete -f ledger-core/scripts/deploy/kube/aks/uscifarm-ingressroute.yaml
       - name: Aggregate logs into a single archive
         if: always()
         run: tar --warning=no-file-changed -cvzf ${{ env.CORE_PATH }}/kube-nodes-output.tgz /tmp/insolar/logs/* || true
