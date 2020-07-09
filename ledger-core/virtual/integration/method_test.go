@@ -1096,7 +1096,6 @@ func Test_CallMethodWithBadIsolationFlags(t *testing.T) {
 
 func TestVirtual_FutureMessageAddedToSlot(t *testing.T) {
 	t.Log("C5318")
-	t.Skip("https://insolar.atlassian.net/browse/PLAT-615")
 
 	mc := minimock.NewController(t)
 
@@ -1111,20 +1110,17 @@ func TestVirtual_FutureMessageAddedToSlot(t *testing.T) {
 
 	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal)
 
-	executeDone := server.Journal.WaitAnyActivityOf(&execute.SMExecute{}, 1)
-
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool { return false })
 	typedChecker.VStateReport.Set(func(res *payload.VStateReport) bool { return false })
 
-	{
-		pl := payload.VCallRequest{}
-		server.SendPayloadAsFuture(ctx, &pl)
-	}
+	pl := payload.VCallRequest{}
+	server.SendPayloadAsFuture(ctx, &pl)
 
+	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitFutureSlotInited(1))
 	server.IncrementPulse(ctx)
 
-	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAnyActivityOf(&execute.SMExecute{}, 1))
 	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 	mc.Finish()
