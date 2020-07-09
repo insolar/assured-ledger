@@ -7,6 +7,8 @@ package integration
 
 import (
 	"context"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/synchronization"
+	"strconv"
 	"testing"
 	"time"
 
@@ -325,6 +327,111 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 	}
 
 	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+
+	{
+		assert.Equal(t, 2, typedChecker.VCallResult.Count())
+	}
+
+	mc.Finish()
+}
+
+func TestVirtual_Method_WithoutExecutor_Ordered(t *testing.T) {
+	t.Log("C5093")
+
+	mc := minimock.NewController(t)
+
+	server, ctx := utils.NewUninitializedServer(nil, t)
+	defer server.Stop()
+
+	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 2)
+
+	runnerMock := logicless.NewServiceMock(ctx, t, nil)
+	server.ReplaceRunner(runnerMock)
+
+	server.Init(ctx)
+	server.IncrementPulseAndWaitIdle(ctx)
+
+	var (
+		class        = testwallet.GetClass()
+		objectLocal  = server.RandomLocalWithPulse()
+		objectGlobal = reference.NewSelf(objectLocal)
+	)
+
+	synchronizeExecution := synchronization.NewPoint(1)
+
+	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal)
+
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+
+	{
+		typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
+			require.Equal(t, res.ReturnArguments, []byte("345"))
+			require.Equal(t, res.Callee, objectGlobal)
+
+			return false // no resend msg
+		})
+
+		countBefore := server.PublisherMock.GetCount()
+		interferenceFlag := contract.CallTolerable
+		stateFlag := contract.CallDirty
+		for i := int64(0); i < 2; i++ {
+			callOutgoing := server.BuildRandomOutgoingWithPulse()
+
+			pl := payload.VCallRequest{
+				CallType:            payload.CTMethod,
+				CallFlags:           payload.BuildCallFlags(interferenceFlag, stateFlag),
+				Caller:              server.GlobalCaller(),
+				Callee:              objectGlobal,
+				CallSiteDeclaration: class,
+				CallSiteMethod:      "ordered" + strconv.FormatInt(i, 10),
+				CallOutgoing:        callOutgoing,
+			}
+
+			result := requestresult.New([]byte("345"), objectGlobal)
+
+			key := callOutgoing.String()
+			runnerMock.AddExecutionMock(key).
+				AddStart(func(ctx execution.Context) {
+				synchronizeExecution.Synchronize()
+			}, &execution.Update{
+				Type:   execution.Done,
+				Result: result,
+			})
+			runnerMock.AddExecutionClassify(key, contract.MethodIsolation{
+				Interference: interferenceFlag,
+				State:        stateFlag,
+			}, nil)
+
+			server.SendPayload(ctx, &pl)
+		}
+
+		// first request should reach sync point, second will be waiting
+		testutils.WaitSignalsTimed(t, 10*time.Second, synchronizeExecution.Wait())
+		// wake up the first on sync point
+		synchronizeExecution.WakeUp()
+
+		// waint until the processing of the first request is done
+		awaitStopFirstSM := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
+
+		testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+		testutils.WaitSignalsTimed(t, 10*time.Second, awaitStopFirstSM)
+		assert.Equal(t, 0, typedChecker.VCallResult.Count()) // why 0 here?
+
+		// now second request can reach sync point
+		testutils.WaitSignalsTimed(t, 10*time.Second, synchronizeExecution.Wait())
+		// wake it up
+		synchronizeExecution.WakeUp()
+
+		synchronizeExecution.Done()
+
+		if !server.PublisherMock.WaitCount(countBefore+1, 10*time.Second) {
+			t.Error("failed to wait for result")
+		}
+	}
+
+	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+
 
 	{
 		assert.Equal(t, 2, typedChecker.VCallResult.Count())
