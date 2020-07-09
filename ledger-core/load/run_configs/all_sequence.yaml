@@ -25,8 +25,8 @@ steps:
   handles:
   - name: get_contract_test
     rps: 1000
-    attack_time_sec: 1800
-    ramp_up_sec: 1800
+    attack_time_sec: 600
+    ramp_up_sec: 600
     ramp_up_strategy: linear
     max_attackers: 1000
     verbose: true
@@ -43,8 +43,8 @@ steps:
         interval: 1
   - name: set_contract_test
     rps: 1000
-    attack_time_sec: 1800
-    ramp_up_sec: 1800
+    attack_time_sec: 600
+    ramp_up_sec: 600
     ramp_up_strategy: linear
     max_attackers: 1000
     verbose: true
