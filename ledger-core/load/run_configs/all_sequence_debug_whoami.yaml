@@ -6,11 +6,11 @@ steps:
     execution_mode: sequence
     handles:
       - name: get_contract_test_debug
-        rps: 3000
+        rps: 2500
         attack_time_sec: 900
         ramp_up_sec: 900
         ramp_up_strategy: linear
-        max_attackers: 5000
+        max_attackers: 4000
         verbose: true
         do_timeout_sec: 60
         stop_if:
