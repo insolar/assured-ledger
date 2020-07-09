@@ -232,7 +232,7 @@ func TestVirtual_Method_WithExecutor_ObjectIsNotExist(t *testing.T) {
 }
 
 func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
-	t.Log("C4930")
+	t.Log("C5094")
 
 	mc := minimock.NewController(t)
 
