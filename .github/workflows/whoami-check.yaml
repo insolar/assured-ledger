@@ -41,7 +41,7 @@ jobs:
         run: |
           sleep 10s
           cd ${{ env.CORE_PATH }}/load/
-          ./main -gen_config load/gen_cfg/generator_assured_ledger_whoami.yaml b darwin && NETWORK_NODES=20 ./load_suite -config load/run_configs/all_sequence_debug_whoami.yaml -gen_config load/gen_cfg/generator_assured_ledger_whoami.yaml
+          NETWORK_NODES=5 ./main -gen_config ${{ env.CORE_PATH }}/load/gen_cfg/generator_assured_ledger_whoami.yaml -config ${{ env.CORE_PATH }}/load/run_configs/all_sequence_debug_whoami.yaml
       - name: cleanup
         if: always()
         run: kubectl delete ns ${GITHUB_SHA:0:8} --ignore-not-found=true
