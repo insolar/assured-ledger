@@ -3,7 +3,7 @@ host:
   network_iface: eth0
 remotes:
 generator:
-  target: https://ya.ru
+  target: https://clients5.google.com/pagead/drt/dn/
   responseTimeoutSec: 20
   rampUpStrategy: linear
   verbose: true
