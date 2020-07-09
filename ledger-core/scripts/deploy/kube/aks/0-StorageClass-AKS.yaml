@@ -3,6 +3,7 @@ kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:
   name: azurefile
+  namespace: "placeholder"
 provisioner: kubernetes.io/azure-file
 mountOptions:
   - dir_mode=0777

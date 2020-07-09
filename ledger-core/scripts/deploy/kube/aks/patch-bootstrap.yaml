@@ -3,6 +3,7 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: bootstrap
+  namespace: "placeholder"
 spec:
   containers:
     - name: gen

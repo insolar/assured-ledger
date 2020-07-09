@@ -4,6 +4,7 @@ kind: PersistentVolumeClaim
 metadata:
   finalizers: []
   name: certs-volume
+  namespace: "placeholder"
 spec:
   accessModes:
     - ReadWriteMany
@@ -18,6 +19,7 @@ kind: PersistentVolumeClaim
 metadata:
   finalizers: []
   name: keys-volume
+  namespace: "placeholder"
 spec:
   accessModes:
     - ReadWriteMany
