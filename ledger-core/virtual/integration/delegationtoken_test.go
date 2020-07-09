@@ -226,19 +226,22 @@ const (
 	veSetNone veSetMode = iota
 	veSetServer
 	veSetFake
+	veSetFixed
 )
 
 type testCase struct {
-	name          string
-	testRailID    string
-	zeroToken     bool
-	approverVE    veSetMode
-	currentVE     veSetMode
-	errorMessages []string
-	errorSeverity throw.Severity
+	name           string
+	testRailID     string
+	zeroToken      bool
+	approverVE     veSetMode
+	currentVE      veSetMode
+	errorMessages  []string
+	errorSeverity  throw.Severity
+	customDelegate reference.Global
 }
 
 func TestDelegationToken_IsMessageFromVirtualLegitimate(t *testing.T) {
+	fixedVe := gen.UniqueGlobalRef()
 	cases := []testCase{
 		{
 			name:       "Fail if DT is zero and sender not eq expectedVE",
@@ -275,6 +278,18 @@ func TestDelegationToken_IsMessageFromVirtualLegitimate(t *testing.T) {
 				"illegitimate msg",
 			},
 			errorSeverity: 0,
+		},
+		{
+			name:       "Fail if wrong delegate",
+			testRailID: "C5194",
+			approverVE: veSetFixed,
+			currentVE:  veSetFixed,
+			errorMessages: []string{
+				"token DelegateTo and sender are different",
+				"illegitimate msg",
+			},
+			errorSeverity:  throw.RemoteBreachSeverity,
+			customDelegate: gen.UniqueGlobalRef(),
 		},
 	}
 	for _, testCase := range cases {
@@ -323,6 +338,9 @@ func TestDelegationToken_IsMessageFromVirtualLegitimate(t *testing.T) {
 				case veSetFake:
 					jetCoordinatorMock.
 						QueryRoleMock.Return([]reference.Global{server.RandomGlobalWithPulse()}, nil)
+				case veSetFixed:
+					jetCoordinatorMock.
+						QueryRoleMock.Return([]reference.Global{fixedVe}, nil)
 				}
 
 				switch testCase.currentVE {
@@ -330,6 +348,8 @@ func TestDelegationToken_IsMessageFromVirtualLegitimate(t *testing.T) {
 					jetCoordinatorMock.MeMock.Return(server.GlobalCaller())
 				case veSetFake:
 					jetCoordinatorMock.MeMock.Return(server.RandomGlobalWithPulse())
+				case veSetFixed:
+					jetCoordinatorMock.MeMock.Return(fixedVe)
 				}
 
 				var delegationToken payload.CallDelegationToken
@@ -340,7 +360,11 @@ func TestDelegationToken_IsMessageFromVirtualLegitimate(t *testing.T) {
 				} else {
 					class := gen.UniqueGlobalRef()
 					outgoing := server.BuildRandomOutgoingWithPulse()
-					delegationToken = server.DelegationToken(reference.NewRecordOf(class, outgoing.GetLocal()), server.GlobalCaller(), outgoing)
+					delegateTo := server.GlobalCaller()
+					if !testCase.customDelegate.IsZero() {
+						delegateTo = testCase.customDelegate
+					}
+					delegationToken = server.DelegationToken(reference.NewRecordOf(class, outgoing.GetLocal()), delegateTo, outgoing)
 				}
 				reflect.ValueOf(testMsg.msg).MethodByName("Reset").Call([]reflect.Value{})
 				insertToken(delegationToken, testMsg.msg)
