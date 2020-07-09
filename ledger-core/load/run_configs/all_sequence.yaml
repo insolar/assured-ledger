@@ -33,6 +33,7 @@ steps:
     do_timeout_sec: 60
     recycle_data: true
     csv_read: users.csv
+    wait_before_sec: 30
     validation:
       attack_time_sec: 60
       threshold: 0.7
@@ -50,6 +51,7 @@ steps:
     do_timeout_sec: 60
     recycle_data: true
     csv_read: users.csv
+    wait_before_sec: 30
     validation:
       attack_time_sec: 60
       threshold: 0.7
