@@ -13,6 +13,7 @@ import (
 
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
@@ -301,83 +302,116 @@ func TestDelegationToken_IsMessageFromVirtualLegitimate(t *testing.T) {
 	}
 }
 
-func TestDelegationToken_CheckSuccessVDelegatedCallRequestFromOldPulseVEWithDT(t *testing.T) {
-	t.Log("C5186")
-	mc := minimock.NewController(t)
+func TestDelegationToken_OldVEVDelegatedCallRequest(t *testing.T) {
+	testCases := []struct {
+		name          string
+		testRailID    string
+		haveCorrectDT bool
+	}{
+		{
+			name:          "Success run SM if DT is correct",
+			testRailID:    "C5186",
+			haveCorrectDT: true,
+		},
+		{
+			name:          "Fail if message have no DT",
+			testRailID:    "C5187",
+			haveCorrectDT: false,
+		},
+	}
+	for _, test := range testCases {
+		t.Run(test.name, func(t *testing.T) {
+			t.Log(test.testRailID)
+			mc := minimock.NewController(t)
 
-	server, ctx := utils.NewUninitializedServer(nil, t)
-	defer server.Stop()
+			server, ctx := utils.NewUninitializedServer(nil, t)
+			defer server.Stop()
 
-	executeDone := server.Journal.WaitStopOf(&handlers.SMVDelegatedCallRequest{}, 1)
+			executeDone := server.Journal.WaitStopOf(&handlers.SMVDelegatedCallRequest{}, 1)
 
-	jetCoordinatorMock := jet.NewAffinityHelperMock(t)
-	auth := authentication.NewService(ctx, jetCoordinatorMock)
-	server.ReplaceAuthenticationService(auth)
+			jetCoordinatorMock := jet.NewAffinityHelperMock(t)
+			auth := authentication.NewService(ctx, jetCoordinatorMock)
+			server.ReplaceAuthenticationService(auth)
 
-	var errorFound bool
-	logHandler := func(arg interface{}) {
-		if err, ok := arg.(error); ok {
-			errMsg := err.Error()
-			if strings.Contains(errMsg, "illegitimate msg") {
-				errorFound = true
+			var errorFound bool
+			logHandler := func(arg interface{}) {
+				if err, ok := arg.(error); ok {
+					errMsg := err.Error()
+					if strings.Contains(errMsg, "unexpected sender") &&
+						strings.Contains(errMsg, "illegitimate msg") {
+						errorFound = true
+					}
+				}
 			}
-		}
+			logger := utils.InterceptLog(inslogger.FromContext(ctx), logHandler)
+			server.OverrideConveyorFactoryLogContext(inslogger.SetLogger(ctx, logger))
+
+			server.Init(ctx)
+
+			var (
+				class       = gen.UniqueGlobalRef()
+				outgoing    = server.BuildRandomOutgoingWithPulse()
+				executorRef = server.RandomGlobalWithPulse()
+				firstPulse  = server.GetPulse()
+
+				delegationToken, expectedToken      payload.CallDelegationToken
+				expectedVDelegatedCallResponseCount int
+			)
+
+			server.IncrementPulse(ctx)
+
+			approver := server.RandomGlobalWithPulse()
+			jetCoordinatorMock.
+				MeMock.Return(approver).
+				QueryRoleMock.Return([]reference.Global{approver}, nil)
+
+			if test.haveCorrectDT {
+				delegationToken = server.DelegationToken(reference.NewRecordOf(class, outgoing.GetLocal()), executorRef, class)
+			}
+
+			server.IncrementPulse(ctx)
+
+			if test.haveCorrectDT {
+				expectedToken = server.DelegationToken(outgoing, executorRef, class)
+				require.NotEqual(t, delegationToken.PulseNumber, expectedToken.PulseNumber)
+				require.Equal(t, delegationToken.DelegateTo, expectedToken.DelegateTo)
+			}
+
+			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+			typedChecker.VDelegatedCallResponse.Set(func(response *payload.VDelegatedCallResponse) bool {
+				assert.Equal(t, class, response.Callee)
+				assert.Equal(t, expectedToken, response.ResponseDelegationSpec)
+				return false
+			})
+
+			statePl := payload.VStateReport{
+				Status:                      payload.Empty,
+				Object:                      class,
+				OrderedPendingCount:         1,
+				OrderedPendingEarliestPulse: firstPulse.PulseNumber,
+			}
+			server.SendMessage(ctx, utils.NewRequestWrapper(server.GetPulse().PulseNumber, &statePl).SetSender(approver).Finalize())
+			server.WaitActiveThenIdleConveyor()
+
+			pl := payload.VDelegatedCallRequest{
+				Callee:         class,
+				CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+				CallOutgoing:   outgoing,
+				DelegationSpec: delegationToken,
+			}
+			msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(executorRef).Finalize()
+			server.SendMessage(ctx, msg)
+
+			if test.haveCorrectDT {
+				testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+				testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+				expectedVDelegatedCallResponseCount = 1
+			}
+
+			assert.Equal(t, !test.haveCorrectDT, errorFound)
+			assert.Equal(t, expectedVDelegatedCallResponseCount, typedChecker.VDelegatedCallResponse.Count())
+
+			mc.Finish()
+		})
 	}
-	logger := utils.InterceptLog(inslogger.FromContext(ctx), logHandler)
-	server.OverrideConveyorFactoryLogContext(inslogger.SetLogger(ctx, logger))
-
-	server.Init(ctx)
-
-	var (
-		class       = gen.UniqueGlobalRef()
-		outgoing    = server.BuildRandomOutgoingWithPulse()
-		executorRef = server.RandomGlobalWithPulse()
-		firstPulse  = server.GetPulse()
-	)
-
-	server.IncrementPulse(ctx)
-
-	approver := server.RandomGlobalWithPulse()
-	jetCoordinatorMock.
-		MeMock.Return(approver).
-		QueryRoleMock.Return([]reference.Global{approver}, nil)
-
-	delegationToken := server.DelegationToken(reference.NewRecordOf(class, outgoing.GetLocal()), executorRef, outgoing)
-
-	server.IncrementPulse(ctx)
-
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-	typedChecker.VDelegatedCallResponse.Set(func(response *payload.VDelegatedCallResponse) bool {
-		assert.Equal(t, class, response.Callee)
-		assert.Equal(t, class, response.ResponseDelegationSpec.Callee)
-		assert.Equal(t, approver, response.ResponseDelegationSpec.Approver)
-		assert.Equal(t, outgoing, response.ResponseDelegationSpec.Outgoing)
-		return false
-	})
-
-	statePl := payload.VStateReport{
-		Status:                      payload.Empty,
-		Object:                      class,
-		OrderedPendingCount:         1,
-		OrderedPendingEarliestPulse: firstPulse.PulseNumber,
-	}
-	server.SendMessage(ctx, utils.NewRequestWrapper(server.GetPulse().PulseNumber, &statePl).SetSender(approver).Finalize())
-	server.WaitActiveThenIdleConveyor()
-
-	pl := payload.VDelegatedCallRequest{
-		Callee:         class,
-		CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
-		CallOutgoing:   outgoing,
-		DelegationSpec: delegationToken,
-	}
-	msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(executorRef).Finalize()
-	server.SendMessage(ctx, msg)
-
-	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
-	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
-
-	assert.False(t, errorFound)
-	assert.Equal(t, 1, typedChecker.VDelegatedCallResponse.Count())
-
-	mc.Finish()
 }

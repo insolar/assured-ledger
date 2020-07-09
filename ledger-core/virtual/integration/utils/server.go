@@ -458,3 +458,12 @@ func (s *Server) SendPayload(ctx context.Context, pl payload.Marshaler) {
 	msg := s.WrapPayload(pl).Finalize()
 	s.SendMessage(ctx, msg)
 }
+
+func (s *Server) WrapPayloadAsFuture(pl payload.Marshaler) *RequestWrapper {
+	return NewRequestWrapper(s.GetPulse().NextPulseNumber, pl).SetSender(s.caller)
+}
+
+func (s *Server) SendPayloadAsFuture(ctx context.Context, pl payload.Marshaler) {
+	msg := s.WrapPayloadAsFuture(pl).Finalize()
+	s.SendMessage(ctx, msg)
+}

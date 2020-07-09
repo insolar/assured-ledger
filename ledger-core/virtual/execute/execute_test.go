@@ -175,7 +175,7 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 	mc.Finish()
 }
 
-func TestSMExecute_DeduplicationUsingPendingsTable(t *testing.T) {
+func TestSMExecute_DeduplicationUsingPendingsTableRequestNotExist(t *testing.T) {
 	var (
 		ctx = instestlogger.TestContext(t)
 		mc  = minimock.NewController(t)
@@ -216,8 +216,45 @@ func TestSMExecute_DeduplicationUsingPendingsTable(t *testing.T) {
 			UseSharedMock.Set(shareddata.CallSharedDataAccessor).
 			JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepTakeLock))
 
-		smExecute.stepDeduplicateUsingPendingsTable(execCtx)
+		smExecute.stepDeduplicate(execCtx)
 	}
+
+	mc.Finish()
+}
+
+func TestSMExecute_DeduplicationUsingPendingsTableRequestExist(t *testing.T) {
+	var (
+		ctx = instestlogger.TestContext(t)
+		mc  = minimock.NewController(t)
+
+		pd                = pulse.NewFirstPulsarData(10, longbits.Bits256{})
+		pulseSlot         = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
+		caller            = gen.UniqueGlobalRef()
+		constructorOutRef = reference.NewRecordOf(caller, gen.UniqueLocalRefWithPulse(pd.PulseNumber.Next(1)))
+		objectRef         = reference.NewSelf(constructorOutRef.GetLocal())
+		smObject          = object.NewStateMachineObject(objectRef)
+		sharedStateData   = smachine.NewUnboundSharedData(&smObject.SharedState)
+
+		callFlags = payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty)
+	)
+
+	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
+	request := &payload.VCallRequest{
+		CallType:            payload.CTConstructor,
+		CallFlags:           callFlags,
+		CallSiteDeclaration: testwallet.GetClass(),
+		CallSiteMethod:      "New",
+		CallOutgoing:        constructorOutRef,
+		Arguments:           insolar.MustSerialize([]interface{}{}),
+	}
+
+	smExecute := SMExecute{
+		Payload:           request,
+		pulseSlot:         &pulseSlot,
+		objectSharedState: smObjectAccessor,
+	}
+
+	smExecute = expectedInitState(ctx, smExecute)
 
 	{
 		// duplicate pending request exists and is active
@@ -227,13 +264,16 @@ func TestSMExecute_DeduplicationUsingPendingsTable(t *testing.T) {
 
 		execCtx := smachine.NewExecutionContextMock(mc).
 			UseSharedMock.Set(shareddata.CallSharedDataAccessor).
-			LogMock.Return(smachine.Logger{}).
 			StopMock.Return(smachine.StateUpdate{})
 
-		smExecute.stepDeduplicateUsingPendingsTable(execCtx)
+		smExecute.stepDeduplicate(execCtx)
 	}
 
 	{
+		// reset tables
+		smObject.KnownRequests = callregistry.NewWorkingTable()
+		smObject.PendingTable = callregistry.NewRequestTable()
+
 		// duplicate pending request exists, but is finished
 		// expect jump
 		pendingList := smObject.PendingTable.GetList(contract.CallIntolerable)
@@ -242,9 +282,9 @@ func TestSMExecute_DeduplicationUsingPendingsTable(t *testing.T) {
 
 		execCtx := smachine.NewExecutionContextMock(mc).
 			UseSharedMock.Set(shareddata.CallSharedDataAccessor).
-			JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepTakeLock))
+			JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepDeduplicateThroughPreviousExecutor))
 
-		smExecute.stepDeduplicateUsingPendingsTable(execCtx)
+		smExecute.stepDeduplicate(execCtx)
 	}
 
 	mc.Finish()
