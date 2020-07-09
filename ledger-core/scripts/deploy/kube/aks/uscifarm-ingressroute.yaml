@@ -2,7 +2,57 @@
 apiVersion: traefik.containo.us/v1alpha1
 kind: IngressRoute
 metadata:
-  name: placeholder
+  name: placeholder-http
+  namespace: kube-system
+spec:
+  entryPoints:
+    - http
+  routes:
+  - kind: Rule
+    match: Host(`placeholder.uscifarm.insolar.io`) && PathPrefix(`/api`)
+    middlewares:
+    - name: http-https
+      namespace: kube-system
+    services:
+    - name: platform-network
+      namespace: placeholder
+      port: 19101
+      weight: 1
+      passHostHeader: true
+      responseForwarding:
+        flushInterval: 100ms
+  - kind: Rule
+    match: Host(`placeholder.uscifarm.insolar.io`) && PathPrefix(`/admin-api`)
+    middlewares:
+    - name: http-https
+      namespace: kube-system
+    services:
+    - name: platform-network
+      namespace: placeholder
+      port: 19001
+      weight: 1
+      passHostHeader: true
+      responseForwarding:
+        flushInterval: 100ms
+  - kind: Rule
+    match: Host(`placeholder.uscifarm.insolar.io`) && PathPrefix(`/wallet`)
+    middlewares:
+    - name: http-https
+      namespace: kube-system
+    services:
+    - name: platform-network
+      namespace: placeholder
+      port: 32301
+      weight: 1
+      passHostHeader: true
+      responseForwarding:
+        flushInterval: 100ms
+
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: placeholder-https
   namespace: kube-system
 spec:
   entryPoints:
