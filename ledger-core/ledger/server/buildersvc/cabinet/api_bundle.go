@@ -13,8 +13,16 @@ import (
 
 type BundleResultFunc = func([]ledger.DirectoryIndex, error) bool
 
-type DropWriter interface {
+type BundleWriter interface {
+	// WriteBundle verifies the bundle and starts writing of it. Can return after validation, but before completion of write.
+	// All bundle entries must be written atomically.
+	// Callback (BundleResultFunc) is invoked either on error, or after completion of write of all copies, but before commit.
+	// Rollback is initiated either on an error or by returning (false) from (BundleResultFunc).
+	// Implementation MUST ensure on successful writes the same sequence of calls to (BundleResultFunc) as were for WriteBundle.
 	WriteBundle([]WriteBundleEntry, BundleResultFunc) error
+
+	// WaitWriteBundles will wait for all bundles invoked before WaitWriteBundles to be completed.
+	// Arg (synckit.SignalChannel) can be used to interrupt waiting.
 	WaitWriteBundles(synckit.SignalChannel) bool
 }
 
@@ -31,9 +39,4 @@ type SectionPayload struct {
 	Payload   MarshalerTo
 	Extension ledger.ExtensionID
 	Section   ledger.SectionID
-}
-
-type MarshalerTo interface {
-	ProtoSize() int
-	MarshalTo([]byte) (int, error)
 }

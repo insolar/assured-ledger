@@ -39,21 +39,21 @@ func NewMemoryStorageWriter(sectionCount, pageSize int) *MemoryStorageWriter {
 	return mc
 }
 
-var _ StorageCabinetWriter = &MemoryStorageWriter{}
+var _ cabinet.SnapshotWriter = &MemoryStorageWriter{}
 
 type MemoryStorageWriter struct {
 	sections []cabinetSection
 }
 
-func (p *MemoryStorageWriter) TakeSnapshot() Snapshot {
+func (p *MemoryStorageWriter) TakeSnapshot() cabinet.Snapshot {
 	return &memorySnapshot{
-		mem: p,
+		storage:  p,
 		snapshot: make([]sectionSnapshot, len(p.sections)),
 	}
 }
 
 type memorySnapshot struct {
-	mem *MemoryStorageWriter
+	storage  *MemoryStorageWriter
 	snapshot []sectionSnapshot
 }
 
@@ -80,7 +80,7 @@ func (p *memorySnapshot) Rollback() {
 
 func (p *memorySnapshot) ChainedRollback() {}
 
-func (p *memorySnapshot) GetPayloadSection(id ledger.SectionID) (PayloadSection, error) {
+func (p *memorySnapshot) GetPayloadSection(id ledger.SectionID) (cabinet.PayloadSection, error) {
 	cs, err := p.getSection(id, false)
 	if cs == nil {
 		return nil, err
@@ -88,7 +88,7 @@ func (p *memorySnapshot) GetPayloadSection(id ledger.SectionID) (PayloadSection,
 	return cs, err
 }
 
-func (p *memorySnapshot) GetDirectorySection(id ledger.SectionID) (DirectorySection, error) {
+func (p *memorySnapshot) GetDirectorySection(id ledger.SectionID) (cabinet.DirectorySection, error) {
 	cs, err := p.getSection(id, true)
 	if cs == nil {
 		return nil, err
@@ -102,7 +102,7 @@ func (p *memorySnapshot) getSection(sectionID ledger.SectionID, directory bool) 
 	}
 	s := &p.snapshot[sectionID]
 	if s.section == nil {
-		s.section = &p.mem.sections[sectionID]
+		s.section = &p.storage.sections[sectionID]
 	}
 
 	if directory && !s.section.hasDirectory() {
@@ -122,15 +122,15 @@ func (p *sectionSnapshot) GetNextDirectoryIndex() ledger.DirectoryIndex {
 	return p.section.getNextDirectoryIndex(p)
 }
 
-func (p *sectionSnapshot) SetDirectoryEntry(index ledger.DirectoryIndex, key reference.Holder, loc ledger.StorageLocator) error {
+func (p *sectionSnapshot) AppendDirectoryEntry(index ledger.DirectoryIndex, key reference.Holder, loc ledger.StorageLocator) error {
 	return p.section.setDirectoryEntry(index, key, loc)
 }
 
-func (p *sectionSnapshot) AllocateEntryStorage(size int) (MarshalToReceptacle, ledger.StorageLocator, error) {
+func (p *sectionSnapshot) AllocateEntryStorage(size int) (cabinet.PayloadReceptacle, ledger.StorageLocator, error) {
 	return p.section.allocatePayloadStorage(p, size, 0)
 }
 
-func (p *sectionSnapshot) AllocatePayloadStorage(size int, extID ledger.ExtensionID) (MarshalToReceptacle, ledger.StorageLocator, error) {
+func (p *sectionSnapshot) AllocatePayloadStorage(size int, extID ledger.ExtensionID) (cabinet.PayloadReceptacle, ledger.StorageLocator, error) {
 	return p.section.allocatePayloadStorage(p, size, extID)
 }
 
@@ -196,7 +196,7 @@ func (p *cabinetSection) setDirectoryEntry(index ledger.DirectoryIndex, key refe
 }
 
 // allocatePayloadStorage can reorder payloads
-func (p *cabinetSection) allocatePayloadStorage(snap *sectionSnapshot, size int, _ ledger.ExtensionID) (MarshalToReceptacle, ledger.StorageLocator, error) {
+func (p *cabinetSection) allocatePayloadStorage(snap *sectionSnapshot, size int, _ ledger.ExtensionID) (cabinet.PayloadReceptacle, ledger.StorageLocator, error) {
 	switch {
 	case size < 0:
 		panic(throw.IllegalValue())

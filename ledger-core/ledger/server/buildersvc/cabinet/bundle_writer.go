@@ -3,90 +3,37 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package dropstorage
+package cabinet
 
 import (
 	"sync"
 
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
-	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/cabinet"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-func NewCabinetWriter(cab StorageCabinetWriter) *CabinetWriter {
-	if cab == nil {
+func NewBundleWriter(snap SnapshotWriter) BundleWriter {
+	if snap == nil {
 		panic(throw.IllegalValue())
 	}
-	return &CabinetWriter{ cab: cab}
+	return &bundleWriter{snap: snap}
 }
 
-type Snapshot interface {
-	// Prepared indicates that all allocations are made, but data were not written yet. Called once per Snapshot.
-	// Implementation should NOT delay return from Prepared().
-	// It is guaranteed that there will be no new TakeSnapshot() call until Prepared() is invoked on the last one.
-	// Not concurrent with StorageCabinetWriter.TakeSnapshot().
-	Prepared() error
-	// Completed indicates that all data were written into the allocations made. Called once per Snapshot.
-	// Implementation can delay return from Completed() e.g. to do multiple copies of data.
-	// Concurrent with StorageCabinetWriter.TakeSnapshot().
-	Completed() error
-	// Commit is invoked after Completed().
-	// Is guaranteed to be invoked in the same sequence as snapshots were made by TakeSnapshot().
-	// Not concurrent with StorageCabinetWriter.TakeSnapshot().
-	Commit() error
-	// Rollback is invoked on any errors before Commit().
-	// Not concurrent with StorageCabinetWriter.TakeSnapshot().
-	Rollback()
-	// ChainedRollback is invoked before Commit() when previous snapshot was rolled back.
-	// Is guaranteed to be invoked in the same sequence as snapshots were made by TakeSnapshot().
-	// Not concurrent with StorageCabinetWriter.TakeSnapshot().
-	ChainedRollback()
+var _ BundleWriter = &bundleWriter{}
 
-	// GetPayloadSection returns PayloadSection for the given id or error.
-	// Happens between TakeSnapshot() and Prepared().
-	// Not concurrent with StorageCabinetWriter.TakeSnapshot().
-	GetPayloadSection(ledger.SectionID) (PayloadSection, error)
-	// GetDirectorySection returns DirectorySection for the given id or error
-	// Happens between TakeSnapshot() and Prepared().
-	// Not concurrent with StorageCabinetWriter.TakeSnapshot().
-	GetDirectorySection(ledger.SectionID) (DirectorySection, error)
+type bundleWriter struct {
+	mutex sync.Mutex
+	snap  SnapshotWriter
+
+	lastReady chan struct{}
 }
 
-type StorageCabinetWriter interface {
-	// TakeSnapshot starts a new write operation and remembers a rollback point.
-	// Not concurrent at StorageCabinetWriter, but can be called before commit of previous snapshot(s).
-	TakeSnapshot() Snapshot
-}
-
-type MarshalToReceptacle interface {
-	ApplyMarshalTo(cabinet.MarshalerTo) error
-}
-
-type PayloadSection interface {
-	AllocatePayloadStorage(size int, extID ledger.ExtensionID) (MarshalToReceptacle, ledger.StorageLocator, error)
-}
-
-type DirectorySection interface {
-	GetNextDirectoryIndex() ledger.DirectoryIndex
-	SetDirectoryEntry(index ledger.DirectoryIndex, key reference.Holder, loc ledger.StorageLocator) error
-	AllocateEntryStorage(size int) (MarshalToReceptacle, ledger.StorageLocator, error)
-}
-
-var _ cabinet.DropWriter = &CabinetWriter{}
-
-type CabinetWriter struct {
-	writeMutex sync.Mutex
-	cab        StorageCabinetWriter
-
-	lastWriterReady chan struct{}
-}
-
-func (p *CabinetWriter) WaitWriteBundles(done synckit.SignalChannel) bool {
-	p.writeMutex.Lock()
-	last := p.lastWriterReady
-	p.writeMutex.Unlock()
+func (p *bundleWriter) WaitWriteBundles(done synckit.SignalChannel) bool {
+	p.mutex.Lock()
+	last := p.lastReady
+	p.mutex.Unlock()
 	if last == nil {
 		return true
 	}
@@ -99,15 +46,15 @@ func (p *CabinetWriter) WaitWriteBundles(done synckit.SignalChannel) bool {
 	}
 }
 
-func (p *CabinetWriter) WriteBundle(entries []cabinet.WriteBundleEntry, completedFn cabinet.BundleResultFunc) error {
+func (p *bundleWriter) WriteBundle(entries []WriteBundleEntry, completedFn BundleResultFunc) error {
 	if completedFn == nil {
 		panic(throw.IllegalValue())
 	}
 
-	p.writeMutex.Lock()
-	defer p.writeMutex.Unlock()
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
 
-	snapshot := p.cab.TakeSnapshot()
+	snapshot := p.snap.TakeSnapshot()
 	defer func() {
 		if snapshot != nil {
 			snapshot.Rollback()
@@ -119,9 +66,9 @@ func (p *CabinetWriter) WriteBundle(entries []cabinet.WriteBundleEntry, complete
 		return err
 	}
 
-	prev := p.lastWriterReady
+	prev := p.lastReady
 	next := make(chan struct{}, 1)
-	p.lastWriterReady = next
+	p.lastReady = next
 
 	select {
 	case <- prev:
@@ -137,8 +84,8 @@ func (p *CabinetWriter) WriteBundle(entries []cabinet.WriteBundleEntry, complete
 	return nil
 }
 
-func (p *CabinetWriter) applyBundleSafe(snapshot Snapshot, entries []preparedEntry,
-	prev, next synckit.ClosableSignalChannel, completedFn cabinet.BundleResultFunc,
+func (p *bundleWriter) applyBundleSafe(snapshot Snapshot, entries []preparedEntry,
+	prev, next synckit.ClosableSignalChannel, completedFn BundleResultFunc,
 ) {
 	defer close(next) // to be executed as the very last one
 
@@ -150,13 +97,13 @@ func (p *CabinetWriter) applyBundleSafe(snapshot Snapshot, entries []preparedEnt
 		switch {
 		case !rollback:
 			if locked {
-				p.writeMutex.Unlock()
+				p.mutex.Unlock()
 			}
 			return
 		case !locked:
-			p.writeMutex.Lock()
+			p.mutex.Lock()
 		}
-		defer p.writeMutex.Unlock()
+		defer p.mutex.Unlock()
 
 		if chained {
 			snapshot.ChainedRollback()
@@ -196,7 +143,7 @@ func (p *CabinetWriter) applyBundleSafe(snapshot Snapshot, entries []preparedEnt
 			}
 		}
 
-		p.writeMutex.Lock()
+		p.mutex.Lock()
 		locked = true
 
 		if !completedFn(assignments, nil) {
@@ -208,7 +155,7 @@ func (p *CabinetWriter) applyBundleSafe(snapshot Snapshot, entries []preparedEnt
 			return err
 		}
 
-		p.writeMutex.Unlock()
+		p.mutex.Unlock()
 		locked = false
 
 		next <- struct{}{} // send ok to next
@@ -218,22 +165,22 @@ func (p *CabinetWriter) applyBundleSafe(snapshot Snapshot, entries []preparedEnt
 
 	if err != nil {
 		if !locked {
-			p.writeMutex.Lock()
+			p.mutex.Lock()
 			locked = true
 		}
 		completedFn(nil, err)
 	}
 }
 
-func (p *CabinetWriter) applyBundle(entries []preparedEntry) ([]ledger.DirectoryIndex, error) {
+func (p *bundleWriter) applyBundle(entries []preparedEntry) ([]ledger.DirectoryIndex, error) {
 	indices := make([]ledger.DirectoryIndex, len(entries))
 	for i := range entries {
 		indices[i] = entries[i].entryIndex
 		for _, pl := range entries[i].payloads {
-			if pl.Target == nil {
+			if pl.target == nil {
 				continue
 			}
-			if err := pl.Target.ApplyMarshalTo(pl.Payload); err != nil {
+			if err := pl.target.ApplyMarshalTo(pl.payload); err != nil {
 				return nil, err
 			}
 		}
@@ -241,7 +188,7 @@ func (p *CabinetWriter) applyBundle(entries []preparedEntry) ([]ledger.Directory
 	return indices, nil
 }
 
-func (p *CabinetWriter) _prepareBundle(snapshot Snapshot, entries []cabinet.WriteBundleEntry) ([]preparedEntry, error) {
+func (p *bundleWriter) _prepareBundle(snapshot Snapshot, entries []WriteBundleEntry) ([]preparedEntry, error) {
 	preparedEntries := make([]preparedEntry, len(entries))
 
 	for i := range entries {
@@ -257,7 +204,7 @@ func (p *CabinetWriter) _prepareBundle(snapshot Snapshot, entries []cabinet.Writ
 	return preparedEntries, nil
 }
 
-func (p *CabinetWriter) prepareRecord(snapshot Snapshot, entry cabinet.WriteBundleEntry) (preparedEntry, error) {
+func (p *bundleWriter) prepareRecord(snapshot Snapshot, entry WriteBundleEntry) (preparedEntry, error) {
 	ds, err := snapshot.GetDirectorySection(entry.Directory)
 	if err != nil {
 		return preparedEntry{}, err
@@ -290,10 +237,10 @@ func (p *CabinetWriter) prepareRecord(snapshot Snapshot, entry cabinet.WriteBund
 
 			payloadLoc[j] = loc
 			preparedPayloads[j] = preparedPayload{
-				Payload: pl,
-				Target:  receptacle,
-				Loc:     loc,
-				Size:    uint32(size),
+				payload: pl,
+				target:  receptacle,
+				loc:     loc,
+				size:    uint32(size),
 			}
 		}
 	}
@@ -305,15 +252,15 @@ func (p *CabinetWriter) prepareRecord(snapshot Snapshot, entry cabinet.WriteBund
 		return preparedEntry{}, err
 	}
 
-	if err := ds.SetDirectoryEntry(entryIndex, entry.EntryKey, entryLoc); err != nil {
+	if err := ds.AppendDirectoryEntry(entryIndex, entry.EntryKey, entryLoc); err != nil {
 		return preparedEntry{}, err
 	}
 
 	preparedPayloads[nPayloads] = preparedPayload{
-		Payload: entryPayload,
-		Target:  receptacle,
-		Loc:     entryLoc,
-		Size:    uint32(entrySize),
+		payload: entryPayload,
+		target:  receptacle,
+		loc:     entryLoc,
+		size:    uint32(entrySize),
 	}
 
 	return preparedEntry{
@@ -330,9 +277,9 @@ type preparedEntry struct {
 }
 
 type preparedPayload struct {
-	Payload cabinet.MarshalerTo
-	Target  MarshalToReceptacle
-	Loc     ledger.StorageLocator
-	Size    uint32
+	payload MarshalerTo
+	target  PayloadReceptacle
+	loc     ledger.StorageLocator
+	size    uint32
 }
 
