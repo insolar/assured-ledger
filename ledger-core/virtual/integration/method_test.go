@@ -1175,6 +1175,7 @@ func TestVirtual_FutureMessageAddedToSlot(t *testing.T) {
 	jetCoordinatorMock.QueryRoleMock.Return([]reference.Global{server.RandomGlobalWithPulse()}, nil)
 	jetCoordinatorMock.MeMock.Return(server.RandomGlobalWithPulse())
 
+	server.WaitIdleConveyor()
 	server.SendPayloadAsFuture(ctx, &pl)
 	// new request goes to future pulse slot
 	server.WaitActiveThenIdleConveyor()
