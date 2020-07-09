@@ -51,7 +51,7 @@ func expectedInitState(ctx context.Context, sm SMExecute) SMExecute {
 
 	if sm.Payload.CallType == payload.CTConstructor {
 		sm.isConstructor = true
-		sm.execution.Object = sm.Payload.CallOutgoing
+		sm.execution.Object = reference.NewSelf(sm.Payload.CallOutgoing.GetLocal())
 	} else {
 		sm.execution.Object = sm.Payload.Callee
 	}
@@ -770,7 +770,7 @@ func TestSendVStateReportWithMissingState_IfConstructorWasInterruptedBeforeRunne
 		res, ok := msg.(*payload.VStateReport)
 		require.True(t, ok)
 		assert.Equal(t, payload.Missing, res.Status)
-		assert.Equal(t, outgoing, res.Object)
+		assert.Equal(t, reference.NewSelf(outgoing.GetLocal()), res.Object)
 		assert.Equal(t, int32(0), res.OrderedPendingCount)
 		assert.Equal(t, int32(0), res.UnorderedPendingCount)
 		assert.Empty(t, res.LatestDirtyState)

@@ -114,7 +114,7 @@ func (s *SMExecute) prepareExecution(ctx context.Context) {
 
 	if s.Payload.CallType == payload.CTConstructor {
 		s.isConstructor = true
-		s.execution.Object = s.Payload.CallOutgoing
+		s.execution.Object = reference.NewSelf(s.Payload.CallOutgoing.GetLocal())
 	} else {
 		s.execution.Object = s.Payload.Callee
 	}

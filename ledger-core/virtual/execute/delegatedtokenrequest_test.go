@@ -41,10 +41,11 @@ func TestVDelegatedCallRequest(t *testing.T) {
 	slotMachine.PrepareMockedMessageSender(mc)
 
 	var (
-		caller       = gen.UniqueGlobalRef()
-		callee       = gen.UniqueGlobalRef()
-		objectGlobal = reference.NewRecordOf(caller, slotMachine.GenerateLocal())
-		tokenKey     = DelegationTokenAwaitKey{objectGlobal}
+		caller    = gen.UniqueGlobalRef()
+		callee    = gen.UniqueGlobalRef()
+		outgoing  = reference.NewRecordOf(caller, slotMachine.GenerateLocal())
+		objectRef = reference.NewSelf(outgoing.GetLocal())
+		tokenKey  = DelegationTokenAwaitKey{outgoing}
 
 		migrationPulse pulse.Number
 
@@ -52,7 +53,7 @@ func TestVDelegatedCallRequest(t *testing.T) {
 			Payload: &payload.VCallRequest{
 				CallType:     payload.CTConstructor,
 				CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
-				CallOutgoing: objectGlobal,
+				CallOutgoing: outgoing,
 
 				Caller: caller,
 				Callee: callee,
@@ -71,7 +72,7 @@ func TestVDelegatedCallRequest(t *testing.T) {
 
 		sharedStateData := smachine.NewUnboundSharedData(&object.SharedState{
 			Info: object.Info{
-				Reference:      objectGlobal,
+				Reference:      objectRef,
 				PendingTable:   callregistry.NewRequestTable(),
 				KnownRequests:  callregistry.NewWorkingTable(),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
@@ -81,7 +82,7 @@ func TestVDelegatedCallRequest(t *testing.T) {
 
 		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 
-		catalogWrapper.AddObject(objectGlobal, smObjectAccessor)
+		catalogWrapper.AddObject(objectRef, smObjectAccessor)
 		catalogWrapper.AllowAccessMode(object.CatalogMockAccessGetOrCreate)
 	}
 
@@ -90,21 +91,21 @@ func TestVDelegatedCallRequest(t *testing.T) {
 			res, ok := msg.(*payload.VDelegatedCallRequest)
 			require.True(t, ok)
 			require.NotNil(t, res)
-			require.Equal(t, objectGlobal, object)
+			require.Equal(t, objectRef, object)
 			require.Equal(t, migrationPulse, pn)
 			return nil
 		})
 
 	{
-		slotMachine.RunnerMock.AddExecutionClassify(objectGlobal.String(), contract.MethodIsolation{
+		slotMachine.RunnerMock.AddExecutionClassify(outgoing.String(), contract.MethodIsolation{
 			Interference: contract.CallTolerable,
 			State:        contract.CallDirty,
 		}, nil)
-		slotMachine.RunnerMock.AddExecutionMock(objectGlobal.String()).AddStart(
+		slotMachine.RunnerMock.AddExecutionMock(outgoing.String()).AddStart(
 			nil,
 			&execution.Update{
 				Type:   execution.Done,
-				Result: requestresult.New([]byte("123"), objectGlobal),
+				Result: requestresult.New([]byte("123"), outgoing),
 			})
 	}
 
@@ -125,7 +126,7 @@ func TestVDelegatedCallRequest(t *testing.T) {
 		require.False(t, slotLink.IsZero())
 
 		ok := bargeInHolder.CallWithParam(&payload.VDelegatedCallResponse{
-			ResponseDelegationSpec: payload.CallDelegationToken{Outgoing: objectGlobal},
+			ResponseDelegationSpec: payload.CallDelegationToken{Outgoing: outgoing},
 		})
 		require.True(t, ok)
 	}
@@ -134,7 +135,7 @@ func TestVDelegatedCallRequest(t *testing.T) {
 		slotMachine.RunTil(smWrapper.AfterStep(smExecute.stepAfterTokenGet.Transition))
 
 		require.NotNil(t, smExecute.delegationTokenSpec)
-		require.Equal(t, objectGlobal, smExecute.delegationTokenSpec.Outgoing)
+		require.Equal(t, outgoing, smExecute.delegationTokenSpec.Outgoing)
 	}
 
 	{
