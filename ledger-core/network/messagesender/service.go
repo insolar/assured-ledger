@@ -111,8 +111,8 @@ func (dm *DefaultService) sendTarget(
 		inslogger.FromContext(ctx).Warn(throw.W(err, "failed to fetch pulse"))
 	}
 
-
-	ctx, logger := inslogger.WithField(ctx, "sending_uuid", msg.UUID)
+	ctx, logTmp := inslogger.WithField(ctx, "sending_uuid", msg.UUID)
+	logger := logTmp.WithField("metadata", msg.Metadata)
 
 	msg.Metadata.Set(defaults.TraceID, inslogger.TraceID(ctx))
 	sp, err := instracer.Serialize(ctx)

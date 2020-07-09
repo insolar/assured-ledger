@@ -15,7 +15,11 @@ func NewMessage(pl Marshaler) (*message.Message, error) {
 	if err != nil {
 		return nil, err
 	}
-	return message.NewMessage(watermill.NewUUID(), buf), nil
+
+	msg := message.NewMessage(watermill.NewUUID(), buf)
+	// for debug logging only!
+	msg.Metadata.Set("payload_string", pl.String())
+	return msg, nil
 }
 
 func MustNewMessage(pl Marshaler) *message.Message {

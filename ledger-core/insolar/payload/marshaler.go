@@ -7,6 +7,7 @@ package payload
 
 type Marshaler interface {
 	Marshal() ([]byte, error)
+	String() string
 	// Temporary commented to look like insolar.Payload
 	//MarshalHead() ([]byte, error)
 	//MarshalContent() ([]byte, error)
