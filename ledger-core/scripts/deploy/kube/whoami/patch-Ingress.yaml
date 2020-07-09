@@ -1,0 +1,22 @@
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: api-proxy
+spec:
+  rules:
+    - host: placeholder.uscifarm.insolar.io
+      http:
+        paths:
+            path: /whoami
+          - backend:
+              serviceName: whoami
+              servicePort: 19101
+            path: /api
+          - backend:
+              serviceName: whoami
+              servicePort: 19001
+            path: /admin-api
+          - backend:
+              serviceName: whoami
+              servicePort: 32301
+            path: /wallet

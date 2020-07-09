@@ -1,0 +1,59 @@
+name: ve-performance check
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+env:
+  KUBECONFIG: "${{ github.workspace }}/aks.yaml"
+  GO_VERSION: 1.14
+  CI_GOMAXPROCS: 0
+  INSOLAR_LOG_LEVEL: warn
+  GOTEST: 'gotestsum --'
+  GOPATH: /home/runner/work/
+  GOPROXY: https://proxy.golang.org,https://goproxy.io,direct
+  CORE_PATH: /home/runner/work/assured-ledger/assured-ledger/ledger-core
+  USE_MANIFESTS: aks
+  ACR_HOST: usciregistry.azurecr.io
+jobs:
+  ve-performance:
+    name: ve-performance
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@master
+      - name: build test
+        working-directory: ${{ env.CORE_PATH }}
+        run: |
+          cd load
+          go build cmd/load/main.go
+      - name: Set up go ${{ env.GO_VERSION }}
+        uses: actions/setup-go@v1
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: Add bin to path
+        run: echo "::add-path::${{ env.GOPATH }}/bin"
+      - name: Add workspace/bin to path
+        run: echo "::add-path::$GITHUB_WORKSPACE/bin"
+      - name: save kubeconfig
+        run: echo "${{secrets.CLOUD_KUBECONFIG}}" >> aks.yaml
+      - name: Build docker images
+        run: make docker-build
+        working-directory: ${{ env.CORE_PATH }}
+      - name: template GIT_SHA to deployment manifests
+        run: |
+          sed -i "s/placeholder/${GITHUB_SHA:0:8}/g" ledger-core/scripts/deploy/kube/*/*.*
+          sed -i "s/placeholder/${GITHUB_SHA:0:8}/g" ledger-core/scripts/deploy/kube/*/configuration/*.*
+          sed -i "s/placeholder/${GITHUB_SHA:0:8}/g" ledger-core/load/gen_cfg/*.*
+          cat /home/runner/work/assured-ledger/assured-ledger/ledger-core/load/gen_cfg/generator_assured_ledger_whoami.yaml
+      - name: run 5node network
+        run: kubectl apply -k ledger-core/scripts/deploy/kube/whoami
+      - name: wait for successfull rollout
+        run: kubectl -n ${GITHUB_SHA:0:8} rollout status sts/virtual
+      - name: start test
+        run: |
+          cd ${{ env.CORE_PATH }}/load/
+          loadcli -gen_config load/gen_cfg/generator_assured_ledger_whoami.yaml b darwin && NETWORK_NODES=20 ./load_suite -config load/run_configs/all_sequence_debug_whoami.yaml -gen_config load/gen_cfg/generator_assured_ledger_whoami.yaml
+      - name: cleanup
+        if: always()
+        run: kubectl delete ns ${GITHUB_SHA:0:8} --ignore-not-found=true
