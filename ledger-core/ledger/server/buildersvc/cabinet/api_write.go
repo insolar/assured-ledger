@@ -8,12 +8,14 @@ package cabinet
 import (
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 )
 
-type BundleCompletedFunc = func([]ledger.DirectoryIndex, error) bool
+type BundleResultFunc = func([]ledger.DirectoryIndex, error) bool
 
 type DropWriter interface {
-	WriteBundle(entries []WriteBundleEntry, completedFn BundleCompletedFunc) error
+	WriteBundle([]WriteBundleEntry, BundleResultFunc) error
+	WaitWriteBundles(synckit.SignalChannel) bool
 }
 
 type EntryWriterFunc = func (ledger.DirectoryIndex, []ledger.StorageLocator) MarshalerTo

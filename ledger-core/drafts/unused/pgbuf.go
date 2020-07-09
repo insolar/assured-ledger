@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package dropstorage
+package unused
 
 import (
 	"sync"
@@ -121,11 +121,11 @@ func (p *PagedBuffer) FlushPages() *FlushedPages {
 	if first == nil {
 		return nil
 	}
-	return &FlushedPages{ first:first }
+	return &FlushedPages{ first: first }
 }
 
 func newFlushedPage(pageNo uint32) *bufferPage {
-	return &bufferPage{ pageNo:pageNo }
+	return &bufferPage{ pageNo: pageNo }
 }
 
 func newBufferPage(capacity uint32) *bufferPage {

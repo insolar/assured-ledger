@@ -91,6 +91,7 @@ func (p *dropAssistant) append(pa *plashAssistant, future AppendFuture, bundle l
 
 	return p.writer.WriteBundle(writeBundle, func(indices []ledger.DirectoryIndex, err error) bool {
 		// this closure is called later, after the bundle is completely written
+		// this closure can be called twice, when rollback was requested, but has failed - the the 2nd call will be with an error
 		if err == nil {
 			err = pa.commitDropUpdate(func() error {
 				// EXTREME LOCK WARNING!

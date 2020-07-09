@@ -8,6 +8,7 @@ package datawriter
 import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
@@ -93,13 +94,14 @@ func (p *SMPlash) stepCreatePlush(ctx smachine.ExecutionContext) smachine.StateU
 	var (
 		tree jet.Tree
 		pop census.OnlinePopulation
+		local node.ShortNodeID
 	)
 
 	// TODO get jetTree, online population
 
 	pr := p.sd.pr
 	return p.builderSvc.PrepareAsync(ctx, func(svc buildersvc.Service) smachine.AsyncResultFunc {
-		jetAssist, jets := svc.CreatePlash(pr, tree, pop)
+		jetAssist, jets := svc.CreatePlash(local, pr, tree, pop)
 
 		return func(ctx smachine.AsyncResultContext) {
 			if jetAssist == nil {
