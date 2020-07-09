@@ -1104,8 +1104,19 @@ func TestVirtual_FutureMessageAddedToSlot(t *testing.T) {
 	server.IncrementPulse(ctx)
 
 	var (
-		objectLocal  = server.RandomLocalWithPulse()
-		objectGlobal = reference.NewSelf(objectLocal)
+		objectLocal       = server.RandomLocalWithPulse()
+		objectGlobal      = reference.NewSelf(objectLocal)
+		outgoing          = server.BuildRandomOutgoingWithPulse()
+		class             = gen.UniqueGlobalRef()
+		dirtyStateRef     = server.RandomLocalWithPulse()
+		dirtyState        = reference.NewSelf(dirtyStateRef)
+		validatedStateRef = server.RandomLocalWithPulse()
+		validatedState    = reference.NewSelf(validatedStateRef)
+	)
+
+	const (
+		validatedMem = "12345"
+		dirtyMem     = "54321"
 	)
 
 	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal)
@@ -1113,14 +1124,47 @@ func TestVirtual_FutureMessageAddedToSlot(t *testing.T) {
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool { return false })
 	typedChecker.VStateReport.Set(func(res *payload.VStateReport) bool { return false })
+	typedChecker.VStateRequest.Set(func(res *payload.VStateRequest) bool {
+		report := &payload.VStateReport{
+			Status:               payload.Ready,
+			AsOf:                 0,
+			Object:               objectGlobal,
+			LatestValidatedState: validatedState,
+			LatestDirtyState:     dirtyState,
+			ProvidedContent: &payload.VStateReport_ProvidedContentBody{
+				LatestValidatedState: &payload.ObjectState{
+					Reference: validatedStateRef,
+					Class:     class,
+					State:     []byte(validatedMem),
+				},
+				LatestDirtyState: &payload.ObjectState{
+					Reference: dirtyStateRef,
+					Class:     class,
+					State:     []byte(dirtyMem),
+				},
+			},
+		}
+		server.SendPayload(ctx, report)
+		return false
+	})
 
-	pl := payload.VCallRequest{}
+	pl := payload.VCallRequest{
+		CallType:            payload.CTMethod,
+		CallFlags:           payload.BuildCallFlags(contract.CallIntolerable, contract.CallValidated),
+		Caller:              server.GlobalCaller(),
+		Callee:              objectGlobal,
+		CallSiteDeclaration: testwallet.GetClass(),
+		CallSiteMethod:      "Accept",
+		CallOutgoing:        outgoing,
+		Arguments:           insolar.MustSerialize([]interface{}{}),
+	}
+
 	server.SendPayloadAsFuture(ctx, &pl)
-
+	// new request goes to future pulse slot
 	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitFutureSlotInited(1))
-	server.IncrementPulse(ctx)
-
-	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAnyActivityOf(&execute.SMExecute{}, 1))
+	server.IncrementPulseAndWaitIdle(ctx)
+	// after change pulse it starts processing
+	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitStopOf(&execute.SMExecute{}, 1))
 	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 	mc.Finish()
