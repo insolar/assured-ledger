@@ -1096,6 +1096,7 @@ func Test_CallMethodWithBadIsolationFlags(t *testing.T) {
 
 func TestVirtual_FutureMessageAddedToSlot(t *testing.T) {
 	t.Log("C5318")
+	t.Skip("https://insolar.atlassian.net/browse/PLAT-615")
 
 	mc := minimock.NewController(t)
 
