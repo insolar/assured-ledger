@@ -102,6 +102,14 @@ func (p *Journal) WaitStopOf(sample smachine.StateMachine, stopCount int) syncki
 		).AfterPositiveToZero)
 }
 
+func (p *Journal) WaitAnyActivityOf(sample smachine.StateMachine, stopCount int) synckit.SignalChannel {
+	return p.WaitOnce(
+		predicate.NewCounter(
+			predicate.NewSMTypeFilter(sample, nil),
+			stopCount,
+		).AfterPositiveToZero)
+}
+
 func (p *Journal) WaitAllAsyncCallsDone() synckit.SignalChannel {
 	ch := p.WaitOnce(func(debuglogger.UpdateEvent) bool {
 		return p.async.Count() == 0

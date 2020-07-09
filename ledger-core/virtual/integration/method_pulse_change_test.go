@@ -422,7 +422,6 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 
 func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 	t.Log("C5237")
-	t.Skip("https://insolar.atlassian.net/browse/PLAT-618")
 	table := []struct {
 		name      string
 		isolation contract.MethodIsolation
@@ -465,7 +464,6 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 				dirtyStateRef   = server.RandomLocalWithPulse()
 				p1              = server.GetPulse().PulseNumber
 				getDelegated    = false
-				delegationToken payload.CallDelegationToken
 			)
 
 			server.IncrementPulseAndWaitIdle(ctx)
@@ -480,7 +478,6 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 					AsOf:                        p1,
 					OrderedPendingCount:         1,
 					OrderedPendingEarliestPulse: p1,
-					ProvidedContent:             nil,
 				}
 
 				server.SendPayload(ctx, payload)
@@ -517,15 +514,7 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 					assert.Empty(t, res.DelegationSpec)
 					return false
 				})
-				typedChecker.VDelegatedRequestFinished.Set(func(res *payload.VDelegatedRequestFinished) bool {
-					getDelegated = true
-					require.Equal(t, delegationToken, res.DelegationSpec)
-					return false
-				})
-				typedChecker.VDelegatedCallResponse.Set(func(res *payload.VDelegatedCallResponse) bool {
-					delegationToken = res.ResponseDelegationSpec
-					return false
-				})
+				typedChecker.VDelegatedCallResponse.SetResend(false)
 			}
 
 			// VCallRequest
@@ -563,6 +552,7 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 					},
 				}
 				server.SendPayload(ctx, &finished)
+				getDelegated = true
 			}
 
 			testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)

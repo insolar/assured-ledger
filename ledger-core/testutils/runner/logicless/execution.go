@@ -6,6 +6,8 @@
 package logicless
 
 import (
+	"github.com/gojuno/minimock/v3"
+
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -39,6 +41,7 @@ func (t ExecutionChunkType) String() string {
 }
 
 type ExecutionMock struct {
+	t     minimock.Tester
 	key   interface{}
 	state *runState
 
