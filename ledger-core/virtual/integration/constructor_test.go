@@ -30,65 +30,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 )
-
-func TestVirtual_Constructor_WithoutExecutor(t *testing.T) {
-	t.Log("C4835")
-
-	var (
-		mc        = minimock.NewController(t)
-		isolation = contract.ConstructorIsolation()
-		class     = gen.UniqueGlobalRef()
-	)
-
-	server, ctx := utils.NewUninitializedServer(nil, t)
-	defer server.Stop()
-
-	runnerMock := logicless.NewServiceMock(ctx, mc, nil)
-	server.ReplaceRunner(runnerMock)
-	server.Init(ctx)
-
-	var (
-		outgoingRef = server.BuildRandomOutgoingWithPulse()
-		objectRef   = reference.NewSelf(outgoingRef.GetLocal())
-	)
-
-	pl := payload.VCallRequest{
-		CallType:       payload.CTConstructor,
-		CallFlags:      payload.BuildCallFlags(isolation.Interference, isolation.State),
-		Callee:         class,
-		CallSiteMethod: "test",
-		CallOutgoing:   outgoingRef,
-	}
-
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
-		require.Equal(t, []byte("123"), res.ReturnArguments)
-		require.Equal(t, objectRef, res.Callee)
-		require.Equal(t, outgoingRef, res.CallOutgoing)
-
-		return false // no resend msg
-	})
-
-	{
-		requestResult := requestresult.New([]byte("123"), outgoingRef)
-		requestResult.SetActivate(reference.Global{}, class, []byte("234"))
-
-		runnerMock.AddExecutionMock(outgoingRef.String()).
-			AddStart(nil, &execution.Update{
-				Type:   execution.Done,
-				Result: requestResult,
-			})
-	}
-
-	server.SendPayload(ctx, &pl)
-
-	assert.True(t, server.PublisherMock.WaitCount(1, 10*time.Second))
-
-	mc.Finish()
-}
 
 func TestVirtual_Constructor_WithExecutor(t *testing.T) {
 	t.Log("C5180")
@@ -231,6 +176,7 @@ func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
 	server.Init(ctx)
 
 	var (
+		p            = server.GetPulse().PulseNumber
 		outgoing     = server.BuildRandomOutgoingWithPulse()
 		objectRef    = reference.NewSelf(outgoing.GetLocal())
 		runnerResult = []byte("123")
@@ -240,12 +186,10 @@ func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
 	pl := payload.VCallRequest{
 		CallType:       payload.CTConstructor,
 		CallFlags:      flags,
-		CallAsOf:       server.GetPulse().PulseNumber,
 		Callee:         class,
 		CallSiteMethod: "test",
 		CallOutgoing:   outgoing,
 	}
-	msg := server.WrapPayload(&pl).Finalize()
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
@@ -257,10 +201,29 @@ func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
 
 		return false // no resend msg
 	})
+	typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
+		expected := &payload.VStateReport{
+			Status:           payload.Ready,
+			AsOf:             p,
+			Object:           objectRef,
+			LatestDirtyState: objectRef,
+			ProvidedContent: &payload.VStateReport_ProvidedContentBody{
+				LatestDirtyState: &payload.ObjectState{
+					State: []byte("some memory"),
+					Class: class,
+				},
+			},
+		}
+		expected.ProvidedContent.LatestDirtyState.Reference =
+			report.ProvidedContent.LatestDirtyState.Reference
+		assert.Equal(t, expected, report)
+
+		return false
+	})
 
 	{
 		requestResult := requestresult.New(runnerResult, outgoing)
-		requestResult.SetActivate(reference.Global{}, class, []byte("234"))
+		requestResult.SetActivate(reference.Global{}, class, []byte("some memory"))
 
 		runnerMock.AddExecutionMock(outgoing.String()).
 			AddStart(nil, &execution.Update{
@@ -269,12 +232,16 @@ func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
 			})
 	}
 
-	server.SendMessage(ctx, msg)
+	server.SendPayload(ctx, &pl)
 
 	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
 	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
+	server.IncrementPulseAndWaitIdle(ctx)
+	testutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 1))
+
 	assert.Equal(t, 1, typedChecker.VCallResult.Count())
+	assert.Equal(t, 1, typedChecker.VStateReport.Count())
 
 	mc.Finish()
 }
@@ -301,6 +268,7 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 	server.IncrementPulseAndWaitIdle(ctx)
 
 	var (
+		p         = server.GetPulse().PulseNumber
 		outgoing  = server.BuildRandomOutgoingWithPulse()
 		objectRef = reference.NewSelf(outgoing.GetLocal())
 	)
@@ -316,7 +284,7 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 
 	{
 		requestResult := requestresult.New([]byte("123"), gen.UniqueGlobalRef())
-		requestResult.SetActivate(gen.UniqueGlobalRef(), class, []byte("234"))
+		requestResult.SetActivate(gen.UniqueGlobalRef(), class, []byte("some memory"))
 
 		runnerMock.AddExecutionMock(outgoing.String()).
 			AddStart(func(execution execution.Context) {
@@ -336,10 +304,31 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 
 		return false // no resend msg
 	})
+	typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
+		expected := &payload.VStateReport{
+			Status:           payload.Ready,
+			AsOf:             p,
+			Object:           objectRef,
+			LatestDirtyState: objectRef,
+			ProvidedContent: &payload.VStateReport_ProvidedContentBody{
+				LatestDirtyState: &payload.ObjectState{
+					State: []byte("some memory"),
+					Class: class,
+				},
+			},
+		}
+		expected.ProvidedContent.LatestDirtyState.Reference =
+			report.ProvidedContent.LatestDirtyState.Reference
+		assert.Equal(t, expected, report)
+
+		return false
+	})
 
 	{
-		pl := makeVStateReportWithState(outgoing, payload.Missing, nil)
+		done := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
+		pl := makeVStateReportWithState(objectRef, payload.Missing, nil)
 		server.SendPayload(ctx, pl)
+		testutils.WaitSignalsTimed(t, 10*time.Second, done)
 	}
 
 	server.SendPayload(ctx, &pl)
@@ -347,14 +336,18 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
 	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
+	server.IncrementPulseAndWaitIdle(ctx)
+	testutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 1))
+
 	assert.Equal(t, 1, typedChecker.VCallResult.Count())
+	assert.Equal(t, 1, typedChecker.VStateReport.Count())
 
 	mc.Finish()
 }
 
-func TestVirtual_Constructor_NoVFindCallRequestWhenMissing(t *testing.T) {
+func TestVirtual_Constructor_PrevPulseStateWithMissingStatus(t *testing.T) {
 	// Constructor call with outgoing.Pulse < currentPulse
-	// state request, state report
+	// state request, state report{Status: Missing}
 	t.Log("C4997")
 
 	var (
@@ -423,8 +416,8 @@ func TestVirtual_Constructor_NoVFindCallRequestWhenMissing(t *testing.T) {
 				},
 			},
 		}
-		expected.ProvidedContent.LatestDirtyState.Reference = report.ProvidedContent.LatestDirtyState.Reference
-
+		expected.ProvidedContent.LatestDirtyState.Reference =
+			report.ProvidedContent.LatestDirtyState.Reference
 		assert.Equal(t, expected, report)
 
 		return false
