@@ -1,0 +1,26 @@
+# the high level policy
+policy:
+  approval:
+    - "the core team has approved"
+  disapproval:
+    options:
+      methods:
+        disapprove:
+          github_review: true
+        revoke:
+          comments:
+          github_review: true
+    requires:
+      organizations:
+        - "insolar"
+
+# the list of rules
+approval_rules:
+  - name: "the core team has approved"
+    options:
+      methods:
+        github_review: true
+    requires:
+      count: 1
+      teams:
+        - "insolar/dev-core"
