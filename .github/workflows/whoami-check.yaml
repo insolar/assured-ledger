@@ -1,4 +1,4 @@
-name: ve-performance check
+name: whoami check
 on:
   push:
     branches:
