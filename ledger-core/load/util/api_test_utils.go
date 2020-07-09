@@ -131,6 +131,14 @@ func CreateSimpleWallet(client *http.Client, url string) (string, error) {
 	return resp.Ref, nil
 }
 
+func GetDebug200(client *http.Client, url string) error {
+	_, err := client.Get(url)
+	if err != nil {
+		return errors.W(err, "failed to send request or get response body")
+	}
+	return nil
+}
+
 // Returns wallet balance.
 func GetWalletBalance(client *http.Client, url, ref string) (uint, error) {
 	rawResp, err := SendAPIRequest(client, url, WalletGetBalanceRequestBody{Ref: ref})

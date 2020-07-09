@@ -11,6 +11,8 @@ func AttackerFromName(name string) loadgen.Attack {
 		return loadgen.WithCSVMonitor(new(CreateContractTestAttack))
 	case "get_contract_test":
 		return loadgen.WithCSVMonitor(new(GetContractTestAttack))
+	case "get_contract_test_debug":
+		return loadgen.WithCSVMonitor(new(GetContractTestDebugAttack))
 	case "set_contract_test":
 		return loadgen.WithCSVMonitor(new(SetContractTestAttack))
 	default:

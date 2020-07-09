@@ -7,8 +7,8 @@ steps:
   handles:
   - name: get_contract_test
     rps: 500
-    attack_time_sec: 1800
-    ramp_up_sec: 1800
+    attack_time_sec: 300
+    ramp_up_sec: 300
     ramp_up_strategy: linear
     max_attackers: 2000
     verbose: true
