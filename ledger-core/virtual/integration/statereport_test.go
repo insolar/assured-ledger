@@ -41,13 +41,17 @@ func makeVStateReportWithState(
 	stateStatus payload.VStateReport_StateStatus,
 	state *payload.ObjectState,
 ) *payload.VStateReport {
-	return &payload.VStateReport{
+	res := payload.VStateReport{
 		Status: stateStatus,
 		Object: objectRef,
-		ProvidedContent: &payload.VStateReport_ProvidedContentBody{
-			LatestDirtyState: state,
-		},
 	}
+	if state != nil {
+		res.ProvidedContent = &payload.VStateReport_ProvidedContentBody{
+			LatestDirtyState: state,
+		}
+	}
+	return &res
+
 }
 
 func makeRawWalletState(balance uint32) []byte {
@@ -149,7 +153,7 @@ func TestVirtual_VStateReport_BadState_StateAlreadyExists(t *testing.T) {
 
 	server, ctx := utils.NewServerWithErrorFilter(nil, t, func(s string) bool {
 		// Pass all errors, except for (*SMVStateReport).stepProcess
-		return !strings.Contains(s,"(*SMVStateReport).stepProcess")
+		return !strings.Contains(s, "(*SMVStateReport).stepProcess")
 	})
 	defer server.Stop()
 	server.IncrementPulse(ctx)
