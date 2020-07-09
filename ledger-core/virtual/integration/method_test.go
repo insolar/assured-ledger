@@ -357,11 +357,11 @@ func TestVirtual_Method_WithoutExecutor_Ordered(t *testing.T) {
 		objectGlobal = reference.NewSelf(objectLocal)
 	)
 
-	synchronizeExecution := synchronization.NewPoint(1)
-
 	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal)
-
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+
+	syncPoint := synchronization.NewPoint(2)
+	cntr := 0
 
 	{
 		typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
@@ -374,9 +374,9 @@ func TestVirtual_Method_WithoutExecutor_Ordered(t *testing.T) {
 		countBefore := server.PublisherMock.GetCount()
 		interferenceFlag := contract.CallTolerable
 		stateFlag := contract.CallDirty
+
 		for i := int64(0); i < 2; i++ {
 			callOutgoing := server.BuildRandomOutgoingWithPulse()
-
 			pl := payload.VCallRequest{
 				CallType:            payload.CTMethod,
 				CallFlags:           payload.BuildCallFlags(interferenceFlag, stateFlag),
@@ -392,7 +392,8 @@ func TestVirtual_Method_WithoutExecutor_Ordered(t *testing.T) {
 			key := callOutgoing.String()
 			runnerMock.AddExecutionMock(key).
 				AddStart(func(ctx execution.Context) {
-				synchronizeExecution.Synchronize()
+					cntr ++
+					syncPoint.Synchronize()
 			}, &execution.Update{
 				Type:   execution.Done,
 				Result: result,
@@ -405,30 +406,27 @@ func TestVirtual_Method_WithoutExecutor_Ordered(t *testing.T) {
 			server.SendPayload(ctx, &pl)
 		}
 
-		// first request should reach sync point, second will be waiting
-		testutils.WaitSignalsTimed(t, 10*time.Second, synchronizeExecution.Wait())
-		// wake up the first on sync point
-		synchronizeExecution.WakeUp()
+		// Wait for 3 seconds to be sure both requests had chances to be processed in case of parallel execution
+		for k := 0; k < 3; k ++ {
+			time.Sleep(time.Second)
+	}
+		// Check that we processed exactly one since the second one was blocked and waiting
+		assert.Equal(t, 1, cntr)
 
-		// waint until the processing of the first request is done
+		// Unblock the first one and allow it to complete so that the second starts
+		// And wait until the processing of the first request is done
+		syncPoint.WakeUp()
 		awaitStopFirstSM := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
-
 		testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 		testutils.WaitSignalsTimed(t, 10*time.Second, awaitStopFirstSM)
 		server.WaitActiveThenIdleConveyor()
 
-		if !server.PublisherMock.WaitCount(countBefore+1, 10*time.Second) {
-			t.Error("failed to wait for result")
-		}
+		// Now the second one should be processed as well
+		assert.Equal(t, 2, cntr)
+		syncPoint.Done()
 
-		assert.Equal(t, 1, typedChecker.VCallResult.Count())
-
-		// now second request can reach sync point
-		testutils.WaitSignalsTimed(t, 10*time.Second, synchronizeExecution.Wait())
-		// wake it up
-		synchronizeExecution.WakeUp()
-
-		synchronizeExecution.Done()
+		assert.Equal(t, 2, cntr)
+		assert.Equal(t, 2, typedChecker.VCallResult.Count())
 
 		if !server.PublisherMock.WaitCount(countBefore+2, 10*time.Second) {
 			t.Error("failed to wait for result")
