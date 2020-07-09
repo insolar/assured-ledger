@@ -71,6 +71,7 @@ jobs:
         run: |
           sed -i "s/placeholder/${{ fromJson(steps.set-vars.outputs.result).shortSha }}/g" ledger-core/scripts/deploy/kube/aks/*.*
           sed -i "s/placeholder/${{ fromJson(steps.set-vars.outputs.result).shortSha }}/g" ledger-core/scripts/deploy/kube/aks/configuration/*.*
+          kubectl apply -f ledger-core/scripts/deploy/kube/aks/uscifarm-ingressroute.yaml
       - name: Run headless network and generate performance report
         env:
           KUBEDEPLOYTOOL_METRICPARAMS_WEBDAV_HOST: https://reports.garage.insolar.io
