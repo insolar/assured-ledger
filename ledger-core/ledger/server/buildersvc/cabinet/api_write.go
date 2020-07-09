@@ -10,10 +10,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
-type BundleCompletedFunc = func([]ledger.DirectoryIndex) bool
+type BundleCompletedFunc = func([]ledger.DirectoryIndex, error) bool
 
 type DropWriter interface {
-	WriteBundle(entries []WriteBundleEntry, completedFn BundleCompletedFunc)
+	WriteBundle(entries []WriteBundleEntry, completedFn BundleCompletedFunc) error
 }
 
 type EntryWriterFunc = func (ledger.DirectoryIndex, []ledger.StorageLocator) MarshalerTo
@@ -26,9 +26,9 @@ type WriteBundleEntry struct {
 }
 
 type SectionPayload struct {
-	Payload MarshalerTo
+	Payload   MarshalerTo
 	Extension ledger.ExtensionID
-	Section ledger.SectionID
+	Section   ledger.SectionID
 }
 
 type MarshalerTo interface {
