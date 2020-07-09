@@ -27,14 +27,6 @@ jobs:
         run: |
           cd load
           go build cmd/load/main.go
-      - name: Set up go ${{ env.GO_VERSION }}
-        uses: actions/setup-go@v1
-        with:
-          go-version: ${{ env.GO_VERSION }}
-      - name: Add bin to path
-        run: echo "::add-path::${{ env.GOPATH }}/bin"
-      - name: Add workspace/bin to path
-        run: echo "::add-path::$GITHUB_WORKSPACE/bin"
       - name: save kubeconfig
         run: echo "${{secrets.CLOUD_KUBECONFIG}}" >> aks.yaml
       - name: template GIT_SHA to deployment manifests
@@ -45,10 +37,9 @@ jobs:
           cat /home/runner/work/assured-ledger/assured-ledger/ledger-core/load/gen_cfg/generator_assured_ledger_whoami.yaml
       - name: run network
         run: kubectl apply -k ledger-core/scripts/deploy/kube/whoami
-      - name: wait for successfull rollout
-        run: kubectl -n ${GITHUB_SHA:0:8} rollout status sts/virtual
       - name: start test
         run: |
+          sleep 10s
           cd ${{ env.CORE_PATH }}/load/
           loadcli -gen_config load/gen_cfg/generator_assured_ledger_whoami.yaml b darwin && NETWORK_NODES=20 ./load_suite -config load/run_configs/all_sequence_debug_whoami.yaml -gen_config load/gen_cfg/generator_assured_ledger_whoami.yaml
       - name: cleanup
