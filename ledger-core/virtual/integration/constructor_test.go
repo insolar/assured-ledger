@@ -400,6 +400,25 @@ func TestVirtual_Constructor_NoVFindCallRequestWhenMissing(t *testing.T) {
 
 		return false // no resend msg
 	})
+	typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
+		expected := &payload.VStateReport{
+			Status:           payload.Ready,
+			AsOf:             p2,
+			Object:           outgoing,
+			LatestDirtyState: outgoing,
+			ProvidedContent: &payload.VStateReport_ProvidedContentBody{
+				LatestDirtyState: &payload.ObjectState{
+					State: []byte("some memory"),
+					Class: class,
+				},
+			},
+		}
+		expected.ProvidedContent.LatestDirtyState.Reference =
+			report.ProvidedContent.LatestDirtyState.Reference
+		assert.Equal(t, expected, report)
+
+		return false
+	})
 
 	pl := payload.VCallRequest{
 		CallType:       payload.CTConstructor,
@@ -409,11 +428,10 @@ func TestVirtual_Constructor_NoVFindCallRequestWhenMissing(t *testing.T) {
 		CallOutgoing:   outgoing,
 		Arguments:      []byte("arguments"),
 	}
-	msg := utils.NewRequestWrapper(p2, &pl).SetSender(server.JetCoordinatorMock.Me()).Finalize()
 
 	{
 		requestResult := requestresult.New([]byte("123"), gen.UniqueGlobalRef())
-		requestResult.SetActivate(gen.UniqueGlobalRef(), class, []byte("234"))
+		requestResult.SetActivate(gen.UniqueGlobalRef(), class, []byte("some memory"))
 
 		runnerMock.AddExecutionMock(outgoing.String()).
 			AddStart(func(execution execution.Context) {
@@ -425,14 +443,17 @@ func TestVirtual_Constructor_NoVFindCallRequestWhenMissing(t *testing.T) {
 			})
 	}
 
-	beforeCount := server.PublisherMock.GetCount()
-	server.SendMessage(ctx, msg)
-	if !server.PublisherMock.WaitCount(beforeCount+2, 10*time.Second) {
-		t.Fatal("timeout waiting for messages on publisher")
-	}
+	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 
-	server.WaitActiveThenIdleConveyor()
-	require.Equal(t, 2, server.PublisherMock.GetCount())
+	server.SendPayload(ctx, &pl)
+	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+
+	server.IncrementPulseAndWaitIdle(ctx)
+	testutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 1))
+
+	require.Equal(t, 1, typedChecker.VStateRequest.Count())
+	require.Equal(t, 1, typedChecker.VCallResult.Count())
+	require.Equal(t, 1, typedChecker.VStateReport.Count())
 
 	mc.Finish()
 }
