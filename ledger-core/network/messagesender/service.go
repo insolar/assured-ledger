@@ -82,7 +82,7 @@ func (dm *DefaultService) SendRole(ctx context.Context, msg payload.Marshaler, r
 		inslogger.FromContext(ctx).Debug("Send to myself")
 	}
 
-	return dm.sendTarget(ctx, waterMillMsg, nodes[0], pn)
+	return dm.sendTarget(ctx, waterMillMsg, nodes[0])
 }
 
 func (dm *DefaultService) SendTarget(ctx context.Context, msg payload.Marshaler, target reference.Global, opts ...SendOption) error {
@@ -91,24 +91,26 @@ func (dm *DefaultService) SendTarget(ctx context.Context, msg payload.Marshaler,
 		return throw.W(err, "Can't create watermill message")
 	}
 
-	var pn pulse.Number
+	return dm.sendTarget(ctx, waterMillMsg, target)
+}
+
+const TopicOutgoing = "TopicOutgoing"
+
+func (dm *DefaultService) sendTarget(
+	ctx context.Context, msg *message.Message, target reference.Global,
+) error {
+
+	var pulse pulse.Number
 	latestPulse, err := dm.pulses.Latest(context.Background())
 	if err == nil {
-		pn = latestPulse.PulseNumber
+		pulse = latestPulse.PulseNumber
 	} else {
 		// It's possible, that we try to fetch something in PM.Set()
 		// In those cases, when we in the start of the system, we don't have any pulses
 		// but this is not the error
 		inslogger.FromContext(ctx).Warn(throw.W(err, "failed to fetch pulse"))
 	}
-	return dm.sendTarget(ctx, waterMillMsg, target, pn)
-}
 
-const TopicOutgoing = "TopicOutgoing"
-
-func (dm *DefaultService) sendTarget(
-	ctx context.Context, msg *message.Message, target reference.Global, pulse pulse.Number,
-) error {
 
 	ctx, logger := inslogger.WithField(ctx, "sending_uuid", msg.UUID)
 
