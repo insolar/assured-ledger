@@ -13,7 +13,9 @@ import (
 	"github.com/gojuno/minimock/v3"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 
 	"github.com/stretchr/testify/assert"
@@ -1096,35 +1098,95 @@ func Test_CallMethodWithBadIsolationFlags(t *testing.T) {
 
 func TestVirtual_FutureMessageAddedToSlot(t *testing.T) {
 	t.Log("C5318")
-	t.Skip("https://insolar.atlassian.net/browse/PLAT-615")
 
 	mc := minimock.NewController(t)
 
-	server, ctx := utils.NewServer(nil, t)
+	server, ctx := utils.NewUninitializedServer(nil, t)
 	defer server.Stop()
+
+	jetCoordinatorMock := jet.NewAffinityHelperMock(mc)
+	auth := authentication.NewService(ctx, jetCoordinatorMock)
+	server.ReplaceAuthenticationService(auth)
+
+	server.Init(ctx)
 	server.IncrementPulse(ctx)
 
+	// legitimate sender
+	jetCoordinatorMock.QueryRoleMock.Return([]reference.Global{server.GlobalCaller()}, nil)
+	jetCoordinatorMock.MeMock.Return(server.GlobalCaller())
+
 	var (
-		objectLocal  = server.RandomLocalWithPulse()
-		objectGlobal = reference.NewSelf(objectLocal)
+		objectLocal       = server.RandomLocalWithPulse()
+		objectGlobal      = reference.NewSelf(objectLocal)
+		outgoing          = server.BuildRandomOutgoingWithPulse()
+		class             = gen.UniqueGlobalRef()
+		dirtyStateRef     = server.RandomLocalWithPulse()
+		dirtyState        = reference.NewSelf(dirtyStateRef)
+		validatedStateRef = server.RandomLocalWithPulse()
+		validatedState    = reference.NewSelf(validatedStateRef)
+	)
+
+	const (
+		validatedMem = "12345"
+		dirtyMem     = "54321"
 	)
 
 	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal)
 
-	executeDone := server.Journal.WaitAnyActivityOf(&execute.SMExecute{}, 1)
-
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool { return false })
 	typedChecker.VStateReport.Set(func(res *payload.VStateReport) bool { return false })
+	typedChecker.VStateRequest.Set(func(res *payload.VStateRequest) bool {
+		report := &payload.VStateReport{
+			Status:               payload.Ready,
+			AsOf:                 0,
+			Object:               objectGlobal,
+			LatestValidatedState: validatedState,
+			LatestDirtyState:     dirtyState,
+			ProvidedContent: &payload.VStateReport_ProvidedContentBody{
+				LatestValidatedState: &payload.ObjectState{
+					Reference: validatedStateRef,
+					Class:     class,
+					State:     []byte(validatedMem),
+				},
+				LatestDirtyState: &payload.ObjectState{
+					Reference: dirtyStateRef,
+					Class:     class,
+					State:     []byte(dirtyMem),
+				},
+			},
+		}
+		server.SendPayload(ctx, report)
+		return false
+	})
 
-	{
-		pl := payload.VCallRequest{}
-		server.SendPayloadAsFuture(ctx, &pl)
+	pl := payload.VCallRequest{
+		CallType:            payload.CTMethod,
+		CallFlags:           payload.BuildCallFlags(contract.CallIntolerable, contract.CallValidated),
+		Caller:              server.GlobalCaller(),
+		Callee:              objectGlobal,
+		CallSiteDeclaration: testwallet.GetClass(),
+		CallSiteMethod:      "Accept",
+		CallOutgoing:        outgoing,
+		Arguments:           insolar.MustSerialize([]interface{}{}),
 	}
 
-	server.IncrementPulse(ctx)
+	// now we are not legitimate sender
+	jetCoordinatorMock.QueryRoleMock.Return([]reference.Global{server.RandomGlobalWithPulse()}, nil)
+	jetCoordinatorMock.MeMock.Return(server.RandomGlobalWithPulse())
 
-	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+	server.WaitIdleConveyor()
+	server.SendPayloadAsFuture(ctx, &pl)
+	// new request goes to future pulse slot
+	server.WaitActiveThenIdleConveyor()
+
+	// legitimate sender
+	jetCoordinatorMock.QueryRoleMock.Return([]reference.Global{server.GlobalCaller()}, nil)
+	jetCoordinatorMock.MeMock.Return(server.GlobalCaller())
+
+	// switch pulse and start processing request from future slot
+	server.IncrementPulseAndWaitIdle(ctx)
+	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitStopOf(&execute.SMExecute{}, 1))
 	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 	mc.Finish()
