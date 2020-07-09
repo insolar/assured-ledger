@@ -264,6 +264,12 @@ func (pm *publisherMock) Publish(topic string, messages ...*message.Message) err
 func (pm *publisherMock) Close() error                                             { return nil }
 
 func TestServiceNetwork_processIncoming(t *testing.T) {
+	instestlogger.SetTestOutputWithErrorFilter(t, func(s string) bool {
+		expectedError := strings.Contains(s, "error while deserialize msg from buffer") ||
+			strings.Contains(s, "error while publish msg to TopicIncoming")
+		return !expectedError
+	})
+
 	serviceNetwork, err := NewServiceNetwork(configuration.NewConfiguration(), component.NewManager(nil))
 	require.NoError(t, err)
 	pub := &publisherMock{}

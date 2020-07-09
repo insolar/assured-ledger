@@ -22,7 +22,7 @@ import (
 
 func TestComponents(t *testing.T) {
 	instestlogger.SetTestOutputWithErrorFilter(t, func(s string) bool {
-		if strings.Contains(s, "Failed to export to Prometheus: cannot register the collector: duplicate metrics collector registration attempted") {
+		if strings.Contains(s, "Failed to export to Prometheus: cannot register the collector:") {
 			return false
 		}
 		return true
