@@ -6,7 +6,6 @@
 package journal
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/debuglogger"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/predicate"
@@ -99,14 +98,6 @@ func (p *Journal) WaitStopOf(sample smachine.StateMachine, stopCount int) syncki
 	return p.WaitOnce(
 		predicate.NewCounter(
 			predicate.NewSMTypeFilter(sample, predicate.AfterAnyStopOrError),
-			stopCount,
-		).AfterPositiveToZero)
-}
-
-func (p *Journal) WaitFutureSlotInited(stopCount int) synckit.SignalChannel {
-	return p.WaitOnce(
-		predicate.NewCounter(
-			predicate.NewSMTypeFilter(&conveyor.FutureEventSM{}, predicate.BeforeStep((&conveyor.FutureEventSM{}).StepWaitMigration)),
 			stopCount,
 		).AfterPositiveToZero)
 }

@@ -13,7 +13,9 @@ import (
 	"github.com/gojuno/minimock/v3"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 
 	"github.com/stretchr/testify/assert"
@@ -1099,9 +1101,19 @@ func TestVirtual_FutureMessageAddedToSlot(t *testing.T) {
 
 	mc := minimock.NewController(t)
 
-	server, ctx := utils.NewServer(nil, t)
+	server, ctx := utils.NewUninitializedServer(nil, t)
 	defer server.Stop()
+
+	jetCoordinatorMock := jet.NewAffinityHelperMock(mc)
+	auth := authentication.NewService(ctx, jetCoordinatorMock)
+	server.ReplaceAuthenticationService(auth)
+
+	server.Init(ctx)
 	server.IncrementPulse(ctx)
+
+	// legitimate sender
+	jetCoordinatorMock.QueryRoleMock.Return([]reference.Global{server.GlobalCaller()}, nil)
+	jetCoordinatorMock.MeMock.Return(server.GlobalCaller())
 
 	var (
 		objectLocal       = server.RandomLocalWithPulse()
@@ -1159,11 +1171,20 @@ func TestVirtual_FutureMessageAddedToSlot(t *testing.T) {
 		Arguments:           insolar.MustSerialize([]interface{}{}),
 	}
 
+	// now we are not legitimate sender
+	jetCoordinatorMock.QueryRoleMock.Return([]reference.Global{server.RandomGlobalWithPulse()}, nil)
+	jetCoordinatorMock.MeMock.Return(server.RandomGlobalWithPulse())
+
 	server.SendPayloadAsFuture(ctx, &pl)
 	// new request goes to future pulse slot
-	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitFutureSlotInited(1))
+	server.WaitActiveThenIdleConveyor()
+
+	// legitimate sender
+	jetCoordinatorMock.QueryRoleMock.Return([]reference.Global{server.GlobalCaller()}, nil)
+	jetCoordinatorMock.MeMock.Return(server.GlobalCaller())
+
+	// switch pulse and start processing request from future slot
 	server.IncrementPulseAndWaitIdle(ctx)
-	// after change pulse it starts processing
 	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitStopOf(&execute.SMExecute{}, 1))
 	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 

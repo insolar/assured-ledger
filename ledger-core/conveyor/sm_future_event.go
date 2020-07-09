@@ -19,30 +19,30 @@ import (
 // Before such stop, this SM will attempt to capture and fire a termination handler for the event.
 
 func newFutureEventSM(pn pulse.Number, ps *PulseSlot, createFn smachine.CreateFunc) smachine.StateMachine {
-	return &FutureEventSM{wrapEventSM{pn: pn, ps: ps, createFn: createFn}}
+	return &futureEventSM{wrapEventSM{pn: pn, ps: ps, createFn: createFn}}
 }
 
-type FutureEventSM struct {
+type futureEventSM struct {
 	wrapEventSM
 }
 
-func (sm *FutureEventSM) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
+func (sm *futureEventSM) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
 	return sm
 }
 
-func (sm *FutureEventSM) GetInitStateFor(machine smachine.StateMachine) smachine.InitFunc {
+func (sm *futureEventSM) GetInitStateFor(machine smachine.StateMachine) smachine.InitFunc {
 	if sm != machine {
 		panic("illegal value")
 	}
 	return sm.stepInit
 }
 
-func (sm *FutureEventSM) stepInit(ctx smachine.InitializationContext) smachine.StateUpdate {
+func (sm *futureEventSM) stepInit(ctx smachine.InitializationContext) smachine.StateUpdate {
 	ctx.SetDefaultMigration(sm.stepMigration)
-	return ctx.Jump(sm.StepWaitMigration)
+	return ctx.Jump(sm.stepWaitMigration)
 }
 
-func (sm *FutureEventSM) StepWaitMigration(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (sm *futureEventSM) stepWaitMigration(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	switch isFuture, isAccepted := sm.ps.isAcceptedFutureOrPresent(sm.pn); {
 	case !isAccepted:
 		return sm.stepTerminate(ctx)
@@ -53,7 +53,7 @@ func (sm *FutureEventSM) StepWaitMigration(ctx smachine.ExecutionContext) smachi
 	}
 }
 
-func (sm *FutureEventSM) stepMigration(ctx smachine.MigrationContext) smachine.StateUpdate {
+func (sm *futureEventSM) stepMigration(ctx smachine.MigrationContext) smachine.StateUpdate {
 	switch isFuture, isAccepted := sm.ps.isAcceptedFutureOrPresent(sm.pn); {
 	case !isAccepted:
 		return ctx.Jump(sm.stepTerminate)
@@ -64,11 +64,11 @@ func (sm *FutureEventSM) stepMigration(ctx smachine.MigrationContext) smachine.S
 	}
 }
 
-func (sm *FutureEventSM) stepTerminate(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (sm *futureEventSM) stepTerminate(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	return ctx.Error(fmt.Errorf("incorrect future pulse number: pn=%v", sm.pn))
 }
 
-func (sm *FutureEventSM) IsConsecutive(_, _ smachine.StateFunc) bool {
+func (sm *futureEventSM) IsConsecutive(_, _ smachine.StateFunc) bool {
 	// WARNING! DO NOT DO THIS ANYWHERE ELSE
 	// Without CLEAR understanding of consequences this can lead to infinite loops
 	return true // allow faster transition between steps
