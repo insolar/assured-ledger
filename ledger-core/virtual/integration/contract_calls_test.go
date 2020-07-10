@@ -20,8 +20,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/predicate"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/synchronization"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
@@ -512,7 +512,7 @@ func TestVirtual_CallMethodFromConstructor(t *testing.T) {
 func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 	t.Log("CXXXX")
 
-	countChangePulse :=execute.MaxOutgoingRetries + 1
+	countChangePulse := execute.MaxOutgoingRetries + 1
 
 	mc := minimock.NewController(t)
 
@@ -579,6 +579,8 @@ func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 		)
 	}
 
+	point := synchronization.NewPoint(1)
+
 	// add checks to typedChecker
 	{
 		typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
@@ -615,30 +617,36 @@ func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 			return false
 		})
 
-		typedChecker.VCallRequest.Set(func(finished *payload.VCallRequest) bool { return false })
+		typedChecker.VCallRequest.Set(func(finished *payload.VCallRequest) bool {
+			point.Synchronize()
+			return false
+		})
+
 	}
+
+	executeStopped := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 
 	server.WaitIdleConveyor()
 	server.SendPayload(ctx, &pl)
 
 	for i := 0; i < countChangePulse; i++ {
-		sendOutgoingDone := server.Journal.Wait(predicate.NewSMTypeFilter(&execute.SMExecute{}, predicate.AfterStep((&execute.SMExecute{}).StepSendOutgoing)))
-		testutils.WaitSignalsTimed(t, 10*time.Second, sendOutgoingDone)
+		testutils.WaitSignalsTimed(t, 10*time.Second, point.Wait())
 		server.IncrementPulseAndWaitIdle(ctx)
+		point.WakeUp()
 	}
 
-	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitStopOf(&execute.SMExecute{}, 1))
+	testutils.WaitSignalsTimed(t, 10*time.Second, executeStopped)
 	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 	{
-		assert.Equal(t, 0, typedChecker.VCallResult.Count())
-		assert.Equal(t, 1, typedChecker.VStateReport.Count())
-		assert.Equal(t, 0, typedChecker.VDelegatedRequestFinished.Count())
+		require.Equal(t, 0, typedChecker.VCallResult.Count())
+		require.Equal(t, 1, typedChecker.VStateReport.Count())
+		require.Equal(t, 0, typedChecker.VDelegatedRequestFinished.Count())
 
 		// first time we send outgoing before first pulse change
 		// then we retry it 3 times
-		assert.Equal(t, countChangePulse, typedChecker.VCallRequest.Count())
-		assert.Equal(t, countChangePulse, typedChecker.VDelegatedCallRequest.Count())
+		require.Equal(t, countChangePulse, typedChecker.VCallRequest.Count())
+		require.Equal(t, countChangePulse, typedChecker.VDelegatedCallRequest.Count())
 
 	}
 
