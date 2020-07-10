@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package cabinet
+package bundle
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
@@ -59,7 +59,7 @@ type PayloadReceptacle interface {
 }
 
 // MarshalerTo is interface to write data into storage
-// Can also use io.WriterTo behavior.
+// Implementation may also use io.WriterTo behavior.
 type MarshalerTo interface {
 	// optional io.WriterTo
 	ProtoSize() int
@@ -81,3 +81,6 @@ type DirectorySection interface {
 	// located after any other data of the same record within the same section.
 	AllocateEntryStorage(size int) (PayloadReceptacle, ledger.StorageLocator, error)
 }
+
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/bundle.SnapshotWriter -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/bundle.Snapshot -s _mock.go -g

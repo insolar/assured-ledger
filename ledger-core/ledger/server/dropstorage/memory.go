@@ -9,7 +9,7 @@ import (
 	"io"
 
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
-	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/cabinet"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/bundle"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -45,13 +45,13 @@ func NewMemoryStorageWriter(maxSection ledger.SectionID, pageSize int) *MemorySt
 	return mc
 }
 
-var _ cabinet.SnapshotWriter = &MemoryStorageWriter{}
+var _ bundle.SnapshotWriter = &MemoryStorageWriter{}
 
 type MemoryStorageWriter struct {
 	sections []cabinetSection
 }
 
-func (p *MemoryStorageWriter) TakeSnapshot() cabinet.Snapshot {
+func (p *MemoryStorageWriter) TakeSnapshot() bundle.Snapshot {
 	return &memorySnapshot{
 		storage:  p,
 		snapshot: make([]sectionSnapshot, len(p.sections)),
@@ -86,7 +86,7 @@ func (p *memorySnapshot) Rollback() {
 
 func (p *memorySnapshot) ChainedRollback() {}
 
-func (p *memorySnapshot) GetPayloadSection(id ledger.SectionID) (cabinet.PayloadSection, error) {
+func (p *memorySnapshot) GetPayloadSection(id ledger.SectionID) (bundle.PayloadSection, error) {
 	cs, err := p.getSection(id, false)
 	if cs == nil {
 		return nil, err
@@ -94,7 +94,7 @@ func (p *memorySnapshot) GetPayloadSection(id ledger.SectionID) (cabinet.Payload
 	return cs, err
 }
 
-func (p *memorySnapshot) GetDirectorySection(id ledger.SectionID) (cabinet.DirectorySection, error) {
+func (p *memorySnapshot) GetDirectorySection(id ledger.SectionID) (bundle.DirectorySection, error) {
 	cs, err := p.getSection(id, true)
 	if cs == nil {
 		return nil, err
@@ -135,11 +135,11 @@ func (p *sectionSnapshot) AppendDirectoryEntry(index ledger.DirectoryIndex, key 
 	return p.section.setDirectoryEntry(index, key, loc)
 }
 
-func (p *sectionSnapshot) AllocateEntryStorage(size int) (cabinet.PayloadReceptacle, ledger.StorageLocator, error) {
+func (p *sectionSnapshot) AllocateEntryStorage(size int) (bundle.PayloadReceptacle, ledger.StorageLocator, error) {
 	return p.section.allocatePayloadStorage(p, size, 0)
 }
 
-func (p *sectionSnapshot) AllocatePayloadStorage(size int, extID ledger.ExtensionID) (cabinet.PayloadReceptacle, ledger.StorageLocator, error) {
+func (p *sectionSnapshot) AllocatePayloadStorage(size int, extID ledger.ExtensionID) (bundle.PayloadReceptacle, ledger.StorageLocator, error) {
 	return p.section.allocatePayloadStorage(p, size, extID)
 }
 
@@ -206,7 +206,7 @@ func (p *cabinetSection) setDirectoryEntry(index ledger.DirectoryIndex, key refe
 }
 
 // allocatePayloadStorage can reorder payloads
-func (p *cabinetSection) allocatePayloadStorage(snap *sectionSnapshot, size int, _ ledger.ExtensionID) (cabinet.PayloadReceptacle, ledger.StorageLocator, error) {
+func (p *cabinetSection) allocatePayloadStorage(snap *sectionSnapshot, size int, _ ledger.ExtensionID) (bundle.PayloadReceptacle, ledger.StorageLocator, error) {
 	switch {
 	case size < 0:
 		panic(throw.IllegalValue())
@@ -266,7 +266,7 @@ func (p *cabinetSection) rollback(snapshot sectionSnapshot) {
 
 type byteReceptacle []byte
 
-func (b byteReceptacle) ApplyMarshalTo(to cabinet.MarshalerTo) error {
+func (b byteReceptacle) ApplyMarshalTo(to bundle.MarshalerTo) error {
 	switch n, err := to.MarshalTo(b); {
 	case err != nil:
 		return err

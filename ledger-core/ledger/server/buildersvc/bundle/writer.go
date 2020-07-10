@@ -3,26 +3,26 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package cabinet
+package bundle
 
 import (
 	"sync"
 
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
-	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-func NewBundleWriter(snap SnapshotWriter) BundleWriter {
+func NewWriter(snap SnapshotWriter) Writer {
 	if snap == nil {
 		panic(throw.IllegalValue())
 	}
 	return &bundleWriter{snap: snap}
 }
 
-var _ BundleWriter = &bundleWriter{}
+var _ Writer = &bundleWriter{}
 
+// bundleWriter implements necessary synchronization guarantees for the snapshot writer.
 type bundleWriter struct {
 	mutex sync.Mutex
 	snap  SnapshotWriter
@@ -33,7 +33,7 @@ type bundleWriter struct {
 func (p *bundleWriter) WaitWriteBundles(done synckit.SignalChannel) bool {
 	p.mutex.Lock()
 	prev, next := p._prepareWait(false)
-	defer p.mutex.Unlock()
+	p.mutex.Unlock()
 
 	if next == nil {
 		// there is nothing to wait: (1) no writers (2) all done (3) already rolled back
@@ -83,7 +83,7 @@ func (p *bundleWriter) _prepareWait(alwaysSetNext bool) (prev synckit.SignalChan
 	return prev, next
 }
 
-func (p *bundleWriter) WriteBundle(entries []WriteBundleEntry, completedFn BundleResultFunc) error {
+func (p *bundleWriter) WriteBundle(bundle Writeable, completedFn ResultFunc) error {
 	if completedFn == nil {
 		panic(throw.IllegalValue())
 	}
@@ -98,20 +98,22 @@ func (p *bundleWriter) WriteBundle(entries []WriteBundleEntry, completedFn Bundl
 		}
 	}()
 
-	preparedEntries, err := p._prepareBundle(snapshot, entries)
-	if err != nil {
+	if err := bundle.PrepareWrite(snapshot); err != nil {
+		return err
+	}
+	if err := snapshot.Prepared(); err != nil {
 		return err
 	}
 
 	prev, next := p._prepareWait(true)
-	go p.applyBundleSafe(snapshot, preparedEntries, prev, next, completedFn)
+	go p.applyBundleSafe(snapshot, bundle, prev, next, completedFn)
 
 	snapshot = nil
 	return nil
 }
 
-func (p *bundleWriter) applyBundleSafe(snapshot Snapshot, entries []preparedEntry,
-	prev synckit.SignalChannel, next synckit.ClosableSignalChannel, completedFn BundleResultFunc,
+func (p *bundleWriter) applyBundleSafe(snapshot Snapshot, bundle Writeable,
+	prev synckit.SignalChannel, next synckit.ClosableSignalChannel, completedFn ResultFunc,
 ) {
 	defer close(next) // to be executed as the very last one
 
@@ -155,7 +157,7 @@ func (p *bundleWriter) applyBundleSafe(snapshot Snapshot, entries []preparedEntr
 		}
 
 		var assignments []ledger.DirectoryIndex
-		assignments, err = p.applyBundle(entries)
+		assignments, err = bundle.ApplyWrite()
 
 		if err = snapshot.Completed(); err != nil {
 			return err
@@ -195,116 +197,5 @@ func (p *bundleWriter) applyBundleSafe(snapshot Snapshot, entries []preparedEntr
 		}
 		completedFn(nil, err)
 	}
-}
-
-func (p *bundleWriter) applyBundle(entries []preparedEntry) ([]ledger.DirectoryIndex, error) {
-	indices := make([]ledger.DirectoryIndex, len(entries))
-	for i := range entries {
-		indices[i] = entries[i].entryIndex
-		for _, pl := range entries[i].payloads {
-			if pl.target == nil {
-				continue
-			}
-			if err := pl.target.ApplyMarshalTo(pl.payload); err != nil {
-				return nil, err
-			}
-		}
-	}
-	return indices, nil
-}
-
-func (p *bundleWriter) _prepareBundle(snapshot Snapshot, entries []WriteBundleEntry) ([]preparedEntry, error) {
-	preparedEntries := make([]preparedEntry, len(entries))
-
-	for i := range entries {
-		var err error
-		preparedEntries[i], err = p.prepareRecord(snapshot, entries[i])
-		if err != nil {
-			return nil, err
-		}
-	}
-	if err := snapshot.Prepared(); err != nil {
-		return nil, err
-	}
-	return preparedEntries, nil
-}
-
-func (p *bundleWriter) prepareRecord(snapshot Snapshot, entry WriteBundleEntry) (preparedEntry, error) {
-	ds, err := snapshot.GetDirectorySection(entry.Directory)
-	if err != nil {
-		return preparedEntry{}, err
-	}
-
-	entryIndex := ds.GetNextDirectoryIndex()
-
-	nPayloads := len(entry.Payloads)
-	var payloadLoc []ledger.StorageLocator
-	preparedPayloads := make([]preparedPayload, nPayloads + 1)
-
-	if nPayloads > 0 {
-		payloadLoc = make([]ledger.StorageLocator, nPayloads)
-		for j := range entry.Payloads {
-			ps, err := snapshot.GetPayloadSection(entry.Payloads[j].Section)
-			if err != nil {
-				return preparedEntry{}, err
-			}
-
-			pl := entry.Payloads[j].Payload
-			if pl == nil {
-				continue
-			}
-
-			size := pl.ProtoSize()
-			receptacle, loc, err := ps.AllocatePayloadStorage(size, entry.Payloads[j].Extension)
-			if err != nil {
-				return preparedEntry{}, err
-			}
-
-			payloadLoc[j] = loc
-			preparedPayloads[j] = preparedPayload{
-				payload: pl,
-				target:  receptacle,
-				loc:     loc,
-				size:    uint32(size),
-			}
-		}
-	}
-
-	entryPayload := entry.EntryFn(entryIndex, payloadLoc)
-	entrySize := entryPayload.ProtoSize()
-	receptacle, entryLoc, err := ds.AllocateEntryStorage(entrySize)
-	if err != nil {
-		return preparedEntry{}, err
-	}
-
-	if err := ds.AppendDirectoryEntry(entryIndex, entry.EntryKey, entryLoc); err != nil {
-		return preparedEntry{}, err
-	}
-
-	preparedPayloads[nPayloads] = preparedPayload{
-		payload: entryPayload,
-		target:  receptacle,
-		loc:     entryLoc,
-		size:    uint32(entrySize),
-	}
-
-	return preparedEntry{
-		entryIndex: entryIndex,
-		entryKey:   entry.EntryKey,
-		payloads:   preparedPayloads,
-	}, nil
-}
-
-type preparedEntry struct {
-	entryIndex ledger.DirectoryIndex
-	entryKey   reference.Holder
-	payloads   []preparedPayload
-}
-
-type preparedPayload struct {
-	payload MarshalerTo
-	target  PayloadReceptacle
-	loc     ledger.StorageLocator
-	size    uint32
 }
 

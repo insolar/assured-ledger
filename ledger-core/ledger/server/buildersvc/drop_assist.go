@@ -11,10 +11,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
-	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/cabinet"
-	"github.com/insolar/assured-ledger/ledger-core/ledger/server/catalog"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/bundle"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lineage"
-	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -23,34 +21,35 @@ type dropAssistant struct {
 	// set at construction
 	nodeID node.ShortNodeID
 	dropID jet.DropID
-	writer cabinet.BundleWriter
+	writer bundle.Writer
 
 	mutex   sync.Mutex // LOCK! Is used under plashAssistant.commit lock
 	merkle  cryptkit.ForkingDigester
 }
 
-func (p *dropAssistant) append(pa *plashAssistant, future AppendFuture, bundle lineage.ResolvedBundle) (err error) {
-	writeBundle := make([]cabinet.WriteBundleEntry, 0, bundle.Count())
-	digests := make([]cryptkit.Digest, 0, bundle.Count())
+func (p *dropAssistant) append(pa *plashAssistant, future AppendFuture, b lineage.ResolvedBundle) (err error) {
+	entries := make([]draftEntry, 0, b.Count())
+	digests := make([]cryptkit.Digest, 0, b.Count())
 
-	bundle.Enum(func(record lineage.Record, dust lineage.DustMode) bool {
+	b.Enum(func(record lineage.Record, dust lineage.DustMode) bool {
 		br := record.AsBasicRecord()
 		recPayloads := br.GetRecordPayloads()
 		payloadCount := recPayloads.Count()
 
-		bundleEntry := cabinet.WriteBundleEntry{
-			Directory: ledger.DefaultEntrySection, // todo depends on record policy
-			EntryKey:  record.GetRecordRef(),
-			Payloads:  make([]cabinet.SectionPayload, 1+payloadCount),
+		bundleEntry := draftEntry{
+			directory: ledger.DefaultEntrySection, // todo depends on record policy
+			entryKey:  record.GetRecordRef(),
+			payloads:  make([]sectionPayload, 1+payloadCount),
+			draft:     draftCatalogEntry(record),
 		}
 
 		if dust == lineage.DustRecord {
-			bundleEntry.Directory = ledger.DefaultDustSection
+			bundleEntry.directory = ledger.DefaultDustSection
 		}
 
-		bundleEntry.Payloads[0].Section = bundleEntry.Directory
-		if mt, ok := br.(cabinet.MarshalerTo); ok {
-			bundleEntry.Payloads[0].Payload = mt
+		bundleEntry.payloads[0].section = bundleEntry.directory
+		if mt, ok := br.(bundle.MarshalerTo); ok {
+			bundleEntry.payloads[0].payload = mt
 		} else {
 			err = throw.E("incompatible record")
 			return true // stop now
@@ -58,36 +57,33 @@ func (p *dropAssistant) append(pa *plashAssistant, future AppendFuture, bundle l
 
 		if payloadCount > 0 {
 			if dust >= lineage.DustPayload {
-				bundleEntry.Payloads[1].Section = ledger.DefaultDustSection
+				bundleEntry.payloads[1].section = ledger.DefaultDustSection
 			} else {
-				bundleEntry.Payloads[1].Section = ledger.DefaultDataSection
+				bundleEntry.payloads[1].section = ledger.DefaultDataSection
 			}
-			bundleEntry.Payloads[1].Payload = recPayloads.GetPayloadOrExtension(0)
+			bundleEntry.payloads[1].payload = recPayloads.GetPayloadOrExtension(0)
 
 			for i := 2; i <= payloadCount; i++ {
-				secID := bundleEntry.Directory
+				secID := bundleEntry.directory
 				extID := ledger.ExtensionID(recPayloads.GetExtensionID(i - 1))
 				if extID != ledger.SameAsBodyExtensionID {
 					secID = p.extensionToSection(extID, secID)
 				}
-				bundleEntry.Payloads[i].Extension = extID
-				bundleEntry.Payloads[i].Section = secID
-				bundleEntry.Payloads[i].Payload = recPayloads.GetPayloadOrExtension(i - 1)
+				bundleEntry.payloads[i].extension = extID
+				bundleEntry.payloads[i].section = secID
+				bundleEntry.payloads[i].payload = recPayloads.GetPayloadOrExtension(i - 1)
 			}
 		}
 
-		bundleEntry.EntryFn = func(index ledger.DirectoryIndex, payloadLoc []ledger.StorageLocator) cabinet.MarshalerTo {
-			entry := createCatalogEntry(index, payloadLoc, bundleEntry.Payloads, &record)
-			return entry
-		}
-
 		digests = append(digests, record.RegistrarSignature.GetDigest())
-		writeBundle = append(writeBundle, bundleEntry)
+		entries = append(entries, bundleEntry)
 		return false
 	})
 	if err != nil {
 		return
 	}
+
+	writeBundle := &entryWriter{entries: entries}
 
 	return p.writer.WriteBundle(writeBundle, func(indices []ledger.DirectoryIndex, err error) bool {
 		// this closure is called later, after the bundle is completely written
@@ -144,40 +140,3 @@ func (p *dropAssistant) extensionToSection(_ ledger.ExtensionID, defSecID ledger
 	// TODO extension mapping
 	return defSecID
 }
-
-func createCatalogEntry(idx ledger.DirectoryIndex, loc []ledger.StorageLocator, payloads []cabinet.SectionPayload, rec *lineage.Record) *catalog.Entry {
-	entry := &catalog.Entry{
-		RecordType:         rec.Excerpt.RecordType,
-		BodyLoc:            loc[0],
-		RecordBodyHash:     rec.Excerpt.RecordBodyHash,
-		Ordinal: 			idx.Ordinal(),
-		PrevRef:			rec.Excerpt.PrevRef,
-		RootRef:			rec.Excerpt.RootRef,
-		ReasonRef:			rec.Excerpt.ReasonRef,
-		RedirectRef:		rec.Excerpt.RedirectRef,
-		RejoinRef:			rec.Excerpt.RejoinRef,
-		RecapRef: 			rms.NewReference(rec.RecapRef),
-
-		ProducerSignature:  rec.Excerpt.ProducerSignature,
-		ProducedBy:         rms.NewReference(rec.ProducedBy),
-
-		RegistrarSignature: rms.NewRaw(rec.RegistrarSignature.GetSignature()).AsBinary(),
-		RegisteredBy:       rms.NewReference(rec.RegisteredBy),
-	}
-
-	if n := len(loc); n > 1 {
-		entry.PayloadLoc = loc[1]
-		if n > 2 {
-			entry.ExtensionLoc.Ext = make([]rms.ExtLocator, n - 2)
-			for i := 2; i < n; i++ {
-				entry.ExtensionLoc.Ext[i - 2] = rms.ExtLocator{
-					ExtensionID: payloads[i].Extension,
-					PayloadLoc:  loc[i],
-				}
-			}
-		}
-	}
-
-	return entry
-}
-
