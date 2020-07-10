@@ -8,6 +8,7 @@ package cabinet
 import (
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 )
 
 // SnapshotWriter is an interfaces to support a storage with simplified transactional paradigm for bundled writer.
@@ -54,6 +55,7 @@ type Snapshot interface {
 
 type PayloadReceptacle interface {
 	ApplyMarshalTo(MarshalerTo) error
+	ApplyFixedReader(longbits.FixedReader) error
 }
 
 // MarshalerTo is interface to write data into storage

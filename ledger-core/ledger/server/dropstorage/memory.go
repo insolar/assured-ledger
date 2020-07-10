@@ -11,26 +11,32 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/cabinet"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-func NewMemoryStorageWriter(sectionCount, pageSize int) *MemoryStorageWriter {
+func NewMemoryStorageWriter(maxSection ledger.SectionID, pageSize int) *MemoryStorageWriter {
 	switch {
-	case sectionCount < 0:
+	case maxSection <= 0:
 		panic(throw.IllegalValue())
-	case pageSize < directoryEntrySize* 16:
+	case maxSection > ledger.MaxSectionID:
+		panic(throw.IllegalValue())
+	case pageSize < directoryEntrySize*16:
 		panic(throw.IllegalValue())
 	}
 
 	mc := &MemoryStorageWriter{}
-	sectionCount += 2
-	mc.sections = make([]cabinetSection, sectionCount)
+	mc.sections = make([]cabinetSection, maxSection + 1)
 	dirSize := pageSize / directoryEntrySize
 
-	for i := 0; i < sectionCount; i++ {
+	for i := ledger.SectionID(0); i <= maxSection; i++ {
 		s := &mc.sections[i]
-		s.sectionID = ledger.SectionID(i)
+		s.sectionID = i
+		if i == ledger.ControlSection {
+			continue // not (yet) supported for memory storage
+		}
 		s.chapters = [][]byte{ make([]byte, 0, pageSize) }
+
 		if s.sectionID <= ledger.DefaultDustSection {
 			s.directory = [][]directoryEntry{make([]directoryEntry, 1, dirSize) } // ordinal==0 is reserved
 		}
@@ -105,7 +111,10 @@ func (p *memorySnapshot) getSection(sectionID ledger.SectionID, directory bool) 
 		s.section = &p.storage.sections[sectionID]
 	}
 
-	if directory && !s.section.hasDirectory() {
+	switch {
+	case s.section.chapters == nil:
+		return nil, throw.E("unknown section", struct { ledger.SectionID }{ sectionID })
+	case directory && !s.section.hasDirectory():
 		return nil, throw.E("unknown directory section", struct { ledger.SectionID }{ sectionID })
 	}
 	return s, nil
@@ -187,8 +196,9 @@ func (p *cabinetSection) setDirectoryEntry(index ledger.DirectoryIndex, key refe
 	if defCap == len(last) {
 		last = make([]directoryEntry, 0, defCap)
 		p.directory = append(p.directory, last)
+		n++
 	}
-	last = append(last, directoryEntry{
+	p.directory[n] = append(last, directoryEntry{
 		key:      k,
 		entryLoc: loc,
 	})
@@ -216,18 +226,23 @@ func (p *cabinetSection) allocatePayloadStorage(snap *sectionSnapshot, size int,
 		snap.lastOfs = uint32(lastOfs)
 	}
 
+	var b []byte
 	if n := cap(chapter) - lastOfs; n < size {
 		defCap := cap(p.chapters[0])
 		if size >= defCap - 32 {
 			defCap = size
 		}
-		chapter = make([]byte, 0, defCap)
+		chapter = make([]byte, size, defCap)
 		p.chapters = append(p.chapters, chapter)
+		b = chapter[:size:size] // protects from race on overflow
 		chapterID++
 		lastOfs = 0
+	} else {
+		end := lastOfs + size
+		p.chapters[chapterID - 1] = chapter[:end]
+		b = chapter[lastOfs:end:end] // protects from race on overflow
 	}
 
-	b := chapter[lastOfs:lastOfs + size]
 	loc := ledger.NewLocator(p.sectionID, chapterID, uint32(lastOfs))
 	return byteReceptacle(b), loc, nil
 }
@@ -237,13 +252,15 @@ func (p *cabinetSection) rollback(snapshot sectionSnapshot) {
 		defCap := cap(p.directory[0])
 		page := int(snapshot.dirIndex) / defCap
 		ofs := int(snapshot.dirIndex) % defCap
-		p.directory = p.directory[:page]
-		p.directory[page - 1] = p.directory[page - 1][:ofs]
+		p.directory = p.directory[:page + 1]
+		p.directory[page] = p.directory[page][:ofs]
 	}
 
 	if snapshot.chapter > 0 {
-		p.chapters = p.chapters[:snapshot.chapter]
-		p.chapters[snapshot.chapter - 1] = p.chapters[snapshot.chapter - 1][:snapshot.lastOfs]
+		c := snapshot.chapter
+		p.chapters = p.chapters[:c]
+		c--
+		p.chapters[c] = p.chapters[c][:snapshot.lastOfs]
 	}
 }
 
@@ -253,7 +270,14 @@ func (b byteReceptacle) ApplyMarshalTo(to cabinet.MarshalerTo) error {
 	switch n, err := to.MarshalTo(b); {
 	case err != nil:
 		return err
-	case n != len(b):
+	case n < len(b):
+		return io.ErrShortWrite
+	}
+	return nil
+}
+
+func (b byteReceptacle) ApplyFixedReader(r longbits.FixedReader) error {
+	if r.CopyTo(b) < len(b) {
 		return io.ErrShortWrite
 	}
 	return nil
