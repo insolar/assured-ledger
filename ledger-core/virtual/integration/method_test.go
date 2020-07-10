@@ -16,6 +16,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 
 	"github.com/stretchr/testify/assert"
@@ -69,9 +70,14 @@ func Method_PrepareObject(ctx context.Context, server *utils.Server, state paylo
 		ProvidedContent: content,
 	}
 
-	server.WaitIdleConveyor()
+	wait := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
 	server.SendPayload(ctx, payload)
-	server.WaitActiveThenIdleConveyor()
+
+	select {
+	case <-wait:
+	case <-time.After(10 * time.Second):
+		panic("timeout")
+	}
 }
 
 func TestVirtual_BadMethod_WithExecutor(t *testing.T) {
@@ -347,6 +353,7 @@ func TestVirtual_CallMethodAfterPulseChange(t *testing.T) {
 	typedChecker.VCallRequest.SetResend(true)
 	typedChecker.VCallResult.SetResend(true)
 	typedChecker.VStateReport.SetResend(true)
+	typedChecker.VStateRequest.SetResend(true)
 
 	server.IncrementPulseAndWaitIdle(ctx)
 
@@ -357,7 +364,7 @@ func TestVirtual_CallMethodAfterPulseChange(t *testing.T) {
 
 	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal)
 
-	// Change pulse to force send VStateRequest
+	// Change pulse to force send VStateReport
 	server.IncrementPulseAndWaitIdle(ctx)
 
 	checkBalance(ctx, t, server, objectGlobal, initialBalance)
@@ -366,6 +373,47 @@ func TestVirtual_CallMethodAfterPulseChange(t *testing.T) {
 		assert.Equal(t, 1, typedChecker.VCallRequest.Count())
 		assert.Equal(t, 1, typedChecker.VCallResult.Count())
 		assert.Equal(t, 1, typedChecker.VStateReport.Count())
+	}
+
+	mc.Finish()
+}
+
+func TestVirtual_CallMethodAfterMultiplePulseChanges(t *testing.T) {
+	t.Log("C4918")
+
+	mc := minimock.NewController(t)
+
+	server, ctx := utils.NewServer(nil, t)
+	defer server.Stop()
+
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker.VCallRequest.SetResend(true)
+	typedChecker.VCallResult.SetResend(true)
+	typedChecker.VStateReport.SetResend(true)
+	typedChecker.VStateRequest.SetResend(true)
+
+	server.IncrementPulseAndWaitIdle(ctx)
+
+	var (
+		objectLocal  = server.RandomLocalWithPulse()
+		objectGlobal = reference.NewSelf(objectLocal)
+	)
+
+	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal)
+
+	numPulseChanges := 5
+	for i := 0; i < numPulseChanges; i++ {
+		wait := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
+		server.IncrementPulseAndWaitIdle(ctx)
+		testutils.WaitSignalsTimed(t, 10*time.Second, wait)
+	}
+
+	checkBalance(ctx, t, server, objectGlobal, initialBalance)
+
+	{
+		assert.Equal(t, 1, typedChecker.VCallRequest.Count())
+		assert.Equal(t, 1, typedChecker.VCallResult.Count())
+		assert.Equal(t, numPulseChanges, typedChecker.VStateReport.Count())
 	}
 
 	mc.Finish()
