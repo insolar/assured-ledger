@@ -1,9 +1,6 @@
 name: whoami check
 on:
-  push:
-    branches:
-      - master
-  pull_request:
+  #pull_request:
 env:
   KUBECONFIG: "${{ github.workspace }}/aks.yaml"
   GO_VERSION: 1.14
