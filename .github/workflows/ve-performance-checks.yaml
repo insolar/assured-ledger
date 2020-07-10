@@ -22,6 +22,7 @@ jobs:
       - name: Send notification to Slack
         uses: 8398a7/action-slack@v3
         with:
+          status: ${{ job.status }}
           fields: repo,message,commit,author,action,eventName,ref,workflow
           text: https://reports.garage.insolar.io/ve-perf-tests/2020-07-08-17-47-b87d5a52.png
         env:
