@@ -5,7 +5,6 @@ Start network
 ```
 scripts/insolard/launchnet.sh -g
 ```
-Set network_iface in config load/gen_cfg/generator_local.yaml
 
 Run all handles sequential test
 ```
