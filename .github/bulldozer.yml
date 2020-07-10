@@ -10,7 +10,7 @@ merge:
   whitelist:
     # Pull requests with any of these labels (case-insensitive) are added to
     # the whitelist.
-    labels: ["ready to merge"]
+    labels: ["ready to merge", "automerge"]
 
     # Pull requests where the body or any comment contains any of these
     # substrings are added to the whitelist.
