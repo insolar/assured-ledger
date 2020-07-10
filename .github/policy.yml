@@ -18,6 +18,8 @@ policy:
 approval_rules:
   - name: "the core team has approved"
     options:
+      invalidate_on_push: true
+      ignore_update_merges: true
       methods:
         github_review: true
     requires:
