@@ -1,0 +1,14 @@
+generator:
+  target: http://placeholder.uscifarm.insolar.io
+  responseTimeoutSec: 30
+  rampUpStrategy: linear
+  verbose: true
+execution_mode: parallel
+checks:
+  handle_threshold_percent: 1.20
+root_package_name: assured-ledger/ledger-core
+load_scripts_dir: load
+timezone: Europe/Moscow
+logging:
+  level: info
+  encoding: console
