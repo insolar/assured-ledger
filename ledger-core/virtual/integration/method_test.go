@@ -362,16 +362,15 @@ func TestVirtual_Method_WithoutExecutor_Ordered(t *testing.T) {
 
 	syncPoint := synchronization.NewPoint(2)
 	cntr := 0
+	countBefore := server.PublisherMock.GetCount()
 
 	{
 		typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
 			require.Equal(t, res.ReturnArguments, []byte("345"))
 			require.Equal(t, res.Callee, objectGlobal)
-
+			cntr--
 			return false // no resend msg
 		})
-
-		countBefore := server.PublisherMock.GetCount()
 		interferenceFlag := contract.CallTolerable
 		stateFlag := contract.CallDirty
 
@@ -393,6 +392,7 @@ func TestVirtual_Method_WithoutExecutor_Ordered(t *testing.T) {
 			runnerMock.AddExecutionMock(key).
 				AddStart(func(ctx execution.Context) {
 					cntr ++
+					require.Equal(t, 1, cntr)
 					syncPoint.Synchronize()
 			}, &execution.Update{
 				Type:   execution.Done,
@@ -406,13 +406,6 @@ func TestVirtual_Method_WithoutExecutor_Ordered(t *testing.T) {
 			server.SendPayload(ctx, &pl)
 		}
 
-		// Wait for 3 seconds to be sure both requests had chances to be processed in case of parallel execution
-		for k := 0; k < 3; k ++ {
-			time.Sleep(time.Second)
-	}
-		// Check that we processed exactly one since the second one was blocked and waiting
-		assert.Equal(t, 1, cntr)
-
 		// Unblock the first one and allow it to complete so that the second starts
 		// And wait until the processing of the first request is done
 		syncPoint.WakeUp()
@@ -421,24 +414,18 @@ func TestVirtual_Method_WithoutExecutor_Ordered(t *testing.T) {
 		testutils.WaitSignalsTimed(t, 10*time.Second, awaitStopFirstSM)
 		server.WaitActiveThenIdleConveyor()
 
-		// Now the second one should be processed as well
-		assert.Equal(t, 2, cntr)
 		syncPoint.Done()
 
-		assert.Equal(t, 2, cntr)
+	}
+	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+
+	{
 		assert.Equal(t, 2, typedChecker.VCallResult.Count())
 
 		if !server.PublisherMock.WaitCount(countBefore+2, 10*time.Second) {
 			t.Error("failed to wait for result")
 		}
-	}
-
-	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
-	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
-
-
-	{
-		assert.Equal(t, 2, typedChecker.VCallResult.Count())
 	}
 
 	mc.Finish()
