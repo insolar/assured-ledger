@@ -23,6 +23,6 @@ approval_rules:
       methods:
         github_review: true
     requires:
-      count: 1
+      count: 2
       teams:
         - "insolar/dev-core"
