@@ -66,6 +66,14 @@ func (s service) checkDelegationToken(expectedVE reference.Global, token payload
 			}{ExpectedVE: expectedVE.String(), Approver: token.Approver.String()})
 	}
 
+	if !token.DelegateTo.Equal(sender) {
+		return throw.WithSeverity(throw.New("token DelegateTo and sender are different",
+			struct {
+				ExpectedVE string
+				Approver   string
+			}{ExpectedVE: expectedVE.String(), Approver: token.Approver.String()}), throw.RemoteBreachSeverity)
+	}
+
 	if sender.Equal(token.Approver) {
 		return throw.WithSeverity(throw.New("sender cannot be approver of the token", struct {
 			Sender string

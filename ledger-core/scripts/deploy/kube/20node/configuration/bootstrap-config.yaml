@@ -1,0 +1,125 @@
+members_keys_dir: /var/data/bootstrap/configs/
+discovery_keys_dir: /var/data/bootstrap/discovery-keys/
+not_discovery_keys_dir: ""
+keys_name_format: node-%d.json
+reuse_keys: false
+heavy_genesis_config_file: /var/data/bootstrap/heavy_genesis.json
+heavy_genesis_plugins_dir: ""
+root_balance: ""
+md_balance: ""
+vesting_pulse_period: 0
+vesting_pulse_step: 0
+lockup_pulse_period: 0
+pk_shard_count: 0
+ma_shard_count: 0
+contracts:
+  insgocc: ""
+  outdir: ""
+majority_rule: 5
+min_roles:
+  virtual: 3
+  heavy_material: 0
+  light_material: 0
+discovery_nodes:
+- host: virtual-0.platform-network:13831
+  role: virtual
+  key_name: ""
+  cert_name: virtual-0.json
+  keys_file: ""
+- host: virtual-1.platform-network:13831
+  role: virtual
+  key_name: ""
+  cert_name: virtual-1.json
+  keys_file: ""
+- host: virtual-2.platform-network:13831
+  role: virtual
+  key_name: ""
+  cert_name: virtual-2.json
+  keys_file: ""
+- host: virtual-3.platform-network:13831
+  role: virtual
+  key_name: ""
+  cert_name: virtual-3.json
+  keys_file: ""
+- host: virtual-4.platform-network:13831
+  role: virtual
+  key_name: ""
+  cert_name: virtual-4.json
+  keys_file: ""
+- host: virtual-5.platform-network:13831
+  role: virtual
+  key_name: ""
+  cert_name: virtual-5.json
+  keys_file: ""
+- host: virtual-6.platform-network:13831
+  role: virtual
+  key_name: ""
+  cert_name: virtual-6.json
+  keys_file: ""
+- host: virtual-7.platform-network:13831
+  role: virtual
+  key_name: ""
+  cert_name: virtual-7.json
+  keys_file: ""
+- host: virtual-8.platform-network:13831
+  role: virtual
+  key_name: ""
+  cert_name: virtual-8.json
+  keys_file: ""
+- host: virtual-9.platform-network:13831
+  role: virtual
+  key_name: ""
+  cert_name: virtual-9.json
+  keys_file: ""
+- host: virtual-10.platform-network:13831
+  role: virtual
+  key_name: ""
+  cert_name: virtual-10.json
+  keys_file: ""
+- host: virtual-11.platform-network:13831
+  role: virtual
+  key_name: ""
+  cert_name: virtual-11.json
+  keys_file: ""
+- host: virtual-12.platform-network:13831
+  role: virtual
+  key_name: ""
+  cert_name: virtual-12.json
+  keys_file: ""
+- host: virtual-13.platform-network:13831
+  role: virtual
+  key_name: ""
+  cert_name: virtual-13.json
+  keys_file: ""
+- host: virtual-14.platform-network:13831
+  role: virtual
+  key_name: ""
+  cert_name: virtual-14.json
+  keys_file: ""
+- host: virtual-15.platform-network:13831
+  role: virtual
+  key_name: ""
+  cert_name: virtual-15.json
+  keys_file: ""
+- host: virtual-16.platform-network:13831
+  role: virtual
+  key_name: ""
+  cert_name: virtual-16.json
+  keys_file: ""
+- host: virtual-17.platform-network:13831
+  role: virtual
+  key_name: ""
+  cert_name: virtual-17.json
+  keys_file: ""
+- host: virtual-18.platform-network:13831
+  role: virtual
+  key_name: ""
+  cert_name: virtual-18.json
+  keys_file: ""
+- host: virtual-19.platform-network:13831
+  role: virtual
+  key_name: ""
+  cert_name: virtual-19.json
+  keys_file: ""
+nodes: []
+pulsar_public_keys: []
