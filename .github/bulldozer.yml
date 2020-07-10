@@ -18,7 +18,7 @@ merge:
 
     # Pull requests where any comment matches one of these exact strings are
     # added to the whitelist.
-    comments: ["READY TO MERGE"]
+#    comments: ["READY TO MERGE"]
 
     # Pull requests where the body contains any of these substrings are added
     # to the whitelist.
@@ -88,5 +88,5 @@ update:
 
   # "blacklist" defines the set of pull requests that should not be updated by
   # bulldozer. It accepts the same keys as the blacklist in the "merge" block.
-  blacklist:
-    labels: ["do not update"]
+#  blacklist:
+#    labels: ["do not update"]
