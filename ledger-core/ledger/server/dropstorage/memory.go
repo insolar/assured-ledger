@@ -58,6 +58,16 @@ func (p *MemoryStorageWriter) TakeSnapshot() bundle.Snapshot {
 	}
 }
 
+func (p *MemoryStorageWriter) getTotalChapterSize() int {
+	n := 0
+	for _, s := range p.sections {
+		for j := range s.chapters {
+			n += len(s.chapters[j])
+		}
+	}
+	return n
+}
+
 type memorySnapshot struct {
 	storage  *MemoryStorageWriter
 	snapshot []sectionSnapshot

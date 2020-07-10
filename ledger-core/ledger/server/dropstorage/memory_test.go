@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/bundle"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 )
@@ -176,4 +177,67 @@ func TestMemorySnapshotPayloadPaging(t *testing.T) {
 	require.Equal(t, 2, len(chapters))
 	require.Equal(t, 4*allocSize, len(chapters[0]))
 	require.Equal(t, allocSize, len(chapters[1]))
+}
+
+type benchBundle struct {
+	data  []byte
+	recep bundle.PayloadReceptacle
+}
+
+func (p *benchBundle) PrepareWrite(snapshot bundle.Snapshot) error {
+	ps, err := snapshot.GetPayloadSection(ledger.DefaultEntrySection)
+	if err == nil {
+		p.recep, _, err = ps.AllocatePayloadStorage(len(p.data), 0)
+	}
+	return err
+}
+
+func (p *benchBundle) ApplyWrite() ([]ledger.DirectoryIndex, error) {
+	err := p.recep.ApplyFixedReader(longbits.NewMutableFixedSize(p.data))
+	return nil, err
+}
+
+func BenchmarkMemoryStorageWrite(b *testing.B) {
+	ms := NewMemoryStorageWriter(ledger.DefaultEntrySection, 1<<16)
+	mw := bundle.NewWriter(ms)
+	src := make([]byte, 1<<12)
+	b.SetBytes(int64(len(src)))
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	for i := b.N; i > 0; i-- {
+		ch := make(chan struct{})
+		_ = mw.WriteBundle(&benchBundle{data: src}, func(_ []ledger.DirectoryIndex, err error) bool {
+			defer close(ch)
+			if err != nil {
+				panic(err)
+			}
+			return true
+		})
+		<- ch
+	}
+}
+
+func BenchmarkMemoryStorageParallelWrite(b *testing.B) {
+	ms := NewMemoryStorageWriter(ledger.DefaultEntrySection, 1<<16)
+	mw := bundle.NewWriter(ms)
+	src := make([]byte, 1<<12)
+	b.SetBytes(int64(len(src)))
+	b.ReportAllocs()
+	b.ResetTimer()
+	b.SetParallelism(8)
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			ch := make(chan struct{})
+			_ = mw.WriteBundle(&benchBundle{data: src}, func(_ []ledger.DirectoryIndex, err error) bool {
+				defer close(ch)
+				if err != nil {
+					panic(err)
+				}
+				return true
+			})
+			<- ch
+		}
+	})
 }
