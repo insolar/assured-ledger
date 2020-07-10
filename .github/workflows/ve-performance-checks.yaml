@@ -1,6 +1,6 @@
 name: ve-performance check
 on:
-  pull_request:
+  #pull_request:
   schedule:
     - cron: '0 0 * * *'
 env:
