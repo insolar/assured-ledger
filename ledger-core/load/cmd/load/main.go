@@ -6,5 +6,5 @@ import (
 )
 
 func main() {
-	loadgen.Run(load.AttackerFromName, load.CheckFromName)
+	loadgen.Run(load.AttackerFromName, load.CheckFromName, nil, nil)
 }
