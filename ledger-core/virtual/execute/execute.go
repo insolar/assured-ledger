@@ -35,6 +35,8 @@ import (
 
 /* -------- Utilities ------------- */
 
+const MaxOutgoingRetries = 3
+
 type SMExecute struct {
 	// input arguments
 	Meta    *payload.Meta
@@ -64,9 +66,10 @@ type SMExecute struct {
 	pulseSlot             *conveyor.PulseSlot
 	authenticationService authentication.Service
 
-	outgoing        *payload.VCallRequest
-	outgoingObject  reference.Global
-	outgoingWasSent bool
+	outgoing             *payload.VCallRequest
+	outgoingObject       reference.Global
+	outgoingWasSent      bool
+	retryOutgoingCounter int
 
 	migrationHappened bool
 	objectCatalog     object.Catalog
@@ -678,7 +681,13 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 			return ctx.Error(throw.E("failed to publish bargeInCallback"))
 		}
 	} else {
-		s.outgoing.CallRequestFlags = payload.BuildCallRequestFlags(payload.SendResultDefault, payload.RepeatedCall)
+		if s.retryOutgoingCounter < MaxOutgoingRetries {
+			s.retryOutgoingCounter++
+			s.outgoing.CallRequestFlags = payload.BuildCallRequestFlags(payload.SendResultDefault, payload.RepeatedCall)
+		} else {
+			ctx.Log().Warn("outgoing retry attempts exceeded, stop processing SMExecute")
+			panic(throw.NotImplemented())
+		}
 	}
 
 	s.outgoing.DelegationSpec = s.getToken()
