@@ -351,7 +351,7 @@ func (s *VFindCallRequestHandlingSuite) generateCaller() {
 
 func (s *VFindCallRequestHandlingSuite) generateObjectRef() {
 	if s.isConstructor {
-		s.object = reference.NewRecordOf(s.caller, s.outgoing)
+		s.object = reference.NewSelf(s.outgoing)
 		return
 	}
 	p := s.getP1()
