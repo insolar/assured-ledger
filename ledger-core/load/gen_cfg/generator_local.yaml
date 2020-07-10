@@ -1,26 +1,12 @@
-host:
-  name: gha_runner
-  network_iface: en0
-remotes:
 generator:
   target: http://127.0.0.1:32304
-  responseTimeoutSec: 20
+  responseTimeoutSec: 30
   rampUpStrategy: linear
   verbose: true
 execution_mode: parallel
-grafana:
-  url: http://0.0.0.0:8181
-  login: "admin"
-  password: "admin"
-graphite:
-  url: 0.0.0.0:2003
-  flushDurationSec: 1
-  loadGeneratorPrefix: observer
-checks:
-  handle_threshold_percent: 1.20
 root_package_name: assured-ledger/ledger-core
 load_scripts_dir: load
 timezone: Europe/Moscow
 logging:
-  level: debug
+  level: info
   encoding: console

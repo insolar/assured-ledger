@@ -1,18 +1,12 @@
-host:
-  name: gha_runner
-  network_iface: eth0
-remotes:
 generator:
   target: https://clients5.google.com/pagead/drt/dn/
-  responseTimeoutSec: 20
+  responseTimeoutSec: 30
   rampUpStrategy: linear
   verbose: true
 execution_mode: parallel
-checks:
-  handle_threshold_percent: 1.20
 root_package_name: assured-ledger/ledger-core
 load_scripts_dir: load
 timezone: Europe/Moscow
 logging:
-  level: debug
+  level: info
   encoding: console
