@@ -158,6 +158,7 @@ func TestPulseConveyor_AddInput(t *testing.T) {
 
 		conveyor, emerChan := newTestPulseConveyor(ctx, t, func(inputPN pulse.Number, pr pulse.Range) {
 			require.NotNil(t, pr)
+			require.True(t, pr.RightBoundData().IsExpectedPulse())
 			require.Equal(t, pn, inputPN)
 		})
 
@@ -177,6 +178,7 @@ func TestPulseConveyor_AddInput(t *testing.T) {
 
 		conveyor, emerChan := newTestPulseConveyor(ctx, t, func(inputPN pulse.Number, pr pulse.Range) {
 			require.NotNil(t, pr)
+			require.True(t, pr.RightBoundData().IsExpectedPulse())
 			require.Equal(t, pn, inputPN)
 		})
 
@@ -197,6 +199,7 @@ func TestPulseConveyor_AddInput(t *testing.T) {
 
 		conveyor, emerChan := newTestPulseConveyor(ctx, t, func(inputPN pulse.Number, pr pulse.Range) {
 			require.NotNil(t, pr)
+			require.False(t, pr.RightBoundData().IsExpectedPulse())
 			require.Equal(t, startPn, inputPN)
 		})
 		defer func() {
@@ -218,6 +221,7 @@ func TestPulseConveyor_AddInput(t *testing.T) {
 
 		conveyor, emerChan := newTestPulseConveyor(ctx, t, func(inputPN pulse.Number, pr pulse.Range) {
 			require.NotNil(t, pr)
+			require.False(t, pr.RightBoundData().IsExpectedPulse())
 		})
 		defer func() {
 			close(emerChan)
@@ -263,6 +267,7 @@ func TestPulseConveyor_AddInput(t *testing.T) {
 
 		conveyor, emerChan := newTestPulseConveyor(ctx, t, func(inputPN pulse.Number, pr pulse.Range) {
 			require.NotNil(t, pr)
+			require.False(t, pr.RightBoundData().IsExpectedPulse())
 			require.Equal(t, firstPn, inputPN)
 		})
 		defer func() {

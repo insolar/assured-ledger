@@ -9,9 +9,11 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
@@ -21,8 +23,93 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 )
+
+var messagesWithToken = []struct {
+	name string
+	msg  interface{}
+}{
+	{
+		name: "VCallRequest",
+		msg:  &payload.VCallRequest{},
+	},
+	{
+		name: "VCallResult",
+		msg:  &payload.VCallResult{},
+	},
+	{
+		name: "VStateReport",
+		msg:  &payload.VStateReport{},
+	},
+	{
+		name: "VStateRequest",
+		msg:  &payload.VStateRequest{},
+	},
+	{
+		name: "VDelegatedCallRequest",
+		msg:  &payload.VDelegatedCallRequest{},
+	},
+	{
+		name: "VDelegatedRequestFinished",
+		msg:  &payload.VDelegatedRequestFinished{},
+	},
+}
+
+func TestDelegationToken_SuccessCheckCorrectToken(t *testing.T) {
+	t.Log("C5191")
+	for _, testMsg := range messagesWithToken {
+		t.Run(testMsg.name, func(t *testing.T) {
+			mc := minimock.NewController(t)
+
+			server, ctx := utils.NewUninitializedServer(nil, t)
+
+			jetCoordinatorMock := jet.NewAffinityHelperMock(mc)
+			auth := authentication.NewService(ctx, jetCoordinatorMock)
+			server.ReplaceAuthenticationService(auth)
+
+			var errorFound bool
+			logHandler := func(arg interface{}) {
+				err, ok := arg.(error)
+				if !ok {
+					return
+				}
+				errMsg := err.Error()
+				if !strings.Contains(errMsg, "illegitimate msg") {
+					return
+				}
+				errorFound = true
+			}
+			logger := utils.InterceptLog(inslogger.FromContext(ctx), logHandler)
+			server.OverrideConveyorFactoryLogContext(inslogger.SetLogger(ctx, logger))
+
+			server.Init(ctx)
+			// increment pulse for VStateReport and VDelegatedCallRequest
+			server.IncrementPulse(ctx)
+
+			approver := server.RandomGlobalWithPulse()
+			jetCoordinatorMock.
+				MeMock.Return(approver).
+				QueryRoleMock.Return([]reference.Global{approver}, nil)
+
+			class := gen.UniqueGlobalRef()
+			outgoing := server.BuildRandomOutgoingWithPulse()
+			delegationToken := server.DelegationToken(reference.NewRecordOf(class, outgoing.GetLocal()), server.GlobalCaller(), outgoing)
+
+			reflect.ValueOf(testMsg.msg).MethodByName("Reset").Call([]reflect.Value{})
+			insertToken(delegationToken, testMsg.msg)
+
+			server.SendPayload(ctx, testMsg.msg.(payload.Marshaler))
+			server.WaitActiveThenIdleConveyor()
+
+			assert.False(t, errorFound, "Fail "+testMsg.name)
+			server.Stop()
+			mc.Finish()
+		})
+	}
+}
 
 func TestDelegationToken_CheckTokenField(t *testing.T) {
 	tests := []struct {
@@ -133,43 +220,192 @@ func insertToken(token payload.CallDelegationToken, msg interface{}) {
 	reflect.ValueOf(msg).Elem().FieldByName("DelegationSpec").Set(field.Elem())
 }
 
-func TestDelegationToken_CheckFailIfWrongApprover(t *testing.T) {
-	t.Log("C5192")
-	cases := []struct {
-		name string
-		msg  interface{}
-	}{
+type veSetMode int
+
+const (
+	veSetNone veSetMode = iota
+	veSetServer
+	veSetFake
+	veSetFixed
+)
+
+type testCase struct {
+	name           string
+	testRailID     string
+	zeroToken      bool
+	approverVE     veSetMode
+	currentVE      veSetMode
+	errorMessages  []string
+	errorSeverity  throw.Severity
+	customDelegate reference.Global
+}
+
+func TestDelegationToken_IsMessageFromVirtualLegitimate(t *testing.T) {
+	fixedVe := gen.UniqueGlobalRef()
+	cases := []testCase{
 		{
-			name: "VCallRequest",
-			msg:  &payload.VCallRequest{},
+			name:       "Fail if DT is zero and sender not eq expectedVE",
+			testRailID: "C5196",
+			zeroToken:  true,
+			approverVE: veSetFake,
+			currentVE:  veSetNone,
+			errorMessages: []string{
+				"unexpected sender",
+				"illegitimate msg",
+			},
+			errorSeverity: 0,
 		},
 		{
-			name: "VCallResult",
-			msg:  &payload.VCallResult{},
+			name:       "Fail if sender eq approver",
+			testRailID: "C5193",
+			zeroToken:  false,
+			approverVE: veSetServer,
+			currentVE:  veSetServer,
+			errorMessages: []string{
+				"sender cannot be approver of the token",
+				"illegitimate msg",
+			},
+			errorSeverity: throw.FraudSeverity,
 		},
 		{
-			name: "VStateReport",
-			msg:  &payload.VStateReport{},
+			name:       "Fail if wrong approver",
+			testRailID: "C5192",
+			zeroToken:  false,
+			approverVE: veSetFake,
+			currentVE:  veSetFake,
+			errorMessages: []string{
+				"token Approver and expectedVE are different",
+				"illegitimate msg",
+			},
+			errorSeverity: 0,
 		},
 		{
-			name: "VStateRequest",
-			msg:  &payload.VStateRequest{},
-		},
-		{
-			name: "VDelegatedCallRequest",
-			msg:  &payload.VDelegatedCallRequest{},
-		},
-		{
-			name: "VDelegatedRequestFinished",
-			msg:  &payload.VDelegatedRequestFinished{},
+			name:       "Fail if wrong delegate",
+			testRailID: "C5194",
+			approverVE: veSetFixed,
+			currentVE:  veSetFixed,
+			errorMessages: []string{
+				"token DelegateTo and sender are different",
+				"illegitimate msg",
+			},
+			errorSeverity:  throw.RemoteBreachSeverity,
+			customDelegate: gen.UniqueGlobalRef(),
 		},
 	}
-
-	mc := minimock.NewController(t)
-
 	for _, testCase := range cases {
 		t.Run(testCase.name, func(t *testing.T) {
+			t.Log(testCase.testRailID)
+
+			for _, testMsg := range messagesWithToken {
+				mc := minimock.NewController(t)
+
+				server, ctx := utils.NewUninitializedServer(nil, t)
+
+				jetCoordinatorMock := jet.NewAffinityHelperMock(mc)
+				auth := authentication.NewService(ctx, jetCoordinatorMock)
+				server.ReplaceAuthenticationService(auth)
+
+				var errorFound bool
+				logHandler := func(arg interface{}) {
+					err, ok := arg.(error)
+					if !ok {
+						return
+					}
+					if testCase.errorSeverity > 0 {
+						if s, sok := throw.GetSeverity(err); (sok && s != testCase.errorSeverity) || !sok {
+							return
+						}
+					}
+					errMsg := err.Error()
+					for _, errTemplate := range testCase.errorMessages {
+						if !strings.Contains(errMsg, errTemplate) {
+							return
+						}
+					}
+					errorFound = true
+				}
+				logger := utils.InterceptLog(inslogger.FromContext(ctx), logHandler)
+				server.OverrideConveyorFactoryLogContext(inslogger.SetLogger(ctx, logger))
+
+				server.Init(ctx)
+				// increment pulse for VStateReport and VDelegatedCallRequest
+				server.IncrementPulse(ctx)
+
+				switch testCase.approverVE {
+				case veSetServer:
+					jetCoordinatorMock.
+						QueryRoleMock.Return([]reference.Global{server.GlobalCaller()}, nil)
+				case veSetFake:
+					jetCoordinatorMock.
+						QueryRoleMock.Return([]reference.Global{server.RandomGlobalWithPulse()}, nil)
+				case veSetFixed:
+					jetCoordinatorMock.
+						QueryRoleMock.Return([]reference.Global{fixedVe}, nil)
+				}
+
+				switch testCase.currentVE {
+				case veSetServer:
+					jetCoordinatorMock.MeMock.Return(server.GlobalCaller())
+				case veSetFake:
+					jetCoordinatorMock.MeMock.Return(server.RandomGlobalWithPulse())
+				case veSetFixed:
+					jetCoordinatorMock.MeMock.Return(fixedVe)
+				}
+
+				var delegationToken payload.CallDelegationToken
+				if testCase.zeroToken {
+					delegationToken = payload.CallDelegationToken{
+						TokenTypeAndFlags: payload.DelegationTokenTypeUninitialized,
+					}
+				} else {
+					class := gen.UniqueGlobalRef()
+					outgoing := server.BuildRandomOutgoingWithPulse()
+					delegateTo := server.GlobalCaller()
+					if !testCase.customDelegate.IsZero() {
+						delegateTo = testCase.customDelegate
+					}
+					delegationToken = server.DelegationToken(reference.NewRecordOf(class, outgoing.GetLocal()), delegateTo, outgoing)
+				}
+				reflect.ValueOf(testMsg.msg).MethodByName("Reset").Call([]reflect.Value{})
+				insertToken(delegationToken, testMsg.msg)
+
+				server.SendPayload(ctx, testMsg.msg.(payload.Marshaler))
+				server.WaitIdleConveyor()
+
+				assert.True(t, errorFound, "Fail "+testMsg.name)
+				server.Stop()
+				mc.Finish()
+			}
+		})
+	}
+}
+
+func TestDelegationToken_OldVEVDelegatedCallRequest(t *testing.T) {
+	testCases := []struct {
+		name          string
+		testRailID    string
+		haveCorrectDT bool
+	}{
+		{
+			name:          "Success run SM if DT is correct",
+			testRailID:    "C5186",
+			haveCorrectDT: true,
+		},
+		{
+			name:          "Fail if message have no DT",
+			testRailID:    "C5187",
+			haveCorrectDT: false,
+		},
+	}
+	for _, test := range testCases {
+		t.Run(test.name, func(t *testing.T) {
+			t.Log(test.testRailID)
+			mc := minimock.NewController(t)
+
 			server, ctx := utils.NewUninitializedServer(nil, t)
+			defer server.Stop()
+
+			executeDone := server.Journal.WaitStopOf(&handlers.SMVDelegatedCallRequest{}, 1)
 
 			jetCoordinatorMock := jet.NewAffinityHelperMock(t)
 			auth := authentication.NewService(ctx, jetCoordinatorMock)
@@ -179,7 +415,7 @@ func TestDelegationToken_CheckFailIfWrongApprover(t *testing.T) {
 			logHandler := func(arg interface{}) {
 				if err, ok := arg.(error); ok {
 					errMsg := err.Error()
-					if strings.Contains(errMsg, "token Approver and expectedVE are different") &&
+					if strings.Contains(errMsg, "unexpected sender") &&
 						strings.Contains(errMsg, "illegitimate msg") {
 						errorFound = true
 					}
@@ -189,113 +425,71 @@ func TestDelegationToken_CheckFailIfWrongApprover(t *testing.T) {
 			server.OverrideConveyorFactoryLogContext(inslogger.SetLogger(ctx, logger))
 
 			server.Init(ctx)
-			// increment pulse for VStateReport and VDelegatedCallRequest
+
+			var (
+				class       = gen.UniqueGlobalRef()
+				outgoing    = server.BuildRandomOutgoingWithPulse()
+				executorRef = server.RandomGlobalWithPulse()
+				firstPulse  = server.GetPulse()
+
+				delegationToken, expectedToken      payload.CallDelegationToken
+				expectedVDelegatedCallResponseCount int
+			)
+
 			server.IncrementPulse(ctx)
 
 			approver := server.RandomGlobalWithPulse()
-			fakeApprover := server.RandomGlobalWithPulse()
 			jetCoordinatorMock.
-				MeMock.Return(fakeApprover).
+				MeMock.Return(approver).
 				QueryRoleMock.Return([]reference.Global{approver}, nil)
 
-			var (
-				class    = gen.UniqueGlobalRef()
-				outgoing = server.BuildRandomOutgoingWithPulse()
-			)
-
-			delegationToken := server.DelegationToken(reference.NewRecordOf(class, outgoing.GetLocal()), server.GlobalCaller(), outgoing)
-			reflect.ValueOf(testCase.msg).MethodByName("Reset").Call([]reflect.Value{})
-			insertToken(delegationToken, testCase.msg)
-
-			server.SendPayload(ctx, testCase.msg.(payload.Marshaler))
-			server.WaitIdleConveyor()
-
-			assert.True(t, errorFound)
-			server.Stop()
-		})
-	}
-	mc.Finish()
-}
-
-func TestDelegationToken_CheckFailIfSenderEqApprover(t *testing.T) {
-	t.Log("C5193")
-	cases := []struct {
-		name string
-		msg  interface{}
-	}{
-		{
-			name: "VCallRequest",
-			msg:  &payload.VCallRequest{},
-		},
-		{
-			name: "VCallResult",
-			msg:  &payload.VCallResult{},
-		},
-		{
-			name: "VStateReport",
-			msg:  &payload.VStateReport{},
-		},
-		{
-			name: "VStateRequest",
-			msg:  &payload.VStateRequest{},
-		},
-		{
-			name: "VDelegatedCallRequest",
-			msg:  &payload.VDelegatedCallRequest{},
-		},
-		{
-			name: "VDelegatedRequestFinished",
-			msg:  &payload.VDelegatedRequestFinished{},
-		},
-	}
-
-	mc := minimock.NewController(t)
-
-	for _, testCase := range cases {
-		t.Run(testCase.name, func(t *testing.T) {
-			server, ctx := utils.NewUninitializedServer(nil, t)
-
-			jetCoordinatorMock := jet.NewAffinityHelperMock(t)
-			auth := authentication.NewService(ctx, jetCoordinatorMock)
-			server.ReplaceAuthenticationService(auth)
-
-			var errorFound bool
-			logHandler := func(arg interface{}) {
-				if err, ok := arg.(error); ok {
-					errMsg := err.Error()
-					if severity, sok := throw.GetSeverity(err); sok && severity == throw.FraudSeverity &&
-						strings.Contains(errMsg, "sender cannot be approver of the token") &&
-						strings.Contains(errMsg, "illegitimate msg") {
-						errorFound = true
-					}
-				}
+			if test.haveCorrectDT {
+				delegationToken = server.DelegationToken(reference.NewRecordOf(class, outgoing.GetLocal()), executorRef, class)
 			}
-			logger := utils.InterceptLog(inslogger.FromContext(ctx), logHandler)
-			server.OverrideConveyorFactoryLogContext(inslogger.SetLogger(ctx, logger))
 
-			server.Init(ctx)
-			// increment pulse for VStateReport and VDelegatedCallRequest
 			server.IncrementPulse(ctx)
 
-			jetCoordinatorMock.
-				MeMock.Return(server.GlobalCaller()).
-				QueryRoleMock.Return([]reference.Global{server.GlobalCaller()}, nil)
+			if test.haveCorrectDT {
+				expectedToken = server.DelegationToken(outgoing, executorRef, class)
+				require.NotEqual(t, delegationToken.PulseNumber, expectedToken.PulseNumber)
+				require.Equal(t, delegationToken.DelegateTo, expectedToken.DelegateTo)
+			}
 
-			var (
-				class    = gen.UniqueGlobalRef()
-				outgoing = server.BuildRandomOutgoingWithPulse()
-			)
+			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+			typedChecker.VDelegatedCallResponse.Set(func(response *payload.VDelegatedCallResponse) bool {
+				assert.Equal(t, class, response.Callee)
+				assert.Equal(t, expectedToken, response.ResponseDelegationSpec)
+				return false
+			})
 
-			delegationToken := server.DelegationToken(reference.NewRecordOf(class, outgoing.GetLocal()), server.GlobalCaller(), outgoing)
-			reflect.ValueOf(testCase.msg).MethodByName("Reset").Call([]reflect.Value{})
-			insertToken(delegationToken, testCase.msg)
+			statePl := payload.VStateReport{
+				Status:                      payload.Empty,
+				Object:                      class,
+				OrderedPendingCount:         1,
+				OrderedPendingEarliestPulse: firstPulse.PulseNumber,
+			}
+			server.SendMessage(ctx, utils.NewRequestWrapper(server.GetPulse().PulseNumber, &statePl).SetSender(approver).Finalize())
+			server.WaitActiveThenIdleConveyor()
 
-			server.SendPayload(ctx, testCase.msg.(payload.Marshaler))
-			server.WaitIdleConveyor()
+			pl := payload.VDelegatedCallRequest{
+				Callee:         class,
+				CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+				CallOutgoing:   outgoing,
+				DelegationSpec: delegationToken,
+			}
+			msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(executorRef).Finalize()
+			server.SendMessage(ctx, msg)
 
-			assert.True(t, errorFound)
-			server.Stop()
+			if test.haveCorrectDT {
+				testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+				testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+				expectedVDelegatedCallResponseCount = 1
+			}
+
+			assert.Equal(t, !test.haveCorrectDT, errorFound)
+			assert.Equal(t, expectedVDelegatedCallResponseCount, typedChecker.VDelegatedCallResponse.Count())
+
+			mc.Finish()
 		})
 	}
-	mc.Finish()
 }

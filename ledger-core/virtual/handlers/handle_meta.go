@@ -67,27 +67,30 @@ func (f FactoryMeta) Process(ctx context.Context, msg *statemachine.DispatcherMe
 		panic(throw.Impossible())
 	}
 
-	mustReject, err := f.AuthService.IsMessageFromVirtualLegitimate(logCtx, payloadObj, payloadMeta.Sender, pr)
-	if err != nil {
-		logger.Warn(throw.W(err, "illegitimate msg", skippedMessage{
-			messageTypeID: payloadTypeID,
-			messageType:   payloadType,
-			incomingPulse: payloadMeta.Pulse,
-			targetPulse:   targetPulse,
-		}))
+	// don't check sender for future pulses in R0
+	if !pr.RightBoundData().IsExpectedPulse() {
+		mustReject, err := f.AuthService.IsMessageFromVirtualLegitimate(logCtx, payloadObj, payloadMeta.Sender, pr)
+		if err != nil {
+			logger.Warn(throw.W(err, "illegitimate msg", skippedMessage{
+				messageTypeID: payloadTypeID,
+				messageType:   payloadType,
+				incomingPulse: payloadMeta.Pulse,
+				targetPulse:   targetPulse,
+			}))
 
-		return pulse.Unknown, nil, nil
-	}
+			return pulse.Unknown, nil, nil
+		}
 
-	if mustReject {
-		logger.Warn(throw.W(err, "rejected msg", skippedMessage{
-			messageTypeID: payloadTypeID,
-			messageType:   payloadType,
-			incomingPulse: payloadMeta.Pulse,
-			targetPulse:   targetPulse,
-		}))
-		// when this flag is set, then the relevant SM has to stop asap and send negative answer
-		return pulse.Unknown, nil, throw.NotImplemented()
+		if mustReject {
+			logger.Warn(throw.W(err, "rejected msg", skippedMessage{
+				messageTypeID: payloadTypeID,
+				messageType:   payloadType,
+				incomingPulse: payloadMeta.Pulse,
+				targetPulse:   targetPulse,
+			}))
+			// when this flag is set, then the relevant SM has to stop asap and send negative answer
+			return pulse.Unknown, nil, throw.NotImplemented()
+		}
 	}
 
 	if pn, sm := func() (pulse.Number, smachine.StateMachine) {

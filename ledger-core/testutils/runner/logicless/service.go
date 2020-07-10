@@ -119,6 +119,7 @@ func (s *ServiceMock) AddExecutionMock(key string) *ExecutionMock {
 	s.lastID++
 
 	executionMock := &ExecutionMock{
+		t:     s.t,
 		key:   key,
 		state: &runState{id: s.lastID},
 	}
