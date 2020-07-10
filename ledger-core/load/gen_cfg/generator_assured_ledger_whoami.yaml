@@ -1,0 +1,12 @@
+generator:
+  target: https://clients5.google.com/pagead/drt/dn/
+  responseTimeoutSec: 30
+  rampUpStrategy: linear
+  verbose: true
+execution_mode: parallel
+root_package_name: assured-ledger/ledger-core
+load_scripts_dir: load
+timezone: Europe/Moscow
+logging:
+  level: info
+  encoding: console
