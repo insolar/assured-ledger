@@ -27,23 +27,60 @@ type bundleWriter struct {
 	mutex sync.Mutex
 	snap  SnapshotWriter
 
-	lastReady chan struct{}
+	lastReady synckit.SignalChannel
 }
 
 func (p *bundleWriter) WaitWriteBundles(done synckit.SignalChannel) bool {
 	p.mutex.Lock()
-	last := p.lastReady
-	p.mutex.Unlock()
-	if last == nil {
+	prev, next := p._prepareWait(false)
+	defer p.mutex.Unlock()
+
+	if next == nil {
+		// there is nothing to wait: (1) no writers (2) all done (3) already rolled back
 		return true
 	}
 
 	select {
-	case <- last:
+	case _, ok := <- prev:
+		if ok {
+			// propagate status properly as someone can be after this wait operation, hence can be affected by rollback
+			next <- struct{}{}
+		}
+		close(next)
 		return true
 	case <- done:
+		// make sure that commit/rollback status will be propagated properly
+		go propagateReady(prev, next)
 		return false
 	}
+}
+
+func propagateReady(prev synckit.SignalChannel, next synckit.ClosableSignalChannel) {
+	_, ok := <- prev
+	if ok {
+		next <- struct{}{}
+	}
+	close(next)
+}
+
+func (p *bundleWriter) _prepareWait(alwaysSetNext bool) (prev synckit.SignalChannel, next synckit.ClosableSignalChannel) {
+	prev = p.lastReady
+	p.lastReady = nil
+
+	select {
+	case <- prev:
+		// ignore prev if can read it - it is either ok, or was rolled back completely
+		prev = nil
+	default:
+		// prev hasn't finished yet
+	}
+
+	if alwaysSetNext || prev != nil {
+		next = make(chan struct{}, 1)
+		p.lastReady = next
+	}
+
+	return prev, next
 }
 
 func (p *bundleWriter) WriteBundle(entries []WriteBundleEntry, completedFn BundleResultFunc) error {
@@ -66,18 +103,7 @@ func (p *bundleWriter) WriteBundle(entries []WriteBundleEntry, completedFn Bundl
 		return err
 	}
 
-	prev := p.lastReady
-	next := make(chan struct{}, 1)
-	p.lastReady = next
-
-	select {
-	case <- prev:
-		// ignore prev if can read it - it is either ok, or was rolled back completely
-		prev = nil
-	default:
-		// prev hasn't finished yet
-	}
-
+	prev, next := p._prepareWait(true)
 	go p.applyBundleSafe(snapshot, preparedEntries, prev, next, completedFn)
 
 	snapshot = nil
@@ -85,7 +111,7 @@ func (p *bundleWriter) WriteBundle(entries []WriteBundleEntry, completedFn Bundl
 }
 
 func (p *bundleWriter) applyBundleSafe(snapshot Snapshot, entries []preparedEntry,
-	prev, next synckit.ClosableSignalChannel, completedFn BundleResultFunc,
+	prev synckit.SignalChannel, next synckit.ClosableSignalChannel, completedFn BundleResultFunc,
 ) {
 	defer close(next) // to be executed as the very last one
 
@@ -117,16 +143,15 @@ func (p *bundleWriter) applyBundleSafe(snapshot Snapshot, entries []preparedEntr
 			err = throw.RW(recover(), err, "applyBundle failed")
 		}()
 
-		if prev != nil {
-			select {
-			case _, ok := <-prev:
-				if !ok {
-					chained = true // rollback was made by a previous writer
-					return throw.E("chained cancel")
-				}
-				prev = nil // previous writer is ready
-			default:
+		select {
+		case _, ok := <-prev:
+			if !ok {
+				chained = true // rollback was made by a previous writer
+				return throw.E("chained cancel")
 			}
+			prev = nil // previous writer is done, no need to wait for it further
+		default:
+			// don't wait, just check. Also handles prev==nil
 		}
 
 		var assignments []ledger.DirectoryIndex
@@ -138,7 +163,7 @@ func (p *bundleWriter) applyBundleSafe(snapshot Snapshot, entries []preparedEntr
 
 		if prev != nil {
 			if _, ok := <-prev; !ok {
-				chained = true // rollback was made by a previous writer
+				chained = true // rollback was made by a previous writer and we have to stop
 				return throw.E("chained cancel")
 			}
 		}
