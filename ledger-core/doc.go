@@ -12,4 +12,5 @@
 //
 // Insolar supports public and private blockchains and is able to customize
 // different blockchains for different applications.
+// SOME TEXT
 package insolar
