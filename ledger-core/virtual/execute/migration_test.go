@@ -73,7 +73,7 @@ func TestSMExecute_MigrationDuringSendOutgoing(t *testing.T) {
 	{
 		exec := SMExecute{}
 		stepChecker.AddStep(exec.stepCheckRequest)
-		stepChecker.AddStep(exec.stepSendOutgoing)
+		stepChecker.AddStep(exec.StepSendOutgoing)
 		stepChecker.AddStep(exec.stepGetDelegationToken)
 	}
 	defer func() { require.NoError(t, stepChecker.CheckDone()) }()
@@ -89,7 +89,7 @@ func TestSMExecute_MigrationDuringSendOutgoing(t *testing.T) {
 		execCtx := smachine.NewExecutionContextMock(mc).
 			JumpMock.Set(stepChecker.CheckJumpW(t))
 
-		smExecute.stepExecuteOutgoing(execCtx)
+		smExecute.StepExecuteOutgoing(execCtx)
 	}
 
 	{
@@ -104,10 +104,10 @@ func TestSMExecute_MigrationDuringSendOutgoing(t *testing.T) {
 			}).SleepMock.Set(
 			func() (c1 smachine.ConditionalBuilder) {
 				return smachine.NewStateConditionalBuilderMock(t).
-					ThenJumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepExecuteContinue))
+					ThenJumpMock.Set(testutils.AssertJumpStep(t, smExecute.StepExecuteContinue))
 			})
 
-		smExecute.stepSendOutgoing(execCtx)
+		smExecute.StepSendOutgoing(execCtx)
 	}
 
 	{ // check migration is successful
@@ -124,9 +124,9 @@ func TestSMExecute_MigrationDuringSendOutgoing(t *testing.T) {
 			SleepMock.Set(
 			func() (c1 smachine.ConditionalBuilder) {
 				return smachine.NewStateConditionalBuilderMock(t).
-					ThenJumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepExecuteContinue))
+					ThenJumpMock.Set(testutils.AssertJumpStep(t, smExecute.StepExecuteContinue))
 			})
 
-		smExecute.stepSendOutgoing(execCtx)
+		smExecute.StepSendOutgoing(execCtx)
 	}
 }

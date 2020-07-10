@@ -34,6 +34,7 @@ import (
 )
 
 /* -------- Utilities ------------- */
+const MaxOutgoingRetries = 3
 
 type SMExecute struct {
 	// input arguments
@@ -64,9 +65,10 @@ type SMExecute struct {
 	pulseSlot             *conveyor.PulseSlot
 	authenticationService authentication.Service
 
-	outgoing        *payload.VCallRequest
-	outgoingObject  reference.Global
-	outgoingWasSent bool
+	outgoing             *payload.VCallRequest
+	outgoingObject       reference.Global
+	outgoingWasSent      bool
+	retryOutgoingCounter int
 
 	migrationHappened bool
 	objectCatalog     object.Catalog
@@ -521,7 +523,7 @@ func (s *SMExecute) stepGetDelegationToken(ctx smachine.ExecutionContext) smachi
 		}
 		s.delegationTokenSpec = subroutineSM.response.ResponseDelegationSpec
 		if s.outgoingWasSent {
-			return ctx.Jump(s.stepSendOutgoing)
+			return ctx.Jump(s.StepSendOutgoing)
 		}
 		return ctx.JumpExt(s.stepAfterTokenGet)
 	})
@@ -580,7 +582,7 @@ func (s *SMExecute) stepExecuteDecideNextStep(ctx smachine.ExecutionContext) sma
 		s.prepareExecutionError(err)
 		return ctx.Jump(s.stepExecuteAborted)
 	case execution.OutgoingCall:
-		return ctx.Jump(s.stepExecuteOutgoing)
+		return ctx.Jump(s.StepExecuteOutgoing)
 	default:
 		panic(throw.IllegalValue())
 	}
@@ -609,7 +611,7 @@ func (s *SMExecute) prepareOutgoingError(err error) {
 	s.outgoingResult = resultWithErr
 }
 
-func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (s *SMExecute) StepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	pulseNumber := s.pulseSlot.CurrentPulseNumber()
 
 	switch outgoing := s.executionNewState.Outgoing.(type) {
@@ -620,7 +622,7 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 			err := throw.E("interference violation: constructor call from unordered call")
 			ctx.Log().Warn(err)
 			s.prepareOutgoingError(err)
-			return ctx.Jump(s.stepExecuteContinue)
+			return ctx.Jump(s.StepExecuteContinue)
 		}
 
 		s.outgoing = outgoing.ConstructVCallRequest(s.execution)
@@ -633,7 +635,7 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 			err := throw.E("interference violation: ordered call from unordered call")
 			ctx.Log().Warn(err)
 			s.prepareOutgoingError(err)
-			return ctx.Jump(s.stepExecuteContinue)
+			return ctx.Jump(s.StepExecuteContinue)
 		}
 
 		s.outgoing = outgoing.ConstructVCallRequest(s.execution)
@@ -646,10 +648,10 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 	}
 
 	if s.outgoing != nil {
-		return ctx.Jump(s.stepSendOutgoing)
+		return ctx.Jump(s.StepSendOutgoing)
 	}
 
-	return ctx.Jump(s.stepExecuteContinue)
+	return ctx.Jump(s.StepExecuteContinue)
 }
 
 func (s *SMExecute) stepExecuteAborted(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -657,7 +659,7 @@ func (s *SMExecute) stepExecuteAborted(ctx smachine.ExecutionContext) smachine.S
 	return s.runner.PrepareExecutionAbort(ctx, s.run, func() {}).DelayedStart().ThenJump(s.stepSendCallResult)
 }
 
-func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (s *SMExecute) StepSendOutgoing(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	if !s.outgoingWasSent {
 		bargeInCallback := ctx.NewBargeInWithParam(func(param interface{}) smachine.BargeInCallbackFunc {
 			res, ok := param.(*payload.VCallResult)
@@ -678,7 +680,14 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 			return ctx.Error(throw.E("failed to publish bargeInCallback"))
 		}
 	} else {
-		s.outgoing.CallRequestFlags = payload.BuildCallRequestFlags(payload.SendResultDefault, payload.RepeatedCall)
+		if s.retryOutgoingCounter < MaxOutgoingRetries {
+			s.retryOutgoingCounter++
+			s.outgoing.CallRequestFlags = payload.BuildCallRequestFlags(payload.SendResultDefault, payload.RepeatedCall)
+		} else {
+			ctx.Log().Trace("outgoing retry attempts exceeded, stop processing SMExecute")
+			return ctx.Stop()
+		}
+
 	}
 
 	s.outgoing.DelegationSpec = s.getToken()
@@ -694,10 +703,10 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 
 	s.outgoingWasSent = true
 	// we'll wait for barge-in WakeUp here, not adapter
-	return ctx.Sleep().ThenJump(s.stepExecuteContinue)
+	return ctx.Sleep().ThenJump(s.StepExecuteContinue)
 }
 
-func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (s *SMExecute) StepExecuteContinue(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	outgoingResult := s.outgoingResult
 
 	// unset all outgoing fields in case we have new outgoing request

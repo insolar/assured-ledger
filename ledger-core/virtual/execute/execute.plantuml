@@ -3,6 +3,27 @@ state "Init" as T01_S002
 T01_S002 : SMExecute
 [*] --> T01_S002
 T01_S002 --> T01_S003 : Migrate: s.migrationDefault
+state "StepExecuteContinue" as T01_S025
+T01_S025 : SMExecute
+T01_S025 --[dotted]> T01_S015
+state T01_U001 <<fork>>
+T01_S025 --> T01_U001
+T01_U001 --> T01_S007 : Migrate: s
+T01_U001 --[dashed]> T01_S020 : migrateDuringExecution\nPrepareExecutionContinue(ctx).
+state "StepExecuteOutgoing" as T01_S022
+T01_S022 : SMExecute
+T01_S022 --[dotted]> T01_S015
+T01_S022 --> T01_S025 : [s.intolerableCall()]
+T01_S022 --> T01_S025 : [...&&(...).Interference()==contract.CallTolerable]
+T01_S022 --> T01_S024 : [s.outgoing!=nil]
+T01_S022 --> T01_S025
+state "StepSendOutgoing" as T01_S024
+T01_S024 : SMExecute
+T01_S024 --[dotted]> T01_S015
+T01_S024 --> [*] : [!(...).PublishGlobalAliasAndBargeIn()]\nError
+T01_S024 --> [*] : ![(...).retryOutgoingCounter<MaxOutgoingRetries]
+T01_S024 --> T01_S010 : PrepareAsync(ctx).WithoutAutoWakeUp()
+T01_S024 --[dashed]> T01_S025 : Sleep
 state "StepWaitExecutionResult" as T01_S020
 T01_S020 : SMExecute
 T01_S020 --[dotted]> T01_S015
@@ -49,17 +70,10 @@ T01_S009 --> T01_S011
 state "stepExecuteAborted" as T01_S023
 T01_S023 : SMExecute
 T01_S023 --[dotted]> T01_S015
-state T01_U001 <<fork>>
-T01_S023 --> T01_U001
-T01_U001 --> T01_S007 : PrepareExecutionAbort(ctx)
-T01_U001 --[dashed]> T01_S030
-state "stepExecuteContinue" as T01_S025
-T01_S025 : SMExecute
-T01_S025 --[dotted]> T01_S015
 state T01_U002 <<fork>>
-T01_S025 --> T01_U002
-T01_U002 --> T01_S007 : Migrate: s
-T01_U002 --[dashed]> T01_S020 : migrateDuringExecution\nPrepareExecutionContinue(ctx).
+T01_S023 --> T01_U002
+T01_U002 --> T01_S007 : PrepareExecutionAbort(ctx)
+T01_U002 --[dashed]> T01_S030
 state "stepExecuteDecideNextStep" as T01_S021
 T01_S021 : SMExecute
 T01_S021 --[dotted]> T01_S015
@@ -67,13 +81,6 @@ T01_S021 --> T01_S026 : [execution.Done]
 T01_S021 --> T01_S023 : [execution.Error]
 T01_S021 --> T01_S023 : [execution.Abort]
 T01_S021 --> T01_S022 : [execution.OutgoingCall]
-state "stepExecuteOutgoing" as T01_S022
-T01_S022 : SMExecute
-T01_S022 --[dotted]> T01_S015
-T01_S022 --> T01_S025 : [s.intolerableCall()]
-T01_S022 --> T01_S025 : [...&&(...).Interference()==contract.CallTolerable]
-T01_S022 --> T01_S024 : [s.outgoing!=nil]
-T01_S022 --> T01_S025
 state "stepExecuteStart" as T01_S019
 T01_S019 : SMExecute
 T01_S019 --[dotted]> T01_S015
@@ -148,12 +155,6 @@ T01_S029 --[dotted]> T01_S015
 T01_S029 --[dotted]> T01_S001
 T01_S029 --> T01_S010 : PrepareAsync(ctx).WithoutAutoWakeUp()
 T01_S029 --> [*]
-state "stepSendOutgoing" as T01_S024
-T01_S024 : SMExecute
-T01_S024 --[dotted]> T01_S015
-T01_S024 --> [*] : [!(...).PublishGlobalAliasAndBargeIn()]\nError
-T01_S024 --> T01_S010 : PrepareAsync(ctx).WithoutAutoWakeUp()
-T01_S024 --[dashed]> T01_S025 : Sleep
 state "stepStartRequestProcessing" as T01_S014
 T01_S014 : SMExecute
 T01_S014 --[dotted]> T01_S001
