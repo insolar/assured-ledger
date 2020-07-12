@@ -7,7 +7,6 @@ package integration
 
 import (
 	"context"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/synchronization"
 	"strconv"
 	"testing"
 	"time"
@@ -360,7 +359,6 @@ func TestVirtual_Method_WithoutExecutor_Ordered(t *testing.T) {
 	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal)
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
-	syncPoint := synchronization.NewPoint(2)
 	cntr := 0
 	countBefore := server.PublisherMock.GetCount()
 
@@ -368,7 +366,6 @@ func TestVirtual_Method_WithoutExecutor_Ordered(t *testing.T) {
 		typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
 			require.Equal(t, res.ReturnArguments, []byte("345"))
 			require.Equal(t, res.Callee, objectGlobal)
-			cntr--
 			return false // no resend msg
 		})
 		interferenceFlag := contract.CallTolerable
@@ -392,8 +389,11 @@ func TestVirtual_Method_WithoutExecutor_Ordered(t *testing.T) {
 			runnerMock.AddExecutionMock(key).
 				AddStart(func(ctx execution.Context) {
 					cntr ++
-					require.Equal(t, 1, cntr)
-					syncPoint.Synchronize()
+					for k := 0; k < 3; k ++ {
+						require.Equal(t, 1, cntr)
+						time.Sleep(5 * time.Millisecond)
+					}
+					cntr --
 			}, &execution.Update{
 				Type:   execution.Done,
 				Result: result,
@@ -405,19 +405,11 @@ func TestVirtual_Method_WithoutExecutor_Ordered(t *testing.T) {
 
 			server.SendPayload(ctx, &pl)
 		}
-
-		// Unblock the first one and allow it to complete so that the second starts
-		// And wait until the processing of the first request is done
-		syncPoint.WakeUp()
-		awaitStopFirstSM := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
-		testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
-		testutils.WaitSignalsTimed(t, 10*time.Second, awaitStopFirstSM)
-		server.WaitActiveThenIdleConveyor()
-
-		syncPoint.Done()
-
 	}
+	awaitFullStop := server.Journal.WaitStopOf(&execute.SMExecute{}, 2)
 	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+	testutils.WaitSignalsTimed(t, 10*time.Second, awaitFullStop)
+	server.WaitActiveThenIdleConveyor()
 	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
 
 	{
