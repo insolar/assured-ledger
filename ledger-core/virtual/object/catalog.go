@@ -50,7 +50,7 @@ func (p LocalCatalog) Get(ctx smachine.ExecutionContext, objectReference referen
 }
 
 func (p LocalCatalog) TryGet(ctx smachine.ExecutionContext, objectReference reference.Global) (SharedStateAccessor, bool) { // nolintcontractrequester/contractrequester.go:342
-	if v := ctx.GetPublishedLink(objectReference.String()); v.IsAssignableTo((*SharedState)(nil)) {
+	if v := ctx.GetPublishedLink(objectReference); v.IsAssignableTo((*SharedState)(nil)) {
 		return SharedStateAccessor{v}, true
 	}
 	return SharedStateAccessor{}, false

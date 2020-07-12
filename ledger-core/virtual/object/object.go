@@ -259,7 +259,7 @@ func (sm *SMObject) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 	sm.OrderedExecute = sm.orderedSemaphoreCtl.SyncLink()
 
 	sdl := ctx.Share(&sm.SharedState, 0)
-	if !ctx.Publish(sm.Reference.String(), sdl) {
+	if !ctx.Publish(sm.Reference, sdl) {
 		return ctx.Stop()
 	}
 
