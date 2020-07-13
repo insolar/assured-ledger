@@ -513,7 +513,7 @@ func TestVirtual_CallMethodFromConstructor(t *testing.T) {
 }
 
 func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
-	t.Log("CXXXX") // TODO change
+	t.Log("C5320") // TODO change
 
 	countChangePulse := execute.MaxOutgoingRetries + 1
 
