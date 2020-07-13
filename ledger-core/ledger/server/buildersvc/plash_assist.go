@@ -155,13 +155,14 @@ func (p *plashAssistant) CalculateJetDrop(holder reference.Holder) jet.DropID {
 // EXTREME LOCK WARNING!
 // This method is under locks of: (1) DropWriter, (2) plashAssistant, (3) dropAssistant.
 func (p *plashAssistant) _updateMerkle(_ jet.DropID, indices []ledger.DirectoryIndex, digests []cryptkit.Digest) ([]ledger.Ordinal, error) {
+	ords := make([]ledger.Ordinal, 0, len(indices))
 	for i, ord := range indices {
 		if ord.SectionID() != ledger.DefaultEntrySection {
 			continue
 		}
+		ords = append(ords, ledger.Ordinal(p.merkle.Count()))
 		p.merkle.AddNext(digests[i])
 	}
-	// TODO ordinals positions
-	return nil, nil
+	return ords, nil
 }
 

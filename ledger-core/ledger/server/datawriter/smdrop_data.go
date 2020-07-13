@@ -41,6 +41,7 @@ func (p *DropSharedData) SetPrevDropReport(report datareader.PrevDropReport) {
 	p.prevReport.CallWithParam(report)
 }
 
-func (p *DropSharedData) addPrevReport(report datareader.PrevDropReport) {
-
+func (p *DropSharedData) addPrevReport(datareader.PrevDropReport) {
+	p.ensureAccess()
+	// TODO
 }

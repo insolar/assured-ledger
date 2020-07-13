@@ -175,8 +175,7 @@ func (p *bundleWriter) applyBundleSafe(snapshot Snapshot, bundle Writeable,
 		defer p.mutex.Unlock()
 
 		defer func() {
-			recover() // we can't allow panic here
-			//	err = throw.RW(recover(), err, "failed on error")
+			_ = recover() // we can't allow panic here
 		}()
 		snapshot.Rollback(chained)
 		if err != nil {

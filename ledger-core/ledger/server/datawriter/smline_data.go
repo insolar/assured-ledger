@@ -121,7 +121,7 @@ func (p *LineSharedData) disableAccess() {
 	p.ready = false
 }
 
-func (p *LineSharedData) addRecap(ctx smachine.ExecutionContext, ref reference.Global, rec *rms.RLineRecap) {
+func (p *LineSharedData) AddRecap(ctx smachine.ExecutionContext, ref reference.Global, rec *rms.RLineRecap) {
 	p.ensureDataAccess()
 	p.addSoloRecord(ctx, lineage.NewRecapRecord(catalog.Excerpt{
 		RecordType:     uint32(rec.GetDefaultPolymorphID()),

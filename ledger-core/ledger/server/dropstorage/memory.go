@@ -18,7 +18,7 @@ import (
 
 func NewMemoryStorageWriter(maxSection ledger.SectionID, pageSize int) *MemoryStorageWriter {
 	switch {
-	case maxSection <= 0:
+	case maxSection == 0:
 		panic(throw.IllegalValue())
 	case maxSection > ledger.MaxSectionID:
 		panic(throw.IllegalValue())
