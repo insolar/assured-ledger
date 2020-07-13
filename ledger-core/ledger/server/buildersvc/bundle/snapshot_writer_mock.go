@@ -13,7 +13,13 @@ import (
 type SnapshotWriterMock struct {
 	t minimock.Tester
 
-	funcTakeSnapshot          func() (s1 Snapshot)
+	funcMarkReadOnly          func() (err error)
+	inspectFuncMarkReadOnly   func()
+	afterMarkReadOnlyCounter  uint64
+	beforeMarkReadOnlyCounter uint64
+	MarkReadOnlyMock          mSnapshotWriterMockMarkReadOnly
+
+	funcTakeSnapshot          func() (s1 Snapshot, err error)
 	inspectFuncTakeSnapshot   func()
 	afterTakeSnapshotCounter  uint64
 	beforeTakeSnapshotCounter uint64
@@ -27,9 +33,154 @@ func NewSnapshotWriterMock(t minimock.Tester) *SnapshotWriterMock {
 		controller.RegisterMocker(m)
 	}
 
+	m.MarkReadOnlyMock = mSnapshotWriterMockMarkReadOnly{mock: m}
+
 	m.TakeSnapshotMock = mSnapshotWriterMockTakeSnapshot{mock: m}
 
 	return m
+}
+
+type mSnapshotWriterMockMarkReadOnly struct {
+	mock               *SnapshotWriterMock
+	defaultExpectation *SnapshotWriterMockMarkReadOnlyExpectation
+	expectations       []*SnapshotWriterMockMarkReadOnlyExpectation
+}
+
+// SnapshotWriterMockMarkReadOnlyExpectation specifies expectation struct of the SnapshotWriter.MarkReadOnly
+type SnapshotWriterMockMarkReadOnlyExpectation struct {
+	mock *SnapshotWriterMock
+
+	results *SnapshotWriterMockMarkReadOnlyResults
+	Counter uint64
+}
+
+// SnapshotWriterMockMarkReadOnlyResults contains results of the SnapshotWriter.MarkReadOnly
+type SnapshotWriterMockMarkReadOnlyResults struct {
+	err error
+}
+
+// Expect sets up expected params for SnapshotWriter.MarkReadOnly
+func (mmMarkReadOnly *mSnapshotWriterMockMarkReadOnly) Expect() *mSnapshotWriterMockMarkReadOnly {
+	if mmMarkReadOnly.mock.funcMarkReadOnly != nil {
+		mmMarkReadOnly.mock.t.Fatalf("SnapshotWriterMock.MarkReadOnly mock is already set by Set")
+	}
+
+	if mmMarkReadOnly.defaultExpectation == nil {
+		mmMarkReadOnly.defaultExpectation = &SnapshotWriterMockMarkReadOnlyExpectation{}
+	}
+
+	return mmMarkReadOnly
+}
+
+// Inspect accepts an inspector function that has same arguments as the SnapshotWriter.MarkReadOnly
+func (mmMarkReadOnly *mSnapshotWriterMockMarkReadOnly) Inspect(f func()) *mSnapshotWriterMockMarkReadOnly {
+	if mmMarkReadOnly.mock.inspectFuncMarkReadOnly != nil {
+		mmMarkReadOnly.mock.t.Fatalf("Inspect function is already set for SnapshotWriterMock.MarkReadOnly")
+	}
+
+	mmMarkReadOnly.mock.inspectFuncMarkReadOnly = f
+
+	return mmMarkReadOnly
+}
+
+// Return sets up results that will be returned by SnapshotWriter.MarkReadOnly
+func (mmMarkReadOnly *mSnapshotWriterMockMarkReadOnly) Return(err error) *SnapshotWriterMock {
+	if mmMarkReadOnly.mock.funcMarkReadOnly != nil {
+		mmMarkReadOnly.mock.t.Fatalf("SnapshotWriterMock.MarkReadOnly mock is already set by Set")
+	}
+
+	if mmMarkReadOnly.defaultExpectation == nil {
+		mmMarkReadOnly.defaultExpectation = &SnapshotWriterMockMarkReadOnlyExpectation{mock: mmMarkReadOnly.mock}
+	}
+	mmMarkReadOnly.defaultExpectation.results = &SnapshotWriterMockMarkReadOnlyResults{err}
+	return mmMarkReadOnly.mock
+}
+
+//Set uses given function f to mock the SnapshotWriter.MarkReadOnly method
+func (mmMarkReadOnly *mSnapshotWriterMockMarkReadOnly) Set(f func() (err error)) *SnapshotWriterMock {
+	if mmMarkReadOnly.defaultExpectation != nil {
+		mmMarkReadOnly.mock.t.Fatalf("Default expectation is already set for the SnapshotWriter.MarkReadOnly method")
+	}
+
+	if len(mmMarkReadOnly.expectations) > 0 {
+		mmMarkReadOnly.mock.t.Fatalf("Some expectations are already set for the SnapshotWriter.MarkReadOnly method")
+	}
+
+	mmMarkReadOnly.mock.funcMarkReadOnly = f
+	return mmMarkReadOnly.mock
+}
+
+// MarkReadOnly implements SnapshotWriter
+func (mmMarkReadOnly *SnapshotWriterMock) MarkReadOnly() (err error) {
+	mm_atomic.AddUint64(&mmMarkReadOnly.beforeMarkReadOnlyCounter, 1)
+	defer mm_atomic.AddUint64(&mmMarkReadOnly.afterMarkReadOnlyCounter, 1)
+
+	if mmMarkReadOnly.inspectFuncMarkReadOnly != nil {
+		mmMarkReadOnly.inspectFuncMarkReadOnly()
+	}
+
+	if mmMarkReadOnly.MarkReadOnlyMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmMarkReadOnly.MarkReadOnlyMock.defaultExpectation.Counter, 1)
+
+		mm_results := mmMarkReadOnly.MarkReadOnlyMock.defaultExpectation.results
+		if mm_results == nil {
+			mmMarkReadOnly.t.Fatal("No results are set for the SnapshotWriterMock.MarkReadOnly")
+		}
+		return (*mm_results).err
+	}
+	if mmMarkReadOnly.funcMarkReadOnly != nil {
+		return mmMarkReadOnly.funcMarkReadOnly()
+	}
+	mmMarkReadOnly.t.Fatalf("Unexpected call to SnapshotWriterMock.MarkReadOnly.")
+	return
+}
+
+// MarkReadOnlyAfterCounter returns a count of finished SnapshotWriterMock.MarkReadOnly invocations
+func (mmMarkReadOnly *SnapshotWriterMock) MarkReadOnlyAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmMarkReadOnly.afterMarkReadOnlyCounter)
+}
+
+// MarkReadOnlyBeforeCounter returns a count of SnapshotWriterMock.MarkReadOnly invocations
+func (mmMarkReadOnly *SnapshotWriterMock) MarkReadOnlyBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmMarkReadOnly.beforeMarkReadOnlyCounter)
+}
+
+// MinimockMarkReadOnlyDone returns true if the count of the MarkReadOnly invocations corresponds
+// the number of defined expectations
+func (m *SnapshotWriterMock) MinimockMarkReadOnlyDone() bool {
+	for _, e := range m.MarkReadOnlyMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.MarkReadOnlyMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterMarkReadOnlyCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcMarkReadOnly != nil && mm_atomic.LoadUint64(&m.afterMarkReadOnlyCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockMarkReadOnlyInspect logs each unmet expectation
+func (m *SnapshotWriterMock) MinimockMarkReadOnlyInspect() {
+	for _, e := range m.MarkReadOnlyMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Error("Expected call to SnapshotWriterMock.MarkReadOnly")
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.MarkReadOnlyMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterMarkReadOnlyCounter) < 1 {
+		m.t.Error("Expected call to SnapshotWriterMock.MarkReadOnly")
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcMarkReadOnly != nil && mm_atomic.LoadUint64(&m.afterMarkReadOnlyCounter) < 1 {
+		m.t.Error("Expected call to SnapshotWriterMock.MarkReadOnly")
+	}
 }
 
 type mSnapshotWriterMockTakeSnapshot struct {
@@ -48,7 +199,8 @@ type SnapshotWriterMockTakeSnapshotExpectation struct {
 
 // SnapshotWriterMockTakeSnapshotResults contains results of the SnapshotWriter.TakeSnapshot
 type SnapshotWriterMockTakeSnapshotResults struct {
-	s1 Snapshot
+	s1  Snapshot
+	err error
 }
 
 // Expect sets up expected params for SnapshotWriter.TakeSnapshot
@@ -76,7 +228,7 @@ func (mmTakeSnapshot *mSnapshotWriterMockTakeSnapshot) Inspect(f func()) *mSnaps
 }
 
 // Return sets up results that will be returned by SnapshotWriter.TakeSnapshot
-func (mmTakeSnapshot *mSnapshotWriterMockTakeSnapshot) Return(s1 Snapshot) *SnapshotWriterMock {
+func (mmTakeSnapshot *mSnapshotWriterMockTakeSnapshot) Return(s1 Snapshot, err error) *SnapshotWriterMock {
 	if mmTakeSnapshot.mock.funcTakeSnapshot != nil {
 		mmTakeSnapshot.mock.t.Fatalf("SnapshotWriterMock.TakeSnapshot mock is already set by Set")
 	}
@@ -84,12 +236,12 @@ func (mmTakeSnapshot *mSnapshotWriterMockTakeSnapshot) Return(s1 Snapshot) *Snap
 	if mmTakeSnapshot.defaultExpectation == nil {
 		mmTakeSnapshot.defaultExpectation = &SnapshotWriterMockTakeSnapshotExpectation{mock: mmTakeSnapshot.mock}
 	}
-	mmTakeSnapshot.defaultExpectation.results = &SnapshotWriterMockTakeSnapshotResults{s1}
+	mmTakeSnapshot.defaultExpectation.results = &SnapshotWriterMockTakeSnapshotResults{s1, err}
 	return mmTakeSnapshot.mock
 }
 
 //Set uses given function f to mock the SnapshotWriter.TakeSnapshot method
-func (mmTakeSnapshot *mSnapshotWriterMockTakeSnapshot) Set(f func() (s1 Snapshot)) *SnapshotWriterMock {
+func (mmTakeSnapshot *mSnapshotWriterMockTakeSnapshot) Set(f func() (s1 Snapshot, err error)) *SnapshotWriterMock {
 	if mmTakeSnapshot.defaultExpectation != nil {
 		mmTakeSnapshot.mock.t.Fatalf("Default expectation is already set for the SnapshotWriter.TakeSnapshot method")
 	}
@@ -103,7 +255,7 @@ func (mmTakeSnapshot *mSnapshotWriterMockTakeSnapshot) Set(f func() (s1 Snapshot
 }
 
 // TakeSnapshot implements SnapshotWriter
-func (mmTakeSnapshot *SnapshotWriterMock) TakeSnapshot() (s1 Snapshot) {
+func (mmTakeSnapshot *SnapshotWriterMock) TakeSnapshot() (s1 Snapshot, err error) {
 	mm_atomic.AddUint64(&mmTakeSnapshot.beforeTakeSnapshotCounter, 1)
 	defer mm_atomic.AddUint64(&mmTakeSnapshot.afterTakeSnapshotCounter, 1)
 
@@ -118,7 +270,7 @@ func (mmTakeSnapshot *SnapshotWriterMock) TakeSnapshot() (s1 Snapshot) {
 		if mm_results == nil {
 			mmTakeSnapshot.t.Fatal("No results are set for the SnapshotWriterMock.TakeSnapshot")
 		}
-		return (*mm_results).s1
+		return (*mm_results).s1, (*mm_results).err
 	}
 	if mmTakeSnapshot.funcTakeSnapshot != nil {
 		return mmTakeSnapshot.funcTakeSnapshot()
@@ -178,6 +330,8 @@ func (m *SnapshotWriterMock) MinimockTakeSnapshotInspect() {
 // MinimockFinish checks that all mocked methods have been called the expected number of times
 func (m *SnapshotWriterMock) MinimockFinish() {
 	if !m.minimockDone() {
+		m.MinimockMarkReadOnlyInspect()
+
 		m.MinimockTakeSnapshotInspect()
 		m.t.FailNow()
 	}
@@ -202,5 +356,6 @@ func (m *SnapshotWriterMock) MinimockWait(timeout mm_time.Duration) {
 func (m *SnapshotWriterMock) minimockDone() bool {
 	done := true
 	return done &&
+		m.MinimockMarkReadOnlyDone() &&
 		m.MinimockTakeSnapshotDone()
 }

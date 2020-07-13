@@ -11,6 +11,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/bundle"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -49,23 +50,44 @@ var _ bundle.SnapshotWriter = &MemoryStorageWriter{}
 
 type MemoryStorageWriter struct {
 	sections []cabinetSection
+	state    atomickit.Uint32
 }
 
-func (p *MemoryStorageWriter) TakeSnapshot() bundle.Snapshot {
+const (
+	_ = iota
+	stateReadOnly
+	stateBroken
+)
+
+func (p *MemoryStorageWriter) TakeSnapshot() (bundle.Snapshot, error) {
+	if err := p.checkState(); err != nil {
+		return nil, err
+	}
+
 	return &memorySnapshot{
 		storage:  p,
 		snapshot: make([]sectionSnapshot, len(p.sections)),
-	}
+	}, nil
 }
 
-func (p *MemoryStorageWriter) getTotalChapterSize() int {
-	n := 0
-	for _, s := range p.sections {
-		for j := range s.chapters {
-			n += len(s.chapters[j])
-		}
+func (p *MemoryStorageWriter) MarkReadOnly() error {
+	if p.state.CompareAndSwap(0, stateReadOnly) {
+		return nil
 	}
-	return n
+	return p.checkState()
+}
+
+func (p *MemoryStorageWriter) checkState() error {
+	switch p.state.Load() {
+	case 0:
+		return nil
+	case stateReadOnly:
+		return throw.FailHere("readonly")
+	case stateBroken:
+		return throw.FailHere("broken")
+	default:
+		return throw.Impossible()
+	}
 }
 
 type memorySnapshot struct {
@@ -85,16 +107,23 @@ func (p *memorySnapshot) Commit() error {
 	return nil
 }
 
-func (p *memorySnapshot) Rollback() {
+func (p *memorySnapshot) Rollback(chained bool) {
+	broken := false
 	for i := range p.snapshot {
 		cs := p.snapshot[i].section
-		if cs != nil {
-			cs.rollback(p.snapshot[i])
+		if cs == nil {
+			continue
+		}
+		if !cs.rollback(p.snapshot[i], chained) {
+			broken = true
 		}
 	}
-}
 
-func (p *memorySnapshot) ChainedRollback() {}
+	if broken {
+		p.storage.state.Store(stateBroken)
+		panic(throw.FailHere("rollback failed, storage is broken"))
+	}
+}
 
 func (p *memorySnapshot) GetPayloadSection(id ledger.SectionID) (bundle.PayloadSection, error) {
 	cs, err := p.getSection(id, false)
@@ -113,6 +142,10 @@ func (p *memorySnapshot) GetDirectorySection(id ledger.SectionID) (bundle.Direct
 }
 
 func (p *memorySnapshot) getSection(sectionID ledger.SectionID, directory bool) (*sectionSnapshot, error) {
+	if err := p.storage.checkState(); err != nil {
+		return nil, err
+	}
+
 	if int(sectionID) >= len(p.snapshot) {
 		return nil, throw.E("unknown section", struct { ledger.SectionID }{ sectionID })
 	}
@@ -257,21 +290,56 @@ func (p *cabinetSection) allocatePayloadStorage(snap *sectionSnapshot, size int,
 	return byteReceptacle(b), loc, nil
 }
 
-func (p *cabinetSection) rollback(snapshot sectionSnapshot) {
-	if snapshot.dirIndex > 0 {
-		defCap := cap(p.directory[0])
-		page := int(snapshot.dirIndex) / defCap
-		ofs := int(snapshot.dirIndex) % defCap
-		p.directory = p.directory[:page + 1]
-		p.directory[page] = p.directory[page][:ofs]
+func (p *cabinetSection) rollback(snapshot sectionSnapshot, chained bool) bool {
+	ok := true
+	if !p.rollbackDir(int(snapshot.dirIndex)) && !chained {
+		ok = false
 	}
 
-	if snapshot.chapter > 0 {
-		c := snapshot.chapter
-		p.chapters = p.chapters[:c]
-		c--
-		p.chapters[c] = p.chapters[c][:snapshot.lastOfs]
+	if !p.rollbackChap(int(snapshot.chapter), snapshot.lastOfs) && !chained {
+		ok = false
 	}
+	return ok
+}
+
+func (p *cabinetSection) rollbackChap(c int, ofs uint32) bool {
+	switch {
+	case c == 0:
+		return true
+	case c >= len(p.chapters):
+		return false
+	}
+	p.chapters = p.chapters[:c]
+	c--
+	chapter := p.chapters[c]
+
+	if int(ofs) > len(chapter) {
+		return false
+	}
+	p.chapters[c] = chapter[:ofs]
+	return true
+}
+
+func (p *cabinetSection) rollbackDir(dirIndex int) bool {
+	if dirIndex == 0 {
+		return true
+	}
+	defCap := cap(p.directory[0])
+
+	page := dirIndex / defCap
+	if page >= len(p.directory) {
+		return false
+	}
+
+	p.directory = p.directory[:page+1]
+	dirPage := p.directory[page]
+
+	ofs := dirIndex % defCap
+	if ofs > len(dirPage) {
+		return false
+	}
+	p.directory[page] = dirPage[:ofs]
+	return true
 }
 
 type byteReceptacle []byte

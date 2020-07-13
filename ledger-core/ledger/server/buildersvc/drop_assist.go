@@ -91,7 +91,7 @@ func (p *dropAssistant) append(pa *plashAssistant, future AppendFuture, b lineag
 		if err == nil {
 			err = pa.commitDropUpdate(func() error {
 				// EXTREME LOCK WARNING!
-				// This section is under locks of: (1) BundleWriter, (2) plashAssistant, and acquires (3) dropAssistant.
+				// This section is under locks of: (1) bundle.Writer, (2) plashAssistant, and acquires (3) dropAssistant.
 				return p.bundleProcessedByWriter(pa, indices, digests)
 			})
 		}
@@ -106,7 +106,7 @@ func (p *dropAssistant) append(pa *plashAssistant, future AppendFuture, b lineag
 }
 
 // EXTREME LOCK WARNING!
-// This method is under locks of: (1) BundleWriter, (2) plashAssistant, (3) dropAssistant.
+// This method is under locks of: (1) bundle.Writer, (2) plashAssistant, (3) dropAssistant.
 func (p *dropAssistant) bundleProcessedByWriter(pa *plashAssistant, indices []ledger.DirectoryIndex, digests []cryptkit.Digest) error {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
@@ -120,7 +120,7 @@ func (p *dropAssistant) bundleProcessedByWriter(pa *plashAssistant, indices []le
 }
 
 // EXTREME LOCK WARNING!
-// This method is under locks of: (1) BundleWriter, (2) plashAssistant, (3) dropAssistant.
+// This method is under locks of: (1) bundle.Writer, (2) plashAssistant, (3) dropAssistant.
 func (p *dropAssistant) _updateMerkle(_ []ledger.Ordinal, indices []ledger.DirectoryIndex, digests []cryptkit.Digest) {
 	if p.merkle == nil {
 		// there is only one drop in plash, so there is no need for a secondary merkle

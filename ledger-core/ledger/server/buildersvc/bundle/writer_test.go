@@ -22,7 +22,7 @@ func TestWriter(t *testing.T) {
 	snap.CompletedMock.Return(nil)
 	snap.CommitMock.Return(nil)
 
-	sw.TakeSnapshotMock.Return(snap)
+	sw.TakeSnapshotMock.Return(snap, nil)
 
 	w := NewWriter(sw)
 
@@ -50,7 +50,7 @@ func TestWriter(t *testing.T) {
 
 	check := make(chan int, 5)
 
-	w.WaitWriteBundles(nil) // nothing to wait
+	w.WaitWriteBundles(nil, nil) // nothing to wait
 
 	writeBundle(t, w, wb1, func() { check <- 1 })
 	writeBundle(t, w, wb1, func() { check <- 2 })
@@ -58,7 +58,7 @@ func TestWriter(t *testing.T) {
 	writeBundle(t, w, wb1, func() { check <- 4 })
 
 	go func() {
-		w.WaitWriteBundles(nil)
+		w.WaitWriteBundles(nil, nil)
 		check <- 5
 	}()
 
@@ -85,7 +85,7 @@ func TestWriter(t *testing.T) {
 	require.Equal(t, 4, <- check)
 	require.Equal(t, 5, <- check)
 
-	w.WaitWriteBundles(nil) // nothing to wait
+	w.WaitWriteBundles(nil, nil) // nothing to wait
 }
 
 func writeBundle(t *testing.T, w Writer, wb Writeable, fn func()) {

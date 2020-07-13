@@ -18,7 +18,7 @@ import (
 
 func TestMemorySnapshot(t *testing.T) {
 	ms := NewMemoryStorageWriter(ledger.DefaultDustSection, directoryEntrySize*16)
-	s := ms.TakeSnapshot()
+	s, _ := ms.TakeSnapshot()
 
 	es, err := s.GetDirectorySection(ledger.DefaultEntrySection)
 	require.NoError(t, err)
@@ -60,7 +60,7 @@ func TestMemorySnapshot(t *testing.T) {
 
 func TestMemorySnapshotDirectoryPaging(t *testing.T) {
 	ms := NewMemoryStorageWriter(ledger.DefaultDustSection, directoryEntrySize*16)
-	s := ms.TakeSnapshot()
+	s, _ := ms.TakeSnapshot()
 	es, err := s.GetDirectorySection(ledger.DefaultEntrySection)
 	require.NoError(t, err)
 
@@ -87,7 +87,7 @@ func TestMemorySnapshotDirectoryPaging(t *testing.T) {
 	require.Equal(t, ledger.ChapterID(0), ess.chapter)
 	require.Equal(t, ledger.Ordinal(1), ess.dirIndex)
 
-	s = ms.TakeSnapshot()
+	s, _ = ms.TakeSnapshot()
 	es, err = s.GetDirectorySection(ledger.DefaultEntrySection)
 	require.NoError(t, err)
 
@@ -104,7 +104,7 @@ func TestMemorySnapshotDirectoryPaging(t *testing.T) {
 
 	require.Equal(t, ledger.NewDirectoryIndex(ledger.DefaultEntrySection, j + 1), es.GetNextDirectoryIndex())
 
-	s.Rollback()
+	s.Rollback(false)
 
 	require.Equal(t, ledger.NewDirectoryIndex(ledger.DefaultEntrySection, j), es.GetNextDirectoryIndex())
 }
@@ -112,7 +112,7 @@ func TestMemorySnapshotDirectoryPaging(t *testing.T) {
 func TestMemorySnapshotPayloadPaging(t *testing.T) {
 	pageSize := directoryEntrySize*16
 	ms := NewMemoryStorageWriter(ledger.DefaultDustSection, pageSize)
-	s := ms.TakeSnapshot()
+	s, _ := ms.TakeSnapshot()
 	es, err := s.GetPayloadSection(ledger.DefaultEntrySection)
 	require.NoError(t, err)
 
@@ -138,7 +138,7 @@ func TestMemorySnapshotPayloadPaging(t *testing.T) {
 	require.Equal(t, ledger.ChapterID(1), ess.chapter)
 	require.Equal(t, uint32(0), ess.lastOfs)
 
-	s = ms.TakeSnapshot()
+	s, _ = ms.TakeSnapshot()
 	ess = &s.(*memorySnapshot).snapshot[ledger.DefaultEntrySection]
 	require.Nil(t, ess.section)
 	require.Equal(t, ledger.Ordinal(0), ess.dirIndex)
@@ -171,7 +171,7 @@ func TestMemorySnapshotPayloadPaging(t *testing.T) {
 	require.Equal(t, ledger.ChapterID(2), ess.chapter)
 	require.Equal(t, uint32(allocSize), ess.lastOfs)
 
-	s.Rollback()
+	s.Rollback(false)
 
 	chapters = ms.sections[ledger.DefaultEntrySection].chapters
 	require.Equal(t, 2, len(chapters))

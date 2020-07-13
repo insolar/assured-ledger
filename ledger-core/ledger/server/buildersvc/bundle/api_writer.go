@@ -22,7 +22,10 @@ type Writer interface {
 
 	// WaitWriteBundles will wait for all bundles invoked before WaitWriteBundles to be completed.
 	// Arg (synckit.SignalChannel) can be used to interrupt waiting.
-	WaitWriteBundles(synckit.SignalChannel) bool
+	WaitWriteBundles(synckit.SignalChannel, func(bool)) bool
+
+	// MarkReadOnly applies read only status to the underlying storage. It may affect bundles being written.
+	MarkReadOnly() error
 }
 
 type Writeable interface {

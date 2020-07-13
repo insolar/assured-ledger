@@ -71,6 +71,7 @@ func (p *plashAssistant) CommitPulseChange() {
 	if !p.status.CompareAndSwap(plashPendingPulse, plashClosed) {
 		panic(throw.IllegalState())
 	}
+	// TODO mark storage(s) as readonly?
 	p.commit.Unlock()
 }
 

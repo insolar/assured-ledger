@@ -30,29 +30,57 @@ type bundleWriter struct {
 	lastReady synckit.SignalChannel
 }
 
-func (p *bundleWriter) WaitWriteBundles(done synckit.SignalChannel) bool {
+func (p *bundleWriter) WaitWriteBundles(done synckit.SignalChannel, fn func(bool)) bool {
 	p.mutex.Lock()
-	prev, next := p._prepareWait(false)
+	prev, next := p._prepareWait(fn != nil)
 	p.mutex.Unlock()
 
 	if next == nil {
 		// there is nothing to wait: (1) no writers (2) all done (3) already rolled back
+		// and there is no fn to call
 		return true
 	}
 
-	select {
-	case _, ok := <- prev:
+	ok := false
+	if prev != nil {
+		select {
+		case _, ok = <- prev:
+		case <- done:
+			// make sure that commit/rollback status will be propagated properly
+			go propagateReady(prev, next)
+			if fn != nil {
+				fn(false)
+			}
+			return false
+		}
+	}
+
+	switch {
+	case fn == nil:
 		if ok {
 			// propagate status properly as someone can be after this wait operation, hence can be affected by rollback
 			next <- struct{}{}
 		}
 		close(next)
 		return true
-	case <- done:
-		// make sure that commit/rollback status will be propagated properly
-		go propagateReady(prev, next)
-		return false
+
+	case ok:
+		defer func() {
+			next <- struct{}{}
+			close(next)
+		}()
+	default:
+		defer close(next)
 	}
+
+	fn(true)
+	return true
+}
+
+func (p *bundleWriter) MarkReadOnly() error {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+	return p.snap.MarkReadOnly()
 }
 
 func propagateReady(prev synckit.SignalChannel, next synckit.ClosableSignalChannel) {
@@ -91,17 +119,21 @@ func (p *bundleWriter) WriteBundle(bundle Writeable, completedFn ResultFunc) err
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
-	snapshot := p.snap.TakeSnapshot()
+	snapshot, err := p.snap.TakeSnapshot()
+	if err != nil {
+		return err
+	}
+
 	defer func() {
 		if snapshot != nil {
-			snapshot.Rollback()
+			snapshot.Rollback(false)
 		}
 	}()
 
-	if err := bundle.PrepareWrite(snapshot); err != nil {
+	if err = bundle.PrepareWrite(snapshot); err != nil {
 		return err
 	}
-	if err := snapshot.Prepared(); err != nil {
+	if err = snapshot.Prepared(); err != nil {
 		return err
 	}
 
@@ -117,8 +149,8 @@ func (p *bundleWriter) applyBundleSafe(snapshot Snapshot, bundle Writeable,
 ) {
 	defer close(next) // to be executed as the very last one
 
+	locked := false
 	chained := false
-	locked  := false
 	rollback := true
 
 	defer func() {
@@ -129,15 +161,16 @@ func (p *bundleWriter) applyBundleSafe(snapshot Snapshot, bundle Writeable,
 			}
 			return
 		case !locked:
+			if prev != nil {
+				// this makes sure that rollbacks respect sequence.
+				// and as chan is always closed, then it is not relevant if we've read it or not.
+				<- prev
+			}
+
 			p.mutex.Lock()
 		}
 		defer p.mutex.Unlock()
-
-		if chained {
-			snapshot.ChainedRollback()
-		} else {
-			snapshot.Rollback()
-		}
+		snapshot.Rollback(chained)
 	}()
 
 	err := func() (err error) {
@@ -174,28 +207,28 @@ func (p *bundleWriter) applyBundleSafe(snapshot Snapshot, bundle Writeable,
 		locked = true
 
 		if !completedFn(assignments, nil) {
-			return nil // abort
+			return nil // no error, but rollback
 		}
-
-		rollback = false
 		if err = snapshot.Commit(); err != nil {
 			return err
 		}
-
-		p.mutex.Unlock()
-		locked = false
-
-		next <- struct{}{} // send ok to next
+		rollback = false
 		return nil
 	}()
 
-
-	if err != nil {
-		if !locked {
-			p.mutex.Lock()
-			locked = true
-		}
+	switch {
+	case err != nil:
 		completedFn(nil, err)
+	case !rollback:
+		if !locked {
+			panic(throw.Impossible())
+		}
+
+		// have to unlock first, to avoid lock contention and to allow a next writer
+		// to get the lock immediately after releasing of the chan
+		p.mutex.Unlock()
+		locked = false
+		next <- struct{}{} // send ok to next
 	}
 }
 

@@ -15,12 +15,6 @@ import (
 type SnapshotMock struct {
 	t minimock.Tester
 
-	funcChainedRollback          func()
-	inspectFuncChainedRollback   func()
-	afterChainedRollbackCounter  uint64
-	beforeChainedRollbackCounter uint64
-	ChainedRollbackMock          mSnapshotMockChainedRollback
-
 	funcCommit          func() (err error)
 	inspectFuncCommit   func()
 	afterCommitCounter  uint64
@@ -51,8 +45,8 @@ type SnapshotMock struct {
 	beforePreparedCounter uint64
 	PreparedMock          mSnapshotMockPrepared
 
-	funcRollback          func()
-	inspectFuncRollback   func()
+	funcRollback          func(chained bool)
+	inspectFuncRollback   func(chained bool)
 	afterRollbackCounter  uint64
 	beforeRollbackCounter uint64
 	RollbackMock          mSnapshotMockRollback
@@ -64,8 +58,6 @@ func NewSnapshotMock(t minimock.Tester) *SnapshotMock {
 	if controller, ok := t.(minimock.MockController); ok {
 		controller.RegisterMocker(m)
 	}
-
-	m.ChainedRollbackMock = mSnapshotMockChainedRollback{mock: m}
 
 	m.CommitMock = mSnapshotMockCommit{mock: m}
 
@@ -80,143 +72,9 @@ func NewSnapshotMock(t minimock.Tester) *SnapshotMock {
 	m.PreparedMock = mSnapshotMockPrepared{mock: m}
 
 	m.RollbackMock = mSnapshotMockRollback{mock: m}
+	m.RollbackMock.callArgs = []*SnapshotMockRollbackParams{}
 
 	return m
-}
-
-type mSnapshotMockChainedRollback struct {
-	mock               *SnapshotMock
-	defaultExpectation *SnapshotMockChainedRollbackExpectation
-	expectations       []*SnapshotMockChainedRollbackExpectation
-}
-
-// SnapshotMockChainedRollbackExpectation specifies expectation struct of the Snapshot.ChainedRollback
-type SnapshotMockChainedRollbackExpectation struct {
-	mock *SnapshotMock
-
-	Counter uint64
-}
-
-// Expect sets up expected params for Snapshot.ChainedRollback
-func (mmChainedRollback *mSnapshotMockChainedRollback) Expect() *mSnapshotMockChainedRollback {
-	if mmChainedRollback.mock.funcChainedRollback != nil {
-		mmChainedRollback.mock.t.Fatalf("SnapshotMock.ChainedRollback mock is already set by Set")
-	}
-
-	if mmChainedRollback.defaultExpectation == nil {
-		mmChainedRollback.defaultExpectation = &SnapshotMockChainedRollbackExpectation{}
-	}
-
-	return mmChainedRollback
-}
-
-// Inspect accepts an inspector function that has same arguments as the Snapshot.ChainedRollback
-func (mmChainedRollback *mSnapshotMockChainedRollback) Inspect(f func()) *mSnapshotMockChainedRollback {
-	if mmChainedRollback.mock.inspectFuncChainedRollback != nil {
-		mmChainedRollback.mock.t.Fatalf("Inspect function is already set for SnapshotMock.ChainedRollback")
-	}
-
-	mmChainedRollback.mock.inspectFuncChainedRollback = f
-
-	return mmChainedRollback
-}
-
-// Return sets up results that will be returned by Snapshot.ChainedRollback
-func (mmChainedRollback *mSnapshotMockChainedRollback) Return() *SnapshotMock {
-	if mmChainedRollback.mock.funcChainedRollback != nil {
-		mmChainedRollback.mock.t.Fatalf("SnapshotMock.ChainedRollback mock is already set by Set")
-	}
-
-	if mmChainedRollback.defaultExpectation == nil {
-		mmChainedRollback.defaultExpectation = &SnapshotMockChainedRollbackExpectation{mock: mmChainedRollback.mock}
-	}
-
-	return mmChainedRollback.mock
-}
-
-//Set uses given function f to mock the Snapshot.ChainedRollback method
-func (mmChainedRollback *mSnapshotMockChainedRollback) Set(f func()) *SnapshotMock {
-	if mmChainedRollback.defaultExpectation != nil {
-		mmChainedRollback.mock.t.Fatalf("Default expectation is already set for the Snapshot.ChainedRollback method")
-	}
-
-	if len(mmChainedRollback.expectations) > 0 {
-		mmChainedRollback.mock.t.Fatalf("Some expectations are already set for the Snapshot.ChainedRollback method")
-	}
-
-	mmChainedRollback.mock.funcChainedRollback = f
-	return mmChainedRollback.mock
-}
-
-// ChainedRollback implements Snapshot
-func (mmChainedRollback *SnapshotMock) ChainedRollback() {
-	mm_atomic.AddUint64(&mmChainedRollback.beforeChainedRollbackCounter, 1)
-	defer mm_atomic.AddUint64(&mmChainedRollback.afterChainedRollbackCounter, 1)
-
-	if mmChainedRollback.inspectFuncChainedRollback != nil {
-		mmChainedRollback.inspectFuncChainedRollback()
-	}
-
-	if mmChainedRollback.ChainedRollbackMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmChainedRollback.ChainedRollbackMock.defaultExpectation.Counter, 1)
-
-		return
-
-	}
-	if mmChainedRollback.funcChainedRollback != nil {
-		mmChainedRollback.funcChainedRollback()
-		return
-	}
-	mmChainedRollback.t.Fatalf("Unexpected call to SnapshotMock.ChainedRollback.")
-
-}
-
-// ChainedRollbackAfterCounter returns a count of finished SnapshotMock.ChainedRollback invocations
-func (mmChainedRollback *SnapshotMock) ChainedRollbackAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmChainedRollback.afterChainedRollbackCounter)
-}
-
-// ChainedRollbackBeforeCounter returns a count of SnapshotMock.ChainedRollback invocations
-func (mmChainedRollback *SnapshotMock) ChainedRollbackBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmChainedRollback.beforeChainedRollbackCounter)
-}
-
-// MinimockChainedRollbackDone returns true if the count of the ChainedRollback invocations corresponds
-// the number of defined expectations
-func (m *SnapshotMock) MinimockChainedRollbackDone() bool {
-	for _, e := range m.ChainedRollbackMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.ChainedRollbackMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterChainedRollbackCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcChainedRollback != nil && mm_atomic.LoadUint64(&m.afterChainedRollbackCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockChainedRollbackInspect logs each unmet expectation
-func (m *SnapshotMock) MinimockChainedRollbackInspect() {
-	for _, e := range m.ChainedRollbackMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Error("Expected call to SnapshotMock.ChainedRollback")
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.ChainedRollbackMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterChainedRollbackCounter) < 1 {
-		m.t.Error("Expected call to SnapshotMock.ChainedRollback")
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcChainedRollback != nil && mm_atomic.LoadUint64(&m.afterChainedRollbackCounter) < 1 {
-		m.t.Error("Expected call to SnapshotMock.ChainedRollback")
-	}
 }
 
 type mSnapshotMockCommit struct {
@@ -1084,17 +942,26 @@ type mSnapshotMockRollback struct {
 	mock               *SnapshotMock
 	defaultExpectation *SnapshotMockRollbackExpectation
 	expectations       []*SnapshotMockRollbackExpectation
+
+	callArgs []*SnapshotMockRollbackParams
+	mutex    sync.RWMutex
 }
 
 // SnapshotMockRollbackExpectation specifies expectation struct of the Snapshot.Rollback
 type SnapshotMockRollbackExpectation struct {
-	mock *SnapshotMock
+	mock   *SnapshotMock
+	params *SnapshotMockRollbackParams
 
 	Counter uint64
 }
 
+// SnapshotMockRollbackParams contains parameters of the Snapshot.Rollback
+type SnapshotMockRollbackParams struct {
+	chained bool
+}
+
 // Expect sets up expected params for Snapshot.Rollback
-func (mmRollback *mSnapshotMockRollback) Expect() *mSnapshotMockRollback {
+func (mmRollback *mSnapshotMockRollback) Expect(chained bool) *mSnapshotMockRollback {
 	if mmRollback.mock.funcRollback != nil {
 		mmRollback.mock.t.Fatalf("SnapshotMock.Rollback mock is already set by Set")
 	}
@@ -1103,11 +970,18 @@ func (mmRollback *mSnapshotMockRollback) Expect() *mSnapshotMockRollback {
 		mmRollback.defaultExpectation = &SnapshotMockRollbackExpectation{}
 	}
 
+	mmRollback.defaultExpectation.params = &SnapshotMockRollbackParams{chained}
+	for _, e := range mmRollback.expectations {
+		if minimock.Equal(e.params, mmRollback.defaultExpectation.params) {
+			mmRollback.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmRollback.defaultExpectation.params)
+		}
+	}
+
 	return mmRollback
 }
 
 // Inspect accepts an inspector function that has same arguments as the Snapshot.Rollback
-func (mmRollback *mSnapshotMockRollback) Inspect(f func()) *mSnapshotMockRollback {
+func (mmRollback *mSnapshotMockRollback) Inspect(f func(chained bool)) *mSnapshotMockRollback {
 	if mmRollback.mock.inspectFuncRollback != nil {
 		mmRollback.mock.t.Fatalf("Inspect function is already set for SnapshotMock.Rollback")
 	}
@@ -1131,7 +1005,7 @@ func (mmRollback *mSnapshotMockRollback) Return() *SnapshotMock {
 }
 
 //Set uses given function f to mock the Snapshot.Rollback method
-func (mmRollback *mSnapshotMockRollback) Set(f func()) *SnapshotMock {
+func (mmRollback *mSnapshotMockRollback) Set(f func(chained bool)) *SnapshotMock {
 	if mmRollback.defaultExpectation != nil {
 		mmRollback.mock.t.Fatalf("Default expectation is already set for the Snapshot.Rollback method")
 	}
@@ -1145,25 +1019,44 @@ func (mmRollback *mSnapshotMockRollback) Set(f func()) *SnapshotMock {
 }
 
 // Rollback implements Snapshot
-func (mmRollback *SnapshotMock) Rollback() {
+func (mmRollback *SnapshotMock) Rollback(chained bool) {
 	mm_atomic.AddUint64(&mmRollback.beforeRollbackCounter, 1)
 	defer mm_atomic.AddUint64(&mmRollback.afterRollbackCounter, 1)
 
 	if mmRollback.inspectFuncRollback != nil {
-		mmRollback.inspectFuncRollback()
+		mmRollback.inspectFuncRollback(chained)
+	}
+
+	mm_params := &SnapshotMockRollbackParams{chained}
+
+	// Record call args
+	mmRollback.RollbackMock.mutex.Lock()
+	mmRollback.RollbackMock.callArgs = append(mmRollback.RollbackMock.callArgs, mm_params)
+	mmRollback.RollbackMock.mutex.Unlock()
+
+	for _, e := range mmRollback.RollbackMock.expectations {
+		if minimock.Equal(e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return
+		}
 	}
 
 	if mmRollback.RollbackMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmRollback.RollbackMock.defaultExpectation.Counter, 1)
+		mm_want := mmRollback.RollbackMock.defaultExpectation.params
+		mm_got := SnapshotMockRollbackParams{chained}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmRollback.t.Errorf("SnapshotMock.Rollback got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
 
 		return
 
 	}
 	if mmRollback.funcRollback != nil {
-		mmRollback.funcRollback()
+		mmRollback.funcRollback(chained)
 		return
 	}
-	mmRollback.t.Fatalf("Unexpected call to SnapshotMock.Rollback.")
+	mmRollback.t.Fatalf("Unexpected call to SnapshotMock.Rollback. %v", chained)
 
 }
 
@@ -1175,6 +1068,19 @@ func (mmRollback *SnapshotMock) RollbackAfterCounter() uint64 {
 // RollbackBeforeCounter returns a count of SnapshotMock.Rollback invocations
 func (mmRollback *SnapshotMock) RollbackBeforeCounter() uint64 {
 	return mm_atomic.LoadUint64(&mmRollback.beforeRollbackCounter)
+}
+
+// Calls returns a list of arguments used in each call to SnapshotMock.Rollback.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmRollback *mSnapshotMockRollback) Calls() []*SnapshotMockRollbackParams {
+	mmRollback.mutex.RLock()
+
+	argCopy := make([]*SnapshotMockRollbackParams, len(mmRollback.callArgs))
+	copy(argCopy, mmRollback.callArgs)
+
+	mmRollback.mutex.RUnlock()
+
+	return argCopy
 }
 
 // MinimockRollbackDone returns true if the count of the Rollback invocations corresponds
@@ -1201,13 +1107,17 @@ func (m *SnapshotMock) MinimockRollbackDone() bool {
 func (m *SnapshotMock) MinimockRollbackInspect() {
 	for _, e := range m.RollbackMock.expectations {
 		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Error("Expected call to SnapshotMock.Rollback")
+			m.t.Errorf("Expected call to SnapshotMock.Rollback with params: %#v", *e.params)
 		}
 	}
 
 	// if default expectation was set then invocations count should be greater than zero
 	if m.RollbackMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterRollbackCounter) < 1 {
-		m.t.Error("Expected call to SnapshotMock.Rollback")
+		if m.RollbackMock.defaultExpectation.params == nil {
+			m.t.Error("Expected call to SnapshotMock.Rollback")
+		} else {
+			m.t.Errorf("Expected call to SnapshotMock.Rollback with params: %#v", *m.RollbackMock.defaultExpectation.params)
+		}
 	}
 	// if func was set then invocations count should be greater than zero
 	if m.funcRollback != nil && mm_atomic.LoadUint64(&m.afterRollbackCounter) < 1 {
@@ -1218,8 +1128,6 @@ func (m *SnapshotMock) MinimockRollbackInspect() {
 // MinimockFinish checks that all mocked methods have been called the expected number of times
 func (m *SnapshotMock) MinimockFinish() {
 	if !m.minimockDone() {
-		m.MinimockChainedRollbackInspect()
-
 		m.MinimockCommitInspect()
 
 		m.MinimockCompletedInspect()
@@ -1254,7 +1162,6 @@ func (m *SnapshotMock) MinimockWait(timeout mm_time.Duration) {
 func (m *SnapshotMock) minimockDone() bool {
 	done := true
 	return done &&
-		m.MinimockChainedRollbackDone() &&
 		m.MinimockCommitDone() &&
 		m.MinimockCompletedDone() &&
 		m.MinimockGetDirectorySectionDone() &&

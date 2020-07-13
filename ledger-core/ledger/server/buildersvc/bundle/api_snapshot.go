@@ -17,7 +17,8 @@ import (
 type SnapshotWriter interface {
 	// TakeSnapshot starts a new write operation and remembers a rollback point.
 	// Not concurrent at SnapshotWriter, but can be called before commit of previous snapshot(s).
-	TakeSnapshot() Snapshot
+	TakeSnapshot() (Snapshot, error)
+	MarkReadOnly() error
 }
 
 // Snapshot represents a written bundle / transaction.
@@ -27,26 +28,25 @@ type Snapshot interface {
 	// It is guaranteed that there will be no new TakeSnapshot() call until Prepared() is invoked on the last one.
 	// Not concurrent with SnapshotWriter.TakeSnapshot().
 	Prepared() error
-	// Completed indicates that all data were written into the allocations made. Called once per Snapshot.
+	// Completed indicates that all data were written into the allocations made. Called once per Snapshot after Prepared().
 	// Implementation can delay return from Completed() e.g. to do multiple copies of data.
-	// Concurrent with SnapshotWriter.TakeSnapshot().
+	// Concurrent.
 	Completed() error
 	// Commit is invoked after Completed().
-	// Is guaranteed to be invoked in the same sequence as snapshots were made by TakeSnapshot().
+	// Is guaranteed to be invoked in the same sequence as snapshots were taken by TakeSnapshot().
 	// Not concurrent with SnapshotWriter.TakeSnapshot().
 	Commit() error
-	// Rollback is invoked on any errors before Commit().
+	// Rollback is invoked on any errors, including errors of Commit().
+	// Is guaranteed to be invoked in the same sequence as snapshots were taken by TakeSnapshot().
+	// Arg (chained) indicates that rollback was initiated by an earlier snapshot.
 	// Not concurrent with SnapshotWriter.TakeSnapshot().
-	Rollback()
-	// ChainedRollback is invoked before Commit() when previous snapshot was rolled back.
-	// Is guaranteed to be invoked in the same sequence as snapshots were made by TakeSnapshot().
-	// Not concurrent with SnapshotWriter.TakeSnapshot().
-	ChainedRollback()
+	Rollback(chained bool)
 
 	// GetPayloadSection returns PayloadSection for the given id or error.
 	// Happens between TakeSnapshot() and Prepared().
 	// Not concurrent with SnapshotWriter.TakeSnapshot().
 	GetPayloadSection(ledger.SectionID) (PayloadSection, error)
+
 	// GetDirectorySection returns DirectorySection for the given id or error
 	// Happens between TakeSnapshot() and Prepared().
 	// Not concurrent with SnapshotWriter.TakeSnapshot().
