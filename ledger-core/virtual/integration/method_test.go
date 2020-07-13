@@ -342,8 +342,6 @@ func TestVirtual_Method_WithoutExecutor_Ordered(t *testing.T) {
 	server, ctx := utils.NewUninitializedServer(nil, t)
 	defer server.Stop()
 
-	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 2)
-
 	runnerMock := logicless.NewServiceMock(ctx, t, nil)
 	server.ReplaceRunner(runnerMock)
 
@@ -389,9 +387,9 @@ func TestVirtual_Method_WithoutExecutor_Ordered(t *testing.T) {
 			runnerMock.AddExecutionMock(key).
 				AddStart(func(ctx execution.Context) {
 					cntr ++
-					for k := 0; k < 3; k ++ {
+					for k := 0; k < 5; k ++ {
 						require.Equal(t, 1, cntr)
-						time.Sleep(5 * time.Millisecond)
+						time.Sleep(3 * time.Millisecond)
 					}
 					cntr --
 			}, &execution.Update{
@@ -407,11 +405,8 @@ func TestVirtual_Method_WithoutExecutor_Ordered(t *testing.T) {
 		}
 	}
 	awaitFullStop := server.Journal.WaitStopOf(&execute.SMExecute{}, 2)
-	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 	testutils.WaitSignalsTimed(t, 10*time.Second, awaitFullStop)
-	server.WaitActiveThenIdleConveyor()
-	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
-
+	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 	{
 		assert.Equal(t, 2, typedChecker.VCallResult.Count())
 
