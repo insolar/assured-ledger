@@ -1,0 +1,13 @@
+nodes:
+- virtual-0.platform-network:19001
+- virtual-1.platform-network:19001
+- virtual-2.platform-network:19001
+- virtual-3.platform-network:19001
+- virtual-4.platform-network:19001
+- virtual-5.platform-network:19001
+- virtual-6.platform-network:19001
+- virtual-7.platform-network:19001
+- virtual-8.platform-network:19001
+- virtual-9.platform-network:19001
+interval: 500ms
+timeout: 1s
