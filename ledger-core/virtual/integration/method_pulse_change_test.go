@@ -458,12 +458,12 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
 			var (
-				class           = gen.UniqueGlobalRef()
-				object          = server.BuildRandomOutgoingWithPulse()
-				outgoingP1      = server.BuildRandomOutgoingWithPulse()
-				dirtyStateRef   = server.RandomLocalWithPulse()
-				p1              = server.GetPulse().PulseNumber
-				getDelegated    = false
+				class         = gen.UniqueGlobalRef()
+				object        = reference.NewSelf(server.RandomLocalWithPulse())
+				outgoingP1    = server.BuildRandomOutgoingWithPulse()
+				dirtyStateRef = server.RandomLocalWithPulse()
+				p1            = server.GetPulse().PulseNumber
+				getDelegated  = false
 			)
 
 			server.IncrementPulseAndWaitIdle(ctx)
