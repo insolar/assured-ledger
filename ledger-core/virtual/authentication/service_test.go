@@ -105,6 +105,7 @@ func Test_IsMessageFromVirtualLegitimate_WithToken(t *testing.T) {
 			token := payload.CallDelegationToken{
 				TokenTypeAndFlags: payload.DelegationTokenTypeCall,
 				Approver:          approver,
+				DelegateTo:        sender,
 			}
 
 			reflect.ValueOf(testCase.msg).MethodByName("Reset").Call([]reflect.Value{})
@@ -138,6 +139,7 @@ func Test_IsMessageFromVirtualLegitimate_WithToken(t *testing.T) {
 			token := payload.CallDelegationToken{
 				TokenTypeAndFlags: payload.DelegationTokenTypeCall,
 				Approver:          sender,
+				DelegateTo:        sender,
 			}
 
 			reflect.ValueOf(testCase.msg).MethodByName("Reset").Call([]reflect.Value{})
@@ -167,6 +169,35 @@ func Test_IsMessageFromVirtualLegitimate_WithToken(t *testing.T) {
 			token := payload.CallDelegationToken{
 				TokenTypeAndFlags: payload.DelegationTokenTypeCall,
 				Approver:          approver,
+				DelegateTo:        expectedVE,
+			}
+			insertToken(token, testCase.msg)
+
+			_, err := authService.IsMessageFromVirtualLegitimate(ctx, testCase.msg, expectedVE, rg)
+			require.Contains(t, err.Error(), "token Approver and expectedVE are different")
+		})
+
+		t.Run("Wrong DelegateTo:"+testCase.name, func(t *testing.T) {
+			ctx := context.Background()
+			selfRef := gen.UniqueGlobalRef()
+
+			refs := gen.UniqueGlobalRefs(2)
+			expectedVE := refs[0]
+			approver := refs[1]
+
+			jetCoordinatorMock := jet.NewAffinityHelperMock(t).
+				QueryRoleMock.Return([]reference.Global{expectedVE}, nil).
+				MeMock.Return(selfRef)
+
+			authService := NewService(ctx, jetCoordinatorMock)
+
+			rg := pulse.NewSequenceRange([]pulse.Data{pulse.NewPulsarData(pulse.MinTimePulse<<1, 10, 1, longbits.Bits256{})})
+
+			reflect.ValueOf(testCase.msg).MethodByName("Reset").Call([]reflect.Value{})
+			token := payload.CallDelegationToken{
+				TokenTypeAndFlags: payload.DelegationTokenTypeCall,
+				Approver:          approver,
+				DelegateTo:        gen.UniqueGlobalRef(),
 			}
 			insertToken(token, testCase.msg)
 

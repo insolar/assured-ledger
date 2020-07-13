@@ -5,6 +5,7 @@ run:
     - application/contract/
     - application/proxy/
     - drafts/*
+    - load/*
 
 linters:
   enable:

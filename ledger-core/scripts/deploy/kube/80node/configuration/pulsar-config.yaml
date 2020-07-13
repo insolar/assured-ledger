@@ -1,0 +1,111 @@
+log:
+  level: info
+pulsar:
+  pulsetime: 10000
+  receivingsigntimeout: 1000
+  receivingnumbertimeout: 1000
+  receivingvectortimeout: 1000
+  receivingsignsforchosentimeout: 0
+  neighbours: []
+  numberdelta: 10
+  distributiontransport:
+    protocol: TCP
+  #    address: 127.0.0.1:58091
+  #    fixedpublicaddress: ""
+  pulsedistributor:
+    bootstraphosts:
+      - virtual-0.platform-network:13831
+      - virtual-1.platform-network:13831
+      - virtual-2.platform-network:13831
+      - virtual-3.platform-network:13831
+      - virtual-4.platform-network:13831
+      - virtual-5.platform-network:13831
+      - virtual-6.platform-network:13831
+      - virtual-7.platform-network:13831
+      - virtual-8.platform-network:13831
+      - virtual-9.platform-network:13831
+      - virtual-10.platform-network:13831
+      - virtual-11.platform-network:13831
+      - virtual-12.platform-network:13831
+      - virtual-13.platform-network:13831
+      - virtual-14.platform-network:13831
+      - virtual-15.platform-network:13831
+      - virtual-16.platform-network:13831
+      - virtual-17.platform-network:13831
+      - virtual-18.platform-network:13831
+      - virtual-19.platform-network:13831
+      - virtual-20.platform-network:13831
+      - virtual-21.platform-network:13831
+      - virtual-22.platform-network:13831
+      - virtual-23.platform-network:13831
+      - virtual-24.platform-network:13831
+      - virtual-25.platform-network:13831
+      - virtual-26.platform-network:13831
+      - virtual-27.platform-network:13831
+      - virtual-28.platform-network:13831
+      - virtual-29.platform-network:13831
+      - virtual-30.platform-network:13831
+      - virtual-31.platform-network:13831
+      - virtual-32.platform-network:13831
+      - virtual-33.platform-network:13831
+      - virtual-34.platform-network:13831
+      - virtual-35.platform-network:13831
+      - virtual-36.platform-network:13831
+      - virtual-37.platform-network:13831
+      - virtual-38.platform-network:13831
+      - virtual-39.platform-network:13831
+      - virtual-40.platform-network:13831
+      - virtual-41.platform-network:13831
+      - virtual-42.platform-network:13831
+      - virtual-43.platform-network:13831
+      - virtual-44.platform-network:13831
+      - virtual-45.platform-network:13831
+      - virtual-46.platform-network:13831
+      - virtual-47.platform-network:13831
+      - virtual-48.platform-network:13831
+      - virtual-49.platform-network:13831
+      - virtual-50.platform-network:13831
+      - virtual-51.platform-network:13831
+      - virtual-52.platform-network:13831
+      - virtual-53.platform-network:13831
+      - virtual-54.platform-network:13831
+      - virtual-55.platform-network:13831
+      - virtual-56.platform-network:13831
+      - virtual-57.platform-network:13831
+      - virtual-58.platform-network:13831
+      - virtual-59.platform-network:13831
+      - virtual-60.platform-network:13831
+      - virtual-61.platform-network:13831
+      - virtual-62.platform-network:13831
+      - virtual-63.platform-network:13831
+      - virtual-64.platform-network:13831
+      - virtual-65.platform-network:13831
+      - virtual-66.platform-network:13831
+      - virtual-67.platform-network:13831
+      - virtual-68.platform-network:13831
+      - virtual-69.platform-network:13831
+      - virtual-70.platform-network:13831
+      - virtual-71.platform-network:13831
+      - virtual-72.platform-network:13831
+      - virtual-73.platform-network:13831
+      - virtual-74.platform-network:13831
+      - virtual-75.platform-network:13831
+      - virtual-76.platform-network:13831
+      - virtual-77.platform-network:13831
+      - virtual-78.platform-network:13831
+      - virtual-79.platform-network:13831
+    pingrequesttimeout: 1000
+    randomhostsrequesttimeout: 1000
+    pulserequesttimeout: 1000
+    randomnodescount: 5
+keyspath: "/etc/insolar/keys/pulsar-0.json" # TODO after https://insolar.atlassian.net/browse/PENV-123
+tracer:
+  jaeger:
+    collectorendpoint: ""
+    agentendpoint: ""
+    probabilityrate: 1
+metrics:
+  listenaddress: 0.0.0.0:9090
+  namespace: placeholder
+  zpagesenabled: false
+  reportingperiod: 0s
