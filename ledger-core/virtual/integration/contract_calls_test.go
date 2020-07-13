@@ -6,6 +6,7 @@
 package integration
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -19,9 +20,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/debuglogger"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/synchronization"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
@@ -510,13 +513,17 @@ func TestVirtual_CallMethodFromConstructor(t *testing.T) {
 }
 
 func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
-	t.Log("CXXXX")
+	t.Log("CXXXX") // TODO change
 
 	countChangePulse := execute.MaxOutgoingRetries + 1
 
 	mc := minimock.NewController(t)
 
-	server, ctx := utils.NewUninitializedServer(nil, t)
+	server, ctx := utils.NewUninitializedServerWithErrorFilter(nil, t, func(s string) bool {
+		// Pass all errors, except for (*SMVStateReport).stepProcess
+		return !strings.Contains(s, "(*SMExecute).stepSendOutgoing")
+	})
+
 	defer server.Stop()
 
 	logger := inslogger.FromContext(ctx)
@@ -546,6 +553,16 @@ func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 		}
 		firstTokenValue payload.CallDelegationToken
 	)
+
+	executeStopped := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
+
+	foundPanic := server.Journal.Wait(func(event debuglogger.UpdateEvent) bool {
+		if event.Data.Error != nil && event.Data.Error.Error() == "execution: not implemented"{
+			stack := throw.DeepestStackTraceOf(event.Data.Error)
+			return strings.Contains(stack.StackTraceAsText(), "(*SMExecute).stepSendOutgoing")
+		}
+		return false
+	})
 
 	Method_PrepareObject(ctx, server, payload.Ready, object)
 
@@ -624,8 +641,6 @@ func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 
 	}
 
-	executeStopped := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
-
 	server.WaitIdleConveyor()
 	server.SendPayload(ctx, &pl)
 
@@ -635,8 +650,7 @@ func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 		point.WakeUp()
 	}
 
-	testutils.WaitSignalsTimed(t, 10*time.Second, executeStopped)
-	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone(), executeStopped, foundPanic)
 
 	{
 		require.Equal(t, 0, typedChecker.VCallResult.Count())
