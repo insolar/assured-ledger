@@ -30,6 +30,7 @@ func TestDropAssistAppend(t *testing.T) {
 	started := sync.WaitGroup{}
 	completed := sync.WaitGroup{}
 	hashed := sync.WaitGroup{}
+
 	da := prepareDropAssistFoAppend(t, local, &started, &completed, &hashed)
 
 	const bundleCount = 3
@@ -56,17 +57,25 @@ func TestDropAssistAppend(t *testing.T) {
 		require.NoError(t, err)
 	}
 
+	// all appends were prepared in parallel
+	// but are blocked on completion
 	started.Wait()
 
+	// no futures are set yet
 	for i := range fts {
 		ok, err := fts[i].GetFutureResult()
 		require.False(t, ok)
 		require.NoError(t, err)
 	}
 
+	// allow all bundles to commit
 	completed.Done()
+
+	// and wait for them to be added to merkle tree
+	// ordering is checked by merkle tree mock of dropAssist
 	hashed.Wait()
 
+	// then all futures should soon be ready
 	for i := range fts {
 		for j := 10; j > 0; j++ {
 			ok, err := fts[i].GetFutureResult()
@@ -98,6 +107,7 @@ func TestDropAssistAppendWithPulseChange(t *testing.T) {
 
 	pa := &plashAssistant{
 		// use of stub enables merkle tree to be empty
+		// as we will rollback all operations
 		merkle: merkler.NewForkingCalculator(pair, cryptkit.NewDigest(longbits.WrapStr("stub"), "testMerkle")),
 	}
 	pa.status.Store(plashStarted)
@@ -111,8 +121,11 @@ func TestDropAssistAppendWithPulseChange(t *testing.T) {
 		require.NoError(t, err)
 	}
 
+	// all appends were prepared in parallel
+	// but are blocked on completion
 	started.Wait()
 
+	// no futures are set yet
 	for i := range fts {
 		ok, err := fts[i].GetFutureResult()
 		require.False(t, ok)
@@ -121,18 +134,25 @@ func TestDropAssistAppendWithPulseChange(t *testing.T) {
 
 	stateHash := make(chan cryptkit.Digest, 1)
 	pa.PreparePulseChange(stateHash)
+	// we don't wait for pending bundles, as state hash is calculated before all pending bundles are released
 	<- stateHash
+	// nothing was added
+	require.Equal(t, 0, pa.merkle.Count())
 
+	// bundles are release, but they are blocked because of PreparePulseChange state
 	completed.Done()
 
+	// no one is ready
 	for i := range fts {
 		ok, err := fts[i].GetFutureResult()
 		require.False(t, ok)
 		require.NoError(t, err)
 	}
 
+	// this preserves merkle tree by forcing rollback for all pending bundles
 	pa.CommitPulseChange()
 
+	// all futures are set to an error
 	for i := range fts {
 		for j := 10; j > 0; j++ {
 			ok, err := fts[i].GetFutureResult()
@@ -144,6 +164,9 @@ func TestDropAssistAppendWithPulseChange(t *testing.T) {
 			time.Sleep(time.Duration(10-j)*100*time.Millisecond)
 		}
 	}
+
+	// rollback was correct - nothing was added
+	require.Equal(t, 0, pa.merkle.Count())
 }
 
 func TestDropAssistAppendWithPulseCancel(t *testing.T) {
@@ -178,8 +201,11 @@ func TestDropAssistAppendWithPulseCancel(t *testing.T) {
 		require.NoError(t, err)
 	}
 
+	// all appends were prepared in parallel
+	// but are blocked on completion
 	started.Wait()
 
+	// no futures are set yet
 	for i := range fts {
 		ok, err := fts[i].GetFutureResult()
 		require.False(t, ok)
@@ -188,20 +214,30 @@ func TestDropAssistAppendWithPulseCancel(t *testing.T) {
 
 	stateHash := make(chan cryptkit.Digest, 1)
 	pa.PreparePulseChange(stateHash)
+	// we don't wait for pending bundles, as state hash is calculated before all pending bundles are released
 	<- stateHash
+	// nothing was added
+	require.Equal(t, 0, pa.merkle.Count())
 
+	// bundles are release, but they are blocked because of PreparePulseChange state
 	completed.Done()
 
+	// no one is ready
 	for i := range fts {
 		ok, err := fts[i].GetFutureResult()
 		require.False(t, ok)
 		require.NoError(t, err)
 	}
 
+	// here pulse change is cancelled, hence we have to proceed as normal
+	// nothing has to be rolled back, bundles are released
 	pa.CancelPulseChange()
 
+	// and wait for them to be added to merkle tree
+	// ordering is checked by merkle tree mock of dropAssist
 	hashed.Wait()
 
+	// then all futures should soon be ready
 	for i := range fts {
 		for j := 10; j > 0; j++ {
 			ok, err := fts[i].GetFutureResult()
