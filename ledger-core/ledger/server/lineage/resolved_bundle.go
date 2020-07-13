@@ -5,6 +5,23 @@
 
 package lineage
 
+import (
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+)
+
+func NewResolvedBundleForTestOnly(records []Record) ResolvedBundle {
+	if len(records) == 0 {
+		panic(throw.IllegalValue())
+	}
+	rb := ResolvedBundle{records: make([]resolvedRecord, len(records))}
+
+	for i := range records {
+		rb.records[i].Record = records[i]
+	}
+
+	return rb
+}
+
 type ResolvedBundle struct {
 	records    []resolvedRecord
 }

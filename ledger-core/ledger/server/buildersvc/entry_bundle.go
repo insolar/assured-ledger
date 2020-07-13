@@ -12,6 +12,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lineage"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -55,6 +56,11 @@ func (p *entryWriter) ApplyWrite() ([]ledger.DirectoryIndex, error) {
 		for _, pl := range entries[i].payloads {
 			if pl.target == nil {
 				continue
+			}
+			if fr, ok := pl.payload.(longbits.FixedReader); ok {
+				if err := pl.target.ApplyFixedReader(fr); err != nil {
+					return nil, err
+				}
 			}
 			if err := pl.target.ApplyMarshalTo(pl.payload); err != nil {
 				return nil, err
@@ -182,12 +188,12 @@ func prepareCatalogEntry(entry *catalog.Entry, idx ledger.DirectoryIndex, loc []
 	entry.Ordinal =	idx.Ordinal()
 
 	n := len(loc)
-	if n == 0 {
+	if n == 1 {
 		return
 	}
 
 	entry.PayloadLoc = loc[1]
-	if n == 1 {
+	if n == 2 {
 		return
 	}
 

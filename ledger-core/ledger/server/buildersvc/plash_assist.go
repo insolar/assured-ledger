@@ -36,7 +36,7 @@ type plashAssistant struct {
 	dropAssists map[jet.ID]*dropAssistant
 
 	status   atomickit.Uint32
-	commit   sync.Mutex // LOCK! Spans across methods
+	commit   sync.Mutex // LOCK: Spans across methods
 	merkle   merkler.ForkingCalculator
 }
 

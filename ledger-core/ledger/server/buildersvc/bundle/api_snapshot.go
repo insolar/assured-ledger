@@ -84,3 +84,6 @@ type DirectorySection interface {
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/bundle.SnapshotWriter -s _mock.go -g
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/bundle.Snapshot -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/bundle.DirectorySection -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/bundle.PayloadSection -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/bundle.PayloadReceptacle -s _mock.go -g

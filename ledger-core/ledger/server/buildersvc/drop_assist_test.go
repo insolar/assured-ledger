@@ -1,0 +1,261 @@
+// Copyright 2020 Insolar Network Ltd.
+// All rights reserved.
+// This material is licensed under the Insolar License version 1.0,
+// available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
+
+package buildersvc
+
+import (
+	"sync"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/require"
+
+	"github.com/insolar/assured-ledger/ledger-core/ledger"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/bundle"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/catalog"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lineage"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/merkler"
+)
+
+func TestDropAssistAppend(t *testing.T) {
+	local := gen.UniqueLocalRef()
+	started := sync.WaitGroup{}
+	completed := sync.WaitGroup{}
+	hashed := sync.WaitGroup{}
+	da := prepareDropAssistFoAppend(t, local, &started, &completed, &hashed)
+
+	const bundleCount = 3
+	started.Add(bundleCount)
+	completed.Add(1)
+	hashed.Add(bundleCount)
+
+	pair := cryptkit.NewPairDigesterMock(t)
+	pair.DigestPairMock.Set(func(digest0 longbits.FoldableReader, _ longbits.FoldableReader) cryptkit.Digest {
+		return cryptkit.NewDigest(digest0, "")
+	})
+
+	pa := &plashAssistant{
+		merkle: merkler.NewForkingCalculator(pair, cryptkit.Digest{}),
+	}
+	pa.status.Store(plashStarted)
+
+	fts := make([]*Future, bundleCount)
+
+	ref := reference.NewSelf(local)
+	for i := range fts {
+		fts[i] = NewFuture("test")
+		err := da.append(pa, fts[i], newResolvedBundle(ref, byte(i+1)))
+		require.NoError(t, err)
+	}
+
+	started.Wait()
+
+	for i := range fts {
+		ok, err := fts[i].GetFutureResult()
+		require.False(t, ok)
+		require.NoError(t, err)
+	}
+
+	completed.Done()
+	hashed.Wait()
+
+	for i := range fts {
+		ok, err := fts[i].GetFutureResult()
+		require.True(t, ok)
+		require.NoError(t, err)
+	}
+}
+
+func TestDropAssistAppendWithPulseChange(t *testing.T) {
+	local := gen.UniqueLocalRef()
+	started := sync.WaitGroup{}
+	completed := sync.WaitGroup{}
+	hashed := sync.WaitGroup{}
+	da := prepareDropAssistFoAppend(t, local, &started, &completed, &hashed)
+
+	const bundleCount = 3
+	started.Add(bundleCount)
+	completed.Add(1)
+	// hashed.Add(0)
+
+	pair := cryptkit.NewPairDigesterMock(t)
+	pair.DigestPairMock.Set(func(digest0 longbits.FoldableReader, _ longbits.FoldableReader) cryptkit.Digest {
+		return cryptkit.NewDigest(digest0, "")
+	})
+
+	pa := &plashAssistant{
+		// use of stub enables merkle tree to be empty
+		merkle: merkler.NewForkingCalculator(pair, cryptkit.NewDigest(longbits.WrapStr("stub"), "testMerkle")),
+	}
+	pa.status.Store(plashStarted)
+
+	fts := make([]*Future, bundleCount)
+
+	ref := reference.NewSelf(local)
+	for i := range fts {
+		fts[i] = NewFuture("test")
+		err := da.append(pa, fts[i], newResolvedBundle(ref, byte(i+1)))
+		require.NoError(t, err)
+	}
+
+	started.Wait()
+
+	for i := range fts {
+		ok, err := fts[i].GetFutureResult()
+		require.False(t, ok)
+		require.NoError(t, err)
+	}
+
+	stateHash := make(chan cryptkit.Digest, 1)
+	pa.PreparePulseChange(stateHash)
+	<- stateHash
+
+	completed.Done()
+
+	for i := range fts {
+		ok, err := fts[i].GetFutureResult()
+		require.False(t, ok)
+		require.NoError(t, err)
+	}
+
+	pa.CommitPulseChange()
+
+	for i := range fts {
+		for j := 10; j > 0; j++ {
+			ok, err := fts[i].GetFutureResult()
+			if ok {
+				require.Error(t, err)
+				require.Equal(t, "plash closed", err.Error())
+				break
+			}
+			time.Sleep(time.Duration(10-j)*100*time.Millisecond)
+		}
+	}
+}
+
+func TestDropAssistAppendWithPulseCancel(t *testing.T) {
+	local := gen.UniqueLocalRef()
+	started := sync.WaitGroup{}
+	completed := sync.WaitGroup{}
+	hashed := sync.WaitGroup{}
+	da := prepareDropAssistFoAppend(t, local, &started, &completed, &hashed)
+
+	const bundleCount = 3
+	started.Add(bundleCount)
+	completed.Add(1)
+	hashed.Add(bundleCount)
+
+	pair := cryptkit.NewPairDigesterMock(t)
+	pair.DigestPairMock.Set(func(digest0 longbits.FoldableReader, _ longbits.FoldableReader) cryptkit.Digest {
+		return cryptkit.NewDigest(digest0, "")
+	})
+
+	pa := &plashAssistant{
+		// use of stub enables merkle tree to be empty
+		merkle: merkler.NewForkingCalculator(pair, cryptkit.NewDigest(longbits.WrapStr("stub"), "testMerkle")),
+	}
+	pa.status.Store(plashStarted)
+
+	fts := make([]*Future, bundleCount)
+
+	ref := reference.NewSelf(local)
+	for i := range fts {
+		fts[i] = NewFuture("test")
+		err := da.append(pa, fts[i], newResolvedBundle(ref, byte(i+1)))
+		require.NoError(t, err)
+	}
+
+	started.Wait()
+
+	for i := range fts {
+		ok, err := fts[i].GetFutureResult()
+		require.False(t, ok)
+		require.NoError(t, err)
+	}
+
+	stateHash := make(chan cryptkit.Digest, 1)
+	pa.PreparePulseChange(stateHash)
+	<- stateHash
+
+	completed.Done()
+
+	for i := range fts {
+		ok, err := fts[i].GetFutureResult()
+		require.False(t, ok)
+		require.NoError(t, err)
+	}
+
+	pa.CancelPulseChange()
+
+	hashed.Wait()
+
+	for i := range fts {
+		ok, err := fts[i].GetFutureResult()
+		require.True(t, ok)
+		require.NoError(t, err)
+	}
+}
+
+func prepareDropAssistFoAppend(t *testing.T, local reference.Local, started, completed, hashed *sync.WaitGroup) *dropAssistant {
+	rcp := bundle.NewPayloadReceptacleMock(t)
+	rcp.ApplyMarshalToMock.Return(nil)
+
+	ps := bundle.NewPayloadSectionMock(t)
+	payloadLoc := ledger.NewLocator(ledger.DefaultEntrySection, 1, 0)
+	ps.AllocatePayloadStorageMock.Return(rcp, payloadLoc, nil)
+
+	ds := bundle.NewDirectorySectionMock(t)
+	dirIndex := ledger.NewDirectoryIndex(ledger.DefaultEntrySection, 1)
+	ds.GetNextDirectoryIndexMock.Return(dirIndex)
+	entryLock := ledger.NewLocator(ledger.DefaultEntrySection, 2, 0)
+	ds.AllocateEntryStorageMock.Return(rcp, entryLock, nil)
+	ds.AppendDirectoryEntryMock.Expect(dirIndex, reference.NewSelf(local), entryLock).Return(nil)
+
+	snap := bundle.NewSnapshotMock(t)
+	snap.GetDirectorySectionMock.Return(ds, nil)
+	snap.GetPayloadSectionMock.Return(ps, nil)
+	snap.PreparedMock.Return(nil)
+	snap.CompletedMock.Set(func() error {
+		started.Done()
+		completed.Wait()
+		return nil
+	})
+	snap.CommitMock.Return(nil)
+
+	sw := bundle.NewSnapshotWriterMock(t)
+	sw.TakeSnapshotMock.Return(snap, nil)
+
+	lastId := 0
+	merkle := cryptkit.NewForkingDigesterMock(t)
+	merkle.AddNextMock.Set(func(digest longbits.FoldableReader) {
+		require.Equal(t, 1, digest.FixedByteSize())
+		id := int(digest.FoldToUint64())
+		require.Equal(t, lastId + 1, id)
+		lastId++
+		hashed.Done()
+	})
+
+	return &dropAssistant{
+		nodeID: 1,
+		dropID: jet.ID(0).AsDrop(local.GetPulseNumber()),
+		writer: bundle.NewWriter(sw),
+		merkle: merkle,
+	}
+}
+
+func newResolvedBundle(ref reference.Holder, id byte) lineage.ResolvedBundle {
+	rec := lineage.NewRegRecord(catalog.Excerpt{}, &rms.LRegisterRequest{
+		AnticipatedRef: rms.NewReference(ref),
+	})
+	rec.RegistrarSignature = cryptkit.NewSignedDigest(cryptkit.NewDigest(longbits.NewMutableFixedSize([]byte{id}), "testDigestMethod"),
+		cryptkit.NewSignature(longbits.WrapStr("signature"), "testSignMethod"))
+	return lineage.NewResolvedBundleForTestOnly([]lineage.Record{rec})
+}

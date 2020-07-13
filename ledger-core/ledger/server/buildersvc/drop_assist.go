@@ -23,7 +23,7 @@ type dropAssistant struct {
 	dropID jet.DropID
 	writer bundle.Writer
 
-	mutex   sync.Mutex // LOCK! Is used under plashAssistant.commit lock
+	mutex   sync.Mutex // LOCK: Is used under plashAssistant.commit lock
 	merkle  cryptkit.ForkingDigester
 }
 

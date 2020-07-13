@@ -148,7 +148,7 @@ func TestWriterRollback(t *testing.T) {
 	wb3.ApplyWriteMock.Set(func() ([]ledger.DirectoryIndex, error) {
 		start.Wait()
 		applied.Done()
-		panic("mock error")
+		panic("mock panic")
 	})
 
 	check := make(chan int, 5)
@@ -163,10 +163,9 @@ func TestWriterRollback(t *testing.T) {
 	}, true)
 	writeBundle(t, w, wb3, func() { check <- 4 }, true) // multiple errors
 
-	go func() {
-		w.WaitWriteBundles(nil, nil)
+	go w.WaitWriteBundles(nil, func(bool) {
 		check <- 5
-	}()
+	})
 
 	select {
 	case <- check:
@@ -179,6 +178,7 @@ func TestWriterRollback(t *testing.T) {
 	require.Equal(t, 2, <- check)
 
 	applied.Wait()
+	require.Equal(t, 1, rollbackCount)
 
 	select {
 	case <- check:
