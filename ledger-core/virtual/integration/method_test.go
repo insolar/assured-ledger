@@ -1351,3 +1351,61 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 
 	mc.Finish()
 }
+
+func TestVirtual_Method_ForObjectWithMissingState(t *testing.T) {
+	t.Log("C5106")
+	mc := minimock.NewController(t)
+
+	server, ctx := utils.NewServer(nil, t)
+	defer server.Stop()
+
+	execDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
+	stateHandled := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
+
+	var (
+		objectRef = server.RandomGlobalWithPulse()
+		outgoing  = server.BuildRandomOutgoingWithPulse()
+	)
+
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool {
+		require.Equal(t, payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty), result.CallFlags)
+		require.Equal(t, objectRef, result.Callee)
+		require.Equal(t, outgoing, result.CallOutgoing)
+		require.Equal(t, server.GlobalCaller(), result.Caller)
+		require.True(t, result.DelegationSpec.IsZero())
+		contractErr, sysErr := foundation.UnmarshalMethodResult(result.ReturnArguments)
+		require.NoError(t, sysErr)
+		require.Contains(t, contractErr.Error(), "object does not exist")
+		return false
+	})
+
+	server.IncrementPulseAndWaitIdle(ctx)
+
+	state := &payload.VStateReport{
+		Status: payload.Missing,
+		Object: objectRef,
+	}
+
+	server.SendPayload(ctx, state)
+	testutils.WaitSignalsTimed(t, 10*time.Second, stateHandled)
+
+	pl := payload.VCallRequest{
+		CallType:       payload.CTMethod,
+		CallFlags:      payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
+		Caller:         server.GlobalCaller(),
+		Callee:         objectRef,
+		CallSiteMethod: "Method",
+		CallOutgoing:   outgoing,
+	}
+
+	server.SendPayload(ctx, &pl)
+
+	testutils.WaitSignalsTimed(t, 10*time.Second, execDone)
+	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+
+	require.Equal(t, 1, typedChecker.VCallResult.Count())
+	typedChecker.MinimockWait(10 * time.Second)
+
+	mc.Finish()
+}
