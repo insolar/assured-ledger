@@ -152,6 +152,7 @@ func (p *bundleWriter) applyBundleSafe(snapshot Snapshot, bundle Writeable,
 	locked := false
 	chained := false
 	rollback := true
+	var err error
 
 	defer func() {
 		switch {
@@ -163,17 +164,27 @@ func (p *bundleWriter) applyBundleSafe(snapshot Snapshot, bundle Writeable,
 		case !locked:
 			if prev != nil {
 				// this makes sure that rollbacks respect sequence.
-				// and as chan is always closed, then it is not relevant if we've read it or not.
-				<- prev
+				// and as chan is always closed, then it is not relevant if we've read it before or not.
+				if _, ok := <- prev; !ok {
+					chained = true
+				}
 			}
 
 			p.mutex.Lock()
 		}
 		defer p.mutex.Unlock()
+
+		defer func() {
+			recover() // we can't allow panic here
+			//	err = throw.RW(recover(), err, "failed on error")
+		}()
 		snapshot.Rollback(chained)
+		if err != nil {
+			completedFn(nil, err)
+		}
 	}()
 
-	err := func() (err error) {
+	err = func() (err error) {
 		defer func() {
 			err = throw.RW(recover(), err, "applyBundle failed")
 		}()
@@ -201,6 +212,7 @@ func (p *bundleWriter) applyBundleSafe(snapshot Snapshot, bundle Writeable,
 				chained = true // rollback was made by a previous writer and we have to stop
 				return throw.E("chained cancel")
 			}
+			prev = nil // avoid false detection of "chained" in defer
 		}
 
 		p.mutex.Lock()
@@ -216,19 +228,18 @@ func (p *bundleWriter) applyBundleSafe(snapshot Snapshot, bundle Writeable,
 		return nil
 	}()
 
-	switch {
-	case err != nil:
-		completedFn(nil, err)
-	case !rollback:
-		if !locked {
-			panic(throw.Impossible())
-		}
-
-		// have to unlock first, to avoid lock contention and to allow a next writer
-		// to get the lock immediately after releasing of the chan
-		p.mutex.Unlock()
-		locked = false
-		next <- struct{}{} // send ok to next
+	if err != nil || rollback {
+		return
 	}
+
+	if !locked {
+		panic(throw.Impossible())
+	}
+
+	// have to unlock first, to avoid lock contention and to allow a next writer
+	// to get the lock immediately after releasing of the chan
+	p.mutex.Unlock()
+	locked = false
+	next <- struct{}{} // send ok to next
 }
 
