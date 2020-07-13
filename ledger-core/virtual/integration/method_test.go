@@ -368,7 +368,7 @@ func TestVirtual_Method_WithoutExecutor_Ordered(t *testing.T) {
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
 	cntr := 0
-	countBefore := server.PublisherMock.GetCount()
+	awaitFullStop := server.Journal.WaitStopOf(&execute.SMExecute{}, 2)
 
 	{
 		typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
@@ -414,16 +414,9 @@ func TestVirtual_Method_WithoutExecutor_Ordered(t *testing.T) {
 			server.SendPayload(ctx, &pl)
 		}
 	}
-	awaitFullStop := server.Journal.WaitStopOf(&execute.SMExecute{}, 2)
 	testutils.WaitSignalsTimed(t, 10*time.Second, awaitFullStop)
 	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
-	{
-		assert.Equal(t, 2, typedChecker.VCallResult.Count())
-
-		if !server.PublisherMock.WaitCount(countBefore+2, 10*time.Second) {
-			t.Error("failed to wait for result")
-		}
-	}
+	assert.Equal(t, 2, typedChecker.VCallResult.Count())
 
 	mc.Finish()
 }
