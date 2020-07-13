@@ -56,7 +56,6 @@ func (sm *emptySM) stepInit(ctx smachine.InitializationContext) smachine.StateUp
 	return ctx.Stop()
 }
 
-
 func handleFactory(_ context.Context, input InputEvent, _ InputContext) (InputSetup, error) {
 	switch input.(type) {
 	default:
