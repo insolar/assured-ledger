@@ -379,27 +379,12 @@ func (sm *SMObject) migrate(ctx smachine.MigrationContext) smachine.StateUpdate 
 		sm.smFinalizer.Report.ProvidedContent.LatestDirtyState = sm.BuildLatestDirtyState()
 	}
 
-	sdlStateReport := ctx.Share(&sm.smFinalizer.Report, 0)
-	if !ctx.Publish(finalizedstate.BuildReportKey(sm.Reference), sdlStateReport) {
-		ctx.Log().Warn(struct {
-			*log.Msg  `txt:"failed to publish state report"`
-			Reference string
-		}{
-			Reference: sm.Reference.String(),
-		})
-		return ctx.Error(throw.New("failed to publish state report"))
+	if su := sm.sharedAndPublishStateReport(ctx, &sm.smFinalizer.Report); !su.IsEmpty() {
+		return su
 	}
 
-	sdlCallSummarySync := ctx.Share(&sm.SummaryDone, 0)
-
-	if !ctx.Publish(callsummary.BuildSummarySyncKey(sm.Reference), sdlCallSummarySync) {
-		ctx.Log().Warn(struct {
-			*log.Msg  `txt:"failed to publish call summary sync key"`
-			Reference string
-		}{
-			Reference: sm.Reference.String(),
-		})
-		return ctx.Error(throw.New("failed to publish call summary sync key"))
+	if su := sm.sharedAndPublishSMCallSummarySyncLink(ctx, &sm.SummaryDone); !su.IsEmpty() {
+		return su
 	}
 
 	return ctx.Jump(sm.stepPublishCallSummary)
@@ -488,4 +473,34 @@ func (sm *SMObject) checkPendingCounters(logger smachine.Logger) {
 			CountActive:  orderedPendingList.Count(),
 		})
 	}
+}
+
+func (sm *SMObject) sharedAndPublishStateReport(
+	ctx smachine.MigrationContext,
+	report *payload.VStateReport,
+) smachine.StateUpdate {
+	sdlStateReport := ctx.Share(report, 0)
+
+	if !ctx.Publish(finalizedstate.BuildReportKey(sm.Reference), sdlStateReport) {
+		return ctx.Error(throw.New("failed to publish state report", struct {
+			Reference reference.Holder
+		}{sm.Reference}))
+	}
+
+	return smachine.StateUpdate{}
+}
+
+func (sm *SMObject) sharedAndPublishSMCallSummarySyncLink(
+	ctx smachine.MigrationContext,
+	summaryDone *smachine.SyncLink,
+) smachine.StateUpdate {
+	sdlCallSummarySync := ctx.Share(summaryDone, 0)
+
+	if !ctx.Publish(callsummary.BuildSummarySyncKey(sm.Reference), sdlCallSummarySync) {
+		return ctx.Error(throw.New("failed to publish call summary sync key", struct {
+			Reference reference.Holder
+		}{sm.Reference}))
+	}
+
+	return smachine.StateUpdate{}
 }
