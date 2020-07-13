@@ -49,7 +49,7 @@ func Test_Delay(t *testing.T) {
 	{ // initialization
 		initCtx := smachine.NewInitializationContextMock(mc).
 			ShareMock.Return(sharedStateData).
-			PublishMock.Expect(smObject.Reference.String(), sharedStateData).Return(true).
+			PublishMock.Expect(smObject.Reference, sharedStateData).Return(true).
 			JumpMock.Set(stepChecker.CheckJumpW(t)).
 			SetDefaultMigrationMock.Return()
 
@@ -137,7 +137,7 @@ func Test_PendingBlocksExecution(t *testing.T) {
 			{ // initialization
 				initCtx := smachine.NewInitializationContextMock(mc).
 					ShareMock.Return(sharedStateData).
-					PublishMock.Expect(smObject.Reference.String(), sharedStateData).Return(true).
+					PublishMock.Expect(smObject.Reference, sharedStateData).Return(true).
 					JumpMock.Set(stepChecker.CheckJumpW(t)).
 					SetDefaultMigrationMock.Return()
 
@@ -220,7 +220,7 @@ func TestSMObject_stepGotState_Set_PendingListFilled(t *testing.T) {
 	{ // initialization
 		initCtx := smachine.NewInitializationContextMock(mc).
 			ShareMock.Return(sharedStateData).
-			PublishMock.Expect(smObject.Reference.String(), sharedStateData).Return(true).
+			PublishMock.Expect(smObject.Reference, sharedStateData).Return(true).
 			JumpMock.Set(stepChecker.CheckJumpW(t)).
 			SetDefaultMigrationMock.Return()
 
