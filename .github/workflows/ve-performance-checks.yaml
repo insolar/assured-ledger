@@ -52,8 +52,8 @@ jobs:
           sed -i "s/placeholder/${GITHUB_SHA:0:8}/g" ledger-core/scripts/deploy/kube/*/configuration/*.*
           sed -i "s/placeholder/${GITHUB_SHA:0:8}/g" ledger-core/load/gen_cfg/*.*
           cat /home/runner/work/assured-ledger/assured-ledger/ledger-core/load/gen_cfg/generator_assured_ledger.yaml
-      - name: run 5node network
-        run: kubectl apply -k ledger-core/scripts/deploy/kube/5node
+      - name: run 10node network
+        run: kubectl apply -k ledger-core/scripts/deploy/kube/10node
       - name: wait for successfull rollout
         run: kubectl -n ${GITHUB_SHA:0:8} rollout status sts/virtual
       - name: pulsewatcher
@@ -64,10 +64,10 @@ jobs:
             else echo -n '.'; sleep 5
             fi
           done
-      - name: start test 5 node
+      - name: start test 10 node
         run: |
           cd ${{ env.CORE_PATH }}/load/
-          NETWORK_NODES=5 ./main -gen_config ${{ env.CORE_PATH }}/load/gen_cfg/generator_assured_ledger.yaml -config ${{ env.CORE_PATH }}/load/run_configs/all_sequence.yaml
+          NETWORK_NODES=10 ./main -gen_config ${{ env.CORE_PATH }}/load/gen_cfg/generator_assured_ledger.yaml -config ${{ env.CORE_PATH }}/load/run_configs/all_sequence.yaml
           cat scaling.csv
       - name: cleanup
         run: kubectl delete ns ${GITHUB_SHA:0:8} --ignore-not-found=true
