@@ -600,13 +600,7 @@ func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 
 	// add checks to typedChecker
 	{
-		typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
-			// check for pending counts must be in tests: call terminal method case C5104
-			assert.Equal(t, object, report.Object)
-			assert.Equal(t, payload.Ready, report.Status)
-			assert.Zero(t, report.DelegationSpec)
-			return false
-		})
+		typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {return false})
 
 		typedChecker.VDelegatedCallRequest.Set(func(request *payload.VDelegatedCallRequest) bool {
 			newPulse := server.GetPulse().PulseNumber
@@ -653,15 +647,9 @@ func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone(), executeStopped, foundPanic)
 
 	{
-		require.Equal(t, 0, typedChecker.VCallResult.Count())
-		require.Equal(t, 1, typedChecker.VStateReport.Count())
-		require.Equal(t, 0, typedChecker.VDelegatedRequestFinished.Count())
-
 		// first time we send outgoing before first pulse change
 		// then we retry it 3 times
 		require.Equal(t, countChangePulse, typedChecker.VCallRequest.Count())
-		require.Equal(t, countChangePulse, typedChecker.VDelegatedCallRequest.Count())
-
 	}
 
 	mc.Finish()
