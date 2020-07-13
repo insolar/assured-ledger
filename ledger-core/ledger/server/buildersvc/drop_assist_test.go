@@ -68,9 +68,14 @@ func TestDropAssistAppend(t *testing.T) {
 	hashed.Wait()
 
 	for i := range fts {
-		ok, err := fts[i].GetFutureResult()
-		require.True(t, ok)
-		require.NoError(t, err)
+		for j := 10; j > 0; j++ {
+			ok, err := fts[i].GetFutureResult()
+			if ok {
+				require.NoError(t, err)
+				break
+			}
+			time.Sleep(time.Duration(10-j)*100*time.Millisecond)
+		}
 	}
 }
 
@@ -198,9 +203,14 @@ func TestDropAssistAppendWithPulseCancel(t *testing.T) {
 	hashed.Wait()
 
 	for i := range fts {
-		ok, err := fts[i].GetFutureResult()
-		require.True(t, ok)
-		require.NoError(t, err)
+		for j := 10; j > 0; j++ {
+			ok, err := fts[i].GetFutureResult()
+			if ok {
+				require.NoError(t, err)
+				break
+			}
+			time.Sleep(time.Duration(10-j)*100*time.Millisecond)
+		}
 	}
 }
 

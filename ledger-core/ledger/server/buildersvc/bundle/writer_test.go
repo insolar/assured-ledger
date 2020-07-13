@@ -126,7 +126,9 @@ func TestWriterRollback(t *testing.T) {
 	mid := sync.WaitGroup{}
 	mid.Add(1)
 	applied := sync.WaitGroup{}
-	applied.Add(3)
+	applied.Add(2)
+	applied2 := sync.WaitGroup{}
+	applied2.Add(1)
 
 	wb1 := NewWriteableMock(t)
 	wb1.PrepareWriteMock.Return(nil)
@@ -139,6 +141,7 @@ func TestWriterRollback(t *testing.T) {
 	wb2 := NewWriteableMock(t)
 	wb2.PrepareWriteMock.Return(nil)
 	wb2.ApplyWriteMock.Set(func() ([]ledger.DirectoryIndex, error) {
+		applied2.Done()
 		mid.Wait()
 		return []ledger.DirectoryIndex{1}, nil
 	})
@@ -146,7 +149,6 @@ func TestWriterRollback(t *testing.T) {
 	wb3 := NewWriteableMock(t)
 	wb3.PrepareWriteMock.Return(nil)
 	wb3.ApplyWriteMock.Set(func() ([]ledger.DirectoryIndex, error) {
-		start.Wait()
 		applied.Done()
 		panic("mock panic")
 	})
@@ -157,11 +159,11 @@ func TestWriterRollback(t *testing.T) {
 
 	writeBundle(t, w, wb1, func() { check <- 1 }, false)
 	writeBundle(t, w, wb3, func() { check <- 2 }, true) // rollback starts here
-	writeBundle(t, w, wb2, func() {
-		check <- 3
-		panic("make it complicated") // multiple errors
-	}, true)
-	writeBundle(t, w, wb3, func() { check <- 4 }, true) // multiple errors
+	writeBundle(t, w, wb2, func() {	check <- 3 }, true) // this will wait
+	writeBundle(t, w, wb3, func() {
+		check <- 4
+		panic("make it complicated")
+	}, true) // multiple errors
 
 	go w.WaitWriteBundles(nil, func(bool) {
 		check <- 5
@@ -173,11 +175,15 @@ func TestWriterRollback(t *testing.T) {
 	default:
 	}
 
+	applied.Wait()
+	require.Equal(t, 0, rollbackCount)
+	applied.Add(1)
+
 	start.Done()
 	require.Equal(t, 1, <- check)
 	require.Equal(t, 2, <- check)
-
 	applied.Wait()
+	applied2.Wait()
 	require.Equal(t, 1, rollbackCount)
 
 	select {
