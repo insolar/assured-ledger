@@ -3,7 +3,7 @@ mergeable:
   - when: schedule.repository
     validate:
       - do: stale
-        days: 20
+        days: 30
         type: pull_request
     pass:
       - do: comment
@@ -15,9 +15,9 @@ mergeable:
       - do: title
         must_exclude:
           regex: '\bWIP\b'
-      - do: label
-        must_exclude:
-          regex: 'wip'
+        must_include:
+          regex: '^([A-Z][A-Z]+-\d+|NOISSUE|HOTFIX):'
+          regex_flag: none
       - do: description
         no_empty:
           enabled: true
@@ -25,12 +25,7 @@ mergeable:
       - do: approvals
         and:
           - min:
-              count: 1
+              count: 2
           - required:
               assignees: true
               message: 'All assignees must approve this PR before merging.'
-          - or:
-              - required:
-                  reviewers: ["ita-sammann"]
-              - required:
-                  reviewers: ["shayenblue"]
