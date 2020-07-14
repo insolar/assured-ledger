@@ -130,7 +130,7 @@ func (rl *WorkingList) setActive(ref reference.Global) bool {
 
 	rl.requests[ref] = RequestProcessing
 
-	rl.increaseActivity(ref.GetLocal().GetPulseNumber())
+	rl.listActivity(ref.GetLocal().GetPulseNumber())
 
 	return true
 }
@@ -144,24 +144,20 @@ func (rl *WorkingList) finish(ref reference.Global) bool {
 	rl.requests[ref] = RequestFinished
 	rl.countFinish++
 
-	rl.decreaseActivity(ref.GetLocal().GetPulseNumber())
+	rl.delistActivity(ref.GetLocal().GetPulseNumber())
 
 	return true
 }
 
-func (rl *WorkingList) increaseActivity(requestPN pulse.Number) {
+func (rl *WorkingList) listActivity(requestPN pulse.Number) {
 	rl.countActive++
-	if i, ok := rl.activity[requestPN]; ok {
-		rl.activity[requestPN] = i + 1
-	} else {
-		rl.activity[requestPN] = 1
-	}
+	rl.activity[requestPN]++
 	if rl.earliestActivePulse == pulse.Unknown || requestPN < rl.earliestActivePulse {
 		rl.earliestActivePulse = requestPN
 	}
 }
 
-func (rl *WorkingList) decreaseActivity(requestPN pulse.Number) {
+func (rl *WorkingList) delistActivity(requestPN pulse.Number) {
 	rl.countActive--
 
 	count := rl.activity[requestPN]
