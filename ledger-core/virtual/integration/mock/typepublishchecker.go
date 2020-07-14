@@ -44,6 +44,10 @@ func (p PubVCallRequestMock) Count() int {
 	return p.parent.Handlers.VCallRequest.count.Load()
 }
 
+func (p PubVCallRequestMock) CountBefore() int {
+	return p.parent.Handlers.VCallRequest.countBefore.Load()
+}
+
 func (p PubVCallRequestMock) Wait(ctx context.Context, count int) synckit.SignalChannel {
 	return waitCounterIndefinitely(ctx, &p.parent.Handlers.VCallRequest.count, count)
 }
@@ -73,6 +77,10 @@ func (p PubVCallResultMock) SetResend(resend bool) PubVCallResultMock {
 
 func (p PubVCallResultMock) Count() int {
 	return p.parent.Handlers.VCallResult.count.Load()
+}
+
+func (p PubVCallResultMock) CountBefore() int {
+	return p.parent.Handlers.VCallResult.countBefore.Load()
 }
 
 func (p PubVCallResultMock) Wait(ctx context.Context, count int) synckit.SignalChannel {
@@ -106,6 +114,10 @@ func (p PubVDelegatedCallRequestMock) Count() int {
 	return p.parent.Handlers.VDelegatedCallRequest.count.Load()
 }
 
+func (p PubVDelegatedCallRequestMock) CountBefore() int {
+	return p.parent.Handlers.VDelegatedCallRequest.countBefore.Load()
+}
+
 func (p PubVDelegatedCallRequestMock) Wait(ctx context.Context, count int) synckit.SignalChannel {
 	return waitCounterIndefinitely(ctx, &p.parent.Handlers.VDelegatedCallRequest.count, count)
 }
@@ -135,6 +147,10 @@ func (p PubVDelegatedCallResponseMock) SetResend(resend bool) PubVDelegatedCallR
 
 func (p PubVDelegatedCallResponseMock) Count() int {
 	return p.parent.Handlers.VDelegatedCallResponse.count.Load()
+}
+
+func (p PubVDelegatedCallResponseMock) CountBefore() int {
+	return p.parent.Handlers.VDelegatedCallResponse.countBefore.Load()
 }
 
 func (p PubVDelegatedCallResponseMock) Wait(ctx context.Context, count int) synckit.SignalChannel {
@@ -168,6 +184,10 @@ func (p PubVDelegatedRequestFinishedMock) Count() int {
 	return p.parent.Handlers.VDelegatedRequestFinished.count.Load()
 }
 
+func (p PubVDelegatedRequestFinishedMock) CountBefore() int {
+	return p.parent.Handlers.VDelegatedRequestFinished.countBefore.Load()
+}
+
 func (p PubVDelegatedRequestFinishedMock) Wait(ctx context.Context, count int) synckit.SignalChannel {
 	return waitCounterIndefinitely(ctx, &p.parent.Handlers.VDelegatedRequestFinished.count, count)
 }
@@ -197,6 +217,10 @@ func (p PubVStateRequestMock) SetResend(resend bool) PubVStateRequestMock {
 
 func (p PubVStateRequestMock) Count() int {
 	return p.parent.Handlers.VStateRequest.count.Load()
+}
+
+func (p PubVStateRequestMock) CountBefore() int {
+	return p.parent.Handlers.VStateRequest.countBefore.Load()
 }
 
 func (p PubVStateRequestMock) Wait(ctx context.Context, count int) synckit.SignalChannel {
@@ -230,6 +254,10 @@ func (p PubVStateReportMock) Count() int {
 	return p.parent.Handlers.VStateReport.count.Load()
 }
 
+func (p PubVStateReportMock) CountBefore() int {
+	return p.parent.Handlers.VStateReport.countBefore.Load()
+}
+
 func (p PubVStateReportMock) Wait(ctx context.Context, count int) synckit.SignalChannel {
 	return waitCounterIndefinitely(ctx, &p.parent.Handlers.VStateReport.count, count)
 }
@@ -259,6 +287,10 @@ func (p PubVFindCallRequestMock) SetResend(resend bool) PubVFindCallRequestMock 
 
 func (p PubVFindCallRequestMock) Count() int {
 	return p.parent.Handlers.VFindCallRequest.count.Load()
+}
+
+func (p PubVFindCallRequestMock) CountBefore() int {
+	return p.parent.Handlers.VFindCallRequest.countBefore.Load()
 }
 
 func (p PubVFindCallRequestMock) Wait(ctx context.Context, count int) synckit.SignalChannel {
@@ -292,6 +324,10 @@ func (p PubVFindCallResponseMock) Count() int {
 	return p.parent.Handlers.VFindCallResponse.count.Load()
 }
 
+func (p PubVFindCallResponseMock) CountBefore() int {
+	return p.parent.Handlers.VFindCallResponse.countBefore.Load()
+}
+
 func (p PubVFindCallResponseMock) Wait(ctx context.Context, count int) synckit.SignalChannel {
 	return waitCounterIndefinitely(ctx, &p.parent.Handlers.VFindCallResponse.count, count)
 }
@@ -302,54 +338,63 @@ type TypePublishCheckerHandlers struct {
 	VCallRequest struct {
 		touched       bool
 		count         atomickit.Int
+		countBefore   atomickit.Int
 		expectedCount int
 		handler       VCallRequestHandler
 	}
 	VCallResult struct {
 		touched       bool
 		count         atomickit.Int
+		countBefore   atomickit.Int
 		expectedCount int
 		handler       VCallResultHandler
 	}
 	VDelegatedCallRequest struct {
 		touched       bool
 		count         atomickit.Int
+		countBefore   atomickit.Int
 		expectedCount int
 		handler       VDelegatedCallRequestHandler
 	}
 	VDelegatedCallResponse struct {
 		touched       bool
 		count         atomickit.Int
+		countBefore   atomickit.Int
 		expectedCount int
 		handler       VDelegatedCallResponseHandler
 	}
 	VDelegatedRequestFinished struct {
 		touched       bool
 		count         atomickit.Int
+		countBefore   atomickit.Int
 		expectedCount int
 		handler       VDelegatedRequestFinishedHandler
 	}
 	VStateRequest struct {
 		touched       bool
 		count         atomickit.Int
+		countBefore   atomickit.Int
 		expectedCount int
 		handler       VStateRequestHandler
 	}
 	VStateReport struct {
 		touched       bool
 		count         atomickit.Int
+		countBefore   atomickit.Int
 		expectedCount int
 		handler       VStateReportHandler
 	}
 	VFindCallRequest struct {
 		touched       bool
 		count         atomickit.Int
+		countBefore   atomickit.Int
 		expectedCount int
 		handler       VFindCallRequestHandler
 	}
 	VFindCallResponse struct {
 		touched       bool
 		count         atomickit.Int
+		countBefore   atomickit.Int
 		expectedCount int
 		handler       VFindCallResponseHandler
 	}
@@ -389,54 +434,63 @@ func NewTypePublishChecker(ctx context.Context, t minimock.Tester, sender Sender
 			VCallRequest: struct {
 				touched       bool
 				count         atomickit.Int
+				countBefore   atomickit.Int
 				expectedCount int
 				handler       VCallRequestHandler
 			}{expectedCount: -1},
 			VCallResult: struct {
 				touched       bool
 				count         atomickit.Int
+				countBefore   atomickit.Int
 				expectedCount int
 				handler       VCallResultHandler
 			}{expectedCount: -1},
 			VDelegatedCallRequest: struct {
 				touched       bool
 				count         atomickit.Int
+				countBefore   atomickit.Int
 				expectedCount int
 				handler       VDelegatedCallRequestHandler
 			}{expectedCount: -1},
 			VDelegatedCallResponse: struct {
 				touched       bool
 				count         atomickit.Int
+				countBefore   atomickit.Int
 				expectedCount int
 				handler       VDelegatedCallResponseHandler
 			}{expectedCount: -1},
 			VDelegatedRequestFinished: struct {
 				touched       bool
 				count         atomickit.Int
+				countBefore   atomickit.Int
 				expectedCount int
 				handler       VDelegatedRequestFinishedHandler
 			}{expectedCount: -1},
 			VStateRequest: struct {
 				touched       bool
 				count         atomickit.Int
+				countBefore   atomickit.Int
 				expectedCount int
 				handler       VStateRequestHandler
 			}{expectedCount: -1},
 			VStateReport: struct {
 				touched       bool
 				count         atomickit.Int
+				countBefore   atomickit.Int
 				expectedCount int
 				handler       VStateReportHandler
 			}{expectedCount: -1},
 			VFindCallRequest: struct {
 				touched       bool
 				count         atomickit.Int
+				countBefore   atomickit.Int
 				expectedCount int
 				handler       VFindCallRequestHandler
 			}{expectedCount: -1},
 			VFindCallResponse: struct {
 				touched       bool
 				count         atomickit.Int
+				countBefore   atomickit.Int
 				expectedCount int
 				handler       VFindCallResponseHandler
 			}{expectedCount: -1},
@@ -482,6 +536,8 @@ func (p *TypePublishChecker) checkMessage(ctx context.Context, msg *message.Mess
 
 		resend = p.defaultResend
 
+		hdlStruct.countBefore.Add(1)
+
 		if hdlStruct.handler != nil {
 			resend = hdlStruct.handler(payload)
 		} else if !p.defaultResend && !hdlStruct.touched {
@@ -495,6 +551,8 @@ func (p *TypePublishChecker) checkMessage(ctx context.Context, msg *message.Mess
 		hdlStruct := &p.Handlers.VCallResult
 
 		resend = p.defaultResend
+
+		hdlStruct.countBefore.Add(1)
 
 		if hdlStruct.handler != nil {
 			resend = hdlStruct.handler(payload)
@@ -510,6 +568,8 @@ func (p *TypePublishChecker) checkMessage(ctx context.Context, msg *message.Mess
 
 		resend = p.defaultResend
 
+		hdlStruct.countBefore.Add(1)
+
 		if hdlStruct.handler != nil {
 			resend = hdlStruct.handler(payload)
 		} else if !p.defaultResend && !hdlStruct.touched {
@@ -523,6 +583,8 @@ func (p *TypePublishChecker) checkMessage(ctx context.Context, msg *message.Mess
 		hdlStruct := &p.Handlers.VDelegatedCallResponse
 
 		resend = p.defaultResend
+
+		hdlStruct.countBefore.Add(1)
 
 		if hdlStruct.handler != nil {
 			resend = hdlStruct.handler(payload)
@@ -538,6 +600,8 @@ func (p *TypePublishChecker) checkMessage(ctx context.Context, msg *message.Mess
 
 		resend = p.defaultResend
 
+		hdlStruct.countBefore.Add(1)
+
 		if hdlStruct.handler != nil {
 			resend = hdlStruct.handler(payload)
 		} else if !p.defaultResend && !hdlStruct.touched {
@@ -551,6 +615,8 @@ func (p *TypePublishChecker) checkMessage(ctx context.Context, msg *message.Mess
 		hdlStruct := &p.Handlers.VStateRequest
 
 		resend = p.defaultResend
+
+		hdlStruct.countBefore.Add(1)
 
 		if hdlStruct.handler != nil {
 			resend = hdlStruct.handler(payload)
@@ -566,6 +632,8 @@ func (p *TypePublishChecker) checkMessage(ctx context.Context, msg *message.Mess
 
 		resend = p.defaultResend
 
+		hdlStruct.countBefore.Add(1)
+
 		if hdlStruct.handler != nil {
 			resend = hdlStruct.handler(payload)
 		} else if !p.defaultResend && !hdlStruct.touched {
@@ -580,6 +648,8 @@ func (p *TypePublishChecker) checkMessage(ctx context.Context, msg *message.Mess
 
 		resend = p.defaultResend
 
+		hdlStruct.countBefore.Add(1)
+
 		if hdlStruct.handler != nil {
 			resend = hdlStruct.handler(payload)
 		} else if !p.defaultResend && !hdlStruct.touched {
@@ -593,6 +663,8 @@ func (p *TypePublishChecker) checkMessage(ctx context.Context, msg *message.Mess
 		hdlStruct := &p.Handlers.VFindCallResponse
 
 		resend = p.defaultResend
+
+		hdlStruct.countBefore.Add(1)
 
 		if hdlStruct.handler != nil {
 			resend = hdlStruct.handler(payload)
