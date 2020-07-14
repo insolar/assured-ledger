@@ -47,7 +47,7 @@ jobs:
       - name: copy docker auth secret
         run: cp /home/runner/.docker/config.json ledger-core/scripts/deploy/kube/aks/dockerconfigjson
       - name: set kube namespace for 5node
-        run: echo '::set-env name=KUB_NAMESPACE::'${KUB_NAMESPACE}5node
+        run: echo '::set-env name=KUB_NAMESPACE::'${GITHUB_SHA:0:8}5node
       - name: template GIT_SHA to deployment manifests for 5 node
         run: |
           sed -i "s/placeholder/${KUB_NAMESPACE}/g" ledger-core/scripts/deploy/kube/*/*.*
@@ -74,7 +74,7 @@ jobs:
       - name: cleanup
         run: kubectl delete ns ${KUB_NAMESPACE} --ignore-not-found=true
       - name: set kube namespace for 10node
-        run: echo '::set-env name=KUB_NAMESPACE::'${KUB_NAMESPACE}10node
+        run: echo '::set-env name=KUB_NAMESPACE::'${GITHUB_SHA:0:8}10node
       - name: template GIT_SHA to deployment manifests for 10 node
         run: |
           sed -i "s/placeholder/${KUB_NAMESPACE}/g" ledger-core/scripts/deploy/kube/*/*.*
@@ -101,7 +101,7 @@ jobs:
       - name: cleanup
         run: kubectl delete ns ${KUB_NAMESPACE} --ignore-not-found=true
       - name: set kube namespace for 15node
-        run: echo '::set-env name=KUB_NAMESPACE::'${KUB_NAMESPACE}10node
+        run: echo '::set-env name=KUB_NAMESPACE::'${GITHUB_SHA:0:8}15node
       - name: template GIT_SHA to deployment manifests for 15 node
         run: |
           sed -i "s/placeholder/${KUB_NAMESPACE}/g" ledger-core/scripts/deploy/kube/*/*.*
@@ -128,7 +128,7 @@ jobs:
       - name: cleanup
         run: kubectl delete ns ${KUB_NAMESPACE} --ignore-not-found=true
       - name: set kube namespace for 10node
-        run: echo '::set-env name=KUB_NAMESPACE::'${KUB_NAMESPACE}20node
+        run: echo '::set-env name=KUB_NAMESPACE::'${GITHUB_SHA:0:8}20node
       - name: template GIT_SHA to deployment manifests for 20 node
         run: |
           sed -i "s/placeholder/${KUB_NAMESPACE}/g" ledger-core/scripts/deploy/kube/*/*.*
