@@ -7,6 +7,7 @@ package integration
 
 import (
 	"context"
+	"strconv"
 	"testing"
 	"time"
 
@@ -339,6 +340,83 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 	{
 		assert.Equal(t, 2, typedChecker.VCallResult.Count())
 	}
+
+	mc.Finish()
+}
+
+func TestVirtual_Method_WithoutExecutor_Ordered(t *testing.T) {
+	t.Log("C5093")
+
+	mc := minimock.NewController(t)
+
+	server, ctx := utils.NewUninitializedServer(nil, t)
+	defer server.Stop()
+
+	runnerMock := logicless.NewServiceMock(ctx, t, nil)
+	server.ReplaceRunner(runnerMock)
+
+	server.Init(ctx)
+	server.IncrementPulseAndWaitIdle(ctx)
+
+	var (
+		class        = testwallet.GetClass()
+		objectLocal  = server.RandomLocalWithPulse()
+		objectGlobal = reference.NewSelf(objectLocal)
+	)
+
+	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal)
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+
+	cntr := 0
+	awaitFullStop := server.Journal.WaitStopOf(&execute.SMExecute{}, 2)
+
+	{
+		typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
+			require.Equal(t, res.ReturnArguments, []byte("345"))
+			require.Equal(t, res.Callee, objectGlobal)
+			return false // no resend msg
+		})
+		interferenceFlag := contract.CallTolerable
+		stateFlag := contract.CallDirty
+
+		for i := int64(0); i < 2; i++ {
+			callOutgoing := server.BuildRandomOutgoingWithPulse()
+			pl := payload.VCallRequest{
+				CallType:            payload.CTMethod,
+				CallFlags:           payload.BuildCallFlags(interferenceFlag, stateFlag),
+				Caller:              server.GlobalCaller(),
+				Callee:              objectGlobal,
+				CallSiteDeclaration: class,
+				CallSiteMethod:      "ordered" + strconv.FormatInt(i, 10),
+				CallOutgoing:        callOutgoing,
+			}
+
+			result := requestresult.New([]byte("345"), objectGlobal)
+
+			key := callOutgoing.String()
+			runnerMock.AddExecutionMock(key).
+				AddStart(func(ctx execution.Context) {
+					cntr ++
+					for k := 0; k < 5; k ++ {
+						require.Equal(t, 1, cntr)
+						time.Sleep(3 * time.Millisecond)
+					}
+					cntr --
+			}, &execution.Update{
+				Type:   execution.Done,
+				Result: result,
+			})
+			runnerMock.AddExecutionClassify(key, contract.MethodIsolation{
+				Interference: interferenceFlag,
+				State:        stateFlag,
+			}, nil)
+
+			server.SendPayload(ctx, &pl)
+		}
+	}
+	testutils.WaitSignalsTimed(t, 10*time.Second, awaitFullStop)
+	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+	assert.Equal(t, 2, typedChecker.VCallResult.Count())
 
 	mc.Finish()
 }
@@ -1350,4 +1428,85 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 	require.Equal(t, 1, typedChecker.VCallResult.Count())
 
 	mc.Finish()
+}
+
+func TestVirtual_Method_ForObjectWithMissingState(t *testing.T) {
+	testCases := []struct {
+		name             string
+		testRailID       string
+		outgoingFromPast bool
+	}{
+		{
+			name:             "Call method with prev outgoing.Pulse",
+			testRailID:       "C5106",
+			outgoingFromPast: true,
+		},
+		{
+			name:             "Call method with current outgoing.Pulse",
+			testRailID:       "C5321",
+			outgoingFromPast: false,
+		},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Log(testCase.testRailID)
+			mc := minimock.NewController(t)
+
+			server, ctx := utils.NewServer(nil, t)
+			defer server.Stop()
+			server.IncrementPulseAndWaitIdle(ctx)
+
+			execDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
+			stateHandled := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
+
+			var (
+				objectRef = server.RandomGlobalWithPulse()
+				outgoing  = server.BuildRandomOutgoingWithPulse()
+			)
+
+			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+			typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool {
+				require.Equal(t, payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty), result.CallFlags)
+				require.Equal(t, objectRef, result.Callee)
+				require.Equal(t, outgoing, result.CallOutgoing)
+				require.Equal(t, server.GlobalCaller(), result.Caller)
+				require.True(t, result.DelegationSpec.IsZero())
+				contractErr, sysErr := foundation.UnmarshalMethodResult(result.ReturnArguments)
+				require.NoError(t, sysErr)
+				require.Contains(t, contractErr.Error(), "object does not exist")
+				return false
+			})
+
+			if testCase.outgoingFromPast {
+				server.IncrementPulseAndWaitIdle(ctx)
+			}
+
+			state := &payload.VStateReport{
+				Status: payload.Missing,
+				Object: objectRef,
+			}
+
+			server.SendPayload(ctx, state)
+			testutils.WaitSignalsTimed(t, 10*time.Second, stateHandled)
+
+			pl := payload.VCallRequest{
+				CallType:       payload.CTMethod,
+				CallFlags:      payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
+				Caller:         server.GlobalCaller(),
+				Callee:         objectRef,
+				CallSiteMethod: "Method",
+				CallOutgoing:   outgoing,
+			}
+
+			server.SendPayload(ctx, &pl)
+
+			testutils.WaitSignalsTimed(t, 10*time.Second, execDone)
+			testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+
+			require.Equal(t, 1, typedChecker.VCallResult.Count())
+			typedChecker.MinimockWait(10 * time.Second)
+
+			mc.Finish()
+		})
+	}
 }

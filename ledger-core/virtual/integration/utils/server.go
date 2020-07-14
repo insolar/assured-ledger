@@ -8,7 +8,6 @@ package utils
 import (
 	"context"
 	"sync"
-	"testing"
 
 	"github.com/ThreeDotsLabs/watermill/message"
 
@@ -79,23 +78,37 @@ type Server struct {
 
 type ConveyorCycleFunc func(c *conveyor.PulseConveyor, hasActive, isIdle bool)
 
-func NewServer(ctx context.Context, t *testing.T) (*Server, context.Context) {
+type Tester interface {
+
+	// logcommon.Logger+minimock.Tester
+
+	Helper()
+	Log(...interface{})
+
+	Fatal(args ...interface{})
+	Fatalf(format string, args ...interface{})
+	Error(...interface{})
+	Errorf(format string, args ...interface{})
+	FailNow()
+}
+
+func NewServer(ctx context.Context, t Tester) (*Server, context.Context) {
 	return newServerExt(ctx, t, nil, true)
 }
 
-func NewServerWithErrorFilter(ctx context.Context, t *testing.T, errorFilterFn logcommon.ErrorFilterFunc) (*Server, context.Context) {
+func NewServerWithErrorFilter(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFilterFunc) (*Server, context.Context) {
 	return newServerExt(ctx, t, errorFilterFn, true)
 }
 
-func NewUninitializedServer(ctx context.Context, t *testing.T) (*Server, context.Context) {
+func NewUninitializedServer(ctx context.Context, t Tester) (*Server, context.Context) {
 	return newServerExt(ctx, t, nil, false)
 }
 
-func NewUninitializedServerWithErrorFilter(ctx context.Context, t *testing.T, errorFilterFn logcommon.ErrorFilterFunc) (*Server, context.Context) {
+func NewUninitializedServerWithErrorFilter(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFilterFunc) (*Server, context.Context) {
 	return newServerExt(ctx, t, errorFilterFn, false)
 }
 
-func newServerExt(ctx context.Context, t *testing.T, errorFilterFn logcommon.ErrorFilterFunc, init bool) (*Server, context.Context) {
+func newServerExt(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFilterFunc, init bool) (*Server, context.Context) {
 	instestlogger.SetTestOutputWithErrorFilter(t, errorFilterFn)
 
 	if ctx == nil {
