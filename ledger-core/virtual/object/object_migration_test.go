@@ -39,7 +39,7 @@ func TestSMObject_InitSetMigration(t *testing.T) {
 	}
 	initCtx := smachine.NewInitializationContextMock(mc).
 		ShareMock.Return(sharedStateData).
-		PublishMock.Expect(smObject.Reference.String(), sharedStateData).Return(true).
+		PublishMock.Expect(smObject.Reference, sharedStateData).Return(true).
 		JumpMock.Return(smachine.StateUpdate{}).
 		SetDefaultMigrationMock.Set(compareDefaultMigration)
 

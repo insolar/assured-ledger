@@ -35,10 +35,10 @@ func (f DefaultHandlersFactory) Classify(ctx context.Context, input conveyor.Inp
 	case *virtualStateMachine.DispatcherMessage:
 		if ic.PulseRange == nil {
 			return conveyor.InputSetup{},
-			throw.E("event is too old", struct {
-				PN        pulse.Number
-				InputType interface{} `fmt:"%T"`
-			}{ic.PulseNumber, input})
+				throw.E("event is too old", struct {
+					PN        pulse.Number
+					InputType interface{} `fmt:"%T"`
+				}{ic.PulseNumber, input})
 		}
 
 		targetPN, createFn, err := f.Process(ctx, event, ic.PulseRange)
@@ -75,7 +75,7 @@ type Dispatcher struct {
 	AuthenticationService authentication.Service
 	Affinity              jet.AffinityHelper
 
-	EventlessSleep time.Duration
+	EventlessSleep            time.Duration
 	FactoryLogContextOverride context.Context
 
 	runnerAdapter        runner.ServiceAdapter

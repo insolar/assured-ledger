@@ -1,0 +1,9 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: virtual
+spec:
+  selector:
+    matchLabels:
+      app: virtual
+  replicas: 40
