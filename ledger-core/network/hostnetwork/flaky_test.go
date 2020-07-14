@@ -7,6 +7,7 @@ package hostnetwork
 
 import (
 	"context"
+	"strings"
 	"sync"
 	"testing"
 
@@ -22,11 +23,11 @@ import (
 )
 
 func TestHostNetwork_SendRequestPacket2(t *testing.T) {
-	t.SkipNow() // TODO: PLAT-376 this test or network/pool should be fixed
-
 	defer testutils.LeakTester(t)
-	instestlogger.SetTestOutput(t)
-
+	// response could be sent when test is already think that it is finished
+	instestlogger.SetTestOutputWithErrorFilter(t, func(s string) bool {
+		return !strings.Contains(s, "Failed to send response")
+	})
 
 	s := newHostSuite(t)
 	defer s.Stop()
