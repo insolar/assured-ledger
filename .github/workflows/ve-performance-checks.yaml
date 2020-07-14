@@ -49,7 +49,7 @@ jobs:
       - name: set tag for image
         run: |
           sed -i "s/imagetag/${GITHUB_SHA:0:8}/g" ledger-core/scripts/deploy/kube/*/*.*
-          cat /home/runner/work/assured-ledger/assured-ledger/ledger-core/scripts/deploy/kube/ask/kustomization.yaml
+          cat /home/runner/work/assured-ledger/assured-ledger/ledger-core/scripts/deploy/kube/aks/kustomization.yaml
       - name: set kube namespace for 5node
         run: echo '::set-env name=KUB_NAMESPACE::'${GITHUB_SHA:0:8}5node
       - name: template GIT_SHA to deployment manifests for 5 node
