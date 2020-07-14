@@ -685,8 +685,7 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 			s.retryOutgoingCounter++
 			s.outgoing.CallRequestFlags = payload.BuildCallRequestFlags(payload.SendResultDefault, payload.RepeatedCall)
 		} else {
-			return ctx.Error("outgoing retry attempts exceeded, stop processing SMExecute")
-			panic(throw.NotImplemented())
+			return ctx.Error(throw.NotImplemented())
 		}
 	}
 

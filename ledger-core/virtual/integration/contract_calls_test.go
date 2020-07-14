@@ -20,11 +20,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/debuglogger"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/synchronization"
-	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
@@ -556,14 +554,6 @@ func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 
 	executeStopped := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 
-	foundPanic := server.Journal.Wait(func(event debuglogger.UpdateEvent) bool {
-		if event.Data.Error != nil && event.Data.Error.Error() == "execution: not implemented"{
-			stack := throw.DeepestStackTraceOf(event.Data.Error)
-			return strings.Contains(stack.StackTraceAsText(), "(*SMExecute).stepSendOutgoing")
-		}
-		return false
-	})
-
 	Method_PrepareObject(ctx, server, payload.Ready, object)
 
 	pl := payload.VCallRequest{
@@ -644,7 +634,7 @@ func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 		point.WakeUp()
 	}
 
-	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone(), executeStopped, foundPanic)
+	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone(), executeStopped)
 
 	{
 		// first time we send outgoing before first pulse change
