@@ -543,8 +543,6 @@ func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 		outgoing = server.BuildRandomOutgoingWithPulse()
 		object   = reference.NewSelf(server.RandomLocalWithPulse())
 
-		// p1 = server.GetPulse().PulseNumber
-
 		expectedToken = payload.CallDelegationToken{
 			TokenTypeAndFlags: payload.DelegationTokenTypeCall,
 			Callee:            object,
