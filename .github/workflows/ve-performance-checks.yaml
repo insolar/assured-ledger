@@ -46,20 +46,49 @@ jobs:
           docker push $ACR_HOST/assured-ledger:${GITHUB_SHA:0:8}
       - name: copy docker auth secret
         run: cp /home/runner/.docker/config.json ledger-core/scripts/deploy/kube/aks/dockerconfigjson
-      - name: template GIT_SHA to deployment manifests
+      - name: set kube namespace for 5node
+        run: echo '::set-env name=KUB_NAMESPACE::'${KUB_NAMESPACE}5node
+      - name: template GIT_SHA to deployment manifests for 5 node
         run: |
-          sed -i "s/placeholder/${GITHUB_SHA:0:8}/g" ledger-core/scripts/deploy/kube/*/*.*
-          sed -i "s/placeholder/${GITHUB_SHA:0:8}/g" ledger-core/scripts/deploy/kube/*/configuration/*.*
-          sed -i "s/placeholder/${GITHUB_SHA:0:8}/g" ledger-core/load/gen_cfg/*.*
+          sed -i "s/placeholder/${KUB_NAMESPACE}/g" ledger-core/scripts/deploy/kube/*/*.*
+          sed -i "s/placeholder/${KUB_NAMESPACE}/g" ledger-core/scripts/deploy/kube/*/configuration/*.*
+          sed -i "s/placeholder/${KUB_NAMESPACE}/g" ledger-core/load/gen_cfg/*.*
+          cat /home/runner/work/assured-ledger/assured-ledger/ledger-core/load/gen_cfg/generator_assured_ledger.yaml
+      - name: run 5node network
+        run: kubectl apply -k ledger-core/scripts/deploy/kube/5node
+      - name: wait for successfull rollout
+        run: kubectl -n ${KUB_NAMESPACE} rollout status sts/virtual
+      - name: pulsewatcher
+        run: |
+          for try in {0..100}; do
+            if kubectl -n ${KUB_NAMESPACE} exec -i deploy/pulsewatcher -- bash -c 'pulsewatcher -c /etc/pulsewatcher/pulsewatcher.yaml -s' | grep 'READY' | grep -v 'NOT'; then
+              echo "network ready!"; exit 0
+            else echo -n '.'; sleep 5
+            fi
+          done
+      - name: start test 5 node
+        run: |
+          cd ${{ env.CORE_PATH }}/load/
+          NETWORK_NODES=5 ./main -gen_config ${{ env.CORE_PATH }}/load/gen_cfg/generator_assured_ledger.yaml -config ${{ env.CORE_PATH }}/load/run_configs/all_sequence.yaml
+          cat scaling.csv
+      - name: cleanup
+        run: kubectl delete ns ${KUB_NAMESPACE} --ignore-not-found=true
+      - name: set kube namespace for 10node
+        run: echo '::set-env name=KUB_NAMESPACE::'${KUB_NAMESPACE}10node
+      - name: template GIT_SHA to deployment manifests for 10 node
+        run: |
+          sed -i "s/placeholder/${KUB_NAMESPACE}/g" ledger-core/scripts/deploy/kube/*/*.*
+          sed -i "s/placeholder/${KUB_NAMESPACE}/g" ledger-core/scripts/deploy/kube/*/configuration/*.*
+          sed -i "s/placeholder/${KUB_NAMESPACE}/g" ledger-core/load/gen_cfg/*.*
           cat /home/runner/work/assured-ledger/assured-ledger/ledger-core/load/gen_cfg/generator_assured_ledger.yaml
       - name: run 10node network
         run: kubectl apply -k ledger-core/scripts/deploy/kube/10node
       - name: wait for successfull rollout
-        run: kubectl -n ${GITHUB_SHA:0:8} rollout status sts/virtual
+        run: kubectl -n ${KUB_NAMESPACE} rollout status sts/virtual
       - name: pulsewatcher
         run: |
           for try in {0..100}; do
-            if kubectl -n ${GITHUB_SHA:0:8} exec -i deploy/pulsewatcher -- bash -c 'pulsewatcher -c /etc/pulsewatcher/pulsewatcher.yaml -s' | grep 'READY' | grep -v 'NOT'; then
+            if kubectl -n ${KUB_NAMESPACE} exec -i deploy/pulsewatcher -- bash -c 'pulsewatcher -c /etc/pulsewatcher/pulsewatcher.yaml -s' | grep 'READY' | grep -v 'NOT'; then
               echo "network ready!"; exit 0
             else echo -n '.'; sleep 5
             fi
@@ -70,34 +99,23 @@ jobs:
           NETWORK_NODES=10 ./main -gen_config ${{ env.CORE_PATH }}/load/gen_cfg/generator_assured_ledger.yaml -config ${{ env.CORE_PATH }}/load/run_configs/all_sequence.yaml
           cat scaling.csv
       - name: cleanup
-        run: kubectl delete ns ${GITHUB_SHA:0:8} --ignore-not-found=true
-      - name: run 10node network
-        run: kubectl apply -k ledger-core/scripts/deploy/kube/10node
-      - name: wait for successfull rollout
-        run: kubectl -n ${GITHUB_SHA:0:8} rollout status sts/virtual
-      - name: pulsewatcher
+        run: kubectl delete ns ${KUB_NAMESPACE} --ignore-not-found=true
+      - name: set kube namespace for 15node
+        run: echo '::set-env name=KUB_NAMESPACE::'${KUB_NAMESPACE}10node
+      - name: template GIT_SHA to deployment manifests for 15 node
         run: |
-          for try in {0..100}; do
-            if kubectl -n ${GITHUB_SHA:0:8} exec -i deploy/pulsewatcher -- bash -c 'pulsewatcher -c /etc/pulsewatcher/pulsewatcher.yaml -s' | grep 'READY' | grep -v 'NOT'; then
-              echo "network ready!"; exit 0
-            else echo -n '.'; sleep 5
-            fi
-          done
-      - name: start test 10 node
-        run: |
-          cd ${{ env.CORE_PATH }}/load/
-          NETWORK_NODES=10 ./main -gen_config ${{ env.CORE_PATH }}/load/gen_cfg/generator_assured_ledger.yaml -config ${{ env.CORE_PATH }}/load/run_configs/all_sequence.yaml
-          cat scaling.csv
-      - name: cleanup
-        run: kubectl delete ns ${GITHUB_SHA:0:8} --ignore-not-found=true
+          sed -i "s/placeholder/${KUB_NAMESPACE}/g" ledger-core/scripts/deploy/kube/*/*.*
+          sed -i "s/placeholder/${KUB_NAMESPACE}/g" ledger-core/scripts/deploy/kube/*/configuration/*.*
+          sed -i "s/placeholder/${KUB_NAMESPACE}/g" ledger-core/load/gen_cfg/*.*
+          cat /home/runner/work/assured-ledger/assured-ledger/ledger-core/load/gen_cfg/generator_assured_ledger.yaml
       - name: run 15node network
         run: kubectl apply -k ledger-core/scripts/deploy/kube/15node
       - name: wait for successfull rollout
-        run: kubectl -n ${GITHUB_SHA:0:8} rollout status sts/virtual
+        run: kubectl -n ${KUB_NAMESPACE} rollout status sts/virtual
       - name: pulsewatcher
         run: |
           for try in {0..100}; do
-            if kubectl -n ${GITHUB_SHA:0:8} exec -i deploy/pulsewatcher -- bash -c 'pulsewatcher -c /etc/pulsewatcher/pulsewatcher.yaml -s' | grep 'READY' | grep -v 'NOT'; then
+            if kubectl -n ${KUB_NAMESPACE} exec -i deploy/pulsewatcher -- bash -c 'pulsewatcher -c /etc/pulsewatcher/pulsewatcher.yaml -s' | grep 'READY' | grep -v 'NOT'; then
               echo "network ready!"; exit 0
             else echo -n '.'; sleep 5
             fi
@@ -108,15 +126,23 @@ jobs:
           NETWORK_NODES=15 ./main -gen_config ${{ env.CORE_PATH }}/load/gen_cfg/generator_assured_ledger.yaml -config ${{ env.CORE_PATH }}/load/run_configs/all_sequence.yaml
           cat scaling.csv
       - name: cleanup
-        run: kubectl delete ns ${GITHUB_SHA:0:8} --ignore-not-found=true
+        run: kubectl delete ns ${KUB_NAMESPACE} --ignore-not-found=true
+      - name: set kube namespace for 10node
+        run: echo '::set-env name=KUB_NAMESPACE::'${KUB_NAMESPACE}20node
+      - name: template GIT_SHA to deployment manifests for 20 node
+        run: |
+          sed -i "s/placeholder/${KUB_NAMESPACE}/g" ledger-core/scripts/deploy/kube/*/*.*
+          sed -i "s/placeholder/${KUB_NAMESPACE}/g" ledger-core/scripts/deploy/kube/*/configuration/*.*
+          sed -i "s/placeholder/${KUB_NAMESPACE}/g" ledger-core/load/gen_cfg/*.*
+          cat /home/runner/work/assured-ledger/assured-ledger/ledger-core/load/gen_cfg/generator_assured_ledger.yaml
       - name: run 20node network
         run: kubectl apply -k ledger-core/scripts/deploy/kube/20node
       - name: wait for successfull rollout
-        run: kubectl -n ${GITHUB_SHA:0:8}rollout status sts/virtual
+        run: kubectl -n ${KUB_NAMESPACE} rollout status sts/virtual
       - name: pulsewatcher
         run: |
           for try in {0..100}; do
-            if kubectl -n ${GITHUB_SHA:0:8} exec -i deploy/pulsewatcher -- bash -c 'pulsewatcher -c /etc/pulsewatcher/pulsewatcher.yaml -s' | grep 'READY' | grep -v 'NOT'; then
+            if kubectl -n ${KUB_NAMESPACE} exec -i deploy/pulsewatcher -- bash -c 'pulsewatcher -c /etc/pulsewatcher/pulsewatcher.yaml -s' | grep 'READY' | grep -v 'NOT'; then
               echo "network ready!"; exit 0
             else echo -n '.'; sleep 5
             fi
@@ -128,7 +154,7 @@ jobs:
           cat scaling.csv
       - name: cleanup
         if: always()
-        run: kubectl delete ns ${GITHUB_SHA:0:8} --ignore-not-found=true
+        run: kubectl delete ns ${KUB_NAMESPACE} --ignore-not-found=true
       - name: Send report
         run: |
           cd ${{ env.CORE_PATH }}
