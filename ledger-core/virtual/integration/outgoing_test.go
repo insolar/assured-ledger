@@ -53,6 +53,8 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 	server, ctx := utils.NewUninitializedServer(nil, t)
 	defer server.Stop()
 
+	logger := inslogger.FromContext(ctx)
+
 	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 
 	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
@@ -128,7 +130,7 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 			SetIsolation(barIsolation.State)
 
 		runnerMock.AddExecutionMock("Foo").AddStart(func(_ execution.Context) {
-			t.Log("ExecutionStart [A.Foo]")
+			logger.Debug("ExecutionStart [A.Foo]")
 
 			server.IncrementPulseAndWaitIdle(ctx)
 			secondPulse = server.GetPulse().PulseNumber
@@ -139,7 +141,7 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 			Error:    nil,
 			Outgoing: outgoingCall,
 		}).AddContinue(func(result []byte) {
-			t.Log("ExecutionContinue [A.Foo]")
+			logger.Debug("ExecutionContinue [A.Foo]")
 			require.Equal(t, []byte("finish B.Bar"), result)
 		}, &execution.Update{
 			Type:   execution.Done,
