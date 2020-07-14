@@ -379,12 +379,12 @@ func (sm *SMObject) migrate(ctx smachine.MigrationContext) smachine.StateUpdate 
 		sm.smFinalizer.Report.ProvidedContent.LatestDirtyState = sm.BuildLatestDirtyState()
 	}
 
-	if su := sm.sharedAndPublishStateReport(ctx, &sm.smFinalizer.Report); !su.IsEmpty() {
-		return su
+	if err := sm.sharedAndPublishStateReport(ctx, &sm.smFinalizer.Report); err != nil {
+		return ctx.Error(err)
 	}
 
-	if su := sm.sharedAndPublishSMCallSummarySyncLink(ctx, &sm.SummaryDone); !su.IsEmpty() {
-		return su
+	if err := sm.sharedAndPublishSMCallSummarySyncLink(ctx, &sm.SummaryDone); err != nil {
+		return ctx.Error(err)
 	}
 
 	return ctx.Jump(sm.stepPublishCallSummary)
@@ -478,29 +478,29 @@ func (sm *SMObject) checkPendingCounters(logger smachine.Logger) {
 func (sm *SMObject) sharedAndPublishStateReport(
 	ctx smachine.MigrationContext,
 	report *payload.VStateReport,
-) smachine.StateUpdate {
+) error {
 	sdlStateReport := ctx.Share(report, 0)
 
 	if !ctx.Publish(finalizedstate.BuildReportKey(sm.Reference), sdlStateReport) {
-		return ctx.Error(throw.New("failed to publish state report", struct {
+		return throw.New("failed to publish state report", struct {
 			Reference reference.Holder
-		}{sm.Reference}))
+		}{sm.Reference})
 	}
 
-	return smachine.StateUpdate{}
+	return nil
 }
 
 func (sm *SMObject) sharedAndPublishSMCallSummarySyncLink(
 	ctx smachine.MigrationContext,
 	summaryDone *smachine.SyncLink,
-) smachine.StateUpdate {
+) error {
 	sdlCallSummarySync := ctx.Share(summaryDone, 0)
 
 	if !ctx.Publish(callsummary.BuildSummarySyncKey(sm.Reference), sdlCallSummarySync) {
-		return ctx.Error(throw.New("failed to publish call summary sync key", struct {
+		return throw.New("failed to publish call summary sync key", struct {
 			Reference reference.Holder
-		}{sm.Reference}))
+		}{sm.Reference})
 	}
 
-	return smachine.StateUpdate{}
+	return nil
 }
