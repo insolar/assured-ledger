@@ -685,10 +685,6 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 		}
 		
 		s.outgoing.CallRequestFlags = payload.BuildCallRequestFlags(payload.SendResultDefault, payload.RepeatedCall)
-			s.outgoing.CallRequestFlags = payload.BuildCallRequestFlags(payload.SendResultDefault, payload.RepeatedCall)
-		} else {
-			return ctx.Error(throw.E("outgoing retries limit"))
-		}
 	}
 
 	s.outgoing.DelegationSpec = s.getToken()
