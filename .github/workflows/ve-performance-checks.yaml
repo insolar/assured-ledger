@@ -51,12 +51,14 @@ jobs:
           sed -i "s/imagetag/${GITHUB_SHA:0:8}/g" ledger-core/scripts/deploy/kube/*/*.*
           cat /home/runner/work/assured-ledger/assured-ledger/ledger-core/scripts/deploy/kube/aks/kustomization.yaml
       - name: set kube namespace for 5node
-        run: echo '::set-env name=KUB_NAMESPACE::'${GITHUB_SHA:0:8}5node
+        run: |
+          echo '::set-env name=PLACEHOLDER::'placeholder
+          echo '::set-env name=KUB_NAMESPACE::'${GITHUB_SHA:0:8}5node
       - name: template GIT_SHA to deployment manifests for 5 node
         run: |
-          sed -i "s/placeholder/${KUB_NAMESPACE}/g" ledger-core/scripts/deploy/kube/*/*.*
-          sed -i "s/placeholder/${KUB_NAMESPACE}/g" ledger-core/scripts/deploy/kube/*/configuration/*.*
-          sed -i "s/placeholder/${KUB_NAMESPACE}/g" ledger-core/load/gen_cfg/*.*
+          sed -i "s/${PLACEHOLDER}/${KUB_NAMESPACE}/g" ledger-core/scripts/deploy/kube/*/*.*
+          sed -i "s/${PLACEHOLDER}/${KUB_NAMESPACE}/g" ledger-core/scripts/deploy/kube/*/configuration/*.*
+          sed -i "s/${PLACEHOLDER}/${KUB_NAMESPACE}/g" ledger-core/load/gen_cfg/*.*
           cat /home/runner/work/assured-ledger/assured-ledger/ledger-core/load/gen_cfg/generator_assured_ledger.yaml
       - name: run 5node network
         run: kubectl apply -k ledger-core/scripts/deploy/kube/5node
@@ -78,12 +80,14 @@ jobs:
       - name: cleanup
         run: kubectl delete ns ${KUB_NAMESPACE} --ignore-not-found=true
       - name: set kube namespace for 10node
-        run: echo '::set-env name=KUB_NAMESPACE::'${GITHUB_SHA:0:8}10node
+        run: |
+          echo '::set-env name=PLACEHOLDER::'${KUB_NAMESPACE}
+          echo '::set-env name=KUB_NAMESPACE::'${GITHUB_SHA:0:8}10node
       - name: template GIT_SHA to deployment manifests for 10 node
         run: |
-          sed -i "s/placeholder/${KUB_NAMESPACE}/g" ledger-core/scripts/deploy/kube/*/*.*
-          sed -i "s/placeholder/${KUB_NAMESPACE}/g" ledger-core/scripts/deploy/kube/*/configuration/*.*
-          sed -i "s/placeholder/${KUB_NAMESPACE}/g" ledger-core/load/gen_cfg/*.*
+          sed -i "s/${PLACEHOLDER}/${KUB_NAMESPACE}/g" ledger-core/scripts/deploy/kube/*/*.*
+          sed -i "s/${PLACEHOLDER}/${KUB_NAMESPACE}/g" ledger-core/scripts/deploy/kube/*/configuration/*.*
+          sed -i "s/${PLACEHOLDER}/${KUB_NAMESPACE}/g" ledger-core/load/gen_cfg/*.*
           cat /home/runner/work/assured-ledger/assured-ledger/ledger-core/load/gen_cfg/generator_assured_ledger.yaml
       - name: run 10node network
         run: kubectl apply -k ledger-core/scripts/deploy/kube/10node
@@ -105,12 +109,14 @@ jobs:
       - name: cleanup
         run: kubectl delete ns ${KUB_NAMESPACE} --ignore-not-found=true
       - name: set kube namespace for 15node
-        run: echo '::set-env name=KUB_NAMESPACE::'${GITHUB_SHA:0:8}15node
+        run: |
+          echo '::set-env name=PLACEHOLDER::'${KUB_NAMESPACE}
+          echo '::set-env name=KUB_NAMESPACE::'${GITHUB_SHA:0:8}15node
       - name: template GIT_SHA to deployment manifests for 15 node
         run: |
-          sed -i "s/placeholder/${KUB_NAMESPACE}/g" ledger-core/scripts/deploy/kube/*/*.*
-          sed -i "s/placeholder/${KUB_NAMESPACE}/g" ledger-core/scripts/deploy/kube/*/configuration/*.*
-          sed -i "s/placeholder/${KUB_NAMESPACE}/g" ledger-core/load/gen_cfg/*.*
+          sed -i "s/${PLACEHOLDER}/${KUB_NAMESPACE}/g" ledger-core/scripts/deploy/kube/*/*.*
+          sed -i "s/${PLACEHOLDER}/${KUB_NAMESPACE}/g" ledger-core/scripts/deploy/kube/*/configuration/*.*
+          sed -i "s/${PLACEHOLDER}/${KUB_NAMESPACE}/g" ledger-core/load/gen_cfg/*.*
           cat /home/runner/work/assured-ledger/assured-ledger/ledger-core/load/gen_cfg/generator_assured_ledger.yaml
       - name: run 15node network
         run: kubectl apply -k ledger-core/scripts/deploy/kube/15node
@@ -132,12 +138,14 @@ jobs:
       - name: cleanup
         run: kubectl delete ns ${KUB_NAMESPACE} --ignore-not-found=true
       - name: set kube namespace for 10node
-        run: echo '::set-env name=KUB_NAMESPACE::'${GITHUB_SHA:0:8}20node
+        run: |
+          echo '::set-env name=PLACEHOLDER::'${KUB_NAMESPACE}
+          echo '::set-env name=KUB_NAMESPACE::'${GITHUB_SHA:0:8}20node
       - name: template GIT_SHA to deployment manifests for 20 node
         run: |
-          sed -i "s/placeholder/${KUB_NAMESPACE}/g" ledger-core/scripts/deploy/kube/*/*.*
-          sed -i "s/placeholder/${KUB_NAMESPACE}/g" ledger-core/scripts/deploy/kube/*/configuration/*.*
-          sed -i "s/placeholder/${KUB_NAMESPACE}/g" ledger-core/load/gen_cfg/*.*
+          sed -i "s/${PLACEHOLDER}/${KUB_NAMESPACE}/g" ledger-core/scripts/deploy/kube/*/*.*
+          sed -i "s/${PLACEHOLDER}/${KUB_NAMESPACE}/g" ledger-core/scripts/deploy/kube/*/configuration/*.*
+          sed -i "s/${PLACEHOLDER}/${KUB_NAMESPACE}/g" ledger-core/load/gen_cfg/*.*
           cat /home/runner/work/assured-ledger/assured-ledger/ledger-core/load/gen_cfg/generator_assured_ledger.yaml
       - name: run 20node network
         run: kubectl apply -k ledger-core/scripts/deploy/kube/20node
