@@ -511,9 +511,9 @@ func TestVirtual_CallMethodFromConstructor(t *testing.T) {
 }
 
 func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
-	t.Log("C5320") // TODO change
+	t.Log("C5320")
 
-	countChangePulse := execute.MaxOutgoingRetries + 1
+	countChangePulse := execute.MaxOutgoingSendCount
 
 	mc := minimock.NewController(t)
 
@@ -590,7 +590,7 @@ func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 
 	// add checks to typedChecker
 	{
-		typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {return false})
+		typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool { return false })
 
 		typedChecker.VDelegatedCallRequest.Set(func(request *payload.VDelegatedCallRequest) bool {
 			newPulse := server.GetPulse().PulseNumber

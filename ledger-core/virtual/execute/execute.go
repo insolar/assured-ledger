@@ -35,7 +35,7 @@ import (
 
 /* -------- Utilities ------------- */
 
-const MaxOutgoingRetries = 3
+const MaxOutgoingSendCount = 3
 
 type SMExecute struct {
 	// input arguments
@@ -66,10 +66,9 @@ type SMExecute struct {
 	pulseSlot             *conveyor.PulseSlot
 	authenticationService authentication.Service
 
-	outgoing             *payload.VCallRequest
-	outgoingObject       reference.Global
-	outgoingWasSent      bool
-	retryOutgoingCounter int
+	outgoing            *payload.VCallRequest
+	outgoingObject      reference.Global
+	outgoingSentCounter int
 
 	migrationHappened bool
 	objectCatalog     object.Catalog
@@ -523,7 +522,7 @@ func (s *SMExecute) stepGetDelegationToken(ctx smachine.ExecutionContext) smachi
 			panic(throw.IllegalState())
 		}
 		s.delegationTokenSpec = subroutineSM.response.ResponseDelegationSpec
-		if s.outgoingWasSent {
+		if s.outgoingSentCounter > 0 {
 			return ctx.Jump(s.stepSendOutgoing)
 		}
 		return ctx.JumpExt(s.stepAfterTokenGet)
@@ -661,7 +660,7 @@ func (s *SMExecute) stepExecuteAborted(ctx smachine.ExecutionContext) smachine.S
 }
 
 func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if !s.outgoingWasSent {
+	if s.outgoingSentCounter == 0 {
 		bargeInCallback := ctx.NewBargeInWithParam(func(param interface{}) smachine.BargeInCallbackFunc {
 			res, ok := param.(*payload.VCallResult)
 			if !ok || res == nil {
@@ -681,8 +680,7 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 			return ctx.Error(throw.E("failed to publish bargeInCallback"))
 		}
 	} else {
-		if s.retryOutgoingCounter < MaxOutgoingRetries {
-			s.retryOutgoingCounter++
+		if s.outgoingSentCounter < MaxOutgoingSendCount {
 			s.outgoing.CallRequestFlags = payload.BuildCallRequestFlags(payload.SendResultDefault, payload.RepeatedCall)
 		} else {
 			return ctx.Error(throw.NotImplemented())
@@ -700,7 +698,7 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 		}
 	}).WithoutAutoWakeUp().Start()
 
-	s.outgoingWasSent = true
+	s.outgoingSentCounter++
 	// we'll wait for barge-in WakeUp here, not adapter
 	return ctx.Sleep().ThenJump(s.stepExecuteContinue)
 }
@@ -709,7 +707,7 @@ func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.
 	outgoingResult := s.outgoingResult
 
 	// unset all outgoing fields in case we have new outgoing request
-	s.outgoingWasSent = false
+	s.outgoingSentCounter = 0
 	s.outgoingObject = reference.Global{}
 	s.outgoing = nil
 	s.outgoingResult = []byte{}
