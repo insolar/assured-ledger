@@ -65,12 +65,27 @@ func TestDelegationToken_SuccessCheckCorrectToken(t *testing.T) {
 			mc := minimock.NewController(t)
 
 			server, ctx := utils.NewUninitializedServerWithErrorFilter(nil, t, func(s string) bool {
-				return strings.Contains(s, "illegitimate msg")
+				return false
 			})
 
 			jetCoordinatorMock := jet.NewAffinityHelperMock(mc)
 			auth := authentication.NewService(ctx, jetCoordinatorMock)
 			server.ReplaceAuthenticationService(auth)
+
+			var errorFound bool
+			logHandler := func(arg interface{}) {
+				err, ok := arg.(error)
+				if !ok {
+					return
+				}
+				errMsg := err.Error()
+				if !strings.Contains(errMsg, "illegitimate msg") {
+					return
+				}
+				errorFound = true
+			}
+			logger := utils.InterceptLog(inslogger.FromContext(ctx), logHandler)
+			server.OverrideConveyorFactoryLogContext(inslogger.SetLogger(ctx, logger))
 
 			server.Init(ctx)
 			// increment pulse for VStateReport and VDelegatedCallRequest
@@ -90,6 +105,8 @@ func TestDelegationToken_SuccessCheckCorrectToken(t *testing.T) {
 
 			server.SendPayload(ctx, testMsg.msg.(payload.Marshaler))
 			server.WaitActiveThenIdleConveyor()
+
+			assert.False(t, errorFound, "Fail "+testMsg.name)
 
 			server.Stop()
 			mc.Finish()
