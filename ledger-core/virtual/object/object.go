@@ -379,27 +379,12 @@ func (sm *SMObject) migrate(ctx smachine.MigrationContext) smachine.StateUpdate 
 		sm.smFinalizer.Report.ProvidedContent.LatestDirtyState = sm.BuildLatestDirtyState()
 	}
 
-	sdlStateReport := ctx.Share(&sm.smFinalizer.Report, 0)
-	if !ctx.Publish(finalizedstate.BuildReportKey(sm.Reference), sdlStateReport) {
-		ctx.Log().Warn(struct {
-			*log.Msg  `txt:"failed to publish state report"`
-			Reference string
-		}{
-			Reference: sm.Reference.String(),
-		})
-		return ctx.Error(throw.New("failed to publish state report"))
+	if err := sm.sharedAndPublishStateReport(ctx, &sm.smFinalizer.Report); err != nil {
+		return ctx.Error(err)
 	}
 
-	sdlCallSummarySync := ctx.Share(&sm.SummaryDone, 0)
-
-	if !ctx.Publish(callsummary.BuildSummarySyncKey(sm.Reference), sdlCallSummarySync) {
-		ctx.Log().Warn(struct {
-			*log.Msg  `txt:"failed to publish call summary sync key"`
-			Reference string
-		}{
-			Reference: sm.Reference.String(),
-		})
-		return ctx.Error(throw.New("failed to publish call summary sync key"))
+	if err := sm.sharedAndPublishSMCallSummarySyncLink(ctx, &sm.SummaryDone); err != nil {
+		return ctx.Error(err)
 	}
 
 	return ctx.Jump(sm.stepPublishCallSummary)
@@ -488,4 +473,34 @@ func (sm *SMObject) checkPendingCounters(logger smachine.Logger) {
 			CountActive:  orderedPendingList.Count(),
 		})
 	}
+}
+
+func (sm *SMObject) sharedAndPublishStateReport(
+	ctx smachine.MigrationContext,
+	report *payload.VStateReport,
+) error {
+	sdlStateReport := ctx.Share(report, 0)
+
+	if !ctx.Publish(finalizedstate.BuildReportKey(sm.Reference), sdlStateReport) {
+		return throw.New("failed to publish state report", struct {
+			Reference reference.Holder
+		}{sm.Reference})
+	}
+
+	return nil
+}
+
+func (sm *SMObject) sharedAndPublishSMCallSummarySyncLink(
+	ctx smachine.MigrationContext,
+	summaryDone *smachine.SyncLink,
+) error {
+	sdlCallSummarySync := ctx.Share(summaryDone, 0)
+
+	if !ctx.Publish(callsummary.BuildSummarySyncKey(sm.Reference), sdlCallSummarySync) {
+		return throw.New("failed to publish call summary sync key", struct {
+			Reference reference.Holder
+		}{sm.Reference})
+	}
+
+	return nil
 }
