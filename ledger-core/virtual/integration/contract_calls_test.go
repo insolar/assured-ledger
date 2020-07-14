@@ -519,7 +519,7 @@ func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 
 	server, ctx := utils.NewUninitializedServerWithErrorFilter(nil, t, func(s string) bool {
 		// Pass all errors, except for (*SMExecute).stepSendOutgoing
-		return !strings.Contains(s, "(*SMExecute).stepSendOutgoing")
+		return !strings.Contains(s, "outgoing retries limit")
 	})
 
 	defer server.Stop()
