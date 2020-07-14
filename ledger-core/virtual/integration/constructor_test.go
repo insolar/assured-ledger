@@ -16,7 +16,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
-	"github.com/insolar/assured-ledger/ledger-core/application/testwalletapi/statemachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
@@ -933,14 +932,13 @@ func TestVirtual_CallConstructor_WithTwicePulseChange(t *testing.T) {
 	pl := payload.VCallRequest{
 		CallType:       payload.CTConstructor,
 		CallFlags:      payload.BuildCallFlags(constructorIsolation.Interference, constructorIsolation.State),
-		Caller:         statemachine.APICaller,
+		Caller:         server.GlobalCaller(),
 		Callee:         classA,
 		CallSiteMethod: "New",
 		CallOutgoing:   outgoing,
 	}
 
-	msg := server.WrapPayload(&pl).SetSender(statemachine.APICaller).Finalize()
-	server.SendMessage(ctx, msg)
+	server.SendPayload(ctx, &pl)
 
 	// wait for results
 	{
@@ -952,14 +950,15 @@ func TestVirtual_CallConstructor_WithTwicePulseChange(t *testing.T) {
 				predicate.NewSMTypeFilter(&execute.SMExecute{}, predicate.BeforeStep((&execute.SMExecute{}).StepWaitExecutionResult)),
 			),
 		)
-		testutils.WaitSignalsTimed(t, 10*time.Second, tokenRequestDone)
-
+		// wait for first pulse change
+		testutils.WaitSignalsTimed(t, 20*time.Second, tokenRequestDone)
+		// continue ExecutionStart [A.New]
 		synchronizeExecution.WakeUp()
-
-		testutils.WaitSignalsTimed(t, 10*time.Second, tokenRequestDone)
+		// wait for second pulse change
+		testutils.WaitSignalsTimed(t, 20*time.Second, tokenRequestDone)
 
 		synchronizeExecution.Done()
-
+		// wait for SMExecute finish
 		testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitStopOf(&execute.SMExecute{}, 1))
 		testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 	}
