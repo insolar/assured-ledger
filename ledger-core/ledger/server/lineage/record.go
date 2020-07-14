@@ -17,6 +17,7 @@ func NewRegRecord(excerpt catalog.Excerpt, req *rms.LRegisterRequest) Record {
 	return Record{
 		Excerpt:            excerpt,
 		RecRef:             req.AnticipatedRef.Get(),
+		ProducedBy: 		req.ProducedBy.Get(),
 		regReq:             req,
 	}
 }
@@ -32,6 +33,7 @@ func NewRecapRecord(excerpt catalog.Excerpt, recRef reference.Holder, recap *rms
 	return Record{
 		Excerpt:            excerpt,
 		RecRef:             recRef,
+		// ProducedBy: 		recap.ProducedBy.Get(), // TODO
 		recapRec:           recap,
 	}
 }

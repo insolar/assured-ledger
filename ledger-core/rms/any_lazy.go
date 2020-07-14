@@ -8,6 +8,7 @@ package rms
 import (
 	"encoding"
 	"fmt"
+	"io"
 	"reflect"
 
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -142,6 +143,7 @@ func (p *AnyLazyCopy) Unmarshal(b []byte) error {
 /************************/
 
 var _ goGoMarshaler = LazyValue{}
+var _ io.WriterTo = LazyValue{}
 
 type LazyValueReader interface {
 	Type() reflect.Type
@@ -151,6 +153,14 @@ type LazyValueReader interface {
 type LazyValue struct {
 	value []byte
 	vType  reflect.Type
+}
+
+func (p LazyValue) WriteTo(w io.Writer) (int64, error) {
+	if p.value == nil {
+		panic(throw.IllegalState())
+	}
+	n, err := w.Write(p.value)
+	return int64(n), err
 }
 
 func (p LazyValue) IsZero() bool {

@@ -13,7 +13,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/datawriter"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/inspectsvc"
-	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -65,12 +64,15 @@ func (p *SMRegisterRecordSet) stepInit(ctx smachine.InitializationContext) smach
 
 	ctx.SetDefaultMigration(p.migratePresent)
 	ctx.SetDefaultErrorHandler(p.handleError)
+
+	p.recordSet.Validate() // panic will be handled by p.handleError
+
 	return ctx.Jump(p.stepFindLine)
 }
 
 func (p *SMRegisterRecordSet) stepFindLine(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	if p.sdl.IsZero() {
-		lineRef := p.getRootRef()
+		lineRef := p.recordSet.GetRootRef()
 
 		p.sdl = p.cataloger.GetOrCreate(ctx, lineRef)
 		if p.sdl.IsZero() {
@@ -170,7 +172,7 @@ func (p *SMRegisterRecordSet) stepApplyRecordSet(ctx smachine.ExecutionContext) 
 	case p.updated == nil:
 		return ctx.Sleep().ThenRepeat()
 
-	case p.getFlags() & rms.RegistrationFlags_Fast != 0:
+	case p.recordSet.GetFlags() & rms.RegistrationFlags_Fast != 0:
 		p.sendResponse(ctx, false)
 	}
 
@@ -231,14 +233,6 @@ func (p *SMRegisterRecordSet) sendFailResponse(ctx smachine.ExecutionContext, er
 		runtime.KeepAlive(ctx)
 	}
 	panic(throw.NotImplemented())
-}
-
-func (p *SMRegisterRecordSet) getRootRef() reference.Global {
-	return p.recordSet.Excerpts[0].RootRef.GetGlobal()
-}
-
-func (p *SMRegisterRecordSet) getFlags() rms.RegistrationFlags {
-	return p.recordSet.Requests[0].Flags
 }
 
 func (p *SMRegisterRecordSet) handleError(ctx smachine.FailureContext) {
