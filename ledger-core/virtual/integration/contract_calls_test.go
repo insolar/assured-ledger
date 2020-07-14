@@ -636,11 +636,7 @@ func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 
 	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone(), executeStopped)
 
-	{
-		// first time we send outgoing before first pulse change
-		// then we retry it 3 times
-		require.Equal(t, countChangePulse, typedChecker.VCallRequest.Count())
-	}
+	require.Equal(t, countChangePulse, typedChecker.VCallRequest.Count())
 
 	mc.Finish()
 
