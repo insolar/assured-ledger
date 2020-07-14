@@ -118,6 +118,9 @@ func (m *SlotMachine) ScanOnce(scanMode ScanMode, worker AttachedSlotWorker) (re
 
 	if scanMode != ScanEventsOnly && !hasSignal && !wasDetached {
 		m.executeWorkingSlots(currentScanNo, scanMode == ScanPriorityOnly, worker)
+		if !m.workingSlots.IsEmpty() {
+			repeatNow = true
+		}
 	}
 
 	repeatNow = repeatNow || !m.hotWaitOnly
