@@ -22,10 +22,7 @@ import (
 
 func TestComponents(t *testing.T) {
 	instestlogger.SetTestOutputWithErrorFilter(t, func(s string) bool {
-		if strings.Contains(s, "Failed to export to Prometheus: cannot register the collector:") {
-			return false
-		}
-		return true
+		return !strings.Contains(s, "Failed to export to Prometheus: cannot register the collector")
 	})
 
 	ctx := inslogger.UpdateLogger(context.Background(), func(logger log.Logger) (log.Logger, error) {
