@@ -1,16 +1,4 @@
 netparams:
-- nodescount: 20
-  waitinreadystate: 5m
-  waitbootstrap: 1h
-  waitready: 1h
-- nodescount: 40
-  waitinreadystate: 5m
-  waitbootstrap: 1h
-  waitready: 1h
-- nodescount: 60
-  waitinreadystate: 5m
-  waitbootstrap: 1h
-  waitready: 1h
 - nodescount: 100
   waitinreadystate: 5m
   waitbootstrap: 1h
