@@ -46,6 +46,10 @@ jobs:
           docker push $ACR_HOST/assured-ledger:${GITHUB_SHA:0:8}
       - name: copy docker auth secret
         run: cp /home/runner/.docker/config.json ledger-core/scripts/deploy/kube/aks/dockerconfigjson
+      - name: set tag for image
+        run: |
+          sed -i "s/imagetag/${GITHUB_SHA:0:8}/g" ledger-core/scripts/deploy/kube/ask/kustomization.yaml
+          cat ledger-core/scripts/deploy/kube/ask/kustomization.yaml
       - name: set kube namespace for 5node
         run: echo '::set-env name=KUB_NAMESPACE::'${GITHUB_SHA:0:8}5node
       - name: template GIT_SHA to deployment manifests for 5 node
