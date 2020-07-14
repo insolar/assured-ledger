@@ -680,7 +680,11 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 			return ctx.Error(throw.E("failed to publish bargeInCallback"))
 		}
 	} else {
-		if s.outgoingSentCounter < MaxOutgoingSendCount {
+		if s.outgoingSentCounter >= MaxOutgoingSendCount {
+		     return ctx.Error(throw.E("outgoing retries limit"))
+		}
+		
+		s.outgoing.CallRequestFlags = payload.BuildCallRequestFlags(payload.SendResultDefault, payload.RepeatedCall)
 			s.outgoing.CallRequestFlags = payload.BuildCallRequestFlags(payload.SendResultDefault, payload.RepeatedCall)
 		} else {
 			return ctx.Error(throw.E("outgoing retries limit"))
