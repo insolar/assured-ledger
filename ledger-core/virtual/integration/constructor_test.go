@@ -16,6 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
+	"github.com/insolar/assured-ledger/ledger-core/application/testwalletapi/statemachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
@@ -25,6 +26,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/predicate"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/synchronization"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -800,6 +802,172 @@ func TestVirtual_Constructor_PulseChangedWhileOutgoing(t *testing.T) {
 		assert.Equal(t, 1, typedChecker.VDelegatedRequestFinished.Count())
 		assert.Equal(t, 2, typedChecker.VStateReport.Count())
 	}
+
+	mc.Finish()
+}
+
+// -> VCallRequest [A.New]
+// -> ExecutionStart
+// -> change pulse -> secondPulse
+// -> VStateReport [A]
+// -> VDelegatedCallRequest [A]
+// -> continue execution
+// -> change pulse -> thirdPulse
+// -> NO VStateReport
+// -> VDelegatedCallRequest [A] + first token
+// -> VCallResult [A.New] + second token
+// -> VDelegatedRequestFinished [A] + second token
+func TestVirtual_CallConstructor_WithTwicePulseChange(t *testing.T) {
+	t.Log("C5208")
+
+	mc := minimock.NewController(t)
+
+	server, ctx := utils.NewUninitializedServer(nil, t)
+	defer server.Stop()
+
+	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
+		return execution.Request.CallSiteMethod
+	})
+	server.ReplaceRunner(runnerMock)
+
+	server.Init(ctx)
+	server.IncrementPulseAndWaitIdle(ctx)
+
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+
+	var (
+		constructorIsolation = contract.ConstructorIsolation()
+
+		classA    = gen.UniqueGlobalRef()
+		outgoing  = server.BuildRandomOutgoingWithPulse()
+		objectRef = reference.NewSelf(outgoing.GetLocal())
+
+		firstPulse = server.GetPulse().PulseNumber
+
+		firstApprover  = gen.UniqueGlobalRef()
+		secondApprover = gen.UniqueGlobalRef()
+
+		firstExpectedToken, secondExpectedToken payload.CallDelegationToken
+	)
+
+	synchronizeExecution := synchronization.NewPoint(1)
+
+	// add ExecutionMocks to runnerMock
+	{
+		objectAResult := requestresult.New([]byte("finish A.New"), outgoing)
+		objectAResult.SetActivate(reference.Global{}, classA, []byte("state A"))
+		runnerMock.AddExecutionMock("New").AddStart(
+			func(_ execution.Context) {
+				server.IncrementPulseAndWaitIdle(ctx)
+				synchronizeExecution.Synchronize()
+				server.IncrementPulseAndWaitIdle(ctx)
+			},
+			&execution.Update{
+				Type:   execution.Done,
+				Result: objectAResult,
+			},
+		)
+	}
+
+	// add checks to typedChecker
+	{
+		typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
+			// check for pending counts must be in tests: call constructor/call terminal method
+			assert.Equal(t, objectRef, report.Object)
+			assert.Equal(t, payload.Empty, report.Status)
+			assert.Zero(t, report.DelegationSpec)
+			return false
+		})
+		typedChecker.VDelegatedCallRequest.Set(func(request *payload.VDelegatedCallRequest) bool {
+			assert.Equal(t, objectRef, request.Callee)
+			assert.Equal(t, outgoing, request.CallOutgoing)
+
+			msg := payload.VDelegatedCallResponse{Callee: request.Callee}
+
+			switch typedChecker.VDelegatedCallRequest.CountBefore() {
+			case 1:
+				assert.Zero(t, request.DelegationSpec)
+
+				firstExpectedToken = payload.CallDelegationToken{
+					TokenTypeAndFlags: payload.DelegationTokenTypeCall,
+					PulseNumber:       server.GetPulse().PulseNumber,
+					Callee:            request.Callee,
+					Outgoing:          request.CallOutgoing,
+					DelegateTo:        server.JetCoordinatorMock.Me(),
+					Approver:          firstApprover,
+				}
+				msg.ResponseDelegationSpec = firstExpectedToken
+			case 2:
+				assert.Equal(t, firstExpectedToken, request.DelegationSpec)
+
+				secondExpectedToken = payload.CallDelegationToken{
+					TokenTypeAndFlags: payload.DelegationTokenTypeCall,
+					PulseNumber:       server.GetPulse().PulseNumber,
+					Callee:            request.Callee,
+					Outgoing:          request.CallOutgoing,
+					DelegateTo:        server.JetCoordinatorMock.Me(),
+					Approver:          secondApprover,
+				}
+				msg.ResponseDelegationSpec = secondExpectedToken
+			default:
+				t.Fatal("unexpected")
+			}
+
+			server.SendPayload(ctx, &msg)
+			return false
+		})
+		typedChecker.VDelegatedRequestFinished.Set(func(finished *payload.VDelegatedRequestFinished) bool {
+			assert.Equal(t, objectRef, finished.Callee)
+			assert.Equal(t, secondExpectedToken, finished.DelegationSpec)
+			return false
+		})
+		typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
+			assert.Equal(t, objectRef, res.Callee)
+			assert.Equal(t, []byte("finish A.New"), res.ReturnArguments)
+			assert.Equal(t, int(firstPulse), int(res.CallOutgoing.GetLocal().Pulse()))
+			assert.Equal(t, secondExpectedToken, res.DelegationSpec)
+			return false
+		})
+	}
+
+	pl := payload.VCallRequest{
+		CallType:       payload.CTConstructor,
+		CallFlags:      payload.BuildCallFlags(constructorIsolation.Interference, constructorIsolation.State),
+		Caller:         statemachine.APICaller,
+		Callee:         classA,
+		CallSiteMethod: "New",
+		CallOutgoing:   outgoing,
+	}
+
+	msg := server.WrapPayload(&pl).SetSender(statemachine.APICaller).Finalize()
+	server.SendMessage(ctx, msg)
+
+	// wait for results
+	{
+		testutils.WaitSignalsTimed(t, 10*time.Second, synchronizeExecution.Wait())
+
+		tokenRequestDone := server.Journal.Wait(
+			predicate.ChainOf(
+				predicate.NewSMTypeFilter(&execute.SMDelegatedTokenRequest{}, predicate.AfterAnyStopOrError),
+				predicate.NewSMTypeFilter(&execute.SMExecute{}, predicate.BeforeStep((&execute.SMExecute{}).StepWaitExecutionResult)),
+			),
+		)
+		testutils.WaitSignalsTimed(t, 10*time.Second, tokenRequestDone)
+
+		synchronizeExecution.WakeUp()
+
+		testutils.WaitSignalsTimed(t, 10*time.Second, tokenRequestDone)
+
+		synchronizeExecution.Done()
+
+		testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitStopOf(&execute.SMExecute{}, 1))
+		testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+	}
+
+	assert.Equal(t, 1, typedChecker.VCallResult.Count())
+	assert.Equal(t, 1, typedChecker.VStateReport.Count())
+	assert.Equal(t, 2, typedChecker.VDelegatedCallRequest.Count())
+	assert.Equal(t, 1, typedChecker.VDelegatedRequestFinished.Count())
 
 	mc.Finish()
 }
