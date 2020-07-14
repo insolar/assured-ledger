@@ -95,11 +95,13 @@ type WorkingList struct {
 	countActive         int
 	countFinish         int
 	requests            map[reference.Global]WorkingRequestState
+	activity            map[payload.PulseNumber]uint
 }
 
 func newWorkingList() *WorkingList {
 	return &WorkingList{
 		requests: make(map[reference.Global]WorkingRequestState),
+		activity: make(map[payload.PulseNumber]uint),
 	}
 }
 
@@ -128,31 +130,9 @@ func (rl *WorkingList) setActive(ref reference.Global) bool {
 
 	rl.requests[ref] = RequestProcessing
 
-	rl.countActive++
-
-	requestPulseNumber := ref.GetLocal().GetPulseNumber()
-	if rl.earliestActivePulse == pulse.Unknown || requestPulseNumber < rl.earliestActivePulse {
-		rl.earliestActivePulse = requestPulseNumber
-	}
+	rl.increaseActivity(ref.GetLocal().GetPulseNumber())
 
 	return true
-}
-
-func (rl *WorkingList) calculateEarliestActivePulse() {
-	min := pulse.Unknown
-
-	for ref := range rl.requests {
-		if rl.requests[ref] != RequestProcessing {
-			continue // skip finished and not started
-		}
-
-		refPulseNumber := ref.GetLocal().GetPulseNumber()
-		if min == pulse.Unknown || refPulseNumber < min {
-			min = refPulseNumber
-		}
-	}
-
-	rl.earliestActivePulse = min
 }
 
 func (rl *WorkingList) finish(ref reference.Global) bool {
@@ -162,14 +142,47 @@ func (rl *WorkingList) finish(ref reference.Global) bool {
 	}
 
 	rl.requests[ref] = RequestFinished
-	rl.countActive--
 	rl.countFinish++
 
-	if ref.GetLocal().GetPulseNumber() == rl.earliestActivePulse {
-		rl.calculateEarliestActivePulse()
-	}
+	rl.decreaseActivity(ref.GetLocal().GetPulseNumber())
 
 	return true
+}
+
+func (rl *WorkingList) increaseActivity(requestPN pulse.Number) {
+	rl.countActive++
+	if i, ok := rl.activity[requestPN]; ok {
+		rl.activity[requestPN] = i + 1
+	} else {
+		rl.activity[requestPN] = 1
+	}
+	if rl.earliestActivePulse == pulse.Unknown || requestPN < rl.earliestActivePulse {
+		rl.earliestActivePulse = requestPN
+	}
+}
+
+func (rl *WorkingList) decreaseActivity(requestPN pulse.Number) {
+	rl.countActive--
+
+	count := rl.activity[requestPN]
+	if count > 1 {
+		rl.activity[requestPN] = count - 1
+	} else {
+		delete(rl.activity, requestPN)
+		if requestPN == rl.earliestActivePulse {
+			rl.earliestActivePulse = rl.minActivePulse()
+		}
+	}
+}
+
+func (rl *WorkingList) minActivePulse() pulse.Number {
+	min := pulse.Unknown
+	for p := range rl.activity {
+		if min == pulse.Unknown || p < min {
+			min = p
+		}
+	}
+	return min
 }
 
 func (rl *WorkingList) Count() int {
