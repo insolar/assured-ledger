@@ -55,25 +55,18 @@ func (p *bundleWriter) WaitWriteBundles(done synckit.SignalChannel, fn func(bool
 		}
 	}
 
-	switch {
-	case fn == nil:
+	defer func() {
 		if ok {
-			// propagate status properly as someone can be after this wait operation, hence can be affected by rollback
+			// propagate status properly as someone can be after this wait operation,
+			// hence can be affected by rollback
 			next <- struct{}{}
 		}
 		close(next)
-		return true
+	}()
 
-	case ok:
-		defer func() {
-			next <- struct{}{}
-			close(next)
-		}()
-	default:
-		defer close(next)
+	if fn != nil {
+		fn(true)
 	}
-
-	fn(true)
 	return true
 }
 
