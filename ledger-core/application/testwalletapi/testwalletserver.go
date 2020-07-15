@@ -54,6 +54,7 @@ func (s *TestWalletServer) RegisterHandlers(httpServerMux *http.ServeMux) {
 	httpServerMux.HandleFunc(walletLocation+"/transfer", s.Transfer)
 	httpServerMux.HandleFunc(walletLocation+"/get_balance", s.GetBalance)
 	httpServerMux.HandleFunc(walletLocation+"/add_amount", s.AddAmount)
+	httpServerMux.HandleFunc(walletLocation+"/delete", s.Delete)
 }
 
 func (s *TestWalletServer) Start(ctx context.Context) error {
