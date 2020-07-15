@@ -154,6 +154,30 @@ func (p *bundleWriter) applyBundleSafe(snapshot Snapshot, bundle Writeable,
 	rollback := true
 	var err error
 
+	waitPrev := func(blocking bool) bool {
+		if prev == nil {
+			return true
+		}
+
+		ok := false
+		if blocking {
+			_, ok = <-prev
+		} else {
+			select {
+			case _, ok = <-prev:
+			default:
+				return true
+			}
+		}
+
+		prev = nil
+		if !ok {
+			chained = true
+			return false
+		}
+		return true
+	}
+
 	defer func() {
 		switch {
 		case !rollback:
@@ -162,13 +186,9 @@ func (p *bundleWriter) applyBundleSafe(snapshot Snapshot, bundle Writeable,
 			}
 			return
 		case !locked:
-			if prev != nil {
-				// this makes sure that rollbacks respect sequence.
-				// and as chan is always closed, then it is not relevant if we've read it before or not.
-				if _, ok := <- prev; !ok {
-					chained = true
-				}
-			}
+			// this makes sure that rollbacks respect sequence.
+			// and as chan is always closed, then it is not relevant if we've read it before or not.
+			waitPrev(true)
 
 			p.mutex.Lock()
 		}
@@ -188,15 +208,8 @@ func (p *bundleWriter) applyBundleSafe(snapshot Snapshot, bundle Writeable,
 			err = throw.RW(recover(), err, "applyBundle failed")
 		}()
 
-		select {
-		case _, ok := <-prev:
-			if !ok {
-				chained = true // rollback was made by a previous writer
-				return throw.E("chained cancel")
-			}
-			prev = nil // previous writer is done, no need to wait for it further
-		default:
-			// don't wait, just check. Also handles prev==nil
+		if !waitPrev(false) {
+			return throw.E("chained cancel")
 		}
 
 		var assignments []ledger.DirectoryIndex
@@ -206,12 +219,8 @@ func (p *bundleWriter) applyBundleSafe(snapshot Snapshot, bundle Writeable,
 			return err
 		}
 
-		if prev != nil {
-			if _, ok := <-prev; !ok {
-				chained = true // rollback was made by a previous writer and we have to stop
-				return throw.E("chained cancel")
-			}
-			prev = nil // avoid false detection of "chained" in defer
+		if !waitPrev(true) {
+			return throw.E("chained cancel")
 		}
 
 		p.mutex.Lock()
