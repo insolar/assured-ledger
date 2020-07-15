@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -39,7 +40,13 @@ func waitForStatus(t *testing.T, nc *api.NetworkChecker, expected bool) {
 }
 
 func TestAvailabilityChecker_UpdateStatus(t *testing.T) {
-	instestlogger.SetTestOutputWithIgnoreAllErrors(t)
+	instestlogger.SetTestOutputWithErrorFilter(t, func(s string) bool {
+		expectedError := strings.Contains(s, "no response or bad StatusCode") ||
+			strings.Contains(s, "Can't decode body: invalid character '}'") ||
+			strings.Contains(s, "connection refused") ||
+			strings.Contains(s, "No connection could be made because the target machine actively refused it")
+		return !expectedError
+	})
 	ctx, _ := inslogger.InitNodeLoggerByGlobal("", "")
 
 	defer testutils.LeakTester(t,
