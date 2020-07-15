@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package mock
+package publisher
 
 import (
 	"context"
@@ -12,21 +12,19 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/gojuno/minimock/v3"
+
+	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/mock/publisher/checker"
 )
 
-var _ message.Publisher = &PublisherMock{}
+//go:generate insolar-mockgenerator-typedpublisher
 
-type CheckerFn func(topic string, messages ...*message.Message) error
+var _ message.Publisher = &Mock{}
 
-type Checker interface {
-	CheckMessages(topic string, messages ...*message.Message) error
-}
-
-type PublisherMock struct {
+type Mock struct {
 	lock            sync.RWMutex
 	messageNotifier chan struct{}
 	messageCounter  int
-	checker         Checker
+	checker         checker.Checker
 	closed          bool
 }
 
@@ -34,27 +32,27 @@ type Sender interface {
 	SendMessage(context.Context, *message.Message)
 }
 
-func NewPublisherMock() *PublisherMock {
-	return &PublisherMock{
+func NewMock() *Mock {
+	return &Mock{
 		messageNotifier: make(chan struct{}, 1),
 	}
 }
 
-func (p *PublisherMock) GetCount() int {
+func (p *Mock) GetCount() int {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 
 	return p.messageCounter
 }
 
-func (p *PublisherMock) messageCountUpdate(count int) {
+func (p *Mock) messageCountUpdate(count int) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
 	p.messageCounter += count
 }
 
-func (p *PublisherMock) WaitCount(count int, timeout time.Duration) bool {
+func (p *Mock) WaitCount(count int, timeout time.Duration) bool {
 	timeoutCh := time.After(timeout)
 	for {
 		if p.GetCount() >= count {
@@ -68,38 +66,38 @@ func (p *PublisherMock) WaitCount(count int, timeout time.Duration) bool {
 	}
 }
 
-func (p *PublisherMock) SetResenderMode(ctx context.Context, sender Sender) {
+func (p *Mock) SetResendMode(ctx context.Context, sender Sender) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
-	p.checker = NewResenderPublishChecker(ctx, sender)
+	p.checker = checker.NewResend(ctx, sender)
 }
 
-func (p *PublisherMock) SetTypedChecker(ctx context.Context, t minimock.Tester, sender Sender) *TypePublishChecker {
+func (p *Mock) SetTypedChecker(ctx context.Context, t minimock.Tester, sender Sender) *checker.Typed {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
-	checker := NewTypePublishChecker(ctx, t, sender)
-	p.checker = checker
+	c := checker.NewTyped(ctx, t, sender)
+	p.checker = c
 
-	return checker
+	return c
 }
 
-func (p *PublisherMock) SetBaseChecker(fn Checker) {
+func (p *Mock) SetBaseChecker(fn checker.Checker) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
 	p.checker = fn
 }
 
-func (p *PublisherMock) SetChecker(fn CheckerFn) {
+func (p *Mock) SetChecker(fn checker.CallbackFn) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
-	p.checker = NewDefaultPublishChecker(fn)
+	p.checker = checker.NewDefault(fn)
 }
 
-func (p *PublisherMock) getChecker() CheckerFn {
+func (p *Mock) getChecker() checker.CallbackFn {
 	p.lock.RLock()
 	defer p.lock.RUnlock()
 
@@ -114,7 +112,7 @@ func (p *PublisherMock) getChecker() CheckerFn {
 	return p.checker.CheckMessages
 }
 
-func (p *PublisherMock) Publish(topic string, messages ...*message.Message) error {
+func (p *Mock) Publish(topic string, messages ...*message.Message) error {
 	defer func() {
 		p.messageCountUpdate(len(messages))
 		p.notify()
@@ -127,14 +125,14 @@ func (p *PublisherMock) Publish(topic string, messages ...*message.Message) erro
 	return nil
 }
 
-func (p *PublisherMock) notify() {
+func (p *Mock) notify() {
 	select {
 	case p.messageNotifier <- struct{}{}:
 	default:
 	}
 }
 
-func (p *PublisherMock) Close() error {
+func (p *Mock) Close() error {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
