@@ -8,8 +8,10 @@ package pulsemanager
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
@@ -90,8 +92,27 @@ func (m *PulseManager) Set(ctx context.Context, newPulse pulsestor.Pulse) error 
 		}
 	}
 
+
+
+	pulseChange := appctl.PulseChange{
+		PulseSeq:  0,
+		Pulse:     pulse.NewOnePulseRange(pulse.Data{
+			PulseNumber: newPulse.PulseNumber,
+			DataExt:     pulse.DataExt{
+				PulseEpoch:     newPulse.EpochPulseNumber,
+				NextPulseDelta: uint16(newPulse.NextPulseNumber - newPulse.PulseNumber),
+				PrevPulseDelta: uint16(newPulse.PulseNumber - newPulse.PrevPulseNumber),
+				Timestamp:      uint32(newPulse.PulseTimestamp / int64(time.Second)),
+				PulseEntropy:   longbits.NewBits256FromBytes(newPulse.Entropy[:32]),
+			},
+		}),
+		StartedAt: time.Now(),
+		Census:    nil,
+	}
+
+	sink := appctl.NewNodeStateSink(make(chan appctl.NodeState, 1))
 	for _, d := range m.dispatchers {
-		d.ClosePulse(ctx, storagePulse)
+		d.PreparePulseChange(pulseChange, sink)
 	}
 
 	if err := m.PulseAppender.Append(ctx, newPulse); err != nil {
@@ -99,19 +120,19 @@ func (m *PulseManager) Set(ctx context.Context, newPulse pulsestor.Pulse) error 
 	}
 
 	for _, d := range m.dispatchers {
-		d.BeginPulse(ctx, newPulse)
+		d.CommitPulseChange(pulseChange)
 	}
 
 	return nil
 }
 
 // Start starts pulse manager.
-func (m *PulseManager) Start(ctx context.Context) error {
+func (m *PulseManager) Start(context.Context) error {
 	return nil
 }
 
 // Stop stops Manager.
-func (m *PulseManager) Stop(ctx context.Context) error {
+func (m *PulseManager) Stop(context.Context) error {
 	// There should not to be any Set call after Stop call
 	m.setLock.Lock()
 	defer m.setLock.Unlock()

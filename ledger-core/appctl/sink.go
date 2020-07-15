@@ -18,6 +18,12 @@ type NodeState struct {
 
 type NodeStateChan = chan<- NodeState
 
+func NewNodeStateSink(ch chan NodeState) NodeStateSink {
+	return NodeStateSink{ &sinkCtl{
+		report: ch,
+	}}
+}
+
 type NodeStateSink struct {
 	ctl *sinkCtl
 }

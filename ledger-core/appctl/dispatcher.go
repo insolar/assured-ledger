@@ -22,8 +22,6 @@ type Dispatcher interface {
 	PreparePulseChange(PulseChange, NodeStateSink)
 	CancelPulseChange()
 	CommitPulseChange(PulseChange)
-	// BeginPulse(ctx context.Context, pulse pulsestor.Pulse)
-	// ClosePulse(ctx context.Context, pulse pulsestor.Pulse)
 	Process(msg *Message) error
 }
 

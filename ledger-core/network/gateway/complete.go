@@ -159,24 +159,21 @@ func (g *Complete) UpdateState(ctx context.Context, pulseNumber pulse.Number, no
 func (g *Complete) OnPulseFromConsensus(ctx context.Context, pulse pulsestor.Pulse) {
 	g.Base.OnPulseFromConsensus(ctx, pulse)
 
-	// OnPulseFromConsensus should be fast, but Manager.Set() takes unpredictable time
-	go func() {
-		done := make(chan struct{})
-		defer close(done)
-		pulseProcessingWatchdog(ctx, g.Base, pulse, done)
+	done := make(chan struct{})
+	defer close(done)
+	pulseProcessingWatchdog(ctx, g.Base, pulse, done)
 
-		logger := inslogger.FromContext(ctx)
+	logger := inslogger.FromContext(ctx)
 
-		logger.Infof("Got new pulse number: %d", pulse.PulseNumber)
-		ctx, span := instracer.StartSpan(ctx, "ServiceNetwork.Handlepulse")
-		span.SetTag("pulse.Number", int64(pulse.PulseNumber))
-		defer span.Finish()
+	logger.Infof("Got new pulse number: %d", pulse.PulseNumber)
+	ctx, span := instracer.StartSpan(ctx, "ServiceNetwork.Handlepulse")
+	span.SetTag("pulse.Number", int64(pulse.PulseNumber))
+	defer span.Finish()
 
-		err := g.PulseManager.Set(ctx, pulse)
-		if err != nil {
-			logger.Fatalf("Failed to set new pulse: %s", err.Error())
-		}
-		logger.Infof("Set new current pulse number: %d", pulse.PulseNumber)
-		stats.Record(ctx, statPulse.M(int64(pulse.PulseNumber)))
-	}()
+	err := g.PulseManager.Set(ctx, pulse)
+	if err != nil {
+		logger.Fatalf("Failed to set new pulse: %s", err.Error())
+	}
+	logger.Infof("Set new current pulse number: %d", pulse.PulseNumber)
+	stats.Record(ctx, statPulse.M(int64(pulse.PulseNumber)))
 }
