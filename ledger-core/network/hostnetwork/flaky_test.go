@@ -42,7 +42,7 @@ func TestHostNetwork_SendRequestPacket2(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, ref, r.GetSender())
 		require.Equal(t, s.n1.PublicAddress(), r.GetSenderHost().Address.String())
-		return s.n2.BuildResponse(ctx, r, &packet.RPCResponse{}), nil
+		return nil, nil
 	}
 
 	s.n2.RegisterRequestHandler(types.RPC, handler)
