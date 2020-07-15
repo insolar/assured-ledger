@@ -258,9 +258,7 @@ func (s *TestWalletServer) GetBalance(w http.ResponseWriter, req *http.Request) 
 	ref, err := reference.GlobalFromString(params.WalletRef)
 
 	if err != nil {
-		result.Error = throw.W(err,
-			fmt.Sprintf("Failed to create reference from string (%s)", params.WalletRef), nil,
-		).Error()
+		result.Error = throw.W(err, "Failed to create reference from string").Error()
 		return
 	}
 
@@ -338,9 +336,7 @@ func (s *TestWalletServer) AddAmount(w http.ResponseWriter, req *http.Request) {
 
 	ref, err := reference.GlobalFromString(params.To)
 	if err != nil {
-		result.Error = throw.W(err,
-			fmt.Sprintf("Failed to create reference from string (%s)", params.To), nil,
-		).Error()
+		result.Error = throw.W(err, "Failed to create reference from string").Error()
 
 		return
 	}
@@ -422,9 +418,7 @@ func (s *TestWalletServer) Delete(w http.ResponseWriter, req *http.Request) {
 	_, err = reference.GlobalFromString(params.WalletRef)
 
 	if err != nil {
-		result.Error = throw.W(err,
-			fmt.Sprintf("Failed to create reference from string (%s)", params.WalletRef), nil,
-		).Error()
+		result.Error = throw.W(err, "Failed to create reference from string").Error()
 		return
 	}
 
