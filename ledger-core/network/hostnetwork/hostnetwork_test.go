@@ -181,7 +181,9 @@ func (s *hostSuite) Stop() {
 
 func TestNewHostNetwork(t *testing.T) {
 	defer testutils.LeakTester(t)
-	instestlogger.SetTestOutput(t)
+	instestlogger.SetTestOutputWithErrorFilter(t, func(s string) bool {
+		return !strings.Contains(s, "Failed to send response")
+	})
 
 	s := newHostSuite(t)
 	defer s.Stop()
