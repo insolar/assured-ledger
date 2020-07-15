@@ -35,6 +35,7 @@ const (
 	WalletGetBalancePath = walletPath + "/get_balance"
 	WalletAddAmountPath  = walletPath + "/add_amount"
 	WalletTransferPath   = walletPath + "/transfer"
+	WalletDeletePath     = walletPath + "/delete"
 )
 
 // CreateHTTPClient for connection re-use

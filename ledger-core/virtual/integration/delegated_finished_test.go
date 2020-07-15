@@ -85,7 +85,7 @@ func TestVirtual_SendDelegatedFinished_IfPulseChanged_WithSideEffect(t *testing.
 		mc = minimock.NewController(t)
 	)
 
-	server, ctx := utils.NewUninitializedServer(nil, t) // TODO PLAT-367 fix test to be stable and have no errors in logs
+	server, ctx := utils.NewUninitializedServer(nil, t)
 	defer server.Stop()
 
 	runnerMock := logicless.NewServiceMock(ctx, mc, nil)
