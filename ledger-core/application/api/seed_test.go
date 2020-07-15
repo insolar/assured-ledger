@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/gojuno/minimock/v3"
@@ -28,7 +29,9 @@ func TestNodeService_GetSeed(t *testing.T) {
 	defer testutils.LeakTester(t,
 		goleak.IgnoreTopFunction("github.com/insolar/assured-ledger/ledger-core/application/api/seedmanager.NewSpecified.func1"))
 
-	instestlogger.SetTestOutputWithIgnoreAllErrors(t)
+	instestlogger.SetTestOutputWithErrorFilter(t, func(s string) bool {
+		return !strings.Contains(s, "fake error")
+	})
 
 	availableFlag := false
 	mc := minimock.NewController(t)

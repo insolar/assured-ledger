@@ -7,6 +7,7 @@ package servicenetwork
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/ThreeDotsLabs/watermill"
@@ -47,8 +48,6 @@ func (p *PublisherMock) Close() error {
 }
 
 func prepareNetwork(t *testing.T, cfg configuration.Configuration) *ServiceNetwork {
-	instestlogger.SetTestOutputWithIgnoreAllErrors(t)
-
 	serviceNetwork, err := NewServiceNetwork(cfg, component.NewManager(nil))
 	require.NoError(t, err)
 
@@ -63,6 +62,12 @@ func prepareNetwork(t *testing.T, cfg configuration.Configuration) *ServiceNetwo
 
 func TestSendMessageHandler_ReceiverNotSet(t *testing.T) {
 	cfg := configuration.NewConfiguration()
+	instestlogger.SetTestOutputWithErrorFilter(t, func(s string) bool {
+		if strings.Contains(s, "failed to send message: Receiver in message metadata is not set") {
+			return false
+		}
+		return true
+	})
 
 	serviceNetwork := prepareNetwork(t, cfg)
 
@@ -259,6 +264,12 @@ func (pm *publisherMock) Publish(topic string, messages ...*message.Message) err
 func (pm *publisherMock) Close() error                                             { return nil }
 
 func TestServiceNetwork_processIncoming(t *testing.T) {
+	instestlogger.SetTestOutputWithErrorFilter(t, func(s string) bool {
+		expectedError := strings.Contains(s, "error while deserialize msg from buffer") ||
+			strings.Contains(s, "error while publish msg to TopicIncoming")
+		return !expectedError
+	})
+
 	serviceNetwork, err := NewServiceNetwork(configuration.NewConfiguration(), component.NewManager(nil))
 	require.NoError(t, err)
 	pub := &publisherMock{}
