@@ -9,6 +9,8 @@ import (
 	"testing"
 
 	"github.com/gojuno/minimock/v3"
+	"github.com/stretchr/testify/require"
+
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
@@ -24,7 +26,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callsummary"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/shareddata"
-	"github.com/stretchr/testify/require"
 )
 
 func TestVFindCallRequest(t *testing.T) {
@@ -62,37 +63,38 @@ func TestVFindCallRequest(t *testing.T) {
 
 	sync := smsync.NewConditionalBool(false, "summaryDone").SyncLink()
 
-	{
-		callSummarySyncSdl := smachine.NewUnboundSharedData(&sync)
+	t.Run("found_callsummary_sync", func(t *testing.T) {
+		{
+			callSummarySyncSdl := smachine.NewUnboundSharedData(&sync)
 
-		execCtx := smachine.NewExecutionContextMock(mc).
-			GetPublishedLinkMock.Expect(callsummary.BuildSummarySyncKey(objectRef)).
-			Return(callSummarySyncSdl).
-			JumpMock.Set(testutils.AssertJumpStep(t, smVFindCallRequest.stepWaitCallResult))
+			execCtx := smachine.NewExecutionContextMock(mc).
+				GetPublishedLinkMock.Expect(callsummary.BuildSummarySyncKey(objectRef)).
+				Return(callSummarySyncSdl).
+				JumpMock.Set(testutils.AssertJumpStep(t, smVFindCallRequest.stepWaitCallResult))
 
-		smVFindCallRequest.stepProcessRequest(execCtx)
+			smVFindCallRequest.stepProcessRequest(execCtx)
 
-		require.Equal(t, callsummary.SyncAccessor{SharedDataLink: callSummarySyncSdl}, smVFindCallRequest.syncLinkAccessor)
-	}
+			require.Equal(t, callsummary.SyncAccessor{SharedDataLink: callSummarySyncSdl}, smVFindCallRequest.syncLinkAccessor)
+		}
 
-	{
-		execCtx := smachine.NewExecutionContextMock(mc).
-			UseSharedMock.Set(shareddata.CallSharedDataAccessor).
-			AcquireMock.Expect(sync).Return(true).
-			JumpMock.Set(testutils.AssertJumpStep(t, smVFindCallRequest.stepGetRequestData))
+		{
+			execCtx := smachine.NewExecutionContextMock(mc).
+				UseSharedMock.Set(shareddata.CallSharedDataAccessor).
+				AcquireMock.Expect(sync).Return(true).
+				JumpMock.Set(testutils.AssertJumpStep(t, smVFindCallRequest.stepGetRequestData))
 
-		smVFindCallRequest.stepWaitCallResult(execCtx)
-	}
+			smVFindCallRequest.stepWaitCallResult(execCtx)
+		}
+	})
 
-	// not found call summary
-	{
+	t.Run("not_found_callsummary", func(t *testing.T) {
 		execCtx := smachine.NewExecutionContextMock(mc).
 			GetPublishedLinkMock.Expect(callsummary.BuildSummarySharedKey(vFindCallRequest.LookAt)).
 			Return(smachine.SharedDataLink{}).
 			JumpMock.Set(testutils.AssertJumpStep(t, smVFindCallRequest.stepNotFoundResponse))
 
 		smVFindCallRequest.stepGetRequestData(execCtx)
-	}
+	})
 
 	sharedCallSummary := callsummary.SharedCallSummary{Requests: callregistry.NewObjectRequestTable()}
 
@@ -114,9 +116,8 @@ func TestVFindCallRequest(t *testing.T) {
 
 	callSummarySdl := smachine.NewUnboundSharedData(&sharedCallSummary)
 
-	// not found request in call summary
-	{
-		{
+	t.Run("not_found_in_callsummary", func(t *testing.T) {
+		t.Run("object", func(t *testing.T) {
 			// try to find for unknown object
 			vFindCallRequest := payload.VFindCallRequest{
 				LookAt:   pd.GetPulseNumber(),
@@ -124,7 +125,13 @@ func TestVFindCallRequest(t *testing.T) {
 				Outgoing: outgoing,
 			}
 
-			smVFindCallRequest.Payload = &vFindCallRequest
+			smVFindCallRequest := SMVFindCallRequest{
+				Meta: &payload.Meta{
+					Sender: sender,
+				},
+				Payload:   &vFindCallRequest,
+				pulseSlot: &pulseSlot,
+			}
 
 			execCtx := smachine.NewExecutionContextMock(mc).
 				GetPublishedLinkMock.Expect(callsummary.BuildSummarySharedKey(vFindCallRequest.LookAt)).
@@ -133,9 +140,9 @@ func TestVFindCallRequest(t *testing.T) {
 				JumpMock.Set(testutils.AssertJumpStep(t, smVFindCallRequest.stepNotFoundResponse))
 
 			smVFindCallRequest.stepGetRequestData(execCtx)
-		}
+		})
 
-		{
+		t.Run("request", func(t *testing.T) {
 			// try to find for unknown request
 			vFindCallRequest := payload.VFindCallRequest{
 				LookAt:   pd.GetPulseNumber(),
@@ -143,7 +150,13 @@ func TestVFindCallRequest(t *testing.T) {
 				Outgoing: gen.UniqueGlobalRef(),
 			}
 
-			smVFindCallRequest.Payload = &vFindCallRequest
+			smVFindCallRequest := SMVFindCallRequest{
+				Meta: &payload.Meta{
+					Sender: sender,
+				},
+				Payload:   &vFindCallRequest,
+				pulseSlot: &pulseSlot,
+			}
 
 			execCtx := smachine.NewExecutionContextMock(mc).
 				GetPublishedLinkMock.Expect(callsummary.BuildSummarySharedKey(vFindCallRequest.LookAt)).
@@ -152,10 +165,7 @@ func TestVFindCallRequest(t *testing.T) {
 				JumpMock.Set(testutils.AssertJumpStep(t, smVFindCallRequest.stepNotFoundResponse))
 
 			smVFindCallRequest.stepGetRequestData(execCtx)
-		}
-
-		// reset to correct object and request ref
-		smVFindCallRequest.Payload = &vFindCallRequest
+		})
 
 		{
 			execCtx := smachine.NewExecutionContextMock(mc).
@@ -196,54 +206,55 @@ func TestVFindCallRequest(t *testing.T) {
 
 			smVFindCallRequest.stepSendResponse(execCtx)
 		}
-	}
+	})
 
-	// passed
-	{
-		execCtx := smachine.NewExecutionContextMock(mc).
-			GetPublishedLinkMock.Expect(callsummary.BuildSummarySharedKey(vFindCallRequest.LookAt)).
-			Return(callSummarySdl).
-			UseSharedMock.Set(shareddata.CallSharedDataAccessor).
-			JumpMock.Set(testutils.AssertJumpStep(t, smVFindCallRequest.stepSendResponse))
+	t.Run("found", func(t *testing.T) {
+		{
+			execCtx := smachine.NewExecutionContextMock(mc).
+				GetPublishedLinkMock.Expect(callsummary.BuildSummarySharedKey(vFindCallRequest.LookAt)).
+				Return(callSummarySdl).
+				UseSharedMock.Set(shareddata.CallSharedDataAccessor).
+				JumpMock.Set(testutils.AssertJumpStep(t, smVFindCallRequest.stepSendResponse))
 
-		smVFindCallRequest.stepGetRequestData(execCtx)
+			smVFindCallRequest.stepGetRequestData(execCtx)
 
-		require.Equal(t, payload.FoundCall, smVFindCallRequest.status)
-		require.Equal(t, &vCallResult, smVFindCallRequest.callResult)
-	}
+			require.Equal(t, payload.FoundCall, smVFindCallRequest.status)
+			require.Equal(t, &vCallResult, smVFindCallRequest.callResult)
+		}
 
-	{
-		messageSender := messagesender.NewServiceMockWrapper(mc)
-		messageSenderAdapter := messageSender.NewAdapterMock()
-		messageSenderAdapter.SetDefaultPrepareAsyncCall(ctx)
+		{
+			messageSender := messagesender.NewServiceMockWrapper(mc)
+			messageSenderAdapter := messageSender.NewAdapterMock()
+			messageSenderAdapter.SetDefaultPrepareAsyncCall(ctx)
 
-		smVFindCallRequest.messageSender = messageSenderAdapter.Mock()
+			smVFindCallRequest.messageSender = messageSenderAdapter.Mock()
 
-		checkMessage := func(msg payload.Marshaler) {
-			switch msg0 := msg.(type) {
-			case *payload.VFindCallResponse:
-				require.Equal(t, pd.GetPulseNumber(), msg0.LookedAt)
-				require.Equal(t, objectRef, msg0.Callee)
-				require.Equal(t, outgoing, msg0.Outgoing)
-				require.Equal(t, payload.FoundCall, msg0.Status)
-				require.Equal(t, &vCallResult, msg0.CallResult)
-			default:
-				panic("Unexpected message type")
+			checkMessage := func(msg payload.Marshaler) {
+				switch msg0 := msg.(type) {
+				case *payload.VFindCallResponse:
+					require.Equal(t, pd.GetPulseNumber(), msg0.LookedAt)
+					require.Equal(t, objectRef, msg0.Callee)
+					require.Equal(t, outgoing, msg0.Outgoing)
+					require.Equal(t, payload.FoundCall, msg0.Status)
+					require.Equal(t, &vCallResult, msg0.CallResult)
+				default:
+					panic("Unexpected message type")
+				}
 			}
+			checkTarget := func(target reference.Global) {
+				require.Equal(t, sender, target)
+			}
+
+			messageSender.SendTarget.SetCheckMessage(checkMessage)
+			messageSender.SendTarget.SetCheckTarget(checkTarget)
+
+			execCtx := smachine.NewExecutionContextMock(mc).
+				StopMock.Expect().
+				Return(smachine.StateUpdate{})
+
+			smVFindCallRequest.stepSendResponse(execCtx)
 		}
-		checkTarget := func(target reference.Global) {
-			require.Equal(t, sender, target)
-		}
-
-		messageSender.SendTarget.SetCheckMessage(checkMessage)
-		messageSender.SendTarget.SetCheckTarget(checkTarget)
-
-		execCtx := smachine.NewExecutionContextMock(mc).
-			StopMock.Expect().
-			Return(smachine.StateUpdate{})
-
-		smVFindCallRequest.stepSendResponse(execCtx)
-	}
+	})
 
 	mc.Finish()
 }
