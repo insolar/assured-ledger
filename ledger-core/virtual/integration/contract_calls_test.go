@@ -6,23 +6,27 @@
 package integration
 
 import (
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/gojuno/minimock/v3"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/debuglogger"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/synchronization"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 var byteArguments = []byte("123")
@@ -504,4 +508,125 @@ func TestVirtual_CallMethodFromConstructor(t *testing.T) {
 			mc.Finish()
 		})
 	}
+}
+
+func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
+	t.Log("C5320")
+
+	countChangePulse := execute.MaxOutgoingSendCount
+
+	mc := minimock.NewController(t)
+
+	server, ctx := utils.NewUninitializedServerWithErrorFilter(nil, t, func(s string) bool {
+		// Pass all errors, except for (*SMExecute).stepSendOutgoing
+		return !strings.Contains(s, "outgoing retries limit")
+	})
+
+	defer server.Stop()
+
+	logger := inslogger.FromContext(ctx)
+
+	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
+		return execution.Request.CallSiteMethod
+	})
+	{
+		server.ReplaceRunner(runnerMock)
+		server.Init(ctx)
+		server.IncrementPulseAndWaitIdle(ctx)
+	}
+
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+
+	var (
+		outgoing = server.BuildRandomOutgoingWithPulse()
+		object   = reference.NewSelf(server.RandomLocalWithPulse())
+
+		tokenValue payload.CallDelegationToken
+	)
+
+	executeStopped := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
+
+	foundError := server.Journal.Wait(func(event debuglogger.UpdateEvent) bool {
+		if event.Data.Error != nil {
+			return strings.Contains(event.Data.Error.Error(), "outgoing retries limit")
+		}
+		return false
+	})
+
+	Method_PrepareObject(ctx, server, payload.Ready, object)
+
+	pl := payload.VCallRequest{
+		CallType:       payload.CTMethod,
+		CallFlags:      payload.BuildCallFlags(tolerableFlags().Interference, tolerableFlags().State),
+		Callee:         object,
+		CallSiteMethod: "SomeMethod",
+		CallOutgoing:   outgoing,
+	}
+
+	// add ExecutionMocks to runnerMock
+	{
+		runnerMock.AddExecutionClassify("SomeMethod", tolerableFlags(), nil)
+
+		objectExecutionMock := runnerMock.AddExecutionMock("SomeMethod")
+		objectExecutionMock.AddStart(
+			func(_ execution.Context) {
+				logger.Debug("ExecutionStart [SomeMethod]")
+			},
+			&execution.Update{
+				Type:     execution.OutgoingCall,
+				Outgoing: execution.CallMethod{},
+			},
+		)
+	}
+
+	point := synchronization.NewPoint(1)
+
+	// add checks to typedChecker
+	{
+		typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool { return false })
+
+		typedChecker.VDelegatedCallRequest.Set(func(request *payload.VDelegatedCallRequest) bool {
+			require.Equal(t, object, request.Callee)
+			newPulse := server.GetPulse().PulseNumber
+			approver := gen.UniqueGlobalRef()
+
+			tokenValue = payload.CallDelegationToken{
+				TokenTypeAndFlags: payload.DelegationTokenTypeCall,
+				PulseNumber:       newPulse,
+				Callee:            request.Callee,
+				Outgoing:          request.CallOutgoing,
+				DelegateTo:        server.JetCoordinatorMock.Me(),
+				Approver:          approver,
+			}
+			msg := payload.VDelegatedCallResponse{
+				Callee:                 request.Callee,
+				ResponseDelegationSpec: tokenValue,
+			}
+
+			server.SendPayload(ctx, &msg)
+			return false
+		})
+
+		typedChecker.VCallRequest.Set(func(finished *payload.VCallRequest) bool {
+			point.Synchronize()
+			return false
+		})
+
+	}
+
+	server.WaitIdleConveyor()
+	server.SendPayload(ctx, &pl)
+
+	for i := 0; i < countChangePulse; i++ {
+		testutils.WaitSignalsTimed(t, 10*time.Second, point.Wait())
+		server.IncrementPulseAndWaitIdle(ctx)
+		point.WakeUp()
+	}
+
+	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone(), executeStopped, foundError)
+
+	require.Equal(t, countChangePulse, typedChecker.VCallRequest.Count())
+
+	mc.Finish()
+
 }
