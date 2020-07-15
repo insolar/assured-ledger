@@ -96,50 +96,124 @@ func getReceiver(recv *ast.FieldList) string {
 	}
 }
 
+func getTypeName(typeAst ast.Expr) string {
+	typeSelector, ok := typeAst.(*ast.SelectorExpr)
+	if !ok {
+		return ""
+	}
+
+	return typeSelector.Sel.Name
+}
+
+func getStarTypeName(typeAst ast.Expr) string {
+	typeStarExpr, ok := typeAst.(*ast.StarExpr)
+	if !ok {
+		return ""
+	}
+
+	return getTypeName(typeStarExpr.X)
+}
+
+func getOptStarTypeName(typeAst ast.Expr) string {
+	if rv := getStarTypeName(typeAst); rv != "" {
+		return rv
+	}
+	return getTypeName(typeAst)
+}
+
 func checkArgumentType(paramList *ast.FieldList, position int, tp string) bool {
 	if paramList.NumFields() <= position {
 		return false
 	}
 
-	typeAst := paramList.List[position].Type
-	typeSelector, ok := typeAst.(*ast.SelectorExpr)
-	if !ok {
-		return false
-	} else if typeSelector.Sel.Name != tp {
-		return false
-	} // todo: check that imports are right here
+	return getTypeName(paramList.List[position].Type) == tp
+}
 
-	return true
+// GetStateMachineName returns empty string on parsing non GetStateMachineDeclaration
+func GetStateMachineName(fn *ast.FuncDecl) string {
+	switch {
+	case getReceiver(fn.Recv) == "":
+		return ""
+	case fn.Name.Name != "GetStateMachineDeclaration":
+		return ""
+	case fn.Type.Params.NumFields() != 0:
+		return ""
+	case fn.Type.Results.NumFields() != 1:
+		return ""
+	case !checkArgumentType(fn.Type.Results, 0, "StateMachineDeclaration"):
+		return ""
+
+	default:
+		return getReceiver(fn.Recv)
+	}
+}
+
+func getStructName(fn *ast.TypeSpec) (string, string) {
+	structDef, ok := fn.Type.(*ast.StructType)
+	if fn.Name.Name == "" || !ok {
+		return "", ""
+	}
+
+	for _, val := range structDef.Fields.List {
+		if len(val.Names) == 1 && val.Names[0].Name == "Payload" {
+			return fn.Name.Name, getOptStarTypeName(val.Type)
+		}
+	}
+
+	return "", ""
 }
 
 func loadFiles(files []*ast.File) []string {
-	handlers := make([]string, 0)
+	var (
+		smList         = make(map[string]struct{})
+		payloadMapping = make(map[string]string)
+	)
 
 	for _, file := range files {
 		for _, decl := range file.Decls {
-			fn, ok := decl.(*ast.FuncDecl)
-			switch {
-			case !ok:
-				continue
-			case getReceiver(fn.Recv) == "":
-				continue
-			case fn.Name.Name != "GetStateMachineDeclaration":
-				continue
-			case fn.Type.Params.NumFields() != 0:
-				continue
-			case fn.Type.Results.NumFields() != 1:
-				continue
-			case !checkArgumentType(fn.Type.Results, 0, "StateMachineDeclaration"):
-				continue
 
-			default:
-				msgName := strings.TrimPrefix(getReceiver(fn.Recv), "SM")
-				handlers = append(handlers, msgName)
+			// extract all declarations of
+			if fn, ok := decl.(*ast.FuncDecl); ok {
+				smList[GetStateMachineName(fn)] = struct{}{}
+			} else if general, ok := decl.(*ast.GenDecl); ok && general.Tok == token.TYPE {
+				for _, rawSpec := range general.Specs {
+					spec, ok := rawSpec.(*ast.TypeSpec)
+					if !ok {
+						panic(throw.IllegalState())
+					}
+					if smName, payloadType := getStructName(spec); smName != "" && payloadType != "" {
+						payloadMapping[smName] = payloadType
+					}
+				}
 			}
 		}
 	}
 
-	return handlers
+	messageMap := make(map[string]struct{}, 0)
+
+	for stateMachineName, _ := range smList {
+		if stateMachineName == "" {
+			continue
+		}
+
+		messageName, ok := payloadMapping[stateMachineName]
+		if !ok {
+			continue
+		} else if messageName == "" {
+			continue
+		}
+
+		messageMap[messageName] = struct{}{}
+	}
+
+	messages := make([]string, 0, len(messageMap))
+	for messageName, _ := range messageMap {
+		messages = append(messages, messageName)
+	}
+
+	sort.Slice(messages, func(i, j int) bool { return strings.Compare(messages[i], messages[j]) < 0 })
+
+	return messages
 }
 
 func parseHandlers() ([]string, error) {
@@ -166,8 +240,6 @@ func parseHandlers() ([]string, error) {
 		}
 	}
 	messages := loadFiles(handlerFiles)
-
-	sort.Slice(messages, func(i, j int) bool { return strings.Compare(messages[i], messages[j]) < 0 })
 
 	return messages, nil
 }

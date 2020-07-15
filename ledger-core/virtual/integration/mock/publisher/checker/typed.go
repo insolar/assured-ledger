@@ -700,23 +700,3 @@ func (p *Typed) MinimockWait(timeout time.Duration) {
 		}
 	}
 }
-
-func waitCounterIndefinitely(ctx context.Context, counter *atomickit.Int, count int) synckit.SignalChannel {
-	ch := make(synckit.ClosableSignalChannel)
-	go func() {
-		defer close(ch)
-
-		for {
-			c := counter.Load()
-			if c >= count {
-				return
-			}
-			select {
-			case <-ctx.Done():
-				return
-			case <-time.After(1 * time.Millisecond):
-			}
-		}
-	}()
-	return ch
-}
