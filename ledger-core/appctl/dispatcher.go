@@ -17,7 +17,7 @@ import (
 
 type Message = message.Message
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/appserver.Dispatcher -o ./ -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/appctl.Dispatcher -o ./ -s _mock.go -g
 type Dispatcher interface {
 	PreparePulseChange(PulseChange, NodeStateSink)
 	CancelPulseChange()

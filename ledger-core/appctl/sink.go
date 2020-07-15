@@ -20,6 +20,7 @@ type NodeStateChan = chan<- NodeState
 
 func NewNodeStateSink(ch chan NodeState) (NodeStateSink, func(committed bool)) {
 	ctl := &sinkCtl{
+		ready: make(synckit.ClosableSignalChannel),
 		report: ch,
 	}
 	return NodeStateSink{ ctl }, ctl.setReadyState
