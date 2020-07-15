@@ -23,7 +23,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/synchronization"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
@@ -559,12 +558,6 @@ func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 	// add ExecutionMocks to runnerMock
 	{
 		runnerMock.AddExecutionClassify("SomeMethod", tolerableFlags(), nil)
-		newObjDescriptor := descriptor.NewObject(
-			reference.Global{}, reference.Local{}, gen.UniqueGlobalRef(), []byte(""), reference.Global{},
-		)
-
-		requestResult := requestresult.New([]byte("call result"), gen.UniqueGlobalRef())
-		requestResult.SetAmend(newObjDescriptor, []byte("new memory"))
 
 		objectExecutionMock := runnerMock.AddExecutionMock("SomeMethod")
 		objectExecutionMock.AddStart(
