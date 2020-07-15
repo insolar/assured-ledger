@@ -61,6 +61,11 @@ type TestWalletServerAddAmountResult struct {
 	Error   string `json:"error"`
 }
 
+type TestWalletServerDeleteResult struct {
+	TraceID string `json:"traceID"`
+	Error   string `json:"error"`
+}
+
 const (
 	APIRequestTimeout = 25 * time.Second
 )
@@ -253,9 +258,7 @@ func (s *TestWalletServer) GetBalance(w http.ResponseWriter, req *http.Request) 
 	ref, err := reference.GlobalFromString(params.WalletRef)
 
 	if err != nil {
-		result.Error = throw.W(err,
-			fmt.Sprintf("Failed to create reference from string (%s)", params.WalletRef), nil,
-		).Error()
+		result.Error = throw.W(err, "Failed to create reference from string").Error()
 		return
 	}
 
@@ -333,9 +336,7 @@ func (s *TestWalletServer) AddAmount(w http.ResponseWriter, req *http.Request) {
 
 	ref, err := reference.GlobalFromString(params.To)
 	if err != nil {
-		result.Error = throw.W(err,
-			fmt.Sprintf("Failed to create reference from string (%s)", params.To), nil,
-		).Error()
+		result.Error = throw.W(err, "Failed to create reference from string").Error()
 
 		return
 	}
@@ -371,6 +372,57 @@ func (s *TestWalletServer) AddAmount(w http.ResponseWriter, req *http.Request) {
 	default:
 
 	}
+}
+
+type DeleteParams struct {
+	WalletRef string
+}
+
+func (p *DeleteParams) isValid() bool {
+	return len(p.WalletRef) > 0
+}
+
+func (s *TestWalletServer) Delete(w http.ResponseWriter, req *http.Request) {
+	var (
+		ctx     = req.Context()
+		traceID = trace.RandID()
+		logger  log.Logger
+	)
+
+	_, logger = inslogger.WithTraceField(ctx, traceID)
+	logger.Infom(logIncomingRequest{URL: req.URL.String(), Handler: "Delete"})
+
+	params := DeleteParams{}
+	err := json.NewDecoder(req.Body).Decode(&params)
+	if err != nil {
+		http.Error(w, fmt.Sprintf(badRequestErrorPattern, "Can't parse boby: "+err.Error(), traceID), http.StatusBadRequest)
+		return
+	}
+	if !params.isValid() {
+		http.Error(w, fmt.Sprintf(badRequestErrorPattern, "invalid input params", traceID), http.StatusBadRequest)
+		return
+	}
+
+	result := TestWalletServerDeleteResult{
+		TraceID: traceID,
+		Error:   "",
+	}
+
+	defer func() {
+		if len(result.Error) != 0 {
+			logger.Error(result.Error)
+		}
+		s.mustWriteResult(w, result)
+	}()
+
+	_, err = reference.GlobalFromString(params.WalletRef)
+
+	if err != nil {
+		result.Error = throw.W(err, "Failed to create reference from string").Error()
+		return
+	}
+
+	// TODO: VCallRequest
 }
 
 func (s *TestWalletServer) runWalletRequest(ctx context.Context, req payload.VCallRequest) ([]byte, error) {

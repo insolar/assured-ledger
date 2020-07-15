@@ -9,6 +9,7 @@ package headless
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -20,7 +21,9 @@ import (
 )
 
 func TestComponents(t *testing.T) {
-	instestlogger.SetTestOutputWithIgnoreAllErrors(t)
+	instestlogger.SetTestOutputWithErrorFilter(t, func(s string) bool {
+		return !strings.Contains(s, "Failed to export to Prometheus: cannot register the collector")
+	})
 
 	ctx := inslogger.UpdateLogger(context.Background(), func(logger log.Logger) (log.Logger, error) {
 		return logger.Copy().WithBuffer(100, false).Build()
