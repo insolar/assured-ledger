@@ -24,7 +24,7 @@ import (
 
 func TestHostNetwork_SendRequestPacket2(t *testing.T) {
 	defer testutils.LeakTester(t)
-	// response could be sent when test is already think that it is finished
+	// response could be sent when test is already finished
 	instestlogger.SetTestOutputWithErrorFilter(t, func(s string) bool {
 		return !strings.Contains(s, "Failed to send response")
 	})
