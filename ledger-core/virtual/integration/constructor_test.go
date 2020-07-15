@@ -942,8 +942,6 @@ func TestVirtual_CallConstructor_WithTwicePulseChange(t *testing.T) {
 
 	// wait for results
 	{
-		testutils.WaitSignalsTimed(t, 10*time.Second, synchronizeExecution.Wait())
-
 		tokenRequestDone := server.Journal.Wait(
 			predicate.ChainOf(
 				predicate.NewSMTypeFilter(&execute.SMDelegatedTokenRequest{}, predicate.AfterAnyStopOrError),
@@ -953,6 +951,7 @@ func TestVirtual_CallConstructor_WithTwicePulseChange(t *testing.T) {
 		// wait for first pulse change
 		testutils.WaitSignalsTimed(t, 20*time.Second, tokenRequestDone)
 		// continue ExecutionStart [A.New]
+		testutils.WaitSignalsTimed(t, 10*time.Second, synchronizeExecution.Wait())
 		synchronizeExecution.WakeUp()
 		// wait for second pulse change
 		testutils.WaitSignalsTimed(t, 20*time.Second, tokenRequestDone)
