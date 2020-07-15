@@ -90,18 +90,3 @@ var EphemeralPulse = func() (pc appctl.PulseChange) {
 	pc.Timestamp = pulse.UnixTimeOfMinTimePulse
 	return
 } ()
-
-var OldGenesisPulse = &Pulse{
-	PulseNumber:      pulse.MinTimePulse,
-	Entropy:          [EntropySize]byte{},
-	EpochPulseNumber: pulse.MinTimePulse,
-	PulseTimestamp:   pulse.UnixTimeOfMinTimePulse,
-}
-
-// EphemeralPulse is used for discovery network bootstrap
-var OldEphemeralPulse = &Pulse{
-	PulseNumber:      pulse.MinTimePulse,
-	Entropy:          [EntropySize]byte{},
-	EpochPulseNumber: pulse.EphemeralPulseEpoch,
-	PulseTimestamp:   pulse.UnixTimeOfMinTimePulse,
-}

@@ -227,7 +227,7 @@ func (s *Server) GetPrevPulse() appctl.PulseChange {
 	return s.pulseGenerator.GetPrevPulseAsPulse()
 }
 
-func (s *Server) incrementPulse(ctx context.Context) {
+func (s *Server) incrementPulse(context.Context) {
 	s.pulseGenerator.Generate()
 
 	if err := s.pulseManager.CommitPulseChange(s.GetPulse()); err != nil {

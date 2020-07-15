@@ -30,7 +30,7 @@ require (
 	github.com/mattn/go-isatty v0.0.9 // indirect
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/olekukonko/tablewriter v0.0.1
-	github.com/onrik/gomerkle v1.0.0
+	github.com/onrik/gomerkle v1.0.0 // indirect
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/prometheus/client_golang v1.6.0
 	github.com/rs/zerolog v1.15.0
