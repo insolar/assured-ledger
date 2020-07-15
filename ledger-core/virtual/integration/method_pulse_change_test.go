@@ -22,6 +22,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
+	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/predicate"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
@@ -68,6 +69,8 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 
 	for _, test := range table {
 		t.Run(test.name, func(t *testing.T) {
+			defer commontestutils.LeakTester(t)
+
 			mc := minimock.NewController(t)
 
 			server, ctx := utils.NewUninitializedServer(nil, t)
@@ -240,6 +243,8 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 
 // 2 ordered and 2 unordered calls
 func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	t.Log("C5104")
 
 	mc := minimock.NewController(t)
@@ -446,6 +451,8 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 
 	for _, test := range table {
 		t.Run(test.name, func(t *testing.T) {
+			defer commontestutils.LeakTester(t)
+
 			mc := minimock.NewController(t)
 
 			server, ctx := utils.NewUninitializedServer(nil, t)

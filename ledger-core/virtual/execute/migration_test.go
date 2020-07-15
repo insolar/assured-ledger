@@ -31,6 +31,8 @@ import (
 )
 
 func TestSMExecute_MigrationDuringSendOutgoing(t *testing.T) {
+	defer executeLeakCheck(t)
+
 	var (
 		ctx = instestlogger.TestContext(t)
 		mc  = minimock.NewController(t)
