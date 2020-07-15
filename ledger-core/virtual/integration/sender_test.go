@@ -30,57 +30,58 @@ var messagesWithoutToken = []struct {
 		msg:   &payload.VCallRequest{},
 		pulse: []string{"P"},
 	},
-	// {
-	// 	name:  "VCallResult",
-	// 	msg:   &payload.VCallResult{},
-	// 	pulse: []string{"P", "P-1", "any"},
-	// },
-	// {
-	// 	name:  "VStateReport",
-	// 	msg:   &payload.VStateReport{},
-	// 	pulse: []string{"P-1", "any"},
-	// },
-	// {
-	// 	name:  "VStateRequest",
-	// 	msg:   &payload.VStateRequest{},
-	// 	pulse: []string{"P", "P-1", "any"},
-	// },
-	// {
-	// 	name:  "VDelegatedCallRequest",
-	// 	msg:   &payload.VDelegatedCallRequest{},
-	// 	pulse: []string{"P-1", "any"},
-	// },
-	// {
-	// 	name:  "VFindCallRequest",
-	// 	msg:   &payload.VDelegatedCallResponse{},
-	// 	pulse: []string{"P"},
-	// },
-	// {
-	// 	name:  "VDelegatedRequestFinished",
-	// 	msg:   &payload.VDelegatedRequestFinished{},
-	// 	pulse: []string{"P", "P-1", "any"},
-	// },
-	// {
-	// 	name:  "VFindCallResponse",
-	// 	msg:   &payload.VFindCallResponse{},
-	// 	pulse: []string{"P-1", "any"},
-	// },
-	// {
-	// 	name:  "VFindCallRequest",
-	// 	msg:   &payload.VFindCallRequest{},
-	// 	pulse: []string{"P"},
-	// },
+	{
+		name:  "VCallResult",
+		msg:   &payload.VCallResult{},
+		pulse: []string{"P", "P-1", "any"},
+	},
+	{
+		name:  "VStateReport",
+		msg:   &payload.VStateReport{},
+		pulse: []string{"P-1", "any"},
+	},
+	{
+		name:  "VStateRequest",
+		msg:   &payload.VStateRequest{},
+		pulse: []string{"P", "P-1", "any"},
+	},
+	{
+		name:  "VDelegatedCallRequest",
+		msg:   &payload.VDelegatedCallRequest{},
+		pulse: []string{"P-1", "any"},
+	},
+	{
+		name:  "VDelegatedCallResponse",
+		msg:   &payload.VDelegatedCallResponse{},
+		pulse: []string{"P"},
+	},
+	{
+		name:  "VDelegatedRequestFinished",
+		msg:   &payload.VDelegatedRequestFinished{},
+		pulse: []string{"P", "P-1", "any"},
+	},
+	{
+		name:  "VFindCallResponse",
+		msg:   &payload.VFindCallResponse{},
+		pulse: []string{"P-1", "any"},
+	},
+	{
+		name:  "VFindCallRequest",
+		msg:   &payload.VFindCallRequest{},
+		pulse: []string{"P"},
+	},
 }
 
 func TestSender_SuccessChecks(t *testing.T) {
 	t.Log("C5188")
-
 	for _, testMsg := range messagesWithoutToken {
 		t.Run(testMsg.name, func(t *testing.T) {
 			for _, p := range testMsg.pulse {
 				mc := minimock.NewController(t)
 
-				server, ctx := utils.NewUninitializedServer(nil, t)
+				server, ctx := utils.NewUninitializedServerWithErrorFilter(nil, t, func(s string) bool {
+					return false
+				})
 
 				jetCoordinatorMock := jet.NewAffinityHelperMock(mc)
 				auth := authentication.NewService(ctx, jetCoordinatorMock)
@@ -117,9 +118,9 @@ func TestSender_SuccessChecks(t *testing.T) {
 				}
 
 				jetCoordinatorMock.
-					MeMock.Return(server.RandomGlobalWithPulse()).
 					QueryRoleMock.Return([]reference.Global{sender}, nil)
 
+				logger.Debug("Send message: " + testMsg.name + ", pulse = " + p)
 				msg := server.WrapPayload(testMsg.msg.(payload.Marshaler)).SetSender(sender).Finalize()
 				server.SendMessage(ctx, msg)
 
