@@ -189,9 +189,9 @@ func loadFiles(files []*ast.File) []string {
 		}
 	}
 
-	messageMap := make(map[string]struct{}, 0)
+	messageMap := make(map[string]struct{})
 
-	for stateMachineName, _ := range smList {
+	for stateMachineName := range smList {
 		if stateMachineName == "" {
 			continue
 		}
@@ -207,7 +207,7 @@ func loadFiles(files []*ast.File) []string {
 	}
 
 	messages := make([]string, 0, len(messageMap))
-	for messageName, _ := range messageMap {
+	for messageName := range messageMap {
 		messages = append(messages, messageName)
 	}
 
