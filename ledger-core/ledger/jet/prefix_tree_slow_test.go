@@ -17,6 +17,7 @@ import (
 
 func TestPrefixTree_SerializeCombinations(t *testing.T) {
 	t.Run("raw   only", func(t *testing.T) {
+		t.Skip("too slow")
 		t.Parallel()
 		ser := PrefixTreeSerializer{}
 		pt := PrefixTree{}
@@ -43,6 +44,7 @@ func TestPrefixTree_SerializeCombinations(t *testing.T) {
 	})
 
 	t.Run("enum tree", func(t *testing.T) {
+		t.Skip("too slow")
 		t.Parallel()
 		pt := PrefixTree{}
 		pt.Init()
