@@ -6,6 +6,7 @@
 package integration
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 
@@ -33,22 +34,22 @@ var messagesWithoutToken = []struct {
 	{
 		name:  "VCallResult",
 		msg:   &payload.VCallResult{},
-		pulse: []string{"P", "P-1", "any"},
+		pulse: []string{"P"},
 	},
 	{
 		name:  "VStateReport",
 		msg:   &payload.VStateReport{},
-		pulse: []string{"P-1", "any"},
+		pulse: []string{"P-1"},
 	},
 	{
 		name:  "VStateRequest",
 		msg:   &payload.VStateRequest{},
-		pulse: []string{"P", "P-1", "any"},
+		pulse: []string{"P"},
 	},
 	{
 		name:  "VDelegatedCallRequest",
 		msg:   &payload.VDelegatedCallRequest{},
-		pulse: []string{"P-1", "any"},
+		pulse: []string{"P-1"},
 	},
 	{
 		name:  "VDelegatedCallResponse",
@@ -58,13 +59,14 @@ var messagesWithoutToken = []struct {
 	{
 		name:  "VDelegatedRequestFinished",
 		msg:   &payload.VDelegatedRequestFinished{},
-		pulse: []string{"P", "P-1", "any"},
-	},
-	{
-		name:  "VFindCallResponse",
-		msg:   &payload.VFindCallResponse{},
 		pulse: []string{"P-1", "any"},
 	},
+	// todo вынести в отдельный тест
+	// {
+	// 	name:  "VFindCallResponse",
+	// 	msg:   &payload.VFindCallResponse{},
+	// 	pulse: []string{"P-1"},
+	// },
 	{
 		name:  "VFindCallRequest",
 		msg:   &payload.VFindCallRequest{},
@@ -109,10 +111,10 @@ func TestSender_SuccessChecks(t *testing.T) {
 				switch p {
 				case "P":
 				case "P-1":
-					server.IncrementPulse(ctx)
+					server.IncrementPulseAndWaitIdle(ctx)
 				case "any":
-					server.IncrementPulse(ctx)
-					server.IncrementPulse(ctx)
+					server.IncrementPulseAndWaitIdle(ctx)
+					server.IncrementPulseAndWaitIdle(ctx)
 				default:
 					t.Fatal("unexpected")
 				}
