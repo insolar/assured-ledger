@@ -32,31 +32,36 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 )
 
-func TestVirtual_Method_One_PulseChanged(t *testing.T) {
+func TestVirtual_Method_PulseChanged(t *testing.T) {
 	t.Log("C5211")
 	table := []struct {
 		name             string
 		isolation        contract.MethodIsolation
+		withSideEffect   bool
 		countChangePulse int
 	}{
 		{
 			name:             "ordered call when the pulse changed",
 			isolation:        tolerableFlags(),
+			withSideEffect:   false,
 			countChangePulse: 1,
 		},
 		{
 			name:             "unordered call when the pulse changed",
 			isolation:        intolerableFlags(),
+			withSideEffect:   false,
 			countChangePulse: 1,
 		},
 		{
 			name:             "Ordered call double pulse change during execution",
 			isolation:        tolerableFlags(),
+			withSideEffect:   true,
 			countChangePulse: 2,
 		},
 		{
 			name:             "Unordered call double pulse change during execution",
 			isolation:        intolerableFlags(),
+			withSideEffect:   true,
 			countChangePulse: 2,
 		},
 	}
@@ -114,12 +119,14 @@ func TestVirtual_Method_One_PulseChanged(t *testing.T) {
 			// add ExecutionMocks to runnerMock
 			{
 				runnerMock.AddExecutionClassify("SomeMethod", test.isolation, nil)
-				newObjDescriptor := descriptor.NewObject(
-					reference.Global{}, reference.Local{}, gen.UniqueGlobalRef(), []byte(""), reference.Global{},
-				)
 
 				requestResult := requestresult.New([]byte("call result"), gen.UniqueGlobalRef())
-				requestResult.SetAmend(newObjDescriptor, []byte("new memory"))
+				if test.withSideEffect {
+					newObjDescriptor := descriptor.NewObject(
+						reference.Global{}, reference.Local{}, gen.UniqueGlobalRef(), []byte(""), reference.Global{},
+					)
+					requestResult.SetAmend(newObjDescriptor, []byte("new memory"))
+				}
 
 				objectExecutionMock := runnerMock.AddExecutionMock("SomeMethod")
 				objectExecutionMock.AddStart(
@@ -180,8 +187,9 @@ func TestVirtual_Method_One_PulseChanged(t *testing.T) {
 				typedChecker.VDelegatedRequestFinished.Set(func(finished *payload.VDelegatedRequestFinished) bool {
 					assert.Equal(t, object, finished.Callee)
 					assert.Equal(t, expectedToken, finished.DelegationSpec)
-					if test.isolation == tolerableFlags() {
+					if test.isolation == tolerableFlags() && test.withSideEffect {
 						assert.NotEmpty(t, finished.LatestState)
+						assert.Equal(t, []byte("new memory"), finished.LatestState.State)
 					} else {
 						assert.Empty(t, finished.LatestState)
 					}
