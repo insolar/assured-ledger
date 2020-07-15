@@ -27,7 +27,7 @@ steps:
     rps: 1000
     attack_time_sec: 600
     ramp_up_sec: 600
-    ramp_up_strategy: linear
+    ramp_up_strategy: exp2
     max_attackers: 1000
     verbose: true
     do_timeout_sec: 60
@@ -45,7 +45,7 @@ steps:
     rps: 1000
     attack_time_sec: 600
     ramp_up_sec: 600
-    ramp_up_strategy: linear
+    ramp_up_strategy: exp2
     max_attackers: 1000
     verbose: true
     do_timeout_sec: 60
