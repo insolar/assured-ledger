@@ -11,7 +11,6 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/pulsar/entropygenerator"
@@ -19,14 +18,14 @@ import (
 )
 
 type TestPulsar struct {
-	distributor   node.PulseDistributor
+	distributor   pulsestor.PulseDistributor
 	generator     entropygenerator.EntropyGenerator
 	configuration configuration.Pulsar
 }
 
 func NewTestPulsar(
 	configuration configuration.Pulsar,
-	distributor node.PulseDistributor,
+	distributor pulsestor.PulseDistributor,
 	generator entropygenerator.EntropyGenerator,
 ) *TestPulsar {
 	return &TestPulsar{

@@ -30,6 +30,7 @@ func (c *conveyorDispatcher) PreparePulseChange(change appctl.PulseChange, sink 
 	stateChan := sink.Occupy()
 
 	if c.prevPulse.IsUnknown() {
+		// Conveyor can't prepare without an initial pulse - there are no active SMs inside
 		stateChan <- appctl.NodeState{}
 		return
 	}
@@ -41,6 +42,7 @@ func (c *conveyorDispatcher) PreparePulseChange(change appctl.PulseChange, sink 
 
 func (c *conveyorDispatcher) CancelPulseChange() {
 	if c.prevPulse.IsUnknown() {
+		// Conveyor can't prepare without an initial pulse - there are no active SMs inside
 		return
 	}
 	if err := c.conveyor.CancelPulseChange(); err != nil {

@@ -9,6 +9,7 @@ import (
 	"context"
 	"sort"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodestorage"
@@ -24,7 +25,7 @@ import (
 type AffinityCoordinator struct {
 	PlatformCryptographyScheme cryptography.PlatformCryptographyScheme `inject:""`
 
-	PulseAccessor   pulsestor.Accessor   `inject:""`
+	PulseAccessor   appctl.Accessor      `inject:""`
 	PulseCalculator pulsestor.Calculator `inject:""`
 
 	Nodes nodestorage.Accessor `inject:""`
@@ -168,25 +169,27 @@ func CircleXOR(value, src []byte) []byte {
 }
 
 func (jc *AffinityCoordinator) entropy(ctx context.Context, pn pulse.Number) (pulsestor.Entropy, error) {
-	current, err := jc.PulseAccessor.Latest(ctx)
+	pc, err := jc.PulseAccessor.Latest(ctx)
 	if err != nil {
 		return pulsestor.Entropy{}, throw.W(err, "failed to get current pulse")
 	}
 
-	if current.PulseNumber == pn {
-		return current.Entropy, nil
+	if pc.PulseNumber != pn {
+		pc, err = jc.PulseAccessor.ForPulseNumber(ctx, pn)
+		if err != nil {
+			return pulsestor.Entropy{}, throw.W(err, "failed to fetch pulse data for pulse", struct {
+				Pulse pulse.Number
+			}{
+				Pulse: pn,
+			})
+		}
 	}
 
-	older, err := jc.PulseAccessor.ForPulseNumber(ctx, pn)
-	if err != nil {
-		return pulsestor.Entropy{}, throw.W(err, "failed to fetch pulse data for pulse", struct {
-			Pulse pulse.Number
-		}{
-			Pulse: pn,
-		})
-	}
+	etp := pulsestor.Entropy{}
+	copy(etp[:32], pc.PulseEntropy[:])
+	copy(etp[32:], pc.PulseEntropy[:])
 
-	return older.Entropy, nil
+	return etp, nil
 }
 
 func getRefs(

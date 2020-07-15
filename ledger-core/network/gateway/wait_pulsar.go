@@ -58,7 +58,7 @@ func (g *WaitPulsar) OnConsensusFinished(ctx context.Context, report network.Rep
 }
 
 func (g *WaitPulsar) switchOnRealPulse(pulseObject network.NetworkedPulse) {
-	if pulseObject.PulseNumber.IsTimePulse() && pulseObject.EpochPulseNumber.IsTimeEpoch() {
+	if pulseObject.PulseNumber.IsTimePulse() && pulseObject.PulseEpoch.IsTimeEpoch() {
 		g.pulseArrived <- pulseObject
 		close(g.pulseArrived)
 	}

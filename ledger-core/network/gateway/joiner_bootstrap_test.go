@@ -72,7 +72,7 @@ func TestJoinerBootstrap_Run_AuthorizeRequestFailed(t *testing.T) {
 	})
 
 	assert.Equal(t, node.JoinerBootstrap, f.joinerBootstrap.GetState())
-	f.joinerBootstrap.Run(context.Background(), network.NetworkedPulse{Pulse: *pulsestor.EphemeralPulse})
+	f.joinerBootstrap.Run(context.Background(), pulsestor.EphemeralPulse)
 }
 
 func TestJoinerBootstrap_Run_BootstrapRequestFailed(t *testing.T) {
@@ -90,11 +90,11 @@ func TestJoinerBootstrap_Run_BootstrapRequestFailed(t *testing.T) {
 		return &packet.Permit{}, nil
 	})
 
-	f.requester.BootstrapMock.Set(func(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate, pp2 *pulsestor.Pulse) (bp1 *packet.BootstrapResponse, err error) {
+	f.requester.BootstrapMock.Set(func(context.Context, *packet.Permit, adapters.Candidate, network.NetworkedPulse) (bp1 *packet.BootstrapResponse, err error) {
 		return nil, ErrUnknown
 	})
 
-	f.joinerBootstrap.Run(context.Background(), network.NetworkedPulse{Pulse: *pulsestor.EphemeralPulse})
+	f.joinerBootstrap.Run(context.Background(), pulsestor.EphemeralPulse)
 }
 
 func TestJoinerBootstrap_Run_BootstrapSucceeded(t *testing.T) {
@@ -113,7 +113,7 @@ func TestJoinerBootstrap_Run_BootstrapSucceeded(t *testing.T) {
 		return &packet.Permit{}, nil
 	})
 
-	f.requester.BootstrapMock.Set(func(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate, pp2 *pulsestor.Pulse) (bp1 *packet.BootstrapResponse, err error) {
+	f.requester.BootstrapMock.Set(func(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate, pp2 network.NetworkedPulse) (bp1 *packet.BootstrapResponse, err error) {
 		p := pulsestor.PulseProto{PulseNumber: 123}
 		return &packet.BootstrapResponse{
 			ETASeconds: 90,
@@ -121,7 +121,7 @@ func TestJoinerBootstrap_Run_BootstrapSucceeded(t *testing.T) {
 		}, nil
 	})
 
-	f.joinerBootstrap.Run(context.Background(), network.NetworkedPulse{Pulse: *pulsestor.EphemeralPulse})
+	f.joinerBootstrap.Run(context.Background(), pulsestor.EphemeralPulse)
 
 	assert.Equal(t, true, f.joinerBootstrap.bootstrapTimer.Stop())
 	assert.Equal(t, time.Duration(0), f.joinerBootstrap.backoff)

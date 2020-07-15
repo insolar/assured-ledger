@@ -8,9 +8,10 @@ package adapters
 import (
 	"context"
 	"sync"
+	"time"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
@@ -25,7 +26,7 @@ type StateGetter interface {
 }
 
 type PulseChanger interface {
-	ChangePulse(ctx context.Context, newPulse pulsestor.Pulse)
+	ChangePulse(ctx context.Context, newPulse appctl.PulseChange)
 }
 
 type StateUpdater interface {
@@ -102,9 +103,14 @@ func (u *UpstreamController) PreparePulseChange(report api.UpstreamReport, ch ch
 
 func (u *UpstreamController) CommitPulseChange(report api.UpstreamReport, pulseData pulse.Data, activeCensus census.Operational) {
 	ctx := ReportContext(report)
-	p := NewPulse(pulseData)
 
-	u.pulseChanger.ChangePulse(ctx, p)
+	u.pulseChanger.ChangePulse(ctx, appctl.PulseChange{
+		PulseSeq:    0,
+		Data:        pulseData,
+		Pulse:       pulseData.AsRange(),
+		StartedAt:   time.Now(), // TODO get pulse start
+		Census:      activeCensus,
+	})
 }
 
 func (u *UpstreamController) CancelPulseChange() {

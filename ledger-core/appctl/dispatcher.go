@@ -26,10 +26,12 @@ type Dispatcher interface {
 }
 
 type PulseChange struct {
-	PulseSeq  uint32
-	Pulse     pulse.Range
-	StartedAt time.Time
-	Census    census.Operational
+	PulseSeq    uint32
+	pulse.Data
+	Pulse       pulse.Range
+	StartedAt   time.Time
+	Census      census.Operational
+	PulseOrigin []byte
 }
 
 type MessageTag struct {

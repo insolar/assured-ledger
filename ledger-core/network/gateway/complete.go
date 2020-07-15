@@ -40,7 +40,7 @@ type Complete struct {
 	*Base
 }
 
-func (g *Complete) Run(ctx context.Context, pulse network.NetworkedPulse) {
+func (g *Complete) Run(context.Context, network.NetworkedPulse) {
 	if g.bootstrapTimer != nil {
 		g.bootstrapTimer.Stop()
 	}
@@ -53,7 +53,7 @@ func (g *Complete) GetState() node2.NetworkState {
 }
 
 func (g *Complete) BeforeRun(ctx context.Context, pulse network.NetworkedPulse) {
-	err := g.PulseManager.Set(ctx, pulse.Pulse)
+	err := g.PulseManager.CommitPulseChange(pulse)
 	if err != nil {
 		inslogger.FromContext(ctx).Panicf("failed to set start pulse: %d, %s", pulse.PulseNumber, err.Error())
 	}
@@ -169,7 +169,7 @@ func (g *Complete) OnPulseFromConsensus(ctx context.Context, pulse network.Netwo
 	span.SetTag("pulse.Number", int64(pulse.PulseNumber))
 	defer span.Finish()
 
-	err := g.PulseManager.Set(ctx, pulse.Pulse)
+	err := g.PulseManager.CommitPulseChange(pulse)
 	if err != nil {
 		logger.Fatalf("Failed to set new pulse: %s", err.Error())
 	}

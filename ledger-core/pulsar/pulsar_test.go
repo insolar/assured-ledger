@@ -19,13 +19,12 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulsar/entropygenerator"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
-	"github.com/insolar/assured-ledger/ledger-core/testutils"
 )
 
 func TestPulsar_Send(t *testing.T) {
 	instestlogger.SetTestOutput(t)
 
-	distMock := testutils.NewPulseDistributorMock(t)
+	distMock := pulsestor.NewPulseDistributorMock(t)
 	var pn pulse.Number = pulse.MinTimePulse
 
 	distMock.DistributeMock.Set(func(ctx context.Context, p1 pulsestor.Pulse) {

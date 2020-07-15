@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl"
-	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
@@ -24,12 +23,13 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-// Manager implements insolar.Manager.
+var _ appctl.Manager = &PulseManager{}
+
 type PulseManager struct {
 	NodeNet       network.NodeNetwork  `inject:""` //nolint:staticcheck
 	NodeSetter    nodestorage.Modifier `inject:""`
-	PulseAccessor pulsestor.Accessor   `inject:""`
-	PulseAppender pulsestor.Appender   `inject:""`
+	PulseAccessor appctl.Accessor      `inject:""`
+	PulseAppender appctl.Appender      `inject:""`
 	dispatchers   []appctl.Dispatcher
 
 	// setLock locks Set method call.
@@ -58,29 +58,56 @@ type messageNewPulse struct {
 	NewPulse pulse.Number
 }
 
-func (m *PulseManager) Set(ctx context.Context, newPulse pulsestor.Pulse) error {
+func (m *PulseManager) CommitPulseChange(pulseChange appctl.PulseChange) error {
+	newPulse := ConvertForLegacy(pulseChange)
+	ctx := context.Background()
+
 	if err := m.setLegacy(ctx, newPulse); err != nil {
 		return err
 	}
-	return m.setNewPulseFromLegacy(ctx, newPulse)
+	return m.setNewPulse(ctx, pulseChange)
 }
 
-func (m *PulseManager) setNewPulseFromLegacy(ctx context.Context, newPulse pulsestor.Pulse) error {
-	pulseChange := appctl.PulseChange{
-		PulseSeq:  0,
-		Pulse:     pulse.NewOnePulseRange(pulse.Data{
-			PulseNumber: newPulse.PulseNumber,
-			DataExt:     pulse.DataExt{
-				PulseEpoch:     newPulse.EpochPulseNumber,
-				NextPulseDelta: uint16(newPulse.NextPulseNumber - newPulse.PulseNumber),
-				PrevPulseDelta: uint16(newPulse.PulseNumber - newPulse.PrevPulseNumber),
-				Timestamp:      uint32(newPulse.PulseTimestamp / int64(time.Second)),
-				PulseEntropy:   longbits.NewBits256FromBytes(newPulse.Entropy[:32]),
-			},
-		}),
-		StartedAt: time.Now(),
-		Census:    nil,
+func ConvertForLegacy(pc appctl.PulseChange) (psp pulsestor.Pulse) {
+	pd := pc.Data
+
+	copy(psp.Entropy[:32], pd.PulseEntropy[:])
+	copy(psp.Entropy[32:], pd.PulseEntropy[:])
+
+	psp.PulseNumber = pd.PulseNumber
+	ok := false
+
+	if psp.PrevPulseNumber, ok = pd.PulseNumber.TryPrev(pd.PrevPulseDelta); !ok {
+		psp.PrevPulseNumber = pd.PulseNumber
 	}
+
+	if psp.NextPulseNumber, ok = pd.PulseNumber.TryNext(pd.NextPulseDelta); !ok {
+		psp.NextPulseNumber = pd.PulseNumber
+	}
+	psp.EpochPulseNumber = pd.PulseEpoch
+	psp.PulseTimestamp = int64(pd.Timestamp) * int64(time.Second)
+	copy(psp.OriginID[:], pc.PulseOrigin)
+
+	return psp
+}
+
+func (m *PulseManager) setNewPulse(ctx context.Context, pulseChange appctl.PulseChange) error {
+	// pulseChange := appctl.PulseChange{
+	// 	PulseSeq:  0,
+	// 	Pulse:     pulse.NewOnePulseRange(pulse.Data{
+	// 		PulseNumber: newPulse.PulseNumber,
+	// 		DataExt:     pulse.DataExt{
+	// 			PulseEpoch:     newPulse.EpochPulseNumber,
+	// 			NextPulseDelta: uint16(newPulse.NextPulseNumber - newPulse.PulseNumber),
+	// 			PrevPulseDelta: uint16(newPulse.PulseNumber - newPulse.PrevPulseNumber),
+	// 			Timestamp:      uint32(newPulse.PulseTimestamp / int64(time.Second)),
+	// 			PulseEntropy:   longbits.NewBits256FromBytes(newPulse.Entropy[:32]),
+	// 		},
+	// 	}),
+	// 	StartedAt: time.Now(),
+	// 	Census:    nil,
+	// }
+
 
 	sink, setStateFn := appctl.NewNodeStateSink(make(chan appctl.NodeState, 1))
 	for _, d := range m.dispatchers {
@@ -92,7 +119,7 @@ func (m *PulseManager) setNewPulseFromLegacy(ctx context.Context, newPulse pulse
 		setStateFn(committed)
 	}()
 
-	if err := m.PulseAppender.Append(ctx, newPulse); err != nil {
+	if err := m.PulseAppender.Append(ctx, pulseChange); err != nil {
 		return errors.W(err, "call of AddPulse failed")
 	}
 
@@ -113,9 +140,10 @@ func (m *PulseManager) setLegacy(ctx context.Context, newPulse pulsestor.Pulse) 
 	}
 
 	storagePulse, err := m.PulseAccessor.Latest(ctx)
-	if err == pulsestor.ErrNotFound {
-		storagePulse = *pulsestor.GenesisPulse
-	} else if err != nil {
+	switch {
+	case err == pulsestor.ErrNotFound:
+		storagePulse = appctl.PulseChange{}
+	case err != nil:
 		return errors.W(err, "call of GetLatestPulseNumber failed")
 	}
 

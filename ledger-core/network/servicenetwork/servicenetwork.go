@@ -10,6 +10,7 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill/message"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
@@ -45,7 +46,7 @@ type ServiceNetwork struct {
 
 	// subcomponents
 	RPC                controller.RPCController   `inject:"subcomponent"`
-	PulseAccessor      storage.PulseAccessor      `inject:"subcomponent"`
+	PulseAccessor      appctl.PulseAccessor       `inject:"subcomponent"`
 	NodeKeeper         network.NodeKeeper         `inject:"subcomponent"`
 	TerminationHandler network.TerminationHandler `inject:"subcomponent"`
 
@@ -118,7 +119,7 @@ func (n *ServiceNetwork) Start(ctx context.Context) error {
 	}
 
 	bootstrapPulse := gateway.GetBootstrapPulse(ctx, n.PulseAccessor)
-	n.Gatewayer.Gateway().Run(ctx, network.NetworkedPulse{Pulse: bootstrapPulse})
+	n.Gatewayer.Gateway().Run(ctx, bootstrapPulse)
 	n.RPC.RemoteProcedureRegister(deliverWatermillMsg, n.processIncoming)
 
 	return nil

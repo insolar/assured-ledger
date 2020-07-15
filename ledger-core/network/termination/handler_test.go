@@ -12,17 +12,16 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
-	"github.com/insolar/assured-ledger/ledger-core/log"
-	"github.com/insolar/assured-ledger/ledger-core/pulse"
-	mock "github.com/insolar/assured-ledger/ledger-core/testutils/network"
-
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
+	"github.com/insolar/assured-ledger/ledger-core/log"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
+
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/testutils"
 )
 
 type CommonTestSuite struct {
@@ -31,8 +30,8 @@ type CommonTestSuite struct {
 	mc            *minimock.Controller
 	ctx           context.Context
 	handler       *Handler
-	leaver        *testutils.LeaverMock
-	pulseAccessor *mock.PulseAccessorMock
+	leaver        *node.LeaverMock
+	pulseAccessor *appctl.PulseAccessorMock
 }
 
 func TestBasics(t *testing.T) {
@@ -42,10 +41,9 @@ func TestBasics(t *testing.T) {
 func (s *CommonTestSuite) BeforeTest(suiteName, testName string) {
 	s.mc = minimock.NewController(s.T())
 	s.ctx = instestlogger.TestContext(s.T())
-	s.leaver = testutils.NewLeaverMock(s.T())
-	s.pulseAccessor = mock.NewPulseAccessorMock(s.T())
+	s.leaver = node.NewLeaverMock(s.T())
+	s.pulseAccessor = appctl.NewPulseAccessorMock(s.T())
 	s.handler = &Handler{Leaver: s.leaver, PulseAccessor: s.pulseAccessor}
-
 }
 
 func (s *CommonTestSuite) AfterTest(suiteName, testName string) {
@@ -79,13 +77,12 @@ func (s *LeaveTestSuite) TestLeaveNow() {
 }
 
 func (s *LeaveTestSuite) TestLeaveEta() {
-	mockPulseNumber := pulse.Number(2000000000)
-	testPulse := &pulsestor.Pulse{PulseNumber: mockPulseNumber}
-	pulseDelta := testPulse.NextPulseNumber - testPulse.PulseNumber
-	leaveAfter := pulse.Number(5)
+	testPulse := appctl.PulseChange{}
+	testPulse.PulseNumber = pulse.Number(2000000000)
+	leaveAfter := testPulse.PulseNumber + pulse.Number(5)
 
-	s.pulseAccessor.GetLatestPulseMock.Return(*testPulse, nil)
-	s.leaver.LeaveMock.Expect(s.ctx, mockPulseNumber+leaveAfter*pulseDelta)
+	s.pulseAccessor.GetLatestPulseMock.Return(testPulse, nil)
+	s.leaver.LeaveMock.Expect(s.ctx, leaveAfter)
 	s.handler.leave(s.ctx, leaveAfter)
 
 	s.HandlerIsTerminating()

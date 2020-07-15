@@ -6,10 +6,10 @@
 package routing
 
 import (
-	"context"
 	"strconv"
 	"testing"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl"
 	node2 "github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/network"
@@ -42,10 +42,8 @@ func TestTable_Resolve(t *testing.T) {
 		return node.NewAccessor(node.NewSnapshot(puls.PulseNumber, []node2.NetworkNode{n}))
 	})
 
-	pulseAccessorMock := mock.NewPulseAccessorMock(t)
-	pulseAccessorMock.GetLatestPulseMock.Set(func(ctx context.Context) (p1 pulsestor.Pulse, err error) {
-		return *puls, nil
-	})
+	pulseAccessorMock := appctl.NewPulseAccessorMock(t)
+	pulseAccessorMock.GetLatestPulseMock.Return(puls, nil)
 
 	table.PulseAccessor = pulseAccessorMock
 	table.NodeKeeper = nodeKeeperMock

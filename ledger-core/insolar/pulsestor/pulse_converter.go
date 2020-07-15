@@ -6,40 +6,40 @@
 package pulsestor
 
 import (
+	"time"
+
+	"github.com/insolar/assured-ledger/ledger-core/appctl"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
 
-func FromProto(p *PulseProto) *Pulse {
-	result := &Pulse{
-		PulseNumber:      p.PulseNumber,
-		PrevPulseNumber:  p.PrevPulseNumber,
-		NextPulseNumber:  p.NextPulseNumber,
-		PulseTimestamp:   p.PulseTimestamp,
-		EpochPulseNumber: pulse.Epoch(p.EpochPulseNumber),
-		Entropy:          p.Entropy,
-		Signs:            map[string]SenderConfirmation{},
-	}
-	copy(result.OriginID[:], p.OriginID)
-	for _, sign := range p.Signs {
-		pk, confirmation := SenderConfirmationFromProto(sign)
-		result.Signs[pk] = confirmation
-	}
+func FromProto(p *PulseProto) appctl.PulseChange {
+	result := appctl.PulseChange{}
+	result.PulseNumber = p.PulseNumber
+	result.PrevPulseDelta = uint16(p.PulseNumber - p.PrevPulseNumber) // INCORRECT
+	result.NextPulseDelta = uint16(p.NextPulseNumber - p.PulseNumber) // INCORRECT
+	result.Timestamp = uint32(p.PulseTimestamp / int64(time.Second))
+	result.PulseEpoch = pulse.Epoch(p.EpochPulseNumber)
+	copy(result.PulseEntropy[:], p.Entropy[:])
+	result.PulseOrigin = append([]byte(nil), p.OriginID...)
 	return result
 }
 
-func ToProto(p *Pulse) *PulseProto {
+func ToProto(p appctl.PulseChange) *PulseProto {
 	result := &PulseProto{
 		PulseNumber:      p.PulseNumber,
-		PrevPulseNumber:  p.PrevPulseNumber,
-		NextPulseNumber:  p.NextPulseNumber,
-		PulseTimestamp:   p.PulseTimestamp,
-		EpochPulseNumber: int32(p.EpochPulseNumber),
-		OriginID:         p.OriginID[:],
-		Entropy:          p.Entropy,
+		PrevPulseNumber:  p.PulseNumber - pulse.Number(p.PrevPulseDelta), // INCORRECT
+		NextPulseNumber:  p.PulseNumber + pulse.Number(p.NextPulseDelta), // INCORRECT
+		PulseTimestamp:   int64(p.Timestamp) * int64(time.Second),
+		EpochPulseNumber: int32(p.PulseEpoch),
+		OriginID:         p.PulseOrigin,
+		// Entropy:          p.Entropy,
 	}
-	for pk, sign := range p.Signs {
-		result.Signs = append(result.Signs, SenderConfirmationToProto(pk, sign))
-	}
+	copy(result.Entropy[:32], p.PulseEntropy[:])
+	copy(result.Entropy[32:], p.PulseEntropy[:])
+
+	// for pk, sign := range p.Signs {
+	// 	result.Signs = append(result.Signs, SenderConfirmationToProto(pk, sign))
+	// }
 	return result
 }
 

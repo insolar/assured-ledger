@@ -8,10 +8,10 @@ package api
 import (
 	"net/http"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 )
@@ -20,11 +20,11 @@ import (
 type HealthChecker struct {
 	CertificateManager node.CertificateManager
 	NodeNetwork        network.NodeNetwork
-	PulseAccessor      pulsestor.Accessor
+	PulseAccessor      appctl.Accessor
 }
 
 // NewHealthChecker creates new HealthChecker.
-func NewHealthChecker(cm node.CertificateManager, nn network.NodeNetwork, pa pulsestor.Accessor) *HealthChecker { // nolint: staticcheck
+func NewHealthChecker(cm node.CertificateManager, nn network.NodeNetwork, pa appctl.Accessor) *HealthChecker { // nolint: staticcheck
 	return &HealthChecker{CertificateManager: cm, NodeNetwork: nn, PulseAccessor: pa}
 }
 

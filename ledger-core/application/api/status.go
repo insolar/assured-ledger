@@ -55,7 +55,7 @@ func (s *NodeService) GetStatus(r *http.Request, args *interface{}, requestBody 
 
 	p, err := s.runner.PulseAccessor.Latest(ctx)
 	if err != nil {
-		p = *pulsestor.GenesisPulse
+		p = pulsestor.GenesisPulse
 	}
 	reply.PulseNumber = uint32(p.PulseNumber)
 

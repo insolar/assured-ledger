@@ -13,6 +13,7 @@ import (
 
 	"github.com/insolar/component-manager"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
@@ -31,7 +32,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/network/rules"
-	"github.com/insolar/assured-ledger/ledger-core/network/storage"
 	"github.com/insolar/assured-ledger/ledger-core/network/transport"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -52,9 +52,9 @@ type Base struct {
 	CryptographyScheme  cryptography.PlatformCryptographyScheme `inject:""`
 	CertificateManager  node2.CertificateManager                `inject:""`
 	HostNetwork         network.HostNetwork                     `inject:""`
-	PulseAccessor       storage.PulseAccessor                   `inject:""`
-	PulseAppender       storage.PulseAppender                   `inject:""`
-	PulseManager        pulsestor.Manager                       `inject:""`
+	PulseAccessor       appctl.PulseAccessor                    `inject:""`
+	PulseAppender       appctl.PulseAppender                    `inject:""`
+	PulseManager        appctl.Manager                          `inject:""`
 	BootstrapRequester  bootstrap.Requester                     `inject:""`
 	KeyProcessor        cryptography.KeyProcessor               `inject:""`
 	Aborter             network.Aborter                         `inject:""`
@@ -217,20 +217,20 @@ func (g *Base) StartConsensus(ctx context.Context) error {
 }
 
 // ChangePulse process pulse from Consensus
-func (g *Base) ChangePulse(ctx context.Context, pulse pulsestor.Pulse) {
-	g.Gatewayer.Gateway().OnPulseFromConsensus(ctx, network.NetworkedPulse{ Pulse: pulse })
+func (g *Base) ChangePulse(ctx context.Context, pulse appctl.PulseChange) {
+	g.Gatewayer.Gateway().OnPulseFromConsensus(ctx, pulse)
 }
 
 func (g *Base) OnPulseFromConsensus(ctx context.Context, pu network.NetworkedPulse) {
 	g.pulseWatchdog.Reset()
 	g.NodeKeeper.MoveSyncToActive(ctx, pu.PulseNumber)
-	err := g.PulseAppender.AppendPulse(ctx, pu.Pulse)
+	err := g.PulseAppender.AppendPulse(ctx, pu)
 	if err != nil {
 		inslogger.FromContext(ctx).Panic("failed to append pulse: ", err.Error())
 	}
 
 	nodes := g.NodeKeeper.GetAccessor(pu.PulseNumber).GetActiveNodes()
-	inslogger.FromContext(ctx).Debugf("OnPulseFromConsensus: %d : epoch %d : nodes %d", pu.PulseNumber, pu.EpochPulseNumber, len(nodes))
+	inslogger.FromContext(ctx).Debugf("OnPulseFromConsensus: %d : epoch %d : nodes %d", pu.PulseNumber, pu.PulseEpoch, len(nodes))
 }
 
 // UpdateState called then Consensus done
@@ -351,7 +351,7 @@ func (g *Base) HandleNodeBootstrapRequest(ctx context.Context, request network.R
 	return g.HostNetwork.BuildResponse(ctx, request,
 		&packet.BootstrapResponse{
 			Code:       packet.Accepted,
-			Pulse:      *pulsestor.ToProto(&bootstrapPulse),
+			Pulse:      *pulsestor.ToProto(bootstrapPulse),
 			ETASeconds: uint32(g.bootstrapETA.Seconds()),
 		}), nil
 }
@@ -433,7 +433,7 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 		Timestamp:      time.Now().UTC().Unix(),
 		Permit:         permit,
 		DiscoveryCount: uint32(discoveryCount),
-		Pulse:          pulsestor.ToProto(&bootstrapPulse),
+		Pulse:          pulsestor.ToProto(bootstrapPulse),
 	}), nil
 }
 

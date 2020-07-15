@@ -9,6 +9,7 @@ import (
 	"context"
 	"sync"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -19,14 +20,13 @@ const entriesCount = 10
 // NewMemoryStorage constructor creates MemoryStorage
 func NewMemoryStorage() *MemoryStorage {
 	return &MemoryStorage{
-		entries:         make([]pulsestor.Pulse, 0),
 		snapshotEntries: make(map[pulse.Number]*node.Snapshot),
 	}
 }
 
 type MemoryStorage struct {
 	lock            sync.RWMutex
-	entries         []pulsestor.Pulse
+	entries         []appctl.PulseChange
 	snapshotEntries map[pulse.Number]*node.Snapshot
 }
 
@@ -43,7 +43,7 @@ func (m *MemoryStorage) truncate(count int) {
 	}
 }
 
-func (m *MemoryStorage) AppendPulse(ctx context.Context, pulse pulsestor.Pulse) error {
+func (m *MemoryStorage) AppendPulse(_ context.Context, pulse appctl.PulseChange) error {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
@@ -52,7 +52,7 @@ func (m *MemoryStorage) AppendPulse(ctx context.Context, pulse pulsestor.Pulse) 
 	return nil
 }
 
-func (m *MemoryStorage) GetPulse(ctx context.Context, number pulse.Number) (pulsestor.Pulse, error) {
+func (m *MemoryStorage) GetPulse(_ context.Context, number pulse.Number) (appctl.PulseChange, error) {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
 
@@ -62,15 +62,15 @@ func (m *MemoryStorage) GetPulse(ctx context.Context, number pulse.Number) (puls
 		}
 	}
 
-	return *pulsestor.GenesisPulse, ErrNotFound
+	return pulsestor.GenesisPulse, ErrNotFound
 }
 
-func (m *MemoryStorage) GetLatestPulse(ctx context.Context) (pulsestor.Pulse, error) {
+func (m *MemoryStorage) GetLatestPulse(context.Context) (appctl.PulseChange, error) {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
 
 	if len(m.entries) == 0 {
-		return *pulsestor.GenesisPulse, ErrNotFound
+		return pulsestor.GenesisPulse, ErrNotFound
 	}
 	return m.entries[len(m.entries)-1], nil
 }

@@ -45,6 +45,5 @@ func TestNewGatewayer(t *testing.T) {
 	assert.Equal(t, gw, gatewayer.Gateway())
 	assert.Equal(t, node.NoNetworkState, gatewayer.Gateway().GetState())
 
-	gatewayer.SwitchState(context.Background(), node.WaitConsensus,
-		network.NetworkedPulse{Pulse: *pulsestor.GenesisPulse})
+	gatewayer.SwitchState(context.Background(), node.WaitConsensus,	pulsestor.GenesisPulse)
 }

@@ -22,7 +22,7 @@ import (
 func TestMemoryStorage(t *testing.T) {
 	ctx := context.Background()
 	s := NewMemoryStorage()
-	startPulse := *pulsestor.GenesisPulse
+	startPulse := pulsestor.GenesisPulse
 
 	ks := platformpolicy.NewKeyProcessor()
 	p1, err := ks.GeneratePrivateKey()
@@ -56,7 +56,7 @@ func TestMemoryStorage(t *testing.T) {
 
 	p2, err := s.GetPulse(ctx, startPulse.PulseNumber)
 	assert.EqualError(t, err, ErrNotFound.Error())
-	assert.Equal(t, p2, *pulsestor.GenesisPulse)
+	assert.Equal(t, p2, pulsestor.GenesisPulse)
 
 	snap2, err := s.ForPulseNumber(startPulse.PulseNumber)
 	assert.EqualError(t, err, ErrNotFound.Error())

@@ -13,6 +13,7 @@ import (
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl"
 	node2 "github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/network"
@@ -53,7 +54,7 @@ func TestWaitMajority_MajorityNotHappenedInETA(t *testing.T) {
 	waitMajority.bootstrapETA = time.Millisecond
 	waitMajority.bootstrapTimer = time.NewTimer(waitMajority.bootstrapETA)
 
-	waitMajority.Run(context.Background(), network.NetworkedPulse{Pulse: *pulsestor.EphemeralPulse})
+	waitMajority.Run(context.Background(), pulsestor.EphemeralPulse)
 }
 
 func TestWaitMajority_MajorityHappenedInETA(t *testing.T) {
@@ -86,9 +87,9 @@ func TestWaitMajority_MajorityHappenedInETA(t *testing.T) {
 
 	discoveryNode := mandates.BootstrapNode{NodeRef: ref.String()}
 	cert := &mandates.Certificate{MajorityRule: 1, BootstrapNodes: []mandates.BootstrapNode{discoveryNode}}
-	pulseAccessor := mock.NewPulseAccessorMock(mc)
-	pulseAccessor.GetPulseMock.Set(func(ctx context.Context, p1 pulse.Number) (p2 pulsestor.Pulse, err error) {
-		p := *pulsestor.GenesisPulse
+	pulseAccessor := appctl.NewPulseAccessorMock(mc)
+	pulseAccessor.GetPulseMock.Set(func(ctx context.Context, p1 pulse.Number) (p2 network.NetworkedPulse, err error) {
+		p := pulsestor.GenesisPulse
 		p.PulseNumber += 10
 		return p, nil
 	})
@@ -101,7 +102,7 @@ func TestWaitMajority_MajorityHappenedInETA(t *testing.T) {
 	waitMajority.bootstrapETA = time.Second * 2
 	waitMajority.bootstrapTimer = time.NewTimer(waitMajority.bootstrapETA)
 
-	go waitMajority.Run(context.Background(), network.NetworkedPulse{Pulse: *pulsestor.EphemeralPulse})
+	go waitMajority.Run(context.Background(), pulsestor.EphemeralPulse)
 	time.Sleep(100 * time.Millisecond)
 
 	waitMajority.OnConsensusFinished(context.Background(), network.Report{PulseNumber: pulse.MinTimePulse + 10})

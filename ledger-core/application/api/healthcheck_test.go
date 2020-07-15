@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -96,10 +97,10 @@ func mockNodeNetwork(t *testing.T, nodeList []node.DiscoveryNode) *network.NodeN
 	return nn
 }
 
-func mockPulseAccessor(t *testing.T) *pulsestor.AccessorMock {
-	pa := pulsestor.NewAccessorMock(t)
-	pa.LatestMock.Set(func(context.Context) (pulsestor.Pulse, error) {
-		return *pulsestor.GenesisPulse, nil
+func mockPulseAccessor(t *testing.T) *appctl.AccessorMock {
+	pa := appctl.NewAccessorMock(t)
+	pa.LatestMock.Set(func(context.Context) (appctl.PulseChange, error) {
+		return pulsestor.GenesisPulse, nil
 	})
 	return pa
 }

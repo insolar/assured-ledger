@@ -8,17 +8,17 @@ package routing
 import (
 	"context"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/host"
-	"github.com/insolar/assured-ledger/ledger-core/network/storage"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type Table struct {
-	NodeKeeper    network.NodeKeeper    `inject:""`
-	PulseAccessor storage.PulseAccessor `inject:""`
+	NodeKeeper    network.NodeKeeper   `inject:""`
+	PulseAccessor appctl.PulseAccessor `inject:""`
 }
 
 func (t *Table) isLocalNode(reference.Global) bool {

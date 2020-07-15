@@ -16,11 +16,12 @@ import (
 	"github.com/insolar/rpc/v2"
 	jsonrpc "github.com/insolar/rpc/v2/json2"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/api/seedmanager"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
@@ -35,9 +36,9 @@ type Runner struct {
 	// nolint
 	NodeNetwork         network.NodeNetwork
 	CertificateGetter   node.CertificateGetter
-	PulseAccessor       pulsestor.Accessor
+	PulseAccessor       appctl.Accessor
 	JetCoordinator      jet.AffinityHelper
-	NetworkStatus       node.NetworkStatus
+	NetworkStatus       pulsestor.NetworkStatus
 	AvailabilityChecker AvailabilityChecker
 
 	handler       http.Handler
@@ -82,9 +83,9 @@ func NewRunner(cfg *configuration.APIRunner,
 	// nolint
 	nodeNetwork network.NodeNetwork,
 	certificateGetter node.CertificateGetter,
-	pulseAccessor pulsestor.Accessor,
+	pulseAccessor appctl.Accessor,
 	jetCoordinator jet.AffinityHelper,
-	networkStatus node.NetworkStatus,
+	networkStatus pulsestor.NetworkStatus,
 	availabilityChecker AvailabilityChecker,
 ) (*Runner, error) {
 

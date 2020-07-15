@@ -10,6 +10,7 @@ import (
 	"context"
 	"crypto/rand"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
@@ -20,26 +21,22 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/serialization"
-	"github.com/insolar/assured-ledger/ledger-core/network/storage"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
 
-func GetBootstrapPulse(ctx context.Context, accessor storage.PulseAccessor) pulsestor.Pulse {
-	puls, err := accessor.GetLatestPulse(ctx)
-	if err != nil {
-		puls = *pulsestor.EphemeralPulse
+func GetBootstrapPulse(ctx context.Context, accessor appctl.PulseAccessor) appctl.PulseChange {
+	if pc, err := accessor.GetLatestPulse(ctx); err == nil {
+		return pc
 	}
-
-	return puls
+	return pulsestor.EphemeralPulse
 }
 
-func EnsureGetPulse(ctx context.Context, accessor storage.PulseAccessor, pulseNumber pulse.Number) network.NetworkedPulse {
-	pulse, err := accessor.GetPulse(ctx, pulseNumber)
+func EnsureGetPulse(ctx context.Context, accessor appctl.PulseAccessor, pulseNumber pulse.Number) network.NetworkedPulse {
+	pc, err := accessor.GetPulse(ctx, pulseNumber)
 	if err != nil {
 		inslogger.FromContext(ctx).Panicf("Failed to fetch pulse: %d", pulseNumber)
 	}
-
-	return network.NetworkedPulse{ Pulse: pulse }
+	return pc
 }
 
 func getAnnounceSignature(
@@ -109,7 +106,7 @@ func (p consensusProxy) State() []byte {
 	return nshBytes
 }
 
-func (p *consensusProxy) ChangePulse(ctx context.Context, newPulse pulsestor.Pulse) {
+func (p *consensusProxy) ChangePulse(ctx context.Context, newPulse appctl.PulseChange) {
 	p.Gatewayer.Gateway().(adapters.PulseChanger).ChangePulse(ctx, newPulse)
 }
 

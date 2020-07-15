@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/appctl"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -18,69 +18,45 @@ import (
 
 type PulseGenerator struct {
 	delta     uint16
-	pulseList []pulse.Data
-}
-
-const nanosecondsInSecond = int64(time.Second / time.Nanosecond)
-
-func NewPulseData(p pulsestor.Pulse) pulse.Data {
-	data := pulse.NewPulsarData(
-		p.PulseNumber,
-		uint16(p.NextPulseNumber-p.PulseNumber),
-		uint16(p.PulseNumber-p.PrevPulseNumber),
-		longbits.NewBits512FromBytes(p.Entropy[:]).FoldToBits256(),
-	)
-	data.Timestamp = uint32(p.PulseTimestamp / nanosecondsInSecond)
-	data.PulseEpoch = p.EpochPulseNumber
-	return data
-}
-
-func NewPulse(pulseData pulse.Data) pulsestor.Pulse {
-	var prev pulse.Number
-	if !pulseData.IsFirstPulse() {
-		prev = pulseData.PrevPulseNumber()
-	} else {
-		prev = pulseData.PulseNumber
-	}
-
-	entropy := pulsestor.Entropy{}
-	bs := pulseData.PulseEntropy.AsBytes()
-	copy(entropy[:], bs)
-	copy(entropy[pulseData.PulseEntropy.FixedByteSize():], bs)
-
-	return pulsestor.Pulse{
-		PulseNumber:      pulseData.PulseNumber,
-		NextPulseNumber:  pulseData.NextPulseNumber(),
-		PrevPulseNumber:  prev,
-		PulseTimestamp:   int64(pulseData.Timestamp) * nanosecondsInSecond,
-		EpochPulseNumber: pulseData.PulseEpoch,
-		Entropy:          entropy,
-	}
+	pulseList []appctl.PulseChange
 }
 
 func NewPulseGenerator(delta uint16) *PulseGenerator {
 	g := &PulseGenerator{delta: delta}
-	g.appendPulse(NewPulseData(*pulsestor.GenesisPulse))
+	g.appendPulse(pulse.Data{
+		PulseNumber: pulse.MinTimePulse,
+		DataExt:     pulse.DataExt{
+			PulseEpoch:     pulse.MinTimePulse,
+			NextPulseDelta: delta,
+			PrevPulseDelta: 0,
+		},
+	})
 	return g
 }
 
-func (g PulseGenerator) GetLastPulse() pulse.Data {
+func (g PulseGenerator) GetLastPulseData() pulse.Data {
+	return g.pulseList[len(g.pulseList)-1].Data
+}
+
+func (g PulseGenerator) GetLastPulseAsPulse() appctl.PulseChange {
 	return g.pulseList[len(g.pulseList)-1]
 }
 
-func (g PulseGenerator) GetLastPulseAsPulse() pulsestor.Pulse {
-	return NewPulse(g.pulseList[len(g.pulseList)-1])
-}
-
-func (g PulseGenerator) GetPrevPulseAsPulse() pulsestor.Pulse {
+func (g PulseGenerator) GetPrevPulseAsPulse() appctl.PulseChange {
 	if len(g.pulseList) < 2 {
 		panic(throw.IllegalValue())
 	}
-	return NewPulse(g.pulseList[len(g.pulseList)-2])
+	return g.pulseList[len(g.pulseList)-2]
 }
 
 func (g *PulseGenerator) appendPulse(data pulse.Data) {
-	g.pulseList = append(g.pulseList, data)
+	g.pulseList = append(g.pulseList, appctl.PulseChange{
+		PulseSeq:    uint32(len(g.pulseList) + 1),
+		Data:        data,
+		Pulse:       data.AsRange(),
+		StartedAt:   time.Now(),
+		Census:      nil, // TODO census
+	})
 }
 
 func generateEntropy() longbits.Bits256 {
@@ -99,7 +75,7 @@ func generateEntropy() longbits.Bits256 {
 func (g PulseGenerator) generateNextPulse() pulse.Data {
 	var (
 		nextPulse pulse.Data
-		prevPulse = g.GetLastPulse()
+		prevPulse = g.GetLastPulseData()
 	)
 
 	if !prevPulse.IsEmpty() || prevPulse.PulseNumber == pulse.MinTimePulse {
@@ -112,7 +88,7 @@ func (g PulseGenerator) generateNextPulse() pulse.Data {
 }
 
 func (g *PulseGenerator) Generate() pulse.Data {
-	newPulse := g.generateNextPulse()
-	g.appendPulse(newPulse)
-	return newPulse
+	newPulseData := g.generateNextPulse()
+	g.appendPulse(newPulseData)
+	return newPulseData
 }

@@ -10,11 +10,11 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill/message"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/defaults"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/instracer"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -52,10 +52,10 @@ type Service interface {
 type DefaultService struct {
 	pub      message.Publisher
 	affinity jet.AffinityHelper
-	pulses   pulsestor.Accessor
+	pulses   appctl.Accessor
 }
 
-func NewDefaultService(pub message.Publisher, affinity jet.AffinityHelper, pulses pulsestor.Accessor) *DefaultService {
+func NewDefaultService(pub message.Publisher, affinity jet.AffinityHelper, pulses appctl.Accessor) *DefaultService {
 	return &DefaultService{
 		pub:      pub,
 		affinity: affinity,

@@ -6,9 +6,9 @@
 package servicenetwork
 
 import (
-	"context"
 	"testing"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
@@ -32,10 +32,12 @@ func TestGetNetworkStatus(t *testing.T) {
 	gwer.GatewayMock.Set(func() network.Gateway { return gw })
 	sn.Gatewayer = gwer
 
-	pa := testutils.NewPulseAccessorMock(t)
-	ppn := pulse.Number(2)
-	puls := pulsestor.Pulse{PulseNumber: 2}
-	pa.GetLatestPulseMock.Set(func(context.Context) (pulsestor.Pulse, error) { return puls, nil })
+	pa := appctl.NewPulseAccessorMock(t)
+	pc := appctl.PulseChange{}
+	pc.PulseNumber = 200000
+	ppn := pc.PulseNumber
+	pc.NextPulseDelta = 10
+	pa.GetLatestPulseMock.Return(pc, nil)
 	sn.PulseAccessor = pa
 
 	nk := testutils.NewNodeKeeperMock(t)
@@ -70,7 +72,7 @@ func TestGetNetworkStatus(t *testing.T) {
 
 	require.Equal(t, version.Version, ns.Version)
 
-	pa.GetLatestPulseMock.Set(func(context.Context) (pulsestor.Pulse, error) { return puls, errors.New("test") })
+	pa.GetLatestPulseMock.Return(pc, errors.New("test"))
 	ns = sn.GetNetworkStatus()
 	require.Equal(t, ins, ns.NetworkState)
 

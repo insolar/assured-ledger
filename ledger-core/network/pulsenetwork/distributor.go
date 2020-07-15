@@ -21,7 +21,6 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/instracer"
@@ -58,12 +57,12 @@ type distributor struct {
 
 type handlerThatPanics struct{}
 
-func (ph handlerThatPanics) HandleDatagram(ctx context.Context, address string, buf []byte) {
+func (handlerThatPanics) HandleDatagram(context.Context, string, []byte) {
 	panic(throw.Impossible())
 }
 
 // NewDistributor creates a new distributor object of pulses
-func NewDistributor(conf configuration.PulseDistributor) (node.PulseDistributor, error) {
+func NewDistributor(conf configuration.PulseDistributor) (pulsestor.PulseDistributor, error) {
 	futureManager := future.NewManager()
 
 	result := &distributor{
@@ -79,7 +78,7 @@ func NewDistributor(conf configuration.PulseDistributor) (node.PulseDistributor,
 	return result, nil
 }
 
-func (d *distributor) Init(ctx context.Context) error {
+func (d *distributor) Init(context.Context) error {
 	var err error
 	d.transport, err = d.Factory.CreateDatagramTransport(handlerThatPanics{})
 	if err != nil {

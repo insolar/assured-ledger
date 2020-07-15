@@ -22,29 +22,6 @@ import (
 
 const nanosecondsInSecond = int64(time.Second / time.Nanosecond)
 
-func NewPulse(pulseData pulse.Data) pulsestor.Pulse {
-	var prev pulse.Number
-	if !pulseData.IsFirstPulse() {
-		prev = pulseData.PrevPulseNumber()
-	} else {
-		prev = pulseData.PulseNumber
-	}
-
-	entropy := pulsestor.Entropy{}
-	bs := pulseData.PulseEntropy.AsBytes()
-	copy(entropy[:], bs)
-	copy(entropy[pulseData.PulseEntropy.FixedByteSize():], bs)
-
-	return pulsestor.Pulse{
-		PulseNumber:      pulseData.PulseNumber,
-		NextPulseNumber:  pulseData.NextPulseNumber(),
-		PrevPulseNumber:  prev,
-		PulseTimestamp:   int64(pulseData.Timestamp) * nanosecondsInSecond,
-		EpochPulseNumber: pulseData.PulseEpoch,
-		Entropy:          entropy,
-	}
-}
-
 func NewPulseData(p pulsestor.Pulse) pulse.Data {
 	data := pulse.NewPulsarData(
 		p.PulseNumber,

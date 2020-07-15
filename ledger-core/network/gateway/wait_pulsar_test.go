@@ -12,6 +12,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl"
 	node2 "github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/network/node"
@@ -59,7 +60,7 @@ func TestWaitPulsar_PulseNotArrivedInETA(t *testing.T) {
 	waitPulsar.bootstrapETA = time.Millisecond
 	waitPulsar.bootstrapTimer = time.NewTimer(waitPulsar.bootstrapETA)
 
-	waitPulsar.Run(context.Background(), network.NetworkedPulse{Pulse: *pulsestor.EphemeralPulse})
+	waitPulsar.Run(context.Background(), pulsestor.EphemeralPulse)
 }
 
 func TestWaitPulsar_PulseArrivedInETA(t *testing.T) {
@@ -72,9 +73,9 @@ func TestWaitPulsar_PulseArrivedInETA(t *testing.T) {
 		assert.Equal(t, node2.CompleteNetworkState, state)
 	})
 
-	pulseAccessor := mock.NewPulseAccessorMock(mc)
-	pulseAccessor.GetPulseMock.Set(func(ctx context.Context, p1 pulse.Number) (p2 pulsestor.Pulse, err error) {
-		p := *pulsestor.GenesisPulse
+	pulseAccessor := appctl.NewPulseAccessorMock(mc)
+	pulseAccessor.GetPulseMock.Set(func(ctx context.Context, p1 pulse.Number) (p network.NetworkedPulse, err error) {
+		p = pulsestor.GenesisPulse
 		p.PulseNumber += 10
 		return p, nil
 	})
@@ -86,7 +87,7 @@ func TestWaitPulsar_PulseArrivedInETA(t *testing.T) {
 	waitPulsar.bootstrapETA = time.Second * 2
 	waitPulsar.bootstrapTimer = time.NewTimer(waitPulsar.bootstrapETA)
 
-	go waitPulsar.Run(context.Background(), network.NetworkedPulse{Pulse: *pulsestor.EphemeralPulse})
+	go waitPulsar.Run(context.Background(), pulsestor.EphemeralPulse)
 	time.Sleep(100 * time.Millisecond)
 
 	waitPulsar.OnConsensusFinished(context.Background(), network.Report{PulseNumber: pulse.MinTimePulse + 10})

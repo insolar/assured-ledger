@@ -11,6 +11,7 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill/message"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl"
 	"github.com/insolar/assured-ledger/ledger-core/application/testwalletapi"
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
@@ -19,7 +20,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodestorage"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor/memstor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
@@ -59,7 +60,7 @@ type Server struct {
 	PublisherMock      *mock.PublisherMock
 	JetCoordinatorMock *jet.AffinityHelperMock
 	pulseGenerator     *testutils.PulseGenerator
-	pulseStorage       *pulsestor.StorageMem
+	pulseStorage       *memstor.StorageMem
 	pulseManager       *pulsemanager.PulseManager
 	Journal            *journal.Journal
 
@@ -125,7 +126,7 @@ func newServerExt(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFi
 	// Pulse-related components
 	var (
 		PulseManager *pulsemanager.PulseManager
-		Pulses       *pulsestor.StorageMem
+		Pulses       *memstor.StorageMem
 	)
 	{
 		networkNodeMock := network.NewNetworkNodeMock(t).
@@ -141,7 +142,7 @@ func newServerExt(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFi
 		nodeNetworkMock := network.NewNodeNetworkMock(t).GetAccessorMock.Return(nodeNetworkAccessorMock)
 		nodeSetter := nodestorage.NewModifierMock(t).SetMock.Return(nil)
 
-		Pulses = pulsestor.NewStorageMem()
+		Pulses = memstor.NewStorageMem()
 		PulseManager = pulsemanager.NewPulseManager()
 		PulseManager.NodeNet = nodeNetworkMock
 		PulseManager.NodeSetter = nodeSetter
@@ -218,18 +219,18 @@ func (s *Server) StartRecordingExt(limit int, discardOnOverflow bool) {
 	s.Journal.StartRecording(limit, discardOnOverflow)
 }
 
-func (s *Server) GetPulse() pulsestor.Pulse {
+func (s *Server) GetPulse() appctl.PulseChange {
 	return s.pulseGenerator.GetLastPulseAsPulse()
 }
 
-func (s *Server) GetPrevPulse() pulsestor.Pulse {
+func (s *Server) GetPrevPulse() appctl.PulseChange {
 	return s.pulseGenerator.GetPrevPulseAsPulse()
 }
 
 func (s *Server) incrementPulse(ctx context.Context) {
 	s.pulseGenerator.Generate()
 
-	if err := s.pulseManager.Set(ctx, s.GetPulse()); err != nil {
+	if err := s.pulseManager.CommitPulseChange(s.GetPulse()); err != nil {
 		panic(err)
 	}
 }
@@ -473,7 +474,7 @@ func (s *Server) SendPayload(ctx context.Context, pl payload.Marshaler) {
 }
 
 func (s *Server) WrapPayloadAsFuture(pl payload.Marshaler) *RequestWrapper {
-	return NewRequestWrapper(s.GetPulse().NextPulseNumber, pl).SetSender(s.caller)
+	return NewRequestWrapper(s.GetPulse().NextPulseNumber(), pl).SetSender(s.caller)
 }
 
 func (s *Server) SendPayloadAsFuture(ctx context.Context, pl payload.Marshaler) {

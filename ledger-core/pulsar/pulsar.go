@@ -14,7 +14,6 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
@@ -37,7 +36,7 @@ type Pulsar struct {
 	CryptographyService        cryptography.Service
 	PlatformCryptographyScheme cryptography.PlatformCryptographyScheme
 	KeyProcessor               cryptography.KeyProcessor
-	PulseDistributor           node.PulseDistributor
+	PulseDistributor           pulsestor.PulseDistributor
 
 	lastPNMutex sync.RWMutex
 	lastPN      pulse.Number
@@ -49,7 +48,7 @@ func NewPulsar(
 	cryptographyService cryptography.Service,
 	scheme cryptography.PlatformCryptographyScheme,
 	keyProcessor cryptography.KeyProcessor,
-	pulseDistributor node.PulseDistributor,
+	pulseDistributor pulsestor.PulseDistributor,
 	entropyGenerator entropygenerator.EntropyGenerator,
 ) *Pulsar {
 

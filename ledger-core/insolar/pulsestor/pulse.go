@@ -7,9 +7,9 @@ package pulsestor
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -48,15 +48,6 @@ func (entropy Entropy) Equal(other Entropy) bool {
 	return entropy.Compare(other) == 0
 }
 
-// go:generate protoc -I$GOPATH/src -I./ --gogoslick_out=./ pulse.proto
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor.Manager -s _mock.go -g
-
-// Manager provides Ledger's methods related to Pulse.
-type Manager interface {
-	// Set set's new pulse and closes current jet drop. If dry is true, nothing will be saved to storage.
-	Set(ctx context.Context, pulse Pulse) error
-}
-
 // Pulse is base data structure for a pulse.
 type Pulse struct {
 	PulseNumber     pulse.Number
@@ -85,7 +76,22 @@ type SenderConfirmation struct {
 // GenesisPulse is a first pulse for the system
 // because first 2 bits of pulse number and first 65536 pulses a are used by system needs and pulse numbers are related to the seconds of Unix time
 // for calculation pulse numbers we use the formula = unix.Now() - firstPulseDate + 65536
-var GenesisPulse = &Pulse{
+var GenesisPulse = func() (pc appctl.PulseChange) {
+	pc.PulseNumber = pulse.MinTimePulse
+	pc.PulseEpoch = pulse.MinTimePulse
+	pc.Timestamp = pulse.UnixTimeOfMinTimePulse
+	pc.Pulse = pc.Data.AsRange()
+	return
+} ()
+
+var EphemeralPulse = func() (pc appctl.PulseChange) {
+	pc.PulseNumber = pulse.MinTimePulse
+	pc.PulseEpoch = pulse.EphemeralPulseEpoch
+	pc.Timestamp = pulse.UnixTimeOfMinTimePulse
+	return
+} ()
+
+var OldGenesisPulse = &Pulse{
 	PulseNumber:      pulse.MinTimePulse,
 	Entropy:          [EntropySize]byte{},
 	EpochPulseNumber: pulse.MinTimePulse,
@@ -93,7 +99,7 @@ var GenesisPulse = &Pulse{
 }
 
 // EphemeralPulse is used for discovery network bootstrap
-var EphemeralPulse = &Pulse{
+var OldEphemeralPulse = &Pulse{
 	PulseNumber:      pulse.MinTimePulse,
 	Entropy:          [EntropySize]byte{},
 	EpochPulseNumber: pulse.EphemeralPulseEpoch,

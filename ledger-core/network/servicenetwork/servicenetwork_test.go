@@ -15,11 +15,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl"
+	"github.com/insolar/assured-ledger/ledger-core/cryptography/keystore"
+	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
-	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	node2 "github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/network/controller"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -86,7 +88,7 @@ func TestSendMessageHandler_ReceiverNotSet(t *testing.T) {
 
 func TestSendMessageHandler_SameNode(t *testing.T) {
 	cfg := configuration.NewConfiguration()
-	serviceNetwork, err := NewServiceNetwork(cfg, component.NewManager(nil))
+	svcNw, err := NewServiceNetwork(cfg, component.NewManager(nil))
 	nodeRef := gen.UniqueGlobalRef()
 	nodeN := networkUtils.NewNodeKeeperMock(t)
 	nodeN.GetOriginMock.Set(func() (r node2.NetworkNode) {
@@ -97,11 +99,11 @@ func TestSendMessageHandler_SameNode(t *testing.T) {
 		return n
 	})
 	pubMock := &PublisherMock{}
-	pulseMock := networkUtils.NewPulseAccessorMock(t)
-	pulseMock.GetLatestPulseMock.Return(*pulsestor.GenesisPulse, nil)
-	serviceNetwork.PulseAccessor = pulseMock
-	serviceNetwork.NodeKeeper = nodeN
-	serviceNetwork.Pub = pubMock
+	pulseMock := appctl.NewPulseAccessorMock(t)
+	pulseMock.GetLatestPulseMock.Return(pulsestor.GenesisPulse, nil)
+	svcNw.PulseAccessor = pulseMock
+	svcNw.NodeKeeper = nodeN
+	svcNw.Pub = pubMock
 
 	p := []byte{1, 2, 3, 4, 5}
 	meta := payload.Meta{
@@ -113,15 +115,16 @@ func TestSendMessageHandler_SameNode(t *testing.T) {
 
 	inMsg := message.NewMessage(watermill.NewUUID(), data)
 
-	err = serviceNetwork.SendMessageHandler(inMsg)
+	err = svcNw.SendMessageHandler(inMsg)
 	require.NoError(t, err)
 }
 
 func TestSendMessageHandler_SendError(t *testing.T) {
 	cfg := configuration.NewConfiguration()
 	pubMock := &PublisherMock{}
-	serviceNetwork, err := NewServiceNetwork(cfg, component.NewManager(nil))
-	serviceNetwork.Pub = pubMock
+	svcNw, err := NewServiceNetwork(cfg, component.NewManager(nil))
+	require.NoError(t, err)
+	svcNw.Pub = pubMock
 	nodeN := networkUtils.NewNodeKeeperMock(t)
 	nodeN.GetOriginMock.Set(func() (r node2.NetworkNode) {
 		n := networkUtils.NewNetworkNodeMock(t)
@@ -134,11 +137,11 @@ func TestSendMessageHandler_SendError(t *testing.T) {
 	rpc.SendBytesMock.Set(func(p context.Context, p1 reference.Global, p2 string, p3 []byte) (r []byte, r1 error) {
 		return nil, errors.New("test error")
 	})
-	pulseMock := networkUtils.NewPulseAccessorMock(t)
-	pulseMock.GetLatestPulseMock.Return(*pulsestor.GenesisPulse, nil)
-	serviceNetwork.PulseAccessor = pulseMock
-	serviceNetwork.RPC = rpc
-	serviceNetwork.NodeKeeper = nodeN
+	pulseMock := appctl.NewPulseAccessorMock(t)
+	pulseMock.GetLatestPulseMock.Return(pulsestor.GenesisPulse, nil)
+	svcNw.PulseAccessor = pulseMock
+	svcNw.RPC = rpc
+	svcNw.NodeKeeper = nodeN
 
 	p := []byte{1, 2, 3, 4, 5}
 	meta := payload.Meta{
@@ -150,15 +153,16 @@ func TestSendMessageHandler_SendError(t *testing.T) {
 
 	inMsg := message.NewMessage(watermill.NewUUID(), data)
 
-	err = serviceNetwork.SendMessageHandler(inMsg)
+	err = svcNw.SendMessageHandler(inMsg)
 	require.NoError(t, err)
 }
 
 func TestSendMessageHandler_WrongReply(t *testing.T) {
 	cfg := configuration.NewConfiguration()
 	pubMock := &PublisherMock{}
-	serviceNetwork, err := NewServiceNetwork(cfg, component.NewManager(nil))
-	serviceNetwork.Pub = pubMock
+	svcNw, err := NewServiceNetwork(cfg, component.NewManager(nil))
+	require.NoError(t, err)
+	svcNw.Pub = pubMock
 	nodeN := networkUtils.NewNodeKeeperMock(t)
 	nodeN.GetOriginMock.Set(func() (r node2.NetworkNode) {
 		n := networkUtils.NewNetworkNodeMock(t)
@@ -171,11 +175,11 @@ func TestSendMessageHandler_WrongReply(t *testing.T) {
 	rpc.SendBytesMock.Set(func(p context.Context, p1 reference.Global, p2 string, p3 []byte) (r []byte, r1 error) {
 		return nil, nil
 	})
-	pulseMock := networkUtils.NewPulseAccessorMock(t)
-	pulseMock.GetLatestPulseMock.Return(*pulsestor.GenesisPulse, nil)
-	serviceNetwork.PulseAccessor = pulseMock
-	serviceNetwork.RPC = rpc
-	serviceNetwork.NodeKeeper = nodeN
+	pulseMock := appctl.NewPulseAccessorMock(t)
+	pulseMock.GetLatestPulseMock.Return(pulsestor.GenesisPulse, nil)
+	svcNw.PulseAccessor = pulseMock
+	svcNw.RPC = rpc
+	svcNw.NodeKeeper = nodeN
 
 	p := []byte{1, 2, 3, 4, 5}
 	meta := payload.Meta{
@@ -187,13 +191,14 @@ func TestSendMessageHandler_WrongReply(t *testing.T) {
 
 	inMsg := message.NewMessage(watermill.NewUUID(), data)
 
-	err = serviceNetwork.SendMessageHandler(inMsg)
+	err = svcNw.SendMessageHandler(inMsg)
 	require.NoError(t, err)
 }
 
 func TestSendMessageHandler(t *testing.T) {
 	cfg := configuration.NewConfiguration()
-	serviceNetwork, err := NewServiceNetwork(cfg, component.NewManager(nil))
+	svcNw, err := NewServiceNetwork(cfg, component.NewManager(nil))
+	require.NoError(t, err)
 	nodeN := networkUtils.NewNodeKeeperMock(t)
 	nodeN.GetOriginMock.Set(func() (r node2.NetworkNode) {
 		n := networkUtils.NewNetworkNodeMock(t)
@@ -206,11 +211,11 @@ func TestSendMessageHandler(t *testing.T) {
 	rpc.SendBytesMock.Set(func(p context.Context, p1 reference.Global, p2 string, p3 []byte) (r []byte, r1 error) {
 		return ack, nil
 	})
-	pulseMock := networkUtils.NewPulseAccessorMock(t)
-	pulseMock.GetLatestPulseMock.Return(*pulsestor.GenesisPulse, nil)
-	serviceNetwork.PulseAccessor = pulseMock
-	serviceNetwork.RPC = rpc
-	serviceNetwork.NodeKeeper = nodeN
+	pulseMock := appctl.NewPulseAccessorMock(t)
+	pulseMock.GetLatestPulseMock.Return(pulsestor.GenesisPulse, nil)
+	svcNw.PulseAccessor = pulseMock
+	svcNw.RPC = rpc
+	svcNw.NodeKeeper = nodeN
 
 	p := []byte{1, 2, 3, 4, 5}
 	meta := payload.Meta{
@@ -222,7 +227,7 @@ func TestSendMessageHandler(t *testing.T) {
 
 	inMsg := message.NewMessage(watermill.NewUUID(), data)
 
-	err = serviceNetwork.SendMessageHandler(inMsg)
+	err = svcNw.SendMessageHandler(inMsg)
 	require.NoError(t, err)
 }
 
@@ -234,6 +239,7 @@ func (s *stater) State() []byte {
 
 func TestServiceNetwork_StartStop(t *testing.T) {
 	t.Skip("fixme")
+	instestlogger.SetTestOutput(t)
 	cm := component.NewManager(nil)
 	cm.SetLogger(global.Logger())
 
@@ -242,17 +248,28 @@ func TestServiceNetwork_StartStop(t *testing.T) {
 	cert := &mandates.Certificate{}
 	cert.Reference = origin.String()
 	certManager := mandates.NewCertificateManager(cert)
-	serviceNetwork, err := NewServiceNetwork(configuration.NewConfiguration(), cm)
+	svcNw, err := NewServiceNetwork(configuration.NewConfiguration(), cm)
 	require.NoError(t, err)
 	ctx := context.Background()
-	defer serviceNetwork.Stop(ctx)
+	defer svcNw.Stop(ctx)
 
-	cm.Inject(serviceNetwork, nk, certManager, cryptography.NewServiceMock(t), pulsestor.NewAccessorMock(t),
-		testutils.NewTerminationHandlerMock(t), pulsestor.NewManagerMock(t), &PublisherMock{}, &stater{},
-		testutils.NewPlatformCryptographyScheme(), testutils.NewKeyProcessorMock(t))
-	err = serviceNetwork.Init(ctx)
+	kp := platformpolicy.NewKeyProcessor()
+	skey, err := kp.GeneratePrivateKey()
 	require.NoError(t, err)
-	err = serviceNetwork.Start(ctx)
+
+	kpm := testutils.NewKeyProcessorMock(t)
+	kpm.ExportPublicKeyBinaryMock.Return([]byte{1}, nil)
+
+	cm.Inject(svcNw, nk, certManager,
+		keystore.NewInplaceKeyStore(skey),
+		&platformpolicy.NodeCryptographyService{},
+		appctl.NewAccessorMock(t),
+		/* testutils.NewTerminationHandlerMock(t), */
+		appctl.NewManagerMock(t), &PublisherMock{}, &stater{},
+		testutils.NewPlatformCryptographyScheme(), kpm)
+	err = svcNw.Init(ctx)
+	require.NoError(t, err)
+	err = svcNw.Start(ctx)
 	require.NoError(t, err)
 }
 
