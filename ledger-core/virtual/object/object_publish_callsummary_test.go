@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
@@ -34,6 +35,7 @@ func TestSMObject_CallSummarySM(t *testing.T) {
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 	)
 
+	smObject.globalLimiter = conveyor.NewParallelProcessingLimiter(4)
 	smObject.SetState(HasState)
 
 	res1 := payload.VCallResult{

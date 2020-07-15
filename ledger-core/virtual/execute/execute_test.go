@@ -778,6 +778,8 @@ func TestSendVStateReportWithMissingState_IfConstructorWasInterruptedBeforeRunne
 		caller                             = gen.UniqueGlobalRef()
 		catalog     object.Catalog         = object.NewLocalCatalog()
 		authService authentication.Service = authentication.NewServiceMock(t)
+
+		limiter = conveyor.NewParallelProcessingLimiter(4)
 	)
 
 	slotMachine := slotdebugger.New(ctx, t)
@@ -785,6 +787,7 @@ func TestSendVStateReportWithMissingState_IfConstructorWasInterruptedBeforeRunne
 
 	slotMachine.AddInterfaceDependency(&catalog)
 	slotMachine.AddInterfaceDependency(&authService)
+	slotMachine.AddDependency(limiter)
 
 	outgoing := reference.NewRecordOf(caller, slotMachine.GenerateLocal())
 
@@ -851,6 +854,8 @@ func TestSMExecute_StopWithoutMessagesIfPulseChangedBeforeOutgoing(t *testing.T)
 
 		catalog     object.Catalog         = object.NewLocalCatalog()
 		authService authentication.Service = authentication.NewServiceMock(t)
+
+		limiter = conveyor.NewParallelProcessingLimiter(4)
 	)
 
 	slotMachine := slotdebugger.New(ctx, t)
@@ -858,6 +863,7 @@ func TestSMExecute_StopWithoutMessagesIfPulseChangedBeforeOutgoing(t *testing.T)
 	slotMachine.PrepareMockedRunner(ctx, mc)
 	slotMachine.AddInterfaceDependency(&catalog)
 	slotMachine.AddInterfaceDependency(&authService)
+	slotMachine.AddDependency(limiter)
 
 	var vStateReportRecv = make(chan struct{})
 	checkMessage := func(msg payload.Marshaler) {
