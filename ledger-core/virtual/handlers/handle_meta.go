@@ -14,6 +14,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
@@ -54,13 +55,19 @@ func (f FactoryMeta) Process(ctx context.Context, msg *statemachine.DispatcherMe
 		return pulse.Unknown, nil, nil
 	}
 
-	payloadType := rms.GetRegistry().Get(payloadTypeID)
+	payloadType := reflect.Indirect(reflect.ValueOf(payloadObj)).Type()
 
-	logger.Infom(struct {
+	logger.Debugm(struct {
 		Message         string
 		PayloadTypeID   uint64
-		PayloadTypeName string
-	}{"processing message", payloadTypeID, payloadType.String()})
+		PayloadType     reflect.Type
+		Source, Target  reference.Holder
+	}{
+		"processing message",
+		payloadTypeID,
+		payloadType,
+		payloadMeta.Sender, payloadMeta.Receiver,
+	})
 
 	targetPulse := pr.RightBoundData().PulseNumber
 	if targetPulse != payloadMeta.Pulse {
