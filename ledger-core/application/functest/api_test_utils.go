@@ -39,6 +39,7 @@ const (
 	walletGetBalancePath = walletPath + "/get_balance"
 	walletAddAmountPath  = walletPath + "/add_amount"
 	walletTransferPath   = walletPath + "/transfer"
+	walletDeletePath     = walletPath + "/delete"
 )
 
 func init() {

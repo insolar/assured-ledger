@@ -24,3 +24,5 @@ If any internal error happens it will be returned in field "error". The structur
 `curl -X POST -d '{ "walletRef": "testRef" }'  "127.0.0.1:32304/wallet/get_balance"`
 * Add amount to given wallet
 `curl -X POST -d '{ "to": "testRef", "amount": 10 }'  "127.0.0.1:32304/wallet/add_amount"`
+* Delete wallet
+`curl -X POST -d '{ "walletRef": "testRef" }'  "127.0.0.1:32304/wallet/delete"`

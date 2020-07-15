@@ -58,10 +58,10 @@ const (
 	UseFakeTransport = false
 	UseFakeBootstrap = true
 
-	reqTimeoutMs		= 2000
-	pulseDelta			= 4
-//	consensusMin		= 5 // minimum count of participants that can survive when one node leaves
-	maxPulsesForJoin	= 3
+	reqTimeoutMs = 2000
+	pulseDelta   = 4
+	//	consensusMin		= 5 // minimum count of participants that can survive when one node leaves
+	maxPulsesForJoin = 3
 )
 
 const cacheDir = "network_cache/"
@@ -569,7 +569,7 @@ func (s *testSuite) preInitNode(node *networkNode) {
 		keystore.NewInplaceKeyStore(node.privateKey),
 		serviceNetwork,
 		keyProc,
-//		testutils.NewContractRequesterMock(s.t),
+		//		testutils.NewContractRequesterMock(s.t),
 	)
 	node.serviceNetwork = serviceNetwork
 
