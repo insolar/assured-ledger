@@ -9,9 +9,9 @@ import (
 	"context"
 	"sync"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/dispatcher"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodestorage"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
@@ -28,7 +28,7 @@ type PulseManager struct {
 	NodeSetter    nodestorage.Modifier `inject:""`
 	PulseAccessor pulsestor.Accessor   `inject:""`
 	PulseAppender pulsestor.Appender   `inject:""`
-	dispatchers   []dispatcher.Dispatcher
+	dispatchers   []appctl.Dispatcher
 
 	// setLock locks Set method call.
 	setLock sync.RWMutex
@@ -43,7 +43,7 @@ func NewPulseManager() *PulseManager {
 
 // AddDispatcher adds dispatchers to handling
 // that could be done only when Set is not happening
-func (m *PulseManager) AddDispatcher(d ...dispatcher.Dispatcher) {
+func (m *PulseManager) AddDispatcher(d ...appctl.Dispatcher) {
 	m.setLock.Lock()
 	defer m.setLock.Unlock()
 

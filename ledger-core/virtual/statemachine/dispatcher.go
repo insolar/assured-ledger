@@ -7,135 +7,69 @@ package statemachine
 
 import (
 	"context"
-	"time"
 
 	"github.com/ThreeDotsLabs/watermill/message"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/dispatcher"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/log"
-	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-type dispatcherInitializationState int8
-
-const (
-	InitializationStarted dispatcherInitializationState = iota
-	FirstPulseClosed
-	InitializationDone // SecondPulseOpened
-)
-
 type conveyorDispatcher struct {
-	ctx           context.Context
-	conveyor      *conveyor.PulseConveyor
-	state         dispatcherInitializationState
-	previousPulse pulse.Number
+	ctx       context.Context
+	conveyor  *conveyor.PulseConveyor
+	prevPulse pulse.Number
 }
 
-var _ dispatcher.Dispatcher = &conveyorDispatcher{}
+var _ appctl.Dispatcher = &conveyorDispatcher{}
 
-type logBeginPulseMessage struct {
-	*log.Msg `fmt:"BeginPulse"`
+func (c *conveyorDispatcher) PreparePulseChange(change appctl.PulseChange, sink appctl.NodeStateSink) {
+	stateChan := sink.Occupy()
 
-	PreviousPulse pulse.Number
-	NextPulse     pulse.Number `opt:""`
-}
-
-type logClosePulseMessage struct {
-	*log.Msg `fmt:"ClosePulse"`
-
-	PreviousPulse pulse.Number
-}
-
-func (c *conveyorDispatcher) BeginPulse(ctx context.Context, pulseObject pulsestor.Pulse) {
-	var (
-		pulseData  = adapters.NewPulseData(pulseObject)
-		pulseRange pulse.Range
-	)
-
-	switch c.state {
-	case InitializationDone:
-		pulseRange = pulseData.AsRange()
-
-	case FirstPulseClosed:
-		pulseRange = pulse.NewLeftGapRange(c.previousPulse, 0, pulseData)
-		c.state = InitializationDone
-
-	case InitializationStarted:
-		fallthrough
-	default:
-		panic(throw.Impossible())
-	}
-
-	inslogger.FromContext(ctx).Debugm(logBeginPulseMessage{
-		PreviousPulse: c.previousPulse,
-		NextPulse:     pulseData.PulseNumber,
-	})
-
-	// TODO pass proper pulse start time from consensus
-	if err := c.conveyor.CommitPulseChange(pulseRange, time.Now()); err != nil {
-		panic(err)
-	}
-}
-
-func (c *conveyorDispatcher) ClosePulse(ctx context.Context, pulseObject pulsestor.Pulse) {
-	inslogger.FromContext(ctx).Debugm(logClosePulseMessage{
-		PreviousPulse: c.previousPulse,
-	})
-
-	c.previousPulse = pulseObject.PulseNumber
-
-	switch c.state {
-	case InitializationDone:
-		channel := conveyor.PreparePulseChangeChannel(nil)
-		if err := c.conveyor.PreparePulseChange(channel); err != nil {
-			panic(err)
-		}
-
-	case InitializationStarted:
-		c.state = FirstPulseClosed
+	if c.prevPulse.IsUnknown() {
+		stateChan <- appctl.NodeState{}
 		return
+	}
 
-	case FirstPulseClosed:
-		fallthrough
-	default:
-		panic(throw.Impossible())
+	if err := c.conveyor.PreparePulseChange(stateChan); err != nil {
+		panic(throw.WithStack(err))
 	}
 }
 
-type DispatcherMessage struct {
-	MessageMeta message.Metadata
-	PayloadMeta *payload.Meta
+func (c *conveyorDispatcher) CancelPulseChange() {
+	if c.prevPulse.IsUnknown() {
+		return
+	}
+	if err := c.conveyor.CancelPulseChange(); err != nil {
+		panic(throw.WithStack(err))
+	}
 }
 
-type errUnknownPayload struct {
-	ExpectedType string
-	GotType      interface{} `fmt:"%T"`
+func (c *conveyorDispatcher) CommitPulseChange(change appctl.PulseChange) {
+	if err := c.conveyor.CommitPulseChange(change.Pulse, change.StartedAt); err != nil {
+		panic(throw.WithStack(err))
+	}
+	c.prevPulse = change.Pulse.RightBoundData().PulseNumber
+}
+
+type DispatchedMessage struct {
+	MessageMeta message.Metadata
+	PayloadMeta payload.Meta
 }
 
 func (c *conveyorDispatcher) Process(msg *message.Message) error {
 	msg.Ack()
-	_, pl, err := rms.Unmarshal(msg.Payload)
-	if err != nil {
+	dm := DispatchedMessage{ MessageMeta: msg.Metadata }
+
+	if err := rms.UnmarshalAs(msg.Payload, &dm.PayloadMeta, nil); err != nil {
 		return throw.W(err, "failed to unmarshal payload.Meta")
 	}
-	plMeta, ok := pl.(*payload.Meta)
-	if !ok {
-		return throw.E("unexpected type", errUnknownPayload{ExpectedType: "payload.Meta", GotType: pl})
-	}
-
-	return c.conveyor.AddInput(c.ctx, plMeta.Pulse, &DispatcherMessage{
-		MessageMeta: msg.Metadata,
-		PayloadMeta: plMeta,
-	})
+	return c.conveyor.AddInput(c.ctx, dm.PayloadMeta.Pulse, dm)
 }
 
-func NewConveyorDispatcher(ctx context.Context, conveyor *conveyor.PulseConveyor) dispatcher.Dispatcher {
+func NewConveyorDispatcher(ctx context.Context, conveyor *conveyor.PulseConveyor) appctl.Dispatcher {
 	return &conveyorDispatcher{ ctx: ctx, conveyor: conveyor}
 }

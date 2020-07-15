@@ -32,7 +32,7 @@ type skippedMessage struct {
 	targetPulse   pulse.Number
 }
 
-func (f FactoryMeta) Process(ctx context.Context, msg *statemachine.DispatcherMessage, pr pulse.Range) (pulse.Number, smachine.CreateFunc, error) {
+func (f FactoryMeta) Process(ctx context.Context, msg statemachine.DispatchedMessage, pr pulse.Range) (pulse.Number, smachine.CreateFunc, error) {
 	payloadMeta := msg.PayloadMeta
 	messageMeta := msg.MessageMeta
 

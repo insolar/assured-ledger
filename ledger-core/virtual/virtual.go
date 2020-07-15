@@ -9,10 +9,10 @@ import (
 	"context"
 	"time"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl"
 	testWalletAPIStateMachine "github.com/insolar/assured-ledger/ledger-core/application/testwalletapi/statemachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	flowDispatcher "github.com/insolar/assured-ledger/ledger-core/insolar/dispatcher"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
@@ -32,7 +32,7 @@ type DefaultHandlersFactory struct {
 
 func (f DefaultHandlersFactory) Classify(ctx context.Context, input conveyor.InputEvent, ic conveyor.InputContext) (conveyor.InputSetup, error) {
 	switch event := input.(type) {
-	case *virtualStateMachine.DispatcherMessage:
+	case virtualStateMachine.DispatchedMessage:
 		if ic.PulseRange == nil {
 			return conveyor.InputSetup{},
 				throw.E("event is too old", struct {
@@ -47,9 +47,9 @@ func (f DefaultHandlersFactory) Classify(ctx context.Context, input conveyor.Inp
 			CreateFn:    createFn,
 		}, err
 
-	case *testWalletAPIStateMachine.TestAPICall:
+	case testWalletAPIStateMachine.TestAPICall:
 		return conveyor.InputSetup{
-			CreateFn: testWalletAPIStateMachine.Handler(event),
+			CreateFn: event.AsSMCreate(),
 		}, nil
 	default:
 		panic(throw.E("unknown event type", struct {
@@ -60,7 +60,7 @@ func (f DefaultHandlersFactory) Classify(ctx context.Context, input conveyor.Inp
 }
 
 type Dispatcher struct {
-	FlowDispatcher flowDispatcher.Dispatcher
+	FlowDispatcher appctl.Dispatcher
 
 	Conveyor       *conveyor.PulseConveyor
 	ConveyorWorker virtualStateMachine.ConveyorWorker

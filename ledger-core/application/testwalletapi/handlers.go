@@ -379,7 +379,7 @@ func (s *TestWalletServer) runWalletRequest(ctx context.Context, req payload.VCa
 		return nil, throw.W(err, "Failed to get latest pulse", nil)
 	}
 
-	call := &statemachine.TestAPICall{
+	call := statemachine.TestAPICall{
 		Payload: req,
 	}
 
