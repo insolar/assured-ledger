@@ -71,14 +71,18 @@ func (p *Future) TrySetFutureResult(allocations []ledger.DirectoryIndex, err err
 		panic(throw.IllegalValue())
 	}
 
-	p.mutex.Lock()
-	if p.err != nil || p.allocations != nil {
-		p.mutex.Unlock()
-		return false
+	if func() bool {
+		p.mutex.Lock()
+		defer p.mutex.Unlock()
+		if p.err != nil || p.allocations != nil {
+			return false
+		}
+		p.allocations, p.err = allocations, err
+		return true
+	} () {
+		smachine.ApplyAdjustmentAsync(p.ready.NewValue(true))
+		return true
 	}
-	p.allocations, p.err = allocations, err
-	p.mutex.Unlock()
 
-	smachine.ApplyAdjustmentAsync(p.ready.NewValue(true))
-	return true
+	return false
 }
