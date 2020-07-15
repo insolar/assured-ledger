@@ -19,9 +19,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 )
 
 func makeVStateReportEvent(objectRef reference.Global, stateRef reference.Local, rawState []byte) *payload.VStateReport {
@@ -224,28 +224,21 @@ func TestVirtual_VStateReport_CheckValidatedState(t *testing.T) {
 
 		wait := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
 		server.SendPayload(ctx, payload)
-		waitWithTimeout(wait)
+		testutils.WaitSignalsTimed(t, 10*time.Second, wait)
 	}
 
+	waitVStateReport := make(chan struct{})
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
 		require.Equal(t, report.ProvidedContent.LatestDirtyState, content.LatestDirtyState)
 		require.Equal(t, report.ProvidedContent.LatestValidatedState, content.LatestDirtyState)
-		return true
+		waitVStateReport <- struct{}{}
+		return false
 	})
 
-	wait := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
 	server.IncrementPulseAndWaitIdle(ctx)
-	waitWithTimeout(wait)
+	testutils.WaitSignalsTimed(t, 10*time.Second, waitVStateReport)
 
 	mc.Finish()
 
-}
-
-func waitWithTimeout(wait synckit.SignalChannel) {
-	select {
-	case <-wait:
-	case <-time.After(10 * time.Second):
-		panic("timeout")
-	}
 }
