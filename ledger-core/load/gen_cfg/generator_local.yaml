@@ -1,0 +1,12 @@
+generator:
+  target: http://127.0.0.1:32304
+  responseTimeoutSec: 30
+  rampUpStrategy: linear
+  verbose: true
+execution_mode: parallel
+root_package_name: assured-ledger/ledger-core
+load_scripts_dir: load
+timezone: Europe/Moscow
+logging:
+  level: info
+  encoding: console
