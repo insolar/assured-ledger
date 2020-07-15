@@ -33,13 +33,13 @@ func GetBootstrapPulse(ctx context.Context, accessor storage.PulseAccessor) puls
 	return puls
 }
 
-func EnsureGetPulse(ctx context.Context, accessor storage.PulseAccessor, pulseNumber pulse.Number) pulsestor.Pulse {
+func EnsureGetPulse(ctx context.Context, accessor storage.PulseAccessor, pulseNumber pulse.Number) network.NetworkedPulse {
 	pulse, err := accessor.GetPulse(ctx, pulseNumber)
 	if err != nil {
 		inslogger.FromContext(ctx).Panicf("Failed to fetch pulse: %d", pulseNumber)
 	}
 
-	return pulse
+	return network.NetworkedPulse{ Pulse: pulse }
 }
 
 func getAnnounceSignature(

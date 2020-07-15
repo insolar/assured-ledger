@@ -18,10 +18,11 @@ type NodeState struct {
 
 type NodeStateChan = chan<- NodeState
 
-func NewNodeStateSink(ch chan NodeState) NodeStateSink {
-	return NodeStateSink{ &sinkCtl{
+func NewNodeStateSink(ch chan NodeState) (NodeStateSink, func(committed bool)) {
+	ctl := &sinkCtl{
 		report: ch,
-	}}
+	}
+	return NodeStateSink{ ctl }, ctl.setReadyState
 }
 
 type NodeStateSink struct {
@@ -58,4 +59,15 @@ type sinkCtl struct {
 	ready synckit.ClosableSignalChannel
 	state atomickit.Uint32
 	report chan NodeState
+}
+
+func (p *sinkCtl) setReadyState(committed bool) {
+	state := uint32(sinkStateReady)
+	if committed {
+		state |= sinkStateCommitted
+	}
+	if !p.state.TrySetBits(state, true) {
+		panic(throw.IllegalState())
+	}
+	close(p.ready)
 }

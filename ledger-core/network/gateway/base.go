@@ -218,13 +218,13 @@ func (g *Base) StartConsensus(ctx context.Context) error {
 
 // ChangePulse process pulse from Consensus
 func (g *Base) ChangePulse(ctx context.Context, pulse pulsestor.Pulse) {
-	g.Gatewayer.Gateway().OnPulseFromConsensus(ctx, pulse)
+	g.Gatewayer.Gateway().OnPulseFromConsensus(ctx, network.NetworkedPulse{ Pulse: pulse })
 }
 
-func (g *Base) OnPulseFromConsensus(ctx context.Context, pu pulsestor.Pulse) {
+func (g *Base) OnPulseFromConsensus(ctx context.Context, pu network.NetworkedPulse) {
 	g.pulseWatchdog.Reset()
 	g.NodeKeeper.MoveSyncToActive(ctx, pu.PulseNumber)
-	err := g.PulseAppender.AppendPulse(ctx, pu)
+	err := g.PulseAppender.AppendPulse(ctx, pu.Pulse)
 	if err != nil {
 		inslogger.FromContext(ctx).Panic("failed to append pulse: ", err.Error())
 	}
@@ -238,7 +238,7 @@ func (g *Base) UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes 
 	g.NodeKeeper.Sync(ctx, pulseNumber, nodes)
 }
 
-func (g *Base) BeforeRun(ctx context.Context, pulse pulsestor.Pulse) {}
+func (g *Base) BeforeRun(ctx context.Context, pulse network.NetworkedPulse) {}
 
 // Auther casts us to Auther or obtain it in another way
 func (g *Base) Auther() network.Auther {

@@ -154,7 +154,9 @@ func (s *consensusSuite) Setup() {
 			require.NoError(s.t, err)
 			err = n.serviceNetwork.BaseGateway.StartConsensus(s.ctx)
 			require.NoError(s.t, err)
-			n.serviceNetwork.Gatewayer.SwitchState(s.ctx, node2.CompleteNetworkState, *pulsestor.GenesisPulse)
+			n.serviceNetwork.Gatewayer.SwitchState(s.ctx, node2.CompleteNetworkState,
+				network.NetworkedPulse{Pulse: *pulsestor.GenesisPulse})
+
 			pulseReceivers = append(pulseReceivers, n.host)
 		}
 	}

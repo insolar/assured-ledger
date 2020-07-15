@@ -38,15 +38,13 @@ func TestNewGatewayer(t *testing.T) {
 		return gw
 	})
 
-	gw.BeforeRunMock.Set(func(ctx context.Context, pulse pulsestor.Pulse) {
-	})
-
-	gw.RunMock.Set(func(ctx context.Context, pulse pulsestor.Pulse) {
-	})
+	gw.BeforeRunMock.Return()
+	gw.RunMock.Return()
 
 	gatewayer := NewGatewayer(gw)
 	assert.Equal(t, gw, gatewayer.Gateway())
 	assert.Equal(t, node.NoNetworkState, gatewayer.Gateway().GetState())
 
-	gatewayer.SwitchState(context.Background(), node.WaitConsensus, *pulsestor.GenesisPulse)
+	gatewayer.SwitchState(context.Background(), node.WaitConsensus,
+		network.NetworkedPulse{Pulse: *pulsestor.GenesisPulse})
 }

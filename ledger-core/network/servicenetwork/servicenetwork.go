@@ -118,7 +118,7 @@ func (n *ServiceNetwork) Start(ctx context.Context) error {
 	}
 
 	bootstrapPulse := gateway.GetBootstrapPulse(ctx, n.PulseAccessor)
-	n.Gatewayer.Gateway().Run(ctx, bootstrapPulse)
+	n.Gatewayer.Gateway().Run(ctx, network.NetworkedPulse{Pulse: bootstrapPulse})
 	n.RPC.RemoteProcedureRegister(deliverWatermillMsg, n.processIncoming)
 
 	return nil

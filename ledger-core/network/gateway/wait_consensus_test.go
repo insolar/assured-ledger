@@ -34,7 +34,7 @@ func TestWaitConsensus_ConsensusNotHappenedInETA(t *testing.T) {
 	waitConsensus.bootstrapETA = time.Millisecond
 	waitConsensus.bootstrapTimer = time.NewTimer(waitConsensus.bootstrapETA)
 
-	waitConsensus.Run(context.Background(), *pulsestor.EphemeralPulse)
+	waitConsensus.Run(context.Background(), network.NetworkedPulse{Pulse: *pulsestor.EphemeralPulse})
 }
 
 func TestWaitConsensus_ConsensusHappenedInETA(t *testing.T) {
@@ -43,7 +43,7 @@ func TestWaitConsensus_ConsensusHappenedInETA(t *testing.T) {
 	defer mc.Wait(time.Minute)
 
 	gatewayer := mock.NewGatewayerMock(mc)
-	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state node.NetworkState, pulse pulsestor.Pulse) {
+	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state node.NetworkState, pulse network.NetworkedPulse) {
 		assert.Equal(t, node.WaitMajority, state)
 	})
 
@@ -59,5 +59,5 @@ func TestWaitConsensus_ConsensusHappenedInETA(t *testing.T) {
 	waitConsensus.bootstrapTimer = time.NewTimer(waitConsensus.bootstrapETA)
 	waitConsensus.OnConsensusFinished(context.Background(), network.Report{})
 
-	waitConsensus.Run(context.Background(), *pulsestor.EphemeralPulse)
+	waitConsensus.Run(context.Background(), network.NetworkedPulse{Pulse: *pulsestor.EphemeralPulse})
 }

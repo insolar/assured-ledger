@@ -58,8 +58,54 @@ type messageNewPulse struct {
 	NewPulse pulse.Number
 }
 
-// Set set's new pulse.
 func (m *PulseManager) Set(ctx context.Context, newPulse pulsestor.Pulse) error {
+	if err := m.setLegacy(ctx, newPulse); err != nil {
+		return err
+	}
+	return m.setNewPulseFromLegacy(ctx, newPulse)
+}
+
+func (m *PulseManager) setNewPulseFromLegacy(ctx context.Context, newPulse pulsestor.Pulse) error {
+	pulseChange := appctl.PulseChange{
+		PulseSeq:  0,
+		Pulse:     pulse.NewOnePulseRange(pulse.Data{
+			PulseNumber: newPulse.PulseNumber,
+			DataExt:     pulse.DataExt{
+				PulseEpoch:     newPulse.EpochPulseNumber,
+				NextPulseDelta: uint16(newPulse.NextPulseNumber - newPulse.PulseNumber),
+				PrevPulseDelta: uint16(newPulse.PulseNumber - newPulse.PrevPulseNumber),
+				Timestamp:      uint32(newPulse.PulseTimestamp / int64(time.Second)),
+				PulseEntropy:   longbits.NewBits256FromBytes(newPulse.Entropy[:32]),
+			},
+		}),
+		StartedAt: time.Now(),
+		Census:    nil,
+	}
+
+	sink, setStateFn := appctl.NewNodeStateSink(make(chan appctl.NodeState, 1))
+	for _, d := range m.dispatchers {
+		d.PreparePulseChange(pulseChange, sink)
+	}
+	committed := false
+
+	defer func() {
+		setStateFn(committed)
+	}()
+
+	if err := m.PulseAppender.Append(ctx, newPulse); err != nil {
+		return errors.W(err, "call of AddPulse failed")
+	}
+
+	for _, d := range m.dispatchers {
+		d.CommitPulseChange(pulseChange)
+	}
+	committed = true
+
+	return nil
+}
+
+// Set set's new pulse in the old way.
+func (m *PulseManager) setLegacy(ctx context.Context, newPulse pulsestor.Pulse) error {
 	m.setLock.Lock()
 	defer m.setLock.Unlock()
 	if m.stopped {
@@ -91,38 +137,6 @@ func (m *PulseManager) Set(ctx context.Context, newPulse pulsestor.Pulse) error 
 			panic(throw.W(err, "call of SetActiveNodes failed", nil))
 		}
 	}
-
-
-
-	pulseChange := appctl.PulseChange{
-		PulseSeq:  0,
-		Pulse:     pulse.NewOnePulseRange(pulse.Data{
-			PulseNumber: newPulse.PulseNumber,
-			DataExt:     pulse.DataExt{
-				PulseEpoch:     newPulse.EpochPulseNumber,
-				NextPulseDelta: uint16(newPulse.NextPulseNumber - newPulse.PulseNumber),
-				PrevPulseDelta: uint16(newPulse.PulseNumber - newPulse.PrevPulseNumber),
-				Timestamp:      uint32(newPulse.PulseTimestamp / int64(time.Second)),
-				PulseEntropy:   longbits.NewBits256FromBytes(newPulse.Entropy[:32]),
-			},
-		}),
-		StartedAt: time.Now(),
-		Census:    nil,
-	}
-
-	sink := appctl.NewNodeStateSink(make(chan appctl.NodeState, 1))
-	for _, d := range m.dispatchers {
-		d.PreparePulseChange(pulseChange, sink)
-	}
-
-	if err := m.PulseAppender.Append(ctx, newPulse); err != nil {
-		return errors.W(err, "call of AddPulse failed")
-	}
-
-	for _, d := range m.dispatchers {
-		d.CommitPulseChange(pulseChange)
-	}
-
 	return nil
 }
 

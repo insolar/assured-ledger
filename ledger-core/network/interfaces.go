@@ -150,7 +150,7 @@ type Accessor interface {
 // Gatewayer is a network which can change it's Gateway
 type Gatewayer interface {
 	Gateway() Gateway
-	SwitchState(ctx context.Context, state node.NetworkState, pulse pulsestor.Pulse)
+	SwitchState(context.Context, node.NetworkState, NetworkedPulse)
 }
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network.Gateway -o ../testutils/network -s _mock.go -g
@@ -159,13 +159,13 @@ type Gatewayer interface {
 type Gateway interface {
 	NewGateway(context.Context, node.NetworkState) Gateway
 
-	BeforeRun(ctx context.Context, pulse pulsestor.Pulse)
-	Run(ctx context.Context, pulse pulsestor.Pulse)
+	BeforeRun(context.Context, NetworkedPulse)
+	Run(context.Context, NetworkedPulse)
 
 	GetState() node.NetworkState
 
-	OnPulseFromConsensus(context.Context, pulsestor.Pulse)
-	OnConsensusFinished(ctx context.Context, report Report)
+	OnPulseFromConsensus(context.Context, NetworkedPulse)
+	OnConsensusFinished(context.Context, Report)
 
 	UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes []node.NetworkNode, cloudStateHash []byte)
 
@@ -210,4 +210,8 @@ type TerminationHandler interface {
 	OnLeaveApproved(context.Context)
 	// Terminating is an accessor
 	Terminating() bool
+}
+
+type NetworkedPulse struct {
+	pulsestor.Pulse
 }

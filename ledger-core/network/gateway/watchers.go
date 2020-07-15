@@ -10,12 +10,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 )
 
-func pulseProcessingWatchdog(ctx context.Context, gateway *Base, pulse pulsestor.Pulse, done chan struct{}) {
+func pulseProcessingWatchdog(ctx context.Context, gateway *Base, pulse network.NetworkedPulse, done chan struct{}) {
 	logger := inslogger.FromContext(ctx)
 
 	go func() {

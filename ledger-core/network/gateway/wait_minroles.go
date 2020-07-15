@@ -9,7 +9,6 @@ import (
 	"context"
 
 	node2 "github.com/insolar/assured-ledger/ledger-core/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/network/rules"
@@ -17,15 +16,15 @@ import (
 )
 
 func newWaitMinRoles(b *Base) *WaitMinRoles {
-	return &WaitMinRoles{b, make(chan pulsestor.Pulse, 1)}
+	return &WaitMinRoles{b, make(chan network.NetworkedPulse, 1)}
 }
 
 type WaitMinRoles struct {
 	*Base
-	minrolesComplete chan pulsestor.Pulse
+	minrolesComplete chan network.NetworkedPulse
 }
 
-func (g *WaitMinRoles) Run(ctx context.Context, pulse pulsestor.Pulse) {
+func (g *WaitMinRoles) Run(ctx context.Context, pulse network.NetworkedPulse) {
 	g.switchOnMinRoles(ctx, pulse)
 
 	select {
@@ -54,7 +53,7 @@ func (g *WaitMinRoles) OnConsensusFinished(ctx context.Context, report network.R
 	g.switchOnMinRoles(ctx, EnsureGetPulse(ctx, g.PulseAccessor, report.PulseNumber))
 }
 
-func (g *WaitMinRoles) switchOnMinRoles(_ context.Context, pulse pulsestor.Pulse) {
+func (g *WaitMinRoles) switchOnMinRoles(_ context.Context, pulse network.NetworkedPulse) {
 	err := rules.CheckMinRole(
 		g.CertificateManager.GetCertificate(),
 		g.NodeKeeper.GetAccessor(pulse.PulseNumber).GetWorkingNodes(),

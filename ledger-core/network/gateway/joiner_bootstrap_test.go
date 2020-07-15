@@ -17,6 +17,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
+	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/network/gateway/bootstrap"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet"
@@ -62,7 +63,7 @@ func TestJoinerBootstrap_Run_AuthorizeRequestFailed(t *testing.T) {
 	defer f.mc.Finish()
 	defer f.mc.Wait(time.Minute)
 
-	f.gatewayer.SwitchStateMock.Set(func(ctx context.Context, state node.NetworkState, pulse pulsestor.Pulse) {
+	f.gatewayer.SwitchStateMock.Set(func(ctx context.Context, state node.NetworkState, pulse network.NetworkedPulse) {
 		assert.Equal(t, node.NoNetworkState, state)
 	})
 
@@ -71,7 +72,7 @@ func TestJoinerBootstrap_Run_AuthorizeRequestFailed(t *testing.T) {
 	})
 
 	assert.Equal(t, node.JoinerBootstrap, f.joinerBootstrap.GetState())
-	f.joinerBootstrap.Run(context.Background(), *pulsestor.EphemeralPulse)
+	f.joinerBootstrap.Run(context.Background(), network.NetworkedPulse{Pulse: *pulsestor.EphemeralPulse})
 }
 
 func TestJoinerBootstrap_Run_BootstrapRequestFailed(t *testing.T) {
@@ -81,7 +82,7 @@ func TestJoinerBootstrap_Run_BootstrapRequestFailed(t *testing.T) {
 	defer f.mc.Finish()
 	defer f.mc.Wait(time.Minute)
 
-	f.gatewayer.SwitchStateMock.Set(func(ctx context.Context, state node.NetworkState, pulse pulsestor.Pulse) {
+	f.gatewayer.SwitchStateMock.Set(func(ctx context.Context, state node.NetworkState, pulse network.NetworkedPulse) {
 		assert.Equal(t, node.NoNetworkState, state)
 	})
 
@@ -93,7 +94,7 @@ func TestJoinerBootstrap_Run_BootstrapRequestFailed(t *testing.T) {
 		return nil, ErrUnknown
 	})
 
-	f.joinerBootstrap.Run(context.Background(), *pulsestor.EphemeralPulse)
+	f.joinerBootstrap.Run(context.Background(), network.NetworkedPulse{Pulse: *pulsestor.EphemeralPulse})
 }
 
 func TestJoinerBootstrap_Run_BootstrapSucceeded(t *testing.T) {
@@ -103,7 +104,7 @@ func TestJoinerBootstrap_Run_BootstrapSucceeded(t *testing.T) {
 	defer f.mc.Finish()
 	defer f.mc.Wait(time.Minute)
 
-	f.gatewayer.SwitchStateMock.Set(func(ctx context.Context, state node.NetworkState, puls pulsestor.Pulse) {
+	f.gatewayer.SwitchStateMock.Set(func(ctx context.Context, state node.NetworkState, puls network.NetworkedPulse) {
 		assert.Equal(t, pulse.Number(123), puls.PulseNumber)
 		assert.Equal(t, node.WaitConsensus, state)
 	})
@@ -120,7 +121,7 @@ func TestJoinerBootstrap_Run_BootstrapSucceeded(t *testing.T) {
 		}, nil
 	})
 
-	f.joinerBootstrap.Run(context.Background(), *pulsestor.EphemeralPulse)
+	f.joinerBootstrap.Run(context.Background(), network.NetworkedPulse{Pulse: *pulsestor.EphemeralPulse})
 
 	assert.Equal(t, true, f.joinerBootstrap.bootstrapTimer.Stop())
 	assert.Equal(t, time.Duration(0), f.joinerBootstrap.backoff)

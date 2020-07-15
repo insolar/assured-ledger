@@ -14,7 +14,6 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	node2 "github.com/insolar/assured-ledger/ledger-core/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/instracer"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -41,7 +40,7 @@ type Complete struct {
 	*Base
 }
 
-func (g *Complete) Run(ctx context.Context, pulse pulsestor.Pulse) {
+func (g *Complete) Run(ctx context.Context, pulse network.NetworkedPulse) {
 	if g.bootstrapTimer != nil {
 		g.bootstrapTimer.Stop()
 	}
@@ -53,8 +52,8 @@ func (g *Complete) GetState() node2.NetworkState {
 	return node2.CompleteNetworkState
 }
 
-func (g *Complete) BeforeRun(ctx context.Context, pulse pulsestor.Pulse) {
-	err := g.PulseManager.Set(ctx, pulse)
+func (g *Complete) BeforeRun(ctx context.Context, pulse network.NetworkedPulse) {
+	err := g.PulseManager.Set(ctx, pulse.Pulse)
 	if err != nil {
 		inslogger.FromContext(ctx).Panicf("failed to set start pulse: %d, %s", pulse.PulseNumber, err.Error())
 	}
@@ -156,7 +155,7 @@ func (g *Complete) UpdateState(ctx context.Context, pulseNumber pulse.Number, no
 	g.Base.UpdateState(ctx, pulseNumber, nodes, cloudStateHash)
 }
 
-func (g *Complete) OnPulseFromConsensus(ctx context.Context, pulse pulsestor.Pulse) {
+func (g *Complete) OnPulseFromConsensus(ctx context.Context, pulse network.NetworkedPulse) {
 	g.Base.OnPulseFromConsensus(ctx, pulse)
 
 	done := make(chan struct{})
@@ -170,7 +169,7 @@ func (g *Complete) OnPulseFromConsensus(ctx context.Context, pulse pulsestor.Pul
 	span.SetTag("pulse.Number", int64(pulse.PulseNumber))
 	defer span.Finish()
 
-	err := g.PulseManager.Set(ctx, pulse)
+	err := g.PulseManager.Set(ctx, pulse.Pulse)
 	if err != nil {
 		logger.Fatalf("Failed to set new pulse: %s", err.Error())
 	}

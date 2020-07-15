@@ -9,7 +9,6 @@ import (
 	"context"
 
 	node2 "github.com/insolar/assured-ledger/ledger-core/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/network/rules"
@@ -17,15 +16,15 @@ import (
 )
 
 func newWaitPulsar(b *Base) *WaitPulsar {
-	return &WaitPulsar{b, make(chan pulsestor.Pulse, 1)}
+	return &WaitPulsar{b, make(chan network.NetworkedPulse, 1)}
 }
 
 type WaitPulsar struct {
 	*Base
-	pulseArrived chan pulsestor.Pulse
+	pulseArrived chan network.NetworkedPulse
 }
 
-func (g *WaitPulsar) Run(ctx context.Context, pulse pulsestor.Pulse) {
+func (g *WaitPulsar) Run(ctx context.Context, pulse network.NetworkedPulse) {
 	g.switchOnRealPulse(pulse)
 
 	select {
@@ -58,7 +57,7 @@ func (g *WaitPulsar) OnConsensusFinished(ctx context.Context, report network.Rep
 	g.switchOnRealPulse(EnsureGetPulse(ctx, g.PulseAccessor, report.PulseNumber))
 }
 
-func (g *WaitPulsar) switchOnRealPulse(pulseObject pulsestor.Pulse) {
+func (g *WaitPulsar) switchOnRealPulse(pulseObject network.NetworkedPulse) {
 	if pulseObject.PulseNumber.IsTimePulse() && pulseObject.EpochPulseNumber.IsTimeEpoch() {
 		g.pulseArrived <- pulseObject
 		close(g.pulseArrived)

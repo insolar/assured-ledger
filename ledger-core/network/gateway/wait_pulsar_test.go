@@ -59,7 +59,7 @@ func TestWaitPulsar_PulseNotArrivedInETA(t *testing.T) {
 	waitPulsar.bootstrapETA = time.Millisecond
 	waitPulsar.bootstrapTimer = time.NewTimer(waitPulsar.bootstrapETA)
 
-	waitPulsar.Run(context.Background(), *pulsestor.EphemeralPulse)
+	waitPulsar.Run(context.Background(), network.NetworkedPulse{Pulse: *pulsestor.EphemeralPulse})
 }
 
 func TestWaitPulsar_PulseArrivedInETA(t *testing.T) {
@@ -68,7 +68,7 @@ func TestWaitPulsar_PulseArrivedInETA(t *testing.T) {
 	defer mc.Wait(time.Minute)
 
 	gatewayer := mock.NewGatewayerMock(mc)
-	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state node2.NetworkState, pulse pulsestor.Pulse) {
+	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state node2.NetworkState, pulse network.NetworkedPulse) {
 		assert.Equal(t, node2.CompleteNetworkState, state)
 	})
 
@@ -86,7 +86,7 @@ func TestWaitPulsar_PulseArrivedInETA(t *testing.T) {
 	waitPulsar.bootstrapETA = time.Second * 2
 	waitPulsar.bootstrapTimer = time.NewTimer(waitPulsar.bootstrapETA)
 
-	go waitPulsar.Run(context.Background(), *pulsestor.EphemeralPulse)
+	go waitPulsar.Run(context.Background(), network.NetworkedPulse{Pulse: *pulsestor.EphemeralPulse})
 	time.Sleep(100 * time.Millisecond)
 
 	waitPulsar.OnConsensusFinished(context.Background(), network.Report{PulseNumber: pulse.MinTimePulse + 10})

@@ -53,7 +53,7 @@ func TestWaitMajority_MajorityNotHappenedInETA(t *testing.T) {
 	waitMajority.bootstrapETA = time.Millisecond
 	waitMajority.bootstrapTimer = time.NewTimer(waitMajority.bootstrapETA)
 
-	waitMajority.Run(context.Background(), *pulsestor.EphemeralPulse)
+	waitMajority.Run(context.Background(), network.NetworkedPulse{Pulse: *pulsestor.EphemeralPulse})
 }
 
 func TestWaitMajority_MajorityHappenedInETA(t *testing.T) {
@@ -62,7 +62,7 @@ func TestWaitMajority_MajorityHappenedInETA(t *testing.T) {
 	defer mc.Wait(time.Minute)
 
 	gatewayer := mock.NewGatewayerMock(mc)
-	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state node2.NetworkState, pulse pulsestor.Pulse) {
+	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state node2.NetworkState, pulse network.NetworkedPulse) {
 		assert.Equal(t, node2.WaitMinRoles, state)
 	})
 
@@ -101,7 +101,7 @@ func TestWaitMajority_MajorityHappenedInETA(t *testing.T) {
 	waitMajority.bootstrapETA = time.Second * 2
 	waitMajority.bootstrapTimer = time.NewTimer(waitMajority.bootstrapETA)
 
-	go waitMajority.Run(context.Background(), *pulsestor.EphemeralPulse)
+	go waitMajority.Run(context.Background(), network.NetworkedPulse{Pulse: *pulsestor.EphemeralPulse})
 	time.Sleep(100 * time.Millisecond)
 
 	waitMajority.OnConsensusFinished(context.Background(), network.Report{PulseNumber: pulse.MinTimePulse + 10})
