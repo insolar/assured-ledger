@@ -170,7 +170,7 @@ jobs:
       - name: Send report
         run: |
           cd ${{ env.CORE_PATH }}
-          go run ~/work/pkg/mod/github.com/skudasov/loadgen@v0.0.22/cmd/loadcli.go -gen_config ${{ env.CORE_PATH }}/load/gen_cfg/generator_assured_ledger.yaml scaling_report ${{ env.CORE_PATH }}/load/scaling.csv out.png
+          go run ~/work/pkg/mod/github.com/skudasov/loadgen@v0.0.17/cmd/loadcli.go -gen_config ${{ env.CORE_PATH }}/load/gen_cfg/generator_assured_ledger.yaml scaling_report ${{ env.CORE_PATH }}/load/scaling.csv out.png
           filename=$(date +"%F-%H-%M")-${GITHUB_SHA:0:8}.png
           echo '::set-env name=FILE_NAME::'${filename}
           curl -basic --user "${{ secrets.WEBDAV_USERNAME }}:${{ secrets.WEBDAV_PASSWORD }}" -T out.png "https://reports.garage.insolar.io/ve-perf-tests/${filename}"
