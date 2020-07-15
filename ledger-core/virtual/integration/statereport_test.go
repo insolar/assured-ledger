@@ -9,7 +9,9 @@ import (
 	"context"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/builtin/contract/testwallet"
@@ -17,7 +19,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 )
 
 func makeVStateReportEvent(objectRef reference.Global, stateRef reference.Local, rawState []byte) *payload.VStateReport {
@@ -178,4 +182,63 @@ func TestVirtual_VStateReport_BadState_StateAlreadyExists(t *testing.T) {
 	}
 
 	checkBalance(ctx, t, server, objectGlobal, testBalance)
+}
+
+func TestVirtual_VStateReport_CheckValidatedState(t *testing.T) {
+	t.Log("C5124")
+	t.Skip("https://insolar.atlassian.net/browse/PLAT-402")
+
+	mc := minimock.NewController(t)
+
+	server, ctx := utils.NewServer(nil, t)
+	defer server.Stop()
+
+	server.IncrementPulseAndWaitIdle(ctx)
+
+	var (
+		objectLocal          = server.RandomLocalWithPulse()
+		objectGlobal         = reference.NewSelf(objectLocal)
+		dirtyWalletState     = makeRawWalletState(initialBalance)
+		validatedWalletState = makeRawWalletState(initialBalance + 123)
+	)
+
+	content := &payload.VStateReport_ProvidedContentBody{
+		LatestDirtyState: &payload.ObjectState{
+			Reference: server.RandomLocalWithPulse(),
+			Class:     testwalletProxy.GetClass(),
+			State:     dirtyWalletState,
+		},
+		LatestValidatedState: &payload.ObjectState{
+			Reference: server.RandomLocalWithPulse(),
+			Class:     testwalletProxy.GetClass(),
+			State:     validatedWalletState,
+		},
+	}
+
+	{
+		payload := &payload.VStateReport{
+			Status:          payload.Ready,
+			Object:          objectGlobal,
+			ProvidedContent: content,
+		}
+
+		wait := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
+		server.SendPayload(ctx, payload)
+		testutils.WaitSignalsTimed(t, 10*time.Second, wait)
+	}
+
+	waitVStateReport := make(chan struct{})
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
+		require.Equal(t, report.ProvidedContent.LatestDirtyState, content.LatestDirtyState)
+		require.Equal(t, report.ProvidedContent.LatestValidatedState, content.LatestDirtyState)
+		waitVStateReport <- struct{}{}
+		return false
+	})
+
+	server.IncrementPulseAndWaitIdle(ctx)
+	testutils.WaitSignalsTimed(t, 10*time.Second, waitVStateReport)
+
+	mc.Finish()
+
 }
