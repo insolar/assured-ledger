@@ -20,11 +20,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/debuglogger"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/synchronization"
-	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
@@ -543,24 +541,10 @@ func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 		outgoing = server.BuildRandomOutgoingWithPulse()
 		object   = reference.NewSelf(server.RandomLocalWithPulse())
 
-		expectedToken = payload.CallDelegationToken{
-			TokenTypeAndFlags: payload.DelegationTokenTypeCall,
-			Callee:            object,
-			Outgoing:          outgoing,
-			DelegateTo:        server.JetCoordinatorMock.Me(),
-		}
-		firstTokenValue payload.CallDelegationToken
+		tokenValue payload.CallDelegationToken
 	)
 
 	executeStopped := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
-
-	foundError := server.Journal.Wait(func(event debuglogger.UpdateEvent) bool {
-		if event.Data.Error != nil {
-			stack := throw.DeepestStackTraceOf(event.Data.Error)
-			return strings.Contains(stack.StackTraceAsText(), "outgoing retries limit")
-		}
-		return false
-	})
 
 	Method_PrepareObject(ctx, server, payload.Ready, object)
 
@@ -601,15 +585,11 @@ func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 		typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool { return false })
 
 		typedChecker.VDelegatedCallRequest.Set(func(request *payload.VDelegatedCallRequest) bool {
+			require.Equal(t, object, request.Callee)
 			newPulse := server.GetPulse().PulseNumber
-
-			assert.Equal(t, object, request.Callee)
-
-			expectedToken.PulseNumber = newPulse
 			approver := gen.UniqueGlobalRef()
-			expectedToken.Approver = approver
 
-			firstTokenValue = payload.CallDelegationToken{
+			tokenValue = payload.CallDelegationToken{
 				TokenTypeAndFlags: payload.DelegationTokenTypeCall,
 				PulseNumber:       newPulse,
 				Callee:            request.Callee,
@@ -619,7 +599,7 @@ func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 			}
 			msg := payload.VDelegatedCallResponse{
 				Callee:                 request.Callee,
-				ResponseDelegationSpec: firstTokenValue,
+				ResponseDelegationSpec: tokenValue,
 			}
 
 			server.SendPayload(ctx, &msg)
@@ -642,7 +622,7 @@ func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 		point.WakeUp()
 	}
 
-	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone(), executeStopped, foundError)
+	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone(), executeStopped)
 
 	require.Equal(t, countChangePulse, typedChecker.VCallRequest.Count())
 
