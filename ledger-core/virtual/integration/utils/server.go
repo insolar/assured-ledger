@@ -36,7 +36,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/convlog"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/mock"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/mock/publisher"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/pulsemanager"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/statemachine"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
@@ -56,7 +56,7 @@ type Server struct {
 	messageSender *messagesender.DefaultService
 
 	// testing components and Mocks
-	PublisherMock      *mock.PublisherMock
+	PublisherMock      *publisher.Mock
 	JetCoordinatorMock *jet.AffinityHelperMock
 	pulseGenerator     *testutils.PulseGenerator
 	pulseStorage       *pulsestor.StorageMem
@@ -157,8 +157,8 @@ func newServerExt(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFi
 		MeMock.Return(s.caller).
 		QueryRoleMock.Return([]reference.Global{s.caller}, nil)
 
-	s.PublisherMock = mock.NewPublisherMock()
-	s.PublisherMock.SetResenderMode(ctx, &s)
+	s.PublisherMock = publisher.NewMock()
+	s.PublisherMock.SetResendMode(ctx, &s)
 
 	runnerService := runner.NewService()
 	if err := runnerService.Init(); err != nil {
