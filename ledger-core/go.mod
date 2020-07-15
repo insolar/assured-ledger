@@ -36,7 +36,7 @@ require (
 	github.com/prometheus/client_golang v1.6.0
 	github.com/rs/zerolog v1.15.0
 	github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b
-	github.com/skudasov/loadgen v0.0.17
+	github.com/skudasov/loadgen v0.0.24
 	github.com/spf13/afero v1.3.0 // indirect
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/jwalterweatherman v1.1.0
