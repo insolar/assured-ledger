@@ -96,7 +96,7 @@ T01_S016 --> T01_S017 : CallSubroutine
 state "stepGetDelegationToken.2" as T01_S018
 T01_S018 : SMExecute
 T01_S018 --[dotted]> T01_S015
-T01_S018 --> T01_S024 : [s.outgoingWasSent]
+T01_S018 --> T01_S024 : [s.outgoingSentCounter>0]
 state "DYNAMIC stepAfterTokenGet" as T01_U004
 T01_U004 : SMExecute
 T01_U004 : UNKNOWN 
@@ -152,6 +152,7 @@ state "stepSendOutgoing" as T01_S024
 T01_S024 : SMExecute
 T01_S024 --[dotted]> T01_S015
 T01_S024 --> [*] : [!(...).PublishGlobalAliasAndBargeIn()]\nError
+T01_S024 --> [*] : [(...).outgoingSentCounter>=MaxOutgoingSendCount]\nError
 T01_S024 --> T01_S010 : PrepareAsync(ctx).WithoutAutoWakeUp()
 T01_S024 --[dashed]> T01_S025 : Sleep
 state "stepStartRequestProcessing" as T01_S014

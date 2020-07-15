@@ -22,7 +22,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/mock"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/mock/publisher/checker"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 )
@@ -285,7 +285,7 @@ type VFindCallRequestHandlingSuite struct {
 	mc           *minimock.Controller
 	server       *utils.Server
 	runnerMock   *logicless.ServiceMock
-	typedChecker *mock.TypePublishChecker
+	typedChecker *checker.Typed
 
 	p1       pulse.Number
 	p2       pulse.Number

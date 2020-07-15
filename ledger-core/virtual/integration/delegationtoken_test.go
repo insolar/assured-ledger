@@ -64,7 +64,9 @@ func TestDelegationToken_SuccessCheckCorrectToken(t *testing.T) {
 		t.Run(testMsg.name, func(t *testing.T) {
 			mc := minimock.NewController(t)
 
-			server, ctx := utils.NewUninitializedServer(nil, t)
+			server, ctx := utils.NewUninitializedServerWithErrorFilter(nil, t, func(s string) bool {
+				return false
+			})
 
 			jetCoordinatorMock := jet.NewAffinityHelperMock(mc)
 			auth := authentication.NewService(ctx, jetCoordinatorMock)
@@ -105,6 +107,7 @@ func TestDelegationToken_SuccessCheckCorrectToken(t *testing.T) {
 			server.WaitActiveThenIdleConveyor()
 
 			assert.False(t, errorFound, "Fail "+testMsg.name)
+
 			server.Stop()
 			mc.Finish()
 		})
