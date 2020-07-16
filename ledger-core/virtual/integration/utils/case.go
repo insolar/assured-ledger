@@ -16,7 +16,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/mock"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/mock/publisher/checker"
 )
 
 var duplicateTestRailID = make(map[string]string)
@@ -49,7 +49,7 @@ type TestCase struct {
 	Server       *Server
 	Context      context.Context
 	Runner       *logicless.ServiceMock
-	TypedChecker *mock.TypePublishChecker
+	TypedChecker *checker.Typed
 }
 
 func NewTestCase(name string) *TestCase {

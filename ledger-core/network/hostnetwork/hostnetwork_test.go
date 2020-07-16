@@ -7,6 +7,7 @@ package hostnetwork
 
 import (
 	"context"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -180,7 +181,9 @@ func (s *hostSuite) Stop() {
 
 func TestNewHostNetwork(t *testing.T) {
 	defer testutils.LeakTester(t)
-	instestlogger.SetTestOutput(t)
+	instestlogger.SetTestOutputWithErrorFilter(t, func(s string) bool {
+		return !strings.Contains(s, "Failed to send response")
+	})
 
 	s := newHostSuite(t)
 	defer s.Stop()
@@ -286,7 +289,9 @@ func TestHostNetwork_SendRequestPacket3(t *testing.T) {
 }
 
 func TestHostNetwork_SendRequestPacket_errors(t *testing.T) {
-	instestlogger.SetTestOutput(t)
+	instestlogger.SetTestOutputWithErrorFilter(t, func(s string) bool {
+		return !strings.Contains(s, "Failed to send response")
+	})
 	s := newHostSuite(t)
 	defer s.Stop()
 
