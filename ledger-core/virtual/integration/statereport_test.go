@@ -186,7 +186,6 @@ func TestVirtual_VStateReport_BadState_StateAlreadyExists(t *testing.T) {
 
 func TestVirtual_VStateReport_CheckValidatedState(t *testing.T) {
 	t.Log("C5124")
-	t.Skip("https://insolar.atlassian.net/browse/PLAT-402")
 
 	mc := minimock.NewController(t)
 
