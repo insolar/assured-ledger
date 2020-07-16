@@ -73,7 +73,8 @@ type SenderConfirmation struct {
 	Signature       []byte
 }
 
-// DEPRECATED: GenesisPulse is a first pulse for the system
+// GenesisPulse is a first pulse for the system
+// DEPRECATED
 var GenesisPulse = appctl.PulseChange{ Data: pulse.Data{
 	PulseNumber: pulse.MinTimePulse,
 	DataExt : pulse.DataExt{
@@ -81,7 +82,8 @@ var GenesisPulse = appctl.PulseChange{ Data: pulse.Data{
 		Timestamp: pulse.UnixTimeOfMinTimePulse,
 	}}}
 
-// DEPRECATED: Test use only
+// Test use only
+// DEPRECATED
 var EphemeralPulse = appctl.PulseChange{ Data: pulse.Data{
 	PulseNumber: pulse.MinTimePulse,
 	DataExt : pulse.DataExt{
