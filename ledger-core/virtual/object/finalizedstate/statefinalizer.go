@@ -69,7 +69,6 @@ func (sm *SMStateFinalizer) stepSendVStateReport(ctx smachine.ExecutionContext) 
 
 	msg := sm.Report
 
-	msg.ProvidedContent.LatestValidatedState = msg.ProvidedContent.LatestDirtyState
 	msg.AsOf = sm.pulseSlot.PulseData().PulseNumber
 
 	sm.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
