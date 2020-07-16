@@ -75,25 +75,41 @@ func (c ManyNodePopulation) String() string {
 	if len(c.slots) < 50 {
 		for _, slot := range c.slots {
 			if slot.IsEmpty() {
-				b.WriteString(" ____ ")
+				b.WriteString(" _____ ")
 				continue
 			}
 
 			id := slot.GetNodeID()
 			switch {
 			case slot.IsJoiner():
-				b.WriteString(fmt.Sprintf("+%04d ", id))
+				b.WriteString(fmt.Sprintf("+%04d", id))
 			case slot.mode.IsEvictedGracefully():
-				b.WriteString(fmt.Sprintf("-%04d ", id))
+				b.WriteString(fmt.Sprintf("-%04d", id))
 			case slot.mode.IsEvicted():
-				b.WriteString(fmt.Sprintf("!%04d ", id))
+				b.WriteString(fmt.Sprintf("!%04d", id))
 			case slot.mode.IsMistrustful():
-				b.WriteString(fmt.Sprintf("?%04d ", id))
+				b.WriteString(fmt.Sprintf("?%04d", id))
 			case slot.mode.IsSuspended():
-				b.WriteString(fmt.Sprintf("s%04d ", id))
+				b.WriteString(fmt.Sprintf("s%04d", id))
 			default:
-				b.WriteString(fmt.Sprintf(" %04d ", id))
+				b.WriteString(fmt.Sprintf(" %04d", id))
 			}
+
+			switch slot.GetStatic().GetPrimaryRole() {
+			case member.PrimaryRoleInactive:
+				b.WriteByte('_')
+			case member.PrimaryRoleNeutral:
+				b.WriteByte('N')
+			case member.PrimaryRoleHeavyMaterial:
+				b.WriteByte('H')
+			case member.PrimaryRoleLightMaterial:
+				b.WriteByte('L')
+			case member.PrimaryRoleVirtual:
+				b.WriteByte('V')
+			default:
+				b.WriteByte('?')
+			}
+			b.WriteByte(' ')
 		}
 	} else {
 		b.WriteString("too many")
