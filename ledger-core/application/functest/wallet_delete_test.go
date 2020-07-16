@@ -17,6 +17,8 @@ import (
 // Creates wallet, calls /wallet/delete, then calls /wallet/get_balance and gets error.
 func TestWalletDelete(t *testing.T) {
 	t.Log("C4859")
+	t.Skip("https://insolar.atlassian.net/browse/PLAT-414")
+
 	walletRef, err := createSimpleWallet()
 	require.NoError(t, err, "failed to create wallet")
 
@@ -30,9 +32,8 @@ func TestWalletDelete(t *testing.T) {
 	require.Empty(t, resp.Err, "problem during execute request")
 	assert.NotEmpty(t, resp.TraceID, "traceID mustn't be empty")
 
-	// TODO: unskip after realization
-	// getBalanceURL := getURL(walletGetBalancePath, "", "")
-	// _, getBalanceErr := getWalletBalance(getBalanceURL, walletRef)
-	// require.Error(t, getBalanceErr)
-	// require.Contains(t, getBalanceErr, "todo")
+	getBalanceURL := getURL(walletGetBalancePath, "", "")
+	_, getBalanceErr := getWalletBalance(getBalanceURL, walletRef)
+	require.Error(t, getBalanceErr)
+	require.Contains(t, getBalanceErr, "todo")
 }
