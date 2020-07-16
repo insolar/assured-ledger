@@ -82,7 +82,6 @@ func (m *executionMapping) minimockDone() bool {
 }
 
 type ServiceMock struct {
-	lock           sync.Mutex
 	ctx            context.Context
 	t              minimock.Tester
 	lastID         call.ID
@@ -235,14 +234,14 @@ func (s *ServiceMock) ExecutionAbort(run runner.RunState) {
 }
 
 // MinimockFinish checks that all mocked methods have been called the expected number of times
-func (s ServiceMock) MinimockFinish() {
+func (s *ServiceMock) MinimockFinish() {
 	if !s.minimockDone() {
 		s.t.Fatal("failed to check")
 	}
 }
 
 // MinimockWait waits for all mocked methods to be called the expected number of times
-func (s ServiceMock) MinimockWait(timeout time.Duration) {
+func (s *ServiceMock) MinimockWait(timeout time.Duration) {
 	timeoutCh := time.After(timeout)
 	for {
 		if s.minimockDone() {
@@ -257,7 +256,7 @@ func (s ServiceMock) MinimockWait(timeout time.Duration) {
 	}
 }
 
-func (s ServiceMock) minimockDone() bool {
+func (s *ServiceMock) minimockDone() bool {
 	return s.classifyMapping.minimockDone() &&
 		s.executionMapping.minimockDone()
 }
