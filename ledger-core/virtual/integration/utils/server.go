@@ -262,6 +262,12 @@ func (s *Server) OverrideConveyorFactoryLogContext(ctx context.Context) {
 	s.virtual.FactoryLogContextOverride = ctx
 }
 
+// Set limit for parallel runners. Function must be called before server.Init
+// If this limit does not set it will be set by default (NumCPU() - 2)
+func (s *Server) SetMaxParallelism(count int) {
+	s.virtual.MaxRunners = count
+}
+
 func (s *Server) ReplaceMachinesManager(manager machine.Manager) {
 	s.Runner.Manager = manager
 }
