@@ -16,7 +16,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/mock/publisher/checker"
 )
 
-//go:generate insolar-mockgenerator-typedpublisher
+// go:generate insolar-mockgenerator-typedpublisher
 
 var _ message.Publisher = &Mock{}
 
