@@ -36,6 +36,14 @@ const (
 	ReasonRequired
 )
 
+type DustMode uint8
+
+const (
+	_ DustMode = iota
+	DustPayload
+	DustRecord
+)
+
 type RecordPolicy struct {
 	PolicyFlags
 	CanFollow RecordTypeSet
