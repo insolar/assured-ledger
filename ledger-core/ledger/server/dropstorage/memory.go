@@ -107,7 +107,7 @@ func (p *memorySnapshot) Commit() error {
 	return nil
 }
 
-func (p *memorySnapshot) Rollback(chained bool) {
+func (p *memorySnapshot) Rollback(chained bool) error {
 	broken := false
 	for i := range p.snapshot {
 		cs := p.snapshot[i].section
@@ -119,10 +119,12 @@ func (p *memorySnapshot) Rollback(chained bool) {
 		}
 	}
 
-	if broken {
-		p.storage.state.Store(stateBroken)
-		panic(throw.FailHere("rollback failed, storage is broken"))
+	if !broken {
+		return nil
 	}
+
+	p.storage.state.Store(stateBroken)
+	return throw.FailHere("rollback failed, storage is broken")
 }
 
 func (p *memorySnapshot) GetPayloadSection(id ledger.SectionID) (bundle.PayloadSection, error) {

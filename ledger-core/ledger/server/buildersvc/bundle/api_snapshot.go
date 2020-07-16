@@ -40,7 +40,8 @@ type Snapshot interface {
 	// Is guaranteed to be invoked in the same sequence as snapshots were taken by TakeSnapshot().
 	// Arg (chained) indicates that rollback was initiated by an earlier snapshot.
 	// Not concurrent with SnapshotWriter.TakeSnapshot().
-	Rollback(chained bool)
+	// WARNING! Rollback's panic will be ignored.
+	Rollback(chained bool) error
 
 	// GetPayloadSection returns PayloadSection for the given id or error.
 	// Happens between TakeSnapshot() and Prepared().

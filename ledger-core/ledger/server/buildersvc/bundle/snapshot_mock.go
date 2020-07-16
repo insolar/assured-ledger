@@ -45,7 +45,7 @@ type SnapshotMock struct {
 	beforePreparedCounter uint64
 	PreparedMock          mSnapshotMockPrepared
 
-	funcRollback          func(chained bool)
+	funcRollback          func(chained bool) (err error)
 	inspectFuncRollback   func(chained bool)
 	afterRollbackCounter  uint64
 	beforeRollbackCounter uint64
@@ -949,15 +949,20 @@ type mSnapshotMockRollback struct {
 
 // SnapshotMockRollbackExpectation specifies expectation struct of the Snapshot.Rollback
 type SnapshotMockRollbackExpectation struct {
-	mock   *SnapshotMock
-	params *SnapshotMockRollbackParams
-
+	mock    *SnapshotMock
+	params  *SnapshotMockRollbackParams
+	results *SnapshotMockRollbackResults
 	Counter uint64
 }
 
 // SnapshotMockRollbackParams contains parameters of the Snapshot.Rollback
 type SnapshotMockRollbackParams struct {
 	chained bool
+}
+
+// SnapshotMockRollbackResults contains results of the Snapshot.Rollback
+type SnapshotMockRollbackResults struct {
+	err error
 }
 
 // Expect sets up expected params for Snapshot.Rollback
@@ -992,7 +997,7 @@ func (mmRollback *mSnapshotMockRollback) Inspect(f func(chained bool)) *mSnapsho
 }
 
 // Return sets up results that will be returned by Snapshot.Rollback
-func (mmRollback *mSnapshotMockRollback) Return() *SnapshotMock {
+func (mmRollback *mSnapshotMockRollback) Return(err error) *SnapshotMock {
 	if mmRollback.mock.funcRollback != nil {
 		mmRollback.mock.t.Fatalf("SnapshotMock.Rollback mock is already set by Set")
 	}
@@ -1000,12 +1005,12 @@ func (mmRollback *mSnapshotMockRollback) Return() *SnapshotMock {
 	if mmRollback.defaultExpectation == nil {
 		mmRollback.defaultExpectation = &SnapshotMockRollbackExpectation{mock: mmRollback.mock}
 	}
-
+	mmRollback.defaultExpectation.results = &SnapshotMockRollbackResults{err}
 	return mmRollback.mock
 }
 
 //Set uses given function f to mock the Snapshot.Rollback method
-func (mmRollback *mSnapshotMockRollback) Set(f func(chained bool)) *SnapshotMock {
+func (mmRollback *mSnapshotMockRollback) Set(f func(chained bool) (err error)) *SnapshotMock {
 	if mmRollback.defaultExpectation != nil {
 		mmRollback.mock.t.Fatalf("Default expectation is already set for the Snapshot.Rollback method")
 	}
@@ -1018,8 +1023,29 @@ func (mmRollback *mSnapshotMockRollback) Set(f func(chained bool)) *SnapshotMock
 	return mmRollback.mock
 }
 
+// When sets expectation for the Snapshot.Rollback which will trigger the result defined by the following
+// Then helper
+func (mmRollback *mSnapshotMockRollback) When(chained bool) *SnapshotMockRollbackExpectation {
+	if mmRollback.mock.funcRollback != nil {
+		mmRollback.mock.t.Fatalf("SnapshotMock.Rollback mock is already set by Set")
+	}
+
+	expectation := &SnapshotMockRollbackExpectation{
+		mock:   mmRollback.mock,
+		params: &SnapshotMockRollbackParams{chained},
+	}
+	mmRollback.expectations = append(mmRollback.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Snapshot.Rollback return parameters for the expectation previously defined by the When method
+func (e *SnapshotMockRollbackExpectation) Then(err error) *SnapshotMock {
+	e.results = &SnapshotMockRollbackResults{err}
+	return e.mock
+}
+
 // Rollback implements Snapshot
-func (mmRollback *SnapshotMock) Rollback(chained bool) {
+func (mmRollback *SnapshotMock) Rollback(chained bool) (err error) {
 	mm_atomic.AddUint64(&mmRollback.beforeRollbackCounter, 1)
 	defer mm_atomic.AddUint64(&mmRollback.afterRollbackCounter, 1)
 
@@ -1037,7 +1063,7 @@ func (mmRollback *SnapshotMock) Rollback(chained bool) {
 	for _, e := range mmRollback.RollbackMock.expectations {
 		if minimock.Equal(e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
-			return
+			return e.results.err
 		}
 	}
 
@@ -1049,15 +1075,17 @@ func (mmRollback *SnapshotMock) Rollback(chained bool) {
 			mmRollback.t.Errorf("SnapshotMock.Rollback got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
 
-		return
-
+		mm_results := mmRollback.RollbackMock.defaultExpectation.results
+		if mm_results == nil {
+			mmRollback.t.Fatal("No results are set for the SnapshotMock.Rollback")
+		}
+		return (*mm_results).err
 	}
 	if mmRollback.funcRollback != nil {
-		mmRollback.funcRollback(chained)
-		return
+		return mmRollback.funcRollback(chained)
 	}
 	mmRollback.t.Fatalf("Unexpected call to SnapshotMock.Rollback. %v", chained)
-
+	return
 }
 
 // RollbackAfterCounter returns a count of finished SnapshotMock.Rollback invocations

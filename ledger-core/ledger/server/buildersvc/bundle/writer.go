@@ -104,7 +104,7 @@ func (p *bundleWriter) _prepareWait(alwaysSetNext bool) (prev synckit.SignalChan
 	return prev, next
 }
 
-func (p *bundleWriter) WriteBundle(bundle Writeable, completedFn ResultFunc) error {
+func (p *bundleWriter) WriteBundle(bundle Writeable, completedFn ResultFunc) (errResult error) {
 	if completedFn == nil {
 		panic(throw.IllegalValue())
 	}
@@ -118,8 +118,11 @@ func (p *bundleWriter) WriteBundle(bundle Writeable, completedFn ResultFunc) err
 	}
 
 	defer func() {
-		if snapshot != nil {
-			snapshot.Rollback(false)
+		if snapshot == nil {
+			return
+		}
+		if err := snapshot.Rollback(false); err != nil {
+			errResult = throw.WithDetails(err, errResult)
 		}
 	}()
 
@@ -131,58 +134,62 @@ func (p *bundleWriter) WriteBundle(bundle Writeable, completedFn ResultFunc) err
 	}
 
 	prev, next := p._prepareWait(true)
-	go p.applyBundleSafe(snapshot, bundle, prev, next, completedFn)
+	go p.applyBundleSafely(snapshot, bundle, prev, next, completedFn)
 
 	snapshot = nil
 	return nil
 }
 
-func (p *bundleWriter) applyBundleSafe(snapshot Snapshot, bundle Writeable,
+// waitPrevBundle will ONLY return correct (rollbackRequested) for the first call. Consequent calls must ignore result.
+func waitPrevBundle(prev synckit.SignalChannel) (rollbackRequested bool) {
+	if prev == nil {
+		return false
+	}
+	_, ok := <-prev
+	return !ok
+}
+
+// checkPrevBundle is a non-wait version of waitPrevBundle. Same limitations apply to (rollbackRequested).
+func checkPrevBundle(prev synckit.SignalChannel) (isDone, rollbackRequested bool) {
+	if prev == nil {
+		return true, false
+	}
+	select {
+	case _, ok := <-prev:
+		return true, !ok
+	default:
+		return false, false
+	}
+}
+
+func (p *bundleWriter) applyBundleSafely(snapshot Snapshot, bundle Writeable,
 	prev synckit.SignalChannel, next synckit.ClosableSignalChannel, completedFn ResultFunc,
 ) {
 	defer close(next) // to be executed as the very last one
 
-	locked := false
-	chained := false
-	rollback := true
+	locked := false  // an explicit mark that the lock is active
+	chained := false // a mark that rollback was triggered by a previous bundle
+	rollback := true // a mark that rollback is required
 	var err error
 
-	waitPrev := func(blocking bool) bool {
-		if prev == nil {
-			return true
-		}
-
-		ok := false
-		if blocking {
-			_, ok = <-prev
-		} else {
-			select {
-			case _, ok = <-prev:
-			default:
-				return true
-			}
-		}
-
-		prev = nil
-		if !ok {
-			chained = true
-			return false
-		}
-		return true
-	}
-
 	defer func() {
+		// on exit we must check if rollback is needed
+
 		switch {
 		case !rollback:
 			if locked {
+				// this branch is not in use now, yet it is for a precaution for later changes
 				p.mutex.Unlock()
 			}
 			return
 		case !locked:
 			// this makes sure that rollbacks respect sequence.
 			// and as chan is always closed, then it is not relevant if we've read it before or not.
-			waitPrev(true)
-
+			// WARNING! prev must be set to nil if it was read before, otherwise (rollbackRequested) may be incorrect.
+			if rollbackRequested := waitPrevBundle(prev); rollbackRequested {
+				// DO NOT set (chained) to false here
+				chained = true
+			}
 			p.mutex.Lock()
 		}
 		defer p.mutex.Unlock()
@@ -190,8 +197,11 @@ func (p *bundleWriter) applyBundleSafe(snapshot Snapshot, bundle Writeable,
 		defer func() {
 			_ = recover() // we can't allow panic here
 		}()
-		snapshot.Rollback(chained)
+		if err2 := snapshot.Rollback(chained); err2 != nil {
+			err = throw.WithDetails(err2, err)
+		}
 		if err != nil {
+			// NB! error report may be missed if rollback panics
 			completedFn(nil, err)
 		}
 	}()
@@ -201,8 +211,16 @@ func (p *bundleWriter) applyBundleSafe(snapshot Snapshot, bundle Writeable,
 			err = throw.RW(recover(), err, "applyBundle failed")
 		}()
 
-		if !waitPrev(false) {
+		// a quick check of prev bundle
+		switch isDone, rollbackRequested := checkPrevBundle(prev); {
+		case rollbackRequested:
+			// if it is rolled back, then there is no reason to apply this bundle
+			chained = true
 			return throw.E("chained cancel")
+		case isDone:
+			// it was successfully applied
+			// so we don't need to wait afterwards
+			prev = nil
 		}
 
 		var assignments []ledger.DirectoryIndex
@@ -212,20 +230,30 @@ func (p *bundleWriter) applyBundleSafe(snapshot Snapshot, bundle Writeable,
 			return err
 		}
 
-		if !waitPrev(true) {
+		// can only proceed after the prev bundle is ready
+		if rollbackRequested := waitPrevBundle(prev); rollbackRequested {
+			// if it is rolled back, then there is no reason to commit this bundle
+			chained = true
 			return throw.E("chained cancel")
 		}
+		// must be unset to avoid false-positive from waitPrevBundle inside defer
+		prev = nil
 
+		// have to acquire the lock to ensure proper sequencing on commit and on callback
 		p.mutex.Lock()
 		locked = true
 
+		// call the callback first as it may fail or request a rollback
 		if !completedFn(assignments, nil) {
-			return nil // no error, but rollback
+			// rollback was requested by the callback
+			// so return no error, but keep rollback==true
+			return nil
 		}
 		if err = snapshot.Commit(); err != nil {
+			// rollback will be applied
 			return err
 		}
-		rollback = false
+		rollback = false // no need to rollback after successful commit
 		return nil
 	}()
 
@@ -234,6 +262,7 @@ func (p *bundleWriter) applyBundleSafe(snapshot Snapshot, bundle Writeable,
 	}
 
 	if !locked {
+		// something was broken - can't get here without a lock
 		panic(throw.Impossible())
 	}
 

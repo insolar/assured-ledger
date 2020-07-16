@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 func TestWriter(t *testing.T) {
@@ -112,9 +113,10 @@ func TestWriterRollback(t *testing.T) {
 	snap.CommitMock.Return(nil)
 
 	rollbackCount := 0
-	snap.RollbackMock.Set(func(chained bool) {
+	snap.RollbackMock.Set(func(chained bool) error {
 		require.Equal(t, rollbackCount > 0, chained)
 		rollbackCount++
+		return nil
 	})
 
 	sw.TakeSnapshotMock.Return(snap, nil)
@@ -202,3 +204,41 @@ func TestWriterRollback(t *testing.T) {
 	w.WaitWriteBundles(nil, nil) // nothing to wait
 }
 
+func TestWriterRollbackError(t *testing.T) {
+	sw := NewSnapshotWriterMock(t)
+
+	snap := NewSnapshotMock(t)
+	snap.PreparedMock.Return(nil)
+	snap.CompletedMock.Return(nil)
+	snap.CommitMock.Return(nil)
+
+	rollbackCount := 0
+	snap.RollbackMock.Set(func(chained bool) error {
+		rollbackCount++
+		return throw.E("rollbackError")
+	})
+
+	sw.TakeSnapshotMock.Return(snap, nil)
+
+	w := NewWriter(sw)
+
+	wb1 := NewWriteableMock(t)
+	wb1.PrepareWriteMock.Return(nil)
+	wb1.ApplyWriteMock.Set(func() ([]ledger.DirectoryIndex, error) {
+		panic("mock panic")
+	})
+
+	err := w.WriteBundle(wb1, func(d []ledger.DirectoryIndex, err error) bool {
+		require.Nil(t, d)
+		require.Error(t, err)
+		errStr := err.Error()
+		require.Contains(t, errStr, "rollbackError")
+		require.Contains(t, errStr, "mock panic")
+		return false
+	})
+	require.NoError(t, err)
+
+	w.WaitWriteBundles(nil, nil)
+
+	require.Equal(t, 1, rollbackCount)
+}
