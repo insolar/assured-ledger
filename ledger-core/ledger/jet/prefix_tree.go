@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package jetid
+package jet
 
 import (
 	"fmt"
@@ -11,8 +11,6 @@ import (
 	"math/bits"
 	"strings"
 )
-
-type Prefix uint32
 
 func NewPrefixTree(autoPropagate bool) PrefixTree {
 	return PrefixTree{autoPropagate: autoPropagate, leafCounts: [17]uint16{0: 1}}
@@ -42,12 +40,12 @@ func NewPrefixTree(autoPropagate bool) PrefixTree {
 //
 
 type PrefixTree struct {
-	lenNibles     [32768]uint8
-	leafCounts    [17]uint16
+	mask          Prefix
 	minDepth      uint8
 	maxDepth      uint8
 	autoPropagate bool
-	mask          Prefix
+	leafCounts    [17]uint16
+	lenNibles     [32768]uint8
 }
 
 // Maximum prefix length of a jet in this tree.
@@ -483,6 +481,27 @@ func (p *PrefixTree) PrintTable() {
 // Prints a list of jets and propagated jets to StdOut
 func (p *PrefixTree) PrintTableAll() {
 	p.printTable(p._getPrefixLength)
+}
+
+func (p *PrefixTree) Enum(fn func(Prefix, uint8) bool) bool {
+
+	for prefix := Prefix(0); prefix <= p.mask; {
+		pLen, ok := p.getPrefixLength(uint16(prefix))
+		if !ok {
+			mask := Prefix(1)<<(pLen - 1)
+			prefix += mask
+			continue
+		}
+
+		switch {
+		case fn(prefix, pLen):
+			return true
+		case pLen == 0:
+			return false
+		}
+		prefix++
+	}
+	return false
 }
 
 func (p *PrefixTree) printTable(getFn func(uint16) (uint8, bool)) {
