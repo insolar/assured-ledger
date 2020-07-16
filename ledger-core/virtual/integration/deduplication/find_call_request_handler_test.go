@@ -15,6 +15,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
+	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/synchronization"
@@ -22,6 +23,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/mock/publisher/checker"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
@@ -149,10 +151,14 @@ func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
 
 	for _, test := range table {
 		t.Run(test.name, func(t *testing.T) {
+			defer commontestutils.LeakTester(t)
+
 			suite := &VFindCallRequestHandlingSuite{}
 
 			ctx := suite.initServer(t)
 			defer suite.stopServer()
+
+			handlerEnded := suite.server.Journal.WaitStopOf(&handlers.SMVFindCallRequest{}, 1)
 
 			suite.initPulsesP1andP2(ctx)
 			suite.generateClass()
@@ -182,6 +188,7 @@ func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
 			}
 
 			testutils.WaitSignalsTimed(t, 10*time.Second, suite.server.Journal.WaitAllAsyncCallsDone())
+			testutils.WaitSignalsTimed(t, 10*time.Second, handlerEnded)
 
 			suite.finish()
 		})

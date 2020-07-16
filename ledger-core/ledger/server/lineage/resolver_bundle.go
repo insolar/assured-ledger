@@ -53,8 +53,19 @@ func (p *BundleResolver) Hint(recordCount int) {
 	p.records = make([]resolvedRecord, 0, recordCount)
 }
 
+func (p *BundleResolver) GetResolved() ResolvedBundle {
+	if p.IsResolved() {
+		return ResolvedBundle{ p.records }
+	}
+	panic(throw.IllegalState())
+}
+
 func (p *BundleResolver) GetUnresolvedDependencies() []UnresolvedDependency {
 	return p.unresolved
+}
+
+func (p *BundleResolver) HasErrors() bool {
+	return len(p.errors) > 0
 }
 
 func (p *BundleResolver) GetErrors() []error {
@@ -463,4 +474,3 @@ func (p *BundleResolver) checkOrdering(recNo recordNo, filNo filamentNo) error {
 	}
 	return nil
 }
-

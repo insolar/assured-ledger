@@ -10,6 +10,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 )
@@ -95,14 +96,14 @@ func TestLineStages_CreateWithCalls(t *testing.T) {
 	require.Equal(t, stageNo(1), line.earliest.seqNo)
 	require.NotNil(t, line.earliest.tracker)
 
-	st1.committed = true
+	st1.ready = 7
 	line.TrimCommittedStages()
 
 	require.Equal(t, stageNo(2), line.earliest.seqNo)
 	require.NotNil(t, line.earliest.tracker)
 
-	st2.committed = true
-	st3.committed = true
+	st2.ready = 4
+	st3.ready = 5
 	line.TrimCommittedStages()
 
 	require.Equal(t, stageNo(3), line.earliest.seqNo)
@@ -163,8 +164,8 @@ func TestLineStages_Rollback(t *testing.T) {
 
 	require.Equal(t, recordNo(17), line.getNextRecNo())
 
-	st1.committed = true
-	st2.committed = true
+	st1.ready = 7
+	st2.ready = 4
 	line.RollbackUncommittedRecords()
 
 	require.Equal(t, trimAt, line.getNextRecNo())
@@ -178,7 +179,7 @@ func TestLineStages_Rollback(t *testing.T) {
 	fillBundleWithUnorderedCall(t, base, last, br, refReason4)
 	st4 := &stubTracker{}
 	require.True(t, line.AddBundle(br, st4), describe(br))
-	st4.committed = true
+	st4.ready = 4
 
 	line.RollbackUncommittedRecords()
 	require.Equal(t, recordNo(16), line.getNextRecNo())
@@ -273,10 +274,12 @@ func verifySequences(t *testing.T, line *LineStages) {
 }
 
 type stubTracker struct {
-	committed bool
+	ready int
 }
 
-func (p *stubTracker) IsCommitted() bool {
-	return p.committed
+func (p *stubTracker) GetFutureAllocation() (isReady bool, allocations []ledger.DirectoryIndex) {
+	if p.ready == 0 {
+		return false, nil
+	}
+	return true, make([]ledger.DirectoryIndex, p.ready)
 }
-

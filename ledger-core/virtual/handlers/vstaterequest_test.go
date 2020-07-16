@@ -16,6 +16,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/slotdebugger"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
@@ -25,6 +26,8 @@ import (
 )
 
 func TestVStateRequest_ProcessObjectWithoutState(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	var (
 		mc              = minimock.NewController(t)
 		pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
@@ -63,6 +66,8 @@ func TestVStateRequest_ProcessObjectWithoutState(t *testing.T) {
 }
 
 func TestDSMVStateRequest_PresentPulse(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	var (
 		mc  = minimock.NewController(t)
 		ctx = instestlogger.TestContext(t)
@@ -102,6 +107,8 @@ func TestDSMVStateRequest_PresentPulse(t *testing.T) {
 }
 
 func TestDSMVStateRequest_PastPulse(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	var (
 		mc  = minimock.NewController(t)
 		ctx = instestlogger.TestContext(t)
