@@ -61,12 +61,6 @@ var messagesWithoutToken = []struct {
 		msg:   &payload.VDelegatedRequestFinished{},
 		pulse: []string{"P-1", "any"},
 	},
-	// todo вынести в отдельный тест
-	// {
-	// 	name:  "VFindCallResponse",
-	// 	msg:   &payload.VFindCallResponse{},
-	// 	pulse: []string{"P-1"},
-	// },
 	{
 		name:  "VFindCallRequest",
 		msg:   &payload.VFindCallRequest{},
@@ -119,8 +113,7 @@ func TestSender_SuccessChecks(t *testing.T) {
 					t.Fatal("unexpected")
 				}
 
-				jetCoordinatorMock.
-					QueryRoleMock.Return([]reference.Global{sender}, nil)
+				reflect.ValueOf(testMsg.msg).MethodByName("Reset").Call([]reflect.Value{})
 
 				logger.Debug("Send message: " + testMsg.name + ", pulse = " + p)
 				msg := server.WrapPayload(testMsg.msg.(payload.Marshaler)).SetSender(sender).Finalize()
@@ -134,4 +127,72 @@ func TestSender_SuccessChecks(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestSender_SuccessChecks_VFindCallResponse(t *testing.T) {
+	t.Log("C5188")
+
+	mc := minimock.NewController(t)
+
+	server, ctx := utils.NewUninitializedServerWithErrorFilter(nil, t, func(s string) bool {
+		return false
+	})
+
+	jetCoordinatorMock := jet.NewAffinityHelperMock(mc)
+	auth := authentication.NewService(ctx, jetCoordinatorMock)
+	server.ReplaceAuthenticationService(auth)
+
+	var errorFound bool
+	logHandler := func(arg interface{}) {
+		err, ok := arg.(error)
+		if !ok {
+			return
+		}
+		errMsg := err.Error()
+		if !strings.Contains(errMsg, "illegitimate msg") {
+			return
+		}
+		errorFound = true
+	}
+	logger := utils.InterceptLog(inslogger.FromContext(ctx), logHandler)
+	server.OverrideConveyorFactoryLogContext(inslogger.SetLogger(ctx, logger))
+
+	server.Init(ctx)
+	server.IncrementPulseAndWaitIdle(ctx)
+	// p1
+	p1 := server.GetPulse().PulseNumber
+	outgoingP1 := server.BuildRandomOutgoingWithPulse()
+	object := reference.NewSelf(server.RandomLocalWithPulse())
+	sender := server.RandomGlobalWithPulse()
+
+	// p2
+	server.IncrementPulseAndWaitIdle(ctx)
+
+	// send VFindCallRequest
+	{
+		request := payload.VFindCallRequest{
+			LookAt:   p1,
+			Callee:   object,
+			Outgoing: outgoingP1,
+		}
+		server.SendPayload(ctx, &request)
+	}
+
+	// send VFindCallResponse
+	{
+		response := payload.VFindCallResponse{
+			LookedAt: p1,
+			Callee:   object,
+			Outgoing: outgoingP1,
+			Status:   payload.MissingCall,
+		}
+		msg := server.WrapPayload(&response).SetSender(sender).Finalize()
+		server.SendMessage(ctx, msg)
+
+	}
+	server.WaitActiveThenIdleConveyor()
+
+	assert.False(t, errorFound, "Fail ")
+	server.Stop()
+	mc.Finish()
 }
