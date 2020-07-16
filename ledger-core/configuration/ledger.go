@@ -11,12 +11,13 @@ type Ledger struct {
 	// between current and the latest replicated on heavy.
 	//
 	// IMPORTANT: It should be the same on ALL nodes.
-	// LightChainLimit int
+	// deprecated
+	LightChainLimit int
 }
 
 // NewLedger creates new default Ledger configuration.
 func NewLedger() Ledger {
 	return Ledger{
-		// LightChainLimit: 5, // 5 pulses
+		LightChainLimit: 5, // 5 pulses
 	}
 }
