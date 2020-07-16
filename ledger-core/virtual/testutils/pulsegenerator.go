@@ -23,11 +23,11 @@ type PulseGenerator struct {
 	delta     uint16
 }
 
-func NewPulseGenerator(delta uint16, census census.Operational) *PulseGenerator {
+func NewPulseGenerator(delta uint16, online census.OnlinePopulation) *PulseGenerator {
 	return &PulseGenerator{
 		delta: delta,
 		last: appctl.PulseChange{
-			Census: census,
+			Online: online,
 		},
 	}
 }
@@ -64,7 +64,7 @@ func (g *PulseGenerator) Generate() pulse.Data {
 		g.prev = g.last
 		g.last = appctl.PulseChange{
 			Data: g.last.CreateNextPulsarPulse(g.delta, generateEntropy),
-			Census: g.prev.Census,
+			Online: g.prev.Online,
 		}
 	}
 	g.seqCount++

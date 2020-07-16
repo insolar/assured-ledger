@@ -11,23 +11,18 @@ import (
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl"
-	"github.com/insolar/assured-ledger/ledger-core/rms"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodestorage"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
-	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 var _ appctl.Manager = &PulseManager{}
 
 type PulseManager struct {
 	NodeNet       network.NodeNetwork  `inject:""` //nolint:staticcheck
-	NodeSetter    nodestorage.Modifier `inject:""`
 	PulseAccessor appctl.Accessor      `inject:""`
 	PulseAppender appctl.Appender      `inject:""`
 	dispatchers   []appctl.Dispatcher
@@ -59,12 +54,7 @@ type messageNewPulse struct {
 }
 
 func (m *PulseManager) CommitPulseChange(pulseChange appctl.PulseChange) error {
-	newPulse := ConvertForLegacy(pulseChange)
 	ctx := context.Background()
-
-	if err := m.setLegacy(ctx, newPulse); err != nil {
-		return err
-	}
 	return m.setNewPulse(ctx, pulseChange)
 }
 
@@ -111,43 +101,6 @@ func (m *PulseManager) setNewPulse(ctx context.Context, pulseChange appctl.Pulse
 	}
 	committed = true
 
-	return nil
-}
-
-// Set set's new pulse in the old way.
-func (m *PulseManager) setLegacy(ctx context.Context, newPulse pulsestor.Pulse) error {
-	m.setLock.Lock()
-	defer m.setLock.Unlock()
-	if m.stopped {
-		return errors.New("can't call Set method on Manager after stop")
-	}
-
-	storagePulse, err := m.PulseAccessor.Latest(ctx)
-	switch {
-	case err == pulsestor.ErrNotFound:
-		storagePulse = appctl.PulseChange{}
-	case err != nil:
-		return errors.W(err, "call of GetLatestPulseNumber failed")
-	}
-
-	logger := inslogger.FromContext(ctx)
-	logger.Debug(messageNewPulse{OldPulse: storagePulse.PulseNumber, NewPulse: newPulse.PulseNumber})
-
-	{ // Dealing with node lists.
-		fromNetwork := m.NodeNet.GetAccessor(newPulse.PulseNumber).GetWorkingNodes()
-		if len(fromNetwork) == 0 {
-			logger.Errorf("received zero nodes for pulse %d", newPulse.PulseNumber)
-			return nil
-		}
-		toSet := make([]rms.Node, 0, len(fromNetwork))
-		for _, n := range fromNetwork {
-			toSet = append(toSet, rms.Node{ID: rms.NewReference(n.ID()), Role: n.Role()})
-		}
-		err := m.NodeSetter.Set(newPulse.PulseNumber, toSet)
-		if err != nil {
-			panic(throw.W(err, "call of SetActiveNodes failed", nil))
-		}
-	}
 	return nil
 }
 

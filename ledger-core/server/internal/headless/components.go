@@ -18,7 +18,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodestorage"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor/memstor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
@@ -140,7 +139,6 @@ func initComponents(
 	components := []interface{}{
 		publisher,
 		pulses,
-		nodestorage.NewStorage(),
 	}
 	components = append(components, []interface{}{
 		metricsComp,

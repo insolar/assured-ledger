@@ -29,7 +29,7 @@ var _ appctl.Dispatcher = &conveyorDispatcher{}
 func (c *conveyorDispatcher) PreparePulseChange(change appctl.PulseChange, sink appctl.NodeStateSink) {
 	stateChan := sink.Occupy()
 
-	if change.Census == nil {
+	if change.Online == nil {
 		panic(throw.IllegalValue())
 	}
 
@@ -73,7 +73,7 @@ func (c *conveyorDispatcher) CommitPulseChange(change appctl.PulseChange) {
 		}
 	}
 
-	if err := c.conveyor.CommitPulseChange(change.GetRange(), change.StartedAt); err != nil {
+	if err := c.conveyor.CommitPulseChange(pulseRange, change.StartedAt); err != nil {
 		panic(throw.WithStack(err))
 	}
 	c.prevPulse = change.PulseNumber

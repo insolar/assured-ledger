@@ -30,15 +30,8 @@ type PulseChange struct {
 	pulse.Data
 	Range       pulse.Range
 	StartedAt   time.Time
-	Census      census.Operational
+	Online      census.OnlinePopulation
 	PulseOrigin []byte
-}
-
-func (c PulseChange) GetRange() pulse.Range {
-	if c.Range != nil {
-		return c.Range
-	}
-	return c.Data.AsRange()
 }
 
 type MessageTag struct {

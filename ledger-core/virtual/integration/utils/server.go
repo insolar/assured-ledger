@@ -20,7 +20,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodestorage"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor/memstor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
@@ -149,19 +148,17 @@ func newServerExt(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFi
 
 		nodeNetworkAccessorMock := network.NewAccessorMock(t).GetWorkingNodesMock.Return(networkNodeList)
 		nodeNetworkMock := network.NewNodeNetworkMock(t).GetAccessorMock.Return(nodeNetworkAccessorMock)
-		nodeSetter := nodestorage.NewModifierMock(t).SetMock.Return(nil)
 
 		Pulses = memstor.NewStorageMem()
 		PulseManager = pulsemanager.NewPulseManager()
 		PulseManager.NodeNet = nodeNetworkMock
-		PulseManager.NodeSetter = nodeSetter
 		PulseManager.PulseAccessor = Pulses
 		PulseManager.PulseAppender = Pulses
 	}
 
 	s.pulseManager = PulseManager
 	s.pulseStorage = Pulses
-	censusMock := createCensusMock(t, s.caller)
+	censusMock := createOneNodePopulationMock(t, s.caller)
 	s.pulseGenerator = testutils.NewPulseGenerator(10, censusMock)
 	s.incrementPulse()
 
@@ -214,7 +211,7 @@ func newServerExt(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFi
 }
 
 //nolint:interfacer
-func createCensusMock(t Tester, localRef reference.Global) census.Operational {
+func createOneNodePopulationMock(t Tester, localRef reference.Global) census.OnlinePopulation {
 	localNode := node.ShortNodeID(10)
 	cp := profiles.NewCandidateProfileMock(t)
 	cp.GetBriefIntroSignedDigestMock.Return(cryptkit.SignedDigest{})
@@ -238,9 +235,9 @@ func createCensusMock(t Tester, localRef reference.Global) census.Operational {
 	np := profiles.NewStaticProfileByFull(cp, nil)
 	op := censusimpl.NewManyNodePopulation([]profiles.StaticProfile{np}, localNode, svf)
 
-	cs := census.NewActiveMock(t)
-	cs.GetOnlinePopulationMock.Return(&op)
-	return cs
+	// cs := census.NewActiveMock(t)
+	// cs.GetOnlinePopulationMock.Return(&op)
+	return &op
 }
 
 func (s *Server) Init(ctx context.Context) {

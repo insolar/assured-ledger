@@ -63,12 +63,15 @@ func (jc *AffinityCoordinator) VirtualExecutorForObject(
 	switch {
 	case err != nil:
 		return reference.Global{}, err
-	case pc.Census == nil:
+	case pc.Online == nil:
 		return reference.Global{}, throw.IllegalState()
 	}
 
-	online := pc.Census.GetOnlinePopulation()
-	role := online.GetRolePopulation(member.PrimaryRoleVirtual)
+	role := pc.Online.GetRolePopulation(member.PrimaryRoleVirtual)
+	if role == nil {
+		return reference.Global{}, throw.E("role without nodes", struct {
+			member.PrimaryRole	}{ member.PrimaryRoleVirtual })
+	}
 
 	base := objID.GetBase()
 	b := base.AsBytes()
@@ -77,6 +80,10 @@ func (jc *AffinityCoordinator) VirtualExecutorForObject(
 
 	metric += uint64(base.Pulse())
 	assigned, _ := role.GetAssignmentByCount(metric, 0)
+	if assigned == nil {
+		return reference.Global{}, throw.E("unable to assign node of role", struct {
+			member.PrimaryRole	}{ member.PrimaryRoleVirtual })
+	}
 	ref := assigned.GetStatic().GetExtension().GetReference()
 
 	return ref, nil
