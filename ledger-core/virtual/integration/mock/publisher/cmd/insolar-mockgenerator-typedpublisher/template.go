@@ -172,12 +172,30 @@ const (
 		}
 
 		func (p *Typed) minimockDone() bool {
+			ok := true
+
 		{{ range $pos, $msg := .Messages -}}
-			if hdl := p.Handlers.{{ $msg }}; hdl.expectedCount >= 0 && !(p.defaultResend && hdl.expectedCount == 0) {
-				return hdl.count.Load() == hdl.expectedCount
+			{
+				fn := func () bool {
+					hdl := &p.Handlers.{{ $msg }}
+
+					switch {
+					case hdl.expectedCount < 0:
+						return true
+					case p.defaultResend:
+						return true
+					case hdl.expectedCount == 0:
+						return true
+					}
+
+					return hdl.count.Load() == hdl.expectedCount
+				}
+
+				ok = ok && fn()
 			}
 		{{ end }}
-			return true
+
+			return ok
 		}
 
 		// MinimockFinish checks that all mocked methods have been called the expected number of times
