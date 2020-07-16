@@ -8,6 +8,7 @@ package datawriter
 import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -16,32 +17,32 @@ import (
 )
 
 
-type StreamSharedData struct {
+type PlashSharedData struct {
 	ready smsync.BoolConditionalLink
 
 	state atomickit.Uint32
 	pr    pulse.Range
-	jetAssist buildersvc.StreamDropAssistant
+	jetAssist buildersvc.PlashAssistant
 	// jetTree
 	// population
 }
 
-func (p *StreamSharedData) GetReadySync() smachine.SyncLink {
+func (p *PlashSharedData) GetReadySync() smachine.SyncLink {
 	return p.ready.SyncLink()
 }
 
-func (p *StreamSharedData) enableAccess() smachine.SyncAdjustment {
+func (p *PlashSharedData) enableAccess() smachine.SyncAdjustment {
 	p.state.Store(1)
 	return p.ready.NewValue(true)
 }
 
-func (p *StreamSharedData) ensureAccess() {
+func (p *PlashSharedData) ensureAccess() {
 	if p.state.Load() == 0 {
 		panic(throw.IllegalState())
 	}
 }
 
-func (p *StreamSharedData) GetPulseRange() pulse.Range {
+func (p *PlashSharedData) GetPulseRange() pulse.Range {
 	p.ensureAccess()
 	if p.pr == nil {
 		panic(throw.IllegalState())
@@ -49,7 +50,7 @@ func (p *StreamSharedData) GetPulseRange() pulse.Range {
 	return p.pr
 }
 
-func (p *StreamSharedData) GetJetDrop(ref reference.Holder) JetDropID {
+func (p *PlashSharedData) GetDrop(ref reference.Holder) jet.DropID {
 	p.ensureAccess()
 	return p.jetAssist.CalculateJetDrop(ref)
 }

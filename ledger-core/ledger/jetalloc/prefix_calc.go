@@ -3,11 +3,13 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package jetid
+package jetalloc
 
 import (
-	"fmt"
 	"io"
+
+	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 const SplitMedian = 7 // makes 0 vs 1 ratio like [0..6] vs [7..15]
@@ -23,7 +25,7 @@ const SplitMedian = 7 // makes 0 vs 1 ratio like [0..6] vs [7..15]
 //		...
 //		bitPrefix, bitPrefixLen = prefixTree.GetPrefix(bitPrefix)
 //
-func NewJetPrefixCalc() PrefixCalc {
+func NewPrefixCalc() PrefixCalc {
 	return PrefixCalc{4, SplitMedian}
 }
 
@@ -39,10 +41,10 @@ type PrefixCalc struct {
 }
 
 // Converts data[:OverlapOfs + (prefixLen)/2] into prefixLen bits.
-func (p PrefixCalc) FromSlice(prefixLen int, data []byte) Prefix {
+func (p PrefixCalc) FromSlice(prefixLen int, data []byte) jet.Prefix {
 	switch {
 	case prefixLen < 0 || prefixLen > 32:
-		panic("illegal value")
+		panic(throw.IllegalValue())
 	case prefixLen == 0:
 		return 0
 	}
@@ -51,12 +53,12 @@ func (p PrefixCalc) FromSlice(prefixLen int, data []byte) Prefix {
 }
 
 // Converts data[:OverlapOfs + (prefixLen)/2] into prefixLen bits.
-func (p PrefixCalc) FromReader(prefixLen int, data io.Reader) (Prefix, error) {
+func (p PrefixCalc) FromReader(prefixLen int, data io.Reader) (jet.Prefix, error) {
 	switch {
 	case prefixLen < 0 || prefixLen > 32:
-		panic("illegal value")
+		panic(throw.IllegalValue())
 	case data == nil:
-		panic("illegal value")
+		panic(throw.IllegalValue())
 	case prefixLen == 0:
 		return 0, nil
 	}
@@ -66,25 +68,28 @@ func (p PrefixCalc) FromReader(prefixLen int, data io.Reader) (Prefix, error) {
 	case err != nil:
 		return 0, err
 	case n != len(dataBuf):
-		return 0, fmt.Errorf("insufficient data length")
+		return 0, throw.FailHere("insufficient data length")
 	}
 
 	return p.fromSlice(prefixLen, dataBuf), nil
 }
 
-func (p PrefixCalc) fromSlice(prefixLen int, data []byte) Prefix {
-	result := Prefix(0)
-	bit := Prefix(1)
+func (p PrefixCalc) fromSlice(prefixLen int, data []byte) jet.Prefix {
+	result := jet.Prefix(0)
+	bit := jet.Prefix(1)
 
 	for i, d := range data {
 		if p.OverlapOfs > 0 {
+			// TODO check quality of distribution because of XOR
 			d ^= data[i+int(p.OverlapOfs)]
 		}
 
 		if d&0xF >= p.SplitMedian {
 			result |= bit
 		}
+
 		if prefixLen == 1 {
+			// odd length
 			return result
 		}
 		bit <<= 1
@@ -99,5 +104,7 @@ func (p PrefixCalc) fromSlice(prefixLen int, data []byte) Prefix {
 		bit <<= 1
 	}
 
-	panic(fmt.Errorf("insufficient data length"))
+	panic(throw.FailHere("insufficient data length"))
 }
+
+

@@ -8,6 +8,8 @@ package rms
 const MaxTwoByteField = 2047
 
 const RecordBodyField = 19
+const recordBodyTagSize = 2
+
 const RecordFirstField = 20
 const RecordLastField = MaxTwoByteField - 256 // 1791
 

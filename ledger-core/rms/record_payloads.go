@@ -138,3 +138,24 @@ func (p *RecordPayloads) ApplyPayloadsTo(record BasicRecord, digester cryptkit.D
 	}
 	return record.SetRecordPayloads(*p, digester)
 }
+
+func (p *RecordPayloads) Count() int {
+	return len(p.payloads)
+}
+
+func (p *RecordPayloads) GetPayloadOrExtension(index int) MarshalerTo {
+	// rb := p.payloads[index]
+	panic(throw.NotImplemented())
+}
+
+func (p *RecordPayloads) GetExtensionID(index int) uint32 {
+	switch n := len(p.payloads); {
+	case index < 0 || index >= n:
+		panic(throw.IllegalValue())
+	case index == 0:
+		return 0
+	default:
+		// TODO extract ExtensionID
+		return 0
+	}
+}
