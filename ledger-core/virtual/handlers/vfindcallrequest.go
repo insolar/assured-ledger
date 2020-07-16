@@ -63,7 +63,6 @@ func (s *SMVFindCallRequest) GetStateMachineDeclaration() smachine.StateMachineD
 
 func (s *SMVFindCallRequest) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
 	if s.pulseSlot.State() == conveyor.Present {
-		ctx.SetDefaultMigration(s.migrateFutureMessage)
 		return ctx.JumpExt(smachine.SlotStep{
 			Transition: s.stepWait,
 			Migration:  s.migrateFutureMessage,
@@ -78,12 +77,7 @@ func (s *SMVFindCallRequest) stepWait(ctx smachine.ExecutionContext) smachine.St
 }
 
 func (s *SMVFindCallRequest) migrateFutureMessage(ctx smachine.MigrationContext) smachine.StateUpdate {
-	return ctx.JumpExt(smachine.SlotStep{
-		Transition: s.stepProcessRequest,
-		Migration: func(ctx smachine.MigrationContext) smachine.StateUpdate {
-			return ctx.Stop()
-		},
-	})
+	return ctx.Jump(s.stepProcessRequest)
 }
 
 func (s *SMVFindCallRequest) stepProcessRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
