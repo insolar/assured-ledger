@@ -157,7 +157,7 @@ func (c *ManyNodePopulation) IsClean() bool {
 }
 
 func (c *ManyNodePopulation) GetRolePopulation(role member.PrimaryRole) census.RolePopulation {
-	if role == member.PrimaryRoleInactive || int(role) >= len(c.workingRoles) {
+	if role == member.PrimaryRoleInactive || int(role) >= len(c.roles) {
 		return nil
 	}
 	if c.roles[role].container == nil && c.roles[role].idleCount == 0 {
@@ -167,7 +167,7 @@ func (c *ManyNodePopulation) GetRolePopulation(role member.PrimaryRole) census.R
 }
 
 func (c *ManyNodePopulation) GetWorkingRoles() []member.PrimaryRole {
-	return append(make([]member.PrimaryRole, 0, len(c.workingRoles)), c.workingRoles...)
+	return append([]member.PrimaryRole(nil), c.workingRoles...)
 }
 
 func (c *ManyNodePopulation) copyTo(p copyFromPopulation) {

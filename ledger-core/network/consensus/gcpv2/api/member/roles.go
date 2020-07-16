@@ -20,7 +20,6 @@ const (
     PrimaryRoleUnknown = PrimaryRoleInactive
 )
 
-
 func (v PrimaryRole) Equal(other PrimaryRole) bool {
 	return v == other
 }

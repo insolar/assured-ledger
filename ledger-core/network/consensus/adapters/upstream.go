@@ -103,12 +103,13 @@ func (u *UpstreamController) PreparePulseChange(report api.UpstreamReport, ch ch
 
 func (u *UpstreamController) CommitPulseChange(report api.UpstreamReport, pulseData pulse.Data, activeCensus census.Operational) {
 	ctx := ReportContext(report)
+	online := activeCensus.GetOnlinePopulation()
 
 	u.pulseChanger.ChangePulse(ctx, appctl.PulseChange{
 		PulseSeq:    0,
 		Data:        pulseData,
 		StartedAt:   time.Now(), // TODO get pulse start
-		Online:      activeCensus.GetOnlinePopulation(),
+		Online:      online,
 	})
 }
 
