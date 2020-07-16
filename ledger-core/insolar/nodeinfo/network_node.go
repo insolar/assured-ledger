@@ -34,7 +34,7 @@ const (
 	Leaving
 )
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/insolar/node.NetworkNode -o ../../testutils/network -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo.NetworkNode -o ../../testutils/network -s _mock.go -g
 
 type NetworkNode interface {
 	// ID is the unique identifier of the node

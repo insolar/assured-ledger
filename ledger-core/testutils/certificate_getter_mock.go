@@ -9,23 +9,22 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
+	mm_nodeinfo "github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
-// CertificateGetterMock implements node.CertificateGetter
+// CertificateGetterMock implements nodeinfo.CertificateGetter
 type CertificateGetterMock struct {
 	t minimock.Tester
 
-	funcGetCert          func(ctx context.Context, g1 reference.Global) (c2 nodeinfo.Certificate, err error)
+	funcGetCert          func(ctx context.Context, g1 reference.Global) (c2 mm_nodeinfo.Certificate, err error)
 	inspectFuncGetCert   func(ctx context.Context, g1 reference.Global)
 	afterGetCertCounter  uint64
 	beforeGetCertCounter uint64
 	GetCertMock          mCertificateGetterMockGetCert
 }
 
-// NewCertificateGetterMock returns a mock for node.CertificateGetter
+// NewCertificateGetterMock returns a mock for nodeinfo.CertificateGetter
 func NewCertificateGetterMock(t minimock.Tester) *CertificateGetterMock {
 	m := &CertificateGetterMock{t: t}
 	if controller, ok := t.(minimock.MockController); ok {
@@ -63,7 +62,7 @@ type CertificateGetterMockGetCertParams struct {
 
 // CertificateGetterMockGetCertResults contains results of the CertificateGetter.GetCert
 type CertificateGetterMockGetCertResults struct {
-	c2  nodeinfo.Certificate
+	c2  mm_nodeinfo.Certificate
 	err error
 }
 
@@ -99,7 +98,7 @@ func (mmGetCert *mCertificateGetterMockGetCert) Inspect(f func(ctx context.Conte
 }
 
 // Return sets up results that will be returned by CertificateGetter.GetCert
-func (mmGetCert *mCertificateGetterMockGetCert) Return(c2 nodeinfo.Certificate, err error) *CertificateGetterMock {
+func (mmGetCert *mCertificateGetterMockGetCert) Return(c2 mm_nodeinfo.Certificate, err error) *CertificateGetterMock {
 	if mmGetCert.mock.funcGetCert != nil {
 		mmGetCert.mock.t.Fatalf("CertificateGetterMock.GetCert mock is already set by Set")
 	}
@@ -112,7 +111,7 @@ func (mmGetCert *mCertificateGetterMockGetCert) Return(c2 nodeinfo.Certificate, 
 }
 
 //Set uses given function f to mock the CertificateGetter.GetCert method
-func (mmGetCert *mCertificateGetterMockGetCert) Set(f func(ctx context.Context, g1 reference.Global) (c2 nodeinfo.Certificate, err error)) *CertificateGetterMock {
+func (mmGetCert *mCertificateGetterMockGetCert) Set(f func(ctx context.Context, g1 reference.Global) (c2 mm_nodeinfo.Certificate, err error)) *CertificateGetterMock {
 	if mmGetCert.defaultExpectation != nil {
 		mmGetCert.mock.t.Fatalf("Default expectation is already set for the CertificateGetter.GetCert method")
 	}
@@ -141,13 +140,13 @@ func (mmGetCert *mCertificateGetterMockGetCert) When(ctx context.Context, g1 ref
 }
 
 // Then sets up CertificateGetter.GetCert return parameters for the expectation previously defined by the When method
-func (e *CertificateGetterMockGetCertExpectation) Then(c2 nodeinfo.Certificate, err error) *CertificateGetterMock {
+func (e *CertificateGetterMockGetCertExpectation) Then(c2 mm_nodeinfo.Certificate, err error) *CertificateGetterMock {
 	e.results = &CertificateGetterMockGetCertResults{c2, err}
 	return e.mock
 }
 
-// GetCert implements node.CertificateGetter
-func (mmGetCert *CertificateGetterMock) GetCert(ctx context.Context, g1 reference.Global) (c2 nodeinfo.Certificate, err error) {
+// GetCert implements nodeinfo.CertificateGetter
+func (mmGetCert *CertificateGetterMock) GetCert(ctx context.Context, g1 reference.Global) (c2 mm_nodeinfo.Certificate, err error) {
 	mm_atomic.AddUint64(&mmGetCert.beforeGetCertCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetCert.afterGetCertCounter, 1)
 

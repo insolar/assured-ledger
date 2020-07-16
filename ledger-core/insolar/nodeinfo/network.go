@@ -12,7 +12,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/insolar/node.CertificateGetter -o ../../testutils -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo.CertificateGetter -o ../../testutils -s _mock.go -g
 
 type CertificateGetter interface {
 	// GetCert registers reference and returns new certificate for it
@@ -34,7 +34,7 @@ const (
 	CompleteNetworkState
 )
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/insolar/node.Leaver -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo.Leaver -s _mock.go -g
 
 type Leaver interface {
 	// Leave notify other nodes that this node want to leave and doesn't want to receive new tasks
