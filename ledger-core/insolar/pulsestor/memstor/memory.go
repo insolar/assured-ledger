@@ -100,8 +100,8 @@ func (s *StorageMem) Append(ctx context.Context, pulse appctl.PulseChange) error
 	return nil
 }
 
-// Shift removes oldest pulse from storage. If the storage is empty, an error will be returned.
-func (s *StorageMem) Shift(ctx context.Context, pn pulse.Number) (err error) {
+// Trim removes oldest pulse from storage. If the storage is empty, an error will be returned.
+func (s *StorageMem) Trim(_ context.Context, pn pulse.Number) (err error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 

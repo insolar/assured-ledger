@@ -162,7 +162,7 @@ func TestMemoryStorage_Shift(t *testing.T) {
 
 	t.Run("returns error if empty", func(t *testing.T) {
 		storage := NewStorageMem()
-		err := storage.Shift(ctx, pn)
+		err := storage.Trim(ctx, pn)
 		assert.Error(t, err)
 	})
 
@@ -173,7 +173,7 @@ func TestMemoryStorage_Shift(t *testing.T) {
 		storage.tail = head
 		storage.head = head
 
-		err := storage.Shift(ctx, pn)
+		err := storage.Trim(ctx, pn)
 		assert.NoError(t, err)
 		assert.Nil(t, storage.tail)
 		assert.Nil(t, storage.head)
@@ -194,7 +194,7 @@ func TestMemoryStorage_Shift(t *testing.T) {
 		storage.tail = head
 		storage.head = tail
 
-		err := storage.Shift(ctx, pn)
+		err := storage.Trim(ctx, pn)
 		assert.NoError(t, err)
 		assert.Equal(t, storage.tail, storage.head)
 		assert.Equal(t, head, storage.storage[head.pulse.PulseNumber])
@@ -213,7 +213,7 @@ func TestMemoryStorage_Shift(t *testing.T) {
 			pc.PulseNumber++
 		}
 
-		err := storage.Shift(ctx, 103)
+		err := storage.Trim(ctx, 103)
 		assert.NoError(t, err)
 		assert.Equal(t, 2, len(storage.storage))
 		_, ok := storage.storage[104]

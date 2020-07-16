@@ -41,7 +41,7 @@ func NewPulseDigest(data pulse.Data) cryptkit.Digest {
 	copy(bits[:entropySize], data.PulseEntropy[:])
 	copy(bits[entropySize:], data.PulseEntropy[:])
 
-	// It's not digest actually :)
+	// TODO Fix - it's not digest actually
 	return cryptkit.NewDigest(&bits, SHA3512Digest)
 }
 

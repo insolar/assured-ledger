@@ -24,8 +24,8 @@ type AffinityHelperMock struct {
 	beforeMeCounter uint64
 	MeMock          mAffinityHelperMockMe
 
-	funcQueryRole          func(ctx context.Context, role node.DynamicRole, obj reference.Local, pulse pulse.Number) (ga1 []reference.Global, err error)
-	inspectFuncQueryRole   func(ctx context.Context, role node.DynamicRole, obj reference.Local, pulse pulse.Number)
+	funcQueryRole          func(ctx context.Context, role node.DynamicRole, obj reference.Holder, pulse pulse.Number) (ga1 []reference.Global, err error)
+	inspectFuncQueryRole   func(ctx context.Context, role node.DynamicRole, obj reference.Holder, pulse pulse.Number)
 	afterQueryRoleCounter  uint64
 	beforeQueryRoleCounter uint64
 	QueryRoleMock          mAffinityHelperMockQueryRole
@@ -210,7 +210,7 @@ type AffinityHelperMockQueryRoleExpectation struct {
 type AffinityHelperMockQueryRoleParams struct {
 	ctx   context.Context
 	role  node.DynamicRole
-	obj   reference.Local
+	obj   reference.Holder
 	pulse pulse.Number
 }
 
@@ -221,7 +221,7 @@ type AffinityHelperMockQueryRoleResults struct {
 }
 
 // Expect sets up expected params for AffinityHelper.QueryRole
-func (mmQueryRole *mAffinityHelperMockQueryRole) Expect(ctx context.Context, role node.DynamicRole, obj reference.Local, pulse pulse.Number) *mAffinityHelperMockQueryRole {
+func (mmQueryRole *mAffinityHelperMockQueryRole) Expect(ctx context.Context, role node.DynamicRole, obj reference.Holder, pulse pulse.Number) *mAffinityHelperMockQueryRole {
 	if mmQueryRole.mock.funcQueryRole != nil {
 		mmQueryRole.mock.t.Fatalf("AffinityHelperMock.QueryRole mock is already set by Set")
 	}
@@ -241,7 +241,7 @@ func (mmQueryRole *mAffinityHelperMockQueryRole) Expect(ctx context.Context, rol
 }
 
 // Inspect accepts an inspector function that has same arguments as the AffinityHelper.QueryRole
-func (mmQueryRole *mAffinityHelperMockQueryRole) Inspect(f func(ctx context.Context, role node.DynamicRole, obj reference.Local, pulse pulse.Number)) *mAffinityHelperMockQueryRole {
+func (mmQueryRole *mAffinityHelperMockQueryRole) Inspect(f func(ctx context.Context, role node.DynamicRole, obj reference.Holder, pulse pulse.Number)) *mAffinityHelperMockQueryRole {
 	if mmQueryRole.mock.inspectFuncQueryRole != nil {
 		mmQueryRole.mock.t.Fatalf("Inspect function is already set for AffinityHelperMock.QueryRole")
 	}
@@ -265,7 +265,7 @@ func (mmQueryRole *mAffinityHelperMockQueryRole) Return(ga1 []reference.Global, 
 }
 
 //Set uses given function f to mock the AffinityHelper.QueryRole method
-func (mmQueryRole *mAffinityHelperMockQueryRole) Set(f func(ctx context.Context, role node.DynamicRole, obj reference.Local, pulse pulse.Number) (ga1 []reference.Global, err error)) *AffinityHelperMock {
+func (mmQueryRole *mAffinityHelperMockQueryRole) Set(f func(ctx context.Context, role node.DynamicRole, obj reference.Holder, pulse pulse.Number) (ga1 []reference.Global, err error)) *AffinityHelperMock {
 	if mmQueryRole.defaultExpectation != nil {
 		mmQueryRole.mock.t.Fatalf("Default expectation is already set for the AffinityHelper.QueryRole method")
 	}
@@ -280,7 +280,7 @@ func (mmQueryRole *mAffinityHelperMockQueryRole) Set(f func(ctx context.Context,
 
 // When sets expectation for the AffinityHelper.QueryRole which will trigger the result defined by the following
 // Then helper
-func (mmQueryRole *mAffinityHelperMockQueryRole) When(ctx context.Context, role node.DynamicRole, obj reference.Local, pulse pulse.Number) *AffinityHelperMockQueryRoleExpectation {
+func (mmQueryRole *mAffinityHelperMockQueryRole) When(ctx context.Context, role node.DynamicRole, obj reference.Holder, pulse pulse.Number) *AffinityHelperMockQueryRoleExpectation {
 	if mmQueryRole.mock.funcQueryRole != nil {
 		mmQueryRole.mock.t.Fatalf("AffinityHelperMock.QueryRole mock is already set by Set")
 	}
@@ -300,7 +300,7 @@ func (e *AffinityHelperMockQueryRoleExpectation) Then(ga1 []reference.Global, er
 }
 
 // QueryRole implements AffinityHelper
-func (mmQueryRole *AffinityHelperMock) QueryRole(ctx context.Context, role node.DynamicRole, obj reference.Local, pulse pulse.Number) (ga1 []reference.Global, err error) {
+func (mmQueryRole *AffinityHelperMock) QueryRole(ctx context.Context, role node.DynamicRole, obj reference.Holder, pulse pulse.Number) (ga1 []reference.Global, err error) {
 	mm_atomic.AddUint64(&mmQueryRole.beforeQueryRoleCounter, 1)
 	defer mm_atomic.AddUint64(&mmQueryRole.afterQueryRoleCounter, 1)
 

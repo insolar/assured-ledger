@@ -83,7 +83,7 @@ func (s service) checkDelegationToken(expectedVE reference.Global, token payload
 }
 
 func (s service) getExpectedVE(ctx context.Context, subjectRef reference.Global, verifyForPulse pulse.Number) (reference.Global, error) {
-	expectedVE, err := s.affinity.QueryRole(ctx, node.DynamicRoleVirtualExecutor, subjectRef.GetLocal(), verifyForPulse)
+	expectedVE, err := s.affinity.QueryRole(ctx, node.DynamicRoleVirtualExecutor, subjectRef, verifyForPulse)
 	if err != nil {
 		return reference.Global{}, throw.W(err, "can't calculate role")
 	}

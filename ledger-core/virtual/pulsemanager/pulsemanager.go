@@ -71,8 +71,7 @@ func (m *PulseManager) CommitPulseChange(pulseChange appctl.PulseChange) error {
 func ConvertForLegacy(pc appctl.PulseChange) (psp pulsestor.Pulse) {
 	pd := pc.Data
 
-	copy(psp.Entropy[:32], pd.PulseEntropy[:])
-	copy(psp.Entropy[32:], pd.PulseEntropy[:])
+	copy(psp.Entropy[:], pd.PulseEntropy[:])
 
 	psp.PulseNumber = pd.PulseNumber
 	ok := false
@@ -92,22 +91,6 @@ func ConvertForLegacy(pc appctl.PulseChange) (psp pulsestor.Pulse) {
 }
 
 func (m *PulseManager) setNewPulse(ctx context.Context, pulseChange appctl.PulseChange) error {
-	// pulseChange := appctl.PulseChange{
-	// 	PulseSeq:  0,
-	// 	Pulse:     pulse.NewOnePulseRange(pulse.Data{
-	// 		PulseNumber: newPulse.PulseNumber,
-	// 		DataExt:     pulse.DataExt{
-	// 			PulseEpoch:     newPulse.EpochPulseNumber,
-	// 			NextPulseDelta: uint16(newPulse.NextPulseNumber - newPulse.PulseNumber),
-	// 			PrevPulseDelta: uint16(newPulse.PulseNumber - newPulse.PrevPulseNumber),
-	// 			Timestamp:      uint32(newPulse.PulseTimestamp / int64(time.Second)),
-	// 			PulseEntropy:   longbits.NewBits256FromBytes(newPulse.Entropy[:32]),
-	// 		},
-	// 	}),
-	// 	StartedAt: time.Now(),
-	// 	Census:    nil,
-	// }
-
 
 	sink, setStateFn := appctl.NewNodeStateSink(make(chan appctl.NodeState, 1))
 	for _, d := range m.dispatchers {

@@ -34,8 +34,7 @@ func ToProto(p appctl.PulseChange) *PulseProto {
 		OriginID:         p.PulseOrigin,
 		// Entropy:          p.Entropy,
 	}
-	copy(result.Entropy[:32], p.PulseEntropy[:])
-	copy(result.Entropy[32:], p.PulseEntropy[:])
+	copy(result.Entropy[:], p.PulseEntropy[:])
 
 	// for pk, sign := range p.Signs {
 	// 	result.Signs = append(result.Signs, SenderConfirmationToProto(pk, sign))
