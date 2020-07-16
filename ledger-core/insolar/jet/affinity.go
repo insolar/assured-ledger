@@ -72,8 +72,8 @@ func (jc *AffinityCoordinator) VirtualExecutorForObject(
 	role := pc.Online.GetRolePopulation(member.PrimaryRoleVirtual)
 	if role == nil {
 		err := throw.E("role without nodes", struct {
-			member.PrimaryRole
-			census.OnlinePopulation
+			PrimaryRole member.PrimaryRole
+			Population census.OnlinePopulation
 		} {
 			member.PrimaryRoleVirtual,
 			pc.Online,
@@ -91,8 +91,8 @@ func (jc *AffinityCoordinator) VirtualExecutorForObject(
 	assigned, _ := role.GetAssignmentByCount(metric, 0)
 	if assigned == nil {
 		return reference.Global{}, throw.E("unable to assign node of role", struct {
-			member.PrimaryRole
-			census.OnlinePopulation
+			PrimaryRole member.PrimaryRole
+			Population census.OnlinePopulation
 		}{
 			member.PrimaryRoleVirtual,
 			pc.Online,
