@@ -12,9 +12,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/appctl"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
-	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/network"
-	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
 
 var _ appctl.Manager = &PulseManager{}
@@ -43,12 +41,6 @@ func (m *PulseManager) AddDispatcher(d ...appctl.Dispatcher) {
 	defer m.setLock.Unlock()
 
 	m.dispatchers = append(m.dispatchers, d...)
-}
-
-type messageNewPulse struct {
-	*log.Msg `txt:"received pulse"`
-	OldPulse pulse.Number
-	NewPulse pulse.Number
 }
 
 func (m *PulseManager) CommitPulseChange(pulseChange appctl.PulseChange) error {

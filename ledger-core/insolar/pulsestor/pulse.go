@@ -82,7 +82,7 @@ var GenesisPulse = appctl.PulseChange{ Data: pulse.Data{
 		Timestamp: pulse.UnixTimeOfMinTimePulse,
 	}}}
 
-// Test use only
+// EphemeralPulse is for test use only
 // DEPRECATED
 var EphemeralPulse = appctl.PulseChange{ Data: pulse.Data{
 	PulseNumber: pulse.MinTimePulse,
