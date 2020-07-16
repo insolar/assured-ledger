@@ -33,6 +33,9 @@ func (p ExecutionAdapter) GetAdapterID() AdapterID {
 }
 
 func (p ExecutionAdapter) PrepareSync(ctx ExecutionContext, fn AdapterCallFunc) SyncCallRequester {
+	if fn == nil {
+		panic(throw.IllegalValue())
+	}
 	ec := ctx.(*executionContext)
 	return &adapterSyncCallRequest{
 		adapterCallRequest{ctx: ec, fn: fn, adapterID: p.adapterID, isLogging: ec.s.getAdapterLogging(),
@@ -40,13 +43,31 @@ func (p ExecutionAdapter) PrepareSync(ctx ExecutionContext, fn AdapterCallFunc) 
 }
 
 func (p ExecutionAdapter) PrepareAsync(ctx ExecutionContext, fn AdapterCallFunc) AsyncCallRequester {
+	if fn == nil {
+		panic(throw.IllegalValue())
+	}
 	ec := ctx.(*executionContext)
 	return &adapterCallRequest{ctx: ec, fn: fn, adapterID: p.adapterID, isLogging: ec.s.getAdapterLogging(),
 		executor: p.executor, mode: adapterAsyncCallContext, flags: AutoWakeUp}
 }
 
 func (p ExecutionAdapter) PrepareNotify(ctx ExecutionContext, fn AdapterNotifyFunc) NotifyRequester {
+	if fn == nil {
+		panic(throw.IllegalValue())
+	}
 	ec := ctx.(*executionContext)
 	return &adapterNotifyRequest{ctx: ec, fn: fn, adapterID: p.adapterID, isLogging: ec.s.getAdapterLogging(),
 		executor: p.executor, mode: adapterAsyncCallContext}
+}
+
+func (p ExecutionAdapter) SendFailureNotify(ctx FailureContext, fn AdapterNotifyFunc) {
+	if fn == nil {
+		panic(throw.IllegalValue())
+	}
+	fc := ctx.(*failureContext)
+	ec := &executionContext{slotContext: fc.slotContext}
+
+	rq := &adapterNotifyRequest{ctx: ec, fn: fn, adapterID: p.adapterID, isLogging: ec.s.getAdapterLogging(),
+		executor: p.executor, mode: adapterAsyncCallContext}
+	rq.Send()
 }

@@ -242,7 +242,7 @@ type testCase struct {
 	testRailID     string
 	zeroToken      bool
 	approverVE     veSetMode
-	currentVE      veSetMode
+	expectedVE     veSetMode
 	errorMessages  []string
 	errorSeverity  throw.Severity
 	customDelegate reference.Global
@@ -255,8 +255,8 @@ func TestDelegationToken_IsMessageFromVirtualLegitimate(t *testing.T) {
 			name:       "Fail if DT is zero and sender not eq expectedVE",
 			testRailID: "C5196",
 			zeroToken:  true,
-			approverVE: veSetFake,
-			currentVE:  veSetNone,
+			expectedVE: veSetFake,
+			approverVE: veSetNone, // don't need due to zeroToken
 			errorMessages: []string{
 				"unexpected sender",
 				"illegitimate msg",
@@ -267,8 +267,8 @@ func TestDelegationToken_IsMessageFromVirtualLegitimate(t *testing.T) {
 			name:       "Fail if sender eq approver",
 			testRailID: "C5193",
 			zeroToken:  false,
+			expectedVE: veSetServer,
 			approverVE: veSetServer,
-			currentVE:  veSetServer,
 			errorMessages: []string{
 				"sender cannot be approver of the token",
 				"illegitimate msg",
@@ -279,8 +279,8 @@ func TestDelegationToken_IsMessageFromVirtualLegitimate(t *testing.T) {
 			name:       "Fail if wrong approver",
 			testRailID: "C5192",
 			zeroToken:  false,
+			expectedVE: veSetFake,
 			approverVE: veSetFake,
-			currentVE:  veSetFake,
 			errorMessages: []string{
 				"token Approver and expectedVE are different",
 				"illegitimate msg",
@@ -290,8 +290,9 @@ func TestDelegationToken_IsMessageFromVirtualLegitimate(t *testing.T) {
 		{
 			name:       "Fail if wrong delegate",
 			testRailID: "C5194",
+			zeroToken:  false,
+			expectedVE: veSetFixed,
 			approverVE: veSetFixed,
-			currentVE:  veSetFixed,
 			errorMessages: []string{
 				"token DelegateTo and sender are different",
 				"illegitimate msg",
@@ -341,7 +342,7 @@ func TestDelegationToken_IsMessageFromVirtualLegitimate(t *testing.T) {
 				// increment pulse for VStateReport and VDelegatedCallRequest
 				server.IncrementPulse(ctx)
 
-				switch testCase.approverVE {
+				switch testCase.expectedVE {
 				case veSetServer:
 					jetCoordinatorMock.
 						QueryRoleMock.Return([]reference.Global{server.GlobalCaller()}, nil)
@@ -353,7 +354,7 @@ func TestDelegationToken_IsMessageFromVirtualLegitimate(t *testing.T) {
 						QueryRoleMock.Return([]reference.Global{fixedVe}, nil)
 				}
 
-				switch testCase.currentVE {
+				switch testCase.approverVE {
 				case veSetServer:
 					jetCoordinatorMock.MeMock.Return(server.GlobalCaller())
 				case veSetFake:

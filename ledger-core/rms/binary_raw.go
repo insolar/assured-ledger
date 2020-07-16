@@ -44,6 +44,10 @@ type RawBinary struct {
 	value interface{}
 }
 
+func (p RawBinary) AsBinary() Binary {
+	return Binary{p}
+}
+
 func (p RawBinary) IsZero() bool {
 	return p.value == nil
 }
