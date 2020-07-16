@@ -1,5 +1,5 @@
 export GO111MODULE ?= on
-export GOSUMDB ?= sum.golang.org
+export GOSUMDB ?= off
 export GOFLAGS ?= -mod=vendor
 
 BIN_DIR ?= ./bin
