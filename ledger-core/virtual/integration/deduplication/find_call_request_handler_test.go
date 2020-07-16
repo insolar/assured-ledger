@@ -22,6 +22,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/mock/publisher/checker"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
@@ -154,6 +155,8 @@ func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
 			ctx := suite.initServer(t)
 			defer suite.stopServer()
 
+			handlerEnded := suite.server.Journal.WaitStopOf(&handlers.SMVFindCallRequest{}, 1)
+
 			suite.initPulsesP1andP2(ctx)
 			suite.generateClass()
 			suite.generateCaller()
@@ -182,6 +185,7 @@ func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
 			}
 
 			testutils.WaitSignalsTimed(t, 10*time.Second, suite.server.Journal.WaitAllAsyncCallsDone())
+			testutils.WaitSignalsTimed(t, 10*time.Second, handlerEnded)
 
 			suite.finish()
 		})
