@@ -132,10 +132,11 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 		runnerMock.AddExecutionMock("Foo").AddStart(func(_ execution.Context) {
 			logger.Debug("ExecutionStart [A.Foo]")
 
-			server.IncrementPulseAndWaitIdle(ctx)
+			server.IncrementPulse(ctx)
 			secondPulse = server.GetPulse().PulseNumber
-
 			firstExpectedToken.PulseNumber = secondPulse
+			server.WaitActiveThenIdleConveyor()
+
 		}, &execution.Update{
 			Type:     execution.OutgoingCall,
 			Error:    nil,
@@ -201,10 +202,11 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 				assert.Equal(t, firstExpectedToken, request.DelegationSpec)
 				assert.NotEqual(t, payload.RepeatedCall, request.CallRequestFlags.GetRepeatedCall())
 
-				server.IncrementPulseAndWaitIdle(ctx)
+				server.IncrementPulse(ctx)
 				thirdPulse = server.GetPulse().PulseNumber
 				secondExpectedToken.PulseNumber = thirdPulse
 				expectedVCallRequest.DelegationSpec = secondExpectedToken
+				server.WaitActiveThenIdleConveyor()
 
 				// request will be sent in previous pulse
 				// omit sending
@@ -345,8 +347,9 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 		objectAResult.SetActivate(reference.Global{}, classA, []byte("state A"))
 
 		runnerMock.AddExecutionMock("New").AddStart(func(_ execution.Context) {
-			server.IncrementPulseAndWaitIdle(ctx)
+			server.IncrementPulse(ctx)
 			secondPulse = server.GetPulse().PulseNumber
+			server.WaitActiveThenIdleConveyor()
 		}, &execution.Update{
 			Type:     execution.OutgoingCall,
 			Error:    nil,
