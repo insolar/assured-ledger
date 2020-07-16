@@ -23,7 +23,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/slotdebugger"
 )
 
-func TestVFindCallRequestAwaitCallSummarySM(t *testing.T) {
+func TestVFindCallRequest_AwaitCallSummarySM(t *testing.T) {
+	t.Log("C5435")
+
 	var (
 		ctx       = instestlogger.TestContext(t)
 		mc        = minimock.NewController(t)
