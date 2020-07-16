@@ -213,6 +213,7 @@ func newServerExt(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFi
 	return &s, ctx
 }
 
+//nolint:interfacer
 func createCensusMock(t Tester, localRef reference.Global) census.Operational {
 	localNode := node.ShortNodeID(10)
 	cp := profiles.NewCandidateProfileMock(t)

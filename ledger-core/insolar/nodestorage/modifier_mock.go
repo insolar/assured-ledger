@@ -8,7 +8,6 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 )
@@ -16,12 +15,6 @@ import (
 // ModifierMock implements Modifier
 type ModifierMock struct {
 	t minimock.Tester
-
-	funcDeleteForPN          func(pulse pulse.Number)
-	inspectFuncDeleteForPN   func(pulse pulse.Number)
-	afterDeleteForPNCounter  uint64
-	beforeDeleteForPNCounter uint64
-	DeleteForPNMock          mModifierMockDeleteForPN
 
 	funcSet          func(pulse pulse.Number, nodes []rms.Node) (err error)
 	inspectFuncSet   func(pulse pulse.Number, nodes []rms.Node)
@@ -37,200 +30,10 @@ func NewModifierMock(t minimock.Tester) *ModifierMock {
 		controller.RegisterMocker(m)
 	}
 
-	m.DeleteForPNMock = mModifierMockDeleteForPN{mock: m}
-	m.DeleteForPNMock.callArgs = []*ModifierMockDeleteForPNParams{}
-
 	m.SetMock = mModifierMockSet{mock: m}
 	m.SetMock.callArgs = []*ModifierMockSetParams{}
 
 	return m
-}
-
-type mModifierMockDeleteForPN struct {
-	mock               *ModifierMock
-	defaultExpectation *ModifierMockDeleteForPNExpectation
-	expectations       []*ModifierMockDeleteForPNExpectation
-
-	callArgs []*ModifierMockDeleteForPNParams
-	mutex    sync.RWMutex
-}
-
-// ModifierMockDeleteForPNExpectation specifies expectation struct of the Modifier.DeleteForPN
-type ModifierMockDeleteForPNExpectation struct {
-	mock   *ModifierMock
-	params *ModifierMockDeleteForPNParams
-
-	Counter uint64
-}
-
-// ModifierMockDeleteForPNParams contains parameters of the Modifier.DeleteForPN
-type ModifierMockDeleteForPNParams struct {
-	pulse pulse.Number
-}
-
-// Expect sets up expected params for Modifier.DeleteForPN
-func (mmDeleteForPN *mModifierMockDeleteForPN) Expect(pulse pulse.Number) *mModifierMockDeleteForPN {
-	if mmDeleteForPN.mock.funcDeleteForPN != nil {
-		mmDeleteForPN.mock.t.Fatalf("ModifierMock.DeleteForPN mock is already set by Set")
-	}
-
-	if mmDeleteForPN.defaultExpectation == nil {
-		mmDeleteForPN.defaultExpectation = &ModifierMockDeleteForPNExpectation{}
-	}
-
-	mmDeleteForPN.defaultExpectation.params = &ModifierMockDeleteForPNParams{pulse}
-	for _, e := range mmDeleteForPN.expectations {
-		if minimock.Equal(e.params, mmDeleteForPN.defaultExpectation.params) {
-			mmDeleteForPN.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmDeleteForPN.defaultExpectation.params)
-		}
-	}
-
-	return mmDeleteForPN
-}
-
-// Inspect accepts an inspector function that has same arguments as the Modifier.DeleteForPN
-func (mmDeleteForPN *mModifierMockDeleteForPN) Inspect(f func(pulse pulse.Number)) *mModifierMockDeleteForPN {
-	if mmDeleteForPN.mock.inspectFuncDeleteForPN != nil {
-		mmDeleteForPN.mock.t.Fatalf("Inspect function is already set for ModifierMock.DeleteForPN")
-	}
-
-	mmDeleteForPN.mock.inspectFuncDeleteForPN = f
-
-	return mmDeleteForPN
-}
-
-// Return sets up results that will be returned by Modifier.DeleteForPN
-func (mmDeleteForPN *mModifierMockDeleteForPN) Return() *ModifierMock {
-	if mmDeleteForPN.mock.funcDeleteForPN != nil {
-		mmDeleteForPN.mock.t.Fatalf("ModifierMock.DeleteForPN mock is already set by Set")
-	}
-
-	if mmDeleteForPN.defaultExpectation == nil {
-		mmDeleteForPN.defaultExpectation = &ModifierMockDeleteForPNExpectation{mock: mmDeleteForPN.mock}
-	}
-
-	return mmDeleteForPN.mock
-}
-
-//Set uses given function f to mock the Modifier.DeleteForPN method
-func (mmDeleteForPN *mModifierMockDeleteForPN) Set(f func(pulse pulse.Number)) *ModifierMock {
-	if mmDeleteForPN.defaultExpectation != nil {
-		mmDeleteForPN.mock.t.Fatalf("Default expectation is already set for the Modifier.DeleteForPN method")
-	}
-
-	if len(mmDeleteForPN.expectations) > 0 {
-		mmDeleteForPN.mock.t.Fatalf("Some expectations are already set for the Modifier.DeleteForPN method")
-	}
-
-	mmDeleteForPN.mock.funcDeleteForPN = f
-	return mmDeleteForPN.mock
-}
-
-// DeleteForPN implements Modifier
-func (mmDeleteForPN *ModifierMock) DeleteForPN(pulse pulse.Number) {
-	mm_atomic.AddUint64(&mmDeleteForPN.beforeDeleteForPNCounter, 1)
-	defer mm_atomic.AddUint64(&mmDeleteForPN.afterDeleteForPNCounter, 1)
-
-	if mmDeleteForPN.inspectFuncDeleteForPN != nil {
-		mmDeleteForPN.inspectFuncDeleteForPN(pulse)
-	}
-
-	mm_params := &ModifierMockDeleteForPNParams{pulse}
-
-	// Record call args
-	mmDeleteForPN.DeleteForPNMock.mutex.Lock()
-	mmDeleteForPN.DeleteForPNMock.callArgs = append(mmDeleteForPN.DeleteForPNMock.callArgs, mm_params)
-	mmDeleteForPN.DeleteForPNMock.mutex.Unlock()
-
-	for _, e := range mmDeleteForPN.DeleteForPNMock.expectations {
-		if minimock.Equal(e.params, mm_params) {
-			mm_atomic.AddUint64(&e.Counter, 1)
-			return
-		}
-	}
-
-	if mmDeleteForPN.DeleteForPNMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmDeleteForPN.DeleteForPNMock.defaultExpectation.Counter, 1)
-		mm_want := mmDeleteForPN.DeleteForPNMock.defaultExpectation.params
-		mm_got := ModifierMockDeleteForPNParams{pulse}
-		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmDeleteForPN.t.Errorf("ModifierMock.DeleteForPN got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
-		}
-
-		return
-
-	}
-	if mmDeleteForPN.funcDeleteForPN != nil {
-		mmDeleteForPN.funcDeleteForPN(pulse)
-		return
-	}
-	mmDeleteForPN.t.Fatalf("Unexpected call to ModifierMock.DeleteForPN. %v", pulse)
-
-}
-
-// DeleteForPNAfterCounter returns a count of finished ModifierMock.DeleteForPN invocations
-func (mmDeleteForPN *ModifierMock) DeleteForPNAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmDeleteForPN.afterDeleteForPNCounter)
-}
-
-// DeleteForPNBeforeCounter returns a count of ModifierMock.DeleteForPN invocations
-func (mmDeleteForPN *ModifierMock) DeleteForPNBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmDeleteForPN.beforeDeleteForPNCounter)
-}
-
-// Calls returns a list of arguments used in each call to ModifierMock.DeleteForPN.
-// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmDeleteForPN *mModifierMockDeleteForPN) Calls() []*ModifierMockDeleteForPNParams {
-	mmDeleteForPN.mutex.RLock()
-
-	argCopy := make([]*ModifierMockDeleteForPNParams, len(mmDeleteForPN.callArgs))
-	copy(argCopy, mmDeleteForPN.callArgs)
-
-	mmDeleteForPN.mutex.RUnlock()
-
-	return argCopy
-}
-
-// MinimockDeleteForPNDone returns true if the count of the DeleteForPN invocations corresponds
-// the number of defined expectations
-func (m *ModifierMock) MinimockDeleteForPNDone() bool {
-	for _, e := range m.DeleteForPNMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.DeleteForPNMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterDeleteForPNCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcDeleteForPN != nil && mm_atomic.LoadUint64(&m.afterDeleteForPNCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockDeleteForPNInspect logs each unmet expectation
-func (m *ModifierMock) MinimockDeleteForPNInspect() {
-	for _, e := range m.DeleteForPNMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to ModifierMock.DeleteForPN with params: %#v", *e.params)
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.DeleteForPNMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterDeleteForPNCounter) < 1 {
-		if m.DeleteForPNMock.defaultExpectation.params == nil {
-			m.t.Error("Expected call to ModifierMock.DeleteForPN")
-		} else {
-			m.t.Errorf("Expected call to ModifierMock.DeleteForPN with params: %#v", *m.DeleteForPNMock.defaultExpectation.params)
-		}
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcDeleteForPN != nil && mm_atomic.LoadUint64(&m.afterDeleteForPNCounter) < 1 {
-		m.t.Error("Expected call to ModifierMock.DeleteForPN")
-	}
 }
 
 type mModifierMockSet struct {
@@ -452,8 +255,6 @@ func (m *ModifierMock) MinimockSetInspect() {
 // MinimockFinish checks that all mocked methods have been called the expected number of times
 func (m *ModifierMock) MinimockFinish() {
 	if !m.minimockDone() {
-		m.MinimockDeleteForPNInspect()
-
 		m.MinimockSetInspect()
 		m.t.FailNow()
 	}
@@ -478,6 +279,5 @@ func (m *ModifierMock) MinimockWait(timeout mm_time.Duration) {
 func (m *ModifierMock) minimockDone() bool {
 	done := true
 	return done &&
-		m.MinimockDeleteForPNDone() &&
 		m.MinimockSetDone()
 }

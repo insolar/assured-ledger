@@ -8,7 +8,6 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
@@ -17,12 +16,6 @@ import (
 // AccessorMock implements Accessor
 type AccessorMock struct {
 	t minimock.Tester
-
-	funcAll          func(pulse pulse.Number) (na1 []rms.Node, err error)
-	inspectFuncAll   func(pulse pulse.Number)
-	afterAllCounter  uint64
-	beforeAllCounter uint64
-	AllMock          mAccessorMockAll
 
 	funcInRole          func(pulse pulse.Number, role member.PrimaryRole) (na1 []rms.Node, err error)
 	inspectFuncInRole   func(pulse pulse.Number, role member.PrimaryRole)
@@ -38,229 +31,10 @@ func NewAccessorMock(t minimock.Tester) *AccessorMock {
 		controller.RegisterMocker(m)
 	}
 
-	m.AllMock = mAccessorMockAll{mock: m}
-	m.AllMock.callArgs = []*AccessorMockAllParams{}
-
 	m.InRoleMock = mAccessorMockInRole{mock: m}
 	m.InRoleMock.callArgs = []*AccessorMockInRoleParams{}
 
 	return m
-}
-
-type mAccessorMockAll struct {
-	mock               *AccessorMock
-	defaultExpectation *AccessorMockAllExpectation
-	expectations       []*AccessorMockAllExpectation
-
-	callArgs []*AccessorMockAllParams
-	mutex    sync.RWMutex
-}
-
-// AccessorMockAllExpectation specifies expectation struct of the Accessor.All
-type AccessorMockAllExpectation struct {
-	mock    *AccessorMock
-	params  *AccessorMockAllParams
-	results *AccessorMockAllResults
-	Counter uint64
-}
-
-// AccessorMockAllParams contains parameters of the Accessor.All
-type AccessorMockAllParams struct {
-	pulse pulse.Number
-}
-
-// AccessorMockAllResults contains results of the Accessor.All
-type AccessorMockAllResults struct {
-	na1 []rms.Node
-	err error
-}
-
-// Expect sets up expected params for Accessor.All
-func (mmAll *mAccessorMockAll) Expect(pulse pulse.Number) *mAccessorMockAll {
-	if mmAll.mock.funcAll != nil {
-		mmAll.mock.t.Fatalf("AccessorMock.All mock is already set by Set")
-	}
-
-	if mmAll.defaultExpectation == nil {
-		mmAll.defaultExpectation = &AccessorMockAllExpectation{}
-	}
-
-	mmAll.defaultExpectation.params = &AccessorMockAllParams{pulse}
-	for _, e := range mmAll.expectations {
-		if minimock.Equal(e.params, mmAll.defaultExpectation.params) {
-			mmAll.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmAll.defaultExpectation.params)
-		}
-	}
-
-	return mmAll
-}
-
-// Inspect accepts an inspector function that has same arguments as the Accessor.All
-func (mmAll *mAccessorMockAll) Inspect(f func(pulse pulse.Number)) *mAccessorMockAll {
-	if mmAll.mock.inspectFuncAll != nil {
-		mmAll.mock.t.Fatalf("Inspect function is already set for AccessorMock.All")
-	}
-
-	mmAll.mock.inspectFuncAll = f
-
-	return mmAll
-}
-
-// Return sets up results that will be returned by Accessor.All
-func (mmAll *mAccessorMockAll) Return(na1 []rms.Node, err error) *AccessorMock {
-	if mmAll.mock.funcAll != nil {
-		mmAll.mock.t.Fatalf("AccessorMock.All mock is already set by Set")
-	}
-
-	if mmAll.defaultExpectation == nil {
-		mmAll.defaultExpectation = &AccessorMockAllExpectation{mock: mmAll.mock}
-	}
-	mmAll.defaultExpectation.results = &AccessorMockAllResults{na1, err}
-	return mmAll.mock
-}
-
-//Set uses given function f to mock the Accessor.All method
-func (mmAll *mAccessorMockAll) Set(f func(pulse pulse.Number) (na1 []rms.Node, err error)) *AccessorMock {
-	if mmAll.defaultExpectation != nil {
-		mmAll.mock.t.Fatalf("Default expectation is already set for the Accessor.All method")
-	}
-
-	if len(mmAll.expectations) > 0 {
-		mmAll.mock.t.Fatalf("Some expectations are already set for the Accessor.All method")
-	}
-
-	mmAll.mock.funcAll = f
-	return mmAll.mock
-}
-
-// When sets expectation for the Accessor.All which will trigger the result defined by the following
-// Then helper
-func (mmAll *mAccessorMockAll) When(pulse pulse.Number) *AccessorMockAllExpectation {
-	if mmAll.mock.funcAll != nil {
-		mmAll.mock.t.Fatalf("AccessorMock.All mock is already set by Set")
-	}
-
-	expectation := &AccessorMockAllExpectation{
-		mock:   mmAll.mock,
-		params: &AccessorMockAllParams{pulse},
-	}
-	mmAll.expectations = append(mmAll.expectations, expectation)
-	return expectation
-}
-
-// Then sets up Accessor.All return parameters for the expectation previously defined by the When method
-func (e *AccessorMockAllExpectation) Then(na1 []rms.Node, err error) *AccessorMock {
-	e.results = &AccessorMockAllResults{na1, err}
-	return e.mock
-}
-
-// All implements Accessor
-func (mmAll *AccessorMock) All(pulse pulse.Number) (na1 []rms.Node, err error) {
-	mm_atomic.AddUint64(&mmAll.beforeAllCounter, 1)
-	defer mm_atomic.AddUint64(&mmAll.afterAllCounter, 1)
-
-	if mmAll.inspectFuncAll != nil {
-		mmAll.inspectFuncAll(pulse)
-	}
-
-	mm_params := &AccessorMockAllParams{pulse}
-
-	// Record call args
-	mmAll.AllMock.mutex.Lock()
-	mmAll.AllMock.callArgs = append(mmAll.AllMock.callArgs, mm_params)
-	mmAll.AllMock.mutex.Unlock()
-
-	for _, e := range mmAll.AllMock.expectations {
-		if minimock.Equal(e.params, mm_params) {
-			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.na1, e.results.err
-		}
-	}
-
-	if mmAll.AllMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmAll.AllMock.defaultExpectation.Counter, 1)
-		mm_want := mmAll.AllMock.defaultExpectation.params
-		mm_got := AccessorMockAllParams{pulse}
-		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmAll.t.Errorf("AccessorMock.All got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
-		}
-
-		mm_results := mmAll.AllMock.defaultExpectation.results
-		if mm_results == nil {
-			mmAll.t.Fatal("No results are set for the AccessorMock.All")
-		}
-		return (*mm_results).na1, (*mm_results).err
-	}
-	if mmAll.funcAll != nil {
-		return mmAll.funcAll(pulse)
-	}
-	mmAll.t.Fatalf("Unexpected call to AccessorMock.All. %v", pulse)
-	return
-}
-
-// AllAfterCounter returns a count of finished AccessorMock.All invocations
-func (mmAll *AccessorMock) AllAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmAll.afterAllCounter)
-}
-
-// AllBeforeCounter returns a count of AccessorMock.All invocations
-func (mmAll *AccessorMock) AllBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmAll.beforeAllCounter)
-}
-
-// Calls returns a list of arguments used in each call to AccessorMock.All.
-// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmAll *mAccessorMockAll) Calls() []*AccessorMockAllParams {
-	mmAll.mutex.RLock()
-
-	argCopy := make([]*AccessorMockAllParams, len(mmAll.callArgs))
-	copy(argCopy, mmAll.callArgs)
-
-	mmAll.mutex.RUnlock()
-
-	return argCopy
-}
-
-// MinimockAllDone returns true if the count of the All invocations corresponds
-// the number of defined expectations
-func (m *AccessorMock) MinimockAllDone() bool {
-	for _, e := range m.AllMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.AllMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterAllCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcAll != nil && mm_atomic.LoadUint64(&m.afterAllCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockAllInspect logs each unmet expectation
-func (m *AccessorMock) MinimockAllInspect() {
-	for _, e := range m.AllMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to AccessorMock.All with params: %#v", *e.params)
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.AllMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterAllCounter) < 1 {
-		if m.AllMock.defaultExpectation.params == nil {
-			m.t.Error("Expected call to AccessorMock.All")
-		} else {
-			m.t.Errorf("Expected call to AccessorMock.All with params: %#v", *m.AllMock.defaultExpectation.params)
-		}
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcAll != nil && mm_atomic.LoadUint64(&m.afterAllCounter) < 1 {
-		m.t.Error("Expected call to AccessorMock.All")
-	}
 }
 
 type mAccessorMockInRole struct {
@@ -483,8 +257,6 @@ func (m *AccessorMock) MinimockInRoleInspect() {
 // MinimockFinish checks that all mocked methods have been called the expected number of times
 func (m *AccessorMock) MinimockFinish() {
 	if !m.minimockDone() {
-		m.MinimockAllInspect()
-
 		m.MinimockInRoleInspect()
 		m.t.FailNow()
 	}
@@ -509,6 +281,5 @@ func (m *AccessorMock) MinimockWait(timeout mm_time.Duration) {
 func (m *AccessorMock) minimockDone() bool {
 	done := true
 	return done &&
-		m.MinimockAllDone() &&
 		m.MinimockInRoleDone()
 }
