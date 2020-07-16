@@ -65,69 +65,77 @@ var messagesWithoutToken = []struct {
 }
 
 func TestSender_SuccessChecks(t *testing.T) {
-	t.Log("C5188")
-	for _, testMsg := range messagesWithoutToken {
-		t.Run(testMsg.name, func(t *testing.T) {
-			// sender equal expectedVE
-			for _, s := range []bool{true, false} {
+	testCases := []struct {
+		caseId                  string
+		senderIsEqualExpectedVE bool
+	}{
+		{"C5188", true},
+		{"C5196", false},
+	}
 
-				mc := minimock.NewController(t)
+	for _, cases := range testCases {
+		t.Run(cases.caseId, func(t *testing.T) {
+			t.Log(cases.caseId)
+			for _, testMsg := range messagesWithoutToken {
+				t.Run(testMsg.name, func(t *testing.T) {
 
-				server, ctx := utils.NewUninitializedServerWithErrorFilter(nil, t, func(s string) bool {
-					return false
-				})
+					mc := minimock.NewController(t)
 
-				jetCoordinatorMock := jet.NewAffinityHelperMock(mc)
-				auth := authentication.NewService(ctx, jetCoordinatorMock)
-				server.ReplaceAuthenticationService(auth)
+					server, ctx := utils.NewUninitializedServerWithErrorFilter(nil, t, func(s string) bool {
+						return false
+					})
 
-				var errorFound bool
-				{
-					logHandler := func(arg interface{}) {
-						err, ok := arg.(error)
-						if !ok {
-							return
-						}
-						errMsg := err.Error()
-						if strings.Contains(errMsg, "unexpected sender") &&
-							strings.Contains(errMsg, "illegitimate msg") {
+					jetCoordinatorMock := jet.NewAffinityHelperMock(mc)
+					auth := authentication.NewService(ctx, jetCoordinatorMock)
+					server.ReplaceAuthenticationService(auth)
+
+					var errorFound bool
+					{
+						logHandler := func(arg interface{}) {
+							err, ok := arg.(error)
+							if !ok {
+								return
+							}
+							errMsg := err.Error()
+							if strings.Contains(errMsg, "unexpected sender") &&
+								strings.Contains(errMsg, "illegitimate msg") {
+								errorFound = true
+							}
 							errorFound = true
 						}
-						errorFound = true
+						logger := utils.InterceptLog(inslogger.FromContext(ctx), logHandler)
+						server.OverrideConveyorFactoryLogContext(inslogger.SetLogger(ctx, logger))
 					}
-					logger := utils.InterceptLog(inslogger.FromContext(ctx), logHandler)
-					server.OverrideConveyorFactoryLogContext(inslogger.SetLogger(ctx, logger))
-				}
 
-				server.Init(ctx)
-				server.IncrementPulseAndWaitIdle(ctx)
+					server.Init(ctx)
+					server.IncrementPulseAndWaitIdle(ctx)
 
-				if testMsg.name != "VFindCallResponse" {
-					jetCoordinatorMock.QueryRoleMock.Set(func(_ context.Context, _ node.DynamicRole, _ reference.Local, _ pulse.Number) (_ []reference.Global, _ error) {
-						if s {
-							return []reference.Global{server.GlobalCaller()}, nil
-						}
-						return []reference.Global{server.RandomGlobalWithPulse()}, nil
-					})
-				}
+					if testMsg.name != "VFindCallResponse" {
+						jetCoordinatorMock.QueryRoleMock.Set(func(_ context.Context, _ node.DynamicRole, _ reference.Local, _ pulse.Number) (_ []reference.Global, _ error) {
+							if cases.senderIsEqualExpectedVE {
+								return []reference.Global{server.GlobalCaller()}, nil
+							}
+							return []reference.Global{server.RandomGlobalWithPulse()}, nil
+						})
+					}
 
-				reflect.ValueOf(testMsg.msg).MethodByName("Reset").Call([]reflect.Value{})
+					reflect.ValueOf(testMsg.msg).MethodByName("Reset").Call([]reflect.Value{})
 
-				msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, testMsg.msg.(payload.Marshaler)).SetSender(server.GlobalCaller()).Finalize()
-				server.SendMessage(ctx, msg)
+					msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, testMsg.msg.(payload.Marshaler)).SetSender(server.GlobalCaller()).Finalize()
+					server.SendMessage(ctx, msg)
 
-				server.WaitIdleConveyor()
+					server.WaitIdleConveyor()
 
-				if s || testMsg.name == "VFindCallResponse" {
-					assert.False(t, errorFound, "Fail "+testMsg.name)
-				} else {
-					assert.True(t, errorFound, "Fail "+testMsg.name)
-				}
+					if cases.senderIsEqualExpectedVE || testMsg.name == "VFindCallResponse" {
+						assert.False(t, errorFound, "Fail "+testMsg.name)
+					} else {
+						assert.True(t, errorFound, "Fail "+testMsg.name)
+					}
 
-				server.Stop()
-				mc.Finish()
+					server.Stop()
+					mc.Finish()
+				})
 			}
 		})
-
 	}
 }
