@@ -31,6 +31,8 @@ import (
 )
 
 func TestVDelegatedCallRequest(t *testing.T) {
+	defer executeLeakCheck(t)
+
 	var (
 		mc  = minimock.NewController(t)
 		ctx = instestlogger.TestContext(t)

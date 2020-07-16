@@ -16,6 +16,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
@@ -82,6 +83,8 @@ func Method_PrepareObject(ctx context.Context, server *utils.Server, state paylo
 }
 
 func TestVirtual_BadMethod_WithExecutor(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	t.Log("C4976")
 
 	mc := minimock.NewController(t)
@@ -138,6 +141,8 @@ func TestVirtual_BadMethod_WithExecutor(t *testing.T) {
 }
 
 func TestVirtual_Method_WithExecutor(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	t.Log("C5088")
 
 	var (
@@ -182,6 +187,8 @@ func TestVirtual_Method_WithExecutor(t *testing.T) {
 }
 
 func TestVirtual_Method_WithExecutor_ObjectIsNotExist(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	t.Log("C4974")
 
 	mc := minimock.NewController(t)
@@ -243,6 +250,8 @@ func TestVirtual_Method_WithExecutor_ObjectIsNotExist(t *testing.T) {
 }
 
 func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	t.Log("C5094")
 
 	mc := minimock.NewController(t)
@@ -345,6 +354,8 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 }
 
 func TestVirtual_Method_WithoutExecutor_Ordered(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	t.Log("C5093")
 
 	mc := minimock.NewController(t)
@@ -396,16 +407,16 @@ func TestVirtual_Method_WithoutExecutor_Ordered(t *testing.T) {
 			key := callOutgoing.String()
 			runnerMock.AddExecutionMock(key).
 				AddStart(func(ctx execution.Context) {
-					cntr ++
-					for k := 0; k < 5; k ++ {
+					cntr++
+					for k := 0; k < 5; k++ {
 						require.Equal(t, 1, cntr)
 						time.Sleep(3 * time.Millisecond)
 					}
-					cntr --
-			}, &execution.Update{
-				Type:   execution.Done,
-				Result: result,
-			})
+					cntr--
+				}, &execution.Update{
+					Type:   execution.Done,
+					Result: result,
+				})
 			runnerMock.AddExecutionClassify(key, contract.MethodIsolation{
 				Interference: interferenceFlag,
 				State:        stateFlag,
@@ -422,6 +433,8 @@ func TestVirtual_Method_WithoutExecutor_Ordered(t *testing.T) {
 }
 
 func TestVirtual_CallMethodAfterPulseChange(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	t.Log("C4870")
 
 	mc := minimock.NewController(t)
@@ -459,6 +472,8 @@ func TestVirtual_CallMethodAfterPulseChange(t *testing.T) {
 }
 
 func TestVirtual_CallMethodAfterMultiplePulseChanges(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	t.Log("C4918")
 
 	mc := minimock.NewController(t)
@@ -516,6 +531,7 @@ func TestVirtual_CallContractFromContract_InterferenceViolation(t *testing.T) {
 	}
 	for _, test := range table {
 		t.Run(test.name, func(t *testing.T) {
+			defer commontestutils.LeakTester(t)
 
 			mc := minimock.NewController(t)
 
@@ -623,6 +639,8 @@ func TestVirtual_CallContractFromContract_InterferenceViolation(t *testing.T) {
 
 // A.Foo calls ordered B1.Bar, B2.Bar, B3.Bar
 func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	t.Log("C5114")
 
 	mc := minimock.NewController(t)
@@ -862,6 +880,8 @@ func TestVirtual_Method_Have_ObjectState(t *testing.T) {
 	}
 	for _, test := range table {
 		t.Run(test.name, func(t *testing.T) {
+			defer commontestutils.LeakTester(t)
+
 			t.Log(test.code)
 			if len(test.skip) > 0 {
 				t.Skip(test.skip)
@@ -984,6 +1004,8 @@ func TestVirtual_Method_Have_ObjectState(t *testing.T) {
 
 // twice ( A.Foo -> B.Bar, B.Bar )
 func TestVirtual_CallContractTwoTimes(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	t.Log("C5183")
 
 	mc := minimock.NewController(t)
@@ -1157,6 +1179,8 @@ func TestVirtual_CallContractTwoTimes(t *testing.T) {
 }
 
 func Test_CallMethodWithBadIsolationFlags(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	t.Log("C4979")
 
 	mc := minimock.NewController(t)
@@ -1225,6 +1249,8 @@ func Test_CallMethodWithBadIsolationFlags(t *testing.T) {
 }
 
 func TestVirtual_FutureMessageAddedToSlot(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	t.Log("C5318")
 
 	mc := minimock.NewController(t)
@@ -1321,6 +1347,8 @@ func TestVirtual_FutureMessageAddedToSlot(t *testing.T) {
 }
 
 func Test_MethodCall_HappyPath(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	t.Log("C5089")
 	mc := minimock.NewController(t)
 
@@ -1449,6 +1477,8 @@ func TestVirtual_Method_ForObjectWithMissingState(t *testing.T) {
 	}
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
+			defer commontestutils.LeakTester(t)
+
 			t.Log(testCase.testRailID)
 			mc := minimock.NewController(t)
 

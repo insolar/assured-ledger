@@ -26,6 +26,8 @@ import (
 )
 
 func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
+	defer executeLeakCheck(t)
+
 	var (
 		mc  = minimock.NewController(t)
 		ctx = instestlogger.TestContext(t)
@@ -98,6 +100,8 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 }
 
 func TestSMExecute_MigrateBeforeLock(t *testing.T) {
+	defer executeLeakCheck(t)
+
 	var (
 		mc  = minimock.NewController(t)
 		ctx = instestlogger.TestContext(t)
@@ -173,6 +177,8 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 }
 
 func TestSMExecute_MigrateAfterLock(t *testing.T) {
+	defer executeLeakCheck(t)
+
 	var (
 		mc  = minimock.NewController(t)
 		ctx = instestlogger.TestContext(t)
@@ -247,6 +253,8 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 }
 
 func TestSMExecute_Semi_ConstructorOnMissingObject(t *testing.T) {
+	defer executeLeakCheck(t)
+
 	var (
 		mc  = minimock.NewController(t)
 		ctx = instestlogger.TestContext(t)
@@ -322,6 +330,8 @@ func TestSMExecute_Semi_ConstructorOnMissingObject(t *testing.T) {
 }
 
 func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
+	defer executeLeakCheck(t)
+
 	var (
 		mc  = minimock.NewController(t)
 		ctx = instestlogger.TestContext(t)
@@ -397,6 +407,8 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 }
 
 func TestSMExecute_Semi_MethodOnEmptyObject(t *testing.T) {
+	defer executeLeakCheck(t)
+
 	var (
 		mc  = minimock.NewController(t)
 		ctx = instestlogger.TestContext(t)
