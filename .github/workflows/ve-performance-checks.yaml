@@ -24,6 +24,7 @@ jobs:
       - name: build test
         working-directory: ${{ env.CORE_PATH }}
         run: |
+          export GOSUMDB=off
           cd load
           go build cmd/load/main.go
       - name: Set up go ${{ env.GO_VERSION }}
