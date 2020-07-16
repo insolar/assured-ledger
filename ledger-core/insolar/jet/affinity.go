@@ -26,7 +26,6 @@ type AffinityCoordinator struct {
 	PlatformCryptographyScheme cryptography.PlatformCryptographyScheme `inject:""`
 
 	PulseAccessor   appctl.Accessor      `inject:""`
-	PulseCalculator pulsestor.Calculator `inject:""`
 
 	Nodes nodestorage.Accessor `inject:""`
 
@@ -77,45 +76,6 @@ func (jc *AffinityCoordinator) VirtualExecutorForObject(
 		return reference.Global{}, err
 	}
 	return nodes[0], nil
-}
-
-// IsBeyondLimit calculates if target pulse is behind clean-up limit
-// or if currentPN|targetPN didn't found in in-memory pulse-storage.
-func (jc *AffinityCoordinator) IsBeyondLimit(ctx context.Context, targetPN pulse.Number) (bool, error) {
-	// Genesis case. When there is no any data on a lme
-	if targetPN <= pulsestor.GenesisPulse.PulseNumber {
-		return true, nil
-	}
-
-	latest, err := jc.PulseAccessor.Latest(ctx)
-	if err != nil {
-		return false, throw.W(err, "failed to fetch pulse")
-	}
-
-	// Out target on the latest pulse. It's within limit.
-	if latest.PulseNumber <= targetPN {
-		return false, nil
-	}
-
-	iter := latest.PulseNumber
-	for i := 1; i <= jc.lightChainLimit; i++ {
-		stepBack, err := jc.PulseCalculator.Backwards(ctx, latest.PulseNumber, i)
-		// We could not reach our target and ran out of known pulses. It means it's beyond limit.
-		if err == pulsestor.ErrNotFound {
-			return true, nil
-		}
-		if err != nil {
-			return false, throw.W(err, "failed to calculate pulse")
-		}
-		// We reached our target. It's within limit.
-		if iter <= targetPN {
-			return false, nil
-		}
-
-		iter = stepBack.PulseNumber
-	}
-	// We iterated limit back. It means our data is further back and beyond limit.
-	return true, nil
 }
 
 func (jc *AffinityCoordinator) virtualsForObject(
