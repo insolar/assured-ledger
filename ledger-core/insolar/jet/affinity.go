@@ -11,6 +11,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/appctl"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -70,7 +71,12 @@ func (jc *AffinityCoordinator) VirtualExecutorForObject(
 	role := pc.Online.GetRolePopulation(member.PrimaryRoleVirtual)
 	if role == nil {
 		return reference.Global{}, throw.E("role without nodes", struct {
-			member.PrimaryRole	}{ member.PrimaryRoleVirtual })
+			member.PrimaryRole
+			census.OnlinePopulation
+		} {
+			member.PrimaryRoleVirtual,
+			pc.Online,
+		})
 	}
 
 	base := objID.GetBase()
@@ -82,7 +88,12 @@ func (jc *AffinityCoordinator) VirtualExecutorForObject(
 	assigned, _ := role.GetAssignmentByCount(metric, 0)
 	if assigned == nil {
 		return reference.Global{}, throw.E("unable to assign node of role", struct {
-			member.PrimaryRole	}{ member.PrimaryRoleVirtual })
+			member.PrimaryRole
+			census.OnlinePopulation
+		}{
+			member.PrimaryRoleVirtual,
+			pc.Online,
+		})
 	}
 	ref := assigned.GetStatic().GetExtension().GetReference()
 
