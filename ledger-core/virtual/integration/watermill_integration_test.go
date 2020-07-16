@@ -24,6 +24,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/logwatermill"
 	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/statemachine"
 )
@@ -71,6 +72,8 @@ func (w *WatermillLogAdapterWrapper) Error(msg string, err error, fields watermi
 }
 
 func TestWatermill_HandleErrorCorrect(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	const errorMsg = "handler error"
 	watermillErrorHandler := func(logger *logwatermill.WatermillLogAdapter, msg string, err error, fields watermill.LogFields) bool {
 		if err.Error() == errorMsg {
@@ -101,6 +104,8 @@ func TestWatermill_HandleErrorCorrect(t *testing.T) {
 }
 
 func TestWatermill_HandlePanicCorrect(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	const panicMsg = "handler panic"
 	watermillErrorHandler := func(logger *logwatermill.WatermillLogAdapter, msg string, err error, fields watermill.LogFields) bool {
 		if err.Error() == panicMsg {

@@ -28,6 +28,8 @@ import (
 )
 
 func TestSMExecute_PublishVCallResultToCallSummarySM(t *testing.T) {
+	defer executeLeakCheck(t)
+
 	var (
 		ctx = instestlogger.TestContext(t)
 		mc  = minimock.NewController(t)

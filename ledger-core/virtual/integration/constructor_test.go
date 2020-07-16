@@ -24,6 +24,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
+	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/predicate"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
@@ -37,6 +38,7 @@ import (
 )
 
 func TestVirtual_Constructor_WithExecutor(t *testing.T) {
+	defer commontestutils.LeakTester(t)
 	t.Log("C5180")
 
 	var (
@@ -87,6 +89,7 @@ func TestVirtual_Constructor_WithExecutor(t *testing.T) {
 }
 
 func TestVirtual_Constructor_BadClassRef(t *testing.T) {
+	defer commontestutils.LeakTester(t)
 	t.Log("C5030")
 
 	var (
@@ -159,6 +162,7 @@ func TestVirtual_Constructor_BadClassRef(t *testing.T) {
 }
 
 func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
+	defer commontestutils.LeakTester(t)
 	t.Log("C4995")
 
 	var (
@@ -250,6 +254,7 @@ func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
 }
 
 func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
+	defer commontestutils.LeakTester(t)
 	t.Log("C4996")
 
 	// VE has object's state record with Status==Missing
@@ -351,6 +356,7 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 }
 
 func TestVirtual_Constructor_PrevPulseStateWithMissingStatus(t *testing.T) {
+	defer commontestutils.LeakTester(t)
 	// Constructor call with outgoing.Pulse < currentPulse
 	// state request, state report{Status: Missing}
 	t.Log("C4997")
@@ -470,6 +476,7 @@ func TestVirtual_Constructor_PrevPulseStateWithMissingStatus(t *testing.T) {
 
 // A.New calls B.New
 func TestVirtual_CallConstructorFromConstructor(t *testing.T) {
+	defer commontestutils.LeakTester(t)
 	t.Log("C5090")
 
 	mc := minimock.NewController(t)
@@ -600,6 +607,7 @@ func TestVirtual_CallConstructorFromConstructor(t *testing.T) {
 }
 
 func TestVirtual_Constructor_WrongConstructorName(t *testing.T) {
+	defer commontestutils.LeakTester(t)
 	t.Log("C4977")
 
 	var (
@@ -650,6 +658,7 @@ func TestVirtual_Constructor_WrongConstructorName(t *testing.T) {
 }
 
 func TestVirtual_Constructor_PulseChangedWhileOutgoing(t *testing.T) {
+	defer commontestutils.LeakTester(t)
 	t.Log("C5085")
 
 	mc := minimock.NewController(t)
@@ -977,6 +986,7 @@ func TestVirtual_CallConstructor_WithTwicePulseChange(t *testing.T) {
 }
 
 func TestVirtual_Constructor_IsolationNegotiation(t *testing.T) {
+	defer commontestutils.LeakTester(t)
 	t.Log("C5031")
 	table := []struct {
 		name      string

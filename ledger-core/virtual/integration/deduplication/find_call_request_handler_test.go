@@ -15,6 +15,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
+	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/synchronization"
@@ -150,6 +151,8 @@ func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
 
 	for _, test := range table {
 		t.Run(test.name, func(t *testing.T) {
+			defer commontestutils.LeakTester(t)
+
 			suite := &VFindCallRequestHandlingSuite{}
 
 			ctx := suite.initServer(t)
