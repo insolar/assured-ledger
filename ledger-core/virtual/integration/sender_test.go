@@ -6,6 +6,7 @@
 package integration
 
 import (
+	"context"
 	"reflect"
 	"strings"
 	"testing"
@@ -14,8 +15,10 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
@@ -74,63 +77,77 @@ func TestSender_SuccessChecks(t *testing.T) {
 	t.Log("C5188")
 	for _, testMsg := range messagesWithoutToken {
 		t.Run(testMsg.name, func(t *testing.T) {
+			trueSender := []bool{true, false}
+			for _, s := range trueSender {
 
-			mc := minimock.NewController(t)
+				mc := minimock.NewController(t)
 
-			server, ctx := utils.NewUninitializedServerWithErrorFilter(nil, t, func(s string) bool {
-				return false
-			})
+				server, ctx := utils.NewUninitializedServerWithErrorFilter(nil, t, func(s string) bool {
+					return false
+				})
 
-			jetCoordinatorMock := jet.NewAffinityHelperMock(mc)
-			auth := authentication.NewService(ctx, jetCoordinatorMock)
-			server.ReplaceAuthenticationService(auth)
+				jetCoordinatorMock := jet.NewAffinityHelperMock(mc)
+				auth := authentication.NewService(ctx, jetCoordinatorMock)
+				server.ReplaceAuthenticationService(auth)
 
-			var errorFound bool
-			{
-				logHandler := func(arg interface{}) {
-					err, ok := arg.(error)
-					if !ok {
-						return
-					}
-					errMsg := err.Error()
-					if strings.Contains(errMsg, "unexpected sender") ||
-						strings.Contains(errMsg, "illegitimate msg") ||
-						strings.Contains(errMsg, "rejected msg") {
+				var errorFound bool
+				{
+					logHandler := func(arg interface{}) {
+						err, ok := arg.(error)
+						if !ok {
+							return
+						}
+						errMsg := err.Error()
+						if strings.Contains(errMsg, "unexpected sender") &&
+							strings.Contains(errMsg, "illegitimate msg") {
+							errorFound = true
+						}
 						errorFound = true
 					}
-					errorFound = true
+					logger := utils.InterceptLog(inslogger.FromContext(ctx), logHandler)
+					server.OverrideConveyorFactoryLogContext(inslogger.SetLogger(ctx, logger))
 				}
-				logger := utils.InterceptLog(inslogger.FromContext(ctx), logHandler)
-				server.OverrideConveyorFactoryLogContext(inslogger.SetLogger(ctx, logger))
+
+				server.Init(ctx)
+				server.IncrementPulseAndWaitIdle(ctx)
+
+				// for sendFrom == P
+				sender := server.RandomGlobalWithPulse()
+				msgPulse := server.GetPulse().PulseNumber
+
+				if testMsg.name != "VFindCallResponse" {
+					jetCoordinatorMock.QueryRoleMock.Set(func(ctx context.Context, role node.DynamicRole, obj reference.Local, pulse pulse.Number) (ga1 []reference.Global, err error) {
+						if s {
+							return []reference.Global{server.GlobalCaller()}, nil
+						}
+						return []reference.Global{sender}, nil
+					})
+				}
+
+				if testMsg.sendFrom == "P-1" {
+					server.IncrementPulse(ctx)
+				} else if testMsg.sendFrom == "P-N" {
+					server.IncrementPulse(ctx)
+					server.IncrementPulse(ctx)
+					server.IncrementPulse(ctx)
+				}
+
+				reflect.ValueOf(testMsg.msg).MethodByName("Reset").Call([]reflect.Value{})
+
+				msg := utils.NewRequestWrapper(msgPulse, testMsg.msg.(payload.Marshaler)).SetSender(server.GlobalCaller()).Finalize()
+				server.SendMessage(ctx, msg)
+
+				server.WaitActiveThenIdleConveyor()
+
+				if s {
+					assert.False(t, errorFound, "Fail "+testMsg.name)
+				} else {
+					assert.True(t, errorFound, "Fail "+testMsg.name)
+				}
+
+				server.Stop()
+				mc.Finish()
 			}
-
-			server.Init(ctx)
-			server.IncrementPulseAndWaitIdle(ctx)
-
-			// for sendFrom == P
-			sender := server.RandomGlobalWithPulse()
-			msgPulse := server.GetPulse().PulseNumber
-			jetCoordinatorMock.QueryRoleMock.Return([]reference.Global{sender}, nil)
-
-			if testMsg.sendFrom == "P-1" {
-				server.IncrementPulse(ctx)
-			} else if testMsg.sendFrom == "P-N" {
-				server.IncrementPulse(ctx)
-				server.IncrementPulse(ctx)
-				server.IncrementPulse(ctx)
-			}
-
-			reflect.ValueOf(testMsg.msg).MethodByName("Reset").Call([]reflect.Value{})
-
-			msg := utils.NewRequestWrapper(msgPulse, testMsg.msg.(payload.Marshaler)).SetSender(sender).Finalize()
-			server.SendMessage(ctx, msg)
-
-			server.WaitActiveThenIdleConveyor()
-
-			assert.False(t, errorFound, "Fail "+testMsg.name)
-
-			server.Stop()
-			mc.Finish()
 		})
 
 	}
