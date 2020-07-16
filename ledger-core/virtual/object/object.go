@@ -282,7 +282,13 @@ func (sm *SMObject) stepSendStateRequest(ctx smachine.ExecutionContext) smachine
 	flags := payload.StateRequestContentFlags(0)
 	flags.Set(payload.RequestLatestDirtyState, payload.RequestLatestValidatedState,
 		payload.RequestOrderedQueue, payload.RequestUnorderedQueue)
-	prevPulse := sm.pulseSlot.PulseData().PrevPulseNumber()
+
+	prevPulse := sm.pulseSlot.PrevOperationPulseNumber()
+	if prevPulse.IsUnknown() {
+		// unable to identify exact prev pulse
+		panic(throw.NotImplemented())
+	}
+
 	msg := payload.VStateRequest{
 		AsOf:             prevPulse,
 		Object:           sm.Reference,
@@ -376,7 +382,9 @@ func (sm *SMObject) migrate(ctx smachine.MigrationContext) smachine.StateUpdate 
 	sm.checkPendingCounters(ctx.Log())
 	sm.smFinalizer.Report = sm.BuildStateReport()
 	if sm.Descriptor() != nil {
-		sm.smFinalizer.Report.ProvidedContent.LatestDirtyState = sm.BuildLatestDirtyState()
+		state := sm.BuildLatestDirtyState()
+		sm.smFinalizer.Report.ProvidedContent.LatestDirtyState = state
+		sm.smFinalizer.Report.ProvidedContent.LatestValidatedState = state
 	}
 
 	if err := sm.sharedAndPublishStateReport(ctx, &sm.smFinalizer.Report); err != nil {

@@ -6,7 +6,6 @@
 package object
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -14,7 +13,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
 )
 
 func TestInfo_GetEarliestPulse(t *testing.T) {
@@ -74,6 +75,8 @@ func TestInfo_GetEarliestPulse(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
+			defer commontestutils.LeakTester(t)
+
 			info := Info{
 				PendingTable:  callregistry.NewRequestTable(),
 				KnownRequests: callregistry.NewWorkingTable(),
