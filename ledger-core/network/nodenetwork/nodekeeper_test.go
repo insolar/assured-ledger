@@ -54,7 +54,7 @@ func newNodeKeeper(t *testing.T, service cryptography.Service) network.NodeKeepe
 		service = platformpolicy.NewKeyBoundCryptographyService(secret)
 	}
 	require.NoError(t, err)
-	certMock.GetRoleMock.Set(func() member.PrimaryRole { return member.PrimaryRoleUnknown })
+	certMock.GetRoleMock.Set(func() member.PrimaryRole { return member.PrimaryRoleVirtual })
 	certMock.GetPublicKeyMock.Set(func() crypto.PublicKey { return pk })
 	certMock.GetNodeRefMock.Set(func() reference.Global { ref := gen.UniqueGlobalRef(); return ref })
 	certMock.GetDiscoveryNodesMock.Set(func() []nodeinfo.DiscoveryNode { return nil })

@@ -8,6 +8,7 @@ package utils
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/ThreeDotsLabs/watermill/message"
 
@@ -24,8 +25,13 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor/memstor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/censusimpl"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner"
 	"github.com/insolar/assured-ledger/ledger-core/runner/machine"
@@ -33,6 +39,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/journal"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/network"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual"
@@ -154,8 +161,9 @@ func newServerExt(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFi
 
 	s.pulseManager = PulseManager
 	s.pulseStorage = Pulses
-	s.pulseGenerator = testutils.NewPulseGenerator(10, nil)
-	s.incrementPulse(ctx)
+	censusMock := createCensusMock(t, s.caller)
+	s.pulseGenerator = testutils.NewPulseGenerator(10, censusMock)
+	s.incrementPulse()
 
 	s.JetCoordinatorMock = jet.NewAffinityHelperMock(t).
 		MeMock.Return(s.caller).
@@ -205,6 +213,35 @@ func newServerExt(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFi
 	return &s, ctx
 }
 
+func createCensusMock(t Tester, localRef reference.Global) census.Operational {
+	localNode := node.ShortNodeID(10)
+	cp := profiles.NewCandidateProfileMock(t)
+	cp.GetBriefIntroSignedDigestMock.Return(cryptkit.SignedDigest{})
+	cp.GetDefaultEndpointMock.Return(adapters.NewOutbound("127.0.0.1:1"))
+	cp.GetExtraEndpointsMock.Return(nil)
+	cp.GetIssuedAtPulseMock.Return(pulse.MinTimePulse)
+	cp.GetIssuedAtTimeMock.Return(time.Now())
+	cp.GetIssuerIDMock.Return(localNode)
+	cp.GetIssuerSignatureMock.Return(cryptkit.Signature{})
+	cp.GetNodePublicKeyMock.Return(cryptkit.NewSignatureKeyHolderMock(t))
+	cp.GetPowerLevelsMock.Return(member.PowerSet{0, 0, 0, 1})
+	cp.GetPrimaryRoleMock.Return(member.PrimaryRoleVirtual)
+	cp.GetReferenceMock.Return(localRef)
+	cp.GetSpecialRolesMock.Return(0)
+	cp.GetStartPowerMock.Return(1)
+	cp.GetStaticNodeIDMock.Return(localNode)
+
+	svf := cryptkit.NewSignatureVerifierFactoryMock(t)
+	svf.CreateSignatureVerifierWithPKSMock.Return(nil)
+
+	np := profiles.NewStaticProfileByFull(cp, nil)
+	op := censusimpl.NewManyNodePopulation([]profiles.StaticProfile{np}, localNode, svf)
+
+	cs := census.NewActiveMock(t)
+	cs.GetOnlinePopulationMock.Return(&op)
+	return cs
+}
+
 func (s *Server) Init(ctx context.Context) {
 	if err := s.virtual.Init(ctx); err != nil {
 		panic(err)
@@ -230,7 +267,7 @@ func (s *Server) GetPrevPulse() appctl.PulseChange {
 	return s.pulseGenerator.GetPrevPulseAsPulse()
 }
 
-func (s *Server) incrementPulse(context.Context) {
+func (s *Server) incrementPulse() {
 	s.pulseGenerator.Generate()
 
 	if err := s.pulseManager.CommitPulseChange(s.GetPulse()); err != nil {
@@ -238,11 +275,11 @@ func (s *Server) incrementPulse(context.Context) {
 	}
 }
 
-func (s *Server) IncrementPulse(ctx context.Context) {
+func (s *Server) IncrementPulse(context.Context) {
 	s.pulseLock.Lock()
 	defer s.pulseLock.Unlock()
 
-	s.incrementPulse(ctx)
+	s.incrementPulse()
 }
 
 func (s *Server) IncrementPulseAndWaitIdle(ctx context.Context) {

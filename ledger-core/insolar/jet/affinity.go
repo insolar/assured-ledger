@@ -28,7 +28,6 @@ type AffinityCoordinator struct {
 	PlatformCryptographyScheme cryptography.PlatformCryptographyScheme `inject:""`
 
 	PulseAccessor   appctl.Accessor      `inject:""`
-
 	Nodes nodestorage.Accessor `inject:""`
 
 	lightChainLimit int
