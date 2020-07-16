@@ -88,3 +88,22 @@ func unmarshalWalletTransferResponse(resp []byte) (walletTransferResponse, error
 	}
 	return result, nil
 }
+
+// nolint:unused,deadcode
+type walletDeleteRequestBody struct {
+	Ref string `json:"walletRef"`
+}
+
+// nolint:unused,deadcode
+type walletDeleteResponse struct {
+	Err     string `json:"error"`
+	TraceID string `json:"traceID"`
+}
+
+func unmarshalWalletDeleteResponse(resp []byte) (walletDeleteResponse, error) { // nolint:unused,deadcode
+	result := walletDeleteResponse{}
+	if err := json.Unmarshal(resp, &result); err != nil {
+		return walletDeleteResponse{}, errors.W(err, "problem with unmarshaling response")
+	}
+	return result, nil
+}
