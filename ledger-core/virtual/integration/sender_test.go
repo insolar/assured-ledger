@@ -13,58 +13,60 @@ import (
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/reference"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 )
 
 var messagesWithoutToken = []struct {
-	name  string
-	msg   interface{}
-	pulse []string
+	name        string
+	msg         interface{}
+	validPulses []string
 }{
 	{
-		name:  "VCallRequest",
-		msg:   &payload.VCallRequest{},
-		pulse: []string{"P"},
+		name:        "VCallRequest",
+		msg:         &payload.VCallRequest{},
+		validPulses: []string{"P"},
 	},
 	{
-		name:  "VCallResult",
-		msg:   &payload.VCallResult{},
-		pulse: []string{"P"},
+		name:        "VCallResult",
+		msg:         &payload.VCallResult{},
+		validPulses: []string{"P"},
 	},
 	{
-		name:  "VStateReport",
-		msg:   &payload.VStateReport{},
-		pulse: []string{"P-1"},
+		name:        "VStateReport",
+		msg:         &payload.VStateReport{},
+		validPulses: []string{"P-1"},
 	},
 	{
-		name:  "VStateRequest",
-		msg:   &payload.VStateRequest{},
-		pulse: []string{"P"},
+		name:        "VStateRequest",
+		msg:         &payload.VStateRequest{},
+		validPulses: []string{"P"},
 	},
 	{
-		name:  "VDelegatedCallRequest",
-		msg:   &payload.VDelegatedCallRequest{},
-		pulse: []string{"P-1"},
+		name:        "VDelegatedCallRequest",
+		msg:         &payload.VDelegatedCallRequest{},
+		validPulses: []string{"P-1"},
 	},
 	{
-		name:  "VDelegatedCallResponse",
-		msg:   &payload.VDelegatedCallResponse{},
-		pulse: []string{"P"},
+		name:        "VDelegatedCallResponse",
+		msg:         &payload.VDelegatedCallResponse{},
+		validPulses: []string{"P"},
 	},
 	{
-		name:  "VDelegatedRequestFinished",
-		msg:   &payload.VDelegatedRequestFinished{},
-		pulse: []string{"P-1", "any"},
+		name:        "VDelegatedRequestFinished",
+		msg:         &payload.VDelegatedRequestFinished{},
+		validPulses: []string{"P-1", "any"},
 	},
 	{
-		name:  "VFindCallRequest",
-		msg:   &payload.VFindCallRequest{},
-		pulse: []string{"P"},
+		name:        "VFindCallRequest",
+		msg:         &payload.VFindCallRequest{},
+		validPulses: []string{"P"},
+	},
+	{
+		name:        "VFindCallResponse",
+		msg:         &payload.VFindCallResponse{},
+		validPulses: []string{"P-1", "any"},
 	},
 }
 
@@ -72,127 +74,73 @@ func TestSender_SuccessChecks(t *testing.T) {
 	t.Log("C5188")
 	for _, testMsg := range messagesWithoutToken {
 		t.Run(testMsg.name, func(t *testing.T) {
-			for _, p := range testMsg.pulse {
-				mc := minimock.NewController(t)
+			for _, p := range []string{"P", "P-1", "any"} {
+				t.Run(p, func(t *testing.T) {
+					mc := minimock.NewController(t)
 
-				server, ctx := utils.NewUninitializedServerWithErrorFilter(nil, t, func(s string) bool {
-					return false
+					server, ctx := utils.NewUninitializedServerWithErrorFilter(nil, t, func(s string) bool {
+						return false
+					})
+
+					var errorFound bool
+					logHandler := func(arg interface{}) {
+						err, ok := arg.(error)
+						if !ok {
+							return
+						}
+						errMsg := err.Error()
+						if strings.Contains(errMsg, "unexpected sender") ||
+							strings.Contains(errMsg, "illegitimate msg") ||
+							strings.Contains(errMsg, "rejected msg") {
+							errorFound = true
+						}
+						errorFound = true
+					}
+					logger := utils.InterceptLog(inslogger.FromContext(ctx), logHandler)
+					server.OverrideConveyorFactoryLogContext(inslogger.SetLogger(ctx, logger))
+
+					server.Init(ctx)
+					server.IncrementPulseAndWaitIdle(ctx)
+
+					sender := server.GlobalCaller()
+					msgPulse := server.GetPulse().PulseNumber
+
+					switch p {
+					case "P":
+					case "P-1":
+						server.IncrementPulse(ctx)
+					case "any":
+						server.IncrementPulse(ctx)
+						server.IncrementPulse(ctx)
+					default:
+						t.Fatal("unexpected")
+					}
+
+					reflect.ValueOf(testMsg.msg).MethodByName("Reset").Call([]reflect.Value{})
+
+					logger.Debug("Send message: " + testMsg.name + ", validPulses = " + p)
+					msg := utils.NewRequestWrapper(msgPulse, testMsg.msg.(payload.Marshaler)).SetSender(sender).Finalize()
+					server.SendMessage(ctx, msg)
+
+					server.WaitActiveThenIdleConveyor()
+
+					sliceContains := func(s []string, e string) bool {
+						for _, a := range s {
+							if a == e {
+								return true
+							}
+						}
+						return false
+					}
+					if sliceContains(testMsg.validPulses, p) {
+						assert.False(t, errorFound, "Fail "+testMsg.name+", pulse = "+p)
+					} else {
+						assert.True(t, errorFound, "Fail "+testMsg.name+", pulse = "+p)
+					}
+					server.Stop()
+					mc.Finish()
 				})
-
-				jetCoordinatorMock := jet.NewAffinityHelperMock(mc)
-				auth := authentication.NewService(ctx, jetCoordinatorMock)
-				server.ReplaceAuthenticationService(auth)
-
-				var errorFound bool
-				logHandler := func(arg interface{}) {
-					err, ok := arg.(error)
-					if !ok {
-						return
-					}
-					errMsg := err.Error()
-					if !strings.Contains(errMsg, "illegitimate msg") {
-						return
-					}
-					errorFound = true
-				}
-				logger := utils.InterceptLog(inslogger.FromContext(ctx), logHandler)
-				server.OverrideConveyorFactoryLogContext(inslogger.SetLogger(ctx, logger))
-
-				server.Init(ctx)
-				server.IncrementPulseAndWaitIdle(ctx)
-
-				sender := server.RandomGlobalWithPulse()
-				switch p {
-				case "P":
-				case "P-1":
-					server.IncrementPulseAndWaitIdle(ctx)
-				case "any":
-					server.IncrementPulseAndWaitIdle(ctx)
-					server.IncrementPulseAndWaitIdle(ctx)
-				default:
-					t.Fatal("unexpected")
-				}
-
-				reflect.ValueOf(testMsg.msg).MethodByName("Reset").Call([]reflect.Value{})
-
-				logger.Debug("Send message: " + testMsg.name + ", pulse = " + p)
-				msg := server.WrapPayload(testMsg.msg.(payload.Marshaler)).SetSender(sender).Finalize()
-				server.SendMessage(ctx, msg)
-
-				server.WaitActiveThenIdleConveyor()
-
-				assert.False(t, errorFound, "Fail "+testMsg.name+", pulse = "+p)
-				server.Stop()
-				mc.Finish()
 			}
 		})
 	}
-}
-
-func TestSender_SuccessChecks_VFindCallResponse(t *testing.T) {
-	t.Log("C5188")
-
-	mc := minimock.NewController(t)
-
-	server, ctx := utils.NewUninitializedServerWithErrorFilter(nil, t, func(s string) bool {
-		return false
-	})
-
-	jetCoordinatorMock := jet.NewAffinityHelperMock(mc)
-	auth := authentication.NewService(ctx, jetCoordinatorMock)
-	server.ReplaceAuthenticationService(auth)
-
-	var errorFound bool
-	logHandler := func(arg interface{}) {
-		err, ok := arg.(error)
-		if !ok {
-			return
-		}
-		errMsg := err.Error()
-		if !strings.Contains(errMsg, "illegitimate msg") {
-			return
-		}
-		errorFound = true
-	}
-	logger := utils.InterceptLog(inslogger.FromContext(ctx), logHandler)
-	server.OverrideConveyorFactoryLogContext(inslogger.SetLogger(ctx, logger))
-
-	server.Init(ctx)
-	server.IncrementPulseAndWaitIdle(ctx)
-	// p1
-	p1 := server.GetPulse().PulseNumber
-	outgoingP1 := server.BuildRandomOutgoingWithPulse()
-	object := reference.NewSelf(server.RandomLocalWithPulse())
-	sender := server.RandomGlobalWithPulse()
-
-	// p2
-	server.IncrementPulseAndWaitIdle(ctx)
-
-	// send VFindCallRequest
-	{
-		request := payload.VFindCallRequest{
-			LookAt:   p1,
-			Callee:   object,
-			Outgoing: outgoingP1,
-		}
-		server.SendPayload(ctx, &request)
-	}
-
-	// send VFindCallResponse
-	{
-		response := payload.VFindCallResponse{
-			LookedAt: p1,
-			Callee:   object,
-			Outgoing: outgoingP1,
-			Status:   payload.MissingCall,
-		}
-		msg := server.WrapPayload(&response).SetSender(sender).Finalize()
-		server.SendMessage(ctx, msg)
-
-	}
-	server.WaitActiveThenIdleConveyor()
-
-	assert.False(t, errorFound, "Fail ")
-	server.Stop()
-	mc.Finish()
 }
