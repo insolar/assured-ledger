@@ -20,6 +20,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/pulsar/entropygenerator"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 )
@@ -141,12 +142,12 @@ func (p *Pulsar) LastPN() pulse.Number {
 	return p.lastPN
 }
 
-func (p *Pulsar) generateNewEntropyAndSign() (pulsestor.Entropy, []byte, error) {
+func (p *Pulsar) generateNewEntropyAndSign() (rms.Entropy, []byte, error) {
 	e := p.EntropyGenerator.GenerateEntropy()
 
 	sign, err := p.CryptographyService.Sign(e[:])
 	if err != nil {
-		return pulsestor.Entropy{}, nil, err
+		return rms.Entropy{}, nil, err
 	}
 
 	return e, sign.Bytes(), nil

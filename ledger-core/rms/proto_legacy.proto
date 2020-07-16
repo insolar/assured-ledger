@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package pulsestor;
+package rms;
 
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
@@ -17,13 +17,4 @@ message PulseProto {
     bytes OriginID = 6;
 
     bytes Entropy = 7 [(gogoproto.customtype) = "Entropy", (gogoproto.nullable) = false];
-    repeated PulseSenderConfirmationProto Signs = 8;
-}
-
-message PulseSenderConfirmationProto {
-    string PublicKey = 1;
-    uint32 PulseNumber = 2 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/pulse.Number", (gogoproto.nullable) = false];
-    string ChosenPublicKey = 3;
-    bytes Entropy = 4 [(gogoproto.customtype) = "Entropy", (gogoproto.nullable) = false];
-    bytes Signature = 5;
 }

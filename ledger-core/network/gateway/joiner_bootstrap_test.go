@@ -23,6 +23,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	mock "github.com/insolar/assured-ledger/ledger-core/testutils/network"
 )
 
@@ -114,7 +115,7 @@ func TestJoinerBootstrap_Run_BootstrapSucceeded(t *testing.T) {
 	})
 
 	f.requester.BootstrapMock.Set(func(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate, pp2 network.NetworkedPulse) (bp1 *packet.BootstrapResponse, err error) {
-		p := pulsestor.PulseProto{PulseNumber: 123}
+		p := rms.PulseProto{PulseNumber: 123}
 		return &packet.BootstrapResponse{
 			ETASeconds: 90,
 			Pulse:      p,

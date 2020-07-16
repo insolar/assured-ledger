@@ -124,11 +124,11 @@ func (ac *requester) authorize(ctx context.Context, host *host.Host, cert nodein
 	}
 
 	switch response.Code {
-	case packet.Success:
+	case packet.AuthorizeResponseCode_Success:
 		return response, nil
-	case packet.WrongMandate:
+	case packet.AuthorizeResponseCode_WrongMandate:
 		return response, throw.New("failed to authorize, wrong mandate")
-	case packet.WrongVersion:
+	case packet.AuthorizeResponseCode_WrongVersion:
 		return response, throw.New("failed to authorize, wrong version")
 	}
 
@@ -198,13 +198,13 @@ func (ac *requester) Bootstrap(ctx context.Context, permit *packet.Permit, candi
 	}
 
 	switch respData.Code {
-	case packet.UpdateShortID:
+	case packet.BootstrapResponseCode_UpdateShortID:
 		return respData, throw.New("Bootstrap got UpdateShortID")
-	case packet.UpdateSchedule:
+	case packet.BootstrapResponseCode_UpdateSchedule:
 		// ac.UpdateSchedule(ctx, permit, p.Number)
 		// panic("call bootstrap again")
 		return respData, throw.New("Bootstrap got UpdateSchedule")
-	case packet.Reject:
+	case packet.BootstrapResponseCode_Reject:
 		return respData, throw.New("Bootstrap request rejected")
 	}
 

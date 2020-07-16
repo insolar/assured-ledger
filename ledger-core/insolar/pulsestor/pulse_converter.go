@@ -10,9 +10,10 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 )
 
-func FromProto(p *PulseProto) appctl.PulseChange {
+func FromProto(p *rms.PulseProto) appctl.PulseChange {
 	result := appctl.PulseChange{}
 	result.PulseNumber = p.PulseNumber
 	result.PrevPulseDelta = uint16(p.PulseNumber - p.PrevPulseNumber) // INCORRECT
@@ -24,8 +25,8 @@ func FromProto(p *PulseProto) appctl.PulseChange {
 	return result
 }
 
-func ToProto(p appctl.PulseChange) *PulseProto {
-	result := &PulseProto{
+func ToProto(p appctl.PulseChange) *rms.PulseProto {
+	result := &rms.PulseProto{
 		PulseNumber:      p.PulseNumber,
 		PrevPulseNumber:  p.PulseNumber - pulse.Number(p.PrevPulseDelta), // INCORRECT
 		NextPulseNumber:  p.PulseNumber + pulse.Number(p.NextPulseDelta), // INCORRECT
@@ -35,28 +36,5 @@ func ToProto(p appctl.PulseChange) *PulseProto {
 		// Entropy:          p.Entropy,
 	}
 	copy(result.Entropy[:], p.PulseEntropy[:])
-
-	// for pk, sign := range p.Signs {
-	// 	result.Signs = append(result.Signs, SenderConfirmationToProto(pk, sign))
-	// }
 	return result
-}
-
-func SenderConfirmationToProto(publicKey string, p SenderConfirmation) *PulseSenderConfirmationProto {
-	return &PulseSenderConfirmationProto{
-		PublicKey:       publicKey,
-		PulseNumber:     p.PulseNumber,
-		ChosenPublicKey: p.ChosenPublicKey,
-		Entropy:         p.Entropy,
-		Signature:       p.Signature,
-	}
-}
-
-func SenderConfirmationFromProto(p *PulseSenderConfirmationProto) (string, SenderConfirmation) {
-	return p.PublicKey, SenderConfirmation{
-		PulseNumber:     p.PulseNumber,
-		ChosenPublicKey: p.ChosenPublicKey,
-		Entropy:         p.Entropy,
-		Signature:       p.Signature,
-	}
 }

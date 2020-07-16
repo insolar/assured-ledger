@@ -324,13 +324,13 @@ func (g *Base) HandleNodeBootstrapRequest(ctx context.Context, request network.R
 	bootstrapPulse := GetBootstrapPulse(ctx, g.PulseAccessor)
 
 	if network.CheckShortIDCollision(g.NodeKeeper.GetAccessor(bootstrapPulse.PulseNumber).GetActiveNodes(), data.CandidateProfile.ShortID) {
-		return g.HostNetwork.BuildResponse(ctx, request, &packet.BootstrapResponse{Code: packet.UpdateShortID}), nil
+		return g.HostNetwork.BuildResponse(ctx, request, &packet.BootstrapResponse{Code: packet.BootstrapResponseCode_UpdateShortID}), nil
 	}
 
 	err := bootstrap.ValidatePermit(data.Permit, g.CertificateManager.GetCertificate(), g.CryptographyService)
 	if err != nil {
 		inslogger.FromContext(ctx).Warnf("Rejected bootstrap request from node %s: %s", request.GetSender(), err.Error())
-		return g.HostNetwork.BuildResponse(ctx, request, &packet.BootstrapResponse{Code: packet.Reject}), nil
+		return g.HostNetwork.BuildResponse(ctx, request, &packet.BootstrapResponse{Code: packet.BootstrapResponseCode_Reject}), nil
 	}
 
 	type candidate struct {
@@ -343,14 +343,14 @@ func (g *Base) HandleNodeBootstrapRequest(ctx context.Context, request network.R
 	err = g.ConsensusController.AddJoinCandidate(candidate{profile, profile.GetExtension()})
 	if err != nil {
 		inslogger.FromContext(ctx).Warnf("Rejected bootstrap request from node %s: %s", request.GetSender(), err.Error())
-		return g.HostNetwork.BuildResponse(ctx, request, &packet.BootstrapResponse{Code: packet.Reject}), nil
+		return g.HostNetwork.BuildResponse(ctx, request, &packet.BootstrapResponse{Code: packet.BootstrapResponseCode_Reject}), nil
 	}
 
 	inslogger.FromContext(ctx).Infof("=== AddJoinCandidate id = %d, address = %s ", data.CandidateProfile.ShortID, data.CandidateProfile.Address)
 
 	return g.HostNetwork.BuildResponse(ctx, request,
 		&packet.BootstrapResponse{
-			Code:       packet.Accepted,
+			Code:       packet.BootstrapResponseCode_Accepted,
 			Pulse:      *pulsestor.ToProto(bootstrapPulse),
 			ETASeconds: uint32(g.bootstrapETA.Seconds()),
 		}), nil
@@ -375,14 +375,14 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 	// TODO: move time.Minute to config
 	if !validateTimestamp(data.Timestamp, time.Minute) {
 		return g.HostNetwork.BuildResponse(ctx, request, &packet.AuthorizeResponse{
-			Code:      packet.WrongTimestamp,
+			Code:      packet.AuthorizeResponseCode_WrongTimestamp,
 			Timestamp: time.Now().UTC().Unix(),
 		}), nil
 	}
 
 	cert, err := mandates.Deserialize(data.Certificate, platformpolicy.NewKeyProcessor())
 	if err != nil {
-		return g.HostNetwork.BuildResponse(ctx, request, &packet.AuthorizeResponse{Code: packet.WrongMandate, Error: err.Error()}), nil
+		return g.HostNetwork.BuildResponse(ctx, request, &packet.AuthorizeResponse{Code: packet.AuthorizeResponseCode_WrongMandate, Error: err.Error()}), nil
 	}
 
 	valid, err := g.Gatewayer.Gateway().Auther().ValidateCert(ctx, cert)
@@ -392,7 +392,7 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 		}
 
 		inslogger.FromContext(ctx).Warn("AuthorizeRequest with invalid cert: ", err.Error())
-		return g.HostNetwork.BuildResponse(ctx, request, &packet.AuthorizeResponse{Code: packet.WrongMandate, Error: err.Error()}), nil
+		return g.HostNetwork.BuildResponse(ctx, request, &packet.AuthorizeResponse{Code: packet.AuthorizeResponseCode_WrongMandate, Error: err.Error()}), nil
 	}
 
 	// TODO: get random reconnectHost
@@ -429,7 +429,7 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 	))
 
 	return g.HostNetwork.BuildResponse(ctx, request, &packet.AuthorizeResponse{
-		Code:           packet.Success,
+		Code:           packet.AuthorizeResponseCode_Success,
 		Timestamp:      time.Now().UTC().Unix(),
 		Permit:         permit,
 		DiscoveryCount: uint32(discoveryCount),
