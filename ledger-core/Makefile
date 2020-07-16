@@ -77,7 +77,6 @@ generate-proto-options:
 .PHONY: generate-protobuf
 generate-protobuf: protoc-gen-ins ## generate protobuf structs
 	protoc -I./vendor -I./ --ins_out=./ --proto_path=${GOPATH}/src insolar/payload/payload.proto
-	protoc -I./vendor -I./ --gogoslick_out=./ insolar/node/node.proto
 	protoc -I./vendor -I./ --gogoslick_out=./ insolar/pulsestor/pulse.proto
 	protoc -I./vendor -I./ --ins_out=./ --proto_path=${GOPATH}/src insolar/payload/proto_vnvn.r0.proto
 	protoc -I./vendor -I./ --gogoslick_out=./ --proto_path=${GOPATH}/src network/hostnetwork/packet/packet.proto
