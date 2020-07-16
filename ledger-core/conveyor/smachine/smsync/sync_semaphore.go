@@ -81,6 +81,10 @@ func (v SemaphoreLink) SyncLink() smachine.SyncLink {
 	return smachine.NewSyncLink(v.ctl)
 }
 
+func (v SemaphoreLink) PartialLink() smachine.SyncLink {
+	return smachine.NewSyncLink(semaPartial{v.ctl})
+}
+
 func newSemaphore(initialLimit int, isAdjustable bool, name string, flags DependencyQueueFlags) *semaphoreSync {
 	ctl := &semaphoreSync{isAdjustable: true}
 	ctl.controller.awaiters.queue.flags = flags

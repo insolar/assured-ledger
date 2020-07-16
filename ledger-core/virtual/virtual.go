@@ -78,6 +78,8 @@ type Dispatcher struct {
 	EventlessSleep            time.Duration
 	FactoryLogContextOverride context.Context
 
+	MaxRunners int
+
 	runnerAdapter        runner.ServiceAdapter
 	messageSenderAdapter messageSenderAdapter.MessageSender
 }
@@ -134,6 +136,9 @@ func (lr *Dispatcher) Init(ctx context.Context) error {
 
 	var objectCatalog object.Catalog = object.NewLocalCatalog()
 	lr.Conveyor.AddInterfaceDependency(&objectCatalog)
+
+	runnerLimiter := conveyor.NewParallelProcessingLimiter(lr.MaxRunners)
+	lr.Conveyor.AddDependency(runnerLimiter)
 
 	lr.ConveyorWorker = virtualStateMachine.NewConveyorWorker(lr.CycleFn)
 	lr.ConveyorWorker.AttachTo(lr.Conveyor)
