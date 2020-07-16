@@ -810,7 +810,6 @@ func TestVirtual_Constructor_PulseChangedWhileOutgoing(t *testing.T) {
 // -> change pulse -> secondPulse
 // -> VStateReport [A]
 // -> VDelegatedCallRequest [A]
-// -> continue execution
 // -> change pulse -> thirdPulse
 // -> NO VStateReport
 // -> VDelegatedCallRequest [A] + first token
@@ -857,9 +856,7 @@ func TestVirtual_CallConstructor_WithTwicePulseChange(t *testing.T) {
 		objectAResult.SetActivate(reference.Global{}, classA, []byte("state A"))
 		runnerMock.AddExecutionMock("New").AddStart(
 			func(_ execution.Context) {
-				server.IncrementPulseAndWaitIdle(ctx)
 				synchronizeExecution.Synchronize()
-				server.IncrementPulseAndWaitIdle(ctx)
 			},
 			&execution.Update{
 				Type:   execution.Done,
@@ -918,6 +915,7 @@ func TestVirtual_CallConstructor_WithTwicePulseChange(t *testing.T) {
 		typedChecker.VDelegatedRequestFinished.Set(func(finished *payload.VDelegatedRequestFinished) bool {
 			assert.Equal(t, objectRef, finished.Callee)
 			assert.Equal(t, secondExpectedToken, finished.DelegationSpec)
+			assert.Equal(t, []byte("state A"), finished.LatestState.State)
 			return false
 		})
 		typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
@@ -942,6 +940,8 @@ func TestVirtual_CallConstructor_WithTwicePulseChange(t *testing.T) {
 
 	// wait for results
 	{
+		testutils.WaitSignalsTimed(t, 10*time.Second, synchronizeExecution.Wait())
+
 		tokenRequestDone := server.Journal.Wait(
 			predicate.ChainOf(
 				predicate.NewSMTypeFilter(&execute.SMDelegatedTokenRequest{}, predicate.AfterAnyStopOrError),
@@ -949,11 +949,11 @@ func TestVirtual_CallConstructor_WithTwicePulseChange(t *testing.T) {
 			),
 		)
 		// wait for first pulse change
+		server.IncrementPulseAndWaitIdle(ctx)
 		testutils.WaitSignalsTimed(t, 20*time.Second, tokenRequestDone)
-		// continue ExecutionStart [A.New]
-		testutils.WaitSignalsTimed(t, 10*time.Second, synchronizeExecution.Wait())
-		synchronizeExecution.WakeUp()
+
 		// wait for second pulse change
+		server.IncrementPulseAndWaitIdle(ctx)
 		testutils.WaitSignalsTimed(t, 20*time.Second, tokenRequestDone)
 
 		synchronizeExecution.Done()
