@@ -26,6 +26,11 @@ type Serializable interface {
 	Marshal() ([]byte, error)
 }
 
+type MarshalerTo interface {
+	proto.ProtoSizer
+	MarshalTo([]byte) (int, error)
+}
+
 type goGoMarshaler interface {
 	proto.ProtoSizer
 	MarshalTo([]byte) (int, error)

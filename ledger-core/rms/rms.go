@@ -10,11 +10,15 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 
+	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 )
 
 type PulseNumber = pulse.Number
+type StorageLocator = ledger.StorageLocator
+type ExtensionID = ledger.ExtensionID
+type CatalogOrdinal = ledger.Ordinal
 
 type RecordVisitor interface {
 	Record(BasicRecord, uint64) error
