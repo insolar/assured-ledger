@@ -138,6 +138,8 @@ func Test_Execute_stepIsolationNegotiation(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
+			defer executeLeakCheck(t)
+
 			var (
 				ctx = instestlogger.TestContext(t)
 				mc  = minimock.NewController(t)

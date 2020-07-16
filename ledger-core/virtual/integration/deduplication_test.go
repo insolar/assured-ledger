@@ -21,6 +21,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
+	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
@@ -31,6 +32,8 @@ import (
 )
 
 func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	t.Log("C5095")
 
 	mc := minimock.NewController(t)
@@ -121,6 +124,8 @@ func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 }
 
 func TestDeduplication_SecondCallOfMethodAfterExecution(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	t.Log("C5096")
 
 	mc := minimock.NewController(t)
@@ -393,6 +398,8 @@ func TestDeduplication_MethodUsingPrevVE(t *testing.T) {
 
 	for _, test := range table {
 		t.Run(test.name, func(t *testing.T) {
+			defer commontestutils.LeakTester(t)
+
 			suite := &deduplicateMethodUsingPrevVETest{}
 
 			ctx := suite.initServer(t)
