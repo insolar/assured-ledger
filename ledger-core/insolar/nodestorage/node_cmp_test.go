@@ -11,28 +11,29 @@ import (
 	fuzz "github.com/google/gofuzz"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodestorage"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 )
 
 func TestNode(t *testing.T) {
 	var (
-		virtuals  []node.Node
-		materials []node.Node
-		all       []node.Node
+		virtuals  []rms.Node
+		materials []rms.Node
+		all       []rms.Node
 	)
 	{
-		f := fuzz.New().Funcs(func(e *node.Node, c fuzz.Continue) {
-			e.ID = gen.UniqueGlobalRef()
-			e.Role = node.StaticRoleVirtual
+		f := fuzz.New().Funcs(func(e *rms.Node, c fuzz.Continue) {
+			e.ID.Set(gen.UniqueGlobalRef())
+			e.Role = member.StaticRoleVirtual
 		})
 		f.NumElements(5, 10).NilChance(0).Fuzz(&virtuals)
 	}
 	{
-		f := fuzz.New().Funcs(func(e *node.Node, c fuzz.Continue) {
-			e.ID = gen.UniqueGlobalRef()
-			e.Role = node.StaticRoleLightMaterial
+		f := fuzz.New().Funcs(func(e *rms.Node, c fuzz.Continue) {
+			e.ID.Set(gen.UniqueGlobalRef())
+			e.Role = member.StaticRoleLightMaterial
 		})
 		f.NumElements(5, 10).NilChance(0).Fuzz(&materials)
 	}
@@ -53,7 +54,7 @@ func TestNode(t *testing.T) {
 	}
 	// Returns in role nodes.
 	{
-		result, err := storage.InRole(pulse, node.StaticRoleVirtual)
+		result, err := storage.InRole(pulse, member.StaticRoleVirtual)
 		assert.NoError(t, err)
 		assert.Equal(t, virtuals, result)
 	}

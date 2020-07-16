@@ -18,11 +18,12 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/appctl"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
-	node2 "github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/network/controller"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 
@@ -91,7 +92,7 @@ func TestSendMessageHandler_SameNode(t *testing.T) {
 	svcNw, err := NewServiceNetwork(cfg, component.NewManager(nil))
 	nodeRef := gen.UniqueGlobalRef()
 	nodeN := networkUtils.NewNodeKeeperMock(t)
-	nodeN.GetOriginMock.Set(func() (r node2.NetworkNode) {
+	nodeN.GetOriginMock.Set(func() (r nodeinfo.NetworkNode) {
 		n := networkUtils.NewNetworkNodeMock(t)
 		n.IDMock.Set(func() (r reference.Global) {
 			return nodeRef
@@ -126,7 +127,7 @@ func TestSendMessageHandler_SendError(t *testing.T) {
 	require.NoError(t, err)
 	svcNw.Pub = pubMock
 	nodeN := networkUtils.NewNodeKeeperMock(t)
-	nodeN.GetOriginMock.Set(func() (r node2.NetworkNode) {
+	nodeN.GetOriginMock.Set(func() (r nodeinfo.NetworkNode) {
 		n := networkUtils.NewNetworkNodeMock(t)
 		n.IDMock.Set(func() (r reference.Global) {
 			return gen.UniqueGlobalRef()
@@ -164,7 +165,7 @@ func TestSendMessageHandler_WrongReply(t *testing.T) {
 	require.NoError(t, err)
 	svcNw.Pub = pubMock
 	nodeN := networkUtils.NewNodeKeeperMock(t)
-	nodeN.GetOriginMock.Set(func() (r node2.NetworkNode) {
+	nodeN.GetOriginMock.Set(func() (r nodeinfo.NetworkNode) {
 		n := networkUtils.NewNetworkNodeMock(t)
 		n.IDMock.Set(func() (r reference.Global) {
 			return gen.UniqueGlobalRef()
@@ -200,7 +201,7 @@ func TestSendMessageHandler(t *testing.T) {
 	svcNw, err := NewServiceNetwork(cfg, component.NewManager(nil))
 	require.NoError(t, err)
 	nodeN := networkUtils.NewNodeKeeperMock(t)
-	nodeN.GetOriginMock.Set(func() (r node2.NetworkNode) {
+	nodeN.GetOriginMock.Set(func() (r nodeinfo.NetworkNode) {
 		n := networkUtils.NewNetworkNodeMock(t)
 		n.IDMock.Set(func() (r reference.Global) {
 			return gen.UniqueGlobalRef()
@@ -244,7 +245,7 @@ func TestServiceNetwork_StartStop(t *testing.T) {
 	cm.SetLogger(global.Logger())
 
 	origin := gen.UniqueGlobalRef()
-	nk := nodenetwork.NewNodeKeeper(node.NewNode(origin, node2.StaticRoleUnknown, nil, "127.0.0.1:0", ""))
+	nk := nodenetwork.NewNodeKeeper(node.NewNode(origin, member.StaticRoleUnknown, nil, "127.0.0.1:0", ""))
 	cert := &mandates.Certificate{}
 	cert.Reference = origin.String()
 	certManager := mandates.NewCertificateManager(cert)

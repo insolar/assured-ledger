@@ -8,7 +8,8 @@ package node
 import (
 	"testing"
 
-	node5 "github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 
@@ -18,17 +19,17 @@ import (
 func TestAccessor(t *testing.T) {
 	t.Skip("FIXME")
 
-	node := newMutableNode(gen.UniqueGlobalRef(), node5.StaticRoleVirtual, nil, node5.Ready, "127.0.0.1:0", "")
+	node := newMutableNode(gen.UniqueGlobalRef(), member.StaticRoleVirtual, nil, nodeinfo.Ready, "127.0.0.1:0", "")
 
-	node2 := newMutableNode(gen.UniqueGlobalRef(), node5.StaticRoleVirtual, nil, node5.Joining, "127.0.0.1:0", "")
+	node2 := newMutableNode(gen.UniqueGlobalRef(), member.StaticRoleVirtual, nil, nodeinfo.Joining, "127.0.0.1:0", "")
 	node2.SetShortID(11)
 
-	node3 := newMutableNode(gen.UniqueGlobalRef(), node5.StaticRoleVirtual, nil, node5.Leaving, "127.0.0.1:0", "")
+	node3 := newMutableNode(gen.UniqueGlobalRef(), member.StaticRoleVirtual, nil, nodeinfo.Leaving, "127.0.0.1:0", "")
 	node3.SetShortID(10)
 
-	node4 := newMutableNode(gen.UniqueGlobalRef(), node5.StaticRoleVirtual, nil, node5.Undefined, "127.0.0.1:0", "")
+	node4 := newMutableNode(gen.UniqueGlobalRef(), member.StaticRoleVirtual, nil, nodeinfo.Undefined, "127.0.0.1:0", "")
 
-	snapshot := NewSnapshot(pulse.MinTimePulse, []node5.NetworkNode{node, node2, node3, node4})
+	snapshot := NewSnapshot(pulse.MinTimePulse, []nodeinfo.NetworkNode{node, node2, node3, node4})
 	accessor := NewAccessor(snapshot)
 	assert.Equal(t, 4, len(accessor.GetActiveNodes()))
 	assert.Equal(t, 1, len(accessor.GetWorkingNodes()))

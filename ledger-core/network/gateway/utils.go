@@ -13,7 +13,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/appctl"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/network"
@@ -40,7 +40,7 @@ func EnsureGetPulse(ctx context.Context, accessor appctl.PulseAccessor, pulseNum
 }
 
 func getAnnounceSignature(
-	node node.NetworkNode,
+	node nodeinfo.NetworkNode,
 	isDiscovery bool,
 	kp cryptography.KeyProcessor,
 	keystore cryptography.KeyStore,
@@ -110,6 +110,6 @@ func (p *consensusProxy) ChangePulse(ctx context.Context, newPulse appctl.PulseC
 	p.Gatewayer.Gateway().(adapters.PulseChanger).ChangePulse(ctx, newPulse)
 }
 
-func (p *consensusProxy) UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes []node.NetworkNode, cloudStateHash []byte) {
+func (p *consensusProxy) UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes []nodeinfo.NetworkNode, cloudStateHash []byte) {
 	p.Gatewayer.Gateway().(adapters.StateUpdater).UpdateState(ctx, pulseNumber, nodes, cloudStateHash)
 }

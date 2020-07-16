@@ -8,7 +8,7 @@ package gateway
 import (
 	"context"
 
-	node2 "github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/network/rules"
@@ -31,11 +31,11 @@ func (g *WaitPulsar) Run(ctx context.Context, pulse network.NetworkedPulse) {
 	case <-g.bootstrapTimer.C:
 		g.FailState(ctx, bootstrapTimeoutMessage)
 	case newPulse := <-g.pulseArrived:
-		g.Gatewayer.SwitchState(ctx, node2.CompleteNetworkState, newPulse)
+		g.Gatewayer.SwitchState(ctx, nodeinfo.CompleteNetworkState, newPulse)
 	}
 }
 
-func (g *WaitPulsar) UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes []node2.NetworkNode, cloudStateHash []byte) {
+func (g *WaitPulsar) UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes []nodeinfo.NetworkNode, cloudStateHash []byte) {
 	workingNodes := node.Select(nodes, node.ListWorking)
 
 	if _, err := rules.CheckMajorityRule(g.CertificateManager.GetCertificate(), workingNodes); err != nil {
@@ -49,8 +49,8 @@ func (g *WaitPulsar) UpdateState(ctx context.Context, pulseNumber pulse.Number, 
 	g.Base.UpdateState(ctx, pulseNumber, nodes, cloudStateHash)
 }
 
-func (g *WaitPulsar) GetState() node2.NetworkState {
-	return node2.WaitPulsar
+func (g *WaitPulsar) GetState() nodeinfo.NetworkState {
+	return nodeinfo.WaitPulsar
 }
 
 func (g *WaitPulsar) OnConsensusFinished(ctx context.Context, report network.Report) {

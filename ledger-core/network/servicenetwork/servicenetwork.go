@@ -11,13 +11,13 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/component-manager"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/controller"
@@ -39,7 +39,7 @@ type ServiceNetwork struct {
 	cm  *component.Manager
 
 	// dependencies
-	CertificateManager node.CertificateManager `inject:""`
+	CertificateManager nodeinfo.CertificateManager `inject:""`
 
 	// watermill support interfaces
 	Pub message.Publisher `inject:""`
@@ -84,7 +84,7 @@ func (n *ServiceNetwork) Init(ctx context.Context) error {
 	}
 
 	n.BaseGateway = &gateway.Base{Options: options}
-	n.Gatewayer = gateway.NewGatewayer(n.BaseGateway.NewGateway(ctx, node.NoNetworkState))
+	n.Gatewayer = gateway.NewGatewayer(n.BaseGateway.NewGateway(ctx, nodeinfo.NoNetworkState))
 
 	table := &routing.Table{}
 
@@ -152,7 +152,7 @@ func (n *ServiceNetwork) Stop(ctx context.Context) error {
 	return n.cm.Stop(ctx)
 }
 
-func (n *ServiceNetwork) GetOrigin() node.NetworkNode {
+func (n *ServiceNetwork) GetOrigin() nodeinfo.NetworkNode {
 	return n.NodeKeeper.GetOrigin()
 }
 
@@ -160,6 +160,6 @@ func (n *ServiceNetwork) GetAccessor(p pulse.Number) network.Accessor {
 	return n.NodeKeeper.GetAccessor(p)
 }
 
-func (n *ServiceNetwork) GetCert(ctx context.Context, ref reference.Global) (node.Certificate, error) {
+func (n *ServiceNetwork) GetCert(ctx context.Context, ref reference.Global) (nodeinfo.Certificate, error) {
 	return n.Gatewayer.Gateway().Auther().GetCert(ctx, ref)
 }

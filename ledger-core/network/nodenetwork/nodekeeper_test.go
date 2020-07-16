@@ -9,9 +9,10 @@ import (
 	"crypto"
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/storage"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 
@@ -31,10 +32,10 @@ func TestNewNodeNetwork(t *testing.T) {
 
 	cfg := configuration.Transport{Address: "invalid"}
 	certMock := testutils.NewCertificateMock(t)
-	certMock.GetRoleMock.Set(func() node.StaticRole { return node.StaticRoleUnknown })
+	certMock.GetRoleMock.Set(func() member.StaticRole { return member.StaticRoleUnknown })
 	certMock.GetPublicKeyMock.Set(func() crypto.PublicKey { return nil })
 	certMock.GetNodeRefMock.Set(func() reference.Global { ref := gen.UniqueGlobalRef(); return ref })
-	certMock.GetDiscoveryNodesMock.Set(func() []node.DiscoveryNode { return nil })
+	certMock.GetDiscoveryNodesMock.Set(func() []nodeinfo.DiscoveryNode { return nil })
 	_, err := NewNodeNetwork(cfg, certMock)
 	assert.Error(t, err)
 	cfg.Address = "127.0.0.1:3355"
@@ -53,10 +54,10 @@ func newNodeKeeper(t *testing.T, service cryptography.Service) network.NodeKeepe
 		service = platformpolicy.NewKeyBoundCryptographyService(secret)
 	}
 	require.NoError(t, err)
-	certMock.GetRoleMock.Set(func() node.StaticRole { return node.StaticRoleUnknown })
+	certMock.GetRoleMock.Set(func() member.StaticRole { return member.StaticRoleUnknown })
 	certMock.GetPublicKeyMock.Set(func() crypto.PublicKey { return pk })
 	certMock.GetNodeRefMock.Set(func() reference.Global { ref := gen.UniqueGlobalRef(); return ref })
-	certMock.GetDiscoveryNodesMock.Set(func() []node.DiscoveryNode { return nil })
+	certMock.GetDiscoveryNodesMock.Set(func() []nodeinfo.DiscoveryNode { return nil })
 	nw, err := NewNodeNetwork(cfg, certMock)
 	require.NoError(t, err)
 	nw.(*nodekeeper).SnapshotStorage = storage.NewMemoryStorage()
@@ -69,6 +70,6 @@ func TestNewNodeKeeper(t *testing.T) {
 	nk := newNodeKeeper(t, nil)
 	origin := nk.GetOrigin()
 	assert.NotNil(t, origin)
-	nk.SetInitialSnapshot([]node.NetworkNode{origin})
+	nk.SetInitialSnapshot([]nodeinfo.NetworkNode{origin})
 	assert.NotNil(t, nk.GetAccessor(pulsestor.GenesisPulse.PulseNumber))
 }

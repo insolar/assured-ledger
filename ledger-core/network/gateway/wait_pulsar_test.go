@@ -13,8 +13,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl"
-	node2 "github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 
@@ -30,8 +31,8 @@ func createBase(mc *minimock.Controller) *Base {
 	b := &Base{}
 
 	op := mock.NewOriginProviderMock(mc)
-	op.GetOriginMock.Set(func() node2.NetworkNode {
-		return node.NewNode(gen.UniqueGlobalRef(), node2.StaticRoleVirtual, nil, "127.0.0.1:123", "")
+	op.GetOriginMock.Set(func() nodeinfo.NetworkNode {
+		return node.NewNode(gen.UniqueGlobalRef(), member.StaticRoleVirtual, nil, "127.0.0.1:123", "")
 	})
 
 	aborter := network.NewAborterMock(mc)
@@ -50,7 +51,7 @@ func TestWaitPulsar_PulseNotArrivedInETA(t *testing.T) {
 	defer mc.Wait(time.Minute)
 
 	waitPulsar := newWaitPulsar(createBase(mc))
-	assert.Equal(t, node2.WaitPulsar, waitPulsar.GetState())
+	assert.Equal(t, nodeinfo.WaitPulsar, waitPulsar.GetState())
 	gatewayer := mock.NewGatewayerMock(mc)
 	waitPulsar.Gatewayer = gatewayer
 	gatewayer.GatewayMock.Set(func() network.Gateway {
@@ -69,8 +70,8 @@ func TestWaitPulsar_PulseArrivedInETA(t *testing.T) {
 	defer mc.Wait(time.Minute)
 
 	gatewayer := mock.NewGatewayerMock(mc)
-	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state node2.NetworkState, pulse network.NetworkedPulse) {
-		assert.Equal(t, node2.CompleteNetworkState, state)
+	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state nodeinfo.NetworkState, pulse network.NetworkedPulse) {
+		assert.Equal(t, nodeinfo.CompleteNetworkState, state)
 	})
 
 	pulseAccessor := appctl.NewPulseAccessorMock(mc)

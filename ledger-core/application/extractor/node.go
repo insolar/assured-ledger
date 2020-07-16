@@ -6,7 +6,7 @@
 package extractor
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
 
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -16,7 +16,7 @@ import (
 func NodeInfoResponse(data []byte) (string, string, error) {
 	res := struct {
 		PublicKey string
-		Role      node.StaticRole
+		Role      member.StaticRole
 	}{}
 	var contractErr *foundation.Error
 	err := foundation.UnmarshalMethodResultSimplified(data, &res, &contractErr)

@@ -14,9 +14,10 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl"
-	node2 "github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/network"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -32,8 +33,8 @@ func TestWaitMinroles_MinrolesNotHappenedInETA(t *testing.T) {
 	nodeKeeper := mock.NewNodeKeeperMock(mc)
 	nodeKeeper.GetAccessorMock.Set(func(p1 pulse.Number) (a1 network.Accessor) {
 		accessor := mock.NewAccessorMock(mc)
-		accessor.GetWorkingNodesMock.Set(func() (na1 []node2.NetworkNode) {
-			return []node2.NetworkNode{}
+		accessor.GetWorkingNodesMock.Set(func() (na1 []nodeinfo.NetworkNode) {
+			return []nodeinfo.NetworkNode{}
 		})
 		return accessor
 	})
@@ -50,7 +51,7 @@ func TestWaitMinroles_MinrolesNotHappenedInETA(t *testing.T) {
 		return waitMinRoles
 	})
 
-	assert.Equal(t, node2.WaitMinRoles, waitMinRoles.GetState())
+	assert.Equal(t, nodeinfo.WaitMinRoles, waitMinRoles.GetState())
 	waitMinRoles.Gatewayer = gatewayer
 	waitMinRoles.bootstrapETA = time.Millisecond
 	waitMinRoles.bootstrapTimer = time.NewTimer(waitMinRoles.bootstrapETA)
@@ -64,21 +65,21 @@ func TestWaitMinroles_MinrolesHappenedInETA(t *testing.T) {
 	defer mc.Wait(time.Minute)
 
 	gatewayer := mock.NewGatewayerMock(mc)
-	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state node2.NetworkState, pulse network.NetworkedPulse) {
-		assert.Equal(t, node2.WaitPulsar, state)
+	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state nodeinfo.NetworkState, pulse network.NetworkedPulse) {
+		assert.Equal(t, nodeinfo.WaitPulsar, state)
 	})
 
 	ref := gen.UniqueGlobalRef()
 	nodeKeeper := mock.NewNodeKeeperMock(mc)
 
 	accessor1 := mock.NewAccessorMock(mc)
-	accessor1.GetWorkingNodesMock.Set(func() (na1 []node2.NetworkNode) {
-		return []node2.NetworkNode{}
+	accessor1.GetWorkingNodesMock.Set(func() (na1 []nodeinfo.NetworkNode) {
+		return []nodeinfo.NetworkNode{}
 	})
 	accessor2 := mock.NewAccessorMock(mc)
-	accessor2.GetWorkingNodesMock.Set(func() (na1 []node2.NetworkNode) {
-		n := node.NewNode(ref, node2.StaticRoleLightMaterial, nil, "127.0.0.1:123", "")
-		return []node2.NetworkNode{n}
+	accessor2.GetWorkingNodesMock.Set(func() (na1 []nodeinfo.NetworkNode) {
+		n := node.NewNode(ref, member.StaticRoleLightMaterial, nil, "127.0.0.1:123", "")
+		return []nodeinfo.NetworkNode{n}
 	})
 	nodeKeeper.GetAccessorMock.Set(func(p pulse.Number) (a1 network.Accessor) {
 		if p == pulse.MinTimePulse {

@@ -10,8 +10,9 @@ import (
 	"net"
 	"sync"
 
-	node2 "github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/storage"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 
@@ -30,28 +31,28 @@ import (
 )
 
 // NewNodeNetwork create active node component
-func NewNodeNetwork(configuration configuration.Transport, certificate node2.Certificate) (network.NodeNetwork, error) { // nolint:staticcheck
+func NewNodeNetwork(configuration configuration.Transport, certificate nodeinfo.Certificate) (network.NodeNetwork, error) { // nolint:staticcheck
 	origin, err := createOrigin(configuration, certificate)
 	if err != nil {
 		return nil, errors.W(err, "Failed to create origin node")
 	}
 	nodeKeeper := NewNodeKeeper(origin)
 	if !network.OriginIsDiscovery(certificate) {
-		origin.(node.MutableNode).SetState(node2.Joining)
+		origin.(node.MutableNode).SetState(nodeinfo.Joining)
 	}
 	return nodeKeeper, nil
 }
 
-func createOrigin(configuration configuration.Transport, certificate node2.Certificate) (node2.NetworkNode, error) {
+func createOrigin(configuration configuration.Transport, certificate nodeinfo.Certificate) (nodeinfo.NetworkNode, error) {
 	publicAddress, err := resolveAddress(configuration)
 	if err != nil {
 		return nil, errors.W(err, "Failed to resolve public address")
 	}
 
 	role := certificate.GetRole()
-	if role == node2.StaticRoleUnknown {
+	if role == member.StaticRoleUnknown {
 		global.Info("[ createOrigin ] Use insolar.StaticRoleLightMaterial, since no role in certificate")
-		role = node2.StaticRoleLightMaterial
+		role = member.StaticRoleLightMaterial
 	}
 
 	return node.NewNode(
@@ -76,25 +77,25 @@ func resolveAddress(configuration configuration.Transport) (string, error) {
 }
 
 // NewNodeKeeper create new NodeKeeper
-func NewNodeKeeper(origin node2.NetworkNode) network.NodeKeeper {
+func NewNodeKeeper(origin nodeinfo.NetworkNode) network.NodeKeeper {
 	nk := &nodekeeper{
 		origin:          origin,
-		syncNodes:       make([]node2.NetworkNode, 0),
+		syncNodes:       make([]nodeinfo.NetworkNode, 0),
 		SnapshotStorage: storage.NewMemoryStorage(),
 	}
 	return nk
 }
 
 type nodekeeper struct {
-	origin node2.NetworkNode
+	origin nodeinfo.NetworkNode
 
 	syncLock  sync.RWMutex
-	syncNodes []node2.NetworkNode
+	syncNodes []nodeinfo.NetworkNode
 
 	SnapshotStorage storage.SnapshotStorage
 }
 
-func (nk *nodekeeper) SetInitialSnapshot(nodes []node2.NetworkNode) {
+func (nk *nodekeeper) SetInitialSnapshot(nodes []nodeinfo.NetworkNode) {
 	ctx := context.TODO()
 	nk.Sync(ctx, pulse.MinTimePulse, nodes)
 	nk.MoveSyncToActive(ctx, pulse.MinTimePulse)
@@ -108,14 +109,14 @@ func (nk *nodekeeper) GetAccessor(pn pulse.Number) network.Accessor {
 	return node.NewAccessor(s)
 }
 
-func (nk *nodekeeper) GetOrigin() node2.NetworkNode {
+func (nk *nodekeeper) GetOrigin() nodeinfo.NetworkNode {
 	nk.syncLock.RLock()
 	defer nk.syncLock.RUnlock()
 
 	return nk.origin
 }
 
-func (nk *nodekeeper) Sync(ctx context.Context, number pulse.Number, nodes []node2.NetworkNode) {
+func (nk *nodekeeper) Sync(ctx context.Context, number pulse.Number, nodes []nodeinfo.NetworkNode) {
 	nk.syncLock.Lock()
 	defer nk.syncLock.Unlock()
 
@@ -123,7 +124,7 @@ func (nk *nodekeeper) Sync(ctx context.Context, number pulse.Number, nodes []nod
 	nk.syncNodes = nodes
 }
 
-func (nk *nodekeeper) updateOrigin(power node2.Power, state node2.State) {
+func (nk *nodekeeper) updateOrigin(power nodeinfo.Power, state nodeinfo.State) {
 	nk.origin.(node.MutableNode).SetPower(power)
 	nk.origin.(node.MutableNode).SetState(state)
 }

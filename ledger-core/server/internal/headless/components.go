@@ -17,7 +17,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodestorage"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor/memstor"
@@ -94,7 +94,7 @@ func initComponents(
 	pcs cryptography.PlatformCryptographyScheme,
 	keyStore cryptography.KeyStore,
 	keyProcessor cryptography.KeyProcessor,
-	certManager node.CertificateManager,
+	certManager nodeinfo.CertificateManager,
 
 ) *component.Manager {
 	cm := component.NewManager(nil)

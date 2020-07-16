@@ -11,17 +11,17 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
 )
 
 func TestNodeInfoResponse(t *testing.T) {
 	testPK := "test_public_key"
-	testRole := node.StaticRoleVirtual
+	testRole := member.StaticRoleVirtual
 
 	testValue := struct {
 		PublicKey string
-		Role      node.StaticRole
+		Role      member.StaticRole
 	}{
 		PublicKey: testPK,
 		Role:      testRole,
@@ -39,11 +39,11 @@ func TestNodeInfoResponse(t *testing.T) {
 
 func TestNodeInfoResponse_ErrorResponse(t *testing.T) {
 	testPK := "test_public_key"
-	testRole := node.StaticRoleVirtual
+	testRole := member.StaticRoleVirtual
 
 	testValue := struct {
 		PublicKey string
-		Role      node.StaticRole
+		Role      member.StaticRole
 	}{
 		PublicKey: testPK,
 		Role:      testRole,

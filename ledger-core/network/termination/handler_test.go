@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -30,7 +30,7 @@ type CommonTestSuite struct {
 	mc            *minimock.Controller
 	ctx           context.Context
 	handler       *Handler
-	leaver        *node.LeaverMock
+	leaver        *nodeinfo.LeaverMock
 	pulseAccessor *appctl.PulseAccessorMock
 }
 
@@ -41,7 +41,7 @@ func TestBasics(t *testing.T) {
 func (s *CommonTestSuite) BeforeTest(suiteName, testName string) {
 	s.mc = minimock.NewController(s.T())
 	s.ctx = instestlogger.TestContext(s.T())
-	s.leaver = node.NewLeaverMock(s.T())
+	s.leaver = nodeinfo.NewLeaverMock(s.T())
 	s.pulseAccessor = appctl.NewPulseAccessorMock(s.T())
 	s.handler = &Handler{Leaver: s.leaver, PulseAccessor: s.pulseAccessor}
 }

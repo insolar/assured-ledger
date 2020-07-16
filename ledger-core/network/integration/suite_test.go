@@ -19,12 +19,13 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl"
-	node2 "github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -119,9 +120,9 @@ func (s *consensusSuite) Setup() {
 	global.Info("SetupTest")
 
 	for i := 0; i < s.bootstrapCount; i++ {
-		role := node2.StaticRoleVirtual
+		role := member.StaticRoleVirtual
 		if i == 0 {
-			role = node2.StaticRoleHeavyMaterial
+			role = member.StaticRoleHeavyMaterial
 		}
 		s.bootstrapNodes = append(s.bootstrapNodes, s.newNetworkNodeWithRole(fmt.Sprintf("bootstrap_%d", i), role))
 	}
@@ -134,7 +135,7 @@ func (s *consensusSuite) Setup() {
 	global.Info("Setup bootstrap nodes")
 	s.SetupNodesNetwork(s.bootstrapNodes)
 	if UseFakeBootstrap {
-		bnodes := make([]node2.NetworkNode, 0)
+		bnodes := make([]nodeinfo.NetworkNode, 0)
 		for _, n := range s.bootstrapNodes {
 			o := n.serviceNetwork.NodeKeeper.GetOrigin()
 			dig, sig := o.(node.MutableNode).GetSignature()
@@ -150,7 +151,7 @@ func (s *consensusSuite) Setup() {
 			require.NoError(s.t, err)
 			err = n.serviceNetwork.BaseGateway.StartConsensus(s.ctx)
 			require.NoError(s.t, err)
-			n.serviceNetwork.Gatewayer.SwitchState(s.ctx, node2.CompleteNetworkState, pulsestor.GenesisPulse)
+			n.serviceNetwork.Gatewayer.SwitchState(s.ctx, nodeinfo.CompleteNetworkState, pulsestor.GenesisPulse)
 
 			pulseReceivers = append(pulseReceivers, n.host)
 		}
@@ -313,10 +314,10 @@ func (s *consensusSuite) waitForConsensus(consensusCount int) pulse.Number {
 }
 
 func (s *consensusSuite) assertNetworkInConsistentState(p pulse.Number) {
-	var nodes []node2.NetworkNode
+	var nodes []nodeinfo.NetworkNode
 
 	for _, n := range s.bootstrapNodes {
-		require.Equal(s.t, node2.CompleteNetworkState.String(),
+		require.Equal(s.t, nodeinfo.CompleteNetworkState.String(),
 			n.serviceNetwork.Gatewayer.Gateway().GetState().String(),
 			"Node not in CompleteNetworkState",
 		)
@@ -401,7 +402,7 @@ func (s *testSuite) GracefulStop(node *networkNode) {
 
 type networkNode struct {
 	id                  reference.Global
-	role                node2.StaticRole
+	role                member.StaticRole
 	privateKey          crypto.PrivateKey
 	cryptographyService cryptography.Service
 	host                string
@@ -413,7 +414,7 @@ type networkNode struct {
 }
 
 func (s *testSuite) newNetworkNode(name string) *networkNode {
-	return s.newNetworkNodeWithRole(name, node2.StaticRoleVirtual)
+	return s.newNetworkNodeWithRole(name, member.StaticRoleVirtual)
 }
 func (s *testSuite) startNewNetworkNode(name string) *networkNode {
 	testNode := s.newNetworkNode(name)
@@ -424,7 +425,7 @@ func (s *testSuite) startNewNetworkNode(name string) *networkNode {
 }
 
 // newNetworkNode returns networkNode initialized only with id, host address and key pair
-func (s *testSuite) newNetworkNodeWithRole(name string, role node2.StaticRole) *networkNode {
+func (s *testSuite) newNetworkNodeWithRole(name string, role member.StaticRole) *networkNode {
 	key, err := platformpolicy.NewKeyProcessor().GeneratePrivateKey()
 	require.NoError(s.t, err)
 	address := "127.0.0.1:" + strconv.Itoa(incrementTestPort())
@@ -451,7 +452,7 @@ func incrementTestPort() int {
 	return int(result)
 }
 
-func (n *networkNode) GetActiveNodes() []node2.NetworkNode {
+func (n *networkNode) GetActiveNodes() []nodeinfo.NetworkNode {
 	p, err := n.serviceNetwork.PulseAccessor.GetLatestPulse(n.ctx)
 	if err != nil {
 		panic(err)
@@ -459,7 +460,7 @@ func (n *networkNode) GetActiveNodes() []node2.NetworkNode {
 	return n.serviceNetwork.NodeKeeper.GetAccessor(p.PulseNumber).GetActiveNodes()
 }
 
-func (n *networkNode) GetWorkingNodes() []node2.NetworkNode {
+func (n *networkNode) GetWorkingNodes() []nodeinfo.NetworkNode {
 	p, err := n.serviceNetwork.PulseAccessor.GetLatestPulse(n.ctx)
 	if err != nil {
 		panic(err)

@@ -18,11 +18,13 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodestorage"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor/memstor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner"
@@ -132,11 +134,11 @@ func newServerExt(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFi
 		networkNodeMock := network.NewNetworkNodeMock(t).
 			IDMock.Return(gen.UniqueGlobalRef()).
 			ShortIDMock.Return(node.ShortNodeID(0)).
-			RoleMock.Return(node.StaticRoleVirtual).
+			RoleMock.Return(member.StaticRoleVirtual).
 			AddressMock.Return("").
-			GetStateMock.Return(node.Ready).
+			GetStateMock.Return(nodeinfo.Ready).
 			GetPowerMock.Return(1)
-		networkNodeList := []node.NetworkNode{networkNodeMock}
+		networkNodeList := []nodeinfo.NetworkNode{networkNodeMock}
 
 		nodeNetworkAccessorMock := network.NewAccessorMock(t).GetWorkingNodesMock.Return(networkNodeList)
 		nodeNetworkMock := network.NewNodeNetworkMock(t).GetAccessorMock.Return(nodeNetworkAccessorMock)

@@ -9,7 +9,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 )
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor.PulseDistributor -s _mock.go -g
@@ -21,12 +21,12 @@ type PulseDistributor interface {
 }
 
 type StatusReply struct {
-	NetworkState    node.NetworkState
-	Origin          node.NetworkNode
+	NetworkState    nodeinfo.NetworkState
+	Origin          nodeinfo.NetworkNode
 	ActiveListSize  int
 	WorkingListSize int
 	// Nodes from active list
-	Nodes []node.NetworkNode
+	Nodes []nodeinfo.NetworkNode
 	// Pulse from network pulse storage
 	Pulse     Pulse
 	Version   string

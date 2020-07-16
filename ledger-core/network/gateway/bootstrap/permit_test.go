@@ -14,7 +14,8 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
-	node2 "github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/host"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
@@ -41,10 +42,10 @@ func TestCreateAndVerifyPermit(t *testing.T) {
 	assert.NotNil(t, permit)
 
 	cert := testutils.NewCertificateMock(t)
-	cert.GetDiscoveryNodesMock.Set(func() (r []node2.DiscoveryNode) {
+	cert.GetDiscoveryNodesMock.Set(func() (r []nodeinfo.DiscoveryNode) {
 		pk, _ := cryptographyService.GetPublicKey()
-		node := mandates.NewBootstrapNode(pk, "", origin.Address.String(), origin.NodeID.String(), node2.StaticRoleVirtual.String())
-		return []node2.DiscoveryNode{node}
+		node := mandates.NewBootstrapNode(pk, "", origin.Address.String(), origin.NodeID.String(), member.StaticRoleVirtual.String())
+		return []nodeinfo.DiscoveryNode{node}
 	})
 
 	// validate

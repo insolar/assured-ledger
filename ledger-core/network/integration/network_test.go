@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	node2 "github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/node"
@@ -110,8 +110,8 @@ func TestDiscoveryDown(t *testing.T) {
 func flushNodeKeeper(keeper network.NodeKeeper) {
 	// keeper.SetIsBootstrapped(false)
 	// keeper.SetCloudHash(nil)
-	keeper.SetInitialSnapshot([]node2.NetworkNode{})
-	keeper.GetOrigin().(node.MutableNode).SetState(node2.Ready)
+	keeper.SetInitialSnapshot([]nodeinfo.NetworkNode{})
+	keeper.GetOrigin().(node.MutableNode).SetState(nodeinfo.Ready)
 }
 
 func TestDiscoveryRestart(t *testing.T) {

@@ -14,11 +14,11 @@ import (
 	"github.com/insolar/component-manager"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
-	node2 "github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/network"
@@ -50,7 +50,7 @@ type Base struct {
 	NodeKeeper          network.NodeKeeper                      `inject:""`
 	CryptographyService cryptography.Service                    `inject:""`
 	CryptographyScheme  cryptography.PlatformCryptographyScheme `inject:""`
-	CertificateManager  node2.CertificateManager                `inject:""`
+	CertificateManager  nodeinfo.CertificateManager             `inject:""`
 	HostNetwork         network.HostNetwork                     `inject:""`
 	PulseAccessor       appctl.PulseAccessor                    `inject:""`
 	PulseAppender       appctl.PulseAppender                    `inject:""`
@@ -83,26 +83,26 @@ type Base struct {
 }
 
 // NewGateway creates new gateway on top of existing
-func (g *Base) NewGateway(ctx context.Context, state node2.NetworkState) network.Gateway {
+func (g *Base) NewGateway(ctx context.Context, state nodeinfo.NetworkState) network.Gateway {
 	inslogger.FromContext(ctx).Infof("NewGateway %s", state.String())
 	switch state {
-	case node2.NoNetworkState:
+	case nodeinfo.NoNetworkState:
 		g.Self = newNoNetwork(g)
-	case node2.CompleteNetworkState:
+	case nodeinfo.CompleteNetworkState:
 		g.Self = newComplete(g)
-	case node2.JoinerBootstrap:
+	case nodeinfo.JoinerBootstrap:
 		g.Self = newJoinerBootstrap(g)
-	case node2.WaitConsensus:
+	case nodeinfo.WaitConsensus:
 		err := g.StartConsensus(ctx)
 		if err != nil {
 			g.FailState(ctx, fmt.Sprintf("Failed to start consensus: %s", err))
 		}
 		g.Self = newWaitConsensus(g)
-	case node2.WaitMajority:
+	case nodeinfo.WaitMajority:
 		g.Self = newWaitMajority(g)
-	case node2.WaitMinRoles:
+	case nodeinfo.WaitMinRoles:
 		g.Self = newWaitMinRoles(g)
-	case node2.WaitPulsar:
+	case nodeinfo.WaitPulsar:
 		g.Self = newWaitPulsar(g)
 	default:
 		inslogger.FromContext(ctx).Panic("Try to switch network to unknown state. Memory of process is inconsistent.")
@@ -191,7 +191,7 @@ func (g *Base) createOriginCandidate() error {
 		return err
 	}
 	mutableOrigin.SetSignature(digest, *sign)
-	g.NodeKeeper.SetInitialSnapshot([]node2.NetworkNode{origin})
+	g.NodeKeeper.SetInitialSnapshot([]nodeinfo.NetworkNode{origin})
 
 	staticProfile := adapters.NewStaticProfile(origin, g.CertificateManager.GetCertificate(), g.KeyProcessor)
 	g.originCandidate = adapters.NewCandidate(staticProfile, g.KeyProcessor)
@@ -234,7 +234,7 @@ func (g *Base) OnPulseFromConsensus(ctx context.Context, pu network.NetworkedPul
 }
 
 // UpdateState called then Consensus done
-func (g *Base) UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes []node2.NetworkNode, cloudStateHash []byte) {
+func (g *Base) UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes []nodeinfo.NetworkNode, cloudStateHash []byte) {
 	g.NodeKeeper.Sync(ctx, pulseNumber, nodes)
 }
 
@@ -257,12 +257,12 @@ func (g *Base) Bootstrapper() network.Bootstrapper {
 }
 
 // GetCert method returns node certificate by requesting sign from discovery nodes
-func (g *Base) GetCert(ctx context.Context, ref reference.Global) (node2.Certificate, error) {
+func (g *Base) GetCert(ctx context.Context, ref reference.Global) (nodeinfo.Certificate, error) {
 	return nil, errors.New("GetCert() in non active mode")
 }
 
 // ValidateCert validates node certificate
-func (g *Base) ValidateCert(ctx context.Context, authCert node2.AuthorizationCertificate) (bool, error) {
+func (g *Base) ValidateCert(ctx context.Context, authCert nodeinfo.AuthorizationCertificate) (bool, error) {
 	return mandates.VerifyAuthorizationCertificate(g.CryptographyService, g.CertificateManager.GetCertificate().GetDiscoveryNodes(), authCert)
 }
 
@@ -277,11 +277,11 @@ func (g *Base) checkCanAnnounceCandidate(ctx context.Context) error {
 	// 		NB: announcing in WaitConsensus state is *NOT* allowed
 
 	state := g.Gatewayer.Gateway().GetState()
-	if state > node2.WaitConsensus {
+	if state > nodeinfo.WaitConsensus {
 		return nil
 	}
 
-	if state == node2.WaitConsensus {
+	if state == nodeinfo.WaitConsensus {
 		cert := g.CertificateManager.GetCertificate()
 		if network.OriginIsJoinAssistant(cert) {
 			return nil
@@ -458,7 +458,7 @@ func (g *Base) OnConsensusFinished(ctx context.Context, report network.Report) {
 	inslogger.FromContext(ctx).Infof("OnConsensusFinished for pulse %d", report.PulseNumber)
 }
 
-func (g *Base) EphemeralMode(nodes []node2.NetworkNode) bool {
+func (g *Base) EphemeralMode(nodes []nodeinfo.NetworkNode) bool {
 	_, majorityErr := rules.CheckMajorityRule(g.CertificateManager.GetCertificate(), nodes)
 	minRoleErr := rules.CheckMinRole(g.CertificateManager.GetCertificate(), nodes)
 

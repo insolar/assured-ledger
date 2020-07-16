@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles"
 
@@ -31,7 +31,7 @@ const (
 )
 
 type EphemeralController interface {
-	EphemeralMode(nodes []node.NetworkNode) bool
+	EphemeralMode(nodes []nodeinfo.NetworkNode) bool
 }
 
 var _ api.ConsensusControlFeeder = &ConsensusControlFeeder{}

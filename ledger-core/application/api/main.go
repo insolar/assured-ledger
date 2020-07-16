@@ -17,11 +17,11 @@ import (
 	jsonrpc "github.com/insolar/rpc/v2/json2"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/api/seedmanager"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
@@ -32,10 +32,10 @@ import (
 
 // Runner implements Component for API
 type Runner struct {
-	CertificateManager node.CertificateManager
+	CertificateManager nodeinfo.CertificateManager
 	// nolint
 	NodeNetwork         network.NodeNetwork
-	CertificateGetter   node.CertificateGetter
+	CertificateGetter   nodeinfo.CertificateGetter
 	PulseAccessor       appctl.Accessor
 	JetCoordinator      jet.AffinityHelper
 	NetworkStatus       pulsestor.NetworkStatus
@@ -79,10 +79,10 @@ func (ar *Runner) registerPublicServices(rpcServer *rpc.Server) error {
 
 // NewRunner is C-tor for API Runner
 func NewRunner(cfg *configuration.APIRunner,
-	certificateManager node.CertificateManager,
+	certificateManager nodeinfo.CertificateManager,
 	// nolint
 	nodeNetwork network.NodeNetwork,
-	certificateGetter node.CertificateGetter,
+	certificateGetter nodeinfo.CertificateGetter,
 	pulseAccessor appctl.Accessor,
 	jetCoordinator jet.AffinityHelper,
 	networkStatus pulsestor.NetworkStatus,

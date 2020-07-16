@@ -9,7 +9,8 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
+
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	mm_network "github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
@@ -24,7 +25,7 @@ type NodeKeeperMock struct {
 	beforeGetAccessorCounter uint64
 	GetAccessorMock          mNodeKeeperMockGetAccessor
 
-	funcGetOrigin          func() (n1 node.NetworkNode)
+	funcGetOrigin          func() (n1 nodeinfo.NetworkNode)
 	inspectFuncGetOrigin   func()
 	afterGetOriginCounter  uint64
 	beforeGetOriginCounter uint64
@@ -36,14 +37,14 @@ type NodeKeeperMock struct {
 	beforeMoveSyncToActiveCounter uint64
 	MoveSyncToActiveMock          mNodeKeeperMockMoveSyncToActive
 
-	funcSetInitialSnapshot          func(nodes []node.NetworkNode)
-	inspectFuncSetInitialSnapshot   func(nodes []node.NetworkNode)
+	funcSetInitialSnapshot          func(nodes []nodeinfo.NetworkNode)
+	inspectFuncSetInitialSnapshot   func(nodes []nodeinfo.NetworkNode)
 	afterSetInitialSnapshotCounter  uint64
 	beforeSetInitialSnapshotCounter uint64
 	SetInitialSnapshotMock          mNodeKeeperMockSetInitialSnapshot
 
-	funcSync          func(ctx context.Context, n1 pulse.Number, na1 []node.NetworkNode)
-	inspectFuncSync   func(ctx context.Context, n1 pulse.Number, na1 []node.NetworkNode)
+	funcSync          func(ctx context.Context, n1 pulse.Number, na1 []nodeinfo.NetworkNode)
+	inspectFuncSync   func(ctx context.Context, n1 pulse.Number, na1 []nodeinfo.NetworkNode)
 	afterSyncCounter  uint64
 	beforeSyncCounter uint64
 	SyncMock          mNodeKeeperMockSync
@@ -304,7 +305,7 @@ type NodeKeeperMockGetOriginExpectation struct {
 
 // NodeKeeperMockGetOriginResults contains results of the NodeKeeper.GetOrigin
 type NodeKeeperMockGetOriginResults struct {
-	n1 node.NetworkNode
+	n1 nodeinfo.NetworkNode
 }
 
 // Expect sets up expected params for NodeKeeper.GetOrigin
@@ -332,7 +333,7 @@ func (mmGetOrigin *mNodeKeeperMockGetOrigin) Inspect(f func()) *mNodeKeeperMockG
 }
 
 // Return sets up results that will be returned by NodeKeeper.GetOrigin
-func (mmGetOrigin *mNodeKeeperMockGetOrigin) Return(n1 node.NetworkNode) *NodeKeeperMock {
+func (mmGetOrigin *mNodeKeeperMockGetOrigin) Return(n1 nodeinfo.NetworkNode) *NodeKeeperMock {
 	if mmGetOrigin.mock.funcGetOrigin != nil {
 		mmGetOrigin.mock.t.Fatalf("NodeKeeperMock.GetOrigin mock is already set by Set")
 	}
@@ -345,7 +346,7 @@ func (mmGetOrigin *mNodeKeeperMockGetOrigin) Return(n1 node.NetworkNode) *NodeKe
 }
 
 //Set uses given function f to mock the NodeKeeper.GetOrigin method
-func (mmGetOrigin *mNodeKeeperMockGetOrigin) Set(f func() (n1 node.NetworkNode)) *NodeKeeperMock {
+func (mmGetOrigin *mNodeKeeperMockGetOrigin) Set(f func() (n1 nodeinfo.NetworkNode)) *NodeKeeperMock {
 	if mmGetOrigin.defaultExpectation != nil {
 		mmGetOrigin.mock.t.Fatalf("Default expectation is already set for the NodeKeeper.GetOrigin method")
 	}
@@ -359,7 +360,7 @@ func (mmGetOrigin *mNodeKeeperMockGetOrigin) Set(f func() (n1 node.NetworkNode))
 }
 
 // GetOrigin implements network.NodeKeeper
-func (mmGetOrigin *NodeKeeperMock) GetOrigin() (n1 node.NetworkNode) {
+func (mmGetOrigin *NodeKeeperMock) GetOrigin() (n1 nodeinfo.NetworkNode) {
 	mm_atomic.AddUint64(&mmGetOrigin.beforeGetOriginCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetOrigin.afterGetOriginCounter, 1)
 
@@ -638,11 +639,11 @@ type NodeKeeperMockSetInitialSnapshotExpectation struct {
 
 // NodeKeeperMockSetInitialSnapshotParams contains parameters of the NodeKeeper.SetInitialSnapshot
 type NodeKeeperMockSetInitialSnapshotParams struct {
-	nodes []node.NetworkNode
+	nodes []nodeinfo.NetworkNode
 }
 
 // Expect sets up expected params for NodeKeeper.SetInitialSnapshot
-func (mmSetInitialSnapshot *mNodeKeeperMockSetInitialSnapshot) Expect(nodes []node.NetworkNode) *mNodeKeeperMockSetInitialSnapshot {
+func (mmSetInitialSnapshot *mNodeKeeperMockSetInitialSnapshot) Expect(nodes []nodeinfo.NetworkNode) *mNodeKeeperMockSetInitialSnapshot {
 	if mmSetInitialSnapshot.mock.funcSetInitialSnapshot != nil {
 		mmSetInitialSnapshot.mock.t.Fatalf("NodeKeeperMock.SetInitialSnapshot mock is already set by Set")
 	}
@@ -662,7 +663,7 @@ func (mmSetInitialSnapshot *mNodeKeeperMockSetInitialSnapshot) Expect(nodes []no
 }
 
 // Inspect accepts an inspector function that has same arguments as the NodeKeeper.SetInitialSnapshot
-func (mmSetInitialSnapshot *mNodeKeeperMockSetInitialSnapshot) Inspect(f func(nodes []node.NetworkNode)) *mNodeKeeperMockSetInitialSnapshot {
+func (mmSetInitialSnapshot *mNodeKeeperMockSetInitialSnapshot) Inspect(f func(nodes []nodeinfo.NetworkNode)) *mNodeKeeperMockSetInitialSnapshot {
 	if mmSetInitialSnapshot.mock.inspectFuncSetInitialSnapshot != nil {
 		mmSetInitialSnapshot.mock.t.Fatalf("Inspect function is already set for NodeKeeperMock.SetInitialSnapshot")
 	}
@@ -686,7 +687,7 @@ func (mmSetInitialSnapshot *mNodeKeeperMockSetInitialSnapshot) Return() *NodeKee
 }
 
 //Set uses given function f to mock the NodeKeeper.SetInitialSnapshot method
-func (mmSetInitialSnapshot *mNodeKeeperMockSetInitialSnapshot) Set(f func(nodes []node.NetworkNode)) *NodeKeeperMock {
+func (mmSetInitialSnapshot *mNodeKeeperMockSetInitialSnapshot) Set(f func(nodes []nodeinfo.NetworkNode)) *NodeKeeperMock {
 	if mmSetInitialSnapshot.defaultExpectation != nil {
 		mmSetInitialSnapshot.mock.t.Fatalf("Default expectation is already set for the NodeKeeper.SetInitialSnapshot method")
 	}
@@ -700,7 +701,7 @@ func (mmSetInitialSnapshot *mNodeKeeperMockSetInitialSnapshot) Set(f func(nodes 
 }
 
 // SetInitialSnapshot implements network.NodeKeeper
-func (mmSetInitialSnapshot *NodeKeeperMock) SetInitialSnapshot(nodes []node.NetworkNode) {
+func (mmSetInitialSnapshot *NodeKeeperMock) SetInitialSnapshot(nodes []nodeinfo.NetworkNode) {
 	mm_atomic.AddUint64(&mmSetInitialSnapshot.beforeSetInitialSnapshotCounter, 1)
 	defer mm_atomic.AddUint64(&mmSetInitialSnapshot.afterSetInitialSnapshotCounter, 1)
 
@@ -827,11 +828,11 @@ type NodeKeeperMockSyncExpectation struct {
 type NodeKeeperMockSyncParams struct {
 	ctx context.Context
 	n1  pulse.Number
-	na1 []node.NetworkNode
+	na1 []nodeinfo.NetworkNode
 }
 
 // Expect sets up expected params for NodeKeeper.Sync
-func (mmSync *mNodeKeeperMockSync) Expect(ctx context.Context, n1 pulse.Number, na1 []node.NetworkNode) *mNodeKeeperMockSync {
+func (mmSync *mNodeKeeperMockSync) Expect(ctx context.Context, n1 pulse.Number, na1 []nodeinfo.NetworkNode) *mNodeKeeperMockSync {
 	if mmSync.mock.funcSync != nil {
 		mmSync.mock.t.Fatalf("NodeKeeperMock.Sync mock is already set by Set")
 	}
@@ -851,7 +852,7 @@ func (mmSync *mNodeKeeperMockSync) Expect(ctx context.Context, n1 pulse.Number, 
 }
 
 // Inspect accepts an inspector function that has same arguments as the NodeKeeper.Sync
-func (mmSync *mNodeKeeperMockSync) Inspect(f func(ctx context.Context, n1 pulse.Number, na1 []node.NetworkNode)) *mNodeKeeperMockSync {
+func (mmSync *mNodeKeeperMockSync) Inspect(f func(ctx context.Context, n1 pulse.Number, na1 []nodeinfo.NetworkNode)) *mNodeKeeperMockSync {
 	if mmSync.mock.inspectFuncSync != nil {
 		mmSync.mock.t.Fatalf("Inspect function is already set for NodeKeeperMock.Sync")
 	}
@@ -875,7 +876,7 @@ func (mmSync *mNodeKeeperMockSync) Return() *NodeKeeperMock {
 }
 
 //Set uses given function f to mock the NodeKeeper.Sync method
-func (mmSync *mNodeKeeperMockSync) Set(f func(ctx context.Context, n1 pulse.Number, na1 []node.NetworkNode)) *NodeKeeperMock {
+func (mmSync *mNodeKeeperMockSync) Set(f func(ctx context.Context, n1 pulse.Number, na1 []nodeinfo.NetworkNode)) *NodeKeeperMock {
 	if mmSync.defaultExpectation != nil {
 		mmSync.mock.t.Fatalf("Default expectation is already set for the NodeKeeper.Sync method")
 	}
@@ -889,7 +890,7 @@ func (mmSync *mNodeKeeperMockSync) Set(f func(ctx context.Context, n1 pulse.Numb
 }
 
 // Sync implements network.NodeKeeper
-func (mmSync *NodeKeeperMock) Sync(ctx context.Context, n1 pulse.Number, na1 []node.NetworkNode) {
+func (mmSync *NodeKeeperMock) Sync(ctx context.Context, n1 pulse.Number, na1 []nodeinfo.NetworkNode) {
 	mm_atomic.AddUint64(&mmSync.beforeSyncCounter, 1)
 	defer mm_atomic.AddUint64(&mmSync.afterSyncCounter, 1)
 

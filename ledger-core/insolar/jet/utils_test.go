@@ -13,10 +13,10 @@ import (
 	"testing"
 
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/network/entropy"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 )
 
@@ -100,9 +100,9 @@ func benchSelectByEntropyWrapped(b *testing.B, valuescount int, count int) {
 	var e pulsestor.Entropy
 	copy(e[:], randslice(64))
 
-	values := make([]node.Node, 0, valuescount)
+	values := make([]rms.Node, 0, valuescount)
 	for i := 0; i < valuescount; i++ {
-		values = append(values, node.Node{ID: gen.UniqueGlobalRef()})
+		values = append(values, rms.Node{ID: rms.NewReference(gen.UniqueGlobalRef())})
 	}
 
 	b.ResetTimer()

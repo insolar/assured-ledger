@@ -15,10 +15,9 @@ const (
 	PrimaryRoleVirtual
 	// PrimaryRoleCascade
 	// PrimaryRoleRecrypt
-	maxPrimaryRole
+	PrimaryRoleCount = iota
 )
 
-const PrimaryRoleCount = int(maxPrimaryRole)
 
 func (v PrimaryRole) Equal(other PrimaryRole) bool {
 	return v == other
@@ -43,6 +42,24 @@ func (v PrimaryRole) IsVirtual() bool {
 func (v PrimaryRole) IsNeutral() bool {
 	return v == PrimaryRoleNeutral
 }
+
+func (v PrimaryRole) String() string {
+	switch v {
+	case PrimaryRoleVirtual:
+		return "virtual"
+	case PrimaryRoleHeavyMaterial:
+		return "heavy_material"
+	case PrimaryRoleLightMaterial:
+		return "light_material"
+	case PrimaryRoleNeutral:
+		return "neutral"
+	case PrimaryRoleInactive:
+		return "inactive"
+	}
+
+	return "unknown"
+}
+
 
 type SpecialRole uint8
 

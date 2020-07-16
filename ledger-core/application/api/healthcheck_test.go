@@ -12,7 +12,7 @@ import (
 	"testing"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -50,8 +50,8 @@ func (w mockResponseWriter) WriteHeader(statusCode int) {
 	w.header["status"] = []string{strconv.Itoa(statusCode)}
 }
 
-func randomNodeList(t *testing.T, size int) []node.DiscoveryNode {
-	list := make([]node.DiscoveryNode, size)
+func randomNodeList(t *testing.T, size int) []nodeinfo.DiscoveryNode {
+	list := make([]nodeinfo.DiscoveryNode, size)
 	for i := 0; i < size; i++ {
 		dn := testutils.NewDiscoveryNodeMock(t)
 		r := gen.UniqueGlobalRef()
@@ -63,11 +63,11 @@ func randomNodeList(t *testing.T, size int) []node.DiscoveryNode {
 	return list
 }
 
-func mockCertManager(t *testing.T, nodeList []node.DiscoveryNode) *testutils.CertificateManagerMock {
+func mockCertManager(t *testing.T, nodeList []nodeinfo.DiscoveryNode) *testutils.CertificateManagerMock {
 	cm := testutils.NewCertificateManagerMock(t)
-	cm.GetCertificateMock.Set(func() node.Certificate {
+	cm.GetCertificateMock.Set(func() nodeinfo.Certificate {
 		c := testutils.NewCertificateMock(t)
-		c.GetDiscoveryNodesMock.Set(func() []node.DiscoveryNode {
+		c.GetDiscoveryNodesMock.Set(func() []nodeinfo.DiscoveryNode {
 			return nodeList
 		})
 		return c
@@ -75,15 +75,15 @@ func mockCertManager(t *testing.T, nodeList []node.DiscoveryNode) *testutils.Cer
 	return cm
 }
 
-func mockNodeNetwork(t *testing.T, nodeList []node.DiscoveryNode) *network.NodeNetworkMock {
+func mockNodeNetwork(t *testing.T, nodeList []nodeinfo.DiscoveryNode) *network.NodeNetworkMock {
 	nn := network.NewNodeNetworkMock(t)
-	nodeMap := make(map[reference.Global]node.DiscoveryNode)
+	nodeMap := make(map[reference.Global]nodeinfo.DiscoveryNode)
 	for _, node := range nodeList {
 		nodeMap[node.GetNodeRef()] = node
 	}
 
 	accessorMock := network.NewAccessorMock(t)
-	accessorMock.GetWorkingNodeMock.Set(func(ref reference.Global) node.NetworkNode {
+	accessorMock.GetWorkingNodeMock.Set(func(ref reference.Global) nodeinfo.NetworkNode {
 		if _, ok := nodeMap[ref]; ok {
 			return network.NewNetworkNodeMock(t)
 		}

@@ -8,7 +8,8 @@ package node
 import (
 	"testing"
 
-	node2 "github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
@@ -24,7 +25,7 @@ type Mutator struct {
 	*Accessor
 }
 
-func (m *Mutator) AddWorkingNode(n node2.NetworkNode) {
+func (m *Mutator) AddWorkingNode(n nodeinfo.NetworkNode) {
 	if _, ok := m.refIndex[n.ID()]; ok {
 		return
 	}
@@ -39,14 +40,14 @@ func TestSnapshot_Copy(t *testing.T) {
 	snapshot := NewSnapshot(pulse.MinTimePulse, nil)
 	mutator := NewMutator(snapshot)
 	ref1 := gen.UniqueGlobalRef()
-	node1 := newMutableNode(ref1, node2.StaticRoleVirtual, nil, node2.Ready, "127.0.0.1:0", "")
+	node1 := newMutableNode(ref1, member.StaticRoleVirtual, nil, nodeinfo.Ready, "127.0.0.1:0", "")
 	mutator.AddWorkingNode(node1)
 
 	snapshot2 := snapshot.Copy()
 	accessor := NewAccessor(snapshot2)
 
 	ref2 := gen.UniqueGlobalRef()
-	node2 := newMutableNode(ref2, node2.StaticRoleLightMaterial, nil, node2.Ready, "127.0.0.1:0", "")
+	node2 := newMutableNode(ref2, member.StaticRoleLightMaterial, nil, nodeinfo.Ready, "127.0.0.1:0", "")
 	mutator.AddWorkingNode(node2)
 
 	// mutator and accessor observe different copies of snapshot and don't affect each other
@@ -69,9 +70,9 @@ func TestSnapshot_Equal(t *testing.T) {
 
 	snapshot2.pulse = pulse.Number(10)
 
-	genNodeCopy := func(reference reference.Global) node2.NetworkNode {
-		return newMutableNode(reference, node2.StaticRoleLightMaterial,
-			nil, node2.Ready, "127.0.0.1:0", "")
+	genNodeCopy := func(reference reference.Global) nodeinfo.NetworkNode {
+		return newMutableNode(reference, member.StaticRoleLightMaterial,
+			nil, nodeinfo.Ready, "127.0.0.1:0", "")
 	}
 
 	refs := gen.UniqueGlobalRefs(2)

@@ -11,7 +11,7 @@ import (
 
 	"go.opencensus.io/stats"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 )
@@ -34,7 +34,7 @@ func (n *gatewayer) Gateway() network.Gateway {
 	return n.gateway
 }
 
-func (n *gatewayer) SwitchState(ctx context.Context, state node.NetworkState, pulse network.NetworkedPulse) {
+func (n *gatewayer) SwitchState(ctx context.Context, state nodeinfo.NetworkState, pulse network.NetworkedPulse) {
 	n.gatewayMu.Lock()
 	defer n.gatewayMu.Unlock()
 

@@ -11,14 +11,15 @@ import (
 	fuzz "github.com/google/gofuzz"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 )
 
 func TestNodeStorage_All(t *testing.T) {
-	var all []node.Node
-	f := fuzz.New().Funcs(func(e *node.Node, c fuzz.Continue) {
-		e.ID = gen.UniqueGlobalRef()
+	var all []rms.Node
+	f := fuzz.New().Funcs(func(e *rms.Node, c fuzz.Continue) {
+		e.ID.Set(gen.UniqueGlobalRef())
 	})
 	f.NumElements(5, 10).NilChance(0).Fuzz(&all)
 	pulse := gen.PulseNumber()
@@ -49,21 +50,21 @@ func TestNodeStorage_All(t *testing.T) {
 
 func TestNodeStorage_InRole(t *testing.T) {
 	var (
-		virtuals  []node.Node
-		materials []node.Node
-		all       []node.Node
+		virtuals  []rms.Node
+		materials []rms.Node
+		all       []rms.Node
 	)
 	{
-		f := fuzz.New().Funcs(func(e *node.Node, c fuzz.Continue) {
-			e.ID = gen.UniqueGlobalRef()
-			e.Role = node.StaticRoleVirtual
+		f := fuzz.New().Funcs(func(e *rms.Node, c fuzz.Continue) {
+			e.ID.Set(gen.UniqueGlobalRef())
+			e.Role = member.StaticRoleVirtual
 		})
 		f.NumElements(5, 10).NilChance(0).Fuzz(&virtuals)
 	}
 	{
-		f := fuzz.New().Funcs(func(e *node.Node, c fuzz.Continue) {
-			e.ID = gen.UniqueGlobalRef()
-			e.Role = node.StaticRoleLightMaterial
+		f := fuzz.New().Funcs(func(e *rms.Node, c fuzz.Continue) {
+			e.ID.Set(gen.UniqueGlobalRef())
+			e.Role = member.StaticRoleLightMaterial
 		})
 		f.NumElements(5, 10).NilChance(0).Fuzz(&materials)
 	}
@@ -74,12 +75,12 @@ func TestNodeStorage_InRole(t *testing.T) {
 		nodeStorage := NewStorage()
 		nodeStorage.nodes[pulse] = all
 		{
-			result, err := nodeStorage.InRole(pulse, node.StaticRoleVirtual)
+			result, err := nodeStorage.InRole(pulse, member.StaticRoleVirtual)
 			assert.NoError(t, err)
 			assert.Equal(t, virtuals, result)
 		}
 		{
-			result, err := nodeStorage.InRole(pulse, node.StaticRoleLightMaterial)
+			result, err := nodeStorage.InRole(pulse, member.StaticRoleLightMaterial)
 			assert.NoError(t, err)
 			assert.Equal(t, materials, result)
 		}
@@ -88,23 +89,23 @@ func TestNodeStorage_InRole(t *testing.T) {
 	t.Run("returns nil when empty nodes", func(t *testing.T) {
 		nodeStorage := NewStorage()
 		nodeStorage.nodes[pulse] = nil
-		result, err := nodeStorage.InRole(pulse, node.StaticRoleVirtual)
+		result, err := nodeStorage.InRole(pulse, member.StaticRoleVirtual)
 		assert.NoError(t, err)
 		assert.Nil(t, result)
 	})
 
 	t.Run("returns error when no nodes", func(t *testing.T) {
 		nodeStorage := NewStorage()
-		result, err := nodeStorage.InRole(pulse, node.StaticRoleVirtual)
+		result, err := nodeStorage.InRole(pulse, member.StaticRoleVirtual)
 		assert.Equal(t, ErrNoNodes, err)
 		assert.Nil(t, result)
 	})
 }
 
 func TestStorage_Set(t *testing.T) {
-	var nodes []node.Node
-	f := fuzz.New().Funcs(func(e *node.Node, c fuzz.Continue) {
-		e.ID = gen.UniqueGlobalRef()
+	var nodes []rms.Node
+	f := fuzz.New().Funcs(func(e *rms.Node, c fuzz.Continue) {
+		e.ID.Set(gen.UniqueGlobalRef())
 	})
 	f.NumElements(5, 10).NilChance(0).Fuzz(&nodes)
 	pulse := gen.PulseNumber()
@@ -118,7 +119,7 @@ func TestStorage_Set(t *testing.T) {
 
 	t.Run("saves nil if empty nodes", func(t *testing.T) {
 		nodeStorage := NewStorage()
-		err := nodeStorage.Set(pulse, []node.Node{})
+		err := nodeStorage.Set(pulse, []rms.Node{})
 		assert.NoError(t, err)
 		assert.Nil(t, nodeStorage.nodes[pulse])
 	})

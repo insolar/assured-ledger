@@ -3,11 +3,12 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package node
+package nodeinfo
 
 import (
 	"crypto"
 
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
@@ -33,7 +34,7 @@ type Certificate interface {
 type DiscoveryNode interface {
 	Meta
 
-	GetRole() StaticRole
+	GetRole() member.StaticRole
 	GetHost() string
 }
 
@@ -41,7 +42,7 @@ type DiscoveryNode interface {
 type AuthorizationCertificate interface {
 	Meta
 
-	GetRole() StaticRole
+	GetRole() member.StaticRole
 	SerializeNodePart() []byte
 	GetDiscoverySigns() map[reference.Global][]byte
 }

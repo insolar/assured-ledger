@@ -8,7 +8,9 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-	mm_node "github.com/insolar/assured-ledger/ledger-core/insolar/node"
+
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
@@ -16,7 +18,7 @@ import (
 type CertificateMock struct {
 	t minimock.Tester
 
-	funcGetDiscoveryNodes          func() (da1 []mm_node.DiscoveryNode)
+	funcGetDiscoveryNodes          func() (da1 []nodeinfo.DiscoveryNode)
 	inspectFuncGetDiscoveryNodes   func()
 	afterGetDiscoveryNodesCounter  uint64
 	beforeGetDiscoveryNodesCounter uint64
@@ -52,7 +54,7 @@ type CertificateMock struct {
 	beforeGetPublicKeyCounter uint64
 	GetPublicKeyMock          mCertificateMockGetPublicKey
 
-	funcGetRole          func() (s1 mm_node.StaticRole)
+	funcGetRole          func() (s1 member.StaticRole)
 	inspectFuncGetRole   func()
 	afterGetRoleCounter  uint64
 	beforeGetRoleCounter uint64
@@ -107,7 +109,7 @@ type CertificateMockGetDiscoveryNodesExpectation struct {
 
 // CertificateMockGetDiscoveryNodesResults contains results of the Certificate.GetDiscoveryNodes
 type CertificateMockGetDiscoveryNodesResults struct {
-	da1 []mm_node.DiscoveryNode
+	da1 []nodeinfo.DiscoveryNode
 }
 
 // Expect sets up expected params for Certificate.GetDiscoveryNodes
@@ -135,7 +137,7 @@ func (mmGetDiscoveryNodes *mCertificateMockGetDiscoveryNodes) Inspect(f func()) 
 }
 
 // Return sets up results that will be returned by Certificate.GetDiscoveryNodes
-func (mmGetDiscoveryNodes *mCertificateMockGetDiscoveryNodes) Return(da1 []mm_node.DiscoveryNode) *CertificateMock {
+func (mmGetDiscoveryNodes *mCertificateMockGetDiscoveryNodes) Return(da1 []nodeinfo.DiscoveryNode) *CertificateMock {
 	if mmGetDiscoveryNodes.mock.funcGetDiscoveryNodes != nil {
 		mmGetDiscoveryNodes.mock.t.Fatalf("CertificateMock.GetDiscoveryNodes mock is already set by Set")
 	}
@@ -148,7 +150,7 @@ func (mmGetDiscoveryNodes *mCertificateMockGetDiscoveryNodes) Return(da1 []mm_no
 }
 
 //Set uses given function f to mock the Certificate.GetDiscoveryNodes method
-func (mmGetDiscoveryNodes *mCertificateMockGetDiscoveryNodes) Set(f func() (da1 []mm_node.DiscoveryNode)) *CertificateMock {
+func (mmGetDiscoveryNodes *mCertificateMockGetDiscoveryNodes) Set(f func() (da1 []nodeinfo.DiscoveryNode)) *CertificateMock {
 	if mmGetDiscoveryNodes.defaultExpectation != nil {
 		mmGetDiscoveryNodes.mock.t.Fatalf("Default expectation is already set for the Certificate.GetDiscoveryNodes method")
 	}
@@ -162,7 +164,7 @@ func (mmGetDiscoveryNodes *mCertificateMockGetDiscoveryNodes) Set(f func() (da1 
 }
 
 // GetDiscoveryNodes implements node.Certificate
-func (mmGetDiscoveryNodes *CertificateMock) GetDiscoveryNodes() (da1 []mm_node.DiscoveryNode) {
+func (mmGetDiscoveryNodes *CertificateMock) GetDiscoveryNodes() (da1 []nodeinfo.DiscoveryNode) {
 	mm_atomic.AddUint64(&mmGetDiscoveryNodes.beforeGetDiscoveryNodesCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetDiscoveryNodes.afterGetDiscoveryNodesCounter, 1)
 
@@ -967,7 +969,7 @@ type CertificateMockGetRoleExpectation struct {
 
 // CertificateMockGetRoleResults contains results of the Certificate.GetRole
 type CertificateMockGetRoleResults struct {
-	s1 mm_node.StaticRole
+	s1 member.StaticRole
 }
 
 // Expect sets up expected params for Certificate.GetRole
@@ -995,7 +997,7 @@ func (mmGetRole *mCertificateMockGetRole) Inspect(f func()) *mCertificateMockGet
 }
 
 // Return sets up results that will be returned by Certificate.GetRole
-func (mmGetRole *mCertificateMockGetRole) Return(s1 mm_node.StaticRole) *CertificateMock {
+func (mmGetRole *mCertificateMockGetRole) Return(s1 member.StaticRole) *CertificateMock {
 	if mmGetRole.mock.funcGetRole != nil {
 		mmGetRole.mock.t.Fatalf("CertificateMock.GetRole mock is already set by Set")
 	}
@@ -1008,7 +1010,7 @@ func (mmGetRole *mCertificateMockGetRole) Return(s1 mm_node.StaticRole) *Certifi
 }
 
 //Set uses given function f to mock the Certificate.GetRole method
-func (mmGetRole *mCertificateMockGetRole) Set(f func() (s1 mm_node.StaticRole)) *CertificateMock {
+func (mmGetRole *mCertificateMockGetRole) Set(f func() (s1 member.StaticRole)) *CertificateMock {
 	if mmGetRole.defaultExpectation != nil {
 		mmGetRole.mock.t.Fatalf("Default expectation is already set for the Certificate.GetRole method")
 	}
@@ -1022,7 +1024,7 @@ func (mmGetRole *mCertificateMockGetRole) Set(f func() (s1 mm_node.StaticRole)) 
 }
 
 // GetRole implements node.Certificate
-func (mmGetRole *CertificateMock) GetRole() (s1 mm_node.StaticRole) {
+func (mmGetRole *CertificateMock) GetRole() (s1 member.StaticRole) {
 	mm_atomic.AddUint64(&mmGetRole.beforeGetRoleCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetRole.afterGetRoleCounter, 1)
 

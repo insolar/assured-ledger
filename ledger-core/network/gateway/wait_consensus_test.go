@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -44,12 +44,12 @@ func TestWaitConsensus_ConsensusHappenedInETA(t *testing.T) {
 	defer mc.Wait(time.Minute)
 
 	gatewayer := mock.NewGatewayerMock(mc)
-	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state node.NetworkState, pulse network.NetworkedPulse) {
-		assert.Equal(t, node.WaitMajority, state)
+	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state nodeinfo.NetworkState, pulse network.NetworkedPulse) {
+		assert.Equal(t, nodeinfo.WaitMajority, state)
 	})
 
 	waitConsensus := newWaitConsensus(&Base{})
-	assert.Equal(t, node.WaitConsensus, waitConsensus.GetState())
+	assert.Equal(t, nodeinfo.WaitConsensus, waitConsensus.GetState())
 	waitConsensus.Gatewayer = gatewayer
 	accessorMock := appctl.NewPulseAccessorMock(mc)
 	accessorMock.GetPulseMock.Set(func(ctx context.Context, p1 pulse.Number) (p2 appctl.PulseChange, err error) {

@@ -9,7 +9,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -48,15 +48,15 @@ func TestSwitch(t *testing.T) {
 	gatewayer.GatewayMock.Set(func() (g1 network.Gateway) {
 		return ge
 	})
-	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state node.NetworkState, pulse network.NetworkedPulse) {
+	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state nodeinfo.NetworkState, pulse network.NetworkedPulse) {
 		ge = ge.NewGateway(ctx, state)
 	})
 
 	require.Equal(t, "CompleteNetworkState", ge.GetState().String())
 	cref := gen.UniqueGlobalRef()
 
-	for _, state := range []node.NetworkState{node.NoNetworkState,
-		node.JoinerBootstrap, node.CompleteNetworkState} {
+	for _, state := range []nodeinfo.NetworkState{nodeinfo.NoNetworkState,
+		nodeinfo.JoinerBootstrap, nodeinfo.CompleteNetworkState} {
 		ge = ge.NewGateway(ctx, state)
 		require.Equal(t, state, ge.GetState())
 		ge.Run(ctx, pulsestor.EphemeralPulse)
@@ -97,7 +97,7 @@ func TestDumbComplete_GetCert(t *testing.T) {
 	ge.Run(ctx, pulsestor.EphemeralPulse)
 
 	gatewayer.GatewayMock.Set(func() (r network.Gateway) { return ge })
-	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state node.NetworkState, pulse network.NetworkedPulse) {
+	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state nodeinfo.NetworkState, pulse network.NetworkedPulse) {
 		ge = ge.NewGateway(ctx, state)
 	})
 
@@ -105,7 +105,7 @@ func TestDumbComplete_GetCert(t *testing.T) {
 
 	cref := gen.UniqueGlobalRef()
 
-	CM.GetCertificateMock.Set(func() (r node.Certificate) { return &mandates.Certificate{} })
+	CM.GetCertificateMock.Set(func() (r nodeinfo.Certificate) { return &mandates.Certificate{} })
 	cert, err := ge.Auther().GetCert(ctx, cref)
 
 	require.NoError(t, err)

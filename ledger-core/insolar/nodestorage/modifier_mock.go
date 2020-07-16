@@ -8,8 +8,9 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
+
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 )
 
 // ModifierMock implements Modifier
@@ -22,8 +23,8 @@ type ModifierMock struct {
 	beforeDeleteForPNCounter uint64
 	DeleteForPNMock          mModifierMockDeleteForPN
 
-	funcSet          func(pulse pulse.Number, nodes []node.Node) (err error)
-	inspectFuncSet   func(pulse pulse.Number, nodes []node.Node)
+	funcSet          func(pulse pulse.Number, nodes []rms.Node) (err error)
+	inspectFuncSet   func(pulse pulse.Number, nodes []rms.Node)
 	afterSetCounter  uint64
 	beforeSetCounter uint64
 	SetMock          mModifierMockSet
@@ -252,7 +253,7 @@ type ModifierMockSetExpectation struct {
 // ModifierMockSetParams contains parameters of the Modifier.Set
 type ModifierMockSetParams struct {
 	pulse pulse.Number
-	nodes []node.Node
+	nodes []rms.Node
 }
 
 // ModifierMockSetResults contains results of the Modifier.Set
@@ -261,7 +262,7 @@ type ModifierMockSetResults struct {
 }
 
 // Expect sets up expected params for Modifier.Set
-func (mmSet *mModifierMockSet) Expect(pulse pulse.Number, nodes []node.Node) *mModifierMockSet {
+func (mmSet *mModifierMockSet) Expect(pulse pulse.Number, nodes []rms.Node) *mModifierMockSet {
 	if mmSet.mock.funcSet != nil {
 		mmSet.mock.t.Fatalf("ModifierMock.Set mock is already set by Set")
 	}
@@ -281,7 +282,7 @@ func (mmSet *mModifierMockSet) Expect(pulse pulse.Number, nodes []node.Node) *mM
 }
 
 // Inspect accepts an inspector function that has same arguments as the Modifier.Set
-func (mmSet *mModifierMockSet) Inspect(f func(pulse pulse.Number, nodes []node.Node)) *mModifierMockSet {
+func (mmSet *mModifierMockSet) Inspect(f func(pulse pulse.Number, nodes []rms.Node)) *mModifierMockSet {
 	if mmSet.mock.inspectFuncSet != nil {
 		mmSet.mock.t.Fatalf("Inspect function is already set for ModifierMock.Set")
 	}
@@ -305,7 +306,7 @@ func (mmSet *mModifierMockSet) Return(err error) *ModifierMock {
 }
 
 //Set uses given function f to mock the Modifier.Set method
-func (mmSet *mModifierMockSet) Set(f func(pulse pulse.Number, nodes []node.Node) (err error)) *ModifierMock {
+func (mmSet *mModifierMockSet) Set(f func(pulse pulse.Number, nodes []rms.Node) (err error)) *ModifierMock {
 	if mmSet.defaultExpectation != nil {
 		mmSet.mock.t.Fatalf("Default expectation is already set for the Modifier.Set method")
 	}
@@ -320,7 +321,7 @@ func (mmSet *mModifierMockSet) Set(f func(pulse pulse.Number, nodes []node.Node)
 
 // When sets expectation for the Modifier.Set which will trigger the result defined by the following
 // Then helper
-func (mmSet *mModifierMockSet) When(pulse pulse.Number, nodes []node.Node) *ModifierMockSetExpectation {
+func (mmSet *mModifierMockSet) When(pulse pulse.Number, nodes []rms.Node) *ModifierMockSetExpectation {
 	if mmSet.mock.funcSet != nil {
 		mmSet.mock.t.Fatalf("ModifierMock.Set mock is already set by Set")
 	}
@@ -340,7 +341,7 @@ func (e *ModifierMockSetExpectation) Then(err error) *ModifierMock {
 }
 
 // Set implements Modifier
-func (mmSet *ModifierMock) Set(pulse pulse.Number, nodes []node.Node) (err error) {
+func (mmSet *ModifierMock) Set(pulse pulse.Number, nodes []rms.Node) (err error) {
 	mm_atomic.AddUint64(&mmSet.beforeSetCounter, 1)
 	defer mm_atomic.AddUint64(&mmSet.afterSetCounter, 1)
 

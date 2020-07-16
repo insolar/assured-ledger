@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 )
@@ -30,14 +30,14 @@ func (g *JoinerBootstrap) Run(ctx context.Context, p appctl.PulseChange) {
 	permit, err := g.BootstrapRequester.Authorize(ctx, cert)
 	if err != nil {
 		logger.Warn("Failed to authorize: ", err.Error())
-		g.Gatewayer.SwitchState(ctx, node.NoNetworkState, p)
+		g.Gatewayer.SwitchState(ctx, nodeinfo.NoNetworkState, p)
 		return
 	}
 
 	resp, err := g.BootstrapRequester.Bootstrap(ctx, permit, *g.originCandidate, p)
 	if err != nil {
 		logger.Warn("Failed to bootstrap: ", err.Error())
-		g.Gatewayer.SwitchState(ctx, node.NoNetworkState, p)
+		g.Gatewayer.SwitchState(ctx, nodeinfo.NoNetworkState, p)
 		return
 	}
 
@@ -50,9 +50,9 @@ func (g *JoinerBootstrap) Run(ctx context.Context, p appctl.PulseChange) {
 
 	g.bootstrapETA = time.Second * time.Duration(resp.ETASeconds)
 	g.bootstrapTimer = time.NewTimer(g.bootstrapETA)
-	g.Gatewayer.SwitchState(ctx, node.WaitConsensus, responsePulse)
+	g.Gatewayer.SwitchState(ctx, nodeinfo.WaitConsensus, responsePulse)
 }
 
-func (g *JoinerBootstrap) GetState() node.NetworkState {
-	return node.JoinerBootstrap
+func (g *JoinerBootstrap) GetState() nodeinfo.NetworkState {
+	return nodeinfo.JoinerBootstrap
 }

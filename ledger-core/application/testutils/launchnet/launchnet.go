@@ -24,11 +24,11 @@ import (
 
 	"gopkg.in/yaml.v2"
 
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/api/requester"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/defaults"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 )
 
 const HOST = "http://localhost:"
@@ -183,7 +183,7 @@ func stopInsolard() error {
 	return nil
 }
 
-func waitForNetworkState(state node.NetworkState) error {
+func waitForNetworkState(state nodeinfo.NetworkState) error {
 	numAttempts := 270
 	// TODO: read ports from bootstrap config
 	ports := []string{
@@ -243,9 +243,9 @@ func runPulsar() error {
 }
 
 func waitForNet() error {
-	err := waitForNetworkState(node.WaitPulsar)
+	err := waitForNetworkState(nodeinfo.WaitPulsar)
 	if err != nil {
-		return errors.W(err, "Can't wait for NetworkState "+node.WaitPulsar.String())
+		return errors.W(err, "Can't wait for NetworkState "+nodeinfo.WaitPulsar.String())
 	}
 
 	err = runPulsar()
@@ -253,9 +253,9 @@ func waitForNet() error {
 		return errors.W(err, "Can't run pulsar")
 	}
 
-	err = waitForNetworkState(node.CompleteNetworkState)
+	err = waitForNetworkState(nodeinfo.CompleteNetworkState)
 	if err != nil {
-		return errors.W(err, "Can't wait for NetworkState "+node.CompleteNetworkState.String())
+		return errors.W(err, "Can't wait for NetworkState "+nodeinfo.CompleteNetworkState.String())
 	}
 
 	return nil

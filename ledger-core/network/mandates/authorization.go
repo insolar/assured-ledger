@@ -10,8 +10,9 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -43,8 +44,8 @@ func (authCert *AuthorizationCertificate) GetNodeRef() reference.Global {
 }
 
 // GetRole returns role from node certificate
-func (authCert *AuthorizationCertificate) GetRole() node.StaticRole {
-	return node.GetStaticRoleFromString(authCert.Role)
+func (authCert *AuthorizationCertificate) GetRole() member.StaticRole {
+	return member.GetStaticRoleFromString(authCert.Role)
 }
 
 // GetDiscoverySigns return map of discovery nodes signs
@@ -68,7 +69,7 @@ func (authCert *AuthorizationCertificate) SignNodePart(key crypto.PrivateKey) ([
 }
 
 // Deserialize deserializes data to AuthorizationCertificate interface
-func Deserialize(data []byte, keyProc cryptography.KeyProcessor) (node.AuthorizationCertificate, error) {
+func Deserialize(data []byte, keyProc cryptography.KeyProcessor) (nodeinfo.AuthorizationCertificate, error) {
 	cert := &AuthorizationCertificate{}
 	err := insolar.Deserialize(data, cert)
 
@@ -88,7 +89,7 @@ func Deserialize(data []byte, keyProc cryptography.KeyProcessor) (node.Authoriza
 }
 
 // Serialize serializes AuthorizationCertificate interface
-func Serialize(authCert node.AuthorizationCertificate) ([]byte, error) {
+func Serialize(authCert nodeinfo.AuthorizationCertificate) ([]byte, error) {
 	data, err := insolar.Serialize(authCert)
 	if err != nil {
 		return nil, errors.W(err, "[ AuthorizationCertificate::Serialize ]")

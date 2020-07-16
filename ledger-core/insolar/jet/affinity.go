@@ -15,9 +15,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodestorage"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/entropy"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -81,7 +83,7 @@ func (jc *AffinityCoordinator) VirtualExecutorForObject(
 func (jc *AffinityCoordinator) virtualsForObject(
 	ctx context.Context, objID reference.Local, pn pulse.Number, count int,
 ) ([]reference.Global, error) {
-	candidates, err := jc.Nodes.InRole(pn, node.StaticRoleVirtual)
+	candidates, err := jc.Nodes.InRole(pn, member.StaticRoleVirtual)
 	if err == nodestorage.ErrNoNodes {
 		return nil, err
 	}
@@ -155,16 +157,18 @@ func (jc *AffinityCoordinator) entropy(ctx context.Context, pn pulse.Number) (pu
 func getRefs(
 	scheme cryptography.PlatformCryptographyScheme,
 	e []byte,
-	values []node.Node,
+	values []rms.Node,
 	count int,
 ) ([]reference.Global, error) {
-	sort.SliceStable(values, func(i, j int) bool {
-		return values[i].ID.Compare(values[j].ID) < 0
-	})
-	in := make([]interface{}, 0, len(values))
-	for _, value := range values {
-		in = append(in, interface{}(value.ID))
+
+	in := make([]interface{}, len(values))
+	for i, value := range values {
+		in[i] = value.ID.GetGlobal()
 	}
+
+	sort.SliceStable(in, func(i, j int) bool {
+		return in[i].(reference.Global).Compare(in[j].(reference.Global)) < 0
+	})
 
 	res, err := entropy.SelectByEntropy(scheme, e, in, count)
 	if err != nil {

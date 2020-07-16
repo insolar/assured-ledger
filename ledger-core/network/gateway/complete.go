@@ -13,7 +13,7 @@ import (
 	"go.opencensus.io/stats"
 
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
-	node2 "github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/instracer"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -48,8 +48,8 @@ func (g *Complete) Run(context.Context, network.NetworkedPulse) {
 	g.HostNetwork.RegisterRequestHandler(types.SignCert, g.signCertHandler)
 }
 
-func (g *Complete) GetState() node2.NetworkState {
-	return node2.CompleteNetworkState
+func (g *Complete) GetState() nodeinfo.NetworkState {
+	return nodeinfo.CompleteNetworkState
 }
 
 func (g *Complete) BeforeRun(ctx context.Context, pulse network.NetworkedPulse) {
@@ -60,7 +60,7 @@ func (g *Complete) BeforeRun(ctx context.Context, pulse network.NetworkedPulse) 
 }
 
 // GetCert method generates cert by requesting signs from discovery nodes
-func (g *Complete) GetCert(ctx context.Context, registeredNodeRef reference.Global) (node2.Certificate, error) {
+func (g *Complete) GetCert(ctx context.Context, registeredNodeRef reference.Global) (nodeinfo.Certificate, error) {
 	pKey, role, err := g.getNodeInfo(ctx, registeredNodeRef)
 	if err != nil {
 		return nil, errors.W(err, "[ GetCert ] Couldn't get node info")
@@ -83,7 +83,7 @@ func (g *Complete) GetCert(ctx context.Context, registeredNodeRef reference.Glob
 }
 
 // requestCertSign method requests sign from single discovery node
-func (g *Complete) requestCertSign(ctx context.Context, discoveryNode node2.DiscoveryNode, registeredNodeRef reference.Global) ([]byte, error) {
+func (g *Complete) requestCertSign(ctx context.Context, discoveryNode nodeinfo.DiscoveryNode, registeredNodeRef reference.Global) ([]byte, error) {
 	currentNodeCert := g.CertificateManager.GetCertificate()
 
 	if discoveryNode.GetNodeRef() == currentNodeCert.GetNodeRef() {
@@ -137,11 +137,11 @@ func (g *Complete) signCertHandler(ctx context.Context, request network.Received
 	return g.HostNetwork.BuildResponse(ctx, request, &packet.SignCertResponse{Sign: sign.Bytes()}), nil
 }
 
-func (g *Complete) EphemeralMode(nodes []node2.NetworkNode) bool {
+func (g *Complete) EphemeralMode(nodes []nodeinfo.NetworkNode) bool {
 	return false
 }
 
-func (g *Complete) UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes []node2.NetworkNode, cloudStateHash []byte) {
+func (g *Complete) UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes []nodeinfo.NetworkNode, cloudStateHash []byte) {
 	workingNodes := node.Select(nodes, node.ListWorking)
 
 	if _, err := rules.CheckMajorityRule(g.CertificateManager.GetCertificate(), workingNodes); err != nil {

@@ -13,6 +13,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/host"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet"
@@ -91,7 +92,7 @@ type Future interface {
 //Deprecated: network internal usage only
 type OriginProvider interface {
 	// GetOrigin get origin node information(self).
-	GetOrigin() node.NetworkNode
+	GetOrigin() nodeinfo.NetworkNode
 }
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network.NodeNetwork -o ../testutils/network -s _mock.go -g
@@ -111,9 +112,9 @@ type NodeKeeper interface {
 	NodeNetwork
 
 	// SetInitialSnapshot set initial snapshot for nodekeeper
-	SetInitialSnapshot(nodes []node.NetworkNode)
+	SetInitialSnapshot(nodes []nodeinfo.NetworkNode)
 	// Sync move unsync -> sync
-	Sync(context.Context, pulse.Number, []node.NetworkNode)
+	Sync(context.Context, pulse.Number, []nodeinfo.NetworkNode)
 	// MoveSyncToActive merge sync list with active nodes
 	MoveSyncToActive(context.Context, pulse.Number)
 }
@@ -131,18 +132,18 @@ type RoutingTable interface {
 // Accessor is interface that provides read access to nodekeeper internal snapshot
 type Accessor interface {
 	// GetWorkingNode get working node by its reference. Returns nil if node is not found or is not working.
-	GetWorkingNode(ref reference.Global) node.NetworkNode
+	GetWorkingNode(ref reference.Global) nodeinfo.NetworkNode
 	// GetWorkingNodes returns sorted list of all working nodes.
-	GetWorkingNodes() []node.NetworkNode
+	GetWorkingNodes() []nodeinfo.NetworkNode
 
 	// GetActiveNode returns active node.
-	GetActiveNode(ref reference.Global) node.NetworkNode
+	GetActiveNode(ref reference.Global) nodeinfo.NetworkNode
 	// GetActiveNodes returns unsorted list of all active nodes.
-	GetActiveNodes() []node.NetworkNode
+	GetActiveNodes() []nodeinfo.NetworkNode
 	// GetActiveNodeByShortID get active node by short ID. Returns nil if node is not found.
-	GetActiveNodeByShortID(shortID node.ShortNodeID) node.NetworkNode
+	GetActiveNodeByShortID(shortID node.ShortNodeID) nodeinfo.NetworkNode
 	// GetActiveNodeByAddr get active node by addr. Returns nil if node is not found.
-	GetActiveNodeByAddr(address string) node.NetworkNode
+	GetActiveNodeByAddr(address string) nodeinfo.NetworkNode
 }
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network.Gatewayer -o ../testutils/network -s _mock.go -g
@@ -150,39 +151,39 @@ type Accessor interface {
 // Gatewayer is a network which can change it's Gateway
 type Gatewayer interface {
 	Gateway() Gateway
-	SwitchState(context.Context, node.NetworkState, NetworkedPulse)
+	SwitchState(context.Context, nodeinfo.NetworkState, NetworkedPulse)
 }
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network.Gateway -o ../testutils/network -s _mock.go -g
 
 // Gateway responds for whole network state
 type Gateway interface {
-	NewGateway(context.Context, node.NetworkState) Gateway
+	NewGateway(context.Context, nodeinfo.NetworkState) Gateway
 
 	BeforeRun(context.Context, NetworkedPulse)
 	Run(context.Context, NetworkedPulse)
 
-	GetState() node.NetworkState
+	GetState() nodeinfo.NetworkState
 
 	OnPulseFromConsensus(context.Context, NetworkedPulse)
 	OnConsensusFinished(context.Context, Report)
 
-	UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes []node.NetworkNode, cloudStateHash []byte)
+	UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes []nodeinfo.NetworkNode, cloudStateHash []byte)
 
 	Auther() Auther
 	Bootstrapper() Bootstrapper
 
-	EphemeralMode(nodes []node.NetworkNode) bool
+	EphemeralMode(nodes []nodeinfo.NetworkNode) bool
 
 	FailState(ctx context.Context, reason string)
 }
 
 type Auther interface {
 	// GetCert returns certificate object by node reference, using discovery nodes for signing
-	GetCert(context.Context, reference.Global) (node.Certificate, error)
+	GetCert(context.Context, reference.Global) (nodeinfo.Certificate, error)
 	// ValidateCert checks certificate signature
 	// TODO make this cert.validate()
-	ValidateCert(context.Context, node.AuthorizationCertificate) (bool, error)
+	ValidateCert(context.Context, nodeinfo.AuthorizationCertificate) (bool, error)
 }
 
 // Bootstrapper interface used to change behavior of handlers in different network states

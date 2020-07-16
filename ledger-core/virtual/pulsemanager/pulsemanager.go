@@ -11,9 +11,9 @@ import (
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodestorage"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
@@ -156,9 +156,9 @@ func (m *PulseManager) setLegacy(ctx context.Context, newPulse pulsestor.Pulse) 
 			logger.Errorf("received zero nodes for pulse %d", newPulse.PulseNumber)
 			return nil
 		}
-		toSet := make([]node.Node, 0, len(fromNetwork))
+		toSet := make([]rms.Node, 0, len(fromNetwork))
 		for _, n := range fromNetwork {
-			toSet = append(toSet, node.Node{ID: n.ID(), Role: n.Role()})
+			toSet = append(toSet, rms.Node{ID: rms.NewReference(n.ID()), Role: n.Role()})
 		}
 		err := m.NodeSetter.Set(newPulse.PulseNumber, toSet)
 		if err != nil {

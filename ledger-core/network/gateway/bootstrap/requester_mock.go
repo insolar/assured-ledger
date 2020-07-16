@@ -9,8 +9,9 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
+
 	"github.com/insolar/assured-ledger/ledger-core/appctl"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/host"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet"
@@ -21,8 +22,8 @@ import (
 type RequesterMock struct {
 	t minimock.Tester
 
-	funcAuthorize          func(ctx context.Context, c2 node.Certificate) (pp1 *packet.Permit, err error)
-	inspectFuncAuthorize   func(ctx context.Context, c2 node.Certificate)
+	funcAuthorize          func(ctx context.Context, c2 nodeinfo.Certificate) (pp1 *packet.Permit, err error)
+	inspectFuncAuthorize   func(ctx context.Context, c2 nodeinfo.Certificate)
 	afterAuthorizeCounter  uint64
 	beforeAuthorizeCounter uint64
 	AuthorizeMock          mRequesterMockAuthorize
@@ -88,7 +89,7 @@ type RequesterMockAuthorizeExpectation struct {
 // RequesterMockAuthorizeParams contains parameters of the Requester.Authorize
 type RequesterMockAuthorizeParams struct {
 	ctx context.Context
-	c2  node.Certificate
+	c2  nodeinfo.Certificate
 }
 
 // RequesterMockAuthorizeResults contains results of the Requester.Authorize
@@ -98,7 +99,7 @@ type RequesterMockAuthorizeResults struct {
 }
 
 // Expect sets up expected params for Requester.Authorize
-func (mmAuthorize *mRequesterMockAuthorize) Expect(ctx context.Context, c2 node.Certificate) *mRequesterMockAuthorize {
+func (mmAuthorize *mRequesterMockAuthorize) Expect(ctx context.Context, c2 nodeinfo.Certificate) *mRequesterMockAuthorize {
 	if mmAuthorize.mock.funcAuthorize != nil {
 		mmAuthorize.mock.t.Fatalf("RequesterMock.Authorize mock is already set by Set")
 	}
@@ -118,7 +119,7 @@ func (mmAuthorize *mRequesterMockAuthorize) Expect(ctx context.Context, c2 node.
 }
 
 // Inspect accepts an inspector function that has same arguments as the Requester.Authorize
-func (mmAuthorize *mRequesterMockAuthorize) Inspect(f func(ctx context.Context, c2 node.Certificate)) *mRequesterMockAuthorize {
+func (mmAuthorize *mRequesterMockAuthorize) Inspect(f func(ctx context.Context, c2 nodeinfo.Certificate)) *mRequesterMockAuthorize {
 	if mmAuthorize.mock.inspectFuncAuthorize != nil {
 		mmAuthorize.mock.t.Fatalf("Inspect function is already set for RequesterMock.Authorize")
 	}
@@ -142,7 +143,7 @@ func (mmAuthorize *mRequesterMockAuthorize) Return(pp1 *packet.Permit, err error
 }
 
 //Set uses given function f to mock the Requester.Authorize method
-func (mmAuthorize *mRequesterMockAuthorize) Set(f func(ctx context.Context, c2 node.Certificate) (pp1 *packet.Permit, err error)) *RequesterMock {
+func (mmAuthorize *mRequesterMockAuthorize) Set(f func(ctx context.Context, c2 nodeinfo.Certificate) (pp1 *packet.Permit, err error)) *RequesterMock {
 	if mmAuthorize.defaultExpectation != nil {
 		mmAuthorize.mock.t.Fatalf("Default expectation is already set for the Requester.Authorize method")
 	}
@@ -157,7 +158,7 @@ func (mmAuthorize *mRequesterMockAuthorize) Set(f func(ctx context.Context, c2 n
 
 // When sets expectation for the Requester.Authorize which will trigger the result defined by the following
 // Then helper
-func (mmAuthorize *mRequesterMockAuthorize) When(ctx context.Context, c2 node.Certificate) *RequesterMockAuthorizeExpectation {
+func (mmAuthorize *mRequesterMockAuthorize) When(ctx context.Context, c2 nodeinfo.Certificate) *RequesterMockAuthorizeExpectation {
 	if mmAuthorize.mock.funcAuthorize != nil {
 		mmAuthorize.mock.t.Fatalf("RequesterMock.Authorize mock is already set by Set")
 	}
@@ -177,7 +178,7 @@ func (e *RequesterMockAuthorizeExpectation) Then(pp1 *packet.Permit, err error) 
 }
 
 // Authorize implements Requester
-func (mmAuthorize *RequesterMock) Authorize(ctx context.Context, c2 node.Certificate) (pp1 *packet.Permit, err error) {
+func (mmAuthorize *RequesterMock) Authorize(ctx context.Context, c2 nodeinfo.Certificate) (pp1 *packet.Permit, err error) {
 	mm_atomic.AddUint64(&mmAuthorize.beforeAuthorizeCounter, 1)
 	defer mm_atomic.AddUint64(&mmAuthorize.afterAuthorizeCounter, 1)
 

@@ -15,11 +15,12 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
@@ -67,8 +68,8 @@ func (bn *BootstrapNode) GetHost() string {
 }
 
 // GetRole returns role of bootstrap node
-func (bn *BootstrapNode) GetRole() node.StaticRole {
-	return node.GetStaticRoleFromString(bn.NodeRole)
+func (bn *BootstrapNode) GetRole() member.StaticRole {
+	return member.GetStaticRoleFromString(bn.NodeRole)
 }
 
 // NodeSign returns signed information about some node
@@ -177,8 +178,8 @@ func (cert *Certificate) fillExtraFields(keyProcessor cryptography.KeyProcessor)
 }
 
 // GetDiscoveryNodes return bootstrap nodes array
-func (cert *Certificate) GetDiscoveryNodes() []node.DiscoveryNode {
-	result := make([]node.DiscoveryNode, 0)
+func (cert *Certificate) GetDiscoveryNodes() []nodeinfo.DiscoveryNode {
+	result := make([]nodeinfo.DiscoveryNode, 0)
 	for i := 0; i < len(cert.BootstrapNodes); i++ {
 		// we get node by pointer, so ranged for loop does not suite
 		result = append(result, &cert.BootstrapNodes[i])

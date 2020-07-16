@@ -16,9 +16,10 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/network"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet/types"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
@@ -43,7 +44,7 @@ func mockCryptographyService(t *testing.T, ok bool) cryptography.Service {
 
 func mockCertificateManager(t *testing.T, certNodeRef reference.Global, discoveryNodeRef reference.Global, unsignCertOk bool) *testutils.CertificateManagerMock {
 	cm := testutils.NewCertificateManagerMock(t)
-	cm.GetCertificateMock.Set(func() node.Certificate {
+	cm.GetCertificateMock.Set(func() nodeinfo.Certificate {
 		return &mandates.Certificate{
 			AuthorizationCertificate: mandates.AuthorizationCertificate{
 				PublicKey: "test_public_key",
@@ -68,10 +69,10 @@ func mockCertificateManager(t *testing.T, certNodeRef reference.Global, discover
 func mockReply(t *testing.T) []byte {
 	res := struct {
 		PublicKey string
-		Role      node.StaticRole
+		Role      member.StaticRole
 	}{
 		PublicKey: "test_node_public_key",
-		Role:      node.StaticRoleVirtual,
+		Role:      member.StaticRoleVirtual,
 	}
 	node, err := foundation.MarshalMethodResult(res, nil)
 	require.NoError(t, err)
@@ -108,7 +109,7 @@ func TestComplete_GetCert(t *testing.T) {
 		PulseManager:        pm,
 		PulseAccessor:       pa,
 	})
-	ge = ge.NewGateway(context.Background(), node.CompleteNetworkState)
+	ge = ge.NewGateway(context.Background(), nodeinfo.CompleteNetworkState)
 	ctx := context.Background()
 
 	pa.GetLatestPulseMock.Expect(ctx).Return(pulsestor.GenesisPulse, nil)
@@ -159,7 +160,7 @@ func TestComplete_handler(t *testing.T) {
 		PulseAccessor:       pa,
 	})
 
-	ge = ge.NewGateway(context.Background(), node.CompleteNetworkState)
+	ge = ge.NewGateway(context.Background(), nodeinfo.CompleteNetworkState)
 	ctx := context.Background()
 	pa.GetLatestPulseMock.Expect(ctx).Return(pulsestor.GenesisPulse, nil)
 
