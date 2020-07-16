@@ -32,7 +32,7 @@ func TestNewNodeNetwork(t *testing.T) {
 
 	cfg := configuration.Transport{Address: "invalid"}
 	certMock := testutils.NewCertificateMock(t)
-	certMock.GetRoleMock.Set(func() member.StaticRole { return member.StaticRoleUnknown })
+	certMock.GetRoleMock.Set(func() member.PrimaryRole { return member.PrimaryRoleLightMaterial })
 	certMock.GetPublicKeyMock.Set(func() crypto.PublicKey { return nil })
 	certMock.GetNodeRefMock.Set(func() reference.Global { ref := gen.UniqueGlobalRef(); return ref })
 	certMock.GetDiscoveryNodesMock.Set(func() []nodeinfo.DiscoveryNode { return nil })
@@ -54,7 +54,7 @@ func newNodeKeeper(t *testing.T, service cryptography.Service) network.NodeKeepe
 		service = platformpolicy.NewKeyBoundCryptographyService(secret)
 	}
 	require.NoError(t, err)
-	certMock.GetRoleMock.Set(func() member.StaticRole { return member.StaticRoleUnknown })
+	certMock.GetRoleMock.Set(func() member.PrimaryRole { return member.PrimaryRoleUnknown })
 	certMock.GetPublicKeyMock.Set(func() crypto.PublicKey { return pk })
 	certMock.GetNodeRefMock.Set(func() reference.Global { ref := gen.UniqueGlobalRef(); return ref })
 	certMock.GetDiscoveryNodesMock.Set(func() []nodeinfo.DiscoveryNode { return nil })

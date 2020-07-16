@@ -24,8 +24,8 @@ type AccessorMock struct {
 	beforeAllCounter uint64
 	AllMock          mAccessorMockAll
 
-	funcInRole          func(pulse pulse.Number, role member.StaticRole) (na1 []rms.Node, err error)
-	inspectFuncInRole   func(pulse pulse.Number, role member.StaticRole)
+	funcInRole          func(pulse pulse.Number, role member.PrimaryRole) (na1 []rms.Node, err error)
+	inspectFuncInRole   func(pulse pulse.Number, role member.PrimaryRole)
 	afterInRoleCounter  uint64
 	beforeInRoleCounter uint64
 	InRoleMock          mAccessorMockInRole
@@ -283,7 +283,7 @@ type AccessorMockInRoleExpectation struct {
 // AccessorMockInRoleParams contains parameters of the Accessor.InRole
 type AccessorMockInRoleParams struct {
 	pulse pulse.Number
-	role  member.StaticRole
+	role  member.PrimaryRole
 }
 
 // AccessorMockInRoleResults contains results of the Accessor.InRole
@@ -293,7 +293,7 @@ type AccessorMockInRoleResults struct {
 }
 
 // Expect sets up expected params for Accessor.InRole
-func (mmInRole *mAccessorMockInRole) Expect(pulse pulse.Number, role member.StaticRole) *mAccessorMockInRole {
+func (mmInRole *mAccessorMockInRole) Expect(pulse pulse.Number, role member.PrimaryRole) *mAccessorMockInRole {
 	if mmInRole.mock.funcInRole != nil {
 		mmInRole.mock.t.Fatalf("AccessorMock.InRole mock is already set by Set")
 	}
@@ -313,7 +313,7 @@ func (mmInRole *mAccessorMockInRole) Expect(pulse pulse.Number, role member.Stat
 }
 
 // Inspect accepts an inspector function that has same arguments as the Accessor.InRole
-func (mmInRole *mAccessorMockInRole) Inspect(f func(pulse pulse.Number, role member.StaticRole)) *mAccessorMockInRole {
+func (mmInRole *mAccessorMockInRole) Inspect(f func(pulse pulse.Number, role member.PrimaryRole)) *mAccessorMockInRole {
 	if mmInRole.mock.inspectFuncInRole != nil {
 		mmInRole.mock.t.Fatalf("Inspect function is already set for AccessorMock.InRole")
 	}
@@ -337,7 +337,7 @@ func (mmInRole *mAccessorMockInRole) Return(na1 []rms.Node, err error) *Accessor
 }
 
 //Set uses given function f to mock the Accessor.InRole method
-func (mmInRole *mAccessorMockInRole) Set(f func(pulse pulse.Number, role member.StaticRole) (na1 []rms.Node, err error)) *AccessorMock {
+func (mmInRole *mAccessorMockInRole) Set(f func(pulse pulse.Number, role member.PrimaryRole) (na1 []rms.Node, err error)) *AccessorMock {
 	if mmInRole.defaultExpectation != nil {
 		mmInRole.mock.t.Fatalf("Default expectation is already set for the Accessor.InRole method")
 	}
@@ -352,7 +352,7 @@ func (mmInRole *mAccessorMockInRole) Set(f func(pulse pulse.Number, role member.
 
 // When sets expectation for the Accessor.InRole which will trigger the result defined by the following
 // Then helper
-func (mmInRole *mAccessorMockInRole) When(pulse pulse.Number, role member.StaticRole) *AccessorMockInRoleExpectation {
+func (mmInRole *mAccessorMockInRole) When(pulse pulse.Number, role member.PrimaryRole) *AccessorMockInRoleExpectation {
 	if mmInRole.mock.funcInRole != nil {
 		mmInRole.mock.t.Fatalf("AccessorMock.InRole mock is already set by Set")
 	}
@@ -372,7 +372,7 @@ func (e *AccessorMockInRoleExpectation) Then(na1 []rms.Node, err error) *Accesso
 }
 
 // InRole implements Accessor
-func (mmInRole *AccessorMock) InRole(pulse pulse.Number, role member.StaticRole) (na1 []rms.Node, err error) {
+func (mmInRole *AccessorMock) InRole(pulse pulse.Number, role member.PrimaryRole) (na1 []rms.Node, err error) {
 	mm_atomic.AddUint64(&mmInRole.beforeInRoleCounter, 1)
 	defer mm_atomic.AddUint64(&mmInRole.afterInRoleCounter, 1)
 

@@ -42,7 +42,7 @@ type NetworkNode interface {
 	// ShortID get short ID of node
 	ShortID() node.ShortNodeID
 	// Role is the candidate Role for the node
-	Role() member.StaticRole
+	Role() member.PrimaryRole
 	// PublicKey is the public key of the node
 	PublicKey() crypto.PublicKey
 	// Address is the network address of the node

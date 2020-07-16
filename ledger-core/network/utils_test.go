@@ -21,7 +21,7 @@ import (
 )
 
 func newTestNode() nodeinfo.NetworkNode {
-	return node.NewNode(gen.UniqueGlobalRef(), member.StaticRoleUnknown, nil, "127.0.0.1:5432", "")
+	return node.NewNode(gen.UniqueGlobalRef(), member.PrimaryRoleUnknown, nil, "127.0.0.1:5432", "")
 }
 
 func newTestNodeWithShortID(id node2.ShortNodeID) nodeinfo.NetworkNode {
@@ -88,8 +88,8 @@ func (t testNode) GetBriefSign() []byte {
 	return nil
 }
 
-func (t testNode) GetRole() member.StaticRole {
-	return member.StaticRoleVirtual
+func (t testNode) GetRole() member.PrimaryRole {
+	return member.PrimaryRoleVirtual
 }
 
 func TestExcludeOrigin(t *testing.T) {

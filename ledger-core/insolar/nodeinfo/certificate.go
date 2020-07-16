@@ -34,7 +34,7 @@ type Certificate interface {
 type DiscoveryNode interface {
 	Meta
 
-	GetRole() member.StaticRole
+	GetRole() member.PrimaryRole
 	GetHost() string
 }
 
@@ -42,7 +42,7 @@ type DiscoveryNode interface {
 type AuthorizationCertificate interface {
 	Meta
 
-	GetRole() member.StaticRole
+	GetRole() member.PrimaryRole
 	SerializeNodePart() []byte
 	GetDiscoverySigns() map[reference.Global][]byte
 }

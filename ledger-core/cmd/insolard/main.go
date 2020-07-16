@@ -70,7 +70,7 @@ func runInsolardServer(configPath, genesisConfigPath, roleString string) {
 	}
 
 	switch role {
-	case member.StaticRoleVirtual:
+	case member.PrimaryRoleVirtual:
 		s := server.NewVirtualServer(configPath)
 		s.Serve()
 	default:
@@ -88,18 +88,18 @@ func runHeadlessNetwork(configPath string) {
 	server.NewHeadlessNetworkNodeServer(configPath).Serve()
 }
 
-func readRoleFromCertificate(path string) (member.StaticRole, error) {
+func readRoleFromCertificate(path string) (member.PrimaryRole, error) {
 	var err error
 	cfg := configuration.NewHolder(path)
 
 	err = cfg.Load()
 	if err != nil {
-		return member.StaticRoleUnknown, errors.W(err, "failed to load configuration from file")
+		return member.PrimaryRoleUnknown, errors.W(err, "failed to load configuration from file")
 	}
 
 	data, err := ioutil.ReadFile(filepath.Clean(cfg.Configuration.CertificatePath))
 	if err != nil {
-		return member.StaticRoleUnknown, errors.Wrapf(
+		return member.PrimaryRoleUnknown, errors.Wrapf(
 			err,
 			"failed to read certificate from: %s",
 			cfg.Configuration.CertificatePath,
@@ -108,7 +108,7 @@ func readRoleFromCertificate(path string) (member.StaticRole, error) {
 	cert := mandates.AuthorizationCertificate{}
 	err = json.Unmarshal(data, &cert)
 	if err != nil {
-		return member.StaticRoleUnknown, errors.W(err, "failed to parse certificate json")
+		return member.PrimaryRoleUnknown, errors.W(err, "failed to parse certificate json")
 	}
 	return cert.GetRole(), nil
 }

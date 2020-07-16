@@ -28,7 +28,7 @@ func TestMemoryStorage(t *testing.T) {
 	ks := platformpolicy.NewKeyProcessor()
 	p1, err := ks.GeneratePrivateKey()
 	assert.NoError(t, err)
-	n := node.NewNode(gen.UniqueGlobalRef(), member.StaticRoleVirtual, ks.ExtractPublicKey(p1), "127.0.0.1:22", "ver2")
+	n := node.NewNode(gen.UniqueGlobalRef(), member.PrimaryRoleVirtual, ks.ExtractPublicKey(p1), "127.0.0.1:22", "ver2")
 	nodes := []nodeinfo.NetworkNode{n}
 
 	for i := 0; i < entriesCount+2; i++ {

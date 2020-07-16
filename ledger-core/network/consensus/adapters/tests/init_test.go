@@ -202,15 +202,15 @@ func initLogger(t *testing.T) context.Context {
 func generateNodeIdentities(countNeutral, countHeavy, countLight, countVirtual int) []nodeIdentity {
 	r := make([]nodeIdentity, 0, countNeutral+countHeavy+countLight+countVirtual)
 
-	r = _generateNodeIdentity(r, countNeutral, member.StaticRoleUnknown)
-	r = _generateNodeIdentity(r, countHeavy, member.StaticRoleHeavyMaterial)
-	r = _generateNodeIdentity(r, countLight, member.StaticRoleLightMaterial)
-	r = _generateNodeIdentity(r, countVirtual, member.StaticRoleVirtual)
+	r = _generateNodeIdentity(r, countNeutral, member.PrimaryRoleUnknown)
+	r = _generateNodeIdentity(r, countHeavy, member.PrimaryRoleHeavyMaterial)
+	r = _generateNodeIdentity(r, countLight, member.PrimaryRoleLightMaterial)
+	r = _generateNodeIdentity(r, countVirtual, member.PrimaryRoleVirtual)
 
 	return r
 }
 
-func _generateNodeIdentity(r []nodeIdentity, count int, role member.StaticRole) []nodeIdentity {
+func _generateNodeIdentity(r []nodeIdentity, count int, role member.PrimaryRole) []nodeIdentity {
 	for i := 0; i < count; i++ {
 		port := portOffset
 		r = append(r, nodeIdentity{
@@ -238,7 +238,7 @@ func generateNodeInfos(nodeIdentities []nodeIdentity) []*nodeMeta {
 }
 
 type nodeIdentity struct {
-	role member.StaticRole
+	role member.PrimaryRole
 	addr string
 }
 
@@ -301,7 +301,7 @@ func nodesFromInfo(nodeInfos []*nodeMeta) ([]nodeinfo.NetworkNode, []nodeinfo.Ne
 
 	for i, info := range nodeInfos {
 		var isDiscovery bool
-		if info.role == member.StaticRoleHeavyMaterial || info.role == member.StaticRoleUnknown {
+		if info.role == member.PrimaryRoleHeavyMaterial || info.role == member.PrimaryRoleUnknown {
 			isDiscovery = true
 		}
 
@@ -327,7 +327,7 @@ func nodesFromInfo(nodeInfos []*nodeMeta) ([]nodeinfo.NetworkNode, []nodeinfo.Ne
 	return nodes, discoveryNodes, nil
 }
 
-func newNetworkNode(addr string, role member.StaticRole, pk crypto.PublicKey) node.MutableNode {
+func newNetworkNode(addr string, role member.PrimaryRole, pk crypto.PublicKey) node.MutableNode {
 	n := node.NewNode(
 		gen.UniqueGlobalRef(),
 		role,

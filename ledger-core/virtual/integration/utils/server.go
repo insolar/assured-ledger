@@ -134,7 +134,7 @@ func newServerExt(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFi
 		networkNodeMock := network.NewNetworkNodeMock(t).
 			IDMock.Return(gen.UniqueGlobalRef()).
 			ShortIDMock.Return(node.ShortNodeID(0)).
-			RoleMock.Return(member.StaticRoleVirtual).
+			RoleMock.Return(member.PrimaryRoleVirtual).
 			AddressMock.Return("").
 			GetStateMock.Return(nodeinfo.Ready).
 			GetPowerMock.Return(1)

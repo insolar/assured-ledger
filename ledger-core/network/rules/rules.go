@@ -47,11 +47,11 @@ func CheckMinRole(cert nodeinfo.Certificate, nodes []nodeinfo.NetworkNode) error
 	var virtualCount, heavyCount, lightCount uint
 	for _, n := range nodes {
 		switch n.Role() {
-		case member.StaticRoleVirtual:
+		case member.PrimaryRoleVirtual:
 			virtualCount++
-		case member.StaticRoleHeavyMaterial:
+		case member.PrimaryRoleHeavyMaterial:
 			heavyCount++
-		case member.StaticRoleLightMaterial:
+		case member.PrimaryRoleLightMaterial:
 			lightCount++
 		default:
 			global.Warn("unknown node role")
@@ -66,8 +66,8 @@ func CheckMinRole(cert nodeinfo.Certificate, nodes []nodeinfo.NetworkNode) error
 	}
 
 	err := errors.New(fmt.Sprintf("%s actual %d expected %d, %s actual %d expected %d, %s actual %d expected %d",
-		member.StaticRoleVirtual.String(), virtualCount, v,
-		member.StaticRoleHeavyMaterial.String(), heavyCount, h,
-		member.StaticRoleLightMaterial.String(), lightCount, l))
+		member.PrimaryRoleVirtual.String(), virtualCount, v,
+		member.PrimaryRoleHeavyMaterial.String(), heavyCount, h,
+		member.PrimaryRoleLightMaterial.String(), lightCount, l))
 	return errors.W(err, "MinRoles failed")
 }

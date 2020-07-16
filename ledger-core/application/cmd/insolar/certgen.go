@@ -191,7 +191,7 @@ type certGen struct {
 
 	rootKeysFile string
 	API          string
-	staticRole   member.StaticRole
+	staticRole   member.PrimaryRole
 
 	keysFileOut string
 	certFileOut string
@@ -209,7 +209,7 @@ func genCertificate(
 	reuseKeys bool,
 ) {
 	staticRole := member.GetStaticRoleFromString(role)
-	if staticRole == member.StaticRoleUnknown {
+	if staticRole == member.PrimaryRoleUnknown {
 		fmt.Println("Invalid role:", role)
 		os.Exit(1)
 	}

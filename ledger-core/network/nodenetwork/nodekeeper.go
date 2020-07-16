@@ -11,7 +11,6 @@ import (
 	"sync"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
-	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/storage"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -23,7 +22,7 @@ import (
 
 	"go.opencensus.io/stats"
 
-	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/network"
@@ -34,7 +33,7 @@ import (
 func NewNodeNetwork(configuration configuration.Transport, certificate nodeinfo.Certificate) (network.NodeNetwork, error) { // nolint:staticcheck
 	origin, err := createOrigin(configuration, certificate)
 	if err != nil {
-		return nil, errors.W(err, "Failed to create origin node")
+		return nil, throw.W(err, "Failed to create origin node")
 	}
 	nodeKeeper := NewNodeKeeper(origin)
 	if !network.OriginIsDiscovery(certificate) {
@@ -46,13 +45,14 @@ func NewNodeNetwork(configuration configuration.Transport, certificate nodeinfo.
 func createOrigin(configuration configuration.Transport, certificate nodeinfo.Certificate) (nodeinfo.NetworkNode, error) {
 	publicAddress, err := resolveAddress(configuration)
 	if err != nil {
-		return nil, errors.W(err, "Failed to resolve public address")
+		return nil, throw.W(err, "Failed to resolve public address")
 	}
 
 	role := certificate.GetRole()
-	if role == member.StaticRoleUnknown {
-		global.Info("[ createOrigin ] Use insolar.StaticRoleLightMaterial, since no role in certificate")
-		role = member.StaticRoleLightMaterial
+	if role == member.PrimaryRoleUnknown {
+		panic(throw.IllegalValue())
+		// global.Info("[ createOrigin ] Use role LightMaterial, since no role in certificate")
+		// role = member.PrimaryRoleLightMaterial
 	}
 
 	return node.NewNode(

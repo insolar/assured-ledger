@@ -35,7 +35,7 @@ type DiscoveryNodeMock struct {
 	beforeGetPublicKeyCounter uint64
 	GetPublicKeyMock          mDiscoveryNodeMockGetPublicKey
 
-	funcGetRole          func() (s1 member.StaticRole)
+	funcGetRole          func() (s1 member.PrimaryRole)
 	inspectFuncGetRole   func()
 	afterGetRoleCounter  uint64
 	beforeGetRoleCounter uint64
@@ -505,7 +505,7 @@ type DiscoveryNodeMockGetRoleExpectation struct {
 
 // DiscoveryNodeMockGetRoleResults contains results of the DiscoveryNode.GetRole
 type DiscoveryNodeMockGetRoleResults struct {
-	s1 member.StaticRole
+	s1 member.PrimaryRole
 }
 
 // Expect sets up expected params for DiscoveryNode.GetRole
@@ -533,7 +533,7 @@ func (mmGetRole *mDiscoveryNodeMockGetRole) Inspect(f func()) *mDiscoveryNodeMoc
 }
 
 // Return sets up results that will be returned by DiscoveryNode.GetRole
-func (mmGetRole *mDiscoveryNodeMockGetRole) Return(s1 member.StaticRole) *DiscoveryNodeMock {
+func (mmGetRole *mDiscoveryNodeMockGetRole) Return(s1 member.PrimaryRole) *DiscoveryNodeMock {
 	if mmGetRole.mock.funcGetRole != nil {
 		mmGetRole.mock.t.Fatalf("DiscoveryNodeMock.GetRole mock is already set by Set")
 	}
@@ -546,7 +546,7 @@ func (mmGetRole *mDiscoveryNodeMockGetRole) Return(s1 member.StaticRole) *Discov
 }
 
 //Set uses given function f to mock the DiscoveryNode.GetRole method
-func (mmGetRole *mDiscoveryNodeMockGetRole) Set(f func() (s1 member.StaticRole)) *DiscoveryNodeMock {
+func (mmGetRole *mDiscoveryNodeMockGetRole) Set(f func() (s1 member.PrimaryRole)) *DiscoveryNodeMock {
 	if mmGetRole.defaultExpectation != nil {
 		mmGetRole.mock.t.Fatalf("Default expectation is already set for the DiscoveryNode.GetRole method")
 	}
@@ -560,7 +560,7 @@ func (mmGetRole *mDiscoveryNodeMockGetRole) Set(f func() (s1 member.StaticRole))
 }
 
 // GetRole implements node.DiscoveryNode
-func (mmGetRole *DiscoveryNodeMock) GetRole() (s1 member.StaticRole) {
+func (mmGetRole *DiscoveryNodeMock) GetRole() (s1 member.PrimaryRole) {
 	mm_atomic.AddUint64(&mmGetRole.beforeGetRoleCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetRole.afterGetRoleCounter, 1)
 

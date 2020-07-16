@@ -29,9 +29,9 @@ func (s *bootstrapSuite) Setup() {
 	inslogger.FromContext(s.ctx).Info("SetupTest")
 
 	for i := 0; i < s.bootstrapCount; i++ {
-		role := member.StaticRoleVirtual
+		role := member.PrimaryRoleVirtual
 		if i == 0 {
-			role = member.StaticRoleHeavyMaterial
+			role = member.PrimaryRoleHeavyMaterial
 		}
 
 		s.bootstrapNodes = append(s.bootstrapNodes, s.newNetworkNodeWithRole(fmt.Sprintf("bootstrap_%d", i), role))

@@ -57,14 +57,14 @@ func TestNodeStorage_InRole(t *testing.T) {
 	{
 		f := fuzz.New().Funcs(func(e *rms.Node, c fuzz.Continue) {
 			e.ID.Set(gen.UniqueGlobalRef())
-			e.Role = member.StaticRoleVirtual
+			e.Role = member.PrimaryRoleVirtual
 		})
 		f.NumElements(5, 10).NilChance(0).Fuzz(&virtuals)
 	}
 	{
 		f := fuzz.New().Funcs(func(e *rms.Node, c fuzz.Continue) {
 			e.ID.Set(gen.UniqueGlobalRef())
-			e.Role = member.StaticRoleLightMaterial
+			e.Role = member.PrimaryRoleLightMaterial
 		})
 		f.NumElements(5, 10).NilChance(0).Fuzz(&materials)
 	}
@@ -75,12 +75,12 @@ func TestNodeStorage_InRole(t *testing.T) {
 		nodeStorage := NewStorage()
 		nodeStorage.nodes[pulse] = all
 		{
-			result, err := nodeStorage.InRole(pulse, member.StaticRoleVirtual)
+			result, err := nodeStorage.InRole(pulse, member.PrimaryRoleVirtual)
 			assert.NoError(t, err)
 			assert.Equal(t, virtuals, result)
 		}
 		{
-			result, err := nodeStorage.InRole(pulse, member.StaticRoleLightMaterial)
+			result, err := nodeStorage.InRole(pulse, member.PrimaryRoleLightMaterial)
 			assert.NoError(t, err)
 			assert.Equal(t, materials, result)
 		}
@@ -89,14 +89,14 @@ func TestNodeStorage_InRole(t *testing.T) {
 	t.Run("returns nil when empty nodes", func(t *testing.T) {
 		nodeStorage := NewStorage()
 		nodeStorage.nodes[pulse] = nil
-		result, err := nodeStorage.InRole(pulse, member.StaticRoleVirtual)
+		result, err := nodeStorage.InRole(pulse, member.PrimaryRoleVirtual)
 		assert.NoError(t, err)
 		assert.Nil(t, result)
 	})
 
 	t.Run("returns error when no nodes", func(t *testing.T) {
 		nodeStorage := NewStorage()
-		result, err := nodeStorage.InRole(pulse, member.StaticRoleVirtual)
+		result, err := nodeStorage.InRole(pulse, member.PrimaryRoleVirtual)
 		assert.Equal(t, ErrNoNodes, err)
 		assert.Nil(t, result)
 	})

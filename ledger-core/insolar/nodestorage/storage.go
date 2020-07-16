@@ -17,8 +17,8 @@ import (
 
 // Accessor provides info about active nodes.
 type Accessor interface {
-	All(pulse pulse.Number) ([]rms.Node, error)
-	InRole(pulse pulse.Number, role member.StaticRole) ([]rms.Node, error)
+//	All(pulse pulse.Number) ([]rms.Node, error)
+	InRole(pulse pulse.Number, role member.PrimaryRole) ([]rms.Node, error)
 }
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/insolar/nodestorage.Modifier -o ./ -s _mock.go -g
@@ -26,7 +26,7 @@ type Accessor interface {
 // Modifier provides methods for setting active nodes.
 type Modifier interface {
 	Set(pulse pulse.Number, nodes []rms.Node) error
-	DeleteForPN(pulse pulse.Number)
+//	DeleteForPN(pulse pulse.Number)
 }
 
 // Storage is an in-memory active node storage for each pulse. It's required to calculate node roles
@@ -76,7 +76,7 @@ func (a *Storage) All(pulse pulse.Number) ([]rms.Node, error) {
 }
 
 // InRole return active nodes for specified pulse and role.
-func (a *Storage) InRole(pulse pulse.Number, role member.StaticRole) ([]rms.Node, error) {
+func (a *Storage) InRole(pulse pulse.Number, role member.PrimaryRole) ([]rms.Node, error) {
 	a.lock.RLock()
 	defer a.lock.RUnlock()
 

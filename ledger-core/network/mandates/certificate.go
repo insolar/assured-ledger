@@ -68,7 +68,7 @@ func (bn *BootstrapNode) GetHost() string {
 }
 
 // GetRole returns role of bootstrap node
-func (bn *BootstrapNode) GetRole() member.StaticRole {
+func (bn *BootstrapNode) GetRole() member.PrimaryRole {
 	return member.GetStaticRoleFromString(bn.NodeRole)
 }
 

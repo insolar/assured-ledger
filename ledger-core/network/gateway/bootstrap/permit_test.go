@@ -44,7 +44,7 @@ func TestCreateAndVerifyPermit(t *testing.T) {
 	cert := testutils.NewCertificateMock(t)
 	cert.GetDiscoveryNodesMock.Set(func() (r []nodeinfo.DiscoveryNode) {
 		pk, _ := cryptographyService.GetPublicKey()
-		node := mandates.NewBootstrapNode(pk, "", origin.Address.String(), origin.NodeID.String(), member.StaticRoleVirtual.String())
+		node := mandates.NewBootstrapNode(pk, "", origin.Address.String(), origin.NodeID.String(), member.PrimaryRoleVirtual.String())
 		return []nodeinfo.DiscoveryNode{node}
 	})
 

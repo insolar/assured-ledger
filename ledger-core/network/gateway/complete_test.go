@@ -69,10 +69,10 @@ func mockCertificateManager(t *testing.T, certNodeRef reference.Global, discover
 func mockReply(t *testing.T) []byte {
 	res := struct {
 		PublicKey string
-		Role      member.StaticRole
+		Role      member.PrimaryRole
 	}{
 		PublicKey: "test_node_public_key",
-		Role:      member.StaticRoleVirtual,
+		Role:      member.PrimaryRoleVirtual,
 	}
 	node, err := foundation.MarshalMethodResult(res, nil)
 	require.NoError(t, err)

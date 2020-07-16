@@ -26,14 +26,14 @@ func TestNode(t *testing.T) {
 	{
 		f := fuzz.New().Funcs(func(e *rms.Node, c fuzz.Continue) {
 			e.ID.Set(gen.UniqueGlobalRef())
-			e.Role = member.StaticRoleVirtual
+			e.Role = member.PrimaryRoleVirtual
 		})
 		f.NumElements(5, 10).NilChance(0).Fuzz(&virtuals)
 	}
 	{
 		f := fuzz.New().Funcs(func(e *rms.Node, c fuzz.Continue) {
 			e.ID.Set(gen.UniqueGlobalRef())
-			e.Role = member.StaticRoleLightMaterial
+			e.Role = member.PrimaryRoleLightMaterial
 		})
 		f.NumElements(5, 10).NilChance(0).Fuzz(&materials)
 	}
@@ -54,7 +54,7 @@ func TestNode(t *testing.T) {
 	}
 	// Returns in role nodes.
 	{
-		result, err := storage.InRole(pulse, member.StaticRoleVirtual)
+		result, err := storage.InRole(pulse, member.PrimaryRoleVirtual)
 		assert.NoError(t, err)
 		assert.Equal(t, virtuals, result)
 	}

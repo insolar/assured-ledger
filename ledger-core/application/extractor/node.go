@@ -16,7 +16,7 @@ import (
 func NodeInfoResponse(data []byte) (string, string, error) {
 	res := struct {
 		PublicKey string
-		Role      member.StaticRole
+		Role      member.PrimaryRole
 	}{}
 	var contractErr *foundation.Error
 	err := foundation.UnmarshalMethodResultSimplified(data, &res, &contractErr)

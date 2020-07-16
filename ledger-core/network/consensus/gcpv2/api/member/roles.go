@@ -16,6 +16,8 @@ const (
 	// PrimaryRoleCascade
 	// PrimaryRoleRecrypt
 	PrimaryRoleCount = iota
+
+    PrimaryRoleUnknown = PrimaryRoleInactive
 )
 
 
@@ -60,6 +62,19 @@ func (v PrimaryRole) String() string {
 	return "unknown"
 }
 
+// GetStaticRoleFromString converts role from string to PrimaryRole.
+func GetStaticRoleFromString(role string) PrimaryRole {
+	switch role {
+	case "virtual":
+		return PrimaryRoleVirtual
+	case "heavy_material":
+		return PrimaryRoleHeavyMaterial
+	case "light_material":
+		return PrimaryRoleLightMaterial
+	}
+
+	return PrimaryRoleUnknown
+}
 
 type SpecialRole uint8
 

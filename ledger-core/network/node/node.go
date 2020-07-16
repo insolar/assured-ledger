@@ -41,7 +41,7 @@ func GenerateUintShortID(ref reference.Global) uint32 {
 type nodeInfo struct {
 	NodeID        reference.Global
 	NodeShortID   uint32
-	NodeRole      member.StaticRole
+	NodeRole      member.PrimaryRole
 	NodePublicKey crypto.PublicKey
 	NodePower     uint32
 
@@ -81,7 +81,7 @@ func (n *nodeInfo) ChangeState() {
 
 func newMutableNode(
 	id reference.Global,
-	role member.StaticRole,
+	role member.PrimaryRole,
 	publicKey crypto.PublicKey,
 	state nodeinfo.State,
 	address, version string) MutableNode {
@@ -99,7 +99,7 @@ func newMutableNode(
 
 func NewNode(
 	id reference.Global,
-	role member.StaticRole,
+	role member.PrimaryRole,
 	publicKey crypto.PublicKey,
 	address, version string) nodeinfo.NetworkNode {
 	return newMutableNode(id, role, publicKey, nodeinfo.Ready, address, version)
@@ -113,7 +113,7 @@ func (n *nodeInfo) ShortID() node.ShortNodeID {
 	return node.ShortNodeID(atomic.LoadUint32(&n.NodeShortID))
 }
 
-func (n *nodeInfo) Role() member.StaticRole {
+func (n *nodeInfo) Role() member.PrimaryRole {
 	return n.NodeRole
 }
 

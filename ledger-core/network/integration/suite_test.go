@@ -120,9 +120,9 @@ func (s *consensusSuite) Setup() {
 	global.Info("SetupTest")
 
 	for i := 0; i < s.bootstrapCount; i++ {
-		role := member.StaticRoleVirtual
+		role := member.PrimaryRoleVirtual
 		if i == 0 {
-			role = member.StaticRoleHeavyMaterial
+			role = member.PrimaryRoleHeavyMaterial
 		}
 		s.bootstrapNodes = append(s.bootstrapNodes, s.newNetworkNodeWithRole(fmt.Sprintf("bootstrap_%d", i), role))
 	}
@@ -402,7 +402,7 @@ func (s *testSuite) GracefulStop(node *networkNode) {
 
 type networkNode struct {
 	id                  reference.Global
-	role                member.StaticRole
+	role                member.PrimaryRole
 	privateKey          crypto.PrivateKey
 	cryptographyService cryptography.Service
 	host                string
@@ -414,7 +414,7 @@ type networkNode struct {
 }
 
 func (s *testSuite) newNetworkNode(name string) *networkNode {
-	return s.newNetworkNodeWithRole(name, member.StaticRoleVirtual)
+	return s.newNetworkNodeWithRole(name, member.PrimaryRoleVirtual)
 }
 func (s *testSuite) startNewNetworkNode(name string) *networkNode {
 	testNode := s.newNetworkNode(name)
@@ -425,7 +425,7 @@ func (s *testSuite) startNewNetworkNode(name string) *networkNode {
 }
 
 // newNetworkNode returns networkNode initialized only with id, host address and key pair
-func (s *testSuite) newNetworkNodeWithRole(name string, role member.StaticRole) *networkNode {
+func (s *testSuite) newNetworkNodeWithRole(name string, role member.PrimaryRole) *networkNode {
 	key, err := platformpolicy.NewKeyProcessor().GeneratePrivateKey()
 	require.NoError(s.t, err)
 	address := "127.0.0.1:" + strconv.Itoa(incrementTestPort())

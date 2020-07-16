@@ -17,11 +17,11 @@ import (
 
 func TestNodeInfoResponse(t *testing.T) {
 	testPK := "test_public_key"
-	testRole := member.StaticRoleVirtual
+	testRole := member.PrimaryRoleVirtual
 
 	testValue := struct {
 		PublicKey string
-		Role      member.StaticRole
+		Role      member.PrimaryRole
 	}{
 		PublicKey: testPK,
 		Role:      testRole,
@@ -39,11 +39,11 @@ func TestNodeInfoResponse(t *testing.T) {
 
 func TestNodeInfoResponse_ErrorResponse(t *testing.T) {
 	testPK := "test_public_key"
-	testRole := member.StaticRoleVirtual
+	testRole := member.PrimaryRoleVirtual
 
 	testValue := struct {
 		PublicKey string
-		Role      member.StaticRole
+		Role      member.PrimaryRole
 	}{
 		PublicKey: testPK,
 		Role:      testRole,

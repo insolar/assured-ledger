@@ -83,7 +83,7 @@ func (jc *AffinityCoordinator) VirtualExecutorForObject(
 func (jc *AffinityCoordinator) virtualsForObject(
 	ctx context.Context, objID reference.Local, pn pulse.Number, count int,
 ) ([]reference.Global, error) {
-	candidates, err := jc.Nodes.InRole(pn, member.StaticRoleVirtual)
+	candidates, err := jc.Nodes.InRole(pn, member.PrimaryRoleVirtual)
 	if err == nodestorage.ErrNoNodes {
 		return nil, err
 	}

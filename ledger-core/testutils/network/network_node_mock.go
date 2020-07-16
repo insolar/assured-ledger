@@ -62,7 +62,7 @@ type NetworkNodeMock struct {
 	beforePublicKeyCounter uint64
 	PublicKeyMock          mNetworkNodeMockPublicKey
 
-	funcRole          func() (s1 member.StaticRole)
+	funcRole          func() (s1 member.PrimaryRole)
 	inspectFuncRole   func()
 	afterRoleCounter  uint64
 	beforeRoleCounter uint64
@@ -1128,7 +1128,7 @@ type NetworkNodeMockRoleExpectation struct {
 
 // NetworkNodeMockRoleResults contains results of the NetworkNode.Role
 type NetworkNodeMockRoleResults struct {
-	s1 member.StaticRole
+	s1 member.PrimaryRole
 }
 
 // Expect sets up expected params for NetworkNode.Role
@@ -1156,7 +1156,7 @@ func (mmRole *mNetworkNodeMockRole) Inspect(f func()) *mNetworkNodeMockRole {
 }
 
 // Return sets up results that will be returned by NetworkNode.Role
-func (mmRole *mNetworkNodeMockRole) Return(s1 member.StaticRole) *NetworkNodeMock {
+func (mmRole *mNetworkNodeMockRole) Return(s1 member.PrimaryRole) *NetworkNodeMock {
 	if mmRole.mock.funcRole != nil {
 		mmRole.mock.t.Fatalf("NetworkNodeMock.Role mock is already set by Set")
 	}
@@ -1169,7 +1169,7 @@ func (mmRole *mNetworkNodeMockRole) Return(s1 member.StaticRole) *NetworkNodeMoc
 }
 
 //Set uses given function f to mock the NetworkNode.Role method
-func (mmRole *mNetworkNodeMockRole) Set(f func() (s1 member.StaticRole)) *NetworkNodeMock {
+func (mmRole *mNetworkNodeMockRole) Set(f func() (s1 member.PrimaryRole)) *NetworkNodeMock {
 	if mmRole.defaultExpectation != nil {
 		mmRole.mock.t.Fatalf("Default expectation is already set for the NetworkNode.Role method")
 	}
@@ -1183,7 +1183,7 @@ func (mmRole *mNetworkNodeMockRole) Set(f func() (s1 member.StaticRole)) *Networ
 }
 
 // Role implements node.NetworkNode
-func (mmRole *NetworkNodeMock) Role() (s1 member.StaticRole) {
+func (mmRole *NetworkNodeMock) Role() (s1 member.PrimaryRole) {
 	mm_atomic.AddUint64(&mmRole.beforeRoleCounter, 1)
 	defer mm_atomic.AddUint64(&mmRole.afterRoleCounter, 1)
 

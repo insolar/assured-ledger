@@ -24,11 +24,11 @@ import (
 func TestRules_CheckMinRole(t *testing.T) {
 	cert := testutils.NewCertificateMock(t)
 	nodes := []nodeinfo.NetworkNode{
-		node.NewNode(gen.UniqueGlobalRef(), member.StaticRoleHeavyMaterial, nil, "", ""),
-		node.NewNode(gen.UniqueGlobalRef(), member.StaticRoleLightMaterial, nil, "", ""),
-		node.NewNode(gen.UniqueGlobalRef(), member.StaticRoleLightMaterial, nil, "", ""),
-		node.NewNode(gen.UniqueGlobalRef(), member.StaticRoleVirtual, nil, "", ""),
-		node.NewNode(gen.UniqueGlobalRef(), member.StaticRoleVirtual, nil, "", ""),
+		node.NewNode(gen.UniqueGlobalRef(), member.PrimaryRoleHeavyMaterial, nil, "", ""),
+		node.NewNode(gen.UniqueGlobalRef(), member.PrimaryRoleLightMaterial, nil, "", ""),
+		node.NewNode(gen.UniqueGlobalRef(), member.PrimaryRoleLightMaterial, nil, "", ""),
+		node.NewNode(gen.UniqueGlobalRef(), member.PrimaryRoleVirtual, nil, "", ""),
+		node.NewNode(gen.UniqueGlobalRef(), member.PrimaryRoleVirtual, nil, "", ""),
 	}
 	cert.GetMinRolesMock.Set(func() (r uint, r1 uint, r2 uint) {
 		return 1, 0, 0
@@ -77,10 +77,10 @@ func getDiscoveryNodes(count int) ([]nodeinfo.NetworkNode, []nodeinfo.DiscoveryN
 }
 
 // AllStaticRoles is an array of all possible StaticRoles.
-var AllStaticRoles = []member.StaticRole{
-	member.StaticRoleVirtual,
-	member.StaticRoleLightMaterial,
-	member.StaticRoleHeavyMaterial,
+var AllStaticRoles = []member.PrimaryRole{
+	member.PrimaryRoleVirtual,
+	member.PrimaryRoleLightMaterial,
+	member.PrimaryRoleHeavyMaterial,
 }
 
 func newNode(ref reference.Global, i int) nodeinfo.NetworkNode {

@@ -28,7 +28,7 @@ import (
 
 func newNode(ref reference.Global, id int) nodeinfo.NetworkNode {
 	address := "127.0.0.1:" + strconv.Itoa(id)
-	result := node.NewNode(ref, member.StaticRoleUnknown, nil, address, "")
+	result := node.NewNode(ref, member.PrimaryRoleUnknown, nil, address, "")
 	result.(node.MutableNode).SetShortID(node2.ShortNodeID(id))
 	return result
 }

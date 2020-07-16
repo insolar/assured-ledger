@@ -44,7 +44,7 @@ func (authCert *AuthorizationCertificate) GetNodeRef() reference.Global {
 }
 
 // GetRole returns role from node certificate
-func (authCert *AuthorizationCertificate) GetRole() member.StaticRole {
+func (authCert *AuthorizationCertificate) GetRole() member.PrimaryRole {
 	return member.GetStaticRoleFromString(authCert.Role)
 }
 
