@@ -61,7 +61,8 @@ func TestBackpressureBuffer_stop(t *testing.T) {
 }
 
 func TestBackpressureBuffer_parallel_write_limits_on_buffer(t *testing.T) {
-	//t.SkipNow()
+	// TODO: fix the test in PLAT-662
+	t.Skip("PLAT-662")
 
 	for repeat := 1; repeat > 0; repeat-- {
 		for parWriters := 1; parWriters <= 20; parWriters++ {
