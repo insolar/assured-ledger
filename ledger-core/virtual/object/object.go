@@ -282,7 +282,13 @@ func (sm *SMObject) stepSendStateRequest(ctx smachine.ExecutionContext) smachine
 	flags := payload.StateRequestContentFlags(0)
 	flags.Set(payload.RequestLatestDirtyState, payload.RequestLatestValidatedState,
 		payload.RequestOrderedQueue, payload.RequestUnorderedQueue)
-	prevPulse := sm.pulseSlot.PulseData().PrevPulseNumber()
+
+	prevPulse := sm.pulseSlot.PrevOperationPulseNumber()
+	if prevPulse.IsUnknown() {
+		// unable to identify exact prev pulse
+		panic(throw.NotImplemented())
+	}
+
 	msg := payload.VStateRequest{
 		AsOf:             prevPulse,
 		Object:           sm.Reference,
