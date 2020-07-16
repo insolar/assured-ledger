@@ -382,7 +382,9 @@ func (sm *SMObject) migrate(ctx smachine.MigrationContext) smachine.StateUpdate 
 	sm.checkPendingCounters(ctx.Log())
 	sm.smFinalizer.Report = sm.BuildStateReport()
 	if sm.Descriptor() != nil {
-		sm.smFinalizer.Report.ProvidedContent.LatestDirtyState = sm.BuildLatestDirtyState()
+		state := sm.BuildLatestDirtyState()
+		sm.smFinalizer.Report.ProvidedContent.LatestDirtyState = state
+		sm.smFinalizer.Report.ProvidedContent.LatestValidatedState = state
 	}
 
 	if err := sm.sharedAndPublishStateReport(ctx, &sm.smFinalizer.Report); err != nil {
