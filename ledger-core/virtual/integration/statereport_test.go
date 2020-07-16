@@ -197,7 +197,6 @@ func TestVirtual_VStateReport_CheckValidatedState(t *testing.T) {
 	defer commontestutils.LeakTester(t)
 
 	t.Log("C5124")
-	t.Skip("https://insolar.atlassian.net/browse/PLAT-402")
 
 	mc := minimock.NewController(t)
 

@@ -206,16 +206,18 @@ func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
 		return false // no resend msg
 	})
 	typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
+		objectState := payload.ObjectState{
+			State: []byte("some memory"),
+			Class: class,
+		}
 		expected := &payload.VStateReport{
 			Status:           payload.Ready,
 			AsOf:             p,
 			Object:           objectRef,
 			LatestDirtyState: objectRef,
 			ProvidedContent: &payload.VStateReport_ProvidedContentBody{
-				LatestDirtyState: &payload.ObjectState{
-					State: []byte("some memory"),
-					Class: class,
-				},
+				LatestDirtyState:     &objectState,
+				LatestValidatedState: &objectState,
 			},
 		}
 		expected.ProvidedContent.LatestDirtyState.Reference =
@@ -310,16 +312,18 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 		return false // no resend msg
 	})
 	typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
+		objectState := payload.ObjectState{
+			State: []byte("some memory"),
+			Class: class,
+		}
 		expected := &payload.VStateReport{
 			Status:           payload.Ready,
 			AsOf:             p,
 			Object:           objectRef,
 			LatestDirtyState: objectRef,
 			ProvidedContent: &payload.VStateReport_ProvidedContentBody{
-				LatestDirtyState: &payload.ObjectState{
-					State: []byte("some memory"),
-					Class: class,
-				},
+				LatestDirtyState:     &objectState,
+				LatestValidatedState: &objectState,
 			},
 		}
 		expected.ProvidedContent.LatestDirtyState.Reference =
@@ -410,16 +414,18 @@ func TestVirtual_Constructor_PrevPulseStateWithMissingStatus(t *testing.T) {
 		return false // no resend msg
 	})
 	typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
+		objectState := payload.ObjectState{
+			State: []byte("some memory"),
+			Class: class,
+		}
 		expected := &payload.VStateReport{
 			Status:           payload.Ready,
 			AsOf:             p2,
 			Object:           objectRef,
 			LatestDirtyState: objectRef,
 			ProvidedContent: &payload.VStateReport_ProvidedContentBody{
-				LatestDirtyState: &payload.ObjectState{
-					State: []byte("some memory"),
-					Class: class,
-				},
+				LatestDirtyState:     &objectState,
+				LatestValidatedState: &objectState,
 			},
 		}
 		expected.ProvidedContent.LatestDirtyState.Reference =

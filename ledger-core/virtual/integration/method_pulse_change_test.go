@@ -287,12 +287,14 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 
 	// create object state
 	{
+		objectState := payload.ObjectState{
+			Reference: reference.Local{},
+			Class:     testwalletProxy.GetClass(),
+			State:     makeRawWalletState(initialBalance),
+		}
 		content = &payload.VStateReport_ProvidedContentBody{
-			LatestDirtyState: &payload.ObjectState{
-				Reference: reference.Local{},
-				Class:     testwalletProxy.GetClass(),
-				State:     makeRawWalletState(initialBalance),
-			},
+			LatestDirtyState:     &objectState,
+			LatestValidatedState: &objectState,
 		}
 
 		payload := &payload.VStateReport{
