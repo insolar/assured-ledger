@@ -20,6 +20,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
+	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/debuglogger"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
@@ -102,7 +103,7 @@ func TestVirtual_CallContractFromContract(t *testing.T) {
 	for _, test := range table {
 		test := test
 		t.Run(test.name, func(t *testing.T) {
-
+			defer commontestutils.LeakTester(t)
 			mc := minimock.NewController(t)
 
 			server, ctx := utils.NewUninitializedServer(nil, t)
@@ -242,6 +243,7 @@ func TestVirtual_CallOtherMethodInObject(t *testing.T) {
 	}
 	for _, test := range table {
 		t.Run(test.name, func(t *testing.T) {
+			defer commontestutils.LeakTester(t)
 
 			mc := minimock.NewController(t)
 
@@ -376,6 +378,7 @@ func TestVirtual_CallMethodFromConstructor(t *testing.T) {
 	}
 	for _, test := range table {
 		t.Run(test.name, func(t *testing.T) {
+			defer commontestutils.LeakTester(t)
 
 			mc := minimock.NewController(t)
 
@@ -511,6 +514,8 @@ func TestVirtual_CallMethodFromConstructor(t *testing.T) {
 }
 
 func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	t.Log("C5320")
 
 	countChangePulse := execute.MaxOutgoingSendCount

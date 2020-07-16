@@ -12,10 +12,13 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 )
 
 func TestVirtual_Method_API(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	t.Log("C4931")
 
 	server, ctx := utils.NewServer(nil, t)
