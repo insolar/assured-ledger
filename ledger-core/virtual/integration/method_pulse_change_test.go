@@ -274,7 +274,6 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 
 		approver = gen.UniqueGlobalRef()
 
-		token   payload.CallDelegationToken
 		content *payload.VStateReport_ProvidedContentBody
 
 		request = payload.VCallRequest{
@@ -342,7 +341,7 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 			assert.Equal(t, object, request.Callee)
 			assert.Zero(t, request.DelegationSpec)
 
-			token = payload.CallDelegationToken{
+			token := payload.CallDelegationToken{
 				TokenTypeAndFlags: payload.DelegationTokenTypeCall,
 				PulseNumber:       p2,
 				Callee:            request.Callee,
@@ -350,6 +349,7 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 				DelegateTo:        server.JetCoordinatorMock.Me(),
 				Approver:          approver,
 			}
+
 			msg := payload.VDelegatedCallResponse{
 				Callee:                 request.Callee,
 				ResponseDelegationSpec: token,
