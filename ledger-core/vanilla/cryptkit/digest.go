@@ -26,6 +26,8 @@ type BasicDigester interface {
 	GetDigestSize() int
 }
 
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit.DataDigester -o . -s _mock.go -g
+
 type DataDigester interface {
 	BasicDigester
 	// deprecated
@@ -34,16 +36,22 @@ type DataDigester interface {
 	NewHasher() DigestHasher
 }
 
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit.PairDigester -o . -s _mock.go -g
+
 type PairDigester interface {
 	BasicDigester
 	DigestPair(digest0 longbits.FoldableReader, digest1 longbits.FoldableReader) Digest
 }
+
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit.SequenceDigester -o . -s _mock.go -g
 
 type SequenceDigester interface {
 	BasicDigester
 	AddNext(digest longbits.FoldableReader)
 	FinishSequence() Digest
 }
+
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit.ForkingDigester -o . -s _mock.go -g
 
 type ForkingDigester interface {
 	SequenceDigester
