@@ -8,6 +8,7 @@ package datawriter
 import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/catalog"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/inspectsvc"
@@ -25,8 +26,9 @@ type LineSharedData struct {
 	ready   bool
 	valid   bool
 
-	jetDropID   JetDropID
-	dropUpdater buildersvc.JetDropAssistant
+	jetDropID jet.DropID
+	resolver  lineage.DependencyResolver
+	adapter   buildersvc.Adapter
 
 	data *lineage.LineStages
 	deps DependencyTracker
@@ -42,15 +44,15 @@ func (p *LineSharedData) GetLimiter() smachine.SyncLink {
 
 func (p *LineSharedData) ensureDataAccess() {
 	p.ensureAccess()
-	if p.dropUpdater == nil {
+	if !p.jetDropID.IsValid() {
 		panic(throw.IllegalState())
 	}
 	if p.data == nil {
-		p.data = lineage.NewStages(p.lineRef.GetBase(), p.jetDropID.GetPulseNumber(), p.dropUpdater.GetResolver())
+		p.data = lineage.NewStages(p.lineRef.GetBase(), p.jetDropID.CreatedAt(), p.resolver)
 	}
 }
 
-func (p *LineSharedData) TryApplyRecordSet(set inspectsvc.InspectedRecordSet) (*buildersvc.Future, *lineage.BundleResolver) {
+func (p *LineSharedData) TryApplyRecordSet(ctx smachine.ExecutionContext, set inspectsvc.InspectedRecordSet) (*buildersvc.Future, *lineage.BundleResolver) {
 	if set.IsEmpty() {
 		panic(throw.IllegalValue())
 	}
@@ -63,22 +65,24 @@ func (p *LineSharedData) TryApplyRecordSet(set inspectsvc.InspectedRecordSet) (*
 		br.Add(r)
 	}
 
-	return p.applyBundle(br)
+	return p.applyBundle(ctx, br)
 }
 
-func (p *LineSharedData) applyBundle(br *lineage.BundleResolver) (*buildersvc.Future, *lineage.BundleResolver) {
+func (p *LineSharedData) applyBundle(ctx smachine.ExecutionContext, br *lineage.BundleResolver) (*buildersvc.Future, *lineage.BundleResolver) {
 	if !br.IsResolved() {
 		return nil, br
 	}
 
-	future := &buildersvc.Future{}
+	future := buildersvc.NewFuture("")
 	if !p.data.AddBundle(br, future) {
 		return nil, br
 	}
-	if !p.dropUpdater.AddRecords(future, br) {
-		p.data.RollbackLastBundle(future)
-		return nil, br
-	}
+
+	dropID := p.jetDropID
+	p.adapter.PrepareNotify(ctx, func(service buildersvc.Service) {
+		service.AppendToDrop(dropID, future, br.GetResolved())
+	}).Send()
+
 	return future, nil
 }
 
@@ -117,9 +121,9 @@ func (p *LineSharedData) disableAccess() {
 	p.ready = false
 }
 
-func (p *LineSharedData) addRecap(ref reference.Global, rec *rms.RLineRecap) {
+func (p *LineSharedData) AddRecap(ctx smachine.ExecutionContext, ref reference.Global, rec *rms.RLineRecap) {
 	p.ensureDataAccess()
-	p.addSoloRecord(lineage.NewRecapRecord(catalog.Excerpt{
+	p.addSoloRecord(ctx, lineage.NewRecapRecord(catalog.Excerpt{
 		RecordType:     uint32(rec.GetDefaultPolymorphID()),
 		PrevRef:        rec.PrevRef,
 		RootRef:        rec.RootRef,
@@ -139,7 +143,7 @@ func (p *LineSharedData) addRecap(ref reference.Global, rec *rms.RLineRecap) {
 
 }
 
-func (p *LineSharedData) addSoloRecord(rec lineage.Record) *buildersvc.Future {
+func (p *LineSharedData) addSoloRecord(ctx smachine.ExecutionContext, rec lineage.Record) *buildersvc.Future {
 	p.ensureDataAccess()
 	br := p.data.NewBundle()
 	br.Add(rec)
@@ -149,7 +153,7 @@ func (p *LineSharedData) addSoloRecord(rec lineage.Record) *buildersvc.Future {
 		return nil
 	}
 
-	if f, _ := p.applyBundle(br); f != nil {
+	if f, _ := p.applyBundle(ctx, br); f != nil {
 		return f
 	}
 
@@ -168,13 +172,11 @@ func (p *LineSharedData) addSoloRecord(rec lineage.Record) *buildersvc.Future {
 	panic(err)
 }
 
-// func (p *LineSharedData) addRecord(ref reference.Global, rec lineage.ResolvedDependency) {
-// 	p.ensureAccess()
-// 	// TODO
-// 	p.deps.ResolveDependency(ref)
-// }
-
 func (p *LineSharedData) getUnresolved() UnresolvedDependencyMap {
 	p.ensureAccess()
 	return p.deps.GetPendingUnresolved()
+}
+
+func (p *LineSharedData) onDropReady(sd *DropSharedData) {
+
 }
