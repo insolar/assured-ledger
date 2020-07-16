@@ -160,3 +160,6 @@ type RolePopulation interface {
 	*/
 	GetAssignmentByPower(metric uint64, excludeID node.ShortNodeID) (assigned, excluded profiles.ActiveNode)
 }
+
+
+type AssignmentFunc = func(metric uint64, excludeID node.ShortNodeID) (assigned, excluded profiles.ActiveNode)
