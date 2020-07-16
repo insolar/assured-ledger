@@ -249,6 +249,7 @@ func (s *Server) Init(ctx context.Context) {
 	}
 
 	s.pulseManager.AddDispatcher(s.virtual.FlowDispatcher)
+	s.incrementPulse(ctx) // for sake of simplicity make sure that there is no "hanging" first pulse
 	s.IncrementPulseAndWaitIdle(ctx)
 }
 

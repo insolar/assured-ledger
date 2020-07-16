@@ -55,6 +55,17 @@ func (c *conveyorDispatcher) CancelPulseChange() {
 }
 
 func (c *conveyorDispatcher) CommitPulseChange(change appctl.PulseChange) {
+	pulseRange := change.Range
+	if pulseRange == nil {
+		if pn, ok := change.PulseNumber.TryPrev(change.PrevPulseDelta); ok && pn == c.prevPulse {
+			pulseRange = change.AsRange()
+		} else if c.prevPulse.IsUnknown() {
+			pulseRange = pulse.NewLeftGapRange(pulse.MinTimePulse, 0, change.Data)
+		} else {
+			pulseRange = pulse.NewLeftGapRange(c.prevPulse, 0, change.Data)
+		}
+	}
+
 	if err := c.conveyor.CommitPulseChange(change.GetRange(), change.StartedAt); err != nil {
 		panic(throw.WithStack(err))
 	}
