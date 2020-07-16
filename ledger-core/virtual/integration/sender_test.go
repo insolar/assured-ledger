@@ -25,51 +25,42 @@ import (
 )
 
 var messagesWithoutToken = []struct {
-	name     string
-	msg      interface{}
-	sendFrom string
+	name string
+	msg  interface{}
 }{
 	{
-		name:     "VCallRequest",
-		msg:      &payload.VCallRequest{},
-		sendFrom: "P",
+		name: "VCallRequest",
+		msg:  &payload.VCallRequest{},
 	},
 	{
-		name:     "VCallResult",
-		msg:      &payload.VCallResult{},
-		sendFrom: "P",
+		name: "VCallResult",
+		msg:  &payload.VCallResult{},
 	},
 	{
-		name:     "VStateRequest",
-		msg:      &payload.VStateRequest{},
-		sendFrom: "P",
+		name: "VStateRequest",
+		msg:  &payload.VStateRequest{},
 	},
 	{
-		name:     "VDelegatedCallResponse",
-		msg:      &payload.VDelegatedCallResponse{},
-		sendFrom: "P",
+		name: "VDelegatedCallResponse",
+		msg:  &payload.VDelegatedCallResponse{},
 	},
 	{
-		name:     "VFindCallRequest",
-		msg:      &payload.VFindCallRequest{},
-		sendFrom: "P",
+		name: "VFindCallRequest",
+		msg:  &payload.VFindCallRequest{},
 	},
 
 	{
-		name:     "VStateReport",
-		msg:      &payload.VStateReport{},
-		sendFrom: "P-1",
+		name: "VStateReport",
+		msg:  &payload.VStateReport{},
 	},
 	{
-		name:     "VDelegatedCallRequest",
-		msg:      &payload.VDelegatedCallRequest{},
-		sendFrom: "P-1",
+		name: "VDelegatedCallRequest",
+		msg:  &payload.VDelegatedCallRequest{},
 	},
 
 	{
-		name:     "VFindCallResponse",
-		msg:      &payload.VFindCallResponse{},
-		sendFrom: "P-N",
+		name: "VFindCallResponse",
+		msg:  &payload.VFindCallResponse{},
 	},
 }
 
@@ -77,8 +68,8 @@ func TestSender_SuccessChecks(t *testing.T) {
 	t.Log("C5188")
 	for _, testMsg := range messagesWithoutToken {
 		t.Run(testMsg.name, func(t *testing.T) {
-			trueSender := []bool{true, false}
-			for _, s := range trueSender {
+			// sender equal expectedVE
+			for _, s := range []bool{true, false} {
 
 				mc := minimock.NewController(t)
 
@@ -111,35 +102,23 @@ func TestSender_SuccessChecks(t *testing.T) {
 				server.Init(ctx)
 				server.IncrementPulseAndWaitIdle(ctx)
 
-				// for sendFrom == P
-				sender := server.RandomGlobalWithPulse()
-				msgPulse := server.GetPulse().PulseNumber
-
 				if testMsg.name != "VFindCallResponse" {
-					jetCoordinatorMock.QueryRoleMock.Set(func(ctx context.Context, role node.DynamicRole, obj reference.Local, pulse pulse.Number) (ga1 []reference.Global, err error) {
+					jetCoordinatorMock.QueryRoleMock.Set(func(_ context.Context, _ node.DynamicRole, _ reference.Local, _ pulse.Number) (_ []reference.Global, _ error) {
 						if s {
 							return []reference.Global{server.GlobalCaller()}, nil
 						}
-						return []reference.Global{sender}, nil
+						return []reference.Global{server.RandomGlobalWithPulse()}, nil
 					})
-				}
-
-				if testMsg.sendFrom == "P-1" {
-					server.IncrementPulse(ctx)
-				} else if testMsg.sendFrom == "P-N" {
-					server.IncrementPulse(ctx)
-					server.IncrementPulse(ctx)
-					server.IncrementPulse(ctx)
 				}
 
 				reflect.ValueOf(testMsg.msg).MethodByName("Reset").Call([]reflect.Value{})
 
-				msg := utils.NewRequestWrapper(msgPulse, testMsg.msg.(payload.Marshaler)).SetSender(server.GlobalCaller()).Finalize()
+				msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, testMsg.msg.(payload.Marshaler)).SetSender(server.GlobalCaller()).Finalize()
 				server.SendMessage(ctx, msg)
 
-				server.WaitActiveThenIdleConveyor()
+				server.WaitIdleConveyor()
 
-				if s {
+				if s || testMsg.name == "VFindCallResponse" {
 					assert.False(t, errorFound, "Fail "+testMsg.name)
 				} else {
 					assert.True(t, errorFound, "Fail "+testMsg.name)
