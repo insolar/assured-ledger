@@ -7,6 +7,7 @@ package logicless
 
 import (
 	"context"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -34,11 +35,15 @@ func (r runState) ID() call.ID {
 }
 
 type executionMapping struct {
+	lock  sync.Mutex
 	byKey map[string]*ExecutionMock
 	byID  map[call.ID]*ExecutionMock
 }
 
 func (m *executionMapping) add(key string, val *ExecutionMock) {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
 	if _, ok := m.byKey[key]; ok {
 		panic("already exists by key")
 	}
@@ -51,11 +56,17 @@ func (m *executionMapping) add(key string, val *ExecutionMock) {
 }
 
 func (m *executionMapping) getByKey(key string) (*ExecutionMock, bool) {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
 	val, ok := m.byKey[key]
 	return val, ok
 }
 
 func (m *executionMapping) getByID(id call.ID) (*ExecutionMock, bool) {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
 	val, ok := m.byID[id]
 	return val, ok
 }
@@ -129,7 +140,7 @@ func (s *ServiceMock) AddExecutionMock(key string) *ExecutionMock {
 	return executionMock
 }
 
-func (s ServiceMock) ExecutionStart(execution execution.Context) runner.RunState {
+func (s *ServiceMock) ExecutionStart(execution execution.Context) runner.RunState {
 	executionMock, ok := s.executionMapping.getByKey(s.keyConstructor(execution))
 	if !ok {
 		panic(throw.NotImplemented())
@@ -158,7 +169,7 @@ func (s ServiceMock) ExecutionStart(execution execution.Context) runner.RunState
 	return executionMock.state
 }
 
-func (s ServiceMock) ExecutionContinue(run runner.RunState, outgoingResult []byte) {
+func (s *ServiceMock) ExecutionContinue(run runner.RunState, outgoingResult []byte) {
 	r, ok := run.(*runState)
 	if !ok {
 		panic(throw.IllegalValue())
@@ -190,7 +201,7 @@ func (s ServiceMock) ExecutionContinue(run runner.RunState, outgoingResult []byt
 	executionMock.state.result = executionChunk.update
 }
 
-func (s ServiceMock) ExecutionAbort(run runner.RunState) {
+func (s *ServiceMock) ExecutionAbort(run runner.RunState) {
 	r, ok := run.(*runState)
 	if !ok {
 		panic(throw.IllegalValue())
@@ -223,14 +234,14 @@ func (s ServiceMock) ExecutionAbort(run runner.RunState) {
 }
 
 // MinimockFinish checks that all mocked methods have been called the expected number of times
-func (s ServiceMock) MinimockFinish() {
+func (s *ServiceMock) MinimockFinish() {
 	if !s.minimockDone() {
 		s.t.Fatal("failed to check")
 	}
 }
 
 // MinimockWait waits for all mocked methods to be called the expected number of times
-func (s ServiceMock) MinimockWait(timeout time.Duration) {
+func (s *ServiceMock) MinimockWait(timeout time.Duration) {
 	timeoutCh := time.After(timeout)
 	for {
 		if s.minimockDone() {
@@ -245,7 +256,7 @@ func (s ServiceMock) MinimockWait(timeout time.Duration) {
 	}
 }
 
-func (s ServiceMock) minimockDone() bool {
+func (s *ServiceMock) minimockDone() bool {
 	return s.classifyMapping.minimockDone() &&
 		s.executionMapping.minimockDone()
 }
@@ -258,11 +269,15 @@ type ExecutionClassifyMockInstance struct {
 }
 
 type ExecutionClassifyMock struct {
+	lock   sync.Mutex
 	t      minimock.Tester
 	mapper map[string]*ExecutionClassifyMockInstance
 }
 
 func (m *ExecutionClassifyMock) Set(key string, v1 contract.MethodIsolation, v2 error) *ExecutionClassifyMock {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
 	if _, ok := m.mapper[key]; ok {
 		panic(throw.IllegalValue())
 	}
@@ -275,14 +290,22 @@ func (m *ExecutionClassifyMock) Set(key string, v1 contract.MethodIsolation, v2 
 	return m
 }
 
-func (s ServiceMock) ExecutionClassify(execution execution.Context) (contract.MethodIsolation, error) {
+func (m *ExecutionClassifyMock) Get(key string) (*ExecutionClassifyMockInstance, bool) {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
+	instance, ok := m.mapper[key]
+	return instance, ok
+}
+
+func (s *ServiceMock) ExecutionClassify(execution execution.Context) (contract.MethodIsolation, error) {
 	key := s.keyConstructor(execution)
-	if chunk, ok := s.classifyMapping.mapper[key]; ok {
+	if chunk, ok := s.classifyMapping.Get(key); ok {
 		chunk.count++
 		return chunk.v1, chunk.v2
 	}
 
-	s.t.Fatalf("failed to registered value for key '%s'", key)
+	s.t.Fatalf("failed to find registered value for key '%s'", key)
 	return contract.MethodIsolation{}, nil
 }
 
