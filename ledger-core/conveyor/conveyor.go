@@ -64,7 +64,6 @@ func NewPulseConveyor(
 	factoryFn PulseEventFactoryFunc,
 	registry injector.DependencyRegistry,
 ) *PulseConveyor {
-
 	r := &PulseConveyor{
 		workerCtx: ctx,
 		slotConfig: PulseSlotConfig{
@@ -174,7 +173,7 @@ func (p *PulseConveyor) AddInputExt(pn pulse.Number, event InputEvent,
 		pr, _ = pulseSlot.pulseData.PulseRange()
 	}
 
-	setup, err := p.factoryFn(createDefaults.Context, event, InputContext{ targetPN, pr })
+	setup, err := p.factoryFn(createDefaults.Context, event, InputContext{targetPN, pr})
 	switch {
 	case err != nil || setup.CreateFn == nil:
 		return err
