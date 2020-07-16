@@ -57,7 +57,7 @@ func (f FactoryMeta) Process(ctx context.Context, msg statemachine.DispatchedMes
 
 	payloadType := reflect.Indirect(reflect.ValueOf(payloadObj)).Type()
 
-	logger.Debugm(struct {
+	logger.Infom(struct {
 		Message         string
 		PayloadTypeID   uint64
 		PayloadType     reflect.Type
