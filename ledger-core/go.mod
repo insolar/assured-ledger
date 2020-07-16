@@ -5,6 +5,7 @@ go 1.14
 require (
 	contrib.go.opencensus.io/exporter/prometheus v0.1.0
 	github.com/ThreeDotsLabs/watermill v1.0.2
+	github.com/blend/go-sdk v1.1.1 // indirect
 	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
 	github.com/cyraxred/go-acc v0.2.5
 	github.com/fsnotify/fsnotify v1.4.9

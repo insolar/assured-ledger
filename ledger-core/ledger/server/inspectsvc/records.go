@@ -8,16 +8,53 @@ package inspectsvc
 import (
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/catalog"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lineage"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
+
+func NewRegisterRequestSet(reqs ...*rms.LRegisterRequest) (RegisterRequestSet, error) {
+	var err error
+	if len(reqs) > 0 {
+		if lv := reqs[0].AnyRecordLazy.TryGetLazy(); !lv.IsZero() {
+			ex, err := catalog.ReadExcerptFromLazy(lv)
+			if err == nil {
+				return RegisterRequestSet{Requests: reqs, Excerpt: ex}, nil
+			}
+		}
+	}
+	return RegisterRequestSet{}, throw.WithDetails(err, "invalid record set")
+}
 
 type RegisterRequestSet struct {
 	Requests []*rms.LRegisterRequest
-	Excerpts []catalog.Excerpt
+	Excerpt  catalog.Excerpt
 }
 
 func (v RegisterRequestSet) IsEmpty() bool {
 	return len(v.Requests) == 0
+}
+
+func (v RegisterRequestSet) Validate() {
+	for _, r := range v.Requests {
+		switch {
+		case r == nil:
+			panic(throw.IllegalValue())
+		case r.AnticipatedRef.IsEmpty():
+			panic(throw.IllegalValue())
+		}
+	}
+	if v.Excerpt.RecordType == 0 {
+		panic(throw.IllegalValue())
+	}
+}
+
+func (v RegisterRequestSet) GetRootRef() reference.Global {
+	return v.Excerpt.RootRef.GetGlobal()
+}
+
+func (v RegisterRequestSet) GetFlags() rms.RegistrationFlags {
+	return v.Requests[0].Flags
 }
 
 type InspectedRecordSet struct {

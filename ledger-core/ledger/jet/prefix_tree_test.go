@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package jetid
+package jet
 
 import (
 	"bytes"
@@ -99,8 +99,8 @@ func TestPrefixTree_Serialize(t *testing.T) {
 	bufCopy := buf.Bytes() // will be ok as we don't write into it further
 
 	require.Equal(t, uint8(RawSerializeV1), bufCopy[0])
-	//fmt.Printf("Compact: %5d bytes\n", len(bufCopy))
-	//fmt.Println(hex.Dump(bufCopy))
+	// fmt.Printf("Compact: %5d bytes\n", len(bufCopy))
+	// fmt.Println(hex.Dump(bufCopy))
 
 	pt2 := PrefixTree{}
 	require.NoError(t, PrefixTreeDeserializer{}.DeserializeTo(&pt2, &buf))
@@ -185,7 +185,6 @@ func TestPrefixTree_Propagate_Get_Performance(t *testing.T) {
 			startedAt := time.Now()
 			for j := 0; j < 10000000; j++ {
 				pt.GetPrefix(math.MaxUint16)
-				//require.Equal(t, uint8(1), pt.GetPrefix(math.MaxUint16))
 			}
 			timings[idx] = int64(time.Since(startedAt))
 		})
@@ -383,5 +382,6 @@ func copyTree(pt *PrefixTree, propagation bool) *PrefixTree {
 	if e := (PrefixTreeDeserializer{}.DeserializeTo(&pt2, bytes.NewBuffer(b))); e != nil {
 		panic(e)
 	}
+
 	return &pt2
 }
