@@ -73,20 +73,18 @@ type SenderConfirmation struct {
 	Signature       []byte
 }
 
-// GenesisPulse is a first pulse for the system
-// because first 2 bits of pulse number and first 65536 pulses a are used by system needs and pulse numbers are related to the seconds of Unix time
-// for calculation pulse numbers we use the formula = unix.Now() - firstPulseDate + 65536
-var GenesisPulse = func() (pc appctl.PulseChange) {
-	pc.PulseNumber = pulse.MinTimePulse
-	pc.PulseEpoch = pulse.MinTimePulse
-	pc.Timestamp = pulse.UnixTimeOfMinTimePulse
-	pc.Pulse = pc.Data.AsRange()
-	return
-} ()
+// DEPRECATED: GenesisPulse is a first pulse for the system
+var GenesisPulse = appctl.PulseChange{ Data: pulse.Data{
+	PulseNumber: pulse.MinTimePulse,
+	DataExt : pulse.DataExt{
+		PulseEpoch:  pulse.MinTimePulse,
+		Timestamp: pulse.UnixTimeOfMinTimePulse,
+	}}}
 
-var EphemeralPulse = func() (pc appctl.PulseChange) {
-	pc.PulseNumber = pulse.MinTimePulse
-	pc.PulseEpoch = pulse.EphemeralPulseEpoch
-	pc.Timestamp = pulse.UnixTimeOfMinTimePulse
-	return
-} ()
+// DEPRECATED: Test use only
+var EphemeralPulse = appctl.PulseChange{ Data: pulse.Data{
+	PulseNumber: pulse.MinTimePulse,
+	DataExt : pulse.DataExt{
+		PulseEpoch:  pulse.EphemeralPulseEpoch,
+		Timestamp: pulse.UnixTimeOfMinTimePulse,
+	}}}

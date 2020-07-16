@@ -51,10 +51,10 @@ func (c *conveyorDispatcher) CancelPulseChange() {
 }
 
 func (c *conveyorDispatcher) CommitPulseChange(change appctl.PulseChange) {
-	if err := c.conveyor.CommitPulseChange(change.Pulse, change.StartedAt); err != nil {
+	if err := c.conveyor.CommitPulseChange(change.GetRange(), change.StartedAt); err != nil {
 		panic(throw.WithStack(err))
 	}
-	c.prevPulse = change.Pulse.RightBoundData().PulseNumber
+	c.prevPulse = change.PulseNumber
 }
 
 type DispatchedMessage struct {

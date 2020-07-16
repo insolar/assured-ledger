@@ -152,7 +152,7 @@ func newServerExt(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFi
 
 	s.pulseManager = PulseManager
 	s.pulseStorage = Pulses
-	s.pulseGenerator = testutils.NewPulseGenerator(10)
+	s.pulseGenerator = testutils.NewPulseGenerator(10, nil)
 
 	s.JetCoordinatorMock = jet.NewAffinityHelperMock(t).
 		MeMock.Return(s.caller).

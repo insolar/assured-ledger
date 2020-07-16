@@ -28,10 +28,17 @@ type Dispatcher interface {
 type PulseChange struct {
 	PulseSeq    uint32
 	pulse.Data
-	Pulse       pulse.Range
+	Range       pulse.Range
 	StartedAt   time.Time
 	Census      census.Operational
 	PulseOrigin []byte
+}
+
+func (c PulseChange) GetRange() pulse.Range {
+	if c.Range != nil {
+		return c.Range
+	}
+	return c.Data.AsRange()
 }
 
 type MessageTag struct {

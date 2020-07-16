@@ -107,7 +107,6 @@ func (u *UpstreamController) CommitPulseChange(report api.UpstreamReport, pulseD
 	u.pulseChanger.ChangePulse(ctx, appctl.PulseChange{
 		PulseSeq:    0,
 		Data:        pulseData,
-		Pulse:       pulseData.AsRange(),
 		StartedAt:   time.Now(), // TODO get pulse start
 		Census:      activeCensus,
 	})
