@@ -42,3 +42,23 @@ func (v Adapter) PrepareAsync(ctx smachine.ExecutionContext, callFn func(Service
 		return callFn(v.service)
 	})
 }
+
+func (v Adapter) PrepareNotify(ctx smachine.ExecutionContext, callFn func(Service)) smachine.NotifyRequester {
+	if callFn != nil {
+		panic(throw.IllegalValue())
+	}
+
+	return v.adapter.PrepareNotify(ctx, func(context.Context, interface{}) {
+		callFn(v.service)
+	})
+}
+
+func (v Adapter) SendFailureNotify(ctx smachine.FailureContext, callFn func(Service)) {
+	if callFn != nil {
+		panic(throw.IllegalValue())
+	}
+
+	v.adapter.SendFailureNotify(ctx, func(context.Context, interface{}) {
+		callFn(v.service)
+	})
+}

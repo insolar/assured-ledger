@@ -2,7 +2,6 @@ ignore:
   - "**/*_mock.go"
   - "**/*_string.go"
   - "**/*.pb.go"
-  - "ledger-core/ledger"
 fixes:
   - "github.com/insolar/assured-ledger/::"
 coverage:
