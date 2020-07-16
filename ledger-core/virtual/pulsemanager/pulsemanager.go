@@ -8,12 +8,10 @@ package pulsemanager
 import (
 	"context"
 	"sync"
-	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -56,28 +54,6 @@ type messageNewPulse struct {
 func (m *PulseManager) CommitPulseChange(pulseChange appctl.PulseChange) error {
 	ctx := context.Background()
 	return m.setNewPulse(ctx, pulseChange)
-}
-
-func ConvertForLegacy(pc appctl.PulseChange) (psp pulsestor.Pulse) {
-	pd := pc.Data
-
-	copy(psp.Entropy[:], pd.PulseEntropy[:])
-
-	psp.PulseNumber = pd.PulseNumber
-	ok := false
-
-	if psp.PrevPulseNumber, ok = pd.PulseNumber.TryPrev(pd.PrevPulseDelta); !ok {
-		psp.PrevPulseNumber = pd.PulseNumber
-	}
-
-	if psp.NextPulseNumber, ok = pd.PulseNumber.TryNext(pd.NextPulseDelta); !ok {
-		psp.NextPulseNumber = pd.PulseNumber
-	}
-	psp.EpochPulseNumber = pd.PulseEpoch
-	psp.PulseTimestamp = int64(pd.Timestamp) * int64(time.Second)
-	copy(psp.OriginID[:], pc.PulseOrigin)
-
-	return psp
 }
 
 func (m *PulseManager) setNewPulse(ctx context.Context, pulseChange appctl.PulseChange) error {
