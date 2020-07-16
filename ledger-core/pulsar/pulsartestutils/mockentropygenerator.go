@@ -10,7 +10,7 @@ import (
 )
 
 // MockEntropy for pulsar's tests
-var MockEntropy = [64]byte{1, 2, 3, 4, 5, 6, 7, 8}
+var MockEntropy = [pulsestor.EntropySize]byte{1, 2, 3, 4, 5, 6, 7, 8}
 
 // MockEntropyGenerator implements EntropyGenerator and is being used for tests
 type MockEntropyGenerator struct {
