@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/insolar/loadgenerator"
 	"github.com/pkg/errors"
-	"github.com/skudasov/loadgen"
 
 	"github.com/insolar/assured-ledger/ledger-core/load/util"
 )

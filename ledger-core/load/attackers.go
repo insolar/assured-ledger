@@ -1,7 +1,7 @@
 package load
 
 import (
-	"github.com/skudasov/loadgen"
+	"github.com/insolar/loadgenerator"
 	"log"
 )
 

@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/load"
-	"github.com/skudasov/loadgen"
+	"github.com/insolar/loadgenerator"
 )
 
 func main() {
