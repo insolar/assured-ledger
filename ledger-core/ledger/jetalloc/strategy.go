@@ -76,7 +76,7 @@ type defaultMaterialAllocationCalc struct {
 
 func (v defaultMaterialAllocationCalc) AllocationOfLine(local reference.Local) jet.Prefix {
 	b := local.AsBytes()
-	return NewPrefixCalc().FromSlice(reference.LocalBinaryPulseAndScopeSize, b)
+	return NewPrefixCalc().FromSlice(jet.IDBitLen, b)
 }
 
 func (v defaultMaterialAllocationCalc) metricOfDrop(jt jet.DropID) uint64 {

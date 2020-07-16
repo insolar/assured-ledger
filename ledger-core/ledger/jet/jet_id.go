@@ -24,6 +24,8 @@ func (v Prefix) AsID() ID {
 
 type ID uint16
 
+const IDBitLen = 16
+
 func (v ID) BitLen() int {
 	return bits.Len16(uint16(v))
 }

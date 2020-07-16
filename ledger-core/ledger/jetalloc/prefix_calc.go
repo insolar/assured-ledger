@@ -6,7 +6,6 @@
 package jetalloc
 
 import (
-	"fmt"
 	"io"
 
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
@@ -69,7 +68,7 @@ func (p PrefixCalc) FromReader(prefixLen int, data io.Reader) (jet.Prefix, error
 	case err != nil:
 		return 0, err
 	case n != len(dataBuf):
-		return 0, fmt.Errorf("insufficient data length")
+		return 0, throw.FailHere("insufficient data length")
 	}
 
 	return p.fromSlice(prefixLen, dataBuf), nil
@@ -88,7 +87,9 @@ func (p PrefixCalc) fromSlice(prefixLen int, data []byte) jet.Prefix {
 		if d&0xF >= p.SplitMedian {
 			result |= bit
 		}
+
 		if prefixLen == 1 {
+			// odd length
 			return result
 		}
 		bit <<= 1
@@ -103,7 +104,7 @@ func (p PrefixCalc) fromSlice(prefixLen int, data []byte) jet.Prefix {
 		bit <<= 1
 	}
 
-	panic(fmt.Errorf("insufficient data length"))
+	panic(throw.FailHere("insufficient data length"))
 }
 
 
