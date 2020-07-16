@@ -11,7 +11,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/appctl"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -71,15 +70,13 @@ func (jc *AffinityCoordinator) VirtualExecutorForObject(
 
 	role := pc.Online.GetRolePopulation(member.PrimaryRoleVirtual)
 	if role == nil {
-		err := throw.E("role without nodes", struct {
+		return reference.Global{}, throw.E("role without nodes", struct {
 			PrimaryRole member.PrimaryRole
 			Population census.OnlinePopulation
 		} {
 			member.PrimaryRoleVirtual,
 			pc.Online,
 		})
-		global.Fatalm(err)
-		return reference.Global{}, err
 	}
 
 	base := objID.GetBase()

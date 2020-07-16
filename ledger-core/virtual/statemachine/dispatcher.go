@@ -29,11 +29,10 @@ var _ appctl.Dispatcher = &conveyorDispatcher{}
 func (c *conveyorDispatcher) PreparePulseChange(change appctl.PulseChange, sink appctl.NodeStateSink) {
 	stateChan := sink.Occupy()
 
-	if change.Online == nil {
+	switch {
+	case change.Online == nil:
 		panic(throw.IllegalValue())
-	}
-
-	if c.prevPulse.IsUnknown() {
+	case c.prevPulse.IsUnknown():
 		// Conveyor can't prepare without an initial pulse - there are no active SMs inside
 		stateChan <- appctl.NodeState{}
 		return
