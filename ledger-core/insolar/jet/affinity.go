@@ -48,7 +48,7 @@ func (jc *AffinityCoordinator) QueryRole(
 	if role == node.DynamicRoleVirtualExecutor {
 		n, err := jc.VirtualExecutorForObject(ctx, objID, pn)
 		if err != nil {
-			return nil, err // throw.WithDetails(err, struct { Ref reference.Holder; PN pulse.Number } {objID, pn })
+			return nil, throw.WithDetails(err, struct { Ref reference.Holder; PN pulse.Number } {objID, pn })
 		}
 		return []reference.Global{n}, nil
 	}
@@ -70,13 +70,15 @@ func (jc *AffinityCoordinator) VirtualExecutorForObject(
 
 	role := pc.Online.GetRolePopulation(member.PrimaryRoleVirtual)
 	if role == nil {
-		return reference.Global{}, throw.E("role without nodes", struct {
+		err := throw.E("role without nodes", struct {
 			member.PrimaryRole
 			census.OnlinePopulation
 		} {
 			member.PrimaryRoleVirtual,
 			pc.Online,
 		})
+		panic(err)
+		// return reference.Global{}, err
 	}
 
 	base := objID.GetBase()
