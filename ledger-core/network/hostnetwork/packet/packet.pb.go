@@ -4,6 +4,7 @@
 package packet
 
 import (
+	bytes "bytes"
 	fmt "fmt"
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"
@@ -15,6 +16,9 @@ import (
 	io "io"
 	math "math"
 	math_bits "math/bits"
+	reflect "reflect"
+	strconv "strconv"
+	strings "strings"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -31,10 +35,10 @@ const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 type BootstrapResponseCode int32
 
 const (
-	BootstrapResponseCode_Accepted       BootstrapResponseCode = 0
-	BootstrapResponseCode_UpdateSchedule BootstrapResponseCode = 1
-	BootstrapResponseCode_UpdateShortID  BootstrapResponseCode = 2
-	BootstrapResponseCode_Reject         BootstrapResponseCode = 3
+	Accepted       BootstrapResponseCode = 0
+	UpdateSchedule BootstrapResponseCode = 1
+	UpdateShortID  BootstrapResponseCode = 2
+	Reject         BootstrapResponseCode = 3
 )
 
 var BootstrapResponseCode_name = map[int32]string{
@@ -51,10 +55,6 @@ var BootstrapResponseCode_value = map[string]int32{
 	"Reject":         3,
 }
 
-func (x BootstrapResponseCode) String() string {
-	return proto.EnumName(BootstrapResponseCode_name, int32(x))
-}
-
 func (BootstrapResponseCode) EnumDescriptor() ([]byte, []int) {
 	return fileDescriptor_e9ef1a6541f9f9e7, []int{0}
 }
@@ -62,10 +62,10 @@ func (BootstrapResponseCode) EnumDescriptor() ([]byte, []int) {
 type AuthorizeResponseCode int32
 
 const (
-	AuthorizeResponseCode_Success        AuthorizeResponseCode = 0
-	AuthorizeResponseCode_WrongTimestamp AuthorizeResponseCode = 2
-	AuthorizeResponseCode_WrongMandate   AuthorizeResponseCode = 3
-	AuthorizeResponseCode_WrongVersion   AuthorizeResponseCode = 4
+	Success        AuthorizeResponseCode = 0
+	WrongTimestamp AuthorizeResponseCode = 2
+	WrongMandate   AuthorizeResponseCode = 3
+	WrongVersion   AuthorizeResponseCode = 4
 )
 
 var AuthorizeResponseCode_name = map[int32]string{
@@ -80,10 +80,6 @@ var AuthorizeResponseCode_value = map[string]int32{
 	"WrongTimestamp": 2,
 	"WrongMandate":   3,
 	"WrongVersion":   4,
-}
-
-func (x AuthorizeResponseCode) String() string {
-	return proto.EnumName(AuthorizeResponseCode_name, int32(x))
 }
 
 func (AuthorizeResponseCode) EnumDescriptor() ([]byte, []int) {
@@ -104,9 +100,8 @@ type Packet struct {
 	Payload isPacket_Payload `protobuf_oneof:"Payload"`
 }
 
-func (m *Packet) Reset()         { *m = Packet{} }
-func (m *Packet) String() string { return proto.CompactTextString(m) }
-func (*Packet) ProtoMessage()    {}
+func (m *Packet) Reset()      { *m = Packet{} }
+func (*Packet) ProtoMessage() {}
 func (*Packet) Descriptor() ([]byte, []int) {
 	return fileDescriptor_e9ef1a6541f9f9e7, []int{0}
 }
@@ -114,12 +109,16 @@ func (m *Packet) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
 func (m *Packet) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalToSizedBuffer(b)
-	if err != nil {
-		return nil, err
+	if deterministic {
+		return xxx_messageInfo_Packet.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
 	}
-	return b[:n], nil
 }
 func (m *Packet) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_Packet.Merge(m, src)
@@ -135,6 +134,7 @@ var xxx_messageInfo_Packet proto.InternalMessageInfo
 
 type isPacket_Payload interface {
 	isPacket_Payload()
+	Equal(interface{}) bool
 	MarshalTo([]byte) (int, error)
 	ProtoSize() int
 }
@@ -190,9 +190,8 @@ type Request struct {
 	Request isRequest_Request `protobuf_oneof:"Request"`
 }
 
-func (m *Request) Reset()         { *m = Request{} }
-func (m *Request) String() string { return proto.CompactTextString(m) }
-func (*Request) ProtoMessage()    {}
+func (m *Request) Reset()      { *m = Request{} }
+func (*Request) ProtoMessage() {}
 func (*Request) Descriptor() ([]byte, []int) {
 	return fileDescriptor_e9ef1a6541f9f9e7, []int{1}
 }
@@ -200,12 +199,16 @@ func (m *Request) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
 func (m *Request) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalToSizedBuffer(b)
-	if err != nil {
-		return nil, err
+	if deterministic {
+		return xxx_messageInfo_Request.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
 	}
-	return b[:n], nil
 }
 func (m *Request) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_Request.Merge(m, src)
@@ -221,6 +224,7 @@ var xxx_messageInfo_Request proto.InternalMessageInfo
 
 type isRequest_Request interface {
 	isRequest_Request()
+	Equal(interface{}) bool
 	MarshalTo([]byte) (int, error)
 	ProtoSize() int
 }
@@ -337,9 +341,8 @@ type Response struct {
 	Response isResponse_Response `protobuf_oneof:"Response"`
 }
 
-func (m *Response) Reset()         { *m = Response{} }
-func (m *Response) String() string { return proto.CompactTextString(m) }
-func (*Response) ProtoMessage()    {}
+func (m *Response) Reset()      { *m = Response{} }
+func (*Response) ProtoMessage() {}
 func (*Response) Descriptor() ([]byte, []int) {
 	return fileDescriptor_e9ef1a6541f9f9e7, []int{2}
 }
@@ -347,12 +350,16 @@ func (m *Response) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
 func (m *Response) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalToSizedBuffer(b)
-	if err != nil {
-		return nil, err
+	if deterministic {
+		return xxx_messageInfo_Response.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
 	}
-	return b[:n], nil
 }
 func (m *Response) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_Response.Merge(m, src)
@@ -368,6 +375,7 @@ var xxx_messageInfo_Response proto.InternalMessageInfo
 
 type isResponse_Response interface {
 	isResponse_Response()
+	Equal(interface{}) bool
 	MarshalTo([]byte) (int, error)
 	ProtoSize() int
 }
@@ -488,9 +496,8 @@ type RPCRequest struct {
 	Data   []byte `protobuf:"bytes,2,opt,name=Data,proto3" json:"Data,omitempty"`
 }
 
-func (m *RPCRequest) Reset()         { *m = RPCRequest{} }
-func (m *RPCRequest) String() string { return proto.CompactTextString(m) }
-func (*RPCRequest) ProtoMessage()    {}
+func (m *RPCRequest) Reset()      { *m = RPCRequest{} }
+func (*RPCRequest) ProtoMessage() {}
 func (*RPCRequest) Descriptor() ([]byte, []int) {
 	return fileDescriptor_e9ef1a6541f9f9e7, []int{3}
 }
@@ -498,12 +505,16 @@ func (m *RPCRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
 func (m *RPCRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalToSizedBuffer(b)
-	if err != nil {
-		return nil, err
+	if deterministic {
+		return xxx_messageInfo_RPCRequest.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
 	}
-	return b[:n], nil
 }
 func (m *RPCRequest) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_RPCRequest.Merge(m, src)
@@ -521,9 +532,8 @@ type PulseRequest struct {
 	Pulse *rms.PulseProto `protobuf:"bytes,1,opt,name=Pulse,proto3" json:"Pulse,omitempty"`
 }
 
-func (m *PulseRequest) Reset()         { *m = PulseRequest{} }
-func (m *PulseRequest) String() string { return proto.CompactTextString(m) }
-func (*PulseRequest) ProtoMessage()    {}
+func (m *PulseRequest) Reset()      { *m = PulseRequest{} }
+func (*PulseRequest) ProtoMessage() {}
 func (*PulseRequest) Descriptor() ([]byte, []int) {
 	return fileDescriptor_e9ef1a6541f9f9e7, []int{4}
 }
@@ -531,12 +541,16 @@ func (m *PulseRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
 func (m *PulseRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalToSizedBuffer(b)
-	if err != nil {
-		return nil, err
+	if deterministic {
+		return xxx_messageInfo_PulseRequest.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
 	}
-	return b[:n], nil
 }
 func (m *PulseRequest) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_PulseRequest.Merge(m, src)
@@ -555,9 +569,8 @@ type UpdateScheduleRequest struct {
 	Permit        *Permit                                                    `protobuf:"bytes,2,opt,name=Permit,proto3" json:"Permit,omitempty"`
 }
 
-func (m *UpdateScheduleRequest) Reset()         { *m = UpdateScheduleRequest{} }
-func (m *UpdateScheduleRequest) String() string { return proto.CompactTextString(m) }
-func (*UpdateScheduleRequest) ProtoMessage()    {}
+func (m *UpdateScheduleRequest) Reset()      { *m = UpdateScheduleRequest{} }
+func (*UpdateScheduleRequest) ProtoMessage() {}
 func (*UpdateScheduleRequest) Descriptor() ([]byte, []int) {
 	return fileDescriptor_e9ef1a6541f9f9e7, []int{5}
 }
@@ -565,12 +578,16 @@ func (m *UpdateScheduleRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
 func (m *UpdateScheduleRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalToSizedBuffer(b)
-	if err != nil {
-		return nil, err
+	if deterministic {
+		return xxx_messageInfo_UpdateScheduleRequest.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
 	}
-	return b[:n], nil
 }
 func (m *UpdateScheduleRequest) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_UpdateScheduleRequest.Merge(m, src)
@@ -589,9 +606,8 @@ type ReconnectRequest struct {
 	Permit      *Permit                                                                     `protobuf:"bytes,2,opt,name=Permit,proto3" json:"Permit,omitempty"`
 }
 
-func (m *ReconnectRequest) Reset()         { *m = ReconnectRequest{} }
-func (m *ReconnectRequest) String() string { return proto.CompactTextString(m) }
-func (*ReconnectRequest) ProtoMessage()    {}
+func (m *ReconnectRequest) Reset()      { *m = ReconnectRequest{} }
+func (*ReconnectRequest) ProtoMessage() {}
 func (*ReconnectRequest) Descriptor() ([]byte, []int) {
 	return fileDescriptor_e9ef1a6541f9f9e7, []int{6}
 }
@@ -599,12 +615,16 @@ func (m *ReconnectRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
 func (m *ReconnectRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalToSizedBuffer(b)
-	if err != nil {
-		return nil, err
+	if deterministic {
+		return xxx_messageInfo_ReconnectRequest.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
 	}
-	return b[:n], nil
 }
 func (m *ReconnectRequest) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_ReconnectRequest.Merge(m, src)
@@ -624,9 +644,8 @@ type BootstrapRequest struct {
 	Permit           *Permit           `protobuf:"bytes,4,opt,name=Permit,proto3" json:"Permit,omitempty"`
 }
 
-func (m *BootstrapRequest) Reset()         { *m = BootstrapRequest{} }
-func (m *BootstrapRequest) String() string { return proto.CompactTextString(m) }
-func (*BootstrapRequest) ProtoMessage()    {}
+func (m *BootstrapRequest) Reset()      { *m = BootstrapRequest{} }
+func (*BootstrapRequest) ProtoMessage() {}
 func (*BootstrapRequest) Descriptor() ([]byte, []int) {
 	return fileDescriptor_e9ef1a6541f9f9e7, []int{7}
 }
@@ -634,12 +653,16 @@ func (m *BootstrapRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
 func (m *BootstrapRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalToSizedBuffer(b)
-	if err != nil {
-		return nil, err
+	if deterministic {
+		return xxx_messageInfo_BootstrapRequest.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
 	}
-	return b[:n], nil
 }
 func (m *BootstrapRequest) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_BootstrapRequest.Merge(m, src)
@@ -659,9 +682,8 @@ type AuthorizeData struct {
 	Version     string `protobuf:"bytes,3,opt,name=Version,proto3" json:"Version,omitempty"`
 }
 
-func (m *AuthorizeData) Reset()         { *m = AuthorizeData{} }
-func (m *AuthorizeData) String() string { return proto.CompactTextString(m) }
-func (*AuthorizeData) ProtoMessage()    {}
+func (m *AuthorizeData) Reset()      { *m = AuthorizeData{} }
+func (*AuthorizeData) ProtoMessage() {}
 func (*AuthorizeData) Descriptor() ([]byte, []int) {
 	return fileDescriptor_e9ef1a6541f9f9e7, []int{8}
 }
@@ -669,12 +691,16 @@ func (m *AuthorizeData) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
 func (m *AuthorizeData) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalToSizedBuffer(b)
-	if err != nil {
-		return nil, err
+	if deterministic {
+		return xxx_messageInfo_AuthorizeData.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
 	}
-	return b[:n], nil
 }
 func (m *AuthorizeData) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_AuthorizeData.Merge(m, src)
@@ -693,9 +719,8 @@ type AuthorizeRequest struct {
 	Signature     []byte         `protobuf:"bytes,2,opt,name=Signature,proto3" json:"Signature,omitempty"`
 }
 
-func (m *AuthorizeRequest) Reset()         { *m = AuthorizeRequest{} }
-func (m *AuthorizeRequest) String() string { return proto.CompactTextString(m) }
-func (*AuthorizeRequest) ProtoMessage()    {}
+func (m *AuthorizeRequest) Reset()      { *m = AuthorizeRequest{} }
+func (*AuthorizeRequest) ProtoMessage() {}
 func (*AuthorizeRequest) Descriptor() ([]byte, []int) {
 	return fileDescriptor_e9ef1a6541f9f9e7, []int{9}
 }
@@ -703,12 +728,16 @@ func (m *AuthorizeRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
 func (m *AuthorizeRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalToSizedBuffer(b)
-	if err != nil {
-		return nil, err
+	if deterministic {
+		return xxx_messageInfo_AuthorizeRequest.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
 	}
-	return b[:n], nil
 }
 func (m *AuthorizeRequest) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_AuthorizeRequest.Merge(m, src)
@@ -726,9 +755,8 @@ type SignCertRequest struct {
 	NodeRef github_com_insolar_assured_ledger_ledger_core_reference.Global `protobuf:"bytes,1,opt,name=NodeRef,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"NodeRef"`
 }
 
-func (m *SignCertRequest) Reset()         { *m = SignCertRequest{} }
-func (m *SignCertRequest) String() string { return proto.CompactTextString(m) }
-func (*SignCertRequest) ProtoMessage()    {}
+func (m *SignCertRequest) Reset()      { *m = SignCertRequest{} }
+func (*SignCertRequest) ProtoMessage() {}
 func (*SignCertRequest) Descriptor() ([]byte, []int) {
 	return fileDescriptor_e9ef1a6541f9f9e7, []int{10}
 }
@@ -736,12 +764,16 @@ func (m *SignCertRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
 func (m *SignCertRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalToSizedBuffer(b)
-	if err != nil {
-		return nil, err
+	if deterministic {
+		return xxx_messageInfo_SignCertRequest.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
 	}
-	return b[:n], nil
 }
 func (m *SignCertRequest) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_SignCertRequest.Merge(m, src)
@@ -760,9 +792,8 @@ type RPCResponse struct {
 	Error  string `protobuf:"bytes,2,opt,name=Error,proto3" json:"Error,omitempty"`
 }
 
-func (m *RPCResponse) Reset()         { *m = RPCResponse{} }
-func (m *RPCResponse) String() string { return proto.CompactTextString(m) }
-func (*RPCResponse) ProtoMessage()    {}
+func (m *RPCResponse) Reset()      { *m = RPCResponse{} }
+func (*RPCResponse) ProtoMessage() {}
 func (*RPCResponse) Descriptor() ([]byte, []int) {
 	return fileDescriptor_e9ef1a6541f9f9e7, []int{11}
 }
@@ -770,12 +801,16 @@ func (m *RPCResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
 func (m *RPCResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalToSizedBuffer(b)
-	if err != nil {
-		return nil, err
+	if deterministic {
+		return xxx_messageInfo_RPCResponse.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
 	}
-	return b[:n], nil
 }
 func (m *RPCResponse) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_RPCResponse.Merge(m, src)
@@ -794,9 +829,8 @@ type Permit struct {
 	Signature []byte        `protobuf:"bytes,2,opt,name=Signature,proto3" json:"Signature,omitempty"`
 }
 
-func (m *Permit) Reset()         { *m = Permit{} }
-func (m *Permit) String() string { return proto.CompactTextString(m) }
-func (*Permit) ProtoMessage()    {}
+func (m *Permit) Reset()      { *m = Permit{} }
+func (*Permit) ProtoMessage() {}
 func (*Permit) Descriptor() ([]byte, []int) {
 	return fileDescriptor_e9ef1a6541f9f9e7, []int{12}
 }
@@ -804,12 +838,16 @@ func (m *Permit) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
 func (m *Permit) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalToSizedBuffer(b)
-	if err != nil {
-		return nil, err
+	if deterministic {
+		return xxx_messageInfo_Permit.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
 	}
-	return b[:n], nil
 }
 func (m *Permit) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_Permit.Merge(m, src)
@@ -830,9 +868,8 @@ type PermitPayload struct {
 	AuthorityNodeRef github_com_insolar_assured_ledger_ledger_core_reference.Global               `protobuf:"bytes,4,opt,name=AuthorityNodeRef,proto3,customtype=github.com/insolar/assured-ledger/ledger-core/reference.Global" json:"AuthorityNodeRef"`
 }
 
-func (m *PermitPayload) Reset()         { *m = PermitPayload{} }
-func (m *PermitPayload) String() string { return proto.CompactTextString(m) }
-func (*PermitPayload) ProtoMessage()    {}
+func (m *PermitPayload) Reset()      { *m = PermitPayload{} }
+func (*PermitPayload) ProtoMessage() {}
 func (*PermitPayload) Descriptor() ([]byte, []int) {
 	return fileDescriptor_e9ef1a6541f9f9e7, []int{13}
 }
@@ -840,12 +877,16 @@ func (m *PermitPayload) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
 func (m *PermitPayload) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalToSizedBuffer(b)
-	if err != nil {
-		return nil, err
+	if deterministic {
+		return xxx_messageInfo_PermitPayload.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
 	}
-	return b[:n], nil
 }
 func (m *PermitPayload) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_PermitPayload.Merge(m, src)
@@ -865,9 +906,8 @@ type BootstrapResponse struct {
 	Pulse      rms.PulseProto        `protobuf:"bytes,3,opt,name=Pulse,proto3" json:"Pulse"`
 }
 
-func (m *BootstrapResponse) Reset()         { *m = BootstrapResponse{} }
-func (m *BootstrapResponse) String() string { return proto.CompactTextString(m) }
-func (*BootstrapResponse) ProtoMessage()    {}
+func (m *BootstrapResponse) Reset()      { *m = BootstrapResponse{} }
+func (*BootstrapResponse) ProtoMessage() {}
 func (*BootstrapResponse) Descriptor() ([]byte, []int) {
 	return fileDescriptor_e9ef1a6541f9f9e7, []int{14}
 }
@@ -875,12 +915,16 @@ func (m *BootstrapResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
 func (m *BootstrapResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalToSizedBuffer(b)
-	if err != nil {
-		return nil, err
+	if deterministic {
+		return xxx_messageInfo_BootstrapResponse.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
 	}
-	return b[:n], nil
 }
 func (m *BootstrapResponse) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_BootstrapResponse.Merge(m, src)
@@ -899,9 +943,8 @@ type BasicResponse struct {
 	Error   string `protobuf:"bytes,2,opt,name=Error,proto3" json:"Error,omitempty"`
 }
 
-func (m *BasicResponse) Reset()         { *m = BasicResponse{} }
-func (m *BasicResponse) String() string { return proto.CompactTextString(m) }
-func (*BasicResponse) ProtoMessage()    {}
+func (m *BasicResponse) Reset()      { *m = BasicResponse{} }
+func (*BasicResponse) ProtoMessage() {}
 func (*BasicResponse) Descriptor() ([]byte, []int) {
 	return fileDescriptor_e9ef1a6541f9f9e7, []int{15}
 }
@@ -909,12 +952,16 @@ func (m *BasicResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
 func (m *BasicResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalToSizedBuffer(b)
-	if err != nil {
-		return nil, err
+	if deterministic {
+		return xxx_messageInfo_BasicResponse.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
 	}
-	return b[:n], nil
 }
 func (m *BasicResponse) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_BasicResponse.Merge(m, src)
@@ -937,9 +984,8 @@ type AuthorizeResponse struct {
 	Pulse          *rms.PulseProto       `protobuf:"bytes,6,opt,name=Pulse,proto3" json:"Pulse,omitempty"`
 }
 
-func (m *AuthorizeResponse) Reset()         { *m = AuthorizeResponse{} }
-func (m *AuthorizeResponse) String() string { return proto.CompactTextString(m) }
-func (*AuthorizeResponse) ProtoMessage()    {}
+func (m *AuthorizeResponse) Reset()      { *m = AuthorizeResponse{} }
+func (*AuthorizeResponse) ProtoMessage() {}
 func (*AuthorizeResponse) Descriptor() ([]byte, []int) {
 	return fileDescriptor_e9ef1a6541f9f9e7, []int{16}
 }
@@ -947,12 +993,16 @@ func (m *AuthorizeResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
 func (m *AuthorizeResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalToSizedBuffer(b)
-	if err != nil {
-		return nil, err
+	if deterministic {
+		return xxx_messageInfo_AuthorizeResponse.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
 	}
-	return b[:n], nil
 }
 func (m *AuthorizeResponse) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_AuthorizeResponse.Merge(m, src)
@@ -970,9 +1020,8 @@ type SignCertResponse struct {
 	Sign []byte `protobuf:"bytes,1,opt,name=Sign,proto3" json:"Sign,omitempty"`
 }
 
-func (m *SignCertResponse) Reset()         { *m = SignCertResponse{} }
-func (m *SignCertResponse) String() string { return proto.CompactTextString(m) }
-func (*SignCertResponse) ProtoMessage()    {}
+func (m *SignCertResponse) Reset()      { *m = SignCertResponse{} }
+func (*SignCertResponse) ProtoMessage() {}
 func (*SignCertResponse) Descriptor() ([]byte, []int) {
 	return fileDescriptor_e9ef1a6541f9f9e7, []int{17}
 }
@@ -980,12 +1029,16 @@ func (m *SignCertResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
 func (m *SignCertResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalToSizedBuffer(b)
-	if err != nil {
-		return nil, err
+	if deterministic {
+		return xxx_messageInfo_SignCertResponse.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
 	}
-	return b[:n], nil
 }
 func (m *SignCertResponse) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_SignCertResponse.Merge(m, src)
@@ -1003,9 +1056,8 @@ type ErrorResponse struct {
 	Error string `protobuf:"bytes,1,opt,name=Error,proto3" json:"Error,omitempty"`
 }
 
-func (m *ErrorResponse) Reset()         { *m = ErrorResponse{} }
-func (m *ErrorResponse) String() string { return proto.CompactTextString(m) }
-func (*ErrorResponse) ProtoMessage()    {}
+func (m *ErrorResponse) Reset()      { *m = ErrorResponse{} }
+func (*ErrorResponse) ProtoMessage() {}
 func (*ErrorResponse) Descriptor() ([]byte, []int) {
 	return fileDescriptor_e9ef1a6541f9f9e7, []int{18}
 }
@@ -1013,12 +1065,16 @@ func (m *ErrorResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
 func (m *ErrorResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalToSizedBuffer(b)
-	if err != nil {
-		return nil, err
+	if deterministic {
+		return xxx_messageInfo_ErrorResponse.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
 	}
-	return b[:n], nil
 }
 func (m *ErrorResponse) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_ErrorResponse.Merge(m, src)
@@ -1035,9 +1091,8 @@ var xxx_messageInfo_ErrorResponse proto.InternalMessageInfo
 type UpdateScheduleResponse struct {
 }
 
-func (m *UpdateScheduleResponse) Reset()         { *m = UpdateScheduleResponse{} }
-func (m *UpdateScheduleResponse) String() string { return proto.CompactTextString(m) }
-func (*UpdateScheduleResponse) ProtoMessage()    {}
+func (m *UpdateScheduleResponse) Reset()      { *m = UpdateScheduleResponse{} }
+func (*UpdateScheduleResponse) ProtoMessage() {}
 func (*UpdateScheduleResponse) Descriptor() ([]byte, []int) {
 	return fileDescriptor_e9ef1a6541f9f9e7, []int{19}
 }
@@ -1045,12 +1100,16 @@ func (m *UpdateScheduleResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
 func (m *UpdateScheduleResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalToSizedBuffer(b)
-	if err != nil {
-		return nil, err
+	if deterministic {
+		return xxx_messageInfo_UpdateScheduleResponse.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
 	}
-	return b[:n], nil
 }
 func (m *UpdateScheduleResponse) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_UpdateScheduleResponse.Merge(m, src)
@@ -1067,9 +1126,8 @@ var xxx_messageInfo_UpdateScheduleResponse proto.InternalMessageInfo
 type ReconnectResponse struct {
 }
 
-func (m *ReconnectResponse) Reset()         { *m = ReconnectResponse{} }
-func (m *ReconnectResponse) String() string { return proto.CompactTextString(m) }
-func (*ReconnectResponse) ProtoMessage()    {}
+func (m *ReconnectResponse) Reset()      { *m = ReconnectResponse{} }
+func (*ReconnectResponse) ProtoMessage() {}
 func (*ReconnectResponse) Descriptor() ([]byte, []int) {
 	return fileDescriptor_e9ef1a6541f9f9e7, []int{20}
 }
@@ -1077,12 +1135,16 @@ func (m *ReconnectResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
 func (m *ReconnectResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	b = b[:cap(b)]
-	n, err := m.MarshalToSizedBuffer(b)
-	if err != nil {
-		return nil, err
+	if deterministic {
+		return xxx_messageInfo_ReconnectResponse.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
 	}
-	return b[:n], nil
 }
 func (m *ReconnectResponse) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_ReconnectResponse.Merge(m, src)
@@ -1125,94 +1187,1529 @@ func init() {
 func init() { proto.RegisterFile("packet.proto", fileDescriptor_e9ef1a6541f9f9e7) }
 
 var fileDescriptor_e9ef1a6541f9f9e7 = []byte{
-	// 1348 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x57, 0xcf, 0x6f, 0x13, 0xc7,
-	0x17, 0xf7, 0xc6, 0x8e, 0x13, 0xbf, 0xd8, 0x61, 0x33, 0x10, 0x58, 0xf8, 0xf2, 0x35, 0xd6, 0xea,
-	0x4b, 0xbe, 0x16, 0x34, 0xb6, 0xda, 0x8a, 0x0a, 0x8a, 0xd4, 0x0a, 0xc7, 0x94, 0x50, 0x0a, 0xb5,
-	0xc6, 0xe9, 0x8f, 0x43, 0xab, 0xb2, 0x59, 0x4f, 0xec, 0x2d, 0xf6, 0xce, 0x32, 0x3b, 0x4b, 0xeb,
-	0xfe, 0x15, 0x95, 0x7a, 0xe9, 0xb1, 0xd7, 0x1e, 0x7a, 0xe8, 0x7f, 0x81, 0x7a, 0xe2, 0x54, 0x21,
-	0x0e, 0xa8, 0x24, 0x7f, 0x41, 0x6f, 0x3d, 0x56, 0x33, 0x3b, 0x3b, 0xbb, 0x5e, 0x07, 0x4a, 0x2a,
-	0x38, 0x79, 0xe7, 0x33, 0xef, 0xbd, 0x79, 0x6f, 0x3e, 0xef, 0xc7, 0x18, 0xaa, 0x81, 0xe3, 0xde,
-	0x23, 0xbc, 0x15, 0x30, 0xca, 0x29, 0x2a, 0xc7, 0xab, 0x33, 0x9b, 0x43, 0x8f, 0x8f, 0xa2, 0xdd,
-	0x96, 0x4b, 0x27, 0xed, 0x21, 0x1d, 0xd2, 0xb6, 0xdc, 0xde, 0x8d, 0xf6, 0xe4, 0x4a, 0x2e, 0xe4,
-	0x57, 0xac, 0x76, 0xa6, 0x9b, 0x11, 0xf7, 0xfc, 0x90, 0x8e, 0x1d, 0xd6, 0x76, 0xc2, 0x30, 0x62,
-	0x64, 0xb0, 0x39, 0x26, 0x83, 0x21, 0x61, 0xed, 0xf8, 0x67, 0xd3, 0xa5, 0x8c, 0xb4, 0xd9, 0x24,
-	0x8c, 0x0d, 0x7e, 0x35, 0x26, 0x43, 0xc7, 0x9d, 0x2a, 0x2b, 0x77, 0x8f, 0x66, 0xc5, 0x27, 0xfc,
-	0x1b, 0xca, 0xee, 0xb5, 0x5d, 0xea, 0x87, 0xc4, 0x0f, 0xa3, 0xb0, 0xed, 0x0c, 0x9c, 0x80, 0x13,
-	0x16, 0xb6, 0x5d, 0xc7, 0x1f, 0x78, 0x03, 0x87, 0x13, 0x71, 0xcc, 0x9e, 0x37, 0x26, 0xf1, 0x09,
-	0xf6, 0xef, 0x45, 0x28, 0xf7, 0x64, 0x84, 0xe8, 0x2c, 0x54, 0x02, 0x3a, 0x9e, 0x4e, 0x28, 0x0b,
-	0x46, 0x96, 0xd9, 0x30, 0x9a, 0x8b, 0x38, 0x05, 0xd0, 0x10, 0xca, 0x7d, 0xe2, 0x0f, 0x08, 0xb3,
-	0x4e, 0x34, 0x8c, 0x66, 0xb5, 0xf3, 0xf1, 0x93, 0xa7, 0xe7, 0x6e, 0xfd, 0x3b, 0xf7, 0x46, 0x34,
-	0xe4, 0xd9, 0xef, 0xd6, 0x36, 0x0d, 0x39, 0x56, 0xe6, 0xd1, 0x3d, 0x58, 0xc6, 0xc4, 0x25, 0xde,
-	0x03, 0xc2, 0xac, 0xf5, 0xd7, 0x73, 0x94, 0x3e, 0x40, 0xc4, 0x8c, 0xc9, 0xfd, 0x88, 0x84, 0xfc,
-	0x66, 0xd7, 0x3a, 0xd9, 0x30, 0x9a, 0x25, 0x9c, 0x02, 0xc8, 0x82, 0xa5, 0x1d, 0xe6, 0xb8, 0xe4,
-	0x66, 0xd7, 0x3a, 0xd5, 0x30, 0x9a, 0x15, 0x9c, 0x2c, 0xd1, 0xff, 0xa0, 0x26, 0x3f, 0xfb, 0x81,
-	0xe3, 0x77, 0x1d, 0xee, 0x58, 0x96, 0xf0, 0x14, 0xcf, 0x82, 0x08, 0x41, 0x69, 0x67, 0x1a, 0x10,
-	0xeb, 0x4c, 0xc3, 0x68, 0xd6, 0xb0, 0xfc, 0x46, 0x17, 0x61, 0x49, 0x1d, 0x60, 0xfd, 0xa7, 0x61,
-	0x34, 0x57, 0xde, 0x3a, 0xd6, 0x52, 0xf9, 0xa6, 0xe0, 0xed, 0x02, 0x4e, 0x24, 0x50, 0x4b, 0xdc,
-	0x45, 0x18, 0x08, 0x3a, 0xad, 0xb3, 0x52, 0xda, 0x4c, 0xa5, 0x63, 0x7c, 0xbb, 0x80, 0xb5, 0x4c,
-	0xa7, 0x02, 0x4b, 0x3d, 0x67, 0x3a, 0xa6, 0xce, 0xc0, 0xfe, 0xb1, 0xa8, 0x0f, 0x42, 0x1b, 0x50,
-	0xc4, 0xbd, 0x2d, 0x6b, 0x41, 0x5a, 0x40, 0xda, 0x42, 0x6f, 0x2b, 0x3d, 0x52, 0x08, 0xa0, 0x37,
-	0x60, 0xb1, 0x17, 0x8d, 0x43, 0x62, 0x15, 0xa5, 0xe4, 0x89, 0x44, 0x52, 0x82, 0xa9, 0x6c, 0x2c,
-	0x84, 0x2e, 0x43, 0xa5, 0x43, 0x29, 0x0f, 0x39, 0x73, 0x02, 0xab, 0x24, 0x35, 0xac, 0x44, 0x43,
-	0x6f, 0xa4, 0x5a, 0xa9, 0xb0, 0xd0, 0xbc, 0x16, 0xf1, 0x11, 0x65, 0xde, 0x77, 0xc4, 0x5a, 0x9c,
-	0xd5, 0xd4, 0x1b, 0x19, 0x4d, 0x8d, 0xa1, 0x4b, 0xb0, 0xdc, 0xf7, 0x86, 0xfe, 0x16, 0x61, 0xdc,
-	0x2a, 0x4b, 0xc5, 0x53, 0x89, 0x62, 0x82, 0xa7, 0x7a, 0x5a, 0x14, 0xdd, 0x80, 0xd5, 0x4f, 0x02,
-	0x91, 0xfd, 0x7d, 0x77, 0x44, 0x06, 0xd1, 0x98, 0x58, 0x4b, 0x52, 0xf9, 0xbf, 0x89, 0xf2, 0xec,
-	0x6e, 0x6a, 0x22, 0xa7, 0x26, 0x3c, 0xc7, 0xc4, 0xa5, 0xbe, 0x4f, 0x5c, 0x6e, 0x2d, 0xcf, 0x7a,
-	0xae, 0x37, 0x32, 0x9e, 0x6b, 0x4c, 0x50, 0xa3, 0x70, 0xfb, 0x51, 0x31, 0xa5, 0x15, 0xfd, 0x3f,
-	0xcb, 0xcd, 0xf1, 0x19, 0x6e, 0x34, 0xc1, 0x92, 0x9c, 0x4d, 0x58, 0xec, 0x38, 0xa1, 0xe7, 0x2a,
-	0x72, 0xd6, 0xf5, 0x55, 0x0b, 0x30, 0x23, 0x1c, 0x4b, 0xa1, 0x2b, 0xf3, 0xec, 0x9c, 0x3e, 0x84,
-	0x1d, 0xad, 0x96, 0xa1, 0xe7, 0xca, 0x3c, 0x3d, 0xa7, 0x0f, 0xa1, 0x27, 0x55, 0x4d, 0xf9, 0x79,
-	0x67, 0x8e, 0x1f, 0x6b, 0x9e, 0x9f, 0x34, 0x71, 0x35, 0x41, 0x9b, 0xb0, 0x78, 0x9d, 0x31, 0xca,
-	0x14, 0x2f, 0x3a, 0x38, 0x09, 0x66, 0x83, 0x93, 0x00, 0xda, 0x9e, 0xe3, 0x33, 0xe6, 0xa2, 0xfe,
-	0x3c, 0x3e, 0xb5, 0x81, 0x3c, 0xa1, 0x57, 0xb2, 0x84, 0x56, 0x66, 0x63, 0xcd, 0x10, 0x9a, 0xc6,
-	0x9a, 0x32, 0x0a, 0x29, 0x8b, 0xf6, 0x65, 0x80, 0xb4, 0x9c, 0xd0, 0x49, 0x28, 0xdf, 0x26, 0x7c,
-	0x44, 0x07, 0x96, 0x21, 0xdb, 0x86, 0x5a, 0x89, 0x7e, 0x20, 0x9b, 0xc5, 0x82, 0x6c, 0x16, 0xf2,
-	0xdb, 0xbe, 0x04, 0xd5, 0x6c, 0x79, 0xa1, 0xf3, 0x49, 0x0d, 0x1a, 0xaa, 0x3b, 0xb0, 0x49, 0x18,
-	0x17, 0x60, 0x4f, 0x34, 0x6c, 0x55, 0x7c, 0xf6, 0xcf, 0x06, 0xac, 0x1f, 0x9a, 0xb4, 0x68, 0x04,
-	0xb5, 0x8f, 0x9c, 0x90, 0xdf, 0xa1, 0x03, 0x92, 0x1a, 0xaa, 0x75, 0x3a, 0x0f, 0x9f, 0x9e, 0x2b,
-	0x3c, 0x79, 0x7a, 0xee, 0xdd, 0xa3, 0x35, 0xd2, 0x40, 0x98, 0x68, 0xdd, 0x89, 0x26, 0xbb, 0x84,
-	0xe1, 0x59, 0xc3, 0x68, 0x03, 0xca, 0x3d, 0xc2, 0x26, 0x1e, 0x57, 0xd9, 0xbb, 0xaa, 0xfb, 0x85,
-	0x44, 0xb1, 0xda, 0xb5, 0x7f, 0x35, 0xc0, 0xcc, 0x17, 0x07, 0x8a, 0x60, 0x45, 0x63, 0x3b, 0x54,
-	0x3a, 0x59, 0xed, 0xf4, 0x95, 0x93, 0xaf, 0xb4, 0xdb, 0x67, 0xcf, 0x79, 0x69, 0x9f, 0x7f, 0x31,
-	0xc0, 0xcc, 0x37, 0x31, 0xd4, 0x05, 0x73, 0x2b, 0x99, 0xa3, 0xbd, 0x78, 0x8c, 0xea, 0xa6, 0xaa,
-	0x07, 0x6c, 0x4b, 0xed, 0x74, 0x4a, 0x22, 0x18, 0x3c, 0xa7, 0x81, 0x2e, 0xce, 0x76, 0xd9, 0x3c,
-	0xc3, 0x4a, 0x6f, 0x31, 0x7f, 0xc7, 0xa5, 0x17, 0xfa, 0xeb, 0x41, 0x4d, 0x57, 0xa1, 0x9c, 0x3d,
-	0x0d, 0x58, 0x11, 0x95, 0xe5, 0xed, 0x79, 0xae, 0xc3, 0xe3, 0x24, 0xa8, 0xe2, 0x2c, 0x24, 0x66,
-	0xdf, 0x8e, 0x37, 0x21, 0x21, 0x77, 0x26, 0x81, 0x0c, 0xa3, 0x88, 0x53, 0x40, 0xcc, 0xbe, 0x4f,
-	0x09, 0x0b, 0x3d, 0xea, 0x4b, 0x3f, 0x2b, 0x38, 0x59, 0xda, 0x13, 0x30, 0xf3, 0x4d, 0x1a, 0x5d,
-	0xcd, 0x1d, 0xaf, 0xb2, 0x77, 0x7d, 0xae, 0x6d, 0x88, 0x4d, 0x9c, 0x73, 0xf5, 0x2c, 0x54, 0x44,
-	0x23, 0x70, 0x78, 0xc4, 0x88, 0xaa, 0x8d, 0x14, 0xb0, 0x43, 0x38, 0x96, 0x6b, 0xed, 0xe8, 0x2e,
-	0x2c, 0x89, 0x2c, 0xc4, 0x64, 0x4f, 0xe5, 0xcd, 0x07, 0x2a, 0x6f, 0xde, 0x3b, 0xe2, 0xab, 0x8b,
-	0xec, 0x11, 0x46, 0x7c, 0x97, 0xb4, 0x6e, 0x8c, 0xe9, 0xae, 0x33, 0xc6, 0x89, 0x59, 0xfb, 0x2a,
-	0xac, 0x64, 0x5a, 0xb0, 0x28, 0x68, 0x4c, 0xc2, 0x68, 0xcc, 0xd5, 0x3d, 0xaa, 0x15, 0x3a, 0x91,
-	0xb4, 0xad, 0x05, 0x79, 0x45, 0xf1, 0xc2, 0xfe, 0x32, 0xe1, 0x0c, 0x5d, 0xd2, 0xf3, 0x38, 0x7f,
-	0x21, 0xb1, 0x80, 0xda, 0x54, 0x94, 0x27, 0xb2, 0xff, 0x70, 0x21, 0xbf, 0x2d, 0x40, 0x6d, 0x46,
-	0x1d, 0x35, 0xe1, 0xd8, 0x87, 0xd4, 0xf3, 0x09, 0xeb, 0x45, 0xbb, 0x63, 0xcf, 0xbd, 0x45, 0xa6,
-	0xca, 0xcf, 0x3c, 0x2c, 0x24, 0xaf, 0x7f, 0x1b, 0x78, 0x8c, 0xe4, 0x99, 0xcf, 0xc3, 0xe8, 0xfe,
-	0x6c, 0x7d, 0x16, 0x5f, 0xcf, 0x4b, 0x6c, 0xa6, 0x36, 0x99, 0x4e, 0x2c, 0x3e, 0x4d, 0xf8, 0x2d,
-	0xbd, 0x52, 0x7e, 0xe7, 0xec, 0xdb, 0x3f, 0x18, 0xb0, 0x36, 0x37, 0x0e, 0xd1, 0x9b, 0x50, 0xda,
-	0xa2, 0x83, 0xb8, 0x6a, 0x56, 0xd3, 0x57, 0xc2, 0x9c, 0xa0, 0x10, 0xc2, 0x52, 0x14, 0xd5, 0x01,
-	0xae, 0xef, 0x5c, 0xeb, 0x8b, 0x70, 0x06, 0xa1, 0xbc, 0xd4, 0x1a, 0xce, 0x20, 0x47, 0xaa, 0x7a,
-	0xfb, 0x7d, 0xa8, 0xcd, 0x8c, 0x75, 0x51, 0x8d, 0xfd, 0xc8, 0x75, 0x49, 0x18, 0x4a, 0x9f, 0x96,
-	0x71, 0xb2, 0x7c, 0x4e, 0x0a, 0xfe, 0x69, 0xc0, 0xda, 0xdc, 0xa8, 0x7e, 0x5e, 0x58, 0x73, 0x82,
-	0x99, 0xb0, 0x5e, 0xdc, 0x24, 0xf4, 0xe1, 0xc5, 0xcc, 0xe1, 0x2f, 0xdb, 0xb3, 0xd0, 0x06, 0xac,
-	0x76, 0xbd, 0xd0, 0xa5, 0x0f, 0x08, 0x9b, 0x6e, 0xd1, 0xc8, 0xe7, 0xf2, 0xb1, 0x51, 0xc3, 0x39,
-	0x34, 0x1d, 0x89, 0xe5, 0x17, 0x8e, 0xc4, 0x0d, 0x30, 0xf3, 0x6f, 0x0c, 0x31, 0x71, 0x05, 0xa6,
-	0xca, 0x41, 0x7e, 0xdb, 0xe7, 0xa1, 0x36, 0xf3, 0xac, 0x48, 0xa3, 0x30, 0xb2, 0x57, 0x68, 0xc1,
-	0xc9, 0xc3, 0x5f, 0x11, 0xf6, 0x71, 0x58, 0x9b, 0x7b, 0x1a, 0x5c, 0xf8, 0x1c, 0xd6, 0x0f, 0x4d,
-	0x0f, 0x54, 0x85, 0xe5, 0x6b, 0xae, 0x4b, 0x02, 0x4e, 0x06, 0x66, 0x01, 0xa1, 0xfc, 0xcb, 0xc5,
-	0x34, 0xd0, 0x1a, 0xd4, 0x14, 0x36, 0xa2, 0x8c, 0xdf, 0xec, 0x9a, 0x0b, 0x08, 0x44, 0xc3, 0xf9,
-	0x9a, 0xb8, 0xdc, 0x2c, 0x5e, 0xf8, 0x02, 0xd6, 0x0f, 0x65, 0x08, 0xad, 0xe8, 0xa4, 0x88, 0x0d,
-	0x7f, 0xc6, 0xa8, 0x3f, 0xd4, 0xe4, 0x98, 0x0b, 0xc8, 0x84, 0xaa, 0xc4, 0x6e, 0x3b, 0xbe, 0x30,
-	0x6f, 0x16, 0x35, 0xa2, 0x7a, 0xb9, 0x59, 0xea, 0x34, 0x1f, 0x3e, 0xab, 0x17, 0xfe, 0x7a, 0x56,
-	0x2f, 0x3c, 0xdc, 0xaf, 0x1b, 0x8f, 0xf6, 0xeb, 0xc6, 0xe3, 0xfd, 0xba, 0xf1, 0xc7, 0x7e, 0xbd,
-	0xf0, 0xfd, 0x41, 0xbd, 0xf0, 0xd3, 0x41, 0xdd, 0x78, 0x74, 0x50, 0x2f, 0x3c, 0x3e, 0xa8, 0x17,
-	0x76, 0xcb, 0xf2, 0x1f, 0xe3, 0xdb, 0x7f, 0x07, 0x00, 0x00, 0xff, 0xff, 0x29, 0xde, 0xd7, 0x6f,
-	0x20, 0x0f, 0x00, 0x00,
+	// 1372 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x57, 0x4f, 0x73, 0xdb, 0x44,
+	0x14, 0xb7, 0x62, 0xc7, 0x49, 0x5e, 0xe2, 0x54, 0xd9, 0x36, 0xad, 0x5a, 0x8a, 0xea, 0xd1, 0xd0,
+	0xe0, 0x69, 0x89, 0x3d, 0xc0, 0x94, 0x69, 0xe9, 0x0c, 0x50, 0xc7, 0xa5, 0x29, 0xa5, 0xc5, 0x23,
+	0x87, 0x3f, 0x07, 0x18, 0xaa, 0xc8, 0x1b, 0x5b, 0xd4, 0xd6, 0xaa, 0xab, 0x55, 0xc1, 0x9c, 0xf8,
+	0x08, 0xcc, 0x70, 0xe1, 0xc8, 0x11, 0x0e, 0x1c, 0xf8, 0x16, 0x1d, 0x4e, 0x39, 0x31, 0x9d, 0x1e,
+	0x3a, 0xc4, 0xb9, 0x70, 0x2c, 0x37, 0x8e, 0xcc, 0xae, 0x56, 0x2b, 0x59, 0x4e, 0x4b, 0xc3, 0xb4,
+	0x27, 0x6b, 0x7f, 0xfb, 0xde, 0xdb, 0xf7, 0xf6, 0xf7, 0xfe, 0xac, 0x61, 0x29, 0x70, 0xdc, 0x3b,
+	0x98, 0xd5, 0x03, 0x4a, 0x18, 0x41, 0xe5, 0x78, 0x75, 0x6a, 0xbd, 0xe7, 0xb1, 0x7e, 0xb4, 0x5d,
+	0x77, 0xc9, 0xb0, 0xd1, 0x23, 0x3d, 0xd2, 0x10, 0xdb, 0xdb, 0xd1, 0x8e, 0x58, 0x89, 0x85, 0xf8,
+	0x8a, 0xd5, 0x4e, 0xb5, 0x32, 0xe2, 0x9e, 0x1f, 0x92, 0x81, 0x43, 0x1b, 0x4e, 0x18, 0x46, 0x14,
+	0x77, 0xd7, 0x07, 0xb8, 0xdb, 0xc3, 0xb4, 0x11, 0xff, 0xac, 0xbb, 0x84, 0xe2, 0x06, 0x1d, 0x86,
+	0xb1, 0xc1, 0x2f, 0x07, 0xb8, 0xe7, 0xb8, 0x23, 0x69, 0xe5, 0xf6, 0xe1, 0xac, 0xf8, 0x98, 0x7d,
+	0x4d, 0xe8, 0x9d, 0x86, 0x4b, 0xfc, 0x10, 0xfb, 0x61, 0x14, 0x36, 0x9c, 0xae, 0x13, 0x30, 0x4c,
+	0xc3, 0x86, 0xeb, 0xf8, 0x5d, 0xaf, 0xeb, 0x30, 0xcc, 0x8f, 0xd9, 0xf1, 0x06, 0x38, 0x3e, 0xc1,
+	0xfa, 0xa3, 0x08, 0xe5, 0xb6, 0x88, 0x10, 0x9d, 0x86, 0x85, 0x80, 0x0c, 0x46, 0x43, 0x42, 0x83,
+	0xbe, 0xa1, 0x57, 0xb5, 0xda, 0xac, 0x9d, 0x02, 0xa8, 0x07, 0xe5, 0x0e, 0xf6, 0xbb, 0x98, 0x1a,
+	0xc7, 0xaa, 0x5a, 0x6d, 0xa9, 0xf9, 0xd1, 0xc3, 0x47, 0x67, 0x6e, 0xfc, 0x3f, 0xf7, 0xfa, 0x24,
+	0x64, 0xd9, 0xef, 0xfa, 0x26, 0x09, 0x99, 0x2d, 0xcd, 0xa3, 0x3b, 0x30, 0x6f, 0x63, 0x17, 0x7b,
+	0xf7, 0x30, 0x35, 0x56, 0x5f, 0xcc, 0x51, 0xea, 0x00, 0x1e, 0xb3, 0x8d, 0xef, 0x46, 0x38, 0x64,
+	0xd7, 0x5b, 0xc6, 0xf1, 0xaa, 0x56, 0x2b, 0xd9, 0x29, 0x80, 0x0c, 0x98, 0xdb, 0xa2, 0x8e, 0x8b,
+	0xaf, 0xb7, 0x8c, 0x13, 0x55, 0xad, 0xb6, 0x60, 0x27, 0x4b, 0xf4, 0x0a, 0x54, 0xc4, 0x67, 0x27,
+	0x70, 0xfc, 0x96, 0xc3, 0x1c, 0xc3, 0xe0, 0x9e, 0xda, 0x93, 0x20, 0x42, 0x50, 0xda, 0x1a, 0x05,
+	0xd8, 0x38, 0x55, 0xd5, 0x6a, 0x15, 0x5b, 0x7c, 0xa3, 0xf3, 0x30, 0x27, 0x0f, 0x30, 0x5e, 0xaa,
+	0x6a, 0xb5, 0xc5, 0x37, 0x8e, 0xd4, 0x65, 0xbe, 0x49, 0x78, 0xb3, 0x60, 0x27, 0x12, 0xa8, 0xce,
+	0xef, 0x22, 0x0c, 0x38, 0x9d, 0xc6, 0x69, 0x21, 0xad, 0xa7, 0xd2, 0x31, 0xbe, 0x59, 0xb0, 0x95,
+	0x4c, 0x73, 0x01, 0xe6, 0xda, 0xce, 0x68, 0x40, 0x9c, 0xae, 0xf5, 0x63, 0x51, 0x1d, 0x84, 0xd6,
+	0xa0, 0x68, 0xb7, 0x37, 0x8c, 0x19, 0x61, 0x01, 0x29, 0x0b, 0xed, 0x8d, 0xf4, 0x48, 0x2e, 0x80,
+	0x5e, 0x83, 0xd9, 0x76, 0x34, 0x08, 0xb1, 0x51, 0x14, 0x92, 0xc7, 0x12, 0x49, 0x01, 0xa6, 0xb2,
+	0xb1, 0x10, 0xba, 0x08, 0x0b, 0x4d, 0x42, 0x58, 0xc8, 0xa8, 0x13, 0x18, 0x25, 0xa1, 0x61, 0x24,
+	0x1a, 0x6a, 0x23, 0xd5, 0x4a, 0x85, 0xb9, 0xe6, 0x95, 0x88, 0xf5, 0x09, 0xf5, 0xbe, 0xc5, 0xc6,
+	0xec, 0xa4, 0xa6, 0xda, 0xc8, 0x68, 0x2a, 0x0c, 0x5d, 0x80, 0xf9, 0x8e, 0xd7, 0xf3, 0x37, 0x30,
+	0x65, 0x46, 0x59, 0x28, 0x9e, 0x48, 0x14, 0x13, 0x3c, 0xd5, 0x53, 0xa2, 0xe8, 0x1a, 0x2c, 0x7f,
+	0x1c, 0xf0, 0xec, 0xef, 0xb8, 0x7d, 0xdc, 0x8d, 0x06, 0xd8, 0x98, 0x13, 0xca, 0x2f, 0x27, 0xca,
+	0x93, 0xbb, 0xa9, 0x89, 0x9c, 0x1a, 0xf7, 0xdc, 0xc6, 0x2e, 0xf1, 0x7d, 0xec, 0x32, 0x63, 0x7e,
+	0xd2, 0x73, 0xb5, 0x91, 0xf1, 0x5c, 0x61, 0x9c, 0x1a, 0x89, 0x5b, 0xbb, 0xc5, 0x94, 0x56, 0xf4,
+	0x6a, 0x96, 0x9b, 0xa3, 0x13, 0xdc, 0x28, 0x82, 0x05, 0x39, 0xeb, 0x30, 0xdb, 0x74, 0x42, 0xcf,
+	0x95, 0xe4, 0xac, 0xaa, 0xab, 0xe6, 0x60, 0x46, 0x38, 0x96, 0x42, 0x97, 0xa6, 0xd9, 0x39, 0x79,
+	0x00, 0x3b, 0x4a, 0x2d, 0x43, 0xcf, 0xa5, 0x69, 0x7a, 0x4e, 0x1e, 0x40, 0x4f, 0xaa, 0x9a, 0xf2,
+	0xf3, 0xd6, 0x14, 0x3f, 0xc6, 0x34, 0x3f, 0x69, 0xe2, 0x2a, 0x82, 0xd6, 0x61, 0xf6, 0x2a, 0xa5,
+	0x84, 0x4a, 0x5e, 0x54, 0x70, 0x02, 0xcc, 0x06, 0x27, 0x00, 0xb4, 0x39, 0xc5, 0x67, 0xcc, 0x85,
+	0xf9, 0x24, 0x3e, 0x95, 0x81, 0x3c, 0xa1, 0x97, 0xb2, 0x84, 0x2e, 0x4c, 0xc6, 0x9a, 0x21, 0x34,
+	0x8d, 0x35, 0x65, 0x14, 0x52, 0x16, 0xad, 0x8b, 0x00, 0x69, 0x39, 0xa1, 0xe3, 0x50, 0xbe, 0x89,
+	0x59, 0x9f, 0x74, 0x0d, 0x4d, 0xb4, 0x0d, 0xb9, 0xe2, 0xfd, 0x40, 0x34, 0x8b, 0x19, 0xd1, 0x2c,
+	0xc4, 0xb7, 0x75, 0x01, 0x96, 0xb2, 0xe5, 0x85, 0xce, 0x26, 0x35, 0xa8, 0xc9, 0xee, 0x40, 0x87,
+	0x61, 0x5c, 0x80, 0x6d, 0xde, 0xb0, 0x65, 0xf1, 0x59, 0xbf, 0x68, 0xb0, 0x7a, 0x60, 0xd2, 0xa2,
+	0x3e, 0x54, 0x3e, 0x74, 0x42, 0x76, 0x8b, 0x74, 0x71, 0x6a, 0xa8, 0xd2, 0x6c, 0xde, 0x7f, 0x74,
+	0xa6, 0xf0, 0xf0, 0xd1, 0x99, 0xb7, 0x0f, 0xd7, 0x48, 0x03, 0x6e, 0xa2, 0x7e, 0x2b, 0x1a, 0x6e,
+	0x63, 0x6a, 0x4f, 0x1a, 0x46, 0x6b, 0x50, 0x6e, 0x63, 0x3a, 0xf4, 0x98, 0xcc, 0xde, 0x65, 0xd5,
+	0x2f, 0x04, 0x6a, 0xcb, 0x5d, 0xeb, 0x37, 0x0d, 0xf4, 0x7c, 0x71, 0xa0, 0x08, 0x16, 0x15, 0xb6,
+	0x45, 0x84, 0x93, 0x4b, 0xcd, 0x8e, 0x74, 0xf2, 0xb9, 0x76, 0xfb, 0xec, 0x39, 0xcf, 0xec, 0xf3,
+	0xaf, 0x1a, 0xe8, 0xf9, 0x26, 0x86, 0x5a, 0xa0, 0x6f, 0x24, 0x73, 0xb4, 0x1d, 0x8f, 0x51, 0xd5,
+	0x54, 0xd5, 0x80, 0xad, 0xcb, 0x9d, 0x66, 0x89, 0x07, 0x63, 0x4f, 0x69, 0xa0, 0xf3, 0x93, 0x5d,
+	0x36, 0xcf, 0xb0, 0xd4, 0x9b, 0xcd, 0xdf, 0x71, 0xe9, 0xa9, 0xfe, 0x7a, 0x50, 0x51, 0x55, 0x28,
+	0x66, 0x4f, 0x15, 0x16, 0x79, 0x65, 0x79, 0x3b, 0x9e, 0xeb, 0xb0, 0x38, 0x09, 0x96, 0xec, 0x2c,
+	0xc4, 0x67, 0xdf, 0x96, 0x37, 0xc4, 0x21, 0x73, 0x86, 0x81, 0x08, 0xa3, 0x68, 0xa7, 0x00, 0x9f,
+	0x7d, 0x9f, 0x60, 0x1a, 0x7a, 0xc4, 0x17, 0x7e, 0x2e, 0xd8, 0xc9, 0xd2, 0x1a, 0x82, 0x9e, 0x6f,
+	0xd2, 0xe8, 0x72, 0xee, 0x78, 0x99, 0xbd, 0xab, 0x53, 0x6d, 0x83, 0x6f, 0xda, 0x39, 0x57, 0x4f,
+	0xc3, 0x02, 0x6f, 0x04, 0x0e, 0x8b, 0x28, 0x96, 0xb5, 0x91, 0x02, 0x56, 0x08, 0x47, 0x72, 0xad,
+	0x1d, 0xdd, 0x86, 0x39, 0x9e, 0x85, 0x36, 0xde, 0x91, 0x79, 0xf3, 0xbe, 0xcc, 0x9b, 0x77, 0x0e,
+	0xf9, 0xea, 0xc2, 0x3b, 0x98, 0x62, 0xdf, 0xc5, 0xf5, 0x6b, 0x03, 0xb2, 0xed, 0x0c, 0xec, 0xc4,
+	0xac, 0x75, 0x19, 0x16, 0x33, 0x2d, 0x98, 0x17, 0xb4, 0x8d, 0xc3, 0x68, 0xc0, 0xe4, 0x3d, 0xca,
+	0x15, 0x3a, 0x96, 0xb4, 0xad, 0x19, 0x71, 0x45, 0xf1, 0xc2, 0xfa, 0x22, 0xe1, 0x0c, 0x5d, 0x50,
+	0xf3, 0x38, 0x7f, 0x21, 0xb1, 0x80, 0xdc, 0x94, 0x94, 0x27, 0xb2, 0xff, 0x71, 0x21, 0xbf, 0xcf,
+	0x40, 0x65, 0x42, 0x1d, 0xd5, 0xe0, 0xc8, 0x07, 0xc4, 0xf3, 0x31, 0x6d, 0x47, 0xdb, 0x03, 0xcf,
+	0xbd, 0x81, 0x47, 0xd2, 0xcf, 0x3c, 0xcc, 0x25, 0xaf, 0x7e, 0x13, 0x78, 0x14, 0xe7, 0x99, 0xcf,
+	0xc3, 0xe8, 0xee, 0x64, 0x7d, 0x16, 0x5f, 0xcc, 0x4b, 0x6c, 0xa2, 0x36, 0xa9, 0x4a, 0x2c, 0x36,
+	0x4a, 0xf8, 0x2d, 0x3d, 0x57, 0x7e, 0xa7, 0xec, 0x5b, 0x3f, 0x68, 0xb0, 0x32, 0x35, 0x0e, 0xd1,
+	0xeb, 0x50, 0xda, 0x20, 0xdd, 0xb8, 0x6a, 0x96, 0xd3, 0x57, 0xc2, 0x94, 0x20, 0x17, 0xb2, 0x85,
+	0x28, 0x32, 0x01, 0xae, 0x6e, 0x5d, 0xe9, 0xf0, 0x70, 0xba, 0xa1, 0xb8, 0xd4, 0x8a, 0x9d, 0x41,
+	0x0e, 0x55, 0xf5, 0xd6, 0xbb, 0x50, 0x99, 0x18, 0xeb, 0xbc, 0x1a, 0x3b, 0x91, 0xeb, 0xe2, 0x30,
+	0x14, 0x3e, 0xcd, 0xdb, 0xc9, 0xf2, 0x09, 0x29, 0xf8, 0xb7, 0x06, 0x2b, 0x53, 0xa3, 0xfa, 0x49,
+	0x61, 0x4d, 0x09, 0x66, 0xc2, 0x7a, 0x7a, 0x93, 0x50, 0x87, 0x17, 0x33, 0x87, 0x3f, 0x6b, 0xcf,
+	0x42, 0x6b, 0xb0, 0xdc, 0xf2, 0x42, 0x97, 0xdc, 0xc3, 0x74, 0xb4, 0x41, 0x22, 0x9f, 0x89, 0xc7,
+	0x46, 0xc5, 0xce, 0xa1, 0xe9, 0x48, 0x2c, 0x3f, 0x75, 0x24, 0xae, 0x81, 0x9e, 0x7f, 0x63, 0xf0,
+	0x89, 0xcb, 0x31, 0x59, 0x0e, 0xe2, 0xdb, 0x3a, 0x0b, 0x95, 0x89, 0x67, 0x45, 0x1a, 0x85, 0x96,
+	0xbd, 0x42, 0x03, 0x8e, 0x1f, 0xfc, 0x8a, 0xb0, 0x8e, 0xc2, 0xca, 0xd4, 0xd3, 0xe0, 0xdc, 0x67,
+	0xb0, 0x7a, 0x60, 0x7a, 0xa0, 0x25, 0x98, 0xbf, 0xe2, 0xba, 0x38, 0x60, 0xb8, 0xab, 0x17, 0x10,
+	0xca, 0xbf, 0x5c, 0x74, 0x0d, 0xad, 0x40, 0x45, 0x62, 0x7d, 0x42, 0xd9, 0xf5, 0x96, 0x3e, 0x83,
+	0x80, 0x37, 0x9c, 0xaf, 0xb0, 0xcb, 0xf4, 0xe2, 0xb9, 0xcf, 0x61, 0xf5, 0x40, 0x86, 0xd0, 0xa2,
+	0x4a, 0x8a, 0xd8, 0xf0, 0xa7, 0x94, 0xf8, 0x3d, 0x45, 0x8e, 0x3e, 0x83, 0x74, 0x58, 0x12, 0xd8,
+	0x4d, 0xc7, 0xe7, 0xe6, 0xf5, 0xa2, 0x42, 0x64, 0x2f, 0xd7, 0x4b, 0xcd, 0xf7, 0xee, 0xef, 0x99,
+	0x85, 0xdd, 0x3d, 0xb3, 0xf0, 0x60, 0xcf, 0x2c, 0x3c, 0xde, 0x33, 0xb5, 0x7f, 0xf6, 0xcc, 0xc2,
+	0x77, 0x63, 0x53, 0xfb, 0x79, 0x6c, 0x6a, 0xf7, 0xc7, 0xa6, 0xb6, 0x3b, 0x36, 0xb5, 0x3f, 0xc7,
+	0x66, 0xe1, 0xaf, 0xb1, 0x59, 0x78, 0x3c, 0x36, 0xb5, 0xef, 0xf7, 0xcd, 0xc2, 0x4f, 0xfb, 0xa6,
+	0xb6, 0xbb, 0x6f, 0x16, 0x1e, 0xec, 0x9b, 0x85, 0xed, 0xb2, 0xf8, 0x27, 0xf9, 0xe6, 0xbf, 0x01,
+	0x00, 0x00, 0xff, 0xff, 0x01, 0xdb, 0xf7, 0x1e, 0x38, 0x0f, 0x00, 0x00,
 }
 
+func (x BootstrapResponseCode) String() string {
+	s, ok := BootstrapResponseCode_name[int32(x)]
+	if ok {
+		return s
+	}
+	return strconv.Itoa(int(x))
+}
+func (x AuthorizeResponseCode) String() string {
+	s, ok := AuthorizeResponseCode_name[int32(x)]
+	if ok {
+		return s
+	}
+	return strconv.Itoa(int(x))
+}
+func (this *Packet) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*Packet)
+	if !ok {
+		that2, ok := that.(Packet)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.Polymorph != that1.Polymorph {
+		return false
+	}
+	if that1.Sender == nil {
+		if this.Sender != nil {
+			return false
+		}
+	} else if !this.Sender.Equal(*that1.Sender) {
+		return false
+	}
+	if that1.Receiver == nil {
+		if this.Receiver != nil {
+			return false
+		}
+	} else if !this.Receiver.Equal(*that1.Receiver) {
+		return false
+	}
+	if this.RequestID != that1.RequestID {
+		return false
+	}
+	if this.TraceID != that1.TraceID {
+		return false
+	}
+	if !bytes.Equal(this.TraceSpanData, that1.TraceSpanData) {
+		return false
+	}
+	if this.Type != that1.Type {
+		return false
+	}
+	if that1.Payload == nil {
+		if this.Payload != nil {
+			return false
+		}
+	} else if this.Payload == nil {
+		return false
+	} else if !this.Payload.Equal(that1.Payload) {
+		return false
+	}
+	return true
+}
+func (this *Packet_Request) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*Packet_Request)
+	if !ok {
+		that2, ok := that.(Packet_Request)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.Request.Equal(that1.Request) {
+		return false
+	}
+	return true
+}
+func (this *Packet_Response) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*Packet_Response)
+	if !ok {
+		that2, ok := that.(Packet_Response)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.Response.Equal(that1.Response) {
+		return false
+	}
+	return true
+}
+func (this *Request) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*Request)
+	if !ok {
+		that2, ok := that.(Request)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if that1.Request == nil {
+		if this.Request != nil {
+			return false
+		}
+	} else if this.Request == nil {
+		return false
+	} else if !this.Request.Equal(that1.Request) {
+		return false
+	}
+	return true
+}
+func (this *Request_RPC) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*Request_RPC)
+	if !ok {
+		that2, ok := that.(Request_RPC)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.RPC.Equal(that1.RPC) {
+		return false
+	}
+	return true
+}
+func (this *Request_Pulse) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*Request_Pulse)
+	if !ok {
+		that2, ok := that.(Request_Pulse)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.Pulse.Equal(that1.Pulse) {
+		return false
+	}
+	return true
+}
+func (this *Request_Bootstrap) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*Request_Bootstrap)
+	if !ok {
+		that2, ok := that.(Request_Bootstrap)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.Bootstrap.Equal(that1.Bootstrap) {
+		return false
+	}
+	return true
+}
+func (this *Request_Authorize) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*Request_Authorize)
+	if !ok {
+		that2, ok := that.(Request_Authorize)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.Authorize.Equal(that1.Authorize) {
+		return false
+	}
+	return true
+}
+func (this *Request_SignCert) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*Request_SignCert)
+	if !ok {
+		that2, ok := that.(Request_SignCert)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.SignCert.Equal(that1.SignCert) {
+		return false
+	}
+	return true
+}
+func (this *Request_UpdateSchedule) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*Request_UpdateSchedule)
+	if !ok {
+		that2, ok := that.(Request_UpdateSchedule)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.UpdateSchedule.Equal(that1.UpdateSchedule) {
+		return false
+	}
+	return true
+}
+func (this *Request_Reconnect) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*Request_Reconnect)
+	if !ok {
+		that2, ok := that.(Request_Reconnect)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.Reconnect.Equal(that1.Reconnect) {
+		return false
+	}
+	return true
+}
+func (this *Response) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*Response)
+	if !ok {
+		that2, ok := that.(Response)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if that1.Response == nil {
+		if this.Response != nil {
+			return false
+		}
+	} else if this.Response == nil {
+		return false
+	} else if !this.Response.Equal(that1.Response) {
+		return false
+	}
+	return true
+}
+func (this *Response_RPC) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*Response_RPC)
+	if !ok {
+		that2, ok := that.(Response_RPC)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.RPC.Equal(that1.RPC) {
+		return false
+	}
+	return true
+}
+func (this *Response_Basic) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*Response_Basic)
+	if !ok {
+		that2, ok := that.(Response_Basic)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.Basic.Equal(that1.Basic) {
+		return false
+	}
+	return true
+}
+func (this *Response_Bootstrap) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*Response_Bootstrap)
+	if !ok {
+		that2, ok := that.(Response_Bootstrap)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.Bootstrap.Equal(that1.Bootstrap) {
+		return false
+	}
+	return true
+}
+func (this *Response_Authorize) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*Response_Authorize)
+	if !ok {
+		that2, ok := that.(Response_Authorize)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.Authorize.Equal(that1.Authorize) {
+		return false
+	}
+	return true
+}
+func (this *Response_SignCert) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*Response_SignCert)
+	if !ok {
+		that2, ok := that.(Response_SignCert)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.SignCert.Equal(that1.SignCert) {
+		return false
+	}
+	return true
+}
+func (this *Response_Error) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*Response_Error)
+	if !ok {
+		that2, ok := that.(Response_Error)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.Error.Equal(that1.Error) {
+		return false
+	}
+	return true
+}
+func (this *Response_UpdateSchedule) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*Response_UpdateSchedule)
+	if !ok {
+		that2, ok := that.(Response_UpdateSchedule)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.UpdateSchedule.Equal(that1.UpdateSchedule) {
+		return false
+	}
+	return true
+}
+func (this *Response_Reconnect) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*Response_Reconnect)
+	if !ok {
+		that2, ok := that.(Response_Reconnect)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.Reconnect.Equal(that1.Reconnect) {
+		return false
+	}
+	return true
+}
+func (this *RPCRequest) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*RPCRequest)
+	if !ok {
+		that2, ok := that.(RPCRequest)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.Method != that1.Method {
+		return false
+	}
+	if !bytes.Equal(this.Data, that1.Data) {
+		return false
+	}
+	return true
+}
+func (this *PulseRequest) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*PulseRequest)
+	if !ok {
+		that2, ok := that.(PulseRequest)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.Pulse.Equal(that1.Pulse) {
+		return false
+	}
+	return true
+}
+func (this *UpdateScheduleRequest) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*UpdateScheduleRequest)
+	if !ok {
+		that2, ok := that.(UpdateScheduleRequest)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.LastNodePulse.Equal(that1.LastNodePulse) {
+		return false
+	}
+	if !this.Permit.Equal(that1.Permit) {
+		return false
+	}
+	return true
+}
+func (this *ReconnectRequest) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*ReconnectRequest)
+	if !ok {
+		that2, ok := that.(ReconnectRequest)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.ReconnectTo.Equal(that1.ReconnectTo) {
+		return false
+	}
+	if !this.Permit.Equal(that1.Permit) {
+		return false
+	}
+	return true
+}
+func (this *BootstrapRequest) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*BootstrapRequest)
+	if !ok {
+		that2, ok := that.(BootstrapRequest)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.CandidateProfile.Equal(&that1.CandidateProfile) {
+		return false
+	}
+	if !this.Pulse.Equal(&that1.Pulse) {
+		return false
+	}
+	if !this.Permit.Equal(that1.Permit) {
+		return false
+	}
+	return true
+}
+func (this *AuthorizeData) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*AuthorizeData)
+	if !ok {
+		that2, ok := that.(AuthorizeData)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !bytes.Equal(this.Certificate, that1.Certificate) {
+		return false
+	}
+	if this.Timestamp != that1.Timestamp {
+		return false
+	}
+	if this.Version != that1.Version {
+		return false
+	}
+	return true
+}
+func (this *AuthorizeRequest) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*AuthorizeRequest)
+	if !ok {
+		that2, ok := that.(AuthorizeRequest)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.AuthorizeData.Equal(that1.AuthorizeData) {
+		return false
+	}
+	if !bytes.Equal(this.Signature, that1.Signature) {
+		return false
+	}
+	return true
+}
+func (this *SignCertRequest) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*SignCertRequest)
+	if !ok {
+		that2, ok := that.(SignCertRequest)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.NodeRef.Equal(that1.NodeRef) {
+		return false
+	}
+	return true
+}
+func (this *RPCResponse) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*RPCResponse)
+	if !ok {
+		that2, ok := that.(RPCResponse)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !bytes.Equal(this.Result, that1.Result) {
+		return false
+	}
+	if this.Error != that1.Error {
+		return false
+	}
+	return true
+}
+func (this *Permit) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*Permit)
+	if !ok {
+		that2, ok := that.(Permit)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.Payload.Equal(&that1.Payload) {
+		return false
+	}
+	if !bytes.Equal(this.Signature, that1.Signature) {
+		return false
+	}
+	return true
+}
+func (this *PermitPayload) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*PermitPayload)
+	if !ok {
+		that2, ok := that.(PermitPayload)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !bytes.Equal(this.JoinerPublicKey, that1.JoinerPublicKey) {
+		return false
+	}
+	if this.ExpireTimestamp != that1.ExpireTimestamp {
+		return false
+	}
+	if that1.ReconnectTo == nil {
+		if this.ReconnectTo != nil {
+			return false
+		}
+	} else if !this.ReconnectTo.Equal(*that1.ReconnectTo) {
+		return false
+	}
+	if !this.AuthorityNodeRef.Equal(that1.AuthorityNodeRef) {
+		return false
+	}
+	return true
+}
+func (this *BootstrapResponse) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*BootstrapResponse)
+	if !ok {
+		that2, ok := that.(BootstrapResponse)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.Code != that1.Code {
+		return false
+	}
+	if this.ETASeconds != that1.ETASeconds {
+		return false
+	}
+	if !this.Pulse.Equal(&that1.Pulse) {
+		return false
+	}
+	return true
+}
+func (this *BasicResponse) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*BasicResponse)
+	if !ok {
+		that2, ok := that.(BasicResponse)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.Success != that1.Success {
+		return false
+	}
+	if this.Error != that1.Error {
+		return false
+	}
+	return true
+}
+func (this *AuthorizeResponse) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*AuthorizeResponse)
+	if !ok {
+		that2, ok := that.(AuthorizeResponse)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.Code != that1.Code {
+		return false
+	}
+	if this.Timestamp != that1.Timestamp {
+		return false
+	}
+	if this.Error != that1.Error {
+		return false
+	}
+	if !this.Permit.Equal(that1.Permit) {
+		return false
+	}
+	if this.DiscoveryCount != that1.DiscoveryCount {
+		return false
+	}
+	if !this.Pulse.Equal(that1.Pulse) {
+		return false
+	}
+	return true
+}
+func (this *SignCertResponse) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*SignCertResponse)
+	if !ok {
+		that2, ok := that.(SignCertResponse)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !bytes.Equal(this.Sign, that1.Sign) {
+		return false
+	}
+	return true
+}
+func (this *ErrorResponse) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*ErrorResponse)
+	if !ok {
+		that2, ok := that.(ErrorResponse)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.Error != that1.Error {
+		return false
+	}
+	return true
+}
+func (this *UpdateScheduleResponse) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*UpdateScheduleResponse)
+	if !ok {
+		that2, ok := that.(UpdateScheduleResponse)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	return true
+}
+func (this *ReconnectResponse) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*ReconnectResponse)
+	if !ok {
+		that2, ok := that.(ReconnectResponse)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	return true
+}
+func (this *Packet) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 13)
+	s = append(s, "&packet.Packet{")
+	s = append(s, "Polymorph: "+fmt.Sprintf("%#v", this.Polymorph)+",\n")
+	s = append(s, "Sender: "+fmt.Sprintf("%#v", this.Sender)+",\n")
+	s = append(s, "Receiver: "+fmt.Sprintf("%#v", this.Receiver)+",\n")
+	s = append(s, "RequestID: "+fmt.Sprintf("%#v", this.RequestID)+",\n")
+	s = append(s, "TraceID: "+fmt.Sprintf("%#v", this.TraceID)+",\n")
+	s = append(s, "TraceSpanData: "+fmt.Sprintf("%#v", this.TraceSpanData)+",\n")
+	s = append(s, "Type: "+fmt.Sprintf("%#v", this.Type)+",\n")
+	if this.Payload != nil {
+		s = append(s, "Payload: "+fmt.Sprintf("%#v", this.Payload)+",\n")
+	}
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *Packet_Request) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&packet.Packet_Request{` +
+		`Request:` + fmt.Sprintf("%#v", this.Request) + `}`}, ", ")
+	return s
+}
+func (this *Packet_Response) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&packet.Packet_Response{` +
+		`Response:` + fmt.Sprintf("%#v", this.Response) + `}`}, ", ")
+	return s
+}
+func (this *Request) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 11)
+	s = append(s, "&packet.Request{")
+	if this.Request != nil {
+		s = append(s, "Request: "+fmt.Sprintf("%#v", this.Request)+",\n")
+	}
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *Request_RPC) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&packet.Request_RPC{` +
+		`RPC:` + fmt.Sprintf("%#v", this.RPC) + `}`}, ", ")
+	return s
+}
+func (this *Request_Pulse) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&packet.Request_Pulse{` +
+		`Pulse:` + fmt.Sprintf("%#v", this.Pulse) + `}`}, ", ")
+	return s
+}
+func (this *Request_Bootstrap) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&packet.Request_Bootstrap{` +
+		`Bootstrap:` + fmt.Sprintf("%#v", this.Bootstrap) + `}`}, ", ")
+	return s
+}
+func (this *Request_Authorize) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&packet.Request_Authorize{` +
+		`Authorize:` + fmt.Sprintf("%#v", this.Authorize) + `}`}, ", ")
+	return s
+}
+func (this *Request_SignCert) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&packet.Request_SignCert{` +
+		`SignCert:` + fmt.Sprintf("%#v", this.SignCert) + `}`}, ", ")
+	return s
+}
+func (this *Request_UpdateSchedule) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&packet.Request_UpdateSchedule{` +
+		`UpdateSchedule:` + fmt.Sprintf("%#v", this.UpdateSchedule) + `}`}, ", ")
+	return s
+}
+func (this *Request_Reconnect) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&packet.Request_Reconnect{` +
+		`Reconnect:` + fmt.Sprintf("%#v", this.Reconnect) + `}`}, ", ")
+	return s
+}
+func (this *Response) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 12)
+	s = append(s, "&packet.Response{")
+	if this.Response != nil {
+		s = append(s, "Response: "+fmt.Sprintf("%#v", this.Response)+",\n")
+	}
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *Response_RPC) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&packet.Response_RPC{` +
+		`RPC:` + fmt.Sprintf("%#v", this.RPC) + `}`}, ", ")
+	return s
+}
+func (this *Response_Basic) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&packet.Response_Basic{` +
+		`Basic:` + fmt.Sprintf("%#v", this.Basic) + `}`}, ", ")
+	return s
+}
+func (this *Response_Bootstrap) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&packet.Response_Bootstrap{` +
+		`Bootstrap:` + fmt.Sprintf("%#v", this.Bootstrap) + `}`}, ", ")
+	return s
+}
+func (this *Response_Authorize) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&packet.Response_Authorize{` +
+		`Authorize:` + fmt.Sprintf("%#v", this.Authorize) + `}`}, ", ")
+	return s
+}
+func (this *Response_SignCert) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&packet.Response_SignCert{` +
+		`SignCert:` + fmt.Sprintf("%#v", this.SignCert) + `}`}, ", ")
+	return s
+}
+func (this *Response_Error) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&packet.Response_Error{` +
+		`Error:` + fmt.Sprintf("%#v", this.Error) + `}`}, ", ")
+	return s
+}
+func (this *Response_UpdateSchedule) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&packet.Response_UpdateSchedule{` +
+		`UpdateSchedule:` + fmt.Sprintf("%#v", this.UpdateSchedule) + `}`}, ", ")
+	return s
+}
+func (this *Response_Reconnect) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&packet.Response_Reconnect{` +
+		`Reconnect:` + fmt.Sprintf("%#v", this.Reconnect) + `}`}, ", ")
+	return s
+}
+func (this *RPCRequest) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 6)
+	s = append(s, "&packet.RPCRequest{")
+	s = append(s, "Method: "+fmt.Sprintf("%#v", this.Method)+",\n")
+	s = append(s, "Data: "+fmt.Sprintf("%#v", this.Data)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *PulseRequest) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 5)
+	s = append(s, "&packet.PulseRequest{")
+	if this.Pulse != nil {
+		s = append(s, "Pulse: "+fmt.Sprintf("%#v", this.Pulse)+",\n")
+	}
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *UpdateScheduleRequest) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 6)
+	s = append(s, "&packet.UpdateScheduleRequest{")
+	s = append(s, "LastNodePulse: "+fmt.Sprintf("%#v", this.LastNodePulse)+",\n")
+	if this.Permit != nil {
+		s = append(s, "Permit: "+fmt.Sprintf("%#v", this.Permit)+",\n")
+	}
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *ReconnectRequest) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 6)
+	s = append(s, "&packet.ReconnectRequest{")
+	s = append(s, "ReconnectTo: "+fmt.Sprintf("%#v", this.ReconnectTo)+",\n")
+	if this.Permit != nil {
+		s = append(s, "Permit: "+fmt.Sprintf("%#v", this.Permit)+",\n")
+	}
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *BootstrapRequest) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 7)
+	s = append(s, "&packet.BootstrapRequest{")
+	s = append(s, "CandidateProfile: "+strings.Replace(this.CandidateProfile.GoString(), `&`, ``, 1)+",\n")
+	s = append(s, "Pulse: "+strings.Replace(this.Pulse.GoString(), `&`, ``, 1)+",\n")
+	if this.Permit != nil {
+		s = append(s, "Permit: "+fmt.Sprintf("%#v", this.Permit)+",\n")
+	}
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *AuthorizeData) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 7)
+	s = append(s, "&packet.AuthorizeData{")
+	s = append(s, "Certificate: "+fmt.Sprintf("%#v", this.Certificate)+",\n")
+	s = append(s, "Timestamp: "+fmt.Sprintf("%#v", this.Timestamp)+",\n")
+	s = append(s, "Version: "+fmt.Sprintf("%#v", this.Version)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *AuthorizeRequest) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 6)
+	s = append(s, "&packet.AuthorizeRequest{")
+	if this.AuthorizeData != nil {
+		s = append(s, "AuthorizeData: "+fmt.Sprintf("%#v", this.AuthorizeData)+",\n")
+	}
+	s = append(s, "Signature: "+fmt.Sprintf("%#v", this.Signature)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *SignCertRequest) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 5)
+	s = append(s, "&packet.SignCertRequest{")
+	s = append(s, "NodeRef: "+fmt.Sprintf("%#v", this.NodeRef)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *RPCResponse) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 6)
+	s = append(s, "&packet.RPCResponse{")
+	s = append(s, "Result: "+fmt.Sprintf("%#v", this.Result)+",\n")
+	s = append(s, "Error: "+fmt.Sprintf("%#v", this.Error)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *Permit) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 6)
+	s = append(s, "&packet.Permit{")
+	s = append(s, "Payload: "+strings.Replace(this.Payload.GoString(), `&`, ``, 1)+",\n")
+	s = append(s, "Signature: "+fmt.Sprintf("%#v", this.Signature)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *PermitPayload) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 8)
+	s = append(s, "&packet.PermitPayload{")
+	s = append(s, "JoinerPublicKey: "+fmt.Sprintf("%#v", this.JoinerPublicKey)+",\n")
+	s = append(s, "ExpireTimestamp: "+fmt.Sprintf("%#v", this.ExpireTimestamp)+",\n")
+	s = append(s, "ReconnectTo: "+fmt.Sprintf("%#v", this.ReconnectTo)+",\n")
+	s = append(s, "AuthorityNodeRef: "+fmt.Sprintf("%#v", this.AuthorityNodeRef)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *BootstrapResponse) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 7)
+	s = append(s, "&packet.BootstrapResponse{")
+	s = append(s, "Code: "+fmt.Sprintf("%#v", this.Code)+",\n")
+	s = append(s, "ETASeconds: "+fmt.Sprintf("%#v", this.ETASeconds)+",\n")
+	s = append(s, "Pulse: "+strings.Replace(this.Pulse.GoString(), `&`, ``, 1)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *BasicResponse) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 6)
+	s = append(s, "&packet.BasicResponse{")
+	s = append(s, "Success: "+fmt.Sprintf("%#v", this.Success)+",\n")
+	s = append(s, "Error: "+fmt.Sprintf("%#v", this.Error)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *AuthorizeResponse) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 10)
+	s = append(s, "&packet.AuthorizeResponse{")
+	s = append(s, "Code: "+fmt.Sprintf("%#v", this.Code)+",\n")
+	s = append(s, "Timestamp: "+fmt.Sprintf("%#v", this.Timestamp)+",\n")
+	s = append(s, "Error: "+fmt.Sprintf("%#v", this.Error)+",\n")
+	if this.Permit != nil {
+		s = append(s, "Permit: "+fmt.Sprintf("%#v", this.Permit)+",\n")
+	}
+	s = append(s, "DiscoveryCount: "+fmt.Sprintf("%#v", this.DiscoveryCount)+",\n")
+	if this.Pulse != nil {
+		s = append(s, "Pulse: "+fmt.Sprintf("%#v", this.Pulse)+",\n")
+	}
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *SignCertResponse) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 5)
+	s = append(s, "&packet.SignCertResponse{")
+	s = append(s, "Sign: "+fmt.Sprintf("%#v", this.Sign)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *ErrorResponse) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 5)
+	s = append(s, "&packet.ErrorResponse{")
+	s = append(s, "Error: "+fmt.Sprintf("%#v", this.Error)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *UpdateScheduleResponse) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 4)
+	s = append(s, "&packet.UpdateScheduleResponse{")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func (this *ReconnectResponse) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 4)
+	s = append(s, "&packet.ReconnectResponse{")
+	s = append(s, "}")
+	return strings.Join(s, "")
+}
+func valueToGoStringPacket(v interface{}, typ string) string {
+	rv := reflect.ValueOf(v)
+	if rv.IsNil() {
+		return "nil"
+	}
+	pv := reflect.Indirect(rv).Interface()
+	return fmt.Sprintf("func(v %v) *%v { return &v } ( %#v )", typ, typ, pv)
+}
 func (m *Packet) Marshal() (dAtA []byte, err error) {
 	size := m.ProtoSize()
 	dAtA = make([]byte, size)
@@ -1231,8 +2728,8 @@ func (m *Packet) MarshalTo(dAtA []byte) (int, error) {
 func (m *Packet) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
-	var l, fieldEnd int
-	_, _ = l, fieldEnd
+	var l int
+	_ = l
 	if m.Payload != nil {
 		{
 			size := m.Payload.ProtoSize()
@@ -1335,7 +2832,6 @@ func (m *Packet_Request) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	}
 	return len(dAtA) - i, nil
 }
-
 func (m *Packet_Response) MarshalTo(dAtA []byte) (int, error) {
 	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
@@ -1359,7 +2855,6 @@ func (m *Packet_Response) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	}
 	return len(dAtA) - i, nil
 }
-
 func (m *Request) Marshal() (dAtA []byte, err error) {
 	size := m.ProtoSize()
 	dAtA = make([]byte, size)
@@ -1378,8 +2873,8 @@ func (m *Request) MarshalTo(dAtA []byte) (int, error) {
 func (m *Request) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
-	var l, fieldEnd int
-	_, _ = l, fieldEnd
+	var l int
+	_ = l
 	if m.Request != nil {
 		{
 			size := m.Request.ProtoSize()
@@ -1413,7 +2908,6 @@ func (m *Request_RPC) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	}
 	return len(dAtA) - i, nil
 }
-
 func (m *Request_Pulse) MarshalTo(dAtA []byte) (int, error) {
 	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
@@ -1435,7 +2929,6 @@ func (m *Request_Pulse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	}
 	return len(dAtA) - i, nil
 }
-
 func (m *Request_Bootstrap) MarshalTo(dAtA []byte) (int, error) {
 	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
@@ -1457,7 +2950,6 @@ func (m *Request_Bootstrap) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	}
 	return len(dAtA) - i, nil
 }
-
 func (m *Request_Authorize) MarshalTo(dAtA []byte) (int, error) {
 	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
@@ -1479,7 +2971,6 @@ func (m *Request_Authorize) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	}
 	return len(dAtA) - i, nil
 }
-
 func (m *Request_SignCert) MarshalTo(dAtA []byte) (int, error) {
 	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
@@ -1501,7 +2992,6 @@ func (m *Request_SignCert) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	}
 	return len(dAtA) - i, nil
 }
-
 func (m *Request_UpdateSchedule) MarshalTo(dAtA []byte) (int, error) {
 	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
@@ -1523,7 +3013,6 @@ func (m *Request_UpdateSchedule) MarshalToSizedBuffer(dAtA []byte) (int, error) 
 	}
 	return len(dAtA) - i, nil
 }
-
 func (m *Request_Reconnect) MarshalTo(dAtA []byte) (int, error) {
 	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
@@ -1545,7 +3034,6 @@ func (m *Request_Reconnect) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	}
 	return len(dAtA) - i, nil
 }
-
 func (m *Response) Marshal() (dAtA []byte, err error) {
 	size := m.ProtoSize()
 	dAtA = make([]byte, size)
@@ -1564,8 +3052,8 @@ func (m *Response) MarshalTo(dAtA []byte) (int, error) {
 func (m *Response) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
-	var l, fieldEnd int
-	_, _ = l, fieldEnd
+	var l int
+	_ = l
 	if m.Response != nil {
 		{
 			size := m.Response.ProtoSize()
@@ -1599,7 +3087,6 @@ func (m *Response_RPC) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	}
 	return len(dAtA) - i, nil
 }
-
 func (m *Response_Basic) MarshalTo(dAtA []byte) (int, error) {
 	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
@@ -1621,7 +3108,6 @@ func (m *Response_Basic) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	}
 	return len(dAtA) - i, nil
 }
-
 func (m *Response_Bootstrap) MarshalTo(dAtA []byte) (int, error) {
 	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
@@ -1643,7 +3129,6 @@ func (m *Response_Bootstrap) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	}
 	return len(dAtA) - i, nil
 }
-
 func (m *Response_Authorize) MarshalTo(dAtA []byte) (int, error) {
 	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
@@ -1665,7 +3150,6 @@ func (m *Response_Authorize) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	}
 	return len(dAtA) - i, nil
 }
-
 func (m *Response_SignCert) MarshalTo(dAtA []byte) (int, error) {
 	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
@@ -1687,7 +3171,6 @@ func (m *Response_SignCert) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	}
 	return len(dAtA) - i, nil
 }
-
 func (m *Response_Error) MarshalTo(dAtA []byte) (int, error) {
 	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
@@ -1709,7 +3192,6 @@ func (m *Response_Error) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	}
 	return len(dAtA) - i, nil
 }
-
 func (m *Response_UpdateSchedule) MarshalTo(dAtA []byte) (int, error) {
 	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
@@ -1731,7 +3213,6 @@ func (m *Response_UpdateSchedule) MarshalToSizedBuffer(dAtA []byte) (int, error)
 	}
 	return len(dAtA) - i, nil
 }
-
 func (m *Response_Reconnect) MarshalTo(dAtA []byte) (int, error) {
 	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
@@ -1753,7 +3234,6 @@ func (m *Response_Reconnect) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	}
 	return len(dAtA) - i, nil
 }
-
 func (m *RPCRequest) Marshal() (dAtA []byte, err error) {
 	size := m.ProtoSize()
 	dAtA = make([]byte, size)
@@ -1772,8 +3252,8 @@ func (m *RPCRequest) MarshalTo(dAtA []byte) (int, error) {
 func (m *RPCRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
-	var l, fieldEnd int
-	_, _ = l, fieldEnd
+	var l int
+	_ = l
 	if len(m.Data) > 0 {
 		i -= len(m.Data)
 		copy(dAtA[i:], m.Data)
@@ -1809,8 +3289,8 @@ func (m *PulseRequest) MarshalTo(dAtA []byte) (int, error) {
 func (m *PulseRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
-	var l, fieldEnd int
-	_, _ = l, fieldEnd
+	var l int
+	_ = l
 	if m.Pulse != nil {
 		{
 			size, err := m.Pulse.MarshalToSizedBuffer(dAtA[:i])
@@ -1844,8 +3324,8 @@ func (m *UpdateScheduleRequest) MarshalTo(dAtA []byte) (int, error) {
 func (m *UpdateScheduleRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
-	var l, fieldEnd int
-	_, _ = l, fieldEnd
+	var l int
+	_ = l
 	if m.Permit != nil {
 		{
 			size, err := m.Permit.MarshalToSizedBuffer(dAtA[:i])
@@ -1884,8 +3364,8 @@ func (m *ReconnectRequest) MarshalTo(dAtA []byte) (int, error) {
 func (m *ReconnectRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
-	var l, fieldEnd int
-	_, _ = l, fieldEnd
+	var l int
+	_ = l
 	if m.Permit != nil {
 		{
 			size, err := m.Permit.MarshalToSizedBuffer(dAtA[:i])
@@ -1929,8 +3409,8 @@ func (m *BootstrapRequest) MarshalTo(dAtA []byte) (int, error) {
 func (m *BootstrapRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
-	var l, fieldEnd int
-	_, _ = l, fieldEnd
+	var l int
+	_ = l
 	if m.Permit != nil {
 		{
 			size, err := m.Permit.MarshalToSizedBuffer(dAtA[:i])
@@ -1984,8 +3464,8 @@ func (m *AuthorizeData) MarshalTo(dAtA []byte) (int, error) {
 func (m *AuthorizeData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
-	var l, fieldEnd int
-	_, _ = l, fieldEnd
+	var l int
+	_ = l
 	if len(m.Version) > 0 {
 		i -= len(m.Version)
 		copy(dAtA[i:], m.Version)
@@ -2026,8 +3506,8 @@ func (m *AuthorizeRequest) MarshalTo(dAtA []byte) (int, error) {
 func (m *AuthorizeRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
-	var l, fieldEnd int
-	_, _ = l, fieldEnd
+	var l int
+	_ = l
 	if len(m.Signature) > 0 {
 		i -= len(m.Signature)
 		copy(dAtA[i:], m.Signature)
@@ -2068,8 +3548,8 @@ func (m *SignCertRequest) MarshalTo(dAtA []byte) (int, error) {
 func (m *SignCertRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
-	var l, fieldEnd int
-	_, _ = l, fieldEnd
+	var l int
+	_ = l
 	{
 		size := m.NodeRef.ProtoSize()
 		i -= size
@@ -2101,8 +3581,8 @@ func (m *RPCResponse) MarshalTo(dAtA []byte) (int, error) {
 func (m *RPCResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
-	var l, fieldEnd int
-	_, _ = l, fieldEnd
+	var l int
+	_ = l
 	if len(m.Error) > 0 {
 		i -= len(m.Error)
 		copy(dAtA[i:], m.Error)
@@ -2138,8 +3618,8 @@ func (m *Permit) MarshalTo(dAtA []byte) (int, error) {
 func (m *Permit) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
-	var l, fieldEnd int
-	_, _ = l, fieldEnd
+	var l int
+	_ = l
 	if len(m.Signature) > 0 {
 		i -= len(m.Signature)
 		copy(dAtA[i:], m.Signature)
@@ -2178,8 +3658,8 @@ func (m *PermitPayload) MarshalTo(dAtA []byte) (int, error) {
 func (m *PermitPayload) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
-	var l, fieldEnd int
-	_, _ = l, fieldEnd
+	var l int
+	_ = l
 	{
 		size := m.AuthorityNodeRef.ProtoSize()
 		i -= size
@@ -2235,8 +3715,8 @@ func (m *BootstrapResponse) MarshalTo(dAtA []byte) (int, error) {
 func (m *BootstrapResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
-	var l, fieldEnd int
-	_, _ = l, fieldEnd
+	var l int
+	_ = l
 	{
 		size, err := m.Pulse.MarshalToSizedBuffer(dAtA[:i])
 		if err != nil {
@@ -2278,8 +3758,8 @@ func (m *BasicResponse) MarshalTo(dAtA []byte) (int, error) {
 func (m *BasicResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
-	var l, fieldEnd int
-	_, _ = l, fieldEnd
+	var l int
+	_ = l
 	if len(m.Error) > 0 {
 		i -= len(m.Error)
 		copy(dAtA[i:], m.Error)
@@ -2318,8 +3798,8 @@ func (m *AuthorizeResponse) MarshalTo(dAtA []byte) (int, error) {
 func (m *AuthorizeResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
-	var l, fieldEnd int
-	_, _ = l, fieldEnd
+	var l int
+	_ = l
 	if m.Pulse != nil {
 		{
 			size, err := m.Pulse.MarshalToSizedBuffer(dAtA[:i])
@@ -2387,8 +3867,8 @@ func (m *SignCertResponse) MarshalTo(dAtA []byte) (int, error) {
 func (m *SignCertResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
-	var l, fieldEnd int
-	_, _ = l, fieldEnd
+	var l int
+	_ = l
 	if len(m.Sign) > 0 {
 		i -= len(m.Sign)
 		copy(dAtA[i:], m.Sign)
@@ -2417,8 +3897,8 @@ func (m *ErrorResponse) MarshalTo(dAtA []byte) (int, error) {
 func (m *ErrorResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
-	var l, fieldEnd int
-	_, _ = l, fieldEnd
+	var l int
+	_ = l
 	if len(m.Error) > 0 {
 		i -= len(m.Error)
 		copy(dAtA[i:], m.Error)
@@ -2447,8 +3927,8 @@ func (m *UpdateScheduleResponse) MarshalTo(dAtA []byte) (int, error) {
 func (m *UpdateScheduleResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
-	var l, fieldEnd int
-	_, _ = l, fieldEnd
+	var l int
+	_ = l
 	return len(dAtA) - i, nil
 }
 
@@ -2470,8 +3950,8 @@ func (m *ReconnectResponse) MarshalTo(dAtA []byte) (int, error) {
 func (m *ReconnectResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
-	var l, fieldEnd int
-	_, _ = l, fieldEnd
+	var l int
+	_ = l
 	return len(dAtA) - i, nil
 }
 
@@ -2486,7 +3966,6 @@ func encodeVarintPacket(dAtA []byte, offset int, v uint64) int {
 	dAtA[offset] = uint8(v)
 	return base
 }
-
 func (m *Packet) ProtoSize() (n int) {
 	if m == nil {
 		return 0
@@ -3045,10 +4524,421 @@ func sovPacket(x uint64) (n int) {
 func sozPacket(x uint64) (n int) {
 	return sovPacket(uint64((x << 1) ^ uint64((int64(x) >> 63))))
 }
-func (m *Packet) Unmarshal(dAtA []byte) error {
-	return m.UnmarshalWithUnknownCallback(dAtA, skipPacket)
+func (this *Packet) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&Packet{`,
+		`Polymorph:` + fmt.Sprintf("%v", this.Polymorph) + `,`,
+		`Sender:` + fmt.Sprintf("%v", this.Sender) + `,`,
+		`Receiver:` + fmt.Sprintf("%v", this.Receiver) + `,`,
+		`RequestID:` + fmt.Sprintf("%v", this.RequestID) + `,`,
+		`TraceID:` + fmt.Sprintf("%v", this.TraceID) + `,`,
+		`TraceSpanData:` + fmt.Sprintf("%v", this.TraceSpanData) + `,`,
+		`Type:` + fmt.Sprintf("%v", this.Type) + `,`,
+		`Payload:` + fmt.Sprintf("%v", this.Payload) + `,`,
+		`}`,
+	}, "")
+	return s
 }
-func (m *Packet) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+func (this *Packet_Request) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&Packet_Request{`,
+		`Request:` + strings.Replace(fmt.Sprintf("%v", this.Request), "Request", "Request", 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *Packet_Response) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&Packet_Response{`,
+		`Response:` + strings.Replace(fmt.Sprintf("%v", this.Response), "Response", "Response", 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *Request) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&Request{`,
+		`Request:` + fmt.Sprintf("%v", this.Request) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *Request_RPC) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&Request_RPC{`,
+		`RPC:` + strings.Replace(fmt.Sprintf("%v", this.RPC), "RPCRequest", "RPCRequest", 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *Request_Pulse) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&Request_Pulse{`,
+		`Pulse:` + strings.Replace(fmt.Sprintf("%v", this.Pulse), "PulseRequest", "PulseRequest", 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *Request_Bootstrap) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&Request_Bootstrap{`,
+		`Bootstrap:` + strings.Replace(fmt.Sprintf("%v", this.Bootstrap), "BootstrapRequest", "BootstrapRequest", 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *Request_Authorize) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&Request_Authorize{`,
+		`Authorize:` + strings.Replace(fmt.Sprintf("%v", this.Authorize), "AuthorizeRequest", "AuthorizeRequest", 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *Request_SignCert) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&Request_SignCert{`,
+		`SignCert:` + strings.Replace(fmt.Sprintf("%v", this.SignCert), "SignCertRequest", "SignCertRequest", 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *Request_UpdateSchedule) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&Request_UpdateSchedule{`,
+		`UpdateSchedule:` + strings.Replace(fmt.Sprintf("%v", this.UpdateSchedule), "UpdateScheduleRequest", "UpdateScheduleRequest", 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *Request_Reconnect) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&Request_Reconnect{`,
+		`Reconnect:` + strings.Replace(fmt.Sprintf("%v", this.Reconnect), "ReconnectRequest", "ReconnectRequest", 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *Response) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&Response{`,
+		`Response:` + fmt.Sprintf("%v", this.Response) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *Response_RPC) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&Response_RPC{`,
+		`RPC:` + strings.Replace(fmt.Sprintf("%v", this.RPC), "RPCResponse", "RPCResponse", 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *Response_Basic) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&Response_Basic{`,
+		`Basic:` + strings.Replace(fmt.Sprintf("%v", this.Basic), "BasicResponse", "BasicResponse", 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *Response_Bootstrap) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&Response_Bootstrap{`,
+		`Bootstrap:` + strings.Replace(fmt.Sprintf("%v", this.Bootstrap), "BootstrapResponse", "BootstrapResponse", 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *Response_Authorize) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&Response_Authorize{`,
+		`Authorize:` + strings.Replace(fmt.Sprintf("%v", this.Authorize), "AuthorizeResponse", "AuthorizeResponse", 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *Response_SignCert) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&Response_SignCert{`,
+		`SignCert:` + strings.Replace(fmt.Sprintf("%v", this.SignCert), "SignCertResponse", "SignCertResponse", 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *Response_Error) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&Response_Error{`,
+		`Error:` + strings.Replace(fmt.Sprintf("%v", this.Error), "ErrorResponse", "ErrorResponse", 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *Response_UpdateSchedule) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&Response_UpdateSchedule{`,
+		`UpdateSchedule:` + strings.Replace(fmt.Sprintf("%v", this.UpdateSchedule), "UpdateScheduleResponse", "UpdateScheduleResponse", 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *Response_Reconnect) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&Response_Reconnect{`,
+		`Reconnect:` + strings.Replace(fmt.Sprintf("%v", this.Reconnect), "ReconnectResponse", "ReconnectResponse", 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *RPCRequest) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&RPCRequest{`,
+		`Method:` + fmt.Sprintf("%v", this.Method) + `,`,
+		`Data:` + fmt.Sprintf("%v", this.Data) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *PulseRequest) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&PulseRequest{`,
+		`Pulse:` + strings.Replace(fmt.Sprintf("%v", this.Pulse), "PulseProto", "rms.PulseProto", 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *UpdateScheduleRequest) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&UpdateScheduleRequest{`,
+		`LastNodePulse:` + fmt.Sprintf("%v", this.LastNodePulse) + `,`,
+		`Permit:` + strings.Replace(this.Permit.String(), "Permit", "Permit", 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *ReconnectRequest) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&ReconnectRequest{`,
+		`ReconnectTo:` + fmt.Sprintf("%v", this.ReconnectTo) + `,`,
+		`Permit:` + strings.Replace(this.Permit.String(), "Permit", "Permit", 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *BootstrapRequest) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&BootstrapRequest{`,
+		`CandidateProfile:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.CandidateProfile), "Profile", "candidate.Profile", 1), `&`, ``, 1) + `,`,
+		`Pulse:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Pulse), "PulseProto", "rms.PulseProto", 1), `&`, ``, 1) + `,`,
+		`Permit:` + strings.Replace(this.Permit.String(), "Permit", "Permit", 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *AuthorizeData) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&AuthorizeData{`,
+		`Certificate:` + fmt.Sprintf("%v", this.Certificate) + `,`,
+		`Timestamp:` + fmt.Sprintf("%v", this.Timestamp) + `,`,
+		`Version:` + fmt.Sprintf("%v", this.Version) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *AuthorizeRequest) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&AuthorizeRequest{`,
+		`AuthorizeData:` + strings.Replace(this.AuthorizeData.String(), "AuthorizeData", "AuthorizeData", 1) + `,`,
+		`Signature:` + fmt.Sprintf("%v", this.Signature) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *SignCertRequest) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&SignCertRequest{`,
+		`NodeRef:` + fmt.Sprintf("%v", this.NodeRef) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *RPCResponse) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&RPCResponse{`,
+		`Result:` + fmt.Sprintf("%v", this.Result) + `,`,
+		`Error:` + fmt.Sprintf("%v", this.Error) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *Permit) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&Permit{`,
+		`Payload:` + strings.Replace(strings.Replace(this.Payload.String(), "PermitPayload", "PermitPayload", 1), `&`, ``, 1) + `,`,
+		`Signature:` + fmt.Sprintf("%v", this.Signature) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *PermitPayload) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&PermitPayload{`,
+		`JoinerPublicKey:` + fmt.Sprintf("%v", this.JoinerPublicKey) + `,`,
+		`ExpireTimestamp:` + fmt.Sprintf("%v", this.ExpireTimestamp) + `,`,
+		`ReconnectTo:` + fmt.Sprintf("%v", this.ReconnectTo) + `,`,
+		`AuthorityNodeRef:` + fmt.Sprintf("%v", this.AuthorityNodeRef) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *BootstrapResponse) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&BootstrapResponse{`,
+		`Code:` + fmt.Sprintf("%v", this.Code) + `,`,
+		`ETASeconds:` + fmt.Sprintf("%v", this.ETASeconds) + `,`,
+		`Pulse:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Pulse), "PulseProto", "rms.PulseProto", 1), `&`, ``, 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *BasicResponse) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&BasicResponse{`,
+		`Success:` + fmt.Sprintf("%v", this.Success) + `,`,
+		`Error:` + fmt.Sprintf("%v", this.Error) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *AuthorizeResponse) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&AuthorizeResponse{`,
+		`Code:` + fmt.Sprintf("%v", this.Code) + `,`,
+		`Timestamp:` + fmt.Sprintf("%v", this.Timestamp) + `,`,
+		`Error:` + fmt.Sprintf("%v", this.Error) + `,`,
+		`Permit:` + strings.Replace(this.Permit.String(), "Permit", "Permit", 1) + `,`,
+		`DiscoveryCount:` + fmt.Sprintf("%v", this.DiscoveryCount) + `,`,
+		`Pulse:` + strings.Replace(fmt.Sprintf("%v", this.Pulse), "PulseProto", "rms.PulseProto", 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *SignCertResponse) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&SignCertResponse{`,
+		`Sign:` + fmt.Sprintf("%v", this.Sign) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *ErrorResponse) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&ErrorResponse{`,
+		`Error:` + fmt.Sprintf("%v", this.Error) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *UpdateScheduleResponse) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&UpdateScheduleResponse{`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *ReconnectResponse) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&ReconnectResponse{`,
+		`}`,
+	}, "")
+	return s
+}
+func valueToStringPacket(v interface{}) string {
+	rv := reflect.ValueOf(v)
+	if rv.IsNil() {
+		return "nil"
+	}
+	pv := reflect.Indirect(rv).Interface()
+	return fmt.Sprintf("*%v", pv)
+}
+func (m *Packet) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -3342,18 +5232,12 @@ func (m *Packet) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipFn(dAtA[iNdEx:])
+			skippy, err := skipPacket(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
 			if skippy < 0 {
-				l = iNdEx
-				break
-			}
-			if skippy == 0 {
-				if skippy, err = skipPacket(dAtA[iNdEx:]); err != nil {
-					return err
-				}
+				return ErrInvalidLengthPacket
 			}
 			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthPacket
@@ -3371,9 +5255,6 @@ func (m *Packet) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (
 	return nil
 }
 func (m *Request) Unmarshal(dAtA []byte) error {
-	return m.UnmarshalWithUnknownCallback(dAtA, skipPacket)
-}
-func (m *Request) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -3649,18 +5530,12 @@ func (m *Request) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) 
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipFn(dAtA[iNdEx:])
+			skippy, err := skipPacket(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
 			if skippy < 0 {
-				l = iNdEx
-				break
-			}
-			if skippy == 0 {
-				if skippy, err = skipPacket(dAtA[iNdEx:]); err != nil {
-					return err
-				}
+				return ErrInvalidLengthPacket
 			}
 			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthPacket
@@ -3678,9 +5553,6 @@ func (m *Request) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) 
 	return nil
 }
 func (m *Response) Unmarshal(dAtA []byte) error {
-	return m.UnmarshalWithUnknownCallback(dAtA, skipPacket)
-}
-func (m *Response) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -3991,18 +5863,12 @@ func (m *Response) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte)
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipFn(dAtA[iNdEx:])
+			skippy, err := skipPacket(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
 			if skippy < 0 {
-				l = iNdEx
-				break
-			}
-			if skippy == 0 {
-				if skippy, err = skipPacket(dAtA[iNdEx:]); err != nil {
-					return err
-				}
+				return ErrInvalidLengthPacket
 			}
 			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthPacket
@@ -4020,9 +5886,6 @@ func (m *Response) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte)
 	return nil
 }
 func (m *RPCRequest) Unmarshal(dAtA []byte) error {
-	return m.UnmarshalWithUnknownCallback(dAtA, skipPacket)
-}
-func (m *RPCRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -4119,18 +5982,12 @@ func (m *RPCRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byt
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipFn(dAtA[iNdEx:])
+			skippy, err := skipPacket(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
 			if skippy < 0 {
-				l = iNdEx
-				break
-			}
-			if skippy == 0 {
-				if skippy, err = skipPacket(dAtA[iNdEx:]); err != nil {
-					return err
-				}
+				return ErrInvalidLengthPacket
 			}
 			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthPacket
@@ -4148,9 +6005,6 @@ func (m *RPCRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byt
 	return nil
 }
 func (m *PulseRequest) Unmarshal(dAtA []byte) error {
-	return m.UnmarshalWithUnknownCallback(dAtA, skipPacket)
-}
-func (m *PulseRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -4217,18 +6071,12 @@ func (m *PulseRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipFn(dAtA[iNdEx:])
+			skippy, err := skipPacket(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
 			if skippy < 0 {
-				l = iNdEx
-				break
-			}
-			if skippy == 0 {
-				if skippy, err = skipPacket(dAtA[iNdEx:]); err != nil {
-					return err
-				}
+				return ErrInvalidLengthPacket
 			}
 			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthPacket
@@ -4246,9 +6094,6 @@ func (m *PulseRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]b
 	return nil
 }
 func (m *UpdateScheduleRequest) Unmarshal(dAtA []byte) error {
-	return m.UnmarshalWithUnknownCallback(dAtA, skipPacket)
-}
-func (m *UpdateScheduleRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -4334,18 +6179,12 @@ func (m *UpdateScheduleRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipFn(dAtA[iNdEx:])
+			skippy, err := skipPacket(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
 			if skippy < 0 {
-				l = iNdEx
-				break
-			}
-			if skippy == 0 {
-				if skippy, err = skipPacket(dAtA[iNdEx:]); err != nil {
-					return err
-				}
+				return ErrInvalidLengthPacket
 			}
 			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthPacket
@@ -4363,9 +6202,6 @@ func (m *UpdateScheduleRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn
 	return nil
 }
 func (m *ReconnectRequest) Unmarshal(dAtA []byte) error {
-	return m.UnmarshalWithUnknownCallback(dAtA, skipPacket)
-}
-func (m *ReconnectRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -4465,18 +6301,12 @@ func (m *ReconnectRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipFn(dAtA[iNdEx:])
+			skippy, err := skipPacket(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
 			if skippy < 0 {
-				l = iNdEx
-				break
-			}
-			if skippy == 0 {
-				if skippy, err = skipPacket(dAtA[iNdEx:]); err != nil {
-					return err
-				}
+				return ErrInvalidLengthPacket
 			}
 			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthPacket
@@ -4494,9 +6324,6 @@ func (m *ReconnectRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func
 	return nil
 }
 func (m *BootstrapRequest) Unmarshal(dAtA []byte) error {
-	return m.UnmarshalWithUnknownCallback(dAtA, skipPacket)
-}
-func (m *BootstrapRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -4629,18 +6456,12 @@ func (m *BootstrapRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipFn(dAtA[iNdEx:])
+			skippy, err := skipPacket(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
 			if skippy < 0 {
-				l = iNdEx
-				break
-			}
-			if skippy == 0 {
-				if skippy, err = skipPacket(dAtA[iNdEx:]); err != nil {
-					return err
-				}
+				return ErrInvalidLengthPacket
 			}
 			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthPacket
@@ -4658,9 +6479,6 @@ func (m *BootstrapRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func
 	return nil
 }
 func (m *AuthorizeData) Unmarshal(dAtA []byte) error {
-	return m.UnmarshalWithUnknownCallback(dAtA, skipPacket)
-}
-func (m *AuthorizeData) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -4776,18 +6594,12 @@ func (m *AuthorizeData) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipFn(dAtA[iNdEx:])
+			skippy, err := skipPacket(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
 			if skippy < 0 {
-				l = iNdEx
-				break
-			}
-			if skippy == 0 {
-				if skippy, err = skipPacket(dAtA[iNdEx:]); err != nil {
-					return err
-				}
+				return ErrInvalidLengthPacket
 			}
 			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthPacket
@@ -4805,9 +6617,6 @@ func (m *AuthorizeData) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]
 	return nil
 }
 func (m *AuthorizeRequest) Unmarshal(dAtA []byte) error {
-	return m.UnmarshalWithUnknownCallback(dAtA, skipPacket)
-}
-func (m *AuthorizeRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -4908,18 +6717,12 @@ func (m *AuthorizeRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipFn(dAtA[iNdEx:])
+			skippy, err := skipPacket(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
 			if skippy < 0 {
-				l = iNdEx
-				break
-			}
-			if skippy == 0 {
-				if skippy, err = skipPacket(dAtA[iNdEx:]); err != nil {
-					return err
-				}
+				return ErrInvalidLengthPacket
 			}
 			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthPacket
@@ -4937,9 +6740,6 @@ func (m *AuthorizeRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func
 	return nil
 }
 func (m *SignCertRequest) Unmarshal(dAtA []byte) error {
-	return m.UnmarshalWithUnknownCallback(dAtA, skipPacket)
-}
-func (m *SignCertRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -5003,18 +6803,12 @@ func (m *SignCertRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func(
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipFn(dAtA[iNdEx:])
+			skippy, err := skipPacket(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
 			if skippy < 0 {
-				l = iNdEx
-				break
-			}
-			if skippy == 0 {
-				if skippy, err = skipPacket(dAtA[iNdEx:]); err != nil {
-					return err
-				}
+				return ErrInvalidLengthPacket
 			}
 			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthPacket
@@ -5032,9 +6826,6 @@ func (m *SignCertRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func(
 	return nil
 }
 func (m *RPCResponse) Unmarshal(dAtA []byte) error {
-	return m.UnmarshalWithUnknownCallback(dAtA, skipPacket)
-}
-func (m *RPCResponse) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -5131,18 +6922,12 @@ func (m *RPCResponse) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]by
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipFn(dAtA[iNdEx:])
+			skippy, err := skipPacket(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
 			if skippy < 0 {
-				l = iNdEx
-				break
-			}
-			if skippy == 0 {
-				if skippy, err = skipPacket(dAtA[iNdEx:]); err != nil {
-					return err
-				}
+				return ErrInvalidLengthPacket
 			}
 			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthPacket
@@ -5160,9 +6945,6 @@ func (m *RPCResponse) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]by
 	return nil
 }
 func (m *Permit) Unmarshal(dAtA []byte) error {
-	return m.UnmarshalWithUnknownCallback(dAtA, skipPacket)
-}
-func (m *Permit) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -5260,18 +7042,12 @@ func (m *Permit) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipFn(dAtA[iNdEx:])
+			skippy, err := skipPacket(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
 			if skippy < 0 {
-				l = iNdEx
-				break
-			}
-			if skippy == 0 {
-				if skippy, err = skipPacket(dAtA[iNdEx:]); err != nil {
-					return err
-				}
+				return ErrInvalidLengthPacket
 			}
 			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthPacket
@@ -5289,9 +7065,6 @@ func (m *Permit) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (
 	return nil
 }
 func (m *PermitPayload) Unmarshal(dAtA []byte) error {
-	return m.UnmarshalWithUnknownCallback(dAtA, skipPacket)
-}
-func (m *PermitPayload) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -5443,18 +7216,12 @@ func (m *PermitPayload) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipFn(dAtA[iNdEx:])
+			skippy, err := skipPacket(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
 			if skippy < 0 {
-				l = iNdEx
-				break
-			}
-			if skippy == 0 {
-				if skippy, err = skipPacket(dAtA[iNdEx:]); err != nil {
-					return err
-				}
+				return ErrInvalidLengthPacket
 			}
 			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthPacket
@@ -5472,9 +7239,6 @@ func (m *PermitPayload) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]
 	return nil
 }
 func (m *BootstrapResponse) Unmarshal(dAtA []byte) error {
-	return m.UnmarshalWithUnknownCallback(dAtA, skipPacket)
-}
-func (m *BootstrapResponse) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -5576,18 +7340,12 @@ func (m *BootstrapResponse) UnmarshalWithUnknownCallback(dAtA []byte, skipFn fun
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipFn(dAtA[iNdEx:])
+			skippy, err := skipPacket(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
 			if skippy < 0 {
-				l = iNdEx
-				break
-			}
-			if skippy == 0 {
-				if skippy, err = skipPacket(dAtA[iNdEx:]); err != nil {
-					return err
-				}
+				return ErrInvalidLengthPacket
 			}
 			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthPacket
@@ -5605,9 +7363,6 @@ func (m *BootstrapResponse) UnmarshalWithUnknownCallback(dAtA []byte, skipFn fun
 	return nil
 }
 func (m *BasicResponse) Unmarshal(dAtA []byte) error {
-	return m.UnmarshalWithUnknownCallback(dAtA, skipPacket)
-}
-func (m *BasicResponse) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -5690,18 +7445,12 @@ func (m *BasicResponse) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipFn(dAtA[iNdEx:])
+			skippy, err := skipPacket(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
 			if skippy < 0 {
-				l = iNdEx
-				break
-			}
-			if skippy == 0 {
-				if skippy, err = skipPacket(dAtA[iNdEx:]); err != nil {
-					return err
-				}
+				return ErrInvalidLengthPacket
 			}
 			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthPacket
@@ -5719,9 +7468,6 @@ func (m *BasicResponse) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]
 	return nil
 }
 func (m *AuthorizeResponse) Unmarshal(dAtA []byte) error {
-	return m.UnmarshalWithUnknownCallback(dAtA, skipPacket)
-}
-func (m *AuthorizeResponse) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -5913,18 +7659,12 @@ func (m *AuthorizeResponse) UnmarshalWithUnknownCallback(dAtA []byte, skipFn fun
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipFn(dAtA[iNdEx:])
+			skippy, err := skipPacket(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
 			if skippy < 0 {
-				l = iNdEx
-				break
-			}
-			if skippy == 0 {
-				if skippy, err = skipPacket(dAtA[iNdEx:]); err != nil {
-					return err
-				}
+				return ErrInvalidLengthPacket
 			}
 			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthPacket
@@ -5942,9 +7682,6 @@ func (m *AuthorizeResponse) UnmarshalWithUnknownCallback(dAtA []byte, skipFn fun
 	return nil
 }
 func (m *SignCertResponse) Unmarshal(dAtA []byte) error {
-	return m.UnmarshalWithUnknownCallback(dAtA, skipPacket)
-}
-func (m *SignCertResponse) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -6009,18 +7746,12 @@ func (m *SignCertResponse) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipFn(dAtA[iNdEx:])
+			skippy, err := skipPacket(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
 			if skippy < 0 {
-				l = iNdEx
-				break
-			}
-			if skippy == 0 {
-				if skippy, err = skipPacket(dAtA[iNdEx:]); err != nil {
-					return err
-				}
+				return ErrInvalidLengthPacket
 			}
 			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthPacket
@@ -6038,9 +7769,6 @@ func (m *SignCertResponse) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func
 	return nil
 }
 func (m *ErrorResponse) Unmarshal(dAtA []byte) error {
-	return m.UnmarshalWithUnknownCallback(dAtA, skipPacket)
-}
-func (m *ErrorResponse) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -6103,18 +7831,12 @@ func (m *ErrorResponse) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipFn(dAtA[iNdEx:])
+			skippy, err := skipPacket(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
 			if skippy < 0 {
-				l = iNdEx
-				break
-			}
-			if skippy == 0 {
-				if skippy, err = skipPacket(dAtA[iNdEx:]); err != nil {
-					return err
-				}
+				return ErrInvalidLengthPacket
 			}
 			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthPacket
@@ -6132,9 +7854,6 @@ func (m *ErrorResponse) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]
 	return nil
 }
 func (m *UpdateScheduleResponse) Unmarshal(dAtA []byte) error {
-	return m.UnmarshalWithUnknownCallback(dAtA, skipPacket)
-}
-func (m *UpdateScheduleResponse) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -6165,18 +7884,12 @@ func (m *UpdateScheduleResponse) UnmarshalWithUnknownCallback(dAtA []byte, skipF
 		switch fieldNum {
 		default:
 			iNdEx = preIndex
-			skippy, err := skipFn(dAtA[iNdEx:])
+			skippy, err := skipPacket(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
 			if skippy < 0 {
-				l = iNdEx
-				break
-			}
-			if skippy == 0 {
-				if skippy, err = skipPacket(dAtA[iNdEx:]); err != nil {
-					return err
-				}
+				return ErrInvalidLengthPacket
 			}
 			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthPacket
@@ -6194,9 +7907,6 @@ func (m *UpdateScheduleResponse) UnmarshalWithUnknownCallback(dAtA []byte, skipF
 	return nil
 }
 func (m *ReconnectResponse) Unmarshal(dAtA []byte) error {
-	return m.UnmarshalWithUnknownCallback(dAtA, skipPacket)
-}
-func (m *ReconnectResponse) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -6227,18 +7937,12 @@ func (m *ReconnectResponse) UnmarshalWithUnknownCallback(dAtA []byte, skipFn fun
 		switch fieldNum {
 		default:
 			iNdEx = preIndex
-			skippy, err := skipFn(dAtA[iNdEx:])
+			skippy, err := skipPacket(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
 			if skippy < 0 {
-				l = iNdEx
-				break
-			}
-			if skippy == 0 {
-				if skippy, err = skipPacket(dAtA[iNdEx:]); err != nil {
-					return err
-				}
+				return ErrInvalidLengthPacket
 			}
 			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthPacket
@@ -6338,5 +8042,4 @@ var (
 	ErrInvalidLengthPacket        = fmt.Errorf("proto: negative length found during unmarshaling")
 	ErrIntOverflowPacket          = fmt.Errorf("proto: integer overflow")
 	ErrUnexpectedEndOfGroupPacket = fmt.Errorf("proto: unexpected end of group")
-	ErrExpectedBinaryMarkerPacket = fmt.Errorf("proto: binary marker was expected")
 )

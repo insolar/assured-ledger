@@ -19,9 +19,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
-// go:generate protoc -I=. -I=$GOPATH/src -I=C:\Users2\Cyrax1\Documents\Insolar\go\src --ins_out=./ packet.proto
-
-
 func (p *Packet) SetRequest(request interface{}) {
 	var r isRequest_Request
 	switch t := request.(type) {
