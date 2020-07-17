@@ -59,7 +59,7 @@ func TestVStateReport_CreateObjectWithoutState(t *testing.T) {
 	require.Equal(t, object.Empty, smObject.GetState())
 	require.Equal(t, uint8(1), smObject.PreviousExecutorUnorderedPendingCount)
 	require.Equal(t, uint8(1), smObject.PreviousExecutorOrderedPendingCount)
-	require.Nil(t, smObject.DirtyDescriptor())
+	require.Nil(t, smObject.DescriptorDirty())
 
 	require.NoError(t, catalog.CheckDone())
 	mc.Finish()

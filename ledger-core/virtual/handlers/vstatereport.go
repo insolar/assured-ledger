@@ -145,13 +145,13 @@ func (s *SMVStateReport) updateSharedState(
 	if s.gotLatestDirty() {
 		dirty := *s.Payload.ProvidedContent.LatestDirtyState
 		desc := buildObjectDescriptor(objectRef, dirty)
-		state.SetDirtyDescriptor(desc)
+		state.SetDescriptorDirty(desc)
 		state.Deactivated = dirty.Deactivated
 	}
 	if s.gotLatestValidated() {
 		validated := *s.Payload.ProvidedContent.LatestValidatedState
 		desc := buildObjectDescriptor(objectRef, validated)
-		state.SetValidatedDescriptor(desc)
+		state.SetDescriptorValidated(desc)
 	}
 
 	state.SetState(objState)

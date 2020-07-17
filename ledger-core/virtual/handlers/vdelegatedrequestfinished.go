@@ -147,7 +147,7 @@ func (s *SMVDelegatedRequestFinished) updateSharedState(
 
 	// Update object state.
 	if s.hasLatestState() {
-		state.SetDirtyDescriptor(s.latestState())
+		state.SetDescriptorDirty(s.latestState())
 		s.updateObjectState(state)
 	}
 
