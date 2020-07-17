@@ -42,6 +42,7 @@ jobs:
             ${{ runner.os }}-go-
       - name: Fetch vendor and check succesful build
         run: |
+          go mod download
           go mod vendor
           make pre-build build
         working-directory: ${{env.WORKDIR}}
