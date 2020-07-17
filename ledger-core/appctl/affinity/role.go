@@ -8,7 +8,7 @@ package affinity
 //go:generate stringer -type=DynamicRole
 
 // DynamicRole is number representing a node role.
-type DynamicRole int // TODO move to affinity package after rework
+type DynamicRole int
 
 const (
 	// DynamicRoleUndefined is used for special cases.
