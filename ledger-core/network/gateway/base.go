@@ -321,16 +321,13 @@ func (g *Base) HandleNodeBootstrapRequest(ctx context.Context, request network.R
 
 	data := request.GetRequest().GetBootstrap()
 
-	bootstrapPulse, err := GetBootstrapPulse(ctx, g.PulseAccessor)
-	if err != nil {
-		return nil, err
-	}
+	bootstrapPulse, _ := GetBootstrapPulse(ctx, g.PulseAccessor)
 
 	if network.CheckShortIDCollision(g.NodeKeeper.GetAccessor(bootstrapPulse.PulseNumber).GetActiveNodes(), data.CandidateProfile.ShortID) {
 		return g.HostNetwork.BuildResponse(ctx, request, &packet.BootstrapResponse{Code: packet.UpdateShortID}), nil
 	}
 
-	err = bootstrap.ValidatePermit(data.Permit, g.CertificateManager.GetCertificate(), g.CryptographyService)
+	err := bootstrap.ValidatePermit(data.Permit, g.CertificateManager.GetCertificate(), g.CryptographyService)
 	if err != nil {
 		inslogger.FromContext(ctx).Warnf("Rejected bootstrap request from node %s: %s", request.GetSender(), err.Error())
 		return g.HostNetwork.BuildResponse(ctx, request, &packet.BootstrapResponse{Code: packet.Reject}), nil
@@ -425,10 +422,7 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 		return nil, err
 	}
 
-	bootstrapPulse, err := GetBootstrapPulse(ctx, g.PulseAccessor)
-	if err != nil {
-		return nil, err
-	}
+	bootstrapPulse, _ := GetBootstrapPulse(ctx, g.PulseAccessor)
 
 	discoveryCount := len(network.FindDiscoveriesInNodeList(
 		g.NodeKeeper.GetAccessor(bootstrapPulse.PulseNumber).GetActiveNodes(),
