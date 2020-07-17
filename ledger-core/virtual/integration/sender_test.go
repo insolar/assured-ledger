@@ -26,8 +26,9 @@ import (
 )
 
 var messagesWithoutToken = []struct {
-	name string
-	msg  interface{}
+	name              string
+	msg               interface{}
+	ignoreSenderCheck bool
 }{
 	{
 		name: "VCallRequest",
@@ -58,8 +59,9 @@ var messagesWithoutToken = []struct {
 		msg:  &payload.VFindCallRequest{},
 	},
 	{
-		name: "VFindCallResponse",
-		msg:  &payload.VFindCallResponse{},
+		name:              "VFindCallResponse",
+		msg:               &payload.VFindCallResponse{},
+		ignoreSenderCheck: true,
 	},
 }
 
@@ -111,7 +113,7 @@ func TestVirtual_SenderCheck_With_ExpectedVE(t *testing.T) {
 					server.Init(ctx)
 					server.IncrementPulseAndWaitIdle(ctx)
 
-					if testMsg.name != "VFindCallResponse" {
+					if !testMsg.ignoreSenderCheck {
 						jetCoordinatorMock.QueryRoleMock.Set(func(_ context.Context, _ node.DynamicRole, _ reference.Local, _ pulse.Number) (_ []reference.Global, _ error) {
 							if cases.senderIsEqualExpectedVE {
 								return []reference.Global{server.GlobalCaller()}, nil // true sender
@@ -126,7 +128,7 @@ func TestVirtual_SenderCheck_With_ExpectedVE(t *testing.T) {
 
 					server.WaitIdleConveyor()
 
-					if cases.senderIsEqualExpectedVE || testMsg.name == "VFindCallResponse" {
+					if cases.senderIsEqualExpectedVE || testMsg.ignoreSenderCheck == true {
 						assert.False(t, errorFound, "Fail "+testMsg.name)
 					} else {
 						assert.True(t, errorFound, "Fail "+testMsg.name)
