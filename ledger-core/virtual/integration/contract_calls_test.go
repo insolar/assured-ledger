@@ -105,15 +105,8 @@ func Test_NoDeadLock_WhenOutgoingComeToSameNode(t *testing.T) {
 			t.Skip("https://insolar.atlassian.net/browse/PLAT-432")
 			mc := minimock.NewController(t)
 
-			{
-				// TODO
-				// Before uncommenting t.FailNow() parent semaphore must be set to 1 !!!!!
-				// It might be done calling corresponding method on server
-				// it will be implemented in Plat-430 or PLAT-431
-				t.FailNow()
-			}
-
 			server, ctx := utils.NewUninitializedServer(nil, t)
+			server.SetMaxParallelism(1)
 			defer server.Stop()
 			logger := inslogger.FromContext(ctx)
 
