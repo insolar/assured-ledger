@@ -31,11 +31,10 @@ jobs:
       - name: Add bin to path
         run: echo "::add-path::${{env.GOPATH}}/bin"
       - name: Go mod cache setup
-        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
         uses: actions/cache@v2
         with:
           path: ${{env.GOPATH}}/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('ledger-core/go.sum') }}
+          key: ${{ runner.os }}-go-${{ hashFiles('${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/go.sum') }}
           restore-keys: ${{ runner.os }}-go-
       - name: Fetch vendor and check succesful build
         run: |
@@ -72,11 +71,10 @@ jobs:
       - name: Add bin to path
         run: echo "::add-path::${{env.GOPATH}}/bin"
       - name: Go mod cache setup
-        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
         uses: actions/cache@v2
         with:
           path: ${{env.GOPATH}}/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('ledger-core/go.sum') }}
+          key: ${{ runner.os }}-go-${{ hashFiles('${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/go.sum') }}
           restore-keys: ${{ runner.os }}-go-
       - name: Fetch vendor and check succesful build
         run: |
@@ -176,11 +174,10 @@ jobs:
           docker tag insolar/assured-ledger:latest localhost/assured-ledger:latest
           docker push localhost/assured-ledger:latest
       - name: Go mod cache setup
-        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
         uses: actions/cache@v2
         with:
           path: ${{env.GOPATH}}/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('ledger-core/go.sum') }}
+          key: ${{ runner.os }}-go-${{ hashFiles('${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/go.sum') }}
           restore-keys: ${{ runner.os }}-go-
       - name: run insolar net
         run: |

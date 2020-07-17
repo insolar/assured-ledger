@@ -34,11 +34,10 @@ jobs:
       - name: Add bin to path
         run: echo "::add-path::${{env.GOPATH}}\\bin"
       - name: Go mod cache setup
-        working-directory: ${{env.WORKDIR}}
         uses: actions/cache@v2
         with:
           path: ${{env.GOPATH}}/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('ledger-core/go.sum') }}
+          key: ${{ runner.os }}-go-${{ hashFiles('${{env.WORKDIR}}/go.sum') }}
           restore-keys: ${{ runner.os }}-go-
       - name: Fetch vendor and check succesful build
         run: |
