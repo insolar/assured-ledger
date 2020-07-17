@@ -18,7 +18,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/predicate"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/slotdebugger"
@@ -75,10 +74,8 @@ func TestVFindCallRequest_AwaitCallSummarySM(t *testing.T) {
 
 	slotMachine.Migrate()
 
-	slotMachine.RunTil(predicate.ChainOf(
-		predicate.NewSMTypeFilter(&object.SMObject{}, smObjectWrapper.AfterAnyMigrate()),
-		predicate.NewSMTypeFilter(&SMVFindCallRequest{}, smFindCallRequestSWrapper.BeforeStep(smVFindCallRequest.stepWaitCallResult)),
-		predicate.NewSMTypeFilter(&object.SMObject{}, smObjectWrapper.AfterAnyStep()),
-		predicate.NewSMTypeFilter(&SMVFindCallRequest{}, smFindCallRequestSWrapper.BeforeStep(smVFindCallRequest.stepGetRequestData)),
-	))
+	slotMachine.RunTil(smObjectWrapper.AfterAnyMigrate())
+	slotMachine.RunTil(smFindCallRequestSWrapper.BeforeStep(smVFindCallRequest.stepWaitCallResult))
+	slotMachine.RunTil(smObjectWrapper.AfterAnyStep())
+	slotMachine.RunTil(smFindCallRequestSWrapper.BeforeStep(smVFindCallRequest.stepGetRequestData))
 }
