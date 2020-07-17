@@ -957,19 +957,17 @@ func TestVirtual_CallConstructor_WithTwicePulseChange(t *testing.T) {
 	{
 		testutils.WaitSignalsTimed(t, 10*time.Second, synchronizeExecution.Wait())
 
-		tokenRequestDone := server.Journal.Wait(
-			predicate.ChainOf(
-				predicate.NewSMTypeFilter(&execute.SMDelegatedTokenRequest{}, predicate.AfterAnyStopOrError),
-				predicate.NewSMTypeFilter(&execute.SMExecute{}, predicate.BeforeStep((&execute.SMExecute{}).StepWaitExecutionResult)),
-			),
-		)
-		// wait for first pulse change
-		server.IncrementPulseAndWaitIdle(ctx)
-		testutils.WaitSignalsTimed(t, 20*time.Second, tokenRequestDone)
-
-		// wait for second pulse change
-		server.IncrementPulseAndWaitIdle(ctx)
-		testutils.WaitSignalsTimed(t, 20*time.Second, tokenRequestDone)
+		// wait for pulse change
+		for i := 0; i < 2; i++ {
+			tokenRequestDone := server.Journal.Wait(
+				predicate.ChainOf(
+					predicate.NewSMTypeFilter(&execute.SMDelegatedTokenRequest{}, predicate.AfterAnyStopOrError),
+					predicate.NewSMTypeFilter(&execute.SMExecute{}, predicate.BeforeStep((&execute.SMExecute{}).StepWaitExecutionResult)),
+				),
+			)
+			server.IncrementPulseAndWaitIdle(ctx)
+			testutils.WaitSignalsTimed(t, 20*time.Second, tokenRequestDone)
+		}
 
 		synchronizeExecution.Done()
 		// wait for SMExecute finish
