@@ -52,7 +52,7 @@ jobs:
       - name: Fetch dependencies
         run: |
           go mod download
-          go mod vendor
+          make vendor
         working-directory: ${{env.CORE_PATH}}
       - name: Build docker images
         run: make docker-build

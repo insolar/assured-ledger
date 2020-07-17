@@ -180,10 +180,11 @@ jobs:
       - name: Fetch dependencies
         run: |
           go mod download
-          go mod vendor
+          make vendor
         working-directory: ${{env.V2_PATH}}
       - name: build images
-        run: make docker-build
+        run: |
+          make docker-build
         working-directory: ${{env.V2_PATH}}
       - name: push assured ledger image to local registry
         run: |
