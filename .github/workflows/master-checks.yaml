@@ -33,7 +33,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ${{env.GOPATH}}/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles(env.GOPATH+'/src/github.com/insolar/assured-ledger/ledger-core/go.sum') }}
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
       - name: Fetch vendor and check succesful build
@@ -170,7 +170,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ${{env.GOPATH}}/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles(env.GOPATH+'/src/github.com/insolar/assured-ledger/ledger-core/go.sum') }}
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
       - name: Fetch dependencies

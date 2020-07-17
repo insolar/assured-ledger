@@ -33,10 +33,9 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ${{env.GOPATH}}/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('go.sum') }}
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
-        working-directory: ${{env.WORKDIR}}
       - name: Fetch vendor and check succesful build
         run: |
           go mod download
@@ -76,10 +75,9 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ${{env.GOPATH}}/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('go.sum') }}
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
-        working-directory: ${{env.WORKDIR}}
       - name: Fetch vendor and check succesful build
         run: |
           go mod download
@@ -176,10 +174,9 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ${{env.GOPATH}}/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('go.sum') }}
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
-        working-directory: ${{env.WORKDIR}}
       - name: Fetch dependencies
         run: |
           go mod download
