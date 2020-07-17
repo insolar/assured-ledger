@@ -50,7 +50,7 @@ func TestVFindCallRequest_AwaitCallSummarySM(t *testing.T) {
 
 	smObject := object.NewStateMachineObject(objectRef)
 	smObject.SetState(object.HasState)
-	smObject.SetDescriptor(descriptor.NewObject(reference.Global{}, reference.Local{}, gen.UniqueGlobalRef(), []byte("213"), reference.Global{}))
+	smObject.SetDescriptorDirty(descriptor.NewObject(reference.Global{}, reference.Local{}, gen.UniqueGlobalRef(), []byte("213"), reference.Global{}))
 
 	slotMachine.Start()
 	defer slotMachine.Stop()
