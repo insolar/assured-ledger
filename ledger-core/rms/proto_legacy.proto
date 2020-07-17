@@ -6,6 +6,8 @@ import "github.com/gogo/protobuf/gogoproto/gogo.proto";
 
 option (gogoproto.goproto_getters_all) = false;
 option (gogoproto.populate_all) = false;
+option (gogoproto.equal_all) = true;
+option (gogoproto.gostring_all) = true;
 
 message PulseProto {
     uint32 PulseNumber = 1 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/pulse.Number", (gogoproto.nullable) = false];
