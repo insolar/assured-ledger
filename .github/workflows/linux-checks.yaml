@@ -193,7 +193,7 @@ jobs:
       - name: build tools
         run: |
           make install-build-tools
-          working-directory: ${{env.V2_PATH}}
+        working-directory: ${{env.V2_PATH}}
       - name: run insolar net
         run: |
           export KUBECONFIG=$GITHUB_WORKSPACE/k3s.yaml
