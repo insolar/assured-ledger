@@ -282,7 +282,7 @@ func (s ServiceMock) ExecutionClassify(execution execution.Context) (contract.Me
 		return chunk.v1, chunk.v2
 	}
 
-	s.t.Fatalf("failed to registered value for key '%s'", key)
+	s.t.Fatalf("failed to find registered value for key '%s'", key)
 	return contract.MethodIsolation{}, nil
 }
 

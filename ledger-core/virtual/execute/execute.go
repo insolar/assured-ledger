@@ -681,9 +681,9 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 		}
 	} else {
 		if s.outgoingSentCounter >= MaxOutgoingSendCount {
-		     return ctx.Error(throw.E("outgoing retries limit"))
+			return ctx.Error(throw.E("outgoing retries limit"))
 		}
-		
+
 		s.outgoing.CallRequestFlags = payload.BuildCallRequestFlags(payload.SendResultDefault, payload.RepeatedCall)
 	}
 

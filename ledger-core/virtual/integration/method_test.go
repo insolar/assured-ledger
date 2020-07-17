@@ -396,16 +396,16 @@ func TestVirtual_Method_WithoutExecutor_Ordered(t *testing.T) {
 			key := callOutgoing.String()
 			runnerMock.AddExecutionMock(key).
 				AddStart(func(ctx execution.Context) {
-					cntr ++
-					for k := 0; k < 5; k ++ {
+					cntr++
+					for k := 0; k < 5; k++ {
 						require.Equal(t, 1, cntr)
 						time.Sleep(3 * time.Millisecond)
 					}
-					cntr --
-			}, &execution.Update{
-				Type:   execution.Done,
-				Result: result,
-			})
+					cntr--
+				}, &execution.Update{
+					Type:   execution.Done,
+					Result: result,
+				})
 			runnerMock.AddExecutionClassify(key, contract.MethodIsolation{
 				Interference: interferenceFlag,
 				State:        stateFlag,
