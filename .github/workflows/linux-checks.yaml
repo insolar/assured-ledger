@@ -181,6 +181,7 @@ jobs:
         run: |
           go mod download
           go mod vendor
+        working-directory: ${{env.V2_PATH}}
       - name: build images
         run: make docker-build
         working-directory: ${{env.V2_PATH}}

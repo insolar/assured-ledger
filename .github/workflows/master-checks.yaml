@@ -177,6 +177,7 @@ jobs:
         run: |
           go mod download
           go mod vendor
+        working-directory: ${{env.V2_PATH}}
       - name: build images
         run: make docker-build
         working-directory: ${{env.V2_PATH}}
@@ -187,6 +188,7 @@ jobs:
       - name: build tools
         run: |
           make install-build-tools
+        working-directory: ${{env.V2_PATH}}
       - name: run insolar net
         run: |
           export KUBECONFIG=$GITHUB_WORKSPACE/k3s.yaml

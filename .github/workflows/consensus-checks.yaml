@@ -78,6 +78,7 @@ jobs:
         run: |
           go mod download
           make vendor install-build-tools
+        working-directory: ${{env.CORE_PATH}}
       - name: Build docker images
         run: make docker-build
         working-directory: ${{ env.CORE_PATH }}
