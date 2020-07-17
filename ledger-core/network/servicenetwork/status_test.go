@@ -10,9 +10,9 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/version"
 
@@ -68,7 +68,7 @@ func TestGetNetworkStatus(t *testing.T) {
 
 	require.Len(t, ns.Nodes, activeLen)
 
-	require.Equal(t, ppn, ns.Pulse.PulseNumber)
+	require.Equal(t, ppn, ns.PulseNumber)
 
 	require.Equal(t, version.Version, ns.Version)
 
@@ -84,7 +84,7 @@ func TestGetNetworkStatus(t *testing.T) {
 
 	require.Len(t, ns.Nodes, activeLen)
 
-	require.Equal(t, pulsestor.GenesisPulse.PulseNumber, ns.Pulse.PulseNumber)
+	require.Equal(t, pulsestor.GenesisPulse.PulseNumber, ns.PulseNumber)
 
 	require.Equal(t, version.Version, ns.Version)
 }

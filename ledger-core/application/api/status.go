@@ -51,7 +51,7 @@ func (s *NodeService) GetStatus(r *http.Request, args *interface{}, requestBody 
 		ID:        uint32(statusReply.Origin.ShortID()),
 	}
 
-	reply.NetworkPulseNumber = uint32(statusReply.Pulse.PulseNumber)
+	reply.NetworkPulseNumber = uint32(statusReply.PulseNumber)
 
 	p, err := s.runner.PulseAccessor.Latest(ctx)
 	if err != nil {
@@ -59,7 +59,7 @@ func (s *NodeService) GetStatus(r *http.Request, args *interface{}, requestBody 
 	}
 	reply.PulseNumber = uint32(p.PulseNumber)
 
-	reply.Entropy = statusReply.Pulse.Entropy[:]
+	reply.Entropy = statusReply.PulseEntropy[:]
 	reply.Version = statusReply.Version
 	reply.StartTime = statusReply.StartTime
 	reply.Timestamp = statusReply.Timestamp

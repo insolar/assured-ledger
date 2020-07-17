@@ -3,22 +3,15 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package pulsestor
+package network
 
 import (
-	"context"
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 )
-
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor.PulseDistributor -s _mock.go -g
-
-// PulseDistributor is interface for pulse distribution.
-type PulseDistributor interface {
-	// Distribute distributes a pulse across the network.
-	Distribute(context.Context, Pulse)
-}
 
 type StatusReply struct {
 	NetworkState    nodeinfo.NetworkState
@@ -27,15 +20,16 @@ type StatusReply struct {
 	WorkingListSize int
 	// Nodes from active list
 	Nodes []nodeinfo.NetworkNode
-	// Pulse from network pulse storage
-	Pulse     Pulse
 	Version   string
 	Timestamp time.Time
 	// node start timestamp for uptime duration
-	StartTime time.Time
+	StartTime    time.Time
+
+	PulseNumber  pulse.Number
+	PulseEntropy rms.Entropy
 }
 
-type NetworkStatus interface {
+type Status interface {
 	GetNetworkStatus() StatusReply
 }
 

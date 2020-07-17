@@ -10,11 +10,11 @@ import (
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/phases"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/proofs"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/transport"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/serialization/pulseserialization"
+	"github.com/insolar/assured-ledger/ledger-core/pulsar"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
@@ -22,7 +22,7 @@ import (
 
 const nanosecondsInSecond = int64(time.Second / time.Nanosecond)
 
-func NewPulseData(p pulsestor.Pulse) pulse.Data {
+func NewPulseData(p pulsar.PulsePacket) pulse.Data {
 	data := pulse.NewPulsarData(
 		p.PulseNumber,
 		uint16(p.NextPulseNumber-p.PulseNumber),

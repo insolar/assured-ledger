@@ -17,7 +17,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/network/pulsenetwork"
 	"github.com/insolar/assured-ledger/ledger-core/network/transport"
@@ -44,7 +43,7 @@ func NewTestPulsar(requestsTimeoutMs, pulseDelta int) (TestPulsar, error) {
 }
 
 type testPulsar struct {
-	distributor pulsestor.PulseDistributor
+	distributor pulsar.PulseDistributor
 	generator   entropygenerator.EntropyGenerator
 	cm          *component.Manager
 
@@ -111,7 +110,7 @@ func (tp *testPulsar) distribute(ctx context.Context) {
 	timeNow := time.Now()
 	pulseNumber := pulse.OfTime(timeNow)
 
-	pls := pulsestor.Pulse{
+	pls := pulsar.PulsePacket{
 		PulseNumber:      pulseNumber,
 		Entropy:          tp.generator.GenerateEntropy(),
 		NextPulseNumber:  pulseNumber.Next(tp.pulseDelta),
@@ -129,7 +128,7 @@ func (tp *testPulsar) distribute(ctx context.Context) {
 	for {
 		select {
 		case <-time.After(time.Duration(tp.pulseDelta) * time.Second):
-			go func(pulse pulsestor.Pulse) {
+			go func(pulse pulsar.PulsePacket) {
 				tp.activityMutex.Lock()
 				defer tp.activityMutex.Unlock()
 
@@ -145,9 +144,9 @@ func (tp *testPulsar) distribute(ctx context.Context) {
 	}
 }
 
-func (tp *testPulsar) incrementPulse(pulse pulsestor.Pulse) pulsestor.Pulse {
+func (tp *testPulsar) incrementPulse(pulse pulsar.PulsePacket) pulsar.PulsePacket {
 	newPulseNumber := pulse.PulseNumber.Next(tp.pulseDelta)
-	newPulse := pulsestor.Pulse{
+	newPulse := pulsar.PulsePacket{
 		PulseNumber:      newPulseNumber,
 		Entropy:          tp.generator.GenerateEntropy(),
 		NextPulseNumber:  newPulseNumber.Next(tp.pulseDelta),
@@ -165,7 +164,7 @@ func (tp *testPulsar) incrementPulse(pulse pulsestor.Pulse) pulsestor.Pulse {
 	return newPulse
 }
 
-func getPSC(pulse pulsestor.Pulse) (map[string]pulsestor.SenderConfirmation, error) {
+func getPSC(pulse pulsar.PulsePacket) (map[string]pulsar.SenderConfirmation, error) {
 	proc := platformpolicy.NewKeyProcessor()
 	key, err := proc.GeneratePrivateKey()
 	if err != nil {
@@ -175,8 +174,8 @@ func getPSC(pulse pulsestor.Pulse) (map[string]pulsestor.SenderConfirmation, err
 	if err != nil {
 		return nil, err
 	}
-	result := make(map[string]pulsestor.SenderConfirmation)
-	psc := pulsestor.SenderConfirmation{
+	result := make(map[string]pulsar.SenderConfirmation)
+	psc := pulsar.SenderConfirmation{
 		PulseNumber:     pulse.PulseNumber,
 		ChosenPublicKey: string(pem),
 		Entropy:         pulse.Entropy,

@@ -12,10 +12,9 @@ import (
 	"testing"
 
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
+	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
-
-	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
 
 	"github.com/stretchr/testify/assert"
 

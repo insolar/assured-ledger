@@ -18,7 +18,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor/memstor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/logwatermill"
@@ -38,10 +37,6 @@ type bootstrapComponents struct {
 }
 
 type headlessLR struct{}
-
-func (h *headlessLR) OnPulse(context.Context, pulsestor.Pulse, pulsestor.Pulse) error {
-	return nil
-}
 
 func (h *headlessLR) LRI() {}
 
