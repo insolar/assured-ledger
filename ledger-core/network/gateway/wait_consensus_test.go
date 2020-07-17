@@ -15,7 +15,6 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	mock "github.com/insolar/assured-ledger/ledger-core/testutils/network"
@@ -35,7 +34,7 @@ func TestWaitConsensus_ConsensusNotHappenedInETA(t *testing.T) {
 	waitConsensus.bootstrapETA = time.Millisecond
 	waitConsensus.bootstrapTimer = time.NewTimer(waitConsensus.bootstrapETA)
 
-	waitConsensus.Run(context.Background(), pulsestor.EphemeralPulse)
+	waitConsensus.Run(context.Background(), EphemeralPulse)
 }
 
 func TestWaitConsensus_ConsensusHappenedInETA(t *testing.T) {
@@ -53,12 +52,12 @@ func TestWaitConsensus_ConsensusHappenedInETA(t *testing.T) {
 	waitConsensus.Gatewayer = gatewayer
 	accessorMock := appctl.NewPulseAccessorMock(mc)
 	accessorMock.GetPulseMock.Set(func(ctx context.Context, p1 pulse.Number) (p2 appctl.PulseChange, err error) {
-		return pulsestor.EphemeralPulse, nil
+		return EphemeralPulse, nil
 	})
 	waitConsensus.PulseAccessor = accessorMock
 	waitConsensus.bootstrapETA = time.Second
 	waitConsensus.bootstrapTimer = time.NewTimer(waitConsensus.bootstrapETA)
 	waitConsensus.OnConsensusFinished(context.Background(), network.Report{})
 
-	waitConsensus.Run(context.Background(), pulsestor.EphemeralPulse)
+	waitConsensus.Run(context.Background(), EphemeralPulse)
 }

@@ -15,7 +15,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
@@ -73,7 +72,7 @@ func TestJoinerBootstrap_Run_AuthorizeRequestFailed(t *testing.T) {
 	})
 
 	assert.Equal(t, nodeinfo.JoinerBootstrap, f.joinerBootstrap.GetState())
-	f.joinerBootstrap.Run(context.Background(), pulsestor.EphemeralPulse)
+	f.joinerBootstrap.Run(context.Background(), EphemeralPulse)
 }
 
 func TestJoinerBootstrap_Run_BootstrapRequestFailed(t *testing.T) {
@@ -95,7 +94,7 @@ func TestJoinerBootstrap_Run_BootstrapRequestFailed(t *testing.T) {
 		return nil, ErrUnknown
 	})
 
-	f.joinerBootstrap.Run(context.Background(), pulsestor.EphemeralPulse)
+	f.joinerBootstrap.Run(context.Background(), EphemeralPulse)
 }
 
 func TestJoinerBootstrap_Run_BootstrapSucceeded(t *testing.T) {
@@ -122,7 +121,7 @@ func TestJoinerBootstrap_Run_BootstrapSucceeded(t *testing.T) {
 		}, nil
 	})
 
-	f.joinerBootstrap.Run(context.Background(), pulsestor.EphemeralPulse)
+	f.joinerBootstrap.Run(context.Background(), EphemeralPulse)
 
 	assert.Equal(t, true, f.joinerBootstrap.bootstrapTimer.Stop())
 	assert.Equal(t, time.Duration(0), f.joinerBootstrap.backoff)

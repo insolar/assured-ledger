@@ -55,7 +55,7 @@ func TestWaitMajority_MajorityNotHappenedInETA(t *testing.T) {
 	waitMajority.bootstrapETA = time.Millisecond
 	waitMajority.bootstrapTimer = time.NewTimer(waitMajority.bootstrapETA)
 
-	waitMajority.Run(context.Background(), pulsestor.EphemeralPulse)
+	waitMajority.Run(context.Background(), EphemeralPulse)
 }
 
 func TestWaitMajority_MajorityHappenedInETA(t *testing.T) {
@@ -103,7 +103,7 @@ func TestWaitMajority_MajorityHappenedInETA(t *testing.T) {
 	waitMajority.bootstrapETA = time.Second * 2
 	waitMajority.bootstrapTimer = time.NewTimer(waitMajority.bootstrapETA)
 
-	go waitMajority.Run(context.Background(), pulsestor.EphemeralPulse)
+	go waitMajority.Run(context.Background(), EphemeralPulse)
 	time.Sleep(100 * time.Millisecond)
 
 	waitMajority.OnConsensusFinished(context.Background(), network.Report{PulseNumber: pulse.MinTimePulse + 10})

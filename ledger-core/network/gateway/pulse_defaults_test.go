@@ -3,19 +3,17 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package pulsestor
+package gateway
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/appctl"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
 
-// GenesisPulse is a first pulse for the system
-// DEPRECATED
-var GenesisPulse = appctl.PulseChange{ Data: pulse.Data{
+// EphemeralPulse is for test use only
+var EphemeralPulse = appctl.PulseChange{ Data: pulse.Data{
 	PulseNumber: pulse.MinTimePulse,
 	DataExt : pulse.DataExt{
-		PulseEpoch:  pulse.MinTimePulse,
+		PulseEpoch:  pulse.EphemeralPulseEpoch,
 		Timestamp: pulse.UnixTimeOfMinTimePulse,
 	}}}
-

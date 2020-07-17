@@ -61,7 +61,7 @@ func TestWaitPulsar_PulseNotArrivedInETA(t *testing.T) {
 	waitPulsar.bootstrapETA = time.Millisecond
 	waitPulsar.bootstrapTimer = time.NewTimer(waitPulsar.bootstrapETA)
 
-	waitPulsar.Run(context.Background(), pulsestor.EphemeralPulse)
+	waitPulsar.Run(context.Background(), EphemeralPulse)
 }
 
 func TestWaitPulsar_PulseArrivedInETA(t *testing.T) {
@@ -88,7 +88,7 @@ func TestWaitPulsar_PulseArrivedInETA(t *testing.T) {
 	waitPulsar.bootstrapETA = time.Second * 2
 	waitPulsar.bootstrapTimer = time.NewTimer(waitPulsar.bootstrapETA)
 
-	go waitPulsar.Run(context.Background(), pulsestor.EphemeralPulse)
+	go waitPulsar.Run(context.Background(), EphemeralPulse)
 	time.Sleep(100 * time.Millisecond)
 
 	waitPulsar.OnConsensusFinished(context.Background(), network.Report{PulseNumber: pulse.MinTimePulse + 10})

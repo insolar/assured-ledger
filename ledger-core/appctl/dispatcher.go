@@ -34,6 +34,10 @@ type PulseChange struct {
 	PulseOrigin []byte
 }
 
+func (v PulseChange) IsZero() bool {
+	return v.Data.IsEmpty()
+}
+
 type MessageTag struct {
 	PulseNum  pulse.Number
 	Source    reference.Holder

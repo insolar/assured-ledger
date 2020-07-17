@@ -15,7 +15,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
-	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
@@ -130,7 +130,7 @@ func (g *Base) Init(ctx context.Context) error {
 func (g *Base) Stop(ctx context.Context) error {
 	err := g.datagramTransport.Stop(ctx)
 	if err != nil {
-		return errors.W(err, "failed to stop datagram transport")
+		return throw.W(err, "failed to stop datagram transport")
 	}
 
 	g.pulseWatchdog.Stop()
@@ -142,7 +142,7 @@ func (g *Base) initConsensus(ctx context.Context) error {
 	g.datagramHandler = adapters.NewDatagramHandler()
 	datagramTransport, err := g.TransportFactory.CreateDatagramTransport(g.datagramHandler)
 	if err != nil {
-		return errors.W(err, "failed to create datagramTransport")
+		return throw.W(err, "failed to create datagramTransport")
 	}
 	g.datagramTransport = datagramTransport
 
@@ -163,12 +163,12 @@ func (g *Base) initConsensus(ctx context.Context) error {
 	// transport start should be here because of TestComponents tests, couldn't createOriginCandidate with 0 port
 	err = g.datagramTransport.Start(ctx)
 	if err != nil {
-		return errors.W(err, "failed to start datagram transport")
+		return throw.W(err, "failed to start datagram transport")
 	}
 
 	err = g.createOriginCandidate()
 	if err != nil {
-		return errors.W(err, "failed to createOriginCandidate")
+		return throw.W(err, "failed to createOriginCandidate")
 	}
 
 	return nil
@@ -258,7 +258,7 @@ func (g *Base) Bootstrapper() network.Bootstrapper {
 
 // GetCert method returns node certificate by requesting sign from discovery nodes
 func (g *Base) GetCert(ctx context.Context, ref reference.Global) (nodeinfo.Certificate, error) {
-	return nil, errors.New("GetCert() in non active mode")
+	return nil, throw.New("GetCert() in non active mode")
 }
 
 // ValidateCert validates node certificate
@@ -288,8 +288,8 @@ func (g *Base) checkCanAnnounceCandidate(ctx context.Context) error {
 		}
 	}
 
-	bootstrapPulse := GetBootstrapPulse(ctx, g.PulseAccessor)
-	return errors.Errorf(
+	bootstrapPulse, _ := GetBootstrapPulse(ctx, g.PulseAccessor)
+	return throw.Errorf(
 		"can't announce candidate: pulse=%d state=%s",
 		bootstrapPulse.PulseNumber,
 		state,
@@ -308,7 +308,7 @@ func (g *Base) announceMiddleware(handler network.RequestHandler) network.Reques
 func (g *Base) discoveryMiddleware(handler network.RequestHandler) network.RequestHandler {
 	return func(ctx context.Context, request network.ReceivedPacket) (network.Packet, error) {
 		if !network.OriginIsDiscovery(g.CertificateManager.GetCertificate()) {
-			return nil, errors.New("only discovery nodes could authorize other nodes, this is not a discovery node")
+			return nil, throw.New("only discovery nodes could authorize other nodes, this is not a discovery node")
 		}
 		return handler(ctx, request)
 	}
@@ -316,18 +316,21 @@ func (g *Base) discoveryMiddleware(handler network.RequestHandler) network.Reque
 
 func (g *Base) HandleNodeBootstrapRequest(ctx context.Context, request network.ReceivedPacket) (network.Packet, error) {
 	if request.GetRequest() == nil || request.GetRequest().GetBootstrap() == nil {
-		return nil, errors.Errorf("process bootstrap: got invalid protobuf request message: %s", request)
+		return nil, throw.Errorf("process bootstrap: got invalid protobuf request message: %s", request)
 	}
 
 	data := request.GetRequest().GetBootstrap()
 
-	bootstrapPulse := GetBootstrapPulse(ctx, g.PulseAccessor)
+	bootstrapPulse, err := GetBootstrapPulse(ctx, g.PulseAccessor)
+	if err != nil {
+		return nil, err
+	}
 
 	if network.CheckShortIDCollision(g.NodeKeeper.GetAccessor(bootstrapPulse.PulseNumber).GetActiveNodes(), data.CandidateProfile.ShortID) {
 		return g.HostNetwork.BuildResponse(ctx, request, &packet.BootstrapResponse{Code: packet.UpdateShortID}), nil
 	}
 
-	err := bootstrap.ValidatePermit(data.Permit, g.CertificateManager.GetCertificate(), g.CryptographyService)
+	err = bootstrap.ValidatePermit(data.Permit, g.CertificateManager.GetCertificate(), g.CryptographyService)
 	if err != nil {
 		inslogger.FromContext(ctx).Warnf("Rejected bootstrap request from node %s: %s", request.GetSender(), err.Error())
 		return g.HostNetwork.BuildResponse(ctx, request, &packet.BootstrapResponse{Code: packet.Reject}), nil
@@ -363,13 +366,13 @@ func validateTimestamp(timestamp int64, delta time.Duration) bool {
 
 func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.ReceivedPacket) (network.Packet, error) {
 	if request.GetRequest() == nil || request.GetRequest().GetAuthorize() == nil {
-		return nil, errors.Errorf("process authorize: got invalid protobuf request message: %s", request)
+		return nil, throw.Errorf("process authorize: got invalid protobuf request message: %s", request)
 	}
 	data := request.GetRequest().GetAuthorize().AuthorizeData
 	o := g.OriginProvider.GetOrigin()
 
 	if data.Version != o.Version() {
-		return nil, errors.Errorf("wrong version in AuthorizeRequest, actual network version is: %s", o.Version())
+		return nil, throw.Errorf("wrong version in AuthorizeRequest, actual network version is: %s", o.Version())
 	}
 
 	// TODO: move time.Minute to config
@@ -388,7 +391,7 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 	valid, err := g.Gatewayer.Gateway().Auther().ValidateCert(ctx, cert)
 	if err != nil || !valid {
 		if err == nil {
-			err = errors.New("Certificate validation failed")
+			err = throw.New("Certificate validation failed")
 		}
 
 		inslogger.FromContext(ctx).Warn("AuthorizeRequest with invalid cert: ", err.Error())
@@ -401,14 +404,14 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 	// workaround bootstrap to the origin node
 	reconnectHost, err := host.NewHostNS(o.Address(), o.ID(), o.ShortID())
 	if err != nil {
-		err = errors.W(err, "Failed to get reconnectHost")
+		err = throw.W(err, "Failed to get reconnectHost")
 		inslogger.FromContext(ctx).Warn(err.Error())
 		return nil, err
 	}
 
 	pubKey, err := g.KeyProcessor.ExportPublicKeyPEM(o.PublicKey())
 	if err != nil {
-		err = errors.W(err, "Failed to export public key")
+		err = throw.W(err, "Failed to export public key")
 		inslogger.FromContext(ctx).Warn(err.Error())
 		return nil, err
 	}
@@ -422,7 +425,11 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 		return nil, err
 	}
 
-	bootstrapPulse := GetBootstrapPulse(ctx, g.PulseAccessor)
+	bootstrapPulse, err := GetBootstrapPulse(ctx, g.PulseAccessor)
+	if err != nil {
+		return nil, err
+	}
+
 	discoveryCount := len(network.FindDiscoveriesInNodeList(
 		g.NodeKeeper.GetAccessor(bootstrapPulse.PulseNumber).GetActiveNodes(),
 		g.CertificateManager.GetCertificate(),
@@ -444,7 +451,7 @@ func (g *Base) HandleUpdateSchedule(ctx context.Context, request network.Receive
 
 func (g *Base) HandleReconnect(ctx context.Context, request network.ReceivedPacket) (network.Packet, error) {
 	if request.GetRequest() == nil || request.GetRequest().GetReconnect() == nil {
-		return nil, errors.Errorf("process reconnect: got invalid protobuf request message: %s", request)
+		return nil, throw.Errorf("process reconnect: got invalid protobuf request message: %s", request)
 	}
 
 	// check permit, if permit from Discovery node

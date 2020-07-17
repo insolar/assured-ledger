@@ -14,7 +14,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
@@ -22,13 +21,14 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/serialization"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-func GetBootstrapPulse(ctx context.Context, accessor appctl.PulseAccessor) appctl.PulseChange {
+func GetBootstrapPulse(ctx context.Context, accessor appctl.PulseAccessor) (appctl.PulseChange, error) {
 	if pc, err := accessor.GetLatestPulse(ctx); err == nil {
-		return pc
+		return pc, nil
 	}
-	return pulsestor.EphemeralPulse
+	return appctl.PulseChange{}, throw.E("latest pulse is not available")
 }
 
 func EnsureGetPulse(ctx context.Context, accessor appctl.PulseAccessor, pulseNumber pulse.Number) network.NetworkedPulse {

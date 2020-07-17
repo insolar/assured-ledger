@@ -56,7 +56,7 @@ func TestWaitMinroles_MinrolesNotHappenedInETA(t *testing.T) {
 	waitMinRoles.bootstrapETA = time.Millisecond
 	waitMinRoles.bootstrapTimer = time.NewTimer(waitMinRoles.bootstrapETA)
 
-	waitMinRoles.Run(context.Background(), pulsestor.EphemeralPulse)
+	waitMinRoles.Run(context.Background(), EphemeralPulse)
 }
 
 func TestWaitMinroles_MinrolesHappenedInETA(t *testing.T) {
@@ -106,7 +106,7 @@ func TestWaitMinroles_MinrolesHappenedInETA(t *testing.T) {
 	waitMinRoles.bootstrapETA = time.Second * 2
 	waitMinRoles.bootstrapTimer = time.NewTimer(waitMinRoles.bootstrapETA)
 
-	go waitMinRoles.Run(context.Background(), pulsestor.EphemeralPulse)
+	go waitMinRoles.Run(context.Background(), EphemeralPulse)
 	time.Sleep(100 * time.Millisecond)
 
 	waitMinRoles.OnConsensusFinished(context.Background(), network.Report{PulseNumber: pulse.MinTimePulse + 10})
