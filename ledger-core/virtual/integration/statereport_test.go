@@ -250,5 +250,4 @@ func TestVirtual_VStateReport_CheckValidatedState(t *testing.T) {
 	testutils.WaitSignalsTimed(t, 10*time.Second, waitVStateReport)
 
 	mc.Finish()
-
 }

@@ -202,7 +202,7 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 		semaphoreOrdered = state.OrderedExecute
 		semaphoreUnordered = state.UnorderedExecute
 
-		objectDescriptor = state.Descriptor()
+		objectDescriptor = state.DirtyDescriptor()
 
 		objectState = state.GetState()
 	}
@@ -485,7 +485,7 @@ func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) sm
 		}
 
 		state.IncrementPotentialPendingCounter(s.execution.Isolation)
-		objectDescriptor = state.Descriptor()
+		objectDescriptor = state.DirtyDescriptor()
 	}
 
 	if stepUpdate := s.shareObjectAccess(ctx, action); !stepUpdate.IsEmpty() {
@@ -686,9 +686,9 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 		}
 	} else {
 		if s.outgoingSentCounter >= MaxOutgoingSendCount {
-		     return ctx.Error(throw.E("outgoing retries limit"))
+			return ctx.Error(throw.E("outgoing retries limit"))
 		}
-		
+
 		s.outgoing.CallRequestFlags = payload.BuildCallRequestFlags(payload.SendResultDefault, payload.RepeatedCall)
 	}
 
@@ -771,7 +771,7 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 	}
 
 	action := func(state *object.SharedState) {
-		state.Info.SetDescriptor(s.newObjectDescriptor)
+		state.Info.SetDirtyDescriptor(s.newObjectDescriptor)
 
 		switch state.GetState() {
 		case object.HasState:
