@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package jetid
+package jet
 
 import (
 	"bytes"
@@ -257,11 +257,11 @@ func (v PrefixTreeDeserializer) deserializeTo(p *PrefixTree, r io.ByteReader) er
 		}
 	case b == LZWSerializeV1:
 		treeFn = func() error {
-			if unpacked, err := v.unpackLZW(r); err != nil {
+			unpacked, err := v.unpackLZW(r)
+			if err != nil {
 				return err
-			} else {
-				return v.deserializeTree(p, unpacked)
 			}
+			return v.deserializeTree(p, unpacked)
 		}
 	default:
 		return fmt.Errorf("unsupported type: %d", b)
@@ -315,29 +315,30 @@ func (v PrefixTreeDeserializer) deserializeBranch(p *PrefixTree, br *longbits.Bi
 		return fmt.Errorf("maxDepth < minDepth")
 	case maxDelta < 1<<shallowBitCount:
 	default:
-		switch b, e := br.ReadBool(); {
-		case e != nil:
-			return e
+		switch b, err := br.ReadBool(); {
+		case err != nil:
+			return err
 		case !b:
-			//fmt.Printf("D: %04x %2d -- %v\n", prefix, minDepth, isShallow)
+			// fmt.Printf("D: %04x %2d -- %v\n", prefix, minDepth, isShallow)
 			return nil
 		}
 	}
 
 	depth := minDepth
-	//fmt.Println(br.AlignOffset())
-	if delta, e := br.ReadSubByte(uint8(bits.Len8(maxDelta))); e != nil {
-		return e
-	} else {
-		depth += delta
+	// fmt.Println(br.AlignOffset())
+	delta, err := br.ReadSubByte(uint8(bits.Len8(maxDelta)))
+	if err != nil {
+		return err
 	}
+	depth += delta
+
 	switch {
 	case depth > p.maxDepth:
 		return fmt.Errorf("depth > p.maxDepth")
 	case depth < minDepth:
 		return fmt.Errorf("depth < minDepth")
 	}
-	//fmt.Printf("D: %04x %2d %2d %v\n", prefix, minDepth, depth, isShallow)
+	// fmt.Printf("D: %04x %2d %2d %v\n", prefix, minDepth, depth, isShallow)
 
 	// add a zero-branch and all relevant one-branches
 	for i := minDepth; i < depth; i++ {

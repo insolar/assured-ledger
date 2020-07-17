@@ -207,6 +207,7 @@ func (s *Server) Init(ctx context.Context) {
 	}
 
 	s.pulseManager.AddDispatcher(s.virtual.FlowDispatcher)
+	s.incrementPulse(ctx) // for sake of simplicity make sure that there is no "hanging" first pulse
 	s.IncrementPulseAndWaitIdle(ctx)
 }
 
@@ -259,6 +260,12 @@ func (s *Server) ReplaceRunner(svc runner.Service) {
 
 func (s *Server) OverrideConveyorFactoryLogContext(ctx context.Context) {
 	s.virtual.FactoryLogContextOverride = ctx
+}
+
+// Set limit for parallel runners. Function must be called before server.Init
+// If this limit does not set it will be set by default (NumCPU() - 2)
+func (s *Server) SetMaxParallelism(count int) {
+	s.virtual.MaxRunners = count
 }
 
 func (s *Server) ReplaceMachinesManager(manager machine.Manager) {

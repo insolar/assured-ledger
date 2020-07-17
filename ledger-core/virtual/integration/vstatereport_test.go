@@ -20,6 +20,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
+	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
@@ -153,6 +154,7 @@ func TestVirtual_StateReport_CheckPendingCountersAndPulses(t *testing.T) {
 
 	for _, test := range table {
 		t.Run(test.name, func(t *testing.T) {
+			defer commontestutils.LeakTester(t)
 
 			suite := &stateReportCheckPendingCountersAndPulsesTest{}
 			ctx := suite.initServer(t)
@@ -542,6 +544,8 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) finish() {
 }
 
 func TestVirtual_StateReport_AfterPendingConstructorHasFinished(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	t.Log("C5239")
 
 	mc := minimock.NewController(t)

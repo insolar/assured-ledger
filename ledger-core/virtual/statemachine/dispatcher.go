@@ -64,7 +64,11 @@ func (c *conveyorDispatcher) BeginPulse(ctx context.Context, pulseObject pulsest
 		pulseRange = pulseData.AsRange()
 
 	case FirstPulseClosed:
-		pulseRange = pulse.NewLeftGapRange(c.previousPulse, 0, pulseData)
+		if pn, ok := pulseData.PulseNumber.TryPrev(pulseData.PrevPulseDelta); ok && pn == c.previousPulse {
+			pulseRange = pulseData.AsRange()
+		} else {
+			pulseRange = pulse.NewLeftGapRange(c.previousPulse, 0, pulseData)
+		}
 		c.state = InitializationDone
 
 	case InitializationStarted:

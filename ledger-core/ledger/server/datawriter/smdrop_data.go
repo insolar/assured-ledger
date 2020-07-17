@@ -8,15 +8,14 @@ package datawriter
 import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
-	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/datareader"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type DropSharedData struct {
-	id      JetDropID
-	updater buildersvc.JetDropAssistant
+	id      jet.DropID
 	ready   smsync.BoolConditionalLink
 	prevReport smachine.BargeInWithParam
 
@@ -42,14 +41,7 @@ func (p *DropSharedData) SetPrevDropReport(report datareader.PrevDropReport) {
 	p.prevReport.CallWithParam(report)
 }
 
-func (p *DropSharedData) GetDropAssistant() buildersvc.JetDropAssistant {
+func (p *DropSharedData) addPrevReport(datareader.PrevDropReport) {
 	p.ensureAccess()
-	if p.updater == nil {
-		panic(throw.IllegalState())
-	}
-	return p.updater
-}
-
-func (p *DropSharedData) addPrevReport(report datareader.PrevDropReport) {
-
+	// TODO
 }
