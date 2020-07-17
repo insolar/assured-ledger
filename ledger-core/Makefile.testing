@@ -27,6 +27,10 @@ test_func: ## run functest FUNCTEST_COUNT times
 	PULSAR_PULSETIME=$(PULSAR_PULSETIME) \
 	CGO_ENABLED=1 $(GOTEST) -test.v $(TEST_ARGS) -tags "functest" ./application/functest -count=$(FUNCTEST_COUNT)
 
+.PHONY: test_func_ci
+test_func_ci: ## run functest with output for testrail
+	make test_func -json > functional_test.log
+
 .PHONY: test_func_slow
 test_func_slow: # Run functests as long as practical to catch unexpected behavior during pulse change
 	FUNCTEST_COUNT=100 PULSAR_ONESHOT=FALSE PULSAR_PULSETIME=5000 TEST_ARGS='-timeout 1200s -failfast' make test_func

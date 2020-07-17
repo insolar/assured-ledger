@@ -10,7 +10,6 @@ env:
   GO_VERSION: 1.14
   CI_GOMAXPROCS: 0
   INSOLAR_LOG_LEVEL: warn
-  GOTEST: 'gotestsum --'
 jobs:
   tests-on-master:
     name: master-checks
@@ -79,8 +78,6 @@ jobs:
           path: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/coverage.out
       - name: Run functional tests multiple times with race detector
         if: always()
-        env: # for testrail
-          GOTEST: 'gotestsum --jsonfile functional_test.log --'
         run: make test_func_race
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
       - name: Run functional tests many times on `master` with reduced pulse time
