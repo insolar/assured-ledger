@@ -13,7 +13,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/datawriter"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/inspectsvc"
-	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -38,7 +37,7 @@ type SMRegisterRecordSet struct {
 	hasRequested bool
 
 	// results
-	updated     *buildersvc.Future
+	updated *buildersvc.Future
 }
 
 func (p *SMRegisterRecordSet) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
@@ -63,14 +62,17 @@ func (p *SMRegisterRecordSet) stepInit(ctx smachine.InitializationContext) smach
 		return ctx.Error(throw.E("empty record set"))
 	}
 
-	ctx.SetDefaultMigration(p.migrate)
+	ctx.SetDefaultMigration(p.migratePresent)
 	ctx.SetDefaultErrorHandler(p.handleError)
+
+	p.recordSet.Validate() // panic will be handled by p.handleError
+
 	return ctx.Jump(p.stepFindLine)
 }
 
 func (p *SMRegisterRecordSet) stepFindLine(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	if p.sdl.IsZero() {
-		lineRef := p.getRootRef()
+		lineRef := p.recordSet.GetRootRef()
 
 		p.sdl = p.cataloger.GetOrCreate(ctx, lineRef)
 		if p.sdl.IsZero() {
@@ -118,7 +120,7 @@ func (p *SMRegisterRecordSet) stepLineIsReady(ctx smachine.ExecutionContext) sma
 	}
 
 	if !isValid {
-		return ctx.Jump(p.stepSendResponse)
+		return ctx.Jump(p.stepSendFinalResponse)
 	}
 
 	// do chaining, hashing and signing via adapter
@@ -135,11 +137,16 @@ func (p *SMRegisterRecordSet) stepApplyRecordSet(ctx smachine.ExecutionContext) 
 		return ctx.Sleep().ThenRepeat()
 	}
 
+	var errors []error
 	switch p.sdl.TryAccess(ctx, func(sd *datawriter.LineSharedData) (wakeup bool) {
-		switch future, bundle := sd.TryApplyRecordSet(*p.inspectedSet); {
+		switch future, bundle := sd.TryApplyRecordSet(ctx, *p.inspectedSet); {
 		case bundle == nil:
 			p.updated = future
 			return false
+		case bundle.HasErrors():
+			errors = bundle.GetErrors()
+			return false
+
 		case p.hasRequested:
 			//
 			return false
@@ -157,53 +164,77 @@ func (p *SMRegisterRecordSet) stepApplyRecordSet(ctx smachine.ExecutionContext) 
 		panic(throw.IllegalState())
 	}
 
-	if p.updated == nil {
+	switch {
+	case len(errors) > 0:
+		p.sendFailResponse(ctx, errors...)
+		return ctx.Stop()
+
+	case p.updated == nil:
 		return ctx.Sleep().ThenRepeat()
+
+	case p.recordSet.GetFlags()&rms.RegistrationFlags_Fast != 0:
+		p.sendResponse(ctx, false)
 	}
 
-	if p.getFlags() & rms.RegistrationFlags_Fast != 0 {
-		p.sendResponse(false, true)
-	}
-
+	ctx.ReleaseAll()
 	return ctx.Jump(p.stepWaitUpdated)
 }
 
 func (p *SMRegisterRecordSet) stepWaitUpdated(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	ctx.ReleaseAll()
-
 	if !ctx.Acquire(p.updated.GetReadySync()) {
 		return ctx.Sleep().ThenRepeat()
 	}
-	return ctx.Jump(p.stepSendResponse)
+	return ctx.Jump(p.stepSendFinalResponse)
 }
 
-func (p *SMRegisterRecordSet) migrate(ctx smachine.MigrationContext) smachine.StateUpdate {
-	ctx.SetDefaultMigration(nil)
-	return ctx.Jump(p.stepSendResponse)
+func (p *SMRegisterRecordSet) migratePresent(ctx smachine.MigrationContext) smachine.StateUpdate {
+	ctx.SetDefaultMigration(p.migratePast)
+
+	if p.updated == nil {
+		return ctx.Jump(p.stepSendFinalResponse)
+	}
+	return ctx.Stay()
 }
 
-func (p *SMRegisterRecordSet) stepSendResponse(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	p.sendResponse(true, p.updated != nil && p.updated.IsCommitted())
+func (p *SMRegisterRecordSet) migratePast(ctx smachine.MigrationContext) smachine.StateUpdate {
 	return ctx.Stop()
 }
 
-func (p *SMRegisterRecordSet) sendResponse(safe, ok bool) {
+func (p *SMRegisterRecordSet) stepSendFinalResponse(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	if p.updated == nil {
+		p.sendFailResponse(ctx, throw.E("cancelled"))
+	} else {
+		switch ready, err := p.updated.GetFutureResult(); {
+		case !ready:
+			p.sendFailResponse(ctx, throw.E("aborted"))
+		case err != nil:
+			p.sendFailResponse(ctx, err)
+		default:
+			p.sendResponse(ctx, true)
+		}
+	}
+	return ctx.Stop()
+}
+
+func (p *SMRegisterRecordSet) sendResponse(ctx smachine.ExecutionContext, safe bool) {
 	// TODO
-	if safe == ok {
-		runtime.KeepAlive(ok)
+	if safe {
+		runtime.KeepAlive(ctx)
 	}
 	panic(throw.NotImplemented())
 }
 
-func (p *SMRegisterRecordSet) getRootRef() reference.Global {
-	return p.recordSet.Excerpts[0].RootRef.GetGlobal()
+func (p *SMRegisterRecordSet) sendFailResponse(ctx smachine.ExecutionContext, errors ...error) {
+	if len(errors) == 0 || errors[0] == nil {
+		panic(throw.IllegalState())
+	}
+	// TODO
+	if ctx != nil {
+		runtime.KeepAlive(ctx)
+	}
+	panic(throw.NotImplemented())
 }
 
-func (p *SMRegisterRecordSet) getFlags() rms.RegistrationFlags {
-	return p.recordSet.Requests[0].Flags
+func (p *SMRegisterRecordSet) handleError(ctx smachine.FailureContext) {
+	// TODO p.sendResponse(ctx, ctx.GetError())
 }
-
-func (p *SMRegisterRecordSet) handleError(smachine.FailureContext) {
-	p.sendResponse(true, false)
-}
-

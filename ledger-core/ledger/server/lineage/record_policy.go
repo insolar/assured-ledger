@@ -16,14 +16,14 @@ import (
 type RecordType uint32
 
 const (
-	RecordNotFound RecordType = 0
+	RecordNotFound     RecordType = 0
 	RecordNotAvailable RecordType = math.MaxUint32
 )
 
 type PolicyFlags uint32
 
 const (
-	LineStart PolicyFlags = 1<<iota
+	LineStart PolicyFlags = 1 << iota
 	FilamentStart
 	FilamentEnd
 	BranchedStart
@@ -36,15 +36,23 @@ const (
 	ReasonRequired
 )
 
+type DustMode uint8
+
+const (
+	_ DustMode = iota
+	DustPayload
+	DustRecord
+)
+
 type RecordPolicy struct {
 	PolicyFlags
-	CanFollow RecordTypeSet
+	CanFollow  RecordTypeSet
 	RedirectTo RecordTypeSet
 }
 
 type PolicyCheckDetails struct {
 	RecordType
-	LocalPN pulse.Number
+	LocalPN        pulse.Number
 	PolicyProvider RecordPolicyProviderFunc
 }
 
@@ -55,7 +63,7 @@ func (v RecordPolicy) IsValid() bool {
 func (v RecordPolicy) CheckRecordRef(lineBase reference.LocalHolder, ref reference.LocalHolder, details PolicyCheckDetails) error {
 	refLocal := ref.GetLocal()
 	if ss := refLocal.SubScope(); ss != reference.SubScopeLifeline {
-		return throw.E("invalid scope", struct { Actual reference.SubScope }{ ss })
+		return throw.E("invalid scope", struct{ Actual reference.SubScope }{ss})
 	}
 
 	switch {
@@ -68,7 +76,7 @@ func (v RecordPolicy) CheckRecordRef(lineBase reference.LocalHolder, ref referen
 	}
 
 	if pn := refLocal.GetPulseNumber(); details.LocalPN != pn {
-		return throw.E("wrong pulse number", struct { Expected, Actual pulse.Number }{ details.LocalPN, pn })
+		return throw.E("wrong pulse number", struct{ Expected, Actual pulse.Number }{details.LocalPN, pn})
 	}
 
 	return nil
@@ -92,12 +100,12 @@ func (v RecordPolicy) CheckRootRef(ref reference.Holder, details PolicyCheckDeta
 		switch policy := details.PolicyProvider(found.RecordType); {
 		case !policy.IsValid():
 			msg = "unknown root type"
-		case policy.PolicyFlags& (LineStart|FilamentStart) == 0:
+		case policy.PolicyFlags&(LineStart|FilamentStart) == 0:
 			msg = "wrong root type"
 		default:
 			return nil
 		}
-		return throw.E(msg, struct { RecordType }{ found.RecordType })
+		return throw.E(msg, struct{ RecordType }{found.RecordType})
 	}
 	return nil
 }
@@ -166,7 +174,7 @@ func (v RecordPolicy) checkPrevRef(rootRef, ref reference.Holder, details Policy
 			// upd.filNo = 0 // => filament is created in this batch
 			*isFork = true
 		}
-//		case v.PolicyFlags&MustBeBranch != 0:
+		//		case v.PolicyFlags&MustBeBranch != 0:
 		// TODO protection from placing ROutboundRequest inline with RLineInboundRequest
 		// if reference.Equal(rootRef, found.RootRef) {
 		// 	return throw.E("fork is required")
@@ -225,7 +233,7 @@ func (v RecordPolicy) CheckRedirectRef(ref reference.Holder, resolverFn PolicyRe
 		return throw.E("redirect to redirect is forbidden")
 	case v.RedirectTo.Has(found.RecordType):
 	default:
-		return throw.E("wrong redirect target", struct { PrevType RecordType }{found.RecordType })
+		return throw.E("wrong redirect target", struct{ PrevType RecordType }{found.RecordType})
 	}
 	return nil
 }

@@ -22,6 +22,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
+	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/predicate"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
@@ -32,37 +33,44 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 )
 
-func TestVirtual_Method_One_PulseChanged(t *testing.T) {
+func TestVirtual_Method_PulseChanged(t *testing.T) {
 	t.Log("C5211")
 	table := []struct {
 		name             string
 		isolation        contract.MethodIsolation
+		withSideEffect   bool
 		countChangePulse int
 	}{
 		{
 			name:             "ordered call when the pulse changed",
 			isolation:        tolerableFlags(),
+			withSideEffect:   false,
 			countChangePulse: 1,
 		},
 		{
 			name:             "unordered call when the pulse changed",
 			isolation:        intolerableFlags(),
+			withSideEffect:   false,
 			countChangePulse: 1,
 		},
 		{
 			name:             "Ordered call double pulse change during execution",
 			isolation:        tolerableFlags(),
+			withSideEffect:   true,
 			countChangePulse: 2,
 		},
 		{
 			name:             "Unordered call double pulse change during execution",
 			isolation:        intolerableFlags(),
+			withSideEffect:   true,
 			countChangePulse: 2,
 		},
 	}
 
 	for _, test := range table {
 		t.Run(test.name, func(t *testing.T) {
+			defer commontestutils.LeakTester(t)
+
 			mc := minimock.NewController(t)
 
 			server, ctx := utils.NewUninitializedServer(nil, t)
@@ -114,12 +122,14 @@ func TestVirtual_Method_One_PulseChanged(t *testing.T) {
 			// add ExecutionMocks to runnerMock
 			{
 				runnerMock.AddExecutionClassify("SomeMethod", test.isolation, nil)
-				newObjDescriptor := descriptor.NewObject(
-					reference.Global{}, reference.Local{}, gen.UniqueGlobalRef(), []byte(""), reference.Global{},
-				)
 
 				requestResult := requestresult.New([]byte("call result"), gen.UniqueGlobalRef())
-				requestResult.SetAmend(newObjDescriptor, []byte("new memory"))
+				if test.withSideEffect {
+					newObjDescriptor := descriptor.NewObject(
+						reference.Global{}, reference.Local{}, gen.UniqueGlobalRef(), []byte(""), reference.Global{},
+					)
+					requestResult.SetAmend(newObjDescriptor, []byte("new memory"))
+				}
 
 				objectExecutionMock := runnerMock.AddExecutionMock("SomeMethod")
 				objectExecutionMock.AddStart(
@@ -180,8 +190,9 @@ func TestVirtual_Method_One_PulseChanged(t *testing.T) {
 				typedChecker.VDelegatedRequestFinished.Set(func(finished *payload.VDelegatedRequestFinished) bool {
 					assert.Equal(t, object, finished.Callee)
 					assert.Equal(t, expectedToken, finished.DelegationSpec)
-					if test.isolation == tolerableFlags() {
+					if test.isolation == tolerableFlags() && test.withSideEffect {
 						assert.NotEmpty(t, finished.LatestState)
+						assert.Equal(t, []byte("new memory"), finished.LatestState.State)
 					} else {
 						assert.Empty(t, finished.LatestState)
 					}
@@ -232,6 +243,8 @@ func TestVirtual_Method_One_PulseChanged(t *testing.T) {
 
 // 2 ordered and 2 unordered calls
 func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	t.Log("C5104")
 
 	mc := minimock.NewController(t)
@@ -261,7 +274,6 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 
 		approver = gen.UniqueGlobalRef()
 
-		token   payload.CallDelegationToken
 		content *payload.VStateReport_ProvidedContentBody
 
 		request = payload.VCallRequest{
@@ -274,12 +286,14 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 
 	// create object state
 	{
+		objectState := payload.ObjectState{
+			Reference: reference.Local{},
+			Class:     testwalletProxy.GetClass(),
+			State:     makeRawWalletState(initialBalance),
+		}
 		content = &payload.VStateReport_ProvidedContentBody{
-			LatestDirtyState: &payload.ObjectState{
-				Reference: reference.Local{},
-				Class:     testwalletProxy.GetClass(),
-				State:     makeRawWalletState(initialBalance),
-			},
+			LatestDirtyState:     &objectState,
+			LatestValidatedState: &objectState,
 		}
 
 		payload := &payload.VStateReport{
@@ -327,7 +341,7 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 			assert.Equal(t, object, request.Callee)
 			assert.Zero(t, request.DelegationSpec)
 
-			token = payload.CallDelegationToken{
+			token := payload.CallDelegationToken{
 				TokenTypeAndFlags: payload.DelegationTokenTypeCall,
 				PulseNumber:       p2,
 				Callee:            request.Callee,
@@ -335,6 +349,7 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 				DelegateTo:        server.JetCoordinatorMock.Me(),
 				Approver:          approver,
 			}
+
 			msg := payload.VDelegatedCallResponse{
 				Callee:                 request.Callee,
 				ResponseDelegationSpec: token,
@@ -438,6 +453,8 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 
 	for _, test := range table {
 		t.Run(test.name, func(t *testing.T) {
+			defer commontestutils.LeakTester(t)
+
 			mc := minimock.NewController(t)
 
 			server, ctx := utils.NewUninitializedServer(nil, t)

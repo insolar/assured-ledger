@@ -36,7 +36,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/convlog"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/mock"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/mock/publisher"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/pulsemanager"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/statemachine"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
@@ -56,7 +56,7 @@ type Server struct {
 	messageSender *messagesender.DefaultService
 
 	// testing components and Mocks
-	PublisherMock      *mock.PublisherMock
+	PublisherMock      *publisher.Mock
 	JetCoordinatorMock *jet.AffinityHelperMock
 	pulseGenerator     *testutils.PulseGenerator
 	pulseStorage       *pulsestor.StorageMem
@@ -157,8 +157,8 @@ func newServerExt(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFi
 		MeMock.Return(s.caller).
 		QueryRoleMock.Return([]reference.Global{s.caller}, nil)
 
-	s.PublisherMock = mock.NewPublisherMock()
-	s.PublisherMock.SetResenderMode(ctx, &s)
+	s.PublisherMock = publisher.NewMock()
+	s.PublisherMock.SetResendMode(ctx, &s)
 
 	runnerService := runner.NewService()
 	if err := runnerService.Init(); err != nil {
@@ -207,6 +207,7 @@ func (s *Server) Init(ctx context.Context) {
 	}
 
 	s.pulseManager.AddDispatcher(s.virtual.FlowDispatcher)
+	s.incrementPulse(ctx) // for sake of simplicity make sure that there is no "hanging" first pulse
 	s.IncrementPulseAndWaitIdle(ctx)
 }
 
@@ -259,6 +260,12 @@ func (s *Server) ReplaceRunner(svc runner.Service) {
 
 func (s *Server) OverrideConveyorFactoryLogContext(ctx context.Context) {
 	s.virtual.FactoryLogContextOverride = ctx
+}
+
+// Set limit for parallel runners. Function must be called before server.Init
+// If this limit does not set it will be set by default (NumCPU() - 2)
+func (s *Server) SetMaxParallelism(count int) {
+	s.virtual.MaxRunners = count
 }
 
 func (s *Server) ReplaceMachinesManager(manager machine.Manager) {

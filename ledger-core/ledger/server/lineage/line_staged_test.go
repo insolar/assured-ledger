@@ -10,6 +10,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 )
@@ -18,7 +19,7 @@ func TestLineStages_Create(t *testing.T) {
 	base := gen.UniqueLocalRef()
 	resolver := NewDependencyResolverMock(t)
 
-	line := &LineStages{ base: base, pn: base.GetPulseNumber(), cache: resolver }
+	line := &LineStages{base: base, pn: base.GetPulseNumber(), cache: resolver}
 	br := line.NewBundle()
 
 	refReason := gen.UniqueGlobalRefWithPulse(base.GetPulseNumber())
@@ -46,7 +47,7 @@ func TestLineStages_CreateWithCalls(t *testing.T) {
 	base := gen.UniqueLocalRef()
 	resolver := NewDependencyResolverMock(t)
 
-	line := &LineStages{ base: base, pn: base.GetPulseNumber(), cache: resolver }
+	line := &LineStages{base: base, pn: base.GetPulseNumber(), cache: resolver}
 	br := line.NewBundle()
 
 	reasons := map[reference.Global]struct{}{}
@@ -59,7 +60,7 @@ func TestLineStages_CreateWithCalls(t *testing.T) {
 	})
 
 	refReason1 := gen.UniqueGlobalRefWithPulse(base.GetPulseNumber())
-	reasons[refReason1] = struct {}{}
+	reasons[refReason1] = struct{}{}
 
 	require.True(t, br.Add(rStart(base, refReason1)), describe(br))
 
@@ -72,8 +73,8 @@ func TestLineStages_CreateWithCalls(t *testing.T) {
 
 	refReason2 := gen.UniqueGlobalRefWithPulse(base.GetPulseNumber())
 	refReason3 := gen.UniqueGlobalRefWithPulse(base.GetPulseNumber())
-	reasons[refReason2] = struct {}{}
-	reasons[refReason3] = struct {}{}
+	reasons[refReason2] = struct{}{}
+	reasons[refReason3] = struct{}{}
 
 	fillBundleWithOrderedCall(t, base, last, br, refReason2, false)
 
@@ -95,14 +96,14 @@ func TestLineStages_CreateWithCalls(t *testing.T) {
 	require.Equal(t, stageNo(1), line.earliest.seqNo)
 	require.NotNil(t, line.earliest.tracker)
 
-	st1.committed = true
+	st1.ready = 7
 	line.TrimCommittedStages()
 
 	require.Equal(t, stageNo(2), line.earliest.seqNo)
 	require.NotNil(t, line.earliest.tracker)
 
-	st2.committed = true
-	st3.committed = true
+	st2.ready = 4
+	st3.ready = 5
 	line.TrimCommittedStages()
 
 	require.Equal(t, stageNo(3), line.earliest.seqNo)
@@ -115,7 +116,7 @@ func TestLineStages_Rollback(t *testing.T) {
 	base := gen.UniqueLocalRef()
 	resolver := NewDependencyResolverMock(t)
 
-	line := &LineStages{ base: base, pn: base.GetPulseNumber(), cache: resolver }
+	line := &LineStages{base: base, pn: base.GetPulseNumber(), cache: resolver}
 	br := line.NewBundle()
 
 	reasons := map[reference.Global]struct{}{}
@@ -128,7 +129,7 @@ func TestLineStages_Rollback(t *testing.T) {
 	})
 
 	refReason1 := gen.UniqueGlobalRefWithPulse(base.GetPulseNumber())
-	reasons[refReason1] = struct {}{}
+	reasons[refReason1] = struct{}{}
 
 	require.True(t, br.Add(rStart(base, refReason1)), describe(br))
 
@@ -138,14 +139,12 @@ func TestLineStages_Rollback(t *testing.T) {
 	require.True(t, line.AddBundle(br, st1), describe(br))
 	verifySequences(t, line)
 
-
 	refReason2 := gen.UniqueGlobalRefWithPulse(base.GetPulseNumber())
 	refReason3 := gen.UniqueGlobalRefWithPulse(base.GetPulseNumber())
 	refReason4 := gen.UniqueGlobalRefWithPulse(base.GetPulseNumber())
-	reasons[refReason2] = struct {}{}
-	reasons[refReason3] = struct {}{}
-	reasons[refReason4] = struct {}{}
-
+	reasons[refReason2] = struct{}{}
+	reasons[refReason3] = struct{}{}
+	reasons[refReason4] = struct{}{}
 
 	br = line.NewBundle()
 	fillBundleWithUnorderedCall(t, base, last, br, refReason2)
@@ -163,8 +162,8 @@ func TestLineStages_Rollback(t *testing.T) {
 
 	require.Equal(t, recordNo(17), line.getNextRecNo())
 
-	st1.committed = true
-	st2.committed = true
+	st1.ready = 7
+	st2.ready = 4
 	line.RollbackUncommittedRecords()
 
 	require.Equal(t, trimAt, line.getNextRecNo())
@@ -178,14 +177,13 @@ func TestLineStages_Rollback(t *testing.T) {
 	fillBundleWithUnorderedCall(t, base, last, br, refReason4)
 	st4 := &stubTracker{}
 	require.True(t, line.AddBundle(br, st4), describe(br))
-	st4.committed = true
+	st4.ready = 4
 
 	line.RollbackUncommittedRecords()
 	require.Equal(t, recordNo(16), line.getNextRecNo())
 
 	verifySequences(t, line)
 }
-
 
 func fillBundleWithOrderedCall(t *testing.T, base, prev reference.Local, br *BundleResolver, orderedReasonRef reference.Holder, addActivate bool) reference.Local {
 	baseRef := reference.NewSelf(base)
@@ -263,7 +261,7 @@ func verifySequences(t *testing.T, line *LineStages) {
 		if rec.next != 0 {
 			require.Greater(t, uint32(rec.next), uint32(recNo), i)
 		} else {
-			latest := line.latest.filaments[rec.filNo - 1].latest
+			latest := line.latest.filaments[rec.filNo-1].latest
 			require.Equal(t, latest, recNo, i)
 		}
 	}
@@ -273,10 +271,12 @@ func verifySequences(t *testing.T, line *LineStages) {
 }
 
 type stubTracker struct {
-	committed bool
+	ready int
 }
 
-func (p *stubTracker) IsCommitted() bool {
-	return p.committed
+func (p *stubTracker) GetFutureAllocation() (isReady bool, allocations []ledger.DirectoryIndex) {
+	if p.ready == 0 {
+		return false, nil
+	}
+	return true, make([]ledger.DirectoryIndex, p.ready)
 }
-

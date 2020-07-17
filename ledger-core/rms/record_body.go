@@ -26,8 +26,6 @@ func (p RecordBody) MarshalText() (text []byte, err error) {
 	return nil, nil
 }
 
-func (RecordBody) RecordBody() {}
-
 func (p *RecordBody) Reset() {
 	*p = RecordBody{}
 }
@@ -379,4 +377,14 @@ func (p *RecordBody) SetRecordPayloads(rp RecordPayloads, digester cryptkit.Data
 		return throw.FailHere("payload number mismatched")
 	}
 	return nil
+}
+
+func (p *RecordBody) isEmptyForCopy() bool {
+	switch {
+	case p.digester != nil:
+		return false
+	case len(p.payloads) != 0:
+		return false
+	}
+	return true
 }

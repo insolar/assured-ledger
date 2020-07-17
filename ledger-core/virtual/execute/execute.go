@@ -35,6 +35,8 @@ import (
 
 /* -------- Utilities ------------- */
 
+const MaxOutgoingSendCount = 3
+
 type SMExecute struct {
 	// input arguments
 	Meta    *payload.Meta
@@ -64,9 +66,9 @@ type SMExecute struct {
 	pulseSlot             *conveyor.PulseSlot
 	authenticationService authentication.Service
 
-	outgoing        *payload.VCallRequest
-	outgoingObject  reference.Global
-	outgoingWasSent bool
+	outgoing            *payload.VCallRequest
+	outgoingObject      reference.Global
+	outgoingSentCounter int
 
 	migrationHappened bool
 	objectCatalog     object.Catalog
@@ -361,9 +363,14 @@ type DeduplicationBargeInKey struct {
 }
 
 func (s *SMExecute) stepDeduplicateThroughPreviousExecutor(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	lookAt := s.pulseSlot.PulseData().PrevPulseNumber()
+	prevPulse := s.pulseSlot.PrevOperationPulseNumber()
+	if prevPulse.IsUnknown() {
+		// unable to identify exact prev pulse
+		panic(throw.NotImplemented())
+	}
+
 	msg := payload.VFindCallRequest{
-		LookAt:   lookAt,
+		LookAt:   prevPulse,
 		Callee:   s.execution.Object,
 		Outgoing: s.execution.Outgoing,
 	}
@@ -381,7 +388,7 @@ func (s *SMExecute) stepDeduplicateThroughPreviousExecutor(ctx smachine.Executio
 	})
 
 	bargeInKey := DeduplicationBargeInKey{
-		LookAt:   lookAt,
+		LookAt:   prevPulse,
 		Callee:   msg.Callee,
 		Outgoing: msg.Outgoing,
 	}
@@ -391,7 +398,7 @@ func (s *SMExecute) stepDeduplicateThroughPreviousExecutor(ctx smachine.Executio
 	}
 
 	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
-		err := svc.SendRole(goCtx, &msg, node.DynamicRoleVirtualExecutor, s.execution.Object, s.pulseSlot.PulseData().PrevPulseNumber())
+		err := svc.SendRole(goCtx, &msg, node.DynamicRoleVirtualExecutor, s.execution.Object, prevPulse)
 		return func(ctx smachine.AsyncResultContext) {
 			if err != nil {
 				ctx.Log().Error("failed to send message", err)
@@ -520,7 +527,7 @@ func (s *SMExecute) stepGetDelegationToken(ctx smachine.ExecutionContext) smachi
 			panic(throw.IllegalState())
 		}
 		s.delegationTokenSpec = subroutineSM.response.ResponseDelegationSpec
-		if s.outgoingWasSent {
+		if s.outgoingSentCounter > 0 {
 			return ctx.Jump(s.stepSendOutgoing)
 		}
 		return ctx.JumpExt(s.stepAfterTokenGet)
@@ -658,7 +665,7 @@ func (s *SMExecute) stepExecuteAborted(ctx smachine.ExecutionContext) smachine.S
 }
 
 func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if !s.outgoingWasSent {
+	if s.outgoingSentCounter == 0 {
 		bargeInCallback := ctx.NewBargeInWithParam(func(param interface{}) smachine.BargeInCallbackFunc {
 			res, ok := param.(*payload.VCallResult)
 			if !ok || res == nil {
@@ -678,6 +685,10 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 			return ctx.Error(throw.E("failed to publish bargeInCallback"))
 		}
 	} else {
+		if s.outgoingSentCounter >= MaxOutgoingSendCount {
+			return ctx.Error(throw.E("outgoing retries limit"))
+		}
+
 		s.outgoing.CallRequestFlags = payload.BuildCallRequestFlags(payload.SendResultDefault, payload.RepeatedCall)
 	}
 
@@ -692,7 +703,7 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 		}
 	}).WithoutAutoWakeUp().Start()
 
-	s.outgoingWasSent = true
+	s.outgoingSentCounter++
 	// we'll wait for barge-in WakeUp here, not adapter
 	return ctx.Sleep().ThenJump(s.stepExecuteContinue)
 }
@@ -701,7 +712,7 @@ func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.
 	outgoingResult := s.outgoingResult
 
 	// unset all outgoing fields in case we have new outgoing request
-	s.outgoingWasSent = false
+	s.outgoingSentCounter = 0
 	s.outgoingObject = reference.Global{}
 	s.outgoing = nil
 	s.outgoingResult = []byte{}

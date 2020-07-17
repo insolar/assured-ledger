@@ -8,6 +8,7 @@ package rms
 import (
 	"encoding"
 	"fmt"
+	"io"
 	"reflect"
 
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -17,6 +18,10 @@ var _ GoGoSerializableWithText = &AnyLazy{}
 
 type AnyLazy struct {
 	value goGoMarshaler
+}
+
+func (p *AnyRecordLazy) IsZero() bool {
+	return p.value == nil
 }
 
 func (p *AnyLazy) TryGetLazy() LazyValue {
@@ -69,7 +74,7 @@ func (p *AnyLazy) unmarshalCustom(b []byte, copyBytes bool, typeFn func(uint64) 
 	if copyBytes {
 		b = append([]byte(nil), b...)
 	}
-	return LazyValue{ b, t }, nil
+	return LazyValue{b, t}, nil
 }
 
 func (p *AnyLazy) MarshalTo(b []byte) (int, error) {
@@ -118,7 +123,7 @@ func (p *AnyLazy) Equal(that interface{}) bool {
 		return false
 	}
 
-	if eq, ok := thatValue.(interface{ Equal(that interface{}) bool}); ok {
+	if eq, ok := thatValue.(interface{ Equal(that interface{}) bool }); ok {
 		return eq.Equal(p.value)
 	}
 	return false
@@ -138,6 +143,7 @@ func (p *AnyLazyCopy) Unmarshal(b []byte) error {
 /************************/
 
 var _ goGoMarshaler = LazyValue{}
+var _ io.WriterTo = LazyValue{}
 
 type LazyValueReader interface {
 	Type() reflect.Type
@@ -146,7 +152,15 @@ type LazyValueReader interface {
 
 type LazyValue struct {
 	value []byte
-	vType  reflect.Type
+	vType reflect.Type
+}
+
+func (p LazyValue) WriteTo(w io.Writer) (int64, error) {
+	if p.value == nil {
+		panic(throw.IllegalState())
+	}
+	n, err := w.Write(p.value)
+	return int64(n), err
 }
 
 func (p LazyValue) IsZero() bool {
@@ -180,10 +194,10 @@ func (p LazyValue) UnmarshalAsType(vType reflect.Type, skipFn UnknownCallbackFun
 	case p.value == nil:
 		return nil, nil
 	}
-	
+
 	obj, err := UnmarshalAsType(p.value, vType, skipFn)
 	if err != nil {
-		return nil, err		
+		return nil, err
 	}
 	return obj.(GoGoSerializable), nil
 }

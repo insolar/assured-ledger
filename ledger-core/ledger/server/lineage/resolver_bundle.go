@@ -15,7 +15,7 @@ func newBundleResolver(resolver lineResolver, policyProvider RecordPolicyProvide
 		panic(throw.IllegalValue())
 	}
 	return &BundleResolver{
-		resolver: resolver,
+		resolver:       resolver,
 		policyProvider: policyProvider,
 
 		maxRecNo: resolver.getNextRecNo(),
@@ -43,7 +43,7 @@ type resolveResults struct {
 	isLineStart bool
 	isResolved  bool
 
-	records    []resolvedRecord
+	records []resolvedRecord
 }
 
 func (p *BundleResolver) Hint(recordCount int) {
@@ -53,8 +53,19 @@ func (p *BundleResolver) Hint(recordCount int) {
 	p.records = make([]resolvedRecord, 0, recordCount)
 }
 
+func (p *BundleResolver) GetResolved() ResolvedBundle {
+	if p.IsResolved() {
+		return ResolvedBundle{p.records}
+	}
+	panic(throw.IllegalState())
+}
+
 func (p *BundleResolver) GetUnresolvedDependencies() []UnresolvedDependency {
 	return p.unresolved
+}
+
+func (p *BundleResolver) HasErrors() bool {
+	return len(p.errors) > 0
 }
 
 func (p *BundleResolver) GetErrors() []error {
@@ -357,7 +368,7 @@ func (p *BundleResolver) addRefError(name string, err error) bool {
 	if err == nil {
 		panic(throw.IllegalValue())
 	}
-	return p.addError(throw.WithDetails(err, struct { FieldName string }{ name }))
+	return p.addError(throw.WithDetails(err, struct{ FieldName string }{name}))
 }
 
 func (p *BundleResolver) addError(err error) bool {
@@ -365,7 +376,7 @@ func (p *BundleResolver) addError(err error) bool {
 		panic(throw.IllegalValue())
 	}
 	if p.lastRecord != nil {
-		err = throw.WithDetails(err, struct { Ref reference.Global }{ reference.Copy(p.lastRecord) })
+		err = throw.WithDetails(err, struct{ Ref reference.Global }{reference.Copy(p.lastRecord)})
 	}
 	p.errors = append(p.errors, err)
 	p.isResolved = false
@@ -387,7 +398,7 @@ func (p *BundleResolver) checkGenericRef(fieldName string, ref reference.Holder)
 		return true
 	}
 	if refBase := ref.GetBase(); refBase.IsEmpty() {
-		return p.addRefError(fieldName, throw.E("empty base", struct{ Ref reference.Global }{reference.Copy(ref) }))
+		return p.addRefError(fieldName, throw.E("empty base", struct{ Ref reference.Global }{reference.Copy(ref)}))
 	}
 	return true
 }
@@ -412,8 +423,8 @@ func (p *BundleResolver) getLocalFilament(root reference.LocalHolder) (bool, fil
 		}
 
 		return true, filNo, ResolvedDependency{
-			RecordType:     RecordType(rd.Excerpt.RecordType),
-			RootRef:        rootRef,
+			RecordType: RecordType(rd.Excerpt.RecordType),
+			RootRef:    rootRef,
 		}
 	}
 	return false, 0, ResolvedDependency{}
@@ -449,7 +460,7 @@ func (p *BundleResolver) addDependency(root reference.Holder, ref reference.Hold
 		}
 	}
 
-	p.unresolved = append(p.unresolved, UnresolvedDependency{ ref, root })
+	p.unresolved = append(p.unresolved, UnresolvedDependency{ref, root})
 }
 
 func (p *BundleResolver) checkOrdering(recNo recordNo, filNo filamentNo) error {
@@ -463,4 +474,3 @@ func (p *BundleResolver) checkOrdering(recNo recordNo, filNo filamentNo) error {
 	}
 	return nil
 }
-

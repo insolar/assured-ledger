@@ -6,6 +6,7 @@
 package lineage
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -29,8 +30,8 @@ func NewStages(base reference.Local, pn pulse.Number, cache DependencyResolver) 
 	}
 
 	return &LineStages{
-		base: base,
-		pn: pn,
+		base:  base,
+		pn:    pn,
 		cache: cache,
 	}
 }
@@ -43,9 +44,9 @@ type LineStages struct {
 	earliest *updateStage
 	latest   *updateStage
 
-	recordRefs    map[reference.LocalHash]recordNo
-	filamentRefs  map[reference.Local]filamentNo
-	reasonRefs    map[reference.Global]recordNo
+	recordRefs   map[reference.LocalHash]recordNo
+	filamentRefs map[reference.Local]filamentNo
+	reasonRefs   map[reference.Global]recordNo
 
 	lineRecords
 }
@@ -67,12 +68,12 @@ func (p *LineStages) AddBundle(bundle *BundleResolver, tracker StageTracker) boo
 	}
 
 	prevFilamentCount := 0
-	stage := &updateStage{ tracker: tracker }
+	stage := &updateStage{tracker: tracker}
 	if p.latest != nil {
 		stage.seqNo = p.latest.seqNo + 1
 		f := p.latest.filaments
 		prevFilamentCount = len(f)
-		stage.filaments = append(make([]filament, 0, prevFilamentCount + 1), f...)
+		stage.filaments = append(make([]filament, 0, prevFilamentCount+1), f...)
 	} else {
 		stage.seqNo = 1
 		stage.filaments = make([]filament, 0, 2)
@@ -153,7 +154,7 @@ func (p *LineStages) addStage(bundle *BundleResolver, stage *updateStage, prevFi
 	for i := range bundle.records {
 		rec := &bundle.records[i]
 
-		if stage.firstRec + recordNo(i) != rec.recordNo {
+		if stage.firstRec+recordNo(i) != rec.recordNo {
 			panic(throw.Impossible())
 		}
 
@@ -197,17 +198,23 @@ func (p *LineStages) TrimCommittedStages() {
 
 func (p *LineStages) trimCommittedStages() (last *updateStage) {
 	for p.earliest != nil {
-		switch tr := p.earliest.tracker; {
-		case tr == nil:
-			//
-		case !tr.IsCommitted():
-			return
-		default:
+		next := p.earliest.next
+
+		if tr := p.earliest.tracker; tr != nil {
+			isReady, allocations := tr.GetFutureAllocation()
+			if !isReady {
+				return
+			}
 			p.earliest.tracker = nil
+			if len(allocations) > 0 {
+				p.setAllocations(p.earliest, allocations)
+			} else {
+				// TODO rollback and reapply
+				panic(throw.NotImplemented())
+			}
 		}
 		last = p.earliest
 
-		next := p.earliest.next
 		if next == nil {
 			return
 		}
@@ -256,7 +263,8 @@ func (p *LineStages) RollbackLastBundle(tracker StageTracker) {
 	}
 
 	next := p.earliest.next
-	for ; next != p.latest; next = next.next {}
+	for ; next != p.latest; next = next.next {
+	}
 
 	cutOffRec := p.latest.firstRec
 	next.next = nil
@@ -264,7 +272,6 @@ func (p *LineStages) RollbackLastBundle(tracker StageTracker) {
 
 	p.restoreLatest(cutOffRec)
 }
-
 
 func (p *LineStages) restoreLatest(cutOffRec recordNo) {
 	if cutOffRec == deadFilament {
@@ -314,9 +321,9 @@ func (p *LineStages) restoreLatest(cutOffRec recordNo) {
 
 func (p *LineStages) restoreEmpty() {
 	*p = LineStages{
-		base:         p.base,
-		pn:           p.pn,
-		cache:        p.cache,
+		base:  p.base,
+		pn:    p.pn,
+		cache: p.cache,
 	}
 }
 
@@ -353,7 +360,7 @@ func (p *LineStages) findChainedDependency(root reference.Holder, ref reference.
 			// this is filament mismatched or nil refs - avoid further search
 			return 0, 0, ResolvedDependency{}, 0
 		}
-		recap := p.latest.filaments[filNo - 1].recap
+		recap := p.latest.filaments[filNo-1].recap
 
 		if mustBeOpen && rec.next != 0 {
 			filNo = 0 // mark
@@ -406,7 +413,7 @@ func (p *LineStages) findFilament(root reference.LocalHolder) (filamentNo, Resol
 		return 0, ResolvedDependency{}
 	}
 
-	return filNo, p.latest.filaments[filNo - 1].resolvedHead
+	return filNo, p.latest.filaments[filNo-1].resolvedHead
 }
 
 func (p *LineStages) findCollision(local reference.LocalHolder, record *Record) (recordNo, error) {
@@ -418,7 +425,7 @@ func (p *LineStages) findCollision(local reference.LocalHolder, record *Record) 
 	if found.Record.Equal(*record) {
 		return recNo, nil
 	}
-	return 0, throw.E("record content mismatch", struct { Existing, New Record	}{ found.Record, *record })
+	return 0, throw.E("record content mismatch", struct{ Existing, New Record }{found.Record, *record})
 }
 
 func (p *LineStages) checkReason(rec *resolvedRecord) error {
@@ -430,7 +437,7 @@ func (p *LineStages) checkReason(rec *resolvedRecord) error {
 	if _, ok := p.reasonRefs[normRef]; !ok {
 		return nil
 	}
-	return throw.New("reused reason", struct { ReasonRef reference.Global }{ normRef })
+	return throw.New("reused reason", struct{ ReasonRef reference.Global }{normRef})
 }
 
 func (p *LineStages) putReason(rec *resolvedRecord) {
@@ -445,3 +452,20 @@ func (p *LineStages) putReason(rec *resolvedRecord) {
 	p.reasonRefs[normRef] = rec.recordNo
 }
 
+func (p *LineStages) setAllocations(stage *updateStage, allocBase []ledger.DirectoryIndex) {
+	max := uint32(0)
+	if stage.next == nil {
+		max = uint32(p.getNextRecNo() - stage.firstRec)
+	} else {
+		max = uint32(stage.next.firstRec - stage.firstRec)
+	}
+
+	if max != uint32(len(allocBase)) {
+		panic(throw.IllegalState())
+	}
+
+	for i := uint32(0); i < max; i++ {
+		rec := p.get(stage.firstRec + recordNo(i))
+		rec.storageIndex = allocBase[i]
+	}
+}

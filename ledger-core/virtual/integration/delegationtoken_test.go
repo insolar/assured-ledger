@@ -20,6 +20,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
@@ -62,9 +63,13 @@ func TestDelegationToken_SuccessCheckCorrectToken(t *testing.T) {
 	t.Log("C5191")
 	for _, testMsg := range messagesWithToken {
 		t.Run(testMsg.name, func(t *testing.T) {
+			defer commontestutils.LeakTester(t)
+
 			mc := minimock.NewController(t)
 
-			server, ctx := utils.NewUninitializedServer(nil, t)
+			server, ctx := utils.NewUninitializedServerWithErrorFilter(nil, t, func(s string) bool {
+				return false
+			})
 
 			jetCoordinatorMock := jet.NewAffinityHelperMock(mc)
 			auth := authentication.NewService(ctx, jetCoordinatorMock)
@@ -105,6 +110,7 @@ func TestDelegationToken_SuccessCheckCorrectToken(t *testing.T) {
 			server.WaitActiveThenIdleConveyor()
 
 			assert.False(t, errorFound, "Fail "+testMsg.name)
+
 			server.Stop()
 			mc.Finish()
 		})
@@ -143,6 +149,8 @@ func TestDelegationToken_CheckTokenField(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			defer commontestutils.LeakTester(t)
+
 			t.Log(test.testRailID)
 			t.Skip("https://insolar.atlassian.net/browse/PLAT-588")
 
@@ -234,7 +242,7 @@ type testCase struct {
 	testRailID     string
 	zeroToken      bool
 	approverVE     veSetMode
-	currentVE      veSetMode
+	expectedVE     veSetMode
 	errorMessages  []string
 	errorSeverity  throw.Severity
 	customDelegate reference.Global
@@ -247,8 +255,8 @@ func TestDelegationToken_IsMessageFromVirtualLegitimate(t *testing.T) {
 			name:       "Fail if sender eq approver",
 			testRailID: "C5193",
 			zeroToken:  false,
+			expectedVE: veSetServer,
 			approverVE: veSetServer,
-			currentVE:  veSetServer,
 			errorMessages: []string{
 				"sender cannot be approver of the token",
 				"illegitimate msg",
@@ -259,8 +267,8 @@ func TestDelegationToken_IsMessageFromVirtualLegitimate(t *testing.T) {
 			name:       "Fail if wrong approver",
 			testRailID: "C5192",
 			zeroToken:  false,
+			expectedVE: veSetFake,
 			approverVE: veSetFake,
-			currentVE:  veSetFake,
 			errorMessages: []string{
 				"token Approver and expectedVE are different",
 				"illegitimate msg",
@@ -270,8 +278,9 @@ func TestDelegationToken_IsMessageFromVirtualLegitimate(t *testing.T) {
 		{
 			name:       "Fail if wrong delegate",
 			testRailID: "C5194",
+			zeroToken:  false,
+			expectedVE: veSetFixed,
 			approverVE: veSetFixed,
-			currentVE:  veSetFixed,
 			errorMessages: []string{
 				"token DelegateTo and sender are different",
 				"illegitimate msg",
@@ -282,6 +291,8 @@ func TestDelegationToken_IsMessageFromVirtualLegitimate(t *testing.T) {
 	}
 	for _, testCase := range cases {
 		t.Run(testCase.name, func(t *testing.T) {
+			defer commontestutils.LeakTester(t)
+
 			t.Log(testCase.testRailID)
 
 			for _, testMsg := range messagesWithToken {
@@ -319,7 +330,7 @@ func TestDelegationToken_IsMessageFromVirtualLegitimate(t *testing.T) {
 				// increment pulse for VStateReport and VDelegatedCallRequest
 				server.IncrementPulse(ctx)
 
-				switch testCase.approverVE {
+				switch testCase.expectedVE {
 				case veSetServer:
 					jetCoordinatorMock.
 						QueryRoleMock.Return([]reference.Global{server.GlobalCaller()}, nil)
@@ -331,7 +342,7 @@ func TestDelegationToken_IsMessageFromVirtualLegitimate(t *testing.T) {
 						QueryRoleMock.Return([]reference.Global{fixedVe}, nil)
 				}
 
-				switch testCase.currentVE {
+				switch testCase.approverVE {
 				case veSetServer:
 					jetCoordinatorMock.MeMock.Return(server.GlobalCaller())
 				case veSetFake:
@@ -387,6 +398,8 @@ func TestDelegationToken_OldVEVDelegatedCallRequest(t *testing.T) {
 	}
 	for _, test := range testCases {
 		t.Run(test.name, func(t *testing.T) {
+			defer commontestutils.LeakTester(t)
+
 			t.Log(test.testRailID)
 			mc := minimock.NewController(t)
 

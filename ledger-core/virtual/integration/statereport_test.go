@@ -9,7 +9,9 @@ import (
 	"context"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/builtin/contract/testwallet"
@@ -17,7 +19,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 )
 
 func makeVStateReportEvent(objectRef reference.Global, stateRef reference.Local, rawState []byte) *payload.VStateReport {
@@ -72,6 +77,8 @@ func checkBalance(ctx context.Context, t *testing.T, server *utils.Server, objec
 }
 
 func TestVirtual_VStateReport_HappyPath(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	t.Log("C4866")
 
 	server, ctx := utils.NewServer(nil, t)
@@ -97,6 +104,8 @@ func TestVirtual_VStateReport_HappyPath(t *testing.T) {
 }
 
 func TestVirtual_VStateReport_TwoStateReports(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	t.Log("C4919")
 
 	server, ctx := utils.NewServer(nil, t)
@@ -130,6 +139,8 @@ func TestVirtual_VStateReport_TwoStateReports(t *testing.T) {
 }
 
 func TestVirtual_VStateReport_BadState_NoSuchObject(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	t.Log("C4864")
 
 	server, ctx := utils.NewServer(nil, t)
@@ -149,6 +160,8 @@ func TestVirtual_VStateReport_BadState_NoSuchObject(t *testing.T) {
 }
 
 func TestVirtual_VStateReport_BadState_StateAlreadyExists(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	t.Log("C4865")
 
 	server, ctx := utils.NewServerWithErrorFilter(nil, t, func(s string) bool {
@@ -178,4 +191,64 @@ func TestVirtual_VStateReport_BadState_StateAlreadyExists(t *testing.T) {
 	}
 
 	checkBalance(ctx, t, server, objectGlobal, testBalance)
+}
+
+func TestVirtual_VStateReport_CheckValidatedState(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
+	t.Log("C5124")
+
+	mc := minimock.NewController(t)
+
+	server, ctx := utils.NewServer(nil, t)
+	defer server.Stop()
+
+	server.IncrementPulseAndWaitIdle(ctx)
+
+	var (
+		objectLocal          = server.RandomLocalWithPulse()
+		objectGlobal         = reference.NewSelf(objectLocal)
+		dirtyWalletState     = makeRawWalletState(initialBalance)
+		validatedWalletState = makeRawWalletState(initialBalance + 123)
+	)
+
+	content := &payload.VStateReport_ProvidedContentBody{
+		LatestDirtyState: &payload.ObjectState{
+			Reference: server.RandomLocalWithPulse(),
+			Class:     testwalletProxy.GetClass(),
+			State:     dirtyWalletState,
+		},
+		LatestValidatedState: &payload.ObjectState{
+			Reference: server.RandomLocalWithPulse(),
+			Class:     testwalletProxy.GetClass(),
+			State:     validatedWalletState,
+		},
+	}
+
+	{
+		payload := &payload.VStateReport{
+			Status:          payload.Ready,
+			Object:          objectGlobal,
+			ProvidedContent: content,
+		}
+
+		wait := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
+		server.SendPayload(ctx, payload)
+		testutils.WaitSignalsTimed(t, 10*time.Second, wait)
+	}
+
+	waitVStateReport := make(chan struct{})
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
+		require.Equal(t, report.ProvidedContent.LatestDirtyState, content.LatestDirtyState)
+		require.Equal(t, report.ProvidedContent.LatestValidatedState, content.LatestDirtyState)
+		waitVStateReport <- struct{}{}
+		return false
+	})
+
+	server.IncrementPulseAndWaitIdle(ctx)
+	testutils.WaitSignalsTimed(t, 10*time.Second, waitVStateReport)
+
+	mc.Finish()
+
 }

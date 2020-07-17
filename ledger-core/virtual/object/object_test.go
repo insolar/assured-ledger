@@ -18,12 +18,15 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/stepchecker"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 )
 
 func Test_Delay(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	mc := minimock.NewController(t)
 
 	var (
@@ -111,6 +114,7 @@ func Test_PendingBlocksExecution(t *testing.T) {
 
 	for _, test := range table {
 		t.Run(test.name, func(t *testing.T) {
+			defer commontestutils.LeakTester(t)
 
 			mc := minimock.NewController(t)
 
@@ -198,6 +202,8 @@ func Test_PendingBlocksExecution(t *testing.T) {
 }
 
 func TestSMObject_stepGotState_Set_PendingListFilled(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	var (
 		mc          = minimock.NewController(t)
 		pd          = pulse.NewPulsarData(pulse.OfNow(), 10, 10, longbits.Bits256{})
@@ -241,6 +247,8 @@ func TestSMObject_stepGotState_Set_PendingListFilled(t *testing.T) {
 }
 
 func TestSMObject_checkPendingCounters_DontChangeIt(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	var (
 		pd          = pulse.NewPulsarData(pulse.OfNow(), 10, 10, longbits.Bits256{})
 		smObjectID  = gen.UniqueLocalRefWithPulse(pd.PulseNumber)

@@ -61,9 +61,36 @@ func (p *PulseSlot) PulseData() pulse.Data {
 	pd, _ := p.pulseData.PulseData()
 	if pd.IsEmpty() {
 		// possible incorrect injection for SM in the Antique slot
-		panic("illegal state - not initialized")
+		panic(throw.IllegalState())
 	}
 	return pd
+}
+
+func (p *PulseSlot) PrevOperationPulseNumber() pulse.Number {
+	pr, _ := p.pulseData.PulseRange()
+
+	if pr == nil {
+		// this is a backup
+		// TODO reconsider if this is a viable option
+		pd, _ := p.pulseData.PulseData()
+		if pn, ok := pd.PulseNumber.TryPrev(pd.PrevPulseDelta); ok {
+			return pn
+		}
+		return pulse.Unknown
+	}
+
+	switch prd := pr.LeftPrevDelta(); {
+	case prd == 0:
+		// first pulse, it has no prev
+	case pr.IsArticulated():
+		// there is no data about an immediate previous pulse
+	default:
+		if pn, ok := pr.LeftBoundNumber().TryPrev(prd); ok {
+			return pn
+		}
+	}
+
+	return pulse.Unknown
 }
 
 func (p *PulseSlot) PulseRange() (pulse.Range, PulseSlotState) {

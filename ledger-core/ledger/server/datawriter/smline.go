@@ -21,7 +21,7 @@ type SMLine struct {
 	// injected
 	pulseSlot *conveyor.PulseSlot
 	cataloger DropCataloger
-	streamer  StreamDropCatalog
+	plasher   PlashCatalog
 
 	// input & shared
 	sd     LineSharedData
@@ -39,7 +39,7 @@ func (p *SMLine) GetInitStateFor(smachine.StateMachine) smachine.InitFunc {
 func (p *SMLine) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLink, injector *injector.DependencyInjector) {
 	injector.MustInject(&p.pulseSlot)
 	injector.MustInject(&p.cataloger)
-	injector.MustInject(&p.streamer)
+	injector.MustInject(&p.plasher)
 }
 
 func (p *SMLine) stepInit(ctx smachine.InitializationContext) smachine.StateUpdate {
@@ -62,20 +62,20 @@ func (p *SMLine) stepInit(ctx smachine.InitializationContext) smachine.StateUpda
 }
 
 func (p *SMLine) stepFindDrop(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	ssd := p.streamer.GetOrCreate(ctx, p.pulseSlot.PulseNumber())
+	ssd := p.plasher.GetOrCreate(ctx, p.pulseSlot.PulseNumber())
 	if ssd == nil {
 		panic(throw.IllegalState())
 	}
 	readySync := ssd.GetReadySync()
 
 	if ctx.AcquireForThisStep(readySync) {
-		p.sd.jetDropID = ssd.GetJetDrop(p.sd.lineRef)
+		p.sd.jetDropID = ssd.GetDrop(p.sd.lineRef)
 		return ctx.Jump(p.stepDropIsCreated)
 	}
 
 	return ctx.Sleep().ThenJump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
 		if ctx.AcquireForThisStep(readySync) {
-			p.sd.jetDropID = ssd.GetJetDrop(p.sd.lineRef)
+			p.sd.jetDropID = ssd.GetDrop(p.sd.lineRef)
 			return ctx.Jump(p.stepDropIsCreated)
 		}
 		return ctx.Sleep().ThenRepeat()
@@ -95,7 +95,7 @@ func (p *SMLine) stepDropIsCreated(ctx smachine.ExecutionContext) smachine.State
 
 	if ctx.AcquireForThisStep(readySync) {
 		sdl.MustAccess(func(sd *DropSharedData) {
-			p.sd.dropUpdater = sd.GetDropAssistant()
+			p.sd.onDropReady(sd)
 		})
 		return ctx.Jump(p.stepDropIsReady)
 	}
@@ -103,7 +103,7 @@ func (p *SMLine) stepDropIsCreated(ctx smachine.ExecutionContext) smachine.State
 	return ctx.Sleep().ThenJump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
 		if ctx.AcquireForThisStep(readySync) {
 			sdl.MustAccess(func(sd *DropSharedData) {
-				p.sd.dropUpdater = sd.GetDropAssistant()
+				p.sd.onDropReady(sd)
 			})
 			return ctx.Jump(p.stepDropIsReady)
 		}
@@ -121,13 +121,13 @@ func (p *SMLine) stepDropIsReady(ctx smachine.ExecutionContext) smachine.StateUp
 		return ctx.Jump(p.stepLineIsReady)
 	case pn < refPN:
 		// It was before - find a recap
-		sm := &datareader.SMFindRecap{ RootRef: p.sd.lineRef }
+		sm := &datareader.SMFindRecap{RootRef: p.sd.lineRef}
 		return ctx.CallSubroutine(sm, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
 			if sm.RecapRec == nil {
 				// TODO Unknown object
 				panic(throw.NotImplemented())
 			}
-			p.sd.addRecap(sm.RecapRef, sm.RecapRec)
+			// TODO p.sd.addRecap(sm.RecapRef, sm.RecapRec)
 			return ctx.Jump(p.stepLineIsReady)
 		})
 	default:
@@ -153,8 +153,8 @@ func (p *SMLine) stepWaitForContextUpdates(ctx smachine.ExecutionContext) smachi
 		unresolved := ur
 		ctx.NewChild(func(ctx smachine.ConstructionContext) smachine.StateMachine {
 			return &datareader.SMFindRecord{
-				Unresolved: unresolved,
-				FindCallback:    p.onFind,
+				Unresolved:   unresolved,
+				FindCallback: p.onFind,
 			}
 		})
 	}
@@ -189,4 +189,3 @@ func (p *SMLine) stepFinalize(ctx smachine.ExecutionContext) smachine.StateUpdat
 	// TODO some finalization for lines?
 	return ctx.Stop()
 }
-

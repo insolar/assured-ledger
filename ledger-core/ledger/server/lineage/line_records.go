@@ -7,6 +7,8 @@ package lineage
 
 import (
 	"math"
+
+	"github.com/insolar/assured-ledger/ledger-core/ledger"
 )
 
 type stageNo uint32
@@ -19,22 +21,22 @@ type updateStage struct {
 	seqNo stageNo
 	next  *updateStage // latter one
 
-	tracker StageTracker
-	firstRec  recordNo
+	tracker  StageTracker
+	firstRec recordNo
 
-	filaments     []filament
+	filaments []filament
 }
 
 type updateRecord = resolvedRecord
 
 type StageTracker interface {
-	IsCommitted() bool
+	GetFutureAllocation() (isReady bool, allocations []ledger.DirectoryIndex)
 }
 
 type filamentState uint8
 
 const (
-	_  filamentState = iota // started
+	_ filamentState = iota // started
 	// activated
 	ended
 	// deactivated
@@ -42,11 +44,10 @@ const (
 
 type filament struct {
 	earliest, latest recordNo
-	recap recordNo
-	resolvedHead ResolvedDependency
-	state filamentState
+	recap            recordNo
+	resolvedHead     ResolvedDependency
+	state            filamentState
 }
-
 
 type lineRecords struct {
 	records [][]updateRecord
@@ -61,7 +62,7 @@ func (p *lineRecords) getCount() int {
 		return 1
 	}
 	n := len(p.records) - 1
-	return n * cap(p.records[0]) + len(p.records[n]) + 1
+	return n*cap(p.records[0]) + len(p.records[n]) + 1
 }
 
 const defaultPageSize = 100

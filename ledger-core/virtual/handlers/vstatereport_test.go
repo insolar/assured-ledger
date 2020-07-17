@@ -15,6 +15,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
@@ -22,6 +23,8 @@ import (
 )
 
 func TestVStateReport_CreateObjectWithoutState(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	var (
 		mc               = minimock.NewController(t)
 		pd               = pulse.NewFirstPulsarData(10, longbits.Bits256{})
