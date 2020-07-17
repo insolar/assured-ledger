@@ -77,9 +77,10 @@ jobs:
       - name: Go mod cache setup
         uses: actions/cache@v2
         with:
-          path: ~/go/pkg/mod
+          path: ${{env.GOPATH}}/pkg/mod
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-go-
+          restore-keys: |
+            ${{ runner.os }}-go-
       - name: Prepare environment
         run: |
           go mod download

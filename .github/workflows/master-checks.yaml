@@ -32,13 +32,15 @@ jobs:
       - name: Go mod cache setup
         uses: actions/cache@v2
         with:
-          path: ~/go/pkg/mod
+          path: ${{env.GOPATH}}/pkg/mod
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-go-
+          restore-keys: |
+            ${{ runner.os }}-go-
       - name: Fetch vendor and check succesful build
         run: |
           go mod download
-          make vendor install-build-tools pre-build proto build
+          go mod vendor
+          make install-build-tools pre-build proto build
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
       - name: Check if working directory is clean after build
         if: always()
@@ -174,9 +176,10 @@ jobs:
       - name: Go mod cache setup
         uses: actions/cache@v2
         with:
-          path: ~/go/pkg/mod
+          path: ${{env.GOPATH}}/pkg/mod
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-go-
+          restore-keys: |
+            ${{ runner.os }}-go-
       - name: run insolar net
         run: |
           export KUBECONFIG=$GITHUB_WORKSPACE/k3s.yaml

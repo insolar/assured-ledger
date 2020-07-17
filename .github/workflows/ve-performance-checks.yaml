@@ -20,6 +20,13 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@master
+      - name: Go mod cache setup
+        uses: actions/cache@v2
+        with:
+          path: ${{env.GOPATH}}/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
       - name: build test
         working-directory: ${{ env.CORE_PATH }}
         run: |
