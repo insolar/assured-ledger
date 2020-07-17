@@ -42,8 +42,8 @@ jobs:
             ${{ runner.os }}-go-
       - name: Fetch vendor and check succesful build
         run: |
-          go mod download
-          make vendor pre-build build
+          go mod vendor
+          make pre-build build
         working-directory: ${{env.WORKDIR}}
       - name: Run unit and slow tests and check code coverage
         if: always()

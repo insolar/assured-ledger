@@ -39,8 +39,8 @@ jobs:
             ${{ runner.os }}-go-
       - name: Fetch vendor and check succesful build
         run: |
-          go mod download
-          make vendor install-build-tools pre-build proto build
+          go mod vendor
+          make install-build-tools pre-build proto build
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
       - name: Check if working directory is clean after build
         if: always()
@@ -80,8 +80,7 @@ jobs:
             ${{ runner.os }}-go-
       - name: Fetch vendor and check succesful build
         run: |
-          go mod download
-          make vendor install-build-tools build
+          go mod vendor
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
       - name: Run unit and slow tests and check code coverage
         if: always()
@@ -185,8 +184,8 @@ jobs:
       - name: run insolar net
         run: |
           export KUBECONFIG=$GITHUB_WORKSPACE/k3s.yaml
-          go mod download
-          make vendor install-build-tools kube_start_net
+          go mod vendor
+          make install-build-tools kube_start_net
           kubectl -n insolar describe ing api-proxy
         working-directory: ${{env.V2_PATH}}
       - name: run tests
