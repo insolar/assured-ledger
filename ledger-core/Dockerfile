@@ -12,8 +12,6 @@ ARG BUILD_TIME
 ARG BUILD_HASH
 ARG BUILD_VERSION
 # build step
-RUN GOPROXY=https://proxy.golang.org,https://goproxy.io,direct \
-    make vendor
 RUN BUILD_NUMBER=${BUILD_NUMBER} \
     BUILD_DATE=${BUILD_DATE} \
     BUILD_TIME=${BUILD_TIME} \

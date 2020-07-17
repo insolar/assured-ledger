@@ -42,6 +42,17 @@ jobs:
         run: echo "::add-path::$GITHUB_WORKSPACE/bin"
       - name: save kubeconfig
         run: echo "${{secrets.CLOUD_KUBECONFIG}}" >> aks.yaml
+      - name: Go mod cache setup
+        uses: actions/cache@v2
+        with:
+          path: ${{env.GOPATH}}/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles(env.GOPATH+'/src/github.com/insolar/assured-ledger/ledger-core/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: Fetch dependencies
+        run: |
+          go mod download
+          go mod vendor
       - name: Build docker images
         run: make docker-build
         working-directory: ${{ env.CORE_PATH }}

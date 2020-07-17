@@ -170,13 +170,6 @@ jobs:
       - name: deploy ingress
         run: KUBECONFIG=$GITHUB_WORKSPACE/k3s.yaml; make kube_apply_ingress
         working-directory: ${{env.V2_PATH}}
-      - name: build images
-        run: make docker-build
-        working-directory: ${{env.V2_PATH}}
-      - name: push assured ledger image to local registry
-        run: |
-          docker tag insolar/assured-ledger:latest localhost/assured-ledger:latest
-          docker push localhost/assured-ledger:latest
       - name: Go mod cache setup
         uses: actions/cache@v2
         with:
@@ -184,12 +177,24 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles(env.V2_PATH+'/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
+      - name: Fetch dependencies
+        run: |
+          go mod download
+          go mod vendor
+      - name: build images
+        run: make docker-build
+        working-directory: ${{env.V2_PATH}}
+      - name: push assured ledger image to local registry
+        run: |
+          docker tag insolar/assured-ledger:latest localhost/assured-ledger:latest
+          docker push localhost/assured-ledger:latest
+      - name: build tools
+        run: |
+          make install-build-tools
       - name: run insolar net
         run: |
           export KUBECONFIG=$GITHUB_WORKSPACE/k3s.yaml
-          go mod download
-          go mod vendor
-          make install-build-tools kube_start_net
+          make kube_start_net
           kubectl -n insolar describe ing api-proxy
         working-directory: ${{env.V2_PATH}}
       - name: run tests
