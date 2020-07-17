@@ -8,8 +8,8 @@ env:
   CI_GOMAXPROCS: 0
   INSOLAR_LOG_LEVEL: warn
 jobs:
-  tests-on-master:
-    name: master-checks
+  long-tests-on-master:
+    name: master-long-funcs
     runs-on: ubuntu-latest
     env:
       GOPATH: /home/runner/work/assured-ledger/assured-ledger/go
