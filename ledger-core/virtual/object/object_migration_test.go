@@ -18,6 +18,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callsummary"
@@ -27,6 +28,8 @@ import (
 )
 
 func TestSMObject_InitSetMigration(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	var (
 		mc = minimock.NewController(t)
 
@@ -49,6 +52,8 @@ func TestSMObject_InitSetMigration(t *testing.T) {
 }
 
 func TestSMObject_MigrationCreateStateReport_IfStateMissing(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	mc := minimock.NewController(t)
 
 	smObject := newSMObjectWithPulse()
@@ -100,6 +105,8 @@ func TestSMObject_MigrationStop_IfStateUnknown(t *testing.T) {
 }
 
 func TestSMObject_MigrationCreateStateReport_IfStateIsEmptyAndNoCounters(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	var (
 		mc = minimock.NewController(t)
 
@@ -147,6 +154,8 @@ func TestSMObject_MigrationCreateStateReport_IfStateIsEmptyAndNoCounters(t *test
 }
 
 func TestSMObject_MigrationCreateStateReport_IfStateEmptyAndCountersSet(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	var (
 		mc = minimock.NewController(t)
 

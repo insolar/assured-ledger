@@ -21,6 +21,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/slotdebugger"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
@@ -208,6 +209,8 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
+			defer commontestutils.LeakTester(t)
+
 			t.Log(tc.testRailCase)
 			var (
 				mc  = minimock.NewController(t)
@@ -215,10 +218,10 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 
 				nodeRef = gen.UniqueGlobalRef()
 
-				caller           = gen.UniqueGlobalRef()
-				outgoing         = gen.UniqueLocalRef()
-				objectRef        = reference.NewSelf(outgoing)
-				sharedState      = &object.SharedState{
+				caller      = gen.UniqueGlobalRef()
+				outgoing    = gen.UniqueLocalRef()
+				objectRef   = reference.NewSelf(outgoing)
+				sharedState = &object.SharedState{
 					Info: object.Info{
 						PendingTable:                          tc.PendingRequestTable,
 						OrderedPendingEarliestPulse:           tc.OrderedPendingEarliestPulse,
