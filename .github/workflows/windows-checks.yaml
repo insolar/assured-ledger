@@ -33,6 +33,12 @@ jobs:
           go-version: ${{env.GO_VERSION}}
       - name: Add bin to path
         run: echo "::add-path::${{env.GOPATH}}\\bin"
+      - name: Go mod cache setup
+        uses: actions/cache@v2
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-go-
       - name: Fetch vendor and check succesful build
         run: |
           go mod download
