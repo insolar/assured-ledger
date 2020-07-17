@@ -206,9 +206,6 @@ type DeduplicationDifferentPulsesCase struct {
 func (test *DeduplicationDifferentPulsesCase) TestRun(t *testing.T) {
 	defer commontestutils.LeakTester(t)
 
-	test.TestCase.Run(t, test.run)
-
-	test.Name = test.Name + ", state already sent"
 	test.vStateSendBefore = true
 	test.TestCase.Run(t, test.run)
 }
