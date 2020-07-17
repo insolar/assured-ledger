@@ -41,15 +41,6 @@ var messagesWithoutToken = []struct {
 		msg:  &payload.VStateRequest{},
 	},
 	{
-		name: "VDelegatedCallResponse",
-		msg:  &payload.VDelegatedCallResponse{},
-	},
-	{
-		name: "VFindCallRequest",
-		msg:  &payload.VFindCallRequest{},
-	},
-
-	{
 		name: "VStateReport",
 		msg:  &payload.VStateReport{},
 	},
@@ -57,7 +48,14 @@ var messagesWithoutToken = []struct {
 		name: "VDelegatedCallRequest",
 		msg:  &payload.VDelegatedCallRequest{},
 	},
-
+	{
+		name: "VDelegatedCallResponse",
+		msg:  &payload.VDelegatedCallResponse{},
+	},
+	{
+		name: "VFindCallRequest",
+		msg:  &payload.VFindCallRequest{},
+	},
 	{
 		name: "VFindCallResponse",
 		msg:  &payload.VFindCallResponse{},
