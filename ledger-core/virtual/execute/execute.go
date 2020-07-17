@@ -622,6 +622,7 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 	switch outgoing := s.executionNewState.Outgoing.(type) {
 	case execution.Deactivate:
 		s.deactivate = true
+		panic(throw.NotImplemented())
 	case execution.CallConstructor:
 		if s.intolerableCall() {
 			err := throw.E("interference violation: constructor call from unordered call")
@@ -686,9 +687,9 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 		}
 	} else {
 		if s.outgoingSentCounter >= MaxOutgoingSendCount {
-		     return ctx.Error(throw.E("outgoing retries limit"))
+			return ctx.Error(throw.E("outgoing retries limit"))
 		}
-		
+
 		s.outgoing.CallRequestFlags = payload.BuildCallRequestFlags(payload.SendResultDefault, payload.RepeatedCall)
 	}
 
