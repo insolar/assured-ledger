@@ -40,6 +40,10 @@ test_func_race: ## run functest 10 times with -race flag
 test_slow: ## run tests with slowtest tag
 	$(GOTEST) -count=1 $(TEST_ARGS) -tags "slowtest convlogtxt" $(PACKAGES)
 
+.PHONY: test_slow_long
+test_slow_long: ## run tests with slowtest tag
+	$(GOTEST) -count=300 -timeout 30m -tags "slowtest longtest copylogtxt" $(PACKAGES) -args TESTLOG_OUT=$(EXTENDED_LOG) TESTLOG_MARKS=1 TESTLOG_TXT=1 2>&1 | tee "integration_test.log"
+
 .PHONY: kube_start_net
 kube_start_net: ## run insolar net in local kubernetes cluster
 	./scripts/deploy/kube/run.sh

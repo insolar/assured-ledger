@@ -18,6 +18,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
+	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	messageSenderWrapper "github.com/insolar/assured-ledger/ledger-core/testutils/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
@@ -66,6 +67,8 @@ func newSMReportWithPulse() *SMStateFinalizer {
 }
 
 func TestSMStateReport_SendVStateReport_IfDescriptorSet(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	var (
 		mc = minimock.NewController(t)
 
@@ -99,6 +102,8 @@ func TestSMStateReport_SendVStateReport_IfDescriptorSet(t *testing.T) {
 }
 
 func TestSMStateReport_SendVStateReport_IfDescriptorNotSetAndStateEmpty(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	var (
 		mc = minimock.NewController(t)
 

@@ -647,35 +647,172 @@ func (p *Typed) SetDefaultResend(flag bool) *Typed {
 }
 
 func (p *Typed) minimockDone() bool {
-	if hdl := p.Handlers.VCallRequest; hdl.expectedCount >= 0 && !(p.defaultResend && hdl.expectedCount == 0) {
-		return hdl.count.Load() == hdl.expectedCount
+	ok := true
+
+	{
+		fn := func() bool {
+			hdl := &p.Handlers.VCallRequest
+
+			switch {
+			case hdl.expectedCount < 0:
+				return true
+			case p.defaultResend:
+				return true
+			case hdl.expectedCount == 0:
+				return true
+			}
+
+			return hdl.count.Load() == hdl.expectedCount
+		}
+
+		ok = ok && fn()
 	}
-	if hdl := p.Handlers.VCallResult; hdl.expectedCount >= 0 && !(p.defaultResend && hdl.expectedCount == 0) {
-		return hdl.count.Load() == hdl.expectedCount
+	{
+		fn := func() bool {
+			hdl := &p.Handlers.VCallResult
+
+			switch {
+			case hdl.expectedCount < 0:
+				return true
+			case p.defaultResend:
+				return true
+			case hdl.expectedCount == 0:
+				return true
+			}
+
+			return hdl.count.Load() == hdl.expectedCount
+		}
+
+		ok = ok && fn()
 	}
-	if hdl := p.Handlers.VDelegatedCallRequest; hdl.expectedCount >= 0 && !(p.defaultResend && hdl.expectedCount == 0) {
-		return hdl.count.Load() == hdl.expectedCount
+	{
+		fn := func() bool {
+			hdl := &p.Handlers.VDelegatedCallRequest
+
+			switch {
+			case hdl.expectedCount < 0:
+				return true
+			case p.defaultResend:
+				return true
+			case hdl.expectedCount == 0:
+				return true
+			}
+
+			return hdl.count.Load() == hdl.expectedCount
+		}
+
+		ok = ok && fn()
 	}
-	if hdl := p.Handlers.VDelegatedCallResponse; hdl.expectedCount >= 0 && !(p.defaultResend && hdl.expectedCount == 0) {
-		return hdl.count.Load() == hdl.expectedCount
+	{
+		fn := func() bool {
+			hdl := &p.Handlers.VDelegatedCallResponse
+
+			switch {
+			case hdl.expectedCount < 0:
+				return true
+			case p.defaultResend:
+				return true
+			case hdl.expectedCount == 0:
+				return true
+			}
+
+			return hdl.count.Load() == hdl.expectedCount
+		}
+
+		ok = ok && fn()
 	}
-	if hdl := p.Handlers.VDelegatedRequestFinished; hdl.expectedCount >= 0 && !(p.defaultResend && hdl.expectedCount == 0) {
-		return hdl.count.Load() == hdl.expectedCount
+	{
+		fn := func() bool {
+			hdl := &p.Handlers.VDelegatedRequestFinished
+
+			switch {
+			case hdl.expectedCount < 0:
+				return true
+			case p.defaultResend:
+				return true
+			case hdl.expectedCount == 0:
+				return true
+			}
+
+			return hdl.count.Load() == hdl.expectedCount
+		}
+
+		ok = ok && fn()
 	}
-	if hdl := p.Handlers.VFindCallRequest; hdl.expectedCount >= 0 && !(p.defaultResend && hdl.expectedCount == 0) {
-		return hdl.count.Load() == hdl.expectedCount
+	{
+		fn := func() bool {
+			hdl := &p.Handlers.VFindCallRequest
+
+			switch {
+			case hdl.expectedCount < 0:
+				return true
+			case p.defaultResend:
+				return true
+			case hdl.expectedCount == 0:
+				return true
+			}
+
+			return hdl.count.Load() == hdl.expectedCount
+		}
+
+		ok = ok && fn()
 	}
-	if hdl := p.Handlers.VFindCallResponse; hdl.expectedCount >= 0 && !(p.defaultResend && hdl.expectedCount == 0) {
-		return hdl.count.Load() == hdl.expectedCount
+	{
+		fn := func() bool {
+			hdl := &p.Handlers.VFindCallResponse
+
+			switch {
+			case hdl.expectedCount < 0:
+				return true
+			case p.defaultResend:
+				return true
+			case hdl.expectedCount == 0:
+				return true
+			}
+
+			return hdl.count.Load() == hdl.expectedCount
+		}
+
+		ok = ok && fn()
 	}
-	if hdl := p.Handlers.VStateReport; hdl.expectedCount >= 0 && !(p.defaultResend && hdl.expectedCount == 0) {
-		return hdl.count.Load() == hdl.expectedCount
+	{
+		fn := func() bool {
+			hdl := &p.Handlers.VStateReport
+
+			switch {
+			case hdl.expectedCount < 0:
+				return true
+			case p.defaultResend:
+				return true
+			case hdl.expectedCount == 0:
+				return true
+			}
+
+			return hdl.count.Load() == hdl.expectedCount
+		}
+
+		ok = ok && fn()
 	}
-	if hdl := p.Handlers.VStateRequest; hdl.expectedCount >= 0 && !(p.defaultResend && hdl.expectedCount == 0) {
-		return hdl.count.Load() == hdl.expectedCount
+	{
+		fn := func() bool {
+			hdl := &p.Handlers.VStateRequest
+
+			switch {
+			case hdl.expectedCount < 0:
+				return true
+			case p.defaultResend:
+				return true
+			case hdl.expectedCount == 0:
+				return true
+			}
+
+			return hdl.count.Load() == hdl.expectedCount
+		}
+
+		ok = ok && fn()
 	}
 
-	return true
+	return ok
 }
 
 // MinimockFinish checks that all mocked methods have been called the expected number of times

@@ -363,9 +363,14 @@ type DeduplicationBargeInKey struct {
 }
 
 func (s *SMExecute) stepDeduplicateThroughPreviousExecutor(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	lookAt := s.pulseSlot.PulseData().PrevPulseNumber()
+	prevPulse := s.pulseSlot.PrevOperationPulseNumber()
+	if prevPulse.IsUnknown() {
+		// unable to identify exact prev pulse
+		panic(throw.NotImplemented())
+	}
+
 	msg := payload.VFindCallRequest{
-		LookAt:   lookAt,
+		LookAt:   prevPulse,
 		Callee:   s.execution.Object,
 		Outgoing: s.execution.Outgoing,
 	}
@@ -383,7 +388,7 @@ func (s *SMExecute) stepDeduplicateThroughPreviousExecutor(ctx smachine.Executio
 	})
 
 	bargeInKey := DeduplicationBargeInKey{
-		LookAt:   lookAt,
+		LookAt:   prevPulse,
 		Callee:   msg.Callee,
 		Outgoing: msg.Outgoing,
 	}
@@ -393,7 +398,7 @@ func (s *SMExecute) stepDeduplicateThroughPreviousExecutor(ctx smachine.Executio
 	}
 
 	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
-		err := svc.SendRole(goCtx, &msg, node.DynamicRoleVirtualExecutor, s.execution.Object, s.pulseSlot.PulseData().PrevPulseNumber())
+		err := svc.SendRole(goCtx, &msg, node.DynamicRoleVirtualExecutor, s.execution.Object, prevPulse)
 		return func(ctx smachine.AsyncResultContext) {
 			if err != nil {
 				ctx.Log().Error("failed to send message", err)

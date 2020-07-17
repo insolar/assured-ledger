@@ -29,6 +29,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
+	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/debuglogger"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/messagesender"
@@ -42,6 +43,14 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/shareddata"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/slotdebugger"
 )
+
+func executeLeakCheck(t *testing.T) {
+	// TODO: remove this ignores after fix closing adapters on conveyor shutdown
+	commontestutils.LeakTester(t,
+		goleak.IgnoreTopFunction("github.com/insolar/assured-ledger/ledger-core/runner.(*worker).Run.func1"),
+		goleak.IgnoreTopFunction("github.com/insolar/assured-ledger/ledger-core/conveyor/smachine.startChannelWorkerUnlimParallel.func1"),
+	)
+}
 
 func expectedInitState(ctx context.Context, sm SMExecute) SMExecute {
 	sm.execution.Context = ctx
@@ -67,6 +76,8 @@ func expectedInitState(ctx context.Context, sm SMExecute) SMExecute {
 }
 
 func TestSMExecute_Init(t *testing.T) {
+	defer executeLeakCheck(t)
+
 	var (
 		ctx = instestlogger.TestContext(t)
 		mc  = minimock.NewController(t)
@@ -116,6 +127,8 @@ func TestSMExecute_Init(t *testing.T) {
 }
 
 func TestSMExecute_StartRequestProcessing(t *testing.T) {
+	defer executeLeakCheck(t)
+
 	var (
 		ctx = instestlogger.TestContext(t)
 		mc  = minimock.NewController(t)
@@ -176,6 +189,8 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 }
 
 func TestSMExecute_DeduplicationUsingPendingsTableRequestNotExist(t *testing.T) {
+	defer executeLeakCheck(t)
+
 	var (
 		ctx = instestlogger.TestContext(t)
 		mc  = minimock.NewController(t)
@@ -223,6 +238,8 @@ func TestSMExecute_DeduplicationUsingPendingsTableRequestNotExist(t *testing.T) 
 }
 
 func TestSMExecute_DeduplicationUsingPendingsTableRequestExist(t *testing.T) {
+	defer executeLeakCheck(t)
+
 	var (
 		ctx = instestlogger.TestContext(t)
 		mc  = minimock.NewController(t)
@@ -291,6 +308,8 @@ func TestSMExecute_DeduplicationUsingPendingsTableRequestExist(t *testing.T) {
 }
 
 func TestSMExecute_DeduplicateThroughPreviousExecutor(t *testing.T) {
+	defer executeLeakCheck(t)
+
 	var (
 		ctx = instestlogger.TestContext(t)
 		mc  = minimock.NewController(t)
@@ -375,6 +394,8 @@ func TestSMExecute_DeduplicateThroughPreviousExecutor(t *testing.T) {
 }
 
 func TestSMExecute_ProcessFindCallResponse(t *testing.T) {
+	defer executeLeakCheck(t)
+
 	var (
 		ctx = instestlogger.TestContext(t)
 		mc  = minimock.NewController(mocklog.T(t))
@@ -491,6 +512,8 @@ func TestSMExecute_ProcessFindCallResponse(t *testing.T) {
 }
 
 func TestSMExecute_DeduplicationForOldRequest(t *testing.T) {
+	defer executeLeakCheck(t)
+
 	var (
 		ctx = instestlogger.TestContext(t)
 		mc  = minimock.NewController(t)
@@ -572,6 +595,8 @@ func TestSMExecute_TokenInOutgoingMessage(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			defer executeLeakCheck(t)
+
 			var (
 				ctx = instestlogger.TestContext(t)
 				mc  = minimock.NewController(t)
@@ -662,6 +687,8 @@ func TestSMExecute_TokenInOutgoingMessage(t *testing.T) {
 }
 
 func TestSMExecute_VCallResultPassedToSMObject(t *testing.T) {
+	defer executeLeakCheck(t)
+
 	var (
 		ctx = instestlogger.TestContext(t)
 		mc  = minimock.NewController(t)
@@ -739,12 +766,9 @@ func TestSMExecute_VCallResultPassedToSMObject(t *testing.T) {
 }
 
 func TestSendVStateReportWithMissingState_IfConstructorWasInterruptedBeforeRunnerCall(t *testing.T) {
+	defer executeLeakCheck(t)
+
 	t.Log("C5084")
-	// TODO: remove this ignores after fix closing adapters on conveyor shutdown
-	defer testutils.LeakTester(t,
-		goleak.IgnoreTopFunction("github.com/insolar/assured-ledger/ledger-core/runner.(*worker).Run.func1"),
-		goleak.IgnoreTopFunction("github.com/insolar/assured-ledger/ledger-core/conveyor/smachine.startChannelWorkerUnlimParallel.func1"),
-	)
 
 	var (
 		mc  = minimock.NewController(t)
@@ -812,12 +836,9 @@ func TestSendVStateReportWithMissingState_IfConstructorWasInterruptedBeforeRunne
 }
 
 func TestSMExecute_StopWithoutMessagesIfPulseChangedBeforeOutgoing(t *testing.T) {
+	defer executeLeakCheck(t)
+
 	t.Log("C5101")
-	// TODO: remove this ignores after fix closing adapters on conveyor shutdown
-	defer testutils.LeakTester(t,
-		goleak.IgnoreTopFunction("github.com/insolar/assured-ledger/ledger-core/runner.(*worker).Run.func1"),
-		goleak.IgnoreTopFunction("github.com/insolar/assured-ledger/ledger-core/conveyor/smachine.startChannelWorkerUnlimParallel.func1"),
-	)
 	const stateMemory = "213"
 
 	var (
