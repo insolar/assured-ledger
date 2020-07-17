@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-// +build slowtest,!longtest
+// +build extendedtest
 
 package jet
 
@@ -17,7 +17,6 @@ import (
 
 func TestPrefixTree_SerializeCombinations(t *testing.T) {
 	t.Run("raw   only", func(t *testing.T) {
-		t.Skip("too slow")
 		t.Parallel()
 		ser := PrefixTreeSerializer{}
 		pt := PrefixTree{}
@@ -44,7 +43,6 @@ func TestPrefixTree_SerializeCombinations(t *testing.T) {
 	})
 
 	t.Run("enum tree", func(t *testing.T) {
-		t.Skip("too slow")
 		t.Parallel()
 		pt := PrefixTree{}
 		pt.Init()
