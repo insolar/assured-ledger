@@ -34,8 +34,9 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ${{env.GOPATH}}/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/go.sum') }}
-          restore-keys: ${{ runner.os }}-go-
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
       - name: Fetch vendor and check succesful build
         run: |
           go mod download
@@ -74,8 +75,9 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ${{env.GOPATH}}/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/go.sum') }}
-          restore-keys: ${{ runner.os }}-go-
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
       - name: Fetch vendor and check succesful build
         run: |
           go mod download
@@ -128,7 +130,7 @@ jobs:
     name: func-test-kuber # don't change, this name is used in repository restricts!
     runs-on: ubuntu-latest
     env:
-      GOPATH: /home/runner/work/
+      GOPATH: /home/runner/work
       V2_PATH: /home/runner/work/assured-ledger/assured-ledger/ledger-core
       USE_MANIFESTS: ci
       GOPROXY: https://proxy.golang.org,https://goproxy.io,direct
@@ -177,8 +179,9 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ${{env.GOPATH}}/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/go.sum') }}
-          restore-keys: ${{ runner.os }}-go-
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
       - name: run insolar net
         run: |
           export KUBECONFIG=$GITHUB_WORKSPACE/k3s.yaml
