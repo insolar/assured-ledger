@@ -9,14 +9,14 @@ import (
 	"context"
 	"sync"
 
-	"github.com/insolar/assured-ledger/ledger-core/appctl"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
 
-var _ appctl.Accessor = &StorageMem{}
+var _ beat.Accessor = &StorageMem{}
 
 // StorageMem is a memory storage implementation. It saves pulses to memory and allows removal.
 type StorageMem struct {
@@ -27,7 +27,7 @@ type StorageMem struct {
 }
 
 type memNode struct {
-	pulse      appctl.PulseChange
+	pulse      beat.Beat
 	prev, next *memNode
 }
 
@@ -38,19 +38,19 @@ func NewStorageMem() *StorageMem {
 	}
 }
 
-// ForPulseNumber returns pulse for provided Pulse number. If not found, ErrNotFound will be returned.
-func (s *StorageMem) ForPulseNumber(ctx context.Context, pn pulse.Number) (appctl.PulseChange, error) {
+// Of returns pulse for provided Pulse number. If not found, ErrNotFound will be returned.
+func (s *StorageMem) Of(ctx context.Context, pn pulse.Number) (beat.Beat, error) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
 	if node, ok := s.storage[pn]; ok {
 		return node.pulse, nil
 	}
-	return appctl.PulseChange{}, pulsestor.ErrNotFound
+	return beat.Beat{}, pulsestor.ErrNotFound
 }
 
 // Latest returns a latest pulse saved in memory. If not found, ErrNotFound will be returned.
-func (s *StorageMem) Latest(ctx context.Context) (pulse appctl.PulseChange, err error) {
+func (s *StorageMem) Latest(ctx context.Context) (pulse beat.Beat, err error) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
@@ -64,7 +64,7 @@ func (s *StorageMem) Latest(ctx context.Context) (pulse appctl.PulseChange, err 
 
 // Append appends provided a pulse to current storage. Pulse number should be greater than currently saved for preserving
 // pulse consistency. If provided Pulse does not meet the requirements, ErrBadPulse will be returned.
-func (s *StorageMem) Append(ctx context.Context, pulse appctl.PulseChange) error {
+func (s *StorageMem) Append(ctx context.Context, pulse beat.Beat) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 

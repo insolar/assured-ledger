@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/goleak"
 
-	"github.com/insolar/assured-ledger/ledger-core/appctl"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/application/api/requester"
 	"github.com/insolar/assured-ledger/ledger-core/application/api/seedmanager"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
@@ -43,13 +43,13 @@ func TestNodeService_GetSeed(t *testing.T) {
 
 	// 0 = false, 1 = pulse.ErrNotFound, 2 = another error
 	pulseError := 0
-	accessor := mockPulseAccessor(t)
-	accessor = accessor.LatestMock.Set(func(ctx context.Context) (appctl.PulseChange, error) {
+	accessor := beat.NewAccessorMock(t)
+	accessor = accessor.LatestMock.Set(func(ctx context.Context) (beat.Beat, error) {
 		switch pulseError {
 		case 1:
-			return appctl.PulseChange{}, pulsestor.ErrNotFound
+			return beat.Beat{}, pulsestor.ErrNotFound
 		case 2:
-			return appctl.PulseChange{}, errors.New("fake error")
+			return beat.Beat{}, errors.New("fake error")
 		default:
 			return pulsestor.GenesisPulse, nil
 		}

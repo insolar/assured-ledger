@@ -13,10 +13,9 @@ import (
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/insolar/assured-ledger/ledger-core/appctl"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network"
-	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	mock "github.com/insolar/assured-ledger/ledger-core/testutils/network"
 )
 
@@ -50,10 +49,8 @@ func TestWaitConsensus_ConsensusHappenedInETA(t *testing.T) {
 	waitConsensus := newWaitConsensus(&Base{})
 	assert.Equal(t, nodeinfo.WaitConsensus, waitConsensus.GetState())
 	waitConsensus.Gatewayer = gatewayer
-	accessorMock := appctl.NewPulseAccessorMock(mc)
-	accessorMock.GetPulseMock.Set(func(ctx context.Context, p1 pulse.Number) (p2 appctl.PulseChange, err error) {
-		return EphemeralPulse, nil
-	})
+	accessorMock := beat.NewAccessorMock(mc)
+	accessorMock.OfMock.Return(EphemeralPulse, nil)
 	waitConsensus.PulseAccessor = accessorMock
 	waitConsensus.bootstrapETA = time.Second
 	waitConsensus.bootstrapTimer = time.NewTimer(waitConsensus.bootstrapETA)

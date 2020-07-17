@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package appctl
+package beat
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
@@ -12,60 +12,60 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-type NodeState struct {
+type AckData struct {
 	api.UpstreamState
 }
 
-type NodeStateChan = chan<- NodeState
+type AckChan = chan<- AckData
 
-func NewNodeStateSink(ch chan NodeState) (NodeStateSink, func(committed bool)) {
-	ctl := &sinkCtl{
+func NewAck(ch chan AckData) (Ack, func(ack bool)) {
+	sink := &ackSink{
 		ready: make(synckit.ClosableSignalChannel),
 		report: ch,
 	}
-	return NodeStateSink{ ctl }, ctl.setReadyState
+	return Ack{sink}, sink.setAck
 }
 
-type NodeStateSink struct {
-	ctl *sinkCtl
+type Ack struct {
+	ctl *ackSink
 }
 
-func (v NodeStateSink) IsZero() bool {
+func (v Ack) IsZero() bool {
 	return v.ctl == nil
 }
 
-func (v NodeStateSink) Occupy() NodeStateChan {
-	if !v.ctl.state.CompareAndSetBits(0, sinkStateCommitted, sinkStateOccupied) {
+func (v Ack) Acquire() AckChan {
+	if !v.ctl.state.CompareAndSetBits(0, sinkStateAck, sinkStateAcquired) {
 		panic(throw.IllegalState())
 	}
 	return v.ctl.report
 }
 
-func (v NodeStateSink) ReadyChan() synckit.SignalChannel {
+func (v Ack) DoneChan() synckit.SignalChannel {
 	return v.ctl.ready
 }
 
-func (v NodeStateSink) IsCommitted() (isReady, isCommitted bool) {
+func (v Ack) IsDone() (isDone, isAck bool) {
 	state := v.ctl.state.Load()
-	return state&sinkStateReady != 0, state&sinkStateCommitted != 0
+	return state&sinkStateDone != 0, state&sinkStateAck != 0
 }
 
 const (
-	sinkStateReady = 1<<iota
-	sinkStateCommitted
-	sinkStateOccupied
+	sinkStateDone uint32 = 1<<iota
+	sinkStateAck
+	sinkStateAcquired
 )
 
-type sinkCtl struct {
+type ackSink struct {
 	ready synckit.ClosableSignalChannel
 	state atomickit.Uint32
-	report chan NodeState
+	report chan AckData
 }
 
-func (p *sinkCtl) setReadyState(committed bool) {
-	state := uint32(sinkStateReady)
-	if committed {
-		state |= sinkStateCommitted
+func (p *ackSink) setAck(ack bool) {
+	state := sinkStateDone
+	if ack {
+		state |= sinkStateAck
 	}
 	if !p.state.TrySetBits(state, true) {
 		panic(throw.IllegalState())

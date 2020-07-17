@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/appctl"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/network"
@@ -26,7 +26,7 @@ type StateGetter interface {
 }
 
 type PulseChanger interface {
-	ChangePulse(ctx context.Context, newPulse appctl.PulseChange)
+	ChangePulse(ctx context.Context, newPulse beat.Beat)
 }
 
 type StateUpdater interface {
@@ -105,11 +105,11 @@ func (u *UpstreamController) CommitPulseChange(report api.UpstreamReport, pulseD
 	ctx := ReportContext(report)
 	online := activeCensus.GetOnlinePopulation()
 
-	u.pulseChanger.ChangePulse(ctx, appctl.PulseChange{
-		PulseSeq:    0,
-		Data:        pulseData,
-		StartedAt:   time.Now(), // TODO get pulse start
-		Online:      online,
+	u.pulseChanger.ChangePulse(ctx, beat.Beat{
+		BeatSeq:   0,
+		Data:      pulseData,
+		StartedAt: time.Now(), // TODO get pulse start
+		Online:    online,
 	})
 }
 

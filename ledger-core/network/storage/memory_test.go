@@ -6,7 +6,6 @@
 package storage
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -21,7 +20,6 @@ import (
 )
 
 func TestMemoryStorage(t *testing.T) {
-	ctx := context.Background()
 	s := NewMemoryStorage()
 	startPulse := pulsestor.GenesisPulse
 
@@ -36,17 +34,10 @@ func TestMemoryStorage(t *testing.T) {
 		p.PulseNumber += pulse.Number(i)
 
 		snap := node.NewSnapshot(p.PulseNumber, nodes)
-		err = s.Append(p.PulseNumber, snap)
+		err = s.Append(snap)
 		assert.NoError(t, err)
 
-		err = s.AppendPulse(ctx, p)
-		assert.NoError(t, err)
-
-		p1, err := s.GetLatestPulse(ctx)
-		assert.NoError(t, err)
-		assert.Equal(t, p, p1)
-
-		snap1, err := s.ForPulseNumber(p1.PulseNumber)
+		snap1, err := s.ForPulseNumber(p.PulseNumber)
 		assert.NoError(t, err)
 		assert.True(t, snap1.Equal(snap), "snapshots should be equal")
 	}
@@ -55,12 +46,15 @@ func TestMemoryStorage(t *testing.T) {
 	assert.Len(t, s.entries, entriesCount)
 	assert.Len(t, s.snapshotEntries, entriesCount)
 
-	p2, err := s.GetPulse(ctx, startPulse.PulseNumber)
+	snap, err := s.ForPulseNumber(startPulse.PulseNumber)
 	assert.EqualError(t, err, ErrNotFound.Error())
-	assert.Equal(t, p2, pulsestor.GenesisPulse)
+	assert.Nil(t, snap)
 
-	snap2, err := s.ForPulseNumber(startPulse.PulseNumber)
+	snap, err = s.ForPulseNumber(startPulse.PulseNumber + 1)
 	assert.EqualError(t, err, ErrNotFound.Error())
-	assert.Nil(t, snap2)
+	assert.Nil(t, snap)
 
+	snap, err = s.ForPulseNumber(startPulse.PulseNumber + 2)
+	assert.Nil(t, err)
+	assert.NotNil(t, snap)
 }

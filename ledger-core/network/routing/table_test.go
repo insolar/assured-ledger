@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/appctl"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	node2 "github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
@@ -44,8 +44,8 @@ func TestTable_Resolve(t *testing.T) {
 		return node.NewAccessor(node.NewSnapshot(puls.PulseNumber, []nodeinfo.NetworkNode{n}))
 	})
 
-	pulseAccessorMock := appctl.NewPulseAccessorMock(t)
-	pulseAccessorMock.GetLatestPulseMock.Return(puls, nil)
+	pulseAccessorMock := beat.NewAccessorMock(t)
+	pulseAccessorMock.LatestMock.Return(puls, nil)
 
 	table.PulseAccessor = pulseAccessorMock
 	table.NodeKeeper = nodeKeeperMock

@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/appctl"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -22,20 +22,20 @@ func TestNodeStorage_ForPulseNumber(t *testing.T) {
 	ctx := instestlogger.TestContext(t)
 
 	pn := gen.PulseNumber()
-	pc := appctl.PulseChange{}
+	pc := beat.Beat{}
 	pc.PulseNumber = pn
 
 	storage := NewStorageMem()
 	storage.storage[pn] = &memNode{pulse: pc}
 
 	t.Run("returns error when no Pulse", func(t *testing.T) {
-		res, err := storage.ForPulseNumber(ctx, pc.PulseNumber + 1)
+		res, err := storage.Of(ctx, pc.PulseNumber + 1)
 		assert.Equal(t, pulsestor.ErrNotFound, err)
-		assert.Equal(t, appctl.PulseChange{}, res)
+		assert.Equal(t, beat.Beat{}, res)
 	})
 
 	t.Run("returns correct Pulse", func(t *testing.T) {
-		res, err := storage.ForPulseNumber(ctx, pn)
+		res, err := storage.Of(ctx, pn)
 		assert.NoError(t, err)
 		assert.Equal(t, pc, res)
 	})
@@ -48,13 +48,13 @@ func TestNodeStorage_Latest(t *testing.T) {
 		storage := NewStorageMem()
 		res, err := storage.Latest(ctx)
 		assert.Equal(t, pulsestor.ErrNotFound, err)
-		assert.Equal(t, appctl.PulseChange{}, res)
+		assert.Equal(t, beat.Beat{}, res)
 	})
 
 	t.Run("returns correct Pulse", func(t *testing.T) {
 		storage := NewStorageMem()
 		pn := gen.PulseNumber()
-		pc := appctl.PulseChange{}
+		pc := beat.Beat{}
 		pc.PulseNumber = pn
 		storage.tail = &memNode{pulse: pc}
 		res, err := storage.Latest(ctx)
@@ -67,7 +67,7 @@ func TestNodeStorage_Append(t *testing.T) {
 	ctx := instestlogger.TestContext(t)
 
 	pn := gen.PulseNumber()
-	pc := appctl.PulseChange{}
+	pc := beat.Beat{}
 	pc.PulseNumber = pn
 
 	t.Run("appends to an empty storage", func(t *testing.T) {
@@ -124,7 +124,7 @@ func TestNodeStorage_Append(t *testing.T) {
 	t.Run("appends 5 pulses", func(t *testing.T) {
 		storage := NewStorageMem()
 
-		pc := appctl.PulseChange{}
+		pc := beat.Beat{}
 		pc.PulseNumber = 1
 
 		for i := 5; i > 0; i-- {
@@ -157,7 +157,7 @@ func TestMemoryStorage_Shift(t *testing.T) {
 	ctx := instestlogger.TestContext(t)
 
 	pn := gen.PulseNumber()
-	pc := appctl.PulseChange{}
+	pc := beat.Beat{}
 	pc.PulseNumber = pn
 
 	t.Run("returns error if empty", func(t *testing.T) {
@@ -204,7 +204,7 @@ func TestMemoryStorage_Shift(t *testing.T) {
 	t.Run("shifts middle, when 5 pulses", func(t *testing.T) {
 		storage := NewStorageMem()
 
-		pc := appctl.PulseChange{}
+		pc := beat.Beat{}
 		pc.PulseNumber = 101
 
 		for i := 5; i > 0; i-- {

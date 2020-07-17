@@ -10,7 +10,7 @@ import (
 	"context"
 	"crypto/rand"
 
-	"github.com/insolar/assured-ledger/ledger-core/appctl"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
@@ -24,15 +24,15 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-func GetBootstrapPulse(ctx context.Context, accessor appctl.PulseAccessor) (appctl.PulseChange, error) {
-	if pc, err := accessor.GetLatestPulse(ctx); err == nil {
+func GetBootstrapPulse(ctx context.Context, accessor beat.Accessor) (beat.Beat, error) {
+	if pc, err := accessor.Latest(ctx); err == nil {
 		return pc, nil
 	}
-	return appctl.PulseChange{}, throw.E("latest pulse is not available")
+	return beat.Beat{}, throw.E("latest pulse is not available")
 }
 
-func EnsureGetPulse(ctx context.Context, accessor appctl.PulseAccessor, pulseNumber pulse.Number) network.NetworkedPulse {
-	pc, err := accessor.GetPulse(ctx, pulseNumber)
+func EnsureGetPulse(ctx context.Context, accessor beat.Accessor, pulseNumber pulse.Number) network.NetworkedPulse {
+	pc, err := accessor.Of(ctx, pulseNumber)
 	if err != nil {
 		inslogger.FromContext(ctx).Panicf("Failed to fetch pulse: %d", pulseNumber)
 	}
@@ -106,7 +106,7 @@ func (p consensusProxy) State() []byte {
 	return nshBytes
 }
 
-func (p *consensusProxy) ChangePulse(ctx context.Context, newPulse appctl.PulseChange) {
+func (p *consensusProxy) ChangePulse(ctx context.Context, newPulse beat.Beat) {
 	p.Gatewayer.Gateway().(adapters.PulseChanger).ChangePulse(ctx, newPulse)
 }
 

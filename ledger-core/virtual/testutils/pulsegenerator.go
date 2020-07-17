@@ -9,7 +9,7 @@ import (
 	"crypto/rand"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/appctl"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
@@ -17,16 +17,16 @@ import (
 )
 
 type PulseGenerator struct {
-	prev      appctl.PulseChange
-	last      appctl.PulseChange
-	seqCount  uint32
-	delta     uint16
+	prev     beat.Beat
+	last     beat.Beat
+	seqCount uint32
+	delta    uint16
 }
 
 func NewPulseGenerator(delta uint16, online census.OnlinePopulation) *PulseGenerator {
 	return &PulseGenerator{
 		delta: delta,
-		last: appctl.PulseChange{
+		last: beat.Beat{
 			Online: online,
 		},
 	}
@@ -36,14 +36,14 @@ func (g *PulseGenerator) GetLastPulseData() pulse.Data {
 	return g.GetLastPulseAsPulse().Data
 }
 
-func (g *PulseGenerator) GetLastPulseAsPulse() appctl.PulseChange {
+func (g *PulseGenerator) GetLastPulseAsPulse() beat.Beat {
 	if g.seqCount == 0 {
 		panic(throw.IllegalState())
 	}
 	return g.last
 }
 
-func (g *PulseGenerator) GetPrevPulseAsPulse() appctl.PulseChange {
+func (g *PulseGenerator) GetPrevPulseAsPulse() beat.Beat {
 	if g.seqCount <= 1 {
 		panic(throw.IllegalState())
 	}
@@ -62,13 +62,13 @@ func (g *PulseGenerator) Generate() pulse.Data {
 		g.last.Data = pulse.NewFirstPulsarData(g.delta, generateEntropy())
 	} else {
 		g.prev = g.last
-		g.last = appctl.PulseChange{
+		g.last = beat.Beat{
 			Data: g.last.CreateNextPulsarPulse(g.delta, generateEntropy),
 			Online: g.prev.Online,
 		}
 	}
 	g.seqCount++
-	g.last.PulseSeq = g.seqCount
+	g.last.BeatSeq = g.seqCount
 	g.last.StartedAt = time.Now()
 
 	return g.last.Data

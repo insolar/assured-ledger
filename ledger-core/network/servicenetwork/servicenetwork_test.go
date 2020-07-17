@@ -15,7 +15,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/appctl"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
@@ -100,8 +101,8 @@ func TestSendMessageHandler_SameNode(t *testing.T) {
 		return n
 	})
 	pubMock := &PublisherMock{}
-	pulseMock := appctl.NewPulseAccessorMock(t)
-	pulseMock.GetLatestPulseMock.Return(pulsestor.GenesisPulse, nil)
+	pulseMock := beat.NewAccessorMock(t)
+	pulseMock.LatestMock.Return(pulsestor.GenesisPulse, nil)
 	svcNw.PulseAccessor = pulseMock
 	svcNw.NodeKeeper = nodeN
 	svcNw.Pub = pubMock
@@ -138,8 +139,8 @@ func TestSendMessageHandler_SendError(t *testing.T) {
 	rpc.SendBytesMock.Set(func(p context.Context, p1 reference.Global, p2 string, p3 []byte) (r []byte, r1 error) {
 		return nil, errors.New("test error")
 	})
-	pulseMock := appctl.NewPulseAccessorMock(t)
-	pulseMock.GetLatestPulseMock.Return(pulsestor.GenesisPulse, nil)
+	pulseMock := beat.NewAccessorMock(t)
+	pulseMock.LatestMock.Return(pulsestor.GenesisPulse, nil)
 	svcNw.PulseAccessor = pulseMock
 	svcNw.RPC = rpc
 	svcNw.NodeKeeper = nodeN
@@ -176,8 +177,8 @@ func TestSendMessageHandler_WrongReply(t *testing.T) {
 	rpc.SendBytesMock.Set(func(p context.Context, p1 reference.Global, p2 string, p3 []byte) (r []byte, r1 error) {
 		return nil, nil
 	})
-	pulseMock := appctl.NewPulseAccessorMock(t)
-	pulseMock.GetLatestPulseMock.Return(pulsestor.GenesisPulse, nil)
+	pulseMock := beat.NewAccessorMock(t)
+	pulseMock.LatestMock.Return(pulsestor.GenesisPulse, nil)
 	svcNw.PulseAccessor = pulseMock
 	svcNw.RPC = rpc
 	svcNw.NodeKeeper = nodeN
@@ -212,8 +213,8 @@ func TestSendMessageHandler(t *testing.T) {
 	rpc.SendBytesMock.Set(func(p context.Context, p1 reference.Global, p2 string, p3 []byte) (r []byte, r1 error) {
 		return ack, nil
 	})
-	pulseMock := appctl.NewPulseAccessorMock(t)
-	pulseMock.GetLatestPulseMock.Return(pulsestor.GenesisPulse, nil)
+	pulseMock := beat.NewAccessorMock(t)
+	pulseMock.LatestMock.Return(pulsestor.GenesisPulse, nil)
 	svcNw.PulseAccessor = pulseMock
 	svcNw.RPC = rpc
 	svcNw.NodeKeeper = nodeN
@@ -264,9 +265,10 @@ func TestServiceNetwork_StartStop(t *testing.T) {
 	cm.Inject(svcNw, nk, certManager,
 		keystore.NewInplaceKeyStore(skey),
 		&platformpolicy.NodeCryptographyService{},
-		appctl.NewAccessorMock(t),
+		beat.NewAccessorMock(t),
 		/* testutils.NewTerminationHandlerMock(t), */
-		appctl.NewManagerMock(t), &PublisherMock{}, &stater{},
+		chorus.NewConductorMock(t),
+		&PublisherMock{}, &stater{},
 		testutils.NewPlatformCryptographyScheme(), kpm)
 	err = svcNw.Init(ctx)
 	require.NoError(t, err)

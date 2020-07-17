@@ -10,7 +10,7 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill/message"
 
-	"github.com/insolar/assured-ledger/ledger-core/appctl"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -24,17 +24,17 @@ type conveyorDispatcher struct {
 	prevPulse pulse.Number
 }
 
-var _ appctl.Dispatcher = &conveyorDispatcher{}
+var _ beat.Dispatcher = &conveyorDispatcher{}
 
-func (c *conveyorDispatcher) PreparePulseChange(change appctl.PulseChange, sink appctl.NodeStateSink) {
-	stateChan := sink.Occupy()
+func (c *conveyorDispatcher) PrepareBeat(change beat.Beat, sink beat.Ack) {
+	stateChan := sink.Acquire()
 
 	switch {
 	case change.Online == nil:
 		panic(throw.IllegalValue())
 	case c.prevPulse.IsUnknown():
 		// Conveyor can't prepare without an initial pulse - there are no active SMs inside
-		stateChan <- appctl.NodeState{}
+		stateChan <- beat.AckData{}
 		return
 	}
 
@@ -43,7 +43,7 @@ func (c *conveyorDispatcher) PreparePulseChange(change appctl.PulseChange, sink 
 	}
 }
 
-func (c *conveyorDispatcher) CancelPulseChange() {
+func (c *conveyorDispatcher) CancelBeat() {
 	if c.prevPulse.IsUnknown() {
 		// Conveyor can't prepare without an initial pulse - there are no active SMs inside
 		return
@@ -53,7 +53,7 @@ func (c *conveyorDispatcher) CancelPulseChange() {
 	}
 }
 
-func (c *conveyorDispatcher) CommitPulseChange(change appctl.PulseChange) {
+func (c *conveyorDispatcher) CommitBeat(change beat.Beat) {
 	pulseRange := change.Range
 
 	if pulseRange == nil {
@@ -93,6 +93,6 @@ func (c *conveyorDispatcher) Process(msg *message.Message) error {
 	return c.conveyor.AddInput(c.ctx, dm.PayloadMeta.Pulse, dm)
 }
 
-func NewConveyorDispatcher(ctx context.Context, conveyor *conveyor.PulseConveyor) appctl.Dispatcher {
+func NewConveyorDispatcher(ctx context.Context, conveyor *conveyor.PulseConveyor) beat.Dispatcher {
 	return &conveyorDispatcher{ ctx: ctx, conveyor: conveyor}
 }

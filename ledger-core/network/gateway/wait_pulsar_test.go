@@ -12,7 +12,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/appctl"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
@@ -74,8 +74,8 @@ func TestWaitPulsar_PulseArrivedInETA(t *testing.T) {
 		assert.Equal(t, nodeinfo.CompleteNetworkState, state)
 	})
 
-	pulseAccessor := appctl.NewPulseAccessorMock(mc)
-	pulseAccessor.GetPulseMock.Set(func(ctx context.Context, p1 pulse.Number) (p network.NetworkedPulse, err error) {
+	pulseAccessor := beat.NewAccessorMock(mc)
+	pulseAccessor.OfMock.Set(func(ctx context.Context, p1 pulse.Number) (p network.NetworkedPulse, err error) {
 		p = pulsestor.GenesisPulse
 		p.PulseNumber += 10
 		return p, nil

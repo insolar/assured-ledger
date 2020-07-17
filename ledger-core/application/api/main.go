@@ -16,14 +16,13 @@ import (
 	"github.com/insolar/rpc/v2"
 	jsonrpc "github.com/insolar/rpc/v2/json2"
 
-	"github.com/insolar/assured-ledger/ledger-core/appctl"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/api/seedmanager"
 	"github.com/insolar/assured-ledger/ledger-core/network"
-
-	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
@@ -35,8 +34,8 @@ type Runner struct {
 	// nolint
 	NodeNetwork         network.NodeNetwork
 	CertificateGetter   nodeinfo.CertificateGetter
-	PulseAccessor       appctl.Accessor
-	JetCoordinator      jet.AffinityHelper
+	PulseAccessor       beat.Accessor
+	JetCoordinator      affinity.Helper
 	NetworkStatus       network.Status
 	AvailabilityChecker AvailabilityChecker
 
@@ -82,8 +81,8 @@ func NewRunner(cfg *configuration.APIRunner,
 	// nolint
 	nodeNetwork network.NodeNetwork,
 	certificateGetter nodeinfo.CertificateGetter,
-	pulseAccessor appctl.Accessor,
-	jetCoordinator jet.AffinityHelper,
+	pulseAccessor beat.Accessor,
+	jetCoordinator affinity.Helper,
 	networkStatus network.Status,
 	availabilityChecker AvailabilityChecker,
 ) (*Runner, error) {

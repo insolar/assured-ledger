@@ -9,10 +9,10 @@ import (
 	"context"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/appctl"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/network/gateway/bootstrap"
 )
 
 func newJoinerBootstrap(b *Base) *JoinerBootstrap {
@@ -24,7 +24,7 @@ type JoinerBootstrap struct {
 	*Base
 }
 
-func (g *JoinerBootstrap) Run(ctx context.Context, p appctl.PulseChange) {
+func (g *JoinerBootstrap) Run(ctx context.Context, p beat.Beat) {
 	logger := inslogger.FromContext(ctx)
 	cert := g.CertificateManager.GetCertificate()
 	permit, err := g.BootstrapRequester.Authorize(ctx, cert)
@@ -46,7 +46,7 @@ func (g *JoinerBootstrap) Run(ctx context.Context, p appctl.PulseChange) {
 	// Reset backoff if not insolar.NoNetworkState.
 	g.backoff = 0
 
-	responsePulse := pulsestor.FromProto(&resp.Pulse)
+	responsePulse := bootstrap.FromProto(&resp.Pulse)
 
 	g.bootstrapETA = time.Second * time.Duration(resp.ETASeconds)
 	g.bootstrapTimer = time.NewTimer(g.bootstrapETA)

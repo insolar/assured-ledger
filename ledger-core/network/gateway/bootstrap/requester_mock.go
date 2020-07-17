@@ -9,7 +9,8 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-	"github.com/insolar/assured-ledger/ledger-core/appctl"
+
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/host"
@@ -27,8 +28,8 @@ type RequesterMock struct {
 	beforeAuthorizeCounter uint64
 	AuthorizeMock          mRequesterMockAuthorize
 
-	funcBootstrap          func(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate, p1 appctl.PulseChange) (bp1 *packet.BootstrapResponse, err error)
-	inspectFuncBootstrap   func(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate, p1 appctl.PulseChange)
+	funcBootstrap          func(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate, p1 beat.Beat) (bp1 *packet.BootstrapResponse, err error)
+	inspectFuncBootstrap   func(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate, p1 beat.Beat)
 	afterBootstrapCounter  uint64
 	beforeBootstrapCounter uint64
 	BootstrapMock          mRequesterMockBootstrap
@@ -307,7 +308,7 @@ type RequesterMockBootstrapParams struct {
 	ctx context.Context
 	pp1 *packet.Permit
 	c2  adapters.Candidate
-	p1  appctl.PulseChange
+	p1  beat.Beat
 }
 
 // RequesterMockBootstrapResults contains results of the Requester.Bootstrap
@@ -317,7 +318,7 @@ type RequesterMockBootstrapResults struct {
 }
 
 // Expect sets up expected params for Requester.Bootstrap
-func (mmBootstrap *mRequesterMockBootstrap) Expect(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate, p1 appctl.PulseChange) *mRequesterMockBootstrap {
+func (mmBootstrap *mRequesterMockBootstrap) Expect(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate, p1 beat.Beat) *mRequesterMockBootstrap {
 	if mmBootstrap.mock.funcBootstrap != nil {
 		mmBootstrap.mock.t.Fatalf("RequesterMock.Bootstrap mock is already set by Set")
 	}
@@ -337,7 +338,7 @@ func (mmBootstrap *mRequesterMockBootstrap) Expect(ctx context.Context, pp1 *pac
 }
 
 // Inspect accepts an inspector function that has same arguments as the Requester.Bootstrap
-func (mmBootstrap *mRequesterMockBootstrap) Inspect(f func(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate, p1 appctl.PulseChange)) *mRequesterMockBootstrap {
+func (mmBootstrap *mRequesterMockBootstrap) Inspect(f func(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate, p1 beat.Beat)) *mRequesterMockBootstrap {
 	if mmBootstrap.mock.inspectFuncBootstrap != nil {
 		mmBootstrap.mock.t.Fatalf("Inspect function is already set for RequesterMock.Bootstrap")
 	}
@@ -361,7 +362,7 @@ func (mmBootstrap *mRequesterMockBootstrap) Return(bp1 *packet.BootstrapResponse
 }
 
 //Set uses given function f to mock the Requester.Bootstrap method
-func (mmBootstrap *mRequesterMockBootstrap) Set(f func(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate, p1 appctl.PulseChange) (bp1 *packet.BootstrapResponse, err error)) *RequesterMock {
+func (mmBootstrap *mRequesterMockBootstrap) Set(f func(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate, p1 beat.Beat) (bp1 *packet.BootstrapResponse, err error)) *RequesterMock {
 	if mmBootstrap.defaultExpectation != nil {
 		mmBootstrap.mock.t.Fatalf("Default expectation is already set for the Requester.Bootstrap method")
 	}
@@ -376,7 +377,7 @@ func (mmBootstrap *mRequesterMockBootstrap) Set(f func(ctx context.Context, pp1 
 
 // When sets expectation for the Requester.Bootstrap which will trigger the result defined by the following
 // Then helper
-func (mmBootstrap *mRequesterMockBootstrap) When(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate, p1 appctl.PulseChange) *RequesterMockBootstrapExpectation {
+func (mmBootstrap *mRequesterMockBootstrap) When(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate, p1 beat.Beat) *RequesterMockBootstrapExpectation {
 	if mmBootstrap.mock.funcBootstrap != nil {
 		mmBootstrap.mock.t.Fatalf("RequesterMock.Bootstrap mock is already set by Set")
 	}
@@ -396,7 +397,7 @@ func (e *RequesterMockBootstrapExpectation) Then(bp1 *packet.BootstrapResponse, 
 }
 
 // Bootstrap implements Requester
-func (mmBootstrap *RequesterMock) Bootstrap(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate, p1 appctl.PulseChange) (bp1 *packet.BootstrapResponse, err error) {
+func (mmBootstrap *RequesterMock) Bootstrap(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate, p1 beat.Beat) (bp1 *packet.BootstrapResponse, err error) {
 	mm_atomic.AddUint64(&mmBootstrap.beforeBootstrapCounter, 1)
 	defer mm_atomic.AddUint64(&mmBootstrap.afterBootstrapCounter, 1)
 

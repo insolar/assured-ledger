@@ -16,7 +16,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/appctl"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/keystore"
@@ -399,7 +399,7 @@ type pulseChanger struct {
 	nodeKeeper network.NodeKeeper
 }
 
-func (pc *pulseChanger) ChangePulse(ctx context.Context, pulse appctl.PulseChange) {
+func (pc *pulseChanger) ChangePulse(ctx context.Context, pulse beat.Beat) {
 	inslogger.FromContext(ctx).Info(">>>>>> Change pulse called")
 	pc.nodeKeeper.MoveSyncToActive(ctx, pulse.PulseNumber)
 }

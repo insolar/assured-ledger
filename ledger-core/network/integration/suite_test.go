@@ -18,9 +18,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/insolar/assured-ledger/ledger-core/appctl"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor/memstor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
@@ -147,7 +148,7 @@ func (s *consensusSuite) Setup() {
 		for _, n := range s.bootstrapNodes {
 			n.serviceNetwork.BaseGateway.ConsensusMode = consensus.ReadyNetwork
 			n.serviceNetwork.NodeKeeper.SetInitialSnapshot(bnodes)
-			err := n.serviceNetwork.BaseGateway.PulseAppender.AppendPulse(s.ctx, pulsestor.GenesisPulse)
+			err := n.serviceNetwork.BaseGateway.PulseAppender.Append(s.ctx, pulsestor.GenesisPulse)
 			require.NoError(s.t, err)
 			err = n.serviceNetwork.BaseGateway.StartConsensus(s.ctx)
 			require.NoError(s.t, err)
@@ -453,7 +454,7 @@ func incrementTestPort() int {
 }
 
 func (n *networkNode) GetActiveNodes() []nodeinfo.NetworkNode {
-	p, err := n.serviceNetwork.PulseAccessor.GetLatestPulse(n.ctx)
+	p, err := n.serviceNetwork.PulseAccessor.Latest(n.ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -461,7 +462,7 @@ func (n *networkNode) GetActiveNodes() []nodeinfo.NetworkNode {
 }
 
 func (n *networkNode) GetWorkingNodes() []nodeinfo.NetworkNode {
-	p, err := n.serviceNetwork.PulseAccessor.GetLatestPulse(n.ctx)
+	p, err := n.serviceNetwork.PulseAccessor.Latest(n.ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -553,8 +554,9 @@ func (s *testSuite) preInitNode(node *networkNode) {
 		node.componentManager.Register(transport.NewFactory(cfg.Host.Transport))
 	}
 
-	pulseManager := appctl.NewManagerMock(s.t)
+	pulseManager := chorus.NewConductorMock(s.t)
 	pulseManager.CommitPulseChangeMock.Return(nil)
+
 	node.componentManager.Inject(
 		realKeeper,
 		pulseManager,
@@ -564,7 +566,7 @@ func (s *testSuite) preInitNode(node *networkNode) {
 		keystore.NewInplaceKeyStore(node.privateKey),
 		serviceNetwork,
 		keyProc,
-		//		testutils.NewContractRequesterMock(s.t),
+		memstor.NewStorageMem(),
 	)
 	node.serviceNetwork = serviceNetwork
 

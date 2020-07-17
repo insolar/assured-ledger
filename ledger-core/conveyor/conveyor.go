@@ -11,7 +11,7 @@ import (
 	"math"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/appctl"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/sworker"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -42,7 +42,7 @@ type EventInputer interface {
 	AddInputExt(pn pulse.Number, event InputEvent, createDefaults smachine.CreateDefaultValues) error
 }
 
-type PreparedState = appctl.NodeState
+type PreparedState = beat.AckData
 type PreparePulseChangeChannel = chan<- PreparedState
 
 type PulseChanger interface {

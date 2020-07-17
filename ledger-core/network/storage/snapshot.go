@@ -15,5 +15,5 @@ import (
 // SnapshotStorage provides methods for accessing Snapshot.
 type SnapshotStorage interface {
 	ForPulseNumber(pulse.Number) (*node.Snapshot, error)
-	Append(pulse pulse.Number, snapshot *node.Snapshot) error
+	Append(*node.Snapshot) error
 }

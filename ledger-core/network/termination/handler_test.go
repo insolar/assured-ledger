@@ -15,7 +15,7 @@ import (
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/insolar/assured-ledger/ledger-core/appctl"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/log"
@@ -31,7 +31,7 @@ type CommonTestSuite struct {
 	ctx           context.Context
 	handler       *Handler
 	leaver        *nodeinfo.LeaverMock
-	pulseAccessor *appctl.PulseAccessorMock
+	pulseAccessor *beat.AccessorMock
 }
 
 func TestBasics(t *testing.T) {
@@ -42,7 +42,7 @@ func (s *CommonTestSuite) BeforeTest(suiteName, testName string) {
 	s.mc = minimock.NewController(s.T())
 	s.ctx = instestlogger.TestContext(s.T())
 	s.leaver = nodeinfo.NewLeaverMock(s.T())
-	s.pulseAccessor = appctl.NewPulseAccessorMock(s.T())
+	s.pulseAccessor = beat.NewAccessorMock(s.T())
 	s.handler = &Handler{Leaver: s.leaver, PulseAccessor: s.pulseAccessor}
 }
 
@@ -77,11 +77,11 @@ func (s *LeaveTestSuite) TestLeaveNow() {
 }
 
 func (s *LeaveTestSuite) TestLeaveEta() {
-	testPulse := appctl.PulseChange{}
+	testPulse := beat.Beat{}
 	testPulse.PulseNumber = pulse.Number(2000000000)
 	leaveAfter := testPulse.PulseNumber + pulse.Number(5)
 
-	s.pulseAccessor.GetLatestPulseMock.Return(testPulse, nil)
+	s.pulseAccessor.LatestMock.Return(testPulse, nil)
 	s.leaver.LeaveMock.Expect(s.ctx, leaveAfter)
 	s.handler.leave(s.ctx, leaveAfter)
 

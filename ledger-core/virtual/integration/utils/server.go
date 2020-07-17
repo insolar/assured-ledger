@@ -12,12 +12,12 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill/message"
 
-	"github.com/insolar/assured-ledger/ledger-core/appctl"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/application/testwalletapi"
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
@@ -66,7 +66,7 @@ type Server struct {
 
 	// testing components and Mocks
 	PublisherMock      *publisher.Mock
-	JetCoordinatorMock *jet.AffinityHelperMock
+	JetCoordinatorMock *affinity.HelperMock
 	pulseGenerator     *testutils.PulseGenerator
 	pulseStorage       *memstor.StorageMem
 	pulseManager       *pulsemanager.PulseManager
@@ -162,7 +162,7 @@ func newServerExt(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFi
 	s.pulseGenerator = testutils.NewPulseGenerator(10, censusMock)
 	s.incrementPulse()
 
-	s.JetCoordinatorMock = jet.NewAffinityHelperMock(t).
+	s.JetCoordinatorMock = affinity.NewHelperMock(t).
 		MeMock.Return(s.caller).
 		QueryRoleMock.Return([]reference.Global{s.caller}, nil)
 
@@ -258,11 +258,11 @@ func (s *Server) StartRecordingExt(limit int, discardOnOverflow bool) {
 	s.Journal.StartRecording(limit, discardOnOverflow)
 }
 
-func (s *Server) GetPulse() appctl.PulseChange {
+func (s *Server) GetPulse() beat.Beat {
 	return s.pulseGenerator.GetLastPulseAsPulse()
 }
 
-func (s *Server) GetPrevPulse() appctl.PulseChange {
+func (s *Server) GetPrevPulse() beat.Beat {
 	return s.pulseGenerator.GetPrevPulseAsPulse()
 }
 

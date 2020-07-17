@@ -28,7 +28,7 @@ func TestNewMemorySnapshotStorage(t *testing.T) {
 	pulse := pulsar.PulsePacket{PulseNumber: 15}
 	snap := node.NewSnapshot(pulse.PulseNumber, []nodeinfo.NetworkNode{n})
 
-	err = ss.Append(pulse.PulseNumber, snap)
+	err = ss.Append(snap)
 	assert.NoError(t, err)
 
 	snapshot2, err := ss.ForPulseNumber(pulse.PulseNumber)

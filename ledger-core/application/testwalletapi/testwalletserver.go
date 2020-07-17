@@ -13,7 +13,7 @@ import (
 
 	jsoniter "github.com/json-iterator/go"
 
-	"github.com/insolar/assured-ledger/ledger-core/appctl"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
@@ -24,7 +24,7 @@ import (
 type TestWalletServer struct {
 	server   *http.Server
 	feeder   conveyor.EventInputer
-	accessor appctl.Accessor
+	accessor beat.Accessor
 	mux      *http.ServeMux
 
 	jsonCodec jsoniter.API
@@ -38,7 +38,7 @@ const (
 	transfer   = "Transfer"   // Transfer money between wallets
 )
 
-func NewTestWalletServer(api configuration.TestWalletAPI, feeder conveyor.EventInputer, accessor appctl.Accessor) *TestWalletServer {
+func NewTestWalletServer(api configuration.TestWalletAPI, feeder conveyor.EventInputer, accessor beat.Accessor) *TestWalletServer {
 	return &TestWalletServer{
 		server:    &http.Server{Addr: api.Address},
 		mux:       http.NewServeMux(),

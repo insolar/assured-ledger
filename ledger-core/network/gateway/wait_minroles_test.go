@@ -13,7 +13,7 @@ import (
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/insolar/assured-ledger/ledger-core/appctl"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/network"
@@ -91,8 +91,8 @@ func TestWaitMinroles_MinrolesHappenedInETA(t *testing.T) {
 	discoveryNode := mandates.BootstrapNode{NodeRef: ref.String()}
 	cert := &mandates.Certificate{MajorityRule: 1, BootstrapNodes: []mandates.BootstrapNode{discoveryNode}}
 	cert.MinRoles.LightMaterial = 1
-	pulseAccessor := appctl.NewPulseAccessorMock(mc)
-	pulseAccessor.GetPulseMock.Set(func(ctx context.Context, p1 pulse.Number) (p network.NetworkedPulse, err error) {
+	pulseAccessor := beat.NewAccessorMock(mc)
+	pulseAccessor.OfMock.Set(func(ctx context.Context, p1 pulse.Number) (p network.NetworkedPulse, err error) {
 		p = pulsestor.GenesisPulse
 		p.PulseNumber += 10
 		return p, nil

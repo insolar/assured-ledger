@@ -9,7 +9,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/insolar/assured-ledger/ledger-core/appctl"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -21,7 +21,7 @@ type Handler struct {
 	terminating bool
 
 	Leaver        nodeinfo.Leaver
-	PulseAccessor appctl.PulseAccessor `inject:""`
+	PulseAccessor beat.Accessor `inject:""`
 }
 
 func NewHandler(l nodeinfo.Leaver) *Handler {

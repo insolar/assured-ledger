@@ -10,7 +10,7 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill/message"
 
-	"github.com/insolar/assured-ledger/ledger-core/appctl"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -46,7 +46,7 @@ type ServiceNetwork struct {
 
 	// subcomponents
 	RPC                controller.RPCController   `inject:"subcomponent"`
-	PulseAccessor      appctl.PulseAccessor       `inject:"subcomponent"`
+	PulseAccessor      beat.Accessor              `inject:"subcomponent"`
 	NodeKeeper         network.NodeKeeper         `inject:"subcomponent"`
 	TerminationHandler network.TerminationHandler `inject:"subcomponent"`
 
@@ -99,7 +99,6 @@ func (n *ServiceNetwork) Init(ctx context.Context) error {
 		storage.NewMemoryStorage(),
 		n.BaseGateway,
 		n.Gatewayer,
-		storage.NewMemoryStorage(),
 		termination.NewHandler(n),
 	)
 
@@ -121,7 +120,7 @@ func (n *ServiceNetwork) Start(ctx context.Context) error {
 	bootstrapPulse, _ := gateway.GetBootstrapPulse(ctx, n.PulseAccessor)
 	if bootstrapPulse.IsEmpty() {
 		// mimic legacy behavior
-		bootstrapPulse = appctl.PulseChange{ Data: pulse.Data{
+		bootstrapPulse = beat.Beat{ Data: pulse.Data{
 			PulseNumber: pulse.MinTimePulse,
 			DataExt : pulse.DataExt{
 				PulseEpoch:  pulse.EphemeralPulseEpoch,

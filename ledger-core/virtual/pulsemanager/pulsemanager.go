@@ -9,19 +9,20 @@ import (
 	"context"
 	"sync"
 
-	"github.com/insolar/assured-ledger/ledger-core/appctl"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/network"
 )
 
-var _ appctl.Manager = &PulseManager{}
+var _ chorus.Conductor = &PulseManager{}
 
 type PulseManager struct {
-	NodeNet       network.NodeNetwork  `inject:""` //nolint:staticcheck
-	PulseAccessor appctl.Accessor      `inject:""`
-	PulseAppender appctl.Appender      `inject:""`
-	dispatchers   []appctl.Dispatcher
+	NodeNet       network.NodeNetwork `inject:""` //nolint:staticcheck
+	PulseAccessor beat.Accessor       `inject:""`
+	PulseAppender beat.Appender       `inject:""`
+	dispatchers   []beat.Dispatcher
 
 	// setLock locks Set method call.
 	setLock sync.RWMutex
@@ -29,30 +30,30 @@ type PulseManager struct {
 	stopped bool
 }
 
-// NewPulseManager creates Manager instance.
+// NewPulseManager creates Conductor instance.
 func NewPulseManager() *PulseManager {
 	return &PulseManager{}
 }
 
 // AddDispatcher adds dispatchers to handling
 // that could be done only when Set is not happening
-func (m *PulseManager) AddDispatcher(d ...appctl.Dispatcher) {
+func (m *PulseManager) AddDispatcher(d ...beat.Dispatcher) {
 	m.setLock.Lock()
 	defer m.setLock.Unlock()
 
 	m.dispatchers = append(m.dispatchers, d...)
 }
 
-func (m *PulseManager) CommitPulseChange(pulseChange appctl.PulseChange) error {
+func (m *PulseManager) CommitPulseChange(pulseChange beat.Beat) error {
 	ctx := context.Background()
 	return m.setNewPulse(ctx, pulseChange)
 }
 
-func (m *PulseManager) setNewPulse(ctx context.Context, pulseChange appctl.PulseChange) error {
+func (m *PulseManager) setNewPulse(ctx context.Context, pulseChange beat.Beat) error {
 
-	sink, setStateFn := appctl.NewNodeStateSink(make(chan appctl.NodeState, 1))
+	sink, setStateFn := beat.NewAck(make(chan beat.AckData, 1))
 	for _, d := range m.dispatchers {
-		d.PreparePulseChange(pulseChange, sink)
+		d.PrepareBeat(pulseChange, sink)
 	}
 	committed := false
 
@@ -65,7 +66,7 @@ func (m *PulseManager) setNewPulse(ctx context.Context, pulseChange appctl.Pulse
 	}
 
 	for _, d := range m.dispatchers {
-		d.CommitPulseChange(pulseChange)
+		d.CommitBeat(pulseChange)
 	}
 	committed = true
 
@@ -77,7 +78,7 @@ func (m *PulseManager) Start(context.Context) error {
 	return nil
 }
 
-// Stop stops Manager.
+// Stop stops Conductor.
 func (m *PulseManager) Stop(context.Context) error {
 	// There should not to be any Set call after Stop call
 	m.setLock.Lock()

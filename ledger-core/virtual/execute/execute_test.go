@@ -15,12 +15,12 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/goleak"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
@@ -623,7 +623,7 @@ func TestSMExecute_TokenInOutgoingMessage(t *testing.T) {
 				Arguments:           insolar.MustSerialize([]interface{}{}),
 			}
 
-			affMock := jet.NewAffinityHelperMock(t).MeMock.Return(selfRef)
+			affMock := affinity.NewHelperMock(t).MeMock.Return(selfRef)
 
 			authService := authentication.NewService(ctx, affMock)
 

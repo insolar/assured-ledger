@@ -134,7 +134,7 @@ func (nk *nodekeeper) MoveSyncToActive(ctx context.Context, number pulse.Number)
 	defer nk.syncLock.Unlock()
 
 	snapshot := node.NewSnapshot(number, nk.syncNodes)
-	err := nk.SnapshotStorage.Append(number, snapshot)
+	err := nk.SnapshotStorage.Append(snapshot)
 	if err != nil {
 		inslogger.FromContext(ctx).Panic("MoveSyncToActive(): ", err.Error())
 	}

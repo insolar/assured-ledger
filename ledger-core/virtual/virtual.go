@@ -9,11 +9,11 @@ import (
 	"context"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/appctl"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	testWalletAPIStateMachine "github.com/insolar/assured-ledger/ledger-core/application/testwalletapi/statemachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
@@ -60,7 +60,7 @@ func (f DefaultHandlersFactory) Classify(ctx context.Context, input conveyor.Inp
 }
 
 type Dispatcher struct {
-	FlowDispatcher appctl.Dispatcher
+	FlowDispatcher beat.Dispatcher
 
 	Conveyor       *conveyor.PulseConveyor
 	ConveyorWorker virtualStateMachine.ConveyorWorker
@@ -73,7 +73,7 @@ type Dispatcher struct {
 	Runner                runner.Service
 	MessageSender         messagesender.Service
 	AuthenticationService authentication.Service
-	Affinity              jet.AffinityHelper
+	Affinity              affinity.Helper
 
 	EventlessSleep            time.Duration
 	FactoryLogContextOverride context.Context

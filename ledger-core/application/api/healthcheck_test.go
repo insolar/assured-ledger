@@ -6,12 +6,11 @@
 package api
 
 import (
-	"context"
 	"net/http"
 	"strconv"
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/appctl"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -97,11 +96,9 @@ func mockNodeNetwork(t *testing.T, nodeList []nodeinfo.DiscoveryNode) *network.N
 	return nn
 }
 
-func mockPulseAccessor(t *testing.T) *appctl.AccessorMock {
-	pa := appctl.NewAccessorMock(t)
-	pa.LatestMock.Set(func(context.Context) (appctl.PulseChange, error) {
-		return pulsestor.GenesisPulse, nil
-	})
+func mockPulseAccessor(t *testing.T) *beat.AccessorMock {
+	pa := beat.NewAccessorMock(t)
+	pa.LatestMock.Return(pulsestor.GenesisPulse, nil)
 	return pa
 }
 

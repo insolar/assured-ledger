@@ -3,14 +3,13 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package jet
+package affinity
 
 import (
 	"context"
 
-	"github.com/insolar/assured-ledger/ledger-core/appctl"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -19,33 +18,33 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-// AffinityCoordinator is responsible for all jet interactions
-type AffinityCoordinator struct {
+// Coordinator is responsible for all jet interactions
+type Coordinator struct {
 	PlatformCryptographyScheme cryptography.PlatformCryptographyScheme `inject:""`
 
-	PulseAccessor   appctl.Accessor      `inject:""`
+	PulseAccessor beat.Accessor `inject:""`
 
 	originRef       reference.Global
 }
 
-// NewAffinityHelper creates new AffinityHelper instance.
-func NewAffinityHelper(originRef reference.Global) *AffinityCoordinator {
-	return &AffinityCoordinator{originRef: originRef}
+// NewAffinityHelper creates new Helper instance.
+func NewAffinityHelper(originRef reference.Global) *Coordinator {
+	return &Coordinator{originRef: originRef}
 }
 
 // Me returns current node.
-func (jc *AffinityCoordinator) Me() reference.Global {
+func (jc *Coordinator) Me() reference.Global {
 	return jc.originRef
 }
 
 // QueryRole returns node refs responsible for role bound operations for given object and pulse.
-func (jc *AffinityCoordinator) QueryRole(
+func (jc *Coordinator) QueryRole(
 	ctx context.Context,
-	role node.DynamicRole,
+	role DynamicRole,
 	objID reference.Holder,
 	pn pulse.Number,
 ) ([]reference.Global, error) {
-	if role == node.DynamicRoleVirtualExecutor {
+	if role == DynamicRoleVirtualExecutor {
 		n, err := jc.VirtualExecutorForObject(ctx, objID, pn)
 		if err != nil {
 			return nil, throw.WithDetails(err, struct { Ref reference.Holder; PN pulse.Number } {objID, pn })
@@ -57,10 +56,10 @@ func (jc *AffinityCoordinator) QueryRole(
 }
 
 // VirtualExecutorForObject returns list of VEs for a provided pulse and objID
-func (jc *AffinityCoordinator) VirtualExecutorForObject(
+func (jc *Coordinator) VirtualExecutorForObject(
 	ctx context.Context, objID reference.Holder, pn pulse.Number,
 ) (reference.Global, error) {
-	pc, err := jc.PulseAccessor.ForPulseNumber(ctx, pn)
+	pc, err := jc.PulseAccessor.Of(ctx, pn)
 	switch {
 	case err != nil:
 		return reference.Global{}, err

@@ -3,18 +3,18 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package pulsestor
+package bootstrap
 
 import (
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/appctl"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 )
 
-func FromProto(p *rms.PulseProto) appctl.PulseChange {
-	result := appctl.PulseChange{}
+func FromProto(p *rms.PulseProto) beat.Beat {
+	result := beat.Beat{}
 	result.PulseNumber = p.PulseNumber
 	result.PrevPulseDelta = uint16(p.PulseNumber - p.PrevPulseNumber) // INCORRECT
 	result.NextPulseDelta = uint16(p.NextPulseNumber - p.PulseNumber) // INCORRECT
@@ -25,7 +25,7 @@ func FromProto(p *rms.PulseProto) appctl.PulseChange {
 	return result
 }
 
-func ToProto(p appctl.PulseChange) *rms.PulseProto {
+func ToProto(p beat.Beat) *rms.PulseProto {
 	result := &rms.PulseProto{
 		PulseNumber:      p.PulseNumber,
 		PrevPulseNumber:  p.PulseNumber - pulse.Number(p.PrevPulseDelta), // INCORRECT

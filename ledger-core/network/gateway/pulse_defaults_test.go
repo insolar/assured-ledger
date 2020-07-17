@@ -6,12 +6,12 @@
 package gateway
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/appctl"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
 
 // EphemeralPulse is for test use only
-var EphemeralPulse = appctl.PulseChange{ Data: pulse.Data{
+var EphemeralPulse = beat.Beat{ Data: pulse.Data{
 	PulseNumber: pulse.MinTimePulse,
 	DataExt : pulse.DataExt{
 		PulseEpoch:  pulse.EphemeralPulseEpoch,

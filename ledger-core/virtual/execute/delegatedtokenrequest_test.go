@@ -12,10 +12,10 @@ import (
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/require"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	messageSender "github.com/insolar/assured-ledger/ledger-core/network/messagesender"
@@ -89,7 +89,7 @@ func TestVDelegatedCallRequest(t *testing.T) {
 	}
 
 	slotMachine.MessageSender.SendRole.Set(
-		func(_ context.Context, msg payload.Marshaler, role node.DynamicRole, object reference.Global, pn pulse.Number, _ ...messageSender.SendOption) error {
+		func(_ context.Context, msg payload.Marshaler, role affinity.DynamicRole, object reference.Global, pn pulse.Number, _ ...messageSender.SendOption) error {
 			res, ok := msg.(*payload.VDelegatedCallRequest)
 			require.True(t, ok)
 			require.NotNil(t, res)

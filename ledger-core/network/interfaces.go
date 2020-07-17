@@ -11,7 +11,7 @@ import (
 
 	"github.com/insolar/component-manager"
 
-	"github.com/insolar/assured-ledger/ledger-core/appctl"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
@@ -202,7 +202,7 @@ type Aborter interface {
 	Abort(ctx context.Context, reason string)
 }
 
-type NetworkedPulse = appctl.PulseChange
+type NetworkedPulse = beat.Beat
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network.TerminationHandler -s _mock.go -g
 

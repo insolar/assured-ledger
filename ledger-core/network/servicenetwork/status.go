@@ -20,7 +20,7 @@ func (n *ServiceNetwork) GetNetworkStatus() network.StatusReply {
 	var reply network.StatusReply
 	reply.NetworkState = n.Gatewayer.Gateway().GetState()
 
-	np, err := n.PulseAccessor.GetLatestPulse(context.Background())
+	np, err := n.PulseAccessor.Latest(context.Background())
 	if err != nil {
 		np = pulsestor.GenesisPulse
 	}
