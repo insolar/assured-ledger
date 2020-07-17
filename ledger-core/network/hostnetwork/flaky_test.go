@@ -7,6 +7,7 @@ package hostnetwork
 
 import (
 	"context"
+	"strings"
 	"sync"
 	"testing"
 
@@ -22,11 +23,11 @@ import (
 )
 
 func TestHostNetwork_SendRequestPacket2(t *testing.T) {
-	t.SkipNow() // TODO: PLAT-376 this test or network/pool should be fixed
-
 	defer testutils.LeakTester(t)
-	instestlogger.SetTestOutput(t)
-
+	// response could be sent when test is already finished
+	instestlogger.SetTestOutputWithErrorFilter(t, func(s string) bool {
+		return !strings.Contains(s, "Failed to send response")
+	})
 
 	s := newHostSuite(t)
 	defer s.Stop()
@@ -41,7 +42,7 @@ func TestHostNetwork_SendRequestPacket2(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, ref, r.GetSender())
 		require.Equal(t, s.n1.PublicAddress(), r.GetSenderHost().Address.String())
-		return s.n2.BuildResponse(ctx, r, &packet.RPCResponse{}), nil
+		return nil, nil
 	}
 
 	s.n2.RegisterRequestHandler(types.RPC, handler)
