@@ -29,7 +29,7 @@ test_func: ## run functest FUNCTEST_COUNT times
 
 .PHONY: test_func_ci
 test_func_ci: ## run functest with output for testrail
-	make test_func -json > functional_test.log
+	GOTEST='go test -json' make test_func > functional_test.log
 
 .PHONY: test_func_slow
 test_func_slow: # Run functests as long as practical to catch unexpected behavior during pulse change
