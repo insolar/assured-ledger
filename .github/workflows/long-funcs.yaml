@@ -44,12 +44,10 @@ jobs:
         if: always()
         run: make test_slow_long
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
-      - name: Upload integration_test.log to artifacts
+      - name: Run extended tests
         if: always()
-        uses: actions/upload-artifact@v1
-        with:
-          name: integration_test_log_master
-          path: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/integration_test.log
+        run: make test_extended
+        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
       - name: Upload integration_extended_test.log to artifacts
         if: always()
         uses: actions/upload-artifact@v1

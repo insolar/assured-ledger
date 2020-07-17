@@ -23,9 +23,9 @@ mergeable:
           enabled: true
           message: 'Description matter and should not be empty. Provide detail with **what** was changed, **why** it was changed, and **how** it was changed.'
       - do: approvals
-        and:
-          - min:
-              count: 2
-          - required:
-              assignees: true
-              message: 'All assignees must approve this PR before merging.'
+        min:
+          count: 2
+          message: 'A minimum of 2 approvals required.'
+        required:
+          assignees: true
+          message: 'All assignees must approve this PR before merging.'
