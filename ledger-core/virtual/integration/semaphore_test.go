@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gojuno/minimock/v3"
+	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
@@ -25,6 +26,7 @@ import (
 
 func TestVirtual_SemaphoreLimitNotExceeded(t *testing.T) {
 	t.Log("C5137")
+	t.Skip("https://insolar.atlassian.net/browse/PLAT-432")
 
 	mc := minimock.NewController(t)
 
@@ -39,15 +41,21 @@ func TestVirtual_SemaphoreLimitNotExceeded(t *testing.T) {
 	server.Init(ctx)
 	server.IncrementPulseAndWaitIdle(ctx)
 
-	numObject := 1
-	objects := make([]reference.Global, 0, numObject)
-	for i := 0; i < numObject; i++ {
-		objects = append(objects, reference.NewSelf(server.RandomLocalWithPulse()))
-		Method_PrepareObject(ctx, server, payload.Ready, objects[i])
+	var (
+		numObject = 100
+		objects   = make([]reference.Global, 0, numObject)
+	)
+
+	// Create objects
+	{
+		for i := 0; i < numObject; i++ {
+			objects = append(objects, reference.NewSelf(server.RandomLocalWithPulse()))
+			Method_PrepareObject(ctx, server, payload.Ready, objects[i])
+		}
 	}
 
-	//semaphoreParallelism := 2
-	// TODO: SET semaphoreParallelism to server
+	semaphoreParallelism := 2
+	// TODO: SET semaphoreParallelism to server: after that tests have to pass
 
 	var (
 		class            = testwallet.GetClass()
@@ -56,26 +64,26 @@ func TestVirtual_SemaphoreLimitNotExceeded(t *testing.T) {
 		numParallelExecs = int64(0)
 	)
 
-	inCh := make(chan bool)
-	for i := 0; i < numObject; i++ {
-		key := objects[i%numObject].String()
-		runnerMock.AddExecutionMock(key).
-			AddStart(func(ctx execution.Context) {
-				//fmt.Println("======================================================")
-				//lastNum := atomic.AddInt64(&numParallelExecs, 1)
-				//require.LessOrEqual(t, lastNum, int64(semaphoreParallelism))
-				<-inCh
-				//fmt.Println("+++++++++++++++++++++++++++++++++++++++++++++")
-				atomic.AddInt64(&numParallelExecs, -1)
-			}, &execution.Update{
-				Type:   execution.Done,
-				Result: requestresult.New([]byte("345"), objects[0]),
-			})
-		//inslogger.FromContext(ctx).Error("REGISTERED KEYS:", key)
-		runnerMock.AddExecutionClassify(key, contract.MethodIsolation{
-			Interference: interferenceFlag,
-			State:        stateFlag,
-		}, nil)
+	syncChan := make(chan bool)
+	// Add execution mocks
+	{
+		for i := 0; i < numObject; i++ {
+			key := objects[i%numObject].String()
+			runnerMock.AddExecutionMock(key).
+				AddStart(func(ctx execution.Context) {
+					lastNum := atomic.AddInt64(&numParallelExecs, 1)
+					require.LessOrEqual(t, lastNum, int64(semaphoreParallelism))
+					<-syncChan
+					atomic.AddInt64(&numParallelExecs, -1)
+				}, &execution.Update{
+					Type:   execution.Done,
+					Result: requestresult.New([]byte("345"), objects[0]),
+				})
+			runnerMock.AddExecutionClassify(key, contract.MethodIsolation{
+				Interference: interferenceFlag,
+				State:        stateFlag,
+			}, nil)
+		}
 	}
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
@@ -83,26 +91,33 @@ func TestVirtual_SemaphoreLimitNotExceeded(t *testing.T) {
 		return false // no resend msg
 	})
 
-	//inslogger.FromContext(ctx).Error("HEROZHOPA")
-
-	for i := 0; i < numObject*2; i++ {
-		pl := payload.VCallRequest{
-			CallType:            payload.CTMethod,
-			CallFlags:           payload.BuildCallFlags(interferenceFlag, stateFlag),
-			Caller:              server.GlobalCaller(),
-			Callee:              objects[i%numObject],
-			CallSiteDeclaration: class,
-			CallSiteMethod:      objects[i%numObject].String(),
-			CallOutgoing:        server.BuildRandomOutgoingWithPulse(),
+	// Send VCallRequests
+	{
+		for i := 0; i < numObject; i++ {
+			pl := payload.VCallRequest{
+				CallType:            payload.CTMethod,
+				CallFlags:           payload.BuildCallFlags(interferenceFlag, stateFlag),
+				Caller:              server.GlobalCaller(),
+				Callee:              objects[i%numObject],
+				CallSiteDeclaration: class,
+				CallSiteMethod:      objects[i%numObject].String(),
+				CallOutgoing:        server.BuildRandomOutgoingWithPulse(),
+			}
+			server.SendPayload(ctx, &pl)
 		}
-		server.SendPayload(ctx, &pl)
 	}
 
-	for i := 0; i < numObject*2; i++ {
-		inCh <- true
+	// Wait after every execution to increase probability that multiple executions are in queue
+	for i := 0; i < numObject; i++ {
+		select {
+		case syncChan <- true:
+		case <-time.After(10 * time.Second):
+			require.FailNow(t, "timeout")
+		}
+
 	}
 
-	testutils.WaitSignalsTimed(t, time.Second*5, typedChecker.VCallResult.Wait(ctx, numObject*2))
+	testutils.WaitSignalsTimed(t, time.Second*10, typedChecker.VCallResult.Wait(ctx, numObject))
 
 	mc.Finish()
 }
