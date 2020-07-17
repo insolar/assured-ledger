@@ -44,7 +44,7 @@ func BenchmarkMetricAssignment(b *testing.B) {
 				}
 			})
 
-			checkDistribution(b, "byCount", stats[1:])
+			checkDistribution(b, stats, false)
 			stats = make([]uint64, nodeCount + 1)
 
 			b.Run("byPower", func(b *testing.B) {
@@ -56,16 +56,23 @@ func BenchmarkMetricAssignment(b *testing.B) {
 				}
 			})
 
-			checkDistribution(b, "byPower", stats[1:])
+			checkDistribution(b, stats, true)
 		})
 	}
 }
 
-func checkDistribution(t *testing.B, name string, stats []uint64) {
-	total := stats[0]
+func checkDistribution(t *testing.B, stats []uint64, power bool) {
+	stats = stats[1:] // zero index is unused
+
+	total := float64(stats[0])
 	min, max := total, total
-	for _, v := range stats[1:] {
+	for _, vs := range stats[1:] {
+		v := float64(vs)
+		// if power {
+		// 	v /= float64(i + 1)
+		// }
 		total += v
+
 		switch {
 		case v < min:
 			min = v
@@ -73,8 +80,20 @@ func checkDistribution(t *testing.B, name string, stats []uint64) {
 			max = v
 		}
 	}
-	expected := float64(total) / float64(len(stats))
-	t.Logf("%s: minDev: %.2f maxDev: %.2f", name, float64(min)/expected, float64(max)/expected)
+	expected := total / float64(len(stats))
+
+	// fmt.Println()
+	// for _, vs := range stats[1:] {
+	// 	fmt.Printf("%.2f ", float64(vs)/expected)
+	// }
+	// fmt.Println()
+
+	name := "byCount"
+	if power {
+		name = "byPower"
+	}
+
+	t.Logf("%s: minDev: %.2f maxDev: %.2f", name, min/expected, max/expected)
 }
 
 func BenchmarkVirtualAssignment(b *testing.B) {
@@ -110,7 +129,7 @@ func benchmarkVirtualAssignment(b *testing.B, name string, metricFn func(entropy
 				}
 			})
 
-			checkDistribution(b, "byCount", stats[1:])
+			checkDistribution(b, stats, false)
 			stats = make([]uint64, nodeCount + 1)
 
 			b.Run("byPower", func(b *testing.B) {
@@ -124,7 +143,7 @@ func benchmarkVirtualAssignment(b *testing.B, name string, metricFn func(entropy
 				}
 			})
 
-			checkDistribution(b, "byPower", stats[1:])
+			checkDistribution(b, stats, true)
 		})
 	}
 }
