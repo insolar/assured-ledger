@@ -552,7 +552,7 @@ type unitizedPowerPosition struct {
 
 func (p *roleRecord) prepare() {
 	if p.container == nil || len(p.powerPositions) > 0 {
-		panic("illegal state")
+		panic(throw.IllegalState())
 	}
 	if p.rolePower == 0 {
 		return
@@ -569,7 +569,7 @@ func (p *roleRecord) prepare() {
 		slotPower := roleSlots[i].power.ToLinearValue()
 		if lastPowerUnit != slotPower {
 			if lastPowerUnit < slotPower {
-				panic("illegal state")
+				panic(throw.IllegalState())
 			}
 			lastPowerUnit = slotPower
 			lastPosition++
@@ -588,7 +588,7 @@ func (p *roleRecord) prepare() {
 	}
 
 	if p.rolePower != powerPosition {
-		panic("illegal state")
+		panic(throw.IllegalState())
 	}
 }
 
@@ -699,14 +699,17 @@ func (p *roleRecord) getByIndex(index uint16) profiles.ActiveNode {
 
 // may return garbage if used without proper checks
 func (p *roleRecord) getIndexByPower(powerPosition uint32) uint16 {
+	foldedPos := 0
+	if n := len(p.powerPositions); powerPosition > 0 && n > 1 {
+		foldedPos = sort.Search(n, func(i int) bool {
+			return p.powerPositions[i].powerStartsAt > powerPosition
+		}) - 1
+	}
 
-	foldedPos := sort.Search(len(p.powerPositions),
-		func(i int) bool { return p.powerPositions[i].powerStartsAt >= powerPosition })
-
-	pp := p.powerPositions[foldedPos]
-
+	pp := &p.powerPositions[foldedPos]
 	if pp.unitCount == 1 {
 		return pp.indexStartsAt
 	}
+
 	return pp.indexStartsAt + uint16((powerPosition-pp.powerStartsAt)/uint32(pp.powerUnit))
 }
