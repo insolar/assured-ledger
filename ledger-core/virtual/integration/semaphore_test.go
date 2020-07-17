@@ -54,8 +54,8 @@ func TestVirtual_SemaphoreLimitNotExceeded(t *testing.T) {
 		}
 	}
 
-	semaphoreParallelism := 2
-	// TODO: SET semaphoreParallelism to server: after that tests have to pass
+	semaphoreParallelism := 3
+	server.SetMaxParallelism(semaphoreParallelism)
 
 	var (
 		class            = testwallet.GetClass()
