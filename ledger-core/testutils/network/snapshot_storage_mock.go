@@ -16,8 +16,8 @@ import (
 type SnapshotStorageMock struct {
 	t minimock.Tester
 
-	funcAppend          func(pulse pulse.Number, snapshot *node.Snapshot) (err error)
-	inspectFuncAppend   func(pulse pulse.Number, snapshot *node.Snapshot)
+	funcAppend          func(sp1 *node.Snapshot) (err error)
+	inspectFuncAppend   func(sp1 *node.Snapshot)
 	afterAppendCounter  uint64
 	beforeAppendCounter uint64
 	AppendMock          mSnapshotStorageMockAppend
@@ -64,8 +64,7 @@ type SnapshotStorageMockAppendExpectation struct {
 
 // SnapshotStorageMockAppendParams contains parameters of the SnapshotStorage.Append
 type SnapshotStorageMockAppendParams struct {
-	pulse    pulse.Number
-	snapshot *node.Snapshot
+	sp1 *node.Snapshot
 }
 
 // SnapshotStorageMockAppendResults contains results of the SnapshotStorage.Append
@@ -74,7 +73,7 @@ type SnapshotStorageMockAppendResults struct {
 }
 
 // Expect sets up expected params for SnapshotStorage.Append
-func (mmAppend *mSnapshotStorageMockAppend) Expect(pulse pulse.Number, snapshot *node.Snapshot) *mSnapshotStorageMockAppend {
+func (mmAppend *mSnapshotStorageMockAppend) Expect(sp1 *node.Snapshot) *mSnapshotStorageMockAppend {
 	if mmAppend.mock.funcAppend != nil {
 		mmAppend.mock.t.Fatalf("SnapshotStorageMock.Append mock is already set by Set")
 	}
@@ -83,7 +82,7 @@ func (mmAppend *mSnapshotStorageMockAppend) Expect(pulse pulse.Number, snapshot 
 		mmAppend.defaultExpectation = &SnapshotStorageMockAppendExpectation{}
 	}
 
-	mmAppend.defaultExpectation.params = &SnapshotStorageMockAppendParams{pulse, snapshot}
+	mmAppend.defaultExpectation.params = &SnapshotStorageMockAppendParams{sp1}
 	for _, e := range mmAppend.expectations {
 		if minimock.Equal(e.params, mmAppend.defaultExpectation.params) {
 			mmAppend.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmAppend.defaultExpectation.params)
@@ -94,7 +93,7 @@ func (mmAppend *mSnapshotStorageMockAppend) Expect(pulse pulse.Number, snapshot 
 }
 
 // Inspect accepts an inspector function that has same arguments as the SnapshotStorage.Append
-func (mmAppend *mSnapshotStorageMockAppend) Inspect(f func(pulse pulse.Number, snapshot *node.Snapshot)) *mSnapshotStorageMockAppend {
+func (mmAppend *mSnapshotStorageMockAppend) Inspect(f func(sp1 *node.Snapshot)) *mSnapshotStorageMockAppend {
 	if mmAppend.mock.inspectFuncAppend != nil {
 		mmAppend.mock.t.Fatalf("Inspect function is already set for SnapshotStorageMock.Append")
 	}
@@ -118,7 +117,7 @@ func (mmAppend *mSnapshotStorageMockAppend) Return(err error) *SnapshotStorageMo
 }
 
 //Set uses given function f to mock the SnapshotStorage.Append method
-func (mmAppend *mSnapshotStorageMockAppend) Set(f func(pulse pulse.Number, snapshot *node.Snapshot) (err error)) *SnapshotStorageMock {
+func (mmAppend *mSnapshotStorageMockAppend) Set(f func(sp1 *node.Snapshot) (err error)) *SnapshotStorageMock {
 	if mmAppend.defaultExpectation != nil {
 		mmAppend.mock.t.Fatalf("Default expectation is already set for the SnapshotStorage.Append method")
 	}
@@ -133,14 +132,14 @@ func (mmAppend *mSnapshotStorageMockAppend) Set(f func(pulse pulse.Number, snaps
 
 // When sets expectation for the SnapshotStorage.Append which will trigger the result defined by the following
 // Then helper
-func (mmAppend *mSnapshotStorageMockAppend) When(pulse pulse.Number, snapshot *node.Snapshot) *SnapshotStorageMockAppendExpectation {
+func (mmAppend *mSnapshotStorageMockAppend) When(sp1 *node.Snapshot) *SnapshotStorageMockAppendExpectation {
 	if mmAppend.mock.funcAppend != nil {
 		mmAppend.mock.t.Fatalf("SnapshotStorageMock.Append mock is already set by Set")
 	}
 
 	expectation := &SnapshotStorageMockAppendExpectation{
 		mock:   mmAppend.mock,
-		params: &SnapshotStorageMockAppendParams{pulse, snapshot},
+		params: &SnapshotStorageMockAppendParams{sp1},
 	}
 	mmAppend.expectations = append(mmAppend.expectations, expectation)
 	return expectation
@@ -153,15 +152,15 @@ func (e *SnapshotStorageMockAppendExpectation) Then(err error) *SnapshotStorageM
 }
 
 // Append implements storage.SnapshotStorage
-func (mmAppend *SnapshotStorageMock) Append(pulse pulse.Number, snapshot *node.Snapshot) (err error) {
+func (mmAppend *SnapshotStorageMock) Append(sp1 *node.Snapshot) (err error) {
 	mm_atomic.AddUint64(&mmAppend.beforeAppendCounter, 1)
 	defer mm_atomic.AddUint64(&mmAppend.afterAppendCounter, 1)
 
 	if mmAppend.inspectFuncAppend != nil {
-		mmAppend.inspectFuncAppend(pulse, snapshot)
+		mmAppend.inspectFuncAppend(sp1)
 	}
 
-	mm_params := &SnapshotStorageMockAppendParams{pulse, snapshot}
+	mm_params := &SnapshotStorageMockAppendParams{sp1}
 
 	// Record call args
 	mmAppend.AppendMock.mutex.Lock()
@@ -178,7 +177,7 @@ func (mmAppend *SnapshotStorageMock) Append(pulse pulse.Number, snapshot *node.S
 	if mmAppend.AppendMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmAppend.AppendMock.defaultExpectation.Counter, 1)
 		mm_want := mmAppend.AppendMock.defaultExpectation.params
-		mm_got := SnapshotStorageMockAppendParams{pulse, snapshot}
+		mm_got := SnapshotStorageMockAppendParams{sp1}
 		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
 			mmAppend.t.Errorf("SnapshotStorageMock.Append got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
@@ -190,9 +189,9 @@ func (mmAppend *SnapshotStorageMock) Append(pulse pulse.Number, snapshot *node.S
 		return (*mm_results).err
 	}
 	if mmAppend.funcAppend != nil {
-		return mmAppend.funcAppend(pulse, snapshot)
+		return mmAppend.funcAppend(sp1)
 	}
-	mmAppend.t.Fatalf("Unexpected call to SnapshotStorageMock.Append. %v %v", pulse, snapshot)
+	mmAppend.t.Fatalf("Unexpected call to SnapshotStorageMock.Append. %v", sp1)
 	return
 }
 
