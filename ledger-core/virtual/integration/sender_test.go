@@ -20,6 +20,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 )
@@ -62,7 +63,7 @@ var messagesWithoutToken = []struct {
 	},
 }
 
-func TestSender_EqualExpectedVE(t *testing.T) {
+func TestVirtual_SenderCheck_With_ExpectedVE(t *testing.T) {
 	testCases := []struct {
 		name                    string
 		caseId                  string
@@ -77,6 +78,7 @@ func TestSender_EqualExpectedVE(t *testing.T) {
 			t.Log(cases.caseId)
 			for _, testMsg := range messagesWithoutToken {
 				t.Run(testMsg.name, func(t *testing.T) {
+					defer commontestutils.LeakTester(t)
 
 					mc := minimock.NewController(t)
 
