@@ -55,7 +55,5 @@ network_cache
 # contracts generated files
 application/contract
 application/proxy
-go.mod
-go.sum
 vendor
 coverage.html
