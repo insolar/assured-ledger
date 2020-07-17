@@ -1,0 +1,22 @@
+name: kustomize-private
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+env:
+  KUBECONFIG: k3s.yaml
+jobs:
+  k3s-registry:
+    name: kustomize-private
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout code
+        uses: actions/checkout@master
+      - name: set git_cred
+        run: git config --global url."https://${{secrets.INS_SERVICE_PAT}}@github.com/".insteadOf "https://github.com/"
+      - name: k3s
+        id: k3s
+        uses: insolar/k3s-gha@master
+      - name: deploy traefik
+        run: kubectl apply -k traefik-external
