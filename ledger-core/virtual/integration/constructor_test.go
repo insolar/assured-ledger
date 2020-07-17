@@ -833,6 +833,8 @@ func TestVirtual_Constructor_PulseChangedWhileOutgoing(t *testing.T) {
 func TestVirtual_CallConstructor_WithTwicePulseChange(t *testing.T) {
 	t.Log("C5208")
 
+	defer commontestutils.LeakTester(t)
+
 	mc := minimock.NewController(t)
 
 	server, ctx := utils.NewUninitializedServer(nil, t)
