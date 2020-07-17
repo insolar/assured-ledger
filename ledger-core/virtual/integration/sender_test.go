@@ -64,17 +64,18 @@ var messagesWithoutToken = []struct {
 	},
 }
 
-func TestSender_SuccessChecks(t *testing.T) {
+func TestSender_EqualExpectedVE(t *testing.T) {
 	testCases := []struct {
+		name                    string
 		caseId                  string
 		senderIsEqualExpectedVE bool
 	}{
-		{"C5188", true},
-		{"C5196", false},
+		{"Sender is equal expectedVE", "C5188", true},
+		{"Sender is not equal expectedVE", "C5196", false},
 	}
 
 	for _, cases := range testCases {
-		t.Run(cases.caseId, func(t *testing.T) {
+		t.Run(cases.name, func(t *testing.T) {
 			t.Log(cases.caseId)
 			for _, testMsg := range messagesWithoutToken {
 				t.Run(testMsg.name, func(t *testing.T) {
