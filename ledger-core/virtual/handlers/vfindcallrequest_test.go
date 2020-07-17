@@ -16,6 +16,7 @@ import (
 	messageSender "github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/predicate"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
@@ -24,6 +25,8 @@ import (
 )
 
 func TestVFindCallRequest_AwaitCallSummarySM(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	t.Log("C5435")
 
 	var (
@@ -34,7 +37,6 @@ func TestVFindCallRequest_AwaitCallSummarySM(t *testing.T) {
 
 	slotMachine := slotdebugger.New(ctx, t)
 	slotMachine.PrepareMockedMessageSender(mc)
-	slotMachine.PrepareMockedRunner(ctx, mc)
 
 	sendTarget := func(ctx context.Context, msg payload.Marshaler, target reference.Global, opts ...messageSender.SendOption) (err error) {
 		return nil
