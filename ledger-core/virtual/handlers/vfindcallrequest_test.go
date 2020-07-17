@@ -10,7 +10,8 @@ import (
 	"testing"
 
 	"github.com/gojuno/minimock/v3"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
+
+	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	messageSender "github.com/insolar/assured-ledger/ledger-core/network/messagesender"
@@ -41,7 +42,7 @@ func TestVFindCallRequest_AwaitCallSummarySM(t *testing.T) {
 		return nil
 	}
 
-	sendRole := func(ctx context.Context, msg payload.Marshaler, role node.DynamicRole, object reference.Global, pn pulse.Number, opts ...messageSender.SendOption) (err error) {
+	sendRole := func(ctx context.Context, msg payload.Marshaler, role affinity.DynamicRole, object reference.Global, pn pulse.Number, opts ...messageSender.SendOption) (err error) {
 		return nil
 	}
 
