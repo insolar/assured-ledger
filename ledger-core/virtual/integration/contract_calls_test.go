@@ -74,8 +74,6 @@ func assertVCallRequest(t *testing.T,
 }
 
 func Test_NoDeadLock_WhenOutgoingComeToSameNode(t *testing.T) {
-	t.Skip("https://insolar.atlassian.net/browse/PLAT-432")
-
 	table := []struct {
 		name       string
 		flagsA     contract.MethodIsolation
@@ -99,6 +97,7 @@ func Test_NoDeadLock_WhenOutgoingComeToSameNode(t *testing.T) {
 		test := test
 		t.Run(test.name, func(t *testing.T) {
 			t.Log(test.testCaseID)
+			t.Skip("https://insolar.atlassian.net/browse/PLAT-432")
 			mc := minimock.NewController(t)
 
 			{
@@ -195,7 +194,7 @@ func Test_NoDeadLock_WhenOutgoingComeToSameNode(t *testing.T) {
 						assertVCallResult(t, res, server.GlobalCaller(), objectAGlobal, test.flagsA, outgoingA)
 					case objectBGlobal:
 						require.Equal(t, []byte("finish B.Bar"), res.ReturnArguments)
-						assertVCallResult(t, res, objectAGlobal, objectBGlobal, test.flagsA, outgoingA)
+						assertVCallResult(t, res, objectAGlobal, objectBGlobal, test.flagsB, outgoingA)
 
 					default:
 						t.Fatalf("wrong Callee")
