@@ -118,9 +118,6 @@ func (n *ServiceNetwork) Start(ctx context.Context) error {
 	}
 
 	bootstrapPulse, _ := gateway.GetBootstrapPulse(ctx, n.PulseAccessor)
-	if bootstrapPulse.IsEmpty() {
-		bootstrapPulse = gateway.EphemeralPulse
-	}
 
 	n.Gatewayer.Gateway().Run(ctx, bootstrapPulse)
 	n.RPC.RemoteProcedureRegister(deliverWatermillMsg, n.processIncoming)
