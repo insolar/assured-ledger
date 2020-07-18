@@ -119,13 +119,7 @@ func (n *ServiceNetwork) Start(ctx context.Context) error {
 
 	bootstrapPulse, _ := gateway.GetBootstrapPulse(ctx, n.PulseAccessor)
 	if bootstrapPulse.IsEmpty() {
-		// mimic legacy behavior
-		bootstrapPulse = beat.Beat{ Data: pulse.Data{
-			PulseNumber: pulse.MinTimePulse,
-			DataExt : pulse.DataExt{
-				PulseEpoch:  pulse.EphemeralPulseEpoch,
-				Timestamp: pulse.UnixTimeOfMinTimePulse,
-			}}}
+		bootstrapPulse = gateway.EphemeralPulse
 	}
 
 	n.Gatewayer.Gateway().Run(ctx, bootstrapPulse)

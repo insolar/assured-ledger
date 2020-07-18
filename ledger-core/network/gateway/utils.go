@@ -14,7 +14,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
@@ -29,7 +28,7 @@ func GetBootstrapPulse(ctx context.Context, accessor beat.Accessor) (beat.Beat, 
 	if pc, err := accessor.Latest(ctx); err == nil {
 		return pc, nil
 	}
-	return pulsestor.GenesisPulse, throw.E("latest pulse is not available")
+	return EphemeralPulse, throw.E("latest pulse is not available")
 }
 
 func EnsureGetPulse(ctx context.Context, accessor beat.Accessor, pulseNumber pulse.Number) network.NetworkedPulse {

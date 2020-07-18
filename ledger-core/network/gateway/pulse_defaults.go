@@ -10,7 +10,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
 
-// EphemeralPulse is for test use only
 var EphemeralPulse = beat.Beat{ Data: pulse.Data{
 	PulseNumber: pulse.MinTimePulse,
 	DataExt : pulse.DataExt{
