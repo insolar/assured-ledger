@@ -166,16 +166,15 @@ func IsConnectionClosed(err error) bool {
 }
 
 // FindDiscoveriesInNodeList returns only discovery nodes from active node list
-func FindDiscoveriesInNodeList(nodes []nodeinfo.NetworkNode, cert nodeinfo.Certificate) []nodeinfo.NetworkNode {
-	discovery := cert.GetDiscoveryNodes()
-	result := make([]nodeinfo.NetworkNode, 0)
+func FindDiscoveriesInNodeList(nodes []nodeinfo.NetworkNode, cert nodeinfo.Certificate) (result []nodeinfo.NetworkNode) {
+	discoveries := map[reference.Global]struct{}{}
+	for _, discovery := range cert.GetDiscoveryNodes() {
+		discoveries[discovery.GetNodeRef()] = struct{}{}
+	}
 
-	for _, d := range discovery {
-		for _, n := range nodes {
-			if d.GetNodeRef().Equal(n.ID()) {
-				result = append(result, n)
-				break
-			}
+	for _, n := range nodes {
+		if _, ok := discoveries[n.ID()]; ok {
+			result = append(result, n)
 		}
 	}
 

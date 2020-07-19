@@ -423,19 +423,29 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 		return nil, err
 	}
 
-	bootstrapPulse, _ := GetBootstrapPulse(ctx, g.PulseAccessor)
+	var bootstrapBeat beat.Beat
 
-	discoveryCount := len(network.FindDiscoveriesInNodeList(
-		g.NodeKeeper.GetAccessor(bootstrapPulse.PulseNumber).GetActiveNodes(),
-		g.CertificateManager.GetCertificate(),
-	))
+	var nodes []nodeinfo.NetworkNode
+	if pc, err := g.PulseAccessor.Latest(ctx); err == nil {
+		bootstrapBeat = pc
+		nodes = g.NodeKeeper.GetAccessor(pc.PulseNumber).GetActiveNodes()
+	} else {
+		bootstrapBeat.PulseEpoch = pulse.EphemeralPulseEpoch
+		nodes = []nodeinfo.NetworkNode{ g.OriginProvider.GetOrigin() }
+	}
+
+	discoveryCount := len(network.FindDiscoveriesInNodeList(nodes, g.CertificateManager.GetCertificate()))
+
+	if discoveryCount == 0 {
+		panic(throw.IllegalState())
+	}
 
 	return g.HostNetwork.BuildResponse(ctx, request, &packet.AuthorizeResponse{
 		Code:           packet.Success,
 		Timestamp:      time.Now().UTC().Unix(),
 		Permit:         permit,
 		DiscoveryCount: uint32(discoveryCount),
-		Pulse:          bootstrap.ToProto(bootstrapPulse),
+		Pulse:          bootstrap.ToProto(bootstrapBeat),
 	}), nil
 }
 
