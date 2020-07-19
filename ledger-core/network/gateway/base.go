@@ -289,10 +289,10 @@ func (g *Base) checkCanAnnounceCandidate(ctx context.Context) error {
 		}
 	}
 
-	bootstrapPulse, _ := GetBootstrapPulse(ctx, g.PulseAccessor)
+	pc, _ := g.PulseAccessor.Latest(ctx)
 	return throw.Errorf(
 		"can't announce candidate: pulse=%d state=%s",
-		bootstrapPulse.PulseNumber,
+		pc.PulseNumber,
 		state,
 	)
 }
@@ -322,9 +322,9 @@ func (g *Base) HandleNodeBootstrapRequest(ctx context.Context, request network.R
 
 	data := request.GetRequest().GetBootstrap()
 
-	bootstrapPulse, _ := GetBootstrapPulse(ctx, g.PulseAccessor)
+	bootstrapBeat, nodes := g.getBeatAndNodes(ctx)
 
-	if network.CheckShortIDCollision(g.NodeKeeper.GetAccessor(bootstrapPulse.PulseNumber).GetActiveNodes(), data.CandidateProfile.ShortID) {
+	if network.CheckShortIDCollision(nodes, data.CandidateProfile.ShortID) {
 		return g.HostNetwork.BuildResponse(ctx, request, &packet.BootstrapResponse{Code: packet.UpdateShortID}), nil
 	}
 
@@ -352,7 +352,7 @@ func (g *Base) HandleNodeBootstrapRequest(ctx context.Context, request network.R
 	return g.HostNetwork.BuildResponse(ctx, request,
 		&packet.BootstrapResponse{
 			Code:       packet.Accepted,
-			Pulse:      *bootstrap.ToProto(bootstrapPulse),
+			Pulse:      *bootstrap.ToProto(bootstrapBeat),
 			ETASeconds: uint32(g.bootstrapETA.Seconds()),
 		}), nil
 }
@@ -423,19 +423,9 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 		return nil, err
 	}
 
-	var bootstrapBeat beat.Beat
-
-	var nodes []nodeinfo.NetworkNode
-	if pc, err := g.PulseAccessor.Latest(ctx); err == nil {
-		bootstrapBeat = pc
-		nodes = g.NodeKeeper.GetAccessor(pc.PulseNumber).GetActiveNodes()
-	} else {
-		bootstrapBeat.PulseEpoch = pulse.EphemeralPulseEpoch
-		nodes = []nodeinfo.NetworkNode{ g.OriginProvider.GetOrigin() }
-	}
+	bootstrapBeat, nodes := g.getBeatAndNodes(ctx)
 
 	discoveryCount := len(network.FindDiscoveriesInNodeList(nodes, g.CertificateManager.GetCertificate()))
-
 	if discoveryCount == 0 {
 		panic(throw.IllegalState())
 	}
@@ -447,6 +437,16 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 		DiscoveryCount: uint32(discoveryCount),
 		Pulse:          bootstrap.ToProto(bootstrapBeat),
 	}), nil
+}
+
+func (g *Base) getBeatAndNodes(ctx context.Context) (bootstrapBeat beat.Beat, nodes []nodeinfo.NetworkNode) {
+	if pc, err := g.PulseAccessor.Latest(ctx); err == nil {
+		return pc, g.NodeKeeper.GetAccessor(pc.PulseNumber).GetActiveNodes()
+	}
+
+	var pc beat.Beat
+	pc.PulseEpoch = pulse.EphemeralPulseEpoch
+	return pc, []nodeinfo.NetworkNode{ g.OriginProvider.GetOrigin() }
 }
 
 func (g *Base) HandleUpdateSchedule(ctx context.Context, request network.ReceivedPacket) (network.Packet, error) {

@@ -21,19 +21,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/serialization"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
-	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
-
-func GetBootstrapPulse(ctx context.Context, accessor beat.Accessor) (beat.Beat, error) {
-	if pc, err := accessor.Latest(ctx); err == nil {
-		return pc, nil
-	}
-	return beat.Beat{ Data: pulse.Data{
-		PulseNumber: 0,
-		DataExt : pulse.DataExt{
-			PulseEpoch:  pulse.EphemeralPulseEpoch,
-		}}}, throw.E("latest pulse is not available")
-}
 
 func EnsureGetPulse(ctx context.Context, accessor beat.Accessor, pulseNumber pulse.Number) network.NetworkedPulse {
 	pc, err := accessor.Of(ctx, pulseNumber)
