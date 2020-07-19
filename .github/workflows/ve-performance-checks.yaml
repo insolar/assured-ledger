@@ -17,6 +17,7 @@ env:
 jobs:
   ve-preapare:
     name: ve-prepare
+    id: ve-prepare
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
