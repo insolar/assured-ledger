@@ -28,7 +28,7 @@ func (s *NodeService) GetStatus(r *http.Request, args *interface{}, requestBody 
 		return errors.New("method not allowed")
 	}
 	statusReply := s.runner.NetworkStatus.GetNetworkStatus()
-	inslog.Debugf("[ NodeService.GetStatus ] Current status: %s", statusReply)
+	inslog.Debugf("[ NodeService.GetStatus ] Current status: %v", statusReply.NetworkState)
 
 	reply.NetworkState = statusReply.NetworkState.String()
 	reply.ActiveListSize = statusReply.ActiveListSize
