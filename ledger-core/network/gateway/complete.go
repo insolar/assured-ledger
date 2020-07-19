@@ -53,7 +53,7 @@ func (g *Complete) GetState() nodeinfo.NetworkState {
 }
 
 func (g *Complete) BeforeRun(ctx context.Context, pulse network.NetworkedPulse) {
-	if pulse.IsFromEphemeral() {
+	if !pulse.PulseEpoch.IsTimeEpoch() {
 		return
 	}
 

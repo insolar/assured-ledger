@@ -224,12 +224,10 @@ func (g *Base) ChangePulse(ctx context.Context, pulse beat.Beat) {
 func (g *Base) OnPulseFromConsensus(ctx context.Context, pu network.NetworkedPulse) {
 	g.pulseWatchdog.Reset()
 
-	if !pu.IsFromEphemeral() {
-		g.NodeKeeper.MoveSyncToActive(ctx, pu.PulseNumber)
-		err := g.PulseAppender.Append(ctx, pu)
-		if err != nil {
-			inslogger.FromContext(ctx).Panic("failed to append pulse: ", err.Error())
-		}
+	g.NodeKeeper.MoveSyncToActive(ctx, pu.PulseNumber)
+	err := g.PulseAppender.Append(ctx, pu)
+	if err != nil {
+		inslogger.FromContext(ctx).Panic("failed to append pulse: ", err.Error())
 	}
 
 	nodes := g.NodeKeeper.GetAccessor(pu.PulseNumber).GetActiveNodes()

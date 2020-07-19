@@ -69,6 +69,7 @@ func TestNodeStorage_Append(t *testing.T) {
 	pn := gen.PulseNumber()
 	pc := beat.Beat{}
 	pc.PulseNumber = pn
+	pc.PulseEpoch = pn.AsEpoch()
 
 	t.Run("appends to an empty storage", func(t *testing.T) {
 		storage := NewStorageMem()
@@ -125,24 +126,27 @@ func TestNodeStorage_Append(t *testing.T) {
 		storage := NewStorageMem()
 
 		pc := beat.Beat{}
-		pc.PulseNumber = 1
+		pc.PulseNumber = pulse.MinTimePulse
+		pc.PulseEpoch = pc.PulseNumber.AsEpoch()
 
 		for i := 5; i > 0; i-- {
 			err := storage.Append(ctx, pc)
 			require.NoError(t, err)
 			pc.PulseNumber++
+			pc.PulseEpoch++
 		}
 
 		require.Equal(t, 5, len(storage.storage))
-		for i := pulse.Number(5); i > 0; i-- {
-			_, ok := storage.storage[i]
+		for i := 5; i > 0; i-- {
+			pc.PulseNumber--
+			_, ok := storage.storage[pc.PulseNumber]
 			require.True(t, ok)
 		}
 
-		require.Equal(t, pulse.Number(1), storage.head.pulse.PulseNumber)
-		require.Equal(t, pulse.Number(5), storage.tail.pulse.PulseNumber)
+		require.Equal(t, pulse.Number(pulse.MinTimePulse), storage.head.pulse.PulseNumber)
+		require.Equal(t, pulse.Number(pulse.MinTimePulse + 4), storage.tail.pulse.PulseNumber)
 
-		pn := 1
+		pn := pulse.MinTimePulse
 		cur := storage.head
 
 		for cur != nil {
@@ -205,23 +209,25 @@ func TestMemoryStorage_Shift(t *testing.T) {
 		storage := NewStorageMem()
 
 		pc := beat.Beat{}
-		pc.PulseNumber = 101
+		pc.PulseNumber = pulse.MinTimePulse
+		pc.PulseEpoch = pc.PulseNumber.AsEpoch()
 
 		for i := 5; i > 0; i-- {
 			err := storage.Append(ctx, pc)
 			require.NoError(t, err)
 			pc.PulseNumber++
+			pc.PulseEpoch++
 		}
 
-		err := storage.Trim(ctx, 103)
+		err := storage.Trim(ctx, pulse.MinTimePulse + 2)
 		assert.NoError(t, err)
 		assert.Equal(t, 2, len(storage.storage))
-		_, ok := storage.storage[104]
+		_, ok := storage.storage[pulse.MinTimePulse + 3]
 		require.Equal(t, true, ok)
-		_, ok = storage.storage[105]
+		_, ok = storage.storage[pulse.MinTimePulse + 4]
 		require.Equal(t, true, ok)
 
-		assert.Equal(t, pulse.Number(104), storage.head.pulse.PulseNumber)
-		assert.Equal(t, pulse.Number(105), storage.tail.pulse.PulseNumber)
+		assert.Equal(t, pulse.Number(pulse.MinTimePulse + 3), storage.head.pulse.PulseNumber)
+		assert.Equal(t, pulse.Number(pulse.MinTimePulse + 4), storage.tail.pulse.PulseNumber)
 	})
 }

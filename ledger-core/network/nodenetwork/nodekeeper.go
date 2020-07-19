@@ -7,6 +7,7 @@ package nodenetwork
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"sync"
 
@@ -104,7 +105,7 @@ func (nk *nodekeeper) SetInitialSnapshot(nodes []nodeinfo.NetworkNode) {
 func (nk *nodekeeper) GetAccessor(pn pulse.Number) network.Accessor {
 	s, err := nk.SnapshotStorage.ForPulseNumber(pn)
 	if err != nil {
-		panic("GetAccessor(): " + err.Error())
+		panic(fmt.Sprintf("GetAccessor(%d): %s", pn, err.Error()))
 	}
 	return node.NewAccessor(s)
 }

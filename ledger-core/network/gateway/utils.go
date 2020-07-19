@@ -28,7 +28,11 @@ func GetBootstrapPulse(ctx context.Context, accessor beat.Accessor) (beat.Beat, 
 	if pc, err := accessor.Latest(ctx); err == nil {
 		return pc, nil
 	}
-	return EphemeralPulse, throw.E("latest pulse is not available")
+	return beat.Beat{ Data: pulse.Data{
+		PulseNumber: 0,
+		DataExt : pulse.DataExt{
+			PulseEpoch:  pulse.EphemeralPulseEpoch,
+		}}}, throw.E("latest pulse is not available")
 }
 
 func EnsureGetPulse(ctx context.Context, accessor beat.Accessor, pulseNumber pulse.Number) network.NetworkedPulse {
