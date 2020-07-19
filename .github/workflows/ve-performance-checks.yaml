@@ -15,9 +15,8 @@ env:
   USE_MANIFESTS: aks
   ACR_HOST: usciregistry.azurecr.io
 jobs:
-  ve-preapare:
+  ve-prepare:
     name: ve-prepare
-    id: ve-prepare
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
