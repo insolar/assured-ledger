@@ -556,6 +556,7 @@ func (s *testSuite) preInitNode(node *networkNode) {
 
 	pulseManager := chorus.NewConductorMock(s.t)
 	pulseManager.CommitPulseChangeMock.Return(nil)
+	pulseManager.CommitFirstPulseChangeMock.Return(nil)
 
 	node.componentManager.Inject(
 		realKeeper,
