@@ -225,6 +225,8 @@ func (g *Base) OnPulseFromConsensus(ctx context.Context, pu network.NetworkedPul
 	g.pulseWatchdog.Reset()
 
 	g.NodeKeeper.MoveSyncToActive(ctx, pu.PulseNumber)
+
+	// TODO this is inherently WRONG to add ephemeral pulse, yet this is necessary for the old code to run
 	err := g.PulseAppender.Append(ctx, pu)
 	if err != nil {
 		inslogger.FromContext(ctx).Panic("failed to append pulse: ", err.Error())

@@ -81,8 +81,7 @@ func resolveAddress(configuration configuration.Transport) (string, error) {
 func NewNodeKeeper(origin nodeinfo.NetworkNode) network.NodeKeeper {
 	nk := &nodekeeper{
 		origin:          origin,
-		syncNodes:       make([]nodeinfo.NetworkNode, 0),
-		SnapshotStorage: storage.NewMemoryStorage(),
+		snapshotStorage: storage.NewMemoryStorage(),
 	}
 	return nk
 }
@@ -93,7 +92,7 @@ type nodekeeper struct {
 	syncLock  sync.RWMutex
 	syncNodes []nodeinfo.NetworkNode
 
-	SnapshotStorage storage.SnapshotStorage
+	snapshotStorage *storage.MemoryStorage
 }
 
 func (nk *nodekeeper) SetInitialSnapshot(nodes []nodeinfo.NetworkNode) {
@@ -103,7 +102,7 @@ func (nk *nodekeeper) SetInitialSnapshot(nodes []nodeinfo.NetworkNode) {
 }
 
 func (nk *nodekeeper) GetAccessor(pn pulse.Number) network.Accessor {
-	s, err := nk.SnapshotStorage.ForPulseNumber(pn)
+	s, err := nk.snapshotStorage.ForPulseNumber(pn)
 	if err != nil {
 		panic(fmt.Sprintf("GetAccessor(%d): %s", pn, err.Error()))
 	}
@@ -135,7 +134,7 @@ func (nk *nodekeeper) MoveSyncToActive(ctx context.Context, number pulse.Number)
 	defer nk.syncLock.Unlock()
 
 	snapshot := node.NewSnapshot(number, nk.syncNodes)
-	err := nk.SnapshotStorage.Append(snapshot)
+	err := nk.snapshotStorage.Append(snapshot)
 	if err != nil {
 		inslogger.FromContext(ctx).Panic("MoveSyncToActive(): ", err.Error())
 	}

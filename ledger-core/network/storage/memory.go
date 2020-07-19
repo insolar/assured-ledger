@@ -18,7 +18,6 @@ const entriesCount = 10
 func NewMemoryStorage() *MemoryStorage {
 	return &MemoryStorage{
 		limit: entriesCount,
-		snapshotEntries: make(map[pulse.Number]*node.Snapshot),
 	}
 }
 
@@ -29,10 +28,14 @@ type MemoryStorage struct {
 	snapshotEntries map[pulse.Number]*node.Snapshot
 }
 
-// truncate deletes all entries except Count
-func (m *MemoryStorage) truncate(count int) {
-	if len(m.entries) <= count {
+// Truncate deletes all entries except Count
+func (m *MemoryStorage) Truncate(count int) {
+	switch {
+	case len(m.entries) <= count:
 		return
+	case count == 0:
+		m.snapshotEntries = nil
+		m.entries = nil
 	}
 
 	removeN := len(m.entries)-count
@@ -49,12 +52,16 @@ func (m *MemoryStorage) Append(snapshot *node.Snapshot) error {
 
 	pn := snapshot.GetPulse()
 
+	if m.snapshotEntries == nil {
+		m.snapshotEntries = make(map[pulse.Number]*node.Snapshot)
+	}
+
 	if _, ok := m.snapshotEntries[pn]; !ok {
 		m.entries = append(m.entries, pn)
 	}
 	m.snapshotEntries[pn] = snapshot
 
-	m.truncate(m.limit)
+	m.Truncate(m.limit)
 
 	return nil
 }

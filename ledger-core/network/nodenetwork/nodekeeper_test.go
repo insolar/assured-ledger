@@ -60,7 +60,7 @@ func newNodeKeeper(t *testing.T, service cryptography.Service) network.NodeKeepe
 	certMock.GetDiscoveryNodesMock.Set(func() []nodeinfo.DiscoveryNode { return nil })
 	nw, err := NewNodeNetwork(cfg, certMock)
 	require.NoError(t, err)
-	nw.(*nodekeeper).SnapshotStorage = storage.NewMemoryStorage()
+	nw.(*nodekeeper).snapshotStorage = storage.NewMemoryStorage()
 	return nw.(network.NodeKeeper)
 }
 
