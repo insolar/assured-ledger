@@ -15,7 +15,7 @@ pk_shard_count: 10000
 ma_shard_count: 1000
 vesting_pulse_period: 10
 vesting_pulse_step: 10
-majority_rule: 5
+majority_rule: 7
 min_roles:
   heavy_material: 0
   virtual:  3
@@ -44,18 +44,18 @@ discovery_nodes:
     host: "127.0.0.1:53835"
     role: "virtual"
     cert_name: "discovery_cert_5.json"
-#  -
-#    host: "127.0.0.1:53866"
-#    role: "virtual"
-#    cert_name: "discovery_cert_6.json"
+  -
+    host: "127.0.0.1:53866"
+    role: "virtual"
+    cert_name: "discovery_cert_6.json"
 #  -
 #    host: "127.0.0.1:53877"
 #    role: "light_material"
 #    cert_name: "discovery_cert_7.json"
-#  -
-#    host: "127.0.0.1:53888"
-#    role: "virtual"
-#    cert_name: "discovery_cert_8.json"
+  -
+    host: "127.0.0.1:53888"
+    role: "virtual"
+    cert_name: "discovery_cert_7.json"
 #  -
 #    host: "127.0.0.1:53899"
 #    role: "light_material"
