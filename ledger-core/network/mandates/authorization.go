@@ -45,7 +45,7 @@ func (authCert *AuthorizationCertificate) GetNodeRef() reference.Global {
 
 // GetRole returns role from node certificate
 func (authCert *AuthorizationCertificate) GetRole() member.PrimaryRole {
-	return member.GetStaticRoleFromString(authCert.Role)
+	return member.GetPrimaryRoleFromString(authCert.Role)
 }
 
 // GetDiscoverySigns return map of discovery nodes signs

@@ -61,8 +61,8 @@ func (v PrimaryRole) String() string {
 	return "unknown"
 }
 
-// GetStaticRoleFromString converts role from string to PrimaryRole.
-func GetStaticRoleFromString(role string) PrimaryRole {
+// GetPrimaryRoleFromString converts role from string to PrimaryRole.
+func GetPrimaryRoleFromString(role string) PrimaryRole {
 	switch role {
 	case "virtual":
 		return PrimaryRoleVirtual

@@ -60,7 +60,7 @@ func runInsolardServer(configPath, genesisConfigPath, roleString string) {
 	if err != nil {
 		global.Fatal(errors.W(err, "readRole failed"))
 	}
-	role := member.GetStaticRoleFromString(roleString)
+	role := member.GetPrimaryRoleFromString(roleString)
 	if role != certRole {
 		global.Fatal("Role from certificate and role from flag must be equal")
 	}

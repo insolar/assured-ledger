@@ -69,7 +69,7 @@ func (bn *BootstrapNode) GetHost() string {
 
 // GetRole returns role of bootstrap node
 func (bn *BootstrapNode) GetRole() member.PrimaryRole {
-	return member.GetStaticRoleFromString(bn.NodeRole)
+	return member.GetPrimaryRoleFromString(bn.NodeRole)
 }
 
 // NodeSign returns signed information about some node

@@ -208,7 +208,7 @@ func genCertificate(
 	certFile string,
 	reuseKeys bool,
 ) {
-	staticRole := member.GetStaticRoleFromString(role)
+	staticRole := member.GetPrimaryRoleFromString(role)
 	if staticRole == member.PrimaryRoleUnknown {
 		fmt.Println("Invalid role:", role)
 		os.Exit(1)
