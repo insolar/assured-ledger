@@ -34,7 +34,7 @@ jobs:
         run: make docker-build
         working-directory: ${{ env.CORE_PATH }}
       - name: dockerconfigjson
-        run: echo ${{secret.CLOUD_DOCKERCONFIGJSON}} >> /home/runner/.docker/config.json
+        run: echo ${{secrets.CLOUD_DOCKERCONFIGJSON}} >> /home/runner/.docker/config.json
       - name: Push assured ledger image to Azure container registry registry
         run: |
           docker tag insolar/assured-ledger:latest $ACR_HOST/assured-ledger:${GITHUB_SHA:0:8}
@@ -51,7 +51,7 @@ jobs:
       - name: kubeconfig
         run: echo "${{secrets.CLOUD_KUBECONFIG}}" >> aks.yaml
       - name: dockerconfigjson 
-        run: echo ${{secret.CLOUD_DOCKERCONFIGJSON}} >> ledger-core/scripts/deploy/kube/gitops/aks/dockerconfigjson
+        run: echo ${{secrets.CLOUD_DOCKERCONFIGJSON}} >> ledger-core/scripts/deploy/kube/gitops/aks/dockerconfigjson
       - name: github token
         run: git config --global url."https://${{secrets.INS_SERVICE_PAT}}@github.com/".insteadOf "https://github.com/"
       - name: run network
