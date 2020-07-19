@@ -96,6 +96,8 @@ func (g *Base) NewGateway(ctx context.Context, state node2.NetworkState) network
 		g.Self = newComplete(g)
 	case node2.JoinerBootstrap:
 		g.Self = newJoinerBootstrap(g)
+	case node2.DiscoveryBootstrap:
+		g.Self = newDiscoveryBootstrap(g)
 	case node2.WaitConsensus:
 		err := g.StartConsensus(ctx)
 		if err != nil {
@@ -274,11 +276,11 @@ func (g *Base) ValidateCert(ctx context.Context, authCert node2.AuthorizationCer
 // ============= Bootstrap =======
 
 func (g *Base) checkCanAnnounceCandidate(ctx context.Context) error {
-	// 1. Current node is heavy:
+	// 1. Current node is JoinAssistant:
 	// 		could announce candidate when network is initialized
 	// 		NB: announcing in WaitConsensus state is allowed
 	// 2. Otherwise:
-	// 		could announce candidate when heavy node found in *active* list and initial consensus passed
+	// 		could announce candidate when JoinAssistant node found in *active* list and initial consensus passed
 	// 		NB: announcing in WaitConsensus state is *NOT* allowed
 
 	state := g.Gatewayer.Gateway().GetState()

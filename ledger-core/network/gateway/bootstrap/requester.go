@@ -6,8 +6,10 @@
 package bootstrap
 
 import (
+	"bytes"
 	"context"
 	"math/rand"
+	"sort"
 	"time"
 
 	"github.com/opentracing/opentracing-go/log"
@@ -55,6 +57,10 @@ func (ac *requester) Authorize(ctx context.Context, cert node.Certificate) (*pac
 
 	discoveryNodes := network.ExcludeOrigin(cert.GetDiscoveryNodes(), cert.GetNodeRef())
 
+	if network.OriginIsDiscovery(cert) {
+		return ac.authorizeDiscovery(ctx, discoveryNodes, cert)
+	}
+
 	rand.Shuffle(
 		len(discoveryNodes),
 		func(i, j int) {
@@ -96,8 +102,58 @@ func (ac *requester) Authorize(ctx context.Context, cert node.Certificate) (*pac
 		return res.Permit, nil
 	}
 
+	// todo:  remove best result
 	if network.OriginIsDiscovery(cert) && bestResult.Permit != nil {
 		return bestResult.Permit, nil
+	}
+
+	return nil, throw.New("failed to authorize to any discovery node")
+}
+
+func (ac *requester) authorizeDiscovery(ctx context.Context, bNodes []node.DiscoveryNode, cert node.Certificate) (*packet.Permit, error) {
+	if len(bNodes) == 0 {
+		return nil, throw.Impossible()
+	}
+
+	sort.Slice(bNodes, func(i, j int) bool {
+		a := bNodes[i].GetNodeRef().AsBytes()
+		b := bNodes[j].GetNodeRef().AsBytes()
+		return bytes.Compare(a, b) > 0
+	})
+
+	logger := inslogger.FromContext(ctx)
+	for _, n := range bNodes {
+		h, err := host.NewHostN(n.GetHost(), n.GetNodeRef())
+		if err != nil {
+			logger.Warnf("Error authorizing to mallformed host %s[%s]: %s",
+				n.GetHost(), n.GetNodeRef(), err.Error())
+			continue
+		}
+
+		// panic("asadad")
+		logger.Infof("Trying to authorize to node: %s", h.String())
+		res, err := ac.authorize(ctx, h, cert)
+		if err != nil {
+			logger.Warnf("Error authorizing to host %s: %s", h.String(), err.Error())
+			continue
+		}
+
+		// TODO
+		// if int(res.DiscoveryCount) < cert.GetMajorityRule() {
+		// 	logger.Infof(
+		// 		"Check MajorityRule failed on authorize, expect %d, got %d",
+		// 		cert.GetMajorityRule(),
+		// 		res.DiscoveryCount,
+		// 	)
+		//
+		// 	if res.DiscoveryCount > bestResult.DiscoveryCount {
+		// 		bestResult = res
+		// 	}
+		//
+		// 	continue
+		// }
+
+		return res.Permit, nil
 	}
 
 	return nil, throw.New("failed to authorize to any discovery node")

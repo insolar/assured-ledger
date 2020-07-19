@@ -27,6 +27,7 @@ type NoNetwork struct {
 }
 
 func (g *NoNetwork) pause() time.Duration {
+	// todo: use synckit.Backoff
 	var sleep time.Duration
 	switch g.backoff {
 	case g.Options.MaxTimeout:
@@ -70,7 +71,11 @@ func (g *NoNetwork) Run(ctx context.Context, pulse pulsestor.Pulse) {
 	}
 
 	time.Sleep(g.pause())
-	g.Gatewayer.SwitchState(ctx, node.JoinerBootstrap, pulse)
+	if g.isDiscovery {
+		g.Gatewayer.SwitchState(ctx, node.DiscoveryBootstrap, pulse)
+	} else {
+		g.Gatewayer.SwitchState(ctx, node.JoinerBootstrap, pulse)
+	}
 }
 
 func (g *NoNetwork) GetState() node.NetworkState {
