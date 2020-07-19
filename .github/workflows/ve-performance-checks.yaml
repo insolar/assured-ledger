@@ -30,10 +30,9 @@ jobs:
       - name: Build docker images
         run: make docker-build
         working-directory: ${{ env.CORE_PATH }}
-      - name: dockerconfigjson
-        run: echo ${{secrets.CLOUD_DOCKERCONFIGJSON}} >> /home/runner/.docker/config.json
       - name: Push assured ledger image to Azure container registry registry
         run: |
+          docker login $ACR_HOST --username ${{secrets.ACR_SP_ID}} --password ${{secrets.ACR_SP_SECRET}}
           docker tag insolar/assured-ledger:latest $ACR_HOST/assured-ledger:${GITHUB_SHA:0:8}
           docker push $ACR_HOST/assured-ledger:${GITHUB_SHA:0:8}
   ve-test:
