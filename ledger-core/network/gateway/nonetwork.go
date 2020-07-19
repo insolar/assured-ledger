@@ -55,7 +55,12 @@ func (g *NoNetwork) Run(ctx context.Context, pulse pulsestor.Pulse) {
 		return
 	}
 
-	if network.OriginIsJoinAssistant(cert) {
+	// remember who is Me and who is joinAssistant
+	g.isDiscovery = network.OriginIsDiscovery(cert)
+	g.isJoinAssistant = network.OriginIsJoinAssistant(cert)
+	g.joinAssistant = network.JoinAssistant(cert)
+
+	if g.isJoinAssistant {
 		// Reset backoff if not insolar.JoinerBootstrap.
 		g.backoff = 0
 

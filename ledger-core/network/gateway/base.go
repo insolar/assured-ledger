@@ -80,6 +80,10 @@ type Base struct {
 	backoff time.Duration // nolint
 
 	pulseWatchdog *pulseWatchdog
+
+	isDiscovery     bool
+	isJoinAssistant bool
+	joinAssistant   node2.DiscoveryNode
 }
 
 // NewGateway creates new gateway on top of existing
@@ -204,6 +208,7 @@ func (g *Base) StartConsensus(ctx context.Context) error {
 	if network.OriginIsJoinAssistant(cert) {
 		// one of the nodes has to be in consensus.ReadyNetwork state,
 		// all other nodes has to be in consensus.Joiner
+		// TODO: fix Assistant node can't join existing network
 		g.ConsensusMode = consensus.ReadyNetwork
 	}
 
@@ -281,11 +286,8 @@ func (g *Base) checkCanAnnounceCandidate(ctx context.Context) error {
 		return nil
 	}
 
-	if state == node2.WaitConsensus {
-		cert := g.CertificateManager.GetCertificate()
-		if network.OriginIsJoinAssistant(cert) {
-			return nil
-		}
+	if state == node2.WaitConsensus && g.isJoinAssistant {
+		return nil
 	}
 
 	bootstrapPulse := GetBootstrapPulse(ctx, g.PulseAccessor)
