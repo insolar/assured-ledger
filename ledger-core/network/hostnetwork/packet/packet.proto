@@ -103,6 +103,7 @@ enum BootstrapResponseCode {
     UpdateSchedule = 1;
     UpdateShortID = 2;
     Reject = 3;
+    Retry = 4;
 }
 
 message Permit {

@@ -261,6 +261,11 @@ func (ac *requester) Bootstrap(ctx context.Context, permit *packet.Permit, candi
 		return respData, throw.New("Bootstrap got UpdateSchedule")
 	case packet.Reject:
 		return respData, throw.New("Bootstrap request rejected")
+	case packet.Retry:
+		// todo sleep and retry ac.Bootstrap()
+		// panic("packet.Retry")
+		time.Sleep(time.Second)
+		return ac.Bootstrap(ctx, permit, candidate, p)
 	}
 
 	// case Accepted
