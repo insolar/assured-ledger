@@ -53,6 +53,10 @@ func (g *Complete) GetState() nodeinfo.NetworkState {
 }
 
 func (g *Complete) BeforeRun(ctx context.Context, pulse network.NetworkedPulse) {
+	if pulse.IsFromEphemeral() {
+		return
+	}
+
 	err := g.PulseManager.CommitPulseChange(pulse)
 	if err != nil {
 		inslogger.FromContext(ctx).Panicf("failed to set start pulse: %d, %s", pulse.PulseNumber, err.Error())
