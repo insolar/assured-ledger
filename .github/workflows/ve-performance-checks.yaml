@@ -48,10 +48,12 @@ jobs:
       INSOLAR_TAG: ${GITHUB_SHA:0:8}
       INSOLAR_NAMESPACE: heyho
     steps:
-      - name: save kubeconfig
+      - name: kubeconfig
         run: echo "${{secrets.CLOUD_KUBECONFIG}}" >> aks.yaml
       - name: dockerconfigjson 
         run: echo ${{secret.CLOUD_DOCKERCONFIGJSON}} >> ledger-core/scripts/deploy/kube/gitops/aks/dockerconfigjson
+      - name: github token
+        run: git config --global url."https://${{secrets.INS_SERVICE_PAT}}@github.com/".insteadOf "https://github.com/"
       - name: run network
         run: kubectl apply -k ledger-core/scripts/deploy/kube/gitops/aks --dry-run=client -o yaml | envsubst '${INSOLAR_NAMESPACE} ${INSOLAR_TAG} ${INSOLAR_NETWORK_SIZE}' | 
       - name: wait for successfull rollout
