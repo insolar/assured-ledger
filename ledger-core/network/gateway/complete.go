@@ -25,7 +25,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/network/rules"
 
-	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 )
@@ -54,10 +54,10 @@ func (g *Complete) GetState() nodeinfo.NetworkState {
 
 func (g *Complete) BeforeRun(ctx context.Context, pulse network.NetworkedPulse) {
 	if !pulse.PulseEpoch.IsTimeEpoch() {
-		return
+		panic(throw.IllegalState())
 	}
 
-	err := g.PulseManager.CommitPulseChange(pulse)
+	err := g.PulseManager.CommitFirstPulseChange(pulse)
 	if err != nil {
 		inslogger.FromContext(ctx).Panicf("failed to set start pulse: %d, %s", pulse.PulseNumber, err.Error())
 	}
@@ -67,19 +67,19 @@ func (g *Complete) BeforeRun(ctx context.Context, pulse network.NetworkedPulse) 
 func (g *Complete) GetCert(ctx context.Context, registeredNodeRef reference.Global) (nodeinfo.Certificate, error) {
 	pKey, role, err := g.getNodeInfo(ctx, registeredNodeRef)
 	if err != nil {
-		return nil, errors.W(err, "[ GetCert ] Couldn't get node info")
+		return nil, throw.W(err, "[ GetCert ] Couldn't get node info")
 	}
 
 	currentNodeCert := g.CertificateManager.GetCertificate()
 	registeredNodeCert, err := mandates.NewUnsignedCertificate(currentNodeCert, pKey, role, registeredNodeRef.String())
 	if err != nil {
-		return nil, errors.W(err, "[ GetCert ] Couldn't create certificate")
+		return nil, throw.W(err, "[ GetCert ] Couldn't create certificate")
 	}
 
 	for i, discoveryNode := range currentNodeCert.GetDiscoveryNodes() {
 		sign, err := g.requestCertSign(ctx, discoveryNode, registeredNodeRef)
 		if err != nil {
-			return nil, errors.W(err, "[ GetCert ] Couldn't request cert sign")
+			return nil, throw.W(err, "[ GetCert ] Couldn't request cert sign")
 		}
 		registeredNodeCert.(*mandates.Certificate).BootstrapNodes[i].NodeSign = sign
 	}
@@ -123,7 +123,7 @@ func (g *Complete) getNodeInfo(ctx context.Context, nodeRef reference.Global) (s
 func (g *Complete) signCert(ctx context.Context, registeredNodeRef reference.Global) (*cryptography.Signature, error) {
 	pKey, role, err := g.getNodeInfo(ctx, registeredNodeRef)
 	if err != nil {
-		return nil, errors.W(err, "[ SignCert ] Couldn't extract response")
+		return nil, throw.W(err, "[ SignCert ] Couldn't extract response")
 	}
 	return mandates.SignCert(g.CryptographyService, pKey, role, registeredNodeRef.String())
 }

@@ -14,5 +14,6 @@ import (
 type Conductor interface {
 	// Set set's new pulse and closes current jet drop.
 	CommitPulseChange(beat.Beat) error
+	CommitFirstPulseChange(beat.Beat) error
 }
 

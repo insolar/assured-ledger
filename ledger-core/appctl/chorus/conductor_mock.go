@@ -15,6 +15,12 @@ import (
 type ConductorMock struct {
 	t minimock.Tester
 
+	funcCommitFirstPulseChange          func(b1 beat.Beat) (err error)
+	inspectFuncCommitFirstPulseChange   func(b1 beat.Beat)
+	afterCommitFirstPulseChangeCounter  uint64
+	beforeCommitFirstPulseChangeCounter uint64
+	CommitFirstPulseChangeMock          mConductorMockCommitFirstPulseChange
+
 	funcCommitPulseChange          func(b1 beat.Beat) (err error)
 	inspectFuncCommitPulseChange   func(b1 beat.Beat)
 	afterCommitPulseChangeCounter  uint64
@@ -29,10 +35,228 @@ func NewConductorMock(t minimock.Tester) *ConductorMock {
 		controller.RegisterMocker(m)
 	}
 
+	m.CommitFirstPulseChangeMock = mConductorMockCommitFirstPulseChange{mock: m}
+	m.CommitFirstPulseChangeMock.callArgs = []*ConductorMockCommitFirstPulseChangeParams{}
+
 	m.CommitPulseChangeMock = mConductorMockCommitPulseChange{mock: m}
 	m.CommitPulseChangeMock.callArgs = []*ConductorMockCommitPulseChangeParams{}
 
 	return m
+}
+
+type mConductorMockCommitFirstPulseChange struct {
+	mock               *ConductorMock
+	defaultExpectation *ConductorMockCommitFirstPulseChangeExpectation
+	expectations       []*ConductorMockCommitFirstPulseChangeExpectation
+
+	callArgs []*ConductorMockCommitFirstPulseChangeParams
+	mutex    sync.RWMutex
+}
+
+// ConductorMockCommitFirstPulseChangeExpectation specifies expectation struct of the Conductor.CommitFirstPulseChange
+type ConductorMockCommitFirstPulseChangeExpectation struct {
+	mock    *ConductorMock
+	params  *ConductorMockCommitFirstPulseChangeParams
+	results *ConductorMockCommitFirstPulseChangeResults
+	Counter uint64
+}
+
+// ConductorMockCommitFirstPulseChangeParams contains parameters of the Conductor.CommitFirstPulseChange
+type ConductorMockCommitFirstPulseChangeParams struct {
+	b1 beat.Beat
+}
+
+// ConductorMockCommitFirstPulseChangeResults contains results of the Conductor.CommitFirstPulseChange
+type ConductorMockCommitFirstPulseChangeResults struct {
+	err error
+}
+
+// Expect sets up expected params for Conductor.CommitFirstPulseChange
+func (mmCommitFirstPulseChange *mConductorMockCommitFirstPulseChange) Expect(b1 beat.Beat) *mConductorMockCommitFirstPulseChange {
+	if mmCommitFirstPulseChange.mock.funcCommitFirstPulseChange != nil {
+		mmCommitFirstPulseChange.mock.t.Fatalf("ConductorMock.CommitFirstPulseChange mock is already set by Set")
+	}
+
+	if mmCommitFirstPulseChange.defaultExpectation == nil {
+		mmCommitFirstPulseChange.defaultExpectation = &ConductorMockCommitFirstPulseChangeExpectation{}
+	}
+
+	mmCommitFirstPulseChange.defaultExpectation.params = &ConductorMockCommitFirstPulseChangeParams{b1}
+	for _, e := range mmCommitFirstPulseChange.expectations {
+		if minimock.Equal(e.params, mmCommitFirstPulseChange.defaultExpectation.params) {
+			mmCommitFirstPulseChange.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmCommitFirstPulseChange.defaultExpectation.params)
+		}
+	}
+
+	return mmCommitFirstPulseChange
+}
+
+// Inspect accepts an inspector function that has same arguments as the Conductor.CommitFirstPulseChange
+func (mmCommitFirstPulseChange *mConductorMockCommitFirstPulseChange) Inspect(f func(b1 beat.Beat)) *mConductorMockCommitFirstPulseChange {
+	if mmCommitFirstPulseChange.mock.inspectFuncCommitFirstPulseChange != nil {
+		mmCommitFirstPulseChange.mock.t.Fatalf("Inspect function is already set for ConductorMock.CommitFirstPulseChange")
+	}
+
+	mmCommitFirstPulseChange.mock.inspectFuncCommitFirstPulseChange = f
+
+	return mmCommitFirstPulseChange
+}
+
+// Return sets up results that will be returned by Conductor.CommitFirstPulseChange
+func (mmCommitFirstPulseChange *mConductorMockCommitFirstPulseChange) Return(err error) *ConductorMock {
+	if mmCommitFirstPulseChange.mock.funcCommitFirstPulseChange != nil {
+		mmCommitFirstPulseChange.mock.t.Fatalf("ConductorMock.CommitFirstPulseChange mock is already set by Set")
+	}
+
+	if mmCommitFirstPulseChange.defaultExpectation == nil {
+		mmCommitFirstPulseChange.defaultExpectation = &ConductorMockCommitFirstPulseChangeExpectation{mock: mmCommitFirstPulseChange.mock}
+	}
+	mmCommitFirstPulseChange.defaultExpectation.results = &ConductorMockCommitFirstPulseChangeResults{err}
+	return mmCommitFirstPulseChange.mock
+}
+
+//Set uses given function f to mock the Conductor.CommitFirstPulseChange method
+func (mmCommitFirstPulseChange *mConductorMockCommitFirstPulseChange) Set(f func(b1 beat.Beat) (err error)) *ConductorMock {
+	if mmCommitFirstPulseChange.defaultExpectation != nil {
+		mmCommitFirstPulseChange.mock.t.Fatalf("Default expectation is already set for the Conductor.CommitFirstPulseChange method")
+	}
+
+	if len(mmCommitFirstPulseChange.expectations) > 0 {
+		mmCommitFirstPulseChange.mock.t.Fatalf("Some expectations are already set for the Conductor.CommitFirstPulseChange method")
+	}
+
+	mmCommitFirstPulseChange.mock.funcCommitFirstPulseChange = f
+	return mmCommitFirstPulseChange.mock
+}
+
+// When sets expectation for the Conductor.CommitFirstPulseChange which will trigger the result defined by the following
+// Then helper
+func (mmCommitFirstPulseChange *mConductorMockCommitFirstPulseChange) When(b1 beat.Beat) *ConductorMockCommitFirstPulseChangeExpectation {
+	if mmCommitFirstPulseChange.mock.funcCommitFirstPulseChange != nil {
+		mmCommitFirstPulseChange.mock.t.Fatalf("ConductorMock.CommitFirstPulseChange mock is already set by Set")
+	}
+
+	expectation := &ConductorMockCommitFirstPulseChangeExpectation{
+		mock:   mmCommitFirstPulseChange.mock,
+		params: &ConductorMockCommitFirstPulseChangeParams{b1},
+	}
+	mmCommitFirstPulseChange.expectations = append(mmCommitFirstPulseChange.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Conductor.CommitFirstPulseChange return parameters for the expectation previously defined by the When method
+func (e *ConductorMockCommitFirstPulseChangeExpectation) Then(err error) *ConductorMock {
+	e.results = &ConductorMockCommitFirstPulseChangeResults{err}
+	return e.mock
+}
+
+// CommitFirstPulseChange implements Conductor
+func (mmCommitFirstPulseChange *ConductorMock) CommitFirstPulseChange(b1 beat.Beat) (err error) {
+	mm_atomic.AddUint64(&mmCommitFirstPulseChange.beforeCommitFirstPulseChangeCounter, 1)
+	defer mm_atomic.AddUint64(&mmCommitFirstPulseChange.afterCommitFirstPulseChangeCounter, 1)
+
+	if mmCommitFirstPulseChange.inspectFuncCommitFirstPulseChange != nil {
+		mmCommitFirstPulseChange.inspectFuncCommitFirstPulseChange(b1)
+	}
+
+	mm_params := &ConductorMockCommitFirstPulseChangeParams{b1}
+
+	// Record call args
+	mmCommitFirstPulseChange.CommitFirstPulseChangeMock.mutex.Lock()
+	mmCommitFirstPulseChange.CommitFirstPulseChangeMock.callArgs = append(mmCommitFirstPulseChange.CommitFirstPulseChangeMock.callArgs, mm_params)
+	mmCommitFirstPulseChange.CommitFirstPulseChangeMock.mutex.Unlock()
+
+	for _, e := range mmCommitFirstPulseChange.CommitFirstPulseChangeMock.expectations {
+		if minimock.Equal(e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.err
+		}
+	}
+
+	if mmCommitFirstPulseChange.CommitFirstPulseChangeMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmCommitFirstPulseChange.CommitFirstPulseChangeMock.defaultExpectation.Counter, 1)
+		mm_want := mmCommitFirstPulseChange.CommitFirstPulseChangeMock.defaultExpectation.params
+		mm_got := ConductorMockCommitFirstPulseChangeParams{b1}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmCommitFirstPulseChange.t.Errorf("ConductorMock.CommitFirstPulseChange got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmCommitFirstPulseChange.CommitFirstPulseChangeMock.defaultExpectation.results
+		if mm_results == nil {
+			mmCommitFirstPulseChange.t.Fatal("No results are set for the ConductorMock.CommitFirstPulseChange")
+		}
+		return (*mm_results).err
+	}
+	if mmCommitFirstPulseChange.funcCommitFirstPulseChange != nil {
+		return mmCommitFirstPulseChange.funcCommitFirstPulseChange(b1)
+	}
+	mmCommitFirstPulseChange.t.Fatalf("Unexpected call to ConductorMock.CommitFirstPulseChange. %v", b1)
+	return
+}
+
+// CommitFirstPulseChangeAfterCounter returns a count of finished ConductorMock.CommitFirstPulseChange invocations
+func (mmCommitFirstPulseChange *ConductorMock) CommitFirstPulseChangeAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmCommitFirstPulseChange.afterCommitFirstPulseChangeCounter)
+}
+
+// CommitFirstPulseChangeBeforeCounter returns a count of ConductorMock.CommitFirstPulseChange invocations
+func (mmCommitFirstPulseChange *ConductorMock) CommitFirstPulseChangeBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmCommitFirstPulseChange.beforeCommitFirstPulseChangeCounter)
+}
+
+// Calls returns a list of arguments used in each call to ConductorMock.CommitFirstPulseChange.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmCommitFirstPulseChange *mConductorMockCommitFirstPulseChange) Calls() []*ConductorMockCommitFirstPulseChangeParams {
+	mmCommitFirstPulseChange.mutex.RLock()
+
+	argCopy := make([]*ConductorMockCommitFirstPulseChangeParams, len(mmCommitFirstPulseChange.callArgs))
+	copy(argCopy, mmCommitFirstPulseChange.callArgs)
+
+	mmCommitFirstPulseChange.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockCommitFirstPulseChangeDone returns true if the count of the CommitFirstPulseChange invocations corresponds
+// the number of defined expectations
+func (m *ConductorMock) MinimockCommitFirstPulseChangeDone() bool {
+	for _, e := range m.CommitFirstPulseChangeMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.CommitFirstPulseChangeMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterCommitFirstPulseChangeCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcCommitFirstPulseChange != nil && mm_atomic.LoadUint64(&m.afterCommitFirstPulseChangeCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockCommitFirstPulseChangeInspect logs each unmet expectation
+func (m *ConductorMock) MinimockCommitFirstPulseChangeInspect() {
+	for _, e := range m.CommitFirstPulseChangeMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to ConductorMock.CommitFirstPulseChange with params: %#v", *e.params)
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.CommitFirstPulseChangeMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterCommitFirstPulseChangeCounter) < 1 {
+		if m.CommitFirstPulseChangeMock.defaultExpectation.params == nil {
+			m.t.Error("Expected call to ConductorMock.CommitFirstPulseChange")
+		} else {
+			m.t.Errorf("Expected call to ConductorMock.CommitFirstPulseChange with params: %#v", *m.CommitFirstPulseChangeMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcCommitFirstPulseChange != nil && mm_atomic.LoadUint64(&m.afterCommitFirstPulseChangeCounter) < 1 {
+		m.t.Error("Expected call to ConductorMock.CommitFirstPulseChange")
+	}
 }
 
 type mConductorMockCommitPulseChange struct {
@@ -253,6 +477,8 @@ func (m *ConductorMock) MinimockCommitPulseChangeInspect() {
 // MinimockFinish checks that all mocked methods have been called the expected number of times
 func (m *ConductorMock) MinimockFinish() {
 	if !m.minimockDone() {
+		m.MinimockCommitFirstPulseChangeInspect()
+
 		m.MinimockCommitPulseChangeInspect()
 		m.t.FailNow()
 	}
@@ -277,5 +503,6 @@ func (m *ConductorMock) MinimockWait(timeout mm_time.Duration) {
 func (m *ConductorMock) minimockDone() bool {
 	done := true
 	return done &&
+		m.MinimockCommitFirstPulseChangeDone() &&
 		m.MinimockCommitPulseChangeDone()
 }

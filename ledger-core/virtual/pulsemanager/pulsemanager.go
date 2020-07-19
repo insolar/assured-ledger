@@ -11,9 +11,8 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
-	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
-
 	"github.com/insolar/assured-ledger/ledger-core/network"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 var _ chorus.Conductor = &PulseManager{}
@@ -46,10 +45,15 @@ func (m *PulseManager) AddDispatcher(d ...beat.Dispatcher) {
 
 func (m *PulseManager) CommitPulseChange(pulseChange beat.Beat) error {
 	ctx := context.Background()
-	return m.setNewPulse(ctx, pulseChange)
+	return m.setNewPulse(ctx, pulseChange, false)
 }
 
-func (m *PulseManager) setNewPulse(ctx context.Context, pulseChange beat.Beat) error {
+func (m *PulseManager) CommitFirstPulseChange(pulseChange beat.Beat) error {
+	ctx := context.Background()
+	return m.setNewPulse(ctx, pulseChange, true)
+}
+
+func (m *PulseManager) setNewPulse(ctx context.Context, pulseChange beat.Beat, isFirst bool) error {
 
 	sink, setStateFn := beat.NewAck(make(chan beat.AckData, 1))
 	for _, d := range m.dispatchers {
@@ -61,8 +65,16 @@ func (m *PulseManager) setNewPulse(ctx context.Context, pulseChange beat.Beat) e
 		setStateFn(committed)
 	}()
 
-	if err := m.PulseAppender.Append(ctx, pulseChange); err != nil {
-		return errors.W(err, "call of AddPulse failed")
+
+	if isFirst {
+		// pulse is already set by Run
+		if err := m.PulseAppender.EnsureLatest(ctx, pulseChange); err != nil {
+			return throw.W(err, "call of Ensure pulseChange failed")
+		}
+	} else {
+		if err := m.PulseAppender.Append(ctx, pulseChange); err != nil {
+			return throw.W(err, "call of Append pulseChange failed")
+		}
 	}
 
 	for _, d := range m.dispatchers {

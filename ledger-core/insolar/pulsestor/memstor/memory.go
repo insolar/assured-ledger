@@ -62,9 +62,19 @@ func (s *StorageMem) Latest(ctx context.Context) (pulse beat.Beat, err error) {
 	return s.tail.pulse, nil
 }
 
+func (s *StorageMem) EnsureLatest(ctx context.Context, pulse beat.Beat) error {
+	switch latest, err := s.Latest(ctx); {
+	case err != nil:
+		return err
+	case pulse.Data != latest.Data:
+		return pulsestor.ErrBadPulse
+	}
+	return nil
+}
+
 // Append appends provided a pulse to current storage. Pulse number should be greater than currently saved for preserving
 // pulse consistency. If provided Pulse does not meet the requirements, ErrBadPulse will be returned.
-func (s *StorageMem) Append(ctx context.Context, pulse beat.Beat) error {
+func (s *StorageMem) Append(_ context.Context, pulse beat.Beat) error {
 	// TODO it must NOT be allowed to add non-time pulse, but old code needs it
 	// if !pulse.PulseEpoch.IsTimeEpoch() {
 	// 	panic(throw.IllegalValue())
