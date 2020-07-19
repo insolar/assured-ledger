@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-// + build slowtest
+// +build slowtest,!longtest
 
 package integration
 
@@ -93,7 +93,6 @@ func TestNodeGracefulLeave(t *testing.T) {
 	s.AssertWorkingNodesCountDelta(0)
 	s.AssertActiveNodesCountDelta(0)
 }
-
 
 func TestNodeLeaveAtETA(t *testing.T) {
 	t.Skip("FIXME")

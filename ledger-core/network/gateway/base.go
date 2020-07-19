@@ -80,6 +80,10 @@ type Base struct {
 	backoff time.Duration // nolint
 
 	pulseWatchdog *pulseWatchdog
+
+	isDiscovery     bool
+	isJoinAssistant bool
+	joinAssistant   node2.DiscoveryNode
 }
 
 // NewGateway creates new gateway on top of existing
@@ -92,6 +96,8 @@ func (g *Base) NewGateway(ctx context.Context, state node2.NetworkState) network
 		g.Self = newComplete(g)
 	case node2.JoinerBootstrap:
 		g.Self = newJoinerBootstrap(g)
+	case node2.DiscoveryBootstrap:
+		g.Self = newDiscoveryBootstrap(g)
 	case node2.WaitConsensus:
 		err := g.StartConsensus(ctx)
 		if err != nil {
@@ -204,6 +210,7 @@ func (g *Base) StartConsensus(ctx context.Context) error {
 	if network.OriginIsJoinAssistant(cert) {
 		// one of the nodes has to be in consensus.ReadyNetwork state,
 		// all other nodes has to be in consensus.Joiner
+		// TODO: fix Assistant node can't join existing network
 		g.ConsensusMode = consensus.ReadyNetwork
 	}
 
@@ -269,11 +276,11 @@ func (g *Base) ValidateCert(ctx context.Context, authCert node2.AuthorizationCer
 // ============= Bootstrap =======
 
 func (g *Base) checkCanAnnounceCandidate(ctx context.Context) error {
-	// 1. Current node is heavy:
+	// 1. Current node is JoinAssistant:
 	// 		could announce candidate when network is initialized
 	// 		NB: announcing in WaitConsensus state is allowed
 	// 2. Otherwise:
-	// 		could announce candidate when heavy node found in *active* list and initial consensus passed
+	// 		could announce candidate when JoinAssistant node found in *active* list and initial consensus passed
 	// 		NB: announcing in WaitConsensus state is *NOT* allowed
 
 	state := g.Gatewayer.Gateway().GetState()
@@ -281,11 +288,8 @@ func (g *Base) checkCanAnnounceCandidate(ctx context.Context) error {
 		return nil
 	}
 
-	if state == node2.WaitConsensus {
-		cert := g.CertificateManager.GetCertificate()
-		if network.OriginIsJoinAssistant(cert) {
-			return nil
-		}
+	if state == node2.WaitConsensus && g.isJoinAssistant {
+		return nil
 	}
 
 	bootstrapPulse := GetBootstrapPulse(ctx, g.PulseAccessor)
@@ -342,8 +346,8 @@ func (g *Base) HandleNodeBootstrapRequest(ctx context.Context, request network.R
 
 	err = g.ConsensusController.AddJoinCandidate(candidate{profile, profile.GetExtension()})
 	if err != nil {
-		inslogger.FromContext(ctx).Warnf("Rejected bootstrap request from node %s: %s", request.GetSender(), err.Error())
-		return g.HostNetwork.BuildResponse(ctx, request, &packet.BootstrapResponse{Code: packet.Reject}), nil
+		inslogger.FromContext(ctx).Warnf("Retry Failed to AddJoinCandidate  %s: %s", request.GetSender(), err.Error())
+		return g.HostNetwork.BuildResponse(ctx, request, &packet.BootstrapResponse{Code: packet.Retry}), nil
 	}
 
 	inslogger.FromContext(ctx).Infof("=== AddJoinCandidate id = %d, address = %s ", data.CandidateProfile.ShortID, data.CandidateProfile.Address)

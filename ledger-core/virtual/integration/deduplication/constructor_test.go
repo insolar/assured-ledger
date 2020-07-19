@@ -18,6 +18,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
+	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/debuglogger"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
@@ -31,6 +32,8 @@ import (
 )
 
 func TestConstructor_SamePulse_WhileExecution(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	t.Log("C4998")
 
 	mc := minimock.NewController(t)
@@ -111,6 +114,8 @@ func TestConstructor_SamePulse_WhileExecution(t *testing.T) {
 }
 
 func TestConstructor_SamePulse_AfterExecution(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	t.Log("C5005")
 
 	mc := minimock.NewController(t)
@@ -199,9 +204,8 @@ type DeduplicationDifferentPulsesCase struct {
 }
 
 func (test *DeduplicationDifferentPulsesCase) TestRun(t *testing.T) {
-	test.TestCase.Run(t, test.run)
+	defer commontestutils.LeakTester(t)
 
-	test.Name = test.Name + ", state already sent"
 	test.vStateSendBefore = true
 	test.TestCase.Run(t, test.run)
 }

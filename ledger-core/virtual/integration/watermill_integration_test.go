@@ -24,6 +24,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/logwatermill"
 	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/statemachine"
 )
@@ -70,7 +72,27 @@ func (w *WatermillLogAdapterWrapper) Error(msg string, err error, fields watermi
 	w.WatermillLogAdapter.Error(msg, err, fields)
 }
 
+func wait(timeout time.Duration, fn func() bool) bool {
+	deltaTime := time.Millisecond
+	startTime := time.Now()
+
+	for {
+		if fn() {
+			return true
+		}
+
+		if time.Now().Sub(startTime) > timeout {
+			return false
+		}
+
+		time.Sleep(deltaTime)
+		deltaTime *= 2
+	}
+}
+
 func TestWatermill_HandleErrorCorrect(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	const errorMsg = "handler error"
 	watermillErrorHandler := func(logger *logwatermill.WatermillLogAdapter, msg string, err error, fields watermill.LogFields) bool {
 		if err.Error() == errorMsg {
@@ -83,24 +105,30 @@ func TestWatermill_HandleErrorCorrect(t *testing.T) {
 		ctx        = context.Background()
 		wmLogger   = NewWatermillLogAdapterWrapper(inslogger.FromContext(ctx), watermillErrorHandler)
 		subscriber = gochannel.NewGoChannel(gochannel.Config{}, wmLogger)
+
+		cnt atomickit.Int
 	)
-	cnt := 0
-	conveyorDispatcher := newDispatcherWithConveyor(
-		func(context.Context, conveyor.InputEvent, conveyor.InputContext) (conveyor.InputSetup, error) {
-			cnt++
-			return conveyor.InputSetup{}, throw.E(errorMsg)
-		})
-	wmStop := startWatermill(ctx, wmLogger, subscriber, conveyorDispatcher.Process)
+
+	dispatchFn := func(context.Context, conveyor.InputEvent, conveyor.InputContext) (conveyor.InputSetup, error) {
+		cnt.Add(1)
+		return conveyor.InputSetup{}, throw.E(errorMsg)
+	}
+
+	wmStop := startWatermill(ctx, wmLogger, subscriber, newDispatcherWithConveyor(dispatchFn).Process)
 	defer wmStop()
+
 	meta := payload.Meta{Pulse: pulse.Number(pulse.MinTimePulse + 1)}
 	metaPl, _ := meta.Marshal()
 	msg := message.NewMessage("1", metaPl)
 	require.NoError(t, subscriber.Publish(defaults.TopicIncoming, msg))
-	time.Sleep(1 * time.Second)
-	require.Equal(t, 1, cnt)
+
+	wait(time.Second, func() bool { return cnt.Load() >= 1 })
+	require.Equal(t, 1, cnt.Load())
 }
 
 func TestWatermill_HandlePanicCorrect(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	const panicMsg = "handler panic"
 	watermillErrorHandler := func(logger *logwatermill.WatermillLogAdapter, msg string, err error, fields watermill.LogFields) bool {
 		if err.Error() == panicMsg {
@@ -113,22 +141,25 @@ func TestWatermill_HandlePanicCorrect(t *testing.T) {
 		ctx        = context.Background()
 		wmLogger   = NewWatermillLogAdapterWrapper(inslogger.FromContext(ctx), watermillErrorHandler)
 		subscriber = gochannel.NewGoChannel(gochannel.Config{}, wmLogger)
-	)
-	cnt := 0
-	conveyorDispatcher := newDispatcherWithConveyor(
-		func(context.Context, conveyor.InputEvent, conveyor.InputContext) (conveyor.InputSetup, error) {
-			cnt++
-			panic(throw.E(panicMsg))
-		})
 
-	wmStop := startWatermill(ctx, wmLogger, subscriber, conveyorDispatcher.Process)
+		cnt atomickit.Int
+	)
+
+	dispatchFn := func(context.Context, conveyor.InputEvent, conveyor.InputContext) (conveyor.InputSetup, error) {
+		cnt.Add(1)
+		panic(throw.E(panicMsg))
+	}
+
+	wmStop := startWatermill(ctx, wmLogger, subscriber, newDispatcherWithConveyor(dispatchFn).Process)
 	defer wmStop()
+
 	meta := payload.Meta{Pulse: pulse.Number(pulse.MinTimePulse + 1)}
 	metaPl, _ := meta.Marshal()
 	msg := message.NewMessage("1", metaPl)
 	require.NoError(t, subscriber.Publish(defaults.TopicIncoming, msg))
-	time.Sleep(1 * time.Second)
-	require.Equal(t, 1, cnt)
+
+	wait(time.Second, func() bool { return cnt.Load() >= 1 })
+	require.Equal(t, 1, cnt.Load())
 }
 
 func startWatermill(

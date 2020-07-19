@@ -24,7 +24,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
+	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/predicate"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/synchronization"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -36,6 +38,7 @@ import (
 )
 
 func TestVirtual_Constructor_WithExecutor(t *testing.T) {
+	defer commontestutils.LeakTester(t)
 	t.Log("C5180")
 
 	var (
@@ -86,6 +89,7 @@ func TestVirtual_Constructor_WithExecutor(t *testing.T) {
 }
 
 func TestVirtual_Constructor_BadClassRef(t *testing.T) {
+	defer commontestutils.LeakTester(t)
 	t.Log("C5030")
 
 	var (
@@ -158,6 +162,7 @@ func TestVirtual_Constructor_BadClassRef(t *testing.T) {
 }
 
 func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
+	defer commontestutils.LeakTester(t)
 	t.Log("C4995")
 
 	var (
@@ -202,16 +207,18 @@ func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
 		return false // no resend msg
 	})
 	typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
+		objectState := payload.ObjectState{
+			State: []byte("some memory"),
+			Class: class,
+		}
 		expected := &payload.VStateReport{
 			Status:           payload.Ready,
 			AsOf:             p,
 			Object:           objectRef,
 			LatestDirtyState: objectRef,
 			ProvidedContent: &payload.VStateReport_ProvidedContentBody{
-				LatestDirtyState: &payload.ObjectState{
-					State: []byte("some memory"),
-					Class: class,
-				},
+				LatestDirtyState:     &objectState,
+				LatestValidatedState: &objectState,
 			},
 		}
 		expected.ProvidedContent.LatestDirtyState.Reference =
@@ -247,6 +254,7 @@ func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
 }
 
 func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
+	defer commontestutils.LeakTester(t)
 	t.Log("C4996")
 
 	// VE has object's state record with Status==Missing
@@ -305,16 +313,18 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 		return false // no resend msg
 	})
 	typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
+		objectState := payload.ObjectState{
+			State: []byte("some memory"),
+			Class: class,
+		}
 		expected := &payload.VStateReport{
 			Status:           payload.Ready,
 			AsOf:             p,
 			Object:           objectRef,
 			LatestDirtyState: objectRef,
 			ProvidedContent: &payload.VStateReport_ProvidedContentBody{
-				LatestDirtyState: &payload.ObjectState{
-					State: []byte("some memory"),
-					Class: class,
-				},
+				LatestDirtyState:     &objectState,
+				LatestValidatedState: &objectState,
 			},
 		}
 		expected.ProvidedContent.LatestDirtyState.Reference =
@@ -346,6 +356,7 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 }
 
 func TestVirtual_Constructor_PrevPulseStateWithMissingStatus(t *testing.T) {
+	defer commontestutils.LeakTester(t)
 	// Constructor call with outgoing.Pulse < currentPulse
 	// state request, state report{Status: Missing}
 	t.Log("C4997")
@@ -404,16 +415,18 @@ func TestVirtual_Constructor_PrevPulseStateWithMissingStatus(t *testing.T) {
 		return false // no resend msg
 	})
 	typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
+		objectState := payload.ObjectState{
+			State: []byte("some memory"),
+			Class: class,
+		}
 		expected := &payload.VStateReport{
 			Status:           payload.Ready,
 			AsOf:             p2,
 			Object:           objectRef,
 			LatestDirtyState: objectRef,
 			ProvidedContent: &payload.VStateReport_ProvidedContentBody{
-				LatestDirtyState: &payload.ObjectState{
-					State: []byte("some memory"),
-					Class: class,
-				},
+				LatestDirtyState:     &objectState,
+				LatestValidatedState: &objectState,
 			},
 		}
 		expected.ProvidedContent.LatestDirtyState.Reference =
@@ -463,6 +476,7 @@ func TestVirtual_Constructor_PrevPulseStateWithMissingStatus(t *testing.T) {
 
 // A.New calls B.New
 func TestVirtual_CallConstructorFromConstructor(t *testing.T) {
+	defer commontestutils.LeakTester(t)
 	t.Log("C5090")
 
 	mc := minimock.NewController(t)
@@ -593,6 +607,7 @@ func TestVirtual_CallConstructorFromConstructor(t *testing.T) {
 }
 
 func TestVirtual_Constructor_WrongConstructorName(t *testing.T) {
+	defer commontestutils.LeakTester(t)
 	t.Log("C4977")
 
 	var (
@@ -643,6 +658,7 @@ func TestVirtual_Constructor_WrongConstructorName(t *testing.T) {
 }
 
 func TestVirtual_Constructor_PulseChangedWhileOutgoing(t *testing.T) {
+	defer commontestutils.LeakTester(t)
 	t.Log("C5085")
 
 	mc := minimock.NewController(t)
@@ -804,7 +820,173 @@ func TestVirtual_Constructor_PulseChangedWhileOutgoing(t *testing.T) {
 	mc.Finish()
 }
 
+// -> VCallRequest [A.New]
+// -> ExecutionStart
+// -> change pulse -> secondPulse
+// -> VStateReport [A]
+// -> VDelegatedCallRequest [A]
+// -> change pulse -> thirdPulse
+// -> NO VStateReport
+// -> VDelegatedCallRequest [A] + first token
+// -> VCallResult [A.New] + second token
+// -> VDelegatedRequestFinished [A] + second token
+func TestVirtual_CallConstructor_WithTwicePulseChange(t *testing.T) {
+	t.Log("C5208")
+
+	defer commontestutils.LeakTester(t)
+
+	mc := minimock.NewController(t)
+
+	server, ctx := utils.NewUninitializedServer(nil, t)
+	defer server.Stop()
+
+	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
+		return execution.Request.CallSiteMethod
+	})
+	server.ReplaceRunner(runnerMock)
+
+	server.Init(ctx)
+	server.IncrementPulseAndWaitIdle(ctx)
+
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+
+	var (
+		constructorIsolation = contract.ConstructorIsolation()
+
+		classA    = gen.UniqueGlobalRef()
+		outgoing  = server.BuildRandomOutgoingWithPulse()
+		objectRef = reference.NewSelf(outgoing.GetLocal())
+
+		firstPulse = server.GetPulse().PulseNumber
+
+		firstApprover  = gen.UniqueGlobalRef()
+		secondApprover = gen.UniqueGlobalRef()
+
+		firstExpectedToken, secondExpectedToken payload.CallDelegationToken
+	)
+
+	synchronizeExecution := synchronization.NewPoint(1)
+
+	// add ExecutionMocks to runnerMock
+	{
+		objectAResult := requestresult.New([]byte("finish A.New"), outgoing)
+		objectAResult.SetActivate(reference.Global{}, classA, []byte("state A"))
+		runnerMock.AddExecutionMock("New").AddStart(
+			func(_ execution.Context) {
+				synchronizeExecution.Synchronize()
+			},
+			&execution.Update{
+				Type:   execution.Done,
+				Result: objectAResult,
+			},
+		)
+	}
+
+	// add checks to typedChecker
+	{
+		typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
+			// check for pending counts must be in tests: call constructor/call terminal method
+			assert.Equal(t, objectRef, report.Object)
+			assert.Equal(t, payload.Empty, report.Status)
+			assert.Zero(t, report.DelegationSpec)
+			return false
+		})
+		typedChecker.VDelegatedCallRequest.Set(func(request *payload.VDelegatedCallRequest) bool {
+			assert.Equal(t, objectRef, request.Callee)
+			assert.Equal(t, outgoing, request.CallOutgoing)
+
+			msg := payload.VDelegatedCallResponse{Callee: request.Callee}
+
+			switch typedChecker.VDelegatedCallRequest.CountBefore() {
+			case 1:
+				assert.Zero(t, request.DelegationSpec)
+
+				firstExpectedToken = payload.CallDelegationToken{
+					TokenTypeAndFlags: payload.DelegationTokenTypeCall,
+					PulseNumber:       server.GetPulse().PulseNumber,
+					Callee:            request.Callee,
+					Outgoing:          request.CallOutgoing,
+					DelegateTo:        server.JetCoordinatorMock.Me(),
+					Approver:          firstApprover,
+				}
+				msg.ResponseDelegationSpec = firstExpectedToken
+			case 2:
+				assert.Equal(t, firstExpectedToken, request.DelegationSpec)
+
+				secondExpectedToken = payload.CallDelegationToken{
+					TokenTypeAndFlags: payload.DelegationTokenTypeCall,
+					PulseNumber:       server.GetPulse().PulseNumber,
+					Callee:            request.Callee,
+					Outgoing:          request.CallOutgoing,
+					DelegateTo:        server.JetCoordinatorMock.Me(),
+					Approver:          secondApprover,
+				}
+				msg.ResponseDelegationSpec = secondExpectedToken
+			default:
+				t.Fatal("unexpected")
+			}
+
+			server.SendPayload(ctx, &msg)
+			return false
+		})
+		typedChecker.VDelegatedRequestFinished.Set(func(finished *payload.VDelegatedRequestFinished) bool {
+			assert.Equal(t, objectRef, finished.Callee)
+			assert.Equal(t, secondExpectedToken, finished.DelegationSpec)
+			assert.Equal(t, []byte("state A"), finished.LatestState.State)
+			return false
+		})
+		typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
+			assert.Equal(t, objectRef, res.Callee)
+			assert.Equal(t, []byte("finish A.New"), res.ReturnArguments)
+			assert.Equal(t, int(firstPulse), int(res.CallOutgoing.GetLocal().Pulse()))
+			assert.Equal(t, secondExpectedToken, res.DelegationSpec)
+			return false
+		})
+	}
+
+	pl := payload.VCallRequest{
+		CallType:       payload.CTConstructor,
+		CallFlags:      payload.BuildCallFlags(constructorIsolation.Interference, constructorIsolation.State),
+		Caller:         server.GlobalCaller(),
+		Callee:         classA,
+		CallSiteMethod: "New",
+		CallOutgoing:   outgoing,
+	}
+
+	server.SendPayload(ctx, &pl)
+
+	// wait for results
+	{
+		testutils.WaitSignalsTimed(t, 10*time.Second, synchronizeExecution.Wait())
+
+		// wait for pulse change
+		for i := 0; i < 2; i++ {
+			tokenRequestDone := server.Journal.Wait(
+				predicate.ChainOf(
+					predicate.NewSMTypeFilter(&execute.SMDelegatedTokenRequest{}, predicate.AfterAnyStopOrError),
+					predicate.NewSMTypeFilter(&execute.SMExecute{}, predicate.BeforeStep((&execute.SMExecute{}).StepWaitExecutionResult)),
+				),
+			)
+			server.IncrementPulseAndWaitIdle(ctx)
+			testutils.WaitSignalsTimed(t, 20*time.Second, tokenRequestDone)
+		}
+
+		synchronizeExecution.Done()
+		// wait for SMExecute finish
+		testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitStopOf(&execute.SMExecute{}, 1))
+		testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+	}
+
+	assert.Equal(t, 1, typedChecker.VCallResult.Count())
+	assert.Equal(t, 1, typedChecker.VStateReport.Count())
+	assert.Equal(t, 2, typedChecker.VDelegatedCallRequest.Count())
+	assert.Equal(t, 1, typedChecker.VDelegatedRequestFinished.Count())
+
+	mc.Finish()
+}
+
 func TestVirtual_Constructor_IsolationNegotiation(t *testing.T) {
+	defer commontestutils.LeakTester(t)
 	t.Log("C5031")
 	table := []struct {
 		name      string
