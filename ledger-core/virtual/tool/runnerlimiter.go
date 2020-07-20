@@ -3,29 +3,29 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package conveyor
+package tool
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
 )
 
-const RunnerParallelLimiter = "RunnerParallelProcessingLimiter"
+const RunnerLimiterName = "RunnerLimiter"
 
-func NewParallelProcessingLimiter(semaphoreLimit int) ParallelProcessingLimiter {
-	return ParallelProcessingLimiter{
-		semaphore: smsync.NewSemaphoreWithFlags(semaphoreLimit, RunnerParallelLimiter, smsync.QueueAllowsPriority),
+func NewRunnerLimiter(semaphoreLimit int) RunnerLimiter {
+	return RunnerLimiter{
+		semaphore: smsync.NewSemaphoreWithFlags(semaphoreLimit, RunnerLimiterName, smsync.QueueAllowsPriority),
 	}
 }
 
-type ParallelProcessingLimiter struct {
+type RunnerLimiter struct {
 	semaphore smsync.SemaphoreLink
 }
 
-func (cs ParallelProcessingLimiter) PartialLink() smachine.SyncLink {
+func (cs RunnerLimiter) PartialLink() smachine.SyncLink {
 	return cs.semaphore.PartialLink()
 }
 
-func (cs ParallelProcessingLimiter) NewChildSemaphore(childValue int, name string) smsync.SemaChildLink {
+func (cs RunnerLimiter) NewChildSemaphore(childValue int, name string) smsync.SemaChildLink {
 	return cs.semaphore.NewChildExt(true, childValue, name, smsync.AllowPartialRelease|smsync.PrioritizePartialAcquire)
 }
