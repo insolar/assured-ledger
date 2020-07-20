@@ -135,7 +135,7 @@ jobs:
       GOPATH: /home/runner/work/
       V2_PATH: /home/runner/work/assured-ledger/assured-ledger/ledger-core
       USE_MANIFESTS: ci
-      GOPROXY: https://proxy.golang.org,https://goproxy.io,direct
+      GOPROXY: https://proxy.golang.org,https://gocenter.io,direct
       KUBEVAL_VERSION: 0.15.0
     steps:
       - name: Checkout code
