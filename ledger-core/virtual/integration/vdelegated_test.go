@@ -16,7 +16,6 @@ import (
 	testwalletProxy "github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
@@ -27,8 +26,7 @@ import (
 func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 	defer commontestutils.LeakTester(t)
 
-//	t.Log("C4983")
-	instestlogger.LogCase(t, "C4983")
+	t.Log("C4983")
 
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
