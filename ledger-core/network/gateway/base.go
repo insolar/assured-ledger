@@ -8,6 +8,7 @@ package gateway
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"sync/atomic"
 	"time"
 
@@ -400,14 +401,29 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 	}
 
 	// TODO: get random reconnectHost
-	// nodes := g.NodeKeeper.GetAccessor().GetActiveNodes()
+	bootstrapPulse := GetBootstrapPulse(ctx, g.PulseAccessor)
+	nodes := g.NodeKeeper.GetAccessor(bootstrapPulse.PulseNumber).GetActiveNodes()
 
-	// workaround bootstrap to the origin node
-	reconnectHost, err := host.NewHostNS(o.Address(), o.ID(), o.ShortID())
-	if err != nil {
-		err = errors.W(err, "Failed to get reconnectHost")
-		inslogger.FromContext(ctx).Warn(err.Error())
-		return nil, err
+	var reconnectHost *host.Host
+	if !g.isJoinAssistant || len(nodes) < 2 {
+		// workaround bootstrap to the origin node
+		reconnectHost, err = host.NewHostNS(o.Address(), o.ID(), o.ShortID())
+		if err != nil {
+			err = errors.W(err, "Failed to get reconnectHost")
+			inslogger.FromContext(ctx).Warn(err.Error())
+			return nil, err
+		}
+	} else {
+
+		// todo exclude origin ??
+		randNode := nodes[rand.Intn(len(nodes))]
+
+		reconnectHost, err = host.NewHostNS(randNode.Address(), randNode.ID(), randNode.ShortID())
+		if err != nil {
+			err = errors.W(err, "Failed to get reconnectHost")
+			inslogger.FromContext(ctx).Warn(err.Error())
+			return nil, err
+		}
 	}
 
 	pubKey, err := g.KeyProcessor.ExportPublicKeyPEM(o.PublicKey())
@@ -417,6 +433,7 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 		return nil, err
 	}
 
+	inslogger.FromContext(ctx).Infof("PERMIT FOR: %s | assistant %s", nodes[0].Address(), g.joinAssistant.GetHost())
 	permit, err := bootstrap.CreatePermit(g.OriginProvider.GetOrigin().ID(),
 		reconnectHost,
 		pubKey,
@@ -426,7 +443,6 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 		return nil, err
 	}
 
-	bootstrapPulse := GetBootstrapPulse(ctx, g.PulseAccessor)
 	discoveryCount := len(network.FindDiscoveriesInNodeList(
 		g.NodeKeeper.GetAccessor(bootstrapPulse.PulseNumber).GetActiveNodes(),
 		g.CertificateManager.GetCertificate(),
