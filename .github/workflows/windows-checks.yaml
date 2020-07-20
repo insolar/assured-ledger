@@ -51,12 +51,6 @@ jobs:
         if: always()
         run: make test_with_coverage
         working-directory: ${{env.WORKDIR}}
-      - name: Upload integration_test.log to artifacts
-        if: always()
-        uses: actions/upload-artifact@v1
-        with:
-          name: integration_test_log_windows
-          path: ${{env.WORKDIR}}/integration_test.log
       - name: Upload integration_extended_test.log to artifacts
         if: always()
         uses: actions/upload-artifact@v1
