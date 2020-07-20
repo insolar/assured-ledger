@@ -67,7 +67,7 @@ func TestVirtual_SemaphoreLimitNotExceeded(t *testing.T) {
 	// Add execution mocks
 	{
 		for i := 0; i < numObject; i++ {
-			key := objects[i%numObject].String()
+			key := objects[i].String()
 			runnerMock.AddExecutionMock(key).
 				AddStart(func(ctx execution.Context) {
 					lastNum := atomic.AddInt64(&numParallelExecs, 1)
@@ -97,9 +97,9 @@ func TestVirtual_SemaphoreLimitNotExceeded(t *testing.T) {
 				CallType:            payload.CTMethod,
 				CallFlags:           payload.BuildCallFlags(interferenceFlag, stateFlag),
 				Caller:              server.GlobalCaller(),
-				Callee:              objects[i%numObject],
+				Callee:              objects[i],
 				CallSiteDeclaration: class,
-				CallSiteMethod:      objects[i%numObject].String(),
+				CallSiteMethod:      objects[i].String(),
 				CallOutgoing:        server.BuildRandomOutgoingWithPulse(),
 			}
 			server.SendPayload(ctx, &pl)
