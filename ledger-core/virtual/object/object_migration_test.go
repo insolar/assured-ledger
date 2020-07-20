@@ -60,7 +60,7 @@ func TestSMObject_MigrationCreateStateReport_IfStateMissing(t *testing.T) {
 
 	smObject := newSMObjectWithPulse()
 
-	smObject.SetDescriptor(descriptor.NewObject(reference.Global{}, reference.Local{}, reference.Global{}, nil, reference.Global{}))
+	smObject.SetDescriptorDirty(descriptor.NewObject(reference.Global{}, reference.Local{}, reference.Global{}, nil, reference.Global{}))
 	smObject.SharedState.SetState(Missing)
 	smObject.IncrementPotentialPendingCounter(contract.MethodIsolation{
 		Interference: contract.CallIntolerable,
@@ -115,7 +115,7 @@ func TestSMObject_MigrationCreateStateReport_IfStateIsEmptyAndNoCounters(t *test
 		smObject = newSMObjectWithPulse()
 	)
 
-	smObject.SetDescriptor(descriptor.NewObject(reference.Global{}, reference.Local{}, reference.Global{}, nil, reference.Global{}))
+	smObject.SetDescriptorDirty(descriptor.NewObject(reference.Global{}, reference.Local{}, reference.Global{}, nil, reference.Global{}))
 	smObject.SharedState.SetState(Empty)
 
 	var sharedData smachine.SharedDataLink
