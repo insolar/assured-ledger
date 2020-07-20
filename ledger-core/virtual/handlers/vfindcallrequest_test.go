@@ -36,7 +36,7 @@ func TestVFindCallRequest(t *testing.T) {
 		pulseSlot = conveyor.NewPastPulseSlot(nil, pd.AsRange())
 		objectID  = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
 		objectRef = reference.NewSelf(objectID)
-		outgoing  = gen.UniqueGlobalRef()
+		outgoing  = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
 	)
 
 	vFindCallRequest := payload.VFindCallRequest{
