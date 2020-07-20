@@ -65,6 +65,7 @@ type SMExecute struct {
 	messageSender         messageSenderAdapter.MessageSender
 	pulseSlot             *conveyor.PulseSlot
 	authenticationService authentication.Service
+	globalSem             conveyor.ParallelProcessingLimiter
 
 	outgoing            *payload.VCallRequest
 	outgoingObject      reference.Global
@@ -95,6 +96,7 @@ func (*dSMExecute) InjectDependencies(sm smachine.StateMachine, _ smachine.SlotL
 	injector.MustInject(&s.messageSender)
 	injector.MustInject(&s.objectCatalog)
 	injector.MustInject(&s.authenticationService)
+	injector.MustInject(&s.globalSem)
 }
 
 func (*dSMExecute) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc {
@@ -457,20 +459,20 @@ func (s *SMExecute) stepProcessFindCallResponse(ctx smachine.ExecutionContext) s
 }
 
 func (s *SMExecute) stepTakeLock(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	var executionSemaphore smachine.SyncLink
-
-	if s.execution.Isolation.Interference == contract.CallIntolerable {
-		executionSemaphore = s.semaphoreUnordered
-	} else {
-		executionSemaphore = s.semaphoreOrdered
-	}
-
-	if ctx.Acquire(executionSemaphore).IsNotPassed() {
+	if ctx.Acquire(s.getExecutionSemaphore()).IsNotPassed() {
 		// wait for semaphore to be released
 		return ctx.Sleep().ThenRepeat()
 	}
 
 	return ctx.Jump(s.stepStartRequestProcessing)
+}
+
+func (s *SMExecute) getExecutionSemaphore() smachine.SyncLink {
+	if s.execution.Isolation.Interference == contract.CallIntolerable {
+		return s.semaphoreUnordered
+	} else {
+		return s.semaphoreOrdered
+	}
 }
 
 func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -686,9 +688,9 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 		}
 	} else {
 		if s.outgoingSentCounter >= MaxOutgoingSendCount {
-		     return ctx.Error(throw.E("outgoing retries limit"))
+			return ctx.Error(throw.E("outgoing retries limit"))
 		}
-		
+
 		s.outgoing.CallRequestFlags = payload.BuildCallRequestFlags(payload.SendResultDefault, payload.RepeatedCall)
 	}
 
@@ -704,8 +706,22 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 	}).WithoutAutoWakeUp().Start()
 
 	s.outgoingSentCounter++
+
+	// someone else can process other requests while we  waiting for outgoing results
+	ctx.Release(s.globalSem.PartialLink())
+
 	// we'll wait for barge-in WakeUp here, not adapter
-	return ctx.Sleep().ThenJump(s.stepExecuteContinue)
+	return ctx.Sleep().ThenJump(s.stepTakeLockAfterOutgoing)
+}
+
+func (s *SMExecute) stepTakeLockAfterOutgoing(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	// parent semaphore was released in stepSendOutgoing
+	// acquire it again
+	if ctx.Acquire(s.globalSem.PartialLink()).IsNotPassed() {
+		return ctx.Sleep().ThenRepeat()
+	}
+
+	return ctx.Jump(s.stepExecuteContinue)
 }
 
 func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.StateUpdate {

@@ -635,3 +635,104 @@ func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 	mc.Finish()
 
 }
+
+// set runner limit to 1
+// send request to object one, it calls outgoing on object two
+// if first request doesn't release global lock we get stuck when start processing outgoing
+// otherwise sendOutgoing releases runner limit and we are OK
+func TestVirtual_OutgoingReleaseSemaphore(t *testing.T) {
+	t.Log("C5436")
+
+	mc := minimock.NewController(t)
+
+	server, ctx := utils.NewUninitializedServer(nil, t)
+	defer server.Stop()
+
+	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 2)
+
+	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
+		return execution.Request.CallSiteMethod
+	})
+
+	server.ReplaceRunner(runnerMock)
+	server.SetMaxParallelism(1)
+	server.Init(ctx)
+	server.IncrementPulseAndWaitIdle(ctx)
+
+	var (
+		class = gen.UniqueGlobalRef()
+
+		outgoingA       = server.BuildRandomOutgoingWithPulse()
+		objectAGlobal   = gen.UniqueGlobalRef()
+		outgoingCallRef = gen.UniqueGlobalRef()
+		objectBGlobal   = reference.NewSelf(server.RandomLocalWithPulse())
+	)
+
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+
+	Method_PrepareObject(ctx, server, payload.Ready, objectAGlobal)
+	Method_PrepareObject(ctx, server, payload.Ready, objectBGlobal)
+
+	// add mock
+	{
+		outgoingCall := execution.NewRPCBuilder(outgoingCallRef, objectAGlobal).CallMethod(objectBGlobal, class, "Bar", byteArguments)
+		objectAExecutionMock := runnerMock.AddExecutionMock("Foo")
+		objectAExecutionMock.AddStart(
+			func(ctx execution.Context) {},
+			&execution.Update{
+				Type:     execution.OutgoingCall,
+				Error:    nil,
+				Outgoing: outgoingCall,
+			},
+		)
+		objectAExecutionMock.AddContinue(
+			func(result []byte) {},
+			&execution.Update{
+				Type:   execution.Done,
+				Result: requestresult.New([]byte("finish A.Foo"), objectAGlobal),
+			},
+		)
+
+		runnerMock.AddExecutionMock("Bar").AddStart(
+			func(ctx execution.Context) {},
+			&execution.Update{
+				Type:   execution.Done,
+				Result: requestresult.New([]byte("finish B.Bar"), objectBGlobal),
+			},
+		)
+
+		runnerMock.AddExecutionClassify("Foo", tolerableFlags(), nil)
+		runnerMock.AddExecutionClassify("Bar", tolerableFlags(), nil)
+	}
+
+	// checks
+	{
+		typedChecker.VCallRequest.Set(func(request *payload.VCallRequest) bool { return true })
+
+		typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
+			// we should resend that message only if it's CallResult from B to A
+			return res.Caller == objectAGlobal
+		})
+	}
+
+	pl := payload.VCallRequest{
+		CallType:            payload.CTMethod,
+		CallFlags:           payload.BuildCallFlags(tolerableFlags().Interference, tolerableFlags().State),
+		Caller:              server.GlobalCaller(),
+		Callee:              objectAGlobal,
+		CallSiteDeclaration: class,
+		CallSiteMethod:      "Foo",
+		CallOutgoing:        outgoingA,
+	}
+
+	server.SendPayload(ctx, &pl)
+
+	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+
+	require.Equal(t, 1, typedChecker.VCallRequest.Count())
+	require.Equal(t, 2, typedChecker.VCallResult.Count())
+
+	mc.Finish()
+
+}
