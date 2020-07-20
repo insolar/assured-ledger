@@ -49,7 +49,9 @@ jobs:
         working-directory: ${{env.WORKDIR}}
       - name: Run unit and slow tests and check code coverage
         if: always()
-        run: set -o pipefail; make test_with_coverage 2>&1 | tee "integration_test.log"
+        run: |
+          make test_with_coverage 2>&1 > tee "integration_test.log"
+          cat integration_test.log
         working-directory: ${{env.WORKDIR}}
       - name: Upload integration_test.log to artifacts
         if: always()
