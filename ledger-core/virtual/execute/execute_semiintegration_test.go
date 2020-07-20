@@ -13,7 +13,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
@@ -25,6 +24,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/slotdebugger"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
 )
 
 func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
@@ -36,7 +36,7 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 
 		class   = gen.UniqueGlobalRef()
 		caller  = gen.UniqueGlobalRef()
-		limiter = conveyor.NewParallelProcessingLimiter(4)
+		limiter = tool.NewRunnerLimiter(4)
 
 		sharedState = &object.SharedState{
 			Info: object.Info{
@@ -113,7 +113,7 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 		class       = gen.UniqueGlobalRef()
 		caller      = gen.UniqueGlobalRef()
 		callee      = gen.UniqueGlobalRef()
-		limiter     = conveyor.NewParallelProcessingLimiter(4)
+		limiter     = tool.NewRunnerLimiter(4)
 		sharedState = &object.SharedState{
 			Info: object.Info{
 				PendingTable:   callregistry.NewRequestTable(),
@@ -190,7 +190,7 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 
 		class       = gen.UniqueGlobalRef()
 		caller      = gen.UniqueGlobalRef()
-		limiter     = conveyor.NewParallelProcessingLimiter(4)
+		limiter     = tool.NewRunnerLimiter(4)
 		sharedState = &object.SharedState{
 			Info: object.Info{
 				PendingTable:   callregistry.NewRequestTable(),
@@ -275,7 +275,7 @@ func TestSMExecute_Semi_ConstructorOnMissingObject(t *testing.T) {
 		caller      = gen.UniqueGlobalRef()
 		outgoing    = reference.NewRecordOf(caller, slotMachine.GenerateLocal())
 		objectRef   = reference.NewSelf(outgoing.GetLocal())
-		limiter     = conveyor.NewParallelProcessingLimiter(4)
+		limiter     = tool.NewRunnerLimiter(4)
 		sharedState = &object.SharedState{
 			Info: object.Info{
 				PendingTable:   callregistry.NewRequestTable(),

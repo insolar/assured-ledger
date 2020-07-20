@@ -25,6 +25,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object/finalizedstate"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
 )
 
 func TestSMObject_InitSetMigration(t *testing.T) {
@@ -36,7 +37,7 @@ func TestSMObject_InitSetMigration(t *testing.T) {
 		smObject        = newSMObjectWithPulse()
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 	)
-	smObject.globalLimiter = conveyor.NewParallelProcessingLimiter(4)
+	smObject.globalLimiter = tool.NewRunnerLimiter(4)
 
 	compareDefaultMigration := func(fn smachine.MigrateFunc) {
 		require.True(t, testutils.CmpStateFuncs(smObject.migrate, fn))
