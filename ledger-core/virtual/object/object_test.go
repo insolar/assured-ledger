@@ -38,6 +38,7 @@ func Test_Delay(t *testing.T) {
 
 	smObject := NewStateMachineObject(smGlobalRef)
 	smObject.pulseSlot = &pulseSlot
+	smObject.globalLimiter = conveyor.NewParallelProcessingLimiter(4)
 	sharedStateData := smachine.NewUnboundSharedData(&smObject.SharedState)
 
 	stepChecker := stepchecker.New()
@@ -127,6 +128,7 @@ func Test_PendingBlocksExecution(t *testing.T) {
 
 			smObject := NewStateMachineObject(smGlobalRef)
 			smObject.pulseSlot = &pulseSlot
+			smObject.globalLimiter = conveyor.NewParallelProcessingLimiter(4)
 			sharedStateData := smachine.NewUnboundSharedData(&smObject.SharedState)
 
 			stepChecker := stepchecker.New()
@@ -214,6 +216,7 @@ func TestSMObject_stepGotState_Set_PendingListFilled(t *testing.T) {
 
 	smObject := NewStateMachineObject(smGlobalRef)
 	smObject.pulseSlot = &pulseSlot
+	smObject.globalLimiter = conveyor.NewParallelProcessingLimiter(4)
 	sharedStateData := smachine.NewUnboundSharedData(&smObject.SharedState)
 
 	sm := SMObject{}

@@ -6,12 +6,14 @@
 package execute
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
@@ -32,19 +34,21 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 		mc  = minimock.NewController(t)
 		ctx = instestlogger.TestContext(t)
 
-		class       = gen.UniqueGlobalRef()
-		caller      = gen.UniqueGlobalRef()
+		class   = gen.UniqueGlobalRef()
+		caller  = gen.UniqueGlobalRef()
+		limiter = conveyor.NewParallelProcessingLimiter(4)
+
 		sharedState = &object.SharedState{
 			Info: object.Info{
 				PendingTable:   callregistry.NewRequestTable(),
 				KnownRequests:  callregistry.NewWorkingTable(),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
-				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
+				OrderedExecute: limiter.NewChildSemaphore(1, "MutableExecution").SyncLink(),
 			},
 		}
 	)
 
-	slotMachine := slotdebugger.NewWithIgnoreAllError(ctx, t)
+	slotMachine := slotdebugger.New(ctx, t)
 	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 
@@ -109,17 +113,18 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 		class       = gen.UniqueGlobalRef()
 		caller      = gen.UniqueGlobalRef()
 		callee      = gen.UniqueGlobalRef()
+		limiter     = conveyor.NewParallelProcessingLimiter(4)
 		sharedState = &object.SharedState{
 			Info: object.Info{
 				PendingTable:   callregistry.NewRequestTable(),
 				KnownRequests:  callregistry.NewWorkingTable(),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
-				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
+				OrderedExecute: limiter.NewChildSemaphore(1, "MutableExecution").SyncLink(),
 			},
 		}
 	)
 
-	slotMachine := slotdebugger.NewWithIgnoreAllError(ctx, t)
+	slotMachine := slotdebugger.New(ctx, t)
 	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 
@@ -185,17 +190,18 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 
 		class       = gen.UniqueGlobalRef()
 		caller      = gen.UniqueGlobalRef()
+		limiter     = conveyor.NewParallelProcessingLimiter(4)
 		sharedState = &object.SharedState{
 			Info: object.Info{
 				PendingTable:   callregistry.NewRequestTable(),
 				KnownRequests:  callregistry.NewWorkingTable(),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
-				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
+				OrderedExecute: limiter.NewChildSemaphore(1, "MutableExecution").SyncLink(),
 			},
 		}
 	)
 
-	slotMachine := slotdebugger.NewWithIgnoreAllError(ctx, t)
+	slotMachine := slotdebugger.New(ctx, t)
 	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 
@@ -260,7 +266,7 @@ func TestSMExecute_Semi_ConstructorOnMissingObject(t *testing.T) {
 		ctx = instestlogger.TestContext(t)
 	)
 
-	slotMachine := slotdebugger.NewWithIgnoreAllError(ctx, t)
+	slotMachine := slotdebugger.New(ctx, t)
 	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 
@@ -269,12 +275,13 @@ func TestSMExecute_Semi_ConstructorOnMissingObject(t *testing.T) {
 		caller      = gen.UniqueGlobalRef()
 		outgoing    = reference.NewRecordOf(caller, slotMachine.GenerateLocal())
 		objectRef   = reference.NewSelf(outgoing.GetLocal())
+		limiter     = conveyor.NewParallelProcessingLimiter(4)
 		sharedState = &object.SharedState{
 			Info: object.Info{
 				PendingTable:   callregistry.NewRequestTable(),
 				KnownRequests:  callregistry.NewWorkingTable(),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
-				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
+				OrderedExecute: limiter.NewChildSemaphore(1, "MutableExecution").SyncLink(),
 			},
 		}
 	)
@@ -337,7 +344,9 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 		ctx = instestlogger.TestContext(t)
 	)
 
-	slotMachine := slotdebugger.NewWithIgnoreAllError(ctx, t)
+	slotMachine := slotdebugger.NewWithErrorFilter(ctx, t, func(s string) bool {
+		return !strings.Contains(s, "execution: not implemented")
+	})
 	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 
@@ -348,10 +357,9 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 		objectRef   = reference.NewSelf(outgoing.GetLocal())
 		sharedState = &object.SharedState{
 			Info: object.Info{
-				PendingTable:   callregistry.NewRequestTable(),
-				KnownRequests:  callregistry.NewWorkingTable(),
-				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
-				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
+				PendingTable:  callregistry.NewRequestTable(),
+				KnownRequests: callregistry.NewWorkingTable(),
+				ReadyToWork:   smsync.NewConditional(1, "ReadyToWork").SyncLink(),
 			},
 		}
 	)
@@ -414,7 +422,9 @@ func TestSMExecute_Semi_MethodOnEmptyObject(t *testing.T) {
 		ctx = instestlogger.TestContext(t)
 	)
 
-	slotMachine := slotdebugger.NewWithIgnoreAllError(ctx, t)
+	slotMachine := slotdebugger.NewWithErrorFilter(ctx, t, func(s string) bool {
+		return !strings.Contains(s, "async call: runtime error: invalid memory address or nil pointer dereference")
+	})
 	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 
@@ -424,10 +434,9 @@ func TestSMExecute_Semi_MethodOnEmptyObject(t *testing.T) {
 		outgoing    = reference.NewRecordOf(slotMachine.GenerateGlobal(), slotMachine.GenerateLocal())
 		sharedState = &object.SharedState{
 			Info: object.Info{
-				PendingTable:   callregistry.NewRequestTable(),
-				KnownRequests:  callregistry.NewWorkingTable(),
-				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
-				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
+				PendingTable:  callregistry.NewRequestTable(),
+				KnownRequests: callregistry.NewWorkingTable(),
+				ReadyToWork:   smsync.NewConditional(1, "ReadyToWork").SyncLink(),
 			},
 		}
 	)
