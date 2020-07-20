@@ -63,15 +63,9 @@ func TestVFindCallRequest(t *testing.T) {
 
 	sync := smsync.NewConditionalBool(false, "summaryDone").SyncLink()
 
-	// <<<<<<< HEAD
-	// 	smObject := object.NewStateMachineObject(objectRef)
-	// 	smObject.SetState(object.HasState)
-	// 	smObject.SetDescriptorDirty(descriptor.NewObject(reference.Global{}, reference.Local{}, gen.UniqueGlobalRef(), []byte("213"), reference.Global{}))
-	// =======
 	t.Run("found_callsummary_sync", func(t *testing.T) {
 		{
 			callSummarySyncSdl := smachine.NewUnboundSharedData(&sync)
-			// >>>>>>> 9884ea63a034f8c97ebfa511956f7aa43cd8e6a2
 
 			execCtx := smachine.NewExecutionContextMock(mc).
 				GetPublishedLinkMock.Expect(callsummary.BuildSummarySyncKey(objectRef)).
