@@ -42,6 +42,7 @@ import (
 	virtualTestutils "github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/shareddata"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/slotdebugger"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
 )
 
 func executeLeakCheck(t *testing.T) {
@@ -779,7 +780,7 @@ func TestSendVStateReportWithMissingState_IfConstructorWasInterruptedBeforeRunne
 		catalog     object.Catalog         = object.NewLocalCatalog()
 		authService authentication.Service = authentication.NewServiceMock(t)
 
-		limiter = conveyor.NewParallelProcessingLimiter(4)
+		limiter = tool.NewRunnerLimiter(4)
 	)
 
 	slotMachine := slotdebugger.New(ctx, t)
@@ -855,7 +856,7 @@ func TestSMExecute_StopWithoutMessagesIfPulseChangedBeforeOutgoing(t *testing.T)
 		catalog     object.Catalog         = object.NewLocalCatalog()
 		authService authentication.Service = authentication.NewServiceMock(t)
 
-		limiter = conveyor.NewParallelProcessingLimiter(4)
+		limiter = tool.NewRunnerLimiter(4)
 	)
 
 	slotMachine := slotdebugger.New(ctx, t)
