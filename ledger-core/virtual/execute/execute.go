@@ -31,6 +31,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callsummary"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
 )
 
 /* -------- Utilities ------------- */
@@ -65,7 +66,7 @@ type SMExecute struct {
 	messageSender         messageSenderAdapter.MessageSender
 	pulseSlot             *conveyor.PulseSlot
 	authenticationService authentication.Service
-	globalSem             conveyor.ParallelProcessingLimiter
+	globalSem             tool.RunnerLimiter
 
 	outgoing            *payload.VCallRequest
 	outgoingObject      reference.Global
