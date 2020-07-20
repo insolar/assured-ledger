@@ -76,10 +76,10 @@ func (u *UpstreamController) ConsensusFinished(report api.UpstreamReport, expect
 		longbits.AsBytes(expectedCensus.GetCloudStateHash()),
 	)
 
-	// if _, pd := expectedCensus.GetNearestPulseData(); pd.IsFromEphemeral() {
-	// 	// Fix bootstrap. Commit active list right after consensus finished
-	// 	u.CommitPulseChange(report, pd, expectedCensus)
-	// }
+	if _, pd := expectedCensus.GetNearestPulseData(); pd.IsFromEphemeral() {
+		// Fix bootstrap. Commit active list right after consensus finished
+		u.CommitPulseChange(report, pd, expectedCensus)
+	}
 
 	u.mu.RLock()
 	defer u.mu.RUnlock()
