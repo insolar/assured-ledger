@@ -115,9 +115,6 @@ func (a *serviceAdapter) PrepareExecutionContinue(ctx smachine.ExecutionContext,
 	if state == nil {
 		panic(throw.IllegalValue())
 	}
-	if outgoingResult == nil {
-		panic(throw.IllegalValue())
-	}
 
 	return a.runExec.PrepareAsync(ctx, func(_ context.Context, arg interface{}) smachine.AsyncResultFunc {
 		arg.(UnmanagedService).ExecutionContinue(state, outgoingResult)
