@@ -21,7 +21,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-func NewTestLogger(target logcommon.TestingLogger, suppressTestError bool) log.Logger {
+func newTestLogger(target logcommon.TestingLogger, suppressTestError bool) log.Logger {
 	if !suppressTestError {
 		return NewTestLoggerWithErrorFilter(target, nil)
 	}
@@ -68,19 +68,8 @@ func newTestLoggerExt(target logcommon.TestingLogger, filterFn logcommon.ErrorFi
 		echoTo = os.Stderr
 	}
 
-	if emuMarks && global.IsInitialized() {
-		// check global to avoid multiple marks for the same testing.T
-		lOut := global.Logger().Embeddable().Copy().GetLoggerOutput()
-
-		if plo, ok := lOut.(*logwriter.ProxyLoggerOutput); ok {
-			lOut = plo.GetTarget()
-		}
-
-		if tlo, ok := lOut.(*logcommon.TestingLoggerOutput); ok {
-			if logcommon.IsBasedOn(tlo.Testing, target) {
-				emuMarks = false // avoid multiple marks
-			}
-		}
+	if emuMarks && isGlobalBasedOn(target) {
+		emuMarks = false // avoid multiple marks per test
 	}
 
 	out := l.GetOutput()
@@ -124,30 +113,45 @@ func newTestLoggerExt(target logcommon.TestingLogger, filterFn logcommon.ErrorFi
 		MustBuild()
 }
 
+func isGlobalBasedOn(target logcommon.TestingLogger) bool {
+	if !global.IsInitialized() {
+		return false
+	}
+	// check global to avoid multiple marks for the same testing.T
+	lOut := global.Logger().Embeddable().Copy().GetLoggerOutput()
+
+	if plo, ok := lOut.(*logwriter.ProxyLoggerOutput); ok {
+		lOut = plo.GetTarget()
+	}
+
+	tlo, ok := lOut.(*logcommon.TestingLoggerOutput)
+	return ok && logcommon.IsBasedOn(tlo.Testing, target)
+}
+
 func SetTestOutputWithErrorFilter(target logcommon.TestingLogger, filterFn logcommon.ErrorFilterFunc) {
 	global.SetLogger(NewTestLoggerWithErrorFilter(target, filterFn))
 }
 
 // deprecated
 func SetTestOutputWithIgnoreAllErrors(target logcommon.TestingLogger) {
-	global.SetLogger(NewTestLogger(target, true))
+	global.SetLogger(newTestLogger(target, true))
 }
 
 func SetTestOutput(target logcommon.TestingLogger) {
-	global.SetLogger(NewTestLogger(target, false))
+	global.SetLogger(newTestLogger(target, false))
 }
 
 func SetTestOutputWithCfg(target logcommon.TestingLogger, cfg configuration.Log) {
 	global.SetLogger(newTestLoggerExt(target, nil, cfg, false))
 }
 
-func SetTestOutputWithStub(suppressLogError bool) (teardownFn func(pass bool)) {
+func SetTestOutputWithStub() (teardownFn func(pass bool)) {
 	emu := &stubT{}
-	global.SetLogger(NewTestLogger(emu, suppressLogError))
+	global.SetLogger(newTestLogger(emu, false))
 	return emu.cleanup
 }
 
-// TestContext returns context with initalized log field "testname" equal t.Name() value.
+// TestContext returns context with initialized log field "testname" equal t.Name() value.
 func TestContext(target logcommon.TestingLogger) context.Context {
 	if !global.IsInitialized() {
 		SetTestOutput(target)
