@@ -98,6 +98,25 @@ func UnmarshalWalletTransferResponse(resp []byte) (WalletTransferResponse, error
 	return result, nil
 }
 
+// nolint:unused,deadcode
+type WalletDeleteRequestBody struct {
+	Ref string `json:"walletRef"`
+}
+
+// nolint:unused,deadcode
+type WalletDeleteResponse struct {
+	Err     string `json:"error"`
+	TraceID string `json:"traceID"`
+}
+
+func UnmarshalWalletDeleteResponse(resp []byte) (WalletDeleteResponse, error) { // nolint:unused,deadcode
+	result := WalletDeleteResponse{}
+	if err := json.Unmarshal(resp, &result); err != nil {
+		return WalletDeleteResponse{}, errors.W(err, "problem with unmarshaling response")
+	}
+	return result, nil
+}
+
 // Utility function RE wallet + HTTP API
 func (s *Server) CallAPICreateWallet(ctx context.Context) (int, []byte) {
 	ctx, cancel := context.WithTimeout(ctx, apiTimeout)
@@ -217,6 +236,41 @@ func (s *Server) CallAPIGetBalance(ctx context.Context, wallet reference.Global)
 	)
 
 	s.testWalletServer.GetBalance(responseWriter, httpRequest)
+
+	var (
+		statusCode = responseWriter.Result().StatusCode
+		body, err  = ioutil.ReadAll(responseWriter.Result().Body)
+	)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return statusCode, body
+}
+
+// nolint:interfacer
+func (s *Server) CallAPIDelete(ctx context.Context, wallet reference.Global) (int, []byte) {
+	ctx, cancel := context.WithTimeout(ctx, apiTimeout)
+	defer cancel()
+
+	bodyBuffer := bytes.NewBuffer(nil)
+
+	{
+		err := json.NewEncoder(bodyBuffer).Encode(WalletDeleteRequestBody{
+			Ref: wallet.String(),
+		})
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	var (
+		responseWriter = httptest.NewRecorder()
+		httpRequest    = httptest.NewRequest("POST", "/wallet/delete", bodyBuffer).WithContext(ctx)
+	)
+
+	s.testWalletServer.Delete(responseWriter, httpRequest)
 
 	var (
 		statusCode = responseWriter.Result().StatusCode
