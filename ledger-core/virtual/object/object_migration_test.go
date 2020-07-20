@@ -25,6 +25,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object/finalizedstate"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
 )
 
 func TestSMObject_InitSetMigration(t *testing.T) {
@@ -36,6 +37,7 @@ func TestSMObject_InitSetMigration(t *testing.T) {
 		smObject        = newSMObjectWithPulse()
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 	)
+	smObject.globalLimiter = tool.NewRunnerLimiter(4)
 
 	compareDefaultMigration := func(fn smachine.MigrateFunc) {
 		require.True(t, testutils.CmpStateFuncs(smObject.migrate, fn))
@@ -58,7 +60,7 @@ func TestSMObject_MigrationCreateStateReport_IfStateMissing(t *testing.T) {
 
 	smObject := newSMObjectWithPulse()
 
-	smObject.SetDescriptor(descriptor.NewObject(reference.Global{}, reference.Local{}, reference.Global{}, nil, reference.Global{}))
+	smObject.SetDescriptorDirty(descriptor.NewObject(reference.Global{}, reference.Local{}, reference.Global{}, nil, reference.Global{}))
 	smObject.SharedState.SetState(Missing)
 	smObject.IncrementPotentialPendingCounter(contract.MethodIsolation{
 		Interference: contract.CallIntolerable,
@@ -113,7 +115,7 @@ func TestSMObject_MigrationCreateStateReport_IfStateIsEmptyAndNoCounters(t *test
 		smObject = newSMObjectWithPulse()
 	)
 
-	smObject.SetDescriptor(descriptor.NewObject(reference.Global{}, reference.Local{}, reference.Global{}, nil, reference.Global{}))
+	smObject.SetDescriptorDirty(descriptor.NewObject(reference.Global{}, reference.Local{}, reference.Global{}, nil, reference.Global{}))
 	smObject.SharedState.SetState(Empty)
 
 	var sharedData smachine.SharedDataLink

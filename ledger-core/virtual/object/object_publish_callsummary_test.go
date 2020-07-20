@@ -22,6 +22,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callsummary"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object/finalizedstate"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/shareddata"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
 )
 
 func TestSMObject_CallSummarySM(t *testing.T) {
@@ -34,6 +35,7 @@ func TestSMObject_CallSummarySM(t *testing.T) {
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 	)
 
+	smObject.globalLimiter = tool.NewRunnerLimiter(4)
 	smObject.SetState(HasState)
 
 	res1 := payload.VCallResult{
