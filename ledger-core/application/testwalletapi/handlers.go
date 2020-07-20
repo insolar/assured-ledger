@@ -33,6 +33,7 @@ type logIncomingRequest struct {
 
 	URL     string
 	Handler string
+	State   contract.StateFlag
 }
 
 const (
@@ -221,7 +222,7 @@ func (g *GetBalanceParams) isValid() bool {
 	return len(g.WalletRef) > 0
 }
 
-func (s *TestWalletServer) GetBalance(w http.ResponseWriter, req *http.Request) {
+func (s *TestWalletServer) getBalance(w http.ResponseWriter, req *http.Request, state contract.StateFlag) {
 	var (
 		ctx     = req.Context()
 		traceID = trace.RandID()
@@ -229,7 +230,7 @@ func (s *TestWalletServer) GetBalance(w http.ResponseWriter, req *http.Request) 
 	)
 
 	ctx, logger = inslogger.WithTraceField(ctx, traceID)
-	logger.Infom(logIncomingRequest{URL: req.URL.String(), Handler: "GetBalance"})
+	logger.Infom(logIncomingRequest{URL: req.URL.String(), Handler: "GetBalance", State: state})
 
 	params := GetBalanceParams{}
 	err := json.NewDecoder(req.Body).Decode(&params)
@@ -264,7 +265,7 @@ func (s *TestWalletServer) GetBalance(w http.ResponseWriter, req *http.Request) 
 
 	walletReq := payload.VCallRequest{
 		CallType:       payload.CTMethod,
-		CallFlags:      payload.BuildCallFlags(contract.CallIntolerable, contract.CallValidated),
+		CallFlags:      payload.BuildCallFlags(contract.CallIntolerable, state),
 		Callee:         ref,
 		CallSiteMethod: getBalance,
 		Arguments:      insolar.MustSerialize([]interface{}{}),
@@ -291,6 +292,14 @@ func (s *TestWalletServer) GetBalance(w http.ResponseWriter, req *http.Request) 
 	default:
 		result.Amount = uint(amount)
 	}
+}
+
+func (s *TestWalletServer) GetBalanceValidated(w http.ResponseWriter, req *http.Request) {
+	s.getBalance(w, req, contract.CallValidated)
+}
+
+func (s *TestWalletServer) GetBalance(w http.ResponseWriter, req *http.Request) {
+	s.getBalance(w, req, contract.CallDirty)
 }
 
 type AddAmountParams struct {
