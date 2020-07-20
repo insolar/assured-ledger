@@ -101,7 +101,9 @@ jobs:
         env:
           TR_USER: ${{ secrets.TR_USER }}
           TR_PASSWORD: ${{ secrets.TR_PASSWORD }}
-        run: make publish_integration_tests
+        run: |
+          make publish_integration_tests
+          make publish_integration_extended_tests
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
       - name: Publish functional tests results to testrail
         if: always()

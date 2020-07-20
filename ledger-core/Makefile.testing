@@ -101,6 +101,10 @@ test_func_kubernetes_ci: ## run functest FUNCTEST_COUNT times in kubernetes clus
 publish_integration_tests: ## send results to testrail
 	${GOPATH}/bin/testrail-cli --URL=https://insolar.testrail.io/ --USER=$(TR_USER) --PASSWORD=$(TR_PASSWORD) --RUN_ID=103 --SKIP-DESC=true --FORMAT="text" --FILE="integration_test.log"
 
+.PHONY: publish_integration_extended_tests
+publish_integration_tests: ## send results to testrail
+	${GOPATH}/bin/testrail-cli --URL=https://insolar.testrail.io/ --USER=$(TR_USER) --PASSWORD=$(TR_PASSWORD) --RUN_ID=103 --SKIP-DESC=true --FORMAT="text" --FILE="integration_extended_test.log"
+
 .PHONY: publish_functest
 publish_functest: ## send results to testrail
 	cat functional_test.log | grep "Test" > functional_test_clean.log
