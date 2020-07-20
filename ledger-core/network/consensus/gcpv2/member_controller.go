@@ -194,7 +194,7 @@ type ephemeralInterceptor struct {
 }
 
 func (p *ephemeralInterceptor) IsActive() bool {
-	return !p.cancelled.IsSet() && p.EphemeralControlFeeder.IsActive()
+	return p.EphemeralControlFeeder != nil && !p.cancelled.IsSet() && p.EphemeralControlFeeder.IsActive()
 }
 
 func (p *ephemeralInterceptor) OnEphemeralCancelled() {
@@ -232,7 +232,7 @@ func (p *ephemeralInterceptor) prepare(controller *ConsensusMemberController) ap
 	}
 	p.round = nil
 
-	if p.cancelled.IsSet() {
+	if p.EphemeralControlFeeder == nil || p.cancelled.IsSet() {
 		return nil
 	}
 	return p
