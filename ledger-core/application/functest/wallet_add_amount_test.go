@@ -10,9 +10,10 @@ package functest
 import (
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 )
 
 // Creates wallet, calls /wallet/add_amount and checks it's response body.

@@ -11,8 +11,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/stretchr/testify/require"
+
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 )
 
 // Creates wallets and check Reference format in response body.

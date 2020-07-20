@@ -12,9 +12,9 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/application/testutils/launchnet"
-
 	"github.com/stretchr/testify/require"
+
+	"github.com/insolar/assured-ledger/ledger-core/application/testutils/launchnet"
 )
 
 func TestChangeLogLevelOk(t *testing.T) {

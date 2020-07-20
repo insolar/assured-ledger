@@ -10,9 +10,10 @@ package functest
 import (
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 )
 
 func TestCreateUpdateWallet(t *testing.T) {
