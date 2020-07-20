@@ -471,9 +471,9 @@ func (s *SMExecute) stepTakeLock(ctx smachine.ExecutionContext) smachine.StateUp
 func (s *SMExecute) getExecutionSemaphore() smachine.SyncLink {
 	if s.execution.Isolation.Interference == contract.CallIntolerable {
 		return s.semaphoreUnordered
-	} else {
-		return s.semaphoreOrdered
 	}
+
+	return s.semaphoreOrdered
 }
 
 func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) smachine.StateUpdate {
