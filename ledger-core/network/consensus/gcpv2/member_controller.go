@@ -193,6 +193,10 @@ type ephemeralInterceptor struct {
 	round      api.RoundController
 }
 
+func (p *ephemeralInterceptor) IsActive() bool {
+	return !p.cancelled.IsSet() && p.EphemeralControlFeeder.IsActive()
+}
+
 func (p *ephemeralInterceptor) OnEphemeralCancelled() {
 	p.cancelled.DoSet(func() {
 		p.EphemeralControlFeeder.OnEphemeralCancelled()
@@ -203,14 +207,14 @@ func (p *ephemeralInterceptor) EphemeralConsensusFinished(isNextEphemeral bool, 
 	expected census.Operational) {
 
 	if p.cancelled.IsSet() {
-		panic(throw.IllegalState())
+		return
 	}
 	p.EphemeralControlFeeder.EphemeralConsensusFinished(isNextEphemeral, roundStartedAt, expected)
 
 	p.controller.mutex.Lock()
 	defer p.controller.mutex.Unlock()
 
-	if !isNextEphemeral {
+	if !isNextEphemeral || p.cancelled.IsSet() { // double-check
 		return
 	}
 
