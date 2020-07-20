@@ -36,6 +36,7 @@ func (m *MemoryStorage) Truncate(count int) {
 	case count == 0:
 		m.snapshotEntries = nil
 		m.entries = nil
+		return
 	}
 
 	removeN := len(m.entries)-count
