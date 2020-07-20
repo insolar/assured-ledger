@@ -5,7 +5,6 @@ go 1.14
 require (
 	contrib.go.opencensus.io/exporter/prometheus v0.1.0
 	github.com/ThreeDotsLabs/watermill v1.0.2
-	github.com/blend/go-sdk v1.1.1 // indirect
 	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
 	github.com/cyraxred/go-acc v0.2.5
 	github.com/fsnotify/fsnotify v1.4.9
@@ -31,7 +30,6 @@ require (
 	github.com/mattn/go-isatty v0.0.9 // indirect
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/olekukonko/tablewriter v0.0.1
-	github.com/onrik/gomerkle v1.0.0 // indirect
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/prometheus/client_golang v1.6.0
 	github.com/rs/zerolog v1.15.0
