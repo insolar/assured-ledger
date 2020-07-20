@@ -45,15 +45,15 @@ func (m *PulseManager) AddDispatcher(d ...beat.Dispatcher) {
 
 func (m *PulseManager) CommitPulseChange(pulseChange beat.Beat) error {
 	ctx := context.Background()
-	return m.setNewPulse(ctx, pulseChange, false)
+	return m.setNewPulse(ctx, pulseChange)
 }
 
 func (m *PulseManager) CommitFirstPulseChange(pulseChange beat.Beat) error {
 	ctx := context.Background()
-	return m.setNewPulse(ctx, pulseChange, true)
+	return m.setNewPulse(ctx, pulseChange)
 }
 
-func (m *PulseManager) setNewPulse(ctx context.Context, pulseChange beat.Beat, isFirst bool) error {
+func (m *PulseManager) setNewPulse(ctx context.Context, pulseChange beat.Beat) error {
 	if err := m.PulseAppender.EnsureLatest(ctx, pulseChange); err != nil {
 		return throw.W(err, "call of Ensure pulseChange failed")
 	}
