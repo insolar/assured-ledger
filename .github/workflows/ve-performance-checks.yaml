@@ -8,9 +8,8 @@ env:
   GO_VERSION: 1.14
   CI_GOMAXPROCS: 0
   INSOLAR_LOG_LEVEL: warn
-  GOTEST: 'gotestsum --'
   GOPATH: /home/runner/work/
-  GOPROXY: https://proxy.golang.org,https://goproxy.io,direct
+  GOPROXY: https://proxy.golang.org,https://gocenter.io,direct
   CORE_PATH: /home/runner/work/assured-ledger/assured-ledger/ledger-core
   USE_MANIFESTS: aks
   ACR_HOST: usciregistry.azurecr.io
@@ -21,6 +20,13 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@master
+      - name: Go mod cache setup
+        uses: actions/cache@v2
+        with:
+          path: ${{env.GOPATH}}/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
       - name: build test
         working-directory: ${{ env.CORE_PATH }}
         run: |
@@ -36,6 +42,18 @@ jobs:
         run: echo "::add-path::$GITHUB_WORKSPACE/bin"
       - name: save kubeconfig
         run: echo "${{secrets.CLOUD_KUBECONFIG}}" >> aks.yaml
+      - name: Go mod cache setup
+        uses: actions/cache@v2
+        with:
+          path: ${{env.GOPATH}}/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: Fetch dependencies
+        run: |
+          go mod download
+          make vendor
+        working-directory: ${{env.CORE_PATH}}
       - name: Build docker images
         run: make docker-build
         working-directory: ${{ env.CORE_PATH }}

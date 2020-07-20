@@ -5,7 +5,6 @@ go 1.14
 require (
 	contrib.go.opencensus.io/exporter/prometheus v0.1.0
 	github.com/ThreeDotsLabs/watermill v1.0.2
-	github.com/blend/go-sdk v1.1.1 // indirect
 	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
 	github.com/cyraxred/go-acc v0.2.5
 	github.com/fsnotify/fsnotify v1.4.9
@@ -26,9 +25,6 @@ require (
 	github.com/jbenet/go-base58 v0.0.0-20150317085156-6237cf65f3a6
 	github.com/json-iterator/go v1.1.9
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
-	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
-	github.com/mattn/go-colorable v0.1.4 // indirect
-	github.com/mattn/go-isatty v0.0.9 // indirect
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/olekukonko/tablewriter v0.0.1
 	github.com/onrik/gomerkle v1.0.0
@@ -58,7 +54,6 @@ require (
 	google.golang.org/grpc v1.22.0
 	gopkg.in/yaml.v2 v2.3.0
 	gotest.tools v2.2.0+incompatible
-	gotest.tools/gotestsum v0.4.1
 )
 
 replace github.com/insolar/assured-ledger/ledger-core => ./

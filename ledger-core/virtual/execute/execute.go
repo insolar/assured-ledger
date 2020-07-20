@@ -205,7 +205,7 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 		semaphoreOrdered = state.OrderedExecute
 		semaphoreUnordered = state.UnorderedExecute
 
-		objectDescriptor = state.Descriptor()
+		objectDescriptor = state.DescriptorDirty()
 
 		objectState = state.GetState()
 	}
@@ -488,7 +488,7 @@ func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) sm
 		}
 
 		state.IncrementPotentialPendingCounter(s.execution.Isolation)
-		objectDescriptor = state.Descriptor()
+		objectDescriptor = state.DescriptorDirty()
 	}
 
 	if stepUpdate := s.shareObjectAccess(ctx, action); !stepUpdate.IsEmpty() {
@@ -727,6 +727,12 @@ func (s *SMExecute) stepTakeLockAfterOutgoing(ctx smachine.ExecutionContext) sma
 
 func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	outgoingResult := s.outgoingResult
+	switch s.executionNewState.Outgoing.(type) {
+	case execution.CallConstructor, execution.CallMethod:
+		if outgoingResult == nil {
+			panic(throw.IllegalValue())
+		}
+	}
 
 	// unset all outgoing fields in case we have new outgoing request
 	s.outgoingSentCounter = 0
@@ -788,7 +794,7 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 	}
 
 	action := func(state *object.SharedState) {
-		state.Info.SetDescriptor(s.newObjectDescriptor)
+		state.Info.SetDescriptorDirty(s.newObjectDescriptor)
 
 		switch state.GetState() {
 		case object.HasState:
