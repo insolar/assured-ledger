@@ -188,6 +188,7 @@ func newServerExt(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFi
 	virtualDispatcher.CycleFn = s.onConveyorCycle
 	virtualDispatcher.EventlessSleep = -1 // disable EventlessSleep for proper WaitActiveThenIdleConveyor behavior
 	virtualDispatcher.MachineLogger = machineLogger
+	virtualDispatcher.MaxRunners = 4
 	s.virtual = virtualDispatcher
 
 	// re HTTP testing
