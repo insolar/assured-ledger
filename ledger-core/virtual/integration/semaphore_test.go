@@ -26,7 +26,6 @@ import (
 
 func TestVirtual_SemaphoreLimitNotExceeded(t *testing.T) {
 	t.Log("C5137")
-	t.Skip("https://insolar.atlassian.net/browse/PLAT-432")
 
 	mc := minimock.NewController(t)
 
@@ -38,11 +37,14 @@ func TestVirtual_SemaphoreLimitNotExceeded(t *testing.T) {
 	})
 	server.ReplaceRunner(runnerMock)
 
+	semaphoreParallelism := 3
+	server.SetMaxParallelism(semaphoreParallelism)
+
 	server.Init(ctx)
 	server.IncrementPulseAndWaitIdle(ctx)
 
 	var (
-		numObject = 100
+		numObject = 40
 		objects   = make([]reference.Global, 0, numObject)
 	)
 
@@ -54,9 +56,6 @@ func TestVirtual_SemaphoreLimitNotExceeded(t *testing.T) {
 		}
 	}
 
-	semaphoreParallelism := 3
-	server.SetMaxParallelism(semaphoreParallelism)
-
 	var (
 		class            = testwallet.GetClass()
 		interferenceFlag = contract.CallIntolerable
@@ -64,7 +63,7 @@ func TestVirtual_SemaphoreLimitNotExceeded(t *testing.T) {
 		numParallelExecs = int64(0)
 	)
 
-	syncChan := make(chan bool)
+	syncChan := make(chan bool, semaphoreParallelism*2)
 	// Add execution mocks
 	{
 		for i := 0; i < numObject; i++ {
