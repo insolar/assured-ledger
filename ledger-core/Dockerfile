@@ -5,6 +5,8 @@ FROM golang:${GOLANG_VERSION} AS build
 ADD . /go/src/github.com/insolar/assured-ledger
 WORKDIR /go/src/github.com/insolar/assured-ledger
 
+RUN make vendor
+
 # pass build variables as arguments to avoid adding .git directory
 ARG BUILD_NUMBER
 ARG BUILD_DATE

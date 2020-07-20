@@ -38,8 +38,7 @@ jobs:
             ${{ runner.os }}-go-
       - name: Fetch vendor and check succesful build
         run: |
-          go mod download
-          go mod vendor
+          make vendor
           make install-build-tools pre-build proto build
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
       - name: Check if working directory is clean after build
@@ -81,7 +80,7 @@ jobs:
       - name: Fetch vendor and check succesful build
         run: |
           go mod download
-          go mod vendor
+          make vendor
           go install -v github.com/cyraxred/go-acc
           make build
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core

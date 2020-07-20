@@ -43,7 +43,7 @@ jobs:
       - name: Fetch vendor and check succesful build
         run: |
           go mod download
-          go mod vendor
+          make vendor
           make pre-build build
         working-directory: ${{env.WORKDIR}}
       - name: Run unit and slow tests and check code coverage
