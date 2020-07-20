@@ -9,6 +9,7 @@ package gateway
 
 import (
 	"context"
+	"math/rand"
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
@@ -72,6 +73,7 @@ func (g *NoNetwork) Run(ctx context.Context, pulse pulsestor.Pulse) {
 
 	time.Sleep(g.pause())
 	if g.isDiscovery {
+		time.Sleep(time.Second * time.Duration(rand.Intn(20)))
 		g.Gatewayer.SwitchState(ctx, node.DiscoveryBootstrap, pulse)
 	} else {
 		g.Gatewayer.SwitchState(ctx, node.JoinerBootstrap, pulse)

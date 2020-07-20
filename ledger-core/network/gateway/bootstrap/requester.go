@@ -50,6 +50,7 @@ type requester struct {
 	CryptographyService cryptography.Service   `inject:""`
 
 	options *network.Options
+	retry   int
 }
 
 func (ac *requester) Authorize(ctx context.Context, cert node.Certificate) (*packet.Permit, error) {
@@ -130,7 +131,6 @@ func (ac *requester) authorizeDiscovery(ctx context.Context, bNodes []node.Disco
 			continue
 		}
 
-		// panic("asadad")
 		logger.Infof("Trying to authorize to node: %s", h.String())
 		res, err := ac.authorize(ctx, h, cert)
 		if err != nil {
@@ -264,7 +264,13 @@ func (ac *requester) Bootstrap(ctx context.Context, permit *packet.Permit, candi
 	case packet.Retry:
 		// todo sleep and retry ac.Bootstrap()
 		// panic("packet.Retry")
+		// return respData, throw.New("Bootstrap request retry")
 		time.Sleep(time.Second)
+		ac.retry += 1
+		if ac.retry > 2 {
+			ac.retry = 0
+			return respData, throw.New("Retry bootstrap failed")
+		}
 		return ac.Bootstrap(ctx, permit, candidate, p)
 	}
 
