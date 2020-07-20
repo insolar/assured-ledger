@@ -215,8 +215,8 @@ type SMObject struct {
 	SharedState
 
 	readyToWorkCtl        smsync.BoolConditionalLink
-	orderedSemaphoreCtl   smsync.SemaphoreLink
-	unorderedSemaphoreCtl smsync.SemaphoreLink
+	orderedSemaphoreCtl   smsync.SemaChildLink
+	unorderedSemaphoreCtl smsync.SemaChildLink
 	summaryDoneCtl        smsync.BoolConditionalLink
 
 	waitGetStateUntil time.Time
@@ -225,6 +225,7 @@ type SMObject struct {
 	// dependencies
 	messageSender messageSenderAdapter.MessageSender
 	pulseSlot     *conveyor.PulseSlot
+	globalLimiter conveyor.ParallelProcessingLimiter
 }
 
 /* -------- Declaration ------------- */
@@ -233,6 +234,7 @@ func (sm *SMObject) InjectDependencies(stateMachine smachine.StateMachine, _ sma
 	s := stateMachine.(*SMObject)
 	injector.MustInject(&s.messageSender)
 	injector.MustInject(&s.pulseSlot)
+	injector.MustInject(&s.globalLimiter)
 }
 
 func (sm *SMObject) GetInitStateFor(smachine.StateMachine) smachine.InitFunc {
@@ -257,10 +259,10 @@ func (sm *SMObject) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 	sm.summaryDoneCtl = smsync.NewConditionalBool(false, "summaryDone")
 	sm.SummaryDone = sm.summaryDoneCtl.SyncLink()
 
-	sm.unorderedSemaphoreCtl = smsync.NewSemaphore(0, "unordered calls")
+	sm.unorderedSemaphoreCtl = sm.globalLimiter.NewChildSemaphore(0, "unordered calls")
 	sm.UnorderedExecute = sm.unorderedSemaphoreCtl.SyncLink()
 
-	sm.orderedSemaphoreCtl = smsync.NewSemaphore(0, "ordered calls")
+	sm.orderedSemaphoreCtl = sm.globalLimiter.NewChildSemaphore(0, "ordered calls")
 	sm.OrderedExecute = sm.orderedSemaphoreCtl.SyncLink()
 
 	sdl := ctx.Share(&sm.SharedState, 0)

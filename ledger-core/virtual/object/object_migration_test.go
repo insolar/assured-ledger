@@ -36,6 +36,7 @@ func TestSMObject_InitSetMigration(t *testing.T) {
 		smObject        = newSMObjectWithPulse()
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 	)
+	smObject.globalLimiter = conveyor.NewParallelProcessingLimiter(4)
 
 	compareDefaultMigration := func(fn smachine.MigrateFunc) {
 		require.True(t, testutils.CmpStateFuncs(smObject.migrate, fn))
