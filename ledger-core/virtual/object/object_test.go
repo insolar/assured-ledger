@@ -22,6 +22,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/stepchecker"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
 )
 
 func Test_Delay(t *testing.T) {
@@ -38,7 +39,7 @@ func Test_Delay(t *testing.T) {
 
 	smObject := NewStateMachineObject(smGlobalRef)
 	smObject.pulseSlot = &pulseSlot
-	smObject.globalLimiter = conveyor.NewParallelProcessingLimiter(4)
+	smObject.globalLimiter = tool.NewRunnerLimiter(4)
 	sharedStateData := smachine.NewUnboundSharedData(&smObject.SharedState)
 
 	stepChecker := stepchecker.New()
@@ -128,7 +129,7 @@ func Test_PendingBlocksExecution(t *testing.T) {
 
 			smObject := NewStateMachineObject(smGlobalRef)
 			smObject.pulseSlot = &pulseSlot
-			smObject.globalLimiter = conveyor.NewParallelProcessingLimiter(4)
+			smObject.globalLimiter = tool.NewRunnerLimiter(4)
 			sharedStateData := smachine.NewUnboundSharedData(&smObject.SharedState)
 
 			stepChecker := stepchecker.New()
@@ -216,7 +217,7 @@ func TestSMObject_stepGotState_Set_PendingListFilled(t *testing.T) {
 
 	smObject := NewStateMachineObject(smGlobalRef)
 	smObject.pulseSlot = &pulseSlot
-	smObject.globalLimiter = conveyor.NewParallelProcessingLimiter(4)
+	smObject.globalLimiter = tool.NewRunnerLimiter(4)
 	sharedStateData := smachine.NewUnboundSharedData(&smObject.SharedState)
 
 	sm := SMObject{}
