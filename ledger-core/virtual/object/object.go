@@ -28,6 +28,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callsummary"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object/finalizedstate"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
 )
 
 type State int32
@@ -220,7 +221,7 @@ type SMObject struct {
 	// dependencies
 	messageSender messageSenderAdapter.MessageSender
 	pulseSlot     *conveyor.PulseSlot
-	globalLimiter conveyor.ParallelProcessingLimiter
+	globalLimiter tool.RunnerLimiter
 }
 
 /* -------- Declaration ------------- */
