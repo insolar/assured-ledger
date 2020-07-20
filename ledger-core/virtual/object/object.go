@@ -131,6 +131,10 @@ func (i *Info) DescriptorDirty() descriptor.Object {
 	return i.descriptorDirty
 }
 
+func (i *Info) DescriptorValidated() descriptor.Object {
+	return i.descriptorValidated
+}
+
 func (i Info) GetEarliestPulse(tolerance contract.InterferenceFlag) pulse.Number {
 	minPulse := i.PendingTable.GetList(tolerance).EarliestPulse()
 	knownPulse := i.KnownRequests.GetList(tolerance).EarliestPulse()
