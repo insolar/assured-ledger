@@ -7,7 +7,6 @@ env:
   GO_VERSION: 1.14
   CI_GOMAXPROCS: 0
   INSOLAR_LOG_LEVEL: warn
-  GOTEST: 'gotestsum --'
   GOPATH: /home/runner/work/
   GOPROXY: https://proxy.golang.org,https://goproxy.io,direct
   CORE_PATH: /home/runner/work/assured-ledger/assured-ledger/ledger-core
@@ -68,6 +67,18 @@ jobs:
       - name: Deploy ingress
         run: make kube_apply_ingress
         working-directory: ${{ env.CORE_PATH }}
+      - name: Go mod cache setup
+        uses: actions/cache@v2
+        with:
+          path: ${{env.GOPATH}}/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: Prepare environment
+        run: |
+          go mod download
+          make vendor install-build-tools
+        working-directory: ${{env.CORE_PATH}}
       - name: Build docker images
         run: make docker-build
         working-directory: ${{ env.CORE_PATH }}
@@ -75,10 +86,6 @@ jobs:
         run: |
           docker tag insolar/assured-ledger:latest localhost/assured-ledger:latest
           docker push localhost/assured-ledger:latest
-      - name: Prepare environment
-        run: |
-          go mod download
-          make vendor install-build-tools
         working-directory: ${{ env.CORE_PATH }}
       - name: Build kube-deploy-tool
         run: go build -o ./bin/kube-deploy-tool ./scripts/deploy/kube-deploy-tool
