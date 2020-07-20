@@ -36,10 +36,12 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
-      - name: Fetch vendor and check succesful build
+      - name: Fetch dependencies
         run: |
           go mod download
-          go mod vendor
+          make vendor
+      - name: Prepare test utils and check succesful build
+        run: |
           make install-build-tools pre-build proto build
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
       - name: Check if working directory is clean after build
@@ -80,7 +82,9 @@ jobs:
           path: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/coverage.out
       - name: Run functional tests multiple times with race detector
         if: always()
-        run: make test_func_race
+        env: # for testrail
+          GOTEST: 'go test -json'
+        run: make test_func_race > functional_test.log
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
       - name: Run functional tests many times on `master` with reduced pulse time
         # if: always() # don't uncomment. this will rewrite logs of a previous run!

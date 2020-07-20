@@ -27,18 +27,14 @@ test_func: ## run functest FUNCTEST_COUNT times
 	PULSAR_PULSETIME=$(PULSAR_PULSETIME) \
 	CGO_ENABLED=1 $(GOTEST) -test.v $(TEST_ARGS) -tags "functest" ./application/functest -count=$(FUNCTEST_COUNT)
 
-.PHONY: test_func_ci
-test_func_ci: ## run functest with output for testrail
-	GOTEST='go test -json' make test_func > functional_test.log
-
 .PHONY: test_func_slow
 test_func_slow: # Run functests as long as practical to catch unexpected behavior during pulse change
-	FUNCTEST_COUNT=100 PULSAR_ONESHOT=FALSE PULSAR_PULSETIME=5000 TEST_ARGS='-timeout 1200s -failfast' make test_func
+	FUNCTEST_COUNT=100 PULSAR_ONESHOT=FALSE PULSAR_PULSETIME=5000 TEST_ARGS='-timeout 1200s -failfast' $(MAKE) test_func
 
 .PNONY: test_func_race
 test_func_race: ## run functest 10 times with -race flag
-	make clean
-	GOBUILD='go build -race' FUNCTEST_COUNT=10 TEST_ARGS='-timeout 1200s -race' make test_func
+	$(MAKE) clean
+	GOBUILD='go build -race' FUNCTEST_COUNT=10 TEST_ARGS='-timeout 1200s -race' $(MAKE) test_func
 
 .PHONY: test_slow
 test_slow: ## run tests with slowtest tag
@@ -82,7 +78,7 @@ kube_collect_artifacts: ## stop insolar net in local kubernetes cluster
 
 .PHONY: test_func_kubernetes
 test_func_kubernetes: ## run functest FUNCTEST_COUNT times in kubernetes cluster, net will be running after tests!
-	make kube_start_net
+	$(MAKE) kube_start_net
 	INSOLAR_FUNC_RPC_URL_PUBLIC="http://localhost/api/rpc" \
 	INSOLAR_FUNC_RPC_URL="http://localhost/admin-api/rpc" \
 	INSOLAR_FUNC_KEYS_PATH="/tmp/insolar/" \

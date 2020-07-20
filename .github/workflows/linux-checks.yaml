@@ -36,10 +36,12 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
-      - name: Fetch vendor and check succesful build
+      - name: Fetch dependencies
         run: |
+          go mod download
           make vendor
-          make install-build-tools pre-build proto build
+      - name: Fetch vendor and check succesful build
+        run: make install-build-tools pre-build proto build
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
       - name: Check if working directory is clean after build
         if: always()
@@ -77,12 +79,13 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
-      - name: Fetch vendor and check succesful build
+      - name: Fetch dependencies
         run: |
           go mod download
           make vendor
-          go install -v github.com/cyraxred/go-acc
-          make build
+      - name: Prepare go-acc
+        run: |
+          make install-build-tools
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
       - name: Run unit and slow tests and check code coverage
         if: always()

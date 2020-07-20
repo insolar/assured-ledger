@@ -12,7 +12,6 @@ env:
   GO_VERSION: 1.14
   CI_GOMAXPROCS: 0
   INSOLAR_LOG_LEVEL: warn
-  GOTEST: 'gotestsum --'
 jobs:
   tests-on-windows:
     name: windows-checks # don't change, this name is used in repository restricts!
@@ -40,10 +39,12 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
-      - name: Fetch vendor and check succesful build
+      - name: Fetch dependencies
         run: |
           go mod download
           make vendor
+      - name: Check succesful build
+        run: |
           make pre-build build
         working-directory: ${{env.WORKDIR}}
       - name: Run unit and slow tests and check code coverage
