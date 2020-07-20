@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package conveyor
+package tool
 
 import (
 	"context"
@@ -12,6 +12,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -24,7 +25,7 @@ type runnerLimiterSM struct {
 	smachine.StateMachineDeclTemplate
 
 	// DI
-	limiter  ParallelProcessingLimiter
+	limiter  RunnerLimiter
 	t        *testing.T
 	testDone chan struct{}
 }
@@ -77,7 +78,7 @@ func (sm *runnerLimiterSM) stepDone(ctx smachine.ExecutionContext) smachine.Stat
 	return ctx.Stop()
 }
 
-func newTestPulseConveyorWithLimiter(ctx context.Context, t *testing.T) (*PulseConveyor, chan struct{}) {
+func newTestPulseConveyorWithLimiter(ctx context.Context, t *testing.T) (*conveyor.PulseConveyor, chan struct{}) {
 	instestlogger.SetTestOutput(t)
 
 	machineConfig := smachine.SlotMachineConfig{
@@ -87,23 +88,23 @@ func newTestPulseConveyorWithLimiter(ctx context.Context, t *testing.T) (*PulseC
 		ScanCountLimit:  100000,
 	}
 
-	conveyor := NewPulseConveyor(ctx, PulseConveyorConfig{
+	conv := conveyor.NewPulseConveyor(ctx, conveyor.PulseConveyorConfig{
 		ConveyorMachineConfig: machineConfig,
 		SlotMachineConfig:     machineConfig,
 		EventlessSleep:        100 * time.Millisecond,
-		MinCachePulseAge:      maxPastPulseAge / 2,
-		MaxPastPulseAge:       maxPastPulseAge,
-	}, func(_ context.Context, input InputEvent, ic InputContext) (InputSetup, error) {
+		MinCachePulseAge:      50,
+		MaxPastPulseAge:       100,
+	}, func(_ context.Context, input conveyor.InputEvent, ic conveyor.InputContext) (conveyor.InputSetup, error) {
 		require.Nil(t, input)
-		return InputSetup{
+		return conveyor.InputSetup{
 			CreateFn: func(ctx smachine.ConstructionContext) smachine.StateMachine {
 				return &runnerLimiterSM{}
 			}}, nil
 	}, nil)
 
 	emerChan := make(chan struct{})
-	conveyor.StartWorker(emerChan, nil)
-	return conveyor, emerChan
+	conv.StartWorker(emerChan, nil)
+	return conv, emerChan
 }
 
 func TestParallelProcessingLimiter(t *testing.T) {
@@ -113,21 +114,21 @@ func TestParallelProcessingLimiter(t *testing.T) {
 	pd := pulse.NewFirstPulsarData(10, longbits.Bits256{})
 	startPn := pd.PulseNumber
 
-	globalLimiter := NewParallelProcessingLimiter(1)
+	globalLimiter := NewRunnerLimiter(1)
 	testDone := make(chan struct{})
 
-	conveyor, emerChan := newTestPulseConveyorWithLimiter(ctx, t)
+	conv, emerChan := newTestPulseConveyorWithLimiter(ctx, t)
 
 	defer func() {
 		close(emerChan)
-		conveyor.Stop()
+		conv.Stop()
 	}()
 
-	conveyor.AddDependency(globalLimiter)
-	conveyor.AddDependency(t)
-	conveyor.AddDependency(testDone)
-	require.NoError(t, conveyor.CommitPulseChange(pd.AsRange(), time.Now()))
-	require.NoError(t, conveyor.AddInput(ctx, startPn, nil))
+	conv.AddDependency(globalLimiter)
+	conv.AddDependency(t)
+	conv.AddDependency(testDone)
+	require.NoError(t, conv.CommitPulseChange(pd.AsRange(), time.Now()))
+	require.NoError(t, conv.AddInput(ctx, startPn, nil))
 	select {
 	case <-testDone:
 	case <-time.After(10 * time.Second):
