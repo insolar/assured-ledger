@@ -5,6 +5,8 @@ FROM golang:${GOLANG_VERSION} AS build
 ADD . /go/src/github.com/insolar/assured-ledger
 WORKDIR /go/src/github.com/insolar/assured-ledger
 
+RUN make vendor
+
 # pass build variables as arguments to avoid adding .git directory
 ARG BUILD_NUMBER
 ARG BUILD_DATE
@@ -12,8 +14,6 @@ ARG BUILD_TIME
 ARG BUILD_HASH
 ARG BUILD_VERSION
 # build step
-RUN GOPROXY=https://proxy.golang.org,https://goproxy.io,direct \
-    make vendor
 RUN BUILD_NUMBER=${BUILD_NUMBER} \
     BUILD_DATE=${BUILD_DATE} \
     BUILD_TIME=${BUILD_TIME} \

@@ -10,7 +10,6 @@ env:
   GO_VERSION: 1.14
   CI_GOMAXPROCS: 0
   INSOLAR_LOG_LEVEL: warn
-  GOTEST: 'gotestsum --'
 jobs:
   pre-build-check:
     name: pre-build-check # don't change, this name is used in repository restricts
@@ -30,10 +29,23 @@ jobs:
         uses: arduino/setup-protoc@master
       - name: Add bin to path
         run: echo "::add-path::${{env.GOPATH}}/bin"
-      - name: Fetch vendor and check succesful build
+      - name: Go mod cache setup
+        uses: actions/cache@v2
+        with:
+          path: ${{env.GOPATH}}/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: Fetch dependencies
         run: |
           go mod download
-          make vendor install-build-tools pre-build proto build
+          make vendor
+        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
+      - name: Build tools
+        run: make install-build-tools
+        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
+      - name: Check succesful build
+        run: make pre-build proto build
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
       - name: Check if working directory is clean after build
         if: always()
@@ -64,10 +76,20 @@ jobs:
         uses: arduino/setup-protoc@master
       - name: Add bin to path
         run: echo "::add-path::${{env.GOPATH}}/bin"
-      - name: Fetch vendor and check succesful build
+      - name: Go mod cache setup
+        uses: actions/cache@v2
+        with:
+          path: ${{env.GOPATH}}/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: Fetch dependencies
         run: |
           go mod download
-          make vendor install-build-tools build
+          make vendor
+        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
+      - name: Prepare go-acc
+        run: make install-build-tools
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
       - name: Run unit and slow tests and check code coverage
         if: always()
@@ -116,7 +138,7 @@ jobs:
     name: func-test-kuber # don't change, this name is used in repository restricts!
     runs-on: ubuntu-latest
     env:
-      GOPATH: /home/runner/work/
+      GOPATH: /home/runner/work
       V2_PATH: /home/runner/work/assured-ledger/assured-ledger/ledger-core
       USE_MANIFESTS: ci
       GOPROXY: https://proxy.golang.org,https://goproxy.io,direct
@@ -154,6 +176,18 @@ jobs:
       - name: deploy ingress
         run: KUBECONFIG=$GITHUB_WORKSPACE/k3s.yaml; make kube_apply_ingress
         working-directory: ${{env.V2_PATH}}
+      - name: Go mod cache setup
+        uses: actions/cache@v2
+        with:
+          path: ${{env.GOPATH}}/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: Fetch dependencies
+        run: |
+          go mod download
+          make vendor
+        working-directory: ${{env.V2_PATH}}
       - name: build images
         run: make docker-build
         working-directory: ${{env.V2_PATH}}
@@ -161,11 +195,13 @@ jobs:
         run: |
           docker tag insolar/assured-ledger:latest localhost/assured-ledger:latest
           docker push localhost/assured-ledger:latest
+      - name: build tools
+        run: make install-build-tools
+        working-directory: ${{env.V2_PATH}}
       - name: run insolar net
         run: |
           export KUBECONFIG=$GITHUB_WORKSPACE/k3s.yaml
-          go mod download
-          make vendor install-build-tools kube_start_net
+          make kube_start_net
           kubectl -n insolar describe ing api-proxy
         working-directory: ${{env.V2_PATH}}
       - name: run tests
