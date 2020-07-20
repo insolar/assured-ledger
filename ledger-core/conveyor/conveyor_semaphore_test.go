@@ -52,7 +52,7 @@ func (sm *runnerLimiterSM) stepInit(ctx smachine.InitializationContext) smachine
 		require.True(sm.t, ctx.Acquire(sm.limiter.semaphore.SyncLink()).IsPassed())
 		require.True(sm.t, ctx.Release(sm.limiter.semaphore.SyncLink()))
 	}
-	child := sm.limiter.NewHierarchySemaphore(1, "Child_Semaphore")
+	child := sm.limiter.NewChildSemaphore(1, "Child_Semaphore")
 	{ // hierarchical semaphore SyncLink can be acquired and released
 		require.True(sm.t, ctx.Acquire(child.SyncLink()).IsPassed())
 		require.True(sm.t, ctx.Release(child.SyncLink()))
