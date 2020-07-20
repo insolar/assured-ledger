@@ -68,7 +68,7 @@ func (r *DefaultService) DeactivateObject(in rpctypes.UpDeactivateObjectReq, out
 	r.awaitedRunFinish(in.ID, false)
 
 	out.Result = sink.WaitInput()
-	if out.Result == nil {
+	if out.Result != nil {
 		panic(throw.E("Deactivate result unexpected type, expected nil"))
 	}
 

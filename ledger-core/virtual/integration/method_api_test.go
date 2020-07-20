@@ -102,5 +102,15 @@ func TestVirtual_Method_API(t *testing.T) {
 			assert.NotEmpty(t, response.TraceID)
 			assert.Equal(t, uint(1000000000), response.Amount)
 		}
+		// { // Delete request
+		// 	code, byteBuffer := server.CallAPIDelete(ctx, walletReference1)
+		// 	require.Equal(t, 200, code, string(byteBuffer))
+		//
+		// 	response, err := utils.UnmarshalWalletDeleteResponse(byteBuffer)
+		// 	require.NoError(t, err)
+		//
+		// 	assert.Empty(t, response.Err)
+		// 	assert.NotEmpty(t, response.TraceID)
+		// }
 	}
 }

@@ -622,7 +622,6 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 	switch outgoing := s.executionNewState.Outgoing.(type) {
 	case execution.Deactivate:
 		s.deactivate = true
-		panic(throw.NotImplemented())
 	case execution.CallConstructor:
 		if s.intolerableCall() {
 			err := throw.E("interference violation: constructor call from unordered call")
@@ -711,6 +710,12 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 
 func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	outgoingResult := s.outgoingResult
+	switch s.executionNewState.Outgoing.(type) {
+	case execution.CallConstructor, execution.CallMethod:
+		if outgoingResult == nil {
+			panic(throw.IllegalValue())
+		}
+	}
 
 	// unset all outgoing fields in case we have new outgoing request
 	s.outgoingSentCounter = 0
