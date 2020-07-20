@@ -40,6 +40,7 @@ jobs:
         run: |
           go mod download
           make vendor
+        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
       - name: Prepare test utils and check succesful build
         run: make install-build-tools pre-build proto build
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core

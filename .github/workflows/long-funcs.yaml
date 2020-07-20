@@ -31,10 +31,16 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
-      - name: Fetch vendor and check succesful build
+      - name: Fetch dependencies
         run: |
           go mod download
-          make vendor install-build-tools pre-build proto build
+          make vendor
+        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
+      - name: Build tools
+        run: make install-build-tools
+        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
+      - name: Check succesful build
+        run: make pre-build proto build
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
       - name: Check if working directory is clean after build
         if: always()

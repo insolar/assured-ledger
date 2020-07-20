@@ -43,6 +43,7 @@ jobs:
         run: |
           go mod download
           make vendor
+        working-directory: ${{env.WORKDIR}}
       - name: Check succesful build
         run: make pre-build build
         working-directory: ${{env.WORKDIR}}
