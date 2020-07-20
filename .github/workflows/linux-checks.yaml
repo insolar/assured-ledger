@@ -93,7 +93,7 @@ jobs:
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
       - name: Run unit and slow tests and check code coverage
         if: always()
-        run: (make test_with_coverage 2>&1 | tee "integration_test.log"; exit ${PIPESTATUS[0]})
+        run: set -o pipefail; make test_with_coverage 2>&1 | tee "integration_test.log"
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
       - name: Upload integration_test.log to artifacts
         if: always()
