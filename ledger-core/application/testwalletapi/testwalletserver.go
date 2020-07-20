@@ -53,7 +53,7 @@ func (s *TestWalletServer) RegisterHandlers(httpServerMux *http.ServeMux) {
 	httpServerMux.HandleFunc(walletLocation+"/create", s.Create)
 	httpServerMux.HandleFunc(walletLocation+"/transfer", s.Transfer)
 	httpServerMux.HandleFunc(walletLocation+"/get_balance", s.GetBalance)
-	httpServerMux.HandleFunc(walletLocation+"/get_balance_validated", s.GetBalance)
+	httpServerMux.HandleFunc(walletLocation+"/get_balance_validated", s.GetBalanceValidated)
 	httpServerMux.HandleFunc(walletLocation+"/add_amount", s.AddAmount)
 	httpServerMux.HandleFunc(walletLocation+"/delete", s.Delete)
 }
