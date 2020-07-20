@@ -13,6 +13,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/log"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
@@ -34,13 +35,13 @@ type SMVDelegatedRequestFinished struct {
 
 type stateIsNotReady struct {
 	*log.Msg `txt:"State is not ready"`
-	Object   string
+	Object   reference.Holder
 }
 
 type unexpectedVDelegateRequestFinished struct {
 	*log.Msg `txt:"Unexpected VDelegateRequestFinished"`
-	Object   string
-	Request  string
+	Object   reference.Holder
+	Request  reference.Holder
 	Ordered  bool
 }
 
@@ -86,8 +87,12 @@ func (s *SMVDelegatedRequestFinished) migrationDefault(ctx smachine.MigrationCon
 func (s *SMVDelegatedRequestFinished) stepGetObject(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	s.objectSharedState = s.objectCatalog.GetOrCreate(ctx, s.Payload.Callee)
 
+	var (
+		semaphoreReadyToWork smachine.SyncLink
+	)
+
 	action := func(state *object.SharedState) {
-		s.objectReadyToWork = state.ReadyToWork
+		semaphoreReadyToWork = state.ReadyToWork
 	}
 
 	switch s.objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
@@ -100,6 +105,8 @@ func (s *SMVDelegatedRequestFinished) stepGetObject(ctx smachine.ExecutionContex
 	default:
 		panic(throw.Impossible())
 	}
+
+	s.objectReadyToWork = semaphoreReadyToWork
 
 	return ctx.Jump(s.awaitObjectReady)
 }
@@ -116,9 +123,7 @@ func (s *SMVDelegatedRequestFinished) stepProcess(ctx smachine.ExecutionContext)
 	setStateFunc := func(data interface{}) (wakeup bool) {
 		state := data.(*object.SharedState)
 		if !state.IsReady() {
-			ctx.Log().Trace(stateIsNotReady{
-				Object: s.Payload.Callee.String(),
-			})
+			ctx.Log().Trace(stateIsNotReady{Object: s.Payload.Callee})
 			return false
 		}
 
@@ -166,23 +171,23 @@ func (s *SMVDelegatedRequestFinished) updateSharedState(
 	case contract.CallIntolerable:
 		if state.PreviousExecutorUnorderedPendingCount == 0 {
 			ctx.Log().Warn(unexpectedVDelegateRequestFinished{
-				Object:  objectRef.String(),
-				Request: requestRef.String(),
+				Object:  objectRef,
+				Request: requestRef,
 				Ordered: false,
 			})
 		}
 	case contract.CallTolerable:
 		if state.PreviousExecutorOrderedPendingCount == 0 {
 			ctx.Log().Warn(unexpectedVDelegateRequestFinished{
-				Object:  objectRef.String(),
-				Request: requestRef.String(),
+				Object:  objectRef,
+				Request: requestRef,
 				Ordered: true,
 			})
 		}
 		if pendingList.CountActive() == 0 {
 			// If we do not have pending ordered, release sync object.
-			if !ctx.CallBargeIn(state.SignalPendingsFinished) {
-				ctx.Log().Warn("SignalPendingsFinished BargeIn receive false")
+			if !ctx.CallBargeInWithParam(state.SignalOrderedPendingFinished, nil) {
+				ctx.Log().Warn("SignalOrderedPendingFinished BargeIn receive false")
 			}
 		}
 	}

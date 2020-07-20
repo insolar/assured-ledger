@@ -43,13 +43,15 @@ type SMExecute struct {
 	Payload *payload.VCallRequest
 
 	// internal data
-	isConstructor      bool
-	semaphoreOrdered   smachine.SyncLink
-	semaphoreUnordered smachine.SyncLink
-	execution          execution.Context
-	objectSharedState  object.SharedStateAccessor
-	hasState           bool
-	duplicateFinished  bool
+	pendingConstructorFinished smachine.SyncLink
+	semaphoreOrdered           smachine.SyncLink
+	semaphoreUnordered         smachine.SyncLink
+
+	isConstructor     bool
+	execution         execution.Context
+	objectSharedState object.SharedStateAccessor
+	hasState          bool
+	duplicateFinished bool
 
 	// execution step
 	executionNewState   *execution.Update
@@ -186,14 +188,22 @@ func (s *SMExecute) intolerableCall() bool {
 	return s.execution.Isolation.Interference == contract.CallIntolerable
 }
 
+func (s *SMExecute) waitPendingConstructorFinished(ctx smachine.ExecutionContext) bool {
+	if s.pendingConstructorFinished.IsZero() {
+		return true
+	}
+	return ctx.Acquire(s.pendingConstructorFinished).IsPassed()
+}
+
 func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var (
-		semaphoreReadyToWork smachine.SyncLink
-		objectDescriptor     descriptor.Object
-		semaphoreOrdered     smachine.SyncLink
-		semaphoreUnordered   smachine.SyncLink
+		semaphoreReadyToWork                smachine.SyncLink
+		semaphoreOrdered                    smachine.SyncLink
+		semaphoreUnordered                  smachine.SyncLink
+		semaphorePendingConstructorFinished smachine.SyncLink
 
-		objectState object.State
+		objectDescriptor descriptor.Object
+		objectState      object.State
 	)
 
 	action := func(state *object.SharedState) {
@@ -201,6 +211,7 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 
 		semaphoreOrdered = state.OrderedExecute
 		semaphoreUnordered = state.UnorderedExecute
+		semaphorePendingConstructorFinished = state.PendingConstructorFinished
 
 		objectDescriptor = state.Descriptor()
 
@@ -215,6 +226,11 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 		return ctx.Sleep().ThenRepeat()
 	}
 
+	s.semaphoreOrdered = semaphoreOrdered
+	s.semaphoreUnordered = semaphoreUnordered
+	s.execution.ObjectDescriptor = objectDescriptor
+	s.pendingConstructorFinished = semaphorePendingConstructorFinished
+
 	if s.isConstructor {
 		switch objectState {
 		case object.Unknown:
@@ -223,36 +239,42 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 			// attempt to create object that is deactivated :(
 			panic(throw.NotImplemented())
 		}
-	} else {
-		// if not constructor
-		switch objectState {
-		case object.Unknown:
-			panic(throw.Impossible())
-		case object.Missing:
-			s.prepareExecutionError(throw.E("object does not exist", struct {
-				ObjectReference string
-				State           object.State
-			}{
-				ObjectReference: s.execution.Object.String(),
-				State:           objectState,
-			}))
-			return ctx.Jump(s.stepSendCallResult)
-		case object.Inactive:
-			panic(throw.NotImplemented())
-		case object.HasState:
-			// ok
-		}
-	}
 
-	s.semaphoreOrdered = semaphoreOrdered
-	s.semaphoreUnordered = semaphoreUnordered
-
-	s.execution.ObjectDescriptor = objectDescriptor
-
-	if s.isConstructor {
 		// default isolation for constructors
 		s.methodIsolation = contract.ConstructorIsolation()
+
+		return ctx.Jump(s.stepIsolationNegotiation)
 	}
+
+	switch objectState {
+	case object.Unknown:
+		panic(throw.Impossible())
+	case object.Missing:
+		s.prepareExecutionError(throw.E("object does not exist", struct {
+			ObjectReference string
+			State           object.State
+		}{
+			ObjectReference: s.execution.Object.String(),
+			State:           objectState,
+		}))
+		return ctx.Jump(s.stepSendCallResult)
+	case object.Inactive:
+		panic(throw.NotImplemented())
+	case object.HasState:
+		// ok
+	}
+
+	return ctx.Jump(s.stepWaitPendingConstructorFinished)
+}
+
+type markerPendingConstructorWait struct{}
+
+func (s *SMExecute) stepWaitPendingConstructorFinished(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	if !s.waitPendingConstructorFinished(ctx) {
+		ctx.Log().Test(markerPendingConstructorWait{})
+		return ctx.Sleep().ThenRepeat()
+	}
+
 	return ctx.Jump(s.stepIsolationNegotiation)
 }
 
@@ -686,9 +708,9 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 		}
 	} else {
 		if s.outgoingSentCounter >= MaxOutgoingSendCount {
-		     return ctx.Error(throw.E("outgoing retries limit"))
+			return ctx.Error(throw.E("outgoing retries limit"))
 		}
-		
+
 		s.outgoing.CallRequestFlags = payload.BuildCallRequestFlags(payload.SendResultDefault, payload.RepeatedCall)
 	}
 

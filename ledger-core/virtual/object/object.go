@@ -50,12 +50,13 @@ type Info struct {
 	descriptor  descriptor.Object
 	Deactivated bool
 
-	UnorderedExecute smachine.SyncLink
-	OrderedExecute   smachine.SyncLink
-	ReadyToWork      smachine.SyncLink
-	SummaryDone      smachine.SyncLink
+	UnorderedExecute           smachine.SyncLink
+	OrderedExecute             smachine.SyncLink
+	ReadyToWork                smachine.SyncLink
+	SummaryDone                smachine.SyncLink
+	PendingConstructorFinished smachine.SyncLink
 
-	SignalPendingsFinished smachine.BargeIn
+	SignalOrderedPendingFinished smachine.BargeInWithParam
 
 	// KnownRequests holds requests that were seen on current pulse
 	KnownRequests callregistry.WorkingTable
@@ -332,23 +333,38 @@ func (sm *SMObject) stepWaitState(ctx smachine.ExecutionContext) smachine.StateU
 }
 
 func (sm *SMObject) stepGotState(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	state := sm.GetState()
+
 	if sm.PreviousExecutorOrderedPendingCount == 0 {
-		sm.releaseOrderedExecutionPath(ctx)
-		sm.releaseUnorderedExecutionPath(ctx)
-	} else if sm.GetState() != Empty {
-		sm.releaseUnorderedExecutionPath(ctx)
+		sm.releaseOrderedExecutionPath()
+		sm.releaseUnorderedExecutionPath()
+	} else if state != Empty {
+		sm.releaseUnorderedExecutionPath()
 	}
 
 	if sm.PreviousExecutorOrderedPendingCount > 0 {
-		sm.SignalPendingsFinished = ctx.NewBargeIn().
-			WithJump(sm.stepReleaseExecutionPaths)
+		var pendingConstructorFinishedCtl smsync.BoolConditionalLink
+		if state == Empty {
+			pendingConstructorFinishedCtl = smsync.NewConditionalBool(false, "pendingConstructorFinished")
+			sm.PendingConstructorFinished = pendingConstructorFinishedCtl.SyncLink()
+		}
+
+		sm.SignalOrderedPendingFinished = ctx.NewBargeInWithParam(func(interface{}) smachine.BargeInCallbackFunc {
+			return func(ctx smachine.BargeInContext) smachine.StateUpdate {
+				if state == Empty {
+					smachine.ApplyAdjustmentAsync(pendingConstructorFinishedCtl.NewValue(true))
+				}
+
+				sm.releaseOrderedExecutionPath()
+				sm.releaseUnorderedExecutionPath()
+
+				return ctx.Stay()
+			}
+		})
 	}
 
-	return ctx.Jump(sm.stepReadyToWork)
-}
-
-func (sm *SMObject) stepReadyToWork(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	ctx.ApplyAdjustment(sm.readyToWorkCtl.NewValue(true))
+
 	return ctx.Jump(sm.stepWaitIndefinitely)
 }
 
@@ -356,18 +372,14 @@ func (sm *SMObject) stepWaitIndefinitely(ctx smachine.ExecutionContext) smachine
 	return ctx.Sleep().ThenRepeat()
 }
 
-func (sm *SMObject) stepReleaseExecutionPaths(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	sm.releaseOrderedExecutionPath(ctx)
-	sm.releaseUnorderedExecutionPath(ctx)
-	return ctx.Jump(sm.stepWaitIndefinitely)
+func (sm *SMObject) releaseOrderedExecutionPath() {
+	adjustment := sm.orderedSemaphoreCtl.NewValue(1)
+	smachine.ApplyAdjustmentAsync(adjustment)
 }
 
-func (sm *SMObject) releaseOrderedExecutionPath(ctx smachine.ExecutionContext) {
-	ctx.ApplyAdjustment(sm.orderedSemaphoreCtl.NewValue(1))
-}
-
-func (sm *SMObject) releaseUnorderedExecutionPath(ctx smachine.ExecutionContext) {
-	ctx.ApplyAdjustment(sm.unorderedSemaphoreCtl.NewValue(UnorderedMaxParallelism))
+func (sm *SMObject) releaseUnorderedExecutionPath() {
+	adjustment := sm.unorderedSemaphoreCtl.NewValue(UnorderedMaxParallelism)
+	smachine.ApplyAdjustmentAsync(adjustment)
 }
 
 func (sm *SMObject) migrate(ctx smachine.MigrationContext) smachine.StateUpdate {
