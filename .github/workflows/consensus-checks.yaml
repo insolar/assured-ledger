@@ -8,7 +8,7 @@ env:
   CI_GOMAXPROCS: 0
   INSOLAR_LOG_LEVEL: warn
   GOPATH: /home/runner/work/
-  GOPROXY: https://proxy.golang.org,https://goproxy.io,direct
+  GOPROXY: https://proxy.golang.org,https://gocenter.io,direct
   CORE_PATH: /home/runner/work/assured-ledger/assured-ledger/ledger-core
   USE_MANIFESTS: ci
   KUBEVAL_VERSION: 0.15.0
