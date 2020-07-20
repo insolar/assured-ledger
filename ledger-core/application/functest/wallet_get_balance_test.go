@@ -10,13 +10,14 @@ package functest
 import (
 	"testing"
 
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 // Creates wallet, calls /wallet/get_balance and checks it's response body.
 func TestWalletGetBalance(t *testing.T) {
-	t.Log("C4855")
+	instestlogger.LogCase(t, "C4855")
 	walletRef, err := createSimpleWallet()
 	require.NoError(t, err, "failed to create wallet")
 
@@ -34,7 +35,7 @@ func TestWalletGetBalance(t *testing.T) {
 
 // Creates wallet and calls /wallet/get_balance concurrently.
 func TestWalletGetBalanceConcurrently(t *testing.T) {
-	t.Log("C4920")
+	instestlogger.LogCase(t, "C4920")
 	walletRef, err := createSimpleWallet()
 	require.NoError(t, err, "failed to create wallet")
 

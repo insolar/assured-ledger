@@ -769,7 +769,7 @@ func TestSMExecute_VCallResultPassedToSMObject(t *testing.T) {
 func TestSendVStateReportWithMissingState_IfConstructorWasInterruptedBeforeRunnerCall(t *testing.T) {
 	defer executeLeakCheck(t)
 
-	t.Log("C5084")
+	instestlogger.LogCase(t, "C5084")
 
 	var (
 		mc  = minimock.NewController(t)
@@ -842,7 +842,7 @@ func TestSendVStateReportWithMissingState_IfConstructorWasInterruptedBeforeRunne
 func TestSMExecute_StopWithoutMessagesIfPulseChangedBeforeOutgoing(t *testing.T) {
 	defer executeLeakCheck(t)
 
-	t.Log("C5101")
+	instestlogger.LogCase(t, "C5101")
 	const stateMemory = "213"
 
 	var (

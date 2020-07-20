@@ -17,6 +17,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
@@ -34,7 +35,7 @@ import (
 func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 	defer commontestutils.LeakTester(t)
 
-	t.Log("C5095")
+	instestlogger.LogCase(t, "C5095")
 
 	mc := minimock.NewController(t)
 
@@ -126,7 +127,7 @@ func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 func TestDeduplication_SecondCallOfMethodAfterExecution(t *testing.T) {
 	defer commontestutils.LeakTester(t)
 
-	t.Log("C5096")
+	instestlogger.LogCase(t, "C5096")
 
 	mc := minimock.NewController(t)
 
@@ -248,7 +249,7 @@ type deduplicateMethodUsingPrevVETestInfo struct {
 }
 
 func TestDeduplication_MethodUsingPrevVE(t *testing.T) {
-	t.Log("C5097")
+	instestlogger.LogCase(t, "C5097")
 
 	table := []deduplicateMethodUsingPrevVETestInfo{
 		{

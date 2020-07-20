@@ -15,6 +15,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
@@ -34,7 +35,7 @@ func makeVStateRequestEvent(pulseNumber pulse.Number, ref reference.Global, flag
 func TestVirtual_VStateRequest_WithoutBody(t *testing.T) {
 	defer commontestutils.LeakTester(t)
 
-	t.Log("C4861")
+	instestlogger.LogCase(t, "C4861")
 
 	var (
 		mc = minimock.NewController(t)
@@ -82,7 +83,7 @@ func TestVirtual_VStateRequest_WithoutBody(t *testing.T) {
 func TestVirtual_VStateRequest_WithBody(t *testing.T) {
 	defer commontestutils.LeakTester(t)
 
-	t.Log("C4862")
+	instestlogger.LogCase(t, "C4862")
 
 	var (
 		mc = minimock.NewController(t)
@@ -137,7 +138,7 @@ func TestVirtual_VStateRequest_WithBody(t *testing.T) {
 func TestVirtual_VStateRequest_Unknown(t *testing.T) {
 	defer commontestutils.LeakTester(t)
 
-	t.Log("C4863")
+	instestlogger.LogCase(t, "C4863")
 
 	var (
 		mc = minimock.NewController(t)

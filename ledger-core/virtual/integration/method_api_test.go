@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/debuglogger"
@@ -23,7 +24,7 @@ import (
 func TestVirtual_Method_API(t *testing.T) {
 	defer commontestutils.LeakTester(t)
 
-	t.Log("C4931")
+	instestlogger.LogCase(t, "C4931")
 
 	server, ctx := utils.NewServerWithErrorFilter(nil, t, func(s string) bool {
 		return false

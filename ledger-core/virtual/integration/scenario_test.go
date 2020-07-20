@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -21,7 +22,7 @@ import (
 func TestVirtual_Scenario1(t *testing.T) {
 	defer commontestutils.LeakTester(t)
 
-	t.Log("C4932")
+	instestlogger.LogCase(t, "C4932")
 
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
@@ -93,7 +94,7 @@ func TestVirtual_Scenario1(t *testing.T) {
 func TestVirtual_Scenario2(t *testing.T) {
 	defer commontestutils.LeakTester(t)
 
-	t.Log("C4933")
+	instestlogger.LogCase(t, "C4933")
 
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()

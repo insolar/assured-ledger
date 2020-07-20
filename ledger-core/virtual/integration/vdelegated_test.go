@@ -27,7 +27,6 @@ import (
 func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 	defer commontestutils.LeakTester(t)
 
-//	t.Log("C4983")
 	instestlogger.LogCase(t, "C4983")
 
 	server, ctx := utils.NewServer(nil, t)

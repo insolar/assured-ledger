@@ -18,6 +18,7 @@ import (
 	testwalletProxy "github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
@@ -79,7 +80,7 @@ func checkBalance(ctx context.Context, t *testing.T, server *utils.Server, objec
 func TestVirtual_VStateReport_HappyPath(t *testing.T) {
 	defer commontestutils.LeakTester(t)
 
-	t.Log("C4866")
+	instestlogger.LogCase(t, "C4866")
 
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
@@ -106,7 +107,7 @@ func TestVirtual_VStateReport_HappyPath(t *testing.T) {
 func TestVirtual_VStateReport_TwoStateReports(t *testing.T) {
 	defer commontestutils.LeakTester(t)
 
-	t.Log("C4919")
+	instestlogger.LogCase(t, "C4919")
 
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
@@ -141,7 +142,7 @@ func TestVirtual_VStateReport_TwoStateReports(t *testing.T) {
 func TestVirtual_VStateReport_BadState_NoSuchObject(t *testing.T) {
 	defer commontestutils.LeakTester(t)
 
-	t.Log("C4864")
+	instestlogger.LogCase(t, "C4864")
 
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
@@ -162,7 +163,7 @@ func TestVirtual_VStateReport_BadState_NoSuchObject(t *testing.T) {
 func TestVirtual_VStateReport_BadState_StateAlreadyExists(t *testing.T) {
 	defer commontestutils.LeakTester(t)
 
-	t.Log("C4865")
+	instestlogger.LogCase(t, "C4865")
 
 	server, ctx := utils.NewServerWithErrorFilter(nil, t, func(s string) bool {
 		// Pass all errors, except for (*SMVStateReport).stepProcess
@@ -196,7 +197,7 @@ func TestVirtual_VStateReport_BadState_StateAlreadyExists(t *testing.T) {
 func TestVirtual_VStateReport_CheckValidatedState(t *testing.T) {
 	defer commontestutils.LeakTester(t)
 
-	t.Log("C5124")
+	instestlogger.LogCase(t, "C5124")
 
 	mc := minimock.NewController(t)
 

@@ -10,12 +10,13 @@ package functest
 import (
 	"testing"
 
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestCreateUpdateWallet(t *testing.T) {
-	t.Log("C4857")
+	instestlogger.LogCase(t, "C4857")
 	var (
 		ref    string
 		amount uint = 100
@@ -52,7 +53,7 @@ func TestCreateUpdateWallet(t *testing.T) {
 }
 
 func TestGetUpdateBalanceConcurrently(t *testing.T) {
-	t.Log("C4858")
+	instestlogger.LogCase(t, "C4858")
 	var (
 		ref             string
 		count                = 10 // Number of concurrent requests per node.

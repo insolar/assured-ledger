@@ -15,6 +15,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
@@ -23,7 +24,7 @@ import (
 func TestInitViaCTMethod(t *testing.T) {
 	defer commontestutils.LeakTester(t)
 
-	t.Log("C4867")
+	instestlogger.LogCase(t, "C4867")
 
 	var (
 		mc = minimock.NewController(t)

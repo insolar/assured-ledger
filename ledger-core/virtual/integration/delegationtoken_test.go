@@ -19,6 +19,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
@@ -60,7 +61,7 @@ var messagesWithToken = []struct {
 }
 
 func TestDelegationToken_SuccessCheckCorrectToken(t *testing.T) {
-	t.Log("C5191")
+	instestlogger.LogCase(t, "C5191")
 	for _, testMsg := range messagesWithToken {
 		t.Run(testMsg.name, func(t *testing.T) {
 			defer commontestutils.LeakTester(t)

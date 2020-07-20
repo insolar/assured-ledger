@@ -11,6 +11,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
@@ -47,7 +48,7 @@ type VFindCallRequestHandlingTestInfo struct {
 }
 
 func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
-	t.Log("C5115")
+	instestlogger.LogCase(t, "C5115")
 
 	table := []VFindCallRequestHandlingTestInfo{
 		{

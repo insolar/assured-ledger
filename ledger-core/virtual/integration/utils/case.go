@@ -111,7 +111,7 @@ func (c *TestCase) Run(t *testing.T, fn func(t *testing.T)) {
 			t.Parallel()
 		}
 		if c.TestRailID != "" {
-			t.Log(c.TestRailID)
+			instestlogger.LogCase(t, c.TestRailID)
 		}
 		if c.Skipped != "" {
 			t.Skip(c.Skipped)

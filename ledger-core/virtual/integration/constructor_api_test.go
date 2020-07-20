@@ -11,13 +11,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 )
 
 func Test_API_Create(t *testing.T) {
 	defer commontestutils.LeakTester(t)
-	t.Log("C4837")
+	instestlogger.LogCase(t, "C4837")
 
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()

@@ -10,13 +10,14 @@ package functest
 import (
 	"testing"
 
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 // Creates wallet, calls /wallet/delete, then calls /wallet/get_balance and gets error.
 func TestWalletDelete(t *testing.T) {
-	t.Log("C4859")
+	instestlogger.LogCase(t, "C4859")
 	t.Skip("https://insolar.atlassian.net/browse/PLAT-414")
 
 	walletRef, err := createSimpleWallet()

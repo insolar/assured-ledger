@@ -18,6 +18,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
@@ -34,7 +35,7 @@ import (
 )
 
 func TestVirtual_Method_PulseChanged(t *testing.T) {
-	t.Log("C5211")
+	instestlogger.LogCase(t, "C5211")
 	table := []struct {
 		name             string
 		isolation        contract.MethodIsolation
@@ -245,7 +246,7 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 	defer commontestutils.LeakTester(t)
 
-	t.Log("C5104")
+	instestlogger.LogCase(t, "C5104")
 
 	mc := minimock.NewController(t)
 
@@ -436,7 +437,7 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 }
 
 func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
-	t.Log("C5237")
+	instestlogger.LogCase(t, "C5237")
 	table := []struct {
 		name      string
 		isolation contract.MethodIsolation

@@ -211,7 +211,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			defer commontestutils.LeakTester(t)
 
-			t.Log(tc.testRailCase)
+			instestlogger.LogCase(t, tc.testRailCase)
 			var (
 				mc  = minimock.NewController(t)
 				ctx = instestlogger.TestContext(t)

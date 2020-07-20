@@ -17,6 +17,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
@@ -224,7 +225,7 @@ func Test_NoDeadLock_WhenOutgoingComeToSameNode(t *testing.T) {
 }
 
 func TestVirtual_CallContractFromContract(t *testing.T) {
-	t.Log("C5086")
+	instestlogger.LogCase(t, "C5086")
 	table := []struct {
 		name   string
 		flagsA contract.MethodIsolation
@@ -373,7 +374,7 @@ func TestVirtual_CallContractFromContract(t *testing.T) {
 }
 
 func TestVirtual_CallOtherMethodInObject(t *testing.T) {
-	t.Log("C5116")
+	instestlogger.LogCase(t, "C5116")
 	table := []struct {
 		name        string
 		stateSender contract.MethodIsolation
@@ -508,7 +509,7 @@ func TestVirtual_CallOtherMethodInObject(t *testing.T) {
 }
 
 func TestVirtual_CallMethodFromConstructor(t *testing.T) {
-	t.Log("C5091")
+	instestlogger.LogCase(t, "C5091")
 	table := []struct {
 		name   string
 		stateB contract.MethodIsolation
@@ -661,7 +662,7 @@ func TestVirtual_CallMethodFromConstructor(t *testing.T) {
 func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 	defer commontestutils.LeakTester(t)
 
-	t.Log("C5320")
+	instestlogger.LogCase(t, "C5320")
 
 	countChangePulse := execute.MaxOutgoingSendCount
 
