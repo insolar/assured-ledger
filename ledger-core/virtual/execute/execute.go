@@ -202,7 +202,7 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 		semaphoreOrdered = state.OrderedExecute
 		semaphoreUnordered = state.UnorderedExecute
 
-		objectDescriptor = state.DescriptorDirty()
+		objectDescriptor = s.getDescriptor(state)
 
 		objectState = state.GetState()
 	}
@@ -473,6 +473,20 @@ func (s *SMExecute) stepTakeLock(ctx smachine.ExecutionContext) smachine.StateUp
 	return ctx.Jump(s.stepStartRequestProcessing)
 }
 
+func (s *SMExecute) getDescriptor(state *object.SharedState) descriptor.Object {
+	switch s.execution.Isolation.State {
+	case contract.CallDirty:
+		return state.DescriptorDirty()
+	case contract.CallValidated:
+		if state.DescriptorValidated() != nil {
+			return state.DescriptorValidated()
+		}
+		return state.DescriptorDirty()
+	default:
+		panic(throw.IllegalState())
+	}
+}
+
 func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var (
 		objectDescriptor descriptor.Object
@@ -485,7 +499,7 @@ func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) sm
 		}
 
 		state.IncrementPotentialPendingCounter(s.execution.Isolation)
-		objectDescriptor = state.DescriptorDirty()
+		objectDescriptor = s.getDescriptor(state)
 	}
 
 	if stepUpdate := s.shareObjectAccess(ctx, action); !stepUpdate.IsEmpty() {
