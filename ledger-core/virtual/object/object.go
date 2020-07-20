@@ -338,24 +338,21 @@ func (sm *SMObject) stepGotState(ctx smachine.ExecutionContext) smachine.StateUp
 	if sm.PreviousExecutorOrderedPendingCount == 0 {
 		sm.releaseOrderedExecutionPath()
 		sm.releaseUnorderedExecutionPath()
-	} else if state != Empty {
-		sm.releaseUnorderedExecutionPath()
-	}
-
-	if sm.PreviousExecutorOrderedPendingCount > 0 {
+	} else {
 		var pendingConstructorFinishedCtl smsync.BoolConditionalLink
 		if state == Empty {
 			pendingConstructorFinishedCtl = smsync.NewConditionalBool(false, "pendingConstructorFinished")
 			sm.PendingConstructorFinished = pendingConstructorFinishedCtl.SyncLink()
+		} else {
+			sm.releaseUnorderedExecutionPath()
 		}
 
 		sm.SignalOrderedPendingFinished = ctx.NewBargeInWithParam(func(interface{}) smachine.BargeInCallbackFunc {
 			return func(ctx smachine.BargeInContext) smachine.StateUpdate {
 				if state == Empty {
 					smachine.ApplyAdjustmentAsync(pendingConstructorFinishedCtl.NewValue(true))
+					sm.releaseOrderedExecutionPath()
 				}
-
-				sm.releaseOrderedExecutionPath()
 				sm.releaseUnorderedExecutionPath()
 
 				return ctx.Stay()
