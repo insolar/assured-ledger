@@ -8,6 +8,7 @@ package virtual
 import (
 	"context"
 	"io"
+	"runtime"
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
@@ -134,6 +135,13 @@ func initComponents(
 	virtualDispatcher.MessageSender = messageSender
 	virtualDispatcher.Affinity = jc
 	virtualDispatcher.AuthenticationService = authentication.NewService(ctx, jc)
+
+	// TODO: rewrite this after PLAT-432
+	if n := runtime.NumCPU() - 2; n > 4 {
+		virtualDispatcher.MaxRunners = n
+	} else {
+		virtualDispatcher.MaxRunners = 4
+	}
 
 	availabilityChecker := api.NewNetworkChecker(cfg.AvailabilityChecker)
 

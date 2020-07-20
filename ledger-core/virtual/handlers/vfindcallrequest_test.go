@@ -12,6 +12,7 @@ import (
 	"github.com/gojuno/minimock/v3"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	messageSender "github.com/insolar/assured-ledger/ledger-core/network/messagesender"
@@ -33,10 +34,12 @@ func TestVFindCallRequest_AwaitCallSummarySM(t *testing.T) {
 		ctx       = instestlogger.TestContext(t)
 		mc        = minimock.NewController(t)
 		objectRef = gen.UniqueGlobalRef()
+		limiter   = conveyor.NewParallelProcessingLimiter(4)
 	)
 
 	slotMachine := slotdebugger.New(ctx, t)
 	slotMachine.PrepareMockedMessageSender(mc)
+	slotMachine.AddDependency(limiter)
 
 	sendTarget := func(ctx context.Context, msg payload.Marshaler, target reference.Global, opts ...messageSender.SendOption) (err error) {
 		return nil
