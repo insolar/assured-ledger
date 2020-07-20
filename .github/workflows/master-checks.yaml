@@ -41,8 +41,7 @@ jobs:
           go mod download
           make vendor
       - name: Prepare test utils and check succesful build
-        run: |
-          make install-build-tools pre-build proto build
+        run: make install-build-tools pre-build proto build
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
       - name: Check if working directory is clean after build
         if: always()
@@ -190,8 +189,7 @@ jobs:
           docker tag insolar/assured-ledger:latest localhost/assured-ledger:latest
           docker push localhost/assured-ledger:latest
       - name: build tools
-        run: |
-          make install-build-tools
+        run: make install-build-tools
         working-directory: ${{env.V2_PATH}}
       - name: run insolar net
         run: |

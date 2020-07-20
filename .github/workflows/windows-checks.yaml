@@ -44,8 +44,7 @@ jobs:
           go mod download
           make vendor
       - name: Check succesful build
-        run: |
-          make pre-build build
+        run: make pre-build build
         working-directory: ${{env.WORKDIR}}
       - name: Run unit and slow tests and check code coverage
         if: always()
