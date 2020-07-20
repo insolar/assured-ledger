@@ -66,7 +66,7 @@ type SMExecute struct {
 	messageSender         messageSenderAdapter.MessageSender
 	pulseSlot             *conveyor.PulseSlot
 	authenticationService authentication.Service
-	globalSem             tool.RunnerLimiter
+	globalSemaphore       tool.RunnerLimiter
 
 	outgoing            *payload.VCallRequest
 	outgoingObject      reference.Global
@@ -97,7 +97,7 @@ func (*dSMExecute) InjectDependencies(sm smachine.StateMachine, _ smachine.SlotL
 	injector.MustInject(&s.messageSender)
 	injector.MustInject(&s.objectCatalog)
 	injector.MustInject(&s.authenticationService)
-	injector.MustInject(&s.globalSem)
+	injector.MustInject(&s.globalSemaphore)
 }
 
 func (*dSMExecute) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc {
@@ -709,7 +709,7 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 	s.outgoingSentCounter++
 
 	// someone else can process other requests while we  waiting for outgoing results
-	ctx.Release(s.globalSem.PartialLink())
+	ctx.Release(s.globalSemaphore.PartialLink())
 
 	// we'll wait for barge-in WakeUp here, not adapter
 	return ctx.Sleep().ThenJump(s.stepTakeLockAfterOutgoing)
@@ -718,7 +718,7 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 func (s *SMExecute) stepTakeLockAfterOutgoing(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	// parent semaphore was released in stepSendOutgoing
 	// acquire it again
-	if ctx.Acquire(s.globalSem.PartialLink()).IsNotPassed() {
+	if ctx.Acquire(s.globalSemaphore.PartialLink()).IsNotPassed() {
 		return ctx.Sleep().ThenRepeat()
 	}
 
