@@ -42,6 +42,7 @@ import (
 	virtualTestutils "github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/shareddata"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/slotdebugger"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
 )
 
 func executeLeakCheck(t *testing.T) {
@@ -778,6 +779,8 @@ func TestSendVStateReportWithMissingState_IfConstructorWasInterruptedBeforeRunne
 		caller                             = gen.UniqueGlobalRef()
 		catalog     object.Catalog         = object.NewLocalCatalog()
 		authService authentication.Service = authentication.NewServiceMock(t)
+
+		limiter = tool.NewRunnerLimiter(4)
 	)
 
 	slotMachine := slotdebugger.New(ctx, t)
@@ -785,6 +788,7 @@ func TestSendVStateReportWithMissingState_IfConstructorWasInterruptedBeforeRunne
 
 	slotMachine.AddInterfaceDependency(&catalog)
 	slotMachine.AddInterfaceDependency(&authService)
+	slotMachine.AddDependency(limiter)
 
 	outgoing := reference.NewRecordOf(caller, slotMachine.GenerateLocal())
 
@@ -851,6 +855,8 @@ func TestSMExecute_StopWithoutMessagesIfPulseChangedBeforeOutgoing(t *testing.T)
 
 		catalog     object.Catalog         = object.NewLocalCatalog()
 		authService authentication.Service = authentication.NewServiceMock(t)
+
+		limiter = tool.NewRunnerLimiter(4)
 	)
 
 	slotMachine := slotdebugger.New(ctx, t)
@@ -858,6 +864,7 @@ func TestSMExecute_StopWithoutMessagesIfPulseChangedBeforeOutgoing(t *testing.T)
 	slotMachine.PrepareMockedRunner(ctx, mc)
 	slotMachine.AddInterfaceDependency(&catalog)
 	slotMachine.AddInterfaceDependency(&authService)
+	slotMachine.AddDependency(limiter)
 
 	var vStateReportRecv = make(chan struct{})
 	checkMessage := func(msg payload.Marshaler) {
