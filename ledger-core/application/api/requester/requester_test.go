@@ -119,7 +119,7 @@ func startServer() error {
 
 func setup() (teardownFn func(pass bool), err error) {
 
-	teardownFn = instestlogger.SetTestOutputWithStub(false)
+	teardownFn = instestlogger.SetTestOutputWithStub()
 
 	fRPCh := FakeRPCHandler
 	http.HandleFunc(rpcLOCATION, fRPCh)
