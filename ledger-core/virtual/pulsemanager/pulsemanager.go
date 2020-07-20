@@ -54,6 +54,9 @@ func (m *PulseManager) CommitFirstPulseChange(pulseChange beat.Beat) error {
 }
 
 func (m *PulseManager) setNewPulse(ctx context.Context, pulseChange beat.Beat, isFirst bool) error {
+	if err := m.PulseAppender.EnsureLatest(ctx, pulseChange); err != nil {
+		return throw.W(err, "call of Ensure pulseChange failed")
+	}
 
 	sink, setStateFn := beat.NewAck(make(chan beat.AckData, 1))
 	for _, d := range m.dispatchers {
@@ -64,18 +67,6 @@ func (m *PulseManager) setNewPulse(ctx context.Context, pulseChange beat.Beat, i
 	defer func() {
 		setStateFn(committed)
 	}()
-
-
-	if isFirst {
-		// pulse is already set by Run
-		if err := m.PulseAppender.EnsureLatest(ctx, pulseChange); err != nil {
-			return throw.W(err, "call of Ensure pulseChange failed")
-		}
-	} else {
-		if err := m.PulseAppender.Append(ctx, pulseChange); err != nil {
-			return throw.W(err, "call of Append pulseChange failed")
-		}
-	}
 
 	for _, d := range m.dispatchers {
 		d.CommitBeat(pulseChange)

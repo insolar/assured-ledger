@@ -269,6 +269,11 @@ func (s *Server) GetPrevPulse() beat.Beat {
 func (s *Server) incrementPulse() {
 	s.pulseGenerator.Generate()
 
+	pc := s.GetPulse()
+	if err := s.pulseStorage.Append(context.Background(), pc); err != nil {
+		panic(err)
+	}
+
 	if err := s.pulseManager.CommitPulseChange(s.GetPulse()); err != nil {
 		panic(err)
 	}
