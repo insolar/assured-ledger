@@ -49,7 +49,8 @@ jobs:
         working-directory: ${{env.WORKDIR}}
       - name: Run unit and slow tests and check code coverage
         if: always()
-        run: (make test_with_coverage 2>&1 | tee "integration_test.log"; exit ${PIPESTATUS[0]})
+        run: |
+          make test_with_coverage 2>&1 & call doskey /exename=err err=%%^^errorlevel%%) | tee "integration_test.log"
         working-directory: ${{env.WORKDIR}}
       - name: Upload integration_test.log to artifacts
         if: always()
