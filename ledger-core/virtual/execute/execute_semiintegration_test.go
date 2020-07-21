@@ -78,6 +78,7 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 		)
 		slotMachine.AddInterfaceDependency(&authService)
 		slotMachine.AddInterfaceDependency(&catalog)
+		slotMachine.AddDependency(limiter)
 
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
 		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
@@ -154,6 +155,7 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 		)
 		slotMachine.AddInterfaceDependency(&authService)
 		slotMachine.AddInterfaceDependency(&catalog)
+		slotMachine.AddDependency(limiter)
 
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
 		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
@@ -231,6 +233,7 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 		)
 		slotMachine.AddInterfaceDependency(&authService)
 		slotMachine.AddInterfaceDependency(&catalog)
+		slotMachine.AddDependency(limiter)
 
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
 		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
@@ -311,6 +314,7 @@ func TestSMExecute_Semi_ConstructorOnMissingObject(t *testing.T) {
 		)
 		slotMachine.AddInterfaceDependency(&authService)
 		slotMachine.AddInterfaceDependency(&catalog)
+		slotMachine.AddDependency(limiter)
 
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
 		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
@@ -340,8 +344,9 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 	defer executeLeakCheck(t)
 
 	var (
-		mc  = minimock.NewController(t)
-		ctx = instestlogger.TestContext(t)
+		mc      = minimock.NewController(t)
+		ctx     = instestlogger.TestContext(t)
+		limiter = tool.NewRunnerLimiter(4)
 	)
 
 	slotMachine := slotdebugger.NewWithErrorFilter(ctx, t, func(s string) bool {
@@ -389,6 +394,7 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 		)
 		slotMachine.AddInterfaceDependency(&authService)
 		slotMachine.AddInterfaceDependency(&catalog)
+		slotMachine.AddDependency(limiter)
 
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
 		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
@@ -418,8 +424,9 @@ func TestSMExecute_Semi_MethodOnEmptyObject(t *testing.T) {
 	defer executeLeakCheck(t)
 
 	var (
-		mc  = minimock.NewController(t)
-		ctx = instestlogger.TestContext(t)
+		mc      = minimock.NewController(t)
+		ctx     = instestlogger.TestContext(t)
+		limiter = tool.NewRunnerLimiter(4)
 	)
 
 	slotMachine := slotdebugger.NewWithErrorFilter(ctx, t, func(s string) bool {
@@ -466,6 +473,7 @@ func TestSMExecute_Semi_MethodOnEmptyObject(t *testing.T) {
 		)
 		slotMachine.AddInterfaceDependency(&authService)
 		slotMachine.AddInterfaceDependency(&catalog)
+		slotMachine.AddDependency(limiter)
 
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
 		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
