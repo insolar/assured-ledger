@@ -22,14 +22,25 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: ${{env.GO_VERSION}}
-      - name: Install Protoc
-        uses: arduino/setup-protoc@master
       - name: Add bin to path
         run: echo "::add-path::${{env.GOPATH}}/bin"
-      - name: Fetch vendor and check succesful build
+      - name: Go mod cache setup
+        uses: actions/cache@v2
+        with:
+          path: ${{env.GOPATH}}/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: Fetch dependencies
         run: |
           go mod download
-          make vendor install-build-tools pre-build proto build
+          make vendor
+        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
+      - name: Build tools
+        run: make install-build-tools
+        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
+      - name: Check succesful build
+        run: make pre-build proto build
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
       - name: Check if working directory is clean after build
         if: always()

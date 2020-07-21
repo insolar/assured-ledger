@@ -24,6 +24,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 	virtualStateMachine "github.com/insolar/assured-ledger/ledger-core/virtual/statemachine"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
 )
 
 type DefaultHandlersFactory struct {
@@ -137,7 +138,7 @@ func (lr *Dispatcher) Init(ctx context.Context) error {
 	var objectCatalog object.Catalog = object.NewLocalCatalog()
 	lr.Conveyor.AddInterfaceDependency(&objectCatalog)
 
-	runnerLimiter := conveyor.NewParallelProcessingLimiter(lr.MaxRunners)
+	runnerLimiter := tool.NewRunnerLimiter(lr.MaxRunners)
 	lr.Conveyor.AddDependency(runnerLimiter)
 
 	lr.ConveyorWorker = virtualStateMachine.NewConveyorWorker(lr.CycleFn)
