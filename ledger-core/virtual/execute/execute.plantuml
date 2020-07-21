@@ -136,6 +136,7 @@ T01_S027 : SMExecute
 T01_S027 --[dotted]> T01_S016
 T01_S027 --> T01_S031 : [(...).migrationHappened||s.newObjectDescriptor==nil]
 T01_S027 --> T01_S027 : [!stepUpdate.IsEmpty()]
+T01_S027 --> T01_S031 : [errSavingDescriptor!=nil]
 T01_S027 --> T01_S031
 state "stepSendCallResult" as T01_S031
 T01_S031 : SMExecute
