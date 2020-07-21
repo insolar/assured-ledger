@@ -360,9 +360,9 @@ func (sm *SMObject) stepGotState(ctx smachine.ExecutionContext) smachine.StateUp
 			return func(ctx smachine.BargeInContext) smachine.StateUpdate {
 				if state == Empty {
 					smachine.ApplyAdjustmentAsync(pendingConstructorFinishedCtl.NewValue(true))
-					sm.releaseOrderedExecutionPath()
+					sm.releaseUnorderedExecutionPath()
 				}
-				sm.releaseUnorderedExecutionPath()
+				sm.releaseOrderedExecutionPath()
 
 				return ctx.Stay()
 			}
