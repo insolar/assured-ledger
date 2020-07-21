@@ -188,13 +188,6 @@ func (s *SMExecute) intolerableCall() bool {
 	return s.execution.Isolation.Interference == contract.CallIntolerable
 }
 
-func (s *SMExecute) waitPendingConstructorFinished(ctx smachine.ExecutionContext) bool {
-	if s.pendingConstructorFinished.IsZero() {
-		return true
-	}
-	return ctx.Acquire(s.pendingConstructorFinished).IsPassed()
-}
-
 func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var (
 		semaphoreReadyToWork                smachine.SyncLink
@@ -264,13 +257,16 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 		// ok
 	}
 
+	if s.pendingConstructorFinished.IsZero() {
+		return ctx.Jump(s.stepIsolationNegotiation)
+	}
 	return ctx.Jump(s.stepWaitPendingConstructorFinished)
 }
 
 type markerPendingConstructorWait struct{}
 
 func (s *SMExecute) stepWaitPendingConstructorFinished(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if !s.waitPendingConstructorFinished(ctx) {
+	if ctx.Acquire(s.pendingConstructorFinished).IsNotPassed() {
 		ctx.Log().Test(markerPendingConstructorWait{})
 		return ctx.Sleep().ThenRepeat()
 	}
