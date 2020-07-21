@@ -860,7 +860,6 @@ func TestVirtual_Method_Have_ObjectState(t *testing.T) {
 	table := []struct {
 		name string
 		code string
-		skip string
 
 		state  contract.StateFlag
 		checks []runnerObjectChecker
@@ -868,13 +867,11 @@ func TestVirtual_Method_Have_ObjectState(t *testing.T) {
 		{
 			name:  "Method with CallFlags.Dirty must be called with dirty object state",
 			code:  "C5184",
-			skip:  "",
 			state: contract.CallDirty,
 		},
 		{
 			name:  "Method with CallFlags.Validated must be called with validated object state",
 			code:  "C5123",
-			skip:  "https://insolar.atlassian.net/browse/PLAT-404",
 			state: contract.CallValidated,
 		},
 	}
@@ -883,9 +880,6 @@ func TestVirtual_Method_Have_ObjectState(t *testing.T) {
 			defer commontestutils.LeakTester(t)
 
 			t.Log(test.code)
-			if len(test.skip) > 0 {
-				t.Skip(test.skip)
-			}
 
 			var (
 				mc = minimock.NewController(t)
