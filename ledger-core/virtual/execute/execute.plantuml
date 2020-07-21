@@ -176,11 +176,12 @@ T01_S005 --[dotted]> T01_S001
 T01_S005 --[dashed]> T01_S005 : [!stepUpdate.IsEmpty()]\n[(...).AcquireForThisStep().IsNotPassed()]...\nSleep
 T01_S005 --> T01_S007 : [s.isConstructor]
 T01_S005 --> T01_S031 : [object.Missing]
+T01_S005 --> T01_S007 : [(...).pendingConstructorFinished.IsZero()]
 T01_S005 --> T01_S006
 state "stepWaitPendingConstructorFinished" as T01_S006
 T01_S006 : SMExecute
 T01_S006 --[dotted]> T01_S001
-T01_S006 --[dashed]> T01_S006 : [!(...).waitPendingConstructorFinished()]\nSleep
+T01_S006 --[dashed]> T01_S006 : [ctx.Acquire().IsNotPassed()]\nSleep
 T01_S006 --> T01_S007
 state "GetInitStateFor" as T00_S001
 T00_S001 : dSMExecute
