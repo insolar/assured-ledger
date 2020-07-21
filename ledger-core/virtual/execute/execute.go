@@ -812,14 +812,9 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 		return ctx.Jump(s.stepSendCallResult)
 	}
 
-	var (
-		errSavingDescriptor error
-	)
-
 	action := func(state *object.SharedState) {
 		if s.validatedCall() && !state.LatestDirtyIsValidated() {
-			errSavingDescriptor = throw.E("interference violation: cannot save validated object state")
-			return
+			panic(throw.NotImplemented())
 		}
 		state.SetDescriptorDirty(s.newObjectDescriptor)
 
@@ -835,11 +830,6 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 
 	if stepUpdate := s.shareObjectAccess(ctx, action); !stepUpdate.IsEmpty() {
 		return stepUpdate
-	}
-
-	if errSavingDescriptor != nil {
-		s.prepareExecutionError(errSavingDescriptor)
-		return ctx.Jump(s.stepSendCallResult)
 	}
 
 	return ctx.Jump(s.stepSendCallResult)

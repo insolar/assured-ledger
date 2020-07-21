@@ -8,6 +8,7 @@ package integration
 import (
 	"context"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -1540,11 +1541,11 @@ func TestVirtual_Method_SaveState(t *testing.T) {
 		name         string
 		testRailCase string
 
-		callFlags             payload.CallFlags
-		dirtyStateBuilder     func(objectRef, classRef reference.Global, pn pulse.Number) descriptor.Object
-		validatedStateBuilder func(objectRef, classRef reference.Global, pn pulse.Number) descriptor.Object
-		callResult            []byte
-		expectedError         string
+		callFlags                  payload.CallFlags
+		dirtyStateBuilder          func(objectRef, classRef reference.Global, pn pulse.Number) descriptor.Object
+		validatedStateBuilder      func(objectRef, classRef reference.Global, pn pulse.Number) descriptor.Object
+		callResult                 []byte
+		expectedUnImplementedError bool
 	}{
 		{
 			name:         "Method saves dirty state",
@@ -1616,8 +1617,8 @@ func TestVirtual_Method_SaveState(t *testing.T) {
 					reference.Global{},
 				)
 			},
-			callResult:    []byte("bad case"),
-			expectedError: "interference violation: cannot save validated object state",
+			callResult:                 []byte("bad case"),
+			expectedUnImplementedError: true,
 		},
 	}
 	for _, test := range table {
@@ -1627,10 +1628,19 @@ func TestVirtual_Method_SaveState(t *testing.T) {
 			t.Log(test.testRailCase)
 
 			var (
-				mc = minimock.NewController(t)
+				mc     = minimock.NewController(t)
+				ctx    context.Context
+				server *utils.Server
 			)
 
-			server, ctx := utils.NewUninitializedServer(nil, t)
+			if test.expectedUnImplementedError {
+				server, ctx = utils.NewUninitializedServerWithErrorFilter(nil, t, func(s string) bool {
+					return !strings.Contains(s, "execution: not implemented")
+				})
+			} else {
+				server, ctx = utils.NewUninitializedServer(nil, t)
+			}
+
 			defer server.Stop()
 
 			executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
@@ -1682,13 +1692,6 @@ func TestVirtual_Method_SaveState(t *testing.T) {
 			{
 				typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
 					require.Equal(t, objectRef, res.Callee)
-					if test.expectedError != "" {
-						expectedError, err := foundation.MarshalMethodErrorResult(
-							throw.E("interference violation: cannot save validated object state"))
-						require.NoError(t, err)
-						assert.Equal(t, expectedError, res.ReturnArguments)
-						return false
-					}
 					assert.Equal(t, test.callResult, res.ReturnArguments)
 					return false // no resend msg
 				})
@@ -1722,7 +1725,11 @@ func TestVirtual_Method_SaveState(t *testing.T) {
 			testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
 			testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
-			assert.Equal(t, 1, typedChecker.VCallResult.Count())
+			if test.expectedUnImplementedError {
+				assert.Equal(t, 0, typedChecker.VCallResult.Count())
+			} else {
+				assert.Equal(t, 1, typedChecker.VCallResult.Count())
+			}
 
 			mc.Finish()
 		})
