@@ -78,7 +78,7 @@ func TestSMVDelegatedRequestFinished_TolerableUpdateSharedState_OneActiveCounter
 	}
 
 	execCtx := smachine.NewExecutionContextMock(mc).
-		CallBargeInMock.Return(true)
+		CallBargeInWithParamMock.Return(true)
 
 	sm.updateSharedState(execCtx, &smObject.SharedState)
 
