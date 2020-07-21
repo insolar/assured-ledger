@@ -889,7 +889,7 @@ func TestSMExecute_StopWithoutMessagesIfPulseChangedBeforeOutgoing(t *testing.T)
 
 	smObject := object.NewStateMachineObject(objectRef)
 	smObject.SetState(object.HasState)
-	smObject.SetDescriptor(descriptor.NewObject(reference.Global{}, reference.Local{}, class, []byte(stateMemory), reference.Global{}))
+	smObject.SetDescriptorDirty(descriptor.NewObject(reference.Global{}, reference.Local{}, class, []byte(stateMemory), reference.Global{}))
 	slotMachine.AddStateMachine(ctx, smObject)
 
 	smExecute := SMExecute{
