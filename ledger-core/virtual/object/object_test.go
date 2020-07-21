@@ -83,7 +83,6 @@ func Test_Delay(t *testing.T) {
 }
 
 func Test_PendingBlocksExecution(t *testing.T) {
-
 	table := []struct {
 		name                string
 		pendings            uint8
@@ -137,7 +136,7 @@ func Test_PendingBlocksExecution(t *testing.T) {
 				sm := SMObject{}
 				stepChecker.AddStep(sm.stepGetState)
 				stepChecker.AddStep(sm.stepGotState)
-				stepChecker.AddStep(sm.stepReadyToWork)
+				stepChecker.AddStep(sm.stepWaitIndefinitely)
 			}
 			defer func() { assert.NoError(t, stepChecker.CheckDone()) }()
 
@@ -166,10 +165,8 @@ func Test_PendingBlocksExecution(t *testing.T) {
 					JumpMock.Set(stepChecker.CheckJumpW(t))
 
 				if test.bargeIn {
-					execCtx.NewBargeInMock.Return(
-						smachine.NewBargeInBuilderMock(mc).
-							WithJumpMock.Return(smachine.NewNoopBargeIn(smachine.DeadStepLink())),
-					)
+					bargeIn := smachine.NewNoopBargeInWithParam(smachine.DeadStepLink())
+					execCtx.NewBargeInWithParamMock.Return(bargeIn)
 				}
 
 				if test.orderedAdjustment || test.unorderedAdjustment {
@@ -179,6 +176,18 @@ func Test_PendingBlocksExecution(t *testing.T) {
 							require.True(t, test.orderedAdjustment)
 						case "unordered calls[=30]":
 							require.True(t, test.unorderedAdjustment)
+						case "readyToWork[=1]":
+							return true
+						default:
+							require.Failf(t, "unexpected adjustment", "got '%s'", sa.String())
+						}
+						return true
+					})
+				} else {
+					execCtx.ApplyAdjustmentMock.Set(func(sa smachine.SyncAdjustment) bool {
+						switch sa.String() {
+						case "readyToWork[=1]":
+							return true
 						default:
 							require.Failf(t, "unexpected adjustment", "got '%s'", sa.String())
 						}
@@ -190,9 +199,9 @@ func Test_PendingBlocksExecution(t *testing.T) {
 			}
 
 			if test.bargeIn {
-				assert.False(t, smObject.SignalPendingsFinished.IsZero())
+				assert.False(t, smObject.SignalOrderedPendingFinished.IsZero())
 			} else {
-				assert.True(t, smObject.SignalPendingsFinished.IsZero())
+				assert.True(t, smObject.SignalOrderedPendingFinished.IsZero())
 			}
 
 			active, inactive := smObject.readyToWorkCtl.SyncLink().GetCounts()
@@ -223,7 +232,7 @@ func TestSMObject_stepGotState_Set_PendingListFilled(t *testing.T) {
 	sm := SMObject{}
 	stepChecker := stepchecker.New()
 	stepChecker.AddStep(sm.stepGetState)
-	stepChecker.AddStep(sm.stepReadyToWork)
+	stepChecker.AddStep(sm.stepWaitIndefinitely)
 
 	defer func() { assert.NoError(t, stepChecker.CheckDone()) }()
 
