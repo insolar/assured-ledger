@@ -186,6 +186,10 @@ func (s *SMExecute) intolerableCall() bool {
 	return s.execution.Isolation.Interference == contract.CallIntolerable
 }
 
+func (s *SMExecute) validatedCall() bool {
+	return s.execution.Isolation.State == contract.CallValidated
+}
+
 func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var (
 		semaphoreReadyToWork smachine.SyncLink
@@ -790,8 +794,16 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 		return ctx.Jump(s.stepSendCallResult)
 	}
 
+	var (
+		errSavingDescriptor error
+	)
+
 	action := func(state *object.SharedState) {
-		state.Info.SetDescriptorDirty(s.newObjectDescriptor)
+		if s.validatedCall() && !state.LatestDirtyIsValidated() {
+			errSavingDescriptor = throw.E("interference violation: cannot save validated object state")
+			return
+		}
+		state.SetDescriptorDirty(s.newObjectDescriptor)
 
 		switch state.GetState() {
 		case object.HasState:
@@ -805,6 +817,11 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 
 	if stepUpdate := s.shareObjectAccess(ctx, action); !stepUpdate.IsEmpty() {
 		return stepUpdate
+	}
+
+	if errSavingDescriptor != nil {
+		s.prepareExecutionError(errSavingDescriptor)
+		return ctx.Jump(s.stepSendCallResult)
 	}
 
 	return ctx.Jump(s.stepSendCallResult)
