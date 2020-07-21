@@ -11,8 +11,8 @@ spec:
         - name: insolar
           resources:
             limits:
-              cpu: "1800m"
+              cpu: "1700m"
               memory: 1Gi
             requests:
-              cpu: "1800m"
+              cpu: "1700m"
               memory: 1Gi
