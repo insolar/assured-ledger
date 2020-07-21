@@ -29,7 +29,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
-	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
+	commonTestUtils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/debuglogger"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/messagesender"
@@ -39,7 +39,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
-	virtualTestutils "github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
+	virtualTestUtils "github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/shareddata"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/slotdebugger"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
@@ -47,7 +47,7 @@ import (
 
 func executeLeakCheck(t *testing.T) {
 	// TODO: remove this ignores after fix closing adapters on conveyor shutdown
-	commontestutils.LeakTester(t,
+	commonTestUtils.LeakTester(t,
 		goleak.IgnoreTopFunction("github.com/insolar/assured-ledger/ledger-core/runner.(*worker).Run.func1"),
 		goleak.IgnoreTopFunction("github.com/insolar/assured-ledger/ledger-core/conveyor/smachine.startChannelWorkerUnlimParallel.func1"),
 	)
@@ -834,7 +834,7 @@ func TestSendVStateReportWithMissingState_IfConstructorWasInterruptedBeforeRunne
 			return false
 		}
 	})
-	virtualTestutils.WaitSignalsTimed(t, 10*time.Second, vStateReportRecv)
+	virtualTestUtils.WaitSignalsTimed(t, 10*time.Second, vStateReportRecv)
 
 	mc.Finish()
 }
@@ -923,7 +923,7 @@ func TestSMExecute_StopWithoutMessagesIfPulseChangedBeforeOutgoing(t *testing.T)
 			return false
 		}
 	})
-	virtualTestutils.WaitSignalsTimed(t, 10*time.Second, vStateReportRecv)
+	virtualTestUtils.WaitSignalsTimed(t, 10*time.Second, vStateReportRecv)
 
 	mc.Finish()
 }
