@@ -134,6 +134,7 @@ T01_S030 --> T01_S031
 state "stepSaveNewObject" as T01_S028
 T01_S028 : SMExecute
 T01_S028 --[dotted]> T01_S016
+T01_S028 --> T01_S032 : [(...).isIntolerableCallChangeState()]
 T01_S028 --> T01_S032 : [(...).migrationHappened||s.newObjectDescriptor==nil]
 T01_S028 --> T01_S028 : [!stepUpdate.IsEmpty()]
 T01_S028 --> T01_S032
