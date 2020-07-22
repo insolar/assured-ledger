@@ -46,7 +46,7 @@ jobs:
       - name: copy docker auth secret
         run: |
           docker login $ACR_HOST --username ${{secrets.ACR_SP_ID}} --password ${{secrets.ACR_SP_SECRET}}
-          cp /home/runner/.docker/config.json ledger-core/scripts/deploy/kube/aks/dockerconfigjson
+          cp /home/runner/.docker/config.json ledger-core/scripts/deploy/kube/gitops/dockerconfigjson
       - name: save kubeconfig
         run: echo "${{secrets.CLOUD_KUBECONFIG}}" >> aks.yaml
       - name: github token
