@@ -121,7 +121,7 @@ func Test_Execute_stepIsolationNegotiation(t *testing.T) {
 			},
 			expectedIsolation: contract.MethodIsolation{
 				Interference: contract.CallIntolerable,
-				State:        contract.CallValidated,
+				State:        contract.CallDirty,
 			},
 		},
 		{
