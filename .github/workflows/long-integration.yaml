@@ -1,4 +1,4 @@
-name: long-funcs # long funcs
+name: long-integration-tests # long integration tests run
 on:
   schedule:
     - cron: '0 14 * * *'
@@ -9,7 +9,7 @@ env:
   INSOLAR_LOG_LEVEL: warn
 jobs:
   long-tests-on-master:
-    name: master-long-funcs
+    name: master-long-tests
     runs-on: ubuntu-latest
     env:
       GOPATH: /home/runner/work/assured-ledger/assured-ledger/go
@@ -38,13 +38,6 @@ jobs:
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
       - name: Build tools
         run: make install-build-tools
-        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
-      - name: Check succesful build
-        run: make pre-build proto build
-        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
-      - name: Check if working directory is clean after build
-        if: always()
-        run: scripts/gitstatus.sh -v
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
       - name: Run unit and slow tests and check code coverage
         if: always()
