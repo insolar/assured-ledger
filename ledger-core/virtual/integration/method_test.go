@@ -1570,7 +1570,7 @@ func TestVirtual_Method_SaveState(t *testing.T) {
 			callResult: []byte("ok case"),
 		},
 		{
-			name:         "Method tolerable + dirty cannot be executed",
+			name:         "Method tolerable + validated cannot be executed",
 			testRailCase: "C5449",
 			callFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallValidated),
 			dirtyStateBuilder: func(objectRef, classRef reference.Global, pn pulse.Number) descriptor.Object {
