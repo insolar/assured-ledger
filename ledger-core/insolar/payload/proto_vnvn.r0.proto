@@ -152,7 +152,6 @@ message VStateReport {
 
 message ObjectState {
     LocalReference Reference = 20;
-    Reference Parent = 21;
     Reference Class = 22;
     bytes State = 23;
     bytes PreviousState = 24;

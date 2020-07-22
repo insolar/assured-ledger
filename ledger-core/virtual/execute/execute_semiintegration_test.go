@@ -6,6 +6,7 @@
 package execute
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 
@@ -20,6 +21,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/predicate"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
@@ -78,6 +80,7 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 		)
 		slotMachine.AddInterfaceDependency(&authService)
 		slotMachine.AddInterfaceDependency(&catalog)
+		slotMachine.AddDependency(limiter)
 
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
 		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
@@ -154,6 +157,7 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 		)
 		slotMachine.AddInterfaceDependency(&authService)
 		slotMachine.AddInterfaceDependency(&catalog)
+		slotMachine.AddDependency(limiter)
 
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
 		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
@@ -231,6 +235,7 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 		)
 		slotMachine.AddInterfaceDependency(&authService)
 		slotMachine.AddInterfaceDependency(&catalog)
+		slotMachine.AddDependency(limiter)
 
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
 		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
@@ -311,6 +316,7 @@ func TestSMExecute_Semi_ConstructorOnMissingObject(t *testing.T) {
 		)
 		slotMachine.AddInterfaceDependency(&authService)
 		slotMachine.AddInterfaceDependency(&catalog)
+		slotMachine.AddDependency(limiter)
 
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
 		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
@@ -340,8 +346,9 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 	defer executeLeakCheck(t)
 
 	var (
-		mc  = minimock.NewController(t)
-		ctx = instestlogger.TestContext(t)
+		mc      = minimock.NewController(t)
+		ctx     = instestlogger.TestContext(t)
+		limiter = tool.NewRunnerLimiter(4)
 	)
 
 	slotMachine := slotdebugger.NewWithErrorFilter(ctx, t, func(s string) bool {
@@ -389,6 +396,7 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 		)
 		slotMachine.AddInterfaceDependency(&authService)
 		slotMachine.AddInterfaceDependency(&catalog)
+		slotMachine.AddDependency(limiter)
 
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
 		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
@@ -418,8 +426,9 @@ func TestSMExecute_Semi_MethodOnEmptyObject(t *testing.T) {
 	defer executeLeakCheck(t)
 
 	var (
-		mc  = minimock.NewController(t)
-		ctx = instestlogger.TestContext(t)
+		mc      = minimock.NewController(t)
+		ctx     = instestlogger.TestContext(t)
+		limiter = tool.NewRunnerLimiter(4)
 	)
 
 	slotMachine := slotdebugger.NewWithErrorFilter(ctx, t, func(s string) bool {
@@ -434,9 +443,10 @@ func TestSMExecute_Semi_MethodOnEmptyObject(t *testing.T) {
 		outgoing    = reference.NewRecordOf(slotMachine.GenerateGlobal(), slotMachine.GenerateLocal())
 		sharedState = &object.SharedState{
 			Info: object.Info{
-				PendingTable:  callregistry.NewRequestTable(),
-				KnownRequests: callregistry.NewWorkingTable(),
-				ReadyToWork:   smsync.NewConditional(1, "ReadyToWork").SyncLink(),
+				PendingTable:               callregistry.NewRequestTable(),
+				KnownRequests:              callregistry.NewWorkingTable(),
+				ReadyToWork:                smsync.NewConditionalBool(true, "ReadyToWork").SyncLink(),
+				PendingConstructorFinished: smsync.NewConditionalBool(false, "pendingConstructorFinished").SyncLink(),
 			},
 		}
 	)
@@ -466,6 +476,7 @@ func TestSMExecute_Semi_MethodOnEmptyObject(t *testing.T) {
 		)
 		slotMachine.AddInterfaceDependency(&authService)
 		slotMachine.AddInterfaceDependency(&catalog)
+		slotMachine.AddDependency(limiter)
 
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
 		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
@@ -482,11 +493,16 @@ func TestSMExecute_Semi_MethodOnEmptyObject(t *testing.T) {
 	require.Equal(t, uint8(0), sharedState.PotentialOrderedPendingCount)
 	require.Equal(t, uint8(0), sharedState.PotentialUnorderedPendingCount)
 
-	slotMachine.RunTil(smWrapper.AfterStop())
+	slotMachine.RunTil(predicate.AfterCustomEventType(reflect.TypeOf(markerPendingConstructorWait{})))
 
 	require.Equal(t, uint8(0), sharedState.PotentialOrderedPendingCount)
 	require.Equal(t, uint8(0), sharedState.PotentialUnorderedPendingCount)
 
+	slotMachine.Migrate()
+
+	slotMachine.RunTil(smWrapper.AfterStop())
+
 	require.NoError(t, catalogWrapper.CheckDone())
+
 	mc.Finish()
 }
