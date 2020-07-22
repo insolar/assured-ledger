@@ -146,7 +146,6 @@ state "stepSendDelegatedRequestFinished" as T01_S031
 T01_S031 : SMExecute
 T01_S031 --[dotted]> T01_S016
 T01_S031 --[dotted]> T01_S001
-T01_S031 --> T01_S011 : PrepareAsync(ctx).WithoutAutoWakeUp()
 T01_S031 --> [*]
 state "stepSendOutgoing" as T01_S025
 T01_S025 : SMExecute
