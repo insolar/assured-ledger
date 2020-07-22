@@ -103,10 +103,12 @@ func TestSMExecute_MigrationDuringSendOutgoing(t *testing.T) {
 			PublishGlobalAliasAndBargeInMock.Set(
 			func(key interface{}, handler smachine.BargeInHolder) (b1 bool) {
 				return true
-			}).SleepMock.Set(
+			}).
+			ReleaseMock.Return(true).
+			SleepMock.Set(
 			func() (c1 smachine.ConditionalBuilder) {
 				return smachine.NewStateConditionalBuilderMock(t).
-					ThenJumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepExecuteContinue))
+					ThenJumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepTakeLockAfterOutgoing))
 			})
 
 		smExecute.stepSendOutgoing(execCtx)
@@ -123,10 +125,11 @@ func TestSMExecute_MigrationDuringSendOutgoing(t *testing.T) {
 
 	{ // check step after migration
 		execCtx := smachine.NewExecutionContextMock(mc).
+			ReleaseMock.Return(true).
 			SleepMock.Set(
 			func() (c1 smachine.ConditionalBuilder) {
 				return smachine.NewStateConditionalBuilderMock(t).
-					ThenJumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepExecuteContinue))
+					ThenJumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepTakeLockAfterOutgoing))
 			})
 
 		smExecute.stepSendOutgoing(execCtx)
