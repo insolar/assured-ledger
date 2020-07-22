@@ -54,7 +54,7 @@ jobs:
       - name: github token
         run: git config --global url."https://${{secrets.INS_SERVICE_PAT}}@github.com/".insteadOf "https://github.com/"
       - name: run network
-        run: kubectl kustomize ledger-core/scripts/deploy/kube/gitops | envsubst '${INSOLAR_NAMESPACE} ${INSOLAR_TAG} ${INSOLAR_NETWORK_SIZE}' | kubectl apply -f -
+        run: kubectl kustomize ledger-core/scripts/deploy/kube/gitops | envsubst '${INSOLAR_NAMESPACE} ${INSOLAR_TAG} ${INSOLAR_NETWORK_SIZE}' | kubectl -n $INSOLAR_NAMESPACE apply -f -
       - name: wait for successfull rollout
         run: kubectl -n $INSOLAR_NAMESPACE rollout status sts/virtual --timeout=300s
       - name: pulsewatcher
