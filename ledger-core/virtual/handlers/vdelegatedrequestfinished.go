@@ -45,6 +45,12 @@ type unexpectedVDelegateRequestFinished struct {
 	Ordered  bool
 }
 
+type noLatestStateTolerableVDelegateRequestFinished struct {
+	*log.Msg `txt:"Tolerable VDelegateRequestFinished has no LatestState"`
+	Object   reference.Holder
+	Request  reference.Holder
+}
+
 var dSMVDelegatedRequestFinishedInstance smachine.StateMachineDeclaration = &dSMVDelegatedRequestFinished{}
 
 type dSMVDelegatedRequestFinished struct {
@@ -154,6 +160,13 @@ func (s *SMVDelegatedRequestFinished) updateSharedState(
 	if s.hasLatestState() {
 		state.SetDescriptorDirty(s.latestState())
 		s.updateObjectState(state)
+	} else {
+		if s.Payload.CallFlags.GetInterference() == contract.CallTolerable {
+			ctx.Log().Warn(noLatestStateTolerableVDelegateRequestFinished{
+				Object:  objectRef,
+				Request: requestRef,
+			})
+		}
 	}
 
 	pendingList := state.PendingTable.GetList(s.Payload.CallFlags.GetInterference())
