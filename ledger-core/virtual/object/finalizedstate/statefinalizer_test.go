@@ -43,7 +43,6 @@ func buildStateReport(status payload.VStateReport_StateStatus, state descriptor.
 		class, _ := state.Class()
 		res.ProvidedContent.LatestDirtyState = &payload.ObjectState{
 			Reference: state.StateID(),
-			Parent:    state.Parent(),
 			Class:     class,
 			State:     state.Memory(),
 		}
@@ -76,7 +75,7 @@ func TestSMStateReport_SendVStateReport_IfDescriptorSet(t *testing.T) {
 	)
 
 	smReport := newSMReportWithPulse()
-	smReport.Report = buildStateReport(payload.Ready, descriptor.NewObject(reference.Global{}, reference.Local{}, reference.Global{}, nil, reference.Global{}))
+	smReport.Report = buildStateReport(payload.Ready, descriptor.NewObject(reference.Global{}, reference.Local{}, reference.Global{}, nil))
 
 	messageService := messageSenderWrapper.NewServiceMockWrapper(mc)
 	checkMessageFn := func(msg payload.Marshaler) {

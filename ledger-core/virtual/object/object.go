@@ -194,7 +194,6 @@ func (i *Info) BuildLatestDirtyState() *payload.ObjectState {
 		class, _ := objDescriptor.Class()
 		return &payload.ObjectState{
 			Reference:   objDescriptor.StateID(),
-			Parent:      objDescriptor.Parent(),
 			Class:       class,
 			State:       objDescriptor.Memory(),
 			Deactivated: i.Deactivated,

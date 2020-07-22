@@ -901,7 +901,6 @@ func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionConte
 		lastState = &payload.ObjectState{
 			Reference: s.executionNewState.Result.ObjectStateID,
 			State:     s.executionNewState.Result.Memory,
-			Parent:    s.executionNewState.Result.ParentReference,
 			Class:     class,
 		}
 	}
@@ -929,11 +928,9 @@ func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionConte
 }
 
 func (s *SMExecute) makeNewDescriptor(class reference.Global, memory []byte) descriptor.Object {
-	parentReference := reference.Global{}
 	var prevStateIDBytes []byte
 	objDescriptor := s.execution.ObjectDescriptor
 	if objDescriptor != nil {
-		parentReference = objDescriptor.HeadRef()
 		prevStateIDBytes = objDescriptor.StateID().AsBytes()
 	}
 
@@ -947,7 +944,6 @@ func (s *SMExecute) makeNewDescriptor(class reference.Global, memory []byte) des
 		stateID,
 		class,
 		memory,
-		parentReference,
 	)
 }
 
