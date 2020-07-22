@@ -1536,7 +1536,7 @@ func TestVirtual_Method_ForObjectWithMissingState(t *testing.T) {
 	}
 }
 
-func TestVirtual_Method_SaveState(t *testing.T) {
+func TestVirtual_Method_ForbidenIsolation(t *testing.T) {
 	table := []struct {
 		name         string
 		testRailCase string
@@ -1547,28 +1547,6 @@ func TestVirtual_Method_SaveState(t *testing.T) {
 		callResult                 []byte
 		expectedUnImplementedError bool
 	}{
-		{
-			name:         "Method tolerable + dirty can save state",
-			testRailCase: "C5447",
-			callFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
-			dirtyStateBuilder: func(objectRef, classRef reference.Global, pn pulse.Number) descriptor.Object {
-				return descriptor.NewObject(
-					objectRef,
-					execute.NewStateID(pn, []byte("ok case")),
-					classRef,
-					[]byte("ok case"),
-				)
-			},
-			validatedStateBuilder: func(objectRef, classRef reference.Global, pn pulse.Number) descriptor.Object {
-				return descriptor.NewObject(
-					objectRef,
-					execute.NewStateID(pn, []byte("ok case")),
-					classRef,
-					[]byte("ok case"),
-				)
-			},
-			callResult: []byte("ok case"),
-		},
 		{
 			name:         "Method tolerable + validated cannot be executed",
 			testRailCase: "C5449",
