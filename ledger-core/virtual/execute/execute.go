@@ -303,6 +303,13 @@ func (s *SMExecute) stepIsolationNegotiation(ctx smachine.ExecutionContext) smac
 		}))
 		return ctx.Jump(s.stepSendCallResult)
 	}
+
+	// forbidden isolation
+	// it requires special processing path that will be implemented later on
+	if negotiatedIsolation.Interference == contract.CallTolerable && negotiatedIsolation.State == contract.CallValidated {
+		panic(throw.NotImplemented())
+	}
+
 	s.execution.Isolation = negotiatedIsolation
 
 	return ctx.Jump(s.stepDeduplicate)
@@ -485,7 +492,6 @@ func (s *SMExecute) stepTakeLock(ctx smachine.ExecutionContext) smachine.StateUp
 
 	return ctx.Jump(s.stepStartRequestProcessing)
 }
-
 
 func (s *SMExecute) getExecutionSemaphore() smachine.SyncLink {
 	if s.execution.Isolation.Interference == contract.CallIntolerable {
@@ -827,7 +833,7 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 	}
 
 	action := func(state *object.SharedState) {
-		state.Info.SetDescriptorDirty(s.newObjectDescriptor)
+		state.SetDescriptorDirty(s.newObjectDescriptor)
 
 		switch state.GetState() {
 		case object.HasState:
