@@ -46,7 +46,7 @@ type unexpectedVDelegateRequestFinished struct {
 }
 
 type noLatestStateTolerableVDelegateRequestFinished struct {
-	*log.Msg `txt:"Tolerable VDelegateRequestFinished has no LatestState"`
+	*log.Msg `txt:"Tolerable VDelegateRequestFinished on Empty object has no LatestState"`
 	Object   reference.Holder
 	Request  reference.Holder
 }
@@ -161,7 +161,7 @@ func (s *SMVDelegatedRequestFinished) updateSharedState(
 		state.SetDescriptorDirty(s.latestState())
 		s.updateObjectState(state)
 	} else {
-		if s.Payload.CallFlags.GetInterference() == contract.CallTolerable {
+		if s.Payload.CallFlags.GetInterference() == contract.CallTolerable && state.GetState() == object.Empty {
 			ctx.Log().Warn(noLatestStateTolerableVDelegateRequestFinished{
 				Object:  objectRef,
 				Request: requestRef,
