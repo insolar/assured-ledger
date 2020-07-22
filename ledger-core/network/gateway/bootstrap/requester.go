@@ -31,6 +31,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 )
 
+const bootstrapRetryCount = 2
+
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network/gateway/bootstrap.Requester -o ./ -s _mock.go -g
 
 type Requester interface {
@@ -265,8 +267,8 @@ func (ac *requester) Bootstrap(ctx context.Context, permit *packet.Permit, candi
 		// todo sleep and retry ac.Bootstrap()
 		// return respData, throw.New("Bootstrap request retry")
 		time.Sleep(time.Second)
-		ac.retry += 1
-		if ac.retry > 2 {
+		ac.retry++
+		if ac.retry > bootstrapRetryCount {
 			ac.retry = 0
 			return respData, throw.New("Retry bootstrap failed")
 		}

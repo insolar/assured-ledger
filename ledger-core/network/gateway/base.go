@@ -83,7 +83,7 @@ type Base struct {
 	pulseWatchdog *pulseWatchdog
 
 	isDiscovery     bool // nolint
-	isJoinAssistant bool
+	isJoinAssistant bool // nolint
 	joinAssistant   node2.DiscoveryNode
 }
 
