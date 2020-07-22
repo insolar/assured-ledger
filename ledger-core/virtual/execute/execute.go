@@ -304,7 +304,11 @@ func (s *SMExecute) stepIsolationNegotiation(ctx smachine.ExecutionContext) smac
 		return ctx.Jump(s.stepSendCallResult)
 	}
 
-	checkAllowedIsolation(negotiatedIsolation)
+	// forbidden isolation
+	// it requires special processing path that will be implemented later on
+	if negotiatedIsolation.Interference == contract.CallTolerable && negotiatedIsolation.State == contract.CallValidated {
+		panic(throw.NotImplemented())
+	}
 
 	s.execution.Isolation = negotiatedIsolation
 
@@ -334,14 +338,6 @@ func negotiateIsolation(methodIsolation, callIsolation contract.MethodIsolation)
 	}
 
 	return res, nil
-}
-
-func checkAllowedIsolation(isolation contract.MethodIsolation) {
-	// forbidden isolation
-	// it requires special processing path that will be implemented later on
-	if isolation.Interference == contract.CallTolerable && isolation.State == contract.CallValidated {
-		panic(throw.NotImplemented())
-	}
 }
 
 type DeduplicationAction byte
