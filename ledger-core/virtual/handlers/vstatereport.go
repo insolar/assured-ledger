@@ -174,6 +174,5 @@ func buildObjectDescriptor(headRef reference.Global, state payload.ObjectState) 
 		state.Reference,
 		state.Class,
 		state.State,
-		state.Parent,
 	)
 }

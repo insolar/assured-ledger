@@ -153,7 +153,6 @@ func generateCallContext(
 	}
 
 	if oDesc := execution.ObjectDescriptor; oDesc != nil {
-		res.Parent = oDesc.Parent()
 		// should be the same as request.Object
 		res.Callee = oDesc.HeadRef()
 	} else {
