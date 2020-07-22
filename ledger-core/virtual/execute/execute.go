@@ -303,6 +303,9 @@ func (s *SMExecute) stepIsolationNegotiation(ctx smachine.ExecutionContext) smac
 		}))
 		return ctx.Jump(s.stepSendCallResult)
 	}
+
+	checkAllowedIsolation(negotiatedIsolation)
+
 	s.execution.Isolation = negotiatedIsolation
 
 	return ctx.Jump(s.stepDeduplicate)
@@ -310,7 +313,6 @@ func (s *SMExecute) stepIsolationNegotiation(ctx smachine.ExecutionContext) smac
 
 func negotiateIsolation(methodIsolation, callIsolation contract.MethodIsolation) (contract.MethodIsolation, error) {
 	if methodIsolation == callIsolation {
-		checkAllowedIsolation(methodIsolation)
 		return methodIsolation, nil
 	}
 	res := methodIsolation
@@ -326,12 +328,10 @@ func negotiateIsolation(methodIsolation, callIsolation contract.MethodIsolation)
 	case methodIsolation.State == callIsolation.State:
 		// ok case
 	case methodIsolation.State == contract.CallValidated && callIsolation.State == contract.CallDirty:
-		res.State = methodIsolation.State
+		res.State = callIsolation.State
 	default:
 		return contract.MethodIsolation{}, throw.IllegalValue()
 	}
-
-	checkAllowedIsolation(methodIsolation)
 
 	return res, nil
 }
