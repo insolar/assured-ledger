@@ -136,10 +136,6 @@ func (i *Info) DescriptorValidated() descriptor.Object {
 	return i.descriptorValidated
 }
 
-func (i *Info) LatestDirtyIsValidated() bool {
-	return i.descriptorDirty.StateID().Equal(i.descriptorValidated.StateID())
-}
-
 func (i Info) GetEarliestPulse(tolerance contract.InterferenceFlag) pulse.Number {
 	minPulse := i.PendingTable.GetList(tolerance).EarliestPulse()
 	knownPulse := i.KnownRequests.GetList(tolerance).EarliestPulse()

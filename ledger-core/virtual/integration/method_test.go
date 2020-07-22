@@ -1548,7 +1548,7 @@ func TestVirtual_Method_SaveState(t *testing.T) {
 		expectedUnImplementedError bool
 	}{
 		{
-			name:         "Method saves dirty state",
+			name:         "Method tolerable + dirty can save state",
 			testRailCase: "C5447",
 			callFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 			dirtyStateBuilder: func(objectRef, classRef reference.Global, pn pulse.Number) descriptor.Object {
@@ -1557,7 +1557,6 @@ func TestVirtual_Method_SaveState(t *testing.T) {
 					execute.NewStateID(pn, []byte("ok case")),
 					classRef,
 					[]byte("ok case"),
-					reference.Global{},
 				)
 			},
 			validatedStateBuilder: func(objectRef, classRef reference.Global, pn pulse.Number) descriptor.Object {
@@ -1566,37 +1565,12 @@ func TestVirtual_Method_SaveState(t *testing.T) {
 					execute.NewStateID(pn, []byte("ok case")),
 					classRef,
 					[]byte("ok case"),
-					reference.Global{},
 				)
 			},
 			callResult: []byte("ok case"),
 		},
 		{
-			name:         "Method saves validated state",
-			testRailCase: "C5448",
-			callFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallValidated),
-			dirtyStateBuilder: func(objectRef, classRef reference.Global, pn pulse.Number) descriptor.Object {
-				return descriptor.NewObject(
-					objectRef,
-					execute.NewStateID(pn, []byte("ok case")),
-					classRef,
-					[]byte("ok case"),
-					reference.Global{},
-				)
-			},
-			validatedStateBuilder: func(objectRef, classRef reference.Global, pn pulse.Number) descriptor.Object {
-				return descriptor.NewObject(
-					objectRef,
-					execute.NewStateID(pn, []byte("ok case")),
-					classRef,
-					[]byte("ok case"),
-					reference.Global{},
-				)
-			},
-			callResult: []byte("ok case"),
-		},
-		{
-			name:         "Method saves validated state, but validated != dirty",
+			name:         "Method tolerable + dirty cannot be executed",
 			testRailCase: "C5449",
 			callFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallValidated),
 			dirtyStateBuilder: func(objectRef, classRef reference.Global, pn pulse.Number) descriptor.Object {
@@ -1605,7 +1579,6 @@ func TestVirtual_Method_SaveState(t *testing.T) {
 					execute.NewStateID(pn, []byte("ok case")),
 					classRef,
 					[]byte("ok case"),
-					reference.Global{},
 				)
 			},
 			validatedStateBuilder: func(objectRef, classRef reference.Global, pn pulse.Number) descriptor.Object {
@@ -1614,7 +1587,6 @@ func TestVirtual_Method_SaveState(t *testing.T) {
 					execute.NewStateID(pn, []byte("not ok case")),
 					classRef,
 					[]byte("not ok case"),
-					reference.Global{},
 				)
 			},
 			callResult:                 []byte("bad case"),
@@ -1669,13 +1641,11 @@ func TestVirtual_Method_SaveState(t *testing.T) {
 					ProvidedContent: &payload.VStateReport_ProvidedContentBody{
 						LatestValidatedState: &payload.ObjectState{
 							Reference: validatedState.StateID(),
-							Parent:    validatedState.Parent(),
 							Class:     class,
 							State:     validatedState.Memory(),
 						},
 						LatestDirtyState: &payload.ObjectState{
 							Reference: dirtyState.StateID(),
-							Parent:    dirtyState.Parent(),
 							Class:     class,
 							State:     dirtyState.Memory(),
 						},
@@ -1707,17 +1677,23 @@ func TestVirtual_Method_SaveState(t *testing.T) {
 				}
 
 				key := pl.CallOutgoing.String()
-				result := requestresult.New(test.callResult, outgoingRef)
-				result.SetAmend(dirtyState, []byte("new stuff"))
-				runnerMock.AddExecutionMock(key).
-					AddStart(nil, &execution.Update{
-						Type:   execution.Done,
-						Result: result,
-					})
+
 				runnerMock.AddExecutionClassify(key, contract.MethodIsolation{
 					Interference: test.callFlags.GetInterference(),
 					State:        test.callFlags.GetState(),
 				}, nil)
+
+				// if we use forbidden isolation, then execute should stop before Start happen
+				if !test.expectedUnImplementedError {
+					result := requestresult.New(test.callResult, outgoingRef)
+					result.SetAmend(dirtyState, []byte("new stuff"))
+					runnerMock.AddExecutionMock(key).
+						AddStart(nil, &execution.Update{
+							Type:   execution.Done,
+							Result: result,
+						})
+
+				}
 
 				server.SendPayload(ctx, &pl)
 			}

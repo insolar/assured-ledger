@@ -191,10 +191,6 @@ func (s *SMExecute) intolerableCall() bool {
 	return s.execution.Isolation.Interference == contract.CallIntolerable
 }
 
-func (s *SMExecute) validatedCall() bool {
-	return s.execution.Isolation.State == contract.CallValidated
-}
-
 func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var (
 		semaphoreReadyToWork                smachine.SyncLink
@@ -314,6 +310,7 @@ func (s *SMExecute) stepIsolationNegotiation(ctx smachine.ExecutionContext) smac
 
 func negotiateIsolation(methodIsolation, callIsolation contract.MethodIsolation) (contract.MethodIsolation, error) {
 	if methodIsolation == callIsolation {
+		checkAllowedIsolation(methodIsolation)
 		return methodIsolation, nil
 	}
 	res := methodIsolation
@@ -329,12 +326,22 @@ func negotiateIsolation(methodIsolation, callIsolation contract.MethodIsolation)
 	case methodIsolation.State == callIsolation.State:
 		// ok case
 	case methodIsolation.State == contract.CallValidated && callIsolation.State == contract.CallDirty:
-		res.State = callIsolation.State
+		res.State = methodIsolation.State
 	default:
 		return contract.MethodIsolation{}, throw.IllegalValue()
 	}
 
+	checkAllowedIsolation(methodIsolation)
+
 	return res, nil
+}
+
+func checkAllowedIsolation(isolation contract.MethodIsolation) {
+	// forbidden isolation
+	// it requires special processing path that will be implemented later on
+	if isolation.Interference == contract.CallTolerable && isolation.State == contract.CallValidated {
+		panic(throw.NotImplemented())
+	}
 }
 
 type DeduplicationAction byte
@@ -489,7 +496,6 @@ func (s *SMExecute) stepTakeLock(ctx smachine.ExecutionContext) smachine.StateUp
 
 	return ctx.Jump(s.stepStartRequestProcessing)
 }
-
 
 func (s *SMExecute) getExecutionSemaphore() smachine.SyncLink {
 	if s.execution.Isolation.Interference == contract.CallIntolerable {
@@ -831,9 +837,6 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 	}
 
 	action := func(state *object.SharedState) {
-		if s.validatedCall() && !state.LatestDirtyIsValidated() {
-			panic(throw.NotImplemented())
-		}
 		state.SetDescriptorDirty(s.newObjectDescriptor)
 
 		switch state.GetState() {
