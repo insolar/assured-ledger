@@ -126,7 +126,7 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 				requestResult := requestresult.New([]byte("call result"), gen.UniqueGlobalRef())
 				if test.withSideEffect {
 					newObjDescriptor := descriptor.NewObject(
-						reference.Global{}, reference.Local{}, gen.UniqueGlobalRef(), []byte(""), reference.Global{},
+						reference.Global{}, reference.Local{}, gen.UniqueGlobalRef(), []byte(""),
 					)
 					requestResult.SetAmend(newObjDescriptor, []byte("new memory"))
 				}
@@ -381,7 +381,7 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 			req              = request
 			outgoing         = server.BuildRandomOutgoingWithPulse()
 			newObjDescriptor = descriptor.NewObject(
-				reference.Global{}, reference.Local{}, gen.UniqueGlobalRef(), []byte(""), reference.Global{},
+				reference.Global{}, reference.Local{}, gen.UniqueGlobalRef(), []byte(""),
 			)
 		)
 

@@ -24,9 +24,6 @@ type Object interface {
 
 	// Class returns class reference.
 	Class() (reference.Global, error)
-
-	// Parent returns object's parent.
-	Parent() reference.Global
 }
 
 func NewObject(
@@ -34,14 +31,12 @@ func NewObject(
 	state reference.Local,
 	class reference.Global,
 	memory []byte,
-	parent reference.Global,
 ) Object {
 	return &object{
 		head:   head,
 		state:  state,
 		class:  class,
 		memory: memory,
-		parent: parent,
 	}
 }
 
@@ -51,7 +46,6 @@ type object struct {
 	state  reference.Local
 	class  reference.Global
 	memory []byte
-	parent reference.Global
 }
 
 // Class returns class reference.
@@ -75,9 +69,4 @@ func (d *object) StateID() reference.Local {
 // Memory fetches latest memory of the object known to storage.
 func (d *object) Memory() []byte {
 	return d.memory
-}
-
-// Parent returns object's parent.
-func (d *object) Parent() reference.Global {
-	return d.parent
 }
