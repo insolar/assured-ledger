@@ -1,7 +1,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 bases:
-  - https://github.com/insolar/gitops/assured-ledger/aks-${INSOLAR_NETWORK_SIZE}
+  - https://github.com/insolar/gitops/assured-ledger/aks-10node
 secretGenerator:	
   - name: azurecr	
     files:	
