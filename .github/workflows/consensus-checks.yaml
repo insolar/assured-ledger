@@ -38,6 +38,8 @@ jobs:
     needs: prepare
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@master
       - name: set prerequisite variables, full sha is ${{github.sha}}
         run: |
           echo "::set-env name=INSOLAR_TAG::${GITHUB_SHA:0:8}"
