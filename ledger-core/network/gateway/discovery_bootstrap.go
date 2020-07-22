@@ -22,9 +22,6 @@ func (g *DiscoveryBootstrap) Run(ctx context.Context, p pulsestor.Pulse) {
 	logger := inslogger.FromContext(ctx)
 	cert := g.CertificateManager.GetCertificate()
 
-	// todo: проверить я ассистент или нет
-	// todo:
-
 	permit, err := g.BootstrapRequester.Authorize(ctx, cert)
 	if err != nil {
 		logger.Warn("Failed to authorize: ", err.Error())

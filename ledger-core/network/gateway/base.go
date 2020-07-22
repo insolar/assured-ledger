@@ -82,7 +82,7 @@ type Base struct {
 
 	pulseWatchdog *pulseWatchdog
 
-	isDiscovery     bool
+	isDiscovery     bool // nolint
 	isJoinAssistant bool
 	joinAssistant   node2.DiscoveryNode
 }
@@ -433,7 +433,6 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 		return nil, err
 	}
 
-	inslogger.FromContext(ctx).Infof("PERMIT FOR: %s | assistant %s", nodes[0].Address(), g.joinAssistant.GetHost())
 	permit, err := bootstrap.CreatePermit(g.OriginProvider.GetOrigin().ID(),
 		reconnectHost,
 		pubKey,
