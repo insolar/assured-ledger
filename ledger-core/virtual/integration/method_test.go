@@ -8,6 +8,7 @@ package integration
 import (
 	"context"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -1529,6 +1530,160 @@ func TestVirtual_Method_ForObjectWithMissingState(t *testing.T) {
 
 			require.Equal(t, 1, typedChecker.VCallResult.Count())
 			typedChecker.MinimockWait(10 * time.Second)
+
+			mc.Finish()
+		})
+	}
+}
+
+func TestVirtual_Method_ForbidenIsolation(t *testing.T) {
+	table := []struct {
+		name         string
+		testRailCase string
+
+		callFlags                  payload.CallFlags
+		dirtyStateBuilder          func(objectRef, classRef reference.Global, pn pulse.Number) descriptor.Object
+		validatedStateBuilder      func(objectRef, classRef reference.Global, pn pulse.Number) descriptor.Object
+		callResult                 []byte
+		expectedUnImplementedError bool
+	}{
+		{
+			name:         "Method tolerable + validated cannot be executed",
+			testRailCase: "C5449",
+			callFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallValidated),
+			dirtyStateBuilder: func(objectRef, classRef reference.Global, pn pulse.Number) descriptor.Object {
+				return descriptor.NewObject(
+					objectRef,
+					execute.NewStateID(pn, []byte("ok case")),
+					classRef,
+					[]byte("ok case"),
+				)
+			},
+			validatedStateBuilder: func(objectRef, classRef reference.Global, pn pulse.Number) descriptor.Object {
+				return descriptor.NewObject(
+					objectRef,
+					execute.NewStateID(pn, []byte("not ok case")),
+					classRef,
+					[]byte("not ok case"),
+				)
+			},
+			callResult:                 []byte("bad case"),
+			expectedUnImplementedError: true,
+		},
+	}
+	for _, test := range table {
+		t.Run(test.name, func(t *testing.T) {
+			defer commontestutils.LeakTester(t)
+
+			t.Log(test.testRailCase)
+
+			var (
+				mc     = minimock.NewController(t)
+				ctx    context.Context
+				server *utils.Server
+			)
+
+			if test.expectedUnImplementedError {
+				server, ctx = utils.NewUninitializedServerWithErrorFilter(nil, t, func(s string) bool {
+					return !strings.Contains(s, "execution: not implemented")
+				})
+			} else {
+				server, ctx = utils.NewUninitializedServer(nil, t)
+			}
+
+			defer server.Stop()
+
+			executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
+
+			runnerMock := logicless.NewServiceMock(ctx, t, nil)
+			server.ReplaceRunner(runnerMock)
+
+			server.Init(ctx)
+			server.IncrementPulse(ctx)
+
+			var (
+				class       = gen.UniqueGlobalRef()
+				objectRef   = server.BuildRandomOutgoingWithPulse()
+				outgoingRef = server.BuildRandomOutgoingWithPulse()
+			)
+
+			dirtyState := test.dirtyStateBuilder(objectRef, class, server.GetPulse().PulseNumber)
+			validatedState := test.validatedStateBuilder(objectRef, class, server.GetPulse().PulseNumber)
+
+			{ // send object state to server
+				pl := payload.VStateReport{
+					Status:               payload.Ready,
+					Object:               objectRef,
+					LatestValidatedState: validatedState.HeadRef(),
+					LatestDirtyState:     dirtyState.HeadRef(),
+					ProvidedContent: &payload.VStateReport_ProvidedContentBody{
+						LatestValidatedState: &payload.ObjectState{
+							Reference: validatedState.StateID(),
+							Class:     class,
+							State:     validatedState.Memory(),
+						},
+						LatestDirtyState: &payload.ObjectState{
+							Reference: dirtyState.StateID(),
+							Class:     class,
+							State:     dirtyState.Memory(),
+						},
+					},
+				}
+
+				server.WaitIdleConveyor()
+				server.SendPayload(ctx, &pl)
+				server.WaitActiveThenIdleConveyor()
+			}
+
+			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+
+			{
+				typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
+					require.Equal(t, objectRef, res.Callee)
+					assert.Equal(t, test.callResult, res.ReturnArguments)
+					return false // no resend msg
+				})
+
+				pl := payload.VCallRequest{
+					CallType:            payload.CTMethod,
+					CallFlags:           test.callFlags,
+					Caller:              server.GlobalCaller(),
+					Callee:              objectRef,
+					CallSiteDeclaration: class,
+					CallSiteMethod:      "Test",
+					CallOutgoing:        outgoingRef,
+				}
+
+				key := pl.CallOutgoing.String()
+
+				runnerMock.AddExecutionClassify(key, contract.MethodIsolation{
+					Interference: test.callFlags.GetInterference(),
+					State:        test.callFlags.GetState(),
+				}, nil)
+
+				// if we use forbidden isolation, then execute should stop before Start happen
+				if !test.expectedUnImplementedError {
+					result := requestresult.New(test.callResult, outgoingRef)
+					result.SetAmend(dirtyState, []byte("new stuff"))
+					runnerMock.AddExecutionMock(key).
+						AddStart(nil, &execution.Update{
+							Type:   execution.Done,
+							Result: result,
+						})
+
+				}
+
+				server.SendPayload(ctx, &pl)
+			}
+
+			testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+			testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+
+			if test.expectedUnImplementedError {
+				assert.Equal(t, 0, typedChecker.VCallResult.Count())
+			} else {
+				assert.Equal(t, 1, typedChecker.VCallResult.Count())
+			}
 
 			mc.Finish()
 		})
