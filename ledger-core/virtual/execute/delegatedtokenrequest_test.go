@@ -28,6 +28,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/slotdebugger"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
 )
 
 func TestVDelegatedCallRequest(t *testing.T) {
@@ -71,6 +72,8 @@ func TestVDelegatedCallRequest(t *testing.T) {
 		)
 		slotMachine.AddInterfaceDependency(&catalog)
 		slotMachine.AddInterfaceDependency(&authService)
+		limiter := tool.NewRunnerLimiter(4)
+		slotMachine.AddDependency(limiter)
 
 		sharedStateData := smachine.NewUnboundSharedData(&object.SharedState{
 			Info: object.Info{
@@ -78,7 +81,7 @@ func TestVDelegatedCallRequest(t *testing.T) {
 				PendingTable:   callregistry.NewRequestTable(),
 				KnownRequests:  callregistry.NewWorkingTable(),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
-				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
+				OrderedExecute: limiter.NewChildSemaphore(1, "MutableExecution").SyncLink(),
 			},
 		})
 
