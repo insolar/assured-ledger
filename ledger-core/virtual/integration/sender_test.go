@@ -6,8 +6,6 @@
 package integration
 
 import (
-	"context"
-	"reflect"
 	"strings"
 	"testing"
 
@@ -15,10 +13,8 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
@@ -65,6 +61,10 @@ var messagesWithoutToken = []struct {
 	},
 }
 
+type reseter interface {
+	Reset()
+}
+
 func TestVirtual_SenderCheck_With_ExpectedVE(t *testing.T) {
 	testCases := []struct {
 		name                    string
@@ -92,19 +92,24 @@ func TestVirtual_SenderCheck_With_ExpectedVE(t *testing.T) {
 					auth := authentication.NewService(ctx, jetCoordinatorMock)
 					server.ReplaceAuthenticationService(auth)
 
-					var errorFound bool
+					var (
+						unexpectedError error
+						errorFound      bool
+					)
 					{
 						logHandler := func(arg interface{}) {
 							err, ok := arg.(error)
 							if !ok {
 								return
 							}
-							errMsg := err.Error()
-							if strings.Contains(errMsg, "unexpected sender") &&
-								strings.Contains(errMsg, "illegitimate msg") {
+
+							errorMsg := err.Error()
+							if strings.Contains(errorMsg, "unexpected sender") &&
+								strings.Contains(errorMsg, "illegitimate msg") {
 								errorFound = true
+							} else {
+								unexpectedError = err
 							}
-							errorFound = true
 						}
 						logger := utils.InterceptLog(inslogger.FromContext(ctx), logHandler)
 						server.OverrideConveyorFactoryLogContext(inslogger.SetLogger(ctx, logger))
@@ -114,25 +119,21 @@ func TestVirtual_SenderCheck_With_ExpectedVE(t *testing.T) {
 					server.IncrementPulseAndWaitIdle(ctx)
 
 					if !testMsg.ignoreSenderCheck {
-						jetCoordinatorMock.QueryRoleMock.Set(func(_ context.Context, _ node.DynamicRole, _ reference.Local, _ pulse.Number) (_ []reference.Global, _ error) {
-							if cases.senderIsEqualExpectedVE {
-								return []reference.Global{server.GlobalCaller()}, nil // true sender
-							}
-							return []reference.Global{server.RandomGlobalWithPulse()}, nil // false sender
-						})
+						rv := server.RandomGlobalWithPulse()
+						if cases.senderIsEqualExpectedVE {
+							rv = server.GlobalCaller()
+						}
+						jetCoordinatorMock.QueryRoleMock.Return([]reference.Global{rv}, nil)
 					}
 
-					reflect.ValueOf(testMsg.msg).MethodByName("Reset").Call([]reflect.Value{})
-
+					testMsg.msg.(reseter).Reset()
 					server.SendPayload(ctx, testMsg.msg.(payload.Marshaler)) // default caller == server.GlobalCaller()
 
 					server.WaitIdleConveyor()
 
-					if cases.senderIsEqualExpectedVE || testMsg.ignoreSenderCheck == true {
-						assert.False(t, errorFound, "Fail "+testMsg.name)
-					} else {
-						assert.True(t, errorFound, "Fail "+testMsg.name)
-					}
+					expectNoError := cases.senderIsEqualExpectedVE || testMsg.ignoreSenderCheck == true
+					assert.Equal(t, !expectNoError, errorFound, "Fail "+testMsg.name)
+					assert.NoError(t, unexpectedError)
 
 					server.Stop()
 					mc.Finish()
