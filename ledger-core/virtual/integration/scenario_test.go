@@ -13,6 +13,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/investigation"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 )
@@ -20,8 +21,7 @@ import (
 // 10 parallel executions
 func TestVirtual_Scenario1(t *testing.T) {
 	defer commontestutils.LeakTester(t)
-
-	t.Log("C4932")
+	investigation.LogCase(t, "C4932")
 
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
@@ -92,8 +92,7 @@ func TestVirtual_Scenario1(t *testing.T) {
 // 10 sequential executions
 func TestVirtual_Scenario2(t *testing.T) {
 	defer commontestutils.LeakTester(t)
-
-	t.Log("C4933")
+	investigation.LogCase(t, "C4933")
 
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()

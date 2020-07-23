@@ -14,6 +14,7 @@ import (
 	"github.com/gojuno/minimock/v3"
 
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/investigation"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/mock/publisher/checker"
@@ -111,10 +112,14 @@ func (c *TestCase) Run(t *testing.T, fn func(t *testing.T)) {
 			t.Parallel()
 		}
 		if c.TestRailID != "" {
-			t.Log(c.TestRailID)
+			investigation.LogCase(t, c.TestRailID)
 		}
 		if c.Skipped != "" {
-			t.Skip(c.Skipped)
+			if c.TestRailID != "" {
+				investigation.LogSkip(t, c.Skipped)
+			} else {
+				t.Skip(c.Skipped)
+			}
 		}
 
 		c.init(t)

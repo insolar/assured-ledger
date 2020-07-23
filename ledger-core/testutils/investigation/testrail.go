@@ -27,6 +27,7 @@ type Testing interface {
 	Log(args ...interface{})
 	Skip(args ...interface{})
 
+	Helper()
 	Cleanup(func())
 }
 
@@ -79,11 +80,15 @@ func getParentPackage(skipDepth int) string {
 }
 
 func LogSkip(target Testing, jiraLink string) {
+	target.Helper()
+
 	skipList.Store(target.Name(), jiraLink)
 	target.Skip(jiraLink)
 }
 
 func LogCaseExt(target Testing, name string, skipDepth int) {
+	target.Helper()
+
 	if skipDepth < 0 {
 		panic(throw.IllegalValue())
 	}
@@ -139,5 +144,7 @@ func LogCaseExt(target Testing, name string, skipDepth int) {
 }
 
 func LogCase(target Testing, name string) {
+	target.Helper()
+
 	LogCaseExt(target, name, 1)
 }

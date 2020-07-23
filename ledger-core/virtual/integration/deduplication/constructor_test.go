@@ -21,6 +21,7 @@ import (
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/debuglogger"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/investigation"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/synchronization"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
@@ -32,8 +33,7 @@ import (
 
 func TestConstructor_SamePulse_WhileExecution(t *testing.T) {
 	defer commontestutils.LeakTester(t)
-
-	t.Log("C4998")
+	investigation.LogCase(t, "C4998")
 
 	mc := minimock.NewController(t)
 
@@ -114,8 +114,7 @@ func TestConstructor_SamePulse_WhileExecution(t *testing.T) {
 
 func TestConstructor_SamePulse_AfterExecution(t *testing.T) {
 	defer commontestutils.LeakTester(t)
-
-	t.Log("C5005")
+	investigation.LogCase(t, "C5005")
 
 	mc := minimock.NewController(t)
 

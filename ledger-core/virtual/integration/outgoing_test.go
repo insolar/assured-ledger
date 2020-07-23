@@ -25,6 +25,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/investigation"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
@@ -47,8 +48,7 @@ import (
 // -> VDelegatedRequestFinished [A] + second token
 func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 	defer commontestutils.LeakTester(t)
-
-	t.Log("C5141")
+	investigation.LogCase(t, "C5141")
 
 	mc := minimock.NewController(t)
 
@@ -292,8 +292,7 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 // -> VDelegatedRequestFinished [A] + second token
 func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 	defer commontestutils.LeakTester(t)
-
-	t.Log("C5142")
+	investigation.LogCase(t, "C5142")
 
 	mc := minimock.NewController(t)
 
@@ -497,8 +496,7 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 
 func TestVirtual_CallContractOutgoingReturnsError(t *testing.T) {
 	defer commontestutils.LeakTester(t)
-
-	t.Log("C4971")
+	investigation.LogCase(t, "C4971")
 
 	mc := minimock.NewController(t)
 
