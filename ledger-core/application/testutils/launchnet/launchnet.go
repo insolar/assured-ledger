@@ -243,8 +243,7 @@ func runPulsar() error {
 }
 
 func waitForNet() error {
-	// err := waitForNetworkState(nodeinfo.WaitMajority)
-	err := waitForNetworkState(nodeinfo.WaitPulsar)
+	err := waitForNetworkState(nodeinfo.WaitMajority)
 	if err != nil {
 		return errors.W(err, "Can't wait for NetworkState "+nodeinfo.WaitPulsar.String())
 	}
