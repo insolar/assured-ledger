@@ -82,8 +82,104 @@ func BenchmarkVCallRequestGetMethod(b *testing.B) {
 	}
 }
 
-func BenchmarkTestAPIGetBalance(b *testing.B) {
+func BenchmarkVCallRequestAcceptMethod(b *testing.B) {
+	server, ctx := utils.NewServer(nil, b)
+	defer server.Stop()
+	server.IncrementPulseAndWaitIdle(ctx)
 
+	var (
+		class  = walletproxy.GetClass()
+		object = reference.NewSelf(server.RandomLocalWithPulse())
+	)
+
+	walletMemory := insolar.MustSerialize(testwallet.Wallet{
+		Balance: 1234567,
+	})
+
+	content := &payload.VStateReport_ProvidedContentBody{
+		LatestDirtyState: &payload.ObjectState{
+			Reference: reference.Local{},
+			Class:     class,
+			State:     walletMemory,
+		},
+	}
+
+	report := &payload.VStateReport{
+		Status:          payload.Ready,
+		Object:          object,
+		ProvidedContent: content,
+	}
+
+	wait := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
+	server.SendPayload(ctx, report)
+	testutils.WaitSignalsTimed(b, 10*time.Second, wait)
+
+	resultSignal := make(synckit.ClosableSignalChannel, 1)
+
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, b, server)
+	typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool {
+		resultSignal <- struct{}{}
+		return false
+	})
+
+	pl := payload.VCallRequest{
+		CallType:            payload.CTMethod,
+		CallFlags:           payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+		Caller:              server.GlobalCaller(),
+		Callee:              object,
+		CallSiteDeclaration: class,
+		CallSiteMethod:      "Accept",
+		Arguments:           insolar.MustSerialize([]interface{}{uint32(10)}),
+	}
+
+	b.StopTimer()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		pl.CallOutgoing = server.BuildRandomOutgoingWithPulse()
+		msg := server.WrapPayload(&pl).Finalize()
+
+		b.StartTimer()
+		server.SendMessage(ctx, msg)
+		testutils.WaitSignalsTimed(b, 10*time.Second, resultSignal)
+		b.StopTimer()
+	}
+}
+
+func BenchmarkVCallRequestConstructor(b *testing.B) {
+	server, ctx := utils.NewServer(nil, b)
+	defer server.Stop()
+
+	resultSignal := make(synckit.ClosableSignalChannel, 1)
+
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, b, server)
+	typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool {
+		resultSignal <- struct{}{}
+		return false
+	})
+
+	pl := payload.VCallRequest{
+		CallType:       payload.CTConstructor,
+		CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+		Caller:         server.GlobalCaller(),
+		Callee:         walletproxy.GetClass(),
+		CallSiteMethod: "New",
+		Arguments:      insolar.MustSerialize([]interface{}{}),
+	}
+
+	b.StopTimer()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		pl.CallOutgoing = server.BuildRandomOutgoingWithPulse()
+		msg := server.WrapPayload(&pl).Finalize()
+
+		b.StartTimer()
+		server.SendMessage(ctx, msg)
+		testutils.WaitSignalsTimed(b, 10*time.Second, resultSignal)
+		b.StopTimer()
+	}
+}
+
+func BenchmarkTestAPIGetBalance(b *testing.B) {
 	server, ctx := utils.NewServer(nil, b)
 	defer server.Stop()
 	server.IncrementPulseAndWaitIdle(ctx)
@@ -123,7 +219,6 @@ func BenchmarkTestAPIGetBalance(b *testing.B) {
 }
 
 func BenchmarkTestAPIGetBalanceParallel(b *testing.B) {
-
 	server, ctx := utils.NewServer(nil, b)
 	defer server.Stop()
 	server.IncrementPulseAndWaitIdle(ctx)
