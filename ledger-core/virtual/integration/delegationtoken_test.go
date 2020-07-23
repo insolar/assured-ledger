@@ -428,7 +428,7 @@ func TestDelegationToken_OldVEVDelegatedCallRequest(t *testing.T) {
 			server.Init(ctx)
 
 			var (
-				class       = gen.UniqueGlobalRef()
+				class       = gen.UniqueGlobalRefWithPulse(server.GetPulse().PulseNumber)
 				outgoing    = server.BuildRandomOutgoingWithPulse()
 				executorRef = server.RandomGlobalWithPulse()
 				firstPulse  = server.GetPulse()
@@ -466,6 +466,7 @@ func TestDelegationToken_OldVEVDelegatedCallRequest(t *testing.T) {
 			statePl := payload.VStateReport{
 				Status:                      payload.Empty,
 				Object:                      class,
+				AsOf:                        firstPulse.PulseNumber,
 				OrderedPendingCount:         1,
 				OrderedPendingEarliestPulse: firstPulse.PulseNumber,
 			}

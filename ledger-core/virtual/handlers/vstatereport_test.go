@@ -43,6 +43,7 @@ func TestVStateReport_CreateObjectWithoutState(t *testing.T) {
 		Payload: &payload.VStateReport{
 			Status:                payload.Empty,
 			Object:                smGlobalRef,
+			AsOf:                  pd.PulseNumber,
 			UnorderedPendingCount: 1,
 			OrderedPendingCount:   1,
 			ProvidedContent:       &payload.VStateReport_ProvidedContentBody{},

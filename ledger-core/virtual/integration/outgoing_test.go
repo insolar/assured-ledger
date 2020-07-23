@@ -123,7 +123,7 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 		}
 	)
 
-	Method_PrepareObject(ctx, server, payload.Ready, objectAGlobal)
+	Method_PrepareObject(ctx, server, payload.Ready, objectAGlobal, firstPulse)
 
 	// add ExecutionMocks to runnerMock
 	{
@@ -527,12 +527,14 @@ func TestVirtual_CallContractOutgoingReturnsError(t *testing.T) {
 		outgoingCallRef = reference.NewRecordOf(
 			server.GlobalCaller(), server.RandomLocalWithPulse(),
 		)
+
+		pulse = server.GetPulse().PulseNumber
 	)
 
 	// create objects
 	{
-		Method_PrepareObject(ctx, server, payload.Ready, outgoingA)
-		Method_PrepareObject(ctx, server, payload.Ready, objectBGlobal)
+		Method_PrepareObject(ctx, server, payload.Ready, outgoingA, pulse)
+		Method_PrepareObject(ctx, server, payload.Ready, objectBGlobal, pulse)
 	}
 
 	// add ExecutionMocks to runnerMock

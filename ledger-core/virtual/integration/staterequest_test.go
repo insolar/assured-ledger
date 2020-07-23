@@ -47,10 +47,10 @@ func TestVirtual_VStateRequest_WithoutBody(t *testing.T) {
 	var (
 		objectLocal  = server.RandomLocalWithPulse()
 		objectGlobal = reference.NewSelf(objectLocal)
-		pn           = server.GetPulse().PulseNumber
+		pulseNumber  = server.GetPulse().PulseNumber
 	)
 
-	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal)
+	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal, pulseNumber)
 
 	countBefore := server.PublisherMock.GetCount()
 	server.IncrementPulse(ctx)
@@ -71,7 +71,7 @@ func TestVirtual_VStateRequest_WithoutBody(t *testing.T) {
 	})
 
 	countBefore = server.PublisherMock.GetCount()
-	msg := makeVStateRequestEvent(pn, objectGlobal, 0, server.JetCoordinatorMock.Me())
+	msg := makeVStateRequestEvent(pulseNumber, objectGlobal, 0, server.JetCoordinatorMock.Me())
 	server.SendMessage(ctx, msg)
 
 	if !server.PublisherMock.WaitCount(countBefore+1, 10*time.Second) {
@@ -95,10 +95,10 @@ func TestVirtual_VStateRequest_WithBody(t *testing.T) {
 	var (
 		objectLocal    = server.RandomLocalWithPulse()
 		objectGlobal   = reference.NewSelf(objectLocal)
-		pn             = server.GetPulse().PulseNumber
+		pulseNumber    = server.GetPulse().PulseNumber
 		rawWalletState = makeRawWalletState(initialBalance)
 	)
-	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal)
+	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal, pulseNumber)
 
 	countBefore := server.PublisherMock.GetCount()
 	server.IncrementPulse(ctx)
@@ -110,7 +110,7 @@ func TestVirtual_VStateRequest_WithBody(t *testing.T) {
 	typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
 		assert.Equal(t, &payload.VStateReport{
 			Status:           payload.Ready,
-			AsOf:             pn,
+			AsOf:             pulseNumber,
 			Object:           objectGlobal,
 			LatestDirtyState: objectGlobal,
 			ProvidedContent: &payload.VStateReport_ProvidedContentBody{
@@ -126,7 +126,7 @@ func TestVirtual_VStateRequest_WithBody(t *testing.T) {
 	})
 
 	countBefore = server.PublisherMock.GetCount()
-	msg := makeVStateRequestEvent(pn, objectGlobal, payload.RequestLatestDirtyState, server.JetCoordinatorMock.Me())
+	msg := makeVStateRequestEvent(pulseNumber, objectGlobal, payload.RequestLatestDirtyState, server.JetCoordinatorMock.Me())
 	server.SendMessage(ctx, msg)
 
 	if !server.PublisherMock.WaitCount(countBefore+1, 10*time.Second) {

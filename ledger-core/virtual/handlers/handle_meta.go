@@ -58,10 +58,10 @@ func (f FactoryMeta) Process(ctx context.Context, msg *statemachine.DispatcherMe
 	payloadType := reflect.Indirect(reflect.ValueOf(payloadObj)).Type()
 
 	logger.Infom(struct {
-		Message         string
-		PayloadTypeID   uint64
-		PayloadType     reflect.Type
-		Source, Target  reference.Holder
+		Message        string
+		PayloadTypeID  uint64
+		PayloadType    reflect.Type
+		Source, Target reference.Holder
 	}{
 		"processing message",
 		payloadTypeID,
@@ -97,6 +97,20 @@ func (f FactoryMeta) Process(ctx context.Context, msg *statemachine.DispatcherMe
 			}))
 			// when this flag is set, then the relevant SM has to stop asap and send negative answer
 			return pulse.Unknown, nil, throw.NotImplemented()
+		}
+	}
+
+	// validate message field invariants
+	switch p := payloadObj.(type) {
+	case payload.Validate:
+		if err := p.Validate(targetPulse); err != nil {
+			logger.Warn(throw.W(err, "invalid msg", skippedMessage{
+				messageTypeID: payloadTypeID,
+				messageType:   payloadType,
+				incomingPulse: payloadMeta.Pulse,
+				targetPulse:   targetPulse,
+			}))
+			return pulse.Unknown, nil, nil
 		}
 	}
 

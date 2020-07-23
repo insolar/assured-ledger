@@ -27,7 +27,7 @@ import (
 func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 	defer commontestutils.LeakTester(t)
 
-//	t.Log("C4983")
+	//	t.Log("C4983")
 	instestlogger.LogCase(t, "C4983")
 
 	server, ctx := utils.NewServer(nil, t)
@@ -38,7 +38,8 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 	var (
 		mc          = minimock.NewController(t)
 		testBalance = uint32(500)
-		objectRef   = gen.UniqueGlobalRef()
+		prevPulse   = server.GetPulse().PulseNumber
+		objectRef   = gen.UniqueGlobalRefWithPulse(prevPulse)
 		sender      = server.JetCoordinatorMock.Me()
 	)
 
@@ -51,17 +52,18 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 		return false // no resend msg
 	})
 
-	server.WaitIdleConveyor()
+	server.IncrementPulseAndWaitIdle(ctx)
 
 	{
 		// send VStateReport: save wallet
-		stateID := gen.UniqueLocalRefWithPulse(server.GetPulse().PulseNumber)
+		stateID := gen.UniqueLocalRefWithPulse(prevPulse)
 		rawWalletState := makeRawWalletState(testBalance)
 		payloadMeta := &payload.VStateReport{
 			Status:                        payload.Ready,
 			Object:                        objectRef,
+			AsOf:                          prevPulse,
 			UnorderedPendingCount:         1,
-			UnorderedPendingEarliestPulse: pulse.OfNow(),
+			UnorderedPendingEarliestPulse: prevPulse,
 			ProvidedContent: &payload.VStateReport_ProvidedContentBody{
 				LatestDirtyState: &payload.ObjectState{
 					Reference: stateID,

@@ -270,7 +270,10 @@ func (test *DeduplicationDifferentPulsesCase) run(t *testing.T) {
 
 	// populate needed VStateReport fields
 	test.VState.Object = object
-	test.VState.OrderedPendingEarliestPulse = previousPulse
+	if test.VState.OrderedPendingCount > 0 {
+		test.VState.OrderedPendingEarliestPulse = previousPulse
+	}
+	test.VState.AsOf = previousPulse
 
 	// populate needed VFindCallResponse fields
 	if test.VFindCall != nil {
@@ -386,8 +389,8 @@ func TestDeduplication_DifferentPulses_MissingState(t *testing.T) {
 	tests = append(tests, &DeduplicationDifferentPulsesCase{
 		TestCase: utils.NewTestCase("empty object, no pending executions"),
 		VState: payload.VStateReport{
-			Status:              payload.Missing,
-			OrderedPendingCount: 0,
+			Status: payload.Missing,
+			AsOf:   gen.PulseNumber(),
 		},
 		VCallResultExpected: true,
 		ExecutionExpected:   true,

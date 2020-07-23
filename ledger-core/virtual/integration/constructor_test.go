@@ -276,10 +276,14 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 	server.IncrementPulseAndWaitIdle(ctx)
 
 	var (
-		p         = server.GetPulse().PulseNumber
+		prevPulse = server.GetPulse().PulseNumber
 		outgoing  = server.BuildRandomOutgoingWithPulse()
 		objectRef = reference.NewSelf(outgoing.GetLocal())
 	)
+
+	server.IncrementPulseAndWaitIdle(ctx)
+
+	currPulse := server.GetPulse().PulseNumber
 
 	pl := payload.VCallRequest{
 		CallType:       payload.CTConstructor,
@@ -319,7 +323,7 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 		}
 		expected := &payload.VStateReport{
 			Status:           payload.Ready,
-			AsOf:             p,
+			AsOf:             currPulse,
 			Object:           objectRef,
 			LatestDirtyState: objectRef,
 			ProvidedContent: &payload.VStateReport_ProvidedContentBody{
@@ -336,7 +340,7 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 
 	{
 		done := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
-		pl := makeVStateReportWithState(objectRef, payload.Missing, nil)
+		pl := makeVStateReportWithState(objectRef, payload.Missing, nil, prevPulse)
 		server.SendPayload(ctx, pl)
 		testutils.WaitSignalsTimed(t, 10*time.Second, done)
 	}
