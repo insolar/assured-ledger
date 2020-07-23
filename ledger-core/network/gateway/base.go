@@ -82,9 +82,9 @@ type Base struct {
 
 	pulseWatchdog *pulseWatchdog
 
-	isDiscovery     bool // nolint
-	isJoinAssistant bool // nolint
-	joinAssistant   node2.DiscoveryNode
+	isDiscovery     bool                // nolint
+	isJoinAssistant bool                // nolint
+	joinAssistant   node2.DiscoveryNode // joinAssistant
 }
 
 // NewGateway creates new gateway on top of existing
