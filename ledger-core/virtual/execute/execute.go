@@ -802,8 +802,9 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 		class  reference.Global
 	)
 
-	if s.intolerableCall() {
-		s.executionNewState.Result = requestresult.New(executionNewState.Result(), executionNewState.ObjectReference())
+	if s.isIntolerableCallChangeState() {
+		s.prepareExecutionError(throw.E("intolerable call trying to change object state"))
+		return ctx.Jump(s.stepSendCallResult)
 	}
 
 	if s.deactivate {
@@ -850,6 +851,10 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 	}
 
 	return ctx.Jump(s.stepSendCallResult)
+}
+
+func (s *SMExecute) isIntolerableCallChangeState() bool {
+	return s.intolerableCall() && (s.deactivate || s.executionNewState.Result.Type() != requestresult.SideEffectNone)
 }
 
 func (s *SMExecute) stepAwaitSMCallSummary(ctx smachine.ExecutionContext) smachine.StateUpdate {

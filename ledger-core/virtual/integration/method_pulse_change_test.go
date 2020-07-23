@@ -21,8 +21,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
+	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
-	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
+	commonTestUtils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/predicate"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
@@ -69,7 +70,7 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 
 	for _, test := range table {
 		t.Run(test.name, func(t *testing.T) {
-			defer commontestutils.LeakTester(t)
+			defer commonTestUtils.LeakTester(t)
 
 			mc := minimock.NewController(t)
 
@@ -200,7 +201,13 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 				})
 				typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
 					assert.Equal(t, object, res.Callee)
-					assert.Equal(t, []byte("call result"), res.ReturnArguments)
+					if test.isolation == intolerableFlags() && test.withSideEffect {
+						contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments)
+						require.NoError(t, sysErr)
+						require.Equal(t, "intolerable call trying to change object state", contractErr.Error())
+					} else {
+						assert.Equal(t, []byte("call result"), res.ReturnArguments)
+					}
 					assert.Equal(t, p1, res.CallOutgoing.GetLocal().Pulse())
 					assert.Equal(t, expectedToken, res.DelegationSpec)
 					return false
@@ -243,7 +250,7 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 
 // 2 ordered and 2 unordered calls
 func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
-	defer commontestutils.LeakTester(t)
+	defer commonTestUtils.LeakTester(t)
 
 	t.Log("C5104")
 
@@ -296,7 +303,7 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 			LatestValidatedState: &objectState,
 		}
 
-		payload := &payload.VStateReport{
+		vsrPayload := &payload.VStateReport{
 			Status:                        payload.Ready,
 			Object:                        object,
 			UnorderedPendingEarliestPulse: pulse.OfNow(),
@@ -304,7 +311,7 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 		}
 
 		server.WaitIdleConveyor()
-		server.SendPayload(ctx, payload)
+		server.SendPayload(ctx, vsrPayload)
 		server.WaitActiveThenIdleConveyor()
 	}
 
@@ -453,7 +460,7 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 
 	for _, test := range table {
 		t.Run(test.name, func(t *testing.T) {
-			defer commontestutils.LeakTester(t)
+			defer commonTestUtils.LeakTester(t)
 
 			mc := minimock.NewController(t)
 
@@ -489,7 +496,7 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 
 			// create object state
 			{
-				payload := &payload.VStateReport{
+				vsrPayload := &payload.VStateReport{
 					Status:                      payload.Empty,
 					Object:                      object,
 					AsOf:                        p1,
@@ -497,7 +504,7 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 					OrderedPendingEarliestPulse: p1,
 				}
 
-				server.SendPayload(ctx, payload)
+				server.SendPayload(ctx, vsrPayload)
 				server.WaitActiveThenIdleConveyor()
 			}
 
