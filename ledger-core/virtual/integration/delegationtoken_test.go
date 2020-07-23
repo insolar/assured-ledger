@@ -252,18 +252,6 @@ func TestDelegationToken_IsMessageFromVirtualLegitimate(t *testing.T) {
 	fixedVe := gen.UniqueGlobalRef()
 	cases := []testCase{
 		{
-			name:       "Fail if DT is zero and sender not eq expectedVE",
-			testRailID: "C5196",
-			zeroToken:  true,
-			expectedVE: veSetFake,
-			approverVE: veSetNone, // don't need due to zeroToken
-			errorMessages: []string{
-				"unexpected sender",
-				"illegitimate msg",
-			},
-			errorSeverity: 0,
-		},
-		{
 			name:       "Fail if sender eq approver",
 			testRailID: "C5193",
 			zeroToken:  false,
