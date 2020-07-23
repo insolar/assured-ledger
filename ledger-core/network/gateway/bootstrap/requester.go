@@ -249,8 +249,6 @@ func (ac *requester) Bootstrap(ctx context.Context, permit *packet.Permit, candi
 	case packet.Reject:
 		return respData, throw.New("Bootstrap request rejected")
 	case packet.Retry:
-		// todo sleep and retry ac.Bootstrap()
-		// return respData, throw.New("Bootstrap request retry")
 		time.Sleep(time.Second)
 		ac.retry++
 		if ac.retry > bootstrapRetryCount {

@@ -414,10 +414,7 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 			return nil, err
 		}
 	} else {
-
-		// todo exclude origin ??
 		randNode := nodes[rand.Intn(len(nodes))]
-
 		reconnectHost, err = host.NewHostNS(randNode.Address(), randNode.ID(), randNode.ShortID())
 		if err != nil {
 			err = errors.W(err, "Failed to get reconnectHost")
