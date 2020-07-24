@@ -284,6 +284,9 @@ func startNet() error {
 		return errors.W(err, "[ startNet] could't set stderr: ")
 	}
 
+	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env, `-tags "debug convlogtxt"`)
+
 	err = cmd.Start()
 	if err != nil {
 		return errors.W(err, "[ startNet ] Can't run cmd")
