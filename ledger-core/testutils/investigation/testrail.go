@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -86,6 +87,30 @@ func LogSkip(target Testing, jiraLink string) {
 	target.Skip(jiraLink)
 }
 
+type logCaseHeader struct {
+	*log.Msg    `txt:"testrail"`
+	ID          string
+	TestPackage string
+	TestName    string
+}
+
+func (h logCaseHeader) ConstructFooter() logCaseFooter {
+	return logCaseFooter{
+		ID:          h.ID,
+		TestPackage: h.TestPackage,
+		TestName:    h.TestName,
+	}
+}
+
+type logCaseFooter struct {
+	*log.Msg    `txt:"testrail"`
+	ID          string
+	TestPackage string
+	TestName    string
+	Status      string
+	SkippedLink string `opt:""`
+}
+
 func LogCaseExt(target Testing, name string, skipDepth int) {
 	target.Helper()
 
@@ -93,53 +118,32 @@ func LogCaseExt(target Testing, name string, skipDepth int) {
 		panic(throw.IllegalValue())
 	}
 
-	const TestCasePrefix = ""
-
-	if global.IsInitialized() {
-		global.Logger().Event(logcommon.NoLevel, name)
-	} else {
-		target.Log(TestCasePrefix + name)
+	header := logCaseHeader{
+		ID:          name,
+		TestName:    target.Name(),
+		TestPackage: getParentPackage(skipDepth),
 	}
-
-	testName := target.Name()
-	if packageName := getParentPackage(skipDepth); packageName != "" {
-		testName = packageName + "." + testName
-	}
+	global.Logger().Event(logcommon.NoLevel, header)
 
 	target.Cleanup(func() {
-		result := struct {
-			TestName    string `opt:""`
-			ID          string
-			Status      string
-			SkippedLink string `opt:""`
-		}{}
-		result.ID = TestCasePrefix + name
-		result.TestName = testName
+		footer := header.ConstructFooter()
 
 		if target.Skipped() {
-			result.Status = "SKIP"
+			footer.Status = "SKIP"
 
 			if skippedLink, present := skipList.Load(target.Name()); present {
-				result.SkippedLink = skippedLink.(string)
+				footer.SkippedLink = skippedLink.(string)
 			}
 		} else if target.Failed() {
-			result.Status = "FAIL"
+			footer.Status = "FAIL"
 		} else if checkPanicInStack() {
-			result.Status = "FAIL"
+			footer.Status = "FAIL"
 		} else {
-			result.Status = "PASS"
+			footer.Status = "PASS"
 		}
 
 		// this output will be made at end of the test, just before FAIL/PASS/SKIP mark
-		if global.IsInitialized() {
-			global.Logger().Event(logcommon.NoLevel, result)
-		} else {
-			output := []interface{}{result.ID, result.TestName, result.Status}
-			if result.SkippedLink != "" {
-				output = append(output, "\""+result.SkippedLink+"\"")
-			}
-			target.Log(output...)
-		}
+		global.Logger().Event(logcommon.NoLevel, footer)
 	})
 }
 
