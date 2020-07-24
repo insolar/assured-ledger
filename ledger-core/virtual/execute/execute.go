@@ -728,6 +728,8 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 		}
 	} else {
 		if s.outgoingSentCounter >= MaxOutgoingSendCount {
+			// TODO when CallSummary will live longer than one pulse it needs to be updated
+			s.sendDelegatedRequestFinished(ctx, nil)
 			return ctx.Error(throw.E("outgoing retries limit"))
 		}
 
@@ -927,6 +929,12 @@ func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionConte
 		}
 	}
 
+	s.sendDelegatedRequestFinished(ctx, lastState)
+
+	return ctx.Stop()
+}
+
+func (s *SMExecute) sendDelegatedRequestFinished(ctx smachine.ExecutionContext, lastState *payload.ObjectState) {
 	msg := payload.VDelegatedRequestFinished{
 		CallType:       s.Payload.CallType,
 		CallFlags:      s.Payload.CallFlags,
@@ -945,9 +953,8 @@ func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionConte
 			}
 		}
 	}).WithoutAutoWakeUp().Start()
-
-	return ctx.Stop()
 }
+
 
 func (s *SMExecute) makeNewDescriptor(class reference.Global, memory []byte) descriptor.Object {
 	var prevStateIDBytes []byte
