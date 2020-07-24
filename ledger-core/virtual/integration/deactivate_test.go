@@ -26,19 +26,18 @@ import (
 )
 
 func TestVirtual_DeactivateObject(t *testing.T) {
+	t.Log("C5134")
+
 	table := []struct {
 		name         string
 		stateIsEqual bool
-		caseID       string
 	}{
-		{name: "ValidatedState==DirtyState", stateIsEqual: true, caseID: "C5134"},
-		{name: "ValidatedState!=DirtyState", stateIsEqual: false, caseID: "C5460"},
+		{name: "ValidatedState==DirtyState", stateIsEqual: true},
+		{name: "ValidatedState!=DirtyState", stateIsEqual: false},
 	}
 
 	for _, test := range table {
 		t.Run(test.name, func(t *testing.T) {
-			t.Log(test.caseID)
-
 			defer commontestutils.LeakTester(t)
 
 			mc := minimock.NewController(t)
@@ -71,6 +70,7 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 
 					assert.Equal(t, payload.Ready, report.Status)
 					// TODO: must be inactive and without content
+					// TODO: remove error filter in server
 					// assert.Equal(t, payload.Inactive, report.Status)
 					// assert.True(t, report.ProvidedContent.LatestValidatedState.Deactivated)
 					// assert.True(t, report.ProvidedContent.LatestDirtyState.Deactivated)
