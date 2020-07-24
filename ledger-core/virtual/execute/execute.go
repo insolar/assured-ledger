@@ -273,6 +273,19 @@ func (s *SMExecute) stepWaitPendingConstructorFinished(ctx smachine.ExecutionCon
 		ctx.Log().Test(markerPendingConstructorWait{})
 		return ctx.Sleep().ThenRepeat()
 	}
+	// set descriptor when pending constructor is finished
+	var (
+		objectDescriptor descriptor.Object
+	)
+	action := func(state *object.SharedState) {
+		objectDescriptor = s.getDescriptor(state)
+	}
+
+	if stepUpdate := s.shareObjectAccess(ctx, action); !stepUpdate.IsEmpty() {
+		return stepUpdate
+	}
+
+	s.execution.ObjectDescriptor = objectDescriptor
 
 	return ctx.Jump(s.stepIsolationNegotiation)
 }
@@ -307,6 +320,10 @@ func (s *SMExecute) stepIsolationNegotiation(ctx smachine.ExecutionContext) smac
 	// forbidden isolation
 	// it requires special processing path that will be implemented later on
 	if negotiatedIsolation.Interference == contract.CallTolerable && negotiatedIsolation.State == contract.CallValidated {
+		panic(throw.NotImplemented())
+	}
+
+	if negotiatedIsolation.State == contract.CallValidated && s.execution.ObjectDescriptor == nil {
 		panic(throw.NotImplemented())
 	}
 
@@ -505,10 +522,7 @@ func (s *SMExecute) getDescriptor(state *object.SharedState) descriptor.Object {
 	case contract.CallDirty:
 		return state.DescriptorDirty()
 	case contract.CallValidated:
-		if state.DescriptorValidated() != nil {
-			return state.DescriptorValidated()
-		}
-		return state.DescriptorDirty()
+		return state.DescriptorValidated()
 	default:
 		panic(throw.IllegalState())
 	}
@@ -954,7 +968,6 @@ func (s *SMExecute) sendDelegatedRequestFinished(ctx smachine.ExecutionContext, 
 		}
 	}).WithoutAutoWakeUp().Start()
 }
-
 
 func (s *SMExecute) makeNewDescriptor(class reference.Global, memory []byte) descriptor.Object {
 	var prevStateIDBytes []byte

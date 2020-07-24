@@ -63,6 +63,11 @@ func Method_PrepareObject(ctx context.Context, server *utils.Server, state paylo
 				Class:     testwalletProxy.GetClass(),
 				State:     walletState,
 			},
+			LatestValidatedState: &payload.ObjectState{
+				Reference: reference.Local{},
+				Class:     testwalletProxy.GetClass(),
+				State:     walletState,
+			},
 		}
 	default:
 		panic("unexpected state")
@@ -1441,6 +1446,11 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 					Class:     testwalletProxy.GetClass(),
 					State:     []byte(origObjectMem),
 				},
+				LatestValidatedState: &payload.ObjectState{
+					Reference: reference.Local{},
+					Class:     testwalletProxy.GetClass(),
+					State:     []byte(origObjectMem),
+				},
 			}
 
 			report := payload.VStateReport{
@@ -1592,7 +1602,7 @@ func TestVirtual_Method_ForObjectWithMissingState(t *testing.T) {
 	}
 }
 
-func TestVirtual_Method_ForbidenIsolation(t *testing.T) {
+func TestVirtual_Method_ForbiddenIsolation(t *testing.T) {
 	table := []struct {
 		name         string
 		testRailCase string
@@ -1622,6 +1632,24 @@ func TestVirtual_Method_ForbidenIsolation(t *testing.T) {
 					classRef,
 					[]byte("not ok case"),
 				)
+			},
+			callResult:                 []byte("bad case"),
+			expectedUnImplementedError: true,
+		},
+		{
+			name:         "Method intolerable + validated cannot be executed if no validated state",
+			testRailCase: "C5475",
+			callFlags:    payload.BuildCallFlags(contract.CallIntolerable, contract.CallValidated),
+			dirtyStateBuilder: func(objectRef, classRef reference.Global, pn pulse.Number) descriptor.Object {
+				return descriptor.NewObject(
+					objectRef,
+					execute.NewStateID(pn, []byte("ok case")),
+					classRef,
+					[]byte("ok case"),
+				)
+			},
+			validatedStateBuilder: func(objectRef, classRef reference.Global, pn pulse.Number) descriptor.Object {
+				return nil
 			},
 			callResult:                 []byte("bad case"),
 			expectedUnImplementedError: true,
@@ -1661,23 +1689,30 @@ func TestVirtual_Method_ForbidenIsolation(t *testing.T) {
 				class       = gen.UniqueGlobalRef()
 				objectRef   = server.BuildRandomOutgoingWithPulse()
 				outgoingRef = server.BuildRandomOutgoingWithPulse()
+
+				validatedStateHeadRef reference.Global
+				latestValidatedState  *payload.ObjectState
 			)
 
 			dirtyState := test.dirtyStateBuilder(objectRef, class, server.GetPulse().PulseNumber)
 			validatedState := test.validatedStateBuilder(objectRef, class, server.GetPulse().PulseNumber)
+			if validatedState != nil {
+				validatedStateHeadRef = validatedState.HeadRef()
+				latestValidatedState = &payload.ObjectState{
+					Reference: validatedState.StateID(),
+					Class:     class,
+					State:     validatedState.Memory(),
+				}
+			}
 
 			{ // send object state to server
 				pl := payload.VStateReport{
 					Status:               payload.Ready,
 					Object:               objectRef,
-					LatestValidatedState: validatedState.HeadRef(),
+					LatestValidatedState: validatedStateHeadRef,
 					LatestDirtyState:     dirtyState.HeadRef(),
 					ProvidedContent: &payload.VStateReport_ProvidedContentBody{
-						LatestValidatedState: &payload.ObjectState{
-							Reference: validatedState.StateID(),
-							Class:     class,
-							State:     validatedState.Memory(),
-						},
+						LatestValidatedState: latestValidatedState,
 						LatestDirtyState: &payload.ObjectState{
 							Reference: dirtyState.StateID(),
 							Class:     class,
@@ -1817,6 +1852,11 @@ func TestVirtual_Method_IntolerableCallChangeState(t *testing.T) {
 
 		content := &payload.VStateReport_ProvidedContentBody{
 			LatestDirtyState: &payload.ObjectState{
+				Reference: reference.Local{},
+				Class:     testwalletProxy.GetClass(),
+				State:     []byte(origObjectMem),
+			},
+			LatestValidatedState: &payload.ObjectState{
 				Reference: reference.Local{},
 				Class:     testwalletProxy.GetClass(),
 				State:     []byte(origObjectMem),
