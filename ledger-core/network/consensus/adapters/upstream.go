@@ -57,8 +57,6 @@ func (u *UpstreamController) ConsensusFinished(report api.UpstreamReport, expect
 	ctx := ReportContext(report)
 	logger := inslogger.FromContext(ctx)
 	population := expectedCensus.GetOnlinePopulation()
-	// TODO::
-	// expectedCensus.
 
 	var networkNodes []nodeinfo.NetworkNode
 	if report.MemberMode.IsEvicted() || report.MemberMode.IsSuspended() || !population.IsValid() {
@@ -111,7 +109,6 @@ func (u *UpstreamController) CommitPulseChange(report api.UpstreamReport, pulseD
 	ctx := ReportContext(report)
 	online := activeCensus.GetOnlinePopulation()
 
-	// todo
 	u.beatChanger.ChangeBeat(ctx, beat.Beat{
 		BeatSeq:   0,
 		Data:      pulseData,

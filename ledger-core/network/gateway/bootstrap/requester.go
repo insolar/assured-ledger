@@ -176,8 +176,7 @@ func (ac *requester) Bootstrap(ctx context.Context, permit *packet.Permit, candi
 
 	req := &packet.BootstrapRequest{
 		CandidateProfile: candidate.Profile(),
-		// Pulse:            *ToProto(p),
-		Permit: permit,
+		Permit:           permit,
 	}
 
 	f, err := ac.HostNetwork.SendRequestToHost(ctx, types.Bootstrap, req, permit.Payload.ReconnectTo)

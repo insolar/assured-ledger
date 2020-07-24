@@ -44,8 +44,7 @@ type ServiceNetwork struct {
 	Pub message.Publisher `inject:""`
 
 	// subcomponents
-	RPC controller.RPCController `inject:"subcomponent"`
-	// PulseAccessor      beat.Accessor              `inject:"subcomponent"`
+	RPC                controller.RPCController   `inject:"subcomponent"`
 	NodeKeeper         network.NodeKeeper         `inject:"subcomponent"`
 	TerminationHandler network.TerminationHandler `inject:"subcomponent"`
 
