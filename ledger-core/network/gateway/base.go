@@ -52,13 +52,13 @@ type Base struct {
 	CryptographyScheme  cryptography.PlatformCryptographyScheme `inject:""`
 	CertificateManager  nodeinfo.CertificateManager             `inject:""`
 	HostNetwork         network.HostNetwork                     `inject:""`
-	PulseAccessor       beat.Accessor                           `inject:""`
-	PulseAppender       beat.Appender                           `inject:""`
-	PulseManager        chorus.Conductor                        `inject:""`
-	BootstrapRequester  bootstrap.Requester                     `inject:""`
-	KeyProcessor        cryptography.KeyProcessor               `inject:""`
-	Aborter             network.Aborter                         `inject:""`
-	TransportFactory    transport.Factory                       `inject:""`
+	// PulseAccessor       beat.Accessor                           `inject:""`
+	PulseAppender      beat.Appender             `inject:""`
+	PulseManager       chorus.Conductor          `inject:""`
+	BootstrapRequester bootstrap.Requester       `inject:""`
+	KeyProcessor       cryptography.KeyProcessor `inject:""`
+	Aborter            network.Aborter           `inject:""`
+	TransportFactory   transport.Factory         `inject:""`
 
 	// nolint
 	OriginProvider network.OriginProvider `inject:""`
@@ -216,32 +216,32 @@ func (g *Base) StartConsensus(ctx context.Context) error {
 	return nil
 }
 
-// ChangePulse process pulse from Consensus
-func (g *Base) ChangePulse(ctx context.Context, pulse beat.Beat) {
-	g.Gatewayer.Gateway().OnPulseFromConsensus(ctx, pulse)
+// ChangeBeat process pulse from Consensus
+func (g *Base) ChangeBeat(ctx context.Context, b beat.Beat) {
+	g.Gatewayer.Gateway().OnPulseFromConsensus(ctx, b)
 }
 
-func (g *Base) OnPulseFromConsensus(ctx context.Context, pu network.NetworkedPulse) {
+func (g *Base) OnPulseFromConsensus(ctx context.Context, pu beat.Beat) {
 	g.pulseWatchdog.Reset()
 
 	g.NodeKeeper.MoveSyncToActive(ctx, pu.PulseNumber)
 
-	// TODO this is inherently WRONG to add ephemeral pulse, yet this is necessary for the old code to run
-	err := g.PulseAppender.Append(ctx, pu)
-	if err != nil {
-		inslogger.FromContext(ctx).Panic("failed to append pulse: ", err.Error())
-	}
+	// TODO ?? this is inherently WRONG to add ephemeral pulse, yet this is necessary for the old code to run
+	// err := g.PulseAppender.Append(ctx, pu)
+	// if err != nil {
+	// 	inslogger.FromContext(ctx).Panic("failed to append pulse: ", err.Error())
+	// }
 
 	nodes := g.NodeKeeper.GetAccessor(pu.PulseNumber).GetActiveNodes()
 	inslogger.FromContext(ctx).Debugf("OnPulseFromConsensus: %d : epoch %d : nodes %d", pu.PulseNumber, pu.PulseEpoch, len(nodes))
 }
 
 // UpdateState called then Consensus done
-func (g *Base) UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes []nodeinfo.NetworkNode, cloudStateHash []byte) {
-	g.NodeKeeper.Sync(ctx, pulseNumber, nodes)
+func (g *Base) UpdateState(ctx context.Context, _ pulse.Number, nodes []nodeinfo.NetworkNode, _ []byte) {
+	g.NodeKeeper.Sync(ctx, nodes)
 }
 
-func (g *Base) BeforeRun(ctx context.Context, pulse network.NetworkedPulse) {}
+func (g *Base) BeforeRun(ctx context.Context, pulse pulse.Data) {}
 
 // Auther casts us to Auther or obtain it in another way
 func (g *Base) Auther() network.Auther {
@@ -291,10 +291,9 @@ func (g *Base) checkCanAnnounceCandidate(ctx context.Context) error {
 		}
 	}
 
-	pc, _ := g.PulseAccessor.Latest(ctx)
 	return throw.Errorf(
 		"can't announce candidate: pulse=%d state=%s",
-		pc.PulseNumber,
+		g.LatestPulse(ctx).PulseNumber,
 		state,
 	)
 }
@@ -324,7 +323,7 @@ func (g *Base) HandleNodeBootstrapRequest(ctx context.Context, request network.R
 
 	data := request.GetRequest().GetBootstrap()
 
-	bootstrapBeat, nodes := g.getBeatAndNodes(ctx)
+	nodes := g.getBeatAndNodes(ctx)
 
 	if network.CheckShortIDCollision(nodes, data.CandidateProfile.ShortID) {
 		return g.HostNetwork.BuildResponse(ctx, request, &packet.BootstrapResponse{Code: packet.UpdateShortID}), nil
@@ -354,7 +353,6 @@ func (g *Base) HandleNodeBootstrapRequest(ctx context.Context, request network.R
 	return g.HostNetwork.BuildResponse(ctx, request,
 		&packet.BootstrapResponse{
 			Code:       packet.Accepted,
-			Pulse:      *bootstrap.ToProto(bootstrapBeat),
 			ETASeconds: uint32(g.bootstrapETA.Seconds()),
 		}), nil
 }
@@ -425,7 +423,7 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 		return nil, err
 	}
 
-	bootstrapBeat, nodes := g.getBeatAndNodes(ctx)
+	nodes := g.getBeatAndNodes(ctx)
 
 	discoveryCount := len(network.FindDiscoveriesInNodeList(nodes, g.CertificateManager.GetCertificate()))
 	if discoveryCount == 0 {
@@ -437,18 +435,15 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 		Timestamp:      time.Now().UTC().Unix(),
 		Permit:         permit,
 		DiscoveryCount: uint32(discoveryCount),
-		Pulse:          bootstrap.ToProto(bootstrapBeat),
 	}), nil
 }
 
-func (g *Base) getBeatAndNodes(ctx context.Context) (bootstrapBeat beat.Beat, nodes []nodeinfo.NetworkNode) {
-	if pc, err := g.PulseAccessor.Latest(ctx); err == nil {
-		return pc, g.NodeKeeper.GetAccessor(pc.PulseNumber).GetActiveNodes()
-	}
+func (g *Base) getBeatAndNodes(ctx context.Context) (nodes []nodeinfo.NetworkNode) {
+	return g.NodeKeeper.GetAccessor(g.LatestPulse(ctx).PulseNumber).GetActiveNodes()
 
-	var pc beat.Beat
-	pc.PulseEpoch = pulse.EphemeralPulseEpoch
-	return pc, []nodeinfo.NetworkNode{ g.OriginProvider.GetOrigin() }
+	// var pc beat.Beat
+	// pc.PulseEpoch = pulse.EphemeralPulseEpoch
+	// return []nodeinfo.NetworkNode{g.OriginProvider.GetOrigin()}
 }
 
 func (g *Base) HandleUpdateSchedule(ctx context.Context, request network.ReceivedPacket) (network.Packet, error) {
@@ -488,4 +483,24 @@ func (g *Base) FailState(ctx context.Context, reason string) {
 		reason,
 	)
 	g.Aborter.Abort(ctx, wrapReason)
+}
+
+func (g *Base) LatestPulse(ctx context.Context) pulse.Data {
+	if g.ConsensusController == nil {
+		return pulse.NewFirstEphemeralData()
+	}
+
+	// chr := g.ConsensusController.Chronicles()
+	// if chr == nil {
+	// 	panic("Chronicles is nil")
+	// }
+	//
+	// cens := chr.GetActiveCensus()
+	// if cens == nil {
+	// 	// panic("GetActiveCensus invalid")
+	// 	return pulse.NewFirstEphemeralData()
+	// }
+	// return cens.GetPulseData()
+
+	return g.ConsensusController.Chronicles().GetActiveCensus().GetPulseData()
 }

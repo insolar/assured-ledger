@@ -10,19 +10,20 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
 
 func newWaitConsensus(b *Base) *WaitConsensus {
-	return &WaitConsensus{b, make(chan network.NetworkedPulse, 1)}
+	return &WaitConsensus{b, make(chan pulse.Data, 1)}
 }
 
 type WaitConsensus struct {
 	*Base
 
-	consensusFinished chan network.NetworkedPulse
+	consensusFinished chan pulse.Data
 }
 
-func (g *WaitConsensus) Run(ctx context.Context, pulse network.NetworkedPulse) {
+func (g *WaitConsensus) Run(ctx context.Context, _ pulse.Data) {
 	select {
 	case <-g.bootstrapTimer.C:
 		g.FailState(ctx, bootstrapTimeoutMessage)
@@ -36,6 +37,6 @@ func (g *WaitConsensus) GetState() nodeinfo.NetworkState {
 }
 
 func (g *WaitConsensus) OnConsensusFinished(ctx context.Context, report network.Report) {
-	g.consensusFinished <- EnsureGetPulse(ctx, g.PulseAccessor, report.PulseNumber)
+	g.consensusFinished <- EnsureGetPulse(ctx, report)
 	close(g.consensusFinished)
 }

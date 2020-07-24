@@ -10,7 +10,6 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill/message"
 
-	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -45,8 +44,8 @@ type ServiceNetwork struct {
 	Pub message.Publisher `inject:""`
 
 	// subcomponents
-	RPC                controller.RPCController   `inject:"subcomponent"`
-	PulseAccessor      beat.Accessor              `inject:"subcomponent"`
+	RPC controller.RPCController `inject:"subcomponent"`
+	// PulseAccessor      beat.Accessor              `inject:"subcomponent"`
 	NodeKeeper         network.NodeKeeper         `inject:"subcomponent"`
 	TerminationHandler network.TerminationHandler `inject:"subcomponent"`
 
@@ -117,13 +116,13 @@ func (n *ServiceNetwork) Start(ctx context.Context) error {
 		return errors.W(err, "failed to start component manager")
 	}
 
-	pc, err := n.PulseAccessor.Latest(ctx)
-	if err != nil {
-		pc = beat.Beat{}
-		pc.PulseEpoch = pulse.EphemeralPulseEpoch
-	}
+	// pc, err := n.PulseAccessor.Latest(ctx)
+	// if err != nil {
+	p := network.NetworkedPulse{}
+	p.PulseEpoch = pulse.EphemeralPulseEpoch
+	// }
 
-	n.Gatewayer.Gateway().Run(ctx, pc)
+	n.Gatewayer.Gateway().Run(ctx, p.Data)
 	n.RPC.RemoteProcedureRegister(deliverWatermillMsg, n.processIncoming)
 
 	return nil

@@ -40,7 +40,7 @@ type Complete struct {
 	*Base
 }
 
-func (g *Complete) Run(context.Context, network.NetworkedPulse) {
+func (g *Complete) Run(context.Context, pulse.Data) {
 	if g.bootstrapTimer != nil {
 		g.bootstrapTimer.Stop()
 	}
@@ -52,15 +52,15 @@ func (g *Complete) GetState() nodeinfo.NetworkState {
 	return nodeinfo.CompleteNetworkState
 }
 
-func (g *Complete) BeforeRun(ctx context.Context, pulse network.NetworkedPulse) {
-	if !pulse.PulseEpoch.IsTimeEpoch() {
-		panic(throw.IllegalState())
-	}
-
-	err := g.PulseManager.CommitFirstPulseChange(pulse)
-	if err != nil {
-		inslogger.FromContext(ctx).Panicf("failed to set start pulse: %d, %s", pulse.PulseNumber, err.Error())
-	}
+func (g *Complete) BeforeRun(ctx context.Context, pulse pulse.Data) {
+	// if !pulse.PulseEpoch.IsTimeEpoch() {
+	// 	panic(throw.IllegalState())
+	// }
+	//
+	// err := g.PulseManager.CommitFirstPulseChange(pulse)
+	// if err != nil {
+	// 	inslogger.FromContext(ctx).Panicf("failed to set start pulse: %d, %s", pulse.PulseNumber, err.Error())
+	// }
 }
 
 // GetCert method generates cert by requesting signs from discovery nodes
@@ -173,7 +173,12 @@ func (g *Complete) OnPulseFromConsensus(ctx context.Context, pulse network.Netwo
 	span.SetTag("pulse.Number", int64(pulse.PulseNumber))
 	defer span.Finish()
 
-	err := g.PulseManager.CommitPulseChange(pulse)
+	err := g.PulseAppender.Append(ctx, pulse)
+	if err != nil {
+		inslogger.FromContext(ctx).Panic("failed to append pulse: ", err.Error())
+	}
+
+	err = g.PulseManager.CommitPulseChange(pulse)
 	if err != nil {
 		logger.Fatalf("Failed to set new pulse: %s", err.Error())
 	}

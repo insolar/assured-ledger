@@ -237,7 +237,7 @@ func NewEphemeralControlFeeder(ephemeralController EphemeralController) *Ephemer
 }
 
 type EphemeralControlFeeder struct {
-	// pulseChanger        PulseChanger
+	// beatChanger        BeatChanger
 	ephemeralController EphemeralController
 
 	pulseDuration time.Duration

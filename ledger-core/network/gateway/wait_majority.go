@@ -11,18 +11,19 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/rules"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
 
 func newWaitMajority(b *Base) *WaitMajority {
-	return &WaitMajority{b, make(chan network.NetworkedPulse, 1)}
+	return &WaitMajority{b, make(chan pulse.Data, 1)}
 }
 
 type WaitMajority struct {
 	*Base
-	majorityComplete chan network.NetworkedPulse
+	majorityComplete chan pulse.Data
 }
 
-func (g *WaitMajority) Run(ctx context.Context, pulse network.NetworkedPulse) {
+func (g *WaitMajority) Run(ctx context.Context, pulse pulse.Data) {
 	g.switchOnMajorityRule(ctx, pulse)
 
 	select {
@@ -38,10 +39,10 @@ func (g *WaitMajority) GetState() nodeinfo.NetworkState {
 }
 
 func (g *WaitMajority) OnConsensusFinished(ctx context.Context, report network.Report) {
-	g.switchOnMajorityRule(ctx, EnsureGetPulse(ctx, g.PulseAccessor, report.PulseNumber))
+	g.switchOnMajorityRule(ctx, EnsureGetPulse(ctx, report))
 }
 
-func (g *WaitMajority) switchOnMajorityRule(_ context.Context, pulse network.NetworkedPulse) {
+func (g *WaitMajority) switchOnMajorityRule(_ context.Context, pulse pulse.Data) {
 	_, err := rules.CheckMajorityRule(
 		g.CertificateManager.GetCertificate(),
 		g.NodeKeeper.GetAccessor(pulse.PulseNumber).GetWorkingNodes(),

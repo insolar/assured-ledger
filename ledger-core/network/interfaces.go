@@ -23,6 +23,7 @@ import (
 )
 
 type Report struct {
+	PulseData       pulse.Data
 	PulseNumber     pulse.Number
 	MemberPower     member.Power
 	MemberMode      member.OpMode
@@ -114,7 +115,7 @@ type NodeKeeper interface {
 	// SetInitialSnapshot set initial snapshot for nodekeeper
 	SetInitialSnapshot(nodes []nodeinfo.NetworkNode)
 	// Sync move unsync -> sync
-	Sync(context.Context, pulse.Number, []nodeinfo.NetworkNode)
+	Sync(context.Context, []nodeinfo.NetworkNode)
 	// MoveSyncToActive merge sync list with active nodes
 	MoveSyncToActive(context.Context, pulse.Number)
 }
@@ -151,7 +152,7 @@ type Accessor interface {
 // Gatewayer is a network which can change it's Gateway
 type Gatewayer interface {
 	Gateway() Gateway
-	SwitchState(context.Context, nodeinfo.NetworkState, NetworkedPulse)
+	SwitchState(context.Context, nodeinfo.NetworkState, pulse.Data)
 }
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network.Gateway -o ../testutils/network -s _mock.go -g
@@ -160,8 +161,8 @@ type Gatewayer interface {
 type Gateway interface {
 	NewGateway(context.Context, nodeinfo.NetworkState) Gateway
 
-	BeforeRun(context.Context, NetworkedPulse)
-	Run(context.Context, NetworkedPulse)
+	BeforeRun(context.Context, pulse.Data)
+	Run(context.Context, pulse.Data)
 
 	GetState() nodeinfo.NetworkState
 
@@ -176,6 +177,7 @@ type Gateway interface {
 	EphemeralMode(nodes []nodeinfo.NetworkNode) bool
 
 	FailState(ctx context.Context, reason string)
+	LatestPulse(context.Context) pulse.Data
 }
 
 type Auther interface {

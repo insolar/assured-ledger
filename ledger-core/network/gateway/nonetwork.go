@@ -14,6 +14,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/network"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
 
 func newNoNetwork(b *Base) *NoNetwork {
@@ -42,7 +43,7 @@ func (g *NoNetwork) pause() time.Duration {
 	return sleep
 }
 
-func (g *NoNetwork) Run(ctx context.Context, pulse network.NetworkedPulse) {
+func (g *NoNetwork) Run(ctx context.Context, pulse pulse.Data) {
 	cert := g.CertificateManager.GetCertificate()
 	origin := g.NodeKeeper.GetOrigin()
 	discoveryNodes := network.ExcludeOrigin(cert.GetDiscoveryNodes(), origin.ID())
