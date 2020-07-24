@@ -13,7 +13,6 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
 
 	"github.com/stretchr/testify/assert"
@@ -58,7 +57,7 @@ func TestRequester_Bootstrap(t *testing.T) {
 	// inject HostNetwork
 	r.(*requester).HostNetwork = hn
 
-	resp, err := r.Bootstrap(context.Background(), p, candidateProfile, pulsestor.GenesisPulse)
+	resp, err := r.Bootstrap(context.Background(), p, candidateProfile)
 	assert.Nil(t, resp)
 	assert.Error(t, err)
 }

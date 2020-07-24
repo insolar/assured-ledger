@@ -103,7 +103,6 @@ func TestSendMessageHandler_SameNode(t *testing.T) {
 	pubMock := &PublisherMock{}
 	pulseMock := beat.NewAccessorMock(t)
 	pulseMock.LatestMock.Return(pulsestor.GenesisPulse, nil)
-	svcNw.PulseAccessor = pulseMock
 	svcNw.NodeKeeper = nodeN
 	svcNw.Pub = pubMock
 
@@ -141,7 +140,6 @@ func TestSendMessageHandler_SendError(t *testing.T) {
 	})
 	pulseMock := beat.NewAccessorMock(t)
 	pulseMock.LatestMock.Return(pulsestor.GenesisPulse, nil)
-	svcNw.PulseAccessor = pulseMock
 	svcNw.RPC = rpc
 	svcNw.NodeKeeper = nodeN
 
@@ -179,7 +177,6 @@ func TestSendMessageHandler_WrongReply(t *testing.T) {
 	})
 	pulseMock := beat.NewAccessorMock(t)
 	pulseMock.LatestMock.Return(pulsestor.GenesisPulse, nil)
-	svcNw.PulseAccessor = pulseMock
 	svcNw.RPC = rpc
 	svcNw.NodeKeeper = nodeN
 
@@ -215,7 +212,6 @@ func TestSendMessageHandler(t *testing.T) {
 	})
 	pulseMock := beat.NewAccessorMock(t)
 	pulseMock.LatestMock.Return(pulsestor.GenesisPulse, nil)
-	svcNw.PulseAccessor = pulseMock
 	svcNw.RPC = rpc
 	svcNw.NodeKeeper = nodeN
 

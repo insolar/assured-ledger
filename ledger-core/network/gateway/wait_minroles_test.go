@@ -56,7 +56,7 @@ func TestWaitMinroles_MinrolesNotHappenedInETA(t *testing.T) {
 	waitMinRoles.bootstrapETA = time.Millisecond
 	waitMinRoles.bootstrapTimer = time.NewTimer(waitMinRoles.bootstrapETA)
 
-	waitMinRoles.Run(context.Background(), EphemeralPulse)
+	waitMinRoles.Run(context.Background(), EphemeralPulse.Data)
 }
 
 func TestWaitMinroles_MinrolesHappenedInETA(t *testing.T) {
@@ -65,7 +65,7 @@ func TestWaitMinroles_MinrolesHappenedInETA(t *testing.T) {
 	defer mc.Wait(time.Minute)
 
 	gatewayer := mock.NewGatewayerMock(mc)
-	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state nodeinfo.NetworkState, pulse network.NetworkedPulse) {
+	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state nodeinfo.NetworkState, pulse pulse.Data) {
 		assert.Equal(t, nodeinfo.WaitPulsar, state)
 	})
 
@@ -100,13 +100,12 @@ func TestWaitMinroles_MinrolesHappenedInETA(t *testing.T) {
 	waitMinRoles := newWaitMinRoles(&Base{
 		CertificateManager: mandates.NewCertificateManager(cert),
 		NodeKeeper:         nodeKeeper,
-		PulseAccessor:      pulseAccessor,
 	})
 	waitMinRoles.Gatewayer = gatewayer
 	waitMinRoles.bootstrapETA = time.Second * 2
 	waitMinRoles.bootstrapTimer = time.NewTimer(waitMinRoles.bootstrapETA)
 
-	go waitMinRoles.Run(context.Background(), EphemeralPulse)
+	go waitMinRoles.Run(context.Background(), EphemeralPulse.Data)
 	time.Sleep(100 * time.Millisecond)
 
 	waitMinRoles.OnConsensusFinished(context.Background(), network.Report{PulseNumber: pulse.MinTimePulse + 10})
