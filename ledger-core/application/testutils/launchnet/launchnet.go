@@ -285,7 +285,7 @@ func startNet() error {
 	}
 
 	cmd.Env = os.Environ()
-	cmd.Env = append(cmd.Env, `-tags "debug convlogtxt"`)
+	cmd.Env = append(cmd.Env, `BUILD_TAGS=-tags "debug convlogtxt"`)
 
 	err = cmd.Start()
 	if err != nil {
