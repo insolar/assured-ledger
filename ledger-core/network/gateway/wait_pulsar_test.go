@@ -63,7 +63,6 @@ func TestWaitPulsar_PulseNotArrivedInETA(t *testing.T) {
 }
 
 func TestWaitPulsar_PulseArrivedInETA(t *testing.T) {
-	t.Skip("fix me")
 	mc := minimock.NewController(t)
 	defer mc.Finish()
 	defer mc.Wait(time.Minute)
@@ -73,20 +72,20 @@ func TestWaitPulsar_PulseArrivedInETA(t *testing.T) {
 		assert.Equal(t, nodeinfo.CompleteNetworkState, state)
 	})
 
-	// pulseAccessor := beat.NewAccessorMock(mc)
-	// pulseAccessor.OfMock.Set(func(ctx context.Context, p1 pulse.Number) (p network.NetworkedPulse, err error) {
-	// 	p = pulsestor.GenesisPulse
-	// 	p.PulseNumber += 10
-	// 	return p, nil
-	// })
-
 	waitPulsar := newWaitPulsar(&Base{})
 	waitPulsar.Gatewayer = gatewayer
-	waitPulsar.bootstrapETA = time.Second * 2
+	waitPulsar.bootstrapETA = time.Second * 20
 	waitPulsar.bootstrapTimer = time.NewTimer(waitPulsar.bootstrapETA)
 
 	go waitPulsar.Run(context.Background(), EphemeralPulse.Data)
 	time.Sleep(100 * time.Millisecond)
 
-	waitPulsar.OnConsensusFinished(context.Background(), network.Report{PulseNumber: pulse.MinTimePulse + 10})
+	pulseNumber := pulse.OfNow()
+	waitPulsar.OnConsensusFinished(context.Background(), network.Report{
+		PulseNumber: pulseNumber,
+		PulseData: pulse.Data{
+			PulseNumber: pulseNumber,
+			DataExt:     pulse.DataExt{PulseEpoch: pulse.Epoch(pulseNumber)},
+		},
+	})
 }

@@ -13,9 +13,7 @@ import (
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
@@ -60,7 +58,6 @@ func TestWaitMinroles_MinrolesNotHappenedInETA(t *testing.T) {
 }
 
 func TestWaitMinroles_MinrolesHappenedInETA(t *testing.T) {
-	t.Skip("fix me")
 	mc := minimock.NewController(t)
 	defer mc.Finish()
 	defer mc.Wait(time.Minute)
@@ -92,12 +89,6 @@ func TestWaitMinroles_MinrolesHappenedInETA(t *testing.T) {
 	discoveryNode := mandates.BootstrapNode{NodeRef: ref.String()}
 	cert := &mandates.Certificate{MajorityRule: 1, BootstrapNodes: []mandates.BootstrapNode{discoveryNode}}
 	cert.MinRoles.LightMaterial = 1
-	pulseAccessor := beat.NewAccessorMock(mc)
-	pulseAccessor.OfMock.Set(func(ctx context.Context, p1 pulse.Number) (p network.NetworkedPulse, err error) {
-		p = pulsestor.GenesisPulse
-		p.PulseNumber += 10
-		return p, nil
-	})
 	waitMinRoles := newWaitMinRoles(&Base{
 		CertificateManager: mandates.NewCertificateManager(cert),
 		NodeKeeper:         nodeKeeper,
@@ -109,5 +100,8 @@ func TestWaitMinroles_MinrolesHappenedInETA(t *testing.T) {
 	go waitMinRoles.Run(context.Background(), EphemeralPulse.Data)
 	time.Sleep(100 * time.Millisecond)
 
-	waitMinRoles.OnConsensusFinished(context.Background(), network.Report{PulseNumber: pulse.MinTimePulse + 10})
+	waitMinRoles.OnConsensusFinished(context.Background(), network.Report{
+		PulseNumber: pulse.MinTimePulse + 10,
+		PulseData:   pulse.Data{PulseNumber: pulse.MinTimePulse + 10},
+	})
 }
