@@ -33,7 +33,7 @@ func (m *VStateReport) Validate(currPulse PulseNumber) error {
 	}
 
 	if !m.GetObject().IsSelfScope() {
-		return throw.New("Object reference should not be selfScore")
+		return throw.New("Object reference should be selfScore")
 	}
 
 	if m.GetObject().GetLocal().Pulse() >= currPulse {
