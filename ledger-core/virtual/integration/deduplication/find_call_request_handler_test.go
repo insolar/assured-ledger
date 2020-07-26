@@ -47,7 +47,7 @@ type VFindCallRequestHandlingTestInfo struct {
 }
 
 func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
-	// TODO need fixed
+	// TODO need to fix
 	t.Skip()
 	t.Log("C5115")
 
@@ -120,6 +120,7 @@ func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
 			expectedStatus: payload.FoundCall,
 			expectedResult: true,
 		},
+		//TODO failed
 		{
 			name:                 "found request, constructor, not pending, result, early msg",
 			events:               []TestStep{StepFindMessage, StepConstructorStartAndFinish, StepIncrementPulseToP3},

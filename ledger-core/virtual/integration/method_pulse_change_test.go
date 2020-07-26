@@ -34,8 +34,6 @@ import (
 )
 
 func TestVirtual_Method_PulseChanged(t *testing.T) {
-	// TODO need fixed
-	t.Skip()
 	t.Log("C5211")
 	table := []struct {
 		name             string
@@ -85,19 +83,26 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 			runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
 				return execution.Request.CallSiteMethod
 			})
+
+			var object reference.Global
 			{
 				server.ReplaceRunner(runnerMock)
 				server.Init(ctx)
 				server.IncrementPulseAndWaitIdle(ctx)
+
+				object = reference.NewSelf(server.RandomLocalWithPulse())
+				prevPulse := server.GetPulse().PulseNumber
+
+				server.IncrementPulse(ctx)
+
+				Method_PrepareObject(ctx, server, payload.Ready, object, prevPulse)
 			}
 
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
 			var (
 				outgoing = server.BuildRandomOutgoingWithPulse()
-				object   = reference.NewSelf(server.RandomLocalWithPulse())
-
-				p1 = server.GetPulse().PulseNumber
+				p1       = server.GetPulse().PulseNumber
 
 				expectedToken = payload.CallDelegationToken{
 					TokenTypeAndFlags: payload.DelegationTokenTypeCall,
@@ -108,8 +113,6 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 				firstTokenValue payload.CallDelegationToken
 				isFirstToken    = true
 			)
-
-			Method_PrepareObject(ctx, server, payload.Ready, object, p1)
 
 			pl := payload.VCallRequest{
 				CallType:       payload.CTMethod,
@@ -251,8 +254,6 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 
 // 2 ordered and 2 unordered calls
 func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
-	// TODO need fixed
-	t.Skip()
 	defer commonTestUtils.LeakTester(t)
 
 	t.Log("C5104")
@@ -278,9 +279,8 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
 	var (
-		object = reference.NewSelf(server.RandomLocalWithPulse())
-
 		prevPulse = server.GetPulse().PulseNumber
+		object    = gen.UniqueGlobalRefWithPulse(prevPulse)
 
 		approver = gen.UniqueGlobalRef()
 
@@ -334,10 +334,10 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 			assert.Zero(t, report.DelegationSpec)
 
 			assert.Equal(t, int32(2), report.UnorderedPendingCount)
-			assert.Equal(t, prevPulse, report.UnorderedPendingEarliestPulse)
+			assert.Equal(t, currPulse, report.UnorderedPendingEarliestPulse)
 
 			assert.Equal(t, int32(1), report.OrderedPendingCount)
-			assert.Equal(t, prevPulse, report.OrderedPendingEarliestPulse)
+			assert.Equal(t, currPulse, report.OrderedPendingEarliestPulse)
 
 			assert.Zero(t, report.PreRegisteredQueueCount)
 			assert.Empty(t, report.PreRegisteredEarliestPulse)

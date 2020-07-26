@@ -19,6 +19,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
@@ -50,9 +51,12 @@ func TestVirtual_SemaphoreLimitNotExceeded(t *testing.T) {
 
 	// Create objects
 	{
+		pulse := server.GetPulse().PulseNumber
+		server.IncrementPulseAndWaitIdle(ctx)
+
 		for i := 0; i < numObject; i++ {
-			objects = append(objects, reference.NewSelf(server.RandomLocalWithPulse()))
-			Method_PrepareObject(ctx, server, payload.Ready, objects[i])
+			objects = append(objects, gen.UniqueGlobalRefWithPulse(pulse))
+			Method_PrepareObject(ctx, server, payload.Ready, objects[i], pulse)
 		}
 	}
 

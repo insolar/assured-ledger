@@ -92,8 +92,6 @@ func Method_PrepareObject(
 }
 
 func TestVirtual_BadMethod_WithExecutor(t *testing.T) {
-	// TODO need fixed
-	t.Skip()
 	defer commontestutils.LeakTester(t)
 
 	t.Log("C4976")
@@ -109,10 +107,13 @@ func TestVirtual_BadMethod_WithExecutor(t *testing.T) {
 		objectLocal  = server.RandomLocalWithPulse()
 		objectGlobal = reference.NewSelf(objectLocal)
 		outgoing     = server.BuildRandomOutgoingWithPulse()
-		pulse        = server.GetPulse().PulseNumber
+		prevPulse    = server.GetPulse().PulseNumber
 	)
 
-	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal, pulse)
+	// need for correct handle state report (should from prev pulse)
+	server.IncrementPulse(ctx)
+
+	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal, prevPulse)
 
 	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 
@@ -171,10 +172,13 @@ func TestVirtual_Method_WithExecutor(t *testing.T) {
 		class        = testwallet.GetClass()
 		objectLocal  = server.RandomLocalWithPulse()
 		objectGlobal = reference.NewSelf(objectLocal)
-		pulseNumber  = server.GetPulse().PulseNumber
+		prevPulse    = server.GetPulse().PulseNumber
 	)
 
-	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal, pulseNumber)
+	// need for correct handle state report (should from prev pulse)
+	server.IncrementPulse(ctx)
+
+	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal, prevPulse)
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool { return false })
@@ -214,10 +218,13 @@ func TestVirtual_Method_WithExecutor_ObjectIsNotExist(t *testing.T) {
 		objectLocal  = server.RandomLocalWithPulse()
 		objectGlobal = reference.NewSelf(objectLocal)
 		outgoing     = server.BuildRandomOutgoingWithPulse()
-		pulse        = server.GetPulse().PulseNumber
+		prevPulse    = server.GetPulse().PulseNumber
 	)
 
-	Method_PrepareObject(ctx, server, payload.Missing, objectGlobal, pulse)
+	// need for correct handle state report (should from prev pulse)
+	server.IncrementPulse(ctx)
+
+	Method_PrepareObject(ctx, server, payload.Missing, objectGlobal, prevPulse)
 
 	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 
@@ -288,8 +295,11 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 		class        = testwallet.GetClass()
 		objectLocal  = server.RandomLocalWithPulse()
 		objectGlobal = reference.NewSelf(objectLocal)
-		pulse        = server.GetPulse().PulseNumber
+		prevPulse    = server.GetPulse().PulseNumber
 	)
+
+	// need for correct handle state report (should from prev pulse)
+	server.IncrementPulse(ctx)
 
 	checkExecution := func(_ execution.Context) {
 		// tell the test that we know about next request
@@ -299,7 +309,7 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 		<-waitOutputChannel
 	}
 
-	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal, pulse)
+	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal, prevPulse)
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
@@ -388,10 +398,13 @@ func TestVirtual_Method_WithoutExecutor_Ordered(t *testing.T) {
 		class        = testwallet.GetClass()
 		objectLocal  = server.RandomLocalWithPulse()
 		objectGlobal = reference.NewSelf(objectLocal)
-		pulse        = server.GetPulse().PulseNumber
+		prevPulse    = server.GetPulse().PulseNumber
 	)
 
-	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal, pulse)
+	// need for correct handle state report (should from prev pulse)
+	server.IncrementPulse(ctx)
+
+	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal, prevPulse)
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
 	cntr := 0
@@ -469,10 +482,12 @@ func TestVirtual_CallMethodAfterPulseChange(t *testing.T) {
 	var (
 		objectLocal  = server.RandomLocalWithPulse()
 		objectGlobal = reference.NewSelf(objectLocal)
-		pulse        = server.GetPulse().PulseNumber
+		prevPulse    = server.GetPulse().PulseNumber
 	)
 
-	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal, pulse)
+	server.IncrementPulseAndWaitIdle(ctx)
+
+	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal, prevPulse)
 
 	// Change pulse to force send VStateReport
 	server.IncrementPulseAndWaitIdle(ctx)
@@ -509,10 +524,12 @@ func TestVirtual_CallMethodAfterMultiplePulseChanges(t *testing.T) {
 	var (
 		objectLocal  = server.RandomLocalWithPulse()
 		objectGlobal = reference.NewSelf(objectLocal)
-		pulse        = server.GetPulse().PulseNumber
+		prevPulse    = server.GetPulse().PulseNumber
 	)
 
-	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal, pulse)
+	server.IncrementPulseAndWaitIdle(ctx)
+
+	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal, prevPulse)
 
 	numPulseChanges := 5
 	for i := 0; i < numPulseChanges; i++ {
@@ -569,8 +586,8 @@ func TestVirtual_CallContractFromContract_InterferenceViolation(t *testing.T) {
 			var (
 				class = gen.UniqueGlobalRef()
 
+				prevPulse     = server.GetPulse().PulseNumber
 				objectAGlobal = reference.NewSelf(server.RandomLocalWithPulse())
-				pulse         = server.GetPulse().PulseNumber
 
 				flags = contract.MethodIsolation{
 					Interference: contract.CallIntolerable,
@@ -581,7 +598,9 @@ func TestVirtual_CallContractFromContract_InterferenceViolation(t *testing.T) {
 				err           error
 			)
 
-			Method_PrepareObject(ctx, server, payload.Ready, objectAGlobal, pulse)
+			server.IncrementPulseAndWaitIdle(ctx)
+
+			Method_PrepareObject(ctx, server, payload.Ready, objectAGlobal, prevPulse)
 
 			outgoingCallRef := gen.UniqueGlobalRef()
 
@@ -678,37 +697,40 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 	server.Init(ctx)
 	server.IncrementPulseAndWaitIdle(ctx)
 
-	p := server.GetPulse().PulseNumber
-
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+
+	var (
+		objectA        = reference.NewSelf(server.RandomLocalWithPulse())
+		objectB1Global = reference.NewSelf(server.RandomLocalWithPulse())
+		objectB2Global = reference.NewSelf(server.RandomLocalWithPulse())
+		objectB3Global = reference.NewSelf(server.RandomLocalWithPulse())
+		prevPulse      = server.GetPulse().PulseNumber
+	)
+
+	server.IncrementPulseAndWaitIdle(ctx)
+
+	// create objects
+	{
+		Method_PrepareObject(ctx, server, payload.Ready, objectA, prevPulse)
+		Method_PrepareObject(ctx, server, payload.Ready, objectB1Global, prevPulse)
+		Method_PrepareObject(ctx, server, payload.Ready, objectB2Global, prevPulse)
+		Method_PrepareObject(ctx, server, payload.Ready, objectB3Global, prevPulse)
+	}
+
+	p := server.GetPulse().PulseNumber
 
 	var (
 		flags     = contract.MethodIsolation{Interference: contract.CallTolerable, State: contract.CallDirty}
 		callFlags = payload.BuildCallFlags(flags.Interference, flags.State)
 
-		objectA = reference.NewSelf(server.RandomLocalWithPulse())
-
-		classB1        = gen.UniqueGlobalRef()
-		classB2        = gen.UniqueGlobalRef()
-		classB3        = gen.UniqueGlobalRef()
-		objectB1Global = reference.NewSelf(server.RandomLocalWithPulse())
-		objectB2Global = reference.NewSelf(server.RandomLocalWithPulse())
-		objectB3Global = reference.NewSelf(server.RandomLocalWithPulse())
+		classB1 = gen.UniqueGlobalRef()
+		classB2 = gen.UniqueGlobalRef()
+		classB3 = gen.UniqueGlobalRef()
 
 		outgoingCallRef = reference.NewRecordOf(
 			server.GlobalCaller(), server.RandomLocalWithPulse(),
 		)
-
-		pulse = server.GetPulse().PulseNumber
 	)
-
-	// create objects
-	{
-		Method_PrepareObject(ctx, server, payload.Ready, objectA, pulse)
-		Method_PrepareObject(ctx, server, payload.Ready, objectB1Global, pulse)
-		Method_PrepareObject(ctx, server, payload.Ready, objectB2Global, pulse)
-		Method_PrepareObject(ctx, server, payload.Ready, objectB3Global, pulse)
-	}
 
 	// add ExecutionMocks to runnerMock
 	{
@@ -918,14 +940,13 @@ func TestVirtual_Method_Have_ObjectState(t *testing.T) {
 			server.IncrementPulse(ctx)
 
 			var (
+				pulseNumber       = server.GetPulse().PulseNumber
 				class             = gen.UniqueGlobalRef()
-				objectRef         = server.BuildRandomOutgoingWithPulse()
-				outgoingRef       = server.BuildRandomOutgoingWithPulse()
+				objectRef         = gen.UniqueGlobalRefWithPulse(pulseNumber)
 				dirtyStateRef     = server.RandomLocalWithPulse()
 				dirtyState        = reference.NewSelf(dirtyStateRef)
 				validatedStateRef = server.RandomLocalWithPulse()
 				validatedState    = reference.NewSelf(validatedStateRef)
-				pulseNumber       = server.GetPulse().PulseNumber
 			)
 			const (
 				validatedMem = "12345"
@@ -951,8 +972,10 @@ func TestVirtual_Method_Have_ObjectState(t *testing.T) {
 							State:     []byte(dirtyMem),
 						},
 					},
-					UnorderedPendingEarliestPulse: pulse.OfNow(),
+					UnorderedPendingEarliestPulse: pulseNumber,
 				}
+
+				server.IncrementPulse(ctx)
 
 				server.WaitIdleConveyor()
 				server.SendPayload(ctx, &pl)
@@ -968,6 +991,8 @@ func TestVirtual_Method_Have_ObjectState(t *testing.T) {
 
 					return false // no resend msg
 				})
+
+				outgoingRef := server.BuildRandomOutgoingWithPulse()
 
 				pl := payload.VCallRequest{
 					CallType:            payload.CTMethod,
@@ -1045,21 +1070,26 @@ func TestVirtual_CallContractTwoTimes(t *testing.T) {
 		flags     = contract.MethodIsolation{Interference: contract.CallTolerable, State: contract.CallDirty}
 		callFlags = payload.BuildCallFlags(flags.Interference, flags.State)
 
-		objectAGlobal = reference.NewSelf(server.RandomLocalWithPulse())
+		classB = gen.UniqueGlobalRef()
 
-		classB        = gen.UniqueGlobalRef()
+		objectAGlobal = reference.NewSelf(server.RandomLocalWithPulse())
 		objectBGlobal = reference.NewSelf(server.RandomLocalWithPulse())
 
-		outgoingFirstCall  = server.BuildRandomOutgoingWithPulse()
-		outgoingSecondCall = server.BuildRandomOutgoingWithPulse()
-		pulse              = server.GetPulse().PulseNumber
+		prevPulse = server.GetPulse().PulseNumber
 	)
+
+	server.IncrementPulseAndWaitIdle(ctx)
 
 	// create objects
 	{
-		Method_PrepareObject(ctx, server, payload.Ready, objectAGlobal, pulse)
-		Method_PrepareObject(ctx, server, payload.Ready, objectBGlobal, pulse)
+		Method_PrepareObject(ctx, server, payload.Ready, objectAGlobal, prevPulse)
+		Method_PrepareObject(ctx, server, payload.Ready, objectBGlobal, prevPulse)
 	}
+
+	var (
+		outgoingFirstCall  = server.BuildRandomOutgoingWithPulse()
+		outgoingSecondCall = server.BuildRandomOutgoingWithPulse()
+	)
 
 	// add ExecutionMocks to runnerMock
 	{
@@ -1210,11 +1240,12 @@ func Test_CallMethodWithBadIsolationFlags(t *testing.T) {
 	var (
 		objectLocal  = server.RandomLocalWithPulse()
 		objectGlobal = reference.NewSelf(objectLocal)
-		outgoing     = server.BuildRandomOutgoingWithPulse()
-		pulse        = server.GetPulse().PulseNumber
+		prevPulse    = server.GetPulse().PulseNumber
 	)
 
-	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal, pulse)
+	server.IncrementPulseAndWaitIdle(ctx)
+
+	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal, prevPulse)
 
 	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 
@@ -1231,6 +1262,8 @@ func Test_CallMethodWithBadIsolationFlags(t *testing.T) {
 			State:        contract.CallValidated,
 		},
 	})
+
+	outgoing := server.BuildRandomOutgoingWithPulse()
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
@@ -1291,13 +1324,12 @@ func TestVirtual_FutureMessageAddedToSlot(t *testing.T) {
 	var (
 		objectLocal       = server.RandomLocalWithPulse()
 		objectGlobal      = reference.NewSelf(objectLocal)
-		outgoing          = server.BuildRandomOutgoingWithPulse()
 		class             = gen.UniqueGlobalRef()
 		dirtyStateRef     = server.RandomLocalWithPulse()
 		dirtyState        = reference.NewSelf(dirtyStateRef)
 		validatedStateRef = server.RandomLocalWithPulse()
 		validatedState    = reference.NewSelf(validatedStateRef)
-		pulseNumber       = server.GetPulse().PulseNumber
+		prevPulse         = server.GetPulse().PulseNumber
 	)
 
 	const (
@@ -1305,7 +1337,9 @@ func TestVirtual_FutureMessageAddedToSlot(t *testing.T) {
 		dirtyMem     = "54321"
 	)
 
-	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal, pulseNumber)
+	server.IncrementPulseAndWaitIdle(ctx)
+
+	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal, prevPulse)
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool { return false })
@@ -1313,7 +1347,7 @@ func TestVirtual_FutureMessageAddedToSlot(t *testing.T) {
 	typedChecker.VStateRequest.Set(func(res *payload.VStateRequest) bool {
 		report := &payload.VStateReport{
 			Status:               payload.Ready,
-			AsOf:                 pulseNumber,
+			AsOf:                 prevPulse,
 			Object:               objectGlobal,
 			LatestValidatedState: validatedState,
 			LatestDirtyState:     dirtyState,
@@ -1333,6 +1367,8 @@ func TestVirtual_FutureMessageAddedToSlot(t *testing.T) {
 		server.SendPayload(ctx, report)
 		return false
 	})
+
+	outgoing := server.BuildRandomOutgoingWithPulse()
 
 	pl := payload.VCallRequest{
 		CallType:            payload.CTMethod,
@@ -1565,10 +1601,26 @@ func TestVirtual_Method_ForObjectWithMissingState(t *testing.T) {
 			stateHandled := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
 
 			var (
-				objectRef   = server.RandomGlobalWithPulse()
-				outgoing    = server.BuildRandomOutgoingWithPulse()
-				pulseNumber = server.GetPulse().PulseNumber
+				objectRef = server.RandomGlobalWithPulse()
+				prevPulse = server.GetPulse().PulseNumber
 			)
+
+			server.IncrementPulseAndWaitIdle(ctx)
+
+			if testCase.outgoingFromPast {
+				server.IncrementPulseAndWaitIdle(ctx)
+			}
+
+			state := &payload.VStateReport{
+				Status: payload.Missing,
+				AsOf:   prevPulse,
+				Object: objectRef,
+			}
+
+			server.SendPayload(ctx, state)
+			testutils.WaitSignalsTimed(t, 10*time.Second, stateHandled)
+
+			outgoing := server.BuildRandomOutgoingWithPulse()
 
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 			typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool {
@@ -1582,19 +1634,6 @@ func TestVirtual_Method_ForObjectWithMissingState(t *testing.T) {
 				require.Contains(t, contractErr.Error(), "object does not exist")
 				return false
 			})
-
-			if testCase.outgoingFromPast {
-				server.IncrementPulseAndWaitIdle(ctx)
-			}
-
-			state := &payload.VStateReport{
-				Status: payload.Missing,
-				AsOf:   pulseNumber,
-				Object: objectRef,
-			}
-
-			server.SendPayload(ctx, state)
-			testutils.WaitSignalsTimed(t, 10*time.Second, stateHandled)
 
 			pl := payload.VCallRequest{
 				CallType:       payload.CTMethod,
@@ -1685,15 +1724,16 @@ func TestVirtual_Method_ForbidenIsolation(t *testing.T) {
 
 			var (
 				class       = gen.UniqueGlobalRef()
-				objectRef   = server.BuildRandomOutgoingWithPulse()
-				outgoingRef = server.BuildRandomOutgoingWithPulse()
+				pulseNumber = server.GetPulse().PulseNumber
+				objectRef   = gen.UniqueGlobalRefWithPulse(pulseNumber)
 			)
 
-			dirtyState := test.dirtyStateBuilder(objectRef, class, server.GetPulse().PulseNumber)
-			validatedState := test.validatedStateBuilder(objectRef, class, server.GetPulse().PulseNumber)
+			dirtyState := test.dirtyStateBuilder(objectRef, class, pulseNumber)
+			validatedState := test.validatedStateBuilder(objectRef, class, pulseNumber)
 
 			{ // send object state to server
 				pl := payload.VStateReport{
+					AsOf:                 pulseNumber,
 					Status:               payload.Ready,
 					Object:               objectRef,
 					LatestValidatedState: validatedState.HeadRef(),
@@ -1712,11 +1752,12 @@ func TestVirtual_Method_ForbidenIsolation(t *testing.T) {
 					},
 				}
 
-				server.WaitIdleConveyor()
+				server.IncrementPulseAndWaitIdle(ctx)
 				server.SendPayload(ctx, &pl)
 				server.WaitActiveThenIdleConveyor()
 			}
 
+			outgoingRef := server.BuildRandomOutgoingWithPulse()
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
 			{

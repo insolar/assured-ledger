@@ -102,6 +102,8 @@ func TestVirtual_VStateReport_HappyPath(t *testing.T) {
 		rawWalletState = makeRawWalletState(testBalance)
 	)
 
+	server.IncrementPulseAndWaitIdle(ctx)
+
 	{
 		// send VStateReport: save wallet
 
@@ -130,6 +132,8 @@ func TestVirtual_VStateReport_TwoStateReports(t *testing.T) {
 		newStateID     = server.RandomLocalWithPulse()
 		rawWalletState = makeRawWalletState(testBalance)
 	)
+
+	server.IncrementPulseAndWaitIdle(ctx)
 
 	{
 		// send VStateReport: save wallet
@@ -190,6 +194,9 @@ func TestVirtual_VStateReport_BadState_StateAlreadyExists(t *testing.T) {
 		stateID        = server.RandomLocalWithPulse()
 		rawWalletState = makeRawWalletState(testBalance)
 	)
+
+	server.IncrementPulseAndWaitIdle(ctx)
+
 	{
 		// send VStateReport: save wallet
 		pl := makeVStateReportEvent(objectGlobal, stateID, pulseNumber, rawWalletState)
@@ -224,6 +231,8 @@ func TestVirtual_VStateReport_CheckValidatedState(t *testing.T) {
 		dirtyWalletState     = makeRawWalletState(initialBalance)
 		validatedWalletState = makeRawWalletState(initialBalance + 123)
 	)
+
+	server.IncrementPulseAndWaitIdle(ctx)
 
 	content := &payload.VStateReport_ProvidedContentBody{
 		LatestDirtyState: &payload.ObjectState{

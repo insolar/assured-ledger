@@ -32,8 +32,6 @@ import (
 )
 
 func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
-	// TODO need fixed
-	t.Skip()
 	defer commontestutils.LeakTester(t)
 
 	t.Log("C5095")
@@ -51,19 +49,18 @@ func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 	})
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
+	server.IncrementPulse(ctx)
 
-	helper := utils.NewHelper(server)
-
-	p1 := server.GetPulse().PulseNumber
-	server.IncrementPulseAndWaitIdle(ctx)
-
-	outgoing := helper.BuildObjectOutgoing()
-	class := gen.UniqueGlobalRef()
-	object := gen.UniqueGlobalRef()
+	var (
+		helper = utils.NewHelper(server)
+		pulse  = server.GetPulse().PulseNumber
+		class  = gen.UniqueGlobalRef()
+		object = gen.UniqueGlobalRefWithPulse(pulse)
+	)
 
 	report := &payload.VStateReport{
 		Status: payload.Ready,
-		AsOf:   p1,
+		AsOf:   pulse,
 		Object: object,
 		ProvidedContent: &payload.VStateReport_ProvidedContentBody{
 			LatestDirtyState: &payload.ObjectState{
@@ -72,6 +69,9 @@ func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 			},
 		},
 	}
+
+	server.IncrementPulse(ctx)
+
 	server.SendPayload(ctx, report)
 
 	releaseBlockedExecution := make(chan struct{}, 0)
@@ -100,6 +100,8 @@ func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	typedChecker.VCallResult.SetResend(false).ExpectedCount(1)
 
+	outgoing := helper.BuildObjectOutgoing()
+
 	pl := payload.VCallRequest{
 		CallType:       payload.CTMethod,
 		CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
@@ -126,8 +128,6 @@ func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 }
 
 func TestDeduplication_SecondCallOfMethodAfterExecution(t *testing.T) {
-	// TODO need fixed
-	t.Skip()
 	defer commontestutils.LeakTester(t)
 
 	t.Log("C5096")
@@ -142,20 +142,19 @@ func TestDeduplication_SecondCallOfMethodAfterExecution(t *testing.T) {
 	})
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
+	server.IncrementPulseAndWaitIdle(ctx)
 
 	helper := utils.NewHelper(server)
 
-	p1 := server.GetPulse().PulseNumber
-
-	server.IncrementPulseAndWaitIdle(ctx)
-
-	outgoing := helper.BuildObjectOutgoing()
-	class := gen.UniqueGlobalRef()
-	object := gen.UniqueGlobalRef()
+	var (
+		pulse  = server.GetPulse().PulseNumber
+		class  = gen.UniqueGlobalRef()
+		object = gen.UniqueGlobalRefWithPulse(pulse)
+	)
 
 	report := &payload.VStateReport{
 		Status: payload.Ready,
-		AsOf:   p1,
+		AsOf:   pulse,
 		Object: object,
 		ProvidedContent: &payload.VStateReport_ProvidedContentBody{
 			LatestDirtyState: &payload.ObjectState{
@@ -164,6 +163,9 @@ func TestDeduplication_SecondCallOfMethodAfterExecution(t *testing.T) {
 			},
 		},
 	}
+
+	server.IncrementPulse(ctx)
+
 	server.SendPayload(ctx, report)
 
 	numberOfExecutions := 0
@@ -199,6 +201,8 @@ func TestDeduplication_SecondCallOfMethodAfterExecution(t *testing.T) {
 
 		return false
 	}).ExpectedCount(2)
+
+	outgoing := helper.BuildObjectOutgoing()
 
 	pl := payload.VCallRequest{
 		CallType:       payload.CTMethod,

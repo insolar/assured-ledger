@@ -45,12 +45,15 @@ func TestVirtual_VStateRequest_WithoutBody(t *testing.T) {
 	server.IncrementPulse(ctx)
 
 	var (
-		objectLocal  = server.RandomLocalWithPulse()
-		objectGlobal = reference.NewSelf(objectLocal)
+		objectGlobal = reference.NewSelf(server.RandomLocalWithPulse())
 		pulseNumber  = server.GetPulse().PulseNumber
 	)
 
+	server.IncrementPulseAndWaitIdle(ctx)
+
 	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal, pulseNumber)
+
+	pulseNumber = server.GetPulse().PulseNumber
 
 	countBefore := server.PublisherMock.GetCount()
 	server.IncrementPulse(ctx)
@@ -62,7 +65,7 @@ func TestVirtual_VStateRequest_WithoutBody(t *testing.T) {
 	typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
 		assert.Equal(t, &payload.VStateReport{
 			Status:           payload.Ready,
-			AsOf:             server.GetPrevPulse().PulseNumber,
+			AsOf:             pulseNumber,
 			Object:           objectGlobal,
 			LatestDirtyState: objectGlobal,
 		}, report)
@@ -93,12 +96,16 @@ func TestVirtual_VStateRequest_WithBody(t *testing.T) {
 	server.IncrementPulse(ctx)
 
 	var (
-		objectLocal    = server.RandomLocalWithPulse()
-		objectGlobal   = reference.NewSelf(objectLocal)
+		objectGlobal   = reference.NewSelf(server.RandomLocalWithPulse())
 		pulseNumber    = server.GetPulse().PulseNumber
 		rawWalletState = makeRawWalletState(initialBalance)
 	)
+
+	server.IncrementPulse(ctx)
+
 	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal, pulseNumber)
+
+	pulseNumber = server.GetPulse().PulseNumber
 
 	countBefore := server.PublisherMock.GetCount()
 	server.IncrementPulse(ctx)
@@ -107,8 +114,8 @@ func TestVirtual_VStateRequest_WithBody(t *testing.T) {
 	}
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-	typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
-		assert.Equal(t, &payload.VStateReport{
+	typedChecker.VStateReport.Set(func(actlReport *payload.VStateReport) bool {
+		expReport := &payload.VStateReport{
 			Status:           payload.Ready,
 			AsOf:             pulseNumber,
 			Object:           objectGlobal,
@@ -120,7 +127,8 @@ func TestVirtual_VStateRequest_WithBody(t *testing.T) {
 					Class:     testwallet.ClassReference,
 				},
 			},
-		}, report)
+		}
+		assert.Equal(t, expReport, actlReport)
 
 		return false
 	})
