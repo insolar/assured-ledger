@@ -44,39 +44,12 @@ func (m *VStateReport) Validate(currPulse PulseNumber) error {
 	case Unknown:
 		return throw.New("Unexepected Unknown status received")
 	case Ready:
-		if m.GetUnorderedPendingCount() < 0 || m.GetUnorderedPendingCount() >= 127 {
-			return throw.New("UnorderedPendingCount should be in range [0..127)")
-		}
-
-		if m.GetOrderedPendingCount() < 0 || m.GetOrderedPendingCount() >= 127 {
-			return throw.New("OrderedPendingCount should be in range [0..127)")
-		}
-
-		if m.GetUnorderedPendingEarliestPulse() < 0 || m.GetUnorderedPendingEarliestPulse() > currPulse {
-			return throw.New("UnorderedPendingEarliestPulse should be in range (0..currPulse]")
-		}
-
-		if m.GetOrderedPendingEarliestPulse() < 0 || m.GetOrderedPendingEarliestPulse() > currPulse {
-			return throw.New("OrderedPendingEarliestPulse should be in range (0..currPulse]")
+		if err := validateReadyStatus(m, currPulse); err != nil {
+			return err
 		}
 	case Empty:
-		if m.GetOrderedPendingCount() != 1 {
-			return throw.New("Should be one ordered pending")
-		}
-
-		if m.GetUnorderedPendingCount() != 0 {
-			return throw.New("Unordered pending count should be 0")
-		}
-
-		if !m.GetUnorderedPendingEarliestPulse().IsUnknown() {
-			return throw.New("Unordered pending earliest pulse should be Unknown")
-		}
-
-		objectPulse := m.GetAsOf()
-		orderedPendingPulse := m.GetOrderedPendingEarliestPulse()
-
-		if orderedPendingPulse < objectPulse || currPulse < orderedPendingPulse {
-			return throw.New("Incorrect pending ordered pulse number")
+		if err := validateEmptyStatus(m, currPulse); err != nil {
+			return err
 		}
 	case Missing:
 	case Inactive:
@@ -92,6 +65,49 @@ func (m *VStateReport) Validate(currPulse PulseNumber) error {
 			return err
 		}
 
+	}
+
+	return nil
+}
+
+func validateEmptyStatus(m *VStateReport, currPulse PulseNumber) error {
+	if m.GetOrderedPendingCount() != 1 {
+		return throw.New("Should be one ordered pending")
+	}
+
+	if m.GetUnorderedPendingCount() != 0 {
+		return throw.New("Unordered pending count should be 0")
+	}
+
+	if !m.GetUnorderedPendingEarliestPulse().IsUnknown() {
+		return throw.New("Unordered pending earliest pulse should be Unknown")
+	}
+
+	objectPulse := m.GetAsOf()
+	orderedPendingPulse := m.GetOrderedPendingEarliestPulse()
+
+	if orderedPendingPulse < objectPulse || currPulse < orderedPendingPulse {
+		return throw.New("Incorrect pending ordered pulse number")
+	}
+
+	return nil
+}
+
+func validateReadyStatus(m *VStateReport, currPulse PulseNumber) error {
+	if m.GetUnorderedPendingCount() < 0 || m.GetUnorderedPendingCount() >= 127 {
+		return throw.New("UnorderedPendingCount should be in range [0..127)")
+	}
+
+	if m.GetOrderedPendingCount() < 0 || m.GetOrderedPendingCount() >= 127 {
+		return throw.New("OrderedPendingCount should be in range [0..127)")
+	}
+
+	if m.GetUnorderedPendingEarliestPulse() < 0 || m.GetUnorderedPendingEarliestPulse() > currPulse {
+		return throw.New("UnorderedPendingEarliestPulse should be in range (0..currPulse]")
+	}
+
+	if m.GetOrderedPendingEarliestPulse() < 0 || m.GetOrderedPendingEarliestPulse() > currPulse {
+		return throw.New("OrderedPendingEarliestPulse should be in range (0..currPulse]")
 	}
 
 	return nil
