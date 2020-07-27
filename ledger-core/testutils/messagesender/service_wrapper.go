@@ -10,8 +10,8 @@ import (
 
 	"github.com/gojuno/minimock/v3"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	messageSender "github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -48,7 +48,7 @@ func (m *AsyncCallRequesterMock) SetWithoutAutoWakeUp() *AsyncCallRequesterMock 
 type SendRoleFn func(
 	_ context.Context,
 	msg payload.Marshaler,
-	role node.DynamicRole,
+	role affinity.DynamicRole,
 	object reference.Global,
 	pn pulse.Number,
 	_ ...messageSender.SendOption,
@@ -58,7 +58,7 @@ type AsyncCallRequesterSendRoleMock struct {
 	parentMock *ServiceMockWrapper
 
 	checkMessageFn     func(msg payload.Marshaler)
-	checkRoleFn        func(role node.DynamicRole)
+	checkRoleFn        func(role affinity.DynamicRole)
 	checkObjectFn      func(object reference.Global)
 	checkPulseNumberFn func(pn pulse.Number)
 }
@@ -77,7 +77,7 @@ func (m *AsyncCallRequesterSendRoleMock) SetCheckMessage(fn func(payload.Marshal
 
 }
 
-func (m *AsyncCallRequesterSendRoleMock) SetCheckRole(fn func(node.DynamicRole)) *AsyncCallRequesterSendRoleMock {
+func (m *AsyncCallRequesterSendRoleMock) SetCheckRole(fn func(affinity.DynamicRole)) *AsyncCallRequesterSendRoleMock {
 	m.prepare()
 	m.checkRoleFn = fn
 	return m
@@ -99,7 +99,7 @@ func (m *AsyncCallRequesterSendRoleMock) SetCheckPulseNumber(fn func(pulse.Numbe
 func (m *AsyncCallRequesterSendRoleMock) check(
 	_ context.Context,
 	msg payload.Marshaler,
-	role node.DynamicRole,
+	role affinity.DynamicRole,
 	object reference.Global,
 	pn pulse.Number,
 	_ ...messageSender.SendOption,

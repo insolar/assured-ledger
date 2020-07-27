@@ -8,7 +8,7 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	mm_network "github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
@@ -23,7 +23,7 @@ type NodeNetworkMock struct {
 	beforeGetAccessorCounter uint64
 	GetAccessorMock          mNodeNetworkMockGetAccessor
 
-	funcGetOrigin          func() (n1 node.NetworkNode)
+	funcGetOrigin          func() (n1 nodeinfo.NetworkNode)
 	inspectFuncGetOrigin   func()
 	afterGetOriginCounter  uint64
 	beforeGetOriginCounter uint64
@@ -276,7 +276,7 @@ type NodeNetworkMockGetOriginExpectation struct {
 
 // NodeNetworkMockGetOriginResults contains results of the NodeNetwork.GetOrigin
 type NodeNetworkMockGetOriginResults struct {
-	n1 node.NetworkNode
+	n1 nodeinfo.NetworkNode
 }
 
 // Expect sets up expected params for NodeNetwork.GetOrigin
@@ -304,7 +304,7 @@ func (mmGetOrigin *mNodeNetworkMockGetOrigin) Inspect(f func()) *mNodeNetworkMoc
 }
 
 // Return sets up results that will be returned by NodeNetwork.GetOrigin
-func (mmGetOrigin *mNodeNetworkMockGetOrigin) Return(n1 node.NetworkNode) *NodeNetworkMock {
+func (mmGetOrigin *mNodeNetworkMockGetOrigin) Return(n1 nodeinfo.NetworkNode) *NodeNetworkMock {
 	if mmGetOrigin.mock.funcGetOrigin != nil {
 		mmGetOrigin.mock.t.Fatalf("NodeNetworkMock.GetOrigin mock is already set by Set")
 	}
@@ -317,7 +317,7 @@ func (mmGetOrigin *mNodeNetworkMockGetOrigin) Return(n1 node.NetworkNode) *NodeN
 }
 
 //Set uses given function f to mock the NodeNetwork.GetOrigin method
-func (mmGetOrigin *mNodeNetworkMockGetOrigin) Set(f func() (n1 node.NetworkNode)) *NodeNetworkMock {
+func (mmGetOrigin *mNodeNetworkMockGetOrigin) Set(f func() (n1 nodeinfo.NetworkNode)) *NodeNetworkMock {
 	if mmGetOrigin.defaultExpectation != nil {
 		mmGetOrigin.mock.t.Fatalf("Default expectation is already set for the NodeNetwork.GetOrigin method")
 	}
@@ -331,7 +331,7 @@ func (mmGetOrigin *mNodeNetworkMockGetOrigin) Set(f func() (n1 node.NetworkNode)
 }
 
 // GetOrigin implements network.NodeNetwork
-func (mmGetOrigin *NodeNetworkMock) GetOrigin() (n1 node.NetworkNode) {
+func (mmGetOrigin *NodeNetworkMock) GetOrigin() (n1 nodeinfo.NetworkNode) {
 	mm_atomic.AddUint64(&mmGetOrigin.beforeGetOriginCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetOrigin.afterGetOriginCounter, 1)
 

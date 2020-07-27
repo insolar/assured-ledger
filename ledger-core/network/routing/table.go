@@ -8,17 +8,17 @@ package routing
 import (
 	"context"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/host"
-	"github.com/insolar/assured-ledger/ledger-core/network/storage"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type Table struct {
-	NodeKeeper    network.NodeKeeper    `inject:""`
-	PulseAccessor storage.PulseAccessor `inject:""`
+	NodeKeeper    network.NodeKeeper `inject:""`
+	PulseAccessor beat.Accessor      `inject:""`
 }
 
 func (t *Table) isLocalNode(reference.Global) bool {
@@ -32,7 +32,7 @@ func (t *Table) resolveRemoteNode(reference.Global) (*host.Host, error) {
 // Resolve NodeID -> ShortID, Address. Can initiate network requests.
 func (t *Table) Resolve(ref reference.Global) (*host.Host, error) {
 	if t.isLocalNode(ref) {
-		p, err := t.PulseAccessor.GetLatestPulse(context.Background())
+		p, err := t.PulseAccessor.Latest(context.Background())
 		if err != nil {
 			return nil, errors.W(err, "failed to get latest pulse --==-- ")
 		}

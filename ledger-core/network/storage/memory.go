@@ -6,10 +6,8 @@
 package storage
 
 import (
-	"context"
 	"sync"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
@@ -19,67 +17,53 @@ const entriesCount = 10
 // NewMemoryStorage constructor creates MemoryStorage
 func NewMemoryStorage() *MemoryStorage {
 	return &MemoryStorage{
-		entries:         make([]pulsestor.Pulse, 0),
-		snapshotEntries: make(map[pulse.Number]*node.Snapshot),
+		limit: entriesCount,
 	}
 }
 
 type MemoryStorage struct {
 	lock            sync.RWMutex
-	entries         []pulsestor.Pulse
+	limit           int
+	entries         []pulse.Number
 	snapshotEntries map[pulse.Number]*node.Snapshot
 }
 
-// truncate deletes all entries except Count
-func (m *MemoryStorage) truncate(count int) {
-	if len(m.entries) <= count {
+// Truncate deletes all entries except Count
+func (m *MemoryStorage) Truncate(count int) {
+	switch {
+	case len(m.entries) <= count:
+		return
+	case count == 0:
+		m.snapshotEntries = nil
+		m.entries = nil
 		return
 	}
 
-	truncatePulses := m.entries[:len(m.entries)-count]
-	m.entries = m.entries[len(truncatePulses):]
-	for _, p := range truncatePulses {
-		delete(m.snapshotEntries, p.PulseNumber)
+	removeN := len(m.entries)-count
+	for _, pn := range m.entries[:removeN] {
+		delete(m.snapshotEntries, pn)
 	}
+	copy(m.entries, m.entries[removeN:])
+	m.entries = m.entries[:count]
 }
 
-func (m *MemoryStorage) AppendPulse(ctx context.Context, pulse pulsestor.Pulse) error {
+func (m *MemoryStorage) Append(snapshot *node.Snapshot) error {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
-	m.entries = append(m.entries, pulse)
-	m.truncate(entriesCount)
-	return nil
-}
+	pn := snapshot.GetPulse()
 
-func (m *MemoryStorage) GetPulse(ctx context.Context, number pulse.Number) (pulsestor.Pulse, error) {
-	m.lock.RLock()
-	defer m.lock.RUnlock()
-
-	for _, p := range m.entries {
-		if p.PulseNumber == number {
-			return p, nil
-		}
+	if m.snapshotEntries == nil {
+		m.snapshotEntries = make(map[pulse.Number]*node.Snapshot)
 	}
 
-	return *pulsestor.GenesisPulse, ErrNotFound
-}
-
-func (m *MemoryStorage) GetLatestPulse(ctx context.Context) (pulsestor.Pulse, error) {
-	m.lock.RLock()
-	defer m.lock.RUnlock()
-
-	if len(m.entries) == 0 {
-		return *pulsestor.GenesisPulse, ErrNotFound
+	if _, ok := m.snapshotEntries[pn]; !ok {
+		m.entries = append(m.entries, pn)
 	}
-	return m.entries[len(m.entries)-1], nil
-}
+	m.snapshotEntries[pn] = snapshot
 
-func (m *MemoryStorage) Append(pulse pulse.Number, snapshot *node.Snapshot) error {
-	m.lock.Lock()
-	defer m.lock.Unlock()
+	m.Truncate(m.limit)
 
-	m.snapshotEntries[pulse] = snapshot
 	return nil
 }
 
