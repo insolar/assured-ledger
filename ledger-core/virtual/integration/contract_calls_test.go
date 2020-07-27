@@ -730,7 +730,6 @@ func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 	}
 
 	point := synchronization.NewPoint(1)
-	delegatedRequestFinishedChan := make(chan struct{})
 
 	// add checks to typedChecker
 	{
@@ -763,10 +762,7 @@ func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 			return false
 		})
 
-		typedChecker.VDelegatedRequestFinished.Set(func(finished *payload.VDelegatedRequestFinished) bool {
-			delegatedRequestFinishedChan <- struct{}{}
-			return false
-		})
+		typedChecker.VDelegatedRequestFinished.Set(func(finished *payload.VDelegatedRequestFinished) bool {return false})
 
 	}
 
@@ -784,8 +780,7 @@ func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 	require.Equal(t, countChangePulse, typedChecker.VCallRequest.Count())
 	require.Equal(t, countChangePulse, typedChecker.VDelegatedCallRequest.Count())
 
-	<-delegatedRequestFinishedChan
-	require.Equal(t, 1, typedChecker.VDelegatedRequestFinished.CountBefore())
+	testutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VDelegatedRequestFinished.Wait(ctx, 1))
 
 	mc.Finish()
 
