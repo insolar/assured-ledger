@@ -8,35 +8,35 @@ package gateway
 import (
 	"context"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
 
 func newWaitConsensus(b *Base) *WaitConsensus {
-	return &WaitConsensus{b, make(chan pulsestor.Pulse, 1)}
+	return &WaitConsensus{b, make(chan pulse.Data, 1)}
 }
 
 type WaitConsensus struct {
 	*Base
 
-	consensusFinished chan pulsestor.Pulse
+	consensusFinished chan pulse.Data
 }
 
-func (g *WaitConsensus) Run(ctx context.Context, pulse pulsestor.Pulse) {
+func (g *WaitConsensus) Run(ctx context.Context, _ pulse.Data) {
 	select {
 	case <-g.bootstrapTimer.C:
 		g.FailState(ctx, bootstrapTimeoutMessage)
 	case newPulse := <-g.consensusFinished:
-		g.Gatewayer.SwitchState(ctx, node.WaitMajority, newPulse)
+		g.Gatewayer.SwitchState(ctx, nodeinfo.WaitMajority, newPulse)
 	}
 }
 
-func (g *WaitConsensus) GetState() node.NetworkState {
-	return node.WaitConsensus
+func (g *WaitConsensus) GetState() nodeinfo.NetworkState {
+	return nodeinfo.WaitConsensus
 }
 
 func (g *WaitConsensus) OnConsensusFinished(ctx context.Context, report network.Report) {
-	g.consensusFinished <- EnsureGetPulse(ctx, g.PulseAccessor, report.PulseNumber)
+	g.consensusFinished <- EnsureGetPulse(ctx, report)
 	close(g.consensusFinished)
 }

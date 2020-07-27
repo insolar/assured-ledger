@@ -10,11 +10,10 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill/message"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/defaults"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/instracer"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -45,17 +44,17 @@ func WithSyncBody() SendOption {
 
 type Service interface {
 	// blocks if network unreachable
-	SendRole(ctx context.Context, msg payload.Marshaler, role node.DynamicRole, object reference.Global, pn pulse.Number, opts ...SendOption) error
+	SendRole(ctx context.Context, msg payload.Marshaler, role affinity.DynamicRole, object reference.Global, pn pulse.Number, opts ...SendOption) error
 	SendTarget(ctx context.Context, msg payload.Marshaler, target reference.Global, opts ...SendOption) error
 }
 
 type DefaultService struct {
 	pub      message.Publisher
-	affinity jet.AffinityHelper
-	pulses   pulsestor.Accessor
+	affinity affinity.Helper
+	pulses   beat.Accessor
 }
 
-func NewDefaultService(pub message.Publisher, affinity jet.AffinityHelper, pulses pulsestor.Accessor) *DefaultService {
+func NewDefaultService(pub message.Publisher, affinity affinity.Helper, pulses beat.Accessor) *DefaultService {
 	return &DefaultService{
 		pub:      pub,
 		affinity: affinity,
@@ -67,13 +66,13 @@ func (dm *DefaultService) Close() error {
 	return dm.pub.Close()
 }
 
-func (dm *DefaultService) SendRole(ctx context.Context, msg payload.Marshaler, role node.DynamicRole, object reference.Global, pn pulse.Number, opts ...SendOption) error {
+func (dm *DefaultService) SendRole(ctx context.Context, msg payload.Marshaler, role affinity.DynamicRole, object reference.Global, pn pulse.Number, opts ...SendOption) error {
 	waterMillMsg, err := payload.NewMessage(msg.(payload.Marshaler))
 	if err != nil {
 		return throw.W(err, "Can't create watermill message")
 	}
 
-	nodes, err := dm.affinity.QueryRole(ctx, role, object.GetLocal(), pn)
+	nodes, err := dm.affinity.QueryRole(ctx, role, object, pn)
 	if err != nil {
 		return throw.W(err, "failed to calculate role")
 	}

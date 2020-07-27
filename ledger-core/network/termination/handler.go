@@ -9,11 +9,10 @@ import (
 	"context"
 	"sync"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/network/storage"
-	"github.com/insolar/assured-ledger/ledger-core/pulse"
-
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
 
 type Handler struct {
@@ -21,41 +20,28 @@ type Handler struct {
 	done        chan struct{}
 	terminating bool
 
-	Leaver        node.Leaver
-	PulseAccessor storage.PulseAccessor `inject:""`
+	Leaver        nodeinfo.Leaver
+	PulseAccessor beat.Accessor `inject:""`
 }
 
-func NewHandler(l node.Leaver) *Handler {
+func NewHandler(l nodeinfo.Leaver) *Handler {
 	return &Handler{Leaver: l}
 }
 
 // TODO take ETA by role of node
-func (t *Handler) Leave(ctx context.Context, leaveAfterPulses pulse.Number) {
-	doneChan := t.leave(ctx, leaveAfterPulses)
+func (t *Handler) Leave(ctx context.Context, leaveAfter pulse.Number) {
+	doneChan := t.leave(ctx, leaveAfter)
 	<-doneChan
 }
 
-func (t *Handler) leave(ctx context.Context, leaveAfterPulses pulse.Number) chan struct{} {
+func (t *Handler) leave(ctx context.Context, leaveAfter pulse.Number) chan struct{} {
 	t.Lock()
 	defer t.Unlock()
 
 	if !t.terminating {
 		t.terminating = true
 		t.done = make(chan struct{}, 1)
-
-		if leaveAfterPulses == 0 {
-			inslogger.FromContext(ctx).Debug("Handler.Leave() with 0")
-			t.Leaver.Leave(ctx, 0)
-		} else {
-			pulse, err := t.PulseAccessor.GetLatestPulse(ctx)
-			if err != nil {
-				inslogger.FromContext(ctx).Panicf("smth goes wrong. There is no pulse in the storage. err - %v", err)
-			}
-			pulseDelta := pulse.NextPulseNumber - pulse.PulseNumber
-
-			inslogger.FromContext(ctx).Debugf("Handler.Leave() with leaveAfterPulses: %+v, in pulse %+v", leaveAfterPulses, pulse.PulseNumber+leaveAfterPulses*pulseDelta)
-			t.Leaver.Leave(ctx, pulse.PulseNumber+leaveAfterPulses*pulseDelta)
-		}
+		t.Leaver.Leave(ctx, leaveAfter)
 	}
 
 	return t.done

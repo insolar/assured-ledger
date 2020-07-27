@@ -132,7 +132,7 @@ func (c *LocalCensusBuilder) buildCensus(csh proofs.CloudStateHash, markBroken b
 
 	pop, evicts := c.buildPopulation(markBroken, csh)
 	return &BuiltCensusTemplate{ExpectedCensusTemplate{
-		c.chronicles, pop, evicts, c.chronicles.active, c.csh, c.gsh,
+		c.chronicles, pop, evicts, c.chronicles.active, c.gsh, c.csh,
 		c.pulseNumber,
 	}}
 }

@@ -8,7 +8,7 @@ package node
 import (
 	"reflect"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
 
@@ -26,9 +26,9 @@ const (
 
 type Snapshot struct {
 	pulse pulse.Number
-	state node.NetworkState
+	state nodeinfo.NetworkState
 
-	nodeList [ListLength][]node.NetworkNode
+	nodeList [ListLength][]nodeinfo.NetworkNode
 }
 
 func (s *Snapshot) GetPulse() pulse.Number {
@@ -41,7 +41,7 @@ func (s *Snapshot) Copy() *Snapshot {
 		state: s.state,
 	}
 	for i := 0; i < int(ListLength); i++ {
-		result.nodeList[i] = make([]node.NetworkNode, len(s.nodeList[i]))
+		result.nodeList[i] = make([]nodeinfo.NetworkNode, len(s.nodeList[i]))
 		copy(result.nodeList[i], s.nodeList[i])
 	}
 	return result
@@ -67,21 +67,21 @@ func (s *Snapshot) Equal(s2 *Snapshot) bool {
 }
 
 // NewSnapshot create new snapshot for pulse.
-func NewSnapshot(number pulse.Number, nodes []node.NetworkNode) *Snapshot {
+func NewSnapshot(number pulse.Number, nodes []nodeinfo.NetworkNode) *Snapshot {
 	return &Snapshot{
 		pulse: number,
 		// TODO: pass actual state
-		state:    node.NoNetworkState,
+		state:    nodeinfo.NoNetworkState,
 		nodeList: splitNodes(nodes),
 	}
 }
 
 // splitNodes temporary method to create snapshot lists. Will be replaced by special function that will take in count
 // previous snapshot and approved claims.
-func splitNodes(nodes []node.NetworkNode) [ListLength][]node.NetworkNode {
-	var result [ListLength][]node.NetworkNode
+func splitNodes(nodes []nodeinfo.NetworkNode) [ListLength][]nodeinfo.NetworkNode {
+	var result [ListLength][]nodeinfo.NetworkNode
 	for i := 0; i < int(ListLength); i++ {
-		result[i] = make([]node.NetworkNode, 0)
+		result[i] = make([]nodeinfo.NetworkNode, 0)
 	}
 	for _, node := range nodes {
 		listType := nodeStateToListType(node)
@@ -93,23 +93,23 @@ func splitNodes(nodes []node.NetworkNode) [ListLength][]node.NetworkNode {
 	return result
 }
 
-func nodeStateToListType(nd node.NetworkNode) ListType {
+func nodeStateToListType(nd nodeinfo.NetworkNode) ListType {
 	switch nd.GetState() {
-	case node.Ready:
+	case nodeinfo.Ready:
 		if nd.GetPower() > 0 {
 			return ListWorking
 		}
 		return ListIdle
-	case node.Joining:
+	case nodeinfo.Joining:
 		return ListJoiner
-	case node.Undefined, node.Leaving:
+	case nodeinfo.Undefined, nodeinfo.Leaving:
 		return ListLeaving
 	}
 	// special case for no match
 	return ListLength
 }
 
-func Select(nodes []node.NetworkNode, typ ListType) []node.NetworkNode {
+func Select(nodes []nodeinfo.NetworkNode, typ ListType) []nodeinfo.NetworkNode {
 	lists := splitNodes(nodes)
 	return lists[typ]
 }

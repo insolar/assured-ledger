@@ -14,8 +14,8 @@ import (
 
 	"github.com/gojuno/minimock/v3"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
@@ -1254,7 +1254,7 @@ func TestVirtual_FutureMessageAddedToSlot(t *testing.T) {
 	server, ctx := utils.NewUninitializedServer(nil, t)
 	defer server.Stop()
 
-	jetCoordinatorMock := jet.NewAffinityHelperMock(mc)
+	jetCoordinatorMock := affinity.NewHelperMock(mc)
 	auth := authentication.NewService(ctx, jetCoordinatorMock)
 	server.ReplaceAuthenticationService(auth)
 

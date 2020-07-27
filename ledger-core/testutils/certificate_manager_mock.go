@@ -7,21 +7,21 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-	mm_node "github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	mm_nodeinfo "github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 )
 
-// CertificateManagerMock implements node.CertificateManager
+// CertificateManagerMock implements nodeinfo.CertificateManager
 type CertificateManagerMock struct {
 	t minimock.Tester
 
-	funcGetCertificate          func() (c1 mm_node.Certificate)
+	funcGetCertificate          func() (c1 mm_nodeinfo.Certificate)
 	inspectFuncGetCertificate   func()
 	afterGetCertificateCounter  uint64
 	beforeGetCertificateCounter uint64
 	GetCertificateMock          mCertificateManagerMockGetCertificate
 }
 
-// NewCertificateManagerMock returns a mock for node.CertificateManager
+// NewCertificateManagerMock returns a mock for nodeinfo.CertificateManager
 func NewCertificateManagerMock(t minimock.Tester) *CertificateManagerMock {
 	m := &CertificateManagerMock{t: t}
 	if controller, ok := t.(minimock.MockController); ok {
@@ -49,7 +49,7 @@ type CertificateManagerMockGetCertificateExpectation struct {
 
 // CertificateManagerMockGetCertificateResults contains results of the CertificateManager.GetCertificate
 type CertificateManagerMockGetCertificateResults struct {
-	c1 mm_node.Certificate
+	c1 mm_nodeinfo.Certificate
 }
 
 // Expect sets up expected params for CertificateManager.GetCertificate
@@ -77,7 +77,7 @@ func (mmGetCertificate *mCertificateManagerMockGetCertificate) Inspect(f func())
 }
 
 // Return sets up results that will be returned by CertificateManager.GetCertificate
-func (mmGetCertificate *mCertificateManagerMockGetCertificate) Return(c1 mm_node.Certificate) *CertificateManagerMock {
+func (mmGetCertificate *mCertificateManagerMockGetCertificate) Return(c1 mm_nodeinfo.Certificate) *CertificateManagerMock {
 	if mmGetCertificate.mock.funcGetCertificate != nil {
 		mmGetCertificate.mock.t.Fatalf("CertificateManagerMock.GetCertificate mock is already set by Set")
 	}
@@ -90,7 +90,7 @@ func (mmGetCertificate *mCertificateManagerMockGetCertificate) Return(c1 mm_node
 }
 
 //Set uses given function f to mock the CertificateManager.GetCertificate method
-func (mmGetCertificate *mCertificateManagerMockGetCertificate) Set(f func() (c1 mm_node.Certificate)) *CertificateManagerMock {
+func (mmGetCertificate *mCertificateManagerMockGetCertificate) Set(f func() (c1 mm_nodeinfo.Certificate)) *CertificateManagerMock {
 	if mmGetCertificate.defaultExpectation != nil {
 		mmGetCertificate.mock.t.Fatalf("Default expectation is already set for the CertificateManager.GetCertificate method")
 	}
@@ -103,8 +103,8 @@ func (mmGetCertificate *mCertificateManagerMockGetCertificate) Set(f func() (c1 
 	return mmGetCertificate.mock
 }
 
-// GetCertificate implements node.CertificateManager
-func (mmGetCertificate *CertificateManagerMock) GetCertificate() (c1 mm_node.Certificate) {
+// GetCertificate implements nodeinfo.CertificateManager
+func (mmGetCertificate *CertificateManagerMock) GetCertificate() (c1 mm_nodeinfo.Certificate) {
 	mm_atomic.AddUint64(&mmGetCertificate.beforeGetCertificateCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetCertificate.afterGetCertificateCounter, 1)
 

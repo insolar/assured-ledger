@@ -13,8 +13,7 @@ import (
 	"go.opencensus.io/stats"
 
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
-	node2 "github.com/insolar/assured-ledger/ledger-core/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/instracer"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -26,7 +25,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/network/rules"
 
-	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 )
@@ -41,7 +40,7 @@ type Complete struct {
 	*Base
 }
 
-func (g *Complete) Run(ctx context.Context, pulse pulsestor.Pulse) {
+func (g *Complete) Run(context.Context, pulse.Data) {
 	if g.bootstrapTimer != nil {
 		g.bootstrapTimer.Stop()
 	}
@@ -49,34 +48,38 @@ func (g *Complete) Run(ctx context.Context, pulse pulsestor.Pulse) {
 	g.HostNetwork.RegisterRequestHandler(types.SignCert, g.signCertHandler)
 }
 
-func (g *Complete) GetState() node2.NetworkState {
-	return node2.CompleteNetworkState
+func (g *Complete) GetState() nodeinfo.NetworkState {
+	return nodeinfo.CompleteNetworkState
 }
 
-func (g *Complete) BeforeRun(ctx context.Context, pulse pulsestor.Pulse) {
-	err := g.PulseManager.Set(ctx, pulse)
-	if err != nil {
-		inslogger.FromContext(ctx).Panicf("failed to set start pulse: %d, %s", pulse.PulseNumber, err.Error())
-	}
+func (g *Complete) BeforeRun(ctx context.Context, pulse pulse.Data) {
+	// if !pulse.PulseEpoch.IsTimeEpoch() {
+	// 	panic(throw.IllegalState())
+	// }
+	//
+	// err := g.PulseManager.CommitFirstPulseChange(pulse)
+	// if err != nil {
+	// 	inslogger.FromContext(ctx).Panicf("failed to set start pulse: %d, %s", pulse.PulseNumber, err.Error())
+	// }
 }
 
 // GetCert method generates cert by requesting signs from discovery nodes
-func (g *Complete) GetCert(ctx context.Context, registeredNodeRef reference.Global) (node2.Certificate, error) {
+func (g *Complete) GetCert(ctx context.Context, registeredNodeRef reference.Global) (nodeinfo.Certificate, error) {
 	pKey, role, err := g.getNodeInfo(ctx, registeredNodeRef)
 	if err != nil {
-		return nil, errors.W(err, "[ GetCert ] Couldn't get node info")
+		return nil, throw.W(err, "[ GetCert ] Couldn't get node info")
 	}
 
 	currentNodeCert := g.CertificateManager.GetCertificate()
 	registeredNodeCert, err := mandates.NewUnsignedCertificate(currentNodeCert, pKey, role, registeredNodeRef.String())
 	if err != nil {
-		return nil, errors.W(err, "[ GetCert ] Couldn't create certificate")
+		return nil, throw.W(err, "[ GetCert ] Couldn't create certificate")
 	}
 
 	for i, discoveryNode := range currentNodeCert.GetDiscoveryNodes() {
 		sign, err := g.requestCertSign(ctx, discoveryNode, registeredNodeRef)
 		if err != nil {
-			return nil, errors.W(err, "[ GetCert ] Couldn't request cert sign")
+			return nil, throw.W(err, "[ GetCert ] Couldn't request cert sign")
 		}
 		registeredNodeCert.(*mandates.Certificate).BootstrapNodes[i].NodeSign = sign
 	}
@@ -84,7 +87,7 @@ func (g *Complete) GetCert(ctx context.Context, registeredNodeRef reference.Glob
 }
 
 // requestCertSign method requests sign from single discovery node
-func (g *Complete) requestCertSign(ctx context.Context, discoveryNode node2.DiscoveryNode, registeredNodeRef reference.Global) ([]byte, error) {
+func (g *Complete) requestCertSign(ctx context.Context, discoveryNode nodeinfo.DiscoveryNode, registeredNodeRef reference.Global) ([]byte, error) {
 	currentNodeCert := g.CertificateManager.GetCertificate()
 
 	if discoveryNode.GetNodeRef() == currentNodeCert.GetNodeRef() {
@@ -120,7 +123,7 @@ func (g *Complete) getNodeInfo(ctx context.Context, nodeRef reference.Global) (s
 func (g *Complete) signCert(ctx context.Context, registeredNodeRef reference.Global) (*cryptography.Signature, error) {
 	pKey, role, err := g.getNodeInfo(ctx, registeredNodeRef)
 	if err != nil {
-		return nil, errors.W(err, "[ SignCert ] Couldn't extract response")
+		return nil, throw.W(err, "[ SignCert ] Couldn't extract response")
 	}
 	return mandates.SignCert(g.CryptographyService, pKey, role, registeredNodeRef.String())
 }
@@ -138,11 +141,11 @@ func (g *Complete) signCertHandler(ctx context.Context, request network.Received
 	return g.HostNetwork.BuildResponse(ctx, request, &packet.SignCertResponse{Sign: sign.Bytes()}), nil
 }
 
-func (g *Complete) EphemeralMode(nodes []node2.NetworkNode) bool {
+func (g *Complete) EphemeralMode(nodes []nodeinfo.NetworkNode) bool {
 	return false
 }
 
-func (g *Complete) UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes []node2.NetworkNode, cloudStateHash []byte) {
+func (g *Complete) UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes []nodeinfo.NetworkNode, cloudStateHash []byte) {
 	workingNodes := node.Select(nodes, node.ListWorking)
 
 	if _, err := rules.CheckMajorityRule(g.CertificateManager.GetCertificate(), workingNodes); err != nil {
@@ -156,27 +159,29 @@ func (g *Complete) UpdateState(ctx context.Context, pulseNumber pulse.Number, no
 	g.Base.UpdateState(ctx, pulseNumber, nodes, cloudStateHash)
 }
 
-func (g *Complete) OnPulseFromConsensus(ctx context.Context, pulse pulsestor.Pulse) {
+func (g *Complete) OnPulseFromConsensus(ctx context.Context, pulse network.NetworkedPulse) {
 	g.Base.OnPulseFromConsensus(ctx, pulse)
 
-	// OnPulseFromConsensus should be fast, but Manager.Set() takes unpredictable time
-	go func() {
-		done := make(chan struct{})
-		defer close(done)
-		pulseProcessingWatchdog(ctx, g.Base, pulse, done)
+	done := make(chan struct{})
+	defer close(done)
+	pulseProcessingWatchdog(ctx, g.Base, pulse, done)
 
-		logger := inslogger.FromContext(ctx)
+	logger := inslogger.FromContext(ctx)
 
-		logger.Infof("Got new pulse number: %d", pulse.PulseNumber)
-		ctx, span := instracer.StartSpan(ctx, "ServiceNetwork.Handlepulse")
-		span.SetTag("pulse.Number", int64(pulse.PulseNumber))
-		defer span.Finish()
+	logger.Infof("Got new pulse number: %d", pulse.PulseNumber)
+	ctx, span := instracer.StartSpan(ctx, "ServiceNetwork.Handlepulse")
+	span.SetTag("pulse.Number", int64(pulse.PulseNumber))
+	defer span.Finish()
 
-		err := g.PulseManager.Set(ctx, pulse)
-		if err != nil {
-			logger.Fatalf("Failed to set new pulse: %s", err.Error())
-		}
-		logger.Infof("Set new current pulse number: %d", pulse.PulseNumber)
-		stats.Record(ctx, statPulse.M(int64(pulse.PulseNumber)))
-	}()
+	err := g.PulseAppender.Append(ctx, pulse)
+	if err != nil {
+		inslogger.FromContext(ctx).Panic("failed to append pulse: ", err.Error())
+	}
+
+	err = g.PulseManager.CommitPulseChange(pulse)
+	if err != nil {
+		logger.Fatalf("Failed to set new pulse: %s", err.Error())
+	}
+	logger.Infof("Set new current pulse number: %d", pulse.PulseNumber)
+	stats.Record(ctx, statPulse.M(int64(pulse.PulseNumber)))
 }

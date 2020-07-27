@@ -233,7 +233,6 @@ func (p *PrepRealm) prepareEphemeralPolling(ctxPrep context.Context) {
 }
 
 func (p *PrepRealm) pushEphemeralPulse(ctx context.Context) {
-
 	p.Lock()
 	defer p.Unlock()
 
@@ -242,6 +241,7 @@ func (p *PrepRealm) pushEphemeralPulse(ctx context.Context) {
 	}
 
 	pde := p.ephemeralFeeder.CreateEphemeralPulsePacket(p.initialCensus)
+
 	ok, pn := p._applyPulseData(ctx, time.Now(), pde, false)
 	if !ok && pn != pde.GetPulseNumber() {
 		inslogger.FromContext(ctx).Error("active ephemeral start has failed, going to passive")
