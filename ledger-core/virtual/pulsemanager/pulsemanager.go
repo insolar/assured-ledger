@@ -73,7 +73,7 @@ func (m *PulseManager) CommitFirstPulseChange(pulseChange beat.Beat) error {
 	return m._commit(ctx, pulseChange)
 }
 
-func (m *PulseManager) RequestNodeState(stateFunc adapters.NodeStateFunc) {
+func (m *PulseManager) RequestNodeState(stateFunc chorus.NodeStateFunc) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
@@ -84,6 +84,11 @@ func (m *PulseManager) RequestNodeState(stateFunc adapters.NodeStateFunc) {
 	for _, d := range m.dispatchers {
 		d.PrepareBeat(sink)
 	}
+
+	// if !sink.IsAcquired() {
+	// 	panic(throw.IllegalState())
+	// }
+
 	m.ackFn = ackFn
 }
 

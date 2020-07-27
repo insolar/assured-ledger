@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/keystore"
@@ -386,7 +387,7 @@ type nshGen struct {
 	nshDelay time.Duration
 }
 
-func (ng *nshGen) RequestNodeState(fn adapters.NodeStateFunc) {
+func (ng *nshGen) RequestNodeState(fn chorus.NodeStateFunc) {
 	delay := ng.nshDelay
 	if delay != 0 {
 		time.Sleep(delay)

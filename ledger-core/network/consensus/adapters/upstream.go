@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/network"
@@ -21,10 +22,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-type NodeStateFunc = func(api.UpstreamState)
-
 type NodeStater interface {
-	RequestNodeState(NodeStateFunc)
+	RequestNodeState(chorus.NodeStateFunc)
 	CancelNodeState()
 }
 
@@ -105,6 +104,7 @@ func (u *UpstreamController) ConsensusAborted() {
 }
 
 func (u *UpstreamController) PreparePulseChange(_ api.UpstreamReport, ch chan<- api.UpstreamState) {
+	// is only called on non-ephemeral pulse
 	u.stateGetter.RequestNodeState(func(state api.UpstreamState) {
 		if state.NodeState.FixedByteSize() != 64 {
 			panic(throw.IllegalState())
@@ -114,6 +114,7 @@ func (u *UpstreamController) PreparePulseChange(_ api.UpstreamReport, ch chan<- 
 }
 
 func (u *UpstreamController) CancelPulseChange() {
+	// is only called on non-ephemeral pulse
 	u.stateGetter.CancelNodeState()
 }
 

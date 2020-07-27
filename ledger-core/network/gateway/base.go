@@ -16,7 +16,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
-	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
@@ -146,7 +145,7 @@ func (g *Base) initConsensus(ctx context.Context) error {
 	}
 	g.datagramTransport = datagramTransport
 
-	proxy := &consensusProxy{g.Gatewayer}
+	proxy := consensusProxy{g.Gatewayer}
 	g.consensusInstaller = consensus.New(ctx, consensus.Dep{
 		KeyProcessor:        g.KeyProcessor,
 		Scheme:              g.CryptographyScheme,
@@ -216,9 +215,12 @@ func (g *Base) StartConsensus(ctx context.Context) error {
 	return nil
 }
 
-// ChangeBeat process pulse from Consensus
-func (g *Base) ChangeBeat(ctx context.Context, report api.UpstreamReport, b beat.Beat) {
-	g.Gatewayer.Gateway().OnPulseFromConsensus(ctx, b)
+func (g *Base) RequestNodeState(fn chorus.NodeStateFunc) {
+	panic(throw.IllegalState())
+}
+
+func (g *Base) CancelNodeState() {
+	panic(throw.IllegalState())
 }
 
 func (g *Base) OnPulseFromConsensus(ctx context.Context, pu beat.Beat) {

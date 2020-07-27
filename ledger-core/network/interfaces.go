@@ -12,6 +12,7 @@ import (
 	"github.com/insolar/component-manager"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
@@ -170,6 +171,9 @@ type Gateway interface {
 	OnConsensusFinished(context.Context, Report)
 
 	UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes []nodeinfo.NetworkNode, cloudStateHash []byte)
+
+	RequestNodeState(chorus.NodeStateFunc)
+	CancelNodeState()
 
 	Auther() Auther
 	Bootstrapper() Bootstrapper

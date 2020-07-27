@@ -41,6 +41,11 @@ func (v Ack) Acquire() AckFunc {
 	return v.ctl.doReport
 }
 
+func (v Ack) IsAcquired() bool {
+	state := v.ctl.state.Load()
+	return state&sinkStateAcquired != 0
+}
+
 func (v Ack) DoneChan() synckit.SignalChannel {
 	return v.ctl.ready
 }
