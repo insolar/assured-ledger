@@ -3,5 +3,4 @@ data
 testdata
 bin
 Dockerfile
-vendor
 .*
