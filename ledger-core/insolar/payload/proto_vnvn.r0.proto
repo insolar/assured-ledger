@@ -9,8 +9,6 @@ import "insolar/payload/localtypes.proto";
 option (insproto.notation_all) = true;
 option (insproto.zeroable_all) = true;
 option (gogoproto.goproto_enum_prefix_all) = false;
-option (insproto.context_all) = "MessageContext";
-option (insproto.message_ctx_apply_all) = "Message";
 option (insproto.register_all) = "RegisterMessageType";
 
 enum CallTypeNew {
@@ -154,7 +152,6 @@ message VStateReport {
 
 message ObjectState {
     LocalReference Reference = 20;
-    Reference Parent = 21;
     Reference Class = 22;
     bytes State = 23;
     bytes PreviousState = 24;
@@ -224,8 +221,9 @@ message VFindCallResponse {
         UnknownCall = 1;
         FoundCall = 2;
     }
-    Reference Callee = 20;
-    Reference Outgoing = 21;
-    CallState Status = 22;
-    VCallResult CallResult = 23 [(gogoproto.nullable) = true];
+    uint32 LookedAt = 20 [(gogoproto.casttype) = "PulseNumber"];
+    Reference Callee = 21;
+    Reference Outgoing = 22;
+    CallState Status = 23;
+    VCallResult CallResult = 24 [(gogoproto.nullable) = true];
 }

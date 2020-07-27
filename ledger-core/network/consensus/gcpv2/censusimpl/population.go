@@ -13,6 +13,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles"
@@ -74,25 +75,41 @@ func (c ManyNodePopulation) String() string {
 	if len(c.slots) < 50 {
 		for _, slot := range c.slots {
 			if slot.IsEmpty() {
-				b.WriteString(" ____ ")
+				b.WriteString(" _____ ")
 				continue
 			}
 
 			id := slot.GetNodeID()
 			switch {
 			case slot.IsJoiner():
-				b.WriteString(fmt.Sprintf("+%04d ", id))
+				b.WriteString(fmt.Sprintf("+%04d", id))
 			case slot.mode.IsEvictedGracefully():
-				b.WriteString(fmt.Sprintf("-%04d ", id))
+				b.WriteString(fmt.Sprintf("-%04d", id))
 			case slot.mode.IsEvicted():
-				b.WriteString(fmt.Sprintf("!%04d ", id))
+				b.WriteString(fmt.Sprintf("!%04d", id))
 			case slot.mode.IsMistrustful():
-				b.WriteString(fmt.Sprintf("?%04d ", id))
+				b.WriteString(fmt.Sprintf("?%04d", id))
 			case slot.mode.IsSuspended():
-				b.WriteString(fmt.Sprintf("s%04d ", id))
+				b.WriteString(fmt.Sprintf("s%04d", id))
 			default:
-				b.WriteString(fmt.Sprintf(" %04d ", id))
+				b.WriteString(fmt.Sprintf(" %04d", id))
 			}
+
+			switch slot.GetStatic().GetPrimaryRole() {
+			case member.PrimaryRoleInactive:
+				b.WriteByte('_')
+			case member.PrimaryRoleNeutral:
+				b.WriteByte('N')
+			case member.PrimaryRoleHeavyMaterial:
+				b.WriteByte('H')
+			case member.PrimaryRoleLightMaterial:
+				b.WriteByte('L')
+			case member.PrimaryRoleVirtual:
+				b.WriteByte('V')
+			default:
+				b.WriteByte('?')
+			}
+			b.WriteByte(' ')
 		}
 	} else {
 		b.WriteString("too many")
@@ -140,7 +157,7 @@ func (c *ManyNodePopulation) IsClean() bool {
 }
 
 func (c *ManyNodePopulation) GetRolePopulation(role member.PrimaryRole) census.RolePopulation {
-	if role == member.PrimaryRoleInactive || int(role) >= len(c.workingRoles) {
+	if role == member.PrimaryRoleInactive || int(role) >= len(c.roles) {
 		return nil
 	}
 	if c.roles[role].container == nil && c.roles[role].idleCount == 0 {
@@ -150,7 +167,7 @@ func (c *ManyNodePopulation) GetRolePopulation(role member.PrimaryRole) census.R
 }
 
 func (c *ManyNodePopulation) GetWorkingRoles() []member.PrimaryRole {
-	return append(make([]member.PrimaryRole, 0, len(c.workingRoles)), c.workingRoles...)
+	return append([]member.PrimaryRole(nil), c.workingRoles...)
 }
 
 func (c *ManyNodePopulation) copyTo(p copyFromPopulation) {
@@ -535,7 +552,7 @@ type unitizedPowerPosition struct {
 
 func (p *roleRecord) prepare() {
 	if p.container == nil || len(p.powerPositions) > 0 {
-		panic("illegal state")
+		panic(throw.IllegalState())
 	}
 	if p.rolePower == 0 {
 		return
@@ -552,7 +569,7 @@ func (p *roleRecord) prepare() {
 		slotPower := roleSlots[i].power.ToLinearValue()
 		if lastPowerUnit != slotPower {
 			if lastPowerUnit < slotPower {
-				panic("illegal state")
+				panic(throw.IllegalState())
 			}
 			lastPowerUnit = slotPower
 			lastPosition++
@@ -571,7 +588,7 @@ func (p *roleRecord) prepare() {
 	}
 
 	if p.rolePower != powerPosition {
-		panic("illegal state")
+		panic(throw.IllegalState())
 	}
 }
 
@@ -639,7 +656,7 @@ func (p *roleRecord) GetAssignmentByPower(metric uint64,
 	if assigned.GetNodeID() != excludeID {
 		return assigned, excluded
 	}
-	panic("not possible")
+	panic(throw.Impossible())
 }
 
 func (p *roleRecord) GetAssignmentByCount(metric uint64,
@@ -671,7 +688,7 @@ func (p *roleRecord) GetAssignmentByCount(metric uint64,
 	if assigned.GetNodeID() != excludeID {
 		return assigned, excluded
 	}
-	panic("not possible")
+	panic(throw.Impossible())
 }
 
 // may return garbage if used without proper checks
@@ -682,14 +699,17 @@ func (p *roleRecord) getByIndex(index uint16) profiles.ActiveNode {
 
 // may return garbage if used without proper checks
 func (p *roleRecord) getIndexByPower(powerPosition uint32) uint16 {
+	foldedPos := 0
+	if n := len(p.powerPositions); powerPosition > 0 && n > 1 {
+		foldedPos = sort.Search(n, func(i int) bool {
+			return p.powerPositions[i].powerStartsAt > powerPosition
+		}) - 1
+	}
 
-	foldedPos := sort.Search(len(p.powerPositions),
-		func(i int) bool { return p.powerPositions[i].powerStartsAt >= powerPosition })
-
-	pp := p.powerPositions[foldedPos]
-
+	pp := &p.powerPositions[foldedPos]
 	if pp.unitCount == 1 {
 		return pp.indexStartsAt
 	}
+
 	return pp.indexStartsAt + uint16((powerPosition-pp.powerStartsAt)/uint32(pp.powerUnit))
 }

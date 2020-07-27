@@ -20,7 +20,7 @@ import (
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/api/requester"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/pflag"
@@ -31,7 +31,7 @@ import (
 )
 
 var client http.Client
-var emoji *Emoji
+var emoji Emojer
 var startTime time.Time
 
 const (
@@ -275,7 +275,7 @@ func collectNodesStatuses(conf *pulsewatcher.Config, lastResults []nodeStatus) (
 			lock.Lock()
 
 			results[i] = nodeStatus{url, out.Result, ""}
-			state = state && out.Result.NetworkState == node.CompleteNetworkState.String()
+			state = state && out.Result.NetworkState == nodeinfo.CompleteNetworkState.String()
 			lock.Unlock()
 			wg.Done()
 		}(url, i)
@@ -293,12 +293,17 @@ type nodeStatus struct {
 }
 
 func main() {
-	var configFile string
-	var useJSONFormat bool
-	var singleOutput bool
+	var (
+		configFile    string
+		useJSONFormat bool
+		singleOutput  bool
+		showEmoji     bool
+	)
 	pflag.StringVarP(&configFile, "config", "c", "", "config file")
 	pflag.BoolVarP(&useJSONFormat, "json", "j", false, "use JSON format")
 	pflag.BoolVarP(&singleOutput, "single", "s", false, "single output")
+	pflag.BoolVarP(&showEmoji, "emoji", "e", false, "show emoji")
+
 	pflag.Parse()
 
 	conf, err := pulsewatcher.ReadConfig(configFile)
@@ -320,7 +325,12 @@ func main() {
 		Timeout:   conf.Timeout,
 	}
 
-	emoji = NewEmoji()
+	if showEmoji {
+		emoji = NewEmoji()
+	} else {
+		emoji = &NoEmoji{}
+	}
+
 	var results []nodeStatus
 	var ready bool
 	startTime = time.Now()

@@ -6,6 +6,8 @@
 package execute
 
 import (
+	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/gojuno/minimock/v3"
@@ -19,34 +21,41 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/predicate"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/slotdebugger"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
 )
 
 func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
+	defer executeLeakCheck(t)
+
 	var (
 		mc  = minimock.NewController(t)
 		ctx = instestlogger.TestContext(t)
 
-		class       = gen.UniqueGlobalRef()
-		caller      = gen.UniqueGlobalRef()
+		class   = gen.UniqueGlobalRef()
+		caller  = gen.UniqueGlobalRef()
+		limiter = tool.NewRunnerLimiter(4)
+
 		sharedState = &object.SharedState{
 			Info: object.Info{
 				PendingTable:   callregistry.NewRequestTable(),
 				KnownRequests:  callregistry.NewWorkingTable(),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
-				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
+				OrderedExecute: limiter.NewChildSemaphore(1, "MutableExecution").SyncLink(),
 			},
 		}
 	)
 
-	slotMachine := slotdebugger.NewWithIgnoreAllError(ctx, t)
+	slotMachine := slotdebugger.New(ctx, t)
 	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 
 	outgoing := reference.NewRecordOf(caller, slotMachine.GenerateLocal())
+	objectRef := reference.NewSelf(outgoing.GetLocal())
 
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
@@ -71,11 +80,12 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 		)
 		slotMachine.AddInterfaceDependency(&authService)
 		slotMachine.AddInterfaceDependency(&catalog)
+		slotMachine.AddDependency(limiter)
 
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
 		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 
-		catalogWrapper.AddObject(outgoing, smObjectAccessor)
+		catalogWrapper.AddObject(objectRef, smObjectAccessor)
 		catalogWrapper.AllowAccessMode(object.CatalogMockAccessGetOrCreate)
 	}
 
@@ -97,6 +107,8 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 }
 
 func TestSMExecute_MigrateBeforeLock(t *testing.T) {
+	defer executeLeakCheck(t)
+
 	var (
 		mc  = minimock.NewController(t)
 		ctx = instestlogger.TestContext(t)
@@ -104,21 +116,23 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 		class       = gen.UniqueGlobalRef()
 		caller      = gen.UniqueGlobalRef()
 		callee      = gen.UniqueGlobalRef()
+		limiter     = tool.NewRunnerLimiter(4)
 		sharedState = &object.SharedState{
 			Info: object.Info{
 				PendingTable:   callregistry.NewRequestTable(),
 				KnownRequests:  callregistry.NewWorkingTable(),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
-				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
+				OrderedExecute: limiter.NewChildSemaphore(1, "MutableExecution").SyncLink(),
 			},
 		}
 	)
 
-	slotMachine := slotdebugger.NewWithIgnoreAllError(ctx, t)
+	slotMachine := slotdebugger.New(ctx, t)
 	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 
 	outgoing := reference.NewRecordOf(caller, slotMachine.GenerateLocal())
+	objectRef := reference.NewSelf(outgoing.GetLocal())
 
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
@@ -143,11 +157,12 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 		)
 		slotMachine.AddInterfaceDependency(&authService)
 		slotMachine.AddInterfaceDependency(&catalog)
+		slotMachine.AddDependency(limiter)
 
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
 		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 
-		catalogWrapper.AddObject(outgoing, smObjectAccessor)
+		catalogWrapper.AddObject(objectRef, smObjectAccessor)
 		catalogWrapper.AllowAccessMode(object.CatalogMockAccessGetOrCreate)
 	}
 
@@ -171,27 +186,31 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 }
 
 func TestSMExecute_MigrateAfterLock(t *testing.T) {
+	defer executeLeakCheck(t)
+
 	var (
 		mc  = minimock.NewController(t)
 		ctx = instestlogger.TestContext(t)
 
 		class       = gen.UniqueGlobalRef()
 		caller      = gen.UniqueGlobalRef()
+		limiter     = tool.NewRunnerLimiter(4)
 		sharedState = &object.SharedState{
 			Info: object.Info{
 				PendingTable:   callregistry.NewRequestTable(),
 				KnownRequests:  callregistry.NewWorkingTable(),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
-				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
+				OrderedExecute: limiter.NewChildSemaphore(1, "MutableExecution").SyncLink(),
 			},
 		}
 	)
 
-	slotMachine := slotdebugger.NewWithIgnoreAllError(ctx, t)
+	slotMachine := slotdebugger.New(ctx, t)
 	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 
 	outgoing := reference.NewRecordOf(caller, slotMachine.GenerateLocal())
+	objectRef := reference.NewSelf(outgoing.GetLocal())
 
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
@@ -216,11 +235,12 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 		)
 		slotMachine.AddInterfaceDependency(&authService)
 		slotMachine.AddInterfaceDependency(&catalog)
+		slotMachine.AddDependency(limiter)
 
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
 		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 
-		catalogWrapper.AddObject(outgoing, smObjectAccessor)
+		catalogWrapper.AddObject(objectRef, smObjectAccessor)
 		catalogWrapper.AllowAccessMode(object.CatalogMockAccessGetOrCreate)
 	}
 
@@ -244,12 +264,14 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 }
 
 func TestSMExecute_Semi_ConstructorOnMissingObject(t *testing.T) {
+	defer executeLeakCheck(t)
+
 	var (
 		mc  = minimock.NewController(t)
 		ctx = instestlogger.TestContext(t)
 	)
 
-	slotMachine := slotdebugger.NewWithIgnoreAllError(ctx, t)
+	slotMachine := slotdebugger.New(ctx, t)
 	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 
@@ -257,12 +279,14 @@ func TestSMExecute_Semi_ConstructorOnMissingObject(t *testing.T) {
 		class       = gen.UniqueGlobalRef()
 		caller      = gen.UniqueGlobalRef()
 		outgoing    = reference.NewRecordOf(caller, slotMachine.GenerateLocal())
+		objectRef   = reference.NewSelf(outgoing.GetLocal())
+		limiter     = tool.NewRunnerLimiter(4)
 		sharedState = &object.SharedState{
 			Info: object.Info{
 				PendingTable:   callregistry.NewRequestTable(),
 				KnownRequests:  callregistry.NewWorkingTable(),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
-				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
+				OrderedExecute: limiter.NewChildSemaphore(1, "MutableExecution").SyncLink(),
 			},
 		}
 	)
@@ -292,11 +316,12 @@ func TestSMExecute_Semi_ConstructorOnMissingObject(t *testing.T) {
 		)
 		slotMachine.AddInterfaceDependency(&authService)
 		slotMachine.AddInterfaceDependency(&catalog)
+		slotMachine.AddDependency(limiter)
 
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
 		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 
-		catalogWrapper.AddObject(outgoing, smObjectAccessor)
+		catalogWrapper.AddObject(objectRef, smObjectAccessor)
 		catalogWrapper.AllowAccessMode(object.CatalogMockAccessGetOrCreate)
 	}
 
@@ -318,12 +343,17 @@ func TestSMExecute_Semi_ConstructorOnMissingObject(t *testing.T) {
 }
 
 func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
+	defer executeLeakCheck(t)
+
 	var (
-		mc  = minimock.NewController(t)
-		ctx = instestlogger.TestContext(t)
+		mc      = minimock.NewController(t)
+		ctx     = instestlogger.TestContext(t)
+		limiter = tool.NewRunnerLimiter(4)
 	)
 
-	slotMachine := slotdebugger.NewWithIgnoreAllError(ctx, t)
+	slotMachine := slotdebugger.NewWithErrorFilter(ctx, t, func(s string) bool {
+		return !strings.Contains(s, "execution: not implemented")
+	})
 	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 
@@ -331,12 +361,12 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 		class       = gen.UniqueGlobalRef()
 		caller      = gen.UniqueGlobalRef()
 		outgoing    = reference.NewRecordOf(caller, slotMachine.GenerateLocal())
+		objectRef   = reference.NewSelf(outgoing.GetLocal())
 		sharedState = &object.SharedState{
 			Info: object.Info{
-				PendingTable:   callregistry.NewRequestTable(),
-				KnownRequests:  callregistry.NewWorkingTable(),
-				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
-				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
+				PendingTable:  callregistry.NewRequestTable(),
+				KnownRequests: callregistry.NewWorkingTable(),
+				ReadyToWork:   smsync.NewConditional(1, "ReadyToWork").SyncLink(),
 			},
 		}
 	)
@@ -366,11 +396,12 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 		)
 		slotMachine.AddInterfaceDependency(&authService)
 		slotMachine.AddInterfaceDependency(&catalog)
+		slotMachine.AddDependency(limiter)
 
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
 		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 
-		catalogWrapper.AddObject(outgoing, smObjectAccessor)
+		catalogWrapper.AddObject(objectRef, smObjectAccessor)
 		catalogWrapper.AllowAccessMode(object.CatalogMockAccessGetOrCreate)
 	}
 
@@ -392,12 +423,17 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 }
 
 func TestSMExecute_Semi_MethodOnEmptyObject(t *testing.T) {
+	defer executeLeakCheck(t)
+
 	var (
-		mc  = minimock.NewController(t)
-		ctx = instestlogger.TestContext(t)
+		mc      = minimock.NewController(t)
+		ctx     = instestlogger.TestContext(t)
+		limiter = tool.NewRunnerLimiter(4)
 	)
 
-	slotMachine := slotdebugger.NewWithIgnoreAllError(ctx, t)
+	slotMachine := slotdebugger.NewWithErrorFilter(ctx, t, func(s string) bool {
+		return !strings.Contains(s, "async call: runtime error: invalid memory address or nil pointer dereference")
+	})
 	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 
@@ -407,10 +443,10 @@ func TestSMExecute_Semi_MethodOnEmptyObject(t *testing.T) {
 		outgoing    = reference.NewRecordOf(slotMachine.GenerateGlobal(), slotMachine.GenerateLocal())
 		sharedState = &object.SharedState{
 			Info: object.Info{
-				PendingTable:   callregistry.NewRequestTable(),
-				KnownRequests:  callregistry.NewWorkingTable(),
-				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
-				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
+				PendingTable:               callregistry.NewRequestTable(),
+				KnownRequests:              callregistry.NewWorkingTable(),
+				ReadyToWork:                smsync.NewConditionalBool(true, "ReadyToWork").SyncLink(),
+				PendingConstructorFinished: smsync.NewConditionalBool(false, "pendingConstructorFinished").SyncLink(),
 			},
 		}
 	)
@@ -440,6 +476,7 @@ func TestSMExecute_Semi_MethodOnEmptyObject(t *testing.T) {
 		)
 		slotMachine.AddInterfaceDependency(&authService)
 		slotMachine.AddInterfaceDependency(&catalog)
+		slotMachine.AddDependency(limiter)
 
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
 		smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
@@ -456,11 +493,16 @@ func TestSMExecute_Semi_MethodOnEmptyObject(t *testing.T) {
 	require.Equal(t, uint8(0), sharedState.PotentialOrderedPendingCount)
 	require.Equal(t, uint8(0), sharedState.PotentialUnorderedPendingCount)
 
-	slotMachine.RunTil(smWrapper.AfterStop())
+	slotMachine.RunTil(predicate.AfterCustomEventType(reflect.TypeOf(markerPendingConstructorWait{})))
 
 	require.Equal(t, uint8(0), sharedState.PotentialOrderedPendingCount)
 	require.Equal(t, uint8(0), sharedState.PotentialUnorderedPendingCount)
 
+	slotMachine.Migrate()
+
+	slotMachine.RunTil(smWrapper.AfterStop())
+
 	require.NoError(t, catalogWrapper.CheckDone())
+
 	mc.Finish()
 }

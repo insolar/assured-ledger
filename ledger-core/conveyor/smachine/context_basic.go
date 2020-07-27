@@ -7,7 +7,6 @@ package smachine
 
 import (
 	"context"
-	"fmt"
 	"math"
 	"unsafe"
 
@@ -35,41 +34,41 @@ func (p *contextTemplate) ensureAndPrepare(s *Slot, stateUpdate StateUpdate) Sta
 
 func (p *contextTemplate) setMode(mode updCtxMode) {
 	if mode == updCtxInactive {
-		panic("illegal value")
+		panic(throw.IllegalValue())
 	}
 	if p.mode != updCtxInactive {
-		panic("illegal state")
+		panic(throw.IllegalState())
 	}
 	p.mode = mode
 }
 
 func (p *contextTemplate) ensureAtLeast(mode updCtxMode) {
 	if p.mode < mode {
-		panic("illegal state")
+		panic(throw.IllegalState())
 	}
 }
 
 func (p *contextTemplate) ensure(mode0 updCtxMode) {
 	if p.mode != mode0 {
-		panic("illegal state")
+		panic(throw.IllegalState())
 	}
 }
 
 func (p *contextTemplate) ensureAny2(mode0, mode1 updCtxMode) {
 	if p.mode != mode0 && p.mode != mode1 {
-		panic("illegal state")
+		panic(throw.IllegalState())
 	}
 }
 
 func (p *contextTemplate) ensureAny3(mode0, mode1, mode2 updCtxMode) {
 	if p.mode != mode0 && p.mode != mode1 && p.mode != mode2 {
-		panic("illegal state")
+		panic(throw.IllegalState())
 	}
 }
 
 func (p *contextTemplate) ensureValid() {
 	if p.mode <= updCtxDiscarded {
-		panic("illegal state")
+		panic(throw.IllegalState())
 	}
 }
 
@@ -183,10 +182,6 @@ func (p *slotContext) Stop() StateUpdate {
 
 func (p *slotContext) Error(err error) StateUpdate {
 	return p.template(stateUpdError).newError(err)
-}
-
-func (p *slotContext) Errorf(msg string, a ...interface{}) StateUpdate {
-	return p.Error(fmt.Errorf(msg, a...))
 }
 
 func (p *slotContext) Repeat(limit int) StateUpdate {
@@ -431,11 +426,6 @@ func (p *slotContext) acquire(link SyncLink, autoRelease bool, flags SlotDepende
 	return d
 }
 
-func (p *slotContext) ReleaseAll() bool {
-	p.ensureAtLeast(updCtxInit)
-	return p.releaseAll()
-}
-
 func (p *slotContext) Release(link SyncLink) bool {
 	p.ensureAtLeast(updCtxInit)
 
@@ -470,11 +460,16 @@ func (p *slotContext) release(controller DependencyController) bool {
 	return wasReleased
 }
 
+func (p *slotContext) ReleaseAll() bool {
+	p.ensureValid()
+	return p.releaseAll()
+}
+
 func (p *slotContext) ApplyAdjustment(adj SyncAdjustment) bool {
-	p.ensureAtLeast(updCtxInit)
+	p.ensureValid()
 
 	if adj.controller == nil {
-		panic("illegal value")
+		panic(throw.IllegalValue())
 	}
 
 	released, activate := adj.controller.AdjustLimit(adj.adjustment, adj.isAbsolute)
@@ -484,4 +479,21 @@ func (p *slotContext) ApplyAdjustment(adj SyncAdjustment) bool {
 
 	// actually, we MUST NOT stop a slot from outside
 	return len(released) > 0
+}
+
+func ApplyAdjustmentAsync(adj SyncAdjustment) bool {
+	if adj.controller == nil {
+		panic(throw.IllegalValue())
+	}
+
+	released, activate := adj.controller.AdjustLimit(adj.adjustment, adj.isAbsolute)
+	n := len(released)
+	switch {
+	case n == 0:
+		return false
+	case activate:
+		// can only start slots
+		activateDependantWithoutWorker(released, SlotLink{})
+	}
+	return true
 }

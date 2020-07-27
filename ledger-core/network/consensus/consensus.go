@@ -11,7 +11,7 @@ import (
 	"reflect"
 
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
@@ -67,14 +67,14 @@ func verify(s interface{}) {
 type Dep struct {
 	KeyProcessor       cryptography.KeyProcessor
 	Scheme             cryptography.PlatformCryptographyScheme
-	CertificateManager node.CertificateManager
+	CertificateManager nodeinfo.CertificateManager
 	KeyStore           cryptography.KeyStore
 
 	NodeKeeper        network.NodeKeeper
 	DatagramTransport transport.DatagramTransport
 
 	StateGetter         adapters.StateGetter
-	PulseChanger        adapters.PulseChanger
+	PulseChanger        adapters.BeatChanger
 	StateUpdater        adapters.StateUpdater
 	EphemeralController adapters.EphemeralController
 }
@@ -198,7 +198,7 @@ func (c Installer) ControllerFor(mode Mode, setters ...packetProcessorSetter) Co
 
 	consensusController.Prepare()
 
-	return newController(controlFeederInterceptor, candidateFeeder, consensusController, upstreamController)
+	return newController(controlFeederInterceptor, candidateFeeder, consensusController, upstreamController, consensusChronicles)
 }
 
 func (c *Installer) createCensus(mode Mode) *censusimpl.PrimingCensusTemplate {

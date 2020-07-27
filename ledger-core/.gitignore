@@ -7,8 +7,9 @@
 *.so
 *.dylib
 
-# Test binary, build with `go test -c`
+# Test binary, build with `go test -c` and logs
 *.test
+*_test.log
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
@@ -54,7 +55,5 @@ network_cache
 # contracts generated files
 application/contract
 application/proxy
-go.mod
-go.sum
 vendor
 coverage.html

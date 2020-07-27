@@ -8,9 +8,8 @@ package authentication
 import (
 	"context"
 
+	affinity2 "github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/application/testwalletapi/statemachine"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -27,10 +26,10 @@ type Service interface {
 }
 
 type service struct {
-	affinity jet.AffinityHelper
+	affinity affinity2.Helper
 }
 
-func NewService(_ context.Context, affinity jet.AffinityHelper) Service {
+func NewService(_ context.Context, affinity affinity2.Helper) Service {
 	return service{affinity: affinity}
 }
 
@@ -66,6 +65,14 @@ func (s service) checkDelegationToken(expectedVE reference.Global, token payload
 			}{ExpectedVE: expectedVE.String(), Approver: token.Approver.String()})
 	}
 
+	if !token.DelegateTo.Equal(sender) {
+		return throw.WithSeverity(throw.New("token DelegateTo and sender are different",
+			struct {
+				ExpectedVE string
+				Approver   string
+			}{ExpectedVE: expectedVE.String(), Approver: token.Approver.String()}), throw.RemoteBreachSeverity)
+	}
+
 	if sender.Equal(token.Approver) {
 		return throw.WithSeverity(throw.New("sender cannot be approver of the token", struct {
 			Sender string
@@ -75,7 +82,7 @@ func (s service) checkDelegationToken(expectedVE reference.Global, token payload
 }
 
 func (s service) getExpectedVE(ctx context.Context, subjectRef reference.Global, verifyForPulse pulse.Number) (reference.Global, error) {
-	expectedVE, err := s.affinity.QueryRole(ctx, node.DynamicRoleVirtualExecutor, subjectRef.GetLocal(), verifyForPulse)
+	expectedVE, err := s.affinity.QueryRole(ctx, affinity2.DynamicRoleVirtualExecutor, subjectRef, verifyForPulse)
 	if err != nil {
 		return reference.Global{}, throw.W(err, "can't calculate role")
 	}

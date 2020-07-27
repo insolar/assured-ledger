@@ -9,20 +9,25 @@ import (
 	"testing"
 
 	"github.com/gojuno/minimock/v3"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
+	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callsummary"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object/finalizedstate"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/shareddata"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
 )
 
 func TestSMObject_CallSummarySM(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	var (
 		mc = minimock.NewController(t)
 
@@ -30,6 +35,7 @@ func TestSMObject_CallSummarySM(t *testing.T) {
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 	)
 
+	smObject.globalLimiter = tool.NewRunnerLimiter(4)
 	smObject.SetState(HasState)
 
 	res1 := payload.VCallResult{
@@ -56,7 +62,7 @@ func TestSMObject_CallSummarySM(t *testing.T) {
 	{
 		initCtx := smachine.NewInitializationContextMock(mc).
 			ShareMock.Return(sharedStateData).
-			PublishMock.Expect(smObject.Reference.String(), sharedStateData).Return(true).
+			PublishMock.Expect(smObject.Reference, sharedStateData).Return(true).
 			JumpMock.Return(smachine.StateUpdate{}).
 			SetDefaultMigrationMock.Set(func(m1 smachine.MigrateFunc) {
 

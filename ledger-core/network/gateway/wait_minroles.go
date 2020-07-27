@@ -8,8 +8,7 @@ package gateway
 import (
 	"context"
 
-	node2 "github.com/insolar/assured-ledger/ledger-core/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/network/rules"
@@ -17,26 +16,26 @@ import (
 )
 
 func newWaitMinRoles(b *Base) *WaitMinRoles {
-	return &WaitMinRoles{b, make(chan pulsestor.Pulse, 1)}
+	return &WaitMinRoles{b, make(chan pulse.Data, 1)}
 }
 
 type WaitMinRoles struct {
 	*Base
-	minrolesComplete chan pulsestor.Pulse
+	minrolesComplete chan pulse.Data
 }
 
-func (g *WaitMinRoles) Run(ctx context.Context, pulse pulsestor.Pulse) {
+func (g *WaitMinRoles) Run(ctx context.Context, pulse pulse.Data) {
 	g.switchOnMinRoles(ctx, pulse)
 
 	select {
 	case <-g.bootstrapTimer.C:
 		g.FailState(ctx, bootstrapTimeoutMessage)
 	case newPulse := <-g.minrolesComplete:
-		g.Gatewayer.SwitchState(ctx, node2.WaitPulsar, newPulse)
+		g.Gatewayer.SwitchState(ctx, nodeinfo.WaitPulsar, newPulse)
 	}
 }
 
-func (g *WaitMinRoles) UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes []node2.NetworkNode, cloudStateHash []byte) {
+func (g *WaitMinRoles) UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes []nodeinfo.NetworkNode, cloudStateHash []byte) {
 	workingNodes := node.Select(nodes, node.ListWorking)
 
 	if _, err := rules.CheckMajorityRule(g.CertificateManager.GetCertificate(), workingNodes); err != nil {
@@ -46,15 +45,15 @@ func (g *WaitMinRoles) UpdateState(ctx context.Context, pulseNumber pulse.Number
 	g.Base.UpdateState(ctx, pulseNumber, nodes, cloudStateHash)
 }
 
-func (g *WaitMinRoles) GetState() node2.NetworkState {
-	return node2.WaitMinRoles
+func (g *WaitMinRoles) GetState() nodeinfo.NetworkState {
+	return nodeinfo.WaitMinRoles
 }
 
 func (g *WaitMinRoles) OnConsensusFinished(ctx context.Context, report network.Report) {
-	g.switchOnMinRoles(ctx, EnsureGetPulse(ctx, g.PulseAccessor, report.PulseNumber))
+	g.switchOnMinRoles(ctx, EnsureGetPulse(ctx, report))
 }
 
-func (g *WaitMinRoles) switchOnMinRoles(_ context.Context, pulse pulsestor.Pulse) {
+func (g *WaitMinRoles) switchOnMinRoles(_ context.Context, pulse pulse.Data) {
 	err := rules.CheckMinRole(
 		g.CertificateManager.GetCertificate(),
 		g.NodeKeeper.GetAccessor(pulse.PulseNumber).GetWorkingNodes(),

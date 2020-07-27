@@ -13,16 +13,18 @@ import (
 	"github.com/stretchr/testify/require"
 
 	node2 "github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 )
 
-func newTestNode() node2.NetworkNode {
-	return node.NewNode(gen.UniqueGlobalRef(), node2.StaticRoleUnknown, nil, "127.0.0.1:5432", "")
+func newTestNode() nodeinfo.NetworkNode {
+	return node.NewNode(gen.UniqueGlobalRef(), member.PrimaryRoleUnknown, nil, "127.0.0.1:5432", "")
 }
 
-func newTestNodeWithShortID(id node2.ShortNodeID) node2.NetworkNode {
+func newTestNodeWithShortID(id node2.ShortNodeID) nodeinfo.NetworkNode {
 	n := newTestNode()
 	n.(node.MutableNode).SetShortID(id)
 	return n
@@ -30,7 +32,7 @@ func newTestNodeWithShortID(id node2.ShortNodeID) node2.NetworkNode {
 
 func TestCorrectShortIDCollision(t *testing.T) {
 
-	nodes := []node2.NetworkNode{
+	nodes := []nodeinfo.NetworkNode{
 		newTestNodeWithShortID(0),
 		newTestNodeWithShortID(1),
 		newTestNodeWithShortID(30),
@@ -60,7 +62,7 @@ func TestCorrectShortIDCollision(t *testing.T) {
 	require.Equal(t, node2.ShortNodeID(2), regenerateShortID(nodes, node2.ShortNodeID(1<<32-2)))
 }
 
-var _ node2.DiscoveryNode = testNode{}
+var _ nodeinfo.DiscoveryNode = testNode{}
 
 type testNode struct {
 	ref reference.Global
@@ -86,8 +88,8 @@ func (t testNode) GetBriefSign() []byte {
 	return nil
 }
 
-func (t testNode) GetRole() node2.StaticRole {
-	return node2.StaticRoleVirtual
+func (t testNode) GetRole() member.PrimaryRole {
+	return member.PrimaryRoleVirtual
 }
 
 func TestExcludeOrigin(t *testing.T) {
@@ -96,32 +98,32 @@ func TestExcludeOrigin(t *testing.T) {
 	first := testNode{gen.UniqueGlobalRef()}
 	second := testNode{gen.UniqueGlobalRef()}
 
-	discoveryNodes := []node2.DiscoveryNode{first, originNode, second}
+	discoveryNodes := []nodeinfo.DiscoveryNode{first, originNode, second}
 	result := ExcludeOrigin(discoveryNodes, origin)
-	assert.Equal(t, []node2.DiscoveryNode{first, second}, result)
+	assert.Equal(t, []nodeinfo.DiscoveryNode{first, second}, result)
 
-	discoveryNodes = []node2.DiscoveryNode{first, second}
+	discoveryNodes = []nodeinfo.DiscoveryNode{first, second}
 	result = ExcludeOrigin(discoveryNodes, origin)
 	assert.Equal(t, discoveryNodes, result)
 
-	discoveryNodes = []node2.DiscoveryNode{first, originNode}
+	discoveryNodes = []nodeinfo.DiscoveryNode{first, originNode}
 	result = ExcludeOrigin(discoveryNodes, origin)
-	assert.Equal(t, []node2.DiscoveryNode{first}, result)
+	assert.Equal(t, []nodeinfo.DiscoveryNode{first}, result)
 
-	discoveryNodes = []node2.DiscoveryNode{originNode, first}
+	discoveryNodes = []nodeinfo.DiscoveryNode{originNode, first}
 	result = ExcludeOrigin(discoveryNodes, origin)
-	assert.Equal(t, []node2.DiscoveryNode{first}, result)
+	assert.Equal(t, []nodeinfo.DiscoveryNode{first}, result)
 
-	discoveryNodes = []node2.DiscoveryNode{originNode}
+	discoveryNodes = []nodeinfo.DiscoveryNode{originNode}
 	result = ExcludeOrigin(discoveryNodes, origin)
 	assert.Empty(t, result)
 
-	discoveryNodes = []node2.DiscoveryNode{originNode, first, second}
+	discoveryNodes = []nodeinfo.DiscoveryNode{originNode, first, second}
 	result = ExcludeOrigin(discoveryNodes, origin)
-	assert.Equal(t, []node2.DiscoveryNode{first, second}, result)
+	assert.Equal(t, []nodeinfo.DiscoveryNode{first, second}, result)
 
-	discoveryNodes = []node2.DiscoveryNode{first, second, originNode}
+	discoveryNodes = []nodeinfo.DiscoveryNode{first, second, originNode}
 	result = ExcludeOrigin(discoveryNodes, origin)
-	assert.Equal(t, []node2.DiscoveryNode{first, second}, result)
+	assert.Equal(t, []nodeinfo.DiscoveryNode{first, second}, result)
 
 }

@@ -11,7 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/require"
 
@@ -19,87 +18,15 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	"github.com/insolar/assured-ledger/ledger-core/runner/call"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
+	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 )
-
-// 1. Send CallRequest
-// 2. Change pulse in mocked executor
-// 4. Since we changed pulse during execution, we expect that VStateReport will be sent
-// 5. Check that in VStateReport new object state is stored
-func TestVirtual_SendVStateReport_IfPulseChanged(t *testing.T) {
-	t.Log("C4934")
-	t.Skip("https://insolar.atlassian.net/browse/PLAT-314")
-
-	server, ctx := utils.NewServer(nil, t)
-	defer server.Stop()
-
-	testBalance := uint32(555)
-	additionalBalance := uint(133)
-	objectRef := gen.UniqueGlobalRef()
-	stateID := gen.UniqueLocalRefWithPulse(server.GetPulse().PulseNumber)
-	{
-		// send VStateReport: save wallet
-
-		rawWalletState := makeRawWalletState(testBalance)
-		pl := makeVStateReportEvent(objectRef, stateID, rawWalletState)
-		server.SendPayload(ctx, pl)
-	}
-
-	// generate new state since it will be changed by CallAPIAddAmount
-	newRawWalletState := makeRawWalletState(testBalance + uint32(additionalBalance))
-
-	callMethod := func(ctx context.Context, callContext *call.LogicContext, code reference.Global, data []byte, method string, args []byte) (newObjectState []byte, methodResults []byte, err error) {
-		// we want to change pulse during execution
-		server.IncrementPulseAndWaitIdle(ctx)
-
-		emptyResult := makeEmptyResult()
-		return newRawWalletState, emptyResult, nil
-	}
-
-	mockExecutor(t, server, callMethod, nil)
-
-	var (
-		countVStateReport int
-	)
-	gotVStateReport := make(chan *payload.VStateReport, 0)
-	server.PublisherMock.SetChecker(func(topic string, messages ...*message.Message) error {
-		require.Len(t, messages, 1)
-
-		pl, err := payload.UnmarshalFromMeta(messages[0].Payload)
-		if err != nil {
-			return nil
-		}
-
-		switch payLoadData := pl.(type) {
-		case *payload.VStateReport:
-			countVStateReport++
-			gotVStateReport <- payLoadData
-		case *payload.VCallResult:
-		default:
-			t.Logf("Going message: %T", payLoadData)
-		}
-
-		server.SendMessage(ctx, messages[0])
-		return nil
-	})
-
-	code, _ := server.CallAPIAddAmount(ctx, objectRef, additionalBalance)
-	require.Equal(t, 200, code)
-
-	select {
-	case _ = <-gotVStateReport:
-	case <-time.After(10 * time.Second):
-		require.Failf(t, "", "timeout")
-	}
-
-	require.Equal(t, 1, countVStateReport)
-}
 
 type stateReportCheckPendingCountersAndPulsesTestChecks struct {
 	UnorderedPendingCount         int32
@@ -227,6 +154,7 @@ func TestVirtual_StateReport_CheckPendingCountersAndPulses(t *testing.T) {
 
 	for _, test := range table {
 		t.Run(test.name, func(t *testing.T) {
+			defer commontestutils.LeakTester(t)
 
 			suite := &stateReportCheckPendingCountersAndPulsesTest{}
 			ctx := suite.initServer(t)
@@ -279,8 +207,8 @@ func TestVirtual_StateReport_CheckPendingCountersAndPulses(t *testing.T) {
 			}
 
 			suite.createPulseP5(ctx)
-			expectedPublished++                  // expect StateReport
-			expectedPublished += len(test.start) // expect request to get token for each pending
+			expectedPublished++                      // expect StateReport
+			expectedPublished += 2 * len(test.start) // expect GetToken + FindRequest
 			suite.waitMessagePublications(ctx, t, expectedPublished)
 
 			suite.releaseNewlyCreatedPendings()
@@ -544,6 +472,20 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) setMessageCheckers(
 
 		return false
 	})
+	typedChecker.VFindCallRequest.Set(func(req *payload.VFindCallRequest) bool {
+		require.Equal(t, s.getPulse(3), req.LookAt)
+		require.Equal(t, s.getObject(), req.Callee)
+
+		pl := payload.VFindCallResponse{
+			LookedAt: s.getPulse(3),
+			Callee:   s.getObject(),
+			Outgoing: req.Outgoing,
+			Status:   payload.MissingCall,
+		}
+		s.server.SendPayload(ctx, &pl)
+
+		return false
+	})
 }
 
 func (s *stateReportCheckPendingCountersAndPulsesTest) getPulse(
@@ -581,6 +523,7 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) waitMessagePublications(
 	t *testing.T,
 	expected int,
 ) {
+	t.Helper()
 	if !s.server.PublisherMock.WaitCount(expected, 10*time.Second) {
 		panic("timeout waiting for messages on publisher")
 	}
@@ -598,4 +541,89 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) addPayloadAndWaitIdle(
 func (s *stateReportCheckPendingCountersAndPulsesTest) finish() {
 	s.server.Stop()
 	s.mc.Finish()
+}
+
+func TestVirtual_StateReport_AfterPendingConstructorHasFinished(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
+	t.Log("C5239")
+
+	mc := minimock.NewController(t)
+
+	server, ctx := utils.NewServer(nil, t)
+	defer server.Stop()
+
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+
+	var (
+		class         = gen.UniqueGlobalRef()
+		outgoingP1    = server.BuildRandomOutgoingWithPulse()
+		object        = reference.NewSelf(outgoingP1.GetLocal())
+		dirtyStateRef = server.RandomLocalWithPulse()
+		p1            = server.GetPulse().PulseNumber
+	)
+
+	server.IncrementPulseAndWaitIdle(ctx)
+	p2 := server.GetPulse().PulseNumber
+
+	pl := payload.VStateReport{
+		Status:                      payload.Empty,
+		Object:                      object,
+		AsOf:                        p1,
+		OrderedPendingCount:         1,
+		OrderedPendingEarliestPulse: p1,
+	}
+
+	server.SendPayload(ctx, &pl)
+	server.WaitActiveThenIdleConveyor()
+
+	{
+		typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
+			require.Equal(t, object, report.Object)
+			require.Equal(t, p2, report.AsOf)
+			require.Equal(t, payload.Ready, report.Status)
+			require.Equal(t, int32(0), report.OrderedPendingCount)
+			require.Equal(t, pulse.Number(0), report.OrderedPendingEarliestPulse)
+
+			require.NotNil(t, report.ProvidedContent)
+			require.NotNil(t, report.ProvidedContent.LatestDirtyState)
+
+			state := report.ProvidedContent.LatestDirtyState
+			require.Equal(t, []byte("new object memory"), state.State)
+
+			return false
+		})
+		typedChecker.VDelegatedCallResponse.SetResend(false)
+	}
+
+	{
+		delegatedRequest := payload.VDelegatedCallRequest{
+			Callee:       object,
+			CallOutgoing: outgoingP1,
+			CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+		}
+		server.SendPayload(ctx, &delegatedRequest)
+		testutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VDelegatedCallResponse.Wait(ctx, 1))
+	}
+	{
+		finishedSignal := server.Journal.WaitStopOf(&handlers.SMVDelegatedRequestFinished{}, 1)
+		finished := payload.VDelegatedRequestFinished{
+			Callee:       object,
+			CallOutgoing: outgoingP1,
+			CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+			LatestState: &payload.ObjectState{
+				Reference: dirtyStateRef,
+				Class:     class,
+				State:     []byte("new object memory"),
+			},
+		}
+		server.SendPayload(ctx, &finished)
+		testutils.WaitSignalsTimed(t, 10*time.Second, finishedSignal)
+	}
+
+	server.IncrementPulseAndWaitIdle(ctx)
+
+	testutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 1))
+
+	mc.Finish()
 }

@@ -28,6 +28,8 @@ import (
 )
 
 func TestSMExecute_PublishVCallResultToCallSummarySM(t *testing.T) {
+	defer executeLeakCheck(t)
+
 	var (
 		ctx = instestlogger.TestContext(t)
 		mc  = minimock.NewController(t)
@@ -78,9 +80,11 @@ func TestSMExecute_PublishVCallResultToCallSummarySM(t *testing.T) {
 	}
 
 	{
+		outgoingRef = reference.NewSelf(outgoingRef.GetLocal())
+
 		workingTable := callregistry.NewWorkingTable()
-		workingTable.Add(contract.CallTolerable, outgoingRef)
-		workingTable.SetActive(contract.CallTolerable, outgoingRef)
+		workingTable.Add(contract.CallTolerable, smExecute.execution.Outgoing)
+		workingTable.SetActive(contract.CallTolerable, smExecute.execution.Outgoing)
 
 		sharedCallSummary.Requests.AddObjectCallResults(outgoingRef, callregistry.ObjectCallResults{
 			CallResults: workingTable.GetResults(),
@@ -135,7 +139,7 @@ func TestSMExecute_PublishVCallResultToCallSummarySM(t *testing.T) {
 	workingTable, ok := sharedCallSummary.Requests.GetObjectCallResults(outgoingRef)
 	require.Equal(t, 1, len(workingTable.CallResults))
 
-	result, ok := workingTable.CallResults[outgoingRef]
+	result, ok := workingTable.CallResults[smExecute.execution.Outgoing]
 
 	require.True(t, ok)
 	require.NotNil(t, result.Result)

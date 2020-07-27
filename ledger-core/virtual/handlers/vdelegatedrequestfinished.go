@@ -8,10 +8,12 @@
 package handlers
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/log"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
@@ -28,18 +30,25 @@ type SMVDelegatedRequestFinished struct {
 
 	// dependencies
 	objectCatalog object.Catalog
+	pulseSlot     *conveyor.PulseSlot
 }
 
 type stateIsNotReady struct {
 	*log.Msg `txt:"State is not ready"`
-	Object   string
+	Object   reference.Holder
 }
 
 type unexpectedVDelegateRequestFinished struct {
 	*log.Msg `txt:"Unexpected VDelegateRequestFinished"`
-	Object   string
-	Request  string
+	Object   reference.Holder
+	Request  reference.Holder
 	Ordered  bool
+}
+
+type noLatestStateTolerableVDelegateRequestFinished struct {
+	*log.Msg `txt:"Tolerable VDelegateRequestFinished on Empty object has no LatestState"`
+	Object   reference.Holder
+	Request  reference.Holder
 }
 
 var dSMVDelegatedRequestFinishedInstance smachine.StateMachineDeclaration = &dSMVDelegatedRequestFinished{}
@@ -52,6 +61,7 @@ func (*dSMVDelegatedRequestFinished) InjectDependencies(sm smachine.StateMachine
 	s := sm.(*SMVDelegatedRequestFinished)
 
 	injector.MustInject(&s.objectCatalog)
+	injector.MustInject(&s.pulseSlot)
 }
 
 func (*dSMVDelegatedRequestFinished) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc {
@@ -66,14 +76,29 @@ func (s *SMVDelegatedRequestFinished) GetStateMachineDeclaration() smachine.Stat
 }
 
 func (s *SMVDelegatedRequestFinished) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
+	if s.pulseSlot.State() != conveyor.Present {
+		ctx.Log().Warn("stop processing VDelegatedRequestFinished since we are not in present pulse")
+		return ctx.Stop()
+	}
+	ctx.SetDefaultMigration(s.migrationDefault)
+
 	return ctx.Jump(s.stepGetObject)
+}
+
+func (s *SMVDelegatedRequestFinished) migrationDefault(ctx smachine.MigrationContext) smachine.StateUpdate {
+	ctx.Log().Trace("stop processing SMVDelegatedRequestFinished since pulse was changed")
+	return ctx.Stop()
 }
 
 func (s *SMVDelegatedRequestFinished) stepGetObject(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	s.objectSharedState = s.objectCatalog.GetOrCreate(ctx, s.Payload.Callee)
 
+	var (
+		semaphoreReadyToWork smachine.SyncLink
+	)
+
 	action := func(state *object.SharedState) {
-		s.objectReadyToWork = state.ReadyToWork
+		semaphoreReadyToWork = state.ReadyToWork
 	}
 
 	switch s.objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
@@ -86,6 +111,8 @@ func (s *SMVDelegatedRequestFinished) stepGetObject(ctx smachine.ExecutionContex
 	default:
 		panic(throw.Impossible())
 	}
+
+	s.objectReadyToWork = semaphoreReadyToWork
 
 	return ctx.Jump(s.awaitObjectReady)
 }
@@ -102,9 +129,7 @@ func (s *SMVDelegatedRequestFinished) stepProcess(ctx smachine.ExecutionContext)
 	setStateFunc := func(data interface{}) (wakeup bool) {
 		state := data.(*object.SharedState)
 		if !state.IsReady() {
-			ctx.Log().Trace(stateIsNotReady{
-				Object: s.Payload.Callee.String(),
-			})
+			ctx.Log().Trace(stateIsNotReady{Object: s.Payload.Callee})
 			return false
 		}
 
@@ -133,7 +158,17 @@ func (s *SMVDelegatedRequestFinished) updateSharedState(
 
 	// Update object state.
 	if s.hasLatestState() {
-		state.SetDescriptor(s.latestState())
+		state.SetDescriptorDirty(s.latestState())
+		s.updateObjectState(state)
+	} else if s.Payload.CallFlags.GetInterference() == contract.CallTolerable &&
+		s.Payload.CallType == payload.CTConstructor &&
+		state.GetState() == object.Empty {
+
+		ctx.Log().Warn(noLatestStateTolerableVDelegateRequestFinished{
+			Object:  objectRef,
+			Request: requestRef,
+		})
+		state.SetState(object.Missing)
 	}
 
 	pendingList := state.PendingTable.GetList(s.Payload.CallFlags.GetInterference())
@@ -151,25 +186,36 @@ func (s *SMVDelegatedRequestFinished) updateSharedState(
 	case contract.CallIntolerable:
 		if state.PreviousExecutorUnorderedPendingCount == 0 {
 			ctx.Log().Warn(unexpectedVDelegateRequestFinished{
-				Object:  objectRef.String(),
-				Request: requestRef.String(),
+				Object:  objectRef,
+				Request: requestRef,
 				Ordered: false,
 			})
 		}
 	case contract.CallTolerable:
 		if state.PreviousExecutorOrderedPendingCount == 0 {
 			ctx.Log().Warn(unexpectedVDelegateRequestFinished{
-				Object:  objectRef.String(),
-				Request: requestRef.String(),
+				Object:  objectRef,
+				Request: requestRef,
 				Ordered: true,
 			})
 		}
 		if pendingList.CountActive() == 0 {
 			// If we do not have pending ordered, release sync object.
-			if !ctx.CallBargeIn(state.AwaitPendingOrdered) {
-				ctx.Log().Warn("AwaitPendingOrdered BargeIn receive false")
+			if !ctx.CallBargeInWithParam(state.SignalOrderedPendingFinished, nil) {
+				ctx.Log().Warn("SignalOrderedPendingFinished BargeIn receive false")
 			}
 		}
+	}
+}
+
+func (s *SMVDelegatedRequestFinished) updateObjectState(state *object.SharedState) {
+	switch state.GetState() {
+	case object.Empty:
+		state.SetState(object.HasState)
+	case object.HasState:
+		// ok
+	default:
+		panic(throw.Impossible())
 	}
 }
 
@@ -188,6 +234,5 @@ func (s *SMVDelegatedRequestFinished) latestState() descriptor.Object {
 		state.Reference,
 		state.Class,
 		state.State,
-		state.Parent,
 	)
 }

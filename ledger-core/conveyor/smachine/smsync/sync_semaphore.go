@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 // Semaphore allows Acquire() call to pass through for a number of workers within the limit.
@@ -58,19 +59,30 @@ func (v SemaphoreLink) NewValue(value int) smachine.SyncAdjustment {
 	return smachine.NewSyncAdjustment(v.ctl, value, true)
 }
 
-func (v SemaphoreLink) NewChild(childValue int, name string) smachine.SyncLink {
-	return v.NewChildEx(childValue, name, 0)
-}
-
-func (v SemaphoreLink) NewChildEx(childValue int, name string, flags SemaphoreChildFlags) smachine.SyncLink {
+func (v SemaphoreLink) NewFixedChild(childValue int, name string) smachine.SyncLink {
 	if childValue <= 0 {
 		return NewInfiniteLock(name)
 	}
-	return smachine.NewSyncLink(newSemaphoreChild(v.ctl, flags, childValue, name))
+	return v.NewChildExt(false, childValue, name, 0).SyncLink()
+}
+
+func (v SemaphoreLink) NewChild(childValue int, name string) SemaChildLink {
+	return v.NewChildExt(true, childValue, name, 0)
+}
+
+func (v SemaphoreLink) NewChildExt(isAdjustable bool, childValue int, name string, flags SemaphoreChildFlags) SemaChildLink {
+	if !isAdjustable && childValue <= 0 {
+		panic(throw.IllegalValue())
+	}
+	return SemaChildLink{newSemaphoreChild(v.ctl, flags, childValue, isAdjustable, name)}
 }
 
 func (v SemaphoreLink) SyncLink() smachine.SyncLink {
 	return smachine.NewSyncLink(v.ctl)
+}
+
+func (v SemaphoreLink) PartialLink() smachine.SyncLink {
+	return smachine.NewSyncLink(semaPartial{v.ctl})
 }
 
 func newSemaphore(initialLimit int, isAdjustable bool, name string, flags DependencyQueueFlags) *semaphoreSync {
@@ -366,4 +378,17 @@ func (p *workingQueueController) adjustLimit(delta int, activeQ *dependencyQueue
 		return true
 	})
 	return links, false
+}
+
+// pullAwaiters is for hierarchy children to activate awaiters after addition
+func (p *workingQueueController) pullAwaiters() []smachine.StepLink {
+	delta := p.workerLimit - p.queue.Count()
+	if delta <= 0 {
+		return nil
+	}
+	deps, activate := p.adjustLimit(delta, &p.queue)
+	if !activate {
+		panic(throw.Impossible())
+	}
+	return deps
 }

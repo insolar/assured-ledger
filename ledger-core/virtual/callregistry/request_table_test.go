@@ -39,8 +39,8 @@ func TestPendingTable(t *testing.T) {
 	require.Equal(t, 0, len(rt.GetList(contract.CallIntolerable).requests))
 	require.Equal(t, 0, len(rt.GetList(contract.CallTolerable).requests))
 
-	require.Equal(t, pulse.Number(0), rt.GetList(contract.CallIntolerable).earliestPulse)
-	require.Equal(t, pulse.Number(0), rt.GetList(contract.CallTolerable).earliestPulse)
+	require.Equal(t, pulse.Number(0), rt.GetList(contract.CallIntolerable).earliestActivePulse)
+	require.Equal(t, pulse.Number(0), rt.GetList(contract.CallTolerable).earliestActivePulse)
 
 	pd := pulse.NewFirstPulsarData(10, longbits.Bits256{})
 	currentPulse := pd.PulseNumber
@@ -134,18 +134,41 @@ func TestPendingList_Finish(t *testing.T) {
 
 	require.Equal(t, true, rl.Add(RefOne))
 	require.Equal(t, 1, rl.Count())
-	require.Equal(t, currentPulse, rl.earliestPulse)
+	require.Equal(t, currentPulse, rl.earliestActivePulse)
 	require.Equal(t, 0, rl.CountFinish())
 	require.Equal(t, 1, rl.CountActive())
 
 	require.Equal(t, true, rl.Add(RefTwo))
 	require.Equal(t, 2, rl.Count())
-	require.Equal(t, currentPulse, rl.earliestPulse)
+	require.Equal(t, currentPulse, rl.earliestActivePulse)
 	require.Equal(t, 0, rl.CountFinish())
 	require.Equal(t, 2, rl.CountActive())
 
 	rl.Finish(RefOne)
 	require.Equal(t, 1, rl.CountFinish())
 	require.Equal(t, 1, rl.CountActive())
-	require.Equal(t, nextPulseNumber, rl.earliestPulse)
+	require.Equal(t, nextPulseNumber, rl.earliestActivePulse)
+}
+
+func TestPendingList_MustGetIsActive(t *testing.T) {
+	pd := pulse.NewFirstPulsarData(10, longbits.Bits256{})
+	currentPulse := pd.PulseNumber
+
+	objectOne := gen.UniqueLocalRefWithPulse(currentPulse)
+	RefOne := reference.NewSelf(objectOne)
+
+	rl := newRequestList()
+	isActive, exist := rl.GetState(RefOne)
+	require.Equal(t, false, isActive)
+	require.Equal(t, false, exist)
+
+	rl.Add(RefOne)
+	isActive, exist = rl.GetState(RefOne)
+	require.Equal(t, true, isActive)
+	require.Equal(t, true, exist)
+
+	rl.Finish(RefOne)
+	isActive, exist = rl.GetState(RefOne)
+	require.Equal(t, false, isActive)
+	require.Equal(t, true, exist)
 }

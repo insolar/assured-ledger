@@ -6,13 +6,10 @@
 package servicenetwork
 
 import (
-	"context"
 	"testing"
 
-	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
-
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/version"
 
@@ -27,31 +24,31 @@ func TestGetNetworkStatus(t *testing.T) {
 	sn := &ServiceNetwork{}
 	gwer := testutils.NewGatewayerMock(t)
 	gw := testutils.NewGatewayMock(t)
-	ins := node.NetworkState(1)
-	gw.GetStateMock.Set(func() node.NetworkState { return ins })
+	ins := nodeinfo.NetworkState(1)
+	gw.GetStateMock.Set(func() nodeinfo.NetworkState { return ins })
 	gwer.GatewayMock.Set(func() network.Gateway { return gw })
 	sn.Gatewayer = gwer
 
-	pa := testutils.NewPulseAccessorMock(t)
-	ppn := pulse.Number(2)
-	puls := pulsestor.Pulse{PulseNumber: 2}
-	pa.GetLatestPulseMock.Set(func(context.Context) (pulsestor.Pulse, error) { return puls, nil })
-	sn.PulseAccessor = pa
+	pc := beat.Beat{}
+	pc.PulseNumber = 200000
+	ppn := pc.PulseNumber
+	pc.NextPulseDelta = 10
+	gw.LatestPulseMock.Return(pc.Data)
 
 	nk := testutils.NewNodeKeeperMock(t)
 	a := testutils.NewAccessorMock(t)
 	activeLen := 1
-	active := make([]node.NetworkNode, activeLen)
-	a.GetActiveNodesMock.Set(func() []node.NetworkNode { return active })
+	active := make([]nodeinfo.NetworkNode, activeLen)
+	a.GetActiveNodesMock.Set(func() []nodeinfo.NetworkNode { return active })
 
 	workingLen := 2
-	working := make([]node.NetworkNode, workingLen)
-	a.GetWorkingNodesMock.Set(func() []node.NetworkNode { return working })
+	working := make([]nodeinfo.NetworkNode, workingLen)
+	a.GetWorkingNodesMock.Set(func() []nodeinfo.NetworkNode { return working })
 
 	nk.GetAccessorMock.Set(func(pulse.Number) network.Accessor { return a })
 
 	nn := testutils.NewNetworkNodeMock(t)
-	nk.GetOriginMock.Set(func() node.NetworkNode { return nn })
+	nk.GetOriginMock.Set(func() nodeinfo.NetworkNode { return nn })
 
 	sn.NodeKeeper = nk
 
@@ -66,11 +63,10 @@ func TestGetNetworkStatus(t *testing.T) {
 
 	require.Len(t, ns.Nodes, activeLen)
 
-	require.Equal(t, ppn, ns.Pulse.PulseNumber)
+	require.Equal(t, ppn, ns.PulseNumber)
 
 	require.Equal(t, version.Version, ns.Version)
 
-	pa.GetLatestPulseMock.Set(func(context.Context) (pulsestor.Pulse, error) { return puls, errors.New("test") })
 	ns = sn.GetNetworkStatus()
 	require.Equal(t, ins, ns.NetworkState)
 
@@ -82,7 +78,7 @@ func TestGetNetworkStatus(t *testing.T) {
 
 	require.Len(t, ns.Nodes, activeLen)
 
-	require.Equal(t, pulsestor.GenesisPulse.PulseNumber, ns.Pulse.PulseNumber)
+	require.Equal(t, pulse.Number(200000), ns.PulseNumber)
 
 	require.Equal(t, version.Version, ns.Version)
 }

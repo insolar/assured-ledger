@@ -15,6 +15,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
+	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/synchronization"
@@ -22,7 +23,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/mock"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/mock/publisher/checker"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 )
@@ -149,10 +151,14 @@ func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
 
 	for _, test := range table {
 		t.Run(test.name, func(t *testing.T) {
+			defer commontestutils.LeakTester(t)
+
 			suite := &VFindCallRequestHandlingSuite{}
 
 			ctx := suite.initServer(t)
 			defer suite.stopServer()
+
+			handlerEnded := suite.server.Journal.WaitStopOf(&handlers.SMVFindCallRequest{}, 1)
 
 			suite.initPulsesP1andP2(ctx)
 			suite.generateClass()
@@ -182,6 +188,7 @@ func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
 			}
 
 			testutils.WaitSignalsTimed(t, 10*time.Second, suite.server.Journal.WaitAllAsyncCallsDone())
+			testutils.WaitSignalsTimed(t, 10*time.Second, handlerEnded)
 
 			suite.finish()
 		})
@@ -285,7 +292,7 @@ type VFindCallRequestHandlingSuite struct {
 	mc           *minimock.Controller
 	server       *utils.Server
 	runnerMock   *logicless.ServiceMock
-	typedChecker *mock.TypePublishChecker
+	typedChecker *checker.Typed
 
 	p1       pulse.Number
 	p2       pulse.Number
@@ -351,7 +358,7 @@ func (s *VFindCallRequestHandlingSuite) generateCaller() {
 
 func (s *VFindCallRequestHandlingSuite) generateObjectRef() {
 	if s.isConstructor {
-		s.object = reference.NewRecordOf(s.caller, s.outgoing)
+		s.object = reference.NewSelf(s.outgoing)
 		return
 	}
 	p := s.getP1()
@@ -393,6 +400,7 @@ func (s *VFindCallRequestHandlingSuite) setMessageCheckers(
 		defer func() {
 			close(s.haveFindResponseSignal)
 		}()
+		assert.Equal(t, s.getP2(), res.LookedAt)
 		assert.Equal(t, s.getObject(), res.Callee)
 		assert.Equal(t, s.getOutgoingRef(), res.Outgoing)
 		assert.Equal(t, testInfo.expectedStatus, res.Status)
@@ -435,6 +443,7 @@ func (s *VFindCallRequestHandlingSuite) setMessageCheckers(
 		assert.Equal(t, s.getOutgoingRef(), req.Outgoing)
 
 		pl := payload.VFindCallResponse{
+			LookedAt: s.getP2(),
 			Callee:   s.getObject(),
 			Outgoing: s.getOutgoingRef(),
 			Status:   payload.MissingCall,
@@ -449,7 +458,7 @@ func (s *VFindCallRequestHandlingSuite) setRunnerMock() {
 	s.runnerMock.AddExecutionClassify("SomeMethod", isolation, nil)
 
 	newObjDescriptor := descriptor.NewObject(
-		reference.Global{}, reference.Local{}, s.getClass(), []byte(""), reference.Global{},
+		reference.Global{}, reference.Local{}, s.getClass(), []byte(""),
 	)
 
 	{

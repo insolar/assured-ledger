@@ -268,6 +268,7 @@ func (z LoggerBuilder) buildEmbedded(needsLowLatency bool) (logcommon.EmbeddedLo
 				if logger := template.CopyTemplateLogger(params); logger != nil {
 					return logger, nil
 				}
+				output = origConfig.LoggerOutput
 			}
 			break
 		}

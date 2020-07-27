@@ -16,16 +16,18 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/slotdebugger"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/stepchecker"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
 )
 
 func Test_Delay(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	mc := minimock.NewController(t)
 
 	var (
@@ -37,6 +39,7 @@ func Test_Delay(t *testing.T) {
 
 	smObject := NewStateMachineObject(smGlobalRef)
 	smObject.pulseSlot = &pulseSlot
+	smObject.globalLimiter = tool.NewRunnerLimiter(4)
 	sharedStateData := smachine.NewUnboundSharedData(&smObject.SharedState)
 
 	stepChecker := stepchecker.New()
@@ -51,7 +54,7 @@ func Test_Delay(t *testing.T) {
 	{ // initialization
 		initCtx := smachine.NewInitializationContextMock(mc).
 			ShareMock.Return(sharedStateData).
-			PublishMock.Expect(smObject.Reference.String(), sharedStateData).Return(true).
+			PublishMock.Expect(smObject.Reference, sharedStateData).Return(true).
 			JumpMock.Set(stepChecker.CheckJumpW(t)).
 			SetDefaultMigrationMock.Return()
 
@@ -80,114 +83,139 @@ func Test_Delay(t *testing.T) {
 }
 
 func Test_PendingBlocksExecution(t *testing.T) {
-	mc := minimock.NewController(t)
-
-	var (
-		pd          = pulse.NewPulsarData(pulse.OfNow(), 10, 10, longbits.Bits256{})
-		pulseSlot   = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-		smObjectID  = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
-		smGlobalRef = reference.NewSelf(smObjectID)
-	)
-
-	smObject := NewStateMachineObject(smGlobalRef)
-	smObject.pulseSlot = &pulseSlot
-	sharedStateData := smachine.NewUnboundSharedData(&smObject.SharedState)
-
-	stepChecker := stepchecker.New()
-	{
-		sm := SMObject{}
-		stepChecker.AddStep(sm.stepGetState)
-		stepChecker.AddStep(sm.stepGotState)
-		stepChecker.AddStep(sm.stepReadyToWork)
-	}
-	defer func() { assert.NoError(t, stepChecker.CheckDone()) }()
-
-	{ // initialization
-		initCtx := smachine.NewInitializationContextMock(mc).
-			ShareMock.Return(sharedStateData).
-			PublishMock.Expect(smObject.Reference.String(), sharedStateData).Return(true).
-			JumpMock.Set(stepChecker.CheckJumpW(t)).
-			SetDefaultMigrationMock.Return()
-
-		smObject.Init(initCtx)
+	table := []struct {
+		name                string
+		pendings            uint8
+		state               State
+		orderedAdjustment   bool
+		unorderedAdjustment bool
+		bargeIn             bool
+	}{
+		{
+			name:                "pending with state",
+			pendings:            1,
+			state:               HasState,
+			unorderedAdjustment: true,
+			bargeIn:             true,
+		},
+		{
+			name:     "pending constructor",
+			pendings: 1,
+			state:    Empty,
+			bargeIn:  true,
+		},
+		{
+			name:                "no pendings",
+			pendings:            0,
+			state:               HasState,
+			orderedAdjustment:   true,
+			unorderedAdjustment: true,
+		},
 	}
 
-	smObject.SharedState.PreviousExecutorOrderedPendingCount = 1
-	smObject.SharedState.SetState(HasState)
+	for _, test := range table {
+		t.Run(test.name, func(t *testing.T) {
+			defer commontestutils.LeakTester(t)
 
-	{ // we should be able to start
-		execCtx := smachine.NewExecutionContextMock(mc).
-			JumpMock.Set(stepChecker.CheckJumpW(t))
+			mc := minimock.NewController(t)
 
-		smObject.stepGetState(execCtx)
-	}
+			var (
+				pd          = pulse.NewPulsarData(pulse.OfNow(), 10, 10, longbits.Bits256{})
+				pulseSlot   = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
+				smObjectID  = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
+				smGlobalRef = reference.NewSelf(smObjectID)
+			)
 
-	{ // check that we jump to creation of child SM
-		checkTypeAndCall := func(cb1 smachine.CreateFunc, cb2 smachine.PostInitFunc) smachine.SlotLink {
-			constructionCtxMock := smachine.NewConstructionContextMock(t)
+			smObject := NewStateMachineObject(smGlobalRef)
+			smObject.pulseSlot = &pulseSlot
+			smObject.globalLimiter = tool.NewRunnerLimiter(4)
+			sharedStateData := smachine.NewUnboundSharedData(&smObject.SharedState)
 
-			resultSM := cb1(constructionCtxMock)
-			switch resultSM.(type) {
-			case *SMAwaitDelegate:
-				assert.Equal(t, smObject.OrderedExecute, resultSM.(*SMAwaitDelegate).sync)
-				resultSM.(*SMAwaitDelegate).stop = smachine.NewNoopBargeIn(smachine.DeadStepLink())
-				cb2()
-			case *SMAwaitTableFill:
-				assert.Equal(t, smObject.OrderedPendingListFilled, resultSM.(*SMAwaitTableFill).sync)
-				resultSM.(*SMAwaitTableFill).stop = smachine.NewNoopBargeIn(smachine.DeadStepLink())
-				cb2()
-			default:
-				t.Error("unexpected InitChildWithPostInit call")
+			stepChecker := stepchecker.New()
+			{
+				sm := SMObject{}
+				stepChecker.AddStep(sm.stepGetState)
+				stepChecker.AddStep(sm.stepGotState)
+				stepChecker.AddStep(sm.stepWaitIndefinitely)
 			}
-			return smachine.SlotLink{}
-		}
+			defer func() { assert.NoError(t, stepChecker.CheckDone()) }()
 
-		execCtx := smachine.NewExecutionContextMock(mc).
-			JumpMock.Set(stepChecker.CheckJumpW(t)).
-			InitChildWithPostInitMock.Set(checkTypeAndCall)
+			{ // initialization
+				initCtx := smachine.NewInitializationContextMock(mc).
+					ShareMock.Return(sharedStateData).
+					PublishMock.Expect(smObject.Reference, sharedStateData).Return(true).
+					JumpMock.Set(stepChecker.CheckJumpW(t)).
+					SetDefaultMigrationMock.Return()
 
-		smObject.stepGotState(execCtx)
+				smObject.Init(initCtx)
+			}
+
+			smObject.SharedState.PreviousExecutorOrderedPendingCount = test.pendings
+			smObject.SharedState.SetState(test.state)
+
+			{ // we should be able to start
+				execCtx := smachine.NewExecutionContextMock(mc).
+					JumpMock.Set(stepChecker.CheckJumpW(t))
+
+				smObject.stepGetState(execCtx)
+			}
+
+			{
+				execCtx := smachine.NewExecutionContextMock(mc).
+					JumpMock.Set(stepChecker.CheckJumpW(t))
+
+				if test.bargeIn {
+					bargeIn := smachine.NewNoopBargeInWithParam(smachine.DeadStepLink())
+					execCtx.NewBargeInWithParamMock.Return(bargeIn)
+				}
+
+				if test.orderedAdjustment || test.unorderedAdjustment {
+					execCtx.ApplyAdjustmentMock.Set(func(sa smachine.SyncAdjustment) bool {
+						switch sa.String() {
+						case "ordered calls[=1]":
+							require.True(t, test.orderedAdjustment)
+						case "unordered calls[=30]":
+							require.True(t, test.unorderedAdjustment)
+						case "readyToWork[=1]":
+							return true
+						default:
+							require.Failf(t, "unexpected adjustment", "got '%s'", sa.String())
+						}
+						return true
+					})
+				} else {
+					execCtx.ApplyAdjustmentMock.Set(func(sa smachine.SyncAdjustment) bool {
+						switch sa.String() {
+						case "readyToWork[=1]":
+							return true
+						default:
+							require.Failf(t, "unexpected adjustment", "got '%s'", sa.String())
+						}
+						return true
+					})
+				}
+
+				smObject.stepGotState(execCtx)
+			}
+
+			if test.bargeIn {
+				assert.False(t, smObject.SignalOrderedPendingFinished.IsZero())
+			} else {
+				assert.True(t, smObject.SignalOrderedPendingFinished.IsZero())
+			}
+
+			active, inactive := smObject.readyToWorkCtl.SyncLink().GetCounts()
+			assert.Equal(t, -1, active)
+			assert.Equal(t, 0, inactive)
+
+			mc.Finish()
+		})
 	}
-
-	assert.NotNil(t, smObject.AwaitPendingOrdered)
-
-	active, inactive := smObject.readyToWorkCtl.SyncLink().GetCounts()
-	assert.Equal(t, -1, active)
-	assert.Equal(t, 0, inactive)
-
-	mc.Finish()
-}
-
-func TestSMObject_Semi_CheckAwaitDelegateIsStarted(t *testing.T) {
-	var (
-		mc  = minimock.NewController(t)
-		ctx = instestlogger.TestContext(t)
-
-		objectReference = gen.UniqueGlobalRef()
-		smObject        = NewStateMachineObject(objectReference)
-	)
-
-	smObject.SetState(HasState)
-	smObject.PreviousExecutorOrderedPendingCount = 1
-
-	slotMachine := slotdebugger.New(ctx, t)
-	slotMachine.InitEmptyMessageSender(mc)
-
-	smWrapper := slotMachine.AddStateMachine(ctx, smObject)
-
-	slotMachine.Start()
-	defer slotMachine.Stop()
-
-	require.Equal(t, 1, slotMachine.GetOccupiedSlotCount())
-
-	slotMachine.RunTil(smWrapper.BeforeStep(smObject.stepReadyToWork))
-
-	require.Equal(t, 3, slotMachine.GetOccupiedSlotCount())
-
-	mc.Finish()
 }
 
 func TestSMObject_stepGotState_Set_PendingListFilled(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	var (
 		mc          = minimock.NewController(t)
 		pd          = pulse.NewPulsarData(pulse.OfNow(), 10, 10, longbits.Bits256{})
@@ -198,19 +226,20 @@ func TestSMObject_stepGotState_Set_PendingListFilled(t *testing.T) {
 
 	smObject := NewStateMachineObject(smGlobalRef)
 	smObject.pulseSlot = &pulseSlot
+	smObject.globalLimiter = tool.NewRunnerLimiter(4)
 	sharedStateData := smachine.NewUnboundSharedData(&smObject.SharedState)
 
 	sm := SMObject{}
 	stepChecker := stepchecker.New()
 	stepChecker.AddStep(sm.stepGetState)
-	stepChecker.AddStep(sm.stepReadyToWork)
+	stepChecker.AddStep(sm.stepWaitIndefinitely)
 
 	defer func() { assert.NoError(t, stepChecker.CheckDone()) }()
 
 	{ // initialization
 		initCtx := smachine.NewInitializationContextMock(mc).
 			ShareMock.Return(sharedStateData).
-			PublishMock.Expect(smObject.Reference.String(), sharedStateData).Return(true).
+			PublishMock.Expect(smObject.Reference, sharedStateData).Return(true).
 			JumpMock.Set(stepChecker.CheckJumpW(t)).
 			SetDefaultMigrationMock.Return()
 
@@ -223,13 +252,16 @@ func TestSMObject_stepGotState_Set_PendingListFilled(t *testing.T) {
 		smObject.SharedState.PreviousExecutorUnorderedPendingCount = 0
 
 		execCtx := smachine.NewExecutionContextMock(mc).
-			JumpMock.Set(stepChecker.CheckJumpW(t))
+			JumpMock.Set(stepChecker.CheckJumpW(t)).
+			ApplyAdjustmentMock.Return(true)
 
 		smObject.stepGotState(execCtx)
 	}
 }
 
 func TestSMObject_checkPendingCounters_DontChangeIt(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	var (
 		pd          = pulse.NewPulsarData(pulse.OfNow(), 10, 10, longbits.Bits256{})
 		smObjectID  = gen.UniqueLocalRefWithPulse(pd.PulseNumber)

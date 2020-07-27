@@ -12,6 +12,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	node2 "github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
@@ -29,7 +30,7 @@ type StaticProfileExtension struct {
 	signature cryptkit.SignatureHolder
 }
 
-func NewStaticProfileExtension(networkNode node2.NetworkNode) *StaticProfileExtension {
+func NewStaticProfileExtension(networkNode nodeinfo.NetworkNode) *StaticProfileExtension {
 	_, signature := networkNode.(node.MutableNode).GetSignature()
 
 	return newStaticProfileExtension(
@@ -94,7 +95,7 @@ type StaticProfile struct {
 	signature cryptkit.SignedDigestHolder
 }
 
-func NewStaticProfile(networkNode node2.NetworkNode, certificate node2.Certificate, keyProcessor cryptography.KeyProcessor) *StaticProfile {
+func NewStaticProfile(networkNode nodeinfo.NetworkNode, certificate nodeinfo.Certificate, keyProcessor cryptography.KeyProcessor) *StaticProfile {
 
 	specialRole := member.SpecialRoleNone
 	if network.IsDiscovery(networkNode.ID(), certificate) {
@@ -229,7 +230,7 @@ func (p *Outbound) AsByteString() longbits.ByteString {
 	return longbits.ByteString(p.addr.String())
 }
 
-func NewStaticProfileList(nodes []node2.NetworkNode, certificate node2.Certificate, keyProcessor cryptography.KeyProcessor) []profiles.StaticProfile {
+func NewStaticProfileList(nodes []nodeinfo.NetworkNode, certificate nodeinfo.Certificate, keyProcessor cryptography.KeyProcessor) []profiles.StaticProfile {
 	intros := make([]profiles.StaticProfile, len(nodes))
 	for i, n := range nodes {
 		intros[i] = NewStaticProfile(n, certificate, keyProcessor)
@@ -240,7 +241,7 @@ func NewStaticProfileList(nodes []node2.NetworkNode, certificate node2.Certifica
 	return intros
 }
 
-func NewNetworkNode(profile profiles.ActiveNode) node2.NetworkNode {
+func NewNetworkNode(profile profiles.ActiveNode) nodeinfo.NetworkNode {
 	nip := profile.GetStatic()
 	store := nip.GetPublicKeyStore()
 	introduction := nip.GetExtension()
@@ -256,9 +257,9 @@ func NewNetworkNode(profile profiles.ActiveNode) node2.NetworkNode {
 	mutableNode := networkNode.(node.MutableNode)
 
 	mutableNode.SetShortID(profile.GetNodeID())
-	mutableNode.SetState(node2.Ready)
+	mutableNode.SetState(nodeinfo.Ready)
 
-	mutableNode.SetPower(node2.Power(profile.GetDeclaredPower()))
+	mutableNode.SetPower(nodeinfo.Power(profile.GetDeclaredPower()))
 	if profile.GetOpMode().IsPowerless() {
 		mutableNode.SetPower(0)
 	}
@@ -272,8 +273,8 @@ func NewNetworkNode(profile profiles.ActiveNode) node2.NetworkNode {
 	return networkNode
 }
 
-func NewNetworkNodeList(profiles []profiles.ActiveNode) []node2.NetworkNode {
-	networkNodes := make([]node2.NetworkNode, len(profiles))
+func NewNetworkNodeList(profiles []profiles.ActiveNode) []nodeinfo.NetworkNode {
+	networkNodes := make([]nodeinfo.NetworkNode, len(profiles))
 	for i, p := range profiles {
 		networkNodes[i] = NewNetworkNode(p)
 	}

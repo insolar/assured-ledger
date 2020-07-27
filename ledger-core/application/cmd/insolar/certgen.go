@@ -13,13 +13,13 @@ import (
 	"io"
 	"os"
 
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/api/requester"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
@@ -191,7 +191,7 @@ type certGen struct {
 
 	rootKeysFile string
 	API          string
-	staticRole   node.StaticRole
+	staticRole   member.PrimaryRole
 
 	keysFileOut string
 	certFileOut string
@@ -208,8 +208,8 @@ func genCertificate(
 	certFile string,
 	reuseKeys bool,
 ) {
-	staticRole := node.GetStaticRoleFromString(role)
-	if staticRole == node.StaticRoleUnknown {
+	staticRole := member.GetPrimaryRoleFromString(role)
+	if staticRole == member.PrimaryRoleUnknown {
 		fmt.Println("Invalid role:", role)
 		os.Exit(1)
 	}

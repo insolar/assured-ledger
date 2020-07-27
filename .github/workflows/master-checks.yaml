@@ -10,7 +10,6 @@ env:
   GO_VERSION: 1.14
   CI_GOMAXPROCS: 0
   INSOLAR_LOG_LEVEL: warn
-  GOTEST: 'gotestsum --'
 jobs:
   tests-on-master:
     name: master-checks
@@ -30,10 +29,20 @@ jobs:
         uses: arduino/setup-protoc@master
       - name: Add bin to path
         run: echo "::add-path::${{env.GOPATH}}/bin"
-      - name: Fetch vendor and check succesful build
+      - name: Go mod cache setup
+        uses: actions/cache@v2
+        with:
+          path: ${{env.GOPATH}}/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: Fetch dependencies
         run: |
           go mod download
-          make vendor install-build-tools pre-build proto build
+          make vendor
+        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
+      - name: Prepare test utils and check succesful build
+        run: make install-build-tools pre-build proto build
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
       - name: Check if working directory is clean after build
         if: always()
@@ -54,7 +63,7 @@ jobs:
         uses: actions/upload-artifact@v1
         with:
           name: integration_extended_test_master
-          path: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/integration_test.log
+          path: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/integration_extended_test.log
       - name: Upload coverage to Codecov
         if: always()
         run: bash <(curl -s https://codecov.io/bash) -f ledger-core/coverage.out -n coverage-report
@@ -74,11 +83,11 @@ jobs:
       - name: Run functional tests multiple times with race detector
         if: always()
         env: # for testrail
-          GOTEST: 'gotestsum --jsonfile functional_test.log --'
-        run: make test_func_race
+          GOTEST: 'go test -json'
+        run: make test_func_race > functional_test.log
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
       - name: Run functional tests many times on `master` with reduced pulse time
-        if: always()
+        # if: always() # don't uncomment. this will rewrite logs of a previous run!
         run: make test_func_slow
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
       - name: Install testrail-cli
@@ -126,7 +135,7 @@ jobs:
       GOPATH: /home/runner/work/
       V2_PATH: /home/runner/work/assured-ledger/assured-ledger/ledger-core
       USE_MANIFESTS: ci
-      GOPROXY: https://proxy.golang.org,https://goproxy.io,direct
+      GOPROXY: https://proxy.golang.org,https://gocenter.io,direct
       KUBEVAL_VERSION: 0.15.0
     steps:
       - name: Checkout code
@@ -161,6 +170,18 @@ jobs:
       - name: deploy ingress
         run: KUBECONFIG=$GITHUB_WORKSPACE/k3s.yaml; make kube_apply_ingress
         working-directory: ${{env.V2_PATH}}
+      - name: Go mod cache setup
+        uses: actions/cache@v2
+        with:
+          path: ${{env.GOPATH}}/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: Fetch dependencies
+        run: |
+          go mod download
+          make vendor
+        working-directory: ${{env.V2_PATH}}
       - name: build images
         run: make docker-build
         working-directory: ${{env.V2_PATH}}
@@ -168,11 +189,13 @@ jobs:
         run: |
           docker tag insolar/assured-ledger:latest localhost/assured-ledger:latest
           docker push localhost/assured-ledger:latest
+      - name: build tools
+        run: make install-build-tools
+        working-directory: ${{env.V2_PATH}}
       - name: run insolar net
         run: |
           export KUBECONFIG=$GITHUB_WORKSPACE/k3s.yaml
-          go mod download
-          make vendor install-build-tools kube_start_net
+          make kube_start_net
           kubectl -n insolar describe ing api-proxy
         working-directory: ${{env.V2_PATH}}
       - name: run tests

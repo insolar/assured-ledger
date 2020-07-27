@@ -7,6 +7,7 @@ package callregistry
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -44,21 +45,31 @@ func (rt PendingTable) Len() int {
 type isActive bool
 
 type PendingList struct {
-	earliestPulse pulse.Number
-	countActive   int
-	countFinish   int
-	requests      map[reference.Global]isActive
+	earliestActivePulse pulse.Number
+	countActive         int
+	countFinish         int
+	requests            map[reference.Global]isActive
+	activity            map[payload.PulseNumber]uint
 }
 
 func newRequestList() *PendingList {
 	return &PendingList{
 		requests: make(map[reference.Global]isActive),
+		activity: make(map[payload.PulseNumber]uint),
 	}
 }
 
 func (rl *PendingList) Exist(ref reference.Global) bool {
 	_, exist := rl.requests[ref]
 	return exist
+}
+
+// returns isActive and Exist info
+func (rl PendingList) GetState(ref reference.Global) (bool, bool) {
+	if !rl.Exist(ref) {
+		return false, false
+	}
+	return bool(rl.requests[ref]), true
 }
 
 // Add adds reference.Global and update EarliestPulse if needed
@@ -69,31 +80,42 @@ func (rl *PendingList) Add(ref reference.Global) bool {
 	}
 
 	rl.requests[ref] = true
-	rl.countActive++
 
-	requestPulseNumber := ref.GetLocal().GetPulseNumber()
-	if rl.earliestPulse == pulse.Unknown || requestPulseNumber < rl.earliestPulse {
-		rl.earliestPulse = requestPulseNumber
-	}
+	rl.listActivity(ref.GetLocal().GetPulseNumber())
 
 	return true
 }
 
-func (rl *PendingList) calculateEarliestPulse() {
-	min := pulse.Unknown
+func (rl *PendingList) listActivity(requestPN pulse.Number) {
+	rl.countActive++
+	rl.activity[requestPN]++
+	if rl.earliestActivePulse == pulse.Unknown || requestPN < rl.earliestActivePulse {
+		rl.earliestActivePulse = requestPN
+	}
+}
 
-	for ref := range rl.requests {
-		if !rl.requests[ref] {
-			continue // skip finished
-		}
+func (rl *PendingList) delistActivity(requestPN pulse.Number) {
+	rl.countActive--
 
-		refPulseNumber := ref.GetLocal().GetPulseNumber()
-		if min == pulse.Unknown || refPulseNumber < min {
-			min = refPulseNumber
+	count := rl.activity[requestPN]
+	if count > 1 {
+		rl.activity[requestPN] = count - 1
+	} else {
+		delete(rl.activity, requestPN)
+		if requestPN == rl.earliestActivePulse {
+			rl.earliestActivePulse = rl.minActivePulse()
 		}
 	}
+}
 
-	rl.earliestPulse = min
+func (rl *PendingList) minActivePulse() pulse.Number {
+	min := pulse.Unknown
+	for p := range rl.activity {
+		if min == pulse.Unknown || p < min {
+			min = p
+		}
+	}
+	return min
 }
 
 func (rl *PendingList) Finish(ref reference.Global) bool {
@@ -102,12 +124,9 @@ func (rl *PendingList) Finish(ref reference.Global) bool {
 	}
 
 	rl.requests[ref] = false
-	rl.countActive--
 	rl.countFinish++
 
-	if ref.GetLocal().GetPulseNumber() == rl.earliestPulse {
-		rl.calculateEarliestPulse()
-	}
+	rl.delistActivity(ref.GetLocal().GetPulseNumber())
 
 	return true
 }
@@ -125,5 +144,5 @@ func (rl *PendingList) CountActive() int {
 }
 
 func (rl *PendingList) EarliestPulse() pulse.Number {
-	return rl.earliestPulse
+	return rl.earliestActivePulse
 }

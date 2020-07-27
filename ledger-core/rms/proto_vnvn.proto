@@ -8,7 +8,8 @@ import "rms.proto";
 import "proto_records.proto";
 
 option (insproto.notation_all) = true;
-option (insproto.context_all) = "MessageContext";
+option (insproto.context_all) = "MessageVisitor";
+option (insproto.context_method_all) = "Visit";
 option (insproto.message_ctx_apply_all) = "Message";
 option (insproto.register_all) = "RegisterMessageType";
 option (insproto.projection_names) = "Head";
@@ -31,6 +32,6 @@ message MessageExample {
         reserved 1 to 19;
         // mention some fields from Msg and/or Record, without extensions
         uint64 MsgParam = 1800;
-        Binary Str = 21;
+        Binary Str = 40;
     }
 }

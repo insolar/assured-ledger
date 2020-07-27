@@ -3,6 +3,8 @@ on:
   push:
     branches:
       - master
+      - staging
+      - trying
   pull_request:
   schedule:
     - cron: '0 2,4,6 * * *'
@@ -10,7 +12,6 @@ env:
   GO_VERSION: 1.14
   CI_GOMAXPROCS: 0
   INSOLAR_LOG_LEVEL: warn
-  GOTEST: 'gotestsum --'
 jobs:
   tests-on-windows:
     name: windows-checks # don't change, this name is used in repository restricts!
@@ -22,19 +23,34 @@ jobs:
       BUILD_TIME: 123456
     steps:
       - name: Checkout code
-        uses: actions/checkout@master
+        uses: actions/checkout@v2
         with:
           path: go/src/github.com/insolar/assured-ledger
+          # Check out pull request's HEAD commit instead of the merge commit to
+          # work-around an issue where wrong a commit is being checked out.
+          # For more details, see:
+          # https://github.com/actions/checkout/issues/299.
+          ref: ${{ github.event.pull_request.head.sha }}
       - name: Set up go ${{env.GO_VERSION}}
         uses: actions/setup-go@v2
         with:
           go-version: ${{env.GO_VERSION}}
       - name: Add bin to path
         run: echo "::add-path::${{env.GOPATH}}\\bin"
-      - name: Fetch vendor and check succesful build
+      - name: Go mod cache setup
+        uses: actions/cache@v2
+        with:
+          path: ${{env.GOPATH}}/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: Fetch dependencies
         run: |
           go mod download
-          make vendor pre-build build
+          make vendor
+        working-directory: ${{env.WORKDIR}}
+      - name: Check succesful build
+        run: make pre-build build
         working-directory: ${{env.WORKDIR}}
       - name: Run unit and slow tests and check code coverage
         if: always()

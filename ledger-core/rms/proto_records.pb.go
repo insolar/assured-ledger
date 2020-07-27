@@ -25,13 +25,106 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
+type FilamentState int32
+
+const (
+	FilamentState_Unknown          FilamentState = 0
+	FilamentState_Started          FilamentState = 1
+	FilamentState_Activated        FilamentState = 2
+	FilamentState_DirtyDeactivated FilamentState = 126
+	FilamentState_Dead             FilamentState = 127
+)
+
+var FilamentState_name = map[int32]string{
+	0:   "Unknown",
+	1:   "Started",
+	2:   "Activated",
+	126: "DirtyDeactivated",
+	127: "Dead",
+}
+
+var FilamentState_value = map[string]int32{
+	"Unknown":          0,
+	"Started":          1,
+	"Activated":        2,
+	"DirtyDeactivated": 126,
+	"Dead":             127,
+}
+
+func (x FilamentState) String() string {
+	return proto.EnumName(FilamentState_name, int32(x))
+}
+
+func (FilamentState) EnumDescriptor() ([]byte, []int) {
+	return fileDescriptor_f41a5838de60d5c2, []int{0}
+}
+
+type FilamentType int32
+
+const (
+	FilamentType_Lifeline        FilamentType = 0
+	FilamentType_Sideline        FilamentType = 1
+	FilamentType_InboundFilament FilamentType = 16
+)
+
+var FilamentType_name = map[int32]string{
+	0:  "Lifeline",
+	1:  "Sideline",
+	16: "InboundFilament",
+}
+
+var FilamentType_value = map[string]int32{
+	"Lifeline":        0,
+	"Sideline":        1,
+	"InboundFilament": 16,
+}
+
+func (x FilamentType) String() string {
+	return proto.EnumName(FilamentType_name, int32(x))
+}
+
+func (FilamentType) EnumDescriptor() ([]byte, []int) {
+	return fileDescriptor_f41a5838de60d5c2, []int{1}
+}
+
+type MemorySafety int32
+
+const (
+	MemorySafety_UnknownSafety MemorySafety = 0
+	MemorySafety_Dirty         MemorySafety = 1
+	MemorySafety_Validated     MemorySafety = 2
+	MemorySafety_Final         MemorySafety = 3
+)
+
+var MemorySafety_name = map[int32]string{
+	0: "UnknownSafety",
+	1: "Dirty",
+	2: "Validated",
+	3: "Final",
+}
+
+var MemorySafety_value = map[string]int32{
+	"UnknownSafety": 0,
+	"Dirty":         1,
+	"Validated":     2,
+	"Final":         3,
+}
+
+func (x MemorySafety) String() string {
+	return proto.EnumName(MemorySafety_name, int32(x))
+}
+
+func (MemorySafety) EnumDescriptor() ([]byte, []int) {
+	return fileDescriptor_f41a5838de60d5c2, []int{2}
+}
+
 type RecordExample struct {
 	Polymorph  uint32 `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph"`
 	RecordBody `protobuf:"bytes,19,opt,name=RecordBody,proto3,embedded=RecordBody" json:"RecordBody"`
 	// Add custom fields here
-	Str      Binary             `protobuf:"bytes,21,opt,name=Str,proto3" json:"Str"`
-	Ref1     Reference          `protobuf:"bytes,22,opt,name=Ref1,proto3" json:"Ref1"`
-	AsOf     PulseNumber        `protobuf:"varint,23,opt,name=AsOf,proto3,casttype=PulseNumber" json:"AsOf"`
+	Str      Binary             `protobuf:"bytes,40,opt,name=Str,proto3" json:"Str"`
+	Ref1     Reference          `protobuf:"bytes,41,opt,name=Ref1,proto3" json:"Ref1"`
+	AsOf     PulseNumber        `protobuf:"varint,42,opt,name=AsOf,proto3,casttype=PulseNumber" json:"AsOf"`
 	FieldMap *insproto.FieldMap `protobuf:"bytes,19999,opt,name=FieldMap,proto3" json:"FieldMap,omitempty"`
 }
 
@@ -99,43 +192,738 @@ func (m *RecordExample) GetFieldMap() *insproto.FieldMap {
 	return nil
 }
 
+type RLineRecap struct {
+	RecordBody      `protobuf:"bytes,19,opt,name=RecordBody,proto3,embedded=RecordBody" json:"RecordBody"`
+	PrevRef         Reference          `protobuf:"bytes,24,opt,name=PrevRef,proto3" json:"PrevRef"`
+	RootRef         Reference          `protobuf:"bytes,25,opt,name=RootRef,proto3" json:"RootRef"`
+	State           FilamentState      `protobuf:"varint,40,opt,name=State,proto3,enum=rms.FilamentState" json:"State"`
+	Type            FilamentType       `protobuf:"varint,41,opt,name=Type,proto3,enum=rms.FilamentType" json:"Type"`
+	PrevType        uint32             `protobuf:"varint,42,opt,name=PrevType,proto3" json:"PrevType"`
+	RedirectToType  uint32             `protobuf:"varint,43,opt,name=RedirectToType,proto3" json:"RedirectToType"`
+	PrevRedirectRef Reference          `protobuf:"bytes,44,opt,name=PrevRedirectRef,proto3" json:"PrevRedirectRef"`
+	Memory          []MemoryRecap      `protobuf:"bytes,50,rep,name=Memory,proto3" json:"Memory"`
+	FieldMap        *insproto.FieldMap `protobuf:"bytes,19999,opt,name=FieldMap,proto3" json:"FieldMap,omitempty"`
+}
+
+func (m *RLineRecap) Reset()         { *m = RLineRecap{} }
+func (m *RLineRecap) String() string { return proto.CompactTextString(m) }
+func (*RLineRecap) ProtoMessage()    {}
+func (*RLineRecap) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f41a5838de60d5c2, []int{1}
+}
+func (m *RLineRecap) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *RLineRecap) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *RLineRecap) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RLineRecap.Merge(m, src)
+}
+func (m *RLineRecap) XXX_Size() int {
+	return m.ProtoSize()
+}
+func (m *RLineRecap) XXX_DiscardUnknown() {
+	xxx_messageInfo_RLineRecap.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RLineRecap proto.InternalMessageInfo
+
+func (m *RLineRecap) GetPrevRef() Reference {
+	if m != nil {
+		return m.PrevRef
+	}
+	return Reference{}
+}
+
+func (m *RLineRecap) GetRootRef() Reference {
+	if m != nil {
+		return m.RootRef
+	}
+	return Reference{}
+}
+
+func (m *RLineRecap) GetState() FilamentState {
+	if m != nil {
+		return m.State
+	}
+	return FilamentState_Unknown
+}
+
+func (m *RLineRecap) GetType() FilamentType {
+	if m != nil {
+		return m.Type
+	}
+	return FilamentType_Lifeline
+}
+
+func (m *RLineRecap) GetPrevType() uint32 {
+	if m != nil {
+		return m.PrevType
+	}
+	return 0
+}
+
+func (m *RLineRecap) GetRedirectToType() uint32 {
+	if m != nil {
+		return m.RedirectToType
+	}
+	return 0
+}
+
+func (m *RLineRecap) GetPrevRedirectRef() Reference {
+	if m != nil {
+		return m.PrevRedirectRef
+	}
+	return Reference{}
+}
+
+func (m *RLineRecap) GetMemory() []MemoryRecap {
+	if m != nil {
+		return m.Memory
+	}
+	return nil
+}
+
+func (m *RLineRecap) GetFieldMap() *insproto.FieldMap {
+	if m != nil {
+		return m.FieldMap
+	}
+	return nil
+}
+
+type MemoryRecap struct {
+	Safety MemorySafety `protobuf:"varint,20,opt,name=Safety,proto3,enum=rms.MemorySafety" json:"Safety"`
+	Memory Reference    `protobuf:"bytes,21,opt,name=Memory,proto3" json:"Memory"`
+}
+
+func (m *MemoryRecap) Reset()         { *m = MemoryRecap{} }
+func (m *MemoryRecap) String() string { return proto.CompactTextString(m) }
+func (*MemoryRecap) ProtoMessage()    {}
+func (*MemoryRecap) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f41a5838de60d5c2, []int{2}
+}
+func (m *MemoryRecap) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *MemoryRecap) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *MemoryRecap) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MemoryRecap.Merge(m, src)
+}
+func (m *MemoryRecap) XXX_Size() int {
+	return m.ProtoSize()
+}
+func (m *MemoryRecap) XXX_DiscardUnknown() {
+	xxx_messageInfo_MemoryRecap.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_MemoryRecap proto.InternalMessageInfo
+
+func (m *MemoryRecap) GetSafety() MemorySafety {
+	if m != nil {
+		return m.Safety
+	}
+	return MemorySafety_UnknownSafety
+}
+
+func (m *MemoryRecap) GetMemory() Reference {
+	if m != nil {
+		return m.Memory
+	}
+	return Reference{}
+}
+
+type RPrevDropReport struct {
+	RecordBody `protobuf:"bytes,19,opt,name=RecordBody,proto3,embedded=RecordBody" json:"RecordBody"`
+	FieldMap   *insproto.FieldMap `protobuf:"bytes,19999,opt,name=FieldMap,proto3" json:"FieldMap,omitempty"`
+}
+
+func (m *RPrevDropReport) Reset()         { *m = RPrevDropReport{} }
+func (m *RPrevDropReport) String() string { return proto.CompactTextString(m) }
+func (*RPrevDropReport) ProtoMessage()    {}
+func (*RPrevDropReport) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f41a5838de60d5c2, []int{3}
+}
+func (m *RPrevDropReport) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *RPrevDropReport) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *RPrevDropReport) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RPrevDropReport.Merge(m, src)
+}
+func (m *RPrevDropReport) XXX_Size() int {
+	return m.ProtoSize()
+}
+func (m *RPrevDropReport) XXX_DiscardUnknown() {
+	xxx_messageInfo_RPrevDropReport.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RPrevDropReport proto.InternalMessageInfo
+
+func (m *RPrevDropReport) GetFieldMap() *insproto.FieldMap {
+	if m != nil {
+		return m.FieldMap
+	}
+	return nil
+}
+
+type RLineActivate struct {
+	RecordBody `protobuf:"bytes,19,opt,name=RecordBody,proto3,embedded=RecordBody" json:"RecordBody"`
+	FieldMap   *insproto.FieldMap `protobuf:"bytes,19999,opt,name=FieldMap,proto3" json:"FieldMap,omitempty"`
+}
+
+func (m *RLineActivate) Reset()         { *m = RLineActivate{} }
+func (m *RLineActivate) String() string { return proto.CompactTextString(m) }
+func (*RLineActivate) ProtoMessage()    {}
+func (*RLineActivate) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f41a5838de60d5c2, []int{4}
+}
+func (m *RLineActivate) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *RLineActivate) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *RLineActivate) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RLineActivate.Merge(m, src)
+}
+func (m *RLineActivate) XXX_Size() int {
+	return m.ProtoSize()
+}
+func (m *RLineActivate) XXX_DiscardUnknown() {
+	xxx_messageInfo_RLineActivate.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RLineActivate proto.InternalMessageInfo
+
+func (m *RLineActivate) GetFieldMap() *insproto.FieldMap {
+	if m != nil {
+		return m.FieldMap
+	}
+	return nil
+}
+
+type RLineDeactivate struct {
+	RecordBody `protobuf:"bytes,19,opt,name=RecordBody,proto3,embedded=RecordBody" json:"RecordBody"`
+	FieldMap   *insproto.FieldMap `protobuf:"bytes,19999,opt,name=FieldMap,proto3" json:"FieldMap,omitempty"`
+}
+
+func (m *RLineDeactivate) Reset()         { *m = RLineDeactivate{} }
+func (m *RLineDeactivate) String() string { return proto.CompactTextString(m) }
+func (*RLineDeactivate) ProtoMessage()    {}
+func (*RLineDeactivate) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f41a5838de60d5c2, []int{5}
+}
+func (m *RLineDeactivate) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *RLineDeactivate) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *RLineDeactivate) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RLineDeactivate.Merge(m, src)
+}
+func (m *RLineDeactivate) XXX_Size() int {
+	return m.ProtoSize()
+}
+func (m *RLineDeactivate) XXX_DiscardUnknown() {
+	xxx_messageInfo_RLineDeactivate.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RLineDeactivate proto.InternalMessageInfo
+
+func (m *RLineDeactivate) GetFieldMap() *insproto.FieldMap {
+	if m != nil {
+		return m.FieldMap
+	}
+	return nil
+}
+
+type RLineMemory struct {
+	Polymorph  uint32 `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph"`
+	RecordBody `protobuf:"bytes,19,opt,name=RecordBody,proto3,embedded=RecordBody" json:"RecordBody"`
+	FieldMap   *insproto.FieldMap `protobuf:"bytes,19999,opt,name=FieldMap,proto3" json:"FieldMap,omitempty"`
+}
+
+func (m *RLineMemory) Reset()         { *m = RLineMemory{} }
+func (m *RLineMemory) String() string { return proto.CompactTextString(m) }
+func (*RLineMemory) ProtoMessage()    {}
+func (*RLineMemory) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f41a5838de60d5c2, []int{6}
+}
+func (m *RLineMemory) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *RLineMemory) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *RLineMemory) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RLineMemory.Merge(m, src)
+}
+func (m *RLineMemory) XXX_Size() int {
+	return m.ProtoSize()
+}
+func (m *RLineMemory) XXX_DiscardUnknown() {
+	xxx_messageInfo_RLineMemory.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RLineMemory proto.InternalMessageInfo
+
+func (m *RLineMemory) GetPolymorph() uint32 {
+	if m != nil {
+		return m.Polymorph
+	}
+	return 0
+}
+
+func (m *RLineMemory) GetFieldMap() *insproto.FieldMap {
+	if m != nil {
+		return m.FieldMap
+	}
+	return nil
+}
+
+type RLineMemoryExpected struct {
+	RecordBody `protobuf:"bytes,19,opt,name=RecordBody,proto3,embedded=RecordBody" json:"RecordBody"`
+	FieldMap   *insproto.FieldMap `protobuf:"bytes,19999,opt,name=FieldMap,proto3" json:"FieldMap,omitempty"`
+}
+
+func (m *RLineMemoryExpected) Reset()         { *m = RLineMemoryExpected{} }
+func (m *RLineMemoryExpected) String() string { return proto.CompactTextString(m) }
+func (*RLineMemoryExpected) ProtoMessage()    {}
+func (*RLineMemoryExpected) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f41a5838de60d5c2, []int{7}
+}
+func (m *RLineMemoryExpected) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *RLineMemoryExpected) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *RLineMemoryExpected) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RLineMemoryExpected.Merge(m, src)
+}
+func (m *RLineMemoryExpected) XXX_Size() int {
+	return m.ProtoSize()
+}
+func (m *RLineMemoryExpected) XXX_DiscardUnknown() {
+	xxx_messageInfo_RLineMemoryExpected.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RLineMemoryExpected proto.InternalMessageInfo
+
+func (m *RLineMemoryExpected) GetFieldMap() *insproto.FieldMap {
+	if m != nil {
+		return m.FieldMap
+	}
+	return nil
+}
+
+type RLineMemoryReuse struct {
+	RecordBody `protobuf:"bytes,19,opt,name=RecordBody,proto3,embedded=RecordBody" json:"RecordBody"`
+	FieldMap   *insproto.FieldMap `protobuf:"bytes,19999,opt,name=FieldMap,proto3" json:"FieldMap,omitempty"`
+}
+
+func (m *RLineMemoryReuse) Reset()         { *m = RLineMemoryReuse{} }
+func (m *RLineMemoryReuse) String() string { return proto.CompactTextString(m) }
+func (*RLineMemoryReuse) ProtoMessage()    {}
+func (*RLineMemoryReuse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f41a5838de60d5c2, []int{8}
+}
+func (m *RLineMemoryReuse) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *RLineMemoryReuse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *RLineMemoryReuse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RLineMemoryReuse.Merge(m, src)
+}
+func (m *RLineMemoryReuse) XXX_Size() int {
+	return m.ProtoSize()
+}
+func (m *RLineMemoryReuse) XXX_DiscardUnknown() {
+	xxx_messageInfo_RLineMemoryReuse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RLineMemoryReuse proto.InternalMessageInfo
+
+func (m *RLineMemoryReuse) GetFieldMap() *insproto.FieldMap {
+	if m != nil {
+		return m.FieldMap
+	}
+	return nil
+}
+
+type RLineInboundRequest struct {
+	RecordBody `protobuf:"bytes,19,opt,name=RecordBody,proto3,embedded=RecordBody" json:"RecordBody"`
+	FieldMap   *insproto.FieldMap `protobuf:"bytes,19999,opt,name=FieldMap,proto3" json:"FieldMap,omitempty"`
+}
+
+func (m *RLineInboundRequest) Reset()         { *m = RLineInboundRequest{} }
+func (m *RLineInboundRequest) String() string { return proto.CompactTextString(m) }
+func (*RLineInboundRequest) ProtoMessage()    {}
+func (*RLineInboundRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f41a5838de60d5c2, []int{9}
+}
+func (m *RLineInboundRequest) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *RLineInboundRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *RLineInboundRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RLineInboundRequest.Merge(m, src)
+}
+func (m *RLineInboundRequest) XXX_Size() int {
+	return m.ProtoSize()
+}
+func (m *RLineInboundRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_RLineInboundRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RLineInboundRequest proto.InternalMessageInfo
+
+func (m *RLineInboundRequest) GetFieldMap() *insproto.FieldMap {
+	if m != nil {
+		return m.FieldMap
+	}
+	return nil
+}
+
+type RInboundRequest struct {
+	RecordBody `protobuf:"bytes,19,opt,name=RecordBody,proto3,embedded=RecordBody" json:"RecordBody"`
+	FieldMap   *insproto.FieldMap `protobuf:"bytes,19999,opt,name=FieldMap,proto3" json:"FieldMap,omitempty"`
+}
+
+func (m *RInboundRequest) Reset()         { *m = RInboundRequest{} }
+func (m *RInboundRequest) String() string { return proto.CompactTextString(m) }
+func (*RInboundRequest) ProtoMessage()    {}
+func (*RInboundRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f41a5838de60d5c2, []int{10}
+}
+func (m *RInboundRequest) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *RInboundRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *RInboundRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RInboundRequest.Merge(m, src)
+}
+func (m *RInboundRequest) XXX_Size() int {
+	return m.ProtoSize()
+}
+func (m *RInboundRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_RInboundRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RInboundRequest proto.InternalMessageInfo
+
+func (m *RInboundRequest) GetFieldMap() *insproto.FieldMap {
+	if m != nil {
+		return m.FieldMap
+	}
+	return nil
+}
+
+type RInboundResponse struct {
+	RecordBody `protobuf:"bytes,19,opt,name=RecordBody,proto3,embedded=RecordBody" json:"RecordBody"`
+	FieldMap   *insproto.FieldMap `protobuf:"bytes,19999,opt,name=FieldMap,proto3" json:"FieldMap,omitempty"`
+}
+
+func (m *RInboundResponse) Reset()         { *m = RInboundResponse{} }
+func (m *RInboundResponse) String() string { return proto.CompactTextString(m) }
+func (*RInboundResponse) ProtoMessage()    {}
+func (*RInboundResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f41a5838de60d5c2, []int{11}
+}
+func (m *RInboundResponse) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *RInboundResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *RInboundResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RInboundResponse.Merge(m, src)
+}
+func (m *RInboundResponse) XXX_Size() int {
+	return m.ProtoSize()
+}
+func (m *RInboundResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_RInboundResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_RInboundResponse proto.InternalMessageInfo
+
+func (m *RInboundResponse) GetFieldMap() *insproto.FieldMap {
+	if m != nil {
+		return m.FieldMap
+	}
+	return nil
+}
+
+type ROutboundResponse struct {
+	RecordBody `protobuf:"bytes,19,opt,name=RecordBody,proto3,embedded=RecordBody" json:"RecordBody"`
+	FieldMap   *insproto.FieldMap `protobuf:"bytes,19999,opt,name=FieldMap,proto3" json:"FieldMap,omitempty"`
+}
+
+func (m *ROutboundResponse) Reset()         { *m = ROutboundResponse{} }
+func (m *ROutboundResponse) String() string { return proto.CompactTextString(m) }
+func (*ROutboundResponse) ProtoMessage()    {}
+func (*ROutboundResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f41a5838de60d5c2, []int{12}
+}
+func (m *ROutboundResponse) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *ROutboundResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *ROutboundResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ROutboundResponse.Merge(m, src)
+}
+func (m *ROutboundResponse) XXX_Size() int {
+	return m.ProtoSize()
+}
+func (m *ROutboundResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_ROutboundResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ROutboundResponse proto.InternalMessageInfo
+
+func (m *ROutboundResponse) GetFieldMap() *insproto.FieldMap {
+	if m != nil {
+		return m.FieldMap
+	}
+	return nil
+}
+
+type ROutboundRequest struct {
+	Polymorph  uint32 `protobuf:"varint,16,opt,name=Polymorph,proto3" json:"Polymorph"`
+	RecordBody `protobuf:"bytes,19,opt,name=RecordBody,proto3,embedded=RecordBody" json:"RecordBody"`
+	PrevRef    Reference `protobuf:"bytes,24,opt,name=PrevRef,proto3" json:"PrevRef"`
+	RootRef    Reference `protobuf:"bytes,25,opt,name=RootRef,proto3" json:"RootRef"`
+	// Add custom fields here
+	Str      string             `protobuf:"bytes,40,opt,name=Str,proto3" json:"Str"`
+	FieldMap *insproto.FieldMap `protobuf:"bytes,19999,opt,name=FieldMap,proto3" json:"FieldMap,omitempty"`
+}
+
+func (m *ROutboundRequest) Reset()         { *m = ROutboundRequest{} }
+func (m *ROutboundRequest) String() string { return proto.CompactTextString(m) }
+func (*ROutboundRequest) ProtoMessage()    {}
+func (*ROutboundRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_f41a5838de60d5c2, []int{13}
+}
+func (m *ROutboundRequest) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *ROutboundRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *ROutboundRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ROutboundRequest.Merge(m, src)
+}
+func (m *ROutboundRequest) XXX_Size() int {
+	return m.ProtoSize()
+}
+func (m *ROutboundRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_ROutboundRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ROutboundRequest proto.InternalMessageInfo
+
+func (m *ROutboundRequest) GetPolymorph() uint32 {
+	if m != nil {
+		return m.Polymorph
+	}
+	return 0
+}
+
+func (m *ROutboundRequest) GetPrevRef() Reference {
+	if m != nil {
+		return m.PrevRef
+	}
+	return Reference{}
+}
+
+func (m *ROutboundRequest) GetRootRef() Reference {
+	if m != nil {
+		return m.RootRef
+	}
+	return Reference{}
+}
+
+func (m *ROutboundRequest) GetStr() string {
+	if m != nil {
+		return m.Str
+	}
+	return ""
+}
+
+func (m *ROutboundRequest) GetFieldMap() *insproto.FieldMap {
+	if m != nil {
+		return m.FieldMap
+	}
+	return nil
+}
+
 func init() {
+	proto.RegisterEnum("rms.FilamentState", FilamentState_name, FilamentState_value)
+	proto.RegisterEnum("rms.FilamentType", FilamentType_name, FilamentType_value)
+	proto.RegisterEnum("rms.MemorySafety", MemorySafety_name, MemorySafety_value)
 	proto.RegisterType((*RecordExample)(nil), "rms.RecordExample")
+	proto.RegisterType((*RLineRecap)(nil), "rms.RLineRecap")
+	proto.RegisterType((*MemoryRecap)(nil), "rms.MemoryRecap")
+	proto.RegisterType((*RPrevDropReport)(nil), "rms.RPrevDropReport")
+	proto.RegisterType((*RLineActivate)(nil), "rms.RLineActivate")
+	proto.RegisterType((*RLineDeactivate)(nil), "rms.RLineDeactivate")
+	proto.RegisterType((*RLineMemory)(nil), "rms.RLineMemory")
+	proto.RegisterType((*RLineMemoryExpected)(nil), "rms.RLineMemoryExpected")
+	proto.RegisterType((*RLineMemoryReuse)(nil), "rms.RLineMemoryReuse")
+	proto.RegisterType((*RLineInboundRequest)(nil), "rms.RLineInboundRequest")
+	proto.RegisterType((*RInboundRequest)(nil), "rms.RInboundRequest")
+	proto.RegisterType((*RInboundResponse)(nil), "rms.RInboundResponse")
+	proto.RegisterType((*ROutboundResponse)(nil), "rms.ROutboundResponse")
+	proto.RegisterType((*ROutboundRequest)(nil), "rms.ROutboundRequest")
 }
 
 func init() { proto.RegisterFile("proto_records.proto", fileDescriptor_f41a5838de60d5c2) }
 
 var fileDescriptor_f41a5838de60d5c2 = []byte{
-	// 449 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x4c, 0x91, 0xbf, 0x8b, 0xd4, 0x40,
-	0x14, 0xc7, 0x33, 0xb7, 0xe1, 0xc8, 0xce, 0x7a, 0x67, 0x9c, 0xf5, 0x47, 0xd8, 0x62, 0x66, 0x39,
-	0x0b, 0xaf, 0x70, 0xb3, 0xa8, 0x8d, 0x5a, 0x69, 0x44, 0x8b, 0x05, 0xf5, 0x88, 0xf6, 0x92, 0x4d,
-	0xde, 0xe6, 0x02, 0x49, 0x26, 0x4c, 0x12, 0xb8, 0xed, 0xf2, 0x27, 0x08, 0x82, 0x70, 0x8b, 0xe0,
-	0x95, 0x62, 0xe9, 0x5f, 0x60, 0x23, 0x6c, 0xb9, 0xe5, 0x16, 0xb2, 0x68, 0xd2, 0x08, 0xfe, 0x07,
-	0xd7, 0x28, 0x99, 0xe4, 0x7e, 0x54, 0x99, 0xf7, 0x7d, 0x9f, 0xef, 0x7b, 0x5f, 0x5e, 0x70, 0x3f,
-	0x11, 0x3c, 0xe3, 0xef, 0x04, 0xb8, 0x5c, 0x78, 0xa9, 0x29, 0x2b, 0xd2, 0x11, 0x51, 0x3a, 0x18,
-	0xf9, 0x41, 0x76, 0x98, 0x4f, 0x4d, 0x97, 0x47, 0x63, 0x9f, 0xfb, 0x7c, 0x2c, 0x7b, 0xd3, 0x7c,
-	0x26, 0x2b, 0x59, 0xc8, 0x57, 0xe3, 0x19, 0x3c, 0xb9, 0x84, 0x07, 0x71, 0xca, 0x43, 0x47, 0x8c,
-	0x9d, 0x34, 0xcd, 0x05, 0x78, 0xa3, 0x10, 0x3c, 0x1f, 0xc4, 0xb8, 0xf9, 0x8c, 0x5c, 0x2e, 0xa0,
-	0x46, 0x9a, 0x11, 0x41, 0xdc, 0x6e, 0x1d, 0x74, 0x45, 0xd4, 0x3e, 0xf7, 0x7e, 0x6c, 0xe1, 0x1d,
-	0x5b, 0x46, 0x7a, 0x7e, 0xe4, 0x44, 0x49, 0x08, 0x64, 0x0f, 0x77, 0x0f, 0x78, 0x38, 0x8f, 0xb8,
-	0x48, 0x0e, 0x0d, 0x7d, 0x88, 0xf6, 0x77, 0x2c, 0x75, 0xb9, 0x61, 0x8a, 0x7d, 0x21, 0x93, 0x47,
-	0x18, 0x37, 0x26, 0x8b, 0x7b, 0x73, 0xa3, 0x3f, 0x44, 0xfb, 0xbd, 0xfb, 0x57, 0xcd, 0x7a, 0xea,
-	0x85, 0x6c, 0x69, 0xb5, 0x6b, 0xb5, 0x61, 0xc8, 0xbe, 0x04, 0x93, 0xdb, 0xb8, 0xf3, 0x26, 0x13,
-	0xc6, 0x0d, 0xe9, 0xe9, 0x49, 0x8f, 0x15, 0xc4, 0x8e, 0x98, 0xb7, 0x5b, 0xea, 0x2e, 0x79, 0x88,
-	0x55, 0x1b, 0x66, 0xf7, 0x8c, 0x9b, 0x92, 0xda, 0x6d, 0x27, 0xcf, 0x40, 0x40, 0xec, 0x82, 0x75,
-	0xbd, 0x06, 0x4f, 0x3f, 0x0e, 0xaf, 0xd8, 0xe0, 0x9e, 0xab, 0xb6, 0x74, 0x90, 0x3b, 0x58, 0x7d,
-	0x9a, 0xbe, 0x9e, 0x19, 0xb7, 0x64, 0xf0, 0xbe, 0x24, 0x37, 0xac, 0x77, 0x90, 0x87, 0x29, 0xbc,
-	0xca, 0xa3, 0x29, 0x08, 0x5b, 0x02, 0xe4, 0x2e, 0xd6, 0x5e, 0x04, 0x10, 0x7a, 0x2f, 0x9d, 0xc4,
-	0xf8, 0xfc, 0x09, 0xc9, 0x45, 0xc4, 0x3c, 0x3b, 0x96, 0x79, 0xd6, 0x93, 0xa9, 0xd0, 0x63, 0xed,
-	0xfb, 0x9a, 0xfd, 0xfb, 0xf0, 0xf7, 0x67, 0x67, 0xa2, 0x6a, 0x48, 0xd7, 0x27, 0xaa, 0x76, 0x4d,
-	0xef, 0x4f, 0xba, 0x5a, 0xb1, 0xab, 0x17, 0x45, 0x51, 0x6c, 0x59, 0xce, 0xf2, 0x37, 0x45, 0x5f,
-	0x4a, 0x8a, 0x96, 0x25, 0x45, 0xab, 0x92, 0xa2, 0x75, 0x49, 0xd1, 0xaf, 0x92, 0x2a, 0xef, 0x2b,
-	0xaa, 0x9c, 0x54, 0x14, 0xad, 0x2a, 0xaa, 0xac, 0x2b, 0xaa, 0xfc, 0x39, 0x66, 0xe8, 0xf4, 0x98,
-	0x6d, 0x37, 0x27, 0x39, 0x59, 0x30, 0xf4, 0x75, 0xc1, 0x88, 0x0d, 0x7e, 0x90, 0x66, 0x20, 0x1a,
-	0xf5, 0xed, 0x3c, 0x81, 0x6f, 0x0b, 0xd6, 0xfe, 0x98, 0x67, 0x3c, 0xce, 0xe0, 0x28, 0x9b, 0x6e,
-	0xcb, 0x64, 0x0f, 0xfe, 0x07, 0x00, 0x00, 0xff, 0xff, 0x42, 0xd5, 0x1a, 0x27, 0x49, 0x02, 0x00,
-	0x00,
+	// 996 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xc4, 0x96, 0x4f, 0x6f, 0x1b, 0xc5,
+	0x1b, 0xc7, 0x77, 0x92, 0x4d, 0xba, 0x7e, 0x1c, 0x27, 0x93, 0x71, 0x5a, 0x6d, 0xf3, 0xfb, 0xb1,
+	0x1b, 0x99, 0x03, 0xc6, 0x4d, 0x6c, 0x61, 0x2e, 0xd0, 0x03, 0x50, 0x2b, 0x8d, 0x84, 0xd5, 0xd2,
+	0x68, 0x5d, 0x2a, 0x6e, 0x68, 0xed, 0x1d, 0xbb, 0x0b, 0xeb, 0x9d, 0x65, 0x76, 0x5d, 0xea, 0x4b,
+	0x30, 0x88, 0x17, 0x80, 0x40, 0x20, 0x35, 0x42, 0xa2, 0x47, 0xc4, 0x91, 0x57, 0x10, 0x89, 0x4b,
+	0x24, 0x2e, 0x39, 0xfa, 0x80, 0xa2, 0xe2, 0x5c, 0x90, 0xb8, 0x71, 0xec, 0x05, 0xb4, 0x33, 0xeb,
+	0x78, 0x53, 0xaa, 0x88, 0xa8, 0x8a, 0x73, 0xb2, 0xe7, 0x79, 0x3e, 0xcf, 0xce, 0xf7, 0xf9, 0xb3,
+	0xb3, 0x03, 0xf9, 0x80, 0xb3, 0x88, 0x7d, 0xc8, 0x69, 0x8b, 0x71, 0x27, 0x2c, 0x8b, 0x15, 0x99,
+	0xe5, 0xdd, 0x70, 0x75, 0xa3, 0xe3, 0x46, 0xf7, 0x7b, 0xcd, 0x72, 0x8b, 0x75, 0x2b, 0x1d, 0xd6,
+	0x61, 0x15, 0xe1, 0x6b, 0xf6, 0xda, 0x62, 0x25, 0x16, 0xe2, 0x9f, 0x8c, 0x59, 0x7d, 0x27, 0x85,
+	0xbb, 0x7e, 0xc8, 0x3c, 0x9b, 0x57, 0xec, 0x30, 0xec, 0x71, 0xea, 0x6c, 0x78, 0xd4, 0xe9, 0x50,
+	0x5e, 0x91, 0x3f, 0x1b, 0x2d, 0xc6, 0x69, 0x8c, 0xc8, 0x47, 0xb8, 0x7e, 0xb2, 0xeb, 0x6a, 0x86,
+	0x77, 0x93, 0xbf, 0x85, 0x5f, 0x67, 0x20, 0x67, 0x09, 0x49, 0x37, 0x1f, 0xda, 0xdd, 0xc0, 0xa3,
+	0xa4, 0x00, 0x99, 0x6d, 0xe6, 0xf5, 0xbb, 0x8c, 0x07, 0xf7, 0x75, 0xbc, 0x86, 0x8a, 0xb9, 0x9a,
+	0xba, 0x7f, 0x68, 0x2a, 0xd6, 0xc4, 0x4c, 0xde, 0x04, 0x90, 0x41, 0x35, 0xe6, 0xf4, 0xf5, 0xfc,
+	0x1a, 0x2a, 0x66, 0xab, 0x4b, 0xe5, 0xf8, 0xa9, 0x13, 0x73, 0x4d, 0x8b, 0xa3, 0x0e, 0x0e, 0x4d,
+	0x64, 0xa5, 0x60, 0xf2, 0x32, 0xcc, 0x36, 0x22, 0xae, 0x17, 0x45, 0x4c, 0x56, 0xc4, 0xd4, 0x5c,
+	0xdf, 0xe6, 0xfd, 0x64, 0x97, 0xd8, 0x4b, 0xde, 0x00, 0xd5, 0xa2, 0xed, 0xd7, 0xf4, 0x57, 0x05,
+	0xb5, 0x98, 0x3c, 0xb9, 0x4d, 0x39, 0xf5, 0x5b, 0xb4, 0xb6, 0x12, 0x83, 0x4f, 0xbf, 0x5b, 0x5b,
+	0xb0, 0x68, 0xeb, 0xd8, 0x6a, 0x89, 0x08, 0xf2, 0x0a, 0xa8, 0x37, 0xc2, 0x3b, 0x6d, 0xbd, 0x24,
+	0x84, 0xe7, 0x05, 0x79, 0x68, 0x66, 0xb7, 0x7b, 0x5e, 0x48, 0xdf, 0xeb, 0x75, 0x9b, 0x94, 0x5b,
+	0x02, 0x20, 0xeb, 0xa0, 0x6d, 0xb9, 0xd4, 0x73, 0x6e, 0xdb, 0x81, 0xfe, 0xc3, 0xf7, 0x48, 0x6c,
+	0x44, 0xca, 0xe3, 0x62, 0x95, 0xc7, 0x3e, 0xa1, 0x0a, 0x5d, 0xd7, 0xf6, 0x86, 0xe6, 0xdf, 0xdf,
+	0xfc, 0xf9, 0xdb, 0x6c, 0x5d, 0xd5, 0x10, 0xc6, 0x75, 0x55, 0x5b, 0xc6, 0xf9, 0xba, 0xaa, 0xad,
+	0xe0, 0x62, 0x3d, 0xa3, 0x0d, 0x16, 0xf1, 0x60, 0x30, 0x18, 0xcc, 0x14, 0xbe, 0x55, 0x01, 0xac,
+	0x5b, 0xae, 0x4f, 0x2d, 0xda, 0xb2, 0x83, 0x17, 0x29, 0x53, 0x19, 0x2e, 0x6d, 0x73, 0xfa, 0xc0,
+	0xa2, 0x6d, 0x5d, 0x7f, 0x6e, 0x11, 0x64, 0xb5, 0xc6, 0x50, 0xcc, 0x5b, 0x8c, 0x45, 0x31, 0x7f,
+	0xf5, 0x34, 0x3e, 0x81, 0x48, 0x19, 0xe6, 0x1a, 0x91, 0x1d, 0x51, 0xd1, 0x88, 0xc5, 0x2a, 0x11,
+	0xf4, 0x96, 0xeb, 0xd9, 0x5d, 0xea, 0x47, 0xc2, 0x93, 0x44, 0x48, 0x8c, 0x5c, 0x03, 0xf5, 0x6e,
+	0x3f, 0xa0, 0xa2, 0x23, 0x8b, 0xd5, 0xe5, 0x13, 0x78, 0xec, 0x48, 0x68, 0x01, 0x91, 0x35, 0xd0,
+	0x62, 0x5d, 0x22, 0xa0, 0x94, 0x9a, 0xa0, 0x63, 0x2b, 0x59, 0x87, 0x45, 0x8b, 0x3a, 0x2e, 0xa7,
+	0xad, 0xe8, 0x2e, 0x13, 0xdc, 0xb5, 0x14, 0xf7, 0x8c, 0x8f, 0xbc, 0x05, 0x4b, 0x32, 0x4f, 0x69,
+	0x8d, 0x93, 0x5c, 0x3f, 0x25, 0xc9, 0x67, 0x61, 0x52, 0x86, 0xf9, 0xdb, 0xb4, 0xcb, 0x78, 0x5f,
+	0xaf, 0xae, 0xcd, 0x16, 0xb3, 0x55, 0x2c, 0xc2, 0xa4, 0x49, 0x74, 0x2a, 0x09, 0x4c, 0xa8, 0x33,
+	0xce, 0x86, 0xba, 0x37, 0x34, 0xf3, 0x62, 0x2e, 0xe4, 0x44, 0xe8, 0x75, 0x55, 0x5b, 0x3d, 0x39,
+	0x17, 0x3b, 0x90, 0x4d, 0xed, 0x46, 0x2a, 0x30, 0xdf, 0xb0, 0xdb, 0x34, 0xea, 0xeb, 0x2b, 0xa9,
+	0x72, 0x4a, 0x42, 0x3a, 0xc6, 0x82, 0xe4, 0x8a, 0xac, 0x1f, 0x27, 0x70, 0xf9, 0x94, 0xbc, 0x13,
+	0xe6, 0x3a, 0xde, 0x1b, 0x9a, 0xca, 0x70, 0x68, 0x2a, 0x4f, 0x86, 0xa6, 0xf2, 0xd7, 0xd0, 0x54,
+	0x0a, 0x03, 0x04, 0x4b, 0x56, 0x5c, 0x95, 0x4d, 0xce, 0x02, 0x8b, 0x06, 0x8c, 0x47, 0x2f, 0x32,
+	0x9c, 0x67, 0xaf, 0x8f, 0x52, 0xd8, 0x81, 0x9c, 0x78, 0x33, 0x6e, 0xb4, 0x22, 0xf7, 0x41, 0x3c,
+	0x51, 0x53, 0xdd, 0x7f, 0x45, 0x96, 0x20, 0x16, 0xb0, 0x49, 0xed, 0x0b, 0x91, 0x70, 0xb9, 0xf0,
+	0x0b, 0x82, 0xac, 0x90, 0x90, 0x8c, 0xd9, 0x39, 0x9f, 0xb4, 0x67, 0x97, 0x78, 0xe5, 0x5f, 0xa7,
+	0xdb, 0x73, 0x66, 0xf9, 0x4b, 0x04, 0xf9, 0x54, 0x16, 0x37, 0x1f, 0x06, 0xb4, 0x15, 0x51, 0x67,
+	0xba, 0x4a, 0xaf, 0x16, 0x3e, 0x47, 0x80, 0x53, 0x32, 0x2c, 0xda, 0x0b, 0xa7, 0xdc, 0xd0, 0xd5,
+	0x49, 0x29, 0xde, 0xf5, 0x9b, 0xac, 0xe7, 0x3b, 0x16, 0xfd, 0xa4, 0x47, 0xc3, 0x29, 0xbf, 0x5a,
+	0xff, 0x93, 0xa3, 0x7d, 0x91, 0x12, 0xfe, 0x2f, 0xbb, 0x71, 0x2c, 0x21, 0x0c, 0x98, 0x3f, 0xed,
+	0x6e, 0xbc, 0x54, 0xf8, 0x02, 0xc1, 0xb2, 0x75, 0xa7, 0x17, 0x5d, 0xa0, 0x08, 0xa3, 0xb0, 0x37,
+	0x03, 0x38, 0x25, 0x42, 0x36, 0xe3, 0x9c, 0x5f, 0xf4, 0xf3, 0xbe, 0x2b, 0x5c, 0x99, 0x5c, 0xd9,
+	0x32, 0xe9, 0x5b, 0xda, 0xd9, 0xeb, 0x63, 0xfe, 0x87, 0x03, 0xa6, 0xf4, 0x01, 0xe4, 0x4e, 0x5c,
+	0x44, 0x48, 0x16, 0x2e, 0xbd, 0xef, 0x7f, 0xec, 0xb3, 0x4f, 0x7d, 0xac, 0xc4, 0x8b, 0x46, 0x64,
+	0xf3, 0x88, 0x3a, 0x18, 0x91, 0x1c, 0x64, 0xc6, 0xdf, 0x13, 0x07, 0xcf, 0x90, 0x15, 0xc0, 0x9b,
+	0x2e, 0x8f, 0xfa, 0x93, 0x23, 0xde, 0xc1, 0x3b, 0x44, 0x03, 0x75, 0x93, 0xda, 0x0e, 0xfe, 0xac,
+	0xf4, 0x36, 0x2c, 0xa4, 0xef, 0x2c, 0x64, 0x01, 0xb4, 0x5b, 0x6e, 0x9b, 0x7a, 0xae, 0x4f, 0xb1,
+	0x12, 0xaf, 0x1a, 0xae, 0x23, 0x57, 0x88, 0xe4, 0x61, 0x29, 0x99, 0xe7, 0x71, 0x08, 0xc6, 0xa5,
+	0x2d, 0x58, 0x48, 0x7f, 0xa5, 0xc9, 0x32, 0xe4, 0x12, 0x65, 0xd2, 0x80, 0x15, 0x92, 0x81, 0x39,
+	0xa1, 0x41, 0xaa, 0xbb, 0x67, 0x7b, 0xae, 0x93, 0xa8, 0xcb, 0xc0, 0xdc, 0x96, 0xeb, 0xdb, 0x1e,
+	0x9e, 0xad, 0x7d, 0xb4, 0xff, 0xbb, 0x81, 0x7e, 0x1c, 0x19, 0x68, 0x7f, 0x64, 0xa0, 0x83, 0x91,
+	0x81, 0x86, 0x23, 0x03, 0x3d, 0x19, 0x19, 0xca, 0x57, 0x47, 0x86, 0xf2, 0xf8, 0xc8, 0x40, 0x07,
+	0x47, 0x86, 0x32, 0x3c, 0x32, 0x94, 0x3f, 0x1e, 0x99, 0xe8, 0xe9, 0x23, 0x73, 0x5e, 0x76, 0xfb,
+	0xeb, 0x5d, 0x73, 0xee, 0x9e, 0x1b, 0xba, 0xd1, 0xe3, 0x5d, 0x13, 0xfd, 0xb4, 0x6b, 0x12, 0x8b,
+	0x76, 0xdc, 0x30, 0xa2, 0x5c, 0xba, 0xe3, 0x9c, 0x7e, 0xde, 0x35, 0x93, 0xfb, 0xbc, 0x00, 0x19,
+	0x6f, 0xce, 0x8b, 0x6e, 0xbc, 0xfe, 0x4f, 0x00, 0x00, 0x00, 0xff, 0xff, 0x5b, 0xd9, 0xcd, 0xa3,
+	0x80, 0x0c, 0x00, 0x00,
 }
 
 func (this *RecordExample) Equal(that interface{}) bool {
@@ -177,14 +965,409 @@ func (this *RecordExample) Equal(that interface{}) bool {
 	}
 	return true
 }
-func (m *RecordExample) SetupContext(ctx RecordContext) error {
-	if err := ctx.RecReference(m, 22, &m.Ref1); err != nil {
+func (this *RLineRecap) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*RLineRecap)
+	if !ok {
+		that2, ok := that.(RLineRecap)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.RecordBody.Equal(&that1.RecordBody) {
+		return false
+	}
+	if !this.PrevRef.Equal(&that1.PrevRef) {
+		return false
+	}
+	if !this.RootRef.Equal(&that1.RootRef) {
+		return false
+	}
+	if this.State != that1.State {
+		return false
+	}
+	if this.Type != that1.Type {
+		return false
+	}
+	if this.PrevType != that1.PrevType {
+		return false
+	}
+	if this.RedirectToType != that1.RedirectToType {
+		return false
+	}
+	if !this.PrevRedirectRef.Equal(&that1.PrevRedirectRef) {
+		return false
+	}
+	if len(this.Memory) != len(that1.Memory) {
+		return false
+	}
+	for i := range this.Memory {
+		if !this.Memory[i].Equal(&that1.Memory[i]) {
+			return false
+		}
+	}
+	if !this.FieldMap.Equal(that1.FieldMap) {
+		return false
+	}
+	return true
+}
+func (this *MemoryRecap) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*MemoryRecap)
+	if !ok {
+		that2, ok := that.(MemoryRecap)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.Safety != that1.Safety {
+		return false
+	}
+	if !this.Memory.Equal(&that1.Memory) {
+		return false
+	}
+	return true
+}
+func (this *RPrevDropReport) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*RPrevDropReport)
+	if !ok {
+		that2, ok := that.(RPrevDropReport)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.RecordBody.Equal(&that1.RecordBody) {
+		return false
+	}
+	if !this.FieldMap.Equal(that1.FieldMap) {
+		return false
+	}
+	return true
+}
+func (this *RLineActivate) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*RLineActivate)
+	if !ok {
+		that2, ok := that.(RLineActivate)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.RecordBody.Equal(&that1.RecordBody) {
+		return false
+	}
+	if !this.FieldMap.Equal(that1.FieldMap) {
+		return false
+	}
+	return true
+}
+func (this *RLineDeactivate) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*RLineDeactivate)
+	if !ok {
+		that2, ok := that.(RLineDeactivate)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.RecordBody.Equal(&that1.RecordBody) {
+		return false
+	}
+	if !this.FieldMap.Equal(that1.FieldMap) {
+		return false
+	}
+	return true
+}
+func (this *RLineMemory) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*RLineMemory)
+	if !ok {
+		that2, ok := that.(RLineMemory)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.Polymorph != that1.Polymorph {
+		return false
+	}
+	if !this.RecordBody.Equal(&that1.RecordBody) {
+		return false
+	}
+	if !this.FieldMap.Equal(that1.FieldMap) {
+		return false
+	}
+	return true
+}
+func (this *RLineMemoryExpected) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*RLineMemoryExpected)
+	if !ok {
+		that2, ok := that.(RLineMemoryExpected)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.RecordBody.Equal(&that1.RecordBody) {
+		return false
+	}
+	if !this.FieldMap.Equal(that1.FieldMap) {
+		return false
+	}
+	return true
+}
+func (this *RLineMemoryReuse) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*RLineMemoryReuse)
+	if !ok {
+		that2, ok := that.(RLineMemoryReuse)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.RecordBody.Equal(&that1.RecordBody) {
+		return false
+	}
+	if !this.FieldMap.Equal(that1.FieldMap) {
+		return false
+	}
+	return true
+}
+func (this *RLineInboundRequest) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*RLineInboundRequest)
+	if !ok {
+		that2, ok := that.(RLineInboundRequest)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.RecordBody.Equal(&that1.RecordBody) {
+		return false
+	}
+	if !this.FieldMap.Equal(that1.FieldMap) {
+		return false
+	}
+	return true
+}
+func (this *RInboundRequest) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*RInboundRequest)
+	if !ok {
+		that2, ok := that.(RInboundRequest)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.RecordBody.Equal(&that1.RecordBody) {
+		return false
+	}
+	if !this.FieldMap.Equal(that1.FieldMap) {
+		return false
+	}
+	return true
+}
+func (this *RInboundResponse) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*RInboundResponse)
+	if !ok {
+		that2, ok := that.(RInboundResponse)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.RecordBody.Equal(&that1.RecordBody) {
+		return false
+	}
+	if !this.FieldMap.Equal(that1.FieldMap) {
+		return false
+	}
+	return true
+}
+func (this *ROutboundResponse) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*ROutboundResponse)
+	if !ok {
+		that2, ok := that.(ROutboundResponse)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.RecordBody.Equal(&that1.RecordBody) {
+		return false
+	}
+	if !this.FieldMap.Equal(that1.FieldMap) {
+		return false
+	}
+	return true
+}
+func (this *ROutboundRequest) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*ROutboundRequest)
+	if !ok {
+		that2, ok := that.(ROutboundRequest)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.Polymorph != that1.Polymorph {
+		return false
+	}
+	if !this.RecordBody.Equal(&that1.RecordBody) {
+		return false
+	}
+	if !this.PrevRef.Equal(&that1.PrevRef) {
+		return false
+	}
+	if !this.RootRef.Equal(&that1.RootRef) {
+		return false
+	}
+	if this.Str != that1.Str {
+		return false
+	}
+	if !this.FieldMap.Equal(that1.FieldMap) {
+		return false
+	}
+	return true
+}
+func (m *RecordExample) Visit(ctx RecordVisitor) error {
+	if err := ctx.RecReference(m, 41, &m.Ref1); err != nil {
 		return err
 	}
 	return ctx.Record(m, 999999999)
 }
 
-const TypeRecordExamplePolymorthID uint64 = 999999999
+const TypeRecordExamplePolymorthID = 999999999
 
 func (*RecordExample) GetDefaultPolymorphID() uint64 {
 	return 999999999
@@ -214,9 +1397,9 @@ func (m *RecordExample) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	if m.AsOf != 0 {
 		i = encodeVarintProtoRecords(dAtA, i, uint64(m.AsOf))
 		i--
-		dAtA[i] = 0x1
+		dAtA[i] = 0x2
 		i--
-		dAtA[i] = 0xb8
+		dAtA[i] = 0xd0
 	}
 	{
 		size, err := m.Ref1.MarshalToSizedBuffer(dAtA[:i])
@@ -227,9 +1410,9 @@ func (m *RecordExample) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 			i -= size
 			i = encodeVarintProtoRecords(dAtA, i, uint64(size))
 			i--
-			dAtA[i] = 0x1
+			dAtA[i] = 0x2
 			i--
-			dAtA[i] = 0xb2
+			dAtA[i] = 0xca
 		}
 	}
 	{
@@ -241,9 +1424,9 @@ func (m *RecordExample) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 			i -= size
 			i = encodeVarintProtoRecords(dAtA, i, uint64(size))
 			i--
-			dAtA[i] = 0x1
+			dAtA[i] = 0x2
 			i--
-			dAtA[i] = 0xaa
+			dAtA[i] = 0xc2
 		}
 	}
 	{
@@ -282,6 +1465,920 @@ func (m *RecordExample) InitFieldMap(reset bool) *github_com_insolar_assured_led
 	return m.FieldMap
 }
 
+func (m *RLineRecap) Visit(ctx RecordVisitor) error {
+	return ctx.Record(m, 19)
+}
+
+const TypeRLineRecapPolymorthID = 19
+
+func (*RLineRecap) GetDefaultPolymorphID() uint64 {
+	return 19
+}
+
+func (m *RLineRecap) Marshal() (dAtA []byte, err error) {
+	size := m.ProtoSize()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RLineRecap) MarshalTo(dAtA []byte) (int, error) {
+	size := m.ProtoSize()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *RLineRecap) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l, fieldEnd int
+	_, _ = l, fieldEnd
+	m.FieldMap.UnsetMap()
+	if len(m.Memory) > 0 {
+		for iNdEx := len(m.Memory) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.Memory[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintProtoRecords(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x3
+			i--
+			dAtA[i] = 0x92
+		}
+	}
+	{
+		size, err := m.PrevRedirectRef.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoRecords(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x2
+			i--
+			dAtA[i] = 0xe2
+		}
+	}
+	if m.RedirectToType != 0 {
+		i = encodeVarintProtoRecords(dAtA, i, uint64(m.RedirectToType))
+		i--
+		dAtA[i] = 0x2
+		i--
+		dAtA[i] = 0xd8
+	}
+	if m.PrevType != 0 {
+		i = encodeVarintProtoRecords(dAtA, i, uint64(m.PrevType))
+		i--
+		dAtA[i] = 0x2
+		i--
+		dAtA[i] = 0xd0
+	}
+	if m.Type != 0 {
+		i = encodeVarintProtoRecords(dAtA, i, uint64(m.Type))
+		i--
+		dAtA[i] = 0x2
+		i--
+		dAtA[i] = 0xc8
+	}
+	if m.State != 0 {
+		i = encodeVarintProtoRecords(dAtA, i, uint64(m.State))
+		i--
+		dAtA[i] = 0x2
+		i--
+		dAtA[i] = 0xc0
+	}
+	{
+		size, err := m.RootRef.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoRecords(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xca
+		}
+	}
+	{
+		size, err := m.PrevRef.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoRecords(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xc2
+		}
+	}
+	{
+		size, err := m.RecordBody.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoRecords(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0x9a
+		}
+	}
+	i = encodeVarintProtoRecords(dAtA, i, uint64(19))
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0x80
+	m.FieldMap.PutMessage(i, len(dAtA), dAtA)
+	return len(dAtA) - i, nil
+}
+
+func (m *RLineRecap) InitFieldMap(reset bool) *github_com_insolar_assured_ledger_ledger_core_insproto.FieldMap {
+	if reset || m.FieldMap == nil {
+		m.FieldMap = &github_com_insolar_assured_ledger_ledger_core_insproto.FieldMap{}
+	}
+	return m.FieldMap
+}
+
+func (m *MemoryRecap) Marshal() (dAtA []byte, err error) {
+	size := m.ProtoSize()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *MemoryRecap) MarshalTo(dAtA []byte) (int, error) {
+	size := m.ProtoSize()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *MemoryRecap) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l, fieldEnd int
+	_, _ = l, fieldEnd
+	{
+		size, err := m.Memory.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoRecords(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xaa
+		}
+	}
+	if m.Safety != 0 {
+		i = encodeVarintProtoRecords(dAtA, i, uint64(m.Safety))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0xa0
+	}
+	if i < len(dAtA) {
+		i = encodeVarintProtoRecords(dAtA, i, uint64(0))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *RPrevDropReport) Visit(ctx RecordVisitor) error {
+	return ctx.Record(m, 0)
+}
+
+func (m *RPrevDropReport) Marshal() (dAtA []byte, err error) {
+	size := m.ProtoSize()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RPrevDropReport) MarshalTo(dAtA []byte) (int, error) {
+	size := m.ProtoSize()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *RPrevDropReport) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l, fieldEnd int
+	_, _ = l, fieldEnd
+	m.FieldMap.UnsetMap()
+	{
+		size, err := m.RecordBody.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoRecords(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0x9a
+		}
+	}
+	if i < len(dAtA) {
+		i = encodeVarintProtoRecords(dAtA, i, uint64(0))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	m.FieldMap.PutMessage(i, len(dAtA), dAtA)
+	return len(dAtA) - i, nil
+}
+
+func (m *RPrevDropReport) InitFieldMap(reset bool) *github_com_insolar_assured_ledger_ledger_core_insproto.FieldMap {
+	if reset || m.FieldMap == nil {
+		m.FieldMap = &github_com_insolar_assured_ledger_ledger_core_insproto.FieldMap{}
+	}
+	return m.FieldMap
+}
+
+func (m *RLineActivate) Visit(ctx RecordVisitor) error {
+	return ctx.Record(m, 20)
+}
+
+const TypeRLineActivatePolymorthID = 20
+
+func (*RLineActivate) GetDefaultPolymorphID() uint64 {
+	return 20
+}
+
+func (m *RLineActivate) Marshal() (dAtA []byte, err error) {
+	size := m.ProtoSize()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RLineActivate) MarshalTo(dAtA []byte) (int, error) {
+	size := m.ProtoSize()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *RLineActivate) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l, fieldEnd int
+	_, _ = l, fieldEnd
+	m.FieldMap.UnsetMap()
+	{
+		size, err := m.RecordBody.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoRecords(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0x9a
+		}
+	}
+	i = encodeVarintProtoRecords(dAtA, i, uint64(20))
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0x80
+	m.FieldMap.PutMessage(i, len(dAtA), dAtA)
+	return len(dAtA) - i, nil
+}
+
+func (m *RLineActivate) InitFieldMap(reset bool) *github_com_insolar_assured_ledger_ledger_core_insproto.FieldMap {
+	if reset || m.FieldMap == nil {
+		m.FieldMap = &github_com_insolar_assured_ledger_ledger_core_insproto.FieldMap{}
+	}
+	return m.FieldMap
+}
+
+func (m *RLineDeactivate) Visit(ctx RecordVisitor) error {
+	return ctx.Record(m, 21)
+}
+
+const TypeRLineDeactivatePolymorthID = 21
+
+func (*RLineDeactivate) GetDefaultPolymorphID() uint64 {
+	return 21
+}
+
+func (m *RLineDeactivate) Marshal() (dAtA []byte, err error) {
+	size := m.ProtoSize()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RLineDeactivate) MarshalTo(dAtA []byte) (int, error) {
+	size := m.ProtoSize()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *RLineDeactivate) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l, fieldEnd int
+	_, _ = l, fieldEnd
+	m.FieldMap.UnsetMap()
+	{
+		size, err := m.RecordBody.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoRecords(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0x9a
+		}
+	}
+	i = encodeVarintProtoRecords(dAtA, i, uint64(21))
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0x80
+	m.FieldMap.PutMessage(i, len(dAtA), dAtA)
+	return len(dAtA) - i, nil
+}
+
+func (m *RLineDeactivate) InitFieldMap(reset bool) *github_com_insolar_assured_ledger_ledger_core_insproto.FieldMap {
+	if reset || m.FieldMap == nil {
+		m.FieldMap = &github_com_insolar_assured_ledger_ledger_core_insproto.FieldMap{}
+	}
+	return m.FieldMap
+}
+
+func (m *RLineMemory) Visit(ctx RecordVisitor) error {
+	return ctx.Record(m, 22)
+}
+
+const TypeRLineMemoryPolymorthID = 22
+
+func (*RLineMemory) GetDefaultPolymorphID() uint64 {
+	return 22
+}
+
+func (m *RLineMemory) Marshal() (dAtA []byte, err error) {
+	size := m.ProtoSize()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RLineMemory) MarshalTo(dAtA []byte) (int, error) {
+	size := m.ProtoSize()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *RLineMemory) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l, fieldEnd int
+	_, _ = l, fieldEnd
+	m.FieldMap.UnsetMap()
+	{
+		size, err := m.RecordBody.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoRecords(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0x9a
+		}
+	}
+	if i < len(dAtA) {
+		id := uint64(m.Polymorph)
+		if id == 0 {
+			id = 22
+		}
+		i = encodeVarintProtoRecords(dAtA, i, uint64(id))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	m.FieldMap.PutMessage(i, len(dAtA), dAtA)
+	return len(dAtA) - i, nil
+}
+
+func (m *RLineMemory) InitFieldMap(reset bool) *github_com_insolar_assured_ledger_ledger_core_insproto.FieldMap {
+	if reset || m.FieldMap == nil {
+		m.FieldMap = &github_com_insolar_assured_ledger_ledger_core_insproto.FieldMap{}
+	}
+	return m.FieldMap
+}
+
+func (m *RLineMemoryExpected) Visit(ctx RecordVisitor) error {
+	return ctx.Record(m, 25)
+}
+
+const TypeRLineMemoryExpectedPolymorthID = 25
+
+func (*RLineMemoryExpected) GetDefaultPolymorphID() uint64 {
+	return 25
+}
+
+func (m *RLineMemoryExpected) Marshal() (dAtA []byte, err error) {
+	size := m.ProtoSize()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RLineMemoryExpected) MarshalTo(dAtA []byte) (int, error) {
+	size := m.ProtoSize()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *RLineMemoryExpected) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l, fieldEnd int
+	_, _ = l, fieldEnd
+	m.FieldMap.UnsetMap()
+	{
+		size, err := m.RecordBody.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoRecords(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0x9a
+		}
+	}
+	i = encodeVarintProtoRecords(dAtA, i, uint64(25))
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0x80
+	m.FieldMap.PutMessage(i, len(dAtA), dAtA)
+	return len(dAtA) - i, nil
+}
+
+func (m *RLineMemoryExpected) InitFieldMap(reset bool) *github_com_insolar_assured_ledger_ledger_core_insproto.FieldMap {
+	if reset || m.FieldMap == nil {
+		m.FieldMap = &github_com_insolar_assured_ledger_ledger_core_insproto.FieldMap{}
+	}
+	return m.FieldMap
+}
+
+func (m *RLineMemoryReuse) Visit(ctx RecordVisitor) error {
+	return ctx.Record(m, 26)
+}
+
+const TypeRLineMemoryReusePolymorthID = 26
+
+func (*RLineMemoryReuse) GetDefaultPolymorphID() uint64 {
+	return 26
+}
+
+func (m *RLineMemoryReuse) Marshal() (dAtA []byte, err error) {
+	size := m.ProtoSize()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RLineMemoryReuse) MarshalTo(dAtA []byte) (int, error) {
+	size := m.ProtoSize()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *RLineMemoryReuse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l, fieldEnd int
+	_, _ = l, fieldEnd
+	m.FieldMap.UnsetMap()
+	{
+		size, err := m.RecordBody.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoRecords(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0x9a
+		}
+	}
+	i = encodeVarintProtoRecords(dAtA, i, uint64(26))
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0x80
+	m.FieldMap.PutMessage(i, len(dAtA), dAtA)
+	return len(dAtA) - i, nil
+}
+
+func (m *RLineMemoryReuse) InitFieldMap(reset bool) *github_com_insolar_assured_ledger_ledger_core_insproto.FieldMap {
+	if reset || m.FieldMap == nil {
+		m.FieldMap = &github_com_insolar_assured_ledger_ledger_core_insproto.FieldMap{}
+	}
+	return m.FieldMap
+}
+
+func (m *RLineInboundRequest) Visit(ctx RecordVisitor) error {
+	return ctx.Record(m, 27)
+}
+
+const TypeRLineInboundRequestPolymorthID = 27
+
+func (*RLineInboundRequest) GetDefaultPolymorphID() uint64 {
+	return 27
+}
+
+func (m *RLineInboundRequest) Marshal() (dAtA []byte, err error) {
+	size := m.ProtoSize()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RLineInboundRequest) MarshalTo(dAtA []byte) (int, error) {
+	size := m.ProtoSize()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *RLineInboundRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l, fieldEnd int
+	_, _ = l, fieldEnd
+	m.FieldMap.UnsetMap()
+	{
+		size, err := m.RecordBody.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoRecords(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0x9a
+		}
+	}
+	i = encodeVarintProtoRecords(dAtA, i, uint64(27))
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0x80
+	m.FieldMap.PutMessage(i, len(dAtA), dAtA)
+	return len(dAtA) - i, nil
+}
+
+func (m *RLineInboundRequest) InitFieldMap(reset bool) *github_com_insolar_assured_ledger_ledger_core_insproto.FieldMap {
+	if reset || m.FieldMap == nil {
+		m.FieldMap = &github_com_insolar_assured_ledger_ledger_core_insproto.FieldMap{}
+	}
+	return m.FieldMap
+}
+
+func (m *RInboundRequest) Visit(ctx RecordVisitor) error {
+	return ctx.Record(m, 28)
+}
+
+const TypeRInboundRequestPolymorthID = 28
+
+func (*RInboundRequest) GetDefaultPolymorphID() uint64 {
+	return 28
+}
+
+func (m *RInboundRequest) Marshal() (dAtA []byte, err error) {
+	size := m.ProtoSize()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RInboundRequest) MarshalTo(dAtA []byte) (int, error) {
+	size := m.ProtoSize()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *RInboundRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l, fieldEnd int
+	_, _ = l, fieldEnd
+	m.FieldMap.UnsetMap()
+	{
+		size, err := m.RecordBody.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoRecords(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0x9a
+		}
+	}
+	i = encodeVarintProtoRecords(dAtA, i, uint64(28))
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0x80
+	m.FieldMap.PutMessage(i, len(dAtA), dAtA)
+	return len(dAtA) - i, nil
+}
+
+func (m *RInboundRequest) InitFieldMap(reset bool) *github_com_insolar_assured_ledger_ledger_core_insproto.FieldMap {
+	if reset || m.FieldMap == nil {
+		m.FieldMap = &github_com_insolar_assured_ledger_ledger_core_insproto.FieldMap{}
+	}
+	return m.FieldMap
+}
+
+func (m *RInboundResponse) Visit(ctx RecordVisitor) error {
+	return ctx.Record(m, 29)
+}
+
+const TypeRInboundResponsePolymorthID = 29
+
+func (*RInboundResponse) GetDefaultPolymorphID() uint64 {
+	return 29
+}
+
+func (m *RInboundResponse) Marshal() (dAtA []byte, err error) {
+	size := m.ProtoSize()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *RInboundResponse) MarshalTo(dAtA []byte) (int, error) {
+	size := m.ProtoSize()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *RInboundResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l, fieldEnd int
+	_, _ = l, fieldEnd
+	m.FieldMap.UnsetMap()
+	{
+		size, err := m.RecordBody.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoRecords(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0x9a
+		}
+	}
+	i = encodeVarintProtoRecords(dAtA, i, uint64(29))
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0x80
+	m.FieldMap.PutMessage(i, len(dAtA), dAtA)
+	return len(dAtA) - i, nil
+}
+
+func (m *RInboundResponse) InitFieldMap(reset bool) *github_com_insolar_assured_ledger_ledger_core_insproto.FieldMap {
+	if reset || m.FieldMap == nil {
+		m.FieldMap = &github_com_insolar_assured_ledger_ledger_core_insproto.FieldMap{}
+	}
+	return m.FieldMap
+}
+
+func (m *ROutboundResponse) Visit(ctx RecordVisitor) error {
+	return ctx.Record(m, 30)
+}
+
+const TypeROutboundResponsePolymorthID = 30
+
+func (*ROutboundResponse) GetDefaultPolymorphID() uint64 {
+	return 30
+}
+
+func (m *ROutboundResponse) Marshal() (dAtA []byte, err error) {
+	size := m.ProtoSize()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ROutboundResponse) MarshalTo(dAtA []byte) (int, error) {
+	size := m.ProtoSize()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *ROutboundResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l, fieldEnd int
+	_, _ = l, fieldEnd
+	m.FieldMap.UnsetMap()
+	{
+		size, err := m.RecordBody.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoRecords(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0x9a
+		}
+	}
+	i = encodeVarintProtoRecords(dAtA, i, uint64(30))
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0x80
+	m.FieldMap.PutMessage(i, len(dAtA), dAtA)
+	return len(dAtA) - i, nil
+}
+
+func (m *ROutboundResponse) InitFieldMap(reset bool) *github_com_insolar_assured_ledger_ledger_core_insproto.FieldMap {
+	if reset || m.FieldMap == nil {
+		m.FieldMap = &github_com_insolar_assured_ledger_ledger_core_insproto.FieldMap{}
+	}
+	return m.FieldMap
+}
+
+func (m *ROutboundRequest) Visit(ctx RecordVisitor) error {
+	return ctx.Record(m, 31)
+}
+
+const TypeROutboundRequestPolymorthID = 31
+
+func (*ROutboundRequest) GetDefaultPolymorphID() uint64 {
+	return 31
+}
+
+func (m *ROutboundRequest) Marshal() (dAtA []byte, err error) {
+	size := m.ProtoSize()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *ROutboundRequest) MarshalTo(dAtA []byte) (int, error) {
+	size := m.ProtoSize()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *ROutboundRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l, fieldEnd int
+	_, _ = l, fieldEnd
+	m.FieldMap.UnsetMap()
+	if len(m.Str) > 0 {
+		i -= len(m.Str)
+		copy(dAtA[i:], m.Str)
+		i = encodeVarintProtoRecords(dAtA, i, uint64(len(m.Str)))
+		i--
+		dAtA[i] = 0x2
+		i--
+		dAtA[i] = 0xc2
+	}
+	{
+		size, err := m.RootRef.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoRecords(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xca
+		}
+	}
+	{
+		size, err := m.PrevRef.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoRecords(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xc2
+		}
+	}
+	{
+		size, err := m.RecordBody.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoRecords(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0x9a
+		}
+	}
+	if i < len(dAtA) {
+		id := uint64(m.Polymorph)
+		if id == 0 {
+			id = 31
+		}
+		i = encodeVarintProtoRecords(dAtA, i, uint64(id))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	m.FieldMap.PutMessage(i, len(dAtA), dAtA)
+	return len(dAtA) - i, nil
+}
+
+func (m *ROutboundRequest) InitFieldMap(reset bool) *github_com_insolar_assured_ledger_ledger_core_insproto.FieldMap {
+	if reset || m.FieldMap == nil {
+		m.FieldMap = &github_com_insolar_assured_ledger_ledger_core_insproto.FieldMap{}
+	}
+	return m.FieldMap
+}
+
 func encodeVarintProtoRecords(dAtA []byte, offset int, v uint64) int {
 	offset -= sovProtoRecords(v)
 	base := offset
@@ -296,6 +2393,17 @@ func encodeVarintProtoRecords(dAtA []byte, offset int, v uint64) int {
 
 func init() {
 	RegisterRecordType(999999999, "", (*RecordExample)(nil))
+	RegisterRecordType(19, "", (*RLineRecap)(nil))
+	RegisterRecordType(20, "", (*RLineActivate)(nil))
+	RegisterRecordType(21, "", (*RLineDeactivate)(nil))
+	RegisterRecordType(22, "", (*RLineMemory)(nil))
+	RegisterRecordType(25, "", (*RLineMemoryExpected)(nil))
+	RegisterRecordType(26, "", (*RLineMemoryReuse)(nil))
+	RegisterRecordType(27, "", (*RLineInboundRequest)(nil))
+	RegisterRecordType(28, "", (*RInboundRequest)(nil))
+	RegisterRecordType(29, "", (*RInboundResponse)(nil))
+	RegisterRecordType(30, "", (*ROutboundResponse)(nil))
+	RegisterRecordType(31, "", (*ROutboundRequest)(nil))
 }
 
 func (m *RecordExample) ProtoSize() (n int) {
@@ -320,6 +2428,231 @@ func (m *RecordExample) ProtoSize() (n int) {
 		id := uint64(m.Polymorph)
 		if id == 0 {
 			id = 999999999
+		}
+		n += 2 + sovProtoRecords(id)
+	}
+	return n
+}
+
+func (m *RLineRecap) ProtoSize() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if l = m.RecordBody.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoRecords(uint64(l))
+	}
+	if l = m.PrevRef.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoRecords(uint64(l))
+	}
+	if l = m.RootRef.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoRecords(uint64(l))
+	}
+	if m.State != 0 {
+		n += 2 + sovProtoRecords(uint64(m.State))
+	}
+	if m.Type != 0 {
+		n += 2 + sovProtoRecords(uint64(m.Type))
+	}
+	if m.PrevType != 0 {
+		n += 2 + sovProtoRecords(uint64(m.PrevType))
+	}
+	if m.RedirectToType != 0 {
+		n += 2 + sovProtoRecords(uint64(m.RedirectToType))
+	}
+	if l = m.PrevRedirectRef.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoRecords(uint64(l))
+	}
+	if len(m.Memory) > 0 {
+		for _, e := range m.Memory {
+			l = e.ProtoSize()
+			n += 2 + l + sovProtoRecords(uint64(l))
+		}
+	}
+	n += 2 + sovProtoRecords(19)
+	return n
+}
+
+func (m *MemoryRecap) ProtoSize() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Safety != 0 {
+		n += 2 + sovProtoRecords(uint64(m.Safety))
+	}
+	if l = m.Memory.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoRecords(uint64(l))
+	}
+	if n > 0 {
+		n += 2 + sovProtoRecords(0)
+	}
+	return n
+}
+
+func (m *RPrevDropReport) ProtoSize() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if l = m.RecordBody.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoRecords(uint64(l))
+	}
+	if n > 0 {
+		n += 2 + sovProtoRecords(0)
+	}
+	return n
+}
+
+func (m *RLineActivate) ProtoSize() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if l = m.RecordBody.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoRecords(uint64(l))
+	}
+	n += 2 + sovProtoRecords(20)
+	return n
+}
+
+func (m *RLineDeactivate) ProtoSize() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if l = m.RecordBody.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoRecords(uint64(l))
+	}
+	n += 2 + sovProtoRecords(21)
+	return n
+}
+
+func (m *RLineMemory) ProtoSize() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if l = m.RecordBody.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoRecords(uint64(l))
+	}
+	if n > 0 {
+		id := uint64(m.Polymorph)
+		if id == 0 {
+			id = 22
+		}
+		n += 2 + sovProtoRecords(id)
+	}
+	return n
+}
+
+func (m *RLineMemoryExpected) ProtoSize() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if l = m.RecordBody.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoRecords(uint64(l))
+	}
+	n += 2 + sovProtoRecords(25)
+	return n
+}
+
+func (m *RLineMemoryReuse) ProtoSize() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if l = m.RecordBody.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoRecords(uint64(l))
+	}
+	n += 2 + sovProtoRecords(26)
+	return n
+}
+
+func (m *RLineInboundRequest) ProtoSize() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if l = m.RecordBody.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoRecords(uint64(l))
+	}
+	n += 2 + sovProtoRecords(27)
+	return n
+}
+
+func (m *RInboundRequest) ProtoSize() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if l = m.RecordBody.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoRecords(uint64(l))
+	}
+	n += 2 + sovProtoRecords(28)
+	return n
+}
+
+func (m *RInboundResponse) ProtoSize() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if l = m.RecordBody.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoRecords(uint64(l))
+	}
+	n += 2 + sovProtoRecords(29)
+	return n
+}
+
+func (m *ROutboundResponse) ProtoSize() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if l = m.RecordBody.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoRecords(uint64(l))
+	}
+	n += 2 + sovProtoRecords(30)
+	return n
+}
+
+func (m *ROutboundRequest) ProtoSize() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if l = m.RecordBody.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoRecords(uint64(l))
+	}
+	if l = m.PrevRef.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoRecords(uint64(l))
+	}
+	if l = m.RootRef.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoRecords(uint64(l))
+	}
+	l = len(m.Str)
+	if l > 0 {
+		n += 2 + l + sovProtoRecords(uint64(l))
+	}
+	if n > 0 {
+		id := uint64(m.Polymorph)
+		if id == 0 {
+			id = 31
 		}
 		n += 2 + sovProtoRecords(id)
 	}
@@ -417,7 +2750,7 @@ func (m *RecordExample) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]
 				return err
 			}
 			iNdEx = postIndex
-		case 21:
+		case 40:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Str", wireType)
 			}
@@ -450,7 +2783,7 @@ func (m *RecordExample) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]
 				return err
 			}
 			iNdEx = postIndex
-		case 22:
+		case 41:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Ref1", wireType)
 			}
@@ -483,7 +2816,7 @@ func (m *RecordExample) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]
 				return err
 			}
 			iNdEx = postIndex
-		case 23:
+		case 42:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field AsOf", wireType)
 			}
@@ -502,6 +2835,1629 @@ func (m *RecordExample) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]
 					break
 				}
 			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipFn(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				l = iNdEx
+				break
+			}
+			if skippy == 0 {
+				if skippy, err = skipProtoRecords(dAtA[iNdEx:]); err != nil {
+					return err
+				}
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	m.FieldMap.PutMessage(0, iNdEx, dAtA)
+	return nil
+}
+func (m *RLineRecap) Unmarshal(dAtA []byte) error {
+	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoRecords)
+}
+func (m *RLineRecap) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtoRecords
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RLineRecap: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RLineRecap: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		m.FieldMap.UnsetMap()
+		switch fieldNum {
+		case 19:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RecordBody", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecords
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.RecordBody.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 24:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PrevRef", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecords
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.PrevRef.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 25:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RootRef", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecords
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.RootRef.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 40:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field State", wireType)
+			}
+			m.State = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecords
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.State |= FilamentState(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 41:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Type", wireType)
+			}
+			m.Type = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecords
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Type |= FilamentType(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 42:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PrevType", wireType)
+			}
+			m.PrevType = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecords
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.PrevType |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 43:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RedirectToType", wireType)
+			}
+			m.RedirectToType = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecords
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.RedirectToType |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 44:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PrevRedirectRef", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecords
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.PrevRedirectRef.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 50:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Memory", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecords
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Memory = append(m.Memory, MemoryRecap{})
+			if err := m.Memory[len(m.Memory)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipFn(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				l = iNdEx
+				break
+			}
+			if skippy == 0 {
+				if skippy, err = skipProtoRecords(dAtA[iNdEx:]); err != nil {
+					return err
+				}
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	m.FieldMap.PutMessage(0, iNdEx, dAtA)
+	return nil
+}
+func (m *MemoryRecap) Unmarshal(dAtA []byte) error {
+	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoRecords)
+}
+func (m *MemoryRecap) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtoRecords
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: MemoryRecap: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: MemoryRecap: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 20:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Safety", wireType)
+			}
+			m.Safety = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecords
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Safety |= MemorySafety(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 21:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Memory", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecords
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.Memory.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipFn(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				l = iNdEx
+				break
+			}
+			if skippy == 0 {
+				if skippy, err = skipProtoRecords(dAtA[iNdEx:]); err != nil {
+					return err
+				}
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *RPrevDropReport) Unmarshal(dAtA []byte) error {
+	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoRecords)
+}
+func (m *RPrevDropReport) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtoRecords
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RPrevDropReport: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RPrevDropReport: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		m.FieldMap.UnsetMap()
+		switch fieldNum {
+		case 19:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RecordBody", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecords
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.RecordBody.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipFn(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				l = iNdEx
+				break
+			}
+			if skippy == 0 {
+				if skippy, err = skipProtoRecords(dAtA[iNdEx:]); err != nil {
+					return err
+				}
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	m.FieldMap.PutMessage(0, iNdEx, dAtA)
+	return nil
+}
+func (m *RLineActivate) Unmarshal(dAtA []byte) error {
+	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoRecords)
+}
+func (m *RLineActivate) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtoRecords
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RLineActivate: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RLineActivate: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		m.FieldMap.UnsetMap()
+		switch fieldNum {
+		case 19:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RecordBody", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecords
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.RecordBody.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipFn(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				l = iNdEx
+				break
+			}
+			if skippy == 0 {
+				if skippy, err = skipProtoRecords(dAtA[iNdEx:]); err != nil {
+					return err
+				}
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	m.FieldMap.PutMessage(0, iNdEx, dAtA)
+	return nil
+}
+func (m *RLineDeactivate) Unmarshal(dAtA []byte) error {
+	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoRecords)
+}
+func (m *RLineDeactivate) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtoRecords
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RLineDeactivate: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RLineDeactivate: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		m.FieldMap.UnsetMap()
+		switch fieldNum {
+		case 19:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RecordBody", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecords
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.RecordBody.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipFn(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				l = iNdEx
+				break
+			}
+			if skippy == 0 {
+				if skippy, err = skipProtoRecords(dAtA[iNdEx:]); err != nil {
+					return err
+				}
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	m.FieldMap.PutMessage(0, iNdEx, dAtA)
+	return nil
+}
+func (m *RLineMemory) Unmarshal(dAtA []byte) error {
+	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoRecords)
+}
+func (m *RLineMemory) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtoRecords
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RLineMemory: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RLineMemory: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		m.FieldMap.UnsetMap()
+		switch fieldNum {
+		case 16:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Polymorph", wireType)
+			}
+			m.Polymorph = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecords
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Polymorph |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 19:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RecordBody", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecords
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.RecordBody.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipFn(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				l = iNdEx
+				break
+			}
+			if skippy == 0 {
+				if skippy, err = skipProtoRecords(dAtA[iNdEx:]); err != nil {
+					return err
+				}
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	m.FieldMap.PutMessage(0, iNdEx, dAtA)
+	return nil
+}
+func (m *RLineMemoryExpected) Unmarshal(dAtA []byte) error {
+	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoRecords)
+}
+func (m *RLineMemoryExpected) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtoRecords
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RLineMemoryExpected: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RLineMemoryExpected: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		m.FieldMap.UnsetMap()
+		switch fieldNum {
+		case 19:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RecordBody", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecords
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.RecordBody.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipFn(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				l = iNdEx
+				break
+			}
+			if skippy == 0 {
+				if skippy, err = skipProtoRecords(dAtA[iNdEx:]); err != nil {
+					return err
+				}
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	m.FieldMap.PutMessage(0, iNdEx, dAtA)
+	return nil
+}
+func (m *RLineMemoryReuse) Unmarshal(dAtA []byte) error {
+	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoRecords)
+}
+func (m *RLineMemoryReuse) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtoRecords
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RLineMemoryReuse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RLineMemoryReuse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		m.FieldMap.UnsetMap()
+		switch fieldNum {
+		case 19:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RecordBody", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecords
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.RecordBody.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipFn(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				l = iNdEx
+				break
+			}
+			if skippy == 0 {
+				if skippy, err = skipProtoRecords(dAtA[iNdEx:]); err != nil {
+					return err
+				}
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	m.FieldMap.PutMessage(0, iNdEx, dAtA)
+	return nil
+}
+func (m *RLineInboundRequest) Unmarshal(dAtA []byte) error {
+	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoRecords)
+}
+func (m *RLineInboundRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtoRecords
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RLineInboundRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RLineInboundRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		m.FieldMap.UnsetMap()
+		switch fieldNum {
+		case 19:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RecordBody", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecords
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.RecordBody.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipFn(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				l = iNdEx
+				break
+			}
+			if skippy == 0 {
+				if skippy, err = skipProtoRecords(dAtA[iNdEx:]); err != nil {
+					return err
+				}
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	m.FieldMap.PutMessage(0, iNdEx, dAtA)
+	return nil
+}
+func (m *RInboundRequest) Unmarshal(dAtA []byte) error {
+	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoRecords)
+}
+func (m *RInboundRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtoRecords
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RInboundRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RInboundRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		m.FieldMap.UnsetMap()
+		switch fieldNum {
+		case 19:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RecordBody", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecords
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.RecordBody.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipFn(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				l = iNdEx
+				break
+			}
+			if skippy == 0 {
+				if skippy, err = skipProtoRecords(dAtA[iNdEx:]); err != nil {
+					return err
+				}
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	m.FieldMap.PutMessage(0, iNdEx, dAtA)
+	return nil
+}
+func (m *RInboundResponse) Unmarshal(dAtA []byte) error {
+	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoRecords)
+}
+func (m *RInboundResponse) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtoRecords
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: RInboundResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: RInboundResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		m.FieldMap.UnsetMap()
+		switch fieldNum {
+		case 19:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RecordBody", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecords
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.RecordBody.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipFn(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				l = iNdEx
+				break
+			}
+			if skippy == 0 {
+				if skippy, err = skipProtoRecords(dAtA[iNdEx:]); err != nil {
+					return err
+				}
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	m.FieldMap.PutMessage(0, iNdEx, dAtA)
+	return nil
+}
+func (m *ROutboundResponse) Unmarshal(dAtA []byte) error {
+	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoRecords)
+}
+func (m *ROutboundResponse) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtoRecords
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ROutboundResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ROutboundResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		m.FieldMap.UnsetMap()
+		switch fieldNum {
+		case 19:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RecordBody", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecords
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.RecordBody.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipFn(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				l = iNdEx
+				break
+			}
+			if skippy == 0 {
+				if skippy, err = skipProtoRecords(dAtA[iNdEx:]); err != nil {
+					return err
+				}
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	m.FieldMap.PutMessage(0, iNdEx, dAtA)
+	return nil
+}
+func (m *ROutboundRequest) Unmarshal(dAtA []byte) error {
+	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoRecords)
+}
+func (m *ROutboundRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtoRecords
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: ROutboundRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: ROutboundRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		m.FieldMap.UnsetMap()
+		switch fieldNum {
+		case 16:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Polymorph", wireType)
+			}
+			m.Polymorph = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecords
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Polymorph |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 19:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RecordBody", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecords
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.RecordBody.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 24:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PrevRef", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecords
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.PrevRef.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 25:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RootRef", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecords
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.RootRef.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 40:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Str", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoRecords
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoRecords
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Str = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipFn(dAtA[iNdEx:])

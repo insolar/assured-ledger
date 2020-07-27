@@ -14,6 +14,12 @@ type BargeInHolder interface {
 	CallWithParam(interface{}) bool
 }
 
+type BargeInNoArgHolder interface {
+	StepLink() StepLink
+	IsValid() bool
+	Call() bool
+}
+
 func NewNoopBargeIn(link StepLink) BargeIn {
 	if link.IsZero() {
 		return BargeIn{}

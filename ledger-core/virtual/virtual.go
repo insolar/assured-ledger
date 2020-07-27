@@ -9,11 +9,12 @@ import (
 	"context"
 	"time"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	testWalletAPIStateMachine "github.com/insolar/assured-ledger/ledger-core/application/testwalletapi/statemachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	flowDispatcher "github.com/insolar/assured-ledger/ledger-core/insolar/dispatcher"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -23,35 +24,44 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 	virtualStateMachine "github.com/insolar/assured-ledger/ledger-core/virtual/statemachine"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
 )
 
 type DefaultHandlersFactory struct {
-	metaFactory handlers.FactoryMeta
+	handlers.FactoryMeta
 }
 
-func (f DefaultHandlersFactory) Classify(pn pulse.Number, pr pulse.Range, input conveyor.InputEvent) (pulse.Number, smachine.CreateFunc, error) {
+func (f DefaultHandlersFactory) Classify(ctx context.Context, input conveyor.InputEvent, ic conveyor.InputContext) (conveyor.InputSetup, error) {
 	switch event := input.(type) {
-	case *virtualStateMachine.DispatcherMessage:
-		if pr == nil {
-			return 0, nil, throw.E("event is too old", struct {
-				PN pulse.Number
-				InputType interface{} `fmt:"%T"`
-			}{pn, input})
+	case virtualStateMachine.DispatchedMessage:
+		if ic.PulseRange == nil {
+			return conveyor.InputSetup{},
+				throw.E("event is too old", struct {
+					PN        pulse.Number
+					InputType interface{} `fmt:"%T"`
+				}{ic.PulseNumber, input})
 		}
 
-		return f.metaFactory.Process(event, pr)
-	case *testWalletAPIStateMachine.TestAPICall:
-		return 0, testWalletAPIStateMachine.Handler(event), nil
+		targetPN, createFn, err := f.Process(ctx, event, ic.PulseRange)
+		return conveyor.InputSetup{
+			TargetPulse: targetPN,
+			CreateFn:    createFn,
+		}, err
+
+	case testWalletAPIStateMachine.TestAPICall:
+		return conveyor.InputSetup{
+			CreateFn: event.AsSMCreate(),
+		}, nil
 	default:
 		panic(throw.E("unknown event type", struct {
-			PN pulse.Number
+			PN        pulse.Number
 			InputType interface{} `fmt:"%T"`
-		}{pn, input}))
+		}{ic.PulseNumber, input}))
 	}
 }
 
 type Dispatcher struct {
-	FlowDispatcher flowDispatcher.Dispatcher
+	FlowDispatcher beat.Dispatcher
 
 	Conveyor       *conveyor.PulseConveyor
 	ConveyorWorker virtualStateMachine.ConveyorWorker
@@ -64,14 +74,15 @@ type Dispatcher struct {
 	Runner                runner.Service
 	MessageSender         messagesender.Service
 	AuthenticationService authentication.Service
-	Affinity              jet.AffinityHelper
+	Affinity              affinity.Helper
 
-	EventlessSleep time.Duration
+	EventlessSleep            time.Duration
+	FactoryLogContextOverride context.Context
+
+	MaxRunners int
 
 	runnerAdapter        runner.ServiceAdapter
 	messageSenderAdapter messageSenderAdapter.MessageSender
-
-	stopFunc context.CancelFunc
 }
 
 func NewDispatcher() *Dispatcher {
@@ -79,6 +90,8 @@ func NewDispatcher() *Dispatcher {
 }
 
 func (lr *Dispatcher) Init(ctx context.Context) error {
+	ctx, _ = inslogger.WithField(ctx, "component", "sm")
+
 	conveyorConfig := smachine.SlotMachineConfig{
 		PollingPeriod:     500 * time.Millisecond,
 		PollingTruncate:   1 * time.Millisecond,
@@ -109,8 +122,11 @@ func (lr *Dispatcher) Init(ctx context.Context) error {
 		MaxPastPulseAge:       1000,
 	}, nil, nil)
 
-	defaultHandlers := DefaultHandlersFactory{metaFactory: handlers.FactoryMeta{AuthService: lr.AuthenticationService}}.Classify
-	lr.Conveyor.SetFactoryFunc(defaultHandlers)
+	defaultHandlers := DefaultHandlersFactory{}
+	defaultHandlers.AuthService = lr.AuthenticationService
+	defaultHandlers.LogContextOverride = lr.FactoryLogContextOverride
+
+	lr.Conveyor.SetFactoryFunc(defaultHandlers.Classify)
 
 	lr.runnerAdapter = lr.Runner.CreateAdapter(ctx)
 	lr.messageSenderAdapter = messageSenderAdapter.CreateMessageSendService(ctx, lr.MessageSender)
@@ -122,10 +138,13 @@ func (lr *Dispatcher) Init(ctx context.Context) error {
 	var objectCatalog object.Catalog = object.NewLocalCatalog()
 	lr.Conveyor.AddInterfaceDependency(&objectCatalog)
 
+	runnerLimiter := tool.NewRunnerLimiter(lr.MaxRunners)
+	lr.Conveyor.AddDependency(runnerLimiter)
+
 	lr.ConveyorWorker = virtualStateMachine.NewConveyorWorker(lr.CycleFn)
 	lr.ConveyorWorker.AttachTo(lr.Conveyor)
 
-	lr.FlowDispatcher = virtualStateMachine.NewConveyorDispatcher(lr.Conveyor)
+	lr.FlowDispatcher = virtualStateMachine.NewConveyorDispatcher(ctx, lr.Conveyor)
 
 	return nil
 }
@@ -136,7 +155,6 @@ func (lr *Dispatcher) Start(_ context.Context) error {
 
 func (lr *Dispatcher) Stop(_ context.Context) error {
 	lr.ConveyorWorker.Stop()
-	lr.stopFunc()
 
 	return nil
 }
@@ -145,6 +163,6 @@ func (lr *Dispatcher) AddInput(ctx context.Context, pulse pulse.Number, msg inte
 	return lr.Conveyor.AddInput(ctx, pulse, msg)
 }
 
-func (lr *Dispatcher) AddInputExt(ctx context.Context, pulse pulse.Number, msg interface{}, createDefaults smachine.CreateDefaultValues) error {
-	return lr.Conveyor.AddInputExt(ctx, pulse, msg, createDefaults)
+func (lr *Dispatcher) AddInputExt(pulse pulse.Number, msg interface{}, createDefaults smachine.CreateDefaultValues) error {
+	return lr.Conveyor.AddInputExt(pulse, msg, createDefaults)
 }

@@ -6,13 +6,15 @@
 package routing
 
 import (
-	"context"
 	"strconv"
 	"testing"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	node2 "github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/network"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
@@ -24,9 +26,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/node"
 )
 
-func newNode(ref reference.Global, id int) node2.NetworkNode {
+func newNode(ref reference.Global, id int) nodeinfo.NetworkNode {
 	address := "127.0.0.1:" + strconv.Itoa(id)
-	result := node.NewNode(ref, node2.StaticRoleUnknown, nil, address, "")
+	result := node.NewNode(ref, member.PrimaryRoleUnknown, nil, address, "")
 	result.(node.MutableNode).SetShortID(node2.ShortNodeID(id))
 	return result
 }
@@ -39,13 +41,11 @@ func TestTable_Resolve(t *testing.T) {
 	nodeKeeperMock := mock.NewNodeKeeperMock(t)
 	nodeKeeperMock.GetAccessorMock.Set(func(p1 pulse.Number) network.Accessor {
 		n := newNode(refs[0], 123)
-		return node.NewAccessor(node.NewSnapshot(puls.PulseNumber, []node2.NetworkNode{n}))
+		return node.NewAccessor(node.NewSnapshot(puls.PulseNumber, []nodeinfo.NetworkNode{n}))
 	})
 
-	pulseAccessorMock := mock.NewPulseAccessorMock(t)
-	pulseAccessorMock.GetLatestPulseMock.Set(func(ctx context.Context) (p1 pulsestor.Pulse, err error) {
-		return *puls, nil
-	})
+	pulseAccessorMock := beat.NewAccessorMock(t)
+	pulseAccessorMock.LatestMock.Return(puls, nil)
 
 	table.PulseAccessor = pulseAccessorMock
 	table.NodeKeeper = nodeKeeperMock

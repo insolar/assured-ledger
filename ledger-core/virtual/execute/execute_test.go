@@ -15,12 +15,12 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/goleak"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
@@ -29,18 +29,29 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
+	commonTestUtils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/debuglogger"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/messagesender"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/mocklog"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
-	virtualTestutils "github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
+	virtualTestUtils "github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/shareddata"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/slotdebugger"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
 )
+
+func executeLeakCheck(t *testing.T) {
+	// TODO: remove this ignores after fix closing adapters on conveyor shutdown
+	commonTestUtils.LeakTester(t,
+		goleak.IgnoreTopFunction("github.com/insolar/assured-ledger/ledger-core/runner.(*worker).Run.func1"),
+		goleak.IgnoreTopFunction("github.com/insolar/assured-ledger/ledger-core/conveyor/smachine.startChannelWorkerUnlimParallel.func1"),
+	)
+}
 
 func expectedInitState(ctx context.Context, sm SMExecute) SMExecute {
 	sm.execution.Context = ctx
@@ -50,7 +61,7 @@ func expectedInitState(ctx context.Context, sm SMExecute) SMExecute {
 
 	if sm.Payload.CallType == payload.CTConstructor {
 		sm.isConstructor = true
-		sm.execution.Object = sm.Payload.CallOutgoing
+		sm.execution.Object = reference.NewSelf(sm.Payload.CallOutgoing.GetLocal())
 	} else {
 		sm.execution.Object = sm.Payload.Callee
 	}
@@ -66,6 +77,8 @@ func expectedInitState(ctx context.Context, sm SMExecute) SMExecute {
 }
 
 func TestSMExecute_Init(t *testing.T) {
+	defer executeLeakCheck(t)
+
 	var (
 		ctx = instestlogger.TestContext(t)
 		mc  = minimock.NewController(t)
@@ -115,6 +128,8 @@ func TestSMExecute_Init(t *testing.T) {
 }
 
 func TestSMExecute_StartRequestProcessing(t *testing.T) {
+	defer executeLeakCheck(t)
+
 	var (
 		ctx = instestlogger.TestContext(t)
 		mc  = minimock.NewController(t)
@@ -174,18 +189,20 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 	mc.Finish()
 }
 
-func TestSMExecute_DeduplicationUsingPendingsTable(t *testing.T) {
+func TestSMExecute_DeduplicationUsingPendingsTableRequestNotExist(t *testing.T) {
+	defer executeLeakCheck(t)
+
 	var (
 		ctx = instestlogger.TestContext(t)
 		mc  = minimock.NewController(t)
 
-		pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
-		pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-		smObjectID      = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
-		caller          = gen.UniqueGlobalRef()
-		smGlobalRef     = reference.NewRecordOf(caller, smObjectID)
-		smObject        = object.NewStateMachineObject(smGlobalRef)
-		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
+		pd                = pulse.NewFirstPulsarData(10, longbits.Bits256{})
+		pulseSlot         = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
+		caller            = gen.UniqueGlobalRef()
+		constructorOutRef = reference.NewRecordOf(caller, gen.UniqueLocalRefWithPulse(pd.PulseNumber))
+		objectRef         = reference.NewSelf(constructorOutRef.GetLocal())
+		smObject          = object.NewStateMachineObject(objectRef)
+		sharedStateData   = smachine.NewUnboundSharedData(&smObject.SharedState)
 
 		callFlags = payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty)
 	)
@@ -196,7 +213,7 @@ func TestSMExecute_DeduplicationUsingPendingsTable(t *testing.T) {
 		CallFlags:           callFlags,
 		CallSiteDeclaration: testwallet.GetClass(),
 		CallSiteMethod:      "New",
-		CallOutgoing:        smGlobalRef,
+		CallOutgoing:        constructorOutRef,
 		Arguments:           insolar.MustSerialize([]interface{}{}),
 	}
 
@@ -209,50 +226,295 @@ func TestSMExecute_DeduplicationUsingPendingsTable(t *testing.T) {
 	smExecute = expectedInitState(ctx, smExecute)
 
 	{
-		// duplicate pending request exists
+		// duplicate pending request doesnt exists
+		// expect jump
+		execCtx := smachine.NewExecutionContextMock(mc).
+			UseSharedMock.Set(shareddata.CallSharedDataAccessor).
+			JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepTakeLock))
+
+		smExecute.stepDeduplicate(execCtx)
+	}
+
+	mc.Finish()
+}
+
+func TestSMExecute_DeduplicationUsingPendingsTableRequestExist(t *testing.T) {
+	defer executeLeakCheck(t)
+
+	var (
+		ctx = instestlogger.TestContext(t)
+		mc  = minimock.NewController(t)
+
+		pd                = pulse.NewFirstPulsarData(10, longbits.Bits256{})
+		pulseSlot         = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
+		caller            = gen.UniqueGlobalRef()
+		constructorOutRef = reference.NewRecordOf(caller, gen.UniqueLocalRefWithPulse(pd.PulseNumber.Next(1)))
+		objectRef         = reference.NewSelf(constructorOutRef.GetLocal())
+		smObject          = object.NewStateMachineObject(objectRef)
+		sharedStateData   = smachine.NewUnboundSharedData(&smObject.SharedState)
+
+		callFlags = payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty)
+	)
+
+	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
+	request := &payload.VCallRequest{
+		CallType:            payload.CTConstructor,
+		CallFlags:           callFlags,
+		CallSiteDeclaration: testwallet.GetClass(),
+		CallSiteMethod:      "New",
+		CallOutgoing:        constructorOutRef,
+		Arguments:           insolar.MustSerialize([]interface{}{}),
+	}
+
+	smExecute := SMExecute{
+		Payload:           request,
+		pulseSlot:         &pulseSlot,
+		objectSharedState: smObjectAccessor,
+	}
+
+	smExecute = expectedInitState(ctx, smExecute)
+
+	{
+		// duplicate pending request exists and is active
 		// expect SM stop
 		pendingList := smObject.PendingTable.GetList(contract.CallIntolerable)
 		pendingList.Add(smExecute.execution.Outgoing)
 
 		execCtx := smachine.NewExecutionContextMock(mc).
 			UseSharedMock.Set(shareddata.CallSharedDataAccessor).
+			StopMock.Return(smachine.StateUpdate{})
+
+		smExecute.stepDeduplicate(execCtx)
+	}
+
+	{
+		// reset tables
+		smObject.KnownRequests = callregistry.NewWorkingTable()
+		smObject.PendingTable = callregistry.NewRequestTable()
+
+		// duplicate pending request exists, but is finished
+		// expect jump
+		pendingList := smObject.PendingTable.GetList(contract.CallIntolerable)
+		pendingList.Add(smExecute.execution.Outgoing)
+		pendingList.Finish(smExecute.execution.Outgoing)
+
+		execCtx := smachine.NewExecutionContextMock(mc).
+			UseSharedMock.Set(shareddata.CallSharedDataAccessor).
+			JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepDeduplicateThroughPreviousExecutor))
+
+		smExecute.stepDeduplicate(execCtx)
+	}
+
+	mc.Finish()
+}
+
+func TestSMExecute_DeduplicateThroughPreviousExecutor(t *testing.T) {
+	defer executeLeakCheck(t)
+
+	var (
+		ctx = instestlogger.TestContext(t)
+		mc  = minimock.NewController(t)
+
+		oldPd           = pulse.NewFirstPulsarData(10, longbits.Bits256{})
+		pd              = pulse.NewPulsarData(oldPd.NextPulseNumber(), oldPd.NextPulseDelta, oldPd.NextPulseDelta, longbits.Bits256{})
+		pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
+		callerRef       = gen.UniqueGlobalRef()
+		outgoingRef     = reference.NewRecordOf(callerRef, gen.UniqueLocalRefWithPulse(pd.PulseNumber))
+		objectRef       = gen.UniqueGlobalRef()
+		smObject        = object.NewStateMachineObject(objectRef)
+		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
+
+		callFlags = payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty)
+	)
+
+	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
+	request := &payload.VCallRequest{
+		CallType:            payload.CTMethod,
+		Callee:              objectRef,
+		CallFlags:           callFlags,
+		CallSiteDeclaration: testwallet.GetClass(),
+		CallSiteMethod:      "Method",
+		CallOutgoing:        outgoingRef,
+		Arguments:           insolar.MustSerialize([]interface{}{}),
+	}
+
+	messageSender := messagesender.NewServiceMockWrapper(mc)
+	messageSenderAdapter := messageSender.NewAdapterMock()
+	messageSenderAdapter.SetDefaultPrepareAsyncCall(ctx)
+
+	checkMessage := func(msg payload.Marshaler) {
+		switch msg0 := msg.(type) {
+		case *payload.VFindCallRequest:
+			require.Equal(t, oldPd.PulseNumber, msg0.LookAt)
+			require.Equal(t, objectRef, msg0.Callee)
+			require.Equal(t, request.CallOutgoing, msg0.Outgoing)
+		default:
+			panic("Unexpected message type")
+		}
+	}
+	messageSender.SendRole.SetCheckMessage(checkMessage)
+
+	smExecute := SMExecute{
+		Payload:           request,
+		pulseSlot:         &pulseSlot,
+		objectSharedState: smObjectAccessor,
+		messageSender:     messageSenderAdapter.Mock(),
+	}
+	smExecute = expectedInitState(ctx, smExecute)
+
+	{
+		// expect publish bargeIn and send VFindCallRequest
+
+		pendingList := smObject.PendingTable.GetList(contract.CallIntolerable)
+		pendingList.Add(smExecute.execution.Outgoing)
+
+		execCtx := smachine.NewExecutionContextMock(mc).
+			NewBargeInWithParamMock.Set(
+			func(applyFunc smachine.BargeInApplyFunc) smachine.BargeInWithParam {
+				return smachine.BargeInWithParam{}
+			}).
+			PublishGlobalAliasAndBargeInMock.Set(
+			func(key interface{}, handler smachine.BargeInHolder) (b1 bool) {
+				res, ok := key.(DeduplicationBargeInKey)
+				if !ok {
+					panic("Unexpected message type")
+				}
+
+				require.Equal(t, oldPd.PulseNumber, res.LookAt)
+				require.Equal(t, smExecute.execution.Outgoing, res.Outgoing)
+				require.Equal(t, smExecute.execution.Object, res.Callee)
+
+				return true
+			}).
+			JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepWaitFindCallResponse))
+
+		smExecute.stepDeduplicateThroughPreviousExecutor(execCtx)
+	}
+
+	mc.Finish()
+}
+
+func TestSMExecute_ProcessFindCallResponse(t *testing.T) {
+	defer executeLeakCheck(t)
+
+	var (
+		ctx = instestlogger.TestContext(t)
+		mc  = minimock.NewController(mocklog.T(t))
+
+		oldPd           = pulse.NewFirstPulsarData(10, longbits.Bits256{})
+		pd              = pulse.NewPulsarData(oldPd.NextPulseNumber(), oldPd.NextPulseDelta, oldPd.NextPulseDelta, longbits.Bits256{})
+		pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
+		callerRef       = gen.UniqueGlobalRef()
+		outgoingRef     = reference.NewRecordOf(callerRef, gen.UniqueLocalRefWithPulse(pd.PulseNumber))
+		objectRef       = gen.UniqueGlobalRef()
+		smObject        = object.NewStateMachineObject(objectRef)
+		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
+
+		callFlags = payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty)
+
+		sender = gen.UniqueGlobalRef()
+	)
+
+	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
+	request := &payload.VCallRequest{
+		CallType:            payload.CTMethod,
+		Callee:              objectRef,
+		CallFlags:           callFlags,
+		CallSiteDeclaration: testwallet.GetClass(),
+		CallSiteMethod:      "Method",
+		CallOutgoing:        outgoingRef,
+		Arguments:           insolar.MustSerialize([]interface{}{}),
+	}
+
+	smExecute := SMExecute{
+		Payload:           request,
+		pulseSlot:         &pulseSlot,
+		objectSharedState: smObjectAccessor,
+		Meta:              &payload.Meta{Sender: sender},
+	}
+
+	smExecute = expectedInitState(ctx, smExecute)
+
+	{
+		smExecute.findCallResponse = &payload.VFindCallResponse{Status: payload.MissingCall}
+		pendingList := smObject.PendingTable.GetList(contract.CallIntolerable)
+		pendingList.Add(smExecute.execution.Outgoing)
+
+		execCtx := smachine.NewExecutionContextMock(mc).
+			JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepTakeLock))
+
+		smExecute.stepProcessFindCallResponse(execCtx)
+	}
+
+	{
+		smExecute.findCallResponse = &payload.VFindCallResponse{Status: payload.UnknownCall}
+		pendingList := smObject.PendingTable.GetList(contract.CallIntolerable)
+		pendingList.Add(smExecute.execution.Outgoing)
+
+		execCtx := smachine.NewExecutionContextMock(mc).
+			JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepTakeLock))
+
+		smExecute.stepProcessFindCallResponse(execCtx)
+	}
+
+	{
+		smExecute.findCallResponse = &payload.VFindCallResponse{
+			Status:     payload.FoundCall,
+			CallResult: nil,
+		}
+
+		pendingList := smObject.PendingTable.GetList(contract.CallIntolerable)
+		pendingList.Add(smExecute.execution.Outgoing)
+
+		execCtx := smachine.NewExecutionContextMock(mc).
 			LogMock.Return(smachine.Logger{}).
 			StopMock.Return(smachine.StateUpdate{})
 
-		smExecute.stepDeduplicateUsingPendingsTable(execCtx)
+		smExecute.stepProcessFindCallResponse(execCtx)
 	}
 
 	{
-		// start deduplication before getting all pending requests
-		// expecting going sleep
-		smObject.PendingTable = callregistry.NewRequestTable()
+		returnArguments := []byte{1, 2, 3}
+		smExecute.findCallResponse = &payload.VFindCallResponse{
+			Status: payload.FoundCall,
+			CallResult: &payload.VCallResult{
+				ReturnArguments: returnArguments,
+			},
+		}
+
+		messageSender := messagesender.NewServiceMockWrapper(mc)
+		messageSenderAdapter := messageSender.NewAdapterMock()
+		messageSenderAdapter.SetDefaultPrepareAsyncCall(ctx)
+		checkMessage := func(msg payload.Marshaler) {
+			switch msg0 := msg.(type) {
+			case *payload.VCallResult:
+				require.Equal(t, returnArguments, msg0.ReturnArguments)
+			default:
+				panic("Unexpected message type")
+			}
+		}
+		checkTarget := func(target reference.Global) {
+			require.Equal(t, smExecute.Meta.Sender, target)
+		}
+
+		messageSender.SendTarget.SetCheckMessage(checkMessage)
+		messageSender.SendTarget.SetCheckTarget(checkTarget)
+
+		smExecute.messageSender = messageSenderAdapter.Mock()
 
 		execCtx := smachine.NewExecutionContextMock(mc).
-			UseSharedMock.Set(shareddata.CallSharedDataAccessor).
-			AcquireForThisStepMock.Return(false).
-			SleepMock.Return(
-			smachine.NewStateConditionalBuilderMock(mc).
-				ThenRepeatMock.Return(smachine.StateUpdate{}),
-		)
+			LogMock.Return(smachine.Logger{}).
+			StopMock.Return(smachine.StateUpdate{})
 
-		smExecute.stepDeduplicateUsingPendingsTable(execCtx)
-	}
-
-	{
-		// start deduplication after getting all pending requests
-		// expecting jump
-		execCtx := smachine.NewExecutionContextMock(mc).
-			UseSharedMock.Set(shareddata.CallSharedDataAccessor).
-			AcquireForThisStepMock.Return(true).
-			JumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepTakeLock))
-
-		smExecute.stepDeduplicateUsingPendingsTable(execCtx)
+		smExecute.stepProcessFindCallResponse(execCtx)
 	}
 
 	mc.Finish()
 }
 
 func TestSMExecute_DeduplicationForOldRequest(t *testing.T) {
+	defer executeLeakCheck(t)
+
 	var (
 		ctx = instestlogger.TestContext(t)
 		mc  = minimock.NewController(t)
@@ -334,6 +596,8 @@ func TestSMExecute_TokenInOutgoingMessage(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			defer executeLeakCheck(t)
+
 			var (
 				ctx = instestlogger.TestContext(t)
 				mc  = minimock.NewController(t)
@@ -360,7 +624,7 @@ func TestSMExecute_TokenInOutgoingMessage(t *testing.T) {
 				Arguments:           insolar.MustSerialize([]interface{}{}),
 			}
 
-			affMock := jet.NewAffinityHelperMock(t).MeMock.Return(selfRef)
+			affMock := affinity.NewHelperMock(t).MeMock.Return(selfRef)
 
 			authService := authentication.NewService(ctx, affMock)
 
@@ -424,6 +688,8 @@ func TestSMExecute_TokenInOutgoingMessage(t *testing.T) {
 }
 
 func TestSMExecute_VCallResultPassedToSMObject(t *testing.T) {
+	defer executeLeakCheck(t)
+
 	var (
 		ctx = instestlogger.TestContext(t)
 		mc  = minimock.NewController(t)
@@ -501,12 +767,9 @@ func TestSMExecute_VCallResultPassedToSMObject(t *testing.T) {
 }
 
 func TestSendVStateReportWithMissingState_IfConstructorWasInterruptedBeforeRunnerCall(t *testing.T) {
+	defer executeLeakCheck(t)
+
 	t.Log("C5084")
-	// TODO: remove this ignores after fix closing adapters on conveyor shutdown
-	defer testutils.LeakTester(t,
-		goleak.IgnoreTopFunction("github.com/insolar/assured-ledger/ledger-core/runner.(*worker).Run.func1"),
-		goleak.IgnoreTopFunction("github.com/insolar/assured-ledger/ledger-core/conveyor/smachine.startChannelWorkerUnlimParallel.func1"),
-	)
 
 	var (
 		mc  = minimock.NewController(t)
@@ -516,6 +779,8 @@ func TestSendVStateReportWithMissingState_IfConstructorWasInterruptedBeforeRunne
 		caller                             = gen.UniqueGlobalRef()
 		catalog     object.Catalog         = object.NewLocalCatalog()
 		authService authentication.Service = authentication.NewServiceMock(t)
+
+		limiter = tool.NewRunnerLimiter(4)
 	)
 
 	slotMachine := slotdebugger.New(ctx, t)
@@ -523,17 +788,23 @@ func TestSendVStateReportWithMissingState_IfConstructorWasInterruptedBeforeRunne
 
 	slotMachine.AddInterfaceDependency(&catalog)
 	slotMachine.AddInterfaceDependency(&authService)
+	slotMachine.AddDependency(limiter)
+
+	outgoing := reference.NewRecordOf(caller, slotMachine.GenerateLocal())
 
 	var vStateReportRecv = make(chan struct{})
 	slotMachine.PrepareMockedMessageSender(mc)
 	slotMachine.MessageSender.SendRole.SetCheckMessage(func(msg payload.Marshaler) {
 		res, ok := msg.(*payload.VStateReport)
 		require.True(t, ok)
-		require.Equal(t, payload.Missing, res.Status)
+		assert.Equal(t, payload.Missing, res.Status)
+		assert.Equal(t, reference.NewSelf(outgoing.GetLocal()), res.Object)
+		assert.Equal(t, int32(0), res.OrderedPendingCount)
+		assert.Equal(t, int32(0), res.UnorderedPendingCount)
+		assert.Empty(t, res.LatestDirtyState)
+		assert.Empty(t, res.LatestValidatedState)
 		close(vStateReportRecv)
 	})
-
-	outgoing := reference.NewRecordOf(caller, slotMachine.GenerateLocal())
 
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
@@ -563,18 +834,15 @@ func TestSendVStateReportWithMissingState_IfConstructorWasInterruptedBeforeRunne
 			return false
 		}
 	})
-	virtualTestutils.WaitSignalsTimed(t, 10*time.Second, vStateReportRecv)
+	virtualTestUtils.WaitSignalsTimed(t, 10*time.Second, vStateReportRecv)
 
 	mc.Finish()
 }
 
 func TestSMExecute_StopWithoutMessagesIfPulseChangedBeforeOutgoing(t *testing.T) {
+	defer executeLeakCheck(t)
+
 	t.Log("C5101")
-	// TODO: remove this ignores after fix closing adapters on conveyor shutdown
-	defer testutils.LeakTester(t,
-		goleak.IgnoreTopFunction("github.com/insolar/assured-ledger/ledger-core/runner.(*worker).Run.func1"),
-		goleak.IgnoreTopFunction("github.com/insolar/assured-ledger/ledger-core/conveyor/smachine.startChannelWorkerUnlimParallel.func1"),
-	)
 	const stateMemory = "213"
 
 	var (
@@ -587,6 +855,8 @@ func TestSMExecute_StopWithoutMessagesIfPulseChangedBeforeOutgoing(t *testing.T)
 
 		catalog     object.Catalog         = object.NewLocalCatalog()
 		authService authentication.Service = authentication.NewServiceMock(t)
+
+		limiter = tool.NewRunnerLimiter(4)
 	)
 
 	slotMachine := slotdebugger.New(ctx, t)
@@ -594,6 +864,7 @@ func TestSMExecute_StopWithoutMessagesIfPulseChangedBeforeOutgoing(t *testing.T)
 	slotMachine.PrepareMockedRunner(ctx, mc)
 	slotMachine.AddInterfaceDependency(&catalog)
 	slotMachine.AddInterfaceDependency(&authService)
+	slotMachine.AddDependency(limiter)
 
 	var vStateReportRecv = make(chan struct{})
 	checkMessage := func(msg payload.Marshaler) {
@@ -618,7 +889,7 @@ func TestSMExecute_StopWithoutMessagesIfPulseChangedBeforeOutgoing(t *testing.T)
 
 	smObject := object.NewStateMachineObject(objectRef)
 	smObject.SetState(object.HasState)
-	smObject.SetDescriptor(descriptor.NewObject(reference.Global{}, reference.Local{}, class, []byte(stateMemory), reference.Global{}))
+	smObject.SetDescriptorDirty(descriptor.NewObject(reference.Global{}, reference.Local{}, class, []byte(stateMemory)))
 	slotMachine.AddStateMachine(ctx, smObject)
 
 	smExecute := SMExecute{
@@ -652,7 +923,7 @@ func TestSMExecute_StopWithoutMessagesIfPulseChangedBeforeOutgoing(t *testing.T)
 			return false
 		}
 	})
-	virtualTestutils.WaitSignalsTimed(t, 10*time.Second, vStateReportRecv)
+	virtualTestUtils.WaitSignalsTimed(t, 10*time.Second, vStateReportRecv)
 
 	mc.Finish()
 }

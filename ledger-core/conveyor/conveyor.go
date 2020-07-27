@@ -11,6 +11,7 @@ import (
 	"math"
 	"time"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/sworker"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -23,16 +24,25 @@ type InputEvent = interface{}
 
 // PulseEventFactoryFunc should return pulse.Unknown or current.Pulse when SM doesn't need to be put into a different pulse slot.
 // Arg (pulse.Range) can be nil for future slot.
-type PulseEventFactoryFunc = func(pulse.Number, pulse.Range, InputEvent) (pulse.Number, smachine.CreateFunc, error)
+type PulseEventFactoryFunc = func(context.Context, InputEvent, InputContext) (InputSetup, error)
+
+type InputContext struct {
+	PulseNumber pulse.Number
+	PulseRange  pulse.Range
+}
+
+type InputSetup struct {
+	TargetPulse pulse.Number
+	CreateFn    smachine.CreateFunc
+	PreInitFn   smachine.PreInitHandlerFunc
+}
 
 type EventInputer interface {
 	AddInput(ctx context.Context, pn pulse.Number, event InputEvent) error
-	AddInputExt(ctx context.Context, pn pulse.Number, event InputEvent,
-		createDefaults smachine.CreateDefaultValues,
-	) error
+	AddInputExt(pn pulse.Number, event InputEvent, createDefaults smachine.CreateDefaultValues) error
 }
 
-type PreparedState = struct{}
+type PreparedState = beat.AckData
 type PreparePulseChangeChannel = chan<- PreparedState
 
 type PulseChanger interface {
@@ -55,7 +65,6 @@ func NewPulseConveyor(
 	factoryFn PulseEventFactoryFunc,
 	registry injector.DependencyRegistry,
 ) *PulseConveyor {
-
 	r := &PulseConveyor{
 		workerCtx: ctx,
 		slotConfig: PulseSlotConfig{
@@ -137,16 +146,16 @@ func (p *PulseConveyor) GetPublishedGlobalAliasAndBargeIn(key interface{}) (smac
 }
 
 func (p *PulseConveyor) AddInput(ctx context.Context, pn pulse.Number, event InputEvent) error {
-	return p.AddInputExt(ctx, pn, event, smachine.CreateDefaultValues{})
+	return p.AddInputExt(pn, event, smachine.CreateDefaultValues{Context: ctx})
 }
 
 type errMissingPN struct {
 	PN      pulse.Number
-	RemapPN pulse.Number `opt:""`
+	RemapPN pulse.Number   `opt:""`
 	State   PulseSlotState `opt:""`
 }
 
-func (p *PulseConveyor) AddInputExt(ctx context.Context, pn pulse.Number, event InputEvent,
+func (p *PulseConveyor) AddInputExt(pn pulse.Number, event InputEvent,
 	createDefaults smachine.CreateDefaultValues,
 ) error {
 	pulseSlotMachine, targetPN, pulseState, err := p.mapToPulseSlotMachine(pn)
@@ -165,15 +174,16 @@ func (p *PulseConveyor) AddInputExt(ctx context.Context, pn pulse.Number, event 
 		pr, _ = pulseSlot.pulseData.PulseRange()
 	}
 
-	remapPN, createFn, err := p.factoryFn(targetPN, pr, event)
+	setup, err := p.factoryFn(createDefaults.Context, event, InputContext{targetPN, pr})
 	switch {
-	case createFn == nil || err != nil:
+	case err != nil || setup.CreateFn == nil:
 		return err
 
-	case remapPN == targetPN || remapPN == pn || remapPN.IsUnknown():
+	case setup.TargetPulse == targetPN || setup.TargetPulse == pn || setup.TargetPulse.IsUnknown():
 		//
-	case remapPN.IsTimePulse():
-		if pulseSlotMachine, targetPN, pulseState, err = p.mapToPulseSlotMachine(remapPN); err != nil {
+
+	case setup.TargetPulse.IsTimePulse():
+		if pulseSlotMachine, targetPN, pulseState, err = p.mapToPulseSlotMachine(setup.TargetPulse); err != nil {
 			return err
 		}
 		if pulseSlotMachine != nil && pulseState != 0 {
@@ -181,14 +191,20 @@ func (p *PulseConveyor) AddInputExt(ctx context.Context, pn pulse.Number, event 
 		}
 		fallthrough
 	default:
-		return throw.E("slotMachine remap is missing", errMissingPN{PN: pn, RemapPN: remapPN})
+		return throw.E("slotMachine remap is missing", errMissingPN{PN: pn, RemapPN: setup.TargetPulse})
+	}
+
+	createFn := setup.CreateFn
+	if setup.PreInitFn != nil {
+		createDefaults.PreInitializationHandler = setup.PreInitFn
 	}
 
 	addedOk := false
 	switch {
 	case pulseState == Future:
 		// event for future needs special handling - it must wait until the pulse will actually arrive
-		_, addedOk = pulseSlotMachine.innerMachine.AddNew(ctx,
+		//nolint:staticcheck
+		_, addedOk = pulseSlotMachine.innerMachine.AddNew(nil,
 			newFutureEventSM(targetPN, &pulseSlotMachine.pulseSlot, createFn), createDefaults)
 
 	case pulseState == Past:
@@ -196,7 +212,7 @@ func (p *PulseConveyor) AddInputExt(ctx context.Context, pn pulse.Number, event 
 			return throw.E("unknown data for pulse", errMissingPN{PN: targetPN, State: pulseState})
 		}
 
-		_, addedOk = pulseSlotMachine.innerMachine.AddNewByFunc(ctx, createFn, createDefaults)
+		_, addedOk = pulseSlotMachine.innerMachine.AddNewByFunc(nil, createFn, createDefaults) //nolint:staticcheck
 		if addedOk || pulseSlotMachine.innerMachine.IsActive() {
 			break
 		}
@@ -212,14 +228,16 @@ func (p *PulseConveyor) AddInputExt(ctx context.Context, pn pulse.Number, event 
 		// Antique events have individual pulse slots, while being executed in a single SlotMachine
 		if cps := p.pdm.getCachedPulseSlot(targetPN); cps != nil {
 			createDefaults.PutOverride(injector.GetDefaultInjectionID(cps), cps)
-			_, addedOk = pulseSlotMachine.innerMachine.AddNewByFunc(ctx, createFn, createDefaults)
+			//nolint:staticcheck
+			_, addedOk = pulseSlotMachine.innerMachine.AddNewByFunc(nil, createFn, createDefaults)
 			break // add SM
 		}
 
 		if !p.pdm.IsRecentPastRange(pn) {
 			// for non-recent past HasPulseData() can be incorrect / incomplete
 			// we must use a longer procedure to get PulseData and utilize SM for it
-			_, addedOk = pulseSlotMachine.innerMachine.AddNew(ctx,
+			//nolint:staticcheck
+			_, addedOk = pulseSlotMachine.innerMachine.AddNew(nil,
 				newAntiqueEventSM(targetPN, &pulseSlotMachine.pulseSlot, createFn), createDefaults)
 			break
 		}
@@ -228,7 +246,8 @@ func (p *PulseConveyor) AddInputExt(ctx context.Context, pn pulse.Number, event 
 	case !p.pdm.TouchPulseData(targetPN): // make sure - for PRESENT we must always have the data
 		return throw.E("unknown data for pulse", errMissingPN{PN: targetPN, State: pulseState})
 	default:
-		_, addedOk = pulseSlotMachine.innerMachine.AddNewByFunc(ctx, createFn, createDefaults)
+		//nolint:staticcheck
+		_, addedOk = pulseSlotMachine.innerMachine.AddNewByFunc(nil, createFn, createDefaults)
 	}
 
 	if !addedOk {

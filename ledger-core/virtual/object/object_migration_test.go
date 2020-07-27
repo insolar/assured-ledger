@@ -18,28 +18,33 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callsummary"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object/finalizedstate"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
 )
 
 func TestSMObject_InitSetMigration(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	var (
 		mc = minimock.NewController(t)
 
 		smObject        = newSMObjectWithPulse()
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 	)
+	smObject.globalLimiter = tool.NewRunnerLimiter(4)
 
 	compareDefaultMigration := func(fn smachine.MigrateFunc) {
 		require.True(t, testutils.CmpStateFuncs(smObject.migrate, fn))
 	}
 	initCtx := smachine.NewInitializationContextMock(mc).
 		ShareMock.Return(sharedStateData).
-		PublishMock.Expect(smObject.Reference.String(), sharedStateData).Return(true).
+		PublishMock.Expect(smObject.Reference, sharedStateData).Return(true).
 		JumpMock.Return(smachine.StateUpdate{}).
 		SetDefaultMigrationMock.Set(compareDefaultMigration)
 
@@ -49,11 +54,13 @@ func TestSMObject_InitSetMigration(t *testing.T) {
 }
 
 func TestSMObject_MigrationCreateStateReport_IfStateMissing(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	mc := minimock.NewController(t)
 
 	smObject := newSMObjectWithPulse()
 
-	smObject.SetDescriptor(descriptor.NewObject(reference.Global{}, reference.Local{}, reference.Global{}, nil, reference.Global{}))
+	smObject.SetDescriptorDirty(descriptor.NewObject(reference.Global{}, reference.Local{}, reference.Global{}, nil))
 	smObject.SharedState.SetState(Missing)
 	smObject.IncrementPotentialPendingCounter(contract.MethodIsolation{
 		Interference: contract.CallIntolerable,
@@ -100,13 +107,15 @@ func TestSMObject_MigrationStop_IfStateUnknown(t *testing.T) {
 }
 
 func TestSMObject_MigrationCreateStateReport_IfStateIsEmptyAndNoCounters(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	var (
 		mc = minimock.NewController(t)
 
 		smObject = newSMObjectWithPulse()
 	)
 
-	smObject.SetDescriptor(descriptor.NewObject(reference.Global{}, reference.Local{}, reference.Global{}, nil, reference.Global{}))
+	smObject.SetDescriptorDirty(descriptor.NewObject(reference.Global{}, reference.Local{}, reference.Global{}, nil))
 	smObject.SharedState.SetState(Empty)
 
 	var sharedData smachine.SharedDataLink
@@ -147,6 +156,8 @@ func TestSMObject_MigrationCreateStateReport_IfStateIsEmptyAndNoCounters(t *test
 }
 
 func TestSMObject_MigrationCreateStateReport_IfStateEmptyAndCountersSet(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
 	var (
 		mc = minimock.NewController(t)
 

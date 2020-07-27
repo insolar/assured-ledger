@@ -6,7 +6,7 @@ require (
 	contrib.go.opencensus.io/exporter/prometheus v0.1.0
 	github.com/ThreeDotsLabs/watermill v1.0.2
 	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
-	github.com/cyraxred/go-acc v0.2.4-0.20200622122001-a427e3437ec8
+	github.com/cyraxred/go-acc v0.2.5
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/getkin/kin-openapi v0.2.1-0.20191211203508-0d9caf80ada6
 	github.com/gogo/protobuf v1.3.1
@@ -20,17 +20,13 @@ require (
 	github.com/insolar/gls v0.0.0-20200427111849-9a08a622625d
 	github.com/insolar/insconfig v0.0.0-20200513150834-977022bc1445
 	github.com/insolar/rpc v1.2.2-0.20190812143745-c27e1d218f1f
-	github.com/insolar/sm-uml-gen v0.0.0-20200613174513-58a1c59e24de
+	github.com/insolar/sm-uml-gen v1.0.0
 	github.com/insolar/x-crypto v0.0.0-20191031140942-75fab8a325f6
 	github.com/jbenet/go-base58 v0.0.0-20150317085156-6237cf65f3a6
 	github.com/json-iterator/go v1.1.9
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
-	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
-	github.com/mattn/go-colorable v0.1.4 // indirect
-	github.com/mattn/go-isatty v0.0.9 // indirect
-	github.com/mattn/go-runewidth v0.0.4 // indirect
+	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/olekukonko/tablewriter v0.0.1
-	github.com/onrik/gomerkle v1.0.0
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/prometheus/client_golang v1.6.0
 	github.com/rs/zerolog v1.15.0
@@ -57,7 +53,6 @@ require (
 	google.golang.org/grpc v1.22.0
 	gopkg.in/yaml.v2 v2.3.0
 	gotest.tools v2.2.0+incompatible
-	gotest.tools/gotestsum v0.4.1
 )
 
 replace github.com/insolar/assured-ledger/ledger-core => ./

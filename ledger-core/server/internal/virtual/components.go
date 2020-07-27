@@ -8,12 +8,14 @@ package virtual
 import (
 	"context"
 	"io"
+	"runtime"
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/ThreeDotsLabs/watermill/pubsub/gochannel"
 	"github.com/insolar/component-manager"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/application/api"
 	"github.com/insolar/assured-ledger/ledger-core/application/testwalletapi"
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
@@ -21,10 +23,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/defaults"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodestorage"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor/memstor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/logwatermill"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
@@ -94,7 +94,7 @@ func initComponents(
 	pcs cryptography.PlatformCryptographyScheme,
 	keyStore cryptography.KeyStore,
 	keyProcessor cryptography.KeyProcessor,
-	certManager node.CertificateManager,
+	certManager nodeinfo.CertificateManager,
 
 ) (*component.Manager, func()) {
 	cm := component.NewManager(nil)
@@ -120,8 +120,8 @@ func initComponents(
 
 	metricsComp := metrics.NewMetrics(cfg.Metrics, metrics.GetInsolarRegistry("virtual"), "virtual")
 
-	jc := jet.NewAffinityHelper(cfg.Ledger.LightChainLimit, certManager.GetCertificate().GetNodeRef())
-	pulses := pulsestor.NewStorageMem()
+	jc := affinity.NewAffinityHelper(certManager.GetCertificate().GetNodeRef())
+	pulses := memstor.NewStorageMem()
 
 	messageSender := messagesender.NewDefaultService(publisher, jc, pulses)
 
@@ -135,6 +135,13 @@ func initComponents(
 	virtualDispatcher.MessageSender = messageSender
 	virtualDispatcher.Affinity = jc
 	virtualDispatcher.AuthenticationService = authentication.NewService(ctx, jc)
+
+	// TODO: rewrite this after PLAT-432
+	if n := runtime.NumCPU() - 2; n > 4 {
+		virtualDispatcher.MaxRunners = n
+	} else {
+		virtualDispatcher.MaxRunners = 4
+	}
 
 	availabilityChecker := api.NewNetworkChecker(cfg.AvailabilityChecker)
 
@@ -185,7 +192,6 @@ func initComponents(
 		publisher,
 		jc,
 		pulses,
-		nodestorage.NewStorage(),
 	}
 	components = append(components, []interface{}{
 		metricsComp,

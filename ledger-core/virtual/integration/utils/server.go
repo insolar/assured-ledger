@@ -8,22 +8,29 @@ package utils
 import (
 	"context"
 	"sync"
-	"testing"
+	"time"
 
 	"github.com/ThreeDotsLabs/watermill/message"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/application/testwalletapi"
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodestorage"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor/memstor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/censusimpl"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner"
 	"github.com/insolar/assured-ledger/ledger-core/runner/machine"
@@ -31,13 +38,14 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/journal"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/network"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/convlog"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/mock"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/mock/publisher"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/pulsemanager"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/statemachine"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
@@ -57,17 +65,18 @@ type Server struct {
 	messageSender *messagesender.DefaultService
 
 	// testing components and Mocks
-	PublisherMock      *mock.PublisherMock
-	JetCoordinatorMock *jet.AffinityHelperMock
+	PublisherMock      *publisher.Mock
+	JetCoordinatorMock *affinity.HelperMock
 	pulseGenerator     *testutils.PulseGenerator
-	pulseStorage       *pulsestor.StorageMem
+	pulseStorage       *memstor.StorageMem
 	pulseManager       *pulsemanager.PulseManager
 	Journal            *journal.Journal
 
 	// wait and suspend operations
 
 	// finalization
-	fullStop synckit.ClosableSignalChannel
+	fullStop    synckit.ClosableSignalChannel
+	ctxCancelFn context.CancelFunc
 
 	// components for testing http api
 	testWalletServer *testwalletapi.TestWalletServer
@@ -78,71 +87,87 @@ type Server struct {
 
 type ConveyorCycleFunc func(c *conveyor.PulseConveyor, hasActive, isIdle bool)
 
-func NewServer(ctx context.Context, t *testing.T) (*Server, context.Context) {
+type Tester interface {
+
+	// logcommon.Logger+minimock.Tester
+
+	Helper()
+	Log(...interface{})
+
+	Fatal(args ...interface{})
+	Fatalf(format string, args ...interface{})
+	Error(...interface{})
+	Errorf(format string, args ...interface{})
+	FailNow()
+}
+
+func NewServer(ctx context.Context, t Tester) (*Server, context.Context) {
 	return newServerExt(ctx, t, nil, true)
 }
 
-func NewServerWithErrorFilter(ctx context.Context, t *testing.T, errorFilterFn logcommon.ErrorFilterFunc) (*Server, context.Context) {
+func NewServerWithErrorFilter(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFilterFunc) (*Server, context.Context) {
 	return newServerExt(ctx, t, errorFilterFn, true)
 }
 
-func NewUninitializedServer(ctx context.Context, t *testing.T) (*Server, context.Context) {
+func NewUninitializedServer(ctx context.Context, t Tester) (*Server, context.Context) {
 	return newServerExt(ctx, t, nil, false)
 }
 
-func NewUninitializedServerWithErrorFilter(ctx context.Context, t *testing.T, errorFilterFn logcommon.ErrorFilterFunc) (*Server, context.Context) {
+func NewUninitializedServerWithErrorFilter(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFilterFunc) (*Server, context.Context) {
 	return newServerExt(ctx, t, errorFilterFn, false)
 }
 
-func newServerExt(ctx context.Context, t *testing.T, errorFilterFn logcommon.ErrorFilterFunc, init bool) (*Server, context.Context) {
+func newServerExt(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFilterFunc, init bool) (*Server, context.Context) {
 	instestlogger.SetTestOutputWithErrorFilter(t, errorFilterFn)
 
 	if ctx == nil {
 		ctx = instestlogger.TestContext(t)
 	}
+	ctx, cancelFn := context.WithCancel(ctx)
 
 	s := Server{
-		caller:   gen.UniqueGlobalRef(),
-		fullStop: make(synckit.ClosableSignalChannel),
+		caller:      gen.UniqueGlobalRef(),
+		fullStop:    make(synckit.ClosableSignalChannel),
+		ctxCancelFn: cancelFn,
 	}
 
 	// Pulse-related components
 	var (
 		PulseManager *pulsemanager.PulseManager
-		Pulses       *pulsestor.StorageMem
+		Pulses       *memstor.StorageMem
 	)
 	{
 		networkNodeMock := network.NewNetworkNodeMock(t).
 			IDMock.Return(gen.UniqueGlobalRef()).
 			ShortIDMock.Return(node.ShortNodeID(0)).
-			RoleMock.Return(node.StaticRoleVirtual).
+			RoleMock.Return(member.PrimaryRoleVirtual).
 			AddressMock.Return("").
-			GetStateMock.Return(node.Ready).
+			GetStateMock.Return(nodeinfo.Ready).
 			GetPowerMock.Return(1)
-		networkNodeList := []node.NetworkNode{networkNodeMock}
+		networkNodeList := []nodeinfo.NetworkNode{networkNodeMock}
 
 		nodeNetworkAccessorMock := network.NewAccessorMock(t).GetWorkingNodesMock.Return(networkNodeList)
 		nodeNetworkMock := network.NewNodeNetworkMock(t).GetAccessorMock.Return(nodeNetworkAccessorMock)
-		nodeSetter := nodestorage.NewModifierMock(t).SetMock.Return(nil)
 
-		Pulses = pulsestor.NewStorageMem()
+		Pulses = memstor.NewStorageMem()
 		PulseManager = pulsemanager.NewPulseManager()
 		PulseManager.NodeNet = nodeNetworkMock
-		PulseManager.NodeSetter = nodeSetter
 		PulseManager.PulseAccessor = Pulses
 		PulseManager.PulseAppender = Pulses
 	}
 
 	s.pulseManager = PulseManager
 	s.pulseStorage = Pulses
-	s.pulseGenerator = testutils.NewPulseGenerator(10)
+	censusMock := createOneNodePopulationMock(t, s.caller)
+	s.pulseGenerator = testutils.NewPulseGenerator(10, censusMock)
+	s.incrementPulse()
 
-	s.JetCoordinatorMock = jet.NewAffinityHelperMock(t).
+	s.JetCoordinatorMock = affinity.NewHelperMock(t).
 		MeMock.Return(s.caller).
 		QueryRoleMock.Return([]reference.Global{s.caller}, nil)
 
-	s.PublisherMock = mock.NewPublisherMock()
-	s.PublisherMock.SetResenderMode(ctx, &s)
+	s.PublisherMock = publisher.NewMock()
+	s.PublisherMock.SetResendMode(ctx, &s)
 
 	runnerService := runner.NewService()
 	if err := runnerService.Init(); err != nil {
@@ -172,6 +197,7 @@ func newServerExt(ctx context.Context, t *testing.T, errorFilterFn logcommon.Err
 	virtualDispatcher.CycleFn = s.onConveyorCycle
 	virtualDispatcher.EventlessSleep = -1 // disable EventlessSleep for proper WaitActiveThenIdleConveyor behavior
 	virtualDispatcher.MachineLogger = machineLogger
+	virtualDispatcher.MaxRunners = 4
 	s.virtual = virtualDispatcher
 
 	// re HTTP testing
@@ -185,12 +211,43 @@ func newServerExt(ctx context.Context, t *testing.T, errorFilterFn logcommon.Err
 	return &s, ctx
 }
 
+//nolint:interfacer
+func createOneNodePopulationMock(t Tester, localRef reference.Global) census.OnlinePopulation {
+	localNode := node.ShortNodeID(10)
+	cp := profiles.NewCandidateProfileMock(t)
+	cp.GetBriefIntroSignedDigestMock.Return(cryptkit.SignedDigest{})
+	cp.GetDefaultEndpointMock.Return(adapters.NewOutbound("127.0.0.1:1"))
+	cp.GetExtraEndpointsMock.Return(nil)
+	cp.GetIssuedAtPulseMock.Return(pulse.MinTimePulse)
+	cp.GetIssuedAtTimeMock.Return(time.Now())
+	cp.GetIssuerIDMock.Return(localNode)
+	cp.GetIssuerSignatureMock.Return(cryptkit.Signature{})
+	cp.GetNodePublicKeyMock.Return(cryptkit.NewSignatureKeyHolderMock(t))
+	cp.GetPowerLevelsMock.Return(member.PowerSet{0, 0, 0, 1})
+	cp.GetPrimaryRoleMock.Return(member.PrimaryRoleVirtual)
+	cp.GetReferenceMock.Return(localRef)
+	cp.GetSpecialRolesMock.Return(0)
+	cp.GetStartPowerMock.Return(1)
+	cp.GetStaticNodeIDMock.Return(localNode)
+
+	svf := cryptkit.NewSignatureVerifierFactoryMock(t)
+	svf.CreateSignatureVerifierWithPKSMock.Return(nil)
+
+	np := profiles.NewStaticProfileByFull(cp, nil)
+	op := censusimpl.NewManyNodePopulation([]profiles.StaticProfile{np}, localNode, svf)
+
+	// cs := census.NewActiveMock(t)
+	// cs.GetOnlinePopulationMock.Return(&op)
+	return &op
+}
+
 func (s *Server) Init(ctx context.Context) {
 	if err := s.virtual.Init(ctx); err != nil {
 		panic(err)
 	}
 
 	s.pulseManager.AddDispatcher(s.virtual.FlowDispatcher)
+	s.incrementPulse() // for sake of simplicity make sure that there is no "hanging" first pulse
 	s.IncrementPulseAndWaitIdle(ctx)
 }
 
@@ -202,27 +259,32 @@ func (s *Server) StartRecordingExt(limit int, discardOnOverflow bool) {
 	s.Journal.StartRecording(limit, discardOnOverflow)
 }
 
-func (s *Server) GetPulse() pulsestor.Pulse {
+func (s *Server) GetPulse() beat.Beat {
 	return s.pulseGenerator.GetLastPulseAsPulse()
 }
 
-func (s *Server) GetPrevPulse() pulsestor.Pulse {
+func (s *Server) GetPrevPulse() beat.Beat {
 	return s.pulseGenerator.GetPrevPulseAsPulse()
 }
 
-func (s *Server) incrementPulse(ctx context.Context) {
+func (s *Server) incrementPulse() {
 	s.pulseGenerator.Generate()
 
-	if err := s.pulseManager.Set(ctx, s.GetPulse()); err != nil {
+	pc := s.GetPulse()
+	if err := s.pulseStorage.Append(context.Background(), pc); err != nil {
+		panic(err)
+	}
+
+	if err := s.pulseManager.CommitPulseChange(s.GetPulse()); err != nil {
 		panic(err)
 	}
 }
 
-func (s *Server) IncrementPulse(ctx context.Context) {
+func (s *Server) IncrementPulse(context.Context) {
 	s.pulseLock.Lock()
 	defer s.pulseLock.Unlock()
 
-	s.incrementPulse(ctx)
+	s.incrementPulse()
 }
 
 func (s *Server) IncrementPulseAndWaitIdle(ctx context.Context) {
@@ -239,6 +301,16 @@ func (s *Server) SendMessage(_ context.Context, msg *message.Message) {
 
 func (s *Server) ReplaceRunner(svc runner.Service) {
 	s.virtual.Runner = svc
+}
+
+func (s *Server) OverrideConveyorFactoryLogContext(ctx context.Context) {
+	s.virtual.FactoryLogContextOverride = ctx
+}
+
+// Set limit for parallel runners. Function must be called before server.Init
+// If this limit does not set it will be set by default (NumCPU() - 2)
+func (s *Server) SetMaxParallelism(count int) {
+	s.virtual.MaxRunners = count
 }
 
 func (s *Server) ReplaceMachinesManager(manager machine.Manager) {
@@ -280,6 +352,7 @@ func (s *Server) DelegationToken(outgoing reference.Global, to reference.Global,
 func (s *Server) Stop() {
 	defer close(s.fullStop)
 
+	s.ctxCancelFn()
 	s.virtual.Conveyor.Stop()
 	_ = s.testWalletServer.Stop(context.Background())
 	_ = s.messageSender.Close()
@@ -448,5 +521,14 @@ func (s *Server) WrapPayload(pl payload.Marshaler) *RequestWrapper {
 
 func (s *Server) SendPayload(ctx context.Context, pl payload.Marshaler) {
 	msg := s.WrapPayload(pl).Finalize()
+	s.SendMessage(ctx, msg)
+}
+
+func (s *Server) WrapPayloadAsFuture(pl payload.Marshaler) *RequestWrapper {
+	return NewRequestWrapper(s.GetPulse().NextPulseNumber(), pl).SetSender(s.caller)
+}
+
+func (s *Server) SendPayloadAsFuture(ctx context.Context, pl payload.Marshaler) {
+	msg := s.WrapPayloadAsFuture(pl).Finalize()
 	s.SendMessage(ctx, msg)
 }

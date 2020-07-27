@@ -16,7 +16,7 @@ test_unit: ## run all unit tests
 
 .PHONY: test_with_coverage
 test_with_coverage: ## run unit and slow tests with generation of coverage file
-	go-acc --covermode=count --output=coverage.tmp.out --ignore drafts ./... -- -v -tags="slowtest copylogtxt" -count=1 $(TEST_ARGS) -args TESTLOG_OUT=$(EXTENDED_LOG) TESTLOG_MARKS=1 TESTLOG_TXT=1 2>&1 | tee "integration_test.log"
+	go-acc --covermode=count --output=coverage.tmp.out --ignore drafts,load ./... -- -v -tags="slowtest copylogtxt" -count=1 $(TEST_ARGS) -args TESTLOG_OUT=$(EXTENDED_LOG) TESTLOG_MARKS=1 TESTLOG_TXT=1 2>&1 | tee "integration_test.log"
 	cat coverage.tmp.out | grep -v _mock.go > coverage.out
 	go tool cover -html=coverage.out -o coverage.html
 
@@ -29,16 +29,24 @@ test_func: ## run functest FUNCTEST_COUNT times
 
 .PHONY: test_func_slow
 test_func_slow: # Run functests as long as practical to catch unexpected behavior during pulse change
-	FUNCTEST_COUNT=100 PULSAR_ONESHOT=FALSE PULSAR_PULSETIME=5000 TEST_ARGS='-timeout 1200s -failfast' make test_func
+	FUNCTEST_COUNT=100 PULSAR_ONESHOT=FALSE PULSAR_PULSETIME=5000 TEST_ARGS='-timeout 1200s -failfast' $(MAKE) test_func
 
 .PNONY: test_func_race
 test_func_race: ## run functest 10 times with -race flag
-	make clean
-	GOBUILD='go build -race' FUNCTEST_COUNT=10 TEST_ARGS='-timeout 1200s -race' make test_func
+	$(MAKE) clean
+	GOBUILD='go build -race' FUNCTEST_COUNT=10 TEST_ARGS='-timeout 1200s -race' $(MAKE) test_func
 
 .PHONY: test_slow
 test_slow: ## run tests with slowtest tag
 	$(GOTEST) -count=1 $(TEST_ARGS) -tags "slowtest convlogtxt" $(PACKAGES)
+
+.PHONY: test_slow_long
+test_slow_long: ## run tests with slowtest tag
+	$(GOTEST) -count=300 -timeout 30m -tags "slowtest longtest copylogtxt" $(PACKAGES) -args TESTLOG_OUT=$(EXTENDED_LOG) TESTLOG_MARKS=1 TESTLOG_TXT=1
+
+.PHONY: test_extended
+test_extended: ## run tests with slowtest tag
+	$(GOTEST) -count=1 $(TEST_ARGS) -tags "extendedtest convlogtxt" $(PACKAGES)
 
 .PHONY: kube_start_net
 kube_start_net: ## run insolar net in local kubernetes cluster
@@ -70,7 +78,7 @@ kube_collect_artifacts: ## stop insolar net in local kubernetes cluster
 
 .PHONY: test_func_kubernetes
 test_func_kubernetes: ## run functest FUNCTEST_COUNT times in kubernetes cluster, net will be running after tests!
-	make kube_start_net
+	$(MAKE) kube_start_net
 	INSOLAR_FUNC_RPC_URL_PUBLIC="http://localhost/api/rpc" \
 	INSOLAR_FUNC_RPC_URL="http://localhost/admin-api/rpc" \
 	INSOLAR_FUNC_KEYS_PATH="/tmp/insolar/" \

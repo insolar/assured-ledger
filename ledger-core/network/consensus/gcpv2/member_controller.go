@@ -16,6 +16,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/transport"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 func NewConsensusMemberController(chronicle api.ConsensusChronicles, upstream api.UpstreamController,
@@ -186,35 +188,33 @@ func (h *ConsensusMemberController) ProcessPacket(ctx context.Context, payload t
 
 type ephemeralInterceptor struct {
 	api.EphemeralControlFeeder
+	cancelled  atomickit.OnceFlag
 	controller *ConsensusMemberController
 	round      api.RoundController
 }
 
-func (p *ephemeralInterceptor) OnEphemeralCancelled() {
-	feeder := p._cancelled()
-	if feeder != nil {
-		feeder.OnEphemeralCancelled()
-	}
+func (p *ephemeralInterceptor) IsActive() bool {
+	return p.EphemeralControlFeeder != nil && !p.cancelled.IsSet() && p.EphemeralControlFeeder.IsActive()
 }
 
-func (p *ephemeralInterceptor) _cancelled() api.EphemeralControlFeeder {
-	p.controller.mutex.Lock()
-	defer p.controller.mutex.Unlock()
-
-	feeder := p.EphemeralControlFeeder
-	p.EphemeralControlFeeder = nil
-	return feeder
+func (p *ephemeralInterceptor) OnEphemeralCancelled() {
+	p.cancelled.DoSet(func() {
+		p.EphemeralControlFeeder.OnEphemeralCancelled()
+	})
 }
 
 func (p *ephemeralInterceptor) EphemeralConsensusFinished(isNextEphemeral bool, roundStartedAt time.Time,
 	expected census.Operational) {
 
+	if p.cancelled.IsSet() {
+		return
+	}
 	p.EphemeralControlFeeder.EphemeralConsensusFinished(isNextEphemeral, roundStartedAt, expected)
 
 	p.controller.mutex.Lock()
 	defer p.controller.mutex.Unlock()
 
-	if !isNextEphemeral {
+	if !isNextEphemeral || p.cancelled.IsSet() { // double-check
 		return
 	}
 
@@ -232,7 +232,7 @@ func (p *ephemeralInterceptor) prepare(controller *ConsensusMemberController) ap
 	}
 	p.round = nil
 
-	if p.EphemeralControlFeeder == nil {
+	if p.EphemeralControlFeeder == nil || p.cancelled.IsSet() {
 		return nil
 	}
 	return p
@@ -240,7 +240,7 @@ func (p *ephemeralInterceptor) prepare(controller *ConsensusMemberController) ap
 
 func (p *ephemeralInterceptor) attachTo(round api.RoundController) {
 	if p.round != nil {
-		panic("illegal state")
+		panic(throw.IllegalState())
 	}
 	p.round = round
 }

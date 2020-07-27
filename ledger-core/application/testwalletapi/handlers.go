@@ -33,6 +33,7 @@ type logIncomingRequest struct {
 
 	URL     string
 	Handler string
+	State   contract.StateFlag
 }
 
 const (
@@ -57,6 +58,11 @@ type TestWalletServerGetBalanceResult struct {
 }
 
 type TestWalletServerAddAmountResult struct {
+	TraceID string `json:"traceID"`
+	Error   string `json:"error"`
+}
+
+type TestWalletServerDeleteResult struct {
 	TraceID string `json:"traceID"`
 	Error   string `json:"error"`
 }
@@ -105,7 +111,7 @@ func (s *TestWalletServer) Create(w http.ResponseWriter, req *http.Request) {
 		ref             reference.Global
 		contractCallErr *foundation.Error
 	)
-	err = foundation.UnmarshalMethodResultSimplified(walletRes.ReturnArguments, &ref, &contractCallErr)
+	err = foundation.UnmarshalMethodResultSimplified(walletRes, &ref, &contractCallErr)
 	switch {
 	case err != nil:
 		result.Error = errors.W(err, "Failed to unmarshal response").Error()
@@ -197,7 +203,7 @@ func (s *TestWalletServer) Transfer(w http.ResponseWriter, req *http.Request) {
 	}
 
 	var contractCallErr *foundation.Error
-	err = foundation.UnmarshalMethodResultSimplified(walletRes.ReturnArguments, &contractCallErr)
+	err = foundation.UnmarshalMethodResultSimplified(walletRes, &contractCallErr)
 	switch {
 	case err != nil:
 		result.Error = throw.W(err, "Failed to unmarshal response", nil).Error()
@@ -216,7 +222,7 @@ func (g *GetBalanceParams) isValid() bool {
 	return len(g.WalletRef) > 0
 }
 
-func (s *TestWalletServer) GetBalance(w http.ResponseWriter, req *http.Request) {
+func (s *TestWalletServer) getBalance(w http.ResponseWriter, req *http.Request, state contract.StateFlag) {
 	var (
 		ctx     = req.Context()
 		traceID = trace.RandID()
@@ -224,7 +230,7 @@ func (s *TestWalletServer) GetBalance(w http.ResponseWriter, req *http.Request) 
 	)
 
 	ctx, logger = inslogger.WithTraceField(ctx, traceID)
-	logger.Infom(logIncomingRequest{URL: req.URL.String(), Handler: "GetBalance"})
+	logger.Infom(logIncomingRequest{URL: req.URL.String(), Handler: "GetBalance", State: state})
 
 	params := GetBalanceParams{}
 	err := json.NewDecoder(req.Body).Decode(&params)
@@ -253,15 +259,13 @@ func (s *TestWalletServer) GetBalance(w http.ResponseWriter, req *http.Request) 
 	ref, err := reference.GlobalFromString(params.WalletRef)
 
 	if err != nil {
-		result.Error = throw.W(err,
-			fmt.Sprintf("Failed to create reference from string (%s)", params.WalletRef), nil,
-		).Error()
+		result.Error = throw.W(err, "Failed to create reference from string").Error()
 		return
 	}
 
 	walletReq := payload.VCallRequest{
 		CallType:       payload.CTMethod,
-		CallFlags:      payload.BuildCallFlags(contract.CallIntolerable, contract.CallValidated),
+		CallFlags:      payload.BuildCallFlags(contract.CallIntolerable, state),
 		Callee:         ref,
 		CallSiteMethod: getBalance,
 		Arguments:      insolar.MustSerialize([]interface{}{}),
@@ -279,7 +283,7 @@ func (s *TestWalletServer) GetBalance(w http.ResponseWriter, req *http.Request) 
 		contractCallErr *foundation.Error
 	)
 
-	err = foundation.UnmarshalMethodResultSimplified(walletRes.ReturnArguments, &amount, &contractCallErr)
+	err = foundation.UnmarshalMethodResultSimplified(walletRes, &amount, &contractCallErr)
 	switch {
 	case err != nil:
 		result.Error = throw.W(err, "Failed to unmarshal response", nil).Error()
@@ -288,6 +292,14 @@ func (s *TestWalletServer) GetBalance(w http.ResponseWriter, req *http.Request) 
 	default:
 		result.Amount = uint(amount)
 	}
+}
+
+func (s *TestWalletServer) GetBalanceValidated(w http.ResponseWriter, req *http.Request) {
+	s.getBalance(w, req, contract.CallValidated)
+}
+
+func (s *TestWalletServer) GetBalance(w http.ResponseWriter, req *http.Request) {
+	s.getBalance(w, req, contract.CallDirty)
 }
 
 type AddAmountParams struct {
@@ -333,9 +345,7 @@ func (s *TestWalletServer) AddAmount(w http.ResponseWriter, req *http.Request) {
 
 	ref, err := reference.GlobalFromString(params.To)
 	if err != nil {
-		result.Error = throw.W(err,
-			fmt.Sprintf("Failed to create reference from string (%s)", params.To), nil,
-		).Error()
+		result.Error = throw.W(err, "Failed to create reference from string").Error()
 
 		return
 	}
@@ -361,7 +371,7 @@ func (s *TestWalletServer) AddAmount(w http.ResponseWriter, req *http.Request) {
 	}
 
 	var contractCallErr *foundation.Error
-	err = foundation.UnmarshalMethodResultSimplified(walletRes.ReturnArguments, &contractCallErr)
+	err = foundation.UnmarshalMethodResultSimplified(walletRes, &contractCallErr)
 
 	switch {
 	case err != nil:
@@ -373,13 +383,87 @@ func (s *TestWalletServer) AddAmount(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func (s *TestWalletServer) runWalletRequest(ctx context.Context, req payload.VCallRequest) (*payload.VCallResult, error) {
+type DeleteParams struct {
+	WalletRef string
+}
+
+func (p *DeleteParams) isValid() bool {
+	return len(p.WalletRef) > 0
+}
+
+func (s *TestWalletServer) Delete(w http.ResponseWriter, req *http.Request) {
+	var (
+		ctx     = req.Context()
+		traceID = trace.RandID()
+		logger  log.Logger
+	)
+
+	ctx, logger = inslogger.WithTraceField(ctx, traceID)
+	logger.Infom(logIncomingRequest{URL: req.URL.String(), Handler: "Delete"})
+
+	params := DeleteParams{}
+	err := json.NewDecoder(req.Body).Decode(&params)
+	if err != nil {
+		http.Error(w, fmt.Sprintf(badRequestErrorPattern, "Can't parse boby: "+err.Error(), traceID), http.StatusBadRequest)
+		return
+	}
+	if !params.isValid() {
+		http.Error(w, fmt.Sprintf(badRequestErrorPattern, "invalid input params", traceID), http.StatusBadRequest)
+		return
+	}
+
+	result := TestWalletServerDeleteResult{
+		TraceID: traceID,
+		Error:   "",
+	}
+
+	defer func() {
+		if len(result.Error) != 0 {
+			logger.Error(result.Error)
+		}
+		s.mustWriteResult(w, result)
+	}()
+
+	ref, err := reference.GlobalFromString(params.WalletRef)
+
+	if err != nil {
+		result.Error = throw.W(err, "Failed to create reference from string").Error()
+		return
+	}
+
+	walletReq := payload.VCallRequest{
+		CallType:       payload.CTMethod,
+		CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+		Callee:         ref,
+		CallSiteMethod: "Destroy",
+		Arguments:      insolar.MustSerialize([]interface{}{}),
+	}
+
+	walletRes, err := s.runWalletRequest(ctx, walletReq)
+	if err != nil {
+		result.Error = throw.W(err, "Failed to process wallet contract call request (Destroy)").Error()
+		return
+	}
+
+	var contractCallErr *foundation.Error
+	err = foundation.UnmarshalMethodResultSimplified(walletRes, &contractCallErr)
+
+	switch {
+	case err != nil:
+		result.Error = throw.W(err, "Failed to unmarshal response", nil).Error()
+	case contractCallErr != nil:
+		result.Error = contractCallErr.Error()
+	default:
+	}
+}
+
+func (s *TestWalletServer) runWalletRequest(ctx context.Context, req payload.VCallRequest) ([]byte, error) {
 	latestPulse, err := s.accessor.Latest(ctx)
 	if err != nil {
 		return nil, throw.W(err, "Failed to get latest pulse", nil)
 	}
 
-	call := &statemachine.TestAPICall{
+	call := statemachine.TestAPICall{
 		Payload: req,
 	}
 
@@ -388,10 +472,11 @@ func (s *TestWalletServer) runWalletRequest(ctx context.Context, req payload.VCa
 
 	var (
 		fail error
-		res  payload.VCallResult
+		res  []byte
 	)
 
 	createDefaults := smachine.CreateDefaultValues{
+		Context: ctx,
 		TerminationHandler: func(data smachine.TerminationData) {
 			defer func() {
 				close(readyChan)
@@ -399,7 +484,7 @@ func (s *TestWalletServer) runWalletRequest(ctx context.Context, req payload.VCa
 
 			fail = data.Error
 
-			resData, ok := data.Result.(payload.VCallResult)
+			resData, ok := data.Result.([]byte)
 			if ok {
 				res = resData
 			}
@@ -407,7 +492,7 @@ func (s *TestWalletServer) runWalletRequest(ctx context.Context, req payload.VCa
 		TracerID: trace.ID(ctx),
 	}
 
-	err = s.feeder.AddInputExt(ctx, latestPulse.PulseNumber, call, createDefaults)
+	err = s.feeder.AddInputExt(latestPulse.PulseNumber, call, createDefaults)
 	if err != nil {
 		return nil, throw.W(err, "Failed to add call to conveyor", nil)
 	}
@@ -425,7 +510,7 @@ func (s *TestWalletServer) runWalletRequest(ctx context.Context, req payload.VCa
 		return nil, throw.W(fail, "Failed to process request", nil)
 	}
 
-	return &res, nil
+	return res, nil
 }
 
 func (s *TestWalletServer) mustWriteResult(w http.ResponseWriter, res interface{}) { // nolint:interfacer

@@ -12,8 +12,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/application/testwalletapi/statemachine"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -40,7 +40,7 @@ func Test_IsMessageFromVirtualLegitimate_TemporaryIgnoreChecking_APIRequests(t *
 	selfRef := gen.UniqueGlobalRef()
 	sender := statemachine.APICaller
 
-	jetCoordinatorMock := jet.NewAffinityHelperMock(t).
+	jetCoordinatorMock := affinity.NewHelperMock(t).
 		QueryRoleMock.Return([]reference.Global{selfRef}, nil)
 	authService := NewService(ctx, jetCoordinatorMock)
 
@@ -105,12 +105,13 @@ func Test_IsMessageFromVirtualLegitimate_WithToken(t *testing.T) {
 			token := payload.CallDelegationToken{
 				TokenTypeAndFlags: payload.DelegationTokenTypeCall,
 				Approver:          approver,
+				DelegateTo:        sender,
 			}
 
 			reflect.ValueOf(testCase.msg).MethodByName("Reset").Call([]reflect.Value{})
 			insertToken(token, testCase.msg)
 
-			jetCoordinatorMock := jet.NewAffinityHelperMock(t).
+			jetCoordinatorMock := affinity.NewHelperMock(t).
 				QueryRoleMock.Return([]reference.Global{approver}, nil).
 				MeMock.Return(selfRef)
 
@@ -128,7 +129,7 @@ func Test_IsMessageFromVirtualLegitimate_WithToken(t *testing.T) {
 
 			sender := gen.UniqueGlobalRef()
 
-			jetCoordinatorMock := jet.NewAffinityHelperMock(t).
+			jetCoordinatorMock := affinity.NewHelperMock(t).
 				QueryRoleMock.Return([]reference.Global{sender}, nil)
 
 			authService := NewService(ctx, jetCoordinatorMock)
@@ -138,6 +139,7 @@ func Test_IsMessageFromVirtualLegitimate_WithToken(t *testing.T) {
 			token := payload.CallDelegationToken{
 				TokenTypeAndFlags: payload.DelegationTokenTypeCall,
 				Approver:          sender,
+				DelegateTo:        sender,
 			}
 
 			reflect.ValueOf(testCase.msg).MethodByName("Reset").Call([]reflect.Value{})
@@ -155,7 +157,7 @@ func Test_IsMessageFromVirtualLegitimate_WithToken(t *testing.T) {
 			expectedVE := refs[0]
 			approver := refs[1]
 
-			jetCoordinatorMock := jet.NewAffinityHelperMock(t).
+			jetCoordinatorMock := affinity.NewHelperMock(t).
 				QueryRoleMock.Return([]reference.Global{expectedVE}, nil).
 				MeMock.Return(selfRef)
 
@@ -167,6 +169,35 @@ func Test_IsMessageFromVirtualLegitimate_WithToken(t *testing.T) {
 			token := payload.CallDelegationToken{
 				TokenTypeAndFlags: payload.DelegationTokenTypeCall,
 				Approver:          approver,
+				DelegateTo:        expectedVE,
+			}
+			insertToken(token, testCase.msg)
+
+			_, err := authService.IsMessageFromVirtualLegitimate(ctx, testCase.msg, expectedVE, rg)
+			require.Contains(t, err.Error(), "token Approver and expectedVE are different")
+		})
+
+		t.Run("Wrong DelegateTo:"+testCase.name, func(t *testing.T) {
+			ctx := context.Background()
+			selfRef := gen.UniqueGlobalRef()
+
+			refs := gen.UniqueGlobalRefs(2)
+			expectedVE := refs[0]
+			approver := refs[1]
+
+			jetCoordinatorMock := affinity.NewHelperMock(t).
+				QueryRoleMock.Return([]reference.Global{expectedVE}, nil).
+				MeMock.Return(selfRef)
+
+			authService := NewService(ctx, jetCoordinatorMock)
+
+			rg := pulse.NewSequenceRange([]pulse.Data{pulse.NewPulsarData(pulse.MinTimePulse<<1, 10, 1, longbits.Bits256{})})
+
+			reflect.ValueOf(testCase.msg).MethodByName("Reset").Call([]reflect.Value{})
+			token := payload.CallDelegationToken{
+				TokenTypeAndFlags: payload.DelegationTokenTypeCall,
+				Approver:          approver,
+				DelegateTo:        gen.UniqueGlobalRef(),
 			}
 			insertToken(token, testCase.msg)
 
@@ -238,7 +269,7 @@ func Test_IsMessageFromVirtualLegitimate_WithoutToken(t *testing.T) {
 			selfRef := refs[0]
 			sender := refs[0]
 
-			jetCoordinatorMock := jet.NewAffinityHelperMock(t).
+			jetCoordinatorMock := affinity.NewHelperMock(t).
 				QueryRoleMock.Return([]reference.Global{sender}, nil).
 				MeMock.Return(selfRef)
 
@@ -257,7 +288,7 @@ func Test_IsMessageFromVirtualLegitimate_WithoutToken(t *testing.T) {
 			sender := refs[1]
 			badSender := refs[2]
 
-			jetCoordinatorMock := jet.NewAffinityHelperMock(t).
+			jetCoordinatorMock := affinity.NewHelperMock(t).
 				QueryRoleMock.Return([]reference.Global{sender}, nil).
 				MeMock.Return(selfRef)
 
@@ -279,7 +310,7 @@ func Test_IsMessageFromVirtualLegitimate_WithoutToken(t *testing.T) {
 			selfRef := refs[0]
 			sender := refs[1]
 
-			jetCoordinatorMock := jet.NewAffinityHelperMock(t).
+			jetCoordinatorMock := affinity.NewHelperMock(t).
 				QueryRoleMock.Return([]reference.Global{sender}, nil).
 				MeMock.Return(selfRef)
 			authService := NewService(ctx, jetCoordinatorMock)
@@ -302,7 +333,7 @@ func Test_IsMessageFromVirtualLegitimate_WithoutToken(t *testing.T) {
 			selfRef := refs[0]
 			sender := refs[0]
 
-			jetCoordinatorMock := jet.NewAffinityHelperMock(t).
+			jetCoordinatorMock := affinity.NewHelperMock(t).
 				QueryRoleMock.Return([]reference.Global{sender, sender}, nil).
 				MeMock.Return(selfRef)
 
@@ -329,7 +360,7 @@ func Test_IsMessageFromVirtualLegitimate_WithoutToken(t *testing.T) {
 
 			calcErrorMsg := "bad calculator"
 
-			jetCoordinatorMock := jet.NewAffinityHelperMock(t).
+			jetCoordinatorMock := affinity.NewHelperMock(t).
 				QueryRoleMock.Return([]reference.Global{}, throw.New(calcErrorMsg)).
 				MeMock.Return(selfRef)
 
@@ -375,7 +406,7 @@ func TestService_HasToSendToken(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			var (
 				ctx     = instestlogger.TestContext(t)
-				affMock = jet.NewAffinityHelperMock(t).MeMock.Return(selfRef)
+				affMock = affinity.NewHelperMock(t).MeMock.Return(selfRef)
 			)
 
 			authService := NewService(ctx, affMock)

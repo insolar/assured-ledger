@@ -13,18 +13,18 @@ import (
 
 	jsoniter "github.com/json-iterator/go"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 )
 
 type TestWalletServer struct {
 	server   *http.Server
 	feeder   conveyor.EventInputer
-	accessor pulsestor.Accessor
+	accessor beat.Accessor
 	mux      *http.ServeMux
 
 	jsonCodec jsoniter.API
@@ -38,7 +38,7 @@ const (
 	transfer   = "Transfer"   // Transfer money between wallets
 )
 
-func NewTestWalletServer(api configuration.TestWalletAPI, feeder conveyor.EventInputer, accessor pulsestor.Accessor) *TestWalletServer {
+func NewTestWalletServer(api configuration.TestWalletAPI, feeder conveyor.EventInputer, accessor beat.Accessor) *TestWalletServer {
 	return &TestWalletServer{
 		server:    &http.Server{Addr: api.Address},
 		mux:       http.NewServeMux(),
@@ -53,7 +53,9 @@ func (s *TestWalletServer) RegisterHandlers(httpServerMux *http.ServeMux) {
 	httpServerMux.HandleFunc(walletLocation+"/create", s.Create)
 	httpServerMux.HandleFunc(walletLocation+"/transfer", s.Transfer)
 	httpServerMux.HandleFunc(walletLocation+"/get_balance", s.GetBalance)
+	httpServerMux.HandleFunc(walletLocation+"/get_balance_validated", s.GetBalanceValidated)
 	httpServerMux.HandleFunc(walletLocation+"/add_amount", s.AddAmount)
+	httpServerMux.HandleFunc(walletLocation+"/delete", s.Delete)
 }
 
 func (s *TestWalletServer) Start(ctx context.Context) error {

@@ -7,7 +7,8 @@ import "github.com/insolar/assured-ledger/ledger-core/insproto/ins.proto";
 import "rms.proto";
 
 option (insproto.notation_all) = true;
-option (insproto.context_all) = "RecordContext";
+option (insproto.context_all) = "RecordVisitor";
+option (insproto.context_method_all) = "Visit";
 option (insproto.message_ctx_apply_all) = "Record";
 option (insproto.register_all) = "RegisterRecordType";
 option (insproto.message_mapping_all) = true;
@@ -15,17 +16,143 @@ option (gogoproto.goproto_getters_all) = true;
 option (gogoproto.equal_all) = true;
 
 message RecordExample {
-    option (insproto.id) = 999999999;
+    option (insproto.id) = 999999999; // for records should be 50-999
 
     //*** Start of predefined section ***//
-    reserved 1 to 15, 17 to 18, 1792 to max;
+    reserved 1 to 15, 17 to 18, 20 to 39, 1792 to max;
     uint32 Polymorph = 16;
     RecordBody RecordBody = 19 [(gogoproto.embed)=true];
     //*** End of predefined section ***//
 
     // Add custom fields here
-    Binary Str = 21;
-    Reference Ref1 = 22 [(insproto.ctx_apply)="RecReference"];
-    uint32 AsOf = 23 [(gogoproto.casttype)="PulseNumber"];
+    Binary Str = 40;
+    Reference Ref1 = 41 [(insproto.ctx_apply)="RecReference"];
+    uint32 AsOf = 42 [(gogoproto.casttype)="PulseNumber"];
+}
+
+enum FilamentState {
+    Unknown = 0;
+    Started = 1;
+    Activated = 2;
+    DirtyDeactivated = 126;
+    Dead = 127; // 1-byte varint
+}
+
+enum FilamentType {
+    Lifeline = 0;
+    Sideline = 1;
+
+    InboundFilament = 16;
+}
+
+message RLineRecap {
+    option (insproto.id) = 19;
+
+    reserved 1 to 18, 20 to 23, 26 to 39, 1792 to max;
+    RecordBody RecordBody = 19 [(gogoproto.embed)=true];
+
+    Reference PrevRef = 24;
+    Reference RootRef = 25;
+
+    FilamentState State = 40;
+    FilamentType  Type = 41;
+    uint32        PrevType = 42;
+    uint32        RedirectToType = 43;
+    Reference     PrevRedirectRef = 44;
+
+    repeated MemoryRecap Memory = 50;
+}
+
+enum MemorySafety {
+    UnknownSafety = 0;
+    Dirty = 1;
+    Validated = 2;
+    Final = 3;
+}
+
+message MemoryRecap {
+    option (insproto.id) = 0;
+    option (insproto.fields_mapping) = false;
+    option (insproto.message_mapping) = false;
+    option (insproto.context) = "";
+    MemorySafety Safety = 20;
+    Reference Memory = 21;
+//    Reference Class = 22;
+//    Reference Code = 23;
+}
+
+message RPrevDropReport {
+    option (insproto.id) = 0;
+    RecordBody RecordBody = 19 [(gogoproto.embed)=true];
+}
+
+message RLineActivate {
+    option (insproto.id) = 20;
+    RecordBody RecordBody = 19 [(gogoproto.embed)=true];
+}
+
+message RLineDeactivate {
+    option (insproto.id) = 21;
+    RecordBody RecordBody = 19 [(gogoproto.embed)=true];
+}
+
+message RLineMemory {
+    option (insproto.id) = 22;
+    // = 23 RLineMemoryInit
+    // = 24 RLineMemoryProvided
+
+    reserved 1 to 15, 17 to 18, 20 to 23, 26 to 39, 1792 to max;
+    uint32 Polymorph = 16; // an explicit field is required to be able to alter record type
+    RecordBody RecordBody = 19 [(gogoproto.embed)=true];
+}
+
+message RLineMemoryExpected {
+    option (insproto.id) = 25;
+    RecordBody RecordBody = 19 [(gogoproto.embed)=true];
+}
+
+message RLineMemoryReuse {
+    option (insproto.id) = 26;
+    RecordBody RecordBody = 19 [(gogoproto.embed)=true];
+}
+
+message RLineInboundRequest {
+    option (insproto.id) = 27;
+    RecordBody RecordBody = 19 [(gogoproto.embed)=true];
+}
+
+message RInboundRequest {
+    option (insproto.id) = 28;
+    RecordBody RecordBody = 19 [(gogoproto.embed)=true];
+}
+
+message RInboundResponse {
+    option (insproto.id) = 29;
+    RecordBody RecordBody = 19 [(gogoproto.embed)=true];
+}
+
+message ROutboundResponse {
+    option (insproto.id) = 30;
+    RecordBody RecordBody = 19 [(gogoproto.embed)=true];
+}
+
+message ROutboundRequest {
+    option (insproto.id) = 31;
+    // = 32 RLifelineStart
+    // = 33 RSidelineStart
+    // = 34 ROutboundRetryableRequest
+    // = 35 ROutboundRetryRequest
+
+    //*** Start of predefined section ***//
+    reserved 1 to 15, 17 to 18, 20 to 23, 26 to 39, 1792 to max;
+    uint32 Polymorph = 16; // an explicit field is required to be able to alter record type
+    RecordBody RecordBody = 19 [(gogoproto.embed)=true];
+    //*** End of predefined section ***//
+
+    Reference PrevRef = 24;
+    Reference RootRef = 25;
+
+    // Add custom fields here
+    string Str = 40;
 }
 

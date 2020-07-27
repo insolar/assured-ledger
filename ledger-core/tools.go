@@ -16,5 +16,6 @@ import (
 	_ "github.com/insolar/sm-uml-gen"
 	_ "golang.org/x/tools/cmd/goimports"
 	_ "golang.org/x/tools/cmd/stringer"
-	_ "gotest.tools/gotestsum"
+
+	_ "github.com/insolar/assured-ledger/ledger-core/virtual/integration/mock/publisher/cmd/insolar-mockgenerator-typedpublisher"
 )

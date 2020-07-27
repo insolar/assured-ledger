@@ -1,0 +1,76 @@
+syntax = "proto3";
+
+package rms;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+import "github.com/insolar/assured-ledger/ledger-core/insproto/ins.proto";
+import "rms.proto";
+
+option (insproto.notation_all) = true;
+option (gogoproto.goproto_getters_all) = true;
+option (gogoproto.equal_all) = true;
+
+message RecordExcerptForCatalogEntry {
+    reserved 1 to 15, 17 to 18, 40 to max;
+
+    uint32 RecordType = 16;
+    Binary RecordBodyHash = 19;
+
+    // MUST match with Excerpt portion of CatalogEntry
+    Reference PrevRef = 24;
+    Reference RootRef = 25;
+    Reference ReasonRef = 26;
+    Reference RedirectRef = 27;
+    Reference RejoinRef = 28;
+
+    Binary ProducerSignature = 39;
+}
+
+message RecordBodyForLazy {
+    option (insproto.id) = 0;
+    RecordBody RecordBody = 19;
+}
+
+message CatalogEntry {
+    reserved 1 to 15, 29 to 38;
+    // Start of fixed-size portion.
+    // Use of fixed-size fields allows direct memory mapping for fast access to a few critical fields
+    fixed32 RecordType = 16;
+    fixed64 BodyLoc = 17 [(gogoproto.casttype)="StorageLocator"];
+    fixed64 PayloadLoc = 18 [(gogoproto.casttype)="StorageLocator"];
+    fixed32 Ordinal = 19 [(gogoproto.casttype)="CatalogOrdinal"];
+    // End of fixed-size portion.
+
+    ExtLocators ExtensionLoc = 20;
+    Binary RecordBodyHash = 21;
+
+    // Start of Excerpt portion
+    // MUST match with RecordExcerpt
+    Reference PrevRef = 24;
+    Reference RootRef = 25;
+    Reference ReasonRef = 26;
+    Reference RedirectRef = 27;
+    Reference RejoinRef = 28;
+    // End of Excerpt field portion
+
+    Binary ProducerSignature = 39;
+    Reference RecapRef = 40;
+
+    Reference ProducedBy = 42;
+    // Token ProducerToken = 43;
+    Binary RegistrarSignature = 44;
+    Reference RegisteredBy = 45;
+    // Token RegistrarToken = 46;
+}
+
+message ExtLocators {
+    option (insproto.id) = 0;
+    option (insproto.notation) = false; // this type actually satisfies the notation, but check of proto-gen-ins is too restrictive
+    repeated ExtLocator Ext = 17;
+}
+
+message ExtLocator {
+    option (insproto.id) = 0;
+    fixed32 ExtensionID = 17 [(gogoproto.casttype)="ExtensionID"];
+    fixed64 PayloadLoc = 18  [(gogoproto.casttype)="StorageLocator"];
+}
