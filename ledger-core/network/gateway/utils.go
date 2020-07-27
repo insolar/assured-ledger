@@ -10,40 +10,33 @@ import (
 	"context"
 	"crypto/rand"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/serialization"
-	"github.com/insolar/assured-ledger/ledger-core/network/storage"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
 
-func GetBootstrapPulse(ctx context.Context, accessor storage.PulseAccessor) pulsestor.Pulse {
-	puls, err := accessor.GetLatestPulse(ctx)
-	if err != nil {
-		puls = *pulsestor.EphemeralPulse
+// EnsureGetPulse checks if NodeKeeper got list for pulseNumber
+func EnsureGetPulse(ctx context.Context, report network.Report) pulse.Data {
+	if report.PulseData.IsEmpty() {
+		inslogger.FromContext(ctx).Panicf("EnsureGetPulse PulseData.IsEmpty: %d", report.PulseNumber)
 	}
 
-	return puls
-}
-
-func EnsureGetPulse(ctx context.Context, accessor storage.PulseAccessor, pulseNumber pulse.Number) pulsestor.Pulse {
-	pulse, err := accessor.GetPulse(ctx, pulseNumber)
-	if err != nil {
-		inslogger.FromContext(ctx).Panicf("Failed to fetch pulse: %d", pulseNumber)
+	if report.PulseData.PulseNumber != report.PulseNumber {
+		inslogger.FromContext(ctx).Panicf("EnsureGetPulse report.PulseData.PulseNumber != report.PulseNumber: %d", report.PulseNumber)
 	}
-
-	return pulse
+	return report.PulseData
 }
 
 func getAnnounceSignature(
-	node node.NetworkNode,
+	node nodeinfo.NetworkNode,
 	isDiscovery bool,
 	kp cryptography.KeyProcessor,
 	keystore cryptography.KeyStore,
@@ -109,10 +102,10 @@ func (p consensusProxy) State() []byte {
 	return nshBytes
 }
 
-func (p *consensusProxy) ChangePulse(ctx context.Context, newPulse pulsestor.Pulse) {
-	p.Gatewayer.Gateway().(adapters.PulseChanger).ChangePulse(ctx, newPulse)
+func (p *consensusProxy) ChangeBeat(ctx context.Context, newPulse beat.Beat) {
+	p.Gatewayer.Gateway().(adapters.BeatChanger).ChangeBeat(ctx, newPulse)
 }
 
-func (p *consensusProxy) UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes []node.NetworkNode, cloudStateHash []byte) {
+func (p *consensusProxy) UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes []nodeinfo.NetworkNode, cloudStateHash []byte) {
 	p.Gatewayer.Gateway().(adapters.StateUpdater).UpdateState(ctx, pulseNumber, nodes, cloudStateHash)
 }

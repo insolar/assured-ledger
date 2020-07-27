@@ -10,13 +10,13 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill/message"
 
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/component-manager"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/controller"
@@ -38,14 +38,13 @@ type ServiceNetwork struct {
 	cm  *component.Manager
 
 	// dependencies
-	CertificateManager node.CertificateManager `inject:""`
+	CertificateManager nodeinfo.CertificateManager `inject:""`
 
 	// watermill support interfaces
 	Pub message.Publisher `inject:""`
 
 	// subcomponents
 	RPC                controller.RPCController   `inject:"subcomponent"`
-	PulseAccessor      storage.PulseAccessor      `inject:"subcomponent"`
 	NodeKeeper         network.NodeKeeper         `inject:"subcomponent"`
 	TerminationHandler network.TerminationHandler `inject:"subcomponent"`
 
@@ -83,7 +82,7 @@ func (n *ServiceNetwork) Init(ctx context.Context) error {
 	}
 
 	n.BaseGateway = &gateway.Base{Options: options}
-	n.Gatewayer = gateway.NewGatewayer(n.BaseGateway.NewGateway(ctx, node.NoNetworkState))
+	n.Gatewayer = gateway.NewGatewayer(n.BaseGateway.NewGateway(ctx, nodeinfo.NoNetworkState))
 
 	table := &routing.Table{}
 
@@ -98,7 +97,6 @@ func (n *ServiceNetwork) Init(ctx context.Context) error {
 		storage.NewMemoryStorage(),
 		n.BaseGateway,
 		n.Gatewayer,
-		storage.NewMemoryStorage(),
 		termination.NewHandler(n),
 	)
 
@@ -117,8 +115,13 @@ func (n *ServiceNetwork) Start(ctx context.Context) error {
 		return errors.W(err, "failed to start component manager")
 	}
 
-	bootstrapPulse := gateway.GetBootstrapPulse(ctx, n.PulseAccessor)
-	n.Gatewayer.Gateway().Run(ctx, bootstrapPulse)
+	// pc, err := n.PulseAccessor.Latest(ctx)
+	// if err != nil {
+	p := network.NetworkedPulse{}
+	p.PulseEpoch = pulse.EphemeralPulseEpoch
+	// }
+
+	n.Gatewayer.Gateway().Run(ctx, p.Data)
 	n.RPC.RemoteProcedureRegister(deliverWatermillMsg, n.processIncoming)
 
 	return nil
@@ -151,7 +154,7 @@ func (n *ServiceNetwork) Stop(ctx context.Context) error {
 	return n.cm.Stop(ctx)
 }
 
-func (n *ServiceNetwork) GetOrigin() node.NetworkNode {
+func (n *ServiceNetwork) GetOrigin() nodeinfo.NetworkNode {
 	return n.NodeKeeper.GetOrigin()
 }
 
@@ -159,6 +162,6 @@ func (n *ServiceNetwork) GetAccessor(p pulse.Number) network.Accessor {
 	return n.NodeKeeper.GetAccessor(p)
 }
 
-func (n *ServiceNetwork) GetCert(ctx context.Context, ref reference.Global) (node.Certificate, error) {
+func (n *ServiceNetwork) GetCert(ctx context.Context, ref reference.Global) (nodeinfo.Certificate, error) {
 	return n.Gatewayer.Gateway().Auther().GetCert(ctx, ref)
 }

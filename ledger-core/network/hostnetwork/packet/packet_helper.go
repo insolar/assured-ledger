@@ -96,7 +96,7 @@ func SerializePacket(p *Packet) ([]byte, error) {
 	}
 
 	var lengthBytes [8]byte
-	binary.PutUvarint(lengthBytes[:], uint64(p.Size()))
+	binary.PutUvarint(lengthBytes[:], uint64(p.ProtoSize()))
 
 	var result []byte
 	result = append(result, lengthBytes[:]...)

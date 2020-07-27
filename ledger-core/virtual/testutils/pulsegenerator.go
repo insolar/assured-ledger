@@ -7,112 +7,69 @@ package testutils
 
 import (
 	"crypto/rand"
-	"fmt"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type PulseGenerator struct {
-	delta     uint16
-	pulseList []pulse.Data
+	prev     beat.Beat
+	last     beat.Beat
+	seqCount uint32
+	delta    uint16
 }
 
-const nanosecondsInSecond = int64(time.Second / time.Nanosecond)
-
-func NewPulseData(p pulsestor.Pulse) pulse.Data {
-	data := pulse.NewPulsarData(
-		p.PulseNumber,
-		uint16(p.NextPulseNumber-p.PulseNumber),
-		uint16(p.PulseNumber-p.PrevPulseNumber),
-		longbits.NewBits512FromBytes(p.Entropy[:]).FoldToBits256(),
-	)
-	data.Timestamp = uint32(p.PulseTimestamp / nanosecondsInSecond)
-	data.PulseEpoch = p.EpochPulseNumber
-	return data
-}
-
-func NewPulse(pulseData pulse.Data) pulsestor.Pulse {
-	var prev pulse.Number
-	if !pulseData.IsFirstPulse() {
-		prev = pulseData.PrevPulseNumber()
-	} else {
-		prev = pulseData.PulseNumber
-	}
-
-	entropy := pulsestor.Entropy{}
-	bs := pulseData.PulseEntropy.AsBytes()
-	copy(entropy[:], bs)
-	copy(entropy[pulseData.PulseEntropy.FixedByteSize():], bs)
-
-	return pulsestor.Pulse{
-		PulseNumber:      pulseData.PulseNumber,
-		NextPulseNumber:  pulseData.NextPulseNumber(),
-		PrevPulseNumber:  prev,
-		PulseTimestamp:   int64(pulseData.Timestamp) * nanosecondsInSecond,
-		EpochPulseNumber: pulseData.PulseEpoch,
-		Entropy:          entropy,
+func NewPulseGenerator(delta uint16, online census.OnlinePopulation) *PulseGenerator {
+	return &PulseGenerator{
+		delta: delta,
+		last: beat.Beat{
+			Online: online,
+		},
 	}
 }
 
-func NewPulseGenerator(delta uint16) *PulseGenerator {
-	g := &PulseGenerator{delta: delta}
-	g.appendPulse(NewPulseData(*pulsestor.GenesisPulse))
-	return g
+func (g *PulseGenerator) GetLastPulseData() pulse.Data {
+	return g.GetLastPulseAsPulse().Data
 }
 
-func (g PulseGenerator) GetLastPulse() pulse.Data {
-	return g.pulseList[len(g.pulseList)-1]
-}
-
-func (g PulseGenerator) GetLastPulseAsPulse() pulsestor.Pulse {
-	return NewPulse(g.pulseList[len(g.pulseList)-1])
-}
-
-func (g PulseGenerator) GetPrevPulseAsPulse() pulsestor.Pulse {
-	if len(g.pulseList) < 2 {
-		panic(throw.IllegalValue())
+func (g *PulseGenerator) GetLastPulseAsPulse() beat.Beat {
+	if g.seqCount == 0 {
+		panic(throw.IllegalState())
 	}
-	return NewPulse(g.pulseList[len(g.pulseList)-2])
+	return g.last
 }
 
-func (g *PulseGenerator) appendPulse(data pulse.Data) {
-	g.pulseList = append(g.pulseList, data)
-}
-
-func generateEntropy() longbits.Bits256 {
-	var entropy longbits.Bits256
-
-	actualLength, err := rand.Read(entropy[:])
-	if err != nil {
-		panic(fmt.Sprintf("failed to read %d random bytes: %s", len(entropy), err.Error()))
-	} else if actualLength != len(entropy) {
-		panic(fmt.Sprintf("unreachable, %d != %d", len(entropy), actualLength))
+func (g *PulseGenerator) GetPrevPulseAsPulse() beat.Beat {
+	if g.seqCount <= 1 {
+		panic(throw.IllegalState())
 	}
-
-	return entropy
+	return g.prev
 }
 
-func (g PulseGenerator) generateNextPulse() pulse.Data {
-	var (
-		nextPulse pulse.Data
-		prevPulse = g.GetLastPulse()
-	)
-
-	if !prevPulse.IsEmpty() || prevPulse.PulseNumber == pulse.MinTimePulse {
-		nextPulse = prevPulse.CreateNextPulsarPulse(g.delta, generateEntropy)
-	} else {
-		nextPulse = pulse.NewFirstPulsarData(g.delta, generateEntropy())
+func generateEntropy() (entropy longbits.Bits256) {
+	if _, err := rand.Read(entropy[:]); err != nil {
+		panic(err)
 	}
-
-	return nextPulse
+	return
 }
 
 func (g *PulseGenerator) Generate() pulse.Data {
-	newPulse := g.generateNextPulse()
-	g.appendPulse(newPulse)
-	return newPulse
+	if g.seqCount == 0 {
+		g.last.Data = pulse.NewFirstPulsarData(g.delta, generateEntropy())
+	} else {
+		g.prev = g.last
+		g.last = beat.Beat{
+			Data: g.last.CreateNextPulsarPulse(g.delta, generateEntropy),
+			Online: g.prev.Online,
+		}
+	}
+	g.seqCount++
+	g.last.BeatSeq = g.seqCount
+	g.last.StartedAt = time.Now()
+
+	return g.last.Data
 }

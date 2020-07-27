@@ -8,21 +8,29 @@ package utils
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/ThreeDotsLabs/watermill/message"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/application/testwalletapi"
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodestorage"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor/memstor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/censusimpl"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner"
 	"github.com/insolar/assured-ledger/ledger-core/runner/machine"
@@ -30,6 +38,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/journal"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/network"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual"
@@ -57,9 +66,9 @@ type Server struct {
 
 	// testing components and Mocks
 	PublisherMock      *publisher.Mock
-	JetCoordinatorMock *jet.AffinityHelperMock
+	JetCoordinatorMock *affinity.HelperMock
 	pulseGenerator     *testutils.PulseGenerator
-	pulseStorage       *pulsestor.StorageMem
+	pulseStorage       *memstor.StorageMem
 	pulseManager       *pulsemanager.PulseManager
 	Journal            *journal.Journal
 
@@ -125,35 +134,35 @@ func newServerExt(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFi
 	// Pulse-related components
 	var (
 		PulseManager *pulsemanager.PulseManager
-		Pulses       *pulsestor.StorageMem
+		Pulses       *memstor.StorageMem
 	)
 	{
 		networkNodeMock := network.NewNetworkNodeMock(t).
 			IDMock.Return(gen.UniqueGlobalRef()).
 			ShortIDMock.Return(node.ShortNodeID(0)).
-			RoleMock.Return(node.StaticRoleVirtual).
+			RoleMock.Return(member.PrimaryRoleVirtual).
 			AddressMock.Return("").
-			GetStateMock.Return(node.Ready).
+			GetStateMock.Return(nodeinfo.Ready).
 			GetPowerMock.Return(1)
-		networkNodeList := []node.NetworkNode{networkNodeMock}
+		networkNodeList := []nodeinfo.NetworkNode{networkNodeMock}
 
 		nodeNetworkAccessorMock := network.NewAccessorMock(t).GetWorkingNodesMock.Return(networkNodeList)
 		nodeNetworkMock := network.NewNodeNetworkMock(t).GetAccessorMock.Return(nodeNetworkAccessorMock)
-		nodeSetter := nodestorage.NewModifierMock(t).SetMock.Return(nil)
 
-		Pulses = pulsestor.NewStorageMem()
+		Pulses = memstor.NewStorageMem()
 		PulseManager = pulsemanager.NewPulseManager()
 		PulseManager.NodeNet = nodeNetworkMock
-		PulseManager.NodeSetter = nodeSetter
 		PulseManager.PulseAccessor = Pulses
 		PulseManager.PulseAppender = Pulses
 	}
 
 	s.pulseManager = PulseManager
 	s.pulseStorage = Pulses
-	s.pulseGenerator = testutils.NewPulseGenerator(10)
+	censusMock := createOneNodePopulationMock(t, s.caller)
+	s.pulseGenerator = testutils.NewPulseGenerator(10, censusMock)
+	s.incrementPulse()
 
-	s.JetCoordinatorMock = jet.NewAffinityHelperMock(t).
+	s.JetCoordinatorMock = affinity.NewHelperMock(t).
 		MeMock.Return(s.caller).
 		QueryRoleMock.Return([]reference.Global{s.caller}, nil)
 
@@ -202,13 +211,43 @@ func newServerExt(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFi
 	return &s, ctx
 }
 
+//nolint:interfacer
+func createOneNodePopulationMock(t Tester, localRef reference.Global) census.OnlinePopulation {
+	localNode := node.ShortNodeID(10)
+	cp := profiles.NewCandidateProfileMock(t)
+	cp.GetBriefIntroSignedDigestMock.Return(cryptkit.SignedDigest{})
+	cp.GetDefaultEndpointMock.Return(adapters.NewOutbound("127.0.0.1:1"))
+	cp.GetExtraEndpointsMock.Return(nil)
+	cp.GetIssuedAtPulseMock.Return(pulse.MinTimePulse)
+	cp.GetIssuedAtTimeMock.Return(time.Now())
+	cp.GetIssuerIDMock.Return(localNode)
+	cp.GetIssuerSignatureMock.Return(cryptkit.Signature{})
+	cp.GetNodePublicKeyMock.Return(cryptkit.NewSignatureKeyHolderMock(t))
+	cp.GetPowerLevelsMock.Return(member.PowerSet{0, 0, 0, 1})
+	cp.GetPrimaryRoleMock.Return(member.PrimaryRoleVirtual)
+	cp.GetReferenceMock.Return(localRef)
+	cp.GetSpecialRolesMock.Return(0)
+	cp.GetStartPowerMock.Return(1)
+	cp.GetStaticNodeIDMock.Return(localNode)
+
+	svf := cryptkit.NewSignatureVerifierFactoryMock(t)
+	svf.CreateSignatureVerifierWithPKSMock.Return(nil)
+
+	np := profiles.NewStaticProfileByFull(cp, nil)
+	op := censusimpl.NewManyNodePopulation([]profiles.StaticProfile{np}, localNode, svf)
+
+	// cs := census.NewActiveMock(t)
+	// cs.GetOnlinePopulationMock.Return(&op)
+	return &op
+}
+
 func (s *Server) Init(ctx context.Context) {
 	if err := s.virtual.Init(ctx); err != nil {
 		panic(err)
 	}
 
 	s.pulseManager.AddDispatcher(s.virtual.FlowDispatcher)
-	s.incrementPulse(ctx) // for sake of simplicity make sure that there is no "hanging" first pulse
+	s.incrementPulse() // for sake of simplicity make sure that there is no "hanging" first pulse
 	s.IncrementPulseAndWaitIdle(ctx)
 }
 
@@ -220,27 +259,32 @@ func (s *Server) StartRecordingExt(limit int, discardOnOverflow bool) {
 	s.Journal.StartRecording(limit, discardOnOverflow)
 }
 
-func (s *Server) GetPulse() pulsestor.Pulse {
+func (s *Server) GetPulse() beat.Beat {
 	return s.pulseGenerator.GetLastPulseAsPulse()
 }
 
-func (s *Server) GetPrevPulse() pulsestor.Pulse {
+func (s *Server) GetPrevPulse() beat.Beat {
 	return s.pulseGenerator.GetPrevPulseAsPulse()
 }
 
-func (s *Server) incrementPulse(ctx context.Context) {
+func (s *Server) incrementPulse() {
 	s.pulseGenerator.Generate()
 
-	if err := s.pulseManager.Set(ctx, s.GetPulse()); err != nil {
+	pc := s.GetPulse()
+	if err := s.pulseStorage.Append(context.Background(), pc); err != nil {
+		panic(err)
+	}
+
+	if err := s.pulseManager.CommitPulseChange(s.GetPulse()); err != nil {
 		panic(err)
 	}
 }
 
-func (s *Server) IncrementPulse(ctx context.Context) {
+func (s *Server) IncrementPulse(context.Context) {
 	s.pulseLock.Lock()
 	defer s.pulseLock.Unlock()
 
-	s.incrementPulse(ctx)
+	s.incrementPulse()
 }
 
 func (s *Server) IncrementPulseAndWaitIdle(ctx context.Context) {
@@ -481,7 +525,7 @@ func (s *Server) SendPayload(ctx context.Context, pl payload.Marshaler) {
 }
 
 func (s *Server) WrapPayloadAsFuture(pl payload.Marshaler) *RequestWrapper {
-	return NewRequestWrapper(s.GetPulse().NextPulseNumber, pl).SetSender(s.caller)
+	return NewRequestWrapper(s.GetPulse().NextPulseNumber(), pl).SetSender(s.caller)
 }
 
 func (s *Server) SendPayloadAsFuture(ctx context.Context, pl payload.Marshaler) {
