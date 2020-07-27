@@ -15,11 +15,12 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/convlog"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 )
 
 func BenchmarkVCallRequestGetMethod(b *testing.B) {
-
+	convlog.DisableTextConvLog()
 	server, ctx := utils.NewServer(nil, b)
 	defer server.Stop()
 	server.IncrementPulseAndWaitIdle(ctx)
@@ -83,6 +84,7 @@ func BenchmarkVCallRequestGetMethod(b *testing.B) {
 }
 
 func BenchmarkVCallRequestAcceptMethod(b *testing.B) {
+	convlog.DisableTextConvLog()
 	server, ctx := utils.NewServer(nil, b)
 	defer server.Stop()
 	server.IncrementPulseAndWaitIdle(ctx)
@@ -146,6 +148,7 @@ func BenchmarkVCallRequestAcceptMethod(b *testing.B) {
 }
 
 func BenchmarkVCallRequestConstructor(b *testing.B) {
+	convlog.DisableTextConvLog()
 	server, ctx := utils.NewServer(nil, b)
 	defer server.Stop()
 
@@ -180,6 +183,7 @@ func BenchmarkVCallRequestConstructor(b *testing.B) {
 }
 
 func BenchmarkTestAPIGetBalance(b *testing.B) {
+	convlog.DisableTextConvLog()
 	server, ctx := utils.NewServer(nil, b)
 	defer server.Stop()
 	server.IncrementPulseAndWaitIdle(ctx)
@@ -219,6 +223,7 @@ func BenchmarkTestAPIGetBalance(b *testing.B) {
 }
 
 func BenchmarkTestAPIGetBalanceParallel(b *testing.B) {
+	convlog.DisableTextConvLog()
 	server, ctx := utils.NewServer(nil, b)
 	defer server.Stop()
 	server.IncrementPulseAndWaitIdle(ctx)
