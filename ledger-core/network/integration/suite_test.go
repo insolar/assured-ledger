@@ -152,7 +152,7 @@ func (s *consensusSuite) Setup() {
 			require.NoError(s.t, err)
 			err = n.serviceNetwork.BaseGateway.StartConsensus(s.ctx)
 			require.NoError(s.t, err)
-			n.serviceNetwork.Gatewayer.SwitchState(s.ctx, nodeinfo.CompleteNetworkState, pulsestor.GenesisPulse)
+			n.serviceNetwork.Gatewayer.SwitchState(s.ctx, nodeinfo.CompleteNetworkState, pulsestor.GenesisPulse.Data)
 
 			pulseReceivers = append(pulseReceivers, n.host)
 		}
@@ -409,9 +409,9 @@ type networkNode struct {
 	host                string
 	ctx                 context.Context
 
-	componentManager   *component.Manager
-	serviceNetwork     *servicenetwork.ServiceNetwork
-	consensusResult    chan pulse.Number
+	componentManager *component.Manager
+	serviceNetwork   *servicenetwork.ServiceNetwork
+	consensusResult  chan pulse.Number
 }
 
 func (s *testSuite) newNetworkNode(name string) *networkNode {
@@ -454,18 +454,12 @@ func incrementTestPort() int {
 }
 
 func (n *networkNode) GetActiveNodes() []nodeinfo.NetworkNode {
-	p, err := n.serviceNetwork.PulseAccessor.Latest(n.ctx)
-	if err != nil {
-		panic(err)
-	}
+	p := n.serviceNetwork.Gatewayer.Gateway().LatestPulse(n.ctx)
 	return n.serviceNetwork.NodeKeeper.GetAccessor(p.PulseNumber).GetActiveNodes()
 }
 
 func (n *networkNode) GetWorkingNodes() []nodeinfo.NetworkNode {
-	p, err := n.serviceNetwork.PulseAccessor.Latest(n.ctx)
-	if err != nil {
-		panic(err)
-	}
+	p := n.serviceNetwork.Gatewayer.Gateway().LatestPulse(n.ctx)
 	return n.serviceNetwork.NodeKeeper.GetAccessor(p.PulseNumber).GetWorkingNodes()
 }
 

@@ -12,9 +12,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
@@ -61,7 +59,7 @@ func TestWaitPulsar_PulseNotArrivedInETA(t *testing.T) {
 	waitPulsar.bootstrapETA = time.Millisecond
 	waitPulsar.bootstrapTimer = time.NewTimer(waitPulsar.bootstrapETA)
 
-	waitPulsar.Run(context.Background(), EphemeralPulse)
+	waitPulsar.Run(context.Background(), EphemeralPulse.Data)
 }
 
 func TestWaitPulsar_PulseArrivedInETA(t *testing.T) {
@@ -70,26 +68,24 @@ func TestWaitPulsar_PulseArrivedInETA(t *testing.T) {
 	defer mc.Wait(time.Minute)
 
 	gatewayer := mock.NewGatewayerMock(mc)
-	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state nodeinfo.NetworkState, pulse network.NetworkedPulse) {
+	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state nodeinfo.NetworkState, pulse pulse.Data) {
 		assert.Equal(t, nodeinfo.CompleteNetworkState, state)
 	})
 
-	pulseAccessor := beat.NewAccessorMock(mc)
-	pulseAccessor.OfMock.Set(func(ctx context.Context, p1 pulse.Number) (p network.NetworkedPulse, err error) {
-		p = pulsestor.GenesisPulse
-		p.PulseNumber += 10
-		return p, nil
-	})
-
-	waitPulsar := newWaitPulsar(&Base{
-		PulseAccessor: pulseAccessor,
-	})
+	waitPulsar := newWaitPulsar(&Base{})
 	waitPulsar.Gatewayer = gatewayer
-	waitPulsar.bootstrapETA = time.Second * 2
+	waitPulsar.bootstrapETA = time.Second * 20
 	waitPulsar.bootstrapTimer = time.NewTimer(waitPulsar.bootstrapETA)
 
-	go waitPulsar.Run(context.Background(), EphemeralPulse)
+	go waitPulsar.Run(context.Background(), EphemeralPulse.Data)
 	time.Sleep(100 * time.Millisecond)
 
-	waitPulsar.OnConsensusFinished(context.Background(), network.Report{PulseNumber: pulse.MinTimePulse + 10})
+	pulseNumber := pulse.OfNow()
+	waitPulsar.OnConsensusFinished(context.Background(), network.Report{
+		PulseNumber: pulseNumber,
+		PulseData: pulse.Data{
+			PulseNumber: pulseNumber,
+			DataExt:     pulse.DataExt{PulseEpoch: pulse.Epoch(pulseNumber)},
+		},
+	})
 }

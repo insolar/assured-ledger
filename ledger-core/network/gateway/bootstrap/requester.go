@@ -12,7 +12,6 @@ import (
 
 	"github.com/opentracing/opentracing-go/log"
 
-	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
@@ -33,7 +32,7 @@ import (
 
 type Requester interface {
 	Authorize(context.Context, nodeinfo.Certificate) (*packet.Permit, error)
-	Bootstrap(context.Context, *packet.Permit, adapters.Candidate, beat.Beat) (*packet.BootstrapResponse, error)
+	Bootstrap(context.Context, *packet.Permit, adapters.Candidate) (*packet.BootstrapResponse, error)
 	UpdateSchedule(context.Context, *packet.Permit, pulse.Number) (*packet.UpdateScheduleResponse, error)
 	Reconnect(context.Context, *host.Host, *packet.Permit) (*packet.ReconnectResponse, error)
 }
@@ -173,11 +172,10 @@ func (ac *requester) authorizeWithTimestamp(ctx context.Context, h *host.Host, a
 	return response.GetResponse().GetAuthorize(), nil
 }
 
-func (ac *requester) Bootstrap(ctx context.Context, permit *packet.Permit, candidate adapters.Candidate, p beat.Beat) (*packet.BootstrapResponse, error) {
+func (ac *requester) Bootstrap(ctx context.Context, permit *packet.Permit, candidate adapters.Candidate) (*packet.BootstrapResponse, error) {
 
 	req := &packet.BootstrapRequest{
 		CandidateProfile: candidate.Profile(),
-		Pulse:            *ToProto(p),
 		Permit:           permit,
 	}
 

@@ -16,15 +16,15 @@ import (
 )
 
 func newWaitMinRoles(b *Base) *WaitMinRoles {
-	return &WaitMinRoles{b, make(chan network.NetworkedPulse, 1)}
+	return &WaitMinRoles{b, make(chan pulse.Data, 1)}
 }
 
 type WaitMinRoles struct {
 	*Base
-	minrolesComplete chan network.NetworkedPulse
+	minrolesComplete chan pulse.Data
 }
 
-func (g *WaitMinRoles) Run(ctx context.Context, pulse network.NetworkedPulse) {
+func (g *WaitMinRoles) Run(ctx context.Context, pulse pulse.Data) {
 	g.switchOnMinRoles(ctx, pulse)
 
 	select {
@@ -50,10 +50,10 @@ func (g *WaitMinRoles) GetState() nodeinfo.NetworkState {
 }
 
 func (g *WaitMinRoles) OnConsensusFinished(ctx context.Context, report network.Report) {
-	g.switchOnMinRoles(ctx, EnsureGetPulse(ctx, g.PulseAccessor, report.PulseNumber))
+	g.switchOnMinRoles(ctx, EnsureGetPulse(ctx, report))
 }
 
-func (g *WaitMinRoles) switchOnMinRoles(_ context.Context, pulse network.NetworkedPulse) {
+func (g *WaitMinRoles) switchOnMinRoles(_ context.Context, pulse pulse.Data) {
 	err := rules.CheckMinRole(
 		g.CertificateManager.GetCertificate(),
 		g.NodeKeeper.GetAccessor(pulse.PulseNumber).GetWorkingNodes(),

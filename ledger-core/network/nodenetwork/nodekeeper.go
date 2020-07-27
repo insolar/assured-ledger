@@ -97,7 +97,9 @@ type nodekeeper struct {
 
 func (nk *nodekeeper) SetInitialSnapshot(nodes []nodeinfo.NetworkNode) {
 	ctx := context.TODO()
-	nk.Sync(ctx, pulse.MinTimePulse, nodes)
+	nk.Sync(ctx, nodes)
+	nk.MoveSyncToActive(ctx, pulse.Unknown)
+	nk.Sync(ctx, nodes)
 	nk.MoveSyncToActive(ctx, pulse.MinTimePulse)
 }
 
@@ -116,7 +118,7 @@ func (nk *nodekeeper) GetOrigin() nodeinfo.NetworkNode {
 	return nk.origin
 }
 
-func (nk *nodekeeper) Sync(ctx context.Context, number pulse.Number, nodes []nodeinfo.NetworkNode) {
+func (nk *nodekeeper) Sync(ctx context.Context, nodes []nodeinfo.NetworkNode) {
 	nk.syncLock.Lock()
 	defer nk.syncLock.Unlock()
 

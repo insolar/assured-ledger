@@ -76,9 +76,9 @@ func (s *StorageMem) EnsureLatest(ctx context.Context, pulse beat.Beat) error {
 // pulse consistency. If provided Pulse does not meet the requirements, ErrBadPulse will be returned.
 func (s *StorageMem) Append(_ context.Context, pulse beat.Beat) error {
 	// TODO it must NOT be allowed to add non-time pulse, but old code needs it
-	// if !pulse.PulseEpoch.IsTimeEpoch() {
-	// 	panic(throw.IllegalValue())
-	// }
+	if !pulse.PulseEpoch.IsTimeEpoch() {
+		panic(throw.IllegalValue())
+	}
 
 	s.lock.Lock()
 	defer s.lock.Unlock()

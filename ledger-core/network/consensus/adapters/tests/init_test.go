@@ -399,7 +399,7 @@ type pulseChanger struct {
 	nodeKeeper network.NodeKeeper
 }
 
-func (pc *pulseChanger) ChangePulse(ctx context.Context, pulse beat.Beat) {
+func (pc *pulseChanger) ChangeBeat(ctx context.Context, pulse beat.Beat) {
 	inslogger.FromContext(ctx).Info(">>>>>> Change pulse called")
 	pc.nodeKeeper.MoveSyncToActive(ctx, pulse.PulseNumber)
 }
@@ -411,7 +411,7 @@ type stateUpdater struct {
 func (su *stateUpdater) UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes []nodeinfo.NetworkNode, cloudStateHash []byte) {
 	inslogger.FromContext(ctx).Info(">>>>>> Update state called")
 
-	su.nodeKeeper.Sync(ctx, pulseNumber, nodes)
+	su.nodeKeeper.Sync(ctx, nodes)
 }
 
 type ephemeralController struct {

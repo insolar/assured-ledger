@@ -25,8 +25,8 @@ type StateGetter interface {
 	State() []byte
 }
 
-type PulseChanger interface {
-	ChangePulse(ctx context.Context, newPulse beat.Beat)
+type BeatChanger interface {
+	ChangeBeat(context.Context, beat.Beat)
 }
 
 type StateUpdater interface {
@@ -35,17 +35,17 @@ type StateUpdater interface {
 
 type UpstreamController struct {
 	stateGetter  StateGetter
-	pulseChanger PulseChanger
+	beatChanger  BeatChanger
 	stateUpdater StateUpdater
 
 	mu         *sync.RWMutex
 	onFinished network.OnConsensusFinished
 }
 
-func NewUpstreamPulseController(stateGetter StateGetter, pulseChanger PulseChanger, stateUpdater StateUpdater) *UpstreamController {
+func NewUpstreamPulseController(stateGetter StateGetter, pulseChanger BeatChanger, stateUpdater StateUpdater) *UpstreamController {
 	return &UpstreamController{
 		stateGetter:  stateGetter,
-		pulseChanger: pulseChanger,
+		beatChanger:  pulseChanger,
 		stateUpdater: stateUpdater,
 
 		mu:         &sync.RWMutex{},
@@ -71,13 +71,16 @@ func (u *UpstreamController) ConsensusFinished(report api.UpstreamReport, expect
 
 	u.stateUpdater.UpdateState(
 		ctx,
-		report.PulseNumber,
+		report.PulseNumber, // not used
 		networkNodes,
-		longbits.AsBytes(expectedCensus.GetCloudStateHash()),
+		longbits.AsBytes(expectedCensus.GetCloudStateHash()), // not used
 	)
 
-	if _, pd := expectedCensus.GetNearestPulseData(); pd.IsFromEphemeral() {
+	// todo: ??
+	_, pd := expectedCensus.GetNearestPulseData()
+	if pd.IsFromEphemeral() {
 		// Fix bootstrap. Commit active list right after consensus finished
+		// for NodeKeeper active list move sync to active
 		u.CommitPulseChange(report, pd, expectedCensus)
 	}
 
@@ -85,6 +88,7 @@ func (u *UpstreamController) ConsensusFinished(report api.UpstreamReport, expect
 	defer u.mu.RUnlock()
 
 	u.onFinished(ctx, network.Report{
+		PulseData:       pd,
 		PulseNumber:     report.PulseNumber,
 		MemberPower:     report.MemberPower,
 		MemberMode:      report.MemberMode,
@@ -105,7 +109,7 @@ func (u *UpstreamController) CommitPulseChange(report api.UpstreamReport, pulseD
 	ctx := ReportContext(report)
 	online := activeCensus.GetOnlinePopulation()
 
-	u.pulseChanger.ChangePulse(ctx, beat.Beat{
+	u.beatChanger.ChangeBeat(ctx, beat.Beat{
 		BeatSeq:   0,
 		Data:      pulseData,
 		StartedAt: time.Now(), // TODO get pulse start

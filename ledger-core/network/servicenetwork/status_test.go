@@ -10,9 +10,6 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
-	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
-
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/version"
 
@@ -32,13 +29,11 @@ func TestGetNetworkStatus(t *testing.T) {
 	gwer.GatewayMock.Set(func() network.Gateway { return gw })
 	sn.Gatewayer = gwer
 
-	pa := beat.NewAccessorMock(t)
 	pc := beat.Beat{}
 	pc.PulseNumber = 200000
 	ppn := pc.PulseNumber
 	pc.NextPulseDelta = 10
-	pa.LatestMock.Return(pc, nil)
-	sn.PulseAccessor = pa
+	gw.LatestPulseMock.Return(pc.Data)
 
 	nk := testutils.NewNodeKeeperMock(t)
 	a := testutils.NewAccessorMock(t)
@@ -72,7 +67,6 @@ func TestGetNetworkStatus(t *testing.T) {
 
 	require.Equal(t, version.Version, ns.Version)
 
-	pa.LatestMock.Return(pc, errors.New("test"))
 	ns = sn.GetNetworkStatus()
 	require.Equal(t, ins, ns.NetworkState)
 
@@ -84,7 +78,7 @@ func TestGetNetworkStatus(t *testing.T) {
 
 	require.Len(t, ns.Nodes, activeLen)
 
-	require.Equal(t, pulsestor.GenesisPulse.PulseNumber, ns.PulseNumber)
+	require.Equal(t, pulse.Number(200000), ns.PulseNumber)
 
 	require.Equal(t, version.Version, ns.Version)
 }

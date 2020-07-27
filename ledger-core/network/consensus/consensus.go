@@ -74,7 +74,7 @@ type Dep struct {
 	DatagramTransport transport.DatagramTransport
 
 	StateGetter         adapters.StateGetter
-	PulseChanger        adapters.PulseChanger
+	PulseChanger        adapters.BeatChanger
 	StateUpdater        adapters.StateUpdater
 	EphemeralController adapters.EphemeralController
 }
@@ -198,7 +198,7 @@ func (c Installer) ControllerFor(mode Mode, setters ...packetProcessorSetter) Co
 
 	consensusController.Prepare()
 
-	return newController(controlFeederInterceptor, candidateFeeder, consensusController, upstreamController)
+	return newController(controlFeederInterceptor, candidateFeeder, consensusController, upstreamController, consensusChronicles)
 }
 
 func (c *Installer) createCensus(mode Mode) *censusimpl.PrimingCensusTemplate {

@@ -108,7 +108,6 @@ func TestComplete_GetCert(t *testing.T) {
 		CertificateManager:  cm,
 		CryptographyService: cs,
 		PulseManager:        pm,
-		PulseAccessor:       pa,
 	})
 	ge = ge.NewGateway(context.Background(), nodeinfo.CompleteNetworkState)
 	ctx := context.Background()
@@ -158,7 +157,6 @@ func TestComplete_handler(t *testing.T) {
 		CertificateManager:  cm,
 		CryptographyService: cs,
 		PulseManager:        pm,
-		PulseAccessor:       pa,
 	})
 
 	ge = ge.NewGateway(context.Background(), nodeinfo.CompleteNetworkState)

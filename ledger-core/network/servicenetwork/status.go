@@ -9,7 +9,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/version"
 )
@@ -20,10 +19,11 @@ func (n *ServiceNetwork) GetNetworkStatus() network.StatusReply {
 	var reply network.StatusReply
 	reply.NetworkState = n.Gatewayer.Gateway().GetState()
 
-	np, err := n.PulseAccessor.Latest(context.Background())
-	if err != nil {
-		np = pulsestor.GenesisPulse
-	}
+	np := n.Gatewayer.Gateway().LatestPulse(context.TODO())
+	// np, err := n.PulseAccessor.Latest(context.Background())
+	// if err != nil {
+	// 	np = pulsestor.GenesisPulse
+	// }
 	reply.PulseNumber = np.PulseNumber
 	copy(reply.PulseEntropy[:], np.PulseEntropy[:])
 

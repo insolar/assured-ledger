@@ -9,22 +9,24 @@ import (
 	"context"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/network/rules"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 func newWaitPulsar(b *Base) *WaitPulsar {
-	return &WaitPulsar{b, make(chan network.NetworkedPulse, 1)}
+	return &WaitPulsar{b, make(chan pulse.Data, 1)}
 }
 
 type WaitPulsar struct {
 	*Base
-	pulseArrived chan network.NetworkedPulse
+	pulseArrived chan pulse.Data
 }
 
-func (g *WaitPulsar) Run(ctx context.Context, pulse network.NetworkedPulse) {
+func (g *WaitPulsar) Run(ctx context.Context, pulse pulse.Data) {
 	g.switchOnRealPulse(pulse)
 
 	select {
@@ -54,12 +56,30 @@ func (g *WaitPulsar) GetState() nodeinfo.NetworkState {
 }
 
 func (g *WaitPulsar) OnConsensusFinished(ctx context.Context, report network.Report) {
-	g.switchOnRealPulse(EnsureGetPulse(ctx, g.PulseAccessor, report.PulseNumber))
+	g.switchOnRealPulse(EnsureGetPulse(ctx, report))
 }
 
-func (g *WaitPulsar) switchOnRealPulse(pulseObject network.NetworkedPulse) {
+func (g *WaitPulsar) switchOnRealPulse(pulseObject pulse.Data) {
 	if pulseObject.PulseNumber.IsTimePulse() && pulseObject.PulseEpoch.IsTimeEpoch() {
 		g.pulseArrived <- pulseObject
 		close(g.pulseArrived)
+	}
+}
+
+func (g *WaitPulsar) OnPulseFromConsensus(ctx context.Context, pulse network.NetworkedPulse) {
+	g.Base.OnPulseFromConsensus(ctx, pulse)
+
+	if !pulse.PulseEpoch.IsTimeEpoch() {
+		panic(throw.IllegalState())
+	}
+
+	err := g.PulseAppender.Append(ctx, pulse)
+	if err != nil {
+		inslogger.FromContext(ctx).Panic("failed to append pulse: ", err.Error())
+	}
+
+	err = g.PulseManager.CommitFirstPulseChange(pulse)
+	if err != nil {
+		inslogger.FromContext(ctx).Panicf("failed to set start pulse: %d, %s", pulse.PulseNumber, err.Error())
 	}
 }
