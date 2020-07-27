@@ -28,6 +28,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/proofs"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/censusimpl"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -270,12 +271,14 @@ func (s *Server) GetPrevPulse() beat.Beat {
 func (s *Server) incrementPulse() {
 	s.pulseGenerator.Generate()
 
+	s.pulseManager.RequestNodeState(func(proofs.NodeStateHash) {})
+
 	pc := s.GetPulse()
 	if err := s.pulseStorage.Append(context.Background(), pc); err != nil {
 		panic(err)
 	}
 
-	if err := s.pulseManager.CommitPulseChange(s.GetPulse()); err != nil {
+	if err := s.pulseManager.CommitPulseChange(pc); err != nil {
 		panic(err)
 	}
 }

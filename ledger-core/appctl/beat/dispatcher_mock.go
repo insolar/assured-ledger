@@ -26,8 +26,8 @@ type DispatcherMock struct {
 	beforeCommitBeatCounter uint64
 	CommitBeatMock          mDispatcherMockCommitBeat
 
-	funcPrepareBeat          func(b1 Beat, a1 Ack)
-	inspectFuncPrepareBeat   func(b1 Beat, a1 Ack)
+	funcPrepareBeat          func(a1 Ack)
+	inspectFuncPrepareBeat   func(a1 Ack)
 	afterPrepareBeatCounter  uint64
 	beforePrepareBeatCounter uint64
 	PrepareBeatMock          mDispatcherMockPrepareBeat
@@ -401,12 +401,11 @@ type DispatcherMockPrepareBeatExpectation struct {
 
 // DispatcherMockPrepareBeatParams contains parameters of the Dispatcher.PrepareBeat
 type DispatcherMockPrepareBeatParams struct {
-	b1 Beat
 	a1 Ack
 }
 
 // Expect sets up expected params for Dispatcher.PrepareBeat
-func (mmPrepareBeat *mDispatcherMockPrepareBeat) Expect(b1 Beat, a1 Ack) *mDispatcherMockPrepareBeat {
+func (mmPrepareBeat *mDispatcherMockPrepareBeat) Expect(a1 Ack) *mDispatcherMockPrepareBeat {
 	if mmPrepareBeat.mock.funcPrepareBeat != nil {
 		mmPrepareBeat.mock.t.Fatalf("DispatcherMock.PrepareBeat mock is already set by Set")
 	}
@@ -415,7 +414,7 @@ func (mmPrepareBeat *mDispatcherMockPrepareBeat) Expect(b1 Beat, a1 Ack) *mDispa
 		mmPrepareBeat.defaultExpectation = &DispatcherMockPrepareBeatExpectation{}
 	}
 
-	mmPrepareBeat.defaultExpectation.params = &DispatcherMockPrepareBeatParams{b1, a1}
+	mmPrepareBeat.defaultExpectation.params = &DispatcherMockPrepareBeatParams{a1}
 	for _, e := range mmPrepareBeat.expectations {
 		if minimock.Equal(e.params, mmPrepareBeat.defaultExpectation.params) {
 			mmPrepareBeat.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmPrepareBeat.defaultExpectation.params)
@@ -426,7 +425,7 @@ func (mmPrepareBeat *mDispatcherMockPrepareBeat) Expect(b1 Beat, a1 Ack) *mDispa
 }
 
 // Inspect accepts an inspector function that has same arguments as the Dispatcher.PrepareBeat
-func (mmPrepareBeat *mDispatcherMockPrepareBeat) Inspect(f func(b1 Beat, a1 Ack)) *mDispatcherMockPrepareBeat {
+func (mmPrepareBeat *mDispatcherMockPrepareBeat) Inspect(f func(a1 Ack)) *mDispatcherMockPrepareBeat {
 	if mmPrepareBeat.mock.inspectFuncPrepareBeat != nil {
 		mmPrepareBeat.mock.t.Fatalf("Inspect function is already set for DispatcherMock.PrepareBeat")
 	}
@@ -450,7 +449,7 @@ func (mmPrepareBeat *mDispatcherMockPrepareBeat) Return() *DispatcherMock {
 }
 
 //Set uses given function f to mock the Dispatcher.PrepareBeat method
-func (mmPrepareBeat *mDispatcherMockPrepareBeat) Set(f func(b1 Beat, a1 Ack)) *DispatcherMock {
+func (mmPrepareBeat *mDispatcherMockPrepareBeat) Set(f func(a1 Ack)) *DispatcherMock {
 	if mmPrepareBeat.defaultExpectation != nil {
 		mmPrepareBeat.mock.t.Fatalf("Default expectation is already set for the Dispatcher.PrepareBeat method")
 	}
@@ -464,15 +463,15 @@ func (mmPrepareBeat *mDispatcherMockPrepareBeat) Set(f func(b1 Beat, a1 Ack)) *D
 }
 
 // PrepareBeat implements Dispatcher
-func (mmPrepareBeat *DispatcherMock) PrepareBeat(b1 Beat, a1 Ack) {
+func (mmPrepareBeat *DispatcherMock) PrepareBeat(a1 Ack) {
 	mm_atomic.AddUint64(&mmPrepareBeat.beforePrepareBeatCounter, 1)
 	defer mm_atomic.AddUint64(&mmPrepareBeat.afterPrepareBeatCounter, 1)
 
 	if mmPrepareBeat.inspectFuncPrepareBeat != nil {
-		mmPrepareBeat.inspectFuncPrepareBeat(b1, a1)
+		mmPrepareBeat.inspectFuncPrepareBeat(a1)
 	}
 
-	mm_params := &DispatcherMockPrepareBeatParams{b1, a1}
+	mm_params := &DispatcherMockPrepareBeatParams{a1}
 
 	// Record call args
 	mmPrepareBeat.PrepareBeatMock.mutex.Lock()
@@ -489,7 +488,7 @@ func (mmPrepareBeat *DispatcherMock) PrepareBeat(b1 Beat, a1 Ack) {
 	if mmPrepareBeat.PrepareBeatMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmPrepareBeat.PrepareBeatMock.defaultExpectation.Counter, 1)
 		mm_want := mmPrepareBeat.PrepareBeatMock.defaultExpectation.params
-		mm_got := DispatcherMockPrepareBeatParams{b1, a1}
+		mm_got := DispatcherMockPrepareBeatParams{a1}
 		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
 			mmPrepareBeat.t.Errorf("DispatcherMock.PrepareBeat got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
@@ -498,10 +497,10 @@ func (mmPrepareBeat *DispatcherMock) PrepareBeat(b1 Beat, a1 Ack) {
 
 	}
 	if mmPrepareBeat.funcPrepareBeat != nil {
-		mmPrepareBeat.funcPrepareBeat(b1, a1)
+		mmPrepareBeat.funcPrepareBeat(a1)
 		return
 	}
-	mmPrepareBeat.t.Fatalf("Unexpected call to DispatcherMock.PrepareBeat. %v %v", b1, a1)
+	mmPrepareBeat.t.Fatalf("Unexpected call to DispatcherMock.PrepareBeat. %v", a1)
 
 }
 

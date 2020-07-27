@@ -26,13 +26,11 @@ type conveyorDispatcher struct {
 
 var _ beat.Dispatcher = &conveyorDispatcher{}
 
-func (c *conveyorDispatcher) PrepareBeat(change beat.Beat, sink beat.Ack) {
+func (c *conveyorDispatcher) PrepareBeat(sink beat.Ack) {
 	stateChan := sink.Acquire()
 
-	switch {
-	case change.Online == nil:
-		panic(throw.IllegalValue())
-	case c.prevPulse.IsUnknown():
+	if c.prevPulse.IsUnknown() {
+		// TODO remove as handled by PulseManager
 		// Conveyor can't prepare without an initial pulse - there are no active SMs inside
 		stateChan <- beat.AckData{}
 		return
