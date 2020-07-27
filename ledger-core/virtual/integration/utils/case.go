@@ -151,10 +151,10 @@ func (suite Suite) Run(t *testing.T) {
 	assureTestRailID(suite.TestRailID, t)
 
 	if suite.TestRailID != "" {
-		t.Log(suite.TestRailID)
+		investigation.LogCase(t, suite.TestRailID)
 	}
 	if suite.Skipped != "" {
-		t.Skip(suite.Skipped)
+		investigation.LogSkip(t, suite.Skipped)
 	}
 
 	for _, testCase := range suite.Cases {

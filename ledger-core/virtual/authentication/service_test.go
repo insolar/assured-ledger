@@ -19,6 +19,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/investigation"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -261,7 +262,7 @@ func Test_IsMessageFromVirtualLegitimate_WithoutToken(t *testing.T) {
 	for _, testCase := range cases {
 		t.Run("HappyPath:"+testCase.name, func(t *testing.T) {
 			if testCase.testRailCase != "" {
-				t.Log(testCase.testRailCase)
+				investigation.LogCase(t, testCase.testRailCase)
 			}
 
 			ctx := context.Background()

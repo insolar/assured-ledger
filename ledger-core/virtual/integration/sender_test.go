@@ -17,6 +17,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/investigation"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 )
@@ -77,7 +78,8 @@ func TestVirtual_SenderCheck_With_ExpectedVE(t *testing.T) {
 
 	for _, cases := range testCases {
 		t.Run(cases.name, func(t *testing.T) {
-			t.Log(cases.caseId)
+			investigation.LogCase(t, cases.caseId)
+
 			for _, testMsg := range messagesWithoutToken {
 				t.Run(testMsg.name, func(t *testing.T) {
 					defer commontestutils.LeakTester(t)

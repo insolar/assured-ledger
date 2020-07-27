@@ -1723,8 +1723,7 @@ func TestVirtual_Method_ForbiddenIsolation(t *testing.T) {
 	for _, test := range table {
 		t.Run(test.name, func(t *testing.T) {
 			defer commontestutils.LeakTester(t)
-
-			t.Log(test.testRailCase)
+			investigation.LogCase(t, test.testRailCase)
 
 			var (
 				mc     = minimock.NewController(t)
@@ -1850,14 +1849,13 @@ func TestVirtual_Method_ForbiddenIsolation(t *testing.T) {
 }
 
 func TestVirtual_Method_IntolerableCallChangeState(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+	investigation.LogCase(t, "C5463")
+
 	const (
 		origObjectMem    = "original object memory"
 		changedObjectMem = "new object memory"
 	)
-
-	t.Log("C5463")
-
-	defer commontestutils.LeakTester(t)
 
 	mc := minimock.NewController(t)
 

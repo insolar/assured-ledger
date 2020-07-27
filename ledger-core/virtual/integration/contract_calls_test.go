@@ -813,7 +813,7 @@ func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 // if first request doesn't release global lock we get stuck when start processing outgoing
 // otherwise sendOutgoing releases runner limit and we are OK
 func TestVirtual_OutgoingReleaseSemaphore(t *testing.T) {
-	t.Log("C5436")
+	investigation.LogCase(t, "C5436")
 
 	mc := minimock.NewController(t)
 
