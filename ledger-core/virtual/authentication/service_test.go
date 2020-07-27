@@ -12,8 +12,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/application/testwalletapi/statemachine"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -40,7 +40,7 @@ func Test_IsMessageFromVirtualLegitimate_TemporaryIgnoreChecking_APIRequests(t *
 	selfRef := gen.UniqueGlobalRef()
 	sender := statemachine.APICaller
 
-	jetCoordinatorMock := jet.NewAffinityHelperMock(t).
+	jetCoordinatorMock := affinity.NewHelperMock(t).
 		QueryRoleMock.Return([]reference.Global{selfRef}, nil)
 	authService := NewService(ctx, jetCoordinatorMock)
 
@@ -111,7 +111,7 @@ func Test_IsMessageFromVirtualLegitimate_WithToken(t *testing.T) {
 			reflect.ValueOf(testCase.msg).MethodByName("Reset").Call([]reflect.Value{})
 			insertToken(token, testCase.msg)
 
-			jetCoordinatorMock := jet.NewAffinityHelperMock(t).
+			jetCoordinatorMock := affinity.NewHelperMock(t).
 				QueryRoleMock.Return([]reference.Global{approver}, nil).
 				MeMock.Return(selfRef)
 
@@ -129,7 +129,7 @@ func Test_IsMessageFromVirtualLegitimate_WithToken(t *testing.T) {
 
 			sender := gen.UniqueGlobalRef()
 
-			jetCoordinatorMock := jet.NewAffinityHelperMock(t).
+			jetCoordinatorMock := affinity.NewHelperMock(t).
 				QueryRoleMock.Return([]reference.Global{sender}, nil)
 
 			authService := NewService(ctx, jetCoordinatorMock)
@@ -157,7 +157,7 @@ func Test_IsMessageFromVirtualLegitimate_WithToken(t *testing.T) {
 			expectedVE := refs[0]
 			approver := refs[1]
 
-			jetCoordinatorMock := jet.NewAffinityHelperMock(t).
+			jetCoordinatorMock := affinity.NewHelperMock(t).
 				QueryRoleMock.Return([]reference.Global{expectedVE}, nil).
 				MeMock.Return(selfRef)
 
@@ -185,7 +185,7 @@ func Test_IsMessageFromVirtualLegitimate_WithToken(t *testing.T) {
 			expectedVE := refs[0]
 			approver := refs[1]
 
-			jetCoordinatorMock := jet.NewAffinityHelperMock(t).
+			jetCoordinatorMock := affinity.NewHelperMock(t).
 				QueryRoleMock.Return([]reference.Global{expectedVE}, nil).
 				MeMock.Return(selfRef)
 
@@ -269,7 +269,7 @@ func Test_IsMessageFromVirtualLegitimate_WithoutToken(t *testing.T) {
 			selfRef := refs[0]
 			sender := refs[0]
 
-			jetCoordinatorMock := jet.NewAffinityHelperMock(t).
+			jetCoordinatorMock := affinity.NewHelperMock(t).
 				QueryRoleMock.Return([]reference.Global{sender}, nil).
 				MeMock.Return(selfRef)
 
@@ -288,7 +288,7 @@ func Test_IsMessageFromVirtualLegitimate_WithoutToken(t *testing.T) {
 			sender := refs[1]
 			badSender := refs[2]
 
-			jetCoordinatorMock := jet.NewAffinityHelperMock(t).
+			jetCoordinatorMock := affinity.NewHelperMock(t).
 				QueryRoleMock.Return([]reference.Global{sender}, nil).
 				MeMock.Return(selfRef)
 
@@ -310,7 +310,7 @@ func Test_IsMessageFromVirtualLegitimate_WithoutToken(t *testing.T) {
 			selfRef := refs[0]
 			sender := refs[1]
 
-			jetCoordinatorMock := jet.NewAffinityHelperMock(t).
+			jetCoordinatorMock := affinity.NewHelperMock(t).
 				QueryRoleMock.Return([]reference.Global{sender}, nil).
 				MeMock.Return(selfRef)
 			authService := NewService(ctx, jetCoordinatorMock)
@@ -333,7 +333,7 @@ func Test_IsMessageFromVirtualLegitimate_WithoutToken(t *testing.T) {
 			selfRef := refs[0]
 			sender := refs[0]
 
-			jetCoordinatorMock := jet.NewAffinityHelperMock(t).
+			jetCoordinatorMock := affinity.NewHelperMock(t).
 				QueryRoleMock.Return([]reference.Global{sender, sender}, nil).
 				MeMock.Return(selfRef)
 
@@ -360,7 +360,7 @@ func Test_IsMessageFromVirtualLegitimate_WithoutToken(t *testing.T) {
 
 			calcErrorMsg := "bad calculator"
 
-			jetCoordinatorMock := jet.NewAffinityHelperMock(t).
+			jetCoordinatorMock := affinity.NewHelperMock(t).
 				QueryRoleMock.Return([]reference.Global{}, throw.New(calcErrorMsg)).
 				MeMock.Return(selfRef)
 
@@ -406,7 +406,7 @@ func TestService_HasToSendToken(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			var (
 				ctx     = instestlogger.TestContext(t)
-				affMock = jet.NewAffinityHelperMock(t).MeMock.Return(selfRef)
+				affMock = affinity.NewHelperMock(t).MeMock.Return(selfRef)
 			)
 
 			authService := NewService(ctx, affMock)

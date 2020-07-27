@@ -8,12 +8,12 @@ package entropygenerator
 import (
 	"crypto/rand"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 )
 
 // EntropyGenerator is the base interface for generation of entropy for pulses
 type EntropyGenerator interface {
-	GenerateEntropy() pulsestor.Entropy
+	GenerateEntropy() rms.Entropy
 }
 
 // StandardEntropyGenerator is the base impl of EntropyGenerator with using of crypto/rand
@@ -21,13 +21,13 @@ type StandardEntropyGenerator struct {
 }
 
 // GenerateEntropy generate entropy with using of EntropyGenerator
-func (generator *StandardEntropyGenerator) GenerateEntropy() pulsestor.Entropy {
-	entropy := make([]byte, pulsestor.EntropySize)
+func (generator *StandardEntropyGenerator) GenerateEntropy() rms.Entropy {
+	entropy := make([]byte, rms.EntropySize)
 	_, err := rand.Read(entropy)
 	if err != nil {
 		panic(err)
 	}
-	var result pulsestor.Entropy
-	copy(result[:], entropy[:pulsestor.EntropySize])
+	var result rms.Entropy
+	copy(result[:], entropy[:rms.EntropySize])
 	return result
 }

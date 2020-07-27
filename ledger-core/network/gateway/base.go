@@ -14,12 +14,13 @@ import (
 
 	"github.com/insolar/component-manager"
 
-	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
-	node2 "github.com/insolar/assured-ledger/ledger-core/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus"
@@ -32,7 +33,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/network/rules"
-	"github.com/insolar/assured-ledger/ledger-core/network/storage"
 	"github.com/insolar/assured-ledger/ledger-core/network/transport"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -51,11 +51,10 @@ type Base struct {
 	NodeKeeper          network.NodeKeeper                      `inject:""`
 	CryptographyService cryptography.Service                    `inject:""`
 	CryptographyScheme  cryptography.PlatformCryptographyScheme `inject:""`
-	CertificateManager  node2.CertificateManager                `inject:""`
+	CertificateManager  nodeinfo.CertificateManager             `inject:""`
 	HostNetwork         network.HostNetwork                     `inject:""`
-	PulseAccessor       storage.PulseAccessor                   `inject:""`
-	PulseAppender       storage.PulseAppender                   `inject:""`
-	PulseManager        pulsestor.Manager                       `inject:""`
+	PulseAppender       beat.Appender                           `inject:""`
+	PulseManager        chorus.Conductor                        `inject:""`
 	BootstrapRequester  bootstrap.Requester                     `inject:""`
 	KeyProcessor        cryptography.KeyProcessor               `inject:""`
 	Aborter             network.Aborter                         `inject:""`
@@ -82,34 +81,34 @@ type Base struct {
 
 	pulseWatchdog *pulseWatchdog
 
-	isDiscovery     bool                // nolint
-	isJoinAssistant bool                // nolint
-	joinAssistant   node2.DiscoveryNode // joinAssistant
+	isDiscovery     bool                   // nolint
+	isJoinAssistant bool                   // nolint
+	joinAssistant   nodeinfo.DiscoveryNode // joinAssistant
 }
 
 // NewGateway creates new gateway on top of existing
-func (g *Base) NewGateway(ctx context.Context, state node2.NetworkState) network.Gateway {
+func (g *Base) NewGateway(ctx context.Context, state nodeinfo.NetworkState) network.Gateway {
 	inslogger.FromContext(ctx).Infof("NewGateway %s", state.String())
 	switch state {
-	case node2.NoNetworkState:
+	case nodeinfo.NoNetworkState:
 		g.Self = newNoNetwork(g)
-	case node2.CompleteNetworkState:
+	case nodeinfo.CompleteNetworkState:
 		g.Self = newComplete(g)
-	case node2.JoinerBootstrap:
+	case nodeinfo.JoinerBootstrap:
 		g.Self = newJoinerBootstrap(g)
-	case node2.DiscoveryBootstrap:
+	case nodeinfo.DiscoveryBootstrap:
 		g.Self = newDiscoveryBootstrap(g)
-	case node2.WaitConsensus:
+	case nodeinfo.WaitConsensus:
 		err := g.StartConsensus(ctx)
 		if err != nil {
 			g.FailState(ctx, fmt.Sprintf("Failed to start consensus: %s", err))
 		}
 		g.Self = newWaitConsensus(g)
-	case node2.WaitMajority:
+	case nodeinfo.WaitMajority:
 		g.Self = newWaitMajority(g)
-	case node2.WaitMinRoles:
+	case nodeinfo.WaitMinRoles:
 		g.Self = newWaitMinRoles(g)
-	case node2.WaitPulsar:
+	case nodeinfo.WaitPulsar:
 		g.Self = newWaitPulsar(g)
 	default:
 		inslogger.FromContext(ctx).Panic("Try to switch network to unknown state. Memory of process is inconsistent.")
@@ -137,7 +136,7 @@ func (g *Base) Init(ctx context.Context) error {
 func (g *Base) Stop(ctx context.Context) error {
 	err := g.datagramTransport.Stop(ctx)
 	if err != nil {
-		return errors.W(err, "failed to stop datagram transport")
+		return throw.W(err, "failed to stop datagram transport")
 	}
 
 	g.pulseWatchdog.Stop()
@@ -149,7 +148,7 @@ func (g *Base) initConsensus(ctx context.Context) error {
 	g.datagramHandler = adapters.NewDatagramHandler()
 	datagramTransport, err := g.TransportFactory.CreateDatagramTransport(g.datagramHandler)
 	if err != nil {
-		return errors.W(err, "failed to create datagramTransport")
+		return throw.W(err, "failed to create datagramTransport")
 	}
 	g.datagramTransport = datagramTransport
 
@@ -170,12 +169,12 @@ func (g *Base) initConsensus(ctx context.Context) error {
 	// transport start should be here because of TestComponents tests, couldn't createOriginCandidate with 0 port
 	err = g.datagramTransport.Start(ctx)
 	if err != nil {
-		return errors.W(err, "failed to start datagram transport")
+		return throw.W(err, "failed to start datagram transport")
 	}
 
 	err = g.createOriginCandidate()
 	if err != nil {
-		return errors.W(err, "failed to createOriginCandidate")
+		return throw.W(err, "failed to createOriginCandidate")
 	}
 
 	return nil
@@ -198,7 +197,7 @@ func (g *Base) createOriginCandidate() error {
 		return err
 	}
 	mutableOrigin.SetSignature(digest, *sign)
-	g.NodeKeeper.SetInitialSnapshot([]node2.NetworkNode{origin})
+	g.NodeKeeper.SetInitialSnapshot([]nodeinfo.NetworkNode{origin})
 
 	staticProfile := adapters.NewStaticProfile(origin, g.CertificateManager.GetCertificate(), g.KeyProcessor)
 	g.originCandidate = adapters.NewCandidate(staticProfile, g.KeyProcessor)
@@ -224,29 +223,26 @@ func (g *Base) StartConsensus(ctx context.Context) error {
 	return nil
 }
 
-// ChangePulse process pulse from Consensus
-func (g *Base) ChangePulse(ctx context.Context, pulse pulsestor.Pulse) {
-	g.Gatewayer.Gateway().OnPulseFromConsensus(ctx, pulse)
+// ChangeBeat process pulse from Consensus
+func (g *Base) ChangeBeat(ctx context.Context, b beat.Beat) {
+	g.Gatewayer.Gateway().OnPulseFromConsensus(ctx, b)
 }
 
-func (g *Base) OnPulseFromConsensus(ctx context.Context, pu pulsestor.Pulse) {
+func (g *Base) OnPulseFromConsensus(ctx context.Context, pu beat.Beat) {
 	g.pulseWatchdog.Reset()
+
 	g.NodeKeeper.MoveSyncToActive(ctx, pu.PulseNumber)
-	err := g.PulseAppender.AppendPulse(ctx, pu)
-	if err != nil {
-		inslogger.FromContext(ctx).Panic("failed to append pulse: ", err.Error())
-	}
 
 	nodes := g.NodeKeeper.GetAccessor(pu.PulseNumber).GetActiveNodes()
-	inslogger.FromContext(ctx).Debugf("OnPulseFromConsensus: %d : epoch %d : nodes %d", pu.PulseNumber, pu.EpochPulseNumber, len(nodes))
+	inslogger.FromContext(ctx).Debugf("OnPulseFromConsensus: %d : epoch %d : nodes %d", pu.PulseNumber, pu.PulseEpoch, len(nodes))
 }
 
 // UpdateState called then Consensus done
-func (g *Base) UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes []node2.NetworkNode, cloudStateHash []byte) {
-	g.NodeKeeper.Sync(ctx, pulseNumber, nodes)
+func (g *Base) UpdateState(ctx context.Context, _ pulse.Number, nodes []nodeinfo.NetworkNode, _ []byte) {
+	g.NodeKeeper.Sync(ctx, nodes)
 }
 
-func (g *Base) BeforeRun(ctx context.Context, pulse pulsestor.Pulse) {}
+func (g *Base) BeforeRun(ctx context.Context, pulse pulse.Data) {}
 
 // Auther casts us to Auther or obtain it in another way
 func (g *Base) Auther() network.Auther {
@@ -265,12 +261,12 @@ func (g *Base) Bootstrapper() network.Bootstrapper {
 }
 
 // GetCert method returns node certificate by requesting sign from discovery nodes
-func (g *Base) GetCert(ctx context.Context, ref reference.Global) (node2.Certificate, error) {
-	return nil, errors.New("GetCert() in non active mode")
+func (g *Base) GetCert(ctx context.Context, ref reference.Global) (nodeinfo.Certificate, error) {
+	return nil, throw.New("GetCert() in non active mode")
 }
 
 // ValidateCert validates node certificate
-func (g *Base) ValidateCert(ctx context.Context, authCert node2.AuthorizationCertificate) (bool, error) {
+func (g *Base) ValidateCert(ctx context.Context, authCert nodeinfo.AuthorizationCertificate) (bool, error) {
 	return mandates.VerifyAuthorizationCertificate(g.CryptographyService, g.CertificateManager.GetCertificate().GetDiscoveryNodes(), authCert)
 }
 
@@ -285,18 +281,17 @@ func (g *Base) checkCanAnnounceCandidate(ctx context.Context) error {
 	// 		NB: announcing in WaitConsensus state is *NOT* allowed
 
 	state := g.Gatewayer.Gateway().GetState()
-	if state > node2.WaitConsensus {
+	if state > nodeinfo.WaitConsensus {
 		return nil
 	}
 
-	if state == node2.WaitConsensus && g.isJoinAssistant {
+	if state == nodeinfo.WaitConsensus && g.isJoinAssistant {
 		return nil
 	}
 
-	bootstrapPulse := GetBootstrapPulse(ctx, g.PulseAccessor)
-	return errors.Errorf(
+	return throw.Errorf(
 		"can't announce candidate: pulse=%d state=%s",
-		bootstrapPulse.PulseNumber,
+		g.LatestPulse(ctx).PulseNumber,
 		state,
 	)
 }
@@ -313,7 +308,7 @@ func (g *Base) announceMiddleware(handler network.RequestHandler) network.Reques
 func (g *Base) discoveryMiddleware(handler network.RequestHandler) network.RequestHandler {
 	return func(ctx context.Context, request network.ReceivedPacket) (network.Packet, error) {
 		if !network.OriginIsDiscovery(g.CertificateManager.GetCertificate()) {
-			return nil, errors.New("only discovery nodes could authorize other nodes, this is not a discovery node")
+			return nil, throw.New("only discovery nodes could authorize other nodes, this is not a discovery node")
 		}
 		return handler(ctx, request)
 	}
@@ -321,14 +316,14 @@ func (g *Base) discoveryMiddleware(handler network.RequestHandler) network.Reque
 
 func (g *Base) HandleNodeBootstrapRequest(ctx context.Context, request network.ReceivedPacket) (network.Packet, error) {
 	if request.GetRequest() == nil || request.GetRequest().GetBootstrap() == nil {
-		return nil, errors.Errorf("process bootstrap: got invalid protobuf request message: %s", request)
+		return nil, throw.Errorf("process bootstrap: got invalid protobuf request message: %s", request)
 	}
 
 	data := request.GetRequest().GetBootstrap()
 
-	bootstrapPulse := GetBootstrapPulse(ctx, g.PulseAccessor)
+	nodes := g.NodeKeeper.GetAccessor(g.LatestPulse(ctx).PulseNumber).GetActiveNodes()
 
-	if network.CheckShortIDCollision(g.NodeKeeper.GetAccessor(bootstrapPulse.PulseNumber).GetActiveNodes(), data.CandidateProfile.ShortID) {
+	if network.CheckShortIDCollision(nodes, data.CandidateProfile.ShortID) {
 		return g.HostNetwork.BuildResponse(ctx, request, &packet.BootstrapResponse{Code: packet.UpdateShortID}), nil
 	}
 
@@ -356,7 +351,6 @@ func (g *Base) HandleNodeBootstrapRequest(ctx context.Context, request network.R
 	return g.HostNetwork.BuildResponse(ctx, request,
 		&packet.BootstrapResponse{
 			Code:       packet.Accepted,
-			Pulse:      *pulsestor.ToProto(&bootstrapPulse),
 			ETASeconds: uint32(g.bootstrapETA.Seconds()),
 		}), nil
 }
@@ -368,13 +362,13 @@ func validateTimestamp(timestamp int64, delta time.Duration) bool {
 
 func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.ReceivedPacket) (network.Packet, error) {
 	if request.GetRequest() == nil || request.GetRequest().GetAuthorize() == nil {
-		return nil, errors.Errorf("process authorize: got invalid protobuf request message: %s", request)
+		return nil, throw.Errorf("process authorize: got invalid protobuf request message: %s", request)
 	}
 	data := request.GetRequest().GetAuthorize().AuthorizeData
 	o := g.OriginProvider.GetOrigin()
 
 	if data.Version != o.Version() {
-		return nil, errors.Errorf("wrong version in AuthorizeRequest, actual network version is: %s", o.Version())
+		return nil, throw.Errorf("wrong version in AuthorizeRequest, actual network version is: %s", o.Version())
 	}
 
 	// TODO: move time.Minute to config
@@ -393,23 +387,21 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 	valid, err := g.Gatewayer.Gateway().Auther().ValidateCert(ctx, cert)
 	if err != nil || !valid {
 		if err == nil {
-			err = errors.New("Certificate validation failed")
+			err = throw.New("Certificate validation failed")
 		}
 
 		inslogger.FromContext(ctx).Warn("AuthorizeRequest with invalid cert: ", err.Error())
 		return g.HostNetwork.BuildResponse(ctx, request, &packet.AuthorizeResponse{Code: packet.WrongMandate, Error: err.Error()}), nil
 	}
 
-	// TODO: get random reconnectHost
-	bootstrapPulse := GetBootstrapPulse(ctx, g.PulseAccessor)
-	nodes := g.NodeKeeper.GetAccessor(bootstrapPulse.PulseNumber).GetActiveNodes()
+	nodes := g.NodeKeeper.GetAccessor(g.LatestPulse(ctx).PulseNumber).GetActiveNodes()
 
 	var reconnectHost *host.Host
 	if !g.isJoinAssistant || len(nodes) < 2 {
 		// workaround bootstrap to the origin node
 		reconnectHost, err = host.NewHostNS(o.Address(), o.ID(), o.ShortID())
 		if err != nil {
-			err = errors.W(err, "Failed to get reconnectHost")
+			err = throw.W(err, "Failed to get reconnectHost")
 			inslogger.FromContext(ctx).Warn(err.Error())
 			return nil, err
 		}
@@ -417,7 +409,7 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 		randNode := nodes[rand.Intn(len(nodes))]
 		reconnectHost, err = host.NewHostNS(randNode.Address(), randNode.ID(), randNode.ShortID())
 		if err != nil {
-			err = errors.W(err, "Failed to get reconnectHost")
+			err = throw.W(err, "Failed to get reconnectHost")
 			inslogger.FromContext(ctx).Warn(err.Error())
 			return nil, err
 		}
@@ -425,7 +417,7 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 
 	pubKey, err := g.KeyProcessor.ExportPublicKeyPEM(o.PublicKey())
 	if err != nil {
-		err = errors.W(err, "Failed to export public key")
+		err = throw.W(err, "Failed to export public key")
 		inslogger.FromContext(ctx).Warn(err.Error())
 		return nil, err
 	}
@@ -439,17 +431,16 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 		return nil, err
 	}
 
-	discoveryCount := len(network.FindDiscoveriesInNodeList(
-		g.NodeKeeper.GetAccessor(bootstrapPulse.PulseNumber).GetActiveNodes(),
-		g.CertificateManager.GetCertificate(),
-	))
+	discoveryCount := len(network.FindDiscoveriesInNodeList(nodes, g.CertificateManager.GetCertificate()))
+	if discoveryCount == 0 {
+		panic(throw.IllegalState())
+	}
 
 	return g.HostNetwork.BuildResponse(ctx, request, &packet.AuthorizeResponse{
 		Code:           packet.Success,
 		Timestamp:      time.Now().UTC().Unix(),
 		Permit:         permit,
 		DiscoveryCount: uint32(discoveryCount),
-		Pulse:          pulsestor.ToProto(&bootstrapPulse),
 	}), nil
 }
 
@@ -460,7 +451,7 @@ func (g *Base) HandleUpdateSchedule(ctx context.Context, request network.Receive
 
 func (g *Base) HandleReconnect(ctx context.Context, request network.ReceivedPacket) (network.Packet, error) {
 	if request.GetRequest() == nil || request.GetRequest().GetReconnect() == nil {
-		return nil, errors.Errorf("process reconnect: got invalid protobuf request message: %s", request)
+		return nil, throw.Errorf("process reconnect: got invalid protobuf request message: %s", request)
 	}
 
 	// check permit, if permit from Discovery node
@@ -474,7 +465,7 @@ func (g *Base) OnConsensusFinished(ctx context.Context, report network.Report) {
 	inslogger.FromContext(ctx).Infof("OnConsensusFinished for pulse %d", report.PulseNumber)
 }
 
-func (g *Base) EphemeralMode(nodes []node2.NetworkNode) bool {
+func (g *Base) EphemeralMode(nodes []nodeinfo.NetworkNode) bool {
 	_, majorityErr := rules.CheckMajorityRule(g.CertificateManager.GetCertificate(), nodes)
 	minRoleErr := rules.CheckMinRole(g.CertificateManager.GetCertificate(), nodes)
 
@@ -490,4 +481,12 @@ func (g *Base) FailState(ctx context.Context, reason string) {
 		reason,
 	)
 	g.Aborter.Abort(ctx, wrapReason)
+}
+
+func (g *Base) LatestPulse(ctx context.Context) pulse.Data {
+	if g.ConsensusController == nil {
+		return pulse.NewFirstEphemeralData()
+	}
+
+	return g.ConsensusController.Chronicles().GetActiveCensus().GetPulseData()
 }

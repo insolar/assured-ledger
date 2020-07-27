@@ -31,12 +31,15 @@ type Controller interface {
 	Leave(leaveReason uint32) <-chan struct{}
 
 	RegisterFinishedNotifier(fn network.OnConsensusFinished)
+
+	Chronicles() api.ConsensusChronicles
 }
 
 type controller struct {
 	consensusController      api.ConsensusController
 	controlFeederInterceptor *adapters.ControlFeederInterceptor
 	candidateController      candidateController
+	chronicles               api.ConsensusChronicles
 
 	mu        *sync.RWMutex
 	notifiers []network.OnConsensusFinished
@@ -47,11 +50,13 @@ func newController(
 	candidateController candidateController,
 	consensusController api.ConsensusController,
 	upstream *adapters.UpstreamController,
+	chronicles api.ConsensusChronicles,
 ) *controller {
 	controller := &controller{
 		controlFeederInterceptor: controlFeederInterceptor,
 		consensusController:      consensusController,
 		candidateController:      candidateController,
+		chronicles:               chronicles,
 
 		mu: &sync.RWMutex{},
 	}
@@ -95,4 +100,8 @@ func (c *controller) onFinished(ctx context.Context, report network.Report) {
 	for _, n := range c.notifiers {
 		go n(ctx, report)
 	}
+}
+
+func (c *controller) Chronicles() api.ConsensusChronicles {
+	return c.chronicles
 }

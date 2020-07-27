@@ -17,12 +17,11 @@ import (
 	"github.com/opentracing/opentracing-go/log"
 	"go.opencensus.io/stats"
 
+	"github.com/insolar/assured-ledger/ledger-core/pulsar"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/instracer"
 	"github.com/insolar/assured-ledger/ledger-core/metrics"
@@ -58,12 +57,12 @@ type distributor struct {
 
 type handlerThatPanics struct{}
 
-func (ph handlerThatPanics) HandleDatagram(ctx context.Context, address string, buf []byte) {
+func (handlerThatPanics) HandleDatagram(context.Context, string, []byte) {
 	panic(throw.Impossible())
 }
 
 // NewDistributor creates a new distributor object of pulses
-func NewDistributor(conf configuration.PulseDistributor) (node.PulseDistributor, error) {
+func NewDistributor(conf configuration.PulseDistributor) (pulsar.PulseDistributor, error) {
 	futureManager := future.NewManager()
 
 	result := &distributor{
@@ -79,7 +78,7 @@ func NewDistributor(conf configuration.PulseDistributor) (node.PulseDistributor,
 	return result, nil
 }
 
-func (d *distributor) Init(ctx context.Context) error {
+func (d *distributor) Init(context.Context) error {
 	var err error
 	d.transport, err = d.Factory.CreateDatagramTransport(handlerThatPanics{})
 	if err != nil {
@@ -123,7 +122,7 @@ func (d *distributor) Stop(ctx context.Context) error {
 }
 
 // Distribute starts a fire-and-forget process of pulse distribution to bootstrap hosts
-func (d *distributor) Distribute(ctx context.Context, puls pulsestor.Pulse) {
+func (d *distributor) Distribute(ctx context.Context, puls pulsar.PulsePacket) {
 	logger := inslogger.FromContext(ctx)
 	defer func() {
 		if r := recover(); r != nil {
@@ -147,7 +146,7 @@ func (d *distributor) Distribute(ctx context.Context, puls pulsestor.Pulse) {
 
 	distributed := int32(0)
 	for _, nodeAddr := range d.bootstrapHosts {
-		go func(ctx context.Context, pulse pulsestor.Pulse, nodeAddr string) {
+		go func(ctx context.Context, pulse pulsar.PulsePacket, nodeAddr string) {
 			defer wg.Done()
 
 			err := d.sendPulseToHost(ctx, &pulse, nodeAddr)
@@ -175,7 +174,7 @@ func (d *distributor) Distribute(ctx context.Context, puls pulsestor.Pulse) {
 // 	return types.RequestID(d.idGenerator.Generate())
 // }
 
-func (d *distributor) sendPulseToHost(ctx context.Context, p *pulsestor.Pulse, host string) error {
+func (d *distributor) sendPulseToHost(ctx context.Context, p *pulsar.PulsePacket, host string) error {
 	logger := inslogger.FromContext(ctx)
 	defer func() {
 		if x := recover(); x != nil {

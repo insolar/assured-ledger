@@ -8,15 +8,16 @@ package rules
 import (
 	"fmt"
 
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 )
 
 // CheckMajorityRule returns error if MajorityRule check not passed, also returns active discovery nodes count
-func CheckMajorityRule(cert node.Certificate, nodes []node.NetworkNode) (int, error) {
+func CheckMajorityRule(cert nodeinfo.Certificate, nodes []nodeinfo.NetworkNode) (int, error) {
 	majorityRule := cert.GetMajorityRule()
 	discoveriesInList := network.FindDiscoveriesInNodeList(nodes, cert)
 	activeDiscoveryNodesLen := len(discoveriesInList)
@@ -42,15 +43,15 @@ func CheckMajorityRule(cert node.Certificate, nodes []node.NetworkNode) (int, er
 }
 
 // CheckMinRole returns true if MinRole check passed
-func CheckMinRole(cert node.Certificate, nodes []node.NetworkNode) error {
+func CheckMinRole(cert nodeinfo.Certificate, nodes []nodeinfo.NetworkNode) error {
 	var virtualCount, heavyCount, lightCount uint
 	for _, n := range nodes {
 		switch n.Role() {
-		case node.StaticRoleVirtual:
+		case member.PrimaryRoleVirtual:
 			virtualCount++
-		case node.StaticRoleHeavyMaterial:
+		case member.PrimaryRoleHeavyMaterial:
 			heavyCount++
-		case node.StaticRoleLightMaterial:
+		case member.PrimaryRoleLightMaterial:
 			lightCount++
 		default:
 			global.Warn("unknown node role")
@@ -65,8 +66,8 @@ func CheckMinRole(cert node.Certificate, nodes []node.NetworkNode) error {
 	}
 
 	err := errors.New(fmt.Sprintf("%s actual %d expected %d, %s actual %d expected %d, %s actual %d expected %d",
-		node.StaticRoleVirtual.String(), virtualCount, v,
-		node.StaticRoleHeavyMaterial.String(), heavyCount, h,
-		node.StaticRoleLightMaterial.String(), lightCount, l))
+		member.PrimaryRoleVirtual.String(), virtualCount, v,
+		member.PrimaryRoleHeavyMaterial.String(), heavyCount, h,
+		member.PrimaryRoleLightMaterial.String(), lightCount, l))
 	return errors.W(err, "MinRoles failed")
 }
