@@ -8,11 +8,11 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-	mm_node "github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
-// DiscoveryNodeMock implements node.DiscoveryNode
+// DiscoveryNodeMock implements nodeinfo.DiscoveryNode
 type DiscoveryNodeMock struct {
 	t minimock.Tester
 
@@ -34,14 +34,14 @@ type DiscoveryNodeMock struct {
 	beforeGetPublicKeyCounter uint64
 	GetPublicKeyMock          mDiscoveryNodeMockGetPublicKey
 
-	funcGetRole          func() (s1 mm_node.StaticRole)
+	funcGetRole          func() (p1 member.PrimaryRole)
 	inspectFuncGetRole   func()
 	afterGetRoleCounter  uint64
 	beforeGetRoleCounter uint64
 	GetRoleMock          mDiscoveryNodeMockGetRole
 }
 
-// NewDiscoveryNodeMock returns a mock for node.DiscoveryNode
+// NewDiscoveryNodeMock returns a mock for nodeinfo.DiscoveryNode
 func NewDiscoveryNodeMock(t minimock.Tester) *DiscoveryNodeMock {
 	m := &DiscoveryNodeMock{t: t}
 	if controller, ok := t.(minimock.MockController); ok {
@@ -129,7 +129,7 @@ func (mmGetHost *mDiscoveryNodeMockGetHost) Set(f func() (s1 string)) *Discovery
 	return mmGetHost.mock
 }
 
-// GetHost implements node.DiscoveryNode
+// GetHost implements nodeinfo.DiscoveryNode
 func (mmGetHost *DiscoveryNodeMock) GetHost() (s1 string) {
 	mm_atomic.AddUint64(&mmGetHost.beforeGetHostCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetHost.afterGetHostCounter, 1)
@@ -272,7 +272,7 @@ func (mmGetNodeRef *mDiscoveryNodeMockGetNodeRef) Set(f func() (g1 reference.Glo
 	return mmGetNodeRef.mock
 }
 
-// GetNodeRef implements node.DiscoveryNode
+// GetNodeRef implements nodeinfo.DiscoveryNode
 func (mmGetNodeRef *DiscoveryNodeMock) GetNodeRef() (g1 reference.Global) {
 	mm_atomic.AddUint64(&mmGetNodeRef.beforeGetNodeRefCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetNodeRef.afterGetNodeRefCounter, 1)
@@ -415,7 +415,7 @@ func (mmGetPublicKey *mDiscoveryNodeMockGetPublicKey) Set(f func() (p1 crypto.Pu
 	return mmGetPublicKey.mock
 }
 
-// GetPublicKey implements node.DiscoveryNode
+// GetPublicKey implements nodeinfo.DiscoveryNode
 func (mmGetPublicKey *DiscoveryNodeMock) GetPublicKey() (p1 crypto.PublicKey) {
 	mm_atomic.AddUint64(&mmGetPublicKey.beforeGetPublicKeyCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetPublicKey.afterGetPublicKeyCounter, 1)
@@ -504,7 +504,7 @@ type DiscoveryNodeMockGetRoleExpectation struct {
 
 // DiscoveryNodeMockGetRoleResults contains results of the DiscoveryNode.GetRole
 type DiscoveryNodeMockGetRoleResults struct {
-	s1 mm_node.StaticRole
+	p1 member.PrimaryRole
 }
 
 // Expect sets up expected params for DiscoveryNode.GetRole
@@ -532,7 +532,7 @@ func (mmGetRole *mDiscoveryNodeMockGetRole) Inspect(f func()) *mDiscoveryNodeMoc
 }
 
 // Return sets up results that will be returned by DiscoveryNode.GetRole
-func (mmGetRole *mDiscoveryNodeMockGetRole) Return(s1 mm_node.StaticRole) *DiscoveryNodeMock {
+func (mmGetRole *mDiscoveryNodeMockGetRole) Return(p1 member.PrimaryRole) *DiscoveryNodeMock {
 	if mmGetRole.mock.funcGetRole != nil {
 		mmGetRole.mock.t.Fatalf("DiscoveryNodeMock.GetRole mock is already set by Set")
 	}
@@ -540,12 +540,12 @@ func (mmGetRole *mDiscoveryNodeMockGetRole) Return(s1 mm_node.StaticRole) *Disco
 	if mmGetRole.defaultExpectation == nil {
 		mmGetRole.defaultExpectation = &DiscoveryNodeMockGetRoleExpectation{mock: mmGetRole.mock}
 	}
-	mmGetRole.defaultExpectation.results = &DiscoveryNodeMockGetRoleResults{s1}
+	mmGetRole.defaultExpectation.results = &DiscoveryNodeMockGetRoleResults{p1}
 	return mmGetRole.mock
 }
 
 //Set uses given function f to mock the DiscoveryNode.GetRole method
-func (mmGetRole *mDiscoveryNodeMockGetRole) Set(f func() (s1 mm_node.StaticRole)) *DiscoveryNodeMock {
+func (mmGetRole *mDiscoveryNodeMockGetRole) Set(f func() (p1 member.PrimaryRole)) *DiscoveryNodeMock {
 	if mmGetRole.defaultExpectation != nil {
 		mmGetRole.mock.t.Fatalf("Default expectation is already set for the DiscoveryNode.GetRole method")
 	}
@@ -558,8 +558,8 @@ func (mmGetRole *mDiscoveryNodeMockGetRole) Set(f func() (s1 mm_node.StaticRole)
 	return mmGetRole.mock
 }
 
-// GetRole implements node.DiscoveryNode
-func (mmGetRole *DiscoveryNodeMock) GetRole() (s1 mm_node.StaticRole) {
+// GetRole implements nodeinfo.DiscoveryNode
+func (mmGetRole *DiscoveryNodeMock) GetRole() (p1 member.PrimaryRole) {
 	mm_atomic.AddUint64(&mmGetRole.beforeGetRoleCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetRole.afterGetRoleCounter, 1)
 
@@ -574,7 +574,7 @@ func (mmGetRole *DiscoveryNodeMock) GetRole() (s1 mm_node.StaticRole) {
 		if mm_results == nil {
 			mmGetRole.t.Fatal("No results are set for the DiscoveryNodeMock.GetRole")
 		}
-		return (*mm_results).s1
+		return (*mm_results).p1
 	}
 	if mmGetRole.funcGetRole != nil {
 		return mmGetRole.funcGetRole()

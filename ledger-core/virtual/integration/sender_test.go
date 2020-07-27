@@ -12,7 +12,7 @@ import (
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -88,7 +88,7 @@ func TestVirtual_SenderCheck_With_ExpectedVE(t *testing.T) {
 						return false
 					})
 
-					jetCoordinatorMock := jet.NewAffinityHelperMock(mc)
+					jetCoordinatorMock := affinity.NewHelperMock(mc)
 					auth := authentication.NewService(ctx, jetCoordinatorMock)
 					server.ReplaceAuthenticationService(auth)
 

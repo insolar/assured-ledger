@@ -8,35 +8,36 @@ package gateway
 import (
 	"context"
 
-	node2 "github.com/insolar/assured-ledger/ledger-core/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/network/rules"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 func newWaitPulsar(b *Base) *WaitPulsar {
-	return &WaitPulsar{b, make(chan pulsestor.Pulse, 1)}
+	return &WaitPulsar{b, make(chan pulse.Data, 1)}
 }
 
 type WaitPulsar struct {
 	*Base
-	pulseArrived chan pulsestor.Pulse
+	pulseArrived chan pulse.Data
 }
 
-func (g *WaitPulsar) Run(ctx context.Context, pulse pulsestor.Pulse) {
+func (g *WaitPulsar) Run(ctx context.Context, pulse pulse.Data) {
 	g.switchOnRealPulse(pulse)
 
 	select {
 	case <-g.bootstrapTimer.C:
 		g.FailState(ctx, bootstrapTimeoutMessage)
 	case newPulse := <-g.pulseArrived:
-		g.Gatewayer.SwitchState(ctx, node2.CompleteNetworkState, newPulse)
+		g.Gatewayer.SwitchState(ctx, nodeinfo.CompleteNetworkState, newPulse)
 	}
 }
 
-func (g *WaitPulsar) UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes []node2.NetworkNode, cloudStateHash []byte) {
+func (g *WaitPulsar) UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes []nodeinfo.NetworkNode, cloudStateHash []byte) {
 	workingNodes := node.Select(nodes, node.ListWorking)
 
 	if _, err := rules.CheckMajorityRule(g.CertificateManager.GetCertificate(), workingNodes); err != nil {
@@ -50,17 +51,35 @@ func (g *WaitPulsar) UpdateState(ctx context.Context, pulseNumber pulse.Number, 
 	g.Base.UpdateState(ctx, pulseNumber, nodes, cloudStateHash)
 }
 
-func (g *WaitPulsar) GetState() node2.NetworkState {
-	return node2.WaitPulsar
+func (g *WaitPulsar) GetState() nodeinfo.NetworkState {
+	return nodeinfo.WaitPulsar
 }
 
 func (g *WaitPulsar) OnConsensusFinished(ctx context.Context, report network.Report) {
-	g.switchOnRealPulse(EnsureGetPulse(ctx, g.PulseAccessor, report.PulseNumber))
+	g.switchOnRealPulse(EnsureGetPulse(ctx, report))
 }
 
-func (g *WaitPulsar) switchOnRealPulse(pulseObject pulsestor.Pulse) {
-	if pulseObject.PulseNumber.IsTimePulse() && pulseObject.EpochPulseNumber.IsTimeEpoch() {
+func (g *WaitPulsar) switchOnRealPulse(pulseObject pulse.Data) {
+	if pulseObject.PulseNumber.IsTimePulse() && pulseObject.PulseEpoch.IsTimeEpoch() {
 		g.pulseArrived <- pulseObject
 		close(g.pulseArrived)
+	}
+}
+
+func (g *WaitPulsar) OnPulseFromConsensus(ctx context.Context, pulse network.NetworkedPulse) {
+	g.Base.OnPulseFromConsensus(ctx, pulse)
+
+	if !pulse.PulseEpoch.IsTimeEpoch() {
+		panic(throw.IllegalState())
+	}
+
+	err := g.PulseAppender.Append(ctx, pulse)
+	if err != nil {
+		inslogger.FromContext(ctx).Panic("failed to append pulse: ", err.Error())
+	}
+
+	err = g.PulseManager.CommitFirstPulseChange(pulse)
+	if err != nil {
+		inslogger.FromContext(ctx).Panicf("failed to set start pulse: %d, %s", pulse.PulseNumber, err.Error())
 	}
 }

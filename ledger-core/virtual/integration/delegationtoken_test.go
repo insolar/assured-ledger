@@ -15,8 +15,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -71,7 +71,7 @@ func TestDelegationToken_SuccessCheckCorrectToken(t *testing.T) {
 				return false
 			})
 
-			jetCoordinatorMock := jet.NewAffinityHelperMock(mc)
+			jetCoordinatorMock := affinity.NewHelperMock(mc)
 			auth := authentication.NewService(ctx, jetCoordinatorMock)
 			server.ReplaceAuthenticationService(auth)
 
@@ -159,7 +159,7 @@ func TestDelegationToken_CheckTokenField(t *testing.T) {
 			server, ctx := utils.NewUninitializedServer(nil, t)
 			defer server.Stop()
 
-			jetCoordinatorMock := jet.NewAffinityHelperMock(t)
+			jetCoordinatorMock := affinity.NewHelperMock(t)
 			auth := authentication.NewService(ctx, jetCoordinatorMock)
 			server.ReplaceAuthenticationService(auth)
 
@@ -300,7 +300,7 @@ func TestDelegationToken_IsMessageFromVirtualLegitimate(t *testing.T) {
 
 				server, ctx := utils.NewUninitializedServer(nil, t)
 
-				jetCoordinatorMock := jet.NewAffinityHelperMock(mc)
+				jetCoordinatorMock := affinity.NewHelperMock(mc)
 				auth := authentication.NewService(ctx, jetCoordinatorMock)
 				server.ReplaceAuthenticationService(auth)
 
@@ -408,7 +408,7 @@ func TestDelegationToken_OldVEVDelegatedCallRequest(t *testing.T) {
 
 			executeDone := server.Journal.WaitStopOf(&handlers.SMVDelegatedCallRequest{}, 1)
 
-			jetCoordinatorMock := jet.NewAffinityHelperMock(t)
+			jetCoordinatorMock := affinity.NewHelperMock(t)
 			auth := authentication.NewService(ctx, jetCoordinatorMock)
 			server.ReplaceAuthenticationService(auth)
 
