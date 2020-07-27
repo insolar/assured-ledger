@@ -23,9 +23,14 @@ jobs:
       BUILD_TIME: 123456
     steps:
       - name: Checkout code
-        uses: actions/checkout@master
+        uses: actions/checkout@v2
         with:
           path: go/src/github.com/insolar/assured-ledger
+          # Check out pull request's HEAD commit instead of the merge commit to
+          # work-around an issue where wrong a commit is being checked out.
+          # For more details, see:
+          # https://github.com/actions/checkout/issues/299.
+          ref: ${{ github.event.pull_request.head.sha }}
       - name: Set up go ${{env.GO_VERSION}}
         uses: actions/setup-go@v2
         with:
