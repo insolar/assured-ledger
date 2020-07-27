@@ -9,9 +9,9 @@ package finalizedstate
 import (
 	"context"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
@@ -72,7 +72,7 @@ func (sm *SMStateFinalizer) stepSendVStateReport(ctx smachine.ExecutionContext) 
 	msg.AsOf = sm.pulseSlot.PulseData().PulseNumber
 
 	sm.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
-		err := svc.SendRole(goCtx, &msg, node.DynamicRoleVirtualExecutor, sm.Reference, currentPulseNumber)
+		err := svc.SendRole(goCtx, &msg, affinity.DynamicRoleVirtualExecutor, sm.Reference, currentPulseNumber)
 		return func(ctx smachine.AsyncResultContext) {
 			if err != nil {
 				ctx.Log().Error("failed to send state", err)

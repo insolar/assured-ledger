@@ -11,6 +11,7 @@ type Ledger struct {
 	// between current and the latest replicated on heavy.
 	//
 	// IMPORTANT: It should be the same on ALL nodes.
+	// deprecated
 	LightChainLimit int
 }
 

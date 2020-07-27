@@ -117,7 +117,7 @@ func (c *PrimingCensusTemplate) BuildCopy(pd pulse.Data, csh proofs.CloudStateHa
 
 	return &BuiltCensusTemplate{ExpectedCensusTemplate{
 		c.chronicles, c.online, c.evicted, c.chronicles.active,
-		csh, gsh, pd.PulseNumber,
+		gsh, csh, pd.PulseNumber,
 	}}
 }
 

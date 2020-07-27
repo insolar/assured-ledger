@@ -76,16 +76,27 @@ func prepareValue(iv interface{}) (string, reflect.Kind, bool) {
 	case nil:
 		return "", reflect.Interface, true
 	case LogStringer:
-		return vv.LogString(), reflect.Interface, false
+		if !isUnnamedStruct(iv) {
+			return vv.LogString(), reflect.Interface, false
+		}
 	case func() string:
 		if vv == nil {
 			return "", reflect.Func, true
 		}
 		return vv(), reflect.Func, false
 	case error:
-		return vv.Error(), reflect.Interface, false
+		if !isUnnamedStruct(iv) {
+			return vv.Error(), reflect.Interface, false
+		}
 	case fmt.Stringer:
-		return vv.String(), reflect.Interface, false
+		if !isUnnamedStruct(iv) {
+			return vv.String(), reflect.Interface, false
+		}
 	}
 	return "", reflect.Invalid, false
+}
+
+func isUnnamedStruct(iv interface{}) bool {
+	t := reflect.TypeOf(iv)
+	return t.Kind() == reflect.Struct && t.PkgPath() == ""
 }
