@@ -775,11 +775,12 @@ func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 		point.WakeUp()
 	}
 
-	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone(), executeStopped, foundError)
+	testutils.WaitSignalsTimed(t, 10*time.Second, executeStopped, foundError)
+	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 	require.Equal(t, countChangePulse, typedChecker.VCallRequest.Count())
 	require.Equal(t, countChangePulse, typedChecker.VDelegatedCallRequest.Count())
-	testutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VDelegatedRequestFinished.Wait(ctx, 1))
+	require.Equal(t, 1, typedChecker.VDelegatedRequestFinished.Count())
 
 	mc.Finish()
 
