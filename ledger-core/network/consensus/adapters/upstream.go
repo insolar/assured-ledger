@@ -25,7 +25,7 @@ import (
 type NodeStateFunc = func(proofs.NodeStateHash)
 
 type NodeStater interface {
-	GetNodeState(NodeStateFunc)
+	RequestNodeState(NodeStateFunc)
 	CancelNodeState()
 }
 
@@ -105,11 +105,20 @@ func (u *UpstreamController) ConsensusAborted() {
 	// TODO implement
 }
 
-func (u *UpstreamController) PreparePulseChange(report api.UpstreamReport, ch chan<- api.UpstreamState) {
-	go awaitState(ch, u.stateGetter)
+func (u *UpstreamController) PreparePulseChange(_ api.UpstreamReport, ch chan<- api.UpstreamState) {
+	u.stateGetter.RequestNodeState(func(nsh proofs.NodeStateHash) {
+		if nsh.FixedByteSize() != 64 {
+			panic(throw.IllegalState())
+		}
 
-	// ctx := ReportContext(report)
-	// u.beatChanger.PrepareBeat(ctx, report, ch)
+		ch <- api.UpstreamState{
+			NodeState: nsh,
+		}
+	})
+}
+
+func (u *UpstreamController) CancelPulseChange() {
+	u.stateGetter.CancelNodeState()
 }
 
 func (u *UpstreamController) CommitPulseChange(report api.UpstreamReport, pulseData pulse.Data, activeCensus census.Operational) {
@@ -124,26 +133,9 @@ func (u *UpstreamController) CommitPulseChange(report api.UpstreamReport, pulseD
 	})
 }
 
-func (u *UpstreamController) CancelPulseChange() {
-	// TODO implement
-}
-
 func (u *UpstreamController) SetOnFinished(f network.OnConsensusFinished) {
 	u.mu.Lock()
 	defer u.mu.Unlock()
 
 	u.onFinished = f
-}
-
-func awaitState(c chan<- api.UpstreamState, stater NodeStater) {
-	stater.GetNodeState(func(nsh proofs.NodeStateHash) {
-		if nsh.FixedByteSize() != 64 {
-			panic(throw.IllegalState())
-		}
-
-		c <- api.UpstreamState{
-			NodeState: nsh,
-		}
-		// cryptkit.NewDigest(longbits.NewBits512FromBytes(stater.GetNodeState(nil)), SHA3512Digest).AsDigestHolder(),
-	})
 }

@@ -99,7 +99,7 @@ type consensusProxy struct {
 	Gatewayer network.Gatewayer
 }
 
-func (p consensusProxy) GetNodeState(fn adapters.NodeStateFunc) {
+func (p consensusProxy) RequestNodeState(fn adapters.NodeStateFunc) {
 	nshBytes := longbits.Bits512{}
 	_, _ = rand.Read(nshBytes[:])
 	fn(cryptkit.NewDigest(nshBytes, "random"))

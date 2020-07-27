@@ -233,7 +233,7 @@ func TestSendMessageHandler(t *testing.T) {
 
 type stater struct{}
 
-func (s *stater) GetNodeState(fn adapters.NodeStateFunc) {
+func (s *stater) RequestNodeState(fn adapters.NodeStateFunc) {
 	fn(cryptkit.Digest{})
 }
 

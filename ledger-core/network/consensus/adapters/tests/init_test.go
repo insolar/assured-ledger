@@ -386,7 +386,7 @@ type nshGen struct {
 	nshDelay time.Duration
 }
 
-func (ng *nshGen) GetNodeState(fn adapters.NodeStateFunc) {
+func (ng *nshGen) RequestNodeState(fn adapters.NodeStateFunc) {
 	delay := ng.nshDelay
 	if delay != 0 {
 		time.Sleep(delay)
