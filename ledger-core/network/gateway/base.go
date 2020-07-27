@@ -16,6 +16,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
@@ -216,12 +219,13 @@ func (g *Base) StartConsensus(ctx context.Context) error {
 }
 
 func (g *Base) RequestNodeState(fn chorus.NodeStateFunc) {
-	panic(throw.IllegalState())
+	// This is wrong, but current structure of gateway requires too much hassle to make it right
+	fn(api.UpstreamState{
+		NodeState: cryptkit.NewDigest(longbits.Bits512{}, "empty"),
+	})
 }
 
-func (g *Base) CancelNodeState() {
-	panic(throw.IllegalState())
-}
+func (g *Base) CancelNodeState() {}
 
 func (g *Base) OnPulseFromConsensus(ctx context.Context, pu beat.Beat) {
 	g.pulseWatchdog.Reset()
