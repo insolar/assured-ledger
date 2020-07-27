@@ -46,16 +46,18 @@ const waitStatePulsePercent = 10
 const UnorderedMaxParallelism = 30
 
 type Info struct {
-	Reference   reference.Global
-	descriptor  descriptor.Object
-	Deactivated bool
+	Reference           reference.Global
+	descriptorDirty     descriptor.Object
+	descriptorValidated descriptor.Object
+	Deactivated         bool
 
-	UnorderedExecute smachine.SyncLink
-	OrderedExecute   smachine.SyncLink
-	ReadyToWork      smachine.SyncLink
-	SummaryDone      smachine.SyncLink
+	UnorderedExecute           smachine.SyncLink
+	OrderedExecute             smachine.SyncLink
+	ReadyToWork                smachine.SyncLink
+	SummaryDone                smachine.SyncLink
+	PendingConstructorFinished smachine.SyncLink
 
-	SignalPendingsFinished smachine.BargeIn
+	SignalOrderedPendingFinished smachine.BargeInWithParam
 
 	// KnownRequests holds requests that were seen on current pulse
 	KnownRequests callregistry.WorkingTable
@@ -114,16 +116,24 @@ func (i *Info) FinishRequest(
 	i.KnownRequests.Finish(isolation.Interference, requestRef, result)
 }
 
-func (i *Info) SetDescriptor(objectDescriptor descriptor.Object) {
-	i.descriptor = objectDescriptor
+func (i *Info) SetDescriptorDirty(objectDescriptor descriptor.Object) {
+	i.descriptorDirty = objectDescriptor
+}
+
+func (i *Info) SetDescriptorValidated(objectDescriptor descriptor.Object) {
+	i.descriptorValidated = objectDescriptor
 }
 
 func (i *Info) Deactivate() {
 	i.Deactivated = true
 }
 
-func (i *Info) Descriptor() descriptor.Object {
-	return i.descriptor
+func (i *Info) DescriptorDirty() descriptor.Object {
+	return i.descriptorDirty
+}
+
+func (i *Info) DescriptorValidated() descriptor.Object {
+	return i.descriptorValidated
 }
 
 func (i Info) GetEarliestPulse(tolerance contract.InterferenceFlag) pulse.Number {
@@ -168,7 +178,7 @@ func (i *Info) BuildStateReport() payload.VStateReport {
 		panic(throw.IllegalValue())
 	}
 
-	if objDescriptor := i.Descriptor(); objDescriptor != nil {
+	if objDescriptor := i.DescriptorDirty(); objDescriptor != nil {
 		res.LatestDirtyState = objDescriptor.HeadRef()
 	}
 
@@ -176,11 +186,10 @@ func (i *Info) BuildStateReport() payload.VStateReport {
 }
 
 func (i *Info) BuildLatestDirtyState() *payload.ObjectState {
-	if objDescriptor := i.Descriptor(); objDescriptor != nil {
+	if objDescriptor := i.DescriptorDirty(); objDescriptor != nil {
 		class, _ := objDescriptor.Class()
 		return &payload.ObjectState{
 			Reference:   objDescriptor.StateID(),
-			Parent:      objDescriptor.Parent(),
 			Class:       class,
 			State:       objDescriptor.Memory(),
 			Deactivated: i.Deactivated,
@@ -332,23 +341,35 @@ func (sm *SMObject) stepWaitState(ctx smachine.ExecutionContext) smachine.StateU
 }
 
 func (sm *SMObject) stepGotState(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	state := sm.GetState()
+
 	if sm.PreviousExecutorOrderedPendingCount == 0 {
-		sm.releaseOrderedExecutionPath(ctx)
-		sm.releaseUnorderedExecutionPath(ctx)
-	} else if sm.GetState() != Empty {
-		sm.releaseUnorderedExecutionPath(ctx)
+		sm.releaseOrderedExecutionPath()
+		sm.releaseUnorderedExecutionPath()
+	} else {
+		var pendingConstructorFinishedCtl smsync.BoolConditionalLink
+		if state == Empty {
+			pendingConstructorFinishedCtl = smsync.NewConditionalBool(false, "pendingConstructorFinished")
+			sm.PendingConstructorFinished = pendingConstructorFinishedCtl.SyncLink()
+		} else {
+			sm.releaseUnorderedExecutionPath()
+		}
+
+		sm.SignalOrderedPendingFinished = ctx.NewBargeInWithParam(func(interface{}) smachine.BargeInCallbackFunc {
+			return func(ctx smachine.BargeInContext) smachine.StateUpdate {
+				if state == Empty {
+					smachine.ApplyAdjustmentAsync(pendingConstructorFinishedCtl.NewValue(true))
+					sm.releaseUnorderedExecutionPath()
+				}
+				sm.releaseOrderedExecutionPath()
+
+				return ctx.Stay()
+			}
+		})
 	}
 
-	if sm.PreviousExecutorOrderedPendingCount > 0 {
-		sm.SignalPendingsFinished = ctx.NewBargeIn().
-			WithJump(sm.stepReleaseExecutionPaths)
-	}
-
-	return ctx.Jump(sm.stepReadyToWork)
-}
-
-func (sm *SMObject) stepReadyToWork(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	ctx.ApplyAdjustment(sm.readyToWorkCtl.NewValue(true))
+
 	return ctx.Jump(sm.stepWaitIndefinitely)
 }
 
@@ -356,18 +377,14 @@ func (sm *SMObject) stepWaitIndefinitely(ctx smachine.ExecutionContext) smachine
 	return ctx.Sleep().ThenRepeat()
 }
 
-func (sm *SMObject) stepReleaseExecutionPaths(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	sm.releaseOrderedExecutionPath(ctx)
-	sm.releaseUnorderedExecutionPath(ctx)
-	return ctx.Jump(sm.stepWaitIndefinitely)
+func (sm *SMObject) releaseOrderedExecutionPath() {
+	adjustment := sm.orderedSemaphoreCtl.NewValue(1)
+	smachine.ApplyAdjustmentAsync(adjustment)
 }
 
-func (sm *SMObject) releaseOrderedExecutionPath(ctx smachine.ExecutionContext) {
-	ctx.ApplyAdjustment(sm.orderedSemaphoreCtl.NewValue(1))
-}
-
-func (sm *SMObject) releaseUnorderedExecutionPath(ctx smachine.ExecutionContext) {
-	ctx.ApplyAdjustment(sm.unorderedSemaphoreCtl.NewValue(UnorderedMaxParallelism))
+func (sm *SMObject) releaseUnorderedExecutionPath() {
+	adjustment := sm.unorderedSemaphoreCtl.NewValue(UnorderedMaxParallelism)
+	smachine.ApplyAdjustmentAsync(adjustment)
 }
 
 func (sm *SMObject) migrate(ctx smachine.MigrationContext) smachine.StateUpdate {
@@ -384,7 +401,7 @@ func (sm *SMObject) migrate(ctx smachine.MigrationContext) smachine.StateUpdate 
 
 	sm.checkPendingCounters(ctx.Log())
 	sm.smFinalizer.Report = sm.BuildStateReport()
-	if sm.Descriptor() != nil {
+	if sm.DescriptorDirty() != nil {
 		state := sm.BuildLatestDirtyState()
 		sm.smFinalizer.Report.ProvidedContent.LatestDirtyState = state
 		sm.smFinalizer.Report.ProvidedContent.LatestValidatedState = state

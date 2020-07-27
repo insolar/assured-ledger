@@ -31,6 +31,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callsummary"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
 )
 
 /* -------- Utilities ------------- */
@@ -43,13 +44,15 @@ type SMExecute struct {
 	Payload *payload.VCallRequest
 
 	// internal data
-	isConstructor      bool
-	semaphoreOrdered   smachine.SyncLink
-	semaphoreUnordered smachine.SyncLink
-	execution          execution.Context
-	objectSharedState  object.SharedStateAccessor
-	hasState           bool
-	duplicateFinished  bool
+	pendingConstructorFinished smachine.SyncLink
+	semaphoreOrdered           smachine.SyncLink
+	semaphoreUnordered         smachine.SyncLink
+
+	isConstructor     bool
+	execution         execution.Context
+	objectSharedState object.SharedStateAccessor
+	hasState          bool
+	duplicateFinished bool
 
 	// execution step
 	executionNewState   *execution.Update
@@ -65,6 +68,7 @@ type SMExecute struct {
 	messageSender         messageSenderAdapter.MessageSender
 	pulseSlot             *conveyor.PulseSlot
 	authenticationService authentication.Service
+	globalSemaphore       tool.RunnerLimiter
 
 	outgoing            *payload.VCallRequest
 	outgoingObject      reference.Global
@@ -95,6 +99,7 @@ func (*dSMExecute) InjectDependencies(sm smachine.StateMachine, _ smachine.SlotL
 	injector.MustInject(&s.messageSender)
 	injector.MustInject(&s.objectCatalog)
 	injector.MustInject(&s.authenticationService)
+	injector.MustInject(&s.globalSemaphore)
 }
 
 func (*dSMExecute) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc {
@@ -188,12 +193,13 @@ func (s *SMExecute) intolerableCall() bool {
 
 func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var (
-		semaphoreReadyToWork smachine.SyncLink
-		objectDescriptor     descriptor.Object
-		semaphoreOrdered     smachine.SyncLink
-		semaphoreUnordered   smachine.SyncLink
+		semaphoreReadyToWork                smachine.SyncLink
+		semaphoreOrdered                    smachine.SyncLink
+		semaphoreUnordered                  smachine.SyncLink
+		semaphorePendingConstructorFinished smachine.SyncLink
 
-		objectState object.State
+		objectDescriptor descriptor.Object
+		objectState      object.State
 	)
 
 	action := func(state *object.SharedState) {
@@ -201,8 +207,9 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 
 		semaphoreOrdered = state.OrderedExecute
 		semaphoreUnordered = state.UnorderedExecute
+		semaphorePendingConstructorFinished = state.PendingConstructorFinished
 
-		objectDescriptor = state.Descriptor()
+		objectDescriptor = s.getDescriptor(state)
 
 		objectState = state.GetState()
 	}
@@ -215,6 +222,11 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 		return ctx.Sleep().ThenRepeat()
 	}
 
+	s.semaphoreOrdered = semaphoreOrdered
+	s.semaphoreUnordered = semaphoreUnordered
+	s.execution.ObjectDescriptor = objectDescriptor
+	s.pendingConstructorFinished = semaphorePendingConstructorFinished
+
 	if s.isConstructor {
 		switch objectState {
 		case object.Unknown:
@@ -223,36 +235,45 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 			// attempt to create object that is deactivated :(
 			panic(throw.NotImplemented())
 		}
-	} else {
-		// if not constructor
-		switch objectState {
-		case object.Unknown:
-			panic(throw.Impossible())
-		case object.Missing:
-			s.prepareExecutionError(throw.E("object does not exist", struct {
-				ObjectReference string
-				State           object.State
-			}{
-				ObjectReference: s.execution.Object.String(),
-				State:           objectState,
-			}))
-			return ctx.Jump(s.stepSendCallResult)
-		case object.Inactive:
-			panic(throw.NotImplemented())
-		case object.HasState:
-			// ok
-		}
-	}
 
-	s.semaphoreOrdered = semaphoreOrdered
-	s.semaphoreUnordered = semaphoreUnordered
-
-	s.execution.ObjectDescriptor = objectDescriptor
-
-	if s.isConstructor {
 		// default isolation for constructors
 		s.methodIsolation = contract.ConstructorIsolation()
+
+		return ctx.Jump(s.stepIsolationNegotiation)
 	}
+
+	switch objectState {
+	case object.Unknown:
+		panic(throw.Impossible())
+	case object.Missing:
+		s.prepareExecutionError(throw.E("object does not exist", struct {
+			ObjectReference string
+			State           object.State
+		}{
+			ObjectReference: s.execution.Object.String(),
+			State:           objectState,
+		}))
+		return ctx.Jump(s.stepSendCallResult)
+	case object.Inactive:
+		panic(throw.NotImplemented())
+	case object.HasState:
+		// ok
+	}
+
+	if s.pendingConstructorFinished.IsZero() {
+		return ctx.Jump(s.stepIsolationNegotiation)
+	}
+	return ctx.Jump(s.stepWaitPendingConstructorFinished)
+}
+
+type markerPendingConstructorWait struct{}
+
+func (s *SMExecute) stepWaitPendingConstructorFinished(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	if ctx.Acquire(s.pendingConstructorFinished).IsNotPassed() {
+		ctx.Log().Test(markerPendingConstructorWait{})
+		return ctx.Sleep().ThenRepeat()
+	}
+
 	return ctx.Jump(s.stepIsolationNegotiation)
 }
 
@@ -282,6 +303,13 @@ func (s *SMExecute) stepIsolationNegotiation(ctx smachine.ExecutionContext) smac
 		}))
 		return ctx.Jump(s.stepSendCallResult)
 	}
+
+	// forbidden isolation
+	// it requires special processing path that will be implemented later on
+	if negotiatedIsolation.Interference == contract.CallTolerable && negotiatedIsolation.State == contract.CallValidated {
+		panic(throw.NotImplemented())
+	}
+
 	s.execution.Isolation = negotiatedIsolation
 
 	return ctx.Jump(s.stepDeduplicate)
@@ -457,20 +485,34 @@ func (s *SMExecute) stepProcessFindCallResponse(ctx smachine.ExecutionContext) s
 }
 
 func (s *SMExecute) stepTakeLock(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	var executionSemaphore smachine.SyncLink
-
-	if s.execution.Isolation.Interference == contract.CallIntolerable {
-		executionSemaphore = s.semaphoreUnordered
-	} else {
-		executionSemaphore = s.semaphoreOrdered
-	}
-
-	if ctx.Acquire(executionSemaphore).IsNotPassed() {
+	if ctx.Acquire(s.getExecutionSemaphore()).IsNotPassed() {
 		// wait for semaphore to be released
 		return ctx.Sleep().ThenRepeat()
 	}
 
 	return ctx.Jump(s.stepStartRequestProcessing)
+}
+
+func (s *SMExecute) getExecutionSemaphore() smachine.SyncLink {
+	if s.execution.Isolation.Interference == contract.CallIntolerable {
+		return s.semaphoreUnordered
+	}
+	return s.semaphoreOrdered
+}
+
+func (s *SMExecute) getDescriptor(state *object.SharedState) descriptor.Object {
+	switch s.execution.Isolation.State {
+	case contract.CallDirty:
+		return state.DescriptorDirty()
+	case contract.CallValidated:
+		if state.DescriptorValidated() != nil {
+			return state.DescriptorValidated()
+		}
+		return state.DescriptorDirty()
+	default:
+		panic(throw.IllegalState())
+	}
+
 }
 
 func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -485,7 +527,7 @@ func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) sm
 		}
 
 		state.IncrementPotentialPendingCounter(s.execution.Isolation)
-		objectDescriptor = state.Descriptor()
+		objectDescriptor = s.getDescriptor(state)
 	}
 
 	if stepUpdate := s.shareObjectAccess(ctx, action); !stepUpdate.IsEmpty() {
@@ -686,9 +728,11 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 		}
 	} else {
 		if s.outgoingSentCounter >= MaxOutgoingSendCount {
-		     return ctx.Error(throw.E("outgoing retries limit"))
+			// TODO when CallSummary will live longer than one pulse it needs to be updated
+			s.sendDelegatedRequestFinished(ctx, nil)
+			return ctx.Error(throw.E("outgoing retries limit"))
 		}
-		
+
 		s.outgoing.CallRequestFlags = payload.BuildCallRequestFlags(payload.SendResultDefault, payload.RepeatedCall)
 	}
 
@@ -704,12 +748,32 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 	}).WithoutAutoWakeUp().Start()
 
 	s.outgoingSentCounter++
+
+	// someone else can process other requests while we  waiting for outgoing results
+	ctx.Release(s.globalSemaphore.PartialLink())
+
 	// we'll wait for barge-in WakeUp here, not adapter
-	return ctx.Sleep().ThenJump(s.stepExecuteContinue)
+	return ctx.Sleep().ThenJump(s.stepTakeLockAfterOutgoing)
+}
+
+func (s *SMExecute) stepTakeLockAfterOutgoing(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	// parent semaphore was released in stepSendOutgoing
+	// acquire it again
+	if ctx.Acquire(s.globalSemaphore.PartialLink()).IsNotPassed() {
+		return ctx.Sleep().ThenRepeat()
+	}
+
+	return ctx.Jump(s.stepExecuteContinue)
 }
 
 func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	outgoingResult := s.outgoingResult
+	switch s.executionNewState.Outgoing.(type) {
+	case execution.CallConstructor, execution.CallMethod:
+		if outgoingResult == nil {
+			panic(throw.IllegalValue())
+		}
+	}
 
 	// unset all outgoing fields in case we have new outgoing request
 	s.outgoingSentCounter = 0
@@ -740,8 +804,9 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 		class  reference.Global
 	)
 
-	if s.intolerableCall() {
-		s.executionNewState.Result = requestresult.New(executionNewState.Result(), executionNewState.ObjectReference())
+	if s.isIntolerableCallChangeState() {
+		s.prepareExecutionError(throw.E("intolerable call trying to change object state"))
+		return ctx.Jump(s.stepSendCallResult)
 	}
 
 	if s.deactivate {
@@ -771,7 +836,7 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 	}
 
 	action := func(state *object.SharedState) {
-		state.Info.SetDescriptor(s.newObjectDescriptor)
+		state.SetDescriptorDirty(s.newObjectDescriptor)
 
 		switch state.GetState() {
 		case object.HasState:
@@ -788,6 +853,10 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 	}
 
 	return ctx.Jump(s.stepSendCallResult)
+}
+
+func (s *SMExecute) isIntolerableCallChangeState() bool {
+	return s.intolerableCall() && (s.deactivate || s.executionNewState.Result.Type() != requestresult.SideEffectNone)
 }
 
 func (s *SMExecute) stepAwaitSMCallSummary(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -856,11 +925,16 @@ func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionConte
 		lastState = &payload.ObjectState{
 			Reference: s.executionNewState.Result.ObjectStateID,
 			State:     s.executionNewState.Result.Memory,
-			Parent:    s.executionNewState.Result.ParentReference,
 			Class:     class,
 		}
 	}
 
+	s.sendDelegatedRequestFinished(ctx, lastState)
+
+	return ctx.Stop()
+}
+
+func (s *SMExecute) sendDelegatedRequestFinished(ctx smachine.ExecutionContext, lastState *payload.ObjectState) {
 	msg := payload.VDelegatedRequestFinished{
 		CallType:       s.Payload.CallType,
 		CallFlags:      s.Payload.CallFlags,
@@ -879,16 +953,13 @@ func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionConte
 			}
 		}
 	}).WithoutAutoWakeUp().Start()
-
-	return ctx.Stop()
 }
 
+
 func (s *SMExecute) makeNewDescriptor(class reference.Global, memory []byte) descriptor.Object {
-	parentReference := reference.Global{}
 	var prevStateIDBytes []byte
 	objDescriptor := s.execution.ObjectDescriptor
 	if objDescriptor != nil {
-		parentReference = objDescriptor.HeadRef()
 		prevStateIDBytes = objDescriptor.StateID().AsBytes()
 	}
 
@@ -902,7 +973,6 @@ func (s *SMExecute) makeNewDescriptor(class reference.Global, memory []byte) des
 		stateID,
 		class,
 		memory,
-		parentReference,
 	)
 }
 

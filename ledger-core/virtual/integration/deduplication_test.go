@@ -79,7 +79,7 @@ func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 		runnerMock.AddExecutionClassify("SomeMethod", isolation, nil)
 
 		newObjDescriptor := descriptor.NewObject(
-			reference.Global{}, reference.Local{}, class, []byte(""), reference.Global{},
+			reference.Global{}, reference.Local{}, class, []byte(""),
 		)
 
 		requestResult := requestresult.New([]byte("call result"), gen.UniqueGlobalRef())
@@ -168,7 +168,7 @@ func TestDeduplication_SecondCallOfMethodAfterExecution(t *testing.T) {
 		runnerMock.AddExecutionClassify("SomeMethod", isolation, nil)
 
 		newObjDescriptor := descriptor.NewObject(
-			reference.Global{}, reference.Local{}, class, []byte(""), reference.Global{},
+			reference.Global{}, reference.Local{}, class, []byte(""),
 		)
 
 		requestResult := requestresult.New([]byte("call result"), gen.UniqueGlobalRef())
@@ -407,10 +407,10 @@ func TestDeduplication_MethodUsingPrevVE(t *testing.T) {
 			executeDone := suite.server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 
 			suite.switchPulse(ctx)
-			suite.generateClass(ctx)
-			suite.generateCaller(ctx)
-			suite.generateObjectRef(ctx)
-			suite.generateOutgoing(ctx)
+			suite.generateClass()
+			suite.generateCaller()
+			suite.generateObjectRef()
+			suite.generateOutgoing()
 
 			suite.setMessageCheckers(ctx, t, test)
 			suite.setRunnerMock()
@@ -502,14 +502,14 @@ func (s *deduplicateMethodUsingPrevVETest) getP1() pulse.Number {
 	return s.p1
 }
 
-func (s *deduplicateMethodUsingPrevVETest) generateCaller(ctx context.Context) {
+func (s *deduplicateMethodUsingPrevVETest) generateCaller() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	s.caller = reference.NewSelf(gen.UniqueLocalRefWithPulse(s.p1))
 }
 
-func (s *deduplicateMethodUsingPrevVETest) generateObjectRef(ctx context.Context) {
+func (s *deduplicateMethodUsingPrevVETest) generateObjectRef() {
 	p := s.getP1()
 
 	s.mu.Lock()
@@ -518,7 +518,7 @@ func (s *deduplicateMethodUsingPrevVETest) generateObjectRef(ctx context.Context
 	s.object = reference.NewSelf(gen.UniqueLocalRefWithPulse(p))
 }
 
-func (s *deduplicateMethodUsingPrevVETest) generateOutgoing(ctx context.Context) {
+func (s *deduplicateMethodUsingPrevVETest) generateOutgoing() {
 	p := s.getP1()
 
 	s.mu.Lock()
@@ -527,7 +527,7 @@ func (s *deduplicateMethodUsingPrevVETest) generateOutgoing(ctx context.Context)
 	s.outgoing = reference.NewRecordOf(s.caller, gen.UniqueLocalRefWithPulse(p))
 }
 
-func (s *deduplicateMethodUsingPrevVETest) generateClass(ctx context.Context) {
+func (s *deduplicateMethodUsingPrevVETest) generateClass() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -703,12 +703,7 @@ func (s *deduplicateMethodUsingPrevVETest) setRunnerMock() {
 	isolation := contract.MethodIsolation{Interference: contract.CallIntolerable, State: contract.CallDirty}
 	s.runnerMock.AddExecutionClassify("SomeMethod", isolation, nil)
 
-	newObjDescriptor := descriptor.NewObject(
-		reference.Global{}, reference.Local{}, s.getClass(), []byte(""), reference.Global{},
-	)
-
 	requestResult := requestresult.New([]byte("execution"), gen.UniqueGlobalRef())
-	requestResult.SetAmend(newObjDescriptor, []byte("new memory"))
 
 	executionMock := s.runnerMock.AddExecutionMock("SomeMethod")
 	executionMock.AddStart(func(ctx execution.Context) {

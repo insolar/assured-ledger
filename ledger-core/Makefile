@@ -67,7 +67,6 @@ generate: ## run go generate
 
 .PHONY: vendor
 vendor: ## update vendor dependencies
-	rm -rf vendor
 	go mod vendor
 
 .PHONY: generate-proto-options
