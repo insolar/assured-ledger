@@ -13,7 +13,7 @@ import (
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/network"
@@ -29,24 +29,21 @@ func TestNewGatewayer(t *testing.T) {
 
 	gw := mock.NewGatewayMock(mc)
 
-	gw.GetStateMock.Set(func() (n1 node.NetworkState) {
-		return node.NoNetworkState
+	gw.GetStateMock.Set(func() (n1 nodeinfo.NetworkState) {
+		return nodeinfo.NoNetworkState
 	})
 
-	gw.NewGatewayMock.Set(func(ctx context.Context, s node.NetworkState) (g1 network.Gateway) {
-		assert.Equal(t, node.WaitConsensus, s)
+	gw.NewGatewayMock.Set(func(ctx context.Context, s nodeinfo.NetworkState) (g1 network.Gateway) {
+		assert.Equal(t, nodeinfo.WaitConsensus, s)
 		return gw
 	})
 
-	gw.BeforeRunMock.Set(func(ctx context.Context, pulse pulsestor.Pulse) {
-	})
-
-	gw.RunMock.Set(func(ctx context.Context, pulse pulsestor.Pulse) {
-	})
+	gw.BeforeRunMock.Return()
+	gw.RunMock.Return()
 
 	gatewayer := NewGatewayer(gw)
 	assert.Equal(t, gw, gatewayer.Gateway())
-	assert.Equal(t, node.NoNetworkState, gatewayer.Gateway().GetState())
+	assert.Equal(t, nodeinfo.NoNetworkState, gatewayer.Gateway().GetState())
 
-	gatewayer.SwitchState(context.Background(), node.WaitConsensus, *pulsestor.GenesisPulse)
+	gatewayer.SwitchState(context.Background(), nodeinfo.WaitConsensus, pulsestor.GenesisPulse.Data)
 }

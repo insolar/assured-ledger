@@ -95,7 +95,7 @@ func main() {
 	}
 
 	cwd, _ := os.Getwd()
-	_, _ = fmt.Fprintf(os.Stderr, "Generated file: %v (%v)", outFileName, cwd)
+	_, _ = fmt.Fprintf(os.Stderr, "Generated file: %v (%v)\n", outFileName, cwd)
 }
 
 type strictWriter struct {

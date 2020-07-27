@@ -14,8 +14,7 @@ import (
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/network/gateway/bootstrap"
@@ -62,16 +61,16 @@ func TestJoinerBootstrap_Run_AuthorizeRequestFailed(t *testing.T) {
 	defer f.mc.Finish()
 	defer f.mc.Wait(time.Minute)
 
-	f.gatewayer.SwitchStateMock.Set(func(ctx context.Context, state node.NetworkState, pulse pulsestor.Pulse) {
-		assert.Equal(t, node.NoNetworkState, state)
+	f.gatewayer.SwitchStateMock.Set(func(ctx context.Context, state nodeinfo.NetworkState, pulse pulse.Data) {
+		assert.Equal(t, nodeinfo.NoNetworkState, state)
 	})
 
-	f.requester.AuthorizeMock.Set(func(ctx context.Context, c2 node.Certificate) (pp1 *packet.Permit, err error) {
+	f.requester.AuthorizeMock.Set(func(ctx context.Context, c2 nodeinfo.Certificate) (pp1 *packet.Permit, err error) {
 		return nil, ErrUnknown
 	})
 
-	assert.Equal(t, node.JoinerBootstrap, f.joinerBootstrap.GetState())
-	f.joinerBootstrap.Run(context.Background(), *pulsestor.EphemeralPulse)
+	assert.Equal(t, nodeinfo.JoinerBootstrap, f.joinerBootstrap.GetState())
+	f.joinerBootstrap.Run(context.Background(), EphemeralPulse.Data)
 }
 
 func TestJoinerBootstrap_Run_BootstrapRequestFailed(t *testing.T) {
@@ -81,19 +80,19 @@ func TestJoinerBootstrap_Run_BootstrapRequestFailed(t *testing.T) {
 	defer f.mc.Finish()
 	defer f.mc.Wait(time.Minute)
 
-	f.gatewayer.SwitchStateMock.Set(func(ctx context.Context, state node.NetworkState, pulse pulsestor.Pulse) {
-		assert.Equal(t, node.NoNetworkState, state)
+	f.gatewayer.SwitchStateMock.Set(func(ctx context.Context, state nodeinfo.NetworkState, pulse pulse.Data) {
+		assert.Equal(t, nodeinfo.NoNetworkState, state)
 	})
 
-	f.requester.AuthorizeMock.Set(func(ctx context.Context, c2 node.Certificate) (pp1 *packet.Permit, err error) {
+	f.requester.AuthorizeMock.Set(func(ctx context.Context, c2 nodeinfo.Certificate) (pp1 *packet.Permit, err error) {
 		return &packet.Permit{}, nil
 	})
 
-	f.requester.BootstrapMock.Set(func(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate, pp2 *pulsestor.Pulse) (bp1 *packet.BootstrapResponse, err error) {
+	f.requester.BootstrapMock.Set(func(context.Context, *packet.Permit, adapters.Candidate) (bp1 *packet.BootstrapResponse, err error) {
 		return nil, ErrUnknown
 	})
 
-	f.joinerBootstrap.Run(context.Background(), *pulsestor.EphemeralPulse)
+	f.joinerBootstrap.Run(context.Background(), EphemeralPulse.Data)
 }
 
 func TestJoinerBootstrap_Run_BootstrapSucceeded(t *testing.T) {
@@ -103,24 +102,22 @@ func TestJoinerBootstrap_Run_BootstrapSucceeded(t *testing.T) {
 	defer f.mc.Finish()
 	defer f.mc.Wait(time.Minute)
 
-	f.gatewayer.SwitchStateMock.Set(func(ctx context.Context, state node.NetworkState, puls pulsestor.Pulse) {
-		assert.Equal(t, pulse.Number(123), puls.PulseNumber)
-		assert.Equal(t, node.WaitConsensus, state)
+	f.gatewayer.SwitchStateMock.Set(func(ctx context.Context, state nodeinfo.NetworkState, puls pulse.Data) {
+		assert.Equal(t, pulse.Unknown, puls.PulseNumber)
+		assert.Equal(t, nodeinfo.WaitConsensus, state)
 	})
 
-	f.requester.AuthorizeMock.Set(func(ctx context.Context, c2 node.Certificate) (pp1 *packet.Permit, err error) {
+	f.requester.AuthorizeMock.Set(func(ctx context.Context, c2 nodeinfo.Certificate) (pp1 *packet.Permit, err error) {
 		return &packet.Permit{}, nil
 	})
 
-	f.requester.BootstrapMock.Set(func(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate, pp2 *pulsestor.Pulse) (bp1 *packet.BootstrapResponse, err error) {
-		p := pulsestor.PulseProto{PulseNumber: 123}
+	f.requester.BootstrapMock.Set(func(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate) (bp1 *packet.BootstrapResponse, err error) {
 		return &packet.BootstrapResponse{
 			ETASeconds: 90,
-			Pulse:      p,
 		}, nil
 	})
 
-	f.joinerBootstrap.Run(context.Background(), *pulsestor.EphemeralPulse)
+	f.joinerBootstrap.Run(context.Background(), EphemeralPulse.Data)
 
 	assert.Equal(t, true, f.joinerBootstrap.bootstrapTimer.Stop())
 	assert.Equal(t, time.Duration(0), f.joinerBootstrap.backoff)

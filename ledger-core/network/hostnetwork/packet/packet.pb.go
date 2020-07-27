@@ -8,11 +8,11 @@ import (
 	fmt "fmt"
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"
-	pulsestor "github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	candidate "github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters/candidate"
 	github_com_insolar_assured_ledger_ledger_core_network_hostnetwork_host "github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/host"
 	github_com_insolar_assured_ledger_ledger_core_pulse "github.com/insolar/assured-ledger/ledger-core/pulse"
 	github_com_insolar_assured_ledger_ledger_core_reference "github.com/insolar/assured-ledger/ledger-core/reference"
+	rms "github.com/insolar/assured-ledger/ledger-core/rms"
 	io "io"
 	math "math"
 	math_bits "math/bits"
@@ -124,7 +124,7 @@ func (m *Packet) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_Packet.Merge(m, src)
 }
 func (m *Packet) XXX_Size() int {
-	return m.Size()
+	return m.ProtoSize()
 }
 func (m *Packet) XXX_DiscardUnknown() {
 	xxx_messageInfo_Packet.DiscardUnknown(m)
@@ -136,7 +136,7 @@ type isPacket_Payload interface {
 	isPacket_Payload()
 	Equal(interface{}) bool
 	MarshalTo([]byte) (int, error)
-	Size() int
+	ProtoSize() int
 }
 
 type Packet_Request struct {
@@ -214,7 +214,7 @@ func (m *Request) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_Request.Merge(m, src)
 }
 func (m *Request) XXX_Size() int {
-	return m.Size()
+	return m.ProtoSize()
 }
 func (m *Request) XXX_DiscardUnknown() {
 	xxx_messageInfo_Request.DiscardUnknown(m)
@@ -226,7 +226,7 @@ type isRequest_Request interface {
 	isRequest_Request()
 	Equal(interface{}) bool
 	MarshalTo([]byte) (int, error)
-	Size() int
+	ProtoSize() int
 }
 
 type Request_RPC struct {
@@ -365,7 +365,7 @@ func (m *Response) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_Response.Merge(m, src)
 }
 func (m *Response) XXX_Size() int {
-	return m.Size()
+	return m.ProtoSize()
 }
 func (m *Response) XXX_DiscardUnknown() {
 	xxx_messageInfo_Response.DiscardUnknown(m)
@@ -377,7 +377,7 @@ type isResponse_Response interface {
 	isResponse_Response()
 	Equal(interface{}) bool
 	MarshalTo([]byte) (int, error)
-	Size() int
+	ProtoSize() int
 }
 
 type Response_RPC struct {
@@ -520,7 +520,7 @@ func (m *RPCRequest) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_RPCRequest.Merge(m, src)
 }
 func (m *RPCRequest) XXX_Size() int {
-	return m.Size()
+	return m.ProtoSize()
 }
 func (m *RPCRequest) XXX_DiscardUnknown() {
 	xxx_messageInfo_RPCRequest.DiscardUnknown(m)
@@ -529,7 +529,7 @@ func (m *RPCRequest) XXX_DiscardUnknown() {
 var xxx_messageInfo_RPCRequest proto.InternalMessageInfo
 
 type PulseRequest struct {
-	Pulse *pulsestor.PulseProto `protobuf:"bytes,1,opt,name=Pulse,proto3" json:"Pulse,omitempty"`
+	Pulse *rms.PulseProto `protobuf:"bytes,1,opt,name=Pulse,proto3" json:"Pulse,omitempty"`
 }
 
 func (m *PulseRequest) Reset()      { *m = PulseRequest{} }
@@ -556,7 +556,7 @@ func (m *PulseRequest) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_PulseRequest.Merge(m, src)
 }
 func (m *PulseRequest) XXX_Size() int {
-	return m.Size()
+	return m.ProtoSize()
 }
 func (m *PulseRequest) XXX_DiscardUnknown() {
 	xxx_messageInfo_PulseRequest.DiscardUnknown(m)
@@ -593,7 +593,7 @@ func (m *UpdateScheduleRequest) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_UpdateScheduleRequest.Merge(m, src)
 }
 func (m *UpdateScheduleRequest) XXX_Size() int {
-	return m.Size()
+	return m.ProtoSize()
 }
 func (m *UpdateScheduleRequest) XXX_DiscardUnknown() {
 	xxx_messageInfo_UpdateScheduleRequest.DiscardUnknown(m)
@@ -630,7 +630,7 @@ func (m *ReconnectRequest) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_ReconnectRequest.Merge(m, src)
 }
 func (m *ReconnectRequest) XXX_Size() int {
-	return m.Size()
+	return m.ProtoSize()
 }
 func (m *ReconnectRequest) XXX_DiscardUnknown() {
 	xxx_messageInfo_ReconnectRequest.DiscardUnknown(m)
@@ -639,9 +639,8 @@ func (m *ReconnectRequest) XXX_DiscardUnknown() {
 var xxx_messageInfo_ReconnectRequest proto.InternalMessageInfo
 
 type BootstrapRequest struct {
-	CandidateProfile candidate.Profile    `protobuf:"bytes,2,opt,name=CandidateProfile,proto3" json:"CandidateProfile"`
-	Pulse            pulsestor.PulseProto `protobuf:"bytes,3,opt,name=Pulse,proto3" json:"Pulse"`
-	Permit           *Permit              `protobuf:"bytes,4,opt,name=Permit,proto3" json:"Permit,omitempty"`
+	CandidateProfile candidate.Profile `protobuf:"bytes,2,opt,name=CandidateProfile,proto3" json:"CandidateProfile"`
+	Permit           *Permit           `protobuf:"bytes,4,opt,name=Permit,proto3" json:"Permit,omitempty"`
 }
 
 func (m *BootstrapRequest) Reset()      { *m = BootstrapRequest{} }
@@ -668,7 +667,7 @@ func (m *BootstrapRequest) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_BootstrapRequest.Merge(m, src)
 }
 func (m *BootstrapRequest) XXX_Size() int {
-	return m.Size()
+	return m.ProtoSize()
 }
 func (m *BootstrapRequest) XXX_DiscardUnknown() {
 	xxx_messageInfo_BootstrapRequest.DiscardUnknown(m)
@@ -706,7 +705,7 @@ func (m *AuthorizeData) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_AuthorizeData.Merge(m, src)
 }
 func (m *AuthorizeData) XXX_Size() int {
-	return m.Size()
+	return m.ProtoSize()
 }
 func (m *AuthorizeData) XXX_DiscardUnknown() {
 	xxx_messageInfo_AuthorizeData.DiscardUnknown(m)
@@ -743,7 +742,7 @@ func (m *AuthorizeRequest) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_AuthorizeRequest.Merge(m, src)
 }
 func (m *AuthorizeRequest) XXX_Size() int {
-	return m.Size()
+	return m.ProtoSize()
 }
 func (m *AuthorizeRequest) XXX_DiscardUnknown() {
 	xxx_messageInfo_AuthorizeRequest.DiscardUnknown(m)
@@ -779,7 +778,7 @@ func (m *SignCertRequest) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_SignCertRequest.Merge(m, src)
 }
 func (m *SignCertRequest) XXX_Size() int {
-	return m.Size()
+	return m.ProtoSize()
 }
 func (m *SignCertRequest) XXX_DiscardUnknown() {
 	xxx_messageInfo_SignCertRequest.DiscardUnknown(m)
@@ -816,7 +815,7 @@ func (m *RPCResponse) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_RPCResponse.Merge(m, src)
 }
 func (m *RPCResponse) XXX_Size() int {
-	return m.Size()
+	return m.ProtoSize()
 }
 func (m *RPCResponse) XXX_DiscardUnknown() {
 	xxx_messageInfo_RPCResponse.DiscardUnknown(m)
@@ -853,7 +852,7 @@ func (m *Permit) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_Permit.Merge(m, src)
 }
 func (m *Permit) XXX_Size() int {
-	return m.Size()
+	return m.ProtoSize()
 }
 func (m *Permit) XXX_DiscardUnknown() {
 	xxx_messageInfo_Permit.DiscardUnknown(m)
@@ -892,7 +891,7 @@ func (m *PermitPayload) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_PermitPayload.Merge(m, src)
 }
 func (m *PermitPayload) XXX_Size() int {
-	return m.Size()
+	return m.ProtoSize()
 }
 func (m *PermitPayload) XXX_DiscardUnknown() {
 	xxx_messageInfo_PermitPayload.DiscardUnknown(m)
@@ -903,7 +902,6 @@ var xxx_messageInfo_PermitPayload proto.InternalMessageInfo
 type BootstrapResponse struct {
 	Code       BootstrapResponseCode `protobuf:"varint,1,opt,name=Code,proto3,enum=packet.BootstrapResponseCode" json:"Code,omitempty"`
 	ETASeconds uint32                `protobuf:"varint,2,opt,name=ETASeconds,proto3" json:"ETASeconds,omitempty"`
-	Pulse      pulsestor.PulseProto  `protobuf:"bytes,3,opt,name=Pulse,proto3" json:"Pulse"`
 }
 
 func (m *BootstrapResponse) Reset()      { *m = BootstrapResponse{} }
@@ -930,7 +928,7 @@ func (m *BootstrapResponse) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_BootstrapResponse.Merge(m, src)
 }
 func (m *BootstrapResponse) XXX_Size() int {
-	return m.Size()
+	return m.ProtoSize()
 }
 func (m *BootstrapResponse) XXX_DiscardUnknown() {
 	xxx_messageInfo_BootstrapResponse.DiscardUnknown(m)
@@ -967,7 +965,7 @@ func (m *BasicResponse) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_BasicResponse.Merge(m, src)
 }
 func (m *BasicResponse) XXX_Size() int {
-	return m.Size()
+	return m.ProtoSize()
 }
 func (m *BasicResponse) XXX_DiscardUnknown() {
 	xxx_messageInfo_BasicResponse.DiscardUnknown(m)
@@ -981,7 +979,6 @@ type AuthorizeResponse struct {
 	Error          string                `protobuf:"bytes,3,opt,name=Error,proto3" json:"Error,omitempty"`
 	Permit         *Permit               `protobuf:"bytes,4,opt,name=Permit,proto3" json:"Permit,omitempty"`
 	DiscoveryCount uint32                `protobuf:"varint,5,opt,name=DiscoveryCount,proto3" json:"DiscoveryCount,omitempty"`
-	Pulse          *pulsestor.PulseProto `protobuf:"bytes,6,opt,name=Pulse,proto3" json:"Pulse,omitempty"`
 }
 
 func (m *AuthorizeResponse) Reset()      { *m = AuthorizeResponse{} }
@@ -1008,7 +1005,7 @@ func (m *AuthorizeResponse) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_AuthorizeResponse.Merge(m, src)
 }
 func (m *AuthorizeResponse) XXX_Size() int {
-	return m.Size()
+	return m.ProtoSize()
 }
 func (m *AuthorizeResponse) XXX_DiscardUnknown() {
 	xxx_messageInfo_AuthorizeResponse.DiscardUnknown(m)
@@ -1044,7 +1041,7 @@ func (m *SignCertResponse) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_SignCertResponse.Merge(m, src)
 }
 func (m *SignCertResponse) XXX_Size() int {
-	return m.Size()
+	return m.ProtoSize()
 }
 func (m *SignCertResponse) XXX_DiscardUnknown() {
 	xxx_messageInfo_SignCertResponse.DiscardUnknown(m)
@@ -1080,7 +1077,7 @@ func (m *ErrorResponse) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_ErrorResponse.Merge(m, src)
 }
 func (m *ErrorResponse) XXX_Size() int {
-	return m.Size()
+	return m.ProtoSize()
 }
 func (m *ErrorResponse) XXX_DiscardUnknown() {
 	xxx_messageInfo_ErrorResponse.DiscardUnknown(m)
@@ -1115,7 +1112,7 @@ func (m *UpdateScheduleResponse) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_UpdateScheduleResponse.Merge(m, src)
 }
 func (m *UpdateScheduleResponse) XXX_Size() int {
-	return m.Size()
+	return m.ProtoSize()
 }
 func (m *UpdateScheduleResponse) XXX_DiscardUnknown() {
 	xxx_messageInfo_UpdateScheduleResponse.DiscardUnknown(m)
@@ -1150,7 +1147,7 @@ func (m *ReconnectResponse) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_ReconnectResponse.Merge(m, src)
 }
 func (m *ReconnectResponse) XXX_Size() int {
-	return m.Size()
+	return m.ProtoSize()
 }
 func (m *ReconnectResponse) XXX_DiscardUnknown() {
 	xxx_messageInfo_ReconnectResponse.DiscardUnknown(m)
@@ -1189,93 +1186,92 @@ func init() {
 }
 
 var fileDescriptor_c3f826366adfd81c = []byte{
-	// 1369 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x57, 0x4f, 0x93, 0x13, 0x45,
-	0x14, 0xcf, 0x6c, 0xb2, 0xd9, 0xdd, 0xb7, 0x9b, 0x65, 0xb6, 0x61, 0x61, 0x40, 0x1c, 0x52, 0x53,
-	0xba, 0xa4, 0xc0, 0x4d, 0x0a, 0x2d, 0x2c, 0x10, 0x4b, 0x8b, 0xec, 0x22, 0x8b, 0x08, 0xa6, 0x26,
-	0xeb, 0x9f, 0x83, 0x56, 0x31, 0x3b, 0xe9, 0x4d, 0x46, 0x92, 0xe9, 0xa1, 0xa7, 0x07, 0x5d, 0x4f,
-	0x7e, 0x04, 0x8f, 0xfa, 0x0d, 0xf4, 0x68, 0xf9, 0x25, 0x28, 0x4f, 0x7b, 0xb2, 0x28, 0x0e, 0x94,
-	0x1b, 0x2e, 0x1e, 0xb9, 0xe9, 0xd1, 0xea, 0x9e, 0x9e, 0x9e, 0x3f, 0x09, 0x08, 0x14, 0x9c, 0x32,
-	0xfd, 0xeb, 0xf7, 0x5e, 0xbf, 0xd7, 0xbf, 0xf7, 0xa7, 0x03, 0xa7, 0x7d, 0xcc, 0xbe, 0x25, 0xf4,
-	0x76, 0x6b, 0x40, 0x42, 0x96, 0x7c, 0x07, 0x8e, 0x7b, 0x1b, 0x33, 0xf9, 0xd3, 0x0c, 0x28, 0x61,
-	0x04, 0x55, 0xe3, 0xd5, 0x89, 0xf5, 0xbe, 0xc7, 0x06, 0xd1, 0x4e, 0xd3, 0x25, 0xa3, 0x56, 0x9f,
-	0xf4, 0x49, 0x4b, 0x6c, 0xef, 0x44, 0xbb, 0x62, 0x25, 0x16, 0xe2, 0x2b, 0x56, 0x3b, 0x71, 0x3d,
-	0x23, 0xee, 0xf9, 0x21, 0x19, 0x3a, 0xb4, 0xe5, 0x84, 0x61, 0x44, 0x71, 0x6f, 0x7d, 0x88, 0x7b,
-	0x7d, 0x4c, 0x5b, 0xf1, 0xcf, 0xba, 0x4b, 0x28, 0x56, 0x22, 0x41, 0x34, 0x0c, 0x71, 0xc8, 0x88,
-	0xfc, 0x92, 0xc6, 0x6e, 0x3d, 0x9f, 0xb1, 0x24, 0x1c, 0x97, 0xf8, 0x21, 0xf6, 0xc3, 0x28, 0x6c,
-	0x39, 0x3d, 0x27, 0x60, 0x98, 0x86, 0x2d, 0xd7, 0xf1, 0x7b, 0x5e, 0xcf, 0x61, 0x98, 0xbb, 0xbf,
-	0xeb, 0x0d, 0xe5, 0x09, 0xd6, 0x9f, 0x65, 0xa8, 0x76, 0x44, 0xa0, 0xe8, 0x24, 0x2c, 0x04, 0x64,
-	0xb8, 0x37, 0x22, 0x34, 0x18, 0x18, 0x7a, 0x5d, 0x6b, 0xcc, 0xda, 0x29, 0x80, 0xfa, 0x50, 0xed,
-	0x62, 0xbf, 0x87, 0xa9, 0x71, 0xa4, 0xae, 0x35, 0x96, 0xda, 0x9f, 0x3e, 0x78, 0x78, 0xea, 0xfa,
-	0x8b, 0xb9, 0x97, 0xbd, 0x79, 0xfe, 0xdd, 0xdc, 0x22, 0x21, 0xb3, 0xa5, 0x79, 0x74, 0x1b, 0xe6,
-	0x6d, 0xec, 0x62, 0xef, 0x2e, 0xa6, 0xc6, 0xea, 0xab, 0x39, 0x4a, 0x1d, 0xc0, 0x63, 0xb6, 0xf1,
-	0x9d, 0x08, 0x87, 0xec, 0xda, 0xa6, 0x71, 0xb4, 0xae, 0x35, 0x2a, 0x76, 0x0a, 0x20, 0x03, 0xe6,
-	0xb6, 0xa9, 0xe3, 0xe2, 0x6b, 0x9b, 0xc6, 0xb1, 0xba, 0xd6, 0x58, 0xb0, 0x93, 0x25, 0x7a, 0x03,
-	0x6a, 0xe2, 0xb3, 0x1b, 0x38, 0xfe, 0xa6, 0xc3, 0x1c, 0xc3, 0xe0, 0x9e, 0xda, 0x79, 0x10, 0x21,
-	0xa8, 0x6c, 0xef, 0x05, 0xd8, 0x38, 0x51, 0xd7, 0x1a, 0x35, 0x5b, 0x7c, 0xa3, 0xb3, 0x30, 0x27,
-	0x0f, 0x30, 0x5e, 0xab, 0x6b, 0x8d, 0xc5, 0xb7, 0x0f, 0x35, 0x65, 0xda, 0x49, 0x78, 0xab, 0x64,
-	0x27, 0x12, 0xa8, 0xc9, 0xef, 0x22, 0x0c, 0x38, 0x9d, 0xc6, 0x49, 0x21, 0xad, 0xa7, 0xd2, 0x31,
-	0xbe, 0x55, 0xb2, 0x95, 0x4c, 0x7b, 0x01, 0xe6, 0x3a, 0xce, 0xde, 0x90, 0x38, 0x3d, 0xeb, 0xa7,
-	0xb2, 0x3a, 0x08, 0xad, 0x41, 0xd9, 0xee, 0x6c, 0x18, 0x33, 0xc2, 0x02, 0x52, 0x16, 0x3a, 0x1b,
-	0xe9, 0x91, 0x5c, 0x00, 0xbd, 0x05, 0xb3, 0x1d, 0x9e, 0x7d, 0x46, 0x59, 0x48, 0x1e, 0x49, 0x24,
-	0x05, 0x98, 0xca, 0xc6, 0x42, 0xe8, 0x02, 0x2c, 0xb4, 0x09, 0x61, 0x21, 0xa3, 0x4e, 0x60, 0x54,
-	0x84, 0x86, 0x91, 0x68, 0xa8, 0x8d, 0x54, 0x2b, 0x15, 0xe6, 0x9a, 0x97, 0x23, 0x36, 0x20, 0xd4,
-	0xfb, 0x1e, 0x1b, 0xb3, 0x79, 0x4d, 0xb5, 0x91, 0xd1, 0x54, 0x18, 0x3a, 0x0f, 0xf3, 0x5d, 0xaf,
-	0xef, 0x6f, 0x60, 0xca, 0x8c, 0xaa, 0x50, 0x3c, 0x96, 0x28, 0x26, 0x78, 0xaa, 0xa7, 0x44, 0xd1,
-	0x55, 0x58, 0xfe, 0x2c, 0xe0, 0xd9, 0xdf, 0x75, 0x07, 0xb8, 0x17, 0x0d, 0xb1, 0x31, 0x27, 0x94,
-	0x5f, 0x4f, 0x94, 0xf3, 0xbb, 0xa9, 0x89, 0x82, 0x1a, 0xf7, 0xdc, 0xc6, 0x2e, 0xf1, 0x7d, 0xec,
-	0x32, 0x63, 0x3e, 0xef, 0xb9, 0xda, 0xc8, 0x78, 0xae, 0x30, 0x4e, 0x8d, 0xc4, 0xad, 0xfd, 0x72,
-	0x4a, 0x2b, 0x3a, 0x9d, 0xe5, 0xe6, 0x70, 0x8e, 0x1b, 0x45, 0xb0, 0x20, 0x67, 0x1d, 0x66, 0xdb,
-	0x4e, 0xe8, 0xb9, 0x92, 0x9c, 0x55, 0x75, 0xd5, 0x1c, 0xcc, 0x08, 0xc7, 0x52, 0xe8, 0xe2, 0x24,
-	0x3b, 0xc7, 0xa7, 0xb0, 0xa3, 0xd4, 0x32, 0xf4, 0x5c, 0x9c, 0xa4, 0xe7, 0xf8, 0x14, 0x7a, 0x52,
-	0xd5, 0x94, 0x9f, 0x77, 0x27, 0xf8, 0x31, 0x26, 0xf9, 0x49, 0x13, 0x57, 0x11, 0xb4, 0x0e, 0xb3,
-	0x57, 0x28, 0x25, 0x54, 0xf2, 0xa2, 0x82, 0x13, 0x60, 0x36, 0x38, 0x01, 0xa0, 0xad, 0x09, 0x3e,
-	0x63, 0x2e, 0xcc, 0x27, 0xf1, 0xa9, 0x0c, 0x14, 0x09, 0xbd, 0x98, 0x25, 0x74, 0x21, 0x1f, 0x6b,
-	0x86, 0xd0, 0x34, 0xd6, 0x94, 0x51, 0x48, 0x59, 0xb4, 0x2e, 0x00, 0xa4, 0xe5, 0x84, 0x8e, 0x42,
-	0xf5, 0x06, 0x66, 0x03, 0xd2, 0x33, 0x34, 0xd1, 0x36, 0xe4, 0x8a, 0xf7, 0x03, 0xd1, 0x2c, 0x66,
-	0x44, 0xb3, 0x10, 0xdf, 0xd6, 0x25, 0x58, 0xca, 0x96, 0x17, 0x3a, 0x9b, 0xd4, 0xa0, 0x96, 0xdc,
-	0x44, 0x32, 0x19, 0xe2, 0x32, 0xec, 0xf0, 0xb6, 0x2d, 0x4b, 0xd0, 0xfa, 0x55, 0x83, 0xd5, 0xa9,
-	0xa9, 0x8b, 0x06, 0x50, 0xfb, 0xc4, 0x09, 0xd9, 0x4d, 0xd2, 0xc3, 0xa9, 0xb9, 0x5a, 0xbb, 0x7d,
-	0xef, 0xe1, 0xa9, 0xd2, 0x83, 0x87, 0xa7, 0xde, 0x7b, 0xbe, 0x76, 0x1a, 0xcf, 0xa4, 0x9b, 0xd1,
-	0x68, 0x07, 0x53, 0x3b, 0x6f, 0x18, 0xad, 0x41, 0xb5, 0x83, 0xe9, 0xc8, 0x63, 0x32, 0x87, 0x97,
-	0x55, 0xd7, 0x10, 0xa8, 0x2d, 0x77, 0xad, 0xdf, 0x34, 0xd0, 0x8b, 0x25, 0x82, 0x22, 0x58, 0x54,
-	0xd8, 0x36, 0x11, 0x4e, 0x2e, 0xb5, 0xbb, 0xd2, 0xc9, 0x97, 0xda, 0xf3, 0xb3, 0xe7, 0x3c, 0xb3,
-	0xcf, 0xbf, 0x6b, 0xa0, 0x17, 0x5b, 0x19, 0xda, 0x04, 0x7d, 0x23, 0x99, 0xa6, 0x9d, 0x78, 0x98,
-	0xaa, 0xd6, 0xaa, 0xc6, 0x6c, 0x53, 0xee, 0xb4, 0x2b, 0x3c, 0x18, 0x7b, 0x42, 0x03, 0x9d, 0xcb,
-	0xf7, 0xda, 0xe9, 0x3c, 0x4b, 0xed, 0xd9, 0xe2, 0x4d, 0x57, 0x9e, 0xea, 0xb5, 0x07, 0x35, 0x55,
-	0x91, 0x62, 0x0e, 0xd5, 0x61, 0x91, 0x57, 0x99, 0xb7, 0xeb, 0xb9, 0x0e, 0x8b, 0x53, 0x61, 0xc9,
-	0xce, 0x42, 0x7c, 0x0e, 0x6e, 0x7b, 0x23, 0x1c, 0x32, 0x67, 0x14, 0x88, 0x60, 0xca, 0x76, 0x0a,
-	0xf0, 0x39, 0xf8, 0x39, 0xa6, 0xa1, 0x47, 0x7c, 0xe1, 0xed, 0x82, 0x9d, 0x2c, 0xad, 0x11, 0xe8,
-	0xc5, 0x86, 0x8d, 0x2e, 0x15, 0x8e, 0x4f, 0x33, 0xb9, 0xd0, 0x42, 0xf8, 0xa6, 0x5d, 0x70, 0xf5,
-	0x24, 0x2c, 0xf0, 0xa6, 0xe0, 0xb0, 0x88, 0x62, 0x59, 0x27, 0x29, 0x60, 0x85, 0x70, 0xa8, 0xd0,
-	0xe6, 0xd1, 0x2d, 0x98, 0xe3, 0xb9, 0x68, 0xe3, 0x5d, 0x99, 0x3d, 0x1f, 0xc9, 0xec, 0xf9, 0xe0,
-	0xf9, 0xb2, 0x87, 0xe2, 0x5d, 0x4c, 0xb1, 0xef, 0xe2, 0xe6, 0xd5, 0x21, 0xd9, 0x71, 0x86, 0x76,
-	0x62, 0xd6, 0xba, 0x04, 0x8b, 0x99, 0x76, 0xcc, 0x8b, 0xdb, 0xc6, 0x61, 0x34, 0x64, 0xf2, 0x1e,
-	0xe5, 0x0a, 0x1d, 0x49, 0x5a, 0xd8, 0x8c, 0xb8, 0xa2, 0x78, 0x61, 0x7d, 0x9d, 0x70, 0x86, 0xce,
-	0xab, 0xd9, 0x5c, 0xbc, 0x90, 0x58, 0x40, 0x6e, 0x4a, 0xca, 0x13, 0xd9, 0xff, 0xb9, 0x90, 0x3f,
-	0x66, 0xa0, 0x96, 0x53, 0x47, 0x0d, 0x38, 0xf4, 0x31, 0xf1, 0x7c, 0x4c, 0x3b, 0xd1, 0xce, 0xd0,
-	0x73, 0xaf, 0xe3, 0x3d, 0xe9, 0x67, 0x11, 0xe6, 0x92, 0x57, 0xbe, 0x0b, 0x3c, 0x8a, 0x8b, 0xcc,
-	0x17, 0x61, 0x74, 0x27, 0x5f, 0xa5, 0xe5, 0x57, 0xf3, 0x2a, 0xcb, 0x55, 0x28, 0x55, 0x89, 0xc5,
-	0xf6, 0x12, 0x7e, 0x2b, 0x2f, 0x95, 0xdf, 0x09, 0xfb, 0xd6, 0xcf, 0x1a, 0xac, 0x4c, 0x8c, 0x46,
-	0x74, 0x0e, 0x2a, 0x1b, 0xa4, 0x17, 0x57, 0xcd, 0x72, 0xfa, 0x62, 0x98, 0x10, 0xe4, 0x42, 0xb6,
-	0x10, 0x45, 0x26, 0xc0, 0x95, 0xed, 0xcb, 0x5d, 0x1e, 0x4e, 0x2f, 0x14, 0x97, 0x5a, 0xb3, 0x33,
-	0xc8, 0x0b, 0xd4, 0xbe, 0xf5, 0x21, 0xd4, 0x72, 0x83, 0x9e, 0xd7, 0x64, 0x37, 0x72, 0x5d, 0x1c,
-	0x86, 0xc2, 0xb3, 0x79, 0x3b, 0x59, 0x3e, 0x21, 0x11, 0xff, 0xd1, 0x60, 0x65, 0x62, 0x78, 0x3f,
-	0x29, 0xb8, 0x09, 0xc1, 0x4c, 0x70, 0x4f, 0x6f, 0x15, 0xea, 0xf0, 0x72, 0xe6, 0xf0, 0x67, 0xed,
-	0x5c, 0x68, 0x0d, 0x96, 0x37, 0xbd, 0xd0, 0x25, 0x77, 0x31, 0xdd, 0xdb, 0x20, 0x91, 0xcf, 0xc4,
-	0xf3, 0xa3, 0x66, 0x17, 0xd0, 0x74, 0x48, 0x56, 0x9f, 0x61, 0x48, 0xae, 0x81, 0x5e, 0x7c, 0x7b,
-	0xf0, 0x49, 0xcc, 0x31, 0x59, 0x1a, 0xe2, 0xdb, 0x7a, 0x13, 0x6a, 0xb9, 0xe7, 0x46, 0x1a, 0x8b,
-	0x96, 0xbd, 0x48, 0x03, 0x8e, 0x4e, 0x7f, 0x5d, 0x58, 0x87, 0x61, 0x65, 0xe2, 0xc9, 0x70, 0xe6,
-	0x4b, 0x58, 0x9d, 0x9a, 0x2a, 0x68, 0x09, 0xe6, 0x2f, 0xbb, 0x2e, 0x0e, 0x18, 0xee, 0xe9, 0x25,
-	0x84, 0x8a, 0x2f, 0x1a, 0x5d, 0x43, 0x2b, 0x50, 0x93, 0xd8, 0x80, 0x50, 0x76, 0x6d, 0x53, 0x9f,
-	0x41, 0xc0, 0x9b, 0xcf, 0x37, 0xd8, 0x65, 0x7a, 0xf9, 0xcc, 0x57, 0xb0, 0x3a, 0x95, 0x27, 0xb4,
-	0xa8, 0x52, 0x23, 0x36, 0xfc, 0x05, 0x25, 0x7e, 0x5f, 0x51, 0xa4, 0xcf, 0x20, 0x1d, 0x96, 0x04,
-	0x76, 0xc3, 0xf1, 0xb9, 0x79, 0xbd, 0xac, 0x10, 0xd9, 0xd7, 0xf5, 0x4a, 0xfb, 0xfd, 0x7b, 0x07,
-	0x66, 0x69, 0xff, 0xc0, 0x2c, 0xdd, 0x3f, 0x30, 0x4b, 0x8f, 0x0f, 0x4c, 0xed, 0xdf, 0x03, 0xb3,
-	0xf4, 0xc3, 0xd8, 0xd4, 0x7e, 0x19, 0x9b, 0xda, 0xbd, 0xb1, 0xa9, 0xed, 0x8f, 0x4d, 0xed, 0xaf,
-	0xb1, 0xa9, 0xfd, 0x3d, 0x36, 0x4b, 0x8f, 0xc7, 0xa6, 0xf6, 0xe3, 0x23, 0xb3, 0xb4, 0xff, 0xc8,
-	0x2c, 0xdd, 0x7f, 0x64, 0x96, 0x76, 0xaa, 0xe2, 0xdf, 0xe5, 0x3b, 0xff, 0x05, 0x00, 0x00, 0xff,
-	0xff, 0xc5, 0xe2, 0xee, 0xe8, 0x6e, 0x0f, 0x00, 0x00,
+	// 1355 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x57, 0x4d, 0x73, 0xd3, 0xc6,
+	0x1b, 0xb7, 0x62, 0xc7, 0x89, 0x9f, 0xc4, 0x41, 0x59, 0x08, 0x08, 0xfe, 0xfc, 0x85, 0x47, 0x53,
+	0x82, 0x87, 0x36, 0xf6, 0xb4, 0x1d, 0x3a, 0x50, 0x66, 0xda, 0xe2, 0x98, 0x12, 0x4a, 0xa1, 0x1e,
+	0x39, 0x7d, 0x39, 0xb4, 0x53, 0x14, 0x79, 0x63, 0xab, 0xd8, 0x5a, 0xb1, 0x5a, 0xd1, 0xba, 0x27,
+	0x3e, 0x42, 0x8f, 0x3d, 0xf6, 0xd8, 0x1e, 0xfb, 0x2d, 0x18, 0x4e, 0x39, 0x75, 0x18, 0x0e, 0x4c,
+	0xe3, 0x5c, 0x7a, 0xe4, 0xd8, 0x63, 0x67, 0x57, 0xab, 0x95, 0x2c, 0x07, 0x0a, 0x1d, 0x38, 0x79,
+	0xf7, 0xb7, 0xcf, 0xdb, 0xee, 0xef, 0x79, 0x91, 0xe1, 0x9c, 0x8f, 0xd9, 0xf7, 0x84, 0xde, 0x69,
+	0x0e, 0x48, 0xc8, 0x92, 0x75, 0xe0, 0xb8, 0x77, 0x30, 0x93, 0x3f, 0x8d, 0x80, 0x12, 0x46, 0x50,
+	0x39, 0xde, 0x9d, 0xda, 0xe8, 0x7b, 0x6c, 0x10, 0xed, 0x34, 0x5c, 0x32, 0x6a, 0xf6, 0x49, 0x9f,
+	0x34, 0xc5, 0xf1, 0x4e, 0xb4, 0x2b, 0x76, 0x62, 0x23, 0x56, 0xb1, 0xda, 0xa9, 0x76, 0x46, 0xdc,
+	0xf3, 0x43, 0x32, 0x74, 0x68, 0xd3, 0x09, 0xc3, 0x88, 0xe2, 0xde, 0xc6, 0x10, 0xf7, 0xfa, 0x98,
+	0x36, 0xe3, 0x9f, 0x0d, 0x97, 0x50, 0xdc, 0xa4, 0xa3, 0x30, 0x36, 0xf8, 0xed, 0x10, 0xf7, 0x1d,
+	0x77, 0x2c, 0xad, 0xdc, 0x7e, 0x39, 0x2b, 0xc9, 0x3d, 0x5c, 0xe2, 0x87, 0xd8, 0x0f, 0xa3, 0xb0,
+	0xe9, 0xf4, 0x9c, 0x80, 0x61, 0x1a, 0x36, 0x5d, 0xc7, 0xef, 0x79, 0x3d, 0x87, 0x61, 0xee, 0x66,
+	0xd7, 0x1b, 0xe2, 0xd8, 0x83, 0xf5, 0x47, 0x11, 0xca, 0x1d, 0x71, 0x43, 0x74, 0x1a, 0x2a, 0x01,
+	0x19, 0x8e, 0x47, 0x84, 0x06, 0x03, 0x43, 0xaf, 0x69, 0xf5, 0x79, 0x3b, 0x05, 0x50, 0x1f, 0xca,
+	0x5d, 0xec, 0xf7, 0x30, 0x35, 0x8e, 0xd5, 0xb4, 0xfa, 0x72, 0xeb, 0xb3, 0xc7, 0x4f, 0xce, 0xdc,
+	0xf8, 0x6f, 0xe1, 0x65, 0x9f, 0x9c, 0xaf, 0x1b, 0x5b, 0x24, 0x64, 0xb6, 0x34, 0x8f, 0xee, 0xc0,
+	0xa2, 0x8d, 0x5d, 0xec, 0xdd, 0xc3, 0xd4, 0x58, 0x7b, 0x3d, 0xae, 0x94, 0x03, 0x7e, 0x67, 0x1b,
+	0xdf, 0x8d, 0x70, 0xc8, 0xae, 0xb7, 0x8d, 0xe3, 0x35, 0xad, 0x5e, 0xb2, 0x53, 0x00, 0x19, 0xb0,
+	0xb0, 0x4d, 0x1d, 0x17, 0x5f, 0x6f, 0x1b, 0x27, 0x6a, 0x5a, 0xbd, 0x62, 0x27, 0x5b, 0xf4, 0x06,
+	0x54, 0xc5, 0xb2, 0x1b, 0x38, 0x7e, 0xdb, 0x61, 0x8e, 0x61, 0xf0, 0x48, 0xed, 0x69, 0x10, 0x21,
+	0x28, 0x6d, 0x8f, 0x03, 0x6c, 0x9c, 0xaa, 0x69, 0xf5, 0xaa, 0x2d, 0xd6, 0xe8, 0x4d, 0x58, 0x90,
+	0x0e, 0x8c, 0xff, 0xd5, 0xb4, 0xfa, 0xd2, 0x3b, 0x47, 0x1a, 0x32, 0xdf, 0x24, 0xbc, 0x55, 0xb0,
+	0x13, 0x09, 0xd4, 0xe0, 0x6f, 0x11, 0x06, 0x9c, 0x4e, 0xe3, 0xb4, 0x90, 0xd6, 0x53, 0xe9, 0x18,
+	0xdf, 0x2a, 0xd8, 0x4a, 0xa6, 0x55, 0x81, 0x85, 0x8e, 0x33, 0x1e, 0x12, 0xa7, 0x67, 0xfd, 0x5c,
+	0x54, 0x8e, 0xd0, 0x3a, 0x14, 0xed, 0xce, 0xa6, 0x31, 0x27, 0x2c, 0x20, 0x65, 0xa1, 0xb3, 0x99,
+	0xba, 0xe4, 0x02, 0xe8, 0x2d, 0x98, 0xef, 0x44, 0xc3, 0x10, 0x1b, 0x45, 0x21, 0x79, 0x2c, 0x91,
+	0x14, 0x60, 0x2a, 0x1b, 0x0b, 0xa1, 0x8b, 0x50, 0x69, 0x11, 0xc2, 0x42, 0x46, 0x9d, 0xc0, 0x28,
+	0x09, 0x0d, 0x23, 0xd1, 0x50, 0x07, 0xa9, 0x56, 0x2a, 0xcc, 0x35, 0xaf, 0x44, 0x6c, 0x40, 0xa8,
+	0xf7, 0x23, 0x36, 0xe6, 0xa7, 0x35, 0xd5, 0x41, 0x46, 0x53, 0x61, 0xe8, 0x02, 0x2c, 0x76, 0xbd,
+	0xbe, 0xbf, 0x89, 0x29, 0x33, 0xca, 0x42, 0xf1, 0x44, 0xa2, 0x98, 0xe0, 0xa9, 0x9e, 0x12, 0x45,
+	0xd7, 0x60, 0xe5, 0xf3, 0x80, 0x67, 0x7f, 0xd7, 0x1d, 0xe0, 0x5e, 0x34, 0xc4, 0xc6, 0x82, 0x50,
+	0xfe, 0x7f, 0xa2, 0x3c, 0x7d, 0x9a, 0x9a, 0xc8, 0xa9, 0xf1, 0xc8, 0x6d, 0xec, 0x12, 0xdf, 0xc7,
+	0x2e, 0x33, 0x16, 0xa7, 0x23, 0x57, 0x07, 0x99, 0xc8, 0x15, 0xc6, 0xa9, 0x91, 0xb8, 0xb5, 0x57,
+	0x4c, 0x69, 0x45, 0xe7, 0xb2, 0xdc, 0x1c, 0x9d, 0xe2, 0x46, 0x11, 0x2c, 0xc8, 0xd9, 0x80, 0xf9,
+	0x96, 0x13, 0x7a, 0xae, 0x24, 0x67, 0x4d, 0x3d, 0x35, 0x07, 0x33, 0xc2, 0xb1, 0x14, 0xba, 0x34,
+	0xcb, 0xce, 0xc9, 0x43, 0xd8, 0x51, 0x6a, 0x19, 0x7a, 0x2e, 0xcd, 0xd2, 0x73, 0xf2, 0x10, 0x7a,
+	0x52, 0xd5, 0x94, 0x9f, 0xf7, 0x66, 0xf8, 0x31, 0x66, 0xf9, 0x49, 0x13, 0x57, 0x11, 0xb4, 0x01,
+	0xf3, 0x57, 0x29, 0x25, 0x54, 0xf2, 0xa2, 0x2e, 0x27, 0xc0, 0xec, 0xe5, 0x04, 0x80, 0xb6, 0x66,
+	0xf8, 0x8c, 0xb9, 0x30, 0x9f, 0xc5, 0xa7, 0x32, 0x90, 0x27, 0xf4, 0x52, 0x96, 0xd0, 0xca, 0xf4,
+	0x5d, 0x33, 0x84, 0xa6, 0x77, 0x4d, 0x19, 0x85, 0x94, 0x45, 0xeb, 0x22, 0x40, 0x5a, 0x4e, 0xe8,
+	0x38, 0x94, 0x6f, 0x62, 0x36, 0x20, 0x3d, 0x43, 0x13, 0x6d, 0x43, 0xee, 0x78, 0x3f, 0x10, 0xcd,
+	0x62, 0x4e, 0x34, 0x0b, 0xb1, 0xb6, 0x2e, 0xc0, 0x72, 0xb6, 0xbc, 0xd0, 0xd9, 0xa4, 0x06, 0x35,
+	0xd9, 0x1d, 0xe8, 0x28, 0x8c, 0x0b, 0xb0, 0xc3, 0x1b, 0xb6, 0x2c, 0x3e, 0xeb, 0x37, 0x0d, 0xd6,
+	0x0e, 0x4d, 0x5a, 0x34, 0x80, 0xea, 0xa7, 0x4e, 0xc8, 0x6e, 0x91, 0x1e, 0x4e, 0x0d, 0x55, 0x5b,
+	0xad, 0x07, 0x4f, 0xce, 0x14, 0x1e, 0x3f, 0x39, 0xf3, 0xfe, 0xcb, 0x35, 0xd2, 0x80, 0x9b, 0x68,
+	0xdc, 0x8a, 0x46, 0x3b, 0x98, 0xda, 0xd3, 0x86, 0xd1, 0x3a, 0x94, 0x3b, 0x98, 0x8e, 0x3c, 0x26,
+	0xb3, 0x77, 0x45, 0xf5, 0x0b, 0x81, 0xda, 0xf2, 0xd4, 0xfa, 0x5d, 0x03, 0x3d, 0x5f, 0x1c, 0x28,
+	0x82, 0x25, 0x85, 0x6d, 0x13, 0x11, 0xe4, 0x72, 0xab, 0x2b, 0x83, 0x7c, 0xa5, 0xdd, 0x3e, 0xeb,
+	0xe7, 0x85, 0x63, 0xbe, 0xaf, 0x81, 0x9e, 0x6f, 0x62, 0xa8, 0x0d, 0xfa, 0x66, 0x32, 0x47, 0x3b,
+	0xf1, 0x18, 0x55, 0x4d, 0x55, 0x0d, 0xd8, 0x86, 0x3c, 0x69, 0x95, 0xf8, 0x65, 0xec, 0x19, 0x8d,
+	0x4c, 0x08, 0xa5, 0xe7, 0x86, 0xe0, 0x41, 0x55, 0x15, 0x96, 0x18, 0x27, 0x35, 0x58, 0xe2, 0xc5,
+	0xe2, 0xed, 0x7a, 0xae, 0xc3, 0x62, 0x5e, 0x97, 0xed, 0x2c, 0xc4, 0xc7, 0xd9, 0xb6, 0x37, 0xc2,
+	0x21, 0x73, 0x46, 0x81, 0x88, 0xac, 0x68, 0xa7, 0x00, 0x1f, 0x67, 0x5f, 0x60, 0x1a, 0x7a, 0xc4,
+	0x17, 0x3d, 0xa4, 0x62, 0x27, 0x5b, 0x6b, 0x04, 0x7a, 0xbe, 0xef, 0xa2, 0xcb, 0x39, 0xf7, 0x32,
+	0x21, 0xd7, 0x66, 0x3a, 0x01, 0x3f, 0xb4, 0x73, 0xa1, 0x9e, 0x86, 0x0a, 0xaf, 0x6d, 0x87, 0x45,
+	0x14, 0xcb, 0x74, 0x4f, 0x01, 0x2b, 0x84, 0x23, 0xb9, 0x6e, 0x8d, 0x6e, 0xc3, 0x02, 0x4f, 0x2c,
+	0x1b, 0xef, 0xca, 0x54, 0xf8, 0x58, 0xa6, 0xc2, 0x07, 0x2f, 0xf9, 0x21, 0x85, 0x77, 0x31, 0xc5,
+	0xbe, 0x8b, 0x1b, 0xd7, 0x86, 0x64, 0xc7, 0x19, 0xda, 0x89, 0x59, 0xeb, 0x32, 0x2c, 0x65, 0xba,
+	0x2a, 0xaf, 0x51, 0x1b, 0x87, 0xd1, 0x90, 0xc9, 0x77, 0x94, 0x3b, 0x74, 0x2c, 0xe9, 0x44, 0x73,
+	0xe2, 0x89, 0xe2, 0x8d, 0xf5, 0x4d, 0xc2, 0x19, 0xba, 0xa0, 0x46, 0x6c, 0xfe, 0x41, 0x62, 0x01,
+	0x79, 0x28, 0xd9, 0x4f, 0x64, 0xff, 0xe5, 0x41, 0x1e, 0xce, 0x41, 0x75, 0x4a, 0x1d, 0xd5, 0xe1,
+	0xc8, 0x27, 0xc4, 0xf3, 0x31, 0xed, 0x44, 0x3b, 0x43, 0xcf, 0xbd, 0x81, 0xc7, 0x32, 0xce, 0x3c,
+	0xcc, 0x25, 0xaf, 0xfe, 0x10, 0x78, 0x14, 0xe7, 0x99, 0xcf, 0xc3, 0xe8, 0xee, 0x74, 0xc9, 0x15,
+	0x5f, 0xcf, 0xc7, 0xd5, 0x54, 0xb9, 0x51, 0x95, 0x58, 0x6c, 0x9c, 0xf0, 0x5b, 0x7a, 0xa5, 0xfc,
+	0xce, 0xd8, 0xb7, 0x76, 0x61, 0x75, 0x66, 0xc0, 0xa1, 0xb7, 0xa1, 0xb4, 0x49, 0x7a, 0x71, 0xd1,
+	0xac, 0xa4, 0x73, 0x7f, 0x46, 0x90, 0x0b, 0xd9, 0x42, 0x14, 0x99, 0x00, 0x57, 0xb7, 0xaf, 0x74,
+	0xf9, 0x6d, 0x7a, 0xa1, 0x78, 0xd3, 0xaa, 0x9d, 0x41, 0xac, 0x0f, 0xa1, 0x3a, 0x35, 0x7b, 0x79,
+	0x7d, 0x75, 0x23, 0xd7, 0xc5, 0x61, 0x28, 0xdc, 0x2c, 0xda, 0xc9, 0xf6, 0x19, 0x49, 0xf5, 0x50,
+	0x83, 0xd5, 0x99, 0x79, 0xfa, 0xac, 0x48, 0x67, 0x04, 0x33, 0x91, 0x3e, 0xbf, 0xec, 0x95, 0xf3,
+	0x62, 0xc6, 0xf9, 0x8b, 0x76, 0x21, 0xb4, 0x0e, 0x2b, 0x6d, 0x2f, 0x74, 0xc9, 0x3d, 0x4c, 0xc7,
+	0x9b, 0x24, 0xf2, 0x99, 0xf8, 0x22, 0xa8, 0xda, 0x39, 0xd4, 0x5a, 0x07, 0x3d, 0x3f, 0xe1, 0xf9,
+	0xbc, 0xe3, 0x98, 0xcc, 0x5c, 0xb1, 0xb6, 0xce, 0x42, 0x75, 0x6a, 0xa8, 0xa7, 0xe1, 0x69, 0xd9,
+	0xb7, 0x31, 0xe0, 0xf8, 0xe1, 0x33, 0xdc, 0x3a, 0x0a, 0xab, 0x33, 0x83, 0xf9, 0xfc, 0x57, 0xb0,
+	0x76, 0x28, 0x95, 0x68, 0x19, 0x16, 0xaf, 0xb8, 0x2e, 0x0e, 0x18, 0xee, 0xe9, 0x05, 0x84, 0xf2,
+	0xdf, 0x0d, 0xba, 0x86, 0x56, 0xa1, 0x2a, 0xb1, 0x01, 0xa1, 0xec, 0x7a, 0x5b, 0x9f, 0x43, 0xc0,
+	0x7b, 0xc3, 0x77, 0xd8, 0x65, 0x7a, 0xf1, 0xfc, 0xd7, 0xb0, 0x76, 0xe8, 0xd3, 0xa3, 0x25, 0xc5,
+	0x76, 0x6c, 0xf8, 0x4b, 0x4a, 0xfc, 0xbe, 0x7a, 0x75, 0x7d, 0x0e, 0xe9, 0xb0, 0x2c, 0xb0, 0x9b,
+	0x8e, 0xcf, 0xcd, 0xeb, 0x45, 0x85, 0xc8, 0xb6, 0xab, 0x97, 0x5a, 0x1f, 0x3d, 0xd8, 0x37, 0x0b,
+	0x7b, 0xfb, 0x66, 0xe1, 0xd1, 0xbe, 0x59, 0x78, 0xba, 0x6f, 0x6a, 0x7f, 0xef, 0x9b, 0x85, 0xfb,
+	0x13, 0x53, 0xfb, 0x75, 0x62, 0x6a, 0x0f, 0x26, 0xa6, 0xb6, 0x37, 0x31, 0xb5, 0x3f, 0x27, 0x66,
+	0xe1, 0xaf, 0x89, 0x59, 0x78, 0x3a, 0x31, 0xb5, 0x9f, 0x0e, 0xcc, 0xc2, 0x2f, 0x07, 0xa6, 0xb6,
+	0x77, 0x60, 0x16, 0x1e, 0x1d, 0x98, 0x85, 0x9d, 0xb2, 0xf8, 0x1f, 0xf7, 0xee, 0x3f, 0x01, 0x00,
+	0x00, 0xff, 0xff, 0xe9, 0x93, 0xdc, 0x3d, 0xd1, 0x0e, 0x00, 0x00,
 }
 
 func (x BootstrapResponseCode) String() string {
@@ -1946,9 +1942,6 @@ func (this *BootstrapRequest) Equal(that interface{}) bool {
 	if !this.CandidateProfile.Equal(&that1.CandidateProfile) {
 		return false
 	}
-	if !this.Pulse.Equal(&that1.Pulse) {
-		return false
-	}
 	if !this.Permit.Equal(that1.Permit) {
 		return false
 	}
@@ -2151,9 +2144,6 @@ func (this *BootstrapResponse) Equal(that interface{}) bool {
 	if this.ETASeconds != that1.ETASeconds {
 		return false
 	}
-	if !this.Pulse.Equal(&that1.Pulse) {
-		return false
-	}
 	return true
 }
 func (this *BasicResponse) Equal(that interface{}) bool {
@@ -2215,9 +2205,6 @@ func (this *AuthorizeResponse) Equal(that interface{}) bool {
 		return false
 	}
 	if this.DiscoveryCount != that1.DiscoveryCount {
-		return false
-	}
-	if !this.Pulse.Equal(that1.Pulse) {
 		return false
 	}
 	return true
@@ -2544,10 +2531,9 @@ func (this *BootstrapRequest) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 7)
+	s := make([]string, 0, 6)
 	s = append(s, "&packet.BootstrapRequest{")
 	s = append(s, "CandidateProfile: "+strings.Replace(this.CandidateProfile.GoString(), `&`, ``, 1)+",\n")
-	s = append(s, "Pulse: "+strings.Replace(this.Pulse.GoString(), `&`, ``, 1)+",\n")
 	if this.Permit != nil {
 		s = append(s, "Permit: "+fmt.Sprintf("%#v", this.Permit)+",\n")
 	}
@@ -2628,11 +2614,10 @@ func (this *BootstrapResponse) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 7)
+	s := make([]string, 0, 6)
 	s = append(s, "&packet.BootstrapResponse{")
 	s = append(s, "Code: "+fmt.Sprintf("%#v", this.Code)+",\n")
 	s = append(s, "ETASeconds: "+fmt.Sprintf("%#v", this.ETASeconds)+",\n")
-	s = append(s, "Pulse: "+strings.Replace(this.Pulse.GoString(), `&`, ``, 1)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -2651,7 +2636,7 @@ func (this *AuthorizeResponse) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 10)
+	s := make([]string, 0, 9)
 	s = append(s, "&packet.AuthorizeResponse{")
 	s = append(s, "Code: "+fmt.Sprintf("%#v", this.Code)+",\n")
 	s = append(s, "Timestamp: "+fmt.Sprintf("%#v", this.Timestamp)+",\n")
@@ -2660,9 +2645,6 @@ func (this *AuthorizeResponse) GoString() string {
 		s = append(s, "Permit: "+fmt.Sprintf("%#v", this.Permit)+",\n")
 	}
 	s = append(s, "DiscoveryCount: "+fmt.Sprintf("%#v", this.DiscoveryCount)+",\n")
-	if this.Pulse != nil {
-		s = append(s, "Pulse: "+fmt.Sprintf("%#v", this.Pulse)+",\n")
-	}
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -2713,7 +2695,7 @@ func valueToGoStringPacket(v interface{}, typ string) string {
 	return fmt.Sprintf("func(v %v) *%v { return &v } ( %#v )", typ, typ, pv)
 }
 func (m *Packet) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
@@ -2723,7 +2705,7 @@ func (m *Packet) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Packet) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
@@ -2734,7 +2716,7 @@ func (m *Packet) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = l
 	if m.Payload != nil {
 		{
-			size := m.Payload.Size()
+			size := m.Payload.ProtoSize()
 			i -= size
 			if _, err := m.Payload.MarshalTo(dAtA[i:]); err != nil {
 				return 0, err
@@ -2775,7 +2757,7 @@ func (m *Packet) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	}
 	if m.Receiver != nil {
 		{
-			size := m.Receiver.Size()
+			size := m.Receiver.ProtoSize()
 			i -= size
 			if _, err := m.Receiver.MarshalTo(dAtA[i:]); err != nil {
 				return 0, err
@@ -2789,7 +2771,7 @@ func (m *Packet) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	}
 	if m.Sender != nil {
 		{
-			size := m.Sender.Size()
+			size := m.Sender.ProtoSize()
 			i -= size
 			if _, err := m.Sender.MarshalTo(dAtA[i:]); err != nil {
 				return 0, err
@@ -2812,7 +2794,7 @@ func (m *Packet) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 }
 
 func (m *Packet_Request) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
@@ -2835,7 +2817,7 @@ func (m *Packet_Request) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 func (m *Packet_Response) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
@@ -2858,7 +2840,7 @@ func (m *Packet_Response) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 func (m *Request) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
@@ -2868,7 +2850,7 @@ func (m *Request) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Request) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
@@ -2879,7 +2861,7 @@ func (m *Request) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = l
 	if m.Request != nil {
 		{
-			size := m.Request.Size()
+			size := m.Request.ProtoSize()
 			i -= size
 			if _, err := m.Request.MarshalTo(dAtA[i:]); err != nil {
 				return 0, err
@@ -2890,7 +2872,7 @@ func (m *Request) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 }
 
 func (m *Request_RPC) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
@@ -2911,7 +2893,7 @@ func (m *Request_RPC) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 func (m *Request_Pulse) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
@@ -2932,7 +2914,7 @@ func (m *Request_Pulse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 func (m *Request_Bootstrap) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
@@ -2953,7 +2935,7 @@ func (m *Request_Bootstrap) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 func (m *Request_Authorize) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
@@ -2974,7 +2956,7 @@ func (m *Request_Authorize) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 func (m *Request_SignCert) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
@@ -2995,7 +2977,7 @@ func (m *Request_SignCert) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 func (m *Request_UpdateSchedule) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
@@ -3016,7 +2998,7 @@ func (m *Request_UpdateSchedule) MarshalToSizedBuffer(dAtA []byte) (int, error) 
 	return len(dAtA) - i, nil
 }
 func (m *Request_Reconnect) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
@@ -3037,7 +3019,7 @@ func (m *Request_Reconnect) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 func (m *Response) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
@@ -3047,7 +3029,7 @@ func (m *Response) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Response) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
@@ -3058,7 +3040,7 @@ func (m *Response) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = l
 	if m.Response != nil {
 		{
-			size := m.Response.Size()
+			size := m.Response.ProtoSize()
 			i -= size
 			if _, err := m.Response.MarshalTo(dAtA[i:]); err != nil {
 				return 0, err
@@ -3069,7 +3051,7 @@ func (m *Response) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 }
 
 func (m *Response_RPC) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
@@ -3090,7 +3072,7 @@ func (m *Response_RPC) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 func (m *Response_Basic) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
@@ -3111,7 +3093,7 @@ func (m *Response_Basic) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 func (m *Response_Bootstrap) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
@@ -3132,7 +3114,7 @@ func (m *Response_Bootstrap) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 func (m *Response_Authorize) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
@@ -3153,7 +3135,7 @@ func (m *Response_Authorize) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 func (m *Response_SignCert) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
@@ -3174,7 +3156,7 @@ func (m *Response_SignCert) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 func (m *Response_Error) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
@@ -3195,7 +3177,7 @@ func (m *Response_Error) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 func (m *Response_UpdateSchedule) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
@@ -3216,7 +3198,7 @@ func (m *Response_UpdateSchedule) MarshalToSizedBuffer(dAtA []byte) (int, error)
 	return len(dAtA) - i, nil
 }
 func (m *Response_Reconnect) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
@@ -3237,7 +3219,7 @@ func (m *Response_Reconnect) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 func (m *RPCRequest) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
@@ -3247,7 +3229,7 @@ func (m *RPCRequest) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *RPCRequest) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
@@ -3274,7 +3256,7 @@ func (m *RPCRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 }
 
 func (m *PulseRequest) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
@@ -3284,7 +3266,7 @@ func (m *PulseRequest) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *PulseRequest) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
@@ -3309,7 +3291,7 @@ func (m *PulseRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 }
 
 func (m *UpdateScheduleRequest) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
@@ -3319,7 +3301,7 @@ func (m *UpdateScheduleRequest) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *UpdateScheduleRequest) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
@@ -3349,7 +3331,7 @@ func (m *UpdateScheduleRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 }
 
 func (m *ReconnectRequest) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
@@ -3359,7 +3341,7 @@ func (m *ReconnectRequest) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *ReconnectRequest) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
@@ -3381,7 +3363,7 @@ func (m *ReconnectRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		dAtA[i] = 0x12
 	}
 	{
-		size := m.ReconnectTo.Size()
+		size := m.ReconnectTo.ProtoSize()
 		i -= size
 		if _, err := m.ReconnectTo.MarshalTo(dAtA[i:]); err != nil {
 			return 0, err
@@ -3394,7 +3376,7 @@ func (m *ReconnectRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 }
 
 func (m *BootstrapRequest) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
@@ -3404,7 +3386,7 @@ func (m *BootstrapRequest) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *BootstrapRequest) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
@@ -3426,16 +3408,6 @@ func (m *BootstrapRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		dAtA[i] = 0x22
 	}
 	{
-		size, err := m.Pulse.MarshalToSizedBuffer(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-		i = encodeVarintPacket(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x1a
-	{
 		size, err := m.CandidateProfile.MarshalToSizedBuffer(dAtA[:i])
 		if err != nil {
 			return 0, err
@@ -3449,7 +3421,7 @@ func (m *BootstrapRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 }
 
 func (m *AuthorizeData) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
@@ -3459,7 +3431,7 @@ func (m *AuthorizeData) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *AuthorizeData) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
@@ -3491,7 +3463,7 @@ func (m *AuthorizeData) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 }
 
 func (m *AuthorizeRequest) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
@@ -3501,7 +3473,7 @@ func (m *AuthorizeRequest) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *AuthorizeRequest) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
@@ -3533,7 +3505,7 @@ func (m *AuthorizeRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 }
 
 func (m *SignCertRequest) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
@@ -3543,7 +3515,7 @@ func (m *SignCertRequest) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *SignCertRequest) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
@@ -3553,7 +3525,7 @@ func (m *SignCertRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	var l int
 	_ = l
 	{
-		size := m.NodeRef.Size()
+		size := m.NodeRef.ProtoSize()
 		i -= size
 		if _, err := m.NodeRef.MarshalTo(dAtA[i:]); err != nil {
 			return 0, err
@@ -3566,7 +3538,7 @@ func (m *SignCertRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 }
 
 func (m *RPCResponse) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
@@ -3576,7 +3548,7 @@ func (m *RPCResponse) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *RPCResponse) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
@@ -3603,7 +3575,7 @@ func (m *RPCResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 }
 
 func (m *Permit) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
@@ -3613,7 +3585,7 @@ func (m *Permit) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Permit) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
@@ -3643,7 +3615,7 @@ func (m *Permit) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 }
 
 func (m *PermitPayload) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
@@ -3653,7 +3625,7 @@ func (m *PermitPayload) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *PermitPayload) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
@@ -3663,7 +3635,7 @@ func (m *PermitPayload) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	var l int
 	_ = l
 	{
-		size := m.AuthorityNodeRef.Size()
+		size := m.AuthorityNodeRef.ProtoSize()
 		i -= size
 		if _, err := m.AuthorityNodeRef.MarshalTo(dAtA[i:]); err != nil {
 			return 0, err
@@ -3674,7 +3646,7 @@ func (m *PermitPayload) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	dAtA[i] = 0x22
 	if m.ReconnectTo != nil {
 		{
-			size := m.ReconnectTo.Size()
+			size := m.ReconnectTo.ProtoSize()
 			i -= size
 			if _, err := m.ReconnectTo.MarshalTo(dAtA[i:]); err != nil {
 				return 0, err
@@ -3700,7 +3672,7 @@ func (m *PermitPayload) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 }
 
 func (m *BootstrapResponse) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
@@ -3710,7 +3682,7 @@ func (m *BootstrapResponse) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *BootstrapResponse) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
@@ -3719,16 +3691,6 @@ func (m *BootstrapResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	{
-		size, err := m.Pulse.MarshalToSizedBuffer(dAtA[:i])
-		if err != nil {
-			return 0, err
-		}
-		i -= size
-		i = encodeVarintPacket(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x1a
 	if m.ETASeconds != 0 {
 		i = encodeVarintPacket(dAtA, i, uint64(m.ETASeconds))
 		i--
@@ -3743,7 +3705,7 @@ func (m *BootstrapResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 }
 
 func (m *BasicResponse) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
@@ -3753,7 +3715,7 @@ func (m *BasicResponse) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *BasicResponse) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
@@ -3783,7 +3745,7 @@ func (m *BasicResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 }
 
 func (m *AuthorizeResponse) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
@@ -3793,7 +3755,7 @@ func (m *AuthorizeResponse) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *AuthorizeResponse) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
@@ -3802,18 +3764,6 @@ func (m *AuthorizeResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if m.Pulse != nil {
-		{
-			size, err := m.Pulse.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintPacket(dAtA, i, uint64(size))
-		}
-		i--
-		dAtA[i] = 0x32
-	}
 	if m.DiscoveryCount != 0 {
 		i = encodeVarintPacket(dAtA, i, uint64(m.DiscoveryCount))
 		i--
@@ -3852,7 +3802,7 @@ func (m *AuthorizeResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 }
 
 func (m *SignCertResponse) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
@@ -3862,7 +3812,7 @@ func (m *SignCertResponse) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *SignCertResponse) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
@@ -3882,7 +3832,7 @@ func (m *SignCertResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 }
 
 func (m *ErrorResponse) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
@@ -3892,7 +3842,7 @@ func (m *ErrorResponse) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *ErrorResponse) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
@@ -3912,7 +3862,7 @@ func (m *ErrorResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 }
 
 func (m *UpdateScheduleResponse) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
@@ -3922,7 +3872,7 @@ func (m *UpdateScheduleResponse) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *UpdateScheduleResponse) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
@@ -3935,7 +3885,7 @@ func (m *UpdateScheduleResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) 
 }
 
 func (m *ReconnectResponse) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
@@ -3945,7 +3895,7 @@ func (m *ReconnectResponse) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *ReconnectResponse) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
+	size := m.ProtoSize()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
@@ -3968,7 +3918,7 @@ func encodeVarintPacket(dAtA []byte, offset int, v uint64) int {
 	dAtA[offset] = uint8(v)
 	return base
 }
-func (m *Packet) Size() (n int) {
+func (m *Packet) ProtoSize() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -3978,11 +3928,11 @@ func (m *Packet) Size() (n int) {
 		n += 2 + sovPacket(uint64(m.Polymorph))
 	}
 	if m.Sender != nil {
-		l = m.Sender.Size()
+		l = m.Sender.ProtoSize()
 		n += 2 + l + sovPacket(uint64(l))
 	}
 	if m.Receiver != nil {
-		l = m.Receiver.Size()
+		l = m.Receiver.ProtoSize()
 		n += 2 + l + sovPacket(uint64(l))
 	}
 	if m.RequestID != 0 {
@@ -4000,240 +3950,240 @@ func (m *Packet) Size() (n int) {
 		n += 2 + sovPacket(uint64(m.Type))
 	}
 	if m.Payload != nil {
-		n += m.Payload.Size()
+		n += m.Payload.ProtoSize()
 	}
 	return n
 }
 
-func (m *Packet_Request) Size() (n int) {
+func (m *Packet_Request) ProtoSize() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
 	if m.Request != nil {
-		l = m.Request.Size()
+		l = m.Request.ProtoSize()
 		n += 2 + l + sovPacket(uint64(l))
 	}
 	return n
 }
-func (m *Packet_Response) Size() (n int) {
+func (m *Packet_Response) ProtoSize() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
 	if m.Response != nil {
-		l = m.Response.Size()
+		l = m.Response.ProtoSize()
 		n += 2 + l + sovPacket(uint64(l))
 	}
 	return n
 }
-func (m *Request) Size() (n int) {
+func (m *Request) ProtoSize() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
 	if m.Request != nil {
-		n += m.Request.Size()
+		n += m.Request.ProtoSize()
 	}
 	return n
 }
 
-func (m *Request_RPC) Size() (n int) {
+func (m *Request_RPC) ProtoSize() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
 	if m.RPC != nil {
-		l = m.RPC.Size()
+		l = m.RPC.ProtoSize()
 		n += 1 + l + sovPacket(uint64(l))
 	}
 	return n
 }
-func (m *Request_Pulse) Size() (n int) {
+func (m *Request_Pulse) ProtoSize() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
 	if m.Pulse != nil {
-		l = m.Pulse.Size()
+		l = m.Pulse.ProtoSize()
 		n += 1 + l + sovPacket(uint64(l))
 	}
 	return n
 }
-func (m *Request_Bootstrap) Size() (n int) {
+func (m *Request_Bootstrap) ProtoSize() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
 	if m.Bootstrap != nil {
-		l = m.Bootstrap.Size()
+		l = m.Bootstrap.ProtoSize()
 		n += 1 + l + sovPacket(uint64(l))
 	}
 	return n
 }
-func (m *Request_Authorize) Size() (n int) {
+func (m *Request_Authorize) ProtoSize() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
 	if m.Authorize != nil {
-		l = m.Authorize.Size()
+		l = m.Authorize.ProtoSize()
 		n += 1 + l + sovPacket(uint64(l))
 	}
 	return n
 }
-func (m *Request_SignCert) Size() (n int) {
+func (m *Request_SignCert) ProtoSize() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
 	if m.SignCert != nil {
-		l = m.SignCert.Size()
+		l = m.SignCert.ProtoSize()
 		n += 1 + l + sovPacket(uint64(l))
 	}
 	return n
 }
-func (m *Request_UpdateSchedule) Size() (n int) {
+func (m *Request_UpdateSchedule) ProtoSize() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
 	if m.UpdateSchedule != nil {
-		l = m.UpdateSchedule.Size()
+		l = m.UpdateSchedule.ProtoSize()
 		n += 1 + l + sovPacket(uint64(l))
 	}
 	return n
 }
-func (m *Request_Reconnect) Size() (n int) {
+func (m *Request_Reconnect) ProtoSize() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
 	if m.Reconnect != nil {
-		l = m.Reconnect.Size()
+		l = m.Reconnect.ProtoSize()
 		n += 1 + l + sovPacket(uint64(l))
 	}
 	return n
 }
-func (m *Response) Size() (n int) {
+func (m *Response) ProtoSize() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
 	if m.Response != nil {
-		n += m.Response.Size()
+		n += m.Response.ProtoSize()
 	}
 	return n
 }
 
-func (m *Response_RPC) Size() (n int) {
+func (m *Response_RPC) ProtoSize() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
 	if m.RPC != nil {
-		l = m.RPC.Size()
+		l = m.RPC.ProtoSize()
 		n += 1 + l + sovPacket(uint64(l))
 	}
 	return n
 }
-func (m *Response_Basic) Size() (n int) {
+func (m *Response_Basic) ProtoSize() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
 	if m.Basic != nil {
-		l = m.Basic.Size()
+		l = m.Basic.ProtoSize()
 		n += 1 + l + sovPacket(uint64(l))
 	}
 	return n
 }
-func (m *Response_Bootstrap) Size() (n int) {
+func (m *Response_Bootstrap) ProtoSize() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
 	if m.Bootstrap != nil {
-		l = m.Bootstrap.Size()
+		l = m.Bootstrap.ProtoSize()
 		n += 1 + l + sovPacket(uint64(l))
 	}
 	return n
 }
-func (m *Response_Authorize) Size() (n int) {
+func (m *Response_Authorize) ProtoSize() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
 	if m.Authorize != nil {
-		l = m.Authorize.Size()
+		l = m.Authorize.ProtoSize()
 		n += 1 + l + sovPacket(uint64(l))
 	}
 	return n
 }
-func (m *Response_SignCert) Size() (n int) {
+func (m *Response_SignCert) ProtoSize() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
 	if m.SignCert != nil {
-		l = m.SignCert.Size()
+		l = m.SignCert.ProtoSize()
 		n += 1 + l + sovPacket(uint64(l))
 	}
 	return n
 }
-func (m *Response_Error) Size() (n int) {
+func (m *Response_Error) ProtoSize() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
 	if m.Error != nil {
-		l = m.Error.Size()
+		l = m.Error.ProtoSize()
 		n += 1 + l + sovPacket(uint64(l))
 	}
 	return n
 }
-func (m *Response_UpdateSchedule) Size() (n int) {
+func (m *Response_UpdateSchedule) ProtoSize() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
 	if m.UpdateSchedule != nil {
-		l = m.UpdateSchedule.Size()
+		l = m.UpdateSchedule.ProtoSize()
 		n += 1 + l + sovPacket(uint64(l))
 	}
 	return n
 }
-func (m *Response_Reconnect) Size() (n int) {
+func (m *Response_Reconnect) ProtoSize() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
 	if m.Reconnect != nil {
-		l = m.Reconnect.Size()
+		l = m.Reconnect.ProtoSize()
 		n += 1 + l + sovPacket(uint64(l))
 	}
 	return n
 }
-func (m *RPCRequest) Size() (n int) {
+func (m *RPCRequest) ProtoSize() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -4250,20 +4200,20 @@ func (m *RPCRequest) Size() (n int) {
 	return n
 }
 
-func (m *PulseRequest) Size() (n int) {
+func (m *PulseRequest) ProtoSize() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
 	if m.Pulse != nil {
-		l = m.Pulse.Size()
+		l = m.Pulse.ProtoSize()
 		n += 1 + l + sovPacket(uint64(l))
 	}
 	return n
 }
 
-func (m *UpdateScheduleRequest) Size() (n int) {
+func (m *UpdateScheduleRequest) ProtoSize() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -4273,45 +4223,43 @@ func (m *UpdateScheduleRequest) Size() (n int) {
 		n += 1 + sovPacket(uint64(m.LastNodePulse))
 	}
 	if m.Permit != nil {
-		l = m.Permit.Size()
+		l = m.Permit.ProtoSize()
 		n += 1 + l + sovPacket(uint64(l))
 	}
 	return n
 }
 
-func (m *ReconnectRequest) Size() (n int) {
+func (m *ReconnectRequest) ProtoSize() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
-	l = m.ReconnectTo.Size()
+	l = m.ReconnectTo.ProtoSize()
 	n += 1 + l + sovPacket(uint64(l))
 	if m.Permit != nil {
-		l = m.Permit.Size()
+		l = m.Permit.ProtoSize()
 		n += 1 + l + sovPacket(uint64(l))
 	}
 	return n
 }
 
-func (m *BootstrapRequest) Size() (n int) {
+func (m *BootstrapRequest) ProtoSize() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
-	l = m.CandidateProfile.Size()
-	n += 1 + l + sovPacket(uint64(l))
-	l = m.Pulse.Size()
+	l = m.CandidateProfile.ProtoSize()
 	n += 1 + l + sovPacket(uint64(l))
 	if m.Permit != nil {
-		l = m.Permit.Size()
+		l = m.Permit.ProtoSize()
 		n += 1 + l + sovPacket(uint64(l))
 	}
 	return n
 }
 
-func (m *AuthorizeData) Size() (n int) {
+func (m *AuthorizeData) ProtoSize() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -4331,14 +4279,14 @@ func (m *AuthorizeData) Size() (n int) {
 	return n
 }
 
-func (m *AuthorizeRequest) Size() (n int) {
+func (m *AuthorizeRequest) ProtoSize() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
 	if m.AuthorizeData != nil {
-		l = m.AuthorizeData.Size()
+		l = m.AuthorizeData.ProtoSize()
 		n += 1 + l + sovPacket(uint64(l))
 	}
 	l = len(m.Signature)
@@ -4348,18 +4296,18 @@ func (m *AuthorizeRequest) Size() (n int) {
 	return n
 }
 
-func (m *SignCertRequest) Size() (n int) {
+func (m *SignCertRequest) ProtoSize() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
-	l = m.NodeRef.Size()
+	l = m.NodeRef.ProtoSize()
 	n += 1 + l + sovPacket(uint64(l))
 	return n
 }
 
-func (m *RPCResponse) Size() (n int) {
+func (m *RPCResponse) ProtoSize() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -4376,13 +4324,13 @@ func (m *RPCResponse) Size() (n int) {
 	return n
 }
 
-func (m *Permit) Size() (n int) {
+func (m *Permit) ProtoSize() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
-	l = m.Payload.Size()
+	l = m.Payload.ProtoSize()
 	n += 1 + l + sovPacket(uint64(l))
 	l = len(m.Signature)
 	if l > 0 {
@@ -4391,7 +4339,7 @@ func (m *Permit) Size() (n int) {
 	return n
 }
 
-func (m *PermitPayload) Size() (n int) {
+func (m *PermitPayload) ProtoSize() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -4405,15 +4353,15 @@ func (m *PermitPayload) Size() (n int) {
 		n += 1 + sovPacket(uint64(m.ExpireTimestamp))
 	}
 	if m.ReconnectTo != nil {
-		l = m.ReconnectTo.Size()
+		l = m.ReconnectTo.ProtoSize()
 		n += 1 + l + sovPacket(uint64(l))
 	}
-	l = m.AuthorityNodeRef.Size()
+	l = m.AuthorityNodeRef.ProtoSize()
 	n += 1 + l + sovPacket(uint64(l))
 	return n
 }
 
-func (m *BootstrapResponse) Size() (n int) {
+func (m *BootstrapResponse) ProtoSize() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -4425,12 +4373,10 @@ func (m *BootstrapResponse) Size() (n int) {
 	if m.ETASeconds != 0 {
 		n += 1 + sovPacket(uint64(m.ETASeconds))
 	}
-	l = m.Pulse.Size()
-	n += 1 + l + sovPacket(uint64(l))
 	return n
 }
 
-func (m *BasicResponse) Size() (n int) {
+func (m *BasicResponse) ProtoSize() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -4446,7 +4392,7 @@ func (m *BasicResponse) Size() (n int) {
 	return n
 }
 
-func (m *AuthorizeResponse) Size() (n int) {
+func (m *AuthorizeResponse) ProtoSize() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -4463,20 +4409,16 @@ func (m *AuthorizeResponse) Size() (n int) {
 		n += 1 + l + sovPacket(uint64(l))
 	}
 	if m.Permit != nil {
-		l = m.Permit.Size()
+		l = m.Permit.ProtoSize()
 		n += 1 + l + sovPacket(uint64(l))
 	}
 	if m.DiscoveryCount != 0 {
 		n += 1 + sovPacket(uint64(m.DiscoveryCount))
 	}
-	if m.Pulse != nil {
-		l = m.Pulse.Size()
-		n += 1 + l + sovPacket(uint64(l))
-	}
 	return n
 }
 
-func (m *SignCertResponse) Size() (n int) {
+func (m *SignCertResponse) ProtoSize() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -4489,7 +4431,7 @@ func (m *SignCertResponse) Size() (n int) {
 	return n
 }
 
-func (m *ErrorResponse) Size() (n int) {
+func (m *ErrorResponse) ProtoSize() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -4502,7 +4444,7 @@ func (m *ErrorResponse) Size() (n int) {
 	return n
 }
 
-func (m *UpdateScheduleResponse) Size() (n int) {
+func (m *UpdateScheduleResponse) ProtoSize() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -4511,7 +4453,7 @@ func (m *UpdateScheduleResponse) Size() (n int) {
 	return n
 }
 
-func (m *ReconnectResponse) Size() (n int) {
+func (m *ReconnectResponse) ProtoSize() (n int) {
 	if m == nil {
 		return 0
 	}
@@ -4749,7 +4691,7 @@ func (this *PulseRequest) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&PulseRequest{`,
-		`Pulse:` + strings.Replace(fmt.Sprintf("%v", this.Pulse), "PulseProto", "pulsestor.PulseProto", 1) + `,`,
+		`Pulse:` + strings.Replace(fmt.Sprintf("%v", this.Pulse), "PulseProto", "rms.PulseProto", 1) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -4782,7 +4724,6 @@ func (this *BootstrapRequest) String() string {
 	}
 	s := strings.Join([]string{`&BootstrapRequest{`,
 		`CandidateProfile:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.CandidateProfile), "Profile", "candidate.Profile", 1), `&`, ``, 1) + `,`,
-		`Pulse:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Pulse), "PulseProto", "pulsestor.PulseProto", 1), `&`, ``, 1) + `,`,
 		`Permit:` + strings.Replace(this.Permit.String(), "Permit", "Permit", 1) + `,`,
 		`}`,
 	}, "")
@@ -4863,7 +4804,6 @@ func (this *BootstrapResponse) String() string {
 	s := strings.Join([]string{`&BootstrapResponse{`,
 		`Code:` + fmt.Sprintf("%v", this.Code) + `,`,
 		`ETASeconds:` + fmt.Sprintf("%v", this.ETASeconds) + `,`,
-		`Pulse:` + strings.Replace(strings.Replace(fmt.Sprintf("%v", this.Pulse), "PulseProto", "pulsestor.PulseProto", 1), `&`, ``, 1) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -4889,7 +4829,6 @@ func (this *AuthorizeResponse) String() string {
 		`Error:` + fmt.Sprintf("%v", this.Error) + `,`,
 		`Permit:` + strings.Replace(this.Permit.String(), "Permit", "Permit", 1) + `,`,
 		`DiscoveryCount:` + fmt.Sprintf("%v", this.DiscoveryCount) + `,`,
-		`Pulse:` + strings.Replace(fmt.Sprintf("%v", this.Pulse), "PulseProto", "pulsestor.PulseProto", 1) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -6065,7 +6004,7 @@ func (m *PulseRequest) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.Pulse == nil {
-				m.Pulse = &pulsestor.PulseProto{}
+				m.Pulse = &rms.PulseProto{}
 			}
 			if err := m.Pulse.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
@@ -6384,39 +6323,6 @@ func (m *BootstrapRequest) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if err := m.CandidateProfile.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Pulse", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowPacket
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthPacket
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthPacket
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.Pulse.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -7307,39 +7213,6 @@ func (m *BootstrapResponse) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Pulse", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowPacket
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthPacket
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthPacket
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.Pulse.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipPacket(dAtA[iNdEx:])
@@ -7623,42 +7496,6 @@ func (m *AuthorizeResponse) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 6:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Pulse", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowPacket
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthPacket
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthPacket
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.Pulse == nil {
-				m.Pulse = &pulsestor.PulseProto{}
-			}
-			if err := m.Pulse.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipPacket(dAtA[iNdEx:])

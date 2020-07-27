@@ -9,9 +9,9 @@ import (
 	"context"
 	"errors"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
@@ -96,7 +96,7 @@ func (s *SMDelegatedTokenRequest) stepRegisterBargeIn(ctx smachine.ExecutionCont
 
 func (s *SMDelegatedTokenRequest) stepSendRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
-		err := svc.SendRole(goCtx, &s.RequestPayload, node.DynamicRoleVirtualExecutor, s.RequestPayload.Callee, s.pulseSlot.CurrentPulseNumber())
+		err := svc.SendRole(goCtx, &s.RequestPayload, affinity.DynamicRoleVirtualExecutor, s.RequestPayload.Callee, s.pulseSlot.CurrentPulseNumber())
 		return func(ctx smachine.AsyncResultContext) {
 			if err != nil {
 				ctx.Log().Error("failed to send message", err)
