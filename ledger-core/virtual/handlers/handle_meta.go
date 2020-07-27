@@ -101,8 +101,7 @@ func (f FactoryMeta) Process(ctx context.Context, msg *statemachine.DispatcherMe
 	}
 
 	// validate message field invariants
-	switch p := payloadObj.(type) {
-	case payload.Validate:
+	if p, ok := payloadObj.(payload.Validate); ok {
 		if err := p.Validate(targetPulse); err != nil {
 			logger.Warn(throw.W(err, "invalid msg", skippedMessage{
 				messageTypeID: payloadTypeID,

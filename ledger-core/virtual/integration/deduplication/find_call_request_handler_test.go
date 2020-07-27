@@ -47,8 +47,6 @@ type VFindCallRequestHandlingTestInfo struct {
 }
 
 func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
-	// TODO need to fix
-	t.Skip()
 	t.Log("C5115")
 
 	table := []VFindCallRequestHandlingTestInfo{
@@ -253,12 +251,14 @@ func StepConstructorStart(s *VFindCallRequestHandlingSuite, ctx context.Context,
 	}
 	s.executionPoint = synchronization.NewPoint(1)
 
-	report := payload.VStateReport{
-		AsOf:   s.getP1(),
-		Status: payload.Missing,
-		Object: s.getObject(),
+	if s.getObject().GetLocal().GetPulseNumber() < s.getP2() {
+		report := payload.VStateReport{
+			AsOf:   s.getP1(),
+			Status: payload.Missing,
+			Object: s.getObject(),
+		}
+		s.addPayloadAndWaitIdle(ctx, &report)
 	}
-	s.addPayloadAndWaitIdle(ctx, &report)
 
 	req := payload.VCallRequest{
 		CallType:       payload.CTConstructor,
