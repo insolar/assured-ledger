@@ -17,7 +17,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
-	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
@@ -81,7 +80,7 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 	{
 		// send VDelegatedCall
 		pl := payload.VDelegatedCallRequest{
-			CallOutgoing: reference.NewSelf(gen.UniqueLocalRefWithPulse(pulse.OfNow() + 10)),
+			CallOutgoing: reference.NewSelf(gen.UniqueLocalRefWithPulse(server.GetPulse().PulseNumber)),
 			Callee:       objectRef,
 			CallFlags:    payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
 		}
