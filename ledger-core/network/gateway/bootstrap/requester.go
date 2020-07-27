@@ -14,14 +14,13 @@ import (
 
 	"github.com/opentracing/opentracing-go/log"
 
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/instracer"
 	"github.com/insolar/assured-ledger/ledger-core/network"
@@ -31,11 +30,13 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 )
 
+const bootstrapRetryCount = 2
+
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network/gateway/bootstrap.Requester -o ./ -s _mock.go -g
 
 type Requester interface {
-	Authorize(context.Context, node.Certificate) (*packet.Permit, error)
-	Bootstrap(context.Context, *packet.Permit, adapters.Candidate, *pulsestor.Pulse) (*packet.BootstrapResponse, error)
+	Authorize(context.Context, nodeinfo.Certificate) (*packet.Permit, error)
+	Bootstrap(context.Context, *packet.Permit, adapters.Candidate) (*packet.BootstrapResponse, error)
 	UpdateSchedule(context.Context, *packet.Permit, pulse.Number) (*packet.UpdateScheduleResponse, error)
 	Reconnect(context.Context, *host.Host, *packet.Permit) (*packet.ReconnectResponse, error)
 }
@@ -53,7 +54,7 @@ type requester struct {
 	retry   int
 }
 
-func (ac *requester) Authorize(ctx context.Context, cert node.Certificate) (*packet.Permit, error) {
+func (ac *requester) Authorize(ctx context.Context, cert nodeinfo.Certificate) (*packet.Permit, error) {
 	logger := inslogger.FromContext(ctx)
 
 	discoveryNodes := network.ExcludeOrigin(cert.GetDiscoveryNodes(), cert.GetNodeRef())
@@ -111,19 +112,19 @@ func (ac *requester) Authorize(ctx context.Context, cert node.Certificate) (*pac
 	return nil, throw.New("failed to authorize to any discovery node")
 }
 
-func (ac *requester) authorizeDiscovery(ctx context.Context, bNodes []node.DiscoveryNode, cert node.Certificate) (*packet.Permit, error) {
-	if len(bNodes) == 0 {
+func (ac *requester) authorizeDiscovery(ctx context.Context, nodes []nodeinfo.DiscoveryNode, cert nodeinfo.AuthorizationCertificate) (*packet.Permit, error) {
+	if len(nodes) == 0 {
 		return nil, throw.Impossible()
 	}
 
-	sort.Slice(bNodes, func(i, j int) bool {
-		a := bNodes[i].GetNodeRef().AsBytes()
-		b := bNodes[j].GetNodeRef().AsBytes()
+	sort.Slice(nodes, func(i, j int) bool {
+		a := nodes[i].GetNodeRef().AsBytes()
+		b := nodes[j].GetNodeRef().AsBytes()
 		return bytes.Compare(a, b) > 0
 	})
 
 	logger := inslogger.FromContext(ctx)
-	for _, n := range bNodes {
+	for _, n := range nodes {
 		h, err := host.NewHostN(n.GetHost(), n.GetNodeRef())
 		if err != nil {
 			logger.Warnf("Error authorizing to mallformed host %s[%s]: %s",
@@ -138,28 +139,13 @@ func (ac *requester) authorizeDiscovery(ctx context.Context, bNodes []node.Disco
 			continue
 		}
 
-		// TODO
-		// if int(res.DiscoveryCount) < cert.GetMajorityRule() {
-		// 	logger.Infof(
-		// 		"Check MajorityRule failed on authorize, expect %d, got %d",
-		// 		cert.GetMajorityRule(),
-		// 		res.DiscoveryCount,
-		// 	)
-		//
-		// 	if res.DiscoveryCount > bestResult.DiscoveryCount {
-		// 		bestResult = res
-		// 	}
-		//
-		// 	continue
-		// }
-
 		return res.Permit, nil
 	}
 
 	return nil, throw.New("failed to authorize to any discovery node")
 }
 
-func (ac *requester) authorize(ctx context.Context, host *host.Host, cert node.AuthorizationCertificate) (*packet.AuthorizeResponse, error) {
+func (ac *requester) authorize(ctx context.Context, host *host.Host, cert nodeinfo.AuthorizationCertificate) (*packet.AuthorizeResponse, error) {
 	inslogger.FromContext(ctx).Infof("Authorizing on host: %s", host.String())
 
 	ctx, span := instracer.StartSpan(ctx, "AuthorizationController.Authorize")
@@ -229,11 +215,10 @@ func (ac *requester) authorizeWithTimestamp(ctx context.Context, h *host.Host, a
 	return response.GetResponse().GetAuthorize(), nil
 }
 
-func (ac *requester) Bootstrap(ctx context.Context, permit *packet.Permit, candidate adapters.Candidate, p *pulsestor.Pulse) (*packet.BootstrapResponse, error) {
+func (ac *requester) Bootstrap(ctx context.Context, permit *packet.Permit, candidate adapters.Candidate) (*packet.BootstrapResponse, error) {
 
 	req := &packet.BootstrapRequest{
 		CandidateProfile: candidate.Profile(),
-		Pulse:            *pulsestor.ToProto(p),
 		Permit:           permit,
 	}
 
@@ -262,15 +247,13 @@ func (ac *requester) Bootstrap(ctx context.Context, permit *packet.Permit, candi
 	case packet.Reject:
 		return respData, throw.New("Bootstrap request rejected")
 	case packet.Retry:
-		// todo sleep and retry ac.Bootstrap()
-		// return respData, throw.New("Bootstrap request retry")
 		time.Sleep(time.Second)
-		ac.retry += 1
-		if ac.retry > 2 {
+		ac.retry++
+		if ac.retry > bootstrapRetryCount {
 			ac.retry = 0
 			return respData, throw.New("Retry bootstrap failed")
 		}
-		return ac.Bootstrap(ctx, permit, candidate, p)
+		return ac.Bootstrap(ctx, permit, candidate)
 	}
 
 	// case Accepted

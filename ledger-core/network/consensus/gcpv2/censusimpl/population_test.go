@@ -10,6 +10,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/mocklog"
 
 	"github.com/stretchr/testify/require"
 
@@ -49,8 +50,9 @@ func TestMNPString(t *testing.T) {
 
 	us := updatableSlot{}
 	mnp.local = &us
-	sp := profiles.NewStaticProfileMock(t)
+	sp := profiles.NewStaticProfileMock(mocklog.T(t))
 	sp.GetStaticNodeIDMock.Set(func() node.ShortNodeID { return 1 })
+	sp.GetPrimaryRoleMock.Return(member.PrimaryRoleNeutral)
 	us.StaticProfile = sp
 	require.NotEmpty(t, mnp.String())
 

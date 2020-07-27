@@ -113,7 +113,7 @@ type RoundStateCallback interface {
 
 	OnFullRoundStarting()
 
-	// A special case for a stateless, as it doesnt request NSG with PreparePulseChange
+	// A special case for a stateless, as it doesnt request NSH with PreparePulseChange
 	CommitPulseChangeByStateless(report UpstreamReport, pd pulse.Data, activeCensus census.Operational)
 
 	/* Called by the longest phase worker on termination */

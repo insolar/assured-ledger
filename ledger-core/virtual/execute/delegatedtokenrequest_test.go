@@ -12,10 +12,10 @@ import (
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/require"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	messageSender "github.com/insolar/assured-ledger/ledger-core/network/messagesender"
@@ -28,6 +28,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/slotdebugger"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
 )
 
 func TestVDelegatedCallRequest(t *testing.T) {
@@ -71,6 +72,8 @@ func TestVDelegatedCallRequest(t *testing.T) {
 		)
 		slotMachine.AddInterfaceDependency(&catalog)
 		slotMachine.AddInterfaceDependency(&authService)
+		limiter := tool.NewRunnerLimiter(4)
+		slotMachine.AddDependency(limiter)
 
 		sharedStateData := smachine.NewUnboundSharedData(&object.SharedState{
 			Info: object.Info{
@@ -78,7 +81,7 @@ func TestVDelegatedCallRequest(t *testing.T) {
 				PendingTable:   callregistry.NewRequestTable(),
 				KnownRequests:  callregistry.NewWorkingTable(),
 				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
-				OrderedExecute: smsync.NewConditional(1, "MutableExecution").SyncLink(),
+				OrderedExecute: limiter.NewChildSemaphore(1, "MutableExecution").SyncLink(),
 			},
 		})
 
@@ -89,7 +92,7 @@ func TestVDelegatedCallRequest(t *testing.T) {
 	}
 
 	slotMachine.MessageSender.SendRole.Set(
-		func(_ context.Context, msg payload.Marshaler, role node.DynamicRole, object reference.Global, pn pulse.Number, _ ...messageSender.SendOption) error {
+		func(_ context.Context, msg payload.Marshaler, role affinity.DynamicRole, object reference.Global, pn pulse.Number, _ ...messageSender.SendOption) error {
 			res, ok := msg.(*payload.VDelegatedCallRequest)
 			require.True(t, ok)
 			require.NotNil(t, res)

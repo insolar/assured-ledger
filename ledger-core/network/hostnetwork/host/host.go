@@ -154,6 +154,10 @@ func (host *Host) Unmarshal(data []byte) error {
 }
 
 func (host *Host) Size() int {
+	return host.ProtoSize()
+}
+
+func (host *Host) ProtoSize() int {
 	if host.Address == nil {
 		return host.basicSize()
 	}

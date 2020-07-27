@@ -11,12 +11,12 @@ import (
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/require"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
@@ -45,7 +45,7 @@ func TestSMExecute_MigrationDuringSendOutgoing(t *testing.T) {
 	)
 	defer mc.Finish()
 
-	jetCoordinatorMock := jet.NewAffinityHelperMock(t).
+	jetCoordinatorMock := affinity.NewHelperMock(t).
 		MeMock.Return(gen.UniqueGlobalRef())
 
 	smExecute := SMExecute{
@@ -103,10 +103,12 @@ func TestSMExecute_MigrationDuringSendOutgoing(t *testing.T) {
 			PublishGlobalAliasAndBargeInMock.Set(
 			func(key interface{}, handler smachine.BargeInHolder) (b1 bool) {
 				return true
-			}).SleepMock.Set(
+			}).
+			ReleaseMock.Return(true).
+			SleepMock.Set(
 			func() (c1 smachine.ConditionalBuilder) {
 				return smachine.NewStateConditionalBuilderMock(t).
-					ThenJumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepExecuteContinue))
+					ThenJumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepTakeLockAfterOutgoing))
 			})
 
 		smExecute.stepSendOutgoing(execCtx)
@@ -123,10 +125,11 @@ func TestSMExecute_MigrationDuringSendOutgoing(t *testing.T) {
 
 	{ // check step after migration
 		execCtx := smachine.NewExecutionContextMock(mc).
+			ReleaseMock.Return(true).
 			SleepMock.Set(
 			func() (c1 smachine.ConditionalBuilder) {
 				return smachine.NewStateConditionalBuilderMock(t).
-					ThenJumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepExecuteContinue))
+					ThenJumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepTakeLockAfterOutgoing))
 			})
 
 		smExecute.stepSendOutgoing(execCtx)

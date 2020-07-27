@@ -9,8 +9,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 
@@ -43,25 +42,23 @@ func TestSwitch(t *testing.T) {
 	require.NotNil(t, ge)
 	require.Equal(t, "NoNetworkState", ge.GetState().String())
 
-	ge.Run(ctx, *pulsestor.EphemeralPulse)
+	ge.Run(ctx, EphemeralPulse.Data)
 
 	gatewayer.GatewayMock.Set(func() (g1 network.Gateway) {
 		return ge
 	})
-	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state node.NetworkState, pulse pulsestor.Pulse) {
+	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state nodeinfo.NetworkState, pulse pulse.Data) {
 		ge = ge.NewGateway(ctx, state)
 	})
-	gilreleased := false
 
 	require.Equal(t, "CompleteNetworkState", ge.GetState().String())
-	require.False(t, gilreleased)
 	cref := gen.UniqueGlobalRef()
 
-	for _, state := range []node.NetworkState{node.NoNetworkState,
-		node.JoinerBootstrap, node.CompleteNetworkState} {
+	for _, state := range []nodeinfo.NetworkState{nodeinfo.NoNetworkState,
+		nodeinfo.JoinerBootstrap, nodeinfo.CompleteNetworkState} {
 		ge = ge.NewGateway(ctx, state)
 		require.Equal(t, state, ge.GetState())
-		ge.Run(ctx, *pulsestor.EphemeralPulse)
+		ge.Run(ctx, EphemeralPulse.Data)
 		au := ge.Auther()
 
 		_, err := au.GetCert(ctx, cref)
@@ -78,13 +75,11 @@ func TestDumbComplete_GetCert(t *testing.T) {
 	t.Skip("fixme")
 	ctx := context.Background()
 
-	// nodekeeper := testnet.NewNodeKeeperMock(t)
 	nodekeeper := testnet.NewNodeKeeperMock(t)
 	nodekeeper.MoveSyncToActiveMock.Set(func(ctx context.Context, number pulse.Number) {})
 
 	gatewayer := testnet.NewGatewayerMock(t)
 
-	// CR := testutils.NewContractRequesterMock(t)
 	CM := testutils.NewCertificateManagerMock(t)
 	ge := emtygateway(t)
 	// pm := mockPulseManager(t)
@@ -98,33 +93,18 @@ func TestDumbComplete_GetCert(t *testing.T) {
 	require.NotNil(t, ge)
 	require.Equal(t, "NoNetworkState", ge.GetState().String())
 
-	ge.Run(ctx, *pulsestor.EphemeralPulse)
+	ge.Run(ctx, EphemeralPulse.Data)
 
 	gatewayer.GatewayMock.Set(func() (r network.Gateway) { return ge })
-	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state node.NetworkState, pulse pulsestor.Pulse) {
+	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state nodeinfo.NetworkState, pulse pulse.Data) {
 		ge = ge.NewGateway(ctx, state)
 	})
-	gilreleased := false
 
 	require.Equal(t, "CompleteNetworkState", ge.GetState().String())
-	require.False(t, gilreleased)
 
 	cref := gen.UniqueGlobalRef()
 
-	// CR.CallMock.Set(func(ctx context.Context, ref reference.Global, method string, argsIn []interface{}, p insolar.Number,
-	// ) (r insolar.Reply, r2 reference.Global, r1 error) {
-	// 	require.Equal(t, &cref, ref)
-	// 	require.Equal(t, "GetNodeInfo", method)
-	// 	repl, _ := insolar.Serialize(struct {
-	// 		PublicKey string
-	// 		Role      insolar.StaticRole
-	// 	}{"LALALA", insolar.StaticRoleVirtual})
-	// 	return &reply.CallMethod{
-	// 		Result: repl,
-	// 	}, nil, nil
-	// })
-
-	CM.GetCertificateMock.Set(func() (r node.Certificate) { return &mandates.Certificate{} })
+	CM.GetCertificateMock.Set(func() (r nodeinfo.Certificate) { return &mandates.Certificate{} })
 	cert, err := ge.Auther().GetCert(ctx, cref)
 
 	require.NoError(t, err)

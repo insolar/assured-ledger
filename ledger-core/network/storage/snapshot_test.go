@@ -11,9 +11,10 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
-	node2 "github.com/insolar/assured-ledger/ledger-core/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/node"
+	"github.com/insolar/assured-ledger/ledger-core/pulsar"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 )
 
@@ -22,12 +23,12 @@ func TestNewMemorySnapshotStorage(t *testing.T) {
 
 	ks := platformpolicy.NewKeyProcessor()
 	p1, err := ks.GeneratePrivateKey()
-	n := node.NewNode(gen.UniqueGlobalRef(), node2.StaticRoleVirtual, ks.ExtractPublicKey(p1), "127.0.0.1:22", "ver2")
+	n := node.NewNode(gen.UniqueGlobalRef(), member.PrimaryRoleVirtual, ks.ExtractPublicKey(p1), "127.0.0.1:22", "ver2")
 
-	pulse := pulsestor.Pulse{PulseNumber: 15}
-	snap := node.NewSnapshot(pulse.PulseNumber, []node2.NetworkNode{n})
+	pulse := pulsar.PulsePacket{PulseNumber: 15}
+	snap := node.NewSnapshot(pulse.PulseNumber, []nodeinfo.NetworkNode{n})
 
-	err = ss.Append(pulse.PulseNumber, snap)
+	err = ss.Append(snap)
 	assert.NoError(t, err)
 
 	snapshot2, err := ss.ForPulseNumber(pulse.PulseNumber)

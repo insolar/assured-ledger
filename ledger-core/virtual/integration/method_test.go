@@ -8,18 +8,20 @@ package integration
 import (
 	"context"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/gojuno/minimock/v3"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/object/finalizedstate"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -66,14 +68,14 @@ func Method_PrepareObject(ctx context.Context, server *utils.Server, state paylo
 		panic("unexpected state")
 	}
 
-	payload := &payload.VStateReport{
+	vsrPayload := &payload.VStateReport{
 		Status:          state,
 		Object:          object,
 		ProvidedContent: content,
 	}
 
 	wait := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
-	server.SendPayload(ctx, payload)
+	server.SendPayload(ctx, vsrPayload)
 
 	select {
 	case <-wait:
@@ -1252,7 +1254,7 @@ func TestVirtual_FutureMessageAddedToSlot(t *testing.T) {
 	server, ctx := utils.NewUninitializedServer(nil, t)
 	defer server.Stop()
 
-	jetCoordinatorMock := jet.NewAffinityHelperMock(mc)
+	jetCoordinatorMock := affinity.NewHelperMock(mc)
 	auth := authentication.NewService(ctx, jetCoordinatorMock)
 	server.ReplaceAuthenticationService(auth)
 
@@ -1344,112 +1346,167 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 	defer commontestutils.LeakTester(t)
 
 	t.Log("C5089")
-	mc := minimock.NewController(t)
 
-	server, ctx := utils.NewUninitializedServer(nil, t)
-	defer server.Stop()
-
-	logger := inslogger.FromContext(ctx)
-	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
-
-	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
-		return execution.Request.CallSiteMethod
-	})
-	{
-		server.ReplaceRunner(runnerMock)
-		server.Init(ctx)
-		server.IncrementPulseAndWaitIdle(ctx)
-	}
-
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-
-	var (
-		class  = gen.UniqueGlobalRef()
-		object = reference.NewSelf(server.RandomLocalWithPulse())
-		p1     = server.GetPulse().PulseNumber
+	const (
+		origObjectMem    = "original object memory"
+		changedObjectMem = "new object memory"
+		callResult       = "call result"
 	)
-
-	server.IncrementPulseAndWaitIdle(ctx)
-	outgoingP2 := server.BuildRandomOutgoingWithPulse()
-
-	// add ExecutionMock to runnerMock
-	{
-		runnerMock.AddExecutionClassify("SomeMethod", intolerableFlags(), nil)
-		requestResult := requestresult.New([]byte("call result"), gen.UniqueGlobalRef())
-
-		objectExecutionMock := runnerMock.AddExecutionMock("SomeMethod")
-		objectExecutionMock.AddStart(
-			func(ctx execution.Context) {
-				logger.Debug("ExecutionStart [SomeMethod]")
-				require.Equal(t, object, ctx.Request.Callee)
-				require.Equal(t, []byte("new object memory"), ctx.ObjectDescriptor.Memory())
+	cases := []struct {
+		name           string
+		isolation      contract.MethodIsolation
+		canChangeState bool
+	}{
+		{
+			name:           "Tolerable call can change object state",
+			canChangeState: true,
+			isolation: contract.MethodIsolation{
+				Interference: contract.CallTolerable,
+				State:        contract.CallDirty,
 			},
-			&execution.Update{
-				Type:   execution.Done,
-				Result: requestResult,
+		},
+		{
+			name:           "Intolerable call cannot change object state",
+			canChangeState: false,
+			isolation: contract.MethodIsolation{
+				Interference: contract.CallIntolerable,
+				State:        contract.CallValidated,
 			},
-		)
+		},
 	}
 
-	typedChecker.VStateRequest.Set(func(req *payload.VStateRequest) bool {
-		require.Equal(t, p1, req.AsOf)
-		require.Equal(t, object, req.Object)
+	for _, testCase := range cases {
 
-		flags := payload.StateRequestContentFlags(0)
-		flags.Set(
-			payload.RequestLatestDirtyState,
-			payload.RequestLatestValidatedState,
-			payload.RequestOrderedQueue,
-			payload.RequestUnorderedQueue,
+		mc := minimock.NewController(t)
+
+		server, ctx := utils.NewUninitializedServer(nil, t)
+
+		executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
+		stateReportSend := server.Journal.WaitStopOf(&finalizedstate.SMStateFinalizer{}, 1)
+
+		runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
+			return execution.Request.CallSiteMethod
+		})
+		{
+			server.ReplaceRunner(runnerMock)
+			server.Init(ctx)
+		}
+
+		typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+
+		var (
+			class     = gen.UniqueGlobalRef()
+			objectRef = reference.NewSelf(server.RandomLocalWithPulse())
+			p1        = server.GetPulse().PulseNumber
 		)
-		require.Equal(t, flags, req.RequestedContent)
 
-		content := &payload.VStateReport_ProvidedContentBody{
-			LatestDirtyState: &payload.ObjectState{
-				Reference: reference.Local{},
-				Class:     testwalletProxy.GetClass(),
-				State:     []byte("new object memory"),
-			},
+		server.IncrementPulseAndWaitIdle(ctx)
+		outgoing := server.BuildRandomOutgoingWithPulse()
+
+		// add ExecutionMock to runnerMock
+		{
+			runnerMock.AddExecutionClassify("SomeMethod", testCase.isolation, nil)
+			requestResult := requestresult.New([]byte(callResult), gen.UniqueGlobalRef())
+			if testCase.canChangeState {
+				newObjDescriptor := descriptor.NewObject(
+					reference.Global{}, reference.Local{}, class, []byte(""),
+				)
+				requestResult.SetAmend(newObjDescriptor, []byte(changedObjectMem))
+			}
+
+			objectExecutionMock := runnerMock.AddExecutionMock("SomeMethod")
+			objectExecutionMock.AddStart(
+				func(ctx execution.Context) {
+					require.Equal(t, objectRef, ctx.Request.Callee)
+					require.Equal(t, []byte(origObjectMem), ctx.ObjectDescriptor.Memory())
+				},
+				&execution.Update{
+					Type:   execution.Done,
+					Result: requestResult,
+				},
+			)
 		}
 
-		report := payload.VStateReport{
-			Status:          payload.Ready,
-			AsOf:            req.AsOf,
-			Object:          object,
-			ProvidedContent: content,
-		}
-		server.SendPayload(ctx, &report)
-		return false // no resend msg
-	})
+		typedChecker.VStateRequest.Set(func(req *payload.VStateRequest) bool {
+			require.Equal(t, p1, req.AsOf)
+			require.Equal(t, objectRef, req.Object)
 
-	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
-		require.Equal(t, []byte("call result"), res.ReturnArguments)
-		require.Equal(t, object, res.Callee)
-		require.Equal(t, outgoingP2, res.CallOutgoing)
-		return false // no resend msg
-	})
+			flags := payload.RequestLatestDirtyState | payload.RequestLatestValidatedState |
+				payload.RequestOrderedQueue | payload.RequestUnorderedQueue
+			require.Equal(t, flags, req.RequestedContent)
 
-	// VCallRequest
-	{
-		pl := payload.VCallRequest{
-			CallType:            payload.CTMethod,
-			CallFlags:           payload.BuildCallFlags(contract.CallIntolerable, contract.CallValidated),
-			Caller:              server.GlobalCaller(),
-			Callee:              object,
-			CallSiteDeclaration: class,
-			CallSiteMethod:      "SomeMethod",
-			CallOutgoing:        outgoingP2,
+			content := &payload.VStateReport_ProvidedContentBody{
+				LatestDirtyState: &payload.ObjectState{
+					Reference: reference.Local{},
+					Class:     testwalletProxy.GetClass(),
+					State:     []byte(origObjectMem),
+				},
+			}
+
+			report := payload.VStateReport{
+				Status:          payload.Ready,
+				AsOf:            req.AsOf,
+				Object:          objectRef,
+				ProvidedContent: content,
+			}
+			server.SendPayload(ctx, &report)
+			return false // no resend msg
+		})
+
+		typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
+			require.Equal(t, objectRef, res.Callee)
+			require.Equal(t, outgoing, res.CallOutgoing)
+			require.Equal(t, []byte(callResult), res.ReturnArguments)
+			return false // no resend msg
+		})
+		typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
+			require.Equal(t, objectRef, report.Object)
+			require.Equal(t, payload.Ready, report.Status)
+			require.True(t, report.DelegationSpec.IsZero())
+			require.Equal(t, int32(0), report.UnorderedPendingCount)
+			require.Equal(t, int32(0), report.OrderedPendingCount)
+			require.NotNil(t, report.ProvidedContent)
+			switch testCase.isolation.Interference {
+			case contract.CallIntolerable:
+				require.Equal(t, []byte(origObjectMem), report.ProvidedContent.LatestDirtyState.State)
+			case contract.CallTolerable:
+				require.Equal(t, []byte(changedObjectMem), report.ProvidedContent.LatestValidatedState.State)
+			}
+			return false
+		})
+
+		// VCallRequest
+		{
+			pl := payload.VCallRequest{
+				CallType:            payload.CTMethod,
+				CallFlags:           payload.BuildCallFlags(testCase.isolation.Interference, testCase.isolation.State),
+				Caller:              server.GlobalCaller(),
+				Callee:              objectRef,
+				CallSiteDeclaration: class,
+				CallSiteMethod:      "SomeMethod",
+				CallOutgoing:        outgoing,
+			}
+			server.SendPayload(ctx, &pl)
 		}
-		server.SendPayload(ctx, &pl)
+
+		testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+		testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+
+		// increment pulse twice for stop SMStateFinalizer
+		server.IncrementPulseAndWaitIdle(ctx)
+		server.IncrementPulseAndWaitIdle(ctx)
+
+		testutils.WaitSignalsTimed(t, 10*time.Second, stateReportSend)
+		testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+
+		require.Equal(t, 1, typedChecker.VStateReport.Count())
+		require.Equal(t, 1, typedChecker.VStateRequest.Count())
+		require.Equal(t, 1, typedChecker.VCallResult.Count())
+		typedChecker.MinimockFinish()
+
+		server.Stop()
+		mc.Finish()
 	}
-
-	testutils.WaitSignalsTimed(t, 20*time.Second, executeDone)
-	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
-
-	require.Equal(t, 1, typedChecker.VStateRequest.Count())
-	require.Equal(t, 1, typedChecker.VCallResult.Count())
-
-	mc.Finish()
 }
 
 func TestVirtual_Method_ForObjectWithMissingState(t *testing.T) {
@@ -1533,4 +1590,296 @@ func TestVirtual_Method_ForObjectWithMissingState(t *testing.T) {
 			mc.Finish()
 		})
 	}
+}
+
+func TestVirtual_Method_ForbidenIsolation(t *testing.T) {
+	table := []struct {
+		name         string
+		testRailCase string
+
+		callFlags                  payload.CallFlags
+		dirtyStateBuilder          func(objectRef, classRef reference.Global, pn pulse.Number) descriptor.Object
+		validatedStateBuilder      func(objectRef, classRef reference.Global, pn pulse.Number) descriptor.Object
+		callResult                 []byte
+		expectedUnImplementedError bool
+	}{
+		{
+			name:         "Method tolerable + validated cannot be executed",
+			testRailCase: "C5449",
+			callFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallValidated),
+			dirtyStateBuilder: func(objectRef, classRef reference.Global, pn pulse.Number) descriptor.Object {
+				return descriptor.NewObject(
+					objectRef,
+					execute.NewStateID(pn, []byte("ok case")),
+					classRef,
+					[]byte("ok case"),
+				)
+			},
+			validatedStateBuilder: func(objectRef, classRef reference.Global, pn pulse.Number) descriptor.Object {
+				return descriptor.NewObject(
+					objectRef,
+					execute.NewStateID(pn, []byte("not ok case")),
+					classRef,
+					[]byte("not ok case"),
+				)
+			},
+			callResult:                 []byte("bad case"),
+			expectedUnImplementedError: true,
+		},
+	}
+	for _, test := range table {
+		t.Run(test.name, func(t *testing.T) {
+			defer commontestutils.LeakTester(t)
+
+			t.Log(test.testRailCase)
+
+			var (
+				mc     = minimock.NewController(t)
+				ctx    context.Context
+				server *utils.Server
+			)
+
+			if test.expectedUnImplementedError {
+				server, ctx = utils.NewUninitializedServerWithErrorFilter(nil, t, func(s string) bool {
+					return !strings.Contains(s, "execution: not implemented")
+				})
+			} else {
+				server, ctx = utils.NewUninitializedServer(nil, t)
+			}
+
+			defer server.Stop()
+
+			executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
+
+			runnerMock := logicless.NewServiceMock(ctx, t, nil)
+			server.ReplaceRunner(runnerMock)
+
+			server.Init(ctx)
+			server.IncrementPulse(ctx)
+
+			var (
+				class       = gen.UniqueGlobalRef()
+				objectRef   = server.BuildRandomOutgoingWithPulse()
+				outgoingRef = server.BuildRandomOutgoingWithPulse()
+			)
+
+			dirtyState := test.dirtyStateBuilder(objectRef, class, server.GetPulse().PulseNumber)
+			validatedState := test.validatedStateBuilder(objectRef, class, server.GetPulse().PulseNumber)
+
+			{ // send object state to server
+				pl := payload.VStateReport{
+					Status:               payload.Ready,
+					Object:               objectRef,
+					LatestValidatedState: validatedState.HeadRef(),
+					LatestDirtyState:     dirtyState.HeadRef(),
+					ProvidedContent: &payload.VStateReport_ProvidedContentBody{
+						LatestValidatedState: &payload.ObjectState{
+							Reference: validatedState.StateID(),
+							Class:     class,
+							State:     validatedState.Memory(),
+						},
+						LatestDirtyState: &payload.ObjectState{
+							Reference: dirtyState.StateID(),
+							Class:     class,
+							State:     dirtyState.Memory(),
+						},
+					},
+				}
+
+				server.WaitIdleConveyor()
+				server.SendPayload(ctx, &pl)
+				server.WaitActiveThenIdleConveyor()
+			}
+
+			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+
+			{
+				typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
+					require.Equal(t, objectRef, res.Callee)
+					assert.Equal(t, test.callResult, res.ReturnArguments)
+					return false // no resend msg
+				})
+
+				pl := payload.VCallRequest{
+					CallType:            payload.CTMethod,
+					CallFlags:           test.callFlags,
+					Caller:              server.GlobalCaller(),
+					Callee:              objectRef,
+					CallSiteDeclaration: class,
+					CallSiteMethod:      "Test",
+					CallOutgoing:        outgoingRef,
+				}
+
+				key := pl.CallOutgoing.String()
+
+				runnerMock.AddExecutionClassify(key, contract.MethodIsolation{
+					Interference: test.callFlags.GetInterference(),
+					State:        test.callFlags.GetState(),
+				}, nil)
+
+				// if we use forbidden isolation, then execute should stop before Start happen
+				if !test.expectedUnImplementedError {
+					result := requestresult.New(test.callResult, outgoingRef)
+					result.SetAmend(dirtyState, []byte("new stuff"))
+					runnerMock.AddExecutionMock(key).
+						AddStart(nil, &execution.Update{
+							Type:   execution.Done,
+							Result: result,
+						})
+
+				}
+
+				server.SendPayload(ctx, &pl)
+			}
+
+			testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+			testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+
+			if test.expectedUnImplementedError {
+				assert.Equal(t, 0, typedChecker.VCallResult.Count())
+			} else {
+				assert.Equal(t, 1, typedChecker.VCallResult.Count())
+			}
+
+			mc.Finish()
+		})
+	}
+}
+
+func TestVirtual_Method_IntolerableCallChangeState(t *testing.T) {
+	const (
+		origObjectMem    = "original object memory"
+		changedObjectMem = "new object memory"
+	)
+
+	t.Log("C5463")
+
+	defer commontestutils.LeakTester(t)
+
+	mc := minimock.NewController(t)
+
+	server, ctx := utils.NewUninitializedServer(nil, t)
+
+	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
+	stateReportSend := server.Journal.WaitStopOf(&finalizedstate.SMStateFinalizer{}, 1)
+
+	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
+		return execution.Request.CallSiteMethod
+	})
+	{
+		server.ReplaceRunner(runnerMock)
+		server.Init(ctx)
+	}
+
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+
+	var (
+		class     = gen.UniqueGlobalRef()
+		objectRef = reference.NewSelf(server.RandomLocalWithPulse())
+		p1        = server.GetPulse().PulseNumber
+		isolation = contract.MethodIsolation{
+			Interference: contract.CallIntolerable,
+			State:        contract.CallValidated,
+		}
+	)
+
+	server.IncrementPulseAndWaitIdle(ctx)
+	outgoing := server.BuildRandomOutgoingWithPulse()
+
+	{
+		runnerMock.AddExecutionClassify("SomeMethod", isolation, nil)
+		requestResult := requestresult.New([]byte("call result"), gen.UniqueGlobalRef())
+		newObjDescriptor := descriptor.NewObject(
+			reference.Global{}, reference.Local{}, class, []byte(""),
+		)
+		requestResult.SetAmend(newObjDescriptor, []byte(changedObjectMem))
+
+		objectExecutionMock := runnerMock.AddExecutionMock("SomeMethod")
+		objectExecutionMock.AddStart(
+			func(ctx execution.Context) {
+				require.Equal(t, objectRef, ctx.Request.Callee)
+				require.Equal(t, []byte(origObjectMem), ctx.ObjectDescriptor.Memory())
+			},
+			&execution.Update{
+				Type:   execution.Done,
+				Result: requestResult,
+			},
+		)
+	}
+
+	typedChecker.VStateRequest.Set(func(req *payload.VStateRequest) bool {
+		require.Equal(t, p1, req.AsOf)
+		require.Equal(t, objectRef, req.Object)
+
+		flags := payload.RequestLatestDirtyState | payload.RequestLatestValidatedState |
+			payload.RequestOrderedQueue | payload.RequestUnorderedQueue
+		require.Equal(t, flags, req.RequestedContent)
+
+		content := &payload.VStateReport_ProvidedContentBody{
+			LatestDirtyState: &payload.ObjectState{
+				Reference: reference.Local{},
+				Class:     testwalletProxy.GetClass(),
+				State:     []byte(origObjectMem),
+			},
+		}
+
+		report := payload.VStateReport{
+			Status:          payload.Ready,
+			AsOf:            req.AsOf,
+			Object:          objectRef,
+			ProvidedContent: content,
+		}
+		server.SendPayload(ctx, &report)
+		return false // no resend msg
+	})
+
+	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
+		require.Equal(t, objectRef, res.Callee)
+		require.Equal(t, outgoing, res.CallOutgoing)
+		contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments)
+		require.NoError(t, sysErr)
+		require.Equal(t, "intolerable call trying to change object state", contractErr.Error())
+		return false // no resend msg
+	})
+	typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
+		require.Equal(t, objectRef, report.Object)
+		require.Equal(t, payload.Ready, report.Status)
+		require.True(t, report.DelegationSpec.IsZero())
+		require.Equal(t, int32(0), report.UnorderedPendingCount)
+		require.Equal(t, int32(0), report.OrderedPendingCount)
+		require.NotNil(t, report.ProvidedContent)
+		require.Equal(t, []byte(origObjectMem), report.ProvidedContent.LatestDirtyState.State)
+		return false
+	})
+
+	{
+		pl := payload.VCallRequest{
+			CallType:            payload.CTMethod,
+			CallFlags:           payload.BuildCallFlags(isolation.Interference, isolation.State),
+			Caller:              server.GlobalCaller(),
+			Callee:              objectRef,
+			CallSiteDeclaration: class,
+			CallSiteMethod:      "SomeMethod",
+			CallOutgoing:        outgoing,
+		}
+		server.SendPayload(ctx, &pl)
+	}
+
+	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+
+	// increment pulse twice for stop SMStateFinalizer
+	server.IncrementPulseAndWaitIdle(ctx)
+	server.IncrementPulseAndWaitIdle(ctx)
+
+	testutils.WaitSignalsTimed(t, 10*time.Second, stateReportSend)
+	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+
+	require.Equal(t, 1, typedChecker.VStateReport.Count())
+	require.Equal(t, 1, typedChecker.VStateRequest.Count())
+	require.Equal(t, 1, typedChecker.VCallResult.Count())
+	typedChecker.MinimockFinish()
+
+	server.Stop()
+	mc.Finish()
 }

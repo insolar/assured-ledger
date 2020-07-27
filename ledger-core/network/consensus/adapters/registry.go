@@ -7,7 +7,7 @@ package adapters
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/common/endpoints"
@@ -59,11 +59,11 @@ func (mr *MandateRegistry) GetPrimingCloudHash() proofs.CloudStateHash {
 type OfflinePopulation struct {
 	// TODO: should't use nodekeeper here.
 	nodeKeeper   network.NodeKeeper
-	manager      node.CertificateManager
+	manager      nodeinfo.CertificateManager
 	keyProcessor cryptography.KeyProcessor
 }
 
-func NewOfflinePopulation(nodeKeeper network.NodeKeeper, manager node.CertificateManager, keyProcessor cryptography.KeyProcessor) *OfflinePopulation {
+func NewOfflinePopulation(nodeKeeper network.NodeKeeper, manager nodeinfo.CertificateManager, keyProcessor cryptography.KeyProcessor) *OfflinePopulation {
 	return &OfflinePopulation{
 		nodeKeeper:   nodeKeeper,
 		manager:      manager,

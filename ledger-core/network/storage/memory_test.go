@@ -6,46 +6,38 @@
 package storage
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
-	node2 "github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 )
 
 func TestMemoryStorage(t *testing.T) {
-	ctx := context.Background()
 	s := NewMemoryStorage()
-	startPulse := *pulsestor.GenesisPulse
+	startPulse := pulsestor.GenesisPulse
 
 	ks := platformpolicy.NewKeyProcessor()
 	p1, err := ks.GeneratePrivateKey()
 	assert.NoError(t, err)
-	n := node.NewNode(gen.UniqueGlobalRef(), node2.StaticRoleVirtual, ks.ExtractPublicKey(p1), "127.0.0.1:22", "ver2")
-	nodes := []node2.NetworkNode{n}
+	n := node.NewNode(gen.UniqueGlobalRef(), member.PrimaryRoleVirtual, ks.ExtractPublicKey(p1), "127.0.0.1:22", "ver2")
+	nodes := []nodeinfo.NetworkNode{n}
 
 	for i := 0; i < entriesCount+2; i++ {
 		p := startPulse
 		p.PulseNumber += pulse.Number(i)
 
 		snap := node.NewSnapshot(p.PulseNumber, nodes)
-		err = s.Append(p.PulseNumber, snap)
+		err = s.Append(snap)
 		assert.NoError(t, err)
 
-		err = s.AppendPulse(ctx, p)
-		assert.NoError(t, err)
-
-		p1, err := s.GetLatestPulse(ctx)
-		assert.NoError(t, err)
-		assert.Equal(t, p, p1)
-
-		snap1, err := s.ForPulseNumber(p1.PulseNumber)
+		snap1, err := s.ForPulseNumber(p.PulseNumber)
 		assert.NoError(t, err)
 		assert.True(t, snap1.Equal(snap), "snapshots should be equal")
 	}
@@ -54,12 +46,15 @@ func TestMemoryStorage(t *testing.T) {
 	assert.Len(t, s.entries, entriesCount)
 	assert.Len(t, s.snapshotEntries, entriesCount)
 
-	p2, err := s.GetPulse(ctx, startPulse.PulseNumber)
+	snap, err := s.ForPulseNumber(startPulse.PulseNumber)
 	assert.EqualError(t, err, ErrNotFound.Error())
-	assert.Equal(t, p2, *pulsestor.GenesisPulse)
+	assert.Nil(t, snap)
 
-	snap2, err := s.ForPulseNumber(startPulse.PulseNumber)
+	snap, err = s.ForPulseNumber(startPulse.PulseNumber + 1)
 	assert.EqualError(t, err, ErrNotFound.Error())
-	assert.Nil(t, snap2)
+	assert.Nil(t, snap)
 
+	snap, err = s.ForPulseNumber(startPulse.PulseNumber + 2)
+	assert.Nil(t, err)
+	assert.NotNil(t, snap)
 }

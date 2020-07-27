@@ -9,8 +9,7 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/host"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet"
@@ -21,14 +20,14 @@ import (
 type RequesterMock struct {
 	t minimock.Tester
 
-	funcAuthorize          func(ctx context.Context, c2 node.Certificate) (pp1 *packet.Permit, err error)
-	inspectFuncAuthorize   func(ctx context.Context, c2 node.Certificate)
+	funcAuthorize          func(ctx context.Context, c2 nodeinfo.Certificate) (pp1 *packet.Permit, err error)
+	inspectFuncAuthorize   func(ctx context.Context, c2 nodeinfo.Certificate)
 	afterAuthorizeCounter  uint64
 	beforeAuthorizeCounter uint64
 	AuthorizeMock          mRequesterMockAuthorize
 
-	funcBootstrap          func(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate, pp2 *pulsestor.Pulse) (bp1 *packet.BootstrapResponse, err error)
-	inspectFuncBootstrap   func(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate, pp2 *pulsestor.Pulse)
+	funcBootstrap          func(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate) (bp1 *packet.BootstrapResponse, err error)
+	inspectFuncBootstrap   func(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate)
 	afterBootstrapCounter  uint64
 	beforeBootstrapCounter uint64
 	BootstrapMock          mRequesterMockBootstrap
@@ -88,7 +87,7 @@ type RequesterMockAuthorizeExpectation struct {
 // RequesterMockAuthorizeParams contains parameters of the Requester.Authorize
 type RequesterMockAuthorizeParams struct {
 	ctx context.Context
-	c2  node.Certificate
+	c2  nodeinfo.Certificate
 }
 
 // RequesterMockAuthorizeResults contains results of the Requester.Authorize
@@ -98,7 +97,7 @@ type RequesterMockAuthorizeResults struct {
 }
 
 // Expect sets up expected params for Requester.Authorize
-func (mmAuthorize *mRequesterMockAuthorize) Expect(ctx context.Context, c2 node.Certificate) *mRequesterMockAuthorize {
+func (mmAuthorize *mRequesterMockAuthorize) Expect(ctx context.Context, c2 nodeinfo.Certificate) *mRequesterMockAuthorize {
 	if mmAuthorize.mock.funcAuthorize != nil {
 		mmAuthorize.mock.t.Fatalf("RequesterMock.Authorize mock is already set by Set")
 	}
@@ -118,7 +117,7 @@ func (mmAuthorize *mRequesterMockAuthorize) Expect(ctx context.Context, c2 node.
 }
 
 // Inspect accepts an inspector function that has same arguments as the Requester.Authorize
-func (mmAuthorize *mRequesterMockAuthorize) Inspect(f func(ctx context.Context, c2 node.Certificate)) *mRequesterMockAuthorize {
+func (mmAuthorize *mRequesterMockAuthorize) Inspect(f func(ctx context.Context, c2 nodeinfo.Certificate)) *mRequesterMockAuthorize {
 	if mmAuthorize.mock.inspectFuncAuthorize != nil {
 		mmAuthorize.mock.t.Fatalf("Inspect function is already set for RequesterMock.Authorize")
 	}
@@ -142,7 +141,7 @@ func (mmAuthorize *mRequesterMockAuthorize) Return(pp1 *packet.Permit, err error
 }
 
 //Set uses given function f to mock the Requester.Authorize method
-func (mmAuthorize *mRequesterMockAuthorize) Set(f func(ctx context.Context, c2 node.Certificate) (pp1 *packet.Permit, err error)) *RequesterMock {
+func (mmAuthorize *mRequesterMockAuthorize) Set(f func(ctx context.Context, c2 nodeinfo.Certificate) (pp1 *packet.Permit, err error)) *RequesterMock {
 	if mmAuthorize.defaultExpectation != nil {
 		mmAuthorize.mock.t.Fatalf("Default expectation is already set for the Requester.Authorize method")
 	}
@@ -157,7 +156,7 @@ func (mmAuthorize *mRequesterMockAuthorize) Set(f func(ctx context.Context, c2 n
 
 // When sets expectation for the Requester.Authorize which will trigger the result defined by the following
 // Then helper
-func (mmAuthorize *mRequesterMockAuthorize) When(ctx context.Context, c2 node.Certificate) *RequesterMockAuthorizeExpectation {
+func (mmAuthorize *mRequesterMockAuthorize) When(ctx context.Context, c2 nodeinfo.Certificate) *RequesterMockAuthorizeExpectation {
 	if mmAuthorize.mock.funcAuthorize != nil {
 		mmAuthorize.mock.t.Fatalf("RequesterMock.Authorize mock is already set by Set")
 	}
@@ -177,7 +176,7 @@ func (e *RequesterMockAuthorizeExpectation) Then(pp1 *packet.Permit, err error) 
 }
 
 // Authorize implements Requester
-func (mmAuthorize *RequesterMock) Authorize(ctx context.Context, c2 node.Certificate) (pp1 *packet.Permit, err error) {
+func (mmAuthorize *RequesterMock) Authorize(ctx context.Context, c2 nodeinfo.Certificate) (pp1 *packet.Permit, err error) {
 	mm_atomic.AddUint64(&mmAuthorize.beforeAuthorizeCounter, 1)
 	defer mm_atomic.AddUint64(&mmAuthorize.afterAuthorizeCounter, 1)
 
@@ -307,7 +306,6 @@ type RequesterMockBootstrapParams struct {
 	ctx context.Context
 	pp1 *packet.Permit
 	c2  adapters.Candidate
-	pp2 *pulsestor.Pulse
 }
 
 // RequesterMockBootstrapResults contains results of the Requester.Bootstrap
@@ -317,7 +315,7 @@ type RequesterMockBootstrapResults struct {
 }
 
 // Expect sets up expected params for Requester.Bootstrap
-func (mmBootstrap *mRequesterMockBootstrap) Expect(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate, pp2 *pulsestor.Pulse) *mRequesterMockBootstrap {
+func (mmBootstrap *mRequesterMockBootstrap) Expect(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate) *mRequesterMockBootstrap {
 	if mmBootstrap.mock.funcBootstrap != nil {
 		mmBootstrap.mock.t.Fatalf("RequesterMock.Bootstrap mock is already set by Set")
 	}
@@ -326,7 +324,7 @@ func (mmBootstrap *mRequesterMockBootstrap) Expect(ctx context.Context, pp1 *pac
 		mmBootstrap.defaultExpectation = &RequesterMockBootstrapExpectation{}
 	}
 
-	mmBootstrap.defaultExpectation.params = &RequesterMockBootstrapParams{ctx, pp1, c2, pp2}
+	mmBootstrap.defaultExpectation.params = &RequesterMockBootstrapParams{ctx, pp1, c2}
 	for _, e := range mmBootstrap.expectations {
 		if minimock.Equal(e.params, mmBootstrap.defaultExpectation.params) {
 			mmBootstrap.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmBootstrap.defaultExpectation.params)
@@ -337,7 +335,7 @@ func (mmBootstrap *mRequesterMockBootstrap) Expect(ctx context.Context, pp1 *pac
 }
 
 // Inspect accepts an inspector function that has same arguments as the Requester.Bootstrap
-func (mmBootstrap *mRequesterMockBootstrap) Inspect(f func(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate, pp2 *pulsestor.Pulse)) *mRequesterMockBootstrap {
+func (mmBootstrap *mRequesterMockBootstrap) Inspect(f func(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate)) *mRequesterMockBootstrap {
 	if mmBootstrap.mock.inspectFuncBootstrap != nil {
 		mmBootstrap.mock.t.Fatalf("Inspect function is already set for RequesterMock.Bootstrap")
 	}
@@ -361,7 +359,7 @@ func (mmBootstrap *mRequesterMockBootstrap) Return(bp1 *packet.BootstrapResponse
 }
 
 //Set uses given function f to mock the Requester.Bootstrap method
-func (mmBootstrap *mRequesterMockBootstrap) Set(f func(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate, pp2 *pulsestor.Pulse) (bp1 *packet.BootstrapResponse, err error)) *RequesterMock {
+func (mmBootstrap *mRequesterMockBootstrap) Set(f func(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate) (bp1 *packet.BootstrapResponse, err error)) *RequesterMock {
 	if mmBootstrap.defaultExpectation != nil {
 		mmBootstrap.mock.t.Fatalf("Default expectation is already set for the Requester.Bootstrap method")
 	}
@@ -376,14 +374,14 @@ func (mmBootstrap *mRequesterMockBootstrap) Set(f func(ctx context.Context, pp1 
 
 // When sets expectation for the Requester.Bootstrap which will trigger the result defined by the following
 // Then helper
-func (mmBootstrap *mRequesterMockBootstrap) When(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate, pp2 *pulsestor.Pulse) *RequesterMockBootstrapExpectation {
+func (mmBootstrap *mRequesterMockBootstrap) When(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate) *RequesterMockBootstrapExpectation {
 	if mmBootstrap.mock.funcBootstrap != nil {
 		mmBootstrap.mock.t.Fatalf("RequesterMock.Bootstrap mock is already set by Set")
 	}
 
 	expectation := &RequesterMockBootstrapExpectation{
 		mock:   mmBootstrap.mock,
-		params: &RequesterMockBootstrapParams{ctx, pp1, c2, pp2},
+		params: &RequesterMockBootstrapParams{ctx, pp1, c2},
 	}
 	mmBootstrap.expectations = append(mmBootstrap.expectations, expectation)
 	return expectation
@@ -396,15 +394,15 @@ func (e *RequesterMockBootstrapExpectation) Then(bp1 *packet.BootstrapResponse, 
 }
 
 // Bootstrap implements Requester
-func (mmBootstrap *RequesterMock) Bootstrap(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate, pp2 *pulsestor.Pulse) (bp1 *packet.BootstrapResponse, err error) {
+func (mmBootstrap *RequesterMock) Bootstrap(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate) (bp1 *packet.BootstrapResponse, err error) {
 	mm_atomic.AddUint64(&mmBootstrap.beforeBootstrapCounter, 1)
 	defer mm_atomic.AddUint64(&mmBootstrap.afterBootstrapCounter, 1)
 
 	if mmBootstrap.inspectFuncBootstrap != nil {
-		mmBootstrap.inspectFuncBootstrap(ctx, pp1, c2, pp2)
+		mmBootstrap.inspectFuncBootstrap(ctx, pp1, c2)
 	}
 
-	mm_params := &RequesterMockBootstrapParams{ctx, pp1, c2, pp2}
+	mm_params := &RequesterMockBootstrapParams{ctx, pp1, c2}
 
 	// Record call args
 	mmBootstrap.BootstrapMock.mutex.Lock()
@@ -421,7 +419,7 @@ func (mmBootstrap *RequesterMock) Bootstrap(ctx context.Context, pp1 *packet.Per
 	if mmBootstrap.BootstrapMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmBootstrap.BootstrapMock.defaultExpectation.Counter, 1)
 		mm_want := mmBootstrap.BootstrapMock.defaultExpectation.params
-		mm_got := RequesterMockBootstrapParams{ctx, pp1, c2, pp2}
+		mm_got := RequesterMockBootstrapParams{ctx, pp1, c2}
 		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
 			mmBootstrap.t.Errorf("RequesterMock.Bootstrap got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
@@ -433,9 +431,9 @@ func (mmBootstrap *RequesterMock) Bootstrap(ctx context.Context, pp1 *packet.Per
 		return (*mm_results).bp1, (*mm_results).err
 	}
 	if mmBootstrap.funcBootstrap != nil {
-		return mmBootstrap.funcBootstrap(ctx, pp1, c2, pp2)
+		return mmBootstrap.funcBootstrap(ctx, pp1, c2)
 	}
-	mmBootstrap.t.Fatalf("Unexpected call to RequesterMock.Bootstrap. %v %v %v %v", ctx, pp1, c2, pp2)
+	mmBootstrap.t.Fatalf("Unexpected call to RequesterMock.Bootstrap. %v %v %v", ctx, pp1, c2)
 	return
 }
 

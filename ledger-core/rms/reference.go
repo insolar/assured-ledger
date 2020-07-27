@@ -158,4 +158,3 @@ func (p *Reference) IsZero() bool {
 func (p *Reference) IsEmpty() bool {
 	return p.value == nil || p.value.IsEmpty()
 }
-

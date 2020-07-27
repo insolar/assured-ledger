@@ -12,10 +12,10 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/network"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
 
 func newNoNetwork(b *Base) *NoNetwork {
@@ -45,12 +45,12 @@ func (g *NoNetwork) pause() time.Duration {
 	return sleep
 }
 
-func (g *NoNetwork) Run(ctx context.Context, pulse pulsestor.Pulse) {
+func (g *NoNetwork) Run(ctx context.Context, pulse pulse.Data) {
 	cert := g.CertificateManager.GetCertificate()
 	origin := g.NodeKeeper.GetOrigin()
 	discoveryNodes := network.ExcludeOrigin(cert.GetDiscoveryNodes(), origin.ID())
 
-	g.NodeKeeper.SetInitialSnapshot([]node.NetworkNode{origin})
+	g.NodeKeeper.SetInitialSnapshot([]nodeinfo.NetworkNode{origin})
 
 	if len(discoveryNodes) == 0 {
 		inslogger.FromContext(ctx).Warn("No discovery nodes found in certificate")
@@ -67,19 +67,19 @@ func (g *NoNetwork) Run(ctx context.Context, pulse pulsestor.Pulse) {
 		g.backoff = 0
 
 		g.bootstrapTimer = time.NewTimer(g.bootstrapETA)
-		g.Gatewayer.SwitchState(ctx, node.WaitConsensus, pulse)
+		g.Gatewayer.SwitchState(ctx, nodeinfo.WaitConsensus, pulse)
 		return
 	}
 
 	time.Sleep(g.pause())
 	if g.isDiscovery {
 		time.Sleep(time.Second * time.Duration(rand.Intn(20)))
-		g.Gatewayer.SwitchState(ctx, node.DiscoveryBootstrap, pulse)
+		g.Gatewayer.SwitchState(ctx, nodeinfo.DiscoveryBootstrap, pulse)
 	} else {
-		g.Gatewayer.SwitchState(ctx, node.JoinerBootstrap, pulse)
+		g.Gatewayer.SwitchState(ctx, nodeinfo.JoinerBootstrap, pulse)
 	}
 }
 
-func (g *NoNetwork) GetState() node.NetworkState {
-	return node.NoNetworkState
+func (g *NoNetwork) GetState() nodeinfo.NetworkState {
+	return nodeinfo.NoNetworkState
 }

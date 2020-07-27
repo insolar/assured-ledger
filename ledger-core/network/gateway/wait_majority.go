@@ -8,41 +8,41 @@ package gateway
 import (
 	"context"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/rules"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
 
 func newWaitMajority(b *Base) *WaitMajority {
-	return &WaitMajority{b, make(chan pulsestor.Pulse, 1)}
+	return &WaitMajority{b, make(chan pulse.Data, 1)}
 }
 
 type WaitMajority struct {
 	*Base
-	majorityComplete chan pulsestor.Pulse
+	majorityComplete chan pulse.Data
 }
 
-func (g *WaitMajority) Run(ctx context.Context, pulse pulsestor.Pulse) {
+func (g *WaitMajority) Run(ctx context.Context, pulse pulse.Data) {
 	g.switchOnMajorityRule(ctx, pulse)
 
 	select {
 	case <-g.bootstrapTimer.C:
 		g.FailState(ctx, bootstrapTimeoutMessage)
 	case newPulse := <-g.majorityComplete:
-		g.Gatewayer.SwitchState(ctx, node.WaitMinRoles, newPulse)
+		g.Gatewayer.SwitchState(ctx, nodeinfo.WaitMinRoles, newPulse)
 	}
 }
 
-func (g *WaitMajority) GetState() node.NetworkState {
-	return node.WaitMajority
+func (g *WaitMajority) GetState() nodeinfo.NetworkState {
+	return nodeinfo.WaitMajority
 }
 
 func (g *WaitMajority) OnConsensusFinished(ctx context.Context, report network.Report) {
-	g.switchOnMajorityRule(ctx, EnsureGetPulse(ctx, g.PulseAccessor, report.PulseNumber))
+	g.switchOnMajorityRule(ctx, EnsureGetPulse(ctx, report))
 }
 
-func (g *WaitMajority) switchOnMajorityRule(_ context.Context, pulse pulsestor.Pulse) {
+func (g *WaitMajority) switchOnMajorityRule(_ context.Context, pulse pulse.Data) {
 	_, err := rules.CheckMajorityRule(
 		g.CertificateManager.GetCertificate(),
 		g.NodeKeeper.GetAccessor(pulse.PulseNumber).GetWorkingNodes(),

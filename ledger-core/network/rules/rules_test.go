@@ -11,7 +11,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	node2 "github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
@@ -22,12 +23,12 @@ import (
 
 func TestRules_CheckMinRole(t *testing.T) {
 	cert := testutils.NewCertificateMock(t)
-	nodes := []node2.NetworkNode{
-		node.NewNode(gen.UniqueGlobalRef(), node2.StaticRoleHeavyMaterial, nil, "", ""),
-		node.NewNode(gen.UniqueGlobalRef(), node2.StaticRoleLightMaterial, nil, "", ""),
-		node.NewNode(gen.UniqueGlobalRef(), node2.StaticRoleLightMaterial, nil, "", ""),
-		node.NewNode(gen.UniqueGlobalRef(), node2.StaticRoleVirtual, nil, "", ""),
-		node.NewNode(gen.UniqueGlobalRef(), node2.StaticRoleVirtual, nil, "", ""),
+	nodes := []nodeinfo.NetworkNode{
+		node.NewNode(gen.UniqueGlobalRef(), member.PrimaryRoleHeavyMaterial, nil, "", ""),
+		node.NewNode(gen.UniqueGlobalRef(), member.PrimaryRoleLightMaterial, nil, "", ""),
+		node.NewNode(gen.UniqueGlobalRef(), member.PrimaryRoleLightMaterial, nil, "", ""),
+		node.NewNode(gen.UniqueGlobalRef(), member.PrimaryRoleVirtual, nil, "", ""),
+		node.NewNode(gen.UniqueGlobalRef(), member.PrimaryRoleVirtual, nil, "", ""),
 	}
 	cert.GetMinRolesMock.Set(func() (r uint, r1 uint, r2 uint) {
 		return 1, 0, 0
@@ -46,7 +47,7 @@ func TestRules_CheckMajorityRule(t *testing.T) {
 	discNodesCount := 5
 	netNodes, discoveryNodes := getDiscoveryNodes(discNodesCount)
 	cert := testutils.NewCertificateMock(t)
-	cert.GetDiscoveryNodesMock.Set(func() (r []node2.DiscoveryNode) {
+	cert.GetDiscoveryNodesMock.Set(func() (r []nodeinfo.DiscoveryNode) {
 		return discoveryNodes
 	})
 	cert.GetMajorityRuleMock.Set(func() (r int) {
@@ -63,9 +64,9 @@ func TestRules_CheckMajorityRule(t *testing.T) {
 	require.Equal(t, len(netNodes), count)
 }
 
-func getDiscoveryNodes(count int) ([]node2.NetworkNode, []node2.DiscoveryNode) {
-	netNodes := make([]node2.NetworkNode, count)
-	discoveryNodes := make([]node2.DiscoveryNode, count)
+func getDiscoveryNodes(count int) ([]nodeinfo.NetworkNode, []nodeinfo.DiscoveryNode) {
+	netNodes := make([]nodeinfo.NetworkNode, count)
+	discoveryNodes := make([]nodeinfo.DiscoveryNode, count)
 	for i := 0; i < count; i++ {
 		n := newNode(gen.UniqueGlobalRef(), i)
 		d := mandates.NewBootstrapNode(nil, "", n.Address(), n.ID().String(), n.Role().String())
@@ -75,7 +76,14 @@ func getDiscoveryNodes(count int) ([]node2.NetworkNode, []node2.DiscoveryNode) {
 	return netNodes, discoveryNodes
 }
 
-func newNode(ref reference.Global, i int) node2.NetworkNode {
-	return node.NewNode(ref, node2.AllStaticRoles[i%len(node2.AllStaticRoles)], nil,
+// AllStaticRoles is an array of all possible StaticRoles.
+var AllStaticRoles = []member.PrimaryRole{
+	member.PrimaryRoleVirtual,
+	member.PrimaryRoleLightMaterial,
+	member.PrimaryRoleHeavyMaterial,
+}
+
+func newNode(ref reference.Global, i int) nodeinfo.NetworkNode {
+	return node.NewNode(ref, AllStaticRoles[i%len(AllStaticRoles)], nil,
 		"127.0.0.1:"+strconv.Itoa(30000+i), "")
 }
