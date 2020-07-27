@@ -14,10 +14,10 @@ type TestAPICall struct {
 	Payload payload.VCallRequest
 }
 
-func Handler(call *TestAPICall) smachine.CreateFunc {
+func (v TestAPICall) AsSMCreate() smachine.CreateFunc {
 	return func(ctx smachine.ConstructionContext) smachine.StateMachine {
 		return &SMTestAPICall{
-			requestPayload: call.Payload,
+			requestPayload: v.Payload,
 		}
 	}
 }

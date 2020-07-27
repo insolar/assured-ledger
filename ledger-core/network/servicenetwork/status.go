@@ -9,22 +9,23 @@ import (
 	"context"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/version"
 )
 
 var startTime time.Time
 
-func (n *ServiceNetwork) GetNetworkStatus() node.StatusReply {
-	var reply node.StatusReply
+func (n *ServiceNetwork) GetNetworkStatus() network.StatusReply {
+	var reply network.StatusReply
 	reply.NetworkState = n.Gatewayer.Gateway().GetState()
 
-	np, err := n.PulseAccessor.GetLatestPulse(context.Background())
-	if err != nil {
-		np = *pulsestor.GenesisPulse
-	}
-	reply.Pulse = np
+	np := n.Gatewayer.Gateway().LatestPulse(context.TODO())
+	// np, err := n.PulseAccessor.Latest(context.Background())
+	// if err != nil {
+	// 	np = pulsestor.GenesisPulse
+	// }
+	reply.PulseNumber = np.PulseNumber
+	copy(reply.PulseEntropy[:], np.PulseEntropy[:])
 
 	activeNodes := n.NodeKeeper.GetAccessor(np.PulseNumber).GetActiveNodes()
 	workingNodes := n.NodeKeeper.GetAccessor(np.PulseNumber).GetWorkingNodes()

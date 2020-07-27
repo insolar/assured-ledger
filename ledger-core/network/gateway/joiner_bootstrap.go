@@ -9,9 +9,10 @@ import (
 	"context"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
 
 func newJoinerBootstrap(b *Base) *JoinerBootstrap {
@@ -23,20 +24,20 @@ type JoinerBootstrap struct {
 	*Base
 }
 
-func (g *JoinerBootstrap) Run(ctx context.Context, p pulsestor.Pulse) {
+func (g *JoinerBootstrap) Run(ctx context.Context, p pulse.Data) {
 	logger := inslogger.FromContext(ctx)
 	cert := g.CertificateManager.GetCertificate()
 	permit, err := g.BootstrapRequester.Authorize(ctx, cert)
 	if err != nil {
 		logger.Warn("Failed to authorize: ", err.Error())
-		g.Gatewayer.SwitchState(ctx, node.NoNetworkState, p)
+		g.Gatewayer.SwitchState(ctx, nodeinfo.NoNetworkState, p)
 		return
 	}
 
-	resp, err := g.BootstrapRequester.Bootstrap(ctx, permit, *g.originCandidate, &p)
+	resp, err := g.BootstrapRequester.Bootstrap(ctx, permit, *g.originCandidate)
 	if err != nil {
 		logger.Warn("Failed to bootstrap: ", err.Error())
-		g.Gatewayer.SwitchState(ctx, node.NoNetworkState, p)
+		g.Gatewayer.SwitchState(ctx, nodeinfo.NoNetworkState, p)
 		return
 	}
 
@@ -45,13 +46,14 @@ func (g *JoinerBootstrap) Run(ctx context.Context, p pulsestor.Pulse) {
 	// Reset backoff if not insolar.NoNetworkState.
 	g.backoff = 0
 
-	responsePulse := pulsestor.FromProto(&resp.Pulse)
+	// no needed
+	responsePulse := beat.Beat{}
 
 	g.bootstrapETA = time.Second * time.Duration(resp.ETASeconds)
 	g.bootstrapTimer = time.NewTimer(g.bootstrapETA)
-	g.Gatewayer.SwitchState(ctx, node.WaitConsensus, *responsePulse)
+	g.Gatewayer.SwitchState(ctx, nodeinfo.WaitConsensus, responsePulse.Data)
 }
 
-func (g *JoinerBootstrap) GetState() node.NetworkState {
-	return node.JoinerBootstrap
+func (g *JoinerBootstrap) GetState() nodeinfo.NetworkState {
+	return nodeinfo.JoinerBootstrap
 }

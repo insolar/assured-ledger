@@ -17,13 +17,13 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet/types"
 	"github.com/insolar/assured-ledger/ledger-core/network/transport"
+	"github.com/insolar/assured-ledger/ledger-core/pulsar"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	mock "github.com/insolar/assured-ledger/ledger-core/testutils/network"
@@ -102,7 +102,7 @@ func TestDistributor_Distribute(t *testing.T) {
 		require.NoError(t, err)
 	}()
 
-	d.Distribute(ctx, pulsestor.Pulse{PulseNumber: PULSENUMBER})
-	d.Distribute(ctx, pulsestor.Pulse{PulseNumber: PULSENUMBER})
-	d.Distribute(ctx, pulsestor.Pulse{PulseNumber: PULSENUMBER})
+	d.Distribute(ctx, pulsar.PulsePacket{PulseNumber: PULSENUMBER})
+	d.Distribute(ctx, pulsar.PulsePacket{PulseNumber: PULSENUMBER})
+	d.Distribute(ctx, pulsar.PulsePacket{PulseNumber: PULSENUMBER})
 }

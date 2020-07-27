@@ -8,9 +8,10 @@ package adapters
 import (
 	"context"
 	"sync"
+	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
@@ -24,27 +25,27 @@ type StateGetter interface {
 	State() []byte
 }
 
-type PulseChanger interface {
-	ChangePulse(ctx context.Context, newPulse pulsestor.Pulse)
+type BeatChanger interface {
+	ChangeBeat(context.Context, beat.Beat)
 }
 
 type StateUpdater interface {
-	UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes []node.NetworkNode, cloudStateHash []byte)
+	UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes []nodeinfo.NetworkNode, cloudStateHash []byte)
 }
 
 type UpstreamController struct {
 	stateGetter  StateGetter
-	pulseChanger PulseChanger
+	beatChanger  BeatChanger
 	stateUpdater StateUpdater
 
 	mu         *sync.RWMutex
 	onFinished network.OnConsensusFinished
 }
 
-func NewUpstreamPulseController(stateGetter StateGetter, pulseChanger PulseChanger, stateUpdater StateUpdater) *UpstreamController {
+func NewUpstreamPulseController(stateGetter StateGetter, pulseChanger BeatChanger, stateUpdater StateUpdater) *UpstreamController {
 	return &UpstreamController{
 		stateGetter:  stateGetter,
-		pulseChanger: pulseChanger,
+		beatChanger:  pulseChanger,
 		stateUpdater: stateUpdater,
 
 		mu:         &sync.RWMutex{},
@@ -57,11 +58,11 @@ func (u *UpstreamController) ConsensusFinished(report api.UpstreamReport, expect
 	logger := inslogger.FromContext(ctx)
 	population := expectedCensus.GetOnlinePopulation()
 
-	var networkNodes []node.NetworkNode
+	var networkNodes []nodeinfo.NetworkNode
 	if report.MemberMode.IsEvicted() || report.MemberMode.IsSuspended() || !population.IsValid() {
 		logger.Warnf("Consensus finished unexpectedly mode: %s, population: %v", report.MemberMode, expectedCensus)
 
-		networkNodes = []node.NetworkNode{
+		networkNodes = []nodeinfo.NetworkNode{
 			NewNetworkNode(expectedCensus.GetOnlinePopulation().GetLocalProfile()),
 		}
 	} else {
@@ -70,13 +71,16 @@ func (u *UpstreamController) ConsensusFinished(report api.UpstreamReport, expect
 
 	u.stateUpdater.UpdateState(
 		ctx,
-		report.PulseNumber,
+		report.PulseNumber, // not used
 		networkNodes,
-		longbits.AsBytes(expectedCensus.GetCloudStateHash()),
+		longbits.AsBytes(expectedCensus.GetCloudStateHash()), // not used
 	)
 
-	if _, pd := expectedCensus.GetNearestPulseData(); pd.IsFromEphemeral() {
+	// todo: ??
+	_, pd := expectedCensus.GetNearestPulseData()
+	if pd.IsFromEphemeral() {
 		// Fix bootstrap. Commit active list right after consensus finished
+		// for NodeKeeper active list move sync to active
 		u.CommitPulseChange(report, pd, expectedCensus)
 	}
 
@@ -84,6 +88,7 @@ func (u *UpstreamController) ConsensusFinished(report api.UpstreamReport, expect
 	defer u.mu.RUnlock()
 
 	u.onFinished(ctx, network.Report{
+		PulseData:       pd,
 		PulseNumber:     report.PulseNumber,
 		MemberPower:     report.MemberPower,
 		MemberMode:      report.MemberMode,
@@ -102,9 +107,14 @@ func (u *UpstreamController) PreparePulseChange(report api.UpstreamReport, ch ch
 
 func (u *UpstreamController) CommitPulseChange(report api.UpstreamReport, pulseData pulse.Data, activeCensus census.Operational) {
 	ctx := ReportContext(report)
-	p := NewPulse(pulseData)
+	online := activeCensus.GetOnlinePopulation()
 
-	u.pulseChanger.ChangePulse(ctx, p)
+	u.beatChanger.ChangeBeat(ctx, beat.Beat{
+		BeatSeq:   0,
+		Data:      pulseData,
+		StartedAt: time.Now(), // TODO get pulse start
+		Online:    online,
+	})
 }
 
 func (u *UpstreamController) CancelPulseChange() {

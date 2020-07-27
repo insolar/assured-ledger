@@ -8,62 +8,13 @@ package testutils
 import (
 	"crypto"
 	"hash"
-	"math/rand"
-	"strings"
 	"sync"
 	"testing"
-	"time"
 
-	uuid "github.com/satori/go.uuid"
 	"golang.org/x/crypto/sha3"
 
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 )
-
-const letterBytes = "abcdef0123456789"
-const (
-	letterIdxBits = 6                    // 6 bits to represent a letter index
-	letterIdxMask = 1<<letterIdxBits - 1 // All 1-bits, as many as letterIdxBits
-	letterIdxMax  = 63 / letterIdxBits   // # of letter indices fitting in 63 bits
-)
-
-var src = rand.NewSource(time.Now().UnixNano())
-
-func RandomHashWithLength(n int) string {
-	sb := strings.Builder{}
-	sb.Grow(n)
-	// A src.Int63() generates 63 random bits, enough for letterIdxMax characters!
-	for i, cache, remain := n-1, src.Int63(), letterIdxMax; i >= 0; {
-		if remain == 0 {
-			cache, remain = src.Int63(), letterIdxMax
-		}
-		if idx := int(cache & letterIdxMask); idx < len(letterBytes) {
-			sb.WriteByte(letterBytes[idx])
-			i--
-		}
-		cache >>= letterIdxBits
-		remain--
-	}
-
-	return sb.String()
-}
-
-func RandomEthHash() string {
-	return "0x" + RandomHashWithLength(64)
-}
-
-func RandomEthMigrationAddress() string {
-	return "0x" + RandomHashWithLength(40)
-}
-
-// RandomString generates random uuid and return it as a string.
-func RandomString() string {
-	newUUID, err := uuid.NewV4()
-	if err != nil {
-		panic(err)
-	}
-	return newUUID.String()
-}
 
 type cryptographySchemeMock struct{}
 type hasherMock struct {

@@ -16,14 +16,13 @@ import (
 	"github.com/insolar/rpc/v2"
 	jsonrpc "github.com/insolar/rpc/v2/json2"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/api/seedmanager"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/network"
-
-	"github.com/insolar/assured-ledger/ledger-core/insolar/jet"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
@@ -31,13 +30,13 @@ import (
 
 // Runner implements Component for API
 type Runner struct {
-	CertificateManager node.CertificateManager
+	CertificateManager nodeinfo.CertificateManager
 	// nolint
 	NodeNetwork         network.NodeNetwork
-	CertificateGetter   node.CertificateGetter
-	PulseAccessor       pulsestor.Accessor
-	JetCoordinator      jet.AffinityHelper
-	NetworkStatus       node.NetworkStatus
+	CertificateGetter   nodeinfo.CertificateGetter
+	PulseAccessor       beat.Accessor
+	JetCoordinator      affinity.Helper
+	NetworkStatus       network.Status
 	AvailabilityChecker AvailabilityChecker
 
 	handler       http.Handler
@@ -78,13 +77,13 @@ func (ar *Runner) registerPublicServices(rpcServer *rpc.Server) error {
 
 // NewRunner is C-tor for API Runner
 func NewRunner(cfg *configuration.APIRunner,
-	certificateManager node.CertificateManager,
+	certificateManager nodeinfo.CertificateManager,
 	// nolint
 	nodeNetwork network.NodeNetwork,
-	certificateGetter node.CertificateGetter,
-	pulseAccessor pulsestor.Accessor,
-	jetCoordinator jet.AffinityHelper,
-	networkStatus node.NetworkStatus,
+	certificateGetter nodeinfo.CertificateGetter,
+	pulseAccessor beat.Accessor,
+	jetCoordinator affinity.Helper,
+	networkStatus network.Status,
 	availabilityChecker AvailabilityChecker,
 ) (*Runner, error) {
 

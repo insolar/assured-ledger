@@ -14,8 +14,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"gotest.tools/assert"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
@@ -58,13 +58,13 @@ func TestSMTestAPICall_MethodResends(t *testing.T) {
 	smWrapper := slotMachine.AddStateMachine(ctx, &smRequest)
 
 	messageSent := make(chan struct{}, 1)
-	slotMachine.MessageSender.SendRole.Set(func(_ context.Context, msg payload.Marshaler, role node.DynamicRole, object reference.Global, pn pulse.Number, _ ...messagesender.SendOption) error {
+	slotMachine.MessageSender.SendRole.Set(func(_ context.Context, msg payload.Marshaler, role affinity.DynamicRole, object reference.Global, pn pulse.Number, _ ...messagesender.SendOption) error {
 		res := msg.(*payload.VCallRequest)
 		// ensure that both times request is the same
 		assert.Equal(t, APICaller, res.Caller)
 		assert.Equal(t, APICaller.GetBase(), res.CallOutgoing.GetBase())
 		assert.Equal(t, p1, res.CallOutgoing.GetLocal().GetPulseNumber())
-		assert.Equal(t, node.DynamicRoleVirtualExecutor, role)
+		assert.Equal(t, affinity.DynamicRoleVirtualExecutor, role)
 		assert.Equal(t, request.Callee, object)
 
 		messageSent <- struct{}{}
@@ -129,14 +129,14 @@ func TestSMTestAPICall_Constructor(t *testing.T) {
 	smWrapper := slotMachine.AddStateMachine(ctx, &smRequest)
 
 	messageSent := make(chan struct{}, 1)
-	slotMachine.MessageSender.SendRole.Set(func(_ context.Context, msg payload.Marshaler, role node.DynamicRole, object reference.Global, pn pulse.Number, _ ...messagesender.SendOption) error {
+	slotMachine.MessageSender.SendRole.Set(func(_ context.Context, msg payload.Marshaler, role affinity.DynamicRole, object reference.Global, pn pulse.Number, _ ...messagesender.SendOption) error {
 		res := msg.(*payload.VCallRequest)
 
 		// ensure that both times request is the same
 		assert.Equal(t, APICaller, res.Caller)
 		assert.Equal(t, APICaller.GetBase(), res.CallOutgoing.GetBase())
 		assert.Equal(t, p1, res.CallOutgoing.GetLocal().GetPulseNumber())
-		assert.Equal(t, node.DynamicRoleVirtualExecutor, role)
+		assert.Equal(t, affinity.DynamicRoleVirtualExecutor, role)
 		assert.Equal(t, reference.NewSelf(res.CallOutgoing.GetLocal()), object)
 
 		messageSent <- struct{}{}
@@ -177,7 +177,7 @@ func TestSMTestAPICall_RetriesExceeded(t *testing.T) {
 	smWrapper := slotMachine.AddStateMachine(ctx, &smRequest)
 
 	messageSent := make(chan struct{}, 1)
-	slotMachine.MessageSender.SendRole.Set(func(_ context.Context, msg payload.Marshaler, role node.DynamicRole, object reference.Global, pn pulse.Number, _ ...messagesender.SendOption) error {
+	slotMachine.MessageSender.SendRole.Set(func(_ context.Context, msg payload.Marshaler, role affinity.DynamicRole, object reference.Global, pn pulse.Number, _ ...messagesender.SendOption) error {
 		messageSent <- struct{}{}
 		return nil
 	})

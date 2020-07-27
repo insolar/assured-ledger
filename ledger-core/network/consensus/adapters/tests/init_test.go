@@ -16,12 +16,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
 	node2 "github.com/insolar/assured-ledger/ledger-core/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/network"
@@ -82,12 +83,12 @@ type InitializedNodes struct {
 }
 
 type GeneratedNodes struct {
-	nodes          []node2.NetworkNode
+	nodes          []nodeinfo.NetworkNode
 	meta           []*nodeMeta
-	discoveryNodes []node2.NetworkNode
+	discoveryNodes []nodeinfo.NetworkNode
 }
 
-func generateNodes(countNeutral, countHeavy, countLight, countVirtual int, discoveryNodes []node2.NetworkNode) (*GeneratedNodes, error) {
+func generateNodes(countNeutral, countHeavy, countLight, countVirtual int, discoveryNodes []nodeinfo.NetworkNode) (*GeneratedNodes, error) {
 	nodeIdentities := generateNodeIdentities(countNeutral, countHeavy, countLight, countVirtual)
 	nodeInfos := generateNodeInfos(nodeIdentities)
 	nodes, dn, err := nodesFromInfo(nodeInfos)
@@ -201,15 +202,15 @@ func initLogger(t *testing.T) context.Context {
 func generateNodeIdentities(countNeutral, countHeavy, countLight, countVirtual int) []nodeIdentity {
 	r := make([]nodeIdentity, 0, countNeutral+countHeavy+countLight+countVirtual)
 
-	r = _generateNodeIdentity(r, countNeutral, node2.StaticRoleUnknown)
-	r = _generateNodeIdentity(r, countHeavy, node2.StaticRoleHeavyMaterial)
-	r = _generateNodeIdentity(r, countLight, node2.StaticRoleLightMaterial)
-	r = _generateNodeIdentity(r, countVirtual, node2.StaticRoleVirtual)
+	r = _generateNodeIdentity(r, countNeutral, member.PrimaryRoleUnknown)
+	r = _generateNodeIdentity(r, countHeavy, member.PrimaryRoleHeavyMaterial)
+	r = _generateNodeIdentity(r, countLight, member.PrimaryRoleLightMaterial)
+	r = _generateNodeIdentity(r, countVirtual, member.PrimaryRoleVirtual)
 
 	return r
 }
 
-func _generateNodeIdentity(r []nodeIdentity, count int, role node2.StaticRole) []nodeIdentity {
+func _generateNodeIdentity(r []nodeIdentity, count int, role member.PrimaryRole) []nodeIdentity {
 	for i := 0; i < count; i++ {
 		port := portOffset
 		r = append(r, nodeIdentity{
@@ -237,7 +238,7 @@ func generateNodeInfos(nodeIdentities []nodeIdentity) []*nodeMeta {
 }
 
 type nodeIdentity struct {
-	role node2.StaticRole
+	role member.PrimaryRole
 	addr string
 }
 
@@ -248,7 +249,7 @@ type nodeMeta struct {
 }
 
 func getAnnounceSignature(
-	node node2.NetworkNode,
+	node nodeinfo.NetworkNode,
 	isDiscovery bool,
 	kp cryptography.KeyProcessor,
 	key *ecdsa.PrivateKey,
@@ -294,13 +295,13 @@ func getAnnounceSignature(
 	return digest, sign, nil
 }
 
-func nodesFromInfo(nodeInfos []*nodeMeta) ([]node2.NetworkNode, []node2.NetworkNode, error) {
-	nodes := make([]node2.NetworkNode, len(nodeInfos))
-	discoveryNodes := make([]node2.NetworkNode, 0)
+func nodesFromInfo(nodeInfos []*nodeMeta) ([]nodeinfo.NetworkNode, []nodeinfo.NetworkNode, error) {
+	nodes := make([]nodeinfo.NetworkNode, len(nodeInfos))
+	discoveryNodes := make([]nodeinfo.NetworkNode, 0)
 
 	for i, info := range nodeInfos {
 		var isDiscovery bool
-		if info.role == node2.StaticRoleHeavyMaterial || info.role == node2.StaticRoleUnknown {
+		if info.role == member.PrimaryRoleHeavyMaterial || info.role == member.PrimaryRoleUnknown {
 			isDiscovery = true
 		}
 
@@ -326,7 +327,7 @@ func nodesFromInfo(nodeInfos []*nodeMeta) ([]node2.NetworkNode, []node2.NetworkN
 	return nodes, discoveryNodes, nil
 }
 
-func newNetworkNode(addr string, role node2.StaticRole, pk crypto.PublicKey) node.MutableNode {
+func newNetworkNode(addr string, role member.PrimaryRole, pk crypto.PublicKey) node.MutableNode {
 	n := node.NewNode(
 		gen.UniqueGlobalRef(),
 		role,
@@ -341,7 +342,7 @@ func newNetworkNode(addr string, role node2.StaticRole, pk crypto.PublicKey) nod
 	return mn
 }
 
-func initCrypto(node node2.NetworkNode, discoveryNodes []node2.NetworkNode) *mandates.CertificateManager {
+func initCrypto(node nodeinfo.NetworkNode, discoveryNodes []nodeinfo.NetworkNode) *mandates.CertificateManager {
 	pubKey := node.PublicKey()
 
 	publicKey, _ := keyProcessor.ExportPublicKeyPEM(pubKey)
@@ -398,7 +399,7 @@ type pulseChanger struct {
 	nodeKeeper network.NodeKeeper
 }
 
-func (pc *pulseChanger) ChangePulse(ctx context.Context, pulse pulsestor.Pulse) {
+func (pc *pulseChanger) ChangeBeat(ctx context.Context, pulse beat.Beat) {
 	inslogger.FromContext(ctx).Info(">>>>>> Change pulse called")
 	pc.nodeKeeper.MoveSyncToActive(ctx, pulse.PulseNumber)
 }
@@ -407,16 +408,16 @@ type stateUpdater struct {
 	nodeKeeper network.NodeKeeper
 }
 
-func (su *stateUpdater) UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes []node2.NetworkNode, cloudStateHash []byte) {
+func (su *stateUpdater) UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes []nodeinfo.NetworkNode, cloudStateHash []byte) {
 	inslogger.FromContext(ctx).Info(">>>>>> Update state called")
 
-	su.nodeKeeper.Sync(ctx, pulseNumber, nodes)
+	su.nodeKeeper.Sync(ctx, nodes)
 }
 
 type ephemeralController struct {
 	allowed bool
 }
 
-func (e *ephemeralController) EphemeralMode(nodes []node2.NetworkNode) bool {
+func (e *ephemeralController) EphemeralMode(nodes []nodeinfo.NetworkNode) bool {
 	return e.allowed
 }

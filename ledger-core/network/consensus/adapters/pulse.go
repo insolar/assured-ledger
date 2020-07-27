@@ -10,11 +10,11 @@ import (
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/phases"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/proofs"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/transport"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/serialization/pulseserialization"
+	"github.com/insolar/assured-ledger/ledger-core/pulsar"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
@@ -22,35 +22,12 @@ import (
 
 const nanosecondsInSecond = int64(time.Second / time.Nanosecond)
 
-func NewPulse(pulseData pulse.Data) pulsestor.Pulse {
-	var prev pulse.Number
-	if !pulseData.IsFirstPulse() {
-		prev = pulseData.PrevPulseNumber()
-	} else {
-		prev = pulseData.PulseNumber
-	}
-
-	entropy := pulsestor.Entropy{}
-	bs := pulseData.PulseEntropy.AsBytes()
-	copy(entropy[:], bs)
-	copy(entropy[pulseData.PulseEntropy.FixedByteSize():], bs)
-
-	return pulsestor.Pulse{
-		PulseNumber:      pulseData.PulseNumber,
-		NextPulseNumber:  pulseData.NextPulseNumber(),
-		PrevPulseNumber:  prev,
-		PulseTimestamp:   int64(pulseData.Timestamp) * nanosecondsInSecond,
-		EpochPulseNumber: pulseData.PulseEpoch,
-		Entropy:          entropy,
-	}
-}
-
-func NewPulseData(p pulsestor.Pulse) pulse.Data {
+func NewPulseData(p pulsar.PulsePacket) pulse.Data {
 	data := pulse.NewPulsarData(
 		p.PulseNumber,
 		uint16(p.NextPulseNumber-p.PulseNumber),
 		uint16(p.PulseNumber-p.PrevPulseNumber),
-		longbits.NewBits512FromBytes(p.Entropy[:]).FoldToBits256(),
+		longbits.NewBits256FromBytes(p.Entropy[:]),
 	)
 	data.Timestamp = uint32(p.PulseTimestamp / nanosecondsInSecond)
 	data.PulseEpoch = p.EpochPulseNumber
@@ -64,7 +41,7 @@ func NewPulseDigest(data pulse.Data) cryptkit.Digest {
 	copy(bits[:entropySize], data.PulseEntropy[:])
 	copy(bits[entropySize:], data.PulseEntropy[:])
 
-	// It's not digest actually :)
+	// TODO Fix - it's not digest actually
 	return cryptkit.NewDigest(&bits, SHA3512Digest)
 }
 
