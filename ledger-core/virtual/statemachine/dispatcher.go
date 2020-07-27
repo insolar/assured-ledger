@@ -7,139 +7,92 @@ package statemachine
 
 import (
 	"context"
-	"time"
 
 	"github.com/ThreeDotsLabs/watermill/message"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/dispatcher"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/log"
-	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-type dispatcherInitializationState int8
-
-const (
-	InitializationStarted dispatcherInitializationState = iota
-	FirstPulseClosed
-	InitializationDone // SecondPulseOpened
-)
-
 type conveyorDispatcher struct {
-	ctx           context.Context
-	conveyor      *conveyor.PulseConveyor
-	state         dispatcherInitializationState
-	previousPulse pulse.Number
+	ctx       context.Context
+	conveyor  *conveyor.PulseConveyor
+	prevPulse pulse.Number
 }
 
-var _ dispatcher.Dispatcher = &conveyorDispatcher{}
+var _ beat.Dispatcher = &conveyorDispatcher{}
 
-type logBeginPulseMessage struct {
-	*log.Msg `fmt:"BeginPulse"`
+func (c *conveyorDispatcher) PrepareBeat(change beat.Beat, sink beat.Ack) {
+	stateChan := sink.Acquire()
 
-	PreviousPulse pulse.Number
-	NextPulse     pulse.Number `opt:""`
-}
-
-type logClosePulseMessage struct {
-	*log.Msg `fmt:"ClosePulse"`
-
-	PreviousPulse pulse.Number
-}
-
-func (c *conveyorDispatcher) BeginPulse(ctx context.Context, pulseObject pulsestor.Pulse) {
-	var (
-		pulseData  = adapters.NewPulseData(pulseObject)
-		pulseRange pulse.Range
-	)
-
-	switch c.state {
-	case InitializationDone:
-		pulseRange = pulseData.AsRange()
-
-	case FirstPulseClosed:
-		if pn, ok := pulseData.PulseNumber.TryPrev(pulseData.PrevPulseDelta); ok && pn == c.previousPulse {
-			pulseRange = pulseData.AsRange()
-		} else {
-			pulseRange = pulse.NewLeftGapRange(c.previousPulse, 0, pulseData)
-		}
-		c.state = InitializationDone
-
-	case InitializationStarted:
-		fallthrough
-	default:
-		panic(throw.Impossible())
-	}
-
-	inslogger.FromContext(ctx).Debugm(logBeginPulseMessage{
-		PreviousPulse: c.previousPulse,
-		NextPulse:     pulseData.PulseNumber,
-	})
-
-	// TODO pass proper pulse start time from consensus
-	if err := c.conveyor.CommitPulseChange(pulseRange, time.Now()); err != nil {
-		panic(err)
-	}
-}
-
-func (c *conveyorDispatcher) ClosePulse(ctx context.Context, pulseObject pulsestor.Pulse) {
-	inslogger.FromContext(ctx).Debugm(logClosePulseMessage{
-		PreviousPulse: c.previousPulse,
-	})
-
-	c.previousPulse = pulseObject.PulseNumber
-
-	switch c.state {
-	case InitializationDone:
-		channel := conveyor.PreparePulseChangeChannel(nil)
-		if err := c.conveyor.PreparePulseChange(channel); err != nil {
-			panic(err)
-		}
-
-	case InitializationStarted:
-		c.state = FirstPulseClosed
+	switch {
+	case change.Online == nil:
+		panic(throw.IllegalValue())
+	case c.prevPulse.IsUnknown():
+		// Conveyor can't prepare without an initial pulse - there are no active SMs inside
+		stateChan <- beat.AckData{}
 		return
+	}
 
-	case FirstPulseClosed:
-		fallthrough
-	default:
-		panic(throw.Impossible())
+	if err := c.conveyor.PreparePulseChange(stateChan); err != nil {
+		panic(throw.WithStack(err))
 	}
 }
 
-type DispatcherMessage struct {
-	MessageMeta message.Metadata
-	PayloadMeta *payload.Meta
+func (c *conveyorDispatcher) CancelBeat() {
+	if c.prevPulse.IsUnknown() {
+		// Conveyor can't prepare without an initial pulse - there are no active SMs inside
+		return
+	}
+	if err := c.conveyor.CancelPulseChange(); err != nil {
+		panic(throw.WithStack(err))
+	}
 }
 
-type errUnknownPayload struct {
-	ExpectedType string
-	GotType      interface{} `fmt:"%T"`
+func (c *conveyorDispatcher) CommitBeat(change beat.Beat) {
+	pulseRange := change.Range
+
+	if pulseRange == nil {
+		switch pn, ok := change.PulseNumber.TryPrev(change.PrevPulseDelta); {
+		case ok && pn == c.prevPulse:
+			pulseRange = change.AsRange()
+		case c.prevPulse.IsUnknown():
+			pulseRange = pulse.NewLeftGapRange(pulse.MinTimePulse, 0, change.Data)
+		default:
+			pulseRange = pulse.NewLeftGapRange(c.prevPulse, 0, change.Data)
+		}
+	} else if !c.prevPulse.IsUnknown() {
+		prevPulse, ok := pulseRange.LeftBoundNumber().TryPrev(pulseRange.LeftPrevDelta())
+		if !ok || prevPulse != c.prevPulse {
+			panic(throw.IllegalState())
+		}
+	}
+
+	if err := c.conveyor.CommitPulseChange(pulseRange, change.StartedAt); err != nil {
+		panic(throw.WithStack(err))
+	}
+	c.prevPulse = change.PulseNumber
+}
+
+type DispatchedMessage struct {
+	MessageMeta message.Metadata
+	PayloadMeta payload.Meta
 }
 
 func (c *conveyorDispatcher) Process(msg *message.Message) error {
 	msg.Ack()
-	_, pl, err := rms.Unmarshal(msg.Payload)
-	if err != nil {
+	dm := DispatchedMessage{ MessageMeta: msg.Metadata }
+
+	if err := rms.UnmarshalAs(msg.Payload, &dm.PayloadMeta, nil); err != nil {
 		return throw.W(err, "failed to unmarshal payload.Meta")
 	}
-	plMeta, ok := pl.(*payload.Meta)
-	if !ok {
-		return throw.E("unexpected type", errUnknownPayload{ExpectedType: "payload.Meta", GotType: pl})
-	}
-
-	return c.conveyor.AddInput(c.ctx, plMeta.Pulse, &DispatcherMessage{
-		MessageMeta: msg.Metadata,
-		PayloadMeta: plMeta,
-	})
+	return c.conveyor.AddInput(c.ctx, dm.PayloadMeta.Pulse, dm)
 }
 
-func NewConveyorDispatcher(ctx context.Context, conveyor *conveyor.PulseConveyor) dispatcher.Dispatcher {
+func NewConveyorDispatcher(ctx context.Context, conveyor *conveyor.PulseConveyor) beat.Dispatcher {
 	return &conveyorDispatcher{ ctx: ctx, conveyor: conveyor}
 }

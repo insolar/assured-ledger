@@ -7,11 +7,12 @@ package nodenetwork
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"sync"
 
-	node2 "github.com/insolar/assured-ledger/ledger-core/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/log/global"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/storage"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 
@@ -22,7 +23,7 @@ import (
 
 	"go.opencensus.io/stats"
 
-	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/network"
@@ -30,28 +31,29 @@ import (
 )
 
 // NewNodeNetwork create active node component
-func NewNodeNetwork(configuration configuration.Transport, certificate node2.Certificate) (network.NodeNetwork, error) { // nolint:staticcheck
+func NewNodeNetwork(configuration configuration.Transport, certificate nodeinfo.Certificate) (network.NodeNetwork, error) { // nolint:staticcheck
 	origin, err := createOrigin(configuration, certificate)
 	if err != nil {
-		return nil, errors.W(err, "Failed to create origin node")
+		return nil, throw.W(err, "Failed to create origin node")
 	}
 	nodeKeeper := NewNodeKeeper(origin)
 	if !network.OriginIsDiscovery(certificate) {
-		origin.(node.MutableNode).SetState(node2.Joining)
+		origin.(node.MutableNode).SetState(nodeinfo.Joining)
 	}
 	return nodeKeeper, nil
 }
 
-func createOrigin(configuration configuration.Transport, certificate node2.Certificate) (node2.NetworkNode, error) {
+func createOrigin(configuration configuration.Transport, certificate nodeinfo.Certificate) (nodeinfo.NetworkNode, error) {
 	publicAddress, err := resolveAddress(configuration)
 	if err != nil {
-		return nil, errors.W(err, "Failed to resolve public address")
+		return nil, throw.W(err, "Failed to resolve public address")
 	}
 
 	role := certificate.GetRole()
-	if role == node2.StaticRoleUnknown {
-		global.Info("[ createOrigin ] Use insolar.StaticRoleLightMaterial, since no role in certificate")
-		role = node2.StaticRoleLightMaterial
+	if role == member.PrimaryRoleUnknown {
+		panic(throw.IllegalValue())
+		// global.Info("[ createOrigin ] Use role LightMaterial, since no role in certificate")
+		// role = member.PrimaryRoleLightMaterial
 	}
 
 	return node.NewNode(
@@ -76,46 +78,47 @@ func resolveAddress(configuration configuration.Transport) (string, error) {
 }
 
 // NewNodeKeeper create new NodeKeeper
-func NewNodeKeeper(origin node2.NetworkNode) network.NodeKeeper {
+func NewNodeKeeper(origin nodeinfo.NetworkNode) network.NodeKeeper {
 	nk := &nodekeeper{
 		origin:          origin,
-		syncNodes:       make([]node2.NetworkNode, 0),
-		SnapshotStorage: storage.NewMemoryStorage(),
+		snapshotStorage: storage.NewMemoryStorage(),
 	}
 	return nk
 }
 
 type nodekeeper struct {
-	origin node2.NetworkNode
+	origin nodeinfo.NetworkNode
 
 	syncLock  sync.RWMutex
-	syncNodes []node2.NetworkNode
+	syncNodes []nodeinfo.NetworkNode
 
-	SnapshotStorage storage.SnapshotStorage
+	snapshotStorage *storage.MemoryStorage
 }
 
-func (nk *nodekeeper) SetInitialSnapshot(nodes []node2.NetworkNode) {
+func (nk *nodekeeper) SetInitialSnapshot(nodes []nodeinfo.NetworkNode) {
 	ctx := context.TODO()
-	nk.Sync(ctx, pulse.MinTimePulse, nodes)
+	nk.Sync(ctx, nodes)
+	nk.MoveSyncToActive(ctx, pulse.Unknown)
+	nk.Sync(ctx, nodes)
 	nk.MoveSyncToActive(ctx, pulse.MinTimePulse)
 }
 
 func (nk *nodekeeper) GetAccessor(pn pulse.Number) network.Accessor {
-	s, err := nk.SnapshotStorage.ForPulseNumber(pn)
+	s, err := nk.snapshotStorage.ForPulseNumber(pn)
 	if err != nil {
-		panic("GetAccessor(): " + err.Error())
+		panic(fmt.Sprintf("GetAccessor(%d): %s", pn, err.Error()))
 	}
 	return node.NewAccessor(s)
 }
 
-func (nk *nodekeeper) GetOrigin() node2.NetworkNode {
+func (nk *nodekeeper) GetOrigin() nodeinfo.NetworkNode {
 	nk.syncLock.RLock()
 	defer nk.syncLock.RUnlock()
 
 	return nk.origin
 }
 
-func (nk *nodekeeper) Sync(ctx context.Context, number pulse.Number, nodes []node2.NetworkNode) {
+func (nk *nodekeeper) Sync(ctx context.Context, nodes []nodeinfo.NetworkNode) {
 	nk.syncLock.Lock()
 	defer nk.syncLock.Unlock()
 
@@ -123,7 +126,7 @@ func (nk *nodekeeper) Sync(ctx context.Context, number pulse.Number, nodes []nod
 	nk.syncNodes = nodes
 }
 
-func (nk *nodekeeper) updateOrigin(power node2.Power, state node2.State) {
+func (nk *nodekeeper) updateOrigin(power nodeinfo.Power, state nodeinfo.State) {
 	nk.origin.(node.MutableNode).SetPower(power)
 	nk.origin.(node.MutableNode).SetState(state)
 }
@@ -133,7 +136,7 @@ func (nk *nodekeeper) MoveSyncToActive(ctx context.Context, number pulse.Number)
 	defer nk.syncLock.Unlock()
 
 	snapshot := node.NewSnapshot(number, nk.syncNodes)
-	err := nk.SnapshotStorage.Append(number, snapshot)
+	err := nk.snapshotStorage.Append(snapshot)
 	if err != nil {
 		inslogger.FromContext(ctx).Panic("MoveSyncToActive(): ", err.Error())
 	}

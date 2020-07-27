@@ -14,7 +14,8 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 )
 
@@ -37,7 +38,7 @@ func newDiscovery() (*BootstrapNode, cryptography.Service) {
 	pk, _ := cs.GetPublicKey()
 	pubKeyBuf, _ := kp.ExportPublicKeyPEM(pk)
 	ref := gen.UniqueGlobalRef().String()
-	n := NewBootstrapNode(pk, string(pubKeyBuf), " ", ref, node.StaticRoleVirtual.String())
+	n := NewBootstrapNode(pk, string(pubKeyBuf), " ", ref, member.PrimaryRoleVirtual.String())
 	return n, cs
 }
 
@@ -54,7 +55,7 @@ func TestSignAndVerifyCertificate(t *testing.T) {
 	cert := &Certificate{}
 	cert.PublicKey = string(publicKey[:])
 	cert.Reference = gen.UniqueGlobalRef().String()
-	cert.Role = node.StaticRoleHeavyMaterial.String()
+	cert.Role = member.PrimaryRoleHeavyMaterial.String()
 	cert.MinRoles.HeavyMaterial = 1
 	cert.MinRoles.Virtual = 4
 
@@ -72,16 +73,16 @@ func TestSignAndVerifyCertificate(t *testing.T) {
 
 	otherDiscovery, otherDiscoveryCS := newDiscovery()
 
-	valid, err := VerifyAuthorizationCertificate(otherDiscoveryCS, []node.DiscoveryNode{discovery}, cert2)
+	valid, err := VerifyAuthorizationCertificate(otherDiscoveryCS, []nodeinfo.DiscoveryNode{discovery}, cert2)
 	require.NoError(t, err)
 	require.True(t, valid)
 
 	// bad cases
-	valid, err = VerifyAuthorizationCertificate(otherDiscoveryCS, []node.DiscoveryNode{discovery, otherDiscovery}, cert2)
+	valid, err = VerifyAuthorizationCertificate(otherDiscoveryCS, []nodeinfo.DiscoveryNode{discovery, otherDiscovery}, cert2)
 	require.NoError(t, err)
 	require.False(t, valid)
 
-	valid, err = VerifyAuthorizationCertificate(otherDiscoveryCS, []node.DiscoveryNode{otherDiscovery}, cert2)
+	valid, err = VerifyAuthorizationCertificate(otherDiscoveryCS, []nodeinfo.DiscoveryNode{otherDiscovery}, cert2)
 	require.NoError(t, err)
 	require.False(t, valid)
 }

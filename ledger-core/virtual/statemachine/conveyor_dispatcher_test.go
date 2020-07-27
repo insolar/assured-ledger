@@ -13,9 +13,9 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/stretchr/testify/require"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/dispatcher"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -30,7 +30,7 @@ var (
 	}
 )
 
-func newDispatcherWithConveyor(factoryFn conveyor.PulseEventFactoryFunc) dispatcher.Dispatcher {
+func newDispatcherWithConveyor(factoryFn conveyor.PulseEventFactoryFunc) beat.Dispatcher {
 	ctx := context.Background()
 	pulseConveyor := conveyor.NewPulseConveyor(ctx, conveyor.PulseConveyorConfig{
 		ConveyorMachineConfig: machineConfig,

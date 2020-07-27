@@ -17,9 +17,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodestorage"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor/memstor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/logwatermill"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
@@ -38,10 +37,6 @@ type bootstrapComponents struct {
 }
 
 type headlessLR struct{}
-
-func (h *headlessLR) OnPulse(context.Context, pulsestor.Pulse, pulsestor.Pulse) error {
-	return nil
-}
 
 func (h *headlessLR) LRI() {}
 
@@ -93,7 +88,7 @@ func initComponents(
 	pcs cryptography.PlatformCryptographyScheme,
 	keyStore cryptography.KeyStore,
 	keyProcessor cryptography.KeyProcessor,
-	certManager node.CertificateManager,
+	certManager nodeinfo.CertificateManager,
 
 ) *component.Manager {
 	cm := component.NewManager(nil)
@@ -116,7 +111,7 @@ func initComponents(
 
 	metricsComp := metrics.NewMetrics(cfg.Metrics, metrics.GetInsolarRegistry("virtual"), "virtual")
 
-	pulses := pulsestor.NewStorageMem()
+	pulses := memstor.NewStorageMem()
 
 	availabilityChecker := api.NewNetworkChecker(cfg.AvailabilityChecker)
 
@@ -139,7 +134,6 @@ func initComponents(
 	components := []interface{}{
 		publisher,
 		pulses,
-		nodestorage.NewStorage(),
 	}
 	components = append(components, []interface{}{
 		metricsComp,

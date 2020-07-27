@@ -15,8 +15,8 @@ func TestStandardEntropyGenerator_GenerateEntropy_EntropySize(t *testing.T) {
 
 	first := generator.GenerateEntropy()
 
-	if len(first) != 64 {
-		t.Errorf("Length of entropy should be equal to 64, got %v", len(first))
+	if len(first) != 32 {
+		t.Errorf("Length of entropy should be equal to 32, got %v", len(first))
 	}
 }
 

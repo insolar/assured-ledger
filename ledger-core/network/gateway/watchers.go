@@ -10,17 +10,16 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 )
 
-func pulseProcessingWatchdog(ctx context.Context, gateway *Base, pulse pulsestor.Pulse, done chan struct{}) {
+func pulseProcessingWatchdog(ctx context.Context, gateway *Base, pulse network.NetworkedPulse, done chan struct{}) {
 	logger := inslogger.FromContext(ctx)
 
 	go func() {
 		select {
-		case <-time.After(time.Second * time.Duration(pulse.NextPulseNumber-pulse.PulseNumber)):
+		case <-time.After(time.Second * time.Duration(pulse.NextPulseDelta)):
 			gateway.FailState(ctx, fmt.Sprintf("Node stopped due to long pulse processing, pulse:%v", pulse.PulseNumber))
 		case <-done:
 			logger.Debug("Resetting pulse processing watchdog")

@@ -3,11 +3,13 @@ syntax = "proto3";
 package packet;
 
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
-import "github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor/pulse.proto";
+import "github.com/insolar/assured-ledger/ledger-core/rms/proto_legacy.proto";
 import "github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters/candidate/profile.proto";
 
 option (gogoproto.goproto_getters_all) = false;
 option (gogoproto.populate_all) = false;
+option (gogoproto.sizer_all) = false;
+option (gogoproto.protosizer_all) = true;
 
 message Packet {
     int32 polymorph = 16;
@@ -58,7 +60,7 @@ message RPCRequest {
 }
 
 message PulseRequest {
-    pulsestor.PulseProto Pulse = 1;
+    rms.PulseProto Pulse = 1;
 }
 
 message UpdateScheduleRequest {
@@ -73,7 +75,6 @@ message ReconnectRequest {
 
 message BootstrapRequest {
     candidate.Profile CandidateProfile = 2 [(gogoproto.nullable) = false];
-    pulsestor.PulseProto Pulse = 3 [(gogoproto.nullable) = false];
     Permit Permit = 4;
 }
 
@@ -120,7 +121,6 @@ message PermitPayload {
 message BootstrapResponse {
     BootstrapResponseCode Code = 1;
     uint32 ETASeconds = 2;
-    pulsestor.PulseProto Pulse = 3 [(gogoproto.nullable) = false];
 }
 
 message BasicResponse {
@@ -141,7 +141,7 @@ message AuthorizeResponse {
     string Error = 3;
     Permit Permit = 4;
     uint32 DiscoveryCount = 5;
-    pulsestor.PulseProto Pulse = 6;
+//    rms.PulseProto PulseNumber = 6 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/pulse.Number", (gogoproto.nullable) = false];
 }
 
 message SignCertResponse {

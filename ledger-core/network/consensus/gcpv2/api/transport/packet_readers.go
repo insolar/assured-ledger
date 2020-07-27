@@ -151,7 +151,6 @@ type BriefIntroductionReader interface {
 }
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/transport.FullIntroductionReader -o . -s _mock.go -g
-//go:generate goimports -w ./full_introduction_reader_mock.go
 
 type FullIntroductionReader interface {
 	profiles.CandidateProfile
