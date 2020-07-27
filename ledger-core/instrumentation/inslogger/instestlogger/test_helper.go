@@ -85,7 +85,7 @@ func newTestLoggerExt(target logcommon.TestingLogger, filterFn logcommon.ErrorFi
 
 	var out io.Writer
 	if !isQuiet {
-		out := l.GetOutput()
+		out = l.GetOutput()
 		switch l.GetFormat() {
 		case logcommon.JSONFormat:
 			if prettyPrintJSON {
