@@ -27,16 +27,15 @@ type conveyorDispatcher struct {
 var _ beat.Dispatcher = &conveyorDispatcher{}
 
 func (c *conveyorDispatcher) PrepareBeat(sink beat.Ack) {
-	stateChan := sink.Acquire()
+	stateFn := sink.Acquire()
 
 	if c.prevPulse.IsUnknown() {
-		// TODO remove as handled by PulseManager
 		// Conveyor can't prepare without an initial pulse - there are no active SMs inside
-		stateChan <- beat.AckData{}
+		stateFn(beat.AckData{})
 		return
 	}
 
-	if err := c.conveyor.PreparePulseChange(stateChan); err != nil {
+	if err := c.conveyor.PreparePulseChange(stateFn); err != nil {
 		panic(throw.WithStack(err))
 	}
 }

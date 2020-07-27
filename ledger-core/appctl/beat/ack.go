@@ -16,12 +16,12 @@ type AckData struct {
 	api.UpstreamState
 }
 
-type AckChan = chan<- AckData
+type AckFunc = func(AckData)
 
-func NewAck(ch chan AckData) (Ack, func(ack bool)) {
+func NewAck(fn AckFunc) (Ack, func(ack bool)) {
 	sink := &ackSink{
 		ready: make(synckit.ClosableSignalChannel),
-		report: ch,
+		report: fn,
 	}
 	return Ack{sink}, sink.setAck
 }
@@ -34,11 +34,11 @@ func (v Ack) IsZero() bool {
 	return v.ctl == nil
 }
 
-func (v Ack) Acquire() AckChan {
+func (v Ack) Acquire() AckFunc {
 	if !v.ctl.state.CompareAndSetBits(0, sinkStateAck, sinkStateAcquired) {
 		panic(throw.IllegalState())
 	}
-	return v.ctl.report
+	return v.ctl.doReport
 }
 
 func (v Ack) DoneChan() synckit.SignalChannel {
@@ -46,8 +46,7 @@ func (v Ack) DoneChan() synckit.SignalChannel {
 }
 
 func (v Ack) IsDone() (isDone, isAck bool) {
-	state := v.ctl.state.Load()
-	return state&sinkStateDone != 0, state&sinkStateAck != 0
+	return v.ctl.isDone()
 }
 
 const (
@@ -59,16 +58,32 @@ const (
 type ackSink struct {
 	ready synckit.ClosableSignalChannel
 	state atomickit.Uint32
-	report chan AckData
+	report AckFunc
 }
 
 func (p *ackSink) setAck(ack bool) {
+	p._setAck(ack)
+}
+
+func (p *ackSink) _setAck(ack bool) bool {
 	state := sinkStateDone
 	if ack {
 		state |= sinkStateAck
 	}
 	if !p.state.TrySetBits(state, true) {
-		panic(throw.IllegalState())
+		return false
 	}
 	close(p.ready)
+	return true
+}
+
+func (p *ackSink) isDone() (isDone, isAck bool) {
+	state := p.state.Load()
+	return state&sinkStateDone != 0, state&sinkStateAck != 0
+}
+
+func (p *ackSink) doReport(data AckData) {
+	if p._setAck(true) {
+		p.report(data)
+	}
 }

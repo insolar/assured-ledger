@@ -43,10 +43,10 @@ type EventInputer interface {
 }
 
 type PreparedState = beat.AckData
-type PreparePulseChangeChannel = chan<- PreparedState
+type PreparePulseChangeFunc = func(PreparedState)
 
 type PulseChanger interface {
-	PreparePulseChange(out PreparePulseChangeChannel) error
+	PreparePulseChange(out PreparePulseChangeFunc) error
 	CancelPulseChange() error
 	CommitPulseChange(pr pulse.Range) error
 }
@@ -416,7 +416,7 @@ func (p *PulseConveyor) sendSignal(fn smachine.MachineCallFunc) error {
 	return <-result
 }
 
-func (p *PulseConveyor) PreparePulseChange(out PreparePulseChangeChannel) error {
+func (p *PulseConveyor) PreparePulseChange(out PreparePulseChangeFunc) error {
 	return p.sendSignal(func(ctx smachine.MachineCallContext) {
 		if p.presentMachine == nil {
 			// wrong - first pulse can only be committed but not prepared

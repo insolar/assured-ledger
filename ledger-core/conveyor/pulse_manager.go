@@ -151,7 +151,7 @@ func (p *PulseDataManager) isPreparingPulse() bool {
 	return atomic.LoadUint32(&p.preparingPulseFlag) != 0
 }
 
-func (p *PulseDataManager) setPreparingPulse(_ PreparePulseChangeChannel) {
+func (p *PulseDataManager) setPreparingPulse(_ PreparePulseChangeFunc) {
 	atomic.StoreUint32(&p.preparingPulseFlag, 1)
 }
 

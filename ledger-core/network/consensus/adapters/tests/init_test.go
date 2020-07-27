@@ -395,7 +395,7 @@ func (ng *nshGen) RequestNodeState(fn adapters.NodeStateFunc) {
 	nshBytes := longbits.Bits512{}
 	rand.Read(nshBytes[:])
 
-	fn(cryptkit.NewDigest(nshBytes, "random"))
+	fn(api.UpstreamState{NodeState: cryptkit.NewDigest(nshBytes, "random")})
 }
 
 func (ng *nshGen) CancelNodeState() {}

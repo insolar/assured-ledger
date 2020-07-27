@@ -24,8 +24,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
-	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/network/controller"
@@ -234,7 +234,7 @@ func TestSendMessageHandler(t *testing.T) {
 type stater struct{}
 
 func (s *stater) RequestNodeState(fn adapters.NodeStateFunc) {
-	fn(cryptkit.Digest{})
+	fn(api.UpstreamState{})
 }
 
 func (s *stater) CancelNodeState() {}

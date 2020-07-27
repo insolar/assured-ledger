@@ -54,8 +54,8 @@ func (m *PulseManager) CommitPulseChange(pulseChange beat.Beat) error {
 	if ackFn := m.ackFn; ackFn != nil {
 		m.ackFn = nil
 		ackFn(true)
-	} else {
-		panic(throw.IllegalState())
+	// } else {
+	// 	panic(throw.IllegalState())
 	}
 
 	ctx := context.Background()
@@ -77,7 +77,10 @@ func (m *PulseManager) RequestNodeState(stateFunc adapters.NodeStateFunc) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
-	sink, ackFn := beat.NewAck(make(chan beat.AckData, 1))
+	sink, ackFn := beat.NewAck(func(data beat.AckData) {
+		stateFunc(data.UpstreamState)
+	})
+
 	for _, d := range m.dispatchers {
 		d.PrepareBeat(sink)
 	}

@@ -102,7 +102,7 @@ type consensusProxy struct {
 func (p consensusProxy) RequestNodeState(fn adapters.NodeStateFunc) {
 	nshBytes := longbits.Bits512{}
 	_, _ = rand.Read(nshBytes[:])
-	fn(cryptkit.NewDigest(nshBytes, "random"))
+	fn(api.UpstreamState{NodeState: cryptkit.NewDigest(nshBytes, "random")})
 }
 
 func (p consensusProxy) CancelNodeState() {}

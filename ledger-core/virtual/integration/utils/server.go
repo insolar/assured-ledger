@@ -25,10 +25,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles"
-	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/proofs"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/censusimpl"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -271,7 +271,7 @@ func (s *Server) GetPrevPulse() beat.Beat {
 func (s *Server) incrementPulse() {
 	s.pulseGenerator.Generate()
 
-	s.pulseManager.RequestNodeState(func(proofs.NodeStateHash) {})
+	s.pulseManager.RequestNodeState(func(api.UpstreamState) {})
 
 	pc := s.GetPulse()
 	if err := s.pulseStorage.Append(context.Background(), pc); err != nil {

@@ -16,13 +16,12 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
-	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/proofs"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-type NodeStateFunc = func(proofs.NodeStateHash)
+type NodeStateFunc = func(api.UpstreamState)
 
 type NodeStater interface {
 	RequestNodeState(NodeStateFunc)
@@ -106,14 +105,11 @@ func (u *UpstreamController) ConsensusAborted() {
 }
 
 func (u *UpstreamController) PreparePulseChange(_ api.UpstreamReport, ch chan<- api.UpstreamState) {
-	u.stateGetter.RequestNodeState(func(nsh proofs.NodeStateHash) {
-		if nsh.FixedByteSize() != 64 {
+	u.stateGetter.RequestNodeState(func(state api.UpstreamState) {
+		if state.NodeState.FixedByteSize() != 64 {
 			panic(throw.IllegalState())
 		}
-
-		ch <- api.UpstreamState{
-			NodeState: nsh,
-		}
+		ch <- state
 	})
 }
 
