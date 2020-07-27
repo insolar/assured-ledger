@@ -16,6 +16,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
@@ -216,7 +217,7 @@ func (g *Base) StartConsensus(ctx context.Context) error {
 }
 
 // ChangeBeat process pulse from Consensus
-func (g *Base) ChangeBeat(ctx context.Context, b beat.Beat) {
+func (g *Base) ChangeBeat(ctx context.Context, report api.UpstreamReport, b beat.Beat) {
 	g.Gatewayer.Gateway().OnPulseFromConsensus(ctx, b)
 }
 

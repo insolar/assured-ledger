@@ -11,6 +11,7 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/proofs"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
 
@@ -27,4 +28,9 @@ type Beat struct {
 
 func (v Beat) IsZero() bool {
 	return v.Data.IsEmpty()
+}
+
+type Feedback struct {
+	BeatSeq uint32
+	NodeState proofs.NodeStateHash
 }

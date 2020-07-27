@@ -18,9 +18,12 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/common/endpoints"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/serialization"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 )
 
 // EnsureGetPulse checks if NodeKeeper got list for pulseNumber
@@ -96,14 +99,16 @@ type consensusProxy struct {
 	Gatewayer network.Gatewayer
 }
 
-func (p consensusProxy) State() []byte {
-	nshBytes := make([]byte, 64)
-	_, _ = rand.Read(nshBytes)
-	return nshBytes
+func (p consensusProxy) GetNodeState(fn adapters.NodeStateFunc) {
+	nshBytes := longbits.Bits512{}
+	_, _ = rand.Read(nshBytes[:])
+	fn(cryptkit.NewDigest(nshBytes, "random"))
 }
 
-func (p *consensusProxy) ChangeBeat(ctx context.Context, newPulse beat.Beat) {
-	p.Gatewayer.Gateway().(adapters.BeatChanger).ChangeBeat(ctx, newPulse)
+func (p consensusProxy) CancelNodeState() {}
+
+func (p *consensusProxy) ChangeBeat(ctx context.Context, report api.UpstreamReport, newPulse beat.Beat) {
+	p.Gatewayer.Gateway().(adapters.BeatChanger).ChangeBeat(ctx, report, newPulse)
 }
 
 func (p *consensusProxy) UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes []nodeinfo.NetworkNode, cloudStateHash []byte) {

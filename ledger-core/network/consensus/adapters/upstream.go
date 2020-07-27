@@ -16,17 +16,21 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/proofs"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
-	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-type StateGetter interface {
-	State() []byte
+type NodeStateFunc = func(proofs.NodeStateHash)
+
+type NodeStater interface {
+	GetNodeState(NodeStateFunc)
+	CancelNodeState()
 }
 
 type BeatChanger interface {
-	ChangeBeat(context.Context, beat.Beat)
+	ChangeBeat(context.Context, api.UpstreamReport, beat.Beat)
 }
 
 type StateUpdater interface {
@@ -34,7 +38,7 @@ type StateUpdater interface {
 }
 
 type UpstreamController struct {
-	stateGetter  StateGetter
+	stateGetter  NodeStater
 	beatChanger  BeatChanger
 	stateUpdater StateUpdater
 
@@ -42,7 +46,7 @@ type UpstreamController struct {
 	onFinished network.OnConsensusFinished
 }
 
-func NewUpstreamPulseController(stateGetter StateGetter, pulseChanger BeatChanger, stateUpdater StateUpdater) *UpstreamController {
+func NewUpstreamPulseController(stateGetter NodeStater, pulseChanger BeatChanger, stateUpdater StateUpdater) *UpstreamController {
 	return &UpstreamController{
 		stateGetter:  stateGetter,
 		beatChanger:  pulseChanger,
@@ -103,14 +107,17 @@ func (u *UpstreamController) ConsensusAborted() {
 
 func (u *UpstreamController) PreparePulseChange(report api.UpstreamReport, ch chan<- api.UpstreamState) {
 	go awaitState(ch, u.stateGetter)
+
+	// ctx := ReportContext(report)
+	// u.beatChanger.PrepareBeat(ctx, report, ch)
 }
 
 func (u *UpstreamController) CommitPulseChange(report api.UpstreamReport, pulseData pulse.Data, activeCensus census.Operational) {
 	ctx := ReportContext(report)
 	online := activeCensus.GetOnlinePopulation()
 
-	u.beatChanger.ChangeBeat(ctx, beat.Beat{
-		BeatSeq:   0,
+	u.beatChanger.ChangeBeat(ctx, report, beat.Beat{
+		BeatSeq:   0, // TODO move into report?
 		Data:      pulseData,
 		StartedAt: time.Now(), // TODO get pulse start
 		Online:    online,
@@ -128,8 +135,15 @@ func (u *UpstreamController) SetOnFinished(f network.OnConsensusFinished) {
 	u.onFinished = f
 }
 
-func awaitState(c chan<- api.UpstreamState, stater StateGetter) {
-	c <- api.UpstreamState{
-		NodeState: cryptkit.NewDigest(longbits.NewBits512FromBytes(stater.State()), SHA3512Digest).AsDigestHolder(),
-	}
+func awaitState(c chan<- api.UpstreamState, stater NodeStater) {
+	stater.GetNodeState(func(nsh proofs.NodeStateHash) {
+		if nsh.FixedByteSize() != 64 {
+			panic(throw.IllegalState())
+		}
+
+		c <- api.UpstreamState{
+			NodeState: nsh,
+		}
+		// cryptkit.NewDigest(longbits.NewBits512FromBytes(stater.GetNodeState(nil)), SHA3512Digest).AsDigestHolder(),
+	})
 }
