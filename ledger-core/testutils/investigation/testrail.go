@@ -128,17 +128,18 @@ func LogCaseExt(target Testing, name string, skipDepth int) {
 	target.Cleanup(func() {
 		footer := header.ConstructFooter()
 
-		if target.Skipped() {
+		switch {
+		case target.Skipped():
 			footer.Status = "SKIP"
 
 			if skippedLink, present := skipList.Load(target.Name()); present {
 				footer.SkippedLink = skippedLink.(string)
 			}
-		} else if target.Failed() {
+		case target.Failed():
 			footer.Status = "FAIL"
-		} else if checkPanicInStack() {
+		case checkPanicInStack():
 			footer.Status = "FAIL"
-		} else {
+		default:
 			footer.Status = "PASS"
 		}
 
