@@ -51,12 +51,15 @@ type PulseChanger interface {
 	CommitPulseChange(pr pulse.Range) error
 }
 
+type PulseSlotPostMigrateFunc = func(smachine.SlotMachineHolder)
+
 type PulseConveyorConfig struct {
 	ConveyorMachineConfig             smachine.SlotMachineConfig
 	SlotMachineConfig                 smachine.SlotMachineConfig
 	EventlessSleep                    time.Duration
 	MinCachePulseAge, MaxPastPulseAge uint32
 	PulseDataService                  PulseDataServicePrepareFunc
+	PulseSlotMigration                PulseSlotPostMigrateFunc
 }
 
 func NewPulseConveyor(
@@ -85,7 +88,9 @@ func NewPulseConveyor(
 	// shared SlotId sequence
 	r.slotConfig.config.SlotIDGenerateFn = r.slotMachine.CopyConfig().SlotIDGenerateFn
 
-	r.pdm.init(config.MinCachePulseAge, config.MaxPastPulseAge, 1, config.PulseDataService)
+	r.pdm.initCache(config.MinCachePulseAge, config.MaxPastPulseAge, 1)
+	r.pdm.pulseDataAdapterFn = config.PulseDataService
+	r.pdm.pulseMigrateFn = config.PulseSlotMigration
 
 	return r
 }

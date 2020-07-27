@@ -9,7 +9,7 @@ package conveyor
 
 import (
 	"context"
-	"math/rand"
+	"crypto/rand"
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
@@ -194,6 +194,7 @@ func (p *PulseSlotMachine) onTerminate(smachine.TerminationData) {
 func (p *PulseSlotMachine) _runInnerMigrate(ctx smachine.MigrationContext) {
 	// TODO PLAT-23 ensure that p.innerWorker is stopped or detached
 	p.innerMachine.MigrateNested(ctx)
+	p.pulseSlot.postMigrate(p.innerMachine.AsHolder())
 }
 
 /* ------------- Future handlers --------------- */
