@@ -82,12 +82,11 @@ func (s *Slot) prepareSlotInit(creator *Slot, fn CreateFunc, sm StateMachine, de
 			// so we have to make sure, that migrate and scan counts
 			// are matched the time when init is executed, not when the slot was allocated
 
-			scanCount, migrateCount := s.machine.getScanAndMigrateCounts()
+			_, migrateCount := s.machine.getScanAndMigrateCounts()
 			if n := migrateCount - s.migrationCount; n > 0 {
 				s.runShadowMigrate(n)
 			}
 			s.migrationCount = migrateCount
-			s.lastWorkScan = uint8(scanCount)
 			return smInitFn(ctx)
 		}
 	case selfUpdate:
