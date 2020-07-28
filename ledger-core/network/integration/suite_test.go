@@ -9,6 +9,7 @@ import (
 	"context"
 	"crypto"
 	"fmt"
+	"math/rand"
 	"reflect"
 	"strconv"
 	"strings"
@@ -26,11 +27,14 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 
 	"github.com/stretchr/testify/require"
 
@@ -549,6 +553,11 @@ func (s *testSuite) preInitNode(node *networkNode) {
 	}
 
 	pulseManager := chorus.NewConductorMock(s.t)
+	pulseManager.RequestNodeStateMock.Set(func(fn chorus.NodeStateFunc) {
+		nshBytes := longbits.Bits512{}
+		_, _ = rand.Read(nshBytes[:])
+		fn(api.UpstreamState{NodeState: cryptkit.NewDigest(nshBytes, "random")})
+	})
 	pulseManager.CommitPulseChangeMock.Return(nil)
 	pulseManager.CommitFirstPulseChangeMock.Return(nil)
 

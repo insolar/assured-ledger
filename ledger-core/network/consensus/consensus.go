@@ -73,7 +73,7 @@ type Dep struct {
 	NodeKeeper        network.NodeKeeper
 	DatagramTransport transport.DatagramTransport
 
-	StateGetter         adapters.StateGetter
+	StateGetter         adapters.NodeStater
 	PulseChanger        adapters.BeatChanger
 	StateUpdater        adapters.StateUpdater
 	EphemeralController adapters.EphemeralController

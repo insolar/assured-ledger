@@ -43,13 +43,15 @@ type EventInputer interface {
 }
 
 type PreparedState = beat.AckData
-type PreparePulseChangeChannel = chan<- PreparedState
+type PreparePulseChangeFunc = func(PreparedState)
 
 type PulseChanger interface {
-	PreparePulseChange(out PreparePulseChangeChannel) error
+	PreparePulseChange(out PreparePulseChangeFunc) error
 	CancelPulseChange() error
 	CommitPulseChange(pr pulse.Range) error
 }
+
+type PulseSlotPostMigrateFunc = func(smachine.SlotMachineHolder)
 
 type PulseConveyorConfig struct {
 	ConveyorMachineConfig             smachine.SlotMachineConfig
@@ -57,6 +59,7 @@ type PulseConveyorConfig struct {
 	EventlessSleep                    time.Duration
 	MinCachePulseAge, MaxPastPulseAge uint32
 	PulseDataService                  PulseDataServicePrepareFunc
+	PulseSlotMigration                PulseSlotPostMigrateFunc
 }
 
 func NewPulseConveyor(
@@ -85,7 +88,9 @@ func NewPulseConveyor(
 	// shared SlotId sequence
 	r.slotConfig.config.SlotIDGenerateFn = r.slotMachine.CopyConfig().SlotIDGenerateFn
 
-	r.pdm.init(config.MinCachePulseAge, config.MaxPastPulseAge, 1, config.PulseDataService)
+	r.pdm.initCache(config.MinCachePulseAge, config.MaxPastPulseAge, 1)
+	r.pdm.pulseDataAdapterFn = config.PulseDataService
+	r.pdm.pulseMigrateFn = config.PulseSlotMigration
 
 	return r
 }
@@ -416,7 +421,7 @@ func (p *PulseConveyor) sendSignal(fn smachine.MachineCallFunc) error {
 	return <-result
 }
 
-func (p *PulseConveyor) PreparePulseChange(out PreparePulseChangeChannel) error {
+func (p *PulseConveyor) PreparePulseChange(out PreparePulseChangeFunc) error {
 	return p.sendSignal(func(ctx smachine.MachineCallContext) {
 		if p.presentMachine == nil {
 			// wrong - first pulse can only be committed but not prepared
