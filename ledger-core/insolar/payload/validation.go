@@ -51,8 +51,7 @@ func (m *VStateReport) Validate(currPulse PulseNumber) error {
 		if err := validateEmptyStatus(m, currPulse); err != nil {
 			return err
 		}
-	case Missing:
-	case Inactive:
+	case Missing, Inactive:
 		if err := validateZeroPending(m); err != nil {
 			return err
 		}
@@ -142,6 +141,10 @@ func validateEmptyState(m *VStateReport) error {
 		return throw.New("ProvidedContent.LatestDirtyState should be empty")
 	case content.GetLatestDirtyCode() != nil:
 		return throw.New("ProvidedContent.LatestDirtyCode should be empty")
+	case len(content.GetOrderedQueue()) != 0:
+		return throw.New("ProvidedContent.OrderedQueue should be empty")
+	case len(content.GetUnorderedQueue()) != 0:
+		return throw.New("ProvidedContent.UnorderedQueue should be empty")
 	}
 
 	return nil
