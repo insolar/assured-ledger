@@ -8,9 +8,9 @@ package gateway
 import (
 	"bytes"
 	"context"
-	"crypto/rand"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
@@ -18,6 +18,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/common/endpoints"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/serialization"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -96,16 +97,18 @@ type consensusProxy struct {
 	Gatewayer network.Gatewayer
 }
 
-func (p consensusProxy) State() []byte {
-	nshBytes := make([]byte, 64)
-	_, _ = rand.Read(nshBytes)
-	return nshBytes
+func (p consensusProxy) RequestNodeState(fn chorus.NodeStateFunc) {
+	p.Gatewayer.Gateway().RequestNodeState(fn)
 }
 
-func (p *consensusProxy) ChangeBeat(ctx context.Context, newPulse beat.Beat) {
-	p.Gatewayer.Gateway().(adapters.BeatChanger).ChangeBeat(ctx, newPulse)
+func (p consensusProxy) CancelNodeState() {
+	p.Gatewayer.Gateway().CancelNodeState()
 }
 
-func (p *consensusProxy) UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes []nodeinfo.NetworkNode, cloudStateHash []byte) {
-	p.Gatewayer.Gateway().(adapters.StateUpdater).UpdateState(ctx, pulseNumber, nodes, cloudStateHash)
+func (p consensusProxy) ChangeBeat(ctx context.Context, _ api.UpstreamReport, newPulse beat.Beat) {
+	p.Gatewayer.Gateway().OnPulseFromConsensus(ctx, newPulse)
+}
+
+func (p consensusProxy) UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes []nodeinfo.NetworkNode, cloudStateHash []byte) {
+	p.Gatewayer.Gateway().UpdateState(ctx, pulseNumber, nodes, cloudStateHash)
 }

@@ -18,10 +18,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/shareddata"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callsummary"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object/finalizedstate"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/shareddata"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
 )
 

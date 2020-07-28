@@ -60,7 +60,6 @@ func TestNodeConnectInvalidVersion(t *testing.T) {
 }
 
 func TestNodeLeave(t *testing.T) {
-	// t.Skip("FIXME - may cause os.Exit")
 	s := startNetworkSuite(t)
 	defer s.stopNetworkSuite()
 

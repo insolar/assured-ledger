@@ -23,6 +23,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
@@ -231,9 +232,11 @@ func TestSendMessageHandler(t *testing.T) {
 
 type stater struct{}
 
-func (s *stater) State() []byte {
-	return []byte("123")
+func (s *stater) RequestNodeState(fn chorus.NodeStateFunc) {
+	fn(api.UpstreamState{})
 }
+
+func (s *stater) CancelNodeState() {}
 
 func TestServiceNetwork_StartStop(t *testing.T) {
 	t.Skip("fixme")

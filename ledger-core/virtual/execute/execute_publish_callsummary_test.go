@@ -9,6 +9,8 @@ import (
 	"testing"
 
 	"github.com/gojuno/minimock/v3"
+	"github.com/stretchr/testify/require"
+
 	"github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
@@ -20,11 +22,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/shareddata"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callsummary"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/shareddata"
-	"github.com/stretchr/testify/require"
 )
 
 func TestSMExecute_PublishVCallResultToCallSummarySM(t *testing.T) {
