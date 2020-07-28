@@ -132,7 +132,9 @@ func newHostSuite(t *testing.T) *hostSuite {
 	cm1 := component.NewManager(nil)
 	cm1.SetLogger(global.Logger())
 
-	f1 := transport.NewFactory(configuration.NewHostNetwork().Transport)
+	cfg1 := configuration.NewHostNetwork().Transport
+	cfg1.Address = "127.0.0.1:8088"
+	f1 := transport.NewFakeFactory(cfg1)
 	n1, err := NewHostNetwork(id1)
 	require.NoError(t, err)
 	cm1.Inject(f1, n1, resolver)
@@ -141,8 +143,8 @@ func newHostSuite(t *testing.T) *hostSuite {
 	cm2.SetLogger(global.Logger())
 
 	cfg2 := configuration.NewHostNetwork().Transport
-	// cfg2.Address = "127.0.0.1:8087"
-	f2 := transport.NewFactory(cfg2)
+	cfg2.Address = "127.0.0.1:8087"
+	f2 := transport.NewFakeFactory(cfg2)
 	n2, err := NewHostNetwork(id2)
 	require.NoError(t, err)
 	cm2.Inject(f2, n2, resolver)
