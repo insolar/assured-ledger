@@ -16,7 +16,7 @@ type Validate interface {
 var _ Validate = &VStateReport{}
 
 func (m *VStateReport) Validate(currPulse PulseNumber) error {
-	if err := validateUnimplemented(m); err != nil {
+	if err := m.validateUnimplemented(); err != nil {
 		return err
 	}
 
@@ -128,11 +128,9 @@ func validateZeroPending(m *VStateReport) error {
 }
 
 func validateEmptyState(m *VStateReport) error {
-	if m.ProvidedContent == nil {
-		return nil
-	}
-
 	switch content := m.ProvidedContent; {
+	case content == nil:
+		return nil
 	case content.GetLatestValidatedState() != nil:
 		return throw.New("ProvidedContent.LatestValidatedState should be empty")
 	case content.GetLatestValidatedCode() != nil:
@@ -165,7 +163,7 @@ func validateEmptyLatest(m *VStateReport) error {
 	return nil
 }
 
-func validateUnimplemented(m *VStateReport) error {
+func (m *VStateReport) validateUnimplemented() error {
 	switch {
 	case !m.GetDelegationSpec().IsZero():
 		return throw.New("DelegationSpec should be empty")
