@@ -81,7 +81,6 @@ func NewSlotMachine(config SlotMachineConfig,
 }
 
 var _ injector.DependencyRegistry = &SlotMachine{}
-var _ injector.ScanDependencyRegistry = &SlotMachine{}
 
 type SlotMachine struct {
 	config     SlotMachineConfig
@@ -180,27 +179,6 @@ func (m *SlotMachine) FindDependency(id string) (interface{}, bool) {
 		return m.parentRegistry.FindDependency(id)
 	}
 	return nil, false
-}
-
-func (m *SlotMachine) ScanDependencies(fn func(id string, v interface{}) bool) bool {
-	done := false
-	m.localRegistry.Range(func(key, value interface{}) bool {
-		if dk, ok := key.(dependencyKey); ok {
-			if fn(string(dk), value) {
-				done = true
-				return false
-			}
-		}
-		return true
-	})
-	if done {
-		return true
-	}
-
-	if scanner, ok := m.parentRegistry.(injector.ScanDependencyRegistry); ok {
-		return scanner.ScanDependencies(fn)
-	}
-	return false
 }
 
 func (m *SlotMachine) AddDependency(v interface{}) {
