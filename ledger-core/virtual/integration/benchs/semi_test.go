@@ -57,6 +57,7 @@ func BenchmarkOnWallets(b *testing.B) {
 		Arguments:      insolar.MustSerialize([]interface{}{}),
 	}
 
+	// create 1000 wallets to run get/set on them
 	for i := 0; i < 1000; i++ {
 		pl.CallOutgoing = server.BuildRandomOutgoingWithPulse()
 		msg := server.WrapPayload(&pl).Finalize()

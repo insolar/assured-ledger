@@ -23,6 +23,7 @@ func BenchmarkVCallRequestGetMethod(b *testing.B) {
 	convlog.DisableTextConvLog()
 	server, ctx := utils.NewServer(nil, b)
 	defer server.Stop()
+	prevPulse := server.GetPulse()
 	server.IncrementPulseAndWaitIdle(ctx)
 
 	var (
@@ -43,6 +44,7 @@ func BenchmarkVCallRequestGetMethod(b *testing.B) {
 	}
 
 	report := &payload.VStateReport{
+		AsOf:            prevPulse.GetPulseNumber(),
 		Status:          payload.Ready,
 		Object:          object,
 		ProvidedContent: content,
@@ -87,6 +89,7 @@ func BenchmarkVCallRequestAcceptMethod(b *testing.B) {
 	convlog.DisableTextConvLog()
 	server, ctx := utils.NewServer(nil, b)
 	defer server.Stop()
+	prevPulse := server.GetPulse()
 	server.IncrementPulseAndWaitIdle(ctx)
 
 	var (
@@ -107,6 +110,7 @@ func BenchmarkVCallRequestAcceptMethod(b *testing.B) {
 	}
 
 	report := &payload.VStateReport{
+		AsOf:            prevPulse.GetPulseNumber(),
 		Status:          payload.Ready,
 		Object:          object,
 		ProvidedContent: content,
@@ -186,6 +190,7 @@ func BenchmarkTestAPIGetBalance(b *testing.B) {
 	convlog.DisableTextConvLog()
 	server, ctx := utils.NewServer(nil, b)
 	defer server.Stop()
+	prevPulse := server.GetPulse()
 	server.IncrementPulseAndWaitIdle(ctx)
 
 	var (
@@ -206,6 +211,7 @@ func BenchmarkTestAPIGetBalance(b *testing.B) {
 	}
 
 	report := &payload.VStateReport{
+		AsOf:            prevPulse.GetPulseNumber(),
 		Status:          payload.Ready,
 		Object:          object,
 		ProvidedContent: content,
@@ -226,6 +232,7 @@ func BenchmarkTestAPIGetBalanceParallel(b *testing.B) {
 	convlog.DisableTextConvLog()
 	server, ctx := utils.NewServer(nil, b)
 	defer server.Stop()
+	prevPulse := server.GetPulse()
 	server.IncrementPulseAndWaitIdle(ctx)
 
 	var (
@@ -246,6 +253,7 @@ func BenchmarkTestAPIGetBalanceParallel(b *testing.B) {
 	}
 
 	report := &payload.VStateReport{
+		AsOf:            prevPulse.GetPulseNumber(),
 		Status:          payload.Ready,
 		Object:          object,
 		ProvidedContent: content,
