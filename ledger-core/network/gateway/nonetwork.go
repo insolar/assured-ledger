@@ -27,24 +27,6 @@ type NoNetwork struct {
 	*Base
 }
 
-func (g *NoNetwork) pause() time.Duration {
-	// todo: use synckit.Backoff
-	var sleep time.Duration
-	switch g.backoff {
-	case g.Options.MaxTimeout:
-		sleep = g.backoff
-	case 0:
-		g.backoff = g.Options.MinTimeout
-	default:
-		sleep = g.backoff
-		g.backoff *= g.Options.TimeoutMult
-		if g.backoff > g.Options.MaxTimeout {
-			g.backoff = g.Options.MaxTimeout
-		}
-	}
-	return sleep
-}
-
 func (g *NoNetwork) Run(ctx context.Context, pulse pulse.Data) {
 	cert := g.CertificateManager.GetCertificate()
 	origin := g.NodeKeeper.GetOrigin()
@@ -64,14 +46,14 @@ func (g *NoNetwork) Run(ctx context.Context, pulse pulse.Data) {
 
 	if g.isJoinAssistant {
 		// Reset backoff if not insolar.JoinerBootstrap.
-		g.backoff = 0
+		g.backoff.Reset()
 
 		g.bootstrapTimer = time.NewTimer(g.bootstrapETA)
 		g.Gatewayer.SwitchState(ctx, nodeinfo.WaitConsensus, pulse)
 		return
 	}
 
-	time.Sleep(g.pause())
+	time.Sleep(g.backoff.Duration())
 	if g.isDiscovery {
 		time.Sleep(time.Second * time.Duration(rand.Intn(20)))
 		g.Gatewayer.SwitchState(ctx, nodeinfo.DiscoveryBootstrap, pulse)
