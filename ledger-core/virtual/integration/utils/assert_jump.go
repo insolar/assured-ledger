@@ -6,7 +6,6 @@
 package utils
 
 import (
-	"log"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -22,7 +21,6 @@ func AssertNotJumpToStep(t *testing.T, j *journal.Journal, stepName string) {
 		if event.Update.UpdateType == "jump" {
 			convlog.PrepareStepName(&event.Update.NextStep)
 			name := event.Update.NextStep.GetStepName()
-			log.Println(name)
 			assert.NotContains(t, name, stepName, "SM should not jump to step: "+stepName)
 		}
 
