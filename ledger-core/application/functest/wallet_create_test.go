@@ -12,11 +12,14 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/insolar/assured-ledger/ledger-core/testutils/investigation"
 )
 
 // Creates wallets and check Reference format in response body.
 func TestWalletCreate(t *testing.T) {
-	t.Log("C4854")
+	investigation.LogCase(t, "C4854")
+
 	status := getStatus(t)
 	require.NotEqual(t, 0, status.WorkingListSize, "not enough nodes to run test")
 	count := 2 * status.WorkingListSize

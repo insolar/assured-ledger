@@ -94,7 +94,7 @@ jobs:
         if: always()
         run: |
           go get -v -u github.com/insolar/testrail-cli
-          cd testrail-cli && go install cmd/testrail-cli/testrail-cli.go
+          cd testrail-cli && go install cmd/testrail-assuredledger-cli/testrail-cli.go
         working-directory: ${{env.GOPATH}}/src/github.com/insolar
       - name: Publish integration tests results to testrail
         if: always()

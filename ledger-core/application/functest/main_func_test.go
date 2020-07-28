@@ -12,9 +12,19 @@ import (
 	"testing"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/testutils/launchnet"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 )
 
+type testingLogger struct{}
+
+func (t testingLogger) Helper()                {}
+func (t testingLogger) Log(i ...interface{})   {}
+func (t testingLogger) Error(i ...interface{}) {}
+func (t testingLogger) Fatal(i ...interface{}) {}
+
 func TestMain(m *testing.M) {
+	instestlogger.SetTestOutput(testingLogger{})
+
 	os.Exit(launchnet.Run(func() int {
 		return m.Run()
 	}))

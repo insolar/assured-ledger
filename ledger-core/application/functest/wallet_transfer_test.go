@@ -12,11 +12,14 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/insolar/assured-ledger/ledger-core/testutils/investigation"
 )
 
 // Creates wallets, calls /wallet/transfer and checks it's response body, also checks balances after transfer.
 func TestWalletTransfer(t *testing.T) {
-	t.Log("C4856")
+	investigation.LogCase(t, "C4856")
+
 	var transferAmount uint = 100
 
 	walletRefFrom, err := createSimpleWallet()
