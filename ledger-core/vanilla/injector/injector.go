@@ -6,7 +6,6 @@
 package injector
 
 import (
-	"fmt"
 	"reflect"
 	"strings"
 
@@ -47,27 +46,37 @@ func (u DependencyInjector) IsEmpty() bool {
 
 func (u DependencyInjector) MustInject(varRef interface{}) {
 	if err := u.Inject(varRef); err != nil {
-		panic(err)
+		panic(throw.WithStack(err))
 	}
 }
 
 func (u DependencyInjector) MustInjectByID(id string, varRef interface{}) {
 	if err := u.InjectByID(id, varRef); err != nil {
-		panic(err)
+		panic(throw.WithStack(err))
+	}
+}
+
+func (u DependencyInjector) MustInjectAny(varRef interface{}) {
+	if err := u.InjectAny(varRef); err != nil {
+		panic(throw.WithStack(err))
+	}
+}
+
+func (u DependencyInjector) MustInjectAll() {
+	if err := u.InjectAll(); err != nil {
+		panic(throw.WithStack(err))
 	}
 }
 
 func (u DependencyInjector) Inject(varRef interface{}) error {
-	_, err := u.tryInjectVar("", varRef)
-	return err
+	return u.tryInjectVar("", varRef)
 }
 
 func (u DependencyInjector) InjectByID(id string, varRef interface{}) error {
 	if id == "" {
 		panic(throw.IllegalValue())
 	}
-	_, err := u.tryInjectVar(id, varRef)
-	return err
+	return u.tryInjectVar(id, varRef)
 }
 
 func (u DependencyInjector) InjectAny(varRef interface{}) error {
@@ -75,6 +84,7 @@ func (u DependencyInjector) InjectAny(varRef interface{}) error {
 	return u.injectAny(nil, fv, fv.Type(), "", "")
 }
 
+//nolint:interfacer
 func (u DependencyInjector) injectAny(tt *lazyInjectName, fv reflect.Value, ft reflect.Type, id string, fieldName string) error {
 	switch isNillable, isSet := u.check(fv, ft); {
 	case isSet:
@@ -132,23 +142,29 @@ func (u DependencyInjector) InjectAll() error {
 	return nil
 }
 
-func (u DependencyInjector) tryInjectVar(id string, varRef interface{}) (bool, error) {
+func (u DependencyInjector) tryInjectVar(id string, varRef interface{}) error {
 	v := checkVarRef(varRef)
 	vt := v.Type()
 	isNillable, isSet := u.check(v, vt)
 
 	switch {
 	case isSet:
-		return true, fmt.Errorf("dependency is set: id=%s expectedType=%v", id, vt)
+		return throw.E("dependency is set", struct {
+			ExpectedType reflect.Type
+			ID string
+		} {vt, id})
 	case id != "":
 		if u.resolveNameAndSet(id, v, vt, isNillable) {
-			return true, nil
+			return nil
 		}
 	case u.resolveTypeAndSet(GetDefaultInjectionIDByType(vt), "", v, vt, isNillable):
-		return true, nil
+		return nil
 	}
 
-	return false, fmt.Errorf("dependency is missing: id=%s expectedType=%v", id, vt)
+	return throw.E("dependency is missing", struct {
+		ExpectedType reflect.Type
+		ID string
+	} {vt, id})
 }
 
 func checkVarRef(varRef interface{}) reflect.Value {
