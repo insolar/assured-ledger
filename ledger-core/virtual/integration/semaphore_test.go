@@ -19,7 +19,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
-	testutils2 "github.com/insolar/assured-ledger/ledger-core/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 )
@@ -116,7 +116,7 @@ func TestVirtual_SemaphoreLimitNotExceeded(t *testing.T) {
 
 	}
 
-	testutils2.WaitSignalsTimed(t, time.Second*10, typedChecker.VCallResult.Wait(ctx, numObject))
+	testutils.WaitSignalsTimed(t, time.Second*10, typedChecker.VCallResult.Wait(ctx, numObject))
 
 	mc.Finish()
 }

@@ -37,7 +37,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner"
 	"github.com/insolar/assured-ledger/ledger-core/runner/machine"
-	testutils2 "github.com/insolar/assured-ledger/ledger-core/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/journal"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/network"
@@ -67,7 +67,7 @@ type Server struct {
 	// testing components and Mocks
 	PublisherMock      *publisher.Mock
 	JetCoordinatorMock *affinity.HelperMock
-	pulseGenerator     *testutils2.PulseGenerator
+	pulseGenerator     *testutils.PulseGenerator
 	pulseStorage       *memstor.StorageMem
 	pulseManager       *insconveyor.PulseManager
 	Journal            *journal.Journal
@@ -159,7 +159,7 @@ func newServerExt(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFi
 	s.pulseManager = PulseManager
 	s.pulseStorage = Pulses
 	censusMock := createOneNodePopulationMock(t, s.caller)
-	s.pulseGenerator = testutils2.NewPulseGenerator(10, censusMock)
+	s.pulseGenerator = testutils.NewPulseGenerator(10, censusMock)
 	s.incrementPulse()
 
 	s.JetCoordinatorMock = affinity.NewHelperMock(t).

@@ -12,7 +12,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	testutils2 "github.com/insolar/assured-ledger/ledger-core/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
@@ -49,7 +49,7 @@ func BenchmarkVCallRequestGetMethod(b *testing.B) {
 
 	wait := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
 	server.SendPayload(ctx, report)
-	testutils2.WaitSignalsTimed(b, 10*time.Second, wait)
+	testutils.WaitSignalsTimed(b, 10*time.Second, wait)
 
 	resultSignal := make(synckit.ClosableSignalChannel, 1)
 
@@ -77,7 +77,7 @@ func BenchmarkVCallRequestGetMethod(b *testing.B) {
 
 		b.StartTimer()
 		server.SendMessage(ctx, msg)
-		testutils2.WaitSignalsTimed(b, 10*time.Second, resultSignal)
+		testutils.WaitSignalsTimed(b, 10*time.Second, resultSignal)
 		b.StopTimer()
 	}
 }
@@ -113,7 +113,7 @@ func BenchmarkTestAPIGetBalance(b *testing.B) {
 
 	wait := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
 	server.SendPayload(ctx, report)
-	testutils2.WaitSignalsTimed(b, 10*time.Second, wait)
+	testutils.WaitSignalsTimed(b, 10*time.Second, wait)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -153,7 +153,7 @@ func BenchmarkTestAPIGetBalanceParallel(b *testing.B) {
 
 	wait := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
 	server.SendPayload(ctx, report)
-	testutils2.WaitSignalsTimed(b, 10*time.Second, wait)
+	testutils.WaitSignalsTimed(b, 10*time.Second, wait)
 
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
