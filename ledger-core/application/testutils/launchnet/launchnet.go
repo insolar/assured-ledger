@@ -276,16 +276,13 @@ func startNet() error {
 		_ = os.Chdir(cwd)
 	}()
 
-	cmd = exec.Command("./scripts/insolard/launchnet.sh", "-gwp")
+	cmd = exec.Command("./scripts/insolard/launchnet.sh", "-pwdg")
 	stdout, _ = cmd.StdoutPipe()
 
 	stderr, err = cmd.StderrPipe()
 	if err != nil {
 		return errors.W(err, "[ startNet] could't set stderr: ")
 	}
-
-	cmd.Env = os.Environ()
-	cmd.Env = append(cmd.Env, `BUILD_TAGS=-tags "debug convlogtxt"`)
 
 	err = cmd.Start()
 	if err != nil {
