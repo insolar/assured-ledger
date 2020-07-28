@@ -98,6 +98,8 @@ func TestVirtual_Constructor_BadClassRef(t *testing.T) {
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
 
+	utils.AssertNotJumpToStep(t, server.Journal, "stepTakeLock")
+
 	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 2)
 
 	isolation := contract.ConstructorIsolation()
@@ -615,6 +617,8 @@ func TestVirtual_Constructor_WrongConstructorName(t *testing.T) {
 
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
+
+	utils.AssertNotJumpToStep(t, server.Journal, "stepTakeLock")
 
 	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 

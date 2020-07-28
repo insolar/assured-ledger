@@ -499,6 +499,8 @@ func TestVirtual_CallContractOutgoingReturnsError(t *testing.T) {
 	server, ctx := utils.NewUninitializedServer(nil, t)
 	defer server.Stop()
 
+	utils.AssertNotJumpToStep(t, server.Journal, "stepTakeLock")
+
 	logger := inslogger.FromContext(ctx)
 
 	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 2)
