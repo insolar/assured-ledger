@@ -6,7 +6,6 @@
 package managed
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
@@ -34,9 +33,9 @@ type ComponentWithPulse interface {
 }
 
 type Holder interface {
-	GetDataManager() *conveyor.PulseDataManager
+	GetDataManager() DataManager
 	AddManagedComponent(Component)
-	AddInputExt(pn pulse.Number, event conveyor.InputEvent, createDefaults smachine.CreateDefaultValues) error
+	AddInputExt(pn pulse.Number, event interface{}, createDefaults smachine.CreateDefaultValues) error
 	WakeUpWorker()
 
 	injector.DependencyContainer
@@ -44,4 +43,12 @@ type Holder interface {
 	AddInterfaceDependency(v interface{})
 
 	GetPublishedGlobalAliasAndBargeIn(key interface{}) (smachine.SlotLink, smachine.BargeInHolder)
+}
+
+type DataManager interface {
+	GetPresentPulse() (present pulse.Number, nearestFuture pulse.Number)
+	GetPrevPulseRange() (pulse.Number, pulse.Range)
+	GetPulseRange(pn pulse.Number) pulse.Range
+	HasPulseData(pn pulse.Number) bool
+	TouchPulseData(pn pulse.Number) bool
 }

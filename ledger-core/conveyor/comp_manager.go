@@ -98,7 +98,7 @@ type conveyorHolder struct {
 	c *PulseConveyor
 }
 
-func (v conveyorHolder) GetDataManager() *PulseDataManager {
+func (v conveyorHolder) GetDataManager() managed.DataManager {
 	return v.c.GetDataManager()
 }
 
