@@ -17,6 +17,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
@@ -77,7 +78,7 @@ type Base struct {
 	originCandidate *adapters.Candidate
 
 	// Next request backoff.
-	backoff time.Duration // nolint
+	backoff synckit.Backoff
 
 	pulseWatchdog *pulseWatchdog
 
@@ -129,6 +130,12 @@ func (g *Base) Init(ctx context.Context) error {
 	g.HostNetwork.RegisterRequestHandler(types.Reconnect, g.HandleReconnect)
 
 	g.bootstrapETA = g.Options.BootstrapTimeout
+
+	g.backoff = synckit.Backoff{
+		Min:    g.Options.MinTimeout,
+		Max:    g.Options.MaxTimeout,
+		Factor: float64(g.Options.TimeoutMult),
+	}
 
 	return g.initConsensus(ctx)
 }
