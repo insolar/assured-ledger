@@ -45,7 +45,7 @@ jobs:
           echo "::set-env name=INSOLAR_TAG::${GITHUB_SHA:0:8}"
           echo "::set-env name=INSOLAR_NETWORK_SIZE::aks-10node"
           echo "::set-env name=INSOLAR_NAMESPACE::${GITHUB_SHA:0:8}${GITHUB_RUN_ID}"
-          echo "::set-env name=INSOLAR_UPTIME::300"
+          echo "::set-env name=INSOLAR_UPTIME::3000"
       - name: copy docker auth secret
         run: |
           docker login $ACR_HOST --username ${{secrets.ACR_SP_ID}} --password ${{secrets.ACR_SP_SECRET}}
