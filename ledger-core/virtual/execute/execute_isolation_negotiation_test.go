@@ -24,6 +24,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 )
 
@@ -167,6 +168,9 @@ func Test_Execute_stepIsolationNegotiation(t *testing.T) {
 						Interference: tc.callIsolation.Interference,
 						State:        tc.callIsolation.State,
 					},
+					ObjectDescriptor: descriptor.NewObject(
+						reference.Global{}, reference.Local{}, smGlobalRef, []byte(""),
+					),
 				},
 				Payload:           request,
 				pulseSlot:         &pulseSlot,
