@@ -5,13 +5,6 @@
 
 package investigation
 
-// import (
-// 	"testing"
-// 	"time"
-//
-// 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
-// )
-//
 // func TestHappyPath(t *testing.T) {
 // 	instestlogger.TestContext(t)
 //

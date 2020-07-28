@@ -80,6 +80,38 @@ func getParentPackage(skipDepth int) string {
 	return name
 }
 
+func lastNotInternalPC() uintptr {
+	var lastNotInternalPC uintptr
+
+	for i := 0; ; i++ {
+		pc, file, _, ok := runtime.Caller(i)
+		if !ok {
+			return lastNotInternalPC
+		}
+		if strings.HasSuffix(file, "src/testing/testing.go") ||
+			strings.Contains(file, "src/runtime") {
+
+			continue
+		} else {
+			lastNotInternalPC = pc
+		}
+	}
+}
+
+func getTestingPackage() string {
+	pc := lastNotInternalPC()
+	if pc == 0 {
+		panic(throw.IllegalState())
+	}
+
+	name := runtime.FuncForPC(pc).Name()
+
+	name = trimLambdaSuffix(name)
+	name = trimFunctionName(name)
+
+	return name
+}
+
 func LogSkip(target Testing, jiraLink string) {
 	target.Helper()
 
@@ -111,17 +143,13 @@ type logCaseFooter struct {
 	SkippedLink string `opt:""`
 }
 
-func LogCaseExt(target Testing, name string, skipDepth int) {
+func LogCase(target Testing, name string) {
 	target.Helper()
-
-	if skipDepth < 0 {
-		panic(throw.IllegalValue())
-	}
 
 	header := logCaseHeader{
 		ID:          name,
 		TestName:    target.Name(),
-		TestPackage: getParentPackage(skipDepth),
+		TestPackage: getTestingPackage(),
 	}
 	global.Logger().Event(logcommon.NoLevel, header)
 
@@ -146,10 +174,4 @@ func LogCaseExt(target Testing, name string, skipDepth int) {
 		// this output will be made at end of the test, just before FAIL/PASS/SKIP mark
 		global.Logger().Event(logcommon.NoLevel, footer)
 	})
-}
-
-func LogCase(target Testing, name string) {
-	target.Helper()
-
-	LogCaseExt(target, name, 1)
 }
