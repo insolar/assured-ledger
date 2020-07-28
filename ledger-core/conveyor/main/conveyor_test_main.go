@@ -15,10 +15,10 @@ import (
 
 	conveyor2 "github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/convlog"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/convlog"
 )
 
 func noError(err error) {

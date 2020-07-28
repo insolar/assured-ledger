@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/keystore"
@@ -29,6 +30,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/common/endpoints"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/serialization"
@@ -38,6 +40,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/transport"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 )
 
 var (
@@ -383,23 +387,25 @@ type nshGen struct {
 	nshDelay time.Duration
 }
 
-func (ng *nshGen) State() []byte {
+func (ng *nshGen) RequestNodeState(fn chorus.NodeStateFunc) {
 	delay := ng.nshDelay
 	if delay != 0 {
 		time.Sleep(delay)
 	}
 
-	nshBytes := make([]byte, 64)
-	rand.Read(nshBytes)
+	nshBytes := longbits.Bits512{}
+	rand.Read(nshBytes[:])
 
-	return nshBytes
+	fn(api.UpstreamState{NodeState: cryptkit.NewDigest(nshBytes, "random")})
 }
+
+func (ng *nshGen) CancelNodeState() {}
 
 type pulseChanger struct {
 	nodeKeeper network.NodeKeeper
 }
 
-func (pc *pulseChanger) ChangeBeat(ctx context.Context, pulse beat.Beat) {
+func (pc *pulseChanger) ChangeBeat(ctx context.Context, report api.UpstreamReport, pulse beat.Beat) {
 	inslogger.FromContext(ctx).Info(">>>>>> Change pulse called")
 	pc.nodeKeeper.MoveSyncToActive(ctx, pulse.PulseNumber)
 }

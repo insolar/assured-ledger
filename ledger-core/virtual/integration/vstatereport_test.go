@@ -25,7 +25,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 )
 
 type stateReportCheckPendingCountersAndPulsesTestChecks struct {
@@ -381,7 +380,7 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) startNewPending(
 	}
 	s.addPayloadAndWaitIdle(ctx, &pl)
 
-	testutils.WaitSignalsTimed(t, 10*time.Second, inExecutor)
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, inExecutor)
 }
 
 func (s *stateReportCheckPendingCountersAndPulsesTest) releaseNewlyCreatedPendings() {
@@ -603,7 +602,7 @@ func TestVirtual_StateReport_AfterPendingConstructorHasFinished(t *testing.T) {
 			CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 		}
 		server.SendPayload(ctx, &delegatedRequest)
-		testutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VDelegatedCallResponse.Wait(ctx, 1))
+		commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VDelegatedCallResponse.Wait(ctx, 1))
 	}
 	{
 		finishedSignal := server.Journal.WaitStopOf(&handlers.SMVDelegatedRequestFinished{}, 1)
@@ -618,12 +617,12 @@ func TestVirtual_StateReport_AfterPendingConstructorHasFinished(t *testing.T) {
 			},
 		}
 		server.SendPayload(ctx, &finished)
-		testutils.WaitSignalsTimed(t, 10*time.Second, finishedSignal)
+		commontestutils.WaitSignalsTimed(t, 10*time.Second, finishedSignal)
 	}
 
 	server.IncrementPulseAndWaitIdle(ctx)
 
-	testutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 1))
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 1))
 
 	mc.Finish()
 }

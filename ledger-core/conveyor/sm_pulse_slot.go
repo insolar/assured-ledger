@@ -9,12 +9,17 @@ package conveyor
 
 import (
 	"context"
+	"crypto/rand"
 	"time"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/sworker"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -189,6 +194,7 @@ func (p *PulseSlotMachine) onTerminate(smachine.TerminationData) {
 func (p *PulseSlotMachine) _runInnerMigrate(ctx smachine.MigrationContext) {
 	// TODO PLAT-23 ensure that p.innerWorker is stopped or detached
 	p.innerMachine.MigrateNested(ctx)
+	p.pulseSlot.postMigrate(p.innerMachine.AsHolder())
 }
 
 /* ------------- Future handlers --------------- */
@@ -224,16 +230,24 @@ func (p *PulseSlotMachine) stepPresentLoop(ctx smachine.ExecutionContext) smachi
 }
 
 // Conveyor direct barge-in
-func (p *PulseSlotMachine) preparePulseChange(ctx smachine.BargeInContext, _ PreparePulseChangeChannel) smachine.StateUpdate {
+func (p *PulseSlotMachine) preparePulseChange(ctx smachine.BargeInContext, outFn PreparePulseChangeFunc) smachine.StateUpdate {
 	// =================
 	// HERE - initiate state calculations
 	// =================
+
+	if outFn != nil {
+		// TODO temporary hack
+		nshBytes := longbits.Bits512{}
+		_, _ = rand.Read(nshBytes[:])
+		outFn(beat.AckData{UpstreamState: api.UpstreamState{NodeState: cryptkit.NewDigest(nshBytes, "random")}})
+	}
 
 	if !isSlotInitialized(ctx) {
 		// direct barge-in has arrived BEFORE completion of init step
 		// in this case we won't touch the slot
 		return ctx.Stay()
 	}
+
 	return ctx.JumpExt(smachine.SlotStep{Transition: p.stepPreparingChange, Flags: smachine.StepPriority})
 }
 

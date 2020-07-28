@@ -26,7 +26,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 )
 
 var messagesWithToken = []struct {
@@ -482,8 +481,8 @@ func TestDelegationToken_OldVEVDelegatedCallRequest(t *testing.T) {
 			server.SendMessage(ctx, msg)
 
 			if test.haveCorrectDT {
-				testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
-				testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+				commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+				commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 				expectedVDelegatedCallResponseCount = 1
 			}
 

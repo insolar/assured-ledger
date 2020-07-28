@@ -17,7 +17,6 @@ import (
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/debuglogger"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 )
 
 func TestVirtual_Method_API(t *testing.T) {
@@ -117,7 +116,7 @@ func TestVirtual_Method_API(t *testing.T) {
 			})
 
 			server.CallAPIDelete(ctx, walletReference1)
-			testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone(), foundError)
+			commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone(), foundError)
 
 			// TODO: change code when realization will be done and remove ErrorFilter on line: 28
 			// TODO: after https://insolar.atlassian.net/browse/PLAT-416

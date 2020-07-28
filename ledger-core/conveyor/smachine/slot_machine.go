@@ -1150,3 +1150,7 @@ func (m *SlotMachine) getAdapterLogging() bool {
 func (m *SlotMachine) HasPriorityWork() bool {
 	return !m.prioritySlots.IsEmpty() || !m.workingSlots.IsEmpty()
 }
+
+func (m *SlotMachine) AsHolder() SlotMachineHolder {
+	return slotMachineHolder{m}
+}
