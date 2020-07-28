@@ -25,7 +25,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/slotdebugger"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/virtualdebugger"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
 )
 
@@ -50,7 +50,7 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 		}
 	)
 
-	slotMachine := slotdebugger.New(ctx, t)
+	slotMachine := virtualdebugger.New(ctx, t)
 	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 
@@ -127,7 +127,7 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 		}
 	)
 
-	slotMachine := slotdebugger.New(ctx, t)
+	slotMachine := virtualdebugger.New(ctx, t)
 	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 
@@ -205,7 +205,7 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 		}
 	)
 
-	slotMachine := slotdebugger.New(ctx, t)
+	slotMachine := virtualdebugger.New(ctx, t)
 	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 
@@ -271,7 +271,7 @@ func TestSMExecute_Semi_ConstructorOnMissingObject(t *testing.T) {
 		ctx = instestlogger.TestContext(t)
 	)
 
-	slotMachine := slotdebugger.New(ctx, t)
+	slotMachine := virtualdebugger.New(ctx, t)
 	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 
@@ -351,7 +351,7 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 		limiter = tool.NewRunnerLimiter(4)
 	)
 
-	slotMachine := slotdebugger.NewWithErrorFilter(ctx, t, func(s string) bool {
+	slotMachine := virtualdebugger.NewWithErrorFilter(ctx, t, func(s string) bool {
 		return !strings.Contains(s, "execution: not implemented")
 	})
 	slotMachine.InitEmptyMessageSender(mc)
@@ -431,7 +431,7 @@ func TestSMExecute_Semi_MethodOnEmptyObject(t *testing.T) {
 		limiter = tool.NewRunnerLimiter(4)
 	)
 
-	slotMachine := slotdebugger.NewWithErrorFilter(ctx, t, func(s string) bool {
+	slotMachine := virtualdebugger.NewWithErrorFilter(ctx, t, func(s string) bool {
 		return !strings.Contains(s, "async call: runtime error: invalid memory address or nil pointer dereference")
 	})
 	slotMachine.InitEmptyMessageSender(mc)

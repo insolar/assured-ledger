@@ -8,6 +8,7 @@ package conveyor
 import (
 	"time"
 
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -180,4 +181,10 @@ func (p *PulseSlot) HasPulseData(pn pulse.Number) bool {
 		return true
 	}
 	return p.pulseManager.HasPulseData(pn)
+}
+
+func (p *PulseSlot) postMigrate(holder smachine.SlotMachineHolder) {
+	if fn := p.pulseManager.pulseMigrateFn; fn != nil {
+		fn(holder)
+	}
 }

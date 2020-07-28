@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package statemachine
+package insconveyor
 
 import (
 	"sync"
@@ -51,6 +51,7 @@ type AsyncTimeMessage struct {
 	AsyncExecutionTime int64
 }
 
+// TODO remove?
 func LogAsyncTime(log smachine.Logger, timeBefore time.Time, component string) {
 	log.Trace(AsyncTimeMessage{
 		AsyncComponent:     component,
