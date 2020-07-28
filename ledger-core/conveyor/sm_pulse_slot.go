@@ -161,28 +161,23 @@ func (p *PulseSlotMachine) stepInit(ctx smachine.InitializationContext) smachine
 
 	switch p.pulseSlot.State() {
 	case Future:
-		ctx.SetDefaultMigration(p.stepMigrateFromFuture)
+		ctx.SetDefaultMigration(p.migrateFromFuture)
 		return ctx.Jump(p.stepFutureLoop)
 	case Present:
-		ctx.SetDefaultMigration(p.stepMigrateFromPresent)
-		return ctx.JumpExt(smachine.SlotStep{Transition: p.stepPresentLoop, Flags: smachine.StepPriority})
+		ctx.SetDefaultMigration(p.migrateFromPresent)
+		return ctx.Jump(p.stepPresentLoop)
 	case Past:
-		ctx.SetDefaultMigration(p.stepMigratePast)
+		ctx.SetDefaultMigration(p.migratePast)
 		return ctx.Jump(p.stepPastLoop)
 	case Antique:
-		ctx.SetDefaultMigration(p.stepMigrateAntique)
+		ctx.SetDefaultMigration(p.migrateAntique)
 		return ctx.Jump(p.stepPastLoop)
 	default:
 		panic("illegal state")
 	}
 }
 
-func (p *PulseSlotMachine) stepStop(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	return ctx.Stop()
-}
-
-func (p *PulseSlotMachine) errorHandler(ctx smachine.FailureContext) {
-}
+func (p *PulseSlotMachine) errorHandler(smachine.FailureContext) {}
 
 func (p *PulseSlotMachine) onTerminate(smachine.TerminationData) {
 	p.innerMachine.RunToStop(p.innerWorker, synckit.NewNeverSignal())
@@ -207,10 +202,10 @@ func (p *PulseSlotMachine) stepFutureLoop(ctx smachine.ExecutionContext) smachin
 	return ctx.Poll().ThenRepeat()
 }
 
-func (p *PulseSlotMachine) stepMigrateFromFuture(ctx smachine.MigrationContext) smachine.StateUpdate {
-	ctx.SetDefaultMigration(p.stepMigrateFromPresent)
+func (p *PulseSlotMachine) migrateFromFuture(ctx smachine.MigrationContext) smachine.StateUpdate {
+	ctx.SetDefaultMigration(p.migrateFromPresent)
 	p._runInnerMigrate(ctx)
-	return ctx.JumpExt(smachine.SlotStep{Transition: p.stepPresentLoop, Flags: smachine.StepPriority})
+	return ctx.Jump(p.stepPresentLoop)
 }
 
 /* ------------- Present handlers --------------- */
@@ -280,11 +275,11 @@ func (p *PulseSlotMachine) cancelPulseChange(ctx smachine.BargeInContext) smachi
 		return ctx.Stay()
 	}
 
-	return ctx.JumpExt(smachine.SlotStep{Transition: p.stepPresentLoop, Flags: smachine.StepPriority})
+	return ctx.Jump(p.stepPresentLoop)
 }
 
-func (p *PulseSlotMachine) stepMigrateFromPresent(ctx smachine.MigrationContext) smachine.StateUpdate {
-	ctx.SetDefaultMigration(p.stepMigratePast)
+func (p *PulseSlotMachine) migrateFromPresent(ctx smachine.MigrationContext) smachine.StateUpdate {
+	ctx.SetDefaultMigration(p.migratePast)
 	p._runInnerMigrate(ctx)
 	return ctx.Jump(p.stepPastLoop)
 }
@@ -307,18 +302,17 @@ func (p *PulseSlotMachine) stepPastLoop(ctx smachine.ExecutionContext) smachine.
 	return ctx.WaitAny().ThenRepeat()
 }
 
-func (p *PulseSlotMachine) stepMigratePast(ctx smachine.MigrationContext) smachine.StateUpdate {
-	ctx.SkipMultipleMigrations()
+func (p *PulseSlotMachine) migratePast(ctx smachine.MigrationContext) smachine.StateUpdate {
 	p._runInnerMigrate(ctx)
 
 	if p.innerMachine.IsEmpty() {
 		ctx.UnpublishAll()
-		return ctx.Jump(p.stepStop)
+		return ctx.Stop()
 	}
 	return ctx.Stay()
 }
 
-func (p *PulseSlotMachine) stepMigrateAntique(ctx smachine.MigrationContext) smachine.StateUpdate {
+func (p *PulseSlotMachine) migrateAntique(ctx smachine.MigrationContext) smachine.StateUpdate {
 	ctx.SkipMultipleMigrations()
 	p._runInnerMigrate(ctx)
 	return ctx.Stay()
