@@ -12,18 +12,18 @@ import (
 
 	"go.opencensus.io/stats"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/instracer"
-	"github.com/insolar/assured-ledger/ledger-core/pulse"
-	"github.com/insolar/assured-ledger/ledger-core/reference"
-
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet/types"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/network/rules"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
 
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
@@ -157,6 +157,14 @@ func (g *Complete) UpdateState(ctx context.Context, pulseNumber pulse.Number, no
 	}
 
 	g.Base.UpdateState(ctx, pulseNumber, nodes, cloudStateHash)
+}
+
+func (g *Complete) RequestNodeState(fn chorus.NodeStateFunc) {
+	g.PulseManager.RequestNodeState(fn)
+}
+
+func (g *Complete) CancelNodeState() {
+	g.PulseManager.CancelNodeState()
 }
 
 func (g *Complete) OnPulseFromConsensus(ctx context.Context, pulse network.NetworkedPulse) {

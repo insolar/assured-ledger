@@ -27,7 +27,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/slotdebugger"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/virtualdebugger"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
 )
 
@@ -39,7 +39,7 @@ func TestVDelegatedCallRequest(t *testing.T) {
 		ctx = instestlogger.TestContext(t)
 	)
 
-	slotMachine := slotdebugger.NewWithIgnoreAllError(ctx, t)
+	slotMachine := virtualdebugger.NewWithIgnoreAllError(ctx, t)
 	slotMachine.PrepareMockedRunner(ctx, t)
 	slotMachine.PrepareMockedMessageSender(mc)
 

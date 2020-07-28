@@ -347,6 +347,7 @@ func (p *RoundStateMachineWorker) applyState(newState RoundState) {
 
 				switch { // transition from a state that require cancellation
 				case curState == RoundPulsePreparing:
+					// TODO make sure it won't be invoked for ephemeral
 					p.UpstreamController.CancelPulseChange()
 				case curState < RoundConsensusFinished && newState > RoundConsensusFinished:
 					p.trafficControl.ResumeTraffic()

@@ -19,6 +19,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor/memstor"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/logwatermill"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
@@ -26,7 +27,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/network/servicenetwork"
 	"github.com/insolar/assured-ledger/ledger-core/server/internal"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/pulsemanager"
 )
 
 type bootstrapComponents struct {
@@ -117,7 +117,7 @@ func initComponents(
 
 	var logicRunner headlessLR
 
-	pm := pulsemanager.NewPulseManager()
+	pm := insconveyor.NewPulseManager()
 
 	cm.Register(
 		pcs,

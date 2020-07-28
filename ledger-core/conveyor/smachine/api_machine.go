@@ -5,7 +5,32 @@
 
 package smachine
 
-import "context"
+import (
+	"context"
+
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
+)
+
+// SlotMachineHolder is a set of safe for async call methods of SlotMachine
+type SlotMachineHolder interface {
+	GetMachineID() string
+
+	injector.DependencyContainer
+	AddDependency(v interface{})
+	AddInterfaceDependency(v interface{})
+	GetPublishedGlobalAliasAndBargeIn(key interface{}) (SlotLink, BargeInHolder)
+
+	AddNew(context.Context, StateMachine, CreateDefaultValues) (SlotLink, bool)
+	AddNewByFunc(context.Context, CreateFunc, CreateDefaultValues) (SlotLink, bool)
+
+	OccupiedSlotCount() int
+	AllocatedSlotCount() int
+
+	ScheduleCall(fn MachineCallFunc, isSignal bool) bool
+
+	Stop() bool
+	GetStoppingSignal() <-chan struct{}
+}
 
 type MachineCallFunc func(MachineCallContext)
 

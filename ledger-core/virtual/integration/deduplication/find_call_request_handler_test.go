@@ -26,7 +26,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/mock/publisher/checker"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 )
 
 type TestStep func(s *VFindCallRequestHandlingSuite, ctx context.Context, t *testing.T)
@@ -184,11 +183,11 @@ func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
 			suite.waitFindRequestResponse(t)
 
 			if suite.finalizedMessageSent != nil {
-				testutils.WaitSignalsTimed(t, 10*time.Second, suite.finalizedMessageSent)
+				commontestutils.WaitSignalsTimed(t, 10*time.Second, suite.finalizedMessageSent)
 			}
 
-			testutils.WaitSignalsTimed(t, 10*time.Second, suite.server.Journal.WaitAllAsyncCallsDone())
-			testutils.WaitSignalsTimed(t, 10*time.Second, handlerEnded)
+			commontestutils.WaitSignalsTimed(t, 10*time.Second, suite.server.Journal.WaitAllAsyncCallsDone())
+			commontestutils.WaitSignalsTimed(t, 10*time.Second, handlerEnded)
 
 			suite.finish()
 		})
@@ -241,7 +240,7 @@ func StepMethodStart(s *VFindCallRequestHandlingSuite, ctx context.Context, t *t
 	s.addPayloadAndWaitIdle(ctx, &req)
 	s.finalizedMessageSent = make(chan struct{})
 
-	testutils.WaitSignalsTimed(t, 10*time.Second, s.executionPoint.Wait())
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, s.executionPoint.Wait())
 }
 
 func StepConstructorStart(s *VFindCallRequestHandlingSuite, ctx context.Context, t *testing.T) {
@@ -269,13 +268,13 @@ func StepConstructorStart(s *VFindCallRequestHandlingSuite, ctx context.Context,
 	s.addPayloadAndWaitIdle(ctx, &req)
 	s.finalizedMessageSent = make(chan struct{})
 
-	testutils.WaitSignalsTimed(t, 10*time.Second, s.executionPoint.Wait())
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, s.executionPoint.Wait())
 }
 
 func StepRequestFinish(s *VFindCallRequestHandlingSuite, _ context.Context, t *testing.T) {
 	s.executionPoint.WakeUp()
 
-	testutils.WaitSignalsTimed(t, 10*time.Second, s.executeIsFinished)
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, s.executeIsFinished)
 }
 
 func StepMethodStartAndFinish(s *VFindCallRequestHandlingSuite, ctx context.Context, t *testing.T) {
@@ -492,7 +491,7 @@ func (s *VFindCallRequestHandlingSuite) waitFindRequestResponse(
 	t *testing.T,
 ) {
 	t.Helper()
-	testutils.WaitSignalsTimed(t, 10*time.Second, s.haveFindResponseSignal)
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, s.haveFindResponseSignal)
 }
 
 func (s *VFindCallRequestHandlingSuite) addPayloadAndWaitIdle(

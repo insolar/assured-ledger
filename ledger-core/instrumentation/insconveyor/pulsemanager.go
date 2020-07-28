@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package pulsemanager
+package insconveyor
 
 import (
 	"context"
@@ -21,71 +21,104 @@ type PulseManager struct {
 	NodeNet       network.NodeNetwork `inject:""` //nolint:staticcheck
 	PulseAccessor beat.Accessor       `inject:""`
 	PulseAppender beat.Appender       `inject:""`
-	dispatchers   []beat.Dispatcher
 
-	// setLock locks Set method call.
-	setLock sync.RWMutex
-	// saves PM stopping mode
+	mutex sync.RWMutex
+	dispatchers   []beat.Dispatcher
 	stopped bool
+	ackFn   func(ack bool)
 }
 
-// NewPulseManager creates Conductor instance.
 func NewPulseManager() *PulseManager {
 	return &PulseManager{}
 }
 
-// AddDispatcher adds dispatchers to handling
-// that could be done only when Set is not happening
 func (m *PulseManager) AddDispatcher(d ...beat.Dispatcher) {
-	m.setLock.Lock()
-	defer m.setLock.Unlock()
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	if m.stopped {
+		panic(throw.IllegalState())
+	}
 
 	m.dispatchers = append(m.dispatchers, d...)
 }
 
 func (m *PulseManager) CommitPulseChange(pulseChange beat.Beat) error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	if ackFn := m.ackFn; ackFn != nil {
+		m.ackFn = nil
+		ackFn(true)
+	// } else {
+	// 	panic(throw.IllegalState())
+	}
+
 	ctx := context.Background()
-	return m.setNewPulse(ctx, pulseChange)
+	return m._commit(ctx, pulseChange)
 }
 
 func (m *PulseManager) CommitFirstPulseChange(pulseChange beat.Beat) error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	if ackFn := m.ackFn; ackFn != nil {
+		panic(throw.IllegalState())
+	}
 	ctx := context.Background()
-	return m.setNewPulse(ctx, pulseChange)
+	return m._commit(ctx, pulseChange)
 }
 
-func (m *PulseManager) setNewPulse(ctx context.Context, pulseChange beat.Beat) error {
+func (m *PulseManager) RequestNodeState(stateFunc chorus.NodeStateFunc) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	sink, ackFn := beat.NewAck(func(data beat.AckData) {
+		stateFunc(data.UpstreamState)
+	})
+
+	for _, d := range m.dispatchers {
+		d.PrepareBeat(sink)
+	}
+
+	// if !sink.IsAcquired() {
+	// 	panic(throw.IllegalState())
+	// }
+
+	m.ackFn = ackFn
+}
+
+func (m *PulseManager) CancelNodeState() {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	if ackFn := m.ackFn; ackFn != nil {
+		m.ackFn = nil
+		ackFn(false)
+		return
+	}
+	panic(throw.IllegalState())
+}
+
+func (m *PulseManager) _commit(ctx context.Context, pulseChange beat.Beat) error {
 	if err := m.PulseAppender.EnsureLatest(ctx, pulseChange); err != nil {
 		return throw.W(err, "call of Ensure pulseChange failed")
 	}
 
-	sink, setStateFn := beat.NewAck(make(chan beat.AckData, 1))
-	for _, d := range m.dispatchers {
-		d.PrepareBeat(pulseChange, sink)
-	}
-	committed := false
-
-	defer func() {
-		setStateFn(committed)
-	}()
-
 	for _, d := range m.dispatchers {
 		d.CommitBeat(pulseChange)
 	}
-	committed = true
 
 	return nil
 }
 
-// Start starts pulse manager.
 func (m *PulseManager) Start(context.Context) error {
 	return nil
 }
 
-// Stop stops Conductor.
 func (m *PulseManager) Stop(context.Context) error {
-	// There should not to be any Set call after Stop call
-	m.setLock.Lock()
-	defer m.setLock.Unlock()
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
 
 	m.stopped = true
 	return nil

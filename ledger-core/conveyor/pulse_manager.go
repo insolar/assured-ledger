@@ -22,6 +22,7 @@ type PulseDataServicePrepareFunc func(smachine.ExecutionContext, func(context.Co
 type PulseDataManager struct {
 	// set at construction, immutable
 	pulseDataAdapterFn PulseDataServicePrepareFunc
+	pulseMigrateFn     PulseSlotPostMigrateFunc
 
 	cache PulseDataCache
 
@@ -64,14 +65,13 @@ func CreatePulseDataAdapterFn(ctx context.Context, pds PulseDataService, bufMax,
 	}
 }
 
-func (p *PulseDataManager) init(minCachePulseAge, maxPastPulseAge uint32, maxFutureCycles uint8, pulseDataFn PulseDataServicePrepareFunc) {
+func (p *PulseDataManager) initCache(minCachePulseAge, maxPastPulseAge uint32, maxFutureCycles uint8) {
 	if minCachePulseAge == 0 || minCachePulseAge > pulse.MaxTimePulse {
 		panic("illegal value")
 	}
 	if maxPastPulseAge < minCachePulseAge || maxPastPulseAge > pulse.MaxTimePulse {
 		panic("illegal value")
 	}
-	p.pulseDataAdapterFn = pulseDataFn
 	p.maxPastPulseAge = maxPastPulseAge
 	p.futureCycles = maxFutureCycles
 	p.cache.Init(p, minCachePulseAge, 2) // any pulse data stays in cache for at least 2 pulse cycles
@@ -151,7 +151,7 @@ func (p *PulseDataManager) isPreparingPulse() bool {
 	return atomic.LoadUint32(&p.preparingPulseFlag) != 0
 }
 
-func (p *PulseDataManager) setPreparingPulse(_ PreparePulseChangeChannel) {
+func (p *PulseDataManager) setPreparingPulse(_ PreparePulseChangeFunc) {
 	atomic.StoreUint32(&p.preparingPulseFlag, 1)
 }
 
