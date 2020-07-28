@@ -11,10 +11,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/convlog"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/debuglogger"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/journal"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/predicate"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/convlog"
 )
 
 func AssertNotJumpToStep(t *testing.T, j *journal.Journal, stepName string) {
