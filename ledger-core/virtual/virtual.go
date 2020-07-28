@@ -14,6 +14,7 @@ import (
 	testWalletAPIStateMachine "github.com/insolar/assured-ledger/ledger-core/application/testwalletapi/statemachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
@@ -23,7 +24,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
-	virtualStateMachine "github.com/insolar/assured-ledger/ledger-core/virtual/statemachine"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
 )
 
@@ -33,7 +33,7 @@ type DefaultHandlersFactory struct {
 
 func (f DefaultHandlersFactory) Classify(ctx context.Context, input conveyor.InputEvent, ic conveyor.InputContext) (conveyor.InputSetup, error) {
 	switch event := input.(type) {
-	case virtualStateMachine.DispatchedMessage:
+	case insconveyor.DispatchedMessage:
 		if ic.PulseRange == nil {
 			return conveyor.InputSetup{},
 				throw.E("event is too old", struct {
@@ -64,7 +64,7 @@ type Dispatcher struct {
 	FlowDispatcher beat.Dispatcher
 
 	Conveyor       *conveyor.PulseConveyor
-	ConveyorWorker virtualStateMachine.ConveyorWorker
+	ConveyorWorker insconveyor.ConveyorWorker
 	MachineLogger  smachine.SlotMachineLogger
 
 	// CycleFn is called after every scan cycle done by conveyor worker
@@ -97,7 +97,7 @@ func (lr *Dispatcher) Init(ctx context.Context) error {
 		PollingTruncate:   1 * time.Millisecond,
 		SlotPageSize:      1000,
 		ScanCountLimit:    100000,
-		SlotMachineLogger: virtualStateMachine.ConveyorLoggerFactory{},
+		SlotMachineLogger: insconveyor.ConveyorLoggerFactory{},
 		SlotAliasRegistry: &conveyor.GlobalAliases{},
 		LogAdapterCalls:   true,
 	}
@@ -141,10 +141,10 @@ func (lr *Dispatcher) Init(ctx context.Context) error {
 	runnerLimiter := tool.NewRunnerLimiter(lr.MaxRunners)
 	lr.Conveyor.AddDependency(runnerLimiter)
 
-	lr.ConveyorWorker = virtualStateMachine.NewConveyorWorker(lr.CycleFn)
+	lr.ConveyorWorker = insconveyor.NewConveyorWorker(lr.CycleFn)
 	lr.ConveyorWorker.AttachTo(lr.Conveyor)
 
-	lr.FlowDispatcher = virtualStateMachine.NewConveyorDispatcher(ctx, lr.Conveyor)
+	lr.FlowDispatcher = insconveyor.NewConveyorDispatcher(ctx, lr.Conveyor)
 
 	return nil
 }

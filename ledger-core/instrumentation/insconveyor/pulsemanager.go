@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package pulsemanager
+package insconveyor
 
 import (
 	"context"
@@ -12,22 +12,18 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
 	"github.com/insolar/assured-ledger/ledger-core/network"
-	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 var _ chorus.Conductor = &PulseManager{}
-var _ adapters.NodeStater = &PulseManager{}
 
 type PulseManager struct {
 	NodeNet       network.NodeNetwork `inject:""` //nolint:staticcheck
 	PulseAccessor beat.Accessor       `inject:""`
 	PulseAppender beat.Appender       `inject:""`
-	dispatchers   []beat.Dispatcher
 
-	// mutex locks Set method call.
 	mutex sync.RWMutex
-	// saves PM stopping mode
+	dispatchers   []beat.Dispatcher
 	stopped bool
 	ackFn   func(ack bool)
 }

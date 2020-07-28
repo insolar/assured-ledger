@@ -31,7 +31,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 )
 
 func TestVirtual_Method_PulseChanged(t *testing.T) {
@@ -216,7 +215,7 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 
 			server.SendPayload(ctx, &pl)
 
-			testutils.WaitSignalsTimed(t, 10*time.Second, synchronizeExecution.Wait())
+			commonTestUtils.WaitSignalsTimed(t, 10*time.Second, synchronizeExecution.Wait())
 			for i := 0; i < test.countChangePulse; i++ {
 				tokenRequestDone := server.Journal.Wait(
 					predicate.ChainOf(
@@ -227,12 +226,12 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 
 				server.IncrementPulseAndWaitIdle(ctx)
 
-				testutils.WaitSignalsTimed(t, 10*time.Second, tokenRequestDone)
+				commonTestUtils.WaitSignalsTimed(t, 10*time.Second, tokenRequestDone)
 			}
 			synchronizeExecution.WakeUp()
 
-			testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
-			testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+			commonTestUtils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+			commonTestUtils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 			{
 				assert.Equal(t, 1, typedChecker.VCallResult.Count())
@@ -425,12 +424,12 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 		server.SendPayload(ctx, &req)
 	}
 
-	testutils.WaitSignalsTimed(t, 20*time.Second, synchronizeExecution.Wait())
+	commonTestUtils.WaitSignalsTimed(t, 20*time.Second, synchronizeExecution.Wait())
 	server.IncrementPulseAndWaitIdle(ctx)
 	synchronizeExecution.WakeUp()
 
-	testutils.WaitSignalsTimed(t, 30*time.Second, executeDone)
-	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+	commonTestUtils.WaitSignalsTimed(t, 30*time.Second, executeDone)
+	commonTestUtils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 	{
 		require.Equal(t, 1, typedChecker.VStateReport.Count())
@@ -579,8 +578,8 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 				getDelegated = true
 			}
 
-			testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
-			testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+			commonTestUtils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+			commonTestUtils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 			require.Equal(t, 1, typedChecker.VCallResult.Count())
 

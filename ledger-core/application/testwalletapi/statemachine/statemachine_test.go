@@ -22,10 +22,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
+	testutils2 "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/slotdebugger"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 )
 
 func TestSMTestAPICall_MethodResends(t *testing.T) {
@@ -72,13 +72,13 @@ func TestSMTestAPICall_MethodResends(t *testing.T) {
 	})
 
 	slotMachine.RunTil(smWrapper.BeforeStep(smRequest.stepProcessResult))
-	testutils.WaitSignalsTimed(t, 10*time.Second, messageSent)
+	testutils2.WaitSignalsTimed(t, 10*time.Second, messageSent)
 
 	slotMachine.Migrate()
 	slotMachine.RunTil(smWrapper.AfterAnyMigrate())
 
 	slotMachine.RunTil(smWrapper.BeforeStep(smRequest.stepProcessResult))
-	testutils.WaitSignalsTimed(t, 10*time.Second, messageSent)
+	testutils2.WaitSignalsTimed(t, 10*time.Second, messageSent)
 
 	response := &payload.VCallResult{
 		Caller:   gen.UniqueGlobalRef(),
@@ -144,7 +144,7 @@ func TestSMTestAPICall_Constructor(t *testing.T) {
 	})
 
 	slotMachine.RunTil(smWrapper.BeforeStep(smRequest.stepProcessResult))
-	testutils.WaitSignalsTimed(t, 10*time.Second, messageSent)
+	testutils2.WaitSignalsTimed(t, 10*time.Second, messageSent)
 }
 
 const expectedMaxRetries = 3
@@ -184,7 +184,7 @@ func TestSMTestAPICall_RetriesExceeded(t *testing.T) {
 
 	for i := 0; i < expectedMaxRetries; i++ {
 		slotMachine.RunTil(smWrapper.BeforeStep(smRequest.stepProcessResult))
-		testutils.WaitSignalsTimed(t, 10*time.Second, messageSent)
+		testutils2.WaitSignalsTimed(t, 10*time.Second, messageSent)
 		slotMachine.Migrate()
 		slotMachine.RunTil(smWrapper.AfterAnyMigrate())
 	}

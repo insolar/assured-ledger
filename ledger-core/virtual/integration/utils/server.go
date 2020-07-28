@@ -22,6 +22,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor/memstor"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/convlog"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
@@ -35,6 +37,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner"
 	"github.com/insolar/assured-ledger/ledger-core/runner/machine"
+	testutils2 "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/journal"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/network"
@@ -45,11 +48,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/convlog"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/mock/publisher"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/pulsemanager"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/statemachine"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 )
 
 type Server struct {
@@ -68,9 +67,9 @@ type Server struct {
 	// testing components and Mocks
 	PublisherMock      *publisher.Mock
 	JetCoordinatorMock *affinity.HelperMock
-	pulseGenerator     *testutils.PulseGenerator
+	pulseGenerator     *testutils2.PulseGenerator
 	pulseStorage       *memstor.StorageMem
-	pulseManager       *pulsemanager.PulseManager
+	pulseManager       *insconveyor.PulseManager
 	Journal            *journal.Journal
 
 	// wait and suspend operations
@@ -134,7 +133,7 @@ func newServerExt(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFi
 
 	// Pulse-related components
 	var (
-		PulseManager *pulsemanager.PulseManager
+		PulseManager *insconveyor.PulseManager
 		Pulses       *memstor.StorageMem
 	)
 	{
@@ -151,7 +150,7 @@ func newServerExt(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFi
 		nodeNetworkMock := network.NewNodeNetworkMock(t).GetAccessorMock.Return(nodeNetworkAccessorMock)
 
 		Pulses = memstor.NewStorageMem()
-		PulseManager = pulsemanager.NewPulseManager()
+		PulseManager = insconveyor.NewPulseManager()
 		PulseManager.NodeNet = nodeNetworkMock
 		PulseManager.PulseAccessor = Pulses
 		PulseManager.PulseAppender = Pulses
@@ -160,7 +159,7 @@ func newServerExt(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFi
 	s.pulseManager = PulseManager
 	s.pulseStorage = Pulses
 	censusMock := createOneNodePopulationMock(t, s.caller)
-	s.pulseGenerator = testutils.NewPulseGenerator(10, censusMock)
+	s.pulseGenerator = testutils2.NewPulseGenerator(10, censusMock)
 	s.incrementPulse()
 
 	s.JetCoordinatorMock = affinity.NewHelperMock(t).
@@ -184,7 +183,7 @@ func newServerExt(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFi
 	if convlog.UseTextConvLog {
 		machineLogger = convlog.MachineLogger{}
 	} else {
-		machineLogger = statemachine.ConveyorLoggerFactory{}
+		machineLogger = insconveyor.ConveyorLoggerFactory{}
 	}
 	s.Journal = journal.New()
 	machineLogger = s.Journal.InterceptSlotMachineLog(machineLogger, s.fullStop)

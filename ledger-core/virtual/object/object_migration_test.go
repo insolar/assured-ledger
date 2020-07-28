@@ -24,7 +24,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callsummary"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object/finalizedstate"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
 )
 
@@ -40,7 +39,7 @@ func TestSMObject_InitSetMigration(t *testing.T) {
 	smObject.globalLimiter = tool.NewRunnerLimiter(4)
 
 	compareDefaultMigration := func(fn smachine.MigrateFunc) {
-		require.True(t, testutils.CmpStateFuncs(smObject.migrate, fn))
+		require.True(t, commontestutils.CmpStateFuncs(smObject.migrate, fn))
 	}
 	initCtx := smachine.NewInitializationContextMock(mc).
 		ShareMock.Return(sharedStateData).
