@@ -452,8 +452,11 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 			isolation: tolerableFlags(),
 		},
 		{
-			name:      "unordered call when constructor execution is pending",
-			isolation: intolerableFlags(),
+			name: "unordered call when constructor execution is pending",
+			isolation: contract.MethodIsolation{
+				Interference: contract.CallIntolerable,
+				State:        contract.CallDirty, // use dirty state because R0 does not copy dirty to validated state
+			},
 		},
 	}
 
