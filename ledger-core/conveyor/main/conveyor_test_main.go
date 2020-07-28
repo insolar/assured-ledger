@@ -123,7 +123,7 @@ func (sm *AppEventSM) GetStateMachineDeclaration() smachine.StateMachineDeclarat
 	return sm
 }
 
-func (sm *AppEventSM) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLink, injector *injector.DependencyInjector) {
+func (sm *AppEventSM) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLink, injector injector.DependencyInjector) {
 	injector.MustInject(&sm.pulseSlot)
 }
 

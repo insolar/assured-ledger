@@ -27,7 +27,7 @@ type dSMVDelegatedCallResponse struct {
 	smachine.StateMachineDeclTemplate
 }
 
-func (*dSMVDelegatedCallResponse) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLink, _ *injector.DependencyInjector) {
+func (*dSMVDelegatedCallResponse) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLink, _ injector.DependencyInjector) {
 }
 
 func (*dSMVDelegatedCallResponse) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc {
