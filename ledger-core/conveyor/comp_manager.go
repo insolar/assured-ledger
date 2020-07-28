@@ -23,7 +23,7 @@ type componentManager struct {
 
 func (p *componentManager) _sync(fn func()) {
 	p.mutex.Lock()
-	defer p.mutex.Lock()
+	defer p.mutex.Unlock()
 	fn()
 }
 
