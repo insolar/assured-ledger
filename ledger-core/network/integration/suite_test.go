@@ -10,14 +10,11 @@ import (
 	"crypto"
 	"fmt"
 	"math/rand"
-	"reflect"
 	"strconv"
 	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
-
-	"github.com/stretchr/testify/assert"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
@@ -330,10 +327,26 @@ func (s *consensusSuite) assertNetworkInConsistentState(p pulse.Number) {
 		activeNodes := a.GetActiveNodes()
 		if nodes == nil {
 			nodes = activeNodes
-		} else {
-			assert.True(s.t, reflect.DeepEqual(nodes, activeNodes), "lists is not equals")
+			continue
+		}
+
+		require.Equal(s.t, len(nodes), len(activeNodes))
+
+		for i, n  := range nodes {
+			an := activeNodes[i]
+			require.Equal(s.t, n.GetReference(), an.GetReference(), i)
+			require.Equal(s.t, n.GetNodeID(), an.GetNodeID(), i)
+			require.Equal(s.t, n.GetPrimaryRole(), an.GetPrimaryRole(), i)
+			require.Equal(s.t, n.PublicKey(), an.PublicKey(), i)
+			require.Equal(s.t, n.Address(), an.Address(), i)
+			require.Equal(s.t, n.GetPower(), an.GetPower(), i)
+			require.Equal(s.t, arr(n.GetSignature()), arr(an.GetSignature()))
 		}
 	}
+}
+
+func arr(x ...interface{}) []interface{} {
+	return x
 }
 
 func (s *consensusSuite) waitForConsensusExcept(consensusCount int, exception reference.Global) pulse.Number {
@@ -593,7 +606,8 @@ func (s *testSuite) afterInitNode(node *networkNode) {
 
 func (s *testSuite) AssertActiveNodesCountDelta(delta int) {
 	activeNodes := s.bootstrapNodes[1].GetActiveNodes()
-	require.Equal(s.t, s.getNodesCount()+delta, len(activeNodes))
+	n := s.getNodesCount()+delta
+	require.Equal(s.t, n, len(activeNodes))
 }
 
 func (s *testSuite) AssertWorkingNodesCountDelta(delta int) {

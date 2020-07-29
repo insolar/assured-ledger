@@ -44,17 +44,6 @@ func (v profileNode) Address() string {
 	return v.n.GetStatic().GetDefaultEndpoint().GetNameAddress().String()
 }
 
-func (v profileNode) GetState() nodeinfo.State {
-	switch {
-	case v.n.IsJoiner():
-		return nodeinfo.Joining
-	case v.n.IsStateful():
-		return nodeinfo.Ready
-	default:
-		return 0
-	}
-}
-
 func (v profileNode) GetPower() member.Power {
 	if v.n.GetOpMode().IsPowerless() {
 		return 0

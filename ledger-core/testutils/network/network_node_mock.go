@@ -10,7 +10,6 @@ import (
 	"github.com/gojuno/minimock/v3"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
-	mm_nodeinfo "github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
@@ -55,12 +54,6 @@ type NetworkNodeMock struct {
 	beforeGetSignatureCounter uint64
 	GetSignatureMock          mNetworkNodeMockGetSignature
 
-	funcGetState          func() (s1 mm_nodeinfo.State)
-	inspectFuncGetState   func()
-	afterGetStateCounter  uint64
-	beforeGetStateCounter uint64
-	GetStateMock          mNetworkNodeMockGetState
-
 	funcIsJoiner          func() (b1 bool)
 	inspectFuncIsJoiner   func()
 	afterIsJoinerCounter  uint64
@@ -98,8 +91,6 @@ func NewNetworkNodeMock(t minimock.Tester) *NetworkNodeMock {
 	m.GetReferenceMock = mNetworkNodeMockGetReference{mock: m}
 
 	m.GetSignatureMock = mNetworkNodeMockGetSignature{mock: m}
-
-	m.GetStateMock = mNetworkNodeMockGetState{mock: m}
 
 	m.IsJoinerMock = mNetworkNodeMockIsJoiner{mock: m}
 
@@ -969,149 +960,6 @@ func (m *NetworkNodeMock) MinimockGetSignatureInspect() {
 	}
 }
 
-type mNetworkNodeMockGetState struct {
-	mock               *NetworkNodeMock
-	defaultExpectation *NetworkNodeMockGetStateExpectation
-	expectations       []*NetworkNodeMockGetStateExpectation
-}
-
-// NetworkNodeMockGetStateExpectation specifies expectation struct of the NetworkNode.GetState
-type NetworkNodeMockGetStateExpectation struct {
-	mock *NetworkNodeMock
-
-	results *NetworkNodeMockGetStateResults
-	Counter uint64
-}
-
-// NetworkNodeMockGetStateResults contains results of the NetworkNode.GetState
-type NetworkNodeMockGetStateResults struct {
-	s1 mm_nodeinfo.State
-}
-
-// Expect sets up expected params for NetworkNode.GetState
-func (mmGetState *mNetworkNodeMockGetState) Expect() *mNetworkNodeMockGetState {
-	if mmGetState.mock.funcGetState != nil {
-		mmGetState.mock.t.Fatalf("NetworkNodeMock.GetState mock is already set by Set")
-	}
-
-	if mmGetState.defaultExpectation == nil {
-		mmGetState.defaultExpectation = &NetworkNodeMockGetStateExpectation{}
-	}
-
-	return mmGetState
-}
-
-// Inspect accepts an inspector function that has same arguments as the NetworkNode.GetState
-func (mmGetState *mNetworkNodeMockGetState) Inspect(f func()) *mNetworkNodeMockGetState {
-	if mmGetState.mock.inspectFuncGetState != nil {
-		mmGetState.mock.t.Fatalf("Inspect function is already set for NetworkNodeMock.GetState")
-	}
-
-	mmGetState.mock.inspectFuncGetState = f
-
-	return mmGetState
-}
-
-// Return sets up results that will be returned by NetworkNode.GetState
-func (mmGetState *mNetworkNodeMockGetState) Return(s1 mm_nodeinfo.State) *NetworkNodeMock {
-	if mmGetState.mock.funcGetState != nil {
-		mmGetState.mock.t.Fatalf("NetworkNodeMock.GetState mock is already set by Set")
-	}
-
-	if mmGetState.defaultExpectation == nil {
-		mmGetState.defaultExpectation = &NetworkNodeMockGetStateExpectation{mock: mmGetState.mock}
-	}
-	mmGetState.defaultExpectation.results = &NetworkNodeMockGetStateResults{s1}
-	return mmGetState.mock
-}
-
-//Set uses given function f to mock the NetworkNode.GetState method
-func (mmGetState *mNetworkNodeMockGetState) Set(f func() (s1 mm_nodeinfo.State)) *NetworkNodeMock {
-	if mmGetState.defaultExpectation != nil {
-		mmGetState.mock.t.Fatalf("Default expectation is already set for the NetworkNode.GetState method")
-	}
-
-	if len(mmGetState.expectations) > 0 {
-		mmGetState.mock.t.Fatalf("Some expectations are already set for the NetworkNode.GetState method")
-	}
-
-	mmGetState.mock.funcGetState = f
-	return mmGetState.mock
-}
-
-// GetState implements nodeinfo.NetworkNode
-func (mmGetState *NetworkNodeMock) GetState() (s1 mm_nodeinfo.State) {
-	mm_atomic.AddUint64(&mmGetState.beforeGetStateCounter, 1)
-	defer mm_atomic.AddUint64(&mmGetState.afterGetStateCounter, 1)
-
-	if mmGetState.inspectFuncGetState != nil {
-		mmGetState.inspectFuncGetState()
-	}
-
-	if mmGetState.GetStateMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmGetState.GetStateMock.defaultExpectation.Counter, 1)
-
-		mm_results := mmGetState.GetStateMock.defaultExpectation.results
-		if mm_results == nil {
-			mmGetState.t.Fatal("No results are set for the NetworkNodeMock.GetState")
-		}
-		return (*mm_results).s1
-	}
-	if mmGetState.funcGetState != nil {
-		return mmGetState.funcGetState()
-	}
-	mmGetState.t.Fatalf("Unexpected call to NetworkNodeMock.GetState.")
-	return
-}
-
-// GetStateAfterCounter returns a count of finished NetworkNodeMock.GetState invocations
-func (mmGetState *NetworkNodeMock) GetStateAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmGetState.afterGetStateCounter)
-}
-
-// GetStateBeforeCounter returns a count of NetworkNodeMock.GetState invocations
-func (mmGetState *NetworkNodeMock) GetStateBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmGetState.beforeGetStateCounter)
-}
-
-// MinimockGetStateDone returns true if the count of the GetState invocations corresponds
-// the number of defined expectations
-func (m *NetworkNodeMock) MinimockGetStateDone() bool {
-	for _, e := range m.GetStateMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.GetStateMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetStateCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcGetState != nil && mm_atomic.LoadUint64(&m.afterGetStateCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockGetStateInspect logs each unmet expectation
-func (m *NetworkNodeMock) MinimockGetStateInspect() {
-	for _, e := range m.GetStateMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Error("Expected call to NetworkNodeMock.GetState")
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.GetStateMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetStateCounter) < 1 {
-		m.t.Error("Expected call to NetworkNodeMock.GetState")
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcGetState != nil && mm_atomic.LoadUint64(&m.afterGetStateCounter) < 1 {
-		m.t.Error("Expected call to NetworkNodeMock.GetState")
-	}
-}
-
 type mNetworkNodeMockIsJoiner struct {
 	mock               *NetworkNodeMock
 	defaultExpectation *NetworkNodeMockIsJoinerExpectation
@@ -1556,8 +1404,6 @@ func (m *NetworkNodeMock) MinimockFinish() {
 
 		m.MinimockGetSignatureInspect()
 
-		m.MinimockGetStateInspect()
-
 		m.MinimockIsJoinerInspect()
 
 		m.MinimockIsPoweredInspect()
@@ -1592,7 +1438,6 @@ func (m *NetworkNodeMock) minimockDone() bool {
 		m.MinimockGetPrimaryRoleDone() &&
 		m.MinimockGetReferenceDone() &&
 		m.MinimockGetSignatureDone() &&
-		m.MinimockGetStateDone() &&
 		m.MinimockIsJoinerDone() &&
 		m.MinimockIsPoweredDone() &&
 		m.MinimockPublicKeyDone()

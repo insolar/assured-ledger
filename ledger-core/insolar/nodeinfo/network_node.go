@@ -39,8 +39,6 @@ type NetworkNode interface {
 	// Address is the network address of the node
 	Address() string
 
-	// GetState get state of the node
-	GetState() State
 	// GetPower get power of node
 	GetPower() member.Power
 

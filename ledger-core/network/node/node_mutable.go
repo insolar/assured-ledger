@@ -21,9 +21,7 @@ type MutableNode interface {
 	nodeinfo.NetworkNode
 
 	SetShortID(shortID node.ShortNodeID)
-	SetState(state nodeinfo.State)
 	SetSignature(digest []byte, signature cryptography.Signature)
-	SetPower(power member.Power)
 	SetAddress(address string)
 }
 
@@ -40,7 +38,7 @@ func newMutableNode(
 		NodeRole:      role,
 		NodePublicKey: publicKey,
 		NodeAddress:   address,
-		state:         uint32(state),
+		state:         state,
 	}
 }
 
@@ -53,22 +51,18 @@ type nodeInfo struct {
 	NodeShortID   uint32
 	NodeRole      member.PrimaryRole
 	NodePublicKey crypto.PublicKey
-	NodePower     uint32
+	NodePower     member.Power
 
 	NodeAddress string
 
 	mutex          sync.RWMutex
 	digest         []byte
 	signature      cryptography.Signature
-	state          uint32
-}
-
-func (n *nodeInfo) SetState(state nodeinfo.State) {
-	atomic.StoreUint32(&n.state, uint32(state))
+	state          nodeinfo.State
 }
 
 func (n *nodeInfo) GetState() nodeinfo.State {
-	return nodeinfo.State(atomic.LoadUint32(&n.state))
+	return n.state
 }
 
 func (n *nodeInfo) GetReference() reference.Global {
@@ -95,11 +89,7 @@ func (n *nodeInfo) Address() string {
 }
 
 func (n *nodeInfo) GetPower() member.Power {
-	return member.Power(atomic.LoadUint32(&n.NodePower))
-}
-
-func (n *nodeInfo) SetPower(power member.Power) {
-	atomic.StoreUint32(&n.NodePower, uint32(power))
+	return n.NodePower
 }
 
 func (n *nodeInfo) GetSignature() ([]byte, cryptography.Signature) {

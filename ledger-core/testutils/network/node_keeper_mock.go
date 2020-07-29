@@ -47,6 +47,12 @@ type NodeKeeperMock struct {
 	afterSyncCounter  uint64
 	beforeSyncCounter uint64
 	SyncMock          mNodeKeeperMockSync
+
+	funcUpdateOrigin          func(n nodeinfo.NetworkNode)
+	inspectFuncUpdateOrigin   func(n nodeinfo.NetworkNode)
+	afterUpdateOriginCounter  uint64
+	beforeUpdateOriginCounter uint64
+	UpdateOriginMock          mNodeKeeperMockUpdateOrigin
 }
 
 // NewNodeKeeperMock returns a mock for network.NodeKeeper
@@ -69,6 +75,9 @@ func NewNodeKeeperMock(t minimock.Tester) *NodeKeeperMock {
 
 	m.SyncMock = mNodeKeeperMockSync{mock: m}
 	m.SyncMock.callArgs = []*NodeKeeperMockSyncParams{}
+
+	m.UpdateOriginMock = mNodeKeeperMockUpdateOrigin{mock: m}
+	m.UpdateOriginMock.callArgs = []*NodeKeeperMockUpdateOriginParams{}
 
 	return m
 }
@@ -994,6 +1003,193 @@ func (m *NodeKeeperMock) MinimockSyncInspect() {
 	}
 }
 
+type mNodeKeeperMockUpdateOrigin struct {
+	mock               *NodeKeeperMock
+	defaultExpectation *NodeKeeperMockUpdateOriginExpectation
+	expectations       []*NodeKeeperMockUpdateOriginExpectation
+
+	callArgs []*NodeKeeperMockUpdateOriginParams
+	mutex    sync.RWMutex
+}
+
+// NodeKeeperMockUpdateOriginExpectation specifies expectation struct of the NodeKeeper.UpdateOrigin
+type NodeKeeperMockUpdateOriginExpectation struct {
+	mock   *NodeKeeperMock
+	params *NodeKeeperMockUpdateOriginParams
+
+	Counter uint64
+}
+
+// NodeKeeperMockUpdateOriginParams contains parameters of the NodeKeeper.UpdateOrigin
+type NodeKeeperMockUpdateOriginParams struct {
+	n nodeinfo.NetworkNode
+}
+
+// Expect sets up expected params for NodeKeeper.UpdateOrigin
+func (mmUpdateOrigin *mNodeKeeperMockUpdateOrigin) Expect(n nodeinfo.NetworkNode) *mNodeKeeperMockUpdateOrigin {
+	if mmUpdateOrigin.mock.funcUpdateOrigin != nil {
+		mmUpdateOrigin.mock.t.Fatalf("NodeKeeperMock.UpdateOrigin mock is already set by Set")
+	}
+
+	if mmUpdateOrigin.defaultExpectation == nil {
+		mmUpdateOrigin.defaultExpectation = &NodeKeeperMockUpdateOriginExpectation{}
+	}
+
+	mmUpdateOrigin.defaultExpectation.params = &NodeKeeperMockUpdateOriginParams{n}
+	for _, e := range mmUpdateOrigin.expectations {
+		if minimock.Equal(e.params, mmUpdateOrigin.defaultExpectation.params) {
+			mmUpdateOrigin.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmUpdateOrigin.defaultExpectation.params)
+		}
+	}
+
+	return mmUpdateOrigin
+}
+
+// Inspect accepts an inspector function that has same arguments as the NodeKeeper.UpdateOrigin
+func (mmUpdateOrigin *mNodeKeeperMockUpdateOrigin) Inspect(f func(n nodeinfo.NetworkNode)) *mNodeKeeperMockUpdateOrigin {
+	if mmUpdateOrigin.mock.inspectFuncUpdateOrigin != nil {
+		mmUpdateOrigin.mock.t.Fatalf("Inspect function is already set for NodeKeeperMock.UpdateOrigin")
+	}
+
+	mmUpdateOrigin.mock.inspectFuncUpdateOrigin = f
+
+	return mmUpdateOrigin
+}
+
+// Return sets up results that will be returned by NodeKeeper.UpdateOrigin
+func (mmUpdateOrigin *mNodeKeeperMockUpdateOrigin) Return() *NodeKeeperMock {
+	if mmUpdateOrigin.mock.funcUpdateOrigin != nil {
+		mmUpdateOrigin.mock.t.Fatalf("NodeKeeperMock.UpdateOrigin mock is already set by Set")
+	}
+
+	if mmUpdateOrigin.defaultExpectation == nil {
+		mmUpdateOrigin.defaultExpectation = &NodeKeeperMockUpdateOriginExpectation{mock: mmUpdateOrigin.mock}
+	}
+
+	return mmUpdateOrigin.mock
+}
+
+//Set uses given function f to mock the NodeKeeper.UpdateOrigin method
+func (mmUpdateOrigin *mNodeKeeperMockUpdateOrigin) Set(f func(n nodeinfo.NetworkNode)) *NodeKeeperMock {
+	if mmUpdateOrigin.defaultExpectation != nil {
+		mmUpdateOrigin.mock.t.Fatalf("Default expectation is already set for the NodeKeeper.UpdateOrigin method")
+	}
+
+	if len(mmUpdateOrigin.expectations) > 0 {
+		mmUpdateOrigin.mock.t.Fatalf("Some expectations are already set for the NodeKeeper.UpdateOrigin method")
+	}
+
+	mmUpdateOrigin.mock.funcUpdateOrigin = f
+	return mmUpdateOrigin.mock
+}
+
+// UpdateOrigin implements network.NodeKeeper
+func (mmUpdateOrigin *NodeKeeperMock) UpdateOrigin(n nodeinfo.NetworkNode) {
+	mm_atomic.AddUint64(&mmUpdateOrigin.beforeUpdateOriginCounter, 1)
+	defer mm_atomic.AddUint64(&mmUpdateOrigin.afterUpdateOriginCounter, 1)
+
+	if mmUpdateOrigin.inspectFuncUpdateOrigin != nil {
+		mmUpdateOrigin.inspectFuncUpdateOrigin(n)
+	}
+
+	mm_params := &NodeKeeperMockUpdateOriginParams{n}
+
+	// Record call args
+	mmUpdateOrigin.UpdateOriginMock.mutex.Lock()
+	mmUpdateOrigin.UpdateOriginMock.callArgs = append(mmUpdateOrigin.UpdateOriginMock.callArgs, mm_params)
+	mmUpdateOrigin.UpdateOriginMock.mutex.Unlock()
+
+	for _, e := range mmUpdateOrigin.UpdateOriginMock.expectations {
+		if minimock.Equal(e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return
+		}
+	}
+
+	if mmUpdateOrigin.UpdateOriginMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmUpdateOrigin.UpdateOriginMock.defaultExpectation.Counter, 1)
+		mm_want := mmUpdateOrigin.UpdateOriginMock.defaultExpectation.params
+		mm_got := NodeKeeperMockUpdateOriginParams{n}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmUpdateOrigin.t.Errorf("NodeKeeperMock.UpdateOrigin got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		return
+
+	}
+	if mmUpdateOrigin.funcUpdateOrigin != nil {
+		mmUpdateOrigin.funcUpdateOrigin(n)
+		return
+	}
+	mmUpdateOrigin.t.Fatalf("Unexpected call to NodeKeeperMock.UpdateOrigin. %v", n)
+
+}
+
+// UpdateOriginAfterCounter returns a count of finished NodeKeeperMock.UpdateOrigin invocations
+func (mmUpdateOrigin *NodeKeeperMock) UpdateOriginAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmUpdateOrigin.afterUpdateOriginCounter)
+}
+
+// UpdateOriginBeforeCounter returns a count of NodeKeeperMock.UpdateOrigin invocations
+func (mmUpdateOrigin *NodeKeeperMock) UpdateOriginBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmUpdateOrigin.beforeUpdateOriginCounter)
+}
+
+// Calls returns a list of arguments used in each call to NodeKeeperMock.UpdateOrigin.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmUpdateOrigin *mNodeKeeperMockUpdateOrigin) Calls() []*NodeKeeperMockUpdateOriginParams {
+	mmUpdateOrigin.mutex.RLock()
+
+	argCopy := make([]*NodeKeeperMockUpdateOriginParams, len(mmUpdateOrigin.callArgs))
+	copy(argCopy, mmUpdateOrigin.callArgs)
+
+	mmUpdateOrigin.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockUpdateOriginDone returns true if the count of the UpdateOrigin invocations corresponds
+// the number of defined expectations
+func (m *NodeKeeperMock) MinimockUpdateOriginDone() bool {
+	for _, e := range m.UpdateOriginMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.UpdateOriginMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterUpdateOriginCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcUpdateOrigin != nil && mm_atomic.LoadUint64(&m.afterUpdateOriginCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockUpdateOriginInspect logs each unmet expectation
+func (m *NodeKeeperMock) MinimockUpdateOriginInspect() {
+	for _, e := range m.UpdateOriginMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to NodeKeeperMock.UpdateOrigin with params: %#v", *e.params)
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.UpdateOriginMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterUpdateOriginCounter) < 1 {
+		if m.UpdateOriginMock.defaultExpectation.params == nil {
+			m.t.Error("Expected call to NodeKeeperMock.UpdateOrigin")
+		} else {
+			m.t.Errorf("Expected call to NodeKeeperMock.UpdateOrigin with params: %#v", *m.UpdateOriginMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcUpdateOrigin != nil && mm_atomic.LoadUint64(&m.afterUpdateOriginCounter) < 1 {
+		m.t.Error("Expected call to NodeKeeperMock.UpdateOrigin")
+	}
+}
+
 // MinimockFinish checks that all mocked methods have been called the expected number of times
 func (m *NodeKeeperMock) MinimockFinish() {
 	if !m.minimockDone() {
@@ -1006,6 +1202,8 @@ func (m *NodeKeeperMock) MinimockFinish() {
 		m.MinimockSetInitialSnapshotInspect()
 
 		m.MinimockSyncInspect()
+
+		m.MinimockUpdateOriginInspect()
 		m.t.FailNow()
 	}
 }
@@ -1033,5 +1231,6 @@ func (m *NodeKeeperMock) minimockDone() bool {
 		m.MinimockGetOriginDone() &&
 		m.MinimockMoveSyncToActiveDone() &&
 		m.MinimockSetInitialSnapshotDone() &&
-		m.MinimockSyncDone()
+		m.MinimockSyncDone() &&
+		m.MinimockUpdateOriginDone()
 }

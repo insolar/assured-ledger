@@ -113,37 +113,57 @@ func (nk *nodekeeper) GetOrigin() nodeinfo.NetworkNode {
 }
 
 func (nk *nodekeeper) Sync(ctx context.Context, nodes []nodeinfo.NetworkNode) {
+	inslogger.FromContext(ctx).Debugf("Sync, nodes: %d", len(nodes))
+
 	nk.syncLock.Lock()
 	defer nk.syncLock.Unlock()
-
-	inslogger.FromContext(ctx).Debugf("Sync, nodes: %d", len(nodes))
 	nk.syncNodes = nodes
 }
 
-func (nk *nodekeeper) updateOrigin(power member.Power, state nodeinfo.State) {
-	nk.origin.(node.MutableNode).SetPower(power)
-	nk.origin.(node.MutableNode).SetState(state)
-}
-
-func (nk *nodekeeper) MoveSyncToActive(ctx context.Context, number pulse.Number) {
+func (nk *nodekeeper) UpdateOrigin(n nodeinfo.NetworkNode) {
 	nk.syncLock.Lock()
 	defer nk.syncLock.Unlock()
 
-	snapshot := node.NewSnapshot(number, nk.syncNodes)
-	err := nk.snapshotStorage.Append(snapshot)
+	nk._updateOrigin(n)
+}
+
+func (nk *nodekeeper) _updateOrigin(n nodeinfo.NetworkNode) {
+	switch {
+	case n == nil:
+		panic(throw.IllegalValue())
+	case n.GetReference() != nk.origin.GetReference():
+		panic(throw.IllegalValue())
+	}
+	nk.origin = n
+}
+
+func (nk *nodekeeper) MoveSyncToActive(ctx context.Context, pn pulse.Number) {
+	before, after, err := nk.moveSyncToActive(pn)
 	if err != nil {
 		inslogger.FromContext(ctx).Panic("MoveSyncToActive(): ", err.Error())
 	}
 
-	accessor := node.NewAccessor(snapshot)
-
 	inslogger.FromContext(ctx).Infof("[ MoveSyncToActive ] New active list confirmed. Active list size: %d -> %d",
-		len(nk.syncNodes),
-		len(accessor.GetActiveNodes()),
+		before, after,
 	)
 
-	o := accessor.GetActiveNode(nk.origin.GetReference())
-	nk.updateOrigin(o.GetPower(), o.GetState())
+	stats.Record(ctx, network.ActiveNodes.M(int64(after)))
+}
 
-	stats.Record(ctx, network.ActiveNodes.M(int64(len(accessor.GetActiveNodes()))))
+func (nk *nodekeeper) moveSyncToActive(number pulse.Number) (before, after int, err error) {
+	nk.syncLock.Lock()
+	defer nk.syncLock.Unlock()
+
+	snapshot := node.NewSnapshot(number, nk.syncNodes)
+
+	if err := nk.snapshotStorage.Append(snapshot); err != nil {
+		return 0, 0, err
+	}
+
+	accessor := node.NewAccessor(snapshot)
+
+	o := accessor.GetActiveNode(nk.origin.GetReference())
+	nk._updateOrigin(o)
+
+	return len(nk.syncNodes), len(accessor.GetActiveNodes()), nil
 }
