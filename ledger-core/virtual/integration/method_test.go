@@ -106,6 +106,8 @@ func TestVirtual_BadMethod_WithExecutor(t *testing.T) {
 	defer server.Stop()
 	server.IncrementPulseAndWaitIdle(ctx)
 
+	utils.AssertNotJumpToStep(t, server.Journal, "stepTakeLock")
+
 	var (
 		class        = testwallet.GetClass()
 		objectLocal  = server.RandomLocalWithPulse()
@@ -153,7 +155,6 @@ func TestVirtual_BadMethod_WithExecutor(t *testing.T) {
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 	assert.Equal(t, 1, typedChecker.VCallResult.Count())
-
 	mc.Finish()
 }
 
@@ -1174,6 +1175,8 @@ func Test_CallMethodWithBadIsolationFlags(t *testing.T) {
 	defer server.Stop()
 	server.IncrementPulse(ctx)
 
+	utils.AssertNotJumpToStep(t, server.Journal, "stepTakeLock")
+
 	var (
 		objectLocal  = server.RandomLocalWithPulse()
 		objectGlobal = reference.NewSelf(objectLocal)
@@ -1535,7 +1538,7 @@ func TestVirtual_Method_ForObjectWithMissingState(t *testing.T) {
 			server, ctx := utils.NewServer(nil, t)
 			defer server.Stop()
 
-			// utils.AssertNotJumpToStep(t, server.Journal, "stepTakeLock")
+			utils.AssertNotJumpToStep(t, server.Journal, "stepTakeLock")
 
 			server.IncrementPulseAndWaitIdle(ctx)
 
