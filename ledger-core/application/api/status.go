@@ -40,7 +40,7 @@ func (s *NodeService) GetStatus(r *http.Request, args *interface{}, requestBody 
 			Reference: node.ID().String(),
 			Role:      node.Role().String(),
 			IsWorking: node.GetPower() > 0,
-			ID:        uint32(node.ShortID()),
+			ID:        uint32(node.GetNodeID()),
 		}
 	}
 	reply.Nodes = nodes
@@ -49,7 +49,7 @@ func (s *NodeService) GetStatus(r *http.Request, args *interface{}, requestBody 
 		Reference: statusReply.Origin.ID().String(),
 		Role:      statusReply.Origin.Role().String(),
 		IsWorking: statusReply.Origin.GetPower() > 0,
-		ID:        uint32(statusReply.Origin.ShortID()),
+		ID:        uint32(statusReply.Origin.GetNodeID()),
 	}
 
 	reply.NetworkPulseNumber = uint32(statusReply.PulseNumber)

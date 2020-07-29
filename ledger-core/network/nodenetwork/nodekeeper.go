@@ -27,7 +27,6 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/network"
-	"github.com/insolar/assured-ledger/ledger-core/version"
 )
 
 // NewNodeNetwork create active node component
@@ -56,13 +55,7 @@ func createOrigin(configuration configuration.Transport, certificate nodeinfo.Ce
 		// role = member.PrimaryRoleLightMaterial
 	}
 
-	return node.NewNode(
-		certificate.GetNodeRef(),
-		role,
-		certificate.GetPublicKey(),
-		publicAddress,
-		version.Version,
-	), nil
+	return node.NewNode(certificate.GetNodeRef(), role, certificate.GetPublicKey(), publicAddress, ), nil
 }
 
 func resolveAddress(configuration configuration.Transport) (string, error) {

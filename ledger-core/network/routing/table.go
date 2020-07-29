@@ -41,7 +41,7 @@ func (t *Table) Resolve(ref reference.Global) (*host.Host, error) {
 		if node == nil {
 			return nil, errors.New("no such local node with NodeID: " + ref.String())
 		}
-		return host.NewHostNS(node.Address(), node.ID(), node.ShortID())
+		return host.NewHostNS(node.Address(), node.ID(), node.GetNodeID())
 	}
 	return t.resolveRemoteNode(ref)
 }

@@ -40,14 +40,14 @@ func TestSnapshot_Copy(t *testing.T) {
 	snapshot := NewSnapshot(pulse.MinTimePulse, nil)
 	mutator := NewMutator(snapshot)
 	ref1 := gen.UniqueGlobalRef()
-	node1 := newMutableNode(ref1, member.PrimaryRoleVirtual, nil, nodeinfo.Ready, "127.0.0.1:0", "")
+	node1 := newMutableNode(ref1, member.PrimaryRoleVirtual, nil, nodeinfo.Ready, "127.0.0.1:0")
 	mutator.AddWorkingNode(node1)
 
 	snapshot2 := snapshot.Copy()
 	accessor := NewAccessor(snapshot2)
 
 	ref2 := gen.UniqueGlobalRef()
-	node2 := newMutableNode(ref2, member.PrimaryRoleLightMaterial, nil, nodeinfo.Ready, "127.0.0.1:0", "")
+	node2 := newMutableNode(ref2, member.PrimaryRoleLightMaterial, nil, nodeinfo.Ready, "127.0.0.1:0")
 	mutator.AddWorkingNode(node2)
 
 	// mutator and accessor observe different copies of snapshot and don't affect each other
@@ -72,7 +72,7 @@ func TestSnapshot_Equal(t *testing.T) {
 
 	genNodeCopy := func(reference reference.Global) nodeinfo.NetworkNode {
 		return newMutableNode(reference, member.PrimaryRoleLightMaterial,
-			nil, nodeinfo.Ready, "127.0.0.1:0", "")
+			nil, nodeinfo.Ready, "127.0.0.1:0")
 	}
 
 	refs := gen.UniqueGlobalRefs(2)

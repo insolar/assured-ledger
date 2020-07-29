@@ -20,6 +20,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/version"
 
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
@@ -367,10 +368,10 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 		return nil, throw.Errorf("process authorize: got invalid protobuf request message: %s", request)
 	}
 	data := request.GetRequest().GetAuthorize().AuthorizeData
-	o := g.OriginProvider.GetOrigin()
 
-	if data.Version != o.Version() {
-		return nil, throw.Errorf("wrong version in AuthorizeRequest, actual network version is: %s", o.Version())
+	// TODO version must be checked at protocol level, it should not be a part of node profile
+	if data.Version != version.Version {
+		return nil, throw.Errorf("version mismatch in AuthorizeRequest: local=%s received=%s", version.Version, data.Version)
 	}
 
 	// TODO: move time.Minute to config
@@ -399,8 +400,9 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 	// TODO: get random reconnectHost
 	// nodes := g.NodeKeeper.GetAccessor().GetActiveNodes()
 
+	o := g.OriginProvider.GetOrigin()
 	// workaround bootstrap to the origin node
-	reconnectHost, err := host.NewHostNS(o.Address(), o.ID(), o.ShortID())
+	reconnectHost, err := host.NewHostNS(o.Address(), o.ID(), o.GetNodeID())
 	if err != nil {
 		err = throw.W(err, "Failed to get reconnectHost")
 		inslogger.FromContext(ctx).Warn(err.Error())

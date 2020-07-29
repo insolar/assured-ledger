@@ -23,7 +23,7 @@ func TestNewMemorySnapshotStorage(t *testing.T) {
 
 	ks := platformpolicy.NewKeyProcessor()
 	p1, err := ks.GeneratePrivateKey()
-	n := node.NewNode(gen.UniqueGlobalRef(), member.PrimaryRoleVirtual, ks.ExtractPublicKey(p1), "127.0.0.1:22", "ver2")
+	n := node.NewNode(gen.UniqueGlobalRef(), member.PrimaryRoleVirtual, ks.ExtractPublicKey(p1), "127.0.0.1:22")
 
 	pulse := pulsar.PulsePacket{PulseNumber: 15}
 	snap := node.NewSnapshot(pulse.PulseNumber, []nodeinfo.NetworkNode{n})

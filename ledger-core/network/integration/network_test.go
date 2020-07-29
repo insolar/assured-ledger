@@ -8,16 +8,10 @@
 package integration
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
-	"github.com/insolar/assured-ledger/ledger-core/log/global"
-	"github.com/insolar/assured-ledger/ledger-core/network"
-	"github.com/insolar/assured-ledger/ledger-core/network/node"
 )
 
 func TestNetworkConsensusManyTimes(t *testing.T) {
@@ -43,6 +37,7 @@ func TestJoinerNodeConnect(t *testing.T) {
 }
 
 func TestNodeConnectInvalidVersion(t *testing.T) {
+	t.Skip("protocol version should not be exposed")
 	t.Parallel()
 	s := startNetworkSuite(t)
 	defer s.stopNetworkSuite()
@@ -50,8 +45,8 @@ func TestNodeConnectInvalidVersion(t *testing.T) {
 	testNode := s.newNetworkNode("testNode")
 	s.preInitNode(testNode)
 	s.InitNode(testNode)
-	testNode.serviceNetwork.NodeKeeper.GetOrigin().(node.MutableNode).SetVersion("ololo")
-	require.Equal(t, "ololo", testNode.serviceNetwork.NodeKeeper.GetOrigin().Version())
+	// testNode.serviceNetwork.NodeKeeper.GetOrigin().(node.MutableNode).SetVersion("ololo")
+	// require.Equal(t, "ololo", testNode.serviceNetwork.NodeKeeper.GetOrigin().Version())
 	err := testNode.componentManager.Start(s.ctx)
 	assert.NoError(t, err)
 	defer s.StopNode(testNode)
@@ -104,72 +99,6 @@ func TestDiscoveryDown(t *testing.T) {
 		activeNodes := s.bootstrapNodes[i].GetWorkingNodes()
 		require.Equal(t, s.getNodesCount()-1, len(activeNodes))
 	}
-}
-
-func flushNodeKeeper(keeper network.NodeKeeper) {
-	// keeper.SetIsBootstrapped(false)
-	// keeper.SetCloudHash(nil)
-	keeper.SetInitialSnapshot([]nodeinfo.NetworkNode{})
-	keeper.GetOrigin().(node.MutableNode).SetState(nodeinfo.Ready)
-}
-
-func TestDiscoveryRestart(t *testing.T) {
-	t.Skip("FIXME - fails with NPE at nodekeeper.MoveSyncToActive")
-	s := startNetworkSuite(t)
-	defer s.stopNetworkSuite()
-
-	s.waitForConsensus(2)
-
-	global.Info("Discovery node stopping...")
-	err := s.bootstrapNodes[0].serviceNetwork.Stop(context.Background())
-	flushNodeKeeper(s.bootstrapNodes[0].serviceNetwork.NodeKeeper)
-	global.Info("Discovery node stopped...")
-	require.NoError(t, err)
-
-	s.waitForConsensusExcept(2, s.bootstrapNodes[0].id)
-	activeNodes := s.bootstrapNodes[1].GetWorkingNodes()
-	require.Equal(t, s.getNodesCount()-1, len(activeNodes))
-
-	global.Info("Discovery node starting...")
-	err = s.bootstrapNodes[0].serviceNetwork.Start(context.Background())
-	global.Info("Discovery node started")
-	require.NoError(t, err)
-
-	s.waitForConsensusExcept(3, s.bootstrapNodes[0].id)
-	activeNodes = s.bootstrapNodes[1].GetWorkingNodes()
-	require.Equal(t, s.getNodesCount(), len(activeNodes))
-	activeNodes = s.bootstrapNodes[0].GetWorkingNodes()
-	require.Equal(t, s.getNodesCount(), len(activeNodes))
-}
-
-func TestDiscoveryRestartNoWait(t *testing.T) {
-	t.Skip("FIXME - fails with NPE at nodekeeper.MoveSyncToActive")
-	s := startNetworkSuite(t)
-	defer s.stopNetworkSuite()
-
-	s.waitForConsensus(2)
-
-	global.Info("Discovery node stopping...")
-	err := s.bootstrapNodes[0].serviceNetwork.Stop(context.Background())
-	flushNodeKeeper(s.bootstrapNodes[0].serviceNetwork.NodeKeeper)
-	global.Info("Discovery node stopped...")
-	require.NoError(t, err)
-
-	go func(s *consensusSuite) {
-		global.Info("Discovery node starting...")
-		err = s.bootstrapNodes[0].serviceNetwork.Start(context.Background())
-		global.Info("Discovery node started")
-		require.NoError(t, err)
-	}(s)
-
-	s.waitForConsensusExcept(4, s.bootstrapNodes[0].id)
-	activeNodes := s.bootstrapNodes[1].GetActiveNodes()
-	require.Equal(t, s.getNodesCount(), len(activeNodes))
-	s.waitForConsensusExcept(1, s.bootstrapNodes[0].id)
-	activeNodes = s.bootstrapNodes[0].GetWorkingNodes()
-	require.Equal(t, s.getNodesCount(), len(activeNodes))
-	activeNodes = s.bootstrapNodes[1].GetWorkingNodes()
-	require.Equal(t, s.getNodesCount(), len(activeNodes))
 }
 
 func TestBootstrap(t *testing.T) {

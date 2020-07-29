@@ -34,7 +34,7 @@ func NewStaticProfileExtension(networkNode nodeinfo.NetworkNode) *StaticProfileE
 	_, signature := networkNode.(node.MutableNode).GetSignature()
 
 	return newStaticProfileExtension(
-		networkNode.ShortID(),
+		networkNode.GetNodeID(),
 		networkNode.ID(),
 		cryptkit.NewSignature(
 			longbits.NewBits512FromBytes(signature.Bytes()),
@@ -107,7 +107,7 @@ func NewStaticProfile(networkNode nodeinfo.NetworkNode, certificate nodeinfo.Cer
 	digest, signature := mutableNode.GetSignature()
 
 	return newStaticProfile(
-		networkNode.ShortID(),
+		networkNode.GetNodeID(),
 		StaticRoleToPrimaryRole(networkNode.Role()),
 		specialRole,
 		NewStaticProfileExtension(networkNode),
@@ -246,13 +246,7 @@ func NewNetworkNode(profile profiles.ActiveNode) nodeinfo.NetworkNode {
 	store := nip.GetPublicKeyStore()
 	introduction := nip.GetExtension()
 
-	networkNode := node.NewNode(
-		introduction.GetReference(),
-		PrimaryRoleToStaticRole(nip.GetPrimaryRole()),
-		store.(*ECDSAPublicKeyStore).publicKey,
-		nip.GetDefaultEndpoint().GetNameAddress().String(),
-		"",
-	)
+	networkNode := node.NewNode(introduction.GetReference(), PrimaryRoleToStaticRole(nip.GetPrimaryRole()), store.(*ECDSAPublicKeyStore).publicKey, nip.GetDefaultEndpoint().GetNameAddress().String(), )
 
 	mutableNode := networkNode.(node.MutableNode)
 

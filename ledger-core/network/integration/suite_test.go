@@ -575,7 +575,7 @@ func (s *testSuite) preInitNode(node *networkNode) {
 	node.serviceNetwork = serviceNetwork
 
 	nodeContext, _ := inslogger.WithFields(s.ctx, map[string]interface{}{
-		"node_id":      realKeeper.GetOrigin().ShortID(),
+		"node_id":      realKeeper.GetOrigin().GetNodeID(),
 		"node_address": realKeeper.GetOrigin().Address(),
 		"node_role":    realKeeper.GetOrigin().Role().String(),
 	})

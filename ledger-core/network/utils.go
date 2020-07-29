@@ -42,7 +42,7 @@ func WaitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
 // CheckShortIDCollision returns true if nodes contains node with such ShortID
 func CheckShortIDCollision(nodes []nodeinfo.NetworkNode, id node2.ShortNodeID) bool {
 	for _, n := range nodes {
-		if id == n.ShortID() {
+		if id == n.GetNodeID() {
 			return true
 		}
 	}
@@ -62,7 +62,7 @@ func GenerateUniqueShortID(nodes []nodeinfo.NetworkNode, nodeID reference.Global
 func regenerateShortID(nodes []nodeinfo.NetworkNode, shortID node2.ShortNodeID) node2.ShortNodeID {
 	shortIDs := make([]node2.ShortNodeID, len(nodes))
 	for i, activeNode := range nodes {
-		shortIDs[i] = activeNode.ShortID()
+		shortIDs[i] = activeNode.GetNodeID()
 	}
 	sort.Slice(shortIDs, func(i, j int) bool {
 		return shortIDs[i] < shortIDs[j]

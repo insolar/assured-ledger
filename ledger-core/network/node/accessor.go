@@ -81,7 +81,7 @@ func GetSnapshotActiveNodes(snapshot *Snapshot) []nodeinfo.NetworkNode {
 
 func (a *Accessor) addToIndex(node nodeinfo.NetworkNode) {
 	a.refIndex[node.ID()] = node
-	a.sidIndex[node.ShortID()] = node
+	a.sidIndex[node.GetNodeID()] = node
 	a.addrIndex[node.Address()] = node
 
 	if node.GetPower() == 0 {

@@ -170,7 +170,7 @@ func initNodes(ctx context.Context, mode consensus.Mode, nodes GeneratedNodes, s
 
 		ns.controllers[i] = controller
 		ctx, _ = inslogger.WithFields(ctx, map[string]interface{}{
-			"node_id":      n.ShortID(),
+			"node_id":      n.GetNodeID(),
 			"node_address": n.Address(),
 		})
 		ns.contexts[i] = ctx
@@ -261,7 +261,7 @@ func getAnnounceSignature(
 ) ([]byte, *cryptography.Signature, error) {
 
 	brief := serialization.NodeBriefIntro{}
-	brief.ShortID = node.ShortID()
+	brief.ShortID = node.GetNodeID()
 	brief.SetPrimaryRole(adapters.StaticRoleToPrimaryRole(node.Role()))
 	if isDiscovery {
 		brief.SpecialRoles = member.SpecialRoleDiscovery
@@ -332,13 +332,7 @@ func nodesFromInfo(nodeInfos []*nodeMeta) ([]nodeinfo.NetworkNode, []nodeinfo.Ne
 }
 
 func newNetworkNode(addr string, role member.PrimaryRole, pk crypto.PublicKey) node.MutableNode {
-	n := node.NewNode(
-		gen.UniqueGlobalRef(),
-		role,
-		pk,
-		addr,
-		"",
-	)
+	n := node.NewNode(gen.UniqueGlobalRef(), role, pk, addr, )
 	mn := n.(node.MutableNode)
 	mn.SetShortID(node2.ShortNodeID(shortNodeIdOffset))
 

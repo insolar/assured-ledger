@@ -10,12 +10,8 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
-	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
-
-// GlobuleID is the ID of the globe
-type GlobuleID uint32
 
 // Power is node power
 type Power uint8
@@ -40,19 +36,13 @@ type NetworkNode interface {
 	// ID is the unique identifier of the node
 	ID() reference.Global
 	// ShortID get short ID of node
-	ShortID() node.ShortNodeID
+	GetNodeID() node.ShortNodeID
 	// Role is the candidate Role for the node
 	Role() member.PrimaryRole
 	// PublicKey is the public key of the node
 	PublicKey() crypto.PublicKey
 	// Address is the network address of the node
 	Address() string
-	// GetGlobuleID returns node current globule id
-	GetGlobuleID() GlobuleID
-	// Version of node software
-	Version() string
-	// LeavingETA is pulse number, after which node leave
-	LeavingETA() pulse.Number
 	// GetState get state of the node
 	GetState() State
 	// GetPower get power of node

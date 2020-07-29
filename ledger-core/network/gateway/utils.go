@@ -45,7 +45,7 @@ func getAnnounceSignature(
 ) ([]byte, *cryptography.Signature, error) {
 
 	brief := serialization.NodeBriefIntro{}
-	brief.ShortID = node.ShortID()
+	brief.ShortID = node.GetNodeID()
 	brief.SetPrimaryRole(adapters.StaticRoleToPrimaryRole(node.Role()))
 	if isDiscovery {
 		brief.SpecialRoles = member.SpecialRoleDiscovery
