@@ -50,7 +50,7 @@ type SharedCallSummary struct {
 	Requests callregistry.ObjectsResultCallRegistry
 }
 
-func (sm *SMCallSummary) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLink, _ *injector.DependencyInjector) {
+func (sm *SMCallSummary) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLink, _ injector.DependencyInjector) {
 }
 
 func (sm *SMCallSummary) GetInitStateFor(_ smachine.StateMachine) smachine.InitFunc {

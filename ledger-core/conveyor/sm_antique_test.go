@@ -97,7 +97,7 @@ type testAntiqueSM struct {
 	counter     int
 }
 
-func (p *testAntiqueSM) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLink, injector *injector.DependencyInjector) {
+func (p *testAntiqueSM) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLink, injector injector.DependencyInjector) {
 	if p.counter <= 0 {
 		_ = injector.Inject(&p.pulseSlot)
 	}
