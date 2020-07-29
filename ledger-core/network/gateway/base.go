@@ -421,7 +421,7 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 	var reconnectHost *host.Host
 	if !g.isJoinAssistant || len(nodes) < 2 {
 		// workaround bootstrap to the origin node
-		reconnectHost, err = host.NewHostNS(o.Address(), o.ID(), o.ShortID())
+		reconnectHost, err = host.NewHostNS(o.Address(), o.GetReference(), o.GetNodeID())
 		if err != nil {
 			err = throw.W(err, "Failed to get reconnectHost")
 			inslogger.FromContext(ctx).Warn(err.Error())
@@ -429,7 +429,7 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 		}
 	} else {
 		randNode := nodes[rand.Intn(len(nodes))]
-		reconnectHost, err = host.NewHostNS(randNode.Address(), randNode.ID(), randNode.ShortID())
+		reconnectHost, err = host.NewHostNS(randNode.Address(), randNode.GetReference(), randNode.GetNodeID())
 		if err != nil {
 			err = throw.W(err, "Failed to get reconnectHost")
 			inslogger.FromContext(ctx).Warn(err.Error())
