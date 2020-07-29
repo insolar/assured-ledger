@@ -6,13 +6,16 @@
 package bootstrap
 
 import (
+	"bytes"
 	"context"
 	"math/rand"
+	"sort"
 	"time"
 
 	"github.com/opentracing/opentracing-go/log"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
@@ -27,6 +30,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet/types"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 )
+
+const bootstrapRetryCount = 3
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network/gateway/bootstrap.Requester -o ./ -s _mock.go -g
 
@@ -47,12 +52,17 @@ type requester struct {
 	CryptographyService cryptography.Service   `inject:""`
 
 	options *network.Options
+	retry   int
 }
 
 func (ac *requester) Authorize(ctx context.Context, cert nodeinfo.Certificate) (*packet.Permit, error) {
 	logger := inslogger.FromContext(ctx)
 
 	discoveryNodes := network.ExcludeOrigin(cert.GetDiscoveryNodes(), cert.GetNodeRef())
+
+	if network.OriginIsDiscovery(cert) {
+		return ac.authorizeDiscovery(ctx, discoveryNodes, cert)
+	}
 
 	rand.Shuffle(
 		len(discoveryNodes),
@@ -95,8 +105,42 @@ func (ac *requester) Authorize(ctx context.Context, cert nodeinfo.Certificate) (
 		return res.Permit, nil
 	}
 
+	// todo:  remove best result
 	if network.OriginIsDiscovery(cert) && bestResult.Permit != nil {
 		return bestResult.Permit, nil
+	}
+
+	return nil, throw.New("failed to authorize to any discovery node")
+}
+
+func (ac *requester) authorizeDiscovery(ctx context.Context, nodes []nodeinfo.DiscoveryNode, cert nodeinfo.AuthorizationCertificate) (*packet.Permit, error) {
+	if len(nodes) == 0 {
+		return nil, throw.Impossible()
+	}
+
+	sort.Slice(nodes, func(i, j int) bool {
+		a := nodes[i].GetNodeRef().AsBytes()
+		b := nodes[j].GetNodeRef().AsBytes()
+		return bytes.Compare(a, b) > 0
+	})
+
+	logger := inslogger.FromContext(ctx)
+	for _, n := range nodes {
+		h, err := host.NewHostN(n.GetHost(), n.GetNodeRef())
+		if err != nil {
+			logger.Warnf("Error authorizing to mallformed host %s[%s]: %s",
+				n.GetHost(), n.GetNodeRef(), err.Error())
+			continue
+		}
+
+		logger.Infof("Trying to authorize to node: %s", h.String())
+		res, err := ac.authorize(ctx, h, cert)
+		if err != nil {
+			logger.Warnf("Error authorizing to host %s: %s", h.String(), err.Error())
+			continue
+		}
+
+		return res.Permit, nil
 	}
 
 	return nil, throw.New("failed to authorize to any discovery node")
@@ -179,6 +223,12 @@ func (ac *requester) Bootstrap(ctx context.Context, permit *packet.Permit, candi
 		Permit:           permit,
 	}
 
+	backoff := synckit.Backoff{
+		Min:    ac.options.MinTimeout,
+		Max:    ac.options.MaxTimeout,
+		Factor: float64(ac.options.TimeoutMult),
+	}
+
 	f, err := ac.HostNetwork.SendRequestToHost(ctx, types.Bootstrap, req, permit.Payload.ReconnectTo)
 	if err != nil {
 		return nil, throw.W(err, "Error sending Bootstrap request")
@@ -203,6 +253,14 @@ func (ac *requester) Bootstrap(ctx context.Context, permit *packet.Permit, candi
 		return respData, throw.New("Bootstrap got UpdateSchedule")
 	case packet.Reject:
 		return respData, throw.New("Bootstrap request rejected")
+	case packet.Retry:
+		time.Sleep(backoff.Duration())
+		ac.retry++
+		if ac.retry > bootstrapRetryCount {
+			ac.retry = 0
+			return respData, throw.New("Retry bootstrap failed")
+		}
+		return ac.Bootstrap(ctx, permit, candidate)
 	}
 
 	// case Accepted
