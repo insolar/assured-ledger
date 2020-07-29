@@ -117,6 +117,7 @@ func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
 			expectedStatus: payload.FoundCall,
 			expectedResult: true,
 		},
+		//TODO failed
 		{
 			name:                 "found request, constructor, not pending, result, early msg",
 			events:               []TestStep{StepFindMessage, StepConstructorStartAndFinish, StepIncrementPulseToP3},
@@ -249,12 +250,14 @@ func StepConstructorStart(s *VFindCallRequestHandlingSuite, ctx context.Context,
 	}
 	s.executionPoint = synchronization.NewPoint(1)
 
-	report := payload.VStateReport{
-		AsOf:   s.getP1(),
-		Status: payload.Missing,
-		Object: s.getObject(),
+	if s.getObject().GetLocal().GetPulseNumber() < s.getP2() {
+		report := payload.VStateReport{
+			AsOf:   s.getP1(),
+			Status: payload.Missing,
+			Object: s.getObject(),
+		}
+		s.addPayloadAndWaitIdle(ctx, &report)
 	}
-	s.addPayloadAndWaitIdle(ctx, &report)
 
 	req := payload.VCallRequest{
 		CallType:       payload.CTConstructor,
