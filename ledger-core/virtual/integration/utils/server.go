@@ -22,9 +22,12 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor/memstor"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/convlog"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles"
@@ -34,6 +37,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner"
 	"github.com/insolar/assured-ledger/ledger-core/runner/machine"
+	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/journal"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/network"
@@ -44,11 +48,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/convlog"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/mock/publisher"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/pulsemanager"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/statemachine"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 )
 
 type Server struct {
@@ -69,7 +69,7 @@ type Server struct {
 	JetCoordinatorMock *affinity.HelperMock
 	pulseGenerator     *testutils.PulseGenerator
 	pulseStorage       *memstor.StorageMem
-	pulseManager       *pulsemanager.PulseManager
+	pulseManager       *insconveyor.PulseManager
 	Journal            *journal.Journal
 
 	// wait and suspend operations
@@ -133,7 +133,7 @@ func newServerExt(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFi
 
 	// Pulse-related components
 	var (
-		PulseManager *pulsemanager.PulseManager
+		PulseManager *insconveyor.PulseManager
 		Pulses       *memstor.StorageMem
 	)
 	{
@@ -150,7 +150,7 @@ func newServerExt(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFi
 		nodeNetworkMock := network.NewNodeNetworkMock(t).GetAccessorMock.Return(nodeNetworkAccessorMock)
 
 		Pulses = memstor.NewStorageMem()
-		PulseManager = pulsemanager.NewPulseManager()
+		PulseManager = insconveyor.NewPulseManager()
 		PulseManager.NodeNet = nodeNetworkMock
 		PulseManager.PulseAccessor = Pulses
 		PulseManager.PulseAppender = Pulses
@@ -183,7 +183,7 @@ func newServerExt(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFi
 	if convlog.UseTextConvLog {
 		machineLogger = convlog.MachineLogger{}
 	} else {
-		machineLogger = statemachine.ConveyorLoggerFactory{}
+		machineLogger = insconveyor.ConveyorLoggerFactory{}
 	}
 	s.Journal = journal.New()
 	machineLogger = s.Journal.InterceptSlotMachineLog(machineLogger, s.fullStop)
@@ -270,12 +270,14 @@ func (s *Server) GetPrevPulse() beat.Beat {
 func (s *Server) incrementPulse() {
 	s.pulseGenerator.Generate()
 
+	s.pulseManager.RequestNodeState(func(api.UpstreamState) {})
+
 	pc := s.GetPulse()
 	if err := s.pulseStorage.Append(context.Background(), pc); err != nil {
 		panic(err)
 	}
 
-	if err := s.pulseManager.CommitPulseChange(s.GetPulse()); err != nil {
+	if err := s.pulseManager.CommitPulseChange(pc); err != nil {
 		panic(err)
 	}
 }

@@ -15,6 +15,12 @@ import (
 type ConductorMock struct {
 	t minimock.Tester
 
+	funcCancelNodeState          func()
+	inspectFuncCancelNodeState   func()
+	afterCancelNodeStateCounter  uint64
+	beforeCancelNodeStateCounter uint64
+	CancelNodeStateMock          mConductorMockCancelNodeState
+
 	funcCommitFirstPulseChange          func(b1 beat.Beat) (err error)
 	inspectFuncCommitFirstPulseChange   func(b1 beat.Beat)
 	afterCommitFirstPulseChangeCounter  uint64
@@ -26,6 +32,12 @@ type ConductorMock struct {
 	afterCommitPulseChangeCounter  uint64
 	beforeCommitPulseChangeCounter uint64
 	CommitPulseChangeMock          mConductorMockCommitPulseChange
+
+	funcRequestNodeState          func(n1 NodeStateFunc)
+	inspectFuncRequestNodeState   func(n1 NodeStateFunc)
+	afterRequestNodeStateCounter  uint64
+	beforeRequestNodeStateCounter uint64
+	RequestNodeStateMock          mConductorMockRequestNodeState
 }
 
 // NewConductorMock returns a mock for Conductor
@@ -35,13 +47,153 @@ func NewConductorMock(t minimock.Tester) *ConductorMock {
 		controller.RegisterMocker(m)
 	}
 
+	m.CancelNodeStateMock = mConductorMockCancelNodeState{mock: m}
+
 	m.CommitFirstPulseChangeMock = mConductorMockCommitFirstPulseChange{mock: m}
 	m.CommitFirstPulseChangeMock.callArgs = []*ConductorMockCommitFirstPulseChangeParams{}
 
 	m.CommitPulseChangeMock = mConductorMockCommitPulseChange{mock: m}
 	m.CommitPulseChangeMock.callArgs = []*ConductorMockCommitPulseChangeParams{}
 
+	m.RequestNodeStateMock = mConductorMockRequestNodeState{mock: m}
+	m.RequestNodeStateMock.callArgs = []*ConductorMockRequestNodeStateParams{}
+
 	return m
+}
+
+type mConductorMockCancelNodeState struct {
+	mock               *ConductorMock
+	defaultExpectation *ConductorMockCancelNodeStateExpectation
+	expectations       []*ConductorMockCancelNodeStateExpectation
+}
+
+// ConductorMockCancelNodeStateExpectation specifies expectation struct of the Conductor.CancelNodeState
+type ConductorMockCancelNodeStateExpectation struct {
+	mock *ConductorMock
+
+	Counter uint64
+}
+
+// Expect sets up expected params for Conductor.CancelNodeState
+func (mmCancelNodeState *mConductorMockCancelNodeState) Expect() *mConductorMockCancelNodeState {
+	if mmCancelNodeState.mock.funcCancelNodeState != nil {
+		mmCancelNodeState.mock.t.Fatalf("ConductorMock.CancelNodeState mock is already set by Set")
+	}
+
+	if mmCancelNodeState.defaultExpectation == nil {
+		mmCancelNodeState.defaultExpectation = &ConductorMockCancelNodeStateExpectation{}
+	}
+
+	return mmCancelNodeState
+}
+
+// Inspect accepts an inspector function that has same arguments as the Conductor.CancelNodeState
+func (mmCancelNodeState *mConductorMockCancelNodeState) Inspect(f func()) *mConductorMockCancelNodeState {
+	if mmCancelNodeState.mock.inspectFuncCancelNodeState != nil {
+		mmCancelNodeState.mock.t.Fatalf("Inspect function is already set for ConductorMock.CancelNodeState")
+	}
+
+	mmCancelNodeState.mock.inspectFuncCancelNodeState = f
+
+	return mmCancelNodeState
+}
+
+// Return sets up results that will be returned by Conductor.CancelNodeState
+func (mmCancelNodeState *mConductorMockCancelNodeState) Return() *ConductorMock {
+	if mmCancelNodeState.mock.funcCancelNodeState != nil {
+		mmCancelNodeState.mock.t.Fatalf("ConductorMock.CancelNodeState mock is already set by Set")
+	}
+
+	if mmCancelNodeState.defaultExpectation == nil {
+		mmCancelNodeState.defaultExpectation = &ConductorMockCancelNodeStateExpectation{mock: mmCancelNodeState.mock}
+	}
+
+	return mmCancelNodeState.mock
+}
+
+//Set uses given function f to mock the Conductor.CancelNodeState method
+func (mmCancelNodeState *mConductorMockCancelNodeState) Set(f func()) *ConductorMock {
+	if mmCancelNodeState.defaultExpectation != nil {
+		mmCancelNodeState.mock.t.Fatalf("Default expectation is already set for the Conductor.CancelNodeState method")
+	}
+
+	if len(mmCancelNodeState.expectations) > 0 {
+		mmCancelNodeState.mock.t.Fatalf("Some expectations are already set for the Conductor.CancelNodeState method")
+	}
+
+	mmCancelNodeState.mock.funcCancelNodeState = f
+	return mmCancelNodeState.mock
+}
+
+// CancelNodeState implements Conductor
+func (mmCancelNodeState *ConductorMock) CancelNodeState() {
+	mm_atomic.AddUint64(&mmCancelNodeState.beforeCancelNodeStateCounter, 1)
+	defer mm_atomic.AddUint64(&mmCancelNodeState.afterCancelNodeStateCounter, 1)
+
+	if mmCancelNodeState.inspectFuncCancelNodeState != nil {
+		mmCancelNodeState.inspectFuncCancelNodeState()
+	}
+
+	if mmCancelNodeState.CancelNodeStateMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmCancelNodeState.CancelNodeStateMock.defaultExpectation.Counter, 1)
+
+		return
+
+	}
+	if mmCancelNodeState.funcCancelNodeState != nil {
+		mmCancelNodeState.funcCancelNodeState()
+		return
+	}
+	mmCancelNodeState.t.Fatalf("Unexpected call to ConductorMock.CancelNodeState.")
+
+}
+
+// CancelNodeStateAfterCounter returns a count of finished ConductorMock.CancelNodeState invocations
+func (mmCancelNodeState *ConductorMock) CancelNodeStateAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmCancelNodeState.afterCancelNodeStateCounter)
+}
+
+// CancelNodeStateBeforeCounter returns a count of ConductorMock.CancelNodeState invocations
+func (mmCancelNodeState *ConductorMock) CancelNodeStateBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmCancelNodeState.beforeCancelNodeStateCounter)
+}
+
+// MinimockCancelNodeStateDone returns true if the count of the CancelNodeState invocations corresponds
+// the number of defined expectations
+func (m *ConductorMock) MinimockCancelNodeStateDone() bool {
+	for _, e := range m.CancelNodeStateMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.CancelNodeStateMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterCancelNodeStateCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcCancelNodeState != nil && mm_atomic.LoadUint64(&m.afterCancelNodeStateCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockCancelNodeStateInspect logs each unmet expectation
+func (m *ConductorMock) MinimockCancelNodeStateInspect() {
+	for _, e := range m.CancelNodeStateMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Error("Expected call to ConductorMock.CancelNodeState")
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.CancelNodeStateMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterCancelNodeStateCounter) < 1 {
+		m.t.Error("Expected call to ConductorMock.CancelNodeState")
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcCancelNodeState != nil && mm_atomic.LoadUint64(&m.afterCancelNodeStateCounter) < 1 {
+		m.t.Error("Expected call to ConductorMock.CancelNodeState")
+	}
 }
 
 type mConductorMockCommitFirstPulseChange struct {
@@ -474,12 +626,203 @@ func (m *ConductorMock) MinimockCommitPulseChangeInspect() {
 	}
 }
 
+type mConductorMockRequestNodeState struct {
+	mock               *ConductorMock
+	defaultExpectation *ConductorMockRequestNodeStateExpectation
+	expectations       []*ConductorMockRequestNodeStateExpectation
+
+	callArgs []*ConductorMockRequestNodeStateParams
+	mutex    sync.RWMutex
+}
+
+// ConductorMockRequestNodeStateExpectation specifies expectation struct of the Conductor.RequestNodeState
+type ConductorMockRequestNodeStateExpectation struct {
+	mock   *ConductorMock
+	params *ConductorMockRequestNodeStateParams
+
+	Counter uint64
+}
+
+// ConductorMockRequestNodeStateParams contains parameters of the Conductor.RequestNodeState
+type ConductorMockRequestNodeStateParams struct {
+	n1 NodeStateFunc
+}
+
+// Expect sets up expected params for Conductor.RequestNodeState
+func (mmRequestNodeState *mConductorMockRequestNodeState) Expect(n1 NodeStateFunc) *mConductorMockRequestNodeState {
+	if mmRequestNodeState.mock.funcRequestNodeState != nil {
+		mmRequestNodeState.mock.t.Fatalf("ConductorMock.RequestNodeState mock is already set by Set")
+	}
+
+	if mmRequestNodeState.defaultExpectation == nil {
+		mmRequestNodeState.defaultExpectation = &ConductorMockRequestNodeStateExpectation{}
+	}
+
+	mmRequestNodeState.defaultExpectation.params = &ConductorMockRequestNodeStateParams{n1}
+	for _, e := range mmRequestNodeState.expectations {
+		if minimock.Equal(e.params, mmRequestNodeState.defaultExpectation.params) {
+			mmRequestNodeState.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmRequestNodeState.defaultExpectation.params)
+		}
+	}
+
+	return mmRequestNodeState
+}
+
+// Inspect accepts an inspector function that has same arguments as the Conductor.RequestNodeState
+func (mmRequestNodeState *mConductorMockRequestNodeState) Inspect(f func(n1 NodeStateFunc)) *mConductorMockRequestNodeState {
+	if mmRequestNodeState.mock.inspectFuncRequestNodeState != nil {
+		mmRequestNodeState.mock.t.Fatalf("Inspect function is already set for ConductorMock.RequestNodeState")
+	}
+
+	mmRequestNodeState.mock.inspectFuncRequestNodeState = f
+
+	return mmRequestNodeState
+}
+
+// Return sets up results that will be returned by Conductor.RequestNodeState
+func (mmRequestNodeState *mConductorMockRequestNodeState) Return() *ConductorMock {
+	if mmRequestNodeState.mock.funcRequestNodeState != nil {
+		mmRequestNodeState.mock.t.Fatalf("ConductorMock.RequestNodeState mock is already set by Set")
+	}
+
+	if mmRequestNodeState.defaultExpectation == nil {
+		mmRequestNodeState.defaultExpectation = &ConductorMockRequestNodeStateExpectation{mock: mmRequestNodeState.mock}
+	}
+
+	return mmRequestNodeState.mock
+}
+
+//Set uses given function f to mock the Conductor.RequestNodeState method
+func (mmRequestNodeState *mConductorMockRequestNodeState) Set(f func(n1 NodeStateFunc)) *ConductorMock {
+	if mmRequestNodeState.defaultExpectation != nil {
+		mmRequestNodeState.mock.t.Fatalf("Default expectation is already set for the Conductor.RequestNodeState method")
+	}
+
+	if len(mmRequestNodeState.expectations) > 0 {
+		mmRequestNodeState.mock.t.Fatalf("Some expectations are already set for the Conductor.RequestNodeState method")
+	}
+
+	mmRequestNodeState.mock.funcRequestNodeState = f
+	return mmRequestNodeState.mock
+}
+
+// RequestNodeState implements Conductor
+func (mmRequestNodeState *ConductorMock) RequestNodeState(n1 NodeStateFunc) {
+	mm_atomic.AddUint64(&mmRequestNodeState.beforeRequestNodeStateCounter, 1)
+	defer mm_atomic.AddUint64(&mmRequestNodeState.afterRequestNodeStateCounter, 1)
+
+	if mmRequestNodeState.inspectFuncRequestNodeState != nil {
+		mmRequestNodeState.inspectFuncRequestNodeState(n1)
+	}
+
+	mm_params := &ConductorMockRequestNodeStateParams{n1}
+
+	// Record call args
+	mmRequestNodeState.RequestNodeStateMock.mutex.Lock()
+	mmRequestNodeState.RequestNodeStateMock.callArgs = append(mmRequestNodeState.RequestNodeStateMock.callArgs, mm_params)
+	mmRequestNodeState.RequestNodeStateMock.mutex.Unlock()
+
+	for _, e := range mmRequestNodeState.RequestNodeStateMock.expectations {
+		if minimock.Equal(e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return
+		}
+	}
+
+	if mmRequestNodeState.RequestNodeStateMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmRequestNodeState.RequestNodeStateMock.defaultExpectation.Counter, 1)
+		mm_want := mmRequestNodeState.RequestNodeStateMock.defaultExpectation.params
+		mm_got := ConductorMockRequestNodeStateParams{n1}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmRequestNodeState.t.Errorf("ConductorMock.RequestNodeState got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		return
+
+	}
+	if mmRequestNodeState.funcRequestNodeState != nil {
+		mmRequestNodeState.funcRequestNodeState(n1)
+		return
+	}
+	mmRequestNodeState.t.Fatalf("Unexpected call to ConductorMock.RequestNodeState. %v", n1)
+
+}
+
+// RequestNodeStateAfterCounter returns a count of finished ConductorMock.RequestNodeState invocations
+func (mmRequestNodeState *ConductorMock) RequestNodeStateAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmRequestNodeState.afterRequestNodeStateCounter)
+}
+
+// RequestNodeStateBeforeCounter returns a count of ConductorMock.RequestNodeState invocations
+func (mmRequestNodeState *ConductorMock) RequestNodeStateBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmRequestNodeState.beforeRequestNodeStateCounter)
+}
+
+// Calls returns a list of arguments used in each call to ConductorMock.RequestNodeState.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmRequestNodeState *mConductorMockRequestNodeState) Calls() []*ConductorMockRequestNodeStateParams {
+	mmRequestNodeState.mutex.RLock()
+
+	argCopy := make([]*ConductorMockRequestNodeStateParams, len(mmRequestNodeState.callArgs))
+	copy(argCopy, mmRequestNodeState.callArgs)
+
+	mmRequestNodeState.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockRequestNodeStateDone returns true if the count of the RequestNodeState invocations corresponds
+// the number of defined expectations
+func (m *ConductorMock) MinimockRequestNodeStateDone() bool {
+	for _, e := range m.RequestNodeStateMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.RequestNodeStateMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterRequestNodeStateCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcRequestNodeState != nil && mm_atomic.LoadUint64(&m.afterRequestNodeStateCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockRequestNodeStateInspect logs each unmet expectation
+func (m *ConductorMock) MinimockRequestNodeStateInspect() {
+	for _, e := range m.RequestNodeStateMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to ConductorMock.RequestNodeState with params: %#v", *e.params)
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.RequestNodeStateMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterRequestNodeStateCounter) < 1 {
+		if m.RequestNodeStateMock.defaultExpectation.params == nil {
+			m.t.Error("Expected call to ConductorMock.RequestNodeState")
+		} else {
+			m.t.Errorf("Expected call to ConductorMock.RequestNodeState with params: %#v", *m.RequestNodeStateMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcRequestNodeState != nil && mm_atomic.LoadUint64(&m.afterRequestNodeStateCounter) < 1 {
+		m.t.Error("Expected call to ConductorMock.RequestNodeState")
+	}
+}
+
 // MinimockFinish checks that all mocked methods have been called the expected number of times
 func (m *ConductorMock) MinimockFinish() {
 	if !m.minimockDone() {
+		m.MinimockCancelNodeStateInspect()
+
 		m.MinimockCommitFirstPulseChangeInspect()
 
 		m.MinimockCommitPulseChangeInspect()
+
+		m.MinimockRequestNodeStateInspect()
 		m.t.FailNow()
 	}
 }
@@ -503,6 +846,8 @@ func (m *ConductorMock) MinimockWait(timeout mm_time.Duration) {
 func (m *ConductorMock) minimockDone() bool {
 	done := true
 	return done &&
+		m.MinimockCancelNodeStateDone() &&
 		m.MinimockCommitFirstPulseChangeDone() &&
-		m.MinimockCommitPulseChangeDone()
+		m.MinimockCommitPulseChangeDone() &&
+		m.MinimockRequestNodeStateDone()
 }
