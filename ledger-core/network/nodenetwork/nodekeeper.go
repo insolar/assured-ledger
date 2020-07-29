@@ -31,7 +31,7 @@ import (
 
 // NewNodeNetwork create active node component
 func NewNodeNetwork(configuration configuration.Transport, certificate nodeinfo.Certificate) (network.NodeNetwork, error) { // nolint:staticcheck
-	isJoiner := !network.IsDiscoveryCert(certificate)
+	isJoiner := !network.OriginIsDiscovery(certificate)
 	origin, err := createOrigin(configuration, certificate, isJoiner)
 	if err != nil {
 		return nil, throw.W(err, "Failed to create origin node")

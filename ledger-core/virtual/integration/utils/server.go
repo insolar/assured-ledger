@@ -137,7 +137,6 @@ func newServerExt(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFi
 	{
 		Pulses = memstor.NewStorageMem()
 		PulseManager = insconveyor.NewPulseManager()
-		PulseManager.PulseAccessor = Pulses
 		PulseManager.PulseAppender = Pulses
 	}
 

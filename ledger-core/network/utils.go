@@ -10,7 +10,6 @@ import (
 	"context"
 	"errors"
 	"io"
-	"math"
 	"sort"
 	"strconv"
 	"strings"
@@ -31,41 +30,6 @@ func CheckShortIDCollision(nodes []nodeinfo.NetworkNode, id node2.ShortNodeID) b
 	}
 
 	return false
-}
-
-func regenerateShortID(nodes []nodeinfo.NetworkNode, shortID node2.ShortNodeID) node2.ShortNodeID {
-	shortIDs := make([]node2.ShortNodeID, len(nodes))
-	for i, activeNode := range nodes {
-		shortIDs[i] = activeNode.GetNodeID()
-	}
-	sort.Slice(shortIDs, func(i, j int) bool {
-		return shortIDs[i] < shortIDs[j]
-	})
-	return generateNonConflictingID(shortIDs, shortID)
-}
-
-func generateNonConflictingID(sortedSlice []node2.ShortNodeID, conflictingID node2.ShortNodeID) node2.ShortNodeID {
-	index := sort.Search(len(sortedSlice), func(i int) bool {
-		return sortedSlice[i] >= conflictingID
-	})
-	result := conflictingID
-	repeated := false
-	for {
-		if result == math.MaxUint32 {
-			if !repeated {
-				repeated = true
-				result = 0
-				index = 0
-			} else {
-				panic("[ generateNonConflictingID ] shortID overflow twice")
-			}
-		}
-		index++
-		result++
-		if index >= len(sortedSlice) || result != sortedSlice[index] {
-			return result
-		}
-	}
 }
 
 // ExcludeOrigin returns DiscoveryNode slice without Origin
@@ -89,7 +53,7 @@ func FindDiscoveryByRef(cert nodeinfo.Certificate, ref reference.Global) nodeinf
 	return nil
 }
 
-func IsDiscoveryCert(cert nodeinfo.Certificate) bool {
+func OriginIsDiscovery(cert nodeinfo.Certificate) bool {
 	return IsDiscovery(cert.GetNodeRef(), cert)
 }
 

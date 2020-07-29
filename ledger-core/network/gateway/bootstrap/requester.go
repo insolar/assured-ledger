@@ -60,7 +60,7 @@ func (ac *requester) Authorize(ctx context.Context, cert nodeinfo.Certificate) (
 
 	discoveryNodes := network.ExcludeOrigin(cert.GetDiscoveryNodes(), cert.GetNodeRef())
 
-	if network.IsDiscoveryCert(cert) {
+	if network.OriginIsDiscovery(cert) {
 		return ac.authorizeDiscovery(ctx, discoveryNodes, cert)
 	}
 
@@ -106,7 +106,7 @@ func (ac *requester) Authorize(ctx context.Context, cert nodeinfo.Certificate) (
 	}
 
 	// todo:  remove best result
-	if network.IsDiscoveryCert(cert) && bestResult.Permit != nil {
+	if network.OriginIsDiscovery(cert) && bestResult.Permit != nil {
 		return bestResult.Permit, nil
 	}
 

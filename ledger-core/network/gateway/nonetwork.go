@@ -40,7 +40,7 @@ func (g *NoNetwork) Run(ctx context.Context, pulse pulse.Data) {
 	}
 
 	// remember who is Me and who is joinAssistant
-	g.isDiscovery = network.IsDiscoveryCert(cert)
+	g.isDiscovery = network.OriginIsDiscovery(cert)
 	g.isJoinAssistant = network.OriginIsJoinAssistant(cert)
 	g.joinAssistant = network.JoinAssistant(cert)
 

@@ -166,7 +166,7 @@ func (c Installer) ControllerFor(mode Mode, setters ...packetProcessorSetter) Co
 	)
 
 	cert := c.dep.CertificateManager.GetCertificate()
-	isDiscovery := network.IsDiscoveryCert(cert)
+	isDiscovery := network.OriginIsDiscovery(cert)
 
 	var candidateQueueSize int
 	if isDiscovery {

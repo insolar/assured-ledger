@@ -17,7 +17,6 @@ import (
 var _ chorus.Conductor = &PulseManager{}
 
 type PulseManager struct {
-	PulseAccessor beat.Accessor       `inject:""`
 	PulseAppender beat.Appender       `inject:""`
 
 	mutex sync.RWMutex

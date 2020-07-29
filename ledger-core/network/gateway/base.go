@@ -199,7 +199,7 @@ func (g *Base) createOriginCandidate() error {
 	endpointAddr := g.datagramTransport.Address()
 	digest, signature, err := getAnnounceSignature(
 		origin, endpointAddr,
-		network.IsDiscoveryCert(g.CertificateManager.GetCertificate()),
+		network.OriginIsDiscovery(g.CertificateManager.GetCertificate()),
 		g.KeyProcessor,
 		getKeyStore(g.CryptographyService),
 		g.CryptographyScheme,
@@ -337,7 +337,7 @@ func (g *Base) announceMiddleware(handler network.RequestHandler) network.Reques
 
 func (g *Base) discoveryMiddleware(handler network.RequestHandler) network.RequestHandler {
 	return func(ctx context.Context, request network.ReceivedPacket) (network.Packet, error) {
-		if !network.IsDiscoveryCert(g.CertificateManager.GetCertificate()) {
+		if !network.OriginIsDiscovery(g.CertificateManager.GetCertificate()) {
 			return nil, throw.New("only discovery nodes could authorize other nodes, this is not a discovery node")
 		}
 		return handler(ctx, request)
