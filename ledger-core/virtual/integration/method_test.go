@@ -68,6 +68,8 @@ func Method_PrepareObject(ctx context.Context, server *utils.Server, state paylo
 				State:     walletState,
 			},
 		}
+	case payload.Inactive:
+		content = nil
 	default:
 		panic("unexpected state")
 	}

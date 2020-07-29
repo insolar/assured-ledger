@@ -227,13 +227,18 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 	s.execution.ObjectDescriptor = objectDescriptor
 	s.pendingConstructorFinished = semaphorePendingConstructorFinished
 
+	// if !s.execution.ObjectDescriptor.IsActive() {
+	// 	s.prepareExecutionError(throw.E("attempt to call method on object state that is deactivated"))
+	// 	return ctx.Jump(s.stepSendCallResult)
+	// }
+
 	if s.isConstructor {
 		switch objectState {
 		case object.Unknown:
 			panic(throw.Impossible())
 		case object.Inactive:
-			// attempt to create object that is deactivated :(
-			panic(throw.NotImplemented())
+			s.prepareExecutionError(throw.E("attempt to create object ( call constructor ) that is completely deactivated"))
+			return ctx.Jump(s.stepSendCallResult)
 		}
 
 		// default isolation for constructors
@@ -255,7 +260,8 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 		}))
 		return ctx.Jump(s.stepSendCallResult)
 	case object.Inactive:
-		panic(throw.NotImplemented())
+		s.prepareExecutionError(throw.E("attempt to call method on object that is completely deactivated"))
+		return ctx.Jump(s.stepSendCallResult)
 	case object.HasState:
 		// ok
 	}

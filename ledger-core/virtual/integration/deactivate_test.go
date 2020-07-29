@@ -12,13 +12,18 @@ import (
 
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
+	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
+	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
@@ -134,4 +139,100 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 			assert.Equal(t, 1, typedChecker.VStateReport.Count())
 		})
 	}
+}
+
+func TestVirtual_CallMethod_On_CompletelyDeactivatedObject(t *testing.T) {
+	t.Log("C4975")
+	stateTestCases := []struct {
+		name        string
+		objectState contract.StateFlag
+	}{
+		{
+			name:        "call on validated state",
+			objectState: contract.CallValidated,
+		},
+		{
+			name:        "call on dirty state",
+			objectState: contract.CallDirty,
+		},
+	}
+
+	for _, stateTest := range stateTestCases {
+		t.Run(stateTest.name, func(t *testing.T) {
+
+			callTypeTestCases := []struct {
+				name     string
+				callType payload.CallTypeNew
+				errorMsg string
+			}{
+				{
+					name:     "call method",
+					callType: payload.CTMethod,
+					errorMsg: "attempt to call method on object that is completely deactivated",
+				},
+				{
+					name:     "call constructor",
+					callType: payload.CTConstructor,
+					errorMsg: "attempt to create object ( call constructor ) that is completely deactivated",
+				},
+			}
+
+			for _, callTypeTest := range callTypeTestCases {
+				t.Run(callTypeTest.name, func(t *testing.T) {
+					defer commontestutils.LeakTester(t)
+
+					mc := minimock.NewController(t)
+
+					server, ctx := utils.NewUninitializedServer(nil, t)
+					defer server.Stop()
+
+					runnerMock := logicless.NewServiceMock(ctx, t, func(execution execution.Context) string {
+						return execution.Request.CallSiteMethod
+					})
+					server.ReplaceRunner(runnerMock)
+
+					server.Init(ctx)
+					server.IncrementPulseAndWaitIdle(ctx)
+
+					var (
+						object = reference.NewSelf(server.RandomLocalWithPulse())
+					)
+
+					Method_PrepareObject(ctx, server, payload.Inactive, object)
+
+					gotResult := make(chan struct{})
+
+					typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+					typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
+
+						assert.Equal(t, res.Callee, object)
+						contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments)
+						require.Equal(t, &foundation.Error{callTypeTest.errorMsg}, contractErr)
+						require.NoError(t, sysErr)
+
+						gotResult <- struct{}{}
+
+						return false // no resend msg
+					})
+
+					pl := payload.VCallRequest{
+						CallType:            callTypeTest.callType,
+						CallFlags:           payload.BuildCallFlags(contract.CallIntolerable, stateTest.objectState),
+						Caller:              server.GlobalCaller(),
+						Callee:              object,
+						CallSiteDeclaration: testwallet.GetClass(),
+						CallSiteMethod:      "MyFavorMethod",
+						CallOutgoing:        reference.NewSelf(object.GetLocal()),
+						Arguments:           insolar.MustSerialize([]interface{}{}),
+					}
+					server.SendPayload(ctx, &pl)
+
+					commontestutils.WaitSignalsTimed(t, 10*time.Second, gotResult)
+
+					mc.Finish()
+				})
+			}
+		})
+	}
+
 }
