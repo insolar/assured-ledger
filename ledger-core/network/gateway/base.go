@@ -196,10 +196,11 @@ func (g *Base) createOriginCandidate() error {
 	// sign origin
 	origin := g.NodeKeeper.GetOrigin()
 
+	cert := g.CertificateManager.GetCertificate()
 	endpointAddr := g.datagramTransport.Address()
 	digest, signature, err := getAnnounceSignature(
 		origin, endpointAddr,
-		network.OriginIsDiscovery(g.CertificateManager.GetCertificate()),
+		network.OriginIsDiscovery(cert),
 		g.KeyProcessor,
 		getKeyStore(g.CryptographyService),
 		g.CryptographyScheme,
@@ -213,8 +214,16 @@ func (g *Base) createOriginCandidate() error {
 		cryptkit.NewSignature(longbits.NewBits512FromBytes(signature.Bytes()), adapters.SHA3512Digest.SignedBy(adapters.SECP256r1Sign)),
 	)
 
-	staticProfile := adapters.NewStaticProfileExt(origin, endpointAddr, g.CertificateManager.GetCertificate(), g.KeyProcessor, dsg)
+	staticProfile := adapters.NewStaticProfileExt(origin, endpointAddr, cert, g.KeyProcessor, dsg)
 	verifier := g.transportCrypt.CreateSignatureVerifierWithPKS(staticProfile.GetPublicKeyStore())
+
+	setupLocalNodeProfile(g.NodeKeeper, staticProfile, verifier)
+	g.originCandidate = adapters.NewCandidate(staticProfile, g.KeyProcessor)
+	return nil
+}
+
+func setupLocalNodeProfile(nk network.NodeKeeper, staticProfile profiles.StaticProfile, verifier cryptkit.SignatureVerifier) {
+	origin := nk.GetOrigin()
 
 	var anp censusimpl.NodeProfileSlot
 	if origin.IsJoiner() {
@@ -224,10 +233,7 @@ func (g *Base) createOriginCandidate() error {
 	}
 	newOrigin := adapters.NewNetworkNode(&anp)
 
-	// g.NodeKeeper.UpdateOrigin(newOrigin)
-	g.NodeKeeper.SetInitialSnapshot([]nodeinfo.NetworkNode{newOrigin})
-	g.originCandidate = adapters.NewCandidate(staticProfile, g.KeyProcessor)
-	return nil
+	nk.SetInitialSnapshot([]nodeinfo.NetworkNode{newOrigin})
 }
 
 func (g *Base) StartConsensus(ctx context.Context) error {
