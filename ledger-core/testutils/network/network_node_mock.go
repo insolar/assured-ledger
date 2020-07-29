@@ -31,7 +31,7 @@ type NetworkNodeMock struct {
 	beforeGetNodeIDCounter uint64
 	GetNodeIDMock          mNetworkNodeMockGetNodeID
 
-	funcGetPower          func() (p1 mm_nodeinfo.Power)
+	funcGetPower          func() (p1 member.Power)
 	inspectFuncGetPower   func()
 	afterGetPowerCounter  uint64
 	beforeGetPowerCounter uint64
@@ -61,6 +61,18 @@ type NetworkNodeMock struct {
 	beforeGetStateCounter uint64
 	GetStateMock          mNetworkNodeMockGetState
 
+	funcIsJoiner          func() (b1 bool)
+	inspectFuncIsJoiner   func()
+	afterIsJoinerCounter  uint64
+	beforeIsJoinerCounter uint64
+	IsJoinerMock          mNetworkNodeMockIsJoiner
+
+	funcIsPowered          func() (b1 bool)
+	inspectFuncIsPowered   func()
+	afterIsPoweredCounter  uint64
+	beforeIsPoweredCounter uint64
+	IsPoweredMock          mNetworkNodeMockIsPowered
+
 	funcPublicKey          func() (p1 crypto.PublicKey)
 	inspectFuncPublicKey   func()
 	afterPublicKeyCounter  uint64
@@ -88,6 +100,10 @@ func NewNetworkNodeMock(t minimock.Tester) *NetworkNodeMock {
 	m.GetSignatureMock = mNetworkNodeMockGetSignature{mock: m}
 
 	m.GetStateMock = mNetworkNodeMockGetState{mock: m}
+
+	m.IsJoinerMock = mNetworkNodeMockIsJoiner{mock: m}
+
+	m.IsPoweredMock = mNetworkNodeMockIsPowered{mock: m}
 
 	m.PublicKeyMock = mNetworkNodeMockPublicKey{mock: m}
 
@@ -396,7 +412,7 @@ type NetworkNodeMockGetPowerExpectation struct {
 
 // NetworkNodeMockGetPowerResults contains results of the NetworkNode.GetPower
 type NetworkNodeMockGetPowerResults struct {
-	p1 mm_nodeinfo.Power
+	p1 member.Power
 }
 
 // Expect sets up expected params for NetworkNode.GetPower
@@ -424,7 +440,7 @@ func (mmGetPower *mNetworkNodeMockGetPower) Inspect(f func()) *mNetworkNodeMockG
 }
 
 // Return sets up results that will be returned by NetworkNode.GetPower
-func (mmGetPower *mNetworkNodeMockGetPower) Return(p1 mm_nodeinfo.Power) *NetworkNodeMock {
+func (mmGetPower *mNetworkNodeMockGetPower) Return(p1 member.Power) *NetworkNodeMock {
 	if mmGetPower.mock.funcGetPower != nil {
 		mmGetPower.mock.t.Fatalf("NetworkNodeMock.GetPower mock is already set by Set")
 	}
@@ -437,7 +453,7 @@ func (mmGetPower *mNetworkNodeMockGetPower) Return(p1 mm_nodeinfo.Power) *Networ
 }
 
 //Set uses given function f to mock the NetworkNode.GetPower method
-func (mmGetPower *mNetworkNodeMockGetPower) Set(f func() (p1 mm_nodeinfo.Power)) *NetworkNodeMock {
+func (mmGetPower *mNetworkNodeMockGetPower) Set(f func() (p1 member.Power)) *NetworkNodeMock {
 	if mmGetPower.defaultExpectation != nil {
 		mmGetPower.mock.t.Fatalf("Default expectation is already set for the NetworkNode.GetPower method")
 	}
@@ -451,7 +467,7 @@ func (mmGetPower *mNetworkNodeMockGetPower) Set(f func() (p1 mm_nodeinfo.Power))
 }
 
 // GetPower implements nodeinfo.NetworkNode
-func (mmGetPower *NetworkNodeMock) GetPower() (p1 mm_nodeinfo.Power) {
+func (mmGetPower *NetworkNodeMock) GetPower() (p1 member.Power) {
 	mm_atomic.AddUint64(&mmGetPower.beforeGetPowerCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetPower.afterGetPowerCounter, 1)
 
@@ -1096,6 +1112,292 @@ func (m *NetworkNodeMock) MinimockGetStateInspect() {
 	}
 }
 
+type mNetworkNodeMockIsJoiner struct {
+	mock               *NetworkNodeMock
+	defaultExpectation *NetworkNodeMockIsJoinerExpectation
+	expectations       []*NetworkNodeMockIsJoinerExpectation
+}
+
+// NetworkNodeMockIsJoinerExpectation specifies expectation struct of the NetworkNode.IsJoiner
+type NetworkNodeMockIsJoinerExpectation struct {
+	mock *NetworkNodeMock
+
+	results *NetworkNodeMockIsJoinerResults
+	Counter uint64
+}
+
+// NetworkNodeMockIsJoinerResults contains results of the NetworkNode.IsJoiner
+type NetworkNodeMockIsJoinerResults struct {
+	b1 bool
+}
+
+// Expect sets up expected params for NetworkNode.IsJoiner
+func (mmIsJoiner *mNetworkNodeMockIsJoiner) Expect() *mNetworkNodeMockIsJoiner {
+	if mmIsJoiner.mock.funcIsJoiner != nil {
+		mmIsJoiner.mock.t.Fatalf("NetworkNodeMock.IsJoiner mock is already set by Set")
+	}
+
+	if mmIsJoiner.defaultExpectation == nil {
+		mmIsJoiner.defaultExpectation = &NetworkNodeMockIsJoinerExpectation{}
+	}
+
+	return mmIsJoiner
+}
+
+// Inspect accepts an inspector function that has same arguments as the NetworkNode.IsJoiner
+func (mmIsJoiner *mNetworkNodeMockIsJoiner) Inspect(f func()) *mNetworkNodeMockIsJoiner {
+	if mmIsJoiner.mock.inspectFuncIsJoiner != nil {
+		mmIsJoiner.mock.t.Fatalf("Inspect function is already set for NetworkNodeMock.IsJoiner")
+	}
+
+	mmIsJoiner.mock.inspectFuncIsJoiner = f
+
+	return mmIsJoiner
+}
+
+// Return sets up results that will be returned by NetworkNode.IsJoiner
+func (mmIsJoiner *mNetworkNodeMockIsJoiner) Return(b1 bool) *NetworkNodeMock {
+	if mmIsJoiner.mock.funcIsJoiner != nil {
+		mmIsJoiner.mock.t.Fatalf("NetworkNodeMock.IsJoiner mock is already set by Set")
+	}
+
+	if mmIsJoiner.defaultExpectation == nil {
+		mmIsJoiner.defaultExpectation = &NetworkNodeMockIsJoinerExpectation{mock: mmIsJoiner.mock}
+	}
+	mmIsJoiner.defaultExpectation.results = &NetworkNodeMockIsJoinerResults{b1}
+	return mmIsJoiner.mock
+}
+
+//Set uses given function f to mock the NetworkNode.IsJoiner method
+func (mmIsJoiner *mNetworkNodeMockIsJoiner) Set(f func() (b1 bool)) *NetworkNodeMock {
+	if mmIsJoiner.defaultExpectation != nil {
+		mmIsJoiner.mock.t.Fatalf("Default expectation is already set for the NetworkNode.IsJoiner method")
+	}
+
+	if len(mmIsJoiner.expectations) > 0 {
+		mmIsJoiner.mock.t.Fatalf("Some expectations are already set for the NetworkNode.IsJoiner method")
+	}
+
+	mmIsJoiner.mock.funcIsJoiner = f
+	return mmIsJoiner.mock
+}
+
+// IsJoiner implements nodeinfo.NetworkNode
+func (mmIsJoiner *NetworkNodeMock) IsJoiner() (b1 bool) {
+	mm_atomic.AddUint64(&mmIsJoiner.beforeIsJoinerCounter, 1)
+	defer mm_atomic.AddUint64(&mmIsJoiner.afterIsJoinerCounter, 1)
+
+	if mmIsJoiner.inspectFuncIsJoiner != nil {
+		mmIsJoiner.inspectFuncIsJoiner()
+	}
+
+	if mmIsJoiner.IsJoinerMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmIsJoiner.IsJoinerMock.defaultExpectation.Counter, 1)
+
+		mm_results := mmIsJoiner.IsJoinerMock.defaultExpectation.results
+		if mm_results == nil {
+			mmIsJoiner.t.Fatal("No results are set for the NetworkNodeMock.IsJoiner")
+		}
+		return (*mm_results).b1
+	}
+	if mmIsJoiner.funcIsJoiner != nil {
+		return mmIsJoiner.funcIsJoiner()
+	}
+	mmIsJoiner.t.Fatalf("Unexpected call to NetworkNodeMock.IsJoiner.")
+	return
+}
+
+// IsJoinerAfterCounter returns a count of finished NetworkNodeMock.IsJoiner invocations
+func (mmIsJoiner *NetworkNodeMock) IsJoinerAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmIsJoiner.afterIsJoinerCounter)
+}
+
+// IsJoinerBeforeCounter returns a count of NetworkNodeMock.IsJoiner invocations
+func (mmIsJoiner *NetworkNodeMock) IsJoinerBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmIsJoiner.beforeIsJoinerCounter)
+}
+
+// MinimockIsJoinerDone returns true if the count of the IsJoiner invocations corresponds
+// the number of defined expectations
+func (m *NetworkNodeMock) MinimockIsJoinerDone() bool {
+	for _, e := range m.IsJoinerMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.IsJoinerMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterIsJoinerCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcIsJoiner != nil && mm_atomic.LoadUint64(&m.afterIsJoinerCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockIsJoinerInspect logs each unmet expectation
+func (m *NetworkNodeMock) MinimockIsJoinerInspect() {
+	for _, e := range m.IsJoinerMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Error("Expected call to NetworkNodeMock.IsJoiner")
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.IsJoinerMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterIsJoinerCounter) < 1 {
+		m.t.Error("Expected call to NetworkNodeMock.IsJoiner")
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcIsJoiner != nil && mm_atomic.LoadUint64(&m.afterIsJoinerCounter) < 1 {
+		m.t.Error("Expected call to NetworkNodeMock.IsJoiner")
+	}
+}
+
+type mNetworkNodeMockIsPowered struct {
+	mock               *NetworkNodeMock
+	defaultExpectation *NetworkNodeMockIsPoweredExpectation
+	expectations       []*NetworkNodeMockIsPoweredExpectation
+}
+
+// NetworkNodeMockIsPoweredExpectation specifies expectation struct of the NetworkNode.IsPowered
+type NetworkNodeMockIsPoweredExpectation struct {
+	mock *NetworkNodeMock
+
+	results *NetworkNodeMockIsPoweredResults
+	Counter uint64
+}
+
+// NetworkNodeMockIsPoweredResults contains results of the NetworkNode.IsPowered
+type NetworkNodeMockIsPoweredResults struct {
+	b1 bool
+}
+
+// Expect sets up expected params for NetworkNode.IsPowered
+func (mmIsPowered *mNetworkNodeMockIsPowered) Expect() *mNetworkNodeMockIsPowered {
+	if mmIsPowered.mock.funcIsPowered != nil {
+		mmIsPowered.mock.t.Fatalf("NetworkNodeMock.IsPowered mock is already set by Set")
+	}
+
+	if mmIsPowered.defaultExpectation == nil {
+		mmIsPowered.defaultExpectation = &NetworkNodeMockIsPoweredExpectation{}
+	}
+
+	return mmIsPowered
+}
+
+// Inspect accepts an inspector function that has same arguments as the NetworkNode.IsPowered
+func (mmIsPowered *mNetworkNodeMockIsPowered) Inspect(f func()) *mNetworkNodeMockIsPowered {
+	if mmIsPowered.mock.inspectFuncIsPowered != nil {
+		mmIsPowered.mock.t.Fatalf("Inspect function is already set for NetworkNodeMock.IsPowered")
+	}
+
+	mmIsPowered.mock.inspectFuncIsPowered = f
+
+	return mmIsPowered
+}
+
+// Return sets up results that will be returned by NetworkNode.IsPowered
+func (mmIsPowered *mNetworkNodeMockIsPowered) Return(b1 bool) *NetworkNodeMock {
+	if mmIsPowered.mock.funcIsPowered != nil {
+		mmIsPowered.mock.t.Fatalf("NetworkNodeMock.IsPowered mock is already set by Set")
+	}
+
+	if mmIsPowered.defaultExpectation == nil {
+		mmIsPowered.defaultExpectation = &NetworkNodeMockIsPoweredExpectation{mock: mmIsPowered.mock}
+	}
+	mmIsPowered.defaultExpectation.results = &NetworkNodeMockIsPoweredResults{b1}
+	return mmIsPowered.mock
+}
+
+//Set uses given function f to mock the NetworkNode.IsPowered method
+func (mmIsPowered *mNetworkNodeMockIsPowered) Set(f func() (b1 bool)) *NetworkNodeMock {
+	if mmIsPowered.defaultExpectation != nil {
+		mmIsPowered.mock.t.Fatalf("Default expectation is already set for the NetworkNode.IsPowered method")
+	}
+
+	if len(mmIsPowered.expectations) > 0 {
+		mmIsPowered.mock.t.Fatalf("Some expectations are already set for the NetworkNode.IsPowered method")
+	}
+
+	mmIsPowered.mock.funcIsPowered = f
+	return mmIsPowered.mock
+}
+
+// IsPowered implements nodeinfo.NetworkNode
+func (mmIsPowered *NetworkNodeMock) IsPowered() (b1 bool) {
+	mm_atomic.AddUint64(&mmIsPowered.beforeIsPoweredCounter, 1)
+	defer mm_atomic.AddUint64(&mmIsPowered.afterIsPoweredCounter, 1)
+
+	if mmIsPowered.inspectFuncIsPowered != nil {
+		mmIsPowered.inspectFuncIsPowered()
+	}
+
+	if mmIsPowered.IsPoweredMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmIsPowered.IsPoweredMock.defaultExpectation.Counter, 1)
+
+		mm_results := mmIsPowered.IsPoweredMock.defaultExpectation.results
+		if mm_results == nil {
+			mmIsPowered.t.Fatal("No results are set for the NetworkNodeMock.IsPowered")
+		}
+		return (*mm_results).b1
+	}
+	if mmIsPowered.funcIsPowered != nil {
+		return mmIsPowered.funcIsPowered()
+	}
+	mmIsPowered.t.Fatalf("Unexpected call to NetworkNodeMock.IsPowered.")
+	return
+}
+
+// IsPoweredAfterCounter returns a count of finished NetworkNodeMock.IsPowered invocations
+func (mmIsPowered *NetworkNodeMock) IsPoweredAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmIsPowered.afterIsPoweredCounter)
+}
+
+// IsPoweredBeforeCounter returns a count of NetworkNodeMock.IsPowered invocations
+func (mmIsPowered *NetworkNodeMock) IsPoweredBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmIsPowered.beforeIsPoweredCounter)
+}
+
+// MinimockIsPoweredDone returns true if the count of the IsPowered invocations corresponds
+// the number of defined expectations
+func (m *NetworkNodeMock) MinimockIsPoweredDone() bool {
+	for _, e := range m.IsPoweredMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.IsPoweredMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterIsPoweredCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcIsPowered != nil && mm_atomic.LoadUint64(&m.afterIsPoweredCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockIsPoweredInspect logs each unmet expectation
+func (m *NetworkNodeMock) MinimockIsPoweredInspect() {
+	for _, e := range m.IsPoweredMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Error("Expected call to NetworkNodeMock.IsPowered")
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.IsPoweredMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterIsPoweredCounter) < 1 {
+		m.t.Error("Expected call to NetworkNodeMock.IsPowered")
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcIsPowered != nil && mm_atomic.LoadUint64(&m.afterIsPoweredCounter) < 1 {
+		m.t.Error("Expected call to NetworkNodeMock.IsPowered")
+	}
+}
+
 type mNetworkNodeMockPublicKey struct {
 	mock               *NetworkNodeMock
 	defaultExpectation *NetworkNodeMockPublicKeyExpectation
@@ -1256,6 +1558,10 @@ func (m *NetworkNodeMock) MinimockFinish() {
 
 		m.MinimockGetStateInspect()
 
+		m.MinimockIsJoinerInspect()
+
+		m.MinimockIsPoweredInspect()
+
 		m.MinimockPublicKeyInspect()
 		m.t.FailNow()
 	}
@@ -1287,5 +1593,7 @@ func (m *NetworkNodeMock) minimockDone() bool {
 		m.MinimockGetReferenceDone() &&
 		m.MinimockGetSignatureDone() &&
 		m.MinimockGetStateDone() &&
+		m.MinimockIsJoinerDone() &&
+		m.MinimockIsPoweredDone() &&
 		m.MinimockPublicKeyDone()
 }

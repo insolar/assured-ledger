@@ -39,7 +39,7 @@ func (s *NodeService) GetStatus(r *http.Request, args *interface{}, requestBody 
 		nodes[i] = requester.Node{
 			Reference: node.GetReference().String(),
 			Role:      node.GetPrimaryRole().String(),
-			IsWorking: node.GetPower() > 0,
+			IsWorking: node.IsPowered(),
 			ID:        uint32(node.GetNodeID()),
 		}
 	}
@@ -48,7 +48,7 @@ func (s *NodeService) GetStatus(r *http.Request, args *interface{}, requestBody 
 	reply.Origin = requester.Node{
 		Reference: statusReply.Origin.GetReference().String(),
 		Role:      statusReply.Origin.GetPrimaryRole().String(),
-		IsWorking: statusReply.Origin.GetPower() > 0,
+		IsWorking: statusReply.Origin.IsPowered(),
 		ID:        uint32(statusReply.Origin.GetNodeID()),
 	}
 

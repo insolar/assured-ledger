@@ -332,12 +332,11 @@ func nodesFromInfo(nodeInfos []*nodeMeta) ([]nodeinfo.NetworkNode, []nodeinfo.Ne
 }
 
 func newNetworkNode(addr string, role member.PrimaryRole, pk crypto.PublicKey) node.MutableNode {
-	n := node.NewNode(gen.UniqueGlobalRef(), role, pk, addr, )
-	mn := n.(node.MutableNode)
-	mn.SetShortID(node2.ShortNodeID(shortNodeIdOffset))
+	n := node.NewTestNode(gen.UniqueGlobalRef(), role, pk, addr, )
+	n.SetShortID(node2.ShortNodeID(shortNodeIdOffset))
 
 	shortNodeIdOffset += 1
-	return mn
+	return n
 }
 
 func initCrypto(node nodeinfo.NetworkNode, discoveryNodes []nodeinfo.NetworkNode) *mandates.CertificateManager {

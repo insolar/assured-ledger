@@ -55,7 +55,7 @@ func createOrigin(configuration configuration.Transport, certificate nodeinfo.Ce
 		// role = member.PrimaryRoleLightMaterial
 	}
 
-	return node.NewActiveNode(certificate.GetNodeRef(), role, certificate.GetPublicKey(), publicAddress, ), nil
+	return node.NewActiveNode(0, certificate.GetNodeRef(), role, certificate.GetPublicKey(), publicAddress, ), nil
 }
 
 func resolveAddress(configuration configuration.Transport) (string, error) {
@@ -119,7 +119,7 @@ func (nk *nodekeeper) Sync(ctx context.Context, nodes []nodeinfo.NetworkNode) {
 	nk.syncNodes = nodes
 }
 
-func (nk *nodekeeper) updateOrigin(power nodeinfo.Power, state nodeinfo.State) {
+func (nk *nodekeeper) updateOrigin(power member.Power, state nodeinfo.State) {
 	nk.origin.(node.MutableNode).SetPower(power)
 	nk.origin.(node.MutableNode).SetState(state)
 }

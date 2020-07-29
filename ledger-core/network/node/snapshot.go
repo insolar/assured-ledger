@@ -53,5 +53,5 @@ func SelectWorking(nodes []nodeinfo.NetworkNode) []nodeinfo.NetworkNode {
 }
 
 func isWorkingNode(nd nodeinfo.NetworkNode) bool {
-	return nd.GetState() == nodeinfo.Ready && nd.GetPower() > 0
+	return nd.IsPowered()
 }

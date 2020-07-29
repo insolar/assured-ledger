@@ -24,11 +24,11 @@ import (
 func TestRules_CheckMinRole(t *testing.T) {
 	cert := testutils.NewCertificateMock(t)
 	nodes := []nodeinfo.NetworkNode{
-		node.NewNode(gen.UniqueGlobalRef(), member.PrimaryRoleHeavyMaterial, nil, ""),
-		node.NewNode(gen.UniqueGlobalRef(), member.PrimaryRoleLightMaterial, nil, ""),
-		node.NewNode(gen.UniqueGlobalRef(), member.PrimaryRoleLightMaterial, nil, ""),
-		node.NewNode(gen.UniqueGlobalRef(), member.PrimaryRoleVirtual, nil, ""),
-		node.NewNode(gen.UniqueGlobalRef(), member.PrimaryRoleVirtual, nil, ""),
+		node.NewTestNode(gen.UniqueGlobalRef(), member.PrimaryRoleHeavyMaterial, nil, ""),
+		node.NewTestNode(gen.UniqueGlobalRef(), member.PrimaryRoleLightMaterial, nil, ""),
+		node.NewTestNode(gen.UniqueGlobalRef(), member.PrimaryRoleLightMaterial, nil, ""),
+		node.NewTestNode(gen.UniqueGlobalRef(), member.PrimaryRoleVirtual, nil, ""),
+		node.NewTestNode(gen.UniqueGlobalRef(), member.PrimaryRoleVirtual, nil, ""),
 	}
 	cert.GetMinRolesMock.Set(func() (r uint, r1 uint, r2 uint) {
 		return 1, 0, 0
@@ -83,6 +83,6 @@ var AllStaticRoles = []member.PrimaryRole{
 	member.PrimaryRoleHeavyMaterial,
 }
 
-func newNode(ref reference.Global, i int) nodeinfo.NetworkNode {
-	return node.NewNode(ref, AllStaticRoles[i%len(AllStaticRoles)], nil, "127.0.0.1:"+strconv.Itoa(30000+i))
+func newNode(ref reference.Global, i int) node.MutableNode {
+	return node.NewTestNode(ref, AllStaticRoles[i%len(AllStaticRoles)], nil, "127.0.0.1:"+strconv.Itoa(30000+i))
 }

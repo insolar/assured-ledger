@@ -245,17 +245,15 @@ func NewNetworkNode(profile profiles.ActiveNode) nodeinfo.NetworkNode {
 	store := nip.GetPublicKeyStore()
 	introduction := nip.GetExtension()
 
-	networkNode := node.NewActiveNode(introduction.GetReference(),
+	networkNode := node.NewActiveNode(profile.GetNodeID(),
+		introduction.GetReference(),
 		nip.GetPrimaryRole(),
 		store.(*ECDSAPublicKeyStore).publicKey,
 		nip.GetDefaultEndpoint().GetNameAddress().String(), )
 
 	mutableNode := networkNode.(node.MutableNode)
 
-	mutableNode.SetShortID(profile.GetNodeID())
-	mutableNode.SetState(nodeinfo.Ready)
-
-	mutableNode.SetPower(nodeinfo.Power(profile.GetDeclaredPower()))
+	mutableNode.SetPower(profile.GetDeclaredPower())
 	if profile.GetOpMode().IsPowerless() {
 		mutableNode.SetPower(0)
 	}

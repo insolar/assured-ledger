@@ -20,13 +20,13 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 )
 
-func newTestNode() nodeinfo.NetworkNode {
-	return node.NewNode(gen.UniqueGlobalRef(), member.PrimaryRoleUnknown, nil, "127.0.0.1:5432")
+func newTestNode() node.MutableNode {
+	return node.NewTestNode(gen.UniqueGlobalRef(), member.PrimaryRoleUnknown, nil, "127.0.0.1:5432")
 }
 
-func newTestNodeWithShortID(id node2.ShortNodeID) nodeinfo.NetworkNode {
+func newTestNodeWithShortID(id node2.ShortNodeID) node.MutableNode {
 	n := newTestNode()
-	n.(node.MutableNode).SetShortID(id)
+	n.SetShortID(id)
 	return n
 }
 

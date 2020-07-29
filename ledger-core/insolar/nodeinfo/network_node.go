@@ -14,21 +14,15 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
-// Power is node power
-type Power uint8
-
 //go:generate stringer -type=State
 type State uint8
 
 const (
-	// Undefined node started but is not connected to network yet
-	Undefined State = iota
+	_ State = iota
 	// Joining node is in first pulse of discovery bootstrap or is joining to a bootstrapped network
 	Joining
 	// Ready node is connected to network
 	Ready
-	// Leaving node is about to leave network
-	Leaving
 )
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo.NetworkNode -o ../../testutils/network -s _mock.go -g
@@ -44,10 +38,14 @@ type NetworkNode interface {
 	PublicKey() crypto.PublicKey
 	// Address is the network address of the node
 	Address() string
+
 	// GetState get state of the node
 	GetState() State
 	// GetPower get power of node
-	GetPower() Power
+	GetPower() member.Power
+
+	IsJoiner() bool
+	IsPowered() bool
 
 	GetSignature() ([]byte, cryptography.Signature)
 }

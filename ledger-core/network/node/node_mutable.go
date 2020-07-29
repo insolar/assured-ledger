@@ -23,7 +23,7 @@ type MutableNode interface {
 	SetShortID(shortID node.ShortNodeID)
 	SetState(state nodeinfo.State)
 	SetSignature(digest []byte, signature cryptography.Signature)
-	SetPower(power nodeinfo.Power)
+	SetPower(power member.Power)
 	SetAddress(address string)
 }
 
@@ -32,7 +32,7 @@ func newMutableNode(
 	role member.PrimaryRole,
 	publicKey crypto.PublicKey,
 	state nodeinfo.State,
-	address string) MutableNode {
+	address string) *nodeInfo {
 
 	return &nodeInfo{
 		NodeID:        id,
@@ -44,7 +44,7 @@ func newMutableNode(
 	}
 }
 
-func NewNode(id reference.Global, role member.PrimaryRole, publicKey crypto.PublicKey, address string) nodeinfo.NetworkNode {
+func NewTestNode(id reference.Global, role member.PrimaryRole, publicKey crypto.PublicKey, address string) MutableNode {
 	return newMutableNode(id, role, publicKey, nodeinfo.Ready, address)
 }
 
@@ -94,11 +94,11 @@ func (n *nodeInfo) Address() string {
 	return n.NodeAddress
 }
 
-func (n *nodeInfo) GetPower() nodeinfo.Power {
-	return nodeinfo.Power(atomic.LoadUint32(&n.NodePower))
+func (n *nodeInfo) GetPower() member.Power {
+	return member.Power(atomic.LoadUint32(&n.NodePower))
 }
 
-func (n *nodeInfo) SetPower(power nodeinfo.Power) {
+func (n *nodeInfo) SetPower(power member.Power) {
 	atomic.StoreUint32(&n.NodePower, uint32(power))
 }
 
@@ -126,4 +126,12 @@ func (n *nodeInfo) SetAddress(address string) {
 	defer n.mutex.Unlock()
 
 	n.NodeAddress = address
+}
+
+func (n *nodeInfo) IsJoiner() bool {
+	return n.GetState() == nodeinfo.Joining // TODO use correct impl
+}
+
+func (n *nodeInfo) IsPowered() bool {
+	return n.GetState() == nodeinfo.Ready && n.GetPower() > 0 // TODO use correct impl
 }

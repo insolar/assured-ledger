@@ -8,15 +8,13 @@ package node
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func TestNode_ShortID(t *testing.T) {
-	n := NewNode(gen.UniqueGlobalRef(), member.PrimaryRoleVirtual, nil, "127.0.0.1")
-	assert.EqualValues(t, GenerateUintShortID(n.GetReference()), n.GetNodeID())
-	n.(MutableNode).SetShortID(11)
-	assert.EqualValues(t, 11, n.GetNodeID())
+	n := NewTestNode(gen.UniqueGlobalRef(), member.PrimaryRoleVirtual, nil, "127.0.0.1")
+	require.EqualValues(t, GenerateUintShortID(n.GetReference()), n.GetNodeID())
 }

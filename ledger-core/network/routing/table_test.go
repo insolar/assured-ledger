@@ -26,10 +26,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/node"
 )
 
-func newNode(ref reference.Global, id int) nodeinfo.NetworkNode {
+func newNode(ref reference.Global, id int) node.MutableNode {
 	address := "127.0.0.1:" + strconv.Itoa(id)
-	result := node.NewNode(ref, member.PrimaryRoleUnknown, nil, address)
-	result.(node.MutableNode).SetShortID(node2.ShortNodeID(id))
+	result := node.NewTestNode(ref, member.PrimaryRoleUnknown, nil, address)
+	result.SetShortID(node2.ShortNodeID(id))
 	return result
 }
 
