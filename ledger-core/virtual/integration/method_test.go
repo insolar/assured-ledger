@@ -208,75 +208,6 @@ func TestVirtual_Method_WithExecutor(t *testing.T) {
 	mc.Finish()
 }
 
-func TestVirtual_Method_WithExecutor_ObjectIsNotExist(t *testing.T) {
-	defer commontestutils.LeakTester(t)
-
-	t.Log("C4974")
-
-	mc := minimock.NewController(t)
-
-	server, ctx := utils.NewServer(nil, t)
-	defer server.Stop()
-	server.IncrementPulse(ctx)
-
-	utils.AssertNotJumpToStep(t, server.Journal, "stepTakeLock")
-
-	var (
-		objectLocal  = server.RandomLocalWithPulse()
-		objectGlobal = reference.NewSelf(objectLocal)
-		outgoing     = server.BuildRandomOutgoingWithPulse()
-		prevPulse    = server.GetPulse().PulseNumber
-	)
-
-	// need for correct handle state report (should from prev pulse)
-	server.IncrementPulse(ctx)
-
-	Method_PrepareObject(ctx, server, payload.Missing, objectGlobal, prevPulse)
-
-	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
-
-	expectedError := throw.E("object does not exist", struct {
-		ObjectReference string
-		State           object.State
-	}{
-		ObjectReference: objectGlobal.String(),
-		State:           object.Missing,
-	})
-
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
-		assert.Equal(t, res.Callee, objectGlobal)
-		assert.Equal(t, res.CallOutgoing, outgoing)
-
-		contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments)
-		require.NoError(t, sysErr)
-		require.Equal(t, expectedError.Error(), contractErr.Error())
-
-		return false // no resend msg
-	})
-
-	{
-		pl := payload.VCallRequest{
-			CallType:            payload.CTMethod,
-			CallFlags:           payload.BuildCallFlags(contract.CallIntolerable, contract.CallValidated),
-			Caller:              server.GlobalCaller(),
-			Callee:              objectGlobal,
-			CallSiteDeclaration: testwallet.GetClass(),
-			CallSiteMethod:      "GetBalance",
-			CallOutgoing:        outgoing,
-			Arguments:           insolar.MustSerialize([]interface{}{}),
-		}
-		server.SendPayload(ctx, &pl)
-	}
-
-	commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
-	commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
-
-	assert.Equal(t, 1, typedChecker.VCallResult.Count())
-
-	mc.Finish()
-}
-
 func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 	defer commontestutils.LeakTester(t)
 
@@ -1584,19 +1515,17 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 }
 
 func TestVirtual_Method_ForObjectWithMissingState(t *testing.T) {
+	t.Log("C5106")
 	testCases := []struct {
 		name             string
-		testRailID       string
 		outgoingFromPast bool
 	}{
 		{
 			name:             "Call method with prev outgoing.Pulse",
-			testRailID:       "C5106",
 			outgoingFromPast: true,
 		},
 		{
 			name:             "Call method with current outgoing.Pulse",
-			testRailID:       "C5321",
 			outgoingFromPast: false,
 		},
 	}
@@ -1604,11 +1533,13 @@ func TestVirtual_Method_ForObjectWithMissingState(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			defer commontestutils.LeakTester(t)
 
-			t.Log(testCase.testRailID)
 			mc := minimock.NewController(t)
 
 			server, ctx := utils.NewServer(nil, t)
 			defer server.Stop()
+
+			utils.AssertNotJumpToStep(t, server.Journal, "stepTakeLock")
+
 			server.IncrementPulseAndWaitIdle(ctx)
 
 			execDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
@@ -1636,6 +1567,14 @@ func TestVirtual_Method_ForObjectWithMissingState(t *testing.T) {
 
 			outgoing := server.BuildRandomOutgoingWithPulse()
 
+			expectedError := throw.E("object does not exist", struct {
+				ObjectReference string
+				State           object.State
+			}{
+				ObjectReference: objectRef.String(),
+				State:           object.Missing,
+			})
+
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 			typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool {
 				require.Equal(t, payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty), result.CallFlags)
@@ -1645,7 +1584,7 @@ func TestVirtual_Method_ForObjectWithMissingState(t *testing.T) {
 				require.True(t, result.DelegationSpec.IsZero())
 				contractErr, sysErr := foundation.UnmarshalMethodResult(result.ReturnArguments)
 				require.NoError(t, sysErr)
-				require.Contains(t, contractErr.Error(), "object does not exist")
+				require.Equal(t, expectedError.Error(), contractErr.Error())
 				return false
 			})
 
