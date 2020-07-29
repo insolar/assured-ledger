@@ -25,6 +25,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/defaults"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor/memstor"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/logwatermill"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
@@ -36,7 +37,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/server/internal"
 	"github.com/insolar/assured-ledger/ledger-core/virtual"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/pulsemanager"
 )
 
 type bootstrapComponents struct {
@@ -171,7 +171,7 @@ func initComponents(
 
 	APIWrapper := api.NewWrapper(API, AdminAPIRunner)
 
-	pm := pulsemanager.NewPulseManager()
+	pm := insconveyor.NewPulseManager()
 
 	cm.Register(
 		pcs,

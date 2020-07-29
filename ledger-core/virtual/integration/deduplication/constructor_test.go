@@ -28,7 +28,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 )
 
 func TestConstructor_SamePulse_WhileExecution(t *testing.T) {
@@ -90,7 +89,7 @@ func TestConstructor_SamePulse_WhileExecution(t *testing.T) {
 	}
 
 	// await first SMExecute go to step execute (in this point machine is still not publish result to table in SMObject)
-	testutils.WaitSignalsTimed(t, 10*time.Second, synchronizeExecution.Wait())
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, synchronizeExecution.Wait())
 
 	{
 		// send second call request
@@ -98,13 +97,13 @@ func TestConstructor_SamePulse_WhileExecution(t *testing.T) {
 	}
 
 	// second SMExecute should stop in deduplication algorithm and she should not send result because she started during execution first machine
-	testutils.WaitSignalsTimed(t, 10*time.Second, awaitStopSecondSM)
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, awaitStopSecondSM)
 
 	// wakeup first SMExecute
 	synchronizeExecution.WakeUp()
 
-	testutils.WaitSignalsTimed(t, 10*time.Second, awaitStopFirstSM)
-	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, awaitStopFirstSM)
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 	{
 		assert.Equal(t, 1, typedChecker.VCallResult.Count())
@@ -166,7 +165,7 @@ func TestConstructor_SamePulse_AfterExecution(t *testing.T) {
 	}
 
 	// await first SMExecute go completed work (after complete SMExecute publish result to table in SMObject)
-	testutils.WaitSignalsTimed(t, 10*time.Second, awaitStopFirstSM)
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, awaitStopFirstSM)
 
 	{
 		// send second call request
@@ -174,8 +173,8 @@ func TestConstructor_SamePulse_AfterExecution(t *testing.T) {
 	}
 
 	// second SMExecute should send result again because she started after first machine complete
-	testutils.WaitSignalsTimed(t, 10*time.Second, awaitStopSecondSM)
-	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, awaitStopSecondSM)
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 	{
 		assert.Equal(t, 2, typedChecker.VCallResult.Count())
@@ -317,7 +316,7 @@ func (test *DeduplicationDifferentPulsesCase) run(t *testing.T) {
 		test.TypedChecker.VStateRequest.Set(func(request *payload.VStateRequest) bool {
 			VStateReportDone := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
 			server.SendPayload(ctx, &test.VState)
-			testutils.WaitSignalsTimed(t, 10*time.Second, VStateReportDone)
+			commontestutils.WaitSignalsTimed(t, 10*time.Second, VStateReportDone)
 
 			assert.Equal(t, object, request.Object)
 
@@ -347,7 +346,7 @@ func (test *DeduplicationDifferentPulsesCase) run(t *testing.T) {
 	if test.vStateSendBefore {
 		VStateReportDone := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
 		server.SendPayload(ctx, &test.VState)
-		testutils.WaitSignalsTimed(t, 10*time.Second, VStateReportDone)
+		commontestutils.WaitSignalsTimed(t, 10*time.Second, VStateReportDone)
 	}
 
 	if test.VDelegatedCall != nil {
@@ -371,8 +370,8 @@ func (test *DeduplicationDifferentPulsesCase) run(t *testing.T) {
 	}
 
 	{
-		testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
-		testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone(), foundError)
+		commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+		commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone(), foundError)
 	}
 
 	{

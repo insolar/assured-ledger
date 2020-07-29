@@ -28,7 +28,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/mock/publisher/checker"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 )
 
 func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
@@ -112,12 +111,12 @@ func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 	server.SendPayload(ctx, &pl)
 	server.SendPayload(ctx, &pl)
 
-	testutils.WaitSignalsTimed(t, 10*time.Second, oneExecutionEnded)
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, oneExecutionEnded)
 
 	close(releaseBlockedExecution)
 
-	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
-	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 	{
 		assert.Equal(t, 1, numberOfExecutions)
@@ -441,8 +440,8 @@ func TestDeduplication_MethodUsingPrevVE(t *testing.T) {
 			}
 			suite.addPayloadAndWaitIdle(ctx, &request)
 
-			testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
-			testutils.WaitSignalsTimed(t, 10*time.Second, suite.server.Journal.WaitAllAsyncCallsDone())
+			commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+			commontestutils.WaitSignalsTimed(t, 10*time.Second, suite.server.Journal.WaitAllAsyncCallsDone())
 
 			require.Equal(t, 1, suite.typedChecker.VStateRequest.Count())
 			if test.expectResultMessage {

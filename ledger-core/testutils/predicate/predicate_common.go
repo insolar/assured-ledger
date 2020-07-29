@@ -9,8 +9,8 @@ import (
 	"reflect"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/debuglogger"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 )
 
 func BeforeStep(fn smachine.StateFunc) Func {

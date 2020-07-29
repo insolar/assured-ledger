@@ -22,7 +22,6 @@ import (
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 )
 
 func makeVStateReportEvent(
@@ -257,7 +256,7 @@ func TestVirtual_VStateReport_CheckValidatedState(t *testing.T) {
 
 		wait := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
 		server.SendPayload(ctx, payload)
-		testutils.WaitSignalsTimed(t, 10*time.Second, wait)
+		commontestutils.WaitSignalsTimed(t, 10*time.Second, wait)
 	}
 
 	waitVStateReport := make(chan struct{})
@@ -270,7 +269,7 @@ func TestVirtual_VStateReport_CheckValidatedState(t *testing.T) {
 	})
 
 	server.IncrementPulseAndWaitIdle(ctx)
-	testutils.WaitSignalsTimed(t, 10*time.Second, waitVStateReport)
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, waitVStateReport)
 
 	mc.Finish()
 }
