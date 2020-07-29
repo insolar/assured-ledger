@@ -5,10 +5,16 @@
 
 package injector
 
-func NewDependencyResolver(target interface{}, globalParent DependencyRegistry, localParent DependencyRegistryFunc,
+import (
+	"reflect"
+
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+)
+
+func NewDependencyResolver(target interface{}, globalParent DependencyRegistry, localParent DependencyRegistry,
 	onPutFn func(id string, v interface{}, from DependencyOrigin)) DependencyResolver {
 	if target == nil {
-		panic("illegal value")
+		panic(throw.IllegalValue())
 	}
 	return DependencyResolver{target: target, globalParent: globalParent, localParent: localParent, onPutFn: onPutFn}
 }
@@ -22,8 +28,9 @@ const (
 
 type DependencyResolver struct {
 	globalParent DependencyRegistry
-	localParent  DependencyRegistryFunc
+	localParent  DependencyRegistry
 	target       interface{}
+	implMap      map[reflect.Type]interface{}
 	resolved     map[string]interface{}
 	onPutFn      func(id string, v interface{}, from DependencyOrigin)
 }
@@ -47,7 +54,7 @@ func (p *DependencyResolver) Target() interface{} {
 func (p *DependencyResolver) ResolveAndReplace(overrides map[string]interface{}) {
 	for id, v := range overrides {
 		if id == "" {
-			panic("illegal value")
+			panic(throw.IllegalValue())
 		}
 		p.resolveAndPut(id, v, DependencyFromLocal)
 	}
@@ -56,7 +63,7 @@ func (p *DependencyResolver) ResolveAndReplace(overrides map[string]interface{})
 func (p *DependencyResolver) ResolveAndMerge(values map[string]interface{}) {
 	for id, v := range values {
 		if id == "" {
-			panic("illegal value")
+			panic(throw.IllegalValue())
 		}
 		if _, ok := p.resolved[id]; ok {
 			continue
@@ -67,7 +74,7 @@ func (p *DependencyResolver) ResolveAndMerge(values map[string]interface{}) {
 
 func (p *DependencyResolver) FindDependency(id string) (interface{}, bool) {
 	if id == "" {
-		panic("illegal value")
+		panic(throw.IllegalValue())
 	}
 	if v, ok := p.resolved[id]; ok { // allows nil values
 		return v, true
@@ -77,26 +84,87 @@ func (p *DependencyResolver) FindDependency(id string) (interface{}, bool) {
 	return v, ok
 }
 
+func (p *DependencyResolver) FindImplementation(t reflect.Type, checkAmbiguous bool) (interface{}, error) {
+	if v := p.implMap[t]; v != nil {
+		return v, nil
+	} else if p.implMap == nil {
+		p.implMap = map[reflect.Type]interface{}{}
+	}
+
+	var from DependencyOrigin
+	id := ""
+	var v interface{}
+
+	if scanner, ok := p.localParent.(ScanDependencyRegistry); ok {
+		var err error
+		id, v, err = p.findImpl(scanner, t, checkAmbiguous, "")
+		switch {
+		case err != nil:
+			return nil, err
+		case v != nil:
+			from |= DependencyFromLocal
+		}
+	}
+
+	switch scanner, ok := p.globalParent.(ScanDependencyRegistry); {
+	case !ok:
+	case v == nil:
+		var err error
+		id, v, err = p.findImpl(scanner, t, checkAmbiguous, "")
+		switch {
+		case err != nil:
+			return nil, err
+		case v == nil:
+			return nil, nil
+		}
+	case checkAmbiguous:
+		if _, _, err := p.findImpl(scanner, t, true, id); err != nil {
+			return nil, err
+		}
+	}
+
+	if from&DependencyFromLocal != 0 {
+		p.putResolved(id, v, from)
+	}
+	p.implMap[t] = v
+
+	return v, nil
+}
+
+func (p *DependencyResolver) findImpl(scanner ScanDependencyRegistry, t reflect.Type, checkAmbiguous bool, fid string) (id string, v interface{}, err error) {
+	id = fid
+	scanner.ScanDependencies(func(xid string, xv interface{}) bool {
+		switch {
+		case xv == nil || xid == "":
+			return false
+		case !reflect.ValueOf(xv).Type().AssignableTo(t):
+			return false
+		case id != "":
+			err = throw.E("ambiguous dependency", struct {
+				ExpectedType reflect.Type
+				ID1, ID2 string
+			}{
+				t, id, xid,
+			})
+			return true
+		default:
+			id, v = xid, xv
+			return !checkAmbiguous
+		}
+	})
+	return
+}
+
 func (p *DependencyResolver) GetResolvedDependency(id string) (interface{}, bool) {
 	if id == "" {
-		panic("illegal value")
+		panic(throw.IllegalValue())
 	}
 	return p.getResolved(id)
 }
 
-//func (p *DependencyResolver) PutResolvedDependency(id string, v interface{}) {
-//	if id == "" {
-//		panic("illegal value")
-//	}
-//	if _, ok := v.(DependencyProviderFunc); ok {
-//		panic("illegal value")
-//	}
-//	p.putResolved(id, v)
-//}
-
 func (p *DependencyResolver) getFromParent(id string) (interface{}, bool, DependencyOrigin) {
 	if p.localParent != nil {
-		if v, ok := p.localParent(id); ok {
+		if v, ok := p.localParent.FindDependency(id); ok {
 			return v, true, DependencyFromLocal
 		}
 	}
@@ -124,7 +192,7 @@ func (p *DependencyResolver) resolveAndPut(id string, v interface{}, from Depend
 		p._putResolved(id, nil) // guard for resolve loop
 		v = dp(p.target, id, p.GetResolvedDependency)
 		p.putResolved(id, v, from|DependencyFromProvider)
-	} else if from|DependencyFromLocal != 0 {
+	} else if from&DependencyFromLocal != 0 {
 		p.putResolved(id, v, from)
 	}
 	return v
@@ -142,17 +210,6 @@ func (p *DependencyResolver) _putResolved(id string, v interface{}) {
 		p.resolved = make(map[string]interface{})
 	}
 	p.resolved[id] = v
-}
-
-func (p *DependencyResolver) CopyAsRegistryWithParent() ReadOnlyContainer {
-	if p.globalParent == nil {
-		return p.CopyAsRegistryNoParent()
-	}
-	return NewRegistryWithParent(p.globalParent.FindDependency, p.resolved)
-}
-
-func (p *DependencyResolver) CopyAsRegistryNoParent() ReadOnlyContainer {
-	return NewRegistry(p.resolved)
 }
 
 func (p *DependencyResolver) CopyResolved() map[string]interface{} {
