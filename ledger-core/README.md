@@ -60,6 +60,11 @@ Set the [$GOPATH environment variable](https://github.com/golang/go/wiki/Setting
    In local setup, the "nodes" are simply services listening on different ports.<br>
    The default number of nodes is 5.  You can vary this number by commenting/uncommenting nodes in the `discovery_nodes` section in `scripts/insolard/bootstrap_template.yaml`.
    
+<sub>
+You can set -dg for extra debug for conveyor and text log output
+Also you can set additional build tags with BUILD_TAGS environment variable
+</sub>
+   
 ### Test
 
 #### Benchmark test
