@@ -142,7 +142,6 @@ func newServerExt(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFi
 			GetNodeIDMock.Return(node.ShortNodeID(0)).
 			GetPrimaryRoleMock.Return(member.PrimaryRoleVirtual).
 			AddressMock.Return("").
-			GetStateMock.Return(nodeinfo.Ready).
 			GetPowerMock.Return(1)
 		networkNodeList := []nodeinfo.NetworkNode{networkNodeMock}
 

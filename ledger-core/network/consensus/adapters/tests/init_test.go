@@ -325,7 +325,13 @@ func nodesFromInfo(nodeInfos []*nodeMeta) ([]nodeinfo.NetworkNode, []nodeinfo.Ne
 		if err != nil {
 			return nil, nil, err
 		}
-		nn.(node.MutableNode).SetSignature(d, *s)
+
+		dsg := cryptkit.NewSignedDigest(
+			cryptkit.NewDigest(longbits.NewBits512FromBytes(d), adapters.SHA3512Digest),
+			cryptkit.NewSignature(longbits.NewBits512FromBytes(s.Bytes()), adapters.SHA3512Digest.SignedBy(adapters.SECP256r1Sign)),
+		)
+
+		nn.SetSignature(dsg)
 	}
 
 	return nodes, discoveryNodes, nil

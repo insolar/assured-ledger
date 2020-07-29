@@ -105,7 +105,7 @@ func (n *nodeInfo) SetSignature(digest cryptkit.SignedDigest) {
 	// cryptkit.NewSignedDigest(
 	// 	cryptkit.NewDigest(longbits.NewBits512FromBytes(digest), SHA3512Digest),
 	// 	cryptkit.NewSignature(longbits.NewBits512FromBytes(signature.Bytes()), SHA3512Digest.SignedBy(SECP256r1Sign)),
-	// ).AsSignedDigestHolder(),
+	// )
 
 	n.digest = digest
 }
