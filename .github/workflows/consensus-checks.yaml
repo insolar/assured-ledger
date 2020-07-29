@@ -45,7 +45,7 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@master
-      - name: set prerequisite variables, full sha is ${{github.sha}}
+      - name: Preparation - set prerequisite variables, full sha is ${{github.sha}}
         env:
           TARGET: ${{matrix.target}}
         run: |
@@ -67,6 +67,8 @@ jobs:
         run: kubectl kustomize ledger-core/scripts/deploy/kube/gitops/"$INSOLAR_NETWORK_SIZE" | envsubst '${INSOLAR_NAMESPACE} ${INSOLAR_TAG}' | kubectl -n $INSOLAR_NAMESPACE apply -f -
       - name: Rollout check (IF THIS STEP FAILED - CALL DEV/OPS, YELLOW ALERT)
         run: kubectl -n $INSOLAR_NAMESPACE rollout status sts/virtual --timeout=300s
+      - name: Provide link to grafana
+        run:  echo "https://monitoring.uscifarm.insolar.io/d/LmD-fXFZz/ins-network?orgId=1&refresh=10s&var-phase=All&var-packetType=All&var-namespace=$INSOLAR_NAMESPACE&from=now-10m&to=now"
       - name: Pulsewatcher network check (IF THIS STEP FAILED - CALL DEV, READ LOGS YELLOW ALERT)
         run: |
           for attempt in {0..100}; do
@@ -80,8 +82,6 @@ jobs:
           done
       - name: Set network start time variable
         run:  echo "::set-env name=INSOLAR_START_TIME::$(date +'%s')"
-      - name: Provide link to grafana
-        run:  echo "https://monitoring.uscifarm.insolar.io/d/LmD-fXFZz/ins-network?orgId=1&refresh=10s&var-phase=All&var-packetType=All&var-namespace=$INSOLAR_NAMESPACE&from=now-10m&to=now"
       - name: Keep network running for a desired period of time
         run:  sleep $INSOLAR_DESIRED_UPTIME
       - name: Grab utility binaries
