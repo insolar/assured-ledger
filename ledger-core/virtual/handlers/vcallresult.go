@@ -28,7 +28,7 @@ type dSMVCallResult struct {
 	smachine.StateMachineDeclTemplate
 }
 
-func (*dSMVCallResult) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLink, _ *injector.DependencyInjector) {
+func (*dSMVCallResult) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLink, _ injector.DependencyInjector) {
 }
 
 func (*dSMVCallResult) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc {

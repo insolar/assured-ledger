@@ -48,7 +48,7 @@ type dSMTestAPICall struct {
 	smachine.StateMachineDeclTemplate
 }
 
-func (*dSMTestAPICall) InjectDependencies(sm smachine.StateMachine, _ smachine.SlotLink, injector *injector.DependencyInjector) {
+func (*dSMTestAPICall) InjectDependencies(sm smachine.StateMachine, _ smachine.SlotLink, injector injector.DependencyInjector) {
 	s := sm.(*SMTestAPICall)
 
 	injector.MustInject(&s.pulseSlot)
