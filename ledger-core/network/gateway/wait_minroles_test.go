@@ -26,22 +26,18 @@ import (
 func TestWaitMinroles_MinrolesNotHappenedInETA(t *testing.T) {
 	mc := minimock.NewController(t)
 	defer mc.Finish()
-	defer mc.Wait(time.Minute)
-
-	nodeKeeper := mock.NewNodeKeeperMock(mc)
-	nodeKeeper.GetAccessorMock.Set(func(p1 pulse.Number) (a1 network.Accessor) {
-		accessor := mock.NewAccessorMock(mc)
-		accessor.GetWorkingNodesMock.Set(func() (na1 []nodeinfo.NetworkNode) {
-			return []nodeinfo.NetworkNode{}
-		})
-		return accessor
-	})
+	defer mc.Wait(time.Second*10)
 
 	cert := &mandates.Certificate{}
 	cert.MinRoles.HeavyMaterial = 1
 	b := createBase(mc)
 	b.CertificateManager = mandates.NewCertificateManager(cert)
-	b.NodeKeeper = nodeKeeper
+
+	nodeKeeper := b.NodeKeeper.(*mock.NodeKeeperMock)
+	accessor := mock.NewAccessorMock(mc)
+	accessor.GetWorkingNodesMock.Return([]nodeinfo.NetworkNode{})
+	nodeKeeper.GetAccessorMock.Return(accessor)
+
 	waitMinRoles := newWaitMinRoles(b)
 
 	gatewayer := mock.NewGatewayerMock(mc)
@@ -60,7 +56,7 @@ func TestWaitMinroles_MinrolesNotHappenedInETA(t *testing.T) {
 func TestWaitMinroles_MinrolesHappenedInETA(t *testing.T) {
 	mc := minimock.NewController(t)
 	defer mc.Finish()
-	defer mc.Wait(time.Minute)
+	defer mc.Wait(time.Second*10)
 
 	gatewayer := mock.NewGatewayerMock(mc)
 	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state nodeinfo.NetworkState, pulse pulse.Data) {

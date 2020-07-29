@@ -14,30 +14,13 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"sync"
-	"time"
 
 	node2 "github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
-	"github.com/insolar/assured-ledger/ledger-core/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
-
-func WaitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
-	c := make(chan struct{})
-	go func() {
-		defer close(c)
-		wg.Wait()
-	}()
-	select {
-	case <-c:
-		return true // completed normally
-	case <-time.After(timeout):
-		return false // timed out
-	}
-}
 
 // CheckShortIDCollision returns true if nodes contains node with such ShortID
 func CheckShortIDCollision(nodes []nodeinfo.NetworkNode, id node2.ShortNodeID) bool {
@@ -48,15 +31,6 @@ func CheckShortIDCollision(nodes []nodeinfo.NetworkNode, id node2.ShortNodeID) b
 	}
 
 	return false
-}
-
-// GenerateUniqueShortID correct ShortID of the node so it does not conflict with existing active node list
-func GenerateUniqueShortID(nodes []nodeinfo.NetworkNode, nodeID reference.Global) node2.ShortNodeID {
-	shortID := node2.ShortNodeID(node.GenerateUintShortID(nodeID))
-	if !CheckShortIDCollision(nodes, shortID) {
-		return shortID
-	}
-	return regenerateShortID(nodes, shortID)
 }
 
 func regenerateShortID(nodes []nodeinfo.NetworkNode, shortID node2.ShortNodeID) node2.ShortNodeID {

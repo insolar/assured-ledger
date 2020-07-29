@@ -16,13 +16,14 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/mocklog"
 	mock "github.com/insolar/assured-ledger/ledger-core/testutils/network"
 )
 
 func TestWaitConsensus_ConsensusNotHappenedInETA(t *testing.T) {
-	mc := minimock.NewController(t)
+	mc := minimock.NewController(mocklog.T(t))
 	defer mc.Finish()
-	defer mc.Wait(time.Minute)
+	defer mc.Wait(time.Second*10)
 
 	waitConsensus := newWaitConsensus(createBase(mc))
 	gatewayer := mock.NewGatewayerMock(mc)
@@ -39,7 +40,7 @@ func TestWaitConsensus_ConsensusNotHappenedInETA(t *testing.T) {
 func TestWaitConsensus_ConsensusHappenedInETA(t *testing.T) {
 	mc := minimock.NewController(t)
 	defer mc.Finish()
-	defer mc.Wait(time.Minute)
+	defer mc.Wait(time.Second*10)
 
 	gatewayer := mock.NewGatewayerMock(mc)
 	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state nodeinfo.NetworkState, pulse pulse.Data) {

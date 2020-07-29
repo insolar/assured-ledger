@@ -49,7 +49,6 @@ func NewRequester(options *network.Options) Requester {
 
 type requester struct {
 	HostNetwork         network.HostNetwork    `inject:""`
-	OriginProvider      network.OriginProvider `inject:""` // nolint:staticcheck
 	CryptographyService cryptography.Service   `inject:""`
 
 	options *network.Options

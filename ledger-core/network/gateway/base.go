@@ -66,9 +66,6 @@ type Base struct {
 	Aborter             network.Aborter                         `inject:""`
 	TransportFactory    transport.Factory                       `inject:""`
 
-	// nolint
-	OriginProvider network.OriginProvider `inject:""`
-
 	transportCrypt    transport2.CryptographyAssistant
 	datagramHandler   *adapters.DatagramHandler
 	datagramTransport transport.DatagramTransport
@@ -428,7 +425,7 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 
 	nodes := g.NodeKeeper.GetAccessor(g.LatestPulse(ctx).PulseNumber).GetActiveNodes()
 
-	o := g.OriginProvider.GetOrigin()
+	o := g.NodeKeeper.GetOrigin()
 
 	var reconnectHost *host.Host
 	if !g.isJoinAssistant || len(nodes) < 2 {
@@ -456,7 +453,7 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 		return nil, err
 	}
 
-	permit, err := bootstrap.CreatePermit(g.OriginProvider.GetOrigin().GetReference(),
+	permit, err := bootstrap.CreatePermit(g.NodeKeeper.GetOrigin().GetReference(),
 		reconnectHost,
 		pubKey,
 		g.CryptographyService,
@@ -507,7 +504,7 @@ func (g *Base) EphemeralMode(nodes []nodeinfo.NetworkNode) bool {
 }
 
 func (g *Base) FailState(ctx context.Context, reason string) {
-	o := g.OriginProvider.GetOrigin()
+	o := g.NodeKeeper.GetOrigin()
 	wrapReason := fmt.Sprintf("Abort node with address: %s role: %s state: %s, reason: %s",
 		o.Address(),
 		o.GetPrimaryRole().String(),

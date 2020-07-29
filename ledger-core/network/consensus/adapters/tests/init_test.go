@@ -338,7 +338,7 @@ func nodesFromInfo(nodeInfos []*nodeMeta) ([]nodeinfo.NetworkNode, []nodeinfo.Ne
 }
 
 func newNetworkNode(addr string, role member.PrimaryRole, pk crypto.PublicKey) node.MutableNode {
-	n := node.NewTestNode(gen.UniqueGlobalRef(), role, pk, addr, )
+	n := node.NewTestNode(gen.UniqueGlobalRef(), role, pk, addr)
 	n.SetShortID(node2.ShortNodeID(shortNodeIdOffset))
 
 	shortNodeIdOffset += 1

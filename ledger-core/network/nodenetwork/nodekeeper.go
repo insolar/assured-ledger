@@ -120,23 +120,6 @@ func (nk *nodekeeper) Sync(ctx context.Context, nodes []nodeinfo.NetworkNode) {
 	nk.syncNodes = nodes
 }
 
-func (nk *nodekeeper) UpdateOrigin(n nodeinfo.NetworkNode) {
-	nk.syncLock.Lock()
-	defer nk.syncLock.Unlock()
-
-	nk._updateOrigin(n)
-}
-
-func (nk *nodekeeper) _updateOrigin(n nodeinfo.NetworkNode) {
-	switch {
-	case n == nil:
-		panic(throw.IllegalValue())
-	case n.GetReference() != nk.origin.GetReference():
-		panic(throw.IllegalValue())
-	}
-	nk.origin = n
-}
-
 func (nk *nodekeeper) MoveSyncToActive(ctx context.Context, pn pulse.Number) {
 	before, after, err := nk.moveSyncToActive(pn)
 	if err != nil {
@@ -167,3 +150,14 @@ func (nk *nodekeeper) moveSyncToActive(number pulse.Number) (before, after int, 
 
 	return len(nk.syncNodes), len(accessor.GetActiveNodes()), nil
 }
+
+func (nk *nodekeeper) _updateOrigin(n nodeinfo.NetworkNode) {
+	switch {
+	case n == nil:
+		panic(throw.IllegalValue())
+	case n.GetReference() != nk.origin.GetReference():
+		panic(throw.IllegalValue())
+	}
+	nk.origin = n
+}
+

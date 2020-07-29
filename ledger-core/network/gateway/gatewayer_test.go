@@ -25,7 +25,7 @@ func TestNewGatewayer(t *testing.T) {
 
 	mc := minimock.NewController(t)
 	defer mc.Finish()
-	defer mc.Wait(time.Minute)
+	defer mc.Wait(time.Second*10)
 
 	gw := mock.NewGatewayMock(mc)
 

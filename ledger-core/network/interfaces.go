@@ -88,19 +88,12 @@ type Future interface {
 	Cancel()
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network.OriginProvider -o ../testutils/network -s _mock.go -g
-
-//Deprecated: network internal usage only
-type OriginProvider interface {
-	// GetOrigin get origin node information(self).
-	GetOrigin() nodeinfo.NetworkNode
-}
-
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network.NodeNetwork -o ../testutils/network -s _mock.go -g
 
 // Should be deprecated, but actually is still used everywhere todo: move GetWorkingNodes to ServiceNetwork facade
 type NodeNetwork interface {
-	OriginProvider
+	// GetOrigin get origin node information(self).
+	GetOrigin() nodeinfo.NetworkNode
 
 	// GetAccessor get accessor to the internal snapshot for the current pulse
 	GetAccessor(pulse.Number) Accessor
@@ -118,8 +111,6 @@ type NodeKeeper interface {
 	Sync(context.Context, []nodeinfo.NetworkNode)
 	// MoveSyncToActive merge sync list with active nodes
 	MoveSyncToActive(context.Context, pulse.Number)
-
-	UpdateOrigin(n nodeinfo.NetworkNode)
 }
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network.RoutingTable -o ../testutils/network -s _mock.go -g

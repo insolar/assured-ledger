@@ -12,41 +12,37 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
-	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
-	"github.com/insolar/assured-ledger/ledger-core/network/node"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
-
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
+	"github.com/insolar/assured-ledger/ledger-core/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	mock "github.com/insolar/assured-ledger/ledger-core/testutils/network"
 )
 
 func createBase(mc *minimock.Controller) *Base {
 	b := &Base{}
 
-	op := mock.NewOriginProviderMock(mc)
-	op.GetOriginMock.Set(func() nodeinfo.NetworkNode {
-		return node.NewTestNode(gen.UniqueGlobalRef(), member.PrimaryRoleVirtual, nil, "127.0.0.1:123")
-	})
-
 	aborter := network.NewAborterMock(mc)
 	aborter.AbortMock.Set(func(ctx context.Context, reason string) {
 		require.Contains(mc, reason, bootstrapTimeoutMessage)
 	})
 
+	nk := mock.NewNodeKeeperMock(mc)
+	nk.GetOriginMock.Return(node.NewTestNode(gen.UniqueGlobalRef(), member.PrimaryRoleVirtual, nil, "127.0.0.1:123"))
+	b.NodeKeeper = nk
 	b.Aborter = aborter
-	b.OriginProvider = op
 	return b
 }
 
 func TestWaitPulsar_PulseNotArrivedInETA(t *testing.T) {
 	mc := minimock.NewController(t)
 	defer mc.Finish()
-	defer mc.Wait(time.Minute)
+	defer mc.Wait(time.Second*10)
 
 	waitPulsar := newWaitPulsar(createBase(mc))
 	assert.Equal(t, nodeinfo.WaitPulsar, waitPulsar.GetState())
@@ -65,7 +61,7 @@ func TestWaitPulsar_PulseNotArrivedInETA(t *testing.T) {
 func TestWaitPulsar_PulseArrivedInETA(t *testing.T) {
 	mc := minimock.NewController(t)
 	defer mc.Finish()
-	defer mc.Wait(time.Minute)
+	defer mc.Wait(time.Second*10)
 
 	gatewayer := mock.NewGatewayerMock(mc)
 	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state nodeinfo.NetworkState, pulse pulse.Data) {

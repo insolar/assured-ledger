@@ -22,7 +22,6 @@ type MutableNode interface {
 
 	SetShortID(shortID node.ShortNodeID)
 	SetSignature(cryptkit.SignedDigest)
-	SetAddress(address string)
 }
 
 func newMutableNode(
@@ -33,11 +32,11 @@ func newMutableNode(
 	address string) *nodeInfo {
 
 	return &nodeInfo{
-		NodeID:        id,
-		NodeShortID:   GenerateUintShortID(id),
-		NodeRole:      role,
-		NodePublicKey: publicKey,
-		NodeAddress:   address,
+		nodeID:        id,
+		nodeShortID:   GenerateUintShortID(id),
+		nodeRole:      role,
+		nodePublicKey: publicKey,
+		nodeAddress:   address,
 		state:         state,
 	}
 }
@@ -47,17 +46,16 @@ func NewTestNode(id reference.Global, role member.PrimaryRole, publicKey crypto.
 }
 
 type nodeInfo struct {
-	NodeID        reference.Global
-	NodeShortID   uint32
-	NodeRole      member.PrimaryRole
-	NodePublicKey crypto.PublicKey
-	NodePower     member.Power
-
-	NodeAddress string
+	nodeID        reference.Global
+	nodeShortID   uint32
+	nodePublicKey crypto.PublicKey
+	nodeRole      member.PrimaryRole
+	nodeAddress string
+	nodePower     member.Power
+	state          nodeinfo.State
 
 	mutex          sync.RWMutex
 	digest         cryptkit.SignedDigest
-	state          nodeinfo.State
 }
 
 func (n *nodeInfo) GetState() nodeinfo.State {
@@ -65,30 +63,27 @@ func (n *nodeInfo) GetState() nodeinfo.State {
 }
 
 func (n *nodeInfo) GetReference() reference.Global {
-	return n.NodeID
+	return n.nodeID
 }
 
 func (n *nodeInfo) GetNodeID() node.ShortNodeID {
-	return node.ShortNodeID(atomic.LoadUint32(&n.NodeShortID))
+	return node.ShortNodeID(atomic.LoadUint32(&n.nodeShortID))
 }
 
 func (n *nodeInfo) GetPrimaryRole() member.PrimaryRole {
-	return n.NodeRole
+	return n.nodeRole
 }
 
 func (n *nodeInfo) PublicKey() crypto.PublicKey {
-	return n.NodePublicKey
+	return n.nodePublicKey
 }
 
 func (n *nodeInfo) Address() string {
-	n.mutex.RLock()
-	defer n.mutex.RUnlock()
-
-	return n.NodeAddress
+	return n.nodeAddress
 }
 
 func (n *nodeInfo) GetPower() member.Power {
-	return n.NodePower
+	return n.nodePower
 }
 
 func (n *nodeInfo) GetSignature() cryptkit.SignedDigestHolder {
@@ -111,20 +106,13 @@ func (n *nodeInfo) SetSignature(digest cryptkit.SignedDigest) {
 }
 
 func (n *nodeInfo) SetShortID(id node.ShortNodeID) {
-	atomic.StoreUint32(&n.NodeShortID, uint32(id))
-}
-
-func (n *nodeInfo) SetAddress(address string) {
-	n.mutex.Lock()
-	defer n.mutex.Unlock()
-
-	n.NodeAddress = address
+	atomic.StoreUint32(&n.nodeShortID, uint32(id))
 }
 
 func (n *nodeInfo) IsJoiner() bool {
-	return n.GetState() == nodeinfo.Joining // TODO use correct impl
+	return n.GetState() == nodeinfo.Joining
 }
 
 func (n *nodeInfo) IsPowered() bool {
-	return n.GetState() == nodeinfo.Ready && n.GetPower() > 0 // TODO use correct impl
+	return n.GetState() == nodeinfo.Ready && n.GetPower() > 0
 }
