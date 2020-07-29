@@ -8,6 +8,7 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
+	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	mm_nodeinfo "github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
@@ -48,6 +49,12 @@ type NetworkNodeMock struct {
 	beforeGetReferenceCounter uint64
 	GetReferenceMock          mNetworkNodeMockGetReference
 
+	funcGetSignature          func() (ba1 []byte, s1 cryptography.Signature)
+	inspectFuncGetSignature   func()
+	afterGetSignatureCounter  uint64
+	beforeGetSignatureCounter uint64
+	GetSignatureMock          mNetworkNodeMockGetSignature
+
 	funcGetState          func() (s1 mm_nodeinfo.State)
 	inspectFuncGetState   func()
 	afterGetStateCounter  uint64
@@ -77,6 +84,8 @@ func NewNetworkNodeMock(t minimock.Tester) *NetworkNodeMock {
 	m.GetPrimaryRoleMock = mNetworkNodeMockGetPrimaryRole{mock: m}
 
 	m.GetReferenceMock = mNetworkNodeMockGetReference{mock: m}
+
+	m.GetSignatureMock = mNetworkNodeMockGetSignature{mock: m}
 
 	m.GetStateMock = mNetworkNodeMockGetState{mock: m}
 
@@ -800,6 +809,150 @@ func (m *NetworkNodeMock) MinimockGetReferenceInspect() {
 	}
 }
 
+type mNetworkNodeMockGetSignature struct {
+	mock               *NetworkNodeMock
+	defaultExpectation *NetworkNodeMockGetSignatureExpectation
+	expectations       []*NetworkNodeMockGetSignatureExpectation
+}
+
+// NetworkNodeMockGetSignatureExpectation specifies expectation struct of the NetworkNode.GetSignature
+type NetworkNodeMockGetSignatureExpectation struct {
+	mock *NetworkNodeMock
+
+	results *NetworkNodeMockGetSignatureResults
+	Counter uint64
+}
+
+// NetworkNodeMockGetSignatureResults contains results of the NetworkNode.GetSignature
+type NetworkNodeMockGetSignatureResults struct {
+	ba1 []byte
+	s1  cryptography.Signature
+}
+
+// Expect sets up expected params for NetworkNode.GetSignature
+func (mmGetSignature *mNetworkNodeMockGetSignature) Expect() *mNetworkNodeMockGetSignature {
+	if mmGetSignature.mock.funcGetSignature != nil {
+		mmGetSignature.mock.t.Fatalf("NetworkNodeMock.GetSignature mock is already set by Set")
+	}
+
+	if mmGetSignature.defaultExpectation == nil {
+		mmGetSignature.defaultExpectation = &NetworkNodeMockGetSignatureExpectation{}
+	}
+
+	return mmGetSignature
+}
+
+// Inspect accepts an inspector function that has same arguments as the NetworkNode.GetSignature
+func (mmGetSignature *mNetworkNodeMockGetSignature) Inspect(f func()) *mNetworkNodeMockGetSignature {
+	if mmGetSignature.mock.inspectFuncGetSignature != nil {
+		mmGetSignature.mock.t.Fatalf("Inspect function is already set for NetworkNodeMock.GetSignature")
+	}
+
+	mmGetSignature.mock.inspectFuncGetSignature = f
+
+	return mmGetSignature
+}
+
+// Return sets up results that will be returned by NetworkNode.GetSignature
+func (mmGetSignature *mNetworkNodeMockGetSignature) Return(ba1 []byte, s1 cryptography.Signature) *NetworkNodeMock {
+	if mmGetSignature.mock.funcGetSignature != nil {
+		mmGetSignature.mock.t.Fatalf("NetworkNodeMock.GetSignature mock is already set by Set")
+	}
+
+	if mmGetSignature.defaultExpectation == nil {
+		mmGetSignature.defaultExpectation = &NetworkNodeMockGetSignatureExpectation{mock: mmGetSignature.mock}
+	}
+	mmGetSignature.defaultExpectation.results = &NetworkNodeMockGetSignatureResults{ba1, s1}
+	return mmGetSignature.mock
+}
+
+//Set uses given function f to mock the NetworkNode.GetSignature method
+func (mmGetSignature *mNetworkNodeMockGetSignature) Set(f func() (ba1 []byte, s1 cryptography.Signature)) *NetworkNodeMock {
+	if mmGetSignature.defaultExpectation != nil {
+		mmGetSignature.mock.t.Fatalf("Default expectation is already set for the NetworkNode.GetSignature method")
+	}
+
+	if len(mmGetSignature.expectations) > 0 {
+		mmGetSignature.mock.t.Fatalf("Some expectations are already set for the NetworkNode.GetSignature method")
+	}
+
+	mmGetSignature.mock.funcGetSignature = f
+	return mmGetSignature.mock
+}
+
+// GetSignature implements nodeinfo.NetworkNode
+func (mmGetSignature *NetworkNodeMock) GetSignature() (ba1 []byte, s1 cryptography.Signature) {
+	mm_atomic.AddUint64(&mmGetSignature.beforeGetSignatureCounter, 1)
+	defer mm_atomic.AddUint64(&mmGetSignature.afterGetSignatureCounter, 1)
+
+	if mmGetSignature.inspectFuncGetSignature != nil {
+		mmGetSignature.inspectFuncGetSignature()
+	}
+
+	if mmGetSignature.GetSignatureMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmGetSignature.GetSignatureMock.defaultExpectation.Counter, 1)
+
+		mm_results := mmGetSignature.GetSignatureMock.defaultExpectation.results
+		if mm_results == nil {
+			mmGetSignature.t.Fatal("No results are set for the NetworkNodeMock.GetSignature")
+		}
+		return (*mm_results).ba1, (*mm_results).s1
+	}
+	if mmGetSignature.funcGetSignature != nil {
+		return mmGetSignature.funcGetSignature()
+	}
+	mmGetSignature.t.Fatalf("Unexpected call to NetworkNodeMock.GetSignature.")
+	return
+}
+
+// GetSignatureAfterCounter returns a count of finished NetworkNodeMock.GetSignature invocations
+func (mmGetSignature *NetworkNodeMock) GetSignatureAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetSignature.afterGetSignatureCounter)
+}
+
+// GetSignatureBeforeCounter returns a count of NetworkNodeMock.GetSignature invocations
+func (mmGetSignature *NetworkNodeMock) GetSignatureBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetSignature.beforeGetSignatureCounter)
+}
+
+// MinimockGetSignatureDone returns true if the count of the GetSignature invocations corresponds
+// the number of defined expectations
+func (m *NetworkNodeMock) MinimockGetSignatureDone() bool {
+	for _, e := range m.GetSignatureMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.GetSignatureMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetSignatureCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcGetSignature != nil && mm_atomic.LoadUint64(&m.afterGetSignatureCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockGetSignatureInspect logs each unmet expectation
+func (m *NetworkNodeMock) MinimockGetSignatureInspect() {
+	for _, e := range m.GetSignatureMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Error("Expected call to NetworkNodeMock.GetSignature")
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.GetSignatureMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetSignatureCounter) < 1 {
+		m.t.Error("Expected call to NetworkNodeMock.GetSignature")
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcGetSignature != nil && mm_atomic.LoadUint64(&m.afterGetSignatureCounter) < 1 {
+		m.t.Error("Expected call to NetworkNodeMock.GetSignature")
+	}
+}
+
 type mNetworkNodeMockGetState struct {
 	mock               *NetworkNodeMock
 	defaultExpectation *NetworkNodeMockGetStateExpectation
@@ -1099,6 +1252,8 @@ func (m *NetworkNodeMock) MinimockFinish() {
 
 		m.MinimockGetReferenceInspect()
 
+		m.MinimockGetSignatureInspect()
+
 		m.MinimockGetStateInspect()
 
 		m.MinimockPublicKeyInspect()
@@ -1130,6 +1285,7 @@ func (m *NetworkNodeMock) minimockDone() bool {
 		m.MinimockGetPowerDone() &&
 		m.MinimockGetPrimaryRoleDone() &&
 		m.MinimockGetReferenceDone() &&
+		m.MinimockGetSignatureDone() &&
 		m.MinimockGetStateDone() &&
 		m.MinimockPublicKeyDone()
 }

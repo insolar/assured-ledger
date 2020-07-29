@@ -55,7 +55,7 @@ func createOrigin(configuration configuration.Transport, certificate nodeinfo.Ce
 		// role = member.PrimaryRoleLightMaterial
 	}
 
-	return node.NewNode(certificate.GetNodeRef(), role, certificate.GetPublicKey(), publicAddress, ), nil
+	return node.NewActiveNode(certificate.GetNodeRef(), role, certificate.GetPublicKey(), publicAddress, ), nil
 }
 
 func resolveAddress(configuration configuration.Transport) (string, error) {

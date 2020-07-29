@@ -245,7 +245,7 @@ func NewNetworkNode(profile profiles.ActiveNode) nodeinfo.NetworkNode {
 	store := nip.GetPublicKeyStore()
 	introduction := nip.GetExtension()
 
-	networkNode := node.NewNode(introduction.GetReference(),
+	networkNode := node.NewActiveNode(introduction.GetReference(),
 		nip.GetPrimaryRole(),
 		store.(*ECDSAPublicKeyStore).publicKey,
 		nip.GetDefaultEndpoint().GetNameAddress().String(), )
