@@ -57,7 +57,7 @@ type dSMVDelegatedRequestFinished struct {
 	smachine.StateMachineDeclTemplate
 }
 
-func (*dSMVDelegatedRequestFinished) InjectDependencies(sm smachine.StateMachine, _ smachine.SlotLink, injector *injector.DependencyInjector) {
+func (*dSMVDelegatedRequestFinished) InjectDependencies(sm smachine.StateMachine, _ smachine.SlotLink, injector injector.DependencyInjector) {
 	s := sm.(*SMVDelegatedRequestFinished)
 
 	injector.MustInject(&s.objectCatalog)

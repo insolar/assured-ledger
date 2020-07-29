@@ -550,17 +550,7 @@ func (m *SlotMachine) prepareInjects(link SlotLink, sm StateMachine, mode Depend
 		overrides = append(overrides, creatorInheritable)
 	}
 
-	var localDeps injector.DependencyRegistryFunc
-	if len(overrides) > 0 {
-		localDeps = func(id string) (interface{}, bool) {
-			for _, om := range overrides {
-				if v, ok := om[id]; ok {
-					return v, true
-				}
-			}
-			return nil, false
-		}
-	}
+	localDeps := injector.NewMultiMapRegistry(overrides)
 
 	var addedInjects []interface{}
 
@@ -571,7 +561,7 @@ func (m *SlotMachine) prepareInjects(link SlotLink, sm StateMachine, mode Depend
 	})
 	dInjector := injector.NewDependencyInjectorFor(&dResolver)
 
-	link.s.declaration.InjectDependencies(sm, link, &dInjector)
+	link.s.declaration.InjectDependencies(sm, link, dInjector)
 
 	switch {
 	case isReplacement:
