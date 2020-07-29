@@ -8,6 +8,7 @@ package nodeinfo
 import (
 	"crypto"
 
+	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -47,4 +48,6 @@ type NetworkNode interface {
 	GetState() State
 	// GetPower get power of node
 	GetPower() Power
+
+	GetSignature() ([]byte, cryptography.Signature)
 }

@@ -31,7 +31,7 @@ type StaticProfileExtension struct {
 }
 
 func NewStaticProfileExtension(networkNode nodeinfo.NetworkNode) *StaticProfileExtension {
-	_, signature := networkNode.(node.MutableNode).GetSignature()
+	_, signature := networkNode.GetSignature()
 
 	return newStaticProfileExtension(
 		networkNode.GetNodeID(),
@@ -103,8 +103,7 @@ func NewStaticProfile(networkNode nodeinfo.NetworkNode, certificate nodeinfo.Cer
 	}
 
 	publicKey := networkNode.PublicKey().(*ecdsa.PublicKey)
-	mutableNode := networkNode.(node.MutableNode)
-	digest, signature := mutableNode.GetSignature()
+	digest, signature := networkNode.GetSignature()
 
 	return newStaticProfile(
 		networkNode.GetNodeID(),

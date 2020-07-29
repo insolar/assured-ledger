@@ -30,7 +30,7 @@ func (a *Accessor) GetActiveNode(ref reference.Global) nodeinfo.NetworkNode {
 
 func (a *Accessor) GetWorkingNode(ref reference.Global) nodeinfo.NetworkNode {
 	node := a.GetActiveNode(ref)
-	if node == nil || node.GetPower() == 0 {
+	if node == nil || !isWorkingNode(node) {
 		return nil
 	}
 	return node

@@ -29,7 +29,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
-	"github.com/insolar/assured-ledger/ledger-core/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
@@ -143,7 +142,7 @@ func (s *consensusSuite) Setup() {
 		bnodes := make([]nodeinfo.NetworkNode, 0)
 		for _, n := range s.bootstrapNodes {
 			o := n.serviceNetwork.NodeKeeper.GetOrigin()
-			dig, sig := o.(node.MutableNode).GetSignature()
+			dig, sig := o.GetSignature()
 			require.NotNil(s.t, dig)
 			require.NotNil(s.t, sig.Bytes())
 

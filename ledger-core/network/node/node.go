@@ -23,7 +23,6 @@ type MutableNode interface {
 
 	SetShortID(shortID node.ShortNodeID)
 	SetState(state nodeinfo.State)
-	GetSignature() ([]byte, cryptography.Signature)
 	SetSignature(digest []byte, signature cryptography.Signature)
 	SetPower(power nodeinfo.Power)
 	SetAddress(address string)
