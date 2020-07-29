@@ -6,8 +6,6 @@
 package node
 
 import (
-	"sort"
-
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
@@ -16,8 +14,6 @@ type Accessor struct {
 	snapshot  *Snapshot
 	refIndex  map[reference.Global]nodeinfo.NetworkNode
 	addrIndex map[string]nodeinfo.NetworkNode
-	// should be removed in future
-	active []nodeinfo.NetworkNode
 }
 
 func (a *Accessor) GetActiveNodeByAddr(address string) nodeinfo.NetworkNode {
@@ -25,7 +21,7 @@ func (a *Accessor) GetActiveNodeByAddr(address string) nodeinfo.NetworkNode {
 }
 
 func (a *Accessor) GetActiveNodes() []nodeinfo.NetworkNode {
-	return append([]nodeinfo.NetworkNode(nil), a.active...)
+	return append([]nodeinfo.NetworkNode(nil), a.snapshot.activeNodes...)
 }
 
 func (a *Accessor) GetActiveNode(ref reference.Global) nodeinfo.NetworkNode {
@@ -41,34 +37,7 @@ func (a *Accessor) GetWorkingNode(ref reference.Global) nodeinfo.NetworkNode {
 }
 
 func (a *Accessor) GetWorkingNodes() []nodeinfo.NetworkNode {
-	workingList := a.snapshot.nodeList[ListWorking]
-	result := make([]nodeinfo.NetworkNode, len(workingList))
-	copy(result, workingList)
-	sort.Slice(result, func(i, j int) bool {
-		return result[i].GetReference().Compare(result[j].GetReference()) < 0
-	})
-	return result
-}
-
-func GetSnapshotActiveNodes(snapshot *Snapshot) []nodeinfo.NetworkNode {
-	joining := snapshot.nodeList[ListJoiner]
-	idle := snapshot.nodeList[ListIdle]
-	working := snapshot.nodeList[ListWorking]
-	leaving := snapshot.nodeList[ListLeaving]
-
-	joinersCount := len(joining)
-	idlersCount := len(idle)
-	workingCount := len(working)
-	leavingCount := len(leaving)
-
-	result := make([]nodeinfo.NetworkNode, joinersCount+idlersCount+workingCount+leavingCount)
-
-	copy(result[:joinersCount], joining)
-	copy(result[joinersCount:joinersCount+idlersCount], idle)
-	copy(result[joinersCount+idlersCount:joinersCount+idlersCount+workingCount], working)
-	copy(result[joinersCount+idlersCount+workingCount:], leaving)
-
-	return result
+	return append([]nodeinfo.NetworkNode(nil), a.snapshot.workingNodes...)
 }
 
 func (a *Accessor) addToIndex(node nodeinfo.NetworkNode) {
@@ -82,8 +51,7 @@ func NewAccessor(snapshot *Snapshot) *Accessor {
 		refIndex:  make(map[reference.Global]nodeinfo.NetworkNode),
 		addrIndex: make(map[string]nodeinfo.NetworkNode),
 	}
-	result.active = GetSnapshotActiveNodes(snapshot)
-	for _, node := range result.active {
+	for _, node := range snapshot.activeNodes {
 		result.addToIndex(node)
 	}
 	return result

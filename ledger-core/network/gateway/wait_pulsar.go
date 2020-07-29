@@ -38,7 +38,7 @@ func (g *WaitPulsar) Run(ctx context.Context, pulse pulse.Data) {
 }
 
 func (g *WaitPulsar) UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes []nodeinfo.NetworkNode, cloudStateHash []byte) {
-	workingNodes := node.Select(nodes, node.ListWorking)
+	workingNodes := node.SelectWorking(nodes)
 
 	if _, err := rules.CheckMajorityRule(g.CertificateManager.GetCertificate(), workingNodes); err != nil {
 		g.FailState(ctx, err.Error())

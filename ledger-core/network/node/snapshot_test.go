@@ -29,31 +29,11 @@ func (m *Mutator) AddWorkingNode(n nodeinfo.NetworkNode) {
 	if _, ok := m.refIndex[n.GetReference()]; ok {
 		return
 	}
-	mutableNode := n.(MutableNode)
-	m.addToIndex(mutableNode)
-	listType := nodeStateToListType(mutableNode)
-	m.snapshot.nodeList[listType] = append(m.snapshot.nodeList[listType], n)
-	m.active = append(m.active, n)
-}
-
-func TestSnapshot_Copy(t *testing.T) {
-	snapshot := NewSnapshot(pulse.MinTimePulse, nil)
-	mutator := NewMutator(snapshot)
-	ref1 := gen.UniqueGlobalRef()
-	node1 := newMutableNode(ref1, member.PrimaryRoleVirtual, nil, nodeinfo.Ready, "127.0.0.1:0")
-	mutator.AddWorkingNode(node1)
-
-	snapshot2 := snapshot.Copy()
-	accessor := NewAccessor(snapshot2)
-
-	ref2 := gen.UniqueGlobalRef()
-	node2 := newMutableNode(ref2, member.PrimaryRoleLightMaterial, nil, nodeinfo.Ready, "127.0.0.1:0")
-	mutator.AddWorkingNode(node2)
-
-	// mutator and accessor observe different copies of snapshot and don't affect each other
-	assert.Equal(t, 2, len(mutator.GetActiveNodes()))
-	assert.Equal(t, 1, len(accessor.GetActiveNodes()))
-	assert.False(t, snapshot.Equal(snapshot2))
+	if isWorkingNode(n) {
+		m.snapshot.workingNodes = append(m.snapshot.workingNodes, n)
+	}
+	m.snapshot.activeNodes = append(m.snapshot.activeNodes, n)
+	m.addToIndex(n)
 }
 
 func TestSnapshot_GetPulse(t *testing.T) {

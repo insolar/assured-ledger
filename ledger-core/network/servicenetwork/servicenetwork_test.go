@@ -58,7 +58,7 @@ func prepareNetwork(t *testing.T, cfg configuration.Configuration) *ServiceNetwo
 
 	nodeKeeper := networkUtils.NewNodeKeeperMock(t)
 	nodeMock := networkUtils.NewNetworkNodeMock(t)
-	nodeMock.IDMock.Return(gen.UniqueGlobalRef())
+	nodeMock.GetReferenceMock.Return(gen.UniqueGlobalRef())
 	nodeKeeper.GetOriginMock.Return(nodeMock)
 	serviceNetwork.NodeKeeper = nodeKeeper
 
@@ -96,7 +96,7 @@ func TestSendMessageHandler_SameNode(t *testing.T) {
 	nodeN := networkUtils.NewNodeKeeperMock(t)
 	nodeN.GetOriginMock.Set(func() (r nodeinfo.NetworkNode) {
 		n := networkUtils.NewNetworkNodeMock(t)
-		n.IDMock.Set(func() (r reference.Global) {
+		n.GetReferenceMock.Set(func() (r reference.Global) {
 			return nodeRef
 		})
 		return n
@@ -130,7 +130,7 @@ func TestSendMessageHandler_SendError(t *testing.T) {
 	nodeN := networkUtils.NewNodeKeeperMock(t)
 	nodeN.GetOriginMock.Set(func() (r nodeinfo.NetworkNode) {
 		n := networkUtils.NewNetworkNodeMock(t)
-		n.IDMock.Set(func() (r reference.Global) {
+		n.GetReferenceMock.Set(func() (r reference.Global) {
 			return gen.UniqueGlobalRef()
 		})
 		return n
@@ -167,7 +167,7 @@ func TestSendMessageHandler_WrongReply(t *testing.T) {
 	nodeN := networkUtils.NewNodeKeeperMock(t)
 	nodeN.GetOriginMock.Set(func() (r nodeinfo.NetworkNode) {
 		n := networkUtils.NewNetworkNodeMock(t)
-		n.IDMock.Set(func() (r reference.Global) {
+		n.GetReferenceMock.Set(func() (r reference.Global) {
 			return gen.UniqueGlobalRef()
 		})
 		return n
@@ -202,7 +202,7 @@ func TestSendMessageHandler(t *testing.T) {
 	nodeN := networkUtils.NewNodeKeeperMock(t)
 	nodeN.GetOriginMock.Set(func() (r nodeinfo.NetworkNode) {
 		n := networkUtils.NewNetworkNodeMock(t)
-		n.IDMock.Set(func() (r reference.Global) {
+		n.GetReferenceMock.Set(func() (r reference.Global) {
 			return gen.UniqueGlobalRef()
 		})
 		return n
