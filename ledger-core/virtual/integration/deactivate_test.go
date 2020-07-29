@@ -24,7 +24,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
-	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
+	commonTestUtils "github.com/insolar/assured-ledger/ledger-core/testutils"
 
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
@@ -34,6 +34,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/object/finalizedstate"
 )
 
 func TestVirtual_DeactivateObject(t *testing.T) {
@@ -179,7 +180,7 @@ func TestVirtual_CallMethod_On_CompletelyDeactivatedObject(t *testing.T) {
 
 			for _, callTypeTest := range callTypeTestCases {
 				t.Run(callTypeTest.name, func(t *testing.T) {
-					defer commontestutils.LeakTester(t)
+					defer commonTestUtils.LeakTester(t)
 
 					mc := minimock.NewController(t)
 
@@ -213,8 +214,8 @@ func TestVirtual_CallMethod_On_CompletelyDeactivatedObject(t *testing.T) {
 
 						assert.Equal(t, object, res.Callee)
 						contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments)
-						require.Contains(t, contractErr.Error(), callTypeTest.errorMsg)
 						require.NoError(t, sysErr)
+						require.Contains(t, contractErr.Error(), callTypeTest.errorMsg)
 
 						gotResult <- struct{}{}
 
@@ -233,7 +234,7 @@ func TestVirtual_CallMethod_On_CompletelyDeactivatedObject(t *testing.T) {
 					}
 					server.SendPayload(ctx, &pl)
 
-					commontestutils.WaitSignalsTimed(t, 10*time.Second, gotResult)
+					commonTestUtils.WaitSignalsTimed(t, 10*time.Second, gotResult)
 
 					mc.Finish()
 				})
@@ -248,7 +249,7 @@ func TestVirtual_CallMethod_On_CompletelyDeactivatedObject(t *testing.T) {
 // 4. Send request on Validated state - get response
 // TODO: Remove this test when https://insolar.atlassian.net/browse/PLAT-706 will be implemented
 func TestVirtual_CallMethod_On_DeactivatedDirtyState(t *testing.T) {
-	defer commontestutils.LeakTester(t)
+	defer commonTestUtils.LeakTester(t)
 
 	mc := minimock.NewController(t)
 
@@ -319,14 +320,10 @@ func TestVirtual_CallMethod_On_DeactivatedDirtyState(t *testing.T) {
 		}
 		server.SendPayload(ctx, &pl)
 
-		commontestutils.WaitSignalsTimed(t, 10*time.Second, gotResult)
+		commonTestUtils.WaitSignalsTimed(t, 10*time.Second, gotResult)
 	}
 
-	////
-	// Here object dirty state is deactivated
-	////
-
-	{
+	{ // Here object dirty state is deactivated
 		// send call request on deactivated object
 		testcase := []struct {
 			name          string
@@ -354,8 +351,8 @@ func TestVirtual_CallMethod_On_DeactivatedDirtyState(t *testing.T) {
 					if !test.shouldExecute {
 						require.Equal(t, res.Callee, object)
 						contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments)
-						require.Contains(t, contractErr.Error(), "try to call method on deactivated object")
 						require.NoError(t, sysErr)
+						require.Contains(t, contractErr.Error(), "try to call method on deactivated object")
 					} else {
 						require.Equal(t, requestResult.RawResult, res.ReturnArguments)
 					}
@@ -394,10 +391,230 @@ func TestVirtual_CallMethod_On_DeactivatedDirtyState(t *testing.T) {
 					Arguments:           insolar.MustSerialize([]interface{}{}),
 				}
 				server.SendPayload(ctx, &pl)
-				commontestutils.WaitSignalsTimed(t, 10*time.Second, gotResult)
+				commonTestUtils.WaitSignalsTimed(t, 10*time.Second, gotResult)
 			})
 		}
 	}
 
 	mc.Finish()
+}
+
+func TestVirtual_DeactivateObject_HappyPath(t *testing.T) {
+	t.Log("C5472")
+
+	const (
+		origDirtyMem     = "original dirty memory"
+		origValidatedMem = "original validated memory"
+		methodDeactivate = "Deactivate"
+		methodCheck      = "Check"
+	)
+
+	defer commonTestUtils.LeakTester(t)
+
+	testCases := []struct {
+		name      string
+		isolation contract.MethodIsolation
+	}{
+		{
+			name: "Tolerable + Dirty",
+			isolation: contract.MethodIsolation{
+				Interference: contract.CallTolerable,
+				State:        contract.CallDirty,
+			},
+		},
+		{
+			name: "Intolerable + Validated",
+			isolation: contract.MethodIsolation{
+				Interference: contract.CallIntolerable,
+				State:        contract.CallValidated,
+			},
+		},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			mc := minimock.NewController(t)
+
+			server, ctx := utils.NewUninitializedServer(nil, t)
+
+			deactivationDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
+			executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 2)
+			stateReportSend := server.Journal.WaitStopOf(&finalizedstate.SMStateFinalizer{}, 1)
+
+			runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
+				return execution.Request.CallSiteMethod
+			})
+			server.ReplaceRunner(runnerMock)
+			server.Init(ctx)
+
+			var (
+				class     = gen.UniqueGlobalRef()
+				objectRef = reference.NewSelf(server.RandomLocalWithPulse())
+				p1        = server.GetPulse().PulseNumber
+				isolation = contract.MethodIsolation{
+					Interference: contract.CallTolerable,
+					State:        contract.CallDirty,
+				}
+			)
+
+			server.IncrementPulseAndWaitIdle(ctx)
+			{ // object deactivation call
+				outgoing := server.BuildRandomOutgoingWithPulse()
+
+				{ // setup runner mock for deactivation call
+					runnerMock.AddExecutionClassify(methodDeactivate, isolation, nil)
+					requestResult := requestresult.New([]byte("call result"), gen.UniqueGlobalRef())
+					requestResult.SetDeactivate(
+						descriptor.NewObject(objectRef, server.RandomLocalWithPulse(), class,
+							insolar.MustSerialize(0), false),
+					)
+
+					runnerMock.AddExecutionMock(methodDeactivate).AddStart(
+						func(ctx execution.Context) {
+							require.Equal(t, objectRef, ctx.Request.Callee)
+							require.Equal(t, []byte(origDirtyMem), ctx.ObjectDescriptor.Memory())
+						},
+						&execution.Update{
+							Type:     execution.OutgoingCall,
+							Result:   requestResult,
+							Outgoing: execution.NewRPCBuilder(outgoing, objectRef).Deactivate(),
+						},
+					).AddContinue(
+						nil,
+						&execution.Update{
+							Type:   execution.Done,
+							Result: requestresult.New([]byte("finish Deactivate"), objectRef),
+						},
+					)
+				}
+
+				typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+
+				typedChecker.VStateRequest.Set(func(req *payload.VStateRequest) bool {
+					require.Equal(t, p1, req.AsOf)
+					require.Equal(t, objectRef, req.Object)
+
+					flags := payload.RequestLatestDirtyState | payload.RequestLatestValidatedState |
+						payload.RequestOrderedQueue | payload.RequestUnorderedQueue
+					require.Equal(t, flags, req.RequestedContent)
+
+					content := &payload.VStateReport_ProvidedContentBody{
+						LatestDirtyState: &payload.ObjectState{
+							Reference: reference.Local{},
+							Class:     class,
+							State:     []byte(origDirtyMem),
+						},
+						LatestValidatedState: &payload.ObjectState{
+							Reference: reference.Local{},
+							Class:     class,
+							State:     []byte(origValidatedMem),
+						},
+					}
+
+					report := payload.VStateReport{
+						Status:          payload.Ready,
+						AsOf:            req.AsOf,
+						Object:          objectRef,
+						ProvidedContent: content,
+					}
+					server.SendPayload(ctx, &report)
+					return false
+				})
+				typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
+					require.Equal(t, objectRef, res.Callee)
+					require.Equal(t, outgoing, res.CallOutgoing)
+					require.Equal(t, []byte("finish Deactivate"), res.ReturnArguments)
+					return false
+				})
+
+				{
+					pl := payload.VCallRequest{
+						CallType:            payload.CTMethod,
+						CallFlags:           payload.BuildCallFlags(isolation.Interference, isolation.State),
+						Caller:              server.GlobalCaller(),
+						Callee:              objectRef,
+						CallSiteDeclaration: class,
+						CallSiteMethod:      methodDeactivate,
+						CallOutgoing:        outgoing,
+					}
+					server.SendPayload(ctx, &pl)
+				}
+
+				commonTestUtils.WaitSignalsTimed(t, 10*time.Second, deactivationDone)
+				commonTestUtils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+
+				require.Equal(t, 1, typedChecker.VStateRequest.Count())
+				require.Equal(t, 1, typedChecker.VCallResult.Count())
+			}
+			{ // check call
+				outgoing := server.BuildRandomOutgoingWithPulse()
+
+				runnerMock.AddExecutionClassify(methodCheck, testCase.isolation, nil)
+				if testCase.isolation.State == contract.CallValidated {
+					requestResult := requestresult.New([]byte("call result"), gen.UniqueGlobalRef())
+
+					runnerMock.AddExecutionMock(methodCheck).AddStart(
+						func(ctx execution.Context) {
+							require.Equal(t, objectRef, ctx.Request.Callee)
+							require.Equal(t, []byte(origValidatedMem), ctx.ObjectDescriptor.Memory())
+						},
+						&execution.Update{
+							Type:   execution.Done,
+							Result: requestResult,
+						},
+					)
+				}
+
+				typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+				typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
+					require.Equal(t, objectRef, res.Callee)
+					require.Equal(t, outgoing, res.CallOutgoing)
+					if testCase.isolation.State == contract.CallValidated {
+						require.Equal(t, []byte("call result"), res.ReturnArguments)
+					} else {
+						contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments)
+						require.NoError(t, sysErr)
+						require.Contains(t, contractErr.Error(), "try to call method on deactivated object")
+					}
+					return false
+				})
+				typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
+					require.Equal(t, objectRef, report.Object)
+					require.Equal(t, payload.Inactive, report.Status)
+					require.True(t, report.DelegationSpec.IsZero())
+					require.Equal(t, int32(0), report.UnorderedPendingCount)
+					require.Equal(t, int32(0), report.OrderedPendingCount)
+					require.Nil(t, report.ProvidedContent)
+					return false
+				})
+
+				{
+					pl := payload.VCallRequest{
+						CallType:            payload.CTMethod,
+						CallFlags:           payload.BuildCallFlags(testCase.isolation.Interference, testCase.isolation.State),
+						Caller:              server.GlobalCaller(),
+						Callee:              objectRef,
+						CallSiteDeclaration: class,
+						CallSiteMethod:      methodCheck,
+						CallOutgoing:        outgoing,
+					}
+					server.SendPayload(ctx, &pl)
+				}
+
+				commonTestUtils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+
+				// increment pulse twice for stop SMStateFinalizer
+				server.IncrementPulseAndWaitIdle(ctx)
+				server.IncrementPulseAndWaitIdle(ctx)
+
+				commonTestUtils.WaitSignalsTimed(t, 10*time.Second, stateReportSend)
+				commonTestUtils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+
+				require.Equal(t, 1, typedChecker.VCallResult.Count())
+				require.Equal(t, 1, typedChecker.VStateReport.Count())
+			}
+
+			server.Stop()
+			mc.Finish()
+		})
+	}
 }
