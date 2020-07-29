@@ -45,7 +45,7 @@ type dSMVDelegatedCallRequest struct {
 	smachine.StateMachineDeclTemplate
 }
 
-func (*dSMVDelegatedCallRequest) InjectDependencies(sm smachine.StateMachine, _ smachine.SlotLink, injector *injector.DependencyInjector) {
+func (*dSMVDelegatedCallRequest) InjectDependencies(sm smachine.StateMachine, _ smachine.SlotLink, injector injector.DependencyInjector) {
 	s := sm.(*SMVDelegatedCallRequest)
 
 	injector.MustInject(&s.pulseSlot)

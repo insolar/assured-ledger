@@ -34,7 +34,7 @@ type SMStateFinalizer struct {
 
 /* -------- Declaration ------------- */
 
-func (*SMStateFinalizer) InjectDependencies(stateMachine smachine.StateMachine, _ smachine.SlotLink, injector *injector.DependencyInjector) {
+func (*SMStateFinalizer) InjectDependencies(stateMachine smachine.StateMachine, _ smachine.SlotLink, injector injector.DependencyInjector) {
 	s := stateMachine.(*SMStateFinalizer)
 	injector.MustInject(&s.messageSender)
 	injector.MustInject(&s.pulseSlot)

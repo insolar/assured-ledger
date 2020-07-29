@@ -44,7 +44,7 @@ type dSMDelegatedTokenRequest struct {
 	smachine.StateMachineDeclTemplate
 }
 
-func (*dSMDelegatedTokenRequest) InjectDependencies(sm smachine.StateMachine, _ smachine.SlotLink, injector *injector.DependencyInjector) {
+func (*dSMDelegatedTokenRequest) InjectDependencies(sm smachine.StateMachine, _ smachine.SlotLink, injector injector.DependencyInjector) {
 	s := sm.(*SMDelegatedTokenRequest)
 
 	injector.MustInject(&s.pulseSlot)
