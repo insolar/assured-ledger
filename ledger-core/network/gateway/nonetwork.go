@@ -32,7 +32,7 @@ func (g *NoNetwork) Run(ctx context.Context, pulse pulse.Data) {
 	origin := g.NodeKeeper.GetOrigin()
 	discoveryNodes := network.ExcludeOrigin(cert.GetDiscoveryNodes(), origin.GetReference())
 
-	g.NodeKeeper.SetInitialSnapshot([]nodeinfo.NetworkNode{origin})
+	// g.NodeKeeper.SetInitialSnapshot([]nodeinfo.NetworkNode{origin})
 
 	if len(discoveryNodes) == 0 {
 		inslogger.FromContext(ctx).Warn("No discovery nodes found in certificate")

@@ -81,9 +81,9 @@ func NewNodeKeeper(origin nodeinfo.NetworkNode) network.NodeKeeper {
 }
 
 type nodekeeper struct {
-	origin nodeinfo.NetworkNode
-
 	syncLock  sync.RWMutex
+
+	origin nodeinfo.NetworkNode
 	syncNodes []nodeinfo.NetworkNode
 
 	snapshotStorage *storage.MemoryStorage

@@ -82,7 +82,6 @@ type testSuite struct {
 	nodesCount     int
 	ctx            context.Context
 	bootstrapNodes []*networkNode
-	//networkNodes   []*networkNode
 	pulsar TestPulsar
 	t      *testing.T
 }
@@ -98,7 +97,6 @@ func newTestSuite(t *testing.T, bootstrapCount, nodesCount int) testSuite {
 		t:              t,
 		ctx:            initLogger(instestlogger.TestContext(t), t, log.DebugLevel),
 		bootstrapNodes: make([]*networkNode, 0),
-		//networkNodes:   make([]*networkNode, 0),
 	}
 }
 
