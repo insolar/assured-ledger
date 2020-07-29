@@ -24,6 +24,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
@@ -293,7 +294,7 @@ func TestVirtual_CallMethod_On_DeactivatedDirtyState(t *testing.T) {
 		typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 		typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
 			// TODO: check result !!!!!!!!!
-			assert.Equal(t, res.Callee, object)
+			require.Equal(t, res.Callee, object)
 			gotResult <- struct{}{}
 			return false // no resend msg
 		})
@@ -316,31 +317,68 @@ func TestVirtual_CallMethod_On_DeactivatedDirtyState(t *testing.T) {
 
 	{
 		// send call request on deactivated object
-		gotResult := make(chan struct{})
-		typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-		typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
-			assert.Equal(t, res.Callee, object)
-			contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments)
-			require.Equal(t, &foundation.Error{"attempt to call method on object state that is deactivated"}, contractErr)
-			require.NoError(t, sysErr)
-
-			gotResult <- struct{}{}
-
-			return false // no resend msg
-		})
-
-		pl := payload.VCallRequest{
-			CallType:            payload.CTMethod,
-			CallFlags:           payload.BuildCallFlags(isolation.Interference, isolation.State),
-			Caller:              server.GlobalCaller(),
-			Callee:              object,
-			CallSiteDeclaration: testwallet.GetClass(),
-			CallSiteMethod:      deactivateMethod,
-			CallOutgoing:        server.BuildRandomOutgoingWithPulse(),
-			Arguments:           insolar.MustSerialize([]interface{}{}),
+		testcase := []struct {
+			name          string
+			objectState   contract.StateFlag
+			shouldExecute bool
+		}{
+			{
+				name:          "call on dirty state",
+				objectState:   contract.CallDirty,
+				shouldExecute: false,
+			},
+			{
+				name:          "call on validated state",
+				objectState:   contract.CallValidated,
+				shouldExecute: true,
+			},
 		}
-		server.SendPayload(ctx, &pl)
-		commontestutils.WaitSignalsTimed(t, 10*time.Second, gotResult)
+
+		for _, test := range testcase {
+			t.Run(test.name, func(t *testing.T) {
+				gotResult := make(chan struct{})
+				typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+				typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
+					if !test.shouldExecute {
+						require.Equal(t, res.Callee, object)
+						contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments)
+						require.Equal(t, &foundation.Error{"attempt to call method on object state that is deactivated"}, contractErr)
+						require.NoError(t, sysErr)
+					} else {
+						// TODO: check result !!!!!!!!!
+					}
+
+					gotResult <- struct{}{}
+
+					return false // no resend msg
+				})
+
+				callMethod := "SomeCallMethod"
+				isolation = contract.MethodIsolation{Interference: contract.CallTolerable, State: test.objectState}
+				if test.shouldExecute {
+					objectExecutionMock := runnerMock.AddExecutionMock(callMethod)
+					objectExecutionMock.AddStart(nil, &execution.Update{
+						Type:   execution.Done,
+						Result: requestresult.New([]byte("123"), gen.UniqueGlobalRef()),
+					},
+					)
+					runnerMock.AddExecutionClassify(callMethod, isolation, nil)
+				}
+
+				pl := payload.VCallRequest{
+					CallType:            payload.CTMethod,
+					CallFlags:           payload.BuildCallFlags(isolation.Interference, isolation.State),
+					Caller:              server.GlobalCaller(),
+					Callee:              object,
+					CallSiteDeclaration: testwallet.GetClass(),
+					CallSiteMethod:      callMethod,
+					CallOutgoing:        server.BuildRandomOutgoingWithPulse(),
+					Arguments:           insolar.MustSerialize([]interface{}{}),
+				}
+				server.SendPayload(ctx, &pl)
+				commontestutils.WaitSignalsTimed(t, 10*time.Second, gotResult)
+			})
+		}
 	}
 
 	mc.Finish()
