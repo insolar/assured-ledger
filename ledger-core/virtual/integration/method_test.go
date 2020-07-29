@@ -1627,7 +1627,7 @@ func TestVirtual_Method_ForObjectWithMissingState(t *testing.T) {
 			}
 
 			server.SendPayload(ctx, state)
-			testutils.WaitSignalsTimed(t, 10*time.Second, stateHandled)
+			commontestutils.WaitSignalsTimed(t, 10*time.Second, stateHandled)
 
 			outgoing := server.BuildRandomOutgoingWithPulse()
 
@@ -1643,19 +1643,6 @@ func TestVirtual_Method_ForObjectWithMissingState(t *testing.T) {
 				require.Contains(t, contractErr.Error(), "object does not exist")
 				return false
 			})
-
-			if testCase.outgoingFromPast {
-				server.IncrementPulseAndWaitIdle(ctx)
-			}
-
-			state := &payload.VStateReport{
-				Status: payload.Missing,
-				Object: objectRef,
-				AsOf:
-			}
-
-			server.SendPayload(ctx, state)
-			commontestutils.WaitSignalsTimed(t, 10*time.Second, stateHandled)
 
 			pl := payload.VCallRequest{
 				CallType:       payload.CTMethod,
@@ -1765,8 +1752,7 @@ func TestVirtual_Method_ForbiddenIsolation(t *testing.T) {
 			var (
 				class       = gen.UniqueGlobalRef()
 				pulseNumber = server.GetPulse().PulseNumber
-				objectRef   = server.BuildRandomOutgoingWithPulse()
-				outgoingRef   = gen.UniqueGlobalRefWithPulse(pulseNumber)
+				objectRef   = gen.UniqueGlobalRefWithPulse(pulseNumber)
 
 				validatedStateHeadRef reference.Global
 				latestValidatedState  *payload.ObjectState
@@ -1805,7 +1791,8 @@ func TestVirtual_Method_ForbiddenIsolation(t *testing.T) {
 				server.WaitActiveThenIdleConveyor()
 			}
 
-			outgoingRef := server.BuildRandomOutgoingWithPulse()
+			outgoingRef := gen.UniqueGlobalRefWithPulse(pulseNumber)
+
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
 			{
