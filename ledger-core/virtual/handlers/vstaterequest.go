@@ -43,7 +43,7 @@ type dSMVStateRequest struct {
 	smachine.StateMachineDeclTemplate
 }
 
-func (*dSMVStateRequest) InjectDependencies(sm smachine.StateMachine, _ smachine.SlotLink, injector *injector.DependencyInjector) {
+func (*dSMVStateRequest) InjectDependencies(sm smachine.StateMachine, _ smachine.SlotLink, injector injector.DependencyInjector) {
 	s := sm.(*SMVStateRequest)
 
 	injector.MustInject(&s.pulseSlot)

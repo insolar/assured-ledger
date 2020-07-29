@@ -41,7 +41,7 @@ func (sm *runnerLimiterSM) GetStateMachineDeclaration() smachine.StateMachineDec
 	return sm
 }
 
-func (sm *runnerLimiterSM) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLink, injector *injector.DependencyInjector) {
+func (sm *runnerLimiterSM) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLink, injector injector.DependencyInjector) {
 	injector.MustInject(&sm.limiter)
 	injector.MustInject(&sm.t)
 	injector.MustInject(&sm.testDone)
