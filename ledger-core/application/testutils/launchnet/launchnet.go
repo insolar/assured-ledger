@@ -276,7 +276,7 @@ func startNet() error {
 		_ = os.Chdir(cwd)
 	}()
 
-	cmd = exec.Command("./scripts/insolard/launchnet.sh", "-gwp")
+	cmd = exec.Command("./scripts/insolard/launchnet.sh", "-pwdg")
 	stdout, _ = cmd.StdoutPipe()
 
 	stderr, err = cmd.StderrPipe()
