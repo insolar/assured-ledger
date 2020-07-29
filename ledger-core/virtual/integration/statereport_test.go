@@ -24,12 +24,18 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 )
 
-func makeVStateReportEvent(objectRef reference.Global, stateRef reference.Local, rawState []byte) *payload.VStateReport {
+func makeVStateReportEvent(
+	objectRef reference.Global,
+	stateRef reference.Local,
+	pulseNumber payload.PulseNumber,
+	rawState []byte,
+) *payload.VStateReport {
 	class := testwalletProxy.GetClass()
 
 	return &payload.VStateReport{
 		Status: payload.Ready,
 		Object: objectRef,
+		AsOf:   pulseNumber,
 		ProvidedContent: &payload.VStateReport_ProvidedContentBody{
 			LatestDirtyState: &payload.ObjectState{
 				Reference: stateRef,
@@ -44,10 +50,12 @@ func makeVStateReportWithState(
 	objectRef reference.Global,
 	stateStatus payload.VStateReport_StateStatus,
 	state *payload.ObjectState,
+	asOf payload.PulseNumber,
 ) *payload.VStateReport {
 	res := payload.VStateReport{
 		Status: stateStatus,
 		Object: objectRef,
+		AsOf:   asOf,
 	}
 	if state != nil {
 		res.ProvidedContent = &payload.VStateReport_ProvidedContentBody{
@@ -86,16 +94,19 @@ func TestVirtual_VStateReport_HappyPath(t *testing.T) {
 
 	var (
 		testBalance    = uint32(555)
+		pulseNumber    = server.GetPulse().PulseNumber
 		objectLocal    = server.RandomLocalWithPulse()
 		objectGlobal   = reference.NewSelf(objectLocal)
 		stateID        = server.RandomLocalWithPulse()
 		rawWalletState = makeRawWalletState(testBalance)
 	)
 
+	server.IncrementPulseAndWaitIdle(ctx)
+
 	{
 		// send VStateReport: save wallet
 
-		pl := makeVStateReportEvent(objectGlobal, stateID, rawWalletState)
+		pl := makeVStateReportEvent(objectGlobal, stateID, pulseNumber, rawWalletState)
 		server.SendPayload(ctx, pl)
 	}
 
@@ -113,6 +124,7 @@ func TestVirtual_VStateReport_TwoStateReports(t *testing.T) {
 
 	var (
 		testBalance    = uint32(555)
+		pulseNumber    = server.GetPulse().PulseNumber
 		objectLocal    = server.RandomLocalWithPulse()
 		objectGlobal   = reference.NewSelf(objectLocal)
 		stateID        = server.RandomLocalWithPulse()
@@ -120,9 +132,11 @@ func TestVirtual_VStateReport_TwoStateReports(t *testing.T) {
 		rawWalletState = makeRawWalletState(testBalance)
 	)
 
+	server.IncrementPulseAndWaitIdle(ctx)
+
 	{
 		// send VStateReport: save wallet
-		pl := makeVStateReportEvent(objectGlobal, stateID, rawWalletState)
+		pl := makeVStateReportEvent(objectGlobal, stateID, pulseNumber, rawWalletState)
 		server.SendPayload(ctx, pl)
 	}
 
@@ -130,7 +144,7 @@ func TestVirtual_VStateReport_TwoStateReports(t *testing.T) {
 
 	{
 		// send VStateReport: one more time to simulate rewrite
-		pl := makeVStateReportEvent(objectGlobal, newStateID, makeRawWalletState(444))
+		pl := makeVStateReportEvent(objectGlobal, newStateID, pulseNumber, makeRawWalletState(444))
 		server.SendPayload(ctx, pl)
 	}
 
@@ -149,11 +163,12 @@ func TestVirtual_VStateReport_BadState_NoSuchObject(t *testing.T) {
 	var (
 		objectLocal  = server.RandomLocalWithPulse()
 		objectGlobal = reference.NewSelf(objectLocal)
+		pulse        = server.GetPulse().PulseNumber
 	)
 
 	reasons := []payload.VStateReport_StateStatus{payload.Inactive, payload.Missing, payload.Unknown}
 	for _, reason := range reasons {
-		pl := makeVStateReportWithState(objectGlobal, reason, nil)
+		pl := makeVStateReportWithState(objectGlobal, reason, nil, pulse)
 		server.SendPayload(ctx, pl)
 	}
 }
@@ -172,20 +187,24 @@ func TestVirtual_VStateReport_BadState_StateAlreadyExists(t *testing.T) {
 
 	var (
 		testBalance    = uint32(555)
+		pulseNumber    = server.GetPulse().PulseNumber
 		objectLocal    = server.RandomLocalWithPulse()
 		objectGlobal   = reference.NewSelf(objectLocal)
 		stateID        = server.RandomLocalWithPulse()
 		rawWalletState = makeRawWalletState(testBalance)
 	)
+
+	server.IncrementPulseAndWaitIdle(ctx)
+
 	{
 		// send VStateReport: save wallet
-		pl := makeVStateReportEvent(objectGlobal, stateID, rawWalletState)
+		pl := makeVStateReportEvent(objectGlobal, stateID, pulseNumber, rawWalletState)
 		server.SendPayload(ctx, pl)
 	}
 
-	reasons := []payload.VStateReport_StateStatus{payload.Inactive, payload.Missing, payload.Unknown}
+	reasons := []payload.VStateReport_StateStatus{payload.Inactive, payload.Missing}
 	for _, reason := range reasons {
-		pl := makeVStateReportWithState(objectGlobal, reason, nil)
+		pl := makeVStateReportWithState(objectGlobal, reason, nil, pulseNumber)
 		server.SendPayload(ctx, pl)
 	}
 
@@ -206,10 +225,13 @@ func TestVirtual_VStateReport_CheckValidatedState(t *testing.T) {
 
 	var (
 		objectLocal          = server.RandomLocalWithPulse()
+		pulseNumber          = server.GetPulse().PulseNumber
 		objectGlobal         = reference.NewSelf(objectLocal)
 		dirtyWalletState     = makeRawWalletState(initialBalance)
 		validatedWalletState = makeRawWalletState(initialBalance + 123)
 	)
+
+	server.IncrementPulseAndWaitIdle(ctx)
 
 	content := &payload.VStateReport_ProvidedContentBody{
 		LatestDirtyState: &payload.ObjectState{
@@ -227,6 +249,7 @@ func TestVirtual_VStateReport_CheckValidatedState(t *testing.T) {
 	{
 		payload := &payload.VStateReport{
 			Status:          payload.Ready,
+			AsOf:            pulseNumber,
 			Object:          objectGlobal,
 			ProvidedContent: content,
 		}
