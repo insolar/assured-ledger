@@ -36,7 +36,7 @@ func NewNodeNetwork(configuration configuration.Transport, certificate nodeinfo.
 		return nil, throw.W(err, "Failed to create origin node")
 	}
 	nodeKeeper := NewNodeKeeper(origin)
-	if !network.OriginIsDiscovery(certificate) {
+	if !network.IsDiscoveryCert(certificate) {
 		origin.(node.MutableNode).SetState(nodeinfo.Joining)
 	}
 	return nodeKeeper, nil

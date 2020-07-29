@@ -96,7 +96,7 @@ func (ac *requester) Authorize(ctx context.Context, cert nodeinfo.Certificate) (
 		return res.Permit, nil
 	}
 
-	if network.OriginIsDiscovery(cert) && bestResult.Permit != nil {
+	if network.IsDiscoveryCert(cert) && bestResult.Permit != nil {
 		return bestResult.Permit, nil
 	}
 

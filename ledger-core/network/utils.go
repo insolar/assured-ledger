@@ -115,7 +115,7 @@ func FindDiscoveryByRef(cert nodeinfo.Certificate, ref reference.Global) nodeinf
 	return nil
 }
 
-func OriginIsDiscovery(cert nodeinfo.Certificate) bool {
+func IsDiscoveryCert(cert nodeinfo.Certificate) bool {
 	return IsDiscovery(cert.GetNodeRef(), cert)
 }
 
