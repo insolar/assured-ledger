@@ -55,16 +55,18 @@ func TestVirtual_VStateRequest(t *testing.T) {
 			defer server.Stop()
 
 			var (
-				objectLocal      = server.RandomLocalWithPulse()
-				objectGlobal     = reference.NewSelf(objectLocal)
-				pn               = server.GetPulse().PulseNumber
-				waitVStateReport = make(chan struct{})
+				objectGlobal     = reference.NewSelf(server.RandomLocalWithPulse())
+				pulseNumber      = server.GetPulse().PulseNumber
 				rawWalletState   = makeRawWalletState(initialBalance)
+				waitVStateReport = make(chan struct{})
 			)
 
 			// create object
 			{
-				Method_PrepareObject(ctx, server, payload.Ready, objectGlobal)
+				server.IncrementPulseAndWaitIdle(ctx)
+				Method_PrepareObject(ctx, server, payload.Ready, objectGlobal, pulseNumber)
+
+				pulseNumber = server.GetPulse().PulseNumber
 				server.IncrementPulseAndWaitIdle(ctx)
 				commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1))
 			}
@@ -74,7 +76,7 @@ func TestVirtual_VStateRequest(t *testing.T) {
 			{
 				expectedVStateReport := &payload.VStateReport{
 					Status:           payload.Ready,
-					AsOf:             server.GetPrevPulse().PulseNumber,
+					AsOf:             pulseNumber,
 					Object:           objectGlobal,
 					LatestDirtyState: objectGlobal,
 				}
@@ -103,7 +105,7 @@ func TestVirtual_VStateRequest(t *testing.T) {
 				})
 			}
 
-			msg := makeVStateRequestEvent(pn, objectGlobal, test.flags, server.JetCoordinatorMock.Me())
+			msg := makeVStateRequestEvent(pulseNumber, objectGlobal, test.flags, server.JetCoordinatorMock.Me())
 			server.SendMessage(ctx, msg)
 
 			commontestutils.WaitSignalsTimed(t, 10*time.Second, waitVStateReport)
