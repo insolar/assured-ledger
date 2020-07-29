@@ -120,6 +120,6 @@ func TestJoinerBootstrap_Run_BootstrapSucceeded(t *testing.T) {
 	f.joinerBootstrap.Run(context.Background(), EphemeralPulse.Data)
 
 	assert.Equal(t, true, f.joinerBootstrap.bootstrapTimer.Stop())
-	assert.Equal(t, time.Duration(0), f.joinerBootstrap.backoff)
+	assert.Equal(t, time.Duration(time.Millisecond*100), f.joinerBootstrap.backoff.Duration())
 	assert.Equal(t, time.Duration(time.Second*90), f.joinerBootstrap.bootstrapETA)
 }

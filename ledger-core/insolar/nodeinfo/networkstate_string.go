@@ -10,16 +10,17 @@ func _() {
 	var x [1]struct{}
 	_ = x[NoNetworkState-0]
 	_ = x[JoinerBootstrap-1]
-	_ = x[WaitConsensus-2]
-	_ = x[WaitMajority-3]
-	_ = x[WaitMinRoles-4]
-	_ = x[WaitPulsar-5]
-	_ = x[CompleteNetworkState-6]
+	_ = x[DiscoveryBootstrap-2]
+	_ = x[WaitConsensus-3]
+	_ = x[WaitMajority-4]
+	_ = x[WaitMinRoles-5]
+	_ = x[WaitPulsar-6]
+	_ = x[CompleteNetworkState-7]
 }
 
-const _NetworkState_name = "NoNetworkStateJoinerBootstrapWaitConsensusWaitMajorityWaitMinRolesWaitPulsarCompleteNetworkState"
+const _NetworkState_name = "NoNetworkStateJoinerBootstrapDiscoveryBootstrapWaitConsensusWaitMajorityWaitMinRolesWaitPulsarCompleteNetworkState"
 
-var _NetworkState_index = [...]uint8{0, 14, 29, 42, 54, 66, 76, 96}
+var _NetworkState_index = [...]uint8{0, 14, 29, 47, 60, 72, 84, 94, 114}
 
 func (i NetworkState) String() string {
 	if i < 0 || i >= NetworkState(len(_NetworkState_index)-1) {
