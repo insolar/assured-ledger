@@ -17,11 +17,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles"
-	"github.com/insolar/assured-ledger/ledger-core/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type StaticProfileExtension struct {
@@ -241,30 +241,10 @@ func NewStaticProfileList(nodes []nodeinfo.NetworkNode, certificate nodeinfo.Cer
 }
 
 func NewNetworkNode(profile profiles.ActiveNode) nodeinfo.NetworkNode {
-	nip := profile.GetStatic()
-	store := nip.GetPublicKeyStore()
-	introduction := nip.GetExtension()
-
-	networkNode := node.NewActiveNode(profile.GetNodeID(),
-		introduction.GetReference(),
-		nip.GetPrimaryRole(),
-		store.(*ECDSAPublicKeyStore).publicKey,
-		nip.GetDefaultEndpoint().GetNameAddress().String(), )
-
-	mutableNode := networkNode.(node.MutableNode)
-
-	mutableNode.SetPower(profile.GetDeclaredPower())
-	if profile.GetOpMode().IsPowerless() {
-		mutableNode.SetPower(0)
+	if profile == nil {
+		panic(throw.IllegalValue())
 	}
-
-	sd := nip.GetBriefIntroSignedDigest()
-	mutableNode.SetSignature(
-		longbits.AsBytes(sd.GetDigestHolder()),
-		cryptography.SignatureFromBytes(longbits.AsBytes(sd.GetSignatureHolder())),
-	)
-
-	return networkNode
+	return profileNode{profile}
 }
 
 func NewNetworkNodeList(profiles []profiles.ActiveNode) []nodeinfo.NetworkNode {

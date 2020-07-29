@@ -31,18 +31,16 @@ import (
 
 // NewNodeNetwork create active node component
 func NewNodeNetwork(configuration configuration.Transport, certificate nodeinfo.Certificate) (network.NodeNetwork, error) { // nolint:staticcheck
-	origin, err := createOrigin(configuration, certificate)
+	isJoiner := !network.IsDiscoveryCert(certificate)
+	origin, err := createOrigin(configuration, certificate, isJoiner)
 	if err != nil {
 		return nil, throw.W(err, "Failed to create origin node")
 	}
 	nodeKeeper := NewNodeKeeper(origin)
-	if !network.IsDiscoveryCert(certificate) {
-		origin.(node.MutableNode).SetState(nodeinfo.Joining)
-	}
 	return nodeKeeper, nil
 }
 
-func createOrigin(configuration configuration.Transport, certificate nodeinfo.Certificate) (nodeinfo.NetworkNode, error) {
+func createOrigin(configuration configuration.Transport, certificate nodeinfo.Certificate, joiner bool) (nodeinfo.NetworkNode, error) {
 	publicAddress, err := resolveAddress(configuration)
 	if err != nil {
 		return nil, throw.W(err, "Failed to resolve public address")
@@ -55,7 +53,10 @@ func createOrigin(configuration configuration.Transport, certificate nodeinfo.Ce
 		// role = member.PrimaryRoleLightMaterial
 	}
 
-	return node.NewActiveNode(0, certificate.GetNodeRef(), role, certificate.GetPublicKey(), publicAddress, ), nil
+	if joiner {
+		return node.NewJoiningNode(certificate.GetNodeRef(), role, certificate.GetPublicKey(), publicAddress), nil
+	}
+	return node.NewActiveNode(certificate.GetNodeRef(), role, certificate.GetPublicKey(), publicAddress), nil
 }
 
 func resolveAddress(configuration configuration.Transport) (string, error) {
