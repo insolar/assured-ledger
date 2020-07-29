@@ -74,7 +74,7 @@ jobs:
             fi
           done
       - name: Set network start time variable
-        run:  echo "::set-env name=INSOLAR_START_TIME::$(date +'%s)"
+        run:  echo "::set-env name=INSOLAR_START_TIME::$(date +'%s')"
       - name: Keep network running for a desired period of time
         run:  sleep $INSOLAR_DESIRED_UPTIME
       - name: Grab utility binaries
