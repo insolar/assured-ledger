@@ -10,18 +10,18 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 )
 
 type MutableNode interface {
 	nodeinfo.NetworkNode
 
 	SetShortID(shortID node.ShortNodeID)
-	SetSignature(digest []byte, signature cryptography.Signature)
+	SetSignature(cryptkit.SignedDigest)
 	SetAddress(address string)
 }
 
@@ -56,8 +56,7 @@ type nodeInfo struct {
 	NodeAddress string
 
 	mutex          sync.RWMutex
-	digest         []byte
-	signature      cryptography.Signature
+	digest         cryptkit.SignedDigest
 	state          nodeinfo.State
 }
 
@@ -92,18 +91,22 @@ func (n *nodeInfo) GetPower() member.Power {
 	return n.NodePower
 }
 
-func (n *nodeInfo) GetSignature() ([]byte, cryptography.Signature) {
+func (n *nodeInfo) GetSignature() cryptkit.SignedDigestHolder {
 	n.mutex.RLock()
 	defer n.mutex.RUnlock()
 
-	return n.digest, n.signature
+	return n.digest
 }
 
-func (n *nodeInfo) SetSignature(digest []byte, signature cryptography.Signature) {
+func (n *nodeInfo) SetSignature(digest cryptkit.SignedDigest) {
 	n.mutex.Lock()
 	defer n.mutex.Unlock()
 
-	n.signature = signature
+	// cryptkit.NewSignedDigest(
+	// 	cryptkit.NewDigest(longbits.NewBits512FromBytes(digest), SHA3512Digest),
+	// 	cryptkit.NewSignature(longbits.NewBits512FromBytes(signature.Bytes()), SHA3512Digest.SignedBy(SECP256r1Sign)),
+	// ).AsSignedDigestHolder(),
+
 	n.digest = digest
 }
 

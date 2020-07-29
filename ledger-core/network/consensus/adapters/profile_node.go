@@ -8,13 +8,12 @@ package adapters
 import (
 	"crypto"
 
-	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 )
 
 var _ nodeinfo.NetworkNode = profileNode{}
@@ -59,11 +58,7 @@ func (v profileNode) IsPowered() bool {
 	return v.n.IsPowered()
 }
 
-func (v profileNode) GetSignature() ([]byte, cryptography.Signature) {
-	sd := v.n.GetStatic().GetBriefIntroSignedDigest()
-
-	// TODO use cryptkit.SignedDigestHolder
-	return longbits.AsBytes(sd.GetDigestHolder()),
-		cryptography.SignatureFromBytes(longbits.AsBytes(sd.GetSignatureHolder()))
+func (v profileNode) GetSignature() cryptkit.SignedDigestHolder {
+	return v.n.GetStatic().GetBriefIntroSignedDigest()
 }
 

@@ -8,10 +8,10 @@ package nodeinfo
 import (
 	"crypto"
 
-	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 )
 
 //go:generate stringer -type=State
@@ -45,5 +45,5 @@ type NetworkNode interface {
 	IsJoiner() bool
 	IsPowered() bool
 
-	GetSignature() ([]byte, cryptography.Signature)
+	GetSignature() cryptkit.SignedDigestHolder
 }

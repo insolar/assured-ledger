@@ -139,9 +139,9 @@ func (s *consensusSuite) Setup() {
 		bnodes := make([]nodeinfo.NetworkNode, 0)
 		for _, n := range s.bootstrapNodes {
 			o := n.serviceNetwork.NodeKeeper.GetOrigin()
-			dig, sig := o.GetSignature()
-			require.NotNil(s.t, dig)
-			require.NotNil(s.t, sig.Bytes())
+			sdg := o.GetSignature()
+			require.NotNil(s.t, sdg)
+			require.NotEmpty(s.t, sdg.GetSignatureHolder().AsByteString())
 
 			bnodes = append(bnodes, o)
 		}
@@ -340,7 +340,7 @@ func (s *consensusSuite) assertNetworkInConsistentState(p pulse.Number) {
 			require.Equal(s.t, n.PublicKey(), an.PublicKey(), i)
 			require.Equal(s.t, n.Address(), an.Address(), i)
 			require.Equal(s.t, n.GetPower(), an.GetPower(), i)
-			require.Equal(s.t, arr(n.GetSignature()), arr(an.GetSignature()))
+			require.True(s.t, n.GetSignature().Equals(an.GetSignature()))
 		}
 	}
 }

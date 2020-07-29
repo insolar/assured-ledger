@@ -183,7 +183,7 @@ func (g *Base) createOriginCandidate() error {
 	mutableOrigin := origin.(node.MutableNode)
 	mutableOrigin.SetAddress(g.datagramTransport.Address())
 
-	digest, sign, err := getAnnounceSignature(
+	digest, signature, err := getAnnounceSignature(
 		origin,
 		network.IsDiscoveryCert(g.CertificateManager.GetCertificate()),
 		g.KeyProcessor,
@@ -193,7 +193,13 @@ func (g *Base) createOriginCandidate() error {
 	if err != nil {
 		return err
 	}
-	mutableOrigin.SetSignature(digest, *sign)
+
+	dsg := cryptkit.NewSignedDigest(
+		cryptkit.NewDigest(longbits.NewBits512FromBytes(digest), adapters.SHA3512Digest),
+		cryptkit.NewSignature(longbits.NewBits512FromBytes(signature.Bytes()), adapters.SHA3512Digest.SignedBy(adapters.SECP256r1Sign)),
+	)
+	mutableOrigin.SetSignature(dsg)
+	
 	g.NodeKeeper.SetInitialSnapshot([]nodeinfo.NetworkNode{origin})
 
 	staticProfile := adapters.NewStaticProfile(origin, g.CertificateManager.GetCertificate(), g.KeyProcessor)

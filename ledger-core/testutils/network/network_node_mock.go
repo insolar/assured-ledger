@@ -8,10 +8,10 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 )
 
 // NetworkNodeMock implements nodeinfo.NetworkNode
@@ -48,7 +48,7 @@ type NetworkNodeMock struct {
 	beforeGetReferenceCounter uint64
 	GetReferenceMock          mNetworkNodeMockGetReference
 
-	funcGetSignature          func() (ba1 []byte, s1 cryptography.Signature)
+	funcGetSignature          func() (s1 cryptkit.SignedDigestHolder)
 	inspectFuncGetSignature   func()
 	afterGetSignatureCounter  uint64
 	beforeGetSignatureCounter uint64
@@ -832,8 +832,7 @@ type NetworkNodeMockGetSignatureExpectation struct {
 
 // NetworkNodeMockGetSignatureResults contains results of the NetworkNode.GetSignature
 type NetworkNodeMockGetSignatureResults struct {
-	ba1 []byte
-	s1  cryptography.Signature
+	s1 cryptkit.SignedDigestHolder
 }
 
 // Expect sets up expected params for NetworkNode.GetSignature
@@ -861,7 +860,7 @@ func (mmGetSignature *mNetworkNodeMockGetSignature) Inspect(f func()) *mNetworkN
 }
 
 // Return sets up results that will be returned by NetworkNode.GetSignature
-func (mmGetSignature *mNetworkNodeMockGetSignature) Return(ba1 []byte, s1 cryptography.Signature) *NetworkNodeMock {
+func (mmGetSignature *mNetworkNodeMockGetSignature) Return(s1 cryptkit.SignedDigestHolder) *NetworkNodeMock {
 	if mmGetSignature.mock.funcGetSignature != nil {
 		mmGetSignature.mock.t.Fatalf("NetworkNodeMock.GetSignature mock is already set by Set")
 	}
@@ -869,12 +868,12 @@ func (mmGetSignature *mNetworkNodeMockGetSignature) Return(ba1 []byte, s1 crypto
 	if mmGetSignature.defaultExpectation == nil {
 		mmGetSignature.defaultExpectation = &NetworkNodeMockGetSignatureExpectation{mock: mmGetSignature.mock}
 	}
-	mmGetSignature.defaultExpectation.results = &NetworkNodeMockGetSignatureResults{ba1, s1}
+	mmGetSignature.defaultExpectation.results = &NetworkNodeMockGetSignatureResults{s1}
 	return mmGetSignature.mock
 }
 
 //Set uses given function f to mock the NetworkNode.GetSignature method
-func (mmGetSignature *mNetworkNodeMockGetSignature) Set(f func() (ba1 []byte, s1 cryptography.Signature)) *NetworkNodeMock {
+func (mmGetSignature *mNetworkNodeMockGetSignature) Set(f func() (s1 cryptkit.SignedDigestHolder)) *NetworkNodeMock {
 	if mmGetSignature.defaultExpectation != nil {
 		mmGetSignature.mock.t.Fatalf("Default expectation is already set for the NetworkNode.GetSignature method")
 	}
@@ -888,7 +887,7 @@ func (mmGetSignature *mNetworkNodeMockGetSignature) Set(f func() (ba1 []byte, s1
 }
 
 // GetSignature implements nodeinfo.NetworkNode
-func (mmGetSignature *NetworkNodeMock) GetSignature() (ba1 []byte, s1 cryptography.Signature) {
+func (mmGetSignature *NetworkNodeMock) GetSignature() (s1 cryptkit.SignedDigestHolder) {
 	mm_atomic.AddUint64(&mmGetSignature.beforeGetSignatureCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetSignature.afterGetSignatureCounter, 1)
 
@@ -903,7 +902,7 @@ func (mmGetSignature *NetworkNodeMock) GetSignature() (ba1 []byte, s1 cryptograp
 		if mm_results == nil {
 			mmGetSignature.t.Fatal("No results are set for the NetworkNodeMock.GetSignature")
 		}
-		return (*mm_results).ba1, (*mm_results).s1
+		return (*mm_results).s1
 	}
 	if mmGetSignature.funcGetSignature != nil {
 		return mmGetSignature.funcGetSignature()

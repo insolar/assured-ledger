@@ -31,15 +31,10 @@ type StaticProfileExtension struct {
 }
 
 func NewStaticProfileExtension(networkNode nodeinfo.NetworkNode) *StaticProfileExtension {
-	_, signature := networkNode.GetSignature()
-
 	return newStaticProfileExtension(
 		networkNode.GetNodeID(),
 		networkNode.GetReference(),
-		cryptkit.NewSignature(
-			longbits.NewBits512FromBytes(signature.Bytes()),
-			SHA3512Digest.SignedBy(SECP256r1Sign),
-		),
+		networkNode.GetSignature().GetSignatureHolder().CopyOfSignature(),
 	)
 }
 
@@ -103,7 +98,6 @@ func NewStaticProfile(networkNode nodeinfo.NetworkNode, certificate nodeinfo.Cer
 	}
 
 	publicKey := networkNode.PublicKey().(*ecdsa.PublicKey)
-	digest, signature := networkNode.GetSignature()
 
 	return newStaticProfile(
 		networkNode.GetNodeID(),
@@ -113,10 +107,7 @@ func NewStaticProfile(networkNode nodeinfo.NetworkNode, certificate nodeinfo.Cer
 		NewOutbound(networkNode.Address()),
 		NewECDSAPublicKeyStore(publicKey),
 		NewECDSASignatureKeyHolder(publicKey, keyProcessor),
-		cryptkit.NewSignedDigest(
-			cryptkit.NewDigest(longbits.NewBits512FromBytes(digest), SHA3512Digest),
-			cryptkit.NewSignature(longbits.NewBits512FromBytes(signature.Bytes()), SHA3512Digest.SignedBy(SECP256r1Sign)),
-		).AsSignedDigestHolder(),
+		networkNode.GetSignature(),
 	)
 }
 
