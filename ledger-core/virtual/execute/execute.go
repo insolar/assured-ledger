@@ -237,7 +237,7 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 		case object.Unknown:
 			panic(throw.Impossible())
 		case object.Inactive:
-			s.prepareExecutionError(throw.E("attempt to create object ( call constructor ) that is completely deactivated"))
+			s.prepareExecutionError(throw.E("attempt to construct object that was completely deactivated"))
 			return ctx.Jump(s.stepSendCallResult)
 		}
 

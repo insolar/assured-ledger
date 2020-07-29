@@ -173,7 +173,7 @@ func TestVirtual_CallMethod_On_CompletelyDeactivatedObject(t *testing.T) {
 				{
 					name:     "call constructor",
 					callType: payload.CTConstructor,
-					errorMsg: "attempt to create object ( call constructor ) that is completely deactivated",
+					errorMsg: "attempt to construct object that was completely deactivated",
 				},
 			}
 
