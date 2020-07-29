@@ -6,16 +6,16 @@
 package stepchecker
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/convlog"
+	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
-	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/convlog"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 )
 
 //go:generate stringer -type=StepDeclType
@@ -79,15 +79,15 @@ func (c *Checker) CheckJump(actualStep smachine.StateFunc) error {
 		return throw.IllegalState()
 	}
 	if c.position > len(c.steps) {
-		return errors.Errorf("unexpected step '%s'", convlog.GetStepName(actualStep))
+		return fmt.Errorf("unexpected step '%s'", convlog.GetStepName(actualStep))
 	}
 
 	expectedStep := c.steps[c.position]
 	if expectedStep.t != Jump {
-		return errors.Errorf("unexpected step type 'Jump', got '%s'", expectedStep.t.String())
+		return fmt.Errorf("unexpected step type 'Jump', got '%s'", expectedStep.t.String())
 	}
 	if !testutils.CmpStateFuncs(expectedStep.fn, actualStep) {
-		return errors.Errorf("step '%d' call wrong func (expected '%s', got '%s')", c.position, convlog.GetStepName(expectedStep.fn), convlog.GetStepName(actualStep))
+		return fmt.Errorf("step '%d' call wrong func (expected '%s', got '%s')", c.position, convlog.GetStepName(expectedStep.fn), convlog.GetStepName(actualStep))
 	}
 
 	c.position++
@@ -106,12 +106,12 @@ func (c *Checker) CheckRepeat() error {
 		return throw.IllegalState()
 	}
 	if c.position > len(c.steps) {
-		return errors.New("unexpected repeat")
+		return throw.New("unexpected repeat")
 	}
 
 	expectedStep := c.steps[c.position]
 	if expectedStep.t != Repeat {
-		return errors.Errorf("unexpected step type 'Repeat', got '%s'", expectedStep.t.String())
+		return fmt.Errorf("unexpected step type 'Repeat', got '%s'", expectedStep.t.String())
 	}
 
 	c.position++
@@ -132,7 +132,7 @@ func (c *Checker) CheckDone() error {
 		for i := c.position; i < len(c.steps); i++ {
 			names[i-c.position] = c.steps[i].String()
 		}
-		return errors.Errorf("not all steps are done (%s)", strings.Join(names, ", "))
+		return fmt.Errorf("not all steps are done (%s)", strings.Join(names, ", "))
 	}
 	return nil
 }

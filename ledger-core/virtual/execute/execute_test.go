@@ -34,14 +34,13 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/mocklog"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/shareddata"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
-	virtualTestUtils "github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/shareddata"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/slotdebugger"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/virtualdebugger"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
 )
 
@@ -783,7 +782,7 @@ func TestSendVStateReportWithMissingState_IfConstructorWasInterruptedBeforeRunne
 		limiter = tool.NewRunnerLimiter(4)
 	)
 
-	slotMachine := slotdebugger.New(ctx, t)
+	slotMachine := virtualdebugger.New(ctx, t)
 	slotMachine.PrepareRunner(ctx, mc)
 
 	slotMachine.AddInterfaceDependency(&catalog)
@@ -834,7 +833,7 @@ func TestSendVStateReportWithMissingState_IfConstructorWasInterruptedBeforeRunne
 			return false
 		}
 	})
-	virtualTestUtils.WaitSignalsTimed(t, 10*time.Second, vStateReportRecv)
+	commonTestUtils.WaitSignalsTimed(t, 10*time.Second, vStateReportRecv)
 
 	mc.Finish()
 }
@@ -859,7 +858,7 @@ func TestSMExecute_StopWithoutMessagesIfPulseChangedBeforeOutgoing(t *testing.T)
 		limiter = tool.NewRunnerLimiter(4)
 	)
 
-	slotMachine := slotdebugger.New(ctx, t)
+	slotMachine := virtualdebugger.New(ctx, t)
 	slotMachine.PrepareMockedMessageSender(mc)
 	slotMachine.PrepareMockedRunner(ctx, mc)
 	slotMachine.AddInterfaceDependency(&catalog)
@@ -923,7 +922,7 @@ func TestSMExecute_StopWithoutMessagesIfPulseChangedBeforeOutgoing(t *testing.T)
 			return false
 		}
 	})
-	virtualTestUtils.WaitSignalsTimed(t, 10*time.Second, vStateReportRecv)
+	commonTestUtils.WaitSignalsTimed(t, 10*time.Second, vStateReportRecv)
 
 	mc.Finish()
 }

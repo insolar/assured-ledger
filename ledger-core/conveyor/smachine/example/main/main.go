@@ -7,7 +7,7 @@ package main
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/example"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/convlog"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/convlog"
 )
 
 func main() {

@@ -29,7 +29,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 )
 
 // A.Foo calls B.Bar, pulse changes, outgoing has proper token
@@ -258,8 +257,8 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 
 	// wait for all calls and SMs
 	{
-		testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
-		testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+		commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+		commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 	}
 
 	assert.Equal(t, 2, typedChecker.VCallRequest.Count())
@@ -477,8 +476,8 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 
 	// wait for all calls and SMs
 	{
-		testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
-		testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+		commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+		commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 	}
 
 	assert.Equal(t, 2, typedChecker.VCallRequest.Count())
@@ -653,8 +652,8 @@ func TestVirtual_CallContractOutgoingReturnsError(t *testing.T) {
 	server.SendPayload(ctx, &pl)
 
 	// wait for all calls and SMs
-	testutils.WaitSignalsTimed(t, 20*time.Second, executeDone)
-	testutils.WaitSignalsTimed(t, 20*time.Second, server.Journal.WaitAllAsyncCallsDone())
+	commontestutils.WaitSignalsTimed(t, 20*time.Second, executeDone)
+	commontestutils.WaitSignalsTimed(t, 20*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 	require.Equal(t, 1, typedChecker.VCallRequest.Count())
 	require.Equal(t, 2, typedChecker.VCallResult.Count())

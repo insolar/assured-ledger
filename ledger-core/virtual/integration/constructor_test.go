@@ -34,7 +34,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 )
 
 func TestVirtual_Constructor_WithExecutor(t *testing.T) {
@@ -80,8 +79,8 @@ func TestVirtual_Constructor_WithExecutor(t *testing.T) {
 
 	server.SendPayload(ctx, &pl)
 
-	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
-	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 	assert.Equal(t, 1, typedChecker.VCallResult.Count())
 
@@ -152,8 +151,8 @@ func TestVirtual_Constructor_BadClassRef(t *testing.T) {
 		Arguments:      insolar.MustSerialize([]interface{}{}),
 	})
 
-	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
-	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 	assert.Equal(t, 2, typedChecker.VCallResult.Count())
 	require.Len(t, leftMessages, 0)
@@ -241,11 +240,11 @@ func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
 
 	server.SendPayload(ctx, &pl)
 
-	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
-	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 	server.IncrementPulseAndWaitIdle(ctx)
-	testutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 1))
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 1))
 
 	assert.Equal(t, 1, typedChecker.VCallResult.Count())
 	assert.Equal(t, 1, typedChecker.VStateReport.Count())
@@ -338,16 +337,16 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 		done := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
 		pl := makeVStateReportWithState(objectRef, payload.Missing, nil)
 		server.SendPayload(ctx, pl)
-		testutils.WaitSignalsTimed(t, 10*time.Second, done)
+		commontestutils.WaitSignalsTimed(t, 10*time.Second, done)
 	}
 
 	server.SendPayload(ctx, &pl)
 
-	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
-	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 	server.IncrementPulseAndWaitIdle(ctx)
-	testutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 1))
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 1))
 
 	assert.Equal(t, 1, typedChecker.VCallResult.Count())
 	assert.Equal(t, 1, typedChecker.VStateReport.Count())
@@ -462,10 +461,10 @@ func TestVirtual_Constructor_PrevPulseStateWithMissingStatus(t *testing.T) {
 	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 
 	server.SendPayload(ctx, &pl)
-	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
 
 	server.IncrementPulseAndWaitIdle(ctx)
-	testutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 1))
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 1))
 
 	require.Equal(t, 1, typedChecker.VStateRequest.Count())
 	require.Equal(t, 1, typedChecker.VCallResult.Count())
@@ -597,8 +596,8 @@ func TestVirtual_CallConstructorFromConstructor(t *testing.T) {
 	server.SendMessage(ctx, msg)
 
 	// wait for all calls and SMs
-	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
-	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 	require.Equal(t, 1, typedChecker.VCallRequest.Count())
 	require.Equal(t, 2, typedChecker.VCallResult.Count())
@@ -649,8 +648,8 @@ func TestVirtual_Constructor_WrongConstructorName(t *testing.T) {
 
 	server.SendPayload(ctx, &pl)
 
-	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
-	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 	assert.Equal(t, 1, typedChecker.VCallResult.Count())
 
@@ -790,14 +789,14 @@ func TestVirtual_Constructor_PulseChangedWhileOutgoing(t *testing.T) {
 
 	server.SendPayload(ctx, &pl)
 
-	testutils.WaitSignalsTimed(t, 10*time.Second, synchronizeExecution.Wait())
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, synchronizeExecution.Wait())
 	server.IncrementPulseAndWaitIdle(ctx)
 
 	synchronizeExecution.WakeUp()
 
 	synchronizeExecution.Done()
-	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
-	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 	msgVStateRequest := payload.VStateRequest{
 		AsOf:   constructorPulse,
@@ -807,7 +806,7 @@ func TestVirtual_Constructor_PulseChangedWhileOutgoing(t *testing.T) {
 	server.SendPayload(ctx, &msgVStateRequest)
 	server.WaitActiveThenIdleConveyor()
 
-	testutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 2))
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 2))
 
 	{
 		assert.Equal(t, 1, typedChecker.VCallResult.Count())
@@ -957,7 +956,7 @@ func TestVirtual_CallConstructor_WithTwicePulseChange(t *testing.T) {
 
 	// wait for results
 	{
-		testutils.WaitSignalsTimed(t, 10*time.Second, synchronizeExecution.Wait())
+		commontestutils.WaitSignalsTimed(t, 10*time.Second, synchronizeExecution.Wait())
 
 		// wait for pulse change
 		for i := 0; i < 2; i++ {
@@ -968,13 +967,13 @@ func TestVirtual_CallConstructor_WithTwicePulseChange(t *testing.T) {
 				),
 			)
 			server.IncrementPulseAndWaitIdle(ctx)
-			testutils.WaitSignalsTimed(t, 20*time.Second, tokenRequestDone)
+			commontestutils.WaitSignalsTimed(t, 20*time.Second, tokenRequestDone)
 		}
 
 		synchronizeExecution.Done()
 		// wait for SMExecute finish
-		testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitStopOf(&execute.SMExecute{}, 1))
-		testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+		commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitStopOf(&execute.SMExecute{}, 1))
+		commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 	}
 
 	assert.Equal(t, 1, typedChecker.VCallResult.Count())
@@ -1048,8 +1047,8 @@ func TestVirtual_Constructor_IsolationNegotiation(t *testing.T) {
 			}
 			server.SendPayload(ctx, &pl)
 
-			testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
-			testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+			commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+			commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 			require.Equal(t, 1, typedChecker.VCallResult.Count())
 

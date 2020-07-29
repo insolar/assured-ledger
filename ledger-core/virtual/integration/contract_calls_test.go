@@ -27,7 +27,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/synchronization"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 )
 
 var byteArguments = []byte("123")
@@ -214,8 +213,8 @@ func Test_NoDeadLock_WhenOutgoingComeToSameNode(t *testing.T) {
 
 			server.SendPayload(ctx, &pl)
 
-			testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
-			testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+			commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+			commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 			mc.Finish()
 		})
@@ -361,8 +360,8 @@ func TestVirtual_CallContractFromContract(t *testing.T) {
 
 			server.SendPayload(ctx, &pl)
 
-			testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
-			testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+			commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+			commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 			require.Equal(t, 1, typedChecker.VCallRequest.Count())
 			require.Equal(t, 2, typedChecker.VCallResult.Count())
@@ -496,8 +495,8 @@ func TestVirtual_CallOtherMethodInObject(t *testing.T) {
 
 			server.SendPayload(ctx, &pl)
 
-			testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
-			testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+			commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+			commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 			require.Equal(t, 1, typedChecker.VCallRequest.Count())
 			require.Equal(t, 2, typedChecker.VCallResult.Count())
@@ -647,8 +646,8 @@ func TestVirtual_CallMethodFromConstructor(t *testing.T) {
 			server.SendMessage(ctx, msg)
 
 			// wait for all calls and SMs
-			testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
-			testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+			commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+			commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 			require.Equal(t, 1, typedChecker.VCallRequest.Count())
 			require.Equal(t, 2, typedChecker.VCallResult.Count())
@@ -770,13 +769,13 @@ func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 	server.SendPayload(ctx, &pl)
 
 	for i := 0; i < countChangePulse; i++ {
-		testutils.WaitSignalsTimed(t, 10*time.Second, point.Wait())
+		commontestutils.WaitSignalsTimed(t, 10*time.Second, point.Wait())
 		server.IncrementPulseAndWaitIdle(ctx)
 		point.WakeUp()
 	}
 
-	testutils.WaitSignalsTimed(t, 10*time.Second, executeStopped, foundError)
-	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, executeStopped, foundError)
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 	require.Equal(t, countChangePulse, typedChecker.VCallRequest.Count())
 	require.Equal(t, countChangePulse, typedChecker.VDelegatedCallRequest.Count())
@@ -877,8 +876,8 @@ func TestVirtual_OutgoingReleaseSemaphore(t *testing.T) {
 
 	server.SendPayload(ctx, &pl)
 
-	testutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
-	testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 	require.Equal(t, 1, typedChecker.VCallRequest.Count())
 	require.Equal(t, 2, typedChecker.VCallResult.Count())

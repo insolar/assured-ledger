@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package statemachine
+package insconveyor
 
 import (
 	"context"
@@ -26,19 +26,16 @@ type conveyorDispatcher struct {
 
 var _ beat.Dispatcher = &conveyorDispatcher{}
 
-func (c *conveyorDispatcher) PrepareBeat(change beat.Beat, sink beat.Ack) {
-	stateChan := sink.Acquire()
+func (c *conveyorDispatcher) PrepareBeat(sink beat.Ack) {
+	stateFn := sink.Acquire()
 
-	switch {
-	case change.Online == nil:
-		panic(throw.IllegalValue())
-	case c.prevPulse.IsUnknown():
+	if c.prevPulse.IsUnknown() {
 		// Conveyor can't prepare without an initial pulse - there are no active SMs inside
-		stateChan <- beat.AckData{}
+		stateFn(beat.AckData{})
 		return
 	}
 
-	if err := c.conveyor.PreparePulseChange(stateChan); err != nil {
+	if err := c.conveyor.PreparePulseChange(stateFn); err != nil {
 		panic(throw.WithStack(err))
 	}
 }
