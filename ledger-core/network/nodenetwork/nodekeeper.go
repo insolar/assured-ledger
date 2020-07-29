@@ -68,7 +68,8 @@ func createOrigin(configuration configuration.Transport, cert nodeinfo.Certifica
 
 	staticProfile := adapters.NewStaticProfileExt2(
 		node2.ShortNodeID(node.GenerateUintShortID(ref)), role, specialRole,
-		staticExt, adapters.NewOutbound(publicAddress),
+		staticExt,
+		adapters.NewOutboundNoPort(publicAddress),
 		adapters.ECDSAPublicKeyAsPublicKeyStore(pk),
 		nil, cryptkit.SignedDigest{},
 	)

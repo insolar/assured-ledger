@@ -21,7 +21,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
-	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -210,6 +209,18 @@ func NewOutbound(address string) *Outbound {
 	}
 }
 
+func NewOutboundNoPort(address string) *Outbound {
+	addr, err := endpoints.NewIPAddressZeroPort(address)
+	if err != nil {
+		panic(err)
+	}
+
+	return &Outbound{
+		name: endpoints.Name(address),
+		addr: addr,
+	}
+}
+
 func (p *Outbound) CanAccept(connection endpoints.Inbound) bool {
 	return true
 }
@@ -228,10 +239,6 @@ func (p *Outbound) GetNameAddress() endpoints.Name {
 
 func (p *Outbound) GetIPAddress() endpoints.IPAddress {
 	return p.addr
-}
-
-func (p *Outbound) AsByteString() longbits.ByteString {
-	return longbits.ByteString(p.addr.String())
 }
 
 func NewStaticProfileList(nodes []nodeinfo.NetworkNode, certificate nodeinfo.Certificate, keyProcessor cryptography.KeyProcessor) []profiles.StaticProfile {

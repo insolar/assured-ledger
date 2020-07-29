@@ -27,27 +27,39 @@ var defaultByteOrder = binary.BigEndian
 type IPAddress [ipAddressSize]byte
 
 func NewIPAddress(address string) (IPAddress, error) {
-	var addr IPAddress
+	return _newIPAddress(address, false)
+}
 
+func NewIPAddressZeroPort(address string) (IPAddress, error) {
+	return _newIPAddress(address, true)
+}
+
+func _newIPAddress(address string, allowZero bool) (IPAddress, error) {
 	host, port, err := net.SplitHostPort(address)
 	if err != nil {
-		return addr, errors.Errorf("invalid address: %s", address)
+		return IPAddress{}, errors.Errorf("invalid address: %s", address)
 	}
 
 	ip := net.ParseIP(host)
 	if ip == nil {
-		return addr, errors.Errorf("invalid ip: %s", host)
+		return IPAddress{}, errors.Errorf("invalid ip: %s", host)
 	}
 
 	portNumber, err := strconv.Atoi(port)
-	if err != nil {
-		return addr, errors.Errorf("invalid port number: %s", port)
+	switch {
+	case err != nil:
+		return IPAddress{}, errors.Errorf("invalid port number: %s", port)
+	case portNumber > 0 && portNumber <= int(maxPortNumber):
+	case allowZero && portNumber == 0:
+	default:
+		return IPAddress{}, errors.Errorf("invalid port number: %d", portNumber)
 	}
 
-	return addr, newIPAddress(ip, portNumber, &addr)
+	return newIPAddress(ip, uint16(portNumber))
 }
 
-func newIPAddress(ip net.IP, portNumber int, addr *IPAddress) error {
+
+func newIPAddress(ip net.IP, portNumber uint16) (addr IPAddress, err error) {
 	switch ipSize {
 	case net.IPv6len:
 		ip = ip.To16()
@@ -57,17 +69,13 @@ func newIPAddress(ip net.IP, portNumber int, addr *IPAddress) error {
 		panic("not implemented")
 	}
 
-	if portNumber > int(maxPortNumber) || portNumber <= 0 {
-		return errors.Errorf("invalid port number: %d", portNumber)
-	}
-
 	portBytes := make([]byte, portSize)
-	defaultByteOrder.PutUint16(portBytes, uint16(portNumber))
+	defaultByteOrder.PutUint16(portBytes, portNumber)
 
 	copy(addr[:], ip)
 	copy(addr[ipSize:], portBytes)
 
-	return nil
+	return
 }
 
 func (a IPAddress) String() string {
