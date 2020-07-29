@@ -66,9 +66,9 @@ func verify(s interface{}) {
 
 type Dep struct {
 	KeyProcessor       cryptography.KeyProcessor
-	Scheme             cryptography.PlatformCryptographyScheme
 	CertificateManager nodeinfo.CertificateManager
 	KeyStore           cryptography.KeyStore
+	TransportCryptography transport2.CryptographyAssistant
 
 	NodeKeeper        network.NodeKeeper
 	DatagramTransport transport.DatagramTransport
@@ -84,18 +84,19 @@ func (cd *Dep) verify() {
 }
 
 type constructor struct {
-	consensusConfiguration       census.ConsensusConfiguration
-	mandateRegistry              census.MandateRegistry
-	misbehaviorRegistry          census.MisbehaviorRegistry
-	offlinePopulation            census.OfflinePopulation
-	versionedRegistries          census.VersionedRegistries
-	nodeProfileFactory           profiles.Factory
-	localNodeConfiguration       api.LocalNodeConfiguration
-	roundStrategyFactory         core.RoundStrategyFactory
-	transportCryptographyFactory transport2.CryptographyAssistant
+	consensusConfiguration census.ConsensusConfiguration
+	mandateRegistry        census.MandateRegistry
+	misbehaviorRegistry    census.MisbehaviorRegistry
+	offlinePopulation      census.OfflinePopulation
+	versionedRegistries    census.VersionedRegistries
+	nodeProfileFactory     profiles.Factory
+	localNodeConfiguration api.LocalNodeConfiguration
+	roundStrategyFactory   core.RoundStrategyFactory
+
 	packetBuilder                transport2.PacketBuilder
 	packetSender                 transport2.PacketSender
 	transportFactory             transport2.Factory
+	transportCryptographyFactory transport2.CryptographyAssistant
 }
 
 func newConstructor(ctx context.Context, dep *Dep) *constructor {
@@ -128,7 +129,7 @@ func newConstructor(ctx context.Context, dep *Dep) *constructor {
 		dep.KeyStore,
 	)
 	c.roundStrategyFactory = adapters.NewRoundStrategyFactory()
-	c.transportCryptographyFactory = adapters.NewTransportCryptographyFactory(dep.Scheme)
+	c.transportCryptographyFactory = dep.TransportCryptography
 	c.packetBuilder = serialization.NewPacketBuilder(
 		c.transportCryptographyFactory,
 		c.localNodeConfiguration,

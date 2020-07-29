@@ -91,6 +91,12 @@ type StaticProfile struct {
 }
 
 func NewStaticProfile(networkNode nodeinfo.NetworkNode, certificate nodeinfo.Certificate, keyProcessor cryptography.KeyProcessor) *StaticProfile {
+	return NewStaticProfileExt(networkNode, networkNode.Address(), certificate, keyProcessor, networkNode.GetSignature())
+}
+
+func NewStaticProfileExt(networkNode nodeinfo.NetworkNode, addr string, certificate nodeinfo.Certificate,
+	keyProcessor cryptography.KeyProcessor, signature cryptkit.SignedDigestHolder,
+) *StaticProfile {
 
 	specialRole := member.SpecialRoleNone
 	if network.IsDiscovery(networkNode.GetReference(), certificate) {
@@ -104,10 +110,10 @@ func NewStaticProfile(networkNode nodeinfo.NetworkNode, certificate nodeinfo.Cer
 		networkNode.GetPrimaryRole(),
 		specialRole,
 		NewStaticProfileExtension(networkNode),
-		NewOutbound(networkNode.Address()),
+		NewOutbound(addr),
 		NewECDSAPublicKeyStore(publicKey),
 		NewECDSASignatureKeyHolder(publicKey, keyProcessor),
-		networkNode.GetSignature(),
+		signature,
 	)
 }
 

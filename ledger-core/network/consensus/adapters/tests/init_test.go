@@ -149,9 +149,9 @@ func initNodes(ctx context.Context, mode consensus.Mode, nodes GeneratedNodes, s
 
 		controller := consensus.New(ctx, consensus.Dep{
 			KeyProcessor:       keyProcessor,
-			Scheme:             scheme,
 			CertificateManager: certificateManager,
 			KeyStore:           keystore.NewInplaceKeyStore(nodes.meta[i].privateKey),
+			TransportCryptography: adapters.NewTransportCryptographyFactory(scheme),
 
 			NodeKeeper:        nodeKeeper,
 			DatagramTransport: delayTransport,

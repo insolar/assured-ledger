@@ -37,6 +37,7 @@ func EnsureGetPulse(ctx context.Context, report network.Report) pulse.Data {
 
 func getAnnounceSignature(
 	node nodeinfo.NetworkNode,
+	address string,
 	isDiscovery bool,
 	kp cryptography.KeyProcessor,
 	keystore cryptography.KeyStore,
@@ -51,7 +52,7 @@ func getAnnounceSignature(
 	}
 	brief.StartPower = 10
 
-	addr, err := endpoints.NewIPAddress(node.Address())
+	addr, err := endpoints.NewIPAddress(address)
 	if err != nil {
 		return nil, nil, err
 	}

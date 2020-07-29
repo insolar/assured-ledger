@@ -18,6 +18,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
+	transport2 "github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/transport"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/censusimpl"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
@@ -36,7 +38,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet/types"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
-	"github.com/insolar/assured-ledger/ledger-core/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/network/rules"
 	"github.com/insolar/assured-ledger/ledger-core/network/transport"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -68,6 +69,7 @@ type Base struct {
 	// nolint
 	OriginProvider network.OriginProvider `inject:""`
 
+	transportCrypt    transport2.CryptographyAssistant
 	datagramHandler   *adapters.DatagramHandler
 	datagramTransport transport.DatagramTransport
 
@@ -162,11 +164,12 @@ func (g *Base) initConsensus(ctx context.Context) error {
 		return throw.W(err, "failed to create datagramTransport")
 	}
 	g.datagramTransport = datagramTransport
+	g.transportCrypt = adapters.NewTransportCryptographyFactory(g.CryptographyScheme)
+
 
 	proxy := consensusProxy{g.Gatewayer}
 	g.consensusInstaller = consensus.New(ctx, consensus.Dep{
 		KeyProcessor:        g.KeyProcessor,
-		Scheme:              g.CryptographyScheme,
 		CertificateManager:  g.CertificateManager,
 		KeyStore:            getKeyStore(g.CryptographyService),
 		NodeKeeper:          g.NodeKeeper,
@@ -175,6 +178,7 @@ func (g *Base) initConsensus(ctx context.Context) error {
 		StateUpdater:        proxy,
 		DatagramTransport:   g.datagramTransport,
 		EphemeralController: g,
+		TransportCryptography: g.transportCrypt,
 	})
 
 	// transport start should be here because of TestComponents tests, couldn't createOriginCandidate with 0 port
@@ -194,11 +198,10 @@ func (g *Base) initConsensus(ctx context.Context) error {
 func (g *Base) createOriginCandidate() error {
 	// sign origin
 	origin := g.NodeKeeper.GetOrigin()
-	mutableOrigin := origin.(node.MutableNode)
-	mutableOrigin.SetAddress(g.datagramTransport.Address())
 
+	endpointAddr := g.datagramTransport.Address()
 	digest, signature, err := getAnnounceSignature(
-		origin,
+		origin, endpointAddr,
 		network.IsDiscoveryCert(g.CertificateManager.GetCertificate()),
 		g.KeyProcessor,
 		getKeyStore(g.CryptographyService),
@@ -212,11 +215,20 @@ func (g *Base) createOriginCandidate() error {
 		cryptkit.NewDigest(longbits.NewBits512FromBytes(digest), adapters.SHA3512Digest),
 		cryptkit.NewSignature(longbits.NewBits512FromBytes(signature.Bytes()), adapters.SHA3512Digest.SignedBy(adapters.SECP256r1Sign)),
 	)
-	mutableOrigin.SetSignature(dsg)
 
-	g.NodeKeeper.SetInitialSnapshot([]nodeinfo.NetworkNode{origin})
+	staticProfile := adapters.NewStaticProfileExt(origin, endpointAddr, g.CertificateManager.GetCertificate(), g.KeyProcessor, dsg)
+	verifier := g.transportCrypt.CreateSignatureVerifierWithPKS(staticProfile.GetPublicKeyStore())
 
-	staticProfile := adapters.NewStaticProfile(origin, g.CertificateManager.GetCertificate(), g.KeyProcessor)
+	var anp censusimpl.NodeProfileSlot
+	if origin.IsJoiner() {
+		anp = censusimpl.NewJoinerProfile(staticProfile, verifier)
+	} else {
+		anp = censusimpl.NewNodeProfile(0, staticProfile, verifier, origin.GetPower())
+	}
+	newOrigin := adapters.NewNetworkNode(&anp)
+
+	// g.NodeKeeper.UpdateOrigin(newOrigin)
+	g.NodeKeeper.SetInitialSnapshot([]nodeinfo.NetworkNode{newOrigin})
 	g.originCandidate = adapters.NewCandidate(staticProfile, g.KeyProcessor)
 	return nil
 }
