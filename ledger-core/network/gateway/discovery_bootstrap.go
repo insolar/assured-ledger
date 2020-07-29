@@ -1,8 +1,3 @@
-// Copyright 2020 Insolar Network Ltd.
-// All rights reserved.
-// This material is licensed under the Insolar License version 1.0,
-// available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
-
 package gateway
 
 import (
@@ -15,18 +10,19 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
 
-func newJoinerBootstrap(b *Base) *JoinerBootstrap {
-	return &JoinerBootstrap{b}
+func newDiscoveryBootstrap(b *Base) *DiscoveryBootstrap {
+	return &DiscoveryBootstrap{b}
 }
 
-// JoinerBootstrap void network state
-type JoinerBootstrap struct {
+// DiscoveryBootstrap void network state
+type DiscoveryBootstrap struct {
 	*Base
 }
 
-func (g *JoinerBootstrap) Run(ctx context.Context, p pulse.Data) {
+func (g *DiscoveryBootstrap) Run(ctx context.Context, p pulse.Data) {
 	logger := inslogger.FromContext(ctx)
 	cert := g.CertificateManager.GetCertificate()
+
 	permit, err := g.BootstrapRequester.Authorize(ctx, cert)
 	if err != nil {
 		logger.Warn("Failed to authorize: ", err.Error())
@@ -54,6 +50,6 @@ func (g *JoinerBootstrap) Run(ctx context.Context, p pulse.Data) {
 	g.Gatewayer.SwitchState(ctx, nodeinfo.WaitConsensus, responsePulse.Data)
 }
 
-func (g *JoinerBootstrap) GetState() nodeinfo.NetworkState {
-	return nodeinfo.JoinerBootstrap
+func (g *DiscoveryBootstrap) GetState() nodeinfo.NetworkState {
+	return nodeinfo.DiscoveryBootstrap
 }
