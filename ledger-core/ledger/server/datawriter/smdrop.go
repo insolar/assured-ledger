@@ -34,7 +34,7 @@ func (p *SMDropBuilder) GetInitStateFor(smachine.StateMachine) smachine.InitFunc
 	return p.stepInit
 }
 
-func (p *SMDropBuilder) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLink, injector *injector.DependencyInjector) {
+func (p *SMDropBuilder) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLink, injector injector.DependencyInjector) {
 	injector.MustInject(&p.pulseSlot)
 }
 
