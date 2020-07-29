@@ -47,11 +47,11 @@ jobs:
         uses: actions/checkout@master
       - name: set prerequisite variables, full sha is ${{github.sha}}
         env:
-          TARGET=${{matrix.target}}
+          TARGET: ${{matrix.target}}
         run: |
           echo "::set-env name=INSOLAR_TAG::${GITHUB_SHA:0:8}"
           echo "::set-env name=INSOLAR_NETWORK_SIZE::${TARGET}"
-          echo "::set-env name=INSOLAR_NAMESPACE::${GITHUB_SHA:0:8}-${GITHUB_RUN_ID}"
+          echo "::set-env name=INSOLAR_NAMESPACE::${GITHUB_SHA:0:8}-${TARGET}"
           echo "::set-env name=INSOLAR_DESIRED_UPTIME::300"
       - name: Preparation - copy docker auth secret
         run: |
