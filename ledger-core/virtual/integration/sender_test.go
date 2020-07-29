@@ -127,6 +127,17 @@ func TestVirtual_SenderCheck_With_ExpectedVE(t *testing.T) {
 					}
 
 					testMsg.msg.(reseter).Reset()
+
+					switch m := (testMsg.msg).(type) {
+					case *payload.VStateReport:
+						m.Status = payload.Missing
+						m.AsOf = server.GetPulse().PulseNumber
+						m.Object = reference.NewSelf(server.RandomLocalWithPulse())
+						server.IncrementPulseAndWaitIdle(ctx)
+
+						testMsg.msg = m
+					}
+
 					server.SendPayload(ctx, testMsg.msg.(payload.Marshaler)) // default caller == server.GlobalCaller()
 
 					server.WaitIdleConveyor()
