@@ -41,7 +41,7 @@ func (p *SMPlash) GetInitStateFor(smachine.StateMachine) smachine.InitFunc {
 	return p.stepInit
 }
 
-func (p *SMPlash) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLink, injector *injector.DependencyInjector) {
+func (p *SMPlash) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLink, injector injector.DependencyInjector) {
 	injector.MustInject(&p.pulseSlot)
 	injector.MustInject(&p.builderSvc)
 	injector.MustInject(&p.cataloger)

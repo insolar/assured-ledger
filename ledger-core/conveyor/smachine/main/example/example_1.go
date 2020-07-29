@@ -36,7 +36,7 @@ type stateMachine1Declaration struct {
 	smachine.StateMachineDeclTemplate
 }
 
-func (stateMachine1Declaration) InjectDependencies(sm smachine.StateMachine, _ smachine.SlotLink, injector *injector.DependencyInjector) {
+func (stateMachine1Declaration) InjectDependencies(sm smachine.StateMachine, _ smachine.SlotLink, injector injector.DependencyInjector) {
 	s := sm.(*StateMachine1)
 	injector.MustInject(&s.serviceA)
 	injector.MustInject(&s.catalogC)
