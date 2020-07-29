@@ -37,9 +37,6 @@ func (a *Imposter) PrepareExecutionContinue(ctx smachine.ExecutionContext, state
 	if state == nil {
 		panic(throw.IllegalValue())
 	}
-	if outgoingResult == nil {
-		panic(throw.IllegalValue())
-	}
 
 	return a.exec.PrepareAsync(ctx, func(_ context.Context, arg interface{}) smachine.AsyncResultFunc {
 		a.mockedService.ExecutionContinue(state, outgoingResult)
