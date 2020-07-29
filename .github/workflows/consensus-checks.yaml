@@ -39,19 +39,24 @@ jobs:
     name: consensus # don't change, this name is used in repository restricts!
     needs: prepare
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [aks-10node, aks-20node]
     steps:
       - name: Checkout code
         uses: actions/checkout@master
       - name: set prerequisite variables, full sha is ${{github.sha}}
+        env:
+          TARGET=${{matrix.target}}
         run: |
           echo "::set-env name=INSOLAR_TAG::${GITHUB_SHA:0:8}"
-          echo "::set-env name=INSOLAR_NETWORK_SIZE::aks-10node"
+          echo "::set-env name=INSOLAR_NETWORK_SIZE::${TARGET}"
           echo "::set-env name=INSOLAR_NAMESPACE::${GITHUB_SHA:0:8}-${GITHUB_RUN_ID}"
           echo "::set-env name=INSOLAR_DESIRED_UPTIME::300"
       - name: Preparation - copy docker auth secret
         run: |
           docker login $ACR_HOST --username ${{secrets.ACR_SP_ID}} --password ${{secrets.ACR_SP_SECRET}}
-          cp /home/runner/.docker/config.json ledger-core/scripts/deploy/kube/gitops/dockerconfigjson
+          cp /home/runner/.docker/config.json ledger-core/scripts/deploy/kube/gitops/"$INSOLAR_NETWORK_SIZE"/dockerconfigjson
       - name: Preparation - save kubeconfig
         run: echo "${{secrets.CLOUD_KUBECONFIG}}" >> aks.yaml
       - name: Praparation - github token for gitops access
@@ -59,7 +64,7 @@ jobs:
       - name: Ingress access check (IF THIS STEP FAILED - CALL DEVOPS, RED ALERT)
         run:  curl -s "https://$PROMETHEUS_USER:$PROMETHEUS_PASS@prometheus.uscifarm.insolar.io/prometheus/api/v1/labels" | jq -r '.status'
       - name: Deploy network
-        run: kubectl kustomize ledger-core/scripts/deploy/kube/gitops | envsubst '${INSOLAR_NAMESPACE} ${INSOLAR_TAG} ${INSOLAR_NETWORK_SIZE}' | kubectl -n $INSOLAR_NAMESPACE apply -f -
+        run: kubectl kustomize ledger-core/scripts/deploy/kube/gitops/"$INSOLAR_NETWORK_SIZE" | envsubst '${INSOLAR_NAMESPACE} ${INSOLAR_TAG}' | kubectl -n $INSOLAR_NAMESPACE apply -f -
       - name: Rollout check (IF THIS STEP FAILED - CALL DEV/OPS, YELLOW ALERT)
         run: kubectl -n $INSOLAR_NAMESPACE rollout status sts/virtual --timeout=300s
       - name: Pulsewatcher network check (IF THIS STEP FAILED - CALL DEV, READ LOGS YELLOW ALERT)
