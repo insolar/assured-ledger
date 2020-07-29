@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package investigation
+package insrail
 
 import (
 	"bytes"
@@ -112,13 +112,6 @@ func getTestingPackage() string {
 	return name
 }
 
-func LogSkip(target Testing, jiraLink string) {
-	target.Helper()
-
-	skipList.Store(target.Name(), jiraLink)
-	target.Skip(jiraLink)
-}
-
 type logCaseHeader struct {
 	*log.Msg    `txt:"testrail"`
 	ID          string
@@ -143,7 +136,60 @@ type logCaseFooter struct {
 	SkippedLink string `opt:""`
 }
 
-func LogCase(target Testing, name string) {
+func LogSkip(target Testing, jiraLink string) {
+	target.Helper()
+
+	skipList.Store(target.Name(), jiraLink)
+	target.Skip(jiraLink)
+}
+
+func logCaseConstructor(target Testing, footer logCaseFooter) func() {
+	return func() {
+		if footer.Status == "" {
+			switch {
+			case target.Skipped():
+				footer.Status = "SKIP"
+
+				if skippedLink, present := skipList.Load(target.Name()); present {
+					footer.SkippedLink = skippedLink.(string)
+				}
+			case target.Failed():
+				footer.Status = "FAIL"
+			case checkPanicInStack():
+				footer.Status = "FAIL"
+			default:
+				footer.Status = "PASS"
+			}
+		}
+
+		// this output will be made at end of the test, just before FAIL/PASS/SKIP mark
+		global.Logger().Event(logcommon.NoLevel, footer)
+	}
+}
+
+type Option interface {
+	modifyConfig(target Testing, footer *logCaseFooter)
+	applyAfter(target Testing)
+}
+
+type SkipOption struct {
+	link string
+}
+
+func Skip(jiraLink string) Option {
+	return SkipOption{link: jiraLink}
+}
+
+func (s SkipOption) modifyConfig(_ Testing, footer *logCaseFooter) {
+	footer.Status = "SKIP"
+	footer.SkippedLink = s.link
+}
+
+func (s SkipOption) applyAfter(target Testing) {
+	target.Skip(s.link)
+}
+
+func LogCaseExt(target Testing, name string, opts ...Option) {
 	target.Helper()
 
 	header := logCaseHeader{
@@ -153,25 +199,22 @@ func LogCase(target Testing, name string) {
 	}
 	global.Logger().Event(logcommon.NoLevel, header)
 
-	target.Cleanup(func() {
-		footer := header.ConstructFooter()
+	footer := header.ConstructFooter()
+	for _, opt := range opts {
+		opt.modifyConfig(target, &footer)
+	}
 
-		switch {
-		case target.Skipped():
-			footer.Status = "SKIP"
+	target.Cleanup(logCaseConstructor(target, footer))
 
-			if skippedLink, present := skipList.Load(target.Name()); present {
-				footer.SkippedLink = skippedLink.(string)
-			}
-		case target.Failed():
-			footer.Status = "FAIL"
-		case checkPanicInStack():
-			footer.Status = "FAIL"
-		default:
-			footer.Status = "PASS"
-		}
+	for _, opt := range opts {
+		opt.applyAfter(target)
+	}
+}
 
-		// this output will be made at end of the test, just before FAIL/PASS/SKIP mark
-		global.Logger().Event(logcommon.NoLevel, footer)
-	})
+func LogCase(target Testing, name string) {
+	LogCaseExt(target, name)
+}
+
+func LogSkipCase(target Testing, name string, jiraLink string) {
+	LogCaseExt(target, name, Skip(jiraLink))
 }

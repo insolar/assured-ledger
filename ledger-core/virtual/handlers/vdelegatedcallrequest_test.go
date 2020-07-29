@@ -23,7 +23,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/investigation"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/slotdebugger"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
@@ -211,7 +211,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			defer commontestutils.LeakTester(t)
-			investigation.LogCase(t, tc.testRailCase)
+			insrail.LogCase(t, tc.testRailCase)
 
 			var (
 				mc  = minimock.NewController(t)

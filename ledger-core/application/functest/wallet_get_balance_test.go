@@ -13,12 +13,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/testutils/investigation"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 )
 
 // Creates wallet, calls /wallet/get_balance and checks it's response body.
 func TestWalletGetBalance(t *testing.T) {
-	investigation.LogCase(t, "C4855")
+	insrail.LogCase(t, "C4855")
 
 	walletRef, err := createSimpleWallet()
 	require.NoError(t, err, "failed to create wallet")
@@ -37,7 +37,7 @@ func TestWalletGetBalance(t *testing.T) {
 
 // Creates wallet and calls /wallet/get_balance concurrently.
 func TestWalletGetBalanceConcurrently(t *testing.T) {
-	investigation.LogCase(t, "C4920")
+	insrail.LogCase(t, "C4920")
 
 	walletRef, err := createSimpleWallet()
 	require.NoError(t, err, "failed to create wallet")

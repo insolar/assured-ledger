@@ -20,7 +20,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/investigation"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 )
@@ -86,7 +86,7 @@ func checkBalance(ctx context.Context, t *testing.T, server *utils.Server, objec
 
 func TestVirtual_VStateReport_HappyPath(t *testing.T) {
 	defer commontestutils.LeakTester(t)
-	investigation.LogCase(t, "C4866")
+	insrail.LogCase(t, "C4866")
 
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
@@ -115,7 +115,7 @@ func TestVirtual_VStateReport_HappyPath(t *testing.T) {
 
 func TestVirtual_VStateReport_TwoStateReports(t *testing.T) {
 	defer commontestutils.LeakTester(t)
-	investigation.LogCase(t, "C4919")
+	insrail.LogCase(t, "C4919")
 
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
@@ -152,7 +152,7 @@ func TestVirtual_VStateReport_TwoStateReports(t *testing.T) {
 
 func TestVirtual_VStateReport_BadState_NoSuchObject(t *testing.T) {
 	defer commontestutils.LeakTester(t)
-	investigation.LogCase(t, "C4864")
+	insrail.LogCase(t, "C4864")
 
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
@@ -173,7 +173,7 @@ func TestVirtual_VStateReport_BadState_NoSuchObject(t *testing.T) {
 
 func TestVirtual_VStateReport_BadState_StateAlreadyExists(t *testing.T) {
 	defer commontestutils.LeakTester(t)
-	investigation.LogCase(t, "C4865")
+	insrail.LogCase(t, "C4865")
 
 	server, ctx := utils.NewServerWithErrorFilter(nil, t, func(s string) bool {
 		// Pass all errors, except for (*SMVStateReport).stepProcess
@@ -210,7 +210,7 @@ func TestVirtual_VStateReport_BadState_StateAlreadyExists(t *testing.T) {
 
 func TestVirtual_VStateReport_CheckValidatedState(t *testing.T) {
 	defer commontestutils.LeakTester(t)
-	investigation.LogCase(t, "C5124")
+	insrail.LogCase(t, "C5124")
 
 	mc := minimock.NewController(t)
 

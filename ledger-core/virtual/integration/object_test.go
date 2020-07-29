@@ -17,13 +17,13 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/investigation"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 )
 
 func TestInitViaCTMethod(t *testing.T) {
 	defer commontestutils.LeakTester(t)
-	investigation.LogCase(t, "C4867")
+	insrail.LogCase(t, "C4867")
 
 	var (
 		mc = minimock.NewController(t)

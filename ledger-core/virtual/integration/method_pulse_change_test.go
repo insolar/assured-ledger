@@ -24,7 +24,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	commonTestUtils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/investigation"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/predicate"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/synchronization"
@@ -34,7 +34,7 @@ import (
 )
 
 func TestVirtual_Method_PulseChanged(t *testing.T) {
-	investigation.LogCase(t, "C5211")
+	insrail.LogCase(t, "C5211")
 
 	table := []struct {
 		name             string
@@ -256,7 +256,7 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 // 2 ordered and 2 unordered calls
 func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 	defer commonTestUtils.LeakTester(t)
-	investigation.LogCase(t, "C5104")
+	insrail.LogCase(t, "C5104")
 
 	mc := minimock.NewController(t)
 
@@ -449,7 +449,7 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 }
 
 func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
-	investigation.LogCase(t, "C5237")
+	insrail.LogCase(t, "C5237")
 
 	table := []struct {
 		name      string

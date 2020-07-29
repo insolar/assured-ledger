@@ -17,7 +17,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/investigation"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/synchronization"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
@@ -47,7 +47,7 @@ type VFindCallRequestHandlingTestInfo struct {
 }
 
 func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
-	investigation.LogCase(t, "C5115")
+	insrail.LogCase(t, "C5115")
 
 	table := []VFindCallRequestHandlingTestInfo{
 		{

@@ -22,7 +22,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/investigation"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
@@ -60,7 +60,7 @@ type stateReportCheckPendingCountersAndPulsesTest struct {
 }
 
 func TestVirtual_StateReport_CheckPendingCountersAndPulses(t *testing.T) {
-	investigation.LogCase(t, "C5111")
+	insrail.LogCase(t, "C5111")
 
 	// setup
 	// three pendings: 1 ordered (RO1), 2 unordered (RU1, RU2)
@@ -545,7 +545,7 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) finish() {
 
 func TestVirtual_StateReport_AfterPendingConstructorHasFinished(t *testing.T) {
 	defer commontestutils.LeakTester(t)
-	investigation.LogCase(t, "C5239")
+	insrail.LogCase(t, "C5239")
 
 	mc := minimock.NewController(t)
 

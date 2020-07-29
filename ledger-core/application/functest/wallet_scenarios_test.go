@@ -13,11 +13,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/testutils/investigation"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 )
 
 func TestCreateUpdateWallet(t *testing.T) {
-	investigation.LogCase(t, "C4857")
+	insrail.LogCase(t, "C4857")
 	var (
 		ref    string
 		amount uint = 100
@@ -54,7 +54,7 @@ func TestCreateUpdateWallet(t *testing.T) {
 }
 
 func TestGetUpdateBalanceConcurrently(t *testing.T) {
-	investigation.LogCase(t, "C4858")
+	insrail.LogCase(t, "C4858")
 	var (
 		ref             string
 		count                = 10 // Number of concurrent requests per node.

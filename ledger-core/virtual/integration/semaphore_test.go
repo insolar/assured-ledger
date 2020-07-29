@@ -21,13 +21,13 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	commonTestUtils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/investigation"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 )
 
 func TestVirtual_SemaphoreLimitNotExceeded(t *testing.T) {
-	investigation.LogCase(t, "C5137")
+	insrail.LogCase(t, "C5137")
 
 	mc := minimock.NewController(t)
 

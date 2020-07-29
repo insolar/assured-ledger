@@ -32,7 +32,7 @@ import (
 	commonTestUtils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/debuglogger"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/investigation"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/mocklog"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/shareddata"
@@ -768,7 +768,7 @@ func TestSMExecute_VCallResultPassedToSMObject(t *testing.T) {
 
 func TestSendVStateReportWithMissingState_IfConstructorWasInterruptedBeforeRunnerCall(t *testing.T) {
 	defer executeLeakCheck(t)
-	investigation.LogCase(t, "C5084")
+	insrail.LogCase(t, "C5084")
 
 	var (
 		mc  = minimock.NewController(t)
@@ -840,7 +840,7 @@ func TestSendVStateReportWithMissingState_IfConstructorWasInterruptedBeforeRunne
 
 func TestSMExecute_StopWithoutMessagesIfPulseChangedBeforeOutgoing(t *testing.T) {
 	defer executeLeakCheck(t)
-	investigation.LogCase(t, "C5101")
+	insrail.LogCase(t, "C5101")
 
 	const stateMemory = "213"
 

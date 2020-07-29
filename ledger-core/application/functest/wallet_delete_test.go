@@ -13,13 +13,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/testutils/investigation"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 )
 
 // Creates wallet, calls /wallet/delete, then calls /wallet/get_balance and gets error.
 func TestWalletDelete(t *testing.T) {
-	investigation.LogCase(t, "C4859")
-	investigation.LogSkip(t, "https://insolar.atlassian.net/browse/PLAT-414")
+	insrail.LogSkipCase(t, "C4859", "https://insolar.atlassian.net/browse/PLAT-414")
 
 	walletRef, err := createSimpleWallet()
 	require.NoError(t, err, "failed to create wallet")

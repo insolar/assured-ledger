@@ -16,13 +16,13 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/debuglogger"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/investigation"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 )
 
 func TestVirtual_Method_API(t *testing.T) {
 	defer commontestutils.LeakTester(t)
-	investigation.LogCase(t, "C4931")
+	insrail.LogCase(t, "C4931")
 
 	server, ctx := utils.NewServerWithErrorFilter(nil, t, func(s string) bool {
 		return false

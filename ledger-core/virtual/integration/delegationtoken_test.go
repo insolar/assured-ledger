@@ -22,7 +22,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/investigation"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
@@ -60,7 +60,7 @@ var messagesWithToken = []struct {
 }
 
 func TestDelegationToken_SuccessCheckCorrectToken(t *testing.T) {
-	investigation.LogCase(t, "C5191")
+	insrail.LogCase(t, "C5191")
 
 	for _, testMsg := range messagesWithToken {
 		t.Run(testMsg.name, func(t *testing.T) {
@@ -151,8 +151,7 @@ func TestDelegationToken_CheckTokenField(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			defer commontestutils.LeakTester(t)
-			investigation.LogCase(t, test.testRailID)
-			investigation.LogSkip(t, "https://insolar.atlassian.net/browse/PLAT-588")
+			insrail.LogSkipCase(t, test.testRailID, "https://insolar.atlassian.net/browse/PLAT-588")
 
 			mc := minimock.NewController(t)
 
@@ -292,7 +291,7 @@ func TestDelegationToken_IsMessageFromVirtualLegitimate(t *testing.T) {
 	for _, testCase := range cases {
 		t.Run(testCase.name, func(t *testing.T) {
 			defer commontestutils.LeakTester(t)
-			investigation.LogCase(t, testCase.testRailID)
+			insrail.LogCase(t, testCase.testRailID)
 
 			for _, testMsg := range messagesWithToken {
 				mc := minimock.NewController(t)
@@ -398,7 +397,7 @@ func TestDelegationToken_OldVEVDelegatedCallRequest(t *testing.T) {
 	for _, test := range testCases {
 		t.Run(test.name, func(t *testing.T) {
 			defer commontestutils.LeakTester(t)
-			investigation.LogCase(t, test.testRailID)
+			insrail.LogCase(t, test.testRailID)
 
 			mc := minimock.NewController(t)
 
