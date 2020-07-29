@@ -262,7 +262,7 @@ func getAnnounceSignature(
 
 	brief := serialization.NodeBriefIntro{}
 	brief.ShortID = node.GetNodeID()
-	brief.SetPrimaryRole(adapters.StaticRoleToPrimaryRole(node.Role()))
+	brief.SetPrimaryRole(node.GetPrimaryRole())
 	if isDiscovery {
 		brief.SpecialRoles = member.SpecialRoleDiscovery
 	}
@@ -354,8 +354,8 @@ func initCrypto(node nodeinfo.NetworkNode, discoveryNodes []nodeinfo.NetworkNode
 			pubKey,
 			string(pubKeyBuf[:]),
 			dn.Address(),
-			dn.ID().String(),
-			dn.Role().String(),
+			dn.GetReference().String(),
+			dn.GetPrimaryRole().String(),
 		)
 		bootstrapNodes = append(bootstrapNodes, *bootstrapNode)
 	}
@@ -363,8 +363,8 @@ func initCrypto(node nodeinfo.NetworkNode, discoveryNodes []nodeinfo.NetworkNode
 	cert := &mandates.Certificate{
 		AuthorizationCertificate: mandates.AuthorizationCertificate{
 			PublicKey: string(publicKey[:]),
-			Reference: node.ID().String(),
-			Role:      node.Role().String(),
+			Reference: node.GetReference().String(),
+			Role:      node.GetPrimaryRole().String(),
 		},
 		BootstrapNodes: bootstrapNodes,
 	}

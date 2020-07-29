@@ -13,7 +13,6 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/host"
@@ -142,8 +141,6 @@ type Accessor interface {
 	GetActiveNode(ref reference.Global) nodeinfo.NetworkNode
 	// GetActiveNodes returns unsorted list of all active nodes.
 	GetActiveNodes() []nodeinfo.NetworkNode
-	// GetActiveNodeByShortID get active node by short ID. Returns nil if node is not found.
-	GetActiveNodeByShortID(shortID node.ShortNodeID) nodeinfo.NetworkNode
 	// GetActiveNodeByAddr get active node by addr. Returns nil if node is not found.
 	GetActiveNodeByAddr(address string) nodeinfo.NetworkNode
 }

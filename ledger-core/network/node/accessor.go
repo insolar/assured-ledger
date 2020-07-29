@@ -8,7 +8,6 @@ package node
 import (
 	"sort"
 
-	node2 "github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
@@ -16,14 +15,9 @@ import (
 type Accessor struct {
 	snapshot  *Snapshot
 	refIndex  map[reference.Global]nodeinfo.NetworkNode
-	sidIndex  map[node2.ShortNodeID]nodeinfo.NetworkNode
 	addrIndex map[string]nodeinfo.NetworkNode
 	// should be removed in future
 	active []nodeinfo.NetworkNode
-}
-
-func (a *Accessor) GetActiveNodeByShortID(shortID node2.ShortNodeID) nodeinfo.NetworkNode {
-	return a.sidIndex[shortID]
 }
 
 func (a *Accessor) GetActiveNodeByAddr(address string) nodeinfo.NetworkNode {
@@ -31,9 +25,7 @@ func (a *Accessor) GetActiveNodeByAddr(address string) nodeinfo.NetworkNode {
 }
 
 func (a *Accessor) GetActiveNodes() []nodeinfo.NetworkNode {
-	result := make([]nodeinfo.NetworkNode, len(a.active))
-	copy(result, a.active)
-	return result
+	return append([]nodeinfo.NetworkNode(nil), a.active...)
 }
 
 func (a *Accessor) GetActiveNode(ref reference.Global) nodeinfo.NetworkNode {
@@ -53,7 +45,7 @@ func (a *Accessor) GetWorkingNodes() []nodeinfo.NetworkNode {
 	result := make([]nodeinfo.NetworkNode, len(workingList))
 	copy(result, workingList)
 	sort.Slice(result, func(i, j int) bool {
-		return result[i].ID().Compare(result[j].ID()) < 0
+		return result[i].GetReference().Compare(result[j].GetReference()) < 0
 	})
 	return result
 }
@@ -80,20 +72,14 @@ func GetSnapshotActiveNodes(snapshot *Snapshot) []nodeinfo.NetworkNode {
 }
 
 func (a *Accessor) addToIndex(node nodeinfo.NetworkNode) {
-	a.refIndex[node.ID()] = node
-	a.sidIndex[node.GetNodeID()] = node
+	a.refIndex[node.GetReference()] = node
 	a.addrIndex[node.Address()] = node
-
-	if node.GetPower() == 0 {
-		return
-	}
 }
 
 func NewAccessor(snapshot *Snapshot) *Accessor {
 	result := &Accessor{
 		snapshot:  snapshot,
 		refIndex:  make(map[reference.Global]nodeinfo.NetworkNode),
-		sidIndex:  make(map[node2.ShortNodeID]nodeinfo.NetworkNode),
 		addrIndex: make(map[string]nodeinfo.NetworkNode),
 	}
 	result.active = GetSnapshotActiveNodes(snapshot)

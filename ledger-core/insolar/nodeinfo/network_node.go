@@ -34,11 +34,11 @@ const (
 
 type NetworkNode interface {
 	// ID is the unique identifier of the node
-	ID() reference.Global
+	GetReference() reference.Global
 	// ShortID get short ID of node
 	GetNodeID() node.ShortNodeID
-	// Role is the candidate Role for the node
-	Role() member.PrimaryRole
+
+	GetPrimaryRole() member.PrimaryRole
 	// PublicKey is the public key of the node
 	PublicKey() crypto.PublicKey
 	// Address is the network address of the node

@@ -577,7 +577,7 @@ func (s *testSuite) preInitNode(node *networkNode) {
 	nodeContext, _ := inslogger.WithFields(s.ctx, map[string]interface{}{
 		"node_id":      realKeeper.GetOrigin().GetNodeID(),
 		"node_address": realKeeper.GetOrigin().Address(),
-		"node_role":    realKeeper.GetOrigin().Role().String(),
+		"node_role":    realKeeper.GetOrigin().GetPrimaryRole().String(),
 	})
 
 	node.ctx = nodeContext

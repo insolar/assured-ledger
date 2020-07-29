@@ -16,7 +16,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/network"
-	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
@@ -46,7 +45,7 @@ func getAnnounceSignature(
 
 	brief := serialization.NodeBriefIntro{}
 	brief.ShortID = node.GetNodeID()
-	brief.SetPrimaryRole(adapters.StaticRoleToPrimaryRole(node.Role()))
+	brief.SetPrimaryRole(node.GetPrimaryRole())
 	if isDiscovery {
 		brief.SpecialRoles = member.SpecialRoleDiscovery
 	}

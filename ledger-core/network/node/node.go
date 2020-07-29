@@ -78,7 +78,7 @@ func NewNode(id reference.Global, role member.PrimaryRole, publicKey crypto.Publ
 	return newMutableNode(id, role, publicKey, nodeinfo.Ready, address)
 }
 
-func (n *nodeInfo) ID() reference.Global {
+func (n *nodeInfo) GetReference() reference.Global {
 	return n.NodeID
 }
 
@@ -86,7 +86,7 @@ func (n *nodeInfo) GetNodeID() node.ShortNodeID {
 	return node.ShortNodeID(atomic.LoadUint32(&n.NodeShortID))
 }
 
-func (n *nodeInfo) Role() member.PrimaryRole {
+func (n *nodeInfo) GetPrimaryRole() member.PrimaryRole {
 	return n.NodeRole
 }
 

@@ -56,7 +56,7 @@ func (n *ServiceNetwork) sendMessage(ctx context.Context, msg *message.Message) 
 
 	// Short path when sending to self node. Skip serialization
 	origin := n.NodeKeeper.GetOrigin()
-	if node.Equal(origin.ID()) {
+	if node.Equal(origin.GetReference()) {
 		err := n.Pub.Publish(getIncomingTopic(msg), msg)
 		if err != nil {
 			return errors.W(err, "error while publish msg to TopicIncoming")

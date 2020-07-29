@@ -173,7 +173,7 @@ func FindDiscoveriesInNodeList(nodes []nodeinfo.NetworkNode, cert nodeinfo.Certi
 	}
 
 	for _, n := range nodes {
-		if _, ok := discoveries[n.ID()]; ok {
+		if _, ok := discoveries[n.GetReference()]; ok {
 			result = append(result, n)
 		}
 	}

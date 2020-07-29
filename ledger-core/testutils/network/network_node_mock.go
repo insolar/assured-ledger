@@ -36,29 +36,29 @@ type NetworkNodeMock struct {
 	beforeGetPowerCounter uint64
 	GetPowerMock          mNetworkNodeMockGetPower
 
+	funcGetPrimaryRole          func() (p1 member.PrimaryRole)
+	inspectFuncGetPrimaryRole   func()
+	afterGetPrimaryRoleCounter  uint64
+	beforeGetPrimaryRoleCounter uint64
+	GetPrimaryRoleMock          mNetworkNodeMockGetPrimaryRole
+
+	funcGetReference          func() (g1 reference.Global)
+	inspectFuncGetReference   func()
+	afterGetReferenceCounter  uint64
+	beforeGetReferenceCounter uint64
+	GetReferenceMock          mNetworkNodeMockGetReference
+
 	funcGetState          func() (s1 mm_nodeinfo.State)
 	inspectFuncGetState   func()
 	afterGetStateCounter  uint64
 	beforeGetStateCounter uint64
 	GetStateMock          mNetworkNodeMockGetState
 
-	funcID          func() (g1 reference.Global)
-	inspectFuncID   func()
-	afterIDCounter  uint64
-	beforeIDCounter uint64
-	IDMock          mNetworkNodeMockID
-
 	funcPublicKey          func() (p1 crypto.PublicKey)
 	inspectFuncPublicKey   func()
 	afterPublicKeyCounter  uint64
 	beforePublicKeyCounter uint64
 	PublicKeyMock          mNetworkNodeMockPublicKey
-
-	funcRole          func() (p1 member.PrimaryRole)
-	inspectFuncRole   func()
-	afterRoleCounter  uint64
-	beforeRoleCounter uint64
-	RoleMock          mNetworkNodeMockRole
 }
 
 // NewNetworkNodeMock returns a mock for nodeinfo.NetworkNode
@@ -74,13 +74,13 @@ func NewNetworkNodeMock(t minimock.Tester) *NetworkNodeMock {
 
 	m.GetPowerMock = mNetworkNodeMockGetPower{mock: m}
 
+	m.GetPrimaryRoleMock = mNetworkNodeMockGetPrimaryRole{mock: m}
+
+	m.GetReferenceMock = mNetworkNodeMockGetReference{mock: m}
+
 	m.GetStateMock = mNetworkNodeMockGetState{mock: m}
 
-	m.IDMock = mNetworkNodeMockID{mock: m}
-
 	m.PublicKeyMock = mNetworkNodeMockPublicKey{mock: m}
-
-	m.RoleMock = mNetworkNodeMockRole{mock: m}
 
 	return m
 }
@@ -514,6 +514,292 @@ func (m *NetworkNodeMock) MinimockGetPowerInspect() {
 	}
 }
 
+type mNetworkNodeMockGetPrimaryRole struct {
+	mock               *NetworkNodeMock
+	defaultExpectation *NetworkNodeMockGetPrimaryRoleExpectation
+	expectations       []*NetworkNodeMockGetPrimaryRoleExpectation
+}
+
+// NetworkNodeMockGetPrimaryRoleExpectation specifies expectation struct of the NetworkNode.GetPrimaryRole
+type NetworkNodeMockGetPrimaryRoleExpectation struct {
+	mock *NetworkNodeMock
+
+	results *NetworkNodeMockGetPrimaryRoleResults
+	Counter uint64
+}
+
+// NetworkNodeMockGetPrimaryRoleResults contains results of the NetworkNode.GetPrimaryRole
+type NetworkNodeMockGetPrimaryRoleResults struct {
+	p1 member.PrimaryRole
+}
+
+// Expect sets up expected params for NetworkNode.GetPrimaryRole
+func (mmGetPrimaryRole *mNetworkNodeMockGetPrimaryRole) Expect() *mNetworkNodeMockGetPrimaryRole {
+	if mmGetPrimaryRole.mock.funcGetPrimaryRole != nil {
+		mmGetPrimaryRole.mock.t.Fatalf("NetworkNodeMock.GetPrimaryRole mock is already set by Set")
+	}
+
+	if mmGetPrimaryRole.defaultExpectation == nil {
+		mmGetPrimaryRole.defaultExpectation = &NetworkNodeMockGetPrimaryRoleExpectation{}
+	}
+
+	return mmGetPrimaryRole
+}
+
+// Inspect accepts an inspector function that has same arguments as the NetworkNode.GetPrimaryRole
+func (mmGetPrimaryRole *mNetworkNodeMockGetPrimaryRole) Inspect(f func()) *mNetworkNodeMockGetPrimaryRole {
+	if mmGetPrimaryRole.mock.inspectFuncGetPrimaryRole != nil {
+		mmGetPrimaryRole.mock.t.Fatalf("Inspect function is already set for NetworkNodeMock.GetPrimaryRole")
+	}
+
+	mmGetPrimaryRole.mock.inspectFuncGetPrimaryRole = f
+
+	return mmGetPrimaryRole
+}
+
+// Return sets up results that will be returned by NetworkNode.GetPrimaryRole
+func (mmGetPrimaryRole *mNetworkNodeMockGetPrimaryRole) Return(p1 member.PrimaryRole) *NetworkNodeMock {
+	if mmGetPrimaryRole.mock.funcGetPrimaryRole != nil {
+		mmGetPrimaryRole.mock.t.Fatalf("NetworkNodeMock.GetPrimaryRole mock is already set by Set")
+	}
+
+	if mmGetPrimaryRole.defaultExpectation == nil {
+		mmGetPrimaryRole.defaultExpectation = &NetworkNodeMockGetPrimaryRoleExpectation{mock: mmGetPrimaryRole.mock}
+	}
+	mmGetPrimaryRole.defaultExpectation.results = &NetworkNodeMockGetPrimaryRoleResults{p1}
+	return mmGetPrimaryRole.mock
+}
+
+//Set uses given function f to mock the NetworkNode.GetPrimaryRole method
+func (mmGetPrimaryRole *mNetworkNodeMockGetPrimaryRole) Set(f func() (p1 member.PrimaryRole)) *NetworkNodeMock {
+	if mmGetPrimaryRole.defaultExpectation != nil {
+		mmGetPrimaryRole.mock.t.Fatalf("Default expectation is already set for the NetworkNode.GetPrimaryRole method")
+	}
+
+	if len(mmGetPrimaryRole.expectations) > 0 {
+		mmGetPrimaryRole.mock.t.Fatalf("Some expectations are already set for the NetworkNode.GetPrimaryRole method")
+	}
+
+	mmGetPrimaryRole.mock.funcGetPrimaryRole = f
+	return mmGetPrimaryRole.mock
+}
+
+// GetPrimaryRole implements nodeinfo.NetworkNode
+func (mmGetPrimaryRole *NetworkNodeMock) GetPrimaryRole() (p1 member.PrimaryRole) {
+	mm_atomic.AddUint64(&mmGetPrimaryRole.beforeGetPrimaryRoleCounter, 1)
+	defer mm_atomic.AddUint64(&mmGetPrimaryRole.afterGetPrimaryRoleCounter, 1)
+
+	if mmGetPrimaryRole.inspectFuncGetPrimaryRole != nil {
+		mmGetPrimaryRole.inspectFuncGetPrimaryRole()
+	}
+
+	if mmGetPrimaryRole.GetPrimaryRoleMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmGetPrimaryRole.GetPrimaryRoleMock.defaultExpectation.Counter, 1)
+
+		mm_results := mmGetPrimaryRole.GetPrimaryRoleMock.defaultExpectation.results
+		if mm_results == nil {
+			mmGetPrimaryRole.t.Fatal("No results are set for the NetworkNodeMock.GetPrimaryRole")
+		}
+		return (*mm_results).p1
+	}
+	if mmGetPrimaryRole.funcGetPrimaryRole != nil {
+		return mmGetPrimaryRole.funcGetPrimaryRole()
+	}
+	mmGetPrimaryRole.t.Fatalf("Unexpected call to NetworkNodeMock.GetPrimaryRole.")
+	return
+}
+
+// GetPrimaryRoleAfterCounter returns a count of finished NetworkNodeMock.GetPrimaryRole invocations
+func (mmGetPrimaryRole *NetworkNodeMock) GetPrimaryRoleAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetPrimaryRole.afterGetPrimaryRoleCounter)
+}
+
+// GetPrimaryRoleBeforeCounter returns a count of NetworkNodeMock.GetPrimaryRole invocations
+func (mmGetPrimaryRole *NetworkNodeMock) GetPrimaryRoleBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetPrimaryRole.beforeGetPrimaryRoleCounter)
+}
+
+// MinimockGetPrimaryRoleDone returns true if the count of the GetPrimaryRole invocations corresponds
+// the number of defined expectations
+func (m *NetworkNodeMock) MinimockGetPrimaryRoleDone() bool {
+	for _, e := range m.GetPrimaryRoleMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.GetPrimaryRoleMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetPrimaryRoleCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcGetPrimaryRole != nil && mm_atomic.LoadUint64(&m.afterGetPrimaryRoleCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockGetPrimaryRoleInspect logs each unmet expectation
+func (m *NetworkNodeMock) MinimockGetPrimaryRoleInspect() {
+	for _, e := range m.GetPrimaryRoleMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Error("Expected call to NetworkNodeMock.GetPrimaryRole")
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.GetPrimaryRoleMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetPrimaryRoleCounter) < 1 {
+		m.t.Error("Expected call to NetworkNodeMock.GetPrimaryRole")
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcGetPrimaryRole != nil && mm_atomic.LoadUint64(&m.afterGetPrimaryRoleCounter) < 1 {
+		m.t.Error("Expected call to NetworkNodeMock.GetPrimaryRole")
+	}
+}
+
+type mNetworkNodeMockGetReference struct {
+	mock               *NetworkNodeMock
+	defaultExpectation *NetworkNodeMockGetReferenceExpectation
+	expectations       []*NetworkNodeMockGetReferenceExpectation
+}
+
+// NetworkNodeMockGetReferenceExpectation specifies expectation struct of the NetworkNode.GetReference
+type NetworkNodeMockGetReferenceExpectation struct {
+	mock *NetworkNodeMock
+
+	results *NetworkNodeMockGetReferenceResults
+	Counter uint64
+}
+
+// NetworkNodeMockGetReferenceResults contains results of the NetworkNode.GetReference
+type NetworkNodeMockGetReferenceResults struct {
+	g1 reference.Global
+}
+
+// Expect sets up expected params for NetworkNode.GetReference
+func (mmGetReference *mNetworkNodeMockGetReference) Expect() *mNetworkNodeMockGetReference {
+	if mmGetReference.mock.funcGetReference != nil {
+		mmGetReference.mock.t.Fatalf("NetworkNodeMock.GetReference mock is already set by Set")
+	}
+
+	if mmGetReference.defaultExpectation == nil {
+		mmGetReference.defaultExpectation = &NetworkNodeMockGetReferenceExpectation{}
+	}
+
+	return mmGetReference
+}
+
+// Inspect accepts an inspector function that has same arguments as the NetworkNode.GetReference
+func (mmGetReference *mNetworkNodeMockGetReference) Inspect(f func()) *mNetworkNodeMockGetReference {
+	if mmGetReference.mock.inspectFuncGetReference != nil {
+		mmGetReference.mock.t.Fatalf("Inspect function is already set for NetworkNodeMock.GetReference")
+	}
+
+	mmGetReference.mock.inspectFuncGetReference = f
+
+	return mmGetReference
+}
+
+// Return sets up results that will be returned by NetworkNode.GetReference
+func (mmGetReference *mNetworkNodeMockGetReference) Return(g1 reference.Global) *NetworkNodeMock {
+	if mmGetReference.mock.funcGetReference != nil {
+		mmGetReference.mock.t.Fatalf("NetworkNodeMock.GetReference mock is already set by Set")
+	}
+
+	if mmGetReference.defaultExpectation == nil {
+		mmGetReference.defaultExpectation = &NetworkNodeMockGetReferenceExpectation{mock: mmGetReference.mock}
+	}
+	mmGetReference.defaultExpectation.results = &NetworkNodeMockGetReferenceResults{g1}
+	return mmGetReference.mock
+}
+
+//Set uses given function f to mock the NetworkNode.GetReference method
+func (mmGetReference *mNetworkNodeMockGetReference) Set(f func() (g1 reference.Global)) *NetworkNodeMock {
+	if mmGetReference.defaultExpectation != nil {
+		mmGetReference.mock.t.Fatalf("Default expectation is already set for the NetworkNode.GetReference method")
+	}
+
+	if len(mmGetReference.expectations) > 0 {
+		mmGetReference.mock.t.Fatalf("Some expectations are already set for the NetworkNode.GetReference method")
+	}
+
+	mmGetReference.mock.funcGetReference = f
+	return mmGetReference.mock
+}
+
+// GetReference implements nodeinfo.NetworkNode
+func (mmGetReference *NetworkNodeMock) GetReference() (g1 reference.Global) {
+	mm_atomic.AddUint64(&mmGetReference.beforeGetReferenceCounter, 1)
+	defer mm_atomic.AddUint64(&mmGetReference.afterGetReferenceCounter, 1)
+
+	if mmGetReference.inspectFuncGetReference != nil {
+		mmGetReference.inspectFuncGetReference()
+	}
+
+	if mmGetReference.GetReferenceMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmGetReference.GetReferenceMock.defaultExpectation.Counter, 1)
+
+		mm_results := mmGetReference.GetReferenceMock.defaultExpectation.results
+		if mm_results == nil {
+			mmGetReference.t.Fatal("No results are set for the NetworkNodeMock.GetReference")
+		}
+		return (*mm_results).g1
+	}
+	if mmGetReference.funcGetReference != nil {
+		return mmGetReference.funcGetReference()
+	}
+	mmGetReference.t.Fatalf("Unexpected call to NetworkNodeMock.GetReference.")
+	return
+}
+
+// GetReferenceAfterCounter returns a count of finished NetworkNodeMock.GetReference invocations
+func (mmGetReference *NetworkNodeMock) GetReferenceAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetReference.afterGetReferenceCounter)
+}
+
+// GetReferenceBeforeCounter returns a count of NetworkNodeMock.GetReference invocations
+func (mmGetReference *NetworkNodeMock) GetReferenceBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetReference.beforeGetReferenceCounter)
+}
+
+// MinimockGetReferenceDone returns true if the count of the GetReference invocations corresponds
+// the number of defined expectations
+func (m *NetworkNodeMock) MinimockGetReferenceDone() bool {
+	for _, e := range m.GetReferenceMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.GetReferenceMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetReferenceCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcGetReference != nil && mm_atomic.LoadUint64(&m.afterGetReferenceCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockGetReferenceInspect logs each unmet expectation
+func (m *NetworkNodeMock) MinimockGetReferenceInspect() {
+	for _, e := range m.GetReferenceMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Error("Expected call to NetworkNodeMock.GetReference")
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.GetReferenceMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetReferenceCounter) < 1 {
+		m.t.Error("Expected call to NetworkNodeMock.GetReference")
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcGetReference != nil && mm_atomic.LoadUint64(&m.afterGetReferenceCounter) < 1 {
+		m.t.Error("Expected call to NetworkNodeMock.GetReference")
+	}
+}
+
 type mNetworkNodeMockGetState struct {
 	mock               *NetworkNodeMock
 	defaultExpectation *NetworkNodeMockGetStateExpectation
@@ -654,149 +940,6 @@ func (m *NetworkNodeMock) MinimockGetStateInspect() {
 	// if func was set then invocations count should be greater than zero
 	if m.funcGetState != nil && mm_atomic.LoadUint64(&m.afterGetStateCounter) < 1 {
 		m.t.Error("Expected call to NetworkNodeMock.GetState")
-	}
-}
-
-type mNetworkNodeMockID struct {
-	mock               *NetworkNodeMock
-	defaultExpectation *NetworkNodeMockIDExpectation
-	expectations       []*NetworkNodeMockIDExpectation
-}
-
-// NetworkNodeMockIDExpectation specifies expectation struct of the NetworkNode.ID
-type NetworkNodeMockIDExpectation struct {
-	mock *NetworkNodeMock
-
-	results *NetworkNodeMockIDResults
-	Counter uint64
-}
-
-// NetworkNodeMockIDResults contains results of the NetworkNode.ID
-type NetworkNodeMockIDResults struct {
-	g1 reference.Global
-}
-
-// Expect sets up expected params for NetworkNode.ID
-func (mmID *mNetworkNodeMockID) Expect() *mNetworkNodeMockID {
-	if mmID.mock.funcID != nil {
-		mmID.mock.t.Fatalf("NetworkNodeMock.ID mock is already set by Set")
-	}
-
-	if mmID.defaultExpectation == nil {
-		mmID.defaultExpectation = &NetworkNodeMockIDExpectation{}
-	}
-
-	return mmID
-}
-
-// Inspect accepts an inspector function that has same arguments as the NetworkNode.ID
-func (mmID *mNetworkNodeMockID) Inspect(f func()) *mNetworkNodeMockID {
-	if mmID.mock.inspectFuncID != nil {
-		mmID.mock.t.Fatalf("Inspect function is already set for NetworkNodeMock.ID")
-	}
-
-	mmID.mock.inspectFuncID = f
-
-	return mmID
-}
-
-// Return sets up results that will be returned by NetworkNode.ID
-func (mmID *mNetworkNodeMockID) Return(g1 reference.Global) *NetworkNodeMock {
-	if mmID.mock.funcID != nil {
-		mmID.mock.t.Fatalf("NetworkNodeMock.ID mock is already set by Set")
-	}
-
-	if mmID.defaultExpectation == nil {
-		mmID.defaultExpectation = &NetworkNodeMockIDExpectation{mock: mmID.mock}
-	}
-	mmID.defaultExpectation.results = &NetworkNodeMockIDResults{g1}
-	return mmID.mock
-}
-
-//Set uses given function f to mock the NetworkNode.ID method
-func (mmID *mNetworkNodeMockID) Set(f func() (g1 reference.Global)) *NetworkNodeMock {
-	if mmID.defaultExpectation != nil {
-		mmID.mock.t.Fatalf("Default expectation is already set for the NetworkNode.ID method")
-	}
-
-	if len(mmID.expectations) > 0 {
-		mmID.mock.t.Fatalf("Some expectations are already set for the NetworkNode.ID method")
-	}
-
-	mmID.mock.funcID = f
-	return mmID.mock
-}
-
-// ID implements nodeinfo.NetworkNode
-func (mmID *NetworkNodeMock) ID() (g1 reference.Global) {
-	mm_atomic.AddUint64(&mmID.beforeIDCounter, 1)
-	defer mm_atomic.AddUint64(&mmID.afterIDCounter, 1)
-
-	if mmID.inspectFuncID != nil {
-		mmID.inspectFuncID()
-	}
-
-	if mmID.IDMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmID.IDMock.defaultExpectation.Counter, 1)
-
-		mm_results := mmID.IDMock.defaultExpectation.results
-		if mm_results == nil {
-			mmID.t.Fatal("No results are set for the NetworkNodeMock.ID")
-		}
-		return (*mm_results).g1
-	}
-	if mmID.funcID != nil {
-		return mmID.funcID()
-	}
-	mmID.t.Fatalf("Unexpected call to NetworkNodeMock.ID.")
-	return
-}
-
-// IDAfterCounter returns a count of finished NetworkNodeMock.ID invocations
-func (mmID *NetworkNodeMock) IDAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmID.afterIDCounter)
-}
-
-// IDBeforeCounter returns a count of NetworkNodeMock.ID invocations
-func (mmID *NetworkNodeMock) IDBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmID.beforeIDCounter)
-}
-
-// MinimockIDDone returns true if the count of the ID invocations corresponds
-// the number of defined expectations
-func (m *NetworkNodeMock) MinimockIDDone() bool {
-	for _, e := range m.IDMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.IDMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterIDCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcID != nil && mm_atomic.LoadUint64(&m.afterIDCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockIDInspect logs each unmet expectation
-func (m *NetworkNodeMock) MinimockIDInspect() {
-	for _, e := range m.IDMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Error("Expected call to NetworkNodeMock.ID")
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.IDMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterIDCounter) < 1 {
-		m.t.Error("Expected call to NetworkNodeMock.ID")
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcID != nil && mm_atomic.LoadUint64(&m.afterIDCounter) < 1 {
-		m.t.Error("Expected call to NetworkNodeMock.ID")
 	}
 }
 
@@ -943,149 +1086,6 @@ func (m *NetworkNodeMock) MinimockPublicKeyInspect() {
 	}
 }
 
-type mNetworkNodeMockRole struct {
-	mock               *NetworkNodeMock
-	defaultExpectation *NetworkNodeMockRoleExpectation
-	expectations       []*NetworkNodeMockRoleExpectation
-}
-
-// NetworkNodeMockRoleExpectation specifies expectation struct of the NetworkNode.Role
-type NetworkNodeMockRoleExpectation struct {
-	mock *NetworkNodeMock
-
-	results *NetworkNodeMockRoleResults
-	Counter uint64
-}
-
-// NetworkNodeMockRoleResults contains results of the NetworkNode.Role
-type NetworkNodeMockRoleResults struct {
-	p1 member.PrimaryRole
-}
-
-// Expect sets up expected params for NetworkNode.Role
-func (mmRole *mNetworkNodeMockRole) Expect() *mNetworkNodeMockRole {
-	if mmRole.mock.funcRole != nil {
-		mmRole.mock.t.Fatalf("NetworkNodeMock.Role mock is already set by Set")
-	}
-
-	if mmRole.defaultExpectation == nil {
-		mmRole.defaultExpectation = &NetworkNodeMockRoleExpectation{}
-	}
-
-	return mmRole
-}
-
-// Inspect accepts an inspector function that has same arguments as the NetworkNode.Role
-func (mmRole *mNetworkNodeMockRole) Inspect(f func()) *mNetworkNodeMockRole {
-	if mmRole.mock.inspectFuncRole != nil {
-		mmRole.mock.t.Fatalf("Inspect function is already set for NetworkNodeMock.Role")
-	}
-
-	mmRole.mock.inspectFuncRole = f
-
-	return mmRole
-}
-
-// Return sets up results that will be returned by NetworkNode.Role
-func (mmRole *mNetworkNodeMockRole) Return(p1 member.PrimaryRole) *NetworkNodeMock {
-	if mmRole.mock.funcRole != nil {
-		mmRole.mock.t.Fatalf("NetworkNodeMock.Role mock is already set by Set")
-	}
-
-	if mmRole.defaultExpectation == nil {
-		mmRole.defaultExpectation = &NetworkNodeMockRoleExpectation{mock: mmRole.mock}
-	}
-	mmRole.defaultExpectation.results = &NetworkNodeMockRoleResults{p1}
-	return mmRole.mock
-}
-
-//Set uses given function f to mock the NetworkNode.Role method
-func (mmRole *mNetworkNodeMockRole) Set(f func() (p1 member.PrimaryRole)) *NetworkNodeMock {
-	if mmRole.defaultExpectation != nil {
-		mmRole.mock.t.Fatalf("Default expectation is already set for the NetworkNode.Role method")
-	}
-
-	if len(mmRole.expectations) > 0 {
-		mmRole.mock.t.Fatalf("Some expectations are already set for the NetworkNode.Role method")
-	}
-
-	mmRole.mock.funcRole = f
-	return mmRole.mock
-}
-
-// Role implements nodeinfo.NetworkNode
-func (mmRole *NetworkNodeMock) Role() (p1 member.PrimaryRole) {
-	mm_atomic.AddUint64(&mmRole.beforeRoleCounter, 1)
-	defer mm_atomic.AddUint64(&mmRole.afterRoleCounter, 1)
-
-	if mmRole.inspectFuncRole != nil {
-		mmRole.inspectFuncRole()
-	}
-
-	if mmRole.RoleMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmRole.RoleMock.defaultExpectation.Counter, 1)
-
-		mm_results := mmRole.RoleMock.defaultExpectation.results
-		if mm_results == nil {
-			mmRole.t.Fatal("No results are set for the NetworkNodeMock.Role")
-		}
-		return (*mm_results).p1
-	}
-	if mmRole.funcRole != nil {
-		return mmRole.funcRole()
-	}
-	mmRole.t.Fatalf("Unexpected call to NetworkNodeMock.Role.")
-	return
-}
-
-// RoleAfterCounter returns a count of finished NetworkNodeMock.Role invocations
-func (mmRole *NetworkNodeMock) RoleAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmRole.afterRoleCounter)
-}
-
-// RoleBeforeCounter returns a count of NetworkNodeMock.Role invocations
-func (mmRole *NetworkNodeMock) RoleBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmRole.beforeRoleCounter)
-}
-
-// MinimockRoleDone returns true if the count of the Role invocations corresponds
-// the number of defined expectations
-func (m *NetworkNodeMock) MinimockRoleDone() bool {
-	for _, e := range m.RoleMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.RoleMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterRoleCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcRole != nil && mm_atomic.LoadUint64(&m.afterRoleCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockRoleInspect logs each unmet expectation
-func (m *NetworkNodeMock) MinimockRoleInspect() {
-	for _, e := range m.RoleMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Error("Expected call to NetworkNodeMock.Role")
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.RoleMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterRoleCounter) < 1 {
-		m.t.Error("Expected call to NetworkNodeMock.Role")
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcRole != nil && mm_atomic.LoadUint64(&m.afterRoleCounter) < 1 {
-		m.t.Error("Expected call to NetworkNodeMock.Role")
-	}
-}
-
 // MinimockFinish checks that all mocked methods have been called the expected number of times
 func (m *NetworkNodeMock) MinimockFinish() {
 	if !m.minimockDone() {
@@ -1095,13 +1095,13 @@ func (m *NetworkNodeMock) MinimockFinish() {
 
 		m.MinimockGetPowerInspect()
 
+		m.MinimockGetPrimaryRoleInspect()
+
+		m.MinimockGetReferenceInspect()
+
 		m.MinimockGetStateInspect()
 
-		m.MinimockIDInspect()
-
 		m.MinimockPublicKeyInspect()
-
-		m.MinimockRoleInspect()
 		m.t.FailNow()
 	}
 }
@@ -1128,8 +1128,8 @@ func (m *NetworkNodeMock) minimockDone() bool {
 		m.MinimockAddressDone() &&
 		m.MinimockGetNodeIDDone() &&
 		m.MinimockGetPowerDone() &&
+		m.MinimockGetPrimaryRoleDone() &&
+		m.MinimockGetReferenceDone() &&
 		m.MinimockGetStateDone() &&
-		m.MinimockIDDone() &&
-		m.MinimockPublicKeyDone() &&
-		m.MinimockRoleDone()
+		m.MinimockPublicKeyDone()
 }

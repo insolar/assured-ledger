@@ -141,7 +141,7 @@ func (nk *nodekeeper) MoveSyncToActive(ctx context.Context, number pulse.Number)
 		len(accessor.GetActiveNodes()),
 	)
 
-	o := accessor.GetActiveNode(nk.origin.ID())
+	o := accessor.GetActiveNode(nk.origin.GetReference())
 	nk.updateOrigin(o.GetPower(), o.GetState())
 
 	stats.Record(ctx, network.ActiveNodes.M(int64(len(accessor.GetActiveNodes()))))

@@ -26,7 +26,7 @@ type Mutator struct {
 }
 
 func (m *Mutator) AddWorkingNode(n nodeinfo.NetworkNode) {
-	if _, ok := m.refIndex[n.ID()]; ok {
+	if _, ok := m.refIndex[n.GetReference()]; ok {
 		return
 	}
 	mutableNode := n.(MutableNode)

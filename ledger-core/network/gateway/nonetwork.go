@@ -46,7 +46,7 @@ func (g *NoNetwork) pause() time.Duration {
 func (g *NoNetwork) Run(ctx context.Context, pulse pulse.Data) {
 	cert := g.CertificateManager.GetCertificate()
 	origin := g.NodeKeeper.GetOrigin()
-	discoveryNodes := network.ExcludeOrigin(cert.GetDiscoveryNodes(), origin.ID())
+	discoveryNodes := network.ExcludeOrigin(cert.GetDiscoveryNodes(), origin.GetReference())
 
 	g.NodeKeeper.SetInitialSnapshot([]nodeinfo.NetworkNode{origin})
 

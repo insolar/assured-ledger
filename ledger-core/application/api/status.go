@@ -37,8 +37,8 @@ func (s *NodeService) GetStatus(r *http.Request, args *interface{}, requestBody 
 	nodes := make([]requester.Node, reply.ActiveListSize)
 	for i, node := range statusReply.Nodes {
 		nodes[i] = requester.Node{
-			Reference: node.ID().String(),
-			Role:      node.Role().String(),
+			Reference: node.GetReference().String(),
+			Role:      node.GetPrimaryRole().String(),
 			IsWorking: node.GetPower() > 0,
 			ID:        uint32(node.GetNodeID()),
 		}
@@ -46,8 +46,8 @@ func (s *NodeService) GetStatus(r *http.Request, args *interface{}, requestBody 
 	reply.Nodes = nodes
 
 	reply.Origin = requester.Node{
-		Reference: statusReply.Origin.ID().String(),
-		Role:      statusReply.Origin.Role().String(),
+		Reference: statusReply.Origin.GetReference().String(),
+		Role:      statusReply.Origin.GetPrimaryRole().String(),
 		IsWorking: statusReply.Origin.GetPower() > 0,
 		ID:        uint32(statusReply.Origin.GetNodeID()),
 	}

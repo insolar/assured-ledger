@@ -27,7 +27,7 @@ import (
 type StaticProfileExtension struct {
 	shortID   node2.ShortNodeID
 	ref       reference.Global
-	signature cryptkit.SignatureHolder
+	signature cryptkit.Signature
 }
 
 func NewStaticProfileExtension(networkNode nodeinfo.NetworkNode) *StaticProfileExtension {
@@ -35,15 +35,15 @@ func NewStaticProfileExtension(networkNode nodeinfo.NetworkNode) *StaticProfileE
 
 	return newStaticProfileExtension(
 		networkNode.GetNodeID(),
-		networkNode.ID(),
+		networkNode.GetReference(),
 		cryptkit.NewSignature(
 			longbits.NewBits512FromBytes(signature.Bytes()),
 			SHA3512Digest.SignedBy(SECP256r1Sign),
-		).AsSignatureHolder(),
+		),
 	)
 }
 
-func newStaticProfileExtension(shortID node2.ShortNodeID, ref reference.Global, signature cryptkit.SignatureHolder) *StaticProfileExtension {
+func newStaticProfileExtension(shortID node2.ShortNodeID, ref reference.Global, signature cryptkit.Signature) *StaticProfileExtension {
 	return &StaticProfileExtension{
 		shortID:   shortID,
 		ref:       ref,
@@ -98,7 +98,7 @@ type StaticProfile struct {
 func NewStaticProfile(networkNode nodeinfo.NetworkNode, certificate nodeinfo.Certificate, keyProcessor cryptography.KeyProcessor) *StaticProfile {
 
 	specialRole := member.SpecialRoleNone
-	if network.IsDiscovery(networkNode.ID(), certificate) {
+	if network.IsDiscovery(networkNode.GetReference(), certificate) {
 		specialRole = member.SpecialRoleDiscovery
 	}
 
@@ -108,7 +108,7 @@ func NewStaticProfile(networkNode nodeinfo.NetworkNode, certificate nodeinfo.Cer
 
 	return newStaticProfile(
 		networkNode.GetNodeID(),
-		StaticRoleToPrimaryRole(networkNode.Role()),
+		networkNode.GetPrimaryRole(),
 		specialRole,
 		NewStaticProfileExtension(networkNode),
 		NewOutbound(networkNode.Address()),
@@ -246,7 +246,10 @@ func NewNetworkNode(profile profiles.ActiveNode) nodeinfo.NetworkNode {
 	store := nip.GetPublicKeyStore()
 	introduction := nip.GetExtension()
 
-	networkNode := node.NewNode(introduction.GetReference(), PrimaryRoleToStaticRole(nip.GetPrimaryRole()), store.(*ECDSAPublicKeyStore).publicKey, nip.GetDefaultEndpoint().GetNameAddress().String(), )
+	networkNode := node.NewNode(introduction.GetReference(),
+		nip.GetPrimaryRole(),
+		store.(*ECDSAPublicKeyStore).publicKey,
+		nip.GetDefaultEndpoint().GetNameAddress().String(), )
 
 	mutableNode := networkNode.(node.MutableNode)
 

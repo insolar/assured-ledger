@@ -25,7 +25,7 @@ func (c Candidate) StaticProfile(keyProcessor cryptography.KeyProcessor) *Static
 	signHolder := cryptkit.NewSignature(
 		longbits.NewBits512FromBytes(c.Signature),
 		SHA3512Digest.SignedBy(SECP256r1Sign),
-	).AsSignatureHolder()
+	)
 
 	extension := newStaticProfileExtension(
 		c.ShortID,

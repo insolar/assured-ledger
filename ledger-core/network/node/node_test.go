@@ -16,7 +16,7 @@ import (
 
 func TestNode_ShortID(t *testing.T) {
 	n := NewNode(gen.UniqueGlobalRef(), member.PrimaryRoleVirtual, nil, "127.0.0.1")
-	assert.EqualValues(t, GenerateUintShortID(n.ID()), n.GetNodeID())
+	assert.EqualValues(t, GenerateUintShortID(n.GetReference()), n.GetNodeID())
 	n.(MutableNode).SetShortID(11)
 	assert.EqualValues(t, 11, n.GetNodeID())
 }

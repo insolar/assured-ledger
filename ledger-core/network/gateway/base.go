@@ -369,7 +369,6 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 	}
 	data := request.GetRequest().GetAuthorize().AuthorizeData
 
-	// TODO version must be checked at protocol level, it should not be a part of node profile
 	if data.Version != version.Version {
 		return nil, throw.Errorf("version mismatch in AuthorizeRequest: local=%s received=%s", version.Version, data.Version)
 	}
@@ -402,7 +401,7 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 
 	o := g.OriginProvider.GetOrigin()
 	// workaround bootstrap to the origin node
-	reconnectHost, err := host.NewHostNS(o.Address(), o.ID(), o.GetNodeID())
+	reconnectHost, err := host.NewHostNS(o.Address(), o.GetReference(), o.GetNodeID())
 	if err != nil {
 		err = throw.W(err, "Failed to get reconnectHost")
 		inslogger.FromContext(ctx).Warn(err.Error())
@@ -416,7 +415,7 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 		return nil, err
 	}
 
-	permit, err := bootstrap.CreatePermit(g.OriginProvider.GetOrigin().ID(),
+	permit, err := bootstrap.CreatePermit(g.OriginProvider.GetOrigin().GetReference(),
 		reconnectHost,
 		pubKey,
 		g.CryptographyService,
@@ -472,7 +471,7 @@ func (g *Base) FailState(ctx context.Context, reason string) {
 	o := g.OriginProvider.GetOrigin()
 	wrapReason := fmt.Sprintf("Abort node with address: %s role: %s state: %s, reason: %s",
 		o.Address(),
-		o.Role().String(),
+		o.GetPrimaryRole().String(),
 		g.Gatewayer.Gateway().GetState().String(),
 		reason,
 	)
