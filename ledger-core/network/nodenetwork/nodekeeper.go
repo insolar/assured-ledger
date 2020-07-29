@@ -11,10 +11,14 @@ import (
 	"net"
 	"sync"
 
+	node2 "github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/censusimpl"
 	"github.com/insolar/assured-ledger/ledger-core/network/storage"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/resolver"
 	"github.com/insolar/assured-ledger/ledger-core/network/node"
@@ -31,8 +35,7 @@ import (
 
 // NewNodeNetwork create active node component
 func NewNodeNetwork(configuration configuration.Transport, certificate nodeinfo.Certificate) (network.NodeNetwork, error) { // nolint:staticcheck
-	isJoiner := !network.OriginIsDiscovery(certificate)
-	origin, err := createOrigin(configuration, certificate, isJoiner)
+	origin, err := createOrigin(configuration, certificate)
 	if err != nil {
 		return nil, throw.W(err, "Failed to create origin node")
 	}
@@ -40,23 +43,44 @@ func NewNodeNetwork(configuration configuration.Transport, certificate nodeinfo.
 	return nodeKeeper, nil
 }
 
-func createOrigin(configuration configuration.Transport, certificate nodeinfo.Certificate, joiner bool) (nodeinfo.NetworkNode, error) {
+func createOrigin(configuration configuration.Transport, cert nodeinfo.Certificate) (nodeinfo.NetworkNode, error) {
 	publicAddress, err := resolveAddress(configuration)
 	if err != nil {
 		return nil, throw.W(err, "Failed to resolve public address")
 	}
 
-	role := certificate.GetRole()
+	role := cert.GetRole()
 	if role == member.PrimaryRoleUnknown {
 		panic(throw.IllegalValue())
-		// global.Info("[ createOrigin ] Use role LightMaterial, since no role in certificate")
-		// role = member.PrimaryRoleLightMaterial
 	}
 
-	if joiner {
-		return node.NewJoiningNode(certificate.GetNodeRef(), role, certificate.GetPublicKey(), publicAddress), nil
+	ref := cert.GetNodeRef()
+
+	specialRole := member.SpecialRoleNone
+	isDiscovery := network.IsDiscovery(ref, cert)
+	if isDiscovery {
+		specialRole = member.SpecialRoleDiscovery
 	}
-	return node.NewActiveNode(certificate.GetNodeRef(), role, certificate.GetPublicKey(), publicAddress), nil
+
+	pk := cert.GetPublicKey()
+	nodeID := node2.ShortNodeID(node.GenerateUintShortID(ref))
+	staticExt := adapters.NewStaticProfileExtensionExt(nodeID, ref, cryptkit.Signature{})
+
+	staticProfile := adapters.NewStaticProfileExt2(
+		node2.ShortNodeID(node.GenerateUintShortID(ref)), role, specialRole,
+		staticExt, adapters.NewOutbound(publicAddress),
+		adapters.ECDSAPublicKeyAsPublicKeyStore(pk),
+		nil, cryptkit.SignedDigest{},
+	)
+
+	var verifier cryptkit.SignatureVerifier // = nil
+	var anp censusimpl.NodeProfileSlot
+	if isDiscovery {
+		anp = censusimpl.NewNodeProfile(0, staticProfile, verifier, staticProfile.GetStartPower())
+	} else {
+		anp = censusimpl.NewJoinerProfile(staticProfile, verifier)
+	}
+	return adapters.NewNetworkNode(&anp), nil
 }
 
 func resolveAddress(configuration configuration.Transport) (string, error) {

@@ -6,11 +6,8 @@
 package node
 
 import (
-	"crypto"
 	"hash/crc32"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
-	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
@@ -18,12 +15,3 @@ import (
 func GenerateUintShortID(ref reference.Global) uint32 {
 	return crc32.ChecksumIEEE(ref.AsBytes())
 }
-
-func NewActiveNode(ref reference.Global, role member.PrimaryRole, publicKey crypto.PublicKey, address string) nodeinfo.NetworkNode {
-	return newMutableNode(ref, role, publicKey, nodeinfo.Ready, address)
-}
-
-func NewJoiningNode(ref reference.Global, role member.PrimaryRole, publicKey crypto.PublicKey, address string) nodeinfo.NetworkNode {
-	return newMutableNode(ref, role, publicKey, nodeinfo.Joining, address)
-}
-

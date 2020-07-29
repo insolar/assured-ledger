@@ -51,7 +51,7 @@ func TestSnapshot_Equal(t *testing.T) {
 	snapshot2.pulse = pulse.Number(10)
 
 	genNodeCopy := func(reference reference.Global) nodeinfo.NetworkNode {
-		return newMutableNode(reference, member.PrimaryRoleLightMaterial,
+		return newMutableNode(nil, reference, member.PrimaryRoleLightMaterial,
 			nil, nodeinfo.Ready, "127.0.0.1:0")
 	}
 

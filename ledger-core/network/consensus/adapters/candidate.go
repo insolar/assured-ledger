@@ -27,13 +27,13 @@ func (c Candidate) StaticProfile(keyProcessor cryptography.KeyProcessor) *Static
 		SHA3512Digest.SignedBy(SECP256r1Sign),
 	)
 
-	extension := newStaticProfileExtension(
+	extension := NewStaticProfileExtensionExt(
 		c.ShortID,
 		c.Ref,
 		signHolder,
 	)
 
-	return newStaticProfile(
+	return NewStaticProfileExt2(
 		c.ShortID,
 		c.PrimaryRole,
 		c.SpecialRole,

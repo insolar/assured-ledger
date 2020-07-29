@@ -34,6 +34,7 @@ func TestComponents(t *testing.T) {
 	cfg.AdminAPIRunner.Address = "0.0.0.0:0"
 	cfg.APIRunner.SwaggerPath = "../../../application/api/spec/api-exported.yaml"
 	cfg.AdminAPIRunner.SwaggerPath = "../../../application/api/spec/api-exported.yaml"
+	cfg.Host.Transport.Address = "0.0.0.0:0"
 
 	bootstrapComponents := initBootstrapComponents(ctx, cfg)
 	cert := initCertificateManager(

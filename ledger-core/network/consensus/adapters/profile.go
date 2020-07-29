@@ -6,6 +6,7 @@
 package adapters
 
 import (
+	"crypto"
 	"crypto/ecdsa"
 	"fmt"
 	"time"
@@ -31,14 +32,14 @@ type StaticProfileExtension struct {
 }
 
 func NewStaticProfileExtension(networkNode nodeinfo.NetworkNode) *StaticProfileExtension {
-	return newStaticProfileExtension(
+	return NewStaticProfileExtensionExt(
 		networkNode.GetNodeID(),
 		networkNode.GetReference(),
 		networkNode.GetSignature().GetSignatureHolder().CopyOfSignature(),
 	)
 }
 
-func newStaticProfileExtension(shortID node2.ShortNodeID, ref reference.Global, signature cryptkit.Signature) *StaticProfileExtension {
+func NewStaticProfileExtensionExt(shortID node2.ShortNodeID, ref reference.Global, signature cryptkit.Signature) *StaticProfileExtension {
 	return &StaticProfileExtension{
 		shortID:   shortID,
 		ref:       ref,
@@ -105,7 +106,7 @@ func NewStaticProfileExt(networkNode nodeinfo.NetworkNode, addr string, certific
 
 	publicKey := networkNode.PublicKey().(*ecdsa.PublicKey)
 
-	return newStaticProfile(
+	return NewStaticProfileExt2(
 		networkNode.GetNodeID(),
 		networkNode.GetPrimaryRole(),
 		specialRole,
@@ -117,7 +118,14 @@ func NewStaticProfileExt(networkNode nodeinfo.NetworkNode, addr string, certific
 	)
 }
 
-func newStaticProfile(
+func ECDSAPublicKeyAsPublicKeyStore(pk crypto.PublicKey) cryptkit.PublicKeyStore {
+	if pk == nil {
+		return nil
+	}
+	return NewECDSAPublicKeyStore(pk.(*ecdsa.PublicKey))
+}
+
+func NewStaticProfileExt2(
 	shortID node2.ShortNodeID,
 	primaryRole member.PrimaryRole,
 	specialRole member.SpecialRole,

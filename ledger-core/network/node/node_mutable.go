@@ -13,8 +13,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type MutableNode interface {
@@ -25,6 +27,7 @@ type MutableNode interface {
 }
 
 func newMutableNode(
+	static profiles.StaticProfile,
 	id reference.Global,
 	role member.PrimaryRole,
 	publicKey crypto.PublicKey,
@@ -32,6 +35,7 @@ func newMutableNode(
 	address string) *nodeInfo {
 
 	return &nodeInfo{
+		static:        static,
 		nodeID:        id,
 		nodeShortID:   GenerateUintShortID(id),
 		nodeRole:      role,
@@ -42,10 +46,11 @@ func newMutableNode(
 }
 
 func NewTestNode(id reference.Global, role member.PrimaryRole, publicKey crypto.PublicKey, address string) MutableNode {
-	return newMutableNode(id, role, publicKey, nodeinfo.Ready, address)
+	return newMutableNode(nil, id, role, publicKey, nodeinfo.Ready, address)
 }
 
 type nodeInfo struct {
+	static        profiles.StaticProfile
 	nodeID        reference.Global
 	nodeShortID   uint32
 	nodePublicKey crypto.PublicKey
@@ -56,6 +61,13 @@ type nodeInfo struct {
 
 	mutex          sync.RWMutex
 	digest         cryptkit.SignedDigest
+}
+
+func (n *nodeInfo) GetStatic() profiles.StaticProfile {
+	if n.static != nil {
+		return n.static
+	}
+	panic(throw.IllegalState())
 }
 
 func (n *nodeInfo) GetState() nodeinfo.State {

@@ -21,6 +21,10 @@ type profileNode struct {
 	n profiles.ActiveNode
 }
 
+func (v profileNode) GetStatic() profiles.StaticProfile {
+	return v.n.GetStatic()
+}
+
 func (v profileNode) GetReference() reference.Global {
 	return v.n.GetStatic().GetExtension().GetReference()
 }
