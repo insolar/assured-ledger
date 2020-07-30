@@ -99,13 +99,13 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 
 	smWrapper := slotMachine.AddStateMachine(ctx, &smExecute)
 
-	require.Equal(t, uint8(0), sharedState.PotentialOrderedPendingCount)
-	require.Equal(t, uint8(0), sharedState.PotentialUnorderedPendingCount)
+	require.Equal(t, 0, sharedState.KnownRequests.GetList(contract.CallTolerable).CountActive())
+	require.Equal(t, 0, sharedState.KnownRequests.GetList(contract.CallIntolerable).CountActive())
 
 	slotMachine.RunTil(smWrapper.BeforeStep(smExecute.stepExecuteStart))
 
-	require.Equal(t, uint8(1), sharedState.PotentialOrderedPendingCount)
-	require.Equal(t, uint8(0), sharedState.PotentialUnorderedPendingCount)
+	require.Equal(t, 1, sharedState.KnownRequests.GetList(contract.CallTolerable).CountActive())
+	require.Equal(t, 0, sharedState.KnownRequests.GetList(contract.CallIntolerable).CountActive())
 
 	require.NoError(t, catalogWrapper.CheckDone())
 	mc.Finish()
@@ -335,13 +335,13 @@ func TestSMExecute_Semi_ConstructorOnMissingObject(t *testing.T) {
 
 	smWrapper := slotMachine.AddStateMachine(ctx, &smExecute)
 
-	require.Equal(t, uint8(0), sharedState.PotentialOrderedPendingCount)
-	require.Equal(t, uint8(0), sharedState.PotentialUnorderedPendingCount)
+	require.Equal(t, 0, sharedState.KnownRequests.GetList(contract.CallTolerable).CountActive())
+	require.Equal(t, 0, sharedState.KnownRequests.GetList(contract.CallIntolerable).CountActive())
 
 	slotMachine.RunTil(smWrapper.BeforeStep(smExecute.stepExecuteStart))
 
-	require.Equal(t, uint8(1), sharedState.PotentialOrderedPendingCount)
-	require.Equal(t, uint8(0), sharedState.PotentialUnorderedPendingCount)
+	require.Equal(t, 1, sharedState.KnownRequests.GetList(contract.CallTolerable).CountActive())
+	require.Equal(t, 0, sharedState.KnownRequests.GetList(contract.CallIntolerable).CountActive())
 
 	require.NoError(t, catalogWrapper.CheckDone())
 	mc.Finish()
@@ -429,15 +429,14 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 
 	smWrapper := slotMachine.AddStateMachine(ctx, &smExecute)
 
-	require.Equal(t, uint8(0), sharedState.PotentialOrderedPendingCount)
-	require.Equal(t, uint8(0), sharedState.PotentialUnorderedPendingCount)
+	require.Equal(t, 0, sharedState.KnownRequests.GetList(contract.CallTolerable).CountActive())
+	require.Equal(t, 0, sharedState.KnownRequests.GetList(contract.CallIntolerable).CountActive())
 
 	slotMachine.RunTil(smWrapper.AfterStop())
 
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, gotResult)
-
-	require.Equal(t, uint8(0), sharedState.PotentialOrderedPendingCount)
-	require.Equal(t, uint8(0), sharedState.PotentialUnorderedPendingCount)
+	require.Equal(t, 0, sharedState.KnownRequests.GetList(contract.CallTolerable).CountActive())
+	require.Equal(t, 0, sharedState.KnownRequests.GetList(contract.CallIntolerable).CountActive())
 
 	require.NoError(t, catalogWrapper.CheckDone())
 	mc.Finish()
@@ -511,13 +510,13 @@ func TestSMExecute_Semi_MethodOnEmptyObject(t *testing.T) {
 
 	smWrapper := slotMachine.AddStateMachine(ctx, &smExecute)
 
-	require.Equal(t, uint8(0), sharedState.PotentialOrderedPendingCount)
-	require.Equal(t, uint8(0), sharedState.PotentialUnorderedPendingCount)
+	require.Equal(t, 0, sharedState.KnownRequests.GetList(contract.CallTolerable).CountActive())
+	require.Equal(t, 0, sharedState.KnownRequests.GetList(contract.CallIntolerable).CountActive())
 
 	slotMachine.RunTil(predicate.AfterCustomEventType(reflect.TypeOf(markerPendingConstructorWait{})))
 
-	require.Equal(t, uint8(0), sharedState.PotentialOrderedPendingCount)
-	require.Equal(t, uint8(0), sharedState.PotentialUnorderedPendingCount)
+	require.Equal(t, 0, sharedState.KnownRequests.GetList(contract.CallTolerable).CountActive())
+	require.Equal(t, 0, sharedState.KnownRequests.GetList(contract.CallIntolerable).CountActive())
 
 	slotMachine.Migrate()
 
