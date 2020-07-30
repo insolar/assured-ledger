@@ -227,10 +227,10 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 	s.execution.ObjectDescriptor = objectDescriptor
 	s.pendingConstructorFinished = semaphorePendingConstructorFinished
 
-	// if !s.execution.ObjectDescriptor.IsActive() {
-	// 	s.prepareExecutionError(throw.E("attempt to call method on object state that is deactivated"))
-	// 	return ctx.Jump(s.stepSendCallResult)
-	// }
+	if s.execution.ObjectDescriptor.Deactivated() {
+		s.prepareExecutionError(throw.E("attempt to call method on object state that is deactivated"))
+		return ctx.Jump(s.stepSendCallResult)
+	}
 
 	if s.isConstructor {
 		switch objectState {

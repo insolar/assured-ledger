@@ -249,8 +249,11 @@ func TestVirtual_CallMethod_On_CompletelyDeactivatedObject(t *testing.T) {
 	}
 }
 
+// 1. Create object
+// 2. Deactivate object
+// 3. Send request on Dirty state - get error
+// 4. Send request on Validated state - get response
 func TestVirtual_CallMethod_On_DeactivatedDirtyState(t *testing.T) {
-	t.Skip("https://insolar.atlassian.net/browse/PLAT-416")
 	defer commontestutils.LeakTester(t)
 
 	mc := minimock.NewController(t)
@@ -264,17 +267,16 @@ func TestVirtual_CallMethod_On_DeactivatedDirtyState(t *testing.T) {
 	server.ReplaceRunner(runnerMock)
 
 	server.Init(ctx)
-
-	prevPulse := server.GetPulse().PulseNumber
-
 	server.IncrementPulseAndWaitIdle(ctx)
 
 	var (
 		object           = reference.NewSelf(server.RandomLocalWithPulse())
 		runnerResult     = []byte("123")
 		deactivateMethod = "deactivatingMethod"
+		prevPulse        = server.GetPulse().PulseNumber
 	)
 
+	server.IncrementPulseAndWaitIdle(ctx)
 	{
 		// Create object
 		Method_PrepareObject(ctx, server, payload.Ready, object, prevPulse)
@@ -306,7 +308,7 @@ func TestVirtual_CallMethod_On_DeactivatedDirtyState(t *testing.T) {
 
 		typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 		typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
-			// TODO: check result !!!!!!!!!
+			require.Equal(t, runnerResult, res.ReturnArguments)
 			require.Equal(t, res.Callee, object)
 			gotResult <- struct{}{}
 			return false // no resend msg
@@ -326,7 +328,9 @@ func TestVirtual_CallMethod_On_DeactivatedDirtyState(t *testing.T) {
 		commontestutils.WaitSignalsTimed(t, 10*time.Second, gotResult)
 	}
 
+	////
 	// Here object dirty state is deactivated
+	////
 
 	{
 		// send call request on deactivated object
@@ -349,6 +353,7 @@ func TestVirtual_CallMethod_On_DeactivatedDirtyState(t *testing.T) {
 
 		for _, test := range testcase {
 			t.Run(test.name, func(t *testing.T) {
+				requestResult := requestresult.New([]byte("838383"), gen.UniqueGlobalRef())
 				gotResult := make(chan struct{})
 				typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 				typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
@@ -358,7 +363,7 @@ func TestVirtual_CallMethod_On_DeactivatedDirtyState(t *testing.T) {
 						require.Equal(t, &foundation.Error{"attempt to call method on object state that is deactivated"}, contractErr)
 						require.NoError(t, sysErr)
 					} else {
-						// TODO: check result !!!!!!!!!
+						require.Equal(t, requestResult.RawResult, res.ReturnArguments)
 					}
 
 					gotResult <- struct{}{}
@@ -366,13 +371,13 @@ func TestVirtual_CallMethod_On_DeactivatedDirtyState(t *testing.T) {
 					return false // no resend msg
 				})
 
-				callMethod := "SomeCallMethod"
-				isolation = contract.MethodIsolation{Interference: contract.CallTolerable, State: test.objectState}
+				callMethod := "SomeCallMethod" + test.name
+				isolation = contract.MethodIsolation{Interference: contract.CallIntolerable, State: test.objectState}
 				if test.shouldExecute {
 					objectExecutionMock := runnerMock.AddExecutionMock(callMethod)
 					objectExecutionMock.AddStart(nil, &execution.Update{
 						Type:   execution.Done,
-						Result: requestresult.New([]byte("123"), gen.UniqueGlobalRef()),
+						Result: requestResult,
 					},
 					)
 					runnerMock.AddExecutionClassify(callMethod, isolation, nil)
