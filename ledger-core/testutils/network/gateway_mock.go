@@ -9,9 +9,10 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
+
 	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	mm_network "github.com/insolar/assured-ledger/ledger-core/network"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
 
@@ -55,7 +56,7 @@ type GatewayMock struct {
 	beforeFailStateCounter uint64
 	FailStateMock          mGatewayMockFailState
 
-	funcGetState          func() (n1 nodeinfo.NetworkState)
+	funcGetState          func() (n1 mm_network.State)
 	inspectFuncGetState   func()
 	afterGetStateCounter  uint64
 	beforeGetStateCounter uint64
@@ -67,8 +68,8 @@ type GatewayMock struct {
 	beforeLatestPulseCounter uint64
 	LatestPulseMock          mGatewayMockLatestPulse
 
-	funcNewGateway          func(ctx context.Context, n1 nodeinfo.NetworkState) (g1 mm_network.Gateway)
-	inspectFuncNewGateway   func(ctx context.Context, n1 nodeinfo.NetworkState)
+	funcNewGateway          func(ctx context.Context, n1 mm_network.State) (g1 mm_network.Gateway)
+	inspectFuncNewGateway   func(ctx context.Context, n1 mm_network.State)
 	afterNewGatewayCounter  uint64
 	beforeNewGatewayCounter uint64
 	NewGatewayMock          mGatewayMockNewGateway
@@ -1180,7 +1181,7 @@ type GatewayMockGetStateExpectation struct {
 
 // GatewayMockGetStateResults contains results of the Gateway.GetState
 type GatewayMockGetStateResults struct {
-	n1 nodeinfo.NetworkState
+	n1 mm_network.State
 }
 
 // Expect sets up expected params for Gateway.GetState
@@ -1208,7 +1209,7 @@ func (mmGetState *mGatewayMockGetState) Inspect(f func()) *mGatewayMockGetState 
 }
 
 // Return sets up results that will be returned by Gateway.GetState
-func (mmGetState *mGatewayMockGetState) Return(n1 nodeinfo.NetworkState) *GatewayMock {
+func (mmGetState *mGatewayMockGetState) Return(n1 mm_network.State) *GatewayMock {
 	if mmGetState.mock.funcGetState != nil {
 		mmGetState.mock.t.Fatalf("GatewayMock.GetState mock is already set by Set")
 	}
@@ -1221,7 +1222,7 @@ func (mmGetState *mGatewayMockGetState) Return(n1 nodeinfo.NetworkState) *Gatewa
 }
 
 //Set uses given function f to mock the Gateway.GetState method
-func (mmGetState *mGatewayMockGetState) Set(f func() (n1 nodeinfo.NetworkState)) *GatewayMock {
+func (mmGetState *mGatewayMockGetState) Set(f func() (n1 mm_network.State)) *GatewayMock {
 	if mmGetState.defaultExpectation != nil {
 		mmGetState.mock.t.Fatalf("Default expectation is already set for the Gateway.GetState method")
 	}
@@ -1235,7 +1236,7 @@ func (mmGetState *mGatewayMockGetState) Set(f func() (n1 nodeinfo.NetworkState))
 }
 
 // GetState implements network.Gateway
-func (mmGetState *GatewayMock) GetState() (n1 nodeinfo.NetworkState) {
+func (mmGetState *GatewayMock) GetState() (n1 mm_network.State) {
 	mm_atomic.AddUint64(&mmGetState.beforeGetStateCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetState.afterGetStateCounter, 1)
 
@@ -1542,7 +1543,7 @@ type GatewayMockNewGatewayExpectation struct {
 // GatewayMockNewGatewayParams contains parameters of the Gateway.NewGateway
 type GatewayMockNewGatewayParams struct {
 	ctx context.Context
-	n1  nodeinfo.NetworkState
+	n1  mm_network.State
 }
 
 // GatewayMockNewGatewayResults contains results of the Gateway.NewGateway
@@ -1551,7 +1552,7 @@ type GatewayMockNewGatewayResults struct {
 }
 
 // Expect sets up expected params for Gateway.NewGateway
-func (mmNewGateway *mGatewayMockNewGateway) Expect(ctx context.Context, n1 nodeinfo.NetworkState) *mGatewayMockNewGateway {
+func (mmNewGateway *mGatewayMockNewGateway) Expect(ctx context.Context, n1 mm_network.State) *mGatewayMockNewGateway {
 	if mmNewGateway.mock.funcNewGateway != nil {
 		mmNewGateway.mock.t.Fatalf("GatewayMock.NewGateway mock is already set by Set")
 	}
@@ -1571,7 +1572,7 @@ func (mmNewGateway *mGatewayMockNewGateway) Expect(ctx context.Context, n1 nodei
 }
 
 // Inspect accepts an inspector function that has same arguments as the Gateway.NewGateway
-func (mmNewGateway *mGatewayMockNewGateway) Inspect(f func(ctx context.Context, n1 nodeinfo.NetworkState)) *mGatewayMockNewGateway {
+func (mmNewGateway *mGatewayMockNewGateway) Inspect(f func(ctx context.Context, n1 mm_network.State)) *mGatewayMockNewGateway {
 	if mmNewGateway.mock.inspectFuncNewGateway != nil {
 		mmNewGateway.mock.t.Fatalf("Inspect function is already set for GatewayMock.NewGateway")
 	}
@@ -1595,7 +1596,7 @@ func (mmNewGateway *mGatewayMockNewGateway) Return(g1 mm_network.Gateway) *Gatew
 }
 
 //Set uses given function f to mock the Gateway.NewGateway method
-func (mmNewGateway *mGatewayMockNewGateway) Set(f func(ctx context.Context, n1 nodeinfo.NetworkState) (g1 mm_network.Gateway)) *GatewayMock {
+func (mmNewGateway *mGatewayMockNewGateway) Set(f func(ctx context.Context, n1 mm_network.State) (g1 mm_network.Gateway)) *GatewayMock {
 	if mmNewGateway.defaultExpectation != nil {
 		mmNewGateway.mock.t.Fatalf("Default expectation is already set for the Gateway.NewGateway method")
 	}
@@ -1610,7 +1611,7 @@ func (mmNewGateway *mGatewayMockNewGateway) Set(f func(ctx context.Context, n1 n
 
 // When sets expectation for the Gateway.NewGateway which will trigger the result defined by the following
 // Then helper
-func (mmNewGateway *mGatewayMockNewGateway) When(ctx context.Context, n1 nodeinfo.NetworkState) *GatewayMockNewGatewayExpectation {
+func (mmNewGateway *mGatewayMockNewGateway) When(ctx context.Context, n1 mm_network.State) *GatewayMockNewGatewayExpectation {
 	if mmNewGateway.mock.funcNewGateway != nil {
 		mmNewGateway.mock.t.Fatalf("GatewayMock.NewGateway mock is already set by Set")
 	}
@@ -1630,7 +1631,7 @@ func (e *GatewayMockNewGatewayExpectation) Then(g1 mm_network.Gateway) *GatewayM
 }
 
 // NewGateway implements network.Gateway
-func (mmNewGateway *GatewayMock) NewGateway(ctx context.Context, n1 nodeinfo.NetworkState) (g1 mm_network.Gateway) {
+func (mmNewGateway *GatewayMock) NewGateway(ctx context.Context, n1 mm_network.State) (g1 mm_network.Gateway) {
 	mm_atomic.AddUint64(&mmNewGateway.beforeNewGatewayCounter, 1)
 	defer mm_atomic.AddUint64(&mmNewGateway.afterNewGatewayCounter, 1)
 

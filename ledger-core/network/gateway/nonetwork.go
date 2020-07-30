@@ -12,7 +12,6 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -66,19 +65,19 @@ func (g *NoNetwork) Run(ctx context.Context, pulse pulse.Data) {
 		g.backoff = 0
 
 		g.bootstrapTimer = time.NewTimer(g.bootstrapETA)
-		g.Gatewayer.SwitchState(ctx, nodeinfo.WaitConsensus, pulse)
+		g.Gatewayer.SwitchState(ctx, network.WaitConsensus, pulse)
 		return
 	}
 
 	time.Sleep(g.pause())
 	if g.isDiscovery {
 		time.Sleep(time.Second * time.Duration(rand.Intn(20)))
-		g.Gatewayer.SwitchState(ctx, nodeinfo.DiscoveryBootstrap, pulse)
+		g.Gatewayer.SwitchState(ctx, network.DiscoveryBootstrap, pulse)
 	} else {
-		g.Gatewayer.SwitchState(ctx, nodeinfo.JoinerBootstrap, pulse)
+		g.Gatewayer.SwitchState(ctx, network.JoinerBootstrap, pulse)
 	}
 }
 
-func (g *NoNetwork) GetState() nodeinfo.NetworkState {
-	return nodeinfo.NoNetworkState
+func (g *NoNetwork) GetState() network.State {
+	return network.NoNetworkState
 }

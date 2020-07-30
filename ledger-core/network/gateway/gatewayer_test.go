@@ -13,7 +13,6 @@ import (
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/network"
@@ -29,12 +28,12 @@ func TestNewGatewayer(t *testing.T) {
 
 	gw := mock.NewGatewayMock(mc)
 
-	gw.GetStateMock.Set(func() (n1 nodeinfo.NetworkState) {
-		return nodeinfo.NoNetworkState
+	gw.GetStateMock.Set(func() (n1 network.State) {
+		return network.NoNetworkState
 	})
 
-	gw.NewGatewayMock.Set(func(ctx context.Context, s nodeinfo.NetworkState) (g1 network.Gateway) {
-		assert.Equal(t, nodeinfo.WaitConsensus, s)
+	gw.NewGatewayMock.Set(func(ctx context.Context, s network.State) (g1 network.Gateway) {
+		assert.Equal(t, network.WaitConsensus, s)
 		return gw
 	})
 
@@ -43,7 +42,7 @@ func TestNewGatewayer(t *testing.T) {
 
 	gatewayer := NewGatewayer(gw)
 	assert.Equal(t, gw, gatewayer.Gateway())
-	assert.Equal(t, nodeinfo.NoNetworkState, gatewayer.Gateway().GetState())
+	assert.Equal(t, network.NoNetworkState, gatewayer.Gateway().GetState())
 
-	gatewayer.SwitchState(context.Background(), nodeinfo.WaitConsensus, pulsestor.GenesisPulse.Data)
+	gatewayer.SwitchState(context.Background(), network.WaitConsensus, pulsestor.GenesisPulse.Data)
 }

@@ -13,10 +13,10 @@ import (
 	"github.com/insolar/rpc/v2"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/api/requester"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/trace"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 )
 
 // Get returns status info

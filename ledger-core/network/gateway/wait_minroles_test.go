@@ -13,10 +13,10 @@ import (
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	mock "github.com/insolar/assured-ledger/ledger-core/testutils/network"
@@ -45,7 +45,7 @@ func TestWaitMinroles_MinrolesNotHappenedInETA(t *testing.T) {
 		return waitMinRoles
 	})
 
-	assert.Equal(t, nodeinfo.WaitMinRoles, waitMinRoles.GetState())
+	assert.Equal(t, network.WaitMinRoles, waitMinRoles.GetState())
 	waitMinRoles.Gatewayer = gatewayer
 	waitMinRoles.bootstrapETA = time.Millisecond
 	waitMinRoles.bootstrapTimer = time.NewTimer(waitMinRoles.bootstrapETA)
@@ -59,8 +59,8 @@ func TestWaitMinroles_MinrolesHappenedInETA(t *testing.T) {
 	defer mc.Wait(time.Second*10)
 
 	gatewayer := mock.NewGatewayerMock(mc)
-	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state nodeinfo.NetworkState, pulse pulse.Data) {
-		assert.Equal(t, nodeinfo.WaitPulsar, state)
+	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state network.State, pulse pulse.Data) {
+		assert.Equal(t, network.WaitPulsar, state)
 	})
 
 	ref := gen.UniqueGlobalRef()

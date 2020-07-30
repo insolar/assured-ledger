@@ -10,8 +10,8 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill/message"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeset"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
@@ -81,7 +81,7 @@ func (n *ServiceNetwork) Init(ctx context.Context) error {
 	}
 
 	n.BaseGateway = &gateway.Base{Options: options}
-	n.Gatewayer = gateway.NewGatewayer(n.BaseGateway.NewGateway(ctx, nodeinfo.NoNetworkState))
+	n.Gatewayer = gateway.NewGatewayer(n.BaseGateway.NewGateway(ctx, network.NoNetworkState))
 
 	table := &routing.Table{}
 

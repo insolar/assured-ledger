@@ -12,8 +12,8 @@ import (
 
 	"go.opencensus.io/stats"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 
@@ -36,7 +36,7 @@ type nodekeeper struct {
 	syncLock  sync.RWMutex
 
 	originRef reference.Global
-	origin nodeinfo.NetworkNode
+	origin    nodeinfo.NetworkNode
 	syncNodes []nodeinfo.NetworkNode
 
 	snapshotStorage *MemoryStorage

@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/network/mutable"
@@ -27,8 +27,8 @@ func TestGetNetworkStatus(t *testing.T) {
 	sn := &ServiceNetwork{}
 	gwer := testutils.NewGatewayerMock(t)
 	gw := testutils.NewGatewayMock(t)
-	ins := nodeinfo.NetworkState(1)
-	gw.GetStateMock.Set(func() nodeinfo.NetworkState { return ins })
+	ins := network.State(1)
+	gw.GetStateMock.Set(func() network.State { return ins })
 	gwer.GatewayMock.Set(func() network.Gateway { return gw })
 	sn.Gatewayer = gwer
 

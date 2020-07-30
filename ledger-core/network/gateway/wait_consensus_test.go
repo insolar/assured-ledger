@@ -13,7 +13,6 @@ import (
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/mocklog"
@@ -43,12 +42,12 @@ func TestWaitConsensus_ConsensusHappenedInETA(t *testing.T) {
 	defer mc.Wait(time.Second*10)
 
 	gatewayer := mock.NewGatewayerMock(mc)
-	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state nodeinfo.NetworkState, pulse pulse.Data) {
-		assert.Equal(t, nodeinfo.WaitMajority, state)
+	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state network.State, pulse pulse.Data) {
+		assert.Equal(t, network.WaitMajority, state)
 	})
 
 	waitConsensus := newWaitConsensus(&Base{})
-	assert.Equal(t, nodeinfo.WaitConsensus, waitConsensus.GetState())
+	assert.Equal(t, network.WaitConsensus, waitConsensus.GetState())
 	waitConsensus.Gatewayer = gatewayer
 	waitConsensus.bootstrapETA = time.Second
 	waitConsensus.bootstrapTimer = time.NewTimer(waitConsensus.bootstrapETA)

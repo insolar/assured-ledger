@@ -16,10 +16,10 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
 	transport2 "github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/transport"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/censusimpl"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -90,28 +90,28 @@ type Base struct {
 }
 
 // NewGateway creates new gateway on top of existing
-func (g *Base) NewGateway(ctx context.Context, state nodeinfo.NetworkState) network.Gateway {
+func (g *Base) NewGateway(ctx context.Context, state network.State) network.Gateway {
 	inslogger.FromContext(ctx).Infof("NewGateway %s", state.String())
 	switch state {
-	case nodeinfo.NoNetworkState:
+	case network.NoNetworkState:
 		g.Self = newNoNetwork(g)
-	case nodeinfo.CompleteNetworkState:
+	case network.CompleteNetworkState:
 		g.Self = newComplete(g)
-	case nodeinfo.JoinerBootstrap:
+	case network.JoinerBootstrap:
 		g.Self = newJoinerBootstrap(g)
-	case nodeinfo.DiscoveryBootstrap:
+	case network.DiscoveryBootstrap:
 		g.Self = newDiscoveryBootstrap(g)
-	case nodeinfo.WaitConsensus:
+	case network.WaitConsensus:
 		err := g.StartConsensus(ctx)
 		if err != nil {
 			g.FailState(ctx, fmt.Sprintf("Failed to start consensus: %s", err))
 		}
 		g.Self = newWaitConsensus(g)
-	case nodeinfo.WaitMajority:
+	case network.WaitMajority:
 		g.Self = newWaitMajority(g)
-	case nodeinfo.WaitMinRoles:
+	case network.WaitMinRoles:
 		g.Self = newWaitMinRoles(g)
-	case nodeinfo.WaitPulsar:
+	case network.WaitPulsar:
 		g.Self = newWaitPulsar(g)
 	default:
 		inslogger.FromContext(ctx).Panic("Try to switch network to unknown state. Memory of process is inconsistent.")
@@ -310,11 +310,11 @@ func (g *Base) checkCanAnnounceCandidate(ctx context.Context) error {
 	// 		NB: announcing in WaitConsensus state is *NOT* allowed
 
 	state := g.Gatewayer.Gateway().GetState()
-	if state > nodeinfo.WaitConsensus {
+	if state > network.WaitConsensus {
 		return nil
 	}
 
-	if state == nodeinfo.WaitConsensus && g.isJoinAssistant {
+	if state == network.WaitConsensus && g.isJoinAssistant {
 		return nil
 	}
 

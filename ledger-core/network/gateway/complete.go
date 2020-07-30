@@ -14,12 +14,12 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/instracer"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet/types"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeset"
 	"github.com/insolar/assured-ledger/ledger-core/network/rules"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -48,8 +48,8 @@ func (g *Complete) Run(context.Context, pulse.Data) {
 	g.HostNetwork.RegisterRequestHandler(types.SignCert, g.signCertHandler)
 }
 
-func (g *Complete) GetState() nodeinfo.NetworkState {
-	return nodeinfo.CompleteNetworkState
+func (g *Complete) GetState() network.State {
+	return network.CompleteNetworkState
 }
 
 func (g *Complete) BeforeRun(ctx context.Context, pulse pulse.Data) {

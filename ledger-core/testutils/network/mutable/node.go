@@ -10,10 +10,10 @@ import (
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
@@ -21,14 +21,13 @@ import (
 )
 
 func NewTestNode(id reference.Global, role member.PrimaryRole, address string) *Node {
-	return newMutableNode(id, role, nil, nodeinfo.Ready, address)
+	return newMutableNode(id, role, nil, address)
 }
 
 func newMutableNode(
 	id reference.Global,
 	role member.PrimaryRole,
 	publicKey crypto.PublicKey,
-	state nodeinfo.State,
 	address string) *Node {
 
 	n := &Node{
@@ -36,7 +35,6 @@ func newMutableNode(
 		nodeShortID:   node.GenerateUintShortID(id),
 		nodeRole:      role,
 		nodePublicKey: publicKey,
-		state:         state,
 	}
 
 	if address != "" {
@@ -57,7 +55,6 @@ type Node struct {
 	nodeRole      member.PrimaryRole
 	nodeAddress   endpoints.IPAddress
 	nodePower     member.Power
-	state         nodeinfo.State
 	digest        cryptkit.SignedDigest
 }
 
@@ -66,7 +63,7 @@ func (n *Node) GetSignatureVerifier() cryptkit.SignatureVerifier {
 }
 
 func (n *Node) GetOpMode() member.OpMode {
-	panic(throw.NotImplemented())
+	return member.ModeNormal
 }
 
 func (n *Node) GetIndex() member.Index {
@@ -74,15 +71,15 @@ func (n *Node) GetIndex() member.Index {
 }
 
 func (n *Node) IsVoter() bool {
-	return n.state == nodeinfo.Ready
+	return true
 }
 
 func (n *Node) IsStateful() bool {
-	return n.state == nodeinfo.Ready
+	return true
 }
 
 func (n *Node) CanIntroduceJoiner() bool {
-	return n.state == nodeinfo.Ready
+	return true
 }
 
 func (n *Node) HasFullProfile() bool {
@@ -207,9 +204,9 @@ func (n *Node) SetShortID(id node.ShortNodeID) {
 }
 
 func (n *Node) IsJoiner() bool {
-	return n.state == nodeinfo.Joining
+	return false
 }
 
 func (n *Node) IsPowered() bool {
-	return n.state == nodeinfo.Ready && n.GetDeclaredPower() > 0
+	return n.GetDeclaredPower() > 0
 }

@@ -6,13 +6,14 @@
 package nodeset
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/network"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
 
 type Snapshot struct {
 	pulse pulse.Number
-	state nodeinfo.NetworkState
+	state network.State
 
 	workingNodes []nodeinfo.NetworkNode
 	activeNodes  []nodeinfo.NetworkNode
@@ -27,7 +28,7 @@ func NewSnapshot(number pulse.Number, nodes []nodeinfo.NetworkNode) *Snapshot {
 	return &Snapshot{
 		pulse: number,
 		// TODO: pass actual state
-		state:        nodeinfo.NoNetworkState,
+		state:        network.NoNetworkState,
 		activeNodes:  nodes,
 		workingNodes: SelectWorking(nodes),
 	}

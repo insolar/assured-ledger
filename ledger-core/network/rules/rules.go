@@ -8,12 +8,12 @@ package rules
 import (
 	"fmt"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
-	"github.com/insolar/assured-ledger/ledger-core/network"
 )
 
 // CheckMajorityRule returns error if MajorityRule check not passed, also returns active discovery nodes count
@@ -36,7 +36,7 @@ func CheckMajorityRule(cert nodeinfo.Certificate, nodes []nodeinfo.NetworkNode) 
 			}
 		}
 		if !found {
-			strErr += d.GetHost() + " " + d.GetRole().String() + " "
+			strErr += d.GetHost()
 		}
 	}
 	return activeDiscoveryNodesLen, errors.W(errors.New(strErr), "MajorityRule failed")

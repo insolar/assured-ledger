@@ -6,6 +6,7 @@
 package nodeinfo
 
 import (
+	"context"
 	"crypto"
 
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
@@ -33,8 +34,6 @@ type Certificate interface {
 
 type DiscoveryNode interface {
 	Meta
-
-	GetRole() member.PrimaryRole
 	GetHost() string
 }
 
@@ -53,3 +52,11 @@ type AuthorizationCertificate interface {
 type CertificateManager interface {
 	GetCertificate() Certificate
 }
+
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo.CertificateGetter -o ../../testutils -s _mock.go -g
+
+type CertificateGetter interface {
+	// GetCert registers reference and returns new certificate for it
+	GetCert(context.Context, reference.Global) (Certificate, error)
+}
+

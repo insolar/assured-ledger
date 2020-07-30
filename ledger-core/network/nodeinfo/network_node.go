@@ -12,17 +12,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 )
 
-//go:generate stringer -type=State
-type State uint8
-
-const (
-	_ State = iota
-	// Joining node is in first pulse of discovery bootstrap or is joining to a bootstrapped network
-	Joining
-	// Ready node is connected to network
-	Ready
-)
-
 type NetworkNode = profiles.ActiveNode
 
 func NodeAddr(n NetworkNode) string {

@@ -14,12 +14,13 @@ import (
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
+	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/network/gateway/bootstrap"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	mock "github.com/insolar/assured-ledger/ledger-core/testutils/network"
 )
@@ -61,15 +62,15 @@ func TestJoinerBootstrap_Run_AuthorizeRequestFailed(t *testing.T) {
 	defer f.mc.Finish()
 	defer f.mc.Wait(time.Minute)
 
-	f.gatewayer.SwitchStateMock.Set(func(ctx context.Context, state nodeinfo.NetworkState, pulse pulse.Data) {
-		assert.Equal(t, nodeinfo.NoNetworkState, state)
+	f.gatewayer.SwitchStateMock.Set(func(ctx context.Context, state network.State, pulse pulse.Data) {
+		assert.Equal(t, network.NoNetworkState, state)
 	})
 
 	f.requester.AuthorizeMock.Set(func(ctx context.Context, c2 nodeinfo.Certificate) (pp1 *packet.Permit, err error) {
 		return nil, ErrUnknown
 	})
 
-	assert.Equal(t, nodeinfo.JoinerBootstrap, f.joinerBootstrap.GetState())
+	assert.Equal(t, network.JoinerBootstrap, f.joinerBootstrap.GetState())
 	f.joinerBootstrap.Run(context.Background(), EphemeralPulse.Data)
 }
 
@@ -80,8 +81,8 @@ func TestJoinerBootstrap_Run_BootstrapRequestFailed(t *testing.T) {
 	defer f.mc.Finish()
 	defer f.mc.Wait(time.Minute)
 
-	f.gatewayer.SwitchStateMock.Set(func(ctx context.Context, state nodeinfo.NetworkState, pulse pulse.Data) {
-		assert.Equal(t, nodeinfo.NoNetworkState, state)
+	f.gatewayer.SwitchStateMock.Set(func(ctx context.Context, state network.State, pulse pulse.Data) {
+		assert.Equal(t, network.NoNetworkState, state)
 	})
 
 	f.requester.AuthorizeMock.Set(func(ctx context.Context, c2 nodeinfo.Certificate) (pp1 *packet.Permit, err error) {
@@ -102,9 +103,9 @@ func TestJoinerBootstrap_Run_BootstrapSucceeded(t *testing.T) {
 	defer f.mc.Finish()
 	defer f.mc.Wait(time.Minute)
 
-	f.gatewayer.SwitchStateMock.Set(func(ctx context.Context, state nodeinfo.NetworkState, puls pulse.Data) {
+	f.gatewayer.SwitchStateMock.Set(func(ctx context.Context, state network.State, puls pulse.Data) {
 		assert.Equal(t, pulse.Unknown, puls.PulseNumber)
-		assert.Equal(t, nodeinfo.WaitConsensus, state)
+		assert.Equal(t, network.WaitConsensus, state)
 	})
 
 	f.requester.AuthorizeMock.Set(func(ctx context.Context, c2 nodeinfo.Certificate) (pp1 *packet.Permit, err error) {

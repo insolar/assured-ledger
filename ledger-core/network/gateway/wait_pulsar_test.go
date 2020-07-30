@@ -15,7 +15,6 @@ import (
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -45,7 +44,7 @@ func TestWaitPulsar_PulseNotArrivedInETA(t *testing.T) {
 	defer mc.Wait(time.Second*10)
 
 	waitPulsar := newWaitPulsar(createBase(mc))
-	assert.Equal(t, nodeinfo.WaitPulsar, waitPulsar.GetState())
+	assert.Equal(t, network.WaitPulsar, waitPulsar.GetState())
 	gatewayer := mock.NewGatewayerMock(mc)
 	waitPulsar.Gatewayer = gatewayer
 	gatewayer.GatewayMock.Set(func() network.Gateway {
@@ -64,8 +63,8 @@ func TestWaitPulsar_PulseArrivedInETA(t *testing.T) {
 	defer mc.Wait(time.Second*10)
 
 	gatewayer := mock.NewGatewayerMock(mc)
-	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state nodeinfo.NetworkState, pulse pulse.Data) {
-		assert.Equal(t, nodeinfo.CompleteNetworkState, state)
+	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state network.State, pulse pulse.Data) {
+		assert.Equal(t, network.CompleteNetworkState, state)
 	})
 
 	waitPulsar := newWaitPulsar(&Base{})

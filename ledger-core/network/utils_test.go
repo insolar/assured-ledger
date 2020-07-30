@@ -15,8 +15,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/network/mutable"
@@ -84,10 +84,6 @@ func (t testNode) GetBriefDigest() []byte {
 
 func (t testNode) GetBriefSign() []byte {
 	return nil
-}
-
-func (t testNode) GetRole() member.PrimaryRole {
-	return member.PrimaryRoleVirtual
 }
 
 func TestExcludeOrigin(t *testing.T) {

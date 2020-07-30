@@ -13,11 +13,11 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/host"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet/types"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
@@ -144,19 +144,19 @@ type Accessor interface {
 // Gatewayer is a network which can change it's Gateway
 type Gatewayer interface {
 	Gateway() Gateway
-	SwitchState(context.Context, nodeinfo.NetworkState, pulse.Data)
+	SwitchState(context.Context, State, pulse.Data)
 }
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network.Gateway -o ../testutils/network -s _mock.go -g
 
 // Gateway responds for whole network state
 type Gateway interface {
-	NewGateway(context.Context, nodeinfo.NetworkState) Gateway
+	NewGateway(context.Context, State) Gateway
 
 	BeforeRun(context.Context, pulse.Data)
 	Run(context.Context, pulse.Data)
 
-	GetState() nodeinfo.NetworkState
+	GetState() State
 
 	OnPulseFromConsensus(context.Context, NetworkedPulse)
 	OnConsensusFinished(context.Context, Report)

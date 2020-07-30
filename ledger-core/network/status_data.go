@@ -8,13 +8,13 @@ package network
 import (
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 )
 
 type StatusReply struct {
-	NetworkState    nodeinfo.NetworkState
+	NetworkState    State
 	Origin          nodeinfo.NetworkNode
 	ActiveListSize  int
 	WorkingListSize int

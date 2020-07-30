@@ -9,7 +9,7 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
+
 	mm_network "github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
@@ -24,8 +24,8 @@ type GatewayerMock struct {
 	beforeGatewayCounter uint64
 	GatewayMock          mGatewayerMockGateway
 
-	funcSwitchState          func(ctx context.Context, n1 nodeinfo.NetworkState, d1 pulse.Data)
-	inspectFuncSwitchState   func(ctx context.Context, n1 nodeinfo.NetworkState, d1 pulse.Data)
+	funcSwitchState          func(ctx context.Context, n1 mm_network.State, d1 pulse.Data)
+	inspectFuncSwitchState   func(ctx context.Context, n1 mm_network.State, d1 pulse.Data)
 	afterSwitchStateCounter  uint64
 	beforeSwitchStateCounter uint64
 	SwitchStateMock          mGatewayerMockSwitchState
@@ -209,12 +209,12 @@ type GatewayerMockSwitchStateExpectation struct {
 // GatewayerMockSwitchStateParams contains parameters of the Gatewayer.SwitchState
 type GatewayerMockSwitchStateParams struct {
 	ctx context.Context
-	n1  nodeinfo.NetworkState
+	n1  mm_network.State
 	d1  pulse.Data
 }
 
 // Expect sets up expected params for Gatewayer.SwitchState
-func (mmSwitchState *mGatewayerMockSwitchState) Expect(ctx context.Context, n1 nodeinfo.NetworkState, d1 pulse.Data) *mGatewayerMockSwitchState {
+func (mmSwitchState *mGatewayerMockSwitchState) Expect(ctx context.Context, n1 mm_network.State, d1 pulse.Data) *mGatewayerMockSwitchState {
 	if mmSwitchState.mock.funcSwitchState != nil {
 		mmSwitchState.mock.t.Fatalf("GatewayerMock.SwitchState mock is already set by Set")
 	}
@@ -234,7 +234,7 @@ func (mmSwitchState *mGatewayerMockSwitchState) Expect(ctx context.Context, n1 n
 }
 
 // Inspect accepts an inspector function that has same arguments as the Gatewayer.SwitchState
-func (mmSwitchState *mGatewayerMockSwitchState) Inspect(f func(ctx context.Context, n1 nodeinfo.NetworkState, d1 pulse.Data)) *mGatewayerMockSwitchState {
+func (mmSwitchState *mGatewayerMockSwitchState) Inspect(f func(ctx context.Context, n1 mm_network.State, d1 pulse.Data)) *mGatewayerMockSwitchState {
 	if mmSwitchState.mock.inspectFuncSwitchState != nil {
 		mmSwitchState.mock.t.Fatalf("Inspect function is already set for GatewayerMock.SwitchState")
 	}
@@ -258,7 +258,7 @@ func (mmSwitchState *mGatewayerMockSwitchState) Return() *GatewayerMock {
 }
 
 //Set uses given function f to mock the Gatewayer.SwitchState method
-func (mmSwitchState *mGatewayerMockSwitchState) Set(f func(ctx context.Context, n1 nodeinfo.NetworkState, d1 pulse.Data)) *GatewayerMock {
+func (mmSwitchState *mGatewayerMockSwitchState) Set(f func(ctx context.Context, n1 mm_network.State, d1 pulse.Data)) *GatewayerMock {
 	if mmSwitchState.defaultExpectation != nil {
 		mmSwitchState.mock.t.Fatalf("Default expectation is already set for the Gatewayer.SwitchState method")
 	}
@@ -272,7 +272,7 @@ func (mmSwitchState *mGatewayerMockSwitchState) Set(f func(ctx context.Context, 
 }
 
 // SwitchState implements network.Gatewayer
-func (mmSwitchState *GatewayerMock) SwitchState(ctx context.Context, n1 nodeinfo.NetworkState, d1 pulse.Data) {
+func (mmSwitchState *GatewayerMock) SwitchState(ctx context.Context, n1 mm_network.State, d1 pulse.Data) {
 	mm_atomic.AddUint64(&mmSwitchState.beforeSwitchStateCounter, 1)
 	defer mm_atomic.AddUint64(&mmSwitchState.afterSwitchStateCounter, 1)
 

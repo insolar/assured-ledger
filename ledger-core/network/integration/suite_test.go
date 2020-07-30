@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor/memstor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
@@ -28,6 +27,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeset"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -152,7 +152,7 @@ func (s *consensusSuite) Setup() {
 			require.NoError(s.t, err)
 			err = n.serviceNetwork.BaseGateway.StartConsensus(s.ctx)
 			require.NoError(s.t, err)
-			n.serviceNetwork.Gatewayer.SwitchState(s.ctx, nodeinfo.CompleteNetworkState, pulsestor.GenesisPulse.Data)
+			n.serviceNetwork.Gatewayer.SwitchState(s.ctx, network.CompleteNetworkState, pulsestor.GenesisPulse.Data)
 
 			pulseReceivers = append(pulseReceivers, n.host)
 		}
@@ -318,7 +318,7 @@ func (s *consensusSuite) assertNetworkInConsistentState(p pulse.Number) {
 	var nodes []nodeinfo.NetworkNode
 
 	for _, n := range s.bootstrapNodes {
-		require.Equal(s.t, nodeinfo.CompleteNetworkState.String(),
+		require.Equal(s.t, network.CompleteNetworkState.String(),
 			n.serviceNetwork.Gatewayer.Gateway().GetState().String(),
 			"Node not in CompleteNetworkState",
 		)

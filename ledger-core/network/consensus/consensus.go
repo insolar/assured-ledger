@@ -11,7 +11,6 @@ import (
 	"reflect"
 
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
@@ -24,6 +23,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/core"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/core/coreapi"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/serialization"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/transport"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
@@ -65,9 +65,9 @@ func verify(s interface{}) {
 }
 
 type Dep struct {
-	KeyProcessor       cryptography.KeyProcessor
-	CertificateManager nodeinfo.CertificateManager
-	KeyStore           cryptography.KeyStore
+	KeyProcessor          cryptography.KeyProcessor
+	CertificateManager    nodeinfo.CertificateManager
+	KeyStore              cryptography.KeyStore
 	TransportCryptography transport2.CryptographyAssistant
 
 	NodeKeeper        network.NodeKeeper
