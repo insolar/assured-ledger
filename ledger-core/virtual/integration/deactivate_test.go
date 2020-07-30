@@ -243,7 +243,7 @@ func TestVirtual_CallMethod_On_CompletelyDeactivatedObject(t *testing.T) {
 }
 
 // 1. Create object
-// 2. Deactivate object
+// 2. Deactivate object partially( only Dirty state )
 // 3. Send request on Dirty state - get error
 // 4. Send request on Validated state - get response
 func TestVirtual_CallMethod_On_DeactivatedDirtyState(t *testing.T) {
