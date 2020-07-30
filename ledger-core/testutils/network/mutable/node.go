@@ -39,7 +39,7 @@ func newMutableNode(
 
 	if address != "" {
 		var err error
-		n.nodeAddress, err = endpoints.NewIPAddressZeroPort(address)
+		n.nodeAddress, err = endpoints.NewIPAddress(address)
 		if err != nil {
 			panic(err)
 		}

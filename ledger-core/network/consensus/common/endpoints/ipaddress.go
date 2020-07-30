@@ -27,14 +27,6 @@ var defaultByteOrder = binary.BigEndian
 type IPAddress [ipAddressSize]byte
 
 func NewIPAddress(address string) (IPAddress, error) {
-	return _newIPAddress(address, false)
-}
-
-func NewIPAddressZeroPort(address string) (IPAddress, error) {
-	return _newIPAddress(address, true)
-}
-
-func _newIPAddress(address string, allowZero bool) (IPAddress, error) {
 	host, port, err := net.SplitHostPort(address)
 	if err != nil {
 		return IPAddress{}, errors.Errorf("invalid address: %s", address)
@@ -50,7 +42,6 @@ func _newIPAddress(address string, allowZero bool) (IPAddress, error) {
 	case err != nil:
 		return IPAddress{}, errors.Errorf("invalid port number: %s", port)
 	case portNumber > 0 && portNumber <= int(maxPortNumber):
-	case allowZero && portNumber == 0:
 	default:
 		return IPAddress{}, errors.Errorf("invalid port number: %d", portNumber)
 	}

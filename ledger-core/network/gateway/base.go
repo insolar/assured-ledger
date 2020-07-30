@@ -329,7 +329,7 @@ func (g *Base) ValidateCert(ctx context.Context, authCert nodeinfo.Authorization
 
 // ============= Bootstrap =======
 
-func (g *Base) checkCanAnnounceCandidate(ctx context.Context) error {
+func (g *Base) checkCanAnnounceCandidate(context.Context) error {
 	// 1. Current node is JoinAssistant:
 	// 		could announce candidate when network is initialized
 	// 		NB: announcing in WaitConsensus state is allowed

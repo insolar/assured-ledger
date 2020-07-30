@@ -231,18 +231,6 @@ func NewOutboundIP(address endpoints.IPAddress) *Outbound {
 	}
 }
 
-func NewOutboundNoPort(address string) *Outbound {
-	addr, err := endpoints.NewIPAddressZeroPort(address)
-	if err != nil {
-		panic(err)
-	}
-
-	return &Outbound{
-		name: endpoints.Name(address),
-		addr: addr,
-	}
-}
-
 func (p *Outbound) CanAccept(endpoints.Inbound) bool {
 	return true
 }
