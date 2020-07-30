@@ -7,4 +7,8 @@
 
 package convlog
 
-const UseTextConvLog = false
+func UseTextConvLog() bool {
+	return false
+}
+
+func DisableTextConvLog() {}

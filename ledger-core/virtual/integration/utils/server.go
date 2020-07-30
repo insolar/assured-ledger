@@ -180,7 +180,7 @@ func newServerExt(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFi
 
 	var machineLogger smachine.SlotMachineLogger
 
-	if convlog.UseTextConvLog {
+	if convlog.UseTextConvLog() {
 		machineLogger = convlog.MachineLogger{}
 	} else {
 		machineLogger = insconveyor.ConveyorLoggerFactory{}
