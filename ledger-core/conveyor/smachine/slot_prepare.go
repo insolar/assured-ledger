@@ -70,9 +70,25 @@ func (s *Slot) prepareSlotInit(creator *Slot, fn CreateFunc, sm StateMachine, de
 	// Setup Slot counters etc
 	switch {
 	case creator == nil:
-		scanCount, migrateCount := m.getScanAndMigrateCounts()
-		s.migrationCount = migrateCount
-		s.lastWorkScan = uint8(scanCount)
+		{
+			scanCount, migrateCount := m.getScanAndMigrateCounts()
+			s.migrationCount = migrateCount
+			s.lastWorkScan = uint8(scanCount)
+		}
+
+		smInitFn := initFn
+		initFn = func(ctx InitializationContext) StateUpdate {
+			// when creator == nil slot addition is done asynchronously
+			// so we have to make sure, that migrate and scan counts
+			// are matched the time when init is executed, not when the slot was allocated
+
+			_, migrateCount := s.machine.getScanAndMigrateCounts()
+			if n := migrateCount - s.migrationCount; n > 0 {
+				s.runShadowMigrate(n)
+			}
+			s.migrationCount = migrateCount
+			return smInitFn(ctx)
+		}
 	case selfUpdate:
 		// can't inherit SM-bound handler
 		s.defMigrate = nil
