@@ -73,7 +73,7 @@ func newController(ctx context.Context, t *testing.T, filterFn logcommon.ErrorFi
 	instestlogger.SetTestOutputWithErrorFilter(t, filterFn)
 
 	var machineLogger smachine.SlotMachineLogger
-	if convlog.UseTextConvLog {
+	if convlog.UseTextConvLog() {
 		machineLogger = convlog.MachineLogger{}
 	} else {
 		machineLogger = insconveyor.ConveyorLoggerFactory{}

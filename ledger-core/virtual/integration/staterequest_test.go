@@ -12,140 +12,116 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 )
 
 func makeVStateRequestEvent(pulseNumber pulse.Number, ref reference.Global, flags payload.StateRequestContentFlags, sender reference.Global) *message.Message {
-	payload := &payload.VStateRequest{
+	pl := &payload.VStateRequest{
 		AsOf:             pulseNumber,
 		Object:           ref,
 		RequestedContent: flags,
 	}
 
-	return utils.NewRequestWrapper(pulseNumber, payload).SetSender(sender).Finalize()
+	return utils.NewRequestWrapper(pulseNumber, pl).SetSender(sender).Finalize()
 }
 
-func TestVirtual_VStateRequest_WithoutBody(t *testing.T) {
-	defer commontestutils.LeakTester(t)
+func TestVirtual_VStateRequest(t *testing.T) {
+	insrail.LogCase(t, "C4861")
 
-	t.Log("C4861")
-
-	var (
-		mc = minimock.NewController(t)
-	)
-
-	server, ctx := utils.NewServer(nil, t)
-	defer server.Stop()
-	server.IncrementPulse(ctx)
-
-	var (
-		objectGlobal = reference.NewSelf(server.RandomLocalWithPulse())
-		pulseNumber  = server.GetPulse().PulseNumber
-	)
-
-	server.IncrementPulseAndWaitIdle(ctx)
-
-	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal, pulseNumber)
-
-	pulseNumber = server.GetPulse().PulseNumber
-
-	countBefore := server.PublisherMock.GetCount()
-	server.IncrementPulse(ctx)
-	if !server.PublisherMock.WaitCount(countBefore+1, 10*time.Second) {
-		t.Fatal("timeout waiting for VStateReport")
+	table := []struct {
+		name  string
+		flags payload.StateRequestContentFlags
+	}{
+		{name: "without flags", flags: 0},
+		{name: "with RequestLatestDirtyState flag", flags: payload.RequestLatestDirtyState},
+		{name: "with RequestLatestValidatedState flag", flags: payload.RequestLatestValidatedState},
 	}
 
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-	typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
-		assert.Equal(t, &payload.VStateReport{
-			Status:           payload.Ready,
-			AsOf:             pulseNumber,
-			Object:           objectGlobal,
-			LatestDirtyState: objectGlobal,
-		}, report)
+	for _, test := range table {
+		t.Run(test.name, func(t *testing.T) {
+			defer commontestutils.LeakTester(t)
 
-		return false
-	})
+			mc := minimock.NewController(t)
 
-	countBefore = server.PublisherMock.GetCount()
-	msg := makeVStateRequestEvent(pulseNumber, objectGlobal, 0, server.JetCoordinatorMock.Me())
-	server.SendMessage(ctx, msg)
+			server, ctx := utils.NewServer(nil, t)
+			defer server.Stop()
 
-	if !server.PublisherMock.WaitCount(countBefore+1, 10*time.Second) {
-		t.Fatal("timeout waiting for VStateReport")
-	}
-}
+			var (
+				objectGlobal     = reference.NewSelf(server.RandomLocalWithPulse())
+				pulseNumber      = server.GetPulse().PulseNumber
+				rawWalletState   = makeRawWalletState(initialBalance)
+				waitVStateReport = make(chan struct{})
+			)
 
-func TestVirtual_VStateRequest_WithBody(t *testing.T) {
-	defer commontestutils.LeakTester(t)
+			// create object
+			{
+				server.IncrementPulseAndWaitIdle(ctx)
+				Method_PrepareObject(ctx, server, payload.Ready, objectGlobal, pulseNumber)
 
-	t.Log("C4862")
+				pulseNumber = server.GetPulse().PulseNumber
+				server.IncrementPulseAndWaitIdle(ctx)
+				commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1))
+			}
 
-	var (
-		mc = minimock.NewController(t)
-	)
+			// prepare checker
+			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+			{
+				expectedVStateReport := &payload.VStateReport{
+					Status:           payload.Ready,
+					AsOf:             pulseNumber,
+					Object:           objectGlobal,
+					LatestDirtyState: objectGlobal,
+				}
+				switch test.flags {
+				case payload.RequestLatestDirtyState:
+					expectedVStateReport.ProvidedContent = &payload.VStateReport_ProvidedContentBody{
+						LatestDirtyState: &payload.ObjectState{
+							Reference: reference.Local{},
+							State:     rawWalletState,
+							Class:     testwallet.ClassReference,
+						},
+					}
+				case payload.RequestLatestValidatedState:
+					expectedVStateReport.ProvidedContent = &payload.VStateReport_ProvidedContentBody{
+						LatestValidatedState: &payload.ObjectState{
+							Reference: reference.Local{},
+							State:     rawWalletState,
+							Class:     testwallet.ClassReference,
+						},
+					}
+				}
+				typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
+					assert.Equal(t, expectedVStateReport, report)
+					waitVStateReport <- struct{}{}
+					return false
+				})
+			}
 
-	server, ctx := utils.NewServer(nil, t)
-	defer server.Stop()
-	server.IncrementPulse(ctx)
+			msg := makeVStateRequestEvent(pulseNumber, objectGlobal, test.flags, server.JetCoordinatorMock.Me())
+			server.SendMessage(ctx, msg)
 
-	var (
-		objectGlobal   = reference.NewSelf(server.RandomLocalWithPulse())
-		pulseNumber    = server.GetPulse().PulseNumber
-		rawWalletState = makeRawWalletState(initialBalance)
-	)
+			commontestutils.WaitSignalsTimed(t, 10*time.Second, waitVStateReport)
+			commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
-	server.IncrementPulse(ctx)
+			require.Equal(t, 1, typedChecker.VStateReport.Count())
 
-	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal, pulseNumber)
-
-	pulseNumber = server.GetPulse().PulseNumber
-
-	countBefore := server.PublisherMock.GetCount()
-	server.IncrementPulse(ctx)
-	if !server.PublisherMock.WaitCount(countBefore+1, 10*time.Second) {
-		t.Fatal("timeout waiting for VStateReport")
-	}
-
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-	typedChecker.VStateReport.Set(func(actlReport *payload.VStateReport) bool {
-		expReport := &payload.VStateReport{
-			Status:           payload.Ready,
-			AsOf:             pulseNumber,
-			Object:           objectGlobal,
-			LatestDirtyState: objectGlobal,
-			ProvidedContent: &payload.VStateReport_ProvidedContentBody{
-				LatestDirtyState: &payload.ObjectState{
-					Reference: reference.Local{},
-					State:     rawWalletState,
-					Class:     testwallet.ClassReference,
-				},
-			},
-		}
-		assert.Equal(t, expReport, actlReport)
-
-		return false
-	})
-
-	countBefore = server.PublisherMock.GetCount()
-	msg := makeVStateRequestEvent(pulseNumber, objectGlobal, payload.RequestLatestDirtyState, server.JetCoordinatorMock.Me())
-	server.SendMessage(ctx, msg)
-
-	if !server.PublisherMock.WaitCount(countBefore+1, 10*time.Second) {
-		t.Fatal("timeout waiting for VStateReport")
+			mc.Finish()
+		})
 	}
 }
 
 func TestVirtual_VStateRequest_Unknown(t *testing.T) {
 	defer commontestutils.LeakTester(t)
-
-	t.Log("C4863")
+	insrail.LogCase(t, "C4863")
 
 	var (
 		mc = minimock.NewController(t)

@@ -7,4 +7,12 @@
 
 package convlog
 
-const UseTextConvLog = true
+func UseTextConvLog() bool {
+	return useTextConvLog
+}
+
+var useTextConvLog = true
+
+func DisableTextConvLog() {
+	useTextConvLog = false
+}
