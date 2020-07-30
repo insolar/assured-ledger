@@ -13,9 +13,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
-
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
-
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 )
 
