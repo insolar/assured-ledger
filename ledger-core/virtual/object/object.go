@@ -124,10 +124,6 @@ func (i *Info) SetDescriptorValidated(objectDescriptor descriptor.Object) {
 	i.descriptorValidated = objectDescriptor
 }
 
-func (i *Info) Deactivate() {
-	i.Deactivated = true
-}
-
 func (i *Info) DescriptorDirty() descriptor.Object {
 	return i.descriptorDirty
 }
@@ -192,7 +188,7 @@ func (i *Info) BuildLatestDirtyState() *payload.ObjectState {
 			Reference:   objDescriptor.StateID(),
 			Class:       class,
 			State:       objDescriptor.Memory(),
-			Deactivated: i.Deactivated,
+			Deactivated: objDescriptor.Deactivated(),
 		}
 	}
 	return nil

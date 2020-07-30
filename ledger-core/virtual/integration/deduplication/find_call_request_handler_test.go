@@ -460,7 +460,7 @@ func (s *VFindCallRequestHandlingSuite) setRunnerMock() {
 	s.runnerMock.AddExecutionClassify("SomeMethod", isolation, nil)
 
 	newObjDescriptor := descriptor.NewObject(
-		reference.Global{}, reference.Local{}, s.getClass(), []byte(""),
+		reference.Global{}, reference.Local{}, s.getClass(), []byte(""), false,
 	)
 
 	{

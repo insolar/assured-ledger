@@ -80,7 +80,7 @@ func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 		runnerMock.AddExecutionClassify("SomeMethod", isolation, nil)
 
 		newObjDescriptor := descriptor.NewObject(
-			reference.Global{}, reference.Local{}, class, []byte(""),
+			reference.Global{}, reference.Local{}, class, []byte(""), false,
 		)
 
 		requestResult := requestresult.New([]byte("call result"), gen.UniqueGlobalRef())
@@ -173,7 +173,7 @@ func TestDeduplication_SecondCallOfMethodAfterExecution(t *testing.T) {
 		runnerMock.AddExecutionClassify("SomeMethod", isolation, nil)
 
 		newObjDescriptor := descriptor.NewObject(
-			reference.Global{}, reference.Local{}, class, []byte(""),
+			reference.Global{}, reference.Local{}, class, []byte(""), false,
 		)
 
 		requestResult := requestresult.New([]byte("call result"), gen.UniqueGlobalRef())
