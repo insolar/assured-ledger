@@ -75,7 +75,7 @@ func TestSMStateReport_SendVStateReport_IfDescriptorSet(t *testing.T) {
 	)
 
 	smReport := newSMReportWithPulse()
-	smReport.Report = buildStateReport(payload.Ready, descriptor.NewObject(reference.Global{}, reference.Local{}, reference.Global{}, nil))
+	smReport.Report = buildStateReport(payload.Ready, descriptor.NewObject(reference.Global{}, reference.Local{}, reference.Global{}, nil,  false))
 
 	messageService := messageSenderWrapper.NewServiceMockWrapper(mc)
 	checkMessageFn := func(msg payload.Marshaler) {
