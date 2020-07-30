@@ -7,6 +7,7 @@ package adapters
 
 import (
 	"context"
+	"crypto/rand"
 	"sync"
 	"time"
 
@@ -18,6 +19,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -106,10 +108,17 @@ func (u *UpstreamController) ConsensusAborted() {
 func (u *UpstreamController) PreparePulseChange(_ api.UpstreamReport, ch chan<- api.UpstreamState) {
 	// is only called on non-ephemeral pulse
 	u.stateGetter.RequestNodeState(func(state api.UpstreamState) {
-		if state.NodeState.FixedByteSize() != 64 {
+		switch {
+		case state.NodeState == nil:
+			nshBytes := longbits.Bits512{}
+			_, _ = rand.Read(nshBytes[:])
+			ch <- api.UpstreamState{NodeState: cryptkit.NewDigest(nshBytes, "random")}
+
+		case state.NodeState.FixedByteSize() != 64:
 			panic(throw.IllegalState())
+		default:
+			ch <- state
 		}
-		ch <- state
 	})
 }
 
