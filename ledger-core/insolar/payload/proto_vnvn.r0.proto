@@ -108,11 +108,12 @@ message VStateReport {
     option (insproto.id) = 1004;
 
     enum StateStatus {
-        Unknown = 0;
-        Ready = 1;
-        Empty = 2;
-        Inactive = 3;
-        Missing = 4;
+        InvalidStateStatus = 0; // zero value in Go
+        Unknown = 1;
+        Ready = 2;
+        Empty = 3;
+        Inactive = 4;
+        Missing = 5;
     }
     StateStatus Status = 37;
 
@@ -218,9 +219,10 @@ message VFindCallRequest {
 message VFindCallResponse {
     option (insproto.id) = 1012;
     enum CallState {
-        MissingCall = 0;
-        UnknownCall = 1;
-        FoundCall = 2;
+        InvalidCallState = 0; // zero value in Go
+        MissingCall = 1;
+        UnknownCall = 2;
+        FoundCall = 3;
     }
     uint32 LookedAt = 20 [(gogoproto.casttype) = "PulseNumber"];
     Reference Callee = 21;
