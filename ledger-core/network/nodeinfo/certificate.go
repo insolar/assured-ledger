@@ -18,7 +18,7 @@ type Meta interface {
 	GetPublicKey() crypto.PublicKey
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo.Certificate -o ../../testutils -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network/nodeinfo.Certificate -o ../../testutils -s _mock.go -g
 
 // Certificate interface provides methods to manage keys
 type Certificate interface {
@@ -30,7 +30,7 @@ type Certificate interface {
 	GetMinRoles() (virtual uint, heavyMaterial uint, lightMaterial uint)
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo.DiscoveryNode -o ../../testutils -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network/nodeinfo.DiscoveryNode -o ../../testutils -s _mock.go -g
 
 type DiscoveryNode interface {
 	Meta
@@ -46,14 +46,14 @@ type AuthorizationCertificate interface {
 	GetDiscoverySigns() map[reference.Global][]byte
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo.CertificateManager -o ../../testutils -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network/nodeinfo.CertificateManager -o ../../testutils -s _mock.go -g
 
 // CertificateManager interface provides methods to manage nodes certificate
 type CertificateManager interface {
 	GetCertificate() Certificate
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo.CertificateGetter -o ../../testutils -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network/nodeinfo.CertificateGetter -o ../../testutils -s _mock.go -g
 
 type CertificateGetter interface {
 	// GetCert registers reference and returns new certificate for it

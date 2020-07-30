@@ -31,7 +31,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
-// ServiceNetwork is facade for network.
+var _ network.NodeNetwork = &ServiceNetwork{}
+
 type ServiceNetwork struct {
 	cfg configuration.Configuration
 	cm  *component.Manager
@@ -151,6 +152,10 @@ func (n *ServiceNetwork) GracefulStop(ctx context.Context) error {
 // Stop implements insolar.Component
 func (n *ServiceNetwork) Stop(ctx context.Context) error {
 	return n.cm.Stop(ctx)
+}
+
+func (n *ServiceNetwork) GetLocalNodeReference() reference.Holder {
+	return n.NodeKeeper.GetLocalNodeReference()
 }
 
 func (n *ServiceNetwork) GetOrigin() nodeinfo.NetworkNode {
