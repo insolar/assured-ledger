@@ -60,7 +60,7 @@ func TestJoinerBootstrap_Run_AuthorizeRequestFailed(t *testing.T) {
 
 	f := createFixture(t)
 	defer f.mc.Finish()
-	defer f.mc.Wait(time.Minute)
+	defer f.mc.Wait(time.Second*10)
 
 	f.gatewayer.SwitchStateMock.Set(func(ctx context.Context, state network.State, pulse pulse.Data) {
 		assert.Equal(t, network.NoNetworkState, state)
@@ -79,7 +79,7 @@ func TestJoinerBootstrap_Run_BootstrapRequestFailed(t *testing.T) {
 
 	f := createFixture(t)
 	defer f.mc.Finish()
-	defer f.mc.Wait(time.Minute)
+	defer f.mc.Wait(time.Second*10)
 
 	f.gatewayer.SwitchStateMock.Set(func(ctx context.Context, state network.State, pulse pulse.Data) {
 		assert.Equal(t, network.NoNetworkState, state)
@@ -101,7 +101,7 @@ func TestJoinerBootstrap_Run_BootstrapSucceeded(t *testing.T) {
 
 	f := createFixture(t)
 	defer f.mc.Finish()
-	defer f.mc.Wait(time.Minute)
+	defer f.mc.Wait(time.Second*10)
 
 	f.gatewayer.SwitchStateMock.Set(func(ctx context.Context, state network.State, puls pulse.Data) {
 		assert.Equal(t, pulse.Unknown, puls.PulseNumber)

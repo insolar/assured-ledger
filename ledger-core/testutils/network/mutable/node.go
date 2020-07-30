@@ -143,7 +143,7 @@ func (n *Node) GetDefaultEndpoint() endpoints.Outbound {
 }
 
 func (n *Node) GetPublicKeyStore() cryptkit.PublicKeyStore {
-	panic("implement me")
+	panic(throw.NotImplemented())
 }
 
 func (n *Node) IsAcceptableHost(from endpoints.Inbound) bool {
@@ -159,7 +159,7 @@ func (n *Node) GetSpecialRoles() member.SpecialRole {
 }
 
 func (n *Node) GetNodePublicKey() cryptkit.SignatureKeyHolder {
-	panic("implement me")
+	panic(throw.NotImplemented())
 }
 
 func (n *Node) GetStartPower() member.Power {
@@ -191,11 +191,6 @@ func (n *Node) GetDeclaredPower() member.Power {
 }
 
 func (n *Node) SetSignature(digest cryptkit.SignedDigest) {
-	// cryptkit.NewSignedDigest(
-	// 	cryptkit.NewDigest(longbits.NewBits512FromBytes(digest), SHA3512Digest),
-	// 	cryptkit.NewSignature(longbits.NewBits512FromBytes(signature.Bytes()), SHA3512Digest.SignedBy(SECP256r1Sign)),
-	// )
-
 	n.digest = digest
 }
 

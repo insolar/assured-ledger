@@ -46,7 +46,7 @@ func (s *CommonTestSuite) BeforeTest(suiteName, testName string) {
 }
 
 func (s *CommonTestSuite) AfterTest(suiteName, testName string) {
-	s.mc.Wait(time.Minute)
+	s.mc.Wait(time.Second*10)
 	s.mc.Finish()
 }
 

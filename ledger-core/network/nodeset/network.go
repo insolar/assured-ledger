@@ -12,7 +12,7 @@ import (
 )
 
 // NewNodeNetwork create active node component
-func NewNodeNetwork(_ configuration.Transport, certificate nodeinfo.Certificate) (network.NodeNetwork, error) { // nolint:staticcheck
+func NewNodeNetwork(_ configuration.Transport, certificate nodeinfo.Certificate) (network.NodeNetwork, error) {
 	nodeKeeper := NewNodeKeeper(certificate.GetNodeRef(), certificate.GetRole())
 	return nodeKeeper, nil
 }

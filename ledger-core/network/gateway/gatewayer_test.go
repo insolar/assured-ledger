@@ -28,9 +28,7 @@ func TestNewGatewayer(t *testing.T) {
 
 	gw := mock.NewGatewayMock(mc)
 
-	gw.GetStateMock.Set(func() (n1 network.State) {
-		return network.NoNetworkState
-	})
+	gw.GetStateMock.Return(network.NoNetworkState)
 
 	gw.NewGatewayMock.Set(func(ctx context.Context, s network.State) (g1 network.Gateway) {
 		assert.Equal(t, network.WaitConsensus, s)

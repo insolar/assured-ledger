@@ -383,6 +383,9 @@ func (g *Base) HandleNodeBootstrapRequest(ctx context.Context, request network.R
 	data := request.GetRequest().GetBootstrap()
 
 	na := g.NodeKeeper.GetLatestAccessor()
+	if na == nil {
+		return nil, throw.Errorf("bootstrap: node list is not available: %s", request)
+	}
 	nodes := na.GetActiveNodes()
 
 	if network.CheckShortIDCollision(nodes, data.CandidateProfile.ShortID) {
@@ -456,6 +459,9 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 	}
 
 	na := g.NodeKeeper.GetLatestAccessor()
+	if na == nil {
+		return nil, throw.Errorf("AuthorizeRequest: node list is not available: %s", request)
+	}
 	nodes := na.GetActiveNodes()
 
 	o := g.NodeKeeper.GetOrigin()

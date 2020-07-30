@@ -343,10 +343,6 @@ func (s *consensusSuite) assertNetworkInConsistentState(p pulse.Number) {
 	}
 }
 
-func arr(x ...interface{}) []interface{} {
-	return x
-}
-
 func (s *consensusSuite) waitForConsensusExcept(consensusCount int, exception reference.Global) pulse.Number {
 	var p pulse.Number
 	for i := 0; i < consensusCount; i++ {

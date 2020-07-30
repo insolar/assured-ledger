@@ -46,11 +46,11 @@ func NewIPAddress(address string) (IPAddress, error) {
 		return IPAddress{}, errors.Errorf("invalid port number: %d", portNumber)
 	}
 
-	return newIPAddress(ip, uint16(portNumber))
+	return newIPAddress(ip, uint16(portNumber)), nil
 }
 
 
-func newIPAddress(ip net.IP, portNumber uint16) (addr IPAddress, err error) {
+func newIPAddress(ip net.IP, portNumber uint16) (addr IPAddress) {
 	switch ipSize {
 	case net.IPv6len:
 		ip = ip.To16()
