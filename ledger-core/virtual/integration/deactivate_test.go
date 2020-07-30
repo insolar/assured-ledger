@@ -228,7 +228,7 @@ func TestVirtual_CallMethod_On_CompletelyDeactivatedObject(t *testing.T) {
 						Callee:              object,
 						CallSiteDeclaration: gen.UniqueGlobalRef(),
 						CallSiteMethod:      "MyFavorMethod",
-						CallOutgoing:        reference.NewSelf(object.GetLocal()),
+						CallOutgoing:        server.BuildRandomOutgoingWithPulse(),
 						Arguments:           insolar.MustSerialize([]interface{}{}),
 					}
 					server.SendPayload(ctx, &pl)
