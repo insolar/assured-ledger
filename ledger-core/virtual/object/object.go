@@ -67,10 +67,6 @@ type Info struct {
 	PreviousExecutorUnorderedPendingCount uint8
 	PreviousExecutorOrderedPendingCount   uint8
 
-	// Potential means pendings on this executor
-	PotentialUnorderedPendingCount uint8
-	PotentialOrderedPendingCount   uint8
-
 	UnorderedPendingEarliestPulse pulse.Number
 	OrderedPendingEarliestPulse   pulse.Number
 
@@ -89,30 +85,11 @@ func (i *Info) GetState() State {
 	return i.objectState
 }
 
-func (i *Info) IncrementPotentialPendingCounter(isolation contract.MethodIsolation) {
-	switch isolation.Interference {
-	case contract.CallIntolerable:
-		i.PotentialUnorderedPendingCount++
-	case contract.CallTolerable:
-		i.PotentialOrderedPendingCount++
-	default:
-		panic(throw.Unsupported())
-	}
-}
-
 func (i *Info) FinishRequest(
 	isolation contract.MethodIsolation,
 	requestRef reference.Global,
 	result *payload.VCallResult,
 ) {
-	switch isolation.Interference {
-	case contract.CallIntolerable:
-		i.PotentialUnorderedPendingCount--
-	case contract.CallTolerable:
-		i.PotentialOrderedPendingCount--
-	default:
-		panic(throw.Unsupported())
-	}
 	i.KnownRequests.Finish(isolation.Interference, requestRef, result)
 }
 
@@ -150,9 +127,9 @@ func (i *Info) BuildStateReport() payload.VStateReport {
 	previousExecutorOrderedPendingCount := i.PendingTable.GetList(contract.CallTolerable).CountActive()
 	res := payload.VStateReport{
 		Object:                        i.Reference,
-		UnorderedPendingCount:         int32(previousExecutorUnorderedPendingCount) + int32(i.PotentialUnorderedPendingCount),
+		UnorderedPendingCount:         int32(previousExecutorUnorderedPendingCount) + int32(i.KnownRequests.CountActive(contract.CallIntolerable)),
 		UnorderedPendingEarliestPulse: i.GetEarliestPulse(contract.CallIntolerable),
-		OrderedPendingCount:           int32(previousExecutorOrderedPendingCount) + int32(i.PotentialOrderedPendingCount),
+		OrderedPendingCount:           int32(previousExecutorOrderedPendingCount) + int32(i.KnownRequests.CountActive(contract.CallTolerable)),
 		OrderedPendingEarliestPulse:   i.GetEarliestPulse(contract.CallTolerable),
 		ProvidedContent:               &payload.VStateReport_ProvidedContentBody{},
 	}
@@ -165,7 +142,7 @@ func (i *Info) BuildStateReport() payload.VStateReport {
 	case Inactive:
 		res.Status = payload.Inactive
 	case Empty:
-		if i.PotentialOrderedPendingCount == uint8(0) {
+		if i.KnownRequests.CountActive(contract.CallTolerable) == 0 {
 			// constructor has not started
 			res.Status = payload.Missing
 		} else {

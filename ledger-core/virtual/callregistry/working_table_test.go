@@ -38,20 +38,28 @@ func TestWorkingTable(t *testing.T) {
 
 	assert.Equal(t, 1, wt.GetList(contract.CallIntolerable).Count())
 	assert.Equal(t, 0, wt.GetList(contract.CallTolerable).Count())
+	assert.Equal(t, 0, wt.CountActive(contract.CallIntolerable))
+	assert.Equal(t, 0, wt.CountActive(contract.CallTolerable))
 	assert.Equal(t, pulse.Unknown, wt.GetList(contract.CallIntolerable).EarliestPulse())
 
 	assert.True(t, intolerableList.setActive(ref))
 
 	assert.Equal(t, 1, wt.GetList(contract.CallIntolerable).Count())
 	assert.Equal(t, 0, wt.GetList(contract.CallTolerable).Count())
+	assert.Equal(t, 1, wt.CountActive(contract.CallIntolerable))
+	assert.Equal(t, 0, wt.CountActive(contract.CallTolerable))
 	assert.Equal(t, currentPulse, wt.GetList(contract.CallIntolerable).EarliestPulse())
 
+	assert.Equal(t, 0, wt.Len())
 	assert.True(t, wt.Add(contract.CallTolerable, ref))
 	assert.False(t, wt.Add(contract.CallTolerable, ref))
+	assert.Equal(t, 1, wt.Len())
 
 	assert.True(t, wt.SetActive(contract.CallTolerable, ref))
 	assert.False(t, wt.SetActive(contract.CallTolerable, ref))
 	assert.False(t, wt.SetActive(contract.CallTolerable, gen.UniqueGlobalRef()))
+	assert.Equal(t, 1, wt.CountActive(contract.CallIntolerable))
+	assert.Equal(t, 1, wt.CountActive(contract.CallTolerable))
 
 	res := &payload.VCallResult{
 		Callee: gen.UniqueGlobalRef(),
@@ -59,6 +67,13 @@ func TestWorkingTable(t *testing.T) {
 
 	assert.True(t, wt.Finish(contract.CallTolerable, ref, res))
 	assert.False(t, wt.Finish(contract.CallTolerable, ref, res))
+	assert.Equal(t, 1, wt.CountActive(contract.CallIntolerable))
+	assert.Equal(t, 0, wt.CountActive(contract.CallTolerable))
+
+	assert.True(t, wt.Finish(contract.CallIntolerable, ref, res))
+	assert.False(t, wt.Finish(contract.CallIntolerable, ref, res))
+	assert.Equal(t, 0, wt.CountActive(contract.CallIntolerable))
+	assert.Equal(t, 0, wt.CountActive(contract.CallTolerable))
 
 	results := wt.GetResults()
 
@@ -66,6 +81,10 @@ func TestWorkingTable(t *testing.T) {
 	assert.True(t, ok)
 	assert.NotNil(t, summary.Result)
 	assert.Equal(t, res.Callee, summary.Result.Callee)
+
+	// bad flags
+	assert.Panics(t, func() { wt.GetList(contract.InterferenceFlag(0)) })
+	assert.Panics(t, func() { wt.CountActive(contract.InterferenceFlag(0)) })
 }
 
 func TestWorkingList(t *testing.T) {
