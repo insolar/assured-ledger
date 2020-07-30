@@ -58,7 +58,7 @@ func TestSMObject_MigrationCreateStateReport_IfStateMissing(t *testing.T) {
 
 	smObject := newSMObjectWithPulse()
 
-	smObject.SetDescriptorDirty(descriptor.NewObject(reference.Global{}, reference.Local{}, reference.Global{}, nil))
+	smObject.SetDescriptorDirty(descriptor.NewObject(reference.Global{}, reference.Local{}, reference.Global{}, nil, false))
 	smObject.SharedState.SetState(Missing)
 
 	report := smObject.BuildStateReport()
@@ -109,7 +109,7 @@ func TestSMObject_MigrationCreateStateReport_IfStateIsEmptyAndNoCounters(t *test
 		smObject = newSMObjectWithPulse()
 	)
 
-	smObject.SetDescriptorDirty(descriptor.NewObject(reference.Global{}, reference.Local{}, reference.Global{}, nil))
+	smObject.SetDescriptorDirty(descriptor.NewObject(reference.Global{}, reference.Local{}, reference.Global{}, nil,  false))
 	smObject.SharedState.SetState(Empty)
 
 	var sharedData smachine.SharedDataLink
