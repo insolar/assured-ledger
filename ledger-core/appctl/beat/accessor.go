@@ -23,6 +23,7 @@ type Accessor interface {
 
 // Appender provides method for appending pulses to storage.
 type Appender interface {
+	Accessor
 	Append(ctx context.Context, pulse Beat) error
 	EnsureLatest(ctx context.Context, pulse Beat) error
 }

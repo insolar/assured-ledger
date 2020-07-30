@@ -9,6 +9,7 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
 
 // AppenderMock implements Appender
@@ -26,6 +27,18 @@ type AppenderMock struct {
 	afterEnsureLatestCounter  uint64
 	beforeEnsureLatestCounter uint64
 	EnsureLatestMock          mAppenderMockEnsureLatest
+
+	funcLatest          func(ctx context.Context) (b1 Beat, err error)
+	inspectFuncLatest   func(ctx context.Context)
+	afterLatestCounter  uint64
+	beforeLatestCounter uint64
+	LatestMock          mAppenderMockLatest
+
+	funcOf          func(ctx context.Context, n1 pulse.Number) (b1 Beat, err error)
+	inspectFuncOf   func(ctx context.Context, n1 pulse.Number)
+	afterOfCounter  uint64
+	beforeOfCounter uint64
+	OfMock          mAppenderMockOf
 }
 
 // NewAppenderMock returns a mock for Appender
@@ -40,6 +53,12 @@ func NewAppenderMock(t minimock.Tester) *AppenderMock {
 
 	m.EnsureLatestMock = mAppenderMockEnsureLatest{mock: m}
 	m.EnsureLatestMock.callArgs = []*AppenderMockEnsureLatestParams{}
+
+	m.LatestMock = mAppenderMockLatest{mock: m}
+	m.LatestMock.callArgs = []*AppenderMockLatestParams{}
+
+	m.OfMock = mAppenderMockOf{mock: m}
+	m.OfMock.callArgs = []*AppenderMockOfParams{}
 
 	return m
 }
@@ -476,12 +495,449 @@ func (m *AppenderMock) MinimockEnsureLatestInspect() {
 	}
 }
 
+type mAppenderMockLatest struct {
+	mock               *AppenderMock
+	defaultExpectation *AppenderMockLatestExpectation
+	expectations       []*AppenderMockLatestExpectation
+
+	callArgs []*AppenderMockLatestParams
+	mutex    sync.RWMutex
+}
+
+// AppenderMockLatestExpectation specifies expectation struct of the Appender.Latest
+type AppenderMockLatestExpectation struct {
+	mock    *AppenderMock
+	params  *AppenderMockLatestParams
+	results *AppenderMockLatestResults
+	Counter uint64
+}
+
+// AppenderMockLatestParams contains parameters of the Appender.Latest
+type AppenderMockLatestParams struct {
+	ctx context.Context
+}
+
+// AppenderMockLatestResults contains results of the Appender.Latest
+type AppenderMockLatestResults struct {
+	b1  Beat
+	err error
+}
+
+// Expect sets up expected params for Appender.Latest
+func (mmLatest *mAppenderMockLatest) Expect(ctx context.Context) *mAppenderMockLatest {
+	if mmLatest.mock.funcLatest != nil {
+		mmLatest.mock.t.Fatalf("AppenderMock.Latest mock is already set by Set")
+	}
+
+	if mmLatest.defaultExpectation == nil {
+		mmLatest.defaultExpectation = &AppenderMockLatestExpectation{}
+	}
+
+	mmLatest.defaultExpectation.params = &AppenderMockLatestParams{ctx}
+	for _, e := range mmLatest.expectations {
+		if minimock.Equal(e.params, mmLatest.defaultExpectation.params) {
+			mmLatest.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmLatest.defaultExpectation.params)
+		}
+	}
+
+	return mmLatest
+}
+
+// Inspect accepts an inspector function that has same arguments as the Appender.Latest
+func (mmLatest *mAppenderMockLatest) Inspect(f func(ctx context.Context)) *mAppenderMockLatest {
+	if mmLatest.mock.inspectFuncLatest != nil {
+		mmLatest.mock.t.Fatalf("Inspect function is already set for AppenderMock.Latest")
+	}
+
+	mmLatest.mock.inspectFuncLatest = f
+
+	return mmLatest
+}
+
+// Return sets up results that will be returned by Appender.Latest
+func (mmLatest *mAppenderMockLatest) Return(b1 Beat, err error) *AppenderMock {
+	if mmLatest.mock.funcLatest != nil {
+		mmLatest.mock.t.Fatalf("AppenderMock.Latest mock is already set by Set")
+	}
+
+	if mmLatest.defaultExpectation == nil {
+		mmLatest.defaultExpectation = &AppenderMockLatestExpectation{mock: mmLatest.mock}
+	}
+	mmLatest.defaultExpectation.results = &AppenderMockLatestResults{b1, err}
+	return mmLatest.mock
+}
+
+//Set uses given function f to mock the Appender.Latest method
+func (mmLatest *mAppenderMockLatest) Set(f func(ctx context.Context) (b1 Beat, err error)) *AppenderMock {
+	if mmLatest.defaultExpectation != nil {
+		mmLatest.mock.t.Fatalf("Default expectation is already set for the Appender.Latest method")
+	}
+
+	if len(mmLatest.expectations) > 0 {
+		mmLatest.mock.t.Fatalf("Some expectations are already set for the Appender.Latest method")
+	}
+
+	mmLatest.mock.funcLatest = f
+	return mmLatest.mock
+}
+
+// When sets expectation for the Appender.Latest which will trigger the result defined by the following
+// Then helper
+func (mmLatest *mAppenderMockLatest) When(ctx context.Context) *AppenderMockLatestExpectation {
+	if mmLatest.mock.funcLatest != nil {
+		mmLatest.mock.t.Fatalf("AppenderMock.Latest mock is already set by Set")
+	}
+
+	expectation := &AppenderMockLatestExpectation{
+		mock:   mmLatest.mock,
+		params: &AppenderMockLatestParams{ctx},
+	}
+	mmLatest.expectations = append(mmLatest.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Appender.Latest return parameters for the expectation previously defined by the When method
+func (e *AppenderMockLatestExpectation) Then(b1 Beat, err error) *AppenderMock {
+	e.results = &AppenderMockLatestResults{b1, err}
+	return e.mock
+}
+
+// Latest implements Appender
+func (mmLatest *AppenderMock) Latest(ctx context.Context) (b1 Beat, err error) {
+	mm_atomic.AddUint64(&mmLatest.beforeLatestCounter, 1)
+	defer mm_atomic.AddUint64(&mmLatest.afterLatestCounter, 1)
+
+	if mmLatest.inspectFuncLatest != nil {
+		mmLatest.inspectFuncLatest(ctx)
+	}
+
+	mm_params := &AppenderMockLatestParams{ctx}
+
+	// Record call args
+	mmLatest.LatestMock.mutex.Lock()
+	mmLatest.LatestMock.callArgs = append(mmLatest.LatestMock.callArgs, mm_params)
+	mmLatest.LatestMock.mutex.Unlock()
+
+	for _, e := range mmLatest.LatestMock.expectations {
+		if minimock.Equal(e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.b1, e.results.err
+		}
+	}
+
+	if mmLatest.LatestMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmLatest.LatestMock.defaultExpectation.Counter, 1)
+		mm_want := mmLatest.LatestMock.defaultExpectation.params
+		mm_got := AppenderMockLatestParams{ctx}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmLatest.t.Errorf("AppenderMock.Latest got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmLatest.LatestMock.defaultExpectation.results
+		if mm_results == nil {
+			mmLatest.t.Fatal("No results are set for the AppenderMock.Latest")
+		}
+		return (*mm_results).b1, (*mm_results).err
+	}
+	if mmLatest.funcLatest != nil {
+		return mmLatest.funcLatest(ctx)
+	}
+	mmLatest.t.Fatalf("Unexpected call to AppenderMock.Latest. %v", ctx)
+	return
+}
+
+// LatestAfterCounter returns a count of finished AppenderMock.Latest invocations
+func (mmLatest *AppenderMock) LatestAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmLatest.afterLatestCounter)
+}
+
+// LatestBeforeCounter returns a count of AppenderMock.Latest invocations
+func (mmLatest *AppenderMock) LatestBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmLatest.beforeLatestCounter)
+}
+
+// Calls returns a list of arguments used in each call to AppenderMock.Latest.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmLatest *mAppenderMockLatest) Calls() []*AppenderMockLatestParams {
+	mmLatest.mutex.RLock()
+
+	argCopy := make([]*AppenderMockLatestParams, len(mmLatest.callArgs))
+	copy(argCopy, mmLatest.callArgs)
+
+	mmLatest.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockLatestDone returns true if the count of the Latest invocations corresponds
+// the number of defined expectations
+func (m *AppenderMock) MinimockLatestDone() bool {
+	for _, e := range m.LatestMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.LatestMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterLatestCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcLatest != nil && mm_atomic.LoadUint64(&m.afterLatestCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockLatestInspect logs each unmet expectation
+func (m *AppenderMock) MinimockLatestInspect() {
+	for _, e := range m.LatestMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to AppenderMock.Latest with params: %#v", *e.params)
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.LatestMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterLatestCounter) < 1 {
+		if m.LatestMock.defaultExpectation.params == nil {
+			m.t.Error("Expected call to AppenderMock.Latest")
+		} else {
+			m.t.Errorf("Expected call to AppenderMock.Latest with params: %#v", *m.LatestMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcLatest != nil && mm_atomic.LoadUint64(&m.afterLatestCounter) < 1 {
+		m.t.Error("Expected call to AppenderMock.Latest")
+	}
+}
+
+type mAppenderMockOf struct {
+	mock               *AppenderMock
+	defaultExpectation *AppenderMockOfExpectation
+	expectations       []*AppenderMockOfExpectation
+
+	callArgs []*AppenderMockOfParams
+	mutex    sync.RWMutex
+}
+
+// AppenderMockOfExpectation specifies expectation struct of the Appender.Of
+type AppenderMockOfExpectation struct {
+	mock    *AppenderMock
+	params  *AppenderMockOfParams
+	results *AppenderMockOfResults
+	Counter uint64
+}
+
+// AppenderMockOfParams contains parameters of the Appender.Of
+type AppenderMockOfParams struct {
+	ctx context.Context
+	n1  pulse.Number
+}
+
+// AppenderMockOfResults contains results of the Appender.Of
+type AppenderMockOfResults struct {
+	b1  Beat
+	err error
+}
+
+// Expect sets up expected params for Appender.Of
+func (mmOf *mAppenderMockOf) Expect(ctx context.Context, n1 pulse.Number) *mAppenderMockOf {
+	if mmOf.mock.funcOf != nil {
+		mmOf.mock.t.Fatalf("AppenderMock.Of mock is already set by Set")
+	}
+
+	if mmOf.defaultExpectation == nil {
+		mmOf.defaultExpectation = &AppenderMockOfExpectation{}
+	}
+
+	mmOf.defaultExpectation.params = &AppenderMockOfParams{ctx, n1}
+	for _, e := range mmOf.expectations {
+		if minimock.Equal(e.params, mmOf.defaultExpectation.params) {
+			mmOf.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmOf.defaultExpectation.params)
+		}
+	}
+
+	return mmOf
+}
+
+// Inspect accepts an inspector function that has same arguments as the Appender.Of
+func (mmOf *mAppenderMockOf) Inspect(f func(ctx context.Context, n1 pulse.Number)) *mAppenderMockOf {
+	if mmOf.mock.inspectFuncOf != nil {
+		mmOf.mock.t.Fatalf("Inspect function is already set for AppenderMock.Of")
+	}
+
+	mmOf.mock.inspectFuncOf = f
+
+	return mmOf
+}
+
+// Return sets up results that will be returned by Appender.Of
+func (mmOf *mAppenderMockOf) Return(b1 Beat, err error) *AppenderMock {
+	if mmOf.mock.funcOf != nil {
+		mmOf.mock.t.Fatalf("AppenderMock.Of mock is already set by Set")
+	}
+
+	if mmOf.defaultExpectation == nil {
+		mmOf.defaultExpectation = &AppenderMockOfExpectation{mock: mmOf.mock}
+	}
+	mmOf.defaultExpectation.results = &AppenderMockOfResults{b1, err}
+	return mmOf.mock
+}
+
+//Set uses given function f to mock the Appender.Of method
+func (mmOf *mAppenderMockOf) Set(f func(ctx context.Context, n1 pulse.Number) (b1 Beat, err error)) *AppenderMock {
+	if mmOf.defaultExpectation != nil {
+		mmOf.mock.t.Fatalf("Default expectation is already set for the Appender.Of method")
+	}
+
+	if len(mmOf.expectations) > 0 {
+		mmOf.mock.t.Fatalf("Some expectations are already set for the Appender.Of method")
+	}
+
+	mmOf.mock.funcOf = f
+	return mmOf.mock
+}
+
+// When sets expectation for the Appender.Of which will trigger the result defined by the following
+// Then helper
+func (mmOf *mAppenderMockOf) When(ctx context.Context, n1 pulse.Number) *AppenderMockOfExpectation {
+	if mmOf.mock.funcOf != nil {
+		mmOf.mock.t.Fatalf("AppenderMock.Of mock is already set by Set")
+	}
+
+	expectation := &AppenderMockOfExpectation{
+		mock:   mmOf.mock,
+		params: &AppenderMockOfParams{ctx, n1},
+	}
+	mmOf.expectations = append(mmOf.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Appender.Of return parameters for the expectation previously defined by the When method
+func (e *AppenderMockOfExpectation) Then(b1 Beat, err error) *AppenderMock {
+	e.results = &AppenderMockOfResults{b1, err}
+	return e.mock
+}
+
+// Of implements Appender
+func (mmOf *AppenderMock) Of(ctx context.Context, n1 pulse.Number) (b1 Beat, err error) {
+	mm_atomic.AddUint64(&mmOf.beforeOfCounter, 1)
+	defer mm_atomic.AddUint64(&mmOf.afterOfCounter, 1)
+
+	if mmOf.inspectFuncOf != nil {
+		mmOf.inspectFuncOf(ctx, n1)
+	}
+
+	mm_params := &AppenderMockOfParams{ctx, n1}
+
+	// Record call args
+	mmOf.OfMock.mutex.Lock()
+	mmOf.OfMock.callArgs = append(mmOf.OfMock.callArgs, mm_params)
+	mmOf.OfMock.mutex.Unlock()
+
+	for _, e := range mmOf.OfMock.expectations {
+		if minimock.Equal(e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.b1, e.results.err
+		}
+	}
+
+	if mmOf.OfMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmOf.OfMock.defaultExpectation.Counter, 1)
+		mm_want := mmOf.OfMock.defaultExpectation.params
+		mm_got := AppenderMockOfParams{ctx, n1}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmOf.t.Errorf("AppenderMock.Of got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmOf.OfMock.defaultExpectation.results
+		if mm_results == nil {
+			mmOf.t.Fatal("No results are set for the AppenderMock.Of")
+		}
+		return (*mm_results).b1, (*mm_results).err
+	}
+	if mmOf.funcOf != nil {
+		return mmOf.funcOf(ctx, n1)
+	}
+	mmOf.t.Fatalf("Unexpected call to AppenderMock.Of. %v %v", ctx, n1)
+	return
+}
+
+// OfAfterCounter returns a count of finished AppenderMock.Of invocations
+func (mmOf *AppenderMock) OfAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmOf.afterOfCounter)
+}
+
+// OfBeforeCounter returns a count of AppenderMock.Of invocations
+func (mmOf *AppenderMock) OfBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmOf.beforeOfCounter)
+}
+
+// Calls returns a list of arguments used in each call to AppenderMock.Of.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmOf *mAppenderMockOf) Calls() []*AppenderMockOfParams {
+	mmOf.mutex.RLock()
+
+	argCopy := make([]*AppenderMockOfParams, len(mmOf.callArgs))
+	copy(argCopy, mmOf.callArgs)
+
+	mmOf.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockOfDone returns true if the count of the Of invocations corresponds
+// the number of defined expectations
+func (m *AppenderMock) MinimockOfDone() bool {
+	for _, e := range m.OfMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.OfMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterOfCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcOf != nil && mm_atomic.LoadUint64(&m.afterOfCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockOfInspect logs each unmet expectation
+func (m *AppenderMock) MinimockOfInspect() {
+	for _, e := range m.OfMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to AppenderMock.Of with params: %#v", *e.params)
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.OfMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterOfCounter) < 1 {
+		if m.OfMock.defaultExpectation.params == nil {
+			m.t.Error("Expected call to AppenderMock.Of")
+		} else {
+			m.t.Errorf("Expected call to AppenderMock.Of with params: %#v", *m.OfMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcOf != nil && mm_atomic.LoadUint64(&m.afterOfCounter) < 1 {
+		m.t.Error("Expected call to AppenderMock.Of")
+	}
+}
+
 // MinimockFinish checks that all mocked methods have been called the expected number of times
 func (m *AppenderMock) MinimockFinish() {
 	if !m.minimockDone() {
 		m.MinimockAppendInspect()
 
 		m.MinimockEnsureLatestInspect()
+
+		m.MinimockLatestInspect()
+
+		m.MinimockOfInspect()
 		m.t.FailNow()
 	}
 }
@@ -506,5 +962,7 @@ func (m *AppenderMock) minimockDone() bool {
 	done := true
 	return done &&
 		m.MinimockAppendDone() &&
-		m.MinimockEnsureLatestDone()
+		m.MinimockEnsureLatestDone() &&
+		m.MinimockLatestDone() &&
+		m.MinimockOfDone()
 }

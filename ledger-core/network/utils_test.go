@@ -7,26 +7,24 @@ package network
 
 import (
 	"crypto"
+	"math"
+	"sort"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	node2 "github.com/insolar/assured-ledger/ledger-core/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
-	"github.com/insolar/assured-ledger/ledger-core/network/node"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/network/mutable"
 )
 
-func newTestNode() nodeinfo.NetworkNode {
-	return node.NewNode(gen.UniqueGlobalRef(), member.PrimaryRoleUnknown, nil, "127.0.0.1:5432", "")
-}
-
-func newTestNodeWithShortID(id node2.ShortNodeID) nodeinfo.NetworkNode {
-	n := newTestNode()
-	n.(node.MutableNode).SetShortID(id)
+func newTestNodeWithShortID(id node.ShortNodeID) *mutable.Node {
+	n := mutable.NewTestNode(gen.UniqueGlobalRef(), member.PrimaryRoleUnknown, "127.0.0.1:5432")
+	n.SetShortID(id)
 	return n
 }
 
@@ -44,22 +42,22 @@ func TestCorrectShortIDCollision(t *testing.T) {
 		newTestNodeWithShortID(1<<32 - 1),
 	}
 
-	require.False(t, CheckShortIDCollision(nodes, node2.ShortNodeID(2)))
-	require.False(t, CheckShortIDCollision(nodes, node2.ShortNodeID(31)))
-	require.False(t, CheckShortIDCollision(nodes, node2.ShortNodeID(35)))
-	require.False(t, CheckShortIDCollision(nodes, node2.ShortNodeID(65)))
+	require.False(t, CheckShortIDCollision(nodes, node.ShortNodeID(2)))
+	require.False(t, CheckShortIDCollision(nodes, node.ShortNodeID(31)))
+	require.False(t, CheckShortIDCollision(nodes, node.ShortNodeID(35)))
+	require.False(t, CheckShortIDCollision(nodes, node.ShortNodeID(65)))
 
-	require.True(t, CheckShortIDCollision(nodes, node2.ShortNodeID(30)))
-	require.Equal(t, node2.ShortNodeID(31), regenerateShortID(nodes, node2.ShortNodeID(30)))
+	require.True(t, CheckShortIDCollision(nodes, node.ShortNodeID(30)))
+	require.Equal(t, node.ShortNodeID(31), regenerateShortID(nodes, node.ShortNodeID(30)))
 
-	require.True(t, CheckShortIDCollision(nodes, node2.ShortNodeID(32)))
-	require.Equal(t, node2.ShortNodeID(35), regenerateShortID(nodes, node2.ShortNodeID(32)))
+	require.True(t, CheckShortIDCollision(nodes, node.ShortNodeID(32)))
+	require.Equal(t, node.ShortNodeID(35), regenerateShortID(nodes, node.ShortNodeID(32)))
 
-	require.True(t, CheckShortIDCollision(nodes, node2.ShortNodeID(64)))
-	require.Equal(t, node2.ShortNodeID(65), regenerateShortID(nodes, node2.ShortNodeID(64)))
+	require.True(t, CheckShortIDCollision(nodes, node.ShortNodeID(64)))
+	require.Equal(t, node.ShortNodeID(65), regenerateShortID(nodes, node.ShortNodeID(64)))
 
-	require.True(t, CheckShortIDCollision(nodes, node2.ShortNodeID(1<<32-2)))
-	require.Equal(t, node2.ShortNodeID(2), regenerateShortID(nodes, node2.ShortNodeID(1<<32-2)))
+	require.True(t, CheckShortIDCollision(nodes, node.ShortNodeID(1<<32-2)))
+	require.Equal(t, node.ShortNodeID(2), regenerateShortID(nodes, node.ShortNodeID(1<<32-2)))
 }
 
 var _ nodeinfo.DiscoveryNode = testNode{}
@@ -86,10 +84,6 @@ func (t testNode) GetBriefDigest() []byte {
 
 func (t testNode) GetBriefSign() []byte {
 	return nil
-}
-
-func (t testNode) GetRole() member.PrimaryRole {
-	return member.PrimaryRoleVirtual
 }
 
 func TestExcludeOrigin(t *testing.T) {
@@ -127,3 +121,40 @@ func TestExcludeOrigin(t *testing.T) {
 	assert.Equal(t, []nodeinfo.DiscoveryNode{first, second}, result)
 
 }
+
+func regenerateShortID(nodes []nodeinfo.NetworkNode, shortID node.ShortNodeID) node.ShortNodeID {
+	shortIDs := make([]node.ShortNodeID, len(nodes))
+	for i, activeNode := range nodes {
+		shortIDs[i] = activeNode.GetNodeID()
+	}
+	sort.Slice(shortIDs, func(i, j int) bool {
+		return shortIDs[i] < shortIDs[j]
+	})
+	return generateNonConflictingID(shortIDs, shortID)
+}
+
+
+func generateNonConflictingID(sortedSlice []node.ShortNodeID, conflictingID node.ShortNodeID) node.ShortNodeID {
+	index := sort.Search(len(sortedSlice), func(i int) bool {
+		return sortedSlice[i] >= conflictingID
+	})
+	result := conflictingID
+	repeated := false
+	for {
+		if result == math.MaxUint32 {
+			if !repeated {
+				repeated = true
+				result = 0
+				index = 0
+			} else {
+				panic("[ generateNonConflictingID ] shortID overflow twice")
+			}
+		}
+		index++
+		result++
+		if index >= len(sortedSlice) || result != sortedSlice[index] {
+			return result
+		}
+	}
+}
+

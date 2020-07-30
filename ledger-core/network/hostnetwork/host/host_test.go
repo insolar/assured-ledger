@@ -87,9 +87,9 @@ func TestHost_Equal(t *testing.T) {
 
 	tests := []struct {
 		id1   reference.Global
-		addr1 *Address
+		addr1 Address
 		id2   reference.Global
-		addr2 *Address
+		addr2 Address
 		equal bool
 		name  string
 	}{
@@ -98,7 +98,7 @@ func TestHost_Equal(t *testing.T) {
 		{id1, addr1, id2, addr1, false, "different ids"},
 		{id1, addr1, id2, addr2, false, "different id and address"},
 		{id1, addr1, id2, addr2, false, "different id and address"},
-		{id1, nil, id1, nil, false, "nil addresses"},
+		{id1, Address{}, id1, Address{}, true, "empty addresses"},
 		{idNil, addr1, idNil, addr1, true, "nil ids"},
 	}
 	for _, test := range tests {
@@ -136,7 +136,7 @@ func TestHost_Marshal(t *testing.T) {
 
 	assert.Equal(t, h.NodeID, h2.NodeID)
 	assert.Equal(t, h.ShortID, h2.ShortID)
-	assert.Nil(t, h.Address)
+	assert.True(t, h.Address.IsZero())
 }
 
 func TestHost_Marshal2(t *testing.T) {
@@ -146,7 +146,7 @@ func TestHost_Marshal2(t *testing.T) {
 	port := 5432
 	zone := "what is it for?"
 	addr := Address{UDPAddr: net.UDPAddr{IP: ip, Port: port, Zone: zone}}
-	h := Host{NodeID: ref, ShortID: sid, Address: &addr}
+	h := Host{NodeID: ref, ShortID: sid, Address: addr}
 
 	h2 := marshalUnmarshalHost(t, &h)
 
