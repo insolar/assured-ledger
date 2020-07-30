@@ -23,6 +23,7 @@ import (
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/debuglogger"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/synchronization"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
@@ -100,8 +101,8 @@ func Test_NoDeadLock_WhenOutgoingComeToSameNode(t *testing.T) {
 	for _, test := range table {
 		test := test
 		t.Run(test.name, func(t *testing.T) {
-			t.Log(test.testCaseID)
-			t.Skip("https://insolar.atlassian.net/browse/PLAT-432")
+			insrail.LogSkipCase(t, test.testCaseID, "https://insolar.atlassian.net/browse/PLAT-432")
+
 			mc := minimock.NewController(t)
 
 			server, ctx := utils.NewUninitializedServer(nil, t)
@@ -224,7 +225,8 @@ func Test_NoDeadLock_WhenOutgoingComeToSameNode(t *testing.T) {
 }
 
 func TestVirtual_CallContractFromContract(t *testing.T) {
-	t.Log("C5086")
+	insrail.LogCase(t, "C5086")
+
 	table := []struct {
 		name   string
 		flagsA contract.MethodIsolation
@@ -378,7 +380,8 @@ func TestVirtual_CallContractFromContract(t *testing.T) {
 }
 
 func TestVirtual_CallOtherMethodInObject(t *testing.T) {
-	t.Log("C5116")
+	insrail.LogCase(t, "C5116")
+
 	table := []struct {
 		name        string
 		stateSender contract.MethodIsolation
@@ -519,7 +522,8 @@ func TestVirtual_CallOtherMethodInObject(t *testing.T) {
 }
 
 func TestVirtual_CallMethodFromConstructor(t *testing.T) {
-	t.Log("C5091")
+	insrail.LogCase(t, "C5091")
+
 	table := []struct {
 		name   string
 		stateB contract.MethodIsolation
@@ -675,8 +679,7 @@ func TestVirtual_CallMethodFromConstructor(t *testing.T) {
 
 func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 	defer commontestutils.LeakTester(t)
-
-	t.Log("C5320")
+	insrail.LogCase(t, "C5320")
 
 	countChangePulse := execute.MaxOutgoingSendCount
 
@@ -809,7 +812,7 @@ func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 // if first request doesn't release global lock we get stuck when start processing outgoing
 // otherwise sendOutgoing releases runner limit and we are OK
 func TestVirtual_OutgoingReleaseSemaphore(t *testing.T) {
-	t.Log("C5436")
+	insrail.LogCase(t, "C5436")
 
 	mc := minimock.NewController(t)
 
