@@ -540,7 +540,6 @@ func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) sm
 			panic(throw.Impossible())
 		}
 
-		state.IncrementPotentialPendingCounter(s.execution.Isolation)
 		objectDescriptor = s.getDescriptor(state)
 	}
 
