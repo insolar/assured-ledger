@@ -348,7 +348,6 @@ func TestSMExecute_Semi_ConstructorOnMissingObject(t *testing.T) {
 }
 
 func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
-	t.Skip("https://insolar.atlassian.net/browse/PLAT-697")
 	defer executeLeakCheck(t)
 
 	var (
