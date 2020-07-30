@@ -169,7 +169,7 @@ func Test_Execute_stepIsolationNegotiation(t *testing.T) {
 						State:        tc.callIsolation.State,
 					},
 					ObjectDescriptor: descriptor.NewObject(
-						reference.Global{}, reference.Local{}, smGlobalRef, []byte(""),
+						reference.Global{}, reference.Local{}, smGlobalRef, []byte(""), false,
 					),
 				},
 				Payload:           request,
