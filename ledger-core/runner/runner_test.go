@@ -37,7 +37,7 @@ func TestAbort(t *testing.T) {
 	)
 
 	executionContext := execution.Context{
-		ObjectDescriptor: descriptor.NewObject(object, reference.Local{}, class, defaultObject),
+		ObjectDescriptor: descriptor.NewObject(object, reference.Local{}, class, defaultObject, false),
 		Context:          ctx,
 		Request: &payload.VCallRequest{
 			CallType:       payload.CTMethod,
