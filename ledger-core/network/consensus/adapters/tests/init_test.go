@@ -35,11 +35,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/serialization"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
-	"github.com/insolar/assured-ledger/ledger-core/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodenetwork"
 	"github.com/insolar/assured-ledger/ledger-core/network/transport"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/network/mutable"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 )
@@ -337,8 +337,8 @@ func nodesFromInfo(nodeInfos []*nodeMeta) ([]nodeinfo.NetworkNode, []nodeinfo.Ne
 	return nodes, discoveryNodes, nil
 }
 
-func newNetworkNode(addr string, role member.PrimaryRole, pk crypto.PublicKey) node.MutableNode {
-	n := node.NewTestNode(gen.UniqueGlobalRef(), role, pk, addr)
+func newNetworkNode(addr string, role member.PrimaryRole, pk crypto.PublicKey) mutable.Node {
+	n := mutable.NewTestNode(gen.UniqueGlobalRef(), role, pk, addr)
 	n.SetShortID(node2.ShortNodeID(shortNodeIdOffset))
 
 	shortNodeIdOffset += 1

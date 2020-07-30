@@ -17,16 +17,16 @@ import (
 	node2 "github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
-	"github.com/insolar/assured-ledger/ledger-core/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/network/mutable"
 )
 
-func newTestNode() node.MutableNode {
-	return node.NewTestNode(gen.UniqueGlobalRef(), member.PrimaryRoleUnknown, nil, "127.0.0.1:5432")
+func newTestNode() mutable.Node {
+	return mutable.NewTestNode(gen.UniqueGlobalRef(), member.PrimaryRoleUnknown, nil, "127.0.0.1:5432")
 }
 
-func newTestNodeWithShortID(id node2.ShortNodeID) node.MutableNode {
+func newTestNodeWithShortID(id node2.ShortNodeID) mutable.Node {
 	n := newTestNode()
 	n.SetShortID(id)
 	return n

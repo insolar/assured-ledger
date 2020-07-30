@@ -17,10 +17,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
-	"github.com/insolar/assured-ledger/ledger-core/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	mock "github.com/insolar/assured-ledger/ledger-core/testutils/network"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/network/mutable"
 )
 
 func TestWaitMajority_MajorityNotHappenedInETA(t *testing.T) {
@@ -69,7 +69,7 @@ func TestWaitMajority_MajorityHappenedInETA(t *testing.T) {
 	})
 	accessor2 := mock.NewAccessorMock(mc)
 	accessor2.GetWorkingNodesMock.Set(func() (na1 []nodeinfo.NetworkNode) {
-		n := node.NewTestNode(ref, member.PrimaryRoleHeavyMaterial, nil, "127.0.0.1:123")
+		n := mutable.NewTestNode(ref, member.PrimaryRoleHeavyMaterial, nil, "127.0.0.1:123")
 		return []nodeinfo.NetworkNode{n}
 	})
 	nodeKeeper.GetAccessorMock.Set(func(p pulse.Number) (a1 network.Accessor) {

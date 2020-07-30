@@ -14,9 +14,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
-	"github.com/insolar/assured-ledger/ledger-core/network/node"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeset"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/network/mutable"
 )
 
 func TestMemoryStorage(t *testing.T) {
@@ -26,20 +27,20 @@ func TestMemoryStorage(t *testing.T) {
 	ks := platformpolicy.NewKeyProcessor()
 	p1, err := ks.GeneratePrivateKey()
 	assert.NoError(t, err)
-	n := node.NewTestNode(gen.UniqueGlobalRef(), member.PrimaryRoleVirtual, ks.ExtractPublicKey(p1), "127.0.0.1:22")
+	n := mutable.NewTestNode(gen.UniqueGlobalRef(), member.PrimaryRoleVirtual, ks.ExtractPublicKey(p1), "127.0.0.1:22")
 	nodes := []nodeinfo.NetworkNode{n}
 
 	for i := 0; i < entriesCount+2; i++ {
 		p := startPulse
 		p.PulseNumber += pulse.Number(i)
 
-		snap := node.NewSnapshot(p.PulseNumber, nodes)
+		snap := nodeset.NewSnapshot(p.PulseNumber, nodes)
 		err = s.Append(snap)
 		assert.NoError(t, err)
 
 		snap1, err := s.ForPulseNumber(p.PulseNumber)
 		assert.NoError(t, err)
-		assert.True(t, snap1.Equal(snap), "snapshots should be equal")
+		assert.True(t, snap1 == snap, "snapshots should be equal")
 	}
 
 	// first pulse and snapshot should be truncated

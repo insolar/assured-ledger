@@ -18,10 +18,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
-	"github.com/insolar/assured-ledger/ledger-core/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	mock "github.com/insolar/assured-ledger/ledger-core/testutils/network"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/network/mutable"
 )
 
 func createBase(mc *minimock.Controller) *Base {
@@ -33,7 +33,7 @@ func createBase(mc *minimock.Controller) *Base {
 	})
 
 	nk := mock.NewNodeKeeperMock(mc)
-	nk.GetOriginMock.Return(node.NewTestNode(gen.UniqueGlobalRef(), member.PrimaryRoleVirtual, nil, "127.0.0.1:123"))
+	nk.GetOriginMock.Return(mutable.NewTestNode(gen.UniqueGlobalRef(), member.PrimaryRoleVirtual, nil, "127.0.0.1:123"))
 	b.NodeKeeper = nk
 	b.Aborter = aborter
 	return b

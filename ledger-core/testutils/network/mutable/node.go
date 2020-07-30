@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package node
+package mutable
 
 import (
 	"crypto"
@@ -19,11 +19,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-type MutableNode interface {
-	nodeinfo.NetworkNode
+type Node = *nodeInfo
 
-	SetShortID(shortID node.ShortNodeID)
-	SetSignature(cryptkit.SignedDigest)
+func NewTestNode(id reference.Global, role member.PrimaryRole, publicKey crypto.PublicKey, address string) Node {
+	return newMutableNode(nil, id, role, publicKey, nodeinfo.Ready, address)
 }
 
 func newMutableNode(
@@ -37,7 +36,7 @@ func newMutableNode(
 	return &nodeInfo{
 		static:        static,
 		nodeID:        id,
-		nodeShortID:   GenerateUintShortID(id),
+		nodeShortID:   node.GenerateUintShortID(id),
 		nodeRole:      role,
 		nodePublicKey: publicKey,
 		nodeAddress:   address,
@@ -45,10 +44,7 @@ func newMutableNode(
 	}
 }
 
-func NewTestNode(id reference.Global, role member.PrimaryRole, publicKey crypto.PublicKey, address string) MutableNode {
-	return newMutableNode(nil, id, role, publicKey, nodeinfo.Ready, address)
-}
-
+var _ nodeinfo.NetworkNode = &nodeInfo{}
 type nodeInfo struct {
 	static        profiles.StaticProfile
 	nodeID        reference.Global

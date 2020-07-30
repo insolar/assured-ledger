@@ -8,7 +8,7 @@ package storage
 import (
 	"sync"
 
-	"github.com/insolar/assured-ledger/ledger-core/network/node"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeset"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
 
@@ -25,7 +25,7 @@ type MemoryStorage struct {
 	lock            sync.RWMutex
 	limit           int
 	entries         []pulse.Number
-	snapshotEntries map[pulse.Number]*node.Snapshot
+	snapshotEntries map[pulse.Number]*nodeset.Snapshot
 }
 
 // Truncate deletes all entries except Count
@@ -47,14 +47,14 @@ func (m *MemoryStorage) Truncate(count int) {
 	m.entries = m.entries[:count]
 }
 
-func (m *MemoryStorage) Append(snapshot *node.Snapshot) error {
+func (m *MemoryStorage) Append(snapshot *nodeset.Snapshot) error {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
 	pn := snapshot.GetPulse()
 
 	if m.snapshotEntries == nil {
-		m.snapshotEntries = make(map[pulse.Number]*node.Snapshot)
+		m.snapshotEntries = make(map[pulse.Number]*nodeset.Snapshot)
 	}
 
 	if _, ok := m.snapshotEntries[pn]; !ok {
@@ -67,7 +67,7 @@ func (m *MemoryStorage) Append(snapshot *node.Snapshot) error {
 	return nil
 }
 
-func (m *MemoryStorage) ForPulseNumber(pulse pulse.Number) (*node.Snapshot, error) {
+func (m *MemoryStorage) ForPulseNumber(pulse pulse.Number) (*nodeset.Snapshot, error) {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
 

@@ -21,7 +21,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/resolver"
-	"github.com/insolar/assured-ledger/ledger-core/network/node"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeset"
 
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 
@@ -63,11 +63,11 @@ func createOrigin(configuration configuration.Transport, cert nodeinfo.Certifica
 	}
 
 	pk := cert.GetPublicKey()
-	nodeID := node2.ShortNodeID(node.GenerateUintShortID(ref))
+	nodeID := node2.ShortNodeID(node2.GenerateUintShortID(ref))
 	staticExt := adapters.NewStaticProfileExtensionExt(nodeID, ref, cryptkit.Signature{})
 
 	staticProfile := adapters.NewStaticProfileExt2(
-		node2.ShortNodeID(node.GenerateUintShortID(ref)), role, specialRole,
+		node2.ShortNodeID(node2.GenerateUintShortID(ref)), role, specialRole,
 		staticExt,
 		adapters.NewOutboundNoPort(publicAddress),
 		adapters.ECDSAPublicKeyAsPublicKeyStore(pk),
@@ -127,7 +127,7 @@ func (nk *nodekeeper) GetAccessor(pn pulse.Number) network.Accessor {
 	if err != nil {
 		panic(fmt.Sprintf("GetAccessor(%d): %s", pn, err.Error()))
 	}
-	return node.NewAccessor(s)
+	return nodeset.NewAccessor(s)
 }
 
 func (nk *nodekeeper) GetOrigin() nodeinfo.NetworkNode {
@@ -162,13 +162,13 @@ func (nk *nodekeeper) moveSyncToActive(number pulse.Number) (before, after int, 
 	nk.syncLock.Lock()
 	defer nk.syncLock.Unlock()
 
-	snapshot := node.NewSnapshot(number, nk.syncNodes)
+	snapshot := nodeset.NewSnapshot(number, nk.syncNodes)
 
 	if err := nk.snapshotStorage.Append(snapshot); err != nil {
 		return 0, 0, err
 	}
 
-	accessor := node.NewAccessor(snapshot)
+	accessor := nodeset.NewAccessor(snapshot)
 
 	o := accessor.GetActiveNode(nk.origin.GetReference())
 	nk._updateOrigin(o)

@@ -6,7 +6,7 @@
 package storage
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/network/node"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeset"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
 
@@ -14,6 +14,6 @@ import (
 
 // SnapshotStorage provides methods for accessing Snapshot.
 type SnapshotStorage interface {
-	ForPulseNumber(pulse.Number) (*node.Snapshot, error)
-	Append(*node.Snapshot) error
+	ForPulseNumber(pulse.Number) (*nodeset.Snapshot, error)
+	Append(*nodeset.Snapshot) error
 }

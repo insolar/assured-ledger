@@ -3,11 +3,9 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package node
+package nodeset
 
 import (
-	"reflect"
-
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
@@ -22,13 +20,6 @@ type Snapshot struct {
 
 func (s *Snapshot) GetPulse() pulse.Number {
 	return s.pulse
-}
-
-func (s *Snapshot) Equal(s2 *Snapshot) bool {
-	if s.pulse != s2.pulse || s.state != s2.state {
-		return false
-	}
-	return reflect.DeepEqual(s.workingNodes, s2.workingNodes)
 }
 
 // NewSnapshot create new snapshot for pulse.

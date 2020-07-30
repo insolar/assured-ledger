@@ -19,16 +19,17 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	mock "github.com/insolar/assured-ledger/ledger-core/testutils/network"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/network/mutable"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/network/node"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeset"
 )
 
-func newNode(ref reference.Global, id int) node.MutableNode {
+func newNode(ref reference.Global, id int) mutable.Node {
 	address := "127.0.0.1:" + strconv.Itoa(id)
-	result := node.NewTestNode(ref, member.PrimaryRoleUnknown, nil, address)
+	result := mutable.NewTestNode(ref, member.PrimaryRoleUnknown, nil, address)
 	result.SetShortID(node2.ShortNodeID(id))
 	return result
 }
@@ -41,7 +42,7 @@ func TestTable_Resolve(t *testing.T) {
 	nodeKeeperMock := mock.NewNodeKeeperMock(t)
 	nodeKeeperMock.GetAccessorMock.Set(func(p1 pulse.Number) network.Accessor {
 		n := newNode(refs[0], 123)
-		return node.NewAccessor(node.NewSnapshot(puls.PulseNumber, []nodeinfo.NetworkNode{n}))
+		return nodeset.NewAccessor(nodeset.NewSnapshot(puls.PulseNumber, []nodeinfo.NetworkNode{n}))
 	})
 
 	pulseAccessorMock := beat.NewAccessorMock(t)
