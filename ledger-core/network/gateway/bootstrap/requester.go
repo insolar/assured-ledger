@@ -14,8 +14,9 @@ import (
 
 	"github.com/opentracing/opentracing-go/log"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/version"
 
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
@@ -47,7 +48,6 @@ func NewRequester(options *network.Options) Requester {
 
 type requester struct {
 	HostNetwork         network.HostNetwork    `inject:""`
-	OriginProvider      network.OriginProvider `inject:""` // nolint:staticcheck
 	CryptographyService cryptography.Service   `inject:""`
 
 	options *network.Options
@@ -158,7 +158,7 @@ func (ac *requester) authorize(ctx context.Context, host *host.Host, cert nodein
 		return nil, throw.W(err, "Error serializing certificate")
 	}
 
-	authData := &packet.AuthorizeData{Certificate: serializedCert, Version: ac.OriginProvider.GetOrigin().Version()}
+	authData := &packet.AuthorizeData{Certificate: serializedCert, Version: version.Version}
 	response, err := ac.authorizeWithTimestamp(ctx, host, authData, time.Now().Unix())
 	if err != nil {
 		return nil, err

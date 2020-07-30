@@ -13,12 +13,11 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/host"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet/types"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
@@ -89,22 +88,19 @@ type Future interface {
 	Cancel()
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network.OriginProvider -o ../testutils/network -s _mock.go -g
-
-//Deprecated: network internal usage only
-type OriginProvider interface {
-	// GetOrigin get origin node information(self).
-	GetOrigin() nodeinfo.NetworkNode
-}
-
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network.NodeNetwork -o ../testutils/network -s _mock.go -g
 
-// Should be deprecated, but actually is still used everywhere todo: move GetWorkingNodes to ServiceNetwork facade
 type NodeNetwork interface {
-	OriginProvider
+	// GetOrigin returns information of this/local node. Will fail when consensus was not initialized. Result may change after each consensus round.
+	GetOrigin() nodeinfo.NetworkNode
+	// GetLocalNodeReference returns a node reference for this/local node. Safe to call at any time. Immutable.
+	GetLocalNodeReference() reference.Holder
+	// GetLocalNodeRole returns a role for this/local node. Safe to call at any time. Immutable.
+	GetLocalNodeRole() member.PrimaryRole
 
 	// GetAccessor get accessor to the internal snapshot for the current pulse
 	GetAccessor(pulse.Number) Accessor
+	GetLatestAccessor() Accessor
 }
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network.NodeKeeper -o ../testutils/network -s _mock.go -g
@@ -133,6 +129,7 @@ type RoutingTable interface {
 
 // Accessor is interface that provides read access to nodekeeper internal snapshot
 type Accessor interface {
+	GetPulseNumber() pulse.Number
 	// GetWorkingNode get working node by its reference. Returns nil if node is not found or is not working.
 	GetWorkingNode(ref reference.Global) nodeinfo.NetworkNode
 	// GetWorkingNodes returns sorted list of all working nodes.
@@ -142,8 +139,6 @@ type Accessor interface {
 	GetActiveNode(ref reference.Global) nodeinfo.NetworkNode
 	// GetActiveNodes returns unsorted list of all active nodes.
 	GetActiveNodes() []nodeinfo.NetworkNode
-	// GetActiveNodeByShortID get active node by short ID. Returns nil if node is not found.
-	GetActiveNodeByShortID(shortID node.ShortNodeID) nodeinfo.NetworkNode
 	// GetActiveNodeByAddr get active node by addr. Returns nil if node is not found.
 	GetActiveNodeByAddr(address string) nodeinfo.NetworkNode
 }
@@ -153,19 +148,19 @@ type Accessor interface {
 // Gatewayer is a network which can change it's Gateway
 type Gatewayer interface {
 	Gateway() Gateway
-	SwitchState(context.Context, nodeinfo.NetworkState, pulse.Data)
+	SwitchState(context.Context, State, pulse.Data)
 }
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network.Gateway -o ../testutils/network -s _mock.go -g
 
 // Gateway responds for whole network state
 type Gateway interface {
-	NewGateway(context.Context, nodeinfo.NetworkState) Gateway
+	NewGateway(context.Context, State) Gateway
 
 	BeforeRun(context.Context, pulse.Data)
 	Run(context.Context, pulse.Data)
 
-	GetState() nodeinfo.NetworkState
+	GetState() State
 
 	OnPulseFromConsensus(context.Context, NetworkedPulse)
 	OnConsensusFinished(context.Context, Report)
@@ -181,7 +176,6 @@ type Gateway interface {
 	EphemeralMode(nodes []nodeinfo.NetworkNode) bool
 
 	FailState(ctx context.Context, reason string)
-	LatestPulse(context.Context) pulse.Data
 }
 
 type Auther interface {

@@ -19,7 +19,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor/memstor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/convlog"
@@ -40,7 +39,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/journal"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/network"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
@@ -137,22 +135,8 @@ func newServerExt(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFi
 		Pulses       *memstor.StorageMem
 	)
 	{
-		networkNodeMock := network.NewNetworkNodeMock(t).
-			IDMock.Return(gen.UniqueGlobalRef()).
-			ShortIDMock.Return(node.ShortNodeID(0)).
-			RoleMock.Return(member.PrimaryRoleVirtual).
-			AddressMock.Return("").
-			GetStateMock.Return(nodeinfo.Ready).
-			GetPowerMock.Return(1)
-		networkNodeList := []nodeinfo.NetworkNode{networkNodeMock}
-
-		nodeNetworkAccessorMock := network.NewAccessorMock(t).GetWorkingNodesMock.Return(networkNodeList)
-		nodeNetworkMock := network.NewNodeNetworkMock(t).GetAccessorMock.Return(nodeNetworkAccessorMock)
-
 		Pulses = memstor.NewStorageMem()
 		PulseManager = insconveyor.NewPulseManager()
-		PulseManager.NodeNet = nodeNetworkMock
-		PulseManager.PulseAccessor = Pulses
 		PulseManager.PulseAppender = Pulses
 	}
 

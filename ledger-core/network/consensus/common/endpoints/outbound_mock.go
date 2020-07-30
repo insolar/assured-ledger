@@ -9,18 +9,11 @@ import (
 
 	"github.com/gojuno/minimock/v3"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 )
 
 // OutboundMock implements Outbound
 type OutboundMock struct {
 	t minimock.Tester
-
-	funcAsByteString          func() (b1 longbits.ByteString)
-	inspectFuncAsByteString   func()
-	afterAsByteStringCounter  uint64
-	beforeAsByteStringCounter uint64
-	AsByteStringMock          mOutboundMockAsByteString
 
 	funcCanAccept          func(connection Inbound) (b1 bool)
 	inspectFuncCanAccept   func(connection Inbound)
@@ -60,8 +53,6 @@ func NewOutboundMock(t minimock.Tester) *OutboundMock {
 		controller.RegisterMocker(m)
 	}
 
-	m.AsByteStringMock = mOutboundMockAsByteString{mock: m}
-
 	m.CanAcceptMock = mOutboundMockCanAccept{mock: m}
 	m.CanAcceptMock.callArgs = []*OutboundMockCanAcceptParams{}
 
@@ -74,149 +65,6 @@ func NewOutboundMock(t minimock.Tester) *OutboundMock {
 	m.GetRelayIDMock = mOutboundMockGetRelayID{mock: m}
 
 	return m
-}
-
-type mOutboundMockAsByteString struct {
-	mock               *OutboundMock
-	defaultExpectation *OutboundMockAsByteStringExpectation
-	expectations       []*OutboundMockAsByteStringExpectation
-}
-
-// OutboundMockAsByteStringExpectation specifies expectation struct of the Outbound.AsByteString
-type OutboundMockAsByteStringExpectation struct {
-	mock *OutboundMock
-
-	results *OutboundMockAsByteStringResults
-	Counter uint64
-}
-
-// OutboundMockAsByteStringResults contains results of the Outbound.AsByteString
-type OutboundMockAsByteStringResults struct {
-	b1 longbits.ByteString
-}
-
-// Expect sets up expected params for Outbound.AsByteString
-func (mmAsByteString *mOutboundMockAsByteString) Expect() *mOutboundMockAsByteString {
-	if mmAsByteString.mock.funcAsByteString != nil {
-		mmAsByteString.mock.t.Fatalf("OutboundMock.AsByteString mock is already set by Set")
-	}
-
-	if mmAsByteString.defaultExpectation == nil {
-		mmAsByteString.defaultExpectation = &OutboundMockAsByteStringExpectation{}
-	}
-
-	return mmAsByteString
-}
-
-// Inspect accepts an inspector function that has same arguments as the Outbound.AsByteString
-func (mmAsByteString *mOutboundMockAsByteString) Inspect(f func()) *mOutboundMockAsByteString {
-	if mmAsByteString.mock.inspectFuncAsByteString != nil {
-		mmAsByteString.mock.t.Fatalf("Inspect function is already set for OutboundMock.AsByteString")
-	}
-
-	mmAsByteString.mock.inspectFuncAsByteString = f
-
-	return mmAsByteString
-}
-
-// Return sets up results that will be returned by Outbound.AsByteString
-func (mmAsByteString *mOutboundMockAsByteString) Return(b1 longbits.ByteString) *OutboundMock {
-	if mmAsByteString.mock.funcAsByteString != nil {
-		mmAsByteString.mock.t.Fatalf("OutboundMock.AsByteString mock is already set by Set")
-	}
-
-	if mmAsByteString.defaultExpectation == nil {
-		mmAsByteString.defaultExpectation = &OutboundMockAsByteStringExpectation{mock: mmAsByteString.mock}
-	}
-	mmAsByteString.defaultExpectation.results = &OutboundMockAsByteStringResults{b1}
-	return mmAsByteString.mock
-}
-
-//Set uses given function f to mock the Outbound.AsByteString method
-func (mmAsByteString *mOutboundMockAsByteString) Set(f func() (b1 longbits.ByteString)) *OutboundMock {
-	if mmAsByteString.defaultExpectation != nil {
-		mmAsByteString.mock.t.Fatalf("Default expectation is already set for the Outbound.AsByteString method")
-	}
-
-	if len(mmAsByteString.expectations) > 0 {
-		mmAsByteString.mock.t.Fatalf("Some expectations are already set for the Outbound.AsByteString method")
-	}
-
-	mmAsByteString.mock.funcAsByteString = f
-	return mmAsByteString.mock
-}
-
-// AsByteString implements Outbound
-func (mmAsByteString *OutboundMock) AsByteString() (b1 longbits.ByteString) {
-	mm_atomic.AddUint64(&mmAsByteString.beforeAsByteStringCounter, 1)
-	defer mm_atomic.AddUint64(&mmAsByteString.afterAsByteStringCounter, 1)
-
-	if mmAsByteString.inspectFuncAsByteString != nil {
-		mmAsByteString.inspectFuncAsByteString()
-	}
-
-	if mmAsByteString.AsByteStringMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmAsByteString.AsByteStringMock.defaultExpectation.Counter, 1)
-
-		mm_results := mmAsByteString.AsByteStringMock.defaultExpectation.results
-		if mm_results == nil {
-			mmAsByteString.t.Fatal("No results are set for the OutboundMock.AsByteString")
-		}
-		return (*mm_results).b1
-	}
-	if mmAsByteString.funcAsByteString != nil {
-		return mmAsByteString.funcAsByteString()
-	}
-	mmAsByteString.t.Fatalf("Unexpected call to OutboundMock.AsByteString.")
-	return
-}
-
-// AsByteStringAfterCounter returns a count of finished OutboundMock.AsByteString invocations
-func (mmAsByteString *OutboundMock) AsByteStringAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmAsByteString.afterAsByteStringCounter)
-}
-
-// AsByteStringBeforeCounter returns a count of OutboundMock.AsByteString invocations
-func (mmAsByteString *OutboundMock) AsByteStringBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmAsByteString.beforeAsByteStringCounter)
-}
-
-// MinimockAsByteStringDone returns true if the count of the AsByteString invocations corresponds
-// the number of defined expectations
-func (m *OutboundMock) MinimockAsByteStringDone() bool {
-	for _, e := range m.AsByteStringMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.AsByteStringMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterAsByteStringCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcAsByteString != nil && mm_atomic.LoadUint64(&m.afterAsByteStringCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockAsByteStringInspect logs each unmet expectation
-func (m *OutboundMock) MinimockAsByteStringInspect() {
-	for _, e := range m.AsByteStringMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Error("Expected call to OutboundMock.AsByteString")
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.AsByteStringMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterAsByteStringCounter) < 1 {
-		m.t.Error("Expected call to OutboundMock.AsByteString")
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcAsByteString != nil && mm_atomic.LoadUint64(&m.afterAsByteStringCounter) < 1 {
-		m.t.Error("Expected call to OutboundMock.AsByteString")
-	}
 }
 
 type mOutboundMockCanAccept struct {
@@ -1009,8 +857,6 @@ func (m *OutboundMock) MinimockGetRelayIDInspect() {
 // MinimockFinish checks that all mocked methods have been called the expected number of times
 func (m *OutboundMock) MinimockFinish() {
 	if !m.minimockDone() {
-		m.MinimockAsByteStringInspect()
-
 		m.MinimockCanAcceptInspect()
 
 		m.MinimockGetEndpointTypeInspect()
@@ -1043,7 +889,6 @@ func (m *OutboundMock) MinimockWait(timeout mm_time.Duration) {
 func (m *OutboundMock) minimockDone() bool {
 	done := true
 	return done &&
-		m.MinimockAsByteStringDone() &&
 		m.MinimockCanAcceptDone() &&
 		m.MinimockGetEndpointTypeDone() &&
 		m.MinimockGetIPAddressDone() &&

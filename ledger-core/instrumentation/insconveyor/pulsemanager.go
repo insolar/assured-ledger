@@ -11,15 +11,12 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
-	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 var _ chorus.Conductor = &PulseManager{}
 
 type PulseManager struct {
-	NodeNet       network.NodeNetwork `inject:""` //nolint:staticcheck
-	PulseAccessor beat.Accessor       `inject:""`
 	PulseAppender beat.Appender       `inject:""`
 
 	mutex sync.RWMutex
