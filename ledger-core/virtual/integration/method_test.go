@@ -1992,3 +1992,207 @@ func TestVirtual_Method_IntolerableCallChangeState(t *testing.T) {
 	server.Stop()
 	mc.Finish()
 }
+
+func TestVirtual_Method_CheckValidatedState(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+	insrail.LogCase(t, "C5124")
+
+	mc := minimock.NewController(t)
+
+	server, ctx := utils.NewUninitializedServer(nil, t)
+	defer server.Stop()
+
+	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
+		return execution.Request.CallSiteMethod
+	})
+
+	server.ReplaceRunner(runnerMock)
+	server.Init(ctx)
+	server.IncrementPulseAndWaitIdle(ctx)
+
+	var (
+		objectGlobal     = reference.NewSelf(server.RandomLocalWithPulse())
+		class            = testwalletProxy.GetClass()
+		startWalletState = makeRawWalletState(initialBalance)
+		newWalletState   = makeRawWalletState(initialBalance + 300)
+
+		prevPulse        = server.GetPulse().PulseNumber
+		waitVStateReport = make(chan struct{})
+	)
+
+	// initial object state
+	{
+		// need for correct handle state report (should from prev pulse)
+		server.IncrementPulse(ctx)
+		Method_PrepareObject(ctx, server, payload.Ready, objectGlobal, prevPulse)
+
+		waitMigrate := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
+		server.IncrementPulse(ctx)
+		commontestutils.WaitSignalsTimed(t, 10*time.Second, waitMigrate)
+	}
+
+	// add ExecutionMock to runnerMock
+	{
+		objDescr := descriptor.NewObject(
+			objectGlobal,
+			execute.NewStateID(server.GetPulse().PulseNumber, newWalletState),
+			class,
+			newWalletState,
+			false,
+		)
+		requestResult := requestresult.New([]byte("done"), gen.UniqueGlobalRef())
+		requestResult.SetAmend(objDescr, newWalletState)
+
+		runnerMock.AddExecutionMock("ChangeMethod").AddStart(
+			func(ctx execution.Context) {
+				assert.Equal(t, startWalletState, ctx.ObjectDescriptor.Memory())
+			},
+			&execution.Update{
+				Type:   execution.Done,
+				Result: requestResult,
+			},
+		)
+		runnerMock.AddExecutionClassify("ChangeMethod", tolerableFlags(), nil)
+
+		runnerMock.AddExecutionMock("GetMethod1").AddStart(
+			func(ctx execution.Context) {
+				assert.Equal(t, contract.CallValidated, ctx.Isolation.State)
+				assert.Equal(t, startWalletState, ctx.ObjectDescriptor.Memory())
+			},
+			&execution.Update{
+				Type:   execution.Done,
+				Result: requestresult.New([]byte("get info"), gen.UniqueGlobalRef()),
+			},
+		)
+		runnerMock.AddExecutionMock("GetMethod2").AddStart(
+			func(ctx execution.Context) {
+				assert.Equal(t, contract.CallDirty, ctx.Isolation.State)
+				assert.Equal(t, startWalletState, ctx.ObjectDescriptor.Memory())
+			},
+			&execution.Update{
+				Type:   execution.Done,
+				Result: requestresult.New([]byte("get info"), gen.UniqueGlobalRef()),
+			},
+		)
+		runnerMock.AddExecutionMock("GetMethod3").AddStart(
+			func(ctx execution.Context) {
+				assert.Equal(t, contract.CallValidated, ctx.Isolation.State)
+				assert.Equal(t, startWalletState, ctx.ObjectDescriptor.Memory())
+			},
+			&execution.Update{
+				Type:   execution.Done,
+				Result: requestresult.New([]byte("get info"), gen.UniqueGlobalRef()),
+			},
+		)
+		runnerMock.AddExecutionMock("GetMethod4").AddStart(
+			func(ctx execution.Context) {
+				assert.Equal(t, contract.CallDirty, ctx.Isolation.State)
+				assert.Equal(t, newWalletState, ctx.ObjectDescriptor.Memory())
+			},
+			&execution.Update{
+				Type:   execution.Done,
+				Result: requestresult.New([]byte("get info"), gen.UniqueGlobalRef()),
+			},
+		)
+		runnerMock.AddExecutionClassify("GetMethod1", intolerableFlags(), nil)
+		runnerMock.AddExecutionClassify("GetMethod2", intolerableFlags(), nil)
+		runnerMock.AddExecutionClassify("GetMethod3", intolerableFlags(), nil)
+		runnerMock.AddExecutionClassify("GetMethod4", intolerableFlags(), nil)
+	}
+
+	// add typedChecker mock
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	{
+		typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
+			assert.Equal(t, newWalletState, report.ProvidedContent.LatestDirtyState.State)
+			assert.Equal(t, newWalletState, report.ProvidedContent.LatestValidatedState.State)
+
+			waitVStateReport <- struct{}{}
+			return false
+		})
+		typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool {
+			return false
+		})
+	}
+
+	// get object state
+	{
+		executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
+		pl := &payload.VCallRequest{
+			CallType:            payload.CTMethod,
+			CallFlags:           payload.BuildCallFlags(contract.CallIntolerable, contract.CallValidated),
+			Caller:              server.GlobalCaller(),
+			Callee:              objectGlobal,
+			CallSiteDeclaration: class,
+			CallSiteMethod:      "GetMethod1",
+			CallOutgoing:        gen.UniqueGlobalRefWithPulse(server.GetPulse().PulseNumber),
+		}
+		server.SendPayload(ctx, pl)
+		commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+
+		executeDone = server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
+		pl = &payload.VCallRequest{
+			CallType:            payload.CTMethod,
+			CallFlags:           payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
+			Caller:              server.GlobalCaller(),
+			Callee:              objectGlobal,
+			CallSiteDeclaration: class,
+			CallSiteMethod:      "GetMethod2",
+			CallOutgoing:        gen.UniqueGlobalRefWithPulse(server.GetPulse().PulseNumber),
+		}
+		server.SendPayload(ctx, pl)
+		commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+	}
+
+	// change object state
+	{
+		executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
+		pl := &payload.VCallRequest{
+			CallType:            payload.CTMethod,
+			CallFlags:           payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+			Caller:              server.GlobalCaller(),
+			Callee:              objectGlobal,
+			CallSiteDeclaration: class,
+			CallSiteMethod:      "ChangeMethod",
+			CallOutgoing:        gen.UniqueGlobalRefWithPulse(server.GetPulse().PulseNumber),
+		}
+		server.SendPayload(ctx, pl)
+		commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+	}
+
+	// check object state
+	{
+		executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
+		pl := &payload.VCallRequest{
+			CallType:            payload.CTMethod,
+			CallFlags:           payload.BuildCallFlags(contract.CallIntolerable, contract.CallValidated),
+			Caller:              server.GlobalCaller(),
+			Callee:              objectGlobal,
+			CallSiteDeclaration: class,
+			CallSiteMethod:      "GetMethod3",
+			CallOutgoing:        gen.UniqueGlobalRefWithPulse(server.GetPulse().PulseNumber),
+		}
+		server.SendPayload(ctx, pl)
+		commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+
+		executeDone = server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
+		pl = &payload.VCallRequest{
+			CallType:            payload.CTMethod,
+			CallFlags:           payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
+			Caller:              server.GlobalCaller(),
+			Callee:              objectGlobal,
+			CallSiteDeclaration: class,
+			CallSiteMethod:      "GetMethod4",
+			CallOutgoing:        gen.UniqueGlobalRefWithPulse(server.GetPulse().PulseNumber),
+		}
+		server.SendPayload(ctx, pl)
+		commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+	}
+
+	// increment pulse and check VStateReport
+	{
+		server.IncrementPulse(ctx)
+		commontestutils.WaitSignalsTimed(t, 10*time.Second, waitVStateReport)
+	}
+	mc.Finish()
+}
