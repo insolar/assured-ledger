@@ -61,7 +61,6 @@ func (s *NodeService) GetStatus(r *http.Request, args *interface{}, requestBody 
 	}
 	reply.PulseNumber = uint32(p.PulseNumber)
 
-	reply.Entropy = statusReply.PulseEntropy[:]
 	reply.Version = statusReply.Version
 	reply.StartTime = statusReply.StartTime
 	reply.Timestamp = statusReply.Timestamp

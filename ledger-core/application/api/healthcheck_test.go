@@ -14,12 +14,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
-	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/network/mutable"
 
-	network2 "github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/network"
 
@@ -91,9 +89,8 @@ func mockNodeNetwork(t *testing.T, nodeList []nodeinfo.DiscoveryNode) *network.N
 		return nil
 	})
 
-	nn.GetAccessorMock.Set(func(p1 pulse.Number) network2.Accessor {
-		return accessorMock
-	})
+	nn.GetAccessorMock.Return(accessorMock)
+	nn.GetLatestAccessorMock.Return(accessorMock)
 
 	return nn
 }
@@ -121,7 +118,6 @@ func TestHealthChecker_CheckHandler(t *testing.T) {
 			hc := NewHealthChecker(
 				mockCertManager(t, nodes[:20]),
 				mockNodeNetwork(t, nodes[test.from:test.to]),
-				mockPulseAccessor(t),
 			)
 			w := newMockResponseWriter()
 			hc.CheckHandler(w, new(http.Request))

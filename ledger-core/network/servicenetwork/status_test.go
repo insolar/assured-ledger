@@ -42,13 +42,14 @@ func TestGetNetworkStatus(t *testing.T) {
 	a := testutils.NewAccessorMock(t)
 	activeLen := 1
 	active := make([]nodeinfo.NetworkNode, activeLen)
-	a.GetActiveNodesMock.Set(func() []nodeinfo.NetworkNode { return active })
+	a.GetActiveNodesMock.Return(active)
+	a.GetPulseNumberMock.Return(pc.PulseNumber)
 
 	workingLen := 2
 	working := make([]nodeinfo.NetworkNode, workingLen)
-	a.GetWorkingNodesMock.Set(func() []nodeinfo.NetworkNode { return working })
+	a.GetWorkingNodesMock.Return(working)
 
-	nk.GetAccessorMock.Set(func(pulse.Number) network.Accessor { return a })
+	nk.GetLatestAccessorMock.Return(a)
 
 	ref := gen.UniqueGlobalRef()
 	nn := mutable.NewTestNode(ref, member.PrimaryRoleNeutral, "")

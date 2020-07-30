@@ -41,6 +41,7 @@ type nodekeeper struct {
 	syncNodes []nodeinfo.NetworkNode
 
 	snapshotStorage *MemoryStorage
+	last      network.Accessor
 }
 
 func (nk *nodekeeper) GetLocalNodeReference() reference.Holder {
@@ -60,11 +61,26 @@ func (nk *nodekeeper) SetInitialSnapshot(nodes []nodeinfo.NetworkNode) {
 }
 
 func (nk *nodekeeper) GetAccessor(pn pulse.Number) network.Accessor {
+	la := nk.GetLatestAccessor()
+	if la != nil && la.GetPulseNumber() == pn {
+		return la
+	}
+
 	s, err := nk.snapshotStorage.ForPulseNumber(pn)
 	if err != nil {
 		panic(fmt.Sprintf("GetAccessor(%d): %s", pn, err.Error()))
 	}
 	return NewAccessor(s)
+}
+
+func (nk *nodekeeper) GetLatestAccessor() network.Accessor {
+	nk.syncLock.RLock()
+	defer nk.syncLock.RUnlock()
+
+	if nk.last == nil {
+		return nil
+	}
+	return nk.last
 }
 
 func (nk *nodekeeper) GetOrigin() nodeinfo.NetworkNode {
@@ -110,6 +126,7 @@ func (nk *nodekeeper) moveSyncToActive(number pulse.Number) (before, after int, 
 	}
 
 	accessor := NewAccessor(snapshot)
+	nk.last = accessor
 
 	o := accessor.GetActiveNode(nk.localRef)
 	if o == nil {

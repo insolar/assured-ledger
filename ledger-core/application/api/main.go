@@ -115,7 +115,7 @@ func NewRunner(cfg *configuration.APIRunner,
 	}
 
 	// init handler
-	hc := NewHealthChecker(ar.CertificateManager, ar.NodeNetwork, ar.PulseAccessor)
+	hc := NewHealthChecker(ar.CertificateManager, ar.NodeNetwork)
 
 	router := http.NewServeMux()
 	ar.server.Handler = router

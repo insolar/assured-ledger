@@ -9,10 +9,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
-	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -38,17 +35,13 @@ func TestTable_Resolve(t *testing.T) {
 	table := Table{}
 
 	refs := gen.UniqueGlobalRefs(2)
-	puls := pulsestor.GenesisPulse
+
+	na := nodeset.NewAccessor(nodeset.NewSnapshot(pulse.MinTimePulse, []nodeinfo.NetworkNode{newNode(refs[0], 123)}))
+
 	nodeKeeperMock := mock.NewNodeKeeperMock(t)
-	nodeKeeperMock.GetAccessorMock.Set(func(p1 pulse.Number) network.Accessor {
-		n := newNode(refs[0], 123)
-		return nodeset.NewAccessor(nodeset.NewSnapshot(puls.PulseNumber, []nodeinfo.NetworkNode{n}))
-	})
+	nodeKeeperMock.GetAccessorMock.Return(na)
+	nodeKeeperMock.GetLatestAccessorMock.Return(na)
 
-	pulseAccessorMock := beat.NewAccessorMock(t)
-	pulseAccessorMock.LatestMock.Return(puls, nil)
-
-	table.PulseAccessor = pulseAccessorMock
 	table.NodeKeeper = nodeKeeperMock
 
 	h, err := table.Resolve(refs[0])

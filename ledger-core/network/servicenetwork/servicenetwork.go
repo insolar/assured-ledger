@@ -171,6 +171,10 @@ func (n *ServiceNetwork) GetAccessor(p pulse.Number) network.Accessor {
 	return n.NodeKeeper.GetAccessor(p)
 }
 
+func (n *ServiceNetwork) GetLatestAccessor() network.Accessor {
+	return n.NodeKeeper.GetLatestAccessor()
+}
+
 func (n *ServiceNetwork) GetCert(ctx context.Context, ref reference.Global) (nodeinfo.Certificate, error) {
 	return n.Gatewayer.Gateway().Auther().GetCert(ctx, ref)
 }

@@ -100,6 +100,7 @@ type NodeNetwork interface {
 
 	// GetAccessor get accessor to the internal snapshot for the current pulse
 	GetAccessor(pulse.Number) Accessor
+	GetLatestAccessor() Accessor
 }
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network.NodeKeeper -o ../testutils/network -s _mock.go -g
@@ -128,6 +129,7 @@ type RoutingTable interface {
 
 // Accessor is interface that provides read access to nodekeeper internal snapshot
 type Accessor interface {
+	GetPulseNumber() pulse.Number
 	// GetWorkingNode get working node by its reference. Returns nil if node is not found or is not working.
 	GetWorkingNode(ref reference.Global) nodeinfo.NetworkNode
 	// GetWorkingNodes returns sorted list of all working nodes.

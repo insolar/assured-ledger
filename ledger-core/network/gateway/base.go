@@ -290,7 +290,6 @@ func (g *Base) OnPulseFromConsensus(ctx context.Context, pu beat.Beat) {
 	g.pulseWatchdog.Reset()
 
 	g.NodeKeeper.MoveSyncToActive(ctx, pu.PulseNumber)
-
 	nodes := g.NodeKeeper.GetAccessor(pu.PulseNumber).GetActiveNodes()
 	inslogger.FromContext(ctx).Debugf("OnPulseFromConsensus: %d : epoch %d : nodes %d", pu.PulseNumber, pu.PulseEpoch, len(nodes))
 }
@@ -379,7 +378,8 @@ func (g *Base) HandleNodeBootstrapRequest(ctx context.Context, request network.R
 
 	data := request.GetRequest().GetBootstrap()
 
-	nodes := g.NodeKeeper.GetAccessor(g.LatestPulse(ctx).PulseNumber).GetActiveNodes()
+	na := g.NodeKeeper.GetLatestAccessor()
+	nodes := na.GetActiveNodes()
 
 	if network.CheckShortIDCollision(nodes, data.CandidateProfile.ShortID) {
 		return g.HostNetwork.BuildResponse(ctx, request, &packet.BootstrapResponse{Code: packet.UpdateShortID}), nil
@@ -451,7 +451,8 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 		return g.HostNetwork.BuildResponse(ctx, request, &packet.AuthorizeResponse{Code: packet.WrongMandate, Error: err.Error()}), nil
 	}
 
-	nodes := g.NodeKeeper.GetAccessor(g.LatestPulse(ctx).PulseNumber).GetActiveNodes()
+	na := g.NodeKeeper.GetLatestAccessor()
+	nodes := na.GetActiveNodes()
 
 	o := g.NodeKeeper.GetOrigin()
 

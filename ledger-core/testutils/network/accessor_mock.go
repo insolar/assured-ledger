@@ -9,6 +9,7 @@ import (
 
 	"github.com/gojuno/minimock/v3"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
@@ -33,6 +34,12 @@ type AccessorMock struct {
 	afterGetActiveNodesCounter  uint64
 	beforeGetActiveNodesCounter uint64
 	GetActiveNodesMock          mAccessorMockGetActiveNodes
+
+	funcGetPulseNumber          func() (n1 pulse.Number)
+	inspectFuncGetPulseNumber   func()
+	afterGetPulseNumberCounter  uint64
+	beforeGetPulseNumberCounter uint64
+	GetPulseNumberMock          mAccessorMockGetPulseNumber
 
 	funcGetWorkingNode          func(ref reference.Global) (n1 nodeinfo.NetworkNode)
 	inspectFuncGetWorkingNode   func(ref reference.Global)
@@ -61,6 +68,8 @@ func NewAccessorMock(t minimock.Tester) *AccessorMock {
 	m.GetActiveNodeByAddrMock.callArgs = []*AccessorMockGetActiveNodeByAddrParams{}
 
 	m.GetActiveNodesMock = mAccessorMockGetActiveNodes{mock: m}
+
+	m.GetPulseNumberMock = mAccessorMockGetPulseNumber{mock: m}
 
 	m.GetWorkingNodeMock = mAccessorMockGetWorkingNode{mock: m}
 	m.GetWorkingNodeMock.callArgs = []*AccessorMockGetWorkingNodeParams{}
@@ -643,6 +652,149 @@ func (m *AccessorMock) MinimockGetActiveNodesInspect() {
 	}
 }
 
+type mAccessorMockGetPulseNumber struct {
+	mock               *AccessorMock
+	defaultExpectation *AccessorMockGetPulseNumberExpectation
+	expectations       []*AccessorMockGetPulseNumberExpectation
+}
+
+// AccessorMockGetPulseNumberExpectation specifies expectation struct of the Accessor.GetPulseNumber
+type AccessorMockGetPulseNumberExpectation struct {
+	mock *AccessorMock
+
+	results *AccessorMockGetPulseNumberResults
+	Counter uint64
+}
+
+// AccessorMockGetPulseNumberResults contains results of the Accessor.GetPulseNumber
+type AccessorMockGetPulseNumberResults struct {
+	n1 pulse.Number
+}
+
+// Expect sets up expected params for Accessor.GetPulseNumber
+func (mmGetPulseNumber *mAccessorMockGetPulseNumber) Expect() *mAccessorMockGetPulseNumber {
+	if mmGetPulseNumber.mock.funcGetPulseNumber != nil {
+		mmGetPulseNumber.mock.t.Fatalf("AccessorMock.GetPulseNumber mock is already set by Set")
+	}
+
+	if mmGetPulseNumber.defaultExpectation == nil {
+		mmGetPulseNumber.defaultExpectation = &AccessorMockGetPulseNumberExpectation{}
+	}
+
+	return mmGetPulseNumber
+}
+
+// Inspect accepts an inspector function that has same arguments as the Accessor.GetPulseNumber
+func (mmGetPulseNumber *mAccessorMockGetPulseNumber) Inspect(f func()) *mAccessorMockGetPulseNumber {
+	if mmGetPulseNumber.mock.inspectFuncGetPulseNumber != nil {
+		mmGetPulseNumber.mock.t.Fatalf("Inspect function is already set for AccessorMock.GetPulseNumber")
+	}
+
+	mmGetPulseNumber.mock.inspectFuncGetPulseNumber = f
+
+	return mmGetPulseNumber
+}
+
+// Return sets up results that will be returned by Accessor.GetPulseNumber
+func (mmGetPulseNumber *mAccessorMockGetPulseNumber) Return(n1 pulse.Number) *AccessorMock {
+	if mmGetPulseNumber.mock.funcGetPulseNumber != nil {
+		mmGetPulseNumber.mock.t.Fatalf("AccessorMock.GetPulseNumber mock is already set by Set")
+	}
+
+	if mmGetPulseNumber.defaultExpectation == nil {
+		mmGetPulseNumber.defaultExpectation = &AccessorMockGetPulseNumberExpectation{mock: mmGetPulseNumber.mock}
+	}
+	mmGetPulseNumber.defaultExpectation.results = &AccessorMockGetPulseNumberResults{n1}
+	return mmGetPulseNumber.mock
+}
+
+//Set uses given function f to mock the Accessor.GetPulseNumber method
+func (mmGetPulseNumber *mAccessorMockGetPulseNumber) Set(f func() (n1 pulse.Number)) *AccessorMock {
+	if mmGetPulseNumber.defaultExpectation != nil {
+		mmGetPulseNumber.mock.t.Fatalf("Default expectation is already set for the Accessor.GetPulseNumber method")
+	}
+
+	if len(mmGetPulseNumber.expectations) > 0 {
+		mmGetPulseNumber.mock.t.Fatalf("Some expectations are already set for the Accessor.GetPulseNumber method")
+	}
+
+	mmGetPulseNumber.mock.funcGetPulseNumber = f
+	return mmGetPulseNumber.mock
+}
+
+// GetPulseNumber implements network.Accessor
+func (mmGetPulseNumber *AccessorMock) GetPulseNumber() (n1 pulse.Number) {
+	mm_atomic.AddUint64(&mmGetPulseNumber.beforeGetPulseNumberCounter, 1)
+	defer mm_atomic.AddUint64(&mmGetPulseNumber.afterGetPulseNumberCounter, 1)
+
+	if mmGetPulseNumber.inspectFuncGetPulseNumber != nil {
+		mmGetPulseNumber.inspectFuncGetPulseNumber()
+	}
+
+	if mmGetPulseNumber.GetPulseNumberMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmGetPulseNumber.GetPulseNumberMock.defaultExpectation.Counter, 1)
+
+		mm_results := mmGetPulseNumber.GetPulseNumberMock.defaultExpectation.results
+		if mm_results == nil {
+			mmGetPulseNumber.t.Fatal("No results are set for the AccessorMock.GetPulseNumber")
+		}
+		return (*mm_results).n1
+	}
+	if mmGetPulseNumber.funcGetPulseNumber != nil {
+		return mmGetPulseNumber.funcGetPulseNumber()
+	}
+	mmGetPulseNumber.t.Fatalf("Unexpected call to AccessorMock.GetPulseNumber.")
+	return
+}
+
+// GetPulseNumberAfterCounter returns a count of finished AccessorMock.GetPulseNumber invocations
+func (mmGetPulseNumber *AccessorMock) GetPulseNumberAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetPulseNumber.afterGetPulseNumberCounter)
+}
+
+// GetPulseNumberBeforeCounter returns a count of AccessorMock.GetPulseNumber invocations
+func (mmGetPulseNumber *AccessorMock) GetPulseNumberBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetPulseNumber.beforeGetPulseNumberCounter)
+}
+
+// MinimockGetPulseNumberDone returns true if the count of the GetPulseNumber invocations corresponds
+// the number of defined expectations
+func (m *AccessorMock) MinimockGetPulseNumberDone() bool {
+	for _, e := range m.GetPulseNumberMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.GetPulseNumberMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetPulseNumberCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcGetPulseNumber != nil && mm_atomic.LoadUint64(&m.afterGetPulseNumberCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockGetPulseNumberInspect logs each unmet expectation
+func (m *AccessorMock) MinimockGetPulseNumberInspect() {
+	for _, e := range m.GetPulseNumberMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Error("Expected call to AccessorMock.GetPulseNumber")
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.GetPulseNumberMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetPulseNumberCounter) < 1 {
+		m.t.Error("Expected call to AccessorMock.GetPulseNumber")
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcGetPulseNumber != nil && mm_atomic.LoadUint64(&m.afterGetPulseNumberCounter) < 1 {
+		m.t.Error("Expected call to AccessorMock.GetPulseNumber")
+	}
+}
+
 type mAccessorMockGetWorkingNode struct {
 	mock               *AccessorMock
 	defaultExpectation *AccessorMockGetWorkingNodeExpectation
@@ -1010,6 +1162,8 @@ func (m *AccessorMock) MinimockFinish() {
 
 		m.MinimockGetActiveNodesInspect()
 
+		m.MinimockGetPulseNumberInspect()
+
 		m.MinimockGetWorkingNodeInspect()
 
 		m.MinimockGetWorkingNodesInspect()
@@ -1039,6 +1193,7 @@ func (m *AccessorMock) minimockDone() bool {
 		m.MinimockGetActiveNodeDone() &&
 		m.MinimockGetActiveNodeByAddrDone() &&
 		m.MinimockGetActiveNodesDone() &&
+		m.MinimockGetPulseNumberDone() &&
 		m.MinimockGetWorkingNodeDone() &&
 		m.MinimockGetWorkingNodesDone()
 }

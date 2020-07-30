@@ -7,6 +7,7 @@ package nodeset
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
@@ -14,6 +15,10 @@ type Accessor struct {
 	snapshot  *Snapshot
 	refIndex  map[reference.Global]nodeinfo.NetworkNode
 	addrIndex map[string]nodeinfo.NetworkNode
+}
+
+func (a *Accessor) GetPulseNumber() pulse.Number {
+	return a.snapshot.GetPulse()
 }
 
 func (a *Accessor) GetActiveNodeByAddr(address string) nodeinfo.NetworkNode {
