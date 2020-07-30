@@ -12,11 +12,14 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 )
 
 // Creates wallet, calls /wallet/add_amount and checks it's response body.
 func TestWalletAddAmount(t *testing.T) {
-	t.Log("C4921")
+	insrail.LogCase(t, "C4921")
+
 	walletRef, err := createSimpleWallet()
 	require.NoError(t, err, "failed to create wallet")
 
@@ -33,7 +36,8 @@ func TestWalletAddAmount(t *testing.T) {
 
 // Creates wallet and calls /wallet/add_amount concurrently.
 func TestWalletAddAmountConcurrently(t *testing.T) {
-	t.Log("C4922")
+	insrail.LogCase(t, "C4922")
+
 	walletRef, err := createSimpleWallet()
 	require.NoError(t, err, "failed to create wallet")
 
