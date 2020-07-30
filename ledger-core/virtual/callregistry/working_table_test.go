@@ -46,8 +46,10 @@ func TestWorkingTable(t *testing.T) {
 	assert.Equal(t, 0, wt.GetList(contract.CallTolerable).Count())
 	assert.Equal(t, currentPulse, wt.GetList(contract.CallIntolerable).EarliestPulse())
 
+	assert.Equal(t, 0, wt.Len())
 	assert.True(t, wt.Add(contract.CallTolerable, ref))
 	assert.False(t, wt.Add(contract.CallTolerable, ref))
+	assert.Equal(t, 1, wt.Len())
 
 	assert.True(t, wt.SetActive(contract.CallTolerable, ref))
 	assert.False(t, wt.SetActive(contract.CallTolerable, ref))
@@ -60,12 +62,18 @@ func TestWorkingTable(t *testing.T) {
 	assert.True(t, wt.Finish(contract.CallTolerable, ref, res))
 	assert.False(t, wt.Finish(contract.CallTolerable, ref, res))
 
+	assert.True(t, wt.Finish(contract.CallIntolerable, ref, res))
+	assert.False(t, wt.Finish(contract.CallIntolerable, ref, res))
+
 	results := wt.GetResults()
 
 	summary, ok := results[ref]
 	assert.True(t, ok)
 	assert.NotNil(t, summary.Result)
 	assert.Equal(t, res.Callee, summary.Result.Callee)
+
+	// bad flags
+	assert.Panics(t, func() { wt.GetList(contract.InterferenceFlag(0)) })
 }
 
 func TestWorkingList(t *testing.T) {
