@@ -274,7 +274,7 @@ func getAnnounceSignature(
 	}
 	copy(brief.Endpoint[:], addr[:])
 
-	pk, err := kp.ExportPublicKeyBinary(node.PublicKey())
+	pk, err := kp.ExportPublicKeyBinary(adapters.ECDSAPublicKeyOfNode(node))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -346,13 +346,13 @@ func newNetworkNode(addr string, role member.PrimaryRole, pk crypto.PublicKey) *
 }
 
 func initCrypto(node nodeinfo.NetworkNode, discoveryNodes []nodeinfo.NetworkNode) *mandates.CertificateManager {
-	pubKey := node.PublicKey()
+	pubKey := adapters.ECDSAPublicKeyOfNode(node)
 
 	publicKey, _ := keyProcessor.ExportPublicKeyPEM(pubKey)
 
 	bootstrapNodes := make([]mandates.BootstrapNode, 0, len(discoveryNodes))
 	for _, dn := range discoveryNodes {
-		pubKey := dn.PublicKey()
+		pubKey := adapters.ECDSAPublicKeyOfNode(dn)
 		pubKeyBuf, _ := keyProcessor.ExportPublicKeyPEM(pubKey)
 
 		bootstrapNode := mandates.NewBootstrapNode(

@@ -16,6 +16,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/network"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
@@ -58,7 +59,7 @@ func getAnnounceSignature(
 	}
 	copy(brief.Endpoint[:], addr[:])
 
-	pk, err := kp.ExportPublicKeyBinary(node.PublicKey())
+	pk, err := kp.ExportPublicKeyBinary(adapters.ECDSAPublicKeyOfNode(node))
 	if err != nil {
 		return nil, nil, err
 	}

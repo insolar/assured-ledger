@@ -6,8 +6,6 @@
 package nodeinfo
 
 import (
-	"crypto"
-
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles"
@@ -33,9 +31,6 @@ type NetworkNode interface {
 
 	// ShortID get short ID of node
 	GetNodeID() node.ShortNodeID
-
-	// PublicKey is the public key of the node
-	PublicKey() crypto.PublicKey
 
 	GetDeclaredPower() member.Power
 

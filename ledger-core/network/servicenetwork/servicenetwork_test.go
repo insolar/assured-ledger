@@ -19,7 +19,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
@@ -52,21 +51,21 @@ func (p *PublisherMock) Close() error {
 	return nil
 }
 
-func prepareNetwork(t *testing.T, cfg configuration.Configuration) *ServiceNetwork {
+func prepareNetwork(t *testing.T, cfg configuration.Configuration) (*ServiceNetwork, reference.Global) {
 	serviceNetwork, err := NewServiceNetwork(cfg, component.NewManager(nil))
 	require.NoError(t, err)
 
 	nodeKeeper := networkUtils.NewNodeKeeperMock(t)
-	nodeMock := networkUtils.NewNetworkNodeMock(t)
-	nodeMock.GetReferenceMock.Return(gen.UniqueGlobalRef())
-	nodeKeeper.GetOriginMock.Return(nodeMock)
+	// nodeMock := mutable.NewTestNode(gen.UniqueGlobalRef(), member.PrimaryRoleNeutral, "")
+	// nodeKeeper.GetOriginMock.Return(nodeMock)
+	ref := gen.UniqueGlobalRef()
+	nodeKeeper.GetLocalNodeReferenceMock.Return(ref)
 	serviceNetwork.NodeKeeper = nodeKeeper
 
-	return serviceNetwork
+	return serviceNetwork, ref
 }
 
 func TestSendMessageHandler_ReceiverNotSet(t *testing.T) {
-	cfg := configuration.NewConfiguration()
 	instestlogger.SetTestOutputWithErrorFilter(t, func(s string) bool {
 		if strings.Contains(s, "failed to send message: Receiver in message metadata is not set") {
 			return false
@@ -74,7 +73,7 @@ func TestSendMessageHandler_ReceiverNotSet(t *testing.T) {
 		return true
 	})
 
-	serviceNetwork := prepareNetwork(t, cfg)
+	serviceNetwork, _ := prepareNetwork(t, configuration.NewConfiguration())
 
 	p := []byte{1, 2, 3, 4, 5}
 	meta := payload.Meta{
@@ -90,22 +89,11 @@ func TestSendMessageHandler_ReceiverNotSet(t *testing.T) {
 }
 
 func TestSendMessageHandler_SameNode(t *testing.T) {
-	cfg := configuration.NewConfiguration()
-	svcNw, err := NewServiceNetwork(cfg, component.NewManager(nil))
-	nodeRef := gen.UniqueGlobalRef()
-	nodeN := networkUtils.NewNodeKeeperMock(t)
-	nodeN.GetOriginMock.Set(func() (r nodeinfo.NetworkNode) {
-		n := networkUtils.NewNetworkNodeMock(t)
-		n.GetReferenceMock.Set(func() (r reference.Global) {
-			return nodeRef
-		})
-		return n
-	})
-	pubMock := &PublisherMock{}
+	svcNw, nodeRef := prepareNetwork(t, configuration.NewConfiguration())
+	svcNw.Pub = &PublisherMock{}
+
 	pulseMock := beat.NewAccessorMock(t)
 	pulseMock.LatestMock.Return(pulsestor.GenesisPulse, nil)
-	svcNw.NodeKeeper = nodeN
-	svcNw.Pub = pubMock
 
 	p := []byte{1, 2, 3, 4, 5}
 	meta := payload.Meta{
@@ -122,19 +110,9 @@ func TestSendMessageHandler_SameNode(t *testing.T) {
 }
 
 func TestSendMessageHandler_SendError(t *testing.T) {
-	cfg := configuration.NewConfiguration()
-	pubMock := &PublisherMock{}
-	svcNw, err := NewServiceNetwork(cfg, component.NewManager(nil))
-	require.NoError(t, err)
-	svcNw.Pub = pubMock
-	nodeN := networkUtils.NewNodeKeeperMock(t)
-	nodeN.GetOriginMock.Set(func() (r nodeinfo.NetworkNode) {
-		n := networkUtils.NewNetworkNodeMock(t)
-		n.GetReferenceMock.Set(func() (r reference.Global) {
-			return gen.UniqueGlobalRef()
-		})
-		return n
-	})
+	svcNw, _ := prepareNetwork(t, configuration.NewConfiguration())
+	svcNw.Pub = &PublisherMock{}
+
 	rpc := controller.NewRPCControllerMock(t)
 	rpc.SendBytesMock.Set(func(p context.Context, p1 reference.Global, p2 string, p3 []byte) (r []byte, r1 error) {
 		return nil, errors.New("test error")
@@ -142,7 +120,6 @@ func TestSendMessageHandler_SendError(t *testing.T) {
 	pulseMock := beat.NewAccessorMock(t)
 	pulseMock.LatestMock.Return(pulsestor.GenesisPulse, nil)
 	svcNw.RPC = rpc
-	svcNw.NodeKeeper = nodeN
 
 	p := []byte{1, 2, 3, 4, 5}
 	meta := payload.Meta{
@@ -159,19 +136,9 @@ func TestSendMessageHandler_SendError(t *testing.T) {
 }
 
 func TestSendMessageHandler_WrongReply(t *testing.T) {
-	cfg := configuration.NewConfiguration()
-	pubMock := &PublisherMock{}
-	svcNw, err := NewServiceNetwork(cfg, component.NewManager(nil))
-	require.NoError(t, err)
-	svcNw.Pub = pubMock
-	nodeN := networkUtils.NewNodeKeeperMock(t)
-	nodeN.GetOriginMock.Set(func() (r nodeinfo.NetworkNode) {
-		n := networkUtils.NewNetworkNodeMock(t)
-		n.GetReferenceMock.Set(func() (r reference.Global) {
-			return gen.UniqueGlobalRef()
-		})
-		return n
-	})
+	svcNw, _ := prepareNetwork(t, configuration.NewConfiguration())
+	svcNw.Pub = &PublisherMock{}
+
 	rpc := controller.NewRPCControllerMock(t)
 	rpc.SendBytesMock.Set(func(p context.Context, p1 reference.Global, p2 string, p3 []byte) (r []byte, r1 error) {
 		return nil, nil
@@ -179,7 +146,6 @@ func TestSendMessageHandler_WrongReply(t *testing.T) {
 	pulseMock := beat.NewAccessorMock(t)
 	pulseMock.LatestMock.Return(pulsestor.GenesisPulse, nil)
 	svcNw.RPC = rpc
-	svcNw.NodeKeeper = nodeN
 
 	p := []byte{1, 2, 3, 4, 5}
 	meta := payload.Meta{
@@ -196,17 +162,9 @@ func TestSendMessageHandler_WrongReply(t *testing.T) {
 }
 
 func TestSendMessageHandler(t *testing.T) {
-	cfg := configuration.NewConfiguration()
-	svcNw, err := NewServiceNetwork(cfg, component.NewManager(nil))
-	require.NoError(t, err)
-	nodeN := networkUtils.NewNodeKeeperMock(t)
-	nodeN.GetOriginMock.Set(func() (r nodeinfo.NetworkNode) {
-		n := networkUtils.NewNetworkNodeMock(t)
-		n.GetReferenceMock.Set(func() (r reference.Global) {
-			return gen.UniqueGlobalRef()
-		})
-		return n
-	})
+	svcNw, _ := prepareNetwork(t, configuration.NewConfiguration())
+	svcNw.Pub = &PublisherMock{}
+
 	rpc := controller.NewRPCControllerMock(t)
 	rpc.SendBytesMock.Set(func(p context.Context, p1 reference.Global, p2 string, p3 []byte) (r []byte, r1 error) {
 		return ack, nil
@@ -214,7 +172,6 @@ func TestSendMessageHandler(t *testing.T) {
 	pulseMock := beat.NewAccessorMock(t)
 	pulseMock.LatestMock.Return(pulsestor.GenesisPulse, nil)
 	svcNw.RPC = rpc
-	svcNw.NodeKeeper = nodeN
 
 	p := []byte{1, 2, 3, 4, 5}
 	meta := payload.Meta{

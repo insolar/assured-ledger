@@ -6,8 +6,6 @@
 package adapters
 
 import (
-	"crypto"
-
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
@@ -26,12 +24,6 @@ func (v profileNode) GetStatic() profiles.StaticProfile {
 
 func (v profileNode) GetNodeID() node.ShortNodeID {
 	return v.n.GetNodeID()
-}
-
-func (v profileNode) PublicKey() crypto.PublicKey {
-	nip := v.n.GetStatic()
-	store := nip.GetPublicKeyStore()
-	return store.(*ECDSAPublicKeyStore).publicKey
 }
 
 func (v profileNode) GetDeclaredPower() member.Power {

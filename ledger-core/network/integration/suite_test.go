@@ -24,8 +24,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeset"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -332,11 +334,9 @@ func (s *consensusSuite) assertNetworkInConsistentState(p pulse.Number) {
 
 		for i, n  := range nodes {
 			an := activeNodes[i]
-			require.Equal(s.t, nodeinfo.NodeRef(n), nodeinfo.NodeRef(an), i)
+			require.True(s.t, profiles.EqualStaticProfiles(n.GetStatic(), an.GetStatic(), true))
 			require.Equal(s.t, n.GetNodeID(), an.GetNodeID(), i)
-			require.Equal(s.t, nodeinfo.NodeRole(n), nodeinfo.NodeRole(an), i)
-			require.Equal(s.t, n.PublicKey(), an.PublicKey(), i)
-			require.Equal(s.t, nodeinfo.NodeAddr(n), nodeinfo.NodeAddr(an), i)
+			require.Equal(s.t, adapters.ECDSAPublicKeyOfNode(n), adapters.ECDSAPublicKeyOfNode(an), i)
 			require.Equal(s.t, n.GetDeclaredPower(), an.GetDeclaredPower(), i)
 			require.True(s.t, n.GetSignature().Equals(an.GetSignature()))
 		}

@@ -165,10 +165,6 @@ func (n *Node) GetPrimaryRole() member.PrimaryRole {
 	return n.nodeRole
 }
 
-func (n *Node) PublicKey() crypto.PublicKey {
-	return n.nodePublicKey
-}
-
 func (n *Node) GetDeclaredPower() member.Power {
 	return n.nodePower
 }

@@ -104,7 +104,7 @@ func NewStaticProfileExt(networkNode nodeinfo.NetworkNode, addr string, certific
 		specialRole = member.SpecialRoleDiscovery
 	}
 
-	publicKey := networkNode.PublicKey().(*ecdsa.PublicKey)
+	publicKey := ECDSAPublicKeyOfNode(networkNode)
 
 	return NewStaticProfileExt2(
 		networkNode.GetNodeID(),
@@ -117,6 +117,14 @@ func NewStaticProfileExt(networkNode nodeinfo.NetworkNode, addr string, certific
 		signature,
 	)
 }
+
+// deprecated // for legacy code only
+func ECDSAPublicKeyOfNode(n nodeinfo.NetworkNode) *ecdsa.PublicKey {
+	nip := n.GetStatic()
+	store := nip.GetPublicKeyStore()
+	return store.(*ECDSAPublicKeyStore).publicKey
+}
+
 
 func ECDSAPublicKeyAsPublicKeyStore(pk crypto.PublicKey) cryptkit.PublicKeyStore {
 	if pk == nil {

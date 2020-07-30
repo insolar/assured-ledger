@@ -452,7 +452,7 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 		}
 	}
 
-	pubKey, err := g.KeyProcessor.ExportPublicKeyPEM(o.PublicKey())
+	pubKey, err := g.KeyProcessor.ExportPublicKeyPEM(adapters.ECDSAPublicKeyOfNode(o))
 	if err != nil {
 		err = throw.W(err, "Failed to export public key")
 		inslogger.FromContext(ctx).Warn(err.Error())
