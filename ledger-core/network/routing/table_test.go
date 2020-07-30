@@ -36,7 +36,9 @@ func TestTable_Resolve(t *testing.T) {
 
 	refs := gen.UniqueGlobalRefs(2)
 
-	na := nodeset.NewAccessor(nodeset.NewSnapshot(pulse.MinTimePulse, []nodeinfo.NetworkNode{newNode(refs[0], 123)}))
+	na := nodeset.NewAccessor(
+		nodeset.NewSnapshot(pulse.MinTimePulse, []nodeinfo.NetworkNode{newNode(refs[0], 123)}),
+		reference.Global{})
 
 	nodeKeeperMock := mock.NewNodeKeeperMock(t)
 	nodeKeeperMock.GetAccessorMock.Return(na)

@@ -10,7 +10,6 @@ import (
 	"github.com/gojuno/minimock/v3"
 	mm_network "github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
-	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
@@ -42,12 +41,6 @@ type NodeNetworkMock struct {
 	afterGetLocalNodeRoleCounter  uint64
 	beforeGetLocalNodeRoleCounter uint64
 	GetLocalNodeRoleMock          mNodeNetworkMockGetLocalNodeRole
-
-	funcGetOrigin          func() (n1 nodeinfo.NetworkNode)
-	inspectFuncGetOrigin   func()
-	afterGetOriginCounter  uint64
-	beforeGetOriginCounter uint64
-	GetOriginMock          mNodeNetworkMockGetOrigin
 }
 
 // NewNodeNetworkMock returns a mock for network.NodeNetwork
@@ -65,8 +58,6 @@ func NewNodeNetworkMock(t minimock.Tester) *NodeNetworkMock {
 	m.GetLocalNodeReferenceMock = mNodeNetworkMockGetLocalNodeReference{mock: m}
 
 	m.GetLocalNodeRoleMock = mNodeNetworkMockGetLocalNodeRole{mock: m}
-
-	m.GetOriginMock = mNodeNetworkMockGetOrigin{mock: m}
 
 	return m
 }
@@ -715,149 +706,6 @@ func (m *NodeNetworkMock) MinimockGetLocalNodeRoleInspect() {
 	}
 }
 
-type mNodeNetworkMockGetOrigin struct {
-	mock               *NodeNetworkMock
-	defaultExpectation *NodeNetworkMockGetOriginExpectation
-	expectations       []*NodeNetworkMockGetOriginExpectation
-}
-
-// NodeNetworkMockGetOriginExpectation specifies expectation struct of the NodeNetwork.GetOrigin
-type NodeNetworkMockGetOriginExpectation struct {
-	mock *NodeNetworkMock
-
-	results *NodeNetworkMockGetOriginResults
-	Counter uint64
-}
-
-// NodeNetworkMockGetOriginResults contains results of the NodeNetwork.GetOrigin
-type NodeNetworkMockGetOriginResults struct {
-	n1 nodeinfo.NetworkNode
-}
-
-// Expect sets up expected params for NodeNetwork.GetOrigin
-func (mmGetOrigin *mNodeNetworkMockGetOrigin) Expect() *mNodeNetworkMockGetOrigin {
-	if mmGetOrigin.mock.funcGetOrigin != nil {
-		mmGetOrigin.mock.t.Fatalf("NodeNetworkMock.GetOrigin mock is already set by Set")
-	}
-
-	if mmGetOrigin.defaultExpectation == nil {
-		mmGetOrigin.defaultExpectation = &NodeNetworkMockGetOriginExpectation{}
-	}
-
-	return mmGetOrigin
-}
-
-// Inspect accepts an inspector function that has same arguments as the NodeNetwork.GetOrigin
-func (mmGetOrigin *mNodeNetworkMockGetOrigin) Inspect(f func()) *mNodeNetworkMockGetOrigin {
-	if mmGetOrigin.mock.inspectFuncGetOrigin != nil {
-		mmGetOrigin.mock.t.Fatalf("Inspect function is already set for NodeNetworkMock.GetOrigin")
-	}
-
-	mmGetOrigin.mock.inspectFuncGetOrigin = f
-
-	return mmGetOrigin
-}
-
-// Return sets up results that will be returned by NodeNetwork.GetOrigin
-func (mmGetOrigin *mNodeNetworkMockGetOrigin) Return(n1 nodeinfo.NetworkNode) *NodeNetworkMock {
-	if mmGetOrigin.mock.funcGetOrigin != nil {
-		mmGetOrigin.mock.t.Fatalf("NodeNetworkMock.GetOrigin mock is already set by Set")
-	}
-
-	if mmGetOrigin.defaultExpectation == nil {
-		mmGetOrigin.defaultExpectation = &NodeNetworkMockGetOriginExpectation{mock: mmGetOrigin.mock}
-	}
-	mmGetOrigin.defaultExpectation.results = &NodeNetworkMockGetOriginResults{n1}
-	return mmGetOrigin.mock
-}
-
-//Set uses given function f to mock the NodeNetwork.GetOrigin method
-func (mmGetOrigin *mNodeNetworkMockGetOrigin) Set(f func() (n1 nodeinfo.NetworkNode)) *NodeNetworkMock {
-	if mmGetOrigin.defaultExpectation != nil {
-		mmGetOrigin.mock.t.Fatalf("Default expectation is already set for the NodeNetwork.GetOrigin method")
-	}
-
-	if len(mmGetOrigin.expectations) > 0 {
-		mmGetOrigin.mock.t.Fatalf("Some expectations are already set for the NodeNetwork.GetOrigin method")
-	}
-
-	mmGetOrigin.mock.funcGetOrigin = f
-	return mmGetOrigin.mock
-}
-
-// GetOrigin implements network.NodeNetwork
-func (mmGetOrigin *NodeNetworkMock) GetOrigin() (n1 nodeinfo.NetworkNode) {
-	mm_atomic.AddUint64(&mmGetOrigin.beforeGetOriginCounter, 1)
-	defer mm_atomic.AddUint64(&mmGetOrigin.afterGetOriginCounter, 1)
-
-	if mmGetOrigin.inspectFuncGetOrigin != nil {
-		mmGetOrigin.inspectFuncGetOrigin()
-	}
-
-	if mmGetOrigin.GetOriginMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmGetOrigin.GetOriginMock.defaultExpectation.Counter, 1)
-
-		mm_results := mmGetOrigin.GetOriginMock.defaultExpectation.results
-		if mm_results == nil {
-			mmGetOrigin.t.Fatal("No results are set for the NodeNetworkMock.GetOrigin")
-		}
-		return (*mm_results).n1
-	}
-	if mmGetOrigin.funcGetOrigin != nil {
-		return mmGetOrigin.funcGetOrigin()
-	}
-	mmGetOrigin.t.Fatalf("Unexpected call to NodeNetworkMock.GetOrigin.")
-	return
-}
-
-// GetOriginAfterCounter returns a count of finished NodeNetworkMock.GetOrigin invocations
-func (mmGetOrigin *NodeNetworkMock) GetOriginAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmGetOrigin.afterGetOriginCounter)
-}
-
-// GetOriginBeforeCounter returns a count of NodeNetworkMock.GetOrigin invocations
-func (mmGetOrigin *NodeNetworkMock) GetOriginBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmGetOrigin.beforeGetOriginCounter)
-}
-
-// MinimockGetOriginDone returns true if the count of the GetOrigin invocations corresponds
-// the number of defined expectations
-func (m *NodeNetworkMock) MinimockGetOriginDone() bool {
-	for _, e := range m.GetOriginMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.GetOriginMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetOriginCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcGetOrigin != nil && mm_atomic.LoadUint64(&m.afterGetOriginCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockGetOriginInspect logs each unmet expectation
-func (m *NodeNetworkMock) MinimockGetOriginInspect() {
-	for _, e := range m.GetOriginMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Error("Expected call to NodeNetworkMock.GetOrigin")
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.GetOriginMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetOriginCounter) < 1 {
-		m.t.Error("Expected call to NodeNetworkMock.GetOrigin")
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcGetOrigin != nil && mm_atomic.LoadUint64(&m.afterGetOriginCounter) < 1 {
-		m.t.Error("Expected call to NodeNetworkMock.GetOrigin")
-	}
-}
-
 // MinimockFinish checks that all mocked methods have been called the expected number of times
 func (m *NodeNetworkMock) MinimockFinish() {
 	if !m.minimockDone() {
@@ -868,8 +716,6 @@ func (m *NodeNetworkMock) MinimockFinish() {
 		m.MinimockGetLocalNodeReferenceInspect()
 
 		m.MinimockGetLocalNodeRoleInspect()
-
-		m.MinimockGetOriginInspect()
 		m.t.FailNow()
 	}
 }
@@ -896,6 +742,5 @@ func (m *NodeNetworkMock) minimockDone() bool {
 		m.MinimockGetAccessorDone() &&
 		m.MinimockGetLatestAccessorDone() &&
 		m.MinimockGetLocalNodeReferenceDone() &&
-		m.MinimockGetLocalNodeRoleDone() &&
-		m.MinimockGetOriginDone()
+		m.MinimockGetLocalNodeRoleDone()
 }

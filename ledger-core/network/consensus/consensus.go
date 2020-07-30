@@ -112,11 +112,8 @@ func newConstructor(ctx context.Context, dep *Dep) *constructor {
 		c.consensusConfiguration,
 	)
 	c.misbehaviorRegistry = adapters.NewMisbehaviorRegistry()
-	c.offlinePopulation = adapters.NewOfflinePopulation(
-		dep.NodeKeeper,
-		dep.CertificateManager,
-		dep.KeyProcessor,
-	)
+	c.offlinePopulation = adapters.NewOfflinePopulation(dep.NodeKeeper) // TODO should use mandate storage
+
 	c.versionedRegistries = adapters.NewVersionedRegistries(
 		c.mandateRegistry,
 		c.misbehaviorRegistry,
@@ -203,26 +200,19 @@ func (c Installer) ControllerFor(mode Mode, setters ...packetProcessorSetter) Co
 }
 
 func (c *Installer) createCensus(mode Mode, na network.Accessor) *censusimpl.PrimingCensusTemplate {
-	certificate := c.dep.CertificateManager.GetCertificate()
-	origin := c.dep.NodeKeeper.GetOrigin()
 	knownNodes := na.GetActiveNodes()
+	origin := na.GetLocalNode()
 
-	node := adapters.NewStaticProfile(origin, certificate, c.dep.KeyProcessor)
-	nodes := adapters.NewStaticProfileList(knownNodes, certificate, c.dep.KeyProcessor)
+	nodes := nodeinfo.NewStaticProfileList(knownNodes)
 
 	if mode == Joiner {
-		return adapters.NewCensusForJoiner(
-			node,
-			c.consensus.versionedRegistries,
-			c.consensus.transportCryptographyFactory,
+		return adapters.NewCensusForJoiner(origin.GetStatic(),
+			c.consensus.versionedRegistries, c.consensus.transportCryptographyFactory,
 		)
 	}
 
-	return adapters.NewCensus(
-		node,
-		nodes,
-		c.consensus.versionedRegistries,
-		c.consensus.transportCryptographyFactory,
+	return adapters.NewCensus(origin.GetStatic(), nodes,
+		c.consensus.versionedRegistries, c.consensus.transportCryptographyFactory,
 	)
 }
 

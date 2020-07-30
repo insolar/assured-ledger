@@ -35,6 +35,12 @@ type AccessorMock struct {
 	beforeGetActiveNodesCounter uint64
 	GetActiveNodesMock          mAccessorMockGetActiveNodes
 
+	funcGetLocalNode          func() (n1 nodeinfo.NetworkNode)
+	inspectFuncGetLocalNode   func()
+	afterGetLocalNodeCounter  uint64
+	beforeGetLocalNodeCounter uint64
+	GetLocalNodeMock          mAccessorMockGetLocalNode
+
 	funcGetPulseNumber          func() (n1 pulse.Number)
 	inspectFuncGetPulseNumber   func()
 	afterGetPulseNumberCounter  uint64
@@ -68,6 +74,8 @@ func NewAccessorMock(t minimock.Tester) *AccessorMock {
 	m.GetActiveNodeByAddrMock.callArgs = []*AccessorMockGetActiveNodeByAddrParams{}
 
 	m.GetActiveNodesMock = mAccessorMockGetActiveNodes{mock: m}
+
+	m.GetLocalNodeMock = mAccessorMockGetLocalNode{mock: m}
 
 	m.GetPulseNumberMock = mAccessorMockGetPulseNumber{mock: m}
 
@@ -652,6 +660,149 @@ func (m *AccessorMock) MinimockGetActiveNodesInspect() {
 	}
 }
 
+type mAccessorMockGetLocalNode struct {
+	mock               *AccessorMock
+	defaultExpectation *AccessorMockGetLocalNodeExpectation
+	expectations       []*AccessorMockGetLocalNodeExpectation
+}
+
+// AccessorMockGetLocalNodeExpectation specifies expectation struct of the Accessor.GetLocalNode
+type AccessorMockGetLocalNodeExpectation struct {
+	mock *AccessorMock
+
+	results *AccessorMockGetLocalNodeResults
+	Counter uint64
+}
+
+// AccessorMockGetLocalNodeResults contains results of the Accessor.GetLocalNode
+type AccessorMockGetLocalNodeResults struct {
+	n1 nodeinfo.NetworkNode
+}
+
+// Expect sets up expected params for Accessor.GetLocalNode
+func (mmGetLocalNode *mAccessorMockGetLocalNode) Expect() *mAccessorMockGetLocalNode {
+	if mmGetLocalNode.mock.funcGetLocalNode != nil {
+		mmGetLocalNode.mock.t.Fatalf("AccessorMock.GetLocalNode mock is already set by Set")
+	}
+
+	if mmGetLocalNode.defaultExpectation == nil {
+		mmGetLocalNode.defaultExpectation = &AccessorMockGetLocalNodeExpectation{}
+	}
+
+	return mmGetLocalNode
+}
+
+// Inspect accepts an inspector function that has same arguments as the Accessor.GetLocalNode
+func (mmGetLocalNode *mAccessorMockGetLocalNode) Inspect(f func()) *mAccessorMockGetLocalNode {
+	if mmGetLocalNode.mock.inspectFuncGetLocalNode != nil {
+		mmGetLocalNode.mock.t.Fatalf("Inspect function is already set for AccessorMock.GetLocalNode")
+	}
+
+	mmGetLocalNode.mock.inspectFuncGetLocalNode = f
+
+	return mmGetLocalNode
+}
+
+// Return sets up results that will be returned by Accessor.GetLocalNode
+func (mmGetLocalNode *mAccessorMockGetLocalNode) Return(n1 nodeinfo.NetworkNode) *AccessorMock {
+	if mmGetLocalNode.mock.funcGetLocalNode != nil {
+		mmGetLocalNode.mock.t.Fatalf("AccessorMock.GetLocalNode mock is already set by Set")
+	}
+
+	if mmGetLocalNode.defaultExpectation == nil {
+		mmGetLocalNode.defaultExpectation = &AccessorMockGetLocalNodeExpectation{mock: mmGetLocalNode.mock}
+	}
+	mmGetLocalNode.defaultExpectation.results = &AccessorMockGetLocalNodeResults{n1}
+	return mmGetLocalNode.mock
+}
+
+//Set uses given function f to mock the Accessor.GetLocalNode method
+func (mmGetLocalNode *mAccessorMockGetLocalNode) Set(f func() (n1 nodeinfo.NetworkNode)) *AccessorMock {
+	if mmGetLocalNode.defaultExpectation != nil {
+		mmGetLocalNode.mock.t.Fatalf("Default expectation is already set for the Accessor.GetLocalNode method")
+	}
+
+	if len(mmGetLocalNode.expectations) > 0 {
+		mmGetLocalNode.mock.t.Fatalf("Some expectations are already set for the Accessor.GetLocalNode method")
+	}
+
+	mmGetLocalNode.mock.funcGetLocalNode = f
+	return mmGetLocalNode.mock
+}
+
+// GetLocalNode implements network.Accessor
+func (mmGetLocalNode *AccessorMock) GetLocalNode() (n1 nodeinfo.NetworkNode) {
+	mm_atomic.AddUint64(&mmGetLocalNode.beforeGetLocalNodeCounter, 1)
+	defer mm_atomic.AddUint64(&mmGetLocalNode.afterGetLocalNodeCounter, 1)
+
+	if mmGetLocalNode.inspectFuncGetLocalNode != nil {
+		mmGetLocalNode.inspectFuncGetLocalNode()
+	}
+
+	if mmGetLocalNode.GetLocalNodeMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmGetLocalNode.GetLocalNodeMock.defaultExpectation.Counter, 1)
+
+		mm_results := mmGetLocalNode.GetLocalNodeMock.defaultExpectation.results
+		if mm_results == nil {
+			mmGetLocalNode.t.Fatal("No results are set for the AccessorMock.GetLocalNode")
+		}
+		return (*mm_results).n1
+	}
+	if mmGetLocalNode.funcGetLocalNode != nil {
+		return mmGetLocalNode.funcGetLocalNode()
+	}
+	mmGetLocalNode.t.Fatalf("Unexpected call to AccessorMock.GetLocalNode.")
+	return
+}
+
+// GetLocalNodeAfterCounter returns a count of finished AccessorMock.GetLocalNode invocations
+func (mmGetLocalNode *AccessorMock) GetLocalNodeAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetLocalNode.afterGetLocalNodeCounter)
+}
+
+// GetLocalNodeBeforeCounter returns a count of AccessorMock.GetLocalNode invocations
+func (mmGetLocalNode *AccessorMock) GetLocalNodeBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetLocalNode.beforeGetLocalNodeCounter)
+}
+
+// MinimockGetLocalNodeDone returns true if the count of the GetLocalNode invocations corresponds
+// the number of defined expectations
+func (m *AccessorMock) MinimockGetLocalNodeDone() bool {
+	for _, e := range m.GetLocalNodeMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.GetLocalNodeMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetLocalNodeCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcGetLocalNode != nil && mm_atomic.LoadUint64(&m.afterGetLocalNodeCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockGetLocalNodeInspect logs each unmet expectation
+func (m *AccessorMock) MinimockGetLocalNodeInspect() {
+	for _, e := range m.GetLocalNodeMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Error("Expected call to AccessorMock.GetLocalNode")
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.GetLocalNodeMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetLocalNodeCounter) < 1 {
+		m.t.Error("Expected call to AccessorMock.GetLocalNode")
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcGetLocalNode != nil && mm_atomic.LoadUint64(&m.afterGetLocalNodeCounter) < 1 {
+		m.t.Error("Expected call to AccessorMock.GetLocalNode")
+	}
+}
+
 type mAccessorMockGetPulseNumber struct {
 	mock               *AccessorMock
 	defaultExpectation *AccessorMockGetPulseNumberExpectation
@@ -1162,6 +1313,8 @@ func (m *AccessorMock) MinimockFinish() {
 
 		m.MinimockGetActiveNodesInspect()
 
+		m.MinimockGetLocalNodeInspect()
+
 		m.MinimockGetPulseNumberInspect()
 
 		m.MinimockGetWorkingNodeInspect()
@@ -1193,6 +1346,7 @@ func (m *AccessorMock) minimockDone() bool {
 		m.MinimockGetActiveNodeDone() &&
 		m.MinimockGetActiveNodeByAddrDone() &&
 		m.MinimockGetActiveNodesDone() &&
+		m.MinimockGetLocalNodeDone() &&
 		m.MinimockGetPulseNumberDone() &&
 		m.MinimockGetWorkingNodeDone() &&
 		m.MinimockGetWorkingNodesDone()

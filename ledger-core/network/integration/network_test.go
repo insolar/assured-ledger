@@ -37,7 +37,7 @@ func TestJoinerNodeConnect(t *testing.T) {
 }
 
 func TestNodeConnectInvalidVersion(t *testing.T) {
-	t.Skip("protocol version should not be exposed")
+	t.Skip("protocol version should not be exposed to app logic level")
 	t.Parallel()
 	s := startNetworkSuite(t)
 	defer s.stopNetworkSuite()
@@ -73,9 +73,8 @@ func TestNodeLeave(t *testing.T) {
 }
 
 func TestNodeGracefulLeave(t *testing.T) {
-	//	t.Skip("FIXME node GracefulStop")
+	t.Skip("FIXME actual implementation does NOT do graceful leave")
 
-	// TODO actual implementation does NOT do graceful leave
 	s := startNetworkSuite(t)
 	defer s.stopNetworkSuite()
 

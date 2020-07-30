@@ -20,7 +20,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	mock "github.com/insolar/assured-ledger/ledger-core/testutils/network"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/network/mutable"
 )
 
 func createBase(mc *minimock.Controller) *Base {
@@ -33,12 +32,12 @@ func createBase(mc *minimock.Controller) *Base {
 
 	nk := mock.NewNodeKeeperMock(mc)
 	ref := gen.UniqueGlobalRef()
-	nk.GetOriginMock.Return(mutable.NewTestNode(gen.UniqueGlobalRef(), member.PrimaryRoleVirtual, "127.0.0.1:123"))
 	nk.GetLocalNodeReferenceMock.Return(ref)
 	nk.GetLocalNodeRoleMock.Return(member.PrimaryRoleVirtual)
+	nk.GetLatestAccessorMock.Return(nil)
 
 	// avoid errors when these methods were not used
-	nk.GetOrigin()
+	nk.GetLatestAccessor()
 	nk.GetLocalNodeReference()
 	nk.GetLocalNodeRole()
 

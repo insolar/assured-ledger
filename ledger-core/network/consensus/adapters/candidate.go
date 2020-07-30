@@ -27,7 +27,7 @@ func (c Candidate) StaticProfile(keyProcessor cryptography.KeyProcessor) *Static
 		SHA3512Digest.SignedBy(SECP256r1Sign),
 	)
 
-	extension := NewStaticProfileExtensionExt(
+	extension := NewStaticProfileExtension(
 		c.ShortID,
 		c.Ref,
 		signHolder,
@@ -36,7 +36,7 @@ func (c Candidate) StaticProfile(keyProcessor cryptography.KeyProcessor) *Static
 	// TODO start power level is not passed properly - needs fix
 	startPower := DefaultStartPower
 
-	return NewStaticProfileExt2(c.ShortID, c.PrimaryRole, c.SpecialRole, startPower,
+	return NewStaticProfile(c.ShortID, c.PrimaryRole, c.SpecialRole, startPower,
 		extension,
 		NewOutbound(c.Address),
 		NewECDSAPublicKeyStore(publicKey.(*ecdsa.PublicKey)),

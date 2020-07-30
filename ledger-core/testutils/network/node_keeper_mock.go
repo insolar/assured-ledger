@@ -44,12 +44,6 @@ type NodeKeeperMock struct {
 	beforeGetLocalNodeRoleCounter uint64
 	GetLocalNodeRoleMock          mNodeKeeperMockGetLocalNodeRole
 
-	funcGetOrigin          func() (n1 nodeinfo.NetworkNode)
-	inspectFuncGetOrigin   func()
-	afterGetOriginCounter  uint64
-	beforeGetOriginCounter uint64
-	GetOriginMock          mNodeKeeperMockGetOrigin
-
 	funcMoveSyncToActive          func(ctx context.Context, n1 pulse.Number)
 	inspectFuncMoveSyncToActive   func(ctx context.Context, n1 pulse.Number)
 	afterMoveSyncToActiveCounter  uint64
@@ -84,8 +78,6 @@ func NewNodeKeeperMock(t minimock.Tester) *NodeKeeperMock {
 	m.GetLocalNodeReferenceMock = mNodeKeeperMockGetLocalNodeReference{mock: m}
 
 	m.GetLocalNodeRoleMock = mNodeKeeperMockGetLocalNodeRole{mock: m}
-
-	m.GetOriginMock = mNodeKeeperMockGetOrigin{mock: m}
 
 	m.MoveSyncToActiveMock = mNodeKeeperMockMoveSyncToActive{mock: m}
 	m.MoveSyncToActiveMock.callArgs = []*NodeKeeperMockMoveSyncToActiveParams{}
@@ -743,149 +735,6 @@ func (m *NodeKeeperMock) MinimockGetLocalNodeRoleInspect() {
 	}
 }
 
-type mNodeKeeperMockGetOrigin struct {
-	mock               *NodeKeeperMock
-	defaultExpectation *NodeKeeperMockGetOriginExpectation
-	expectations       []*NodeKeeperMockGetOriginExpectation
-}
-
-// NodeKeeperMockGetOriginExpectation specifies expectation struct of the NodeKeeper.GetOrigin
-type NodeKeeperMockGetOriginExpectation struct {
-	mock *NodeKeeperMock
-
-	results *NodeKeeperMockGetOriginResults
-	Counter uint64
-}
-
-// NodeKeeperMockGetOriginResults contains results of the NodeKeeper.GetOrigin
-type NodeKeeperMockGetOriginResults struct {
-	n1 nodeinfo.NetworkNode
-}
-
-// Expect sets up expected params for NodeKeeper.GetOrigin
-func (mmGetOrigin *mNodeKeeperMockGetOrigin) Expect() *mNodeKeeperMockGetOrigin {
-	if mmGetOrigin.mock.funcGetOrigin != nil {
-		mmGetOrigin.mock.t.Fatalf("NodeKeeperMock.GetOrigin mock is already set by Set")
-	}
-
-	if mmGetOrigin.defaultExpectation == nil {
-		mmGetOrigin.defaultExpectation = &NodeKeeperMockGetOriginExpectation{}
-	}
-
-	return mmGetOrigin
-}
-
-// Inspect accepts an inspector function that has same arguments as the NodeKeeper.GetOrigin
-func (mmGetOrigin *mNodeKeeperMockGetOrigin) Inspect(f func()) *mNodeKeeperMockGetOrigin {
-	if mmGetOrigin.mock.inspectFuncGetOrigin != nil {
-		mmGetOrigin.mock.t.Fatalf("Inspect function is already set for NodeKeeperMock.GetOrigin")
-	}
-
-	mmGetOrigin.mock.inspectFuncGetOrigin = f
-
-	return mmGetOrigin
-}
-
-// Return sets up results that will be returned by NodeKeeper.GetOrigin
-func (mmGetOrigin *mNodeKeeperMockGetOrigin) Return(n1 nodeinfo.NetworkNode) *NodeKeeperMock {
-	if mmGetOrigin.mock.funcGetOrigin != nil {
-		mmGetOrigin.mock.t.Fatalf("NodeKeeperMock.GetOrigin mock is already set by Set")
-	}
-
-	if mmGetOrigin.defaultExpectation == nil {
-		mmGetOrigin.defaultExpectation = &NodeKeeperMockGetOriginExpectation{mock: mmGetOrigin.mock}
-	}
-	mmGetOrigin.defaultExpectation.results = &NodeKeeperMockGetOriginResults{n1}
-	return mmGetOrigin.mock
-}
-
-//Set uses given function f to mock the NodeKeeper.GetOrigin method
-func (mmGetOrigin *mNodeKeeperMockGetOrigin) Set(f func() (n1 nodeinfo.NetworkNode)) *NodeKeeperMock {
-	if mmGetOrigin.defaultExpectation != nil {
-		mmGetOrigin.mock.t.Fatalf("Default expectation is already set for the NodeKeeper.GetOrigin method")
-	}
-
-	if len(mmGetOrigin.expectations) > 0 {
-		mmGetOrigin.mock.t.Fatalf("Some expectations are already set for the NodeKeeper.GetOrigin method")
-	}
-
-	mmGetOrigin.mock.funcGetOrigin = f
-	return mmGetOrigin.mock
-}
-
-// GetOrigin implements network.NodeKeeper
-func (mmGetOrigin *NodeKeeperMock) GetOrigin() (n1 nodeinfo.NetworkNode) {
-	mm_atomic.AddUint64(&mmGetOrigin.beforeGetOriginCounter, 1)
-	defer mm_atomic.AddUint64(&mmGetOrigin.afterGetOriginCounter, 1)
-
-	if mmGetOrigin.inspectFuncGetOrigin != nil {
-		mmGetOrigin.inspectFuncGetOrigin()
-	}
-
-	if mmGetOrigin.GetOriginMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmGetOrigin.GetOriginMock.defaultExpectation.Counter, 1)
-
-		mm_results := mmGetOrigin.GetOriginMock.defaultExpectation.results
-		if mm_results == nil {
-			mmGetOrigin.t.Fatal("No results are set for the NodeKeeperMock.GetOrigin")
-		}
-		return (*mm_results).n1
-	}
-	if mmGetOrigin.funcGetOrigin != nil {
-		return mmGetOrigin.funcGetOrigin()
-	}
-	mmGetOrigin.t.Fatalf("Unexpected call to NodeKeeperMock.GetOrigin.")
-	return
-}
-
-// GetOriginAfterCounter returns a count of finished NodeKeeperMock.GetOrigin invocations
-func (mmGetOrigin *NodeKeeperMock) GetOriginAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmGetOrigin.afterGetOriginCounter)
-}
-
-// GetOriginBeforeCounter returns a count of NodeKeeperMock.GetOrigin invocations
-func (mmGetOrigin *NodeKeeperMock) GetOriginBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmGetOrigin.beforeGetOriginCounter)
-}
-
-// MinimockGetOriginDone returns true if the count of the GetOrigin invocations corresponds
-// the number of defined expectations
-func (m *NodeKeeperMock) MinimockGetOriginDone() bool {
-	for _, e := range m.GetOriginMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.GetOriginMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetOriginCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcGetOrigin != nil && mm_atomic.LoadUint64(&m.afterGetOriginCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockGetOriginInspect logs each unmet expectation
-func (m *NodeKeeperMock) MinimockGetOriginInspect() {
-	for _, e := range m.GetOriginMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Error("Expected call to NodeKeeperMock.GetOrigin")
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.GetOriginMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetOriginCounter) < 1 {
-		m.t.Error("Expected call to NodeKeeperMock.GetOrigin")
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcGetOrigin != nil && mm_atomic.LoadUint64(&m.afterGetOriginCounter) < 1 {
-		m.t.Error("Expected call to NodeKeeperMock.GetOrigin")
-	}
-}
-
 type mNodeKeeperMockMoveSyncToActive struct {
 	mock               *NodeKeeperMock
 	defaultExpectation *NodeKeeperMockMoveSyncToActiveExpectation
@@ -1460,8 +1309,6 @@ func (m *NodeKeeperMock) MinimockFinish() {
 
 		m.MinimockGetLocalNodeRoleInspect()
 
-		m.MinimockGetOriginInspect()
-
 		m.MinimockMoveSyncToActiveInspect()
 
 		m.MinimockSetInitialSnapshotInspect()
@@ -1494,7 +1341,6 @@ func (m *NodeKeeperMock) minimockDone() bool {
 		m.MinimockGetLatestAccessorDone() &&
 		m.MinimockGetLocalNodeReferenceDone() &&
 		m.MinimockGetLocalNodeRoleDone() &&
-		m.MinimockGetOriginDone() &&
 		m.MinimockMoveSyncToActiveDone() &&
 		m.MinimockSetInitialSnapshotDone() &&
 		m.MinimockSyncDone()

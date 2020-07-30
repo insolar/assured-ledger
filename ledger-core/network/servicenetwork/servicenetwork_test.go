@@ -55,8 +55,6 @@ func prepareNetwork(t *testing.T, cfg configuration.Configuration) (*ServiceNetw
 	require.NoError(t, err)
 
 	nodeKeeper := networkUtils.NewNodeKeeperMock(t)
-	// nodeMock := mutable.NewTestNode(gen.UniqueGlobalRef(), member.PrimaryRoleNeutral, "")
-	// nodeKeeper.GetOriginMock.Return(nodeMock)
 	ref := gen.UniqueGlobalRef()
 	nodeKeeper.GetLocalNodeReferenceMock.Return(ref)
 	serviceNetwork.NodeKeeper = nodeKeeper

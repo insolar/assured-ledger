@@ -235,8 +235,8 @@ func (g *Base) localNodeAsCandidate() error {
 		isJoiner = true
 	}
 
-	staticProfile := adapters.NewStaticProfileExt2(id, role, specialRole, startPower,
-		adapters.NewStaticProfileExtensionExt(id, ref, sig),
+	staticProfile := adapters.NewStaticProfile(id, role, specialRole, startPower,
+		adapters.NewStaticProfileExtension(id, ref, sig),
 		adapters.NewOutboundIP(endpointAddr),
 		adapters.NewECDSAPublicKeyStore(publicKey.(*ecdsa.PublicKey)),
 		adapters.NewECDSASignatureKeyHolder(publicKey.(*ecdsa.PublicKey), g.KeyProcessor),
@@ -252,7 +252,7 @@ func (g *Base) localNodeAsCandidate() error {
 		anp = censusimpl.NewNodeProfile(0, staticProfile, verifier, staticProfile.GetStartPower())
 	}
 
-	newOrigin := adapters.NewNetworkNode(&anp)
+	newOrigin := nodeinfo.NewNetworkNode(&anp)
 	g.NodeKeeper.SetInitialSnapshot([]nodeinfo.NetworkNode{newOrigin})
 	g.originCandidate = adapters.NewCandidate(staticProfile, g.KeyProcessor)
 	return nil
@@ -463,8 +463,7 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 		return nil, throw.Errorf("AuthorizeRequest: node list is not available: %s", request)
 	}
 	nodes := na.GetActiveNodes()
-
-	o := g.NodeKeeper.GetOrigin()
+	o := na.GetLocalNode()
 
 	var reconnectHost *host.Host
 	if !g.isJoinAssistant || len(nodes) < 2 {
@@ -543,10 +542,16 @@ func (g *Base) EphemeralMode(nodes []nodeinfo.NetworkNode) bool {
 }
 
 func (g *Base) FailState(ctx context.Context, reason string) {
-	o := g.NodeKeeper.GetOrigin()
-	wrapReason := fmt.Sprintf("Abort node with address: %s role: %s state: %s, reason: %s",
-		nodeinfo.NodeAddr(o),
-		nodeinfo.NodeRole(o).String(),
+	na := g.NodeKeeper.GetLatestAccessor()
+
+	addr := ""
+	if na != nil {
+		addr = nodeinfo.NodeAddr(na.GetLocalNode())
+	}
+	wrapReason := fmt.Sprintf("Abort node: ref=%s address=%s role=%v state=%s, reason=%s",
+		g.NodeKeeper.GetLocalNodeReference(),
+		addr,
+		g.NodeKeeper.GetLocalNodeRole(),
 		g.Gatewayer.Gateway().GetState().String(),
 		reason,
 	)

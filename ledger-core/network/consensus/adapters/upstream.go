@@ -67,10 +67,10 @@ func (u *UpstreamController) ConsensusFinished(report api.UpstreamReport, expect
 		logger.Warnf("Consensus finished unexpectedly mode: %s, population: %v", report.MemberMode, expectedCensus)
 
 		networkNodes = []nodeinfo.NetworkNode{
-			NewNetworkNode(expectedCensus.GetOnlinePopulation().GetLocalProfile()),
+			nodeinfo.NewNetworkNode(expectedCensus.GetOnlinePopulation().GetLocalProfile()),
 		}
 	} else {
-		networkNodes = NewNetworkNodeList(population.GetProfiles())
+		networkNodes = nodeinfo.NewNetworkNodeList(population.GetProfiles())
 	}
 
 	u.stateUpdater.UpdateState(

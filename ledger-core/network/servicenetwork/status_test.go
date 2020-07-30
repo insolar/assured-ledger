@@ -52,15 +52,17 @@ func TestGetNetworkStatus(t *testing.T) {
 
 	ref := gen.UniqueGlobalRef()
 	nn := mutable.NewTestNode(ref, member.PrimaryRoleNeutral, "")
+	a.GetLocalNodeMock.Return(nn)
 	nk.GetLocalNodeReferenceMock.Return(ref)
-	nk.GetOriginMock.Return(nn)
+	nk.GetLocalNodeRoleMock.Return(member.PrimaryRoleNeutral)
+
 
 	sn.NodeKeeper = nk
 
 	ns := sn.GetNetworkStatus()
 	require.Equal(t, ins, ns.NetworkState)
 
-	require.Equal(t, nn, ns.Origin)
+	require.Equal(t, nn, ns.LocalNode)
 
 	require.Equal(t, activeLen, ns.ActiveListSize)
 
@@ -75,7 +77,7 @@ func TestGetNetworkStatus(t *testing.T) {
 	ns = sn.GetNetworkStatus()
 	require.Equal(t, ins, ns.NetworkState)
 
-	require.Equal(t, nn, ns.Origin)
+	require.Equal(t, nn, ns.LocalNode)
 
 	require.Equal(t, activeLen, ns.ActiveListSize)
 

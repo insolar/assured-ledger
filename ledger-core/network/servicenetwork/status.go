@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/network"
-	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/version"
 )
 
@@ -19,23 +18,23 @@ func (n *ServiceNetwork) GetNetworkStatus() network.StatusReply {
 	var reply network.StatusReply
 	reply.NetworkState = n.Gatewayer.Gateway().GetState()
 
+	reply.LocalRef = n.NodeKeeper.GetLocalNodeReference()
+	reply.LocalRole = n.NodeKeeper.GetLocalNodeRole()
+
 	na := n.NodeKeeper.GetLatestAccessor()
 
-	var activeNodes, workingNodes []nodeinfo.NetworkNode
 	if na != nil {
 		reply.PulseNumber = na.GetPulseNumber()
-		activeNodes = na.GetActiveNodes()
-		workingNodes = na.GetWorkingNodes()
+		reply.WorkingListSize = len(na.GetWorkingNodes())
+
+		activeNodes := na.GetActiveNodes()
+		reply.ActiveListSize = len(activeNodes)
+		reply.Nodes = activeNodes
+
+		reply.LocalNode = na.GetLocalNode()
 	}
 
-	reply.ActiveListSize = len(activeNodes)
-	reply.WorkingListSize = len(workingNodes)
-
-	reply.Nodes = activeNodes
-	reply.Origin = n.NodeKeeper.GetOrigin()
-
 	reply.Version = version.Version
-
 	reply.Timestamp = time.Now()
 	reply.StartTime = startTime
 

@@ -37,7 +37,6 @@ type nodekeeper struct {
 
 	localRef  reference.Global
 	localRole member.PrimaryRole
-	origin    nodeinfo.NetworkNode
 	syncNodes []nodeinfo.NetworkNode
 
 	snapshotStorage *MemoryStorage
@@ -70,7 +69,7 @@ func (nk *nodekeeper) GetAccessor(pn pulse.Number) network.Accessor {
 	if err != nil {
 		panic(fmt.Sprintf("GetAccessor(%d): %s", pn, err.Error()))
 	}
-	return NewAccessor(s)
+	return NewAccessor(s, nk.localRef)
 }
 
 func (nk *nodekeeper) GetLatestAccessor() network.Accessor {
@@ -81,17 +80,6 @@ func (nk *nodekeeper) GetLatestAccessor() network.Accessor {
 		return nil
 	}
 	return nk.last
-}
-
-func (nk *nodekeeper) GetOrigin() nodeinfo.NetworkNode {
-	nk.syncLock.RLock()
-	defer nk.syncLock.RUnlock()
-
-	if nk.origin == nil {
-		panic(throw.IllegalState())
-	}
-
-	return nk.origin
 }
 
 func (nk *nodekeeper) Sync(ctx context.Context, nodes []nodeinfo.NetworkNode) {
@@ -120,19 +108,15 @@ func (nk *nodekeeper) moveSyncToActive(number pulse.Number) (before, after int, 
 	defer nk.syncLock.Unlock()
 
 	snapshot := NewSnapshot(number, nk.syncNodes)
+	accessor := NewAccessor(snapshot, nk.localRef)
+	if accessor.local == nil {
+		panic(throw.IllegalValue())
+	}
 
 	if err := nk.snapshotStorage.Append(snapshot); err != nil {
 		return 0, 0, err
 	}
-
-	accessor := NewAccessor(snapshot)
 	nk.last = accessor
-
-	o := accessor.GetActiveNode(nk.localRef)
-	if o == nil {
-		panic(throw.IllegalValue())
-	}
-	nk.origin = o
 
 	return len(nk.syncNodes), len(accessor.GetActiveNodes()), nil
 }

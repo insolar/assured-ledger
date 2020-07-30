@@ -90,7 +90,7 @@ type GeneratedNodes struct {
 	discoveryNodes []nodeinfo.NetworkNode
 }
 
-func generateNodes(countNeutral, countHeavy, countLight, countVirtual int, discoveryNodes []nodeinfo.NetworkNode) (*GeneratedNodes, error) {
+func generateNodes(countNeutral, countHeavy, countLight, countVirtual int, discoveryNodes []nodeinfo.NetworkNode) (GeneratedNodes, error) {
 	nodeIdentities := generateNodeIdentities(countNeutral, countHeavy, countLight, countVirtual)
 	nodeInfos := generateNodeInfos(nodeIdentities)
 	nodes, dn, err := nodesFromInfo(nodeInfos)
@@ -100,10 +100,10 @@ func generateNodes(countNeutral, countHeavy, countLight, countVirtual int, disco
 	}
 
 	if err != nil {
-		return nil, err
+		return GeneratedNodes{}, err
 	}
 
-	return &GeneratedNodes{
+	return GeneratedNodes{
 		nodes:          nodes,
 		meta:           nodeInfos,
 		discoveryNodes: dn,
@@ -121,7 +121,7 @@ func newNodes(size int) InitializedNodes {
 	}
 }
 
-func initNodes(ctx context.Context, mode consensus.Mode, nodes GeneratedNodes, strategy NetStrategy) (*InitializedNodes, error) {
+func initNodes(ctx context.Context, mode consensus.Mode, nodes GeneratedNodes, strategy NetStrategy) (InitializedNodes, error) {
 	ns := newNodes(len(nodes.nodes))
 
 	for i, n := range nodes.nodes {
@@ -139,7 +139,7 @@ func initNodes(ctx context.Context, mode consensus.Mode, nodes GeneratedNodes, s
 		transportFactory := transport.NewFactory(conf)
 		datagramTransport, err := transportFactory.CreateDatagramTransport(datagramHandler)
 		if err != nil {
-			return nil, err
+			return InitializedNodes{}, err
 		}
 
 		delayTransport := strategy.GetLink(datagramTransport)
@@ -174,13 +174,13 @@ func initNodes(ctx context.Context, mode consensus.Mode, nodes GeneratedNodes, s
 		ns.contexts[i] = ctx
 		err = delayTransport.Start(ctx)
 		if err != nil {
-			return nil, err
+			return InitializedNodes{}, err
 		}
 
-		ns.staticProfiles[i] = adapters.NewStaticProfile(n, certificateManager.GetCertificate(), keyProcessor)
+		ns.staticProfiles[i] = n.GetStatic()
 	}
 
-	return &ns, nil
+	return ns, nil
 }
 
 func initPulsar(ctx context.Context, delta uint16, ns InitializedNodes) {
@@ -309,6 +309,8 @@ func nodesFromInfo(nodeInfos []*nodeMeta) ([]nodeinfo.NetworkNode, []nodeinfo.Ne
 func newNetworkNode(addr string, role member.PrimaryRole, pk crypto.PublicKey) *mutable.Node {
 	n := mutable.NewTestNode(gen.UniqueGlobalRef(), role, addr)
 	n.SetShortID(node.ShortNodeID(shortNodeIdOffset))
+	n.SetPublicKeyStore(adapters.ECDSAPublicKeyAsPublicKeyStore(pk))
+	n.SetNodePublicKey(adapters.ECDSAPublicKeyAsSignatureKeyHolder(pk, keyProcessor))
 
 	shortNodeIdOffset += 1
 	return n

@@ -13,8 +13,13 @@ import (
 
 type Accessor struct {
 	snapshot  *Snapshot
+	local     nodeinfo.NetworkNode
 	refIndex  map[reference.Global]nodeinfo.NetworkNode
 	addrIndex map[string]nodeinfo.NetworkNode
+}
+
+func (a *Accessor) GetLocalNode() nodeinfo.NetworkNode {
+	return a.local
 }
 
 func (a *Accessor) GetPulseNumber() pulse.Number {
@@ -45,19 +50,20 @@ func (a *Accessor) GetWorkingNodes() []nodeinfo.NetworkNode {
 	return append([]nodeinfo.NetworkNode(nil), a.snapshot.workingNodes...)
 }
 
-func (a *Accessor) addToIndex(node nodeinfo.NetworkNode) {
-	a.refIndex[nodeinfo.NodeRef(node)] = node
-	a.addrIndex[nodeinfo.NodeAddr(node)] = node
-}
-
-func NewAccessor(snapshot *Snapshot) *Accessor {
+func NewAccessor(snapshot *Snapshot, localRef reference.Global) *Accessor {
 	result := &Accessor{
 		snapshot:  snapshot,
 		refIndex:  make(map[reference.Global]nodeinfo.NetworkNode),
 		addrIndex: make(map[string]nodeinfo.NetworkNode),
 	}
+
 	for _, node := range snapshot.activeNodes {
-		result.addToIndex(node)
+		ref := nodeinfo.NodeRef(node)
+		if ref == localRef {
+			result.local = node
+		}
+		result.refIndex[ref] = node
+		result.addrIndex[nodeinfo.NodeAddr(node)] = node
 	}
 	return result
 }

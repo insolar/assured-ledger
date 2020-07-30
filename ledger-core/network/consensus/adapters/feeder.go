@@ -279,7 +279,7 @@ func (f *EphemeralControlFeeder) CanStopEphemeralByCensus(expected census.Expect
 		return false
 	}
 
-	networkNodes := NewNetworkNodeList(population.GetProfiles())
+	networkNodes := nodeinfo.NewNetworkNodeList(population.GetProfiles())
 
 	return !f.ephemeralController.EphemeralMode(networkNodes)
 }

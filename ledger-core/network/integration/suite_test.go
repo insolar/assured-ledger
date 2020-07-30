@@ -139,7 +139,7 @@ func (s *consensusSuite) Setup() {
 	if UseFakeBootstrap {
 		bnodes := make([]nodeinfo.NetworkNode, 0)
 		for _, n := range s.bootstrapNodes {
-			o := n.serviceNetwork.NodeKeeper.GetOrigin()
+			o := n.serviceNetwork.NodeKeeper.GetLatestAccessor().GetLocalNode()
 			sdg := nodeinfo.NodeSignedDigest(o)
 			require.NotNil(s.t, sdg)
 			require.NotEmpty(s.t, sdg.GetSignatureHolder().AsByteString())

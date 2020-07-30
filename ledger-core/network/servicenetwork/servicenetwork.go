@@ -163,10 +163,6 @@ func (n *ServiceNetwork) GetLocalNodeRole() member.PrimaryRole {
 	return n.NodeKeeper.GetLocalNodeRole()
 }
 
-func (n *ServiceNetwork) GetOrigin() nodeinfo.NetworkNode {
-	return n.NodeKeeper.GetOrigin()
-}
-
 func (n *ServiceNetwork) GetAccessor(p pulse.Number) network.Accessor {
 	return n.NodeKeeper.GetAccessor(p)
 }
