@@ -10,7 +10,10 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/network/mutable"
 	"github.com/insolar/assured-ledger/ledger-core/version"
 
 	"github.com/stretchr/testify/require"
@@ -47,8 +50,8 @@ func TestGetNetworkStatus(t *testing.T) {
 
 	nk.GetAccessorMock.Set(func(pulse.Number) network.Accessor { return a })
 
-	nn := testutils.NewNetworkNodeMock(t)
-	nk.GetOriginMock.Set(func() nodeinfo.NetworkNode { return nn })
+	nn := mutable.NewTestNode(gen.UniqueGlobalRef(), member.PrimaryRoleNeutral, "")
+	nk.GetOriginMock.Return(nn)
 
 	sn.NodeKeeper = nk
 

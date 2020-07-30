@@ -34,7 +34,7 @@ func NewStaticProfileExtension(networkNode nodeinfo.NetworkNode) *StaticProfileE
 	return NewStaticProfileExtensionExt(
 		networkNode.GetNodeID(),
 		nodeinfo.NodeRef(networkNode),
-		networkNode.GetSignature().GetSignatureHolder().CopyOfSignature(),
+		nodeinfo.NodeSignedDigest(networkNode).GetSignatureHolder().CopyOfSignature(),
 	)
 }
 
@@ -92,7 +92,7 @@ type StaticProfile struct {
 
 func NewStaticProfile(networkNode nodeinfo.NetworkNode, certificate nodeinfo.Certificate, keyProcessor cryptography.KeyProcessor) *StaticProfile {
 	return NewStaticProfileExt(networkNode, nodeinfo.NodeAddr(networkNode),
-		certificate, keyProcessor, networkNode.GetSignature())
+		certificate, keyProcessor, nodeinfo.NodeSignedDigest(networkNode))
 }
 
 func NewStaticProfileExt(networkNode nodeinfo.NetworkNode, addr string, certificate nodeinfo.Certificate,
@@ -265,7 +265,7 @@ func NewNetworkNode(profile profiles.ActiveNode) nodeinfo.NetworkNode {
 	if profile == nil {
 		panic(throw.IllegalValue())
 	}
-	return profileNode{profile}
+	return profile
 }
 
 func NewNetworkNodeList(profiles []profiles.ActiveNode) []nodeinfo.NetworkNode {

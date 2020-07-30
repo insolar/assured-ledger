@@ -61,6 +61,34 @@ type Node struct {
 	digest        cryptkit.SignedDigest
 }
 
+func (n *Node) GetSignatureVerifier() cryptkit.SignatureVerifier {
+	panic(throw.NotImplemented())
+}
+
+func (n *Node) GetOpMode() member.OpMode {
+	panic(throw.NotImplemented())
+}
+
+func (n *Node) GetIndex() member.Index {
+	panic(throw.NotImplemented())
+}
+
+func (n *Node) IsVoter() bool {
+	return n.state == nodeinfo.Ready
+}
+
+func (n *Node) IsStateful() bool {
+	return n.state == nodeinfo.Ready
+}
+
+func (n *Node) CanIntroduceJoiner() bool {
+	return n.state == nodeinfo.Ready
+}
+
+func (n *Node) HasFullProfile() bool {
+	return true
+}
+
 func (n *Node) GetReference() reference.Global {
 	return n.nodeID
 }
@@ -153,10 +181,6 @@ func (n *Node) GetStatic() profiles.StaticProfile {
 	return n
 }
 
-func (n *Node) GetState() nodeinfo.State {
-	return n.state
-}
-
 func (n *Node) GetNodeID() node.ShortNodeID {
 	return n.nodeShortID
 }
@@ -167,10 +191,6 @@ func (n *Node) GetPrimaryRole() member.PrimaryRole {
 
 func (n *Node) GetDeclaredPower() member.Power {
 	return n.nodePower
-}
-
-func (n *Node) GetSignature() cryptkit.SignedDigestHolder {
-	return n.digest
 }
 
 func (n *Node) SetSignature(digest cryptkit.SignedDigest) {
@@ -187,9 +207,9 @@ func (n *Node) SetShortID(id node.ShortNodeID) {
 }
 
 func (n *Node) IsJoiner() bool {
-	return n.GetState() == nodeinfo.Joining
+	return n.state == nodeinfo.Joining
 }
 
 func (n *Node) IsPowered() bool {
-	return n.GetState() == nodeinfo.Ready && n.GetDeclaredPower() > 0
+	return n.state == nodeinfo.Ready && n.GetDeclaredPower() > 0
 }

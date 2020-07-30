@@ -6,7 +6,6 @@
 package nodeinfo
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -24,21 +23,7 @@ const (
 	Ready
 )
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo.NetworkNode -o ../../testutils/network -s _mock.go -g
-
-type NetworkNode interface {
-	GetStatic() profiles.StaticProfile
-
-	// ShortID get short ID of node
-	GetNodeID() node.ShortNodeID
-
-	GetDeclaredPower() member.Power
-
-	IsJoiner() bool
-	IsPowered() bool
-
-	GetSignature() cryptkit.SignedDigestHolder
-}
+type NetworkNode = profiles.ActiveNode
 
 func NodeAddr(n NetworkNode) string {
 	return n.GetStatic().GetDefaultEndpoint().GetIPAddress().String()
@@ -50,4 +35,8 @@ func NodeRef(n NetworkNode) reference.Global {
 
 func NodeRole(n NetworkNode) member.PrimaryRole {
 	return n.GetStatic().GetPrimaryRole()
+}
+
+func NodeSignedDigest(n NetworkNode) cryptkit.SignedDigestHolder {
+	return n.GetStatic().GetBriefIntroSignedDigest()
 }

@@ -13,9 +13,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/network/mutable"
 
 	network2 "github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
@@ -84,7 +86,7 @@ func mockNodeNetwork(t *testing.T, nodeList []nodeinfo.DiscoveryNode) *network.N
 	accessorMock := network.NewAccessorMock(t)
 	accessorMock.GetWorkingNodeMock.Set(func(ref reference.Global) nodeinfo.NetworkNode {
 		if _, ok := nodeMap[ref]; ok {
-			return network.NewNetworkNodeMock(t)
+			return mutable.NewTestNode(ref, member.PrimaryRoleNeutral, "")
 		}
 		return nil
 	})
