@@ -9,6 +9,7 @@ package gateway
 
 import (
 	"context"
+	"math/rand"
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
@@ -26,23 +27,6 @@ type NoNetwork struct {
 	*Base
 }
 
-func (g *NoNetwork) pause() time.Duration {
-	var sleep time.Duration
-	switch g.backoff {
-	case g.Options.MaxTimeout:
-		sleep = g.backoff
-	case 0:
-		g.backoff = g.Options.MinTimeout
-	default:
-		sleep = g.backoff
-		g.backoff *= g.Options.TimeoutMult
-		if g.backoff > g.Options.MaxTimeout {
-			g.backoff = g.Options.MaxTimeout
-		}
-	}
-	return sleep
-}
-
 func (g *NoNetwork) Run(ctx context.Context, pulse pulse.Data) {
 	cert := g.CertificateManager.GetCertificate()
 	origin := g.NodeKeeper.GetOrigin()
@@ -55,17 +39,27 @@ func (g *NoNetwork) Run(ctx context.Context, pulse pulse.Data) {
 		return
 	}
 
-	if network.OriginIsJoinAssistant(cert) {
+	// remember who is Me and who is joinAssistant
+	g.isDiscovery = network.OriginIsDiscovery(cert)
+	g.isJoinAssistant = network.OriginIsJoinAssistant(cert)
+	g.joinAssistant = network.JoinAssistant(cert)
+
+	if g.isJoinAssistant {
 		// Reset backoff if not insolar.JoinerBootstrap.
-		g.backoff = 0
+		g.backoff.Reset()
 
 		g.bootstrapTimer = time.NewTimer(g.bootstrapETA)
 		g.Gatewayer.SwitchState(ctx, nodeinfo.WaitConsensus, pulse)
 		return
 	}
 
-	time.Sleep(g.pause())
-	g.Gatewayer.SwitchState(ctx, nodeinfo.JoinerBootstrap, pulse)
+	time.Sleep(g.backoff.Duration())
+	if g.isDiscovery {
+		time.Sleep(time.Second * time.Duration(rand.Intn(20)))
+		g.Gatewayer.SwitchState(ctx, nodeinfo.DiscoveryBootstrap, pulse)
+	} else {
+		g.Gatewayer.SwitchState(ctx, nodeinfo.JoinerBootstrap, pulse)
+	}
 }
 
 func (g *NoNetwork) GetState() nodeinfo.NetworkState {

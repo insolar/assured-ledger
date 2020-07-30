@@ -62,9 +62,43 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 				validatedStateRef = server.RandomLocalWithPulse()
 				pulseNumber       = server.GetPulse().PulseNumber
 
-				outgoingDestroy  = server.BuildRandomOutgoingWithPulse()
 				waitVStateReport = make(chan struct{})
 			)
+
+			server.IncrementPulseAndWaitIdle(ctx)
+
+			// Send VStateReport with Dirty, Validated states
+			{
+				validatedState := makeRawWalletState(initialBalance)
+				dirtyState := validatedState
+				if !test.stateIsEqual {
+					dirtyState = makeRawWalletState(initialBalance + 100)
+				}
+
+				content := &payload.VStateReport_ProvidedContentBody{
+					LatestDirtyState: &payload.ObjectState{
+						Reference: dirtyStateRef,
+						Class:     class,
+						State:     dirtyState,
+					},
+					LatestValidatedState: &payload.ObjectState{
+						Reference: validatedStateRef,
+						Class:     class,
+						State:     validatedState,
+					},
+				}
+
+				pl := &payload.VStateReport{
+					Status:          payload.Ready,
+					Object:          objectGlobal,
+					AsOf:            pulseNumber,
+					ProvidedContent: content,
+				}
+				server.SendPayload(ctx, pl)
+				testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1))
+			}
+
+			outgoingDestroy := server.BuildRandomOutgoingWithPulse()
 
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
@@ -91,35 +125,6 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 				})
 			}
 
-			// Send VStateReport with Dirty, Validated states
-			{
-				validatedState := makeRawWalletState(initialBalance)
-				dirtyState := validatedState
-				if !test.stateIsEqual {
-					dirtyState = makeRawWalletState(initialBalance + 100)
-				}
-
-				content := &payload.VStateReport_ProvidedContentBody{
-					LatestDirtyState: &payload.ObjectState{
-						Reference: dirtyStateRef,
-						Class:     class,
-						State:     dirtyState,
-					},
-					LatestValidatedState: &payload.ObjectState{
-						Reference: validatedStateRef,
-						Class:     class,
-						State:     validatedState,
-					},
-				}
-
-				pl := &payload.VStateReport{
-					Status:          payload.Ready,
-					Object:          objectGlobal,
-					ProvidedContent: content,
-				}
-				server.SendPayload(ctx, pl)
-				testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1))
-			}
 			// Deactivate object
 			{
 				pl := &payload.VCallRequest{

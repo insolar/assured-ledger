@@ -50,7 +50,7 @@ func (p *PlayerSM) GetStateMachineDeclaration() smachine.StateMachineDeclaration
 	return p
 }
 
-func (PlayerSM) InjectDependencies(sm smachine.StateMachine, link smachine.SlotLink, dj *injector.DependencyInjector) {
+func (PlayerSM) InjectDependencies(sm smachine.StateMachine, link smachine.SlotLink, dj injector.DependencyInjector) {
 	dj.MustInject(&sm.(*PlayerSM).adapter)
 }
 

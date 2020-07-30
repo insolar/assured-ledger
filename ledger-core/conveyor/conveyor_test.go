@@ -41,7 +41,7 @@ func (sm *emptySM) GetStateMachineDeclaration() smachine.StateMachineDeclaration
 	return sm
 }
 
-func (sm *emptySM) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLink, injector *injector.DependencyInjector) {
+func (sm *emptySM) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLink, injector injector.DependencyInjector) {
 	injector.MustInject(&sm.pulseSlot)
 }
 

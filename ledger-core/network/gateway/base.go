@@ -8,6 +8,7 @@ package gateway
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"sync/atomic"
 	"time"
 
@@ -19,6 +20,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
@@ -79,9 +81,13 @@ type Base struct {
 	originCandidate *adapters.Candidate
 
 	// Next request backoff.
-	backoff time.Duration // nolint
+	backoff synckit.Backoff
 
 	pulseWatchdog *pulseWatchdog
+
+	isDiscovery     bool                   // nolint
+	isJoinAssistant bool                   // nolint
+	joinAssistant   nodeinfo.DiscoveryNode // joinAssistant
 }
 
 // NewGateway creates new gateway on top of existing
@@ -94,6 +100,8 @@ func (g *Base) NewGateway(ctx context.Context, state nodeinfo.NetworkState) netw
 		g.Self = newComplete(g)
 	case nodeinfo.JoinerBootstrap:
 		g.Self = newJoinerBootstrap(g)
+	case nodeinfo.DiscoveryBootstrap:
+		g.Self = newDiscoveryBootstrap(g)
 	case nodeinfo.WaitConsensus:
 		err := g.StartConsensus(ctx)
 		if err != nil {
@@ -125,6 +133,12 @@ func (g *Base) Init(ctx context.Context) error {
 	g.HostNetwork.RegisterRequestHandler(types.Reconnect, g.HandleReconnect)
 
 	g.bootstrapETA = g.Options.BootstrapTimeout
+
+	g.backoff = synckit.Backoff{
+		Min:    g.Options.MinTimeout,
+		Max:    g.Options.MaxTimeout,
+		Factor: float64(g.Options.TimeoutMult),
+	}
 
 	return g.initConsensus(ctx)
 }
@@ -206,6 +220,7 @@ func (g *Base) StartConsensus(ctx context.Context) error {
 	if network.OriginIsJoinAssistant(cert) {
 		// one of the nodes has to be in consensus.ReadyNetwork state,
 		// all other nodes has to be in consensus.Joiner
+		// TODO: fix Assistant node can't join existing network
 		g.ConsensusMode = consensus.ReadyNetwork
 	}
 
@@ -272,11 +287,11 @@ func (g *Base) ValidateCert(ctx context.Context, authCert nodeinfo.Authorization
 // ============= Bootstrap =======
 
 func (g *Base) checkCanAnnounceCandidate(ctx context.Context) error {
-	// 1. Current node is heavy:
+	// 1. Current node is JoinAssistant:
 	// 		could announce candidate when network is initialized
 	// 		NB: announcing in WaitConsensus state is allowed
 	// 2. Otherwise:
-	// 		could announce candidate when heavy node found in *active* list and initial consensus passed
+	// 		could announce candidate when JoinAssistant node found in *active* list and initial consensus passed
 	// 		NB: announcing in WaitConsensus state is *NOT* allowed
 
 	state := g.Gatewayer.Gateway().GetState()
@@ -284,11 +299,8 @@ func (g *Base) checkCanAnnounceCandidate(ctx context.Context) error {
 		return nil
 	}
 
-	if state == nodeinfo.WaitConsensus {
-		cert := g.CertificateManager.GetCertificate()
-		if network.OriginIsJoinAssistant(cert) {
-			return nil
-		}
+	if state == nodeinfo.WaitConsensus && g.isJoinAssistant {
+		return nil
 	}
 
 	return throw.Errorf(
@@ -344,8 +356,8 @@ func (g *Base) HandleNodeBootstrapRequest(ctx context.Context, request network.R
 
 	err = g.ConsensusController.AddJoinCandidate(candidate{profile, profile.GetExtension()})
 	if err != nil {
-		inslogger.FromContext(ctx).Warnf("Rejected bootstrap request from node %s: %s", request.GetSender(), err.Error())
-		return g.HostNetwork.BuildResponse(ctx, request, &packet.BootstrapResponse{Code: packet.Reject}), nil
+		inslogger.FromContext(ctx).Warnf("Retry Failed to AddJoinCandidate  %s: %s", request.GetSender(), err.Error())
+		return g.HostNetwork.BuildResponse(ctx, request, &packet.BootstrapResponse{Code: packet.Retry}), nil
 	}
 
 	inslogger.FromContext(ctx).Infof("=== AddJoinCandidate id = %d, address = %s ", data.CandidateProfile.ShortID, data.CandidateProfile.Address)
@@ -396,15 +408,25 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 		return g.HostNetwork.BuildResponse(ctx, request, &packet.AuthorizeResponse{Code: packet.WrongMandate, Error: err.Error()}), nil
 	}
 
-	// TODO: get random reconnectHost
-	// nodes := g.NodeKeeper.GetAccessor().GetActiveNodes()
+	nodes := g.NodeKeeper.GetAccessor(g.LatestPulse(ctx).PulseNumber).GetActiveNodes()
 
-	// workaround bootstrap to the origin node
-	reconnectHost, err := host.NewHostNS(o.Address(), o.ID(), o.ShortID())
-	if err != nil {
-		err = throw.W(err, "Failed to get reconnectHost")
-		inslogger.FromContext(ctx).Warn(err.Error())
-		return nil, err
+	var reconnectHost *host.Host
+	if !g.isJoinAssistant || len(nodes) < 2 {
+		// workaround bootstrap to the origin node
+		reconnectHost, err = host.NewHostNS(o.Address(), o.ID(), o.ShortID())
+		if err != nil {
+			err = throw.W(err, "Failed to get reconnectHost")
+			inslogger.FromContext(ctx).Warn(err.Error())
+			return nil, err
+		}
+	} else {
+		randNode := nodes[rand.Intn(len(nodes))]
+		reconnectHost, err = host.NewHostNS(randNode.Address(), randNode.ID(), randNode.ShortID())
+		if err != nil {
+			err = throw.W(err, "Failed to get reconnectHost")
+			inslogger.FromContext(ctx).Warn(err.Error())
+			return nil, err
+		}
 	}
 
 	pubKey, err := g.KeyProcessor.ExportPublicKeyPEM(o.PublicKey())
@@ -422,8 +444,6 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 	if err != nil {
 		return nil, err
 	}
-
-	nodes := g.NodeKeeper.GetAccessor(g.LatestPulse(ctx).PulseNumber).GetActiveNodes()
 
 	discoveryCount := len(network.FindDiscoveriesInNodeList(nodes, g.CertificateManager.GetCertificate()))
 	if discoveryCount == 0 {

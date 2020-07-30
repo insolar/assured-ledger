@@ -91,7 +91,7 @@ type dSMExecute struct {
 	smachine.StateMachineDeclTemplate
 }
 
-func (*dSMExecute) InjectDependencies(sm smachine.StateMachine, _ smachine.SlotLink, injector *injector.DependencyInjector) {
+func (*dSMExecute) InjectDependencies(sm smachine.StateMachine, _ smachine.SlotLink, injector injector.DependencyInjector) {
 	s := sm.(*SMExecute)
 
 	injector.MustInject(&s.runner)

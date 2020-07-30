@@ -235,7 +235,7 @@ type SMObject struct {
 
 /* -------- Declaration ------------- */
 
-func (sm *SMObject) InjectDependencies(stateMachine smachine.StateMachine, _ smachine.SlotLink, injector *injector.DependencyInjector) {
+func (sm *SMObject) InjectDependencies(stateMachine smachine.StateMachine, _ smachine.SlotLink, injector injector.DependencyInjector) {
 	s := stateMachine.(*SMObject)
 	injector.MustInject(&s.messageSender)
 	injector.MustInject(&s.pulseSlot)
