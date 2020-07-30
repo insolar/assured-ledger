@@ -14,6 +14,7 @@ import (
 	"github.com/gojuno/minimock/v3"
 
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/mock/publisher/checker"
@@ -111,9 +112,12 @@ func (c *TestCase) Run(t *testing.T, fn func(t *testing.T)) {
 			t.Parallel()
 		}
 		if c.TestRailID != "" {
-			t.Log(c.TestRailID)
-		}
-		if c.Skipped != "" {
+			if c.Skipped != "" {
+				insrail.LogSkipCase(t, c.TestRailID, c.Skipped)
+			} else {
+				insrail.LogCase(t, c.TestRailID)
+			}
+		} else if c.Skipped != "" {
 			t.Skip(c.Skipped)
 		}
 
@@ -146,9 +150,12 @@ func (suite Suite) Run(t *testing.T) {
 	assureTestRailID(suite.TestRailID, t)
 
 	if suite.TestRailID != "" {
-		t.Log(suite.TestRailID)
-	}
-	if suite.Skipped != "" {
+		if suite.Skipped != "" {
+			insrail.LogSkipCase(t, suite.TestRailID, suite.Skipped)
+		} else {
+			insrail.LogCase(t, suite.TestRailID)
+		}
+	} else if suite.Skipped != "" {
 		t.Skip(suite.Skipped)
 	}
 

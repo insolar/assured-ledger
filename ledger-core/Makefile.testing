@@ -5,7 +5,9 @@ TEST_ARGS       ?= -timeout 1200s
 TESTED_PACKAGES ?= $(shell go list ${ALL_PACKAGES} | grep -v "${MOCKS_PACKAGE}" | grep -v /drafts/)
 PACKAGES        ?= $(shell go list ./... | grep -v /drafts/)
 PULSAR_ONESHOT  ?= TRUE
-EXTENDED_LOG    ?= "$(shell pwd)/integration_extended_test.log"
+
+EXTENDED_INTEGRATION_LOG ?= "$(shell pwd)/integration_extended_test.log"
+EXTENDED_FUNCTIONAL_LOG  ?= "$(shell pwd)/functional_extended_test.log"
 
 .PHONY: test_all
 test_all: test_unit test_func test_slow ## run all tests (unit, func, slow)
@@ -16,7 +18,7 @@ test_unit: ## run all unit tests
 
 .PHONY: test_with_coverage
 test_with_coverage: ## run unit and slow tests with generation of coverage file
-	go-acc --covermode=count --output=coverage.tmp.out --ignore drafts,load ./... -- -v -tags="slowtest copylogtxt" -count=1 $(TEST_ARGS) -args TESTLOG_OUT=$(EXTENDED_LOG) TESTLOG_MARKS=1 TESTLOG_TXT=1 2>&1 | tee "integration_test.log"
+	go-acc --covermode=count --output=coverage.tmp.out --ignore drafts,load ./... -- -v -tags="slowtest copylogtxt" -count=1 $(TEST_ARGS) -args TESTLOG_OUT=$(EXTENDED_INTEGRATION_LOG) TESTLOG_MARKS=1 TESTLOG_TXT=1
 	cat coverage.tmp.out | grep -v _mock.go > coverage.out
 	go tool cover -html=coverage.out -o coverage.html
 
@@ -25,7 +27,7 @@ test_func: ## run functest FUNCTEST_COUNT times
 	pkill -9 insolard || echo "No insolard running" # dirty hack to terminate all insolard processes
 	PULSAR_ONESHOT=$(PULSAR_ONESHOT) \
 	PULSAR_PULSETIME=$(PULSAR_PULSETIME) \
-	CGO_ENABLED=1 $(GOTEST) -test.v $(TEST_ARGS) -tags "functest" ./application/functest -count=$(FUNCTEST_COUNT)
+	CGO_ENABLED=1 $(GOTEST) -test.v $(TEST_ARGS) -tags "functest copylogtxt" ./application/functest -count=$(FUNCTEST_COUNT) -args TESTLOG_OUT=$(EXTENDED_FUNCTIONAL_LOG) TESTLOG_MARKS=1 TESTLOG_TXT=1
 
 .PHONY: test_func_slow
 test_func_slow: # Run functests as long as practical to catch unexpected behavior during pulse change
@@ -42,7 +44,7 @@ test_slow: ## run tests with slowtest tag
 
 .PHONY: test_slow_long
 test_slow_long: ## run tests with slowtest tag
-	$(GOTEST) -count=300 -timeout 30m -tags "slowtest longtest copylogtxt" $(PACKAGES) -args TESTLOG_OUT=$(EXTENDED_LOG) TESTLOG_MARKS=1 TESTLOG_TXT=1
+	$(GOTEST) -count=300 -timeout 30m -tags "slowtest longtest copylogtxt" $(PACKAGES) -args TESTLOG_OUT=$(EXTENDED_INTEGRATION_LOG) TESTLOG_MARKS=1 TESTLOG_TXT=1
 
 .PHONY: test_extended
 test_extended: ## run tests with slowtest tag
@@ -99,9 +101,8 @@ test_func_kubernetes_ci: ## run functest FUNCTEST_COUNT times in kubernetes clus
 
 .PHONY: publish_integration_tests
 publish_integration_tests: ## send results to testrail
-	${GOPATH}/bin/testrail-cli --URL=https://insolar.testrail.io/ --USER=$(TR_USER) --PASSWORD=$(TR_PASSWORD) --RUN_ID=103 --SKIP-DESC=true --FORMAT="text" --FILE="integration_test.log"
+	${GOPATH}/bin/testrail-cli --url https://insolar.testrail.io/ --user $(TR_USER) --password $(TR_PASSWORD) --run-id 103 --file integration_extended_test.log
 
 .PHONY: publish_functest
 publish_functest: ## send results to testrail
-	cat functional_test.log | grep "Test" > functional_test_clean.log
-	${GOPATH}/bin/testrail-cli --URL=https://insolar.testrail.io/ --USER=$(TR_USER) --PASSWORD=$(TR_PASSWORD) --RUN_ID=105 --SKIP-DESC=true --FILE="functional_test_clean.log"
+	${GOPATH}/bin/testrail-cli --url https://insolar.testrail.io/ --user $(TR_USER) --password $(TR_PASSWORD) --run-id 105 --file functional_extended_test.log

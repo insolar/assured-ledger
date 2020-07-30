@@ -24,8 +24,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
+
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
+
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
@@ -33,7 +36,7 @@ import (
 )
 
 func TestVirtual_DeactivateObject(t *testing.T) {
-	t.Log("C5134")
+	insrail.LogCase(t, "C5134")
 
 	table := []struct {
 		name         string
@@ -203,10 +206,12 @@ func TestVirtual_CallMethod_On_CompletelyDeactivatedObject(t *testing.T) {
 					server.IncrementPulseAndWaitIdle(ctx)
 
 					var (
-						object = reference.NewSelf(server.RandomLocalWithPulse())
+						object    = reference.NewSelf(server.RandomLocalWithPulse())
+						prevPulse = server.GetPulse().PulseNumber
 					)
 
-					Method_PrepareObject(ctx, server, payload.Inactive, object)
+					server.IncrementPulseAndWaitIdle(ctx)
+					Method_PrepareObject(ctx, server, payload.Inactive, object, prevPulse)
 
 					gotResult := make(chan struct{})
 
@@ -259,6 +264,9 @@ func TestVirtual_CallMethod_On_DeactivatedDirtyState(t *testing.T) {
 	server.ReplaceRunner(runnerMock)
 
 	server.Init(ctx)
+
+	prevPulse := server.GetPulse().PulseNumber
+
 	server.IncrementPulseAndWaitIdle(ctx)
 
 	var (
@@ -269,7 +277,7 @@ func TestVirtual_CallMethod_On_DeactivatedDirtyState(t *testing.T) {
 
 	{
 		// Create object
-		Method_PrepareObject(ctx, server, payload.Ready, object)
+		Method_PrepareObject(ctx, server, payload.Ready, object, prevPulse)
 	}
 
 	isolation := contract.MethodIsolation{Interference: contract.CallTolerable, State: contract.CallDirty}
