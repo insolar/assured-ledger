@@ -279,7 +279,7 @@ func TestVirtual_CallMethod_On_DeactivatedDirtyState(t *testing.T) {
 	isolation := contract.MethodIsolation{Interference: contract.CallTolerable, State: contract.CallDirty}
 	{
 		// execution mock for deactivation
-		descr := descriptor.NewObject(object, server.RandomLocalWithPulse(), server.RandomGlobalWithPulse(), makeRawWalletState(initialBalance), false)
+		descr := descriptor.NewObject(object, server.RandomLocalWithPulse(), server.RandomGlobalWithPulse(), insolar.MustSerialize(initialBalance), false)
 		requestResult := requestresult.New(runnerResult, object)
 		requestResult.SetDeactivate(descr)
 
