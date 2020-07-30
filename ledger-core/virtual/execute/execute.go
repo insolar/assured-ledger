@@ -227,8 +227,12 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 	s.execution.ObjectDescriptor = objectDescriptor
 	s.pendingConstructorFinished = semaphorePendingConstructorFinished
 
-	if s.execution.ObjectDescriptor != nil && s.execution.ObjectDescriptor.Deactivated() {
-		s.prepareExecutionError(throw.E("attempt to call method on object state that is deactivated"))
+	if objectDescriptor != nil && objectDescriptor.Deactivated() {
+		s.prepareExecutionError(throw.E("try to call method on deactivated object", struct {
+			ObjectReference string
+		}{
+			ObjectReference: s.execution.Object.String(),
+		}))
 		return ctx.Jump(s.stepSendCallResult)
 	}
 
@@ -728,7 +732,7 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 
 func (s *SMExecute) stepExecuteAborted(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	ctx.Log().Warn("aborting execution")
-	return s.runner.PrepareExecutionAbort(ctx, s.run, func() {}).DelayedStart().ThenJump(s.stepSendCallResult)
+	return s.runner.PrepareExecutionAbort(ctx, s.run).DelayedStart().ThenJump(s.stepSendCallResult)
 }
 
 func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.StateUpdate {

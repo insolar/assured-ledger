@@ -356,9 +356,7 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 		limiter = tool.NewRunnerLimiter(4)
 	)
 
-	slotMachine := virtualdebugger.NewWithErrorFilter(ctx, t, func(s string) bool {
-		return !strings.Contains(s, "execution: impossible")
-	})
+	slotMachine := virtualdebugger.New(ctx, t)
 	slotMachine.PrepareMockedMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 

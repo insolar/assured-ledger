@@ -110,8 +110,6 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 			{
 				typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
 					assert.Equal(t, objectGlobal, report.Object)
-
-					// TODO need to fix
 					assert.Equal(t, pulseNumberSecond, report.ProvidedContent.LatestValidatedState.Reference.Pulse())
 					assert.Equal(t, pulseNumberSecond, report.ProvidedContent.LatestDirtyState.Reference.Pulse())
 
@@ -153,7 +151,7 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 }
 
 func TestVirtual_CallMethod_On_CompletelyDeactivatedObject(t *testing.T) {
-	t.Log("C4975")
+	insrail.LogCase(t, "C4975")
 	stateTestCases := []struct {
 		name        string
 		objectState contract.StateFlag
@@ -254,6 +252,7 @@ func TestVirtual_CallMethod_On_CompletelyDeactivatedObject(t *testing.T) {
 // 3. Send request on Dirty state - get error
 // 4. Send request on Validated state - get response
 func TestVirtual_CallMethod_On_DeactivatedDirtyState(t *testing.T) {
+	t.Log("C5470")
 	defer commontestutils.LeakTester(t)
 
 	mc := minimock.NewController(t)
@@ -360,7 +359,7 @@ func TestVirtual_CallMethod_On_DeactivatedDirtyState(t *testing.T) {
 					if !test.shouldExecute {
 						require.Equal(t, res.Callee, object)
 						contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments)
-						require.Equal(t, &foundation.Error{"attempt to call method on object state that is deactivated"}, contractErr)
+						require.Contains(t, contractErr.Error(), "try to call method on deactivated object")
 						require.NoError(t, sysErr)
 					} else {
 						require.Equal(t, requestResult.RawResult, res.ReturnArguments)

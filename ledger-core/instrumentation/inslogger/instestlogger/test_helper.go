@@ -51,11 +51,17 @@ func newTestLoggerExt(target logcommon.TestingLogger, filterFn logcommon.ErrorFi
 		panic(err)
 	}
 
+	isQuiet := false
 	isConsoleOutput := outputType.IsConsole()
 	if isConsoleOutput {
 		// only needed for file output
 		prettyPrintJSON = false
 		emuMarks = false
+
+		if _, ok := target.(interface{ StartTimer() }); ok {
+			// this is testing.B
+			isQuiet = true
+		}
 	}
 
 	l, err := inslogger.NewLogBuilder(logCfg)
@@ -72,31 +78,33 @@ func newTestLoggerExt(target logcommon.TestingLogger, filterFn logcommon.ErrorFi
 		emuMarks = false // avoid multiple marks per test
 	}
 
-	out := l.GetOutput()
-
 	name := ""
 	if namer, ok := target.(interface{ Name() string }); ok {
 		name = namer.Name()
 	}
 
-	switch l.GetFormat() {
-	case logcommon.JSONFormat:
-		if prettyPrintJSON {
+	var out io.Writer
+	if !isQuiet {
+		out = l.GetOutput()
+		switch l.GetFormat() {
+		case logcommon.JSONFormat:
+			if prettyPrintJSON {
+				if emuMarks {
+					emulateTestText(out, target, time.Now)
+				}
+				out = prettylog.ConvertJSONConsoleOutput(out)
+			} else if emuMarks {
+				emulateTestJSON(out, target, time.Now)
+			}
+			target = prettylog.ConvertJSONTestingOutput(target)
+			echoTo = prettylog.ConvertJSONConsoleOutput(echoTo)
+		case logcommon.TextFormat:
 			if emuMarks {
 				emulateTestText(out, target, time.Now)
 			}
-			out = prettylog.ConvertJSONConsoleOutput(out)
-		} else if emuMarks {
-			emulateTestJSON(out, target, time.Now)
+		default:
+			panic(throw.Unsupported())
 		}
-		target = prettylog.ConvertJSONTestingOutput(target)
-		echoTo = prettylog.ConvertJSONConsoleOutput(echoTo)
-	case logcommon.TextFormat:
-		if emuMarks {
-			emulateTestText(out, target, time.Now)
-		}
-	default:
-		panic(throw.Unsupported())
 	}
 
 	if name != "" {
