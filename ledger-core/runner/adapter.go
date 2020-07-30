@@ -96,7 +96,7 @@ type serviceAdapter struct {
 type ServiceAdapter interface {
 	PrepareExecutionStart(ctx smachine.ExecutionContext, execution execution.Context, fn func(RunState)) smachine.AsyncCallRequester
 	PrepareExecutionContinue(ctx smachine.ExecutionContext, state RunState, outgoingResult []byte, fn func()) smachine.AsyncCallRequester
-	PrepareExecutionAbort(ctx smachine.ExecutionContext, state RunState, fn func()) smachine.AsyncCallRequester
+	PrepareExecutionAbort(ctx smachine.ExecutionContext, state RunState) smachine.AsyncCallRequester
 	PrepareExecutionClassify(ctx smachine.ExecutionContext, execution execution.Context, fn func(contract.MethodIsolation, error)) smachine.AsyncCallRequester
 }
 
@@ -126,18 +126,14 @@ func (a *serviceAdapter) PrepareExecutionContinue(ctx smachine.ExecutionContext,
 	})
 }
 
-func (a *serviceAdapter) PrepareExecutionAbort(ctx smachine.ExecutionContext, state RunState, fn func()) smachine.AsyncCallRequester {
+func (a *serviceAdapter) PrepareExecutionAbort(ctx smachine.ExecutionContext, state RunState) smachine.AsyncCallRequester {
 	if state == nil {
 		panic(throw.IllegalValue())
 	}
 
 	return a.runExec.PrepareAsync(ctx, func(_ context.Context, arg interface{}) smachine.AsyncResultFunc {
 		arg.(UnmanagedService).ExecutionAbort(state)
-		return func(ctx smachine.AsyncResultContext) {
-			if fn != nil {
-				fn()
-			}
-		}
+		return nil
 	})
 }
 
