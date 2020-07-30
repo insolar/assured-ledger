@@ -9,6 +9,7 @@ import (
 	"context"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/host"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -41,7 +42,7 @@ func (t *Table) Resolve(ref reference.Global) (*host.Host, error) {
 		if node == nil {
 			return nil, errors.New("no such local node with NodeID: " + ref.String())
 		}
-		return host.NewHostNS(node.Address(), ref, node.GetNodeID())
+		return host.NewHostNS(nodeinfo.NodeAddr(node), ref, node.GetNodeID())
 	}
 	return t.resolveRemoteNode(ref)
 }

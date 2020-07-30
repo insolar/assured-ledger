@@ -29,8 +29,7 @@ type NoNetwork struct {
 
 func (g *NoNetwork) Run(ctx context.Context, pulse pulse.Data) {
 	cert := g.CertificateManager.GetCertificate()
-	origin := g.NodeKeeper.GetOrigin()
-	discoveryNodes := network.ExcludeOrigin(cert.GetDiscoveryNodes(), origin.GetReference())
+	discoveryNodes := network.ExcludeOrigin(cert.GetDiscoveryNodes(), g.NodeKeeper.GetLocalNodeReference())
 
 	// g.NodeKeeper.SetInitialSnapshot([]nodeinfo.NetworkNode{origin})
 

@@ -12,7 +12,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles"
-	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 )
 
@@ -25,16 +24,8 @@ func (v profileNode) GetStatic() profiles.StaticProfile {
 	return v.n.GetStatic()
 }
 
-func (v profileNode) GetReference() reference.Global {
-	return v.n.GetStatic().GetExtension().GetReference()
-}
-
 func (v profileNode) GetNodeID() node.ShortNodeID {
 	return v.n.GetNodeID()
-}
-
-func (v profileNode) GetPrimaryRole() member.PrimaryRole {
-	return v.n.GetStatic().GetPrimaryRole()
 }
 
 func (v profileNode) PublicKey() crypto.PublicKey {
@@ -43,11 +34,7 @@ func (v profileNode) PublicKey() crypto.PublicKey {
 	return store.(*ECDSAPublicKeyStore).publicKey
 }
 
-func (v profileNode) Address() string {
-	return v.n.GetStatic().GetDefaultEndpoint().GetNameAddress().String()
-}
-
-func (v profileNode) GetPower() member.Power {
+func (v profileNode) GetDeclaredPower() member.Power {
 	if v.n.GetOpMode().IsPowerless() {
 		return 0
 	}

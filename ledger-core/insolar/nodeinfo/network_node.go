@@ -31,22 +31,28 @@ const (
 type NetworkNode interface {
 	GetStatic() profiles.StaticProfile
 
-	// ID is the unique identifier of the node
-	GetReference() reference.Global
 	// ShortID get short ID of node
 	GetNodeID() node.ShortNodeID
 
-	GetPrimaryRole() member.PrimaryRole
 	// PublicKey is the public key of the node
 	PublicKey() crypto.PublicKey
-	// Address is the network address of the node
-	Address() string
 
-	// GetPower get power of node
-	GetPower() member.Power
+	GetDeclaredPower() member.Power
 
 	IsJoiner() bool
 	IsPowered() bool
 
 	GetSignature() cryptkit.SignedDigestHolder
+}
+
+func NodeAddr(n NetworkNode) string {
+	return n.GetStatic().GetDefaultEndpoint().GetIPAddress().String()
+}
+
+func NodeRef(n NetworkNode) reference.Global {
+	return n.GetStatic().GetExtension().GetReference()
+}
+
+func NodeRole(n NetworkNode) member.PrimaryRole {
+	return n.GetStatic().GetPrimaryRole()
 }

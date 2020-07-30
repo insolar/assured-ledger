@@ -69,7 +69,10 @@ func getDiscoveryNodes(count int) ([]nodeinfo.NetworkNode, []nodeinfo.DiscoveryN
 	discoveryNodes := make([]nodeinfo.DiscoveryNode, count)
 	for i := 0; i < count; i++ {
 		n := newNode(gen.UniqueGlobalRef(), i)
-		d := mandates.NewBootstrapNode(nil, "", n.Address(), n.GetReference().String(), n.GetPrimaryRole().String())
+		d := mandates.NewBootstrapNode(nil, "",
+			nodeinfo.NodeAddr(n),
+			n.GetStatic().GetExtension().GetReference().String(),
+			n.GetPrimaryRole().String())
 		netNodes[i] = n
 		discoveryNodes[i] = d
 	}

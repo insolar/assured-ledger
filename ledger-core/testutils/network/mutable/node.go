@@ -61,6 +61,10 @@ type Node struct {
 	digest        cryptkit.SignedDigest
 }
 
+func (n *Node) GetReference() reference.Global {
+	return n.nodeID
+}
+
 func (n *Node) GetEndpointType() endpoints.NodeEndpointType {
 	return endpoints.IPEndpoint
 }
@@ -153,10 +157,6 @@ func (n *Node) GetState() nodeinfo.State {
 	return n.state
 }
 
-func (n *Node) GetReference() reference.Global {
-	return n.nodeID
-}
-
 func (n *Node) GetNodeID() node.ShortNodeID {
 	return n.nodeShortID
 }
@@ -169,11 +169,7 @@ func (n *Node) PublicKey() crypto.PublicKey {
 	return n.nodePublicKey
 }
 
-func (n *Node) Address() string {
-	return n.nodeAddress.String()
-}
-
-func (n *Node) GetPower() member.Power {
+func (n *Node) GetDeclaredPower() member.Power {
 	return n.nodePower
 }
 
@@ -199,5 +195,5 @@ func (n *Node) IsJoiner() bool {
 }
 
 func (n *Node) IsPowered() bool {
-	return n.GetState() == nodeinfo.Ready && n.GetPower() > 0
+	return n.GetState() == nodeinfo.Ready && n.GetDeclaredPower() > 0
 }

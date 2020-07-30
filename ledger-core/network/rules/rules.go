@@ -30,8 +30,7 @@ func CheckMajorityRule(cert nodeinfo.Certificate, nodes []nodeinfo.NetworkNode) 
 	for _, d := range discoveries {
 		var found bool
 		for _, n := range nodes {
-			ref := n.GetStatic().GetExtension().GetReference()
-			if d.GetNodeRef().Equal(ref) {
+			if d.GetNodeRef().Equal(nodeinfo.NodeRef(n)) {
 				found = true
 				break
 			}
@@ -47,7 +46,7 @@ func CheckMajorityRule(cert nodeinfo.Certificate, nodes []nodeinfo.NetworkNode) 
 func CheckMinRole(cert nodeinfo.Certificate, nodes []nodeinfo.NetworkNode) error {
 	var virtualCount, heavyCount, lightCount uint
 	for _, n := range nodes {
-		switch n.GetPrimaryRole() {
+		switch nodeinfo.NodeRole(n) {
 		case member.PrimaryRoleVirtual:
 			virtualCount++
 		case member.PrimaryRoleHeavyMaterial:

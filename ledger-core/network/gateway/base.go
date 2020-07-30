@@ -229,7 +229,7 @@ func setupLocalNodeProfile(nk network.NodeKeeper, staticProfile profiles.StaticP
 	if origin.IsJoiner() {
 		anp = censusimpl.NewJoinerProfile(staticProfile, verifier)
 	} else {
-		anp = censusimpl.NewNodeProfile(0, staticProfile, verifier, origin.GetPower())
+		anp = censusimpl.NewNodeProfile(0, staticProfile, verifier, origin.GetStatic().GetStartPower())
 	}
 	newOrigin := adapters.NewNetworkNode(&anp)
 
@@ -436,7 +436,7 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 	var reconnectHost *host.Host
 	if !g.isJoinAssistant || len(nodes) < 2 {
 		// workaround bootstrap to the origin node
-		reconnectHost, err = host.NewHostNS(o.Address(), o.GetReference(), o.GetNodeID())
+		reconnectHost, err = host.NewHostNS(nodeinfo.NodeAddr(o), nodeinfo.NodeRef(o), o.GetNodeID())
 		if err != nil {
 			err = throw.W(err, "Failed to get reconnectHost")
 			inslogger.FromContext(ctx).Warn(err.Error())
@@ -444,7 +444,7 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 		}
 	} else {
 		randNode := nodes[rand.Intn(len(nodes))]
-		reconnectHost, err = host.NewHostNS(randNode.Address(), randNode.GetReference(), randNode.GetNodeID())
+		reconnectHost, err = host.NewHostNS(nodeinfo.NodeAddr(randNode), nodeinfo.NodeRef(randNode), randNode.GetNodeID())
 		if err != nil {
 			err = throw.W(err, "Failed to get reconnectHost")
 			inslogger.FromContext(ctx).Warn(err.Error())
@@ -459,7 +459,7 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 		return nil, err
 	}
 
-	permit, err := bootstrap.CreatePermit(g.NodeKeeper.GetOrigin().GetReference(),
+	permit, err := bootstrap.CreatePermit(g.NodeKeeper.GetLocalNodeReference(),
 		reconnectHost,
 		pubKey,
 		g.CryptographyService,
@@ -512,8 +512,8 @@ func (g *Base) EphemeralMode(nodes []nodeinfo.NetworkNode) bool {
 func (g *Base) FailState(ctx context.Context, reason string) {
 	o := g.NodeKeeper.GetOrigin()
 	wrapReason := fmt.Sprintf("Abort node with address: %s role: %s state: %s, reason: %s",
-		o.Address(),
-		o.GetPrimaryRole().String(),
+		nodeinfo.NodeAddr(o),
+		nodeinfo.NodeRole(o).String(),
 		g.Gatewayer.Gateway().GetState().String(),
 		reason,
 	)

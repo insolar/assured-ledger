@@ -21,9 +21,9 @@ import (
 const permitTTL = 300
 
 // CreatePermit creates permit as signed protobuf for joiner node to
-func CreatePermit(authorityNodeRef reference.Global, reconnectHost *host.Host, joinerPublicKey []byte, signer cryptography.Signer) (*packet.Permit, error) {
+func CreatePermit(authorityNodeRef reference.Holder, reconnectHost *host.Host, joinerPublicKey []byte, signer cryptography.Signer) (*packet.Permit, error) {
 	payload := packet.PermitPayload{
-		AuthorityNodeRef: authorityNodeRef,
+		AuthorityNodeRef: reference.Copy(authorityNodeRef),
 		ExpireTimestamp:  time.Now().Unix() + permitTTL,
 		ReconnectTo:      reconnectHost,
 		JoinerPublicKey:  joinerPublicKey,

@@ -135,8 +135,8 @@ func initNodes(ctx context.Context, mode consensus.Mode, nodes GeneratedNodes, s
 		datagramHandler := adapters.NewDatagramHandler()
 
 		conf := configuration.NewHostNetwork().Transport
-		conf.Address = n.Address()
-		ns.addresses[i] = n.Address()
+		conf.Address = nodeinfo.NodeAddr(n)
+		ns.addresses[i] = conf.Address
 
 		transportFactory := transport.NewFactory(conf)
 		datagramTransport, err := transportFactory.CreateDatagramTransport(datagramHandler)
@@ -171,7 +171,7 @@ func initNodes(ctx context.Context, mode consensus.Mode, nodes GeneratedNodes, s
 		ns.controllers[i] = controller
 		ctx, _ = inslogger.WithFields(ctx, map[string]interface{}{
 			"node_id":      n.GetNodeID(),
-			"node_address": n.Address(),
+			"node_address": nodeinfo.NodeAddr(n),
 		})
 		ns.contexts[i] = ctx
 		err = delayTransport.Start(ctx)
@@ -262,13 +262,13 @@ func getAnnounceSignature(
 
 	brief := serialization.NodeBriefIntro{}
 	brief.ShortID = node.GetNodeID()
-	brief.SetPrimaryRole(node.GetPrimaryRole())
+	brief.SetPrimaryRole(nodeinfo.NodeRole(node))
 	if isDiscovery {
 		brief.SpecialRoles = member.SpecialRoleDiscovery
 	}
 	brief.StartPower = 10
 
-	addr, err := endpoints.NewIPAddress(node.Address())
+	addr, err := endpoints.NewIPAddress(nodeinfo.NodeAddr(node))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -358,9 +358,9 @@ func initCrypto(node nodeinfo.NetworkNode, discoveryNodes []nodeinfo.NetworkNode
 		bootstrapNode := mandates.NewBootstrapNode(
 			pubKey,
 			string(pubKeyBuf[:]),
-			dn.Address(),
-			dn.GetReference().String(),
-			dn.GetPrimaryRole().String(),
+			nodeinfo.NodeAddr(dn),
+			nodeinfo.NodeRef(dn).String(),
+			nodeinfo.NodeRole(dn).String(),
 		)
 		bootstrapNodes = append(bootstrapNodes, *bootstrapNode)
 	}
@@ -368,8 +368,8 @@ func initCrypto(node nodeinfo.NetworkNode, discoveryNodes []nodeinfo.NetworkNode
 	cert := &mandates.Certificate{
 		AuthorizationCertificate: mandates.AuthorizationCertificate{
 			PublicKey: string(publicKey[:]),
-			Reference: node.GetReference().String(),
-			Role:      node.GetPrimaryRole().String(),
+			Reference: nodeinfo.NodeRef(node).String(),
+			Role:      nodeinfo.NodeRole(node).String(),
 		},
 		BootstrapNodes: bootstrapNodes,
 	}

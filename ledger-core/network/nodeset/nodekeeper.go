@@ -26,7 +26,7 @@ import (
 func NewNodeKeeper(origin nodeinfo.NetworkNode) network.NodeKeeper {
 	nk := &nodekeeper{
 		origin:          origin,
-		originRef:       origin.GetStatic().GetExtension().GetReference(),
+		originRef:       nodeinfo.NodeRef(origin),
 		snapshotStorage: NewMemoryStorage(),
 	}
 	return nk

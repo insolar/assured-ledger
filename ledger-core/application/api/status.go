@@ -13,6 +13,7 @@ import (
 	"github.com/insolar/rpc/v2"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/api/requester"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/trace"
@@ -37,8 +38,8 @@ func (s *NodeService) GetStatus(r *http.Request, args *interface{}, requestBody 
 	nodes := make([]requester.Node, reply.ActiveListSize)
 	for i, node := range statusReply.Nodes {
 		nodes[i] = requester.Node{
-			Reference: node.GetStatic().GetExtension().GetReference().String(),
-			Role:      node.GetStatic().GetPrimaryRole().String(),
+			Reference: nodeinfo.NodeRef(node).String(),
+			Role:      nodeinfo.NodeRole(node).String(),
 			IsWorking: node.IsPowered(),
 			ID:        uint32(node.GetNodeID()),
 		}
@@ -46,8 +47,8 @@ func (s *NodeService) GetStatus(r *http.Request, args *interface{}, requestBody 
 	reply.Nodes = nodes
 
 	reply.Origin = requester.Node{
-		Reference: statusReply.Origin.GetStatic().GetExtension().GetReference().String(),
-		Role:      statusReply.Origin.GetStatic().GetPrimaryRole().String(),
+		Reference: nodeinfo.NodeRef(statusReply.Origin).String(),
+		Role:      nodeinfo.NodeRole(statusReply.Origin).String(),
 		IsWorking: statusReply.Origin.IsPowered(),
 		ID:        uint32(statusReply.Origin.GetNodeID()),
 	}

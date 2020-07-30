@@ -33,7 +33,7 @@ type StaticProfileExtension struct {
 func NewStaticProfileExtension(networkNode nodeinfo.NetworkNode) *StaticProfileExtension {
 	return NewStaticProfileExtensionExt(
 		networkNode.GetNodeID(),
-		networkNode.GetReference(),
+		nodeinfo.NodeRef(networkNode),
 		networkNode.GetSignature().GetSignatureHolder().CopyOfSignature(),
 	)
 }
@@ -91,7 +91,8 @@ type StaticProfile struct {
 }
 
 func NewStaticProfile(networkNode nodeinfo.NetworkNode, certificate nodeinfo.Certificate, keyProcessor cryptography.KeyProcessor) *StaticProfile {
-	return NewStaticProfileExt(networkNode, networkNode.Address(), certificate, keyProcessor, networkNode.GetSignature())
+	return NewStaticProfileExt(networkNode, nodeinfo.NodeAddr(networkNode),
+		certificate, keyProcessor, networkNode.GetSignature())
 }
 
 func NewStaticProfileExt(networkNode nodeinfo.NetworkNode, addr string, certificate nodeinfo.Certificate,
@@ -99,7 +100,7 @@ func NewStaticProfileExt(networkNode nodeinfo.NetworkNode, addr string, certific
 ) *StaticProfile {
 
 	specialRole := member.SpecialRoleNone
-	if network.IsDiscovery(networkNode.GetReference(), certificate) {
+	if network.IsDiscovery(nodeinfo.NodeRef(networkNode), certificate) {
 		specialRole = member.SpecialRoleDiscovery
 	}
 
@@ -107,7 +108,7 @@ func NewStaticProfileExt(networkNode nodeinfo.NetworkNode, addr string, certific
 
 	return NewStaticProfileExt2(
 		networkNode.GetNodeID(),
-		networkNode.GetPrimaryRole(),
+		nodeinfo.NodeRole(networkNode),
 		specialRole,
 		NewStaticProfileExtension(networkNode),
 		NewOutbound(addr),

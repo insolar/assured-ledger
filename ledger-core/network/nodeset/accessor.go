@@ -41,8 +41,8 @@ func (a *Accessor) GetWorkingNodes() []nodeinfo.NetworkNode {
 }
 
 func (a *Accessor) addToIndex(node nodeinfo.NetworkNode) {
-	a.refIndex[node.GetReference()] = node
-	a.addrIndex[node.Address()] = node
+	a.refIndex[nodeinfo.NodeRef(node)] = node
+	a.addrIndex[nodeinfo.NodeAddr(node)] = node
 }
 
 func NewAccessor(snapshot *Snapshot) *Accessor {

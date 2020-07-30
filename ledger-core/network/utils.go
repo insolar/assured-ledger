@@ -33,9 +33,9 @@ func CheckShortIDCollision(nodes []nodeinfo.NetworkNode, id node.ShortNodeID) bo
 }
 
 // ExcludeOrigin returns DiscoveryNode slice without Origin
-func ExcludeOrigin(discoveryNodes []nodeinfo.DiscoveryNode, origin reference.Global) []nodeinfo.DiscoveryNode {
+func ExcludeOrigin(discoveryNodes []nodeinfo.DiscoveryNode, origin reference.Holder) []nodeinfo.DiscoveryNode {
 	for i, discoveryNode := range discoveryNodes {
-		if origin.Equal(discoveryNode.GetNodeRef()) {
+		if discoveryNode.GetNodeRef().Equal(origin) {
 			return append(discoveryNodes[:i], discoveryNodes[i+1:]...)
 		}
 	}
@@ -43,10 +43,10 @@ func ExcludeOrigin(discoveryNodes []nodeinfo.DiscoveryNode, origin reference.Glo
 }
 
 // FindDiscoveryByRef tries to find discovery node in Certificate by reference
-func FindDiscoveryByRef(cert nodeinfo.Certificate, ref reference.Global) nodeinfo.DiscoveryNode {
+func FindDiscoveryByRef(cert nodeinfo.Certificate, ref reference.Holder) nodeinfo.DiscoveryNode {
 	bNodes := cert.GetDiscoveryNodes()
 	for _, discoveryNode := range bNodes {
-		if ref.Equal(discoveryNode.GetNodeRef()) {
+		if discoveryNode.GetNodeRef().Equal(ref) {
 			return discoveryNode
 		}
 	}
@@ -57,7 +57,7 @@ func OriginIsDiscovery(cert nodeinfo.Certificate) bool {
 	return IsDiscovery(cert.GetNodeRef(), cert)
 }
 
-func IsDiscovery(nodeID reference.Global, cert nodeinfo.Certificate) bool {
+func IsDiscovery(nodeID reference.Holder, cert nodeinfo.Certificate) bool {
 	return FindDiscoveryByRef(cert, nodeID) != nil
 }
 
@@ -111,8 +111,7 @@ func FindDiscoveriesInNodeList(nodes []nodeinfo.NetworkNode, cert nodeinfo.Certi
 	}
 
 	for _, n := range nodes {
-		ref := n.GetStatic().GetExtension().GetReference()
-		if _, ok := discoveries[ref]; ok {
+		if _, ok := discoveries[nodeinfo.NodeRef(n)]; ok {
 			result = append(result, n)
 		}
 	}

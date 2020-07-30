@@ -332,12 +332,12 @@ func (s *consensusSuite) assertNetworkInConsistentState(p pulse.Number) {
 
 		for i, n  := range nodes {
 			an := activeNodes[i]
-			require.Equal(s.t, n.GetReference(), an.GetReference(), i)
+			require.Equal(s.t, nodeinfo.NodeRef(n), nodeinfo.NodeRef(an), i)
 			require.Equal(s.t, n.GetNodeID(), an.GetNodeID(), i)
-			require.Equal(s.t, n.GetPrimaryRole(), an.GetPrimaryRole(), i)
+			require.Equal(s.t, nodeinfo.NodeRole(n), nodeinfo.NodeRole(an), i)
 			require.Equal(s.t, n.PublicKey(), an.PublicKey(), i)
-			require.Equal(s.t, n.Address(), an.Address(), i)
-			require.Equal(s.t, n.GetPower(), an.GetPower(), i)
+			require.Equal(s.t, nodeinfo.NodeAddr(n), nodeinfo.NodeAddr(an), i)
+			require.Equal(s.t, n.GetDeclaredPower(), an.GetDeclaredPower(), i)
 			require.True(s.t, n.GetSignature().Equals(an.GetSignature()))
 		}
 	}
@@ -584,10 +584,11 @@ func (s *testSuite) preInitNode(node *networkNode) {
 	)
 	node.serviceNetwork = serviceNetwork
 
+	localNode := realKeeper.GetOrigin()
 	nodeContext, _ := inslogger.WithFields(s.ctx, map[string]interface{}{
-		"node_id":      realKeeper.GetOrigin().GetNodeID(),
-		"node_address": realKeeper.GetOrigin().Address(),
-		"node_role":    realKeeper.GetOrigin().GetPrimaryRole().String(),
+		"node_id":      localNode.GetNodeID(),
+		"node_address": nodeinfo.NodeAddr(localNode),
+		"node_role":    nodeinfo.NodeRole(localNode),
 	})
 
 	node.ctx = nodeContext
