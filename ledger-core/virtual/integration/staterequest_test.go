@@ -19,6 +19,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 )
@@ -34,7 +35,7 @@ func makeVStateRequestEvent(pulseNumber pulse.Number, ref reference.Global, flag
 }
 
 func TestVirtual_VStateRequest(t *testing.T) {
-	t.Log("C4861")
+	insrail.LogCase(t, "C4861")
 
 	table := []struct {
 		name  string
@@ -120,8 +121,7 @@ func TestVirtual_VStateRequest(t *testing.T) {
 
 func TestVirtual_VStateRequest_Unknown(t *testing.T) {
 	defer commontestutils.LeakTester(t)
-
-	t.Log("C4863")
+	insrail.LogCase(t, "C4863")
 
 	var (
 		mc = minimock.NewController(t)
