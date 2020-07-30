@@ -358,7 +358,7 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 	)
 
 	slotMachine := virtualdebugger.NewWithErrorFilter(ctx, t, func(s string) bool {
-		return !strings.Contains(s, "execution: not implemented")
+		return !strings.Contains(s, "execution: impossible")
 	})
 	slotMachine.PrepareMockedMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)

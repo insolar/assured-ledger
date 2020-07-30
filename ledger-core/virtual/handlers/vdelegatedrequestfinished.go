@@ -234,5 +234,6 @@ func (s *SMVDelegatedRequestFinished) latestState() descriptor.Object {
 		state.Reference,
 		state.Class,
 		state.State,
+		state.Deactivated,
 	)
 }

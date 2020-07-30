@@ -1467,7 +1467,7 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 			requestResult := requestresult.New([]byte(callResult), gen.UniqueGlobalRef())
 			if testCase.canChangeState {
 				newObjDescriptor := descriptor.NewObject(
-					reference.Global{}, reference.Local{}, class, []byte(""),
+					reference.Global{}, reference.Local{}, class, []byte(""), false,
 				)
 				requestResult.SetAmend(newObjDescriptor, []byte(changedObjectMem))
 			}
@@ -1690,6 +1690,7 @@ func TestVirtual_Method_ForbiddenIsolation(t *testing.T) {
 					execute.NewStateID(pn, []byte("ok case")),
 					classRef,
 					[]byte("ok case"),
+					false,
 				)
 			},
 			validatedStateBuilder: func(objectRef, classRef reference.Global, pn pulse.Number) descriptor.Object {
@@ -1698,6 +1699,7 @@ func TestVirtual_Method_ForbiddenIsolation(t *testing.T) {
 					execute.NewStateID(pn, []byte("not ok case")),
 					classRef,
 					[]byte("not ok case"),
+					false,
 				)
 			},
 			callResult:                 []byte("bad case"),
@@ -1713,6 +1715,7 @@ func TestVirtual_Method_ForbiddenIsolation(t *testing.T) {
 					execute.NewStateID(pn, []byte("ok case")),
 					classRef,
 					[]byte("ok case"),
+					false,
 				)
 			},
 			validatedStateBuilder: func(objectRef, classRef reference.Global, pn pulse.Number) descriptor.Object {
@@ -1893,7 +1896,7 @@ func TestVirtual_Method_IntolerableCallChangeState(t *testing.T) {
 		runnerMock.AddExecutionClassify("SomeMethod", isolation, nil)
 		requestResult := requestresult.New([]byte("call result"), gen.UniqueGlobalRef())
 		newObjDescriptor := descriptor.NewObject(
-			reference.Global{}, reference.Local{}, class, []byte(""),
+			reference.Global{}, reference.Local{}, class, []byte(""), false,
 		)
 		requestResult.SetAmend(newObjDescriptor, []byte(changedObjectMem))
 
