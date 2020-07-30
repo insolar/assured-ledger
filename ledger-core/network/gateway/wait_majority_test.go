@@ -13,38 +13,33 @@ import (
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
-	"github.com/insolar/assured-ledger/ledger-core/network/node"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	mock "github.com/insolar/assured-ledger/ledger-core/testutils/network"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/network/mutable"
 )
 
 func TestWaitMajority_MajorityNotHappenedInETA(t *testing.T) {
 	mc := minimock.NewController(t)
 	defer mc.Finish()
-	defer mc.Wait(time.Minute)
-
-	nodeKeeper := mock.NewNodeKeeperMock(mc)
-	nodeKeeper.GetAccessorMock.Set(func(p1 pulse.Number) (a1 network.Accessor) {
-		accessor := mock.NewAccessorMock(mc)
-		accessor.GetWorkingNodesMock.Set(func() (na1 []nodeinfo.NetworkNode) {
-			return []nodeinfo.NetworkNode{}
-		})
-		return accessor
-	})
+	defer mc.Wait(time.Second*10)
 
 	cert := &mandates.Certificate{MajorityRule: 4}
 
 	b := createBase(mc)
 	b.CertificateManager = mandates.NewCertificateManager(cert)
-	b.NodeKeeper = nodeKeeper
+	nodeKeeper := b.NodeKeeper.(*mock.NodeKeeperMock)
+
+	accessor := mock.NewAccessorMock(mc)
+	accessor.GetWorkingNodesMock.Return([]nodeinfo.NetworkNode{})
+	nodeKeeper.GetAccessorMock.Return(accessor)
 
 	waitMajority := newWaitMajority(b)
-	assert.Equal(t, nodeinfo.WaitMajority, waitMajority.GetState())
+	assert.Equal(t, network.WaitMajority, waitMajority.GetState())
 	gatewayer := mock.NewGatewayerMock(mc)
 	gatewayer.GatewayMock.Set(func() network.Gateway {
 		return waitMajority
@@ -59,11 +54,11 @@ func TestWaitMajority_MajorityNotHappenedInETA(t *testing.T) {
 func TestWaitMajority_MajorityHappenedInETA(t *testing.T) {
 	mc := minimock.NewController(t)
 	defer mc.Finish()
-	defer mc.Wait(time.Minute)
+	defer mc.Wait(time.Second*10)
 
 	gatewayer := mock.NewGatewayerMock(mc)
-	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state nodeinfo.NetworkState, pulse pulse.Data) {
-		assert.Equal(t, nodeinfo.WaitMinRoles, state)
+	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state network.State, pulse pulse.Data) {
+		assert.Equal(t, network.WaitMinRoles, state)
 	})
 
 	ref := gen.UniqueGlobalRef()
@@ -74,7 +69,7 @@ func TestWaitMajority_MajorityHappenedInETA(t *testing.T) {
 	})
 	accessor2 := mock.NewAccessorMock(mc)
 	accessor2.GetWorkingNodesMock.Set(func() (na1 []nodeinfo.NetworkNode) {
-		n := node.NewNode(ref, member.PrimaryRoleHeavyMaterial, nil, "127.0.0.1:123", "")
+		n := mutable.NewTestNode(ref, member.PrimaryRoleHeavyMaterial, "127.0.0.1:123")
 		return []nodeinfo.NetworkNode{n}
 	})
 	nodeKeeper.GetAccessorMock.Set(func(p pulse.Number) (a1 network.Accessor) {

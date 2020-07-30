@@ -9,8 +9,11 @@ import (
 	"testing"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/network/mutable"
 	"github.com/insolar/assured-ledger/ledger-core/version"
 
 	"github.com/stretchr/testify/require"
@@ -24,8 +27,8 @@ func TestGetNetworkStatus(t *testing.T) {
 	sn := &ServiceNetwork{}
 	gwer := testutils.NewGatewayerMock(t)
 	gw := testutils.NewGatewayMock(t)
-	ins := nodeinfo.NetworkState(1)
-	gw.GetStateMock.Set(func() nodeinfo.NetworkState { return ins })
+	ins := network.State(1)
+	gw.GetStateMock.Set(func() network.State { return ins })
 	gwer.GatewayMock.Set(func() network.Gateway { return gw })
 	sn.Gatewayer = gwer
 
@@ -33,22 +36,24 @@ func TestGetNetworkStatus(t *testing.T) {
 	pc.PulseNumber = 200000
 	ppn := pc.PulseNumber
 	pc.NextPulseDelta = 10
-	gw.LatestPulseMock.Return(pc.Data)
 
 	nk := testutils.NewNodeKeeperMock(t)
 	a := testutils.NewAccessorMock(t)
 	activeLen := 1
 	active := make([]nodeinfo.NetworkNode, activeLen)
-	a.GetActiveNodesMock.Set(func() []nodeinfo.NetworkNode { return active })
+	a.GetActiveNodesMock.Return(active)
+	a.GetPulseNumberMock.Return(pc.PulseNumber)
 
 	workingLen := 2
 	working := make([]nodeinfo.NetworkNode, workingLen)
-	a.GetWorkingNodesMock.Set(func() []nodeinfo.NetworkNode { return working })
+	a.GetWorkingNodesMock.Return(working)
 
-	nk.GetAccessorMock.Set(func(pulse.Number) network.Accessor { return a })
+	nk.GetLatestAccessorMock.Return(a)
 
-	nn := testutils.NewNetworkNodeMock(t)
-	nk.GetOriginMock.Set(func() nodeinfo.NetworkNode { return nn })
+	ref := gen.UniqueGlobalRef()
+	nn := mutable.NewTestNode(ref, member.PrimaryRoleNeutral, "")
+	nk.GetLocalNodeReferenceMock.Return(ref)
+	nk.GetOriginMock.Return(nn)
 
 	sn.NodeKeeper = nk
 

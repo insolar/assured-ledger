@@ -11,13 +11,14 @@ import (
 	"time"
 
 	"github.com/gojuno/minimock/v3"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/network"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/insolar/assured-ledger/ledger-core/testutils/network"
 )
 
 func TestPulseWatchdog(t *testing.T) {
 	mc := minimock.NewController(t)
-	defer mc.Wait(time.Minute)
+	defer mc.Wait(time.Second*10)
 	defer mc.Finish()
 
 	gw := network.NewGatewayMock(mc)
@@ -32,7 +33,7 @@ func TestPulseWatchdog(t *testing.T) {
 
 func TestPulseWatchdog_timeout_exceeded(t *testing.T) {
 	mc := minimock.NewController(t)
-	defer mc.Wait(time.Minute)
+	defer mc.Wait(time.Second*10)
 	defer mc.Finish()
 
 	gw := network.NewGatewayMock(mc)

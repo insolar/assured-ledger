@@ -8,12 +8,12 @@ package rules
 import (
 	"fmt"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
-	"github.com/insolar/assured-ledger/ledger-core/network"
 )
 
 // CheckMajorityRule returns error if MajorityRule check not passed, also returns active discovery nodes count
@@ -30,13 +30,13 @@ func CheckMajorityRule(cert nodeinfo.Certificate, nodes []nodeinfo.NetworkNode) 
 	for _, d := range discoveries {
 		var found bool
 		for _, n := range nodes {
-			if d.GetNodeRef().Equal(n.ID()) {
+			if d.GetNodeRef().Equal(nodeinfo.NodeRef(n)) {
 				found = true
 				break
 			}
 		}
 		if !found {
-			strErr += d.GetHost() + " " + d.GetRole().String() + " "
+			strErr += d.GetHost()
 		}
 	}
 	return activeDiscoveryNodesLen, errors.W(errors.New(strErr), "MajorityRule failed")
@@ -46,7 +46,7 @@ func CheckMajorityRule(cert nodeinfo.Certificate, nodes []nodeinfo.NetworkNode) 
 func CheckMinRole(cert nodeinfo.Certificate, nodes []nodeinfo.NetworkNode) error {
 	var virtualCount, heavyCount, lightCount uint
 	for _, n := range nodes {
-		switch n.Role() {
+		switch nodeinfo.NodeRole(n) {
 		case member.PrimaryRoleVirtual:
 			virtualCount++
 		case member.PrimaryRoleHeavyMaterial:
