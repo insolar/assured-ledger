@@ -154,7 +154,7 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 // 3. Change Pulse - dirty state migrate to validated state, both become deactivated
 // 4. Send request on Dirty state - get error
 // 5. Send request on Validated state - get error
-func TestVirtual_CallMethod_On_DeactivatedDirtyState(t *testing.T) {
+func TestVirtual_CallMethod_On_DeactivatedObject(t *testing.T) {
 	defer testutils.LeakTester(t)
 	insrail.LogCase(t, "C5506")
 
