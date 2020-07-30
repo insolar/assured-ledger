@@ -64,12 +64,15 @@ func TestVirtual_VStateRequest(t *testing.T) {
 
 			// create object
 			{
-				server.IncrementPulseAndWaitIdle(ctx)
+				server.IncrementPulse(ctx)
+				commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+
 				Method_PrepareObject(ctx, server, payload.Ready, objectGlobal, pulseNumber)
 
 				pulseNumber = server.GetPulse().PulseNumber
-				server.IncrementPulseAndWaitIdle(ctx)
+				server.IncrementPulse(ctx)
 				commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1))
+				commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 			}
 
 			// prepare checker
