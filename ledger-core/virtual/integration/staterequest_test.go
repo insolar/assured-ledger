@@ -70,8 +70,9 @@ func TestVirtual_VStateRequest(t *testing.T) {
 				Method_PrepareObject(ctx, server, payload.Ready, objectGlobal, pulseNumber)
 
 				pulseNumber = server.GetPulse().PulseNumber
+				waitMigrate := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
 				server.IncrementPulse(ctx)
-				commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1))
+				commontestutils.WaitSignalsTimed(t, 10*time.Second, waitMigrate)
 				commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 			}
 
@@ -113,9 +114,8 @@ func TestVirtual_VStateRequest(t *testing.T) {
 			server.SendMessage(ctx, msg)
 
 			commontestutils.WaitSignalsTimed(t, 10*time.Second, waitVStateReport)
-			commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
-			require.Equal(t, 1, typedChecker.VStateReport.Count())
+			require.Equal(t, 1, typedChecker.VStateReport.CountBefore())
 
 			mc.Finish()
 		})
