@@ -151,7 +151,7 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 
 // 1. Create object
 // 2. Deactivate object
-// 3. Change Pulse
+// 3. Change Pulse - dirty state migrate to validated state, both become deactivated
 // 4. Send request on Dirty state - get error
 // 5. Send request on Validated state - get error
 func TestVirtual_CallMethod_On_DeactivatedDirtyState(t *testing.T) {
