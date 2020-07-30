@@ -40,7 +40,7 @@ func (g *DiscoveryBootstrap) Run(ctx context.Context, p pulse.Data) {
 	logger.Infof("Bootstrapping to node %s", permit.Payload.ReconnectTo)
 
 	// Reset backoff if not insolar.NoNetworkState.
-	g.backoff.Reset()
+	g.backoff = 0
 
 	// no needed
 	responsePulse := beat.Beat{}
