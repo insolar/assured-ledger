@@ -50,7 +50,9 @@ func TestGetNetworkStatus(t *testing.T) {
 
 	nk.GetAccessorMock.Set(func(pulse.Number) network.Accessor { return a })
 
-	nn := mutable.NewTestNode(gen.UniqueGlobalRef(), member.PrimaryRoleNeutral, "")
+	ref := gen.UniqueGlobalRef()
+	nn := mutable.NewTestNode(ref, member.PrimaryRoleNeutral, "")
+	nk.GetLocalNodeReferenceMock.Return(ref)
 	nk.GetOriginMock.Return(nn)
 
 	sn.NodeKeeper = nk
