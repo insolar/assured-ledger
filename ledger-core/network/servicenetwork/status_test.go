@@ -36,7 +36,6 @@ func TestGetNetworkStatus(t *testing.T) {
 	pc.PulseNumber = 200000
 	ppn := pc.PulseNumber
 	pc.NextPulseDelta = 10
-	gw.LatestPulseMock.Return(pc.Data)
 
 	nk := testutils.NewNodeKeeperMock(t)
 	a := testutils.NewAccessorMock(t)

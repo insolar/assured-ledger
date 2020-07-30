@@ -468,13 +468,11 @@ func incrementTestPort() int {
 }
 
 func (n *networkNode) GetActiveNodes() []nodeinfo.NetworkNode {
-	p := n.serviceNetwork.Gatewayer.Gateway().LatestPulse(n.ctx)
-	return n.serviceNetwork.NodeKeeper.GetAccessor(p.PulseNumber).GetActiveNodes()
+	return n.serviceNetwork.NodeKeeper.GetLatestAccessor().GetActiveNodes()
 }
 
 func (n *networkNode) GetWorkingNodes() []nodeinfo.NetworkNode {
-	p := n.serviceNetwork.Gatewayer.Gateway().LatestPulse(n.ctx)
-	return n.serviceNetwork.NodeKeeper.GetAccessor(p.PulseNumber).GetWorkingNodes()
+	return n.serviceNetwork.NodeKeeper.GetLatestAccessor().GetWorkingNodes()
 }
 
 func (s *testSuite) initCrypto(node *networkNode) (*mandates.CertificateManager, cryptography.Service) {

@@ -346,10 +346,14 @@ func (g *Base) checkCanAnnounceCandidate(ctx context.Context) error {
 		return nil
 	}
 
+	pn := pulse.Unknown
+	if na := g.NodeKeeper.GetLatestAccessor(); na != nil {
+		pn = na.GetPulseNumber()
+	}
+
 	return throw.Errorf(
 		"can't announce candidate: pulse=%d state=%s",
-		g.LatestPulse(ctx).PulseNumber,
-		state,
+		pn, state,
 	)
 }
 
@@ -541,12 +545,4 @@ func (g *Base) FailState(ctx context.Context, reason string) {
 		reason,
 	)
 	g.Aborter.Abort(ctx, wrapReason)
-}
-
-func (g *Base) LatestPulse(ctx context.Context) pulse.Data {
-	if g.ConsensusController == nil {
-		return pulse.NewFirstEphemeralData()
-	}
-
-	return g.ConsensusController.Chronicles().GetActiveCensus().GetPulseData()
 }

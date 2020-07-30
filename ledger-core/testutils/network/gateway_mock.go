@@ -61,12 +61,6 @@ type GatewayMock struct {
 	beforeGetStateCounter uint64
 	GetStateMock          mGatewayMockGetState
 
-	funcLatestPulse          func(ctx context.Context) (d1 pulse.Data)
-	inspectFuncLatestPulse   func(ctx context.Context)
-	afterLatestPulseCounter  uint64
-	beforeLatestPulseCounter uint64
-	LatestPulseMock          mGatewayMockLatestPulse
-
 	funcNewGateway          func(ctx context.Context, s1 mm_network.State) (g1 mm_network.Gateway)
 	inspectFuncNewGateway   func(ctx context.Context, s1 mm_network.State)
 	afterNewGatewayCounter  uint64
@@ -127,9 +121,6 @@ func NewGatewayMock(t minimock.Tester) *GatewayMock {
 	m.FailStateMock.callArgs = []*GatewayMockFailStateParams{}
 
 	m.GetStateMock = mGatewayMockGetState{mock: m}
-
-	m.LatestPulseMock = mGatewayMockLatestPulse{mock: m}
-	m.LatestPulseMock.callArgs = []*GatewayMockLatestPulseParams{}
 
 	m.NewGatewayMock = mGatewayMockNewGateway{mock: m}
 	m.NewGatewayMock.callArgs = []*GatewayMockNewGatewayParams{}
@@ -1307,221 +1298,6 @@ func (m *GatewayMock) MinimockGetStateInspect() {
 	}
 }
 
-type mGatewayMockLatestPulse struct {
-	mock               *GatewayMock
-	defaultExpectation *GatewayMockLatestPulseExpectation
-	expectations       []*GatewayMockLatestPulseExpectation
-
-	callArgs []*GatewayMockLatestPulseParams
-	mutex    sync.RWMutex
-}
-
-// GatewayMockLatestPulseExpectation specifies expectation struct of the Gateway.LatestPulse
-type GatewayMockLatestPulseExpectation struct {
-	mock    *GatewayMock
-	params  *GatewayMockLatestPulseParams
-	results *GatewayMockLatestPulseResults
-	Counter uint64
-}
-
-// GatewayMockLatestPulseParams contains parameters of the Gateway.LatestPulse
-type GatewayMockLatestPulseParams struct {
-	ctx context.Context
-}
-
-// GatewayMockLatestPulseResults contains results of the Gateway.LatestPulse
-type GatewayMockLatestPulseResults struct {
-	d1 pulse.Data
-}
-
-// Expect sets up expected params for Gateway.LatestPulse
-func (mmLatestPulse *mGatewayMockLatestPulse) Expect(ctx context.Context) *mGatewayMockLatestPulse {
-	if mmLatestPulse.mock.funcLatestPulse != nil {
-		mmLatestPulse.mock.t.Fatalf("GatewayMock.LatestPulse mock is already set by Set")
-	}
-
-	if mmLatestPulse.defaultExpectation == nil {
-		mmLatestPulse.defaultExpectation = &GatewayMockLatestPulseExpectation{}
-	}
-
-	mmLatestPulse.defaultExpectation.params = &GatewayMockLatestPulseParams{ctx}
-	for _, e := range mmLatestPulse.expectations {
-		if minimock.Equal(e.params, mmLatestPulse.defaultExpectation.params) {
-			mmLatestPulse.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmLatestPulse.defaultExpectation.params)
-		}
-	}
-
-	return mmLatestPulse
-}
-
-// Inspect accepts an inspector function that has same arguments as the Gateway.LatestPulse
-func (mmLatestPulse *mGatewayMockLatestPulse) Inspect(f func(ctx context.Context)) *mGatewayMockLatestPulse {
-	if mmLatestPulse.mock.inspectFuncLatestPulse != nil {
-		mmLatestPulse.mock.t.Fatalf("Inspect function is already set for GatewayMock.LatestPulse")
-	}
-
-	mmLatestPulse.mock.inspectFuncLatestPulse = f
-
-	return mmLatestPulse
-}
-
-// Return sets up results that will be returned by Gateway.LatestPulse
-func (mmLatestPulse *mGatewayMockLatestPulse) Return(d1 pulse.Data) *GatewayMock {
-	if mmLatestPulse.mock.funcLatestPulse != nil {
-		mmLatestPulse.mock.t.Fatalf("GatewayMock.LatestPulse mock is already set by Set")
-	}
-
-	if mmLatestPulse.defaultExpectation == nil {
-		mmLatestPulse.defaultExpectation = &GatewayMockLatestPulseExpectation{mock: mmLatestPulse.mock}
-	}
-	mmLatestPulse.defaultExpectation.results = &GatewayMockLatestPulseResults{d1}
-	return mmLatestPulse.mock
-}
-
-//Set uses given function f to mock the Gateway.LatestPulse method
-func (mmLatestPulse *mGatewayMockLatestPulse) Set(f func(ctx context.Context) (d1 pulse.Data)) *GatewayMock {
-	if mmLatestPulse.defaultExpectation != nil {
-		mmLatestPulse.mock.t.Fatalf("Default expectation is already set for the Gateway.LatestPulse method")
-	}
-
-	if len(mmLatestPulse.expectations) > 0 {
-		mmLatestPulse.mock.t.Fatalf("Some expectations are already set for the Gateway.LatestPulse method")
-	}
-
-	mmLatestPulse.mock.funcLatestPulse = f
-	return mmLatestPulse.mock
-}
-
-// When sets expectation for the Gateway.LatestPulse which will trigger the result defined by the following
-// Then helper
-func (mmLatestPulse *mGatewayMockLatestPulse) When(ctx context.Context) *GatewayMockLatestPulseExpectation {
-	if mmLatestPulse.mock.funcLatestPulse != nil {
-		mmLatestPulse.mock.t.Fatalf("GatewayMock.LatestPulse mock is already set by Set")
-	}
-
-	expectation := &GatewayMockLatestPulseExpectation{
-		mock:   mmLatestPulse.mock,
-		params: &GatewayMockLatestPulseParams{ctx},
-	}
-	mmLatestPulse.expectations = append(mmLatestPulse.expectations, expectation)
-	return expectation
-}
-
-// Then sets up Gateway.LatestPulse return parameters for the expectation previously defined by the When method
-func (e *GatewayMockLatestPulseExpectation) Then(d1 pulse.Data) *GatewayMock {
-	e.results = &GatewayMockLatestPulseResults{d1}
-	return e.mock
-}
-
-// LatestPulse implements network.Gateway
-func (mmLatestPulse *GatewayMock) LatestPulse(ctx context.Context) (d1 pulse.Data) {
-	mm_atomic.AddUint64(&mmLatestPulse.beforeLatestPulseCounter, 1)
-	defer mm_atomic.AddUint64(&mmLatestPulse.afterLatestPulseCounter, 1)
-
-	if mmLatestPulse.inspectFuncLatestPulse != nil {
-		mmLatestPulse.inspectFuncLatestPulse(ctx)
-	}
-
-	mm_params := &GatewayMockLatestPulseParams{ctx}
-
-	// Record call args
-	mmLatestPulse.LatestPulseMock.mutex.Lock()
-	mmLatestPulse.LatestPulseMock.callArgs = append(mmLatestPulse.LatestPulseMock.callArgs, mm_params)
-	mmLatestPulse.LatestPulseMock.mutex.Unlock()
-
-	for _, e := range mmLatestPulse.LatestPulseMock.expectations {
-		if minimock.Equal(e.params, mm_params) {
-			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.d1
-		}
-	}
-
-	if mmLatestPulse.LatestPulseMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmLatestPulse.LatestPulseMock.defaultExpectation.Counter, 1)
-		mm_want := mmLatestPulse.LatestPulseMock.defaultExpectation.params
-		mm_got := GatewayMockLatestPulseParams{ctx}
-		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmLatestPulse.t.Errorf("GatewayMock.LatestPulse got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
-		}
-
-		mm_results := mmLatestPulse.LatestPulseMock.defaultExpectation.results
-		if mm_results == nil {
-			mmLatestPulse.t.Fatal("No results are set for the GatewayMock.LatestPulse")
-		}
-		return (*mm_results).d1
-	}
-	if mmLatestPulse.funcLatestPulse != nil {
-		return mmLatestPulse.funcLatestPulse(ctx)
-	}
-	mmLatestPulse.t.Fatalf("Unexpected call to GatewayMock.LatestPulse. %v", ctx)
-	return
-}
-
-// LatestPulseAfterCounter returns a count of finished GatewayMock.LatestPulse invocations
-func (mmLatestPulse *GatewayMock) LatestPulseAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmLatestPulse.afterLatestPulseCounter)
-}
-
-// LatestPulseBeforeCounter returns a count of GatewayMock.LatestPulse invocations
-func (mmLatestPulse *GatewayMock) LatestPulseBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmLatestPulse.beforeLatestPulseCounter)
-}
-
-// Calls returns a list of arguments used in each call to GatewayMock.LatestPulse.
-// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmLatestPulse *mGatewayMockLatestPulse) Calls() []*GatewayMockLatestPulseParams {
-	mmLatestPulse.mutex.RLock()
-
-	argCopy := make([]*GatewayMockLatestPulseParams, len(mmLatestPulse.callArgs))
-	copy(argCopy, mmLatestPulse.callArgs)
-
-	mmLatestPulse.mutex.RUnlock()
-
-	return argCopy
-}
-
-// MinimockLatestPulseDone returns true if the count of the LatestPulse invocations corresponds
-// the number of defined expectations
-func (m *GatewayMock) MinimockLatestPulseDone() bool {
-	for _, e := range m.LatestPulseMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.LatestPulseMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterLatestPulseCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcLatestPulse != nil && mm_atomic.LoadUint64(&m.afterLatestPulseCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockLatestPulseInspect logs each unmet expectation
-func (m *GatewayMock) MinimockLatestPulseInspect() {
-	for _, e := range m.LatestPulseMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to GatewayMock.LatestPulse with params: %#v", *e.params)
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.LatestPulseMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterLatestPulseCounter) < 1 {
-		if m.LatestPulseMock.defaultExpectation.params == nil {
-			m.t.Error("Expected call to GatewayMock.LatestPulse")
-		} else {
-			m.t.Errorf("Expected call to GatewayMock.LatestPulse with params: %#v", *m.LatestPulseMock.defaultExpectation.params)
-		}
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcLatestPulse != nil && mm_atomic.LoadUint64(&m.afterLatestPulseCounter) < 1 {
-		m.t.Error("Expected call to GatewayMock.LatestPulse")
-	}
-}
-
 type mGatewayMockNewGateway struct {
 	mock               *GatewayMock
 	defaultExpectation *GatewayMockNewGatewayExpectation
@@ -2696,8 +2472,6 @@ func (m *GatewayMock) MinimockFinish() {
 
 		m.MinimockGetStateInspect()
 
-		m.MinimockLatestPulseInspect()
-
 		m.MinimockNewGatewayInspect()
 
 		m.MinimockOnConsensusFinishedInspect()
@@ -2739,7 +2513,6 @@ func (m *GatewayMock) minimockDone() bool {
 		m.MinimockEphemeralModeDone() &&
 		m.MinimockFailStateDone() &&
 		m.MinimockGetStateDone() &&
-		m.MinimockLatestPulseDone() &&
 		m.MinimockNewGatewayDone() &&
 		m.MinimockOnConsensusFinishedDone() &&
 		m.MinimockOnPulseFromConsensusDone() &&

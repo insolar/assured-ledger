@@ -176,7 +176,6 @@ type Gateway interface {
 	EphemeralMode(nodes []nodeinfo.NetworkNode) bool
 
 	FailState(ctx context.Context, reason string)
-	LatestPulse(context.Context) pulse.Data
 }
 
 type Auther interface {
