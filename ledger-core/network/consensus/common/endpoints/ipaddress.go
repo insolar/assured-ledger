@@ -59,13 +59,9 @@ func newIPAddress(ip net.IP, portNumber uint16) (addr IPAddress) {
 	default:
 		panic("not implemented")
 	}
-
-	portBytes := make([]byte, portSize)
-	defaultByteOrder.PutUint16(portBytes, portNumber)
-
 	copy(addr[:], ip)
-	copy(addr[ipSize:], portBytes)
 
+	defaultByteOrder.PutUint16(addr[ipSize:], portNumber)
 	return
 }
 
