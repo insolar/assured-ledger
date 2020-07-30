@@ -99,8 +99,6 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 			{
 				typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
 					assert.Equal(t, objectGlobal, report.Object)
-
-					// TODO need to fix
 					assert.Equal(t, pulseNumberSecond, report.ProvidedContent.LatestValidatedState.Reference.Pulse())
 					assert.Equal(t, pulseNumberSecond, report.ProvidedContent.LatestDirtyState.Reference.Pulse())
 
