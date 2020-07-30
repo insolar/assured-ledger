@@ -6,10 +6,8 @@
 package tests
 
 import (
-	"bytes"
 	"context"
 	"crypto"
-	"crypto/ecdsa"
 	"fmt"
 	"math/rand"
 	"strings"
@@ -32,7 +30,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles"
-	"github.com/insolar/assured-ledger/ledger-core/network/consensus/serialization"
+	"github.com/insolar/assured-ledger/ledger-core/network/gateway"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeset"
@@ -256,47 +254,22 @@ func getAnnounceSignature(
 	node nodeinfo.NetworkNode,
 	isDiscovery bool,
 	kp cryptography.KeyProcessor,
-	key *ecdsa.PrivateKey,
+	key crypto.PrivateKey,
 	scheme cryptography.PlatformCryptographyScheme,
 ) ([]byte, *cryptography.Signature, error) {
-
-	brief := serialization.NodeBriefIntro{}
-	brief.ShortID = node.GetNodeID()
-	brief.SetPrimaryRole(nodeinfo.NodeRole(node))
-	if isDiscovery {
-		brief.SpecialRoles = member.SpecialRoleDiscovery
-	}
-	brief.StartPower = 10
 
 	addr, err := endpoints.NewIPAddress(nodeinfo.NodeAddr(node))
 	if err != nil {
 		return nil, nil, err
 	}
-	copy(brief.Endpoint[:], addr[:])
 
 	pk, err := kp.ExportPublicKeyBinary(adapters.ECDSAPublicKeyOfNode(node))
 	if err != nil {
 		return nil, nil, err
 	}
 
-	copy(brief.NodePK[:], pk)
-
-	buf := &bytes.Buffer{}
-	err = brief.SerializeTo(nil, buf)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	data := buf.Bytes()
-	data = data[:len(data)-64]
-
-	digest := scheme.IntegrityHasher().Hash(data)
-	sign, err := scheme.DigestSigner(key).Sign(digest)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return digest, sign, nil
+	return gateway.CalcAnnounceSignature(node.GetNodeID(), nodeinfo.NodeRole(node), addr,
+		node.GetStatic().GetStartPower(), isDiscovery, pk, keystore.NewInplaceKeyStore(key), scheme)
 }
 
 func nodesFromInfo(nodeInfos []*nodeMeta) ([]nodeinfo.NetworkNode, []nodeinfo.NetworkNode, error) {
@@ -315,12 +288,8 @@ func nodesFromInfo(nodeInfos []*nodeMeta) ([]nodeinfo.NetworkNode, []nodeinfo.Ne
 			discoveryNodes = append(discoveryNodes, nn)
 		}
 
-		d, s, err := getAnnounceSignature(
-			nn,
-			isDiscovery,
-			keyProcessor,
-			info.privateKey.(*ecdsa.PrivateKey),
-			scheme,
+		d, s, err := getAnnounceSignature(nn, isDiscovery,
+			keyProcessor, info.privateKey, scheme,
 		)
 		if err != nil {
 			return nil, nil, err

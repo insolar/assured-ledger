@@ -210,10 +210,12 @@ func (g *Base) localNodeAsCandidate() error {
 		return err
 	}
 
-	id := node.GenerateUintShortID(ref)
-	digest, signature, err := getAnnounceSignature(id, role, endpointAddr,
-		network.OriginIsDiscovery(cert),
-		pk,
+	// TODO add StartPower and PowerSet to Certificate
+	startPower := adapters.DefaultStartPower
+
+	id := node.GenerateShortID(ref)
+	digest, signature, err := CalcAnnounceSignature(id, role, endpointAddr, startPower,
+		network.OriginIsDiscovery(cert), pk,
 		getKeyStore(g.CryptographyService),
 		g.CryptographyScheme,
 	)
@@ -233,8 +235,6 @@ func (g *Base) localNodeAsCandidate() error {
 		isJoiner = true
 	}
 
-	startPower := member.PowerOf(10) // TODO add StartPower and PowerSet to certificate
-
 	staticProfile := adapters.NewStaticProfileExt2(id, role, specialRole, startPower,
 		adapters.NewStaticProfileExtensionExt(id, ref, sig),
 		adapters.NewOutboundIP(endpointAddr),
@@ -249,7 +249,7 @@ func (g *Base) localNodeAsCandidate() error {
 	if isJoiner {
 		anp = censusimpl.NewJoinerProfile(staticProfile, verifier)
 	} else {
-		anp = censusimpl.NewNodeProfile(0, staticProfile, verifier, startPower)
+		anp = censusimpl.NewNodeProfile(0, staticProfile, verifier, staticProfile.GetStartPower())
 	}
 
 	newOrigin := adapters.NewNetworkNode(&anp)

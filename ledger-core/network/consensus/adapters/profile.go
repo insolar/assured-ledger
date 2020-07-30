@@ -24,6 +24,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
+const DefaultStartPower = member.Power(10)
+
 type StaticProfileExtension struct {
 	shortID   node.ShortNodeID
 	ref       reference.Global
@@ -111,7 +113,7 @@ func NewStaticProfileExt(networkNode nodeinfo.NetworkNode, addr string, certific
 		networkNode.GetNodeID(),
 		nodeinfo.NodeRole(networkNode),
 		specialRole,
-		networkNode.GetDeclaredPower(),
+		networkNode.GetStatic().GetStartPower(),
 		NewStaticProfileExtension(networkNode),
 		NewOutbound(addr),
 		NewECDSAPublicKeyStore(publicKey),
@@ -184,7 +186,8 @@ func (sp *StaticProfile) GetNodePublicKey() cryptkit.SignatureKeyHolder {
 }
 
 func (sp *StaticProfile) GetStartPower() member.Power {
-	return sp.startPower
+	// TODO start power level is not passed properly - needs fix
+	return DefaultStartPower // sp.startPower
 }
 
 func (sp *StaticProfile) IsAcceptableHost(from endpoints.Inbound) bool {
@@ -240,7 +243,7 @@ func NewOutboundNoPort(address string) *Outbound {
 	}
 }
 
-func (p *Outbound) CanAccept(connection endpoints.Inbound) bool {
+func (p *Outbound) CanAccept(endpoints.Inbound) bool {
 	return true
 }
 

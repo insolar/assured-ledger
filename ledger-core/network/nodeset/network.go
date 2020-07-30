@@ -50,11 +50,12 @@ func createOrigin(configuration configuration.Transport, cert nodeinfo.Certifica
 	}
 
 	pk := cert.GetPublicKey()
-	nodeID := node.GenerateUintShortID(ref)
+	nodeID := node.GenerateShortID(ref)
 	staticExt := adapters.NewStaticProfileExtensionExt(nodeID, ref, cryptkit.Signature{})
 
-	startPower := member.PowerOf(10) // TODO add StartPower and PowerSet to certificate
-	id := node.GenerateUintShortID(ref)
+	// TODO start power level is not passed properly - needs fix
+	startPower := adapters.DefaultStartPower
+	id := node.GenerateShortID(ref)
 
 	staticProfile := adapters.NewStaticProfileExt2(
 		id, role, specialRole, startPower,

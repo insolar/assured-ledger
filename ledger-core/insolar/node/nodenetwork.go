@@ -24,7 +24,7 @@ func (v ShortNodeID) IsAbsent() bool { return v == AbsentShortNodeID }
 
 func (v ShortNodeID) Equal(other ShortNodeID) bool { return v == other }
 
-// GenerateUintShortID generate short ID for node without checking collisions
-func GenerateUintShortID(ref reference.Global) ShortNodeID {
-	return ShortNodeID(crc32.ChecksumIEEE(ref.AsBytes()))
+// GenerateShortID generate short ID for node without checking collisions
+func GenerateShortID(ref reference.Holder) ShortNodeID {
+	return ShortNodeID(crc32.ChecksumIEEE(reference.AsBytes(ref)))
 }

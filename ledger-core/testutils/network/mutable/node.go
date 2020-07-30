@@ -32,7 +32,7 @@ func newMutableNode(
 
 	n := &Node{
 		nodeID:        id,
-		nodeShortID:   node.GenerateUintShortID(id),
+		nodeShortID:   node.GenerateShortID(id),
 		nodeRole:      role,
 		nodePublicKey: publicKey,
 	}

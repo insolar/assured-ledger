@@ -17,5 +17,5 @@ import (
 
 func TestNode_ShortID(t *testing.T) {
 	n := NewTestNode(gen.UniqueGlobalRef(), member.PrimaryRoleVirtual, "")
-	require.Equal(t, node.GenerateUintShortID(n.GetReference()), n.GetNodeID())
+	require.Equal(t, node.GenerateShortID(n.GetReference()), n.GetNodeID())
 }

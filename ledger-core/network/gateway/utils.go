@@ -16,6 +16,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/network"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
@@ -36,14 +37,8 @@ func EnsureGetPulse(ctx context.Context, report network.Report) pulse.Data {
 	return report.PulseData
 }
 
-func getAnnounceSignature(
-	nodeID node.ShortNodeID,
-	role member.PrimaryRole,
-	addr endpoints.IPAddress,
-	isDiscovery bool,
-	pk []byte,
-	keystore cryptography.KeyStore,
-	scheme cryptography.PlatformCryptographyScheme,
+func CalcAnnounceSignature(nodeID node.ShortNodeID, role member.PrimaryRole, addr endpoints.IPAddress, startPower member.Power, isDiscovery bool,
+	pk []byte, keystore cryptography.KeyStore, scheme cryptography.PlatformCryptographyScheme,
 ) ([]byte, *cryptography.Signature, error) {
 
 	brief := serialization.NodeBriefIntro{}
@@ -52,7 +47,9 @@ func getAnnounceSignature(
 	if isDiscovery {
 		brief.SpecialRoles = member.SpecialRoleDiscovery
 	}
-	brief.StartPower = 10
+
+	// TODO start power level is not passed properly - needs fix
+	brief.StartPower = adapters.DefaultStartPower // startPower
 
 	copy(brief.Endpoint[:], addr[:])
 	copy(brief.NodePK[:], pk)

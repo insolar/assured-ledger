@@ -10,7 +10,6 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters/candidate"
-	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 )
@@ -34,7 +33,8 @@ func (c Candidate) StaticProfile(keyProcessor cryptography.KeyProcessor) *Static
 		signHolder,
 	)
 
-	startPower := member.PowerOf(10) // TODO add StartPower and PowerSet to certificate
+	// TODO start power level is not passed properly - needs fix
+	startPower := DefaultStartPower
 
 	return NewStaticProfileExt2(c.ShortID, c.PrimaryRole, c.SpecialRole, startPower,
 		extension,

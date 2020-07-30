@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor/memstor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
@@ -534,19 +535,19 @@ func (p *PublisherMock) Close() error {
 }
 
 // preInitNode inits previously created node with mocks and external dependencies
-func (s *testSuite) preInitNode(node *networkNode) {
+func (s *testSuite) preInitNode(nd *networkNode) {
 	cfg := configuration.NewConfiguration()
-	cfg.Host.Transport.Address = node.host
-	cfg.Service.CacheDirectory = cacheDir + node.host
+	cfg.Host.Transport.Address = nd.host
+	cfg.Service.CacheDirectory = cacheDir + nd.host
 
-	node.componentManager = component.NewManager(nil)
-	node.componentManager.SetLogger(global.Logger())
+	nd.componentManager = component.NewManager(nil)
+	nd.componentManager.SetLogger(global.Logger())
 
-	node.componentManager.Register(platformpolicy.NewPlatformCryptographyScheme())
-	serviceNetwork, err := servicenetwork.NewServiceNetwork(cfg, node.componentManager)
+	nd.componentManager.Register(platformpolicy.NewPlatformCryptographyScheme())
+	serviceNetwork, err := servicenetwork.NewServiceNetwork(cfg, nd.componentManager)
 	require.NoError(s.t, err)
 
-	certManager, cryptographyService := s.initCrypto(node)
+	certManager, cryptographyService := s.initCrypto(nd)
 
 	realKeeper, err := nodeset.NewNodeNetwork(cfg.Host.Transport, certManager.GetCertificate())
 	require.NoError(s.t, err)
@@ -556,9 +557,9 @@ func (s *testSuite) preInitNode(node *networkNode) {
 	if UseFakeTransport {
 		// little hack: this Register will override transport.Factory
 		// in servicenetwork internal component manager with fake factory
-		node.componentManager.Register(transport.NewFakeFactory(cfg.Host.Transport))
+		nd.componentManager.Register(transport.NewFakeFactory(cfg.Host.Transport))
 	} else {
-		node.componentManager.Register(transport.NewFactory(cfg.Host.Transport))
+		nd.componentManager.Register(transport.NewFactory(cfg.Host.Transport))
 	}
 
 	pulseManager := chorus.NewConductorMock(s.t)
@@ -570,27 +571,26 @@ func (s *testSuite) preInitNode(node *networkNode) {
 	pulseManager.CommitPulseChangeMock.Return(nil)
 	pulseManager.CommitFirstPulseChangeMock.Return(nil)
 
-	node.componentManager.Inject(
+	nd.componentManager.Inject(
 		realKeeper,
 		pulseManager,
 		pubMock,
 		certManager,
 		cryptographyService,
-		keystore.NewInplaceKeyStore(node.privateKey),
+		keystore.NewInplaceKeyStore(nd.privateKey),
 		serviceNetwork,
 		keyProc,
 		memstor.NewStorageMem(),
 	)
-	node.serviceNetwork = serviceNetwork
+	nd.serviceNetwork = serviceNetwork
 
-	localNode := realKeeper.GetOrigin()
+	localNodeRef := realKeeper.GetLocalNodeReference()
 	nodeContext, _ := inslogger.WithFields(s.ctx, map[string]interface{}{
-		"node_id":      localNode.GetNodeID(),
-		"node_address": nodeinfo.NodeAddr(localNode),
-		"node_role":    nodeinfo.NodeRole(localNode),
+		"node_id":      node.GenerateShortID(localNodeRef),
+		"node_address": localNodeRef,
 	})
 
-	node.ctx = nodeContext
+	nd.ctx = nodeContext
 }
 
 // afterInitNode called after component manager Init

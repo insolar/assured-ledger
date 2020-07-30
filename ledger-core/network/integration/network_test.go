@@ -74,6 +74,8 @@ func TestNodeLeave(t *testing.T) {
 
 func TestNodeGracefulLeave(t *testing.T) {
 	//	t.Skip("FIXME node GracefulStop")
+
+	// TODO actual implementation does NOT do graceful leave
 	s := startNetworkSuite(t)
 	defer s.stopNetworkSuite()
 
