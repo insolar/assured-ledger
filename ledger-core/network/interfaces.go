@@ -90,7 +90,6 @@ type Future interface {
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network.NodeNetwork -o ../testutils/network -s _mock.go -g
 
-// Should be deprecated, but actually is still used everywhere todo: move GetWorkingNodes to ServiceNetwork facade
 type NodeNetwork interface {
 	// GetOrigin get origin node information(self).
 	GetOrigin() nodeinfo.NetworkNode

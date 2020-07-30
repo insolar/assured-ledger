@@ -19,7 +19,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-type Node = *nodeInfo
+type Node *nodeInfo
 
 func NewTestNode(id reference.Global, role member.PrimaryRole, publicKey crypto.PublicKey, address string) Node {
 	return newMutableNode(nil, id, role, publicKey, nodeinfo.Ready, address)
