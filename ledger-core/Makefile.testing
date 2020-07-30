@@ -18,7 +18,7 @@ test_unit: ## run all unit tests
 
 .PHONY: test_with_coverage
 test_with_coverage: ## run unit and slow tests with generation of coverage file
-	go-acc --covermode=count --output=coverage.tmp.out --ignore drafts,load ./... -- -v -tags="slowtest copylogtxt" -count=1 $(TEST_ARGS) -args TESTLOG_OUT=$(EXTENDED_INTEGRATION_LOG) TESTLOG_MARKS=1 TESTLOG_TXT=1 2>&1
+	go-acc --covermode=count --output=coverage.tmp.out --ignore drafts,load ./... -- -v -tags="slowtest copylogtxt" -count=1 $(TEST_ARGS) -args TESTLOG_OUT=$(EXTENDED_INTEGRATION_LOG) TESTLOG_MARKS=1 TESTLOG_TXT=1
 	cat coverage.tmp.out | grep -v _mock.go > coverage.out
 	go tool cover -html=coverage.out -o coverage.html
 
@@ -101,8 +101,8 @@ test_func_kubernetes_ci: ## run functest FUNCTEST_COUNT times in kubernetes clus
 
 .PHONY: publish_integration_tests
 publish_integration_tests: ## send results to testrail
-	${GOPATH}/bin/testrail-cli --URL=https://insolar.testrail.io/ --user $(TR_USER) --password $(TR_PASSWORD) --run-id 103 --file integration_extended_test.log
+	${GOPATH}/bin/testrail-cli --url https://insolar.testrail.io/ --user $(TR_USER) --password $(TR_PASSWORD) --run-id 103 --file integration_extended_test.log
 
 .PHONY: publish_functest
 publish_functest: ## send results to testrail
-	${GOPATH}/bin/testrail-cli --URL=https://insolar.testrail.io/ --user $(TR_USER) --password $(TR_PASSWORD) --run-id 105 --file functional_extended_test.log
+	${GOPATH}/bin/testrail-cli --url https://insolar.testrail.io/ --user $(TR_USER) --password $(TR_PASSWORD) --run-id 105 --file functional_extended_test.log
