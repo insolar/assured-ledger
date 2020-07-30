@@ -66,20 +66,6 @@ func trimFunctionName(fullName string) string {
 	return strings.Join(nameParts[:len(nameParts)-1], ".")
 }
 
-func getParentPackage(skipDepth int) string {
-	// skip that function and LogCase function
-	pc, _, _, ok := runtime.Caller(2 + skipDepth)
-	if !ok {
-		return ""
-	}
-	name := runtime.FuncForPC(pc).Name()
-
-	name = trimLambdaSuffix(name)
-	name = trimFunctionName(name)
-
-	return name
-}
-
 func lastNotInternalPC() uintptr {
 	var lastNotInternalPC uintptr
 
