@@ -13,6 +13,7 @@ import (
 	"go.opencensus.io/stats"
 
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -23,19 +24,19 @@ import (
 )
 
 // NewNodeKeeper create new NodeKeeper
-func NewNodeKeeper(origin nodeinfo.NetworkNode) network.NodeKeeper {
-	nk := &nodekeeper{
-//		origin:          origin,
-		originRef:       nodeinfo.NodeRef(origin),
+func NewNodeKeeper(localRef reference.Holder, localRole member.PrimaryRole) network.NodeKeeper {
+	return &nodekeeper{
+		localRef:        reference.Copy(localRef),
+		localRole:       localRole,
 		snapshotStorage: NewMemoryStorage(),
 	}
-	return nk
 }
 
 type nodekeeper struct {
 	syncLock  sync.RWMutex
 
-	originRef reference.Global
+	localRef  reference.Global
+	localRole member.PrimaryRole
 	origin    nodeinfo.NetworkNode
 	syncNodes []nodeinfo.NetworkNode
 
@@ -43,7 +44,11 @@ type nodekeeper struct {
 }
 
 func (nk *nodekeeper) GetLocalNodeReference() reference.Holder {
-	return nk.originRef
+	return nk.localRef
+}
+
+func (nk *nodekeeper) GetLocalNodeRole() member.PrimaryRole {
+	return nk.localRole
 }
 
 func (nk *nodekeeper) SetInitialSnapshot(nodes []nodeinfo.NetworkNode) {
@@ -106,7 +111,7 @@ func (nk *nodekeeper) moveSyncToActive(number pulse.Number) (before, after int, 
 
 	accessor := NewAccessor(snapshot)
 
-	o := accessor.GetActiveNode(nk.originRef)
+	o := accessor.GetActiveNode(nk.localRef)
 	if o == nil {
 		panic(throw.IllegalValue())
 	}

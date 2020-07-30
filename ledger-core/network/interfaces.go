@@ -91,9 +91,12 @@ type Future interface {
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network.NodeNetwork -o ../testutils/network -s _mock.go -g
 
 type NodeNetwork interface {
-	// GetOrigin get origin node information(self).
+	// GetOrigin returns information of this/local node. Will fail when consensus was not initialized. Result may change after each consensus round.
 	GetOrigin() nodeinfo.NetworkNode
+	// GetLocalNodeReference returns a node reference for this/local node. Safe to call at any time. Immutable.
 	GetLocalNodeReference() reference.Holder
+	// GetLocalNodeRole returns a role for this/local node. Safe to call at any time. Immutable.
+	GetLocalNodeRole() member.PrimaryRole
 
 	// GetAccessor get accessor to the internal snapshot for the current pulse
 	GetAccessor(pulse.Number) Accessor

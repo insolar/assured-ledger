@@ -26,9 +26,8 @@ func TestWaitConsensus_ConsensusNotHappenedInETA(t *testing.T) {
 
 	waitConsensus := newWaitConsensus(createBase(mc))
 	gatewayer := mock.NewGatewayerMock(mc)
-	gatewayer.GatewayMock.Set(func() network.Gateway {
-		return waitConsensus
-	})
+	gatewayer.GatewayMock.Return(waitConsensus)
+
 	waitConsensus.Gatewayer = gatewayer
 	waitConsensus.bootstrapETA = time.Millisecond
 	waitConsensus.bootstrapTimer = time.NewTimer(waitConsensus.bootstrapETA)

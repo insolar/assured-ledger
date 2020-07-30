@@ -588,6 +588,7 @@ func (s *testSuite) preInitNode(nd *networkNode) {
 	nodeContext, _ := inslogger.WithFields(s.ctx, map[string]interface{}{
 		"node_id":      node.GenerateShortID(localNodeRef),
 		"node_address": localNodeRef,
+		"node_role":    realKeeper.GetLocalNodeRole(),
 	})
 
 	nd.ctx = nodeContext

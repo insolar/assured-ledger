@@ -25,8 +25,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeset"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/network/mutable"
-	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/network/controller"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -115,7 +114,7 @@ func TestSendMessageHandler_SendError(t *testing.T) {
 
 	rpc := controller.NewRPCControllerMock(t)
 	rpc.SendBytesMock.Set(func(p context.Context, p1 reference.Global, p2 string, p3 []byte) (r []byte, r1 error) {
-		return nil, errors.New("test error")
+		return nil, throw.New("test error")
 	})
 	pulseMock := beat.NewAccessorMock(t)
 	pulseMock.LatestMock.Return(pulsestor.GenesisPulse, nil)
@@ -201,10 +200,11 @@ func TestServiceNetwork_StartStop(t *testing.T) {
 	cm := component.NewManager(nil)
 	cm.SetLogger(global.Logger())
 
-	origin := gen.UniqueGlobalRef()
-	nk := nodeset.NewNodeKeeper(mutable.NewTestNode(origin, member.PrimaryRoleUnknown, "127.0.0.1:0"))
+	originRef := gen.UniqueGlobalRef()
+	nk := nodeset.NewNodeKeeper(originRef, member.PrimaryRoleUnknown)
+
 	cert := &mandates.Certificate{}
-	cert.Reference = origin.String()
+	cert.Reference = originRef.String()
 	certManager := mandates.NewCertificateManager(cert)
 	svcNw, err := NewServiceNetwork(configuration.NewConfiguration(), cm)
 	require.NoError(t, err)
@@ -258,7 +258,7 @@ func TestServiceNetwork_processIncoming(t *testing.T) {
 	require.NoError(t, err)
 	_, err = serviceNetwork.processIncoming(ctx, data)
 	assert.NoError(t, err)
-	pub.Error = errors.New("Failed to publish message")
+	pub.Error = throw.New("Failed to publish message")
 	_, err = serviceNetwork.processIncoming(ctx, data)
 	assert.Error(t, err)
 }

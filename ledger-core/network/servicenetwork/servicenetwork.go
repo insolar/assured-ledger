@@ -11,6 +11,7 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeset"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -156,6 +157,10 @@ func (n *ServiceNetwork) Stop(ctx context.Context) error {
 
 func (n *ServiceNetwork) GetLocalNodeReference() reference.Holder {
 	return n.NodeKeeper.GetLocalNodeReference()
+}
+
+func (n *ServiceNetwork) GetLocalNodeRole() member.PrimaryRole {
+	return n.NodeKeeper.GetLocalNodeRole()
 }
 
 func (n *ServiceNetwork) GetOrigin() nodeinfo.NetworkNode {

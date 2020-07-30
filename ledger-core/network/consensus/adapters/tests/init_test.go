@@ -125,7 +125,7 @@ func initNodes(ctx context.Context, mode consensus.Mode, nodes GeneratedNodes, s
 	ns := newNodes(len(nodes.nodes))
 
 	for i, n := range nodes.nodes {
-		nodeKeeper := nodeset.NewNodeKeeper(n)
+		nodeKeeper := nodeset.NewNodeKeeper(nodeinfo.NodeRef(n), nodeinfo.NodeRole(n))
 		nodeKeeper.SetInitialSnapshot(nodes.nodes)
 		ns.nodeKeepers[i] = nodeKeeper
 
