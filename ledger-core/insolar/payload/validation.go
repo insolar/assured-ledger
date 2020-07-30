@@ -15,6 +15,10 @@ type Validate interface {
 
 var _ Validate = &VStateReport{}
 
+func (m *VCallResult) Validate(_ PulseNumber) error {
+	return nil
+}
+
 func (m *VStateReport) Validate(currPulse PulseNumber) error {
 	if err := m.validateUnimplemented(); err != nil {
 		return err

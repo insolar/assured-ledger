@@ -12,14 +12,15 @@ option (gogoproto.goproto_enum_prefix_all) = false;
 option (insproto.register_all) = "RegisterMessageType";
 
 enum CallTypeNew {
-    CTInboundAPICall = 0;
-    CTOutboundAPICall = 1;
-    CTMethod = 2;
-    CTConstructor = 3;
-    CTNotifyCall = 4;
-    CTSAGACall = 5;
-    CTParallelCall = 6;
-    CTScheduleCall = 7;
+    CTInvalid = 0; // zero value in Go
+    CTInboundAPICall = 1;
+    CTOutboundAPICall = 2;
+    CTMethod = 3;
+    CTConstructor = 4;
+    CTNotifyCall = 5;
+    CTSAGACall = 6;
+    CTParallelCall = 7;
+    CTScheduleCall = 8;
 }
 
 message VCallRequest {
