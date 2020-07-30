@@ -14,7 +14,7 @@ import (
 	"strconv"
 	"strings"
 
-	node2 "github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
@@ -22,7 +22,7 @@ import (
 )
 
 // CheckShortIDCollision returns true if nodes contains node with such ShortID
-func CheckShortIDCollision(nodes []nodeinfo.NetworkNode, id node2.ShortNodeID) bool {
+func CheckShortIDCollision(nodes []nodeinfo.NetworkNode, id node.ShortNodeID) bool {
 	for _, n := range nodes {
 		if id == n.GetNodeID() {
 			return true

@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
-	node2 "github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/common/endpoints"
@@ -25,7 +25,7 @@ import (
 )
 
 type StaticProfileExtension struct {
-	shortID   node2.ShortNodeID
+	shortID   node.ShortNodeID
 	ref       reference.Global
 	signature cryptkit.Signature
 }
@@ -38,7 +38,7 @@ func NewStaticProfileExtension(networkNode nodeinfo.NetworkNode) *StaticProfileE
 	)
 }
 
-func NewStaticProfileExtensionExt(shortID node2.ShortNodeID, ref reference.Global, signature cryptkit.Signature) *StaticProfileExtension {
+func NewStaticProfileExtensionExt(shortID node.ShortNodeID, ref reference.Global, signature cryptkit.Signature) *StaticProfileExtension {
 	return &StaticProfileExtension{
 		shortID:   shortID,
 		ref:       ref,
@@ -50,7 +50,7 @@ func (ni *StaticProfileExtension) GetPowerLevels() member.PowerSet {
 	return member.PowerSet{0, 0, 0, 0xff}
 }
 
-func (ni *StaticProfileExtension) GetIntroducedNodeID() node2.ShortNodeID {
+func (ni *StaticProfileExtension) GetIntroducedNodeID() node.ShortNodeID {
 	return ni.shortID
 }
 
@@ -66,7 +66,7 @@ func (ni *StaticProfileExtension) GetIssuedAtTime() time.Time {
 	return time.Unix(int64(pulse.NewFirstEphemeralData().Timestamp), 0)
 }
 
-func (ni *StaticProfileExtension) GetIssuerID() node2.ShortNodeID {
+func (ni *StaticProfileExtension) GetIssuerID() node.ShortNodeID {
 	return ni.shortID
 }
 
@@ -79,7 +79,7 @@ func (ni *StaticProfileExtension) GetReference() reference.Global {
 }
 
 type StaticProfile struct {
-	shortID     node2.ShortNodeID
+	shortID     node.ShortNodeID
 	primaryRole member.PrimaryRole
 	specialRole member.SpecialRole
 	intro       profiles.StaticProfileExtension
@@ -125,7 +125,7 @@ func ECDSAPublicKeyAsPublicKeyStore(pk crypto.PublicKey) cryptkit.PublicKeyStore
 }
 
 func NewStaticProfileExt2(
-	shortID node2.ShortNodeID,
+	shortID node.ShortNodeID,
 	primaryRole member.PrimaryRole,
 	specialRole member.SpecialRole,
 	intro profiles.StaticProfileExtension,
@@ -180,7 +180,7 @@ func (sp *StaticProfile) IsAcceptableHost(from endpoints.Inbound) bool {
 	return address.Equals(from.GetNameAddress())
 }
 
-func (sp *StaticProfile) GetStaticNodeID() node2.ShortNodeID {
+func (sp *StaticProfile) GetStaticNodeID() node.ShortNodeID {
 	return sp.shortID
 }
 
@@ -229,7 +229,7 @@ func (p *Outbound) GetEndpointType() endpoints.NodeEndpointType {
 	return endpoints.IPEndpoint
 }
 
-func (*Outbound) GetRelayID() node2.ShortNodeID {
+func (*Outbound) GetRelayID() node.ShortNodeID {
 	return 0
 }
 

@@ -22,7 +22,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
-	node2 "github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
@@ -339,7 +339,7 @@ func nodesFromInfo(nodeInfos []*nodeMeta) ([]nodeinfo.NetworkNode, []nodeinfo.Ne
 
 func newNetworkNode(addr string, role member.PrimaryRole, pk crypto.PublicKey) mutable.Node {
 	n := mutable.NewTestNode(gen.UniqueGlobalRef(), role, pk, addr)
-	n.SetShortID(node2.ShortNodeID(shortNodeIdOffset))
+	n.SetShortID(node.ShortNodeID(shortNodeIdOffset))
 
 	shortNodeIdOffset += 1
 	return n

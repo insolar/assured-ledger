@@ -11,7 +11,7 @@ import (
 	"net"
 	"sync"
 
-	node2 "github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
@@ -63,11 +63,11 @@ func createOrigin(configuration configuration.Transport, cert nodeinfo.Certifica
 	}
 
 	pk := cert.GetPublicKey()
-	nodeID := node2.ShortNodeID(node2.GenerateUintShortID(ref))
+	nodeID := node.ShortNodeID(node.GenerateUintShortID(ref))
 	staticExt := adapters.NewStaticProfileExtensionExt(nodeID, ref, cryptkit.Signature{})
 
 	staticProfile := adapters.NewStaticProfileExt2(
-		node2.ShortNodeID(node2.GenerateUintShortID(ref)), role, specialRole,
+		node.ShortNodeID(node.GenerateUintShortID(ref)), role, specialRole,
 		staticExt,
 		adapters.NewOutboundNoPort(publicAddress),
 		adapters.ECDSAPublicKeyAsPublicKeyStore(pk),

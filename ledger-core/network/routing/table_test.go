@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
-	node2 "github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/network"
@@ -30,7 +30,7 @@ import (
 func newNode(ref reference.Global, id int) mutable.Node {
 	address := "127.0.0.1:" + strconv.Itoa(id)
 	result := mutable.NewTestNode(ref, member.PrimaryRoleUnknown, nil, address)
-	result.SetShortID(node2.ShortNodeID(id))
+	result.SetShortID(node.ShortNodeID(id))
 	return result
 }
 
