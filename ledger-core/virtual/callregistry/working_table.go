@@ -31,19 +31,8 @@ func NewWorkingTable() WorkingTable {
 }
 
 func (wt WorkingTable) GetList(flag contract.InterferenceFlag) *WorkingList {
-	if wt.checkInterferenceFlag(flag) {
+	if flag > 0 && int(flag) <= len(wt.requests) {
 		return wt.requests[flag-1]
-	}
-	panic(throw.IllegalValue())
-}
-
-func (wt WorkingTable) checkInterferenceFlag(flag contract.InterferenceFlag) bool {
-	return flag > 0 && int(flag) <= len(wt.requests)
-}
-
-func (wt WorkingTable) CountActive(flag contract.InterferenceFlag) int {
-	if wt.checkInterferenceFlag(flag) {
-		return wt.requests[flag-1].CountActive()
 	}
 	panic(throw.IllegalValue())
 }

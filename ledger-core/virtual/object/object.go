@@ -127,9 +127,9 @@ func (i *Info) BuildStateReport() payload.VStateReport {
 	previousExecutorOrderedPendingCount := i.PendingTable.GetList(contract.CallTolerable).CountActive()
 	res := payload.VStateReport{
 		Object:                        i.Reference,
-		UnorderedPendingCount:         int32(previousExecutorUnorderedPendingCount) + int32(i.KnownRequests.CountActive(contract.CallIntolerable)),
+		UnorderedPendingCount:         int32(previousExecutorUnorderedPendingCount) + int32(i.KnownRequests.GetList(contract.CallIntolerable).CountActive()),
 		UnorderedPendingEarliestPulse: i.GetEarliestPulse(contract.CallIntolerable),
-		OrderedPendingCount:           int32(previousExecutorOrderedPendingCount) + int32(i.KnownRequests.CountActive(contract.CallTolerable)),
+		OrderedPendingCount:           int32(previousExecutorOrderedPendingCount) + int32(i.KnownRequests.GetList(contract.CallTolerable).CountActive()),
 		OrderedPendingEarliestPulse:   i.GetEarliestPulse(contract.CallTolerable),
 		ProvidedContent:               &payload.VStateReport_ProvidedContentBody{},
 	}
@@ -142,7 +142,7 @@ func (i *Info) BuildStateReport() payload.VStateReport {
 	case Inactive:
 		res.Status = payload.Inactive
 	case Empty:
-		if i.KnownRequests.CountActive(contract.CallTolerable) == 0 {
+		if i.KnownRequests.GetList(contract.CallTolerable).CountActive() == 0 {
 			// constructor has not started
 			res.Status = payload.Missing
 		} else {

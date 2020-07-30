@@ -166,8 +166,8 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 
 	smObject.SharedState.Info.KnownRequests.Add(callFlags.GetInterference(), smExecute.execution.Outgoing)
 
-	require.Equal(t, 0, smObject.KnownRequests.CountActive(contract.CallTolerable))
-	require.Equal(t, 0, smObject.KnownRequests.CountActive(contract.CallIntolerable))
+	require.Equal(t, 0, smObject.KnownRequests.GetList(contract.CallTolerable).CountActive())
+	require.Equal(t, 0, smObject.KnownRequests.GetList(contract.CallIntolerable).CountActive())
 
 	assert.Equal(t, 1, smObject.KnownRequests.Len())
 
@@ -180,8 +180,8 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 		smExecute.stepStartRequestProcessing(execCtx)
 	}
 
-	require.Equal(t, 1, smObject.KnownRequests.CountActive(contract.CallTolerable))
-	require.Equal(t, 0, smObject.KnownRequests.CountActive(contract.CallIntolerable))
+	require.Equal(t, 1, smObject.KnownRequests.GetList(contract.CallTolerable).CountActive())
+	require.Equal(t, 0, smObject.KnownRequests.GetList(contract.CallIntolerable).CountActive())
 
 	assert.Equal(t, 1, smObject.KnownRequests.Len())
 	assert.Equal(t, callregistry.RequestProcessing, smObject.KnownRequests.GetList(contract.CallTolerable).GetState(smExecute.execution.Outgoing))
