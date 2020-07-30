@@ -244,9 +244,7 @@ func (s *TestWalletServer) getBalance(w http.ResponseWriter, req *http.Request, 
 	}
 
 	result := TestWalletServerGetBalanceResult{
-		Amount:  1000,
 		TraceID: traceID,
-		Error:   "",
 	}
 
 	defer func() {
