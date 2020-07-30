@@ -6,6 +6,7 @@
 package payload
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -14,6 +15,7 @@ type Validate interface {
 }
 
 var _ Validate = &VStateReport{}
+var _ Validate = &VFindCallRequest{}
 
 func (m *VStateReport) Validate(currPulse PulseNumber) error {
 	if err := m.validateUnimplemented(); err != nil {
@@ -173,6 +175,47 @@ func (m *VStateReport) validateUnimplemented() error {
 		return throw.New("PreRegisteredEarliestPulse should be unknown")
 	case m.GetPriorityCallQueueCount() != 0:
 		return throw.New("PriorityCallQueueCount should be 0")
+	}
+
+	return nil
+}
+
+func (m *VFindCallRequest) Validate(currPulse PulseNumber) error {
+	var (
+		lookAtPulse   = m.GetLookAt()
+		calleePulse   = m.GetCallee().GetLocal().Pulse()
+		outgoingPulse = m.GetOutgoing().GetLocal().Pulse()
+	)
+
+	switch {
+	case lookAtPulse < pulse.LocalRelative:
+		return throw.New("lookAt pulse should be more or equals pulse.LocalRelative")
+	case calleePulse < pulse.LocalRelative:
+		return throw.New("callee pulse should be more or equals pulse.LocalRelative")
+	case outgoingPulse < pulse.LocalRelative:
+		return throw.New("outgoing pulse should be more or equals pulse.LocalRelative")
+
+	}
+
+	if calleePulse > lookAtPulse {
+		return throw.New("lookAt pulse should be more or equals callee pulse")
+	}
+
+	if calleePulse > outgoingPulse {
+		return throw.New("outgoing pulse should be more or equals callee pulse")
+	}
+
+	if outgoingPulse > lookAtPulse {
+		return throw.New("lookAt pulse should be more or equals outgoing pulse")
+	}
+
+	switch {
+	case lookAtPulse > currPulse:
+		return throw.New("lookAt pulse should be less or equals current pulse")
+	case calleePulse > currPulse:
+		return throw.New("callee pulse should be less or equals current pulse")
+	case outgoingPulse > currPulse:
+		return throw.New("outgoing pulse should be less or equals current pulse")
 	}
 
 	return nil
