@@ -6,11 +6,9 @@
 package execute
 
 import (
-	"context"
 	"reflect"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
@@ -21,10 +19,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
-	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
-	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/predicate"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
@@ -356,20 +351,11 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 		limiter = tool.NewRunnerLimiter(4)
 	)
 
-	slotMachine := virtualdebugger.New(ctx, t)
-	slotMachine.PrepareMockedMessageSender(mc)
-	slotMachine.PrepareRunner(ctx, mc)
-
-	gotResult := make(chan struct{}, 1)
-	slotMachine.MessageSender.SendTarget.Set(func(_ context.Context, msg payload.Marshaler, target reference.Global, _ ...messagesender.SendOption) error {
-		res := msg.(*payload.VCallResult)
-		contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments)
-		require.Error(t, contractErr)
-		require.NoError(t, sysErr)
-
-		gotResult <- struct{}{}
-		return nil
+	slotMachine := virtualdebugger.NewWithErrorFilter(ctx, t, func(s string) bool {
+		return !strings.Contains(s, "execution: impossible")
 	})
+	slotMachine.InitEmptyMessageSender(mc)
+	slotMachine.PrepareRunner(ctx, mc)
 
 	var (
 		class       = gen.UniqueGlobalRef()
@@ -431,7 +417,6 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 
 	slotMachine.RunTil(smWrapper.AfterStop())
 
-	commontestutils.WaitSignalsTimed(t, 10*time.Second, gotResult)
 	require.Equal(t, 0, sharedState.KnownRequests.GetList(contract.CallTolerable).CountActive())
 	require.Equal(t, 0, sharedState.KnownRequests.GetList(contract.CallIntolerable).CountActive())
 
