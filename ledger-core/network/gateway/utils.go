@@ -13,9 +13,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/network"
-	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
@@ -37,38 +37,28 @@ func EnsureGetPulse(ctx context.Context, report network.Report) pulse.Data {
 }
 
 func getAnnounceSignature(
-	node nodeinfo.NetworkNode,
-	address string,
+	nodeID node.ShortNodeID,
+	role member.PrimaryRole,
+	addr endpoints.IPAddress,
 	isDiscovery bool,
-	kp cryptography.KeyProcessor,
+	pk []byte,
 	keystore cryptography.KeyStore,
 	scheme cryptography.PlatformCryptographyScheme,
 ) ([]byte, *cryptography.Signature, error) {
 
 	brief := serialization.NodeBriefIntro{}
-	brief.ShortID = node.GetNodeID()
-	brief.SetPrimaryRole(nodeinfo.NodeRole(node))
+	brief.ShortID = nodeID
+	brief.SetPrimaryRole(role)
 	if isDiscovery {
 		brief.SpecialRoles = member.SpecialRoleDiscovery
 	}
 	brief.StartPower = 10
 
-	addr, err := endpoints.NewIPAddress(address)
-	if err != nil {
-		return nil, nil, err
-	}
 	copy(brief.Endpoint[:], addr[:])
-
-	pk, err := kp.ExportPublicKeyBinary(adapters.ECDSAPublicKeyOfNode(node))
-	if err != nil {
-		return nil, nil, err
-	}
-
 	copy(brief.NodePK[:], pk)
 
 	buf := &bytes.Buffer{}
-	err = brief.SerializeTo(nil, buf)
-	if err != nil {
+	if err := brief.SerializeTo(nil, buf); err != nil {
 		return nil, nil, err
 	}
 

@@ -12,7 +12,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
-	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 
 	"github.com/stretchr/testify/assert"
@@ -61,14 +60,4 @@ func newNodeKeeper(t *testing.T, service cryptography.Service) network.NodeKeepe
 	require.NoError(t, err)
 	nw.(*nodekeeper).snapshotStorage = NewMemoryStorage()
 	return nw.(network.NodeKeeper)
-}
-
-func TestNewNodeKeeper(t *testing.T) {
-	instestlogger.SetTestOutput(t)
-
-	nk := newNodeKeeper(t, nil)
-	origin := nk.GetOrigin()
-	assert.NotNil(t, origin)
-	nk.SetInitialSnapshot([]nodeinfo.NetworkNode{origin})
-	assert.NotNil(t, nk.GetAccessor(pulse.MinTimePulse))
 }

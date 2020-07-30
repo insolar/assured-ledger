@@ -25,7 +25,7 @@ import (
 // NewNodeKeeper create new NodeKeeper
 func NewNodeKeeper(origin nodeinfo.NetworkNode) network.NodeKeeper {
 	nk := &nodekeeper{
-		origin:          origin,
+//		origin:          origin,
 		originRef:       nodeinfo.NodeRef(origin),
 		snapshotStorage: NewMemoryStorage(),
 	}
@@ -65,6 +65,10 @@ func (nk *nodekeeper) GetAccessor(pn pulse.Number) network.Accessor {
 func (nk *nodekeeper) GetOrigin() nodeinfo.NetworkNode {
 	nk.syncLock.RLock()
 	defer nk.syncLock.RUnlock()
+
+	if nk.origin == nil {
+		panic(throw.IllegalState())
+	}
 
 	return nk.origin
 }

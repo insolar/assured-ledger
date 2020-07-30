@@ -10,6 +10,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters/candidate"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 )
@@ -33,10 +34,9 @@ func (c Candidate) StaticProfile(keyProcessor cryptography.KeyProcessor) *Static
 		signHolder,
 	)
 
-	return NewStaticProfileExt2(
-		c.ShortID,
-		c.PrimaryRole,
-		c.SpecialRole,
+	startPower := member.PowerOf(10) // TODO add StartPower and PowerSet to certificate
+
+	return NewStaticProfileExt2(c.ShortID, c.PrimaryRole, c.SpecialRole, startPower,
 		extension,
 		NewOutbound(c.Address),
 		NewECDSAPublicKeyStore(publicKey.(*ecdsa.PublicKey)),
@@ -44,7 +44,7 @@ func (c Candidate) StaticProfile(keyProcessor cryptography.KeyProcessor) *Static
 		cryptkit.NewSignedDigest(
 			cryptkit.NewDigest(longbits.NewBits512FromBytes(c.Digest), SHA3512Digest),
 			cryptkit.NewSignature(longbits.NewBits512FromBytes(c.Signature), SHA3512Digest.SignedBy(SECP256r1Sign)),
-		).AsSignedDigestHolder(),
+		),
 	)
 }
 

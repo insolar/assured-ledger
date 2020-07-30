@@ -7,6 +7,7 @@ package gateway
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"fmt"
 	"math/rand"
 	"sync/atomic"
@@ -16,7 +17,10 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	transport2 "github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/transport"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/censusimpl"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
@@ -171,30 +175,45 @@ func (g *Base) initConsensus(ctx context.Context) error {
 		TransportCryptography: g.transportCrypt,
 	})
 
-	// transport start should be here because of TestComponents tests, couldn't createOriginCandidate with 0 port
+	// transport start should be here because of TestComponents tests, couldn't localNodeAsCandidate with 0 port
 	err = g.datagramTransport.Start(ctx)
 	if err != nil {
 		return throw.W(err, "failed to start datagram transport")
 	}
 
-	err = g.createOriginCandidate()
+	err = g.localNodeAsCandidate()
 	if err != nil {
-		return throw.W(err, "failed to createOriginCandidate")
+		return throw.W(err, "failed to localNodeAsCandidate")
 	}
 
 	return nil
 }
 
-func (g *Base) createOriginCandidate() error {
-	// sign origin
-	origin := g.NodeKeeper.GetOrigin()
+func (g *Base) localNodeAsCandidate() error {
 
 	cert := g.CertificateManager.GetCertificate()
-	endpointAddr := g.datagramTransport.Address()
-	digest, signature, err := getAnnounceSignature(
-		origin, endpointAddr,
+	ref := cert.GetNodeRef()
+	if !reference.Equal(ref, g.NodeKeeper.GetLocalNodeReference()) {
+		panic(throw.IllegalState())
+	}
+
+	role := cert.GetRole()
+	publicKey := cert.GetPublicKey()
+
+	endpointAddr, err := endpoints.NewIPAddress(g.datagramTransport.Address())
+	if err != nil {
+		return err
+	}
+
+	pk, err := g.KeyProcessor.ExportPublicKeyBinary(publicKey)
+	if err != nil {
+		return err
+	}
+
+	id := node.GenerateUintShortID(ref)
+	digest, signature, err := getAnnounceSignature(id, role, endpointAddr,
 		network.OriginIsDiscovery(cert),
-		g.KeyProcessor,
+		pk,
 		getKeyStore(g.CryptographyService),
 		g.CryptographyScheme,
 	)
@@ -202,31 +221,41 @@ func (g *Base) createOriginCandidate() error {
 		return err
 	}
 
-	dsg := cryptkit.NewSignedDigest(
-		cryptkit.NewDigest(longbits.NewBits512FromBytes(digest), adapters.SHA3512Digest),
-		cryptkit.NewSignature(longbits.NewBits512FromBytes(signature.Bytes()), adapters.SHA3512Digest.SignedBy(adapters.SECP256r1Sign)),
+	dig := cryptkit.NewDigest(longbits.NewBits512FromBytes(digest), adapters.SHA3512Digest)
+	sig := cryptkit.NewSignature(longbits.NewBits512FromBytes(signature.Bytes()), dig.GetDigestMethod().SignedBy(adapters.SECP256r1Sign))
+	dsg := cryptkit.NewSignedDigest(dig, sig)
+
+	specialRole := member.SpecialRoleNone
+	isJoiner := false
+	if network.IsDiscovery(ref, cert) {
+		specialRole |= member.SpecialRoleDiscovery
+	} else {
+		isJoiner = true
+	}
+
+	startPower := member.PowerOf(10) // TODO add StartPower and PowerSet to certificate
+
+	staticProfile := adapters.NewStaticProfileExt2(id, role, specialRole, startPower,
+		adapters.NewStaticProfileExtensionExt(id, ref, sig),
+		adapters.NewOutboundIP(endpointAddr),
+		adapters.NewECDSAPublicKeyStore(publicKey.(*ecdsa.PublicKey)),
+		adapters.NewECDSASignatureKeyHolder(publicKey.(*ecdsa.PublicKey), g.KeyProcessor),
+		dsg,
 	)
 
-	staticProfile := adapters.NewStaticProfileExt(origin, endpointAddr, cert, g.KeyProcessor, dsg)
 	verifier := g.transportCrypt.CreateSignatureVerifierWithPKS(staticProfile.GetPublicKeyStore())
 
-	setupLocalNodeProfile(g.NodeKeeper, staticProfile, verifier)
-	g.originCandidate = adapters.NewCandidate(staticProfile, g.KeyProcessor)
-	return nil
-}
-
-func setupLocalNodeProfile(nk network.NodeKeeper, staticProfile profiles.StaticProfile, verifier cryptkit.SignatureVerifier) {
-	origin := nk.GetOrigin()
-
 	var anp censusimpl.NodeProfileSlot
-	if origin.IsJoiner() {
+	if isJoiner {
 		anp = censusimpl.NewJoinerProfile(staticProfile, verifier)
 	} else {
-		anp = censusimpl.NewNodeProfile(0, staticProfile, verifier, origin.GetStatic().GetStartPower())
+		anp = censusimpl.NewNodeProfile(0, staticProfile, verifier, startPower)
 	}
-	newOrigin := adapters.NewNetworkNode(&anp)
 
-	nk.SetInitialSnapshot([]nodeinfo.NetworkNode{newOrigin})
+	newOrigin := adapters.NewNetworkNode(&anp)
+	g.NodeKeeper.SetInitialSnapshot([]nodeinfo.NetworkNode{newOrigin})
+	g.originCandidate = adapters.NewCandidate(staticProfile, g.KeyProcessor)
+	return nil
 }
 
 func (g *Base) StartConsensus(ctx context.Context) error {

@@ -82,12 +82,13 @@ type StaticProfile struct {
 	shortID     node.ShortNodeID
 	primaryRole member.PrimaryRole
 	specialRole member.SpecialRole
+	startPower  member.Power
 	intro       profiles.StaticProfileExtension
 	endpoint    endpoints.Outbound
 	store       cryptkit.PublicKeyStore
 	keyHolder   cryptkit.SignatureKeyHolder
 
-	signature cryptkit.SignedDigestHolder
+	signature  cryptkit.SignedDigestHolder
 }
 
 func NewStaticProfile(networkNode nodeinfo.NetworkNode, certificate nodeinfo.Certificate, keyProcessor cryptography.KeyProcessor) *StaticProfile {
@@ -110,6 +111,7 @@ func NewStaticProfileExt(networkNode nodeinfo.NetworkNode, addr string, certific
 		networkNode.GetNodeID(),
 		nodeinfo.NodeRole(networkNode),
 		specialRole,
+		networkNode.GetDeclaredPower(),
 		NewStaticProfileExtension(networkNode),
 		NewOutbound(addr),
 		NewECDSAPublicKeyStore(publicKey),
@@ -137,6 +139,7 @@ func NewStaticProfileExt2(
 	shortID node.ShortNodeID,
 	primaryRole member.PrimaryRole,
 	specialRole member.SpecialRole,
+	startPower  member.Power,
 	intro profiles.StaticProfileExtension,
 	endpoint endpoints.Outbound,
 	store cryptkit.PublicKeyStore,
@@ -147,6 +150,7 @@ func NewStaticProfileExt2(
 		shortID:     shortID,
 		primaryRole: primaryRole,
 		specialRole: specialRole,
+		startPower:	 startPower,
 		intro:       intro,
 		endpoint:    endpoint,
 		store:       store,
@@ -180,8 +184,7 @@ func (sp *StaticProfile) GetNodePublicKey() cryptkit.SignatureKeyHolder {
 }
 
 func (sp *StaticProfile) GetStartPower() member.Power {
-	// TODO: get from certificate
-	return 10
+	return sp.startPower
 }
 
 func (sp *StaticProfile) IsAcceptableHost(from endpoints.Inbound) bool {
@@ -215,6 +218,13 @@ func NewOutbound(address string) *Outbound {
 	return &Outbound{
 		name: endpoints.Name(address),
 		addr: addr,
+	}
+}
+
+func NewOutboundIP(address endpoints.IPAddress) *Outbound {
+	return &Outbound{
+		name: endpoints.Name(address.String()),
+		addr: address,
 	}
 }
 

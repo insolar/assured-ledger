@@ -53,8 +53,11 @@ func createOrigin(configuration configuration.Transport, cert nodeinfo.Certifica
 	nodeID := node.GenerateUintShortID(ref)
 	staticExt := adapters.NewStaticProfileExtensionExt(nodeID, ref, cryptkit.Signature{})
 
+	startPower := member.PowerOf(10) // TODO add StartPower and PowerSet to certificate
+	id := node.GenerateUintShortID(ref)
+
 	staticProfile := adapters.NewStaticProfileExt2(
-		node.GenerateUintShortID(ref), role, specialRole,
+		id, role, specialRole, startPower,
 		staticExt,
 		adapters.NewOutboundNoPort(publicAddress),
 		adapters.ECDSAPublicKeyAsPublicKeyStore(pk),
