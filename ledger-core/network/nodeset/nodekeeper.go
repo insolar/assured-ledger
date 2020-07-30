@@ -15,6 +15,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
 
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
@@ -25,6 +26,7 @@ import (
 func NewNodeKeeper(origin nodeinfo.NetworkNode) network.NodeKeeper {
 	nk := &nodekeeper{
 		origin:          origin,
+		originRef:       origin.GetStatic().GetExtension().GetReference(),
 		snapshotStorage: NewMemoryStorage(),
 	}
 	return nk
@@ -33,10 +35,15 @@ func NewNodeKeeper(origin nodeinfo.NetworkNode) network.NodeKeeper {
 type nodekeeper struct {
 	syncLock  sync.RWMutex
 
+	originRef reference.Global
 	origin nodeinfo.NetworkNode
 	syncNodes []nodeinfo.NetworkNode
 
 	snapshotStorage *MemoryStorage
+}
+
+func (nk *nodekeeper) GetLocalNodeReference() reference.Holder {
+	return nk.originRef
 }
 
 func (nk *nodekeeper) SetInitialSnapshot(nodes []nodeinfo.NetworkNode) {
@@ -95,19 +102,11 @@ func (nk *nodekeeper) moveSyncToActive(number pulse.Number) (before, after int, 
 
 	accessor := NewAccessor(snapshot)
 
-	o := accessor.GetActiveNode(nk.origin.GetReference())
-	nk._updateOrigin(o)
+	o := accessor.GetActiveNode(nk.originRef)
+	if o == nil {
+		panic(throw.IllegalValue())
+	}
+	nk.origin = o
 
 	return len(nk.syncNodes), len(accessor.GetActiveNodes()), nil
 }
-
-func (nk *nodekeeper) _updateOrigin(n nodeinfo.NetworkNode) {
-	switch {
-	case n == nil:
-		panic(throw.IllegalValue())
-	case n.GetReference() != nk.origin.GetReference():
-		panic(throw.IllegalValue())
-	}
-	nk.origin = n
-}
-

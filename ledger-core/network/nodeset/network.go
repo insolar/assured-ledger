@@ -50,11 +50,11 @@ func createOrigin(configuration configuration.Transport, cert nodeinfo.Certifica
 	}
 
 	pk := cert.GetPublicKey()
-	nodeID := node.ShortNodeID(node.GenerateUintShortID(ref))
+	nodeID := node.GenerateUintShortID(ref)
 	staticExt := adapters.NewStaticProfileExtensionExt(nodeID, ref, cryptkit.Signature{})
 
 	staticProfile := adapters.NewStaticProfileExt2(
-		node.ShortNodeID(node.GenerateUintShortID(ref)), role, specialRole,
+		node.GenerateUintShortID(ref), role, specialRole,
 		staticExt,
 		adapters.NewOutboundNoPort(publicAddress),
 		adapters.ECDSAPublicKeyAsPublicKeyStore(pk),

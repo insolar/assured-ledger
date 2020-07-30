@@ -69,7 +69,7 @@ func TestWaitMajority_MajorityHappenedInETA(t *testing.T) {
 	})
 	accessor2 := mock.NewAccessorMock(mc)
 	accessor2.GetWorkingNodesMock.Set(func() (na1 []nodeinfo.NetworkNode) {
-		n := mutable.NewTestNode(ref, member.PrimaryRoleHeavyMaterial, nil, "127.0.0.1:123")
+		n := mutable.NewTestNode(ref, member.PrimaryRoleHeavyMaterial, "127.0.0.1:123")
 		return []nodeinfo.NetworkNode{n}
 	})
 	nodeKeeper.GetAccessorMock.Set(func(p pulse.Number) (a1 network.Accessor) {

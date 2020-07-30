@@ -110,6 +110,8 @@ type NodeKeeper interface {
 	Sync(context.Context, []nodeinfo.NetworkNode)
 	// MoveSyncToActive merge sync list with active nodes
 	MoveSyncToActive(context.Context, pulse.Number)
+
+	GetLocalNodeReference() reference.Holder
 }
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network.RoutingTable -o ../testutils/network -s _mock.go -g

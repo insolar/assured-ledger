@@ -7,104 +7,181 @@ package mutable
 
 import (
 	"crypto"
-	"sync"
-	"sync/atomic"
+	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-type Node *nodeInfo
-
-func NewTestNode(id reference.Global, role member.PrimaryRole, publicKey crypto.PublicKey, address string) Node {
-	return newMutableNode(nil, id, role, publicKey, nodeinfo.Ready, address)
+func NewTestNode(id reference.Global, role member.PrimaryRole, address string) *Node {
+	return newMutableNode(id, role, nil, nodeinfo.Ready, address)
 }
 
 func newMutableNode(
-	static profiles.StaticProfile,
 	id reference.Global,
 	role member.PrimaryRole,
 	publicKey crypto.PublicKey,
 	state nodeinfo.State,
-	address string) *nodeInfo {
+	address string) *Node {
 
-	return &nodeInfo{
-		static:        static,
+	n := &Node{
 		nodeID:        id,
 		nodeShortID:   node.GenerateUintShortID(id),
 		nodeRole:      role,
 		nodePublicKey: publicKey,
-		nodeAddress:   address,
 		state:         state,
 	}
+
+	if address != "" {
+		var err error
+		n.nodeAddress, err = endpoints.NewIPAddressZeroPort(address)
+		if err != nil {
+			panic(err)
+		}
+	}
+	return n
 }
 
-var _ nodeinfo.NetworkNode = &nodeInfo{}
-type nodeInfo struct {
-	static        profiles.StaticProfile
+var _ nodeinfo.NetworkNode = &Node{}
+type Node struct {
 	nodeID        reference.Global
-	nodeShortID   uint32
+	nodeShortID   node.ShortNodeID
 	nodePublicKey crypto.PublicKey
 	nodeRole      member.PrimaryRole
-	nodeAddress string
+	nodeAddress   endpoints.IPAddress
 	nodePower     member.Power
-	state          nodeinfo.State
-
-	mutex          sync.RWMutex
-	digest         cryptkit.SignedDigest
+	state         nodeinfo.State
+	digest        cryptkit.SignedDigest
 }
 
-func (n *nodeInfo) GetStatic() profiles.StaticProfile {
-	if n.static != nil {
-		return n.static
-	}
-	panic(throw.IllegalState())
+func (n *Node) GetEndpointType() endpoints.NodeEndpointType {
+	return endpoints.IPEndpoint
 }
 
-func (n *nodeInfo) GetState() nodeinfo.State {
-	return n.state
+func (n *Node) GetRelayID() node.ShortNodeID {
+	return 0
 }
 
-func (n *nodeInfo) GetReference() reference.Global {
-	return n.nodeID
+func (n *Node) GetNameAddress() endpoints.Name {
+	return endpoints.Name(n.nodeAddress.String())
 }
 
-func (n *nodeInfo) GetNodeID() node.ShortNodeID {
-	return node.ShortNodeID(atomic.LoadUint32(&n.nodeShortID))
-}
-
-func (n *nodeInfo) GetPrimaryRole() member.PrimaryRole {
-	return n.nodeRole
-}
-
-func (n *nodeInfo) PublicKey() crypto.PublicKey {
-	return n.nodePublicKey
-}
-
-func (n *nodeInfo) Address() string {
+func (n *Node) GetIPAddress() endpoints.IPAddress {
 	return n.nodeAddress
 }
 
-func (n *nodeInfo) GetPower() member.Power {
+func (n *Node) CanAccept(endpoints.Inbound) bool {
+	return true
+}
+
+func (n *Node) GetIntroducedNodeID() node.ShortNodeID {
+	return n.nodeShortID
+}
+
+func (n *Node) GetPowerLevels() member.PowerSet {
+	return member.PowerSet{0, 0, 0, n.nodePower}
+}
+
+func (n *Node) GetExtraEndpoints() []endpoints.Outbound {
+	return nil
+}
+
+func (n *Node) GetIssuedAtPulse() pulse.Number {
+	panic(throw.NotImplemented())
+}
+
+func (n *Node) GetIssuedAtTime() time.Time {
+	panic(throw.NotImplemented())
+}
+
+func (n *Node) GetIssuerID() node.ShortNodeID {
+	panic(throw.NotImplemented())
+}
+
+func (n *Node) GetIssuerSignature() cryptkit.SignatureHolder {
+	panic(throw.NotImplemented())
+}
+
+func (n *Node) GetDefaultEndpoint() endpoints.Outbound {
+	return n
+}
+
+func (n *Node) GetPublicKeyStore() cryptkit.PublicKeyStore {
+	panic("implement me")
+}
+
+func (n *Node) IsAcceptableHost(from endpoints.Inbound) bool {
+	return true
+}
+
+func (n *Node) GetStaticNodeID() node.ShortNodeID {
+	return n.nodeShortID
+}
+
+func (n *Node) GetSpecialRoles() member.SpecialRole {
+	return 0
+}
+
+func (n *Node) GetNodePublicKey() cryptkit.SignatureKeyHolder {
+	panic("implement me")
+}
+
+func (n *Node) GetStartPower() member.Power {
 	return n.nodePower
 }
 
-func (n *nodeInfo) GetSignature() cryptkit.SignedDigestHolder {
-	n.mutex.RLock()
-	defer n.mutex.RUnlock()
-
+func (n *Node) GetBriefIntroSignedDigest() cryptkit.SignedDigestHolder {
 	return n.digest
 }
 
-func (n *nodeInfo) SetSignature(digest cryptkit.SignedDigest) {
-	n.mutex.Lock()
-	defer n.mutex.Unlock()
+func (n *Node) GetExtension() profiles.StaticProfileExtension {
+	return n
+}
 
+func (n *Node) GetStatic() profiles.StaticProfile {
+	return n
+}
+
+func (n *Node) GetState() nodeinfo.State {
+	return n.state
+}
+
+func (n *Node) GetReference() reference.Global {
+	return n.nodeID
+}
+
+func (n *Node) GetNodeID() node.ShortNodeID {
+	return n.nodeShortID
+}
+
+func (n *Node) GetPrimaryRole() member.PrimaryRole {
+	return n.nodeRole
+}
+
+func (n *Node) PublicKey() crypto.PublicKey {
+	return n.nodePublicKey
+}
+
+func (n *Node) Address() string {
+	return n.nodeAddress.String()
+}
+
+func (n *Node) GetPower() member.Power {
+	return n.nodePower
+}
+
+func (n *Node) GetSignature() cryptkit.SignedDigestHolder {
+	return n.digest
+}
+
+func (n *Node) SetSignature(digest cryptkit.SignedDigest) {
 	// cryptkit.NewSignedDigest(
 	// 	cryptkit.NewDigest(longbits.NewBits512FromBytes(digest), SHA3512Digest),
 	// 	cryptkit.NewSignature(longbits.NewBits512FromBytes(signature.Bytes()), SHA3512Digest.SignedBy(SECP256r1Sign)),
@@ -113,14 +190,14 @@ func (n *nodeInfo) SetSignature(digest cryptkit.SignedDigest) {
 	n.digest = digest
 }
 
-func (n *nodeInfo) SetShortID(id node.ShortNodeID) {
-	atomic.StoreUint32(&n.nodeShortID, uint32(id))
+func (n *Node) SetShortID(id node.ShortNodeID) {
+	n.nodeShortID = id
 }
 
-func (n *nodeInfo) IsJoiner() bool {
+func (n *Node) IsJoiner() bool {
 	return n.GetState() == nodeinfo.Joining
 }
 
-func (n *nodeInfo) IsPowered() bool {
+func (n *Node) IsPowered() bool {
 	return n.GetState() == nodeinfo.Ready && n.GetPower() > 0
 }

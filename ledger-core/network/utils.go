@@ -111,7 +111,8 @@ func FindDiscoveriesInNodeList(nodes []nodeinfo.NetworkNode, cert nodeinfo.Certi
 	}
 
 	for _, n := range nodes {
-		if _, ok := discoveries[n.GetReference()]; ok {
+		ref := n.GetStatic().GetExtension().GetReference()
+		if _, ok := discoveries[ref]; ok {
 			result = append(result, n)
 		}
 	}

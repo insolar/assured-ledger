@@ -46,17 +46,16 @@ func (n *ServiceNetwork) sendMessage(ctx context.Context, msg *message.Message) 
 	if receiver == "" {
 		return errors.New("failed to send message: Receiver in message metadata is not set")
 	}
-	node, err := reference.GlobalFromString(receiver)
+	nodeRef, err := reference.GlobalFromString(receiver)
 	if err != nil {
 		return errors.W(err, "failed to send message: Receiver in message metadata is invalid")
 	}
-	if node.IsEmpty() {
+	if nodeRef.IsEmpty() {
 		return errors.New("failed to send message: Receiver in message metadata is empty")
 	}
 
 	// Short path when sending to self node. Skip serialization
-	origin := n.NodeKeeper.GetOrigin()
-	if node.Equal(origin.GetReference()) {
+	if nodeRef.Equal(n.NodeKeeper.GetLocalNodeReference()) {
 		err := n.Pub.Publish(getIncomingTopic(msg), msg)
 		if err != nil {
 			return errors.W(err, "error while publish msg to TopicIncoming")
@@ -67,7 +66,7 @@ func (n *ServiceNetwork) sendMessage(ctx context.Context, msg *message.Message) 
 	if err != nil {
 		return errors.W(err, "error while converting message to bytes")
 	}
-	res, err := n.RPC.SendBytes(ctx, node, deliverWatermillMsg, msgBytes)
+	res, err := n.RPC.SendBytes(ctx, nodeRef, deliverWatermillMsg, msgBytes)
 	if err != nil {
 		return errors.W(err, "error while sending watermillMsg to controller")
 	}

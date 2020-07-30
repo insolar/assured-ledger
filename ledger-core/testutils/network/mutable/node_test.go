@@ -16,6 +16,6 @@ import (
 )
 
 func TestNode_ShortID(t *testing.T) {
-	n := NewTestNode(gen.UniqueGlobalRef(), member.PrimaryRoleVirtual, nil, "127.0.0.1")
-	require.EqualValues(t, node.GenerateUintShortID(n.GetReference()), n.GetNodeID())
+	n := NewTestNode(gen.UniqueGlobalRef(), member.PrimaryRoleVirtual, "")
+	require.Equal(t, node.GenerateUintShortID(n.GetReference()), n.GetNodeID())
 }

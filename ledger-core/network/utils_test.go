@@ -22,8 +22,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/network/mutable"
 )
 
-func newTestNodeWithShortID(id node.ShortNodeID) mutable.Node {
-	n := mutable.NewTestNode(gen.UniqueGlobalRef(), member.PrimaryRoleUnknown, nil, "127.0.0.1:5432")
+func newTestNodeWithShortID(id node.ShortNodeID) *mutable.Node {
+	n := mutable.NewTestNode(gen.UniqueGlobalRef(), member.PrimaryRoleUnknown, "127.0.0.1:5432")
 	n.SetShortID(id)
 	return n
 }

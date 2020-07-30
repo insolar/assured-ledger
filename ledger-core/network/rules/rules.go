@@ -30,7 +30,8 @@ func CheckMajorityRule(cert nodeinfo.Certificate, nodes []nodeinfo.NetworkNode) 
 	for _, d := range discoveries {
 		var found bool
 		for _, n := range nodes {
-			if d.GetNodeRef().Equal(n.GetReference()) {
+			ref := n.GetStatic().GetExtension().GetReference()
+			if d.GetNodeRef().Equal(ref) {
 				found = true
 				break
 			}

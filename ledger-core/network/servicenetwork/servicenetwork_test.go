@@ -245,7 +245,7 @@ func TestServiceNetwork_StartStop(t *testing.T) {
 	cm.SetLogger(global.Logger())
 
 	origin := gen.UniqueGlobalRef()
-	nk := nodeset.NewNodeKeeper(mutable.NewTestNode(origin, member.PrimaryRoleUnknown, nil, "127.0.0.1:0"))
+	nk := nodeset.NewNodeKeeper(mutable.NewTestNode(origin, member.PrimaryRoleUnknown, "127.0.0.1:0"))
 	cert := &mandates.Certificate{}
 	cert.Reference = origin.String()
 	certManager := mandates.NewCertificateManager(cert)

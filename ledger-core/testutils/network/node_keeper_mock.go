@@ -12,6 +12,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	mm_network "github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
 // NodeKeeperMock implements network.NodeKeeper
@@ -23,6 +24,12 @@ type NodeKeeperMock struct {
 	afterGetAccessorCounter  uint64
 	beforeGetAccessorCounter uint64
 	GetAccessorMock          mNodeKeeperMockGetAccessor
+
+	funcGetLocalNodeReference          func() (h1 reference.Holder)
+	inspectFuncGetLocalNodeReference   func()
+	afterGetLocalNodeReferenceCounter  uint64
+	beforeGetLocalNodeReferenceCounter uint64
+	GetLocalNodeReferenceMock          mNodeKeeperMockGetLocalNodeReference
 
 	funcGetOrigin          func() (n1 nodeinfo.NetworkNode)
 	inspectFuncGetOrigin   func()
@@ -58,6 +65,8 @@ func NewNodeKeeperMock(t minimock.Tester) *NodeKeeperMock {
 
 	m.GetAccessorMock = mNodeKeeperMockGetAccessor{mock: m}
 	m.GetAccessorMock.callArgs = []*NodeKeeperMockGetAccessorParams{}
+
+	m.GetLocalNodeReferenceMock = mNodeKeeperMockGetLocalNodeReference{mock: m}
 
 	m.GetOriginMock = mNodeKeeperMockGetOrigin{mock: m}
 
@@ -285,6 +294,149 @@ func (m *NodeKeeperMock) MinimockGetAccessorInspect() {
 	// if func was set then invocations count should be greater than zero
 	if m.funcGetAccessor != nil && mm_atomic.LoadUint64(&m.afterGetAccessorCounter) < 1 {
 		m.t.Error("Expected call to NodeKeeperMock.GetAccessor")
+	}
+}
+
+type mNodeKeeperMockGetLocalNodeReference struct {
+	mock               *NodeKeeperMock
+	defaultExpectation *NodeKeeperMockGetLocalNodeReferenceExpectation
+	expectations       []*NodeKeeperMockGetLocalNodeReferenceExpectation
+}
+
+// NodeKeeperMockGetLocalNodeReferenceExpectation specifies expectation struct of the NodeKeeper.GetLocalNodeReference
+type NodeKeeperMockGetLocalNodeReferenceExpectation struct {
+	mock *NodeKeeperMock
+
+	results *NodeKeeperMockGetLocalNodeReferenceResults
+	Counter uint64
+}
+
+// NodeKeeperMockGetLocalNodeReferenceResults contains results of the NodeKeeper.GetLocalNodeReference
+type NodeKeeperMockGetLocalNodeReferenceResults struct {
+	h1 reference.Holder
+}
+
+// Expect sets up expected params for NodeKeeper.GetLocalNodeReference
+func (mmGetLocalNodeReference *mNodeKeeperMockGetLocalNodeReference) Expect() *mNodeKeeperMockGetLocalNodeReference {
+	if mmGetLocalNodeReference.mock.funcGetLocalNodeReference != nil {
+		mmGetLocalNodeReference.mock.t.Fatalf("NodeKeeperMock.GetLocalNodeReference mock is already set by Set")
+	}
+
+	if mmGetLocalNodeReference.defaultExpectation == nil {
+		mmGetLocalNodeReference.defaultExpectation = &NodeKeeperMockGetLocalNodeReferenceExpectation{}
+	}
+
+	return mmGetLocalNodeReference
+}
+
+// Inspect accepts an inspector function that has same arguments as the NodeKeeper.GetLocalNodeReference
+func (mmGetLocalNodeReference *mNodeKeeperMockGetLocalNodeReference) Inspect(f func()) *mNodeKeeperMockGetLocalNodeReference {
+	if mmGetLocalNodeReference.mock.inspectFuncGetLocalNodeReference != nil {
+		mmGetLocalNodeReference.mock.t.Fatalf("Inspect function is already set for NodeKeeperMock.GetLocalNodeReference")
+	}
+
+	mmGetLocalNodeReference.mock.inspectFuncGetLocalNodeReference = f
+
+	return mmGetLocalNodeReference
+}
+
+// Return sets up results that will be returned by NodeKeeper.GetLocalNodeReference
+func (mmGetLocalNodeReference *mNodeKeeperMockGetLocalNodeReference) Return(h1 reference.Holder) *NodeKeeperMock {
+	if mmGetLocalNodeReference.mock.funcGetLocalNodeReference != nil {
+		mmGetLocalNodeReference.mock.t.Fatalf("NodeKeeperMock.GetLocalNodeReference mock is already set by Set")
+	}
+
+	if mmGetLocalNodeReference.defaultExpectation == nil {
+		mmGetLocalNodeReference.defaultExpectation = &NodeKeeperMockGetLocalNodeReferenceExpectation{mock: mmGetLocalNodeReference.mock}
+	}
+	mmGetLocalNodeReference.defaultExpectation.results = &NodeKeeperMockGetLocalNodeReferenceResults{h1}
+	return mmGetLocalNodeReference.mock
+}
+
+//Set uses given function f to mock the NodeKeeper.GetLocalNodeReference method
+func (mmGetLocalNodeReference *mNodeKeeperMockGetLocalNodeReference) Set(f func() (h1 reference.Holder)) *NodeKeeperMock {
+	if mmGetLocalNodeReference.defaultExpectation != nil {
+		mmGetLocalNodeReference.mock.t.Fatalf("Default expectation is already set for the NodeKeeper.GetLocalNodeReference method")
+	}
+
+	if len(mmGetLocalNodeReference.expectations) > 0 {
+		mmGetLocalNodeReference.mock.t.Fatalf("Some expectations are already set for the NodeKeeper.GetLocalNodeReference method")
+	}
+
+	mmGetLocalNodeReference.mock.funcGetLocalNodeReference = f
+	return mmGetLocalNodeReference.mock
+}
+
+// GetLocalNodeReference implements network.NodeKeeper
+func (mmGetLocalNodeReference *NodeKeeperMock) GetLocalNodeReference() (h1 reference.Holder) {
+	mm_atomic.AddUint64(&mmGetLocalNodeReference.beforeGetLocalNodeReferenceCounter, 1)
+	defer mm_atomic.AddUint64(&mmGetLocalNodeReference.afterGetLocalNodeReferenceCounter, 1)
+
+	if mmGetLocalNodeReference.inspectFuncGetLocalNodeReference != nil {
+		mmGetLocalNodeReference.inspectFuncGetLocalNodeReference()
+	}
+
+	if mmGetLocalNodeReference.GetLocalNodeReferenceMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmGetLocalNodeReference.GetLocalNodeReferenceMock.defaultExpectation.Counter, 1)
+
+		mm_results := mmGetLocalNodeReference.GetLocalNodeReferenceMock.defaultExpectation.results
+		if mm_results == nil {
+			mmGetLocalNodeReference.t.Fatal("No results are set for the NodeKeeperMock.GetLocalNodeReference")
+		}
+		return (*mm_results).h1
+	}
+	if mmGetLocalNodeReference.funcGetLocalNodeReference != nil {
+		return mmGetLocalNodeReference.funcGetLocalNodeReference()
+	}
+	mmGetLocalNodeReference.t.Fatalf("Unexpected call to NodeKeeperMock.GetLocalNodeReference.")
+	return
+}
+
+// GetLocalNodeReferenceAfterCounter returns a count of finished NodeKeeperMock.GetLocalNodeReference invocations
+func (mmGetLocalNodeReference *NodeKeeperMock) GetLocalNodeReferenceAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetLocalNodeReference.afterGetLocalNodeReferenceCounter)
+}
+
+// GetLocalNodeReferenceBeforeCounter returns a count of NodeKeeperMock.GetLocalNodeReference invocations
+func (mmGetLocalNodeReference *NodeKeeperMock) GetLocalNodeReferenceBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetLocalNodeReference.beforeGetLocalNodeReferenceCounter)
+}
+
+// MinimockGetLocalNodeReferenceDone returns true if the count of the GetLocalNodeReference invocations corresponds
+// the number of defined expectations
+func (m *NodeKeeperMock) MinimockGetLocalNodeReferenceDone() bool {
+	for _, e := range m.GetLocalNodeReferenceMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.GetLocalNodeReferenceMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetLocalNodeReferenceCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcGetLocalNodeReference != nil && mm_atomic.LoadUint64(&m.afterGetLocalNodeReferenceCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockGetLocalNodeReferenceInspect logs each unmet expectation
+func (m *NodeKeeperMock) MinimockGetLocalNodeReferenceInspect() {
+	for _, e := range m.GetLocalNodeReferenceMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Error("Expected call to NodeKeeperMock.GetLocalNodeReference")
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.GetLocalNodeReferenceMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetLocalNodeReferenceCounter) < 1 {
+		m.t.Error("Expected call to NodeKeeperMock.GetLocalNodeReference")
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcGetLocalNodeReference != nil && mm_atomic.LoadUint64(&m.afterGetLocalNodeReferenceCounter) < 1 {
+		m.t.Error("Expected call to NodeKeeperMock.GetLocalNodeReference")
 	}
 }
 
@@ -999,6 +1151,8 @@ func (m *NodeKeeperMock) MinimockFinish() {
 	if !m.minimockDone() {
 		m.MinimockGetAccessorInspect()
 
+		m.MinimockGetLocalNodeReferenceInspect()
+
 		m.MinimockGetOriginInspect()
 
 		m.MinimockMoveSyncToActiveInspect()
@@ -1030,6 +1184,7 @@ func (m *NodeKeeperMock) minimockDone() bool {
 	done := true
 	return done &&
 		m.MinimockGetAccessorDone() &&
+		m.MinimockGetLocalNodeReferenceDone() &&
 		m.MinimockGetOriginDone() &&
 		m.MinimockMoveSyncToActiveDone() &&
 		m.MinimockSetInitialSnapshotDone() &&

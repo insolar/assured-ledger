@@ -33,7 +33,7 @@ func createBase(mc *minimock.Controller) *Base {
 	})
 
 	nk := mock.NewNodeKeeperMock(mc)
-	nk.GetOriginMock.Return(mutable.NewTestNode(gen.UniqueGlobalRef(), member.PrimaryRoleVirtual, nil, "127.0.0.1:123"))
+	nk.GetOriginMock.Return(mutable.NewTestNode(gen.UniqueGlobalRef(), member.PrimaryRoleVirtual, "127.0.0.1:123"))
 	b.NodeKeeper = nk
 	b.Aborter = aborter
 	return b
