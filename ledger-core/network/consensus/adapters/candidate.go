@@ -25,18 +25,18 @@ func (c Candidate) StaticProfile(keyProcessor cryptography.KeyProcessor) *Static
 	signHolder := cryptkit.NewSignature(
 		longbits.NewBits512FromBytes(c.Signature),
 		SHA3512Digest.SignedBy(SECP256r1Sign),
-	).AsSignatureHolder()
+	)
 
-	extension := newStaticProfileExtension(
+	extension := NewStaticProfileExtensionExt(
 		c.ShortID,
 		c.Ref,
 		signHolder,
 	)
 
-	return newStaticProfile(
-		c.ShortID,
-		c.PrimaryRole,
-		c.SpecialRole,
+	// TODO start power level is not passed properly - needs fix
+	startPower := DefaultStartPower
+
+	return NewStaticProfileExt2(c.ShortID, c.PrimaryRole, c.SpecialRole, startPower,
 		extension,
 		NewOutbound(c.Address),
 		NewECDSAPublicKeyStore(publicKey.(*ecdsa.PublicKey)),
@@ -44,7 +44,7 @@ func (c Candidate) StaticProfile(keyProcessor cryptography.KeyProcessor) *Static
 		cryptkit.NewSignedDigest(
 			cryptkit.NewDigest(longbits.NewBits512FromBytes(c.Digest), SHA3512Digest),
 			cryptkit.NewSignature(longbits.NewBits512FromBytes(c.Signature), SHA3512Digest.SignedBy(SECP256r1Sign)),
-		).AsSignedDigestHolder(),
+		),
 	)
 }
 

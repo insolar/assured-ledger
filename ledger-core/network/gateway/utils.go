@@ -13,7 +13,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
@@ -21,6 +21,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/serialization"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
 
@@ -36,38 +37,25 @@ func EnsureGetPulse(ctx context.Context, report network.Report) pulse.Data {
 	return report.PulseData
 }
 
-func getAnnounceSignature(
-	node nodeinfo.NetworkNode,
-	isDiscovery bool,
-	kp cryptography.KeyProcessor,
-	keystore cryptography.KeyStore,
-	scheme cryptography.PlatformCryptographyScheme,
+func CalcAnnounceSignature(nodeID node.ShortNodeID, role member.PrimaryRole, addr endpoints.IPAddress, startPower member.Power, isDiscovery bool,
+	pk []byte, keystore cryptography.KeyStore, scheme cryptography.PlatformCryptographyScheme,
 ) ([]byte, *cryptography.Signature, error) {
 
 	brief := serialization.NodeBriefIntro{}
-	brief.ShortID = node.ShortID()
-	brief.SetPrimaryRole(adapters.StaticRoleToPrimaryRole(node.Role()))
+	brief.ShortID = nodeID
+	brief.SetPrimaryRole(role)
 	if isDiscovery {
 		brief.SpecialRoles = member.SpecialRoleDiscovery
 	}
-	brief.StartPower = 10
 
-	addr, err := endpoints.NewIPAddress(node.Address())
-	if err != nil {
-		return nil, nil, err
-	}
+	// TODO start power level is not passed properly - needs fix
+	brief.StartPower = adapters.DefaultStartPower // startPower
+
 	copy(brief.Endpoint[:], addr[:])
-
-	pk, err := kp.ExportPublicKeyBinary(node.PublicKey())
-	if err != nil {
-		return nil, nil, err
-	}
-
 	copy(brief.NodePK[:], pk)
 
 	buf := &bytes.Buffer{}
-	err = brief.SerializeTo(nil, buf)
-	if err != nil {
+	if err := brief.SerializeTo(nil, buf); err != nil {
 		return nil, nil, err
 	}
 

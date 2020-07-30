@@ -36,12 +36,10 @@ func NewECDSASignatureVerifierFactory(
 }
 
 func (vf *ECDSASignatureVerifierFactory) CreateSignatureVerifierWithPKS(pks cryptkit.PublicKeyStore) cryptkit.SignatureVerifier {
-	keyStore := pks.(*ECDSAPublicKeyStore)
-
 	return NewECDSASignatureVerifier(
 		vf.digester,
 		vf.scheme,
-		keyStore.publicKey,
+		pks.(*ECDSAPublicKeyStore).publicKey,
 	)
 }
 

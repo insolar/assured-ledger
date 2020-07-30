@@ -8,11 +8,11 @@ package bootstrap
 import (
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/network"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
-	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/host"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -21,9 +21,9 @@ import (
 const permitTTL = 300
 
 // CreatePermit creates permit as signed protobuf for joiner node to
-func CreatePermit(authorityNodeRef reference.Global, reconnectHost *host.Host, joinerPublicKey []byte, signer cryptography.Signer) (*packet.Permit, error) {
+func CreatePermit(authorityNodeRef reference.Holder, reconnectHost *host.Host, joinerPublicKey []byte, signer cryptography.Signer) (*packet.Permit, error) {
 	payload := packet.PermitPayload{
-		AuthorityNodeRef: authorityNodeRef,
+		AuthorityNodeRef: reference.Copy(authorityNodeRef),
 		ExpireTimestamp:  time.Now().Unix() + permitTTL,
 		ReconnectTo:      reconnectHost,
 		JoinerPublicKey:  joinerPublicKey,

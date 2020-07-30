@@ -6,10 +6,10 @@
 package servicenetwork
 
 import (
-	"context"
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/network"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/version"
 )
 
@@ -19,16 +19,14 @@ func (n *ServiceNetwork) GetNetworkStatus() network.StatusReply {
 	var reply network.StatusReply
 	reply.NetworkState = n.Gatewayer.Gateway().GetState()
 
-	np := n.Gatewayer.Gateway().LatestPulse(context.TODO())
-	// np, err := n.PulseAccessor.Latest(context.Background())
-	// if err != nil {
-	// 	np = pulsestor.GenesisPulse
-	// }
-	reply.PulseNumber = np.PulseNumber
-	copy(reply.PulseEntropy[:], np.PulseEntropy[:])
+	na := n.NodeKeeper.GetLatestAccessor()
 
-	activeNodes := n.NodeKeeper.GetAccessor(np.PulseNumber).GetActiveNodes()
-	workingNodes := n.NodeKeeper.GetAccessor(np.PulseNumber).GetWorkingNodes()
+	var activeNodes, workingNodes []nodeinfo.NetworkNode
+	if na != nil {
+		reply.PulseNumber = na.GetPulseNumber()
+		activeNodes = na.GetActiveNodes()
+		workingNodes = na.GetWorkingNodes()
+	}
 
 	reply.ActiveListSize = len(activeNodes)
 	reply.WorkingListSize = len(workingNodes)
