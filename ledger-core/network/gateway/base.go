@@ -22,7 +22,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/censusimpl"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
-	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/version"
 
@@ -81,7 +80,7 @@ type Base struct {
 	originCandidate *adapters.Candidate
 
 	// Next request backoff.
-	backoff synckit.Backoff
+	backoff time.Duration // nolint
 
 	pulseWatchdog *pulseWatchdog
 
@@ -133,12 +132,6 @@ func (g *Base) Init(ctx context.Context) error {
 	g.HostNetwork.RegisterRequestHandler(types.Reconnect, g.HandleReconnect)
 
 	g.bootstrapETA = g.Options.BootstrapTimeout
-
-	g.backoff = synckit.Backoff{
-		Min:    g.Options.MinTimeout,
-		Max:    g.Options.MaxTimeout,
-		Factor: float64(g.Options.TimeoutMult),
-	}
 
 	return g.initConsensus(ctx)
 }
