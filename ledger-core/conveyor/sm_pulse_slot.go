@@ -9,17 +9,13 @@ package conveyor
 
 import (
 	"context"
-	"crypto/rand"
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/sworker"
-	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
-	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
-	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -232,9 +228,7 @@ func (p *PulseSlotMachine) preparePulseChange(ctx smachine.BargeInContext, outFn
 
 	if outFn != nil {
 		// TODO temporary hack
-		nshBytes := longbits.Bits512{}
-		_, _ = rand.Read(nshBytes[:])
-		outFn(beat.AckData{UpstreamState: api.UpstreamState{NodeState: cryptkit.NewDigest(nshBytes, "random")}})
+		outFn(beat.AckData{})
 	}
 
 	if !isSlotInitialized(ctx) {
