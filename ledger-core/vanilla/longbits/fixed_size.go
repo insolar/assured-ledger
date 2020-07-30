@@ -135,6 +135,9 @@ func (c fixedSize) FixedByteSize() int {
 }
 
 func AsBytes(v FixedReader) []byte {
+	if v == nil {
+		return nil
+	}
 	n := v.FixedByteSize()
 	if n == 0 {
 		return nil

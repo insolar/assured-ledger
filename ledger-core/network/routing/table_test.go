@@ -9,27 +9,25 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
-	node2 "github.com/insolar/assured-ledger/ledger-core/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
-	"github.com/insolar/assured-ledger/ledger-core/network"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	mock "github.com/insolar/assured-ledger/ledger-core/testutils/network"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/network/mutable"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/network/node"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeset"
 )
 
-func newNode(ref reference.Global, id int) nodeinfo.NetworkNode {
+func newNode(ref reference.Global, id int) *mutable.Node {
 	address := "127.0.0.1:" + strconv.Itoa(id)
-	result := node.NewNode(ref, member.PrimaryRoleUnknown, nil, address, "")
-	result.(node.MutableNode).SetShortID(node2.ShortNodeID(id))
+	result := mutable.NewTestNode(ref, member.PrimaryRoleUnknown, address)
+	result.SetShortID(node.ShortNodeID(id))
 	return result
 }
 
@@ -37,17 +35,13 @@ func TestTable_Resolve(t *testing.T) {
 	table := Table{}
 
 	refs := gen.UniqueGlobalRefs(2)
-	puls := pulsestor.GenesisPulse
+
+	na := nodeset.NewAccessor(nodeset.NewSnapshot(pulse.MinTimePulse, []nodeinfo.NetworkNode{newNode(refs[0], 123)}))
+
 	nodeKeeperMock := mock.NewNodeKeeperMock(t)
-	nodeKeeperMock.GetAccessorMock.Set(func(p1 pulse.Number) network.Accessor {
-		n := newNode(refs[0], 123)
-		return node.NewAccessor(node.NewSnapshot(puls.PulseNumber, []nodeinfo.NetworkNode{n}))
-	})
+	nodeKeeperMock.GetAccessorMock.Return(na)
+	nodeKeeperMock.GetLatestAccessorMock.Return(na)
 
-	pulseAccessorMock := beat.NewAccessorMock(t)
-	pulseAccessorMock.LatestMock.Return(puls, nil)
-
-	table.PulseAccessor = pulseAccessorMock
 	table.NodeKeeper = nodeKeeperMock
 
 	h, err := table.Resolve(refs[0])

@@ -8,9 +8,11 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	mm_network "github.com/insolar/assured-ledger/ledger-core/network"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
 // NodeNetworkMock implements network.NodeNetwork
@@ -22,6 +24,24 @@ type NodeNetworkMock struct {
 	afterGetAccessorCounter  uint64
 	beforeGetAccessorCounter uint64
 	GetAccessorMock          mNodeNetworkMockGetAccessor
+
+	funcGetLatestAccessor          func() (a1 mm_network.Accessor)
+	inspectFuncGetLatestAccessor   func()
+	afterGetLatestAccessorCounter  uint64
+	beforeGetLatestAccessorCounter uint64
+	GetLatestAccessorMock          mNodeNetworkMockGetLatestAccessor
+
+	funcGetLocalNodeReference          func() (h1 reference.Holder)
+	inspectFuncGetLocalNodeReference   func()
+	afterGetLocalNodeReferenceCounter  uint64
+	beforeGetLocalNodeReferenceCounter uint64
+	GetLocalNodeReferenceMock          mNodeNetworkMockGetLocalNodeReference
+
+	funcGetLocalNodeRole          func() (p1 member.PrimaryRole)
+	inspectFuncGetLocalNodeRole   func()
+	afterGetLocalNodeRoleCounter  uint64
+	beforeGetLocalNodeRoleCounter uint64
+	GetLocalNodeRoleMock          mNodeNetworkMockGetLocalNodeRole
 
 	funcGetOrigin          func() (n1 nodeinfo.NetworkNode)
 	inspectFuncGetOrigin   func()
@@ -39,6 +59,12 @@ func NewNodeNetworkMock(t minimock.Tester) *NodeNetworkMock {
 
 	m.GetAccessorMock = mNodeNetworkMockGetAccessor{mock: m}
 	m.GetAccessorMock.callArgs = []*NodeNetworkMockGetAccessorParams{}
+
+	m.GetLatestAccessorMock = mNodeNetworkMockGetLatestAccessor{mock: m}
+
+	m.GetLocalNodeReferenceMock = mNodeNetworkMockGetLocalNodeReference{mock: m}
+
+	m.GetLocalNodeRoleMock = mNodeNetworkMockGetLocalNodeRole{mock: m}
 
 	m.GetOriginMock = mNodeNetworkMockGetOrigin{mock: m}
 
@@ -260,6 +286,435 @@ func (m *NodeNetworkMock) MinimockGetAccessorInspect() {
 	}
 }
 
+type mNodeNetworkMockGetLatestAccessor struct {
+	mock               *NodeNetworkMock
+	defaultExpectation *NodeNetworkMockGetLatestAccessorExpectation
+	expectations       []*NodeNetworkMockGetLatestAccessorExpectation
+}
+
+// NodeNetworkMockGetLatestAccessorExpectation specifies expectation struct of the NodeNetwork.GetLatestAccessor
+type NodeNetworkMockGetLatestAccessorExpectation struct {
+	mock *NodeNetworkMock
+
+	results *NodeNetworkMockGetLatestAccessorResults
+	Counter uint64
+}
+
+// NodeNetworkMockGetLatestAccessorResults contains results of the NodeNetwork.GetLatestAccessor
+type NodeNetworkMockGetLatestAccessorResults struct {
+	a1 mm_network.Accessor
+}
+
+// Expect sets up expected params for NodeNetwork.GetLatestAccessor
+func (mmGetLatestAccessor *mNodeNetworkMockGetLatestAccessor) Expect() *mNodeNetworkMockGetLatestAccessor {
+	if mmGetLatestAccessor.mock.funcGetLatestAccessor != nil {
+		mmGetLatestAccessor.mock.t.Fatalf("NodeNetworkMock.GetLatestAccessor mock is already set by Set")
+	}
+
+	if mmGetLatestAccessor.defaultExpectation == nil {
+		mmGetLatestAccessor.defaultExpectation = &NodeNetworkMockGetLatestAccessorExpectation{}
+	}
+
+	return mmGetLatestAccessor
+}
+
+// Inspect accepts an inspector function that has same arguments as the NodeNetwork.GetLatestAccessor
+func (mmGetLatestAccessor *mNodeNetworkMockGetLatestAccessor) Inspect(f func()) *mNodeNetworkMockGetLatestAccessor {
+	if mmGetLatestAccessor.mock.inspectFuncGetLatestAccessor != nil {
+		mmGetLatestAccessor.mock.t.Fatalf("Inspect function is already set for NodeNetworkMock.GetLatestAccessor")
+	}
+
+	mmGetLatestAccessor.mock.inspectFuncGetLatestAccessor = f
+
+	return mmGetLatestAccessor
+}
+
+// Return sets up results that will be returned by NodeNetwork.GetLatestAccessor
+func (mmGetLatestAccessor *mNodeNetworkMockGetLatestAccessor) Return(a1 mm_network.Accessor) *NodeNetworkMock {
+	if mmGetLatestAccessor.mock.funcGetLatestAccessor != nil {
+		mmGetLatestAccessor.mock.t.Fatalf("NodeNetworkMock.GetLatestAccessor mock is already set by Set")
+	}
+
+	if mmGetLatestAccessor.defaultExpectation == nil {
+		mmGetLatestAccessor.defaultExpectation = &NodeNetworkMockGetLatestAccessorExpectation{mock: mmGetLatestAccessor.mock}
+	}
+	mmGetLatestAccessor.defaultExpectation.results = &NodeNetworkMockGetLatestAccessorResults{a1}
+	return mmGetLatestAccessor.mock
+}
+
+//Set uses given function f to mock the NodeNetwork.GetLatestAccessor method
+func (mmGetLatestAccessor *mNodeNetworkMockGetLatestAccessor) Set(f func() (a1 mm_network.Accessor)) *NodeNetworkMock {
+	if mmGetLatestAccessor.defaultExpectation != nil {
+		mmGetLatestAccessor.mock.t.Fatalf("Default expectation is already set for the NodeNetwork.GetLatestAccessor method")
+	}
+
+	if len(mmGetLatestAccessor.expectations) > 0 {
+		mmGetLatestAccessor.mock.t.Fatalf("Some expectations are already set for the NodeNetwork.GetLatestAccessor method")
+	}
+
+	mmGetLatestAccessor.mock.funcGetLatestAccessor = f
+	return mmGetLatestAccessor.mock
+}
+
+// GetLatestAccessor implements network.NodeNetwork
+func (mmGetLatestAccessor *NodeNetworkMock) GetLatestAccessor() (a1 mm_network.Accessor) {
+	mm_atomic.AddUint64(&mmGetLatestAccessor.beforeGetLatestAccessorCounter, 1)
+	defer mm_atomic.AddUint64(&mmGetLatestAccessor.afterGetLatestAccessorCounter, 1)
+
+	if mmGetLatestAccessor.inspectFuncGetLatestAccessor != nil {
+		mmGetLatestAccessor.inspectFuncGetLatestAccessor()
+	}
+
+	if mmGetLatestAccessor.GetLatestAccessorMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmGetLatestAccessor.GetLatestAccessorMock.defaultExpectation.Counter, 1)
+
+		mm_results := mmGetLatestAccessor.GetLatestAccessorMock.defaultExpectation.results
+		if mm_results == nil {
+			mmGetLatestAccessor.t.Fatal("No results are set for the NodeNetworkMock.GetLatestAccessor")
+		}
+		return (*mm_results).a1
+	}
+	if mmGetLatestAccessor.funcGetLatestAccessor != nil {
+		return mmGetLatestAccessor.funcGetLatestAccessor()
+	}
+	mmGetLatestAccessor.t.Fatalf("Unexpected call to NodeNetworkMock.GetLatestAccessor.")
+	return
+}
+
+// GetLatestAccessorAfterCounter returns a count of finished NodeNetworkMock.GetLatestAccessor invocations
+func (mmGetLatestAccessor *NodeNetworkMock) GetLatestAccessorAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetLatestAccessor.afterGetLatestAccessorCounter)
+}
+
+// GetLatestAccessorBeforeCounter returns a count of NodeNetworkMock.GetLatestAccessor invocations
+func (mmGetLatestAccessor *NodeNetworkMock) GetLatestAccessorBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetLatestAccessor.beforeGetLatestAccessorCounter)
+}
+
+// MinimockGetLatestAccessorDone returns true if the count of the GetLatestAccessor invocations corresponds
+// the number of defined expectations
+func (m *NodeNetworkMock) MinimockGetLatestAccessorDone() bool {
+	for _, e := range m.GetLatestAccessorMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.GetLatestAccessorMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetLatestAccessorCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcGetLatestAccessor != nil && mm_atomic.LoadUint64(&m.afterGetLatestAccessorCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockGetLatestAccessorInspect logs each unmet expectation
+func (m *NodeNetworkMock) MinimockGetLatestAccessorInspect() {
+	for _, e := range m.GetLatestAccessorMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Error("Expected call to NodeNetworkMock.GetLatestAccessor")
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.GetLatestAccessorMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetLatestAccessorCounter) < 1 {
+		m.t.Error("Expected call to NodeNetworkMock.GetLatestAccessor")
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcGetLatestAccessor != nil && mm_atomic.LoadUint64(&m.afterGetLatestAccessorCounter) < 1 {
+		m.t.Error("Expected call to NodeNetworkMock.GetLatestAccessor")
+	}
+}
+
+type mNodeNetworkMockGetLocalNodeReference struct {
+	mock               *NodeNetworkMock
+	defaultExpectation *NodeNetworkMockGetLocalNodeReferenceExpectation
+	expectations       []*NodeNetworkMockGetLocalNodeReferenceExpectation
+}
+
+// NodeNetworkMockGetLocalNodeReferenceExpectation specifies expectation struct of the NodeNetwork.GetLocalNodeReference
+type NodeNetworkMockGetLocalNodeReferenceExpectation struct {
+	mock *NodeNetworkMock
+
+	results *NodeNetworkMockGetLocalNodeReferenceResults
+	Counter uint64
+}
+
+// NodeNetworkMockGetLocalNodeReferenceResults contains results of the NodeNetwork.GetLocalNodeReference
+type NodeNetworkMockGetLocalNodeReferenceResults struct {
+	h1 reference.Holder
+}
+
+// Expect sets up expected params for NodeNetwork.GetLocalNodeReference
+func (mmGetLocalNodeReference *mNodeNetworkMockGetLocalNodeReference) Expect() *mNodeNetworkMockGetLocalNodeReference {
+	if mmGetLocalNodeReference.mock.funcGetLocalNodeReference != nil {
+		mmGetLocalNodeReference.mock.t.Fatalf("NodeNetworkMock.GetLocalNodeReference mock is already set by Set")
+	}
+
+	if mmGetLocalNodeReference.defaultExpectation == nil {
+		mmGetLocalNodeReference.defaultExpectation = &NodeNetworkMockGetLocalNodeReferenceExpectation{}
+	}
+
+	return mmGetLocalNodeReference
+}
+
+// Inspect accepts an inspector function that has same arguments as the NodeNetwork.GetLocalNodeReference
+func (mmGetLocalNodeReference *mNodeNetworkMockGetLocalNodeReference) Inspect(f func()) *mNodeNetworkMockGetLocalNodeReference {
+	if mmGetLocalNodeReference.mock.inspectFuncGetLocalNodeReference != nil {
+		mmGetLocalNodeReference.mock.t.Fatalf("Inspect function is already set for NodeNetworkMock.GetLocalNodeReference")
+	}
+
+	mmGetLocalNodeReference.mock.inspectFuncGetLocalNodeReference = f
+
+	return mmGetLocalNodeReference
+}
+
+// Return sets up results that will be returned by NodeNetwork.GetLocalNodeReference
+func (mmGetLocalNodeReference *mNodeNetworkMockGetLocalNodeReference) Return(h1 reference.Holder) *NodeNetworkMock {
+	if mmGetLocalNodeReference.mock.funcGetLocalNodeReference != nil {
+		mmGetLocalNodeReference.mock.t.Fatalf("NodeNetworkMock.GetLocalNodeReference mock is already set by Set")
+	}
+
+	if mmGetLocalNodeReference.defaultExpectation == nil {
+		mmGetLocalNodeReference.defaultExpectation = &NodeNetworkMockGetLocalNodeReferenceExpectation{mock: mmGetLocalNodeReference.mock}
+	}
+	mmGetLocalNodeReference.defaultExpectation.results = &NodeNetworkMockGetLocalNodeReferenceResults{h1}
+	return mmGetLocalNodeReference.mock
+}
+
+//Set uses given function f to mock the NodeNetwork.GetLocalNodeReference method
+func (mmGetLocalNodeReference *mNodeNetworkMockGetLocalNodeReference) Set(f func() (h1 reference.Holder)) *NodeNetworkMock {
+	if mmGetLocalNodeReference.defaultExpectation != nil {
+		mmGetLocalNodeReference.mock.t.Fatalf("Default expectation is already set for the NodeNetwork.GetLocalNodeReference method")
+	}
+
+	if len(mmGetLocalNodeReference.expectations) > 0 {
+		mmGetLocalNodeReference.mock.t.Fatalf("Some expectations are already set for the NodeNetwork.GetLocalNodeReference method")
+	}
+
+	mmGetLocalNodeReference.mock.funcGetLocalNodeReference = f
+	return mmGetLocalNodeReference.mock
+}
+
+// GetLocalNodeReference implements network.NodeNetwork
+func (mmGetLocalNodeReference *NodeNetworkMock) GetLocalNodeReference() (h1 reference.Holder) {
+	mm_atomic.AddUint64(&mmGetLocalNodeReference.beforeGetLocalNodeReferenceCounter, 1)
+	defer mm_atomic.AddUint64(&mmGetLocalNodeReference.afterGetLocalNodeReferenceCounter, 1)
+
+	if mmGetLocalNodeReference.inspectFuncGetLocalNodeReference != nil {
+		mmGetLocalNodeReference.inspectFuncGetLocalNodeReference()
+	}
+
+	if mmGetLocalNodeReference.GetLocalNodeReferenceMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmGetLocalNodeReference.GetLocalNodeReferenceMock.defaultExpectation.Counter, 1)
+
+		mm_results := mmGetLocalNodeReference.GetLocalNodeReferenceMock.defaultExpectation.results
+		if mm_results == nil {
+			mmGetLocalNodeReference.t.Fatal("No results are set for the NodeNetworkMock.GetLocalNodeReference")
+		}
+		return (*mm_results).h1
+	}
+	if mmGetLocalNodeReference.funcGetLocalNodeReference != nil {
+		return mmGetLocalNodeReference.funcGetLocalNodeReference()
+	}
+	mmGetLocalNodeReference.t.Fatalf("Unexpected call to NodeNetworkMock.GetLocalNodeReference.")
+	return
+}
+
+// GetLocalNodeReferenceAfterCounter returns a count of finished NodeNetworkMock.GetLocalNodeReference invocations
+func (mmGetLocalNodeReference *NodeNetworkMock) GetLocalNodeReferenceAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetLocalNodeReference.afterGetLocalNodeReferenceCounter)
+}
+
+// GetLocalNodeReferenceBeforeCounter returns a count of NodeNetworkMock.GetLocalNodeReference invocations
+func (mmGetLocalNodeReference *NodeNetworkMock) GetLocalNodeReferenceBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetLocalNodeReference.beforeGetLocalNodeReferenceCounter)
+}
+
+// MinimockGetLocalNodeReferenceDone returns true if the count of the GetLocalNodeReference invocations corresponds
+// the number of defined expectations
+func (m *NodeNetworkMock) MinimockGetLocalNodeReferenceDone() bool {
+	for _, e := range m.GetLocalNodeReferenceMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.GetLocalNodeReferenceMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetLocalNodeReferenceCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcGetLocalNodeReference != nil && mm_atomic.LoadUint64(&m.afterGetLocalNodeReferenceCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockGetLocalNodeReferenceInspect logs each unmet expectation
+func (m *NodeNetworkMock) MinimockGetLocalNodeReferenceInspect() {
+	for _, e := range m.GetLocalNodeReferenceMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Error("Expected call to NodeNetworkMock.GetLocalNodeReference")
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.GetLocalNodeReferenceMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetLocalNodeReferenceCounter) < 1 {
+		m.t.Error("Expected call to NodeNetworkMock.GetLocalNodeReference")
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcGetLocalNodeReference != nil && mm_atomic.LoadUint64(&m.afterGetLocalNodeReferenceCounter) < 1 {
+		m.t.Error("Expected call to NodeNetworkMock.GetLocalNodeReference")
+	}
+}
+
+type mNodeNetworkMockGetLocalNodeRole struct {
+	mock               *NodeNetworkMock
+	defaultExpectation *NodeNetworkMockGetLocalNodeRoleExpectation
+	expectations       []*NodeNetworkMockGetLocalNodeRoleExpectation
+}
+
+// NodeNetworkMockGetLocalNodeRoleExpectation specifies expectation struct of the NodeNetwork.GetLocalNodeRole
+type NodeNetworkMockGetLocalNodeRoleExpectation struct {
+	mock *NodeNetworkMock
+
+	results *NodeNetworkMockGetLocalNodeRoleResults
+	Counter uint64
+}
+
+// NodeNetworkMockGetLocalNodeRoleResults contains results of the NodeNetwork.GetLocalNodeRole
+type NodeNetworkMockGetLocalNodeRoleResults struct {
+	p1 member.PrimaryRole
+}
+
+// Expect sets up expected params for NodeNetwork.GetLocalNodeRole
+func (mmGetLocalNodeRole *mNodeNetworkMockGetLocalNodeRole) Expect() *mNodeNetworkMockGetLocalNodeRole {
+	if mmGetLocalNodeRole.mock.funcGetLocalNodeRole != nil {
+		mmGetLocalNodeRole.mock.t.Fatalf("NodeNetworkMock.GetLocalNodeRole mock is already set by Set")
+	}
+
+	if mmGetLocalNodeRole.defaultExpectation == nil {
+		mmGetLocalNodeRole.defaultExpectation = &NodeNetworkMockGetLocalNodeRoleExpectation{}
+	}
+
+	return mmGetLocalNodeRole
+}
+
+// Inspect accepts an inspector function that has same arguments as the NodeNetwork.GetLocalNodeRole
+func (mmGetLocalNodeRole *mNodeNetworkMockGetLocalNodeRole) Inspect(f func()) *mNodeNetworkMockGetLocalNodeRole {
+	if mmGetLocalNodeRole.mock.inspectFuncGetLocalNodeRole != nil {
+		mmGetLocalNodeRole.mock.t.Fatalf("Inspect function is already set for NodeNetworkMock.GetLocalNodeRole")
+	}
+
+	mmGetLocalNodeRole.mock.inspectFuncGetLocalNodeRole = f
+
+	return mmGetLocalNodeRole
+}
+
+// Return sets up results that will be returned by NodeNetwork.GetLocalNodeRole
+func (mmGetLocalNodeRole *mNodeNetworkMockGetLocalNodeRole) Return(p1 member.PrimaryRole) *NodeNetworkMock {
+	if mmGetLocalNodeRole.mock.funcGetLocalNodeRole != nil {
+		mmGetLocalNodeRole.mock.t.Fatalf("NodeNetworkMock.GetLocalNodeRole mock is already set by Set")
+	}
+
+	if mmGetLocalNodeRole.defaultExpectation == nil {
+		mmGetLocalNodeRole.defaultExpectation = &NodeNetworkMockGetLocalNodeRoleExpectation{mock: mmGetLocalNodeRole.mock}
+	}
+	mmGetLocalNodeRole.defaultExpectation.results = &NodeNetworkMockGetLocalNodeRoleResults{p1}
+	return mmGetLocalNodeRole.mock
+}
+
+//Set uses given function f to mock the NodeNetwork.GetLocalNodeRole method
+func (mmGetLocalNodeRole *mNodeNetworkMockGetLocalNodeRole) Set(f func() (p1 member.PrimaryRole)) *NodeNetworkMock {
+	if mmGetLocalNodeRole.defaultExpectation != nil {
+		mmGetLocalNodeRole.mock.t.Fatalf("Default expectation is already set for the NodeNetwork.GetLocalNodeRole method")
+	}
+
+	if len(mmGetLocalNodeRole.expectations) > 0 {
+		mmGetLocalNodeRole.mock.t.Fatalf("Some expectations are already set for the NodeNetwork.GetLocalNodeRole method")
+	}
+
+	mmGetLocalNodeRole.mock.funcGetLocalNodeRole = f
+	return mmGetLocalNodeRole.mock
+}
+
+// GetLocalNodeRole implements network.NodeNetwork
+func (mmGetLocalNodeRole *NodeNetworkMock) GetLocalNodeRole() (p1 member.PrimaryRole) {
+	mm_atomic.AddUint64(&mmGetLocalNodeRole.beforeGetLocalNodeRoleCounter, 1)
+	defer mm_atomic.AddUint64(&mmGetLocalNodeRole.afterGetLocalNodeRoleCounter, 1)
+
+	if mmGetLocalNodeRole.inspectFuncGetLocalNodeRole != nil {
+		mmGetLocalNodeRole.inspectFuncGetLocalNodeRole()
+	}
+
+	if mmGetLocalNodeRole.GetLocalNodeRoleMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmGetLocalNodeRole.GetLocalNodeRoleMock.defaultExpectation.Counter, 1)
+
+		mm_results := mmGetLocalNodeRole.GetLocalNodeRoleMock.defaultExpectation.results
+		if mm_results == nil {
+			mmGetLocalNodeRole.t.Fatal("No results are set for the NodeNetworkMock.GetLocalNodeRole")
+		}
+		return (*mm_results).p1
+	}
+	if mmGetLocalNodeRole.funcGetLocalNodeRole != nil {
+		return mmGetLocalNodeRole.funcGetLocalNodeRole()
+	}
+	mmGetLocalNodeRole.t.Fatalf("Unexpected call to NodeNetworkMock.GetLocalNodeRole.")
+	return
+}
+
+// GetLocalNodeRoleAfterCounter returns a count of finished NodeNetworkMock.GetLocalNodeRole invocations
+func (mmGetLocalNodeRole *NodeNetworkMock) GetLocalNodeRoleAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetLocalNodeRole.afterGetLocalNodeRoleCounter)
+}
+
+// GetLocalNodeRoleBeforeCounter returns a count of NodeNetworkMock.GetLocalNodeRole invocations
+func (mmGetLocalNodeRole *NodeNetworkMock) GetLocalNodeRoleBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetLocalNodeRole.beforeGetLocalNodeRoleCounter)
+}
+
+// MinimockGetLocalNodeRoleDone returns true if the count of the GetLocalNodeRole invocations corresponds
+// the number of defined expectations
+func (m *NodeNetworkMock) MinimockGetLocalNodeRoleDone() bool {
+	for _, e := range m.GetLocalNodeRoleMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.GetLocalNodeRoleMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetLocalNodeRoleCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcGetLocalNodeRole != nil && mm_atomic.LoadUint64(&m.afterGetLocalNodeRoleCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockGetLocalNodeRoleInspect logs each unmet expectation
+func (m *NodeNetworkMock) MinimockGetLocalNodeRoleInspect() {
+	for _, e := range m.GetLocalNodeRoleMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Error("Expected call to NodeNetworkMock.GetLocalNodeRole")
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.GetLocalNodeRoleMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetLocalNodeRoleCounter) < 1 {
+		m.t.Error("Expected call to NodeNetworkMock.GetLocalNodeRole")
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcGetLocalNodeRole != nil && mm_atomic.LoadUint64(&m.afterGetLocalNodeRoleCounter) < 1 {
+		m.t.Error("Expected call to NodeNetworkMock.GetLocalNodeRole")
+	}
+}
+
 type mNodeNetworkMockGetOrigin struct {
 	mock               *NodeNetworkMock
 	defaultExpectation *NodeNetworkMockGetOriginExpectation
@@ -408,6 +863,12 @@ func (m *NodeNetworkMock) MinimockFinish() {
 	if !m.minimockDone() {
 		m.MinimockGetAccessorInspect()
 
+		m.MinimockGetLatestAccessorInspect()
+
+		m.MinimockGetLocalNodeReferenceInspect()
+
+		m.MinimockGetLocalNodeRoleInspect()
+
 		m.MinimockGetOriginInspect()
 		m.t.FailNow()
 	}
@@ -433,5 +894,8 @@ func (m *NodeNetworkMock) minimockDone() bool {
 	done := true
 	return done &&
 		m.MinimockGetAccessorDone() &&
+		m.MinimockGetLatestAccessorDone() &&
+		m.MinimockGetLocalNodeReferenceDone() &&
+		m.MinimockGetLocalNodeRoleDone() &&
 		m.MinimockGetOriginDone()
 }

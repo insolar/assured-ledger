@@ -10,26 +10,26 @@ import (
 	"crypto"
 	"fmt"
 	"math/rand"
-	"reflect"
 	"strconv"
 	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor/memstor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
-	"github.com/insolar/assured-ledger/ledger-core/network/node"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeset"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
@@ -52,7 +52,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
-	"github.com/insolar/assured-ledger/ledger-core/network/nodenetwork"
 	"github.com/insolar/assured-ledger/ledger-core/network/transport"
 )
 
@@ -86,7 +85,6 @@ type testSuite struct {
 	nodesCount     int
 	ctx            context.Context
 	bootstrapNodes []*networkNode
-	//networkNodes   []*networkNode
 	pulsar TestPulsar
 	t      *testing.T
 }
@@ -102,7 +100,6 @@ func newTestSuite(t *testing.T, bootstrapCount, nodesCount int) testSuite {
 		t:              t,
 		ctx:            initLogger(instestlogger.TestContext(t), t, log.DebugLevel),
 		bootstrapNodes: make([]*networkNode, 0),
-		//networkNodes:   make([]*networkNode, 0),
 	}
 }
 
@@ -143,9 +140,9 @@ func (s *consensusSuite) Setup() {
 		bnodes := make([]nodeinfo.NetworkNode, 0)
 		for _, n := range s.bootstrapNodes {
 			o := n.serviceNetwork.NodeKeeper.GetOrigin()
-			dig, sig := o.(node.MutableNode).GetSignature()
-			require.NotNil(s.t, dig)
-			require.NotNil(s.t, sig.Bytes())
+			sdg := nodeinfo.NodeSignedDigest(o)
+			require.NotNil(s.t, sdg)
+			require.NotEmpty(s.t, sdg.GetSignatureHolder().AsByteString())
 
 			bnodes = append(bnodes, o)
 		}
@@ -156,7 +153,7 @@ func (s *consensusSuite) Setup() {
 			require.NoError(s.t, err)
 			err = n.serviceNetwork.BaseGateway.StartConsensus(s.ctx)
 			require.NoError(s.t, err)
-			n.serviceNetwork.Gatewayer.SwitchState(s.ctx, nodeinfo.CompleteNetworkState, pulsestor.GenesisPulse.Data)
+			n.serviceNetwork.Gatewayer.SwitchState(s.ctx, network.CompleteNetworkState, pulsestor.GenesisPulse.Data)
 
 			pulseReceivers = append(pulseReceivers, n.host)
 		}
@@ -322,7 +319,7 @@ func (s *consensusSuite) assertNetworkInConsistentState(p pulse.Number) {
 	var nodes []nodeinfo.NetworkNode
 
 	for _, n := range s.bootstrapNodes {
-		require.Equal(s.t, nodeinfo.CompleteNetworkState.String(),
+		require.Equal(s.t, network.CompleteNetworkState.String(),
 			n.serviceNetwork.Gatewayer.Gateway().GetState().String(),
 			"Node not in CompleteNetworkState",
 		)
@@ -331,8 +328,17 @@ func (s *consensusSuite) assertNetworkInConsistentState(p pulse.Number) {
 		activeNodes := a.GetActiveNodes()
 		if nodes == nil {
 			nodes = activeNodes
-		} else {
-			assert.True(s.t, reflect.DeepEqual(nodes, activeNodes), "lists is not equals")
+			continue
+		}
+
+		require.Equal(s.t, len(nodes), len(activeNodes))
+
+		for i, n  := range nodes {
+			an := activeNodes[i]
+			require.True(s.t, profiles.EqualStaticProfiles(n.GetStatic(), an.GetStatic(), true))
+			require.Equal(s.t, n.GetNodeID(), an.GetNodeID(), i)
+			require.Equal(s.t, adapters.ECDSAPublicKeyOfNode(n), adapters.ECDSAPublicKeyOfNode(an), i)
+			require.Equal(s.t, n.GetDeclaredPower(), an.GetDeclaredPower(), i)
 		}
 	}
 }
@@ -458,13 +464,11 @@ func incrementTestPort() int {
 }
 
 func (n *networkNode) GetActiveNodes() []nodeinfo.NetworkNode {
-	p := n.serviceNetwork.Gatewayer.Gateway().LatestPulse(n.ctx)
-	return n.serviceNetwork.NodeKeeper.GetAccessor(p.PulseNumber).GetActiveNodes()
+	return n.serviceNetwork.NodeKeeper.GetLatestAccessor().GetActiveNodes()
 }
 
 func (n *networkNode) GetWorkingNodes() []nodeinfo.NetworkNode {
-	p := n.serviceNetwork.Gatewayer.Gateway().LatestPulse(n.ctx)
-	return n.serviceNetwork.NodeKeeper.GetAccessor(p.PulseNumber).GetWorkingNodes()
+	return n.serviceNetwork.NodeKeeper.GetLatestAccessor().GetWorkingNodes()
 }
 
 func (s *testSuite) initCrypto(node *networkNode) (*mandates.CertificateManager, cryptography.Service) {
@@ -525,21 +529,21 @@ func (p *PublisherMock) Close() error {
 }
 
 // preInitNode inits previously created node with mocks and external dependencies
-func (s *testSuite) preInitNode(node *networkNode) {
+func (s *testSuite) preInitNode(nd *networkNode) {
 	cfg := configuration.NewConfiguration()
-	cfg.Host.Transport.Address = node.host
-	cfg.Service.CacheDirectory = cacheDir + node.host
+	cfg.Host.Transport.Address = nd.host
+	cfg.Service.CacheDirectory = cacheDir + nd.host
 
-	node.componentManager = component.NewManager(nil)
-	node.componentManager.SetLogger(global.Logger())
+	nd.componentManager = component.NewManager(nil)
+	nd.componentManager.SetLogger(global.Logger())
 
-	node.componentManager.Register(platformpolicy.NewPlatformCryptographyScheme())
-	serviceNetwork, err := servicenetwork.NewServiceNetwork(cfg, node.componentManager)
+	nd.componentManager.Register(platformpolicy.NewPlatformCryptographyScheme())
+	serviceNetwork, err := servicenetwork.NewServiceNetwork(cfg, nd.componentManager)
 	require.NoError(s.t, err)
 
-	certManager, cryptographyService := s.initCrypto(node)
+	certManager, cryptographyService := s.initCrypto(nd)
 
-	realKeeper, err := nodenetwork.NewNodeNetwork(cfg.Host.Transport, certManager.GetCertificate())
+	realKeeper, err := nodeset.NewNodeNetwork(cfg.Host.Transport, certManager.GetCertificate())
 	require.NoError(s.t, err)
 
 	keyProc := platformpolicy.NewKeyProcessor()
@@ -547,9 +551,9 @@ func (s *testSuite) preInitNode(node *networkNode) {
 	if UseFakeTransport {
 		// little hack: this Register will override transport.Factory
 		// in servicenetwork internal component manager with fake factory
-		node.componentManager.Register(transport.NewFakeFactory(cfg.Host.Transport))
+		nd.componentManager.Register(transport.NewFakeFactory(cfg.Host.Transport))
 	} else {
-		node.componentManager.Register(transport.NewFactory(cfg.Host.Transport))
+		nd.componentManager.Register(transport.NewFactory(cfg.Host.Transport))
 	}
 
 	pulseManager := chorus.NewConductorMock(s.t)
@@ -561,26 +565,27 @@ func (s *testSuite) preInitNode(node *networkNode) {
 	pulseManager.CommitPulseChangeMock.Return(nil)
 	pulseManager.CommitFirstPulseChangeMock.Return(nil)
 
-	node.componentManager.Inject(
+	nd.componentManager.Inject(
 		realKeeper,
 		pulseManager,
 		pubMock,
 		certManager,
 		cryptographyService,
-		keystore.NewInplaceKeyStore(node.privateKey),
+		keystore.NewInplaceKeyStore(nd.privateKey),
 		serviceNetwork,
 		keyProc,
 		memstor.NewStorageMem(),
 	)
-	node.serviceNetwork = serviceNetwork
+	nd.serviceNetwork = serviceNetwork
 
+	localNodeRef := realKeeper.GetLocalNodeReference()
 	nodeContext, _ := inslogger.WithFields(s.ctx, map[string]interface{}{
-		"node_id":      realKeeper.GetOrigin().ShortID(),
-		"node_address": realKeeper.GetOrigin().Address(),
-		"node_role":    realKeeper.GetOrigin().Role().String(),
+		"node_id":      node.GenerateShortID(localNodeRef),
+		"node_address": localNodeRef,
+		"node_role":    realKeeper.GetLocalNodeRole(),
 	})
 
-	node.ctx = nodeContext
+	nd.ctx = nodeContext
 }
 
 // afterInitNode called after component manager Init
@@ -594,7 +599,8 @@ func (s *testSuite) afterInitNode(node *networkNode) {
 
 func (s *testSuite) AssertActiveNodesCountDelta(delta int) {
 	activeNodes := s.bootstrapNodes[1].GetActiveNodes()
-	require.Equal(s.t, s.getNodesCount()+delta, len(activeNodes))
+	n := s.getNodesCount()+delta
+	require.Equal(s.t, n, len(activeNodes))
 }
 
 func (s *testSuite) AssertWorkingNodesCountDelta(delta int) {

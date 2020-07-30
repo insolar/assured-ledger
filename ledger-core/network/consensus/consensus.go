@@ -11,8 +11,6 @@ import (
 	"reflect"
 
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2"
@@ -24,6 +22,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/core"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/core/coreapi"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/serialization"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/transport"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
@@ -65,10 +64,10 @@ func verify(s interface{}) {
 }
 
 type Dep struct {
-	KeyProcessor       cryptography.KeyProcessor
-	Scheme             cryptography.PlatformCryptographyScheme
-	CertificateManager nodeinfo.CertificateManager
-	KeyStore           cryptography.KeyStore
+	KeyProcessor          cryptography.KeyProcessor
+	CertificateManager    nodeinfo.CertificateManager
+	KeyStore              cryptography.KeyStore
+	TransportCryptography transport2.CryptographyAssistant
 
 	NodeKeeper        network.NodeKeeper
 	DatagramTransport transport.DatagramTransport
@@ -84,18 +83,19 @@ func (cd *Dep) verify() {
 }
 
 type constructor struct {
-	consensusConfiguration       census.ConsensusConfiguration
-	mandateRegistry              census.MandateRegistry
-	misbehaviorRegistry          census.MisbehaviorRegistry
-	offlinePopulation            census.OfflinePopulation
-	versionedRegistries          census.VersionedRegistries
-	nodeProfileFactory           profiles.Factory
-	localNodeConfiguration       api.LocalNodeConfiguration
-	roundStrategyFactory         core.RoundStrategyFactory
-	transportCryptographyFactory transport2.CryptographyAssistant
+	consensusConfiguration census.ConsensusConfiguration
+	mandateRegistry        census.MandateRegistry
+	misbehaviorRegistry    census.MisbehaviorRegistry
+	offlinePopulation      census.OfflinePopulation
+	versionedRegistries    census.VersionedRegistries
+	nodeProfileFactory     profiles.Factory
+	localNodeConfiguration api.LocalNodeConfiguration
+	roundStrategyFactory   core.RoundStrategyFactory
+
 	packetBuilder                transport2.PacketBuilder
 	packetSender                 transport2.PacketSender
 	transportFactory             transport2.Factory
+	transportCryptographyFactory transport2.CryptographyAssistant
 }
 
 func newConstructor(ctx context.Context, dep *Dep) *constructor {
@@ -128,7 +128,7 @@ func newConstructor(ctx context.Context, dep *Dep) *constructor {
 		dep.KeyStore,
 	)
 	c.roundStrategyFactory = adapters.NewRoundStrategyFactory()
-	c.transportCryptographyFactory = adapters.NewTransportCryptographyFactory(dep.Scheme)
+	c.transportCryptographyFactory = dep.TransportCryptography
 	c.packetBuilder = serialization.NewPacketBuilder(
 		c.transportCryptographyFactory,
 		c.localNodeConfiguration,
@@ -165,7 +165,7 @@ func (c Installer) ControllerFor(mode Mode, setters ...packetProcessorSetter) Co
 	)
 
 	cert := c.dep.CertificateManager.GetCertificate()
-	isDiscovery := network.IsDiscovery(cert.GetNodeRef(), cert)
+	isDiscovery := network.OriginIsDiscovery(cert)
 
 	var candidateQueueSize int
 	if isDiscovery {
@@ -173,8 +173,9 @@ func (c Installer) ControllerFor(mode Mode, setters ...packetProcessorSetter) Co
 	}
 	candidateFeeder := coreapi.NewSequentialCandidateFeeder(candidateQueueSize)
 
+	na := c.dep.NodeKeeper.GetLatestAccessor()
 	var ephemeralFeeder api.EphemeralControlFeeder
-	if c.dep.EphemeralController.EphemeralMode(c.dep.NodeKeeper.GetAccessor(pulsestor.GenesisPulse.PulseNumber).GetActiveNodes()) {
+	if c.dep.EphemeralController.EphemeralMode(na.GetActiveNodes()) {
 		ephemeralFeeder = adapters.NewEphemeralControlFeeder(c.dep.EphemeralController)
 	}
 
@@ -184,7 +185,7 @@ func (c Installer) ControllerFor(mode Mode, setters ...packetProcessorSetter) Co
 		c.dep.StateUpdater,
 	)
 
-	consensusChronicles := c.createConsensusChronicles(mode)
+	consensusChronicles := c.createConsensusChronicles(mode, na)
 	consensusController := c.createConsensusController(
 		consensusChronicles,
 		controlFeederInterceptor.Feeder(),
@@ -201,10 +202,10 @@ func (c Installer) ControllerFor(mode Mode, setters ...packetProcessorSetter) Co
 	return newController(controlFeederInterceptor, candidateFeeder, consensusController, upstreamController, consensusChronicles)
 }
 
-func (c *Installer) createCensus(mode Mode) *censusimpl.PrimingCensusTemplate {
+func (c *Installer) createCensus(mode Mode, na network.Accessor) *censusimpl.PrimingCensusTemplate {
 	certificate := c.dep.CertificateManager.GetCertificate()
 	origin := c.dep.NodeKeeper.GetOrigin()
-	knownNodes := c.dep.NodeKeeper.GetAccessor(pulsestor.GenesisPulse.PulseNumber).GetActiveNodes()
+	knownNodes := na.GetActiveNodes()
 
 	node := adapters.NewStaticProfile(origin, certificate, c.dep.KeyProcessor)
 	nodes := adapters.NewStaticProfileList(knownNodes, certificate, c.dep.KeyProcessor)
@@ -225,9 +226,9 @@ func (c *Installer) createCensus(mode Mode) *censusimpl.PrimingCensusTemplate {
 	)
 }
 
-func (c *Installer) createConsensusChronicles(mode Mode) censusimpl.LocalConsensusChronicles {
+func (c *Installer) createConsensusChronicles(mode Mode, na network.Accessor) censusimpl.LocalConsensusChronicles {
 	consensusChronicles := adapters.NewChronicles(c.consensus.nodeProfileFactory)
-	c.createCensus(mode).SetAsActiveTo(consensusChronicles)
+	c.createCensus(mode, na).SetAsActiveTo(consensusChronicles)
 	return consensusChronicles
 }
 

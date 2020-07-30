@@ -41,10 +41,18 @@ func EqualBriefProfiles(p BriefCandidateProfile, o BriefCandidateProfile) bool {
 		return false
 	}
 
-	return p == o ||
-		equalBriefIntro(p, o) &&
-			endpoints.EqualOutboundEndpoints(p.GetDefaultEndpoint(), o.GetDefaultEndpoint()) &&
-			p.GetBriefIntroSignedDigest().Equals(o.GetBriefIntroSignedDigest())
+	switch {
+	case p == o:
+		return true
+	case !equalBriefIntro(p, o):
+		return false
+	case !endpoints.EqualOutboundEndpoints(p.GetDefaultEndpoint(), o.GetDefaultEndpoint()):
+		return false
+	case !p.GetBriefIntroSignedDigest().Equals(o.GetBriefIntroSignedDigest()):
+		return false
+	default:
+		return true
+	}
 }
 
 func EqualProfileExtensions(p CandidateProfileExtension, o CandidateProfileExtension) bool {

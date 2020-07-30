@@ -27,7 +27,7 @@ func (m *VStateReport) Validate(currPulse PulseNumber) error {
 	}
 
 	if m.GetAsOf() >= currPulse {
-		return throw.New("AsOf should be less that current pulse")
+		return throw.New("AsOf should be less than current pulse")
 	}
 
 	if m.GetObject().IsEmpty() {

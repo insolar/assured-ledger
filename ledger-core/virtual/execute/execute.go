@@ -227,13 +227,22 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 	s.execution.ObjectDescriptor = objectDescriptor
 	s.pendingConstructorFinished = semaphorePendingConstructorFinished
 
+	if objectDescriptor != nil && objectDescriptor.Deactivated() {
+		s.prepareExecutionError(throw.E("try to call method on deactivated object", struct {
+			ObjectReference string
+		}{
+			ObjectReference: s.execution.Object.String(),
+		}))
+		return ctx.Jump(s.stepSendCallResult)
+	}
+
 	if s.isConstructor {
 		switch objectState {
 		case object.Unknown:
 			panic(throw.Impossible())
 		case object.Inactive:
 			// attempt to create object that is deactivated :(
-			panic(throw.NotImplemented())
+			panic(throw.Impossible())
 		}
 
 		// default isolation for constructors
@@ -255,7 +264,7 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 		}))
 		return ctx.Jump(s.stepSendCallResult)
 	case object.Inactive:
-		panic(throw.NotImplemented())
+		panic(throw.Impossible())
 	case object.HasState:
 		// ok
 	}
@@ -676,6 +685,12 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 
 	switch outgoing := s.executionNewState.Outgoing.(type) {
 	case execution.Deactivate:
+		if s.intolerableCall() {
+			err := throw.E("interference violation: deactivate call from intolerable call")
+			ctx.Log().Warn(err)
+			s.prepareOutgoingError(err)
+			return ctx.Jump(s.stepExecuteContinue)
+		}
 		s.deactivate = true
 	case execution.CallConstructor:
 		if s.intolerableCall() {
@@ -716,7 +731,7 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 
 func (s *SMExecute) stepExecuteAborted(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	ctx.Log().Warn("aborting execution")
-	return s.runner.PrepareExecutionAbort(ctx, s.run, func() {}).DelayedStart().ThenJump(s.stepSendCallResult)
+	return s.runner.PrepareExecutionAbort(ctx, s.run).DelayedStart().ThenJump(s.stepSendCallResult)
 }
 
 func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -810,13 +825,6 @@ func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.
 }
 
 func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	var (
-		executionNewState = s.executionNewState.Result
-
-		memory []byte
-		class  reference.Global
-	)
-
 	if s.isIntolerableCallChangeState() {
 		s.prepareExecutionError(throw.E("intolerable call trying to change object state"))
 		return ctx.Jump(s.stepSendCallResult)
@@ -833,13 +841,14 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 	switch s.executionNewState.Result.Type() {
 	case requestresult.SideEffectNone:
 	case requestresult.SideEffectActivate:
-		_, class, memory = executionNewState.Activate()
-		s.newObjectDescriptor = s.makeNewDescriptor(class, memory)
+		_, class, memory := s.executionNewState.Result.Activate()
+		s.newObjectDescriptor = s.makeNewDescriptor(class, memory, false)
 	case requestresult.SideEffectAmend:
-		_, class, memory = executionNewState.Amend()
-		s.newObjectDescriptor = s.makeNewDescriptor(class, memory)
+		_, class, memory := s.executionNewState.Result.Amend()
+		s.newObjectDescriptor = s.makeNewDescriptor(class, memory, false)
 	case requestresult.SideEffectDeactivate:
-		panic(throw.NotImplemented())
+		class, memory := s.executionNewState.Result.Deactivate()
+		s.newObjectDescriptor = s.makeNewDescriptor(class, memory, true)
 	default:
 		panic(throw.IllegalValue())
 	}
@@ -968,7 +977,7 @@ func (s *SMExecute) sendDelegatedRequestFinished(ctx smachine.ExecutionContext, 
 	}).WithoutAutoWakeUp().Start()
 }
 
-func (s *SMExecute) makeNewDescriptor(class reference.Global, memory []byte) descriptor.Object {
+func (s *SMExecute) makeNewDescriptor(class reference.Global, memory []byte, deactivated bool) descriptor.Object {
 	var prevStateIDBytes []byte
 	objDescriptor := s.execution.ObjectDescriptor
 	if objDescriptor != nil {
@@ -985,6 +994,7 @@ func (s *SMExecute) makeNewDescriptor(class reference.Global, memory []byte) des
 		stateID,
 		class,
 		memory,
+		deactivated,
 	)
 }
 
