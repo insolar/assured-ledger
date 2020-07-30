@@ -179,11 +179,6 @@ func TestVirtual_CallMethod_On_CompletelyDeactivatedObject(t *testing.T) {
 					callType: payload.CTMethod,
 					errorMsg: "attempt to call method on object that is completely deactivated",
 				},
-				{
-					name:     "call constructor",
-					callType: payload.CTConstructor,
-					errorMsg: "attempt to construct object that was completely deactivated",
-				},
 			}
 
 			for _, callTypeTest := range callTypeTestCases {
@@ -216,9 +211,9 @@ func TestVirtual_CallMethod_On_CompletelyDeactivatedObject(t *testing.T) {
 					typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 					typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
 
-						assert.Equal(t, res.Callee, object)
+						assert.Equal(t, object, res.Callee)
 						contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments)
-						require.Equal(t, &foundation.Error{callTypeTest.errorMsg}, contractErr)
+						require.Contains(t, contractErr.Error(), callTypeTest.errorMsg)
 						require.NoError(t, sysErr)
 
 						gotResult <- struct{}{}
@@ -231,7 +226,7 @@ func TestVirtual_CallMethod_On_CompletelyDeactivatedObject(t *testing.T) {
 						CallFlags:           payload.BuildCallFlags(contract.CallIntolerable, stateTest.objectState),
 						Caller:              server.GlobalCaller(),
 						Callee:              object,
-						CallSiteDeclaration: testwallet.GetClass(),
+						CallSiteDeclaration: gen.UniqueGlobalRef(),
 						CallSiteMethod:      "MyFavorMethod",
 						CallOutgoing:        reference.NewSelf(object.GetLocal()),
 						Arguments:           insolar.MustSerialize([]interface{}{}),
@@ -317,7 +312,7 @@ func TestVirtual_CallMethod_On_DeactivatedDirtyState(t *testing.T) {
 			CallFlags:           payload.BuildCallFlags(isolation.Interference, isolation.State),
 			Caller:              server.GlobalCaller(),
 			Callee:              object,
-			CallSiteDeclaration: testwallet.GetClass(),
+			CallSiteDeclaration: gen.UniqueGlobalRef(),
 			CallSiteMethod:      deactivateMethod,
 			CallOutgoing:        server.BuildRandomOutgoingWithPulse(),
 			Arguments:           insolar.MustSerialize([]interface{}{}),
@@ -387,7 +382,7 @@ func TestVirtual_CallMethod_On_DeactivatedDirtyState(t *testing.T) {
 					CallFlags:           payload.BuildCallFlags(isolation.Interference, isolation.State),
 					Caller:              server.GlobalCaller(),
 					Callee:              object,
-					CallSiteDeclaration: testwallet.GetClass(),
+					CallSiteDeclaration: gen.UniqueGlobalRef(),
 					CallSiteMethod:      callMethod,
 					CallOutgoing:        server.BuildRandomOutgoingWithPulse(),
 					Arguments:           insolar.MustSerialize([]interface{}{}),
