@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package nodenetwork
+package nodeset
 
 import (
 	"context"
@@ -16,14 +16,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/censusimpl"
-	"github.com/insolar/assured-ledger/ledger-core/network/storage"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 
-	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/resolver"
-	"github.com/insolar/assured-ledger/ledger-core/network/nodeset"
-
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/resolver"
 
 	"go.opencensus.io/stats"
 
@@ -100,7 +97,7 @@ func resolveAddress(configuration configuration.Transport) (string, error) {
 func NewNodeKeeper(origin nodeinfo.NetworkNode) network.NodeKeeper {
 	nk := &nodekeeper{
 		origin:          origin,
-		snapshotStorage: storage.NewMemoryStorage(),
+		snapshotStorage: NewMemoryStorage(),
 	}
 	return nk
 }
@@ -111,7 +108,7 @@ type nodekeeper struct {
 	origin nodeinfo.NetworkNode
 	syncNodes []nodeinfo.NetworkNode
 
-	snapshotStorage *storage.MemoryStorage
+	snapshotStorage *MemoryStorage
 }
 
 func (nk *nodekeeper) SetInitialSnapshot(nodes []nodeinfo.NetworkNode) {
@@ -127,7 +124,7 @@ func (nk *nodekeeper) GetAccessor(pn pulse.Number) network.Accessor {
 	if err != nil {
 		panic(fmt.Sprintf("GetAccessor(%d): %s", pn, err.Error()))
 	}
-	return nodeset.NewAccessor(s)
+	return NewAccessor(s)
 }
 
 func (nk *nodekeeper) GetOrigin() nodeinfo.NetworkNode {
@@ -162,13 +159,13 @@ func (nk *nodekeeper) moveSyncToActive(number pulse.Number) (before, after int, 
 	nk.syncLock.Lock()
 	defer nk.syncLock.Unlock()
 
-	snapshot := nodeset.NewSnapshot(number, nk.syncNodes)
+	snapshot := NewSnapshot(number, nk.syncNodes)
 
 	if err := nk.snapshotStorage.Append(snapshot); err != nil {
 		return 0, 0, err
 	}
 
-	accessor := nodeset.NewAccessor(snapshot)
+	accessor := NewAccessor(snapshot)
 
 	o := accessor.GetActiveNode(nk.origin.GetReference())
 	nk._updateOrigin(o)

@@ -3,16 +3,20 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package storage
+package nodeset
 
 import (
+	"errors"
 	"sync"
 
-	"github.com/insolar/assured-ledger/ledger-core/network/nodeset"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
 
 const entriesCount = 10
+
+// ErrNotFound is returned when value was not found.
+var ErrNotFound = errors.New("value not found")
+
 
 // NewMemoryStorage constructor creates MemoryStorage
 func NewMemoryStorage() *MemoryStorage {
@@ -25,7 +29,7 @@ type MemoryStorage struct {
 	lock            sync.RWMutex
 	limit           int
 	entries         []pulse.Number
-	snapshotEntries map[pulse.Number]*nodeset.Snapshot
+	snapshotEntries map[pulse.Number]*Snapshot
 }
 
 // Truncate deletes all entries except Count
@@ -47,14 +51,14 @@ func (m *MemoryStorage) Truncate(count int) {
 	m.entries = m.entries[:count]
 }
 
-func (m *MemoryStorage) Append(snapshot *nodeset.Snapshot) error {
+func (m *MemoryStorage) Append(snapshot *Snapshot) error {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
 	pn := snapshot.GetPulse()
 
 	if m.snapshotEntries == nil {
-		m.snapshotEntries = make(map[pulse.Number]*nodeset.Snapshot)
+		m.snapshotEntries = make(map[pulse.Number]*Snapshot)
 	}
 
 	if _, ok := m.snapshotEntries[pn]; !ok {
@@ -67,7 +71,7 @@ func (m *MemoryStorage) Append(snapshot *nodeset.Snapshot) error {
 	return nil
 }
 
-func (m *MemoryStorage) ForPulseNumber(pulse pulse.Number) (*nodeset.Snapshot, error) {
+func (m *MemoryStorage) ForPulseNumber(pulse pulse.Number) (*Snapshot, error) {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
 

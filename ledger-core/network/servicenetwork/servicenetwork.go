@@ -12,6 +12,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeset"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/component-manager"
@@ -23,9 +24,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/gateway"
 	"github.com/insolar/assured-ledger/ledger-core/network/gateway/bootstrap"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork"
-	"github.com/insolar/assured-ledger/ledger-core/network/nodenetwork"
 	"github.com/insolar/assured-ledger/ledger-core/network/routing"
-	"github.com/insolar/assured-ledger/ledger-core/network/storage"
 	"github.com/insolar/assured-ledger/ledger-core/network/termination"
 	"github.com/insolar/assured-ledger/ledger-core/network/transport"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -76,7 +75,7 @@ func (n *ServiceNetwork) Init(ctx context.Context) error {
 
 	cert := n.CertificateManager.GetCertificate()
 
-	nodeNetwork, err := nodenetwork.NewNodeNetwork(n.cfg.Host.Transport, cert)
+	nodeNetwork, err := nodeset.NewNodeNetwork(n.cfg.Host.Transport, cert)
 	if err != nil {
 		return errors.W(err, "failed to create NodeNetwork")
 	}
@@ -94,7 +93,7 @@ func (n *ServiceNetwork) Init(ctx context.Context) error {
 		nodeNetwork,
 		controller.NewRPCController(options),
 		bootstrap.NewRequester(options),
-		storage.NewMemoryStorage(),
+		nodeset.NewMemoryStorage(),
 		n.BaseGateway,
 		n.Gatewayer,
 		termination.NewHandler(n),

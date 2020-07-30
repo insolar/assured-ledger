@@ -25,6 +25,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeset"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/network/mutable"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
@@ -36,7 +37,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
-	"github.com/insolar/assured-ledger/ledger-core/network/nodenetwork"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	networkUtils "github.com/insolar/assured-ledger/ledger-core/testutils/network"
@@ -245,7 +245,7 @@ func TestServiceNetwork_StartStop(t *testing.T) {
 	cm.SetLogger(global.Logger())
 
 	origin := gen.UniqueGlobalRef()
-	nk := nodenetwork.NewNodeKeeper(mutable.NewTestNode(origin, member.PrimaryRoleUnknown, nil, "127.0.0.1:0"))
+	nk := nodeset.NewNodeKeeper(mutable.NewTestNode(origin, member.PrimaryRoleUnknown, nil, "127.0.0.1:0"))
 	cert := &mandates.Certificate{}
 	cert.Reference = origin.String()
 	certManager := mandates.NewCertificateManager(cert)

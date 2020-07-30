@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package nodenetwork
+package nodeset
 
 import (
 	"crypto"
@@ -12,7 +12,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
-	"github.com/insolar/assured-ledger/ledger-core/network/storage"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 
@@ -60,7 +59,7 @@ func newNodeKeeper(t *testing.T, service cryptography.Service) network.NodeKeepe
 	certMock.GetDiscoveryNodesMock.Set(func() []nodeinfo.DiscoveryNode { return nil })
 	nw, err := NewNodeNetwork(cfg, certMock)
 	require.NoError(t, err)
-	nw.(*nodekeeper).snapshotStorage = storage.NewMemoryStorage()
+	nw.(*nodekeeper).snapshotStorage = NewMemoryStorage()
 	return nw.(network.NodeKeeper)
 }
 

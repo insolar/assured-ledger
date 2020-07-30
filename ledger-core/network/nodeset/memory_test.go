@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package storage
+package nodeset
 
 import (
 	"testing"
@@ -14,7 +14,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
-	"github.com/insolar/assured-ledger/ledger-core/network/nodeset"
+	"github.com/insolar/assured-ledger/ledger-core/pulsar"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/network/mutable"
@@ -34,7 +34,7 @@ func TestMemoryStorage(t *testing.T) {
 		p := startPulse
 		p.PulseNumber += pulse.Number(i)
 
-		snap := nodeset.NewSnapshot(p.PulseNumber, nodes)
+		snap := NewSnapshot(p.PulseNumber, nodes)
 		err = s.Append(snap)
 		assert.NoError(t, err)
 
@@ -58,4 +58,23 @@ func TestMemoryStorage(t *testing.T) {
 	snap, err = s.ForPulseNumber(startPulse.PulseNumber + 2)
 	assert.Nil(t, err)
 	assert.NotNil(t, snap)
+}
+
+func TestNewMemorySnapshotStorage(t *testing.T) {
+	ss := NewMemoryStorage()
+
+	ks := platformpolicy.NewKeyProcessor()
+	p1, err := ks.GeneratePrivateKey()
+	n := mutable.NewTestNode(gen.UniqueGlobalRef(), member.PrimaryRoleVirtual, ks.ExtractPublicKey(p1), "127.0.0.1:22")
+
+	pulse := pulsar.PulsePacket{PulseNumber: 15}
+	snap := NewSnapshot(pulse.PulseNumber, []nodeinfo.NetworkNode{n})
+
+	err = ss.Append(snap)
+	assert.NoError(t, err)
+
+	snapshot2, err := ss.ForPulseNumber(pulse.PulseNumber)
+	assert.NoError(t, err)
+
+	assert.True(t, snap == snapshot2)
 }
