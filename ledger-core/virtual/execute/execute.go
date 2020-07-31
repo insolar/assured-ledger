@@ -538,19 +538,16 @@ func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) sm
 		isDeactivated    bool
 	)
 	action := func(state *object.SharedState) {
-		objectDescriptor = s.getDescriptor(state)
-		if objectDescriptor != nil && objectDescriptor.Deactivated() {
-			if !state.KnownRequests.Delete(s.execution.Isolation.Interference, s.execution.Outgoing) {
-				panic(throw.IllegalState())
-			}
-			isDeactivated = true
-			return
-		}
-
 		if !state.KnownRequests.SetActive(s.execution.Isolation.Interference, s.execution.Outgoing) {
 			// if we come here then request should be in RequestStarted
 			// if it is not it is either somehow lost or it is already processing
 			panic(throw.Impossible())
+		}
+
+		objectDescriptor = s.getDescriptor(state)
+		if objectDescriptor != nil && objectDescriptor.Deactivated() {
+			isDeactivated = true
+			return
 		}
 	}
 
