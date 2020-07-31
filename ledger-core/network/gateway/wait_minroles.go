@@ -8,9 +8,9 @@ package gateway
 import (
 	"context"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network"
-	"github.com/insolar/assured-ledger/ledger-core/network/node"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeset"
 	"github.com/insolar/assured-ledger/ledger-core/network/rules"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
@@ -31,12 +31,12 @@ func (g *WaitMinRoles) Run(ctx context.Context, pulse pulse.Data) {
 	case <-g.bootstrapTimer.C:
 		g.FailState(ctx, bootstrapTimeoutMessage)
 	case newPulse := <-g.minrolesComplete:
-		g.Gatewayer.SwitchState(ctx, nodeinfo.WaitPulsar, newPulse)
+		g.Gatewayer.SwitchState(ctx, network.WaitPulsar, newPulse)
 	}
 }
 
 func (g *WaitMinRoles) UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes []nodeinfo.NetworkNode, cloudStateHash []byte) {
-	workingNodes := node.Select(nodes, node.ListWorking)
+	workingNodes := nodeset.SelectWorking(nodes)
 
 	if _, err := rules.CheckMajorityRule(g.CertificateManager.GetCertificate(), workingNodes); err != nil {
 		g.FailState(ctx, err.Error())
@@ -45,8 +45,8 @@ func (g *WaitMinRoles) UpdateState(ctx context.Context, pulseNumber pulse.Number
 	g.Base.UpdateState(ctx, pulseNumber, nodes, cloudStateHash)
 }
 
-func (g *WaitMinRoles) GetState() nodeinfo.NetworkState {
-	return nodeinfo.WaitMinRoles
+func (g *WaitMinRoles) GetState() network.State {
+	return network.WaitMinRoles
 }
 
 func (g *WaitMinRoles) OnConsensusFinished(ctx context.Context, report network.Report) {

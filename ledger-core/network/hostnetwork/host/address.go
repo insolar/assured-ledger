@@ -17,12 +17,16 @@ type Address struct {
 }
 
 // NewAddress is constructor.
-func NewAddress(address string) (*Address, error) {
+func NewAddress(address string) (Address, error) {
 	udpAddr, err := net.ResolveUDPAddr("udp", address)
 	if err != nil {
-		return nil, errors.W(err, "Failed to resolve ip address")
+		return Address{}, errors.W(err, "Failed to resolve ip address")
 	}
-	return &Address{UDPAddr: *udpAddr}, nil
+	return Address{UDPAddr: *udpAddr}, nil
+}
+
+func (address Address) IsZero() bool {
+	return len(address.IP) == 0
 }
 
 // Equal checks if address is equal to another.

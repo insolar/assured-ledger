@@ -16,16 +16,12 @@ import (
 
 type Name string
 
-func (addr *Name) IsLocalHost() bool {
-	return addr != nil && len(*addr) == 0
+func (addr Name) IsLocalHost() bool {
+	return len(addr) == 0
 }
 
-func (addr *Name) Equals(o Name) bool {
-	return addr != nil && *addr == o
-}
-
-func (addr *Name) EqualsToString(o string) bool {
-	return addr.Equals(Name(o))
+func (addr Name) Equals(o Name) bool {
+	return addr == o
 }
 
 func (addr Name) String() string {
@@ -39,7 +35,6 @@ type Outbound interface {
 	GetRelayID() node.ShortNodeID
 	GetNameAddress() Name
 	GetIPAddress() IPAddress
-	AsByteString() longbits.ByteString
 	CanAccept(connection Inbound) bool
 }
 

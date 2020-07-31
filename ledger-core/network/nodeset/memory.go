@@ -3,16 +3,20 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package storage
+package nodeset
 
 import (
+	"errors"
 	"sync"
 
-	"github.com/insolar/assured-ledger/ledger-core/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
 
 const entriesCount = 10
+
+// ErrNotFound is returned when value was not found.
+var ErrNotFound = errors.New("value not found")
+
 
 // NewMemoryStorage constructor creates MemoryStorage
 func NewMemoryStorage() *MemoryStorage {
@@ -25,15 +29,23 @@ type MemoryStorage struct {
 	lock            sync.RWMutex
 	limit           int
 	entries         []pulse.Number
-	snapshotEntries map[pulse.Number]*node.Snapshot
+	snapshotEntries map[pulse.Number]*Snapshot
+	last            *Snapshot
+}
+
+func (m *MemoryStorage) Last() *Snapshot {
+	m.lock.RLock()
+	defer m.lock.RUnlock()
+	return m.last
 }
 
 // Truncate deletes all entries except Count
-func (m *MemoryStorage) Truncate(count int) {
+func (m *MemoryStorage) truncate(count int) {
 	switch {
 	case len(m.entries) <= count:
 		return
 	case count == 0:
+		m.last = nil
 		m.snapshotEntries = nil
 		m.entries = nil
 		return
@@ -47,27 +59,28 @@ func (m *MemoryStorage) Truncate(count int) {
 	m.entries = m.entries[:count]
 }
 
-func (m *MemoryStorage) Append(snapshot *node.Snapshot) error {
+func (m *MemoryStorage) Append(snapshot *Snapshot) error {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
 	pn := snapshot.GetPulse()
 
 	if m.snapshotEntries == nil {
-		m.snapshotEntries = make(map[pulse.Number]*node.Snapshot)
+		m.snapshotEntries = make(map[pulse.Number]*Snapshot)
 	}
 
 	if _, ok := m.snapshotEntries[pn]; !ok {
 		m.entries = append(m.entries, pn)
 	}
 	m.snapshotEntries[pn] = snapshot
+	m.last = snapshot
 
-	m.Truncate(m.limit)
+	m.truncate(m.limit)
 
 	return nil
 }
 
-func (m *MemoryStorage) ForPulseNumber(pulse pulse.Number) (*node.Snapshot, error) {
+func (m *MemoryStorage) ForPulseNumber(pulse pulse.Number) (*Snapshot, error) {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
 
