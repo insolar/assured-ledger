@@ -114,7 +114,9 @@ func (m *VStateReport) validateStatusEmpty(currPulse PulseNumber) error {
 func (m *VStateReport) validateStatusReady(objectPulse PulseNumber, currPulse PulseNumber) error {
 	switch pendingCount, earliestPendingPulse := m.GetUnorderedPendingCount(), m.GetUnorderedPendingEarliestPulse(); {
 	case pendingCount == 0:
-		//
+		if !earliestPendingPulse.IsUnknown() {
+			return throw.New("UnorderedPendingEarliestPulse should be Unknown")
+		}
 	case pendingCount > 0 && pendingCount < 127:
 		if earliestPendingPulse < objectPulse || earliestPendingPulse > currPulse {
 			return throw.New("UnorderedPendingEarliestPulse should be in range (objectPulse..currPulse]")
@@ -125,7 +127,9 @@ func (m *VStateReport) validateStatusReady(objectPulse PulseNumber, currPulse Pu
 
 	switch pendingCount, earliestPendingPulse := m.GetOrderedPendingCount(), m.GetOrderedPendingEarliestPulse(); {
 	case pendingCount == 0:
-		//
+		if !earliestPendingPulse.IsUnknown() {
+			return throw.New("UnorderedPendingEarliestPulse should be Unknown")
+		}
 	case pendingCount > 0 && pendingCount < 127:
 		if earliestPendingPulse < objectPulse || earliestPendingPulse > currPulse {
 			return throw.New("OrderedPendingEarliestPulse should be in range (objectPulse..currPulse]")
