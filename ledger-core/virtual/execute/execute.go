@@ -858,6 +858,9 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 
 	action := func(state *object.SharedState) {
 		state.SetDescriptorDirty(s.newObjectDescriptor)
+		if s.deactivate {
+			state.Deactivated = true
+		}
 
 		switch state.GetState() {
 		case object.HasState:

@@ -70,7 +70,6 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 			)
 
 			server.IncrementPulseAndWaitIdle(ctx)
-			pulseNumberSecond := server.GetPulse().PulseNumber
 
 			// Send VStateReport with Dirty, Validated states
 			{
@@ -111,12 +110,8 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 			{
 				typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
 					assert.Equal(t, objectGlobal, report.Object)
-					assert.Equal(t, pulseNumberSecond, report.ProvidedContent.LatestValidatedState.Reference.Pulse())
-					assert.Equal(t, pulseNumberSecond, report.ProvidedContent.LatestDirtyState.Reference.Pulse())
-
-					assert.Equal(t, payload.Ready, report.Status)
-					assert.True(t, report.ProvidedContent.LatestValidatedState.Deactivated)
-					assert.True(t, report.ProvidedContent.LatestDirtyState.Deactivated)
+					assert.Nil(t, report.ProvidedContent)
+					assert.Equal(t, payload.Inactive, report.Status)
 
 					waitVStateReport <- struct{}{}
 					return false
