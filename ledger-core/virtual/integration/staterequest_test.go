@@ -65,7 +65,6 @@ func TestVirtual_VStateRequest(t *testing.T) {
 			// create object
 			{
 				server.IncrementPulseAndWaitIdle(ctx)
-
 				Method_PrepareObject(ctx, server, payload.Ready, objectGlobal, pulseNumber)
 
 				pulseNumber = server.GetPulse().PulseNumber
