@@ -6,7 +6,6 @@
 package payload
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -192,13 +191,12 @@ func (m *VFindCallRequest) Validate(currPulse PulseNumber) error {
 	}
 
 	switch {
-	case lookAtPulse < pulse.LocalRelative:
-		return throw.New("lookAt pulse should be more or equals pulse.LocalRelative")
-	case calleePulse < pulse.LocalRelative:
-		return throw.New("callee pulse should be more or equals pulse.LocalRelative")
-	case outgoingPulse < pulse.LocalRelative:
-		return throw.New("outgoing pulse should be more or equals pulse.LocalRelative")
-
+	case !lookAtPulse.IsTimePulse():
+		return throw.New("invalid lookAt pulse")
+	case !calleePulse.IsTimePulse():
+		return throw.New("invalid callee pulse")
+	case !outgoingPulse.IsTimePulse():
+		return throw.New("invalid outgoing pulse")
 	}
 
 	if calleePulse > lookAtPulse {
