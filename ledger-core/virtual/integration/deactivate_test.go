@@ -157,10 +157,10 @@ func TestVirtual_CallMethod_On_CompletelyDeactivatedObject(t *testing.T) {
 		name        string
 		objectState contract.StateFlag
 	}{
-		{
-			name:        "call on validated state",
-			objectState: contract.CallValidated,
-		},
+		// {
+		// 	name:        "call on validated state",
+		// 	objectState: contract.CallValidated,
+		// },
 		{
 			name:        "call on dirty state",
 			objectState: contract.CallDirty,
@@ -178,7 +178,7 @@ func TestVirtual_CallMethod_On_CompletelyDeactivatedObject(t *testing.T) {
 				{
 					name:     "call method",
 					callType: payload.CTMethod,
-					errorMsg: "attempt to call method on object that is completely deactivated",
+					errorMsg: "try to call method on deactivated object",
 				},
 			}
 
@@ -194,6 +194,10 @@ func TestVirtual_CallMethod_On_CompletelyDeactivatedObject(t *testing.T) {
 					runnerMock := logicless.NewServiceMock(ctx, t, func(execution execution.Context) string {
 						return execution.Request.CallSiteMethod
 					})
+
+					isolation := contract.MethodIsolation{Interference: contract.CallIntolerable, State: stateTest.objectState}
+					methodName := "MyFavorMethod" + callTypeTest.name
+					runnerMock.AddExecutionClassify(methodName, isolation, nil)
 					server.ReplaceRunner(runnerMock)
 
 					server.Init(ctx)
@@ -224,11 +228,11 @@ func TestVirtual_CallMethod_On_CompletelyDeactivatedObject(t *testing.T) {
 
 					pl := payload.VCallRequest{
 						CallType:            callTypeTest.callType,
-						CallFlags:           payload.BuildCallFlags(contract.CallIntolerable, stateTest.objectState),
+						CallFlags:           payload.BuildCallFlags(isolation.Interference, isolation.State),
 						Caller:              server.GlobalCaller(),
 						Callee:              object,
 						CallSiteDeclaration: gen.UniqueGlobalRef(),
-						CallSiteMethod:      "MyFavorMethod",
+						CallSiteMethod:      methodName,
 						CallOutgoing:        server.BuildRandomOutgoingWithPulse(),
 						Arguments:           insolar.MustSerialize([]interface{}{}),
 					}

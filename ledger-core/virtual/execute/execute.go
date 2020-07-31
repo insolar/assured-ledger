@@ -231,8 +231,6 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 		switch objectState {
 		case object.Unknown:
 			panic(throw.Impossible())
-		case object.Inactive:
-			panic(throw.Impossible())
 		}
 
 		// default isolation for constructors
@@ -252,12 +250,6 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 			ObjectReference: s.execution.Object.String(),
 			State:           objectState,
 		}))
-		return ctx.Jump(s.stepSendCallResult)
-	case object.Inactive:
-		s.prepareExecutionError(throw.E("attempt to call method on object that is completely deactivated", struct {
-			ObjectReference string
-		}{ObjectReference: s.execution.Object.String()}))
-
 		return ctx.Jump(s.stepSendCallResult)
 	case object.HasState:
 		// ok
@@ -545,7 +537,7 @@ func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) sm
 		}
 
 		objectDescriptor = s.getDescriptor(state)
-		if objectDescriptor != nil && objectDescriptor.Deactivated() {
+		if state.GetState() == object.Inactive || (objectDescriptor != nil && objectDescriptor.Deactivated()) {
 			isDeactivated = true
 			return
 		}
