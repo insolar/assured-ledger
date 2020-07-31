@@ -395,7 +395,7 @@ func TestVirtual_CallMethod_On_DeactivatedDirtyState(t *testing.T) {
 					Arguments:           insolar.MustSerialize([]interface{}{}),
 				}
 				server.SendPayload(ctx, &pl)
-				commontestutils.WaitSignalsTimed(t, 100*time.Second, gotResult)
+				commontestutils.WaitSignalsTimed(t, 10*time.Second, gotResult)
 			})
 		}
 	}
