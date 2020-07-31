@@ -28,8 +28,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/proofs"
 	"github.com/insolar/assured-ledger/ledger-core/network/gateway"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
@@ -126,7 +128,7 @@ func initNodes(ctx context.Context, mode consensus.Mode, nodes GeneratedNodes, s
 
 	for i, n := range nodes.nodes {
 		nodeKeeper := nodeset.NewNodeKeeper(nodeinfo.NodeRef(n), nodeinfo.NodeRole(n))
-		nodeKeeper.SetInitialSnapshot(nodes.nodes)
+		// nodeKeeper.SetInitialSnapshot(nodes.nodes)
 		ns.nodeKeepers[i] = nodeKeeper
 
 		certificateManager := initCrypto(n, nodes.discoveryNodes)
@@ -377,23 +379,26 @@ type pulseChanger struct {
 
 func (pc *pulseChanger) ChangeBeat(ctx context.Context, report api.UpstreamReport, pulse beat.Beat) {
 	inslogger.FromContext(ctx).Info(">>>>>> Change pulse called")
-	pc.nodeKeeper.MoveSyncToActive(ctx, pulse.PulseNumber)
+	pc.nodeKeeper.AddActivePopulation(ctx, pulse.PulseNumber, nil)
 }
 
 type stateUpdater struct {
 	nodeKeeper network.NodeKeeper
 }
 
-func (su *stateUpdater) UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes []nodeinfo.NetworkNode, cloudStateHash []byte) {
+func (su *stateUpdater) UpdateState(ctx context.Context, pulseNumber pulse.Number, isTimePulse bool, nodes census.OnlinePopulation, _ proofs.CloudStateHash) {
 	inslogger.FromContext(ctx).Info(">>>>>> Update state called")
 
-	su.nodeKeeper.Sync(ctx, nodes)
+	su.nodeKeeper.SetExpectedPopulation(ctx, pulseNumber, nodes)
+	if !isTimePulse {
+		su.nodeKeeper.AddActivePopulation(ctx, pulseNumber, nodes)
+	}
 }
 
 type ephemeralController struct {
 	allowed bool
 }
 
-func (e *ephemeralController) EphemeralMode(nodes []nodeinfo.NetworkNode) bool {
+func (e *ephemeralController) EphemeralMode(census.OnlinePopulation) bool {
 	return e.allowed
 }

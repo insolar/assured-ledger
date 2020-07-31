@@ -172,7 +172,7 @@ func (c Installer) ControllerFor(mode Mode, setters ...packetProcessorSetter) Co
 
 	na := c.dep.NodeKeeper.GetLatestAccessor()
 	var ephemeralFeeder api.EphemeralControlFeeder
-	if c.dep.EphemeralController.EphemeralMode(na.GetActiveNodes()) {
+	if c.dep.EphemeralController.EphemeralMode(na.GetPopulation()) {
 		ephemeralFeeder = adapters.NewEphemeralControlFeeder(c.dep.EphemeralController)
 	}
 
@@ -200,7 +200,7 @@ func (c Installer) ControllerFor(mode Mode, setters ...packetProcessorSetter) Co
 }
 
 func (c *Installer) createCensus(mode Mode, na network.Accessor) *censusimpl.PrimingCensusTemplate {
-	knownNodes := na.GetActiveNodes()
+	knownNodes := na.GetOnlineNodes()
 	origin := na.GetLocalNode()
 
 	nodes := nodeinfo.NewStaticProfileList(knownNodes)

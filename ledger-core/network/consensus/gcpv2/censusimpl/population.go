@@ -36,6 +36,12 @@ func NewManyNodePopulation(nodes []profiles.StaticProfile, localID node.ShortNod
 	return r
 }
 
+func CopySelfNodePopulation(pop census.OnlinePopulation) ManyNodePopulation {
+	r := ManyNodePopulation{}
+	r.makeOfSelf(pop.GetLocalProfile())
+	return r
+}
+
 var _ copyToPopulation = &ManyNodePopulation{}
 var _ census.OnlinePopulation = &ManyNodePopulation{}
 
@@ -130,7 +136,26 @@ func (c *ManyNodePopulation) GetIdleProfiles() []profiles.ActiveNode {
 	if len(c.roles) == 0 {
 		return nil
 	}
-	return c.roles[member.PrimaryRoleInactive].GetProfiles()
+
+	// NB! All idle profiles comes at the end
+	role := c.roles[member.PrimaryRoleInactive]
+	if !role.IsValid() || role.idleCount == 0 { // there is no inactive
+		return nil
+	}
+	return getActiveNodes(c.slots[role.firstNode:])
+}
+
+func (c *ManyNodePopulation) GetPoweredProfiles() []profiles.ActiveNode {
+	if len(c.roles) == 0 {
+		return nil
+	}
+
+	// NB! All idle profiles comes at the end
+	role := c.roles[member.PrimaryRoleInactive]
+	if !role.IsValid() || role.idleCount == 0 { // there is no inactive
+		return c.GetProfiles()
+	}
+	return getActiveNodes(c.slots[:role.firstNode])
 }
 
 func (c *ManyNodePopulation) GetIdleCount() int {
@@ -166,7 +191,7 @@ func (c *ManyNodePopulation) GetRolePopulation(role member.PrimaryRole) census.R
 	return &c.roles[role]
 }
 
-func (c *ManyNodePopulation) GetWorkingRoles() []member.PrimaryRole {
+func (c *ManyNodePopulation) GetPoweredRoles() []member.PrimaryRole {
 	return append([]member.PrimaryRole(nil), c.workingRoles...)
 }
 
@@ -371,6 +396,20 @@ func (c *ManyNodePopulation) _adjustSlotsAndCopyEvicts(localID node.ShortNodeID,
 	return evicts
 }
 
+func (c *ManyNodePopulation) makeOfSelf(local profiles.LocalNode) {
+	localNodeID := local.GetNodeID()
+	if localNodeID.IsAbsent() {
+		panic(throw.IllegalValue())
+	}
+
+	buf := make([]updatableSlot, 1)
+	c.slotByID = make(map[node.ShortNodeID]*updatableSlot, 1)
+
+	buf[0].NodeProfileSlot = NewNodeProfile(member.Index(0), local.GetStatic(), local.GetSignatureVerifier(), local.GetDeclaredPower())
+	c.slots = buf
+	c._fillInRoleStatsAndMap(localNodeID, len(c.slots), false, false, panicOnRecoverable)
+}
+
 func (c *ManyNodePopulation) makeOfProfiles(nodes []profiles.StaticProfile, localNodeID node.ShortNodeID,
 	vf cryptkit.SignatureVerifierFactory) {
 
@@ -398,19 +437,30 @@ func (c *ManyNodePopulation) makeOfProfiles(nodes []profiles.StaticProfile, loca
 }
 
 func (c *ManyNodePopulation) FindProfile(nodeID node.ShortNodeID) profiles.ActiveNode {
-	slot := c.slotByID[nodeID]
-	if slot == nil {
+	return c.slotByID[nodeID].AsActiveNode()
+}
+
+func getActiveNodes(slots []updatableSlot) []profiles.ActiveNode {
+	n := len(slots)
+	if n == 0 {
 		return nil
 	}
-	return &slot.NodeProfileSlot
+	r := make([]profiles.ActiveNode, n)
+	for i := range slots {
+		r[i] = slots[i].AsActiveNode()
+	}
+	return r
 }
 
 func (c *ManyNodePopulation) GetProfiles() []profiles.ActiveNode {
-	r := make([]profiles.ActiveNode, len(c.slots))
-	for i := range c.slots {
-		r[i] = &c.slots[i].NodeProfileSlot
+	return getActiveNodes(c.slots)
+}
+
+func (c *ManyNodePopulation) GetProfile(index member.Index) profiles.ActiveNode {
+	if int(index) >= len(c.slots) {
+		return nil
 	}
-	return r
+	return c.slots[index].AsActiveNode()
 }
 
 func (c *ManyNodePopulation) GetLocalProfile() profiles.LocalNode {
@@ -441,7 +491,7 @@ func (c *DynamicPopulation) makeCopyOf(slots []updatableSlot, local *updatableSl
 }
 
 func (c *DynamicPopulation) FindProfile(nodeID node.ShortNodeID) profiles.ActiveNode {
-	return &c.slotByID[nodeID].NodeProfileSlot
+	return c.slotByID[nodeID].AsActiveNode()
 }
 
 func (c *DynamicPopulation) FindUpdatableProfile(nodeID node.ShortNodeID) profiles.Updatable {
@@ -461,7 +511,7 @@ func (c *DynamicPopulation) GetProfiles() []profiles.ActiveNode {
 		if r[idx] != nil {
 			panic(fmt.Sprintf("duplicate index: %v", idx))
 		}
-		r[idx] = &v.NodeProfileSlot
+		r[idx] = v.AsActiveNode()
 	}
 	return r
 }
@@ -614,16 +664,9 @@ func (p *roleRecord) GetIdleCount() int {
 
 func (p *roleRecord) GetProfiles() []profiles.ActiveNode {
 	if !p.IsValid() {
-		panic("illegal state")
-	}
-	if p.roleCount == 0 {
 		return nil
 	}
-	nodes := make([]profiles.ActiveNode, p.roleCount)
-	for i := range nodes {
-		nodes[i] = p.getByIndex(uint16(i))
-	}
-	return nodes
+	return getActiveNodes(p.container.slots[p.firstNode:p.firstNode + p.roleCount])
 }
 
 func (p *roleRecord) GetAssignmentByPower(metric uint64,

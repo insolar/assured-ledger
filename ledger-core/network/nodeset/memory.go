@@ -63,7 +63,7 @@ func (m *MemoryStorage) Append(snapshot *Snapshot) error {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
-	pn := snapshot.GetPulse()
+	pn := snapshot.GetPulseNumber()
 
 	if m.snapshotEntries == nil {
 		m.snapshotEntries = make(map[pulse.Number]*Snapshot)

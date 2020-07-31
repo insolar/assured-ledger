@@ -44,6 +44,10 @@ func (c *OneJoinerPopulation) GetIdleProfiles() []profiles.ActiveNode {
 	return nil
 }
 
+func (c *OneJoinerPopulation) GetPoweredProfiles() []profiles.ActiveNode {
+	return nil
+}
+
 func (c *OneJoinerPopulation) GetIdleCount() int {
 	return 0
 }
@@ -68,7 +72,7 @@ func (c *OneJoinerPopulation) GetRolePopulation(role member.PrimaryRole) census.
 	return nil
 }
 
-func (c *OneJoinerPopulation) GetWorkingRoles() []member.PrimaryRole {
+func (c *OneJoinerPopulation) GetPoweredRoles() []member.PrimaryRole {
 	return nil
 }
 
@@ -88,6 +92,10 @@ func (c *OneJoinerPopulation) FindProfile(nodeID node.ShortNodeID) profiles.Acti
 
 func (c *OneJoinerPopulation) GetProfiles() []profiles.ActiveNode {
 	return []profiles.ActiveNode{}
+}
+
+func (c *OneJoinerPopulation) GetProfile(member.Index) profiles.ActiveNode {
+	return nil
 }
 
 func (c *OneJoinerPopulation) GetLocalProfile() profiles.LocalNode {

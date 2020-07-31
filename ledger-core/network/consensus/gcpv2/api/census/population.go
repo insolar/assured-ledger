@@ -21,43 +21,51 @@ type OfflinePopulation interface {
 	// FindPulsarProfile(pulsarId PulsarId) PulsarProfile
 }
 
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census.OnlinePopulation -o . -s _mock.go -g
+
 type OnlinePopulation interface {
 	FindProfile(nodeID node.ShortNodeID) profiles.ActiveNode
-	/* indicates that this population was built without issues */
+
+	// IsValid indicates that this population was built without issues
 	IsValid() bool
+	// IsClean indicates that this population is both valid and does not contain non-operational nodes
 	IsClean() bool
 
+	// GetIndexedCount gets a number of indexed (valid) nodes in the population
 	GetIndexedCount() int
-	/*
-		Indicates the expected size of population.
-		When IsValid()==true then GetIndexedCapacity() == GetIndexedCount(), otherwise GetIndexedCapacity() >= GetIndexedCount()
-	*/
+	// GetIndexedCapacity indicates the expected size of population.
+	// when IsValid()==true then GetIndexedCapacity() == GetIndexedCount(), otherwise GetIndexedCapacity() >= GetIndexedCount()
 	GetIndexedCapacity() int
 
+	// GetSuspendedCount returns a number of suspended nodes in the population
 	GetSuspendedCount() int
+	// GetMistrustedCount returns a number of mistrusted nodes in the population
 	GetMistrustedCount() int
 
-	/*
-		It returns nil for (1) PrimaryRoleInactive, (2) for roles without any members, working or idle
-	*/
+	// GetRolePopulation returns nil for (1) PrimaryRoleInactive, (2) for roles without any members either working or idle
 	GetRolePopulation(role member.PrimaryRole) RolePopulation
 
-	/*
-		It returns a list of idle members, irrelevant of their roles. Will return nil when !IsValid().
-		The returned slice never contains nil.
-	*/
+	// GetIdleProfiles returns a list of idle members, irrelevant of their roles. Will return nil when !IsValid().
+	// Returned slice doesn't contain nil.
 	GetIdleProfiles() []profiles.ActiveNode
 
-	/* returns a total number of idle members in the population, irrelevant of their roles */
+	// GetPoweredProfiles returns a list of non-idle members, irrelevant of their roles. Will return nil when !IsValid().
+	// Returned slice doesn't contain nil.
+	GetPoweredProfiles() []profiles.ActiveNode
+
+	// GetIdleCount returns a total number of idle members in the population, irrelevant of their roles.
 	GetIdleCount() int
 
-	/* returns a sorted (starting from the highest role) list of roles with non-idle members  */
-	GetWorkingRoles() []member.PrimaryRole
+	// GetPoweredRoles returns a sorted (starting from the highest role) list of roles with non-idle members.
+	GetPoweredRoles() []member.PrimaryRole
 
-	/* when !IsValid() resulting slice will contain nil for missing members, when GetIndexedCapacity() > GetIndexedCount() */
+	// GetProfiles returns a list of nodes of GetIndexedCapacity() size, will contain nil values when GetIndexedCapacity() > GetIndexedCount()
 	GetProfiles() []profiles.ActiveNode
 
-	/* can be nil when !IsValid() */
+	// GetProfile returns nil or node for the given index.
+	GetProfile(index member.Index) profiles.ActiveNode
+
+	// GetLocalProfile returns local node, can be nil when !IsValid().
 	GetLocalProfile() profiles.LocalNode
 }
 
@@ -128,19 +136,21 @@ type PopulationBuilder interface {
 	RemoveOthers()
 }
 
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census.RolePopulation -o . -s _mock.go -g
+
 type RolePopulation interface {
-	/* != PrimaryRoleInactive */
+	// GetPrimaryRole returns a role of all nodes of this population, != PrimaryRoleInactive
 	GetPrimaryRole() member.PrimaryRole
-	/* true when the relevant population is valid and there are some members in this role */
+	// IsValid returns true when the relevant population is valid and there are some members in this role
 	IsValid() bool
-	/* total power of all members in this role */
+	// GetWorkingPower returns total power of all members in this role
 	GetWorkingPower() uint32
-	/* total number of working members in this role */
+	// GetWorkingCount returns total number of working (powered) members in this role
 	GetWorkingCount() int
-	/* number of idle members in this role */
+	// GetIdleCount returns total number of idle (non-powered) members in this role
 	GetIdleCount() int
 
-	/* list of working members in this role, will return nil when !IsValid() or GetWorkingPower()==0 */
+	// GetProfiles gives a list of working members in this role, will return nil when !IsValid() or GetWorkingPower()==0 */
 	GetProfiles() []profiles.ActiveNode
 
 	/*

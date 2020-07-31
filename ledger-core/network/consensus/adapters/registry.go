@@ -69,7 +69,7 @@ func (op *OfflinePopulation) FindRegisteredProfile(identity endpoints.Inbound) p
 	if na == nil {
 		return nil
 	}
-	node := na.GetActiveNodeByAddr(identity.GetNameAddress().String())
+	node := na.GetOnlineNodeByAddr(identity.GetNameAddress().String())
 	if node == nil {
 		return nil
 	}

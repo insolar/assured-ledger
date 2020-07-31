@@ -13,7 +13,9 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/proofs"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/host"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet/types"
@@ -104,16 +106,11 @@ type NodeNetwork interface {
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network.NodeKeeper -o ../testutils/network -s _mock.go -g
 
-// NodeKeeper manages unsync, sync and active lists.
 type NodeKeeper interface {
 	NodeNetwork
 
-	// SetInitialSnapshot set initial snapshot for nodekeeper
-	SetInitialSnapshot(nodes []nodeinfo.NetworkNode)
-	// Sync move unsync -> sync
-	Sync(context.Context, []nodeinfo.NetworkNode)
-	// MoveSyncToActive merge sync list with active nodes
-	MoveSyncToActive(context.Context, pulse.Number)
+	SetExpectedPopulation(context.Context, pulse.Number, census.OnlinePopulation)
+	AddActivePopulation(context.Context, pulse.Number, census.OnlinePopulation)
 }
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network.RoutingTable -o ../testutils/network -s _mock.go -g
@@ -130,17 +127,16 @@ type RoutingTable interface {
 type Accessor interface {
 	GetPulseNumber() pulse.Number
 	GetLocalNode() nodeinfo.NetworkNode
-	// GetWorkingNode get working node by its reference. Returns nil if node is not found or is not working.
-	GetWorkingNode(ref reference.Global) nodeinfo.NetworkNode
-	// GetWorkingNodes returns sorted list of all working nodes.
-	GetWorkingNodes() []nodeinfo.NetworkNode
+	GetPopulation() census.OnlinePopulation
 
-	// GetActiveNode returns active node.
-	GetActiveNode(ref reference.Global) nodeinfo.NetworkNode
-	// GetActiveNodes returns unsorted list of all active nodes.
-	GetActiveNodes() []nodeinfo.NetworkNode
-	// GetActiveNodeByAddr get active node by addr. Returns nil if node is not found.
-	GetActiveNodeByAddr(address string) nodeinfo.NetworkNode
+	// GetPoweredNode get working node by its reference. Returns nil if node is not found or is not working.
+	GetPoweredNode(ref reference.Global) nodeinfo.NetworkNode
+	// GetOnlineNode returns active node.
+	GetOnlineNode(ref reference.Global) nodeinfo.NetworkNode
+	// GetOnlineNodes returns unsorted list of all active nodes.
+	GetOnlineNodes() []nodeinfo.NetworkNode
+	// GetOnlineNodeByAddr get active node by addr. Returns nil if node is not found.
+	GetOnlineNodeByAddr(address string) nodeinfo.NetworkNode
 }
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network.Gatewayer -o ../testutils/network -s _mock.go -g
@@ -165,7 +161,7 @@ type Gateway interface {
 	OnPulseFromConsensus(context.Context, NetworkedPulse)
 	OnConsensusFinished(context.Context, Report)
 
-	UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes []nodeinfo.NetworkNode, cloudStateHash []byte)
+	UpdateState(context.Context, pulse.Number, bool, census.OnlinePopulation, proofs.CloudStateHash)
 
 	RequestNodeState(chorus.NodeStateFunc)
 	CancelNodeState()
@@ -173,7 +169,7 @@ type Gateway interface {
 	Auther() Auther
 	Bootstrapper() Bootstrapper
 
-	EphemeralMode(nodes []nodeinfo.NetworkNode) bool
+	EphemeralMode(census.OnlinePopulation) bool
 
 	FailState(ctx context.Context, reason string)
 }

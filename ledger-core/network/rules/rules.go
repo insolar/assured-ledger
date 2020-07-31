@@ -9,15 +9,17 @@ import (
 	"fmt"
 
 	"github.com/insolar/assured-ledger/ledger-core/network"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
-
-	"github.com/insolar/assured-ledger/ledger-core/log/global"
 )
 
 // CheckMajorityRule returns error if MajorityRule check not passed, also returns active discovery nodes count
-func CheckMajorityRule(cert nodeinfo.Certificate, nodes []nodeinfo.NetworkNode) (int, error) {
+func CheckMajorityRule(cert nodeinfo.Certificate, pop census.OnlinePopulation) (int, error) {
+
+	nodes := pop.GetProfiles()
+
 	majorityRule := cert.GetMajorityRule()
 	discoveriesInList := network.FindDiscoveriesInNodeList(nodes, cert)
 	activeDiscoveryNodesLen := len(discoveriesInList)
@@ -43,19 +45,16 @@ func CheckMajorityRule(cert nodeinfo.Certificate, nodes []nodeinfo.NetworkNode) 
 }
 
 // CheckMinRole returns true if MinRole check passed
-func CheckMinRole(cert nodeinfo.Certificate, nodes []nodeinfo.NetworkNode) error {
+func CheckMinRole(cert nodeinfo.Certificate, nodes census.OnlinePopulation) error {
 	var virtualCount, heavyCount, lightCount uint
-	for _, n := range nodes {
-		switch nodeinfo.NodeRole(n) {
-		case member.PrimaryRoleVirtual:
-			virtualCount++
-		case member.PrimaryRoleHeavyMaterial:
-			heavyCount++
-		case member.PrimaryRoleLightMaterial:
-			lightCount++
-		default:
-			global.Warn("unknown node role")
-		}
+	if rp := nodes.GetRolePopulation(member.PrimaryRoleVirtual); rp != nil {
+		virtualCount = uint(rp.GetWorkingCount() + rp.GetIdleCount())
+	}
+	if rp := nodes.GetRolePopulation(member.PrimaryRoleLightMaterial); rp != nil {
+		lightCount = uint(rp.GetWorkingCount() + rp.GetIdleCount())
+	}
+	if rp := nodes.GetRolePopulation(member.PrimaryRoleHeavyMaterial); rp != nil {
+		heavyCount = uint(rp.GetWorkingCount() + rp.GetIdleCount())
 	}
 
 	v, h, l := cert.GetMinRoles()

@@ -8,6 +8,7 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -17,47 +18,47 @@ import (
 type AccessorMock struct {
 	t minimock.Tester
 
-	funcGetActiveNode          func(ref reference.Global) (n1 nodeinfo.NetworkNode)
-	inspectFuncGetActiveNode   func(ref reference.Global)
-	afterGetActiveNodeCounter  uint64
-	beforeGetActiveNodeCounter uint64
-	GetActiveNodeMock          mAccessorMockGetActiveNode
-
-	funcGetActiveNodeByAddr          func(address string) (n1 nodeinfo.NetworkNode)
-	inspectFuncGetActiveNodeByAddr   func(address string)
-	afterGetActiveNodeByAddrCounter  uint64
-	beforeGetActiveNodeByAddrCounter uint64
-	GetActiveNodeByAddrMock          mAccessorMockGetActiveNodeByAddr
-
-	funcGetActiveNodes          func() (na1 []nodeinfo.NetworkNode)
-	inspectFuncGetActiveNodes   func()
-	afterGetActiveNodesCounter  uint64
-	beforeGetActiveNodesCounter uint64
-	GetActiveNodesMock          mAccessorMockGetActiveNodes
-
 	funcGetLocalNode          func() (n1 nodeinfo.NetworkNode)
 	inspectFuncGetLocalNode   func()
 	afterGetLocalNodeCounter  uint64
 	beforeGetLocalNodeCounter uint64
 	GetLocalNodeMock          mAccessorMockGetLocalNode
 
+	funcGetOnlineNode          func(ref reference.Global) (n1 nodeinfo.NetworkNode)
+	inspectFuncGetOnlineNode   func(ref reference.Global)
+	afterGetOnlineNodeCounter  uint64
+	beforeGetOnlineNodeCounter uint64
+	GetOnlineNodeMock          mAccessorMockGetOnlineNode
+
+	funcGetOnlineNodeByAddr          func(address string) (n1 nodeinfo.NetworkNode)
+	inspectFuncGetOnlineNodeByAddr   func(address string)
+	afterGetOnlineNodeByAddrCounter  uint64
+	beforeGetOnlineNodeByAddrCounter uint64
+	GetOnlineNodeByAddrMock          mAccessorMockGetOnlineNodeByAddr
+
+	funcGetOnlineNodes          func() (na1 []nodeinfo.NetworkNode)
+	inspectFuncGetOnlineNodes   func()
+	afterGetOnlineNodesCounter  uint64
+	beforeGetOnlineNodesCounter uint64
+	GetOnlineNodesMock          mAccessorMockGetOnlineNodes
+
+	funcGetPopulation          func() (o1 census.OnlinePopulation)
+	inspectFuncGetPopulation   func()
+	afterGetPopulationCounter  uint64
+	beforeGetPopulationCounter uint64
+	GetPopulationMock          mAccessorMockGetPopulation
+
+	funcGetPoweredNode          func(ref reference.Global) (n1 nodeinfo.NetworkNode)
+	inspectFuncGetPoweredNode   func(ref reference.Global)
+	afterGetPoweredNodeCounter  uint64
+	beforeGetPoweredNodeCounter uint64
+	GetPoweredNodeMock          mAccessorMockGetPoweredNode
+
 	funcGetPulseNumber          func() (n1 pulse.Number)
 	inspectFuncGetPulseNumber   func()
 	afterGetPulseNumberCounter  uint64
 	beforeGetPulseNumberCounter uint64
 	GetPulseNumberMock          mAccessorMockGetPulseNumber
-
-	funcGetWorkingNode          func(ref reference.Global) (n1 nodeinfo.NetworkNode)
-	inspectFuncGetWorkingNode   func(ref reference.Global)
-	afterGetWorkingNodeCounter  uint64
-	beforeGetWorkingNodeCounter uint64
-	GetWorkingNodeMock          mAccessorMockGetWorkingNode
-
-	funcGetWorkingNodes          func() (na1 []nodeinfo.NetworkNode)
-	inspectFuncGetWorkingNodes   func()
-	afterGetWorkingNodesCounter  uint64
-	beforeGetWorkingNodesCounter uint64
-	GetWorkingNodesMock          mAccessorMockGetWorkingNodes
 }
 
 // NewAccessorMock returns a mock for network.Accessor
@@ -67,597 +68,24 @@ func NewAccessorMock(t minimock.Tester) *AccessorMock {
 		controller.RegisterMocker(m)
 	}
 
-	m.GetActiveNodeMock = mAccessorMockGetActiveNode{mock: m}
-	m.GetActiveNodeMock.callArgs = []*AccessorMockGetActiveNodeParams{}
-
-	m.GetActiveNodeByAddrMock = mAccessorMockGetActiveNodeByAddr{mock: m}
-	m.GetActiveNodeByAddrMock.callArgs = []*AccessorMockGetActiveNodeByAddrParams{}
-
-	m.GetActiveNodesMock = mAccessorMockGetActiveNodes{mock: m}
-
 	m.GetLocalNodeMock = mAccessorMockGetLocalNode{mock: m}
+
+	m.GetOnlineNodeMock = mAccessorMockGetOnlineNode{mock: m}
+	m.GetOnlineNodeMock.callArgs = []*AccessorMockGetOnlineNodeParams{}
+
+	m.GetOnlineNodeByAddrMock = mAccessorMockGetOnlineNodeByAddr{mock: m}
+	m.GetOnlineNodeByAddrMock.callArgs = []*AccessorMockGetOnlineNodeByAddrParams{}
+
+	m.GetOnlineNodesMock = mAccessorMockGetOnlineNodes{mock: m}
+
+	m.GetPopulationMock = mAccessorMockGetPopulation{mock: m}
+
+	m.GetPoweredNodeMock = mAccessorMockGetPoweredNode{mock: m}
+	m.GetPoweredNodeMock.callArgs = []*AccessorMockGetPoweredNodeParams{}
 
 	m.GetPulseNumberMock = mAccessorMockGetPulseNumber{mock: m}
 
-	m.GetWorkingNodeMock = mAccessorMockGetWorkingNode{mock: m}
-	m.GetWorkingNodeMock.callArgs = []*AccessorMockGetWorkingNodeParams{}
-
-	m.GetWorkingNodesMock = mAccessorMockGetWorkingNodes{mock: m}
-
 	return m
-}
-
-type mAccessorMockGetActiveNode struct {
-	mock               *AccessorMock
-	defaultExpectation *AccessorMockGetActiveNodeExpectation
-	expectations       []*AccessorMockGetActiveNodeExpectation
-
-	callArgs []*AccessorMockGetActiveNodeParams
-	mutex    sync.RWMutex
-}
-
-// AccessorMockGetActiveNodeExpectation specifies expectation struct of the Accessor.GetActiveNode
-type AccessorMockGetActiveNodeExpectation struct {
-	mock    *AccessorMock
-	params  *AccessorMockGetActiveNodeParams
-	results *AccessorMockGetActiveNodeResults
-	Counter uint64
-}
-
-// AccessorMockGetActiveNodeParams contains parameters of the Accessor.GetActiveNode
-type AccessorMockGetActiveNodeParams struct {
-	ref reference.Global
-}
-
-// AccessorMockGetActiveNodeResults contains results of the Accessor.GetActiveNode
-type AccessorMockGetActiveNodeResults struct {
-	n1 nodeinfo.NetworkNode
-}
-
-// Expect sets up expected params for Accessor.GetActiveNode
-func (mmGetActiveNode *mAccessorMockGetActiveNode) Expect(ref reference.Global) *mAccessorMockGetActiveNode {
-	if mmGetActiveNode.mock.funcGetActiveNode != nil {
-		mmGetActiveNode.mock.t.Fatalf("AccessorMock.GetActiveNode mock is already set by Set")
-	}
-
-	if mmGetActiveNode.defaultExpectation == nil {
-		mmGetActiveNode.defaultExpectation = &AccessorMockGetActiveNodeExpectation{}
-	}
-
-	mmGetActiveNode.defaultExpectation.params = &AccessorMockGetActiveNodeParams{ref}
-	for _, e := range mmGetActiveNode.expectations {
-		if minimock.Equal(e.params, mmGetActiveNode.defaultExpectation.params) {
-			mmGetActiveNode.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmGetActiveNode.defaultExpectation.params)
-		}
-	}
-
-	return mmGetActiveNode
-}
-
-// Inspect accepts an inspector function that has same arguments as the Accessor.GetActiveNode
-func (mmGetActiveNode *mAccessorMockGetActiveNode) Inspect(f func(ref reference.Global)) *mAccessorMockGetActiveNode {
-	if mmGetActiveNode.mock.inspectFuncGetActiveNode != nil {
-		mmGetActiveNode.mock.t.Fatalf("Inspect function is already set for AccessorMock.GetActiveNode")
-	}
-
-	mmGetActiveNode.mock.inspectFuncGetActiveNode = f
-
-	return mmGetActiveNode
-}
-
-// Return sets up results that will be returned by Accessor.GetActiveNode
-func (mmGetActiveNode *mAccessorMockGetActiveNode) Return(n1 nodeinfo.NetworkNode) *AccessorMock {
-	if mmGetActiveNode.mock.funcGetActiveNode != nil {
-		mmGetActiveNode.mock.t.Fatalf("AccessorMock.GetActiveNode mock is already set by Set")
-	}
-
-	if mmGetActiveNode.defaultExpectation == nil {
-		mmGetActiveNode.defaultExpectation = &AccessorMockGetActiveNodeExpectation{mock: mmGetActiveNode.mock}
-	}
-	mmGetActiveNode.defaultExpectation.results = &AccessorMockGetActiveNodeResults{n1}
-	return mmGetActiveNode.mock
-}
-
-//Set uses given function f to mock the Accessor.GetActiveNode method
-func (mmGetActiveNode *mAccessorMockGetActiveNode) Set(f func(ref reference.Global) (n1 nodeinfo.NetworkNode)) *AccessorMock {
-	if mmGetActiveNode.defaultExpectation != nil {
-		mmGetActiveNode.mock.t.Fatalf("Default expectation is already set for the Accessor.GetActiveNode method")
-	}
-
-	if len(mmGetActiveNode.expectations) > 0 {
-		mmGetActiveNode.mock.t.Fatalf("Some expectations are already set for the Accessor.GetActiveNode method")
-	}
-
-	mmGetActiveNode.mock.funcGetActiveNode = f
-	return mmGetActiveNode.mock
-}
-
-// When sets expectation for the Accessor.GetActiveNode which will trigger the result defined by the following
-// Then helper
-func (mmGetActiveNode *mAccessorMockGetActiveNode) When(ref reference.Global) *AccessorMockGetActiveNodeExpectation {
-	if mmGetActiveNode.mock.funcGetActiveNode != nil {
-		mmGetActiveNode.mock.t.Fatalf("AccessorMock.GetActiveNode mock is already set by Set")
-	}
-
-	expectation := &AccessorMockGetActiveNodeExpectation{
-		mock:   mmGetActiveNode.mock,
-		params: &AccessorMockGetActiveNodeParams{ref},
-	}
-	mmGetActiveNode.expectations = append(mmGetActiveNode.expectations, expectation)
-	return expectation
-}
-
-// Then sets up Accessor.GetActiveNode return parameters for the expectation previously defined by the When method
-func (e *AccessorMockGetActiveNodeExpectation) Then(n1 nodeinfo.NetworkNode) *AccessorMock {
-	e.results = &AccessorMockGetActiveNodeResults{n1}
-	return e.mock
-}
-
-// GetActiveNode implements network.Accessor
-func (mmGetActiveNode *AccessorMock) GetActiveNode(ref reference.Global) (n1 nodeinfo.NetworkNode) {
-	mm_atomic.AddUint64(&mmGetActiveNode.beforeGetActiveNodeCounter, 1)
-	defer mm_atomic.AddUint64(&mmGetActiveNode.afterGetActiveNodeCounter, 1)
-
-	if mmGetActiveNode.inspectFuncGetActiveNode != nil {
-		mmGetActiveNode.inspectFuncGetActiveNode(ref)
-	}
-
-	mm_params := &AccessorMockGetActiveNodeParams{ref}
-
-	// Record call args
-	mmGetActiveNode.GetActiveNodeMock.mutex.Lock()
-	mmGetActiveNode.GetActiveNodeMock.callArgs = append(mmGetActiveNode.GetActiveNodeMock.callArgs, mm_params)
-	mmGetActiveNode.GetActiveNodeMock.mutex.Unlock()
-
-	for _, e := range mmGetActiveNode.GetActiveNodeMock.expectations {
-		if minimock.Equal(e.params, mm_params) {
-			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.n1
-		}
-	}
-
-	if mmGetActiveNode.GetActiveNodeMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmGetActiveNode.GetActiveNodeMock.defaultExpectation.Counter, 1)
-		mm_want := mmGetActiveNode.GetActiveNodeMock.defaultExpectation.params
-		mm_got := AccessorMockGetActiveNodeParams{ref}
-		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmGetActiveNode.t.Errorf("AccessorMock.GetActiveNode got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
-		}
-
-		mm_results := mmGetActiveNode.GetActiveNodeMock.defaultExpectation.results
-		if mm_results == nil {
-			mmGetActiveNode.t.Fatal("No results are set for the AccessorMock.GetActiveNode")
-		}
-		return (*mm_results).n1
-	}
-	if mmGetActiveNode.funcGetActiveNode != nil {
-		return mmGetActiveNode.funcGetActiveNode(ref)
-	}
-	mmGetActiveNode.t.Fatalf("Unexpected call to AccessorMock.GetActiveNode. %v", ref)
-	return
-}
-
-// GetActiveNodeAfterCounter returns a count of finished AccessorMock.GetActiveNode invocations
-func (mmGetActiveNode *AccessorMock) GetActiveNodeAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmGetActiveNode.afterGetActiveNodeCounter)
-}
-
-// GetActiveNodeBeforeCounter returns a count of AccessorMock.GetActiveNode invocations
-func (mmGetActiveNode *AccessorMock) GetActiveNodeBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmGetActiveNode.beforeGetActiveNodeCounter)
-}
-
-// Calls returns a list of arguments used in each call to AccessorMock.GetActiveNode.
-// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmGetActiveNode *mAccessorMockGetActiveNode) Calls() []*AccessorMockGetActiveNodeParams {
-	mmGetActiveNode.mutex.RLock()
-
-	argCopy := make([]*AccessorMockGetActiveNodeParams, len(mmGetActiveNode.callArgs))
-	copy(argCopy, mmGetActiveNode.callArgs)
-
-	mmGetActiveNode.mutex.RUnlock()
-
-	return argCopy
-}
-
-// MinimockGetActiveNodeDone returns true if the count of the GetActiveNode invocations corresponds
-// the number of defined expectations
-func (m *AccessorMock) MinimockGetActiveNodeDone() bool {
-	for _, e := range m.GetActiveNodeMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.GetActiveNodeMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetActiveNodeCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcGetActiveNode != nil && mm_atomic.LoadUint64(&m.afterGetActiveNodeCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockGetActiveNodeInspect logs each unmet expectation
-func (m *AccessorMock) MinimockGetActiveNodeInspect() {
-	for _, e := range m.GetActiveNodeMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to AccessorMock.GetActiveNode with params: %#v", *e.params)
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.GetActiveNodeMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetActiveNodeCounter) < 1 {
-		if m.GetActiveNodeMock.defaultExpectation.params == nil {
-			m.t.Error("Expected call to AccessorMock.GetActiveNode")
-		} else {
-			m.t.Errorf("Expected call to AccessorMock.GetActiveNode with params: %#v", *m.GetActiveNodeMock.defaultExpectation.params)
-		}
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcGetActiveNode != nil && mm_atomic.LoadUint64(&m.afterGetActiveNodeCounter) < 1 {
-		m.t.Error("Expected call to AccessorMock.GetActiveNode")
-	}
-}
-
-type mAccessorMockGetActiveNodeByAddr struct {
-	mock               *AccessorMock
-	defaultExpectation *AccessorMockGetActiveNodeByAddrExpectation
-	expectations       []*AccessorMockGetActiveNodeByAddrExpectation
-
-	callArgs []*AccessorMockGetActiveNodeByAddrParams
-	mutex    sync.RWMutex
-}
-
-// AccessorMockGetActiveNodeByAddrExpectation specifies expectation struct of the Accessor.GetActiveNodeByAddr
-type AccessorMockGetActiveNodeByAddrExpectation struct {
-	mock    *AccessorMock
-	params  *AccessorMockGetActiveNodeByAddrParams
-	results *AccessorMockGetActiveNodeByAddrResults
-	Counter uint64
-}
-
-// AccessorMockGetActiveNodeByAddrParams contains parameters of the Accessor.GetActiveNodeByAddr
-type AccessorMockGetActiveNodeByAddrParams struct {
-	address string
-}
-
-// AccessorMockGetActiveNodeByAddrResults contains results of the Accessor.GetActiveNodeByAddr
-type AccessorMockGetActiveNodeByAddrResults struct {
-	n1 nodeinfo.NetworkNode
-}
-
-// Expect sets up expected params for Accessor.GetActiveNodeByAddr
-func (mmGetActiveNodeByAddr *mAccessorMockGetActiveNodeByAddr) Expect(address string) *mAccessorMockGetActiveNodeByAddr {
-	if mmGetActiveNodeByAddr.mock.funcGetActiveNodeByAddr != nil {
-		mmGetActiveNodeByAddr.mock.t.Fatalf("AccessorMock.GetActiveNodeByAddr mock is already set by Set")
-	}
-
-	if mmGetActiveNodeByAddr.defaultExpectation == nil {
-		mmGetActiveNodeByAddr.defaultExpectation = &AccessorMockGetActiveNodeByAddrExpectation{}
-	}
-
-	mmGetActiveNodeByAddr.defaultExpectation.params = &AccessorMockGetActiveNodeByAddrParams{address}
-	for _, e := range mmGetActiveNodeByAddr.expectations {
-		if minimock.Equal(e.params, mmGetActiveNodeByAddr.defaultExpectation.params) {
-			mmGetActiveNodeByAddr.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmGetActiveNodeByAddr.defaultExpectation.params)
-		}
-	}
-
-	return mmGetActiveNodeByAddr
-}
-
-// Inspect accepts an inspector function that has same arguments as the Accessor.GetActiveNodeByAddr
-func (mmGetActiveNodeByAddr *mAccessorMockGetActiveNodeByAddr) Inspect(f func(address string)) *mAccessorMockGetActiveNodeByAddr {
-	if mmGetActiveNodeByAddr.mock.inspectFuncGetActiveNodeByAddr != nil {
-		mmGetActiveNodeByAddr.mock.t.Fatalf("Inspect function is already set for AccessorMock.GetActiveNodeByAddr")
-	}
-
-	mmGetActiveNodeByAddr.mock.inspectFuncGetActiveNodeByAddr = f
-
-	return mmGetActiveNodeByAddr
-}
-
-// Return sets up results that will be returned by Accessor.GetActiveNodeByAddr
-func (mmGetActiveNodeByAddr *mAccessorMockGetActiveNodeByAddr) Return(n1 nodeinfo.NetworkNode) *AccessorMock {
-	if mmGetActiveNodeByAddr.mock.funcGetActiveNodeByAddr != nil {
-		mmGetActiveNodeByAddr.mock.t.Fatalf("AccessorMock.GetActiveNodeByAddr mock is already set by Set")
-	}
-
-	if mmGetActiveNodeByAddr.defaultExpectation == nil {
-		mmGetActiveNodeByAddr.defaultExpectation = &AccessorMockGetActiveNodeByAddrExpectation{mock: mmGetActiveNodeByAddr.mock}
-	}
-	mmGetActiveNodeByAddr.defaultExpectation.results = &AccessorMockGetActiveNodeByAddrResults{n1}
-	return mmGetActiveNodeByAddr.mock
-}
-
-//Set uses given function f to mock the Accessor.GetActiveNodeByAddr method
-func (mmGetActiveNodeByAddr *mAccessorMockGetActiveNodeByAddr) Set(f func(address string) (n1 nodeinfo.NetworkNode)) *AccessorMock {
-	if mmGetActiveNodeByAddr.defaultExpectation != nil {
-		mmGetActiveNodeByAddr.mock.t.Fatalf("Default expectation is already set for the Accessor.GetActiveNodeByAddr method")
-	}
-
-	if len(mmGetActiveNodeByAddr.expectations) > 0 {
-		mmGetActiveNodeByAddr.mock.t.Fatalf("Some expectations are already set for the Accessor.GetActiveNodeByAddr method")
-	}
-
-	mmGetActiveNodeByAddr.mock.funcGetActiveNodeByAddr = f
-	return mmGetActiveNodeByAddr.mock
-}
-
-// When sets expectation for the Accessor.GetActiveNodeByAddr which will trigger the result defined by the following
-// Then helper
-func (mmGetActiveNodeByAddr *mAccessorMockGetActiveNodeByAddr) When(address string) *AccessorMockGetActiveNodeByAddrExpectation {
-	if mmGetActiveNodeByAddr.mock.funcGetActiveNodeByAddr != nil {
-		mmGetActiveNodeByAddr.mock.t.Fatalf("AccessorMock.GetActiveNodeByAddr mock is already set by Set")
-	}
-
-	expectation := &AccessorMockGetActiveNodeByAddrExpectation{
-		mock:   mmGetActiveNodeByAddr.mock,
-		params: &AccessorMockGetActiveNodeByAddrParams{address},
-	}
-	mmGetActiveNodeByAddr.expectations = append(mmGetActiveNodeByAddr.expectations, expectation)
-	return expectation
-}
-
-// Then sets up Accessor.GetActiveNodeByAddr return parameters for the expectation previously defined by the When method
-func (e *AccessorMockGetActiveNodeByAddrExpectation) Then(n1 nodeinfo.NetworkNode) *AccessorMock {
-	e.results = &AccessorMockGetActiveNodeByAddrResults{n1}
-	return e.mock
-}
-
-// GetActiveNodeByAddr implements network.Accessor
-func (mmGetActiveNodeByAddr *AccessorMock) GetActiveNodeByAddr(address string) (n1 nodeinfo.NetworkNode) {
-	mm_atomic.AddUint64(&mmGetActiveNodeByAddr.beforeGetActiveNodeByAddrCounter, 1)
-	defer mm_atomic.AddUint64(&mmGetActiveNodeByAddr.afterGetActiveNodeByAddrCounter, 1)
-
-	if mmGetActiveNodeByAddr.inspectFuncGetActiveNodeByAddr != nil {
-		mmGetActiveNodeByAddr.inspectFuncGetActiveNodeByAddr(address)
-	}
-
-	mm_params := &AccessorMockGetActiveNodeByAddrParams{address}
-
-	// Record call args
-	mmGetActiveNodeByAddr.GetActiveNodeByAddrMock.mutex.Lock()
-	mmGetActiveNodeByAddr.GetActiveNodeByAddrMock.callArgs = append(mmGetActiveNodeByAddr.GetActiveNodeByAddrMock.callArgs, mm_params)
-	mmGetActiveNodeByAddr.GetActiveNodeByAddrMock.mutex.Unlock()
-
-	for _, e := range mmGetActiveNodeByAddr.GetActiveNodeByAddrMock.expectations {
-		if minimock.Equal(e.params, mm_params) {
-			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.n1
-		}
-	}
-
-	if mmGetActiveNodeByAddr.GetActiveNodeByAddrMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmGetActiveNodeByAddr.GetActiveNodeByAddrMock.defaultExpectation.Counter, 1)
-		mm_want := mmGetActiveNodeByAddr.GetActiveNodeByAddrMock.defaultExpectation.params
-		mm_got := AccessorMockGetActiveNodeByAddrParams{address}
-		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmGetActiveNodeByAddr.t.Errorf("AccessorMock.GetActiveNodeByAddr got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
-		}
-
-		mm_results := mmGetActiveNodeByAddr.GetActiveNodeByAddrMock.defaultExpectation.results
-		if mm_results == nil {
-			mmGetActiveNodeByAddr.t.Fatal("No results are set for the AccessorMock.GetActiveNodeByAddr")
-		}
-		return (*mm_results).n1
-	}
-	if mmGetActiveNodeByAddr.funcGetActiveNodeByAddr != nil {
-		return mmGetActiveNodeByAddr.funcGetActiveNodeByAddr(address)
-	}
-	mmGetActiveNodeByAddr.t.Fatalf("Unexpected call to AccessorMock.GetActiveNodeByAddr. %v", address)
-	return
-}
-
-// GetActiveNodeByAddrAfterCounter returns a count of finished AccessorMock.GetActiveNodeByAddr invocations
-func (mmGetActiveNodeByAddr *AccessorMock) GetActiveNodeByAddrAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmGetActiveNodeByAddr.afterGetActiveNodeByAddrCounter)
-}
-
-// GetActiveNodeByAddrBeforeCounter returns a count of AccessorMock.GetActiveNodeByAddr invocations
-func (mmGetActiveNodeByAddr *AccessorMock) GetActiveNodeByAddrBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmGetActiveNodeByAddr.beforeGetActiveNodeByAddrCounter)
-}
-
-// Calls returns a list of arguments used in each call to AccessorMock.GetActiveNodeByAddr.
-// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmGetActiveNodeByAddr *mAccessorMockGetActiveNodeByAddr) Calls() []*AccessorMockGetActiveNodeByAddrParams {
-	mmGetActiveNodeByAddr.mutex.RLock()
-
-	argCopy := make([]*AccessorMockGetActiveNodeByAddrParams, len(mmGetActiveNodeByAddr.callArgs))
-	copy(argCopy, mmGetActiveNodeByAddr.callArgs)
-
-	mmGetActiveNodeByAddr.mutex.RUnlock()
-
-	return argCopy
-}
-
-// MinimockGetActiveNodeByAddrDone returns true if the count of the GetActiveNodeByAddr invocations corresponds
-// the number of defined expectations
-func (m *AccessorMock) MinimockGetActiveNodeByAddrDone() bool {
-	for _, e := range m.GetActiveNodeByAddrMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.GetActiveNodeByAddrMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetActiveNodeByAddrCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcGetActiveNodeByAddr != nil && mm_atomic.LoadUint64(&m.afterGetActiveNodeByAddrCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockGetActiveNodeByAddrInspect logs each unmet expectation
-func (m *AccessorMock) MinimockGetActiveNodeByAddrInspect() {
-	for _, e := range m.GetActiveNodeByAddrMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to AccessorMock.GetActiveNodeByAddr with params: %#v", *e.params)
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.GetActiveNodeByAddrMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetActiveNodeByAddrCounter) < 1 {
-		if m.GetActiveNodeByAddrMock.defaultExpectation.params == nil {
-			m.t.Error("Expected call to AccessorMock.GetActiveNodeByAddr")
-		} else {
-			m.t.Errorf("Expected call to AccessorMock.GetActiveNodeByAddr with params: %#v", *m.GetActiveNodeByAddrMock.defaultExpectation.params)
-		}
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcGetActiveNodeByAddr != nil && mm_atomic.LoadUint64(&m.afterGetActiveNodeByAddrCounter) < 1 {
-		m.t.Error("Expected call to AccessorMock.GetActiveNodeByAddr")
-	}
-}
-
-type mAccessorMockGetActiveNodes struct {
-	mock               *AccessorMock
-	defaultExpectation *AccessorMockGetActiveNodesExpectation
-	expectations       []*AccessorMockGetActiveNodesExpectation
-}
-
-// AccessorMockGetActiveNodesExpectation specifies expectation struct of the Accessor.GetActiveNodes
-type AccessorMockGetActiveNodesExpectation struct {
-	mock *AccessorMock
-
-	results *AccessorMockGetActiveNodesResults
-	Counter uint64
-}
-
-// AccessorMockGetActiveNodesResults contains results of the Accessor.GetActiveNodes
-type AccessorMockGetActiveNodesResults struct {
-	na1 []nodeinfo.NetworkNode
-}
-
-// Expect sets up expected params for Accessor.GetActiveNodes
-func (mmGetActiveNodes *mAccessorMockGetActiveNodes) Expect() *mAccessorMockGetActiveNodes {
-	if mmGetActiveNodes.mock.funcGetActiveNodes != nil {
-		mmGetActiveNodes.mock.t.Fatalf("AccessorMock.GetActiveNodes mock is already set by Set")
-	}
-
-	if mmGetActiveNodes.defaultExpectation == nil {
-		mmGetActiveNodes.defaultExpectation = &AccessorMockGetActiveNodesExpectation{}
-	}
-
-	return mmGetActiveNodes
-}
-
-// Inspect accepts an inspector function that has same arguments as the Accessor.GetActiveNodes
-func (mmGetActiveNodes *mAccessorMockGetActiveNodes) Inspect(f func()) *mAccessorMockGetActiveNodes {
-	if mmGetActiveNodes.mock.inspectFuncGetActiveNodes != nil {
-		mmGetActiveNodes.mock.t.Fatalf("Inspect function is already set for AccessorMock.GetActiveNodes")
-	}
-
-	mmGetActiveNodes.mock.inspectFuncGetActiveNodes = f
-
-	return mmGetActiveNodes
-}
-
-// Return sets up results that will be returned by Accessor.GetActiveNodes
-func (mmGetActiveNodes *mAccessorMockGetActiveNodes) Return(na1 []nodeinfo.NetworkNode) *AccessorMock {
-	if mmGetActiveNodes.mock.funcGetActiveNodes != nil {
-		mmGetActiveNodes.mock.t.Fatalf("AccessorMock.GetActiveNodes mock is already set by Set")
-	}
-
-	if mmGetActiveNodes.defaultExpectation == nil {
-		mmGetActiveNodes.defaultExpectation = &AccessorMockGetActiveNodesExpectation{mock: mmGetActiveNodes.mock}
-	}
-	mmGetActiveNodes.defaultExpectation.results = &AccessorMockGetActiveNodesResults{na1}
-	return mmGetActiveNodes.mock
-}
-
-//Set uses given function f to mock the Accessor.GetActiveNodes method
-func (mmGetActiveNodes *mAccessorMockGetActiveNodes) Set(f func() (na1 []nodeinfo.NetworkNode)) *AccessorMock {
-	if mmGetActiveNodes.defaultExpectation != nil {
-		mmGetActiveNodes.mock.t.Fatalf("Default expectation is already set for the Accessor.GetActiveNodes method")
-	}
-
-	if len(mmGetActiveNodes.expectations) > 0 {
-		mmGetActiveNodes.mock.t.Fatalf("Some expectations are already set for the Accessor.GetActiveNodes method")
-	}
-
-	mmGetActiveNodes.mock.funcGetActiveNodes = f
-	return mmGetActiveNodes.mock
-}
-
-// GetActiveNodes implements network.Accessor
-func (mmGetActiveNodes *AccessorMock) GetActiveNodes() (na1 []nodeinfo.NetworkNode) {
-	mm_atomic.AddUint64(&mmGetActiveNodes.beforeGetActiveNodesCounter, 1)
-	defer mm_atomic.AddUint64(&mmGetActiveNodes.afterGetActiveNodesCounter, 1)
-
-	if mmGetActiveNodes.inspectFuncGetActiveNodes != nil {
-		mmGetActiveNodes.inspectFuncGetActiveNodes()
-	}
-
-	if mmGetActiveNodes.GetActiveNodesMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmGetActiveNodes.GetActiveNodesMock.defaultExpectation.Counter, 1)
-
-		mm_results := mmGetActiveNodes.GetActiveNodesMock.defaultExpectation.results
-		if mm_results == nil {
-			mmGetActiveNodes.t.Fatal("No results are set for the AccessorMock.GetActiveNodes")
-		}
-		return (*mm_results).na1
-	}
-	if mmGetActiveNodes.funcGetActiveNodes != nil {
-		return mmGetActiveNodes.funcGetActiveNodes()
-	}
-	mmGetActiveNodes.t.Fatalf("Unexpected call to AccessorMock.GetActiveNodes.")
-	return
-}
-
-// GetActiveNodesAfterCounter returns a count of finished AccessorMock.GetActiveNodes invocations
-func (mmGetActiveNodes *AccessorMock) GetActiveNodesAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmGetActiveNodes.afterGetActiveNodesCounter)
-}
-
-// GetActiveNodesBeforeCounter returns a count of AccessorMock.GetActiveNodes invocations
-func (mmGetActiveNodes *AccessorMock) GetActiveNodesBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmGetActiveNodes.beforeGetActiveNodesCounter)
-}
-
-// MinimockGetActiveNodesDone returns true if the count of the GetActiveNodes invocations corresponds
-// the number of defined expectations
-func (m *AccessorMock) MinimockGetActiveNodesDone() bool {
-	for _, e := range m.GetActiveNodesMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.GetActiveNodesMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetActiveNodesCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcGetActiveNodes != nil && mm_atomic.LoadUint64(&m.afterGetActiveNodesCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockGetActiveNodesInspect logs each unmet expectation
-func (m *AccessorMock) MinimockGetActiveNodesInspect() {
-	for _, e := range m.GetActiveNodesMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Error("Expected call to AccessorMock.GetActiveNodes")
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.GetActiveNodesMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetActiveNodesCounter) < 1 {
-		m.t.Error("Expected call to AccessorMock.GetActiveNodes")
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcGetActiveNodes != nil && mm_atomic.LoadUint64(&m.afterGetActiveNodesCounter) < 1 {
-		m.t.Error("Expected call to AccessorMock.GetActiveNodes")
-	}
 }
 
 type mAccessorMockGetLocalNode struct {
@@ -800,6 +228,937 @@ func (m *AccessorMock) MinimockGetLocalNodeInspect() {
 	// if func was set then invocations count should be greater than zero
 	if m.funcGetLocalNode != nil && mm_atomic.LoadUint64(&m.afterGetLocalNodeCounter) < 1 {
 		m.t.Error("Expected call to AccessorMock.GetLocalNode")
+	}
+}
+
+type mAccessorMockGetOnlineNode struct {
+	mock               *AccessorMock
+	defaultExpectation *AccessorMockGetOnlineNodeExpectation
+	expectations       []*AccessorMockGetOnlineNodeExpectation
+
+	callArgs []*AccessorMockGetOnlineNodeParams
+	mutex    sync.RWMutex
+}
+
+// AccessorMockGetOnlineNodeExpectation specifies expectation struct of the Accessor.GetOnlineNode
+type AccessorMockGetOnlineNodeExpectation struct {
+	mock    *AccessorMock
+	params  *AccessorMockGetOnlineNodeParams
+	results *AccessorMockGetOnlineNodeResults
+	Counter uint64
+}
+
+// AccessorMockGetOnlineNodeParams contains parameters of the Accessor.GetOnlineNode
+type AccessorMockGetOnlineNodeParams struct {
+	ref reference.Global
+}
+
+// AccessorMockGetOnlineNodeResults contains results of the Accessor.GetOnlineNode
+type AccessorMockGetOnlineNodeResults struct {
+	n1 nodeinfo.NetworkNode
+}
+
+// Expect sets up expected params for Accessor.GetOnlineNode
+func (mmGetOnlineNode *mAccessorMockGetOnlineNode) Expect(ref reference.Global) *mAccessorMockGetOnlineNode {
+	if mmGetOnlineNode.mock.funcGetOnlineNode != nil {
+		mmGetOnlineNode.mock.t.Fatalf("AccessorMock.GetOnlineNode mock is already set by Set")
+	}
+
+	if mmGetOnlineNode.defaultExpectation == nil {
+		mmGetOnlineNode.defaultExpectation = &AccessorMockGetOnlineNodeExpectation{}
+	}
+
+	mmGetOnlineNode.defaultExpectation.params = &AccessorMockGetOnlineNodeParams{ref}
+	for _, e := range mmGetOnlineNode.expectations {
+		if minimock.Equal(e.params, mmGetOnlineNode.defaultExpectation.params) {
+			mmGetOnlineNode.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmGetOnlineNode.defaultExpectation.params)
+		}
+	}
+
+	return mmGetOnlineNode
+}
+
+// Inspect accepts an inspector function that has same arguments as the Accessor.GetOnlineNode
+func (mmGetOnlineNode *mAccessorMockGetOnlineNode) Inspect(f func(ref reference.Global)) *mAccessorMockGetOnlineNode {
+	if mmGetOnlineNode.mock.inspectFuncGetOnlineNode != nil {
+		mmGetOnlineNode.mock.t.Fatalf("Inspect function is already set for AccessorMock.GetOnlineNode")
+	}
+
+	mmGetOnlineNode.mock.inspectFuncGetOnlineNode = f
+
+	return mmGetOnlineNode
+}
+
+// Return sets up results that will be returned by Accessor.GetOnlineNode
+func (mmGetOnlineNode *mAccessorMockGetOnlineNode) Return(n1 nodeinfo.NetworkNode) *AccessorMock {
+	if mmGetOnlineNode.mock.funcGetOnlineNode != nil {
+		mmGetOnlineNode.mock.t.Fatalf("AccessorMock.GetOnlineNode mock is already set by Set")
+	}
+
+	if mmGetOnlineNode.defaultExpectation == nil {
+		mmGetOnlineNode.defaultExpectation = &AccessorMockGetOnlineNodeExpectation{mock: mmGetOnlineNode.mock}
+	}
+	mmGetOnlineNode.defaultExpectation.results = &AccessorMockGetOnlineNodeResults{n1}
+	return mmGetOnlineNode.mock
+}
+
+//Set uses given function f to mock the Accessor.GetOnlineNode method
+func (mmGetOnlineNode *mAccessorMockGetOnlineNode) Set(f func(ref reference.Global) (n1 nodeinfo.NetworkNode)) *AccessorMock {
+	if mmGetOnlineNode.defaultExpectation != nil {
+		mmGetOnlineNode.mock.t.Fatalf("Default expectation is already set for the Accessor.GetOnlineNode method")
+	}
+
+	if len(mmGetOnlineNode.expectations) > 0 {
+		mmGetOnlineNode.mock.t.Fatalf("Some expectations are already set for the Accessor.GetOnlineNode method")
+	}
+
+	mmGetOnlineNode.mock.funcGetOnlineNode = f
+	return mmGetOnlineNode.mock
+}
+
+// When sets expectation for the Accessor.GetOnlineNode which will trigger the result defined by the following
+// Then helper
+func (mmGetOnlineNode *mAccessorMockGetOnlineNode) When(ref reference.Global) *AccessorMockGetOnlineNodeExpectation {
+	if mmGetOnlineNode.mock.funcGetOnlineNode != nil {
+		mmGetOnlineNode.mock.t.Fatalf("AccessorMock.GetOnlineNode mock is already set by Set")
+	}
+
+	expectation := &AccessorMockGetOnlineNodeExpectation{
+		mock:   mmGetOnlineNode.mock,
+		params: &AccessorMockGetOnlineNodeParams{ref},
+	}
+	mmGetOnlineNode.expectations = append(mmGetOnlineNode.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Accessor.GetOnlineNode return parameters for the expectation previously defined by the When method
+func (e *AccessorMockGetOnlineNodeExpectation) Then(n1 nodeinfo.NetworkNode) *AccessorMock {
+	e.results = &AccessorMockGetOnlineNodeResults{n1}
+	return e.mock
+}
+
+// GetOnlineNode implements network.Accessor
+func (mmGetOnlineNode *AccessorMock) GetOnlineNode(ref reference.Global) (n1 nodeinfo.NetworkNode) {
+	mm_atomic.AddUint64(&mmGetOnlineNode.beforeGetOnlineNodeCounter, 1)
+	defer mm_atomic.AddUint64(&mmGetOnlineNode.afterGetOnlineNodeCounter, 1)
+
+	if mmGetOnlineNode.inspectFuncGetOnlineNode != nil {
+		mmGetOnlineNode.inspectFuncGetOnlineNode(ref)
+	}
+
+	mm_params := &AccessorMockGetOnlineNodeParams{ref}
+
+	// Record call args
+	mmGetOnlineNode.GetOnlineNodeMock.mutex.Lock()
+	mmGetOnlineNode.GetOnlineNodeMock.callArgs = append(mmGetOnlineNode.GetOnlineNodeMock.callArgs, mm_params)
+	mmGetOnlineNode.GetOnlineNodeMock.mutex.Unlock()
+
+	for _, e := range mmGetOnlineNode.GetOnlineNodeMock.expectations {
+		if minimock.Equal(e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.n1
+		}
+	}
+
+	if mmGetOnlineNode.GetOnlineNodeMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmGetOnlineNode.GetOnlineNodeMock.defaultExpectation.Counter, 1)
+		mm_want := mmGetOnlineNode.GetOnlineNodeMock.defaultExpectation.params
+		mm_got := AccessorMockGetOnlineNodeParams{ref}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmGetOnlineNode.t.Errorf("AccessorMock.GetOnlineNode got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmGetOnlineNode.GetOnlineNodeMock.defaultExpectation.results
+		if mm_results == nil {
+			mmGetOnlineNode.t.Fatal("No results are set for the AccessorMock.GetOnlineNode")
+		}
+		return (*mm_results).n1
+	}
+	if mmGetOnlineNode.funcGetOnlineNode != nil {
+		return mmGetOnlineNode.funcGetOnlineNode(ref)
+	}
+	mmGetOnlineNode.t.Fatalf("Unexpected call to AccessorMock.GetOnlineNode. %v", ref)
+	return
+}
+
+// GetOnlineNodeAfterCounter returns a count of finished AccessorMock.GetOnlineNode invocations
+func (mmGetOnlineNode *AccessorMock) GetOnlineNodeAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetOnlineNode.afterGetOnlineNodeCounter)
+}
+
+// GetOnlineNodeBeforeCounter returns a count of AccessorMock.GetOnlineNode invocations
+func (mmGetOnlineNode *AccessorMock) GetOnlineNodeBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetOnlineNode.beforeGetOnlineNodeCounter)
+}
+
+// Calls returns a list of arguments used in each call to AccessorMock.GetOnlineNode.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmGetOnlineNode *mAccessorMockGetOnlineNode) Calls() []*AccessorMockGetOnlineNodeParams {
+	mmGetOnlineNode.mutex.RLock()
+
+	argCopy := make([]*AccessorMockGetOnlineNodeParams, len(mmGetOnlineNode.callArgs))
+	copy(argCopy, mmGetOnlineNode.callArgs)
+
+	mmGetOnlineNode.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockGetOnlineNodeDone returns true if the count of the GetOnlineNode invocations corresponds
+// the number of defined expectations
+func (m *AccessorMock) MinimockGetOnlineNodeDone() bool {
+	for _, e := range m.GetOnlineNodeMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.GetOnlineNodeMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetOnlineNodeCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcGetOnlineNode != nil && mm_atomic.LoadUint64(&m.afterGetOnlineNodeCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockGetOnlineNodeInspect logs each unmet expectation
+func (m *AccessorMock) MinimockGetOnlineNodeInspect() {
+	for _, e := range m.GetOnlineNodeMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to AccessorMock.GetOnlineNode with params: %#v", *e.params)
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.GetOnlineNodeMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetOnlineNodeCounter) < 1 {
+		if m.GetOnlineNodeMock.defaultExpectation.params == nil {
+			m.t.Error("Expected call to AccessorMock.GetOnlineNode")
+		} else {
+			m.t.Errorf("Expected call to AccessorMock.GetOnlineNode with params: %#v", *m.GetOnlineNodeMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcGetOnlineNode != nil && mm_atomic.LoadUint64(&m.afterGetOnlineNodeCounter) < 1 {
+		m.t.Error("Expected call to AccessorMock.GetOnlineNode")
+	}
+}
+
+type mAccessorMockGetOnlineNodeByAddr struct {
+	mock               *AccessorMock
+	defaultExpectation *AccessorMockGetOnlineNodeByAddrExpectation
+	expectations       []*AccessorMockGetOnlineNodeByAddrExpectation
+
+	callArgs []*AccessorMockGetOnlineNodeByAddrParams
+	mutex    sync.RWMutex
+}
+
+// AccessorMockGetOnlineNodeByAddrExpectation specifies expectation struct of the Accessor.GetOnlineNodeByAddr
+type AccessorMockGetOnlineNodeByAddrExpectation struct {
+	mock    *AccessorMock
+	params  *AccessorMockGetOnlineNodeByAddrParams
+	results *AccessorMockGetOnlineNodeByAddrResults
+	Counter uint64
+}
+
+// AccessorMockGetOnlineNodeByAddrParams contains parameters of the Accessor.GetOnlineNodeByAddr
+type AccessorMockGetOnlineNodeByAddrParams struct {
+	address string
+}
+
+// AccessorMockGetOnlineNodeByAddrResults contains results of the Accessor.GetOnlineNodeByAddr
+type AccessorMockGetOnlineNodeByAddrResults struct {
+	n1 nodeinfo.NetworkNode
+}
+
+// Expect sets up expected params for Accessor.GetOnlineNodeByAddr
+func (mmGetOnlineNodeByAddr *mAccessorMockGetOnlineNodeByAddr) Expect(address string) *mAccessorMockGetOnlineNodeByAddr {
+	if mmGetOnlineNodeByAddr.mock.funcGetOnlineNodeByAddr != nil {
+		mmGetOnlineNodeByAddr.mock.t.Fatalf("AccessorMock.GetOnlineNodeByAddr mock is already set by Set")
+	}
+
+	if mmGetOnlineNodeByAddr.defaultExpectation == nil {
+		mmGetOnlineNodeByAddr.defaultExpectation = &AccessorMockGetOnlineNodeByAddrExpectation{}
+	}
+
+	mmGetOnlineNodeByAddr.defaultExpectation.params = &AccessorMockGetOnlineNodeByAddrParams{address}
+	for _, e := range mmGetOnlineNodeByAddr.expectations {
+		if minimock.Equal(e.params, mmGetOnlineNodeByAddr.defaultExpectation.params) {
+			mmGetOnlineNodeByAddr.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmGetOnlineNodeByAddr.defaultExpectation.params)
+		}
+	}
+
+	return mmGetOnlineNodeByAddr
+}
+
+// Inspect accepts an inspector function that has same arguments as the Accessor.GetOnlineNodeByAddr
+func (mmGetOnlineNodeByAddr *mAccessorMockGetOnlineNodeByAddr) Inspect(f func(address string)) *mAccessorMockGetOnlineNodeByAddr {
+	if mmGetOnlineNodeByAddr.mock.inspectFuncGetOnlineNodeByAddr != nil {
+		mmGetOnlineNodeByAddr.mock.t.Fatalf("Inspect function is already set for AccessorMock.GetOnlineNodeByAddr")
+	}
+
+	mmGetOnlineNodeByAddr.mock.inspectFuncGetOnlineNodeByAddr = f
+
+	return mmGetOnlineNodeByAddr
+}
+
+// Return sets up results that will be returned by Accessor.GetOnlineNodeByAddr
+func (mmGetOnlineNodeByAddr *mAccessorMockGetOnlineNodeByAddr) Return(n1 nodeinfo.NetworkNode) *AccessorMock {
+	if mmGetOnlineNodeByAddr.mock.funcGetOnlineNodeByAddr != nil {
+		mmGetOnlineNodeByAddr.mock.t.Fatalf("AccessorMock.GetOnlineNodeByAddr mock is already set by Set")
+	}
+
+	if mmGetOnlineNodeByAddr.defaultExpectation == nil {
+		mmGetOnlineNodeByAddr.defaultExpectation = &AccessorMockGetOnlineNodeByAddrExpectation{mock: mmGetOnlineNodeByAddr.mock}
+	}
+	mmGetOnlineNodeByAddr.defaultExpectation.results = &AccessorMockGetOnlineNodeByAddrResults{n1}
+	return mmGetOnlineNodeByAddr.mock
+}
+
+//Set uses given function f to mock the Accessor.GetOnlineNodeByAddr method
+func (mmGetOnlineNodeByAddr *mAccessorMockGetOnlineNodeByAddr) Set(f func(address string) (n1 nodeinfo.NetworkNode)) *AccessorMock {
+	if mmGetOnlineNodeByAddr.defaultExpectation != nil {
+		mmGetOnlineNodeByAddr.mock.t.Fatalf("Default expectation is already set for the Accessor.GetOnlineNodeByAddr method")
+	}
+
+	if len(mmGetOnlineNodeByAddr.expectations) > 0 {
+		mmGetOnlineNodeByAddr.mock.t.Fatalf("Some expectations are already set for the Accessor.GetOnlineNodeByAddr method")
+	}
+
+	mmGetOnlineNodeByAddr.mock.funcGetOnlineNodeByAddr = f
+	return mmGetOnlineNodeByAddr.mock
+}
+
+// When sets expectation for the Accessor.GetOnlineNodeByAddr which will trigger the result defined by the following
+// Then helper
+func (mmGetOnlineNodeByAddr *mAccessorMockGetOnlineNodeByAddr) When(address string) *AccessorMockGetOnlineNodeByAddrExpectation {
+	if mmGetOnlineNodeByAddr.mock.funcGetOnlineNodeByAddr != nil {
+		mmGetOnlineNodeByAddr.mock.t.Fatalf("AccessorMock.GetOnlineNodeByAddr mock is already set by Set")
+	}
+
+	expectation := &AccessorMockGetOnlineNodeByAddrExpectation{
+		mock:   mmGetOnlineNodeByAddr.mock,
+		params: &AccessorMockGetOnlineNodeByAddrParams{address},
+	}
+	mmGetOnlineNodeByAddr.expectations = append(mmGetOnlineNodeByAddr.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Accessor.GetOnlineNodeByAddr return parameters for the expectation previously defined by the When method
+func (e *AccessorMockGetOnlineNodeByAddrExpectation) Then(n1 nodeinfo.NetworkNode) *AccessorMock {
+	e.results = &AccessorMockGetOnlineNodeByAddrResults{n1}
+	return e.mock
+}
+
+// GetOnlineNodeByAddr implements network.Accessor
+func (mmGetOnlineNodeByAddr *AccessorMock) GetOnlineNodeByAddr(address string) (n1 nodeinfo.NetworkNode) {
+	mm_atomic.AddUint64(&mmGetOnlineNodeByAddr.beforeGetOnlineNodeByAddrCounter, 1)
+	defer mm_atomic.AddUint64(&mmGetOnlineNodeByAddr.afterGetOnlineNodeByAddrCounter, 1)
+
+	if mmGetOnlineNodeByAddr.inspectFuncGetOnlineNodeByAddr != nil {
+		mmGetOnlineNodeByAddr.inspectFuncGetOnlineNodeByAddr(address)
+	}
+
+	mm_params := &AccessorMockGetOnlineNodeByAddrParams{address}
+
+	// Record call args
+	mmGetOnlineNodeByAddr.GetOnlineNodeByAddrMock.mutex.Lock()
+	mmGetOnlineNodeByAddr.GetOnlineNodeByAddrMock.callArgs = append(mmGetOnlineNodeByAddr.GetOnlineNodeByAddrMock.callArgs, mm_params)
+	mmGetOnlineNodeByAddr.GetOnlineNodeByAddrMock.mutex.Unlock()
+
+	for _, e := range mmGetOnlineNodeByAddr.GetOnlineNodeByAddrMock.expectations {
+		if minimock.Equal(e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.n1
+		}
+	}
+
+	if mmGetOnlineNodeByAddr.GetOnlineNodeByAddrMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmGetOnlineNodeByAddr.GetOnlineNodeByAddrMock.defaultExpectation.Counter, 1)
+		mm_want := mmGetOnlineNodeByAddr.GetOnlineNodeByAddrMock.defaultExpectation.params
+		mm_got := AccessorMockGetOnlineNodeByAddrParams{address}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmGetOnlineNodeByAddr.t.Errorf("AccessorMock.GetOnlineNodeByAddr got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmGetOnlineNodeByAddr.GetOnlineNodeByAddrMock.defaultExpectation.results
+		if mm_results == nil {
+			mmGetOnlineNodeByAddr.t.Fatal("No results are set for the AccessorMock.GetOnlineNodeByAddr")
+		}
+		return (*mm_results).n1
+	}
+	if mmGetOnlineNodeByAddr.funcGetOnlineNodeByAddr != nil {
+		return mmGetOnlineNodeByAddr.funcGetOnlineNodeByAddr(address)
+	}
+	mmGetOnlineNodeByAddr.t.Fatalf("Unexpected call to AccessorMock.GetOnlineNodeByAddr. %v", address)
+	return
+}
+
+// GetOnlineNodeByAddrAfterCounter returns a count of finished AccessorMock.GetOnlineNodeByAddr invocations
+func (mmGetOnlineNodeByAddr *AccessorMock) GetOnlineNodeByAddrAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetOnlineNodeByAddr.afterGetOnlineNodeByAddrCounter)
+}
+
+// GetOnlineNodeByAddrBeforeCounter returns a count of AccessorMock.GetOnlineNodeByAddr invocations
+func (mmGetOnlineNodeByAddr *AccessorMock) GetOnlineNodeByAddrBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetOnlineNodeByAddr.beforeGetOnlineNodeByAddrCounter)
+}
+
+// Calls returns a list of arguments used in each call to AccessorMock.GetOnlineNodeByAddr.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmGetOnlineNodeByAddr *mAccessorMockGetOnlineNodeByAddr) Calls() []*AccessorMockGetOnlineNodeByAddrParams {
+	mmGetOnlineNodeByAddr.mutex.RLock()
+
+	argCopy := make([]*AccessorMockGetOnlineNodeByAddrParams, len(mmGetOnlineNodeByAddr.callArgs))
+	copy(argCopy, mmGetOnlineNodeByAddr.callArgs)
+
+	mmGetOnlineNodeByAddr.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockGetOnlineNodeByAddrDone returns true if the count of the GetOnlineNodeByAddr invocations corresponds
+// the number of defined expectations
+func (m *AccessorMock) MinimockGetOnlineNodeByAddrDone() bool {
+	for _, e := range m.GetOnlineNodeByAddrMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.GetOnlineNodeByAddrMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetOnlineNodeByAddrCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcGetOnlineNodeByAddr != nil && mm_atomic.LoadUint64(&m.afterGetOnlineNodeByAddrCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockGetOnlineNodeByAddrInspect logs each unmet expectation
+func (m *AccessorMock) MinimockGetOnlineNodeByAddrInspect() {
+	for _, e := range m.GetOnlineNodeByAddrMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to AccessorMock.GetOnlineNodeByAddr with params: %#v", *e.params)
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.GetOnlineNodeByAddrMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetOnlineNodeByAddrCounter) < 1 {
+		if m.GetOnlineNodeByAddrMock.defaultExpectation.params == nil {
+			m.t.Error("Expected call to AccessorMock.GetOnlineNodeByAddr")
+		} else {
+			m.t.Errorf("Expected call to AccessorMock.GetOnlineNodeByAddr with params: %#v", *m.GetOnlineNodeByAddrMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcGetOnlineNodeByAddr != nil && mm_atomic.LoadUint64(&m.afterGetOnlineNodeByAddrCounter) < 1 {
+		m.t.Error("Expected call to AccessorMock.GetOnlineNodeByAddr")
+	}
+}
+
+type mAccessorMockGetOnlineNodes struct {
+	mock               *AccessorMock
+	defaultExpectation *AccessorMockGetOnlineNodesExpectation
+	expectations       []*AccessorMockGetOnlineNodesExpectation
+}
+
+// AccessorMockGetOnlineNodesExpectation specifies expectation struct of the Accessor.GetOnlineNodes
+type AccessorMockGetOnlineNodesExpectation struct {
+	mock *AccessorMock
+
+	results *AccessorMockGetOnlineNodesResults
+	Counter uint64
+}
+
+// AccessorMockGetOnlineNodesResults contains results of the Accessor.GetOnlineNodes
+type AccessorMockGetOnlineNodesResults struct {
+	na1 []nodeinfo.NetworkNode
+}
+
+// Expect sets up expected params for Accessor.GetOnlineNodes
+func (mmGetOnlineNodes *mAccessorMockGetOnlineNodes) Expect() *mAccessorMockGetOnlineNodes {
+	if mmGetOnlineNodes.mock.funcGetOnlineNodes != nil {
+		mmGetOnlineNodes.mock.t.Fatalf("AccessorMock.GetOnlineNodes mock is already set by Set")
+	}
+
+	if mmGetOnlineNodes.defaultExpectation == nil {
+		mmGetOnlineNodes.defaultExpectation = &AccessorMockGetOnlineNodesExpectation{}
+	}
+
+	return mmGetOnlineNodes
+}
+
+// Inspect accepts an inspector function that has same arguments as the Accessor.GetOnlineNodes
+func (mmGetOnlineNodes *mAccessorMockGetOnlineNodes) Inspect(f func()) *mAccessorMockGetOnlineNodes {
+	if mmGetOnlineNodes.mock.inspectFuncGetOnlineNodes != nil {
+		mmGetOnlineNodes.mock.t.Fatalf("Inspect function is already set for AccessorMock.GetOnlineNodes")
+	}
+
+	mmGetOnlineNodes.mock.inspectFuncGetOnlineNodes = f
+
+	return mmGetOnlineNodes
+}
+
+// Return sets up results that will be returned by Accessor.GetOnlineNodes
+func (mmGetOnlineNodes *mAccessorMockGetOnlineNodes) Return(na1 []nodeinfo.NetworkNode) *AccessorMock {
+	if mmGetOnlineNodes.mock.funcGetOnlineNodes != nil {
+		mmGetOnlineNodes.mock.t.Fatalf("AccessorMock.GetOnlineNodes mock is already set by Set")
+	}
+
+	if mmGetOnlineNodes.defaultExpectation == nil {
+		mmGetOnlineNodes.defaultExpectation = &AccessorMockGetOnlineNodesExpectation{mock: mmGetOnlineNodes.mock}
+	}
+	mmGetOnlineNodes.defaultExpectation.results = &AccessorMockGetOnlineNodesResults{na1}
+	return mmGetOnlineNodes.mock
+}
+
+//Set uses given function f to mock the Accessor.GetOnlineNodes method
+func (mmGetOnlineNodes *mAccessorMockGetOnlineNodes) Set(f func() (na1 []nodeinfo.NetworkNode)) *AccessorMock {
+	if mmGetOnlineNodes.defaultExpectation != nil {
+		mmGetOnlineNodes.mock.t.Fatalf("Default expectation is already set for the Accessor.GetOnlineNodes method")
+	}
+
+	if len(mmGetOnlineNodes.expectations) > 0 {
+		mmGetOnlineNodes.mock.t.Fatalf("Some expectations are already set for the Accessor.GetOnlineNodes method")
+	}
+
+	mmGetOnlineNodes.mock.funcGetOnlineNodes = f
+	return mmGetOnlineNodes.mock
+}
+
+// GetOnlineNodes implements network.Accessor
+func (mmGetOnlineNodes *AccessorMock) GetOnlineNodes() (na1 []nodeinfo.NetworkNode) {
+	mm_atomic.AddUint64(&mmGetOnlineNodes.beforeGetOnlineNodesCounter, 1)
+	defer mm_atomic.AddUint64(&mmGetOnlineNodes.afterGetOnlineNodesCounter, 1)
+
+	if mmGetOnlineNodes.inspectFuncGetOnlineNodes != nil {
+		mmGetOnlineNodes.inspectFuncGetOnlineNodes()
+	}
+
+	if mmGetOnlineNodes.GetOnlineNodesMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmGetOnlineNodes.GetOnlineNodesMock.defaultExpectation.Counter, 1)
+
+		mm_results := mmGetOnlineNodes.GetOnlineNodesMock.defaultExpectation.results
+		if mm_results == nil {
+			mmGetOnlineNodes.t.Fatal("No results are set for the AccessorMock.GetOnlineNodes")
+		}
+		return (*mm_results).na1
+	}
+	if mmGetOnlineNodes.funcGetOnlineNodes != nil {
+		return mmGetOnlineNodes.funcGetOnlineNodes()
+	}
+	mmGetOnlineNodes.t.Fatalf("Unexpected call to AccessorMock.GetOnlineNodes.")
+	return
+}
+
+// GetOnlineNodesAfterCounter returns a count of finished AccessorMock.GetOnlineNodes invocations
+func (mmGetOnlineNodes *AccessorMock) GetOnlineNodesAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetOnlineNodes.afterGetOnlineNodesCounter)
+}
+
+// GetOnlineNodesBeforeCounter returns a count of AccessorMock.GetOnlineNodes invocations
+func (mmGetOnlineNodes *AccessorMock) GetOnlineNodesBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetOnlineNodes.beforeGetOnlineNodesCounter)
+}
+
+// MinimockGetOnlineNodesDone returns true if the count of the GetOnlineNodes invocations corresponds
+// the number of defined expectations
+func (m *AccessorMock) MinimockGetOnlineNodesDone() bool {
+	for _, e := range m.GetOnlineNodesMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.GetOnlineNodesMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetOnlineNodesCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcGetOnlineNodes != nil && mm_atomic.LoadUint64(&m.afterGetOnlineNodesCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockGetOnlineNodesInspect logs each unmet expectation
+func (m *AccessorMock) MinimockGetOnlineNodesInspect() {
+	for _, e := range m.GetOnlineNodesMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Error("Expected call to AccessorMock.GetOnlineNodes")
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.GetOnlineNodesMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetOnlineNodesCounter) < 1 {
+		m.t.Error("Expected call to AccessorMock.GetOnlineNodes")
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcGetOnlineNodes != nil && mm_atomic.LoadUint64(&m.afterGetOnlineNodesCounter) < 1 {
+		m.t.Error("Expected call to AccessorMock.GetOnlineNodes")
+	}
+}
+
+type mAccessorMockGetPopulation struct {
+	mock               *AccessorMock
+	defaultExpectation *AccessorMockGetPopulationExpectation
+	expectations       []*AccessorMockGetPopulationExpectation
+}
+
+// AccessorMockGetPopulationExpectation specifies expectation struct of the Accessor.GetPopulation
+type AccessorMockGetPopulationExpectation struct {
+	mock *AccessorMock
+
+	results *AccessorMockGetPopulationResults
+	Counter uint64
+}
+
+// AccessorMockGetPopulationResults contains results of the Accessor.GetPopulation
+type AccessorMockGetPopulationResults struct {
+	o1 census.OnlinePopulation
+}
+
+// Expect sets up expected params for Accessor.GetPopulation
+func (mmGetPopulation *mAccessorMockGetPopulation) Expect() *mAccessorMockGetPopulation {
+	if mmGetPopulation.mock.funcGetPopulation != nil {
+		mmGetPopulation.mock.t.Fatalf("AccessorMock.GetPopulation mock is already set by Set")
+	}
+
+	if mmGetPopulation.defaultExpectation == nil {
+		mmGetPopulation.defaultExpectation = &AccessorMockGetPopulationExpectation{}
+	}
+
+	return mmGetPopulation
+}
+
+// Inspect accepts an inspector function that has same arguments as the Accessor.GetPopulation
+func (mmGetPopulation *mAccessorMockGetPopulation) Inspect(f func()) *mAccessorMockGetPopulation {
+	if mmGetPopulation.mock.inspectFuncGetPopulation != nil {
+		mmGetPopulation.mock.t.Fatalf("Inspect function is already set for AccessorMock.GetPopulation")
+	}
+
+	mmGetPopulation.mock.inspectFuncGetPopulation = f
+
+	return mmGetPopulation
+}
+
+// Return sets up results that will be returned by Accessor.GetPopulation
+func (mmGetPopulation *mAccessorMockGetPopulation) Return(o1 census.OnlinePopulation) *AccessorMock {
+	if mmGetPopulation.mock.funcGetPopulation != nil {
+		mmGetPopulation.mock.t.Fatalf("AccessorMock.GetPopulation mock is already set by Set")
+	}
+
+	if mmGetPopulation.defaultExpectation == nil {
+		mmGetPopulation.defaultExpectation = &AccessorMockGetPopulationExpectation{mock: mmGetPopulation.mock}
+	}
+	mmGetPopulation.defaultExpectation.results = &AccessorMockGetPopulationResults{o1}
+	return mmGetPopulation.mock
+}
+
+//Set uses given function f to mock the Accessor.GetPopulation method
+func (mmGetPopulation *mAccessorMockGetPopulation) Set(f func() (o1 census.OnlinePopulation)) *AccessorMock {
+	if mmGetPopulation.defaultExpectation != nil {
+		mmGetPopulation.mock.t.Fatalf("Default expectation is already set for the Accessor.GetPopulation method")
+	}
+
+	if len(mmGetPopulation.expectations) > 0 {
+		mmGetPopulation.mock.t.Fatalf("Some expectations are already set for the Accessor.GetPopulation method")
+	}
+
+	mmGetPopulation.mock.funcGetPopulation = f
+	return mmGetPopulation.mock
+}
+
+// GetPopulation implements network.Accessor
+func (mmGetPopulation *AccessorMock) GetPopulation() (o1 census.OnlinePopulation) {
+	mm_atomic.AddUint64(&mmGetPopulation.beforeGetPopulationCounter, 1)
+	defer mm_atomic.AddUint64(&mmGetPopulation.afterGetPopulationCounter, 1)
+
+	if mmGetPopulation.inspectFuncGetPopulation != nil {
+		mmGetPopulation.inspectFuncGetPopulation()
+	}
+
+	if mmGetPopulation.GetPopulationMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmGetPopulation.GetPopulationMock.defaultExpectation.Counter, 1)
+
+		mm_results := mmGetPopulation.GetPopulationMock.defaultExpectation.results
+		if mm_results == nil {
+			mmGetPopulation.t.Fatal("No results are set for the AccessorMock.GetPopulation")
+		}
+		return (*mm_results).o1
+	}
+	if mmGetPopulation.funcGetPopulation != nil {
+		return mmGetPopulation.funcGetPopulation()
+	}
+	mmGetPopulation.t.Fatalf("Unexpected call to AccessorMock.GetPopulation.")
+	return
+}
+
+// GetPopulationAfterCounter returns a count of finished AccessorMock.GetPopulation invocations
+func (mmGetPopulation *AccessorMock) GetPopulationAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetPopulation.afterGetPopulationCounter)
+}
+
+// GetPopulationBeforeCounter returns a count of AccessorMock.GetPopulation invocations
+func (mmGetPopulation *AccessorMock) GetPopulationBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetPopulation.beforeGetPopulationCounter)
+}
+
+// MinimockGetPopulationDone returns true if the count of the GetPopulation invocations corresponds
+// the number of defined expectations
+func (m *AccessorMock) MinimockGetPopulationDone() bool {
+	for _, e := range m.GetPopulationMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.GetPopulationMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetPopulationCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcGetPopulation != nil && mm_atomic.LoadUint64(&m.afterGetPopulationCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockGetPopulationInspect logs each unmet expectation
+func (m *AccessorMock) MinimockGetPopulationInspect() {
+	for _, e := range m.GetPopulationMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Error("Expected call to AccessorMock.GetPopulation")
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.GetPopulationMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetPopulationCounter) < 1 {
+		m.t.Error("Expected call to AccessorMock.GetPopulation")
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcGetPopulation != nil && mm_atomic.LoadUint64(&m.afterGetPopulationCounter) < 1 {
+		m.t.Error("Expected call to AccessorMock.GetPopulation")
+	}
+}
+
+type mAccessorMockGetPoweredNode struct {
+	mock               *AccessorMock
+	defaultExpectation *AccessorMockGetPoweredNodeExpectation
+	expectations       []*AccessorMockGetPoweredNodeExpectation
+
+	callArgs []*AccessorMockGetPoweredNodeParams
+	mutex    sync.RWMutex
+}
+
+// AccessorMockGetPoweredNodeExpectation specifies expectation struct of the Accessor.GetPoweredNode
+type AccessorMockGetPoweredNodeExpectation struct {
+	mock    *AccessorMock
+	params  *AccessorMockGetPoweredNodeParams
+	results *AccessorMockGetPoweredNodeResults
+	Counter uint64
+}
+
+// AccessorMockGetPoweredNodeParams contains parameters of the Accessor.GetPoweredNode
+type AccessorMockGetPoweredNodeParams struct {
+	ref reference.Global
+}
+
+// AccessorMockGetPoweredNodeResults contains results of the Accessor.GetPoweredNode
+type AccessorMockGetPoweredNodeResults struct {
+	n1 nodeinfo.NetworkNode
+}
+
+// Expect sets up expected params for Accessor.GetPoweredNode
+func (mmGetPoweredNode *mAccessorMockGetPoweredNode) Expect(ref reference.Global) *mAccessorMockGetPoweredNode {
+	if mmGetPoweredNode.mock.funcGetPoweredNode != nil {
+		mmGetPoweredNode.mock.t.Fatalf("AccessorMock.GetPoweredNode mock is already set by Set")
+	}
+
+	if mmGetPoweredNode.defaultExpectation == nil {
+		mmGetPoweredNode.defaultExpectation = &AccessorMockGetPoweredNodeExpectation{}
+	}
+
+	mmGetPoweredNode.defaultExpectation.params = &AccessorMockGetPoweredNodeParams{ref}
+	for _, e := range mmGetPoweredNode.expectations {
+		if minimock.Equal(e.params, mmGetPoweredNode.defaultExpectation.params) {
+			mmGetPoweredNode.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmGetPoweredNode.defaultExpectation.params)
+		}
+	}
+
+	return mmGetPoweredNode
+}
+
+// Inspect accepts an inspector function that has same arguments as the Accessor.GetPoweredNode
+func (mmGetPoweredNode *mAccessorMockGetPoweredNode) Inspect(f func(ref reference.Global)) *mAccessorMockGetPoweredNode {
+	if mmGetPoweredNode.mock.inspectFuncGetPoweredNode != nil {
+		mmGetPoweredNode.mock.t.Fatalf("Inspect function is already set for AccessorMock.GetPoweredNode")
+	}
+
+	mmGetPoweredNode.mock.inspectFuncGetPoweredNode = f
+
+	return mmGetPoweredNode
+}
+
+// Return sets up results that will be returned by Accessor.GetPoweredNode
+func (mmGetPoweredNode *mAccessorMockGetPoweredNode) Return(n1 nodeinfo.NetworkNode) *AccessorMock {
+	if mmGetPoweredNode.mock.funcGetPoweredNode != nil {
+		mmGetPoweredNode.mock.t.Fatalf("AccessorMock.GetPoweredNode mock is already set by Set")
+	}
+
+	if mmGetPoweredNode.defaultExpectation == nil {
+		mmGetPoweredNode.defaultExpectation = &AccessorMockGetPoweredNodeExpectation{mock: mmGetPoweredNode.mock}
+	}
+	mmGetPoweredNode.defaultExpectation.results = &AccessorMockGetPoweredNodeResults{n1}
+	return mmGetPoweredNode.mock
+}
+
+//Set uses given function f to mock the Accessor.GetPoweredNode method
+func (mmGetPoweredNode *mAccessorMockGetPoweredNode) Set(f func(ref reference.Global) (n1 nodeinfo.NetworkNode)) *AccessorMock {
+	if mmGetPoweredNode.defaultExpectation != nil {
+		mmGetPoweredNode.mock.t.Fatalf("Default expectation is already set for the Accessor.GetPoweredNode method")
+	}
+
+	if len(mmGetPoweredNode.expectations) > 0 {
+		mmGetPoweredNode.mock.t.Fatalf("Some expectations are already set for the Accessor.GetPoweredNode method")
+	}
+
+	mmGetPoweredNode.mock.funcGetPoweredNode = f
+	return mmGetPoweredNode.mock
+}
+
+// When sets expectation for the Accessor.GetPoweredNode which will trigger the result defined by the following
+// Then helper
+func (mmGetPoweredNode *mAccessorMockGetPoweredNode) When(ref reference.Global) *AccessorMockGetPoweredNodeExpectation {
+	if mmGetPoweredNode.mock.funcGetPoweredNode != nil {
+		mmGetPoweredNode.mock.t.Fatalf("AccessorMock.GetPoweredNode mock is already set by Set")
+	}
+
+	expectation := &AccessorMockGetPoweredNodeExpectation{
+		mock:   mmGetPoweredNode.mock,
+		params: &AccessorMockGetPoweredNodeParams{ref},
+	}
+	mmGetPoweredNode.expectations = append(mmGetPoweredNode.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Accessor.GetPoweredNode return parameters for the expectation previously defined by the When method
+func (e *AccessorMockGetPoweredNodeExpectation) Then(n1 nodeinfo.NetworkNode) *AccessorMock {
+	e.results = &AccessorMockGetPoweredNodeResults{n1}
+	return e.mock
+}
+
+// GetPoweredNode implements network.Accessor
+func (mmGetPoweredNode *AccessorMock) GetPoweredNode(ref reference.Global) (n1 nodeinfo.NetworkNode) {
+	mm_atomic.AddUint64(&mmGetPoweredNode.beforeGetPoweredNodeCounter, 1)
+	defer mm_atomic.AddUint64(&mmGetPoweredNode.afterGetPoweredNodeCounter, 1)
+
+	if mmGetPoweredNode.inspectFuncGetPoweredNode != nil {
+		mmGetPoweredNode.inspectFuncGetPoweredNode(ref)
+	}
+
+	mm_params := &AccessorMockGetPoweredNodeParams{ref}
+
+	// Record call args
+	mmGetPoweredNode.GetPoweredNodeMock.mutex.Lock()
+	mmGetPoweredNode.GetPoweredNodeMock.callArgs = append(mmGetPoweredNode.GetPoweredNodeMock.callArgs, mm_params)
+	mmGetPoweredNode.GetPoweredNodeMock.mutex.Unlock()
+
+	for _, e := range mmGetPoweredNode.GetPoweredNodeMock.expectations {
+		if minimock.Equal(e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.n1
+		}
+	}
+
+	if mmGetPoweredNode.GetPoweredNodeMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmGetPoweredNode.GetPoweredNodeMock.defaultExpectation.Counter, 1)
+		mm_want := mmGetPoweredNode.GetPoweredNodeMock.defaultExpectation.params
+		mm_got := AccessorMockGetPoweredNodeParams{ref}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmGetPoweredNode.t.Errorf("AccessorMock.GetPoweredNode got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmGetPoweredNode.GetPoweredNodeMock.defaultExpectation.results
+		if mm_results == nil {
+			mmGetPoweredNode.t.Fatal("No results are set for the AccessorMock.GetPoweredNode")
+		}
+		return (*mm_results).n1
+	}
+	if mmGetPoweredNode.funcGetPoweredNode != nil {
+		return mmGetPoweredNode.funcGetPoweredNode(ref)
+	}
+	mmGetPoweredNode.t.Fatalf("Unexpected call to AccessorMock.GetPoweredNode. %v", ref)
+	return
+}
+
+// GetPoweredNodeAfterCounter returns a count of finished AccessorMock.GetPoweredNode invocations
+func (mmGetPoweredNode *AccessorMock) GetPoweredNodeAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetPoweredNode.afterGetPoweredNodeCounter)
+}
+
+// GetPoweredNodeBeforeCounter returns a count of AccessorMock.GetPoweredNode invocations
+func (mmGetPoweredNode *AccessorMock) GetPoweredNodeBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetPoweredNode.beforeGetPoweredNodeCounter)
+}
+
+// Calls returns a list of arguments used in each call to AccessorMock.GetPoweredNode.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmGetPoweredNode *mAccessorMockGetPoweredNode) Calls() []*AccessorMockGetPoweredNodeParams {
+	mmGetPoweredNode.mutex.RLock()
+
+	argCopy := make([]*AccessorMockGetPoweredNodeParams, len(mmGetPoweredNode.callArgs))
+	copy(argCopy, mmGetPoweredNode.callArgs)
+
+	mmGetPoweredNode.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockGetPoweredNodeDone returns true if the count of the GetPoweredNode invocations corresponds
+// the number of defined expectations
+func (m *AccessorMock) MinimockGetPoweredNodeDone() bool {
+	for _, e := range m.GetPoweredNodeMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.GetPoweredNodeMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetPoweredNodeCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcGetPoweredNode != nil && mm_atomic.LoadUint64(&m.afterGetPoweredNodeCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockGetPoweredNodeInspect logs each unmet expectation
+func (m *AccessorMock) MinimockGetPoweredNodeInspect() {
+	for _, e := range m.GetPoweredNodeMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to AccessorMock.GetPoweredNode with params: %#v", *e.params)
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.GetPoweredNodeMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetPoweredNodeCounter) < 1 {
+		if m.GetPoweredNodeMock.defaultExpectation.params == nil {
+			m.t.Error("Expected call to AccessorMock.GetPoweredNode")
+		} else {
+			m.t.Errorf("Expected call to AccessorMock.GetPoweredNode with params: %#v", *m.GetPoweredNodeMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcGetPoweredNode != nil && mm_atomic.LoadUint64(&m.afterGetPoweredNodeCounter) < 1 {
+		m.t.Error("Expected call to AccessorMock.GetPoweredNode")
 	}
 }
 
@@ -946,380 +1305,22 @@ func (m *AccessorMock) MinimockGetPulseNumberInspect() {
 	}
 }
 
-type mAccessorMockGetWorkingNode struct {
-	mock               *AccessorMock
-	defaultExpectation *AccessorMockGetWorkingNodeExpectation
-	expectations       []*AccessorMockGetWorkingNodeExpectation
-
-	callArgs []*AccessorMockGetWorkingNodeParams
-	mutex    sync.RWMutex
-}
-
-// AccessorMockGetWorkingNodeExpectation specifies expectation struct of the Accessor.GetWorkingNode
-type AccessorMockGetWorkingNodeExpectation struct {
-	mock    *AccessorMock
-	params  *AccessorMockGetWorkingNodeParams
-	results *AccessorMockGetWorkingNodeResults
-	Counter uint64
-}
-
-// AccessorMockGetWorkingNodeParams contains parameters of the Accessor.GetWorkingNode
-type AccessorMockGetWorkingNodeParams struct {
-	ref reference.Global
-}
-
-// AccessorMockGetWorkingNodeResults contains results of the Accessor.GetWorkingNode
-type AccessorMockGetWorkingNodeResults struct {
-	n1 nodeinfo.NetworkNode
-}
-
-// Expect sets up expected params for Accessor.GetWorkingNode
-func (mmGetWorkingNode *mAccessorMockGetWorkingNode) Expect(ref reference.Global) *mAccessorMockGetWorkingNode {
-	if mmGetWorkingNode.mock.funcGetWorkingNode != nil {
-		mmGetWorkingNode.mock.t.Fatalf("AccessorMock.GetWorkingNode mock is already set by Set")
-	}
-
-	if mmGetWorkingNode.defaultExpectation == nil {
-		mmGetWorkingNode.defaultExpectation = &AccessorMockGetWorkingNodeExpectation{}
-	}
-
-	mmGetWorkingNode.defaultExpectation.params = &AccessorMockGetWorkingNodeParams{ref}
-	for _, e := range mmGetWorkingNode.expectations {
-		if minimock.Equal(e.params, mmGetWorkingNode.defaultExpectation.params) {
-			mmGetWorkingNode.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmGetWorkingNode.defaultExpectation.params)
-		}
-	}
-
-	return mmGetWorkingNode
-}
-
-// Inspect accepts an inspector function that has same arguments as the Accessor.GetWorkingNode
-func (mmGetWorkingNode *mAccessorMockGetWorkingNode) Inspect(f func(ref reference.Global)) *mAccessorMockGetWorkingNode {
-	if mmGetWorkingNode.mock.inspectFuncGetWorkingNode != nil {
-		mmGetWorkingNode.mock.t.Fatalf("Inspect function is already set for AccessorMock.GetWorkingNode")
-	}
-
-	mmGetWorkingNode.mock.inspectFuncGetWorkingNode = f
-
-	return mmGetWorkingNode
-}
-
-// Return sets up results that will be returned by Accessor.GetWorkingNode
-func (mmGetWorkingNode *mAccessorMockGetWorkingNode) Return(n1 nodeinfo.NetworkNode) *AccessorMock {
-	if mmGetWorkingNode.mock.funcGetWorkingNode != nil {
-		mmGetWorkingNode.mock.t.Fatalf("AccessorMock.GetWorkingNode mock is already set by Set")
-	}
-
-	if mmGetWorkingNode.defaultExpectation == nil {
-		mmGetWorkingNode.defaultExpectation = &AccessorMockGetWorkingNodeExpectation{mock: mmGetWorkingNode.mock}
-	}
-	mmGetWorkingNode.defaultExpectation.results = &AccessorMockGetWorkingNodeResults{n1}
-	return mmGetWorkingNode.mock
-}
-
-//Set uses given function f to mock the Accessor.GetWorkingNode method
-func (mmGetWorkingNode *mAccessorMockGetWorkingNode) Set(f func(ref reference.Global) (n1 nodeinfo.NetworkNode)) *AccessorMock {
-	if mmGetWorkingNode.defaultExpectation != nil {
-		mmGetWorkingNode.mock.t.Fatalf("Default expectation is already set for the Accessor.GetWorkingNode method")
-	}
-
-	if len(mmGetWorkingNode.expectations) > 0 {
-		mmGetWorkingNode.mock.t.Fatalf("Some expectations are already set for the Accessor.GetWorkingNode method")
-	}
-
-	mmGetWorkingNode.mock.funcGetWorkingNode = f
-	return mmGetWorkingNode.mock
-}
-
-// When sets expectation for the Accessor.GetWorkingNode which will trigger the result defined by the following
-// Then helper
-func (mmGetWorkingNode *mAccessorMockGetWorkingNode) When(ref reference.Global) *AccessorMockGetWorkingNodeExpectation {
-	if mmGetWorkingNode.mock.funcGetWorkingNode != nil {
-		mmGetWorkingNode.mock.t.Fatalf("AccessorMock.GetWorkingNode mock is already set by Set")
-	}
-
-	expectation := &AccessorMockGetWorkingNodeExpectation{
-		mock:   mmGetWorkingNode.mock,
-		params: &AccessorMockGetWorkingNodeParams{ref},
-	}
-	mmGetWorkingNode.expectations = append(mmGetWorkingNode.expectations, expectation)
-	return expectation
-}
-
-// Then sets up Accessor.GetWorkingNode return parameters for the expectation previously defined by the When method
-func (e *AccessorMockGetWorkingNodeExpectation) Then(n1 nodeinfo.NetworkNode) *AccessorMock {
-	e.results = &AccessorMockGetWorkingNodeResults{n1}
-	return e.mock
-}
-
-// GetWorkingNode implements network.Accessor
-func (mmGetWorkingNode *AccessorMock) GetWorkingNode(ref reference.Global) (n1 nodeinfo.NetworkNode) {
-	mm_atomic.AddUint64(&mmGetWorkingNode.beforeGetWorkingNodeCounter, 1)
-	defer mm_atomic.AddUint64(&mmGetWorkingNode.afterGetWorkingNodeCounter, 1)
-
-	if mmGetWorkingNode.inspectFuncGetWorkingNode != nil {
-		mmGetWorkingNode.inspectFuncGetWorkingNode(ref)
-	}
-
-	mm_params := &AccessorMockGetWorkingNodeParams{ref}
-
-	// Record call args
-	mmGetWorkingNode.GetWorkingNodeMock.mutex.Lock()
-	mmGetWorkingNode.GetWorkingNodeMock.callArgs = append(mmGetWorkingNode.GetWorkingNodeMock.callArgs, mm_params)
-	mmGetWorkingNode.GetWorkingNodeMock.mutex.Unlock()
-
-	for _, e := range mmGetWorkingNode.GetWorkingNodeMock.expectations {
-		if minimock.Equal(e.params, mm_params) {
-			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.n1
-		}
-	}
-
-	if mmGetWorkingNode.GetWorkingNodeMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmGetWorkingNode.GetWorkingNodeMock.defaultExpectation.Counter, 1)
-		mm_want := mmGetWorkingNode.GetWorkingNodeMock.defaultExpectation.params
-		mm_got := AccessorMockGetWorkingNodeParams{ref}
-		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmGetWorkingNode.t.Errorf("AccessorMock.GetWorkingNode got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
-		}
-
-		mm_results := mmGetWorkingNode.GetWorkingNodeMock.defaultExpectation.results
-		if mm_results == nil {
-			mmGetWorkingNode.t.Fatal("No results are set for the AccessorMock.GetWorkingNode")
-		}
-		return (*mm_results).n1
-	}
-	if mmGetWorkingNode.funcGetWorkingNode != nil {
-		return mmGetWorkingNode.funcGetWorkingNode(ref)
-	}
-	mmGetWorkingNode.t.Fatalf("Unexpected call to AccessorMock.GetWorkingNode. %v", ref)
-	return
-}
-
-// GetWorkingNodeAfterCounter returns a count of finished AccessorMock.GetWorkingNode invocations
-func (mmGetWorkingNode *AccessorMock) GetWorkingNodeAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmGetWorkingNode.afterGetWorkingNodeCounter)
-}
-
-// GetWorkingNodeBeforeCounter returns a count of AccessorMock.GetWorkingNode invocations
-func (mmGetWorkingNode *AccessorMock) GetWorkingNodeBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmGetWorkingNode.beforeGetWorkingNodeCounter)
-}
-
-// Calls returns a list of arguments used in each call to AccessorMock.GetWorkingNode.
-// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmGetWorkingNode *mAccessorMockGetWorkingNode) Calls() []*AccessorMockGetWorkingNodeParams {
-	mmGetWorkingNode.mutex.RLock()
-
-	argCopy := make([]*AccessorMockGetWorkingNodeParams, len(mmGetWorkingNode.callArgs))
-	copy(argCopy, mmGetWorkingNode.callArgs)
-
-	mmGetWorkingNode.mutex.RUnlock()
-
-	return argCopy
-}
-
-// MinimockGetWorkingNodeDone returns true if the count of the GetWorkingNode invocations corresponds
-// the number of defined expectations
-func (m *AccessorMock) MinimockGetWorkingNodeDone() bool {
-	for _, e := range m.GetWorkingNodeMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.GetWorkingNodeMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetWorkingNodeCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcGetWorkingNode != nil && mm_atomic.LoadUint64(&m.afterGetWorkingNodeCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockGetWorkingNodeInspect logs each unmet expectation
-func (m *AccessorMock) MinimockGetWorkingNodeInspect() {
-	for _, e := range m.GetWorkingNodeMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to AccessorMock.GetWorkingNode with params: %#v", *e.params)
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.GetWorkingNodeMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetWorkingNodeCounter) < 1 {
-		if m.GetWorkingNodeMock.defaultExpectation.params == nil {
-			m.t.Error("Expected call to AccessorMock.GetWorkingNode")
-		} else {
-			m.t.Errorf("Expected call to AccessorMock.GetWorkingNode with params: %#v", *m.GetWorkingNodeMock.defaultExpectation.params)
-		}
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcGetWorkingNode != nil && mm_atomic.LoadUint64(&m.afterGetWorkingNodeCounter) < 1 {
-		m.t.Error("Expected call to AccessorMock.GetWorkingNode")
-	}
-}
-
-type mAccessorMockGetWorkingNodes struct {
-	mock               *AccessorMock
-	defaultExpectation *AccessorMockGetWorkingNodesExpectation
-	expectations       []*AccessorMockGetWorkingNodesExpectation
-}
-
-// AccessorMockGetWorkingNodesExpectation specifies expectation struct of the Accessor.GetWorkingNodes
-type AccessorMockGetWorkingNodesExpectation struct {
-	mock *AccessorMock
-
-	results *AccessorMockGetWorkingNodesResults
-	Counter uint64
-}
-
-// AccessorMockGetWorkingNodesResults contains results of the Accessor.GetWorkingNodes
-type AccessorMockGetWorkingNodesResults struct {
-	na1 []nodeinfo.NetworkNode
-}
-
-// Expect sets up expected params for Accessor.GetWorkingNodes
-func (mmGetWorkingNodes *mAccessorMockGetWorkingNodes) Expect() *mAccessorMockGetWorkingNodes {
-	if mmGetWorkingNodes.mock.funcGetWorkingNodes != nil {
-		mmGetWorkingNodes.mock.t.Fatalf("AccessorMock.GetWorkingNodes mock is already set by Set")
-	}
-
-	if mmGetWorkingNodes.defaultExpectation == nil {
-		mmGetWorkingNodes.defaultExpectation = &AccessorMockGetWorkingNodesExpectation{}
-	}
-
-	return mmGetWorkingNodes
-}
-
-// Inspect accepts an inspector function that has same arguments as the Accessor.GetWorkingNodes
-func (mmGetWorkingNodes *mAccessorMockGetWorkingNodes) Inspect(f func()) *mAccessorMockGetWorkingNodes {
-	if mmGetWorkingNodes.mock.inspectFuncGetWorkingNodes != nil {
-		mmGetWorkingNodes.mock.t.Fatalf("Inspect function is already set for AccessorMock.GetWorkingNodes")
-	}
-
-	mmGetWorkingNodes.mock.inspectFuncGetWorkingNodes = f
-
-	return mmGetWorkingNodes
-}
-
-// Return sets up results that will be returned by Accessor.GetWorkingNodes
-func (mmGetWorkingNodes *mAccessorMockGetWorkingNodes) Return(na1 []nodeinfo.NetworkNode) *AccessorMock {
-	if mmGetWorkingNodes.mock.funcGetWorkingNodes != nil {
-		mmGetWorkingNodes.mock.t.Fatalf("AccessorMock.GetWorkingNodes mock is already set by Set")
-	}
-
-	if mmGetWorkingNodes.defaultExpectation == nil {
-		mmGetWorkingNodes.defaultExpectation = &AccessorMockGetWorkingNodesExpectation{mock: mmGetWorkingNodes.mock}
-	}
-	mmGetWorkingNodes.defaultExpectation.results = &AccessorMockGetWorkingNodesResults{na1}
-	return mmGetWorkingNodes.mock
-}
-
-//Set uses given function f to mock the Accessor.GetWorkingNodes method
-func (mmGetWorkingNodes *mAccessorMockGetWorkingNodes) Set(f func() (na1 []nodeinfo.NetworkNode)) *AccessorMock {
-	if mmGetWorkingNodes.defaultExpectation != nil {
-		mmGetWorkingNodes.mock.t.Fatalf("Default expectation is already set for the Accessor.GetWorkingNodes method")
-	}
-
-	if len(mmGetWorkingNodes.expectations) > 0 {
-		mmGetWorkingNodes.mock.t.Fatalf("Some expectations are already set for the Accessor.GetWorkingNodes method")
-	}
-
-	mmGetWorkingNodes.mock.funcGetWorkingNodes = f
-	return mmGetWorkingNodes.mock
-}
-
-// GetWorkingNodes implements network.Accessor
-func (mmGetWorkingNodes *AccessorMock) GetWorkingNodes() (na1 []nodeinfo.NetworkNode) {
-	mm_atomic.AddUint64(&mmGetWorkingNodes.beforeGetWorkingNodesCounter, 1)
-	defer mm_atomic.AddUint64(&mmGetWorkingNodes.afterGetWorkingNodesCounter, 1)
-
-	if mmGetWorkingNodes.inspectFuncGetWorkingNodes != nil {
-		mmGetWorkingNodes.inspectFuncGetWorkingNodes()
-	}
-
-	if mmGetWorkingNodes.GetWorkingNodesMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmGetWorkingNodes.GetWorkingNodesMock.defaultExpectation.Counter, 1)
-
-		mm_results := mmGetWorkingNodes.GetWorkingNodesMock.defaultExpectation.results
-		if mm_results == nil {
-			mmGetWorkingNodes.t.Fatal("No results are set for the AccessorMock.GetWorkingNodes")
-		}
-		return (*mm_results).na1
-	}
-	if mmGetWorkingNodes.funcGetWorkingNodes != nil {
-		return mmGetWorkingNodes.funcGetWorkingNodes()
-	}
-	mmGetWorkingNodes.t.Fatalf("Unexpected call to AccessorMock.GetWorkingNodes.")
-	return
-}
-
-// GetWorkingNodesAfterCounter returns a count of finished AccessorMock.GetWorkingNodes invocations
-func (mmGetWorkingNodes *AccessorMock) GetWorkingNodesAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmGetWorkingNodes.afterGetWorkingNodesCounter)
-}
-
-// GetWorkingNodesBeforeCounter returns a count of AccessorMock.GetWorkingNodes invocations
-func (mmGetWorkingNodes *AccessorMock) GetWorkingNodesBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmGetWorkingNodes.beforeGetWorkingNodesCounter)
-}
-
-// MinimockGetWorkingNodesDone returns true if the count of the GetWorkingNodes invocations corresponds
-// the number of defined expectations
-func (m *AccessorMock) MinimockGetWorkingNodesDone() bool {
-	for _, e := range m.GetWorkingNodesMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.GetWorkingNodesMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetWorkingNodesCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcGetWorkingNodes != nil && mm_atomic.LoadUint64(&m.afterGetWorkingNodesCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockGetWorkingNodesInspect logs each unmet expectation
-func (m *AccessorMock) MinimockGetWorkingNodesInspect() {
-	for _, e := range m.GetWorkingNodesMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Error("Expected call to AccessorMock.GetWorkingNodes")
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.GetWorkingNodesMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetWorkingNodesCounter) < 1 {
-		m.t.Error("Expected call to AccessorMock.GetWorkingNodes")
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcGetWorkingNodes != nil && mm_atomic.LoadUint64(&m.afterGetWorkingNodesCounter) < 1 {
-		m.t.Error("Expected call to AccessorMock.GetWorkingNodes")
-	}
-}
-
 // MinimockFinish checks that all mocked methods have been called the expected number of times
 func (m *AccessorMock) MinimockFinish() {
 	if !m.minimockDone() {
-		m.MinimockGetActiveNodeInspect()
-
-		m.MinimockGetActiveNodeByAddrInspect()
-
-		m.MinimockGetActiveNodesInspect()
-
 		m.MinimockGetLocalNodeInspect()
 
+		m.MinimockGetOnlineNodeInspect()
+
+		m.MinimockGetOnlineNodeByAddrInspect()
+
+		m.MinimockGetOnlineNodesInspect()
+
+		m.MinimockGetPopulationInspect()
+
+		m.MinimockGetPoweredNodeInspect()
+
 		m.MinimockGetPulseNumberInspect()
-
-		m.MinimockGetWorkingNodeInspect()
-
-		m.MinimockGetWorkingNodesInspect()
 		m.t.FailNow()
 	}
 }
@@ -1343,11 +1344,11 @@ func (m *AccessorMock) MinimockWait(timeout mm_time.Duration) {
 func (m *AccessorMock) minimockDone() bool {
 	done := true
 	return done &&
-		m.MinimockGetActiveNodeDone() &&
-		m.MinimockGetActiveNodeByAddrDone() &&
-		m.MinimockGetActiveNodesDone() &&
 		m.MinimockGetLocalNodeDone() &&
-		m.MinimockGetPulseNumberDone() &&
-		m.MinimockGetWorkingNodeDone() &&
-		m.MinimockGetWorkingNodesDone()
+		m.MinimockGetOnlineNodeDone() &&
+		m.MinimockGetOnlineNodeByAddrDone() &&
+		m.MinimockGetOnlineNodesDone() &&
+		m.MinimockGetPopulationDone() &&
+		m.MinimockGetPoweredNodeDone() &&
+		m.MinimockGetPulseNumberDone()
 }

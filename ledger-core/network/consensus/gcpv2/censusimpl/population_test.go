@@ -102,20 +102,29 @@ func TestMNPGetMistrustedCount(t *testing.T) {
 }
 
 func TestMNPGetIdleProfiles(t *testing.T) {
-	mnp := ManyNodePopulation{}
+	mnp := ManyNodePopulation{ slots: make([]updatableSlot, 5)}
 	require.Nil(t, mnp.GetIdleProfiles())
+	require.Len(t, mnp.GetProfiles(), 5)
 
 	role := roleRecord{}
-	roleCount := uint16(1)
-	mnp.roles = make([]roleRecord, roleCount)
+	mnp.roles = make([]roleRecord, member.PrimaryRoleInactive + 1)
 	mnp.roles[member.PrimaryRoleInactive] = role
-	require.Panics(t, func() { mnp.GetIdleProfiles() })
-
-	mnp.roles[member.PrimaryRoleInactive].container = &ManyNodePopulation{slots: make([]updatableSlot, roleCount)}
 	require.Nil(t, mnp.GetIdleProfiles())
+	require.Nil(t, mnp.GetRolePopulation(member.PrimaryRoleInactive))
+	require.Len(t, mnp.GetPoweredProfiles(), 5)
 
-	mnp.roles[member.PrimaryRoleInactive].roleCount = roleCount
-	require.Len(t, mnp.GetIdleProfiles(), int(roleCount))
+	mnp.roles[member.PrimaryRoleInactive].container = &mnp
+	require.Nil(t, mnp.GetIdleProfiles())
+	require.Len(t, mnp.GetPoweredProfiles(), 5)
+
+	mnp.roles[member.PrimaryRoleInactive].roleCount = 3 // doesnt matter
+	require.Len(t, mnp.GetIdleProfiles(), 0)
+	require.Len(t, mnp.GetPoweredProfiles(), 5)
+
+	mnp.roles[member.PrimaryRoleInactive].idleCount = 3
+	mnp.roles[member.PrimaryRoleInactive].firstNode = 2
+	require.Len(t, mnp.GetIdleProfiles(), 3)
+	require.Len(t, mnp.GetPoweredProfiles(), 2)
 }
 
 func TestMNPGetIdleCount(t *testing.T) {
@@ -173,14 +182,14 @@ func TestMNPGetRolePopulation(t *testing.T) {
 
 func TestMNPGetWorkingRoles(t *testing.T) {
 	mnp := ManyNodePopulation{}
-	require.Len(t, mnp.GetWorkingRoles(), 0)
+	require.Len(t, mnp.GetPoweredRoles(), 0)
 
 	mnp.workingRoles = make([]member.PrimaryRole, 2)
 	roleNumber := 1
 	mnp.workingRoles[roleNumber] = member.PrimaryRoleNeutral
-	require.Len(t, mnp.GetWorkingRoles(), len(mnp.workingRoles))
+	require.Len(t, mnp.GetPoweredRoles(), len(mnp.workingRoles))
 
-	require.Equal(t, mnp.workingRoles[roleNumber], mnp.GetWorkingRoles()[roleNumber])
+	require.Equal(t, mnp.workingRoles[roleNumber], mnp.GetPoweredRoles()[roleNumber])
 }
 
 func TestMNPCopyTo(t *testing.T) {
@@ -507,7 +516,7 @@ func TestDPFindProfile(t *testing.T) {
 	dp.slotByID[nodeID] = us
 	require.NotNil(t, dp.FindProfile(nodeID))
 
-	require.Panics(t, func() { dp.FindProfile(2) })
+	require.Nil(t, dp.FindProfile(2))
 }
 
 func TestFindUpdatableProfile(t *testing.T) {
@@ -776,13 +785,13 @@ func TestGetIdleCount(t *testing.T) {
 
 func TestRRGetProfiles(t *testing.T) {
 	rr := roleRecord{}
-	require.Panics(t, func() { rr.GetProfiles() })
+	require.Nil(t, rr.GetProfiles())
 
 	rr.container = &ManyNodePopulation{}
 	require.Nil(t, rr.GetProfiles())
 
 	rr.container.isInvalid = true
-	require.Panics(t, func() { rr.GetProfiles() })
+	require.Nil(t, rr.GetProfiles())
 
 	rr.container.isInvalid = false
 	rr.roleCount = 2

@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -37,16 +38,18 @@ func TestGetNetworkStatus(t *testing.T) {
 	ppn := pc.PulseNumber
 	pc.NextPulseDelta = 10
 
+	workingLen := 2
+
 	nk := testutils.NewNodeKeeperMock(t)
 	a := testutils.NewAccessorMock(t)
 	activeLen := 1
 	active := make([]nodeinfo.NetworkNode, activeLen)
-	a.GetActiveNodesMock.Return(active)
+	a.GetOnlineNodesMock.Return(active)
 	a.GetPulseNumberMock.Return(pc.PulseNumber)
-
-	workingLen := 2
-	working := make([]nodeinfo.NetworkNode, workingLen)
-	a.GetWorkingNodesMock.Return(working)
+	pop := census.NewOnlinePopulationMock(t)
+	pop.GetIndexedCountMock.Return(workingLen)
+	pop.GetIdleCountMock.Return(0)
+	a.GetPopulationMock.Return(pop)
 
 	nk.GetLatestAccessorMock.Return(a)
 

@@ -25,9 +25,9 @@ func (n *ServiceNetwork) GetNetworkStatus() network.StatusReply {
 
 	if na != nil {
 		reply.PulseNumber = na.GetPulseNumber()
-		reply.WorkingListSize = len(na.GetWorkingNodes())
+		reply.WorkingListSize = na.GetPopulation().GetIndexedCount()
 
-		activeNodes := na.GetActiveNodes()
+		activeNodes := na.GetOnlineNodes()
 		reply.ActiveListSize = len(activeNodes)
 		reply.Nodes = activeNodes
 

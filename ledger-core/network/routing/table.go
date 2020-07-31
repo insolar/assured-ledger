@@ -33,7 +33,7 @@ func (t *Table) Resolve(ref reference.Global) (*host.Host, error) {
 		if na == nil {
 			return nil, errors.E("failed to get latest pulse --==-- ")
 		}
-		node := na.GetActiveNode(ref)
+		node := na.GetOnlineNode(ref)
 		if node == nil {
 			return nil, errors.New("no such local node with NodeID: " + ref.String())
 		}

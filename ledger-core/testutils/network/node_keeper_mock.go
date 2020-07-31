@@ -10,8 +10,8 @@ import (
 
 	"github.com/gojuno/minimock/v3"
 	mm_network "github.com/insolar/assured-ledger/ledger-core/network"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
-	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
@@ -19,6 +19,12 @@ import (
 // NodeKeeperMock implements network.NodeKeeper
 type NodeKeeperMock struct {
 	t minimock.Tester
+
+	funcAddActivePopulation          func(ctx context.Context, n1 pulse.Number, o1 census.OnlinePopulation)
+	inspectFuncAddActivePopulation   func(ctx context.Context, n1 pulse.Number, o1 census.OnlinePopulation)
+	afterAddActivePopulationCounter  uint64
+	beforeAddActivePopulationCounter uint64
+	AddActivePopulationMock          mNodeKeeperMockAddActivePopulation
 
 	funcGetAccessor          func(n1 pulse.Number) (a1 mm_network.Accessor)
 	inspectFuncGetAccessor   func(n1 pulse.Number)
@@ -44,23 +50,11 @@ type NodeKeeperMock struct {
 	beforeGetLocalNodeRoleCounter uint64
 	GetLocalNodeRoleMock          mNodeKeeperMockGetLocalNodeRole
 
-	funcMoveSyncToActive          func(ctx context.Context, n1 pulse.Number)
-	inspectFuncMoveSyncToActive   func(ctx context.Context, n1 pulse.Number)
-	afterMoveSyncToActiveCounter  uint64
-	beforeMoveSyncToActiveCounter uint64
-	MoveSyncToActiveMock          mNodeKeeperMockMoveSyncToActive
-
-	funcSetInitialSnapshot          func(nodes []nodeinfo.NetworkNode)
-	inspectFuncSetInitialSnapshot   func(nodes []nodeinfo.NetworkNode)
-	afterSetInitialSnapshotCounter  uint64
-	beforeSetInitialSnapshotCounter uint64
-	SetInitialSnapshotMock          mNodeKeeperMockSetInitialSnapshot
-
-	funcSync          func(ctx context.Context, na1 []nodeinfo.NetworkNode)
-	inspectFuncSync   func(ctx context.Context, na1 []nodeinfo.NetworkNode)
-	afterSyncCounter  uint64
-	beforeSyncCounter uint64
-	SyncMock          mNodeKeeperMockSync
+	funcSetExpectedPopulation          func(ctx context.Context, n1 pulse.Number, o1 census.OnlinePopulation)
+	inspectFuncSetExpectedPopulation   func(ctx context.Context, n1 pulse.Number, o1 census.OnlinePopulation)
+	afterSetExpectedPopulationCounter  uint64
+	beforeSetExpectedPopulationCounter uint64
+	SetExpectedPopulationMock          mNodeKeeperMockSetExpectedPopulation
 }
 
 // NewNodeKeeperMock returns a mock for network.NodeKeeper
@@ -69,6 +63,9 @@ func NewNodeKeeperMock(t minimock.Tester) *NodeKeeperMock {
 	if controller, ok := t.(minimock.MockController); ok {
 		controller.RegisterMocker(m)
 	}
+
+	m.AddActivePopulationMock = mNodeKeeperMockAddActivePopulation{mock: m}
+	m.AddActivePopulationMock.callArgs = []*NodeKeeperMockAddActivePopulationParams{}
 
 	m.GetAccessorMock = mNodeKeeperMockGetAccessor{mock: m}
 	m.GetAccessorMock.callArgs = []*NodeKeeperMockGetAccessorParams{}
@@ -79,16 +76,199 @@ func NewNodeKeeperMock(t minimock.Tester) *NodeKeeperMock {
 
 	m.GetLocalNodeRoleMock = mNodeKeeperMockGetLocalNodeRole{mock: m}
 
-	m.MoveSyncToActiveMock = mNodeKeeperMockMoveSyncToActive{mock: m}
-	m.MoveSyncToActiveMock.callArgs = []*NodeKeeperMockMoveSyncToActiveParams{}
-
-	m.SetInitialSnapshotMock = mNodeKeeperMockSetInitialSnapshot{mock: m}
-	m.SetInitialSnapshotMock.callArgs = []*NodeKeeperMockSetInitialSnapshotParams{}
-
-	m.SyncMock = mNodeKeeperMockSync{mock: m}
-	m.SyncMock.callArgs = []*NodeKeeperMockSyncParams{}
+	m.SetExpectedPopulationMock = mNodeKeeperMockSetExpectedPopulation{mock: m}
+	m.SetExpectedPopulationMock.callArgs = []*NodeKeeperMockSetExpectedPopulationParams{}
 
 	return m
+}
+
+type mNodeKeeperMockAddActivePopulation struct {
+	mock               *NodeKeeperMock
+	defaultExpectation *NodeKeeperMockAddActivePopulationExpectation
+	expectations       []*NodeKeeperMockAddActivePopulationExpectation
+
+	callArgs []*NodeKeeperMockAddActivePopulationParams
+	mutex    sync.RWMutex
+}
+
+// NodeKeeperMockAddActivePopulationExpectation specifies expectation struct of the NodeKeeper.AddActivePopulation
+type NodeKeeperMockAddActivePopulationExpectation struct {
+	mock   *NodeKeeperMock
+	params *NodeKeeperMockAddActivePopulationParams
+
+	Counter uint64
+}
+
+// NodeKeeperMockAddActivePopulationParams contains parameters of the NodeKeeper.AddActivePopulation
+type NodeKeeperMockAddActivePopulationParams struct {
+	ctx context.Context
+	n1  pulse.Number
+	o1  census.OnlinePopulation
+}
+
+// Expect sets up expected params for NodeKeeper.AddActivePopulation
+func (mmAddActivePopulation *mNodeKeeperMockAddActivePopulation) Expect(ctx context.Context, n1 pulse.Number, o1 census.OnlinePopulation) *mNodeKeeperMockAddActivePopulation {
+	if mmAddActivePopulation.mock.funcAddActivePopulation != nil {
+		mmAddActivePopulation.mock.t.Fatalf("NodeKeeperMock.AddActivePopulation mock is already set by Set")
+	}
+
+	if mmAddActivePopulation.defaultExpectation == nil {
+		mmAddActivePopulation.defaultExpectation = &NodeKeeperMockAddActivePopulationExpectation{}
+	}
+
+	mmAddActivePopulation.defaultExpectation.params = &NodeKeeperMockAddActivePopulationParams{ctx, n1, o1}
+	for _, e := range mmAddActivePopulation.expectations {
+		if minimock.Equal(e.params, mmAddActivePopulation.defaultExpectation.params) {
+			mmAddActivePopulation.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmAddActivePopulation.defaultExpectation.params)
+		}
+	}
+
+	return mmAddActivePopulation
+}
+
+// Inspect accepts an inspector function that has same arguments as the NodeKeeper.AddActivePopulation
+func (mmAddActivePopulation *mNodeKeeperMockAddActivePopulation) Inspect(f func(ctx context.Context, n1 pulse.Number, o1 census.OnlinePopulation)) *mNodeKeeperMockAddActivePopulation {
+	if mmAddActivePopulation.mock.inspectFuncAddActivePopulation != nil {
+		mmAddActivePopulation.mock.t.Fatalf("Inspect function is already set for NodeKeeperMock.AddActivePopulation")
+	}
+
+	mmAddActivePopulation.mock.inspectFuncAddActivePopulation = f
+
+	return mmAddActivePopulation
+}
+
+// Return sets up results that will be returned by NodeKeeper.AddActivePopulation
+func (mmAddActivePopulation *mNodeKeeperMockAddActivePopulation) Return() *NodeKeeperMock {
+	if mmAddActivePopulation.mock.funcAddActivePopulation != nil {
+		mmAddActivePopulation.mock.t.Fatalf("NodeKeeperMock.AddActivePopulation mock is already set by Set")
+	}
+
+	if mmAddActivePopulation.defaultExpectation == nil {
+		mmAddActivePopulation.defaultExpectation = &NodeKeeperMockAddActivePopulationExpectation{mock: mmAddActivePopulation.mock}
+	}
+
+	return mmAddActivePopulation.mock
+}
+
+//Set uses given function f to mock the NodeKeeper.AddActivePopulation method
+func (mmAddActivePopulation *mNodeKeeperMockAddActivePopulation) Set(f func(ctx context.Context, n1 pulse.Number, o1 census.OnlinePopulation)) *NodeKeeperMock {
+	if mmAddActivePopulation.defaultExpectation != nil {
+		mmAddActivePopulation.mock.t.Fatalf("Default expectation is already set for the NodeKeeper.AddActivePopulation method")
+	}
+
+	if len(mmAddActivePopulation.expectations) > 0 {
+		mmAddActivePopulation.mock.t.Fatalf("Some expectations are already set for the NodeKeeper.AddActivePopulation method")
+	}
+
+	mmAddActivePopulation.mock.funcAddActivePopulation = f
+	return mmAddActivePopulation.mock
+}
+
+// AddActivePopulation implements network.NodeKeeper
+func (mmAddActivePopulation *NodeKeeperMock) AddActivePopulation(ctx context.Context, n1 pulse.Number, o1 census.OnlinePopulation) {
+	mm_atomic.AddUint64(&mmAddActivePopulation.beforeAddActivePopulationCounter, 1)
+	defer mm_atomic.AddUint64(&mmAddActivePopulation.afterAddActivePopulationCounter, 1)
+
+	if mmAddActivePopulation.inspectFuncAddActivePopulation != nil {
+		mmAddActivePopulation.inspectFuncAddActivePopulation(ctx, n1, o1)
+	}
+
+	mm_params := &NodeKeeperMockAddActivePopulationParams{ctx, n1, o1}
+
+	// Record call args
+	mmAddActivePopulation.AddActivePopulationMock.mutex.Lock()
+	mmAddActivePopulation.AddActivePopulationMock.callArgs = append(mmAddActivePopulation.AddActivePopulationMock.callArgs, mm_params)
+	mmAddActivePopulation.AddActivePopulationMock.mutex.Unlock()
+
+	for _, e := range mmAddActivePopulation.AddActivePopulationMock.expectations {
+		if minimock.Equal(e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return
+		}
+	}
+
+	if mmAddActivePopulation.AddActivePopulationMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmAddActivePopulation.AddActivePopulationMock.defaultExpectation.Counter, 1)
+		mm_want := mmAddActivePopulation.AddActivePopulationMock.defaultExpectation.params
+		mm_got := NodeKeeperMockAddActivePopulationParams{ctx, n1, o1}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmAddActivePopulation.t.Errorf("NodeKeeperMock.AddActivePopulation got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		return
+
+	}
+	if mmAddActivePopulation.funcAddActivePopulation != nil {
+		mmAddActivePopulation.funcAddActivePopulation(ctx, n1, o1)
+		return
+	}
+	mmAddActivePopulation.t.Fatalf("Unexpected call to NodeKeeperMock.AddActivePopulation. %v %v %v", ctx, n1, o1)
+
+}
+
+// AddActivePopulationAfterCounter returns a count of finished NodeKeeperMock.AddActivePopulation invocations
+func (mmAddActivePopulation *NodeKeeperMock) AddActivePopulationAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmAddActivePopulation.afterAddActivePopulationCounter)
+}
+
+// AddActivePopulationBeforeCounter returns a count of NodeKeeperMock.AddActivePopulation invocations
+func (mmAddActivePopulation *NodeKeeperMock) AddActivePopulationBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmAddActivePopulation.beforeAddActivePopulationCounter)
+}
+
+// Calls returns a list of arguments used in each call to NodeKeeperMock.AddActivePopulation.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmAddActivePopulation *mNodeKeeperMockAddActivePopulation) Calls() []*NodeKeeperMockAddActivePopulationParams {
+	mmAddActivePopulation.mutex.RLock()
+
+	argCopy := make([]*NodeKeeperMockAddActivePopulationParams, len(mmAddActivePopulation.callArgs))
+	copy(argCopy, mmAddActivePopulation.callArgs)
+
+	mmAddActivePopulation.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockAddActivePopulationDone returns true if the count of the AddActivePopulation invocations corresponds
+// the number of defined expectations
+func (m *NodeKeeperMock) MinimockAddActivePopulationDone() bool {
+	for _, e := range m.AddActivePopulationMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.AddActivePopulationMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterAddActivePopulationCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcAddActivePopulation != nil && mm_atomic.LoadUint64(&m.afterAddActivePopulationCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockAddActivePopulationInspect logs each unmet expectation
+func (m *NodeKeeperMock) MinimockAddActivePopulationInspect() {
+	for _, e := range m.AddActivePopulationMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to NodeKeeperMock.AddActivePopulation with params: %#v", *e.params)
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.AddActivePopulationMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterAddActivePopulationCounter) < 1 {
+		if m.AddActivePopulationMock.defaultExpectation.params == nil {
+			m.t.Error("Expected call to NodeKeeperMock.AddActivePopulation")
+		} else {
+			m.t.Errorf("Expected call to NodeKeeperMock.AddActivePopulation with params: %#v", *m.AddActivePopulationMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcAddActivePopulation != nil && mm_atomic.LoadUint64(&m.afterAddActivePopulationCounter) < 1 {
+		m.t.Error("Expected call to NodeKeeperMock.AddActivePopulation")
+	}
 }
 
 type mNodeKeeperMockGetAccessor struct {
@@ -735,572 +915,200 @@ func (m *NodeKeeperMock) MinimockGetLocalNodeRoleInspect() {
 	}
 }
 
-type mNodeKeeperMockMoveSyncToActive struct {
+type mNodeKeeperMockSetExpectedPopulation struct {
 	mock               *NodeKeeperMock
-	defaultExpectation *NodeKeeperMockMoveSyncToActiveExpectation
-	expectations       []*NodeKeeperMockMoveSyncToActiveExpectation
+	defaultExpectation *NodeKeeperMockSetExpectedPopulationExpectation
+	expectations       []*NodeKeeperMockSetExpectedPopulationExpectation
 
-	callArgs []*NodeKeeperMockMoveSyncToActiveParams
+	callArgs []*NodeKeeperMockSetExpectedPopulationParams
 	mutex    sync.RWMutex
 }
 
-// NodeKeeperMockMoveSyncToActiveExpectation specifies expectation struct of the NodeKeeper.MoveSyncToActive
-type NodeKeeperMockMoveSyncToActiveExpectation struct {
+// NodeKeeperMockSetExpectedPopulationExpectation specifies expectation struct of the NodeKeeper.SetExpectedPopulation
+type NodeKeeperMockSetExpectedPopulationExpectation struct {
 	mock   *NodeKeeperMock
-	params *NodeKeeperMockMoveSyncToActiveParams
+	params *NodeKeeperMockSetExpectedPopulationParams
 
 	Counter uint64
 }
 
-// NodeKeeperMockMoveSyncToActiveParams contains parameters of the NodeKeeper.MoveSyncToActive
-type NodeKeeperMockMoveSyncToActiveParams struct {
+// NodeKeeperMockSetExpectedPopulationParams contains parameters of the NodeKeeper.SetExpectedPopulation
+type NodeKeeperMockSetExpectedPopulationParams struct {
 	ctx context.Context
 	n1  pulse.Number
+	o1  census.OnlinePopulation
 }
 
-// Expect sets up expected params for NodeKeeper.MoveSyncToActive
-func (mmMoveSyncToActive *mNodeKeeperMockMoveSyncToActive) Expect(ctx context.Context, n1 pulse.Number) *mNodeKeeperMockMoveSyncToActive {
-	if mmMoveSyncToActive.mock.funcMoveSyncToActive != nil {
-		mmMoveSyncToActive.mock.t.Fatalf("NodeKeeperMock.MoveSyncToActive mock is already set by Set")
+// Expect sets up expected params for NodeKeeper.SetExpectedPopulation
+func (mmSetExpectedPopulation *mNodeKeeperMockSetExpectedPopulation) Expect(ctx context.Context, n1 pulse.Number, o1 census.OnlinePopulation) *mNodeKeeperMockSetExpectedPopulation {
+	if mmSetExpectedPopulation.mock.funcSetExpectedPopulation != nil {
+		mmSetExpectedPopulation.mock.t.Fatalf("NodeKeeperMock.SetExpectedPopulation mock is already set by Set")
 	}
 
-	if mmMoveSyncToActive.defaultExpectation == nil {
-		mmMoveSyncToActive.defaultExpectation = &NodeKeeperMockMoveSyncToActiveExpectation{}
+	if mmSetExpectedPopulation.defaultExpectation == nil {
+		mmSetExpectedPopulation.defaultExpectation = &NodeKeeperMockSetExpectedPopulationExpectation{}
 	}
 
-	mmMoveSyncToActive.defaultExpectation.params = &NodeKeeperMockMoveSyncToActiveParams{ctx, n1}
-	for _, e := range mmMoveSyncToActive.expectations {
-		if minimock.Equal(e.params, mmMoveSyncToActive.defaultExpectation.params) {
-			mmMoveSyncToActive.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmMoveSyncToActive.defaultExpectation.params)
+	mmSetExpectedPopulation.defaultExpectation.params = &NodeKeeperMockSetExpectedPopulationParams{ctx, n1, o1}
+	for _, e := range mmSetExpectedPopulation.expectations {
+		if minimock.Equal(e.params, mmSetExpectedPopulation.defaultExpectation.params) {
+			mmSetExpectedPopulation.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmSetExpectedPopulation.defaultExpectation.params)
 		}
 	}
 
-	return mmMoveSyncToActive
+	return mmSetExpectedPopulation
 }
 
-// Inspect accepts an inspector function that has same arguments as the NodeKeeper.MoveSyncToActive
-func (mmMoveSyncToActive *mNodeKeeperMockMoveSyncToActive) Inspect(f func(ctx context.Context, n1 pulse.Number)) *mNodeKeeperMockMoveSyncToActive {
-	if mmMoveSyncToActive.mock.inspectFuncMoveSyncToActive != nil {
-		mmMoveSyncToActive.mock.t.Fatalf("Inspect function is already set for NodeKeeperMock.MoveSyncToActive")
+// Inspect accepts an inspector function that has same arguments as the NodeKeeper.SetExpectedPopulation
+func (mmSetExpectedPopulation *mNodeKeeperMockSetExpectedPopulation) Inspect(f func(ctx context.Context, n1 pulse.Number, o1 census.OnlinePopulation)) *mNodeKeeperMockSetExpectedPopulation {
+	if mmSetExpectedPopulation.mock.inspectFuncSetExpectedPopulation != nil {
+		mmSetExpectedPopulation.mock.t.Fatalf("Inspect function is already set for NodeKeeperMock.SetExpectedPopulation")
 	}
 
-	mmMoveSyncToActive.mock.inspectFuncMoveSyncToActive = f
+	mmSetExpectedPopulation.mock.inspectFuncSetExpectedPopulation = f
 
-	return mmMoveSyncToActive
+	return mmSetExpectedPopulation
 }
 
-// Return sets up results that will be returned by NodeKeeper.MoveSyncToActive
-func (mmMoveSyncToActive *mNodeKeeperMockMoveSyncToActive) Return() *NodeKeeperMock {
-	if mmMoveSyncToActive.mock.funcMoveSyncToActive != nil {
-		mmMoveSyncToActive.mock.t.Fatalf("NodeKeeperMock.MoveSyncToActive mock is already set by Set")
+// Return sets up results that will be returned by NodeKeeper.SetExpectedPopulation
+func (mmSetExpectedPopulation *mNodeKeeperMockSetExpectedPopulation) Return() *NodeKeeperMock {
+	if mmSetExpectedPopulation.mock.funcSetExpectedPopulation != nil {
+		mmSetExpectedPopulation.mock.t.Fatalf("NodeKeeperMock.SetExpectedPopulation mock is already set by Set")
 	}
 
-	if mmMoveSyncToActive.defaultExpectation == nil {
-		mmMoveSyncToActive.defaultExpectation = &NodeKeeperMockMoveSyncToActiveExpectation{mock: mmMoveSyncToActive.mock}
+	if mmSetExpectedPopulation.defaultExpectation == nil {
+		mmSetExpectedPopulation.defaultExpectation = &NodeKeeperMockSetExpectedPopulationExpectation{mock: mmSetExpectedPopulation.mock}
 	}
 
-	return mmMoveSyncToActive.mock
+	return mmSetExpectedPopulation.mock
 }
 
-//Set uses given function f to mock the NodeKeeper.MoveSyncToActive method
-func (mmMoveSyncToActive *mNodeKeeperMockMoveSyncToActive) Set(f func(ctx context.Context, n1 pulse.Number)) *NodeKeeperMock {
-	if mmMoveSyncToActive.defaultExpectation != nil {
-		mmMoveSyncToActive.mock.t.Fatalf("Default expectation is already set for the NodeKeeper.MoveSyncToActive method")
+//Set uses given function f to mock the NodeKeeper.SetExpectedPopulation method
+func (mmSetExpectedPopulation *mNodeKeeperMockSetExpectedPopulation) Set(f func(ctx context.Context, n1 pulse.Number, o1 census.OnlinePopulation)) *NodeKeeperMock {
+	if mmSetExpectedPopulation.defaultExpectation != nil {
+		mmSetExpectedPopulation.mock.t.Fatalf("Default expectation is already set for the NodeKeeper.SetExpectedPopulation method")
 	}
 
-	if len(mmMoveSyncToActive.expectations) > 0 {
-		mmMoveSyncToActive.mock.t.Fatalf("Some expectations are already set for the NodeKeeper.MoveSyncToActive method")
+	if len(mmSetExpectedPopulation.expectations) > 0 {
+		mmSetExpectedPopulation.mock.t.Fatalf("Some expectations are already set for the NodeKeeper.SetExpectedPopulation method")
 	}
 
-	mmMoveSyncToActive.mock.funcMoveSyncToActive = f
-	return mmMoveSyncToActive.mock
+	mmSetExpectedPopulation.mock.funcSetExpectedPopulation = f
+	return mmSetExpectedPopulation.mock
 }
 
-// MoveSyncToActive implements network.NodeKeeper
-func (mmMoveSyncToActive *NodeKeeperMock) MoveSyncToActive(ctx context.Context, n1 pulse.Number) {
-	mm_atomic.AddUint64(&mmMoveSyncToActive.beforeMoveSyncToActiveCounter, 1)
-	defer mm_atomic.AddUint64(&mmMoveSyncToActive.afterMoveSyncToActiveCounter, 1)
+// SetExpectedPopulation implements network.NodeKeeper
+func (mmSetExpectedPopulation *NodeKeeperMock) SetExpectedPopulation(ctx context.Context, n1 pulse.Number, o1 census.OnlinePopulation) {
+	mm_atomic.AddUint64(&mmSetExpectedPopulation.beforeSetExpectedPopulationCounter, 1)
+	defer mm_atomic.AddUint64(&mmSetExpectedPopulation.afterSetExpectedPopulationCounter, 1)
 
-	if mmMoveSyncToActive.inspectFuncMoveSyncToActive != nil {
-		mmMoveSyncToActive.inspectFuncMoveSyncToActive(ctx, n1)
+	if mmSetExpectedPopulation.inspectFuncSetExpectedPopulation != nil {
+		mmSetExpectedPopulation.inspectFuncSetExpectedPopulation(ctx, n1, o1)
 	}
 
-	mm_params := &NodeKeeperMockMoveSyncToActiveParams{ctx, n1}
+	mm_params := &NodeKeeperMockSetExpectedPopulationParams{ctx, n1, o1}
 
 	// Record call args
-	mmMoveSyncToActive.MoveSyncToActiveMock.mutex.Lock()
-	mmMoveSyncToActive.MoveSyncToActiveMock.callArgs = append(mmMoveSyncToActive.MoveSyncToActiveMock.callArgs, mm_params)
-	mmMoveSyncToActive.MoveSyncToActiveMock.mutex.Unlock()
+	mmSetExpectedPopulation.SetExpectedPopulationMock.mutex.Lock()
+	mmSetExpectedPopulation.SetExpectedPopulationMock.callArgs = append(mmSetExpectedPopulation.SetExpectedPopulationMock.callArgs, mm_params)
+	mmSetExpectedPopulation.SetExpectedPopulationMock.mutex.Unlock()
 
-	for _, e := range mmMoveSyncToActive.MoveSyncToActiveMock.expectations {
+	for _, e := range mmSetExpectedPopulation.SetExpectedPopulationMock.expectations {
 		if minimock.Equal(e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
 			return
 		}
 	}
 
-	if mmMoveSyncToActive.MoveSyncToActiveMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmMoveSyncToActive.MoveSyncToActiveMock.defaultExpectation.Counter, 1)
-		mm_want := mmMoveSyncToActive.MoveSyncToActiveMock.defaultExpectation.params
-		mm_got := NodeKeeperMockMoveSyncToActiveParams{ctx, n1}
+	if mmSetExpectedPopulation.SetExpectedPopulationMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmSetExpectedPopulation.SetExpectedPopulationMock.defaultExpectation.Counter, 1)
+		mm_want := mmSetExpectedPopulation.SetExpectedPopulationMock.defaultExpectation.params
+		mm_got := NodeKeeperMockSetExpectedPopulationParams{ctx, n1, o1}
 		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmMoveSyncToActive.t.Errorf("NodeKeeperMock.MoveSyncToActive got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+			mmSetExpectedPopulation.t.Errorf("NodeKeeperMock.SetExpectedPopulation got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
 
 		return
 
 	}
-	if mmMoveSyncToActive.funcMoveSyncToActive != nil {
-		mmMoveSyncToActive.funcMoveSyncToActive(ctx, n1)
+	if mmSetExpectedPopulation.funcSetExpectedPopulation != nil {
+		mmSetExpectedPopulation.funcSetExpectedPopulation(ctx, n1, o1)
 		return
 	}
-	mmMoveSyncToActive.t.Fatalf("Unexpected call to NodeKeeperMock.MoveSyncToActive. %v %v", ctx, n1)
+	mmSetExpectedPopulation.t.Fatalf("Unexpected call to NodeKeeperMock.SetExpectedPopulation. %v %v %v", ctx, n1, o1)
 
 }
 
-// MoveSyncToActiveAfterCounter returns a count of finished NodeKeeperMock.MoveSyncToActive invocations
-func (mmMoveSyncToActive *NodeKeeperMock) MoveSyncToActiveAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmMoveSyncToActive.afterMoveSyncToActiveCounter)
+// SetExpectedPopulationAfterCounter returns a count of finished NodeKeeperMock.SetExpectedPopulation invocations
+func (mmSetExpectedPopulation *NodeKeeperMock) SetExpectedPopulationAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmSetExpectedPopulation.afterSetExpectedPopulationCounter)
 }
 
-// MoveSyncToActiveBeforeCounter returns a count of NodeKeeperMock.MoveSyncToActive invocations
-func (mmMoveSyncToActive *NodeKeeperMock) MoveSyncToActiveBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmMoveSyncToActive.beforeMoveSyncToActiveCounter)
+// SetExpectedPopulationBeforeCounter returns a count of NodeKeeperMock.SetExpectedPopulation invocations
+func (mmSetExpectedPopulation *NodeKeeperMock) SetExpectedPopulationBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmSetExpectedPopulation.beforeSetExpectedPopulationCounter)
 }
 
-// Calls returns a list of arguments used in each call to NodeKeeperMock.MoveSyncToActive.
+// Calls returns a list of arguments used in each call to NodeKeeperMock.SetExpectedPopulation.
 // The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmMoveSyncToActive *mNodeKeeperMockMoveSyncToActive) Calls() []*NodeKeeperMockMoveSyncToActiveParams {
-	mmMoveSyncToActive.mutex.RLock()
+func (mmSetExpectedPopulation *mNodeKeeperMockSetExpectedPopulation) Calls() []*NodeKeeperMockSetExpectedPopulationParams {
+	mmSetExpectedPopulation.mutex.RLock()
 
-	argCopy := make([]*NodeKeeperMockMoveSyncToActiveParams, len(mmMoveSyncToActive.callArgs))
-	copy(argCopy, mmMoveSyncToActive.callArgs)
+	argCopy := make([]*NodeKeeperMockSetExpectedPopulationParams, len(mmSetExpectedPopulation.callArgs))
+	copy(argCopy, mmSetExpectedPopulation.callArgs)
 
-	mmMoveSyncToActive.mutex.RUnlock()
+	mmSetExpectedPopulation.mutex.RUnlock()
 
 	return argCopy
 }
 
-// MinimockMoveSyncToActiveDone returns true if the count of the MoveSyncToActive invocations corresponds
+// MinimockSetExpectedPopulationDone returns true if the count of the SetExpectedPopulation invocations corresponds
 // the number of defined expectations
-func (m *NodeKeeperMock) MinimockMoveSyncToActiveDone() bool {
-	for _, e := range m.MoveSyncToActiveMock.expectations {
+func (m *NodeKeeperMock) MinimockSetExpectedPopulationDone() bool {
+	for _, e := range m.SetExpectedPopulationMock.expectations {
 		if mm_atomic.LoadUint64(&e.Counter) < 1 {
 			return false
 		}
 	}
 
 	// if default expectation was set then invocations count should be greater than zero
-	if m.MoveSyncToActiveMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterMoveSyncToActiveCounter) < 1 {
+	if m.SetExpectedPopulationMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterSetExpectedPopulationCounter) < 1 {
 		return false
 	}
 	// if func was set then invocations count should be greater than zero
-	if m.funcMoveSyncToActive != nil && mm_atomic.LoadUint64(&m.afterMoveSyncToActiveCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockMoveSyncToActiveInspect logs each unmet expectation
-func (m *NodeKeeperMock) MinimockMoveSyncToActiveInspect() {
-	for _, e := range m.MoveSyncToActiveMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to NodeKeeperMock.MoveSyncToActive with params: %#v", *e.params)
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.MoveSyncToActiveMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterMoveSyncToActiveCounter) < 1 {
-		if m.MoveSyncToActiveMock.defaultExpectation.params == nil {
-			m.t.Error("Expected call to NodeKeeperMock.MoveSyncToActive")
-		} else {
-			m.t.Errorf("Expected call to NodeKeeperMock.MoveSyncToActive with params: %#v", *m.MoveSyncToActiveMock.defaultExpectation.params)
-		}
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcMoveSyncToActive != nil && mm_atomic.LoadUint64(&m.afterMoveSyncToActiveCounter) < 1 {
-		m.t.Error("Expected call to NodeKeeperMock.MoveSyncToActive")
-	}
-}
-
-type mNodeKeeperMockSetInitialSnapshot struct {
-	mock               *NodeKeeperMock
-	defaultExpectation *NodeKeeperMockSetInitialSnapshotExpectation
-	expectations       []*NodeKeeperMockSetInitialSnapshotExpectation
-
-	callArgs []*NodeKeeperMockSetInitialSnapshotParams
-	mutex    sync.RWMutex
-}
-
-// NodeKeeperMockSetInitialSnapshotExpectation specifies expectation struct of the NodeKeeper.SetInitialSnapshot
-type NodeKeeperMockSetInitialSnapshotExpectation struct {
-	mock   *NodeKeeperMock
-	params *NodeKeeperMockSetInitialSnapshotParams
-
-	Counter uint64
-}
-
-// NodeKeeperMockSetInitialSnapshotParams contains parameters of the NodeKeeper.SetInitialSnapshot
-type NodeKeeperMockSetInitialSnapshotParams struct {
-	nodes []nodeinfo.NetworkNode
-}
-
-// Expect sets up expected params for NodeKeeper.SetInitialSnapshot
-func (mmSetInitialSnapshot *mNodeKeeperMockSetInitialSnapshot) Expect(nodes []nodeinfo.NetworkNode) *mNodeKeeperMockSetInitialSnapshot {
-	if mmSetInitialSnapshot.mock.funcSetInitialSnapshot != nil {
-		mmSetInitialSnapshot.mock.t.Fatalf("NodeKeeperMock.SetInitialSnapshot mock is already set by Set")
-	}
-
-	if mmSetInitialSnapshot.defaultExpectation == nil {
-		mmSetInitialSnapshot.defaultExpectation = &NodeKeeperMockSetInitialSnapshotExpectation{}
-	}
-
-	mmSetInitialSnapshot.defaultExpectation.params = &NodeKeeperMockSetInitialSnapshotParams{nodes}
-	for _, e := range mmSetInitialSnapshot.expectations {
-		if minimock.Equal(e.params, mmSetInitialSnapshot.defaultExpectation.params) {
-			mmSetInitialSnapshot.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmSetInitialSnapshot.defaultExpectation.params)
-		}
-	}
-
-	return mmSetInitialSnapshot
-}
-
-// Inspect accepts an inspector function that has same arguments as the NodeKeeper.SetInitialSnapshot
-func (mmSetInitialSnapshot *mNodeKeeperMockSetInitialSnapshot) Inspect(f func(nodes []nodeinfo.NetworkNode)) *mNodeKeeperMockSetInitialSnapshot {
-	if mmSetInitialSnapshot.mock.inspectFuncSetInitialSnapshot != nil {
-		mmSetInitialSnapshot.mock.t.Fatalf("Inspect function is already set for NodeKeeperMock.SetInitialSnapshot")
-	}
-
-	mmSetInitialSnapshot.mock.inspectFuncSetInitialSnapshot = f
-
-	return mmSetInitialSnapshot
-}
-
-// Return sets up results that will be returned by NodeKeeper.SetInitialSnapshot
-func (mmSetInitialSnapshot *mNodeKeeperMockSetInitialSnapshot) Return() *NodeKeeperMock {
-	if mmSetInitialSnapshot.mock.funcSetInitialSnapshot != nil {
-		mmSetInitialSnapshot.mock.t.Fatalf("NodeKeeperMock.SetInitialSnapshot mock is already set by Set")
-	}
-
-	if mmSetInitialSnapshot.defaultExpectation == nil {
-		mmSetInitialSnapshot.defaultExpectation = &NodeKeeperMockSetInitialSnapshotExpectation{mock: mmSetInitialSnapshot.mock}
-	}
-
-	return mmSetInitialSnapshot.mock
-}
-
-//Set uses given function f to mock the NodeKeeper.SetInitialSnapshot method
-func (mmSetInitialSnapshot *mNodeKeeperMockSetInitialSnapshot) Set(f func(nodes []nodeinfo.NetworkNode)) *NodeKeeperMock {
-	if mmSetInitialSnapshot.defaultExpectation != nil {
-		mmSetInitialSnapshot.mock.t.Fatalf("Default expectation is already set for the NodeKeeper.SetInitialSnapshot method")
-	}
-
-	if len(mmSetInitialSnapshot.expectations) > 0 {
-		mmSetInitialSnapshot.mock.t.Fatalf("Some expectations are already set for the NodeKeeper.SetInitialSnapshot method")
-	}
-
-	mmSetInitialSnapshot.mock.funcSetInitialSnapshot = f
-	return mmSetInitialSnapshot.mock
-}
-
-// SetInitialSnapshot implements network.NodeKeeper
-func (mmSetInitialSnapshot *NodeKeeperMock) SetInitialSnapshot(nodes []nodeinfo.NetworkNode) {
-	mm_atomic.AddUint64(&mmSetInitialSnapshot.beforeSetInitialSnapshotCounter, 1)
-	defer mm_atomic.AddUint64(&mmSetInitialSnapshot.afterSetInitialSnapshotCounter, 1)
-
-	if mmSetInitialSnapshot.inspectFuncSetInitialSnapshot != nil {
-		mmSetInitialSnapshot.inspectFuncSetInitialSnapshot(nodes)
-	}
-
-	mm_params := &NodeKeeperMockSetInitialSnapshotParams{nodes}
-
-	// Record call args
-	mmSetInitialSnapshot.SetInitialSnapshotMock.mutex.Lock()
-	mmSetInitialSnapshot.SetInitialSnapshotMock.callArgs = append(mmSetInitialSnapshot.SetInitialSnapshotMock.callArgs, mm_params)
-	mmSetInitialSnapshot.SetInitialSnapshotMock.mutex.Unlock()
-
-	for _, e := range mmSetInitialSnapshot.SetInitialSnapshotMock.expectations {
-		if minimock.Equal(e.params, mm_params) {
-			mm_atomic.AddUint64(&e.Counter, 1)
-			return
-		}
-	}
-
-	if mmSetInitialSnapshot.SetInitialSnapshotMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmSetInitialSnapshot.SetInitialSnapshotMock.defaultExpectation.Counter, 1)
-		mm_want := mmSetInitialSnapshot.SetInitialSnapshotMock.defaultExpectation.params
-		mm_got := NodeKeeperMockSetInitialSnapshotParams{nodes}
-		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmSetInitialSnapshot.t.Errorf("NodeKeeperMock.SetInitialSnapshot got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
-		}
-
-		return
-
-	}
-	if mmSetInitialSnapshot.funcSetInitialSnapshot != nil {
-		mmSetInitialSnapshot.funcSetInitialSnapshot(nodes)
-		return
-	}
-	mmSetInitialSnapshot.t.Fatalf("Unexpected call to NodeKeeperMock.SetInitialSnapshot. %v", nodes)
-
-}
-
-// SetInitialSnapshotAfterCounter returns a count of finished NodeKeeperMock.SetInitialSnapshot invocations
-func (mmSetInitialSnapshot *NodeKeeperMock) SetInitialSnapshotAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmSetInitialSnapshot.afterSetInitialSnapshotCounter)
-}
-
-// SetInitialSnapshotBeforeCounter returns a count of NodeKeeperMock.SetInitialSnapshot invocations
-func (mmSetInitialSnapshot *NodeKeeperMock) SetInitialSnapshotBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmSetInitialSnapshot.beforeSetInitialSnapshotCounter)
-}
-
-// Calls returns a list of arguments used in each call to NodeKeeperMock.SetInitialSnapshot.
-// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmSetInitialSnapshot *mNodeKeeperMockSetInitialSnapshot) Calls() []*NodeKeeperMockSetInitialSnapshotParams {
-	mmSetInitialSnapshot.mutex.RLock()
-
-	argCopy := make([]*NodeKeeperMockSetInitialSnapshotParams, len(mmSetInitialSnapshot.callArgs))
-	copy(argCopy, mmSetInitialSnapshot.callArgs)
-
-	mmSetInitialSnapshot.mutex.RUnlock()
-
-	return argCopy
-}
-
-// MinimockSetInitialSnapshotDone returns true if the count of the SetInitialSnapshot invocations corresponds
-// the number of defined expectations
-func (m *NodeKeeperMock) MinimockSetInitialSnapshotDone() bool {
-	for _, e := range m.SetInitialSnapshotMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.SetInitialSnapshotMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterSetInitialSnapshotCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcSetInitialSnapshot != nil && mm_atomic.LoadUint64(&m.afterSetInitialSnapshotCounter) < 1 {
+	if m.funcSetExpectedPopulation != nil && mm_atomic.LoadUint64(&m.afterSetExpectedPopulationCounter) < 1 {
 		return false
 	}
 	return true
 }
 
-// MinimockSetInitialSnapshotInspect logs each unmet expectation
-func (m *NodeKeeperMock) MinimockSetInitialSnapshotInspect() {
-	for _, e := range m.SetInitialSnapshotMock.expectations {
+// MinimockSetExpectedPopulationInspect logs each unmet expectation
+func (m *NodeKeeperMock) MinimockSetExpectedPopulationInspect() {
+	for _, e := range m.SetExpectedPopulationMock.expectations {
 		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to NodeKeeperMock.SetInitialSnapshot with params: %#v", *e.params)
+			m.t.Errorf("Expected call to NodeKeeperMock.SetExpectedPopulation with params: %#v", *e.params)
 		}
 	}
 
 	// if default expectation was set then invocations count should be greater than zero
-	if m.SetInitialSnapshotMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterSetInitialSnapshotCounter) < 1 {
-		if m.SetInitialSnapshotMock.defaultExpectation.params == nil {
-			m.t.Error("Expected call to NodeKeeperMock.SetInitialSnapshot")
+	if m.SetExpectedPopulationMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterSetExpectedPopulationCounter) < 1 {
+		if m.SetExpectedPopulationMock.defaultExpectation.params == nil {
+			m.t.Error("Expected call to NodeKeeperMock.SetExpectedPopulation")
 		} else {
-			m.t.Errorf("Expected call to NodeKeeperMock.SetInitialSnapshot with params: %#v", *m.SetInitialSnapshotMock.defaultExpectation.params)
+			m.t.Errorf("Expected call to NodeKeeperMock.SetExpectedPopulation with params: %#v", *m.SetExpectedPopulationMock.defaultExpectation.params)
 		}
 	}
 	// if func was set then invocations count should be greater than zero
-	if m.funcSetInitialSnapshot != nil && mm_atomic.LoadUint64(&m.afterSetInitialSnapshotCounter) < 1 {
-		m.t.Error("Expected call to NodeKeeperMock.SetInitialSnapshot")
-	}
-}
-
-type mNodeKeeperMockSync struct {
-	mock               *NodeKeeperMock
-	defaultExpectation *NodeKeeperMockSyncExpectation
-	expectations       []*NodeKeeperMockSyncExpectation
-
-	callArgs []*NodeKeeperMockSyncParams
-	mutex    sync.RWMutex
-}
-
-// NodeKeeperMockSyncExpectation specifies expectation struct of the NodeKeeper.Sync
-type NodeKeeperMockSyncExpectation struct {
-	mock   *NodeKeeperMock
-	params *NodeKeeperMockSyncParams
-
-	Counter uint64
-}
-
-// NodeKeeperMockSyncParams contains parameters of the NodeKeeper.Sync
-type NodeKeeperMockSyncParams struct {
-	ctx context.Context
-	na1 []nodeinfo.NetworkNode
-}
-
-// Expect sets up expected params for NodeKeeper.Sync
-func (mmSync *mNodeKeeperMockSync) Expect(ctx context.Context, na1 []nodeinfo.NetworkNode) *mNodeKeeperMockSync {
-	if mmSync.mock.funcSync != nil {
-		mmSync.mock.t.Fatalf("NodeKeeperMock.Sync mock is already set by Set")
-	}
-
-	if mmSync.defaultExpectation == nil {
-		mmSync.defaultExpectation = &NodeKeeperMockSyncExpectation{}
-	}
-
-	mmSync.defaultExpectation.params = &NodeKeeperMockSyncParams{ctx, na1}
-	for _, e := range mmSync.expectations {
-		if minimock.Equal(e.params, mmSync.defaultExpectation.params) {
-			mmSync.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmSync.defaultExpectation.params)
-		}
-	}
-
-	return mmSync
-}
-
-// Inspect accepts an inspector function that has same arguments as the NodeKeeper.Sync
-func (mmSync *mNodeKeeperMockSync) Inspect(f func(ctx context.Context, na1 []nodeinfo.NetworkNode)) *mNodeKeeperMockSync {
-	if mmSync.mock.inspectFuncSync != nil {
-		mmSync.mock.t.Fatalf("Inspect function is already set for NodeKeeperMock.Sync")
-	}
-
-	mmSync.mock.inspectFuncSync = f
-
-	return mmSync
-}
-
-// Return sets up results that will be returned by NodeKeeper.Sync
-func (mmSync *mNodeKeeperMockSync) Return() *NodeKeeperMock {
-	if mmSync.mock.funcSync != nil {
-		mmSync.mock.t.Fatalf("NodeKeeperMock.Sync mock is already set by Set")
-	}
-
-	if mmSync.defaultExpectation == nil {
-		mmSync.defaultExpectation = &NodeKeeperMockSyncExpectation{mock: mmSync.mock}
-	}
-
-	return mmSync.mock
-}
-
-//Set uses given function f to mock the NodeKeeper.Sync method
-func (mmSync *mNodeKeeperMockSync) Set(f func(ctx context.Context, na1 []nodeinfo.NetworkNode)) *NodeKeeperMock {
-	if mmSync.defaultExpectation != nil {
-		mmSync.mock.t.Fatalf("Default expectation is already set for the NodeKeeper.Sync method")
-	}
-
-	if len(mmSync.expectations) > 0 {
-		mmSync.mock.t.Fatalf("Some expectations are already set for the NodeKeeper.Sync method")
-	}
-
-	mmSync.mock.funcSync = f
-	return mmSync.mock
-}
-
-// Sync implements network.NodeKeeper
-func (mmSync *NodeKeeperMock) Sync(ctx context.Context, na1 []nodeinfo.NetworkNode) {
-	mm_atomic.AddUint64(&mmSync.beforeSyncCounter, 1)
-	defer mm_atomic.AddUint64(&mmSync.afterSyncCounter, 1)
-
-	if mmSync.inspectFuncSync != nil {
-		mmSync.inspectFuncSync(ctx, na1)
-	}
-
-	mm_params := &NodeKeeperMockSyncParams{ctx, na1}
-
-	// Record call args
-	mmSync.SyncMock.mutex.Lock()
-	mmSync.SyncMock.callArgs = append(mmSync.SyncMock.callArgs, mm_params)
-	mmSync.SyncMock.mutex.Unlock()
-
-	for _, e := range mmSync.SyncMock.expectations {
-		if minimock.Equal(e.params, mm_params) {
-			mm_atomic.AddUint64(&e.Counter, 1)
-			return
-		}
-	}
-
-	if mmSync.SyncMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmSync.SyncMock.defaultExpectation.Counter, 1)
-		mm_want := mmSync.SyncMock.defaultExpectation.params
-		mm_got := NodeKeeperMockSyncParams{ctx, na1}
-		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmSync.t.Errorf("NodeKeeperMock.Sync got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
-		}
-
-		return
-
-	}
-	if mmSync.funcSync != nil {
-		mmSync.funcSync(ctx, na1)
-		return
-	}
-	mmSync.t.Fatalf("Unexpected call to NodeKeeperMock.Sync. %v %v", ctx, na1)
-
-}
-
-// SyncAfterCounter returns a count of finished NodeKeeperMock.Sync invocations
-func (mmSync *NodeKeeperMock) SyncAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmSync.afterSyncCounter)
-}
-
-// SyncBeforeCounter returns a count of NodeKeeperMock.Sync invocations
-func (mmSync *NodeKeeperMock) SyncBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmSync.beforeSyncCounter)
-}
-
-// Calls returns a list of arguments used in each call to NodeKeeperMock.Sync.
-// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmSync *mNodeKeeperMockSync) Calls() []*NodeKeeperMockSyncParams {
-	mmSync.mutex.RLock()
-
-	argCopy := make([]*NodeKeeperMockSyncParams, len(mmSync.callArgs))
-	copy(argCopy, mmSync.callArgs)
-
-	mmSync.mutex.RUnlock()
-
-	return argCopy
-}
-
-// MinimockSyncDone returns true if the count of the Sync invocations corresponds
-// the number of defined expectations
-func (m *NodeKeeperMock) MinimockSyncDone() bool {
-	for _, e := range m.SyncMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.SyncMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterSyncCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcSync != nil && mm_atomic.LoadUint64(&m.afterSyncCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockSyncInspect logs each unmet expectation
-func (m *NodeKeeperMock) MinimockSyncInspect() {
-	for _, e := range m.SyncMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to NodeKeeperMock.Sync with params: %#v", *e.params)
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.SyncMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterSyncCounter) < 1 {
-		if m.SyncMock.defaultExpectation.params == nil {
-			m.t.Error("Expected call to NodeKeeperMock.Sync")
-		} else {
-			m.t.Errorf("Expected call to NodeKeeperMock.Sync with params: %#v", *m.SyncMock.defaultExpectation.params)
-		}
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcSync != nil && mm_atomic.LoadUint64(&m.afterSyncCounter) < 1 {
-		m.t.Error("Expected call to NodeKeeperMock.Sync")
+	if m.funcSetExpectedPopulation != nil && mm_atomic.LoadUint64(&m.afterSetExpectedPopulationCounter) < 1 {
+		m.t.Error("Expected call to NodeKeeperMock.SetExpectedPopulation")
 	}
 }
 
 // MinimockFinish checks that all mocked methods have been called the expected number of times
 func (m *NodeKeeperMock) MinimockFinish() {
 	if !m.minimockDone() {
+		m.MinimockAddActivePopulationInspect()
+
 		m.MinimockGetAccessorInspect()
 
 		m.MinimockGetLatestAccessorInspect()
@@ -1309,11 +1117,7 @@ func (m *NodeKeeperMock) MinimockFinish() {
 
 		m.MinimockGetLocalNodeRoleInspect()
 
-		m.MinimockMoveSyncToActiveInspect()
-
-		m.MinimockSetInitialSnapshotInspect()
-
-		m.MinimockSyncInspect()
+		m.MinimockSetExpectedPopulationInspect()
 		m.t.FailNow()
 	}
 }
@@ -1337,11 +1141,10 @@ func (m *NodeKeeperMock) MinimockWait(timeout mm_time.Duration) {
 func (m *NodeKeeperMock) minimockDone() bool {
 	done := true
 	return done &&
+		m.MinimockAddActivePopulationDone() &&
 		m.MinimockGetAccessorDone() &&
 		m.MinimockGetLatestAccessorDone() &&
 		m.MinimockGetLocalNodeReferenceDone() &&
 		m.MinimockGetLocalNodeRoleDone() &&
-		m.MinimockMoveSyncToActiveDone() &&
-		m.MinimockSetInitialSnapshotDone() &&
-		m.MinimockSyncDone()
+		m.MinimockSetExpectedPopulationDone()
 }

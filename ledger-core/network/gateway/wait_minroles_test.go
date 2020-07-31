@@ -14,13 +14,12 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/insolar/assured-ledger/ledger-core/network"
-	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
-	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/mocklog"
 	mock "github.com/insolar/assured-ledger/ledger-core/testutils/network"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/network/mutable"
 )
 
 func TestWaitMinroles_MinrolesNotHappenedInETA(t *testing.T) {
@@ -34,8 +33,17 @@ func TestWaitMinroles_MinrolesNotHappenedInETA(t *testing.T) {
 	b.CertificateManager = mandates.NewCertificateManager(cert)
 
 	nodeKeeper := b.NodeKeeper.(*mock.NodeKeeperMock)
+
+	role := census.NewRolePopulationMock(mc)
+	role.GetWorkingCountMock.Return(0)
+	role.GetIdleCountMock.Return(0)
+
+	pop := census.NewOnlinePopulationMock(mc)
+	pop.GetRolePopulationMock.Return(role)
+
 	accessor := mock.NewAccessorMock(mc)
-	accessor.GetWorkingNodesMock.Return([]nodeinfo.NetworkNode{})
+	accessor.GetPopulationMock.Return(pop)
+
 	nodeKeeper.GetAccessorMock.Return(accessor)
 
 	waitMinRoles := newWaitMinRoles(b)
@@ -54,7 +62,7 @@ func TestWaitMinroles_MinrolesNotHappenedInETA(t *testing.T) {
 }
 
 func TestWaitMinroles_MinrolesHappenedInETA(t *testing.T) {
-	mc := minimock.NewController(t)
+	mc := minimock.NewController(mocklog.T(t))
 	defer mc.Finish()
 	defer mc.Wait(time.Second*10)
 
@@ -66,21 +74,28 @@ func TestWaitMinroles_MinrolesHappenedInETA(t *testing.T) {
 	ref := gen.UniqueGlobalRef()
 	nodeKeeper := mock.NewNodeKeeperMock(mc)
 
+	role1 := census.NewRolePopulationMock(mc)
+	role1.GetWorkingCountMock.Return(0)
+	role1.GetIdleCountMock.Return(0)
+
+	pop1 := census.NewOnlinePopulationMock(mc)
+	pop1.GetRolePopulationMock.Return(role1)
+
 	accessor1 := mock.NewAccessorMock(mc)
-	accessor1.GetWorkingNodesMock.Set(func() (na1 []nodeinfo.NetworkNode) {
-		return []nodeinfo.NetworkNode{}
-	})
+	accessor1.GetPopulationMock.Return(pop1)
+	nodeKeeper.GetAccessorMock.When(pulse.MinTimePulse).Then(accessor1)
+
+	role2 := census.NewRolePopulationMock(mc)
+	role2.GetWorkingCountMock.Return(5)
+	role2.GetIdleCountMock.Return(0)
+
+	pop2 := census.NewOnlinePopulationMock(mc)
+	pop2.GetRolePopulationMock.Return(role2)
+
 	accessor2 := mock.NewAccessorMock(mc)
-	accessor2.GetWorkingNodesMock.Set(func() (na1 []nodeinfo.NetworkNode) {
-		n := mutable.NewTestNode(ref, member.PrimaryRoleLightMaterial, "127.0.0.1:123")
-		return []nodeinfo.NetworkNode{n}
-	})
-	nodeKeeper.GetAccessorMock.Set(func(p pulse.Number) (a1 network.Accessor) {
-		if p == pulse.MinTimePulse {
-			return accessor1
-		}
-		return accessor2
-	})
+	accessor2.GetPopulationMock.Return(pop2)
+	nodeKeeper.GetAccessorMock.When(pulse.MinTimePulse + 10).Then(accessor2)
+
 
 	discoveryNode := mandates.BootstrapNode{NodeRef: ref.String()}
 	cert := &mandates.Certificate{MajorityRule: 1, BootstrapNodes: []mandates.BootstrapNode{discoveryNode}}

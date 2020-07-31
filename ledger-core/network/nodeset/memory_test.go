@@ -11,25 +11,18 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
-	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
-	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/network/mutable"
 )
 
 func TestMemoryStorage(t *testing.T) {
 	s := NewMemoryStorage()
 	startPulse := pulsestor.GenesisPulse
 
-	n := mutable.NewTestNode(gen.UniqueGlobalRef(), member.PrimaryRoleVirtual, "127.0.0.1:22")
-	nodes := []nodeinfo.NetworkNode{n}
-
 	for i := 0; i < entriesCount+2; i++ {
 		p := startPulse
 		p.PulseNumber += pulse.Number(i)
 
-		snap := NewSnapshot(p.PulseNumber, nodes)
+		snap := NewSnapshot(p.PulseNumber, nil)
 		assert.NoError(t, s.Append(snap))
 
 		snap1, err := s.ForPulseNumber(p.PulseNumber)

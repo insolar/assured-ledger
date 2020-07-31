@@ -11,12 +11,13 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
-	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/censusimpl"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	mock "github.com/insolar/assured-ledger/ledger-core/testutils/network"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/network/mutable"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -36,9 +37,10 @@ func TestTable_Resolve(t *testing.T) {
 
 	refs := gen.UniqueGlobalRefs(2)
 
-	na := nodeset.NewAccessor(
-		nodeset.NewSnapshot(pulse.MinTimePulse, []nodeinfo.NetworkNode{newNode(refs[0], 123)}),
-		reference.Global{})
+	vf := cryptkit.NewSignatureVerifierFactoryMock(t)
+	vf.CreateSignatureVerifierWithPKSMock.Return(nil)
+	pop := censusimpl.NewJoinerPopulation(newNode(refs[0], 123).GetStatic(), vf)
+	na := nodeset.NewAccessor(nodeset.NewSnapshot(pulse.MinTimePulse, &pop))
 
 	nodeKeeperMock := mock.NewNodeKeeperMock(t)
 	nodeKeeperMock.GetAccessorMock.Return(na)

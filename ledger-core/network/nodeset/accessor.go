@@ -6,6 +6,9 @@
 package nodeset
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/common/endpoints"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -13,57 +16,93 @@ import (
 
 type Accessor struct {
 	snapshot  *Snapshot
-	local     nodeinfo.NetworkNode
-	refIndex  map[reference.Global]nodeinfo.NetworkNode
-	addrIndex map[string]nodeinfo.NetworkNode
+	refIndex  map[reference.Global]member.Index
+	addrIndex map[string]member.Index
 }
 
 func (a *Accessor) GetLocalNode() nodeinfo.NetworkNode {
-	return a.local
+	return a.snapshot.population.GetLocalProfile()
+}
+
+func (a *Accessor) GetPopulation() census.OnlinePopulation {
+	return a.snapshot.population
 }
 
 func (a *Accessor) GetPulseNumber() pulse.Number {
-	return a.snapshot.GetPulse()
+	return a.snapshot.GetPulseNumber()
 }
 
-func (a *Accessor) GetActiveNodeByAddr(address string) nodeinfo.NetworkNode {
-	return a.addrIndex[address]
+func (a *Accessor) GetOnlineNodeByAddr(address string) nodeinfo.NetworkNode {
+	idx, ok := a.addrIndex[address]
+	if !ok {
+		return nil
+	}
+	// NB! local node is not allowed to address itself
+	return a.snapshot.population.GetProfile(idx)
 }
 
-func (a *Accessor) GetActiveNodes() []nodeinfo.NetworkNode {
-	return append([]nodeinfo.NetworkNode(nil), a.snapshot.activeNodes...)
+func (a *Accessor) GetOnlineNodes() []nodeinfo.NetworkNode {
+	return a.snapshot.population.GetProfiles()
 }
 
-func (a *Accessor) GetActiveNode(ref reference.Global) nodeinfo.NetworkNode {
-	return a.refIndex[ref]
+func (a *Accessor) GetOnlineNode(ref reference.Global) nodeinfo.NetworkNode {
+	idx, ok := a.refIndex[ref]
+	if !ok {
+		return nil
+	}
+	n := a.snapshot.population.GetProfile(idx)
+	if n == nil && idx == 0 {
+		return a.snapshot.population.GetLocalProfile()
+	}
+	return n
 }
 
-func (a *Accessor) GetWorkingNode(ref reference.Global) nodeinfo.NetworkNode {
-	node := a.GetActiveNode(ref)
-	if node == nil || !isWorkingNode(node) {
+func (a *Accessor) GetPoweredNode(ref reference.Global) nodeinfo.NetworkNode {
+	node := a.GetOnlineNode(ref)
+	if node == nil || !node.IsPowered() {
 		return nil
 	}
 	return node
 }
 
-func (a *Accessor) GetWorkingNodes() []nodeinfo.NetworkNode {
-	return append([]nodeinfo.NetworkNode(nil), a.snapshot.workingNodes...)
+func (a *Accessor) addAddr(endpoint endpoints.Outbound, idx member.Index) {
+	a.addrIndex[endpoint.GetNameAddress().String()] = idx
 }
 
-func NewAccessor(snapshot *Snapshot, localRef reference.Global) *Accessor {
+func NewAccessor(snapshot *Snapshot) *Accessor {
 	result := &Accessor{
 		snapshot:  snapshot,
-		refIndex:  make(map[reference.Global]nodeinfo.NetworkNode),
-		addrIndex: make(map[string]nodeinfo.NetworkNode),
 	}
 
-	for _, node := range snapshot.activeNodes {
+	local := snapshot.population.GetLocalProfile()
+	profiles := snapshot.population.GetProfiles()
+
+	n := len(profiles)
+	if n <= 1 {
+		// this is a special case for both joiner (before consensus local node is not listed) and one node population
+		localRef := nodeinfo.NodeRef(local)
+		result.refIndex = map[reference.Global]member.Index{localRef:0}
+		return result
+	}
+
+	result.refIndex = make(map[reference.Global]member.Index, n)
+	result.addrIndex = make(map[string]member.Index, n - 1) // local node is not allowed to address itself
+
+	for _, node := range snapshot.population.GetProfiles() {
 		ref := nodeinfo.NodeRef(node)
-		if ref == localRef {
-			result.local = node
+		idx := node.GetIndex()
+		result.refIndex[ref] = idx
+		if local.GetIndex() == idx {
+			// local node is not allowed to address itself
+			continue
 		}
-		result.refIndex[ref] = node
-		result.addrIndex[nodeinfo.NodeAddr(node)] = node
+
+		ns := node.GetStatic()
+
+		result.addAddr(ns.GetDefaultEndpoint(), idx)
+		for _, na := range ns.GetExtension().GetExtraEndpoints() {
+			result.addAddr(na, idx)
+		}
 	}
 	return result
 }

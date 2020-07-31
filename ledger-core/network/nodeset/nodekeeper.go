@@ -13,6 +13,7 @@ import (
 	"go.opencensus.io/stats"
 
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -26,21 +27,21 @@ import (
 // NewNodeKeeper create new NodeKeeper
 func NewNodeKeeper(localRef reference.Holder, localRole member.PrimaryRole) network.NodeKeeper {
 	return &nodekeeper{
-		localRef:        reference.Copy(localRef),
-		localRole:       localRole,
-		snapshotStorage: NewMemoryStorage(),
+		localRef:  reference.Copy(localRef),
+		localRole: localRole,
+		storage:   NewMemoryStorage(),
 	}
 }
 
 type nodekeeper struct {
-	syncLock  sync.RWMutex
-
 	localRef  reference.Global
 	localRole member.PrimaryRole
-	syncNodes []nodeinfo.NetworkNode
 
-	snapshotStorage *MemoryStorage
-	last      network.Accessor
+	mutex sync.RWMutex
+
+	storage *MemoryStorage
+	last    network.Accessor
+	expected int
 }
 
 func (nk *nodekeeper) GetLocalNodeReference() reference.Holder {
@@ -51,30 +52,22 @@ func (nk *nodekeeper) GetLocalNodeRole() member.PrimaryRole {
 	return nk.localRole
 }
 
-func (nk *nodekeeper) SetInitialSnapshot(nodes []nodeinfo.NetworkNode) {
-	ctx := context.TODO()
-	nk.Sync(ctx, nodes)
-	nk.MoveSyncToActive(ctx, pulse.Unknown)
-	nk.Sync(ctx, nodes)
-	nk.MoveSyncToActive(ctx, pulse.MinTimePulse)
-}
-
 func (nk *nodekeeper) GetAccessor(pn pulse.Number) network.Accessor {
 	la := nk.GetLatestAccessor()
 	if la != nil && la.GetPulseNumber() == pn {
 		return la
 	}
 
-	s, err := nk.snapshotStorage.ForPulseNumber(pn)
+	s, err := nk.storage.ForPulseNumber(pn)
 	if err != nil {
 		panic(fmt.Sprintf("GetAccessor(%d): %s", pn, err.Error()))
 	}
-	return NewAccessor(s, nk.localRef)
+	return NewAccessor(s)
 }
 
 func (nk *nodekeeper) GetLatestAccessor() network.Accessor {
-	nk.syncLock.RLock()
-	defer nk.syncLock.RUnlock()
+	nk.mutex.RLock()
+	defer nk.mutex.RUnlock()
 
 	if nk.last == nil {
 		return nil
@@ -82,41 +75,43 @@ func (nk *nodekeeper) GetLatestAccessor() network.Accessor {
 	return nk.last
 }
 
-func (nk *nodekeeper) Sync(ctx context.Context, nodes []nodeinfo.NetworkNode) {
-	inslogger.FromContext(ctx).Debugf("Sync, nodes: %d", len(nodes))
+func (nk *nodekeeper) SetExpectedPopulation(ctx context.Context, _ pulse.Number, nodes census.OnlinePopulation) {
+	inslogger.FromContext(ctx).Debugf("SetExpectedPopulation, nodes: %d", nodes.GetIndexedCount())
 
-	nk.syncLock.Lock()
-	defer nk.syncLock.Unlock()
-	nk.syncNodes = nodes
+	nk.mutex.Lock()
+	defer nk.mutex.Unlock()
+	nk.expected = nodes.GetIndexedCount()
 }
 
-func (nk *nodekeeper) MoveSyncToActive(ctx context.Context, pn pulse.Number) {
-	before, after, err := nk.moveSyncToActive(pn)
+func (nk *nodekeeper) AddActivePopulation(ctx context.Context, pn pulse.Number, population census.OnlinePopulation) {
+	before, err := nk.moveSyncToActive(pn, population)
 	if err != nil {
-		inslogger.FromContext(ctx).Panic("MoveSyncToActive(): ", err.Error())
+		inslogger.FromContext(ctx).Panic("AddActivePopulation(): ", err.Error())
 	}
 
-	inslogger.FromContext(ctx).Infof("[ MoveSyncToActive ] New active list confirmed. Active list size: %d -> %d",
+	after := population.GetIndexedCount()
+	inslogger.FromContext(ctx).Infof("[ AddActivePopulation ] New active list confirmed. Active list size: %d -> %d",
 		before, after,
 	)
 
 	stats.Record(ctx, network.ActiveNodes.M(int64(after)))
 }
 
-func (nk *nodekeeper) moveSyncToActive(number pulse.Number) (before, after int, err error) {
-	nk.syncLock.Lock()
-	defer nk.syncLock.Unlock()
-
-	snapshot := NewSnapshot(number, nk.syncNodes)
-	accessor := NewAccessor(snapshot, nk.localRef)
-	if accessor.local == nil {
+func (nk *nodekeeper) moveSyncToActive(number pulse.Number, population census.OnlinePopulation) (before int, err error) {
+	if nodeinfo.NodeRef(population.GetLocalProfile()) != nk.localRef {
 		panic(throw.IllegalValue())
 	}
 
-	if err := nk.snapshotStorage.Append(snapshot); err != nil {
-		return 0, 0, err
+	nk.mutex.Lock()
+	defer nk.mutex.Unlock()
+
+	snapshot := NewSnapshot(number, population)
+	accessor := NewAccessor(snapshot)
+
+	if err := nk.storage.Append(snapshot); err != nil {
+		return 0, err
 	}
 	nk.last = accessor
 
-	return len(nk.syncNodes), len(accessor.GetActiveNodes()), nil
+	return nk.expected, nil
 }

@@ -10,8 +10,8 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/network"
-	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
-	"github.com/insolar/assured-ledger/ledger-core/network/nodeset"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/proofs"
 	"github.com/insolar/assured-ledger/ledger-core/network/rules"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -37,18 +37,16 @@ func (g *WaitPulsar) Run(ctx context.Context, pulse pulse.Data) {
 	}
 }
 
-func (g *WaitPulsar) UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes []nodeinfo.NetworkNode, cloudStateHash []byte) {
-	workingNodes := nodeset.SelectWorking(nodes)
-
-	if _, err := rules.CheckMajorityRule(g.CertificateManager.GetCertificate(), workingNodes); err != nil {
+func (g *WaitPulsar) UpdateState(ctx context.Context, pulseNumber pulse.Number, isTimePulse bool, nodes census.OnlinePopulation, csh proofs.CloudStateHash) {
+	if _, err := rules.CheckMajorityRule(g.CertificateManager.GetCertificate(), nodes); err != nil {
 		g.FailState(ctx, err.Error())
 	}
 
-	if err := rules.CheckMinRole(g.CertificateManager.GetCertificate(), workingNodes); err != nil {
+	if err := rules.CheckMinRole(g.CertificateManager.GetCertificate(), nodes); err != nil {
 		g.FailState(ctx, err.Error())
 	}
 
-	g.Base.UpdateState(ctx, pulseNumber, nodes, cloudStateHash)
+	g.Base.UpdateState(ctx, pulseNumber, isTimePulse, nodes, csh)
 }
 
 func (g *WaitPulsar) GetState() network.State {

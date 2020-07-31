@@ -33,7 +33,7 @@ func TestSwitch(t *testing.T) {
 
 	// nodekeeper := testnet.NewNodeKeeperMock(t)
 	nodekeeper := testnet.NewNodeKeeperMock(t)
-	nodekeeper.MoveSyncToActiveMock.Set(func(ctx context.Context, number pulse.Number) {})
+	nodekeeper.AddActivePopulationMock.Return()
 	gatewayer := testnet.NewGatewayerMock(t)
 	// pm := mockPulseManager(t)
 
@@ -76,7 +76,7 @@ func TestDumbComplete_GetCert(t *testing.T) {
 	ctx := context.Background()
 
 	nodekeeper := testnet.NewNodeKeeperMock(t)
-	nodekeeper.MoveSyncToActiveMock.Set(func(ctx context.Context, number pulse.Number) {})
+	nodekeeper.AddActivePopulationMock.Return()
 
 	gatewayer := testnet.NewGatewayerMock(t)
 

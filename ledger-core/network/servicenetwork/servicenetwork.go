@@ -116,11 +116,8 @@ func (n *ServiceNetwork) Start(ctx context.Context) error {
 		return errors.W(err, "failed to start component manager")
 	}
 
-	// pc, err := n.PulseAccessor.Latest(ctx)
-	// if err != nil {
 	p := network.NetworkedPulse{}
 	p.PulseEpoch = pulse.EphemeralPulseEpoch
-	// }
 
 	n.Gatewayer.Gateway().Run(ctx, p.Data)
 	n.RPC.RemoteProcedureRegister(deliverWatermillMsg, n.processIncoming)

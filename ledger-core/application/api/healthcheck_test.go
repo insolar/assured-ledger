@@ -82,7 +82,7 @@ func mockNodeNetwork(t *testing.T, nodeList []nodeinfo.DiscoveryNode) *network.N
 	}
 
 	accessorMock := network.NewAccessorMock(t)
-	accessorMock.GetWorkingNodeMock.Set(func(ref reference.Global) nodeinfo.NetworkNode {
+	accessorMock.GetPoweredNodeMock.Set(func(ref reference.Global) nodeinfo.NetworkNode {
 		if _, ok := nodeMap[ref]; ok {
 			return mutable.NewTestNode(ref, member.PrimaryRoleNeutral, "")
 		}

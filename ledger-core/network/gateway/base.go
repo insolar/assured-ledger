@@ -7,7 +7,6 @@ package gateway
 
 import (
 	"context"
-	"crypto/ecdsa"
 	"fmt"
 	"math/rand"
 	"sync/atomic"
@@ -17,12 +16,10 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
-	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/proofs"
 	transport2 "github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/transport"
-	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/censusimpl"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
@@ -78,10 +75,11 @@ type Base struct {
 	ConsensusController consensus.Controller
 	consensusStarted    uint32
 
-	Options         *network.Options
-	bootstrapTimer  *time.Timer // nolint
-	bootstrapETA    time.Duration
-	originCandidate *adapters.Candidate
+	Options        *network.Options
+	bootstrapTimer *time.Timer // nolint
+	bootstrapETA   time.Duration
+	localCandidate *adapters.Candidate
+	localStatic    profiles.StaticProfile
 
 	// Next request backoff.
 	backoff time.Duration // nolint
@@ -190,73 +188,28 @@ func (g *Base) initConsensus(ctx context.Context) error {
 }
 
 func (g *Base) localNodeAsCandidate() error {
-
 	cert := g.CertificateManager.GetCertificate()
-	ref := cert.GetNodeRef()
-	if !reference.Equal(ref, g.NodeKeeper.GetLocalNodeReference()) {
-		panic(throw.IllegalState())
-	}
 
-	role := cert.GetRole()
-	publicKey := cert.GetPublicKey()
+	staticProfile, err := CreateLocalNodeProfile(g.NodeKeeper, cert,
+		g.datagramTransport.Address(),
+		g.KeyProcessor, g.CryptographyService, g.CryptographyScheme)
 
-	endpointAddr, err := endpoints.NewIPAddress(g.datagramTransport.Address())
 	if err != nil {
 		return err
 	}
 
-	pk, err := g.KeyProcessor.ExportPublicKeyBinary(publicKey)
-	if err != nil {
-		return err
-	}
-
-	// TODO add StartPower and PowerSet to Certificate
-	startPower := adapters.DefaultStartPower
-
-	id := node.GenerateShortID(ref)
-	digest, signature, err := CalcAnnounceSignature(id, role, endpointAddr, startPower,
-		network.OriginIsDiscovery(cert), pk,
-		getKeyStore(g.CryptographyService),
-		g.CryptographyScheme,
-	)
-	if err != nil {
-		return err
-	}
-
-	dig := cryptkit.NewDigest(longbits.NewBits512FromBytes(digest), adapters.SHA3512Digest)
-	sig := cryptkit.NewSignature(longbits.NewBits512FromBytes(signature.Bytes()), dig.GetDigestMethod().SignedBy(adapters.SECP256r1Sign))
-	dsg := cryptkit.NewSignedDigest(dig, sig)
-
-	specialRole := member.SpecialRoleNone
-	isJoiner := false
-	if network.IsDiscovery(ref, cert) {
-		specialRole |= member.SpecialRoleDiscovery
-	} else {
-		isJoiner = true
-	}
-
-	staticProfile := adapters.NewStaticProfile(id, role, specialRole, startPower,
-		adapters.NewStaticProfileExtension(id, ref, sig),
-		adapters.NewOutboundIP(endpointAddr),
-		adapters.NewECDSAPublicKeyStore(publicKey.(*ecdsa.PublicKey)),
-		adapters.NewECDSASignatureKeyHolder(publicKey.(*ecdsa.PublicKey), g.KeyProcessor),
-		dsg,
-	)
-
-	verifier := g.transportCrypt.CreateSignatureVerifierWithPKS(staticProfile.GetPublicKeyStore())
-
-	var anp censusimpl.NodeProfileSlot
-	if isJoiner {
-		anp = censusimpl.NewJoinerProfile(staticProfile, verifier)
-	} else {
-		anp = censusimpl.NewNodeProfile(0, staticProfile, verifier, staticProfile.GetStartPower())
-	}
-
-	newOrigin := nodeinfo.NewNetworkNode(&anp)
-	g.NodeKeeper.SetInitialSnapshot([]nodeinfo.NetworkNode{newOrigin})
-	g.originCandidate = adapters.NewCandidate(staticProfile, g.KeyProcessor)
+	g.localStatic = staticProfile
+	g.localCandidate = adapters.NewCandidate(staticProfile, g.KeyProcessor)
 	return nil
 }
+
+func (g *Base) GetLocalNodeStaticProfile() profiles.StaticProfile {
+	if g.localStatic == nil {
+		panic(throw.IllegalState())
+	}
+	return g.localStatic
+}
+
 
 func (g *Base) StartConsensus(ctx context.Context) error {
 
@@ -289,14 +242,17 @@ func (g *Base) CancelNodeState() {}
 func (g *Base) OnPulseFromConsensus(ctx context.Context, pu beat.Beat) {
 	g.pulseWatchdog.Reset()
 
-	g.NodeKeeper.MoveSyncToActive(ctx, pu.PulseNumber)
-	nodes := g.NodeKeeper.GetAccessor(pu.PulseNumber).GetActiveNodes()
+	g.NodeKeeper.AddActivePopulation(ctx, pu.PulseNumber, pu.Online)
+	nodes := g.NodeKeeper.GetAccessor(pu.PulseNumber).GetOnlineNodes()
 	inslogger.FromContext(ctx).Debugf("OnPulseFromConsensus: %d : epoch %d : nodes %d", pu.PulseNumber, pu.PulseEpoch, len(nodes))
 }
 
 // UpdateState called then Consensus done
-func (g *Base) UpdateState(ctx context.Context, _ pulse.Number, nodes []nodeinfo.NetworkNode, _ []byte) {
-	g.NodeKeeper.Sync(ctx, nodes)
+func (g *Base) UpdateState(ctx context.Context, pn pulse.Number, isTimePulse bool, nodes census.OnlinePopulation, _ proofs.CloudStateHash) {
+	g.NodeKeeper.SetExpectedPopulation(ctx, pn, nodes)
+	if !isTimePulse {
+		g.NodeKeeper.AddActivePopulation(ctx, pn, nodes)
+	}
 }
 
 func (g *Base) BeforeRun(ctx context.Context, pulse pulse.Data) {}
@@ -386,7 +342,7 @@ func (g *Base) HandleNodeBootstrapRequest(ctx context.Context, request network.R
 	if na == nil {
 		return nil, throw.Errorf("bootstrap: node list is not available: %s", request)
 	}
-	nodes := na.GetActiveNodes()
+	nodes := na.GetOnlineNodes()
 
 	if network.CheckShortIDCollision(nodes, data.CandidateProfile.ShortID) {
 		return g.HostNetwork.BuildResponse(ctx, request, &packet.BootstrapResponse{Code: packet.UpdateShortID}), nil
@@ -462,7 +418,7 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 	if na == nil {
 		return nil, throw.Errorf("AuthorizeRequest: node list is not available: %s", request)
 	}
-	nodes := na.GetActiveNodes()
+	nodes := na.GetOnlineNodes()
 	o := na.GetLocalNode()
 
 	var reconnectHost *host.Host
@@ -534,7 +490,7 @@ func (g *Base) OnConsensusFinished(ctx context.Context, report network.Report) {
 	inslogger.FromContext(ctx).Infof("OnConsensusFinished for pulse %d", report.PulseNumber)
 }
 
-func (g *Base) EphemeralMode(nodes []nodeinfo.NetworkNode) bool {
+func (g *Base) EphemeralMode(nodes census.OnlinePopulation) bool {
 	_, majorityErr := rules.CheckMajorityRule(g.CertificateManager.GetCertificate(), nodes)
 	minRoleErr := rules.CheckMinRole(g.CertificateManager.GetCertificate(), nodes)
 
