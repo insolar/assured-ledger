@@ -85,7 +85,10 @@ type StaticProfile struct {
 
 // deprecated // for legacy code only
 func ECDSAPublicKeyOfNode(n nodeinfo.NetworkNode) *ecdsa.PublicKey {
-	nip := n.GetStatic()
+	return ECDSAPublicKeyOfProfile(n.GetStatic())
+}
+
+func ECDSAPublicKeyOfProfile(nip profiles.StaticProfile) *ecdsa.PublicKey {
 	store := nip.GetPublicKeyStore()
 	return store.(*ECDSAPublicKeyStore).publicKey
 }

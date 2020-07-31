@@ -339,13 +339,19 @@ func (g *Base) HandleNodeBootstrapRequest(ctx context.Context, request network.R
 
 	data := request.GetRequest().GetBootstrap()
 
-	na := g.NodeKeeper.GetLatestAccessor()
-	if na == nil {
-		return nil, throw.Errorf("bootstrap: node list is not available: %s", request)
+	var nodes []nodeinfo.NetworkNode
+	if na := g.NodeKeeper.GetLatestAccessor(); na != nil {
+		nodes = na.GetOnlineNodes()
 	}
-	nodes := na.GetOnlineNodes()
 
-	if network.CheckShortIDCollision(nodes, data.CandidateProfile.ShortID) {
+	hasCollision := false
+	if len(nodes) > 1 {
+		hasCollision = network.CheckShortIDCollision(nodes, data.CandidateProfile.ShortID)
+	} else {
+		hasCollision = data.CandidateProfile.ShortID == g.localStatic.GetStaticNodeID()
+	}
+
+	if hasCollision {
 		return g.HostNetwork.BuildResponse(ctx, request, &packet.BootstrapResponse{Code: packet.UpdateShortID}), nil
 	}
 
@@ -415,42 +421,34 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 		return g.HostNetwork.BuildResponse(ctx, request, &packet.AuthorizeResponse{Code: packet.WrongMandate, Error: err.Error()}), nil
 	}
 
-	na := g.NodeKeeper.GetLatestAccessor()
-	if na == nil {
-		return nil, throw.Errorf("AuthorizeRequest: node list is not available: %s", request)
+	var nodes []nodeinfo.NetworkNode
+	if na := g.NodeKeeper.GetLatestAccessor(); na != nil {
+		nodes = na.GetOnlineNodes()
 	}
-	nodes := na.GetOnlineNodes()
-	o := na.GetLocalNode()
 
 	var reconnectHost *host.Host
-	if !g.isJoinAssistant || len(nodes) < 2 {
-		// workaround bootstrap to the origin node
-		reconnectHost, err = host.NewHostNS(nodeinfo.NodeAddr(o), nodeinfo.NodeRef(o), o.GetNodeID())
-		if err != nil {
-			err = throw.W(err, "Failed to get reconnectHost")
-			inslogger.FromContext(ctx).Warn(err.Error())
-			return nil, err
-		}
-	} else {
+	if g.isJoinAssistant && len(nodes) > 1 && nodes != nil /* != is to fix annoying GoLand hint */ {
 		randNode := nodes[rand.Intn(len(nodes))]
 		reconnectHost, err = host.NewHostNS(nodeinfo.NodeAddr(randNode), nodeinfo.NodeRef(randNode), randNode.GetNodeID())
-		if err != nil {
-			err = throw.W(err, "Failed to get reconnectHost")
-			inslogger.FromContext(ctx).Warn(err.Error())
-			return nil, err
-		}
+	} else {
+		// workaround bootstrap to the local node
+		reconnectHost, err = host.NewHostNS(g.localStatic.GetDefaultEndpoint().GetIPAddress().String(),
+			g.localStatic.GetExtension().GetReference(), g.localStatic.GetStaticNodeID())
 	}
 
-	pubKey, err := g.KeyProcessor.ExportPublicKeyPEM(adapters.ECDSAPublicKeyOfNode(o))
 	if err != nil {
-		err = throw.W(err, "Failed to export public key")
-		inslogger.FromContext(ctx).Warn(err.Error())
+		inslogger.FromContext(ctx).Warn("Failed to get reconnectHost")
+		return nil, err
+	}
+
+	pubKey, err := g.KeyProcessor.ExportPublicKeyPEM(adapters.ECDSAPublicKeyOfProfile(g.localStatic))
+	if err != nil {
+		inslogger.FromContext(ctx).Warn("Failed to export public key")
 		return nil, err
 	}
 
 	permit, err := bootstrap.CreatePermit(g.NodeKeeper.GetLocalNodeReference(),
-		reconnectHost,
-		pubKey,
+		reconnectHost, pubKey,
 		g.CryptographyService,
 	)
 	if err != nil {
