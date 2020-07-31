@@ -228,8 +228,7 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 	s.pendingConstructorFinished = semaphorePendingConstructorFinished
 
 	if s.isConstructor {
-		switch objectState {
-		case object.Unknown:
+		if objectState == object.Unknown {
 			panic(throw.Impossible())
 		}
 
