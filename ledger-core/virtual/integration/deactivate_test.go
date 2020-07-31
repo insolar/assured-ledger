@@ -247,8 +247,8 @@ func TestVirtual_CallMethod_On_CompletelyDeactivatedObject(t *testing.T) {
 // 2. Deactivate object partially( only Dirty state )
 // 3. Send request on Dirty state - get error
 // 4. Send request on Validated state - get response
+// TODO: Remove this test when https://insolar.atlassian.net/browse/PLAT-706 will be implemented
 func TestVirtual_CallMethod_On_DeactivatedDirtyState(t *testing.T) {
-	t.Log("C5470")
 	defer commontestutils.LeakTester(t)
 
 	mc := minimock.NewController(t)
