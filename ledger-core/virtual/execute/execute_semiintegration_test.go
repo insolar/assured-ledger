@@ -372,11 +372,10 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 		objectRef   = reference.NewSelf(outgoing.GetLocal())
 		sharedState = &object.SharedState{
 			Info: object.Info{
-				PendingTable:     callregistry.NewRequestTable(),
-				KnownRequests:    callregistry.NewWorkingTable(),
-				ReadyToWork:      smsync.NewConditional(1, "ReadyToWork").SyncLink(),
-				UnorderedExecute: limiter.NewChildSemaphore(30, "unordered calls").SyncLink(),
-				OrderedExecute:   limiter.NewChildSemaphore(1, "ordered calls").SyncLink(),
+				PendingTable:   callregistry.NewRequestTable(),
+				KnownRequests:  callregistry.NewWorkingTable(),
+				ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
+				OrderedExecute: limiter.NewChildSemaphore(1, "ordered calls").SyncLink(),
 			},
 		}
 	)
@@ -396,8 +395,7 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 		Meta: &payload.Meta{
 			Sender: caller,
 		},
-		semaphoreOrdered:   sharedState.OrderedExecute,
-		semaphoreUnordered: sharedState.UnorderedExecute,
+		semaphoreOrdered: sharedState.OrderedExecute,
 	}
 	catalogWrapper := object.NewCatalogMockWrapper(mc)
 
