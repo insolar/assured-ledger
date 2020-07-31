@@ -271,7 +271,6 @@ func (f *EphemeralControlFeeder) CanStopEphemeralByCensus(expected census.Expect
 	if expected == nil {
 		return false
 	}
-
 	population := expected.GetOnlinePopulation()
 	if !population.IsValid() {
 		return false

@@ -156,6 +156,8 @@ func initNodes(ctx context.Context, mode consensus.Mode, nodes GeneratedNodes, s
 			NodeKeeper:        nodeKeeper,
 			DatagramTransport: delayTransport,
 
+			LocalNodeProfile: nil, // TODO
+
 			StateGetter: &nshGen{nshDelay: defaultNshGenerationDelay},
 			PulseChanger: &pulseChanger{
 				nodeKeeper: nodeKeeper,

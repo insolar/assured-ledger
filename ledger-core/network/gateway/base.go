@@ -159,20 +159,6 @@ func (g *Base) initConsensus(ctx context.Context) error {
 	g.transportCrypt = adapters.NewTransportCryptographyFactory(g.CryptographyScheme)
 
 
-	proxy := consensusProxy{g.Gatewayer}
-	g.consensusInstaller = consensus.New(ctx, consensus.Dep{
-		KeyProcessor:        g.KeyProcessor,
-		CertificateManager:  g.CertificateManager,
-		KeyStore:            getKeyStore(g.CryptographyService),
-		NodeKeeper:          g.NodeKeeper,
-		StateGetter:         proxy,
-		PulseChanger:        proxy,
-		StateUpdater:        proxy,
-		DatagramTransport:   g.datagramTransport,
-		EphemeralController: g,
-		TransportCryptography: g.transportCrypt,
-	})
-
 	// transport start should be here because of TestComponents tests, couldn't localNodeAsCandidate with 0 port
 	err = g.datagramTransport.Start(ctx)
 	if err != nil {
@@ -183,6 +169,21 @@ func (g *Base) initConsensus(ctx context.Context) error {
 	if err != nil {
 		return throw.W(err, "failed to localNodeAsCandidate")
 	}
+
+	proxy := consensusProxy{g.Gatewayer}
+	g.consensusInstaller = consensus.New(ctx, consensus.Dep{
+		KeyProcessor:        g.KeyProcessor,
+		CertificateManager:  g.CertificateManager,
+		KeyStore:            getKeyStore(g.CryptographyService),
+		NodeKeeper:          g.NodeKeeper,
+		LocalNodeProfile:    g.localStatic, // initialized by localNodeAsCandidate()
+		StateGetter:         proxy,
+		PulseChanger:        proxy,
+		StateUpdater:        proxy,
+		DatagramTransport:   g.datagramTransport,
+		EphemeralController: g,
+		TransportCryptography: g.transportCrypt,
+	})
 
 	return nil
 }
@@ -491,6 +492,9 @@ func (g *Base) OnConsensusFinished(ctx context.Context, report network.Report) {
 }
 
 func (g *Base) EphemeralMode(nodes census.OnlinePopulation) bool {
+	if nodes == nil {
+		return true
+	}
 	_, majorityErr := rules.CheckMajorityRule(g.CertificateManager.GetCertificate(), nodes)
 	minRoleErr := rules.CheckMinRole(g.CertificateManager.GetCertificate(), nodes)
 
