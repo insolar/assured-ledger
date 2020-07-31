@@ -6,6 +6,7 @@
 package integration
 
 import (
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -367,14 +368,20 @@ func TestVirtual_CallMethod_On_DeactivatedDirtyState(t *testing.T) {
 
 				callMethod := "SomeCallMethod" + test.name
 				isolation = contract.MethodIsolation{Interference: contract.CallIntolerable, State: test.objectState}
+				runnerMock.AddExecutionClassify(callMethod, isolation, nil)
+				objectExecutionMock := runnerMock.AddExecutionMock(callMethod)
 				if test.shouldExecute {
-					objectExecutionMock := runnerMock.AddExecutionMock(callMethod)
 					objectExecutionMock.AddStart(nil, &execution.Update{
 						Type:   execution.Done,
 						Result: requestResult,
 					},
 					)
-					runnerMock.AddExecutionClassify(callMethod, isolation, nil)
+				} else {
+					objectExecutionMock.AddStart(nil, &execution.Update{
+						Type:  execution.Error,
+						Error: errors.New("erroneous situation: this execution should not happen"),
+					},
+					)
 				}
 
 				pl := payload.VCallRequest{
@@ -388,7 +395,7 @@ func TestVirtual_CallMethod_On_DeactivatedDirtyState(t *testing.T) {
 					Arguments:           insolar.MustSerialize([]interface{}{}),
 				}
 				server.SendPayload(ctx, &pl)
-				commontestutils.WaitSignalsTimed(t, 10*time.Second, gotResult)
+				commontestutils.WaitSignalsTimed(t, 100*time.Second, gotResult)
 			})
 		}
 	}

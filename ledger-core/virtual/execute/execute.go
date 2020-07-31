@@ -227,15 +227,6 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 	s.execution.ObjectDescriptor = objectDescriptor
 	s.pendingConstructorFinished = semaphorePendingConstructorFinished
 
-	if objectDescriptor != nil && objectDescriptor.Deactivated() {
-		s.prepareExecutionError(throw.E("try to call method on deactivated object", struct {
-			ObjectReference string
-		}{
-			ObjectReference: s.execution.Object.String(),
-		}))
-		return ctx.Jump(s.stepSendCallResult)
-	}
-
 	if s.isConstructor {
 		switch objectState {
 		case object.Unknown:
@@ -544,19 +535,36 @@ func (s *SMExecute) getDescriptor(state *object.SharedState) descriptor.Object {
 func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var (
 		objectDescriptor descriptor.Object
+		isDeactivated    bool
 	)
 	action := func(state *object.SharedState) {
+		objectDescriptor = s.getDescriptor(state)
+		if objectDescriptor != nil && objectDescriptor.Deactivated() {
+			if !state.KnownRequests.Delete(s.execution.Isolation.Interference, s.execution.Outgoing) {
+				panic(throw.IllegalState())
+			}
+			isDeactivated = true
+			return
+		}
+
 		if !state.KnownRequests.SetActive(s.execution.Isolation.Interference, s.execution.Outgoing) {
 			// if we come here then request should be in RequestStarted
 			// if it is not it is either somehow lost or it is already processing
 			panic(throw.Impossible())
 		}
-
-		objectDescriptor = s.getDescriptor(state)
 	}
 
 	if stepUpdate := s.shareObjectAccess(ctx, action); !stepUpdate.IsEmpty() {
 		return stepUpdate
+	}
+
+	if isDeactivated {
+		s.prepareExecutionError(throw.E("try to call method on deactivated object", struct {
+			ObjectReference string
+		}{
+			ObjectReference: s.execution.Object.String(),
+		}))
+		return ctx.Jump(s.stepSendCallResult)
 	}
 
 	ctx.SetDefaultMigration(s.migrateDuringExecution)

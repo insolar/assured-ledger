@@ -41,8 +41,16 @@ func (wt WorkingTable) GetResults() map[reference.Global]CallSummary {
 	return wt.results
 }
 
+// Add adds reference.Global
+// returns true if added and false if already exists
 func (wt WorkingTable) Add(flag contract.InterferenceFlag, ref reference.Global) bool {
 	return wt.GetList(flag).add(ref)
+}
+
+// Delete deletes reference.Global
+// returns true if deleted and false if absent
+func (wt WorkingTable) Delete(flag contract.InterferenceFlag, ref reference.Global) bool {
+	return wt.GetList(flag).delete(ref)
 }
 
 func (wt WorkingTable) SetActive(flag contract.InterferenceFlag, ref reference.Global) bool {
@@ -113,13 +121,19 @@ func (rl *WorkingList) GetState(ref reference.Global) WorkingRequestState {
 	return rl.requests[ref]
 }
 
-// Add adds reference.Global and update EarliestPulse if needed
-// returns true if added and false if already exists
 func (rl *WorkingList) add(ref reference.Global) bool {
 	if _, exist := rl.requests[ref]; exist {
 		return false
 	}
 	rl.requests[ref] = RequestStarted
+	return true
+}
+
+func (rl *WorkingList) delete(ref reference.Global) bool {
+	if _, exist := rl.requests[ref]; !exist {
+		return false
+	}
+	delete(rl.requests, ref)
 	return true
 }
 
