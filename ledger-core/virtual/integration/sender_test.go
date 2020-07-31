@@ -8,16 +8,19 @@ package integration
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/predicate"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 )
@@ -55,11 +58,6 @@ var messagesWithoutToken = []struct {
 		name: "VFindCallRequest",
 		msg:  &payload.VFindCallRequest{},
 	},
-	{
-		name:              "VFindCallResponse",
-		msg:               &payload.VFindCallResponse{},
-		ignoreSenderCheck: true,
-	},
 }
 
 type reseter interface {
@@ -79,79 +77,148 @@ func TestVirtual_SenderCheck_With_ExpectedVE(t *testing.T) {
 	for _, cases := range testCases {
 		t.Run(cases.name, func(t *testing.T) {
 			insrail.LogCase(t, cases.caseId)
+			/*
+				for _, testMsg := range messagesWithoutToken {
+					t.Run(testMsg.name, func(t *testing.T) {
+						defer commontestutils.LeakTester(t)
 
-			for _, testMsg := range messagesWithoutToken {
-				t.Run(testMsg.name, func(t *testing.T) {
-					defer commontestutils.LeakTester(t)
+						mc := minimock.NewController(t)
 
-					mc := minimock.NewController(t)
+						server, ctx := utils.NewUninitializedServerWithErrorFilter(nil, t, func(s string) bool {
+							return false
+						})
 
-					server, ctx := utils.NewUninitializedServerWithErrorFilter(nil, t, func(s string) bool {
-						return false
-					})
+						jetCoordinatorMock := affinity.NewHelperMock(mc)
+						auth := authentication.NewService(ctx, jetCoordinatorMock)
+						server.ReplaceAuthenticationService(auth)
 
-					jetCoordinatorMock := affinity.NewHelperMock(mc)
-					auth := authentication.NewService(ctx, jetCoordinatorMock)
-					server.ReplaceAuthenticationService(auth)
+						var (
+							unexpectedError error
+							errorFound      bool
+						)
+						{
+							logHandler := func(arg interface{}) {
+								err, ok := arg.(error)
+								if !ok {
+									return
+								}
 
-					var (
-						unexpectedError error
-						errorFound      bool
-					)
-					{
-						logHandler := func(arg interface{}) {
-							err, ok := arg.(error)
-							if !ok {
-								return
+								errorMsg := err.Error()
+								if strings.Contains(errorMsg, "unexpected sender") &&
+									strings.Contains(errorMsg, "illegitimate msg") {
+									errorFound = true
+								} else {
+									unexpectedError = err
+								}
 							}
-
-							errorMsg := err.Error()
-							if strings.Contains(errorMsg, "unexpected sender") &&
-								strings.Contains(errorMsg, "illegitimate msg") {
-								errorFound = true
-							} else {
-								unexpectedError = err
-							}
+							logger := utils.InterceptLog(inslogger.FromContext(ctx), logHandler)
+							server.OverrideConveyorFactoryLogContext(inslogger.SetLogger(ctx, logger))
 						}
-						logger := utils.InterceptLog(inslogger.FromContext(ctx), logHandler)
-						server.OverrideConveyorFactoryLogContext(inslogger.SetLogger(ctx, logger))
-					}
 
-					server.Init(ctx)
-					server.IncrementPulseAndWaitIdle(ctx)
+						server.Init(ctx)
+						server.IncrementPulseAndWaitIdle(ctx)
 
-					if !testMsg.ignoreSenderCheck {
 						rv := server.RandomGlobalWithPulse()
 						if cases.senderIsEqualExpectedVE {
 							rv = server.GlobalCaller()
 						}
 						jetCoordinatorMock.QueryRoleMock.Return([]reference.Global{rv}, nil)
+
+						testMsg.msg.(reseter).Reset()
+
+						switch m := (testMsg.msg).(type) {
+						case *payload.VStateReport:
+							m.Status = payload.Missing
+							m.AsOf = server.GetPulse().PulseNumber
+							m.Object = reference.NewSelf(server.RandomLocalWithPulse())
+							server.IncrementPulseAndWaitIdle(ctx)
+
+							testMsg.msg = m
+						}
+
+						server.SendPayload(ctx, testMsg.msg.(payload.Marshaler)) // default caller == server.GlobalCaller()
+
+						server.WaitIdleConveyor()
+
+						expectNoError := cases.senderIsEqualExpectedVE || testMsg.ignoreSenderCheck == true
+						assert.Equal(t, !expectNoError, errorFound, "Fail "+testMsg.name)
+						assert.NoError(t, unexpectedError)
+
+						server.Stop()
+						mc.Finish()
+					})
+				}
+			*/
+			// VFindCallResponse
+			//
+			// {
+			// name:              "VFindCallResponse",
+			// 	msg:               &payload.VFindCallResponse{},
+			// 	ignoreSenderCheck: true,
+			// },
+
+			t.Run("VFindCallResponse", func(t *testing.T) {
+				defer commontestutils.LeakTester(t)
+
+				mc := minimock.NewController(t)
+
+				server, ctx := utils.NewUninitializedServer(nil, t)
+
+				jetCoordinatorMock := affinity.NewHelperMock(mc)
+				auth := authentication.NewService(ctx, jetCoordinatorMock)
+				server.ReplaceAuthenticationService(auth)
+
+				var (
+					unexpectedError error
+					errorFound      bool
+				)
+				{
+					logHandler := func(arg interface{}) {
+						err, ok := arg.(error)
+						if !ok {
+							return
+						}
+
+						errorMsg := err.Error()
+						if strings.Contains(errorMsg, "unexpected sender") &&
+							strings.Contains(errorMsg, "illegitimate msg") {
+							errorFound = true
+						} else {
+							unexpectedError = err
+						}
 					}
+					logger := utils.InterceptLog(inslogger.FromContext(ctx), logHandler)
+					server.OverrideConveyorFactoryLogContext(inslogger.SetLogger(ctx, logger))
+				}
 
-					testMsg.msg.(reseter).Reset()
+				server.Init(ctx)
 
-					switch m := (testMsg.msg).(type) {
-					case *payload.VStateReport:
-						m.Status = payload.Missing
-						m.AsOf = server.GetPulse().PulseNumber
-						m.Object = reference.NewSelf(server.RandomLocalWithPulse())
-						server.IncrementPulseAndWaitIdle(ctx)
+				var (
+					objRef   = reference.NewSelf(server.RandomLocalWithPulse())
+					outgoing = server.BuildRandomOutgoingWithPulse()
+					pn       = server.GetPulse().PulseNumber
+				)
 
-						testMsg.msg = m
-					}
+				server.IncrementPulseAndWaitIdle(ctx)
 
-					server.SendPayload(ctx, testMsg.msg.(payload.Marshaler)) // default caller == server.GlobalCaller()
+				vFindCallResponse := payload.VFindCallResponse{
+					LookedAt: pn,
+					Callee:   objRef,
+					Outgoing: outgoing,
+					Status:   payload.MissingCall,
+				}
 
-					server.WaitIdleConveyor()
+				server.SendPayload(ctx, &vFindCallResponse) // default caller == server.GlobalCaller()
 
-					expectNoError := cases.senderIsEqualExpectedVE || testMsg.ignoreSenderCheck == true
-					assert.Equal(t, !expectNoError, errorFound, "Fail "+testMsg.name)
-					assert.NoError(t, unexpectedError)
+				requestDone := server.Journal.Wait(predicate.NewSMTypeFilter(&conveyor.PulseSlotMachine{}, predicate.BeforeStep((&conveyor.PulseSlotMachine{}).StepPastLoop)))
+				commontestutils.WaitSignalsTimed(t, 10*time.Second, requestDone)
+				assert.False(t, errorFound, "Fail VFindCallResponse")
+				assert.NoError(t, unexpectedError)
 
-					server.Stop()
-					mc.Finish()
-				})
-			}
+				server.Stop()
+				mc.Finish()
+			})
+
 		})
 	}
 }

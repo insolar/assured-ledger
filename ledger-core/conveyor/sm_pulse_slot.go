@@ -164,10 +164,10 @@ func (p *PulseSlotMachine) stepInit(ctx smachine.InitializationContext) smachine
 		return ctx.Jump(p.stepPresentLoop)
 	case Past:
 		ctx.SetDefaultMigration(p.migratePast)
-		return ctx.Jump(p.stepPastLoop)
+		return ctx.Jump(p.StepPastLoop)
 	case Antique:
 		ctx.SetDefaultMigration(p.migrateAntique)
-		return ctx.Jump(p.stepPastLoop)
+		return ctx.Jump(p.StepPastLoop)
 	default:
 		panic("illegal state")
 	}
@@ -275,12 +275,12 @@ func (p *PulseSlotMachine) cancelPulseChange(ctx smachine.BargeInContext) smachi
 func (p *PulseSlotMachine) migrateFromPresent(ctx smachine.MigrationContext) smachine.StateUpdate {
 	ctx.SetDefaultMigration(p.migratePast)
 	p._runInnerMigrate(ctx)
-	return ctx.Jump(p.stepPastLoop)
+	return ctx.Jump(p.StepPastLoop)
 }
 
 /* ------------- Past handlers --------------- */
 
-func (p *PulseSlotMachine) stepPastLoop(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (p *PulseSlotMachine) StepPastLoop(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	if p.pulseSlot.pulseManager.isPreparingPulse() {
 		return ctx.WaitAny().ThenRepeat()
 	}
