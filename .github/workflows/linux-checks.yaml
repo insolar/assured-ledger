@@ -63,81 +63,81 @@ jobs:
         if: always()
         run: make lint
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
-#  tests-on-linux:
-#    name: checks # don't change, this name is used in repository restricts!
-#    runs-on: ubuntu-latest
-#    env:
-#      GOPATH: /home/runner/work/assured-ledger/assured-ledger/go
-#    steps:
-#      - name: Checkout code
-#        uses: actions/checkout@v2
-#        with:
-#          path: go/src/github.com/insolar/assured-ledger
-#          # Check out pull request's HEAD commit instead of the merge commit to
-#          # work-around an issue where wrong a commit is being checked out.
-#          # For more details, see:
-#          # https://github.com/actions/checkout/issues/299.
-#          ref: ${{ github.event.pull_request.head.sha }}
-#      - name: Set up go ${{env.GO_VERSION}}
-#        uses: actions/setup-go@v2
-#        with:
-#          go-version: ${{env.GO_VERSION}}
-#      - name: Install Protoc
-#        uses: arduino/setup-protoc@master
-#      - name: Add bin to path
-#        run: echo "::add-path::${{env.GOPATH}}/bin"
-#      - name: Go mod cache setup
-#        uses: actions/cache@v2
-#        with:
-#          path: ${{env.GOPATH}}/pkg/mod
-#          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-#          restore-keys: |
-#            ${{ runner.os }}-go-
-#      - name: Fetch dependencies
-#        run: |
-#          go mod download
-#          make vendor
-#        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
-#      - name: Prepare go-acc
-#        run: make install-build-tools
-#        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
-#      - name: Run unit and slow tests and check code coverage
-#        if: always()
-#        run: make test_with_coverage
-#        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
-#      - name: Upload integration_extended_test.log to artifacts
-#        if: always()
-#        uses: actions/upload-artifact@v1
-#        with:
-#          name: integration_extended_test_linux
-#          path: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/integration_extended_test.log
-#      - name: Run functional tests multiple times with race detector
-#        if: always()
-#        run: make test_func_race
-#        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
-#      - name: Aggregate logs into a single archive
-#        if: always()
-#        run: tar --warning=no-file-changed -cvzf nodes-output.tgz .artifacts/launchnet/logs/discoverynodes/*/output.log || true
-#        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
-#      - name: Upload logs to artifacts
-#        if: always()
-#        uses: actions/upload-artifact@v1
-#        with:
-#          name: nodes-output
-#          path: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/nodes-output.tgz
-#      - name: Upload coverage to Codecov
-#        run: bash <(curl -s https://codecov.io/bash) -f ledger-core/coverage.out -n coverage-report
-#        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger
-#      - name: Add coverage.html to artifacts
-#        uses: actions/upload-artifact@v1
-#        with:
-#          name: coverage-html
-#          path: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/coverage.html
-#      - name: Add coverage.out to artifacts
-#        uses: actions/upload-artifact@v1
-#        with:
-#          name: coverage-out
-#          path: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/coverage.out
+  tests-on-linux:
+    name: checks # don't change, this name is used in repository restricts!
+    runs-on: ubuntu-latest
+    env:
+      GOPATH: /home/runner/work/assured-ledger/assured-ledger/go
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          path: go/src/github.com/insolar/assured-ledger
+          # Check out pull request's HEAD commit instead of the merge commit to
+          # work-around an issue where wrong a commit is being checked out.
+          # For more details, see:
+          # https://github.com/actions/checkout/issues/299.
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Set up go ${{env.GO_VERSION}}
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{env.GO_VERSION}}
+      - name: Install Protoc
+        uses: arduino/setup-protoc@master
+      - name: Add bin to path
+        run: echo "::add-path::${{env.GOPATH}}/bin"
+      - name: Go mod cache setup
+        uses: actions/cache@v2
+        with:
+          path: ${{env.GOPATH}}/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: Fetch dependencies
+        run: |
+          go mod download
+          make vendor
+        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
+      - name: Prepare go-acc
+        run: make install-build-tools
+        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
+      - name: Run unit and slow tests and check code coverage
+        if: always()
+        run: make test_with_coverage
+        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
+      - name: Upload integration_extended_test.log to artifacts
+        if: always()
+        uses: actions/upload-artifact@v1
+        with:
+          name: integration_extended_test_linux
+          path: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/integration_extended_test.log
+      - name: Run functional tests multiple times with race detector
+        if: always()
+        run: make test_func_race
+        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
+      - name: Aggregate logs into a single archive
+        if: always()
+        run: tar --warning=no-file-changed -cvzf nodes-output.tgz .artifacts/launchnet/logs/discoverynodes/*/output.log || true
+        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
+      - name: Upload logs to artifacts
+        if: always()
+        uses: actions/upload-artifact@v1
+        with:
+          name: nodes-output
+          path: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/nodes-output.tgz
+      - name: Upload coverage to Codecov
+        run: bash <(curl -s https://codecov.io/bash) -f ledger-core/coverage.out -n coverage-report
+        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger
+      - name: Add coverage.html to artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: coverage-html
+          path: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/coverage.html
+      - name: Add coverage.out to artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: coverage-out
+          path: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/coverage.out
   func-test-kuber:
     name: func-test-kuber # don't change, this name is used in repository restricts!
     runs-on: ubuntu-latest
