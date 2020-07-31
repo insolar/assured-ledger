@@ -23,11 +23,40 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/defaults"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 func baseDir() string {
 	return defaults.LaunchnetDir()
 }
+
+var (
+	nodePortsList = []string{
+		"127.0.0.1:13831",
+		"127.0.0.1:23832",
+		"127.0.0.1:33833",
+		"127.0.0.1:43834",
+		"127.0.0.1:53835",
+		"127.0.0.1:53866",
+		"127.0.0.1:53877",
+		"127.0.0.1:53888",
+		"127.0.0.1:53899",
+		"127.0.0.1:53100",
+		"127.0.0.1:51101",
+		"127.0.0.1:53202",
+		"127.0.0.1:53404",
+		"127.0.0.1:53606",
+		"127.0.0.1:53707",
+		"127.0.0.1:53808",
+		"127.0.0.1:53909",
+		"127.0.0.1:51110",
+		"127.0.0.1:53111",
+		"127.0.0.1:51112",
+		"127.0.0.1:53113",
+		"127.0.0.1:54114",
+		"127.0.0.1:51115",
+	}
+)
 
 var (
 	defaultOutputConfigNameTmpl      = "%d/insolard.yaml"
@@ -54,10 +83,21 @@ var (
 var (
 	outputDir  string
 	debugLevel string
+
+	numVirtual, numLight, numHeavy int
 )
 
 func parseInputParams() {
 	var rootCmd = &cobra.Command{}
+
+	rootCmd.Flags().IntVar(
+		&numVirtual, "num-virtual-nodes", 5, "number of nodes with role virtual")
+
+	rootCmd.Flags().IntVar(
+		&numLight, "num-light-nodes", 0, "number of nodes with role light")
+
+	rootCmd.Flags().IntVar(
+		&numHeavy, "num-heavy-nodes", 0, "number of nodes with role heavy")
 
 	rootCmd.Flags().StringVarP(
 		&outputDir, "output", "o", baseDir(), "output directory")
@@ -81,11 +121,66 @@ func writeInsolardConfigs(dir string, insolardConfigs []configuration.Configurat
 	}
 }
 
+func validateNodesConfig() {
+	numNodes := numVirtual + numLight + numHeavy
+
+	switch {
+	case numNodes == 0:
+		check("cannot start network", throw.New("zero node count provided"))
+	case numNodes > len(nodePortsList)-1:
+		check("cannot start network", throw.New("node number exceeds nodePortsList"))
+	}
+}
+
+func prepareBootstrapVars() commonConfigVars {
+	res := commonConfigVars{
+		BaseDir:         baseDir(),
+		MinHeavyNodes:   numHeavy,
+		MinLightNodes:   numLight,
+		MinVirtualNodes: numVirtual,
+	}
+
+	nodeList := make([]node, 0, numHeavy+numLight+numVirtual)
+	for i := 0; i < numHeavy; i++ {
+		num := len(nodeList)
+		nodeList = append(nodeList, node{
+			Addr: nodePortsList[num],
+			Role: "heavy",
+			Num:  num + 1,
+		})
+	}
+
+	for i := 0; i < numLight; i++ {
+		num := len(nodeList)
+		nodeList = append(nodeList, node{
+			Addr: nodePortsList[num],
+			Role: "light",
+			Num:  num + 1,
+		})
+	}
+
+	for i := 0; i < numVirtual; i++ {
+		num := len(nodeList)
+		nodeList = append(nodeList, node{
+			Addr: nodePortsList[num],
+			Role: "virtual",
+			Num:  num + 1,
+		})
+	}
+
+	res.DiscoveryNodes = nodeList
+
+	return res
+}
+
 func main() {
 	parseInputParams()
 
+	validateNodesConfig()
+
 	mustMakeDir(outputDir)
-	writeGenesisConfig()
+
+	writeBootstrapConfig()
 
 	bootstrapConf, err := bootstrap.ParseConfig(bootstrapFileName)
 	check("Can't read bootstrap config", err)
@@ -201,16 +296,28 @@ func main() {
 	fmt.Println("generate_insolar_configs.go: write to file", pulsewatcherFileName)
 }
 
-type commonConfigVars struct {
-	BaseDir string
+type node struct {
+	Addr string
+	Role string
+	Num  int
 }
 
-func writeGenesisConfig() {
+type commonConfigVars struct {
+	BaseDir string
+
+	MinHeavyNodes, MinLightNodes, MinVirtualNodes int
+
+	DiscoveryNodes []node
+}
+
+func writeBootstrapConfig() {
+	vars := prepareBootstrapVars()
+
 	templates, err := template.ParseFiles(bootstrapConfigTmpl)
 	check("Can't parse template: "+bootstrapConfigTmpl, err)
 
 	var b bytes.Buffer
-	err = templates.Execute(&b, &commonConfigVars{BaseDir: baseDir()})
+	err = templates.Execute(&b, &vars)
 	check("Can't process template: "+bootstrapConfigTmpl, err)
 
 	err = makeFile(bootstrapFileName, b.String())
