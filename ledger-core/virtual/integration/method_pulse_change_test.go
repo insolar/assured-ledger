@@ -311,11 +311,10 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 		}
 
 		vsrPayload := &payload.VStateReport{
-			Status:                        payload.Ready,
-			Object:                        object,
-			AsOf:                          prevPulse,
-			UnorderedPendingEarliestPulse: prevPulse,
-			ProvidedContent:               content,
+			Status:          payload.Ready,
+			Object:          object,
+			AsOf:            prevPulse,
+			ProvidedContent: content,
 		}
 
 		server.WaitIdleConveyor()
