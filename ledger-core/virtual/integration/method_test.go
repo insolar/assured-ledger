@@ -972,7 +972,6 @@ func TestVirtual_Method_Have_ObjectState(t *testing.T) {
 							State:     []byte(dirtyMem),
 						},
 					},
-					UnorderedPendingEarliestPulse: pulseNumber,
 				}
 
 				server.IncrementPulse(ctx)
