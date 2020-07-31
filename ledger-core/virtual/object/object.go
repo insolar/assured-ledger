@@ -49,7 +49,6 @@ type Info struct {
 	Reference           reference.Global
 	descriptorDirty     descriptor.Object
 	descriptorValidated descriptor.Object
-	Deactivated         bool
 
 	UnorderedExecute           smachine.SyncLink
 	OrderedExecute             smachine.SyncLink
@@ -373,7 +372,7 @@ func (sm *SMObject) migrate(ctx smachine.MigrationContext) smachine.StateUpdate 
 	}
 
 	sm.checkPendingCounters(ctx.Log())
-	if sm.Deactivated {
+	if sm.descriptorDirty != nil && sm.descriptorDirty.Deactivated() {
 		sm.SetState(Inactive)
 	}
 	sm.smFinalizer.Report = sm.BuildStateReport()
