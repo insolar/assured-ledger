@@ -11,42 +11,12 @@ import (
 
 var _ Validatable = &VStateReport{}
 
-func (m *VStateReport_ProvidedContentBody) validateIsEmpty() error {
-	if m != nil {
-		switch {
-		case m.GetLatestValidatedState() != nil:
-			return throw.New("ProvidedContent.LatestValidatedState should be empty")
-		case m.GetLatestValidatedCode() != nil:
-			return throw.New("ProvidedContent.LatestValidatedCode should be empty")
-		case m.GetLatestDirtyState() != nil:
-			return throw.New("ProvidedContent.LatestDirtyState should be empty")
-		case m.GetLatestDirtyCode() != nil:
-			return throw.New("ProvidedContent.LatestDirtyCode should be empty")
-		}
-	}
-
-	return nil
-}
-
-func (m *VStateReport_ProvidedContentBody) validateUnimplemented() error {
-	if m != nil {
-		switch {
-		case len(m.GetOrderedQueue()) != 0:
-			return throw.New("ProvidedContent.OrderedQueue should be empty")
-		case len(m.GetUnorderedQueue()) != 0:
-			return throw.New("ProvidedContent.UnorderedQueue should be empty")
-		}
-	}
-
-	return nil
-}
-
 func (m *VStateReport) Validate(currPulse PulseNumber) error {
 	if err := m.validateUnimplemented(); err != nil {
 		return err
 	}
 
-	if asOf := m.GetAsOf(); asOf.IsTimePulse() && asOf >= currPulse {
+	if asOf := m.GetAsOf(); !asOf.IsTimePulse() || asOf >= currPulse {
 		return throw.New("AsOf should be time pulse and less that current pulse")
 	}
 
@@ -96,7 +66,7 @@ func (m *VStateReport) validateStatusEmpty(currPulse PulseNumber) error {
 	objectPulse := m.GetAsOf()
 	orderedPendingPulse := m.GetOrderedPendingEarliestPulse()
 
-	if orderedPendingPulse < objectPulse || currPulse < orderedPendingPulse {
+	if !orderedPendingPulse.IsTimePulse() || orderedPendingPulse < objectPulse || currPulse < orderedPendingPulse {
 		return throw.New("Incorrect pending ordered pulse number")
 	}
 
@@ -118,7 +88,7 @@ func (m *VStateReport) validateStatusReady(objectPulse PulseNumber, currPulse Pu
 			return throw.New("UnorderedPendingEarliestPulse should be Unknown")
 		}
 	case pendingCount > 0 && pendingCount < 127:
-		if earliestPendingPulse < objectPulse || earliestPendingPulse > currPulse {
+		if !earliestPendingPulse.IsTimePulse() || earliestPendingPulse < objectPulse || earliestPendingPulse > currPulse {
 			return throw.New("UnorderedPendingEarliestPulse should be in range (objectPulse..currPulse]")
 		}
 	default:
@@ -131,7 +101,7 @@ func (m *VStateReport) validateStatusReady(objectPulse PulseNumber, currPulse Pu
 			return throw.New("UnorderedPendingEarliestPulse should be Unknown")
 		}
 	case pendingCount > 0 && pendingCount < 127:
-		if earliestPendingPulse < objectPulse || earliestPendingPulse > currPulse {
+		if !earliestPendingPulse.IsTimePulse() || earliestPendingPulse < objectPulse || earliestPendingPulse > currPulse {
 			return throw.New("OrderedPendingEarliestPulse should be in range (objectPulse..currPulse]")
 		}
 	default:
@@ -196,6 +166,36 @@ func (m *VStateReport) validateUnimplemented() error {
 
 	if err := m.ProvidedContent.validateUnimplemented(); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (m *VStateReport_ProvidedContentBody) validateIsEmpty() error {
+	if m != nil {
+		switch {
+		case m.GetLatestValidatedState() != nil:
+			return throw.New("ProvidedContent.LatestValidatedState should be empty")
+		case m.GetLatestValidatedCode() != nil:
+			return throw.New("ProvidedContent.LatestValidatedCode should be empty")
+		case m.GetLatestDirtyState() != nil:
+			return throw.New("ProvidedContent.LatestDirtyState should be empty")
+		case m.GetLatestDirtyCode() != nil:
+			return throw.New("ProvidedContent.LatestDirtyCode should be empty")
+		}
+	}
+
+	return nil
+}
+
+func (m *VStateReport_ProvidedContentBody) validateUnimplemented() error {
+	if m != nil {
+		switch {
+		case len(m.GetOrderedQueue()) != 0:
+			return throw.New("ProvidedContent.OrderedQueue should be empty")
+		case len(m.GetUnorderedQueue()) != 0:
+			return throw.New("ProvidedContent.UnorderedQueue should be empty")
+		}
 	}
 
 	return nil
