@@ -6,6 +6,7 @@
 package execute
 
 import (
+	"context"
 	"reflect"
 	"strings"
 	"testing"
@@ -19,7 +20,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
+	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/predicate"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
@@ -351,12 +354,17 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 		limiter = tool.NewRunnerLimiter(4)
 	)
 
-	slotMachine := virtualdebugger.NewWithErrorFilter(ctx, t, func(s string) bool {
-		return !strings.Contains(s, "execution: impossible")
-	})
-	slotMachine.InitEmptyMessageSender(mc)
+	slotMachine := virtualdebugger.New(ctx, t)
+	slotMachine.PrepareMockedMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 
+	slotMachine.MessageSender.SendTarget.Set(func(_ context.Context, msg payload.Marshaler, target reference.Global, _ ...messagesender.SendOption) error {
+		res := msg.(*payload.VCallResult)
+		contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments)
+		require.Contains(t, contractErr.Error(), "try to call method on deactivated object")
+		require.NoError(t, sysErr)
+		return nil
+	})
 	var (
 		class       = gen.UniqueGlobalRef()
 		caller      = gen.UniqueGlobalRef()
@@ -364,9 +372,11 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 		objectRef   = reference.NewSelf(outgoing.GetLocal())
 		sharedState = &object.SharedState{
 			Info: object.Info{
-				PendingTable:  callregistry.NewRequestTable(),
-				KnownRequests: callregistry.NewWorkingTable(),
-				ReadyToWork:   smsync.NewConditional(1, "ReadyToWork").SyncLink(),
+				PendingTable:     callregistry.NewRequestTable(),
+				KnownRequests:    callregistry.NewWorkingTable(),
+				ReadyToWork:      smsync.NewConditional(1, "ReadyToWork").SyncLink(),
+				UnorderedExecute: limiter.NewChildSemaphore(30, "unordered calls").SyncLink(),
+				OrderedExecute:   limiter.NewChildSemaphore(1, "ordered calls").SyncLink(),
 			},
 		}
 	)
@@ -386,6 +396,8 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 		Meta: &payload.Meta{
 			Sender: caller,
 		},
+		semaphoreOrdered:   sharedState.OrderedExecute,
+		semaphoreUnordered: sharedState.UnorderedExecute,
 	}
 	catalogWrapper := object.NewCatalogMockWrapper(mc)
 

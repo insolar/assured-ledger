@@ -318,10 +318,6 @@ func (s *SMExecute) stepIsolationNegotiation(ctx smachine.ExecutionContext) smac
 		panic(throw.NotImplemented())
 	}
 
-	if negotiatedIsolation.State == contract.CallValidated && s.execution.ObjectDescriptor == nil {
-		panic(throw.NotImplemented())
-	}
-
 	s.execution.Isolation = negotiatedIsolation
 
 	return ctx.Jump(s.stepDeduplicate)
@@ -554,6 +550,10 @@ func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) sm
 			ObjectReference: s.execution.Object.String(),
 		}))
 		return ctx.Jump(s.stepSendCallResult)
+	}
+
+	if s.execution.Isolation.State == contract.CallValidated && s.execution.ObjectDescriptor == nil {
+		panic(throw.NotImplemented())
 	}
 
 	ctx.SetDefaultMigration(s.migrateDuringExecution)

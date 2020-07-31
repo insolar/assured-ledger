@@ -47,12 +47,6 @@ func (wt WorkingTable) Add(flag contract.InterferenceFlag, ref reference.Global)
 	return wt.GetList(flag).add(ref)
 }
 
-// Delete deletes reference.Global
-// returns true if deleted and false if absent
-func (wt WorkingTable) Delete(flag contract.InterferenceFlag, ref reference.Global) bool {
-	return wt.GetList(flag).delete(ref)
-}
-
 func (wt WorkingTable) SetActive(flag contract.InterferenceFlag, ref reference.Global) bool {
 	if ok := wt.GetList(flag).setActive(ref); ok {
 		wt.results[ref] = CallSummary{}
@@ -126,14 +120,6 @@ func (rl *WorkingList) add(ref reference.Global) bool {
 		return false
 	}
 	rl.requests[ref] = RequestStarted
-	return true
-}
-
-func (rl *WorkingList) delete(ref reference.Global) bool {
-	if _, exist := rl.requests[ref]; !exist {
-		return false
-	}
-	delete(rl.requests, ref)
 	return true
 }
 

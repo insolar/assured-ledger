@@ -157,10 +157,10 @@ func TestVirtual_CallMethod_On_CompletelyDeactivatedObject(t *testing.T) {
 		name        string
 		objectState contract.StateFlag
 	}{
-		// {
-		// 	name:        "call on validated state",
-		// 	objectState: contract.CallValidated,
-		// },
+		{
+			name:        "call on validated state",
+			objectState: contract.CallValidated,
+		},
 		{
 			name:        "call on dirty state",
 			objectState: contract.CallDirty,

@@ -1796,7 +1796,7 @@ func TestVirtual_Method_ForbiddenIsolation(t *testing.T) {
 				server.WaitActiveThenIdleConveyor()
 			}
 
-			outgoingRef := gen.UniqueGlobalRefWithPulse(pulseNumber)
+			outgoingRef := server.BuildRandomOutgoingWithPulse()
 
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
