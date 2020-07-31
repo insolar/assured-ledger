@@ -187,6 +187,10 @@ func (m *VFindCallRequest) Validate(currPulse PulseNumber) error {
 		outgoingPulse = m.GetOutgoing().GetLocal().Pulse()
 	)
 
+	if !m.Callee.IsSelfScope() {
+		return throw.New("callee should is self scope")
+	}
+
 	switch {
 	case lookAtPulse < pulse.LocalRelative:
 		return throw.New("lookAt pulse should be more or equals pulse.LocalRelative")
