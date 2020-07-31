@@ -414,14 +414,15 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 	valid, err := g.Gatewayer.Gateway().Auther().ValidateCert(ctx, cert)
 	if err != nil || !valid {
 		if err == nil {
-			err = throw.New("Certificate validation failed")
+			err = throw.New("certificate validation failed")
 		}
 
-		inslogger.FromContext(ctx).Warn("AuthorizeRequest with invalid cert: ", err.Error())
+		inslogger.FromContext(ctx).Warn("AuthorizeRequest: ", err)
 		return g.HostNetwork.BuildResponse(ctx, request, &packet.AuthorizeResponse{Code: packet.WrongMandate, Error: err.Error()}), nil
 	}
 
 	var nodes []nodeinfo.NetworkNode
+	var discoveryCount int
 	if na := g.NodeKeeper.GetLatestAccessor(); na != nil {
 		nodes = na.GetOnlineNodes()
 	}
@@ -430,20 +431,30 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 	if g.isJoinAssistant && len(nodes) > 1 && nodes != nil /* != is to fix annoying GoLand hint */ {
 		randNode := nodes[rand.Intn(len(nodes))]
 		reconnectHost, err = host.NewHostNS(nodeinfo.NodeAddr(randNode), nodeinfo.NodeRef(randNode), randNode.GetNodeID())
+
+		discoveryCount := len(network.FindDiscoveriesInNodeList(nodes, g.CertificateManager.GetCertificate()))
+		if discoveryCount == 0 {
+			err = throw.New("missing discoveries")
+			inslogger.FromContext(ctx).Warn("AuthorizeRequest: ", err)
+			return nil, err
+		}
 	} else {
 		// workaround bootstrap to the local node
 		reconnectHost, err = host.NewHostNS(g.localStatic.GetDefaultEndpoint().GetIPAddress().String(),
 			g.localStatic.GetExtension().GetReference(), g.localStatic.GetStaticNodeID())
+		discoveryCount = 1
 	}
 
 	if err != nil {
-		inslogger.FromContext(ctx).Warn("Failed to get reconnectHost")
+		err = throw.W(err, "failed to get reconnectHost")
+		inslogger.FromContext(ctx).Warn("AuthorizeRequest: ", err)
 		return nil, err
 	}
 
 	pubKey, err := g.KeyProcessor.ExportPublicKeyPEM(adapters.ECDSAPublicKeyOfProfile(g.localStatic))
 	if err != nil {
-		inslogger.FromContext(ctx).Warn("Failed to export public key")
+		err = throw.W(err, "failed to export PK")
+		inslogger.FromContext(ctx).Warn("AuthorizeRequest: ", err)
 		return nil, err
 	}
 
@@ -453,11 +464,6 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 	)
 	if err != nil {
 		return nil, err
-	}
-
-	discoveryCount := len(network.FindDiscoveriesInNodeList(nodes, g.CertificateManager.GetCertificate()))
-	if discoveryCount == 0 {
-		panic(throw.IllegalState())
 	}
 
 	return g.HostNetwork.BuildResponse(ctx, request, &packet.AuthorizeResponse{
