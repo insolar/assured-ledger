@@ -23,6 +23,7 @@ import (
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/debuglogger"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/synchronization"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
@@ -100,8 +101,8 @@ func Test_NoDeadLock_WhenOutgoingComeToSameNode(t *testing.T) {
 	for _, test := range table {
 		test := test
 		t.Run(test.name, func(t *testing.T) {
-			t.Log(test.testCaseID)
-			t.Skip("https://insolar.atlassian.net/browse/PLAT-432")
+			insrail.LogSkipCase(t, test.testCaseID, "https://insolar.atlassian.net/browse/PLAT-432")
+
 			mc := minimock.NewController(t)
 
 			server, ctx := utils.NewUninitializedServer(nil, t)
@@ -125,12 +126,13 @@ func Test_NoDeadLock_WhenOutgoingComeToSameNode(t *testing.T) {
 				objectAGlobal   = gen.UniqueGlobalRef()
 				outgoingCallRef = gen.UniqueGlobalRef()
 				objectBGlobal   = reference.NewSelf(server.RandomLocalWithPulse())
+				pulse           = server.GetPulse().PulseNumber
 			)
 
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
-			Method_PrepareObject(ctx, server, payload.Ready, objectAGlobal)
-			Method_PrepareObject(ctx, server, payload.Ready, objectBGlobal)
+			Method_PrepareObject(ctx, server, payload.Ready, objectAGlobal, pulse)
+			Method_PrepareObject(ctx, server, payload.Ready, objectBGlobal, pulse)
 
 			// add mock
 			{
@@ -223,7 +225,8 @@ func Test_NoDeadLock_WhenOutgoingComeToSameNode(t *testing.T) {
 }
 
 func TestVirtual_CallContractFromContract(t *testing.T) {
-	t.Log("C5086")
+	insrail.LogCase(t, "C5086")
+
 	table := []struct {
 		name   string
 		flagsA contract.MethodIsolation
@@ -264,19 +267,24 @@ func TestVirtual_CallContractFromContract(t *testing.T) {
 			server.IncrementPulseAndWaitIdle(ctx)
 
 			var (
-				class = gen.UniqueGlobalRef()
-
-				outgoingA       = server.BuildRandomOutgoingWithPulse()
-				objectAGlobal   = gen.UniqueGlobalRef()
-				outgoingCallRef = gen.UniqueGlobalRef()
-				objectBGlobal   = reference.NewSelf(server.RandomLocalWithPulse())
+				prevPulse     = server.GetPulse().PulseNumber
+				objectAGlobal = gen.UniqueGlobalRefWithPulse(prevPulse)
+				objectBGlobal = gen.UniqueGlobalRefWithPulse(prevPulse)
 			)
+
+			server.IncrementPulseAndWaitIdle(ctx)
 
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
-			Method_PrepareObject(ctx, server, payload.Ready, objectAGlobal)
-			Method_PrepareObject(ctx, server, payload.Ready, objectBGlobal)
+			Method_PrepareObject(ctx, server, payload.Ready, objectAGlobal, prevPulse)
+			Method_PrepareObject(ctx, server, payload.Ready, objectBGlobal, prevPulse)
 
+			var (
+				class           = gen.UniqueGlobalRef()
+				currPulse       = server.GetPulse().PulseNumber
+				outgoingCallRef = gen.UniqueGlobalRefWithPulse(currPulse)
+				outgoingA       = server.BuildRandomOutgoingWithPulse()
+			)
 			// add mock
 			{
 				outgoingCall := execution.NewRPCBuilder(outgoingCallRef, objectAGlobal).CallMethod(objectBGlobal, class, "Bar", byteArguments)
@@ -372,7 +380,8 @@ func TestVirtual_CallContractFromContract(t *testing.T) {
 }
 
 func TestVirtual_CallOtherMethodInObject(t *testing.T) {
-	t.Log("C5116")
+	insrail.LogCase(t, "C5116")
+
 	table := []struct {
 		name        string
 		stateSender contract.MethodIsolation
@@ -407,13 +416,19 @@ func TestVirtual_CallOtherMethodInObject(t *testing.T) {
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
 			var (
-				class           = gen.UniqueGlobalRef()
-				outgoingA       = server.BuildRandomOutgoingWithPulse()
-				objectAGlobal   = gen.UniqueGlobalRef()
-				outgoingCallRef = gen.UniqueGlobalRef()
+				prevPulse     = server.GetPulse().PulseNumber
+				objectAGlobal = gen.UniqueGlobalRefWithPulse(prevPulse)
 			)
 
-			Method_PrepareObject(ctx, server, payload.Ready, objectAGlobal)
+			server.IncrementPulseAndWaitIdle(ctx)
+
+			Method_PrepareObject(ctx, server, payload.Ready, objectAGlobal, prevPulse)
+
+			var (
+				class           = gen.UniqueGlobalRef()
+				outgoingA       = server.BuildRandomOutgoingWithPulse()
+				outgoingCallRef = gen.UniqueGlobalRef()
+			)
 
 			// add mok
 			{
@@ -507,7 +522,8 @@ func TestVirtual_CallOtherMethodInObject(t *testing.T) {
 }
 
 func TestVirtual_CallMethodFromConstructor(t *testing.T) {
-	t.Log("C5091")
+	insrail.LogCase(t, "C5091")
+
 	table := []struct {
 		name   string
 		stateB contract.MethodIsolation
@@ -543,20 +559,24 @@ func TestVirtual_CallMethodFromConstructor(t *testing.T) {
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
 			var (
+				prevPulse     = server.GetPulse().PulseNumber
+				objectBGlobal = reference.NewSelf(server.RandomLocalWithPulse())
+			)
+
+			server.IncrementPulseAndWaitIdle(ctx)
+
+			Method_PrepareObject(ctx, server, payload.Ready, objectBGlobal, prevPulse)
+
+			var (
 				callFlags = tolerableFlags()
 
 				classA        = gen.UniqueGlobalRef()
 				outgoingA     = server.BuildRandomOutgoingWithPulse()
 				objectAGlobal = reference.NewSelf(outgoingA.GetLocal())
 
-				classB        = gen.UniqueGlobalRef()
-				objectBGlobal = reference.NewSelf(server.RandomLocalWithPulse())
-
+				classB          = gen.UniqueGlobalRef()
 				outgoingCallRef = gen.UniqueGlobalRef()
 			)
-
-			Method_PrepareObject(ctx, server, payload.Ready, objectBGlobal)
-
 			// add ExecutionMocks to runnerMock
 			{
 				outgoingCall := execution.NewRPCBuilder(outgoingCallRef, objectAGlobal).CallMethod(objectBGlobal, classB, "Foo", byteArguments)
@@ -659,8 +679,7 @@ func TestVirtual_CallMethodFromConstructor(t *testing.T) {
 
 func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 	defer commontestutils.LeakTester(t)
-
-	t.Log("C5320")
+	insrail.LogCase(t, "C5320")
 
 	countChangePulse := execute.MaxOutgoingSendCount
 
@@ -687,9 +706,8 @@ func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
 	var (
-		outgoing = server.BuildRandomOutgoingWithPulse()
-		object   = reference.NewSelf(server.RandomLocalWithPulse())
-
+		object     = reference.NewSelf(server.RandomLocalWithPulse())
+		pulse      = server.GetPulse().PulseNumber
 		tokenValue payload.CallDelegationToken
 	)
 
@@ -702,7 +720,11 @@ func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 		return false
 	})
 
-	Method_PrepareObject(ctx, server, payload.Ready, object)
+	server.IncrementPulseAndWaitIdle(ctx)
+
+	Method_PrepareObject(ctx, server, payload.Ready, object, pulse)
+
+	outgoing := server.BuildRandomOutgoingWithPulse()
 
 	pl := payload.VCallRequest{
 		CallType:       payload.CTMethod,
@@ -790,7 +812,7 @@ func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 // if first request doesn't release global lock we get stuck when start processing outgoing
 // otherwise sendOutgoing releases runner limit and we are OK
 func TestVirtual_OutgoingReleaseSemaphore(t *testing.T) {
-	t.Log("C5436")
+	insrail.LogCase(t, "C5436")
 
 	mc := minimock.NewController(t)
 
@@ -811,16 +833,22 @@ func TestVirtual_OutgoingReleaseSemaphore(t *testing.T) {
 	var (
 		class = gen.UniqueGlobalRef()
 
-		outgoingA       = server.BuildRandomOutgoingWithPulse()
-		objectAGlobal   = gen.UniqueGlobalRef()
-		outgoingCallRef = gen.UniqueGlobalRef()
-		objectBGlobal   = reference.NewSelf(server.RandomLocalWithPulse())
+		prevPulse     = server.GetPulse().PulseNumber
+		objectAGlobal = gen.UniqueGlobalRefWithPulse(prevPulse)
+		objectBGlobal = gen.UniqueGlobalRefWithPulse(prevPulse)
 	)
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
-	Method_PrepareObject(ctx, server, payload.Ready, objectAGlobal)
-	Method_PrepareObject(ctx, server, payload.Ready, objectBGlobal)
+	server.IncrementPulseAndWaitIdle(ctx)
+
+	Method_PrepareObject(ctx, server, payload.Ready, objectAGlobal, prevPulse)
+	Method_PrepareObject(ctx, server, payload.Ready, objectBGlobal, prevPulse)
+
+	var (
+		outgoingA       = server.BuildRandomOutgoingWithPulse()
+		outgoingCallRef = gen.UniqueGlobalRef()
+	)
 
 	// add mock
 	{

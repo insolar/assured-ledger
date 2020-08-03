@@ -24,6 +24,9 @@ type Object interface {
 
 	// Class returns class reference.
 	Class() (reference.Global, error)
+
+	// Deactivated return true after was called SelfDestruct
+	Deactivated() bool
 }
 
 func NewObject(
@@ -31,21 +34,24 @@ func NewObject(
 	state reference.Local,
 	class reference.Global,
 	memory []byte,
+	deactivated bool,
 ) Object {
 	return &object{
-		head:   head,
-		state:  state,
-		class:  class,
-		memory: memory,
+		head:        head,
+		state:       state,
+		class:       class,
+		memory:      memory,
+		deactivated: deactivated,
 	}
 }
 
 // Object represents meta info required to fetch all object data.
 type object struct {
-	head   reference.Global
-	state  reference.Local
-	class  reference.Global
-	memory []byte
+	head        reference.Global
+	state       reference.Local
+	class       reference.Global
+	memory      []byte
+	deactivated bool
 }
 
 // Class returns class reference.
@@ -69,4 +75,8 @@ func (d *object) StateID() reference.Local {
 // Memory fetches latest memory of the object known to storage.
 func (d *object) Memory() []byte {
 	return d.memory
+}
+
+func (d *object) Deactivated() bool {
+	return d.deactivated
 }

@@ -17,13 +17,13 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet/types"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
@@ -109,7 +109,7 @@ func TestComplete_GetCert(t *testing.T) {
 		CryptographyService: cs,
 		PulseManager:        pm,
 	})
-	ge = ge.NewGateway(context.Background(), nodeinfo.CompleteNetworkState)
+	ge = ge.NewGateway(context.Background(), network.CompleteNetworkState)
 	ctx := context.Background()
 
 	pa.LatestMock.Expect(ctx).Return(pulsestor.GenesisPulse, nil)
@@ -159,7 +159,7 @@ func TestComplete_handler(t *testing.T) {
 		PulseManager:        pm,
 	})
 
-	ge = ge.NewGateway(context.Background(), nodeinfo.CompleteNetworkState)
+	ge = ge.NewGateway(context.Background(), network.CompleteNetworkState)
 	ctx := context.Background()
 	pa.LatestMock.Expect(ctx).Return(pulsestor.GenesisPulse, nil)
 

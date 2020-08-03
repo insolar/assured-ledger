@@ -25,6 +25,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
@@ -47,8 +48,7 @@ import (
 // -> VDelegatedRequestFinished [A] + second token
 func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 	defer commontestutils.LeakTester(t)
-
-	t.Log("C5141")
+	insrail.LogCase(t, "C5141")
 
 	mc := minimock.NewController(t)
 
@@ -70,6 +70,15 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
 	var (
+		prevPulse     = server.GetPulse().PulseNumber
+		objectAGlobal = reference.NewSelf(server.RandomLocalWithPulse())
+	)
+
+	server.IncrementPulseAndWaitIdle(ctx)
+
+	Method_PrepareObject(ctx, server, payload.Ready, objectAGlobal, prevPulse)
+
+	var (
 		barIsolation = contract.MethodIsolation{
 			Interference: contract.CallTolerable,
 			State:        contract.CallDirty,
@@ -79,7 +88,6 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 			State:        contract.CallDirty,
 		}
 
-		objectAGlobal   = reference.NewSelf(server.RandomLocalWithPulse())
 		outgoingCallRef = reference.NewRecordOf(objectAGlobal, server.RandomLocalWithPulse())
 
 		classB        = gen.UniqueGlobalRef()
@@ -121,8 +129,6 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 			Arguments:        []byte("123"),
 		}
 	)
-
-	Method_PrepareObject(ctx, server, payload.Ready, objectAGlobal)
 
 	// add ExecutionMocks to runnerMock
 	{
@@ -286,8 +292,7 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 // -> VDelegatedRequestFinished [A] + second token
 func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 	defer commontestutils.LeakTester(t)
-
-	t.Log("C5142")
+	insrail.LogCase(t, "C5142")
 
 	mc := minimock.NewController(t)
 
@@ -491,13 +496,14 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 
 func TestVirtual_CallContractOutgoingReturnsError(t *testing.T) {
 	defer commontestutils.LeakTester(t)
-
-	t.Log("C4971")
+	insrail.LogCase(t, "C4971")
 
 	mc := minimock.NewController(t)
 
 	server, ctx := utils.NewUninitializedServer(nil, t)
 	defer server.Stop()
+
+	utils.AssertNotJumpToStep(t, server.Journal, "stepTakeLock")
 
 	logger := inslogger.FromContext(ctx)
 
@@ -510,29 +516,33 @@ func TestVirtual_CallContractOutgoingReturnsError(t *testing.T) {
 	server.Init(ctx)
 	server.IncrementPulseAndWaitIdle(ctx)
 
-	p := server.GetPulse().PulseNumber
-
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+
+	var (
+		prevPulse     = server.GetPulse().PulseNumber
+		outgoingA     = gen.UniqueGlobalRefWithPulse(prevPulse)
+		objectBGlobal = gen.UniqueGlobalRefWithPulse(prevPulse)
+	)
+
+	server.IncrementPulseAndWaitIdle(ctx)
+
+	// create objects
+	{
+		Method_PrepareObject(ctx, server, payload.Ready, outgoingA, prevPulse)
+		Method_PrepareObject(ctx, server, payload.Ready, objectBGlobal, prevPulse)
+	}
 
 	var (
 		flags     = contract.MethodIsolation{Interference: contract.CallTolerable, State: contract.CallDirty}
 		callFlags = payload.BuildCallFlags(flags.Interference, flags.State)
 
-		outgoingA = server.BuildRandomOutgoingWithPulse()
-
-		classB        = gen.UniqueGlobalRef()
-		objectBGlobal = reference.NewSelf(server.RandomLocalWithPulse())
-
+		classB          = gen.UniqueGlobalRef()
 		outgoingCallRef = reference.NewRecordOf(
 			server.GlobalCaller(), server.RandomLocalWithPulse(),
 		)
 	)
 
-	// create objects
-	{
-		Method_PrepareObject(ctx, server, payload.Ready, outgoingA)
-		Method_PrepareObject(ctx, server, payload.Ready, objectBGlobal)
-	}
+	p := server.GetPulse().PulseNumber
 
 	// add ExecutionMocks to runnerMock
 	{

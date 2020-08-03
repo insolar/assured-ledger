@@ -10,39 +10,21 @@ import (
 	"context"
 	"errors"
 	"io"
-	"math"
 	"sort"
 	"strconv"
 	"strings"
-	"sync"
-	"time"
 
-	node2 "github.com/insolar/assured-ledger/ledger-core/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
-	"github.com/insolar/assured-ledger/ledger-core/network/node"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
-func WaitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
-	c := make(chan struct{})
-	go func() {
-		defer close(c)
-		wg.Wait()
-	}()
-	select {
-	case <-c:
-		return true // completed normally
-	case <-time.After(timeout):
-		return false // timed out
-	}
-}
-
 // CheckShortIDCollision returns true if nodes contains node with such ShortID
-func CheckShortIDCollision(nodes []nodeinfo.NetworkNode, id node2.ShortNodeID) bool {
+func CheckShortIDCollision(nodes []nodeinfo.NetworkNode, id node.ShortNodeID) bool {
 	for _, n := range nodes {
-		if id == n.ShortID() {
+		if id == n.GetNodeID() {
 			return true
 		}
 	}
@@ -50,54 +32,10 @@ func CheckShortIDCollision(nodes []nodeinfo.NetworkNode, id node2.ShortNodeID) b
 	return false
 }
 
-// GenerateUniqueShortID correct ShortID of the node so it does not conflict with existing active node list
-func GenerateUniqueShortID(nodes []nodeinfo.NetworkNode, nodeID reference.Global) node2.ShortNodeID {
-	shortID := node2.ShortNodeID(node.GenerateUintShortID(nodeID))
-	if !CheckShortIDCollision(nodes, shortID) {
-		return shortID
-	}
-	return regenerateShortID(nodes, shortID)
-}
-
-func regenerateShortID(nodes []nodeinfo.NetworkNode, shortID node2.ShortNodeID) node2.ShortNodeID {
-	shortIDs := make([]node2.ShortNodeID, len(nodes))
-	for i, activeNode := range nodes {
-		shortIDs[i] = activeNode.ShortID()
-	}
-	sort.Slice(shortIDs, func(i, j int) bool {
-		return shortIDs[i] < shortIDs[j]
-	})
-	return generateNonConflictingID(shortIDs, shortID)
-}
-
-func generateNonConflictingID(sortedSlice []node2.ShortNodeID, conflictingID node2.ShortNodeID) node2.ShortNodeID {
-	index := sort.Search(len(sortedSlice), func(i int) bool {
-		return sortedSlice[i] >= conflictingID
-	})
-	result := conflictingID
-	repeated := false
-	for {
-		if result == math.MaxUint32 {
-			if !repeated {
-				repeated = true
-				result = 0
-				index = 0
-			} else {
-				panic("[ generateNonConflictingID ] shortID overflow twice")
-			}
-		}
-		index++
-		result++
-		if index >= len(sortedSlice) || result != sortedSlice[index] {
-			return result
-		}
-	}
-}
-
 // ExcludeOrigin returns DiscoveryNode slice without Origin
-func ExcludeOrigin(discoveryNodes []nodeinfo.DiscoveryNode, origin reference.Global) []nodeinfo.DiscoveryNode {
+func ExcludeOrigin(discoveryNodes []nodeinfo.DiscoveryNode, origin reference.Holder) []nodeinfo.DiscoveryNode {
 	for i, discoveryNode := range discoveryNodes {
-		if origin.Equal(discoveryNode.GetNodeRef()) {
+		if discoveryNode.GetNodeRef().Equal(origin) {
 			return append(discoveryNodes[:i], discoveryNodes[i+1:]...)
 		}
 	}
@@ -105,10 +43,10 @@ func ExcludeOrigin(discoveryNodes []nodeinfo.DiscoveryNode, origin reference.Glo
 }
 
 // FindDiscoveryByRef tries to find discovery node in Certificate by reference
-func FindDiscoveryByRef(cert nodeinfo.Certificate, ref reference.Global) nodeinfo.DiscoveryNode {
+func FindDiscoveryByRef(cert nodeinfo.Certificate, ref reference.Holder) nodeinfo.DiscoveryNode {
 	bNodes := cert.GetDiscoveryNodes()
 	for _, discoveryNode := range bNodes {
-		if ref.Equal(discoveryNode.GetNodeRef()) {
+		if discoveryNode.GetNodeRef().Equal(ref) {
 			return discoveryNode
 		}
 	}
@@ -119,7 +57,7 @@ func OriginIsDiscovery(cert nodeinfo.Certificate) bool {
 	return IsDiscovery(cert.GetNodeRef(), cert)
 }
 
-func IsDiscovery(nodeID reference.Global, cert nodeinfo.Certificate) bool {
+func IsDiscovery(nodeID reference.Holder, cert nodeinfo.Certificate) bool {
 	return FindDiscoveryByRef(cert, nodeID) != nil
 }
 
@@ -173,7 +111,7 @@ func FindDiscoveriesInNodeList(nodes []nodeinfo.NetworkNode, cert nodeinfo.Certi
 	}
 
 	for _, n := range nodes {
-		if _, ok := discoveries[n.ID()]; ok {
+		if _, ok := discoveries[nodeinfo.NodeRef(n)]; ok {
 			result = append(result, n)
 		}
 	}

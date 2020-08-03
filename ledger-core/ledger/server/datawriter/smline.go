@@ -36,7 +36,7 @@ func (p *SMLine) GetInitStateFor(smachine.StateMachine) smachine.InitFunc {
 	return p.stepInit
 }
 
-func (p *SMLine) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLink, injector *injector.DependencyInjector) {
+func (p *SMLine) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLink, injector injector.DependencyInjector) {
 	injector.MustInject(&p.pulseSlot)
 	injector.MustInject(&p.cataloger)
 	injector.MustInject(&p.plasher)

@@ -14,9 +14,9 @@ import (
 
 	"github.com/opentracing/opentracing-go/log"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
-	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/version"
 
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
@@ -31,7 +31,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 )
 
-const bootstrapRetryCount = 3
+const bootstrapRetryCount = 2
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network/gateway/bootstrap.Requester -o ./ -s _mock.go -g
 
@@ -48,7 +48,6 @@ func NewRequester(options *network.Options) Requester {
 
 type requester struct {
 	HostNetwork         network.HostNetwork    `inject:""`
-	OriginProvider      network.OriginProvider `inject:""` // nolint:staticcheck
 	CryptographyService cryptography.Service   `inject:""`
 
 	options *network.Options
@@ -159,7 +158,7 @@ func (ac *requester) authorize(ctx context.Context, host *host.Host, cert nodein
 		return nil, throw.W(err, "Error serializing certificate")
 	}
 
-	authData := &packet.AuthorizeData{Certificate: serializedCert, Version: ac.OriginProvider.GetOrigin().Version()}
+	authData := &packet.AuthorizeData{Certificate: serializedCert, Version: version.Version}
 	response, err := ac.authorizeWithTimestamp(ctx, host, authData, time.Now().Unix())
 	if err != nil {
 		return nil, err
@@ -223,12 +222,6 @@ func (ac *requester) Bootstrap(ctx context.Context, permit *packet.Permit, candi
 		Permit:           permit,
 	}
 
-	backoff := synckit.Backoff{
-		Min:    ac.options.MinTimeout,
-		Max:    ac.options.MaxTimeout,
-		Factor: float64(ac.options.TimeoutMult),
-	}
-
 	f, err := ac.HostNetwork.SendRequestToHost(ctx, types.Bootstrap, req, permit.Payload.ReconnectTo)
 	if err != nil {
 		return nil, throw.W(err, "Error sending Bootstrap request")
@@ -254,7 +247,7 @@ func (ac *requester) Bootstrap(ctx context.Context, permit *packet.Permit, candi
 	case packet.Reject:
 		return respData, throw.New("Bootstrap request rejected")
 	case packet.Retry:
-		time.Sleep(backoff.Duration())
+		time.Sleep(time.Second)
 		ac.retry++
 		if ac.retry > bootstrapRetryCount {
 			ac.retry = 0

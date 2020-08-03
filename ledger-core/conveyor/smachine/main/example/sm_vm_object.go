@@ -46,7 +46,7 @@ type SharedObjectState struct {
 
 //////////////////////////
 
-func (sm *vmObjectSM) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLink, injector *injector.DependencyInjector) {
+func (sm *vmObjectSM) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLink, injector injector.DependencyInjector) {
 	injector.MustInject(&sm.ArtifactClient)
 	injector.MustInject(&sm.ContractRunner)
 }

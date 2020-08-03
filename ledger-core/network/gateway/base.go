@@ -7,6 +7,7 @@ package gateway
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"fmt"
 	"math/rand"
 	"sync/atomic"
@@ -16,12 +17,17 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
+	transport2 "github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/transport"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/censusimpl"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
-	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/version"
 
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
@@ -35,7 +41,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet/types"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
-	"github.com/insolar/assured-ledger/ledger-core/network/node"
 	"github.com/insolar/assured-ledger/ledger-core/network/rules"
 	"github.com/insolar/assured-ledger/ledger-core/network/transport"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -64,9 +69,7 @@ type Base struct {
 	Aborter             network.Aborter                         `inject:""`
 	TransportFactory    transport.Factory                       `inject:""`
 
-	// nolint
-	OriginProvider network.OriginProvider `inject:""`
-
+	transportCrypt    transport2.CryptographyAssistant
 	datagramHandler   *adapters.DatagramHandler
 	datagramTransport transport.DatagramTransport
 
@@ -81,7 +84,7 @@ type Base struct {
 	originCandidate *adapters.Candidate
 
 	// Next request backoff.
-	backoff synckit.Backoff
+	backoff time.Duration // nolint
 
 	pulseWatchdog *pulseWatchdog
 
@@ -91,28 +94,28 @@ type Base struct {
 }
 
 // NewGateway creates new gateway on top of existing
-func (g *Base) NewGateway(ctx context.Context, state nodeinfo.NetworkState) network.Gateway {
+func (g *Base) NewGateway(ctx context.Context, state network.State) network.Gateway {
 	inslogger.FromContext(ctx).Infof("NewGateway %s", state.String())
 	switch state {
-	case nodeinfo.NoNetworkState:
+	case network.NoNetworkState:
 		g.Self = newNoNetwork(g)
-	case nodeinfo.CompleteNetworkState:
+	case network.CompleteNetworkState:
 		g.Self = newComplete(g)
-	case nodeinfo.JoinerBootstrap:
+	case network.JoinerBootstrap:
 		g.Self = newJoinerBootstrap(g)
-	case nodeinfo.DiscoveryBootstrap:
+	case network.DiscoveryBootstrap:
 		g.Self = newDiscoveryBootstrap(g)
-	case nodeinfo.WaitConsensus:
+	case network.WaitConsensus:
 		err := g.StartConsensus(ctx)
 		if err != nil {
 			g.FailState(ctx, fmt.Sprintf("Failed to start consensus: %s", err))
 		}
 		g.Self = newWaitConsensus(g)
-	case nodeinfo.WaitMajority:
+	case network.WaitMajority:
 		g.Self = newWaitMajority(g)
-	case nodeinfo.WaitMinRoles:
+	case network.WaitMinRoles:
 		g.Self = newWaitMinRoles(g)
-	case nodeinfo.WaitPulsar:
+	case network.WaitPulsar:
 		g.Self = newWaitPulsar(g)
 	default:
 		inslogger.FromContext(ctx).Panic("Try to switch network to unknown state. Memory of process is inconsistent.")
@@ -133,12 +136,6 @@ func (g *Base) Init(ctx context.Context) error {
 	g.HostNetwork.RegisterRequestHandler(types.Reconnect, g.HandleReconnect)
 
 	g.bootstrapETA = g.Options.BootstrapTimeout
-
-	g.backoff = synckit.Backoff{
-		Min:    g.Options.MinTimeout,
-		Max:    g.Options.MaxTimeout,
-		Factor: float64(g.Options.TimeoutMult),
-	}
 
 	return g.initConsensus(ctx)
 }
@@ -161,11 +158,12 @@ func (g *Base) initConsensus(ctx context.Context) error {
 		return throw.W(err, "failed to create datagramTransport")
 	}
 	g.datagramTransport = datagramTransport
+	g.transportCrypt = adapters.NewTransportCryptographyFactory(g.CryptographyScheme)
+
 
 	proxy := consensusProxy{g.Gatewayer}
 	g.consensusInstaller = consensus.New(ctx, consensus.Dep{
 		KeyProcessor:        g.KeyProcessor,
-		Scheme:              g.CryptographyScheme,
 		CertificateManager:  g.CertificateManager,
 		KeyStore:            getKeyStore(g.CryptographyService),
 		NodeKeeper:          g.NodeKeeper,
@@ -174,42 +172,88 @@ func (g *Base) initConsensus(ctx context.Context) error {
 		StateUpdater:        proxy,
 		DatagramTransport:   g.datagramTransport,
 		EphemeralController: g,
+		TransportCryptography: g.transportCrypt,
 	})
 
-	// transport start should be here because of TestComponents tests, couldn't createOriginCandidate with 0 port
+	// transport start should be here because of TestComponents tests, couldn't localNodeAsCandidate with 0 port
 	err = g.datagramTransport.Start(ctx)
 	if err != nil {
 		return throw.W(err, "failed to start datagram transport")
 	}
 
-	err = g.createOriginCandidate()
+	err = g.localNodeAsCandidate()
 	if err != nil {
-		return throw.W(err, "failed to createOriginCandidate")
+		return throw.W(err, "failed to localNodeAsCandidate")
 	}
 
 	return nil
 }
 
-func (g *Base) createOriginCandidate() error {
-	// sign origin
-	origin := g.NodeKeeper.GetOrigin()
-	mutableOrigin := origin.(node.MutableNode)
-	mutableOrigin.SetAddress(g.datagramTransport.Address())
+func (g *Base) localNodeAsCandidate() error {
 
-	digest, sign, err := getAnnounceSignature(
-		origin,
-		network.OriginIsDiscovery(g.CertificateManager.GetCertificate()),
-		g.KeyProcessor,
+	cert := g.CertificateManager.GetCertificate()
+	ref := cert.GetNodeRef()
+	if !reference.Equal(ref, g.NodeKeeper.GetLocalNodeReference()) {
+		panic(throw.IllegalState())
+	}
+
+	role := cert.GetRole()
+	publicKey := cert.GetPublicKey()
+
+	endpointAddr, err := endpoints.NewIPAddress(g.datagramTransport.Address())
+	if err != nil {
+		return err
+	}
+
+	pk, err := g.KeyProcessor.ExportPublicKeyBinary(publicKey)
+	if err != nil {
+		return err
+	}
+
+	// TODO add StartPower and PowerSet to Certificate
+	startPower := adapters.DefaultStartPower
+
+	id := node.GenerateShortID(ref)
+	digest, signature, err := CalcAnnounceSignature(id, role, endpointAddr, startPower,
+		network.OriginIsDiscovery(cert), pk,
 		getKeyStore(g.CryptographyService),
 		g.CryptographyScheme,
 	)
 	if err != nil {
 		return err
 	}
-	mutableOrigin.SetSignature(digest, *sign)
-	g.NodeKeeper.SetInitialSnapshot([]nodeinfo.NetworkNode{origin})
 
-	staticProfile := adapters.NewStaticProfile(origin, g.CertificateManager.GetCertificate(), g.KeyProcessor)
+	dig := cryptkit.NewDigest(longbits.NewBits512FromBytes(digest), adapters.SHA3512Digest)
+	sig := cryptkit.NewSignature(longbits.NewBits512FromBytes(signature.Bytes()), dig.GetDigestMethod().SignedBy(adapters.SECP256r1Sign))
+	dsg := cryptkit.NewSignedDigest(dig, sig)
+
+	specialRole := member.SpecialRoleNone
+	isJoiner := false
+	if network.IsDiscovery(ref, cert) {
+		specialRole |= member.SpecialRoleDiscovery
+	} else {
+		isJoiner = true
+	}
+
+	staticProfile := adapters.NewStaticProfileExt2(id, role, specialRole, startPower,
+		adapters.NewStaticProfileExtensionExt(id, ref, sig),
+		adapters.NewOutboundIP(endpointAddr),
+		adapters.NewECDSAPublicKeyStore(publicKey.(*ecdsa.PublicKey)),
+		adapters.NewECDSASignatureKeyHolder(publicKey.(*ecdsa.PublicKey), g.KeyProcessor),
+		dsg,
+	)
+
+	verifier := g.transportCrypt.CreateSignatureVerifierWithPKS(staticProfile.GetPublicKeyStore())
+
+	var anp censusimpl.NodeProfileSlot
+	if isJoiner {
+		anp = censusimpl.NewJoinerProfile(staticProfile, verifier)
+	} else {
+		anp = censusimpl.NewNodeProfile(0, staticProfile, verifier, staticProfile.GetStartPower())
+	}
+
+	newOrigin := adapters.NewNetworkNode(&anp)
+	g.NodeKeeper.SetInitialSnapshot([]nodeinfo.NetworkNode{newOrigin})
 	g.originCandidate = adapters.NewCandidate(staticProfile, g.KeyProcessor)
 	return nil
 }
@@ -246,7 +290,6 @@ func (g *Base) OnPulseFromConsensus(ctx context.Context, pu beat.Beat) {
 	g.pulseWatchdog.Reset()
 
 	g.NodeKeeper.MoveSyncToActive(ctx, pu.PulseNumber)
-
 	nodes := g.NodeKeeper.GetAccessor(pu.PulseNumber).GetActiveNodes()
 	inslogger.FromContext(ctx).Debugf("OnPulseFromConsensus: %d : epoch %d : nodes %d", pu.PulseNumber, pu.PulseEpoch, len(nodes))
 }
@@ -286,7 +329,7 @@ func (g *Base) ValidateCert(ctx context.Context, authCert nodeinfo.Authorization
 
 // ============= Bootstrap =======
 
-func (g *Base) checkCanAnnounceCandidate(ctx context.Context) error {
+func (g *Base) checkCanAnnounceCandidate(context.Context) error {
 	// 1. Current node is JoinAssistant:
 	// 		could announce candidate when network is initialized
 	// 		NB: announcing in WaitConsensus state is allowed
@@ -295,18 +338,22 @@ func (g *Base) checkCanAnnounceCandidate(ctx context.Context) error {
 	// 		NB: announcing in WaitConsensus state is *NOT* allowed
 
 	state := g.Gatewayer.Gateway().GetState()
-	if state > nodeinfo.WaitConsensus {
+	if state > network.WaitConsensus {
 		return nil
 	}
 
-	if state == nodeinfo.WaitConsensus && g.isJoinAssistant {
+	if state == network.WaitConsensus && g.isJoinAssistant {
 		return nil
+	}
+
+	pn := pulse.Unknown
+	if na := g.NodeKeeper.GetLatestAccessor(); na != nil {
+		pn = na.GetPulseNumber()
 	}
 
 	return throw.Errorf(
 		"can't announce candidate: pulse=%d state=%s",
-		g.LatestPulse(ctx).PulseNumber,
-		state,
+		pn, state,
 	)
 }
 
@@ -335,7 +382,11 @@ func (g *Base) HandleNodeBootstrapRequest(ctx context.Context, request network.R
 
 	data := request.GetRequest().GetBootstrap()
 
-	nodes := g.NodeKeeper.GetAccessor(g.LatestPulse(ctx).PulseNumber).GetActiveNodes()
+	na := g.NodeKeeper.GetLatestAccessor()
+	if na == nil {
+		return nil, throw.Errorf("bootstrap: node list is not available: %s", request)
+	}
+	nodes := na.GetActiveNodes()
 
 	if network.CheckShortIDCollision(nodes, data.CandidateProfile.ShortID) {
 		return g.HostNetwork.BuildResponse(ctx, request, &packet.BootstrapResponse{Code: packet.UpdateShortID}), nil
@@ -379,10 +430,9 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 		return nil, throw.Errorf("process authorize: got invalid protobuf request message: %s", request)
 	}
 	data := request.GetRequest().GetAuthorize().AuthorizeData
-	o := g.OriginProvider.GetOrigin()
 
-	if data.Version != o.Version() {
-		return nil, throw.Errorf("wrong version in AuthorizeRequest, actual network version is: %s", o.Version())
+	if data.Version != version.Version {
+		return nil, throw.Errorf("version mismatch in AuthorizeRequest: local=%s received=%s", version.Version, data.Version)
 	}
 
 	// TODO: move time.Minute to config
@@ -408,12 +458,18 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 		return g.HostNetwork.BuildResponse(ctx, request, &packet.AuthorizeResponse{Code: packet.WrongMandate, Error: err.Error()}), nil
 	}
 
-	nodes := g.NodeKeeper.GetAccessor(g.LatestPulse(ctx).PulseNumber).GetActiveNodes()
+	na := g.NodeKeeper.GetLatestAccessor()
+	if na == nil {
+		return nil, throw.Errorf("AuthorizeRequest: node list is not available: %s", request)
+	}
+	nodes := na.GetActiveNodes()
+
+	o := g.NodeKeeper.GetOrigin()
 
 	var reconnectHost *host.Host
 	if !g.isJoinAssistant || len(nodes) < 2 {
 		// workaround bootstrap to the origin node
-		reconnectHost, err = host.NewHostNS(o.Address(), o.ID(), o.ShortID())
+		reconnectHost, err = host.NewHostNS(nodeinfo.NodeAddr(o), nodeinfo.NodeRef(o), o.GetNodeID())
 		if err != nil {
 			err = throw.W(err, "Failed to get reconnectHost")
 			inslogger.FromContext(ctx).Warn(err.Error())
@@ -421,7 +477,7 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 		}
 	} else {
 		randNode := nodes[rand.Intn(len(nodes))]
-		reconnectHost, err = host.NewHostNS(randNode.Address(), randNode.ID(), randNode.ShortID())
+		reconnectHost, err = host.NewHostNS(nodeinfo.NodeAddr(randNode), nodeinfo.NodeRef(randNode), randNode.GetNodeID())
 		if err != nil {
 			err = throw.W(err, "Failed to get reconnectHost")
 			inslogger.FromContext(ctx).Warn(err.Error())
@@ -429,14 +485,14 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 		}
 	}
 
-	pubKey, err := g.KeyProcessor.ExportPublicKeyPEM(o.PublicKey())
+	pubKey, err := g.KeyProcessor.ExportPublicKeyPEM(adapters.ECDSAPublicKeyOfNode(o))
 	if err != nil {
 		err = throw.W(err, "Failed to export public key")
 		inslogger.FromContext(ctx).Warn(err.Error())
 		return nil, err
 	}
 
-	permit, err := bootstrap.CreatePermit(g.OriginProvider.GetOrigin().ID(),
+	permit, err := bootstrap.CreatePermit(g.NodeKeeper.GetLocalNodeReference(),
 		reconnectHost,
 		pubKey,
 		g.CryptographyService,
@@ -487,20 +543,12 @@ func (g *Base) EphemeralMode(nodes []nodeinfo.NetworkNode) bool {
 }
 
 func (g *Base) FailState(ctx context.Context, reason string) {
-	o := g.OriginProvider.GetOrigin()
+	o := g.NodeKeeper.GetOrigin()
 	wrapReason := fmt.Sprintf("Abort node with address: %s role: %s state: %s, reason: %s",
-		o.Address(),
-		o.Role().String(),
+		nodeinfo.NodeAddr(o),
+		nodeinfo.NodeRole(o).String(),
 		g.Gatewayer.Gateway().GetState().String(),
 		reason,
 	)
 	g.Aborter.Abort(ctx, wrapReason)
-}
-
-func (g *Base) LatestPulse(ctx context.Context) pulse.Data {
-	if g.ConsensusController == nil {
-		return pulse.NewFirstEphemeralData()
-	}
-
-	return g.ConsensusController.Chronicles().GetActiveCensus().GetPulseData()
 }

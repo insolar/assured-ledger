@@ -21,6 +21,7 @@ import (
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/debuglogger"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/synchronization"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
@@ -32,8 +33,7 @@ import (
 
 func TestConstructor_SamePulse_WhileExecution(t *testing.T) {
 	defer commontestutils.LeakTester(t)
-
-	t.Log("C4998")
+	insrail.LogCase(t, "C4998")
 
 	mc := minimock.NewController(t)
 
@@ -114,8 +114,7 @@ func TestConstructor_SamePulse_WhileExecution(t *testing.T) {
 
 func TestConstructor_SamePulse_AfterExecution(t *testing.T) {
 	defer commontestutils.LeakTester(t)
-
-	t.Log("C5005")
+	insrail.LogCase(t, "C5005")
 
 	mc := minimock.NewController(t)
 
@@ -269,7 +268,10 @@ func (test *DeduplicationDifferentPulsesCase) run(t *testing.T) {
 
 	// populate needed VStateReport fields
 	test.VState.Object = object
-	test.VState.OrderedPendingEarliestPulse = previousPulse
+	if test.VState.OrderedPendingCount > 0 {
+		test.VState.OrderedPendingEarliestPulse = previousPulse
+	}
+	test.VState.AsOf = previousPulse
 
 	// populate needed VFindCallResponse fields
 	if test.VFindCall != nil {
@@ -385,8 +387,8 @@ func TestDeduplication_DifferentPulses_MissingState(t *testing.T) {
 	tests = append(tests, &DeduplicationDifferentPulsesCase{
 		TestCase: utils.NewTestCase("empty object, no pending executions"),
 		VState: payload.VStateReport{
-			Status:              payload.Missing,
-			OrderedPendingCount: 0,
+			Status: payload.Missing,
+			AsOf:   gen.PulseNumber(),
 		},
 		VCallResultExpected: true,
 		ExecutionExpected:   true,

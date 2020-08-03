@@ -23,6 +23,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
@@ -32,8 +33,7 @@ import (
 
 func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 	defer commontestutils.LeakTester(t)
-
-	t.Log("C5095")
+	insrail.LogCase(t, "C5095")
 
 	mc := minimock.NewController(t)
 
@@ -48,19 +48,18 @@ func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 	})
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
+	server.IncrementPulse(ctx)
 
-	helper := utils.NewHelper(server)
-
-	p1 := server.GetPulse().PulseNumber
-	server.IncrementPulseAndWaitIdle(ctx)
-
-	outgoing := helper.BuildObjectOutgoing()
-	class := gen.UniqueGlobalRef()
-	object := gen.UniqueGlobalRef()
+	var (
+		helper = utils.NewHelper(server)
+		pulse  = server.GetPulse().PulseNumber
+		class  = gen.UniqueGlobalRef()
+		object = gen.UniqueGlobalRefWithPulse(pulse)
+	)
 
 	report := &payload.VStateReport{
 		Status: payload.Ready,
-		AsOf:   p1,
+		AsOf:   pulse,
 		Object: object,
 		ProvidedContent: &payload.VStateReport_ProvidedContentBody{
 			LatestDirtyState: &payload.ObjectState{
@@ -69,6 +68,9 @@ func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 			},
 		},
 	}
+
+	server.IncrementPulse(ctx)
+
 	server.SendPayload(ctx, report)
 
 	releaseBlockedExecution := make(chan struct{}, 0)
@@ -78,7 +80,7 @@ func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 		runnerMock.AddExecutionClassify("SomeMethod", isolation, nil)
 
 		newObjDescriptor := descriptor.NewObject(
-			reference.Global{}, reference.Local{}, class, []byte(""),
+			reference.Global{}, reference.Local{}, class, []byte(""), false,
 		)
 
 		requestResult := requestresult.New([]byte("call result"), gen.UniqueGlobalRef())
@@ -96,6 +98,8 @@ func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	typedChecker.VCallResult.SetResend(false).ExpectedCount(1)
+
+	outgoing := helper.BuildObjectOutgoing()
 
 	pl := payload.VCallRequest{
 		CallType:       payload.CTMethod,
@@ -124,8 +128,7 @@ func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 
 func TestDeduplication_SecondCallOfMethodAfterExecution(t *testing.T) {
 	defer commontestutils.LeakTester(t)
-
-	t.Log("C5096")
+	insrail.LogCase(t, "C5096")
 
 	mc := minimock.NewController(t)
 
@@ -137,20 +140,19 @@ func TestDeduplication_SecondCallOfMethodAfterExecution(t *testing.T) {
 	})
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
+	server.IncrementPulseAndWaitIdle(ctx)
 
 	helper := utils.NewHelper(server)
 
-	p1 := server.GetPulse().PulseNumber
-
-	server.IncrementPulseAndWaitIdle(ctx)
-
-	outgoing := helper.BuildObjectOutgoing()
-	class := gen.UniqueGlobalRef()
-	object := gen.UniqueGlobalRef()
+	var (
+		pulse  = server.GetPulse().PulseNumber
+		class  = gen.UniqueGlobalRef()
+		object = gen.UniqueGlobalRefWithPulse(pulse)
+	)
 
 	report := &payload.VStateReport{
 		Status: payload.Ready,
-		AsOf:   p1,
+		AsOf:   pulse,
 		Object: object,
 		ProvidedContent: &payload.VStateReport_ProvidedContentBody{
 			LatestDirtyState: &payload.ObjectState{
@@ -159,6 +161,9 @@ func TestDeduplication_SecondCallOfMethodAfterExecution(t *testing.T) {
 			},
 		},
 	}
+
+	server.IncrementPulse(ctx)
+
 	server.SendPayload(ctx, report)
 
 	numberOfExecutions := 0
@@ -167,7 +172,7 @@ func TestDeduplication_SecondCallOfMethodAfterExecution(t *testing.T) {
 		runnerMock.AddExecutionClassify("SomeMethod", isolation, nil)
 
 		newObjDescriptor := descriptor.NewObject(
-			reference.Global{}, reference.Local{}, class, []byte(""),
+			reference.Global{}, reference.Local{}, class, []byte(""), false,
 		)
 
 		requestResult := requestresult.New([]byte("call result"), gen.UniqueGlobalRef())
@@ -194,6 +199,8 @@ func TestDeduplication_SecondCallOfMethodAfterExecution(t *testing.T) {
 
 		return false
 	}).ExpectedCount(2)
+
+	outgoing := helper.BuildObjectOutgoing()
 
 	pl := payload.VCallRequest{
 		CallType:       payload.CTMethod,
@@ -247,7 +254,7 @@ type deduplicateMethodUsingPrevVETestInfo struct {
 }
 
 func TestDeduplication_MethodUsingPrevVE(t *testing.T) {
-	t.Log("C5097")
+	insrail.LogCase(t, "C5097")
 
 	table := []deduplicateMethodUsingPrevVETestInfo{
 		{

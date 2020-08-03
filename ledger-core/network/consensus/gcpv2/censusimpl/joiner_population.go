@@ -6,6 +6,8 @@
 package censusimpl
 
 import (
+	"fmt"
+
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
@@ -90,4 +92,8 @@ func (c *OneJoinerPopulation) GetProfiles() []profiles.ActiveNode {
 
 func (c *OneJoinerPopulation) GetLocalProfile() profiles.LocalNode {
 	return &c.localNode.NodeProfileSlot
+}
+
+func (c OneJoinerPopulation) String() string {
+	return fmt.Sprintf("joiner:%04d", c.localNode.GetNodeID())
 }

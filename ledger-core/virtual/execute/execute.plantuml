@@ -71,6 +71,7 @@ state "stepExecuteOutgoing" as T01_S023
 T01_S023 : SMExecute
 T01_S023 --[dotted]> T01_S016
 T01_S023 --> T01_S027 : [s.intolerableCall()]
+T01_S023 --> T01_S027 : [s.intolerableCall()]
 T01_S023 --> T01_S027 : [...&&(...).Interference()==contract.CallTolerable]
 T01_S023 --> T01_S025 : [s.outgoing!=nil]
 T01_S023 --> T01_S027
@@ -179,6 +180,7 @@ state "stepWaitObjectReady" as T01_S005
 T01_S005 : SMExecute
 T01_S005 --[dotted]> T01_S001
 T01_S005 --[dashed]> T01_S005 : [!stepUpdate.IsEmpty()]\n[(...).AcquireForThisStep().IsNotPassed()]...\nSleep
+T01_S005 --> T01_S032 : [...&&objectDescriptor.Deactivated()]
 T01_S005 --> T01_S007 : [s.isConstructor]
 T01_S005 --> T01_S032 : [object.Missing]
 T01_S005 --> T01_S007 : [(...).pendingConstructorFinished.IsZero()]

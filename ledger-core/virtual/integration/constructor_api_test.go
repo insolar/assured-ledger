@@ -12,12 +12,13 @@ import (
 	"github.com/stretchr/testify/require"
 
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 )
 
 func Test_API_Create(t *testing.T) {
 	defer commontestutils.LeakTester(t)
-	t.Log("C4837")
+	insrail.LogCase(t, "C4837")
 
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()

@@ -19,13 +19,14 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 )
 
 func TestVirtual_DeactivateObject(t *testing.T) {
-	t.Log("C5134")
+	insrail.LogCase(t, "C5134")
 
 	table := []struct {
 		name         string
@@ -52,36 +53,13 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 
 				dirtyStateRef     = server.RandomLocalWithPulse()
 				validatedStateRef = server.RandomLocalWithPulse()
-				pulseNumber       = server.GetPulse().PulseNumber
+				pulseNumberFirst  = server.GetPulse().PulseNumber
 
-				outgoingDestroy  = server.BuildRandomOutgoingWithPulse()
 				waitVStateReport = make(chan struct{})
 			)
 
-			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-
-			// Add VStateReport check
-			{
-				typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
-					assert.Equal(t, objectGlobal, report.Object)
-					assert.Equal(t, pulseNumber, report.ProvidedContent.LatestValidatedState.Reference.Pulse())
-					assert.Equal(t, pulseNumber, report.ProvidedContent.LatestDirtyState.Reference.Pulse())
-
-					assert.Equal(t, payload.Ready, report.Status)
-					// TODO: must be inactive and without content
-					// TODO: remove error filter in server
-					// assert.Equal(t, payload.Inactive, report.Status)
-					// assert.True(t, report.ProvidedContent.LatestValidatedState.Deactivated)
-					// assert.True(t, report.ProvidedContent.LatestDirtyState.Deactivated)
-
-					waitVStateReport <- struct{}{}
-					return false
-				})
-				typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool {
-					assert.Equal(t, outgoingDestroy, result.CallOutgoing)
-					return false
-				})
-			}
+			server.IncrementPulseAndWaitIdle(ctx)
+			pulseNumberSecond := server.GetPulse().PulseNumber
 
 			// Send VStateReport with Dirty, Validated states
 			{
@@ -107,11 +85,37 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 				pl := &payload.VStateReport{
 					Status:          payload.Ready,
 					Object:          objectGlobal,
+					AsOf:            pulseNumberFirst,
 					ProvidedContent: content,
 				}
 				server.SendPayload(ctx, pl)
 				testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1))
 			}
+
+			outgoingDestroy := server.BuildRandomOutgoingWithPulse()
+
+			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+
+			// Add VStateReport check
+			{
+				typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
+					assert.Equal(t, objectGlobal, report.Object)
+					assert.Equal(t, pulseNumberSecond, report.ProvidedContent.LatestValidatedState.Reference.Pulse())
+					assert.Equal(t, pulseNumberSecond, report.ProvidedContent.LatestDirtyState.Reference.Pulse())
+
+					assert.Equal(t, payload.Ready, report.Status)
+					assert.True(t, report.ProvidedContent.LatestValidatedState.Deactivated)
+					assert.True(t, report.ProvidedContent.LatestDirtyState.Deactivated)
+
+					waitVStateReport <- struct{}{}
+					return false
+				})
+				typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool {
+					assert.Equal(t, outgoingDestroy, result.CallOutgoing)
+					return false
+				})
+			}
+
 			// Deactivate object
 			{
 				pl := &payload.VCallRequest{

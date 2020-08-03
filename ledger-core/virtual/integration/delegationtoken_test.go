@@ -22,6 +22,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
@@ -59,7 +60,8 @@ var messagesWithToken = []struct {
 }
 
 func TestDelegationToken_SuccessCheckCorrectToken(t *testing.T) {
-	t.Log("C5191")
+	insrail.LogCase(t, "C5191")
+
 	for _, testMsg := range messagesWithToken {
 		t.Run(testMsg.name, func(t *testing.T) {
 			defer commontestutils.LeakTester(t)
@@ -149,9 +151,7 @@ func TestDelegationToken_CheckTokenField(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			defer commontestutils.LeakTester(t)
-
-			t.Log(test.testRailID)
-			t.Skip("https://insolar.atlassian.net/browse/PLAT-588")
+			insrail.LogSkipCase(t, test.testRailID, "https://insolar.atlassian.net/browse/PLAT-588")
 
 			mc := minimock.NewController(t)
 
@@ -291,8 +291,7 @@ func TestDelegationToken_IsMessageFromVirtualLegitimate(t *testing.T) {
 	for _, testCase := range cases {
 		t.Run(testCase.name, func(t *testing.T) {
 			defer commontestutils.LeakTester(t)
-
-			t.Log(testCase.testRailID)
+			insrail.LogCase(t, testCase.testRailID)
 
 			for _, testMsg := range messagesWithToken {
 				mc := minimock.NewController(t)
@@ -398,8 +397,8 @@ func TestDelegationToken_OldVEVDelegatedCallRequest(t *testing.T) {
 	for _, test := range testCases {
 		t.Run(test.name, func(t *testing.T) {
 			defer commontestutils.LeakTester(t)
+			insrail.LogCase(t, test.testRailID)
 
-			t.Log(test.testRailID)
 			mc := minimock.NewController(t)
 
 			server, ctx := utils.NewUninitializedServer(nil, t)
@@ -427,7 +426,7 @@ func TestDelegationToken_OldVEVDelegatedCallRequest(t *testing.T) {
 			server.Init(ctx)
 
 			var (
-				class       = gen.UniqueGlobalRef()
+				class       = gen.UniqueGlobalRefWithPulse(server.GetPulse().PulseNumber)
 				outgoing    = server.BuildRandomOutgoingWithPulse()
 				executorRef = server.RandomGlobalWithPulse()
 				firstPulse  = server.GetPulse()
@@ -465,6 +464,7 @@ func TestDelegationToken_OldVEVDelegatedCallRequest(t *testing.T) {
 			statePl := payload.VStateReport{
 				Status:                      payload.Empty,
 				Object:                      class,
+				AsOf:                        firstPulse.PulseNumber,
 				OrderedPendingCount:         1,
 				OrderedPendingEarliestPulse: firstPulse.PulseNumber,
 			}
