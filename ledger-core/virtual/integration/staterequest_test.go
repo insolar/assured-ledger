@@ -56,10 +56,9 @@ func TestVirtual_VStateRequest(t *testing.T) {
 			defer server.Stop()
 
 			var (
-				objectGlobal     = reference.NewSelf(server.RandomLocalWithPulse())
-				pulseNumber      = server.GetPulse().PulseNumber
-				rawWalletState   = makeRawWalletState(initialBalance)
-				waitVStateReport = make(chan struct{})
+				objectGlobal   = reference.NewSelf(server.RandomLocalWithPulse())
+				pulseNumber    = server.GetPulse().PulseNumber
+				rawWalletState = makeRawWalletState(initialBalance)
 			)
 
 			// create object
@@ -102,7 +101,6 @@ func TestVirtual_VStateRequest(t *testing.T) {
 				}
 				typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
 					assert.Equal(t, expectedVStateReport, report)
-					waitVStateReport <- struct{}{}
 					return false
 				})
 			}
@@ -110,9 +108,9 @@ func TestVirtual_VStateRequest(t *testing.T) {
 			msg := makeVStateRequestEvent(pulseNumber, objectGlobal, test.flags, server.JetCoordinatorMock.Me())
 			server.SendMessage(ctx, msg)
 
-			commontestutils.WaitSignalsTimed(t, 10*time.Second, waitVStateReport)
+			commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 1))
 
-			require.Equal(t, 1, typedChecker.VStateReport.CountBefore())
+			require.Equal(t, 1, typedChecker.VStateReport.Count())
 
 			mc.Finish()
 		})
