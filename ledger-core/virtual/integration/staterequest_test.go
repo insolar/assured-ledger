@@ -194,6 +194,12 @@ func TestVirtual_VStateRequest_WhenObjectIsDeactivated(t *testing.T) {
 			typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
 				assert.Equal(t, objectGlobal, report.Object)
 				assert.Equal(t, payload.Inactive, report.Status)
+				assert.Empty(t, report.ProvidedContent)
+				assert.Empty(t, report.LatestDirtyState)
+				assert.Empty(t, report.LatestDirtyCode)
+				assert.Empty(t, report.LatestValidatedCode)
+				assert.Empty(t, report.LatestValidatedState)
+
 				waitVStateReport <- struct{}{}
 				return false
 			})
@@ -214,6 +220,7 @@ func TestVirtual_VStateRequest_WhenObjectIsDeactivated(t *testing.T) {
 			}
 
 			server.IncrementPulse(ctx)
+			commontestutils.WaitSignalsTimed(t, 10*time.Second, waitVStateReport)
 
 			// VStateRequest
 			{
@@ -228,7 +235,7 @@ func TestVirtual_VStateRequest_WhenObjectIsDeactivated(t *testing.T) {
 			commontestutils.WaitSignalsTimed(t, 10*time.Second, waitVStateReport)
 			commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
-			assert.Equal(t, 1, typedChecker.VStateReport.Count())
+			assert.Equal(t, 2, typedChecker.VStateReport.Count())
 		})
 	}
 }
