@@ -91,7 +91,7 @@ jobs:
           metricreplicator --config config.yaml
         env:
           INTERVAL: "3m"
-          REPORT_PROMETHEUS_HOST: "https://${{secrets.PROMETHEUS_USER}}:${{secrets.PROMETHEUS_PASSWORD}}@prometheus.uscifarm.insolar.io/prometheus"
+          REPORT_PROMETHEUS_HOST: "https://${{secrets.PROMETHEUS_USER}}:${{secrets.PROMETHEUS_PASS}}@prometheus.uscifarm.insolar.io/prometheus"
           REPORT_WEBDAV_HOST: "https://reports.garage.insolar.io"
           REPORT_WEBDAV_USERNAME: "${{secrets.WEBDAV_USERNAME}}"
           REPORT_WEBDAV_PASSWORD: "${{secrets.WEBDAV_PASSWORD}}"
