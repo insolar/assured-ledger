@@ -75,6 +75,8 @@ func Method_PrepareObject(
 				State:     walletState,
 			},
 		}
+	case payload.Inactive:
+		content = nil
 	default:
 		panic("unexpected state")
 	}
@@ -1793,7 +1795,7 @@ func TestVirtual_Method_ForbiddenIsolation(t *testing.T) {
 				server.WaitActiveThenIdleConveyor()
 			}
 
-			outgoingRef := gen.UniqueGlobalRefWithPulse(pulseNumber)
+			outgoingRef := server.BuildRandomOutgoingWithPulse()
 
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
