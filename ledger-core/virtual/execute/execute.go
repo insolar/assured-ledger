@@ -227,21 +227,8 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 	s.execution.ObjectDescriptor = objectDescriptor
 	s.pendingConstructorFinished = semaphorePendingConstructorFinished
 
-	if objectDescriptor != nil && objectDescriptor.Deactivated() {
-		s.prepareExecutionError(throw.E("try to call method on deactivated object", struct {
-			ObjectReference string
-		}{
-			ObjectReference: s.execution.Object.String(),
-		}))
-		return ctx.Jump(s.stepSendCallResult)
-	}
-
 	if s.isConstructor {
-		switch objectState {
-		case object.Unknown:
-			panic(throw.Impossible())
-		case object.Inactive:
-			// attempt to create object that is deactivated :(
+		if objectState == object.Unknown {
 			panic(throw.Impossible())
 		}
 
@@ -263,8 +250,6 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 			State:           objectState,
 		}))
 		return ctx.Jump(s.stepSendCallResult)
-	case object.Inactive:
-		panic(throw.Impossible())
 	case object.HasState:
 		// ok
 	}
@@ -329,10 +314,6 @@ func (s *SMExecute) stepIsolationNegotiation(ctx smachine.ExecutionContext) smac
 	// forbidden isolation
 	// it requires special processing path that will be implemented later on
 	if negotiatedIsolation.Interference == contract.CallTolerable && negotiatedIsolation.State == contract.CallValidated {
-		panic(throw.NotImplemented())
-	}
-
-	if negotiatedIsolation.State == contract.CallValidated && s.execution.ObjectDescriptor == nil {
 		panic(throw.NotImplemented())
 	}
 
@@ -541,6 +522,7 @@ func (s *SMExecute) getDescriptor(state *object.SharedState) descriptor.Object {
 func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var (
 		objectDescriptor descriptor.Object
+		isDeactivated    bool
 	)
 	action := func(state *object.SharedState) {
 		if !state.KnownRequests.SetActive(s.execution.Isolation.Interference, s.execution.Outgoing) {
@@ -550,10 +532,27 @@ func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) sm
 		}
 
 		objectDescriptor = s.getDescriptor(state)
+		if state.GetState() == object.Inactive || (objectDescriptor != nil && objectDescriptor.Deactivated()) {
+			isDeactivated = true
+			return
+		}
 	}
 
 	if stepUpdate := s.shareObjectAccess(ctx, action); !stepUpdate.IsEmpty() {
 		return stepUpdate
+	}
+
+	if isDeactivated {
+		s.prepareExecutionError(throw.E("try to call method on deactivated object", struct {
+			ObjectReference string
+		}{
+			ObjectReference: s.execution.Object.String(),
+		}))
+		return ctx.Jump(s.stepSendCallResult)
+	}
+
+	if s.execution.Isolation.State == contract.CallValidated && s.execution.ObjectDescriptor == nil {
+		panic(throw.NotImplemented())
 	}
 
 	ctx.SetDefaultMigration(s.migrateDuringExecution)

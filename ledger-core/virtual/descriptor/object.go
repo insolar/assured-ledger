@@ -25,7 +25,7 @@ type Object interface {
 	// Class returns class reference.
 	Class() (reference.Global, error)
 
-	// Deactivated return true after was called SelfDestruct
+	// Deactivated return true after SelfDestruct was called
 	Deactivated() bool
 }
 
