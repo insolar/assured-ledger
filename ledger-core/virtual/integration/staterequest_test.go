@@ -202,6 +202,8 @@ func TestVirtual_VStateRequest_WhenObjectIsDeactivated(t *testing.T) {
 				return false
 			})
 
+			reportSend := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
+
 			// Send VStateReport with Dirty, Validated states
 			{
 				pl := &payload.VStateReport{
@@ -214,7 +216,7 @@ func TestVirtual_VStateRequest_WhenObjectIsDeactivated(t *testing.T) {
 					},
 				}
 				server.SendPayload(ctx, pl)
-				commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1))
+				commontestutils.WaitSignalsTimed(t, 10*time.Second, reportSend)
 			}
 
 			server.IncrementPulse(ctx)
