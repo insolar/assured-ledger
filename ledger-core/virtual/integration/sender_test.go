@@ -17,6 +17,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
@@ -136,6 +137,13 @@ func TestVirtual_SenderCheck_With_ExpectedVE(t *testing.T) {
 						m.AsOf = server.GetPulse().PulseNumber
 						m.Object = reference.NewSelf(server.RandomLocalWithPulse())
 						server.IncrementPulseAndWaitIdle(ctx)
+
+						testMsg.msg = m
+					case *payload.VFindCallRequest:
+						pulse := server.GetPulse().PulseNumber
+						m.LookAt = pulse
+						m.Callee = gen.UniqueGlobalRefWithPulse(pulse)
+						m.Outgoing = gen.UniqueGlobalRefWithPulse(pulse)
 
 						testMsg.msg = m
 					}
