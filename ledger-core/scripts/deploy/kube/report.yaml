@@ -1,0 +1,28 @@
+quantiles:
+  - "0.5"
+  - "0.8"
+  - "0.95"
+  - "0.99"
+tmpdir: "/tmp/metricreplicator"
+prometheus:
+  host: "https://${PROMETHEUS_USER}:${PROMETHEUS_PASS}@prometheus.uscifarm.insolar.io/prometheus"
+groups:
+  - description: "Network size grows with fixed latency"
+    network:
+      - name: "latency"
+        value: "50ms"
+    ranges:
+      - starttime: ${INSOLAR_START_TIME}
+        interval: "3m"
+        props:
+          - name: "network_size"
+            value: "17"
+webdav:
+  host: "https://reports.garage.insolar.io"
+  username: "${WEBDAV_USERNAME}"
+  password: "${WEBDAV_PASSWORD}"
+  directory: "consensus-checks"
+  timeout: "1m"
+git:
+  branch: "${GITHUB_REF##*/}"
+  hash: "${GITHUB_SHA}"
