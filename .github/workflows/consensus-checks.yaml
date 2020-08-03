@@ -87,7 +87,7 @@ jobs:
           echo "NETWORK_SIZE: ${INSOLAR_NETWORK_SIZE_INT}"
       - name: gather metrics and generate report (IF THIS STEP FAILED - CALL DEV, READ LOGS BLUE ALERT)
         run: |
-          cat ledger-core/scripts/deploy/kube/report.yaml | envsubst '${INTERVAL} ${INSOLAR_START_TIME} ${INSOLAR_NETWORK_SIZE_INT} ${INSOLAR_BRANCH}' >> config.yaml
+          cat ledger-core/scripts/deploy/kube/report.yaml | envsubst '${INTERVAL} ${INSOLAR_START_TIME} ${INSOLAR_NETWORK_SIZE_INT} ${INSOLAR_BRANCH} ${INSOLAR_TAG}' >> config.yaml
           metricreplicator --config config.yaml
         env:
           INTERVAL: "3m"

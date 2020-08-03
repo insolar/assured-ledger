@@ -17,6 +17,6 @@ groups:
             value: "${INSOLAR_NETWORK_SIZE_INT}"
 git:
   branch: "${INSOLAR_BRANCH}"
-  hash: "${INSOLAR_TAG}"
+  hash: "consensus-checks/${INSOLAR_TAG}"
 webdav:
   directory: "consensus-checks"
