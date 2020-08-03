@@ -16,5 +16,5 @@ groups:
           - name: "network_size"
             value: "${INSOLAR_NETWORK_SIZE_INT}"
 git:
-  branch: "${GITHUB_REF##*/}"
+  branch: "${INSOLAR_BRANCH}"
   hash: "${GITHUB_SHA}"

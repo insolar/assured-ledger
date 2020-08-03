@@ -41,7 +41,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        target: [aks-10node, aks-20node]
+        target: [aks-10node] #, aks-20node]
     steps:
       - name: Checkout code
         uses: actions/checkout@master
@@ -52,8 +52,9 @@ jobs:
           echo "::set-env name=INSOLAR_TAG::${GITHUB_SHA:0:8}"
           echo "::set-env name=INSOLAR_NETWORK_SIZE::${TARGET}"
           echo "::set-env name=INSOLAR_NAMESPACE::${GITHUB_SHA:0:8}-${TARGET}"
-          echo "::set-env name=INSOLAR_DESIRED_UPTIME::300"
-          echo "::set-emv name=INSOLAR_NETWORK_SIZE_INT::$(echo $INSOLAR_NETWORK_SIZE | awk '{gsub(/[^[0-9]]*/,"");print}')"
+          echo "::set-env name=INSOLAR_DESIRED_UPTIME::60" #300
+          echo "::set-env name=INSOLAR_BRANCH::$(git rev-parse --abbrev-ref HEAD)"
+          echo "::set-emv name=INSOLAR_NETWORK_SIZE_INT::$(echo $TARGET | awk '{gsub(/[^[0-9]]*/,"");print}')"
       - name: Preparation - copy docker auth secret
         run: |
           docker login $ACR_HOST --username ${{secrets.ACR_SP_ID}} --password ${{secrets.ACR_SP_SECRET}}
@@ -82,13 +83,11 @@ jobs:
           chmod +x bin/{report,metricreplicator}
       - name: debug
         run: |
-          echo "GITHUB_SHA: ${GITHUB_SHA}"
-          echo "GITHUB_BRANCH: ${GITHUB_REF##*/}"
+          echo "GITHUB_BRANCH: ${INSOLAR_BRANCH}"
           echo "NETWORK_SIZE: ${INSOLAR_NETWORK_SIZE_INT}"
-          echo "NETWORK_SIZE: ${INSOLAR_START_TIME}"
       - name: gather metrics and generate report (IF THIS STEP FAILED - CALL DEV, READ LOGS BLUE ALERT)
         run: |
-          cat ledger-core/scripts/deploy/kube/report.yaml | envsubst '${INTERVAL} ${INSOLAR_START_TIME} ${INSOLAR_NETWORK_SIZE_INT} ${GITHUB_SHA} ${GITHUB_REF##*/}' >> config.yaml
+          cat ledger-core/scripts/deploy/kube/report.yaml | envsubst '${INTERVAL} ${INSOLAR_START_TIME} ${INSOLAR_NETWORK_SIZE_INT} ${GITHUB_SHA} ${INSOLAR_BRANCH}' >> config.yaml
           metricreplicator --config config.yaml
         env:
           INTERVAL: "3m"
