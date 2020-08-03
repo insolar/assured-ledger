@@ -53,8 +53,8 @@ jobs:
           echo "::set-env name=INSOLAR_NETWORK_SIZE::${TARGET}"
           echo "::set-env name=INSOLAR_NAMESPACE::${GITHUB_SHA:0:8}-${TARGET}"
           echo "::set-env name=INSOLAR_DESIRED_UPTIME::60" #300
-          echo "::set-env name=INSOLAR_BRANCH::$(git rev-parse --abbrev-ref HEAD)"
-          echo "::set-emv name=INSOLAR_NETWORK_SIZE_INT::$(echo $TARGET | awk '{gsub(/[^[0-9]]*/,"");print}')"
+          echo "::set-env name=INSOLAR_BRANCH::$(echo "pull-$(echo ${{github.ref}} | cut -d '/' -f3)")"
+          echo "::set-env name=INSOLAR_NETWORK_SIZE_INT::$(echo $TARGET | awk '{gsub(/[^[0-9]]*/,"");print}')"
       - name: Preparation - copy docker auth secret
         run: |
           docker login $ACR_HOST --username ${{secrets.ACR_SP_ID}} --password ${{secrets.ACR_SP_SECRET}}
