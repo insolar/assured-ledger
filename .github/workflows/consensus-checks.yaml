@@ -12,6 +12,8 @@ env:
   GOPROXY: https://proxy.golang.org,https://gocenter.io,direct
   CORE_PATH: /home/runner/work/assured-ledger/assured-ledger/ledger-core
   ACR_HOST: usciregistry.azurecr.io
+  PROMETHEUS_USER: ${{secrets.PROMETHEUS_USER}}	
+  PROMETHEUS_PASS: ${{secrets.PROMETHEUS_PASS}}
 jobs:
   prepare:
     name: prepare # don't change, this name is used in repository restricts!
