@@ -75,6 +75,8 @@ jobs:
         run:  echo "::set-env name=INSOLAR_START_TIME::$(date +'%s')"
       - name: Keep network running for a desired period of time
         run:  sleep $INSOLAR_DESIRED_UPTIME
+      - name: Add bin to path
+        run: echo "::add-path::$GITHUB_WORKSPACE/bin"
       - name: Grab utility binaries
         run: |
           wget -q https://github.com/insolar/consensus-reports/releases/download/v1.0.2/{report,metricreplicator} -P bin/
