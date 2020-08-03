@@ -84,7 +84,7 @@ jobs:
       - name: gather metrics and generate report (IF THIS STEP FAILED - CALL DEV, READ LOGS BLUE ALERT)
         run: |
           cat ledger-core/scripts/deploy/kube/report.yaml | envsubst '${PROMETHEUS_USER} ${PROMETHEUS_PASS} ${INSOLAR_START_TIME} ${WEBDAV_USERNAME} ${WEBDAV_PASSWORD} ${GITHUB_SHA} ${GITHUB_REF##*/}' >> config.yaml
-          metricreplicator --config config.yaml
+          metricreplicator --cfg config.yaml
       - name: mandatory debug
         if: always()
         run: kubectl get all --all-namespaces
