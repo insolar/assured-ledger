@@ -142,28 +142,18 @@ func (s *SMVStateReport) updateSharedState(
 	state.OrderedPendingEarliestPulse = s.Payload.OrderedPendingEarliestPulse
 	state.UnorderedPendingEarliestPulse = s.Payload.UnorderedPendingEarliestPulse
 
-	var (
-		dirtyDeactivated     bool
-		validatedDeactivated bool
-	)
 	if s.gotLatestDirty() {
 		dirty := *s.Payload.ProvidedContent.LatestDirtyState
 		desc := buildObjectDescriptor(objectRef, dirty)
 		state.SetDescriptorDirty(desc)
-		dirtyDeactivated = state.Deactivated
 	}
 	if s.gotLatestValidated() {
 		validated := *s.Payload.ProvidedContent.LatestValidatedState
 		desc := buildObjectDescriptor(objectRef, validated)
 		state.SetDescriptorValidated(desc)
-		validatedDeactivated = state.Deactivated
 	}
 
-	if dirtyDeactivated && validatedDeactivated {
-		state.SetState(object.Inactive)
-	} else {
-		state.SetState(objState)
-	}
+	state.SetState(objState)
 }
 
 func (s *SMVStateReport) gotLatestDirty() bool {
