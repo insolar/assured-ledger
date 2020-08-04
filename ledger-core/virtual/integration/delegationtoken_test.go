@@ -425,8 +425,9 @@ func TestDelegationToken_OldVEVDelegatedCallRequest(t *testing.T) {
 			server.Init(ctx)
 
 			var (
-				objectRef   = gen.UniqueGlobalRefWithPulse(server.GetPulse().PulseNumber)
+				object      = server.RandomGlobalWithPulse()
 				outgoing    = server.BuildRandomOutgoingWithPulse()
+				incoming    = reference.NewRecordOf(object, outgoing.GetLocal())
 				executorRef = server.RandomGlobalWithPulse()
 				firstPulse  = server.GetPulse()
 
@@ -442,27 +443,27 @@ func TestDelegationToken_OldVEVDelegatedCallRequest(t *testing.T) {
 				QueryRoleMock.Return([]reference.Global{approver}, nil)
 
 			if test.haveCorrectDT {
-				delegationToken = server.DelegationToken(outgoing, executorRef, objectRef)
+				delegationToken = server.DelegationToken(outgoing, executorRef, object)
 			}
 
 			server.IncrementPulse(ctx)
 
 			if test.haveCorrectDT {
-				expectedToken = server.DelegationToken(outgoing, executorRef, objectRef)
+				expectedToken = server.DelegationToken(outgoing, executorRef, object)
 				require.NotEqual(t, delegationToken.PulseNumber, expectedToken.PulseNumber)
 				require.Equal(t, delegationToken.DelegateTo, expectedToken.DelegateTo)
 			}
 
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 			typedChecker.VDelegatedCallResponse.Set(func(response *payload.VDelegatedCallResponse) bool {
-				assert.Equal(t, objectRef, response.Callee)
+				assert.Equal(t, object, response.Callee)
 				assert.Equal(t, expectedToken, response.ResponseDelegationSpec)
 				return false
 			})
 
 			statePl := payload.VStateReport{
 				Status:                      payload.Empty,
-				Object:                      objectRef,
+				Object:                      object,
 				AsOf:                        firstPulse.PulseNumber,
 				OrderedPendingCount:         1,
 				OrderedPendingEarliestPulse: firstPulse.PulseNumber,
@@ -471,8 +472,9 @@ func TestDelegationToken_OldVEVDelegatedCallRequest(t *testing.T) {
 			server.WaitActiveThenIdleConveyor()
 
 			pl := payload.VDelegatedCallRequest{
-				Callee:         objectRef,
+				Callee:         object,
 				CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+				CallIncoming:   incoming,
 				CallOutgoing:   outgoing,
 				DelegationSpec: delegationToken,
 			}
