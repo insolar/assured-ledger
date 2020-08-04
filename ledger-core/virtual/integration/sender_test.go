@@ -146,6 +146,11 @@ func TestVirtual_SenderCheck_With_ExpectedVE(t *testing.T) {
 						m.Outgoing = gen.UniqueGlobalRefWithPulse(pulse)
 
 						testMsg.msg = m
+					case *payload.VFindCallResponse:
+						m.LookedAt = server.GetPrevPulse().PulseNumber
+						m.Status = payload.MissingCall
+						m.Callee = reference.NewSelf(gen.UniqueLocalRefWithPulse(m.LookedAt))
+						m.Outgoing = reference.New(gen.UniqueLocalRefWithPulse(m.LookedAt), gen.UniqueLocalRefWithPulse(m.LookedAt))
 					}
 
 					server.SendPayload(ctx, testMsg.msg.(payload.Marshaler)) // default caller == server.GlobalCaller()
