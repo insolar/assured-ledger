@@ -408,7 +408,7 @@ func TestVirtual_CallDeactivate_Intolerable(t *testing.T) {
 		state contract.StateFlag
 	}{
 		{name: "ValidatedState", state: contract.CallValidated},
-		{name: "ValidatedState", state: contract.CallDirty},
+		{name: "DirtyState", state: contract.CallDirty},
 	}
 
 	for _, testCase := range table {
