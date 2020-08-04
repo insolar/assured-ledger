@@ -291,9 +291,17 @@ func (test *DeduplicationDifferentPulsesCase) run(t *testing.T) {
 	}
 
 	if test.VDelegatedRequestFinished != nil {
-		test.VDelegatedRequestFinished.CallOutgoing = outgoing
-		test.VDelegatedRequestFinished.Callee = object
-		test.VDelegatedRequestFinished.CallFlags = payload.BuildCallFlags(isolation.Interference, isolation.State)
+		test.VDelegatedRequestFinished = &payload.VDelegatedRequestFinished{
+			CallType:     payload.CTConstructor,
+			CallFlags:    payload.BuildCallFlags(isolation.Interference, isolation.State),
+			Callee:       object,
+			CallOutgoing: outgoing,
+			CallIncoming: reference.NewRecordOf(object, outgoingLocal),
+			LatestState: &payload.ObjectState{
+				Class: class,
+				State: ExecutionResultFromPreviousNode,
+			},
+		}
 	}
 
 	if test.ExecutionExpected {

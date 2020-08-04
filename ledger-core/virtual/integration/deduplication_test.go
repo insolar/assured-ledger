@@ -470,12 +470,13 @@ type deduplicateMethodUsingPrevVETest struct {
 	runnerMock   *logicless.ServiceMock
 	typedChecker *checker.Typed
 
-	p1       pulse.Number
-	class    reference.Global
-	caller   reference.Global
-	object   reference.Global
-	outgoing reference.Global
-	pending  reference.Global
+	p1              pulse.Number
+	class           reference.Global
+	caller          reference.Global
+	object          reference.Global
+	outgoing        reference.Global
+	pendingOutgoing reference.Global
+	pendingIncoming reference.Global
 
 	numberOfExecutions int
 }
@@ -568,6 +569,13 @@ func (s *deduplicateMethodUsingPrevVETest) getOutgoingRef() reference.Global {
 	return reference.NewRecordOf(s.getCaller(), s.outgoing.GetLocal())
 }
 
+func (s *deduplicateMethodUsingPrevVETest) getIncomingRef() reference.Global {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	return reference.NewRecordOf(s.getObject(), s.outgoing.GetLocal())
+}
+
 func (s *deduplicateMethodUsingPrevVETest) getOutgoingLocal() reference.Global {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -593,14 +601,18 @@ func (s *deduplicateMethodUsingPrevVETest) confirmPending(
 	ctx context.Context, testInfo deduplicateMethodUsingPrevVETestInfo,
 ) {
 	if testInfo.pendingIsTheRequest {
-		s.pending = s.getOutgoingRef()
+		s.pendingOutgoing = s.getOutgoingRef()
+		s.pendingIncoming = s.getIncomingRef()
 	} else {
-		s.pending = reference.NewRecordOf(s.getObject(), gen.UniqueLocalRefWithPulse(s.getP1()))
+		local := gen.UniqueLocalRefWithPulse(s.getP1())
+		s.pendingOutgoing = reference.NewRecordOf(s.getCaller(), local)
+		s.pendingIncoming = reference.NewRecordOf(s.getObject(), local)
 	}
 
 	pl := payload.VDelegatedCallRequest{
 		Callee:       s.getObject(),
-		CallOutgoing: s.pending,
+		CallOutgoing: s.pendingOutgoing,
+		CallIncoming: s.pendingIncoming,
 		CallFlags:    payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
 	}
 
@@ -612,7 +624,9 @@ func (s *deduplicateMethodUsingPrevVETest) finishPending(
 ) {
 	pl := payload.VDelegatedRequestFinished{
 		Callee:       s.getObject(),
-		CallOutgoing: s.pending,
+		CallOutgoing: s.pendingOutgoing,
+		CallIncoming: s.pendingIncoming,
+		CallType:     payload.CTMethod,
 		CallFlags:    payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
 	}
 	s.addPayloadAndWaitIdle(ctx, &pl)
