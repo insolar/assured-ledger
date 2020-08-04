@@ -98,7 +98,7 @@ jobs:
         env:
           REPORT_GIT_BRANCH: ${{env.INSOLAR_BRANCH}}
           REPORT_GIT_HASH: ${{env.INSOLAR_TAG}}
-      - name; report URL
+      - name: report URL
         run: echo $REPORT_WEBDAV_DIRECTORY
       - name: mandatory debug
         if: always()
