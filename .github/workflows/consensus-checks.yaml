@@ -99,6 +99,9 @@ jobs:
           REPORT_PROMETHEUS_HOST: "https://${{secrets.PROMETHEUS_USER}}:${{secrets.PROMETHEUS_PASS}}@prometheus.uscifarm.insolar.io/prometheus"
       - name: generate report
         run: report
+        env:
+          REPORT_GIT_BRANCH: ${{env.INSOLAR_BRANCH}}
+          REPORT_GIT_HASH: ${{env.INSOLAR_TAG}}
       - name: mandatory debug
         if: always()
         run: kubectl get all --all-namespaces
