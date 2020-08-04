@@ -2014,7 +2014,6 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
-	server.IncrementPulseAndWaitIdle(ctx)
 
 	var (
 		objectGlobal = reference.NewSelf(server.RandomLocalWithPulse())
