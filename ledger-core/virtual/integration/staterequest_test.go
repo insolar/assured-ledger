@@ -180,36 +180,29 @@ func TestVirtual_VStateRequest_WhenObjectIsDeactivated(t *testing.T) {
 			var (
 				objectGlobal = reference.NewSelf(server.RandomLocalWithPulse())
 				pulseNumber  = server.GetPulse().PulseNumber
+				vStateReport = &payload.VStateReport{
+					AsOf:            pulseNumber,
+					Status:          payload.Inactive,
+					Object:          objectGlobal,
+					ProvidedContent: nil,
+				}
 			)
 			server.IncrementPulse(ctx)
 			p2 := server.GetPulse().PulseNumber
 
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+			reportCount := 0
 			typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
-				assert.Equal(t, objectGlobal, report.Object)
-				assert.Equal(t, payload.Inactive, report.Status)
-				assert.Empty(t, report.ProvidedContent)
-				assert.Empty(t, report.LatestDirtyState)
-				assert.Empty(t, report.LatestDirtyCode)
-				assert.Empty(t, report.LatestValidatedCode)
-				assert.Empty(t, report.LatestValidatedState)
+				vStateReport.AsOf = p2
+				assert.Equal(t, vStateReport, report)
+				reportCount++
 				return false
 			})
 
-			reportSend := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
-
-			// Send VStateReport with Dirty, Validated states
+			// Send VStateReport
 			{
-				pl := &payload.VStateReport{
-					AsOf:   pulseNumber,
-					Status: payload.Inactive,
-					Object: objectGlobal,
-					ProvidedContent: &payload.VStateReport_ProvidedContentBody{
-						LatestDirtyState:     nil,
-						LatestValidatedState: nil,
-					},
-				}
-				server.SendPayload(ctx, pl)
+				server.SendPayload(ctx, vStateReport)
+				reportSend := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
 				commontestutils.WaitSignalsTimed(t, 10*time.Second, reportSend)
 			}
 
