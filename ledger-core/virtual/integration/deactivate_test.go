@@ -462,9 +462,7 @@ func TestVirtual_CallDeactivate_Intolerable(t *testing.T) {
 			// Add VCallResult check
 			{
 				typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool {
-					contractErr, sysErr := foundation.UnmarshalMethodResult(result.ReturnArguments)
-					require.NoError(t, sysErr)
-					require.Equal(t, "intolerable call trying to change object state", contractErr.Error())
+					require.Equal(t, []byte("finish Deactivate"), result.ReturnArguments)
 
 					return false
 				})
@@ -472,15 +470,28 @@ func TestVirtual_CallDeactivate_Intolerable(t *testing.T) {
 
 			// Add executor mock for method `Destroy`
 			{
-				requestResult := requestresult.New([]byte("done"), objectGlobal)
+				runnerMock.AddExecutionClassify("Destroy", contract.MethodIsolation{Interference: contract.CallIntolerable, State: testCase.state}, nil)
+
+				requestResult := requestresult.New([]byte("outgoing call"), objectGlobal)
 				requestResult.SetDeactivate(descriptor.NewObject(objectGlobal, server.RandomLocalWithPulse(), class, []byte("initial state"), false))
-				runnerMock.AddExecutionMock("Destroy").AddStart(func(ctx execution.Context) {},
+				runnerMock.AddExecutionMock("Destroy").AddStart(
+					nil,
+					&execution.Update{
+						Type:     execution.OutgoingCall,
+						Result:   requestResult,
+						Outgoing: execution.NewRPCBuilder(server.BuildRandomOutgoingWithPulse(), objectGlobal).Deactivate(),
+					},
+				).AddContinue(
+					func(result []byte) {
+						contractErr, sysErr := foundation.UnmarshalMethodResult(result)
+						require.NoError(t, sysErr)
+						require.Equal(t, "interference violation: deactivate call from intolerable call", contractErr.Error())
+					},
 					&execution.Update{
 						Type:   execution.Done,
-						Result: requestResult,
+						Result: requestresult.New([]byte("finish Deactivate"), objectGlobal),
 					},
 				)
-				runnerMock.AddExecutionClassify("Destroy", contract.MethodIsolation{Interference: contract.CallIntolerable, State: testCase.state}, nil)
 			}
 
 			// Deactivate object with wrong callFlags
