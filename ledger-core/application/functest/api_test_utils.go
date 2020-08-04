@@ -15,7 +15,6 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
-	"strconv"
 	"time"
 
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -86,7 +85,7 @@ func doReq(req *http.Request) ([]byte, error) {
 
 	defer postResp.Body.Close()
 	if http.StatusOK != postResp.StatusCode {
-		return nil, errors.New("bad http response code: " + strconv.Itoa(postResp.StatusCode))
+		return nil, errors.New("bad http response: " + postResp.Status)
 	}
 
 	body, err := ioutil.ReadAll(postResp.Body)

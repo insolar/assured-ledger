@@ -60,7 +60,7 @@ func (s *TestWalletServer) RegisterHandlers(httpServerMux *http.ServeMux) {
 
 func (s *TestWalletServer) Start(ctx context.Context) error {
 	s.RegisterHandlers(s.mux)
-	s.server.Handler = s.mux
+	s.server.Handler = s.NodeReadyMiddleware(s.mux)
 
 	listener, err := net.Listen("tcp", s.server.Addr)
 	if err != nil {
@@ -86,4 +86,18 @@ func (s *TestWalletServer) Stop(ctx context.Context) error {
 		return errors.W(err, "Can't gracefully stop API server")
 	}
 	return nil
+}
+
+func (s *TestWalletServer) NodeReadyMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if _, err := s.accessor.Latest(context.Background()); err != nil {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, err := w.Write([]byte(`{"error":"node is not ready"}`))
+			if err != nil {
+				panic(err)
+			}
+		}
+
+		next.ServeHTTP(w, r)
+	})
 }
