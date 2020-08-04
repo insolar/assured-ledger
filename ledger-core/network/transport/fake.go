@@ -11,6 +11,8 @@ import (
 	"io"
 	"net"
 	"sync"
+	"sync/atomic"
+	"time"
 
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
@@ -23,6 +25,7 @@ var (
 	datagramHandlers = make(map[string]DatagramHandler)
 	tcpMutex         sync.RWMutex
 	streamHandlers   = make(map[string]StreamHandler)
+	listenersCount   = int32(0)
 )
 
 // NewFakeFactory constructor creates new fake transport factory
@@ -107,6 +110,7 @@ func (f *fakeStreamTransport) Start(ctx context.Context) error {
 
 	f.ctx, f.cancel = context.WithCancel(ctx)
 	streamHandlers[f.address] = f.handler
+	atomic.AddInt32(&listenersCount, 1)
 	return nil
 }
 
@@ -116,6 +120,7 @@ func (f *fakeStreamTransport) Stop(ctx context.Context) error {
 
 	f.cancel()
 	streamHandlers[f.address] = nil
+	atomic.AddInt32(&listenersCount, -1)
 	return nil
 }
 
@@ -139,4 +144,26 @@ func (f *fakeStreamTransport) Dial(ctx context.Context, address string) (io.Read
 
 func (f *fakeStreamTransport) Address() string {
 	return f.address
+}
+
+// WaitFakeListeners wait for streamTransports will be started
+// this is used to prevent race in tests
+func WaitFakeListeners(count int32, timeout time.Duration) error {
+	c := make(chan error)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	go func(ctx context.Context) {
+		for ;atomic.LoadInt32(&listenersCount) != count && ctx.Err() == nil; {
+			<-time.After(time.Microsecond*100)
+		}
+		c <- ctx.Err()
+	}(ctx)
+
+	select {
+		case err := <-c:
+			return err
+		case <-ctx.Done():
+			return errors.W(ctx.Err(), "WaitFakeListeners timeout")
+	}
 }
