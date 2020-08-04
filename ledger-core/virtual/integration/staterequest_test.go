@@ -6,7 +6,6 @@
 package integration
 
 import (
-	"strings"
 	"testing"
 	"time"
 
@@ -175,15 +174,12 @@ func TestVirtual_VStateRequest_WhenObjectIsDeactivated(t *testing.T) {
 
 			mc := minimock.NewController(t)
 
-			server, ctx := utils.NewServerWithErrorFilter(nil, t, func(s string) bool {
-				return !strings.Contains(s, "(*SMExecute).stepSaveNewObject")
-			})
+			server, ctx := utils.NewServer(nil, t)
 			defer server.Stop()
 
 			var (
-				objectGlobal     = reference.NewSelf(server.RandomLocalWithPulse())
-				pulseNumber      = server.GetPulse().PulseNumber
-				waitVStateReport = make(chan struct{})
+				objectGlobal = reference.NewSelf(server.RandomLocalWithPulse())
+				pulseNumber  = server.GetPulse().PulseNumber
 			)
 			server.IncrementPulse(ctx)
 			p2 := server.GetPulse().PulseNumber
@@ -197,8 +193,6 @@ func TestVirtual_VStateRequest_WhenObjectIsDeactivated(t *testing.T) {
 				assert.Empty(t, report.LatestDirtyCode)
 				assert.Empty(t, report.LatestValidatedCode)
 				assert.Empty(t, report.LatestValidatedState)
-
-				waitVStateReport <- struct{}{}
 				return false
 			})
 
@@ -220,7 +214,7 @@ func TestVirtual_VStateRequest_WhenObjectIsDeactivated(t *testing.T) {
 			}
 
 			server.IncrementPulse(ctx)
-			commontestutils.WaitSignalsTimed(t, 10*time.Second, waitVStateReport)
+			commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 1))
 
 			// VStateRequest
 			{
@@ -231,8 +225,7 @@ func TestVirtual_VStateRequest_WhenObjectIsDeactivated(t *testing.T) {
 				}
 				server.SendPayload(ctx, payload)
 			}
-
-			commontestutils.WaitSignalsTimed(t, 10*time.Second, waitVStateReport)
+			commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 2))
 			commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 			assert.Equal(t, 2, typedChecker.VStateReport.Count())
