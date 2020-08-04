@@ -944,9 +944,10 @@ func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionConte
 		}
 
 		lastState = &payload.ObjectState{
-			Reference: s.executionNewState.Result.ObjectStateID,
-			State:     s.executionNewState.Result.Memory,
-			Class:     class,
+			Reference:   s.executionNewState.Result.ObjectStateID,
+			State:       s.executionNewState.Result.Memory,
+			Class:       class,
+			Deactivated: s.executionNewState.Result.SideEffectType == requestresult.SideEffectDeactivate,
 		}
 	}
 
