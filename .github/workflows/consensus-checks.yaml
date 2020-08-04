@@ -14,6 +14,10 @@ env:
   ACR_HOST: usciregistry.azurecr.io
   PROMETHEUS_USER: ${{secrets.PROMETHEUS_USER}}	
   PROMETHEUS_PASS: ${{secrets.PROMETHEUS_PASS}}
+  REPORT_WEBDAV_HOST: "https://reports.garage.insolar.io"
+  REPORT_WEBDAV_USERNAME: "${{secrets.WEBDAV_USERNAME}}"
+  REPORT_WEBDAV_PASSWORD: "${{secrets.WEBDAV_PASSWORD}}"
+  REPORT_WEBDAV_TIMEOUT: "1m"
 jobs:
   prepare:
     name: prepare # don't change, this name is used in repository restricts!
@@ -90,14 +94,11 @@ jobs:
         run: |
           cat ledger-core/scripts/deploy/kube/report.yaml | envsubst '${INTERVAL} ${INSOLAR_START_TIME} ${INSOLAR_NETWORK_SIZE_INT} ${INSOLAR_BRANCH} ${INSOLAR_TAG}' >> config.yaml
           metricreplicator --config config.yaml
-          report
         env:
           INTERVAL: "3m"
           REPORT_PROMETHEUS_HOST: "https://${{secrets.PROMETHEUS_USER}}:${{secrets.PROMETHEUS_PASS}}@prometheus.uscifarm.insolar.io/prometheus"
-          REPORT_WEBDAV_HOST: "https://reports.garage.insolar.io"
-          REPORT_WEBDAV_USERNAME: "${{secrets.WEBDAV_USERNAME}}"
-          REPORT_WEBDAV_PASSWORD: "${{secrets.WEBDAV_PASSWORD}}"
-          REPORT_WEBDAV_TIMEOUT: "1m"
+      - name: generate report
+        run: report
       - name: mandatory debug
         if: always()
         run: kubectl get all --all-namespaces
