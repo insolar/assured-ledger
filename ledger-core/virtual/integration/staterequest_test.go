@@ -191,11 +191,9 @@ func TestVirtual_VStateRequest_WhenObjectIsDeactivated(t *testing.T) {
 			p2 := server.GetPulse().PulseNumber
 
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-			reportCount := 0
 			typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
 				vStateReport.AsOf = p2
 				assert.Equal(t, vStateReport, report)
-				reportCount++
 				return false
 			})
 
