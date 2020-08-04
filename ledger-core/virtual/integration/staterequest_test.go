@@ -155,3 +155,71 @@ func TestVirtual_VStateRequest_Unknown(t *testing.T) {
 		t.Fatal("timeout waiting for VStateReport")
 	}
 }
+
+func TestVirtual_VStateRequest_WhenObjectIsDeactivated(t *testing.T) {
+	t.Log("C5474")
+	table := []struct {
+		name         string
+		requestState payload.StateRequestContentFlags
+	}{
+		{name: "Request_State = dirty",
+			requestState: payload.RequestLatestDirtyState},
+		{name: "Request_State = validated",
+			requestState: payload.RequestLatestValidatedState},
+	}
+
+	for _, test := range table {
+		t.Run(test.name, func(t *testing.T) {
+			defer commontestutils.LeakTester(t)
+
+			mc := minimock.NewController(t)
+
+			server, ctx := utils.NewServer(nil, t)
+			defer server.Stop()
+
+			var (
+				objectGlobal = reference.NewSelf(server.RandomLocalWithPulse())
+				pulseNumber  = server.GetPulse().PulseNumber
+				vStateReport = &payload.VStateReport{
+					AsOf:            pulseNumber,
+					Status:          payload.Inactive,
+					Object:          objectGlobal,
+					ProvidedContent: nil,
+				}
+			)
+			server.IncrementPulse(ctx)
+			p2 := server.GetPulse().PulseNumber
+
+			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+			typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
+				vStateReport.AsOf = p2
+				assert.Equal(t, vStateReport, report)
+				return false
+			})
+
+			// Send VStateReport
+			{
+				server.SendPayload(ctx, vStateReport)
+				reportSend := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
+				commontestutils.WaitSignalsTimed(t, 10*time.Second, reportSend)
+			}
+
+			server.IncrementPulse(ctx)
+			commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 1))
+
+			// VStateRequest
+			{
+				payload := &payload.VStateRequest{
+					AsOf:             p2,
+					Object:           objectGlobal,
+					RequestedContent: test.requestState,
+				}
+				server.SendPayload(ctx, payload)
+			}
+			commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 2))
+			commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+
+			assert.Equal(t, 2, typedChecker.VStateReport.Count())
+		})
+	}
+}
