@@ -459,7 +459,7 @@ func TestVirtual_CallDeactivate_Intolerable(t *testing.T) {
 
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
-			// Add VStateReport check
+			// Add VCallResult check
 			{
 				typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool {
 					contractErr, sysErr := foundation.UnmarshalMethodResult(result.ReturnArguments)
