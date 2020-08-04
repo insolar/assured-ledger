@@ -7,7 +7,6 @@ package integration
 
 import (
 	"errors"
-	"strings"
 	"testing"
 	"time"
 
@@ -53,9 +52,7 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 
 			mc := minimock.NewController(t)
 
-			server, ctx := utils.NewServerWithErrorFilter(nil, t, func(s string) bool {
-				return !strings.Contains(s, "(*SMExecute).stepSaveNewObject")
-			})
+			server, ctx := utils.NewServer(nil, t)
 			defer server.Stop()
 
 			var (
@@ -400,4 +397,120 @@ func TestVirtual_CallMethod_On_DeactivatedDirtyState(t *testing.T) {
 	}
 
 	mc.Finish()
+}
+
+func TestVirtual_CallDeactivate_Intolerable(t *testing.T) {
+	t.Log("C5469")
+
+	table := []struct {
+		name  string
+		state contract.StateFlag
+	}{
+		{name: "ValidatedState", state: contract.CallValidated},
+		{name: "DirtyState", state: contract.CallDirty},
+	}
+
+	for _, testCase := range table {
+		t.Run(testCase.name, func(t *testing.T) {
+			defer testutils.LeakTester(t)
+
+			mc := minimock.NewController(t)
+
+			server, ctx := utils.NewUninitializedServer(nil, t)
+			defer server.Stop()
+
+			runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
+				return execution.Request.CallSiteMethod
+			})
+			server.ReplaceRunner(runnerMock)
+			server.Init(ctx)
+
+			var (
+				class        = gen.UniqueGlobalRef()
+				objectGlobal = reference.NewSelf(server.RandomLocalWithPulse())
+				prevPulse    = server.GetPulse().PulseNumber
+			)
+
+			// Create object
+			{
+				server.IncrementPulse(ctx)
+
+				report := &payload.VStateReport{
+					Status: payload.Ready,
+					Object: objectGlobal,
+					AsOf:   prevPulse,
+					ProvidedContent: &payload.VStateReport_ProvidedContentBody{
+						LatestDirtyState: &payload.ObjectState{
+							Reference: reference.Local{},
+							Class:     class,
+							State:     []byte("initial state"),
+						},
+						LatestValidatedState: &payload.ObjectState{
+							Reference: reference.Local{},
+							Class:     class,
+							State:     []byte("initial state"),
+						},
+					},
+				}
+				wait := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
+				server.SendPayload(ctx, report)
+				testutils.WaitSignalsTimed(t, 10*time.Second, wait)
+			}
+
+			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+
+			// Add VCallResult check
+			{
+				typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool {
+					require.Equal(t, []byte("finish Deactivate"), result.ReturnArguments)
+
+					return false
+				})
+			}
+
+			// Add executor mock for method `Destroy`
+			{
+				runnerMock.AddExecutionClassify("Destroy", contract.MethodIsolation{Interference: contract.CallIntolerable, State: testCase.state}, nil)
+
+				requestResult := requestresult.New([]byte("outgoing call"), objectGlobal)
+				requestResult.SetDeactivate(descriptor.NewObject(objectGlobal, server.RandomLocalWithPulse(), class, []byte("initial state"), false))
+				runnerMock.AddExecutionMock("Destroy").AddStart(
+					nil,
+					&execution.Update{
+						Type:     execution.OutgoingCall,
+						Result:   requestResult,
+						Outgoing: execution.NewRPCBuilder(server.BuildRandomOutgoingWithPulse(), objectGlobal).Deactivate(),
+					},
+				).AddContinue(
+					func(result []byte) {
+						contractErr, sysErr := foundation.UnmarshalMethodResult(result)
+						require.NoError(t, sysErr)
+						require.Equal(t, "interference violation: deactivate call from intolerable call", contractErr.Error())
+					},
+					&execution.Update{
+						Type:   execution.Done,
+						Result: requestresult.New([]byte("finish Deactivate"), objectGlobal),
+					},
+				)
+			}
+
+			// Deactivate object with wrong callFlags
+			{
+				pl := &payload.VCallRequest{
+					CallType:            payload.CTMethod,
+					CallFlags:           payload.BuildCallFlags(contract.CallIntolerable, testCase.state),
+					Callee:              objectGlobal,
+					CallSiteDeclaration: class,
+					CallSiteMethod:      "Destroy",
+					CallOutgoing:        server.BuildRandomOutgoingWithPulse(),
+					Arguments:           insolar.MustSerialize([]interface{}{}),
+				}
+				server.SendPayload(ctx, pl)
+				testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitStopOf(&execute.SMExecute{}, 1))
+			}
+
+			testutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+			mc.Finish()
+		})
+	}
 }
