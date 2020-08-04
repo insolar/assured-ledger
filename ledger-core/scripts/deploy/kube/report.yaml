@@ -6,9 +6,6 @@ quantiles:
 tmpdir: "/tmp/metricreplicator"
 groups:
   - description: "Network size grows with fixed latency"
-    network:
-      - name: "latency"
-        value: "50ms"
     ranges:
       - starttime: ${INSOLAR_START_TIME}
         interval: "${INTERVAL}"
@@ -17,6 +14,4 @@ groups:
             value: "${INSOLAR_NETWORK_SIZE_INT}"
 git:
   branch: "${INSOLAR_BRANCH}"
-  hash: "consensus-checks/${INSOLAR_BRANCH}-${INSOLAR_TAG}"
-webdav:
-  directory: "consensus-checks"
+  hash: "${INSOLAR_TAG}"

@@ -55,6 +55,7 @@ jobs:
           echo "::set-env name=INSOLAR_DESIRED_UPTIME::60" #300
           echo "::set-env name=INSOLAR_BRANCH::$(echo "pull-$(echo ${{github.ref}} | cut -d '/' -f3)")"
           echo "::set-env name=INSOLAR_NETWORK_SIZE_INT::$(echo $TARGET | awk '{gsub(/[^[0-9]]*/,"");print}')"
+          echo "::set-env name=REPORT_WEBDAV_DIRECTORY::$(date +"%Y%m%d-%H%M")-pull-$(echo ${{github.ref}} | cut -d '/' -f3)-${GITHUB_SHA:0:8}"
       - name: Preparation - copy docker auth secret
         run: |
           docker login $ACR_HOST --username ${{secrets.ACR_SP_ID}} --password ${{secrets.ACR_SP_SECRET}}
@@ -89,13 +90,13 @@ jobs:
         run: |
           cat ledger-core/scripts/deploy/kube/report.yaml | envsubst '${INTERVAL} ${INSOLAR_START_TIME} ${INSOLAR_NETWORK_SIZE_INT} ${INSOLAR_BRANCH} ${INSOLAR_TAG}' >> config.yaml
           metricreplicator --config config.yaml
+          report
         env:
           INTERVAL: "3m"
           REPORT_PROMETHEUS_HOST: "https://${{secrets.PROMETHEUS_USER}}:${{secrets.PROMETHEUS_PASS}}@prometheus.uscifarm.insolar.io/prometheus"
           REPORT_WEBDAV_HOST: "https://reports.garage.insolar.io"
           REPORT_WEBDAV_USERNAME: "${{secrets.WEBDAV_USERNAME}}"
           REPORT_WEBDAV_PASSWORD: "${{secrets.WEBDAV_PASSWORD}}"
-          REPORT_WEBDAV_DIRECTORY: "consensus-checks"
           REPORT_WEBDAV_TIMEOUT: "1m"
       - name: mandatory debug
         if: always()
