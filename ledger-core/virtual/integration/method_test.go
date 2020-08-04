@@ -2151,7 +2151,7 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 			Callee:              objectGlobal,
 			CallSiteDeclaration: class,
 			CallSiteMethod:      "GetValidatedMethod1",
-			CallOutgoing:        gen.UniqueGlobalRefWithPulse(server.GetPulse().PulseNumber),
+			CallOutgoing:        server.BuildRandomOutgoingWithPulse(),
 		}
 		server.SendPayload(ctx, pl)
 		commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
@@ -2164,7 +2164,7 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 			Callee:              objectGlobal,
 			CallSiteDeclaration: class,
 			CallSiteMethod:      "GetDirtyMethod1",
-			CallOutgoing:        gen.UniqueGlobalRefWithPulse(server.GetPulse().PulseNumber),
+			CallOutgoing:        server.BuildRandomOutgoingWithPulse(),
 		}
 		server.SendPayload(ctx, pl)
 		commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
@@ -2180,7 +2180,7 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 			Callee:              objectGlobal,
 			CallSiteDeclaration: class,
 			CallSiteMethod:      "ChangeMethod",
-			CallOutgoing:        gen.UniqueGlobalRefWithPulse(server.GetPulse().PulseNumber),
+			CallOutgoing:        server.BuildRandomOutgoingWithPulse(),
 		}
 		server.SendPayload(ctx, pl)
 		commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
@@ -2196,7 +2196,7 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 			Callee:              objectGlobal,
 			CallSiteDeclaration: class,
 			CallSiteMethod:      "GetValidatedMethod2",
-			CallOutgoing:        gen.UniqueGlobalRefWithPulse(server.GetPulse().PulseNumber),
+			CallOutgoing:        server.BuildRandomOutgoingWithPulse(),
 		}
 		server.SendPayload(ctx, pl)
 		commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
@@ -2209,7 +2209,7 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 			Callee:              objectGlobal,
 			CallSiteDeclaration: class,
 			CallSiteMethod:      "GetDirtyMethod2",
-			CallOutgoing:        gen.UniqueGlobalRefWithPulse(server.GetPulse().PulseNumber),
+			CallOutgoing:        server.BuildRandomOutgoingWithPulse(),
 		}
 		server.SendPayload(ctx, pl)
 		commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
