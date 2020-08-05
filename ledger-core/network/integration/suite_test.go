@@ -75,8 +75,6 @@ const cacheDir = "network_cache/"
 func initLogger(ctx context.Context, t *testing.T, level log.Level) context.Context {
 	instestlogger.SetTestOutputWithErrorFilter(t, func(s string) bool {
 		switch {
-		case strings.Contains(s, "mismatch"):
-			return true // must fail
 		case strings.Contains(s, "fraud"):
 			return true // must fail
 		case strings.Contains(s, "blame"):
@@ -98,8 +96,9 @@ type testSuite struct {
 	nodesCount     int
 	ctx            context.Context
 	bootstrapNodes []*networkNode
-	pulsar TestPulsar
-	t      *testing.T
+	pulsar         TestPulsar
+	t              *testing.T
+	abortFn        func(string)
 }
 
 type consensusSuite struct {
@@ -160,17 +159,19 @@ func (s *consensusSuite) Setup() {
 		for _, n := range s.bootstrapNodes {
 			n.serviceNetwork.BaseGateway.ConsensusMode = consensus.ReadyNetwork
 
-			pn := pulsestor.GenesisPulse.PulseNumber
 			pop := censusimpl.NewManyNodePopulation(bnodes, n.id, n.vf)
 
-			n.serviceNetwork.NodeKeeper.SetExpectedPopulation(context.Background(), pn, &pop)
-			n.serviceNetwork.NodeKeeper.AddActivePopulation(context.Background(), pn, &pop)
+			pu := pulsestor.GenesisPulse
+			pu.Online = &pop
 
-			err := n.serviceNetwork.BaseGateway.PulseAppender.Append(s.ctx, pulsestor.GenesisPulse)
+			n.serviceNetwork.NodeKeeper.SetExpectedPopulation(context.Background(), pu)
+			n.serviceNetwork.NodeKeeper.AddActivePopulation(context.Background(), pu)
+
+			err := n.serviceNetwork.BaseGateway.PulseAppender.Append(s.ctx, pu)
 			require.NoError(s.t, err)
 			err = n.serviceNetwork.BaseGateway.StartConsensus(s.ctx)
 			require.NoError(s.t, err)
-			n.serviceNetwork.Gatewayer.SwitchState(s.ctx, network.CompleteNetworkState, pulsestor.GenesisPulse.Data)
+			n.serviceNetwork.Gatewayer.SwitchState(s.ctx, network.CompleteNetworkState, pu.Data)
 
 			pulseReceivers = append(pulseReceivers, n.host)
 		}
@@ -604,15 +605,23 @@ func (s *testSuite) preInitNode(nd *networkNode) {
 func (s *testSuite) afterInitNode(nd *networkNode) {
 	aborter := network.NewAborterMock(s.t)
 	aborter.AbortMock.Set(func(ctx context.Context, reason string) {
-		panic(reason)
+		if s.abortFn != nil {
+			s.abortFn(reason)
+		} else {
+			inslogger.FromContext(nd.ctx).Fatal(reason)
+		}
 	})
 	nd.serviceNetwork.BaseGateway.Aborter = aborter
 
 	staticProfile := nd.serviceNetwork.BaseGateway.GetLocalNodeStaticProfile()
 	pop := censusimpl.NewManyNodePopulation([]profiles.StaticProfile{staticProfile}, staticProfile.GetStaticNodeID(), nd.vf)
+
+	pu := pulsestor.GenesisPulse
+	pu.Online = &pop
+
 	nodeKeeper := nd.serviceNetwork.BaseGateway.NodeKeeper
-	nodeKeeper.SetExpectedPopulation(context.Background(), pulse.MinTimePulse, &pop)
-	nodeKeeper.AddActivePopulation(context.Background(), pulse.MinTimePulse, &pop)
+	nodeKeeper.SetExpectedPopulation(context.Background(), pu)
+	nodeKeeper.AddActivePopulation(context.Background(), pu)
 }
 
 func (s *testSuite) AssertActiveNodesCountDelta(delta int) {

@@ -242,16 +242,16 @@ func (g *Base) CancelNodeState() {}
 func (g *Base) OnPulseFromConsensus(ctx context.Context, pu beat.Beat) {
 	g.pulseWatchdog.Reset()
 
-	g.NodeKeeper.AddActivePopulation(ctx, pu.PulseNumber, pu.Online)
+	g.NodeKeeper.AddActivePopulation(ctx, pu)
 	nodes := g.NodeKeeper.GetAccessor(pu.PulseNumber).GetOnlineNodes()
 	inslogger.FromContext(ctx).Debugf("OnPulseFromConsensus: %d : epoch %d : nodes %d", pu.PulseNumber, pu.PulseEpoch, len(nodes))
 }
 
 // UpdateState called then Consensus done
 func (g *Base) UpdateState(ctx context.Context, beat beat.Beat) {
-	g.NodeKeeper.SetExpectedPopulation(ctx, beat.PulseNumber, beat.Online)
+	g.NodeKeeper.SetExpectedPopulation(ctx, beat)
 	if !beat.IsFromPulsar() {
-		g.NodeKeeper.AddActivePopulation(ctx, beat.PulseNumber, beat.Online)
+		g.NodeKeeper.AddActivePopulation(ctx, beat)
 	}
 }
 

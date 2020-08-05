@@ -83,21 +83,22 @@ func (nk *nodekeeper) GetLatestAccessor() beat.NodeAccessor {
 	return nk.last
 }
 
-func (nk *nodekeeper) SetExpectedPopulation(ctx context.Context, _ pulse.Number, nodes census.OnlinePopulation) {
-	inslogger.FromContext(ctx).Debugf("SetExpectedPopulation, nodes: %d", nodes.GetIndexedCount())
+func (nk *nodekeeper) SetExpectedPopulation(ctx context.Context, beat beat.Beat) {
+	n := beat.Online.GetIndexedCount()
+	inslogger.FromContext(ctx).Debugf("SetExpectedPopulation, nodes: %d", n)
 
 	nk.mutex.Lock()
 	defer nk.mutex.Unlock()
-	nk.expected = nodes.GetIndexedCount()
+	nk.expected = n
 }
 
-func (nk *nodekeeper) AddActivePopulation(ctx context.Context, pn pulse.Number, population census.OnlinePopulation) {
-	before, err := nk.moveSyncToActive(pn, population)
+func (nk *nodekeeper) AddActivePopulation(ctx context.Context, beat beat.Beat) {
+	before, err := nk.moveSyncToActive(beat.PulseNumber, beat.Online)
 	if err != nil {
 		inslogger.FromContext(ctx).Panic("AddActivePopulation(): ", err.Error())
 	}
 
-	after := population.GetIndexedCount()
+	after := beat.Online.GetIndexedCount()
 	if before != after {
 		inslogger.FromContext(ctx).Warnf("[ AddActivePopulation ] New active list confirmed. Active list size: %d -> %d",
 			before, after,

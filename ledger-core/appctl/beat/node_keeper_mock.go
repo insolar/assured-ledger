@@ -9,7 +9,6 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -19,8 +18,8 @@ import (
 type NodeKeeperMock struct {
 	t minimock.Tester
 
-	funcAddActivePopulation          func(ctx context.Context, n1 pulse.Number, o1 census.OnlinePopulation)
-	inspectFuncAddActivePopulation   func(ctx context.Context, n1 pulse.Number, o1 census.OnlinePopulation)
+	funcAddActivePopulation          func(ctx context.Context, b1 Beat)
+	inspectFuncAddActivePopulation   func(ctx context.Context, b1 Beat)
 	afterAddActivePopulationCounter  uint64
 	beforeAddActivePopulationCounter uint64
 	AddActivePopulationMock          mNodeKeeperMockAddActivePopulation
@@ -49,8 +48,8 @@ type NodeKeeperMock struct {
 	beforeGetLocalNodeRoleCounter uint64
 	GetLocalNodeRoleMock          mNodeKeeperMockGetLocalNodeRole
 
-	funcSetExpectedPopulation          func(ctx context.Context, n1 pulse.Number, o1 census.OnlinePopulation)
-	inspectFuncSetExpectedPopulation   func(ctx context.Context, n1 pulse.Number, o1 census.OnlinePopulation)
+	funcSetExpectedPopulation          func(ctx context.Context, b1 Beat)
+	inspectFuncSetExpectedPopulation   func(ctx context.Context, b1 Beat)
 	afterSetExpectedPopulationCounter  uint64
 	beforeSetExpectedPopulationCounter uint64
 	SetExpectedPopulationMock          mNodeKeeperMockSetExpectedPopulation
@@ -101,12 +100,11 @@ type NodeKeeperMockAddActivePopulationExpectation struct {
 // NodeKeeperMockAddActivePopulationParams contains parameters of the NodeKeeper.AddActivePopulation
 type NodeKeeperMockAddActivePopulationParams struct {
 	ctx context.Context
-	n1  pulse.Number
-	o1  census.OnlinePopulation
+	b1  Beat
 }
 
 // Expect sets up expected params for NodeKeeper.AddActivePopulation
-func (mmAddActivePopulation *mNodeKeeperMockAddActivePopulation) Expect(ctx context.Context, n1 pulse.Number, o1 census.OnlinePopulation) *mNodeKeeperMockAddActivePopulation {
+func (mmAddActivePopulation *mNodeKeeperMockAddActivePopulation) Expect(ctx context.Context, b1 Beat) *mNodeKeeperMockAddActivePopulation {
 	if mmAddActivePopulation.mock.funcAddActivePopulation != nil {
 		mmAddActivePopulation.mock.t.Fatalf("NodeKeeperMock.AddActivePopulation mock is already set by Set")
 	}
@@ -115,7 +113,7 @@ func (mmAddActivePopulation *mNodeKeeperMockAddActivePopulation) Expect(ctx cont
 		mmAddActivePopulation.defaultExpectation = &NodeKeeperMockAddActivePopulationExpectation{}
 	}
 
-	mmAddActivePopulation.defaultExpectation.params = &NodeKeeperMockAddActivePopulationParams{ctx, n1, o1}
+	mmAddActivePopulation.defaultExpectation.params = &NodeKeeperMockAddActivePopulationParams{ctx, b1}
 	for _, e := range mmAddActivePopulation.expectations {
 		if minimock.Equal(e.params, mmAddActivePopulation.defaultExpectation.params) {
 			mmAddActivePopulation.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmAddActivePopulation.defaultExpectation.params)
@@ -126,7 +124,7 @@ func (mmAddActivePopulation *mNodeKeeperMockAddActivePopulation) Expect(ctx cont
 }
 
 // Inspect accepts an inspector function that has same arguments as the NodeKeeper.AddActivePopulation
-func (mmAddActivePopulation *mNodeKeeperMockAddActivePopulation) Inspect(f func(ctx context.Context, n1 pulse.Number, o1 census.OnlinePopulation)) *mNodeKeeperMockAddActivePopulation {
+func (mmAddActivePopulation *mNodeKeeperMockAddActivePopulation) Inspect(f func(ctx context.Context, b1 Beat)) *mNodeKeeperMockAddActivePopulation {
 	if mmAddActivePopulation.mock.inspectFuncAddActivePopulation != nil {
 		mmAddActivePopulation.mock.t.Fatalf("Inspect function is already set for NodeKeeperMock.AddActivePopulation")
 	}
@@ -150,7 +148,7 @@ func (mmAddActivePopulation *mNodeKeeperMockAddActivePopulation) Return() *NodeK
 }
 
 //Set uses given function f to mock the NodeKeeper.AddActivePopulation method
-func (mmAddActivePopulation *mNodeKeeperMockAddActivePopulation) Set(f func(ctx context.Context, n1 pulse.Number, o1 census.OnlinePopulation)) *NodeKeeperMock {
+func (mmAddActivePopulation *mNodeKeeperMockAddActivePopulation) Set(f func(ctx context.Context, b1 Beat)) *NodeKeeperMock {
 	if mmAddActivePopulation.defaultExpectation != nil {
 		mmAddActivePopulation.mock.t.Fatalf("Default expectation is already set for the NodeKeeper.AddActivePopulation method")
 	}
@@ -164,15 +162,15 @@ func (mmAddActivePopulation *mNodeKeeperMockAddActivePopulation) Set(f func(ctx 
 }
 
 // AddActivePopulation implements NodeKeeper
-func (mmAddActivePopulation *NodeKeeperMock) AddActivePopulation(ctx context.Context, n1 pulse.Number, o1 census.OnlinePopulation) {
+func (mmAddActivePopulation *NodeKeeperMock) AddActivePopulation(ctx context.Context, b1 Beat) {
 	mm_atomic.AddUint64(&mmAddActivePopulation.beforeAddActivePopulationCounter, 1)
 	defer mm_atomic.AddUint64(&mmAddActivePopulation.afterAddActivePopulationCounter, 1)
 
 	if mmAddActivePopulation.inspectFuncAddActivePopulation != nil {
-		mmAddActivePopulation.inspectFuncAddActivePopulation(ctx, n1, o1)
+		mmAddActivePopulation.inspectFuncAddActivePopulation(ctx, b1)
 	}
 
-	mm_params := &NodeKeeperMockAddActivePopulationParams{ctx, n1, o1}
+	mm_params := &NodeKeeperMockAddActivePopulationParams{ctx, b1}
 
 	// Record call args
 	mmAddActivePopulation.AddActivePopulationMock.mutex.Lock()
@@ -189,7 +187,7 @@ func (mmAddActivePopulation *NodeKeeperMock) AddActivePopulation(ctx context.Con
 	if mmAddActivePopulation.AddActivePopulationMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmAddActivePopulation.AddActivePopulationMock.defaultExpectation.Counter, 1)
 		mm_want := mmAddActivePopulation.AddActivePopulationMock.defaultExpectation.params
-		mm_got := NodeKeeperMockAddActivePopulationParams{ctx, n1, o1}
+		mm_got := NodeKeeperMockAddActivePopulationParams{ctx, b1}
 		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
 			mmAddActivePopulation.t.Errorf("NodeKeeperMock.AddActivePopulation got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
@@ -198,10 +196,10 @@ func (mmAddActivePopulation *NodeKeeperMock) AddActivePopulation(ctx context.Con
 
 	}
 	if mmAddActivePopulation.funcAddActivePopulation != nil {
-		mmAddActivePopulation.funcAddActivePopulation(ctx, n1, o1)
+		mmAddActivePopulation.funcAddActivePopulation(ctx, b1)
 		return
 	}
-	mmAddActivePopulation.t.Fatalf("Unexpected call to NodeKeeperMock.AddActivePopulation. %v %v %v", ctx, n1, o1)
+	mmAddActivePopulation.t.Fatalf("Unexpected call to NodeKeeperMock.AddActivePopulation. %v %v", ctx, b1)
 
 }
 
@@ -934,12 +932,11 @@ type NodeKeeperMockSetExpectedPopulationExpectation struct {
 // NodeKeeperMockSetExpectedPopulationParams contains parameters of the NodeKeeper.SetExpectedPopulation
 type NodeKeeperMockSetExpectedPopulationParams struct {
 	ctx context.Context
-	n1  pulse.Number
-	o1  census.OnlinePopulation
+	b1  Beat
 }
 
 // Expect sets up expected params for NodeKeeper.SetExpectedPopulation
-func (mmSetExpectedPopulation *mNodeKeeperMockSetExpectedPopulation) Expect(ctx context.Context, n1 pulse.Number, o1 census.OnlinePopulation) *mNodeKeeperMockSetExpectedPopulation {
+func (mmSetExpectedPopulation *mNodeKeeperMockSetExpectedPopulation) Expect(ctx context.Context, b1 Beat) *mNodeKeeperMockSetExpectedPopulation {
 	if mmSetExpectedPopulation.mock.funcSetExpectedPopulation != nil {
 		mmSetExpectedPopulation.mock.t.Fatalf("NodeKeeperMock.SetExpectedPopulation mock is already set by Set")
 	}
@@ -948,7 +945,7 @@ func (mmSetExpectedPopulation *mNodeKeeperMockSetExpectedPopulation) Expect(ctx 
 		mmSetExpectedPopulation.defaultExpectation = &NodeKeeperMockSetExpectedPopulationExpectation{}
 	}
 
-	mmSetExpectedPopulation.defaultExpectation.params = &NodeKeeperMockSetExpectedPopulationParams{ctx, n1, o1}
+	mmSetExpectedPopulation.defaultExpectation.params = &NodeKeeperMockSetExpectedPopulationParams{ctx, b1}
 	for _, e := range mmSetExpectedPopulation.expectations {
 		if minimock.Equal(e.params, mmSetExpectedPopulation.defaultExpectation.params) {
 			mmSetExpectedPopulation.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmSetExpectedPopulation.defaultExpectation.params)
@@ -959,7 +956,7 @@ func (mmSetExpectedPopulation *mNodeKeeperMockSetExpectedPopulation) Expect(ctx 
 }
 
 // Inspect accepts an inspector function that has same arguments as the NodeKeeper.SetExpectedPopulation
-func (mmSetExpectedPopulation *mNodeKeeperMockSetExpectedPopulation) Inspect(f func(ctx context.Context, n1 pulse.Number, o1 census.OnlinePopulation)) *mNodeKeeperMockSetExpectedPopulation {
+func (mmSetExpectedPopulation *mNodeKeeperMockSetExpectedPopulation) Inspect(f func(ctx context.Context, b1 Beat)) *mNodeKeeperMockSetExpectedPopulation {
 	if mmSetExpectedPopulation.mock.inspectFuncSetExpectedPopulation != nil {
 		mmSetExpectedPopulation.mock.t.Fatalf("Inspect function is already set for NodeKeeperMock.SetExpectedPopulation")
 	}
@@ -983,7 +980,7 @@ func (mmSetExpectedPopulation *mNodeKeeperMockSetExpectedPopulation) Return() *N
 }
 
 //Set uses given function f to mock the NodeKeeper.SetExpectedPopulation method
-func (mmSetExpectedPopulation *mNodeKeeperMockSetExpectedPopulation) Set(f func(ctx context.Context, n1 pulse.Number, o1 census.OnlinePopulation)) *NodeKeeperMock {
+func (mmSetExpectedPopulation *mNodeKeeperMockSetExpectedPopulation) Set(f func(ctx context.Context, b1 Beat)) *NodeKeeperMock {
 	if mmSetExpectedPopulation.defaultExpectation != nil {
 		mmSetExpectedPopulation.mock.t.Fatalf("Default expectation is already set for the NodeKeeper.SetExpectedPopulation method")
 	}
@@ -997,15 +994,15 @@ func (mmSetExpectedPopulation *mNodeKeeperMockSetExpectedPopulation) Set(f func(
 }
 
 // SetExpectedPopulation implements NodeKeeper
-func (mmSetExpectedPopulation *NodeKeeperMock) SetExpectedPopulation(ctx context.Context, n1 pulse.Number, o1 census.OnlinePopulation) {
+func (mmSetExpectedPopulation *NodeKeeperMock) SetExpectedPopulation(ctx context.Context, b1 Beat) {
 	mm_atomic.AddUint64(&mmSetExpectedPopulation.beforeSetExpectedPopulationCounter, 1)
 	defer mm_atomic.AddUint64(&mmSetExpectedPopulation.afterSetExpectedPopulationCounter, 1)
 
 	if mmSetExpectedPopulation.inspectFuncSetExpectedPopulation != nil {
-		mmSetExpectedPopulation.inspectFuncSetExpectedPopulation(ctx, n1, o1)
+		mmSetExpectedPopulation.inspectFuncSetExpectedPopulation(ctx, b1)
 	}
 
-	mm_params := &NodeKeeperMockSetExpectedPopulationParams{ctx, n1, o1}
+	mm_params := &NodeKeeperMockSetExpectedPopulationParams{ctx, b1}
 
 	// Record call args
 	mmSetExpectedPopulation.SetExpectedPopulationMock.mutex.Lock()
@@ -1022,7 +1019,7 @@ func (mmSetExpectedPopulation *NodeKeeperMock) SetExpectedPopulation(ctx context
 	if mmSetExpectedPopulation.SetExpectedPopulationMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmSetExpectedPopulation.SetExpectedPopulationMock.defaultExpectation.Counter, 1)
 		mm_want := mmSetExpectedPopulation.SetExpectedPopulationMock.defaultExpectation.params
-		mm_got := NodeKeeperMockSetExpectedPopulationParams{ctx, n1, o1}
+		mm_got := NodeKeeperMockSetExpectedPopulationParams{ctx, b1}
 		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
 			mmSetExpectedPopulation.t.Errorf("NodeKeeperMock.SetExpectedPopulation got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
@@ -1031,10 +1028,10 @@ func (mmSetExpectedPopulation *NodeKeeperMock) SetExpectedPopulation(ctx context
 
 	}
 	if mmSetExpectedPopulation.funcSetExpectedPopulation != nil {
-		mmSetExpectedPopulation.funcSetExpectedPopulation(ctx, n1, o1)
+		mmSetExpectedPopulation.funcSetExpectedPopulation(ctx, b1)
 		return
 	}
-	mmSetExpectedPopulation.t.Fatalf("Unexpected call to NodeKeeperMock.SetExpectedPopulation. %v %v %v", ctx, n1, o1)
+	mmSetExpectedPopulation.t.Fatalf("Unexpected call to NodeKeeperMock.SetExpectedPopulation. %v %v", ctx, b1)
 
 }
 

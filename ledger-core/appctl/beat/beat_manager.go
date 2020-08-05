@@ -34,8 +34,8 @@ type NodeNetwork interface {
 type NodeKeeper interface {
 	NodeNetwork
 
-	SetExpectedPopulation(context.Context, pulse.Number, census.OnlinePopulation)
-	AddActivePopulation(context.Context, pulse.Number, census.OnlinePopulation)
+	SetExpectedPopulation(context.Context, Beat)
+	AddActivePopulation(context.Context, Beat)
 }
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/appctl/beat.NodeAccessor -s _mock.go -g

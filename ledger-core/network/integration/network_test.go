@@ -8,6 +8,7 @@
 package integration
 
 import (
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -29,7 +30,8 @@ func TestJoinerNodeConnect(t *testing.T) {
 	joinerNode := s.startNewNetworkNode("JoinerNode")
 	defer s.StopNode(joinerNode)
 
-	assert.True(t, s.waitForNodeJoin(joinerNode.ref, maxPulsesForJoin), "JoinerNode not found in active list after 3 pulses")
+	joined := s.waitForNodeJoin(joinerNode.ref, maxPulsesForJoin)
+	require.True(t, joined, "JoinerNode not found in active list after 3 pulses")
 
 	s.AssertActiveNodesCountDelta(1)
 }
@@ -87,12 +89,19 @@ func TestNodeGracefulLeave(t *testing.T) {
 }
 
 func TestDiscoveryDown(t *testing.T) {
-	t.Skip("FIXME - causes unhandled panic by AbortMock")
+	t.Skip("FIXME - hangs")
 	s := startNetworkSuite(t)
+	wasAborted := false
+	s.abortFn = func(s string) {
+		require.Contains(t, s, "MinRoles failed")
+		wasAborted = true
+		runtime.Goexit()
+	}
 	defer s.stopNetworkSuite()
 
 	s.StopNode(s.bootstrapNodes[0])
 	s.waitForConsensusExcept(2, s.bootstrapNodes[0].ref)
+	require.True(t, wasAborted)
 	for i := 1; i < s.getNodesCount(); i++ {
 		require.Equal(t, s.getNodesCount()-1, s.bootstrapNodes[i].GetWorkingNodeCount())
 	}

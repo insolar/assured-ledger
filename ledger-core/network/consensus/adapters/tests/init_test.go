@@ -376,9 +376,9 @@ type pulseChanger struct {
 	nodeKeeper beat.NodeKeeper
 }
 
-func (pc *pulseChanger) ChangeBeat(ctx context.Context, report api.UpstreamReport, pulse beat.Beat) {
+func (pc *pulseChanger) ChangeBeat(ctx context.Context, report api.UpstreamReport, pu beat.Beat) {
 	inslogger.FromContext(ctx).Info(">>>>>> Change pulse called")
-	pc.nodeKeeper.AddActivePopulation(ctx, pulse.PulseNumber, nil)
+	pc.nodeKeeper.AddActivePopulation(ctx, pu)
 }
 
 type stateUpdater struct {
@@ -388,9 +388,9 @@ type stateUpdater struct {
 func (su *stateUpdater) UpdateState(ctx context.Context, beat beat.Beat) {
 	inslogger.FromContext(ctx).Info(">>>>>> Update state called")
 
-	su.nodeKeeper.SetExpectedPopulation(ctx, beat.PulseNumber, beat.Online)
+	su.nodeKeeper.SetExpectedPopulation(ctx, beat)
 	if !beat.IsFromPulsar() {
-		su.nodeKeeper.AddActivePopulation(ctx, beat.PulseNumber, beat.Online)
+		su.nodeKeeper.AddActivePopulation(ctx, beat)
 	}
 }
 
