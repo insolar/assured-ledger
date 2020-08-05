@@ -265,6 +265,10 @@ func (g *Base) OnPulseFromConsensus(ctx context.Context, pu beat.Beat) {
 func (g *Base) UpdateState(ctx context.Context, pu beat.Beat) {
 	err := g.PulseAppender.AddExpectedBeat(pu)
 	if err == nil && !pu.IsFromPulsar() {
+		if !pu.IsFromEphemeral() {
+			panic(throw.IllegalState())
+		}
+		pu.NextPulseDelta = 1
 		err = g.PulseAppender.AddCommittedBeat(pu)
 	}
 
@@ -273,7 +277,7 @@ func (g *Base) UpdateState(ctx context.Context, pu beat.Beat) {
 	}
 
 	nodeCount := int64(pu.Online.GetIndexedCount())
-	inslogger.FromContext(ctx).Debugf("[ AddCommittedBeat ] Population size: %d", nodeCount)
+	inslogger.FromContext(ctx).Debugf("[ AddExpectedBeat ] Population size: %d", nodeCount)
 }
 
 func (g *Base) BeforeRun(ctx context.Context, pulse pulse.Data) {}
