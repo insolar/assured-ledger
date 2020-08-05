@@ -201,7 +201,7 @@ func unmarshalWalletGetBalanceResponse(resp []byte) (walletGetBalanceResponse, e
 	return result, nil
 }
 
-// nolint:unused,deadcode
+// nolint:unused,deadcode,varcheck
 type walletAddAmountRequestBody struct {
 	To     string `json:"to"`
 	Amount uint   `json:"amount"`
