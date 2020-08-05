@@ -155,7 +155,7 @@ func WaitFakeListeners(count int32, timeout time.Duration) error {
 
 	go func(ctx context.Context) {
 		for ;atomic.LoadInt32(&listenersCount) != count && ctx.Err() == nil; {
-			<-time.After(time.Microsecond*100)
+			time.Sleep(time.Microsecond*100)
 		}
 		c <- ctx.Err()
 	}(ctx)
