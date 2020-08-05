@@ -90,53 +90,12 @@ type Future interface {
 	Cancel()
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network.NodeNetwork -o ../testutils/network -s _mock.go -g
-
-type NodeNetwork interface {
-	// GetLocalNodeReference returns a node reference for this/local node. Safe to call at any time. Immutable.
-	GetLocalNodeReference() reference.Holder
-	// GetLocalNodeRole returns a role for this/local node. Safe to call at any time. Immutable.
-	GetLocalNodeRole() member.PrimaryRole
-
-	// GetAccessor get accessor to the internal snapshot for the current pulse. Panics on unknown pulse.
-	GetAccessor(pulse.Number) Accessor
-	// GetLatestAccessor returns the latest set of nodes. Will return nil when nothing was added yet.
-	GetLatestAccessor() Accessor
-}
-
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network.NodeKeeper -o ../testutils/network -s _mock.go -g
-
-type NodeKeeper interface {
-	NodeNetwork
-
-	SetExpectedPopulation(context.Context, pulse.Number, census.OnlinePopulation)
-	AddActivePopulation(context.Context, pulse.Number, census.OnlinePopulation)
-}
-
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network.RoutingTable -o ../testutils/network -s _mock.go -g
 
 // RoutingTable contains all routing information of the network.
 type RoutingTable interface {
 	// Resolve NodeID -> ShortID, Address. Can initiate network requests.
 	Resolve(reference.Global) (*host.Host, error)
-}
-
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network.Accessor -o ../testutils/network -s _mock.go -g
-
-// Accessor is interface that provides read access to nodekeeper internal snapshot
-type Accessor interface {
-	GetPulseNumber() pulse.Number
-	GetLocalNode() nodeinfo.NetworkNode
-	GetPopulation() census.OnlinePopulation
-
-	// GetPoweredNode get working node by its reference. Returns nil if node is not found or is not working.
-	GetPoweredNode(ref reference.Global) nodeinfo.NetworkNode
-	// GetOnlineNode returns active node.
-	GetOnlineNode(ref reference.Global) nodeinfo.NetworkNode
-	// GetOnlineNodes returns unsorted list of all active nodes.
-	GetOnlineNodes() []nodeinfo.NetworkNode
-	// GetOnlineNodeByAddr get active node by addr. Returns nil if node is not found.
-	GetOnlineNodeByAddr(address string) nodeinfo.NetworkNode
 }
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network.Gatewayer -o ../testutils/network -s _mock.go -g

@@ -83,7 +83,7 @@ func CalcAnnounceSignature(nodeID node.ShortNodeID, role member.PrimaryRole, add
 	return digest, sign, nil
 }
 
-func CreateLocalNodeProfile(nk network.NodeKeeper, cert nodeinfo.Certificate, address string,
+func CreateLocalNodeProfile(nk beat.NodeKeeper, cert nodeinfo.Certificate, address string,
 	keyProcessor cryptography.KeyProcessor, svc cryptography.Service, scheme cryptography.PlatformCryptographyScheme,
 ) (*adapters.StaticProfile, error) {
 	ref := cert.GetNodeRef()

@@ -10,7 +10,6 @@ import (
 	"sync"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -46,7 +45,7 @@ func (s *StorageMem) Of(ctx context.Context, pn pulse.Number) (beat.Beat, error)
 	if node, ok := s.storage[pn]; ok {
 		return node.pulse, nil
 	}
-	return beat.Beat{}, pulsestor.ErrNotFound
+	return beat.Beat{}, ErrNotFound
 }
 
 // Latest returns a latest pulse saved in memory. If not found, ErrNotFound will be returned.
@@ -55,7 +54,7 @@ func (s *StorageMem) Latest(ctx context.Context) (pulse beat.Beat, err error) {
 	defer s.lock.RUnlock()
 
 	if s.tail == nil {
-		err = pulsestor.ErrNotFound
+		err = ErrNotFound
 		return
 	}
 
@@ -67,15 +66,12 @@ func (s *StorageMem) EnsureLatest(ctx context.Context, pulse beat.Beat) error {
 	case err != nil:
 		return err
 	case pulse.Data != latest.Data:
-		return pulsestor.ErrBadPulse
+		return ErrBadPulse
 	}
 	return nil
 }
 
-// Append appends provided a pulse to current storage. Pulse number should be greater than currently saved for preserving
-// pulse consistency. If provided Pulse does not meet the requirements, ErrBadPulse will be returned.
 func (s *StorageMem) Append(_ context.Context, pulse beat.Beat) error {
-	// TODO it must NOT be allowed to add non-time pulse, but old code needs it
 	if !pulse.PulseEpoch.IsTimeEpoch() {
 		panic(throw.IllegalValue())
 	}
@@ -108,7 +104,7 @@ func (s *StorageMem) Append(_ context.Context, pulse beat.Beat) error {
 	}
 
 	if pulse.PulseNumber <= s.tail.pulse.PulseNumber {
-		return pulsestor.ErrBadPulse
+		return ErrBadPulse
 	}
 	appendTail()
 

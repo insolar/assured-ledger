@@ -23,7 +23,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
-	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/common/endpoints"
@@ -80,7 +79,7 @@ func testCase(stopAfter, startCaseAfter time.Duration, test func()) {
 type InitializedNodes struct {
 	addresses      []string
 	controllers    []consensus.Controller
-	nodeKeepers    []network.NodeKeeper
+	nodeKeepers    []beat.NodeKeeper
 	transports     []transport.DatagramTransport
 	contexts       []context.Context
 	staticProfiles []profiles.StaticProfile
@@ -119,7 +118,7 @@ func newNodes(size int) InitializedNodes {
 		transports:     make([]transport.DatagramTransport, size),
 		contexts:       make([]context.Context, size),
 		staticProfiles: make([]profiles.StaticProfile, size),
-		nodeKeepers:    make([]network.NodeKeeper, size),
+		nodeKeepers:    make([]beat.NodeKeeper, size),
 	}
 }
 
@@ -376,7 +375,7 @@ func (ng *nshGen) RequestNodeState(fn chorus.NodeStateFunc) {
 func (ng *nshGen) CancelNodeState() {}
 
 type pulseChanger struct {
-	nodeKeeper network.NodeKeeper
+	nodeKeeper beat.NodeKeeper
 }
 
 func (pc *pulseChanger) ChangeBeat(ctx context.Context, report api.UpstreamReport, pulse beat.Beat) {
@@ -385,7 +384,7 @@ func (pc *pulseChanger) ChangeBeat(ctx context.Context, report api.UpstreamRepor
 }
 
 type stateUpdater struct {
-	nodeKeeper network.NodeKeeper
+	nodeKeeper beat.NodeKeeper
 }
 
 func (su *stateUpdater) UpdateState(ctx context.Context, pulseNumber pulse.Number, isTimePulse bool, nodes census.OnlinePopulation, _ proofs.CloudStateHash) {

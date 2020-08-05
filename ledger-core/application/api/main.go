@@ -32,7 +32,7 @@ import (
 type Runner struct {
 	CertificateManager nodeinfo.CertificateManager
 	// nolint
-	NodeNetwork         network.NodeNetwork
+	NodeNetwork         beat.NodeNetwork
 	CertificateGetter   nodeinfo.CertificateGetter
 	PulseAccessor       beat.Accessor
 	JetCoordinator      affinity.Helper
@@ -79,7 +79,7 @@ func (ar *Runner) registerPublicServices(rpcServer *rpc.Server) error {
 func NewRunner(cfg *configuration.APIRunner,
 	certificateManager nodeinfo.CertificateManager,
 	// nolint
-	nodeNetwork network.NodeNetwork,
+	nodeNetwork beat.NodeNetwork,
 	certificateGetter nodeinfo.CertificateGetter,
 	pulseAccessor beat.Accessor,
 	jetCoordinator affinity.Helper,

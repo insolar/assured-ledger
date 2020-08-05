@@ -9,6 +9,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -20,7 +21,7 @@ type Accessor struct {
 	addrIndex map[string]member.Index
 }
 
-func (a *Accessor) GetLocalNode() nodeinfo.NetworkNode {
+func (a *Accessor) GetLocalNode() profiles.ActiveNode {
 	return a.snapshot.population.GetLocalProfile()
 }
 
@@ -32,7 +33,7 @@ func (a *Accessor) GetPulseNumber() pulse.Number {
 	return a.snapshot.GetPulseNumber()
 }
 
-func (a *Accessor) GetOnlineNodeByAddr(address string) nodeinfo.NetworkNode {
+func (a *Accessor) GetOnlineNodeByAddr(address string) profiles.ActiveNode {
 	idx, ok := a.addrIndex[address]
 	if !ok {
 		return nil
@@ -41,11 +42,11 @@ func (a *Accessor) GetOnlineNodeByAddr(address string) nodeinfo.NetworkNode {
 	return a.snapshot.population.GetProfile(idx)
 }
 
-func (a *Accessor) GetOnlineNodes() []nodeinfo.NetworkNode {
+func (a *Accessor) GetOnlineNodes() []profiles.ActiveNode {
 	return a.snapshot.population.GetProfiles()
 }
 
-func (a *Accessor) GetOnlineNode(ref reference.Global) nodeinfo.NetworkNode {
+func (a *Accessor) GetOnlineNode(ref reference.Global) profiles.ActiveNode {
 	idx, ok := a.refIndex[ref]
 	if !ok {
 		return nil
@@ -57,7 +58,7 @@ func (a *Accessor) GetOnlineNode(ref reference.Global) nodeinfo.NetworkNode {
 	return n
 }
 
-func (a *Accessor) GetPoweredNode(ref reference.Global) nodeinfo.NetworkNode {
+func (a *Accessor) GetPoweredNode(ref reference.Global) profiles.ActiveNode {
 	node := a.GetOnlineNode(ref)
 	if node == nil || !node.IsPowered() {
 		return nil

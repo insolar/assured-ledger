@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
@@ -69,7 +70,7 @@ type Dep struct {
 	KeyStore              cryptography.KeyStore
 	TransportCryptography transport2.CryptographyAssistant
 
-	NodeKeeper        network.NodeKeeper
+	NodeKeeper        beat.NodeKeeper
 	DatagramTransport transport.DatagramTransport
 
 	StateGetter         adapters.NodeStater

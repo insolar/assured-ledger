@@ -19,6 +19,7 @@ import (
 	"go.uber.org/goleak"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat/memstor"
 	"github.com/insolar/assured-ledger/ledger-core/application/api/requester"
 	"github.com/insolar/assured-ledger/ledger-core/application/api/seedmanager"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
@@ -47,7 +48,7 @@ func TestNodeService_GetSeed(t *testing.T) {
 	accessor = accessor.LatestMock.Set(func(ctx context.Context) (beat.Beat, error) {
 		switch pulseError {
 		case 1:
-			return beat.Beat{}, pulsestor.ErrNotFound
+			return beat.Beat{}, memstor.ErrNotFound
 		case 2:
 			return beat.Beat{}, errors.New("fake error")
 		default:

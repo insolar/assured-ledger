@@ -10,6 +10,7 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill/message"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
@@ -32,7 +33,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
-var _ network.NodeNetwork = &ServiceNetwork{}
+var _ beat.NodeNetwork = &ServiceNetwork{}
 
 type ServiceNetwork struct {
 	cfg configuration.Configuration
@@ -46,7 +47,7 @@ type ServiceNetwork struct {
 
 	// subcomponents
 	RPC                controller.RPCController   `inject:"subcomponent"`
-	NodeKeeper         network.NodeKeeper         `inject:"subcomponent"`
+	NodeKeeper         beat.NodeKeeper            `inject:"subcomponent"`
 	TerminationHandler network.TerminationHandler `inject:"subcomponent"`
 
 	HostNetwork network.HostNetwork
@@ -147,7 +148,7 @@ func (n *ServiceNetwork) GracefulStop(ctx context.Context) error {
 	return nil
 }
 
-// Stop implements insolar.Component
+// Stop implements component.Stopper
 func (n *ServiceNetwork) Stop(ctx context.Context) error {
 	return n.cm.Stop(ctx)
 }
@@ -160,11 +161,11 @@ func (n *ServiceNetwork) GetLocalNodeRole() member.PrimaryRole {
 	return n.NodeKeeper.GetLocalNodeRole()
 }
 
-func (n *ServiceNetwork) GetAccessor(p pulse.Number) network.Accessor {
+func (n *ServiceNetwork) GetAccessor(p pulse.Number) beat.NodeAccessor {
 	return n.NodeKeeper.GetAccessor(p)
 }
 
-func (n *ServiceNetwork) GetLatestAccessor() network.Accessor {
+func (n *ServiceNetwork) GetLatestAccessor() beat.NodeAccessor {
 	return n.NodeKeeper.GetLatestAccessor()
 }
 

@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat/memstor"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/rpc/v2"
@@ -18,7 +19,6 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/application/api/instrumenter"
 	"github.com/insolar/assured-ledger/ledger-core/application/api/requester"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 )
 
@@ -99,7 +99,7 @@ func (s *NodeService) GetSeed(r *http.Request, args *SeedArgs, _ *rpc.RequestBod
 
 	err := s.getSeed(ctx, r, args, reply)
 	if err != nil {
-		if strings.Contains(err.Error(), pulsestor.ErrNotFound.Error()) {
+		if strings.Contains(err.Error(), memstor.ErrNotFound.Error()) {
 			logger.Warn("[ NodeService.getSeed ] failed to execute: ", err.Error())
 
 			instr.SetError(errors.New(ServiceUnavailableErrorMessage), ServiceUnavailableErrorShort)

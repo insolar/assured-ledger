@@ -78,13 +78,6 @@ func (u *UpstreamController) ConsensusFinished(report api.UpstreamReport, expect
 
 	u.stateUpdater.UpdateState(ctx, report.PulseNumber, isTimePulse, population, expectedCensus.GetCloudStateHash())
 
-	// // TODO fix me
-	// if !isTimePulse {
-	// 	// Fix bootstrap. Commit active list right after consensus finished
-	// 	// for NodeKeeper active list move sync to active
-	// 	u.CommitPulseChange(report, pd, expectedCensus)
-	// }
-
 	u.mu.RLock()
 	defer u.mu.RUnlock()
 

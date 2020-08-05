@@ -12,6 +12,8 @@ import (
 
 	"go.opencensus.io/stats"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
+	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
@@ -24,8 +26,14 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network"
 )
 
+// NewNodeNetwork create active node component
+func NewNodeNetwork(_ configuration.Transport, certificate nodeinfo.Certificate) (beat.NodeNetwork, error) {
+	nodeKeeper := NewNodeKeeper(certificate.GetNodeRef(), certificate.GetRole())
+	return nodeKeeper, nil
+}
+
 // NewNodeKeeper create new NodeKeeper
-func NewNodeKeeper(localRef reference.Holder, localRole member.PrimaryRole) network.NodeKeeper {
+func NewNodeKeeper(localRef reference.Holder, localRole member.PrimaryRole) beat.NodeKeeper {
 	return &nodekeeper{
 		localRef:  reference.Copy(localRef),
 		localRole: localRole,
@@ -39,8 +47,8 @@ type nodekeeper struct {
 
 	mutex sync.RWMutex
 
-	storage *MemoryStorage
-	last    network.Accessor
+	storage  *MemoryStorage
+	last     beat.NodeAccessor
 	expected int
 }
 
@@ -52,7 +60,7 @@ func (nk *nodekeeper) GetLocalNodeRole() member.PrimaryRole {
 	return nk.localRole
 }
 
-func (nk *nodekeeper) GetAccessor(pn pulse.Number) network.Accessor {
+func (nk *nodekeeper) GetAccessor(pn pulse.Number) beat.NodeAccessor {
 	la := nk.GetLatestAccessor()
 	if la != nil && la.GetPulseNumber() == pn {
 		return la
@@ -65,7 +73,7 @@ func (nk *nodekeeper) GetAccessor(pn pulse.Number) network.Accessor {
 	return NewAccessor(s)
 }
 
-func (nk *nodekeeper) GetLatestAccessor() network.Accessor {
+func (nk *nodekeeper) GetLatestAccessor() beat.NodeAccessor {
 	nk.mutex.RLock()
 	defer nk.mutex.RUnlock()
 
@@ -90,9 +98,15 @@ func (nk *nodekeeper) AddActivePopulation(ctx context.Context, pn pulse.Number, 
 	}
 
 	after := population.GetIndexedCount()
-	inslogger.FromContext(ctx).Infof("[ AddActivePopulation ] New active list confirmed. Active list size: %d -> %d",
-		before, after,
-	)
+	if before != after {
+		inslogger.FromContext(ctx).Warnf("[ AddActivePopulation ] New active list confirmed. Active list size: %d -> %d",
+			before, after,
+		)
+	} else {
+		inslogger.FromContext(ctx).Infof("[ AddActivePopulation ] New active list confirmed. Active list size: %d -> %d",
+			before, after,
+		)
+	}
 
 	stats.Record(ctx, network.ActiveNodes.M(int64(after)))
 }

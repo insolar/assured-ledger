@@ -8,19 +8,19 @@ package api
 import (
 	"net/http"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 )
 
 // HealthChecker allows to check network status of a node.
 type HealthChecker struct {
 	CertificateManager nodeinfo.CertificateManager
-	NodeNetwork        network.NodeNetwork
+	NodeNetwork        beat.NodeNetwork
 }
 
 // NewHealthChecker creates new HealthChecker.
-func NewHealthChecker(cm nodeinfo.CertificateManager, nn network.NodeNetwork) *HealthChecker { // nolint: staticcheck
+func NewHealthChecker(cm nodeinfo.CertificateManager, nn beat.NodeNetwork) *HealthChecker { // nolint: staticcheck
 	return &HealthChecker{CertificateManager: cm, NodeNetwork: nn}
 }
 

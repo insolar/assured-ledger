@@ -6,7 +6,7 @@
 package routing
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/network"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/host"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -15,7 +15,7 @@ import (
 )
 
 type Table struct {
-	NodeKeeper    network.NodeKeeper `inject:""`
+	NodeKeeper beat.NodeKeeper `inject:""`
 }
 
 func (t *Table) isLocalNode(reference.Global) bool {

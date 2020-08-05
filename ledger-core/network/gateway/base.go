@@ -54,7 +54,7 @@ type Base struct {
 
 	Self                network.Gateway
 	Gatewayer           network.Gatewayer                       `inject:""`
-	NodeKeeper          network.NodeKeeper                      `inject:""`
+	NodeKeeper          beat.NodeKeeper                         `inject:""`
 	CryptographyService cryptography.Service                    `inject:""`
 	CryptographyScheme  cryptography.PlatformCryptographyScheme `inject:""`
 	CertificateManager  nodeinfo.CertificateManager             `inject:""`

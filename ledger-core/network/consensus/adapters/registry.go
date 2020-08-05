@@ -6,7 +6,7 @@
 package adapters
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/network"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/misbehavior"
@@ -55,10 +55,10 @@ func (mr *MandateRegistry) GetPrimingCloudHash() proofs.CloudStateHash {
 
 type OfflinePopulation struct {
 	// TODO should use mandate storage
-	nodeKeeper   network.NodeKeeper
+	nodeKeeper beat.NodeKeeper
 }
 
-func NewOfflinePopulation(nodeKeeper network.NodeKeeper) *OfflinePopulation {
+func NewOfflinePopulation(nodeKeeper beat.NodeKeeper) *OfflinePopulation {
 	return &OfflinePopulation{
 		nodeKeeper:   nodeKeeper,
 	}

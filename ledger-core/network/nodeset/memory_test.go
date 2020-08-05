@@ -10,22 +10,18 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
 
 func TestMemoryStorage(t *testing.T) {
 	s := NewMemoryStorage()
-	startPulse := pulsestor.GenesisPulse
+	startPulse := pulse.Number(pulse.MinTimePulse)
 
-	for i := 0; i < entriesCount+2; i++ {
-		p := startPulse
-		p.PulseNumber += pulse.Number(i)
-
-		snap := NewSnapshot(p.PulseNumber, nil)
+	for i := startPulse; i < startPulse+entriesCount+2; i++ {
+		snap := NewSnapshot(i, nil)
 		assert.NoError(t, s.Append(snap))
 
-		snap1, err := s.ForPulseNumber(p.PulseNumber)
+		snap1, err := s.ForPulseNumber(i)
 		assert.NoError(t, err)
 		assert.True(t, snap1 == snap, "snapshots should be equal")
 	}
@@ -34,15 +30,15 @@ func TestMemoryStorage(t *testing.T) {
 	assert.Len(t, s.entries, entriesCount)
 	assert.Len(t, s.snapshotEntries, entriesCount)
 
-	snap, err := s.ForPulseNumber(startPulse.PulseNumber)
+	snap, err := s.ForPulseNumber(startPulse)
 	assert.EqualError(t, err, ErrNotFound.Error())
 	assert.Nil(t, snap)
 
-	snap, err = s.ForPulseNumber(startPulse.PulseNumber + 1)
+	snap, err = s.ForPulseNumber(startPulse + 1)
 	assert.EqualError(t, err, ErrNotFound.Error())
 	assert.Nil(t, snap)
 
-	snap, err = s.ForPulseNumber(startPulse.PulseNumber + 2)
+	snap, err = s.ForPulseNumber(startPulse + 2)
 	assert.Nil(t, err)
 	assert.NotNil(t, snap)
 }

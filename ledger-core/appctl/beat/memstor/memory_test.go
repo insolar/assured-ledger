@@ -12,7 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
@@ -30,7 +29,7 @@ func TestNodeStorage_ForPulseNumber(t *testing.T) {
 
 	t.Run("returns error when no Pulse", func(t *testing.T) {
 		res, err := storage.Of(ctx, pc.PulseNumber + 1)
-		assert.Equal(t, pulsestor.ErrNotFound, err)
+		assert.Equal(t, ErrNotFound, err)
 		assert.Equal(t, beat.Beat{}, res)
 	})
 
@@ -47,7 +46,7 @@ func TestNodeStorage_Latest(t *testing.T) {
 	t.Run("returns error when no Pulse", func(t *testing.T) {
 		storage := NewStorageMem()
 		res, err := storage.Latest(ctx)
-		assert.Equal(t, pulsestor.ErrNotFound, err)
+		assert.Equal(t, ErrNotFound, err)
 		assert.Equal(t, beat.Beat{}, res)
 	})
 
@@ -92,14 +91,14 @@ func TestNodeStorage_Append(t *testing.T) {
 
 		{
 			err := storage.Append(ctx, pc)
-			assert.Equal(t, pulsestor.ErrBadPulse, err)
+			assert.Equal(t, ErrBadPulse, err)
 		}
 		{
 			pc1 := pc
 			pc1.PulseNumber--
 
 			err := storage.Append(ctx, pc1)
-			assert.Equal(t, pulsestor.ErrBadPulse, err)
+			assert.Equal(t, ErrBadPulse, err)
 		}
 	})
 
