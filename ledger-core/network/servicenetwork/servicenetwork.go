@@ -161,11 +161,11 @@ func (n *ServiceNetwork) GetLocalNodeRole() member.PrimaryRole {
 	return n.NodeKeeper.GetLocalNodeRole()
 }
 
-func (n *ServiceNetwork) GetAccessor(p pulse.Number) beat.NodeAccessor {
+func (n *ServiceNetwork) GetAccessor(p pulse.Number) beat.NodeSnapshot {
 	return n.NodeKeeper.GetAccessor(p)
 }
 
-func (n *ServiceNetwork) GetLatestAccessor() beat.NodeAccessor {
+func (n *ServiceNetwork) GetLatestAccessor() beat.NodeSnapshot {
 	return n.NodeKeeper.GetLatestAccessor()
 }
 

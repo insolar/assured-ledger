@@ -17,13 +17,13 @@ import (
 type NodeNetworkMock struct {
 	t minimock.Tester
 
-	funcGetAccessor          func(n1 pulse.Number) (n2 NodeAccessor)
+	funcGetAccessor          func(n1 pulse.Number) (n2 NodeSnapshot)
 	inspectFuncGetAccessor   func(n1 pulse.Number)
 	afterGetAccessorCounter  uint64
 	beforeGetAccessorCounter uint64
 	GetAccessorMock          mNodeNetworkMockGetAccessor
 
-	funcGetLatestAccessor          func() (n1 NodeAccessor)
+	funcGetLatestAccessor          func() (n1 NodeSnapshot)
 	inspectFuncGetLatestAccessor   func()
 	afterGetLatestAccessorCounter  uint64
 	beforeGetLatestAccessorCounter uint64
@@ -85,7 +85,7 @@ type NodeNetworkMockGetAccessorParams struct {
 
 // NodeNetworkMockGetAccessorResults contains results of the NodeNetwork.GetAccessor
 type NodeNetworkMockGetAccessorResults struct {
-	n2 NodeAccessor
+	n2 NodeSnapshot
 }
 
 // Expect sets up expected params for NodeNetwork.GetAccessor
@@ -120,7 +120,7 @@ func (mmGetAccessor *mNodeNetworkMockGetAccessor) Inspect(f func(n1 pulse.Number
 }
 
 // Return sets up results that will be returned by NodeNetwork.GetAccessor
-func (mmGetAccessor *mNodeNetworkMockGetAccessor) Return(n2 NodeAccessor) *NodeNetworkMock {
+func (mmGetAccessor *mNodeNetworkMockGetAccessor) Return(n2 NodeSnapshot) *NodeNetworkMock {
 	if mmGetAccessor.mock.funcGetAccessor != nil {
 		mmGetAccessor.mock.t.Fatalf("NodeNetworkMock.GetAccessor mock is already set by Set")
 	}
@@ -133,7 +133,7 @@ func (mmGetAccessor *mNodeNetworkMockGetAccessor) Return(n2 NodeAccessor) *NodeN
 }
 
 //Set uses given function f to mock the NodeNetwork.GetAccessor method
-func (mmGetAccessor *mNodeNetworkMockGetAccessor) Set(f func(n1 pulse.Number) (n2 NodeAccessor)) *NodeNetworkMock {
+func (mmGetAccessor *mNodeNetworkMockGetAccessor) Set(f func(n1 pulse.Number) (n2 NodeSnapshot)) *NodeNetworkMock {
 	if mmGetAccessor.defaultExpectation != nil {
 		mmGetAccessor.mock.t.Fatalf("Default expectation is already set for the NodeNetwork.GetAccessor method")
 	}
@@ -162,13 +162,13 @@ func (mmGetAccessor *mNodeNetworkMockGetAccessor) When(n1 pulse.Number) *NodeNet
 }
 
 // Then sets up NodeNetwork.GetAccessor return parameters for the expectation previously defined by the When method
-func (e *NodeNetworkMockGetAccessorExpectation) Then(n2 NodeAccessor) *NodeNetworkMock {
+func (e *NodeNetworkMockGetAccessorExpectation) Then(n2 NodeSnapshot) *NodeNetworkMock {
 	e.results = &NodeNetworkMockGetAccessorResults{n2}
 	return e.mock
 }
 
 // GetAccessor implements NodeNetwork
-func (mmGetAccessor *NodeNetworkMock) GetAccessor(n1 pulse.Number) (n2 NodeAccessor) {
+func (mmGetAccessor *NodeNetworkMock) GetAccessor(n1 pulse.Number) (n2 NodeSnapshot) {
 	mm_atomic.AddUint64(&mmGetAccessor.beforeGetAccessorCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetAccessor.afterGetAccessorCounter, 1)
 
@@ -292,7 +292,7 @@ type NodeNetworkMockGetLatestAccessorExpectation struct {
 
 // NodeNetworkMockGetLatestAccessorResults contains results of the NodeNetwork.GetLatestAccessor
 type NodeNetworkMockGetLatestAccessorResults struct {
-	n1 NodeAccessor
+	n1 NodeSnapshot
 }
 
 // Expect sets up expected params for NodeNetwork.GetLatestAccessor
@@ -320,7 +320,7 @@ func (mmGetLatestAccessor *mNodeNetworkMockGetLatestAccessor) Inspect(f func()) 
 }
 
 // Return sets up results that will be returned by NodeNetwork.GetLatestAccessor
-func (mmGetLatestAccessor *mNodeNetworkMockGetLatestAccessor) Return(n1 NodeAccessor) *NodeNetworkMock {
+func (mmGetLatestAccessor *mNodeNetworkMockGetLatestAccessor) Return(n1 NodeSnapshot) *NodeNetworkMock {
 	if mmGetLatestAccessor.mock.funcGetLatestAccessor != nil {
 		mmGetLatestAccessor.mock.t.Fatalf("NodeNetworkMock.GetLatestAccessor mock is already set by Set")
 	}
@@ -333,7 +333,7 @@ func (mmGetLatestAccessor *mNodeNetworkMockGetLatestAccessor) Return(n1 NodeAcce
 }
 
 //Set uses given function f to mock the NodeNetwork.GetLatestAccessor method
-func (mmGetLatestAccessor *mNodeNetworkMockGetLatestAccessor) Set(f func() (n1 NodeAccessor)) *NodeNetworkMock {
+func (mmGetLatestAccessor *mNodeNetworkMockGetLatestAccessor) Set(f func() (n1 NodeSnapshot)) *NodeNetworkMock {
 	if mmGetLatestAccessor.defaultExpectation != nil {
 		mmGetLatestAccessor.mock.t.Fatalf("Default expectation is already set for the NodeNetwork.GetLatestAccessor method")
 	}
@@ -347,7 +347,7 @@ func (mmGetLatestAccessor *mNodeNetworkMockGetLatestAccessor) Set(f func() (n1 N
 }
 
 // GetLatestAccessor implements NodeNetwork
-func (mmGetLatestAccessor *NodeNetworkMock) GetLatestAccessor() (n1 NodeAccessor) {
+func (mmGetLatestAccessor *NodeNetworkMock) GetLatestAccessor() (n1 NodeSnapshot) {
 	mm_atomic.AddUint64(&mmGetLatestAccessor.beforeGetLatestAccessorCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetLatestAccessor.afterGetLatestAccessorCounter, 1)
 

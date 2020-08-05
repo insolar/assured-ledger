@@ -24,7 +24,7 @@ import (
 type TestWalletServer struct {
 	server   *http.Server
 	feeder   conveyor.EventInputer
-	accessor beat.Accessor
+	accessor beat.History
 	mux      *http.ServeMux
 
 	jsonCodec jsoniter.API
@@ -38,7 +38,7 @@ const (
 	transfer   = "Transfer"   // Transfer money between wallets
 )
 
-func NewTestWalletServer(api configuration.TestWalletAPI, feeder conveyor.EventInputer, accessor beat.Accessor) *TestWalletServer {
+func NewTestWalletServer(api configuration.TestWalletAPI, feeder conveyor.EventInputer, accessor beat.History) *TestWalletServer {
 	return &TestWalletServer{
 		server:    &http.Server{Addr: api.Address},
 		mux:       http.NewServeMux(),

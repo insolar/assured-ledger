@@ -98,7 +98,7 @@ func TestComplete_GetCert(t *testing.T) {
 	cm := mockCertificateManager(t, certNodeRef, certNodeRef, true)
 	cs := mockCryptographyService(t, true)
 	pm := mockPulseManager(t)
-	pa := beat.NewAccessorMock(t)
+	pa := beat.NewHistoryMock(t)
 
 	var ge network.Gateway
 	ge = newNoNetwork(&Base{
@@ -145,7 +145,7 @@ func TestComplete_handler(t *testing.T) {
 	cm := mockCertificateManager(t, certNodeRef, certNodeRef, true)
 	cs := mockCryptographyService(t, true)
 	pm := mockPulseManager(t)
-	pa := beat.NewAccessorMock(t)
+	pa := beat.NewHistoryMock(t)
 
 	hn := mock.NewHostNetworkMock(t)
 

@@ -14,7 +14,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
 
-var _ beat.Accessor = &StorageMem{}
+var _ beat.History = &StorageMem{}
 
 // StorageMem is a memory storage implementation. It saves pulses to memory and allows removal.
 type StorageMem struct {
@@ -58,7 +58,7 @@ func (s *StorageMem) LatestTimeBeat() (beat.Beat, error) {
 	return beat.Beat{}, throw.WithStack(ErrNotFound)
 }
 
-func (s *StorageMem) EnsureLatest(pulse beat.Beat) error {
+func (s *StorageMem) EnsureLatestTimeBeat(pulse beat.Beat) error {
 	switch latest, err := s.LatestTimeBeat(); {
 	case err != nil:
 		return err

@@ -51,10 +51,10 @@ type Service interface {
 type DefaultService struct {
 	pub      message.Publisher
 	affinity affinity.Helper
-	pulses   beat.Accessor
+	pulses   beat.History
 }
 
-func NewDefaultService(pub message.Publisher, affinity affinity.Helper, pulses beat.Accessor) *DefaultService {
+func NewDefaultService(pub message.Publisher, affinity affinity.Helper, pulses beat.History) *DefaultService {
 	return &DefaultService{
 		pub:      pub,
 		affinity: affinity,

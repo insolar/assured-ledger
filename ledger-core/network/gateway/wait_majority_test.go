@@ -39,7 +39,7 @@ func TestWaitMajority_MajorityNotHappenedInETA(t *testing.T) {
 	pop := census.NewOnlinePopulationMock(mc)
 	pop.GetProfilesMock.Return(nil)
 
-	accessor := beat.NewNodeAccessorMock(mc)
+	accessor := beat.NewNodeSnapshotMock(mc)
 	accessor.GetPopulationMock.Return(pop)
 
 	nodeKeeper.GetAccessorMock.Return(accessor)
@@ -71,7 +71,7 @@ func TestWaitMajority_MajorityHappenedInETA(t *testing.T) {
 	pop1 := census.NewOnlinePopulationMock(mc)
 	pop1.GetProfilesMock.Return(nil)
 
-	accessor1 := beat.NewNodeAccessorMock(mc)
+	accessor1 := beat.NewNodeSnapshotMock(mc)
 	accessor1.GetPopulationMock.Return(pop1)
 	nodeKeeper.GetAccessorMock.When(pulse.MinTimePulse).Then(accessor1)
 
@@ -80,7 +80,7 @@ func TestWaitMajority_MajorityHappenedInETA(t *testing.T) {
 	pop2 := census.NewOnlinePopulationMock(mc)
 	pop2.GetProfilesMock.Return([]nodeinfo.NetworkNode{n})
 
-	accessor2 := beat.NewNodeAccessorMock(mc)
+	accessor2 := beat.NewNodeSnapshotMock(mc)
 	accessor2.GetPopulationMock.Return(pop2)
 	nodeKeeper.GetAccessorMock.When(pulse.MinTimePulse + 10).Then(accessor2)
 

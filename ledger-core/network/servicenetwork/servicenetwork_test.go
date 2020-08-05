@@ -88,7 +88,7 @@ func TestSendMessageHandler_SameNode(t *testing.T) {
 	svcNw, nodeRef := prepareNetwork(t, configuration.NewConfiguration())
 	svcNw.Pub = &PublisherMock{}
 
-	pulseMock := beat.NewAccessorMock(t)
+	pulseMock := beat.NewHistoryMock(t)
 	pulseMock.LatestTimeBeatMock.Return(pulsestor.GenesisPulse, nil)
 
 	p := []byte{1, 2, 3, 4, 5}
@@ -113,7 +113,7 @@ func TestSendMessageHandler_SendError(t *testing.T) {
 	rpc.SendBytesMock.Set(func(p context.Context, p1 reference.Global, p2 string, p3 []byte) (r []byte, r1 error) {
 		return nil, throw.New("test error")
 	})
-	pulseMock := beat.NewAccessorMock(t)
+	pulseMock := beat.NewHistoryMock(t)
 	pulseMock.LatestTimeBeatMock.Return(pulsestor.GenesisPulse, nil)
 	svcNw.RPC = rpc
 
@@ -139,7 +139,7 @@ func TestSendMessageHandler_WrongReply(t *testing.T) {
 	rpc.SendBytesMock.Set(func(p context.Context, p1 reference.Global, p2 string, p3 []byte) (r []byte, r1 error) {
 		return nil, nil
 	})
-	pulseMock := beat.NewAccessorMock(t)
+	pulseMock := beat.NewHistoryMock(t)
 	pulseMock.LatestTimeBeatMock.Return(pulsestor.GenesisPulse, nil)
 	svcNw.RPC = rpc
 
@@ -165,7 +165,7 @@ func TestSendMessageHandler(t *testing.T) {
 	rpc.SendBytesMock.Set(func(p context.Context, p1 reference.Global, p2 string, p3 []byte) (r []byte, r1 error) {
 		return ack, nil
 	})
-	pulseMock := beat.NewAccessorMock(t)
+	pulseMock := beat.NewHistoryMock(t)
 	pulseMock.LatestTimeBeatMock.Return(pulsestor.GenesisPulse, nil)
 	svcNw.RPC = rpc
 
@@ -218,7 +218,7 @@ func TestServiceNetwork_StartStop(t *testing.T) {
 	cm.Inject(svcNw, nk, certManager,
 		keystore.NewInplaceKeyStore(skey),
 		&platformpolicy.NodeCryptographyService{},
-		beat.NewAccessorMock(t),
+		beat.NewHistoryMock(t),
 		/* testutils.NewTerminationHandlerMock(t), */
 		chorus.NewConductorMock(t),
 		&PublisherMock{}, &stater{},

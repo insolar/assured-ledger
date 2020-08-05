@@ -20,7 +20,7 @@ import (
 type Coordinator struct {
 	PlatformCryptographyScheme cryptography.PlatformCryptographyScheme `inject:""`
 
-	PulseAccessor beat.Accessor `inject:""`
+	PulseAccessor beat.History `inject:""`
 
 	originRef       reference.Global
 }

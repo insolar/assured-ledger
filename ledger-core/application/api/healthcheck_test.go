@@ -80,7 +80,7 @@ func mockNodeNetwork(t *testing.T, nodeList []nodeinfo.DiscoveryNode) *beat.Node
 		nodeMap[node.GetNodeRef()] = node
 	}
 
-	accessorMock := beat.NewNodeAccessorMock(t)
+	accessorMock := beat.NewNodeSnapshotMock(t)
 	accessorMock.GetPoweredNodeMock.Set(func(ref reference.Global) nodeinfo.NetworkNode {
 		if _, ok := nodeMap[ref]; ok {
 			return mutable.NewTestNode(ref, member.PrimaryRoleNeutral, "")
@@ -94,8 +94,8 @@ func mockNodeNetwork(t *testing.T, nodeList []nodeinfo.DiscoveryNode) *beat.Node
 	return nn
 }
 
-func mockPulseAccessor(t *testing.T) *beat.AccessorMock {
-	pa := beat.NewAccessorMock(t)
+func mockPulseAccessor(t *testing.T) *beat.HistoryMock {
+	pa := beat.NewHistoryMock(t)
 	pa.LatestTimeBeatMock.Return(pulsestor.GenesisPulse, nil)
 	return pa
 }

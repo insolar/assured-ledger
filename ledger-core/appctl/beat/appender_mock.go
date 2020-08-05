@@ -21,11 +21,11 @@ type AppenderMock struct {
 	beforeAddCommittedBeatCounter uint64
 	AddCommittedBeatMock          mAppenderMockAddCommittedBeat
 
-	funcEnsureLatest          func(b1 Beat) (err error)
-	inspectFuncEnsureLatest   func(b1 Beat)
-	afterEnsureLatestCounter  uint64
-	beforeEnsureLatestCounter uint64
-	EnsureLatestMock          mAppenderMockEnsureLatest
+	funcEnsureLatestTimeBeat          func(b1 Beat) (err error)
+	inspectFuncEnsureLatestTimeBeat   func(b1 Beat)
+	afterEnsureLatestTimeBeatCounter  uint64
+	beforeEnsureLatestTimeBeatCounter uint64
+	EnsureLatestTimeBeatMock          mAppenderMockEnsureLatestTimeBeat
 
 	funcLatestTimeBeat          func() (b1 Beat, err error)
 	inspectFuncLatestTimeBeat   func()
@@ -50,8 +50,8 @@ func NewAppenderMock(t minimock.Tester) *AppenderMock {
 	m.AddCommittedBeatMock = mAppenderMockAddCommittedBeat{mock: m}
 	m.AddCommittedBeatMock.callArgs = []*AppenderMockAddCommittedBeatParams{}
 
-	m.EnsureLatestMock = mAppenderMockEnsureLatest{mock: m}
-	m.EnsureLatestMock.callArgs = []*AppenderMockEnsureLatestParams{}
+	m.EnsureLatestTimeBeatMock = mAppenderMockEnsureLatestTimeBeat{mock: m}
+	m.EnsureLatestTimeBeatMock.callArgs = []*AppenderMockEnsureLatestTimeBeatParams{}
 
 	m.LatestTimeBeatMock = mAppenderMockLatestTimeBeat{mock: m}
 
@@ -276,218 +276,218 @@ func (m *AppenderMock) MinimockAddCommittedBeatInspect() {
 	}
 }
 
-type mAppenderMockEnsureLatest struct {
+type mAppenderMockEnsureLatestTimeBeat struct {
 	mock               *AppenderMock
-	defaultExpectation *AppenderMockEnsureLatestExpectation
-	expectations       []*AppenderMockEnsureLatestExpectation
+	defaultExpectation *AppenderMockEnsureLatestTimeBeatExpectation
+	expectations       []*AppenderMockEnsureLatestTimeBeatExpectation
 
-	callArgs []*AppenderMockEnsureLatestParams
+	callArgs []*AppenderMockEnsureLatestTimeBeatParams
 	mutex    sync.RWMutex
 }
 
-// AppenderMockEnsureLatestExpectation specifies expectation struct of the Appender.EnsureLatest
-type AppenderMockEnsureLatestExpectation struct {
+// AppenderMockEnsureLatestTimeBeatExpectation specifies expectation struct of the Appender.EnsureLatestTimeBeat
+type AppenderMockEnsureLatestTimeBeatExpectation struct {
 	mock    *AppenderMock
-	params  *AppenderMockEnsureLatestParams
-	results *AppenderMockEnsureLatestResults
+	params  *AppenderMockEnsureLatestTimeBeatParams
+	results *AppenderMockEnsureLatestTimeBeatResults
 	Counter uint64
 }
 
-// AppenderMockEnsureLatestParams contains parameters of the Appender.EnsureLatest
-type AppenderMockEnsureLatestParams struct {
+// AppenderMockEnsureLatestTimeBeatParams contains parameters of the Appender.EnsureLatestTimeBeat
+type AppenderMockEnsureLatestTimeBeatParams struct {
 	b1 Beat
 }
 
-// AppenderMockEnsureLatestResults contains results of the Appender.EnsureLatest
-type AppenderMockEnsureLatestResults struct {
+// AppenderMockEnsureLatestTimeBeatResults contains results of the Appender.EnsureLatestTimeBeat
+type AppenderMockEnsureLatestTimeBeatResults struct {
 	err error
 }
 
-// Expect sets up expected params for Appender.EnsureLatest
-func (mmEnsureLatest *mAppenderMockEnsureLatest) Expect(b1 Beat) *mAppenderMockEnsureLatest {
-	if mmEnsureLatest.mock.funcEnsureLatest != nil {
-		mmEnsureLatest.mock.t.Fatalf("AppenderMock.EnsureLatest mock is already set by Set")
+// Expect sets up expected params for Appender.EnsureLatestTimeBeat
+func (mmEnsureLatestTimeBeat *mAppenderMockEnsureLatestTimeBeat) Expect(b1 Beat) *mAppenderMockEnsureLatestTimeBeat {
+	if mmEnsureLatestTimeBeat.mock.funcEnsureLatestTimeBeat != nil {
+		mmEnsureLatestTimeBeat.mock.t.Fatalf("AppenderMock.EnsureLatestTimeBeat mock is already set by Set")
 	}
 
-	if mmEnsureLatest.defaultExpectation == nil {
-		mmEnsureLatest.defaultExpectation = &AppenderMockEnsureLatestExpectation{}
+	if mmEnsureLatestTimeBeat.defaultExpectation == nil {
+		mmEnsureLatestTimeBeat.defaultExpectation = &AppenderMockEnsureLatestTimeBeatExpectation{}
 	}
 
-	mmEnsureLatest.defaultExpectation.params = &AppenderMockEnsureLatestParams{b1}
-	for _, e := range mmEnsureLatest.expectations {
-		if minimock.Equal(e.params, mmEnsureLatest.defaultExpectation.params) {
-			mmEnsureLatest.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmEnsureLatest.defaultExpectation.params)
+	mmEnsureLatestTimeBeat.defaultExpectation.params = &AppenderMockEnsureLatestTimeBeatParams{b1}
+	for _, e := range mmEnsureLatestTimeBeat.expectations {
+		if minimock.Equal(e.params, mmEnsureLatestTimeBeat.defaultExpectation.params) {
+			mmEnsureLatestTimeBeat.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmEnsureLatestTimeBeat.defaultExpectation.params)
 		}
 	}
 
-	return mmEnsureLatest
+	return mmEnsureLatestTimeBeat
 }
 
-// Inspect accepts an inspector function that has same arguments as the Appender.EnsureLatest
-func (mmEnsureLatest *mAppenderMockEnsureLatest) Inspect(f func(b1 Beat)) *mAppenderMockEnsureLatest {
-	if mmEnsureLatest.mock.inspectFuncEnsureLatest != nil {
-		mmEnsureLatest.mock.t.Fatalf("Inspect function is already set for AppenderMock.EnsureLatest")
+// Inspect accepts an inspector function that has same arguments as the Appender.EnsureLatestTimeBeat
+func (mmEnsureLatestTimeBeat *mAppenderMockEnsureLatestTimeBeat) Inspect(f func(b1 Beat)) *mAppenderMockEnsureLatestTimeBeat {
+	if mmEnsureLatestTimeBeat.mock.inspectFuncEnsureLatestTimeBeat != nil {
+		mmEnsureLatestTimeBeat.mock.t.Fatalf("Inspect function is already set for AppenderMock.EnsureLatestTimeBeat")
 	}
 
-	mmEnsureLatest.mock.inspectFuncEnsureLatest = f
+	mmEnsureLatestTimeBeat.mock.inspectFuncEnsureLatestTimeBeat = f
 
-	return mmEnsureLatest
+	return mmEnsureLatestTimeBeat
 }
 
-// Return sets up results that will be returned by Appender.EnsureLatest
-func (mmEnsureLatest *mAppenderMockEnsureLatest) Return(err error) *AppenderMock {
-	if mmEnsureLatest.mock.funcEnsureLatest != nil {
-		mmEnsureLatest.mock.t.Fatalf("AppenderMock.EnsureLatest mock is already set by Set")
+// Return sets up results that will be returned by Appender.EnsureLatestTimeBeat
+func (mmEnsureLatestTimeBeat *mAppenderMockEnsureLatestTimeBeat) Return(err error) *AppenderMock {
+	if mmEnsureLatestTimeBeat.mock.funcEnsureLatestTimeBeat != nil {
+		mmEnsureLatestTimeBeat.mock.t.Fatalf("AppenderMock.EnsureLatestTimeBeat mock is already set by Set")
 	}
 
-	if mmEnsureLatest.defaultExpectation == nil {
-		mmEnsureLatest.defaultExpectation = &AppenderMockEnsureLatestExpectation{mock: mmEnsureLatest.mock}
+	if mmEnsureLatestTimeBeat.defaultExpectation == nil {
+		mmEnsureLatestTimeBeat.defaultExpectation = &AppenderMockEnsureLatestTimeBeatExpectation{mock: mmEnsureLatestTimeBeat.mock}
 	}
-	mmEnsureLatest.defaultExpectation.results = &AppenderMockEnsureLatestResults{err}
-	return mmEnsureLatest.mock
+	mmEnsureLatestTimeBeat.defaultExpectation.results = &AppenderMockEnsureLatestTimeBeatResults{err}
+	return mmEnsureLatestTimeBeat.mock
 }
 
-//Set uses given function f to mock the Appender.EnsureLatest method
-func (mmEnsureLatest *mAppenderMockEnsureLatest) Set(f func(b1 Beat) (err error)) *AppenderMock {
-	if mmEnsureLatest.defaultExpectation != nil {
-		mmEnsureLatest.mock.t.Fatalf("Default expectation is already set for the Appender.EnsureLatest method")
+//Set uses given function f to mock the Appender.EnsureLatestTimeBeat method
+func (mmEnsureLatestTimeBeat *mAppenderMockEnsureLatestTimeBeat) Set(f func(b1 Beat) (err error)) *AppenderMock {
+	if mmEnsureLatestTimeBeat.defaultExpectation != nil {
+		mmEnsureLatestTimeBeat.mock.t.Fatalf("Default expectation is already set for the Appender.EnsureLatestTimeBeat method")
 	}
 
-	if len(mmEnsureLatest.expectations) > 0 {
-		mmEnsureLatest.mock.t.Fatalf("Some expectations are already set for the Appender.EnsureLatest method")
+	if len(mmEnsureLatestTimeBeat.expectations) > 0 {
+		mmEnsureLatestTimeBeat.mock.t.Fatalf("Some expectations are already set for the Appender.EnsureLatestTimeBeat method")
 	}
 
-	mmEnsureLatest.mock.funcEnsureLatest = f
-	return mmEnsureLatest.mock
+	mmEnsureLatestTimeBeat.mock.funcEnsureLatestTimeBeat = f
+	return mmEnsureLatestTimeBeat.mock
 }
 
-// When sets expectation for the Appender.EnsureLatest which will trigger the result defined by the following
+// When sets expectation for the Appender.EnsureLatestTimeBeat which will trigger the result defined by the following
 // Then helper
-func (mmEnsureLatest *mAppenderMockEnsureLatest) When(b1 Beat) *AppenderMockEnsureLatestExpectation {
-	if mmEnsureLatest.mock.funcEnsureLatest != nil {
-		mmEnsureLatest.mock.t.Fatalf("AppenderMock.EnsureLatest mock is already set by Set")
+func (mmEnsureLatestTimeBeat *mAppenderMockEnsureLatestTimeBeat) When(b1 Beat) *AppenderMockEnsureLatestTimeBeatExpectation {
+	if mmEnsureLatestTimeBeat.mock.funcEnsureLatestTimeBeat != nil {
+		mmEnsureLatestTimeBeat.mock.t.Fatalf("AppenderMock.EnsureLatestTimeBeat mock is already set by Set")
 	}
 
-	expectation := &AppenderMockEnsureLatestExpectation{
-		mock:   mmEnsureLatest.mock,
-		params: &AppenderMockEnsureLatestParams{b1},
+	expectation := &AppenderMockEnsureLatestTimeBeatExpectation{
+		mock:   mmEnsureLatestTimeBeat.mock,
+		params: &AppenderMockEnsureLatestTimeBeatParams{b1},
 	}
-	mmEnsureLatest.expectations = append(mmEnsureLatest.expectations, expectation)
+	mmEnsureLatestTimeBeat.expectations = append(mmEnsureLatestTimeBeat.expectations, expectation)
 	return expectation
 }
 
-// Then sets up Appender.EnsureLatest return parameters for the expectation previously defined by the When method
-func (e *AppenderMockEnsureLatestExpectation) Then(err error) *AppenderMock {
-	e.results = &AppenderMockEnsureLatestResults{err}
+// Then sets up Appender.EnsureLatestTimeBeat return parameters for the expectation previously defined by the When method
+func (e *AppenderMockEnsureLatestTimeBeatExpectation) Then(err error) *AppenderMock {
+	e.results = &AppenderMockEnsureLatestTimeBeatResults{err}
 	return e.mock
 }
 
-// EnsureLatest implements Appender
-func (mmEnsureLatest *AppenderMock) EnsureLatest(b1 Beat) (err error) {
-	mm_atomic.AddUint64(&mmEnsureLatest.beforeEnsureLatestCounter, 1)
-	defer mm_atomic.AddUint64(&mmEnsureLatest.afterEnsureLatestCounter, 1)
+// EnsureLatestTimeBeat implements Appender
+func (mmEnsureLatestTimeBeat *AppenderMock) EnsureLatestTimeBeat(b1 Beat) (err error) {
+	mm_atomic.AddUint64(&mmEnsureLatestTimeBeat.beforeEnsureLatestTimeBeatCounter, 1)
+	defer mm_atomic.AddUint64(&mmEnsureLatestTimeBeat.afterEnsureLatestTimeBeatCounter, 1)
 
-	if mmEnsureLatest.inspectFuncEnsureLatest != nil {
-		mmEnsureLatest.inspectFuncEnsureLatest(b1)
+	if mmEnsureLatestTimeBeat.inspectFuncEnsureLatestTimeBeat != nil {
+		mmEnsureLatestTimeBeat.inspectFuncEnsureLatestTimeBeat(b1)
 	}
 
-	mm_params := &AppenderMockEnsureLatestParams{b1}
+	mm_params := &AppenderMockEnsureLatestTimeBeatParams{b1}
 
 	// Record call args
-	mmEnsureLatest.EnsureLatestMock.mutex.Lock()
-	mmEnsureLatest.EnsureLatestMock.callArgs = append(mmEnsureLatest.EnsureLatestMock.callArgs, mm_params)
-	mmEnsureLatest.EnsureLatestMock.mutex.Unlock()
+	mmEnsureLatestTimeBeat.EnsureLatestTimeBeatMock.mutex.Lock()
+	mmEnsureLatestTimeBeat.EnsureLatestTimeBeatMock.callArgs = append(mmEnsureLatestTimeBeat.EnsureLatestTimeBeatMock.callArgs, mm_params)
+	mmEnsureLatestTimeBeat.EnsureLatestTimeBeatMock.mutex.Unlock()
 
-	for _, e := range mmEnsureLatest.EnsureLatestMock.expectations {
+	for _, e := range mmEnsureLatestTimeBeat.EnsureLatestTimeBeatMock.expectations {
 		if minimock.Equal(e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
 			return e.results.err
 		}
 	}
 
-	if mmEnsureLatest.EnsureLatestMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmEnsureLatest.EnsureLatestMock.defaultExpectation.Counter, 1)
-		mm_want := mmEnsureLatest.EnsureLatestMock.defaultExpectation.params
-		mm_got := AppenderMockEnsureLatestParams{b1}
+	if mmEnsureLatestTimeBeat.EnsureLatestTimeBeatMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmEnsureLatestTimeBeat.EnsureLatestTimeBeatMock.defaultExpectation.Counter, 1)
+		mm_want := mmEnsureLatestTimeBeat.EnsureLatestTimeBeatMock.defaultExpectation.params
+		mm_got := AppenderMockEnsureLatestTimeBeatParams{b1}
 		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmEnsureLatest.t.Errorf("AppenderMock.EnsureLatest got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+			mmEnsureLatestTimeBeat.t.Errorf("AppenderMock.EnsureLatestTimeBeat got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
 
-		mm_results := mmEnsureLatest.EnsureLatestMock.defaultExpectation.results
+		mm_results := mmEnsureLatestTimeBeat.EnsureLatestTimeBeatMock.defaultExpectation.results
 		if mm_results == nil {
-			mmEnsureLatest.t.Fatal("No results are set for the AppenderMock.EnsureLatest")
+			mmEnsureLatestTimeBeat.t.Fatal("No results are set for the AppenderMock.EnsureLatestTimeBeat")
 		}
 		return (*mm_results).err
 	}
-	if mmEnsureLatest.funcEnsureLatest != nil {
-		return mmEnsureLatest.funcEnsureLatest(b1)
+	if mmEnsureLatestTimeBeat.funcEnsureLatestTimeBeat != nil {
+		return mmEnsureLatestTimeBeat.funcEnsureLatestTimeBeat(b1)
 	}
-	mmEnsureLatest.t.Fatalf("Unexpected call to AppenderMock.EnsureLatest. %v", b1)
+	mmEnsureLatestTimeBeat.t.Fatalf("Unexpected call to AppenderMock.EnsureLatestTimeBeat. %v", b1)
 	return
 }
 
-// EnsureLatestAfterCounter returns a count of finished AppenderMock.EnsureLatest invocations
-func (mmEnsureLatest *AppenderMock) EnsureLatestAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmEnsureLatest.afterEnsureLatestCounter)
+// EnsureLatestTimeBeatAfterCounter returns a count of finished AppenderMock.EnsureLatestTimeBeat invocations
+func (mmEnsureLatestTimeBeat *AppenderMock) EnsureLatestTimeBeatAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmEnsureLatestTimeBeat.afterEnsureLatestTimeBeatCounter)
 }
 
-// EnsureLatestBeforeCounter returns a count of AppenderMock.EnsureLatest invocations
-func (mmEnsureLatest *AppenderMock) EnsureLatestBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmEnsureLatest.beforeEnsureLatestCounter)
+// EnsureLatestTimeBeatBeforeCounter returns a count of AppenderMock.EnsureLatestTimeBeat invocations
+func (mmEnsureLatestTimeBeat *AppenderMock) EnsureLatestTimeBeatBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmEnsureLatestTimeBeat.beforeEnsureLatestTimeBeatCounter)
 }
 
-// Calls returns a list of arguments used in each call to AppenderMock.EnsureLatest.
+// Calls returns a list of arguments used in each call to AppenderMock.EnsureLatestTimeBeat.
 // The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmEnsureLatest *mAppenderMockEnsureLatest) Calls() []*AppenderMockEnsureLatestParams {
-	mmEnsureLatest.mutex.RLock()
+func (mmEnsureLatestTimeBeat *mAppenderMockEnsureLatestTimeBeat) Calls() []*AppenderMockEnsureLatestTimeBeatParams {
+	mmEnsureLatestTimeBeat.mutex.RLock()
 
-	argCopy := make([]*AppenderMockEnsureLatestParams, len(mmEnsureLatest.callArgs))
-	copy(argCopy, mmEnsureLatest.callArgs)
+	argCopy := make([]*AppenderMockEnsureLatestTimeBeatParams, len(mmEnsureLatestTimeBeat.callArgs))
+	copy(argCopy, mmEnsureLatestTimeBeat.callArgs)
 
-	mmEnsureLatest.mutex.RUnlock()
+	mmEnsureLatestTimeBeat.mutex.RUnlock()
 
 	return argCopy
 }
 
-// MinimockEnsureLatestDone returns true if the count of the EnsureLatest invocations corresponds
+// MinimockEnsureLatestTimeBeatDone returns true if the count of the EnsureLatestTimeBeat invocations corresponds
 // the number of defined expectations
-func (m *AppenderMock) MinimockEnsureLatestDone() bool {
-	for _, e := range m.EnsureLatestMock.expectations {
+func (m *AppenderMock) MinimockEnsureLatestTimeBeatDone() bool {
+	for _, e := range m.EnsureLatestTimeBeatMock.expectations {
 		if mm_atomic.LoadUint64(&e.Counter) < 1 {
 			return false
 		}
 	}
 
 	// if default expectation was set then invocations count should be greater than zero
-	if m.EnsureLatestMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterEnsureLatestCounter) < 1 {
+	if m.EnsureLatestTimeBeatMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterEnsureLatestTimeBeatCounter) < 1 {
 		return false
 	}
 	// if func was set then invocations count should be greater than zero
-	if m.funcEnsureLatest != nil && mm_atomic.LoadUint64(&m.afterEnsureLatestCounter) < 1 {
+	if m.funcEnsureLatestTimeBeat != nil && mm_atomic.LoadUint64(&m.afterEnsureLatestTimeBeatCounter) < 1 {
 		return false
 	}
 	return true
 }
 
-// MinimockEnsureLatestInspect logs each unmet expectation
-func (m *AppenderMock) MinimockEnsureLatestInspect() {
-	for _, e := range m.EnsureLatestMock.expectations {
+// MinimockEnsureLatestTimeBeatInspect logs each unmet expectation
+func (m *AppenderMock) MinimockEnsureLatestTimeBeatInspect() {
+	for _, e := range m.EnsureLatestTimeBeatMock.expectations {
 		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to AppenderMock.EnsureLatest with params: %#v", *e.params)
+			m.t.Errorf("Expected call to AppenderMock.EnsureLatestTimeBeat with params: %#v", *e.params)
 		}
 	}
 
 	// if default expectation was set then invocations count should be greater than zero
-	if m.EnsureLatestMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterEnsureLatestCounter) < 1 {
-		if m.EnsureLatestMock.defaultExpectation.params == nil {
-			m.t.Error("Expected call to AppenderMock.EnsureLatest")
+	if m.EnsureLatestTimeBeatMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterEnsureLatestTimeBeatCounter) < 1 {
+		if m.EnsureLatestTimeBeatMock.defaultExpectation.params == nil {
+			m.t.Error("Expected call to AppenderMock.EnsureLatestTimeBeat")
 		} else {
-			m.t.Errorf("Expected call to AppenderMock.EnsureLatest with params: %#v", *m.EnsureLatestMock.defaultExpectation.params)
+			m.t.Errorf("Expected call to AppenderMock.EnsureLatestTimeBeat with params: %#v", *m.EnsureLatestTimeBeatMock.defaultExpectation.params)
 		}
 	}
 	// if func was set then invocations count should be greater than zero
-	if m.funcEnsureLatest != nil && mm_atomic.LoadUint64(&m.afterEnsureLatestCounter) < 1 {
-		m.t.Error("Expected call to AppenderMock.EnsureLatest")
+	if m.funcEnsureLatestTimeBeat != nil && mm_atomic.LoadUint64(&m.afterEnsureLatestTimeBeatCounter) < 1 {
+		m.t.Error("Expected call to AppenderMock.EnsureLatestTimeBeat")
 	}
 }
 
@@ -856,7 +856,7 @@ func (m *AppenderMock) MinimockFinish() {
 	if !m.minimockDone() {
 		m.MinimockAddCommittedBeatInspect()
 
-		m.MinimockEnsureLatestInspect()
+		m.MinimockEnsureLatestTimeBeatInspect()
 
 		m.MinimockLatestTimeBeatInspect()
 
@@ -885,7 +885,7 @@ func (m *AppenderMock) minimockDone() bool {
 	done := true
 	return done &&
 		m.MinimockAddCommittedBeatDone() &&
-		m.MinimockEnsureLatestDone() &&
+		m.MinimockEnsureLatestTimeBeatDone() &&
 		m.MinimockLatestTimeBeatDone() &&
 		m.MinimockTimeBeatDone()
 }

@@ -34,7 +34,7 @@ type Runner struct {
 	// nolint
 	NodeNetwork         beat.NodeNetwork
 	CertificateGetter   nodeinfo.CertificateGetter
-	PulseAccessor       beat.Accessor
+	PulseAccessor       beat.History
 	JetCoordinator      affinity.Helper
 	NetworkStatus       network.Status
 	AvailabilityChecker AvailabilityChecker
@@ -81,7 +81,7 @@ func NewRunner(cfg *configuration.APIRunner,
 	// nolint
 	nodeNetwork beat.NodeNetwork,
 	certificateGetter nodeinfo.CertificateGetter,
-	pulseAccessor beat.Accessor,
+	pulseAccessor beat.History,
 	jetCoordinator affinity.Helper,
 	networkStatus network.Status,
 	availabilityChecker AvailabilityChecker,

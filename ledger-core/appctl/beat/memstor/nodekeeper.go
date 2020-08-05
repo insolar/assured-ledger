@@ -41,7 +41,7 @@ type nodekeeper struct {
 	mutex sync.RWMutex
 
 	storage  *MemoryStorage
-	last     beat.NodeAccessor
+	last     beat.NodeSnapshot
 	// expected int
 }
 
@@ -53,7 +53,7 @@ func (nk *nodekeeper) GetLocalNodeRole() member.PrimaryRole {
 	return nk.localRole
 }
 
-func (nk *nodekeeper) GetAccessor(pn pulse.Number) beat.NodeAccessor {
+func (nk *nodekeeper) GetAccessor(pn pulse.Number) beat.NodeSnapshot {
 	la := nk.GetLatestAccessor()
 	if la != nil && la.GetPulseNumber() == pn {
 		return la
@@ -66,7 +66,7 @@ func (nk *nodekeeper) GetAccessor(pn pulse.Number) beat.NodeAccessor {
 	return NewAccessor(s)
 }
 
-func (nk *nodekeeper) GetLatestAccessor() beat.NodeAccessor {
+func (nk *nodekeeper) GetLatestAccessor() beat.NodeSnapshot {
 	nk.mutex.RLock()
 	defer nk.mutex.RUnlock()
 
