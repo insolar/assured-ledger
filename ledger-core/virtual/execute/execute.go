@@ -1107,7 +1107,12 @@ func (s *SMExecute) deduplicate(state *object.SharedState) (DeduplicationAction,
 		filledTable := uint8(pendingList.Count()) == state.PreviousExecutorOrderedPendingCount
 		isActive, isDuplicate := pendingList.GetState(s.execution.Outgoing)
 
-		s.hasState = state.GetState() == object.HasState
+		switch state.GetState() {
+		case object.HasState, object.Inactive:
+			s.hasState = true
+		default:
+			s.hasState = false
+		}
 		s.duplicateFinished = isDuplicate && !isActive
 
 		switch {
