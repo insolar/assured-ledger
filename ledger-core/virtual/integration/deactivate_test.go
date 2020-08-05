@@ -18,7 +18,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
@@ -688,7 +687,6 @@ func TestVirtual_CallMethod_After_Deactivation(t *testing.T) {
 	mc := minimock.NewController(t)
 
 	server, ctx := utils.NewUninitializedServer(nil, t)
-	logger := inslogger.FromContext(ctx)
 
 	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
 		return execution.Request.CallSiteMethod
@@ -714,6 +712,8 @@ func TestVirtual_CallMethod_After_Deactivation(t *testing.T) {
 
 	outgoingDeactivate := server.BuildRandomOutgoingWithPulse()
 	outgoingSomeMethod := server.BuildRandomOutgoingWithPulse()
+	synchronizeExecution := synchronization.NewPoint(1)
+	twoExecutionEnded := server.Journal.WaitStopOf(&execute.SMExecute{}, 2)
 
 	// mock
 	{
@@ -725,8 +725,7 @@ func TestVirtual_CallMethod_After_Deactivation(t *testing.T) {
 			Outgoing: execution.NewRPCBuilder(server.RandomGlobalWithPulse(), objectRef).Deactivate(),
 		}).AddContinue(
 			func(result []byte) {
-				logger.Info("wait after deactivation")
-				time.Sleep(100 * time.Millisecond)
+				synchronizeExecution.Synchronize()
 			},
 			&execution.Update{
 				Type:   execution.Done,
@@ -759,7 +758,7 @@ func TestVirtual_CallMethod_After_Deactivation(t *testing.T) {
 
 	// Deactivate
 	{
-		pl := &payload.VCallRequest{
+		deactivateRequest := &payload.VCallRequest{
 			CallType:            payload.CTMethod,
 			CallFlags:           payload.BuildCallFlags(deactivateIsolation.Interference, deactivateIsolation.State),
 			Callee:              objectRef,
@@ -768,27 +767,27 @@ func TestVirtual_CallMethod_After_Deactivation(t *testing.T) {
 			CallOutgoing:        outgoingDeactivate,
 			Arguments:           insolar.MustSerialize([]interface{}{}),
 		}
-		wait := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
-		server.SendPayload(ctx, pl)
-		testutils.WaitSignalsTimed(t, 10*time.Second, wait)
+		server.SendPayload(ctx, deactivateRequest)
 	}
 
 	// vCallRequest
-	{
-		pl := &payload.VCallRequest{
-			CallType:            payload.CTMethod,
-			CallFlags:           payload.BuildCallFlags(deactivateIsolation.Interference, deactivateIsolation.State),
-			Callee:              objectRef,
-			CallSiteDeclaration: class,
-			CallSiteMethod:      "SomeMethod",
-			CallOutgoing:        outgoingSomeMethod,
-			Arguments:           insolar.MustSerialize([]interface{}{}),
-		}
-		wait := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
-		server.SendPayload(ctx, pl)
-		testutils.WaitSignalsTimed(t, 10*time.Second, wait)
+
+	pl := &payload.VCallRequest{
+		CallType:            payload.CTMethod,
+		CallFlags:           payload.BuildCallFlags(deactivateIsolation.Interference, deactivateIsolation.State),
+		Callee:              objectRef,
+		CallSiteDeclaration: class,
+		CallSiteMethod:      "SomeMethod",
+		CallOutgoing:        outgoingSomeMethod,
+		Arguments:           insolar.MustSerialize([]interface{}{}),
 	}
 
+	commonTestUtils.WaitSignalsTimed(t, 10*time.Second, synchronizeExecution.Wait())
+	server.SendPayload(ctx, pl)
+	time.Sleep(100 * time.Millisecond)
+	synchronizeExecution.WakeUp()
+
+	commonTestUtils.WaitSignalsTimed(t, 10*time.Second, twoExecutionEnded)
 	commonTestUtils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 	require.Equal(t, 2, typedChecker.VCallResult.Count())
