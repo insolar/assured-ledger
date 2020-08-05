@@ -69,7 +69,10 @@ func (w *pulseWatchdog) start() {
 }
 
 func (w *pulseWatchdog) Stop() {
-	w.stopChan <- struct{}{}
+	select {
+	case w.stopChan <- struct{}{}:
+	default:
+	}
 }
 
 func (w *pulseWatchdog) Reset() {
