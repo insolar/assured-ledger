@@ -122,14 +122,9 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 			// Execution mock
 			{
 				// deactivate method
-				descr := descriptor.NewObject(objectGlobal, server.RandomLocalWithPulse(), class, []byte("deactivate state"), false)
-				requestResult := requestresult.New([]byte("done"), objectGlobal)
-				requestResult.SetDeactivate(descr)
-
 				objectAExecutionMock := runnerMock.AddExecutionMock("Deactivate")
 				objectAExecutionMock.AddStart(nil, &execution.Update{
 					Type:     execution.OutgoingCall,
-					Result:   requestResult,
 					Outgoing: execution.NewRPCBuilder(outgoingDestroy, objectGlobal).Deactivate(),
 				},
 				).AddContinue(nil, &execution.Update{
