@@ -682,8 +682,8 @@ func TestVirtual_DeactivateObject_ChangePulse(t *testing.T) {
 
 func TestVirtual_CallMethod_After_Deactivation(t *testing.T) {
 	insrail.LogCase(t, "C5509")
-
 	defer commonTestUtils.LeakTester(t)
+
 	mc := minimock.NewController(t)
 
 	server, ctx := utils.NewUninitializedServer(nil, t)
@@ -691,6 +691,8 @@ func TestVirtual_CallMethod_After_Deactivation(t *testing.T) {
 	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
 		return execution.Request.CallSiteMethod
 	})
+	defer server.Stop()
+
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
 
@@ -717,7 +719,9 @@ func TestVirtual_CallMethod_After_Deactivation(t *testing.T) {
 
 	// mock
 	{
-		result := requestresult.New([]byte("345"), objectRef)
+		descr := descriptor.NewObject(objectRef, server.RandomLocalWithPulse(), class, []byte("deactivate state"), false)
+		requestResult := requestresult.New([]byte("done"), objectRef)
+		requestResult.SetDeactivate(descr)
 
 		objectExecutionMock := runnerMock.AddExecutionMock("Destroy")
 		objectExecutionMock.AddStart(nil, &execution.Update{
@@ -729,7 +733,7 @@ func TestVirtual_CallMethod_After_Deactivation(t *testing.T) {
 			},
 			&execution.Update{
 				Type:   execution.Done,
-				Result: result,
+				Result: requestResult,
 			},
 		)
 		runnerMock.AddExecutionClassify("Destroy", deactivateIsolation, nil)
@@ -741,15 +745,13 @@ func TestVirtual_CallMethod_After_Deactivation(t *testing.T) {
 	// Add check
 	{
 		typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
+			require.Equal(t, objectRef, res.Callee)
 			if res.CallOutgoing == outgoingDeactivate {
-				require.Equal(t, []byte("345"), res.ReturnArguments)
-				require.Equal(t, objectRef, res.Callee)
+				require.Equal(t, []byte("done"), res.ReturnArguments)
 			} else {
 				contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments)
 				require.NoError(t, sysErr)
 				assert.Contains(t, contractErr.Error(), "try to call method on deactivated object")
-
-				require.Equal(t, objectRef, res.Callee)
 				require.Equal(t, outgoingSomeMethod, res.CallOutgoing)
 			}
 			return false
