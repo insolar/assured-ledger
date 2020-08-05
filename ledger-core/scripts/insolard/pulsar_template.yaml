@@ -1,11 +1,11 @@
 pulsar:
-  pulsetime: 10000
+  pulsetime: 3000
   receivingsigntimeout: 1000
   receivingnumbertimeout: 1000
   receivingvectortimeout: 1000
   receivingsignsforchosentimeout: 0
   neighbours: []
-  numberdelta: 10
+  numberdelta: 3
   distributiontransport:
     protocol: TCP
     address: 127.0.0.1:58091
