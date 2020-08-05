@@ -9,15 +9,14 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-
-	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
+	mm_beat "github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
-// NodeKeeperMock implements network.NodeKeeper
+// NodeKeeperMock implements beat.NodeKeeper
 type NodeKeeperMock struct {
 	t minimock.Tester
 
@@ -27,13 +26,13 @@ type NodeKeeperMock struct {
 	beforeAddActivePopulationCounter uint64
 	AddActivePopulationMock          mNodeKeeperMockAddActivePopulation
 
-	funcGetAccessor          func(n1 pulse.Number) (a1 beat.NodeAccessor)
+	funcGetAccessor          func(n1 pulse.Number) (n2 mm_beat.NodeAccessor)
 	inspectFuncGetAccessor   func(n1 pulse.Number)
 	afterGetAccessorCounter  uint64
 	beforeGetAccessorCounter uint64
 	GetAccessorMock          mNodeKeeperMockGetAccessor
 
-	funcGetLatestAccessor          func() (a1 beat.NodeAccessor)
+	funcGetLatestAccessor          func() (n1 mm_beat.NodeAccessor)
 	inspectFuncGetLatestAccessor   func()
 	afterGetLatestAccessorCounter  uint64
 	beforeGetLatestAccessorCounter uint64
@@ -58,7 +57,7 @@ type NodeKeeperMock struct {
 	SetExpectedPopulationMock          mNodeKeeperMockSetExpectedPopulation
 }
 
-// NewNodeKeeperMock returns a mock for network.NodeKeeper
+// NewNodeKeeperMock returns a mock for beat.NodeKeeper
 func NewNodeKeeperMock(t minimock.Tester) *NodeKeeperMock {
 	m := &NodeKeeperMock{t: t}
 	if controller, ok := t.(minimock.MockController); ok {
@@ -165,7 +164,7 @@ func (mmAddActivePopulation *mNodeKeeperMockAddActivePopulation) Set(f func(ctx 
 	return mmAddActivePopulation.mock
 }
 
-// AddActivePopulation implements network.NodeKeeper
+// AddActivePopulation implements beat.NodeKeeper
 func (mmAddActivePopulation *NodeKeeperMock) AddActivePopulation(ctx context.Context, n1 pulse.Number, o1 census.OnlinePopulation) {
 	mm_atomic.AddUint64(&mmAddActivePopulation.beforeAddActivePopulationCounter, 1)
 	defer mm_atomic.AddUint64(&mmAddActivePopulation.afterAddActivePopulationCounter, 1)
@@ -296,7 +295,7 @@ type NodeKeeperMockGetAccessorParams struct {
 
 // NodeKeeperMockGetAccessorResults contains results of the NodeKeeper.GetAccessor
 type NodeKeeperMockGetAccessorResults struct {
-	a1 beat.NodeAccessor
+	n2 mm_beat.NodeAccessor
 }
 
 // Expect sets up expected params for NodeKeeper.GetAccessor
@@ -331,7 +330,7 @@ func (mmGetAccessor *mNodeKeeperMockGetAccessor) Inspect(f func(n1 pulse.Number)
 }
 
 // Return sets up results that will be returned by NodeKeeper.GetAccessor
-func (mmGetAccessor *mNodeKeeperMockGetAccessor) Return(a1 beat.NodeAccessor) *NodeKeeperMock {
+func (mmGetAccessor *mNodeKeeperMockGetAccessor) Return(n2 mm_beat.NodeAccessor) *NodeKeeperMock {
 	if mmGetAccessor.mock.funcGetAccessor != nil {
 		mmGetAccessor.mock.t.Fatalf("NodeKeeperMock.GetAccessor mock is already set by Set")
 	}
@@ -339,12 +338,12 @@ func (mmGetAccessor *mNodeKeeperMockGetAccessor) Return(a1 beat.NodeAccessor) *N
 	if mmGetAccessor.defaultExpectation == nil {
 		mmGetAccessor.defaultExpectation = &NodeKeeperMockGetAccessorExpectation{mock: mmGetAccessor.mock}
 	}
-	mmGetAccessor.defaultExpectation.results = &NodeKeeperMockGetAccessorResults{a1}
+	mmGetAccessor.defaultExpectation.results = &NodeKeeperMockGetAccessorResults{n2}
 	return mmGetAccessor.mock
 }
 
 //Set uses given function f to mock the NodeKeeper.GetAccessor method
-func (mmGetAccessor *mNodeKeeperMockGetAccessor) Set(f func(n1 pulse.Number) (a1 beat.NodeAccessor)) *NodeKeeperMock {
+func (mmGetAccessor *mNodeKeeperMockGetAccessor) Set(f func(n1 pulse.Number) (n2 mm_beat.NodeAccessor)) *NodeKeeperMock {
 	if mmGetAccessor.defaultExpectation != nil {
 		mmGetAccessor.mock.t.Fatalf("Default expectation is already set for the NodeKeeper.GetAccessor method")
 	}
@@ -373,13 +372,13 @@ func (mmGetAccessor *mNodeKeeperMockGetAccessor) When(n1 pulse.Number) *NodeKeep
 }
 
 // Then sets up NodeKeeper.GetAccessor return parameters for the expectation previously defined by the When method
-func (e *NodeKeeperMockGetAccessorExpectation) Then(a1 beat.NodeAccessor) *NodeKeeperMock {
-	e.results = &NodeKeeperMockGetAccessorResults{a1}
+func (e *NodeKeeperMockGetAccessorExpectation) Then(n2 mm_beat.NodeAccessor) *NodeKeeperMock {
+	e.results = &NodeKeeperMockGetAccessorResults{n2}
 	return e.mock
 }
 
-// GetAccessor implements network.NodeKeeper
-func (mmGetAccessor *NodeKeeperMock) GetAccessor(n1 pulse.Number) (a1 beat.NodeAccessor) {
+// GetAccessor implements beat.NodeKeeper
+func (mmGetAccessor *NodeKeeperMock) GetAccessor(n1 pulse.Number) (n2 mm_beat.NodeAccessor) {
 	mm_atomic.AddUint64(&mmGetAccessor.beforeGetAccessorCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetAccessor.afterGetAccessorCounter, 1)
 
@@ -397,7 +396,7 @@ func (mmGetAccessor *NodeKeeperMock) GetAccessor(n1 pulse.Number) (a1 beat.NodeA
 	for _, e := range mmGetAccessor.GetAccessorMock.expectations {
 		if minimock.Equal(e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.a1
+			return e.results.n2
 		}
 	}
 
@@ -413,7 +412,7 @@ func (mmGetAccessor *NodeKeeperMock) GetAccessor(n1 pulse.Number) (a1 beat.NodeA
 		if mm_results == nil {
 			mmGetAccessor.t.Fatal("No results are set for the NodeKeeperMock.GetAccessor")
 		}
-		return (*mm_results).a1
+		return (*mm_results).n2
 	}
 	if mmGetAccessor.funcGetAccessor != nil {
 		return mmGetAccessor.funcGetAccessor(n1)
@@ -503,7 +502,7 @@ type NodeKeeperMockGetLatestAccessorExpectation struct {
 
 // NodeKeeperMockGetLatestAccessorResults contains results of the NodeKeeper.GetLatestAccessor
 type NodeKeeperMockGetLatestAccessorResults struct {
-	a1 beat.NodeAccessor
+	n1 mm_beat.NodeAccessor
 }
 
 // Expect sets up expected params for NodeKeeper.GetLatestAccessor
@@ -531,7 +530,7 @@ func (mmGetLatestAccessor *mNodeKeeperMockGetLatestAccessor) Inspect(f func()) *
 }
 
 // Return sets up results that will be returned by NodeKeeper.GetLatestAccessor
-func (mmGetLatestAccessor *mNodeKeeperMockGetLatestAccessor) Return(a1 beat.NodeAccessor) *NodeKeeperMock {
+func (mmGetLatestAccessor *mNodeKeeperMockGetLatestAccessor) Return(n1 mm_beat.NodeAccessor) *NodeKeeperMock {
 	if mmGetLatestAccessor.mock.funcGetLatestAccessor != nil {
 		mmGetLatestAccessor.mock.t.Fatalf("NodeKeeperMock.GetLatestAccessor mock is already set by Set")
 	}
@@ -539,12 +538,12 @@ func (mmGetLatestAccessor *mNodeKeeperMockGetLatestAccessor) Return(a1 beat.Node
 	if mmGetLatestAccessor.defaultExpectation == nil {
 		mmGetLatestAccessor.defaultExpectation = &NodeKeeperMockGetLatestAccessorExpectation{mock: mmGetLatestAccessor.mock}
 	}
-	mmGetLatestAccessor.defaultExpectation.results = &NodeKeeperMockGetLatestAccessorResults{a1}
+	mmGetLatestAccessor.defaultExpectation.results = &NodeKeeperMockGetLatestAccessorResults{n1}
 	return mmGetLatestAccessor.mock
 }
 
 //Set uses given function f to mock the NodeKeeper.GetLatestAccessor method
-func (mmGetLatestAccessor *mNodeKeeperMockGetLatestAccessor) Set(f func() (a1 beat.NodeAccessor)) *NodeKeeperMock {
+func (mmGetLatestAccessor *mNodeKeeperMockGetLatestAccessor) Set(f func() (n1 mm_beat.NodeAccessor)) *NodeKeeperMock {
 	if mmGetLatestAccessor.defaultExpectation != nil {
 		mmGetLatestAccessor.mock.t.Fatalf("Default expectation is already set for the NodeKeeper.GetLatestAccessor method")
 	}
@@ -557,8 +556,8 @@ func (mmGetLatestAccessor *mNodeKeeperMockGetLatestAccessor) Set(f func() (a1 be
 	return mmGetLatestAccessor.mock
 }
 
-// GetLatestAccessor implements network.NodeKeeper
-func (mmGetLatestAccessor *NodeKeeperMock) GetLatestAccessor() (a1 beat.NodeAccessor) {
+// GetLatestAccessor implements beat.NodeKeeper
+func (mmGetLatestAccessor *NodeKeeperMock) GetLatestAccessor() (n1 mm_beat.NodeAccessor) {
 	mm_atomic.AddUint64(&mmGetLatestAccessor.beforeGetLatestAccessorCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetLatestAccessor.afterGetLatestAccessorCounter, 1)
 
@@ -573,7 +572,7 @@ func (mmGetLatestAccessor *NodeKeeperMock) GetLatestAccessor() (a1 beat.NodeAcce
 		if mm_results == nil {
 			mmGetLatestAccessor.t.Fatal("No results are set for the NodeKeeperMock.GetLatestAccessor")
 		}
-		return (*mm_results).a1
+		return (*mm_results).n1
 	}
 	if mmGetLatestAccessor.funcGetLatestAccessor != nil {
 		return mmGetLatestAccessor.funcGetLatestAccessor()
@@ -700,7 +699,7 @@ func (mmGetLocalNodeReference *mNodeKeeperMockGetLocalNodeReference) Set(f func(
 	return mmGetLocalNodeReference.mock
 }
 
-// GetLocalNodeReference implements network.NodeKeeper
+// GetLocalNodeReference implements beat.NodeKeeper
 func (mmGetLocalNodeReference *NodeKeeperMock) GetLocalNodeReference() (h1 reference.Holder) {
 	mm_atomic.AddUint64(&mmGetLocalNodeReference.beforeGetLocalNodeReferenceCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetLocalNodeReference.afterGetLocalNodeReferenceCounter, 1)
@@ -843,7 +842,7 @@ func (mmGetLocalNodeRole *mNodeKeeperMockGetLocalNodeRole) Set(f func() (p1 memb
 	return mmGetLocalNodeRole.mock
 }
 
-// GetLocalNodeRole implements network.NodeKeeper
+// GetLocalNodeRole implements beat.NodeKeeper
 func (mmGetLocalNodeRole *NodeKeeperMock) GetLocalNodeRole() (p1 member.PrimaryRole) {
 	mm_atomic.AddUint64(&mmGetLocalNodeRole.beforeGetLocalNodeRoleCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetLocalNodeRole.afterGetLocalNodeRoleCounter, 1)
@@ -998,7 +997,7 @@ func (mmSetExpectedPopulation *mNodeKeeperMockSetExpectedPopulation) Set(f func(
 	return mmSetExpectedPopulation.mock
 }
 
-// SetExpectedPopulation implements network.NodeKeeper
+// SetExpectedPopulation implements beat.NodeKeeper
 func (mmSetExpectedPopulation *NodeKeeperMock) SetExpectedPopulation(ctx context.Context, n1 pulse.Number, o1 census.OnlinePopulation) {
 	mm_atomic.AddUint64(&mmSetExpectedPopulation.beforeSetExpectedPopulationCounter, 1)
 	defer mm_atomic.AddUint64(&mmSetExpectedPopulation.afterSetExpectedPopulationCounter, 1)
