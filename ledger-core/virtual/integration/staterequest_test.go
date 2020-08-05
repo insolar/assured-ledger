@@ -157,7 +157,7 @@ func TestVirtual_VStateRequest_Unknown(t *testing.T) {
 }
 
 func TestVirtual_VStateRequest_WhenObjectIsDeactivated(t *testing.T) {
-	t.Log("C5474")
+	insrail.LogCase(t, "C5474")
 	table := []struct {
 		name         string
 		requestState payload.StateRequestContentFlags
