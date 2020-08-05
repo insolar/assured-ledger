@@ -21,10 +21,6 @@ type Accessor struct {
 	addrIndex map[string]member.Index
 }
 
-func (a *Accessor) GetLocalNode() profiles.ActiveNode {
-	return a.snapshot.population.GetLocalProfile()
-}
-
 func (a *Accessor) GetPopulation() census.OnlinePopulation {
 	return a.snapshot.population
 }
@@ -33,7 +29,7 @@ func (a *Accessor) GetPulseNumber() pulse.Number {
 	return a.snapshot.GetPulseNumber()
 }
 
-func (a *Accessor) GetOnlineNodeByAddr(address string) profiles.ActiveNode {
+func (a *Accessor) FindNodeByAddr(address string) profiles.ActiveNode {
 	idx, ok := a.addrIndex[address]
 	if !ok {
 		return nil
@@ -42,11 +38,7 @@ func (a *Accessor) GetOnlineNodeByAddr(address string) profiles.ActiveNode {
 	return a.snapshot.population.GetProfile(idx)
 }
 
-func (a *Accessor) GetOnlineNodes() []profiles.ActiveNode {
-	return a.snapshot.population.GetProfiles()
-}
-
-func (a *Accessor) GetOnlineNode(ref reference.Global) profiles.ActiveNode {
+func (a *Accessor) FindNodeByRef(ref reference.Global) profiles.ActiveNode {
 	idx, ok := a.refIndex[ref]
 	if !ok {
 		return nil
@@ -56,14 +48,6 @@ func (a *Accessor) GetOnlineNode(ref reference.Global) profiles.ActiveNode {
 		return a.snapshot.population.GetLocalProfile()
 	}
 	return n
-}
-
-func (a *Accessor) GetPoweredNode(ref reference.Global) profiles.ActiveNode {
-	node := a.GetOnlineNode(ref)
-	if node == nil || !node.IsPowered() {
-		return nil
-	}
-	return node
 }
 
 func (a *Accessor) addAddr(endpoint endpoints.Outbound, idx member.Index) {

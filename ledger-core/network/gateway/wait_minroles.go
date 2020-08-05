@@ -69,7 +69,7 @@ func (g *WaitMinRoles) OnConsensusFinished(ctx context.Context, report network.R
 func (g *WaitMinRoles) switchOnMinRoles(_ context.Context, pulse pulse.Data) {
 	err := rules.CheckMinRole(
 		g.CertificateManager.GetCertificate(),
-		g.NodeKeeper.GetAccessor(pulse.PulseNumber).GetPopulation(),
+		g.NodeKeeper.GetNodeSnapshot(pulse.PulseNumber).GetPopulation(),
 	)
 
 	if err == nil {

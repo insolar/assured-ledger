@@ -42,7 +42,7 @@ func TestWaitMajority_MajorityNotHappenedInETA(t *testing.T) {
 	accessor := beat.NewNodeSnapshotMock(mc)
 	accessor.GetPopulationMock.Return(pop)
 
-	nodeKeeper.GetAccessorMock.Return(accessor)
+	nodeKeeper.GetNodeSnapshotMock.Return(accessor)
 
 	waitMajority := newWaitMajority(b)
 	assert.Equal(t, network.WaitMajority, waitMajority.GetState())
@@ -73,7 +73,7 @@ func TestWaitMajority_MajorityHappenedInETA(t *testing.T) {
 
 	accessor1 := beat.NewNodeSnapshotMock(mc)
 	accessor1.GetPopulationMock.Return(pop1)
-	nodeKeeper.GetAccessorMock.When(pulse.MinTimePulse).Then(accessor1)
+	nodeKeeper.GetNodeSnapshotMock.When(pulse.MinTimePulse).Then(accessor1)
 
 
 	n := mutable.NewTestNode(ref, member.PrimaryRoleHeavyMaterial, "127.0.0.1:123")
@@ -82,7 +82,7 @@ func TestWaitMajority_MajorityHappenedInETA(t *testing.T) {
 
 	accessor2 := beat.NewNodeSnapshotMock(mc)
 	accessor2.GetPopulationMock.Return(pop2)
-	nodeKeeper.GetAccessorMock.When(pulse.MinTimePulse + 10).Then(accessor2)
+	nodeKeeper.GetNodeSnapshotMock.When(pulse.MinTimePulse + 10).Then(accessor2)
 
 	discoveryNode := mandates.BootstrapNode{NodeRef: ref.String()}
 	cert := &mandates.Certificate{MajorityRule: 1, BootstrapNodes: []mandates.BootstrapNode{discoveryNode}}

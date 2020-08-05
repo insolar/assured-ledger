@@ -45,7 +45,7 @@ func TestWaitMinroles_MinrolesNotHappenedInETA(t *testing.T) {
 	accessor := beat.NewNodeSnapshotMock(mc)
 	accessor.GetPopulationMock.Return(pop)
 
-	nodeKeeper.GetAccessorMock.Return(accessor)
+	nodeKeeper.GetNodeSnapshotMock.Return(accessor)
 
 	waitMinRoles := newWaitMinRoles(b)
 
@@ -84,7 +84,7 @@ func TestWaitMinroles_MinrolesHappenedInETA(t *testing.T) {
 
 	accessor1 := beat.NewNodeSnapshotMock(mc)
 	accessor1.GetPopulationMock.Return(pop1)
-	nodeKeeper.GetAccessorMock.When(pulse.MinTimePulse).Then(accessor1)
+	nodeKeeper.GetNodeSnapshotMock.When(pulse.MinTimePulse).Then(accessor1)
 
 	role2 := census.NewRolePopulationMock(mc)
 	role2.GetWorkingCountMock.Return(5)
@@ -95,7 +95,7 @@ func TestWaitMinroles_MinrolesHappenedInETA(t *testing.T) {
 
 	accessor2 := beat.NewNodeSnapshotMock(mc)
 	accessor2.GetPopulationMock.Return(pop2)
-	nodeKeeper.GetAccessorMock.When(pulse.MinTimePulse + 10).Then(accessor2)
+	nodeKeeper.GetNodeSnapshotMock.When(pulse.MinTimePulse + 10).Then(accessor2)
 
 
 	discoveryNode := mandates.BootstrapNode{NodeRef: ref.String()}

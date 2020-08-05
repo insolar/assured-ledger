@@ -148,7 +148,7 @@ func (s *consensusSuite) Setup() {
 	if UseFakeBootstrap {
 		bnodes := make([]profiles.StaticProfile, 0)
 		for _, n := range s.bootstrapNodes {
-			o := n.serviceNetwork.NodeKeeper.GetLatestAccessor().GetLocalNode()
+			o := n.serviceNetwork.NodeKeeper.GetAnyLatestNodeSnapshot().GetPopulation().GetLocalProfile()
 			sdg := nodeinfo.NodeSignedDigest(o)
 			require.NotNil(s.t, sdg)
 			require.NotEmpty(s.t, sdg.GetSignatureHolder().AsByteString())
@@ -329,8 +329,8 @@ func (s *consensusSuite) assertNetworkInConsistentState(p pulse.Number) {
 			"Node not in CompleteNetworkState",
 		)
 
-		a := n.serviceNetwork.NodeKeeper.GetAccessor(p)
-		activeNodes := a.GetOnlineNodes()
+		a := n.serviceNetwork.NodeKeeper.GetNodeSnapshot(p)
+		activeNodes := a.GetPopulation().GetProfiles()
 		if nodes == nil {
 			nodes = activeNodes
 			continue
@@ -376,8 +376,8 @@ func (s *testSuite) getNodesCount() int {
 
 func (s *testSuite) isNodeInActiveLists(ref reference.Global, p pulse.Number) bool {
 	for _, n := range s.bootstrapNodes {
-		a := n.serviceNetwork.NodeKeeper.GetAccessor(p)
-		if a.GetOnlineNode(ref) == nil {
+		a := n.serviceNetwork.NodeKeeper.GetNodeSnapshot(p)
+		if a.FindNodeByRef(ref) == nil {
 			return false
 		}
 	}
@@ -474,11 +474,11 @@ func incrementTestPort() int {
 }
 
 func (n *networkNode) GetActiveNodes() []nodeinfo.NetworkNode {
-	return n.serviceNetwork.NodeKeeper.GetLatestAccessor().GetOnlineNodes()
+	return n.serviceNetwork.NodeKeeper.GetAnyLatestNodeSnapshot().GetPopulation().GetProfiles()
 }
 
 func (n *networkNode) GetWorkingNodeCount() int {
-	pop := n.serviceNetwork.NodeKeeper.GetLatestAccessor().GetPopulation()
+	pop := n.serviceNetwork.NodeKeeper.GetAnyLatestNodeSnapshot().GetPopulation()
 	return pop.GetIndexedCount() - pop.GetIdleCount()
 }
 

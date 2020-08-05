@@ -161,12 +161,12 @@ func (n *ServiceNetwork) GetLocalNodeRole() member.PrimaryRole {
 	return n.NodeKeeper.GetLocalNodeRole()
 }
 
-func (n *ServiceNetwork) GetAccessor(p pulse.Number) beat.NodeSnapshot {
-	return n.NodeKeeper.GetAccessor(p)
+func (n *ServiceNetwork) GetNodeSnapshot(p pulse.Number) beat.NodeSnapshot {
+	return n.NodeKeeper.GetNodeSnapshot(p)
 }
 
-func (n *ServiceNetwork) GetLatestAccessor() beat.NodeSnapshot {
-	return n.NodeKeeper.GetLatestAccessor()
+func (n *ServiceNetwork) GetAnyLatestNodeSnapshot() beat.NodeSnapshot {
+	return n.NodeKeeper.GetAnyLatestNodeSnapshot()
 }
 
 func (n *ServiceNetwork) GetCert(ctx context.Context, ref reference.Global) (nodeinfo.Certificate, error) {

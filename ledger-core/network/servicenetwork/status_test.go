@@ -11,7 +11,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
-	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/network/mutable"
@@ -43,19 +43,20 @@ func TestGetNetworkStatus(t *testing.T) {
 	nk := beat.NewNodeKeeperMock(t)
 	a := beat.NewNodeSnapshotMock(t)
 	activeLen := 1
-	active := make([]nodeinfo.NetworkNode, activeLen)
-	a.GetOnlineNodesMock.Return(active)
 	a.GetPulseNumberMock.Return(pc.PulseNumber)
-	pop := census.NewOnlinePopulationMock(t)
-	pop.GetIndexedCountMock.Return(workingLen)
-	pop.GetIdleCountMock.Return(0)
-	a.GetPopulationMock.Return(pop)
-
-	nk.GetLatestAccessorMock.Return(a)
 
 	ref := gen.UniqueGlobalRef()
 	nn := mutable.NewTestNode(ref, member.PrimaryRoleNeutral, "")
-	a.GetLocalNodeMock.Return(nn)
+
+	pop := census.NewOnlinePopulationMock(t)
+	pop.GetIndexedCountMock.Return(workingLen)
+	pop.GetIdleCountMock.Return(0)
+	pop.GetLocalProfileMock.Return(nn)
+	pop.GetProfilesMock.Return(make([]profiles.ActiveNode, activeLen))
+	a.GetPopulationMock.Return(pop)
+
+	nk.GetAnyLatestNodeSnapshotMock.Return(a)
+
 	nk.GetLocalNodeReferenceMock.Return(ref)
 	nk.GetLocalNodeRoleMock.Return(member.PrimaryRoleNeutral)
 

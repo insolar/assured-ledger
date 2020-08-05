@@ -29,7 +29,7 @@ func (hc *HealthChecker) CheckHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
 
 	ctx := r.Context()
-	na := hc.NodeNetwork.GetLatestAccessor()
+	na := hc.NodeNetwork.GetAnyLatestNodeSnapshot()
 	if na == nil {
 		inslogger.FromContext(ctx).Error("[ NodeService.GetStatus ] failed to get latest pulse")
 		_, _ = w.Write([]byte("FAIL"))
@@ -37,7 +37,7 @@ func (hc *HealthChecker) CheckHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, node := range hc.CertificateManager.GetCertificate().GetDiscoveryNodes() {
-		if na.GetPoweredNode(node.GetNodeRef()) == nil {
+		if nd := na.FindNodeByRef(node.GetNodeRef()); nd == nil || !nd.IsStateful() {
 			w.WriteHeader(http.StatusInternalServerError)
 			_, _ = w.Write([]byte("FAIL"))
 			return

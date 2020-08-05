@@ -19,10 +19,11 @@ type NodeNetwork interface {
 	// GetLocalNodeRole returns a role for this/local node. Safe to call at any time. Immutable.
 	GetLocalNodeRole() member.PrimaryRole
 
-	// GetAccessor get accessor to the internal snapshot for the current pulse. Panics on unknown pulse.
-	GetAccessor(pulse.Number) NodeSnapshot
-	// GetLatestAccessor returns the latest set of nodes. Will return nil when nothing was added yet.
-	GetLatestAccessor() NodeSnapshot
+	// GetNodeSnapshot get a snapshot of nodes for the given pulse number. Can return expected snapshot as well. Panics on unknown pulse.
+	GetNodeSnapshot(pulse.Number) NodeSnapshot
+	// GetAnyLatestNodeSnapshot returns the latest set of nodes. Will return nil when nothing was added yet.
+	GetAnyLatestNodeSnapshot() NodeSnapshot
+//	FindLatestNodeSnapshot() NodeSnapshot
 }
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/appctl/beat.NodeKeeper -s _mock.go -g

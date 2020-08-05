@@ -53,20 +53,20 @@ func (nk *nodekeeper) GetLocalNodeRole() member.PrimaryRole {
 	return nk.localRole
 }
 
-func (nk *nodekeeper) GetAccessor(pn pulse.Number) beat.NodeSnapshot {
-	la := nk.GetLatestAccessor()
+func (nk *nodekeeper) GetNodeSnapshot(pn pulse.Number) beat.NodeSnapshot {
+	la := nk.GetAnyLatestNodeSnapshot()
 	if la != nil && la.GetPulseNumber() == pn {
 		return la
 	}
 
 	s, err := nk.storage.ForPulseNumber(pn)
 	if err != nil {
-		panic(fmt.Sprintf("GetAccessor(%d): %s", pn, err.Error()))
+		panic(fmt.Sprintf("GetNodeSnapshot(%d): %s", pn, err.Error()))
 	}
 	return NewAccessor(s)
 }
 
-func (nk *nodekeeper) GetLatestAccessor() beat.NodeSnapshot {
+func (nk *nodekeeper) GetAnyLatestNodeSnapshot() beat.NodeSnapshot {
 	nk.mutex.RLock()
 	defer nk.mutex.RUnlock()
 

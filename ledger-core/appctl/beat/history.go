@@ -25,6 +25,7 @@ type History interface {
 // Appender provides method for appending pulses to storage.
 type Appender interface {
 	History
+	AddExpectedBeat(Beat) error
 	AddCommittedBeat(Beat) error
 	EnsureLatestTimeBeat(Beat) error
 }
@@ -33,16 +34,13 @@ type Appender interface {
 
 type NodeSnapshot interface {
 	GetPulseNumber() pulse.Number
-	GetLocalNode() profiles.ActiveNode
 	GetPopulation() census.OnlinePopulation
 
-	// GetPoweredNode get working node by its reference. Returns nil if node is not found or is not working.
-	GetPoweredNode(reference.Global) profiles.ActiveNode
-	// GetOnlineNode returns active node.
-	GetOnlineNode(reference.Global) profiles.ActiveNode
-	// GetOnlineNodes returns unsorted list of all active nodes.
-	GetOnlineNodes() []profiles.ActiveNode
-	// GetOnlineNodeByAddr get active node by addr. Returns nil if node is not found.
-	GetOnlineNodeByAddr(address string) profiles.ActiveNode
+	// GetLocalNode() profiles.ActiveNode // use GetPopulation().GetLocalProfile() instead
+
+	// FindNodeByRef returns an active node by reference. Returns nil when not found.
+	FindNodeByRef(reference.Global) profiles.ActiveNode
+	// FindNodeByAddr get active node by addr. Returns nil when not found.
+	FindNodeByAddr(address string) profiles.ActiveNode
 }
 

@@ -21,17 +21,17 @@ func (n *ServiceNetwork) GetNetworkStatus() network.StatusReply {
 	reply.LocalRef = n.NodeKeeper.GetLocalNodeReference()
 	reply.LocalRole = n.NodeKeeper.GetLocalNodeRole()
 
-	na := n.NodeKeeper.GetLatestAccessor()
+	na := n.NodeKeeper.GetAnyLatestNodeSnapshot()
 
 	if na != nil {
 		reply.PulseNumber = na.GetPulseNumber()
 		reply.WorkingListSize = na.GetPopulation().GetIndexedCount()
 
-		activeNodes := na.GetOnlineNodes()
+		activeNodes := na.GetPopulation().GetProfiles()
 		reply.ActiveListSize = len(activeNodes)
 		reply.Nodes = activeNodes
 
-		reply.LocalNode = na.GetLocalNode()
+		reply.LocalNode = na.GetPopulation().GetLocalProfile()
 	}
 
 	reply.Version = version.Version

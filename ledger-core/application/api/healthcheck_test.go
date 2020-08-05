@@ -81,15 +81,15 @@ func mockNodeNetwork(t *testing.T, nodeList []nodeinfo.DiscoveryNode) *beat.Node
 	}
 
 	accessorMock := beat.NewNodeSnapshotMock(t)
-	accessorMock.GetPoweredNodeMock.Set(func(ref reference.Global) nodeinfo.NetworkNode {
+	accessorMock.FindNodeByRefMock.Set(func(ref reference.Global) nodeinfo.NetworkNode {
 		if _, ok := nodeMap[ref]; ok {
 			return mutable.NewTestNode(ref, member.PrimaryRoleNeutral, "")
 		}
 		return nil
 	})
 
-	nn.GetAccessorMock.Return(accessorMock)
-	nn.GetLatestAccessorMock.Return(accessorMock)
+	nn.GetNodeSnapshotMock.Return(accessorMock)
+	nn.GetAnyLatestNodeSnapshotMock.Return(accessorMock)
 
 	return nn
 }

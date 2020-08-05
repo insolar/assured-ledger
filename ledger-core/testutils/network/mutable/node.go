@@ -60,6 +60,8 @@ type Node struct {
 	npk           cryptkit.SignatureKeyHolder
 }
 
+func (n *Node) LocalNodeProfile() {}
+
 func (n *Node) GetSignatureVerifier() cryptkit.SignatureVerifier {
 	panic(throw.NotImplemented())
 }

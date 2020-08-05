@@ -42,8 +42,8 @@ func TestTable_Resolve(t *testing.T) {
 	na := memstor.NewAccessor(memstor.NewSnapshot(pulse.MinTimePulse, &pop))
 
 	nodeKeeperMock := beat.NewNodeKeeperMock(t)
-	nodeKeeperMock.GetAccessorMock.Return(na)
-	nodeKeeperMock.GetLatestAccessorMock.Return(na)
+	nodeKeeperMock.GetNodeSnapshotMock.Return(na)
+	nodeKeeperMock.GetAnyLatestNodeSnapshotMock.Return(na)
 
 	table.NodeKeeper = nodeKeeperMock
 

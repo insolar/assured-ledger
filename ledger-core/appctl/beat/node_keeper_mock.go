@@ -29,17 +29,11 @@ type NodeKeeperMock struct {
 	beforeAddExpectedBeatCounter uint64
 	AddExpectedBeatMock          mNodeKeeperMockAddExpectedBeat
 
-	funcGetAccessor          func(n1 pulse.Number) (n2 NodeSnapshot)
-	inspectFuncGetAccessor   func(n1 pulse.Number)
-	afterGetAccessorCounter  uint64
-	beforeGetAccessorCounter uint64
-	GetAccessorMock          mNodeKeeperMockGetAccessor
-
-	funcGetLatestAccessor          func() (n1 NodeSnapshot)
-	inspectFuncGetLatestAccessor   func()
-	afterGetLatestAccessorCounter  uint64
-	beforeGetLatestAccessorCounter uint64
-	GetLatestAccessorMock          mNodeKeeperMockGetLatestAccessor
+	funcGetAnyLatestNodeSnapshot          func() (n1 NodeSnapshot)
+	inspectFuncGetAnyLatestNodeSnapshot   func()
+	afterGetAnyLatestNodeSnapshotCounter  uint64
+	beforeGetAnyLatestNodeSnapshotCounter uint64
+	GetAnyLatestNodeSnapshotMock          mNodeKeeperMockGetAnyLatestNodeSnapshot
 
 	funcGetLocalNodeReference          func() (h1 reference.Holder)
 	inspectFuncGetLocalNodeReference   func()
@@ -52,6 +46,12 @@ type NodeKeeperMock struct {
 	afterGetLocalNodeRoleCounter  uint64
 	beforeGetLocalNodeRoleCounter uint64
 	GetLocalNodeRoleMock          mNodeKeeperMockGetLocalNodeRole
+
+	funcGetNodeSnapshot          func(n1 pulse.Number) (n2 NodeSnapshot)
+	inspectFuncGetNodeSnapshot   func(n1 pulse.Number)
+	afterGetNodeSnapshotCounter  uint64
+	beforeGetNodeSnapshotCounter uint64
+	GetNodeSnapshotMock          mNodeKeeperMockGetNodeSnapshot
 }
 
 // NewNodeKeeperMock returns a mock for NodeKeeper
@@ -67,14 +67,14 @@ func NewNodeKeeperMock(t minimock.Tester) *NodeKeeperMock {
 	m.AddExpectedBeatMock = mNodeKeeperMockAddExpectedBeat{mock: m}
 	m.AddExpectedBeatMock.callArgs = []*NodeKeeperMockAddExpectedBeatParams{}
 
-	m.GetAccessorMock = mNodeKeeperMockGetAccessor{mock: m}
-	m.GetAccessorMock.callArgs = []*NodeKeeperMockGetAccessorParams{}
-
-	m.GetLatestAccessorMock = mNodeKeeperMockGetLatestAccessor{mock: m}
+	m.GetAnyLatestNodeSnapshotMock = mNodeKeeperMockGetAnyLatestNodeSnapshot{mock: m}
 
 	m.GetLocalNodeReferenceMock = mNodeKeeperMockGetLocalNodeReference{mock: m}
 
 	m.GetLocalNodeRoleMock = mNodeKeeperMockGetLocalNodeRole{mock: m}
+
+	m.GetNodeSnapshotMock = mNodeKeeperMockGetNodeSnapshot{mock: m}
+	m.GetNodeSnapshotMock.callArgs = []*NodeKeeperMockGetNodeSnapshotParams{}
 
 	return m
 }
@@ -509,361 +509,146 @@ func (m *NodeKeeperMock) MinimockAddExpectedBeatInspect() {
 	}
 }
 
-type mNodeKeeperMockGetAccessor struct {
+type mNodeKeeperMockGetAnyLatestNodeSnapshot struct {
 	mock               *NodeKeeperMock
-	defaultExpectation *NodeKeeperMockGetAccessorExpectation
-	expectations       []*NodeKeeperMockGetAccessorExpectation
-
-	callArgs []*NodeKeeperMockGetAccessorParams
-	mutex    sync.RWMutex
+	defaultExpectation *NodeKeeperMockGetAnyLatestNodeSnapshotExpectation
+	expectations       []*NodeKeeperMockGetAnyLatestNodeSnapshotExpectation
 }
 
-// NodeKeeperMockGetAccessorExpectation specifies expectation struct of the NodeKeeper.GetAccessor
-type NodeKeeperMockGetAccessorExpectation struct {
-	mock    *NodeKeeperMock
-	params  *NodeKeeperMockGetAccessorParams
-	results *NodeKeeperMockGetAccessorResults
-	Counter uint64
-}
-
-// NodeKeeperMockGetAccessorParams contains parameters of the NodeKeeper.GetAccessor
-type NodeKeeperMockGetAccessorParams struct {
-	n1 pulse.Number
-}
-
-// NodeKeeperMockGetAccessorResults contains results of the NodeKeeper.GetAccessor
-type NodeKeeperMockGetAccessorResults struct {
-	n2 NodeSnapshot
-}
-
-// Expect sets up expected params for NodeKeeper.GetAccessor
-func (mmGetAccessor *mNodeKeeperMockGetAccessor) Expect(n1 pulse.Number) *mNodeKeeperMockGetAccessor {
-	if mmGetAccessor.mock.funcGetAccessor != nil {
-		mmGetAccessor.mock.t.Fatalf("NodeKeeperMock.GetAccessor mock is already set by Set")
-	}
-
-	if mmGetAccessor.defaultExpectation == nil {
-		mmGetAccessor.defaultExpectation = &NodeKeeperMockGetAccessorExpectation{}
-	}
-
-	mmGetAccessor.defaultExpectation.params = &NodeKeeperMockGetAccessorParams{n1}
-	for _, e := range mmGetAccessor.expectations {
-		if minimock.Equal(e.params, mmGetAccessor.defaultExpectation.params) {
-			mmGetAccessor.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmGetAccessor.defaultExpectation.params)
-		}
-	}
-
-	return mmGetAccessor
-}
-
-// Inspect accepts an inspector function that has same arguments as the NodeKeeper.GetAccessor
-func (mmGetAccessor *mNodeKeeperMockGetAccessor) Inspect(f func(n1 pulse.Number)) *mNodeKeeperMockGetAccessor {
-	if mmGetAccessor.mock.inspectFuncGetAccessor != nil {
-		mmGetAccessor.mock.t.Fatalf("Inspect function is already set for NodeKeeperMock.GetAccessor")
-	}
-
-	mmGetAccessor.mock.inspectFuncGetAccessor = f
-
-	return mmGetAccessor
-}
-
-// Return sets up results that will be returned by NodeKeeper.GetAccessor
-func (mmGetAccessor *mNodeKeeperMockGetAccessor) Return(n2 NodeSnapshot) *NodeKeeperMock {
-	if mmGetAccessor.mock.funcGetAccessor != nil {
-		mmGetAccessor.mock.t.Fatalf("NodeKeeperMock.GetAccessor mock is already set by Set")
-	}
-
-	if mmGetAccessor.defaultExpectation == nil {
-		mmGetAccessor.defaultExpectation = &NodeKeeperMockGetAccessorExpectation{mock: mmGetAccessor.mock}
-	}
-	mmGetAccessor.defaultExpectation.results = &NodeKeeperMockGetAccessorResults{n2}
-	return mmGetAccessor.mock
-}
-
-//Set uses given function f to mock the NodeKeeper.GetAccessor method
-func (mmGetAccessor *mNodeKeeperMockGetAccessor) Set(f func(n1 pulse.Number) (n2 NodeSnapshot)) *NodeKeeperMock {
-	if mmGetAccessor.defaultExpectation != nil {
-		mmGetAccessor.mock.t.Fatalf("Default expectation is already set for the NodeKeeper.GetAccessor method")
-	}
-
-	if len(mmGetAccessor.expectations) > 0 {
-		mmGetAccessor.mock.t.Fatalf("Some expectations are already set for the NodeKeeper.GetAccessor method")
-	}
-
-	mmGetAccessor.mock.funcGetAccessor = f
-	return mmGetAccessor.mock
-}
-
-// When sets expectation for the NodeKeeper.GetAccessor which will trigger the result defined by the following
-// Then helper
-func (mmGetAccessor *mNodeKeeperMockGetAccessor) When(n1 pulse.Number) *NodeKeeperMockGetAccessorExpectation {
-	if mmGetAccessor.mock.funcGetAccessor != nil {
-		mmGetAccessor.mock.t.Fatalf("NodeKeeperMock.GetAccessor mock is already set by Set")
-	}
-
-	expectation := &NodeKeeperMockGetAccessorExpectation{
-		mock:   mmGetAccessor.mock,
-		params: &NodeKeeperMockGetAccessorParams{n1},
-	}
-	mmGetAccessor.expectations = append(mmGetAccessor.expectations, expectation)
-	return expectation
-}
-
-// Then sets up NodeKeeper.GetAccessor return parameters for the expectation previously defined by the When method
-func (e *NodeKeeperMockGetAccessorExpectation) Then(n2 NodeSnapshot) *NodeKeeperMock {
-	e.results = &NodeKeeperMockGetAccessorResults{n2}
-	return e.mock
-}
-
-// GetAccessor implements NodeKeeper
-func (mmGetAccessor *NodeKeeperMock) GetAccessor(n1 pulse.Number) (n2 NodeSnapshot) {
-	mm_atomic.AddUint64(&mmGetAccessor.beforeGetAccessorCounter, 1)
-	defer mm_atomic.AddUint64(&mmGetAccessor.afterGetAccessorCounter, 1)
-
-	if mmGetAccessor.inspectFuncGetAccessor != nil {
-		mmGetAccessor.inspectFuncGetAccessor(n1)
-	}
-
-	mm_params := &NodeKeeperMockGetAccessorParams{n1}
-
-	// Record call args
-	mmGetAccessor.GetAccessorMock.mutex.Lock()
-	mmGetAccessor.GetAccessorMock.callArgs = append(mmGetAccessor.GetAccessorMock.callArgs, mm_params)
-	mmGetAccessor.GetAccessorMock.mutex.Unlock()
-
-	for _, e := range mmGetAccessor.GetAccessorMock.expectations {
-		if minimock.Equal(e.params, mm_params) {
-			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.n2
-		}
-	}
-
-	if mmGetAccessor.GetAccessorMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmGetAccessor.GetAccessorMock.defaultExpectation.Counter, 1)
-		mm_want := mmGetAccessor.GetAccessorMock.defaultExpectation.params
-		mm_got := NodeKeeperMockGetAccessorParams{n1}
-		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmGetAccessor.t.Errorf("NodeKeeperMock.GetAccessor got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
-		}
-
-		mm_results := mmGetAccessor.GetAccessorMock.defaultExpectation.results
-		if mm_results == nil {
-			mmGetAccessor.t.Fatal("No results are set for the NodeKeeperMock.GetAccessor")
-		}
-		return (*mm_results).n2
-	}
-	if mmGetAccessor.funcGetAccessor != nil {
-		return mmGetAccessor.funcGetAccessor(n1)
-	}
-	mmGetAccessor.t.Fatalf("Unexpected call to NodeKeeperMock.GetAccessor. %v", n1)
-	return
-}
-
-// GetAccessorAfterCounter returns a count of finished NodeKeeperMock.GetAccessor invocations
-func (mmGetAccessor *NodeKeeperMock) GetAccessorAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmGetAccessor.afterGetAccessorCounter)
-}
-
-// GetAccessorBeforeCounter returns a count of NodeKeeperMock.GetAccessor invocations
-func (mmGetAccessor *NodeKeeperMock) GetAccessorBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmGetAccessor.beforeGetAccessorCounter)
-}
-
-// Calls returns a list of arguments used in each call to NodeKeeperMock.GetAccessor.
-// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmGetAccessor *mNodeKeeperMockGetAccessor) Calls() []*NodeKeeperMockGetAccessorParams {
-	mmGetAccessor.mutex.RLock()
-
-	argCopy := make([]*NodeKeeperMockGetAccessorParams, len(mmGetAccessor.callArgs))
-	copy(argCopy, mmGetAccessor.callArgs)
-
-	mmGetAccessor.mutex.RUnlock()
-
-	return argCopy
-}
-
-// MinimockGetAccessorDone returns true if the count of the GetAccessor invocations corresponds
-// the number of defined expectations
-func (m *NodeKeeperMock) MinimockGetAccessorDone() bool {
-	for _, e := range m.GetAccessorMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.GetAccessorMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetAccessorCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcGetAccessor != nil && mm_atomic.LoadUint64(&m.afterGetAccessorCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockGetAccessorInspect logs each unmet expectation
-func (m *NodeKeeperMock) MinimockGetAccessorInspect() {
-	for _, e := range m.GetAccessorMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to NodeKeeperMock.GetAccessor with params: %#v", *e.params)
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.GetAccessorMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetAccessorCounter) < 1 {
-		if m.GetAccessorMock.defaultExpectation.params == nil {
-			m.t.Error("Expected call to NodeKeeperMock.GetAccessor")
-		} else {
-			m.t.Errorf("Expected call to NodeKeeperMock.GetAccessor with params: %#v", *m.GetAccessorMock.defaultExpectation.params)
-		}
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcGetAccessor != nil && mm_atomic.LoadUint64(&m.afterGetAccessorCounter) < 1 {
-		m.t.Error("Expected call to NodeKeeperMock.GetAccessor")
-	}
-}
-
-type mNodeKeeperMockGetLatestAccessor struct {
-	mock               *NodeKeeperMock
-	defaultExpectation *NodeKeeperMockGetLatestAccessorExpectation
-	expectations       []*NodeKeeperMockGetLatestAccessorExpectation
-}
-
-// NodeKeeperMockGetLatestAccessorExpectation specifies expectation struct of the NodeKeeper.GetLatestAccessor
-type NodeKeeperMockGetLatestAccessorExpectation struct {
+// NodeKeeperMockGetAnyLatestNodeSnapshotExpectation specifies expectation struct of the NodeKeeper.GetAnyLatestNodeSnapshot
+type NodeKeeperMockGetAnyLatestNodeSnapshotExpectation struct {
 	mock *NodeKeeperMock
 
-	results *NodeKeeperMockGetLatestAccessorResults
+	results *NodeKeeperMockGetAnyLatestNodeSnapshotResults
 	Counter uint64
 }
 
-// NodeKeeperMockGetLatestAccessorResults contains results of the NodeKeeper.GetLatestAccessor
-type NodeKeeperMockGetLatestAccessorResults struct {
+// NodeKeeperMockGetAnyLatestNodeSnapshotResults contains results of the NodeKeeper.GetAnyLatestNodeSnapshot
+type NodeKeeperMockGetAnyLatestNodeSnapshotResults struct {
 	n1 NodeSnapshot
 }
 
-// Expect sets up expected params for NodeKeeper.GetLatestAccessor
-func (mmGetLatestAccessor *mNodeKeeperMockGetLatestAccessor) Expect() *mNodeKeeperMockGetLatestAccessor {
-	if mmGetLatestAccessor.mock.funcGetLatestAccessor != nil {
-		mmGetLatestAccessor.mock.t.Fatalf("NodeKeeperMock.GetLatestAccessor mock is already set by Set")
+// Expect sets up expected params for NodeKeeper.GetAnyLatestNodeSnapshot
+func (mmGetAnyLatestNodeSnapshot *mNodeKeeperMockGetAnyLatestNodeSnapshot) Expect() *mNodeKeeperMockGetAnyLatestNodeSnapshot {
+	if mmGetAnyLatestNodeSnapshot.mock.funcGetAnyLatestNodeSnapshot != nil {
+		mmGetAnyLatestNodeSnapshot.mock.t.Fatalf("NodeKeeperMock.GetAnyLatestNodeSnapshot mock is already set by Set")
 	}
 
-	if mmGetLatestAccessor.defaultExpectation == nil {
-		mmGetLatestAccessor.defaultExpectation = &NodeKeeperMockGetLatestAccessorExpectation{}
+	if mmGetAnyLatestNodeSnapshot.defaultExpectation == nil {
+		mmGetAnyLatestNodeSnapshot.defaultExpectation = &NodeKeeperMockGetAnyLatestNodeSnapshotExpectation{}
 	}
 
-	return mmGetLatestAccessor
+	return mmGetAnyLatestNodeSnapshot
 }
 
-// Inspect accepts an inspector function that has same arguments as the NodeKeeper.GetLatestAccessor
-func (mmGetLatestAccessor *mNodeKeeperMockGetLatestAccessor) Inspect(f func()) *mNodeKeeperMockGetLatestAccessor {
-	if mmGetLatestAccessor.mock.inspectFuncGetLatestAccessor != nil {
-		mmGetLatestAccessor.mock.t.Fatalf("Inspect function is already set for NodeKeeperMock.GetLatestAccessor")
+// Inspect accepts an inspector function that has same arguments as the NodeKeeper.GetAnyLatestNodeSnapshot
+func (mmGetAnyLatestNodeSnapshot *mNodeKeeperMockGetAnyLatestNodeSnapshot) Inspect(f func()) *mNodeKeeperMockGetAnyLatestNodeSnapshot {
+	if mmGetAnyLatestNodeSnapshot.mock.inspectFuncGetAnyLatestNodeSnapshot != nil {
+		mmGetAnyLatestNodeSnapshot.mock.t.Fatalf("Inspect function is already set for NodeKeeperMock.GetAnyLatestNodeSnapshot")
 	}
 
-	mmGetLatestAccessor.mock.inspectFuncGetLatestAccessor = f
+	mmGetAnyLatestNodeSnapshot.mock.inspectFuncGetAnyLatestNodeSnapshot = f
 
-	return mmGetLatestAccessor
+	return mmGetAnyLatestNodeSnapshot
 }
 
-// Return sets up results that will be returned by NodeKeeper.GetLatestAccessor
-func (mmGetLatestAccessor *mNodeKeeperMockGetLatestAccessor) Return(n1 NodeSnapshot) *NodeKeeperMock {
-	if mmGetLatestAccessor.mock.funcGetLatestAccessor != nil {
-		mmGetLatestAccessor.mock.t.Fatalf("NodeKeeperMock.GetLatestAccessor mock is already set by Set")
+// Return sets up results that will be returned by NodeKeeper.GetAnyLatestNodeSnapshot
+func (mmGetAnyLatestNodeSnapshot *mNodeKeeperMockGetAnyLatestNodeSnapshot) Return(n1 NodeSnapshot) *NodeKeeperMock {
+	if mmGetAnyLatestNodeSnapshot.mock.funcGetAnyLatestNodeSnapshot != nil {
+		mmGetAnyLatestNodeSnapshot.mock.t.Fatalf("NodeKeeperMock.GetAnyLatestNodeSnapshot mock is already set by Set")
 	}
 
-	if mmGetLatestAccessor.defaultExpectation == nil {
-		mmGetLatestAccessor.defaultExpectation = &NodeKeeperMockGetLatestAccessorExpectation{mock: mmGetLatestAccessor.mock}
+	if mmGetAnyLatestNodeSnapshot.defaultExpectation == nil {
+		mmGetAnyLatestNodeSnapshot.defaultExpectation = &NodeKeeperMockGetAnyLatestNodeSnapshotExpectation{mock: mmGetAnyLatestNodeSnapshot.mock}
 	}
-	mmGetLatestAccessor.defaultExpectation.results = &NodeKeeperMockGetLatestAccessorResults{n1}
-	return mmGetLatestAccessor.mock
+	mmGetAnyLatestNodeSnapshot.defaultExpectation.results = &NodeKeeperMockGetAnyLatestNodeSnapshotResults{n1}
+	return mmGetAnyLatestNodeSnapshot.mock
 }
 
-//Set uses given function f to mock the NodeKeeper.GetLatestAccessor method
-func (mmGetLatestAccessor *mNodeKeeperMockGetLatestAccessor) Set(f func() (n1 NodeSnapshot)) *NodeKeeperMock {
-	if mmGetLatestAccessor.defaultExpectation != nil {
-		mmGetLatestAccessor.mock.t.Fatalf("Default expectation is already set for the NodeKeeper.GetLatestAccessor method")
+//Set uses given function f to mock the NodeKeeper.GetAnyLatestNodeSnapshot method
+func (mmGetAnyLatestNodeSnapshot *mNodeKeeperMockGetAnyLatestNodeSnapshot) Set(f func() (n1 NodeSnapshot)) *NodeKeeperMock {
+	if mmGetAnyLatestNodeSnapshot.defaultExpectation != nil {
+		mmGetAnyLatestNodeSnapshot.mock.t.Fatalf("Default expectation is already set for the NodeKeeper.GetAnyLatestNodeSnapshot method")
 	}
 
-	if len(mmGetLatestAccessor.expectations) > 0 {
-		mmGetLatestAccessor.mock.t.Fatalf("Some expectations are already set for the NodeKeeper.GetLatestAccessor method")
+	if len(mmGetAnyLatestNodeSnapshot.expectations) > 0 {
+		mmGetAnyLatestNodeSnapshot.mock.t.Fatalf("Some expectations are already set for the NodeKeeper.GetAnyLatestNodeSnapshot method")
 	}
 
-	mmGetLatestAccessor.mock.funcGetLatestAccessor = f
-	return mmGetLatestAccessor.mock
+	mmGetAnyLatestNodeSnapshot.mock.funcGetAnyLatestNodeSnapshot = f
+	return mmGetAnyLatestNodeSnapshot.mock
 }
 
-// GetLatestAccessor implements NodeKeeper
-func (mmGetLatestAccessor *NodeKeeperMock) GetLatestAccessor() (n1 NodeSnapshot) {
-	mm_atomic.AddUint64(&mmGetLatestAccessor.beforeGetLatestAccessorCounter, 1)
-	defer mm_atomic.AddUint64(&mmGetLatestAccessor.afterGetLatestAccessorCounter, 1)
+// GetAnyLatestNodeSnapshot implements NodeKeeper
+func (mmGetAnyLatestNodeSnapshot *NodeKeeperMock) GetAnyLatestNodeSnapshot() (n1 NodeSnapshot) {
+	mm_atomic.AddUint64(&mmGetAnyLatestNodeSnapshot.beforeGetAnyLatestNodeSnapshotCounter, 1)
+	defer mm_atomic.AddUint64(&mmGetAnyLatestNodeSnapshot.afterGetAnyLatestNodeSnapshotCounter, 1)
 
-	if mmGetLatestAccessor.inspectFuncGetLatestAccessor != nil {
-		mmGetLatestAccessor.inspectFuncGetLatestAccessor()
+	if mmGetAnyLatestNodeSnapshot.inspectFuncGetAnyLatestNodeSnapshot != nil {
+		mmGetAnyLatestNodeSnapshot.inspectFuncGetAnyLatestNodeSnapshot()
 	}
 
-	if mmGetLatestAccessor.GetLatestAccessorMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmGetLatestAccessor.GetLatestAccessorMock.defaultExpectation.Counter, 1)
+	if mmGetAnyLatestNodeSnapshot.GetAnyLatestNodeSnapshotMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmGetAnyLatestNodeSnapshot.GetAnyLatestNodeSnapshotMock.defaultExpectation.Counter, 1)
 
-		mm_results := mmGetLatestAccessor.GetLatestAccessorMock.defaultExpectation.results
+		mm_results := mmGetAnyLatestNodeSnapshot.GetAnyLatestNodeSnapshotMock.defaultExpectation.results
 		if mm_results == nil {
-			mmGetLatestAccessor.t.Fatal("No results are set for the NodeKeeperMock.GetLatestAccessor")
+			mmGetAnyLatestNodeSnapshot.t.Fatal("No results are set for the NodeKeeperMock.GetAnyLatestNodeSnapshot")
 		}
 		return (*mm_results).n1
 	}
-	if mmGetLatestAccessor.funcGetLatestAccessor != nil {
-		return mmGetLatestAccessor.funcGetLatestAccessor()
+	if mmGetAnyLatestNodeSnapshot.funcGetAnyLatestNodeSnapshot != nil {
+		return mmGetAnyLatestNodeSnapshot.funcGetAnyLatestNodeSnapshot()
 	}
-	mmGetLatestAccessor.t.Fatalf("Unexpected call to NodeKeeperMock.GetLatestAccessor.")
+	mmGetAnyLatestNodeSnapshot.t.Fatalf("Unexpected call to NodeKeeperMock.GetAnyLatestNodeSnapshot.")
 	return
 }
 
-// GetLatestAccessorAfterCounter returns a count of finished NodeKeeperMock.GetLatestAccessor invocations
-func (mmGetLatestAccessor *NodeKeeperMock) GetLatestAccessorAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmGetLatestAccessor.afterGetLatestAccessorCounter)
+// GetAnyLatestNodeSnapshotAfterCounter returns a count of finished NodeKeeperMock.GetAnyLatestNodeSnapshot invocations
+func (mmGetAnyLatestNodeSnapshot *NodeKeeperMock) GetAnyLatestNodeSnapshotAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetAnyLatestNodeSnapshot.afterGetAnyLatestNodeSnapshotCounter)
 }
 
-// GetLatestAccessorBeforeCounter returns a count of NodeKeeperMock.GetLatestAccessor invocations
-func (mmGetLatestAccessor *NodeKeeperMock) GetLatestAccessorBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmGetLatestAccessor.beforeGetLatestAccessorCounter)
+// GetAnyLatestNodeSnapshotBeforeCounter returns a count of NodeKeeperMock.GetAnyLatestNodeSnapshot invocations
+func (mmGetAnyLatestNodeSnapshot *NodeKeeperMock) GetAnyLatestNodeSnapshotBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetAnyLatestNodeSnapshot.beforeGetAnyLatestNodeSnapshotCounter)
 }
 
-// MinimockGetLatestAccessorDone returns true if the count of the GetLatestAccessor invocations corresponds
+// MinimockGetAnyLatestNodeSnapshotDone returns true if the count of the GetAnyLatestNodeSnapshot invocations corresponds
 // the number of defined expectations
-func (m *NodeKeeperMock) MinimockGetLatestAccessorDone() bool {
-	for _, e := range m.GetLatestAccessorMock.expectations {
+func (m *NodeKeeperMock) MinimockGetAnyLatestNodeSnapshotDone() bool {
+	for _, e := range m.GetAnyLatestNodeSnapshotMock.expectations {
 		if mm_atomic.LoadUint64(&e.Counter) < 1 {
 			return false
 		}
 	}
 
 	// if default expectation was set then invocations count should be greater than zero
-	if m.GetLatestAccessorMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetLatestAccessorCounter) < 1 {
+	if m.GetAnyLatestNodeSnapshotMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetAnyLatestNodeSnapshotCounter) < 1 {
 		return false
 	}
 	// if func was set then invocations count should be greater than zero
-	if m.funcGetLatestAccessor != nil && mm_atomic.LoadUint64(&m.afterGetLatestAccessorCounter) < 1 {
+	if m.funcGetAnyLatestNodeSnapshot != nil && mm_atomic.LoadUint64(&m.afterGetAnyLatestNodeSnapshotCounter) < 1 {
 		return false
 	}
 	return true
 }
 
-// MinimockGetLatestAccessorInspect logs each unmet expectation
-func (m *NodeKeeperMock) MinimockGetLatestAccessorInspect() {
-	for _, e := range m.GetLatestAccessorMock.expectations {
+// MinimockGetAnyLatestNodeSnapshotInspect logs each unmet expectation
+func (m *NodeKeeperMock) MinimockGetAnyLatestNodeSnapshotInspect() {
+	for _, e := range m.GetAnyLatestNodeSnapshotMock.expectations {
 		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Error("Expected call to NodeKeeperMock.GetLatestAccessor")
+			m.t.Error("Expected call to NodeKeeperMock.GetAnyLatestNodeSnapshot")
 		}
 	}
 
 	// if default expectation was set then invocations count should be greater than zero
-	if m.GetLatestAccessorMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetLatestAccessorCounter) < 1 {
-		m.t.Error("Expected call to NodeKeeperMock.GetLatestAccessor")
+	if m.GetAnyLatestNodeSnapshotMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetAnyLatestNodeSnapshotCounter) < 1 {
+		m.t.Error("Expected call to NodeKeeperMock.GetAnyLatestNodeSnapshot")
 	}
 	// if func was set then invocations count should be greater than zero
-	if m.funcGetLatestAccessor != nil && mm_atomic.LoadUint64(&m.afterGetLatestAccessorCounter) < 1 {
-		m.t.Error("Expected call to NodeKeeperMock.GetLatestAccessor")
+	if m.funcGetAnyLatestNodeSnapshot != nil && mm_atomic.LoadUint64(&m.afterGetAnyLatestNodeSnapshotCounter) < 1 {
+		m.t.Error("Expected call to NodeKeeperMock.GetAnyLatestNodeSnapshot")
 	}
 }
 
@@ -1153,6 +938,221 @@ func (m *NodeKeeperMock) MinimockGetLocalNodeRoleInspect() {
 	}
 }
 
+type mNodeKeeperMockGetNodeSnapshot struct {
+	mock               *NodeKeeperMock
+	defaultExpectation *NodeKeeperMockGetNodeSnapshotExpectation
+	expectations       []*NodeKeeperMockGetNodeSnapshotExpectation
+
+	callArgs []*NodeKeeperMockGetNodeSnapshotParams
+	mutex    sync.RWMutex
+}
+
+// NodeKeeperMockGetNodeSnapshotExpectation specifies expectation struct of the NodeKeeper.GetNodeSnapshot
+type NodeKeeperMockGetNodeSnapshotExpectation struct {
+	mock    *NodeKeeperMock
+	params  *NodeKeeperMockGetNodeSnapshotParams
+	results *NodeKeeperMockGetNodeSnapshotResults
+	Counter uint64
+}
+
+// NodeKeeperMockGetNodeSnapshotParams contains parameters of the NodeKeeper.GetNodeSnapshot
+type NodeKeeperMockGetNodeSnapshotParams struct {
+	n1 pulse.Number
+}
+
+// NodeKeeperMockGetNodeSnapshotResults contains results of the NodeKeeper.GetNodeSnapshot
+type NodeKeeperMockGetNodeSnapshotResults struct {
+	n2 NodeSnapshot
+}
+
+// Expect sets up expected params for NodeKeeper.GetNodeSnapshot
+func (mmGetNodeSnapshot *mNodeKeeperMockGetNodeSnapshot) Expect(n1 pulse.Number) *mNodeKeeperMockGetNodeSnapshot {
+	if mmGetNodeSnapshot.mock.funcGetNodeSnapshot != nil {
+		mmGetNodeSnapshot.mock.t.Fatalf("NodeKeeperMock.GetNodeSnapshot mock is already set by Set")
+	}
+
+	if mmGetNodeSnapshot.defaultExpectation == nil {
+		mmGetNodeSnapshot.defaultExpectation = &NodeKeeperMockGetNodeSnapshotExpectation{}
+	}
+
+	mmGetNodeSnapshot.defaultExpectation.params = &NodeKeeperMockGetNodeSnapshotParams{n1}
+	for _, e := range mmGetNodeSnapshot.expectations {
+		if minimock.Equal(e.params, mmGetNodeSnapshot.defaultExpectation.params) {
+			mmGetNodeSnapshot.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmGetNodeSnapshot.defaultExpectation.params)
+		}
+	}
+
+	return mmGetNodeSnapshot
+}
+
+// Inspect accepts an inspector function that has same arguments as the NodeKeeper.GetNodeSnapshot
+func (mmGetNodeSnapshot *mNodeKeeperMockGetNodeSnapshot) Inspect(f func(n1 pulse.Number)) *mNodeKeeperMockGetNodeSnapshot {
+	if mmGetNodeSnapshot.mock.inspectFuncGetNodeSnapshot != nil {
+		mmGetNodeSnapshot.mock.t.Fatalf("Inspect function is already set for NodeKeeperMock.GetNodeSnapshot")
+	}
+
+	mmGetNodeSnapshot.mock.inspectFuncGetNodeSnapshot = f
+
+	return mmGetNodeSnapshot
+}
+
+// Return sets up results that will be returned by NodeKeeper.GetNodeSnapshot
+func (mmGetNodeSnapshot *mNodeKeeperMockGetNodeSnapshot) Return(n2 NodeSnapshot) *NodeKeeperMock {
+	if mmGetNodeSnapshot.mock.funcGetNodeSnapshot != nil {
+		mmGetNodeSnapshot.mock.t.Fatalf("NodeKeeperMock.GetNodeSnapshot mock is already set by Set")
+	}
+
+	if mmGetNodeSnapshot.defaultExpectation == nil {
+		mmGetNodeSnapshot.defaultExpectation = &NodeKeeperMockGetNodeSnapshotExpectation{mock: mmGetNodeSnapshot.mock}
+	}
+	mmGetNodeSnapshot.defaultExpectation.results = &NodeKeeperMockGetNodeSnapshotResults{n2}
+	return mmGetNodeSnapshot.mock
+}
+
+//Set uses given function f to mock the NodeKeeper.GetNodeSnapshot method
+func (mmGetNodeSnapshot *mNodeKeeperMockGetNodeSnapshot) Set(f func(n1 pulse.Number) (n2 NodeSnapshot)) *NodeKeeperMock {
+	if mmGetNodeSnapshot.defaultExpectation != nil {
+		mmGetNodeSnapshot.mock.t.Fatalf("Default expectation is already set for the NodeKeeper.GetNodeSnapshot method")
+	}
+
+	if len(mmGetNodeSnapshot.expectations) > 0 {
+		mmGetNodeSnapshot.mock.t.Fatalf("Some expectations are already set for the NodeKeeper.GetNodeSnapshot method")
+	}
+
+	mmGetNodeSnapshot.mock.funcGetNodeSnapshot = f
+	return mmGetNodeSnapshot.mock
+}
+
+// When sets expectation for the NodeKeeper.GetNodeSnapshot which will trigger the result defined by the following
+// Then helper
+func (mmGetNodeSnapshot *mNodeKeeperMockGetNodeSnapshot) When(n1 pulse.Number) *NodeKeeperMockGetNodeSnapshotExpectation {
+	if mmGetNodeSnapshot.mock.funcGetNodeSnapshot != nil {
+		mmGetNodeSnapshot.mock.t.Fatalf("NodeKeeperMock.GetNodeSnapshot mock is already set by Set")
+	}
+
+	expectation := &NodeKeeperMockGetNodeSnapshotExpectation{
+		mock:   mmGetNodeSnapshot.mock,
+		params: &NodeKeeperMockGetNodeSnapshotParams{n1},
+	}
+	mmGetNodeSnapshot.expectations = append(mmGetNodeSnapshot.expectations, expectation)
+	return expectation
+}
+
+// Then sets up NodeKeeper.GetNodeSnapshot return parameters for the expectation previously defined by the When method
+func (e *NodeKeeperMockGetNodeSnapshotExpectation) Then(n2 NodeSnapshot) *NodeKeeperMock {
+	e.results = &NodeKeeperMockGetNodeSnapshotResults{n2}
+	return e.mock
+}
+
+// GetNodeSnapshot implements NodeKeeper
+func (mmGetNodeSnapshot *NodeKeeperMock) GetNodeSnapshot(n1 pulse.Number) (n2 NodeSnapshot) {
+	mm_atomic.AddUint64(&mmGetNodeSnapshot.beforeGetNodeSnapshotCounter, 1)
+	defer mm_atomic.AddUint64(&mmGetNodeSnapshot.afterGetNodeSnapshotCounter, 1)
+
+	if mmGetNodeSnapshot.inspectFuncGetNodeSnapshot != nil {
+		mmGetNodeSnapshot.inspectFuncGetNodeSnapshot(n1)
+	}
+
+	mm_params := &NodeKeeperMockGetNodeSnapshotParams{n1}
+
+	// Record call args
+	mmGetNodeSnapshot.GetNodeSnapshotMock.mutex.Lock()
+	mmGetNodeSnapshot.GetNodeSnapshotMock.callArgs = append(mmGetNodeSnapshot.GetNodeSnapshotMock.callArgs, mm_params)
+	mmGetNodeSnapshot.GetNodeSnapshotMock.mutex.Unlock()
+
+	for _, e := range mmGetNodeSnapshot.GetNodeSnapshotMock.expectations {
+		if minimock.Equal(e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.n2
+		}
+	}
+
+	if mmGetNodeSnapshot.GetNodeSnapshotMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmGetNodeSnapshot.GetNodeSnapshotMock.defaultExpectation.Counter, 1)
+		mm_want := mmGetNodeSnapshot.GetNodeSnapshotMock.defaultExpectation.params
+		mm_got := NodeKeeperMockGetNodeSnapshotParams{n1}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmGetNodeSnapshot.t.Errorf("NodeKeeperMock.GetNodeSnapshot got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmGetNodeSnapshot.GetNodeSnapshotMock.defaultExpectation.results
+		if mm_results == nil {
+			mmGetNodeSnapshot.t.Fatal("No results are set for the NodeKeeperMock.GetNodeSnapshot")
+		}
+		return (*mm_results).n2
+	}
+	if mmGetNodeSnapshot.funcGetNodeSnapshot != nil {
+		return mmGetNodeSnapshot.funcGetNodeSnapshot(n1)
+	}
+	mmGetNodeSnapshot.t.Fatalf("Unexpected call to NodeKeeperMock.GetNodeSnapshot. %v", n1)
+	return
+}
+
+// GetNodeSnapshotAfterCounter returns a count of finished NodeKeeperMock.GetNodeSnapshot invocations
+func (mmGetNodeSnapshot *NodeKeeperMock) GetNodeSnapshotAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetNodeSnapshot.afterGetNodeSnapshotCounter)
+}
+
+// GetNodeSnapshotBeforeCounter returns a count of NodeKeeperMock.GetNodeSnapshot invocations
+func (mmGetNodeSnapshot *NodeKeeperMock) GetNodeSnapshotBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetNodeSnapshot.beforeGetNodeSnapshotCounter)
+}
+
+// Calls returns a list of arguments used in each call to NodeKeeperMock.GetNodeSnapshot.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmGetNodeSnapshot *mNodeKeeperMockGetNodeSnapshot) Calls() []*NodeKeeperMockGetNodeSnapshotParams {
+	mmGetNodeSnapshot.mutex.RLock()
+
+	argCopy := make([]*NodeKeeperMockGetNodeSnapshotParams, len(mmGetNodeSnapshot.callArgs))
+	copy(argCopy, mmGetNodeSnapshot.callArgs)
+
+	mmGetNodeSnapshot.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockGetNodeSnapshotDone returns true if the count of the GetNodeSnapshot invocations corresponds
+// the number of defined expectations
+func (m *NodeKeeperMock) MinimockGetNodeSnapshotDone() bool {
+	for _, e := range m.GetNodeSnapshotMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.GetNodeSnapshotMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetNodeSnapshotCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcGetNodeSnapshot != nil && mm_atomic.LoadUint64(&m.afterGetNodeSnapshotCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockGetNodeSnapshotInspect logs each unmet expectation
+func (m *NodeKeeperMock) MinimockGetNodeSnapshotInspect() {
+	for _, e := range m.GetNodeSnapshotMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to NodeKeeperMock.GetNodeSnapshot with params: %#v", *e.params)
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.GetNodeSnapshotMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetNodeSnapshotCounter) < 1 {
+		if m.GetNodeSnapshotMock.defaultExpectation.params == nil {
+			m.t.Error("Expected call to NodeKeeperMock.GetNodeSnapshot")
+		} else {
+			m.t.Errorf("Expected call to NodeKeeperMock.GetNodeSnapshot with params: %#v", *m.GetNodeSnapshotMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcGetNodeSnapshot != nil && mm_atomic.LoadUint64(&m.afterGetNodeSnapshotCounter) < 1 {
+		m.t.Error("Expected call to NodeKeeperMock.GetNodeSnapshot")
+	}
+}
+
 // MinimockFinish checks that all mocked methods have been called the expected number of times
 func (m *NodeKeeperMock) MinimockFinish() {
 	if !m.minimockDone() {
@@ -1160,13 +1160,13 @@ func (m *NodeKeeperMock) MinimockFinish() {
 
 		m.MinimockAddExpectedBeatInspect()
 
-		m.MinimockGetAccessorInspect()
-
-		m.MinimockGetLatestAccessorInspect()
+		m.MinimockGetAnyLatestNodeSnapshotInspect()
 
 		m.MinimockGetLocalNodeReferenceInspect()
 
 		m.MinimockGetLocalNodeRoleInspect()
+
+		m.MinimockGetNodeSnapshotInspect()
 		m.t.FailNow()
 	}
 }
@@ -1192,8 +1192,8 @@ func (m *NodeKeeperMock) minimockDone() bool {
 	return done &&
 		m.MinimockAddCommittedBeatDone() &&
 		m.MinimockAddExpectedBeatDone() &&
-		m.MinimockGetAccessorDone() &&
-		m.MinimockGetLatestAccessorDone() &&
+		m.MinimockGetAnyLatestNodeSnapshotDone() &&
 		m.MinimockGetLocalNodeReferenceDone() &&
-		m.MinimockGetLocalNodeRoleDone()
+		m.MinimockGetLocalNodeRoleDone() &&
+		m.MinimockGetNodeSnapshotDone()
 }

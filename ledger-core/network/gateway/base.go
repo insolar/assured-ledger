@@ -251,7 +251,7 @@ func (g *Base) OnPulseFromConsensus(ctx context.Context, pu beat.Beat) {
 	inslogger.FromContext(ctx).Debugf("[ AddCommittedBeat ] Population size: %d", nodeCount)
 	stats.Record(ctx, network.ActiveNodes.M(nodeCount))
 
-	// nodes := g.NodeKeeper.GetAccessor(pu.PulseNumber).GetOnlineNodes()
+	// nodes := g.NodeKeeper.GetNodeSnapshot(pu.PulseNumber).GetOnlineNodes()
 	// inslogger.FromContext(ctx).Debugf("OnPulseFromConsensus: %d : epoch %d : nodes %d", pu.PulseNumber, pu.PulseEpoch, len(nodes))
 }
 
@@ -318,7 +318,7 @@ func (g *Base) checkCanAnnounceCandidate(context.Context) error {
 	}
 
 	pn := pulse.Unknown
-	if na := g.NodeKeeper.GetLatestAccessor(); na != nil {
+	if na := g.NodeKeeper.GetAnyLatestNodeSnapshot(); na != nil {
 		pn = na.GetPulseNumber()
 	}
 
@@ -354,8 +354,8 @@ func (g *Base) HandleNodeBootstrapRequest(ctx context.Context, request network.R
 	data := request.GetRequest().GetBootstrap()
 
 	var nodes []nodeinfo.NetworkNode
-	if na := g.NodeKeeper.GetLatestAccessor(); na != nil {
-		nodes = na.GetOnlineNodes()
+	if na := g.NodeKeeper.GetAnyLatestNodeSnapshot(); na != nil {
+		nodes = na.GetPopulation().GetProfiles()
 	}
 
 	hasCollision := false
@@ -437,8 +437,8 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 
 	var nodes []nodeinfo.NetworkNode
 	var discoveryCount int
-	if na := g.NodeKeeper.GetLatestAccessor(); na != nil {
-		nodes = na.GetOnlineNodes()
+	if na := g.NodeKeeper.GetAnyLatestNodeSnapshot(); na != nil {
+		nodes = na.GetPopulation().GetProfiles()
 	}
 
 	var reconnectHost *host.Host
@@ -520,11 +520,11 @@ func (g *Base) EphemeralMode(nodes census.OnlinePopulation) bool {
 }
 
 func (g *Base) FailState(ctx context.Context, reason string) {
-	na := g.NodeKeeper.GetLatestAccessor()
+	na := g.NodeKeeper.GetAnyLatestNodeSnapshot()
 
 	addr := ""
 	if na != nil {
-		addr = nodeinfo.NodeAddr(na.GetLocalNode())
+		addr = nodeinfo.NodeAddr(na.GetPopulation().GetLocalProfile())
 	}
 	wrapReason := fmt.Sprintf("Abort node: ref=%s address=%s role=%v state=%s, reason=%s",
 		g.NodeKeeper.GetLocalNodeReference(),

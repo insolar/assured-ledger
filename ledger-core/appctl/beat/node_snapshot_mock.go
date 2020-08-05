@@ -18,41 +18,23 @@ import (
 type NodeSnapshotMock struct {
 	t minimock.Tester
 
-	funcGetLocalNode          func() (a1 profiles.ActiveNode)
-	inspectFuncGetLocalNode   func()
-	afterGetLocalNodeCounter  uint64
-	beforeGetLocalNodeCounter uint64
-	GetLocalNodeMock          mNodeSnapshotMockGetLocalNode
+	funcFindNodeByAddr          func(address string) (a1 profiles.ActiveNode)
+	inspectFuncFindNodeByAddr   func(address string)
+	afterFindNodeByAddrCounter  uint64
+	beforeFindNodeByAddrCounter uint64
+	FindNodeByAddrMock          mNodeSnapshotMockFindNodeByAddr
 
-	funcGetOnlineNode          func(g1 reference.Global) (a1 profiles.ActiveNode)
-	inspectFuncGetOnlineNode   func(g1 reference.Global)
-	afterGetOnlineNodeCounter  uint64
-	beforeGetOnlineNodeCounter uint64
-	GetOnlineNodeMock          mNodeSnapshotMockGetOnlineNode
-
-	funcGetOnlineNodeByAddr          func(address string) (a1 profiles.ActiveNode)
-	inspectFuncGetOnlineNodeByAddr   func(address string)
-	afterGetOnlineNodeByAddrCounter  uint64
-	beforeGetOnlineNodeByAddrCounter uint64
-	GetOnlineNodeByAddrMock          mNodeSnapshotMockGetOnlineNodeByAddr
-
-	funcGetOnlineNodes          func() (aa1 []profiles.ActiveNode)
-	inspectFuncGetOnlineNodes   func()
-	afterGetOnlineNodesCounter  uint64
-	beforeGetOnlineNodesCounter uint64
-	GetOnlineNodesMock          mNodeSnapshotMockGetOnlineNodes
+	funcFindNodeByRef          func(g1 reference.Global) (a1 profiles.ActiveNode)
+	inspectFuncFindNodeByRef   func(g1 reference.Global)
+	afterFindNodeByRefCounter  uint64
+	beforeFindNodeByRefCounter uint64
+	FindNodeByRefMock          mNodeSnapshotMockFindNodeByRef
 
 	funcGetPopulation          func() (o1 census.OnlinePopulation)
 	inspectFuncGetPopulation   func()
 	afterGetPopulationCounter  uint64
 	beforeGetPopulationCounter uint64
 	GetPopulationMock          mNodeSnapshotMockGetPopulation
-
-	funcGetPoweredNode          func(g1 reference.Global) (a1 profiles.ActiveNode)
-	inspectFuncGetPoweredNode   func(g1 reference.Global)
-	afterGetPoweredNodeCounter  uint64
-	beforeGetPoweredNodeCounter uint64
-	GetPoweredNodeMock          mNodeSnapshotMockGetPoweredNode
 
 	funcGetPulseNumber          func() (n1 pulse.Number)
 	inspectFuncGetPulseNumber   func()
@@ -68,739 +50,446 @@ func NewNodeSnapshotMock(t minimock.Tester) *NodeSnapshotMock {
 		controller.RegisterMocker(m)
 	}
 
-	m.GetLocalNodeMock = mNodeSnapshotMockGetLocalNode{mock: m}
+	m.FindNodeByAddrMock = mNodeSnapshotMockFindNodeByAddr{mock: m}
+	m.FindNodeByAddrMock.callArgs = []*NodeSnapshotMockFindNodeByAddrParams{}
 
-	m.GetOnlineNodeMock = mNodeSnapshotMockGetOnlineNode{mock: m}
-	m.GetOnlineNodeMock.callArgs = []*NodeSnapshotMockGetOnlineNodeParams{}
-
-	m.GetOnlineNodeByAddrMock = mNodeSnapshotMockGetOnlineNodeByAddr{mock: m}
-	m.GetOnlineNodeByAddrMock.callArgs = []*NodeSnapshotMockGetOnlineNodeByAddrParams{}
-
-	m.GetOnlineNodesMock = mNodeSnapshotMockGetOnlineNodes{mock: m}
+	m.FindNodeByRefMock = mNodeSnapshotMockFindNodeByRef{mock: m}
+	m.FindNodeByRefMock.callArgs = []*NodeSnapshotMockFindNodeByRefParams{}
 
 	m.GetPopulationMock = mNodeSnapshotMockGetPopulation{mock: m}
-
-	m.GetPoweredNodeMock = mNodeSnapshotMockGetPoweredNode{mock: m}
-	m.GetPoweredNodeMock.callArgs = []*NodeSnapshotMockGetPoweredNodeParams{}
 
 	m.GetPulseNumberMock = mNodeSnapshotMockGetPulseNumber{mock: m}
 
 	return m
 }
 
-type mNodeSnapshotMockGetLocalNode struct {
+type mNodeSnapshotMockFindNodeByAddr struct {
 	mock               *NodeSnapshotMock
-	defaultExpectation *NodeSnapshotMockGetLocalNodeExpectation
-	expectations       []*NodeSnapshotMockGetLocalNodeExpectation
-}
+	defaultExpectation *NodeSnapshotMockFindNodeByAddrExpectation
+	expectations       []*NodeSnapshotMockFindNodeByAddrExpectation
 
-// NodeSnapshotMockGetLocalNodeExpectation specifies expectation struct of the NodeSnapshot.GetLocalNode
-type NodeSnapshotMockGetLocalNodeExpectation struct {
-	mock *NodeSnapshotMock
-
-	results *NodeSnapshotMockGetLocalNodeResults
-	Counter uint64
-}
-
-// NodeSnapshotMockGetLocalNodeResults contains results of the NodeSnapshot.GetLocalNode
-type NodeSnapshotMockGetLocalNodeResults struct {
-	a1 profiles.ActiveNode
-}
-
-// Expect sets up expected params for NodeSnapshot.GetLocalNode
-func (mmGetLocalNode *mNodeSnapshotMockGetLocalNode) Expect() *mNodeSnapshotMockGetLocalNode {
-	if mmGetLocalNode.mock.funcGetLocalNode != nil {
-		mmGetLocalNode.mock.t.Fatalf("NodeSnapshotMock.GetLocalNode mock is already set by Set")
-	}
-
-	if mmGetLocalNode.defaultExpectation == nil {
-		mmGetLocalNode.defaultExpectation = &NodeSnapshotMockGetLocalNodeExpectation{}
-	}
-
-	return mmGetLocalNode
-}
-
-// Inspect accepts an inspector function that has same arguments as the NodeSnapshot.GetLocalNode
-func (mmGetLocalNode *mNodeSnapshotMockGetLocalNode) Inspect(f func()) *mNodeSnapshotMockGetLocalNode {
-	if mmGetLocalNode.mock.inspectFuncGetLocalNode != nil {
-		mmGetLocalNode.mock.t.Fatalf("Inspect function is already set for NodeSnapshotMock.GetLocalNode")
-	}
-
-	mmGetLocalNode.mock.inspectFuncGetLocalNode = f
-
-	return mmGetLocalNode
-}
-
-// Return sets up results that will be returned by NodeSnapshot.GetLocalNode
-func (mmGetLocalNode *mNodeSnapshotMockGetLocalNode) Return(a1 profiles.ActiveNode) *NodeSnapshotMock {
-	if mmGetLocalNode.mock.funcGetLocalNode != nil {
-		mmGetLocalNode.mock.t.Fatalf("NodeSnapshotMock.GetLocalNode mock is already set by Set")
-	}
-
-	if mmGetLocalNode.defaultExpectation == nil {
-		mmGetLocalNode.defaultExpectation = &NodeSnapshotMockGetLocalNodeExpectation{mock: mmGetLocalNode.mock}
-	}
-	mmGetLocalNode.defaultExpectation.results = &NodeSnapshotMockGetLocalNodeResults{a1}
-	return mmGetLocalNode.mock
-}
-
-//Set uses given function f to mock the NodeSnapshot.GetLocalNode method
-func (mmGetLocalNode *mNodeSnapshotMockGetLocalNode) Set(f func() (a1 profiles.ActiveNode)) *NodeSnapshotMock {
-	if mmGetLocalNode.defaultExpectation != nil {
-		mmGetLocalNode.mock.t.Fatalf("Default expectation is already set for the NodeSnapshot.GetLocalNode method")
-	}
-
-	if len(mmGetLocalNode.expectations) > 0 {
-		mmGetLocalNode.mock.t.Fatalf("Some expectations are already set for the NodeSnapshot.GetLocalNode method")
-	}
-
-	mmGetLocalNode.mock.funcGetLocalNode = f
-	return mmGetLocalNode.mock
-}
-
-// GetLocalNode implements NodeSnapshot
-func (mmGetLocalNode *NodeSnapshotMock) GetLocalNode() (a1 profiles.ActiveNode) {
-	mm_atomic.AddUint64(&mmGetLocalNode.beforeGetLocalNodeCounter, 1)
-	defer mm_atomic.AddUint64(&mmGetLocalNode.afterGetLocalNodeCounter, 1)
-
-	if mmGetLocalNode.inspectFuncGetLocalNode != nil {
-		mmGetLocalNode.inspectFuncGetLocalNode()
-	}
-
-	if mmGetLocalNode.GetLocalNodeMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmGetLocalNode.GetLocalNodeMock.defaultExpectation.Counter, 1)
-
-		mm_results := mmGetLocalNode.GetLocalNodeMock.defaultExpectation.results
-		if mm_results == nil {
-			mmGetLocalNode.t.Fatal("No results are set for the NodeSnapshotMock.GetLocalNode")
-		}
-		return (*mm_results).a1
-	}
-	if mmGetLocalNode.funcGetLocalNode != nil {
-		return mmGetLocalNode.funcGetLocalNode()
-	}
-	mmGetLocalNode.t.Fatalf("Unexpected call to NodeSnapshotMock.GetLocalNode.")
-	return
-}
-
-// GetLocalNodeAfterCounter returns a count of finished NodeSnapshotMock.GetLocalNode invocations
-func (mmGetLocalNode *NodeSnapshotMock) GetLocalNodeAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmGetLocalNode.afterGetLocalNodeCounter)
-}
-
-// GetLocalNodeBeforeCounter returns a count of NodeSnapshotMock.GetLocalNode invocations
-func (mmGetLocalNode *NodeSnapshotMock) GetLocalNodeBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmGetLocalNode.beforeGetLocalNodeCounter)
-}
-
-// MinimockGetLocalNodeDone returns true if the count of the GetLocalNode invocations corresponds
-// the number of defined expectations
-func (m *NodeSnapshotMock) MinimockGetLocalNodeDone() bool {
-	for _, e := range m.GetLocalNodeMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.GetLocalNodeMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetLocalNodeCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcGetLocalNode != nil && mm_atomic.LoadUint64(&m.afterGetLocalNodeCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockGetLocalNodeInspect logs each unmet expectation
-func (m *NodeSnapshotMock) MinimockGetLocalNodeInspect() {
-	for _, e := range m.GetLocalNodeMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Error("Expected call to NodeSnapshotMock.GetLocalNode")
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.GetLocalNodeMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetLocalNodeCounter) < 1 {
-		m.t.Error("Expected call to NodeSnapshotMock.GetLocalNode")
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcGetLocalNode != nil && mm_atomic.LoadUint64(&m.afterGetLocalNodeCounter) < 1 {
-		m.t.Error("Expected call to NodeSnapshotMock.GetLocalNode")
-	}
-}
-
-type mNodeSnapshotMockGetOnlineNode struct {
-	mock               *NodeSnapshotMock
-	defaultExpectation *NodeSnapshotMockGetOnlineNodeExpectation
-	expectations       []*NodeSnapshotMockGetOnlineNodeExpectation
-
-	callArgs []*NodeSnapshotMockGetOnlineNodeParams
+	callArgs []*NodeSnapshotMockFindNodeByAddrParams
 	mutex    sync.RWMutex
 }
 
-// NodeSnapshotMockGetOnlineNodeExpectation specifies expectation struct of the NodeSnapshot.GetOnlineNode
-type NodeSnapshotMockGetOnlineNodeExpectation struct {
+// NodeSnapshotMockFindNodeByAddrExpectation specifies expectation struct of the NodeSnapshot.FindNodeByAddr
+type NodeSnapshotMockFindNodeByAddrExpectation struct {
 	mock    *NodeSnapshotMock
-	params  *NodeSnapshotMockGetOnlineNodeParams
-	results *NodeSnapshotMockGetOnlineNodeResults
+	params  *NodeSnapshotMockFindNodeByAddrParams
+	results *NodeSnapshotMockFindNodeByAddrResults
 	Counter uint64
 }
 
-// NodeSnapshotMockGetOnlineNodeParams contains parameters of the NodeSnapshot.GetOnlineNode
-type NodeSnapshotMockGetOnlineNodeParams struct {
-	g1 reference.Global
-}
-
-// NodeSnapshotMockGetOnlineNodeResults contains results of the NodeSnapshot.GetOnlineNode
-type NodeSnapshotMockGetOnlineNodeResults struct {
-	a1 profiles.ActiveNode
-}
-
-// Expect sets up expected params for NodeSnapshot.GetOnlineNode
-func (mmGetOnlineNode *mNodeSnapshotMockGetOnlineNode) Expect(g1 reference.Global) *mNodeSnapshotMockGetOnlineNode {
-	if mmGetOnlineNode.mock.funcGetOnlineNode != nil {
-		mmGetOnlineNode.mock.t.Fatalf("NodeSnapshotMock.GetOnlineNode mock is already set by Set")
-	}
-
-	if mmGetOnlineNode.defaultExpectation == nil {
-		mmGetOnlineNode.defaultExpectation = &NodeSnapshotMockGetOnlineNodeExpectation{}
-	}
-
-	mmGetOnlineNode.defaultExpectation.params = &NodeSnapshotMockGetOnlineNodeParams{g1}
-	for _, e := range mmGetOnlineNode.expectations {
-		if minimock.Equal(e.params, mmGetOnlineNode.defaultExpectation.params) {
-			mmGetOnlineNode.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmGetOnlineNode.defaultExpectation.params)
-		}
-	}
-
-	return mmGetOnlineNode
-}
-
-// Inspect accepts an inspector function that has same arguments as the NodeSnapshot.GetOnlineNode
-func (mmGetOnlineNode *mNodeSnapshotMockGetOnlineNode) Inspect(f func(g1 reference.Global)) *mNodeSnapshotMockGetOnlineNode {
-	if mmGetOnlineNode.mock.inspectFuncGetOnlineNode != nil {
-		mmGetOnlineNode.mock.t.Fatalf("Inspect function is already set for NodeSnapshotMock.GetOnlineNode")
-	}
-
-	mmGetOnlineNode.mock.inspectFuncGetOnlineNode = f
-
-	return mmGetOnlineNode
-}
-
-// Return sets up results that will be returned by NodeSnapshot.GetOnlineNode
-func (mmGetOnlineNode *mNodeSnapshotMockGetOnlineNode) Return(a1 profiles.ActiveNode) *NodeSnapshotMock {
-	if mmGetOnlineNode.mock.funcGetOnlineNode != nil {
-		mmGetOnlineNode.mock.t.Fatalf("NodeSnapshotMock.GetOnlineNode mock is already set by Set")
-	}
-
-	if mmGetOnlineNode.defaultExpectation == nil {
-		mmGetOnlineNode.defaultExpectation = &NodeSnapshotMockGetOnlineNodeExpectation{mock: mmGetOnlineNode.mock}
-	}
-	mmGetOnlineNode.defaultExpectation.results = &NodeSnapshotMockGetOnlineNodeResults{a1}
-	return mmGetOnlineNode.mock
-}
-
-//Set uses given function f to mock the NodeSnapshot.GetOnlineNode method
-func (mmGetOnlineNode *mNodeSnapshotMockGetOnlineNode) Set(f func(g1 reference.Global) (a1 profiles.ActiveNode)) *NodeSnapshotMock {
-	if mmGetOnlineNode.defaultExpectation != nil {
-		mmGetOnlineNode.mock.t.Fatalf("Default expectation is already set for the NodeSnapshot.GetOnlineNode method")
-	}
-
-	if len(mmGetOnlineNode.expectations) > 0 {
-		mmGetOnlineNode.mock.t.Fatalf("Some expectations are already set for the NodeSnapshot.GetOnlineNode method")
-	}
-
-	mmGetOnlineNode.mock.funcGetOnlineNode = f
-	return mmGetOnlineNode.mock
-}
-
-// When sets expectation for the NodeSnapshot.GetOnlineNode which will trigger the result defined by the following
-// Then helper
-func (mmGetOnlineNode *mNodeSnapshotMockGetOnlineNode) When(g1 reference.Global) *NodeSnapshotMockGetOnlineNodeExpectation {
-	if mmGetOnlineNode.mock.funcGetOnlineNode != nil {
-		mmGetOnlineNode.mock.t.Fatalf("NodeSnapshotMock.GetOnlineNode mock is already set by Set")
-	}
-
-	expectation := &NodeSnapshotMockGetOnlineNodeExpectation{
-		mock:   mmGetOnlineNode.mock,
-		params: &NodeSnapshotMockGetOnlineNodeParams{g1},
-	}
-	mmGetOnlineNode.expectations = append(mmGetOnlineNode.expectations, expectation)
-	return expectation
-}
-
-// Then sets up NodeSnapshot.GetOnlineNode return parameters for the expectation previously defined by the When method
-func (e *NodeSnapshotMockGetOnlineNodeExpectation) Then(a1 profiles.ActiveNode) *NodeSnapshotMock {
-	e.results = &NodeSnapshotMockGetOnlineNodeResults{a1}
-	return e.mock
-}
-
-// GetOnlineNode implements NodeSnapshot
-func (mmGetOnlineNode *NodeSnapshotMock) GetOnlineNode(g1 reference.Global) (a1 profiles.ActiveNode) {
-	mm_atomic.AddUint64(&mmGetOnlineNode.beforeGetOnlineNodeCounter, 1)
-	defer mm_atomic.AddUint64(&mmGetOnlineNode.afterGetOnlineNodeCounter, 1)
-
-	if mmGetOnlineNode.inspectFuncGetOnlineNode != nil {
-		mmGetOnlineNode.inspectFuncGetOnlineNode(g1)
-	}
-
-	mm_params := &NodeSnapshotMockGetOnlineNodeParams{g1}
-
-	// Record call args
-	mmGetOnlineNode.GetOnlineNodeMock.mutex.Lock()
-	mmGetOnlineNode.GetOnlineNodeMock.callArgs = append(mmGetOnlineNode.GetOnlineNodeMock.callArgs, mm_params)
-	mmGetOnlineNode.GetOnlineNodeMock.mutex.Unlock()
-
-	for _, e := range mmGetOnlineNode.GetOnlineNodeMock.expectations {
-		if minimock.Equal(e.params, mm_params) {
-			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.a1
-		}
-	}
-
-	if mmGetOnlineNode.GetOnlineNodeMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmGetOnlineNode.GetOnlineNodeMock.defaultExpectation.Counter, 1)
-		mm_want := mmGetOnlineNode.GetOnlineNodeMock.defaultExpectation.params
-		mm_got := NodeSnapshotMockGetOnlineNodeParams{g1}
-		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmGetOnlineNode.t.Errorf("NodeSnapshotMock.GetOnlineNode got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
-		}
-
-		mm_results := mmGetOnlineNode.GetOnlineNodeMock.defaultExpectation.results
-		if mm_results == nil {
-			mmGetOnlineNode.t.Fatal("No results are set for the NodeSnapshotMock.GetOnlineNode")
-		}
-		return (*mm_results).a1
-	}
-	if mmGetOnlineNode.funcGetOnlineNode != nil {
-		return mmGetOnlineNode.funcGetOnlineNode(g1)
-	}
-	mmGetOnlineNode.t.Fatalf("Unexpected call to NodeSnapshotMock.GetOnlineNode. %v", g1)
-	return
-}
-
-// GetOnlineNodeAfterCounter returns a count of finished NodeSnapshotMock.GetOnlineNode invocations
-func (mmGetOnlineNode *NodeSnapshotMock) GetOnlineNodeAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmGetOnlineNode.afterGetOnlineNodeCounter)
-}
-
-// GetOnlineNodeBeforeCounter returns a count of NodeSnapshotMock.GetOnlineNode invocations
-func (mmGetOnlineNode *NodeSnapshotMock) GetOnlineNodeBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmGetOnlineNode.beforeGetOnlineNodeCounter)
-}
-
-// Calls returns a list of arguments used in each call to NodeSnapshotMock.GetOnlineNode.
-// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmGetOnlineNode *mNodeSnapshotMockGetOnlineNode) Calls() []*NodeSnapshotMockGetOnlineNodeParams {
-	mmGetOnlineNode.mutex.RLock()
-
-	argCopy := make([]*NodeSnapshotMockGetOnlineNodeParams, len(mmGetOnlineNode.callArgs))
-	copy(argCopy, mmGetOnlineNode.callArgs)
-
-	mmGetOnlineNode.mutex.RUnlock()
-
-	return argCopy
-}
-
-// MinimockGetOnlineNodeDone returns true if the count of the GetOnlineNode invocations corresponds
-// the number of defined expectations
-func (m *NodeSnapshotMock) MinimockGetOnlineNodeDone() bool {
-	for _, e := range m.GetOnlineNodeMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.GetOnlineNodeMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetOnlineNodeCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcGetOnlineNode != nil && mm_atomic.LoadUint64(&m.afterGetOnlineNodeCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockGetOnlineNodeInspect logs each unmet expectation
-func (m *NodeSnapshotMock) MinimockGetOnlineNodeInspect() {
-	for _, e := range m.GetOnlineNodeMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to NodeSnapshotMock.GetOnlineNode with params: %#v", *e.params)
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.GetOnlineNodeMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetOnlineNodeCounter) < 1 {
-		if m.GetOnlineNodeMock.defaultExpectation.params == nil {
-			m.t.Error("Expected call to NodeSnapshotMock.GetOnlineNode")
-		} else {
-			m.t.Errorf("Expected call to NodeSnapshotMock.GetOnlineNode with params: %#v", *m.GetOnlineNodeMock.defaultExpectation.params)
-		}
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcGetOnlineNode != nil && mm_atomic.LoadUint64(&m.afterGetOnlineNodeCounter) < 1 {
-		m.t.Error("Expected call to NodeSnapshotMock.GetOnlineNode")
-	}
-}
-
-type mNodeSnapshotMockGetOnlineNodeByAddr struct {
-	mock               *NodeSnapshotMock
-	defaultExpectation *NodeSnapshotMockGetOnlineNodeByAddrExpectation
-	expectations       []*NodeSnapshotMockGetOnlineNodeByAddrExpectation
-
-	callArgs []*NodeSnapshotMockGetOnlineNodeByAddrParams
-	mutex    sync.RWMutex
-}
-
-// NodeSnapshotMockGetOnlineNodeByAddrExpectation specifies expectation struct of the NodeSnapshot.GetOnlineNodeByAddr
-type NodeSnapshotMockGetOnlineNodeByAddrExpectation struct {
-	mock    *NodeSnapshotMock
-	params  *NodeSnapshotMockGetOnlineNodeByAddrParams
-	results *NodeSnapshotMockGetOnlineNodeByAddrResults
-	Counter uint64
-}
-
-// NodeSnapshotMockGetOnlineNodeByAddrParams contains parameters of the NodeSnapshot.GetOnlineNodeByAddr
-type NodeSnapshotMockGetOnlineNodeByAddrParams struct {
+// NodeSnapshotMockFindNodeByAddrParams contains parameters of the NodeSnapshot.FindNodeByAddr
+type NodeSnapshotMockFindNodeByAddrParams struct {
 	address string
 }
 
-// NodeSnapshotMockGetOnlineNodeByAddrResults contains results of the NodeSnapshot.GetOnlineNodeByAddr
-type NodeSnapshotMockGetOnlineNodeByAddrResults struct {
+// NodeSnapshotMockFindNodeByAddrResults contains results of the NodeSnapshot.FindNodeByAddr
+type NodeSnapshotMockFindNodeByAddrResults struct {
 	a1 profiles.ActiveNode
 }
 
-// Expect sets up expected params for NodeSnapshot.GetOnlineNodeByAddr
-func (mmGetOnlineNodeByAddr *mNodeSnapshotMockGetOnlineNodeByAddr) Expect(address string) *mNodeSnapshotMockGetOnlineNodeByAddr {
-	if mmGetOnlineNodeByAddr.mock.funcGetOnlineNodeByAddr != nil {
-		mmGetOnlineNodeByAddr.mock.t.Fatalf("NodeSnapshotMock.GetOnlineNodeByAddr mock is already set by Set")
+// Expect sets up expected params for NodeSnapshot.FindNodeByAddr
+func (mmFindNodeByAddr *mNodeSnapshotMockFindNodeByAddr) Expect(address string) *mNodeSnapshotMockFindNodeByAddr {
+	if mmFindNodeByAddr.mock.funcFindNodeByAddr != nil {
+		mmFindNodeByAddr.mock.t.Fatalf("NodeSnapshotMock.FindNodeByAddr mock is already set by Set")
 	}
 
-	if mmGetOnlineNodeByAddr.defaultExpectation == nil {
-		mmGetOnlineNodeByAddr.defaultExpectation = &NodeSnapshotMockGetOnlineNodeByAddrExpectation{}
+	if mmFindNodeByAddr.defaultExpectation == nil {
+		mmFindNodeByAddr.defaultExpectation = &NodeSnapshotMockFindNodeByAddrExpectation{}
 	}
 
-	mmGetOnlineNodeByAddr.defaultExpectation.params = &NodeSnapshotMockGetOnlineNodeByAddrParams{address}
-	for _, e := range mmGetOnlineNodeByAddr.expectations {
-		if minimock.Equal(e.params, mmGetOnlineNodeByAddr.defaultExpectation.params) {
-			mmGetOnlineNodeByAddr.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmGetOnlineNodeByAddr.defaultExpectation.params)
+	mmFindNodeByAddr.defaultExpectation.params = &NodeSnapshotMockFindNodeByAddrParams{address}
+	for _, e := range mmFindNodeByAddr.expectations {
+		if minimock.Equal(e.params, mmFindNodeByAddr.defaultExpectation.params) {
+			mmFindNodeByAddr.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmFindNodeByAddr.defaultExpectation.params)
 		}
 	}
 
-	return mmGetOnlineNodeByAddr
+	return mmFindNodeByAddr
 }
 
-// Inspect accepts an inspector function that has same arguments as the NodeSnapshot.GetOnlineNodeByAddr
-func (mmGetOnlineNodeByAddr *mNodeSnapshotMockGetOnlineNodeByAddr) Inspect(f func(address string)) *mNodeSnapshotMockGetOnlineNodeByAddr {
-	if mmGetOnlineNodeByAddr.mock.inspectFuncGetOnlineNodeByAddr != nil {
-		mmGetOnlineNodeByAddr.mock.t.Fatalf("Inspect function is already set for NodeSnapshotMock.GetOnlineNodeByAddr")
+// Inspect accepts an inspector function that has same arguments as the NodeSnapshot.FindNodeByAddr
+func (mmFindNodeByAddr *mNodeSnapshotMockFindNodeByAddr) Inspect(f func(address string)) *mNodeSnapshotMockFindNodeByAddr {
+	if mmFindNodeByAddr.mock.inspectFuncFindNodeByAddr != nil {
+		mmFindNodeByAddr.mock.t.Fatalf("Inspect function is already set for NodeSnapshotMock.FindNodeByAddr")
 	}
 
-	mmGetOnlineNodeByAddr.mock.inspectFuncGetOnlineNodeByAddr = f
+	mmFindNodeByAddr.mock.inspectFuncFindNodeByAddr = f
 
-	return mmGetOnlineNodeByAddr
+	return mmFindNodeByAddr
 }
 
-// Return sets up results that will be returned by NodeSnapshot.GetOnlineNodeByAddr
-func (mmGetOnlineNodeByAddr *mNodeSnapshotMockGetOnlineNodeByAddr) Return(a1 profiles.ActiveNode) *NodeSnapshotMock {
-	if mmGetOnlineNodeByAddr.mock.funcGetOnlineNodeByAddr != nil {
-		mmGetOnlineNodeByAddr.mock.t.Fatalf("NodeSnapshotMock.GetOnlineNodeByAddr mock is already set by Set")
+// Return sets up results that will be returned by NodeSnapshot.FindNodeByAddr
+func (mmFindNodeByAddr *mNodeSnapshotMockFindNodeByAddr) Return(a1 profiles.ActiveNode) *NodeSnapshotMock {
+	if mmFindNodeByAddr.mock.funcFindNodeByAddr != nil {
+		mmFindNodeByAddr.mock.t.Fatalf("NodeSnapshotMock.FindNodeByAddr mock is already set by Set")
 	}
 
-	if mmGetOnlineNodeByAddr.defaultExpectation == nil {
-		mmGetOnlineNodeByAddr.defaultExpectation = &NodeSnapshotMockGetOnlineNodeByAddrExpectation{mock: mmGetOnlineNodeByAddr.mock}
+	if mmFindNodeByAddr.defaultExpectation == nil {
+		mmFindNodeByAddr.defaultExpectation = &NodeSnapshotMockFindNodeByAddrExpectation{mock: mmFindNodeByAddr.mock}
 	}
-	mmGetOnlineNodeByAddr.defaultExpectation.results = &NodeSnapshotMockGetOnlineNodeByAddrResults{a1}
-	return mmGetOnlineNodeByAddr.mock
+	mmFindNodeByAddr.defaultExpectation.results = &NodeSnapshotMockFindNodeByAddrResults{a1}
+	return mmFindNodeByAddr.mock
 }
 
-//Set uses given function f to mock the NodeSnapshot.GetOnlineNodeByAddr method
-func (mmGetOnlineNodeByAddr *mNodeSnapshotMockGetOnlineNodeByAddr) Set(f func(address string) (a1 profiles.ActiveNode)) *NodeSnapshotMock {
-	if mmGetOnlineNodeByAddr.defaultExpectation != nil {
-		mmGetOnlineNodeByAddr.mock.t.Fatalf("Default expectation is already set for the NodeSnapshot.GetOnlineNodeByAddr method")
+//Set uses given function f to mock the NodeSnapshot.FindNodeByAddr method
+func (mmFindNodeByAddr *mNodeSnapshotMockFindNodeByAddr) Set(f func(address string) (a1 profiles.ActiveNode)) *NodeSnapshotMock {
+	if mmFindNodeByAddr.defaultExpectation != nil {
+		mmFindNodeByAddr.mock.t.Fatalf("Default expectation is already set for the NodeSnapshot.FindNodeByAddr method")
 	}
 
-	if len(mmGetOnlineNodeByAddr.expectations) > 0 {
-		mmGetOnlineNodeByAddr.mock.t.Fatalf("Some expectations are already set for the NodeSnapshot.GetOnlineNodeByAddr method")
+	if len(mmFindNodeByAddr.expectations) > 0 {
+		mmFindNodeByAddr.mock.t.Fatalf("Some expectations are already set for the NodeSnapshot.FindNodeByAddr method")
 	}
 
-	mmGetOnlineNodeByAddr.mock.funcGetOnlineNodeByAddr = f
-	return mmGetOnlineNodeByAddr.mock
+	mmFindNodeByAddr.mock.funcFindNodeByAddr = f
+	return mmFindNodeByAddr.mock
 }
 
-// When sets expectation for the NodeSnapshot.GetOnlineNodeByAddr which will trigger the result defined by the following
+// When sets expectation for the NodeSnapshot.FindNodeByAddr which will trigger the result defined by the following
 // Then helper
-func (mmGetOnlineNodeByAddr *mNodeSnapshotMockGetOnlineNodeByAddr) When(address string) *NodeSnapshotMockGetOnlineNodeByAddrExpectation {
-	if mmGetOnlineNodeByAddr.mock.funcGetOnlineNodeByAddr != nil {
-		mmGetOnlineNodeByAddr.mock.t.Fatalf("NodeSnapshotMock.GetOnlineNodeByAddr mock is already set by Set")
+func (mmFindNodeByAddr *mNodeSnapshotMockFindNodeByAddr) When(address string) *NodeSnapshotMockFindNodeByAddrExpectation {
+	if mmFindNodeByAddr.mock.funcFindNodeByAddr != nil {
+		mmFindNodeByAddr.mock.t.Fatalf("NodeSnapshotMock.FindNodeByAddr mock is already set by Set")
 	}
 
-	expectation := &NodeSnapshotMockGetOnlineNodeByAddrExpectation{
-		mock:   mmGetOnlineNodeByAddr.mock,
-		params: &NodeSnapshotMockGetOnlineNodeByAddrParams{address},
+	expectation := &NodeSnapshotMockFindNodeByAddrExpectation{
+		mock:   mmFindNodeByAddr.mock,
+		params: &NodeSnapshotMockFindNodeByAddrParams{address},
 	}
-	mmGetOnlineNodeByAddr.expectations = append(mmGetOnlineNodeByAddr.expectations, expectation)
+	mmFindNodeByAddr.expectations = append(mmFindNodeByAddr.expectations, expectation)
 	return expectation
 }
 
-// Then sets up NodeSnapshot.GetOnlineNodeByAddr return parameters for the expectation previously defined by the When method
-func (e *NodeSnapshotMockGetOnlineNodeByAddrExpectation) Then(a1 profiles.ActiveNode) *NodeSnapshotMock {
-	e.results = &NodeSnapshotMockGetOnlineNodeByAddrResults{a1}
+// Then sets up NodeSnapshot.FindNodeByAddr return parameters for the expectation previously defined by the When method
+func (e *NodeSnapshotMockFindNodeByAddrExpectation) Then(a1 profiles.ActiveNode) *NodeSnapshotMock {
+	e.results = &NodeSnapshotMockFindNodeByAddrResults{a1}
 	return e.mock
 }
 
-// GetOnlineNodeByAddr implements NodeSnapshot
-func (mmGetOnlineNodeByAddr *NodeSnapshotMock) GetOnlineNodeByAddr(address string) (a1 profiles.ActiveNode) {
-	mm_atomic.AddUint64(&mmGetOnlineNodeByAddr.beforeGetOnlineNodeByAddrCounter, 1)
-	defer mm_atomic.AddUint64(&mmGetOnlineNodeByAddr.afterGetOnlineNodeByAddrCounter, 1)
+// FindNodeByAddr implements NodeSnapshot
+func (mmFindNodeByAddr *NodeSnapshotMock) FindNodeByAddr(address string) (a1 profiles.ActiveNode) {
+	mm_atomic.AddUint64(&mmFindNodeByAddr.beforeFindNodeByAddrCounter, 1)
+	defer mm_atomic.AddUint64(&mmFindNodeByAddr.afterFindNodeByAddrCounter, 1)
 
-	if mmGetOnlineNodeByAddr.inspectFuncGetOnlineNodeByAddr != nil {
-		mmGetOnlineNodeByAddr.inspectFuncGetOnlineNodeByAddr(address)
+	if mmFindNodeByAddr.inspectFuncFindNodeByAddr != nil {
+		mmFindNodeByAddr.inspectFuncFindNodeByAddr(address)
 	}
 
-	mm_params := &NodeSnapshotMockGetOnlineNodeByAddrParams{address}
+	mm_params := &NodeSnapshotMockFindNodeByAddrParams{address}
 
 	// Record call args
-	mmGetOnlineNodeByAddr.GetOnlineNodeByAddrMock.mutex.Lock()
-	mmGetOnlineNodeByAddr.GetOnlineNodeByAddrMock.callArgs = append(mmGetOnlineNodeByAddr.GetOnlineNodeByAddrMock.callArgs, mm_params)
-	mmGetOnlineNodeByAddr.GetOnlineNodeByAddrMock.mutex.Unlock()
+	mmFindNodeByAddr.FindNodeByAddrMock.mutex.Lock()
+	mmFindNodeByAddr.FindNodeByAddrMock.callArgs = append(mmFindNodeByAddr.FindNodeByAddrMock.callArgs, mm_params)
+	mmFindNodeByAddr.FindNodeByAddrMock.mutex.Unlock()
 
-	for _, e := range mmGetOnlineNodeByAddr.GetOnlineNodeByAddrMock.expectations {
+	for _, e := range mmFindNodeByAddr.FindNodeByAddrMock.expectations {
 		if minimock.Equal(e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
 			return e.results.a1
 		}
 	}
 
-	if mmGetOnlineNodeByAddr.GetOnlineNodeByAddrMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmGetOnlineNodeByAddr.GetOnlineNodeByAddrMock.defaultExpectation.Counter, 1)
-		mm_want := mmGetOnlineNodeByAddr.GetOnlineNodeByAddrMock.defaultExpectation.params
-		mm_got := NodeSnapshotMockGetOnlineNodeByAddrParams{address}
+	if mmFindNodeByAddr.FindNodeByAddrMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmFindNodeByAddr.FindNodeByAddrMock.defaultExpectation.Counter, 1)
+		mm_want := mmFindNodeByAddr.FindNodeByAddrMock.defaultExpectation.params
+		mm_got := NodeSnapshotMockFindNodeByAddrParams{address}
 		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmGetOnlineNodeByAddr.t.Errorf("NodeSnapshotMock.GetOnlineNodeByAddr got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+			mmFindNodeByAddr.t.Errorf("NodeSnapshotMock.FindNodeByAddr got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
 
-		mm_results := mmGetOnlineNodeByAddr.GetOnlineNodeByAddrMock.defaultExpectation.results
+		mm_results := mmFindNodeByAddr.FindNodeByAddrMock.defaultExpectation.results
 		if mm_results == nil {
-			mmGetOnlineNodeByAddr.t.Fatal("No results are set for the NodeSnapshotMock.GetOnlineNodeByAddr")
+			mmFindNodeByAddr.t.Fatal("No results are set for the NodeSnapshotMock.FindNodeByAddr")
 		}
 		return (*mm_results).a1
 	}
-	if mmGetOnlineNodeByAddr.funcGetOnlineNodeByAddr != nil {
-		return mmGetOnlineNodeByAddr.funcGetOnlineNodeByAddr(address)
+	if mmFindNodeByAddr.funcFindNodeByAddr != nil {
+		return mmFindNodeByAddr.funcFindNodeByAddr(address)
 	}
-	mmGetOnlineNodeByAddr.t.Fatalf("Unexpected call to NodeSnapshotMock.GetOnlineNodeByAddr. %v", address)
+	mmFindNodeByAddr.t.Fatalf("Unexpected call to NodeSnapshotMock.FindNodeByAddr. %v", address)
 	return
 }
 
-// GetOnlineNodeByAddrAfterCounter returns a count of finished NodeSnapshotMock.GetOnlineNodeByAddr invocations
-func (mmGetOnlineNodeByAddr *NodeSnapshotMock) GetOnlineNodeByAddrAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmGetOnlineNodeByAddr.afterGetOnlineNodeByAddrCounter)
+// FindNodeByAddrAfterCounter returns a count of finished NodeSnapshotMock.FindNodeByAddr invocations
+func (mmFindNodeByAddr *NodeSnapshotMock) FindNodeByAddrAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmFindNodeByAddr.afterFindNodeByAddrCounter)
 }
 
-// GetOnlineNodeByAddrBeforeCounter returns a count of NodeSnapshotMock.GetOnlineNodeByAddr invocations
-func (mmGetOnlineNodeByAddr *NodeSnapshotMock) GetOnlineNodeByAddrBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmGetOnlineNodeByAddr.beforeGetOnlineNodeByAddrCounter)
+// FindNodeByAddrBeforeCounter returns a count of NodeSnapshotMock.FindNodeByAddr invocations
+func (mmFindNodeByAddr *NodeSnapshotMock) FindNodeByAddrBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmFindNodeByAddr.beforeFindNodeByAddrCounter)
 }
 
-// Calls returns a list of arguments used in each call to NodeSnapshotMock.GetOnlineNodeByAddr.
+// Calls returns a list of arguments used in each call to NodeSnapshotMock.FindNodeByAddr.
 // The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmGetOnlineNodeByAddr *mNodeSnapshotMockGetOnlineNodeByAddr) Calls() []*NodeSnapshotMockGetOnlineNodeByAddrParams {
-	mmGetOnlineNodeByAddr.mutex.RLock()
+func (mmFindNodeByAddr *mNodeSnapshotMockFindNodeByAddr) Calls() []*NodeSnapshotMockFindNodeByAddrParams {
+	mmFindNodeByAddr.mutex.RLock()
 
-	argCopy := make([]*NodeSnapshotMockGetOnlineNodeByAddrParams, len(mmGetOnlineNodeByAddr.callArgs))
-	copy(argCopy, mmGetOnlineNodeByAddr.callArgs)
+	argCopy := make([]*NodeSnapshotMockFindNodeByAddrParams, len(mmFindNodeByAddr.callArgs))
+	copy(argCopy, mmFindNodeByAddr.callArgs)
 
-	mmGetOnlineNodeByAddr.mutex.RUnlock()
+	mmFindNodeByAddr.mutex.RUnlock()
 
 	return argCopy
 }
 
-// MinimockGetOnlineNodeByAddrDone returns true if the count of the GetOnlineNodeByAddr invocations corresponds
+// MinimockFindNodeByAddrDone returns true if the count of the FindNodeByAddr invocations corresponds
 // the number of defined expectations
-func (m *NodeSnapshotMock) MinimockGetOnlineNodeByAddrDone() bool {
-	for _, e := range m.GetOnlineNodeByAddrMock.expectations {
+func (m *NodeSnapshotMock) MinimockFindNodeByAddrDone() bool {
+	for _, e := range m.FindNodeByAddrMock.expectations {
 		if mm_atomic.LoadUint64(&e.Counter) < 1 {
 			return false
 		}
 	}
 
 	// if default expectation was set then invocations count should be greater than zero
-	if m.GetOnlineNodeByAddrMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetOnlineNodeByAddrCounter) < 1 {
+	if m.FindNodeByAddrMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterFindNodeByAddrCounter) < 1 {
 		return false
 	}
 	// if func was set then invocations count should be greater than zero
-	if m.funcGetOnlineNodeByAddr != nil && mm_atomic.LoadUint64(&m.afterGetOnlineNodeByAddrCounter) < 1 {
+	if m.funcFindNodeByAddr != nil && mm_atomic.LoadUint64(&m.afterFindNodeByAddrCounter) < 1 {
 		return false
 	}
 	return true
 }
 
-// MinimockGetOnlineNodeByAddrInspect logs each unmet expectation
-func (m *NodeSnapshotMock) MinimockGetOnlineNodeByAddrInspect() {
-	for _, e := range m.GetOnlineNodeByAddrMock.expectations {
+// MinimockFindNodeByAddrInspect logs each unmet expectation
+func (m *NodeSnapshotMock) MinimockFindNodeByAddrInspect() {
+	for _, e := range m.FindNodeByAddrMock.expectations {
 		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to NodeSnapshotMock.GetOnlineNodeByAddr with params: %#v", *e.params)
+			m.t.Errorf("Expected call to NodeSnapshotMock.FindNodeByAddr with params: %#v", *e.params)
 		}
 	}
 
 	// if default expectation was set then invocations count should be greater than zero
-	if m.GetOnlineNodeByAddrMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetOnlineNodeByAddrCounter) < 1 {
-		if m.GetOnlineNodeByAddrMock.defaultExpectation.params == nil {
-			m.t.Error("Expected call to NodeSnapshotMock.GetOnlineNodeByAddr")
+	if m.FindNodeByAddrMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterFindNodeByAddrCounter) < 1 {
+		if m.FindNodeByAddrMock.defaultExpectation.params == nil {
+			m.t.Error("Expected call to NodeSnapshotMock.FindNodeByAddr")
 		} else {
-			m.t.Errorf("Expected call to NodeSnapshotMock.GetOnlineNodeByAddr with params: %#v", *m.GetOnlineNodeByAddrMock.defaultExpectation.params)
+			m.t.Errorf("Expected call to NodeSnapshotMock.FindNodeByAddr with params: %#v", *m.FindNodeByAddrMock.defaultExpectation.params)
 		}
 	}
 	// if func was set then invocations count should be greater than zero
-	if m.funcGetOnlineNodeByAddr != nil && mm_atomic.LoadUint64(&m.afterGetOnlineNodeByAddrCounter) < 1 {
-		m.t.Error("Expected call to NodeSnapshotMock.GetOnlineNodeByAddr")
+	if m.funcFindNodeByAddr != nil && mm_atomic.LoadUint64(&m.afterFindNodeByAddrCounter) < 1 {
+		m.t.Error("Expected call to NodeSnapshotMock.FindNodeByAddr")
 	}
 }
 
-type mNodeSnapshotMockGetOnlineNodes struct {
+type mNodeSnapshotMockFindNodeByRef struct {
 	mock               *NodeSnapshotMock
-	defaultExpectation *NodeSnapshotMockGetOnlineNodesExpectation
-	expectations       []*NodeSnapshotMockGetOnlineNodesExpectation
+	defaultExpectation *NodeSnapshotMockFindNodeByRefExpectation
+	expectations       []*NodeSnapshotMockFindNodeByRefExpectation
+
+	callArgs []*NodeSnapshotMockFindNodeByRefParams
+	mutex    sync.RWMutex
 }
 
-// NodeSnapshotMockGetOnlineNodesExpectation specifies expectation struct of the NodeSnapshot.GetOnlineNodes
-type NodeSnapshotMockGetOnlineNodesExpectation struct {
-	mock *NodeSnapshotMock
-
-	results *NodeSnapshotMockGetOnlineNodesResults
+// NodeSnapshotMockFindNodeByRefExpectation specifies expectation struct of the NodeSnapshot.FindNodeByRef
+type NodeSnapshotMockFindNodeByRefExpectation struct {
+	mock    *NodeSnapshotMock
+	params  *NodeSnapshotMockFindNodeByRefParams
+	results *NodeSnapshotMockFindNodeByRefResults
 	Counter uint64
 }
 
-// NodeSnapshotMockGetOnlineNodesResults contains results of the NodeSnapshot.GetOnlineNodes
-type NodeSnapshotMockGetOnlineNodesResults struct {
-	aa1 []profiles.ActiveNode
+// NodeSnapshotMockFindNodeByRefParams contains parameters of the NodeSnapshot.FindNodeByRef
+type NodeSnapshotMockFindNodeByRefParams struct {
+	g1 reference.Global
 }
 
-// Expect sets up expected params for NodeSnapshot.GetOnlineNodes
-func (mmGetOnlineNodes *mNodeSnapshotMockGetOnlineNodes) Expect() *mNodeSnapshotMockGetOnlineNodes {
-	if mmGetOnlineNodes.mock.funcGetOnlineNodes != nil {
-		mmGetOnlineNodes.mock.t.Fatalf("NodeSnapshotMock.GetOnlineNodes mock is already set by Set")
-	}
-
-	if mmGetOnlineNodes.defaultExpectation == nil {
-		mmGetOnlineNodes.defaultExpectation = &NodeSnapshotMockGetOnlineNodesExpectation{}
-	}
-
-	return mmGetOnlineNodes
+// NodeSnapshotMockFindNodeByRefResults contains results of the NodeSnapshot.FindNodeByRef
+type NodeSnapshotMockFindNodeByRefResults struct {
+	a1 profiles.ActiveNode
 }
 
-// Inspect accepts an inspector function that has same arguments as the NodeSnapshot.GetOnlineNodes
-func (mmGetOnlineNodes *mNodeSnapshotMockGetOnlineNodes) Inspect(f func()) *mNodeSnapshotMockGetOnlineNodes {
-	if mmGetOnlineNodes.mock.inspectFuncGetOnlineNodes != nil {
-		mmGetOnlineNodes.mock.t.Fatalf("Inspect function is already set for NodeSnapshotMock.GetOnlineNodes")
+// Expect sets up expected params for NodeSnapshot.FindNodeByRef
+func (mmFindNodeByRef *mNodeSnapshotMockFindNodeByRef) Expect(g1 reference.Global) *mNodeSnapshotMockFindNodeByRef {
+	if mmFindNodeByRef.mock.funcFindNodeByRef != nil {
+		mmFindNodeByRef.mock.t.Fatalf("NodeSnapshotMock.FindNodeByRef mock is already set by Set")
 	}
 
-	mmGetOnlineNodes.mock.inspectFuncGetOnlineNodes = f
-
-	return mmGetOnlineNodes
-}
-
-// Return sets up results that will be returned by NodeSnapshot.GetOnlineNodes
-func (mmGetOnlineNodes *mNodeSnapshotMockGetOnlineNodes) Return(aa1 []profiles.ActiveNode) *NodeSnapshotMock {
-	if mmGetOnlineNodes.mock.funcGetOnlineNodes != nil {
-		mmGetOnlineNodes.mock.t.Fatalf("NodeSnapshotMock.GetOnlineNodes mock is already set by Set")
+	if mmFindNodeByRef.defaultExpectation == nil {
+		mmFindNodeByRef.defaultExpectation = &NodeSnapshotMockFindNodeByRefExpectation{}
 	}
 
-	if mmGetOnlineNodes.defaultExpectation == nil {
-		mmGetOnlineNodes.defaultExpectation = &NodeSnapshotMockGetOnlineNodesExpectation{mock: mmGetOnlineNodes.mock}
-	}
-	mmGetOnlineNodes.defaultExpectation.results = &NodeSnapshotMockGetOnlineNodesResults{aa1}
-	return mmGetOnlineNodes.mock
-}
-
-//Set uses given function f to mock the NodeSnapshot.GetOnlineNodes method
-func (mmGetOnlineNodes *mNodeSnapshotMockGetOnlineNodes) Set(f func() (aa1 []profiles.ActiveNode)) *NodeSnapshotMock {
-	if mmGetOnlineNodes.defaultExpectation != nil {
-		mmGetOnlineNodes.mock.t.Fatalf("Default expectation is already set for the NodeSnapshot.GetOnlineNodes method")
-	}
-
-	if len(mmGetOnlineNodes.expectations) > 0 {
-		mmGetOnlineNodes.mock.t.Fatalf("Some expectations are already set for the NodeSnapshot.GetOnlineNodes method")
-	}
-
-	mmGetOnlineNodes.mock.funcGetOnlineNodes = f
-	return mmGetOnlineNodes.mock
-}
-
-// GetOnlineNodes implements NodeSnapshot
-func (mmGetOnlineNodes *NodeSnapshotMock) GetOnlineNodes() (aa1 []profiles.ActiveNode) {
-	mm_atomic.AddUint64(&mmGetOnlineNodes.beforeGetOnlineNodesCounter, 1)
-	defer mm_atomic.AddUint64(&mmGetOnlineNodes.afterGetOnlineNodesCounter, 1)
-
-	if mmGetOnlineNodes.inspectFuncGetOnlineNodes != nil {
-		mmGetOnlineNodes.inspectFuncGetOnlineNodes()
-	}
-
-	if mmGetOnlineNodes.GetOnlineNodesMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmGetOnlineNodes.GetOnlineNodesMock.defaultExpectation.Counter, 1)
-
-		mm_results := mmGetOnlineNodes.GetOnlineNodesMock.defaultExpectation.results
-		if mm_results == nil {
-			mmGetOnlineNodes.t.Fatal("No results are set for the NodeSnapshotMock.GetOnlineNodes")
+	mmFindNodeByRef.defaultExpectation.params = &NodeSnapshotMockFindNodeByRefParams{g1}
+	for _, e := range mmFindNodeByRef.expectations {
+		if minimock.Equal(e.params, mmFindNodeByRef.defaultExpectation.params) {
+			mmFindNodeByRef.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmFindNodeByRef.defaultExpectation.params)
 		}
-		return (*mm_results).aa1
 	}
-	if mmGetOnlineNodes.funcGetOnlineNodes != nil {
-		return mmGetOnlineNodes.funcGetOnlineNodes()
+
+	return mmFindNodeByRef
+}
+
+// Inspect accepts an inspector function that has same arguments as the NodeSnapshot.FindNodeByRef
+func (mmFindNodeByRef *mNodeSnapshotMockFindNodeByRef) Inspect(f func(g1 reference.Global)) *mNodeSnapshotMockFindNodeByRef {
+	if mmFindNodeByRef.mock.inspectFuncFindNodeByRef != nil {
+		mmFindNodeByRef.mock.t.Fatalf("Inspect function is already set for NodeSnapshotMock.FindNodeByRef")
 	}
-	mmGetOnlineNodes.t.Fatalf("Unexpected call to NodeSnapshotMock.GetOnlineNodes.")
+
+	mmFindNodeByRef.mock.inspectFuncFindNodeByRef = f
+
+	return mmFindNodeByRef
+}
+
+// Return sets up results that will be returned by NodeSnapshot.FindNodeByRef
+func (mmFindNodeByRef *mNodeSnapshotMockFindNodeByRef) Return(a1 profiles.ActiveNode) *NodeSnapshotMock {
+	if mmFindNodeByRef.mock.funcFindNodeByRef != nil {
+		mmFindNodeByRef.mock.t.Fatalf("NodeSnapshotMock.FindNodeByRef mock is already set by Set")
+	}
+
+	if mmFindNodeByRef.defaultExpectation == nil {
+		mmFindNodeByRef.defaultExpectation = &NodeSnapshotMockFindNodeByRefExpectation{mock: mmFindNodeByRef.mock}
+	}
+	mmFindNodeByRef.defaultExpectation.results = &NodeSnapshotMockFindNodeByRefResults{a1}
+	return mmFindNodeByRef.mock
+}
+
+//Set uses given function f to mock the NodeSnapshot.FindNodeByRef method
+func (mmFindNodeByRef *mNodeSnapshotMockFindNodeByRef) Set(f func(g1 reference.Global) (a1 profiles.ActiveNode)) *NodeSnapshotMock {
+	if mmFindNodeByRef.defaultExpectation != nil {
+		mmFindNodeByRef.mock.t.Fatalf("Default expectation is already set for the NodeSnapshot.FindNodeByRef method")
+	}
+
+	if len(mmFindNodeByRef.expectations) > 0 {
+		mmFindNodeByRef.mock.t.Fatalf("Some expectations are already set for the NodeSnapshot.FindNodeByRef method")
+	}
+
+	mmFindNodeByRef.mock.funcFindNodeByRef = f
+	return mmFindNodeByRef.mock
+}
+
+// When sets expectation for the NodeSnapshot.FindNodeByRef which will trigger the result defined by the following
+// Then helper
+func (mmFindNodeByRef *mNodeSnapshotMockFindNodeByRef) When(g1 reference.Global) *NodeSnapshotMockFindNodeByRefExpectation {
+	if mmFindNodeByRef.mock.funcFindNodeByRef != nil {
+		mmFindNodeByRef.mock.t.Fatalf("NodeSnapshotMock.FindNodeByRef mock is already set by Set")
+	}
+
+	expectation := &NodeSnapshotMockFindNodeByRefExpectation{
+		mock:   mmFindNodeByRef.mock,
+		params: &NodeSnapshotMockFindNodeByRefParams{g1},
+	}
+	mmFindNodeByRef.expectations = append(mmFindNodeByRef.expectations, expectation)
+	return expectation
+}
+
+// Then sets up NodeSnapshot.FindNodeByRef return parameters for the expectation previously defined by the When method
+func (e *NodeSnapshotMockFindNodeByRefExpectation) Then(a1 profiles.ActiveNode) *NodeSnapshotMock {
+	e.results = &NodeSnapshotMockFindNodeByRefResults{a1}
+	return e.mock
+}
+
+// FindNodeByRef implements NodeSnapshot
+func (mmFindNodeByRef *NodeSnapshotMock) FindNodeByRef(g1 reference.Global) (a1 profiles.ActiveNode) {
+	mm_atomic.AddUint64(&mmFindNodeByRef.beforeFindNodeByRefCounter, 1)
+	defer mm_atomic.AddUint64(&mmFindNodeByRef.afterFindNodeByRefCounter, 1)
+
+	if mmFindNodeByRef.inspectFuncFindNodeByRef != nil {
+		mmFindNodeByRef.inspectFuncFindNodeByRef(g1)
+	}
+
+	mm_params := &NodeSnapshotMockFindNodeByRefParams{g1}
+
+	// Record call args
+	mmFindNodeByRef.FindNodeByRefMock.mutex.Lock()
+	mmFindNodeByRef.FindNodeByRefMock.callArgs = append(mmFindNodeByRef.FindNodeByRefMock.callArgs, mm_params)
+	mmFindNodeByRef.FindNodeByRefMock.mutex.Unlock()
+
+	for _, e := range mmFindNodeByRef.FindNodeByRefMock.expectations {
+		if minimock.Equal(e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.a1
+		}
+	}
+
+	if mmFindNodeByRef.FindNodeByRefMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmFindNodeByRef.FindNodeByRefMock.defaultExpectation.Counter, 1)
+		mm_want := mmFindNodeByRef.FindNodeByRefMock.defaultExpectation.params
+		mm_got := NodeSnapshotMockFindNodeByRefParams{g1}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmFindNodeByRef.t.Errorf("NodeSnapshotMock.FindNodeByRef got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmFindNodeByRef.FindNodeByRefMock.defaultExpectation.results
+		if mm_results == nil {
+			mmFindNodeByRef.t.Fatal("No results are set for the NodeSnapshotMock.FindNodeByRef")
+		}
+		return (*mm_results).a1
+	}
+	if mmFindNodeByRef.funcFindNodeByRef != nil {
+		return mmFindNodeByRef.funcFindNodeByRef(g1)
+	}
+	mmFindNodeByRef.t.Fatalf("Unexpected call to NodeSnapshotMock.FindNodeByRef. %v", g1)
 	return
 }
 
-// GetOnlineNodesAfterCounter returns a count of finished NodeSnapshotMock.GetOnlineNodes invocations
-func (mmGetOnlineNodes *NodeSnapshotMock) GetOnlineNodesAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmGetOnlineNodes.afterGetOnlineNodesCounter)
+// FindNodeByRefAfterCounter returns a count of finished NodeSnapshotMock.FindNodeByRef invocations
+func (mmFindNodeByRef *NodeSnapshotMock) FindNodeByRefAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmFindNodeByRef.afterFindNodeByRefCounter)
 }
 
-// GetOnlineNodesBeforeCounter returns a count of NodeSnapshotMock.GetOnlineNodes invocations
-func (mmGetOnlineNodes *NodeSnapshotMock) GetOnlineNodesBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmGetOnlineNodes.beforeGetOnlineNodesCounter)
+// FindNodeByRefBeforeCounter returns a count of NodeSnapshotMock.FindNodeByRef invocations
+func (mmFindNodeByRef *NodeSnapshotMock) FindNodeByRefBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmFindNodeByRef.beforeFindNodeByRefCounter)
 }
 
-// MinimockGetOnlineNodesDone returns true if the count of the GetOnlineNodes invocations corresponds
+// Calls returns a list of arguments used in each call to NodeSnapshotMock.FindNodeByRef.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmFindNodeByRef *mNodeSnapshotMockFindNodeByRef) Calls() []*NodeSnapshotMockFindNodeByRefParams {
+	mmFindNodeByRef.mutex.RLock()
+
+	argCopy := make([]*NodeSnapshotMockFindNodeByRefParams, len(mmFindNodeByRef.callArgs))
+	copy(argCopy, mmFindNodeByRef.callArgs)
+
+	mmFindNodeByRef.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockFindNodeByRefDone returns true if the count of the FindNodeByRef invocations corresponds
 // the number of defined expectations
-func (m *NodeSnapshotMock) MinimockGetOnlineNodesDone() bool {
-	for _, e := range m.GetOnlineNodesMock.expectations {
+func (m *NodeSnapshotMock) MinimockFindNodeByRefDone() bool {
+	for _, e := range m.FindNodeByRefMock.expectations {
 		if mm_atomic.LoadUint64(&e.Counter) < 1 {
 			return false
 		}
 	}
 
 	// if default expectation was set then invocations count should be greater than zero
-	if m.GetOnlineNodesMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetOnlineNodesCounter) < 1 {
+	if m.FindNodeByRefMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterFindNodeByRefCounter) < 1 {
 		return false
 	}
 	// if func was set then invocations count should be greater than zero
-	if m.funcGetOnlineNodes != nil && mm_atomic.LoadUint64(&m.afterGetOnlineNodesCounter) < 1 {
+	if m.funcFindNodeByRef != nil && mm_atomic.LoadUint64(&m.afterFindNodeByRefCounter) < 1 {
 		return false
 	}
 	return true
 }
 
-// MinimockGetOnlineNodesInspect logs each unmet expectation
-func (m *NodeSnapshotMock) MinimockGetOnlineNodesInspect() {
-	for _, e := range m.GetOnlineNodesMock.expectations {
+// MinimockFindNodeByRefInspect logs each unmet expectation
+func (m *NodeSnapshotMock) MinimockFindNodeByRefInspect() {
+	for _, e := range m.FindNodeByRefMock.expectations {
 		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Error("Expected call to NodeSnapshotMock.GetOnlineNodes")
+			m.t.Errorf("Expected call to NodeSnapshotMock.FindNodeByRef with params: %#v", *e.params)
 		}
 	}
 
 	// if default expectation was set then invocations count should be greater than zero
-	if m.GetOnlineNodesMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetOnlineNodesCounter) < 1 {
-		m.t.Error("Expected call to NodeSnapshotMock.GetOnlineNodes")
+	if m.FindNodeByRefMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterFindNodeByRefCounter) < 1 {
+		if m.FindNodeByRefMock.defaultExpectation.params == nil {
+			m.t.Error("Expected call to NodeSnapshotMock.FindNodeByRef")
+		} else {
+			m.t.Errorf("Expected call to NodeSnapshotMock.FindNodeByRef with params: %#v", *m.FindNodeByRefMock.defaultExpectation.params)
+		}
 	}
 	// if func was set then invocations count should be greater than zero
-	if m.funcGetOnlineNodes != nil && mm_atomic.LoadUint64(&m.afterGetOnlineNodesCounter) < 1 {
-		m.t.Error("Expected call to NodeSnapshotMock.GetOnlineNodes")
+	if m.funcFindNodeByRef != nil && mm_atomic.LoadUint64(&m.afterFindNodeByRefCounter) < 1 {
+		m.t.Error("Expected call to NodeSnapshotMock.FindNodeByRef")
 	}
 }
 
@@ -944,221 +633,6 @@ func (m *NodeSnapshotMock) MinimockGetPopulationInspect() {
 	// if func was set then invocations count should be greater than zero
 	if m.funcGetPopulation != nil && mm_atomic.LoadUint64(&m.afterGetPopulationCounter) < 1 {
 		m.t.Error("Expected call to NodeSnapshotMock.GetPopulation")
-	}
-}
-
-type mNodeSnapshotMockGetPoweredNode struct {
-	mock               *NodeSnapshotMock
-	defaultExpectation *NodeSnapshotMockGetPoweredNodeExpectation
-	expectations       []*NodeSnapshotMockGetPoweredNodeExpectation
-
-	callArgs []*NodeSnapshotMockGetPoweredNodeParams
-	mutex    sync.RWMutex
-}
-
-// NodeSnapshotMockGetPoweredNodeExpectation specifies expectation struct of the NodeSnapshot.GetPoweredNode
-type NodeSnapshotMockGetPoweredNodeExpectation struct {
-	mock    *NodeSnapshotMock
-	params  *NodeSnapshotMockGetPoweredNodeParams
-	results *NodeSnapshotMockGetPoweredNodeResults
-	Counter uint64
-}
-
-// NodeSnapshotMockGetPoweredNodeParams contains parameters of the NodeSnapshot.GetPoweredNode
-type NodeSnapshotMockGetPoweredNodeParams struct {
-	g1 reference.Global
-}
-
-// NodeSnapshotMockGetPoweredNodeResults contains results of the NodeSnapshot.GetPoweredNode
-type NodeSnapshotMockGetPoweredNodeResults struct {
-	a1 profiles.ActiveNode
-}
-
-// Expect sets up expected params for NodeSnapshot.GetPoweredNode
-func (mmGetPoweredNode *mNodeSnapshotMockGetPoweredNode) Expect(g1 reference.Global) *mNodeSnapshotMockGetPoweredNode {
-	if mmGetPoweredNode.mock.funcGetPoweredNode != nil {
-		mmGetPoweredNode.mock.t.Fatalf("NodeSnapshotMock.GetPoweredNode mock is already set by Set")
-	}
-
-	if mmGetPoweredNode.defaultExpectation == nil {
-		mmGetPoweredNode.defaultExpectation = &NodeSnapshotMockGetPoweredNodeExpectation{}
-	}
-
-	mmGetPoweredNode.defaultExpectation.params = &NodeSnapshotMockGetPoweredNodeParams{g1}
-	for _, e := range mmGetPoweredNode.expectations {
-		if minimock.Equal(e.params, mmGetPoweredNode.defaultExpectation.params) {
-			mmGetPoweredNode.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmGetPoweredNode.defaultExpectation.params)
-		}
-	}
-
-	return mmGetPoweredNode
-}
-
-// Inspect accepts an inspector function that has same arguments as the NodeSnapshot.GetPoweredNode
-func (mmGetPoweredNode *mNodeSnapshotMockGetPoweredNode) Inspect(f func(g1 reference.Global)) *mNodeSnapshotMockGetPoweredNode {
-	if mmGetPoweredNode.mock.inspectFuncGetPoweredNode != nil {
-		mmGetPoweredNode.mock.t.Fatalf("Inspect function is already set for NodeSnapshotMock.GetPoweredNode")
-	}
-
-	mmGetPoweredNode.mock.inspectFuncGetPoweredNode = f
-
-	return mmGetPoweredNode
-}
-
-// Return sets up results that will be returned by NodeSnapshot.GetPoweredNode
-func (mmGetPoweredNode *mNodeSnapshotMockGetPoweredNode) Return(a1 profiles.ActiveNode) *NodeSnapshotMock {
-	if mmGetPoweredNode.mock.funcGetPoweredNode != nil {
-		mmGetPoweredNode.mock.t.Fatalf("NodeSnapshotMock.GetPoweredNode mock is already set by Set")
-	}
-
-	if mmGetPoweredNode.defaultExpectation == nil {
-		mmGetPoweredNode.defaultExpectation = &NodeSnapshotMockGetPoweredNodeExpectation{mock: mmGetPoweredNode.mock}
-	}
-	mmGetPoweredNode.defaultExpectation.results = &NodeSnapshotMockGetPoweredNodeResults{a1}
-	return mmGetPoweredNode.mock
-}
-
-//Set uses given function f to mock the NodeSnapshot.GetPoweredNode method
-func (mmGetPoweredNode *mNodeSnapshotMockGetPoweredNode) Set(f func(g1 reference.Global) (a1 profiles.ActiveNode)) *NodeSnapshotMock {
-	if mmGetPoweredNode.defaultExpectation != nil {
-		mmGetPoweredNode.mock.t.Fatalf("Default expectation is already set for the NodeSnapshot.GetPoweredNode method")
-	}
-
-	if len(mmGetPoweredNode.expectations) > 0 {
-		mmGetPoweredNode.mock.t.Fatalf("Some expectations are already set for the NodeSnapshot.GetPoweredNode method")
-	}
-
-	mmGetPoweredNode.mock.funcGetPoweredNode = f
-	return mmGetPoweredNode.mock
-}
-
-// When sets expectation for the NodeSnapshot.GetPoweredNode which will trigger the result defined by the following
-// Then helper
-func (mmGetPoweredNode *mNodeSnapshotMockGetPoweredNode) When(g1 reference.Global) *NodeSnapshotMockGetPoweredNodeExpectation {
-	if mmGetPoweredNode.mock.funcGetPoweredNode != nil {
-		mmGetPoweredNode.mock.t.Fatalf("NodeSnapshotMock.GetPoweredNode mock is already set by Set")
-	}
-
-	expectation := &NodeSnapshotMockGetPoweredNodeExpectation{
-		mock:   mmGetPoweredNode.mock,
-		params: &NodeSnapshotMockGetPoweredNodeParams{g1},
-	}
-	mmGetPoweredNode.expectations = append(mmGetPoweredNode.expectations, expectation)
-	return expectation
-}
-
-// Then sets up NodeSnapshot.GetPoweredNode return parameters for the expectation previously defined by the When method
-func (e *NodeSnapshotMockGetPoweredNodeExpectation) Then(a1 profiles.ActiveNode) *NodeSnapshotMock {
-	e.results = &NodeSnapshotMockGetPoweredNodeResults{a1}
-	return e.mock
-}
-
-// GetPoweredNode implements NodeSnapshot
-func (mmGetPoweredNode *NodeSnapshotMock) GetPoweredNode(g1 reference.Global) (a1 profiles.ActiveNode) {
-	mm_atomic.AddUint64(&mmGetPoweredNode.beforeGetPoweredNodeCounter, 1)
-	defer mm_atomic.AddUint64(&mmGetPoweredNode.afterGetPoweredNodeCounter, 1)
-
-	if mmGetPoweredNode.inspectFuncGetPoweredNode != nil {
-		mmGetPoweredNode.inspectFuncGetPoweredNode(g1)
-	}
-
-	mm_params := &NodeSnapshotMockGetPoweredNodeParams{g1}
-
-	// Record call args
-	mmGetPoweredNode.GetPoweredNodeMock.mutex.Lock()
-	mmGetPoweredNode.GetPoweredNodeMock.callArgs = append(mmGetPoweredNode.GetPoweredNodeMock.callArgs, mm_params)
-	mmGetPoweredNode.GetPoweredNodeMock.mutex.Unlock()
-
-	for _, e := range mmGetPoweredNode.GetPoweredNodeMock.expectations {
-		if minimock.Equal(e.params, mm_params) {
-			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.a1
-		}
-	}
-
-	if mmGetPoweredNode.GetPoweredNodeMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmGetPoweredNode.GetPoweredNodeMock.defaultExpectation.Counter, 1)
-		mm_want := mmGetPoweredNode.GetPoweredNodeMock.defaultExpectation.params
-		mm_got := NodeSnapshotMockGetPoweredNodeParams{g1}
-		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmGetPoweredNode.t.Errorf("NodeSnapshotMock.GetPoweredNode got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
-		}
-
-		mm_results := mmGetPoweredNode.GetPoweredNodeMock.defaultExpectation.results
-		if mm_results == nil {
-			mmGetPoweredNode.t.Fatal("No results are set for the NodeSnapshotMock.GetPoweredNode")
-		}
-		return (*mm_results).a1
-	}
-	if mmGetPoweredNode.funcGetPoweredNode != nil {
-		return mmGetPoweredNode.funcGetPoweredNode(g1)
-	}
-	mmGetPoweredNode.t.Fatalf("Unexpected call to NodeSnapshotMock.GetPoweredNode. %v", g1)
-	return
-}
-
-// GetPoweredNodeAfterCounter returns a count of finished NodeSnapshotMock.GetPoweredNode invocations
-func (mmGetPoweredNode *NodeSnapshotMock) GetPoweredNodeAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmGetPoweredNode.afterGetPoweredNodeCounter)
-}
-
-// GetPoweredNodeBeforeCounter returns a count of NodeSnapshotMock.GetPoweredNode invocations
-func (mmGetPoweredNode *NodeSnapshotMock) GetPoweredNodeBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmGetPoweredNode.beforeGetPoweredNodeCounter)
-}
-
-// Calls returns a list of arguments used in each call to NodeSnapshotMock.GetPoweredNode.
-// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmGetPoweredNode *mNodeSnapshotMockGetPoweredNode) Calls() []*NodeSnapshotMockGetPoweredNodeParams {
-	mmGetPoweredNode.mutex.RLock()
-
-	argCopy := make([]*NodeSnapshotMockGetPoweredNodeParams, len(mmGetPoweredNode.callArgs))
-	copy(argCopy, mmGetPoweredNode.callArgs)
-
-	mmGetPoweredNode.mutex.RUnlock()
-
-	return argCopy
-}
-
-// MinimockGetPoweredNodeDone returns true if the count of the GetPoweredNode invocations corresponds
-// the number of defined expectations
-func (m *NodeSnapshotMock) MinimockGetPoweredNodeDone() bool {
-	for _, e := range m.GetPoweredNodeMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.GetPoweredNodeMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetPoweredNodeCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcGetPoweredNode != nil && mm_atomic.LoadUint64(&m.afterGetPoweredNodeCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockGetPoweredNodeInspect logs each unmet expectation
-func (m *NodeSnapshotMock) MinimockGetPoweredNodeInspect() {
-	for _, e := range m.GetPoweredNodeMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to NodeSnapshotMock.GetPoweredNode with params: %#v", *e.params)
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.GetPoweredNodeMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetPoweredNodeCounter) < 1 {
-		if m.GetPoweredNodeMock.defaultExpectation.params == nil {
-			m.t.Error("Expected call to NodeSnapshotMock.GetPoweredNode")
-		} else {
-			m.t.Errorf("Expected call to NodeSnapshotMock.GetPoweredNode with params: %#v", *m.GetPoweredNodeMock.defaultExpectation.params)
-		}
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcGetPoweredNode != nil && mm_atomic.LoadUint64(&m.afterGetPoweredNodeCounter) < 1 {
-		m.t.Error("Expected call to NodeSnapshotMock.GetPoweredNode")
 	}
 }
 
@@ -1308,17 +782,11 @@ func (m *NodeSnapshotMock) MinimockGetPulseNumberInspect() {
 // MinimockFinish checks that all mocked methods have been called the expected number of times
 func (m *NodeSnapshotMock) MinimockFinish() {
 	if !m.minimockDone() {
-		m.MinimockGetLocalNodeInspect()
+		m.MinimockFindNodeByAddrInspect()
 
-		m.MinimockGetOnlineNodeInspect()
-
-		m.MinimockGetOnlineNodeByAddrInspect()
-
-		m.MinimockGetOnlineNodesInspect()
+		m.MinimockFindNodeByRefInspect()
 
 		m.MinimockGetPopulationInspect()
-
-		m.MinimockGetPoweredNodeInspect()
 
 		m.MinimockGetPulseNumberInspect()
 		m.t.FailNow()
@@ -1344,11 +812,8 @@ func (m *NodeSnapshotMock) MinimockWait(timeout mm_time.Duration) {
 func (m *NodeSnapshotMock) minimockDone() bool {
 	done := true
 	return done &&
-		m.MinimockGetLocalNodeDone() &&
-		m.MinimockGetOnlineNodeDone() &&
-		m.MinimockGetOnlineNodeByAddrDone() &&
-		m.MinimockGetOnlineNodesDone() &&
+		m.MinimockFindNodeByAddrDone() &&
+		m.MinimockFindNodeByRefDone() &&
 		m.MinimockGetPopulationDone() &&
-		m.MinimockGetPoweredNodeDone() &&
 		m.MinimockGetPulseNumberDone()
 }
