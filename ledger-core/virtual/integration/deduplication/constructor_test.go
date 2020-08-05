@@ -702,49 +702,54 @@ func TestDeduplication_DifferentPulses_ReadyState(t *testing.T) {
 
 func TestDeduplication_DifferentPulses_InactiveState(t *testing.T) {
 	var tests []utils.TestRunner
+	errorFragmentDeduplicate := "(*SMExecute).stepProcessFindCallResponse"
+	filterErrorDeduplicate := func(s string) bool {
+		return !strings.Contains(s, errorFragmentDeduplicate)
+	}
 
 	{
 		vStateReportInactive := payload.VStateReport{
 			Status:              payload.Inactive,
 			OrderedPendingCount: 0,
-			ProvidedContent: &payload.VStateReport_ProvidedContentBody{
-				LatestDirtyState: &payload.ObjectState{State: []byte("123")},
-			},
+			ProvidedContent:     nil,
 		}
 
 		tests = append(tests,
 			// expected panic of SM
 			&DeduplicationDifferentPulsesCase{
-				TestCase: utils.NewTestCase("missing call"),
+				TestCase: utils.NewTestCase("missing call").WithErrorFilter(filterErrorDeduplicate),
 				VState:   vStateReportInactive,
 				VFindCall: &payload.VFindCallResponse{
 					Status:     payload.MissingCall,
 					CallResult: nil,
 				},
-				VCallResultExpected: false,
-				ExecutionExpected:   false,
+				VCallResultExpected:    false,
+				ExecutionExpected:      false,
+				ExecuteShouldHaveError: errorFragmentDeduplicate,
 			},
 			// expected panic of SM
 			&DeduplicationDifferentPulsesCase{
-				TestCase: utils.NewTestCase("unknown call"),
+				TestCase: utils.NewTestCase("unknown call").WithErrorFilter(filterErrorDeduplicate),
 				VState:   vStateReportInactive,
 				VFindCall: &payload.VFindCallResponse{
 					Status:     payload.UnknownCall,
 					CallResult: nil,
 				},
-				VCallResultExpected: false,
-				ExecutionExpected:   false,
+				VCallResultExpected:    false,
+				ExecutionExpected:      false,
+				ExecuteShouldHaveError: errorFragmentDeduplicate,
 			},
 			// expected panic of SM
 			&DeduplicationDifferentPulsesCase{
-				TestCase: utils.NewTestCase("known call wo result"),
+				TestCase: utils.NewTestCase("known call wo result").WithErrorFilter(filterErrorDeduplicate),
 				VState:   vStateReportInactive,
 				VFindCall: &payload.VFindCallResponse{
 					Status:     payload.FoundCall,
 					CallResult: nil,
 				},
-				VCallResultExpected: false,
-				ExecutionExpected:   false,
+				VCallResultExpected:    false,
+				ExecutionExpected:      false,
+				ExecuteShouldHaveError: errorFragmentDeduplicate,
 			},
 			&DeduplicationDifferentPulsesCase{
 				TestCase: utils.NewTestCase("known call w result"),
@@ -764,6 +769,5 @@ func TestDeduplication_DifferentPulses_InactiveState(t *testing.T) {
 		Parallel:   false,
 		Cases:      tests,
 		TestRailID: "C5008",
-		Skipped:    "https://insolar.atlassian.net/browse/PLAT-416",
 	}.Run(t)
 }
