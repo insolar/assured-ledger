@@ -115,9 +115,10 @@ func (m *VStateReport) validateStatusMissingOrInactive() error {
 	// validate we've got zero pendings on object
 	switch {
 	case m.GetOrderedPendingCount() != 0:
-		return throw.New("OrderedPendingCount should be o")
-	case m.GetUnorderedPendingCount() != 0:
-		return throw.New("UnorderedPendingCount should be o")
+		return throw.New("OrderedPendingCount should be 0")
+	// TODO: PLAT-717: VStateReport can be Inactive and contain UnorderedPendingCount > 0 in R0
+	case m.GetStatus() == Missing && m.GetUnorderedPendingCount() != 0:
+		return throw.New("UnorderedPendingCount should be 0")
 	case !m.GetOrderedPendingEarliestPulse().IsUnknown():
 		return throw.New("OrderedPendingEarliestPulse should be Unknown")
 	case !m.GetUnorderedPendingEarliestPulse().IsUnknown():
