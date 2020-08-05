@@ -15,13 +15,13 @@ import (
 
 // HealthChecker allows to check network status of a node.
 type HealthChecker struct {
-	CertificateManager nodeinfo.CertificateManager
-	NodeNetwork        beat.NodeNetwork
+	certManager nodeinfo.CertificateManager
+	nodeFn      func() beat.NodeSnapshot
 }
 
 // NewHealthChecker creates new HealthChecker.
-func NewHealthChecker(cm nodeinfo.CertificateManager, nn beat.NodeNetwork) *HealthChecker { // nolint: staticcheck
-	return &HealthChecker{CertificateManager: cm, NodeNetwork: nn}
+func NewHealthChecker(cm nodeinfo.CertificateManager, nodeFn func() beat.NodeSnapshot) *HealthChecker {
+	return &HealthChecker{certManager: cm, nodeFn: nodeFn}
 }
 
 // CheckHandler is a HTTP handler for health check.
@@ -29,14 +29,14 @@ func (hc *HealthChecker) CheckHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
 
 	ctx := r.Context()
-	na := hc.NodeNetwork.FindAnyLatestNodeSnapshot()
+	na := hc.nodeFn()
 	if na == nil {
 		inslogger.FromContext(ctx).Error("[ NodeService.GetStatus ] failed to get latest pulse")
 		_, _ = w.Write([]byte("FAIL"))
 		return
 	}
 
-	for _, node := range hc.CertificateManager.GetCertificate().GetDiscoveryNodes() {
+	for _, node := range hc.certManager.GetCertificate().GetDiscoveryNodes() {
 		if nd := na.FindNodeByRef(node.GetNodeRef()); nd == nil || !nd.IsStateful() {
 			w.WriteHeader(http.StatusInternalServerError)
 			_, _ = w.Write([]byte("FAIL"))

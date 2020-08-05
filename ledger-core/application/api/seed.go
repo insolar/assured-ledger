@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/insolar/assured-ledger/ledger-core/appctl/beat/memstor"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/rpc/v2"
@@ -54,24 +53,24 @@ func NewNodeService(runner *Runner) *NodeService {
 //		"id": str|int|null // same as in request
 //	}
 //
-func (s *NodeService) getSeed(ctx context.Context, _ *http.Request, _ *SeedArgs, reply *requester.SeedReply) error {
+func (s *NodeService) getSeed(ctx context.Context, _ *http.Request, _ *SeedArgs, reply *requester.SeedReply) (bool, error) {
 	traceID := instrumenter.GetTraceID(ctx)
 
-	seed, err := s.runner.SeedGenerator.Next()
+	seed, err := s.runner.SeedGenerator()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	p, err := s.runner.PulseAccessor.LatestTimeBeat()
 	if err != nil {
-		return throw.W(err, "couldn't receive pulse")
+		return true, throw.W(err, "couldn't receive pulse")
 	}
-	s.runner.SeedManager.Add(*seed, p.PulseNumber)
+	s.runner.SeedManager.Add(seed, p.PulseNumber)
 
 	reply.Seed = seed[:]
 	reply.TraceID = traceID
 
-	return nil
+	return false, nil
 }
 
 func (s *NodeService) GetSeed(r *http.Request, args *SeedArgs, _ *rpc.RequestBody, reply *requester.SeedReply) error {
@@ -97,9 +96,9 @@ func (s *NodeService) GetSeed(r *http.Request, args *SeedArgs, _ *rpc.RequestBod
 		}
 	}
 
-	err := s.getSeed(ctx, r, args, reply)
+	pulseNotFound, err := s.getSeed(ctx, r, args, reply)
 	if err != nil {
-		if strings.Contains(err.Error(), memstor.ErrNotFound.Error()) {
+		if pulseNotFound {
 			logger.Warn("[ NodeService.getSeed ] failed to execute: ", err.Error())
 
 			instr.SetError(throw.New(ServiceUnavailableErrorMessage), ServiceUnavailableErrorShort)

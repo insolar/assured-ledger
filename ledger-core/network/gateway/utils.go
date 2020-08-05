@@ -30,15 +30,14 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-// EnsureGetPulse checks if NodeKeeper got list for pulseNumber
 func EnsureGetPulse(ctx context.Context, report network.Report) pulse.Data {
 	if report.PulseData.IsEmpty() {
 		inslogger.FromContext(ctx).Panicf("EnsureGetPulse PulseData.IsEmpty: %d", report.PulseNumber)
 	}
 
-	if report.PulseData.PulseNumber != report.PulseNumber {
-		inslogger.FromContext(ctx).Panicf("EnsureGetPulse report.PulseData.PulseNumber != report.PulseNumber: %d", report.PulseNumber)
-	}
+	// if report.PulseData.PulseNumber != report.PulseNumber {
+	// 	inslogger.FromContext(ctx).Panicf("EnsureGetPulse report.PulseData.PulseNumber != report.PulseNumber: %d", report.PulseNumber)
+	// }
 	return report.PulseData
 }
 
@@ -81,11 +80,11 @@ func CalcAnnounceSignature(nodeID node.ShortNodeID, role member.PrimaryRole, add
 	return digest, sign, nil
 }
 
-func CreateLocalNodeProfile(nk beat.NodeKeeper, cert nodeinfo.Certificate, address string,
+func CreateLocalNodeProfile(cert nodeinfo.Certificate, address string,
 	keyProcessor cryptography.KeyProcessor, svc cryptography.Service, scheme cryptography.PlatformCryptographyScheme,
 ) (*adapters.StaticProfile, error) {
 	ref := cert.GetNodeRef()
-	if !reference.Equal(ref, nk.GetLocalNodeReference()) {
+	if !reference.Equal(ref, cert.GetNodeRef()) {
 		panic(throw.IllegalState())
 	}
 
@@ -141,7 +140,7 @@ func CreateLocalNodeProfile(nk beat.NodeKeeper, cert nodeinfo.Certificate, addre
 	// 	anp = censusimpl.NewNodeProfile(0, staticProfile, verifier, staticProfile.GetStartPower())
 	// }
 	// newOrigin := nodeinfo.NewNetworkNode(&anp)
-	// g.NodeKeeper.SetInitialSnapshot([]nodeinfo.NetworkNode{newOrigin})
+	// g.PulseHistory.SetInitialSnapshot([]nodeinfo.NetworkNode{newOrigin})
 	// g.localCandidate = adapters.NewCandidate(staticProfile, g.KeyProcessor)
 	// return nil
 }

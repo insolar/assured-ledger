@@ -18,10 +18,10 @@ func (n *ServiceNetwork) GetNetworkStatus() network.StatusReply {
 	var reply network.StatusReply
 	reply.NetworkState = n.Gatewayer.Gateway().GetState()
 
-	reply.LocalRef = n.NodeKeeper.GetLocalNodeReference()
-	reply.LocalRole = n.NodeKeeper.GetLocalNodeRole()
+	reply.LocalRef = n.localRef
+	reply.LocalRole = n.localRole
 
-	na := n.NodeKeeper.FindAnyLatestNodeSnapshot()
+	na := n.PulseHistory.FindAnyLatestNodeSnapshot()
 
 	if na != nil {
 		reply.PulseNumber = na.GetPulseNumber()

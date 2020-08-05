@@ -29,28 +29,23 @@ type NodeStater interface {
 	CancelNodeState()
 }
 
-type BeatChanger interface {
+type NodeUpdater interface {
 	ChangeBeat(context.Context, api.UpstreamReport, beat.Beat)
-}
-
-type StateUpdater interface {
 	UpdateState(context.Context, beat.Beat)
 }
 
 type UpstreamController struct {
 	stateGetter  NodeStater
-	beatChanger  BeatChanger
-	stateUpdater StateUpdater
+	beatChanger  NodeUpdater
 
 	mu         *sync.RWMutex
 	onFinished network.OnConsensusFinished
 }
 
-func NewUpstreamPulseController(stateGetter NodeStater, pulseChanger BeatChanger, stateUpdater StateUpdater) *UpstreamController {
+func NewUpstreamPulseController(stateGetter NodeStater, pulseChanger NodeUpdater) *UpstreamController {
 	return &UpstreamController{
 		stateGetter:  stateGetter,
 		beatChanger:  pulseChanger,
-		stateUpdater: stateUpdater,
 
 		mu:         &sync.RWMutex{},
 		onFinished: func(ctx context.Context, report network.Report) {},
@@ -73,7 +68,12 @@ func (u *UpstreamController) ConsensusFinished(report api.UpstreamReport, expect
 	}
 
 	_, pd := expectedCensus.GetNearestPulseData()
-	u.stateUpdater.UpdateState(ctx, beat.Beat{
+	if expectedPN := expectedCensus.GetExpectedPulseNumber(); expectedPN != pd.PulseNumber {
+		pd = pd.CreateNextExpected()
+		pd.PulseNumber = expectedPN
+	}
+
+	u.beatChanger.UpdateState(ctx, beat.Beat{
 		BeatSeq:     0,
 		Data:        pd,
 		Online:      population,

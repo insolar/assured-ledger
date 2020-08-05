@@ -21,17 +21,47 @@ type AppenderMock struct {
 	beforeAddCommittedBeatCounter uint64
 	AddCommittedBeatMock          mAppenderMockAddCommittedBeat
 
+	funcAddExpectedBeat          func(b1 Beat) (err error)
+	inspectFuncAddExpectedBeat   func(b1 Beat)
+	afterAddExpectedBeatCounter  uint64
+	beforeAddExpectedBeatCounter uint64
+	AddExpectedBeatMock          mAppenderMockAddExpectedBeat
+
 	funcEnsureLatestTimeBeat          func(b1 Beat) (err error)
 	inspectFuncEnsureLatestTimeBeat   func(b1 Beat)
 	afterEnsureLatestTimeBeatCounter  uint64
 	beforeEnsureLatestTimeBeatCounter uint64
 	EnsureLatestTimeBeatMock          mAppenderMockEnsureLatestTimeBeat
 
+	funcFindAnyLatestNodeSnapshot          func() (n1 NodeSnapshot)
+	inspectFuncFindAnyLatestNodeSnapshot   func()
+	afterFindAnyLatestNodeSnapshotCounter  uint64
+	beforeFindAnyLatestNodeSnapshotCounter uint64
+	FindAnyLatestNodeSnapshotMock          mAppenderMockFindAnyLatestNodeSnapshot
+
+	funcFindLatestNodeSnapshot          func() (n1 NodeSnapshot)
+	inspectFuncFindLatestNodeSnapshot   func()
+	afterFindLatestNodeSnapshotCounter  uint64
+	beforeFindLatestNodeSnapshotCounter uint64
+	FindLatestNodeSnapshotMock          mAppenderMockFindLatestNodeSnapshot
+
+	funcGetNodeSnapshot          func(n1 pulse.Number) (n2 NodeSnapshot, err error)
+	inspectFuncGetNodeSnapshot   func(n1 pulse.Number)
+	afterGetNodeSnapshotCounter  uint64
+	beforeGetNodeSnapshotCounter uint64
+	GetNodeSnapshotMock          mAppenderMockGetNodeSnapshot
+
 	funcLatestTimeBeat          func() (b1 Beat, err error)
 	inspectFuncLatestTimeBeat   func()
 	afterLatestTimeBeatCounter  uint64
 	beforeLatestTimeBeatCounter uint64
 	LatestTimeBeatMock          mAppenderMockLatestTimeBeat
+
+	funcMustNodeSnapshot          func(pn pulse.Number) (n1 NodeSnapshot)
+	inspectFuncMustNodeSnapshot   func(pn pulse.Number)
+	afterMustNodeSnapshotCounter  uint64
+	beforeMustNodeSnapshotCounter uint64
+	MustNodeSnapshotMock          mAppenderMockMustNodeSnapshot
 
 	funcTimeBeat          func(n1 pulse.Number) (b1 Beat, err error)
 	inspectFuncTimeBeat   func(n1 pulse.Number)
@@ -50,10 +80,23 @@ func NewAppenderMock(t minimock.Tester) *AppenderMock {
 	m.AddCommittedBeatMock = mAppenderMockAddCommittedBeat{mock: m}
 	m.AddCommittedBeatMock.callArgs = []*AppenderMockAddCommittedBeatParams{}
 
+	m.AddExpectedBeatMock = mAppenderMockAddExpectedBeat{mock: m}
+	m.AddExpectedBeatMock.callArgs = []*AppenderMockAddExpectedBeatParams{}
+
 	m.EnsureLatestTimeBeatMock = mAppenderMockEnsureLatestTimeBeat{mock: m}
 	m.EnsureLatestTimeBeatMock.callArgs = []*AppenderMockEnsureLatestTimeBeatParams{}
 
+	m.FindAnyLatestNodeSnapshotMock = mAppenderMockFindAnyLatestNodeSnapshot{mock: m}
+
+	m.FindLatestNodeSnapshotMock = mAppenderMockFindLatestNodeSnapshot{mock: m}
+
+	m.GetNodeSnapshotMock = mAppenderMockGetNodeSnapshot{mock: m}
+	m.GetNodeSnapshotMock.callArgs = []*AppenderMockGetNodeSnapshotParams{}
+
 	m.LatestTimeBeatMock = mAppenderMockLatestTimeBeat{mock: m}
+
+	m.MustNodeSnapshotMock = mAppenderMockMustNodeSnapshot{mock: m}
+	m.MustNodeSnapshotMock.callArgs = []*AppenderMockMustNodeSnapshotParams{}
 
 	m.TimeBeatMock = mAppenderMockTimeBeat{mock: m}
 	m.TimeBeatMock.callArgs = []*AppenderMockTimeBeatParams{}
@@ -276,6 +319,221 @@ func (m *AppenderMock) MinimockAddCommittedBeatInspect() {
 	}
 }
 
+type mAppenderMockAddExpectedBeat struct {
+	mock               *AppenderMock
+	defaultExpectation *AppenderMockAddExpectedBeatExpectation
+	expectations       []*AppenderMockAddExpectedBeatExpectation
+
+	callArgs []*AppenderMockAddExpectedBeatParams
+	mutex    sync.RWMutex
+}
+
+// AppenderMockAddExpectedBeatExpectation specifies expectation struct of the Appender.AddExpectedBeat
+type AppenderMockAddExpectedBeatExpectation struct {
+	mock    *AppenderMock
+	params  *AppenderMockAddExpectedBeatParams
+	results *AppenderMockAddExpectedBeatResults
+	Counter uint64
+}
+
+// AppenderMockAddExpectedBeatParams contains parameters of the Appender.AddExpectedBeat
+type AppenderMockAddExpectedBeatParams struct {
+	b1 Beat
+}
+
+// AppenderMockAddExpectedBeatResults contains results of the Appender.AddExpectedBeat
+type AppenderMockAddExpectedBeatResults struct {
+	err error
+}
+
+// Expect sets up expected params for Appender.AddExpectedBeat
+func (mmAddExpectedBeat *mAppenderMockAddExpectedBeat) Expect(b1 Beat) *mAppenderMockAddExpectedBeat {
+	if mmAddExpectedBeat.mock.funcAddExpectedBeat != nil {
+		mmAddExpectedBeat.mock.t.Fatalf("AppenderMock.AddExpectedBeat mock is already set by Set")
+	}
+
+	if mmAddExpectedBeat.defaultExpectation == nil {
+		mmAddExpectedBeat.defaultExpectation = &AppenderMockAddExpectedBeatExpectation{}
+	}
+
+	mmAddExpectedBeat.defaultExpectation.params = &AppenderMockAddExpectedBeatParams{b1}
+	for _, e := range mmAddExpectedBeat.expectations {
+		if minimock.Equal(e.params, mmAddExpectedBeat.defaultExpectation.params) {
+			mmAddExpectedBeat.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmAddExpectedBeat.defaultExpectation.params)
+		}
+	}
+
+	return mmAddExpectedBeat
+}
+
+// Inspect accepts an inspector function that has same arguments as the Appender.AddExpectedBeat
+func (mmAddExpectedBeat *mAppenderMockAddExpectedBeat) Inspect(f func(b1 Beat)) *mAppenderMockAddExpectedBeat {
+	if mmAddExpectedBeat.mock.inspectFuncAddExpectedBeat != nil {
+		mmAddExpectedBeat.mock.t.Fatalf("Inspect function is already set for AppenderMock.AddExpectedBeat")
+	}
+
+	mmAddExpectedBeat.mock.inspectFuncAddExpectedBeat = f
+
+	return mmAddExpectedBeat
+}
+
+// Return sets up results that will be returned by Appender.AddExpectedBeat
+func (mmAddExpectedBeat *mAppenderMockAddExpectedBeat) Return(err error) *AppenderMock {
+	if mmAddExpectedBeat.mock.funcAddExpectedBeat != nil {
+		mmAddExpectedBeat.mock.t.Fatalf("AppenderMock.AddExpectedBeat mock is already set by Set")
+	}
+
+	if mmAddExpectedBeat.defaultExpectation == nil {
+		mmAddExpectedBeat.defaultExpectation = &AppenderMockAddExpectedBeatExpectation{mock: mmAddExpectedBeat.mock}
+	}
+	mmAddExpectedBeat.defaultExpectation.results = &AppenderMockAddExpectedBeatResults{err}
+	return mmAddExpectedBeat.mock
+}
+
+//Set uses given function f to mock the Appender.AddExpectedBeat method
+func (mmAddExpectedBeat *mAppenderMockAddExpectedBeat) Set(f func(b1 Beat) (err error)) *AppenderMock {
+	if mmAddExpectedBeat.defaultExpectation != nil {
+		mmAddExpectedBeat.mock.t.Fatalf("Default expectation is already set for the Appender.AddExpectedBeat method")
+	}
+
+	if len(mmAddExpectedBeat.expectations) > 0 {
+		mmAddExpectedBeat.mock.t.Fatalf("Some expectations are already set for the Appender.AddExpectedBeat method")
+	}
+
+	mmAddExpectedBeat.mock.funcAddExpectedBeat = f
+	return mmAddExpectedBeat.mock
+}
+
+// When sets expectation for the Appender.AddExpectedBeat which will trigger the result defined by the following
+// Then helper
+func (mmAddExpectedBeat *mAppenderMockAddExpectedBeat) When(b1 Beat) *AppenderMockAddExpectedBeatExpectation {
+	if mmAddExpectedBeat.mock.funcAddExpectedBeat != nil {
+		mmAddExpectedBeat.mock.t.Fatalf("AppenderMock.AddExpectedBeat mock is already set by Set")
+	}
+
+	expectation := &AppenderMockAddExpectedBeatExpectation{
+		mock:   mmAddExpectedBeat.mock,
+		params: &AppenderMockAddExpectedBeatParams{b1},
+	}
+	mmAddExpectedBeat.expectations = append(mmAddExpectedBeat.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Appender.AddExpectedBeat return parameters for the expectation previously defined by the When method
+func (e *AppenderMockAddExpectedBeatExpectation) Then(err error) *AppenderMock {
+	e.results = &AppenderMockAddExpectedBeatResults{err}
+	return e.mock
+}
+
+// AddExpectedBeat implements Appender
+func (mmAddExpectedBeat *AppenderMock) AddExpectedBeat(b1 Beat) (err error) {
+	mm_atomic.AddUint64(&mmAddExpectedBeat.beforeAddExpectedBeatCounter, 1)
+	defer mm_atomic.AddUint64(&mmAddExpectedBeat.afterAddExpectedBeatCounter, 1)
+
+	if mmAddExpectedBeat.inspectFuncAddExpectedBeat != nil {
+		mmAddExpectedBeat.inspectFuncAddExpectedBeat(b1)
+	}
+
+	mm_params := &AppenderMockAddExpectedBeatParams{b1}
+
+	// Record call args
+	mmAddExpectedBeat.AddExpectedBeatMock.mutex.Lock()
+	mmAddExpectedBeat.AddExpectedBeatMock.callArgs = append(mmAddExpectedBeat.AddExpectedBeatMock.callArgs, mm_params)
+	mmAddExpectedBeat.AddExpectedBeatMock.mutex.Unlock()
+
+	for _, e := range mmAddExpectedBeat.AddExpectedBeatMock.expectations {
+		if minimock.Equal(e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.err
+		}
+	}
+
+	if mmAddExpectedBeat.AddExpectedBeatMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmAddExpectedBeat.AddExpectedBeatMock.defaultExpectation.Counter, 1)
+		mm_want := mmAddExpectedBeat.AddExpectedBeatMock.defaultExpectation.params
+		mm_got := AppenderMockAddExpectedBeatParams{b1}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmAddExpectedBeat.t.Errorf("AppenderMock.AddExpectedBeat got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmAddExpectedBeat.AddExpectedBeatMock.defaultExpectation.results
+		if mm_results == nil {
+			mmAddExpectedBeat.t.Fatal("No results are set for the AppenderMock.AddExpectedBeat")
+		}
+		return (*mm_results).err
+	}
+	if mmAddExpectedBeat.funcAddExpectedBeat != nil {
+		return mmAddExpectedBeat.funcAddExpectedBeat(b1)
+	}
+	mmAddExpectedBeat.t.Fatalf("Unexpected call to AppenderMock.AddExpectedBeat. %v", b1)
+	return
+}
+
+// AddExpectedBeatAfterCounter returns a count of finished AppenderMock.AddExpectedBeat invocations
+func (mmAddExpectedBeat *AppenderMock) AddExpectedBeatAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmAddExpectedBeat.afterAddExpectedBeatCounter)
+}
+
+// AddExpectedBeatBeforeCounter returns a count of AppenderMock.AddExpectedBeat invocations
+func (mmAddExpectedBeat *AppenderMock) AddExpectedBeatBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmAddExpectedBeat.beforeAddExpectedBeatCounter)
+}
+
+// Calls returns a list of arguments used in each call to AppenderMock.AddExpectedBeat.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmAddExpectedBeat *mAppenderMockAddExpectedBeat) Calls() []*AppenderMockAddExpectedBeatParams {
+	mmAddExpectedBeat.mutex.RLock()
+
+	argCopy := make([]*AppenderMockAddExpectedBeatParams, len(mmAddExpectedBeat.callArgs))
+	copy(argCopy, mmAddExpectedBeat.callArgs)
+
+	mmAddExpectedBeat.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockAddExpectedBeatDone returns true if the count of the AddExpectedBeat invocations corresponds
+// the number of defined expectations
+func (m *AppenderMock) MinimockAddExpectedBeatDone() bool {
+	for _, e := range m.AddExpectedBeatMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.AddExpectedBeatMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterAddExpectedBeatCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcAddExpectedBeat != nil && mm_atomic.LoadUint64(&m.afterAddExpectedBeatCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockAddExpectedBeatInspect logs each unmet expectation
+func (m *AppenderMock) MinimockAddExpectedBeatInspect() {
+	for _, e := range m.AddExpectedBeatMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to AppenderMock.AddExpectedBeat with params: %#v", *e.params)
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.AddExpectedBeatMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterAddExpectedBeatCounter) < 1 {
+		if m.AddExpectedBeatMock.defaultExpectation.params == nil {
+			m.t.Error("Expected call to AppenderMock.AddExpectedBeat")
+		} else {
+			m.t.Errorf("Expected call to AppenderMock.AddExpectedBeat with params: %#v", *m.AddExpectedBeatMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcAddExpectedBeat != nil && mm_atomic.LoadUint64(&m.afterAddExpectedBeatCounter) < 1 {
+		m.t.Error("Expected call to AppenderMock.AddExpectedBeat")
+	}
+}
+
 type mAppenderMockEnsureLatestTimeBeat struct {
 	mock               *AppenderMock
 	defaultExpectation *AppenderMockEnsureLatestTimeBeatExpectation
@@ -491,6 +749,508 @@ func (m *AppenderMock) MinimockEnsureLatestTimeBeatInspect() {
 	}
 }
 
+type mAppenderMockFindAnyLatestNodeSnapshot struct {
+	mock               *AppenderMock
+	defaultExpectation *AppenderMockFindAnyLatestNodeSnapshotExpectation
+	expectations       []*AppenderMockFindAnyLatestNodeSnapshotExpectation
+}
+
+// AppenderMockFindAnyLatestNodeSnapshotExpectation specifies expectation struct of the Appender.FindAnyLatestNodeSnapshot
+type AppenderMockFindAnyLatestNodeSnapshotExpectation struct {
+	mock *AppenderMock
+
+	results *AppenderMockFindAnyLatestNodeSnapshotResults
+	Counter uint64
+}
+
+// AppenderMockFindAnyLatestNodeSnapshotResults contains results of the Appender.FindAnyLatestNodeSnapshot
+type AppenderMockFindAnyLatestNodeSnapshotResults struct {
+	n1 NodeSnapshot
+}
+
+// Expect sets up expected params for Appender.FindAnyLatestNodeSnapshot
+func (mmFindAnyLatestNodeSnapshot *mAppenderMockFindAnyLatestNodeSnapshot) Expect() *mAppenderMockFindAnyLatestNodeSnapshot {
+	if mmFindAnyLatestNodeSnapshot.mock.funcFindAnyLatestNodeSnapshot != nil {
+		mmFindAnyLatestNodeSnapshot.mock.t.Fatalf("AppenderMock.FindAnyLatestNodeSnapshot mock is already set by Set")
+	}
+
+	if mmFindAnyLatestNodeSnapshot.defaultExpectation == nil {
+		mmFindAnyLatestNodeSnapshot.defaultExpectation = &AppenderMockFindAnyLatestNodeSnapshotExpectation{}
+	}
+
+	return mmFindAnyLatestNodeSnapshot
+}
+
+// Inspect accepts an inspector function that has same arguments as the Appender.FindAnyLatestNodeSnapshot
+func (mmFindAnyLatestNodeSnapshot *mAppenderMockFindAnyLatestNodeSnapshot) Inspect(f func()) *mAppenderMockFindAnyLatestNodeSnapshot {
+	if mmFindAnyLatestNodeSnapshot.mock.inspectFuncFindAnyLatestNodeSnapshot != nil {
+		mmFindAnyLatestNodeSnapshot.mock.t.Fatalf("Inspect function is already set for AppenderMock.FindAnyLatestNodeSnapshot")
+	}
+
+	mmFindAnyLatestNodeSnapshot.mock.inspectFuncFindAnyLatestNodeSnapshot = f
+
+	return mmFindAnyLatestNodeSnapshot
+}
+
+// Return sets up results that will be returned by Appender.FindAnyLatestNodeSnapshot
+func (mmFindAnyLatestNodeSnapshot *mAppenderMockFindAnyLatestNodeSnapshot) Return(n1 NodeSnapshot) *AppenderMock {
+	if mmFindAnyLatestNodeSnapshot.mock.funcFindAnyLatestNodeSnapshot != nil {
+		mmFindAnyLatestNodeSnapshot.mock.t.Fatalf("AppenderMock.FindAnyLatestNodeSnapshot mock is already set by Set")
+	}
+
+	if mmFindAnyLatestNodeSnapshot.defaultExpectation == nil {
+		mmFindAnyLatestNodeSnapshot.defaultExpectation = &AppenderMockFindAnyLatestNodeSnapshotExpectation{mock: mmFindAnyLatestNodeSnapshot.mock}
+	}
+	mmFindAnyLatestNodeSnapshot.defaultExpectation.results = &AppenderMockFindAnyLatestNodeSnapshotResults{n1}
+	return mmFindAnyLatestNodeSnapshot.mock
+}
+
+//Set uses given function f to mock the Appender.FindAnyLatestNodeSnapshot method
+func (mmFindAnyLatestNodeSnapshot *mAppenderMockFindAnyLatestNodeSnapshot) Set(f func() (n1 NodeSnapshot)) *AppenderMock {
+	if mmFindAnyLatestNodeSnapshot.defaultExpectation != nil {
+		mmFindAnyLatestNodeSnapshot.mock.t.Fatalf("Default expectation is already set for the Appender.FindAnyLatestNodeSnapshot method")
+	}
+
+	if len(mmFindAnyLatestNodeSnapshot.expectations) > 0 {
+		mmFindAnyLatestNodeSnapshot.mock.t.Fatalf("Some expectations are already set for the Appender.FindAnyLatestNodeSnapshot method")
+	}
+
+	mmFindAnyLatestNodeSnapshot.mock.funcFindAnyLatestNodeSnapshot = f
+	return mmFindAnyLatestNodeSnapshot.mock
+}
+
+// FindAnyLatestNodeSnapshot implements Appender
+func (mmFindAnyLatestNodeSnapshot *AppenderMock) FindAnyLatestNodeSnapshot() (n1 NodeSnapshot) {
+	mm_atomic.AddUint64(&mmFindAnyLatestNodeSnapshot.beforeFindAnyLatestNodeSnapshotCounter, 1)
+	defer mm_atomic.AddUint64(&mmFindAnyLatestNodeSnapshot.afterFindAnyLatestNodeSnapshotCounter, 1)
+
+	if mmFindAnyLatestNodeSnapshot.inspectFuncFindAnyLatestNodeSnapshot != nil {
+		mmFindAnyLatestNodeSnapshot.inspectFuncFindAnyLatestNodeSnapshot()
+	}
+
+	if mmFindAnyLatestNodeSnapshot.FindAnyLatestNodeSnapshotMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmFindAnyLatestNodeSnapshot.FindAnyLatestNodeSnapshotMock.defaultExpectation.Counter, 1)
+
+		mm_results := mmFindAnyLatestNodeSnapshot.FindAnyLatestNodeSnapshotMock.defaultExpectation.results
+		if mm_results == nil {
+			mmFindAnyLatestNodeSnapshot.t.Fatal("No results are set for the AppenderMock.FindAnyLatestNodeSnapshot")
+		}
+		return (*mm_results).n1
+	}
+	if mmFindAnyLatestNodeSnapshot.funcFindAnyLatestNodeSnapshot != nil {
+		return mmFindAnyLatestNodeSnapshot.funcFindAnyLatestNodeSnapshot()
+	}
+	mmFindAnyLatestNodeSnapshot.t.Fatalf("Unexpected call to AppenderMock.FindAnyLatestNodeSnapshot.")
+	return
+}
+
+// FindAnyLatestNodeSnapshotAfterCounter returns a count of finished AppenderMock.FindAnyLatestNodeSnapshot invocations
+func (mmFindAnyLatestNodeSnapshot *AppenderMock) FindAnyLatestNodeSnapshotAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmFindAnyLatestNodeSnapshot.afterFindAnyLatestNodeSnapshotCounter)
+}
+
+// FindAnyLatestNodeSnapshotBeforeCounter returns a count of AppenderMock.FindAnyLatestNodeSnapshot invocations
+func (mmFindAnyLatestNodeSnapshot *AppenderMock) FindAnyLatestNodeSnapshotBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmFindAnyLatestNodeSnapshot.beforeFindAnyLatestNodeSnapshotCounter)
+}
+
+// MinimockFindAnyLatestNodeSnapshotDone returns true if the count of the FindAnyLatestNodeSnapshot invocations corresponds
+// the number of defined expectations
+func (m *AppenderMock) MinimockFindAnyLatestNodeSnapshotDone() bool {
+	for _, e := range m.FindAnyLatestNodeSnapshotMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.FindAnyLatestNodeSnapshotMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterFindAnyLatestNodeSnapshotCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcFindAnyLatestNodeSnapshot != nil && mm_atomic.LoadUint64(&m.afterFindAnyLatestNodeSnapshotCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockFindAnyLatestNodeSnapshotInspect logs each unmet expectation
+func (m *AppenderMock) MinimockFindAnyLatestNodeSnapshotInspect() {
+	for _, e := range m.FindAnyLatestNodeSnapshotMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Error("Expected call to AppenderMock.FindAnyLatestNodeSnapshot")
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.FindAnyLatestNodeSnapshotMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterFindAnyLatestNodeSnapshotCounter) < 1 {
+		m.t.Error("Expected call to AppenderMock.FindAnyLatestNodeSnapshot")
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcFindAnyLatestNodeSnapshot != nil && mm_atomic.LoadUint64(&m.afterFindAnyLatestNodeSnapshotCounter) < 1 {
+		m.t.Error("Expected call to AppenderMock.FindAnyLatestNodeSnapshot")
+	}
+}
+
+type mAppenderMockFindLatestNodeSnapshot struct {
+	mock               *AppenderMock
+	defaultExpectation *AppenderMockFindLatestNodeSnapshotExpectation
+	expectations       []*AppenderMockFindLatestNodeSnapshotExpectation
+}
+
+// AppenderMockFindLatestNodeSnapshotExpectation specifies expectation struct of the Appender.FindLatestNodeSnapshot
+type AppenderMockFindLatestNodeSnapshotExpectation struct {
+	mock *AppenderMock
+
+	results *AppenderMockFindLatestNodeSnapshotResults
+	Counter uint64
+}
+
+// AppenderMockFindLatestNodeSnapshotResults contains results of the Appender.FindLatestNodeSnapshot
+type AppenderMockFindLatestNodeSnapshotResults struct {
+	n1 NodeSnapshot
+}
+
+// Expect sets up expected params for Appender.FindLatestNodeSnapshot
+func (mmFindLatestNodeSnapshot *mAppenderMockFindLatestNodeSnapshot) Expect() *mAppenderMockFindLatestNodeSnapshot {
+	if mmFindLatestNodeSnapshot.mock.funcFindLatestNodeSnapshot != nil {
+		mmFindLatestNodeSnapshot.mock.t.Fatalf("AppenderMock.FindLatestNodeSnapshot mock is already set by Set")
+	}
+
+	if mmFindLatestNodeSnapshot.defaultExpectation == nil {
+		mmFindLatestNodeSnapshot.defaultExpectation = &AppenderMockFindLatestNodeSnapshotExpectation{}
+	}
+
+	return mmFindLatestNodeSnapshot
+}
+
+// Inspect accepts an inspector function that has same arguments as the Appender.FindLatestNodeSnapshot
+func (mmFindLatestNodeSnapshot *mAppenderMockFindLatestNodeSnapshot) Inspect(f func()) *mAppenderMockFindLatestNodeSnapshot {
+	if mmFindLatestNodeSnapshot.mock.inspectFuncFindLatestNodeSnapshot != nil {
+		mmFindLatestNodeSnapshot.mock.t.Fatalf("Inspect function is already set for AppenderMock.FindLatestNodeSnapshot")
+	}
+
+	mmFindLatestNodeSnapshot.mock.inspectFuncFindLatestNodeSnapshot = f
+
+	return mmFindLatestNodeSnapshot
+}
+
+// Return sets up results that will be returned by Appender.FindLatestNodeSnapshot
+func (mmFindLatestNodeSnapshot *mAppenderMockFindLatestNodeSnapshot) Return(n1 NodeSnapshot) *AppenderMock {
+	if mmFindLatestNodeSnapshot.mock.funcFindLatestNodeSnapshot != nil {
+		mmFindLatestNodeSnapshot.mock.t.Fatalf("AppenderMock.FindLatestNodeSnapshot mock is already set by Set")
+	}
+
+	if mmFindLatestNodeSnapshot.defaultExpectation == nil {
+		mmFindLatestNodeSnapshot.defaultExpectation = &AppenderMockFindLatestNodeSnapshotExpectation{mock: mmFindLatestNodeSnapshot.mock}
+	}
+	mmFindLatestNodeSnapshot.defaultExpectation.results = &AppenderMockFindLatestNodeSnapshotResults{n1}
+	return mmFindLatestNodeSnapshot.mock
+}
+
+//Set uses given function f to mock the Appender.FindLatestNodeSnapshot method
+func (mmFindLatestNodeSnapshot *mAppenderMockFindLatestNodeSnapshot) Set(f func() (n1 NodeSnapshot)) *AppenderMock {
+	if mmFindLatestNodeSnapshot.defaultExpectation != nil {
+		mmFindLatestNodeSnapshot.mock.t.Fatalf("Default expectation is already set for the Appender.FindLatestNodeSnapshot method")
+	}
+
+	if len(mmFindLatestNodeSnapshot.expectations) > 0 {
+		mmFindLatestNodeSnapshot.mock.t.Fatalf("Some expectations are already set for the Appender.FindLatestNodeSnapshot method")
+	}
+
+	mmFindLatestNodeSnapshot.mock.funcFindLatestNodeSnapshot = f
+	return mmFindLatestNodeSnapshot.mock
+}
+
+// FindLatestNodeSnapshot implements Appender
+func (mmFindLatestNodeSnapshot *AppenderMock) FindLatestNodeSnapshot() (n1 NodeSnapshot) {
+	mm_atomic.AddUint64(&mmFindLatestNodeSnapshot.beforeFindLatestNodeSnapshotCounter, 1)
+	defer mm_atomic.AddUint64(&mmFindLatestNodeSnapshot.afterFindLatestNodeSnapshotCounter, 1)
+
+	if mmFindLatestNodeSnapshot.inspectFuncFindLatestNodeSnapshot != nil {
+		mmFindLatestNodeSnapshot.inspectFuncFindLatestNodeSnapshot()
+	}
+
+	if mmFindLatestNodeSnapshot.FindLatestNodeSnapshotMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmFindLatestNodeSnapshot.FindLatestNodeSnapshotMock.defaultExpectation.Counter, 1)
+
+		mm_results := mmFindLatestNodeSnapshot.FindLatestNodeSnapshotMock.defaultExpectation.results
+		if mm_results == nil {
+			mmFindLatestNodeSnapshot.t.Fatal("No results are set for the AppenderMock.FindLatestNodeSnapshot")
+		}
+		return (*mm_results).n1
+	}
+	if mmFindLatestNodeSnapshot.funcFindLatestNodeSnapshot != nil {
+		return mmFindLatestNodeSnapshot.funcFindLatestNodeSnapshot()
+	}
+	mmFindLatestNodeSnapshot.t.Fatalf("Unexpected call to AppenderMock.FindLatestNodeSnapshot.")
+	return
+}
+
+// FindLatestNodeSnapshotAfterCounter returns a count of finished AppenderMock.FindLatestNodeSnapshot invocations
+func (mmFindLatestNodeSnapshot *AppenderMock) FindLatestNodeSnapshotAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmFindLatestNodeSnapshot.afterFindLatestNodeSnapshotCounter)
+}
+
+// FindLatestNodeSnapshotBeforeCounter returns a count of AppenderMock.FindLatestNodeSnapshot invocations
+func (mmFindLatestNodeSnapshot *AppenderMock) FindLatestNodeSnapshotBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmFindLatestNodeSnapshot.beforeFindLatestNodeSnapshotCounter)
+}
+
+// MinimockFindLatestNodeSnapshotDone returns true if the count of the FindLatestNodeSnapshot invocations corresponds
+// the number of defined expectations
+func (m *AppenderMock) MinimockFindLatestNodeSnapshotDone() bool {
+	for _, e := range m.FindLatestNodeSnapshotMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.FindLatestNodeSnapshotMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterFindLatestNodeSnapshotCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcFindLatestNodeSnapshot != nil && mm_atomic.LoadUint64(&m.afterFindLatestNodeSnapshotCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockFindLatestNodeSnapshotInspect logs each unmet expectation
+func (m *AppenderMock) MinimockFindLatestNodeSnapshotInspect() {
+	for _, e := range m.FindLatestNodeSnapshotMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Error("Expected call to AppenderMock.FindLatestNodeSnapshot")
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.FindLatestNodeSnapshotMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterFindLatestNodeSnapshotCounter) < 1 {
+		m.t.Error("Expected call to AppenderMock.FindLatestNodeSnapshot")
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcFindLatestNodeSnapshot != nil && mm_atomic.LoadUint64(&m.afterFindLatestNodeSnapshotCounter) < 1 {
+		m.t.Error("Expected call to AppenderMock.FindLatestNodeSnapshot")
+	}
+}
+
+type mAppenderMockGetNodeSnapshot struct {
+	mock               *AppenderMock
+	defaultExpectation *AppenderMockGetNodeSnapshotExpectation
+	expectations       []*AppenderMockGetNodeSnapshotExpectation
+
+	callArgs []*AppenderMockGetNodeSnapshotParams
+	mutex    sync.RWMutex
+}
+
+// AppenderMockGetNodeSnapshotExpectation specifies expectation struct of the Appender.GetNodeSnapshot
+type AppenderMockGetNodeSnapshotExpectation struct {
+	mock    *AppenderMock
+	params  *AppenderMockGetNodeSnapshotParams
+	results *AppenderMockGetNodeSnapshotResults
+	Counter uint64
+}
+
+// AppenderMockGetNodeSnapshotParams contains parameters of the Appender.GetNodeSnapshot
+type AppenderMockGetNodeSnapshotParams struct {
+	n1 pulse.Number
+}
+
+// AppenderMockGetNodeSnapshotResults contains results of the Appender.GetNodeSnapshot
+type AppenderMockGetNodeSnapshotResults struct {
+	n2  NodeSnapshot
+	err error
+}
+
+// Expect sets up expected params for Appender.GetNodeSnapshot
+func (mmGetNodeSnapshot *mAppenderMockGetNodeSnapshot) Expect(n1 pulse.Number) *mAppenderMockGetNodeSnapshot {
+	if mmGetNodeSnapshot.mock.funcGetNodeSnapshot != nil {
+		mmGetNodeSnapshot.mock.t.Fatalf("AppenderMock.GetNodeSnapshot mock is already set by Set")
+	}
+
+	if mmGetNodeSnapshot.defaultExpectation == nil {
+		mmGetNodeSnapshot.defaultExpectation = &AppenderMockGetNodeSnapshotExpectation{}
+	}
+
+	mmGetNodeSnapshot.defaultExpectation.params = &AppenderMockGetNodeSnapshotParams{n1}
+	for _, e := range mmGetNodeSnapshot.expectations {
+		if minimock.Equal(e.params, mmGetNodeSnapshot.defaultExpectation.params) {
+			mmGetNodeSnapshot.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmGetNodeSnapshot.defaultExpectation.params)
+		}
+	}
+
+	return mmGetNodeSnapshot
+}
+
+// Inspect accepts an inspector function that has same arguments as the Appender.GetNodeSnapshot
+func (mmGetNodeSnapshot *mAppenderMockGetNodeSnapshot) Inspect(f func(n1 pulse.Number)) *mAppenderMockGetNodeSnapshot {
+	if mmGetNodeSnapshot.mock.inspectFuncGetNodeSnapshot != nil {
+		mmGetNodeSnapshot.mock.t.Fatalf("Inspect function is already set for AppenderMock.GetNodeSnapshot")
+	}
+
+	mmGetNodeSnapshot.mock.inspectFuncGetNodeSnapshot = f
+
+	return mmGetNodeSnapshot
+}
+
+// Return sets up results that will be returned by Appender.GetNodeSnapshot
+func (mmGetNodeSnapshot *mAppenderMockGetNodeSnapshot) Return(n2 NodeSnapshot, err error) *AppenderMock {
+	if mmGetNodeSnapshot.mock.funcGetNodeSnapshot != nil {
+		mmGetNodeSnapshot.mock.t.Fatalf("AppenderMock.GetNodeSnapshot mock is already set by Set")
+	}
+
+	if mmGetNodeSnapshot.defaultExpectation == nil {
+		mmGetNodeSnapshot.defaultExpectation = &AppenderMockGetNodeSnapshotExpectation{mock: mmGetNodeSnapshot.mock}
+	}
+	mmGetNodeSnapshot.defaultExpectation.results = &AppenderMockGetNodeSnapshotResults{n2, err}
+	return mmGetNodeSnapshot.mock
+}
+
+//Set uses given function f to mock the Appender.GetNodeSnapshot method
+func (mmGetNodeSnapshot *mAppenderMockGetNodeSnapshot) Set(f func(n1 pulse.Number) (n2 NodeSnapshot, err error)) *AppenderMock {
+	if mmGetNodeSnapshot.defaultExpectation != nil {
+		mmGetNodeSnapshot.mock.t.Fatalf("Default expectation is already set for the Appender.GetNodeSnapshot method")
+	}
+
+	if len(mmGetNodeSnapshot.expectations) > 0 {
+		mmGetNodeSnapshot.mock.t.Fatalf("Some expectations are already set for the Appender.GetNodeSnapshot method")
+	}
+
+	mmGetNodeSnapshot.mock.funcGetNodeSnapshot = f
+	return mmGetNodeSnapshot.mock
+}
+
+// When sets expectation for the Appender.GetNodeSnapshot which will trigger the result defined by the following
+// Then helper
+func (mmGetNodeSnapshot *mAppenderMockGetNodeSnapshot) When(n1 pulse.Number) *AppenderMockGetNodeSnapshotExpectation {
+	if mmGetNodeSnapshot.mock.funcGetNodeSnapshot != nil {
+		mmGetNodeSnapshot.mock.t.Fatalf("AppenderMock.GetNodeSnapshot mock is already set by Set")
+	}
+
+	expectation := &AppenderMockGetNodeSnapshotExpectation{
+		mock:   mmGetNodeSnapshot.mock,
+		params: &AppenderMockGetNodeSnapshotParams{n1},
+	}
+	mmGetNodeSnapshot.expectations = append(mmGetNodeSnapshot.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Appender.GetNodeSnapshot return parameters for the expectation previously defined by the When method
+func (e *AppenderMockGetNodeSnapshotExpectation) Then(n2 NodeSnapshot, err error) *AppenderMock {
+	e.results = &AppenderMockGetNodeSnapshotResults{n2, err}
+	return e.mock
+}
+
+// GetNodeSnapshot implements Appender
+func (mmGetNodeSnapshot *AppenderMock) GetNodeSnapshot(n1 pulse.Number) (n2 NodeSnapshot, err error) {
+	mm_atomic.AddUint64(&mmGetNodeSnapshot.beforeGetNodeSnapshotCounter, 1)
+	defer mm_atomic.AddUint64(&mmGetNodeSnapshot.afterGetNodeSnapshotCounter, 1)
+
+	if mmGetNodeSnapshot.inspectFuncGetNodeSnapshot != nil {
+		mmGetNodeSnapshot.inspectFuncGetNodeSnapshot(n1)
+	}
+
+	mm_params := &AppenderMockGetNodeSnapshotParams{n1}
+
+	// Record call args
+	mmGetNodeSnapshot.GetNodeSnapshotMock.mutex.Lock()
+	mmGetNodeSnapshot.GetNodeSnapshotMock.callArgs = append(mmGetNodeSnapshot.GetNodeSnapshotMock.callArgs, mm_params)
+	mmGetNodeSnapshot.GetNodeSnapshotMock.mutex.Unlock()
+
+	for _, e := range mmGetNodeSnapshot.GetNodeSnapshotMock.expectations {
+		if minimock.Equal(e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.n2, e.results.err
+		}
+	}
+
+	if mmGetNodeSnapshot.GetNodeSnapshotMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmGetNodeSnapshot.GetNodeSnapshotMock.defaultExpectation.Counter, 1)
+		mm_want := mmGetNodeSnapshot.GetNodeSnapshotMock.defaultExpectation.params
+		mm_got := AppenderMockGetNodeSnapshotParams{n1}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmGetNodeSnapshot.t.Errorf("AppenderMock.GetNodeSnapshot got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmGetNodeSnapshot.GetNodeSnapshotMock.defaultExpectation.results
+		if mm_results == nil {
+			mmGetNodeSnapshot.t.Fatal("No results are set for the AppenderMock.GetNodeSnapshot")
+		}
+		return (*mm_results).n2, (*mm_results).err
+	}
+	if mmGetNodeSnapshot.funcGetNodeSnapshot != nil {
+		return mmGetNodeSnapshot.funcGetNodeSnapshot(n1)
+	}
+	mmGetNodeSnapshot.t.Fatalf("Unexpected call to AppenderMock.GetNodeSnapshot. %v", n1)
+	return
+}
+
+// GetNodeSnapshotAfterCounter returns a count of finished AppenderMock.GetNodeSnapshot invocations
+func (mmGetNodeSnapshot *AppenderMock) GetNodeSnapshotAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetNodeSnapshot.afterGetNodeSnapshotCounter)
+}
+
+// GetNodeSnapshotBeforeCounter returns a count of AppenderMock.GetNodeSnapshot invocations
+func (mmGetNodeSnapshot *AppenderMock) GetNodeSnapshotBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetNodeSnapshot.beforeGetNodeSnapshotCounter)
+}
+
+// Calls returns a list of arguments used in each call to AppenderMock.GetNodeSnapshot.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmGetNodeSnapshot *mAppenderMockGetNodeSnapshot) Calls() []*AppenderMockGetNodeSnapshotParams {
+	mmGetNodeSnapshot.mutex.RLock()
+
+	argCopy := make([]*AppenderMockGetNodeSnapshotParams, len(mmGetNodeSnapshot.callArgs))
+	copy(argCopy, mmGetNodeSnapshot.callArgs)
+
+	mmGetNodeSnapshot.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockGetNodeSnapshotDone returns true if the count of the GetNodeSnapshot invocations corresponds
+// the number of defined expectations
+func (m *AppenderMock) MinimockGetNodeSnapshotDone() bool {
+	for _, e := range m.GetNodeSnapshotMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.GetNodeSnapshotMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetNodeSnapshotCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcGetNodeSnapshot != nil && mm_atomic.LoadUint64(&m.afterGetNodeSnapshotCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockGetNodeSnapshotInspect logs each unmet expectation
+func (m *AppenderMock) MinimockGetNodeSnapshotInspect() {
+	for _, e := range m.GetNodeSnapshotMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to AppenderMock.GetNodeSnapshot with params: %#v", *e.params)
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.GetNodeSnapshotMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetNodeSnapshotCounter) < 1 {
+		if m.GetNodeSnapshotMock.defaultExpectation.params == nil {
+			m.t.Error("Expected call to AppenderMock.GetNodeSnapshot")
+		} else {
+			m.t.Errorf("Expected call to AppenderMock.GetNodeSnapshot with params: %#v", *m.GetNodeSnapshotMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcGetNodeSnapshot != nil && mm_atomic.LoadUint64(&m.afterGetNodeSnapshotCounter) < 1 {
+		m.t.Error("Expected call to AppenderMock.GetNodeSnapshot")
+	}
+}
+
 type mAppenderMockLatestTimeBeat struct {
 	mock               *AppenderMock
 	defaultExpectation *AppenderMockLatestTimeBeatExpectation
@@ -632,6 +1392,221 @@ func (m *AppenderMock) MinimockLatestTimeBeatInspect() {
 	// if func was set then invocations count should be greater than zero
 	if m.funcLatestTimeBeat != nil && mm_atomic.LoadUint64(&m.afterLatestTimeBeatCounter) < 1 {
 		m.t.Error("Expected call to AppenderMock.LatestTimeBeat")
+	}
+}
+
+type mAppenderMockMustNodeSnapshot struct {
+	mock               *AppenderMock
+	defaultExpectation *AppenderMockMustNodeSnapshotExpectation
+	expectations       []*AppenderMockMustNodeSnapshotExpectation
+
+	callArgs []*AppenderMockMustNodeSnapshotParams
+	mutex    sync.RWMutex
+}
+
+// AppenderMockMustNodeSnapshotExpectation specifies expectation struct of the Appender.MustNodeSnapshot
+type AppenderMockMustNodeSnapshotExpectation struct {
+	mock    *AppenderMock
+	params  *AppenderMockMustNodeSnapshotParams
+	results *AppenderMockMustNodeSnapshotResults
+	Counter uint64
+}
+
+// AppenderMockMustNodeSnapshotParams contains parameters of the Appender.MustNodeSnapshot
+type AppenderMockMustNodeSnapshotParams struct {
+	pn pulse.Number
+}
+
+// AppenderMockMustNodeSnapshotResults contains results of the Appender.MustNodeSnapshot
+type AppenderMockMustNodeSnapshotResults struct {
+	n1 NodeSnapshot
+}
+
+// Expect sets up expected params for Appender.MustNodeSnapshot
+func (mmMustNodeSnapshot *mAppenderMockMustNodeSnapshot) Expect(pn pulse.Number) *mAppenderMockMustNodeSnapshot {
+	if mmMustNodeSnapshot.mock.funcMustNodeSnapshot != nil {
+		mmMustNodeSnapshot.mock.t.Fatalf("AppenderMock.MustNodeSnapshot mock is already set by Set")
+	}
+
+	if mmMustNodeSnapshot.defaultExpectation == nil {
+		mmMustNodeSnapshot.defaultExpectation = &AppenderMockMustNodeSnapshotExpectation{}
+	}
+
+	mmMustNodeSnapshot.defaultExpectation.params = &AppenderMockMustNodeSnapshotParams{pn}
+	for _, e := range mmMustNodeSnapshot.expectations {
+		if minimock.Equal(e.params, mmMustNodeSnapshot.defaultExpectation.params) {
+			mmMustNodeSnapshot.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmMustNodeSnapshot.defaultExpectation.params)
+		}
+	}
+
+	return mmMustNodeSnapshot
+}
+
+// Inspect accepts an inspector function that has same arguments as the Appender.MustNodeSnapshot
+func (mmMustNodeSnapshot *mAppenderMockMustNodeSnapshot) Inspect(f func(pn pulse.Number)) *mAppenderMockMustNodeSnapshot {
+	if mmMustNodeSnapshot.mock.inspectFuncMustNodeSnapshot != nil {
+		mmMustNodeSnapshot.mock.t.Fatalf("Inspect function is already set for AppenderMock.MustNodeSnapshot")
+	}
+
+	mmMustNodeSnapshot.mock.inspectFuncMustNodeSnapshot = f
+
+	return mmMustNodeSnapshot
+}
+
+// Return sets up results that will be returned by Appender.MustNodeSnapshot
+func (mmMustNodeSnapshot *mAppenderMockMustNodeSnapshot) Return(n1 NodeSnapshot) *AppenderMock {
+	if mmMustNodeSnapshot.mock.funcMustNodeSnapshot != nil {
+		mmMustNodeSnapshot.mock.t.Fatalf("AppenderMock.MustNodeSnapshot mock is already set by Set")
+	}
+
+	if mmMustNodeSnapshot.defaultExpectation == nil {
+		mmMustNodeSnapshot.defaultExpectation = &AppenderMockMustNodeSnapshotExpectation{mock: mmMustNodeSnapshot.mock}
+	}
+	mmMustNodeSnapshot.defaultExpectation.results = &AppenderMockMustNodeSnapshotResults{n1}
+	return mmMustNodeSnapshot.mock
+}
+
+//Set uses given function f to mock the Appender.MustNodeSnapshot method
+func (mmMustNodeSnapshot *mAppenderMockMustNodeSnapshot) Set(f func(pn pulse.Number) (n1 NodeSnapshot)) *AppenderMock {
+	if mmMustNodeSnapshot.defaultExpectation != nil {
+		mmMustNodeSnapshot.mock.t.Fatalf("Default expectation is already set for the Appender.MustNodeSnapshot method")
+	}
+
+	if len(mmMustNodeSnapshot.expectations) > 0 {
+		mmMustNodeSnapshot.mock.t.Fatalf("Some expectations are already set for the Appender.MustNodeSnapshot method")
+	}
+
+	mmMustNodeSnapshot.mock.funcMustNodeSnapshot = f
+	return mmMustNodeSnapshot.mock
+}
+
+// When sets expectation for the Appender.MustNodeSnapshot which will trigger the result defined by the following
+// Then helper
+func (mmMustNodeSnapshot *mAppenderMockMustNodeSnapshot) When(pn pulse.Number) *AppenderMockMustNodeSnapshotExpectation {
+	if mmMustNodeSnapshot.mock.funcMustNodeSnapshot != nil {
+		mmMustNodeSnapshot.mock.t.Fatalf("AppenderMock.MustNodeSnapshot mock is already set by Set")
+	}
+
+	expectation := &AppenderMockMustNodeSnapshotExpectation{
+		mock:   mmMustNodeSnapshot.mock,
+		params: &AppenderMockMustNodeSnapshotParams{pn},
+	}
+	mmMustNodeSnapshot.expectations = append(mmMustNodeSnapshot.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Appender.MustNodeSnapshot return parameters for the expectation previously defined by the When method
+func (e *AppenderMockMustNodeSnapshotExpectation) Then(n1 NodeSnapshot) *AppenderMock {
+	e.results = &AppenderMockMustNodeSnapshotResults{n1}
+	return e.mock
+}
+
+// MustNodeSnapshot implements Appender
+func (mmMustNodeSnapshot *AppenderMock) MustNodeSnapshot(pn pulse.Number) (n1 NodeSnapshot) {
+	mm_atomic.AddUint64(&mmMustNodeSnapshot.beforeMustNodeSnapshotCounter, 1)
+	defer mm_atomic.AddUint64(&mmMustNodeSnapshot.afterMustNodeSnapshotCounter, 1)
+
+	if mmMustNodeSnapshot.inspectFuncMustNodeSnapshot != nil {
+		mmMustNodeSnapshot.inspectFuncMustNodeSnapshot(pn)
+	}
+
+	mm_params := &AppenderMockMustNodeSnapshotParams{pn}
+
+	// Record call args
+	mmMustNodeSnapshot.MustNodeSnapshotMock.mutex.Lock()
+	mmMustNodeSnapshot.MustNodeSnapshotMock.callArgs = append(mmMustNodeSnapshot.MustNodeSnapshotMock.callArgs, mm_params)
+	mmMustNodeSnapshot.MustNodeSnapshotMock.mutex.Unlock()
+
+	for _, e := range mmMustNodeSnapshot.MustNodeSnapshotMock.expectations {
+		if minimock.Equal(e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.n1
+		}
+	}
+
+	if mmMustNodeSnapshot.MustNodeSnapshotMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmMustNodeSnapshot.MustNodeSnapshotMock.defaultExpectation.Counter, 1)
+		mm_want := mmMustNodeSnapshot.MustNodeSnapshotMock.defaultExpectation.params
+		mm_got := AppenderMockMustNodeSnapshotParams{pn}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmMustNodeSnapshot.t.Errorf("AppenderMock.MustNodeSnapshot got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmMustNodeSnapshot.MustNodeSnapshotMock.defaultExpectation.results
+		if mm_results == nil {
+			mmMustNodeSnapshot.t.Fatal("No results are set for the AppenderMock.MustNodeSnapshot")
+		}
+		return (*mm_results).n1
+	}
+	if mmMustNodeSnapshot.funcMustNodeSnapshot != nil {
+		return mmMustNodeSnapshot.funcMustNodeSnapshot(pn)
+	}
+	mmMustNodeSnapshot.t.Fatalf("Unexpected call to AppenderMock.MustNodeSnapshot. %v", pn)
+	return
+}
+
+// MustNodeSnapshotAfterCounter returns a count of finished AppenderMock.MustNodeSnapshot invocations
+func (mmMustNodeSnapshot *AppenderMock) MustNodeSnapshotAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmMustNodeSnapshot.afterMustNodeSnapshotCounter)
+}
+
+// MustNodeSnapshotBeforeCounter returns a count of AppenderMock.MustNodeSnapshot invocations
+func (mmMustNodeSnapshot *AppenderMock) MustNodeSnapshotBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmMustNodeSnapshot.beforeMustNodeSnapshotCounter)
+}
+
+// Calls returns a list of arguments used in each call to AppenderMock.MustNodeSnapshot.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmMustNodeSnapshot *mAppenderMockMustNodeSnapshot) Calls() []*AppenderMockMustNodeSnapshotParams {
+	mmMustNodeSnapshot.mutex.RLock()
+
+	argCopy := make([]*AppenderMockMustNodeSnapshotParams, len(mmMustNodeSnapshot.callArgs))
+	copy(argCopy, mmMustNodeSnapshot.callArgs)
+
+	mmMustNodeSnapshot.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockMustNodeSnapshotDone returns true if the count of the MustNodeSnapshot invocations corresponds
+// the number of defined expectations
+func (m *AppenderMock) MinimockMustNodeSnapshotDone() bool {
+	for _, e := range m.MustNodeSnapshotMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.MustNodeSnapshotMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterMustNodeSnapshotCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcMustNodeSnapshot != nil && mm_atomic.LoadUint64(&m.afterMustNodeSnapshotCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockMustNodeSnapshotInspect logs each unmet expectation
+func (m *AppenderMock) MinimockMustNodeSnapshotInspect() {
+	for _, e := range m.MustNodeSnapshotMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to AppenderMock.MustNodeSnapshot with params: %#v", *e.params)
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.MustNodeSnapshotMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterMustNodeSnapshotCounter) < 1 {
+		if m.MustNodeSnapshotMock.defaultExpectation.params == nil {
+			m.t.Error("Expected call to AppenderMock.MustNodeSnapshot")
+		} else {
+			m.t.Errorf("Expected call to AppenderMock.MustNodeSnapshot with params: %#v", *m.MustNodeSnapshotMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcMustNodeSnapshot != nil && mm_atomic.LoadUint64(&m.afterMustNodeSnapshotCounter) < 1 {
+		m.t.Error("Expected call to AppenderMock.MustNodeSnapshot")
 	}
 }
 
@@ -856,9 +1831,19 @@ func (m *AppenderMock) MinimockFinish() {
 	if !m.minimockDone() {
 		m.MinimockAddCommittedBeatInspect()
 
+		m.MinimockAddExpectedBeatInspect()
+
 		m.MinimockEnsureLatestTimeBeatInspect()
 
+		m.MinimockFindAnyLatestNodeSnapshotInspect()
+
+		m.MinimockFindLatestNodeSnapshotInspect()
+
+		m.MinimockGetNodeSnapshotInspect()
+
 		m.MinimockLatestTimeBeatInspect()
+
+		m.MinimockMustNodeSnapshotInspect()
 
 		m.MinimockTimeBeatInspect()
 		m.t.FailNow()
@@ -885,7 +1870,12 @@ func (m *AppenderMock) minimockDone() bool {
 	done := true
 	return done &&
 		m.MinimockAddCommittedBeatDone() &&
+		m.MinimockAddExpectedBeatDone() &&
 		m.MinimockEnsureLatestTimeBeatDone() &&
+		m.MinimockFindAnyLatestNodeSnapshotDone() &&
+		m.MinimockFindLatestNodeSnapshotDone() &&
+		m.MinimockGetNodeSnapshotDone() &&
 		m.MinimockLatestTimeBeatDone() &&
+		m.MinimockMustNodeSnapshotDone() &&
 		m.MinimockTimeBeatDone()
 }

@@ -33,7 +33,7 @@ func TestWaitMinroles_MinrolesNotHappenedInETA(t *testing.T) {
 	b := createBase(mc)
 	b.CertificateManager = mandates.NewCertificateManager(cert)
 
-	nodeKeeper := b.NodeKeeper.(*beat.NodeKeeperMock)
+	history := b.PulseAppender.(*beat.AppenderMock)
 
 	role := census.NewRolePopulationMock(mc)
 	role.GetWorkingCountMock.Return(0)
@@ -45,7 +45,7 @@ func TestWaitMinroles_MinrolesNotHappenedInETA(t *testing.T) {
 	accessor := beat.NewNodeSnapshotMock(mc)
 	accessor.GetPopulationMock.Return(pop)
 
-	nodeKeeper.GetNodeSnapshotMock.Return(accessor)
+	history.MustNodeSnapshotMock.Return(accessor)
 
 	waitMinRoles := newWaitMinRoles(b)
 
@@ -73,7 +73,7 @@ func TestWaitMinroles_MinrolesHappenedInETA(t *testing.T) {
 	})
 
 	ref := gen.UniqueGlobalRef()
-	nodeKeeper := beat.NewNodeKeeperMock(mc)
+	history := beat.NewAppenderMock(mc)
 
 	role1 := census.NewRolePopulationMock(mc)
 	role1.GetWorkingCountMock.Return(0)
@@ -84,7 +84,7 @@ func TestWaitMinroles_MinrolesHappenedInETA(t *testing.T) {
 
 	accessor1 := beat.NewNodeSnapshotMock(mc)
 	accessor1.GetPopulationMock.Return(pop1)
-	nodeKeeper.GetNodeSnapshotMock.When(pulse.MinTimePulse).Then(accessor1)
+	history.MustNodeSnapshotMock.When(pulse.MinTimePulse).Then(accessor1)
 
 	role2 := census.NewRolePopulationMock(mc)
 	role2.GetWorkingCountMock.Return(5)
@@ -95,7 +95,7 @@ func TestWaitMinroles_MinrolesHappenedInETA(t *testing.T) {
 
 	accessor2 := beat.NewNodeSnapshotMock(mc)
 	accessor2.GetPopulationMock.Return(pop2)
-	nodeKeeper.GetNodeSnapshotMock.When(pulse.MinTimePulse + 10).Then(accessor2)
+	history.MustNodeSnapshotMock.When(pulse.MinTimePulse + 10).Then(accessor2)
 
 
 	discoveryNode := mandates.BootstrapNode{NodeRef: ref.String()}
@@ -103,7 +103,7 @@ func TestWaitMinroles_MinrolesHappenedInETA(t *testing.T) {
 	cert.MinRoles.LightMaterial = 1
 	waitMinRoles := newWaitMinRoles(&Base{
 		CertificateManager: mandates.NewCertificateManager(cert),
-		NodeKeeper:         nodeKeeper,
+		PulseAppender:      history,
 	})
 	waitMinRoles.Gatewayer = gatewayer
 	waitMinRoles.bootstrapETA = time.Second * 2

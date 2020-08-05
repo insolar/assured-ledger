@@ -70,12 +70,11 @@ type Dep struct {
 	KeyStore              cryptography.KeyStore
 	TransportCryptography transport2.CryptographyAssistant
 
-	NodeKeeper        beat.NodeKeeper
-	DatagramTransport transport.DatagramTransport
+	PulseHistory          beat.History
+	DatagramTransport     transport.DatagramTransport
 
 	StateGetter         adapters.NodeStater
-	PulseChanger        adapters.BeatChanger
-	StateUpdater        adapters.StateUpdater
+	PulseChanger        adapters.NodeUpdater
 	EphemeralController adapters.EphemeralController
 
 	LocalNodeProfile    profiles.StaticProfile
@@ -115,7 +114,7 @@ func newConstructor(ctx context.Context, dep *Dep) *constructor {
 		c.consensusConfiguration,
 	)
 	c.misbehaviorRegistry = adapters.NewMisbehaviorRegistry()
-	c.offlinePopulation = adapters.NewOfflinePopulation(dep.NodeKeeper) // TODO should use mandate storage
+	c.offlinePopulation = adapters.NewOfflinePopulation(dep.PulseHistory.FindAnyLatestNodeSnapshot) // TODO should use mandate storage
 
 	c.versionedRegistries = adapters.NewVersionedRegistries(
 		c.mandateRegistry,
@@ -174,7 +173,7 @@ func (c Installer) ControllerFor(mode Mode, setters ...packetProcessorSetter) Co
 	candidateFeeder := coreapi.NewSequentialCandidateFeeder(candidateQueueSize)
 
 	var pop census.OnlinePopulation
-	if na := c.dep.NodeKeeper.FindAnyLatestNodeSnapshot(); na != nil {
+	if na := c.dep.PulseHistory.FindAnyLatestNodeSnapshot(); na != nil {
 		pop = na.GetPopulation()
 	}
 
@@ -183,11 +182,7 @@ func (c Installer) ControllerFor(mode Mode, setters ...packetProcessorSetter) Co
 		ephemeralFeeder = adapters.NewEphemeralControlFeeder(c.dep.EphemeralController)
 	}
 
-	upstreamController := adapters.NewUpstreamPulseController(
-		c.dep.StateGetter,
-		c.dep.PulseChanger,
-		c.dep.StateUpdater,
-	)
+	upstreamController := adapters.NewUpstreamPulseController(c.dep.StateGetter, c.dep.PulseChanger)
 
 	consensusChronicles := c.createConsensusChronicles(mode, pop)
 	consensusController := c.createConsensusController(

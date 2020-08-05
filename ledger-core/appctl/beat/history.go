@@ -16,10 +16,11 @@ import (
 type History interface {
 	TimeBeat(pulse.Number) (Beat, error)
 	LatestTimeBeat() (Beat, error)
-	// NodeHistory
+	NodeHistory
 }
 
 type NodeHistory interface {
+	MustNodeSnapshot(pn pulse.Number) NodeSnapshot
 	GetNodeSnapshot(pulse.Number) (NodeSnapshot, error)
 	FindAnyLatestNodeSnapshot() NodeSnapshot
 	FindLatestNodeSnapshot() NodeSnapshot

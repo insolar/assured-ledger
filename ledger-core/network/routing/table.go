@@ -15,29 +15,18 @@ import (
 )
 
 type Table struct {
-	NodeKeeper beat.NodeKeeper `inject:""`
-}
-
-func (t *Table) isLocalNode(reference.Global) bool {
-	return true
-}
-
-func (t *Table) resolveRemoteNode(reference.Global) (*host.Host, error) {
-	return nil, errors.New("not implemented")
+	PulseHistory beat.History `inject:""`
 }
 
 // Resolve NodeID -> ShortID, Address. Can initiate network requests.
 func (t *Table) Resolve(ref reference.Global) (*host.Host, error) {
-	if t.isLocalNode(ref) {
-		na := t.NodeKeeper.FindAnyLatestNodeSnapshot()
-		if na == nil {
-			return nil, errors.E("failed to get latest pulse --==-- ")
-		}
-		node := na.FindNodeByRef(ref)
-		if node == nil {
-			return nil, errors.New("no such local node with NodeID: " + ref.String())
-		}
-		return host.NewHostNS(nodeinfo.NodeAddr(node), ref, node.GetNodeID())
+	na := t.PulseHistory.FindAnyLatestNodeSnapshot()
+	if na == nil {
+		return nil, errors.E("failed to get latest pulse --==-- ")
 	}
-	return t.resolveRemoteNode(ref)
+	node := na.FindNodeByRef(ref)
+	if node == nil {
+		return nil, errors.New("no such local node with NodeID: " + ref.String())
+	}
+	return host.NewHostNS(nodeinfo.NodeAddr(node), ref, node.GetNodeID())
 }

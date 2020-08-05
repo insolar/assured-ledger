@@ -92,7 +92,6 @@ func TestComplete_GetCert(t *testing.T) {
 	certNodeRef := gen.UniqueGlobalRef()
 
 	gatewayer := mock.NewGatewayerMock(t)
-	nodekeeper := beat.NewNodeKeeperMock(t)
 	hn := mock.NewHostNetworkMock(t)
 
 	cm := mockCertificateManager(t, certNodeRef, certNodeRef, true)
@@ -103,7 +102,6 @@ func TestComplete_GetCert(t *testing.T) {
 	var ge network.Gateway
 	ge = newNoNetwork(&Base{
 		Gatewayer:           gatewayer,
-		NodeKeeper:          nodekeeper,
 		HostNetwork:         hn,
 		CertificateManager:  cm,
 		CryptographyService: cs,
@@ -140,7 +138,6 @@ func TestComplete_handler(t *testing.T) {
 	certNodeRef := gen.UniqueGlobalRef()
 
 	gatewayer := mock.NewGatewayerMock(t)
-	nodekeeper := beat.NewNodeKeeperMock(t)
 
 	cm := mockCertificateManager(t, certNodeRef, certNodeRef, true)
 	cs := mockCryptographyService(t, true)
@@ -152,7 +149,6 @@ func TestComplete_handler(t *testing.T) {
 	var ge network.Gateway
 	ge = newNoNetwork(&Base{
 		Gatewayer:           gatewayer,
-		NodeKeeper:          nodekeeper,
 		HostNetwork:         hn,
 		CertificateManager:  cm,
 		CryptographyService: cs,

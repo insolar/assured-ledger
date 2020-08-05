@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
-	"github.com/insolar/assured-ledger/ledger-core/appctl/beat/memstor"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat/beatstor"
 	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
@@ -77,7 +77,6 @@ func testCase(stopAfter, startCaseAfter time.Duration, test func()) {
 type InitializedNodes struct {
 	addresses      []string
 	controllers    []consensus.Controller
-	nodeKeepers    []beat.NodeKeeper
 	transports     []transport.DatagramTransport
 	contexts       []context.Context
 	staticProfiles []profiles.StaticProfile
@@ -116,7 +115,6 @@ func newNodes(size int) InitializedNodes {
 		transports:     make([]transport.DatagramTransport, size),
 		contexts:       make([]context.Context, size),
 		staticProfiles: make([]profiles.StaticProfile, size),
-		nodeKeepers:    make([]beat.NodeKeeper, size),
 	}
 }
 
@@ -124,9 +122,7 @@ func initNodes(ctx context.Context, mode consensus.Mode, nodes GeneratedNodes, s
 	ns := newNodes(len(nodes.nodes))
 
 	for i, n := range nodes.nodes {
-		nodeKeeper := memstor.NewNodeKeeper(nodeinfo.NodeRef(n), nodeinfo.NodeRole(n))
-		// nodeKeeper.SetInitialSnapshot(nodes.nodes)
-		ns.nodeKeepers[i] = nodeKeeper
+		pulseHistory := beatstor.NewInMemory(16)
 
 		certificateManager := initCrypto(n, nodes.discoveryNodes)
 		datagramHandler := adapters.NewDatagramHandler()
@@ -150,17 +146,14 @@ func initNodes(ctx context.Context, mode consensus.Mode, nodes GeneratedNodes, s
 			KeyStore:           keystore.NewInplaceKeyStore(nodes.meta[i].privateKey),
 			TransportCryptography: adapters.NewTransportCryptographyFactory(scheme),
 
-			NodeKeeper:        nodeKeeper,
-			DatagramTransport: delayTransport,
+			PulseHistory:       pulseHistory,
+			DatagramTransport:  delayTransport,
 
 			LocalNodeProfile: nil, // TODO
 
 			StateGetter: &nshGen{nshDelay: defaultNshGenerationDelay},
 			PulseChanger: &pulseChanger{
-				nodeKeeper: nodeKeeper,
-			},
-			StateUpdater: &stateUpdater{
-				nodeKeeper: nodeKeeper,
+				updater: pulseHistory,
 			},
 			EphemeralController: &ephemeralController{
 				allowed: true,
@@ -373,30 +366,26 @@ func (ng *nshGen) RequestNodeState(fn chorus.NodeStateFunc) {
 func (ng *nshGen) CancelNodeState() {}
 
 type pulseChanger struct {
-	nodeKeeper beat.NodeKeeper
+	updater beat.Appender
 }
 
 func (pc *pulseChanger) ChangeBeat(ctx context.Context, report api.UpstreamReport, pu beat.Beat) {
 	inslogger.FromContext(ctx).Info(">>>>>> Change pulse called")
-	if err := pc.nodeKeeper.AddCommittedBeat(pu); err != nil {
+	if err := pc.updater.AddCommittedBeat(pu); err != nil {
 		panic(err)
 	}
 }
 
-type stateUpdater struct {
-	nodeKeeper beat.NodeKeeper
-}
-
-func (su *stateUpdater) UpdateState(ctx context.Context, beat beat.Beat) {
+func (pc *pulseChanger) UpdateState(ctx context.Context, beat beat.Beat) {
 	inslogger.FromContext(ctx).Info(">>>>>> Update state called")
 
-	if err := su.nodeKeeper.AddExpectedBeat(beat); err != nil {
+	if err := pc.updater.AddExpectedBeat(beat); err != nil {
 		panic(err)
 	}
 	if beat.IsFromPulsar() {
 		return
 	}
-	if err := su.nodeKeeper.AddCommittedBeat(beat); err != nil {
+	if err := pc.updater.AddCommittedBeat(beat); err != nil {
 		panic(err)
 	}
 }

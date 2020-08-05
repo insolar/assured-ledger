@@ -16,7 +16,7 @@ import (
 	"github.com/insolar/component-manager"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
-	"github.com/insolar/assured-ledger/ledger-core/appctl/beat/memstor"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat/beatstor"
 	"github.com/insolar/assured-ledger/ledger-core/application/api"
 	"github.com/insolar/assured-ledger/ledger-core/application/testwalletapi"
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
@@ -121,7 +121,7 @@ func initComponents(
 	metricsComp := metrics.NewMetrics(cfg.Metrics, metrics.GetInsolarRegistry("virtual"), "virtual")
 
 	jc := affinity.NewAffinityHelper(certManager.GetCertificate().GetNodeRef())
-	pulses := memstor.NewStorageMem()
+	pulses := beatstor.NewInMemoryDefault()
 
 	messageSender := messagesender.NewDefaultService(publisher, jc, pulses)
 
@@ -149,7 +149,6 @@ func initComponents(
 		&cfg.APIRunner,
 		certManager,
 		nw,
-		nw,
 		pulses,
 		jc,
 		nw,
@@ -160,7 +159,6 @@ func initComponents(
 	AdminAPIRunner, err := api.NewRunner(
 		&cfg.AdminAPIRunner,
 		certManager,
-		nw,
 		nw,
 		pulses,
 		jc,

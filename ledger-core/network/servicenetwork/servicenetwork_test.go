@@ -16,7 +16,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
-	"github.com/insolar/assured-ledger/ledger-core/appctl/beat/memstor"
 	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
@@ -24,7 +23,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
-	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/network/controller"
@@ -53,10 +51,9 @@ func prepareNetwork(t *testing.T, cfg configuration.Configuration) (*ServiceNetw
 	serviceNetwork, err := NewServiceNetwork(cfg, component.NewManager(nil))
 	require.NoError(t, err)
 
-	nodeKeeper := beat.NewNodeKeeperMock(t)
+	ph := beat.NewAppenderMock(t)
 	ref := gen.UniqueGlobalRef()
-	nodeKeeper.GetLocalNodeReferenceMock.Return(ref)
-	serviceNetwork.NodeKeeper = nodeKeeper
+	serviceNetwork.PulseHistory = ph
 
 	return serviceNetwork, ref
 }
@@ -198,7 +195,6 @@ func TestServiceNetwork_StartStop(t *testing.T) {
 	cm.SetLogger(global.Logger())
 
 	originRef := gen.UniqueGlobalRef()
-	nk := memstor.NewNodeKeeper(originRef, member.PrimaryRoleUnknown)
 
 	cert := &mandates.Certificate{}
 	cert.Reference = originRef.String()
@@ -215,7 +211,7 @@ func TestServiceNetwork_StartStop(t *testing.T) {
 	kpm := testutils.NewKeyProcessorMock(t)
 	kpm.ExportPublicKeyBinaryMock.Return([]byte{1}, nil)
 
-	cm.Inject(svcNw, nk, certManager,
+	cm.Inject(svcNw, certManager,
 		keystore.NewInplaceKeyStore(skey),
 		&platformpolicy.NodeCryptographyService{},
 		beat.NewAppenderMock(t),

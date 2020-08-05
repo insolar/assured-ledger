@@ -11,7 +11,6 @@ import (
 	"testing"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -73,31 +72,21 @@ func mockCertManager(t *testing.T, nodeList []nodeinfo.DiscoveryNode) *testutils
 	return cm
 }
 
-func mockNodeNetwork(t *testing.T, nodeList []nodeinfo.DiscoveryNode) *beat.NodeNetworkMock {
-	nn := beat.NewNodeNetworkMock(t)
+func mockNodeSnapshot(t *testing.T, nodeList []nodeinfo.DiscoveryNode) beat.NodeSnapshot {
 	nodeMap := make(map[reference.Global]nodeinfo.DiscoveryNode)
 	for _, node := range nodeList {
 		nodeMap[node.GetNodeRef()] = node
 	}
 
-	accessorMock := beat.NewNodeSnapshotMock(t)
-	accessorMock.FindNodeByRefMock.Set(func(ref reference.Global) nodeinfo.NetworkNode {
+	snapMock := beat.NewNodeSnapshotMock(t)
+	snapMock.FindNodeByRefMock.Set(func(ref reference.Global) nodeinfo.NetworkNode {
 		if _, ok := nodeMap[ref]; ok {
 			return mutable.NewTestNode(ref, member.PrimaryRoleNeutral, "")
 		}
 		return nil
 	})
 
-	nn.GetNodeSnapshotMock.Return(accessorMock)
-	nn.FindAnyLatestNodeSnapshotMock.Return(accessorMock)
-
-	return nn
-}
-
-func mockPulseAccessor(t *testing.T) *beat.AppenderMock {
-	pa := beat.NewAppenderMock(t)
-	pa.LatestTimeBeatMock.Return(pulsestor.GenesisPulse, nil)
-	return pa
+	return snapMock
 }
 
 func TestHealthChecker_CheckHandler(t *testing.T) {
@@ -114,9 +103,10 @@ func TestHealthChecker_CheckHandler(t *testing.T) {
 	nodes := randomNodeList(t, 40)
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			snap := mockNodeSnapshot(t, nodes[test.from:test.to])
 			hc := NewHealthChecker(
 				mockCertManager(t, nodes[:20]),
-				mockNodeNetwork(t, nodes[test.from:test.to]),
+				func() beat.NodeSnapshot { return snap },
 			)
 			w := newMockResponseWriter()
 			hc.CheckHandler(w, new(http.Request))

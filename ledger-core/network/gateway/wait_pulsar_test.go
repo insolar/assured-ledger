@@ -31,19 +31,16 @@ func createBase(mc *minimock.Controller) *Base {
 		require.Contains(mc, reason, bootstrapTimeoutMessage)
 	})
 
-	nk := beat.NewNodeKeeperMock(mc)
-	ref := gen.UniqueGlobalRef()
-	nk.GetLocalNodeReferenceMock.Return(ref)
-	nk.GetLocalNodeRoleMock.Return(member.PrimaryRoleVirtual)
-	nk.FindAnyLatestNodeSnapshotMock.Return(nil)
+	hist := beat.NewAppenderMock(mc)
+	hist.FindAnyLatestNodeSnapshotMock.Return(nil)
 
 	// avoid errors when these methods were not used
-	nk.FindAnyLatestNodeSnapshot()
-	nk.GetLocalNodeReference()
-	nk.GetLocalNodeRole()
+	hist.FindAnyLatestNodeSnapshot()
 
-	b.NodeKeeper = nk
 	b.Aborter = aborter
+	b.PulseAppender = hist
+	b.localRef = gen.UniqueGlobalRef()
+	b.localRole = member.PrimaryRoleVirtual
 	return b
 }
 

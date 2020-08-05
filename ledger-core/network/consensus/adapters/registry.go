@@ -54,18 +54,17 @@ func (mr *MandateRegistry) GetPrimingCloudHash() proofs.CloudStateHash {
 }
 
 type OfflinePopulation struct {
-	// TODO should use mandate storage
-	nodeKeeper beat.NodeKeeper
+	nodesFn func() beat.NodeSnapshot
 }
 
-func NewOfflinePopulation(nodeKeeper beat.NodeKeeper) *OfflinePopulation {
+func NewOfflinePopulation(nodesFn func() beat.NodeSnapshot) *OfflinePopulation {
 	return &OfflinePopulation{
-		nodeKeeper:   nodeKeeper,
+		nodesFn:   nodesFn,
 	}
 }
 
 func (op *OfflinePopulation) FindRegisteredProfile(identity endpoints.Inbound) profiles.Host {
-	na := op.nodeKeeper.FindAnyLatestNodeSnapshot()
+	na := op.nodesFn()
 	if na == nil {
 		return nil
 	}

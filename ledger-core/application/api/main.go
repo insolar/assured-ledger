@@ -31,8 +31,6 @@ import (
 // Runner implements Component for API
 type Runner struct {
 	CertificateManager nodeinfo.CertificateManager
-	// nolint
-	NodeNetwork         beat.NodeNetwork
 	CertificateGetter   nodeinfo.CertificateGetter
 	PulseAccessor       beat.History
 	JetCoordinator      affinity.Helper
@@ -46,7 +44,7 @@ type Runner struct {
 	keyCache      map[string]crypto.PublicKey
 	cacheLock     *sync.RWMutex
 	SeedManager   *seedmanager.SeedManager
-	SeedGenerator seedmanager.SeedGenerator
+	SeedGenerator seedmanager.SeedGeneratorFunc
 }
 
 func checkConfig(cfg *configuration.APIRunner) error {
@@ -79,7 +77,6 @@ func (ar *Runner) registerPublicServices(rpcServer *rpc.Server) error {
 func NewRunner(cfg *configuration.APIRunner,
 	certificateManager nodeinfo.CertificateManager,
 	// nolint
-	nodeNetwork beat.NodeNetwork,
 	certificateGetter nodeinfo.CertificateGetter,
 	pulseAccessor beat.History,
 	jetCoordinator affinity.Helper,
@@ -95,7 +92,6 @@ func NewRunner(cfg *configuration.APIRunner,
 	rpcServer := rpc.NewServer()
 	ar := Runner{
 		CertificateManager:  certificateManager,
-		NodeNetwork:         nodeNetwork,
 		CertificateGetter:   certificateGetter,
 		PulseAccessor:       pulseAccessor,
 		JetCoordinator:      jetCoordinator,
@@ -115,7 +111,7 @@ func NewRunner(cfg *configuration.APIRunner,
 	}
 
 	// init handler
-	hc := NewHealthChecker(ar.CertificateManager, ar.NodeNetwork)
+	hc := NewHealthChecker(ar.CertificateManager, pulseAccessor.FindAnyLatestNodeSnapshot)
 
 	router := http.NewServeMux()
 	ar.server.Handler = router

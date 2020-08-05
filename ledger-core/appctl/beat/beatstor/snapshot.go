@@ -11,7 +11,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles"
-	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
@@ -67,7 +66,7 @@ func newSnapshot(pu beat.Beat) snapshot {
 	n := len(nodes)
 	if n <= 1 {
 		// this is a special case for both joiner (before consensus local node is not listed) and one node population
-		localRef := nodeinfo.NodeRef(local)
+		localRef := local.GetStatic().GetExtension().GetReference()
 		return snapshot{
 			Beat:      pu,
 			refIndex:  map[reference.Global]member.Index{localRef:0},
@@ -81,7 +80,7 @@ func newSnapshot(pu beat.Beat) snapshot {
 	}
 
 	for _, node := range pu.Online.GetProfiles() {
-		ref := nodeinfo.NodeRef(node)
+		ref := node.GetStatic().GetExtension().GetReference()
 		idx := node.GetIndex()
 		result.refIndex[ref] = idx
 		if local.GetIndex() == idx {

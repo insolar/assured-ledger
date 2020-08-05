@@ -12,7 +12,7 @@ import (
 	"github.com/ThreeDotsLabs/watermill/pubsub/gochannel"
 	"github.com/insolar/component-manager"
 
-	"github.com/insolar/assured-ledger/ledger-core/appctl/beat/memstor"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat/beatstor"
 	"github.com/insolar/assured-ledger/ledger-core/application/api"
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
@@ -111,7 +111,7 @@ func initComponents(
 
 	metricsComp := metrics.NewMetrics(cfg.Metrics, metrics.GetInsolarRegistry("virtual"), "virtual")
 
-	pulses := memstor.NewStorageMem()
+	pulses := beatstor.NewInMemoryDefault()
 
 	availabilityChecker := api.NewNetworkChecker(cfg.AvailabilityChecker)
 

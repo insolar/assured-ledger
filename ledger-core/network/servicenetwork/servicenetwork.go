@@ -11,11 +11,10 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
-	"github.com/insolar/assured-ledger/ledger-core/appctl/beat/memstor"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
-	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/component-manager"
 
@@ -33,11 +32,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
-var _ beat.NodeNetwork = &ServiceNetwork{}
-
 type ServiceNetwork struct {
 	cfg configuration.Configuration
 	cm  *component.Manager
+	localRef    reference.Global
+	localRole   member.PrimaryRole
 
 	// dependencies
 	CertificateManager nodeinfo.CertificateManager `inject:""`
@@ -45,9 +44,10 @@ type ServiceNetwork struct {
 	// watermill support interfaces
 	Pub message.Publisher `inject:""`
 
+	PulseHistory beat.Appender `inject:""`
+
 	// subcomponents
 	RPC                controller.RPCController   `inject:"subcomponent"`
-	NodeKeeper         beat.NodeKeeper            `inject:"subcomponent"`
 	TerminationHandler network.TerminationHandler `inject:"subcomponent"`
 
 	HostNetwork network.HostNetwork
@@ -70,7 +70,7 @@ func NewServiceNetwork(conf configuration.Configuration, rootCm *component.Manag
 func (n *ServiceNetwork) Init(ctx context.Context) error {
 	hostNetwork, err := hostnetwork.NewHostNetwork(n.CertificateManager.GetCertificate().GetNodeRef().String())
 	if err != nil {
-		return errors.W(err, "failed to create hostnetwork")
+		return throw.W(err, "failed to create hostnetwork")
 	}
 	n.HostNetwork = hostNetwork
 
@@ -78,10 +78,8 @@ func (n *ServiceNetwork) Init(ctx context.Context) error {
 
 	cert := n.CertificateManager.GetCertificate()
 
-	nodeNetwork, err := memstor.NewNodeNetwork(n.cfg.Host.Transport, cert)
-	if err != nil {
-		return errors.W(err, "failed to create NodeNetwork")
-	}
+	n.localRef = cert.GetNodeRef()
+	n.localRole = cert.GetRole()
 
 	n.BaseGateway = &gateway.Base{Options: options}
 	n.Gatewayer = gateway.NewGatewayer(n.BaseGateway.NewGateway(ctx, network.NoNetworkState))
@@ -93,10 +91,8 @@ func (n *ServiceNetwork) Init(ctx context.Context) error {
 		cert,
 		transport.NewFactory(n.cfg.Host.Transport),
 		hostNetwork,
-		nodeNetwork,
 		controller.NewRPCController(options),
 		bootstrap.NewRequester(options),
-		memstor.NewMemoryStorage(),
 		n.BaseGateway,
 		n.Gatewayer,
 		termination.NewHandler(n),
@@ -104,7 +100,7 @@ func (n *ServiceNetwork) Init(ctx context.Context) error {
 
 	err = n.cm.Init(ctx)
 	if err != nil {
-		return errors.W(err, "failed to init internal components")
+		return throw.W(err, "failed to init internal components")
 	}
 
 	return nil
@@ -114,7 +110,7 @@ func (n *ServiceNetwork) Init(ctx context.Context) error {
 func (n *ServiceNetwork) Start(ctx context.Context) error {
 	err := n.cm.Start(ctx)
 	if err != nil {
-		return errors.W(err, "failed to start component manager")
+		return throw.W(err, "failed to start component manager")
 	}
 
 	p := network.NetworkedPulse{}
@@ -154,19 +150,17 @@ func (n *ServiceNetwork) Stop(ctx context.Context) error {
 }
 
 func (n *ServiceNetwork) GetLocalNodeReference() reference.Holder {
-	return n.NodeKeeper.GetLocalNodeReference()
+	if n.localRef.IsEmpty() {
+		panic(throw.IllegalState())
+	}
+	return n.localRef
 }
 
 func (n *ServiceNetwork) GetLocalNodeRole() member.PrimaryRole {
-	return n.NodeKeeper.GetLocalNodeRole()
-}
-
-func (n *ServiceNetwork) GetNodeSnapshot(p pulse.Number) beat.NodeSnapshot {
-	return n.NodeKeeper.GetNodeSnapshot(p)
-}
-
-func (n *ServiceNetwork) FindAnyLatestNodeSnapshot() beat.NodeSnapshot {
-	return n.NodeKeeper.FindAnyLatestNodeSnapshot()
+	if n.localRole == 0 {
+		panic(throw.IllegalState())
+	}
+	return n.localRole
 }
 
 func (n *ServiceNetwork) GetCert(ctx context.Context, ref reference.Global) (nodeinfo.Certificate, error) {

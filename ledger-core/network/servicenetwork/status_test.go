@@ -40,7 +40,7 @@ func TestGetNetworkStatus(t *testing.T) {
 
 	workingLen := 2
 
-	nk := beat.NewNodeKeeperMock(t)
+	ph := beat.NewAppenderMock(t)
 	a := beat.NewNodeSnapshotMock(t)
 	activeLen := 1
 	a.GetPulseNumberMock.Return(pc.PulseNumber)
@@ -55,13 +55,9 @@ func TestGetNetworkStatus(t *testing.T) {
 	pop.GetProfilesMock.Return(make([]profiles.ActiveNode, activeLen))
 	a.GetPopulationMock.Return(pop)
 
-	nk.FindAnyLatestNodeSnapshotMock.Return(a)
+	ph.FindAnyLatestNodeSnapshotMock.Return(a)
 
-	nk.GetLocalNodeReferenceMock.Return(ref)
-	nk.GetLocalNodeRoleMock.Return(member.PrimaryRoleNeutral)
-
-
-	sn.NodeKeeper = nk
+	sn.PulseHistory = ph
 
 	ns := sn.GetNetworkStatus()
 	require.Equal(t, ins, ns.NetworkState)

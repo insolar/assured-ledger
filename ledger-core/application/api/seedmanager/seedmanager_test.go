@@ -38,10 +38,9 @@ func TestNew(t *testing.T) {
 }
 
 func getSeed(t *testing.T) Seed {
-	sg := SeedGenerator{}
-	seed, err := sg.Next()
+	seed, err := RandomSeedGenerator()
 	require.NoError(t, err)
-	return *seed
+	return seed
 }
 
 func TestSeedManager_Add(t *testing.T) {

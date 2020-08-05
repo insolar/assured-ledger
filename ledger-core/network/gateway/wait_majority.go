@@ -44,7 +44,7 @@ func (g *WaitMajority) OnConsensusFinished(ctx context.Context, report network.R
 func (g *WaitMajority) switchOnMajorityRule(_ context.Context, pulse pulse.Data) {
 	_, err := rules.CheckMajorityRule(
 		g.CertificateManager.GetCertificate(),
-		g.NodeKeeper.GetNodeSnapshot(pulse.PulseNumber).GetPopulation(),
+		g.PulseAppender.MustNodeSnapshot(pulse.PulseNumber).GetPopulation(),
 	)
 
 	if err == nil {

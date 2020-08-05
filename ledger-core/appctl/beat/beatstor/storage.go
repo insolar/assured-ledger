@@ -6,12 +6,19 @@
 package beatstor
 
 import (
+	"runtime"
 	"sync"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
+
+const UnknownPulseErrorMsg = ""
+
+func NewInMemoryDefault() *Memory {
+	return NewInMemory(100)
+}
 
 func NewInMemory(depth int) *Memory {
 	if depth <= 0 {
@@ -27,7 +34,7 @@ type Memory struct {
 	numbers   map[pulse.Number]uint32
 	snapshots []snapshot
 	nextPos   int
-	expected  beat.Beat
+	expected  snapshot
 }
 
 func (p *Memory) TimeBeat(pn pulse.Number) (beat.Beat, error) {
@@ -86,11 +93,13 @@ func (p *Memory) AddExpectedBeat(bt beat.Beat) error {
 		panic(throw.IllegalState())
 	}
 
-	p.expected = bt
+	p.expected = newSnapshot(bt)
 	return nil
 }
 
 func (p *Memory) AddCommittedBeat(bt beat.Beat) error {
+	bt.NextPulseNumber()
+
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
@@ -98,16 +107,23 @@ func (p *Memory) AddCommittedBeat(bt beat.Beat) error {
 		return err
 	}
 
+	if bt.IsFromPulsar() {
+		runtime.KeepAlive(bt)
+	}
+
 	if !p.expected.IsZero() {
 		if err := p._checkExpected(bt); err != nil {
 			return err
 		}
-		p.expected = beat.Beat{}
+		p.expected = snapshot{}
 	}
 
-	if oldest := p.snapshots[p.nextPos].PulseNumber; !oldest.IsUnknown() {
+	if p.numbers == nil {
+		p.numbers = make(map[pulse.Number]uint32, len(p.snapshots))
+	} else if oldest := p.snapshots[p.nextPos].PulseNumber; !oldest.IsUnknown() {
 		delete(p.numbers, oldest)
 	}
+
 	p.snapshots[p.nextPos] = newSnapshot(bt)
 	p.numbers[bt.PulseNumber] = uint32(p.nextPos)
 
@@ -142,6 +158,13 @@ func (p *Memory) EnsureLatestTimeBeat(bt beat.Beat) error {
 }
 
 func (p *Memory) GetNodeSnapshot(pn pulse.Number) (beat.NodeSnapshot, error) {
+	p.mutex.RLock()
+	defer p.mutex.RUnlock()
+
+	if !pn.IsUnknown() && p.expected.PulseNumber == pn {
+		return p.expected, nil
+	}
+
 	switch n, err := p.get(pn); {
 	case err != nil:
 		return nil, err
@@ -150,7 +173,18 @@ func (p *Memory) GetNodeSnapshot(pn pulse.Number) (beat.NodeSnapshot, error) {
 	}
 }
 
+func (p *Memory) MustNodeSnapshot(pn pulse.Number) beat.NodeSnapshot {
+	s, err := p.GetNodeSnapshot(pn)
+	if err != nil {
+		panic(err)
+	}
+	return s
+}
+
 func (p *Memory) FindAnyLatestNodeSnapshot() beat.NodeSnapshot {
+	p.mutex.RLock()
+	defer p.mutex.RUnlock()
+
 	switch n, err := p.latest(); {
 	case err != nil:
 		return nil
@@ -160,6 +194,9 @@ func (p *Memory) FindAnyLatestNodeSnapshot() beat.NodeSnapshot {
 }
 
 func (p *Memory) FindLatestNodeSnapshot() beat.NodeSnapshot {
+	p.mutex.RLock()
+	defer p.mutex.RUnlock()
+
 	switch n, err := p.latest(); {
 	case err != nil:
 		return nil
@@ -174,11 +211,11 @@ func (p *Memory) _checkBeat(bt beat.Beat) error {
 	if bt.PulseNumber.IsUnknown() {
 		panic(throw.IllegalValue())
 	}
+
 	n, _ := p.latest()
 	if n < 0 {
 		return nil
 	}
-
 	latest := p.snapshots[n]
 
 	switch {
@@ -210,5 +247,5 @@ func (p *Memory) _checkExpected(bt beat.Beat) error {
 	default:
 		return nil
 	}
-	return throw.E(errMsg, struct { Beat1, Beat2 beat.Beat	}{p.expected, bt})
+	return throw.E(errMsg, struct { Beat1, Beat2 beat.Beat	}{p.expected.Beat, bt})
 }

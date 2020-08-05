@@ -19,6 +19,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	transport2 "github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/transport"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
@@ -54,7 +55,6 @@ type Base struct {
 
 	Self                network.Gateway
 	Gatewayer           network.Gatewayer                       `inject:""`
-	NodeKeeper          beat.NodeKeeper                         `inject:""`
 	CryptographyService cryptography.Service                    `inject:""`
 	CryptographyScheme  cryptography.PlatformCryptographyScheme `inject:""`
 	CertificateManager  nodeinfo.CertificateManager             `inject:""`
@@ -89,6 +89,9 @@ type Base struct {
 	isDiscovery     bool                   // nolint
 	isJoinAssistant bool                   // nolint
 	joinAssistant   nodeinfo.DiscoveryNode // joinAssistant
+
+	localRef        reference.Global
+	localRole       member.PrimaryRole
 }
 
 // NewGateway creates new gateway on top of existing
@@ -122,6 +125,10 @@ func (g *Base) NewGateway(ctx context.Context, state network.State) network.Gate
 }
 
 func (g *Base) Init(ctx context.Context) error {
+	cert := g.CertificateManager.GetCertificate()
+	g.localRef = cert.GetNodeRef()
+	g.localRole = cert.GetRole()
+
 	g.pulseWatchdog = newPulseWatchdog(ctx, g.Gatewayer.Gateway(), g.Options.PulseWatchdogTimeout)
 
 	g.HostNetwork.RegisterRequestHandler(
@@ -175,11 +182,10 @@ func (g *Base) initConsensus(ctx context.Context) error {
 		KeyProcessor:        g.KeyProcessor,
 		CertificateManager:  g.CertificateManager,
 		KeyStore:            getKeyStore(g.CryptographyService),
-		NodeKeeper:          g.NodeKeeper,
+		PulseHistory:        g.PulseAppender,
 		LocalNodeProfile:    g.localStatic, // initialized by localNodeAsCandidate()
 		StateGetter:         proxy,
 		PulseChanger:        proxy,
-		StateUpdater:        proxy,
 		DatagramTransport:   g.datagramTransport,
 		EphemeralController: g,
 		TransportCryptography: g.transportCrypt,
@@ -191,7 +197,7 @@ func (g *Base) initConsensus(ctx context.Context) error {
 func (g *Base) localNodeAsCandidate() error {
 	cert := g.CertificateManager.GetCertificate()
 
-	staticProfile, err := CreateLocalNodeProfile(g.NodeKeeper, cert,
+	staticProfile, err := CreateLocalNodeProfile(cert,
 		g.datagramTransport.Address(),
 		g.KeyProcessor, g.CryptographyService, g.CryptographyScheme)
 
@@ -243,23 +249,23 @@ func (g *Base) CancelNodeState() {}
 func (g *Base) OnPulseFromConsensus(ctx context.Context, pu beat.Beat) {
 	g.pulseWatchdog.Reset()
 
-	if err := g.NodeKeeper.AddCommittedBeat(pu); err != nil {
-		inslogger.FromContext(ctx).Panic(err)
+	if err := g.PulseAppender.AddCommittedBeat(pu); err != nil {
+		inslogger.FromContext(ctx).Panic(throw.W(err, "failed to append pulse"))
 	}
 
 	nodeCount := int64(pu.Online.GetIndexedCount())
 	inslogger.FromContext(ctx).Debugf("[ AddCommittedBeat ] Population size: %d", nodeCount)
 	stats.Record(ctx, network.ActiveNodes.M(nodeCount))
 
-	// nodes := g.NodeKeeper.GetNodeSnapshot(pu.PulseNumber).GetOnlineNodes()
+	// nodes := g.PulseHistory.GetNodeSnapshot(pu.PulseNumber).GetOnlineNodes()
 	// inslogger.FromContext(ctx).Debugf("OnPulseFromConsensus: %d : epoch %d : nodes %d", pu.PulseNumber, pu.PulseEpoch, len(nodes))
 }
 
 // UpdateState called then Consensus is done
 func (g *Base) UpdateState(ctx context.Context, pu beat.Beat) {
-	err := g.NodeKeeper.AddExpectedBeat(pu)
+	err := g.PulseAppender.AddExpectedBeat(pu)
 	if err == nil && !pu.IsFromPulsar() {
-		err = g.NodeKeeper.AddCommittedBeat(pu)
+		err = g.PulseAppender.AddCommittedBeat(pu)
 	}
 
 	if err != nil {
@@ -318,7 +324,7 @@ func (g *Base) checkCanAnnounceCandidate(context.Context) error {
 	}
 
 	pn := pulse.Unknown
-	if na := g.NodeKeeper.FindAnyLatestNodeSnapshot(); na != nil {
+	if na := g.PulseAppender.FindAnyLatestNodeSnapshot(); na != nil {
 		pn = na.GetPulseNumber()
 	}
 
@@ -354,7 +360,7 @@ func (g *Base) HandleNodeBootstrapRequest(ctx context.Context, request network.R
 	data := request.GetRequest().GetBootstrap()
 
 	var nodes []nodeinfo.NetworkNode
-	if na := g.NodeKeeper.FindAnyLatestNodeSnapshot(); na != nil {
+	if na := g.PulseAppender.FindAnyLatestNodeSnapshot(); na != nil {
 		nodes = na.GetPopulation().GetProfiles()
 	}
 
@@ -402,6 +408,20 @@ func validateTimestamp(timestamp int64, delta time.Duration) bool {
 	return time.Now().UTC().Sub(time.Unix(timestamp, 0)) < delta
 }
 
+func (g *Base) GetLocalNodeReference() reference.Global {
+	if g.localRef.IsZero() {
+		panic(throw.IllegalState())
+	}
+	return g.localRef
+}
+
+func (g *Base) GetLocalNodeRole() member.PrimaryRole {
+	if g.localRole == 0 {
+		panic(throw.IllegalState())
+	}
+	return g.localRole
+}
+
 func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.ReceivedPacket) (network.Packet, error) {
 	if request.GetRequest() == nil || request.GetRequest().GetAuthorize() == nil {
 		return nil, throw.Errorf("process authorize: got invalid protobuf request message: %s", request)
@@ -437,7 +457,7 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 
 	var nodes []nodeinfo.NetworkNode
 	var discoveryCount int
-	if na := g.NodeKeeper.FindAnyLatestNodeSnapshot(); na != nil {
+	if na := g.PulseAppender.FindAnyLatestNodeSnapshot(); na != nil {
 		nodes = na.GetPopulation().GetProfiles()
 	}
 
@@ -472,7 +492,7 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 		return nil, err
 	}
 
-	permit, err := bootstrap.CreatePermit(g.NodeKeeper.GetLocalNodeReference(),
+	permit, err := bootstrap.CreatePermit(g.GetLocalNodeReference(),
 		reconnectHost, pubKey,
 		g.CryptographyService,
 	)
@@ -520,16 +540,16 @@ func (g *Base) EphemeralMode(nodes census.OnlinePopulation) bool {
 }
 
 func (g *Base) FailState(ctx context.Context, reason string) {
-	na := g.NodeKeeper.FindAnyLatestNodeSnapshot()
+	na := g.PulseAppender.FindAnyLatestNodeSnapshot()
 
 	addr := ""
 	if na != nil {
 		addr = nodeinfo.NodeAddr(na.GetPopulation().GetLocalProfile())
 	}
 	wrapReason := fmt.Sprintf("Abort node: ref=%s address=%s role=%v state=%s, reason=%s",
-		g.NodeKeeper.GetLocalNodeReference(),
+		g.GetLocalNodeReference(),
 		addr,
-		g.NodeKeeper.GetLocalNodeRole(),
+		g.GetLocalNodeRole(),
 		g.Gatewayer.Gateway().GetState().String(),
 		reason,
 	)

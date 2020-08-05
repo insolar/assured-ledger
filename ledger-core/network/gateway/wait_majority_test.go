@@ -34,7 +34,8 @@ func TestWaitMajority_MajorityNotHappenedInETA(t *testing.T) {
 
 	b := createBase(mc)
 	b.CertificateManager = mandates.NewCertificateManager(cert)
-	nodeKeeper := b.NodeKeeper.(*beat.NodeKeeperMock)
+
+	history := b.PulseAppender.(*beat.AppenderMock)
 
 	pop := census.NewOnlinePopulationMock(mc)
 	pop.GetProfilesMock.Return(nil)
@@ -42,7 +43,7 @@ func TestWaitMajority_MajorityNotHappenedInETA(t *testing.T) {
 	accessor := beat.NewNodeSnapshotMock(mc)
 	accessor.GetPopulationMock.Return(pop)
 
-	nodeKeeper.GetNodeSnapshotMock.Return(accessor)
+	history.MustNodeSnapshotMock.Return(accessor)
 
 	waitMajority := newWaitMajority(b)
 	assert.Equal(t, network.WaitMajority, waitMajority.GetState())
@@ -66,15 +67,14 @@ func TestWaitMajority_MajorityHappenedInETA(t *testing.T) {
 	})
 
 	ref := gen.UniqueGlobalRef()
-	nodeKeeper := beat.NewNodeKeeperMock(mc)
+	history := beat.NewAppenderMock(mc)
 
 	pop1 := census.NewOnlinePopulationMock(mc)
 	pop1.GetProfilesMock.Return(nil)
 
 	accessor1 := beat.NewNodeSnapshotMock(mc)
 	accessor1.GetPopulationMock.Return(pop1)
-	nodeKeeper.GetNodeSnapshotMock.When(pulse.MinTimePulse).Then(accessor1)
-
+	history.MustNodeSnapshotMock.When(pulse.MinTimePulse).Then(accessor1)
 
 	n := mutable.NewTestNode(ref, member.PrimaryRoleHeavyMaterial, "127.0.0.1:123")
 	pop2 := census.NewOnlinePopulationMock(mc)
@@ -82,13 +82,13 @@ func TestWaitMajority_MajorityHappenedInETA(t *testing.T) {
 
 	accessor2 := beat.NewNodeSnapshotMock(mc)
 	accessor2.GetPopulationMock.Return(pop2)
-	nodeKeeper.GetNodeSnapshotMock.When(pulse.MinTimePulse + 10).Then(accessor2)
+	history.MustNodeSnapshotMock.When(pulse.MinTimePulse + 10).Then(accessor2)
 
 	discoveryNode := mandates.BootstrapNode{NodeRef: ref.String()}
 	cert := &mandates.Certificate{MajorityRule: 1, BootstrapNodes: []mandates.BootstrapNode{discoveryNode}}
 	waitMajority := newWaitMajority(&Base{
 		CertificateManager: mandates.NewCertificateManager(cert),
-		NodeKeeper:         nodeKeeper,
+		PulseAppender:      history,
 	})
 	waitMajority.Gatewayer = gatewayer
 	waitMajority.bootstrapETA = time.Second * 2

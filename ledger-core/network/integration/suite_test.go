@@ -18,10 +18,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/appctl/beat/memstor"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat/beatstor"
 	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
@@ -148,7 +148,7 @@ func (s *consensusSuite) Setup() {
 	if UseFakeBootstrap {
 		bnodes := make([]profiles.StaticProfile, 0)
 		for _, n := range s.bootstrapNodes {
-			o := n.serviceNetwork.NodeKeeper.FindAnyLatestNodeSnapshot().GetPopulation().GetLocalProfile()
+			o := n.serviceNetwork.PulseHistory.FindAnyLatestNodeSnapshot().GetPopulation().GetLocalProfile()
 			sdg := nodeinfo.NodeSignedDigest(o)
 			require.NotNil(s.t, sdg)
 			require.NotEmpty(s.t, sdg.GetSignatureHolder().AsByteString())
@@ -160,16 +160,18 @@ func (s *consensusSuite) Setup() {
 
 			pop := censusimpl.NewManyNodePopulation(bnodes, n.id, n.vf)
 
-			pu := pulsestor.GenesisPulse
+			pu := beat.Beat{}
+			pu.PulseNumber = pulse.MinTimePulse + 1
+			pu.PulseEpoch = pulse.EphemeralPulseEpoch
+			pu.NextPulseDelta = 1
+			pu.PrevPulseDelta = 1
 			pu.Online = &pop
 
-			err := n.serviceNetwork.NodeKeeper.AddExpectedBeat(pu)
+			err := n.serviceNetwork.PulseHistory.AddExpectedBeat(pu)
 			require.NoError(s.t, err)
-			err = n.serviceNetwork.NodeKeeper.AddCommittedBeat(pu)
+			err = n.serviceNetwork.PulseHistory.AddCommittedBeat(pu)
 			require.NoError(s.t, err)
 
-			err = n.serviceNetwork.BaseGateway.PulseAppender.AddCommittedBeat(pu)
-			require.NoError(s.t, err)
 			err = n.serviceNetwork.BaseGateway.StartConsensus(s.ctx)
 			require.NoError(s.t, err)
 			n.serviceNetwork.Gatewayer.SwitchState(s.ctx, network.CompleteNetworkState, pu.Data)
@@ -329,7 +331,7 @@ func (s *consensusSuite) assertNetworkInConsistentState(p pulse.Number) {
 			"Node not in CompleteNetworkState",
 		)
 
-		a := n.serviceNetwork.NodeKeeper.GetNodeSnapshot(p)
+		a := n.serviceNetwork.PulseHistory.MustNodeSnapshot(p)
 		activeNodes := a.GetPopulation().GetProfiles()
 		if nodes == nil {
 			nodes = activeNodes
@@ -376,7 +378,7 @@ func (s *testSuite) getNodesCount() int {
 
 func (s *testSuite) isNodeInActiveLists(ref reference.Global, p pulse.Number) bool {
 	for _, n := range s.bootstrapNodes {
-		a := n.serviceNetwork.NodeKeeper.GetNodeSnapshot(p)
+		a := n.serviceNetwork.PulseHistory.MustNodeSnapshot(p)
 		if a.FindNodeByRef(ref) == nil {
 			return false
 		}
@@ -474,11 +476,11 @@ func incrementTestPort() int {
 }
 
 func (n *networkNode) GetActiveNodes() []nodeinfo.NetworkNode {
-	return n.serviceNetwork.NodeKeeper.FindAnyLatestNodeSnapshot().GetPopulation().GetProfiles()
+	return n.serviceNetwork.PulseHistory.FindAnyLatestNodeSnapshot().GetPopulation().GetProfiles()
 }
 
 func (n *networkNode) GetWorkingNodeCount() int {
-	pop := n.serviceNetwork.NodeKeeper.FindAnyLatestNodeSnapshot().GetPopulation()
+	pop := n.serviceNetwork.PulseHistory.FindAnyLatestNodeSnapshot().GetPopulation()
 	return pop.GetIndexedCount() - pop.GetIdleCount()
 }
 
@@ -555,8 +557,6 @@ func (s *testSuite) preInitNode(nd *networkNode) {
 
 	certManager, cryptographyService := s.initCrypto(nd)
 
-	certificate := certManager.GetCertificate()
-	realKeeper := memstor.NewNodeKeeper(certificate.GetNodeRef(), certificate.GetRole())
 
 	keyProc := platformpolicy.NewKeyProcessor()
 
@@ -579,7 +579,6 @@ func (s *testSuite) preInitNode(nd *networkNode) {
 	pulseManager.CommitFirstPulseChangeMock.Return(nil)
 
 	nd.componentManager.Inject(
-		realKeeper,
 		pulseManager,
 		pubMock,
 		certManager,
@@ -587,16 +586,17 @@ func (s *testSuite) preInitNode(nd *networkNode) {
 		keystore.NewInplaceKeyStore(nd.privateKey),
 		serviceNetwork,
 		keyProc,
-		memstor.NewStorageMem(),
+		beatstor.NewInMemory(16),
 	)
 	nd.serviceNetwork = serviceNetwork
 	nd.vf = adapters.NewTransportCryptographyFactory(scheme)
 
-	localNodeRef := realKeeper.GetLocalNodeReference()
+	localCert := certManager.GetCertificate()
+	localNodeRef := localCert.GetNodeRef()
 	nodeContext, _ := inslogger.WithFields(s.ctx, map[string]interface{}{
 		"node_id":      node.GenerateShortID(localNodeRef),
 		"node_address": localNodeRef,
-		"node_role":    realKeeper.GetLocalNodeRole(),
+		"node_role":    localCert.GetRole(),
 	})
 
 	nd.ctx = nodeContext
@@ -617,13 +617,16 @@ func (s *testSuite) afterInitNode(nd *networkNode) {
 	staticProfile := nd.serviceNetwork.BaseGateway.GetLocalNodeStaticProfile()
 	pop := censusimpl.NewManyNodePopulation([]profiles.StaticProfile{staticProfile}, staticProfile.GetStaticNodeID(), nd.vf)
 
-	pu := pulsestor.GenesisPulse
+	pu := beat.Beat{}
+	pu.PulseNumber = pulse.MinTimePulse
+	pu.PulseEpoch = pulse.EphemeralPulseEpoch
+	pu.NextPulseDelta = 1
 	pu.Online = &pop
 
-	nodeKeeper := nd.serviceNetwork.BaseGateway.NodeKeeper
-	err := nodeKeeper.AddExpectedBeat(pu)
+	pulseHistory := nd.serviceNetwork.PulseHistory
+	err := pulseHistory.AddExpectedBeat(pu)
 	require.NoError(s.t, err)
-	err = nodeKeeper.AddCommittedBeat(pu)
+	err = pulseHistory.AddCommittedBeat(pu)
 	require.NoError(s.t, err)
 }
 

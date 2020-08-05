@@ -168,22 +168,18 @@ func (g *Complete) CancelNodeState() {
 }
 
 func (g *Complete) OnPulseFromConsensus(ctx context.Context, pulse network.NetworkedPulse) {
+	logger := inslogger.FromContext(ctx)
+	logger.Infof("Got new pulse number: %d", pulse.PulseNumber)
+
 	g.Base.OnPulseFromConsensus(ctx, pulse)
 
 	done := make(chan struct{})
 	defer close(done)
 	pulseProcessingWatchdog(ctx, g.Base, pulse, done)
 
-	logger := inslogger.FromContext(ctx)
-
-	logger.Infof("Got new pulse number: %d", pulse.PulseNumber)
 	ctx, span := instracer.StartSpan(ctx, "ServiceNetwork.Handlepulse")
 	span.SetTag("pulse.Number", int64(pulse.PulseNumber))
 	defer span.Finish()
-
-	if err := g.PulseAppender.AddCommittedBeat(pulse); err != nil {
-		inslogger.FromContext(ctx).Panic("failed to append pulse: ", err.Error())
-	}
 
 	if err := g.PulseManager.CommitPulseChange(pulse); err != nil {
 		logger.Fatalf("Failed to set new pulse: %s", err.Error())

@@ -14,7 +14,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
-	"github.com/insolar/assured-ledger/ledger-core/appctl/beat/memstor"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat/beatstor"
 	"github.com/insolar/assured-ledger/ledger-core/application/testwalletapi"
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
@@ -66,7 +66,7 @@ type Server struct {
 	PublisherMock      *publisher.Mock
 	JetCoordinatorMock *affinity.HelperMock
 	pulseGenerator     *testutils.PulseGenerator
-	pulseStorage       *memstor.StorageMem
+	pulseStorage       beat.Appender
 	pulseManager       *insconveyor.PulseManager
 	Journal            *journal.Journal
 
@@ -132,10 +132,10 @@ func newServerExt(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFi
 	// Pulse-related components
 	var (
 		PulseManager *insconveyor.PulseManager
-		Pulses       *memstor.StorageMem
+		Pulses       beat.Appender
 	)
 	{
-		Pulses = memstor.NewStorageMem()
+		Pulses = beatstor.NewInMemoryDefault()
 		PulseManager = insconveyor.NewPulseManager()
 		PulseManager.PulseAppender = Pulses
 	}

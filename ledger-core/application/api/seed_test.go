@@ -19,7 +19,6 @@ import (
 	"go.uber.org/goleak"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
-	"github.com/insolar/assured-ledger/ledger-core/appctl/beat/memstor"
 	"github.com/insolar/assured-ledger/ledger-core/application/api/requester"
 	"github.com/insolar/assured-ledger/ledger-core/application/api/seedmanager"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
@@ -32,7 +31,7 @@ func TestNodeService_GetSeed(t *testing.T) {
 		goleak.IgnoreTopFunction("github.com/insolar/assured-ledger/ledger-core/application/api/seedmanager.NewSpecified.func1"))
 
 	instestlogger.SetTestOutputWithErrorFilter(t, func(s string) bool {
-		return !strings.Contains(s, "fake error")
+		return !strings.Contains(s, "another error")
 	})
 
 	availableFlag := false
@@ -42,25 +41,14 @@ func TestNodeService_GetSeed(t *testing.T) {
 		return availableFlag
 	})
 
-	// 0 = false, 1 = pulse.ErrNotFound, 2 = another error
-	pulseError := 0
 	accessor := beat.NewAppenderMock(t)
-	accessor = accessor.LatestTimeBeatMock.Set(func() (beat.Beat, error) {
-		switch pulseError {
-		case 1:
-			return beat.Beat{}, memstor.ErrNotFound
-		case 2:
-			return beat.Beat{}, errors.New("fake error")
-		default:
-			return pulsestor.GenesisPulse, nil
-		}
-	})
+	accessor.LatestTimeBeatMock.Return(pulsestor.GenesisPulse, nil)
 
 	runner := Runner{
 		AvailabilityChecker: checker,
 		PulseAccessor:       accessor,
 		SeedManager:         seedmanager.New(),
-		SeedGenerator:       seedmanager.SeedGenerator{},
+		SeedGenerator:       seedmanager.RandomSeedGenerator,
 	}
 	s := NewNodeService(&runner)
 	defer runner.SeedManager.Stop()
@@ -84,15 +72,18 @@ func TestNodeService_GetSeed(t *testing.T) {
 	})
 	t.Run("pulse not found", func(t *testing.T) {
 		availableFlag = true
-		pulseError = 1
+		accessor.LatestTimeBeatMock.Return(beat.Beat{}, errors.New("some error"))
 
 		err := s.GetSeed(&http.Request{}, &SeedArgs{}, &body, &requester.SeedReply{})
 		require.Error(t, err)
 		require.Equal(t, ServiceUnavailableErrorMessage, err.Error())
 	})
+
 	t.Run("pulse internal error", func(t *testing.T) {
 		availableFlag = true
-		pulseError = 2
+		runner.SeedGenerator = func() (seedmanager.Seed, error) {
+			return seedmanager.Seed{}, errors.New("another error")
+		}
 
 		err := s.GetSeed(&http.Request{}, &SeedArgs{}, &body, &requester.SeedReply{})
 		require.Error(t, err)
@@ -104,6 +95,6 @@ func TestNodeService_GetSeed(t *testing.T) {
 		data, ok := res.Data.(requester.Data)
 		require.True(t, ok)
 
-		require.Equal(t, []string{"couldn't receive pulse", "fake error"}, data.Trace)
+		require.Equal(t, []string{"another error"}, data.Trace)
 	})
 }

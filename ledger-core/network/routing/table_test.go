@@ -6,30 +6,18 @@
 package routing
 
 import (
-	"strconv"
 	"testing"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
-	"github.com/insolar/assured-ledger/ledger-core/appctl/beat/memstor"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
-	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/censusimpl"
-	"github.com/insolar/assured-ledger/ledger-core/pulse"
-	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/common/endpoints"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/network/mutable"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-func newNode(ref reference.Global, id int) *mutable.Node {
-	address := "127.0.0.1:" + strconv.Itoa(id)
-	result := mutable.NewTestNode(ref, member.PrimaryRoleUnknown, address)
-	result.SetShortID(node.ShortNodeID(id))
-	return result
-}
 
 func TestTable_Resolve(t *testing.T) {
 	table := Table{}
@@ -38,14 +26,28 @@ func TestTable_Resolve(t *testing.T) {
 
 	vf := cryptkit.NewSignatureVerifierFactoryMock(t)
 	vf.CreateSignatureVerifierWithPKSMock.Return(nil)
-	pop := censusimpl.NewJoinerPopulation(newNode(refs[0], 123).GetStatic(), vf)
-	na := memstor.NewAccessor(memstor.NewSnapshot(pulse.MinTimePulse, &pop))
+	pop := census.NewOnlinePopulationMock(t)
 
-	nodeKeeperMock := beat.NewNodeKeeperMock(t)
-	nodeKeeperMock.GetNodeSnapshotMock.Return(na)
-	nodeKeeperMock.FindAnyLatestNodeSnapshotMock.Return(na)
+	ip, _ := endpoints.NewIPAddress("127.0.0.1:123")
+	ep := endpoints.NewOutboundMock(t)
+	ep.GetIPAddressMock.Return(ip)
 
-	table.NodeKeeper = nodeKeeperMock
+	nds := profiles.NewStaticProfileMock(t)
+	nds.GetDefaultEndpointMock.Return(ep)
+
+	nd := profiles.NewActiveNodeMock(t)
+	nd.GetNodeIDMock.Return(123)
+	nd.GetStaticMock.Return(nds)
+
+	snap := beat.NewNodeSnapshotMock(t)
+	snap.GetPopulationMock.Return(pop)
+	snap.FindNodeByRefMock.When(refs[0]).Then(nd)
+	snap.FindNodeByRefMock.When(refs[1]).Then(nil)
+
+	nodeKeeperMock := beat.NewAppenderMock(t)
+	nodeKeeperMock.FindAnyLatestNodeSnapshotMock.Return(snap)
+
+	table.PulseHistory = nodeKeeperMock
 
 	h, err := table.Resolve(refs[0])
 	require.NoError(t, err)

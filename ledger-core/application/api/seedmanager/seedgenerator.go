@@ -17,17 +17,13 @@ const SeedSize uint = 32
 // Seed is a type of seed
 type Seed = [SeedSize]byte
 
-// SeedGenerator holds logic with seed generation
-type SeedGenerator struct {
-}
+type SeedGeneratorFunc = func () (Seed, error)
 
-// Next returns next random seed
-func (sg *SeedGenerator) Next() (*Seed, error) {
+func RandomSeedGenerator() (Seed, error) {
 	seed := Seed{}
 	_, err := rand.Read(seed[:])
 	if err != nil {
-		return nil, errors.W(err, "failed to get next seed")
+		return Seed{}, errors.W(err, "failed to get next seed")
 	}
-
-	return &seed, nil
+	return seed, nil
 }
