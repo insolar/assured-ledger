@@ -12,12 +12,12 @@ import (
 
 	"go.opencensus.io/stats"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/instracer"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
-	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/proofs"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet/types"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
@@ -146,17 +146,17 @@ func (g *Complete) EphemeralMode(census.OnlinePopulation) bool {
 	return false
 }
 
-func (g *Complete) UpdateState(ctx context.Context, pulseNumber pulse.Number, isTimePulse bool, nodes census.OnlinePopulation, csh proofs.CloudStateHash) {
+func (g *Complete) UpdateState(ctx context.Context, beat beat.Beat) {
 
-	if _, err := rules.CheckMajorityRule(g.CertificateManager.GetCertificate(), nodes); err != nil {
+	if _, err := rules.CheckMajorityRule(g.CertificateManager.GetCertificate(), beat.Online); err != nil {
 		g.FailState(ctx, err.Error())
 	}
 
-	if err := rules.CheckMinRole(g.CertificateManager.GetCertificate(), nodes); err != nil { // Return error
+	if err := rules.CheckMinRole(g.CertificateManager.GetCertificate(), beat.Online); err != nil { // Return error
 		g.FailState(ctx, err.Error())
 	}
 
-	g.Base.UpdateState(ctx, pulseNumber, isTimePulse, nodes, csh)
+	g.Base.UpdateState(ctx, beat)
 }
 
 func (g *Complete) RequestNodeState(fn chorus.NodeStateFunc) {

@@ -20,9 +20,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
-	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
-	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/proofs"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/serialization"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -170,6 +168,6 @@ func (p consensusProxy) ChangeBeat(ctx context.Context, _ api.UpstreamReport, ne
 	p.Gatewayer.Gateway().OnPulseFromConsensus(ctx, newPulse)
 }
 
-func (p consensusProxy) UpdateState(ctx context.Context, pulseNumber pulse.Number, isTimePulse bool, nodes census.OnlinePopulation, csh proofs.CloudStateHash) {
-	p.Gatewayer.Gateway().UpdateState(ctx, pulseNumber, isTimePulse, nodes, csh)
+func (p consensusProxy) UpdateState(ctx context.Context, beat beat.Beat) {
+	p.Gatewayer.Gateway().UpdateState(ctx, beat)
 }

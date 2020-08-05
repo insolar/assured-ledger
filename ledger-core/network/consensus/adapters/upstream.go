@@ -17,7 +17,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
-	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/proofs"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/censusimpl"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
@@ -35,7 +34,7 @@ type BeatChanger interface {
 }
 
 type StateUpdater interface {
-	UpdateState(ctx context.Context, pulseNumber pulse.Number, isTimePulse bool, nodes census.OnlinePopulation, csh proofs.CloudStateHash)
+	UpdateState(context.Context, beat.Beat)
 }
 
 type UpstreamController struct {
@@ -74,9 +73,11 @@ func (u *UpstreamController) ConsensusFinished(report api.UpstreamReport, expect
 	}
 
 	_, pd := expectedCensus.GetNearestPulseData()
-	isTimePulse := pd.IsFromPulsar()
-
-	u.stateUpdater.UpdateState(ctx, report.PulseNumber, isTimePulse, population, expectedCensus.GetCloudStateHash())
+	u.stateUpdater.UpdateState(ctx, beat.Beat{
+		BeatSeq:     0,
+		Data:        pd,
+		Online:      population,
+	})
 
 	u.mu.RLock()
 	defer u.mu.RUnlock()

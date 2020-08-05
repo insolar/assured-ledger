@@ -9,10 +9,10 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
 	mm_network "github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
-	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/proofs"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
 
@@ -92,8 +92,8 @@ type GatewayMock struct {
 	beforeRunCounter uint64
 	RunMock          mGatewayMockRun
 
-	funcUpdateState          func(ctx context.Context, n1 pulse.Number, b1 bool, o1 census.OnlinePopulation, c2 proofs.CloudStateHash)
-	inspectFuncUpdateState   func(ctx context.Context, n1 pulse.Number, b1 bool, o1 census.OnlinePopulation, c2 proofs.CloudStateHash)
+	funcUpdateState          func(ctx context.Context, b1 beat.Beat)
+	inspectFuncUpdateState   func(ctx context.Context, b1 beat.Beat)
 	afterUpdateStateCounter  uint64
 	beforeUpdateStateCounter uint64
 	UpdateStateMock          mGatewayMockUpdateState
@@ -2286,14 +2286,11 @@ type GatewayMockUpdateStateExpectation struct {
 // GatewayMockUpdateStateParams contains parameters of the Gateway.UpdateState
 type GatewayMockUpdateStateParams struct {
 	ctx context.Context
-	n1  pulse.Number
-	b1  bool
-	o1  census.OnlinePopulation
-	c2  proofs.CloudStateHash
+	b1  beat.Beat
 }
 
 // Expect sets up expected params for Gateway.UpdateState
-func (mmUpdateState *mGatewayMockUpdateState) Expect(ctx context.Context, n1 pulse.Number, b1 bool, o1 census.OnlinePopulation, c2 proofs.CloudStateHash) *mGatewayMockUpdateState {
+func (mmUpdateState *mGatewayMockUpdateState) Expect(ctx context.Context, b1 beat.Beat) *mGatewayMockUpdateState {
 	if mmUpdateState.mock.funcUpdateState != nil {
 		mmUpdateState.mock.t.Fatalf("GatewayMock.UpdateState mock is already set by Set")
 	}
@@ -2302,7 +2299,7 @@ func (mmUpdateState *mGatewayMockUpdateState) Expect(ctx context.Context, n1 pul
 		mmUpdateState.defaultExpectation = &GatewayMockUpdateStateExpectation{}
 	}
 
-	mmUpdateState.defaultExpectation.params = &GatewayMockUpdateStateParams{ctx, n1, b1, o1, c2}
+	mmUpdateState.defaultExpectation.params = &GatewayMockUpdateStateParams{ctx, b1}
 	for _, e := range mmUpdateState.expectations {
 		if minimock.Equal(e.params, mmUpdateState.defaultExpectation.params) {
 			mmUpdateState.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmUpdateState.defaultExpectation.params)
@@ -2313,7 +2310,7 @@ func (mmUpdateState *mGatewayMockUpdateState) Expect(ctx context.Context, n1 pul
 }
 
 // Inspect accepts an inspector function that has same arguments as the Gateway.UpdateState
-func (mmUpdateState *mGatewayMockUpdateState) Inspect(f func(ctx context.Context, n1 pulse.Number, b1 bool, o1 census.OnlinePopulation, c2 proofs.CloudStateHash)) *mGatewayMockUpdateState {
+func (mmUpdateState *mGatewayMockUpdateState) Inspect(f func(ctx context.Context, b1 beat.Beat)) *mGatewayMockUpdateState {
 	if mmUpdateState.mock.inspectFuncUpdateState != nil {
 		mmUpdateState.mock.t.Fatalf("Inspect function is already set for GatewayMock.UpdateState")
 	}
@@ -2337,7 +2334,7 @@ func (mmUpdateState *mGatewayMockUpdateState) Return() *GatewayMock {
 }
 
 //Set uses given function f to mock the Gateway.UpdateState method
-func (mmUpdateState *mGatewayMockUpdateState) Set(f func(ctx context.Context, n1 pulse.Number, b1 bool, o1 census.OnlinePopulation, c2 proofs.CloudStateHash)) *GatewayMock {
+func (mmUpdateState *mGatewayMockUpdateState) Set(f func(ctx context.Context, b1 beat.Beat)) *GatewayMock {
 	if mmUpdateState.defaultExpectation != nil {
 		mmUpdateState.mock.t.Fatalf("Default expectation is already set for the Gateway.UpdateState method")
 	}
@@ -2351,15 +2348,15 @@ func (mmUpdateState *mGatewayMockUpdateState) Set(f func(ctx context.Context, n1
 }
 
 // UpdateState implements network.Gateway
-func (mmUpdateState *GatewayMock) UpdateState(ctx context.Context, n1 pulse.Number, b1 bool, o1 census.OnlinePopulation, c2 proofs.CloudStateHash) {
+func (mmUpdateState *GatewayMock) UpdateState(ctx context.Context, b1 beat.Beat) {
 	mm_atomic.AddUint64(&mmUpdateState.beforeUpdateStateCounter, 1)
 	defer mm_atomic.AddUint64(&mmUpdateState.afterUpdateStateCounter, 1)
 
 	if mmUpdateState.inspectFuncUpdateState != nil {
-		mmUpdateState.inspectFuncUpdateState(ctx, n1, b1, o1, c2)
+		mmUpdateState.inspectFuncUpdateState(ctx, b1)
 	}
 
-	mm_params := &GatewayMockUpdateStateParams{ctx, n1, b1, o1, c2}
+	mm_params := &GatewayMockUpdateStateParams{ctx, b1}
 
 	// Record call args
 	mmUpdateState.UpdateStateMock.mutex.Lock()
@@ -2376,7 +2373,7 @@ func (mmUpdateState *GatewayMock) UpdateState(ctx context.Context, n1 pulse.Numb
 	if mmUpdateState.UpdateStateMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmUpdateState.UpdateStateMock.defaultExpectation.Counter, 1)
 		mm_want := mmUpdateState.UpdateStateMock.defaultExpectation.params
-		mm_got := GatewayMockUpdateStateParams{ctx, n1, b1, o1, c2}
+		mm_got := GatewayMockUpdateStateParams{ctx, b1}
 		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
 			mmUpdateState.t.Errorf("GatewayMock.UpdateState got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
@@ -2385,10 +2382,10 @@ func (mmUpdateState *GatewayMock) UpdateState(ctx context.Context, n1 pulse.Numb
 
 	}
 	if mmUpdateState.funcUpdateState != nil {
-		mmUpdateState.funcUpdateState(ctx, n1, b1, o1, c2)
+		mmUpdateState.funcUpdateState(ctx, b1)
 		return
 	}
-	mmUpdateState.t.Fatalf("Unexpected call to GatewayMock.UpdateState. %v %v %v %v %v", ctx, n1, b1, o1, c2)
+	mmUpdateState.t.Fatalf("Unexpected call to GatewayMock.UpdateState. %v %v", ctx, b1)
 
 }
 

@@ -30,13 +30,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles"
-	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/proofs"
 	"github.com/insolar/assured-ledger/ledger-core/network/gateway"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeset"
 	"github.com/insolar/assured-ledger/ledger-core/network/transport"
-	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/network/mutable"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
@@ -387,12 +385,12 @@ type stateUpdater struct {
 	nodeKeeper beat.NodeKeeper
 }
 
-func (su *stateUpdater) UpdateState(ctx context.Context, pulseNumber pulse.Number, isTimePulse bool, nodes census.OnlinePopulation, _ proofs.CloudStateHash) {
+func (su *stateUpdater) UpdateState(ctx context.Context, beat beat.Beat) {
 	inslogger.FromContext(ctx).Info(">>>>>> Update state called")
 
-	su.nodeKeeper.SetExpectedPopulation(ctx, pulseNumber, nodes)
-	if !isTimePulse {
-		su.nodeKeeper.AddActivePopulation(ctx, pulseNumber, nodes)
+	su.nodeKeeper.SetExpectedPopulation(ctx, beat.PulseNumber, beat.Online)
+	if !beat.IsFromPulsar() {
+		su.nodeKeeper.AddActivePopulation(ctx, beat.PulseNumber, beat.Online)
 	}
 }
 

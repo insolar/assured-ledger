@@ -15,7 +15,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
-	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/proofs"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/host"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet/types"
@@ -120,7 +119,7 @@ type Gateway interface {
 	OnPulseFromConsensus(context.Context, NetworkedPulse)
 	OnConsensusFinished(context.Context, Report)
 
-	UpdateState(context.Context, pulse.Number, bool, census.OnlinePopulation, proofs.CloudStateHash)
+	UpdateState(context.Context, beat.Beat)
 
 	RequestNodeState(chorus.NodeStateFunc)
 	CancelNodeState()

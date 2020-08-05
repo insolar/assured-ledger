@@ -18,7 +18,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
-	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/proofs"
 	transport2 "github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/transport"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
@@ -249,10 +248,10 @@ func (g *Base) OnPulseFromConsensus(ctx context.Context, pu beat.Beat) {
 }
 
 // UpdateState called then Consensus done
-func (g *Base) UpdateState(ctx context.Context, pn pulse.Number, isTimePulse bool, nodes census.OnlinePopulation, _ proofs.CloudStateHash) {
-	g.NodeKeeper.SetExpectedPopulation(ctx, pn, nodes)
-	if !isTimePulse {
-		g.NodeKeeper.AddActivePopulation(ctx, pn, nodes)
+func (g *Base) UpdateState(ctx context.Context, beat beat.Beat) {
+	g.NodeKeeper.SetExpectedPopulation(ctx, beat.PulseNumber, beat.Online)
+	if !beat.IsFromPulsar() {
+		g.NodeKeeper.AddActivePopulation(ctx, beat.PulseNumber, beat.Online)
 	}
 }
 

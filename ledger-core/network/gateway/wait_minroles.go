@@ -8,9 +8,8 @@ package gateway
 import (
 	"context"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/network"
-	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
-	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/proofs"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/rules"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -36,12 +35,12 @@ func (g *WaitMinRoles) Run(ctx context.Context, pulse pulse.Data) {
 	}
 }
 
-func (g *WaitMinRoles) UpdateState(ctx context.Context, pulseNumber pulse.Number, isTimePulse bool, nodes census.OnlinePopulation, csh proofs.CloudStateHash) {
-	if _, err := rules.CheckMajorityRule(g.CertificateManager.GetCertificate(), nodes); err != nil {
+func (g *WaitMinRoles) UpdateState(ctx context.Context, beat beat.Beat) {
+	if _, err := rules.CheckMajorityRule(g.CertificateManager.GetCertificate(), beat.Online); err != nil {
 		g.FailState(ctx, err.Error())
 	}
 
-	g.Base.UpdateState(ctx, pulseNumber, isTimePulse, nodes, csh)
+	g.Base.UpdateState(ctx, beat)
 }
 
 // deprecated // improve
