@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat/memstor"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/censusimpl"
@@ -21,8 +22,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/insolar/assured-ledger/ledger-core/network/nodeset"
 )
 
 func newNode(ref reference.Global, id int) *mutable.Node {
@@ -40,7 +39,7 @@ func TestTable_Resolve(t *testing.T) {
 	vf := cryptkit.NewSignatureVerifierFactoryMock(t)
 	vf.CreateSignatureVerifierWithPKSMock.Return(nil)
 	pop := censusimpl.NewJoinerPopulation(newNode(refs[0], 123).GetStatic(), vf)
-	na := nodeset.NewAccessor(nodeset.NewSnapshot(pulse.MinTimePulse, &pop))
+	na := memstor.NewAccessor(memstor.NewSnapshot(pulse.MinTimePulse, &pop))
 
 	nodeKeeperMock := beat.NewNodeKeeperMock(t)
 	nodeKeeperMock.GetAccessorMock.Return(na)

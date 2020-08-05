@@ -32,7 +32,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/censusimpl"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
-	"github.com/insolar/assured-ledger/ledger-core/network/nodeset"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
@@ -555,7 +554,7 @@ func (s *testSuite) preInitNode(nd *networkNode) {
 	certManager, cryptographyService := s.initCrypto(nd)
 
 	certificate := certManager.GetCertificate()
-	realKeeper := nodeset.NewNodeKeeper(certificate.GetNodeRef(), certificate.GetRole())
+	realKeeper := memstor.NewNodeKeeper(certificate.GetNodeRef(), certificate.GetRole())
 
 	keyProc := platformpolicy.NewKeyProcessor()
 

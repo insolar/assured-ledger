@@ -11,10 +11,10 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat/memstor"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
-	"github.com/insolar/assured-ledger/ledger-core/network/nodeset"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/component-manager"
@@ -78,7 +78,7 @@ func (n *ServiceNetwork) Init(ctx context.Context) error {
 
 	cert := n.CertificateManager.GetCertificate()
 
-	nodeNetwork, err := nodeset.NewNodeNetwork(n.cfg.Host.Transport, cert)
+	nodeNetwork, err := memstor.NewNodeNetwork(n.cfg.Host.Transport, cert)
 	if err != nil {
 		return errors.W(err, "failed to create NodeNetwork")
 	}
@@ -96,7 +96,7 @@ func (n *ServiceNetwork) Init(ctx context.Context) error {
 		nodeNetwork,
 		controller.NewRPCController(options),
 		bootstrap.NewRequester(options),
-		nodeset.NewMemoryStorage(),
+		memstor.NewMemoryStorage(),
 		n.BaseGateway,
 		n.Gatewayer,
 		termination.NewHandler(n),
