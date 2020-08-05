@@ -1,0 +1,124 @@
+// Copyright 2020 Insolar Network Ltd.
+// All rights reserved.
+// This material is licensed under the Insolar License version 1.0,
+// available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
+
+package benchs
+
+import (
+	"context"
+	"fmt"
+	"math/rand"
+	"testing"
+	"time"
+
+	"github.com/neilotoole/errgroup"
+	"github.com/paulbellamy/ratecounter"
+
+	"github.com/insolar/assured-ledger/ledger-core/application/testutils/launchnet"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
+)
+
+func BenchmarkSinglePulse(b *testing.B) {
+	instestlogger.SetTestOutput(b)
+
+	for numNodes := 2; numNodes <= 5; numNodes++ {
+		b.Run(fmt.Sprintf("Nodes %d", numNodes), func(b *testing.B) {
+
+			res := launchnet.CustomRunWithoutPulsar(numNodes, 0, 0, func(apiAddresses []string) int {
+				setAPIAddresses(apiAddresses)
+
+				wallets := make([]string, 0, 1000)
+				for i := 0; i < 1000; i++ {
+					wallet, err := createSimpleWallet()
+					if err != nil {
+						return 2
+					}
+					wallets = append(wallets, wallet)
+				}
+
+				res := runGetBench(wallets)
+				if res != nil {
+					return 2
+				}
+				res = runSetBench(wallets)
+				if res != nil {
+					return 2
+				}
+				return 0
+			})
+
+			if res != 0 {
+				b.Error("network run failed")
+				b.Fatal("failed test run")
+			}
+		})
+	}
+}
+
+func runGetBench(wallets []string) error {
+	// default Parallelism will be equal to NumCPU
+	g, _ := errgroup.WithContext(context.Background())
+
+	counter := ratecounter.NewRateCounter(60 * time.Second)
+	timingCounter := ratecounter.NewAvgRateCounter(60 * time.Second)
+	startBench := time.Now()
+
+	for i := 1; i < 10000; i++ {
+		g.Go(func() error {
+			walletRef := wallets[rand.Intn(len(wallets))]
+			getBalanceURL := getURL(walletGetBalancePath, "")
+
+			startTime := time.Now()
+
+			_, err := getWalletBalance(getBalanceURL, walletRef)
+
+			timingCounter.Incr(time.Since(startTime).Nanoseconds())
+			counter.Incr(1)
+			return err
+		})
+	}
+
+	finished := time.Since(startBench)
+	if finished.Seconds() > 60 {
+		finished = 60
+	}
+
+	fmt.Printf("\nget rate %d req/s, avg time %.0f ns\n", counter.Rate()/int64(finished.Seconds()), timingCounter.Rate())
+
+	return g.Wait()
+}
+
+func runSetBench(wallets []string) error {
+	// default Parallelism will be equal to NumCPU
+	g, _ := errgroup.WithContext(context.Background())
+
+	counter := ratecounter.NewRateCounter(60 * time.Second)
+	timingCounter := ratecounter.NewAvgRateCounter(60 * time.Second)
+	startBench := time.Now()
+
+	for i := 1; i < 10000; i++ {
+		g.Go(func() error {
+			walletRef := wallets[rand.Intn(len(wallets))]
+			addAmountURL := getURL(walletAddAmountPath, "")
+
+			startTime := time.Now()
+
+			err := addAmountToWallet(addAmountURL, walletRef, 1000)
+
+			timingCounter.Incr(time.Since(startTime).Nanoseconds())
+			counter.Incr(1)
+
+			return err
+		})
+	}
+
+	finished := time.Since(startBench)
+	if finished.Seconds() > 60 {
+		finished = 60
+	}
+
+	fmt.Printf("\nset rate %d req/s, avg time %.0f ns\n", counter.Rate()/int64(finished.Seconds()), timingCounter.Rate())
+
+	return g.Wait()
+}

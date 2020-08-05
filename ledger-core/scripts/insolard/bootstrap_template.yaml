@@ -15,7 +15,7 @@ pk_shard_count: 10000
 ma_shard_count: 1000
 vesting_pulse_period: 10
 vesting_pulse_step: 10
-majority_rule: 5
+majority_rule: {{ .MajorityRule }}
 min_roles:
   heavy_material: {{ .MinHeavyNodes }}
   virtual: {{ .MinVirtualNodes }}
