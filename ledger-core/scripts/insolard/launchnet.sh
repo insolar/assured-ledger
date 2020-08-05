@@ -59,7 +59,10 @@ export INSOLAR_LOG_FORMATTER=${INSOLAR_LOG_FORMATTER}
 export INSOLAR_LOG_LEVEL=${INSOLAR_LOG_LEVEL}
 { set +x; } 2>/dev/null
 
-NUM_DISCOVERY_NODES=$(sed '/^nodes:/ q' $BOOTSTRAP_TEMPLATE | grep "host:" | grep -v "#" | wc -l | tr -d '[:space:]')
+NUM_DISCOVERY_VIRTUAL_NODES=${NUM_DISCOVERY_VIRTUAL_NODES:-5}
+NUM_DISCOVERY_LIGHT_NODES=${NUM_DISCOVERY_LIGHT_NODES:-0}
+NUM_DISCOVERY_HEAVY_NODES=${NUM_DISCOVERY_HEAVY_NODES:-0}
+NUM_DISCOVERY_NODES=$((NUM_DISCOVERY_VIRTUAL_NODES + NUM_DISCOVERY_LIGHT_NODES + NUM_DISCOVERY_HEAVY_NODES))
 NUM_NODES=$(sed -n '/^nodes:/,$p' $BOOTSTRAP_TEMPLATE | grep "host:" | grep -v "#" | wc -l | tr -d '[:space:]')
 echo "discovery+other nodes: ${NUM_DISCOVERY_NODES}+${NUM_NODES}"
 
@@ -176,7 +179,8 @@ generate_insolard_configs()
 {
     echo "generate configs"
     set -x
-    go run -mod=vendor scripts/generate_insolar_configs.go
+    go run -mod=vendor scripts/generate_insolar_configs.go --num-virtual-nodes="$NUM_DISCOVERY_VIRTUAL_NODES" \
+      --num-light-nodes="$NUM_DISCOVERY_LIGHT_NODES" --num-heavy-nodes="$NUM_DISCOVERY_HEAVY_NODES"
     { set +x; } 2>/dev/null
 }
 

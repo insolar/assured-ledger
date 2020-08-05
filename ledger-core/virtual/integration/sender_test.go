@@ -17,6 +17,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
@@ -138,6 +139,18 @@ func TestVirtual_SenderCheck_With_ExpectedVE(t *testing.T) {
 						server.IncrementPulseAndWaitIdle(ctx)
 
 						testMsg.msg = m
+					case *payload.VFindCallRequest:
+						pulse := server.GetPulse().PulseNumber
+						m.LookAt = pulse
+						m.Callee = gen.UniqueGlobalRefWithPulse(pulse)
+						m.Outgoing = gen.UniqueGlobalRefWithPulse(pulse)
+
+						testMsg.msg = m
+					case *payload.VFindCallResponse:
+						m.LookedAt = server.GetPrevPulse().PulseNumber
+						m.Status = payload.MissingCall
+						m.Callee = reference.NewSelf(gen.UniqueLocalRefWithPulse(m.LookedAt))
+						m.Outgoing = reference.New(gen.UniqueLocalRefWithPulse(m.LookedAt), gen.UniqueLocalRefWithPulse(m.LookedAt))
 					}
 
 					server.SendPayload(ctx, testMsg.msg.(payload.Marshaler)) // default caller == server.GlobalCaller()

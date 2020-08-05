@@ -5,6 +5,8 @@
 
 package payload
 
-type Validatable interface {
-	Validate(currPulse PulseNumber) error
+var _ Validatable = &VCallResult{}
+
+func (m *VCallResult) Validate(_ PulseNumber) error {
+	return nil
 }
