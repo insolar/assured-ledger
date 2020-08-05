@@ -230,8 +230,7 @@ func insertToken(token payload.CallDelegationToken, msg interface{}) {
 type veSetMode int
 
 const (
-	veSetNone veSetMode = iota
-	veSetServer
+	veSetServer veSetMode = iota
 	veSetFake
 	veSetFixed
 )
@@ -426,7 +425,7 @@ func TestDelegationToken_OldVEVDelegatedCallRequest(t *testing.T) {
 			server.Init(ctx)
 
 			var (
-				class       = gen.UniqueGlobalRefWithPulse(server.GetPulse().PulseNumber)
+				objectRef   = gen.UniqueGlobalRefWithPulse(server.GetPulse().PulseNumber)
 				outgoing    = server.BuildRandomOutgoingWithPulse()
 				executorRef = server.RandomGlobalWithPulse()
 				firstPulse  = server.GetPulse()
@@ -443,27 +442,27 @@ func TestDelegationToken_OldVEVDelegatedCallRequest(t *testing.T) {
 				QueryRoleMock.Return([]reference.Global{approver}, nil)
 
 			if test.haveCorrectDT {
-				delegationToken = server.DelegationToken(reference.NewRecordOf(class, outgoing.GetLocal()), executorRef, class)
+				delegationToken = server.DelegationToken(outgoing, executorRef, objectRef)
 			}
 
 			server.IncrementPulse(ctx)
 
 			if test.haveCorrectDT {
-				expectedToken = server.DelegationToken(outgoing, executorRef, class)
+				expectedToken = server.DelegationToken(outgoing, executorRef, objectRef)
 				require.NotEqual(t, delegationToken.PulseNumber, expectedToken.PulseNumber)
 				require.Equal(t, delegationToken.DelegateTo, expectedToken.DelegateTo)
 			}
 
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 			typedChecker.VDelegatedCallResponse.Set(func(response *payload.VDelegatedCallResponse) bool {
-				assert.Equal(t, class, response.Callee)
+				assert.Equal(t, objectRef, response.Callee)
 				assert.Equal(t, expectedToken, response.ResponseDelegationSpec)
 				return false
 			})
 
 			statePl := payload.VStateReport{
 				Status:                      payload.Empty,
-				Object:                      class,
+				Object:                      objectRef,
 				AsOf:                        firstPulse.PulseNumber,
 				OrderedPendingCount:         1,
 				OrderedPendingEarliestPulse: firstPulse.PulseNumber,
@@ -472,7 +471,7 @@ func TestDelegationToken_OldVEVDelegatedCallRequest(t *testing.T) {
 			server.WaitActiveThenIdleConveyor()
 
 			pl := payload.VDelegatedCallRequest{
-				Callee:         class,
+				Callee:         objectRef,
 				CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 				CallOutgoing:   outgoing,
 				DelegationSpec: delegationToken,
