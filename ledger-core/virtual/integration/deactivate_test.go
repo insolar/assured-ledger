@@ -359,7 +359,7 @@ func TestVirtual_CallMethod_On_CompletelyDeactivatedObject(t *testing.T) {
 }
 
 func TestVirtual_CallDeactivate_Intolerable(t *testing.T) {
-	t.Log("C5469")
+	insrail.LogCase(t, "C5469")
 
 	table := []struct {
 		name  string
@@ -475,7 +475,7 @@ func TestVirtual_CallDeactivate_Intolerable(t *testing.T) {
 }
 
 func TestVirtual_DeactivateObject_ChangePulse(t *testing.T) {
-	t.Log("C5461")
+	insrail.LogCase(t, "C5461")
 
 	const (
 		origDirtyMem     = "original dirty memory"
