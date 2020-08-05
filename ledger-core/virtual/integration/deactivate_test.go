@@ -793,6 +793,6 @@ func TestVirtual_CallMethod_After_Deactivation(t *testing.T) {
 	commonTestUtils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 	require.Equal(t, 2, typedChecker.VCallResult.Count())
-	server.Stop()
+
 	mc.Finish()
 }
