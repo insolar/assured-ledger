@@ -378,7 +378,9 @@ type pulseChanger struct {
 
 func (pc *pulseChanger) ChangeBeat(ctx context.Context, report api.UpstreamReport, pu beat.Beat) {
 	inslogger.FromContext(ctx).Info(">>>>>> Change pulse called")
-	pc.nodeKeeper.AddActivePopulation(ctx, pu)
+	if err := pc.nodeKeeper.AddCommittedBeat(pu); err != nil {
+		panic(err)
+	}
 }
 
 type stateUpdater struct {
@@ -388,9 +390,14 @@ type stateUpdater struct {
 func (su *stateUpdater) UpdateState(ctx context.Context, beat beat.Beat) {
 	inslogger.FromContext(ctx).Info(">>>>>> Update state called")
 
-	su.nodeKeeper.SetExpectedPopulation(ctx, beat)
-	if !beat.IsFromPulsar() {
-		su.nodeKeeper.AddActivePopulation(ctx, beat)
+	if err := su.nodeKeeper.AddExpectedBeat(beat); err != nil {
+		panic(err)
+	}
+	if beat.IsFromPulsar() {
+		return
+	}
+	if err := su.nodeKeeper.AddCommittedBeat(beat); err != nil {
+		panic(err)
 	}
 }
 

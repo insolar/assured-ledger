@@ -23,7 +23,7 @@ import (
 // Get returns status info
 func (s *NodeService) GetStatus(r *http.Request, args *interface{}, requestBody *rpc.RequestBody, reply *requester.StatusResponse) error {
 	traceID := trace.RandID()
-	ctx, inslog := inslogger.WithTraceField(context.Background(), traceID)
+	_, inslog := inslogger.WithTraceField(context.Background(), traceID)
 
 	inslog.Infof("[ NodeService.GetStatus ] Incoming request: %s", r.RequestURI)
 	if !s.runner.cfg.IsAdmin {
@@ -59,7 +59,7 @@ func (s *NodeService) GetStatus(r *http.Request, args *interface{}, requestBody 
 
 	reply.NetworkPulseNumber = uint32(statusReply.PulseNumber)
 
-	if p, err := s.runner.PulseAccessor.Latest(ctx); err == nil {
+	if p, err := s.runner.PulseAccessor.LatestTimeBeat(); err == nil {
 		reply.PulseNumber = uint32(p.PulseNumber)
 	} else {
 		reply.PulseNumber = pulse.MinTimePulse

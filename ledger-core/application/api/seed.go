@@ -62,7 +62,7 @@ func (s *NodeService) getSeed(ctx context.Context, _ *http.Request, _ *SeedArgs,
 		return err
 	}
 
-	p, err := s.runner.PulseAccessor.Latest(context.Background())
+	p, err := s.runner.PulseAccessor.LatestTimeBeat()
 	if err != nil {
 		return errors.W(err, "couldn't receive pulse")
 	}

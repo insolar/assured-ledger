@@ -89,7 +89,7 @@ func TestSendMessageHandler_SameNode(t *testing.T) {
 	svcNw.Pub = &PublisherMock{}
 
 	pulseMock := beat.NewAccessorMock(t)
-	pulseMock.LatestMock.Return(pulsestor.GenesisPulse, nil)
+	pulseMock.LatestTimeBeatMock.Return(pulsestor.GenesisPulse, nil)
 
 	p := []byte{1, 2, 3, 4, 5}
 	meta := payload.Meta{
@@ -114,7 +114,7 @@ func TestSendMessageHandler_SendError(t *testing.T) {
 		return nil, throw.New("test error")
 	})
 	pulseMock := beat.NewAccessorMock(t)
-	pulseMock.LatestMock.Return(pulsestor.GenesisPulse, nil)
+	pulseMock.LatestTimeBeatMock.Return(pulsestor.GenesisPulse, nil)
 	svcNw.RPC = rpc
 
 	p := []byte{1, 2, 3, 4, 5}
@@ -140,7 +140,7 @@ func TestSendMessageHandler_WrongReply(t *testing.T) {
 		return nil, nil
 	})
 	pulseMock := beat.NewAccessorMock(t)
-	pulseMock.LatestMock.Return(pulsestor.GenesisPulse, nil)
+	pulseMock.LatestTimeBeatMock.Return(pulsestor.GenesisPulse, nil)
 	svcNw.RPC = rpc
 
 	p := []byte{1, 2, 3, 4, 5}
@@ -166,7 +166,7 @@ func TestSendMessageHandler(t *testing.T) {
 		return ack, nil
 	})
 	pulseMock := beat.NewAccessorMock(t)
-	pulseMock.LatestMock.Return(pulsestor.GenesisPulse, nil)
+	pulseMock.LatestTimeBeatMock.Return(pulsestor.GenesisPulse, nil)
 	svcNw.RPC = rpc
 
 	p := []byte{1, 2, 3, 4, 5}

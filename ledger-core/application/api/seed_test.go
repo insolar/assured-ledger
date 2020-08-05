@@ -45,7 +45,7 @@ func TestNodeService_GetSeed(t *testing.T) {
 	// 0 = false, 1 = pulse.ErrNotFound, 2 = another error
 	pulseError := 0
 	accessor := beat.NewAccessorMock(t)
-	accessor = accessor.LatestMock.Set(func(ctx context.Context) (beat.Beat, error) {
+	accessor = accessor.LatestTimeBeatMock.Set(func() (beat.Beat, error) {
 		switch pulseError {
 		case 1:
 			return beat.Beat{}, memstor.ErrNotFound

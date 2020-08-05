@@ -6,8 +6,6 @@
 package beat
 
 import (
-	"context"
-
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
 
@@ -15,8 +13,8 @@ import (
 
 // Accessor provides methods for accessing pulses.
 type Accessor interface {
-	Of(context.Context, pulse.Number) (Beat, error)
-	Latest(ctx context.Context) (Beat, error)
+	TimeBeat(pulse.Number) (Beat, error)
+	LatestTimeBeat() (Beat, error)
 }
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/appctl/beat.Appender -o ./ -s _mock.go -g
@@ -24,7 +22,7 @@ type Accessor interface {
 // Appender provides method for appending pulses to storage.
 type Appender interface {
 	Accessor
-	Append(ctx context.Context, pulse Beat) error
-	EnsureLatest(ctx context.Context, pulse Beat) error
+	AddCommittedBeat(Beat) error
+	EnsureLatest(Beat) error
 }
 

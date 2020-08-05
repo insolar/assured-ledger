@@ -112,7 +112,7 @@ func TestComplete_GetCert(t *testing.T) {
 	ge = ge.NewGateway(context.Background(), network.CompleteNetworkState)
 	ctx := context.Background()
 
-	pa.LatestMock.Expect(ctx).Return(pulsestor.GenesisPulse, nil)
+	pa.LatestTimeBeatMock.Return(pulsestor.GenesisPulse, nil)
 
 	result, err := ge.Auther().GetCert(ctx, nodeRef)
 	require.NoError(t, err)
@@ -161,7 +161,7 @@ func TestComplete_handler(t *testing.T) {
 
 	ge = ge.NewGateway(context.Background(), network.CompleteNetworkState)
 	ctx := context.Background()
-	pa.LatestMock.Expect(ctx).Return(pulsestor.GenesisPulse, nil)
+	pa.LatestTimeBeatMock.Return(pulsestor.GenesisPulse, nil)
 
 	p := packet.NewReceivedPacket(packet.NewPacket(nil, nil, types.SignCert, 1), nil)
 	p.SetRequest(&packet.SignCertRequest{NodeRef: nodeRef})

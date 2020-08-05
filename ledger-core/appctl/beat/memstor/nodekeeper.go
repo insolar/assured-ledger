@@ -6,24 +6,17 @@
 package memstor
 
 import (
-	"context"
 	"fmt"
 	"sync"
 
-	"go.opencensus.io/stats"
-
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
-
-	"github.com/insolar/assured-ledger/ledger-core/network"
 )
 
 // NewNodeNetwork create active node component
@@ -49,7 +42,7 @@ type nodekeeper struct {
 
 	storage  *MemoryStorage
 	last     beat.NodeAccessor
-	expected int
+	// expected int
 }
 
 func (nk *nodekeeper) GetLocalNodeReference() reference.Holder {
@@ -83,50 +76,31 @@ func (nk *nodekeeper) GetLatestAccessor() beat.NodeAccessor {
 	return nk.last
 }
 
-func (nk *nodekeeper) SetExpectedPopulation(ctx context.Context, beat beat.Beat) {
-	n := beat.Online.GetIndexedCount()
-	inslogger.FromContext(ctx).Debugf("SetExpectedPopulation, nodes: %d", n)
-
-	nk.mutex.Lock()
-	defer nk.mutex.Unlock()
-	nk.expected = n
+func (nk *nodekeeper) AddExpectedBeat(beat.Beat) error {
+	// n := beat.Online.GetIndexedCount()
+	// // inslogger.FromContext(ctx).Debugf("AddExpectedBeat, nodes: %d", n)
+	//
+	// nk.mutex.Lock()
+	// defer nk.mutex.Unlock()
+	// nk.expected = n
+	return nil
 }
 
-func (nk *nodekeeper) AddActivePopulation(ctx context.Context, beat beat.Beat) {
-	before, err := nk.moveSyncToActive(beat.PulseNumber, beat.Online)
-	if err != nil {
-		inslogger.FromContext(ctx).Panic("AddActivePopulation(): ", err.Error())
-	}
-
-	after := beat.Online.GetIndexedCount()
-	if before != after {
-		inslogger.FromContext(ctx).Warnf("[ AddActivePopulation ] New active list confirmed. Active list size: %d -> %d",
-			before, after,
-		)
-	} else {
-		inslogger.FromContext(ctx).Infof("[ AddActivePopulation ] New active list confirmed. Active list size: %d -> %d",
-			before, after,
-		)
-	}
-
-	stats.Record(ctx, network.ActiveNodes.M(int64(after)))
-}
-
-func (nk *nodekeeper) moveSyncToActive(number pulse.Number, population census.OnlinePopulation) (before int, err error) {
-	if nodeinfo.NodeRef(population.GetLocalProfile()) != nk.localRef {
+func (nk *nodekeeper) AddCommittedBeat(beat beat.Beat) error {
+	if nodeinfo.NodeRef(beat.Online.GetLocalProfile()) != nk.localRef {
 		panic(throw.IllegalValue())
 	}
 
 	nk.mutex.Lock()
 	defer nk.mutex.Unlock()
 
-	snapshot := NewSnapshot(number, population)
+	snapshot := NewSnapshot(beat.PulseNumber, beat.Online)
 	accessor := NewAccessor(snapshot)
 
 	if err := nk.storage.Append(snapshot); err != nil {
-		return 0, err
+		return err
 	}
 	nk.last = accessor
 
-	return nk.expected, nil
+	return nil
 }

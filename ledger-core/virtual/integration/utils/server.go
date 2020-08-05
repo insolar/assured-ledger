@@ -257,7 +257,7 @@ func (s *Server) incrementPulse() {
 	s.pulseManager.RequestNodeState(func(api.UpstreamState) {})
 
 	pc := s.GetPulse()
-	if err := s.pulseStorage.Append(context.Background(), pc); err != nil {
+	if err := s.pulseStorage.AddCommittedBeat(pc); err != nil {
 		panic(err)
 	}
 

@@ -163,10 +163,12 @@ func (s *consensusSuite) Setup() {
 			pu := pulsestor.GenesisPulse
 			pu.Online = &pop
 
-			n.serviceNetwork.NodeKeeper.SetExpectedPopulation(context.Background(), pu)
-			n.serviceNetwork.NodeKeeper.AddActivePopulation(context.Background(), pu)
+			err := n.serviceNetwork.NodeKeeper.AddExpectedBeat(pu)
+			require.NoError(s.t, err)
+			err = n.serviceNetwork.NodeKeeper.AddCommittedBeat(pu)
+			require.NoError(s.t, err)
 
-			err := n.serviceNetwork.BaseGateway.PulseAppender.Append(s.ctx, pu)
+			err = n.serviceNetwork.BaseGateway.PulseAppender.AddCommittedBeat(pu)
 			require.NoError(s.t, err)
 			err = n.serviceNetwork.BaseGateway.StartConsensus(s.ctx)
 			require.NoError(s.t, err)
@@ -619,8 +621,10 @@ func (s *testSuite) afterInitNode(nd *networkNode) {
 	pu.Online = &pop
 
 	nodeKeeper := nd.serviceNetwork.BaseGateway.NodeKeeper
-	nodeKeeper.SetExpectedPopulation(context.Background(), pu)
-	nodeKeeper.AddActivePopulation(context.Background(), pu)
+	err := nodeKeeper.AddExpectedBeat(pu)
+	require.NoError(s.t, err)
+	err = nodeKeeper.AddCommittedBeat(pu)
+	require.NoError(s.t, err)
 }
 
 func (s *testSuite) AssertActiveNodesCountDelta(delta int) {

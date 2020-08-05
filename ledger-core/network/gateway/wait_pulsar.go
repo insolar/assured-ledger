@@ -70,7 +70,7 @@ func (g *WaitPulsar) OnPulseFromConsensus(ctx context.Context, pulse network.Net
 		panic(throw.IllegalState())
 	}
 
-	err := g.PulseAppender.Append(ctx, pulse)
+	err := g.PulseAppender.AddCommittedBeat(pulse)
 	if err != nil {
 		inslogger.FromContext(ctx).Panic("failed to append pulse: ", err.Error())
 	}

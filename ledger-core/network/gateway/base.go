@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/insolar/component-manager"
+	"go.opencensus.io/stats"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
@@ -242,17 +243,31 @@ func (g *Base) CancelNodeState() {}
 func (g *Base) OnPulseFromConsensus(ctx context.Context, pu beat.Beat) {
 	g.pulseWatchdog.Reset()
 
-	g.NodeKeeper.AddActivePopulation(ctx, pu)
-	nodes := g.NodeKeeper.GetAccessor(pu.PulseNumber).GetOnlineNodes()
-	inslogger.FromContext(ctx).Debugf("OnPulseFromConsensus: %d : epoch %d : nodes %d", pu.PulseNumber, pu.PulseEpoch, len(nodes))
+	if err := g.NodeKeeper.AddCommittedBeat(pu); err != nil {
+		inslogger.FromContext(ctx).Panic(err)
+	}
+
+	nodeCount := int64(pu.Online.GetIndexedCount())
+	inslogger.FromContext(ctx).Debugf("[ AddCommittedBeat ] Population size: %d", nodeCount)
+	stats.Record(ctx, network.ActiveNodes.M(nodeCount))
+
+	// nodes := g.NodeKeeper.GetAccessor(pu.PulseNumber).GetOnlineNodes()
+	// inslogger.FromContext(ctx).Debugf("OnPulseFromConsensus: %d : epoch %d : nodes %d", pu.PulseNumber, pu.PulseEpoch, len(nodes))
 }
 
-// UpdateState called then Consensus done
-func (g *Base) UpdateState(ctx context.Context, beat beat.Beat) {
-	g.NodeKeeper.SetExpectedPopulation(ctx, beat)
-	if !beat.IsFromPulsar() {
-		g.NodeKeeper.AddActivePopulation(ctx, beat)
+// UpdateState called then Consensus is done
+func (g *Base) UpdateState(ctx context.Context, pu beat.Beat) {
+	err := g.NodeKeeper.AddExpectedBeat(pu)
+	if err == nil && !pu.IsFromPulsar() {
+		err = g.NodeKeeper.AddCommittedBeat(pu)
 	}
+
+	if err != nil {
+		inslogger.FromContext(ctx).Panic(err)
+	}
+
+	nodeCount := int64(pu.Online.GetIndexedCount())
+	inslogger.FromContext(ctx).Debugf("[ AddCommittedBeat ] Population size: %d", nodeCount)
 }
 
 func (g *Base) BeforeRun(ctx context.Context, pulse pulse.Data) {}

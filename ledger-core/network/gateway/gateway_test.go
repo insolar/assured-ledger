@@ -34,7 +34,7 @@ func TestSwitch(t *testing.T) {
 
 	// nodekeeper := testnet.NewNodeKeeperMock(t)
 	nodekeeper := beat.NewNodeKeeperMock(t)
-	nodekeeper.AddActivePopulationMock.Return()
+	nodekeeper.AddCommittedBeatMock.Return(nil)
 	gatewayer := testnet.NewGatewayerMock(t)
 	// pm := mockPulseManager(t)
 
@@ -77,7 +77,7 @@ func TestDumbComplete_GetCert(t *testing.T) {
 	ctx := context.Background()
 
 	nodekeeper := beat.NewNodeKeeperMock(t)
-	nodekeeper.AddActivePopulationMock.Return()
+	nodekeeper.AddCommittedBeatMock.Return(nil)
 
 	gatewayer := testnet.NewGatewayerMock(t)
 

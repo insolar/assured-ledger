@@ -6,8 +6,6 @@
 package beat
 
 import (
-	"context"
-
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles"
@@ -34,8 +32,8 @@ type NodeNetwork interface {
 type NodeKeeper interface {
 	NodeNetwork
 
-	SetExpectedPopulation(context.Context, Beat)
-	AddActivePopulation(context.Context, Beat)
+	AddExpectedBeat(Beat) error
+	AddCommittedBeat(Beat) error
 }
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/appctl/beat.NodeAccessor -s _mock.go -g

@@ -91,7 +91,7 @@ func (s *TestWalletServer) Stop(ctx context.Context) error {
 // NodeReadyMiddleware returns 503 ServiceUnavailable until node is ready
 func (s *TestWalletServer) NodeReadyMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if _, err := s.accessor.Latest(context.Background()); err != nil {
+		if _, err := s.accessor.LatestTimeBeat(); err != nil {
 			w.WriteHeader(http.StatusServiceUnavailable)
 			_, err := w.Write([]byte(`{"error":"node is not ready"}`))
 			if err != nil {

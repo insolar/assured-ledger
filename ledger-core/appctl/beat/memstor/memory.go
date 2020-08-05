@@ -6,7 +6,6 @@
 package memstor
 
 import (
-	"context"
 	"sync"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
@@ -37,41 +36,39 @@ func NewStorageMem() *StorageMem {
 	}
 }
 
-// Of returns pulse for provided Pulse number. If not found, ErrNotFound will be returned.
-func (s *StorageMem) Of(ctx context.Context, pn pulse.Number) (beat.Beat, error) {
+// TimeBeat returns pulse for provided Pulse number. If not found, ErrNotFound will be returned.
+func (s *StorageMem) TimeBeat(pn pulse.Number) (beat.Beat, error) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
 	if node, ok := s.storage[pn]; ok {
 		return node.pulse, nil
 	}
-	return beat.Beat{}, ErrNotFound
+	return beat.Beat{}, throw.WithStack(ErrNotFound)
 }
 
-// Latest returns a latest pulse saved in memory. If not found, ErrNotFound will be returned.
-func (s *StorageMem) Latest(ctx context.Context) (pulse beat.Beat, err error) {
+// LatestTimeBeat returns a latest pulse saved in memory. If not found, ErrNotFound will be returned.
+func (s *StorageMem) LatestTimeBeat() (beat.Beat, error) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
-	if s.tail == nil {
-		err = ErrNotFound
-		return
+	if s.tail != nil {
+		return s.tail.pulse, nil
 	}
-
-	return s.tail.pulse, nil
+	return beat.Beat{}, throw.WithStack(ErrNotFound)
 }
 
-func (s *StorageMem) EnsureLatest(ctx context.Context, pulse beat.Beat) error {
-	switch latest, err := s.Latest(ctx); {
+func (s *StorageMem) EnsureLatest(pulse beat.Beat) error {
+	switch latest, err := s.LatestTimeBeat(); {
 	case err != nil:
 		return err
 	case pulse.Data != latest.Data:
-		return ErrBadPulse
+		return throw.WithStack(ErrBadPulse)
 	}
 	return nil
 }
 
-func (s *StorageMem) Append(_ context.Context, pulse beat.Beat) error {
+func (s *StorageMem) AddCommittedBeat(pulse beat.Beat) error {
 	if !pulse.PulseEpoch.IsTimeEpoch() {
 		panic(throw.IllegalValue())
 	}
@@ -79,40 +76,34 @@ func (s *StorageMem) Append(_ context.Context, pulse beat.Beat) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	var appendTail = func() {
-		oldTail := s.tail
-		newTail := &memNode{
-			prev:  oldTail,
-			pulse: pulse,
-		}
-		oldTail.next = newTail
-		newTail.prev = oldTail
-		s.storage[newTail.pulse.PulseNumber] = newTail
-		s.tail = newTail
-	}
-	var appendHead = func() {
+	if s.head == nil {
 		s.tail = &memNode{
 			pulse: pulse,
 		}
 		s.storage[pulse.PulseNumber] = s.tail
 		s.head = s.tail
-	}
-
-	if s.head == nil {
-		appendHead()
 		return nil
 	}
 
 	if pulse.PulseNumber <= s.tail.pulse.PulseNumber {
-		return ErrBadPulse
+		return throw.WithStack(ErrBadPulse)
 	}
-	appendTail()
+
+	oldTail := s.tail
+	newTail := &memNode{
+		prev:  oldTail,
+		pulse: pulse,
+	}
+	oldTail.next = newTail
+	newTail.prev = oldTail
+	s.storage[newTail.pulse.PulseNumber] = newTail
+	s.tail = newTail
 
 	return nil
 }
 
 // Trim removes oldest pulse from storage. If the storage is empty, an error will be returned.
-func (s *StorageMem) Trim(_ context.Context, pn pulse.Number) (err error) {
+func (s *StorageMem) Trim(pn pulse.Number) (err error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 

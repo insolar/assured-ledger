@@ -181,15 +181,14 @@ func (g *Complete) OnPulseFromConsensus(ctx context.Context, pulse network.Netwo
 	span.SetTag("pulse.Number", int64(pulse.PulseNumber))
 	defer span.Finish()
 
-	err := g.PulseAppender.Append(ctx, pulse)
-	if err != nil {
+	if err := g.PulseAppender.AddCommittedBeat(pulse); err != nil {
 		inslogger.FromContext(ctx).Panic("failed to append pulse: ", err.Error())
 	}
 
-	err = g.PulseManager.CommitPulseChange(pulse)
-	if err != nil {
+	if err := g.PulseManager.CommitPulseChange(pulse); err != nil {
 		logger.Fatalf("Failed to set new pulse: %s", err.Error())
 	}
+
 	logger.Infof("Set new current pulse number: %d", pulse.PulseNumber)
 	stats.Record(ctx, statPulse.M(int64(pulse.PulseNumber)))
 }

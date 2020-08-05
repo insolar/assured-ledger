@@ -96,7 +96,7 @@ func mockNodeNetwork(t *testing.T, nodeList []nodeinfo.DiscoveryNode) *beat.Node
 
 func mockPulseAccessor(t *testing.T) *beat.AccessorMock {
 	pa := beat.NewAccessorMock(t)
-	pa.LatestMock.Return(pulsestor.GenesisPulse, nil)
+	pa.LatestTimeBeatMock.Return(pulsestor.GenesisPulse, nil)
 	return pa
 }
 

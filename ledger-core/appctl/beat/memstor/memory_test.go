@@ -18,7 +18,7 @@ import (
 )
 
 func TestNodeStorage_ForPulseNumber(t *testing.T) {
-	ctx := instestlogger.TestContext(t)
+	instestlogger.SetTestOutput(t)
 
 	pn := gen.PulseNumber()
 	pc := beat.Beat{}
@@ -28,25 +28,25 @@ func TestNodeStorage_ForPulseNumber(t *testing.T) {
 	storage.storage[pn] = &memNode{pulse: pc}
 
 	t.Run("returns error when no Pulse", func(t *testing.T) {
-		res, err := storage.Of(ctx, pc.PulseNumber + 1)
-		assert.Equal(t, ErrNotFound, err)
+		res, err := storage.TimeBeat(pc.PulseNumber + 1)
+		assert.Equal(t, ErrNotFound.Error(), err.Error())
 		assert.Equal(t, beat.Beat{}, res)
 	})
 
 	t.Run("returns correct Pulse", func(t *testing.T) {
-		res, err := storage.Of(ctx, pn)
+		res, err := storage.TimeBeat(pn)
 		assert.NoError(t, err)
 		assert.Equal(t, pc, res)
 	})
 }
 
 func TestNodeStorage_Latest(t *testing.T) {
-	ctx := instestlogger.TestContext(t)
+	instestlogger.SetTestOutput(t)
 
 	t.Run("returns error when no Pulse", func(t *testing.T) {
 		storage := NewStorageMem()
-		res, err := storage.Latest(ctx)
-		assert.Equal(t, ErrNotFound, err)
+		res, err := storage.LatestTimeBeat()
+		assert.Equal(t, ErrNotFound.Error(), err.Error())
 		assert.Equal(t, beat.Beat{}, res)
 	})
 
@@ -56,14 +56,14 @@ func TestNodeStorage_Latest(t *testing.T) {
 		pc := beat.Beat{}
 		pc.PulseNumber = pn
 		storage.tail = &memNode{pulse: pc}
-		res, err := storage.Latest(ctx)
+		res, err := storage.LatestTimeBeat()
 		assert.NoError(t, err)
 		assert.Equal(t, pc, res)
 	})
 }
 
 func TestNodeStorage_Append(t *testing.T) {
-	ctx := instestlogger.TestContext(t)
+	instestlogger.SetTestOutput(t)
 
 	pn := gen.PulseNumber()
 	pc := beat.Beat{}
@@ -73,7 +73,7 @@ func TestNodeStorage_Append(t *testing.T) {
 	t.Run("appends to an empty storage", func(t *testing.T) {
 		storage := NewStorageMem()
 
-		err := storage.Append(ctx, pc)
+		err := storage.AddCommittedBeat(pc)
 		require.NoError(t, err)
 		require.NotNil(t, storage.tail)
 		require.NotNil(t, storage.storage[pc.PulseNumber])
@@ -90,15 +90,15 @@ func TestNodeStorage_Append(t *testing.T) {
 		storage.head = head
 
 		{
-			err := storage.Append(ctx, pc)
-			assert.Equal(t, ErrBadPulse, err)
+			err := storage.AddCommittedBeat(pc)
+			assert.Equal(t, ErrBadPulse.Error(), err.Error())
 		}
 		{
 			pc1 := pc
 			pc1.PulseNumber--
 
-			err := storage.Append(ctx, pc1)
-			assert.Equal(t, ErrBadPulse, err)
+			err := storage.AddCommittedBeat(pc1)
+			assert.Equal(t, ErrBadPulse.Error(), err.Error())
 		}
 	})
 
@@ -112,7 +112,7 @@ func TestNodeStorage_Append(t *testing.T) {
 		pc1 := pc
 		pc1.PulseNumber++
 
-		err := storage.Append(ctx, pc1)
+		err := storage.AddCommittedBeat(pc1)
 		require.NoError(t, err)
 		require.NotNil(t, storage.tail)
 		require.NotNil(t, storage.storage[pc1.PulseNumber])
@@ -129,7 +129,7 @@ func TestNodeStorage_Append(t *testing.T) {
 		pc.PulseEpoch = pc.PulseNumber.AsEpoch()
 
 		for i := 5; i > 0; i-- {
-			err := storage.Append(ctx, pc)
+			err := storage.AddCommittedBeat(pc)
 			require.NoError(t, err)
 			pc.PulseNumber++
 			pc.PulseEpoch++
@@ -157,7 +157,7 @@ func TestNodeStorage_Append(t *testing.T) {
 }
 
 func TestMemoryStorage_Shift(t *testing.T) {
-	ctx := instestlogger.TestContext(t)
+	instestlogger.SetTestOutput(t)
 
 	pn := gen.PulseNumber()
 	pc := beat.Beat{}
@@ -165,7 +165,7 @@ func TestMemoryStorage_Shift(t *testing.T) {
 
 	t.Run("returns error if empty", func(t *testing.T) {
 		storage := NewStorageMem()
-		err := storage.Trim(ctx, pn)
+		err := storage.Trim(pn)
 		assert.Error(t, err)
 	})
 
@@ -176,7 +176,7 @@ func TestMemoryStorage_Shift(t *testing.T) {
 		storage.tail = head
 		storage.head = head
 
-		err := storage.Trim(ctx, pn)
+		err := storage.Trim(pn)
 		assert.NoError(t, err)
 		assert.Nil(t, storage.tail)
 		assert.Nil(t, storage.head)
@@ -197,7 +197,7 @@ func TestMemoryStorage_Shift(t *testing.T) {
 		storage.tail = head
 		storage.head = tail
 
-		err := storage.Trim(ctx, pn)
+		err := storage.Trim(pn)
 		assert.NoError(t, err)
 		assert.Equal(t, storage.tail, storage.head)
 		assert.Equal(t, head, storage.storage[head.pulse.PulseNumber])
@@ -212,13 +212,13 @@ func TestMemoryStorage_Shift(t *testing.T) {
 		pc.PulseEpoch = pc.PulseNumber.AsEpoch()
 
 		for i := 5; i > 0; i-- {
-			err := storage.Append(ctx, pc)
+			err := storage.AddCommittedBeat(pc)
 			require.NoError(t, err)
 			pc.PulseNumber++
 			pc.PulseEpoch++
 		}
 
-		err := storage.Trim(ctx, pulse.MinTimePulse + 2)
+		err := storage.Trim(pulse.MinTimePulse + 2)
 		assert.NoError(t, err)
 		assert.Equal(t, 2, len(storage.storage))
 		_, ok := storage.storage[pulse.MinTimePulse + 3]

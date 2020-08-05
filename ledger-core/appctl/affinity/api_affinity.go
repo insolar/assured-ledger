@@ -6,8 +6,6 @@
 package affinity
 
 import (
-	"context"
-
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
@@ -21,5 +19,5 @@ type Helper interface {
 	Me() reference.Global
 
 	// QueryRole returns node refs responsible for role bound operations for given object and pulse.
-	QueryRole(ctx context.Context, role DynamicRole, obj reference.Holder, pulse pulse.Number) ([]reference.Global, error)
+	QueryRole(role DynamicRole, obj reference.Holder, pulse pulse.Number) ([]reference.Global, error)
 }

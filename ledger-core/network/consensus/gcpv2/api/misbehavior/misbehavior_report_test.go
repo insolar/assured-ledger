@@ -25,7 +25,7 @@ func TestIs(t *testing.T) {
 func TestReportOf(t *testing.T) {
 	// TODO
 	/*r := NewReportMock(t)
-	require.NotNil(t, Of(r))*/
+	require.NotNil(t, TimeBeat(r))*/
 
 	err := errors.New("test")
 	require.Nil(t, Of(err))
