@@ -57,6 +57,8 @@ func BenchmarkSinglePulse(b *testing.B) {
 }
 
 func runGetBench(wallets []string) error {
+	fmt.Println("==== Get run")
+
 	// default Parallelism will be equal to NumCPU
 	g, _ := errgroup.WithContext(context.Background())
 
@@ -64,7 +66,7 @@ func runGetBench(wallets []string) error {
 	timingCounter := ratecounter.NewAvgRateCounter(60 * time.Second)
 	startBench := time.Now()
 
-	for i := 1; i < 10000; i++ {
+	for i := 1; i < 100000; i++ {
 		g.Go(func() error {
 			walletRef := wallets[rand.Intn(len(wallets))]
 			getBalanceURL := getURL(walletGetBalancePath, "")
@@ -80,16 +82,23 @@ func runGetBench(wallets []string) error {
 	}
 
 	finished := time.Since(startBench)
+
+	finished.Round(time.Second)
+
+	fmt.Printf("Run took %d seconds\n", int(finished.Seconds()))
+
 	if finished.Seconds() > 60 {
-		finished = 60
+		finished = 60 * time.Second
 	}
 
-	fmt.Printf("\nget rate %d req/s, avg time %.0f ns\n", counter.Rate()/int64(finished.Seconds()), timingCounter.Rate())
+	fmt.Printf("get rate %d req/s, avg time %.0f ns\n", counter.Rate()/int64(finished.Seconds()), timingCounter.Rate())
 
 	return g.Wait()
 }
 
 func runSetBench(wallets []string) error {
+	fmt.Println("==== Set run")
+
 	// default Parallelism will be equal to NumCPU
 	g, _ := errgroup.WithContext(context.Background())
 
@@ -97,7 +106,7 @@ func runSetBench(wallets []string) error {
 	timingCounter := ratecounter.NewAvgRateCounter(60 * time.Second)
 	startBench := time.Now()
 
-	for i := 1; i < 10000; i++ {
+	for i := 1; i < 100000; i++ {
 		g.Go(func() error {
 			walletRef := wallets[rand.Intn(len(wallets))]
 			addAmountURL := getURL(walletAddAmountPath, "")
@@ -114,11 +123,16 @@ func runSetBench(wallets []string) error {
 	}
 
 	finished := time.Since(startBench)
+
+	finished.Round(time.Second)
+
+	fmt.Printf("Run took %d seconds\n", int(finished.Seconds()))
+
 	if finished.Seconds() > 60 {
-		finished = 60
+		finished = 60 * time.Second
 	}
 
-	fmt.Printf("\nset rate %d req/s, avg time %.0f ns\n", counter.Rate()/int64(finished.Seconds()), timingCounter.Rate())
+	fmt.Printf("set rate %d req/s, avg time %.0f ns\n", counter.Rate()/int64(finished.Seconds()), timingCounter.Rate())
 
 	return g.Wait()
 }
