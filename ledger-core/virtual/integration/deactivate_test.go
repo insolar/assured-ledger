@@ -320,9 +320,9 @@ func TestVirtual_CallMethod_On_DeactivatedDirtyState(t *testing.T) {
 		commonTestUtils.WaitSignalsTimed(t, 10*time.Second, gotResult)
 	}
 
-	////
+	// //
 	// Here object dirty state is deactivated
-	////
+	// //
 
 	{
 		// send call request on deactivated object
@@ -677,5 +677,122 @@ func TestVirtual_DeactivateObject_ChangePulse(t *testing.T) {
 	require.Equal(t, 1, typedChecker.VCallResult.Count())
 
 	server.Stop()
+	mc.Finish()
+}
+
+func TestVirtual_CallMethod_After_Deactivation(t *testing.T) {
+	insrail.LogCase(t, "C5509")
+	defer commonTestUtils.LeakTester(t)
+
+	mc := minimock.NewController(t)
+
+	server, ctx := utils.NewUninitializedServer(nil, t)
+	defer server.Stop()
+
+	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
+		return execution.Request.CallSiteMethod
+	})
+
+	server.ReplaceRunner(runnerMock)
+	server.Init(ctx)
+
+	var (
+		class               = gen.UniqueGlobalRef()
+		objectRef           = reference.NewSelf(server.RandomLocalWithPulse())
+		p1                  = server.GetPulse().PulseNumber
+		deactivateIsolation = contract.MethodIsolation{
+			Interference: contract.CallTolerable,
+			State:        contract.CallDirty,
+		}
+	)
+
+	// Create object
+	{
+		server.IncrementPulseAndWaitIdle(ctx)
+		Method_PrepareObject(ctx, server, payload.Ready, objectRef, p1)
+	}
+
+	outgoingDeactivate := server.BuildRandomOutgoingWithPulse()
+	outgoingSomeMethod := server.BuildRandomOutgoingWithPulse()
+	synchronizeExecution := synchronization.NewPoint(1)
+	twoExecutionEnded := server.Journal.WaitStopOf(&execute.SMExecute{}, 2)
+
+	// mock
+	{
+		descr := descriptor.NewObject(objectRef, server.RandomLocalWithPulse(), class, []byte("deactivate state"), false)
+		requestResult := requestresult.New([]byte("done"), objectRef)
+		requestResult.SetDeactivate(descr)
+
+		objectExecutionMock := runnerMock.AddExecutionMock("Destroy")
+		objectExecutionMock.AddStart(nil, &execution.Update{
+			Type:     execution.OutgoingCall,
+			Outgoing: execution.NewRPCBuilder(server.RandomGlobalWithPulse(), objectRef).Deactivate(),
+		}).AddContinue(
+			func(result []byte) {
+				synchronizeExecution.Synchronize()
+			},
+			&execution.Update{
+				Type:   execution.Done,
+				Result: requestResult,
+			},
+		)
+		runnerMock.AddExecutionClassify("Destroy", deactivateIsolation, nil)
+		runnerMock.AddExecutionClassify("SomeMethod", deactivateIsolation, nil)
+	}
+
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+
+	// Add check
+	{
+		typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
+			require.Equal(t, objectRef, res.Callee)
+			if res.CallOutgoing == outgoingDeactivate {
+				require.Equal(t, []byte("done"), res.ReturnArguments)
+			} else {
+				contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments)
+				require.NoError(t, sysErr)
+				assert.Contains(t, contractErr.Error(), "try to call method on deactivated object")
+				require.Equal(t, outgoingSomeMethod, res.CallOutgoing)
+			}
+			return false
+		})
+	}
+
+	// Deactivate
+	{
+		deactivateRequest := &payload.VCallRequest{
+			CallType:            payload.CTMethod,
+			CallFlags:           payload.BuildCallFlags(deactivateIsolation.Interference, deactivateIsolation.State),
+			Callee:              objectRef,
+			CallSiteDeclaration: class,
+			CallSiteMethod:      "Destroy",
+			CallOutgoing:        outgoingDeactivate,
+			Arguments:           insolar.MustSerialize([]interface{}{}),
+		}
+		server.SendPayload(ctx, deactivateRequest)
+	}
+
+	// vCallRequest
+
+	pl := &payload.VCallRequest{
+		CallType:            payload.CTMethod,
+		CallFlags:           payload.BuildCallFlags(deactivateIsolation.Interference, deactivateIsolation.State),
+		Callee:              objectRef,
+		CallSiteDeclaration: class,
+		CallSiteMethod:      "SomeMethod",
+		CallOutgoing:        outgoingSomeMethod,
+		Arguments:           insolar.MustSerialize([]interface{}{}),
+	}
+
+	commonTestUtils.WaitSignalsTimed(t, 10*time.Second, synchronizeExecution.Wait())
+	server.SendPayload(ctx, pl)
+	time.Sleep(100 * time.Millisecond)
+	synchronizeExecution.WakeUp()
+
+	commonTestUtils.WaitSignalsTimed(t, 10*time.Second, twoExecutionEnded)
+	commonTestUtils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+
+	require.Equal(t, 2, typedChecker.VCallResult.Count())
+
 	mc.Finish()
 }
