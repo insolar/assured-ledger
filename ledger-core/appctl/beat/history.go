@@ -12,12 +12,17 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/appctl/beat.History -o ./ -s _mock.go -g
-
 // History provides methods for accessing pulses.
 type History interface {
 	TimeBeat(pulse.Number) (Beat, error)
 	LatestTimeBeat() (Beat, error)
+	// NodeHistory
+}
+
+type NodeHistory interface {
+	GetNodeSnapshot(pulse.Number) (NodeSnapshot, error)
+	FindAnyLatestNodeSnapshot() NodeSnapshot
+	FindLatestNodeSnapshot() NodeSnapshot
 }
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/appctl/beat.Appender -o ./ -s _mock.go -g

@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat/memstor"
-	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/rpc/v2"
 	"github.com/insolar/rpc/v2/json2"
@@ -64,7 +64,7 @@ func (s *NodeService) getSeed(ctx context.Context, _ *http.Request, _ *SeedArgs,
 
 	p, err := s.runner.PulseAccessor.LatestTimeBeat()
 	if err != nil {
-		return errors.W(err, "couldn't receive pulse")
+		return throw.W(err, "couldn't receive pulse")
 	}
 	s.runner.SeedManager.Add(*seed, p.PulseNumber)
 
@@ -87,7 +87,7 @@ func (s *NodeService) GetSeed(r *http.Request, args *SeedArgs, _ *rpc.RequestBod
 	if !s.runner.AvailabilityChecker.IsAvailable(ctx) {
 		logger.Warn("[ NodeService.getSeed ] API is not available")
 
-		instr.SetError(errors.New(ServiceUnavailableErrorMessage), ServiceUnavailableErrorShort)
+		instr.SetError(throw.New(ServiceUnavailableErrorMessage), ServiceUnavailableErrorShort)
 		return &json2.Error{
 			Code:    ServiceUnavailableError,
 			Message: ServiceUnavailableErrorMessage,
@@ -102,7 +102,7 @@ func (s *NodeService) GetSeed(r *http.Request, args *SeedArgs, _ *rpc.RequestBod
 		if strings.Contains(err.Error(), memstor.ErrNotFound.Error()) {
 			logger.Warn("[ NodeService.getSeed ] failed to execute: ", err.Error())
 
-			instr.SetError(errors.New(ServiceUnavailableErrorMessage), ServiceUnavailableErrorShort)
+			instr.SetError(throw.New(ServiceUnavailableErrorMessage), ServiceUnavailableErrorShort)
 			return &json2.Error{
 				Code:    ServiceUnavailableError,
 				Message: ServiceUnavailableErrorMessage,

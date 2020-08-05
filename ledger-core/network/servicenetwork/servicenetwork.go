@@ -165,8 +165,8 @@ func (n *ServiceNetwork) GetNodeSnapshot(p pulse.Number) beat.NodeSnapshot {
 	return n.NodeKeeper.GetNodeSnapshot(p)
 }
 
-func (n *ServiceNetwork) GetAnyLatestNodeSnapshot() beat.NodeSnapshot {
-	return n.NodeKeeper.GetAnyLatestNodeSnapshot()
+func (n *ServiceNetwork) FindAnyLatestNodeSnapshot() beat.NodeSnapshot {
+	return n.NodeKeeper.FindAnyLatestNodeSnapshot()
 }
 
 func (n *ServiceNetwork) GetCert(ctx context.Context, ref reference.Global) (nodeinfo.Certificate, error) {

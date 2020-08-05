@@ -148,7 +148,7 @@ func (s *consensusSuite) Setup() {
 	if UseFakeBootstrap {
 		bnodes := make([]profiles.StaticProfile, 0)
 		for _, n := range s.bootstrapNodes {
-			o := n.serviceNetwork.NodeKeeper.GetAnyLatestNodeSnapshot().GetPopulation().GetLocalProfile()
+			o := n.serviceNetwork.NodeKeeper.FindAnyLatestNodeSnapshot().GetPopulation().GetLocalProfile()
 			sdg := nodeinfo.NodeSignedDigest(o)
 			require.NotNil(s.t, sdg)
 			require.NotEmpty(s.t, sdg.GetSignatureHolder().AsByteString())
@@ -474,11 +474,11 @@ func incrementTestPort() int {
 }
 
 func (n *networkNode) GetActiveNodes() []nodeinfo.NetworkNode {
-	return n.serviceNetwork.NodeKeeper.GetAnyLatestNodeSnapshot().GetPopulation().GetProfiles()
+	return n.serviceNetwork.NodeKeeper.FindAnyLatestNodeSnapshot().GetPopulation().GetProfiles()
 }
 
 func (n *networkNode) GetWorkingNodeCount() int {
-	pop := n.serviceNetwork.NodeKeeper.GetAnyLatestNodeSnapshot().GetPopulation()
+	pop := n.serviceNetwork.NodeKeeper.FindAnyLatestNodeSnapshot().GetPopulation()
 	return pop.GetIndexedCount() - pop.GetIdleCount()
 }
 

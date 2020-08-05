@@ -35,10 +35,10 @@ func createBase(mc *minimock.Controller) *Base {
 	ref := gen.UniqueGlobalRef()
 	nk.GetLocalNodeReferenceMock.Return(ref)
 	nk.GetLocalNodeRoleMock.Return(member.PrimaryRoleVirtual)
-	nk.GetAnyLatestNodeSnapshotMock.Return(nil)
+	nk.FindAnyLatestNodeSnapshotMock.Return(nil)
 
 	// avoid errors when these methods were not used
-	nk.GetAnyLatestNodeSnapshot()
+	nk.FindAnyLatestNodeSnapshot()
 	nk.GetLocalNodeReference()
 	nk.GetLocalNodeRole()
 

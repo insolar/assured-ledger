@@ -22,16 +22,7 @@ type NodeNetwork interface {
 	// GetNodeSnapshot get a snapshot of nodes for the given pulse number. Can return expected snapshot as well. Panics on unknown pulse.
 	GetNodeSnapshot(pulse.Number) NodeSnapshot
 	// GetAnyLatestNodeSnapshot returns the latest set of nodes. Will return nil when nothing was added yet.
-	GetAnyLatestNodeSnapshot() NodeSnapshot
+	FindAnyLatestNodeSnapshot() NodeSnapshot
 //	FindLatestNodeSnapshot() NodeSnapshot
-}
-
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/appctl/beat.NodeKeeper -s _mock.go -g
-
-type NodeKeeper interface {
-	NodeNetwork
-
-	AddExpectedBeat(Beat) error
-	AddCommittedBeat(Beat) error
 }
 

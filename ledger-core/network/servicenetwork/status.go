@@ -21,7 +21,7 @@ func (n *ServiceNetwork) GetNetworkStatus() network.StatusReply {
 	reply.LocalRef = n.NodeKeeper.GetLocalNodeReference()
 	reply.LocalRole = n.NodeKeeper.GetLocalNodeRole()
 
-	na := n.NodeKeeper.GetAnyLatestNodeSnapshot()
+	na := n.NodeKeeper.FindAnyLatestNodeSnapshot()
 
 	if na != nil {
 		reply.PulseNumber = na.GetPulseNumber()

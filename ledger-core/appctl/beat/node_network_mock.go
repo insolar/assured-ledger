@@ -17,11 +17,11 @@ import (
 type NodeNetworkMock struct {
 	t minimock.Tester
 
-	funcGetAnyLatestNodeSnapshot          func() (n1 NodeSnapshot)
-	inspectFuncGetAnyLatestNodeSnapshot   func()
-	afterGetAnyLatestNodeSnapshotCounter  uint64
-	beforeGetAnyLatestNodeSnapshotCounter uint64
-	GetAnyLatestNodeSnapshotMock          mNodeNetworkMockGetAnyLatestNodeSnapshot
+	funcFindAnyLatestNodeSnapshot          func() (n1 NodeSnapshot)
+	inspectFuncFindAnyLatestNodeSnapshot   func()
+	afterFindAnyLatestNodeSnapshotCounter  uint64
+	beforeFindAnyLatestNodeSnapshotCounter uint64
+	FindAnyLatestNodeSnapshotMock          mNodeNetworkMockFindAnyLatestNodeSnapshot
 
 	funcGetLocalNodeReference          func() (h1 reference.Holder)
 	inspectFuncGetLocalNodeReference   func()
@@ -49,7 +49,7 @@ func NewNodeNetworkMock(t minimock.Tester) *NodeNetworkMock {
 		controller.RegisterMocker(m)
 	}
 
-	m.GetAnyLatestNodeSnapshotMock = mNodeNetworkMockGetAnyLatestNodeSnapshot{mock: m}
+	m.FindAnyLatestNodeSnapshotMock = mNodeNetworkMockFindAnyLatestNodeSnapshot{mock: m}
 
 	m.GetLocalNodeReferenceMock = mNodeNetworkMockGetLocalNodeReference{mock: m}
 
@@ -61,146 +61,146 @@ func NewNodeNetworkMock(t minimock.Tester) *NodeNetworkMock {
 	return m
 }
 
-type mNodeNetworkMockGetAnyLatestNodeSnapshot struct {
+type mNodeNetworkMockFindAnyLatestNodeSnapshot struct {
 	mock               *NodeNetworkMock
-	defaultExpectation *NodeNetworkMockGetAnyLatestNodeSnapshotExpectation
-	expectations       []*NodeNetworkMockGetAnyLatestNodeSnapshotExpectation
+	defaultExpectation *NodeNetworkMockFindAnyLatestNodeSnapshotExpectation
+	expectations       []*NodeNetworkMockFindAnyLatestNodeSnapshotExpectation
 }
 
-// NodeNetworkMockGetAnyLatestNodeSnapshotExpectation specifies expectation struct of the NodeNetwork.GetAnyLatestNodeSnapshot
-type NodeNetworkMockGetAnyLatestNodeSnapshotExpectation struct {
+// NodeNetworkMockFindAnyLatestNodeSnapshotExpectation specifies expectation struct of the NodeNetwork.FindAnyLatestNodeSnapshot
+type NodeNetworkMockFindAnyLatestNodeSnapshotExpectation struct {
 	mock *NodeNetworkMock
 
-	results *NodeNetworkMockGetAnyLatestNodeSnapshotResults
+	results *NodeNetworkMockFindAnyLatestNodeSnapshotResults
 	Counter uint64
 }
 
-// NodeNetworkMockGetAnyLatestNodeSnapshotResults contains results of the NodeNetwork.GetAnyLatestNodeSnapshot
-type NodeNetworkMockGetAnyLatestNodeSnapshotResults struct {
+// NodeNetworkMockFindAnyLatestNodeSnapshotResults contains results of the NodeNetwork.FindAnyLatestNodeSnapshot
+type NodeNetworkMockFindAnyLatestNodeSnapshotResults struct {
 	n1 NodeSnapshot
 }
 
-// Expect sets up expected params for NodeNetwork.GetAnyLatestNodeSnapshot
-func (mmGetAnyLatestNodeSnapshot *mNodeNetworkMockGetAnyLatestNodeSnapshot) Expect() *mNodeNetworkMockGetAnyLatestNodeSnapshot {
-	if mmGetAnyLatestNodeSnapshot.mock.funcGetAnyLatestNodeSnapshot != nil {
-		mmGetAnyLatestNodeSnapshot.mock.t.Fatalf("NodeNetworkMock.GetAnyLatestNodeSnapshot mock is already set by Set")
+// Expect sets up expected params for NodeNetwork.FindAnyLatestNodeSnapshot
+func (mmFindAnyLatestNodeSnapshot *mNodeNetworkMockFindAnyLatestNodeSnapshot) Expect() *mNodeNetworkMockFindAnyLatestNodeSnapshot {
+	if mmFindAnyLatestNodeSnapshot.mock.funcFindAnyLatestNodeSnapshot != nil {
+		mmFindAnyLatestNodeSnapshot.mock.t.Fatalf("NodeNetworkMock.FindAnyLatestNodeSnapshot mock is already set by Set")
 	}
 
-	if mmGetAnyLatestNodeSnapshot.defaultExpectation == nil {
-		mmGetAnyLatestNodeSnapshot.defaultExpectation = &NodeNetworkMockGetAnyLatestNodeSnapshotExpectation{}
+	if mmFindAnyLatestNodeSnapshot.defaultExpectation == nil {
+		mmFindAnyLatestNodeSnapshot.defaultExpectation = &NodeNetworkMockFindAnyLatestNodeSnapshotExpectation{}
 	}
 
-	return mmGetAnyLatestNodeSnapshot
+	return mmFindAnyLatestNodeSnapshot
 }
 
-// Inspect accepts an inspector function that has same arguments as the NodeNetwork.GetAnyLatestNodeSnapshot
-func (mmGetAnyLatestNodeSnapshot *mNodeNetworkMockGetAnyLatestNodeSnapshot) Inspect(f func()) *mNodeNetworkMockGetAnyLatestNodeSnapshot {
-	if mmGetAnyLatestNodeSnapshot.mock.inspectFuncGetAnyLatestNodeSnapshot != nil {
-		mmGetAnyLatestNodeSnapshot.mock.t.Fatalf("Inspect function is already set for NodeNetworkMock.GetAnyLatestNodeSnapshot")
+// Inspect accepts an inspector function that has same arguments as the NodeNetwork.FindAnyLatestNodeSnapshot
+func (mmFindAnyLatestNodeSnapshot *mNodeNetworkMockFindAnyLatestNodeSnapshot) Inspect(f func()) *mNodeNetworkMockFindAnyLatestNodeSnapshot {
+	if mmFindAnyLatestNodeSnapshot.mock.inspectFuncFindAnyLatestNodeSnapshot != nil {
+		mmFindAnyLatestNodeSnapshot.mock.t.Fatalf("Inspect function is already set for NodeNetworkMock.FindAnyLatestNodeSnapshot")
 	}
 
-	mmGetAnyLatestNodeSnapshot.mock.inspectFuncGetAnyLatestNodeSnapshot = f
+	mmFindAnyLatestNodeSnapshot.mock.inspectFuncFindAnyLatestNodeSnapshot = f
 
-	return mmGetAnyLatestNodeSnapshot
+	return mmFindAnyLatestNodeSnapshot
 }
 
-// Return sets up results that will be returned by NodeNetwork.GetAnyLatestNodeSnapshot
-func (mmGetAnyLatestNodeSnapshot *mNodeNetworkMockGetAnyLatestNodeSnapshot) Return(n1 NodeSnapshot) *NodeNetworkMock {
-	if mmGetAnyLatestNodeSnapshot.mock.funcGetAnyLatestNodeSnapshot != nil {
-		mmGetAnyLatestNodeSnapshot.mock.t.Fatalf("NodeNetworkMock.GetAnyLatestNodeSnapshot mock is already set by Set")
+// Return sets up results that will be returned by NodeNetwork.FindAnyLatestNodeSnapshot
+func (mmFindAnyLatestNodeSnapshot *mNodeNetworkMockFindAnyLatestNodeSnapshot) Return(n1 NodeSnapshot) *NodeNetworkMock {
+	if mmFindAnyLatestNodeSnapshot.mock.funcFindAnyLatestNodeSnapshot != nil {
+		mmFindAnyLatestNodeSnapshot.mock.t.Fatalf("NodeNetworkMock.FindAnyLatestNodeSnapshot mock is already set by Set")
 	}
 
-	if mmGetAnyLatestNodeSnapshot.defaultExpectation == nil {
-		mmGetAnyLatestNodeSnapshot.defaultExpectation = &NodeNetworkMockGetAnyLatestNodeSnapshotExpectation{mock: mmGetAnyLatestNodeSnapshot.mock}
+	if mmFindAnyLatestNodeSnapshot.defaultExpectation == nil {
+		mmFindAnyLatestNodeSnapshot.defaultExpectation = &NodeNetworkMockFindAnyLatestNodeSnapshotExpectation{mock: mmFindAnyLatestNodeSnapshot.mock}
 	}
-	mmGetAnyLatestNodeSnapshot.defaultExpectation.results = &NodeNetworkMockGetAnyLatestNodeSnapshotResults{n1}
-	return mmGetAnyLatestNodeSnapshot.mock
+	mmFindAnyLatestNodeSnapshot.defaultExpectation.results = &NodeNetworkMockFindAnyLatestNodeSnapshotResults{n1}
+	return mmFindAnyLatestNodeSnapshot.mock
 }
 
-//Set uses given function f to mock the NodeNetwork.GetAnyLatestNodeSnapshot method
-func (mmGetAnyLatestNodeSnapshot *mNodeNetworkMockGetAnyLatestNodeSnapshot) Set(f func() (n1 NodeSnapshot)) *NodeNetworkMock {
-	if mmGetAnyLatestNodeSnapshot.defaultExpectation != nil {
-		mmGetAnyLatestNodeSnapshot.mock.t.Fatalf("Default expectation is already set for the NodeNetwork.GetAnyLatestNodeSnapshot method")
+//Set uses given function f to mock the NodeNetwork.FindAnyLatestNodeSnapshot method
+func (mmFindAnyLatestNodeSnapshot *mNodeNetworkMockFindAnyLatestNodeSnapshot) Set(f func() (n1 NodeSnapshot)) *NodeNetworkMock {
+	if mmFindAnyLatestNodeSnapshot.defaultExpectation != nil {
+		mmFindAnyLatestNodeSnapshot.mock.t.Fatalf("Default expectation is already set for the NodeNetwork.FindAnyLatestNodeSnapshot method")
 	}
 
-	if len(mmGetAnyLatestNodeSnapshot.expectations) > 0 {
-		mmGetAnyLatestNodeSnapshot.mock.t.Fatalf("Some expectations are already set for the NodeNetwork.GetAnyLatestNodeSnapshot method")
+	if len(mmFindAnyLatestNodeSnapshot.expectations) > 0 {
+		mmFindAnyLatestNodeSnapshot.mock.t.Fatalf("Some expectations are already set for the NodeNetwork.FindAnyLatestNodeSnapshot method")
 	}
 
-	mmGetAnyLatestNodeSnapshot.mock.funcGetAnyLatestNodeSnapshot = f
-	return mmGetAnyLatestNodeSnapshot.mock
+	mmFindAnyLatestNodeSnapshot.mock.funcFindAnyLatestNodeSnapshot = f
+	return mmFindAnyLatestNodeSnapshot.mock
 }
 
-// GetAnyLatestNodeSnapshot implements NodeNetwork
-func (mmGetAnyLatestNodeSnapshot *NodeNetworkMock) GetAnyLatestNodeSnapshot() (n1 NodeSnapshot) {
-	mm_atomic.AddUint64(&mmGetAnyLatestNodeSnapshot.beforeGetAnyLatestNodeSnapshotCounter, 1)
-	defer mm_atomic.AddUint64(&mmGetAnyLatestNodeSnapshot.afterGetAnyLatestNodeSnapshotCounter, 1)
+// FindAnyLatestNodeSnapshot implements NodeNetwork
+func (mmFindAnyLatestNodeSnapshot *NodeNetworkMock) FindAnyLatestNodeSnapshot() (n1 NodeSnapshot) {
+	mm_atomic.AddUint64(&mmFindAnyLatestNodeSnapshot.beforeFindAnyLatestNodeSnapshotCounter, 1)
+	defer mm_atomic.AddUint64(&mmFindAnyLatestNodeSnapshot.afterFindAnyLatestNodeSnapshotCounter, 1)
 
-	if mmGetAnyLatestNodeSnapshot.inspectFuncGetAnyLatestNodeSnapshot != nil {
-		mmGetAnyLatestNodeSnapshot.inspectFuncGetAnyLatestNodeSnapshot()
+	if mmFindAnyLatestNodeSnapshot.inspectFuncFindAnyLatestNodeSnapshot != nil {
+		mmFindAnyLatestNodeSnapshot.inspectFuncFindAnyLatestNodeSnapshot()
 	}
 
-	if mmGetAnyLatestNodeSnapshot.GetAnyLatestNodeSnapshotMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmGetAnyLatestNodeSnapshot.GetAnyLatestNodeSnapshotMock.defaultExpectation.Counter, 1)
+	if mmFindAnyLatestNodeSnapshot.FindAnyLatestNodeSnapshotMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmFindAnyLatestNodeSnapshot.FindAnyLatestNodeSnapshotMock.defaultExpectation.Counter, 1)
 
-		mm_results := mmGetAnyLatestNodeSnapshot.GetAnyLatestNodeSnapshotMock.defaultExpectation.results
+		mm_results := mmFindAnyLatestNodeSnapshot.FindAnyLatestNodeSnapshotMock.defaultExpectation.results
 		if mm_results == nil {
-			mmGetAnyLatestNodeSnapshot.t.Fatal("No results are set for the NodeNetworkMock.GetAnyLatestNodeSnapshot")
+			mmFindAnyLatestNodeSnapshot.t.Fatal("No results are set for the NodeNetworkMock.FindAnyLatestNodeSnapshot")
 		}
 		return (*mm_results).n1
 	}
-	if mmGetAnyLatestNodeSnapshot.funcGetAnyLatestNodeSnapshot != nil {
-		return mmGetAnyLatestNodeSnapshot.funcGetAnyLatestNodeSnapshot()
+	if mmFindAnyLatestNodeSnapshot.funcFindAnyLatestNodeSnapshot != nil {
+		return mmFindAnyLatestNodeSnapshot.funcFindAnyLatestNodeSnapshot()
 	}
-	mmGetAnyLatestNodeSnapshot.t.Fatalf("Unexpected call to NodeNetworkMock.GetAnyLatestNodeSnapshot.")
+	mmFindAnyLatestNodeSnapshot.t.Fatalf("Unexpected call to NodeNetworkMock.FindAnyLatestNodeSnapshot.")
 	return
 }
 
-// GetAnyLatestNodeSnapshotAfterCounter returns a count of finished NodeNetworkMock.GetAnyLatestNodeSnapshot invocations
-func (mmGetAnyLatestNodeSnapshot *NodeNetworkMock) GetAnyLatestNodeSnapshotAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmGetAnyLatestNodeSnapshot.afterGetAnyLatestNodeSnapshotCounter)
+// FindAnyLatestNodeSnapshotAfterCounter returns a count of finished NodeNetworkMock.FindAnyLatestNodeSnapshot invocations
+func (mmFindAnyLatestNodeSnapshot *NodeNetworkMock) FindAnyLatestNodeSnapshotAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmFindAnyLatestNodeSnapshot.afterFindAnyLatestNodeSnapshotCounter)
 }
 
-// GetAnyLatestNodeSnapshotBeforeCounter returns a count of NodeNetworkMock.GetAnyLatestNodeSnapshot invocations
-func (mmGetAnyLatestNodeSnapshot *NodeNetworkMock) GetAnyLatestNodeSnapshotBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmGetAnyLatestNodeSnapshot.beforeGetAnyLatestNodeSnapshotCounter)
+// FindAnyLatestNodeSnapshotBeforeCounter returns a count of NodeNetworkMock.FindAnyLatestNodeSnapshot invocations
+func (mmFindAnyLatestNodeSnapshot *NodeNetworkMock) FindAnyLatestNodeSnapshotBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmFindAnyLatestNodeSnapshot.beforeFindAnyLatestNodeSnapshotCounter)
 }
 
-// MinimockGetAnyLatestNodeSnapshotDone returns true if the count of the GetAnyLatestNodeSnapshot invocations corresponds
+// MinimockFindAnyLatestNodeSnapshotDone returns true if the count of the FindAnyLatestNodeSnapshot invocations corresponds
 // the number of defined expectations
-func (m *NodeNetworkMock) MinimockGetAnyLatestNodeSnapshotDone() bool {
-	for _, e := range m.GetAnyLatestNodeSnapshotMock.expectations {
+func (m *NodeNetworkMock) MinimockFindAnyLatestNodeSnapshotDone() bool {
+	for _, e := range m.FindAnyLatestNodeSnapshotMock.expectations {
 		if mm_atomic.LoadUint64(&e.Counter) < 1 {
 			return false
 		}
 	}
 
 	// if default expectation was set then invocations count should be greater than zero
-	if m.GetAnyLatestNodeSnapshotMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetAnyLatestNodeSnapshotCounter) < 1 {
+	if m.FindAnyLatestNodeSnapshotMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterFindAnyLatestNodeSnapshotCounter) < 1 {
 		return false
 	}
 	// if func was set then invocations count should be greater than zero
-	if m.funcGetAnyLatestNodeSnapshot != nil && mm_atomic.LoadUint64(&m.afterGetAnyLatestNodeSnapshotCounter) < 1 {
+	if m.funcFindAnyLatestNodeSnapshot != nil && mm_atomic.LoadUint64(&m.afterFindAnyLatestNodeSnapshotCounter) < 1 {
 		return false
 	}
 	return true
 }
 
-// MinimockGetAnyLatestNodeSnapshotInspect logs each unmet expectation
-func (m *NodeNetworkMock) MinimockGetAnyLatestNodeSnapshotInspect() {
-	for _, e := range m.GetAnyLatestNodeSnapshotMock.expectations {
+// MinimockFindAnyLatestNodeSnapshotInspect logs each unmet expectation
+func (m *NodeNetworkMock) MinimockFindAnyLatestNodeSnapshotInspect() {
+	for _, e := range m.FindAnyLatestNodeSnapshotMock.expectations {
 		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Error("Expected call to NodeNetworkMock.GetAnyLatestNodeSnapshot")
+			m.t.Error("Expected call to NodeNetworkMock.FindAnyLatestNodeSnapshot")
 		}
 	}
 
 	// if default expectation was set then invocations count should be greater than zero
-	if m.GetAnyLatestNodeSnapshotMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetAnyLatestNodeSnapshotCounter) < 1 {
-		m.t.Error("Expected call to NodeNetworkMock.GetAnyLatestNodeSnapshot")
+	if m.FindAnyLatestNodeSnapshotMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterFindAnyLatestNodeSnapshotCounter) < 1 {
+		m.t.Error("Expected call to NodeNetworkMock.FindAnyLatestNodeSnapshot")
 	}
 	// if func was set then invocations count should be greater than zero
-	if m.funcGetAnyLatestNodeSnapshot != nil && mm_atomic.LoadUint64(&m.afterGetAnyLatestNodeSnapshotCounter) < 1 {
-		m.t.Error("Expected call to NodeNetworkMock.GetAnyLatestNodeSnapshot")
+	if m.funcFindAnyLatestNodeSnapshot != nil && mm_atomic.LoadUint64(&m.afterFindAnyLatestNodeSnapshotCounter) < 1 {
+		m.t.Error("Expected call to NodeNetworkMock.FindAnyLatestNodeSnapshot")
 	}
 }
 
@@ -708,7 +708,7 @@ func (m *NodeNetworkMock) MinimockGetNodeSnapshotInspect() {
 // MinimockFinish checks that all mocked methods have been called the expected number of times
 func (m *NodeNetworkMock) MinimockFinish() {
 	if !m.minimockDone() {
-		m.MinimockGetAnyLatestNodeSnapshotInspect()
+		m.MinimockFindAnyLatestNodeSnapshotInspect()
 
 		m.MinimockGetLocalNodeReferenceInspect()
 
@@ -738,7 +738,7 @@ func (m *NodeNetworkMock) MinimockWait(timeout mm_time.Duration) {
 func (m *NodeNetworkMock) minimockDone() bool {
 	done := true
 	return done &&
-		m.MinimockGetAnyLatestNodeSnapshotDone() &&
+		m.MinimockFindAnyLatestNodeSnapshotDone() &&
 		m.MinimockGetLocalNodeReferenceDone() &&
 		m.MinimockGetLocalNodeRoleDone() &&
 		m.MinimockGetNodeSnapshotDone()

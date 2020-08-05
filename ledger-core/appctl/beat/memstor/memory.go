@@ -72,7 +72,6 @@ func (s *StorageMem) AddExpectedBeat(beat.Beat) error {
 	return nil
 }
 
-
 func (s *StorageMem) AddCommittedBeat(pulse beat.Beat) error {
 	if !pulse.PulseEpoch.IsTimeEpoch() {
 		panic(throw.IllegalValue())
@@ -132,3 +131,4 @@ func (s *StorageMem) Trim(pn pulse.Number) (err error) {
 
 	return nil
 }
+

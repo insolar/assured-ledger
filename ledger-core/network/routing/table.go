@@ -29,7 +29,7 @@ func (t *Table) resolveRemoteNode(reference.Global) (*host.Host, error) {
 // Resolve NodeID -> ShortID, Address. Can initiate network requests.
 func (t *Table) Resolve(ref reference.Global) (*host.Host, error) {
 	if t.isLocalNode(ref) {
-		na := t.NodeKeeper.GetAnyLatestNodeSnapshot()
+		na := t.NodeKeeper.FindAnyLatestNodeSnapshot()
 		if na == nil {
 			return nil, errors.E("failed to get latest pulse --==-- ")
 		}

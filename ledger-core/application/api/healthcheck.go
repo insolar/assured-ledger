@@ -29,7 +29,7 @@ func (hc *HealthChecker) CheckHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
 
 	ctx := r.Context()
-	na := hc.NodeNetwork.GetAnyLatestNodeSnapshot()
+	na := hc.NodeNetwork.FindAnyLatestNodeSnapshot()
 	if na == nil {
 		inslogger.FromContext(ctx).Error("[ NodeService.GetStatus ] failed to get latest pulse")
 		_, _ = w.Write([]byte("FAIL"))

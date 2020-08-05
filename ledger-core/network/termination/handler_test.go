@@ -30,7 +30,7 @@ type CommonTestSuite struct {
 	ctx           context.Context
 	handler       *Handler
 	leaver        *LeaverMock
-	pulseAccessor *beat.HistoryMock
+	pulseAccessor *beat.AppenderMock
 }
 
 func TestBasics(t *testing.T) {
@@ -41,7 +41,7 @@ func (s *CommonTestSuite) BeforeTest(suiteName, testName string) {
 	s.mc = minimock.NewController(s.T())
 	s.ctx = instestlogger.TestContext(s.T())
 	s.leaver = NewLeaverMock(s.T())
-	s.pulseAccessor = beat.NewHistoryMock(s.T())
+	s.pulseAccessor = beat.NewAppenderMock(s.T())
 	s.handler = &Handler{Leaver: s.leaver, PulseAccessor: s.pulseAccessor}
 }
 

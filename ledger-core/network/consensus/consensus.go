@@ -174,7 +174,7 @@ func (c Installer) ControllerFor(mode Mode, setters ...packetProcessorSetter) Co
 	candidateFeeder := coreapi.NewSequentialCandidateFeeder(candidateQueueSize)
 
 	var pop census.OnlinePopulation
-	if na := c.dep.NodeKeeper.GetAnyLatestNodeSnapshot(); na != nil {
+	if na := c.dep.NodeKeeper.FindAnyLatestNodeSnapshot(); na != nil {
 		pop = na.GetPopulation()
 	}
 

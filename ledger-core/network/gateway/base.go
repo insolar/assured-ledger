@@ -318,7 +318,7 @@ func (g *Base) checkCanAnnounceCandidate(context.Context) error {
 	}
 
 	pn := pulse.Unknown
-	if na := g.NodeKeeper.GetAnyLatestNodeSnapshot(); na != nil {
+	if na := g.NodeKeeper.FindAnyLatestNodeSnapshot(); na != nil {
 		pn = na.GetPulseNumber()
 	}
 
@@ -354,7 +354,7 @@ func (g *Base) HandleNodeBootstrapRequest(ctx context.Context, request network.R
 	data := request.GetRequest().GetBootstrap()
 
 	var nodes []nodeinfo.NetworkNode
-	if na := g.NodeKeeper.GetAnyLatestNodeSnapshot(); na != nil {
+	if na := g.NodeKeeper.FindAnyLatestNodeSnapshot(); na != nil {
 		nodes = na.GetPopulation().GetProfiles()
 	}
 
@@ -437,7 +437,7 @@ func (g *Base) HandleNodeAuthorizeRequest(ctx context.Context, request network.R
 
 	var nodes []nodeinfo.NetworkNode
 	var discoveryCount int
-	if na := g.NodeKeeper.GetAnyLatestNodeSnapshot(); na != nil {
+	if na := g.NodeKeeper.FindAnyLatestNodeSnapshot(); na != nil {
 		nodes = na.GetPopulation().GetProfiles()
 	}
 
@@ -520,7 +520,7 @@ func (g *Base) EphemeralMode(nodes census.OnlinePopulation) bool {
 }
 
 func (g *Base) FailState(ctx context.Context, reason string) {
-	na := g.NodeKeeper.GetAnyLatestNodeSnapshot()
+	na := g.NodeKeeper.FindAnyLatestNodeSnapshot()
 
 	addr := ""
 	if na != nil {

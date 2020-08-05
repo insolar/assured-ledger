@@ -43,7 +43,7 @@ func TestTable_Resolve(t *testing.T) {
 
 	nodeKeeperMock := beat.NewNodeKeeperMock(t)
 	nodeKeeperMock.GetNodeSnapshotMock.Return(na)
-	nodeKeeperMock.GetAnyLatestNodeSnapshotMock.Return(na)
+	nodeKeeperMock.FindAnyLatestNodeSnapshotMock.Return(na)
 
 	table.NodeKeeper = nodeKeeperMock
 

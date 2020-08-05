@@ -55,7 +55,7 @@ func TestGetNetworkStatus(t *testing.T) {
 	pop.GetProfilesMock.Return(make([]profiles.ActiveNode, activeLen))
 	a.GetPopulationMock.Return(pop)
 
-	nk.GetAnyLatestNodeSnapshotMock.Return(a)
+	nk.FindAnyLatestNodeSnapshotMock.Return(a)
 
 	nk.GetLocalNodeReferenceMock.Return(ref)
 	nk.GetLocalNodeRoleMock.Return(member.PrimaryRoleNeutral)

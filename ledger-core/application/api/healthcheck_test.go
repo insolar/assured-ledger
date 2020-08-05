@@ -89,13 +89,13 @@ func mockNodeNetwork(t *testing.T, nodeList []nodeinfo.DiscoveryNode) *beat.Node
 	})
 
 	nn.GetNodeSnapshotMock.Return(accessorMock)
-	nn.GetAnyLatestNodeSnapshotMock.Return(accessorMock)
+	nn.FindAnyLatestNodeSnapshotMock.Return(accessorMock)
 
 	return nn
 }
 
-func mockPulseAccessor(t *testing.T) *beat.HistoryMock {
-	pa := beat.NewHistoryMock(t)
+func mockPulseAccessor(t *testing.T) *beat.AppenderMock {
+	pa := beat.NewAppenderMock(t)
 	pa.LatestTimeBeatMock.Return(pulsestor.GenesisPulse, nil)
 	return pa
 }

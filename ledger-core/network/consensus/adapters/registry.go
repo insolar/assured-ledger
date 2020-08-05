@@ -65,7 +65,7 @@ func NewOfflinePopulation(nodeKeeper beat.NodeKeeper) *OfflinePopulation {
 }
 
 func (op *OfflinePopulation) FindRegisteredProfile(identity endpoints.Inbound) profiles.Host {
-	na := op.nodeKeeper.GetAnyLatestNodeSnapshot()
+	na := op.nodeKeeper.FindAnyLatestNodeSnapshot()
 	if na == nil {
 		return nil
 	}
