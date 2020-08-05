@@ -68,6 +68,7 @@ type reseter interface {
 }
 
 func TestVirtual_SenderCheck_With_ExpectedVE(t *testing.T) {
+	defer commontestutils.LeakTester(t)
 	testCases := []struct {
 		name                    string
 		caseId                  string
@@ -83,7 +84,6 @@ func TestVirtual_SenderCheck_With_ExpectedVE(t *testing.T) {
 
 			for _, testMsg := range messagesWithoutToken {
 				t.Run(testMsg.name, func(t *testing.T) {
-					defer commontestutils.LeakTester(t)
 
 					mc := minimock.NewController(t)
 
@@ -95,10 +95,7 @@ func TestVirtual_SenderCheck_With_ExpectedVE(t *testing.T) {
 					auth := authentication.NewService(ctx, jetCoordinatorMock)
 					server.ReplaceAuthenticationService(auth)
 
-					var (
-						unexpectedError error
-						errorFound      bool
-					)
+					var errorFound bool
 					{
 						logHandler := func(arg interface{}) {
 							err, ok := arg.(error)
@@ -110,8 +107,6 @@ func TestVirtual_SenderCheck_With_ExpectedVE(t *testing.T) {
 							if strings.Contains(errorMsg, "unexpected sender") &&
 								strings.Contains(errorMsg, "illegitimate msg") {
 								errorFound = true
-							} else {
-								unexpectedError = err
 							}
 						}
 						logger := utils.InterceptLog(inslogger.FromContext(ctx), logHandler)
@@ -151,16 +146,19 @@ func TestVirtual_SenderCheck_With_ExpectedVE(t *testing.T) {
 						m.Status = payload.MissingCall
 						m.Callee = reference.NewSelf(gen.UniqueLocalRefWithPulse(m.LookedAt))
 						m.Outgoing = reference.New(gen.UniqueLocalRefWithPulse(m.LookedAt), gen.UniqueLocalRefWithPulse(m.LookedAt))
+						testMsg.msg = m
 					}
 
 					server.SendPayload(ctx, testMsg.msg.(payload.Marshaler)) // default caller == server.GlobalCaller()
 
-					server.WaitIdleConveyor()
-
 					expectNoError := cases.senderIsEqualExpectedVE || testMsg.ignoreSenderCheck == true
-					assert.Equal(t, !expectNoError, errorFound, "Fail "+testMsg.name)
-					assert.NoError(t, unexpectedError)
-
+					if expectNoError {
+						// if conveyor got active then we are sure that we passed sender check
+						server.WaitActiveThenIdleConveyor()
+					} else {
+						// we don't wait anything cause Sender check is part of call to SendPayload
+						assert.Equal(t, true, errorFound, "Fail "+testMsg.name)
+					}
 					server.Stop()
 					mc.Finish()
 				})
