@@ -13,6 +13,7 @@ import (
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
@@ -33,12 +34,12 @@ func TestWaitMajority_MajorityNotHappenedInETA(t *testing.T) {
 
 	b := createBase(mc)
 	b.CertificateManager = mandates.NewCertificateManager(cert)
-	nodeKeeper := b.NodeKeeper.(*mock.NodeKeeperMock)
+	nodeKeeper := b.NodeKeeper.(*beat.NodeKeeperMock)
 
 	pop := census.NewOnlinePopulationMock(mc)
 	pop.GetProfilesMock.Return(nil)
 
-	accessor := mock.NewAccessorMock(mc)
+	accessor := beat.NewNodeAccessorMock(mc)
 	accessor.GetPopulationMock.Return(pop)
 
 	nodeKeeper.GetAccessorMock.Return(accessor)
@@ -65,12 +66,12 @@ func TestWaitMajority_MajorityHappenedInETA(t *testing.T) {
 	})
 
 	ref := gen.UniqueGlobalRef()
-	nodeKeeper := mock.NewNodeKeeperMock(mc)
+	nodeKeeper := beat.NewNodeKeeperMock(mc)
 
 	pop1 := census.NewOnlinePopulationMock(mc)
 	pop1.GetProfilesMock.Return(nil)
 
-	accessor1 := mock.NewAccessorMock(mc)
+	accessor1 := beat.NewNodeAccessorMock(mc)
 	accessor1.GetPopulationMock.Return(pop1)
 	nodeKeeper.GetAccessorMock.When(pulse.MinTimePulse).Then(accessor1)
 
@@ -79,7 +80,7 @@ func TestWaitMajority_MajorityHappenedInETA(t *testing.T) {
 	pop2 := census.NewOnlinePopulationMock(mc)
 	pop2.GetProfilesMock.Return([]nodeinfo.NetworkNode{n})
 
-	accessor2 := mock.NewAccessorMock(mc)
+	accessor2 := beat.NewNodeAccessorMock(mc)
 	accessor2.GetPopulationMock.Return(pop2)
 	nodeKeeper.GetAccessorMock.When(pulse.MinTimePulse + 10).Then(accessor2)
 

@@ -37,7 +37,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
-	networkUtils "github.com/insolar/assured-ledger/ledger-core/testutils/network"
 )
 
 type PublisherMock struct{}
@@ -54,7 +53,7 @@ func prepareNetwork(t *testing.T, cfg configuration.Configuration) (*ServiceNetw
 	serviceNetwork, err := NewServiceNetwork(cfg, component.NewManager(nil))
 	require.NoError(t, err)
 
-	nodeKeeper := networkUtils.NewNodeKeeperMock(t)
+	nodeKeeper := beat.NewNodeKeeperMock(t)
 	ref := gen.UniqueGlobalRef()
 	nodeKeeper.GetLocalNodeReferenceMock.Return(ref)
 	serviceNetwork.NodeKeeper = nodeKeeper

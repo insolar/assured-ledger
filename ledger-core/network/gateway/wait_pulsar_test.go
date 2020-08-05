@@ -15,6 +15,7 @@ import (
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -30,7 +31,7 @@ func createBase(mc *minimock.Controller) *Base {
 		require.Contains(mc, reason, bootstrapTimeoutMessage)
 	})
 
-	nk := mock.NewNodeKeeperMock(mc)
+	nk := beat.NewNodeKeeperMock(mc)
 	ref := gen.UniqueGlobalRef()
 	nk.GetLocalNodeReferenceMock.Return(ref)
 	nk.GetLocalNodeRoleMock.Return(member.PrimaryRoleVirtual)

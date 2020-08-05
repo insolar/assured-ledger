@@ -13,6 +13,7 @@ import (
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
@@ -32,7 +33,7 @@ func TestWaitMinroles_MinrolesNotHappenedInETA(t *testing.T) {
 	b := createBase(mc)
 	b.CertificateManager = mandates.NewCertificateManager(cert)
 
-	nodeKeeper := b.NodeKeeper.(*mock.NodeKeeperMock)
+	nodeKeeper := b.NodeKeeper.(*beat.NodeKeeperMock)
 
 	role := census.NewRolePopulationMock(mc)
 	role.GetWorkingCountMock.Return(0)
@@ -41,7 +42,7 @@ func TestWaitMinroles_MinrolesNotHappenedInETA(t *testing.T) {
 	pop := census.NewOnlinePopulationMock(mc)
 	pop.GetRolePopulationMock.Return(role)
 
-	accessor := mock.NewAccessorMock(mc)
+	accessor := beat.NewNodeAccessorMock(mc)
 	accessor.GetPopulationMock.Return(pop)
 
 	nodeKeeper.GetAccessorMock.Return(accessor)
@@ -72,7 +73,7 @@ func TestWaitMinroles_MinrolesHappenedInETA(t *testing.T) {
 	})
 
 	ref := gen.UniqueGlobalRef()
-	nodeKeeper := mock.NewNodeKeeperMock(mc)
+	nodeKeeper := beat.NewNodeKeeperMock(mc)
 
 	role1 := census.NewRolePopulationMock(mc)
 	role1.GetWorkingCountMock.Return(0)
@@ -81,7 +82,7 @@ func TestWaitMinroles_MinrolesHappenedInETA(t *testing.T) {
 	pop1 := census.NewOnlinePopulationMock(mc)
 	pop1.GetRolePopulationMock.Return(role1)
 
-	accessor1 := mock.NewAccessorMock(mc)
+	accessor1 := beat.NewNodeAccessorMock(mc)
 	accessor1.GetPopulationMock.Return(pop1)
 	nodeKeeper.GetAccessorMock.When(pulse.MinTimePulse).Then(accessor1)
 
@@ -92,7 +93,7 @@ func TestWaitMinroles_MinrolesHappenedInETA(t *testing.T) {
 	pop2 := census.NewOnlinePopulationMock(mc)
 	pop2.GetRolePopulationMock.Return(role2)
 
-	accessor2 := mock.NewAccessorMock(mc)
+	accessor2 := beat.NewNodeAccessorMock(mc)
 	accessor2.GetPopulationMock.Return(pop2)
 	nodeKeeper.GetAccessorMock.When(pulse.MinTimePulse + 10).Then(accessor2)
 

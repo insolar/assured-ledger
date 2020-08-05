@@ -40,8 +40,8 @@ func TestGetNetworkStatus(t *testing.T) {
 
 	workingLen := 2
 
-	nk := testutils.NewNodeKeeperMock(t)
-	a := testutils.NewAccessorMock(t)
+	nk := beat.NewNodeKeeperMock(t)
+	a := beat.NewNodeAccessorMock(t)
 	activeLen := 1
 	active := make([]nodeinfo.NetworkNode, activeLen)
 	a.GetOnlineNodesMock.Return(active)

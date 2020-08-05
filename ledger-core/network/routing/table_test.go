@@ -9,13 +9,13 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/censusimpl"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
-	mock "github.com/insolar/assured-ledger/ledger-core/testutils/network"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/network/mutable"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 
@@ -42,7 +42,7 @@ func TestTable_Resolve(t *testing.T) {
 	pop := censusimpl.NewJoinerPopulation(newNode(refs[0], 123).GetStatic(), vf)
 	na := nodeset.NewAccessor(nodeset.NewSnapshot(pulse.MinTimePulse, &pop))
 
-	nodeKeeperMock := mock.NewNodeKeeperMock(t)
+	nodeKeeperMock := beat.NewNodeKeeperMock(t)
 	nodeKeeperMock.GetAccessorMock.Return(na)
 	nodeKeeperMock.GetLatestAccessorMock.Return(na)
 

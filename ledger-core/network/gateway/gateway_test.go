@@ -9,6 +9,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -32,7 +33,7 @@ func TestSwitch(t *testing.T) {
 	ctx := context.Background()
 
 	// nodekeeper := testnet.NewNodeKeeperMock(t)
-	nodekeeper := testnet.NewNodeKeeperMock(t)
+	nodekeeper := beat.NewNodeKeeperMock(t)
 	nodekeeper.AddActivePopulationMock.Return()
 	gatewayer := testnet.NewGatewayerMock(t)
 	// pm := mockPulseManager(t)
@@ -75,7 +76,7 @@ func TestDumbComplete_GetCert(t *testing.T) {
 	t.Skip("fixme")
 	ctx := context.Background()
 
-	nodekeeper := testnet.NewNodeKeeperMock(t)
+	nodekeeper := beat.NewNodeKeeperMock(t)
 	nodekeeper.AddActivePopulationMock.Return()
 
 	gatewayer := testnet.NewGatewayerMock(t)

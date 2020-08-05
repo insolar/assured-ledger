@@ -15,7 +15,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/appctl/beat.NodeNetwork -o ../../testutils/network -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/appctl/beat.NodeNetwork -s _mock.go -g
 
 type NodeNetwork interface {
 	// GetLocalNodeReference returns a node reference for this/local node. Safe to call at any time. Immutable.
@@ -29,7 +29,7 @@ type NodeNetwork interface {
 	GetLatestAccessor() NodeAccessor
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/appctl/beat.NodeKeeper -o ../../testutils/network -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/appctl/beat.NodeKeeper -s _mock.go -g
 
 type NodeKeeper interface {
 	NodeNetwork
@@ -38,7 +38,7 @@ type NodeKeeper interface {
 	AddActivePopulation(context.Context, pulse.Number, census.OnlinePopulation)
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/appctl/beat.Accessor -o ../../testutils/network -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/appctl/beat.NodeAccessor -s _mock.go -g
 
 // NodeAccessor is interface that provides read access to nodekeeper internal snapshot
 type NodeAccessor interface {
