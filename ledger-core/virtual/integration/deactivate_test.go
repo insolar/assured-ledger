@@ -62,12 +62,12 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 			server.Init(ctx)
 
 			var (
-				class        = gen.UniqueGlobalRef()
-				objectGlobal = reference.NewSelf(server.RandomLocalWithPulse())
+				class            = gen.UniqueGlobalRef()
+				objectGlobal     = reference.NewSelf(server.RandomLocalWithPulse())
+				pulseNumberFirst = server.GetPulse().PulseNumber
 
-				dirtyStateRef     = server.RandomLocalWithPulse()
 				validatedStateRef = server.RandomLocalWithPulse()
-				pulseNumberFirst  = server.GetPulse().PulseNumber
+				dirtyStateRef     = validatedStateRef
 
 				validatedState = []byte("initial state")
 				dirtyState     = validatedState
@@ -79,6 +79,7 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 			{
 				if !test.stateIsEqual {
 					dirtyState = []byte("dirty state")
+					dirtyStateRef = server.RandomLocalWithPulse()
 				}
 
 				content := &payload.VStateReport_ProvidedContentBody{
