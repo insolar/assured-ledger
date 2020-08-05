@@ -687,11 +687,11 @@ func TestVirtual_CallMethod_After_Deactivation(t *testing.T) {
 	mc := minimock.NewController(t)
 
 	server, ctx := utils.NewUninitializedServer(nil, t)
+	defer server.Stop()
 
 	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
 		return execution.Request.CallSiteMethod
 	})
-	defer server.Stop()
 
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
