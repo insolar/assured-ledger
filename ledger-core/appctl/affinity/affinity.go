@@ -7,6 +7,7 @@ package affinity
 
 import (
 	"context"
+	"crypto/sha256"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
@@ -24,7 +25,7 @@ type Coordinator struct {
 
 	PulseAccessor beat.Accessor `inject:""`
 
-	originRef       reference.Global
+	originRef reference.Global
 }
 
 // NewAffinityHelper creates new Helper instance.
@@ -47,7 +48,10 @@ func (jc *Coordinator) QueryRole(
 	if role == DynamicRoleVirtualExecutor {
 		n, err := jc.VirtualExecutorForObject(ctx, objID, pn)
 		if err != nil {
-			return nil, throw.WithDetails(err, struct { Ref reference.Holder; PN pulse.Number } {objID, pn })
+			return nil, throw.WithDetails(err, struct {
+				Ref reference.Holder
+				PN  pulse.Number
+			}{objID, pn})
 		}
 		return []reference.Global{n}, nil
 	}
@@ -71,24 +75,25 @@ func (jc *Coordinator) VirtualExecutorForObject(
 	if role == nil {
 		return reference.Global{}, throw.E("role without nodes", struct {
 			PrimaryRole member.PrimaryRole
-			Population census.OnlinePopulation
-		} {
+			Population  census.OnlinePopulation
+		}{
 			member.PrimaryRoleVirtual,
 			pc.Online,
 		})
 	}
 
 	base := objID.GetBase()
-	b := base.AsBytes()
-	xorBytes(b, pc.PulseEntropy[:])
-	metric := longbits.CutOutUint64(b)
+	h := sha256.New()
+	h.Write(base.AsBytes())
+	h.Write(pc.PulseEntropy[:])
+	metric := longbits.CutOutUint64(h.Sum(nil))
 
 	metric += uint64(base.Pulse())
 	assigned, _ := role.GetAssignmentByCount(metric, 0)
 	if assigned == nil {
 		return reference.Global{}, throw.E("unable to assign node of role", struct {
 			PrimaryRole member.PrimaryRole
-			Population census.OnlinePopulation
+			Population  census.OnlinePopulation
 		}{
 			member.PrimaryRoleVirtual,
 			pc.Online,
@@ -102,6 +107,6 @@ func (jc *Coordinator) VirtualExecutorForObject(
 func xorBytes(dest []byte, b []byte) {
 	n := len(dest)
 	for i := range b {
-		dest[i % n] ^= b[i]
+		dest[i%n] ^= b[i]
 	}
 }
