@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package finalizedstate
+package preservedstatereport
 
 import (
 	"testing"
@@ -50,13 +50,13 @@ func buildStateReport(status payload.VStateReport_StateStatus, state descriptor.
 	return res
 }
 
-func newSMReportWithPulse() *SMStateFinalizer {
+func newSMReportWithPulse() *SMPreservedStateReport {
 	var (
 		pd          = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 		pulseSlot   = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
 		smObjectID  = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
 		smGlobalRef = reference.NewSelf(smObjectID)
-		smReport    = &SMStateFinalizer{
+		smReport    = &SMPreservedStateReport{
 			Reference: smGlobalRef,
 			pulseSlot: &pulseSlot,
 		}
@@ -75,7 +75,7 @@ func TestSMStateReport_SendVStateReport_IfDescriptorSet(t *testing.T) {
 	)
 
 	smReport := newSMReportWithPulse()
-	smReport.Report = buildStateReport(payload.Ready, descriptor.NewObject(reference.Global{}, reference.Local{}, reference.Global{}, nil,  false))
+	smReport.Report = buildStateReport(payload.Ready, descriptor.NewObject(reference.Global{}, reference.Local{}, reference.Global{}, nil, false))
 
 	messageService := messageSenderWrapper.NewServiceMockWrapper(mc)
 	checkMessageFn := func(msg payload.Marshaler) {
