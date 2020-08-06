@@ -49,7 +49,6 @@ type Info struct {
 	Reference           reference.Global
 	descriptorDirty     descriptor.Object
 	descriptorValidated descriptor.Object
-	Deactivated         bool
 
 	UnorderedExecute           smachine.SyncLink
 	OrderedExecute             smachine.SyncLink
@@ -151,7 +150,7 @@ func (i *Info) BuildStateReport() payload.VStateReport {
 		panic(throw.IllegalValue())
 	}
 
-	if objDescriptor := i.DescriptorDirty(); objDescriptor != nil {
+	if objDescriptor := i.DescriptorDirty(); objDescriptor != nil && !objDescriptor.Deactivated() {
 		res.LatestDirtyState = objDescriptor.HeadRef()
 	}
 
@@ -373,8 +372,11 @@ func (sm *SMObject) migrate(ctx smachine.MigrationContext) smachine.StateUpdate 
 	}
 
 	sm.checkPendingCounters(ctx.Log())
+	if sm.descriptorDirty != nil && sm.descriptorDirty.Deactivated() {
+		sm.SetState(Inactive)
+	}
 	sm.smFinalizer.Report = sm.BuildStateReport()
-	if sm.DescriptorDirty() != nil {
+	if sm.DescriptorDirty() != nil && sm.smFinalizer.Report.GetStatus() != payload.Inactive {
 		state := sm.BuildLatestDirtyState()
 		sm.smFinalizer.Report.ProvidedContent.LatestDirtyState = state
 		sm.smFinalizer.Report.ProvidedContent.LatestValidatedState = state
