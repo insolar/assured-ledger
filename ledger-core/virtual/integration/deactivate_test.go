@@ -782,7 +782,6 @@ func TestVirtual_Deactivation_Deduplicate(t *testing.T) {
 
 		deactivationMock := runnerMock.AddExecutionMock(outgoingDeactivate.String())
 		deactivationMock.AddStart(func(ctx execution.Context) {
-			t.Log(">>>>>>>>>>>>>>First deactivate")
 			if !oneExecutionDeactivate {
 				oneExecutionDeactivate = true
 			} else {
@@ -823,7 +822,7 @@ func TestVirtual_Deactivation_Deduplicate(t *testing.T) {
 			switch res.CallOutgoing {
 			case outgoing:
 				require.Equal(t, []byte("new"), res.ReturnArguments)
-				// require.Equal(t, class, res.Callee)
+				require.Equal(t, objectRef, res.Callee)
 			case outgoingDeactivate:
 				require.Equal(t, []byte("deactivated"), res.ReturnArguments)
 				require.Equal(t, objectRef, res.Callee)
