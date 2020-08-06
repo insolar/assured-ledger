@@ -3,18 +3,14 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-// +build slowtest,!longtest
-
 package api_test
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 	"go.uber.org/goleak"
@@ -25,19 +21,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 )
-
-func waitForStatus(t *testing.T, nc *api.NetworkChecker, expected bool) {
-	ctx := context.Background()
-	var available bool
-	for i := 0; i < 10; i++ {
-		available = nc.IsAvailable(ctx)
-		if available == expected {
-			return
-		}
-		time.Sleep(time.Second)
-	}
-	require.Fail(t, "Status not passed, expected: ", expected)
-}
 
 func TestAvailabilityChecker_UpdateStatus(t *testing.T) {
 	instestlogger.SetTestOutputWithErrorFilter(t, func(s string) bool {
@@ -86,24 +69,23 @@ func TestAvailabilityChecker_UpdateStatus(t *testing.T) {
 	nc := api.NewNetworkChecker(config)
 	require.False(t, nc.IsAvailable(ctx))
 
-	defer nc.Stop()
-	err := nc.Start(ctx)
-	require.NoError(t, err)
-
 	// counter = 0
+	nc.UpdateAvailability(ctx)
 	require.False(t, nc.IsAvailable(ctx))
-	time.Sleep(time.Duration(checkPeriod))
 
 	// counter = 1
+	nc.UpdateAvailability(ctx)
 	require.False(t, nc.IsAvailable(ctx))
-	time.Sleep(time.Duration(checkPeriod))
 
 	// counter = 2, bad response body
+	nc.UpdateAvailability(ctx)
 	require.False(t, nc.IsAvailable(ctx))
 
 	// counter default
-	waitForStatus(t, nc, true)
+	nc.UpdateAvailability(ctx)
+	require.True(t, nc.IsAvailable(ctx))
 
 	keeper.Close()
-	waitForStatus(t, nc, false)
+	nc.UpdateAvailability(ctx)
+	require.False(t, nc.IsAvailable(ctx))
 }
