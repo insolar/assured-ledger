@@ -17,9 +17,8 @@ type Server interface {
 
 func NewVirtualServer(cfgPath string) Server {
 	return insapp.New(cfgPath, virtual.AppFactory)
-//	return virtual.New(cfgPath)
 }
 
 func NewHeadlessNetworkNodeServer(cfgPath string) Server {
-	return headless.New(cfgPath)
+	return insapp.New(cfgPath, nil, &headless.AppComponent{})
 }

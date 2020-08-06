@@ -34,14 +34,14 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-type bootstrapComponents struct {
+type preComponents struct {
 	CryptographyService        cryptography.Service
 	PlatformCryptographyScheme cryptography.PlatformCryptographyScheme
 	KeyStore                   cryptography.KeyStore
 	KeyProcessor               cryptography.KeyProcessor
 }
 
-func initBootstrapComponents(ctx context.Context, cfg configuration.Configuration) bootstrapComponents {
+func (s *Server) initBootstrapComponents(ctx context.Context, cfg configuration.Configuration) preComponents {
 	earlyComponents := component.NewManager(nil)
 	earlyComponents.SetLogger(global.Logger())
 
@@ -55,7 +55,7 @@ func initBootstrapComponents(ctx context.Context, cfg configuration.Configuratio
 	earlyComponents.Register(platformCryptographyScheme, keyStore)
 	earlyComponents.Inject(cryptographyService, keyProcessor)
 
-	return bootstrapComponents{
+	return preComponents{
 		CryptographyService:        cryptographyService,
 		PlatformCryptographyScheme: platformCryptographyScheme,
 		KeyStore:                   keyStore,
@@ -63,35 +63,22 @@ func initBootstrapComponents(ctx context.Context, cfg configuration.Configuratio
 	}
 }
 
-func initCertificateManager(
-	ctx context.Context,
-	cfg configuration.Configuration,
-	cryptographyService cryptography.Service,
-	keyProcessor cryptography.KeyProcessor,
-) *mandates.CertificateManager {
+func (s *Server) initCertificateManager(ctx context.Context, cfg configuration.Configuration, comps preComponents) *mandates.CertificateManager {
 	var certManager *mandates.CertificateManager
 	var err error
 
-	publicKey, err := cryptographyService.GetPublicKey()
+	publicKey, err := comps.CryptographyService.GetPublicKey()
 	checkError(ctx, err, "failed to retrieve node public key")
 
-	certManager, err = mandates.NewManagerReadCertificate(publicKey, keyProcessor, cfg.CertificatePath)
+	certManager, err = mandates.NewManagerReadCertificate(publicKey, comps.KeyProcessor, cfg.CertificatePath)
 	checkError(ctx, err, "failed to start Certificate")
 
 	return certManager
 }
 
 // initComponents creates and links all insolard components
-func initComponents(
-	ctx context.Context,
-	cfg configuration.Configuration,
-	appFn AppFactoryFunc,
-	cryptographyService cryptography.Service,
-	pcs cryptography.PlatformCryptographyScheme,
-	keyStore cryptography.KeyStore,
-	keyProcessor cryptography.KeyProcessor,
-	certManager nodeinfo.CertificateManager,
-
+func (s *Server) initComponents(ctx context.Context, cfg configuration.Configuration,
+	comps preComponents, certManager nodeinfo.CertificateManager,
 ) (*component.Manager, func()) {
 	cm := component.NewManager(nil)
 	cm.SetLogger(global.Logger())
@@ -107,81 +94,74 @@ func initComponents(
 		pubsub := gochannel.NewGoChannel(gochannel.Config{}, wmLogger)
 		subscriber = pubsub
 		publisher = pubsub
-		// Wrapped watermill Publisher for introspection.
-		publisher = publisherWrapper(ctx, cm, cfg.Introspection, publisher)
 	}
 
+	cm.Register(
+		comps.PlatformCryptographyScheme,
+		comps.KeyStore,
+		comps.CryptographyService,
+		comps.KeyProcessor,
+		certManager,
+	)
 
 	nw, err := servicenetwork.NewServiceNetwork(cfg, cm)
 	checkError(ctx, err, "failed to start Network")
 
 	metricsComp := metrics.NewMetrics(cfg.Metrics, metrics.GetInsolarRegistry("virtual"), "virtual")
 
-	affine := affinity.NewAffinityHelper(certManager.GetCertificate().GetNodeRef())
 	pulses := memstor.NewStorageMem()
-
+	pm := insconveyor.NewPulseManager()
+	publisher = publisherWrapper(ctx, cm, cfg.Introspection, publisher)
 	availabilityChecker := api.NewNetworkChecker(cfg.AvailabilityChecker)
 
-	API, err := api.NewRunner(
-		&cfg.APIRunner,
-		certManager,
-		nw,
-		nw,
-		pulses,
-		affine,
-		nw,
-		availabilityChecker,
-	)
-	checkError(ctx, err, "failed to start ApiRunner")
-
-	AdminAPIRunner, err := api.NewRunner(
-		&cfg.AdminAPIRunner,
-		certManager,
-		nw,
-		nw,
-		pulses,
-		affine,
-		nw,
-		availabilityChecker,
-	)
-	checkError(ctx, err, "failed to start AdminAPIRunner")
-
-	APIWrapper := api.NewWrapper(API, AdminAPIRunner)
-
-	pm := insconveyor.NewPulseManager()
-
-	appComponents := AppComponents{
-		BeatHistory: pulses,
-		AffinityHelper: affine,
-		MessageSender: messagesender.NewDefaultService(publisher, affine, pulses),
-	}
-	appComponent, err := appFn(ctx, cfg, appComponents)
-	checkError(ctx, err, "failed to start AppCompartment")
-
 	cm.Register(
-		pcs,
-		keyStore,
-		cryptographyService,
-		keyProcessor,
-		certManager,
-		APIWrapper,
-		availabilityChecker,
-		nw,
+		pulses,
+		publisher,
 		pm,
-		appComponent,
+		nw,
+		availabilityChecker,
+		metricsComp,
 	)
 
-	cm.Inject(
-		publisher,
-		affine,
-		pulses,
-		metricsComp,
-		cryptographyService,
-		keyProcessor,
-	)
+	var appComponent AppComponent
+
+	if s.appFn != nil {
+		affine := affinity.NewAffinityHelper(certManager.GetCertificate().GetNodeRef())
+
+		API, err := api.NewRunner(&cfg.APIRunner,
+			certManager, nw, nw, pulses, affine, nw, availabilityChecker)
+		checkError(ctx, err, "failed to start ApiRunner")
+
+		AdminAPIRunner, err := api.NewRunner(&cfg.AdminAPIRunner,
+			certManager, nw, nw, pulses, affine, nw, availabilityChecker)
+		checkError(ctx, err, "failed to start AdminAPIRunner")
+
+		APIWrapper := api.NewWrapper(API, AdminAPIRunner)
+
+		appComponents := AppComponents{
+			BeatHistory:    pulses,
+			AffinityHelper: affine,
+			MessageSender:  messagesender.NewDefaultService(publisher, affine, pulses),
+		}
+
+		appComponent, err = s.appFn(ctx, cfg, appComponents)
+		checkError(ctx, err, "failed to start AppCompartment")
+
+		cm.Register(
+			affine,
+			APIWrapper,
+			appComponent,
+		)
+	}
+	cm.Register(s.extra...)
+	cm.Inject()
 
 	err = cm.Init(ctx)
 	checkError(ctx, err, "failed to init components")
+
+	if appComponent == nil {
+		return cm, nil
+	}
 
 	// must be after Init
 	pm.AddDispatcher(appComponent.GetBeatDispatcher())

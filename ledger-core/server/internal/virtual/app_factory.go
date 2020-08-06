@@ -9,10 +9,6 @@ import (
 	"context"
 	"runtime"
 
-	"github.com/ThreeDotsLabs/watermill/message"
-	"github.com/insolar/component-manager"
-
-	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/application/testwalletapi"
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
@@ -44,56 +40,6 @@ func AppFactory(ctx context.Context, cfg configuration.Configuration, comps insa
 	testAPI := testwalletapi.NewTestWalletServer(cfg.TestWalletAPI, virtualDispatcher, comps.BeatHistory)
 
 	// ComponentManager can only work with by-pointer objects
-	return &appComp{ runnerService, virtualDispatcher, testAPI }, nil
+	return &wrapper{runnerService, virtualDispatcher, testAPI }, nil
 }
 
-var _ component.Initer = appComp{}
-var _ component.Starter = appComp{}
-var _ component.Stopper = appComp{}
-
-type appComp struct {
-	runnerService     *runner.DefaultService
-	virtualDispatcher *virtual.Dispatcher
-	apiServer         *testwalletapi.TestWalletServer
-}
-
-func (v appComp) Init(ctx context.Context) error {
-	// if err := v.runnerService.Init(); err != nil {
-	// 	return err
-	// }
-	if err := v.virtualDispatcher.Init(ctx); err != nil {
-		return err
-	}
-	// if err := v.apiServer.Init(ctx); err != nil {
-	// 	return err
-	// }
-	return nil
-}
-
-func (v appComp) Start(ctx context.Context) error {
-	if err := v.virtualDispatcher.Start(ctx); err != nil {
-		return err
-	}
-	if err := v.apiServer.Start(ctx); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (v appComp) Stop(ctx context.Context) error {
-	if err := v.virtualDispatcher.Stop(ctx); err != nil {
-		return err
-	}
-	if err := v.apiServer.Stop(ctx); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (v appComp) GetMessageHandler() message.NoPublishHandlerFunc {
-	return v.virtualDispatcher.FlowDispatcher.Process
-}
-
-func (v appComp) GetBeatDispatcher() beat.Dispatcher {
-	return v.virtualDispatcher.FlowDispatcher
-}

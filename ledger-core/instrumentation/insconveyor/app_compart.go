@@ -8,9 +8,12 @@ package insconveyor
 import (
 	"context"
 
+	"github.com/ThreeDotsLabs/watermill/message"
+
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/managed"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -42,6 +45,7 @@ type AppCompartmentSetup struct {
 	ComponentSetupFn  ComponentSetupFunc
 }
 
+var _ insapp.AppComponent = &AppCompartment{}
 type AppCompartment struct {
 	// set by construction
 	name         string
@@ -121,3 +125,12 @@ func (p *AppCompartment) FlowDispatcher() beat.Dispatcher {
 func (p *AppCompartment) Conveyor() *conveyor.PulseConveyor {
 	return p.conveyor
 }
+
+func (p *AppCompartment) GetMessageHandler() message.NoPublishHandlerFunc {
+	return p.flowDispatcher.Process
+}
+
+func (p *AppCompartment) GetBeatDispatcher() beat.Dispatcher {
+	return p.flowDispatcher
+}
+

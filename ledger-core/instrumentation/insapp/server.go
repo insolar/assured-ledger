@@ -19,23 +19,20 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/trace"
 	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
-	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/version"
 )
 
 type Server struct {
 	cfgPath string
 	appFn   AppFactoryFunc
+	extra   []interface{}
 }
 
-func New(cfgPath string, appFn AppFactoryFunc) *Server {
-	if appFn == nil {
-		panic(throw.IllegalValue())
-	}
-
+func New(cfgPath string, appFn AppFactoryFunc, extraComponents ...interface{}) *Server {
 	return &Server{
 		cfgPath: cfgPath,
 		appFn:   appFn,
+		extra:   extraComponents,
 	}
 }
 
@@ -80,7 +77,9 @@ func (s *Server) Serve() {
 		err := cm.GracefulStop(ctx)
 		checkError(ctx, err, "failed to graceful stop components")
 
-		stopWatermill()
+		if stopWatermill != nil {
+			stopWatermill()
+		}
 
 		err = cm.Stop(ctx)
 		checkError(ctx, err, "failed to stop components")
@@ -95,12 +94,9 @@ func (s *Server) Serve() {
 
 type LoggerInitFunc = func(ctx context.Context, cfg configuration.Log, nodeRef, nodeRole string) context.Context
 
-func (s *Server) StartComponents(ctx context.Context, cfg configuration.Configuration, loggerFn LoggerInitFunc, ) (*component.Manager, func()) {
-	bootstrapComponents := initBootstrapComponents(ctx, cfg)
-	certManager := initCertificateManager(ctx, cfg,
-		bootstrapComponents.CryptographyService,
-		bootstrapComponents.KeyProcessor,
-	)
+func (s *Server) StartComponents(ctx context.Context, cfg configuration.Configuration, loggerFn LoggerInitFunc) (*component.Manager, func()) {
+	preComponents := s.initBootstrapComponents(ctx, cfg)
+	certManager := s.initCertificateManager(ctx, cfg, preComponents)
 
 	nodeRole := certManager.GetCertificate().GetRole().String()
 	nodeRef := certManager.GetCertificate().GetNodeRef().String()
@@ -113,13 +109,7 @@ func (s *Server) StartComponents(ctx context.Context, cfg configuration.Configur
 		defer jaegerFlush()
 	}
 
-	return initComponents(ctx, cfg, s.appFn,
-		bootstrapComponents.CryptographyService,
-		bootstrapComponents.PlatformCryptographyScheme,
-		bootstrapComponents.KeyStore,
-		bootstrapComponents.KeyProcessor,
-		certManager,
-	)
+	return s.initComponents(ctx, cfg, preComponents, certManager)
 }
 
 func checkError(ctx context.Context, err error, message string) {
