@@ -22,7 +22,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/defaults"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor/memstor"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/logwatermill"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
@@ -110,7 +109,7 @@ func (s *Server) initComponents(ctx context.Context, cfg configuration.Configura
 	metricsComp := metrics.NewMetrics(cfg.Metrics, metrics.GetInsolarRegistry("virtual"), "virtual")
 
 	pulses := memstor.NewStorageMem()
-	pm := insconveyor.NewPulseManager()
+	pm := NewPulseManager()
 	publisher = publisherWrapper(ctx, cm, cfg.Introspection, publisher)
 	availabilityChecker := api.NewNetworkChecker(cfg.AvailabilityChecker)
 

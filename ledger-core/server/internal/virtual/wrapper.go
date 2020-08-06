@@ -28,9 +28,9 @@ type wrapper struct {
 }
 
 func (v wrapper) Init(ctx context.Context) error {
-	// if err := v.runnerService.Init(); err != nil {
-	// 	return err
-	// }
+	if err := v.runnerService.Init(); err != nil {
+		return err
+	}
 	if err := v.virtualDispatcher.Init(ctx); err != nil {
 		return err
 	}

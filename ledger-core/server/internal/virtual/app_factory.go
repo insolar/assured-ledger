@@ -19,10 +19,6 @@ import (
 
 func AppFactory(ctx context.Context, cfg configuration.Configuration, comps insapp.AppComponents) (insapp.AppComponent, error) {
 	runnerService := runner.NewService()
-	if err := runnerService.Init(); err != nil {
-		return nil, err
-	}
-
 	virtualDispatcher := virtual.NewDispatcher()
 
 	virtualDispatcher.Runner = runnerService
