@@ -32,6 +32,7 @@ import (
 	commonTestUtils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/debuglogger"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/mocklog"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/shareddata"
@@ -165,8 +166,8 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 
 	smObject.SharedState.Info.KnownRequests.Add(callFlags.GetInterference(), smExecute.execution.Outgoing)
 
-	assert.Equal(t, uint8(0), smObject.PotentialOrderedPendingCount)
-	assert.Equal(t, uint8(0), smObject.PotentialUnorderedPendingCount)
+	require.Equal(t, 0, smObject.KnownRequests.GetList(contract.CallTolerable).CountActive())
+	require.Equal(t, 0, smObject.KnownRequests.GetList(contract.CallIntolerable).CountActive())
 
 	assert.Equal(t, 1, smObject.KnownRequests.Len())
 
@@ -179,8 +180,8 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 		smExecute.stepStartRequestProcessing(execCtx)
 	}
 
-	assert.Equal(t, uint8(1), smObject.PotentialOrderedPendingCount)
-	assert.Equal(t, uint8(0), smObject.PotentialUnorderedPendingCount)
+	require.Equal(t, 1, smObject.KnownRequests.GetList(contract.CallTolerable).CountActive())
+	require.Equal(t, 0, smObject.KnownRequests.GetList(contract.CallIntolerable).CountActive())
 
 	assert.Equal(t, 1, smObject.KnownRequests.Len())
 	assert.Equal(t, callregistry.RequestProcessing, smObject.KnownRequests.GetList(contract.CallTolerable).GetState(smExecute.execution.Outgoing))
@@ -767,8 +768,7 @@ func TestSMExecute_VCallResultPassedToSMObject(t *testing.T) {
 
 func TestSendVStateReportWithMissingState_IfConstructorWasInterruptedBeforeRunnerCall(t *testing.T) {
 	defer executeLeakCheck(t)
-
-	t.Log("C5084")
+	insrail.LogCase(t, "C5084")
 
 	var (
 		mc  = minimock.NewController(t)
@@ -840,8 +840,8 @@ func TestSendVStateReportWithMissingState_IfConstructorWasInterruptedBeforeRunne
 
 func TestSMExecute_StopWithoutMessagesIfPulseChangedBeforeOutgoing(t *testing.T) {
 	defer executeLeakCheck(t)
+	insrail.LogCase(t, "C5101")
 
-	t.Log("C5101")
 	const stateMemory = "213"
 
 	var (
@@ -888,7 +888,7 @@ func TestSMExecute_StopWithoutMessagesIfPulseChangedBeforeOutgoing(t *testing.T)
 
 	smObject := object.NewStateMachineObject(objectRef)
 	smObject.SetState(object.HasState)
-	smObject.SetDescriptorDirty(descriptor.NewObject(reference.Global{}, reference.Local{}, class, []byte(stateMemory)))
+	smObject.SetDescriptorDirty(descriptor.NewObject(reference.Global{}, reference.Local{}, class, []byte(stateMemory),  false,))
 	slotMachine.AddStateMachine(ctx, smObject)
 
 	smExecute := SMExecute{

@@ -1,4 +1,4 @@
-BUILD_TAGS ?=
+EXTRA_BUILD_ARGS ?=
 
 INSOLAR          = insolar
 INSOLARD         = insolard
@@ -27,11 +27,11 @@ $(BIN_DIR):
 
 .PHONY: $(INSOLARD)
 $(INSOLARD):
-	$(GOBUILD) -o $(BIN_DIR)/$(INSOLARD) ${BUILD_TAGS} -ldflags "${LDFLAGS}" ./cmd/insolard
+	$(GOBUILD) -o $(BIN_DIR)/$(INSOLARD) ${EXTRA_BUILD_ARGS} -ldflags "${LDFLAGS}" ./cmd/insolard
 
 .PHONY: $(INSOLAR)
 $(INSOLAR):
-	$(GOBUILD) -o $(BIN_DIR)/$(INSOLAR) ${BUILD_TAGS} -ldflags "${LDFLAGS}" ./application/cmd/insolar
+	$(GOBUILD) -o $(BIN_DIR)/$(INSOLAR) ${EXTRA_BUILD_ARGS} -ldflags "${LDFLAGS}" ./application/cmd/insolar
 
 .PHONY: $(INSGOCC)
 $(INSGOCC):

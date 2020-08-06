@@ -30,7 +30,7 @@ type StateMachineHelper interface {
 	// InjectDependencies runs initialization code that SM doesn't need to know.
 	// Is called once per SM right after GetStateMachineDeclaration().
 	// Dependencies injected through DependencyInjector and implementing ShadowMigrator will be invoked during migration.
-	InjectDependencies(StateMachine, SlotLink, *injector.DependencyInjector)
+	InjectDependencies(StateMachine, SlotLink, injector.DependencyInjector)
 
 	// GetStepLogger provides per-SM logger. Zero implementation must return (nil, false).
 	// Is called once per SM after InjectDependencies().
@@ -117,7 +117,7 @@ func (s *StateMachineDeclTemplate) GetShadowMigrateFor(StateMachine) ShadowMigra
 	return nil
 }
 
-func (s *StateMachineDeclTemplate) InjectDependencies(StateMachine, SlotLink, *injector.DependencyInjector) {
+func (s *StateMachineDeclTemplate) InjectDependencies(StateMachine, SlotLink, injector.DependencyInjector) {
 }
 
 func (s *StateMachineDeclTemplate) GetStepLogger(context.Context, StateMachine, TracerID, StepLoggerFactoryFunc) (StepLogger, bool) {

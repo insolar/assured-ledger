@@ -52,12 +52,6 @@ jobs:
         if: always()
         run: make test_with_coverage
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
-      - name: Upload integration_test.log to artifacts
-        if: always()
-        uses: actions/upload-artifact@v1
-        with:
-          name: integration_test_log_master
-          path: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/integration_test.log
       - name: Upload integration_extended_test.log to artifacts
         if: always()
         uses: actions/upload-artifact@v1
@@ -94,7 +88,7 @@ jobs:
         if: always()
         run: |
           go get -v -u github.com/insolar/testrail-cli
-          cd testrail-cli && go install cmd/testrail-cli/testrail-cli.go
+          cd testrail-cli && go install cmd/testrail-assuredledger-cli/testrail-cli.go
         working-directory: ${{env.GOPATH}}/src/github.com/insolar
       - name: Publish integration tests results to testrail
         if: always()

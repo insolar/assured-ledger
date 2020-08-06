@@ -12,9 +12,12 @@ import (
 	"testing"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/testutils/launchnet"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 )
 
 func TestMain(m *testing.M) {
+	instestlogger.SetTestOutputWithStub()
+
 	os.Exit(launchnet.Run(func() int {
 		return m.Run()
 	}))

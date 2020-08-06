@@ -49,7 +49,6 @@ type Info struct {
 	Reference           reference.Global
 	descriptorDirty     descriptor.Object
 	descriptorValidated descriptor.Object
-	Deactivated         bool
 
 	UnorderedExecute           smachine.SyncLink
 	OrderedExecute             smachine.SyncLink
@@ -66,10 +65,6 @@ type Info struct {
 
 	PreviousExecutorUnorderedPendingCount uint8
 	PreviousExecutorOrderedPendingCount   uint8
-
-	// Potential means pendings on this executor
-	PotentialUnorderedPendingCount uint8
-	PotentialOrderedPendingCount   uint8
 
 	UnorderedPendingEarliestPulse pulse.Number
 	OrderedPendingEarliestPulse   pulse.Number
@@ -89,30 +84,11 @@ func (i *Info) GetState() State {
 	return i.objectState
 }
 
-func (i *Info) IncrementPotentialPendingCounter(isolation contract.MethodIsolation) {
-	switch isolation.Interference {
-	case contract.CallIntolerable:
-		i.PotentialUnorderedPendingCount++
-	case contract.CallTolerable:
-		i.PotentialOrderedPendingCount++
-	default:
-		panic(throw.Unsupported())
-	}
-}
-
 func (i *Info) FinishRequest(
 	isolation contract.MethodIsolation,
 	requestRef reference.Global,
 	result *payload.VCallResult,
 ) {
-	switch isolation.Interference {
-	case contract.CallIntolerable:
-		i.PotentialUnorderedPendingCount--
-	case contract.CallTolerable:
-		i.PotentialOrderedPendingCount--
-	default:
-		panic(throw.Unsupported())
-	}
 	i.KnownRequests.Finish(isolation.Interference, requestRef, result)
 }
 
@@ -122,10 +98,6 @@ func (i *Info) SetDescriptorDirty(objectDescriptor descriptor.Object) {
 
 func (i *Info) SetDescriptorValidated(objectDescriptor descriptor.Object) {
 	i.descriptorValidated = objectDescriptor
-}
-
-func (i *Info) Deactivate() {
-	i.Deactivated = true
 }
 
 func (i *Info) DescriptorDirty() descriptor.Object {
@@ -150,9 +122,9 @@ func (i *Info) BuildStateReport() payload.VStateReport {
 	previousExecutorOrderedPendingCount := i.PendingTable.GetList(contract.CallTolerable).CountActive()
 	res := payload.VStateReport{
 		Object:                        i.Reference,
-		UnorderedPendingCount:         int32(previousExecutorUnorderedPendingCount) + int32(i.PotentialUnorderedPendingCount),
+		UnorderedPendingCount:         int32(previousExecutorUnorderedPendingCount) + int32(i.KnownRequests.GetList(contract.CallIntolerable).CountActive()),
 		UnorderedPendingEarliestPulse: i.GetEarliestPulse(contract.CallIntolerable),
-		OrderedPendingCount:           int32(previousExecutorOrderedPendingCount) + int32(i.PotentialOrderedPendingCount),
+		OrderedPendingCount:           int32(previousExecutorOrderedPendingCount) + int32(i.KnownRequests.GetList(contract.CallTolerable).CountActive()),
 		OrderedPendingEarliestPulse:   i.GetEarliestPulse(contract.CallTolerable),
 		ProvidedContent:               &payload.VStateReport_ProvidedContentBody{},
 	}
@@ -165,7 +137,7 @@ func (i *Info) BuildStateReport() payload.VStateReport {
 	case Inactive:
 		res.Status = payload.Inactive
 	case Empty:
-		if i.PotentialOrderedPendingCount == uint8(0) {
+		if i.KnownRequests.GetList(contract.CallTolerable).CountActive() == 0 {
 			// constructor has not started
 			res.Status = payload.Missing
 		} else {
@@ -178,7 +150,7 @@ func (i *Info) BuildStateReport() payload.VStateReport {
 		panic(throw.IllegalValue())
 	}
 
-	if objDescriptor := i.DescriptorDirty(); objDescriptor != nil {
+	if objDescriptor := i.DescriptorDirty(); objDescriptor != nil && !objDescriptor.Deactivated() {
 		res.LatestDirtyState = objDescriptor.HeadRef()
 	}
 
@@ -192,7 +164,7 @@ func (i *Info) BuildLatestDirtyState() *payload.ObjectState {
 			Reference:   objDescriptor.StateID(),
 			Class:       class,
 			State:       objDescriptor.Memory(),
-			Deactivated: i.Deactivated,
+			Deactivated: objDescriptor.Deactivated(),
 		}
 	}
 	return nil
@@ -235,7 +207,7 @@ type SMObject struct {
 
 /* -------- Declaration ------------- */
 
-func (sm *SMObject) InjectDependencies(stateMachine smachine.StateMachine, _ smachine.SlotLink, injector *injector.DependencyInjector) {
+func (sm *SMObject) InjectDependencies(stateMachine smachine.StateMachine, _ smachine.SlotLink, injector injector.DependencyInjector) {
 	s := stateMachine.(*SMObject)
 	injector.MustInject(&s.messageSender)
 	injector.MustInject(&s.pulseSlot)
@@ -400,8 +372,11 @@ func (sm *SMObject) migrate(ctx smachine.MigrationContext) smachine.StateUpdate 
 	}
 
 	sm.checkPendingCounters(ctx.Log())
+	if sm.descriptorDirty != nil && sm.descriptorDirty.Deactivated() {
+		sm.SetState(Inactive)
+	}
 	sm.smFinalizer.Report = sm.BuildStateReport()
-	if sm.DescriptorDirty() != nil {
+	if sm.DescriptorDirty() != nil && sm.smFinalizer.Report.GetStatus() != payload.Inactive {
 		state := sm.BuildLatestDirtyState()
 		sm.smFinalizer.Report.ProvidedContent.LatestDirtyState = state
 		sm.smFinalizer.Report.ProvidedContent.LatestValidatedState = state

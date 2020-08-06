@@ -15,9 +15,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
-	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
-	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
@@ -67,11 +66,6 @@ func (bn *BootstrapNode) GetHost() string {
 	return bn.Host
 }
 
-// GetRole returns role of bootstrap node
-func (bn *BootstrapNode) GetRole() member.PrimaryRole {
-	return member.GetPrimaryRoleFromString(bn.NodeRole)
-}
-
 // NodeSign returns signed information about some node
 func (bn *BootstrapNode) GetNodeSign() []byte {
 	return bn.NodeSign
@@ -99,21 +93,21 @@ func newCertificate(publicKey crypto.PublicKey, keyProcessor cryptography.KeyPro
 	cert := Certificate{}
 	err := json.Unmarshal(data, &cert)
 	if err != nil {
-		return nil, errors.W(err, "[ newCertificate ] failed to parse certificate json")
+		return nil, throw.W(err, "[ newCertificate ] failed to parse certificate json")
 	}
 
 	pub, err := keyProcessor.ExportPublicKeyPEM(publicKey)
 	if err != nil {
-		return nil, errors.W(err, "[ newCertificate ] failed to retrieve public key from node private key")
+		return nil, throw.W(err, "[ newCertificate ] failed to retrieve public key from node private key")
 	}
 
 	if cert.PublicKey != string(pub) {
-		return nil, errors.New("[ newCertificate ] Different public keys")
+		return nil, throw.New("[ newCertificate ] Different public keys")
 	}
 
 	err = cert.fillExtraFields(keyProcessor)
 	if err != nil {
-		return nil, errors.W(err, "[ newCertificate ] Incorrect fields")
+		return nil, throw.W(err, "[ newCertificate ] Incorrect fields")
 	}
 
 	cert.DiscoverySigns = make(map[reference.Global][]byte)
@@ -145,7 +139,7 @@ func (cert *Certificate) SignNetworkPart(key crypto.PrivateKey) ([]byte, error) 
 	signer := scheme.DataSigner(key, scheme.IntegrityHasher())
 	sign, err := signer.Sign(cert.SerializeNetworkPart())
 	if err != nil {
-		return nil, errors.W(err, "[ SignNetworkPart ] Can't Sign")
+		return nil, throw.W(err, "[ SignNetworkPart ] Can't Sign")
 	}
 	return sign.Bytes(), nil
 }
@@ -153,14 +147,14 @@ func (cert *Certificate) SignNetworkPart(key crypto.PrivateKey) ([]byte, error) 
 func (cert *Certificate) fillExtraFields(keyProcessor cryptography.KeyProcessor) error {
 	importedNodePubKey, err := keyProcessor.ImportPublicKeyPEM([]byte(cert.PublicKey))
 	if err != nil {
-		return errors.Wrapf(err, "[ fillExtraFields ] Bad PublicKey: %s", cert.PublicKey)
+		return throw.Wrapf(err, "[ fillExtraFields ] Bad PublicKey: %s", cert.PublicKey)
 	}
 	cert.nodePublicKey = importedNodePubKey
 
 	for _, pulsarKey := range cert.PulsarPublicKeys {
 		importedPulsarPubKey, err := keyProcessor.ImportPublicKeyPEM([]byte(pulsarKey))
 		if err != nil {
-			return errors.Wrapf(err, "[ fillExtraFields ] Bad pulsarKey: %s", pulsarKey)
+			return throw.Wrapf(err, "[ fillExtraFields ] Bad pulsarKey: %s", pulsarKey)
 		}
 		cert.pulsarPublicKey = append(cert.pulsarPublicKey, importedPulsarPubKey)
 	}
@@ -169,7 +163,7 @@ func (cert *Certificate) fillExtraFields(keyProcessor cryptography.KeyProcessor)
 		currentNode := &cert.BootstrapNodes[i]
 		importedBNodePubKey, err := keyProcessor.ImportPublicKeyPEM([]byte(currentNode.PublicKey))
 		if err != nil {
-			return errors.Wrapf(err, "[ fillExtraFields ] Bad Bootstrap PublicKey: %s", currentNode.PublicKey)
+			return throw.Wrapf(err, "[ fillExtraFields ] Bad Bootstrap PublicKey: %s", currentNode.PublicKey)
 		}
 		currentNode.nodePublicKey = importedBNodePubKey
 	}
@@ -200,7 +194,7 @@ func (cert *Certificate) GetMajorityRule() int {
 func (cert *Certificate) Dump() (string, error) {
 	result, err := json.MarshalIndent(cert, "", "    ")
 	if err != nil {
-		return "", errors.W(err, "[ Certificate::Dump ]")
+		return "", throw.W(err, "[ Certificate::Dump ]")
 	}
 
 	return string(result), nil
@@ -210,11 +204,11 @@ func (cert *Certificate) Dump() (string, error) {
 func ReadCertificate(publicKey crypto.PublicKey, keyProcessor cryptography.KeyProcessor, certPath string) (*Certificate, error) {
 	data, err := ioutil.ReadFile(filepath.Clean(certPath))
 	if err != nil {
-		return nil, errors.Wrapf(err, "[ ReadCertificate ] failed to read certificate from: %s", certPath)
+		return nil, throw.Wrapf(err, "[ ReadCertificate ] failed to read certificate from: %s", certPath)
 	}
 	cert, err := newCertificate(publicKey, keyProcessor, data)
 	if err != nil {
-		return nil, errors.W(err, "[ ReadCertificate ]")
+		return nil, throw.W(err, "[ ReadCertificate ]")
 	}
 	return cert, nil
 }
@@ -223,11 +217,11 @@ func ReadCertificate(publicKey crypto.PublicKey, keyProcessor cryptography.KeyPr
 func ReadCertificateFromReader(publicKey crypto.PublicKey, keyProcessor cryptography.KeyProcessor, reader io.Reader) (*Certificate, error) {
 	data, err := ioutil.ReadAll(reader)
 	if err != nil {
-		return nil, errors.W(err, "[ ReadCertificateFromReader ] failed to read certificate data")
+		return nil, throw.W(err, "[ ReadCertificateFromReader ] failed to read certificate data")
 	}
 	cert, err := newCertificate(publicKey, keyProcessor, data)
 	if err != nil {
-		return nil, errors.W(err, "[ ReadCertificateFromReader ]")
+		return nil, throw.W(err, "[ ReadCertificateFromReader ]")
 	}
 	return cert, nil
 }
@@ -237,7 +231,7 @@ func SignCert(signer cryptography.Signer, pKey, role, registeredNodeRef string) 
 	data := []byte(pKey + registeredNodeRef + role)
 	sign, err := signer.Sign(data)
 	if err != nil {
-		return nil, errors.W(err, "[ SignCert ] Couldn't sign")
+		return nil, throw.W(err, "[ SignCert ] Couldn't sign")
 	}
 	return sign, nil
 }

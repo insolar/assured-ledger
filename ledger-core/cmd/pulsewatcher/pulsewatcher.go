@@ -20,7 +20,7 @@ import (
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/api/requester"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/network"
 
 	"github.com/olekukonko/tablewriter"
 	"github.com/spf13/pflag"
@@ -275,7 +275,7 @@ func collectNodesStatuses(conf *pulsewatcher.Config, lastResults []nodeStatus) (
 			lock.Lock()
 
 			results[i] = nodeStatus{url, out.Result, ""}
-			state = state && out.Result.NetworkState == nodeinfo.CompleteNetworkState.String()
+			state = state && out.Result.NetworkState == network.CompleteNetworkState.String()
 			lock.Unlock()
 			wg.Done()
 		}(url, i)

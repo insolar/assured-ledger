@@ -9,8 +9,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 
 	"github.com/stretchr/testify/require"
@@ -47,15 +47,15 @@ func TestSwitch(t *testing.T) {
 	gatewayer.GatewayMock.Set(func() (g1 network.Gateway) {
 		return ge
 	})
-	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state nodeinfo.NetworkState, pulse pulse.Data) {
+	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state network.State, pulse pulse.Data) {
 		ge = ge.NewGateway(ctx, state)
 	})
 
 	require.Equal(t, "CompleteNetworkState", ge.GetState().String())
 	cref := gen.UniqueGlobalRef()
 
-	for _, state := range []nodeinfo.NetworkState{nodeinfo.NoNetworkState,
-		nodeinfo.JoinerBootstrap, nodeinfo.CompleteNetworkState} {
+	for _, state := range []network.State{network.NoNetworkState,
+		network.JoinerBootstrap, network.CompleteNetworkState} {
 		ge = ge.NewGateway(ctx, state)
 		require.Equal(t, state, ge.GetState())
 		ge.Run(ctx, EphemeralPulse.Data)
@@ -96,7 +96,7 @@ func TestDumbComplete_GetCert(t *testing.T) {
 	ge.Run(ctx, EphemeralPulse.Data)
 
 	gatewayer.GatewayMock.Set(func() (r network.Gateway) { return ge })
-	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state nodeinfo.NetworkState, pulse pulse.Data) {
+	gatewayer.SwitchStateMock.Set(func(ctx context.Context, state network.State, pulse pulse.Data) {
 		ge = ge.NewGateway(ctx, state)
 	})
 

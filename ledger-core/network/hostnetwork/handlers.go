@@ -10,7 +10,6 @@ import (
 	"io"
 
 	"github.com/insolar/assured-ledger/ledger-core/network"
-
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"

@@ -37,9 +37,6 @@ func (a *Imposter) PrepareExecutionContinue(ctx smachine.ExecutionContext, state
 	if state == nil {
 		panic(throw.IllegalValue())
 	}
-	if outgoingResult == nil {
-		panic(throw.IllegalValue())
-	}
 
 	return a.exec.PrepareAsync(ctx, func(_ context.Context, arg interface{}) smachine.AsyncResultFunc {
 		a.mockedService.ExecutionContinue(state, outgoingResult)
@@ -51,18 +48,14 @@ func (a *Imposter) PrepareExecutionContinue(ctx smachine.ExecutionContext, state
 	})
 }
 
-func (a *Imposter) PrepareExecutionAbort(ctx smachine.ExecutionContext, state runner.RunState, fn func()) smachine.AsyncCallRequester {
+func (a *Imposter) PrepareExecutionAbort(ctx smachine.ExecutionContext, state runner.RunState) smachine.AsyncCallRequester {
 	if state == nil {
 		panic(throw.IllegalValue())
 	}
 
 	return a.exec.PrepareAsync(ctx, func(_ context.Context, arg interface{}) smachine.AsyncResultFunc {
 		a.mockedService.ExecutionAbort(state)
-		return func(ctx smachine.AsyncResultContext) {
-			if fn != nil {
-				fn()
-			}
-		}
+		return nil
 	})
 }
 

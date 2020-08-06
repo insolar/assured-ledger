@@ -35,7 +35,7 @@ type dSMVStateReport struct {
 	smachine.StateMachineDeclTemplate
 }
 
-func (*dSMVStateReport) InjectDependencies(sm smachine.StateMachine, _ smachine.SlotLink, injector *injector.DependencyInjector) {
+func (*dSMVStateReport) InjectDependencies(sm smachine.StateMachine, _ smachine.SlotLink, injector injector.DependencyInjector) {
 	s := sm.(*SMVStateReport)
 
 	injector.MustInject(&s.objectCatalog)
@@ -146,7 +146,6 @@ func (s *SMVStateReport) updateSharedState(
 		dirty := *s.Payload.ProvidedContent.LatestDirtyState
 		desc := buildObjectDescriptor(objectRef, dirty)
 		state.SetDescriptorDirty(desc)
-		state.Deactivated = dirty.Deactivated
 	}
 	if s.gotLatestValidated() {
 		validated := *s.Payload.ProvidedContent.LatestValidatedState
@@ -155,7 +154,6 @@ func (s *SMVStateReport) updateSharedState(
 	}
 
 	state.SetState(objState)
-
 }
 
 func (s *SMVStateReport) gotLatestDirty() bool {
@@ -174,5 +172,6 @@ func buildObjectDescriptor(headRef reference.Global, state payload.ObjectState) 
 		state.Reference,
 		state.Class,
 		state.State,
+		state.Deactivated,
 	)
 }

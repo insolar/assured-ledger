@@ -22,6 +22,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
@@ -59,7 +60,8 @@ var messagesWithToken = []struct {
 }
 
 func TestDelegationToken_SuccessCheckCorrectToken(t *testing.T) {
-	t.Log("C5191")
+	insrail.LogCase(t, "C5191")
+
 	for _, testMsg := range messagesWithToken {
 		t.Run(testMsg.name, func(t *testing.T) {
 			defer commontestutils.LeakTester(t)
@@ -149,9 +151,7 @@ func TestDelegationToken_CheckTokenField(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			defer commontestutils.LeakTester(t)
-
-			t.Log(test.testRailID)
-			t.Skip("https://insolar.atlassian.net/browse/PLAT-588")
+			insrail.LogSkipCase(t, test.testRailID, "https://insolar.atlassian.net/browse/PLAT-588")
 
 			mc := minimock.NewController(t)
 
@@ -230,8 +230,7 @@ func insertToken(token payload.CallDelegationToken, msg interface{}) {
 type veSetMode int
 
 const (
-	veSetNone veSetMode = iota
-	veSetServer
+	veSetServer veSetMode = iota
 	veSetFake
 	veSetFixed
 )
@@ -291,8 +290,7 @@ func TestDelegationToken_IsMessageFromVirtualLegitimate(t *testing.T) {
 	for _, testCase := range cases {
 		t.Run(testCase.name, func(t *testing.T) {
 			defer commontestutils.LeakTester(t)
-
-			t.Log(testCase.testRailID)
+			insrail.LogCase(t, testCase.testRailID)
 
 			for _, testMsg := range messagesWithToken {
 				mc := minimock.NewController(t)
@@ -398,8 +396,8 @@ func TestDelegationToken_OldVEVDelegatedCallRequest(t *testing.T) {
 	for _, test := range testCases {
 		t.Run(test.name, func(t *testing.T) {
 			defer commontestutils.LeakTester(t)
+			insrail.LogCase(t, test.testRailID)
 
-			t.Log(test.testRailID)
 			mc := minimock.NewController(t)
 
 			server, ctx := utils.NewUninitializedServer(nil, t)
@@ -427,7 +425,7 @@ func TestDelegationToken_OldVEVDelegatedCallRequest(t *testing.T) {
 			server.Init(ctx)
 
 			var (
-				class       = gen.UniqueGlobalRef()
+				objectRef   = gen.UniqueGlobalRefWithPulse(server.GetPulse().PulseNumber)
 				outgoing    = server.BuildRandomOutgoingWithPulse()
 				executorRef = server.RandomGlobalWithPulse()
 				firstPulse  = server.GetPulse()
@@ -444,27 +442,28 @@ func TestDelegationToken_OldVEVDelegatedCallRequest(t *testing.T) {
 				QueryRoleMock.Return([]reference.Global{approver}, nil)
 
 			if test.haveCorrectDT {
-				delegationToken = server.DelegationToken(reference.NewRecordOf(class, outgoing.GetLocal()), executorRef, class)
+				delegationToken = server.DelegationToken(outgoing, executorRef, objectRef)
 			}
 
 			server.IncrementPulse(ctx)
 
 			if test.haveCorrectDT {
-				expectedToken = server.DelegationToken(outgoing, executorRef, class)
+				expectedToken = server.DelegationToken(outgoing, executorRef, objectRef)
 				require.NotEqual(t, delegationToken.PulseNumber, expectedToken.PulseNumber)
 				require.Equal(t, delegationToken.DelegateTo, expectedToken.DelegateTo)
 			}
 
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 			typedChecker.VDelegatedCallResponse.Set(func(response *payload.VDelegatedCallResponse) bool {
-				assert.Equal(t, class, response.Callee)
+				assert.Equal(t, objectRef, response.Callee)
 				assert.Equal(t, expectedToken, response.ResponseDelegationSpec)
 				return false
 			})
 
 			statePl := payload.VStateReport{
 				Status:                      payload.Empty,
-				Object:                      class,
+				Object:                      objectRef,
+				AsOf:                        firstPulse.PulseNumber,
 				OrderedPendingCount:         1,
 				OrderedPendingEarliestPulse: firstPulse.PulseNumber,
 			}
@@ -472,7 +471,7 @@ func TestDelegationToken_OldVEVDelegatedCallRequest(t *testing.T) {
 			server.WaitActiveThenIdleConveyor()
 
 			pl := payload.VDelegatedCallRequest{
-				Callee:         class,
+				Callee:         objectRef,
 				CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 				CallOutgoing:   outgoing,
 				DelegationSpec: delegationToken,

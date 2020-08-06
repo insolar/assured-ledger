@@ -132,7 +132,9 @@ func newHostSuite(t *testing.T) *hostSuite {
 	cm1 := component.NewManager(nil)
 	cm1.SetLogger(global.Logger())
 
-	f1 := transport.NewFactory(configuration.NewHostNetwork().Transport)
+	cfg1 := configuration.NewHostNetwork().Transport
+	cfg1.Address = "127.0.0.1:8088"
+	f1 := transport.NewFakeFactory(cfg1)
 	n1, err := NewHostNetwork(id1)
 	require.NoError(t, err)
 	cm1.Inject(f1, n1, resolver)
@@ -141,8 +143,8 @@ func newHostSuite(t *testing.T) *hostSuite {
 	cm2.SetLogger(global.Logger())
 
 	cfg2 := configuration.NewHostNetwork().Transport
-	// cfg2.Address = "127.0.0.1:8087"
-	f2 := transport.NewFactory(cfg2)
+	cfg2.Address = "127.0.0.1:8087"
+	f2 := transport.NewFakeFactory(cfg2)
 	n2, err := NewHostNetwork(id2)
 	require.NoError(t, err)
 	cm2.Inject(f2, n2, resolver)
@@ -164,6 +166,8 @@ func (s *hostSuite) Start() {
 	require.NoError(s.t, err)
 	err = s.cm2.Start(s.ctx2)
 	require.NoError(s.t, err)
+
+	require.NoError(s.t, transport.WaitFakeListeners(2, time.Second * 5))
 
 	err = s.resolver.addMapping(s.id1, s.n1.PublicAddress())
 	require.NoError(s.t, err, "failed to add mapping %s -> %s: %s", s.id1, s.n1.PublicAddress(), err)
@@ -212,6 +216,8 @@ func TestNewHostNetwork(t *testing.T) {
 }
 
 func TestHostNetwork_SendRequestPacket(t *testing.T) {
+	defer testutils.LeakTester(t)
+
 	m := newMockResolver()
 	ctx := instestlogger.TestContext(t)
 
@@ -254,6 +260,8 @@ func TestHostNetwork_SendRequestPacket(t *testing.T) {
 }
 
 func TestHostNetwork_SendRequestPacket3(t *testing.T) {
+	defer testutils.LeakTester(t)
+
 	instestlogger.SetTestOutput(t)
 	s := newHostSuite(t)
 	defer s.Stop()
@@ -289,6 +297,8 @@ func TestHostNetwork_SendRequestPacket3(t *testing.T) {
 }
 
 func TestHostNetwork_SendRequestPacket_errors(t *testing.T) {
+	defer testutils.LeakTester(t)
+
 	instestlogger.SetTestOutputWithErrorFilter(t, func(s string) bool {
 		return !strings.Contains(s, "Failed to send response")
 	})

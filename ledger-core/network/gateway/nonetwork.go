@@ -9,9 +9,9 @@ package gateway
 
 import (
 	"context"
+	"math/rand"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -27,6 +27,7 @@ type NoNetwork struct {
 }
 
 func (g *NoNetwork) pause() time.Duration {
+	// todo: use synckit.Backoff
 	var sleep time.Duration
 	switch g.backoff {
 	case g.Options.MaxTimeout:
@@ -45,29 +46,36 @@ func (g *NoNetwork) pause() time.Duration {
 
 func (g *NoNetwork) Run(ctx context.Context, pulse pulse.Data) {
 	cert := g.CertificateManager.GetCertificate()
-	origin := g.NodeKeeper.GetOrigin()
-	discoveryNodes := network.ExcludeOrigin(cert.GetDiscoveryNodes(), origin.ID())
-
-	g.NodeKeeper.SetInitialSnapshot([]nodeinfo.NetworkNode{origin})
+	discoveryNodes := network.ExcludeOrigin(cert.GetDiscoveryNodes(), g.NodeKeeper.GetLocalNodeReference())
 
 	if len(discoveryNodes) == 0 {
 		inslogger.FromContext(ctx).Warn("No discovery nodes found in certificate")
 		return
 	}
 
-	if network.OriginIsJoinAssistant(cert) {
+	// remember who is Me and who is joinAssistant
+	g.isDiscovery = network.OriginIsDiscovery(cert)
+	g.isJoinAssistant = network.OriginIsJoinAssistant(cert)
+	g.joinAssistant = network.JoinAssistant(cert)
+
+	if g.isJoinAssistant {
 		// Reset backoff if not insolar.JoinerBootstrap.
 		g.backoff = 0
 
 		g.bootstrapTimer = time.NewTimer(g.bootstrapETA)
-		g.Gatewayer.SwitchState(ctx, nodeinfo.WaitConsensus, pulse)
+		g.Gatewayer.SwitchState(ctx, network.WaitConsensus, pulse)
 		return
 	}
 
 	time.Sleep(g.pause())
-	g.Gatewayer.SwitchState(ctx, nodeinfo.JoinerBootstrap, pulse)
+	if g.isDiscovery {
+		time.Sleep(time.Second * time.Duration(rand.Intn(20)))
+		g.Gatewayer.SwitchState(ctx, network.DiscoveryBootstrap, pulse)
+	} else {
+		g.Gatewayer.SwitchState(ctx, network.JoinerBootstrap, pulse)
+	}
 }
 
-func (g *NoNetwork) GetState() nodeinfo.NetworkState {
-	return nodeinfo.NoNetworkState
+func (g *NoNetwork) GetState() network.State {
+	return network.NoNetworkState
 }

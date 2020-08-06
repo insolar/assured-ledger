@@ -91,7 +91,7 @@ type dSMExecute struct {
 	smachine.StateMachineDeclTemplate
 }
 
-func (*dSMExecute) InjectDependencies(sm smachine.StateMachine, _ smachine.SlotLink, injector *injector.DependencyInjector) {
+func (*dSMExecute) InjectDependencies(sm smachine.StateMachine, _ smachine.SlotLink, injector injector.DependencyInjector) {
 	s := sm.(*SMExecute)
 
 	injector.MustInject(&s.runner)
@@ -228,12 +228,8 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 	s.pendingConstructorFinished = semaphorePendingConstructorFinished
 
 	if s.isConstructor {
-		switch objectState {
-		case object.Unknown:
+		if objectState == object.Unknown {
 			panic(throw.Impossible())
-		case object.Inactive:
-			// attempt to create object that is deactivated :(
-			panic(throw.NotImplemented())
 		}
 
 		// default isolation for constructors
@@ -254,8 +250,6 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 			State:           objectState,
 		}))
 		return ctx.Jump(s.stepSendCallResult)
-	case object.Inactive:
-		panic(throw.NotImplemented())
 	case object.HasState:
 		// ok
 	}
@@ -320,10 +314,6 @@ func (s *SMExecute) stepIsolationNegotiation(ctx smachine.ExecutionContext) smac
 	// forbidden isolation
 	// it requires special processing path that will be implemented later on
 	if negotiatedIsolation.Interference == contract.CallTolerable && negotiatedIsolation.State == contract.CallValidated {
-		panic(throw.NotImplemented())
-	}
-
-	if negotiatedIsolation.State == contract.CallValidated && s.execution.ObjectDescriptor == nil {
 		panic(throw.NotImplemented())
 	}
 
@@ -532,6 +522,7 @@ func (s *SMExecute) getDescriptor(state *object.SharedState) descriptor.Object {
 func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var (
 		objectDescriptor descriptor.Object
+		isDeactivated    bool
 	)
 	action := func(state *object.SharedState) {
 		if !state.KnownRequests.SetActive(s.execution.Isolation.Interference, s.execution.Outgoing) {
@@ -540,12 +531,28 @@ func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) sm
 			panic(throw.Impossible())
 		}
 
-		state.IncrementPotentialPendingCounter(s.execution.Isolation)
 		objectDescriptor = s.getDescriptor(state)
+		if state.GetState() == object.Inactive || (objectDescriptor != nil && objectDescriptor.Deactivated()) {
+			isDeactivated = true
+			return
+		}
 	}
 
 	if stepUpdate := s.shareObjectAccess(ctx, action); !stepUpdate.IsEmpty() {
 		return stepUpdate
+	}
+
+	if isDeactivated {
+		s.prepareExecutionError(throw.E("try to call method on deactivated object", struct {
+			ObjectReference string
+		}{
+			ObjectReference: s.execution.Object.String(),
+		}))
+		return ctx.Jump(s.stepSendCallResult)
+	}
+
+	if s.execution.Isolation.State == contract.CallValidated && s.execution.ObjectDescriptor == nil {
+		panic(throw.NotImplemented())
 	}
 
 	ctx.SetDefaultMigration(s.migrateDuringExecution)
@@ -677,6 +684,12 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 
 	switch outgoing := s.executionNewState.Outgoing.(type) {
 	case execution.Deactivate:
+		if s.intolerableCall() {
+			err := throw.E("interference violation: deactivate call from intolerable call")
+			ctx.Log().Warn(err)
+			s.prepareOutgoingError(err)
+			return ctx.Jump(s.stepExecuteContinue)
+		}
 		s.deactivate = true
 	case execution.CallConstructor:
 		if s.intolerableCall() {
@@ -717,7 +730,7 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 
 func (s *SMExecute) stepExecuteAborted(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	ctx.Log().Warn("aborting execution")
-	return s.runner.PrepareExecutionAbort(ctx, s.run, func() {}).DelayedStart().ThenJump(s.stepSendCallResult)
+	return s.runner.PrepareExecutionAbort(ctx, s.run).DelayedStart().ThenJump(s.stepSendCallResult)
 }
 
 func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -811,13 +824,6 @@ func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.
 }
 
 func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	var (
-		executionNewState = s.executionNewState.Result
-
-		memory []byte
-		class  reference.Global
-	)
-
 	if s.isIntolerableCallChangeState() {
 		s.prepareExecutionError(throw.E("intolerable call trying to change object state"))
 		return ctx.Jump(s.stepSendCallResult)
@@ -834,13 +840,14 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 	switch s.executionNewState.Result.Type() {
 	case requestresult.SideEffectNone:
 	case requestresult.SideEffectActivate:
-		_, class, memory = executionNewState.Activate()
-		s.newObjectDescriptor = s.makeNewDescriptor(class, memory)
+		_, class, memory := s.executionNewState.Result.Activate()
+		s.newObjectDescriptor = s.makeNewDescriptor(class, memory, false)
 	case requestresult.SideEffectAmend:
-		_, class, memory = executionNewState.Amend()
-		s.newObjectDescriptor = s.makeNewDescriptor(class, memory)
+		_, class, memory := s.executionNewState.Result.Amend()
+		s.newObjectDescriptor = s.makeNewDescriptor(class, memory, false)
 	case requestresult.SideEffectDeactivate:
-		panic(throw.NotImplemented())
+		class, memory := s.executionNewState.Result.Deactivate()
+		s.newObjectDescriptor = s.makeNewDescriptor(class, memory, true)
 	default:
 		panic(throw.IllegalValue())
 	}
@@ -937,9 +944,10 @@ func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionConte
 		}
 
 		lastState = &payload.ObjectState{
-			Reference: s.executionNewState.Result.ObjectStateID,
-			State:     s.executionNewState.Result.Memory,
-			Class:     class,
+			Reference:   s.executionNewState.Result.ObjectStateID,
+			State:       s.executionNewState.Result.Memory,
+			Class:       class,
+			Deactivated: s.executionNewState.Result.SideEffectType == requestresult.SideEffectDeactivate,
 		}
 	}
 
@@ -969,7 +977,7 @@ func (s *SMExecute) sendDelegatedRequestFinished(ctx smachine.ExecutionContext, 
 	}).WithoutAutoWakeUp().Start()
 }
 
-func (s *SMExecute) makeNewDescriptor(class reference.Global, memory []byte) descriptor.Object {
+func (s *SMExecute) makeNewDescriptor(class reference.Global, memory []byte, deactivated bool) descriptor.Object {
 	var prevStateIDBytes []byte
 	objDescriptor := s.execution.ObjectDescriptor
 	if objDescriptor != nil {
@@ -986,6 +994,7 @@ func (s *SMExecute) makeNewDescriptor(class reference.Global, memory []byte) des
 		stateID,
 		class,
 		memory,
+		deactivated,
 	)
 }
 
@@ -1098,7 +1107,12 @@ func (s *SMExecute) deduplicate(state *object.SharedState) (DeduplicationAction,
 		filledTable := uint8(pendingList.Count()) == state.PreviousExecutorOrderedPendingCount
 		isActive, isDuplicate := pendingList.GetState(s.execution.Outgoing)
 
-		s.hasState = state.GetState() == object.HasState
+		switch state.GetState() {
+		case object.HasState, object.Inactive:
+			s.hasState = true
+		default:
+			s.hasState = false
+		}
 		s.duplicateFinished = isDuplicate && !isActive
 
 		switch {

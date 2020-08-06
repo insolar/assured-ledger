@@ -14,7 +14,6 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -59,12 +58,8 @@ func TestSMObject_MigrationCreateStateReport_IfStateMissing(t *testing.T) {
 
 	smObject := newSMObjectWithPulse()
 
-	smObject.SetDescriptorDirty(descriptor.NewObject(reference.Global{}, reference.Local{}, reference.Global{}, nil))
+	smObject.SetDescriptorDirty(descriptor.NewObject(reference.Global{}, reference.Local{}, reference.Global{}, nil, false))
 	smObject.SharedState.SetState(Missing)
-	smObject.IncrementPotentialPendingCounter(contract.MethodIsolation{
-		Interference: contract.CallIntolerable,
-		State:        contract.CallValidated,
-	})
 
 	report := smObject.BuildStateReport()
 
@@ -114,7 +109,7 @@ func TestSMObject_MigrationCreateStateReport_IfStateIsEmptyAndNoCounters(t *test
 		smObject = newSMObjectWithPulse()
 	)
 
-	smObject.SetDescriptorDirty(descriptor.NewObject(reference.Global{}, reference.Local{}, reference.Global{}, nil))
+	smObject.SetDescriptorDirty(descriptor.NewObject(reference.Global{}, reference.Local{}, reference.Global{}, nil,  false))
 	smObject.SharedState.SetState(Empty)
 
 	var sharedData smachine.SharedDataLink
@@ -164,10 +159,6 @@ func TestSMObject_MigrationCreateStateReport_IfStateEmptyAndCountersSet(t *testi
 	)
 
 	smObject.SharedState.SetState(Empty)
-	smObject.IncrementPotentialPendingCounter(contract.MethodIsolation{
-		Interference: contract.CallIntolerable,
-		State:        contract.CallValidated,
-	})
 
 	report := smObject.BuildStateReport()
 

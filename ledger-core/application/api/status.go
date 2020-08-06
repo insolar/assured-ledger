@@ -16,6 +16,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/trace"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 )
 
 // Get returns status info
@@ -37,19 +38,19 @@ func (s *NodeService) GetStatus(r *http.Request, args *interface{}, requestBody 
 	nodes := make([]requester.Node, reply.ActiveListSize)
 	for i, node := range statusReply.Nodes {
 		nodes[i] = requester.Node{
-			Reference: node.ID().String(),
-			Role:      node.Role().String(),
-			IsWorking: node.GetPower() > 0,
-			ID:        uint32(node.ShortID()),
+			Reference: nodeinfo.NodeRef(node).String(),
+			Role:      nodeinfo.NodeRole(node).String(),
+			IsWorking: node.IsPowered(),
+			ID:        uint32(node.GetNodeID()),
 		}
 	}
 	reply.Nodes = nodes
 
 	reply.Origin = requester.Node{
-		Reference: statusReply.Origin.ID().String(),
-		Role:      statusReply.Origin.Role().String(),
-		IsWorking: statusReply.Origin.GetPower() > 0,
-		ID:        uint32(statusReply.Origin.ShortID()),
+		Reference: nodeinfo.NodeRef(statusReply.Origin).String(),
+		Role:      nodeinfo.NodeRole(statusReply.Origin).String(),
+		IsWorking: statusReply.Origin.IsPowered(),
+		ID:        uint32(statusReply.Origin.GetNodeID()),
 	}
 
 	reply.NetworkPulseNumber = uint32(statusReply.PulseNumber)
@@ -60,7 +61,6 @@ func (s *NodeService) GetStatus(r *http.Request, args *interface{}, requestBody 
 	}
 	reply.PulseNumber = uint32(p.PulseNumber)
 
-	reply.Entropy = statusReply.PulseEntropy[:]
 	reply.Version = statusReply.Version
 	reply.StartTime = statusReply.StartTime
 	reply.Timestamp = statusReply.Timestamp

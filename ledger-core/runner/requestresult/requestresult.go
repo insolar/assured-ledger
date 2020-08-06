@@ -41,8 +41,8 @@ func (s *RequestResult) Amend() (reference.Local, reference.Global, []byte) {
 	return s.ObjectStateID, s.ObjectImage, s.Memory
 }
 
-func (s *RequestResult) Deactivate() reference.Local {
-	return s.ObjectStateID
+func (s *RequestResult) Deactivate() (reference.Global, []byte) {
+	return s.ObjectImage, s.Memory
 }
 
 func (s *RequestResult) SetActivate(parent, image reference.Global, memory []byte) {
@@ -64,6 +64,8 @@ func (s *RequestResult) SetAmend(object descriptor.Object, memory []byte) {
 
 func (s *RequestResult) SetDeactivate(object descriptor.Object) {
 	s.SideEffectType = SideEffectDeactivate
+	class, _ := object.Class()
+	s.ObjectImage = class
 	s.ObjectStateID = object.StateID()
 }
 

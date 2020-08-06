@@ -16,7 +16,6 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -30,7 +29,7 @@ type CommonTestSuite struct {
 	mc            *minimock.Controller
 	ctx           context.Context
 	handler       *Handler
-	leaver        *nodeinfo.LeaverMock
+	leaver        *LeaverMock
 	pulseAccessor *beat.AccessorMock
 }
 
@@ -41,13 +40,13 @@ func TestBasics(t *testing.T) {
 func (s *CommonTestSuite) BeforeTest(suiteName, testName string) {
 	s.mc = minimock.NewController(s.T())
 	s.ctx = instestlogger.TestContext(s.T())
-	s.leaver = nodeinfo.NewLeaverMock(s.T())
+	s.leaver = NewLeaverMock(s.T())
 	s.pulseAccessor = beat.NewAccessorMock(s.T())
 	s.handler = &Handler{Leaver: s.leaver, PulseAccessor: s.pulseAccessor}
 }
 
 func (s *CommonTestSuite) AfterTest(suiteName, testName string) {
-	s.mc.Wait(time.Minute)
+	s.mc.Wait(time.Second*10)
 	s.mc.Finish()
 }
 
@@ -113,7 +112,7 @@ func (s *OnLeaveApprovedTestSuite) TestBasicUsage() {
 func TestAbort(t *testing.T) {
 	mc := minimock.NewController(t)
 	defer mc.Finish()
-	defer mc.Wait(time.Minute)
+	defer mc.Wait(time.Second*10)
 
 	ctx := context.Background()
 	handler := NewHandler(nil)

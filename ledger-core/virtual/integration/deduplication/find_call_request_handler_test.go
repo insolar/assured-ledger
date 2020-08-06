@@ -17,6 +17,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/synchronization"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
@@ -46,7 +47,7 @@ type VFindCallRequestHandlingTestInfo struct {
 }
 
 func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
-	t.Log("C5115")
+	insrail.LogCase(t, "C5115")
 
 	table := []VFindCallRequestHandlingTestInfo{
 		{
@@ -117,6 +118,7 @@ func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
 			expectedStatus: payload.FoundCall,
 			expectedResult: true,
 		},
+		//TODO failed
 		{
 			name:                 "found request, constructor, not pending, result, early msg",
 			events:               []TestStep{StepFindMessage, StepConstructorStartAndFinish, StepIncrementPulseToP3},
@@ -249,12 +251,14 @@ func StepConstructorStart(s *VFindCallRequestHandlingSuite, ctx context.Context,
 	}
 	s.executionPoint = synchronization.NewPoint(1)
 
-	report := payload.VStateReport{
-		AsOf:   s.getP1(),
-		Status: payload.Missing,
-		Object: s.getObject(),
+	if s.getObject().GetLocal().GetPulseNumber() < s.getP2() {
+		report := payload.VStateReport{
+			AsOf:   s.getP1(),
+			Status: payload.Missing,
+			Object: s.getObject(),
+		}
+		s.addPayloadAndWaitIdle(ctx, &report)
 	}
-	s.addPayloadAndWaitIdle(ctx, &report)
 
 	req := payload.VCallRequest{
 		CallType:       payload.CTConstructor,
@@ -457,7 +461,7 @@ func (s *VFindCallRequestHandlingSuite) setRunnerMock() {
 	s.runnerMock.AddExecutionClassify("SomeMethod", isolation, nil)
 
 	newObjDescriptor := descriptor.NewObject(
-		reference.Global{}, reference.Local{}, s.getClass(), []byte(""),
+		reference.Global{}, reference.Local{}, s.getClass(), []byte(""), false,
 	)
 
 	{

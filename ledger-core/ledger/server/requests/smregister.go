@@ -48,7 +48,7 @@ func (p *SMRegisterRecordSet) GetInitStateFor(smachine.StateMachine) smachine.In
 	return p.stepInit
 }
 
-func (p *SMRegisterRecordSet) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLink, injector *injector.DependencyInjector) {
+func (p *SMRegisterRecordSet) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLink, injector injector.DependencyInjector) {
 	injector.MustInject(&p.pulseSlot)
 	injector.MustInject(&p.cataloger)
 	injector.MustInject(&p.inspectSvc)

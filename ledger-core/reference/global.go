@@ -82,11 +82,9 @@ func (v Global) AsByteString() longbits.ByteString {
 	return longbits.CopyBytes(v.AsBytes())
 }
 
+// deprecated // use reference.AsBytes()
 func (v Global) AsBytes() []byte {
-	val := make([]byte, GlobalBinarySize)
-	WriteWholeLocalTo(v.addressLocal, val[:LocalBinarySize])
-	WriteWholeLocalTo(v.addressBase, val[LocalBinarySize:])
-	return val
+	return AsBytes(v)
 }
 
 func (v Global) AsRecordID() Local {

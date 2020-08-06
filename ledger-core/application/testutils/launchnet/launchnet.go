@@ -7,8 +7,8 @@ package launchnet
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -24,36 +24,35 @@ import (
 
 	"gopkg.in/yaml.v2"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
-	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/configuration"
+	"github.com/insolar/assured-ledger/ledger-core/network"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/api/requester"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/defaults"
 )
 
-const HOST = "http://localhost:"
-const AdminPort = "19002"
-const PublicPort = "19102"
-const HostDebug = "http://localhost:8001"
-const TestAdminRPCUrl = "/admin-api/rpc"
+const (
+	HOST            = "http://localhost:"
+	AdminPort       = "19002"
+	PublicPort      = "19102"
+	HostDebug       = "http://localhost:8001"
+	TestAdminRPCUrl = "/admin-api/rpc"
+)
 
-var AdminHostPort = HOST + AdminPort
-var TestRPCUrl = HOST + AdminPort + TestAdminRPCUrl
-var TestRPCUrlPublic = HOST + PublicPort + "/api/rpc"
-var disableLaunchnet = false
-var testRPCUrlVar = "INSOLAR_FUNC_RPC_URL"
-var testRPCUrlPublicVar = "INSOLAR_FUNC_RPC_URL_PUBLIC"
-var TestWalletHost = "INSOLAR_FUNC_TESTWALLET_HOST"
-var keysPathVar = "INSOLAR_FUNC_KEYS_PATH"
+var (
+	AdminHostPort       = HOST + AdminPort
+	TestRPCUrl          = HOST + AdminPort + TestAdminRPCUrl
+	TestRPCUrlPublic    = HOST + PublicPort + "/api/rpc"
+	disableLaunchnet    = false
+	testRPCUrlVar       = "INSOLAR_FUNC_RPC_URL"
+	testRPCUrlPublicVar = "INSOLAR_FUNC_RPC_URL_PUBLIC"
+	TestWalletHost      = "INSOLAR_FUNC_TESTWALLET_HOST"
+	keysPathVar         = "INSOLAR_FUNC_KEYS_PATH"
 
-var cmd *exec.Cmd
-var cmdCompleted = make(chan error, 1)
-var stdin io.WriteCloser
-var stdout io.ReadCloser
-var stderr io.ReadCloser
-
-var projectRoot string
-var rootOnce sync.Once
+	rootOnce    sync.Once
+	projectRoot string
+)
 
 // rootPath returns project root folder
 func rootPath() string {
@@ -70,7 +69,7 @@ func rootPath() string {
 // Method starts launchnet before execution of callback function (cb) and stops launchnet after.
 // Returns exit code as a result from calling callback function.
 func Run(cb func() int) int {
-	err := setup()
+	teardown, err := setup()
 	defer teardown()
 	if err != nil {
 		fmt.Println("error while setup, skip tests: ", err)
@@ -131,6 +130,30 @@ func launchnetPath(a ...string) (string, error) { // nolint:unparam
 	return filepath.Join(parts...), nil
 }
 
+func GetDiscoveryNodesCount() (int, error) {
+	type nodesConf struct {
+		DiscoverNodes []interface{} `yaml:"discovery_nodes"`
+	}
+
+	var conf nodesConf
+
+	path, err := launchnetPath("bootstrap.yaml")
+	if err != nil {
+		return 0, err
+	}
+	buff, err := ioutil.ReadFile(path)
+	if err != nil {
+		return 0, throw.W(err, "[ getNumberNodes ] Can't read bootstrap config")
+	}
+
+	err = yaml.Unmarshal(buff, &conf)
+	if err != nil {
+		return 0, throw.W(err, "[ getNumberNodes ] Can't parse bootstrap config")
+	}
+
+	return len(conf.DiscoverNodes), nil
+}
+
 func GetNodesCount() (int, error) {
 	type nodesConf struct {
 		DiscoverNodes []interface{} `yaml:"discovery_nodes"`
@@ -145,37 +168,30 @@ func GetNodesCount() (int, error) {
 	}
 	buff, err := ioutil.ReadFile(path)
 	if err != nil {
-		return 0, errors.W(err, "[ getNumberNodes ] Can't read bootstrap config")
+		return 0, throw.W(err, "[ getNumberNodes ] Can't read bootstrap config")
 	}
 
 	err = yaml.Unmarshal(buff, &conf)
 	if err != nil {
-		return 0, errors.W(err, "[ getNumberNodes ] Can't parse bootstrap config")
+		return 0, throw.W(err, "[ getNumberNodes ] Can't parse bootstrap config")
 	}
 
 	return len(conf.DiscoverNodes) + len(conf.Nodes), nil
 }
 
-func stopInsolard() error {
-	if stdin != nil {
-		defer stdin.Close()
-	}
-	if stdout != nil {
-		defer stdout.Close()
-	}
-
+func stopInsolard(cmd *exec.Cmd) error {
 	if cmd == nil || cmd.Process == nil {
 		return nil
 	}
 
 	err := cmd.Process.Signal(syscall.SIGHUP)
 	if err != nil {
-		return errors.W(err, "[ stopInsolard ] failed to kill process:")
+		return throw.W(err, "[ stopInsolard ] failed to kill process:")
 	}
 
 	pState, err := cmd.Process.Wait()
 	if err != nil {
-		return errors.W(err, "[ stopInsolard ] failed to wait process:")
+		return throw.W(err, "[ stopInsolard ] failed to wait process:")
 	}
 
 	fmt.Println("[ stopInsolard ] State: ", pState.String())
@@ -183,38 +199,24 @@ func stopInsolard() error {
 	return nil
 }
 
-func waitForNetworkState(state nodeinfo.NetworkState) error {
+func waitForNetworkState(cfg appConfig, state network.State) error {
 	numAttempts := 270
-	// TODO: read ports from bootstrap config
-	ports := []string{
-		"19001",
-		"19002",
-		"19003",
-		"19004",
-		"19005",
-		// "19106",
-		// "19107",
-		// "19108",
-		// "19109",
-		// "19110",
-		// "19111",
-	}
-	numNodes := len(ports)
+	numNodes := len(cfg.Nodes)
 	currentOk := 0
 	fmt.Println("Waiting for Network state: ", state.String())
 	for i := 0; i < numAttempts; i++ {
 		currentOk = 0
-		for _, port := range ports {
-			resp, err := requester.Status(fmt.Sprintf("%s%s%s", HOST, port, TestAdminRPCUrl))
+		for _, node := range cfg.Nodes {
+			resp, err := requester.Status(fmt.Sprintf("http://%s%s", node.AdminAPIRunner.Address, TestAdminRPCUrl))
 			if err != nil {
-				fmt.Println("[ waitForNet ] Problem with port " + port + ". Err: " + err.Error())
+				fmt.Println("[ waitForNet ] Problem with node " + node.AdminAPIRunner.Address + ". Err: " + err.Error())
 				break
 			}
 			if resp.NetworkState != state.String() {
-				fmt.Println("[ waitForNet ] Good response from port " + port + ". Net is not ready. Response: " + resp.NetworkState)
+				fmt.Println("[ waitForNet ] Good response from node " + node.AdminAPIRunner.Address + ". Net is not ready. Response: " + resp.NetworkState)
 				break
 			}
-			fmt.Println("[ waitForNet ] Good response from port " + port + ". Net is ready. Response: " + resp.NetworkState)
+			fmt.Println("[ waitForNet ] Good response from node " + node.AdminAPIRunner.Address + ". Net is ready. Response: " + resp.NetworkState)
 			currentOk++
 		}
 		if currentOk == numNodes {
@@ -236,71 +238,110 @@ func waitForNetworkState(state nodeinfo.NetworkState) error {
 func runPulsar() error {
 	pulsarCmd := exec.Command("sh", "-c", "./bin/pulsard -c .artifacts/launchnet/pulsar.yaml")
 	if err := pulsarCmd.Start(); err != nil {
-		return errors.W(err, "failed to launch pulsar")
+		return throw.W(err, "failed to launch pulsar")
 	}
 	fmt.Println("Pulsar launched")
 	return nil
 }
 
-func waitForNet() error {
-	err := waitForNetworkState(nodeinfo.WaitPulsar)
+func waitForNet(cfg appConfig) error {
+	err := waitForNetworkState(cfg, network.WaitPulsar)
 	if err != nil {
-		return errors.W(err, "Can't wait for NetworkState "+nodeinfo.WaitPulsar.String())
+		return throw.W(err, "Can't wait for NetworkState "+network.WaitPulsar.String())
 	}
 
 	err = runPulsar()
 	if err != nil {
-		return errors.W(err, "Can't run pulsar")
+		return throw.W(err, "Can't run pulsar")
 	}
 
-	err = waitForNetworkState(nodeinfo.CompleteNetworkState)
+	err = waitForNetworkState(cfg, network.CompleteNetworkState)
 	if err != nil {
-		return errors.W(err, "Can't wait for NetworkState "+nodeinfo.CompleteNetworkState.String())
+		return throw.W(err, "Can't wait for NetworkState "+network.CompleteNetworkState.String())
 	}
 
 	return nil
 }
 
-func startNet() error {
+func startNet() (*exec.Cmd, error) {
 	cwd, err := os.Getwd()
 	if err != nil {
-		return errors.W(err, "failed to get working directory")
+		return nil, throw.W(err, "failed to get working directory")
 	}
 	rootPath := rootPath()
 
 	err = os.Chdir(rootPath)
 	if err != nil {
-		return errors.W(err, "[ startNet  ] Can't change dir")
+		return nil, throw.W(err, "[ startNet  ] Can't change dir")
 	}
 	defer func() {
 		_ = os.Chdir(cwd)
 	}()
 
-	cmd = exec.Command("./scripts/insolard/launchnet.sh", "-gwp")
-	stdout, _ = cmd.StdoutPipe()
-
-	stderr, err = cmd.StderrPipe()
+	cmd := exec.Command("./scripts/insolard/launchnet.sh", "-pwdg")
+	err = waitForLaunch(cmd)
 	if err != nil {
-		return errors.W(err, "[ startNet] could't set stderr: ")
+		return cmd, throw.W(err, "[ startNet ] couldn't waitForLaunch more")
 	}
 
-	err = cmd.Start()
+	appCfg, err := readAppConfig()
 	if err != nil {
-		return errors.W(err, "[ startNet ] Can't run cmd")
+		return cmd, throw.W(err, "[ startNet ] couldn't read nodes config")
 	}
 
-	err = waitForLaunch()
+	err = waitForNet(appCfg)
 	if err != nil {
-		return errors.W(err, "[ startNet ] couldn't waitForLaunch more")
+		return cmd, throw.W(err, "[ startNet ] couldn't waitForNet more")
 	}
 
-	err = waitForNet()
+	return cmd, nil
+}
+
+type nodeConfig struct {
+	AdminAPIRunner configuration.APIRunner
+}
+
+type appConfig struct {
+	Nodes []nodeConfig
+}
+
+func readAppConfig() (appConfig, error) {
+	res := appConfig{}
+	discoverNodes, err := GetDiscoveryNodesCount()
 	if err != nil {
-		return errors.W(err, "[ startNet ] couldn't waitForNet more")
+		return res, throw.W(err, "failed to get discovery nodes number")
 	}
 
-	return nil
+	res.Nodes = make([]nodeConfig, 0, discoverNodes)
+	for i := 1; i <= discoverNodes; i++ {
+		nodeCfg, err := readNodeConfig(fmt.Sprintf("discoverynodes/%d/insolard.yaml", i))
+		if err != nil {
+			return res, throw.W(err, "failed to get discovery node config")
+		}
+		res.Nodes = append(res.Nodes, nodeCfg)
+	}
 
+	return res, nil
+}
+
+func readNodeConfig(path string) (nodeConfig, error) {
+	var conf nodeConfig
+
+	path, err := launchnetPath(path)
+	if err != nil {
+		return conf, err
+	}
+	buff, err := ioutil.ReadFile(path)
+	if err != nil {
+		return conf, throw.W(err, "[ getNumberNodes ] Can't read bootstrap config")
+	}
+
+	err = yaml.Unmarshal(buff, &conf)
+	if err != nil {
+		return conf, throw.W(err, "[ getNumberNodes ] Can't parse bootstrap config")
+	}
+
+	return conf, nil
 }
 
 var logRotatorEnableVar = "LOGROTATOR_ENABLE"
@@ -310,7 +351,22 @@ func LogRotateEnabled() bool {
 	return os.Getenv(logRotatorEnableVar) == "1"
 }
 
-func waitForLaunch() error {
+func waitForLaunch(cmd *exec.Cmd) error {
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return throw.W(err, "[ startNet] could't set stderr: ")
+	}
+
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return throw.W(err, "[ startNet] could't set stderr: ")
+	}
+
+	err = cmd.Start()
+	if err != nil {
+		return throw.W(err, "[ startNet ] Can't run cmd")
+	}
+
 	done := make(chan bool, 1)
 	timeout := 240 * time.Second
 
@@ -333,15 +389,16 @@ func waitForLaunch() error {
 		}
 	}()
 
+	cmdCompleted := make(chan error, 1)
 	go func() { cmdCompleted <- cmd.Wait() }()
 	select {
 	case err := <-cmdCompleted:
 		cmdCompleted <- nil
-		return errors.New("[ waitForLaunch ] insolard finished unexpectedly: " + err.Error())
+		return throw.New("[ waitForLaunch ] insolard finished unexpectedly: " + err.Error())
 	case <-done:
 		return nil
 	case <-time.After(timeout):
-		return errors.Errorf("[ waitForLaunch ] could't wait for launch: timeout of %s was exceeded", timeout)
+		return throw.New("[ waitForLaunch ] could't wait for launch: timeout of %s was exceeded", timeout)
 	}
 }
 
@@ -351,23 +408,38 @@ func RunOnlyWithLaunchnet(t *testing.T) {
 	}
 }
 
-func setup() error {
+func setup() (cancelFunc func(), err error) {
 	testRPCUrl := os.Getenv(testRPCUrlVar)
 	testRPCUrlPublic := os.Getenv(testRPCUrlPublicVar)
 
-	if testRPCUrl == "" || testRPCUrlPublic == "" {
-		err := startNet()
-		if err != nil {
-			return errors.W(err, "[ setup ] could't startNet")
-		}
-	} else {
+	externalLaunchnet := testRPCUrl != "" && testRPCUrlPublic != ""
+	if externalLaunchnet {
 		TestRPCUrl = testRPCUrl
 		TestRPCUrlPublic = testRPCUrlPublic
 		url := strings.Split(TestRPCUrlPublic, "/")
 		AdminHostPort = strings.Join(url[0:len(url)-1], "/")
 		disableLaunchnet = true
+
+		return func() {}, nil
 	}
-	return nil
+
+	cmd, err := startNet()
+	cancelFunc = func() {}
+	if cmd != nil {
+		cancelFunc = func() {
+			err := stopInsolard(cmd)
+			if err != nil {
+				fmt.Println("[ teardown ]  failed to stop insolard:", err)
+				return
+			}
+			fmt.Println("[ teardown ] insolard was successfully stopped")
+		}
+	}
+	if err != nil {
+		return cancelFunc, throw.W(err, "[ setup ] could't startNet")
+	}
+
+	return cancelFunc, nil
 }
 
 func pulseWatcherPath() (string, string) {
@@ -377,15 +449,6 @@ func pulseWatcherPath() (string, string) {
 	baseDir := defaults.PathWithBaseDir(defaults.LaunchnetDir(), insDir)
 	config := filepath.Join(baseDir, "pulsewatcher.yaml")
 	return pulseWatcher, config
-}
-
-func teardown() {
-	err := stopInsolard()
-	if err != nil {
-		fmt.Println("[ teardown ]  failed to stop insolard:", err)
-		return
-	}
-	fmt.Println("[ teardown ] insolard was successfully stopped")
 }
 
 // RotateLogs rotates launchnet logs, verbose flag enables printing what happens.
@@ -456,7 +519,7 @@ func FetchAndSaveMetrics(iteration int) ([][]byte, error) {
 	subDir := fmt.Sprintf("%04d", iteration)
 	outDir := filepath.Join(insDir, defaults.LaunchnetDir(), "logs/metrics", subDir)
 	if err := os.MkdirAll(outDir, os.ModePerm); err != nil {
-		return nil, errors.W(err, "failed to create metrics subdirectory")
+		return nil, throw.W(err, "failed to create metrics subdirectory")
 	}
 
 	for i, b := range results {
@@ -466,7 +529,7 @@ func FetchAndSaveMetrics(iteration int) ([][]byte, error) {
 
 		err := ioutil.WriteFile(outFile, b, 0640)
 		if err != nil {
-			return nil, errors.W(err, "write metrics failed")
+			return nil, throw.W(err, "write metrics failed")
 		}
 		fmt.Printf("Dump metrics from %v to %v\n", addrs[i], outFile)
 	}

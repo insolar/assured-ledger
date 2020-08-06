@@ -6,10 +6,8 @@
 package tests
 
 import (
-	"bytes"
 	"context"
 	"crypto"
-	"crypto/ecdsa"
 	"fmt"
 	"math/rand"
 	"strings"
@@ -22,8 +20,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
-	node2 "github.com/insolar/assured-ledger/ledger-core/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/network"
@@ -33,13 +30,14 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles"
-	"github.com/insolar/assured-ledger/ledger-core/network/consensus/serialization"
+	"github.com/insolar/assured-ledger/ledger-core/network/gateway"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
-	"github.com/insolar/assured-ledger/ledger-core/network/node"
-	"github.com/insolar/assured-ledger/ledger-core/network/nodenetwork"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeset"
 	"github.com/insolar/assured-ledger/ledger-core/network/transport"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/network/mutable"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 )
@@ -127,7 +125,7 @@ func initNodes(ctx context.Context, mode consensus.Mode, nodes GeneratedNodes, s
 	ns := newNodes(len(nodes.nodes))
 
 	for i, n := range nodes.nodes {
-		nodeKeeper := nodenetwork.NewNodeKeeper(n)
+		nodeKeeper := nodeset.NewNodeKeeper(nodeinfo.NodeRef(n), nodeinfo.NodeRole(n))
 		nodeKeeper.SetInitialSnapshot(nodes.nodes)
 		ns.nodeKeepers[i] = nodeKeeper
 
@@ -135,8 +133,8 @@ func initNodes(ctx context.Context, mode consensus.Mode, nodes GeneratedNodes, s
 		datagramHandler := adapters.NewDatagramHandler()
 
 		conf := configuration.NewHostNetwork().Transport
-		conf.Address = n.Address()
-		ns.addresses[i] = n.Address()
+		conf.Address = nodeinfo.NodeAddr(n)
+		ns.addresses[i] = conf.Address
 
 		transportFactory := transport.NewFactory(conf)
 		datagramTransport, err := transportFactory.CreateDatagramTransport(datagramHandler)
@@ -149,9 +147,9 @@ func initNodes(ctx context.Context, mode consensus.Mode, nodes GeneratedNodes, s
 
 		controller := consensus.New(ctx, consensus.Dep{
 			KeyProcessor:       keyProcessor,
-			Scheme:             scheme,
 			CertificateManager: certificateManager,
 			KeyStore:           keystore.NewInplaceKeyStore(nodes.meta[i].privateKey),
+			TransportCryptography: adapters.NewTransportCryptographyFactory(scheme),
 
 			NodeKeeper:        nodeKeeper,
 			DatagramTransport: delayTransport,
@@ -170,8 +168,8 @@ func initNodes(ctx context.Context, mode consensus.Mode, nodes GeneratedNodes, s
 
 		ns.controllers[i] = controller
 		ctx, _ = inslogger.WithFields(ctx, map[string]interface{}{
-			"node_id":      n.ShortID(),
-			"node_address": n.Address(),
+			"node_id":      n.GetNodeID(),
+			"node_address": nodeinfo.NodeAddr(n),
 		})
 		ns.contexts[i] = ctx
 		err = delayTransport.Start(ctx)
@@ -256,47 +254,22 @@ func getAnnounceSignature(
 	node nodeinfo.NetworkNode,
 	isDiscovery bool,
 	kp cryptography.KeyProcessor,
-	key *ecdsa.PrivateKey,
+	key crypto.PrivateKey,
 	scheme cryptography.PlatformCryptographyScheme,
 ) ([]byte, *cryptography.Signature, error) {
 
-	brief := serialization.NodeBriefIntro{}
-	brief.ShortID = node.ShortID()
-	brief.SetPrimaryRole(adapters.StaticRoleToPrimaryRole(node.Role()))
-	if isDiscovery {
-		brief.SpecialRoles = member.SpecialRoleDiscovery
-	}
-	brief.StartPower = 10
-
-	addr, err := endpoints.NewIPAddress(node.Address())
-	if err != nil {
-		return nil, nil, err
-	}
-	copy(brief.Endpoint[:], addr[:])
-
-	pk, err := kp.ExportPublicKeyBinary(node.PublicKey())
+	addr, err := endpoints.NewIPAddress(nodeinfo.NodeAddr(node))
 	if err != nil {
 		return nil, nil, err
 	}
 
-	copy(brief.NodePK[:], pk)
-
-	buf := &bytes.Buffer{}
-	err = brief.SerializeTo(nil, buf)
+	pk, err := kp.ExportPublicKeyBinary(adapters.ECDSAPublicKeyOfNode(node))
 	if err != nil {
 		return nil, nil, err
 	}
 
-	data := buf.Bytes()
-	data = data[:len(data)-64]
-
-	digest := scheme.IntegrityHasher().Hash(data)
-	sign, err := scheme.DigestSigner(key).Sign(digest)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return digest, sign, nil
+	return gateway.CalcAnnounceSignature(node.GetNodeID(), nodeinfo.NodeRole(node), addr,
+		node.GetStatic().GetStartPower(), isDiscovery, pk, keystore.NewInplaceKeyStore(key), scheme)
 }
 
 func nodesFromInfo(nodeInfos []*nodeMeta) ([]nodeinfo.NetworkNode, []nodeinfo.NetworkNode, error) {
@@ -315,53 +288,48 @@ func nodesFromInfo(nodeInfos []*nodeMeta) ([]nodeinfo.NetworkNode, []nodeinfo.Ne
 			discoveryNodes = append(discoveryNodes, nn)
 		}
 
-		d, s, err := getAnnounceSignature(
-			nn,
-			isDiscovery,
-			keyProcessor,
-			info.privateKey.(*ecdsa.PrivateKey),
-			scheme,
+		d, s, err := getAnnounceSignature(nn, isDiscovery,
+			keyProcessor, info.privateKey, scheme,
 		)
 		if err != nil {
 			return nil, nil, err
 		}
-		nn.(node.MutableNode).SetSignature(d, *s)
+
+		dsg := cryptkit.NewSignedDigest(
+			cryptkit.NewDigest(longbits.NewBits512FromBytes(d), adapters.SHA3512Digest),
+			cryptkit.NewSignature(longbits.NewBits512FromBytes(s.Bytes()), adapters.SHA3512Digest.SignedBy(adapters.SECP256r1Sign)),
+		)
+
+		nn.SetSignature(dsg)
 	}
 
 	return nodes, discoveryNodes, nil
 }
 
-func newNetworkNode(addr string, role member.PrimaryRole, pk crypto.PublicKey) node.MutableNode {
-	n := node.NewNode(
-		gen.UniqueGlobalRef(),
-		role,
-		pk,
-		addr,
-		"",
-	)
-	mn := n.(node.MutableNode)
-	mn.SetShortID(node2.ShortNodeID(shortNodeIdOffset))
+func newNetworkNode(addr string, role member.PrimaryRole, pk crypto.PublicKey) *mutable.Node {
+	n := mutable.NewTestNode(gen.UniqueGlobalRef(), role, addr)
+	n.SetShortID(node.ShortNodeID(shortNodeIdOffset))
 
 	shortNodeIdOffset += 1
-	return mn
+	return n
 }
 
 func initCrypto(node nodeinfo.NetworkNode, discoveryNodes []nodeinfo.NetworkNode) *mandates.CertificateManager {
-	pubKey := node.PublicKey()
+	pubKey := adapters.ECDSAPublicKeyOfNode(node)
 
 	publicKey, _ := keyProcessor.ExportPublicKeyPEM(pubKey)
 
 	bootstrapNodes := make([]mandates.BootstrapNode, 0, len(discoveryNodes))
 	for _, dn := range discoveryNodes {
-		pubKey := dn.PublicKey()
+		pubKey := adapters.ECDSAPublicKeyOfNode(dn)
 		pubKeyBuf, _ := keyProcessor.ExportPublicKeyPEM(pubKey)
 
 		bootstrapNode := mandates.NewBootstrapNode(
 			pubKey,
 			string(pubKeyBuf[:]),
-			dn.Address(),
-			dn.ID().String(),
-			dn.Role().String(),
+			nodeinfo.NodeAddr(dn),
+			nodeinfo.NodeRef(dn).String(),
+			nodeinfo.NodeRole(dn).String(),
 		)
 		bootstrapNodes = append(bootstrapNodes, *bootstrapNode)
 	}
@@ -369,8 +337,8 @@ func initCrypto(node nodeinfo.NetworkNode, discoveryNodes []nodeinfo.NetworkNode
 	cert := &mandates.Certificate{
 		AuthorizationCertificate: mandates.AuthorizationCertificate{
 			PublicKey: string(publicKey[:]),
-			Reference: node.ID().String(),
-			Role:      node.Role().String(),
+			Reference: nodeinfo.NodeRef(node).String(),
+			Role:      nodeinfo.NodeRole(node).String(),
 		},
 		BootstrapNodes: bootstrapNodes,
 	}

@@ -12,7 +12,8 @@ INSOLAR_LOG_FORMATTER=${INSOLAR_LOG_FORMATTER:-"json"}
 INSOLAR_LOG_LEVEL=${INSOLAR_LOG_LEVEL:-"debug"}
 # we can skip build binaries (by default in CI environment they skips)
 SKIP_BUILD=${SKIP_BUILD:-${CI_ENV}}
-BUILD_TAGS=${BUILD_TAGS:-'-tags "debug convlogtxt"'}
+BUILD_TAGS=${BUILD_TAGS:-''}
+EXTRA_BUILD_ARGS=''
 
 # predefined/dependent environment variables
 
@@ -58,7 +59,10 @@ export INSOLAR_LOG_FORMATTER=${INSOLAR_LOG_FORMATTER}
 export INSOLAR_LOG_LEVEL=${INSOLAR_LOG_LEVEL}
 { set +x; } 2>/dev/null
 
-NUM_DISCOVERY_NODES=$(sed '/^nodes:/ q' $BOOTSTRAP_TEMPLATE | grep "host:" | grep -v "#" | wc -l | tr -d '[:space:]')
+NUM_DISCOVERY_VIRTUAL_NODES=${NUM_DISCOVERY_VIRTUAL_NODES:-5}
+NUM_DISCOVERY_LIGHT_NODES=${NUM_DISCOVERY_LIGHT_NODES:-0}
+NUM_DISCOVERY_HEAVY_NODES=${NUM_DISCOVERY_HEAVY_NODES:-0}
+NUM_DISCOVERY_NODES=$((NUM_DISCOVERY_VIRTUAL_NODES + NUM_DISCOVERY_LIGHT_NODES + NUM_DISCOVERY_HEAVY_NODES))
 NUM_NODES=$(sed -n '/^nodes:/,$p' $BOOTSTRAP_TEMPLATE | grep "host:" | grep -v "#" | wc -l | tr -d '[:space:]')
 echo "discovery+other nodes: ${NUM_DISCOVERY_NODES}+${NUM_NODES}"
 
@@ -74,6 +78,8 @@ LOGROTATOR_BIN=${LAUNCHNET_BASE_DIR}inslogrotator
 if [[ "$LOGROTATOR_ENABLE" == "1" ]]; then
   LOGROTATOR=${LOGROTATOR_BIN}
 fi
+
+function join_by { local IFS="$1"; shift; echo "$*"; }
 
 build_logger()
 {
@@ -173,7 +179,8 @@ generate_insolard_configs()
 {
     echo "generate configs"
     set -x
-    go run -mod=vendor scripts/generate_insolar_configs.go
+    go run -mod=vendor scripts/generate_insolar_configs.go --num-virtual-nodes="$NUM_DISCOVERY_VIRTUAL_NODES" \
+      --num-light-nodes="$NUM_DISCOVERY_LIGHT_NODES" --num-heavy-nodes="$NUM_DISCOVERY_HEAVY_NODES"
     { set +x; } 2>/dev/null
 }
 
@@ -192,7 +199,11 @@ build_binaries()
 {
     echo "build binaries"
     set -x
-    export BUILD_TAGS
+    if [ -n "$BUILD_TAGS" ];
+      then
+        EXTRA_BUILD_ARGS="-tags=\"${BUILD_TAGS}\""
+        export EXTRA_BUILD_ARGS
+    fi
     make build
     { set +x; } 2>/dev/null
 }
@@ -271,6 +282,7 @@ usage()
     echo "possible options: "
     echo -e "\t-h - show help"
     echo -e "\t-g - start launchnet"
+    echo -e "\t-d - use conveyor text logger"
     echo -e "\t-b - do bootstrap only and exit, show bootstrap logs"
     echo -e "\t-l - clear all and exit"
     echo -e "\t-C - generate configs only"
@@ -288,7 +300,7 @@ process_input_params()
     # it must be manually reset between multiple calls to getopts
     # within the same shell invocation if a new set of parameters is to be used
     OPTIND=1
-    while getopts "h?ngblwpC" opt; do
+    while getopts "h?gbdlwpC" opt; do
         case "$opt" in
         h|\?)
             usage
@@ -302,6 +314,9 @@ process_input_params()
             GENESIS=1
             bootstrap
             ;;
+        d)
+            BUILD_TAGS="$BUILD_TAGS debug convlogtxt"
+          ;;
         b)
             NO_BOOTSTRAP_LOG_REDIRECT=1
             NO_STOP_LISTENING_ON_PREPARE=${NO_STOP_LISTENING_ON_PREPARE:-"1"}
@@ -409,7 +424,7 @@ bootstrap()
 watch_pulse=true
 run_pulsar=true
 check_working_dir
-process_input_params $@
+process_input_params "$@"
 
 kill_all
 trap 'stop_all' INT TERM EXIT
