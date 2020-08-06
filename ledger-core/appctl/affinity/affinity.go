@@ -94,7 +94,6 @@ func (jc *Coordinator) VirtualExecutorForObject(
 	}
 	metric := longbits.CutOutUint64(h.Sum(nil))
 
-	metric += uint64(base.Pulse())
 	assigned, _ := role.GetAssignmentByCount(metric, 0)
 	if assigned == nil {
 		return reference.Global{}, throw.E("unable to assign node of role", struct {
