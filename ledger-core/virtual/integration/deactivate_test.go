@@ -748,7 +748,7 @@ func TestVirtual_CallMethod_After_Deactivation(t *testing.T) {
 }
 
 func TestVirtual_DeduplicateCallAfterDeactivation_PrevVE(t *testing.T) {
-	defer testutils.LeakTester(t)
+	defer commonTestUtils.LeakTester(t)
 	insrail.LogCase(t, "C5560")
 
 	table := []struct {
@@ -790,7 +790,7 @@ func TestVirtual_DeduplicateCallAfterDeactivation_PrevVE(t *testing.T) {
 				}
 				wait := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
 				server.SendPayload(ctx, report)
-				testutils.WaitSignalsTimed(t, 10*time.Second, wait)
+				commonTestUtils.WaitSignalsTimed(t, 10*time.Second, wait)
 			}
 
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
