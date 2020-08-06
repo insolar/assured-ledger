@@ -72,7 +72,7 @@ func (nc *NetworkChecker) Start(ctx context.Context) error {
 		for !stop {
 			select {
 			case <-ticker.C:
-				nc.updateAvailability(ctx)
+				nc.UpdateAvailability(ctx)
 			case <-nc.stopped:
 				stop = true
 			}
@@ -87,7 +87,7 @@ func (nc *NetworkChecker) Stop() {
 	<-nc.stopped
 }
 
-func (nc *NetworkChecker) updateAvailability(ctx context.Context) {
+func (nc *NetworkChecker) UpdateAvailability(ctx context.Context) {
 	logger := inslogger.FromContext(ctx)
 	logger.Debug("[ NetworkChecker ] update availability started")
 	resp, err := nc.client.Get(nc.keeperURL)
