@@ -6,6 +6,8 @@
 package insapp
 
 import (
+	"context"
+
 	"github.com/ThreeDotsLabs/watermill/message"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
@@ -19,7 +21,7 @@ type AppComponent interface {
 	GetBeatDispatcher() beat.Dispatcher
 }
 
-type AppFactoryFunc = func(configuration.Configuration, AppComponents) AppComponent
+type AppFactoryFunc = func(context.Context, configuration.Configuration, AppComponents) (AppComponent, error)
 
 type AppComponents struct {
 	AffinityHelper affinity.Helper

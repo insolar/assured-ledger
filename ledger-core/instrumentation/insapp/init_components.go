@@ -154,7 +154,8 @@ func initComponents(
 		AffinityHelper: affine,
 		MessageSender: messagesender.NewDefaultService(publisher, affine, pulses),
 	}
-	appComponent := appFn(cfg, appComponents)
+	appComponent, err := appFn(ctx, cfg, appComponents)
+	checkError(ctx, err, "failed to start AppCompartment")
 
 	cm.Register(
 		pcs,
