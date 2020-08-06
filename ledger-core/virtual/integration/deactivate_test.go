@@ -21,12 +21,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	commonTestUtils "github.com/insolar/assured-ledger/ledger-core/testutils"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/synchronization"
-
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
-
+	"github.com/insolar/assured-ledger/ledger-core/testutils/synchronization"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
@@ -55,9 +53,7 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 			server, ctx := utils.NewUninitializedServer(nil, t)
 			defer server.Stop()
 
-			runnerMock := logicless.NewServiceMock(ctx, t, func(execution execution.Context) string {
-				return execution.Request.CallSiteMethod
-			})
+			runnerMock := logicless.NewServiceMock(ctx, t, nil)
 			server.ReplaceRunner(runnerMock)
 			server.Init(ctx)
 
@@ -122,7 +118,7 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 			// Execution mock
 			{
 				// deactivate method
-				objectAExecutionMock := runnerMock.AddExecutionMock("Deactivate")
+				objectAExecutionMock := runnerMock.AddExecutionMock(outgoingDestroy.String())
 				objectAExecutionMock.AddStart(nil, &execution.Update{
 					Type:     execution.OutgoingCall,
 					Outgoing: execution.NewRPCBuilder(outgoingDestroy, objectGlobal).Deactivate(),
@@ -132,13 +128,13 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 					Result: requestresult.New([]byte("deactivate result"), objectGlobal),
 				},
 				)
-				runnerMock.AddExecutionClassify("Deactivate", tolerableFlags(), nil)
+				runnerMock.AddExecutionClassify(outgoingDestroy.String(), tolerableFlags(), nil)
 
 				// get methods
-				runnerMock.AddExecutionClassify("GetValidated", intolerableFlags(), nil)
-				runnerMock.AddExecutionClassify("GetDirty", contract.MethodIsolation{Interference: contract.CallIntolerable, State: contract.CallDirty}, nil)
+				runnerMock.AddExecutionClassify(outgoingGetValidated.String(), intolerableFlags(), nil)
+				runnerMock.AddExecutionClassify(outgoingGetDirty.String(), contract.MethodIsolation{Interference: contract.CallIntolerable, State: contract.CallDirty}, nil)
 
-				runnerMock.AddExecutionMock("GetValidated").AddStart(
+				runnerMock.AddExecutionMock(outgoingGetValidated.String()).AddStart(
 					func(ctx execution.Context) {
 						require.Equal(t, objectGlobal, ctx.Request.Callee)
 						require.Equal(t, validatedState, ctx.ObjectDescriptor.Memory())
