@@ -12,9 +12,12 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/insolar/component-manager"
+
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/trace"
+	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/version"
@@ -52,31 +55,13 @@ func (s *Server) Serve() {
 	fmt.Println("Starts with configuration:\n", configuration.ToString(&cfg))
 
 	ctx := context.Background()
-	bootstrapComponents := initBootstrapComponents(ctx, cfg)
-	certManager := initCertificateManager(ctx, cfg,
-		bootstrapComponents.CryptographyService,
-		bootstrapComponents.KeyProcessor,
-	)
+	var logger log.Logger
 
-	nodeRole := certManager.GetCertificate().GetRole().String()
-	nodeRef := certManager.GetCertificate().GetNodeRef().String()
-
-	traceID := trace.RandID() + "_main"
-	ctx, logger := inslogger.InitNodeLogger(ctx, cfg.Log, nodeRef, nodeRole)
-	global.InitTicker()
-
-	if cfg.Tracer.Jaeger.AgentEndpoint != "" {
-		jaegerFlush := jaeger(ctx, cfg.Tracer.Jaeger, traceID, nodeRef, nodeRole)
-		defer jaegerFlush()
-	}
-
-	cm, stopWatermill := initComponents(ctx, cfg, s.appFn,
-		bootstrapComponents.CryptographyService,
-		bootstrapComponents.PlatformCryptographyScheme,
-		bootstrapComponents.KeyStore,
-		bootstrapComponents.KeyProcessor,
-		certManager,
-	)
+	cm, stopWatermill := s.StartComponents(ctx, cfg, func(_ context.Context, cfg configuration.Log, nodeRef, nodeRole string) context.Context {
+		ctx, logger = inslogger.InitNodeLogger(ctx, cfg, nodeRef, nodeRole)
+		global.InitTicker()
+		return ctx
+	})
 
 	var gracefulStop = make(chan os.Signal, 1)
 	signal.Notify(gracefulStop, syscall.SIGTERM)
@@ -106,6 +91,35 @@ func (s *Server) Serve() {
 	checkError(ctx, err, "failed to start components")
 	fmt.Println("All components were started")
 	<-waitChannel
+}
+
+type LoggerInitFunc = func(ctx context.Context, cfg configuration.Log, nodeRef, nodeRole string) context.Context
+
+func (s *Server) StartComponents(ctx context.Context, cfg configuration.Configuration, loggerFn LoggerInitFunc, ) (*component.Manager, func()) {
+	bootstrapComponents := initBootstrapComponents(ctx, cfg)
+	certManager := initCertificateManager(ctx, cfg,
+		bootstrapComponents.CryptographyService,
+		bootstrapComponents.KeyProcessor,
+	)
+
+	nodeRole := certManager.GetCertificate().GetRole().String()
+	nodeRef := certManager.GetCertificate().GetNodeRef().String()
+
+	ctx = loggerFn(ctx, cfg.Log, nodeRef, nodeRole)
+	traceID := trace.RandID() + "_main"
+
+	if cfg.Tracer.Jaeger.AgentEndpoint != "" {
+		jaegerFlush := jaeger(ctx, cfg.Tracer.Jaeger, traceID, nodeRef, nodeRole)
+		defer jaegerFlush()
+	}
+
+	return initComponents(ctx, cfg, s.appFn,
+		bootstrapComponents.CryptographyService,
+		bootstrapComponents.PlatformCryptographyScheme,
+		bootstrapComponents.KeyStore,
+		bootstrapComponents.KeyProcessor,
+		certManager,
+	)
 }
 
 func checkError(ctx context.Context, err error, message string) {

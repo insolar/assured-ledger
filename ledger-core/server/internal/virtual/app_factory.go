@@ -43,7 +43,8 @@ func AppFactory(ctx context.Context, cfg configuration.Configuration, comps insa
 
 	testAPI := testwalletapi.NewTestWalletServer(cfg.TestWalletAPI, virtualDispatcher, comps.BeatHistory)
 
-	return appComp{ runnerService, virtualDispatcher, testAPI }, nil
+	// ComponentManager can only work with by-pointer objects
+	return &appComp{ runnerService, virtualDispatcher, testAPI }, nil
 }
 
 var _ component.Initer = appComp{}
