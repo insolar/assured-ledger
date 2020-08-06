@@ -22,8 +22,10 @@ func BenchmarkMultiPulse(b *testing.B) {
 			res := launchnet.CustomRunWithPulsar(numNodes, 0, 0, func(apiAddresses []string) int {
 				setAPIAddresses(apiAddresses)
 
-				wallets := make([]string, 0, 1000)
-				for i := 0; i < 1000; i++ {
+				numWallets := numNodes * 1000
+
+				wallets := make([]string, 0, numWallets)
+				for i := 0; i < numWallets; i++ {
 					wallet, err := createSimpleWallet()
 					if err != nil {
 						return 2
