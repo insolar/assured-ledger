@@ -13,11 +13,20 @@ import (
 )
 
 type ConfigOverrides struct {
+	BoostNewSlotDuration time.Duration
 	MachineLogger  smachine.SlotMachineLogger
 	EventlessSleep time.Duration
 }
 
-func DefaultConfig(p ConfigOverrides) conveyor.PulseConveyorConfig {
+func DefaultConfig() conveyor.PulseConveyorConfig {
+	return DefaultConfigWithOverrides(ConfigOverrides{})
+}
+
+func DefaultConfigNoEventless() conveyor.PulseConveyorConfig {
+	return DefaultConfigWithOverrides(ConfigOverrides{ EventlessSleep: -1})
+}
+
+func DefaultConfigWithOverrides(p ConfigOverrides) conveyor.PulseConveyorConfig {
 	conveyorConfig := smachine.SlotMachineConfig{
 		PollingPeriod:     500 * time.Millisecond,
 		PollingTruncate:   1 * time.Millisecond,
@@ -31,6 +40,13 @@ func DefaultConfig(p ConfigOverrides) conveyor.PulseConveyorConfig {
 	machineConfig := conveyorConfig
 	if p.MachineLogger != nil {
 		machineConfig.SlotMachineLogger = p.MachineLogger
+	}
+
+	switch {
+	case p.BoostNewSlotDuration > 0:
+		machineConfig.BoostNewSlotDuration = p.BoostNewSlotDuration
+	case p.BoostNewSlotDuration == 0:
+		machineConfig.BoostNewSlotDuration = 0 * time.Millisecond
 	}
 
 	switch {

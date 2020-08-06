@@ -32,6 +32,8 @@ type ComponentWithPulse interface {
 	PulseMigration(Holder, pulse.Range)
 }
 
+type RegisterComponentFunc = func(Component)
+
 type Holder interface {
 	GetDataManager() DataManager
 	AddManagedComponent(Component)
