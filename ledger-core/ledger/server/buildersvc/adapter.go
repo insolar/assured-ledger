@@ -8,7 +8,9 @@ package buildersvc
 import (
 	"context"
 
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/managed"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smadapter"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -23,9 +25,19 @@ func NewAdapterExt(adapterID smachine.AdapterID, executor smachine.AdapterExecut
 	}
 }
 
-func NewAdapter(cfg smachine.AdapterExecutorConfig) Adapter {
-	executor := smachine.StartAdapterExecutor(context.Background(), cfg, nil)
+func NewAdapter(cfg smadapter.AdapterExecutorConfig) Adapter {
+	executor := smadapter.StartAdapterExecutor(context.Background(), cfg, nil)
 	return NewAdapterExt("DropBuilder", executor, NewService())
+}
+
+func NewAdapterComponent(cfg smadapter.AdapterExecutorConfig) managed.Component {
+	svc := NewService()
+	var adapter Adapter
+	executor, component := smadapter.NewAdapterExecutorComponent(context.Background(), cfg, svc, func(holder managed.Holder) {
+		holder.AddDependency(adapter)
+	})
+	adapter = NewAdapterExt("DropBuilder", executor, svc)
+	return component
 }
 
 type Adapter struct {

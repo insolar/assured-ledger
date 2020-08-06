@@ -9,6 +9,7 @@ import (
 	"context"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smadapter"
 )
 
 type HashingAdapter struct {
@@ -26,7 +27,7 @@ func (a *HashingAdapter) PrepareAsync(
 
 func NewHashingAdapter() *HashingAdapter {
 	ctx := context.Background()
-	exec, ch := smachine.NewCallChannelExecutor(ctx, -1, false, 8)
+	exec, ch := smadapter.NewCallChannelExecutor(ctx, -1, false, 8)
 	smachine.StartChannelWorkerParallelCalls(ctx, 0, ch, nil)
 
 	return &HashingAdapter{
@@ -49,7 +50,7 @@ func (a *SyncAdapter) PrepareAsync(
 
 func NewSyncAdapter() *SyncAdapter {
 	ctx := context.Background()
-	exec, ch := smachine.NewCallChannelExecutor(ctx, -1, false, 32)
+	exec, ch := smadapter.NewCallChannelExecutor(ctx, -1, false, 32)
 	smachine.StartChannelWorkerParallelCalls(ctx, 0, ch, nil)
 
 	return &SyncAdapter{

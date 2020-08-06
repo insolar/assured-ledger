@@ -7,12 +7,17 @@ package server
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lmnapp"
 	"github.com/insolar/assured-ledger/ledger-core/server/internal/headless"
 	"github.com/insolar/assured-ledger/ledger-core/server/internal/virtual"
 )
 
 type Server interface {
 	Serve()
+}
+
+func NewLightMaterialServer(cfgPath string) Server {
+	return insapp.New(cfgPath, lmnapp.AppFactory)
 }
 
 func NewVirtualServer(cfgPath string) Server {

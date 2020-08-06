@@ -11,6 +11,7 @@ import (
 
 	uuid "github.com/satori/go.uuid"
 
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smadapter"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
@@ -45,7 +46,7 @@ func (a *ArtifactCacheServiceAdapter) PrepareAsync(ctx smachine.ExecutionContext
 
 func CreateArtifactCacheService() *ArtifactCacheServiceAdapter {
 	ctx := context.Background()
-	ae, ch := smachine.NewCallChannelExecutor(ctx, 0, false, 5)
+	ae, ch := smadapter.NewCallChannelExecutor(ctx, 0, false, 5)
 
 	smachine.StartChannelWorker(ctx, ch, nil)
 

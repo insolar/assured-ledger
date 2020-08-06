@@ -6,39 +6,64 @@
 package injector
 
 import (
+	"fmt"
+	"sync"
+
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-func NewMultiMapRegistry(maps []map[string]interface{}) MultiMapRegistry {
-	return MultiMapRegistry{maps}
+func NewContainer(parentRegistry DependencyRegistry) *Container {
+	return &Container{ parentRegistry: parentRegistry }
 }
 
-var _ DependencyRegistry = MultiMapRegistry{}
-var _ ScanDependencyRegistry = MultiMapRegistry{}
-
-type MultiMapRegistry struct {
-	maps []map[string]interface{}
+type Container struct {
+	parentRegistry DependencyRegistry
+	localRegistry sync.Map
 }
 
-func (v MultiMapRegistry) ScanDependencies(fn func(id string, v interface{}) bool) bool {
-	if fn == nil {
-		panic(throw.IllegalValue())
+func (m *Container) FindDependency(id string) (interface{}, bool) {
+	if v, ok := m.localRegistry.Load(id); ok {
+		return v, true
 	}
-	for _, om := range v.maps {
-		for id, v := range om {
-			if fn(id, v) {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func (v MultiMapRegistry) FindDependency(id string) (interface{}, bool) {
-	for _, om := range v.maps {
-		if v, ok := om[id]; ok {
-			return v, true
-		}
+	if m.parentRegistry != nil {
+		return m.parentRegistry.FindDependency(id)
 	}
 	return nil, false
 }
+
+func AddDependency(m DependencyContainer, v interface{}) {
+	if !m.TryPutDependency(GetDefaultInjectionID(v), v) {
+		panic(fmt.Errorf("duplicate dependency: %T %[1]v", v))
+	}
+}
+
+func AddInterfaceDependency(m DependencyContainer, v interface{}) {
+	vv, vt := GetInterfaceTypeAndValue(v)
+	if !m.TryPutDependency(GetDefaultInjectionIDByType(vt), vv) {
+		panic(fmt.Errorf("duplicate dependency: %T %[1]v", v))
+	}
+}
+
+func (m *Container) AddDependency(v interface{}) {
+	AddDependency(m, v)
+}
+
+func (m *Container) AddInterfaceDependency(v interface{}) {
+	AddInterfaceDependency(m, v)
+}
+
+func (m *Container) PutDependency(id string, v interface{}) {
+	if id == "" {
+		panic(throw.IllegalValue())
+	}
+	m.localRegistry.Store(id, v)
+}
+
+func (m *Container) TryPutDependency(id string, v interface{}) bool {
+	if id == "" {
+		panic(throw.IllegalValue())
+	}
+	_, loaded := m.localRegistry.LoadOrStore(id, v)
+	return !loaded
+}
+

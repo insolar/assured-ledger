@@ -121,6 +121,9 @@ type PulseConveyor struct {
 }
 
 func (p *PulseConveyor) SetFactoryFunc(factory PulseEventFactoryFunc) {
+	if p.machineWorker != nil {
+		panic(throw.IllegalState())
+	}
 	p.factoryFn = factory
 }
 
@@ -129,9 +132,6 @@ func (p *PulseConveyor) GetDataManager() *PulseDataManager {
 }
 
 func (p *PulseConveyor) AddManagedComponent(c managed.Component) {
-	if c == nil {
-		panic(throw.IllegalState())
-	}
 	p.comps.Add(p, c)
 }
 

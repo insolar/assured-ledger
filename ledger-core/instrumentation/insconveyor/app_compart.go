@@ -38,11 +38,11 @@ func NewAppCompartment(name string, appDeps, convDeps injector.DependencyRegistr
 }
 
 type AppCompartmentSetup struct {
-	ConveyorConfig    conveyor.PulseConveyorConfig
-	HasConveyorConfig bool
-	EventFactory      EventFactory
-	ConveyorCycleFn   conveyor.PulseConveyorCycleFunc
-	ComponentSetupFn  ComponentSetupFunc
+	ConveyorConfig            conveyor.PulseConveyorConfig
+	HasCompleteConveyorConfig bool
+	EventFactory              EventFactory
+	ConveyorCycleFn           conveyor.PulseConveyorCycleFunc
+	ComponentSetupFn          ComponentSetupFunc
 }
 
 var _ insapp.AppComponent = &AppCompartment{}
@@ -54,12 +54,21 @@ type AppCompartment struct {
 	setupFn      AppCompartmentSetupFunc
 	componentsFn ComponentSetupFunc
 
+	imposeFn ImposerFunc
+
 	// dependencies, resolved by Init
 
 	ctx            context.Context
 	flowDispatcher beat.Dispatcher
 	conveyor       *conveyor.PulseConveyor
 	conveyorWorker ConveyorWorker
+}
+
+func (p *AppCompartment) SetImposer(fn ImposerFunc) {
+	if p.conveyor != nil {
+		panic(throw.IllegalState())
+	}
+	p.imposeFn = fn
 }
 
 func (p *AppCompartment) Init(ctx context.Context) error {
@@ -73,10 +82,39 @@ func (p *AppCompartment) Init(ctx context.Context) error {
 		appCfg = p.setupFn(ctx, inject)
 	}
 
-	if !appCfg.HasConveyorConfig {
+	if !appCfg.HasCompleteConveyorConfig {
 		overrides := ConfigOverrides{}
 		_ = inject.Inject(&overrides.MachineLogger)
+
+		pds, psm := appCfg.ConveyorConfig.PulseDataService, appCfg.ConveyorConfig.PulseSlotMigration
 		appCfg.ConveyorConfig = DefaultConfigWithOverrides(overrides)
+
+		if pds != nil {
+			appCfg.ConveyorConfig.PulseDataService = pds
+		}
+		if psm != nil {
+			appCfg.ConveyorConfig.PulseSlotMigration = psm
+		}
+	}
+
+	var addFn managed.RegisterComponentFunc
+
+	if p.imposeFn != nil {
+		// p.conveyor is not initialized yet, so we pass a local closure instead of p.conveyor.AddManagedComponent
+		// so the imposer can bypass calls to the conveyor
+		addFn = func(c managed.Component) {
+			p.conveyor.AddManagedComponent(c)
+		}
+		params := ImposedParams{
+			CompartmentSetup:  appCfg,
+			ConveyorRegistry:  p.convDeps,
+			RegisterComponent: addFn,
+		}
+		p.imposeFn(&params)
+
+		appCfg = params.CompartmentSetup
+		p.convDeps = params.ConveyorRegistry
+		addFn = params.RegisterComponent
 	}
 
 	var factoryFn conveyor.PulseEventFactoryFunc
@@ -86,16 +124,20 @@ func (p *AppCompartment) Init(ctx context.Context) error {
 
 	p.conveyor = conveyor.NewPulseConveyor(ctx, appCfg.ConveyorConfig, factoryFn, p.convDeps)
 
+	if addFn == nil {
+		addFn = p.conveyor.AddManagedComponent
+	}
+
 	if p.componentsFn != nil {
-		p.componentsFn(ctx, inject, p.conveyor.AddManagedComponent)
+		p.componentsFn(ctx, inject, addFn)
 	}
 
 	if appCfg.ComponentSetupFn != nil {
-		appCfg.ComponentSetupFn(ctx, inject, p.conveyor.AddManagedComponent)
+		appCfg.ComponentSetupFn(ctx, inject, addFn)
 	}
 
 	if appCfg.EventFactory != nil {
-		appCfg.EventFactory.SetupComponents(ctx, inject, p.conveyor.AddManagedComponent)
+		appCfg.EventFactory.SetupComponents(ctx, inject, addFn)
 	}
 
 	p.conveyorWorker = NewConveyorWorker(appCfg.ConveyorCycleFn)
@@ -116,10 +158,6 @@ func (p *AppCompartment) Stop(context.Context) error {
 
 func (p *AppCompartment) AppDependencies() injector.DependencyRegistry {
 	return p.appDeps
-}
-
-func (p *AppCompartment) FlowDispatcher() beat.Dispatcher {
-	return p.flowDispatcher
 }
 
 func (p *AppCompartment) Conveyor() *conveyor.PulseConveyor {

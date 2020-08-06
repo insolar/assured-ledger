@@ -17,6 +17,10 @@ import (
 )
 
 type AppComponent interface {
+	// Init(ctx context.Context) error
+	// Start(ctx context.Context) error
+	// Stop(ctx context.Context) error
+
 	GetMessageHandler() message.NoPublishHandlerFunc
 	GetBeatDispatcher() beat.Dispatcher
 }

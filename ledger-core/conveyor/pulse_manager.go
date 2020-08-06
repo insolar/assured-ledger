@@ -12,6 +12,7 @@ import (
 	"sync/atomic"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smadapter"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -52,7 +53,7 @@ func CreatePulseDataAdapterFn(ctx context.Context, pds PulseDataService, bufMax,
 		panic("illegal value")
 	}
 
-	executor, callChan := smachine.NewCallChannelExecutor(ctx, bufMax, false, n)
+	executor, callChan := smadapter.NewCallChannelExecutor(ctx, bufMax, false, n)
 	pulseDataAdapter := smachine.NewExecutionAdapter(smachine.AdapterID(injector.GetDefaultInjectionID(pds)), executor)
 
 	smachine.StartChannelWorkerParallelCalls(ctx, uint16(parallelReaders), callChan, pds)

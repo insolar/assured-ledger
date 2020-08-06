@@ -9,6 +9,7 @@ import (
 	"context"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smadapter"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
@@ -41,7 +42,7 @@ func (a *ArtifactClientServiceAdapter) PrepareAsync(ctx smachine.ExecutionContex
 
 func CreateArtifactClientService() *ArtifactClientServiceAdapter {
 	ctx := context.Background()
-	ae, ch := smachine.NewCallChannelExecutor(ctx, 0, false, 5)
+	ae, ch := smadapter.NewCallChannelExecutor(ctx, 0, false, 5)
 	ea := smachine.NewExecutionAdapter("ServiceA", ae)
 
 	smachine.StartChannelWorker(ctx, ch, nil)
