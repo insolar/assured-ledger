@@ -10,7 +10,6 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/network"
-	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/rules"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
@@ -41,21 +40,6 @@ func (g *WaitMinRoles) UpdateState(ctx context.Context, beat beat.Beat) {
 	}
 
 	g.Base.UpdateState(ctx, beat)
-}
-
-// deprecated // improve
-func SelectWorking(nodes []nodeinfo.NetworkNode) []nodeinfo.NetworkNode {
-	result := make([]nodeinfo.NetworkNode, 0, len(nodes))
-	for _, nd := range nodes {
-		if isWorkingNode(nd) {
-			result = append(result, nd)
-		}
-	}
-	return result
-}
-
-func isWorkingNode(nd nodeinfo.NetworkNode) bool {
-	return nd.IsPowered()
 }
 
 func (g *WaitMinRoles) GetState() network.State {

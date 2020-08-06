@@ -185,6 +185,10 @@ func (p *Memory) FindAnyLatestNodeSnapshot() beat.NodeSnapshot {
 	p.mutex.RLock()
 	defer p.mutex.RUnlock()
 
+	if !p.expected.IsZero() {
+		return p.expected
+	}
+
 	switch n, err := p.latest(); {
 	case err != nil:
 		return nil

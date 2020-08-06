@@ -249,6 +249,10 @@ func (g *Base) CancelNodeState() {}
 func (g *Base) OnPulseFromConsensus(ctx context.Context, pu beat.Beat) {
 	g.pulseWatchdog.Reset()
 
+	if !pu.IsFromPulsar() {
+		panic(throw.IllegalState())
+	}
+
 	if err := g.PulseAppender.AddCommittedBeat(pu); err != nil {
 		inslogger.FromContext(ctx).Panic(throw.W(err, "failed to append pulse"))
 	}
@@ -256,15 +260,16 @@ func (g *Base) OnPulseFromConsensus(ctx context.Context, pu beat.Beat) {
 	nodeCount := int64(pu.Online.GetIndexedCount())
 	inslogger.FromContext(ctx).Debugf("[ AddCommittedBeat ] Population size: %d", nodeCount)
 	stats.Record(ctx, network.ActiveNodes.M(nodeCount))
-
-	// nodes := g.PulseHistory.GetNodeSnapshot(pu.PulseNumber).GetOnlineNodes()
-	// inslogger.FromContext(ctx).Debugf("OnPulseFromConsensus: %d : epoch %d : nodes %d", pu.PulseNumber, pu.PulseEpoch, len(nodes))
 }
 
 // UpdateState called then Consensus is done
 func (g *Base) UpdateState(ctx context.Context, pu beat.Beat) {
 	err := g.PulseAppender.AddExpectedBeat(pu)
+
 	if err == nil && !pu.IsFromPulsar() {
+		// ephemeral pulse won't go through OnPulseFromConsensus()
+		// so we have to add it to the storage here
+		// This is a temporary measure
 		if !pu.IsFromEphemeral() {
 			panic(throw.IllegalState())
 		}
