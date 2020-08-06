@@ -31,6 +31,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/servicenetwork"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type bootstrapComponents struct {
@@ -179,12 +180,11 @@ func initComponents(
 		keyProcessor,
 	)
 
-	pm.AddDispatcher(appComponent.GetBeatDispatcher())
-	// ??? // this should be done after Init due to inject
-	// pm.AddDispatcher(virtualDispatcher.FlowDispatcher)
-
 	err = cm.Init(ctx)
 	checkError(ctx, err, "failed to init components")
+
+	// must be after Init
+	pm.AddDispatcher(appComponent.GetBeatDispatcher())
 
 	stopWatermillFn := startWatermill(
 		ctx, wmLogger, subscriber,
@@ -201,6 +201,15 @@ func startWatermill(
 	sub message.Subscriber,
 	outHandler, inHandler message.NoPublishHandlerFunc,
 ) func() {
+	switch {
+	case sub == nil:
+		panic(throw.IllegalState())
+	case outHandler == nil:
+		panic(throw.IllegalState())
+	case inHandler == nil:
+		panic(throw.IllegalState())
+	}
+
 	inRouter, err := message.NewRouter(message.RouterConfig{}, logger)
 	if err != nil {
 		panic(err)

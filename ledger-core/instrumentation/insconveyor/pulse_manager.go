@@ -30,6 +30,12 @@ func NewPulseManager() *PulseManager {
 }
 
 func (m *PulseManager) AddDispatcher(d ...beat.Dispatcher) {
+	for _, dd := range d {
+		if dd == nil {
+			panic(throw.IllegalValue())
+		}
+	}
+
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
