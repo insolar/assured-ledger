@@ -796,3 +796,109 @@ func TestVirtual_CallMethod_After_Deactivation(t *testing.T) {
 
 	mc.Finish()
 }
+
+func TestVirtual_DeduplicateCallAfterDeactivation_PrevVE(t *testing.T) {
+	defer testutils.LeakTester(t)
+	insrail.LogCase(t, "C5560")
+
+	table := []struct {
+		name  string
+		flags contract.MethodIsolation
+	}{
+		{name: "tolerable+dirty", flags: tolerableFlags()},
+		{name: "intolerable+validated", flags: intolerableFlags()},
+	}
+
+	for _, testCase := range table {
+		t.Run(testCase.name, func(t *testing.T) {
+			mc := minimock.NewController(t)
+
+			server, ctx := utils.NewUninitializedServer(nil, t)
+			defer server.Stop()
+
+			runnerMock := logicless.NewServiceMock(ctx, t, nil)
+
+			server.ReplaceRunner(runnerMock)
+			server.Init(ctx)
+
+			var (
+				class             = gen.UniqueGlobalRef()
+				objectGlobal      = reference.NewSelf(server.RandomLocalWithPulse())
+				prevPulse         = server.GetPulse().PulseNumber
+				outgoingPrevPulse = server.BuildRandomOutgoingWithPulse()
+			)
+
+			// Create object
+			{
+				server.IncrementPulse(ctx)
+
+				report := &payload.VStateReport{
+					Status:          payload.Inactive,
+					Object:          objectGlobal,
+					AsOf:            prevPulse,
+					ProvidedContent: nil,
+				}
+				wait := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
+				server.SendPayload(ctx, report)
+				testutils.WaitSignalsTimed(t, 10*time.Second, wait)
+			}
+
+			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+			// Add checker mock
+			{
+				typedChecker.VFindCallRequest.Set(func(request *payload.VFindCallRequest) bool {
+					assert.Equal(t, objectGlobal, request.Callee)
+					assert.Equal(t, outgoingPrevPulse, request.Outgoing)
+					assert.Equal(t, prevPulse, request.LookAt)
+
+					pl := &payload.VFindCallResponse{
+						LookedAt: request.LookAt,
+						Callee:   request.Callee,
+						Outgoing: request.Outgoing,
+						Status:   payload.FoundCall,
+						CallResult: &payload.VCallResult{
+							Callee:          request.Callee,
+							CallOutgoing:    request.Outgoing,
+							ReturnArguments: []byte("result from past"),
+						},
+					}
+					server.SendPayload(ctx, pl)
+					return false
+				})
+				typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool {
+					assert.Equal(t, objectGlobal, result.Callee)
+					assert.Equal(t, outgoingPrevPulse, result.CallOutgoing)
+					assert.Equal(t, []byte("result from past"), result.ReturnArguments)
+					return false
+				})
+			}
+
+			// Add execution mock classify
+			runnerMock.AddExecutionClassify(outgoingPrevPulse.String(), testCase.flags, nil)
+
+			// VCallRequest from previous pulse
+			{
+				pl := &payload.VCallRequest{
+					CallType:            payload.CTMethod,
+					CallFlags:           payload.BuildCallFlags(testCase.flags.Interference, testCase.flags.State),
+					CallAsOf:            prevPulse,
+					Callee:              objectGlobal,
+					CallSiteDeclaration: class,
+					CallSiteMethod:      "Foo",
+					CallOutgoing:        outgoingPrevPulse,
+					Arguments:           insolar.MustSerialize([]interface{}{}),
+				}
+				executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
+				server.SendPayload(ctx, pl)
+				commonTestUtils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+			}
+
+			commonTestUtils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+
+			assert.Equal(t, 1, typedChecker.VCallResult.Count())
+			assert.Equal(t, 1, typedChecker.VFindCallRequest.Count())
+
+			mc.Finish()
+		})
+	}
+}
