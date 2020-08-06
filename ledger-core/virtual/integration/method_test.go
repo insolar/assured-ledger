@@ -2219,6 +2219,8 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 	{
 		server.IncrementPulse(ctx)
 		commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 1))
+		// wait for all VCallResults
+		commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 		require.Equal(t, 1, typedChecker.VStateReport.Count())
 		require.Equal(t, 5, typedChecker.VCallResult.Count())
