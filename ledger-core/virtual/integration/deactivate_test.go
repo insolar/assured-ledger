@@ -747,6 +747,130 @@ func TestVirtual_CallMethod_After_Deactivation(t *testing.T) {
 	mc.Finish()
 }
 
+func TestVirtual_Deactivation_Deduplicate(t *testing.T) {
+	insrail.LogCase(t, "C5507")
+	defer commonTestUtils.LeakTester(t)
+
+	mc := minimock.NewController(t)
+
+	server, ctx := utils.NewUninitializedServer(nil, t)
+	defer server.Stop()
+
+	runnerMock := logicless.NewServiceMock(ctx, t, nil)
+	server.ReplaceRunner(runnerMock)
+	server.Init(ctx)
+	server.IncrementPulseAndWaitIdle(ctx)
+
+	var (
+		class              = gen.UniqueGlobalRef()
+		outgoing           = server.BuildRandomOutgoingWithPulse()
+		objectRef          = reference.NewSelf(outgoing.GetLocal())
+		outgoingDeactivate = server.BuildRandomOutgoingWithPulse()
+		isolation          = contract.MethodIsolation{
+			Interference: contract.CallTolerable,
+			State:        contract.CallDirty,
+		}
+		oneExecutionConstructor, oneExecutionDeactivate bool
+	)
+
+	// mock
+	{
+		// Deactivate mock
+		descr := descriptor.NewObject(objectRef, server.RandomLocalWithPulse(), class, []byte("deactivate state"), false)
+		requestResult := requestresult.New([]byte("deactivated"), objectRef)
+		requestResult.SetDeactivate(descr)
+
+		deactivationMock := runnerMock.AddExecutionMock(outgoingDeactivate.String())
+		deactivationMock.AddStart(func(ctx execution.Context) {
+			if !oneExecutionDeactivate {
+				oneExecutionDeactivate = true
+			} else {
+				oneExecutionDeactivate = false
+			}
+		},
+			&execution.Update{
+				Type:   execution.Done,
+				Result: requestResult,
+			},
+		)
+		runnerMock.AddExecutionClassify(outgoingDeactivate.String(), isolation, nil)
+
+		// Constructor mock
+		result := requestresult.New([]byte("new"), outgoing)
+		result.SetActivate(reference.Global{}, class, []byte("state"))
+
+		constructorMock := runnerMock.AddExecutionMock(outgoing.String())
+		constructorMock.AddStart(func(ctx execution.Context) {
+			if !oneExecutionConstructor {
+				oneExecutionConstructor = true
+			} else {
+				oneExecutionConstructor = false
+			}
+		},
+			&execution.Update{
+				Type:   execution.Done,
+				Result: result,
+			},
+		)
+		runnerMock.AddExecutionClassify(outgoing.String(), isolation, nil)
+	}
+
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	// Add check
+	{
+		typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
+			switch res.CallOutgoing {
+			case outgoing:
+				require.Equal(t, []byte("new"), res.ReturnArguments)
+				require.Equal(t, objectRef, res.Callee)
+			case outgoingDeactivate:
+				require.Equal(t, []byte("deactivated"), res.ReturnArguments)
+				require.Equal(t, objectRef, res.Callee)
+			}
+			return false
+		})
+	}
+
+	// Constructor
+
+	pl := payload.VCallRequest{
+		CallType:       payload.CTConstructor,
+		CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+		Caller:         server.GlobalCaller(),
+		Callee:         class,
+		CallSiteMethod: "New",
+		CallOutgoing:   outgoing,
+		Arguments:      insolar.MustSerialize([]interface{}{}),
+	}
+
+	// Deactivate
+
+	deactivateRequest := payload.VCallRequest{
+		CallType:            payload.CTMethod,
+		CallFlags:           payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+		Callee:              objectRef,
+		CallSiteDeclaration: class,
+		CallSiteMethod:      "Destroy",
+		CallOutgoing:        outgoingDeactivate,
+		Arguments:           insolar.MustSerialize([]interface{}{}),
+	}
+
+	requests := []payload.VCallRequest{pl, deactivateRequest, pl, deactivateRequest}
+	for _, r := range requests {
+		await := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
+		server.SendPayload(ctx, &r)
+		commonTestUtils.WaitSignalsTimed(t, 10*time.Second, await)
+	}
+
+	commonTestUtils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+	require.Equal(t, 4, typedChecker.VCallResult.Count())
+
+	require.True(t, oneExecutionDeactivate)
+	require.True(t, oneExecutionConstructor)
+
+	mc.Finish()
+}
+
 func TestVirtual_DeduplicateCallAfterDeactivation_PrevVE(t *testing.T) {
 	defer commonTestUtils.LeakTester(t)
 	insrail.LogCase(t, "C5560")
