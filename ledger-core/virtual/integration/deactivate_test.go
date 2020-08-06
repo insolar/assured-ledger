@@ -763,8 +763,8 @@ func TestVirtual_Deactivation_Deduplicate(t *testing.T) {
 
 	var (
 		class              = gen.UniqueGlobalRef()
-		objectRef          = reference.NewSelf(server.RandomLocalWithPulse())
 		outgoing           = server.BuildRandomOutgoingWithPulse()
+		objectRef          = reference.NewSelf(outgoing.GetLocal())
 		outgoingDeactivate = server.BuildRandomOutgoingWithPulse()
 		isolation          = contract.MethodIsolation{
 			Interference: contract.CallTolerable,
@@ -797,10 +797,11 @@ func TestVirtual_Deactivation_Deduplicate(t *testing.T) {
 		runnerMock.AddExecutionClassify(outgoingDeactivate.String(), isolation, nil)
 
 		// Constructor mock
-		result := requestresult.New([]byte("new"), objectRef)
+		result := requestresult.New([]byte("new"), outgoing)
+		result.SetActivate(reference.Global{}, class, []byte("state"))
+
 		constructorMock := runnerMock.AddExecutionMock(outgoing.String())
 		constructorMock.AddStart(func(ctx execution.Context) {
-			t.Log(">>>>>>>>>>>>>>First new")
 			if !oneExecutionConstructor {
 				oneExecutionConstructor = true
 			} else {
@@ -840,7 +841,7 @@ func TestVirtual_Deactivation_Deduplicate(t *testing.T) {
 		Callee:         class,
 		CallSiteMethod: "New",
 		CallOutgoing:   outgoing,
-		Arguments:      []byte("some args"),
+		Arguments:      insolar.MustSerialize([]interface{}{}),
 	}
 
 	// Deactivate
@@ -856,15 +857,13 @@ func TestVirtual_Deactivation_Deduplicate(t *testing.T) {
 	}
 
 	requests := []payload.VCallRequest{pl, deactivateRequest, pl, deactivateRequest}
-	i := 1
 	for _, r := range requests {
-		await := server.Journal.WaitStopOf(&execute.SMExecute{}, i)
+		await := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 		server.SendPayload(ctx, &r)
 		commonTestUtils.WaitSignalsTimed(t, 10*time.Second, await)
-		commonTestUtils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
-		i++
 	}
 
+	commonTestUtils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 	require.Equal(t, 4, typedChecker.VCallResult.Count())
 
 	require.True(t, oneExecutionDeactivate)
