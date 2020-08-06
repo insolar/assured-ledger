@@ -84,8 +84,14 @@ func (jc *Coordinator) VirtualExecutorForObject(
 
 	base := objID.GetBase()
 	h := sha256.New()
-	h.Write(base.AsBytes())
-	h.Write(pc.PulseEntropy[:])
+	_, err = h.Write(base.AsBytes())
+	if err != nil {
+		return reference.Global{}, err
+	}
+	_, err = h.Write(pc.PulseEntropy[:])
+	if err != nil {
+		return reference.Global{}, err
+	}
 	metric := longbits.CutOutUint64(h.Sum(nil))
 
 	metric += uint64(base.Pulse())
