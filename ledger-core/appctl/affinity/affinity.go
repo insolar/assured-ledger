@@ -103,10 +103,3 @@ func (jc *Coordinator) VirtualExecutorForObject(
 
 	return ref, nil
 }
-
-func xorBytes(dest []byte, b []byte) {
-	n := len(dest)
-	for i := range b {
-		dest[i%n] ^= b[i]
-	}
-}
