@@ -22,7 +22,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callsummary"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/object/finalizedstate"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/object/preservedstatereport"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
 )
 
@@ -70,8 +70,8 @@ func TestSMObject_MigrationCreateStateReport_IfStateMissing(t *testing.T) {
 		PublishMock.Set(func(key interface{}, data interface{}) (b1 bool) {
 		assert.NotNil(t, data)
 		switch d := data.(type) {
-		case finalizedstate.ReportKey:
-			assert.Equal(t, finalizedstate.BuildReportKey(report.Object), d)
+		case preservedstatereport.ReportKey:
+			assert.Equal(t, preservedstatereport.BuildReportKey(report.Object), d)
 		case callsummary.SummarySyncKey:
 			assert.Equal(t, callsummary.BuildSummarySyncKey(report.Object), d)
 		}
@@ -109,7 +109,7 @@ func TestSMObject_MigrationCreateStateReport_IfStateIsEmptyAndNoCounters(t *test
 		smObject = newSMObjectWithPulse()
 	)
 
-	smObject.SetDescriptorDirty(descriptor.NewObject(reference.Global{}, reference.Local{}, reference.Global{}, nil,  false))
+	smObject.SetDescriptorDirty(descriptor.NewObject(reference.Global{}, reference.Local{}, reference.Global{}, nil, false))
 	smObject.SharedState.SetState(Empty)
 
 	var sharedData smachine.SharedDataLink
@@ -132,8 +132,8 @@ func TestSMObject_MigrationCreateStateReport_IfStateIsEmptyAndNoCounters(t *test
 		PublishMock.Set(
 		func(key interface{}, data interface{}) (b1 bool) {
 			switch key.(type) {
-			case finalizedstate.ReportKey:
-				refKey := finalizedstate.BuildReportKey(smObject.Reference)
+			case preservedstatereport.ReportKey:
+				refKey := preservedstatereport.BuildReportKey(smObject.Reference)
 				require.Equal(t, refKey, key)
 				require.Equal(t, sharedData, data)
 			case callsummary.SummarySyncKey:
@@ -166,8 +166,8 @@ func TestSMObject_MigrationCreateStateReport_IfStateEmptyAndCountersSet(t *testi
 		assert.NotNil(t, data)
 
 		switch k := key.(type) {
-		case finalizedstate.ReportKey:
-			assert.Equal(t, finalizedstate.BuildReportKey(report.Object), k)
+		case preservedstatereport.ReportKey:
+			assert.Equal(t, preservedstatereport.BuildReportKey(report.Object), k)
 		case callsummary.SummarySyncKey:
 			assert.Equal(t, callsummary.BuildSummarySyncKey(report.Object), k)
 		default:
