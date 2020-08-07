@@ -21,7 +21,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/shareddata"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callsummary"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/object/finalizedstate"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/object/preservedstatereport"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
 )
 
@@ -84,8 +84,8 @@ func TestSMObject_CallSummarySM(t *testing.T) {
 			assert.NotNil(t, data)
 
 			switch k := key.(type) {
-			case finalizedstate.ReportKey:
-				assert.Equal(t, finalizedstate.BuildReportKey(smObject.Reference), k)
+			case preservedstatereport.ReportKey:
+				assert.Equal(t, preservedstatereport.BuildReportKey(smObject.Reference), k)
 			case callsummary.SummarySyncKey:
 				assert.Equal(t, callsummary.BuildSummarySyncKey(smObject.Reference), k)
 			default:
