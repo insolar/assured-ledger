@@ -292,6 +292,10 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) generateObjectRef(ctx con
 	s.object = reference.NewSelf(gen.UniqueLocalRefWithPulse(p))
 }
 
+func (s *stateReportCheckPendingCountersAndPulsesTest) getIncomingFromOutgoing(outgoing reference.Global) reference.Global {
+	return reference.NewRecordOf(s.getObject(), outgoing.GetLocal())
+}
+
 func (s *stateReportCheckPendingCountersAndPulsesTest) generateRequests(ctx context.Context) {
 	s.requests = map[string]*stateReportCheckPendingCountersAndPulsesTestRequestInfo{
 		"Ordered1": {
@@ -326,9 +330,11 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) finishActivePending(
 ) {
 	reqInfo := s.requests[reqName]
 	pl := payload.VDelegatedRequestFinished{
+		CallType:     payload.CTMethod,
+		CallFlags:    reqInfo.flags,
 		Callee:       s.getObject(),
 		CallOutgoing: reqInfo.ref,
-		CallFlags:    reqInfo.flags,
+		CallIncoming: s.getObject(),
 	}
 	s.addPayloadAndWaitIdle(ctx, &pl)
 }
@@ -604,11 +610,14 @@ func TestVirtual_StateReport_AfterPendingConstructorHasFinished(t *testing.T) {
 		server.SendPayload(ctx, &delegatedRequest)
 		commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VDelegatedCallResponse.Wait(ctx, 1))
 	}
+
 	{
 		finishedSignal := server.Journal.WaitStopOf(&handlers.SMVDelegatedRequestFinished{}, 1)
 		finished := payload.VDelegatedRequestFinished{
+			CallType:     payload.CTConstructor,
 			Callee:       object,
 			CallOutgoing: outgoingP1,
+			CallIncoming: reference.NewRecordOf(object, outgoingP1.GetLocal()),
 			CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 			LatestState: &payload.ObjectState{
 				Reference: dirtyStateRef,
