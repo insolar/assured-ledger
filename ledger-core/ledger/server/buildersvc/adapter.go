@@ -25,15 +25,15 @@ func NewAdapterExt(adapterID smachine.AdapterID, executor smachine.AdapterExecut
 	}
 }
 
-func NewAdapter(cfg smadapter.AdapterExecutorConfig) Adapter {
-	executor := smadapter.StartAdapterExecutor(context.Background(), cfg, nil)
+func NewAdapter(cfg smadapter.Config) Adapter {
+	executor := smadapter.StartExecutorFor(context.Background(), cfg, nil)
 	return NewAdapterExt("DropBuilder", executor, NewService())
 }
 
-func NewAdapterComponent(cfg smadapter.AdapterExecutorConfig) managed.Component {
+func NewAdapterComponent(cfg smadapter.Config) managed.Component {
 	svc := NewService()
 	var adapter Adapter
-	executor, component := smadapter.NewAdapterExecutorComponent(context.Background(), cfg, svc, func(holder managed.Holder) {
+	executor, component := smadapter.NewComponent(context.Background(), cfg, svc, func(holder managed.Holder) {
 		holder.AddDependency(adapter)
 	})
 	adapter = NewAdapterExt("DropBuilder", executor, svc)

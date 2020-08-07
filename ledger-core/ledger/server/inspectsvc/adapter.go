@@ -24,8 +24,8 @@ func NewAdapterExt(adapterID smachine.AdapterID, executor smachine.AdapterExecut
 	}
 }
 
-func NewAdapter(cfg smadapter.AdapterExecutorConfig) Adapter {
-	executor := smadapter.StartAdapterExecutor(context.Background(), cfg, nil)
+func NewAdapter(cfg smadapter.Config) Adapter {
+	executor := smadapter.StartExecutorFor(context.Background(), cfg, nil)
 	return NewAdapterExt("RecordInspector", executor, NewService())
 }
 

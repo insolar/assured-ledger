@@ -15,13 +15,13 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
 
-type AdapterExecutorConfig struct {
+type Config struct {
 	MaxBufferCapacity int
 	ExpectedParallelReaders int
 	ProvideCancel bool
 }
 
-func NewAdapterExecutor(ctx context.Context, cfg AdapterExecutorConfig, runArg interface{}) (exec smachine.AdapterExecutor, startFn func()) {
+func NewExecutor(ctx context.Context, cfg Config, runArg interface{}) (exec smachine.AdapterExecutor, startFn func()) {
 	parallelWorkers := uint16(0)
 	chanLimit := cfg.ExpectedParallelReaders
 	switch {
@@ -60,15 +60,15 @@ func NewAdapterExecutor(ctx context.Context, cfg AdapterExecutorConfig, runArg i
 	}
 }
 
-func StartAdapterExecutor(ctx context.Context, cfg AdapterExecutorConfig, runArg interface{}) smachine.AdapterExecutor {
-	exec, startFn := NewAdapterExecutor(ctx, cfg, runArg)
+func StartExecutorFor(ctx context.Context, cfg Config, runArg interface{}) smachine.AdapterExecutor {
+	exec, startFn := NewExecutor(ctx, cfg, runArg)
 	startFn()
 	return exec
 }
 
-func NewAdapterExecutorComponent(ctx context.Context, cfg AdapterExecutorConfig, runArg interface{}, initFn func(managed.Holder)) (smachine.AdapterExecutor, managed.Component) {
+func NewComponent(ctx context.Context, cfg Config, runArg interface{}, initFn func(managed.Holder)) (smachine.AdapterExecutor, managed.Component) {
 	ctx, stopFn := context.WithCancel(ctx)
-	exec, startFn := NewAdapterExecutor(ctx, cfg, runArg)
+	exec, startFn := NewExecutor(ctx, cfg, runArg)
 
 	ac := adapterComponent{initFn, startFn, stopFn, nil }
 	switch c := runArg.(type) {

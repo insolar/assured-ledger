@@ -31,7 +31,7 @@ func NewAppCompartment(_ configuration.Ledger, comps insapp.AppComponents) *insc
 
 			setup.Dependencies.AddInterfaceDependency(&comps.MessageSender)
 
-			setup.AddComponent(buildersvc.NewAdapterComponent(smadapter.AdapterExecutorConfig{}))
+			setup.AddComponent(buildersvc.NewAdapterComponent(smadapter.Config{}))
 
 			f := NewEventFactory()
 			setup.ConveyorConfig.PulseSlotMigration = f.PostMigrate
