@@ -688,7 +688,7 @@ func TestVirtual_Constructor_PulseChangedWhileOutgoing(t *testing.T) {
 		isolation = contract.ConstructorIsolation()
 		callFlags = payload.BuildCallFlags(isolation.Interference, isolation.State)
 
-		class     = gen.UniqueGlobalRef()
+		class     = server.RandomGlobalWithPulse()
 		outgoing  = server.BuildRandomOutgoingWithPulse()
 		objectRef = reference.NewSelf(outgoing.GetLocal())
 
@@ -861,14 +861,14 @@ func TestVirtual_CallConstructor_WithTwicePulseChange(t *testing.T) {
 	var (
 		constructorIsolation = contract.ConstructorIsolation()
 
-		classA    = gen.UniqueGlobalRef()
+		classA    = server.RandomGlobalWithPulse()
 		outgoing  = server.BuildRandomOutgoingWithPulse()
 		objectRef = reference.NewSelf(outgoing.GetLocal())
 
 		firstPulse = server.GetPulse().PulseNumber
 
-		firstApprover  = gen.UniqueGlobalRef()
-		secondApprover = gen.UniqueGlobalRef()
+		firstApprover  = server.RandomGlobalWithPulse()
+		secondApprover = server.RandomGlobalWithPulse()
 
 		firstExpectedToken, secondExpectedToken payload.CallDelegationToken
 	)
@@ -903,7 +903,10 @@ func TestVirtual_CallConstructor_WithTwicePulseChange(t *testing.T) {
 			assert.Equal(t, objectRef, request.Callee)
 			assert.Equal(t, outgoing, request.CallOutgoing)
 
-			msg := payload.VDelegatedCallResponse{Callee: request.Callee}
+			msg := payload.VDelegatedCallResponse{
+				Callee:       request.Callee,
+				CallIncoming: request.CallIncoming,
+			}
 
 			switch typedChecker.VDelegatedCallRequest.CountBefore() {
 			case 1:
