@@ -183,8 +183,8 @@ func (p *PulseSlot) HasPulseData(pn pulse.Number) bool {
 	return p.pulseManager.HasPulseData(pn)
 }
 
-func (p *PulseSlot) postMigrate(holder smachine.SlotMachineHolder) {
+func (p *PulseSlot) postMigrate(prevState PulseSlotState, holder smachine.SlotMachineHolder) {
 	if fn := p.pulseManager.pulseMigrateFn; fn != nil {
-		fn(p, holder)
+		fn(prevState, p, holder)
 	}
 }

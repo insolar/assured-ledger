@@ -23,7 +23,7 @@ type SMPlash struct {
 
 	// injected
 	pulseSlot  *conveyor.PulseSlot
-	builderSvc *buildersvc.Adapter
+	builderSvc buildersvc.Adapter
 	cataloger  DropCataloger
 
 	// shared unbound

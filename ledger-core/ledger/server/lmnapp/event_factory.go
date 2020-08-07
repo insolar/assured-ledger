@@ -9,25 +9,30 @@ import (
 	"context"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
-	"github.com/insolar/assured-ledger/ledger-core/conveyor/managed"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/datawriter"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-func NewEventFactory() *EventFactory {
-	return &EventFactory{}
+func NewEventFactory(ctx context.Context) *EventFactory {
+	return &EventFactory{ ctx }
 }
 
 type EventFactory struct {
-
+	ctx context.Context
 }
 
 func (p *EventFactory) InputEvent(ctx context.Context, event conveyor.InputEvent, context conveyor.InputContext) (conveyor.InputSetup, error) {
 	panic("implement me")
 }
 
-func (p *EventFactory) SetupComponents(context.Context, injector.DependencyInjector, managed.RegisterComponentFunc) {}
+func (p *EventFactory) PostMigrate(prevState conveyor.PulseSlotState, ps *conveyor.PulseSlot, m smachine.SlotMachineHolder) {
+	switch {
+	case ps.State() != conveyor.Present:
+		return
+	case prevState == conveyor.Present:
+		panic(throw.IllegalState())
+	}
 
-func (p *EventFactory) PostMigrate(ps *conveyor.PulseSlot, m smachine.SlotMachineHolder) {
-
+	m.AddNewByFunc(p.ctx, datawriter.PlashCreate(), smachine.CreateDefaultValues{})
 }

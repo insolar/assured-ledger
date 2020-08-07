@@ -27,13 +27,13 @@ func NewAppCompartment(_ configuration.Ledger, comps insapp.AppComponents) *insc
 
 	return insconveyor.NewAppCompartment("LMN", appDeps,
 
-		func(_ context.Context, _ injector.DependencyInjector, setup insconveyor.AppCompartmentSetup) insconveyor.AppCompartmentSetup {
+		func(ctx context.Context, _ injector.DependencyInjector, setup insconveyor.AppCompartmentSetup) insconveyor.AppCompartmentSetup {
 
 			setup.Dependencies.AddInterfaceDependency(&comps.MessageSender)
 
 			setup.AddComponent(buildersvc.NewAdapterComponent(smadapter.Config{}))
 
-			f := NewEventFactory()
+			f := NewEventFactory(ctx)
 			setup.ConveyorConfig.PulseSlotMigration = f.PostMigrate
 			setup.EventFactoryFn = f.InputEvent
 

@@ -13,6 +13,8 @@ import (
 )
 
 func TestStartCtm(t *testing.T) {
+	t.SkipNow()
+
 	server := NewTestServer(t)
 	defer server.Stop()
 

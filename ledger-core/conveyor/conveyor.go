@@ -52,7 +52,8 @@ type PulseChanger interface {
 	CommitPulseChange(pr pulse.Range) error
 }
 
-type PulseSlotPostMigrateFunc = func(*PulseSlot, smachine.SlotMachineHolder)
+// PulseSlotPostMigrateFunc is called on migration and on creation of the slot. For creation (prevState) will be zero.
+type PulseSlotPostMigrateFunc = func(prevState PulseSlotState, slot *PulseSlot, h smachine.SlotMachineHolder)
 
 type PulseConveyorConfig struct {
 	ConveyorMachineConfig             smachine.SlotMachineConfig
@@ -77,14 +78,18 @@ func NewPulseConveyor(
 		factoryFn:      factoryFn,
 		eventlessSleep: config.EventlessSleep,
 	}
+	if registry != nil {
+		r.sharedRegistry = *injector.NewDynamicContainer(registry)
+	}
+
 	r.slotConfig.config.CleanupWeakOnMigrate = true
 	r.slotMachine = smachine.NewSlotMachine(config.ConveyorMachineConfig,
 		r.internalSignal.NextBroadcast,
 		combineCallbacks(r.externalSignal.NextBroadcast, r.internalSignal.NextBroadcast),
-		registry)
+		&r.sharedRegistry)
 
 	r.slotConfig.eventCallback = r.internalSignal.NextBroadcast
-	r.slotConfig.parentRegistry = r.slotMachine
+	r.slotConfig.parentRegistry = &r.sharedRegistry
 
 	// shared SlotId sequence
 	r.slotConfig.config.SlotIDGenerateFn = r.slotMachine.CopyConfig().SlotIDGenerateFn
@@ -107,6 +112,7 @@ type PulseConveyor struct {
 	externalSignal synckit.VersionedSignal
 	internalSignal synckit.VersionedSignal
 
+	sharedRegistry injector.DynamicContainer
 	slotMachine   *smachine.SlotMachine
 	machineWorker smachine.AttachableSlotWorker
 
@@ -135,24 +141,24 @@ func (p *PulseConveyor) AddManagedComponent(c managed.Component) {
 	p.comps.Add(p, c)
 }
 
+func (p *PulseConveyor) FindDependency(id string) (interface{}, bool) {
+	return p.sharedRegistry.FindDependency(id)
+}
+
 func (p *PulseConveyor) AddDependency(v interface{}) {
-	p.slotMachine.AddDependency(v)
+	p.sharedRegistry.AddDependency(v)
 }
 
 func (p *PulseConveyor) AddInterfaceDependency(v interface{}) {
-	p.slotMachine.AddInterfaceDependency(v)
-}
-
-func (p *PulseConveyor) FindDependency(id string) (interface{}, bool) {
-	return p.slotMachine.FindDependency(id)
+	p.sharedRegistry.AddInterfaceDependency(v)
 }
 
 func (p *PulseConveyor) PutDependency(id string, v interface{}) {
-	p.slotMachine.PutDependency(id, v)
+	p.sharedRegistry.PutDependency(id, v)
 }
 
 func (p *PulseConveyor) TryPutDependency(id string, v interface{}) bool {
-	return p.slotMachine.TryPutDependency(id, v)
+	return p.sharedRegistry.TryPutDependency(id, v)
 }
 
 func (p *PulseConveyor) GetPublishedGlobalAliasAndBargeIn(key interface{}) (smachine.SlotLink, smachine.BargeInHolder) {
