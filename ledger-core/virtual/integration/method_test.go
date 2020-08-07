@@ -1328,7 +1328,7 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 		// add ExecutionMock to runnerMock
 		{
 			runnerMock.AddExecutionClassify("SomeMethod", testCase.isolation, nil)
-			requestResult := requestresult.New([]byte(callResult), gen.UniqueGlobalRef())
+			requestResult := requestresult.New([]byte(callResult), objectRef)
 			if testCase.canChangeState {
 				newObjDescriptor := descriptor.NewObject(
 					reference.Global{}, reference.Local{}, class, []byte(""), false,
@@ -1365,12 +1365,12 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 			content := &payload.VStateReport_ProvidedContentBody{
 				LatestDirtyState: &payload.ObjectState{
 					Reference: reference.Local{},
-					Class:     gen.UniqueGlobalRef(),
+					Class:     class,
 					State:     []byte(origDirtyObjectMem),
 				},
 				LatestValidatedState: &payload.ObjectState{
 					Reference: reference.Local{},
-					Class:     gen.UniqueGlobalRef(),
+					Class:     class,
 					State:     []byte(origValidatedObjectMem),
 				},
 			}
