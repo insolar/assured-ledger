@@ -47,4 +47,15 @@ func TestStateRequestContentFlags(t *testing.T) {
 
 		assert.True(t, flags.Contains(RequestUnorderedQueue))
 	})
+
+	t.Run("is valid", func(t *testing.T) {
+		f := StateRequestContentFlags(1 << maxRequestedContentByte)
+		assert.False(t, StateRequestContentFlags(1<<maxRequestedContentByte).IsValid())
+
+		f = StateRequestContentFlags(1 << (maxRequestedContentByte - 1))
+		assert.True(t, StateRequestContentFlags(1<<(maxRequestedContentByte-1)).IsValid())
+
+		f = StateRequestContentFlags(1<<maxRequestedContentByte | 1<<(maxRequestedContentByte-1))
+		assert.False(t, f.IsValid())
+	})
 }
