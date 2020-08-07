@@ -899,150 +899,6 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 	mc.Finish()
 }
 
-func TestVirtual_Method_Have_ObjectState(t *testing.T) {
-	type runnerObjectChecker func(objectState *payload.VStateReport_ProvidedContentBody, runnerObjectState descriptor.Object) bool
-	table := []struct {
-		name string
-		code string
-
-		state  contract.StateFlag
-		checks []runnerObjectChecker
-	}{
-		{
-			name:  "Method with CallFlags.Dirty must be called with dirty object state",
-			code:  "C5184",
-			state: contract.CallDirty,
-		},
-		{
-			name:  "Method with CallFlags.Validated must be called with validated object state",
-			code:  "C5123",
-			state: contract.CallValidated,
-		},
-	}
-	for _, test := range table {
-		t.Run(test.name, func(t *testing.T) {
-			defer commontestutils.LeakTester(t)
-			insrail.LogCase(t, test.code)
-
-			var (
-				mc = minimock.NewController(t)
-			)
-
-			server, ctx := utils.NewUninitializedServer(nil, t)
-			defer server.Stop()
-
-			executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
-
-			runnerMock := logicless.NewServiceMock(ctx, t, nil)
-			server.ReplaceRunner(runnerMock)
-
-			server.Init(ctx)
-			server.IncrementPulse(ctx)
-
-			var (
-				pulseNumber       = server.GetPulse().PulseNumber
-				class             = gen.UniqueGlobalRef()
-				objectRef         = gen.UniqueGlobalRefWithPulse(pulseNumber)
-				dirtyStateRef     = server.RandomLocalWithPulse()
-				dirtyState        = reference.NewSelf(dirtyStateRef)
-				validatedStateRef = server.RandomLocalWithPulse()
-				validatedState    = reference.NewSelf(validatedStateRef)
-			)
-			const (
-				validatedMem = "12345"
-				dirtyMem     = "54321"
-			)
-
-			{ // send object state to server
-				pl := payload.VStateReport{
-					Status:               payload.Ready,
-					Object:               objectRef,
-					AsOf:                 pulseNumber,
-					LatestValidatedState: validatedState,
-					LatestDirtyState:     dirtyState,
-					ProvidedContent: &payload.VStateReport_ProvidedContentBody{
-						LatestValidatedState: &payload.ObjectState{
-							Reference: validatedStateRef,
-							Class:     class,
-							State:     []byte(validatedMem),
-						},
-						LatestDirtyState: &payload.ObjectState{
-							Reference: dirtyStateRef,
-							Class:     class,
-							State:     []byte(dirtyMem),
-						},
-					},
-				}
-
-				server.IncrementPulse(ctx)
-
-				server.WaitIdleConveyor()
-				server.SendPayload(ctx, &pl)
-				server.WaitActiveThenIdleConveyor()
-			}
-
-			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-
-			{
-				typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
-					require.Equal(t, []byte("345"), res.ReturnArguments)
-					require.Equal(t, objectRef, res.Callee)
-
-					return false // no resend msg
-				})
-
-				outgoingRef := server.BuildRandomOutgoingWithPulse()
-
-				pl := payload.VCallRequest{
-					CallType:            payload.CTMethod,
-					CallFlags:           payload.BuildCallFlags(contract.CallIntolerable, test.state),
-					Caller:              server.GlobalCaller(),
-					Callee:              objectRef,
-					CallSiteDeclaration: class,
-					CallSiteMethod:      "Test",
-					CallOutgoing:        outgoingRef,
-				}
-
-				key := pl.CallOutgoing.String()
-				runnerMock.AddExecutionMock(key).
-					AddStart(func(ctx execution.Context) {
-						require.Equal(t, objectRef, ctx.Object)
-						require.Equal(t, test.state, ctx.Request.CallFlags.GetState())
-						require.Equal(t, test.state, ctx.Isolation.State)
-						require.Equal(t, objectRef, ctx.ObjectDescriptor.HeadRef())
-						stateClass, err := ctx.ObjectDescriptor.Class()
-						require.NoError(t, err)
-						require.Equal(t, class, stateClass)
-
-						if test.state == contract.CallValidated {
-							require.Equal(t, validatedStateRef, ctx.ObjectDescriptor.StateID())
-							require.Equal(t, []byte(validatedMem), ctx.ObjectDescriptor.Memory())
-						} else {
-							require.Equal(t, dirtyStateRef, ctx.ObjectDescriptor.StateID())
-							require.Equal(t, []byte(dirtyMem), ctx.ObjectDescriptor.Memory())
-						}
-					}, &execution.Update{
-						Type:   execution.Done,
-						Result: requestresult.New([]byte("345"), outgoingRef),
-					})
-				runnerMock.AddExecutionClassify(key, contract.MethodIsolation{
-					Interference: contract.CallIntolerable,
-					State:        test.state,
-				}, nil)
-
-				server.SendPayload(ctx, &pl)
-			}
-
-			commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
-			commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
-
-			assert.Equal(t, 1, typedChecker.VCallResult.Count())
-
-			mc.Finish()
-		})
-	}
-}
-
 // twice ( A.Foo -> B.Bar, B.Bar )
 func TestVirtual_CallContractTwoTimes(t *testing.T) {
 	defer commontestutils.LeakTester(t)
@@ -1428,6 +1284,14 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 			isolation: contract.MethodIsolation{
 				Interference: contract.CallIntolerable,
 				State:        contract.CallValidated,
+			},
+		},
+		{
+			name:           "Intolerable call on Dirty state cannot change object state",
+			canChangeState: false,
+			isolation: contract.MethodIsolation{
+				Interference: contract.CallIntolerable,
+				State:        contract.CallDirty,
 			},
 		},
 	}
