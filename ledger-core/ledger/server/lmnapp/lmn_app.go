@@ -16,6 +16,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 )
 
+// AppFactory is an entry point for ledger-core/server logic
 func AppFactory(_ context.Context, cfg configuration.Configuration, comps insapp.AppComponents) (insapp.AppComponent, error) {
 	return NewAppCompartment(cfg.Ledger, comps), nil
 }
