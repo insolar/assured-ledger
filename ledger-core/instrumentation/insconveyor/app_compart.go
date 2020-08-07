@@ -34,7 +34,6 @@ func NewAppCompartment(name string, appDeps injector.DependencyRegistry, setupFn
 
 type AppCompartmentSetup struct {
 	ConveyorConfig     conveyor.PulseConveyorConfig
-	ConveyorCycleFn    conveyor.PulseConveyorCycleFunc
 	EventFactoryFn     conveyor.PulseEventFactoryFunc
 	Components         []managed.Component
 	Dependencies       *injector.DynamicContainer
@@ -62,6 +61,7 @@ type AppCompartment struct {
 	conveyorWorker ConveyorWorker
 }
 
+// SetImposer sets a handler that can alternate Init() behavior. For tests ONLY.
 func (p *AppCompartment) SetImposer(fn ImposerFunc) {
 	if p.conveyor != nil {
 		panic(throw.IllegalState())
@@ -91,6 +91,7 @@ func (p *AppCompartment) Init(ctx context.Context) error {
 	p.setupFn = nil
 
 	var interceptFn ComponentInterceptFunc
+	var cycleFn conveyor.PulseConveyorCycleFunc
 	if p.imposeFn != nil {
 		params := ImposedParams{
 			CompartmentSetup:  appCfg,
@@ -100,6 +101,7 @@ func (p *AppCompartment) Init(ctx context.Context) error {
 
 		appCfg = params.CompartmentSetup
 		interceptFn = params.ComponentInterceptFn
+		cycleFn = params.ConveyorCycleFn
 	}
 
 	p.conveyor = conveyor.NewPulseConveyor(ctx,
@@ -125,7 +127,7 @@ func (p *AppCompartment) Init(ctx context.Context) error {
 		}
 	}
 
-	p.conveyorWorker = NewConveyorWorker(appCfg.ConveyorCycleFn)
+	p.conveyorWorker = NewConveyorWorker(cycleFn)
 	p.flowDispatcher = NewConveyorDispatcher(ctx, p.conveyor)
 
 	return nil

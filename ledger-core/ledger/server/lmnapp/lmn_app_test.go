@@ -17,30 +17,39 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
+	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 )
 
 func TestStartCtm(t *testing.T) {
 	instestlogger.SetTestOutput(t)
-	app := NewAppCompartment(configuration.Ledger{}, insapp.AppComponents{})
+
+	// Reuse default compartment construction logic
+	app := NewAppCompartment(configuration.Ledger{}, insapp.AppComponents{
+		// Provide mocks for application-level / cross-compartment dependencies here
+		MessageSender: messagesender.NewServiceMock(t),
+	})
 	require.NotNil(t, app)
 
 	app.SetImposer(func(params *insconveyor.ImposedParams) {
 		// impose upon default behavior
 
+		// params.CompartmentSetup.ConveyorConfig allows to adjust conveyor's settings
+		params.CompartmentSetup.ConveyorConfig.EventlessSleep = 0
+
+		//	params.CompartmentSetup.EventFactoryFn - override event factory
+		//	params.CompartmentSetup.ConveyorCycleFn - set cycle fn to control worker's stepping behavior
+
+		// params.CompartmentSetup.Components - to add/remove/replace conveyor-depended components
+
+		// params.CompartmentSetup.Dependencies - to add/remove/replace dependencies provided to SMs
+		params.CompartmentSetup.Dependencies.DeleteDependency("something")
+
+		// params.ComponentInterceptFn can be used to prevent or to replace any of
+		// conveyor-depended components.
+		// For now this is similar to do changes for params.CompartmentSetup.Components
 		params.ComponentInterceptFn = func(c managed.Component) managed.Component {
-			// switch c.(type) {
-			// case InterceptedType:
-			// }
 			return c
 		}
-
-		params.ConveyorRegistry.ScanDependencies(func(id string, v interface{}) bool {
-			if id == "something" {
-				params.ConveyorRegistry.DeleteDependency(id)
-			}
-
-			return false
-		})
 	})
 
 	ctx := context.Background()
@@ -50,6 +59,7 @@ func TestStartCtm(t *testing.T) {
 
 	err = app.Start(ctx)
 	require.NoError(t, err)
+
 
 	time.Sleep(time.Millisecond)
 

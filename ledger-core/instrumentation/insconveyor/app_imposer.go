@@ -6,14 +6,14 @@
 package insconveyor
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/managed"
-	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 )
 
 type ImposedParams struct {
-	CompartmentSetup  AppCompartmentSetup
-	ConveyorRegistry  *injector.DynamicContainer
+	CompartmentSetup     AppCompartmentSetup
 	ComponentInterceptFn ComponentInterceptFunc
+	ConveyorCycleFn      conveyor.PulseConveyorCycleFunc
 }
 
 type ImposerFunc = func(*ImposedParams)

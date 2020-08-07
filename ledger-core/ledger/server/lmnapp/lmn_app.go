@@ -28,7 +28,7 @@ func NewAppCompartment(_ configuration.Ledger, comps insapp.AppComponents) *insc
 
 		func(_ context.Context, _ injector.DependencyInjector, setup insconveyor.AppCompartmentSetup) insconveyor.AppCompartmentSetup {
 
-			// setup.Dependencies.AddInterfaceDependency(&comps.MessageSender)
+			setup.Dependencies.AddInterfaceDependency(&comps.MessageSender)
 
 			setup.AddComponent(buildersvc.NewAdapterComponent(smadapter.AdapterExecutorConfig{}))
 
