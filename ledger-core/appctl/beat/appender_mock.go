@@ -21,6 +21,12 @@ type AppenderMock struct {
 	beforeAddCommittedBeatCounter uint64
 	AddCommittedBeatMock          mAppenderMockAddCommittedBeat
 
+	funcAddExpectedBeat          func(b1 Beat) (err error)
+	inspectFuncAddExpectedBeat   func(b1 Beat)
+	afterAddExpectedBeatCounter  uint64
+	beforeAddExpectedBeatCounter uint64
+	AddExpectedBeatMock          mAppenderMockAddExpectedBeat
+
 	funcEnsureLatestTimeBeat          func(b1 Beat) (err error)
 	inspectFuncEnsureLatestTimeBeat   func(b1 Beat)
 	afterEnsureLatestTimeBeatCounter  uint64
@@ -49,6 +55,9 @@ func NewAppenderMock(t minimock.Tester) *AppenderMock {
 
 	m.AddCommittedBeatMock = mAppenderMockAddCommittedBeat{mock: m}
 	m.AddCommittedBeatMock.callArgs = []*AppenderMockAddCommittedBeatParams{}
+
+	m.AddExpectedBeatMock = mAppenderMockAddExpectedBeat{mock: m}
+	m.AddExpectedBeatMock.callArgs = []*AppenderMockAddExpectedBeatParams{}
 
 	m.EnsureLatestTimeBeatMock = mAppenderMockEnsureLatestTimeBeat{mock: m}
 	m.EnsureLatestTimeBeatMock.callArgs = []*AppenderMockEnsureLatestTimeBeatParams{}
@@ -273,6 +282,221 @@ func (m *AppenderMock) MinimockAddCommittedBeatInspect() {
 	// if func was set then invocations count should be greater than zero
 	if m.funcAddCommittedBeat != nil && mm_atomic.LoadUint64(&m.afterAddCommittedBeatCounter) < 1 {
 		m.t.Error("Expected call to AppenderMock.AddCommittedBeat")
+	}
+}
+
+type mAppenderMockAddExpectedBeat struct {
+	mock               *AppenderMock
+	defaultExpectation *AppenderMockAddExpectedBeatExpectation
+	expectations       []*AppenderMockAddExpectedBeatExpectation
+
+	callArgs []*AppenderMockAddExpectedBeatParams
+	mutex    sync.RWMutex
+}
+
+// AppenderMockAddExpectedBeatExpectation specifies expectation struct of the Appender.AddExpectedBeat
+type AppenderMockAddExpectedBeatExpectation struct {
+	mock    *AppenderMock
+	params  *AppenderMockAddExpectedBeatParams
+	results *AppenderMockAddExpectedBeatResults
+	Counter uint64
+}
+
+// AppenderMockAddExpectedBeatParams contains parameters of the Appender.AddExpectedBeat
+type AppenderMockAddExpectedBeatParams struct {
+	b1 Beat
+}
+
+// AppenderMockAddExpectedBeatResults contains results of the Appender.AddExpectedBeat
+type AppenderMockAddExpectedBeatResults struct {
+	err error
+}
+
+// Expect sets up expected params for Appender.AddExpectedBeat
+func (mmAddExpectedBeat *mAppenderMockAddExpectedBeat) Expect(b1 Beat) *mAppenderMockAddExpectedBeat {
+	if mmAddExpectedBeat.mock.funcAddExpectedBeat != nil {
+		mmAddExpectedBeat.mock.t.Fatalf("AppenderMock.AddExpectedBeat mock is already set by Set")
+	}
+
+	if mmAddExpectedBeat.defaultExpectation == nil {
+		mmAddExpectedBeat.defaultExpectation = &AppenderMockAddExpectedBeatExpectation{}
+	}
+
+	mmAddExpectedBeat.defaultExpectation.params = &AppenderMockAddExpectedBeatParams{b1}
+	for _, e := range mmAddExpectedBeat.expectations {
+		if minimock.Equal(e.params, mmAddExpectedBeat.defaultExpectation.params) {
+			mmAddExpectedBeat.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmAddExpectedBeat.defaultExpectation.params)
+		}
+	}
+
+	return mmAddExpectedBeat
+}
+
+// Inspect accepts an inspector function that has same arguments as the Appender.AddExpectedBeat
+func (mmAddExpectedBeat *mAppenderMockAddExpectedBeat) Inspect(f func(b1 Beat)) *mAppenderMockAddExpectedBeat {
+	if mmAddExpectedBeat.mock.inspectFuncAddExpectedBeat != nil {
+		mmAddExpectedBeat.mock.t.Fatalf("Inspect function is already set for AppenderMock.AddExpectedBeat")
+	}
+
+	mmAddExpectedBeat.mock.inspectFuncAddExpectedBeat = f
+
+	return mmAddExpectedBeat
+}
+
+// Return sets up results that will be returned by Appender.AddExpectedBeat
+func (mmAddExpectedBeat *mAppenderMockAddExpectedBeat) Return(err error) *AppenderMock {
+	if mmAddExpectedBeat.mock.funcAddExpectedBeat != nil {
+		mmAddExpectedBeat.mock.t.Fatalf("AppenderMock.AddExpectedBeat mock is already set by Set")
+	}
+
+	if mmAddExpectedBeat.defaultExpectation == nil {
+		mmAddExpectedBeat.defaultExpectation = &AppenderMockAddExpectedBeatExpectation{mock: mmAddExpectedBeat.mock}
+	}
+	mmAddExpectedBeat.defaultExpectation.results = &AppenderMockAddExpectedBeatResults{err}
+	return mmAddExpectedBeat.mock
+}
+
+//Set uses given function f to mock the Appender.AddExpectedBeat method
+func (mmAddExpectedBeat *mAppenderMockAddExpectedBeat) Set(f func(b1 Beat) (err error)) *AppenderMock {
+	if mmAddExpectedBeat.defaultExpectation != nil {
+		mmAddExpectedBeat.mock.t.Fatalf("Default expectation is already set for the Appender.AddExpectedBeat method")
+	}
+
+	if len(mmAddExpectedBeat.expectations) > 0 {
+		mmAddExpectedBeat.mock.t.Fatalf("Some expectations are already set for the Appender.AddExpectedBeat method")
+	}
+
+	mmAddExpectedBeat.mock.funcAddExpectedBeat = f
+	return mmAddExpectedBeat.mock
+}
+
+// When sets expectation for the Appender.AddExpectedBeat which will trigger the result defined by the following
+// Then helper
+func (mmAddExpectedBeat *mAppenderMockAddExpectedBeat) When(b1 Beat) *AppenderMockAddExpectedBeatExpectation {
+	if mmAddExpectedBeat.mock.funcAddExpectedBeat != nil {
+		mmAddExpectedBeat.mock.t.Fatalf("AppenderMock.AddExpectedBeat mock is already set by Set")
+	}
+
+	expectation := &AppenderMockAddExpectedBeatExpectation{
+		mock:   mmAddExpectedBeat.mock,
+		params: &AppenderMockAddExpectedBeatParams{b1},
+	}
+	mmAddExpectedBeat.expectations = append(mmAddExpectedBeat.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Appender.AddExpectedBeat return parameters for the expectation previously defined by the When method
+func (e *AppenderMockAddExpectedBeatExpectation) Then(err error) *AppenderMock {
+	e.results = &AppenderMockAddExpectedBeatResults{err}
+	return e.mock
+}
+
+// AddExpectedBeat implements Appender
+func (mmAddExpectedBeat *AppenderMock) AddExpectedBeat(b1 Beat) (err error) {
+	mm_atomic.AddUint64(&mmAddExpectedBeat.beforeAddExpectedBeatCounter, 1)
+	defer mm_atomic.AddUint64(&mmAddExpectedBeat.afterAddExpectedBeatCounter, 1)
+
+	if mmAddExpectedBeat.inspectFuncAddExpectedBeat != nil {
+		mmAddExpectedBeat.inspectFuncAddExpectedBeat(b1)
+	}
+
+	mm_params := &AppenderMockAddExpectedBeatParams{b1}
+
+	// Record call args
+	mmAddExpectedBeat.AddExpectedBeatMock.mutex.Lock()
+	mmAddExpectedBeat.AddExpectedBeatMock.callArgs = append(mmAddExpectedBeat.AddExpectedBeatMock.callArgs, mm_params)
+	mmAddExpectedBeat.AddExpectedBeatMock.mutex.Unlock()
+
+	for _, e := range mmAddExpectedBeat.AddExpectedBeatMock.expectations {
+		if minimock.Equal(e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.err
+		}
+	}
+
+	if mmAddExpectedBeat.AddExpectedBeatMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmAddExpectedBeat.AddExpectedBeatMock.defaultExpectation.Counter, 1)
+		mm_want := mmAddExpectedBeat.AddExpectedBeatMock.defaultExpectation.params
+		mm_got := AppenderMockAddExpectedBeatParams{b1}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmAddExpectedBeat.t.Errorf("AppenderMock.AddExpectedBeat got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmAddExpectedBeat.AddExpectedBeatMock.defaultExpectation.results
+		if mm_results == nil {
+			mmAddExpectedBeat.t.Fatal("No results are set for the AppenderMock.AddExpectedBeat")
+		}
+		return (*mm_results).err
+	}
+	if mmAddExpectedBeat.funcAddExpectedBeat != nil {
+		return mmAddExpectedBeat.funcAddExpectedBeat(b1)
+	}
+	mmAddExpectedBeat.t.Fatalf("Unexpected call to AppenderMock.AddExpectedBeat. %v", b1)
+	return
+}
+
+// AddExpectedBeatAfterCounter returns a count of finished AppenderMock.AddExpectedBeat invocations
+func (mmAddExpectedBeat *AppenderMock) AddExpectedBeatAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmAddExpectedBeat.afterAddExpectedBeatCounter)
+}
+
+// AddExpectedBeatBeforeCounter returns a count of AppenderMock.AddExpectedBeat invocations
+func (mmAddExpectedBeat *AppenderMock) AddExpectedBeatBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmAddExpectedBeat.beforeAddExpectedBeatCounter)
+}
+
+// Calls returns a list of arguments used in each call to AppenderMock.AddExpectedBeat.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmAddExpectedBeat *mAppenderMockAddExpectedBeat) Calls() []*AppenderMockAddExpectedBeatParams {
+	mmAddExpectedBeat.mutex.RLock()
+
+	argCopy := make([]*AppenderMockAddExpectedBeatParams, len(mmAddExpectedBeat.callArgs))
+	copy(argCopy, mmAddExpectedBeat.callArgs)
+
+	mmAddExpectedBeat.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockAddExpectedBeatDone returns true if the count of the AddExpectedBeat invocations corresponds
+// the number of defined expectations
+func (m *AppenderMock) MinimockAddExpectedBeatDone() bool {
+	for _, e := range m.AddExpectedBeatMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.AddExpectedBeatMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterAddExpectedBeatCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcAddExpectedBeat != nil && mm_atomic.LoadUint64(&m.afterAddExpectedBeatCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockAddExpectedBeatInspect logs each unmet expectation
+func (m *AppenderMock) MinimockAddExpectedBeatInspect() {
+	for _, e := range m.AddExpectedBeatMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to AppenderMock.AddExpectedBeat with params: %#v", *e.params)
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.AddExpectedBeatMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterAddExpectedBeatCounter) < 1 {
+		if m.AddExpectedBeatMock.defaultExpectation.params == nil {
+			m.t.Error("Expected call to AppenderMock.AddExpectedBeat")
+		} else {
+			m.t.Errorf("Expected call to AppenderMock.AddExpectedBeat with params: %#v", *m.AddExpectedBeatMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcAddExpectedBeat != nil && mm_atomic.LoadUint64(&m.afterAddExpectedBeatCounter) < 1 {
+		m.t.Error("Expected call to AppenderMock.AddExpectedBeat")
 	}
 }
 
@@ -856,6 +1080,8 @@ func (m *AppenderMock) MinimockFinish() {
 	if !m.minimockDone() {
 		m.MinimockAddCommittedBeatInspect()
 
+		m.MinimockAddExpectedBeatInspect()
+
 		m.MinimockEnsureLatestTimeBeatInspect()
 
 		m.MinimockLatestTimeBeatInspect()
@@ -885,6 +1111,7 @@ func (m *AppenderMock) minimockDone() bool {
 	done := true
 	return done &&
 		m.MinimockAddCommittedBeatDone() &&
+		m.MinimockAddExpectedBeatDone() &&
 		m.MinimockEnsureLatestTimeBeatDone() &&
 		m.MinimockLatestTimeBeatDone() &&
 		m.MinimockTimeBeatDone()
