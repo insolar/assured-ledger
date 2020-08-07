@@ -6,7 +6,6 @@
 package affinity
 
 import (
-	"context"
 	"crypto/sha256"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"

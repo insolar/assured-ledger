@@ -25,6 +25,6 @@ type AppFactoryFunc = func(context.Context, configuration.Configuration, AppComp
 
 type AppComponents struct {
 	AffinityHelper affinity.Helper
-	BeatHistory    beat.Accessor
+	BeatHistory    beat.History
 	MessageSender  messagesender.Service
 }
