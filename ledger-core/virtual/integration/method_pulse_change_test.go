@@ -571,8 +571,9 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 			{
 				delegatedRequest := payload.VDelegatedCallRequest{
 					Callee:       object,
-					CallOutgoing: outgoingP1,
 					CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+					CallOutgoing: outgoingP1,
+					CallIncoming: incomingP1,
 				}
 				server.SendPayload(ctx, &delegatedRequest)
 			}

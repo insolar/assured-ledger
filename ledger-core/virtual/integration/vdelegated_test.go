@@ -36,8 +36,11 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 		mc          = minimock.NewController(t)
 		testBalance = uint32(500)
 		prevPulse   = server.GetPulse().PulseNumber
-		objectRef   = gen.UniqueGlobalRefWithPulse(prevPulse)
+		objectRef   = server.RandomGlobalWithPulse()
 		sender      = server.JetCoordinatorMock.Me()
+
+		outgoing = server.BuildRandomOutgoingWithPulse()
+		incoming = reference.NewRecordOf(objectRef, outgoing.GetLocal())
 	)
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
@@ -78,7 +81,8 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 	{
 		// send VDelegatedCall
 		pl := payload.VDelegatedCallRequest{
-			CallOutgoing: reference.NewSelf(gen.UniqueLocalRefWithPulse(server.GetPulse().PulseNumber)),
+			CallOutgoing: outgoing,
+			CallIncoming: incoming,
 			Callee:       objectRef,
 			CallFlags:    payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
 		}
