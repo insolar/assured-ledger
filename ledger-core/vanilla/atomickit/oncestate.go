@@ -184,11 +184,11 @@ func (p *StartStopFlag) DoDiscardByOne(fn func(wasStarted bool)) bool {
 }
 
 func (p *StartStopFlag) Start() bool {
-	return !atomic.CompareAndSwapInt32(&p.done, 0, active)
+	return atomic.CompareAndSwapInt32(&p.done, 0, active)
 }
 
 func (p *StartStopFlag) Stop() bool {
-	return !atomic.CompareAndSwapInt32(&p.done, active, stopped)
+	return atomic.CompareAndSwapInt32(&p.done, active, stopped)
 }
 
 func (p *StartStopFlag) doSlow(f func(), status int32) {
