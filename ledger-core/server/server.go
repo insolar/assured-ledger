@@ -6,6 +6,7 @@
 package server
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
 	"github.com/insolar/assured-ledger/ledger-core/server/internal/headless"
 	"github.com/insolar/assured-ledger/ledger-core/server/internal/virtual"
 )
@@ -15,9 +16,9 @@ type Server interface {
 }
 
 func NewVirtualServer(cfgPath string) Server {
-	return virtual.New(cfgPath)
+	return insapp.New(cfgPath, virtual.AppFactory)
 }
 
 func NewHeadlessNetworkNodeServer(cfgPath string) Server {
-	return headless.New(cfgPath)
+	return insapp.New(cfgPath, nil, &headless.AppComponent{})
 }
