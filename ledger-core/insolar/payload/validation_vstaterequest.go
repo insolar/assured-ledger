@@ -34,7 +34,7 @@ func (m *VStateRequest) Validate(currentPulse PulseNumber) error {
 	}
 
 	fmt.Println(m.AsOf, currentPulse, m.AsOf.IsTimePulse(), m.AsOf.IsEqOrAfter(currentPulse))
-	if !m.AsOf.IsTimePulse() || !m.AsOf.IsBefore(currentPulse) {
+	if !isTimePulseBefore(m.AsOf, currentPulse) {
 		return throw.New("AsOf should be valid time pulse before current pulse")
 	}
 
@@ -44,7 +44,7 @@ func (m *VStateRequest) Validate(currentPulse PulseNumber) error {
 
 	objectPulse := m.Object.GetLocal().Pulse()
 	switch {
-	case !objectPulse.IsTimePulse() || !objectPulse.IsBefore(currentPulse):
+	case !isTimePulseBefore(objectPulse, currentPulse):
 		return throw.New("Object pulse should be valid time pulse before current pulse")
 	case !objectPulse.IsBeforeOrEq(m.AsOf):
 		return throw.New("Object pulse should be before or equal AsOf pulse")
