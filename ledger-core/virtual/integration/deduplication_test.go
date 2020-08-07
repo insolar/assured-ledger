@@ -35,95 +35,128 @@ func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 	defer commontestutils.LeakTester(t)
 	insrail.LogCase(t, "C5095")
 
-	mc := minimock.NewController(t)
-
-	server, ctx := utils.NewUninitializedServer(nil, t)
-	defer server.Stop()
-
-	oneExecutionEnded := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
-	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 2)
-
-	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
-		return execution.Request.CallSiteMethod
-	})
-	server.ReplaceRunner(runnerMock)
-	server.Init(ctx)
-	server.IncrementPulse(ctx)
-
-	var (
-		helper = utils.NewHelper(server)
-		pulse  = server.GetPulse().PulseNumber
-		class  = gen.UniqueGlobalRef()
-		object = gen.UniqueGlobalRefWithPulse(pulse)
-	)
-
-	report := &payload.VStateReport{
-		Status: payload.Ready,
-		AsOf:   pulse,
-		Object: object,
-		ProvidedContent: &payload.VStateReport_ProvidedContentBody{
-			LatestDirtyState: &payload.ObjectState{
-				State:       []byte("memory"),
-				Deactivated: false,
-			},
+	cases := []struct {
+		name                  string
+		countVFindCallRequest int
+	}{
+		// {
+		// 	"Get VStateReport in current pulse",
+		// 	0,
+		// },
+		{
+			"Find request in prev pulse, VStateReport.Status = missing",
+			1,
 		},
 	}
+	for _, test := range cases {
+		t.Run(test.name, func(t *testing.T) {
 
-	server.IncrementPulse(ctx)
+			mc := minimock.NewController(t)
 
-	server.SendPayload(ctx, report)
+			server, ctx := utils.NewUninitializedServer(nil, t)
+			defer server.Stop()
 
-	releaseBlockedExecution := make(chan struct{}, 0)
-	numberOfExecutions := 0
-	{
-		isolation := contract.MethodIsolation{Interference: contract.CallTolerable, State: contract.CallDirty}
-		runnerMock.AddExecutionClassify("SomeMethod", isolation, nil)
+			oneExecutionEnded := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
+			executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 2)
 
-		newObjDescriptor := descriptor.NewObject(
-			reference.Global{}, reference.Local{}, class, []byte(""), false,
-		)
+			runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
+				return execution.Request.CallSiteMethod
+			})
+			server.ReplaceRunner(runnerMock)
+			server.Init(ctx)
 
-		requestResult := requestresult.New([]byte("call result"), gen.UniqueGlobalRef())
-		requestResult.SetAmend(newObjDescriptor, []byte("new memory"))
+			var (
+				pulse    = server.GetPulse().PulseNumber
+				class    = gen.UniqueGlobalRef()
+				outgoing = server.BuildRandomOutgoingWithPulse()
+				object   = reference.NewSelf(outgoing.GetLocal())
+			)
+			server.IncrementPulse(ctx)
+			Method_PrepareObject(ctx, server, payload.Ready, object, pulse)
 
-		executionMock := runnerMock.AddExecutionMock("SomeMethod")
-		executionMock.AddStart(func(ctx execution.Context) {
-			numberOfExecutions++
-			<-releaseBlockedExecution
-		}, &execution.Update{
-			Type:   execution.Done,
-			Result: requestResult,
+			// Send report
+			if test.countVFindCallRequest == 0 {
+				outgoing = server.BuildRandomOutgoingWithPulse()
+			}
+
+			releaseBlockedExecution := make(chan struct{}, 0)
+			numberOfExecutions := 0
+			// Mock
+			{
+				isolation := contract.MethodIsolation{Interference: contract.CallTolerable, State: contract.CallDirty}
+				runnerMock.AddExecutionClassify("SomeMethod", isolation, nil)
+
+				newObjDescriptor := descriptor.NewObject(
+					reference.Global{}, reference.Local{}, class, []byte(""), false,
+				)
+
+				requestResult := requestresult.New([]byte("call result"), gen.UniqueGlobalRef())
+				requestResult.SetAmend(newObjDescriptor, []byte("new memory"))
+
+				executionMock := runnerMock.AddExecutionMock("SomeMethod")
+				executionMock.AddStart(func(ctx execution.Context) {
+					numberOfExecutions++
+					<-releaseBlockedExecution
+				}, &execution.Update{
+					Type:   execution.Done,
+					Result: requestResult,
+				})
+			}
+
+			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+			// Checks
+			{
+				typedChecker.VCallResult.SetResend(false)
+
+				typedChecker.VFindCallRequest.Set(func(req *payload.VFindCallRequest) bool {
+					require.Equal(t, pulse, req.LookAt)
+					require.Equal(t, object, req.Callee)
+					require.Equal(t, outgoing, req.Outgoing)
+
+					response := payload.VFindCallResponse{
+						LookedAt:   pulse,
+						Callee:     object,
+						Outgoing:   outgoing,
+						Status:     payload.MissingCall,
+						CallResult: nil,
+					}
+
+					server.SendPayload(ctx, &response)
+					return false
+				})
+			}
+
+			pl := payload.VCallRequest{
+				CallType:       payload.CTMethod,
+				CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+				Callee:         object,
+				CallSiteMethod: "SomeMethod",
+				CallOutgoing:   outgoing,
+			}
+			server.SendPayload(ctx, &pl)
+			server.SendPayload(ctx, &pl)
+
+			commontestutils.WaitSignalsTimed(t, 10*time.Second, oneExecutionEnded)
+
+			close(releaseBlockedExecution)
+
+			commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+			commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+
+			{
+				assert.Equal(t, 1, numberOfExecutions)
+				assert.Equal(t, 1, typedChecker.VCallResult.Count())
+
+				if test.countVFindCallRequest != 0 {
+					assert.Equal(t, 1, typedChecker.VFindCallRequest.Count())
+				} else {
+					assert.Equal(t, 0, typedChecker.VFindCallRequest.Count())
+				}
+			}
+
+			mc.Finish()
 		})
 	}
-
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-	typedChecker.VCallResult.SetResend(false).ExpectedCount(1)
-
-	outgoing := helper.BuildObjectOutgoing()
-
-	pl := payload.VCallRequest{
-		CallType:       payload.CTMethod,
-		CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
-		Callee:         object,
-		CallSiteMethod: "SomeMethod",
-		CallOutgoing:   outgoing,
-	}
-	server.SendPayload(ctx, &pl)
-	server.SendPayload(ctx, &pl)
-
-	commontestutils.WaitSignalsTimed(t, 10*time.Second, oneExecutionEnded)
-
-	close(releaseBlockedExecution)
-
-	commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
-	commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
-
-	{
-		assert.Equal(t, 1, numberOfExecutions)
-		assert.Equal(t, 1, typedChecker.VCallResult.Count())
-	}
-
-	mc.Finish()
 }
 
 func TestDeduplication_SecondCallOfMethodAfterExecution(t *testing.T) {
