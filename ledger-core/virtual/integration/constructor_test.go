@@ -813,8 +813,6 @@ func TestVirtual_Constructor_PulseChangedWhileOutgoing(t *testing.T) {
 	}
 
 	server.SendPayload(ctx, &msgVStateRequest)
-	server.WaitActiveThenIdleConveyor()
-
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 2))
 
 	{

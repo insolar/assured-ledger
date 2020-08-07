@@ -9,30 +9,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 )
-
-func makeVStateRequestEvent(pulseNumber pulse.Number, ref reference.Global, flags payload.StateRequestContentFlags, sender reference.Global) *message.Message {
-	pl := &payload.VStateRequest{
-		AsOf:             pulseNumber,
-		Object:           ref,
-		RequestedContent: flags,
-	}
-
-	return utils.NewRequestWrapper(pulseNumber, pl).SetSender(sender).Finalize()
-}
 
 func TestVirtual_VStateRequest(t *testing.T) {
 	insrail.LogCase(t, "C4861")
@@ -56,7 +44,7 @@ func TestVirtual_VStateRequest(t *testing.T) {
 			defer server.Stop()
 
 			var (
-				objectGlobal   = reference.NewSelf(server.RandomLocalWithPulse())
+				object         = server.RandomGlobalWithPulse()
 				pulseNumber    = server.GetPulse().PulseNumber
 				rawWalletState = makeRawWalletState(initialBalance)
 			)
@@ -64,7 +52,7 @@ func TestVirtual_VStateRequest(t *testing.T) {
 			// create object
 			{
 				server.IncrementPulseAndWaitIdle(ctx)
-				Method_PrepareObject(ctx, server, payload.Ready, objectGlobal, pulseNumber)
+				Method_PrepareObject(ctx, server, payload.Ready, object, pulseNumber)
 
 				pulseNumber = server.GetPulse().PulseNumber
 				waitMigrate := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
@@ -78,8 +66,8 @@ func TestVirtual_VStateRequest(t *testing.T) {
 				expectedVStateReport := &payload.VStateReport{
 					Status:           payload.Ready,
 					AsOf:             pulseNumber,
-					Object:           objectGlobal,
-					LatestDirtyState: objectGlobal,
+					Object:           object,
+					LatestDirtyState: object,
 				}
 				switch test.flags {
 				case payload.RequestLatestDirtyState:
@@ -105,8 +93,12 @@ func TestVirtual_VStateRequest(t *testing.T) {
 				})
 			}
 
-			msg := makeVStateRequestEvent(pulseNumber, objectGlobal, test.flags, server.JetCoordinatorMock.Me())
-			server.SendMessage(ctx, msg)
+			pl := &payload.VStateRequest{
+				AsOf:             pulseNumber,
+				Object:           object,
+				RequestedContent: test.flags,
+			}
+			server.SendPayload(ctx, pl)
 
 			commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 1))
 
@@ -129,31 +121,36 @@ func TestVirtual_VStateRequest_Unknown(t *testing.T) {
 	defer server.Stop()
 
 	var (
-		objectLocal  = server.RandomLocalWithPulse()
-		objectGlobal = reference.NewSelf(objectLocal)
-		pn           = server.GetPulse().PulseNumber
+		pn     = server.GetPulse().PulseNumber
+		object = server.RandomGlobalWithPulse()
 	)
 
+	server.IncrementPulseAndWaitIdle(ctx)
+
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-	typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
-		assert.Equal(t, &payload.VStateReport{
-			Status: payload.Missing,
-			AsOf:   server.GetPrevPulse().PulseNumber,
-			Object: objectGlobal,
-		}, report)
+	{
+		typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
+			assert.Equal(t, &payload.VStateReport{
+				AsOf:   pn,
+				Object: object,
+				Status: payload.Missing,
+			}, report)
 
-		return false
-	})
-
-	server.IncrementPulse(ctx)
-
-	countBefore := server.PublisherMock.GetCount()
-	msg := makeVStateRequestEvent(pn, objectGlobal, payload.RequestLatestDirtyState, server.JetCoordinatorMock.Me())
-	server.SendMessage(ctx, msg)
-
-	if !server.PublisherMock.WaitCount(countBefore+1, 10*time.Second) {
-		t.Fatal("timeout waiting for VStateReport")
+			return false
+		})
 	}
+
+	{
+		pl := &payload.VStateRequest{
+			AsOf:             pn,
+			Object:           object,
+			RequestedContent: payload.RequestLatestDirtyState,
+		}
+
+		server.SendPayload(ctx, pl)
+	}
+
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 1))
 }
 
 func TestVirtual_VStateRequest_WhenObjectIsDeactivated(t *testing.T) {
@@ -178,7 +175,7 @@ func TestVirtual_VStateRequest_WhenObjectIsDeactivated(t *testing.T) {
 			defer server.Stop()
 
 			var (
-				objectGlobal = reference.NewSelf(server.RandomLocalWithPulse())
+				objectGlobal = server.RandomGlobalWithPulse()
 				pulseNumber  = server.GetPulse().PulseNumber
 				vStateReport = &payload.VStateReport{
 					AsOf:            pulseNumber,
