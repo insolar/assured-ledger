@@ -578,6 +578,7 @@ func (s *SMExecute) stepGetDelegationToken(ctx smachine.ExecutionContext) smachi
 		Callee:         s.execution.Object,
 		CallFlags:      payload.BuildCallFlags(s.execution.Isolation.Interference, s.execution.Isolation.State),
 		CallOutgoing:   s.execution.Outgoing,
+		CallIncoming:   s.execution.Incoming,
 		DelegationSpec: s.delegationTokenSpec,
 	}
 

@@ -52,7 +52,7 @@ type stateReportCheckPendingCountersAndPulsesTest struct {
 	currentPulseIndex int
 	pulses            [6]pulse.Number
 
-	caller   reference.Global
+	class    reference.Global
 	object   reference.Global
 	requests map[string]*stateReportCheckPendingCountersAndPulsesTestRequestInfo
 
@@ -150,8 +150,6 @@ func TestVirtual_StateReport_CheckPendingCountersAndPulses(t *testing.T) {
 		},
 	}
 
-	class := gen.UniqueGlobalRef()
-
 	for _, test := range table {
 		t.Run(test.name, func(t *testing.T) {
 			defer commontestutils.LeakTester(t)
@@ -163,7 +161,7 @@ func TestVirtual_StateReport_CheckPendingCountersAndPulses(t *testing.T) {
 			suite.createEmptyPulse(ctx)
 			suite.createPulsesFromP1toP4(ctx)
 
-			suite.generateCaller(ctx)
+			suite.generateClass(ctx)
 			suite.generateObjectRef(ctx)
 			suite.generateRequests(ctx)
 
@@ -183,7 +181,7 @@ func TestVirtual_StateReport_CheckPendingCountersAndPulses(t *testing.T) {
 				ProvidedContent: &payload.VStateReport_ProvidedContentBody{
 					LatestDirtyState: &payload.ObjectState{
 						Reference: gen.UniqueLocalRefWithPulse(suite.getPulse(1)),
-						Class:     class,
+						Class:     suite.getClass(),
 						State:     []byte("object memory"),
 					},
 				},
@@ -274,13 +272,13 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) createPulseP5(ctx context
 	s.currentPulseIndex = 5
 }
 
-func (s *stateReportCheckPendingCountersAndPulsesTest) generateCaller(ctx context.Context) {
+func (s *stateReportCheckPendingCountersAndPulsesTest) generateClass(ctx context.Context) {
 	p := s.getPulse(1)
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	s.caller = reference.NewSelf(gen.UniqueLocalRefWithPulse(p))
+	s.class = gen.UniqueGlobalRefWithPulse(p)
 }
 
 func (s *stateReportCheckPendingCountersAndPulsesTest) generateObjectRef(ctx context.Context) {
@@ -289,7 +287,14 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) generateObjectRef(ctx con
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	s.object = reference.NewSelf(gen.UniqueLocalRefWithPulse(p))
+	s.object = gen.UniqueGlobalRefWithPulse(p)
+}
+
+func (s *stateReportCheckPendingCountersAndPulsesTest) getClass() reference.Global {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	return s.class
 }
 
 func (s *stateReportCheckPendingCountersAndPulsesTest) getIncomingFromOutgoing(outgoing reference.Global) reference.Global {
@@ -449,15 +454,20 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) setMessageCheckers(
 
 		require.Equal(t, s.getObject(), req.Callee)
 
-		pl := payload.VDelegatedCallResponse{
-			ResponseDelegationSpec: payload.CallDelegationToken{
-				TokenTypeAndFlags: payload.DelegationTokenTypeCall,
-				PulseNumber:       s.getPulse(5),
-				Callee:            s.getObject(),
-				Outgoing:          outgoingRef,
-				ApproverSignature: []byte("deadbeef"),
-			},
+		token := payload.CallDelegationToken{
+			TokenTypeAndFlags: payload.DelegationTokenTypeCall,
+			PulseNumber:       s.getPulse(5),
+			Callee:            s.getObject(),
+			Outgoing:          outgoingRef,
+			ApproverSignature: []byte("deadbeef"),
 		}
+
+		pl := payload.VDelegatedCallResponse{
+			Callee:                 req.Callee,
+			CallIncoming:           req.CallIncoming,
+			ResponseDelegationSpec: token,
+		}
+
 		s.server.SendPayload(ctx, &pl)
 		return false
 	})
@@ -522,7 +532,7 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) getCaller() reference.Glo
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	return s.caller
+	return s.server.GlobalCaller()
 }
 
 func (s *stateReportCheckPendingCountersAndPulsesTest) waitMessagePublications(
