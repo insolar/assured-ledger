@@ -320,6 +320,7 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) confirmPending(
 	pl := payload.VDelegatedCallRequest{
 		Callee:       s.getObject(),
 		CallOutgoing: reqInfo.ref,
+		CallIncoming: reference.NewRecordOf(s.getObject(), reqInfo.ref.GetLocal()),
 		CallFlags:    reqInfo.flags,
 	}
 	s.addPayloadAndWaitIdle(ctx, &pl)
@@ -561,8 +562,9 @@ func TestVirtual_StateReport_AfterPendingConstructorHasFinished(t *testing.T) {
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
 	var (
-		class         = gen.UniqueGlobalRef()
+		class         = server.RandomGlobalWithPulse()
 		outgoingP1    = server.BuildRandomOutgoingWithPulse()
+		incomingP1    = reference.NewRecordOf(class, outgoingP1.GetLocal())
 		object        = reference.NewSelf(outgoingP1.GetLocal())
 		dirtyStateRef = server.RandomLocalWithPulse()
 		p1            = server.GetPulse().PulseNumber
@@ -604,6 +606,7 @@ func TestVirtual_StateReport_AfterPendingConstructorHasFinished(t *testing.T) {
 	{
 		delegatedRequest := payload.VDelegatedCallRequest{
 			Callee:       object,
+			CallIncoming: incomingP1,
 			CallOutgoing: outgoingP1,
 			CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 		}
