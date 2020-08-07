@@ -1017,10 +1017,11 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 					State:        contract.CallDirty,
 				}
 				stateRef = server.RandomGlobalWithPulse()
+				outgoing = server.BuildRandomOutgoingWithPulse()
+				incoming = reference.NewRecordOf(objectRef, outgoing.GetLocal())
 			)
 
 			server.IncrementPulseAndWaitIdle(ctx)
-			outgoing := server.BuildRandomOutgoingWithPulse()
 			checkOutgoing := server.BuildRandomOutgoingWithPulse()
 
 			{
@@ -1069,8 +1070,10 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 
 				// send delegation request finished with deactivate flag
 				pl := payload.VDelegatedRequestFinished{
+					CallType:     payload.CTMethod,
 					Callee:       objectRef,
 					CallOutgoing: outgoing,
+					CallIncoming: incoming,
 					CallFlags:    payload.BuildCallFlags(deactivateIsolation.Interference, deactivateIsolation.State),
 					LatestState: &payload.ObjectState{
 						State:       nil,
