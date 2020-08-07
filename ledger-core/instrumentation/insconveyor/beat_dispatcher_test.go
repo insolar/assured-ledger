@@ -8,37 +8,23 @@ package insconveyor
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
-	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-var (
-	machineConfig = smachine.SlotMachineConfig{
-		PollingPeriod:   500 * time.Millisecond,
-		PollingTruncate: 1 * time.Millisecond,
-		SlotPageSize:    1000,
-		ScanCountLimit:  100000,
-	}
-)
-
 func newDispatcherWithConveyor(factoryFn conveyor.PulseEventFactoryFunc) beat.Dispatcher {
 	ctx := context.Background()
-	pulseConveyor := conveyor.NewPulseConveyor(ctx, conveyor.PulseConveyorConfig{
-		ConveyorMachineConfig: machineConfig,
-		SlotMachineConfig:     machineConfig,
-		EventlessSleep:        0,
-		MinCachePulseAge:      100,
-		MaxPastPulseAge:       1000,
-	}, factoryFn, nil)
+
+	pulseConveyor := conveyor.NewPulseConveyor(ctx,	DefaultConfigNoEventless(),
+		factoryFn, nil)
+
 	return NewConveyorDispatcher(ctx, pulseConveyor)
 }
 
