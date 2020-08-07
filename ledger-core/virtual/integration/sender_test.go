@@ -155,6 +155,11 @@ func TestVirtual_SenderCheck_With_ExpectedVE(t *testing.T) {
 						m.CallOutgoing = reference.NewRecordOf(server.GlobalCaller(), gen.UniqueLocalRefWithPulse(pn))
 						m.CallIncoming = reference.NewRecordOf(m.Callee, m.CallOutgoing.GetLocal())
 						m.CallFlags = payload.CallFlags(0).WithInterference(contract.CallIntolerable).WithState(contract.CallValidated)
+					case *payload.VDelegatedCallResponse:
+						pn := server.GetPrevPulse().PulseNumber
+
+						m.Callee = gen.UniqueGlobalRefWithPulse(pn)
+						m.CallIncoming = reference.NewRecordOf(m.Callee, gen.UniqueLocalRefWithPulse(pn))
 					}
 
 					server.SendPayload(ctx, testMsg.msg.(payload.Marshaler)) // default caller == server.GlobalCaller()

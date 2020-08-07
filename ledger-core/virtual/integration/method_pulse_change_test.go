@@ -186,6 +186,7 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 					}
 					msg := payload.VDelegatedCallResponse{
 						Callee:                 request.Callee,
+						CallIncoming:           request.CallIncoming,
 						ResponseDelegationSpec: firstTokenValue,
 					}
 
@@ -364,6 +365,7 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 
 			msg := payload.VDelegatedCallResponse{
 				Callee:                 request.Callee,
+				CallIncoming:           request.CallIncoming,
 				ResponseDelegationSpec: token,
 			}
 
