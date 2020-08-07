@@ -18,7 +18,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/object/finalizedstate"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/object/preservedstatereport"
 )
 
 type SMVStateRequest struct {
@@ -27,7 +27,7 @@ type SMVStateRequest struct {
 	Payload *payload.VStateRequest
 
 	objectStateReport *payload.VStateReport
-	reportAccessor    finalizedstate.SharedReportAccessor
+	reportAccessor    preservedstatereport.SharedReportAccessor
 
 	// dependencies
 	messageSender messageSenderAdapter.MessageSender
@@ -90,7 +90,7 @@ func (s *SMVStateRequest) stepWait(ctx smachine.ExecutionContext) smachine.State
 }
 
 func (s *SMVStateRequest) stepCheckCatalog(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	reportSharedState, stateFound := finalizedstate.GetSharedStateReport(ctx, s.Payload.Object)
+	reportSharedState, stateFound := preservedstatereport.GetSharedStateReport(ctx, s.Payload.Object)
 
 	if !stateFound {
 		return ctx.Jump(s.stepBuildMissing)

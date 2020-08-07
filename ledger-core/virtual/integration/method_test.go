@@ -22,7 +22,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/object/finalizedstate"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/object/preservedstatereport"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1439,7 +1439,7 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 		server, ctx := utils.NewUninitializedServer(nil, t)
 
 		executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
-		stateReportSend := server.Journal.WaitStopOf(&finalizedstate.SMStateFinalizer{}, 1)
+		stateReportSend := server.Journal.WaitStopOf(&preservedstatereport.SMPreservedStateReport{}, 1)
 
 		runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
 			return execution.Request.CallSiteMethod
@@ -1554,7 +1554,7 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 		commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
 		commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
-		// increment pulse twice for stop SMStateFinalizer
+		// increment pulse twice for stop SMPreservedStateReport
 		server.IncrementPulseAndWaitIdle(ctx)
 		server.IncrementPulseAndWaitIdle(ctx)
 
@@ -1866,7 +1866,7 @@ func TestVirtual_Method_IntolerableCallChangeState(t *testing.T) {
 	server, ctx := utils.NewUninitializedServer(nil, t)
 
 	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
-	stateReportSend := server.Journal.WaitStopOf(&finalizedstate.SMStateFinalizer{}, 1)
+	stateReportSend := server.Journal.WaitStopOf(&preservedstatereport.SMPreservedStateReport{}, 1)
 
 	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
 		return execution.Request.CallSiteMethod
@@ -1978,7 +1978,7 @@ func TestVirtual_Method_IntolerableCallChangeState(t *testing.T) {
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
-	// increment pulse twice for stop SMStateFinalizer
+	// increment pulse twice for stop SMPreservedStateReport
 	server.IncrementPulseAndWaitIdle(ctx)
 	server.IncrementPulseAndWaitIdle(ctx)
 
