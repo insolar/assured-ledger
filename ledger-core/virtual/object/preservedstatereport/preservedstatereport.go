@@ -4,7 +4,7 @@
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 //go:generate sm-uml-gen -f $GOFILE
 
-package finalizedstate
+package preservedstatereport
 
 import (
 	"context"
@@ -20,7 +20,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-type SMStateFinalizer struct {
+type SMPreservedStateReport struct {
 	Reference reference.Global
 
 	Report payload.VStateReport
@@ -34,27 +34,27 @@ type SMStateFinalizer struct {
 
 /* -------- Declaration ------------- */
 
-func (*SMStateFinalizer) InjectDependencies(stateMachine smachine.StateMachine, _ smachine.SlotLink, injector injector.DependencyInjector) {
-	s := stateMachine.(*SMStateFinalizer)
+func (*SMPreservedStateReport) InjectDependencies(stateMachine smachine.StateMachine, _ smachine.SlotLink, injector injector.DependencyInjector) {
+	s := stateMachine.(*SMPreservedStateReport)
 	injector.MustInject(&s.messageSender)
 	injector.MustInject(&s.pulseSlot)
 }
 
-func (*SMStateFinalizer) GetInitStateFor(stateMachine smachine.StateMachine) smachine.InitFunc {
-	return stateMachine.(*SMStateFinalizer).Init
+func (*SMPreservedStateReport) GetInitStateFor(stateMachine smachine.StateMachine) smachine.InitFunc {
+	return stateMachine.(*SMPreservedStateReport).Init
 }
 
 /* -------- Instance ------------- */
 
-func (sm *SMStateFinalizer) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
+func (sm *SMPreservedStateReport) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
 	return sm
 }
 
-func (sm *SMStateFinalizer) migrationDefault(ctx smachine.MigrationContext) smachine.StateUpdate {
+func (sm *SMPreservedStateReport) migrationDefault(ctx smachine.MigrationContext) smachine.StateUpdate {
 	return ctx.Stop()
 }
 
-func (sm *SMStateFinalizer) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
+func (sm *SMPreservedStateReport) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
 	if sm.Reference.IsZero() {
 		panic(throw.IllegalState())
 	}
@@ -62,7 +62,7 @@ func (sm *SMStateFinalizer) Init(ctx smachine.InitializationContext) smachine.St
 	return ctx.Jump(sm.stepSendVStateReport)
 }
 
-func (sm *SMStateFinalizer) stepSendVStateReport(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (sm *SMPreservedStateReport) stepSendVStateReport(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var (
 		currentPulseNumber = sm.pulseSlot.CurrentPulseNumber()
 	)
@@ -86,6 +86,6 @@ func (sm *SMStateFinalizer) stepSendVStateReport(ctx smachine.ExecutionContext) 
 	return ctx.Jump(sm.stepWaitIndefinitely)
 }
 
-func (sm *SMStateFinalizer) stepWaitIndefinitely(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (sm *SMPreservedStateReport) stepWaitIndefinitely(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	return ctx.Sleep().ThenRepeat()
 }

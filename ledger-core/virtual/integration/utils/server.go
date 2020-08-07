@@ -108,6 +108,10 @@ func NewUninitializedServerWithErrorFilter(ctx context.Context, t Tester, errorF
 	return newServerExt(ctx, t, errorFilterFn, false)
 }
 
+func generateGlobalCaller() reference.Global {
+	return reference.NewSelf(reference.NewLocal(pulse.MinTimePulse, 0, gen.UniqueLocalRef().GetHash()))
+}
+
 func newServerExt(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFilterFunc, init bool) (*Server, context.Context) {
 	instestlogger.SetTestOutputWithErrorFilter(t, errorFilterFn)
 
@@ -117,7 +121,7 @@ func newServerExt(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFi
 	ctx, cancelFn := context.WithCancel(ctx)
 
 	s := Server{
-		caller:      gen.UniqueGlobalRef(),
+		caller:      generateGlobalCaller(),
 		fullStop:    make(synckit.ClosableSignalChannel),
 		ctxCancelFn: cancelFn,
 	}

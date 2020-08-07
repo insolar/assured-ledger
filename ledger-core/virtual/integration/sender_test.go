@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -147,6 +148,13 @@ func TestVirtual_SenderCheck_With_ExpectedVE(t *testing.T) {
 						m.Callee = reference.NewSelf(gen.UniqueLocalRefWithPulse(m.LookedAt))
 						m.Outgoing = reference.New(gen.UniqueLocalRefWithPulse(m.LookedAt), gen.UniqueLocalRefWithPulse(m.LookedAt))
 						testMsg.msg = m
+					case *payload.VDelegatedCallRequest:
+						pn := server.GetPrevPulse().PulseNumber
+
+						m.Callee = gen.UniqueGlobalRefWithPulse(pn)
+						m.CallOutgoing = reference.NewRecordOf(server.GlobalCaller(), gen.UniqueLocalRefWithPulse(pn))
+						m.CallIncoming = reference.NewRecordOf(m.Callee, m.CallOutgoing.GetLocal())
+						m.CallFlags = payload.CallFlags(0).WithInterference(contract.CallIntolerable).WithState(contract.CallValidated)
 					}
 
 					server.SendPayload(ctx, testMsg.msg.(payload.Marshaler)) // default caller == server.GlobalCaller()
