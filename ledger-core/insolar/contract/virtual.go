@@ -55,7 +55,7 @@ type Wrapper struct {
 type StateFlag byte
 
 const (
-	_ StateFlag = iota
+	stateInvalid StateFlag = iota
 	CallDirty
 	CallValidated
 
@@ -66,10 +66,14 @@ func (f StateFlag) IsZero() bool {
 	return f == 0
 }
 
+func (f StateFlag) IsValid() bool {
+	return f > stateInvalid && f < StateFlagCount
+}
+
 type InterferenceFlag byte
 
 const (
-	_ InterferenceFlag = iota
+	interferenceInvalid InterferenceFlag = iota
 	CallIntolerable
 	CallTolerable
 
@@ -78,4 +82,8 @@ const (
 
 func (f InterferenceFlag) IsZero() bool {
 	return f == 0
+}
+
+func (f InterferenceFlag) IsValid() bool {
+	return f > interferenceInvalid && f < InterferenceFlagCount
 }

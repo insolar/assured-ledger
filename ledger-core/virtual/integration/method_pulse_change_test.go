@@ -186,6 +186,7 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 					}
 					msg := payload.VDelegatedCallResponse{
 						Callee:                 request.Callee,
+						CallIncoming:           request.CallIncoming,
 						ResponseDelegationSpec: firstTokenValue,
 					}
 
@@ -311,11 +312,10 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 		}
 
 		vsrPayload := &payload.VStateReport{
-			Status:                        payload.Ready,
-			Object:                        object,
-			AsOf:                          prevPulse,
-			UnorderedPendingEarliestPulse: prevPulse,
-			ProvidedContent:               content,
+			Status:          payload.Ready,
+			Object:          object,
+			AsOf:            prevPulse,
+			ProvidedContent: content,
 		}
 
 		server.WaitIdleConveyor()
@@ -365,6 +365,7 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 
 			msg := payload.VDelegatedCallResponse{
 				Callee:                 request.Callee,
+				CallIncoming:           request.CallIncoming,
 				ResponseDelegationSpec: token,
 			}
 
@@ -495,14 +496,18 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 				class         = gen.UniqueGlobalRef()
 				object        = reference.NewSelf(server.RandomLocalWithPulse())
 				outgoingP1    = server.BuildRandomOutgoingWithPulse()
+				incomingP1    = reference.NewRecordOf(object, outgoingP1.GetLocal())
 				dirtyStateRef = server.RandomLocalWithPulse()
 				p1            = server.GetPulse().PulseNumber
 				getDelegated  = false
 			)
 
 			server.IncrementPulseAndWaitIdle(ctx)
-			p2 := server.GetPulse().PulseNumber
-			outgoingP2 := server.BuildRandomOutgoingWithPulse()
+
+			var (
+				p2         = server.GetPulse().PulseNumber
+				outgoingP2 = server.BuildRandomOutgoingWithPulse()
+			)
 
 			// create object state
 			{
@@ -568,17 +573,20 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 			{
 				delegatedRequest := payload.VDelegatedCallRequest{
 					Callee:       object,
-					CallOutgoing: outgoingP1,
 					CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+					CallOutgoing: outgoingP1,
+					CallIncoming: incomingP1,
 				}
 				server.SendPayload(ctx, &delegatedRequest)
 			}
 			// VDelegatedRequestFinished
 			{
 				finished := payload.VDelegatedRequestFinished{
+					CallType:     payload.CTMethod,
+					CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 					Callee:       object,
 					CallOutgoing: outgoingP1,
-					CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+					CallIncoming: incomingP1,
 					LatestState: &payload.ObjectState{
 						Reference: dirtyStateRef,
 						Class:     class,

@@ -8,7 +8,6 @@ package gateway
 import (
 	"context"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/rules"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -30,12 +29,12 @@ func (g *WaitMajority) Run(ctx context.Context, pulse pulse.Data) {
 	case <-g.bootstrapTimer.C:
 		g.FailState(ctx, bootstrapTimeoutMessage)
 	case newPulse := <-g.majorityComplete:
-		g.Gatewayer.SwitchState(ctx, nodeinfo.WaitMinRoles, newPulse)
+		g.Gatewayer.SwitchState(ctx, network.WaitMinRoles, newPulse)
 	}
 }
 
-func (g *WaitMajority) GetState() nodeinfo.NetworkState {
-	return nodeinfo.WaitMajority
+func (g *WaitMajority) GetState() network.State {
+	return network.WaitMajority
 }
 
 func (g *WaitMajority) OnConsensusFinished(ctx context.Context, report network.Report) {

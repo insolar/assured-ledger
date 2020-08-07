@@ -9,9 +9,7 @@ import (
 	"context"
 	"strings"
 	"testing"
-	"time"
 
-	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/builtin/contract/testwallet"
@@ -21,7 +19,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 )
 
@@ -206,66 +203,4 @@ func TestVirtual_VStateReport_BadState_StateAlreadyExists(t *testing.T) {
 	}
 
 	checkBalance(ctx, t, server, objectGlobal, testBalance)
-}
-
-func TestVirtual_VStateReport_CheckValidatedState(t *testing.T) {
-	defer commontestutils.LeakTester(t)
-	insrail.LogCase(t, "C5124")
-
-	mc := minimock.NewController(t)
-
-	server, ctx := utils.NewServer(nil, t)
-	defer server.Stop()
-
-	server.IncrementPulseAndWaitIdle(ctx)
-
-	var (
-		objectLocal          = server.RandomLocalWithPulse()
-		pulseNumber          = server.GetPulse().PulseNumber
-		objectGlobal         = reference.NewSelf(objectLocal)
-		dirtyWalletState     = makeRawWalletState(initialBalance)
-		validatedWalletState = makeRawWalletState(initialBalance + 123)
-	)
-
-	server.IncrementPulseAndWaitIdle(ctx)
-
-	content := &payload.VStateReport_ProvidedContentBody{
-		LatestDirtyState: &payload.ObjectState{
-			Reference: server.RandomLocalWithPulse(),
-			Class:     testwalletProxy.GetClass(),
-			State:     dirtyWalletState,
-		},
-		LatestValidatedState: &payload.ObjectState{
-			Reference: server.RandomLocalWithPulse(),
-			Class:     testwalletProxy.GetClass(),
-			State:     validatedWalletState,
-		},
-	}
-
-	{
-		payload := &payload.VStateReport{
-			Status:          payload.Ready,
-			AsOf:            pulseNumber,
-			Object:          objectGlobal,
-			ProvidedContent: content,
-		}
-
-		wait := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
-		server.SendPayload(ctx, payload)
-		commontestutils.WaitSignalsTimed(t, 10*time.Second, wait)
-	}
-
-	waitVStateReport := make(chan struct{})
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-	typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
-		require.Equal(t, report.ProvidedContent.LatestDirtyState, content.LatestDirtyState)
-		require.Equal(t, report.ProvidedContent.LatestValidatedState, content.LatestDirtyState)
-		waitVStateReport <- struct{}{}
-		return false
-	})
-
-	server.IncrementPulseAndWaitIdle(ctx)
-	commontestutils.WaitSignalsTimed(t, 10*time.Second, waitVStateReport)
-
-	mc.Finish()
 }

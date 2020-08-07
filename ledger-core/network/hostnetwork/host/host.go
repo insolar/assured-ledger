@@ -25,7 +25,7 @@ type Host struct {
 	// ShortID is shortened unique identifier of the node inside the globe
 	ShortID node.ShortNodeID
 	// Address is IP and port.
-	Address *Address
+	Address Address
 }
 
 // NewHost creates a new Host with specified physical address.
@@ -64,7 +64,7 @@ func (host Host) String() string {
 
 // Equal checks if host equals to other host (e.g. hosts' IDs and network addresses match).
 func (host Host) Equal(other Host) bool {
-	return host.NodeID.Equal(other.NodeID) && (other.Address != nil) && host.Address.Equal(*other.Address)
+	return host.NodeID.Equal(other.NodeID) && host.Address.Equal(other.Address)
 }
 
 // Host serialization:
@@ -85,10 +85,7 @@ func (host *Host) Marshal() ([]byte, error) {
 	if err := binary.Write(buffer, binary.BigEndian, host.ShortID); err != nil {
 		return nil, errors.W(err, "failed to marshal protobuf host ShortID")
 	}
-	var header byte
-	if host.Address != nil {
-		header = byte(len(host.Address.IP))
-	}
+	header := byte(len(host.Address.IP))
 	if err := binary.Write(buffer, binary.BigEndian, header); err != nil {
 		return nil, errors.W(err, "failed to marshal protobuf host header")
 	}
@@ -149,7 +146,7 @@ func (host *Host) Unmarshal(data []byte) error {
 	if err != nil {
 		return errors.W(err, "failed to unmarshal protobuf host zone")
 	}
-	host.Address = &Address{UDPAddr: net.UDPAddr{IP: ip, Port: int(port), Zone: string(zone)}}
+	host.Address = Address{UDPAddr: net.UDPAddr{IP: ip, Port: int(port), Zone: string(zone)}}
 	return nil
 }
 
@@ -158,10 +155,11 @@ func (host *Host) Size() int {
 }
 
 func (host *Host) ProtoSize() int {
-	if host.Address == nil {
+	n := len(host.Address.IP)
+	if n == 0 {
 		return host.basicSize()
 	}
-	return host.basicSize() + len(host.Address.IP) + 2 /* UDP.Port size */ + len(host.Address.Zone)
+	return host.basicSize() + n + 2 /* UDP.Port size */ + len(host.Address.Zone)
 }
 
 func (host *Host) basicSize() int {

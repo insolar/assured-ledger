@@ -129,3 +129,10 @@ func NormCopy(h Holder) Global {
 	// TODO scope normalization - local domain scope must be normalized to lifeline scope
 	return Copy(h)
 }
+
+func AsBytes(h Holder) []byte {
+	val := make([]byte, GlobalBinarySize)
+	WriteWholeLocalTo(h.GetLocal(), val[:LocalBinarySize])
+	WriteWholeLocalTo(h.GetBase(), val[LocalBinarySize:])
+	return val
+}

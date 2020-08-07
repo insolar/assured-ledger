@@ -6,11 +6,9 @@
 package routing
 
 import (
-	"context"
-
-	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/host"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -18,7 +16,6 @@ import (
 
 type Table struct {
 	NodeKeeper    network.NodeKeeper `inject:""`
-	PulseAccessor beat.Accessor      `inject:""`
 }
 
 func (t *Table) isLocalNode(reference.Global) bool {
@@ -32,16 +29,15 @@ func (t *Table) resolveRemoteNode(reference.Global) (*host.Host, error) {
 // Resolve NodeID -> ShortID, Address. Can initiate network requests.
 func (t *Table) Resolve(ref reference.Global) (*host.Host, error) {
 	if t.isLocalNode(ref) {
-		p, err := t.PulseAccessor.Latest(context.Background())
-		if err != nil {
-			return nil, errors.W(err, "failed to get latest pulse --==-- ")
+		na := t.NodeKeeper.GetLatestAccessor()
+		if na == nil {
+			return nil, errors.E("failed to get latest pulse --==-- ")
 		}
-
-		node := t.NodeKeeper.GetAccessor(p.PulseNumber).GetActiveNode(ref)
+		node := na.GetActiveNode(ref)
 		if node == nil {
 			return nil, errors.New("no such local node with NodeID: " + ref.String())
 		}
-		return host.NewHostNS(node.Address(), node.ID(), node.ShortID())
+		return host.NewHostNS(nodeinfo.NodeAddr(node), ref, node.GetNodeID())
 	}
 	return t.resolveRemoteNode(ref)
 }

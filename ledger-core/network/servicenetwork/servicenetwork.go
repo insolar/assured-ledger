@@ -10,8 +10,10 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill/message"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeset"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/component-manager"
@@ -23,16 +25,15 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/gateway"
 	"github.com/insolar/assured-ledger/ledger-core/network/gateway/bootstrap"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork"
-	"github.com/insolar/assured-ledger/ledger-core/network/nodenetwork"
 	"github.com/insolar/assured-ledger/ledger-core/network/routing"
-	"github.com/insolar/assured-ledger/ledger-core/network/storage"
 	"github.com/insolar/assured-ledger/ledger-core/network/termination"
 	"github.com/insolar/assured-ledger/ledger-core/network/transport"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
-// ServiceNetwork is facade for network.
+var _ network.NodeNetwork = &ServiceNetwork{}
+
 type ServiceNetwork struct {
 	cfg configuration.Configuration
 	cm  *component.Manager
@@ -76,13 +77,13 @@ func (n *ServiceNetwork) Init(ctx context.Context) error {
 
 	cert := n.CertificateManager.GetCertificate()
 
-	nodeNetwork, err := nodenetwork.NewNodeNetwork(n.cfg.Host.Transport, cert)
+	nodeNetwork, err := nodeset.NewNodeNetwork(n.cfg.Host.Transport, cert)
 	if err != nil {
 		return errors.W(err, "failed to create NodeNetwork")
 	}
 
 	n.BaseGateway = &gateway.Base{Options: options}
-	n.Gatewayer = gateway.NewGatewayer(n.BaseGateway.NewGateway(ctx, nodeinfo.NoNetworkState))
+	n.Gatewayer = gateway.NewGatewayer(n.BaseGateway.NewGateway(ctx, network.NoNetworkState))
 
 	table := &routing.Table{}
 
@@ -94,7 +95,7 @@ func (n *ServiceNetwork) Init(ctx context.Context) error {
 		nodeNetwork,
 		controller.NewRPCController(options),
 		bootstrap.NewRequester(options),
-		storage.NewMemoryStorage(),
+		nodeset.NewMemoryStorage(),
 		n.BaseGateway,
 		n.Gatewayer,
 		termination.NewHandler(n),
@@ -154,12 +155,24 @@ func (n *ServiceNetwork) Stop(ctx context.Context) error {
 	return n.cm.Stop(ctx)
 }
 
+func (n *ServiceNetwork) GetLocalNodeReference() reference.Holder {
+	return n.NodeKeeper.GetLocalNodeReference()
+}
+
+func (n *ServiceNetwork) GetLocalNodeRole() member.PrimaryRole {
+	return n.NodeKeeper.GetLocalNodeRole()
+}
+
 func (n *ServiceNetwork) GetOrigin() nodeinfo.NetworkNode {
 	return n.NodeKeeper.GetOrigin()
 }
 
 func (n *ServiceNetwork) GetAccessor(p pulse.Number) network.Accessor {
 	return n.NodeKeeper.GetAccessor(p)
+}
+
+func (n *ServiceNetwork) GetLatestAccessor() network.Accessor {
+	return n.NodeKeeper.GetLatestAccessor()
 }
 
 func (n *ServiceNetwork) GetCert(ctx context.Context, ref reference.Global) (nodeinfo.Certificate, error) {

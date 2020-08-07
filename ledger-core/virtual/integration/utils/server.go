@@ -19,10 +19,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor/memstor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/convlog"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
@@ -40,7 +40,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/journal"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/network"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
@@ -69,7 +68,7 @@ type Server struct {
 	JetCoordinatorMock *affinity.HelperMock
 	pulseGenerator     *testutils.PulseGenerator
 	pulseStorage       *memstor.StorageMem
-	pulseManager       *insconveyor.PulseManager
+	pulseManager       *insapp.PulseManager
 	Journal            *journal.Journal
 
 	// wait and suspend operations
@@ -117,6 +116,10 @@ func NewUninitializedServerWithErrorFilter(ctx context.Context, t Tester, errorF
 	return newServerExt(ctx, t, errorFilterFn, false)
 }
 
+func generateGlobalCaller() reference.Global {
+	return reference.NewSelf(reference.NewLocal(pulse.MinTimePulse, 0, gen.UniqueLocalRef().GetHash()))
+}
+
 func newServerExt(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFilterFunc, init bool) (*Server, context.Context) {
 	instestlogger.SetTestOutputWithErrorFilter(t, errorFilterFn)
 
@@ -126,33 +129,19 @@ func newServerExt(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFi
 	ctx, cancelFn := context.WithCancel(ctx)
 
 	s := Server{
-		caller:      gen.UniqueGlobalRef(),
+		caller:      generateGlobalCaller(),
 		fullStop:    make(synckit.ClosableSignalChannel),
 		ctxCancelFn: cancelFn,
 	}
 
 	// Pulse-related components
 	var (
-		PulseManager *insconveyor.PulseManager
+		PulseManager *insapp.PulseManager
 		Pulses       *memstor.StorageMem
 	)
 	{
-		networkNodeMock := network.NewNetworkNodeMock(t).
-			IDMock.Return(gen.UniqueGlobalRef()).
-			ShortIDMock.Return(node.ShortNodeID(0)).
-			RoleMock.Return(member.PrimaryRoleVirtual).
-			AddressMock.Return("").
-			GetStateMock.Return(nodeinfo.Ready).
-			GetPowerMock.Return(1)
-		networkNodeList := []nodeinfo.NetworkNode{networkNodeMock}
-
-		nodeNetworkAccessorMock := network.NewAccessorMock(t).GetWorkingNodesMock.Return(networkNodeList)
-		nodeNetworkMock := network.NewNodeNetworkMock(t).GetAccessorMock.Return(nodeNetworkAccessorMock)
-
 		Pulses = memstor.NewStorageMem()
-		PulseManager = insconveyor.NewPulseManager()
-		PulseManager.NodeNet = nodeNetworkMock
-		PulseManager.PulseAccessor = Pulses
+		PulseManager = insapp.NewPulseManager()
 		PulseManager.PulseAppender = Pulses
 	}
 

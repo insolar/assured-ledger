@@ -60,6 +60,10 @@ func (f CallFlags) GetState() contract.StateFlag {
 	return contract.StateFlag(f&bitStateFlagMask) >> bitStateFlagOffset
 }
 
+func (f CallFlags) IsValid() bool {
+	return f.GetInterference().IsValid() && f.GetState().IsValid() && (f&^bitStateFlagMask&^bitInterferenceMask == 0)
+}
+
 func BuildCallFlags(interference contract.InterferenceFlag, state contract.StateFlag) CallFlags {
 	return CallFlags(0).WithInterference(interference).WithState(state)
 }

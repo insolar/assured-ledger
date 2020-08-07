@@ -167,6 +167,8 @@ func (s *hostSuite) Start() {
 	err = s.cm2.Start(s.ctx2)
 	require.NoError(s.t, err)
 
+	require.NoError(s.t, transport.WaitFakeListeners(2, time.Second * 5))
+
 	err = s.resolver.addMapping(s.id1, s.n1.PublicAddress())
 	require.NoError(s.t, err, "failed to add mapping %s -> %s: %s", s.id1, s.n1.PublicAddress(), err)
 	err = s.resolver.addMapping(s.id2, s.n2.PublicAddress())
@@ -214,6 +216,8 @@ func TestNewHostNetwork(t *testing.T) {
 }
 
 func TestHostNetwork_SendRequestPacket(t *testing.T) {
+	defer testutils.LeakTester(t)
+
 	m := newMockResolver()
 	ctx := instestlogger.TestContext(t)
 
@@ -256,6 +260,8 @@ func TestHostNetwork_SendRequestPacket(t *testing.T) {
 }
 
 func TestHostNetwork_SendRequestPacket3(t *testing.T) {
+	defer testutils.LeakTester(t)
+
 	instestlogger.SetTestOutput(t)
 	s := newHostSuite(t)
 	defer s.Stop()
@@ -291,6 +297,8 @@ func TestHostNetwork_SendRequestPacket3(t *testing.T) {
 }
 
 func TestHostNetwork_SendRequestPacket_errors(t *testing.T) {
+	defer testutils.LeakTester(t)
+
 	instestlogger.SetTestOutputWithErrorFilter(t, func(s string) bool {
 		return !strings.Contains(s, "Failed to send response")
 	})
