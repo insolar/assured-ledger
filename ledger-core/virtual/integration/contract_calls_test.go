@@ -770,6 +770,7 @@ func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 			}
 			msg := payload.VDelegatedCallResponse{
 				Callee:                 request.Callee,
+				CallIncoming:           request.CallIncoming,
 				ResponseDelegationSpec: tokenValue,
 			}
 
