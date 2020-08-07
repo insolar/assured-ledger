@@ -136,10 +136,10 @@ func TestVirtual_SenderCheck_With_ExpectedVE(t *testing.T) {
 
 						testMsg.msg = m
 					case *payload.VFindCallRequest:
-						pulse := server.GetPulse().PulseNumber
-						m.LookAt = pulse
-						m.Callee = gen.UniqueGlobalRefWithPulse(pulse)
-						m.Outgoing = gen.UniqueGlobalRefWithPulse(pulse)
+						pn := server.GetPulse().PulseNumber
+						m.LookAt = pn
+						m.Callee = gen.UniqueGlobalRefWithPulse(pn)
+						m.Outgoing = gen.UniqueGlobalRefWithPulse(pn)
 
 						testMsg.msg = m
 					case *payload.VFindCallResponse:
@@ -160,6 +160,11 @@ func TestVirtual_SenderCheck_With_ExpectedVE(t *testing.T) {
 
 						m.Callee = gen.UniqueGlobalRefWithPulse(pn)
 						m.CallIncoming = reference.NewRecordOf(m.Callee, gen.UniqueLocalRefWithPulse(pn))
+					case *payload.VStateRequest:
+						pn := server.GetPrevPulse().PulseNumber
+
+						m.AsOf = pn
+						m.Object = gen.UniqueGlobalRefWithPulse(pn)
 					}
 
 					server.SendPayload(ctx, testMsg.msg.(payload.Marshaler)) // default caller == server.GlobalCaller()
