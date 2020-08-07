@@ -8,6 +8,7 @@ package node
 import (
 	"hash/crc32"
 
+	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
