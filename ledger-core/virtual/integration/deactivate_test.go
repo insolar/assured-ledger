@@ -1112,8 +1112,9 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 			{ // fill object pending table
 				dcr := payload.VDelegatedCallRequest{
 					Callee:       objectRef,
-					CallOutgoing: outgoing,
 					CallFlags:    payload.BuildCallFlags(deactivateIsolation.Interference, deactivateIsolation.State),
+					CallOutgoing: outgoing,
+					CallIncoming: incoming,
 				}
 				server.SendPayload(ctx, &dcr)
 				server.WaitActiveThenIdleConveyor()
