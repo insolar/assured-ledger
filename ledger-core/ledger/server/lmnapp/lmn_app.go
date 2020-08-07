@@ -13,6 +13,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/datawriter"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 )
 
@@ -30,6 +31,16 @@ func NewAppCompartment(_ configuration.Ledger, comps insapp.AppComponents) *insc
 		func(ctx context.Context, _ injector.DependencyInjector, setup insconveyor.AppCompartmentSetup) insconveyor.AppCompartmentSetup {
 
 			setup.Dependencies.AddInterfaceDependency(&comps.MessageSender)
+
+			{
+				var plashCatalog datawriter.PlashCataloger = datawriter.PlashCatalog{}
+				var dropCatalog datawriter.DropCataloger = datawriter.DropCatalog{}
+				var lineCatalog datawriter.LineCataloger = datawriter.LineCatalog{}
+
+				setup.Dependencies.AddInterfaceDependency(&plashCatalog)
+				setup.Dependencies.AddInterfaceDependency(&dropCatalog)
+				setup.Dependencies.AddInterfaceDependency(&lineCatalog)
+			}
 
 			setup.AddComponent(buildersvc.NewAdapterComponent(smadapter.Config{}))
 

@@ -7,7 +7,6 @@ package lmnapp
 
 import (
 	"testing"
-	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
 )
@@ -25,9 +24,11 @@ func TestStartCtm(t *testing.T) {
 	server.Start()
 
 	// do your test here
+	server.NextPulse()
 
-	for i := 3; i > 0; i-- {
-		time.Sleep(10*time.Millisecond)
-		server.NextPulse()
-	}
+	// for i := 5; i > 0; i-- {
+	// 	server.NextPulse()
+	// 	time.Sleep(100*time.Millisecond)
+	// }
+	// time.Sleep(10000*time.Millisecond)
 }

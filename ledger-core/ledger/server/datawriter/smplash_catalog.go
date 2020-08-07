@@ -20,10 +20,10 @@ type PlashCataloger interface {
 	GetOrCreate(ctx smachine.ExecutionContext, pn pulse.Number) *PlashSharedData
 }
 
-var _ PlashCataloger = &PlashCatalog{}
+var _ PlashCataloger = PlashCatalog{}
 type PlashCatalog struct {}
 
-func (*PlashCatalog) GetOrCreate(ctx smachine.ExecutionContext, pn pulse.Number) *PlashSharedData {
+func (PlashCatalog) GetOrCreate(ctx smachine.ExecutionContext, pn pulse.Number) *PlashSharedData {
 	sdl := ctx.GetPublishedLink(PlashKey(pn))
 	if !sdl.IsZero() {
 		return sdl.TryDirectAccess().(*PlashSharedData)
