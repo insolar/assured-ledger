@@ -13,8 +13,6 @@ import (
 
 func TestStateRequestContentFlags(t *testing.T) {
 	t.Run("single flag", func(t *testing.T) {
-		t.Parallel()
-
 		flags := StateRequestContentFlags(0)
 
 		flags.Set(RequestLatestValidatedCode)
@@ -27,8 +25,6 @@ func TestStateRequestContentFlags(t *testing.T) {
 	})
 
 	t.Run("two flags one by one", func(t *testing.T) {
-		t.Parallel()
-
 		flags := StateRequestContentFlags(0)
 		flags.Set(RequestLatestValidatedCode)
 
@@ -42,8 +38,6 @@ func TestStateRequestContentFlags(t *testing.T) {
 	})
 
 	t.Run("two flags in one go", func(t *testing.T) {
-		t.Parallel()
-
 		flags := StateRequestContentFlags(0)
 		flags.Set(RequestLatestValidatedCode, RequestUnorderedQueue)
 
@@ -55,8 +49,6 @@ func TestStateRequestContentFlags(t *testing.T) {
 	})
 
 	t.Run("is valid", func(t *testing.T) {
-		t.Parallel()
-
 		f := StateRequestContentFlags(1 << maxRequestedContentByte)
 		assert.False(t, StateRequestContentFlags(1<<maxRequestedContentByte).IsValid())
 
