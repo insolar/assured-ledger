@@ -6,8 +6,6 @@
 package payload
 
 import (
-	fmt "fmt"
-
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -33,7 +31,6 @@ func (m *VStateRequest) Validate(currentPulse PulseNumber) error {
 		return err
 	}
 
-	fmt.Println(m.AsOf, currentPulse, m.AsOf.IsTimePulse(), m.AsOf.IsEqOrAfter(currentPulse))
 	if !isTimePulseBefore(m.AsOf, currentPulse) {
 		return throw.New("AsOf should be valid time pulse before current pulse")
 	}
