@@ -578,6 +578,7 @@ func (s *SMExecute) stepGetDelegationToken(ctx smachine.ExecutionContext) smachi
 		Callee:         s.execution.Object,
 		CallFlags:      payload.BuildCallFlags(s.execution.Isolation.Interference, s.execution.Isolation.State),
 		CallOutgoing:   s.execution.Outgoing,
+		CallIncoming:   s.execution.Incoming,
 		DelegationSpec: s.delegationTokenSpec,
 	}
 
@@ -1107,7 +1108,12 @@ func (s *SMExecute) deduplicate(state *object.SharedState) (DeduplicationAction,
 		filledTable := uint8(pendingList.Count()) == state.PreviousExecutorOrderedPendingCount
 		isActive, isDuplicate := pendingList.GetState(s.execution.Outgoing)
 
-		s.hasState = state.GetState() == object.HasState
+		switch state.GetState() {
+		case object.HasState, object.Inactive:
+			s.hasState = true
+		default:
+			s.hasState = false
+		}
 		s.duplicateFinished = isDuplicate && !isActive
 
 		switch {

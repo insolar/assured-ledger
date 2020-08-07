@@ -27,7 +27,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callsummary"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/object/finalizedstate"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/object/preservedstatereport"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
 )
 
@@ -150,7 +150,7 @@ func (i *Info) BuildStateReport() payload.VStateReport {
 		panic(throw.IllegalValue())
 	}
 
-	if objDescriptor := i.DescriptorDirty(); objDescriptor != nil {
+	if objDescriptor := i.DescriptorDirty(); objDescriptor != nil && !objDescriptor.Deactivated() {
 		res.LatestDirtyState = objDescriptor.HeadRef()
 	}
 
@@ -197,7 +197,7 @@ type SMObject struct {
 	summaryDoneCtl        smsync.BoolConditionalLink
 
 	waitGetStateUntil time.Time
-	smFinalizer       *finalizedstate.SMStateFinalizer
+	smFinalizer       *preservedstatereport.SMPreservedStateReport
 
 	// dependencies
 	messageSender messageSenderAdapter.MessageSender
@@ -367,7 +367,7 @@ func (sm *SMObject) migrate(ctx smachine.MigrationContext) smachine.StateUpdate 
 
 	ctx.UnpublishAll()
 
-	sm.smFinalizer = &finalizedstate.SMStateFinalizer{
+	sm.smFinalizer = &preservedstatereport.SMPreservedStateReport{
 		Reference: sm.Reference,
 	}
 
@@ -484,7 +484,7 @@ func (sm *SMObject) sharedAndPublishStateReport(
 ) error {
 	sdlStateReport := ctx.Share(report, 0)
 
-	if !ctx.Publish(finalizedstate.BuildReportKey(sm.Reference), sdlStateReport) {
+	if !ctx.Publish(preservedstatereport.BuildReportKey(sm.Reference), sdlStateReport) {
 		return throw.New("failed to publish state report", struct {
 			Reference reference.Holder
 		}{sm.Reference})

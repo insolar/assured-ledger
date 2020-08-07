@@ -22,7 +22,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/slotdebugger"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/object/finalizedstate"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/object/preservedstatereport"
 )
 
 func TestVStateRequest_ProcessObjectWithoutState(t *testing.T) {
@@ -40,7 +40,7 @@ func TestVStateRequest_ProcessObjectWithoutState(t *testing.T) {
 			OrderedPendingCount: 1,
 			ProvidedContent:     nil,
 		})
-		smObjectAccessor = finalizedstate.SharedReportAccessor{SharedDataLink: sharedStateData}
+		smObjectAccessor = preservedstatereport.SharedReportAccessor{SharedDataLink: sharedStateData}
 	)
 
 	smVStateRequest := SMVStateRequest{

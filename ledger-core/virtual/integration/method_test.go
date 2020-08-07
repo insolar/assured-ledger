@@ -22,7 +22,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/object/finalizedstate"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/object/preservedstatereport"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -899,150 +899,6 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 	mc.Finish()
 }
 
-func TestVirtual_Method_Have_ObjectState(t *testing.T) {
-	type runnerObjectChecker func(objectState *payload.VStateReport_ProvidedContentBody, runnerObjectState descriptor.Object) bool
-	table := []struct {
-		name string
-		code string
-
-		state  contract.StateFlag
-		checks []runnerObjectChecker
-	}{
-		{
-			name:  "Method with CallFlags.Dirty must be called with dirty object state",
-			code:  "C5184",
-			state: contract.CallDirty,
-		},
-		{
-			name:  "Method with CallFlags.Validated must be called with validated object state",
-			code:  "C5123",
-			state: contract.CallValidated,
-		},
-	}
-	for _, test := range table {
-		t.Run(test.name, func(t *testing.T) {
-			defer commontestutils.LeakTester(t)
-			insrail.LogCase(t, test.code)
-
-			var (
-				mc = minimock.NewController(t)
-			)
-
-			server, ctx := utils.NewUninitializedServer(nil, t)
-			defer server.Stop()
-
-			executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
-
-			runnerMock := logicless.NewServiceMock(ctx, t, nil)
-			server.ReplaceRunner(runnerMock)
-
-			server.Init(ctx)
-			server.IncrementPulse(ctx)
-
-			var (
-				pulseNumber       = server.GetPulse().PulseNumber
-				class             = gen.UniqueGlobalRef()
-				objectRef         = gen.UniqueGlobalRefWithPulse(pulseNumber)
-				dirtyStateRef     = server.RandomLocalWithPulse()
-				dirtyState        = reference.NewSelf(dirtyStateRef)
-				validatedStateRef = server.RandomLocalWithPulse()
-				validatedState    = reference.NewSelf(validatedStateRef)
-			)
-			const (
-				validatedMem = "12345"
-				dirtyMem     = "54321"
-			)
-
-			{ // send object state to server
-				pl := payload.VStateReport{
-					Status:               payload.Ready,
-					Object:               objectRef,
-					AsOf:                 pulseNumber,
-					LatestValidatedState: validatedState,
-					LatestDirtyState:     dirtyState,
-					ProvidedContent: &payload.VStateReport_ProvidedContentBody{
-						LatestValidatedState: &payload.ObjectState{
-							Reference: validatedStateRef,
-							Class:     class,
-							State:     []byte(validatedMem),
-						},
-						LatestDirtyState: &payload.ObjectState{
-							Reference: dirtyStateRef,
-							Class:     class,
-							State:     []byte(dirtyMem),
-						},
-					},
-				}
-
-				server.IncrementPulse(ctx)
-
-				server.WaitIdleConveyor()
-				server.SendPayload(ctx, &pl)
-				server.WaitActiveThenIdleConveyor()
-			}
-
-			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-
-			{
-				typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
-					require.Equal(t, []byte("345"), res.ReturnArguments)
-					require.Equal(t, objectRef, res.Callee)
-
-					return false // no resend msg
-				})
-
-				outgoingRef := server.BuildRandomOutgoingWithPulse()
-
-				pl := payload.VCallRequest{
-					CallType:            payload.CTMethod,
-					CallFlags:           payload.BuildCallFlags(contract.CallIntolerable, test.state),
-					Caller:              server.GlobalCaller(),
-					Callee:              objectRef,
-					CallSiteDeclaration: class,
-					CallSiteMethod:      "Test",
-					CallOutgoing:        outgoingRef,
-				}
-
-				key := pl.CallOutgoing.String()
-				runnerMock.AddExecutionMock(key).
-					AddStart(func(ctx execution.Context) {
-						require.Equal(t, objectRef, ctx.Object)
-						require.Equal(t, test.state, ctx.Request.CallFlags.GetState())
-						require.Equal(t, test.state, ctx.Isolation.State)
-						require.Equal(t, objectRef, ctx.ObjectDescriptor.HeadRef())
-						stateClass, err := ctx.ObjectDescriptor.Class()
-						require.NoError(t, err)
-						require.Equal(t, class, stateClass)
-
-						if test.state == contract.CallValidated {
-							require.Equal(t, validatedStateRef, ctx.ObjectDescriptor.StateID())
-							require.Equal(t, []byte(validatedMem), ctx.ObjectDescriptor.Memory())
-						} else {
-							require.Equal(t, dirtyStateRef, ctx.ObjectDescriptor.StateID())
-							require.Equal(t, []byte(dirtyMem), ctx.ObjectDescriptor.Memory())
-						}
-					}, &execution.Update{
-						Type:   execution.Done,
-						Result: requestresult.New([]byte("345"), outgoingRef),
-					})
-				runnerMock.AddExecutionClassify(key, contract.MethodIsolation{
-					Interference: contract.CallIntolerable,
-					State:        test.state,
-				}, nil)
-
-				server.SendPayload(ctx, &pl)
-			}
-
-			commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
-			commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
-
-			assert.Equal(t, 1, typedChecker.VCallResult.Count())
-
-			mc.Finish()
-		})
-	}
-}
-
 // twice ( A.Foo -> B.Bar, B.Bar )
 func TestVirtual_CallContractTwoTimes(t *testing.T) {
 	defer commontestutils.LeakTester(t)
@@ -1405,9 +1261,10 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 	insrail.LogCase(t, "C5089")
 
 	const (
-		origObjectMem    = "original object memory"
-		changedObjectMem = "new object memory"
-		callResult       = "call result"
+		origDirtyObjectMem     = "dirty original object memory"
+		origValidatedObjectMem = "validated original object memory"
+		changedObjectMem       = "new object memory"
+		callResult             = "call result"
 	)
 	cases := []struct {
 		name           string
@@ -1430,6 +1287,14 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 				State:        contract.CallValidated,
 			},
 		},
+		{
+			name:           "Intolerable call on Dirty state cannot change object state",
+			canChangeState: false,
+			isolation: contract.MethodIsolation{
+				Interference: contract.CallIntolerable,
+				State:        contract.CallDirty,
+			},
+		},
 	}
 
 	for _, testCase := range cases {
@@ -1439,7 +1304,7 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 		server, ctx := utils.NewUninitializedServer(nil, t)
 
 		executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
-		stateReportSend := server.Journal.WaitStopOf(&finalizedstate.SMStateFinalizer{}, 1)
+		stateReportSend := server.Journal.WaitStopOf(&preservedstatereport.SMPreservedStateReport{}, 1)
 
 		runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
 			return execution.Request.CallSiteMethod
@@ -1463,7 +1328,7 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 		// add ExecutionMock to runnerMock
 		{
 			runnerMock.AddExecutionClassify("SomeMethod", testCase.isolation, nil)
-			requestResult := requestresult.New([]byte(callResult), gen.UniqueGlobalRef())
+			requestResult := requestresult.New([]byte(callResult), objectRef)
 			if testCase.canChangeState {
 				newObjDescriptor := descriptor.NewObject(
 					reference.Global{}, reference.Local{}, class, []byte(""), false,
@@ -1475,7 +1340,12 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 			objectExecutionMock.AddStart(
 				func(ctx execution.Context) {
 					require.Equal(t, objectRef, ctx.Request.Callee)
-					require.Equal(t, []byte(origObjectMem), ctx.ObjectDescriptor.Memory())
+					require.Equal(t, outgoing, ctx.Outgoing)
+					expectedMemory := origValidatedObjectMem
+					if testCase.isolation.State == contract.CallDirty {
+						expectedMemory = origDirtyObjectMem
+					}
+					require.Equal(t, []byte(expectedMemory), ctx.ObjectDescriptor.Memory())
 				},
 				&execution.Update{
 					Type:   execution.Done,
@@ -1495,13 +1365,13 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 			content := &payload.VStateReport_ProvidedContentBody{
 				LatestDirtyState: &payload.ObjectState{
 					Reference: reference.Local{},
-					Class:     testwalletProxy.GetClass(),
-					State:     []byte(origObjectMem),
+					Class:     class,
+					State:     []byte(origDirtyObjectMem),
 				},
 				LatestValidatedState: &payload.ObjectState{
 					Reference: reference.Local{},
-					Class:     testwalletProxy.GetClass(),
-					State:     []byte(origObjectMem),
+					Class:     class,
+					State:     []byte(origValidatedObjectMem),
 				},
 			}
 
@@ -1530,7 +1400,7 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 			require.NotNil(t, report.ProvidedContent)
 			switch testCase.isolation.Interference {
 			case contract.CallIntolerable:
-				require.Equal(t, []byte(origObjectMem), report.ProvidedContent.LatestDirtyState.State)
+				require.Equal(t, []byte(origDirtyObjectMem), report.ProvidedContent.LatestDirtyState.State)
 			case contract.CallTolerable:
 				require.Equal(t, []byte(changedObjectMem), report.ProvidedContent.LatestValidatedState.State)
 			}
@@ -1554,7 +1424,7 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 		commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
 		commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
-		// increment pulse twice for stop SMStateFinalizer
+		// increment pulse twice for stop SMPreservedStateReport
 		server.IncrementPulseAndWaitIdle(ctx)
 		server.IncrementPulseAndWaitIdle(ctx)
 
@@ -1866,7 +1736,7 @@ func TestVirtual_Method_IntolerableCallChangeState(t *testing.T) {
 	server, ctx := utils.NewUninitializedServer(nil, t)
 
 	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
-	stateReportSend := server.Journal.WaitStopOf(&finalizedstate.SMStateFinalizer{}, 1)
+	stateReportSend := server.Journal.WaitStopOf(&preservedstatereport.SMPreservedStateReport{}, 1)
 
 	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
 		return execution.Request.CallSiteMethod
@@ -1978,7 +1848,7 @@ func TestVirtual_Method_IntolerableCallChangeState(t *testing.T) {
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
-	// increment pulse twice for stop SMStateFinalizer
+	// increment pulse twice for stop SMPreservedStateReport
 	server.IncrementPulseAndWaitIdle(ctx)
 	server.IncrementPulseAndWaitIdle(ctx)
 
@@ -2219,6 +2089,8 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 	{
 		server.IncrementPulse(ctx)
 		commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 1))
+		// wait for all VCallResults
+		commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 		require.Equal(t, 1, typedChecker.VStateReport.Count())
 		require.Equal(t, 5, typedChecker.VCallResult.Count())

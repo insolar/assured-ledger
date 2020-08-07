@@ -185,6 +185,6 @@ func (p *PulseSlot) HasPulseData(pn pulse.Number) bool {
 
 func (p *PulseSlot) postMigrate(holder smachine.SlotMachineHolder) {
 	if fn := p.pulseManager.pulseMigrateFn; fn != nil {
-		fn(holder)
+		fn(p, holder)
 	}
 }

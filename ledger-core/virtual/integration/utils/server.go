@@ -22,6 +22,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/convlog"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
@@ -67,7 +68,7 @@ type Server struct {
 	JetCoordinatorMock *affinity.HelperMock
 	pulseGenerator     *testutils.PulseGenerator
 	pulseStorage       *memstor.StorageMem
-	pulseManager       *insconveyor.PulseManager
+	pulseManager       *insapp.PulseManager
 	Journal            *journal.Journal
 
 	// wait and suspend operations
@@ -115,6 +116,10 @@ func NewUninitializedServerWithErrorFilter(ctx context.Context, t Tester, errorF
 	return newServerExt(ctx, t, errorFilterFn, false)
 }
 
+func generateGlobalCaller() reference.Global {
+	return reference.NewSelf(reference.NewLocal(pulse.MinTimePulse, 0, gen.UniqueLocalRef().GetHash()))
+}
+
 func newServerExt(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFilterFunc, init bool) (*Server, context.Context) {
 	instestlogger.SetTestOutputWithErrorFilter(t, errorFilterFn)
 
@@ -124,19 +129,19 @@ func newServerExt(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFi
 	ctx, cancelFn := context.WithCancel(ctx)
 
 	s := Server{
-		caller:      gen.UniqueGlobalRef(),
+		caller:      generateGlobalCaller(),
 		fullStop:    make(synckit.ClosableSignalChannel),
 		ctxCancelFn: cancelFn,
 	}
 
 	// Pulse-related components
 	var (
-		PulseManager *insconveyor.PulseManager
+		PulseManager *insapp.PulseManager
 		Pulses       *memstor.StorageMem
 	)
 	{
 		Pulses = memstor.NewStorageMem()
-		PulseManager = insconveyor.NewPulseManager()
+		PulseManager = insapp.NewPulseManager()
 		PulseManager.PulseAppender = Pulses
 	}
 

@@ -6,6 +6,9 @@
 package affinity
 
 import (
+	"context"
+	"crypto/sha256"
+
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
@@ -22,7 +25,7 @@ type Coordinator struct {
 
 	PulseAccessor beat.History `inject:""`
 
-	originRef       reference.Global
+	originRef reference.Global
 }
 
 // NewAffinityHelper creates new Helper instance.
@@ -40,7 +43,10 @@ func (jc *Coordinator) QueryRole(role DynamicRole, objID reference.Holder, pn pu
 	if role == DynamicRoleVirtualExecutor {
 		n, err := jc.VirtualExecutorForObject(objID, pn)
 		if err != nil {
-			return nil, throw.WithDetails(err, struct { Ref reference.Holder; PN pulse.Number } {objID, pn })
+			return nil, throw.WithDetails(err, struct {
+				Ref reference.Holder
+				PN  pulse.Number
+			}{objID, pn})
 		}
 		return []reference.Global{n}, nil
 	}
@@ -62,24 +68,30 @@ func (jc *Coordinator) VirtualExecutorForObject(objID reference.Holder, pn pulse
 	if role == nil {
 		return reference.Global{}, throw.E("role without nodes", struct {
 			PrimaryRole member.PrimaryRole
-			Population census.OnlinePopulation
-		} {
+			Population  census.OnlinePopulation
+		}{
 			member.PrimaryRoleVirtual,
 			pc.Online,
 		})
 	}
 
 	base := objID.GetBase()
-	b := base.AsBytes()
-	xorBytes(b, pc.PulseEntropy[:])
-	metric := longbits.CutOutUint64(b)
+	h := sha256.New()
+	_, err = h.Write(base.AsBytes())
+	if err != nil {
+		return reference.Global{}, err
+	}
+	_, err = h.Write(pc.PulseEntropy[:])
+	if err != nil {
+		return reference.Global{}, err
+	}
+	metric := longbits.CutOutUint64(h.Sum(nil))
 
-	metric += uint64(base.Pulse())
 	assigned, _ := role.GetAssignmentByCount(metric, 0)
 	if assigned == nil {
 		return reference.Global{}, throw.E("unable to assign node of role", struct {
 			PrimaryRole member.PrimaryRole
-			Population census.OnlinePopulation
+			Population  census.OnlinePopulation
 		}{
 			member.PrimaryRoleVirtual,
 			pc.Online,
@@ -88,11 +100,4 @@ func (jc *Coordinator) VirtualExecutorForObject(objID reference.Holder, pn pulse
 	ref := assigned.GetStatic().GetExtension().GetReference()
 
 	return ref, nil
-}
-
-func xorBytes(dest []byte, b []byte) {
-	n := len(dest)
-	for i := range b {
-		dest[i % n] ^= b[i]
-	}
 }

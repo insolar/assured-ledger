@@ -5,7 +5,7 @@
 
 // +build !introspection
 
-package internal
+package insapp
 
 import (
 	"github.com/ThreeDotsLabs/watermill/message"
@@ -16,8 +16,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 )
 
-// PublisherWrapper stub for message.Publisher introspection wrapper for binaries without introspection API.
-func PublisherWrapper(
+// publisherWrapper stub for message.Publisher introspection wrapper for binaries without introspection API.
+func publisherWrapper(
 	ctx context.Context, cm *component.Manager, cfg configuration.Introspection, pb message.Publisher,
 ) message.Publisher {
 	return pb

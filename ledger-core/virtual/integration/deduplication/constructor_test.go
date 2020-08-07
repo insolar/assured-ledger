@@ -288,12 +288,21 @@ func (test *DeduplicationDifferentPulsesCase) run(t *testing.T) {
 		}
 		test.VDelegatedCall.Callee = object
 		test.VDelegatedCall.CallFlags = payload.BuildCallFlags(isolation.Interference, isolation.State)
+		test.VDelegatedCall.CallIncoming = reference.NewRecordOf(test.VDelegatedCall.Callee, test.VDelegatedCall.CallOutgoing.GetLocal())
 	}
 
 	if test.VDelegatedRequestFinished != nil {
-		test.VDelegatedRequestFinished.CallOutgoing = outgoing
-		test.VDelegatedRequestFinished.Callee = object
-		test.VDelegatedRequestFinished.CallFlags = payload.BuildCallFlags(isolation.Interference, isolation.State)
+		test.VDelegatedRequestFinished = &payload.VDelegatedRequestFinished{
+			CallType:     payload.CTConstructor,
+			CallFlags:    payload.BuildCallFlags(isolation.Interference, isolation.State),
+			Callee:       object,
+			CallOutgoing: outgoing,
+			CallIncoming: reference.NewRecordOf(object, outgoingLocal),
+			LatestState: &payload.ObjectState{
+				Class: class,
+				State: ExecutionResultFromPreviousNode,
+			},
+		}
 	}
 
 	if test.ExecutionExpected {
@@ -379,23 +388,6 @@ func (test *DeduplicationDifferentPulsesCase) run(t *testing.T) {
 		assert.Equal(t, test.vFindCallCount(), test.TypedChecker.VFindCallRequest.Count())
 		assert.Equal(t, test.vDelegatedCallResponseCount(), test.TypedChecker.VDelegatedCallResponse.Count())
 	}
-}
-
-func TestDeduplication_DifferentPulses_MissingState(t *testing.T) {
-	var tests []utils.TestRunner
-
-	tests = append(tests, &DeduplicationDifferentPulsesCase{
-		TestCase: utils.NewTestCase("empty object, no pending executions"),
-		VState: payload.VStateReport{
-			Status: payload.Missing,
-			AsOf:   gen.PulseNumber(),
-		},
-		VCallResultExpected: true,
-		ExecutionExpected:   true,
-		ExpectedResult:      ExecutionResultFromExecutor,
-	})
-
-	utils.Suite{Parallel: false, Cases: tests, TestRailID: "C5012"}.Run(t)
 }
 
 func TestDeduplication_DifferentPulses_EmptyState(t *testing.T) {
@@ -694,49 +686,54 @@ func TestDeduplication_DifferentPulses_ReadyState(t *testing.T) {
 
 func TestDeduplication_DifferentPulses_InactiveState(t *testing.T) {
 	var tests []utils.TestRunner
+	errorFragmentDeduplicate := "(*SMExecute).stepProcessFindCallResponse"
+	filterErrorDeduplicate := func(s string) bool {
+		return !strings.Contains(s, errorFragmentDeduplicate)
+	}
 
 	{
 		vStateReportInactive := payload.VStateReport{
 			Status:              payload.Inactive,
 			OrderedPendingCount: 0,
-			ProvidedContent: &payload.VStateReport_ProvidedContentBody{
-				LatestDirtyState: &payload.ObjectState{State: []byte("123")},
-			},
+			ProvidedContent:     nil,
 		}
 
 		tests = append(tests,
 			// expected panic of SM
 			&DeduplicationDifferentPulsesCase{
-				TestCase: utils.NewTestCase("missing call"),
+				TestCase: utils.NewTestCase("missing call").WithErrorFilter(filterErrorDeduplicate),
 				VState:   vStateReportInactive,
 				VFindCall: &payload.VFindCallResponse{
 					Status:     payload.MissingCall,
 					CallResult: nil,
 				},
-				VCallResultExpected: false,
-				ExecutionExpected:   false,
+				VCallResultExpected:    false,
+				ExecutionExpected:      false,
+				ExecuteShouldHaveError: errorFragmentDeduplicate,
 			},
 			// expected panic of SM
 			&DeduplicationDifferentPulsesCase{
-				TestCase: utils.NewTestCase("unknown call"),
+				TestCase: utils.NewTestCase("unknown call").WithErrorFilter(filterErrorDeduplicate),
 				VState:   vStateReportInactive,
 				VFindCall: &payload.VFindCallResponse{
 					Status:     payload.UnknownCall,
 					CallResult: nil,
 				},
-				VCallResultExpected: false,
-				ExecutionExpected:   false,
+				VCallResultExpected:    false,
+				ExecutionExpected:      false,
+				ExecuteShouldHaveError: errorFragmentDeduplicate,
 			},
 			// expected panic of SM
 			&DeduplicationDifferentPulsesCase{
-				TestCase: utils.NewTestCase("known call wo result"),
+				TestCase: utils.NewTestCase("known call wo result").WithErrorFilter(filterErrorDeduplicate),
 				VState:   vStateReportInactive,
 				VFindCall: &payload.VFindCallResponse{
 					Status:     payload.FoundCall,
 					CallResult: nil,
 				},
-				VCallResultExpected: false,
-				ExecutionExpected:   false,
+				VCallResultExpected:    false,
+				ExecutionExpected:      false,
+				ExecuteShouldHaveError: errorFragmentDeduplicate,
 			},
 			&DeduplicationDifferentPulsesCase{
 				TestCase: utils.NewTestCase("known call w result"),
@@ -756,6 +753,5 @@ func TestDeduplication_DifferentPulses_InactiveState(t *testing.T) {
 		Parallel:   false,
 		Cases:      tests,
 		TestRailID: "C5008",
-		Skipped:    "https://insolar.atlassian.net/browse/PLAT-416",
 	}.Run(t)
 }

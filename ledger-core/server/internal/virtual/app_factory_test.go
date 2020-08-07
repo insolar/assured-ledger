@@ -3,9 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-// +build slowtest
-
-package headless
+package virtual
 
 import (
 	"context"
@@ -15,12 +13,13 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/log"
 )
 
-func TestComponents(t *testing.T) {
+func TestAppFactory(t *testing.T) {
 	instestlogger.SetTestOutputWithErrorFilter(t, func(s string) bool {
 		return !strings.Contains(s, "Failed to export to Prometheus: cannot register the collector")
 	})
@@ -37,23 +36,14 @@ func TestComponents(t *testing.T) {
 	cfg.APIRunner.SwaggerPath = "../../../application/api/spec/api-exported.yaml"
 	cfg.AdminAPIRunner.SwaggerPath = "../../../application/api/spec/api-exported.yaml"
 
-	bootstrapComponents := initBootstrapComponents(ctx, cfg)
-	cert := initCertificateManager(
-		ctx,
-		cfg,
-		bootstrapComponents.CryptographyService,
-		bootstrapComponents.KeyProcessor,
-	)
-	cm := initComponents(
-		ctx,
-		cfg,
-		bootstrapComponents.CryptographyService,
-		bootstrapComponents.PlatformCryptographyScheme,
-		bootstrapComponents.KeyStore,
-		bootstrapComponents.KeyProcessor,
-		cert,
-	)
+	server := insapp.New("", AppFactory)
+
+	cm, stopWatermill := server.StartComponents(ctx, cfg, func(context.Context, configuration.Log, string, string) context.Context {
+		return ctx
+	})
+
 	require.NotNil(t, cm)
+	require.NotNil(t, stopWatermill)
 
 	err := cm.Init(ctx)
 	require.NoError(t, err)

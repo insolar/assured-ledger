@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package insconveyor
+package insapp
 
 import (
 	"context"
@@ -30,6 +30,12 @@ func NewPulseManager() *PulseManager {
 }
 
 func (m *PulseManager) AddDispatcher(d ...beat.Dispatcher) {
+	for _, dd := range d {
+		if dd == nil {
+			panic(throw.IllegalValue())
+		}
+	}
+
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 

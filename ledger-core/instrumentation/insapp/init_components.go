@@ -3,12 +3,11 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package virtual
+package insapp
 
 import (
 	"context"
 	"io"
-	"runtime"
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
@@ -18,7 +17,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat/memstor"
 	"github.com/insolar/assured-ledger/ledger-core/application/api"
-	"github.com/insolar/assured-ledger/ledger-core/application/testwalletapi"
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/keystore"
@@ -33,20 +31,17 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/servicenetwork"
-	"github.com/insolar/assured-ledger/ledger-core/runner"
-	"github.com/insolar/assured-ledger/ledger-core/server/internal"
-	"github.com/insolar/assured-ledger/ledger-core/virtual"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-type bootstrapComponents struct {
+type preComponents struct {
 	CryptographyService        cryptography.Service
 	PlatformCryptographyScheme cryptography.PlatformCryptographyScheme
 	KeyStore                   cryptography.KeyStore
 	KeyProcessor               cryptography.KeyProcessor
 }
 
-func initBootstrapComponents(ctx context.Context, cfg configuration.Configuration) bootstrapComponents {
+func (s *Server) initBootstrapComponents(ctx context.Context, cfg configuration.Configuration) preComponents {
 	earlyComponents := component.NewManager(nil)
 	earlyComponents.SetLogger(global.Logger())
 
@@ -60,7 +55,7 @@ func initBootstrapComponents(ctx context.Context, cfg configuration.Configuratio
 	earlyComponents.Register(platformCryptographyScheme, keyStore)
 	earlyComponents.Inject(cryptographyService, keyProcessor)
 
-	return bootstrapComponents{
+	return preComponents{
 		CryptographyService:        cryptographyService,
 		PlatformCryptographyScheme: platformCryptographyScheme,
 		KeyStore:                   keyStore,
@@ -68,34 +63,22 @@ func initBootstrapComponents(ctx context.Context, cfg configuration.Configuratio
 	}
 }
 
-func initCertificateManager(
-	ctx context.Context,
-	cfg configuration.Configuration,
-	cryptographyService cryptography.Service,
-	keyProcessor cryptography.KeyProcessor,
-) *mandates.CertificateManager {
+func (s *Server) initCertificateManager(ctx context.Context, cfg configuration.Configuration, comps preComponents) *mandates.CertificateManager {
 	var certManager *mandates.CertificateManager
 	var err error
 
-	publicKey, err := cryptographyService.GetPublicKey()
+	publicKey, err := comps.CryptographyService.GetPublicKey()
 	checkError(ctx, err, "failed to retrieve node public key")
 
-	certManager, err = mandates.NewManagerReadCertificate(publicKey, keyProcessor, cfg.CertificatePath)
+	certManager, err = mandates.NewManagerReadCertificate(publicKey, comps.KeyProcessor, cfg.CertificatePath)
 	checkError(ctx, err, "failed to start Certificate")
 
 	return certManager
 }
 
 // initComponents creates and links all insolard components
-func initComponents(
-	ctx context.Context,
-	cfg configuration.Configuration,
-	cryptographyService cryptography.Service,
-	pcs cryptography.PlatformCryptographyScheme,
-	keyStore cryptography.KeyStore,
-	keyProcessor cryptography.KeyProcessor,
-	certManager nodeinfo.CertificateManager,
-
+func (s *Server) initComponents(ctx context.Context, cfg configuration.Configuration,
+	comps preComponents, certManager nodeinfo.CertificateManager,
 ) (*component.Manager, func()) {
 	cm := component.NewManager(nil)
 	cm.SetLogger(global.Logger())
@@ -111,107 +94,85 @@ func initComponents(
 		pubsub := gochannel.NewGoChannel(gochannel.Config{}, wmLogger)
 		subscriber = pubsub
 		publisher = pubsub
-		// Wrapped watermill Publisher for introspection.
-		publisher = internal.PublisherWrapper(ctx, cm, cfg.Introspection, publisher)
 	}
+
+	cm.Register(
+		comps.PlatformCryptographyScheme,
+		comps.KeyStore,
+		comps.CryptographyService,
+		comps.KeyProcessor,
+		certManager,
+	)
 
 	nw, err := servicenetwork.NewServiceNetwork(cfg, cm)
 	checkError(ctx, err, "failed to start Network")
 
 	metricsComp := metrics.NewMetrics(cfg.Metrics, metrics.GetInsolarRegistry("virtual"), "virtual")
 
-	jc := affinity.NewAffinityHelper(certManager.GetCertificate().GetNodeRef())
 	pulses := memstor.NewStorageMem()
-
-	messageSender := messagesender.NewDefaultService(publisher, jc, pulses)
-
-	runnerService := runner.NewService()
-	err = runnerService.Init()
-	checkError(ctx, err, "failed to initialize Runner Service")
-
-	virtualDispatcher := virtual.NewDispatcher()
-
-	virtualDispatcher.Runner = runnerService
-	virtualDispatcher.MessageSender = messageSender
-	virtualDispatcher.Affinity = jc
-	virtualDispatcher.AuthenticationService = authentication.NewService(ctx, jc)
-
-	// TODO: rewrite this after PLAT-432
-	if n := runtime.NumCPU() - 2; n > 4 {
-		virtualDispatcher.MaxRunners = n
-	} else {
-		virtualDispatcher.MaxRunners = 4
-	}
-
+	pm := NewPulseManager()
+	publisher = publisherWrapper(ctx, cm, cfg.Introspection, publisher)
 	availabilityChecker := api.NewNetworkChecker(cfg.AvailabilityChecker)
 
-	API, err := api.NewRunner(
-		&cfg.APIRunner,
-		certManager,
-		nw,
-		nw,
-		pulses,
-		jc,
-		nw,
-		availabilityChecker,
-	)
-	checkError(ctx, err, "failed to start ApiRunner")
-
-	AdminAPIRunner, err := api.NewRunner(
-		&cfg.AdminAPIRunner,
-		certManager,
-		nw,
-		nw,
-		pulses,
-		jc,
-		nw,
-		availabilityChecker,
-	)
-	checkError(ctx, err, "failed to start AdminAPIRunner")
-
-	APIWrapper := api.NewWrapper(API, AdminAPIRunner)
-
-	pm := insconveyor.NewPulseManager()
-
 	cm.Register(
-		pcs,
-		keyStore,
-		cryptographyService,
-		keyProcessor,
-		certManager,
-		virtualDispatcher,
-		runnerService,
-		APIWrapper,
-		testwalletapi.NewTestWalletServer(cfg.TestWalletAPI, virtualDispatcher, pulses),
-		availabilityChecker,
-		nw,
+		pulses,
+		publisher,
 		pm,
+		nw,
+		availabilityChecker,
+		metricsComp,
 	)
 
-	components := []interface{}{
-		publisher,
-		jc,
-		pulses,
-	}
-	components = append(components, []interface{}{
-		metricsComp,
-		cryptographyService,
-		keyProcessor,
-	}...)
+	var appComponent AppComponent
 
-	cm.Inject(components...)
+	if s.appFn != nil {
+		affine := affinity.NewAffinityHelper(certManager.GetCertificate().GetNodeRef())
+
+		API, err := api.NewRunner(&cfg.APIRunner,
+			certManager, nw, nw, pulses, affine, nw, availabilityChecker)
+		checkError(ctx, err, "failed to start ApiRunner")
+
+		AdminAPIRunner, err := api.NewRunner(&cfg.AdminAPIRunner,
+			certManager, nw, nw, pulses, affine, nw, availabilityChecker)
+		checkError(ctx, err, "failed to start AdminAPIRunner")
+
+		APIWrapper := api.NewWrapper(API, AdminAPIRunner)
+
+		appComponents := AppComponents{
+			BeatHistory:    pulses,
+			AffinityHelper: affine,
+			MessageSender:  messagesender.NewDefaultService(publisher, affine, pulses),
+		}
+
+		appComponent, err = s.appFn(ctx, cfg, appComponents)
+		checkError(ctx, err, "failed to start AppCompartment")
+
+		cm.Register(
+			affine,
+			APIWrapper,
+			appComponent,
+		)
+	}
+	cm.Register(s.extra...)
+	cm.Inject()
 
 	err = cm.Init(ctx)
 	checkError(ctx, err, "failed to init components")
 
-	// this should be done after Init due to inject
-	pm.AddDispatcher(virtualDispatcher.FlowDispatcher)
+	if appComponent == nil {
+		return cm, nil
+	}
 
-	return cm, startWatermill(
+	// must be after Init
+	pm.AddDispatcher(appComponent.GetBeatDispatcher())
+
+	stopWatermillFn := startWatermill(
 		ctx, wmLogger, subscriber,
 		nw.SendMessageHandler,
-		virtualDispatcher.FlowDispatcher.Process,
+		appComponent.GetMessageHandler(),
 	)
+
+	return cm, stopWatermillFn
 }
 
 func startWatermill(
@@ -220,6 +181,15 @@ func startWatermill(
 	sub message.Subscriber,
 	outHandler, inHandler message.NoPublishHandlerFunc,
 ) func() {
+	switch {
+	case sub == nil:
+		panic(throw.IllegalState())
+	case outHandler == nil:
+		panic(throw.IllegalState())
+	case inHandler == nil:
+		panic(throw.IllegalState())
+	}
+
 	inRouter, err := message.NewRouter(message.RouterConfig{}, logger)
 	if err != nil {
 		panic(err)
