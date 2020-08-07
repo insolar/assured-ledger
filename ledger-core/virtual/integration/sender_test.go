@@ -136,10 +136,10 @@ func TestVirtual_SenderCheck_With_ExpectedVE(t *testing.T) {
 
 						testMsg.msg = m
 					case *payload.VFindCallRequest:
-						pulse := server.GetPulse().PulseNumber
-						m.LookAt = pulse
-						m.Callee = gen.UniqueGlobalRefWithPulse(pulse)
-						m.Outgoing = gen.UniqueGlobalRefWithPulse(pulse)
+						pn := server.GetPulse().PulseNumber
+						m.LookAt = pn
+						m.Callee = gen.UniqueGlobalRefWithPulse(pn)
+						m.Outgoing = gen.UniqueGlobalRefWithPulse(pn)
 
 						testMsg.msg = m
 					case *payload.VFindCallResponse:
@@ -155,6 +155,16 @@ func TestVirtual_SenderCheck_With_ExpectedVE(t *testing.T) {
 						m.CallOutgoing = reference.NewRecordOf(server.GlobalCaller(), gen.UniqueLocalRefWithPulse(pn))
 						m.CallIncoming = reference.NewRecordOf(m.Callee, m.CallOutgoing.GetLocal())
 						m.CallFlags = payload.CallFlags(0).WithInterference(contract.CallIntolerable).WithState(contract.CallValidated)
+					case *payload.VDelegatedCallResponse:
+						pn := server.GetPrevPulse().PulseNumber
+
+						m.Callee = gen.UniqueGlobalRefWithPulse(pn)
+						m.CallIncoming = reference.NewRecordOf(m.Callee, gen.UniqueLocalRefWithPulse(pn))
+					case *payload.VStateRequest:
+						pn := server.GetPrevPulse().PulseNumber
+
+						m.AsOf = pn
+						m.Object = gen.UniqueGlobalRefWithPulse(pn)
 					}
 
 					server.SendPayload(ctx, testMsg.msg.(payload.Marshaler)) // default caller == server.GlobalCaller()
