@@ -27,13 +27,20 @@ func TestStartCtm(t *testing.T) {
 	app.SetImposer(func(params *insconveyor.ImposedParams) {
 		// impose upon default behavior
 
-		regFn := params.RegisterComponent
-		params.RegisterComponent = func(c managed.Component) {
+		params.ComponentInterceptFn = func(c managed.Component) managed.Component {
 			// switch c.(type) {
 			// case InterceptedType:
 			// }
-			regFn(c)
+			return c
 		}
+
+		params.ConveyorRegistry.ScanDependencies(func(id string, v interface{}) bool {
+			if id == "something" {
+				params.ConveyorRegistry.DeleteDependency(id)
+			}
+
+			return false
+		})
 	})
 
 	ctx := context.Background()

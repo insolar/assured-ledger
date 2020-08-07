@@ -14,6 +14,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 )
 
 type AppComponent interface {
@@ -31,4 +32,16 @@ type AppComponents struct {
 	AffinityHelper affinity.Helper
 	BeatHistory    beat.Accessor
 	MessageSender  messagesender.Service
+}
+
+func (v AppComponents) AddInterfaceDependencies(container injector.DependencyContainer) {
+	if v.AffinityHelper != nil {
+		injector.AddInterfaceDependency(container, &v.AffinityHelper)
+	}
+	if v.BeatHistory != nil {
+		injector.AddInterfaceDependency(container, &v.BeatHistory)
+	}
+	if v.MessageSender != nil {
+		injector.AddInterfaceDependency(container, &v.MessageSender)
+	}
 }

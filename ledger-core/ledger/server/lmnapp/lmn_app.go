@@ -9,8 +9,6 @@ import (
 	"context"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/conveyor"
-	"github.com/insolar/assured-ledger/ledger-core/conveyor/managed"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smadapter"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
@@ -23,30 +21,21 @@ func AppFactory(_ context.Context, cfg configuration.Configuration, comps insapp
 }
 
 func NewAppCompartment(_ configuration.Ledger, comps insapp.AppComponents) *insconveyor.AppCompartment {
-	appDeps := injector.NewContainer(nil)
+	appDeps := injector.NewDynamicContainer(nil)
+	comps.AddInterfaceDependencies(appDeps)
 
-	// TODO move into AppComponents
-	// appDeps.AddInterfaceDependency(&comps.BeatHistory)
-	// appDeps.AddInterfaceDependency(&comps.AffinityHelper)
-	// appDeps.AddInterfaceDependency(&comps.MessageSender)
+	return insconveyor.NewAppCompartment("LMN", appDeps,
 
-	// convDeps := injector.NewContainer(nil)
-	// convDeps.AddInterfaceDependency(&comps.MessageSender)
+		func(_ context.Context, _ injector.DependencyInjector, setup insconveyor.AppCompartmentSetup) insconveyor.AppCompartmentSetup {
 
-	appCmnt := insconveyor.NewAppCompartment("LMN", appDeps, nil,
-		func(_ context.Context, _ injector.DependencyInjector, addFn managed.RegisterComponentFunc) {
-			addFn(buildersvc.NewAdapterComponent(smadapter.AdapterExecutorConfig{}))
-		},
+			// setup.Dependencies.AddInterfaceDependency(&comps.MessageSender)
 
-		func(context.Context, injector.DependencyInjector) insconveyor.AppCompartmentSetup {
+			setup.AddComponent(buildersvc.NewAdapterComponent(smadapter.AdapterExecutorConfig{}))
+
 			f := NewEventFactory()
-			return insconveyor.AppCompartmentSetup{
-				ConveyorConfig: conveyor.PulseConveyorConfig{
-					PulseSlotMigration: f.PostMigrate,
-				},
-				EventFactory: f,
-			}
-		})
+			setup.ConveyorConfig.PulseSlotMigration = f.PostMigrate
+			setup.EventFactoryFn = f.InputEvent
 
-	return appCmnt
+			return setup
+		})
 }

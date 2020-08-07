@@ -18,15 +18,13 @@ type ConfigOverrides struct {
 	EventlessSleep time.Duration
 }
 
-func DefaultConfig() conveyor.PulseConveyorConfig {
-	return DefaultConfigWithOverrides(ConfigOverrides{})
-}
-
 func DefaultConfigNoEventless() conveyor.PulseConveyorConfig {
-	return DefaultConfigWithOverrides(ConfigOverrides{ EventlessSleep: -1})
+	cfg := DefaultConfig()
+	cfg.EventlessSleep = 0
+	return cfg
 }
 
-func DefaultConfigWithOverrides(p ConfigOverrides) conveyor.PulseConveyorConfig {
+func DefaultConfig() conveyor.PulseConveyorConfig {
 	conveyorConfig := smachine.SlotMachineConfig{
 		PollingPeriod:     500 * time.Millisecond,
 		PollingTruncate:   1 * time.Millisecond,
@@ -38,29 +36,32 @@ func DefaultConfigWithOverrides(p ConfigOverrides) conveyor.PulseConveyorConfig 
 	}
 
 	machineConfig := conveyorConfig
-	if p.MachineLogger != nil {
-		machineConfig.SlotMachineLogger = p.MachineLogger
-	}
-
-	switch {
-	case p.BoostNewSlotDuration > 0:
-		machineConfig.BoostNewSlotDuration = p.BoostNewSlotDuration
-	case p.BoostNewSlotDuration == 0:
-		machineConfig.BoostNewSlotDuration = 0 * time.Millisecond
-	}
-
-	switch {
-	case p.EventlessSleep == 0:
-		p.EventlessSleep = 100 * time.Millisecond
-	case p.EventlessSleep < 0:
-		p.EventlessSleep = 0
-	}
 
 	return conveyor.PulseConveyorConfig{
 		ConveyorMachineConfig: conveyorConfig,
 		SlotMachineConfig:     machineConfig,
-		EventlessSleep:        p.EventlessSleep,
+		EventlessSleep:        500 * time.Millisecond,
 		MinCachePulseAge:      100,
 		MaxPastPulseAge:       1000,
+	}
+}
+
+func ApplyConfigOverrides(cfg *conveyor.PulseConveyorConfig, p ConfigOverrides) {
+	if p.MachineLogger != nil {
+		cfg.SlotMachineConfig.SlotMachineLogger = p.MachineLogger
+	}
+
+	switch {
+	case p.BoostNewSlotDuration > 0:
+		cfg.SlotMachineConfig.BoostNewSlotDuration = p.BoostNewSlotDuration
+	case p.BoostNewSlotDuration < 0:
+		cfg.SlotMachineConfig.BoostNewSlotDuration = 0
+	}
+
+	switch {
+	case p.EventlessSleep > 0:
+		cfg.EventlessSleep = p.EventlessSleep
+	case p.EventlessSleep < 0:
+		cfg.EventlessSleep = 0
 	}
 }

@@ -12,8 +12,10 @@ import (
 
 type ImposedParams struct {
 	CompartmentSetup  AppCompartmentSetup
-	ConveyorRegistry  injector.DependencyRegistry
-	RegisterComponent managed.RegisterComponentFunc
+	ConveyorRegistry  *injector.DynamicContainer
+	ComponentInterceptFn ComponentInterceptFunc
 }
 
 type ImposerFunc = func(*ImposedParams)
+
+type ComponentInterceptFunc = func(managed.Component) managed.Component
