@@ -390,23 +390,6 @@ func (test *DeduplicationDifferentPulsesCase) run(t *testing.T) {
 	}
 }
 
-func TestDeduplication_DifferentPulses_MissingState(t *testing.T) {
-	var tests []utils.TestRunner
-
-	tests = append(tests, &DeduplicationDifferentPulsesCase{
-		TestCase: utils.NewTestCase("empty object, no pending executions"),
-		VState: payload.VStateReport{
-			Status: payload.Missing,
-			AsOf:   gen.PulseNumber(),
-		},
-		VCallResultExpected: true,
-		ExecutionExpected:   true,
-		ExpectedResult:      ExecutionResultFromExecutor,
-	})
-
-	utils.Suite{Parallel: false, Cases: tests, TestRailID: "C5012"}.Run(t)
-}
-
 func TestDeduplication_DifferentPulses_EmptyState(t *testing.T) {
 	var tests []utils.TestRunner
 
