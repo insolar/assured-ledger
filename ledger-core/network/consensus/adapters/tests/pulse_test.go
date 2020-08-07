@@ -8,15 +8,14 @@ package tests
 import (
 	"bytes"
 	"context"
-	"crypto/ecdsa"
 	"math/rand"
 	"sync"
 	"time"
 
+	"github.com/insolar/assured-ledger/ledger-core/crypto/legacyadapter"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/serialization"
 	"github.com/insolar/assured-ledger/ledger-core/network/transport"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -30,7 +29,7 @@ const (
 
 var digester = func() cryptkit.DataDigester {
 	scheme := platformpolicy.NewPlatformCryptographyScheme()
-	digester := adapters.NewSha3512Digester(scheme)
+	digester := legacyadapter.NewSha3Digester512(scheme)
 	return digester
 }()
 
@@ -38,7 +37,7 @@ var signer = func() cryptkit.DigestSigner {
 	processor := platformpolicy.NewKeyProcessor()
 	key, _ := processor.GeneratePrivateKey()
 	scheme := platformpolicy.NewPlatformCryptographyScheme()
-	signer := adapters.NewECDSADigestSigner(key.(*ecdsa.PrivateKey), scheme)
+	signer := legacyadapter.NewECDSADigestSignerFromSK(key, scheme)
 	return signer
 }()
 

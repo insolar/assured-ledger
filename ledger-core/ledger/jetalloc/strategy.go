@@ -6,6 +6,7 @@
 package jetalloc
 
 import (
+	"crypto/sha256"
 	"encoding/binary"
 	"hash"
 
@@ -33,11 +34,8 @@ type MaterialAllocationCalculator interface {
 
 type HashFactoryFunc = func() hash.Hash
 
-func NewMaterialAllocationStrategy(usePower bool, hashFactory HashFactoryFunc) MaterialAllocationStrategy {
-	if hashFactory == nil {
-		panic(throw.IllegalValue())
-	}
-	return defaultMaterialAllocationStrategy{hashFactory, usePower}
+func NewMaterialAllocationStrategy(usePower bool) MaterialAllocationStrategy {
+	return defaultMaterialAllocationStrategy{sha256.New, usePower}
 }
 
 type defaultMaterialAllocationStrategy struct {
@@ -52,7 +50,7 @@ func (v defaultMaterialAllocationStrategy) CreateCalculator(entropy longbits.Fix
 		panic(throw.IllegalState())
 	case entropy == nil:
 		panic(throw.IllegalValue())
-	case !mPop.IsValid():
+	case mPop == nil || !mPop.IsValid():
 		panic(throw.IllegalValue())
 	case v.usePower:
 		if mPop.GetWorkingPower() == 0 {
@@ -87,9 +85,7 @@ func (v defaultMaterialAllocationCalc) metricOfDrop(jt jet.DropID) uint64 {
 	encoding.PutUint64(b[:], uint64(jt))
 	_, _ = h.Write(b[:])
 	_, _ = v.entropy.WriteTo(h)
-	h.Sum(b[:0])
-
-	return encoding.Uint64(b[:])
+	return longbits.CutOutUint64(h.Sum(nil))
 }
 
 func (v defaultMaterialAllocationCalc) AllocationOfJets(jets []jet.ExactID, pn pulse.Number) map[jet.ID]node.ShortNodeID {

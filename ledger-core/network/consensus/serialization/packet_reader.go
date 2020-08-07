@@ -11,6 +11,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/insolar/assured-ledger/ledger-core/crypto/legacyadapter"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/network"
@@ -415,7 +416,7 @@ func (r *FullIntroductionReader) GetStartPower() member.Power {
 }
 
 func (r *FullIntroductionReader) GetNodePublicKey() cryptkit.SignatureKeyHolder {
-	return adapters.NewECDSASignatureKeyHolderFromBits(r.intro.NodePK, r.keyProcessor)
+	return legacyadapter.NewECDSASignatureKeyHolderFromBits(r.intro.NodePK, r.keyProcessor)
 }
 
 func (r *FullIntroductionReader) GetDefaultEndpoint() endpoints.Outbound {

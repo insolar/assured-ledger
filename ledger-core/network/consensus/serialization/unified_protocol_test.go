@@ -8,9 +8,9 @@ package serialization
 import (
 	"bytes"
 	"context"
-	"crypto/ecdsa"
 	"testing"
 
+	"github.com/insolar/assured-ledger/ledger-core/crypto/legacyadapter"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/phases"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
@@ -18,12 +18,11 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
 )
 
 var digester = func() cryptkit.DataDigester {
 	scheme := platformpolicy.NewPlatformCryptographyScheme()
-	digester := adapters.NewSha3512Digester(scheme)
+	digester := legacyadapter.NewSha3Digester512(scheme)
 	return digester
 }()
 
@@ -31,7 +30,7 @@ var signer = func() cryptkit.DigestSigner {
 	processor := platformpolicy.NewKeyProcessor()
 	key, _ := processor.GeneratePrivateKey()
 	scheme := platformpolicy.NewPlatformCryptographyScheme()
-	signer := adapters.NewECDSADigestSigner(key.(*ecdsa.PrivateKey), scheme)
+	signer := legacyadapter.NewECDSADigestSignerFromSK(key, scheme)
 	return signer
 }()
 

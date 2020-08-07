@@ -17,6 +17,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
+	"github.com/insolar/assured-ledger/ledger-core/crypto/legacyadapter"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
@@ -223,8 +224,8 @@ func (g *Base) localNodeAsCandidate() error {
 		return err
 	}
 
-	dig := cryptkit.NewDigest(longbits.NewBits512FromBytes(digest), adapters.SHA3512Digest)
-	sig := cryptkit.NewSignature(longbits.NewBits512FromBytes(signature.Bytes()), dig.GetDigestMethod().SignedBy(adapters.SECP256r1Sign))
+	dig := cryptkit.NewDigest(longbits.NewBits512FromBytes(digest), legacyadapter.SHA3Digest512)
+	sig := cryptkit.NewSignature(longbits.NewBits512FromBytes(signature.Bytes()), dig.GetDigestMethod().SignedBy(legacyadapter.SECP256r1Sign))
 	dsg := cryptkit.NewSignedDigest(dig, sig)
 
 	specialRole := member.SpecialRoleNone
@@ -238,8 +239,8 @@ func (g *Base) localNodeAsCandidate() error {
 	staticProfile := adapters.NewStaticProfileExt2(id, role, specialRole, startPower,
 		adapters.NewStaticProfileExtensionExt(id, ref, sig),
 		adapters.NewOutboundIP(endpointAddr),
-		adapters.NewECDSAPublicKeyStore(publicKey.(*ecdsa.PublicKey)),
-		adapters.NewECDSASignatureKeyHolder(publicKey.(*ecdsa.PublicKey), g.KeyProcessor),
+		legacyadapter.NewECDSAPublicKeyStoreFromPK(publicKey.(*ecdsa.PublicKey)),
+		legacyadapter.NewECDSASignatureKeyHolder(publicKey.(*ecdsa.PublicKey), g.KeyProcessor),
 		dsg,
 	)
 

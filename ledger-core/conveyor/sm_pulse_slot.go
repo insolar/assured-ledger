@@ -100,7 +100,7 @@ func (p *PulseSlotMachine) setFuture(pd pulse.Data) {
 	case p.pulseSlot.pulseData == nil:
 		p.pulseSlot.pulseData = &futurePulseDataHolder{
 			state: Future,
-			bd:    BeatData{ Range: pd.AsRange() }, // keep unnamed params to have explicit set of fields
+			bd:    BeatData{ Range: pd.AsRange() },
 		}
 	default:
 		panic(throw.IllegalState())

@@ -8,7 +8,6 @@ package buildersvc
 import (
 	"sync"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jetalloc"
@@ -34,14 +33,16 @@ type AppendFuture interface {
 }
 
 type Service interface {
-	CreatePlash(node.ShortNodeID, pulse.Range, jet.Tree, census.OnlinePopulation) (PlashAssistant, []jet.ExactID)
+	CreatePlash(pulse.Range, jet.Tree, census.OnlinePopulation) (PlashAssistant, []jet.ExactID)
 	AppendToDrop(jet.DropID, AppendFuture, lineage.ResolvedBundle)
 }
 
 var _ Service = &serviceImpl{}
 
 func NewService() Service {
-	return &serviceImpl{}
+	return &serviceImpl{
+		allocationStrategy: jetalloc.NewMaterialAllocationStrategy(false),
+	}
 }
 
 type serviceImpl struct {
@@ -76,13 +77,13 @@ func (p *serviceImpl) get(pn pulse.Number) *plashAssistant {
 	return p.plashes[pn]
 }
 
-func (p *serviceImpl) CreatePlash(localNodeID node.ShortNodeID, pr pulse.Range, tree jet.Tree, population census.OnlinePopulation) (PlashAssistant, []jet.ExactID) {
-	switch {
-	case population == nil:
-		panic(throw.IllegalValue())
-	case localNodeID.IsAbsent():
+func (p *serviceImpl) CreatePlash(pr pulse.Range, tree jet.Tree, population census.OnlinePopulation) (PlashAssistant, []jet.ExactID) {
+
+	localNodeID := population.GetLocalProfile().GetNodeID()
+	if localNodeID.IsAbsent() {
 		panic(throw.IllegalValue())
 	}
+
 	pd := pr.RightBoundData()
 	pd.EnsurePulsarData()
 
@@ -101,6 +102,7 @@ func (p *serviceImpl) CreatePlash(localNodeID node.ShortNodeID, pr pulse.Range, 
 		pulseData: pd,
 		population: population,
 		dropAssists: map[jet.ID]*dropAssistant{},
+//		merkle: merkler.NewForkingCalculator(),
 	}
 
 	if tree == nil || tree.IsEmpty() {

@@ -19,5 +19,5 @@ type SecretKeyStore interface {
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit.KeyStoreFactory -o . -s _mock.go -g
 
 type KeyStoreFactory interface {
-	CreatePublicKeyStore(skh SignatureKeyHolder) PublicKeyStore
+	CreatePublicKeyStore(SignatureKeyHolder) PublicKeyStore
 }

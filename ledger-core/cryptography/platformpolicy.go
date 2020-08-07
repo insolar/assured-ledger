@@ -27,10 +27,11 @@ type Verifier interface {
 type PlatformCryptographyScheme interface {
 	PublicKeySize() int
 	SignatureSize() int
-	ReferenceHashSize() int
-	IntegrityHashSize() int
 
+	ReferenceHashSize() int
 	ReferenceHasher() Hasher
+
+	IntegrityHashSize() int
 	IntegrityHasher() Hasher
 
 	DataSigner(crypto.PrivateKey, Hasher) Signer

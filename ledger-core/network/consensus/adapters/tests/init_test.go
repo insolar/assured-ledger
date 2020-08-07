@@ -17,6 +17,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
+	"github.com/insolar/assured-ledger/ledger-core/crypto/legacyadapter"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
@@ -296,8 +297,8 @@ func nodesFromInfo(nodeInfos []*nodeMeta) ([]nodeinfo.NetworkNode, []nodeinfo.Ne
 		}
 
 		dsg := cryptkit.NewSignedDigest(
-			cryptkit.NewDigest(longbits.NewBits512FromBytes(d), adapters.SHA3512Digest),
-			cryptkit.NewSignature(longbits.NewBits512FromBytes(s.Bytes()), adapters.SHA3512Digest.SignedBy(adapters.SECP256r1Sign)),
+			cryptkit.NewDigest(longbits.NewBits512FromBytes(d), legacyadapter.SHA3Digest512),
+			cryptkit.NewSignature(longbits.NewBits512FromBytes(s.Bytes()), legacyadapter.SHA3Digest512.SignedBy(legacyadapter.SECP256r1Sign)),
 		)
 
 		nn.SetSignature(dsg)

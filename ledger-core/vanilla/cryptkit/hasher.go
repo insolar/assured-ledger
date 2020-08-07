@@ -65,10 +65,10 @@ func HashToBytes(hasher hash.Hash, b []byte) {
 func ByteDigestOfHash(digester BasicDigester, hasher hash.Hash) []byte {
 	n := digester.GetDigestSize()
 	h := hasher.Sum(make([]byte, 0, n))
-	if len(h) != n {
+	if len(h) < n {
 		panic(throw.IllegalValue())
 	}
-	return h
+	return h[:n]
 }
 
 func DigestOfHash(digester BasicDigester, hasher hash.Hash) Digest {

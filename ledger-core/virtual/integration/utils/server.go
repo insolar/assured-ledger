@@ -25,6 +25,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -140,7 +141,7 @@ func newServerExt(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFi
 
 	s.pulseManager = PulseManager
 	s.pulseStorage = Pulses
-	censusMock := testpop.CreateOneNodePopulationMock(t, s.caller)
+	censusMock := testpop.CreateOneNodePopulationMock(t, s.caller, member.PrimaryRoleVirtual)
 	s.pulseGenerator = testutils.NewPulseGenerator(10, censusMock)
 	s.incrementPulse()
 

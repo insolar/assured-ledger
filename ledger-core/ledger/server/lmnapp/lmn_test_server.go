@@ -17,9 +17,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/testpop"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -29,8 +29,7 @@ func NewTestServer(t logcommon.TestingLogger) *TestServer {
 	instestlogger.SetTestOutput(t)
 	s := &TestServer{ t: t.(minimock.Tester) }
 
-	localRef := gen.UniqueGlobalRef()
-	pop := testpop.CreateOneNodePopulationMock(s.t, localRef)
+	pop := testpop.CreateManyNodePopulationMock(s.t, 1, member.PrimaryRoleLightMaterial)
 	s.pg = testutils.NewPulseGenerator(10, pop)
 	s.pg.Generate()
 
