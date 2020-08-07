@@ -14,8 +14,8 @@ import (
 type SignatureVerifierFactoryMock struct {
 	t minimock.Tester
 
-	funcCreateSignatureVerifierWithPKS          func(pks PublicKeyStore) (s1 SignatureVerifier)
-	inspectFuncCreateSignatureVerifierWithPKS   func(pks PublicKeyStore)
+	funcCreateSignatureVerifierWithPKS          func(p1 PublicKeyStore) (s1 SignatureVerifier)
+	inspectFuncCreateSignatureVerifierWithPKS   func(p1 PublicKeyStore)
 	afterCreateSignatureVerifierWithPKSCounter  uint64
 	beforeCreateSignatureVerifierWithPKSCounter uint64
 	CreateSignatureVerifierWithPKSMock          mSignatureVerifierFactoryMockCreateSignatureVerifierWithPKS
@@ -53,7 +53,7 @@ type SignatureVerifierFactoryMockCreateSignatureVerifierWithPKSExpectation struc
 
 // SignatureVerifierFactoryMockCreateSignatureVerifierWithPKSParams contains parameters of the SignatureVerifierFactory.CreateSignatureVerifierWithPKS
 type SignatureVerifierFactoryMockCreateSignatureVerifierWithPKSParams struct {
-	pks PublicKeyStore
+	p1 PublicKeyStore
 }
 
 // SignatureVerifierFactoryMockCreateSignatureVerifierWithPKSResults contains results of the SignatureVerifierFactory.CreateSignatureVerifierWithPKS
@@ -62,7 +62,7 @@ type SignatureVerifierFactoryMockCreateSignatureVerifierWithPKSResults struct {
 }
 
 // Expect sets up expected params for SignatureVerifierFactory.CreateSignatureVerifierWithPKS
-func (mmCreateSignatureVerifierWithPKS *mSignatureVerifierFactoryMockCreateSignatureVerifierWithPKS) Expect(pks PublicKeyStore) *mSignatureVerifierFactoryMockCreateSignatureVerifierWithPKS {
+func (mmCreateSignatureVerifierWithPKS *mSignatureVerifierFactoryMockCreateSignatureVerifierWithPKS) Expect(p1 PublicKeyStore) *mSignatureVerifierFactoryMockCreateSignatureVerifierWithPKS {
 	if mmCreateSignatureVerifierWithPKS.mock.funcCreateSignatureVerifierWithPKS != nil {
 		mmCreateSignatureVerifierWithPKS.mock.t.Fatalf("SignatureVerifierFactoryMock.CreateSignatureVerifierWithPKS mock is already set by Set")
 	}
@@ -71,7 +71,7 @@ func (mmCreateSignatureVerifierWithPKS *mSignatureVerifierFactoryMockCreateSigna
 		mmCreateSignatureVerifierWithPKS.defaultExpectation = &SignatureVerifierFactoryMockCreateSignatureVerifierWithPKSExpectation{}
 	}
 
-	mmCreateSignatureVerifierWithPKS.defaultExpectation.params = &SignatureVerifierFactoryMockCreateSignatureVerifierWithPKSParams{pks}
+	mmCreateSignatureVerifierWithPKS.defaultExpectation.params = &SignatureVerifierFactoryMockCreateSignatureVerifierWithPKSParams{p1}
 	for _, e := range mmCreateSignatureVerifierWithPKS.expectations {
 		if minimock.Equal(e.params, mmCreateSignatureVerifierWithPKS.defaultExpectation.params) {
 			mmCreateSignatureVerifierWithPKS.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmCreateSignatureVerifierWithPKS.defaultExpectation.params)
@@ -82,7 +82,7 @@ func (mmCreateSignatureVerifierWithPKS *mSignatureVerifierFactoryMockCreateSigna
 }
 
 // Inspect accepts an inspector function that has same arguments as the SignatureVerifierFactory.CreateSignatureVerifierWithPKS
-func (mmCreateSignatureVerifierWithPKS *mSignatureVerifierFactoryMockCreateSignatureVerifierWithPKS) Inspect(f func(pks PublicKeyStore)) *mSignatureVerifierFactoryMockCreateSignatureVerifierWithPKS {
+func (mmCreateSignatureVerifierWithPKS *mSignatureVerifierFactoryMockCreateSignatureVerifierWithPKS) Inspect(f func(p1 PublicKeyStore)) *mSignatureVerifierFactoryMockCreateSignatureVerifierWithPKS {
 	if mmCreateSignatureVerifierWithPKS.mock.inspectFuncCreateSignatureVerifierWithPKS != nil {
 		mmCreateSignatureVerifierWithPKS.mock.t.Fatalf("Inspect function is already set for SignatureVerifierFactoryMock.CreateSignatureVerifierWithPKS")
 	}
@@ -106,7 +106,7 @@ func (mmCreateSignatureVerifierWithPKS *mSignatureVerifierFactoryMockCreateSigna
 }
 
 //Set uses given function f to mock the SignatureVerifierFactory.CreateSignatureVerifierWithPKS method
-func (mmCreateSignatureVerifierWithPKS *mSignatureVerifierFactoryMockCreateSignatureVerifierWithPKS) Set(f func(pks PublicKeyStore) (s1 SignatureVerifier)) *SignatureVerifierFactoryMock {
+func (mmCreateSignatureVerifierWithPKS *mSignatureVerifierFactoryMockCreateSignatureVerifierWithPKS) Set(f func(p1 PublicKeyStore) (s1 SignatureVerifier)) *SignatureVerifierFactoryMock {
 	if mmCreateSignatureVerifierWithPKS.defaultExpectation != nil {
 		mmCreateSignatureVerifierWithPKS.mock.t.Fatalf("Default expectation is already set for the SignatureVerifierFactory.CreateSignatureVerifierWithPKS method")
 	}
@@ -121,14 +121,14 @@ func (mmCreateSignatureVerifierWithPKS *mSignatureVerifierFactoryMockCreateSigna
 
 // When sets expectation for the SignatureVerifierFactory.CreateSignatureVerifierWithPKS which will trigger the result defined by the following
 // Then helper
-func (mmCreateSignatureVerifierWithPKS *mSignatureVerifierFactoryMockCreateSignatureVerifierWithPKS) When(pks PublicKeyStore) *SignatureVerifierFactoryMockCreateSignatureVerifierWithPKSExpectation {
+func (mmCreateSignatureVerifierWithPKS *mSignatureVerifierFactoryMockCreateSignatureVerifierWithPKS) When(p1 PublicKeyStore) *SignatureVerifierFactoryMockCreateSignatureVerifierWithPKSExpectation {
 	if mmCreateSignatureVerifierWithPKS.mock.funcCreateSignatureVerifierWithPKS != nil {
 		mmCreateSignatureVerifierWithPKS.mock.t.Fatalf("SignatureVerifierFactoryMock.CreateSignatureVerifierWithPKS mock is already set by Set")
 	}
 
 	expectation := &SignatureVerifierFactoryMockCreateSignatureVerifierWithPKSExpectation{
 		mock:   mmCreateSignatureVerifierWithPKS.mock,
-		params: &SignatureVerifierFactoryMockCreateSignatureVerifierWithPKSParams{pks},
+		params: &SignatureVerifierFactoryMockCreateSignatureVerifierWithPKSParams{p1},
 	}
 	mmCreateSignatureVerifierWithPKS.expectations = append(mmCreateSignatureVerifierWithPKS.expectations, expectation)
 	return expectation
@@ -141,15 +141,15 @@ func (e *SignatureVerifierFactoryMockCreateSignatureVerifierWithPKSExpectation) 
 }
 
 // CreateSignatureVerifierWithPKS implements SignatureVerifierFactory
-func (mmCreateSignatureVerifierWithPKS *SignatureVerifierFactoryMock) CreateSignatureVerifierWithPKS(pks PublicKeyStore) (s1 SignatureVerifier) {
+func (mmCreateSignatureVerifierWithPKS *SignatureVerifierFactoryMock) CreateSignatureVerifierWithPKS(p1 PublicKeyStore) (s1 SignatureVerifier) {
 	mm_atomic.AddUint64(&mmCreateSignatureVerifierWithPKS.beforeCreateSignatureVerifierWithPKSCounter, 1)
 	defer mm_atomic.AddUint64(&mmCreateSignatureVerifierWithPKS.afterCreateSignatureVerifierWithPKSCounter, 1)
 
 	if mmCreateSignatureVerifierWithPKS.inspectFuncCreateSignatureVerifierWithPKS != nil {
-		mmCreateSignatureVerifierWithPKS.inspectFuncCreateSignatureVerifierWithPKS(pks)
+		mmCreateSignatureVerifierWithPKS.inspectFuncCreateSignatureVerifierWithPKS(p1)
 	}
 
-	mm_params := &SignatureVerifierFactoryMockCreateSignatureVerifierWithPKSParams{pks}
+	mm_params := &SignatureVerifierFactoryMockCreateSignatureVerifierWithPKSParams{p1}
 
 	// Record call args
 	mmCreateSignatureVerifierWithPKS.CreateSignatureVerifierWithPKSMock.mutex.Lock()
@@ -166,7 +166,7 @@ func (mmCreateSignatureVerifierWithPKS *SignatureVerifierFactoryMock) CreateSign
 	if mmCreateSignatureVerifierWithPKS.CreateSignatureVerifierWithPKSMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmCreateSignatureVerifierWithPKS.CreateSignatureVerifierWithPKSMock.defaultExpectation.Counter, 1)
 		mm_want := mmCreateSignatureVerifierWithPKS.CreateSignatureVerifierWithPKSMock.defaultExpectation.params
-		mm_got := SignatureVerifierFactoryMockCreateSignatureVerifierWithPKSParams{pks}
+		mm_got := SignatureVerifierFactoryMockCreateSignatureVerifierWithPKSParams{p1}
 		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
 			mmCreateSignatureVerifierWithPKS.t.Errorf("SignatureVerifierFactoryMock.CreateSignatureVerifierWithPKS got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
@@ -178,9 +178,9 @@ func (mmCreateSignatureVerifierWithPKS *SignatureVerifierFactoryMock) CreateSign
 		return (*mm_results).s1
 	}
 	if mmCreateSignatureVerifierWithPKS.funcCreateSignatureVerifierWithPKS != nil {
-		return mmCreateSignatureVerifierWithPKS.funcCreateSignatureVerifierWithPKS(pks)
+		return mmCreateSignatureVerifierWithPKS.funcCreateSignatureVerifierWithPKS(p1)
 	}
-	mmCreateSignatureVerifierWithPKS.t.Fatalf("Unexpected call to SignatureVerifierFactoryMock.CreateSignatureVerifierWithPKS. %v", pks)
+	mmCreateSignatureVerifierWithPKS.t.Fatalf("Unexpected call to SignatureVerifierFactoryMock.CreateSignatureVerifierWithPKS. %v", p1)
 	return
 }
 

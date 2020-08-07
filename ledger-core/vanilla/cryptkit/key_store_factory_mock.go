@@ -14,8 +14,8 @@ import (
 type KeyStoreFactoryMock struct {
 	t minimock.Tester
 
-	funcCreatePublicKeyStore          func(skh SignatureKeyHolder) (p1 PublicKeyStore)
-	inspectFuncCreatePublicKeyStore   func(skh SignatureKeyHolder)
+	funcCreatePublicKeyStore          func(s1 SignatureKeyHolder) (p1 PublicKeyStore)
+	inspectFuncCreatePublicKeyStore   func(s1 SignatureKeyHolder)
 	afterCreatePublicKeyStoreCounter  uint64
 	beforeCreatePublicKeyStoreCounter uint64
 	CreatePublicKeyStoreMock          mKeyStoreFactoryMockCreatePublicKeyStore
@@ -53,7 +53,7 @@ type KeyStoreFactoryMockCreatePublicKeyStoreExpectation struct {
 
 // KeyStoreFactoryMockCreatePublicKeyStoreParams contains parameters of the KeyStoreFactory.CreatePublicKeyStore
 type KeyStoreFactoryMockCreatePublicKeyStoreParams struct {
-	skh SignatureKeyHolder
+	s1 SignatureKeyHolder
 }
 
 // KeyStoreFactoryMockCreatePublicKeyStoreResults contains results of the KeyStoreFactory.CreatePublicKeyStore
@@ -62,7 +62,7 @@ type KeyStoreFactoryMockCreatePublicKeyStoreResults struct {
 }
 
 // Expect sets up expected params for KeyStoreFactory.CreatePublicKeyStore
-func (mmCreatePublicKeyStore *mKeyStoreFactoryMockCreatePublicKeyStore) Expect(skh SignatureKeyHolder) *mKeyStoreFactoryMockCreatePublicKeyStore {
+func (mmCreatePublicKeyStore *mKeyStoreFactoryMockCreatePublicKeyStore) Expect(s1 SignatureKeyHolder) *mKeyStoreFactoryMockCreatePublicKeyStore {
 	if mmCreatePublicKeyStore.mock.funcCreatePublicKeyStore != nil {
 		mmCreatePublicKeyStore.mock.t.Fatalf("KeyStoreFactoryMock.CreatePublicKeyStore mock is already set by Set")
 	}
@@ -71,7 +71,7 @@ func (mmCreatePublicKeyStore *mKeyStoreFactoryMockCreatePublicKeyStore) Expect(s
 		mmCreatePublicKeyStore.defaultExpectation = &KeyStoreFactoryMockCreatePublicKeyStoreExpectation{}
 	}
 
-	mmCreatePublicKeyStore.defaultExpectation.params = &KeyStoreFactoryMockCreatePublicKeyStoreParams{skh}
+	mmCreatePublicKeyStore.defaultExpectation.params = &KeyStoreFactoryMockCreatePublicKeyStoreParams{s1}
 	for _, e := range mmCreatePublicKeyStore.expectations {
 		if minimock.Equal(e.params, mmCreatePublicKeyStore.defaultExpectation.params) {
 			mmCreatePublicKeyStore.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmCreatePublicKeyStore.defaultExpectation.params)
@@ -82,7 +82,7 @@ func (mmCreatePublicKeyStore *mKeyStoreFactoryMockCreatePublicKeyStore) Expect(s
 }
 
 // Inspect accepts an inspector function that has same arguments as the KeyStoreFactory.CreatePublicKeyStore
-func (mmCreatePublicKeyStore *mKeyStoreFactoryMockCreatePublicKeyStore) Inspect(f func(skh SignatureKeyHolder)) *mKeyStoreFactoryMockCreatePublicKeyStore {
+func (mmCreatePublicKeyStore *mKeyStoreFactoryMockCreatePublicKeyStore) Inspect(f func(s1 SignatureKeyHolder)) *mKeyStoreFactoryMockCreatePublicKeyStore {
 	if mmCreatePublicKeyStore.mock.inspectFuncCreatePublicKeyStore != nil {
 		mmCreatePublicKeyStore.mock.t.Fatalf("Inspect function is already set for KeyStoreFactoryMock.CreatePublicKeyStore")
 	}
@@ -106,7 +106,7 @@ func (mmCreatePublicKeyStore *mKeyStoreFactoryMockCreatePublicKeyStore) Return(p
 }
 
 //Set uses given function f to mock the KeyStoreFactory.CreatePublicKeyStore method
-func (mmCreatePublicKeyStore *mKeyStoreFactoryMockCreatePublicKeyStore) Set(f func(skh SignatureKeyHolder) (p1 PublicKeyStore)) *KeyStoreFactoryMock {
+func (mmCreatePublicKeyStore *mKeyStoreFactoryMockCreatePublicKeyStore) Set(f func(s1 SignatureKeyHolder) (p1 PublicKeyStore)) *KeyStoreFactoryMock {
 	if mmCreatePublicKeyStore.defaultExpectation != nil {
 		mmCreatePublicKeyStore.mock.t.Fatalf("Default expectation is already set for the KeyStoreFactory.CreatePublicKeyStore method")
 	}
@@ -121,14 +121,14 @@ func (mmCreatePublicKeyStore *mKeyStoreFactoryMockCreatePublicKeyStore) Set(f fu
 
 // When sets expectation for the KeyStoreFactory.CreatePublicKeyStore which will trigger the result defined by the following
 // Then helper
-func (mmCreatePublicKeyStore *mKeyStoreFactoryMockCreatePublicKeyStore) When(skh SignatureKeyHolder) *KeyStoreFactoryMockCreatePublicKeyStoreExpectation {
+func (mmCreatePublicKeyStore *mKeyStoreFactoryMockCreatePublicKeyStore) When(s1 SignatureKeyHolder) *KeyStoreFactoryMockCreatePublicKeyStoreExpectation {
 	if mmCreatePublicKeyStore.mock.funcCreatePublicKeyStore != nil {
 		mmCreatePublicKeyStore.mock.t.Fatalf("KeyStoreFactoryMock.CreatePublicKeyStore mock is already set by Set")
 	}
 
 	expectation := &KeyStoreFactoryMockCreatePublicKeyStoreExpectation{
 		mock:   mmCreatePublicKeyStore.mock,
-		params: &KeyStoreFactoryMockCreatePublicKeyStoreParams{skh},
+		params: &KeyStoreFactoryMockCreatePublicKeyStoreParams{s1},
 	}
 	mmCreatePublicKeyStore.expectations = append(mmCreatePublicKeyStore.expectations, expectation)
 	return expectation
@@ -141,15 +141,15 @@ func (e *KeyStoreFactoryMockCreatePublicKeyStoreExpectation) Then(p1 PublicKeySt
 }
 
 // CreatePublicKeyStore implements KeyStoreFactory
-func (mmCreatePublicKeyStore *KeyStoreFactoryMock) CreatePublicKeyStore(skh SignatureKeyHolder) (p1 PublicKeyStore) {
+func (mmCreatePublicKeyStore *KeyStoreFactoryMock) CreatePublicKeyStore(s1 SignatureKeyHolder) (p1 PublicKeyStore) {
 	mm_atomic.AddUint64(&mmCreatePublicKeyStore.beforeCreatePublicKeyStoreCounter, 1)
 	defer mm_atomic.AddUint64(&mmCreatePublicKeyStore.afterCreatePublicKeyStoreCounter, 1)
 
 	if mmCreatePublicKeyStore.inspectFuncCreatePublicKeyStore != nil {
-		mmCreatePublicKeyStore.inspectFuncCreatePublicKeyStore(skh)
+		mmCreatePublicKeyStore.inspectFuncCreatePublicKeyStore(s1)
 	}
 
-	mm_params := &KeyStoreFactoryMockCreatePublicKeyStoreParams{skh}
+	mm_params := &KeyStoreFactoryMockCreatePublicKeyStoreParams{s1}
 
 	// Record call args
 	mmCreatePublicKeyStore.CreatePublicKeyStoreMock.mutex.Lock()
@@ -166,7 +166,7 @@ func (mmCreatePublicKeyStore *KeyStoreFactoryMock) CreatePublicKeyStore(skh Sign
 	if mmCreatePublicKeyStore.CreatePublicKeyStoreMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmCreatePublicKeyStore.CreatePublicKeyStoreMock.defaultExpectation.Counter, 1)
 		mm_want := mmCreatePublicKeyStore.CreatePublicKeyStoreMock.defaultExpectation.params
-		mm_got := KeyStoreFactoryMockCreatePublicKeyStoreParams{skh}
+		mm_got := KeyStoreFactoryMockCreatePublicKeyStoreParams{s1}
 		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
 			mmCreatePublicKeyStore.t.Errorf("KeyStoreFactoryMock.CreatePublicKeyStore got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
@@ -178,9 +178,9 @@ func (mmCreatePublicKeyStore *KeyStoreFactoryMock) CreatePublicKeyStore(skh Sign
 		return (*mm_results).p1
 	}
 	if mmCreatePublicKeyStore.funcCreatePublicKeyStore != nil {
-		return mmCreatePublicKeyStore.funcCreatePublicKeyStore(skh)
+		return mmCreatePublicKeyStore.funcCreatePublicKeyStore(s1)
 	}
-	mmCreatePublicKeyStore.t.Fatalf("Unexpected call to KeyStoreFactoryMock.CreatePublicKeyStore. %v", skh)
+	mmCreatePublicKeyStore.t.Fatalf("Unexpected call to KeyStoreFactoryMock.CreatePublicKeyStore. %v", s1)
 	return
 }
 

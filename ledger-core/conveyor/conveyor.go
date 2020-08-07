@@ -494,7 +494,7 @@ func (p *PulseConveyor) CommitPulseChange(pr pulse.Range, pulseStart time.Time, 
 			}
 		}
 
-		bd := BeatData{pr, online }
+		bd := BeatData{Range: pr, Online: online}
 		p.pdm.putPulseUpdate(bd)
 
 		if p.presentMachine != nil {
