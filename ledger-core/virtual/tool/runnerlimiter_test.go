@@ -127,7 +127,7 @@ func TestParallelProcessingLimiter(t *testing.T) {
 	conv.AddDependency(globalLimiter)
 	conv.AddDependency(t)
 	conv.AddDependency(testDone)
-	require.NoError(t, conv.CommitPulseChange(pd.AsRange(), time.Now()))
+	require.NoError(t, conv.CommitPulseChange(pd.AsRange(), time.Now(), nil))
 	require.NoError(t, conv.AddInput(ctx, startPn, nil))
 	select {
 	case <-testDone:

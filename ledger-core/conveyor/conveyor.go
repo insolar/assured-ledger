@@ -15,6 +15,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/managed"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/sworker"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
@@ -191,7 +192,8 @@ func (p *PulseConveyor) AddInputExt(pn pulse.Number, event InputEvent,
 	if pulseState != Antique {
 		pr, _ = pulseSlotMachine.pulseSlot.PulseRange()
 	} else if pulseSlot := p.pdm.getCachedPulseSlot(targetPN); pulseSlot != nil {
-		pr, _ = pulseSlot.pulseData.PulseRange()
+		bd, _ := pulseSlot.pulseData.BeatData()
+		pr = bd.Range
 	}
 
 	setup, err := p.factoryFn(createDefaults.Context, event, InputContext{targetPN, pr})
@@ -465,7 +467,7 @@ func (p *PulseConveyor) CancelPulseChange() error {
 	})
 }
 
-func (p *PulseConveyor) CommitPulseChange(pr pulse.Range, pulseStart time.Time) error {
+func (p *PulseConveyor) CommitPulseChange(pr pulse.Range, pulseStart time.Time, online census.OnlinePopulation) error {
 	pd := pr.RightBoundData()
 	pd.EnsurePulsarData()
 
@@ -492,7 +494,8 @@ func (p *PulseConveyor) CommitPulseChange(pr pulse.Range, pulseStart time.Time) 
 			}
 		}
 
-		p.pdm.putPulseRange(pr)
+		bd := BeatData{pr, online }
+		p.pdm.putPulseUpdate(bd)
 
 		if p.presentMachine != nil {
 			p.presentMachine.setPast()
@@ -503,12 +506,12 @@ func (p *PulseConveyor) CommitPulseChange(pr pulse.Range, pulseStart time.Time) 
 		p.comps.PulseChanged(p, pr)
 
 		ctx.Migrate(func() {
-			p._migratePulseSlots(ctx, pr, prevPresentPN, prevFuturePN, pulseStart.UTC())
+			p._migratePulseSlots(ctx, bd, prevPresentPN, prevFuturePN, pulseStart.UTC())
 		})
 	})
 }
 
-func (p *PulseConveyor) _migratePulseSlots(ctx smachine.MachineCallContext, pr pulse.Range,
+func (p *PulseConveyor) _migratePulseSlots(ctx smachine.MachineCallContext, bd BeatData,
 	_ /* prevPresentPN */, prevFuturePN pulse.Number, pulseStart time.Time,
 ) {
 	if p.unpublishPulse.IsTimePulse() {
@@ -517,10 +520,10 @@ func (p *PulseConveyor) _migratePulseSlots(ctx smachine.MachineCallContext, pr p
 		p.unpublishPulse = pulse.Unknown
 	}
 
-	pd := pr.RightBoundData()
+	pd := bd.Range.RightBoundData()
 
 	prevFuture, activatePresent := p._publishUninitializedPulseSlotMachine(prevFuturePN)
-	prevFuture.setPresent(pr, pulseStart)
+	prevFuture.setPresent(bd, pulseStart)
 	p.presentMachine = prevFuture
 
 	if prevFuturePN != pd.PulseNumber {
@@ -537,7 +540,7 @@ func (p *PulseConveyor) _migratePulseSlots(ctx smachine.MachineCallContext, pr p
 	if activatePresent {
 		p.presentMachine.activate(p.workerCtx, ctx.AddNew)
 	}
-	p.pdm.setPresentPulse(pr) // reroutes incoming events
+	p.pdm.setPresentPulse(bd.Range) // reroutes incoming events
 }
 
 func (p *PulseConveyor) StopNoWait() {

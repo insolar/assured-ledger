@@ -94,25 +94,26 @@ func (p *PulseSlotMachine) activate(workerCtx context.Context,
 }
 
 func (p *PulseSlotMachine) setFuture(pd pulse.Data) {
-	if !pd.IsValidExpectedPulsarData() {
-		panic("illegal value")
-	}
-
 	switch {
+	case !pd.IsValidExpectedPulsarData():
+		panic(throw.IllegalValue())
 	case p.pulseSlot.pulseData == nil:
-		p.pulseSlot.pulseData = &futurePulseDataHolder{expected: pd}
+		p.pulseSlot.pulseData = &futurePulseDataHolder{
+			state: Future,
+			bd:    BeatData{ Range: pd.AsRange() }, // keep unnamed params to have explicit set of fields
+		}
 	default:
-		panic("illegal state")
+		panic(throw.IllegalState())
 	}
 }
 
-func (p *PulseSlotMachine) setPresent(pr pulse.Range, pulseStart time.Time) {
+func (p *PulseSlotMachine) setPresent(bd BeatData, pulseStart time.Time) {
 	switch {
 	case p.pulseSlot.pulseData == nil || p.innerMachine.IsEmpty():
-		pr.RightBoundData().EnsurePulsarData()
-		p.pulseSlot.pulseData = &presentPulseDataHolder{pr: pr, at: pulseStart}
+		bd.Range.RightBoundData().EnsurePulsarData()
+		p.pulseSlot.pulseData = &presentPulseDataHolder{bd: bd, at: pulseStart}
 	default:
-		p.pulseSlot.pulseData.MakePresent(pr, pulseStart)
+		p.pulseSlot.pulseData.MakePresent(bd, pulseStart)
 	}
 }
 

@@ -62,33 +62,6 @@ func (p *SMPlash) stepInit(ctx smachine.InitializationContext) smachine.StateUpd
 	return ctx.Jump(p.stepCreatePlush)
 }
 
-// func (p *SMPlash) getPrevDropPulseNumber() pulse.Number {
-// 	pr, _ := p.pulseSlot.PulseRange()
-//
-// 	if !pr.IsArticulated() {
-// 		if pnd := pr.LeftPrevDelta(); pnd != 0 {
-// 			return pr.LeftBoundNumber().Prev(pnd)
-// 		}
-// 		return pulse.Unknown
-// 	}
-//
-// 	prevPN := pulse.Unknown
-// 	captureNext := true
-// 	pr.EnumData(func(data pulse.Data) bool {
-// 		switch {
-// 		case data.PulseEpoch.IsArticulation():
-// 			captureNext = true
-// 		case !captureNext:
-// 		case data.IsFirstPulse():
-// 		default:
-// 			captureNext = false
-// 			prevPN = data.PrevPulseNumber()
-// 		}
-// 		return false
-// 	})
-// 	return prevPN
-// }
-
 func (p *SMPlash) stepCreatePlush(ctx smachine.ExecutionContext) smachine.StateUpdate {
 
 	var (

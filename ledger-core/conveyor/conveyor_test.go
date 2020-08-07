@@ -186,7 +186,7 @@ func TestPulseConveyor_AddInput(t *testing.T) {
 			conveyor.Stop()
 		}()
 
-		require.NoError(t, conveyor.CommitPulseChange(pd.AsRange(), time.Now()))
+		require.NoError(t, conveyor.CommitPulseChange(pd.AsRange(), time.Now(), nil))
 		require.NoError(t, conveyor.AddInput(ctx, pn, InputEvent(nil)))
 		require.Error(t, conveyor.AddInput(ctx, 1, InputEvent(nil)))
 	})
@@ -206,7 +206,7 @@ func TestPulseConveyor_AddInput(t *testing.T) {
 			conveyor.Stop()
 		}()
 
-		require.NoError(t, conveyor.CommitPulseChange(pd.AsRange(), time.Now()))
+		require.NoError(t, conveyor.CommitPulseChange(pd.AsRange(), time.Now(), nil))
 
 		require.NoError(t, conveyor.AddInput(ctx, startPn, InputEvent(nil)))
 	})
@@ -227,13 +227,13 @@ func TestPulseConveyor_AddInput(t *testing.T) {
 			conveyor.Stop()
 		}()
 
-		require.NoError(t, conveyor.CommitPulseChange(pd.AsRange(), time.Now()))
+		require.NoError(t, conveyor.CommitPulseChange(pd.AsRange(), time.Now(), nil))
 
 		require.NoError(t, conveyor.AddInput(ctx, firstPn, InputEvent(nil)))
 
 		require.NoError(t, conveyor.PreparePulseChange(nil))
 
-		require.NoError(t, conveyor.CommitPulseChange(nextPd.AsRange(), time.Now()))
+		require.NoError(t, conveyor.CommitPulseChange(nextPd.AsRange(), time.Now(), nil))
 
 		require.NoError(t, conveyor.AddInput(ctx, pn, InputEvent(nil)))
 	})
@@ -253,7 +253,7 @@ func TestPulseConveyor_AddInput(t *testing.T) {
 			conveyor.Stop()
 		}()
 
-		require.NoError(t, conveyor.CommitPulseChange(nextPd.AsRange(), time.Now()))
+		require.NoError(t, conveyor.CommitPulseChange(nextPd.AsRange(), time.Now(), nil))
 
 		require.NoError(t, conveyor.AddInput(ctx, firstPn, InputEvent(nil)))
 	})
@@ -274,13 +274,13 @@ func TestPulseConveyor_AddInput(t *testing.T) {
 			conveyor.Stop()
 		}()
 
-		require.NoError(t, conveyor.CommitPulseChange(pd.AsRange(), time.Now()))
+		require.NoError(t, conveyor.CommitPulseChange(pd.AsRange(), time.Now(), nil))
 
 		// add less than cache limit
 		for i := (maxPastPulseAge / (2 * delta)) - 1; i > 0; i-- {
 			pd = pd.CreateNextPulse(emptyEntropyFn)
 			require.NoError(t, conveyor.PreparePulseChange(nil))
-			require.NoError(t, conveyor.CommitPulseChange(pd.AsRange(), time.Now()))
+			require.NoError(t, conveyor.CommitPulseChange(pd.AsRange(), time.Now(), nil))
 		}
 
 		require.NoError(t, conveyor.AddInput(ctx, firstPn, InputEvent(nil)))
@@ -301,13 +301,13 @@ func TestPulseConveyor_AddInput(t *testing.T) {
 			conveyor.Stop()
 		}()
 
-		require.NoError(t, conveyor.CommitPulseChange(pd.AsRange(), time.Now()))
+		require.NoError(t, conveyor.CommitPulseChange(pd.AsRange(), time.Now(), nil))
 
 		// add more than cache limit
 		for i := (maxPastPulseAge / (2 * delta)) + 1; i > 0; i-- {
 			pd = pd.CreateNextPulse(emptyEntropyFn)
 			require.NoError(t, conveyor.PreparePulseChange(nil))
-			require.NoError(t, conveyor.CommitPulseChange(pd.AsRange(), time.Now()))
+			require.NoError(t, conveyor.CommitPulseChange(pd.AsRange(), time.Now(), nil))
 		}
 
 		require.Nil(t, conveyor.pdm.getCachedPulseSlot(firstPn))
@@ -353,22 +353,22 @@ func TestPulseConveyor_Cache(t *testing.T) {
 	dm := conveyor.GetDataManager()
 
 	// There are no pulses
-	prevPN, prevRange := dm.GetPrevPulseRange()
+	prevPN, prevBeat := dm.GetPrevBeatData()
 	require.Equal(t, pulse.Unknown, prevPN)
-	require.Nil(t, prevRange)
+	require.Nil(t, prevBeat.Range)
 
-	require.NoError(t, conveyor.CommitPulseChange(pd.AsRange(), time.Now()))
+	require.NoError(t, conveyor.CommitPulseChange(pd.AsRange(), time.Now(), nil))
 
 	// There is only one pulse, hence no prev
-	prevPN, prevRange = dm.GetPrevPulseRange()
+	prevPN, prevBeat = dm.GetPrevBeatData()
 	require.Equal(t, pulse.Unknown, prevPN)
-	require.Nil(t, prevRange)
+	require.Nil(t, prevBeat.Range)
 
 	require.NoError(t, conveyor.PreparePulseChange(nil))
-	require.NoError(t, conveyor.CommitPulseChange(nextPd.AsRange(), time.Now()))
+	require.NoError(t, conveyor.CommitPulseChange(nextPd.AsRange(), time.Now(), nil))
 
 	// There is more than one pulse
-	prevPN, prevRange = dm.GetPrevPulseRange()
+	prevPN, prevBeat = dm.GetPrevBeatData()
 	require.Equal(t, firstPn, prevPN)
-	require.Equal(t, pd.AsRange(), prevRange)
+	require.Equal(t, pd.AsRange(), prevBeat.Range)
 }

@@ -59,12 +59,12 @@ func TestAntique_InheritPulseSlot(t *testing.T) {
 		conveyor.Stop()
 	}()
 
-	require.NoError(t, conveyor.CommitPulseChange(pd.AsRange(), time.Now()))
+	require.NoError(t, conveyor.CommitPulseChange(pd.AsRange(), time.Now(), nil))
 
 	for i := 5; i > 0; i-- {
 		pd = pd.CreateNextPulse(emptyEntropyFn)
 		require.NoError(t, conveyor.PreparePulseChange(nil))
-		require.NoError(t, conveyor.CommitPulseChange(pd.AsRange(), time.Now()))
+		require.NoError(t, conveyor.CommitPulseChange(pd.AsRange(), time.Now(), nil))
 	}
 
 	wg := sync.WaitGroup{}

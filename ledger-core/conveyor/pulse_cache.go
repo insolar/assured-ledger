@@ -9,9 +9,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/managed"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
+
+type BeatData = managed.BeatData
 
 // Cache that keeps (1) a PD younger than minRange (2) PD touched less than accessRotations ago.
 // Safe for concurrent access.
@@ -142,11 +145,11 @@ func (p *PulseDataCache) getPulseSlot(pn pulse.Number) *PulseSlot {
 	return nil
 }
 
-func (p *PulseDataCache) Get(pn pulse.Number) pulse.Range {
+func (p *PulseDataCache) Get(pn pulse.Number) BeatData {
 	return p.getAndTouch(pn)._cacheData()
 }
 
-func (p *PulseDataCache) Check(pn pulse.Number) pulse.Range {
+func (p *PulseDataCache) Check(pn pulse.Number) BeatData {
 	pr, _ := p.getNoTouch(pn)
 	return pr._cacheData()
 }
@@ -169,8 +172,8 @@ func (p *PulseDataCache) Touch(pn pulse.Number) bool {
 	return true
 }
 
-func (p *PulseDataCache) Put(pr pulse.Range) {
-	if pr == nil {
+func (p *PulseDataCache) Put(pd BeatData) {
+	if pd.Range == nil {
 		panic(throw.IllegalValue())
 	}
 
@@ -179,11 +182,11 @@ func (p *PulseDataCache) Put(pr pulse.Range) {
 
 	pns := make([]pulse.Number, 0, 4)
 	var ce *cacheEntry
-	pr.EnumNonArticulatedNumbers(func(pn pulse.Number, _, _ uint16) bool {
+	pd.Range.EnumNonArticulatedNumbers(func(pn pulse.Number, _, _ uint16) bool {
 		switch ece, m := p._getRO(pn); {
 		case m == miss:
 			//
-		case !pr.Equal(ece.pr):
+		case !pd.Range.Equal(ece.pd.Range):
 			panic(throw.New("mismatched pulse.Range", struct{ PN pulse.Number}{pn}))
 		case m == hitNoTouch:
 			//
@@ -205,7 +208,7 @@ func (p *PulseDataCache) Put(pr pulse.Range) {
 		if len(pns) == 0 {
 			panic(throw.IllegalValue())
 		}
-		ce = newCacheEntry(p.pdm, pr)
+		ce = newCacheEntry(p.pdm, pd)
 	case len(pns) == 0:
 		return
 	}
@@ -244,26 +247,26 @@ func (p *PulseDataCache) _rotate() {
 	}
 }
 
-func newCacheEntry(pdm *PulseDataManager, pr pulse.Range) *cacheEntry {
-	ce := &cacheEntry{pr: pr, ps: PulseSlot{pulseManager: pdm}}
+func newCacheEntry(pdm *PulseDataManager, pd BeatData) *cacheEntry {
+	ce := &cacheEntry{pd: pd, ps: PulseSlot{pulseManager: pdm}}
 	ce.ps.pulseData = ce
 	return ce
 }
 
 type cacheEntry struct {
-	pr pulse.Range
+	pd BeatData
 	ps PulseSlot
 }
 
-func (p cacheEntry) PulseData() (pulse.Data, PulseSlotState) {
-	return p.pr.RightBoundData(), Antique
+func (p cacheEntry) PulseData() pulse.Data {
+	return p.pd.Range.RightBoundData()
 }
 
-func (p cacheEntry) PulseRange() (pulse.Range, PulseSlotState) {
-	return p.pr, Antique
+func (p cacheEntry) BeatData() (BeatData, PulseSlotState) {
+	return p.pd, Antique
 }
 
-func (p cacheEntry) MakePresent(pulse.Range, time.Time) {
+func (p cacheEntry) MakePresent(BeatData, time.Time) {
 	panic(throw.IllegalState())
 }
 
@@ -275,9 +278,9 @@ func (p cacheEntry) MakePast() {
 	panic(throw.IllegalState())
 }
 
-func (p *cacheEntry) _cacheData() pulse.Range {
+func (p *cacheEntry) _cacheData() BeatData {
 	if p == nil {
-		return nil
+		return BeatData{}
 	}
-	return p.pr
+	return p.pd
 }

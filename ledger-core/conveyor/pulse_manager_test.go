@@ -95,7 +95,7 @@ func TestPulseDataManager_GetPulseData(t *testing.T) {
 
 		_, has := pdm.GetPulseData(pulseNum)
 		assert.False(t, has)
-		pdm.putPulseRange(expected.AsRange())
+		pdm.putPulseUpdate(BeatData{ Range: expected.AsRange() })
 		data, has := pdm.GetPulseData(pulseNum)
 		assert.True(t, has)
 		assert.Equal(t, expected, data)
@@ -119,13 +119,13 @@ func TestPulseDataManager_HasPulseData(t *testing.T) {
 		pulseNum := pulse.Number(pulse.MinTimePulse + 1)
 
 		assert.False(t, pdm.HasPulseData(pulseNum))
-		pdm.putPulseRange(pulse.Data{
+		pdm.putPulseUpdate(BeatData{ Range: pulse.Data{
 			PulseNumber: pulseNum,
 			DataExt: pulse.DataExt{
 				PulseEpoch:     pulse.Epoch(pulseNum),
 				NextPulseDelta: 2,
 			},
-		}.AsRange())
+		}.AsRange()})
 		assert.True(t, pdm.HasPulseData(pulse.MinTimePulse+1))
 		assert.False(t, pdm.HasPulseData(1))
 	})
@@ -317,7 +317,7 @@ func TestPulseDataManager_PreparePulseDataRequest(t *testing.T) {
 			pdm := PulseDataManager{}
 			pdm.initCache(1, 10, 0)
 			pdm.pulseDataAdapterFn =
-				func(smachine.ExecutionContext, func(context.Context, PulseDataService) smachine.AsyncResultFunc) smachine.AsyncCallRequester {
+				func(smachine.ExecutionContext, func(context.Context, BeatDataService) smachine.AsyncResultFunc) smachine.AsyncCallRequester {
 					return dummyAsync{}
 				}
 			pdm.preparePulseDataRequest(nil, 1, nil)
@@ -328,7 +328,7 @@ func TestPulseDataManager_PreparePulseDataRequest(t *testing.T) {
 		pdm := PulseDataManager{}
 		pdm.initCache(1, 10, 0)
 		pdm.pulseDataAdapterFn =
-			func(smachine.ExecutionContext, func(context.Context, PulseDataService) smachine.AsyncResultFunc) smachine.AsyncCallRequester {
+			func(smachine.ExecutionContext, func(context.Context, BeatDataService) smachine.AsyncResultFunc) smachine.AsyncCallRequester {
 				return dummyAsync{}
 			}
 		pulseNum := pulse.Number(pulse.MinTimePulse + 1)
@@ -339,11 +339,11 @@ func TestPulseDataManager_PreparePulseDataRequest(t *testing.T) {
 				NextPulseDelta: 2,
 			},
 		}
-		pdm.putPulseRange(expected.AsRange())
+		pdm.putPulseUpdate(BeatData{expected.AsRange(), nil})
 
-		async := pdm.preparePulseDataRequest(nil, pulseNum, func(pr pulse.Range) {
-			require.NotNil(t, pr)
-			require.Equal(t, expected, pr.RightBoundData())
+		async := pdm.preparePulseDataRequest(nil, pulseNum, func(bd BeatData) {
+			require.NotNil(t, bd.Range)
+			require.Equal(t, expected, bd.Range.RightBoundData())
 		})
 
 		async.Start()
@@ -371,13 +371,13 @@ func TestPulseDataManager_TouchPulseData(t *testing.T) {
 		pulseNum := pulse.Number(pulse.MinTimePulse + 1)
 
 		assert.False(t, pdm.TouchPulseData(pulseNum))
-		pdm.putPulseRange(pulse.Data{
+		pdm.putPulseUpdate(BeatData{ Range: pulse.Data{
 			PulseNumber: pulseNum,
 			DataExt: pulse.DataExt{
 				PulseEpoch:     pulse.Epoch(pulseNum),
 				NextPulseDelta: 2,
 			},
-		}.AsRange())
+		}.AsRange()})
 		assert.True(t, pdm.TouchPulseData(pulseNum))
 	})
 }
