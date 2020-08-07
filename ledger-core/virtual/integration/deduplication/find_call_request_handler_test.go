@@ -374,7 +374,7 @@ func (s *VFindCallRequestHandlingSuite) generateOutgoing(p pulse.Number) {
 }
 
 func (s *VFindCallRequestHandlingSuite) generateClass() {
-	s.class = gen.UniqueGlobalRef()
+	s.class = gen.UniqueGlobalRefWithPulse(s.getP1())
 }
 
 func (s *VFindCallRequestHandlingSuite) getObject() reference.Global {
