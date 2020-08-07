@@ -1261,9 +1261,10 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 	insrail.LogCase(t, "C5089")
 
 	const (
-		origObjectMem    = "original object memory"
-		changedObjectMem = "new object memory"
-		callResult       = "call result"
+		origDirtyObjectMem     = "dirty original object memory"
+		origValidatedObjectMem = "validated original object memory"
+		changedObjectMem       = "new object memory"
+		callResult             = "call result"
 	)
 	cases := []struct {
 		name           string
@@ -1339,7 +1340,12 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 			objectExecutionMock.AddStart(
 				func(ctx execution.Context) {
 					require.Equal(t, objectRef, ctx.Request.Callee)
-					require.Equal(t, []byte(origObjectMem), ctx.ObjectDescriptor.Memory())
+					require.Equal(t, outgoing, ctx.Outgoing)
+					expectedMemory := origValidatedObjectMem
+					if testCase.isolation.State == contract.CallDirty {
+						expectedMemory = origDirtyObjectMem
+					}
+					require.Equal(t, []byte(expectedMemory), ctx.ObjectDescriptor.Memory())
 				},
 				&execution.Update{
 					Type:   execution.Done,
@@ -1359,13 +1365,13 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 			content := &payload.VStateReport_ProvidedContentBody{
 				LatestDirtyState: &payload.ObjectState{
 					Reference: reference.Local{},
-					Class:     testwalletProxy.GetClass(),
-					State:     []byte(origObjectMem),
+					Class:     gen.UniqueGlobalRef(),
+					State:     []byte(origDirtyObjectMem),
 				},
 				LatestValidatedState: &payload.ObjectState{
 					Reference: reference.Local{},
-					Class:     testwalletProxy.GetClass(),
-					State:     []byte(origObjectMem),
+					Class:     gen.UniqueGlobalRef(),
+					State:     []byte(origValidatedObjectMem),
 				},
 			}
 
@@ -1394,7 +1400,7 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 			require.NotNil(t, report.ProvidedContent)
 			switch testCase.isolation.Interference {
 			case contract.CallIntolerable:
-				require.Equal(t, []byte(origObjectMem), report.ProvidedContent.LatestDirtyState.State)
+				require.Equal(t, []byte(origDirtyObjectMem), report.ProvidedContent.LatestDirtyState.State)
 			case contract.CallTolerable:
 				require.Equal(t, []byte(changedObjectMem), report.ProvidedContent.LatestValidatedState.State)
 			}
