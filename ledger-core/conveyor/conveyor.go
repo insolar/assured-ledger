@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/managed"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/sworker"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -51,7 +52,7 @@ type PulseChanger interface {
 	CommitPulseChange(pr pulse.Range) error
 }
 
-type PulseSlotPostMigrateFunc = func(smachine.SlotMachineHolder)
+type PulseSlotPostMigrateFunc = func(*PulseSlot, smachine.SlotMachineHolder)
 
 type PulseConveyorConfig struct {
 	ConveyorMachineConfig             smachine.SlotMachineConfig
@@ -109,7 +110,8 @@ type PulseConveyor struct {
 	slotMachine   *smachine.SlotMachine
 	machineWorker smachine.AttachableSlotWorker
 
-	pdm PulseDataManager
+	pdm   PulseDataManager
+	comps componentManager
 
 	// mutable, set under SlotMachine synchronization
 	presentMachine *PulseSlotMachine
@@ -124,6 +126,13 @@ func (p *PulseConveyor) SetFactoryFunc(factory PulseEventFactoryFunc) {
 
 func (p *PulseConveyor) GetDataManager() *PulseDataManager {
 	return &p.pdm
+}
+
+func (p *PulseConveyor) AddManagedComponent(c managed.Component) {
+	if c == nil {
+		panic(throw.IllegalState())
+	}
+	p.comps.Add(p, c)
 }
 
 func (p *PulseConveyor) AddDependency(v interface{}) {
@@ -485,6 +494,8 @@ func (p *PulseConveyor) CommitPulseChange(pr pulse.Range, pulseStart time.Time) 
 
 		p.pdm.unsetPreparingPulse()
 
+		p.comps.PulseChanged(p, pr)
+
 		ctx.Migrate(func() {
 			p._migratePulseSlots(ctx, pr, prevPresentPN, prevFuturePN, pulseStart.UTC())
 		})
@@ -575,17 +586,20 @@ func (p *PulseConveyor) runWorker(emergencyStop <-chan struct{}, closeOnStop cha
 		defer completedFn()
 	}
 
+	defer p.comps.Stopped(p)
+	p.comps.Started(p)
+
 	for {
-		var (
-			repeatNow    bool
-			nextPollTime time.Time
-		)
 		eventMark := p.internalSignal.Mark()
 
 		if cycleFn != nil {
 			cycleFn(Scanning)
 		}
 
+		var (
+			repeatNow    bool
+			nextPollTime time.Time
+		)
 		_, callCount := p.machineWorker.AttachTo(p.slotMachine, p.externalSignal.Mark(), math.MaxUint32, func(worker smachine.AttachedSlotWorker) {
 			repeatNow, nextPollTime = p.slotMachine.ScanOnce(smachine.ScanDefault, worker)
 		})
