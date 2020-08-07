@@ -1002,8 +1002,6 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 
 			server, ctx := utils.NewUninitializedServer(nil, t)
 
-			oneExecutionEnded := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
-
 			runnerMock := logicless.NewServiceMock(ctx, mc, nil)
 			server.ReplaceRunner(runnerMock)
 			server.Init(ctx)
@@ -1109,7 +1107,9 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 				server.SendPayload(ctx, &report)
 				server.WaitActiveThenIdleConveyor()
 			}
+
 			{ // fill object pending table
+				dcrAwait := server.Journal.WaitStopOf(&handlers.SMVDelegatedCallRequest{}, 1)
 				dcr := payload.VDelegatedCallRequest{
 					Callee:       objectRef,
 					CallFlags:    payload.BuildCallFlags(deactivateIsolation.Interference, deactivateIsolation.State),
@@ -1117,12 +1117,11 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 					CallIncoming: incoming,
 				}
 				server.SendPayload(ctx, &dcr)
-				server.WaitActiveThenIdleConveyor()
+				commonTestUtils.WaitSignalsTimed(t, 10*time.Second, dcrAwait)
 			}
 
-			commonTestUtils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
-
 			{
+				plEnded := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 				pl := payload.VCallRequest{
 					CallType:            payload.CTMethod,
 					CallFlags:           payload.BuildCallFlags(testCase.isolation.Interference, testCase.isolation.State),
@@ -1133,9 +1132,10 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 					CallOutgoing:        checkOutgoing,
 				}
 				server.SendPayload(ctx, &pl)
+				commonTestUtils.WaitSignalsTimed(t, 10*time.Second, plEnded)
 			}
-			commonTestUtils.WaitSignalsTimed(t, 10*time.Second, oneExecutionEnded)
-			server.IncrementPulseAndWaitIdle(ctx)
+
+			server.IncrementPulse(ctx)
 			commonTestUtils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 1))
 			commonTestUtils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
