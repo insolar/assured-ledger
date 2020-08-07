@@ -33,17 +33,17 @@ func NewPulseGenerator(delta uint16, online census.OnlinePopulation) *PulseGener
 }
 
 func (g *PulseGenerator) GetLastPulseData() pulse.Data {
-	return g.GetLastPulseAsPulse().Data
+	return g.GetLastBeat().Data
 }
 
-func (g *PulseGenerator) GetLastPulseAsPulse() beat.Beat {
+func (g *PulseGenerator) GetLastBeat() beat.Beat {
 	if g.seqCount == 0 {
 		panic(throw.IllegalState())
 	}
 	return g.last
 }
 
-func (g *PulseGenerator) GetPrevPulseAsPulse() beat.Beat {
+func (g *PulseGenerator) GetPrevBeat() beat.Beat {
 	if g.seqCount <= 1 {
 		panic(throw.IllegalState())
 	}

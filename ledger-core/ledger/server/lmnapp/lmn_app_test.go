@@ -12,12 +12,16 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/managed"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
+	"github.com/insolar/assured-ledger/ledger-core/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/testpop"
 )
 
 func TestStartCtm(t *testing.T) {
@@ -60,8 +64,19 @@ func TestStartCtm(t *testing.T) {
 	err = app.Start(ctx)
 	require.NoError(t, err)
 
+	localRef := gen.UniqueGlobalRef()
+	pg := testutils.NewPulseGenerator(10, testpop.CreateOneNodePopulationMock(t, localRef))
+	pg.Generate()
 
-	time.Sleep(time.Millisecond)
+	bd := app.GetBeatDispatcher()
+	for i := 3; i > 0; i-- {
+		time.Sleep(10*time.Millisecond)
+		pg.Generate()
+
+		ack, _ := beat.NewAck(func(beat.AckData) {})
+		bd.PrepareBeat(ack)
+		bd.CommitBeat(pg.GetLastBeat())
+	}
 
 	err = app.Stop(ctx)
 	require.NoError(t, err)
