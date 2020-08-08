@@ -35,14 +35,14 @@ func (v *AttachableSimpleSlotWorker) AttachAsNested(m *smachine.SlotMachine, out
 	}
 	defer v.exclusive.Store(0)
 
-	w := &SimpleSlotWorker{ internalSlotWorker: internalSlotWorker{
+	w := internalSlotWorker{
 		outerSignal: outer.GetSignalMark(),
 		loopLimitFn: outer.CanLoopOrHasSignal,
 		loopLimit: int(loopLimit),
 		machine: m,
-	}}
+	}
 
-	fn(w)
+	fn(smachine.NewAttachedSlotWorker(&w))
 	outer.AddNestedCallCount(w.callCount)
 	return false
 }
@@ -55,51 +55,48 @@ func (v *AttachableSimpleSlotWorker) AttachTo(m *smachine.SlotMachine, signal *s
 	}
 	defer v.exclusive.Store(0)
 
-	w := &SimpleSlotWorker{ internalSlotWorker: internalSlotWorker{
+	w := internalSlotWorker{
 		outerSignal: signal,
 		loopLimit: int(loopLimit),
 		machine: m,
-	}}
+	}
 
-	fn(w)
+	fn(smachine.NewAttachedSlotWorker(&w))
 	return false, w.callCount
 }
 
-var _ smachine.AttachedSlotWorker = &SimpleSlotWorker{}
 
-type SimpleSlotWorker struct {
-	internalSlotWorker
-}
+const (
+	workerStateAttached = iota
+	workerStateDetachable
+	workerStateFixedInDetachable
+)
 
-func (p *SimpleSlotWorker) AsFixedSlotWorker() smachine.FixedSlotWorker {
-	return smachine.NewFixedSlotWorker(&p.internalSlotWorker)
-}
-
-func (p *SimpleSlotWorker) OuterCall(*smachine.SlotMachine, smachine.NonDetachableFunc) (wasExecuted bool) {
-	return false
-}
-
-func (p *SimpleSlotWorker) DetachableCall(fn smachine.DetachableFunc) (wasDetached bool) {
-	if !p.detachable.CompareAndSwap(0, 1) {
-		panic(throw.IllegalState())
-	}
-	defer p.detachable.Store(0)
-
-	p.callCount++
-	fn(smachine.NewDetachableSlotWorker(&p.internalSlotWorker))
-	return false
-}
-
-var _ smachine.DetachableSlotWorkerSupport = &internalSlotWorker{}
+var _ smachine.SlotWorkerSupport = &internalSlotWorker{}
 
 type internalSlotWorker struct {
 	outerSignal *synckit.SignalVersion
 	loopLimitFn smachine.LoopLimiterFunc // NB! MUST correlate with outerSignal
 	loopLimit   int
 	callCount   uint
-	detachable  atomickit.Uint32
+	state       atomickit.Uint32
 
 	machine *smachine.SlotMachine
+}
+
+func (p *internalSlotWorker) TryStartDetachableCall() bool {
+	if p.state.CompareAndSwap(workerStateAttached, workerStateDetachable) {
+		p.callCount++
+		return true
+	}
+	return false
+}
+
+func (p *internalSlotWorker) EndDetachableCall() (wasDetached bool) {
+	if !p.state.CompareAndSwap(workerStateDetachable, workerStateAttached) {
+		panic(throw.Impossible())
+	}
+	return false
 }
 
 func (p *internalSlotWorker) AddNestedCallCount(u uint) {
@@ -111,11 +108,13 @@ func (p *internalSlotWorker) TryDetach(smachine.LongRunFlags) {
 }
 
 func (p *internalSlotWorker) TryStartNonDetachableCall() bool {
-	return p.detachable.CompareAndSwap(1, 2)
+	return p.state.CompareAndSwap(workerStateDetachable, workerStateFixedInDetachable)
 }
 
 func (p *internalSlotWorker) EndNonDetachableCall() {
-	p.detachable.Store(1)
+	if !p.state.CompareAndSwap(workerStateFixedInDetachable, workerStateDetachable) {
+		panic(throw.Impossible())
+	}
 }
 
 func (p *internalSlotWorker) HasSignal() bool {

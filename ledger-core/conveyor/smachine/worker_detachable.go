@@ -10,14 +10,21 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-func NewDetachableSlotWorker(worker DetachableSlotWorkerSupport) DetachableSlotWorker {
+func NewAttachedSlotWorker(worker SlotWorkerSupport) AttachedSlotWorker {
+	if worker == nil {
+		panic(throw.IllegalState())
+	}
+	return AttachedSlotWorker{internalSlotWorker{worker, false}}
+}
+
+func NewDetachableSlotWorker(worker SlotWorkerSupport) DetachableSlotWorker {
 	if worker == nil {
 		panic(throw.IllegalState())
 	}
 	return DetachableSlotWorker{internalSlotWorker{worker, false}}
 }
 
-func NewFixedSlotWorker(worker DetachableSlotWorkerSupport) FixedSlotWorker {
+func NewFixedSlotWorker(worker SlotWorkerSupport) FixedSlotWorker {
 	if worker == nil {
 		panic(throw.IllegalState())
 	}
@@ -33,7 +40,7 @@ func wrapFixedSlotWorker(worker FixedSlotWorker) DetachableSlotWorker {
 
 var _ SlotWorker = internalSlotWorker{}
 type internalSlotWorker struct {
-	worker  DetachableSlotWorkerSupport
+	worker  SlotWorkerSupport
 	isFixed bool
 }
 
@@ -85,8 +92,8 @@ func (v DetachableSlotWorker) NonDetachableCall(fn NonDetachableFunc) (wasExecut
 	return true
 }
 
-	// NonDetachableOuterCall checks if this worker can serve another SlotMachine
-	// and if so provides a temporary protection from detach
+// NonDetachableOuterCall checks if this worker can serve another SlotMachine
+// and if so provides a temporary protection from detach
 func (v DetachableSlotWorker) NonDetachableOuterCall(*SlotMachine, NonDetachableFunc) (wasExecuted bool) {
 	return false
 }
@@ -106,5 +113,37 @@ type FixedSlotWorker struct {
 
 func (v FixedSlotWorker) OuterCall(*SlotMachine, NonDetachableFunc) (wasExecuted bool) {
 	return false
+}
+
+type AttachedSlotWorker struct {
+	internalSlotWorker
+}
+
+func (v AttachedSlotWorker)	OuterCall(*SlotMachine, NonDetachableFunc) (wasExecuted bool) {
+	return false
+}
+
+func (v AttachedSlotWorker)	CanWorkOn(*SlotMachine) bool {
+	panic(throw.NotImplemented())
+}
+
+func (v AttachedSlotWorker) DetachableCall(fn DetachableFunc) (wasDetached bool) {
+	if v.isFixed {
+		panic(throw.IllegalState())
+	}
+
+	if !v.worker.TryStartDetachableCall() {
+		panic(throw.IllegalState())
+	}
+	defer func() {
+		wasDetached = v.worker.EndDetachableCall()
+	}()
+
+	fn(DetachableSlotWorker{internalSlotWorker{v.worker, false}})
+	return
+}
+
+func (v AttachedSlotWorker) AsFixedSlotWorker() FixedSlotWorker {
+	return FixedSlotWorker{ internalSlotWorker{ v.worker, true}}
 }
 

@@ -22,18 +22,14 @@ type SlotWorker interface {
 
 type LoopLimiterFunc func(loopCount int) (canLoop, hasSignal bool)
 
-type AttachedSlotWorker interface {
-	SlotWorker
-	OuterCall(*SlotMachine, NonDetachableFunc) (wasExecuted bool)
-	//CanWorkOn(*SlotMachine) bool
-	DetachableCall(DetachableFunc) (wasDetached bool)
-	AsFixedSlotWorker() FixedSlotWorker
-}
-
-type DetachableSlotWorkerSupport interface {
+type SlotWorkerSupport interface {
 	SlotWorker
 	AddNestedCallCount(uint)
 	TryDetach(LongRunFlags)
+
+	TryStartDetachableCall() bool
+	EndDetachableCall() (wasDetached bool)
+
 	TryStartNonDetachableCall() bool
 	EndNonDetachableCall()
 }

@@ -195,8 +195,8 @@ func (m *SlotMachineSync) _addAsyncCallback(q *synckit.SyncQueue, link SlotLink,
 
 func (m *SlotMachineSync) ProcessCallbacks(worker AttachedSlotWorker) (hasUpdates, hasSignal, wasDetached bool) {
 	switch {
-	case worker == nil:
-		panic("illegal value")
+	case worker.IsZero():
+		panic(throw.IllegalValue())
 	case worker.HasSignal():
 		return true, true, false
 	}
