@@ -13,6 +13,10 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
+	"github.com/insolar/assured-ledger/ledger-core/crypto/legacyadapter"
+	"github.com/insolar/assured-ledger/ledger-core/cryptography/keystore"
+	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
+	"github.com/insolar/assured-ledger/ledger-core/cryptography/secrets"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
@@ -73,10 +77,16 @@ func (p *TestServer) Start() {
 		panic(throw.IllegalState())
 	}
 
+	pcs := platformpolicy.NewPlatformCryptographyScheme()
+	kp := platformpolicy.NewKeyProcessor()
+	sk, err := secrets.GenerateKeyPair()
+	require.NoError(p.t, err)
+
 	// Reuse default compartment construction logic
 	p.app = NewAppCompartment(p.cfg, insapp.AppComponents{
 		// Provide mocks for application-level / cross-compartment dependencies here
 		MessageSender: messagesender.NewServiceMock(p.t),
+		CryptoScheme: legacyadapter.New(pcs, kp, keystore.NewInplaceKeyStore(sk.Private)),
 	})
 	require.NotNil(p.t, p.app)
 
@@ -101,7 +111,7 @@ func (p *TestServer) Start() {
 
 	ctx := context.Background()
 
-	err := p.app.Init(ctx)
+	err = p.app.Init(ctx)
 	require.NoError(p.t, err)
 
 	if !p.state.Start() {

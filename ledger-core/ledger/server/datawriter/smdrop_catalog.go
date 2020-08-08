@@ -37,7 +37,7 @@ func (DropCatalog) Create(ctx smachine.ExecutionContext, jetID jet.ExactID, pn p
 	switch sdl := ctx.GetPublishedLink(JetDropKey(dropID)); {
 	case sdl.IsZero():
 		panic(throw.IllegalState())
-	case sdl.IsAssignableTo(&DropDataLink{}):
+	case sdl.IsAssignableTo(&DropSharedData{}):
 		return DropDataLink{sdl}
 	default:
 		panic(throw.IllegalState())

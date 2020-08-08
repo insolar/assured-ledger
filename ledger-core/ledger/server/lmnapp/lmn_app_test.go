@@ -31,5 +31,5 @@ func TestStartCtm(t *testing.T) {
 	// 	server.NextPulse()
 	// 	time.Sleep(100*time.Millisecond)
 	// }
-	time.Sleep(10000*time.Millisecond)
+	time.Sleep(10*time.Second)
 }
