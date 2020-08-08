@@ -31,13 +31,6 @@ func NewFixedSlotWorker(worker SlotWorkerSupport) FixedSlotWorker {
 	return FixedSlotWorker{ internalSlotWorker{ worker, true}}
 }
 
-func wrapFixedSlotWorker(worker FixedSlotWorker) DetachableSlotWorker {
-	if !worker.isFixed {
-		panic(throw.IllegalState())
-	}
-	return DetachableSlotWorker{worker.internalSlotWorker}
-}
-
 var _ SlotWorker = internalSlotWorker{}
 type internalSlotWorker struct {
 	worker  SlotWorkerSupport
@@ -77,7 +70,7 @@ func (v DetachableSlotWorker) AddNestedCallCount(u uint) {
 // NonDetachableCall provides a temporary protection from detach
 func (v DetachableSlotWorker) NonDetachableCall(fn NonDetachableFunc) (wasExecuted bool) {
 	if v.isFixed {
-		fn(FixedSlotWorker{v.internalSlotWorker})
+		fn(FixedSlotWorker(v))
 		return true
 	}
 
@@ -113,6 +106,16 @@ type FixedSlotWorker struct {
 
 func (v FixedSlotWorker) OuterCall(*SlotMachine, NonDetachableFunc) (wasExecuted bool) {
 	return false
+}
+
+func (v FixedSlotWorker) asDetachable() DetachableSlotWorker {
+	switch {
+	case v.IsZero():
+		panic(throw.IllegalState())
+	case !v.isFixed:
+		panic(throw.IllegalState())
+	}
+	return DetachableSlotWorker(v)
 }
 
 type AttachedSlotWorker struct {

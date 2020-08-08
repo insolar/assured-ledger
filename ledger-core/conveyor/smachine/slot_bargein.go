@@ -259,7 +259,7 @@ func (m *SlotMachine) executeBargeInDirect(link StepLink, fn BargeInCallbackFunc
 	}()
 
 	_, atExactStep := link.isValidAndAtExactStep()
-	bc := bargingInContext{slotContext{s: slot, w: wrapFixedSlotWorker(worker)}, atExactStep}
+	bc := bargingInContext{slotContext{s: slot, w: worker.asDetachable()}, atExactStep}
 	stateUpdate := bc.executeBargeInDirect(fn)
 	stateUpdate = slot.forceTopSubroutineUpdate(stateUpdate)
 	needsStop = false
