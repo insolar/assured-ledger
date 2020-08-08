@@ -97,12 +97,12 @@ func (p *machineCallContext) CallDirectBargeIn(link StepLink, fn BargeInCallback
 
 func (p *machineCallContext) CallBargeInWithParam(b BargeInWithParam, param interface{}) bool {
 	p.ensureValid()
-	return b.callInline(p.m, param, fixedWorkerWrapper{p.w})
+	return b.callInline(p.m, param, wrapFixedSlotWorker(p.w))
 }
 
 func (p *machineCallContext) CallBargeIn(b BargeIn) bool {
 	p.ensureValid()
-	return b.callInline(p.m, fixedWorkerWrapper{p.w})
+	return b.callInline(p.m, wrapFixedSlotWorker(p.w))
 }
 
 func (p *machineCallContext) ApplyAdjustment(adj SyncAdjustment) bool {

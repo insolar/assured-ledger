@@ -21,33 +21,21 @@ type SlotWorker interface {
 }
 
 type LoopLimiterFunc func(loopCount int) (canLoop, hasSignal bool)
-type DetachableSlotWorker interface {
-	SlotWorker
 
-	AddNestedCallCount(u uint)
-
-	// NonDetachableCall provides a temporary protection from detach
-	NonDetachableCall(NonDetachableFunc) (wasExecuted bool)
-
-	// NonDetachableOuterCall checks if this worker can serve another SlotMachine
-	// and if so provides a temporary protection from detach
-	NonDetachableOuterCall(*SlotMachine, NonDetachableFunc) (wasExecuted bool)
-
-	DetachableOuterCall(*SlotMachine, DetachableFunc) (wasExecuted, wasDetached bool)
-
-	TryDetach(flags LongRunFlags)
-	//NestedAttachTo(m *SlotMachine, loopLimit uint32, fn AttachedFunc) (wasDetached bool)
-}
-
-type FixedSlotWorker interface {
+type AttachedSlotWorker interface {
 	SlotWorker
 	OuterCall(*SlotMachine, NonDetachableFunc) (wasExecuted bool)
 	//CanWorkOn(*SlotMachine) bool
+	DetachableCall(DetachableFunc) (wasDetached bool)
+	AsFixedSlotWorker() FixedSlotWorker
 }
 
-type AttachedSlotWorker interface {
-	FixedSlotWorker
-	DetachableCall(DetachableFunc) (wasDetached bool)
+type DetachableSlotWorkerSupport interface {
+	SlotWorker
+	AddNestedCallCount(uint)
+	TryDetach(LongRunFlags)
+	TryStartNonDetachableCall() bool
+	EndNonDetachableCall()
 }
 
 type AttachableSlotWorker interface {

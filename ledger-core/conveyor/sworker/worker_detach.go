@@ -48,6 +48,6 @@ func (p *SlotWorker) OuterCall(*smachine.SlotMachine, smachine.NonDetachableFunc
 }
 
 func (p *SlotWorker) DetachableCall(fn smachine.DetachableFunc) (wasDetached bool) {
-	//fn(&DetachableSimpleSlotWorker{p})
+	//fn(&internalSlotWorker{p})
 	return false
 }

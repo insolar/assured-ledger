@@ -173,6 +173,7 @@ func BenchmarkVCallRequestConstructor(b *testing.B) {
 		Arguments:      insolar.MustSerialize([]interface{}{}),
 	}
 
+	b.ReportAllocs()
 	b.StopTimer()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

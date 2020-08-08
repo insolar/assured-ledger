@@ -6,9 +6,8 @@
 package sworker
 
 import (
-	"sync/atomic"
-
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -21,27 +20,28 @@ func NewAttachableSimpleSlotWorker() *AttachableSimpleSlotWorker {
 var _ smachine.AttachableSlotWorker = &AttachableSimpleSlotWorker{}
 
 type AttachableSimpleSlotWorker struct {
-	exclusive uint32
+	exclusive atomickit.Uint32
 }
 
-func (v *AttachableSimpleSlotWorker) WakeupWorkerOnEvent() {
-}
+func (v *AttachableSimpleSlotWorker) WakeupWorkerOnEvent() {}
 
-func (v *AttachableSimpleSlotWorker) WakeupWorkerOnSignal() {
-}
+func (v *AttachableSimpleSlotWorker) WakeupWorkerOnSignal() {}
 
 func (v *AttachableSimpleSlotWorker) AttachAsNested(m *smachine.SlotMachine, outer smachine.DetachableSlotWorker,
 	loopLimit uint32, fn smachine.AttachedFunc) (wasDetached bool) {
 
-	if !atomic.CompareAndSwapUint32(&v.exclusive, 0, 1) {
+	if !v.exclusive.CompareAndSwap(0, 1) {
 		panic(throw.IllegalState())
 	}
-	defer atomic.StoreUint32(&v.exclusive, 0)
+	defer v.exclusive.Store(0)
 
-	w := &SimpleSlotWorker{outerSignal: outer.GetSignalMark(), loopLimitFn: outer.CanLoopOrHasSignal,
-		machine: m, loopLimit: int(loopLimit)}
+	w := &SimpleSlotWorker{ internalSlotWorker: internalSlotWorker{
+		outerSignal: outer.GetSignalMark(),
+		loopLimitFn: outer.CanLoopOrHasSignal,
+		loopLimit: int(loopLimit),
+		machine: m,
+	}}
 
-	w.init()
 	fn(w)
 	outer.AddNestedCallCount(w.callCount)
 	return false
@@ -50,50 +50,87 @@ func (v *AttachableSimpleSlotWorker) AttachAsNested(m *smachine.SlotMachine, out
 func (v *AttachableSimpleSlotWorker) AttachTo(m *smachine.SlotMachine, signal *synckit.SignalVersion,
 	loopLimit uint32, fn smachine.AttachedFunc) (wasDetached bool, callCount uint) {
 
-	if !atomic.CompareAndSwapUint32(&v.exclusive, 0, 1) {
-		panic("is attached")
+	if !v.exclusive.CompareAndSwap(0, 1) {
+		panic(throw.IllegalState())
 	}
-	defer atomic.StoreUint32(&v.exclusive, 0)
+	defer v.exclusive.Store(0)
 
-	w := &SimpleSlotWorker{outerSignal: signal, machine: m, loopLimit: int(loopLimit)}
+	w := &SimpleSlotWorker{ internalSlotWorker: internalSlotWorker{
+		outerSignal: signal,
+		loopLimit: int(loopLimit),
+		machine: m,
+	}}
 
-	w.init()
 	fn(w)
 	return false, w.callCount
 }
 
-var _ smachine.FixedSlotWorker = &SimpleSlotWorker{}
+var _ smachine.AttachedSlotWorker = &SimpleSlotWorker{}
 
 type SimpleSlotWorker struct {
+	internalSlotWorker
+}
+
+func (p *SimpleSlotWorker) AsFixedSlotWorker() smachine.FixedSlotWorker {
+	return smachine.NewFixedSlotWorker(&p.internalSlotWorker)
+}
+
+func (p *SimpleSlotWorker) OuterCall(*smachine.SlotMachine, smachine.NonDetachableFunc) (wasExecuted bool) {
+	return false
+}
+
+func (p *SimpleSlotWorker) DetachableCall(fn smachine.DetachableFunc) (wasDetached bool) {
+	if !p.detachable.CompareAndSwap(0, 1) {
+		panic(throw.IllegalState())
+	}
+	defer p.detachable.Store(0)
+
+	p.callCount++
+	fn(smachine.NewDetachableSlotWorker(&p.internalSlotWorker))
+	return false
+}
+
+var _ smachine.DetachableSlotWorkerSupport = &internalSlotWorker{}
+
+type internalSlotWorker struct {
 	outerSignal *synckit.SignalVersion
 	loopLimitFn smachine.LoopLimiterFunc // NB! MUST correlate with outerSignal
 	loopLimit   int
 	callCount   uint
+	detachable  atomickit.Uint32
 
 	machine *smachine.SlotMachine
-
-	dsw DetachableSimpleSlotWorker
-	nsw NonDetachableSimpleSlotWorker
 }
 
-func (p *SimpleSlotWorker) init() {
-	p.dsw.SimpleSlotWorker = p
-	p.nsw.SimpleSlotWorker = p
+func (p *internalSlotWorker) AddNestedCallCount(u uint) {
+	p.callCount += u
 }
 
-func (p *SimpleSlotWorker) HasSignal() bool {
+func (p *internalSlotWorker) TryDetach(smachine.LongRunFlags) {
+	panic(throw.Unsupported())
+}
+
+func (p *internalSlotWorker) TryStartNonDetachableCall() bool {
+	return p.detachable.CompareAndSwap(1, 2)
+}
+
+func (p *internalSlotWorker) EndNonDetachableCall() {
+	p.detachable.Store(1)
+}
+
+func (p *internalSlotWorker) HasSignal() bool {
 	return p.outerSignal != nil && p.outerSignal.HasSignal()
 }
 
-func (*SimpleSlotWorker) IsDetached() bool {
+func (*internalSlotWorker) IsDetached() bool {
 	return false
 }
 
-func (p *SimpleSlotWorker) GetSignalMark() *synckit.SignalVersion {
+func (p *internalSlotWorker) GetSignalMark() *synckit.SignalVersion {
 	return p.outerSignal
 }
 
-func (p *SimpleSlotWorker) CanLoopOrHasSignal(loopCount int) (canLoop, hasSignal bool) {
+func (p *internalSlotWorker) CanLoopOrHasSignal(loopCount int) (canLoop, hasSignal bool) {
 	switch {
 	case p.loopLimitFn != nil:
 		canLoop, hasSignal = p.loopLimitFn(loopCount)
@@ -109,47 +146,3 @@ func (p *SimpleSlotWorker) CanLoopOrHasSignal(loopCount int) (canLoop, hasSignal
 	}
 }
 
-func (p *SimpleSlotWorker) OuterCall(*smachine.SlotMachine, smachine.NonDetachableFunc) (wasExecuted bool) {
-	return false
-}
-
-func (p *SimpleSlotWorker) DetachableCall(fn smachine.DetachableFunc) (wasDetached bool) {
-	p.callCount++
-	fn(&p.dsw)
-	return false
-}
-
-func (p *SimpleSlotWorker) AddNestedCallCount(u uint) {
-	p.callCount += u
-}
-
-var _ smachine.DetachableSlotWorker = &DetachableSimpleSlotWorker{}
-
-type DetachableSimpleSlotWorker struct {
-	*SimpleSlotWorker
-}
-
-func (p *DetachableSimpleSlotWorker) TryDetach(smachine.LongRunFlags) {
-	panic("unsupported")
-}
-
-func (p *DetachableSimpleSlotWorker) NonDetachableOuterCall(*smachine.SlotMachine, smachine.NonDetachableFunc) (wasExecuted bool) {
-	return false
-}
-
-func (p *DetachableSimpleSlotWorker) DetachableOuterCall(*smachine.SlotMachine, smachine.DetachableFunc) (wasExecuted, wasDetached bool) {
-	return false, false
-}
-
-func (p *DetachableSimpleSlotWorker) NonDetachableCall(fn smachine.NonDetachableFunc) (wasExecuted bool) {
-	fn(&NonDetachableSimpleSlotWorker{p.SimpleSlotWorker})
-	return true
-}
-
-type NonDetachableSimpleSlotWorker struct {
-	*SimpleSlotWorker
-}
-
-func (p *NonDetachableSimpleSlotWorker) DetachableCall(fn smachine.DetachableFunc) (wasDetached bool) {
-	panic("not allowed") // this method shouldn't be accessible through interface
-}
