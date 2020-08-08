@@ -16,6 +16,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/merkler"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -39,14 +40,16 @@ type Service interface {
 
 var _ Service = &serviceImpl{}
 
-func NewService() Service {
+func NewService(allocStrategy jetalloc.MaterialAllocationStrategy, merklePair cryptkit.PairDigester) Service {
 	return &serviceImpl{
-		allocationStrategy: jetalloc.NewMaterialAllocationStrategy(false),
+		allocStrategy: allocStrategy,
+		merklePair: merklePair,
 	}
 }
 
 type serviceImpl struct {
-	allocationStrategy jetalloc.MaterialAllocationStrategy
+	allocStrategy jetalloc.MaterialAllocationStrategy
+	merklePair    cryptkit.PairDigester
 
 	mapMutex sync.RWMutex
 	lastPN   pulse.Number
@@ -102,7 +105,7 @@ func (p *serviceImpl) CreatePlash(pr pulse.Range, tree jet.Tree, population cens
 		pulseData: pd,
 		population: population,
 		dropAssists: map[jet.ID]*dropAssistant{},
-//		merkle: merkler.NewForkingCalculator(),
+		merkle: merkler.NewForkingCalculator(p.merklePair, cryptkit.Digest{}),
 	}
 
 	if tree == nil || tree.IsEmpty() {
@@ -124,7 +127,7 @@ func (p *serviceImpl) CreatePlash(pr pulse.Range, tree jet.Tree, population cens
 		return false
 	})
 
-	pa.calc = p.allocationStrategy.CreateCalculator(pa.pulseData.PulseEntropy, population)
+	pa.calc = p.allocStrategy.CreateCalculator(pa.pulseData.PulseEntropy, population)
 	jet2nodes := pa.calc.AllocationOfJets(jets, pn)
 
 	if len(jet2nodes) != len(jets) {

@@ -193,7 +193,7 @@ func (p *benchBundle) PrepareWrite(snapshot bundle.Snapshot) error {
 }
 
 func (p *benchBundle) ApplyWrite() ([]ledger.DirectoryIndex, error) {
-	err := p.recep.ApplyFixedReader(longbits.NewMutableFixedSize(p.data))
+	err := p.recep.ApplyFixedReader(longbits.WrapBytes(p.data))
 	return nil, err
 }
 

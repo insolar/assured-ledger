@@ -17,6 +17,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/application/api"
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
+	"github.com/insolar/assured-ledger/ledger-core/crypto"
+	"github.com/insolar/assured-ledger/ledger-core/crypto/legacyadapter"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
@@ -38,6 +40,7 @@ type preComponents struct {
 	PlatformCryptographyScheme cryptography.PlatformCryptographyScheme
 	KeyStore                   cryptography.KeyStore
 	KeyProcessor               cryptography.KeyProcessor
+	CryptoScheme               crypto.PlatformScheme
 }
 
 func (s *Server) initBootstrapComponents(ctx context.Context, cfg configuration.Configuration) preComponents {
@@ -59,6 +62,7 @@ func (s *Server) initBootstrapComponents(ctx context.Context, cfg configuration.
 		PlatformCryptographyScheme: platformCryptographyScheme,
 		KeyStore:                   keyStore,
 		KeyProcessor:               keyProcessor,
+		CryptoScheme:               legacyadapter.New(platformCryptographyScheme, keyProcessor, keyStore),
 	}
 }
 
@@ -141,6 +145,7 @@ func (s *Server) initComponents(ctx context.Context, cfg configuration.Configura
 			BeatHistory:    pulses,
 			AffinityHelper: affine,
 			MessageSender:  messagesender.NewDefaultService(publisher, affine, pulses),
+			CryptoScheme:   comps.CryptoScheme,
 		}
 
 		appComponent, err = s.appFn(ctx, cfg, appComponents)

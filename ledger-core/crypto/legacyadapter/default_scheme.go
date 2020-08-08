@@ -13,11 +13,15 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 )
 
-func New(pcs cryptography.PlatformCryptographyScheme, kp cryptography.KeyProcessor, localSK *ecdsa.PrivateKey) crypto.PlatformScheme {
-	pcs.IntegrityHasher()
+func New(pcs cryptography.PlatformCryptographyScheme, _ cryptography.KeyProcessor, ks cryptography.KeyStore) crypto.PlatformScheme {
+	localSK, err := ks.GetPrivateKey("")
+	if err != nil {
+		panic(err)
+	}
+
 	return &platformSchemeLegacy{
 		pcs: pcs,
-		signer: NewECDSADigestSigner(NewECDSASecretKeyStore(localSK), pcs),
+		signer: NewECDSADigestSigner(NewECDSASecretKeyStore(localSK.(*ecdsa.PrivateKey)), pcs),
 	}
 }
 
@@ -37,7 +41,7 @@ func (p *platformSchemeLegacy) PacketSigner() cryptkit.DigestSigner {
 }
 
 func (p *platformSchemeLegacy) NewMerkleDigester() cryptkit.PairDigester {
-	panic("implement me")
+	return NewSha3Digester512(p.pcs)
 }
 
 func (p *platformSchemeLegacy) RefDataDigester() cryptkit.DataDigester {

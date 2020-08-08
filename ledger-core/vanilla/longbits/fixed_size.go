@@ -149,27 +149,50 @@ func AsBytes(v FixedReader) []byte {
 	return data
 }
 
-func NewMutableFixedSize(data []byte) FoldableReader {
+func WrapBytes(data []byte) FoldableReader {
 	return fixedSize{data}
 }
 
-func CopyToMutable(v FixedReader) FoldableReader {
-	return fixedSize{AsBytes(v)}
+func CopyFixed(v FixedReader) FoldableReader {
+	if v == nil {
+		return EmptyByteString
+	}
+	if bs, ok := v.(ByteString); ok {
+		return bs
+	}
+	switch n := v.FixedByteSize(); n*8 {
+	case 0:
+		return EmptyByteString
+	case 64:
+		dst := Bits64{}
+		v.CopyTo(dst[:])
+		return dst
+	case 128:
+		dst := Bits128{}
+		v.CopyTo(dst[:])
+		return dst
+	case 224:
+		dst := Bits224{}
+		v.CopyTo(dst[:])
+		return dst
+	case 256:
+		dst := Bits256{}
+		v.CopyTo(dst[:])
+		return dst
+	case 512:
+		dst := Bits512{}
+		v.CopyTo(dst[:])
+		return dst
+	default:
+		data := make([]byte, n)
+		if v.CopyTo(data) != n {
+			panic(throw.Impossible())
+		}
+		return WrapBytes(data)
+	}
 }
 
-func NewImmutableFixedSize(data []byte) FoldableReader {
-	return CopyBytes(data).AsReader()
-}
-
-func CopyToImmutable(v FixedReader) FoldableReader {
-	return CopyBytes(AsBytes(v)).AsReader()
-}
-
-func CopyFixedSize(v FixedReader) FoldableReader {
-	return fixedSize{AsBytes(v)}
-}
-
-func CopyAllBytes(to []byte, from FixedReader) error {
+func Copy(to []byte, from FixedReader) error {
 	if n := from.FixedByteSize(); n != len(to) {
 		if n < len(to) {
 			return io.ErrShortBuffer

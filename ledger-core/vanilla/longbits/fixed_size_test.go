@@ -7,6 +7,7 @@ package longbits
 
 import (
 	"bytes"
+	"crypto/rand"
 	"errors"
 	"io"
 	"math"
@@ -146,42 +147,63 @@ func TestCopyTo(t *testing.T) {
 
 func TestNewFixedReader(t *testing.T) {
 	data := []byte{1, 2, 3}
-	fr := NewMutableFixedSize(data)
+	fr := WrapBytes(data)
 	require.Len(t, AsBytes(fr), len(data))
 
 	require.Equal(t, data[1], AsBytes(fr)[1])
 }
 
 func TestCopyFixedSize(t *testing.T) {
-	item := 0x7777
-	bits := NewBits64(uint64(item))
-	fr := CopyToMutable(&bits)
+	var b [1024/8]byte
+	_, _ = rand.Read(b[:])
 
-	require.Len(t, AsBytes(fr), len(bits))
+	for i := len(b); i >= 0; i-- {
+		orig := WrapBytes(b[:i])
+		cp := CopyFixed(orig)
 
-	require.Equal(t, uint8(item), AsBytes(fr)[0])
+		require.Equal(t, i, cp.FixedByteSize(), i)
+		require.True(t, Equal(orig, cp), i)
 
-	require.Equal(t, bits[0], AsBytes(fr)[0])
+		switch i*8 {
+		case 0:
+			require.Equal(t, EmptyByteString, cp, i)
+			require.Nil(t, AsBytes(cp), i)
+			continue
+		case 64:
+			require.IsType(t, Bits64{}, cp, i)
+		case 128:
+			require.IsType(t, Bits128{}, cp, i)
+		case 224:
+			require.IsType(t, Bits224{}, cp, i)
+		case 256:
+			require.IsType(t, Bits256{}, cp, i)
+		case 512:
+			require.IsType(t, Bits512{}, cp, i)
+		default:
+			require.IsType(t, fixedSize{}, cp, i)
+		}
+		require.Equal(t, b[:i], AsBytes(cp), i)
+	}
 }
 
 func TestEqual(t *testing.T) {
-	empty0 := NewMutableFixedSize([]byte{})
-	empty1 := NewMutableFixedSize([]byte{})
+	empty0 := WrapBytes([]byte{})
+	empty1 := WrapBytes([]byte{})
 	require.False(t, Equal(nil, nil))
 	require.False(t, Equal(nil, empty1))
 	require.False(t, Equal(empty0, nil))
 	require.True(t, Equal(empty0, empty1))
-	require.False(t, Equal(empty0, NewMutableFixedSize([]byte{1})))
-	require.True(t, Equal(NewMutableFixedSize([]byte{1}), NewMutableFixedSize([]byte{1})))
+	require.False(t, Equal(empty0, WrapBytes([]byte{1})))
+	require.True(t, Equal(WrapBytes([]byte{1}), WrapBytes([]byte{1})))
 }
 
 func TestEqualToBytes(t *testing.T) {
-	empty0 := NewMutableFixedSize([]byte{})
+	empty0 := WrapBytes([]byte{})
 	empty1 := make([]byte, 0)
 	require.False(t, EqualToBytes(nil, nil))
 	require.False(t, EqualToBytes(nil, empty1))
 	require.True(t, EqualToBytes(empty0, nil))
 	require.True(t, EqualToBytes(empty0, empty1))
 	require.False(t, EqualToBytes(empty0, []byte{1}))
-	require.True(t, EqualToBytes(NewMutableFixedSize([]byte{1}), []byte{1}))
+	require.True(t, EqualToBytes(WrapBytes([]byte{1}), []byte{1}))
 }

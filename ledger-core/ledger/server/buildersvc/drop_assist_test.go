@@ -301,7 +301,8 @@ func newResolvedBundle(ref reference.Holder, id byte) lineage.ResolvedBundle {
 	rec := lineage.NewRegRecord(catalog.Excerpt{}, &rms.LRegisterRequest{
 		AnticipatedRef: rms.NewReference(ref),
 	})
-	rec.RegistrarSignature = cryptkit.NewSignedDigest(cryptkit.NewDigest(longbits.NewMutableFixedSize([]byte{id}), "testDigestMethod"),
+	rec.RegistrarSignature = cryptkit.NewSignedDigest(
+		cryptkit.NewDigest(longbits.WrapBytes([]byte{id}), "testDigestMethod"),
 		cryptkit.NewSignature(longbits.WrapStr("signature"), "testSignMethod"))
 	return lineage.NewResolvedBundleForTestOnly([]lineage.Record{rec})
 }

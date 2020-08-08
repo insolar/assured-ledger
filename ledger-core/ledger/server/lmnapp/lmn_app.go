@@ -31,6 +31,7 @@ func NewAppCompartment(_ configuration.Ledger, comps insapp.AppComponents) *insc
 		func(ctx context.Context, _ injector.DependencyInjector, setup insconveyor.AppCompartmentSetup) insconveyor.AppCompartmentSetup {
 
 			setup.Dependencies.AddInterfaceDependency(&comps.MessageSender)
+			setup.Dependencies.AddInterfaceDependency(&comps.CryptoScheme)
 
 			{
 				var plashCatalog datawriter.PlashCataloger = datawriter.PlashCatalog{}
@@ -42,7 +43,7 @@ func NewAppCompartment(_ configuration.Ledger, comps insapp.AppComponents) *insc
 				setup.Dependencies.AddInterfaceDependency(&lineCatalog)
 			}
 
-			setup.AddComponent(buildersvc.NewAdapterComponent(smadapter.Config{}))
+			setup.AddComponent(buildersvc.NewAdapterComponent(smadapter.Config{}, comps.CryptoScheme))
 
 			f := NewEventFactory(ctx)
 			setup.ConveyorConfig.PulseSlotMigration = f.PostMigrate

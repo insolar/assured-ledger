@@ -11,6 +11,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/managed"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smadapter"
+	"github.com/insolar/assured-ledger/ledger-core/crypto"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/jetalloc"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -25,13 +27,11 @@ func NewAdapterExt(adapterID smachine.AdapterID, executor smachine.AdapterExecut
 	}
 }
 
-func NewAdapter(cfg smadapter.Config) Adapter {
-	executor := smadapter.StartExecutorFor(context.Background(), cfg, nil)
-	return NewAdapterExt("DropBuilder", executor, NewService())
-}
+func NewAdapterComponent(cfg smadapter.Config, ps crypto.PlatformScheme) managed.Component {
+	svc := NewService(
+		jetalloc.NewMaterialAllocationStrategy(false),
+		ps.ConsensusScheme().NewMerkleDigester())
 
-func NewAdapterComponent(cfg smadapter.Config) managed.Component {
-	svc := NewService()
 	var adapter Adapter
 	executor, component := smadapter.NewComponent(context.Background(), cfg, svc, func(holder managed.Holder) {
 		holder.AddDependency(adapter)

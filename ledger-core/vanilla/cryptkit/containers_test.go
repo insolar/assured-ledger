@@ -409,7 +409,7 @@ func TestSignDataByDataSigner(t *testing.T) {
 	hasher := crc32.NewIEEE()
 	_, _ = data.WriteTo(hasher)
 
-	signer.SignDigestMock.Expect(NewDigest(longbits.NewMutableFixedSize(hasher.Sum(nil)), "testMethod"))
+	signer.SignDigestMock.Expect(NewDigest(longbits.WrapBytes(hasher.Sum(nil)), "testMethod"))
 	signer.SignDigestMock.Return(Signature{})
 	sdata := SignDataByDataSigner(data, signer)
 	require.True(t, longbits.Equal(data, sdata))

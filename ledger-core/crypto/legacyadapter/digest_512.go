@@ -19,6 +19,18 @@ type Sha3Digester512 struct {
 	scheme cryptography.PlatformCryptographyScheme
 }
 
+func (pd *Sha3Digester512) DigestPair(digest0 longbits.FoldableReader, digest1 longbits.FoldableReader) cryptkit.Digest {
+	hasher := pd.scheme.IntegrityHasher()
+
+	_, _ = digest0.WriteTo(hasher)
+	_, _ = digest1.WriteTo(hasher)
+
+	bytes := hasher.Sum(nil)
+	bits := longbits.NewBits512FromBytes(bytes)
+
+	return cryptkit.NewDigest(bits, pd.GetDigestMethod())
+}
+
 func NewSha3Digester512(scheme cryptography.PlatformCryptographyScheme) *Sha3Digester512 {
 	return &Sha3Digester512{
 		scheme: scheme,

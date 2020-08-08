@@ -44,7 +44,7 @@ func (d Digest) FixedByteSize() int {
 }
 
 func (d Digest) CopyOfDigest() Digest {
-	return Digest{hFoldReader: longbits.CopyToMutable(d.hFoldReader), digestMethod: d.digestMethod}
+	return Digest{hFoldReader: longbits.CopyFixed(d.hFoldReader), digestMethod: d.digestMethod}
 }
 
 func (d Digest) Equals(o DigestHolder) bool {
@@ -94,7 +94,7 @@ func (p Signature) FixedByteSize() int {
 }
 
 func (p Signature) CopyOfSignature() Signature {
-	return Signature{hFoldReader: longbits.CopyToMutable(p.hFoldReader), signatureMethod: p.signatureMethod}
+	return Signature{hFoldReader: longbits.CopyFixed(p.hFoldReader), signatureMethod: p.signatureMethod}
 }
 
 func (p Signature) Equals(o SignatureHolder) bool {
