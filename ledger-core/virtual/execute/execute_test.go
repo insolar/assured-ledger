@@ -22,6 +22,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/convlog"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -41,6 +42,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/object/preservedstatereport"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/virtualdebugger"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
 )
@@ -865,7 +867,6 @@ func TestSMExecute_StopWithoutMessagesIfPulseChangedBeforeOutgoing(t *testing.T)
 	slotMachine.AddInterfaceDependency(&authService)
 	slotMachine.AddDependency(limiter)
 
-	var vStateReportRecv = make(chan struct{})
 	checkMessage := func(msg payload.Marshaler) {
 		res, ok := msg.(*payload.VStateReport)
 		require.True(t, ok)
@@ -874,7 +875,6 @@ func TestSMExecute_StopWithoutMessagesIfPulseChangedBeforeOutgoing(t *testing.T)
 		assert.Equal(t, int32(0), res.OrderedPendingCount)
 		assert.Equal(t, int32(0), res.UnorderedPendingCount)
 		assert.Equal(t, []byte(stateMemory), res.ProvidedContent.LatestDirtyState.State)
-		close(vStateReportRecv)
 	}
 	slotMachine.MessageSender.SendRole.SetCheckMessage(checkMessage)
 
@@ -888,7 +888,7 @@ func TestSMExecute_StopWithoutMessagesIfPulseChangedBeforeOutgoing(t *testing.T)
 
 	smObject := object.NewStateMachineObject(objectRef)
 	smObject.SetState(object.HasState)
-	smObject.SetDescriptorDirty(descriptor.NewObject(reference.Global{}, reference.Local{}, class, []byte(stateMemory),  false,))
+	smObject.SetDescriptorDirty(descriptor.NewObject(reference.Global{}, reference.Local{}, class, []byte(stateMemory), false))
 	slotMachine.AddStateMachine(ctx, smObject)
 
 	smExecute := SMExecute{
@@ -913,16 +913,14 @@ func TestSMExecute_StopWithoutMessagesIfPulseChangedBeforeOutgoing(t *testing.T)
 	slotMachine.RunTil(smWrapper.BeforeStep(smExecute.stepStartRequestProcessing))
 	slotMachine.Migrate()
 	slotMachine.RunTil(smWrapper.AfterStop())
-
-	go slotMachine.RunTil(func(event debuglogger.UpdateEvent) bool {
-		select {
-		case <-vStateReportRecv:
-			return true
-		default:
+	slotMachine.RunTil(func(event debuglogger.UpdateEvent) bool {
+		_, ok := event.SM.(*preservedstatereport.SMPreservedStateReport)
+		if !ok || event.Update.NextStep.Transition == nil {
 			return false
 		}
+
+		return convlog.GetStepName(event.Update.NextStep.Transition) == "(*SMPreservedStateReport).stepWaitIndefinitely"
 	})
-	commonTestUtils.WaitSignalsTimed(t, 10*time.Second, vStateReportRecv)
 
 	mc.Finish()
 }
