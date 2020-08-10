@@ -59,9 +59,7 @@ func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 			oneExecutionEnded := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 			executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 2)
 
-			runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
-				return execution.Request.CallSiteMethod
-			})
+			runnerMock := logicless.NewServiceMock(ctx, mc, nil)
 			server.ReplaceRunner(runnerMock)
 			server.Init(ctx)
 
@@ -70,6 +68,7 @@ func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 				class     = gen.UniqueGlobalRef()
 				outgoing  = server.BuildRandomOutgoingWithPulse()
 				object    = reference.NewSelf(outgoing.GetLocal())
+				isolation = tolerableFlags()
 			)
 			server.IncrementPulse(ctx)
 
@@ -84,8 +83,7 @@ func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 			numberOfExecutions := 0
 			// Mock
 			{
-				isolation := contract.MethodIsolation{Interference: contract.CallTolerable, State: contract.CallDirty}
-				runnerMock.AddExecutionClassify("SomeMethod", isolation, nil)
+				runnerMock.AddExecutionClassify(outgoing.String(), isolation, nil)
 
 				newObjDescriptor := descriptor.NewObject(
 					reference.Global{}, reference.Local{}, class, []byte(""), false,
@@ -94,7 +92,7 @@ func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 				requestResult := requestresult.New([]byte("call result"), gen.UniqueGlobalRef())
 				requestResult.SetAmend(newObjDescriptor, []byte("new memory"))
 
-				executionMock := runnerMock.AddExecutionMock("SomeMethod")
+				executionMock := runnerMock.AddExecutionMock(outgoing.String())
 				executionMock.AddStart(func(ctx execution.Context) {
 					numberOfExecutions++
 					<-releaseBlockedExecution
@@ -129,7 +127,7 @@ func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 
 			pl := payload.VCallRequest{
 				CallType:       payload.CTMethod,
-				CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+				CallFlags:      payload.BuildCallFlags(isolation.Interference, isolation.State),
 				Callee:         object,
 				CallSiteMethod: "SomeMethod",
 				CallOutgoing:   outgoing,
@@ -180,9 +178,7 @@ func TestDeduplication_SecondCallOfMethodAfterExecution(t *testing.T) {
 			server, ctx := utils.NewUninitializedServer(nil, t)
 			defer server.Stop()
 
-			runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
-				return execution.Request.CallSiteMethod
-			})
+			runnerMock := logicless.NewServiceMock(ctx, mc, nil)
 			server.ReplaceRunner(runnerMock)
 			server.Init(ctx)
 
@@ -191,6 +187,7 @@ func TestDeduplication_SecondCallOfMethodAfterExecution(t *testing.T) {
 				class     = gen.UniqueGlobalRef()
 				outgoing  = server.BuildRandomOutgoingWithPulse()
 				object    = reference.NewSelf(outgoing.GetLocal())
+				isolation = tolerableFlags()
 			)
 
 			server.IncrementPulseAndWaitIdle(ctx)
@@ -205,8 +202,7 @@ func TestDeduplication_SecondCallOfMethodAfterExecution(t *testing.T) {
 			numberOfExecutions := 0
 			// Mock
 			{
-				isolation := contract.MethodIsolation{Interference: contract.CallTolerable, State: contract.CallDirty}
-				runnerMock.AddExecutionClassify("SomeMethod", isolation, nil)
+				runnerMock.AddExecutionClassify(outgoing.String(), isolation, nil)
 
 				newObjDescriptor := descriptor.NewObject(
 					reference.Global{}, reference.Local{}, class, []byte(""), false,
@@ -215,7 +211,7 @@ func TestDeduplication_SecondCallOfMethodAfterExecution(t *testing.T) {
 				requestResult := requestresult.New([]byte("call result"), gen.UniqueGlobalRef())
 				requestResult.SetAmend(newObjDescriptor, []byte("new memory"))
 
-				executionMock := runnerMock.AddExecutionMock("SomeMethod")
+				executionMock := runnerMock.AddExecutionMock(outgoing.String())
 				executionMock.AddStart(func(ctx execution.Context) {
 					numberOfExecutions++
 				}, &execution.Update{
@@ -259,7 +255,7 @@ func TestDeduplication_SecondCallOfMethodAfterExecution(t *testing.T) {
 
 			pl := payload.VCallRequest{
 				CallType:       payload.CTMethod,
-				CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+				CallFlags:      payload.BuildCallFlags(isolation.Interference, isolation.State),
 				Callee:         object,
 				CallSiteMethod: "SomeMethod",
 				CallOutgoing:   outgoing,
