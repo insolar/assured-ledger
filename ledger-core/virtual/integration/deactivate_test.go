@@ -58,8 +58,8 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 			server.Init(ctx)
 
 			var (
-				class            = gen.UniqueGlobalRef()
-				objectGlobal     = reference.NewSelf(server.RandomLocalWithPulse())
+				class            = server.RandomGlobalWithPulse()
+				objectGlobal     = server.RandomGlobalWithPulse()
 				pulseNumberFirst = server.GetPulse().PulseNumber
 
 				validatedStateRef = server.RandomLocalWithPulse()
@@ -244,8 +244,6 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 				server.IncrementPulse(ctx)
 
 				commonTestUtils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 1))
-				commonTestUtils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
-
 				assert.Equal(t, 1, typedChecker.VStateReport.Count())
 			}
 
@@ -307,7 +305,7 @@ func TestVirtual_CallMethod_On_CompletelyDeactivatedObject(t *testing.T) {
 					server.IncrementPulseAndWaitIdle(ctx)
 
 					var (
-						object    = reference.NewSelf(server.RandomLocalWithPulse())
+						object    = server.RandomGlobalWithPulse()
 						prevPulse = server.GetPulse().PulseNumber
 					)
 
@@ -377,8 +375,8 @@ func TestVirtual_CallDeactivate_Intolerable(t *testing.T) {
 			server.Init(ctx)
 
 			var (
-				class        = gen.UniqueGlobalRef()
-				objectGlobal = reference.NewSelf(server.RandomLocalWithPulse())
+				class        = server.RandomGlobalWithPulse()
+				objectGlobal = server.RandomGlobalWithPulse()
 				prevPulse    = server.GetPulse().PulseNumber
 			)
 
@@ -461,6 +459,7 @@ func TestVirtual_CallDeactivate_Intolerable(t *testing.T) {
 			}
 
 			commonTestUtils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+			assert.Equal(t, 1, typedChecker.VCallResult.Count())
 			mc.Finish()
 		})
 	}
@@ -490,8 +489,8 @@ func TestVirtual_DeactivateObject_ChangePulse(t *testing.T) {
 	server.Init(ctx)
 
 	var (
-		class               = gen.UniqueGlobalRef()
-		objectRef           = reference.NewSelf(server.RandomLocalWithPulse())
+		class               = server.RandomGlobalWithPulse()
+		objectRef           = server.RandomGlobalWithPulse()
 		p1                  = server.GetPulse().PulseNumber
 		deactivateIsolation = contract.MethodIsolation{
 			Interference: contract.CallTolerable,
@@ -647,8 +646,8 @@ func TestVirtual_CallMethod_After_Deactivation(t *testing.T) {
 	server.Init(ctx)
 
 	var (
-		class               = gen.UniqueGlobalRef()
-		objectRef           = reference.NewSelf(server.RandomLocalWithPulse())
+		class               = server.RandomGlobalWithPulse()
+		objectRef           = server.RandomGlobalWithPulse()
 		p1                  = server.GetPulse().PulseNumber
 		deactivateIsolation = contract.MethodIsolation{
 			Interference: contract.CallTolerable,
@@ -762,7 +761,7 @@ func TestVirtual_Deactivation_Deduplicate(t *testing.T) {
 	server.IncrementPulseAndWaitIdle(ctx)
 
 	var (
-		class              = gen.UniqueGlobalRef()
+		class              = server.RandomGlobalWithPulse()
 		outgoing           = server.BuildRandomOutgoingWithPulse()
 		objectRef          = reference.NewSelf(outgoing.GetLocal())
 		outgoingDeactivate = server.BuildRandomOutgoingWithPulse()
@@ -896,8 +895,8 @@ func TestVirtual_DeduplicateCallAfterDeactivation_PrevVE(t *testing.T) {
 			server.Init(ctx)
 
 			var (
-				class             = gen.UniqueGlobalRef()
-				objectGlobal      = reference.NewSelf(server.RandomLocalWithPulse())
+				class             = server.RandomGlobalWithPulse()
+				objectGlobal      = server.RandomGlobalWithPulse()
 				prevPulse         = server.GetPulse().PulseNumber
 				outgoingPrevPulse = server.BuildRandomOutgoingWithPulse()
 			)
@@ -1007,8 +1006,8 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 			server.Init(ctx)
 
 			var (
-				class               = gen.UniqueGlobalRef()
-				objectRef           = reference.NewSelf(server.RandomLocalWithPulse())
+				class               = server.RandomGlobalWithPulse()
+				objectRef           = server.RandomGlobalWithPulse()
 				p1                  = server.GetPulse().PulseNumber
 				deactivateIsolation = contract.MethodIsolation{
 					Interference: contract.CallTolerable,

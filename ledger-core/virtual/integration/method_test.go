@@ -2114,8 +2114,8 @@ func TestVirtual_Method_TwoUnorderedCalls(t *testing.T) {
 	server.Init(ctx)
 
 	var (
-		class        = gen.UniqueGlobalRef()
-		objectGlobal = reference.NewSelf(server.RandomLocalWithPulse())
+		class        = server.RandomGlobalWithPulse()
+		objectGlobal = server.RandomGlobalWithPulse()
 		prevPulse    = server.GetPulse().PulseNumber
 	)
 
@@ -2127,10 +2127,12 @@ func TestVirtual_Method_TwoUnorderedCalls(t *testing.T) {
 	}
 
 	var (
-		firstOutgoing        = server.BuildRandomOutgoingWithPulse()
-		secondOutgoing       = server.BuildRandomOutgoingWithPulse()
-		synchronizeExecution = synchronization.NewPoint(1)
+		firstOutgoing  = server.BuildRandomOutgoingWithPulse()
+		secondOutgoing = server.BuildRandomOutgoingWithPulse()
 	)
+
+	synchronizeExecution := synchronization.NewPoint(1)
+	defer synchronizeExecution.Done()
 
 	// add ExecutionMock to runnerMock
 	{
@@ -2179,9 +2181,8 @@ func TestVirtual_Method_TwoUnorderedCalls(t *testing.T) {
 	}
 
 	// 2 Tolerable VCallRequests will be converted to Intolerable
+	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 2)
 	{
-		executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 2)
-
 		// send first
 		pl := &payload.VCallRequest{
 			CallType:            payload.CTMethod,
@@ -2206,13 +2207,12 @@ func TestVirtual_Method_TwoUnorderedCalls(t *testing.T) {
 			CallOutgoing:        secondOutgoing,
 		}
 		server.SendPayload(ctx, pl)
-		commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
 	}
 
 	// wait for all VCallResults
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 	assert.Equal(t, 2, typedChecker.VCallResult.Count())
 
-	synchronizeExecution.Done()
 	mc.Finish()
 }
