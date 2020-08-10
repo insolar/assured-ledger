@@ -19,6 +19,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/synchronization"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
@@ -2095,5 +2096,123 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 		require.Equal(t, 1, typedChecker.VStateReport.Count())
 		require.Equal(t, 5, typedChecker.VCallResult.Count())
 	}
+	mc.Finish()
+}
+
+func TestVirtual_Method_TwoUnorderedCalls(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+	insrail.LogCase(t, "C5499")
+
+	mc := minimock.NewController(t)
+
+	server, ctx := utils.NewUninitializedServer(nil, t)
+	defer server.Stop()
+
+	runnerMock := logicless.NewServiceMock(ctx, mc, nil)
+
+	server.ReplaceRunner(runnerMock)
+	server.Init(ctx)
+
+	var (
+		class        = gen.UniqueGlobalRef()
+		objectGlobal = reference.NewSelf(server.RandomLocalWithPulse())
+		prevPulse    = server.GetPulse().PulseNumber
+	)
+
+	// init object
+	{
+		// need for correct handle state report (should from prev pulse)
+		server.IncrementPulse(ctx)
+		Method_PrepareObject(ctx, server, payload.Ready, objectGlobal, prevPulse)
+	}
+
+	var (
+		firstOutgoing        = server.BuildRandomOutgoingWithPulse()
+		secondOutgoing       = server.BuildRandomOutgoingWithPulse()
+		synchronizeExecution = synchronization.NewPoint(1)
+	)
+
+	// add ExecutionMock to runnerMock
+	{
+		runnerMock.AddExecutionMock(firstOutgoing.String()).AddStart(
+			func(ctx execution.Context) {
+				assert.Equal(t, objectGlobal, ctx.Object)
+				assert.Equal(t, contract.CallIntolerable, ctx.Isolation.Interference)
+				synchronizeExecution.Synchronize()
+			},
+			&execution.Update{
+				Type:   execution.Done,
+				Result: requestresult.New([]byte("first result"), objectGlobal),
+			},
+		)
+
+		runnerMock.AddExecutionMock(secondOutgoing.String()).AddStart(
+			func(ctx execution.Context) {
+				assert.Equal(t, objectGlobal, ctx.Object)
+				assert.Equal(t, contract.CallIntolerable, ctx.Isolation.Interference)
+				synchronizeExecution.WakeUp()
+			},
+			&execution.Update{
+				Type:   execution.Done,
+				Result: requestresult.New([]byte("second result"), objectGlobal),
+			},
+		)
+
+		runnerMock.AddExecutionClassify(firstOutgoing.String(), intolerableFlags(), nil)
+		runnerMock.AddExecutionClassify(secondOutgoing.String(), intolerableFlags(), nil)
+	}
+
+	// add typedChecker mock
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	{
+		typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool {
+			switch result.CallOutgoing {
+			case firstOutgoing:
+				assert.Equal(t, []byte("first result"), result.ReturnArguments)
+			case secondOutgoing:
+				assert.Equal(t, []byte("second result"), result.ReturnArguments)
+			default:
+				t.Fatalf("unexpected outgoing")
+			}
+			return false
+		})
+	}
+
+	// 2 Tolerable VCallRequests will be converted to Intolerable
+	{
+		executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 2)
+
+		// send first
+		pl := &payload.VCallRequest{
+			CallType:            payload.CTMethod,
+			CallFlags:           payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+			Caller:              server.GlobalCaller(),
+			Callee:              objectGlobal,
+			CallSiteDeclaration: class,
+			CallSiteMethod:      "GetMethod",
+			CallOutgoing:        firstOutgoing,
+		}
+		server.SendPayload(ctx, pl)
+		// wait for the first
+		commontestutils.WaitSignalsTimed(t, 10*time.Second, synchronizeExecution.Wait())
+		// send second
+		pl = &payload.VCallRequest{
+			CallType:            payload.CTMethod,
+			CallFlags:           payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+			Caller:              server.GlobalCaller(),
+			Callee:              objectGlobal,
+			CallSiteDeclaration: class,
+			CallSiteMethod:      "GetMethod",
+			CallOutgoing:        secondOutgoing,
+		}
+		server.SendPayload(ctx, pl)
+		commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+	}
+
+	// wait for all VCallResults
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+	assert.Equal(t, 2, typedChecker.VCallResult.Count())
+
+	synchronizeExecution.Done()
 	mc.Finish()
 }
