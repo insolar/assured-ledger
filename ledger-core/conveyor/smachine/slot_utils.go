@@ -32,7 +32,7 @@ func (p SlotLink) activateOnNonBusy(waitOn SlotLink, worker DetachableSlotWorker
 	case !p.IsValid():
 		// requester is dead, don't wait anymore and don't wake it up
 		return true
-	case worker == nil:
+	case worker.IsZero():
 		// too many retries - have to wake up the requester
 	case waitOn.isValidAndBusy():
 		// someone got it already, this callback should be added back to the queue
@@ -45,7 +45,7 @@ func (p SlotLink) activateOnNonBusy(waitOn SlotLink, worker DetachableSlotWorker
 	case m == nil:
 		// requester is dead, don't wait anymore and don't wake it up
 		return true
-	case worker == nil:
+	case worker.IsZero():
 		//
 	case !waitOn.isMachine(m):
 		if worker.NonDetachableOuterCall(m, p.s.activateSlot) {

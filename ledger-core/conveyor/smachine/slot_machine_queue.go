@@ -10,6 +10,7 @@ import (
 	"sync/atomic"
 
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 func newSlotMachineSync(eventCallback, signalCallback func()) SlotMachineSync {
@@ -104,7 +105,7 @@ func (m *SlotMachineSync) AddAsyncSignal(link SlotLink, fn func(link SlotLink, w
 
 	m.signalQueue.Add(func(w interface{}) {
 		if w == nil {
-			fn(link, nil)
+			fn(link, FixedSlotWorker{})
 		} else {
 			fn(link, w.(FixedSlotWorker))
 		}
@@ -123,7 +124,7 @@ func (m *SlotMachineSync) AddAsyncUpdate(link SlotLink, fn func(link SlotLink, w
 
 	m.updateQueue.Add(func(w interface{}) {
 		if w == nil {
-			fn(link, nil)
+			fn(link, FixedSlotWorker{})
 		} else {
 			fn(link, w.(FixedSlotWorker))
 		}
@@ -133,7 +134,7 @@ func (m *SlotMachineSync) AddAsyncUpdate(link SlotLink, fn func(link SlotLink, w
 
 func (m *SlotMachineSync) ProcessUpdates(worker FixedSlotWorker) (hasUpdates bool) {
 	switch {
-	case worker == nil:
+	case worker.IsZero():
 		panic("illegal value")
 	case m.IsInactive():
 		return
@@ -169,7 +170,7 @@ func (m *SlotMachineSync) AddAsyncCallback(link SlotLink, fn AsyncCallbackFunc) 
 	case fn == nil:
 		panic("illegal value")
 	case !m.CanProcessCallbacks(): // callbacks are cancelled on stopping
-		fn(link, nil)
+		fn(link, DetachableSlotWorker{})
 		return false
 	}
 
@@ -188,14 +189,14 @@ func (m *SlotMachineSync) _addAsyncCallback(q *synckit.SyncQueue, link SlotLink,
 			m._addDetachedCallback(link, fn, repeatCount+1)
 			return
 		}
-		fn(link, nil)
+		fn(link, DetachableSlotWorker{})
 	})
 }
 
 func (m *SlotMachineSync) ProcessCallbacks(worker AttachedSlotWorker) (hasUpdates, hasSignal, wasDetached bool) {
 	switch {
-	case worker == nil:
-		panic("illegal value")
+	case worker.IsZero():
+		panic(throw.IllegalValue())
 	case worker.HasSignal():
 		return true, true, false
 	}
@@ -224,8 +225,8 @@ func (m *SlotMachineSync) ProcessCallbacks(worker AttachedSlotWorker) (hasUpdate
 
 func (m *SlotMachineSync) ProcessSlotCallbacksByDetachable(link SlotLink, worker DetachableSlotWorker) (hasUpdates, hasSignal bool) {
 	switch {
-	case worker == nil:
-		panic("illegal value")
+	case worker.IsZero():
+		panic(throw.IllegalValue())
 	case m.IsInactive():
 		return false, false
 	case worker.HasSignal():
@@ -256,8 +257,8 @@ func (m *SlotMachineSync) cancelCallbacks(tasks synckit.SyncFuncList, worker Slo
 }
 
 func (m *SlotMachineSync) processCallbacks(tasks synckit.SyncFuncList, worker DetachableSlotWorker) (hasSignal bool) {
-	if worker == nil {
-		panic("illegal value")
+	if worker.IsZero() {
+		panic(throw.IllegalValue())
 	}
 	for i, fn := range tasks {
 		fn(worker)
@@ -315,8 +316,8 @@ func (m *SlotMachineSync) _flushDetachQueue(link SlotLink) synckit.SyncFuncList 
 
 func (m *SlotMachineSync) ProcessDetachQueue(link SlotLink, worker DetachableSlotWorker) (hasSignal bool) {
 	switch {
-	case worker == nil:
-		panic("illegal value")
+	case worker.IsZero():
+		panic(throw.IllegalValue())
 	case worker.HasSignal():
 		return true
 	}
