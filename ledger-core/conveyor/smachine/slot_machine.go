@@ -407,7 +407,7 @@ func (m *SlotMachine) runTerminationHandler(th internalTerminationHandlerFunc, t
 			defer func() {
 				err = RecoverSlotPanicWithStack("termination handler", recover(), nil, ErrorHandlerArea)
 			}()
-			th(td, nil)
+			th(td, FixedSlotWorker{})
 			return nil
 		}()
 		if err != nil {
@@ -907,7 +907,7 @@ func (m *SlotMachine) _wakeupOnDeactivateAsync(wakeUp, waitOn SlotLink) {
 		case !wakeUp.IsValid():
 			// requester is dead - no need to to anything
 			return true
-		case worker != nil && waitOn.isValidAndBusy():
+		case !worker.IsZero() && waitOn.isValidAndBusy():
 			// have to wait further, add this back
 			return false
 		}
@@ -916,7 +916,7 @@ func (m *SlotMachine) _wakeupOnDeactivateAsync(wakeUp, waitOn SlotLink) {
 		switch {
 		case wakeUpM == nil:
 			return true
-		case worker == nil:
+		case worker.IsZero():
 			break
 		case waitOn.isMachine(wakeUpM):
 			if worker.NonDetachableCall(wakeUp.activateSlot) {
@@ -967,7 +967,7 @@ func (m *SlotMachine) useSlotAsShared(link SharedDataLink, accessFn SharedDataFu
 	default:
 		// as worker can't help us, then we do it in a hard way
 		// this may be inefficient under high parallelism, but this isn't our case
-		ok = tm._useSlotAsShared(link.link, link.flags, data, accessFn, nil)
+		ok = tm._useSlotAsShared(link.link, link.flags, data, accessFn, DetachableSlotWorker{})
 	}
 	if ok {
 		return SharedSlotRemoteAvailable
@@ -984,7 +984,7 @@ func (m *SlotMachine) _useSlotAsShared(link SlotLink, flags ShareDataFlags, data
 	defer slot.stopWorking()
 	wakeUp := accessFn(data)
 
-	if worker != nil {
+	if !worker.IsZero() {
 		m.syncQueue.ProcessSlotCallbacksByDetachable(link, worker)
 	}
 
@@ -993,7 +993,7 @@ func (m *SlotMachine) _useSlotAsShared(link SlotLink, flags ShareDataFlags, data
 	}
 	slot.slotFlags |= slotWokenUp
 
-	if worker != nil && worker.NonDetachableCall(slot.activateSlot) {
+	if !worker.IsZero() && worker.NonDetachableCall(slot.activateSlot) {
 		return true
 	}
 
