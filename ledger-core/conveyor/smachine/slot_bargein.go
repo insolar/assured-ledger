@@ -109,7 +109,7 @@ func (v BargeInWithParam) CallWithParam(a interface{}) bool {
 		return true
 	}
 
-	return m.executeBargeIn(v.link, nil, func(slot *Slot, w DetachableSlotWorker) StateUpdate {
+	return m.executeBargeIn(v.link, DetachableSlotWorker{}, func(slot *Slot, w DetachableSlotWorker) StateUpdate {
 		return v._execute(slot, w, resultFn)
 	})
 }
@@ -118,7 +118,7 @@ func (v BargeInWithParam) callInline(m *SlotMachine, param interface{}, worker D
 	switch {
 	case m == nil:
 		panic(throw.IllegalValue())
-	case worker == nil:
+	case worker.IsZero():
 		panic(throw.IllegalValue())
 	case !v.link.IsValid():
 		// don't check IsAtStep() here as if step was changed we should do the call anyway
@@ -157,7 +157,7 @@ func (v BargeIn) Call() bool {
 	if m == nil {
 		return false
 	}
-	return m.executeBargeIn(link, nil, v._execute)
+	return m.executeBargeIn(link, DetachableSlotWorker{}, v._execute)
 	//return v._callAsync(m, link)
 }
 
@@ -172,7 +172,7 @@ func (v BargeIn) callInline(m *SlotMachine, worker DetachableSlotWorker) bool {
 	switch {
 	case m == nil:
 		panic(throw.IllegalValue())
-	case worker == nil:
+	case worker.IsZero():
 		panic(throw.IllegalValue())
 	}
 
@@ -195,7 +195,7 @@ func (v BargeIn) _execute(slot *Slot, _ DetachableSlotWorker) StateUpdate {
 func (m *SlotMachine) executeBargeIn(link StepLink, worker DetachableSlotWorker,
 	executeFn func(slot *Slot, w DetachableSlotWorker) StateUpdate,
 ) bool {
-	if worker != nil {
+	if !worker.IsZero() {
 		switch tm := link.getActiveMachine(); {
 		case tm == m:
 			done := false
@@ -259,7 +259,7 @@ func (m *SlotMachine) executeBargeInDirect(link StepLink, fn BargeInCallbackFunc
 	}()
 
 	_, atExactStep := link.isValidAndAtExactStep()
-	bc := bargingInContext{slotContext{s: slot, w: fixedWorkerWrapper{worker}}, atExactStep}
+	bc := bargingInContext{slotContext{s: slot, w: worker.asDetachable()}, atExactStep}
 	stateUpdate := bc.executeBargeInDirect(fn)
 	stateUpdate = slot.forceTopSubroutineUpdate(stateUpdate)
 	needsStop = false
