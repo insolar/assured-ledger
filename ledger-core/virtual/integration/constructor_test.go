@@ -940,6 +940,8 @@ func TestVirtual_CallConstructor_WithTwicePulseChange(t *testing.T) {
 		})
 		typedChecker.VDelegatedRequestFinished.Set(func(finished *payload.VDelegatedRequestFinished) bool {
 			assert.Equal(t, objectRef, finished.Callee)
+			assert.Equal(t, payload.CTConstructor, finished.CallType)
+			assert.NotNil(t, finished.LatestState)
 			assert.Equal(t, secondExpectedToken, finished.DelegationSpec)
 			assert.Equal(t, []byte("state A"), finished.LatestState.State)
 			return false
