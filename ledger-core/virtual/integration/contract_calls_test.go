@@ -101,6 +101,7 @@ func Test_NoDeadLock_WhenOutgoingComeToSameNode(t *testing.T) {
 	for _, test := range table {
 		test := test
 		t.Run(test.name, func(t *testing.T) {
+			insrail.LogCase(t, test.testCaseID)
 			mc := minimock.NewController(t)
 
 			server, ctx := utils.NewUninitializedServer(nil, t)
