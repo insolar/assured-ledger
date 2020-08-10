@@ -12,6 +12,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/convlog"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
@@ -173,17 +174,40 @@ func BenchmarkVCallRequestConstructor(b *testing.B) {
 		Arguments:      insolar.MustSerialize([]interface{}{}),
 	}
 
+	b.ReportAllocs()
 	b.StopTimer()
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		pl.CallOutgoing = server.BuildRandomOutgoingWithPulse()
-		msg := server.WrapPayload(&pl).Finalize()
 
-		b.StartTimer()
-		server.SendMessage(ctx, msg)
-		testutils.WaitSignalsTimed(b, 10*time.Second, resultSignal)
+	b.Run("reflect marshaller", func(b *testing.B) {
+		b.ReportAllocs()
+		insconveyor.DisableLogStepInfoMarshaller = true
 		b.StopTimer()
-	}
+		for i := 0; i < b.N; i++ {
+			pl.CallOutgoing = server.BuildRandomOutgoingWithPulse()
+			msg := server.WrapPayload(&pl).Finalize()
+
+			b.StartTimer()
+			server.SendMessage(ctx, msg)
+			testutils.WaitSignalsTimed(b, 10*time.Second, resultSignal)
+			b.StopTimer()
+		}
+	})
+
+	b.Run("code marshaller", func(b *testing.B) {
+		b.ReportAllocs()
+		insconveyor.DisableLogStepInfoMarshaller = false
+		b.StopTimer()
+		for i := 0; i < b.N; i++ {
+			pl.CallOutgoing = server.BuildRandomOutgoingWithPulse()
+			msg := server.WrapPayload(&pl).Finalize()
+
+			b.StartTimer()
+			server.SendMessage(ctx, msg)
+			testutils.WaitSignalsTimed(b, 10*time.Second, resultSignal)
+			b.StopTimer()
+		}
+	})
+
 }
 
 func BenchmarkTestAPIGetBalance(b *testing.B) {

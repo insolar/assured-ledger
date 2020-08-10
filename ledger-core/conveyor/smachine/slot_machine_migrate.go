@@ -101,7 +101,7 @@ func (m *SlotMachine) _migrateSlot(lastMigrationCount uint32, slot *Slot, worker
 			for level := 0; ; level++ {
 				if migrateFn != nil {
 					mc := migrationContext{
-						slotContext: slotContext{s: slot, w: fixedWorkerWrapper{worker}},
+						slotContext: slotContext{s: slot, w: worker.asDetachable()},
 						fixedWorker: worker,
 					}
 					stateUpdate, skipAll := mc.executeMigration(migrateFn)
