@@ -33,6 +33,7 @@ import (
 var deadBeef = [...]byte{0xde, 0xad, 0xbe, 0xef}
 
 func TestSMVDelegatedCallRequest(t *testing.T) {
+	insrail.LogCase(t, "C4984")
 	oneRandomOrderedTable := callregistry.NewRequestTable()
 	oneRandomOrderedTable.GetList(contract.CallTolerable).Add(gen.UniqueGlobalRef())
 
@@ -52,7 +53,6 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 
 	for _, tc := range []struct {
 		name                          string
-		testRailCase                  string
 		requestRef                    reference.Global
 		OrderedPendingEarliestPulse   pulse.Number
 		UnorderedPendingEarliestPulse pulse.Number
@@ -65,7 +65,6 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 	}{
 		{
 			name:                        "OK tolerable",
-			testRailCase:                "C5133",
 			PendingRequestTable:         callregistry.NewRequestTable(),
 			requestRef:                  oneRandomOrderedRequest,
 			OrderedPendingEarliestPulse: pulse.OfNow() - 100,
@@ -81,7 +80,6 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 		},
 		{
 			name:                          "OK intolerable",
-			testRailCase:                  "C5132",
 			PendingRequestTable:           callregistry.NewRequestTable(),
 			requestRef:                    oneRandomUnorderedRequest,
 			UnorderedPendingEarliestPulse: pulse.OfNow() - 100,
@@ -97,7 +95,6 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 		},
 		{
 			name:                        "retry tolerable",
-			testRailCase:                "C4987",
 			PendingRequestTable:         retryOrderedTable,
 			requestRef:                  retryOrderedRequestRef,
 			OrderedPendingEarliestPulse: pulse.OfNow() - 100,
@@ -113,7 +110,6 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 		},
 		{
 			name:                          "retry intolerable",
-			testRailCase:                  "C5127",
 			PendingRequestTable:           retryUnorderedTable,
 			requestRef:                    retryUnorderedRequestRef,
 			UnorderedPendingEarliestPulse: pulse.OfNow() - 100,
@@ -130,7 +126,6 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 		},
 		{
 			name:                          "unexpected intolerable",
-			testRailCase:                  "C5131",
 			PendingRequestTable:           callregistry.NewRequestTable(),
 			requestRef:                    reference.NewSelf(gen.UniqueLocalRefWithPulse(pulse.OfNow() - 110)),
 			UnorderedPendingEarliestPulse: pulse.Unknown,
@@ -140,7 +135,6 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 		},
 		{
 			name:                          "unexpected tolerable",
-			testRailCase:                  "C4985",
 			PendingRequestTable:           callregistry.NewRequestTable(),
 			requestRef:                    reference.NewSelf(gen.UniqueLocalRefWithPulse(pulse.OfNow() - 110)),
 			UnorderedPendingEarliestPulse: pulse.Unknown,
@@ -150,7 +144,6 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 		},
 		{
 			name:                          "too old intolerable",
-			testRailCase:                  "C4984",
 			PendingRequestTable:           callregistry.NewRequestTable(),
 			requestRef:                    reference.NewSelf(gen.UniqueLocalRefWithPulse(pulse.OfNow() - 110)),
 			UnorderedPendingEarliestPulse: pulse.OfNow() - 100,
@@ -160,7 +153,6 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 		},
 		{
 			name:                          "too old tolerable",
-			testRailCase:                  "C5130",
 			PendingRequestTable:           callregistry.NewRequestTable(),
 			requestRef:                    reference.NewSelf(gen.UniqueLocalRefWithPulse(pulse.OfNow() - 110)),
 			UnorderedPendingEarliestPulse: pulse.OfNow() - 100,
@@ -170,7 +162,6 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 		},
 		{
 			name:                          "full table intolerable",
-			testRailCase:                  "C5129",
 			PendingRequestTable:           oneRandomUnorderedTable,
 			requestRef:                    reference.NewSelf(gen.UniqueLocalRefWithPulse(pulse.OfNow() - 110)),
 			UnorderedPendingEarliestPulse: pulse.OfNow() - 100,
@@ -180,7 +171,6 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 		},
 		{
 			name:                          "full table tolerable",
-			testRailCase:                  "C4986",
 			PendingRequestTable:           oneRandomOrderedTable,
 			requestRef:                    reference.NewSelf(gen.UniqueLocalRefWithPulse(pulse.OfNow() - 110)),
 			UnorderedPendingEarliestPulse: pulse.OfNow() - 100,
@@ -190,7 +180,6 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 		},
 		{
 			name:                          "wrong call interference flag_expected intolerable, get tolerable",
-			testRailCase:                  "C4989",
 			PendingRequestTable:           callregistry.NewRequestTable(),
 			requestRef:                    reference.NewSelf(gen.UniqueLocalRefWithPulse(pulse.OfNow())),
 			UnorderedPendingEarliestPulse: pulse.OfNow() - 100,
@@ -200,7 +189,6 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 		},
 		{
 			name:                        "wrong call interference flag_expected tolerable, get intolerable",
-			testRailCase:                "C5128",
 			PendingRequestTable:         callregistry.NewRequestTable(),
 			requestRef:                  reference.NewSelf(gen.UniqueLocalRefWithPulse(pulse.OfNow())),
 			OrderedPendingEarliestPulse: pulse.OfNow() - 100,
@@ -211,7 +199,6 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			defer commontestutils.LeakTester(t)
-			insrail.LogCase(t, tc.testRailCase)
 
 			var (
 				mc  = minimock.NewController(t)
