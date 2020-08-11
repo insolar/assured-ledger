@@ -7,11 +7,8 @@ package insconveyor
 
 import (
 	"sync"
-	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
-	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -42,19 +39,4 @@ func (w *ConveyorWorker) AttachTo(conveyor *conveyor.PulseConveyor) {
 
 func NewConveyorWorker(cycleFn  conveyor.PulseConveyorCycleFunc) ConveyorWorker {
 	return ConveyorWorker{cycleFn: cycleFn}
-}
-
-type AsyncTimeMessage struct {
-	*log.Msg `txt:"async time"`
-
-	AsyncComponent     string `opt:""`
-	AsyncExecutionTime int64
-}
-
-// TODO remove?
-func LogAsyncTime(log smachine.Logger, timeBefore time.Time, component string) {
-	log.Trace(AsyncTimeMessage{
-		AsyncComponent:     component,
-		AsyncExecutionTime: time.Since(timeBefore).Nanoseconds(),
-	})
 }

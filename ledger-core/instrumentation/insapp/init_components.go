@@ -81,7 +81,7 @@ func (s *Server) initCertificateManager(ctx context.Context, cfg configuration.C
 
 // initComponents creates and links all insolard components
 func (s *Server) initComponents(ctx context.Context, cfg configuration.Configuration,
-	comps preComponents, certManager nodeinfo.CertificateManager,
+	comps preComponents, certManager nodeinfo.CertificateManager, roleName string,
 ) (*component.Manager, func()) {
 	cm := component.NewManager(nil)
 	cm.SetLogger(global.Logger())
@@ -107,10 +107,10 @@ func (s *Server) initComponents(ctx context.Context, cfg configuration.Configura
 		certManager,
 	)
 
-	nw, err := servicenetwork.NewServiceNetwork(cfg, cm)
+	nw, err := servicenetwork.NewServiceNetwork(cfg, cm) // TODO replaceable network + per node network instance factory
 	checkError(ctx, err, "failed to start Network")
 
-	metricsComp := metrics.NewMetrics(cfg.Metrics, metrics.GetInsolarRegistry("virtual"), "virtual")
+	metricsComp := metrics.NewMetrics(cfg.Metrics, metrics.GetInsolarRegistry(roleName), roleName)
 
 	pulses := memstor.NewStorageMem()
 	pm := NewPulseManager()

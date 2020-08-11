@@ -109,7 +109,7 @@ func (s *Server) StartComponents(ctx context.Context, cfg configuration.Configur
 		defer jaegerFlush()
 	}
 
-	return s.initComponents(ctx, cfg, preComponents, certManager)
+	return s.initComponents(ctx, cfg, preComponents, certManager, nodeRole)
 }
 
 func checkError(ctx context.Context, err error, message string) {

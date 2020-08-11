@@ -17,6 +17,11 @@ func AfterAnyStopOrError(event debuglogger.UpdateEvent) bool {
 	return updateType == "stop" || updateType == "panic" || updateType == "error"
 }
 
+func AfterInit(event debuglogger.UpdateEvent) bool {
+	updateType := event.Update.UpdateType
+	return updateType == "jump" && event.Data.CurrentStep.Name == "<init>"
+}
+
 func NewSMTypeFilter(sample smachine.StateMachine, andPredicate Func) Func {
 	var smType = reflect.TypeOf(sample)
 

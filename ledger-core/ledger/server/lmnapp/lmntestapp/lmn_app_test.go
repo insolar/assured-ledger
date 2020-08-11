@@ -3,46 +3,44 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package lmnapp
+package lmntestapp
 
 import (
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/datawriter"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/treesvc"
-	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/journal"
 )
 
-func TestStartCtm(t *testing.T) {
-//	t.SkipNow()
-
+func TestGenesisTree(t *testing.T) {
 	server := NewTestServer(t)
 	defer server.Stop()
 
-	// optional
+	jrn := journal.New()
+	// jrn.StartRecording(1000, true)
+
 	server.SetImposer(func(params *insconveyor.ImposedParams) {
 		// impose per-test changes upon default behavior
+		params.EventJournal = jrn
 	})
 	server.Start()
 	inject := server.Injector()
 
+	// do your test here
+
 	var treeSvc treesvc.Service
 	inject.MustInject(&treeSvc)
 
-	// do your test here
-	server.NextPulse()
+	ch := jrn.WaitStopOf(&datawriter.SMGenesis{}, 1)
+
+	server.IncrementPulse()
 
 	// genesis will run here and will initialize jet tree
-	for {
-		_, cur, ok := treeSvc.GetTrees(pulse.Unknown) // ignored for genesis
-		if !ok || !cur.IsEmpty() {
-			break
-		}
-		time.Sleep(10*time.Millisecond)
-	}
+	<- ch
 
 	pn := server.Pulsar().GetLastPulseData().PulseNumber
 	prev, cur, ok := treeSvc.GetTrees(pn)
@@ -50,11 +48,11 @@ func TestStartCtm(t *testing.T) {
 	require.True(t, prev.IsEmpty())
 	require.False(t, cur.IsEmpty())
 
-	//	server.NextPulse() 	// drops will be created
+	ch = jrn.WaitStopOf(&datawriter.SMPlash{}, 1)
+	ch2 := jrn.WaitInitOf(&datawriter.SMDropBuilder{}, 1<<datawriter.DefaultGenesisSplitDepth)
 
-	// for i := 5; i > 0; i-- {
-	// 	server.NextPulse()
-	// 	time.Sleep(100*time.Millisecond)
-	// }
-	time.Sleep(time.Second)
+	server.IncrementPulse() 	// drops will be created as genesis is finished
+
+	<- ch
+	<- ch2
 }
