@@ -68,7 +68,12 @@ func (p *SMPlash) stepInit(ctx smachine.InitializationContext) smachine.StateUpd
 }
 
 func (p *SMPlash) stepGetTree(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	prev, curr := p.treeSvc.GetTrees() // TODO this is a simple implementation that is only valid for one-LMN network
+	prev, curr, ok := p.treeSvc.GetTrees(p.pulseSlot.PulseNumber()) // TODO this is a simple implementation that is only valid for one-LMN network
+	if !ok {
+		// Trees' pulse can only be switched during migration
+		panic(throw.Impossible())
+	}
+
 	p.treePrev, p.treeCur = &prev, &curr
 
 	return ctx.Jump(p.stepCreatePlush)
