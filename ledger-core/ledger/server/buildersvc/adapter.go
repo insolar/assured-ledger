@@ -8,7 +8,11 @@ package buildersvc
 import (
 	"context"
 
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/managed"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smadapter"
+	"github.com/insolar/assured-ledger/ledger-core/crypto"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/jetalloc"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -23,9 +27,17 @@ func NewAdapterExt(adapterID smachine.AdapterID, executor smachine.AdapterExecut
 	}
 }
 
-func NewAdapter(cfg smachine.AdapterExecutorConfig) Adapter {
-	executor := smachine.StartAdapterExecutor(context.Background(), cfg, nil)
-	return NewAdapterExt("DropBuilder", executor, NewService())
+func NewAdapterComponent(cfg smadapter.Config, ps crypto.PlatformScheme) managed.Component {
+	svc := NewService(
+		jetalloc.NewMaterialAllocationStrategy(false),
+		ps.ConsensusScheme().NewMerkleDigester())
+
+	var adapter Adapter
+	executor, component := smadapter.NewComponent(context.Background(), cfg, svc, func(holder managed.Holder) {
+		holder.AddDependency(adapter)
+	})
+	adapter = NewAdapterExt("DropBuilder", executor, svc)
+	return component
 }
 
 type Adapter struct {
@@ -34,7 +46,7 @@ type Adapter struct {
 }
 
 func (v Adapter) PrepareAsync(ctx smachine.ExecutionContext, callFn func(Service) smachine.AsyncResultFunc) smachine.AsyncCallRequester {
-	if callFn != nil {
+	if callFn == nil {
 		panic(throw.IllegalValue())
 	}
 
@@ -44,7 +56,7 @@ func (v Adapter) PrepareAsync(ctx smachine.ExecutionContext, callFn func(Service
 }
 
 func (v Adapter) PrepareNotify(ctx smachine.ExecutionContext, callFn func(Service)) smachine.NotifyRequester {
-	if callFn != nil {
+	if callFn == nil {
 		panic(throw.IllegalValue())
 	}
 
@@ -54,7 +66,7 @@ func (v Adapter) PrepareNotify(ctx smachine.ExecutionContext, callFn func(Servic
 }
 
 func (v Adapter) SendFailureNotify(ctx smachine.FailureContext, callFn func(Service)) {
-	if callFn != nil {
+	if callFn == nil {
 		panic(throw.IllegalValue())
 	}
 

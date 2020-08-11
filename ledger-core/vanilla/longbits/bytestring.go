@@ -48,10 +48,6 @@ func (v ByteString) IsEmpty() bool {
 	return len(v) == 0
 }
 
-func (v ByteString) AsReader() FoldableReader {
-	return v
-}
-
 func (v ByteString) WriteTo(w io.Writer) (int64, error) {
 	n, err := w.Write([]byte(v))
 	return int64(n), err

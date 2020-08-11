@@ -17,7 +17,7 @@ func NewPrefixTree(autoPropagate bool) PrefixTree {
 }
 
 //
-// Prefix tree for jets. Limited to 65536 jets and 16 bit prefix. Root is bit[0].
+// PrefixTree for jets. Limited to 65536 jets and 16 bit prefix. Root is bit[0].
 // The only difference with usual binary tree is that nodes are added and removed in pairs
 // by Split and Merge operations accordingly.
 //
@@ -38,7 +38,6 @@ func NewPrefixTree(autoPropagate bool) PrefixTree {
 //
 // Serialization is supported, with O(n log n) per operation.
 //
-
 type PrefixTree struct {
 	mask          Prefix
 	minDepth      uint8

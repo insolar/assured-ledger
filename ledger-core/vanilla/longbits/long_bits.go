@@ -64,6 +64,7 @@ func (v Bits64) String() string {
 	return bitsToStringDefault(v)
 }
 
+// deprecated // use longbits.AsBytes()
 func (v Bits64) AsBytes() []byte {
 	return v[:]
 }
@@ -154,6 +155,7 @@ func (v Bits128) AsByteString() ByteString {
 	return ByteString(v[:])
 }
 
+// deprecated // use longbits.AsBytes()
 func (v Bits128) AsBytes() []byte {
 	return v[:]
 }
@@ -197,6 +199,7 @@ func (v Bits224) String() string {
 	return bitsToStringDefault(v)
 }
 
+// deprecated // use longbits.AsBytes()
 func (v Bits224) AsBytes() []byte {
 	return v[:]
 }
@@ -261,6 +264,7 @@ func (v Bits256) String() string {
 	return bitsToStringDefault(v)
 }
 
+// deprecated // use longbits.AsBytes()
 func (v Bits256) AsBytes() []byte {
 	return v[:]
 }
@@ -322,6 +326,7 @@ func (v Bits512) String() string {
 	return bitsToStringDefault(v)
 }
 
+// deprecated // use longbits.AsBytes()
 func (v Bits512) AsBytes() []byte {
 	return v[:]
 }

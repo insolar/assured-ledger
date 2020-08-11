@@ -65,15 +65,15 @@ func HashToBytes(hasher hash.Hash, b []byte) {
 func ByteDigestOfHash(digester BasicDigester, hasher hash.Hash) []byte {
 	n := digester.GetDigestSize()
 	h := hasher.Sum(make([]byte, 0, n))
-	if len(h) != n {
+	if len(h) < n {
 		panic(throw.IllegalValue())
 	}
-	return h
+	return h[:n]
 }
 
 func DigestOfHash(digester BasicDigester, hasher hash.Hash) Digest {
 	h := ByteDigestOfHash(digester, hasher)
-	return NewDigest(longbits.NewMutableFixedSize(h), digester.GetDigestMethod())
+	return NewDigest(longbits.WrapBytes(h), digester.GetDigestMethod())
 }
 
 func NewHashingTeeReader(hasher DigestHasher, r io.Reader) HashingTeeReader {
@@ -110,7 +110,7 @@ func (v *HashingTeeReader) ReadSignature(m SigningMethod) (Signature, error) {
 	if err != nil {
 		return Signature{}, err
 	}
-	return NewSignature(longbits.NewMutableFixedSize(b), v.GetDigestMethod().SignedBy(m)), nil
+	return NewSignature(longbits.WrapBytes(b), v.GetDigestMethod().SignedBy(m)), nil
 }
 
 func (v *HashingTeeReader) ReadAndVerifySignature(verifier DataSignatureVerifier) ([]byte, error) {
@@ -119,7 +119,7 @@ func (v *HashingTeeReader) ReadAndVerifySignature(verifier DataSignatureVerifier
 	if err != nil {
 		return nil, err
 	}
-	s := NewSignature(longbits.NewMutableFixedSize(b), verifier.GetSignatureMethod())
+	s := NewSignature(longbits.WrapBytes(b), verifier.GetSignatureMethod())
 	if !verifier.IsValidDigestSignature(d, s) {
 		err = throw.RemoteBreach("packet signature mismatch")
 	}

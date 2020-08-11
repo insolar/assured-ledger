@@ -6,14 +6,16 @@
 package insconveyor
 
 import (
-	"context"
-
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/managed"
-	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 )
 
-type EventFactory interface {
-	InputEvent(context.Context, conveyor.InputEvent, conveyor.InputContext) (conveyor.InputSetup, error)
-	SetupComponents(context.Context, injector.DependencyInjector, managed.RegisterComponentFunc)
+type ImposedParams struct {
+	CompartmentSetup     AppCompartmentSetup
+	ComponentInterceptFn ComponentInterceptFunc
+	ConveyorCycleFn      conveyor.PulseConveyorCycleFunc
 }
+
+type ImposerFunc = func(*ImposedParams)
+
+type ComponentInterceptFunc = func(managed.Component) managed.Component

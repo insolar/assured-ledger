@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/insolar/assured-ledger/ledger-core/crypto/legacyadapter"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/phases"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/proofs"
@@ -42,7 +43,7 @@ func NewPulseDigest(data pulse.Data) cryptkit.Digest {
 	copy(bits[entropySize:], data.PulseEntropy[:])
 
 	// TODO Fix - it's not digest actually
-	return cryptkit.NewDigest(&bits, SHA3512Digest)
+	return cryptkit.NewDigest(&bits, legacyadapter.SHA3Digest512)
 }
 
 type PulsePacketParser struct {
@@ -58,7 +59,7 @@ func NewPulsePacketParser(pulse pulse.Data) *PulsePacketParser {
 	}
 
 	return &PulsePacketParser{
-		FixedReader: longbits.NewMutableFixedSize(data),
+		FixedReader: longbits.WrapBytes(data),
 		digest:      NewPulseDigest(pulse).AsDigestHolder(),
 		pulse:       pulse,
 	}

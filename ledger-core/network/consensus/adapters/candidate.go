@@ -8,6 +8,7 @@ package adapters
 import (
 	"crypto/ecdsa"
 
+	"github.com/insolar/assured-ledger/ledger-core/crypto/legacyadapter"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters/candidate"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
@@ -24,7 +25,7 @@ func (c Candidate) StaticProfile(keyProcessor cryptography.KeyProcessor) *Static
 
 	signHolder := cryptkit.NewSignature(
 		longbits.NewBits512FromBytes(c.Signature),
-		SHA3512Digest.SignedBy(SECP256r1Sign),
+		legacyadapter.SHA3Digest512.SignedBy(legacyadapter.SECP256r1Sign),
 	)
 
 	extension := NewStaticProfileExtensionExt(
@@ -39,11 +40,11 @@ func (c Candidate) StaticProfile(keyProcessor cryptography.KeyProcessor) *Static
 	return NewStaticProfileExt2(c.ShortID, c.PrimaryRole, c.SpecialRole, startPower,
 		extension,
 		NewOutbound(c.Address),
-		NewECDSAPublicKeyStore(publicKey.(*ecdsa.PublicKey)),
-		NewECDSASignatureKeyHolder(publicKey.(*ecdsa.PublicKey), keyProcessor),
+		legacyadapter.NewECDSAPublicKeyStoreFromPK(publicKey),
+		legacyadapter.NewECDSASignatureKeyHolder(publicKey.(*ecdsa.PublicKey), keyProcessor),
 		cryptkit.NewSignedDigest(
-			cryptkit.NewDigest(longbits.NewBits512FromBytes(c.Digest), SHA3512Digest),
-			cryptkit.NewSignature(longbits.NewBits512FromBytes(c.Signature), SHA3512Digest.SignedBy(SECP256r1Sign)),
+			cryptkit.NewDigest(longbits.NewBits512FromBytes(c.Digest), legacyadapter.SHA3Digest512),
+			cryptkit.NewSignature(longbits.NewBits512FromBytes(c.Signature), legacyadapter.SHA3Digest512.SignedBy(legacyadapter.SECP256r1Sign)),
 		),
 	)
 }
@@ -53,7 +54,9 @@ func (c Candidate) Profile() candidate.Profile {
 }
 
 func NewCandidate(staticProfile *StaticProfile, keyProcessor cryptography.KeyProcessor) *Candidate {
-	pubKey, err := keyProcessor.ExportPublicKeyBinary(staticProfile.store.(*ECDSAPublicKeyStore).publicKey)
+	pubKey, err := keyProcessor.ExportPublicKeyBinary(
+		staticProfile.store.(*legacyadapter.ECDSAPublicKeyStore).CryptoPublicKey())
+
 	if err != nil {
 		panic("failed to export public key")
 	}
