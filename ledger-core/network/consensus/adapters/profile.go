@@ -6,6 +6,7 @@
 package adapters
 
 import (
+	"crypto"
 	"crypto/ecdsa"
 	"fmt"
 	"time"
@@ -90,23 +91,23 @@ func ECDSAPublicKeyOfNode(n nodeinfo.NetworkNode) *ecdsa.PublicKey {
 	return store.(*legacyadapter.ECDSAPublicKeyStore).CryptoPublicKey().(*ecdsa.PublicKey)
 }
 
-func ECDSAPublicKeyOfProfile(nip profiles.StaticProfile) *ecdsa.PublicKey {
+func ECDSAPublicKeyOfProfile(nip profiles.StaticProfile) crypto.PublicKey {
 	store := nip.GetPublicKeyStore()
-	return store.(*ECDSAPublicKeyStore).publicKey
+	return store.(*legacyadapter.ECDSAPublicKeyStore).CryptoPublicKey()
 }
 
 func ECDSAPublicKeyAsPublicKeyStore(pk crypto.PublicKey) cryptkit.PublicKeyStore {
 	if pk == nil {
 		return nil
 	}
-	return NewECDSAPublicKeyStore(pk.(*ecdsa.PublicKey))
+	return legacyadapter.NewECDSAPublicKeyStoreFromPK(pk.(*ecdsa.PublicKey))
 }
 
 func ECDSAPublicKeyAsSignatureKeyHolder(pk crypto.PublicKey, kp cryptography.KeyProcessor) cryptkit.SignatureKeyHolder {
 	if pk == nil {
 		return nil
 	}
-	return NewECDSASignatureKeyHolder(pk.(*ecdsa.PublicKey), kp)
+	return legacyadapter.NewECDSASignatureKeyHolder(pk.(*ecdsa.PublicKey), kp)
 }
 
 func NewStaticProfile(
