@@ -178,3 +178,8 @@ func (n *ServiceNetwork) GetLatestAccessor() network.Accessor {
 func (n *ServiceNetwork) GetCert(ctx context.Context, ref reference.Global) (nodeinfo.Certificate, error) {
 	return n.Gatewayer.Gateway().Auther().GetCert(ctx, ref)
 }
+
+func (n *ServiceNetwork) GetSendMessageHandler() message.NoPublishHandlerFunc {
+	return n.SendMessageHandler
+}
+

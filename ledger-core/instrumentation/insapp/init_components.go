@@ -26,8 +26,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor/memstor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/logwatermill"
-	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/metrics"
+	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
@@ -45,7 +45,8 @@ type preComponents struct {
 
 func (s *Server) initBootstrapComponents(ctx context.Context, cfg configuration.Configuration) preComponents {
 	earlyComponents := component.NewManager(nil)
-	earlyComponents.SetLogger(global.Logger())
+	logger := inslogger.FromContext(ctx)
+	earlyComponents.SetLogger(logger)
 
 	keyStore, err := keystore.NewKeyStore(cfg.KeysPath)
 	checkError(ctx, err, "failed to load KeyStore: ")
@@ -80,24 +81,12 @@ func (s *Server) initCertificateManager(ctx context.Context, cfg configuration.C
 }
 
 // initComponents creates and links all insolard components
-func (s *Server) initComponents(ctx context.Context, cfg configuration.Configuration,
+func (s *Server) initComponents(ctx context.Context, cfg configuration.Configuration, networkFn NetworkInitFunc,
 	comps preComponents, certManager nodeinfo.CertificateManager, roleName string,
 ) (*component.Manager, func()) {
 	cm := component.NewManager(nil)
-	cm.SetLogger(global.Logger())
-
-	// Watermill.
-	var (
-		wmLogger   *logwatermill.WatermillLogAdapter
-		publisher  message.Publisher
-		subscriber message.Subscriber
-	)
-	{
-		wmLogger = logwatermill.NewWatermillLogAdapter(inslogger.FromContext(ctx))
-		pubsub := gochannel.NewGoChannel(gochannel.Config{}, wmLogger)
-		subscriber = pubsub
-		publisher = pubsub
-	}
+	logger := inslogger.FromContext(ctx)
+	cm.SetLogger(logger)
 
 	cm.Register(
 		comps.PlatformCryptographyScheme,
@@ -107,13 +96,39 @@ func (s *Server) initComponents(ctx context.Context, cfg configuration.Configura
 		certManager,
 	)
 
-	nw, err := servicenetwork.NewServiceNetwork(cfg, cm) // TODO replaceable network + per node network instance factory
-	checkError(ctx, err, "failed to start Network")
+	var nw NetworkSupport
+	var ns network.Status
+
+	if networkFn == nil {
+		nsn, err := servicenetwork.NewServiceNetwork(cfg, cm)
+		checkError(ctx, err, "failed to start ServiceNetwork")
+		cm.Register(nsn)
+
+		nw = nsn
+		ns = nsn
+	} else {
+		var err error
+		nw, ns, err = networkFn(cfg, cm)
+		checkError(ctx, err, "failed to start ServiceNetwork by factory")
+		cm.Register(nw)
+	}
 
 	metricsComp := metrics.NewMetrics(cfg.Metrics, metrics.GetInsolarRegistry(roleName), roleName)
 
 	pulses := memstor.NewStorageMem()
 	pm := NewPulseManager()
+
+	wmLogger := logwatermill.NewWatermillLogAdapter(logger)
+	var (
+		publisher  message.Publisher
+		subscriber message.Subscriber
+	)
+	{
+		pubsub := gochannel.NewGoChannel(gochannel.Config{}, wmLogger)
+		subscriber = pubsub
+		publisher = pubsub
+	}
+
 	publisher = publisherWrapper(ctx, cm, cfg.Introspection, publisher)
 	availabilityChecker := api.NewNetworkChecker(cfg.AvailabilityChecker)
 
@@ -131,15 +146,19 @@ func (s *Server) initComponents(ctx context.Context, cfg configuration.Configura
 	if s.appFn != nil {
 		affine := affinity.NewAffinityHelper(certManager.GetCertificate().GetNodeRef())
 
-		API, err := api.NewRunner(&cfg.APIRunner,
-			certManager, nw, nw, pulses, affine, nw, availabilityChecker)
-		checkError(ctx, err, "failed to start ApiRunner")
+		if ns != nil {
+			API, err := api.NewRunner(&cfg.APIRunner,
+				certManager, nw, nw, pulses, affine, ns, availabilityChecker)
+			checkError(ctx, err, "failed to start ApiRunner")
 
-		AdminAPIRunner, err := api.NewRunner(&cfg.AdminAPIRunner,
-			certManager, nw, nw, pulses, affine, nw, availabilityChecker)
-		checkError(ctx, err, "failed to start AdminAPIRunner")
+			AdminAPIRunner, err := api.NewRunner(&cfg.AdminAPIRunner,
+				certManager, nw, nw, pulses, affine, ns, availabilityChecker)
+			checkError(ctx, err, "failed to start AdminAPIRunner")
 
-		APIWrapper := api.NewWrapper(API, AdminAPIRunner)
+			APIWrapper := api.NewWrapper(API, AdminAPIRunner)
+
+			cm.Register(ns, APIWrapper)
+		}
 
 		appComponents := AppComponents{
 			BeatHistory:    pulses,
@@ -148,19 +167,19 @@ func (s *Server) initComponents(ctx context.Context, cfg configuration.Configura
 			CryptoScheme:   comps.CryptoScheme,
 		}
 
+		var err error
 		appComponent, err = s.appFn(ctx, cfg, appComponents)
 		checkError(ctx, err, "failed to start AppCompartment")
 
 		cm.Register(
 			affine,
-			APIWrapper,
 			appComponent,
 		)
 	}
 	cm.Register(s.extra...)
 	cm.Inject()
 
-	err = cm.Init(ctx)
+	err := cm.Init(ctx)
 	checkError(ctx, err, "failed to init components")
 
 	if appComponent == nil {
@@ -172,7 +191,7 @@ func (s *Server) initComponents(ctx context.Context, cfg configuration.Configura
 
 	stopWatermillFn := startWatermill(
 		ctx, wmLogger, subscriber,
-		nw.SendMessageHandler,
+		nw.GetSendMessageHandler(),
 		appComponent.GetMessageHandler(),
 	)
 
@@ -241,3 +260,10 @@ func startRouter(ctx context.Context, router *message.Router) {
 	}()
 	<-router.Running()
 }
+
+func checkError(ctx context.Context, err error, message string) {
+	if err != nil {
+		inslogger.FromContext(ctx).Fatalf("%v: %v", message, err.Error())
+	}
+}
+
