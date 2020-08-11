@@ -54,7 +54,8 @@ func (p *treeSvc) FinishGenesis(depth uint8, afterPulse pulse.Number) {
 	if !p.isGenesis() {
 		panic(throw.IllegalState())
 	}
-	p.trees[1].MakePerfect(depth)
+	p.trees[2].MakePerfect(depth)
+	p.treeIdx++
 }
 
 func (p *treeSvc) SplitNext(id jet.DropID) {
