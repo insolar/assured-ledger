@@ -24,7 +24,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 )
 
@@ -558,93 +557,4 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) addPayloadAndWaitIdle(
 func (s *stateReportCheckPendingCountersAndPulsesTest) finish() {
 	s.server.Stop()
 	s.mc.Finish()
-}
-
-func TestVirtual_StateReport_AfterPendingConstructorHasFinished(t *testing.T) {
-	defer commontestutils.LeakTester(t)
-	insrail.LogCase(t, "C5239")
-
-	mc := minimock.NewController(t)
-
-	server, ctx := utils.NewServer(nil, t)
-	defer server.Stop()
-
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-
-	var (
-		class         = server.RandomGlobalWithPulse()
-		outgoingP1    = server.BuildRandomOutgoingWithPulse()
-		incomingP1    = reference.NewRecordOf(class, outgoingP1.GetLocal())
-		object        = reference.NewSelf(outgoingP1.GetLocal())
-		dirtyStateRef = server.RandomLocalWithPulse()
-		p1            = server.GetPulse().PulseNumber
-	)
-
-	server.IncrementPulseAndWaitIdle(ctx)
-	p2 := server.GetPulse().PulseNumber
-
-	pl := payload.VStateReport{
-		Status:                      payload.Empty,
-		Object:                      object,
-		AsOf:                        p1,
-		OrderedPendingCount:         1,
-		OrderedPendingEarliestPulse: p1,
-	}
-
-	server.SendPayload(ctx, &pl)
-	server.WaitActiveThenIdleConveyor()
-
-	{
-		typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
-			require.Equal(t, object, report.Object)
-			require.Equal(t, p2, report.AsOf)
-			require.Equal(t, payload.Ready, report.Status)
-			require.Equal(t, int32(0), report.OrderedPendingCount)
-			require.Equal(t, pulse.Number(0), report.OrderedPendingEarliestPulse)
-
-			require.NotNil(t, report.ProvidedContent)
-			require.NotNil(t, report.ProvidedContent.LatestDirtyState)
-
-			state := report.ProvidedContent.LatestDirtyState
-			require.Equal(t, []byte("new object memory"), state.State)
-
-			return false
-		})
-		typedChecker.VDelegatedCallResponse.SetResend(false)
-	}
-
-	{
-		delegatedRequest := payload.VDelegatedCallRequest{
-			Callee:       object,
-			CallIncoming: incomingP1,
-			CallOutgoing: outgoingP1,
-			CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
-		}
-		server.SendPayload(ctx, &delegatedRequest)
-		commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VDelegatedCallResponse.Wait(ctx, 1))
-	}
-
-	{
-		finishedSignal := server.Journal.WaitStopOf(&handlers.SMVDelegatedRequestFinished{}, 1)
-		finished := payload.VDelegatedRequestFinished{
-			CallType:     payload.CTConstructor,
-			Callee:       object,
-			CallOutgoing: outgoingP1,
-			CallIncoming: reference.NewRecordOf(object, outgoingP1.GetLocal()),
-			CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
-			LatestState: &payload.ObjectState{
-				Reference: dirtyStateRef,
-				Class:     class,
-				State:     []byte("new object memory"),
-			},
-		}
-		server.SendPayload(ctx, &finished)
-		commontestutils.WaitSignalsTimed(t, 10*time.Second, finishedSignal)
-	}
-
-	server.IncrementPulseAndWaitIdle(ctx)
-
-	commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 1))
-
-	mc.Finish()
 }
