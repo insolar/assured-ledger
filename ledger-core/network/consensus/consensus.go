@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/insolar/assured-ledger/ledger-core/crypto/legacyadapter"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
@@ -107,7 +108,7 @@ func newConstructor(ctx context.Context, dep *Dep) *constructor {
 			longbits.NewBits512FromBytes(
 				make([]byte, 64),
 			),
-			adapters.SHA3512Digest,
+			legacyadapter.SHA3Digest512,
 		).AsDigestHolder(),
 		c.consensusConfiguration,
 	)
