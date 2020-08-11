@@ -246,7 +246,7 @@ type testCase struct {
 	customDelegate reference.Global
 }
 
-func TestDelegationToken_IsMessageFromVirtualLegitimate(t *testing.T) {
+func TestDelegationToken_CheckMessageFromAuthorizedVirtual(t *testing.T) {
 	fixedVe := gen.UniqueGlobalRef()
 	cases := []testCase{
 		{
