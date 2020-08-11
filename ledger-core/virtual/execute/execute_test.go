@@ -19,6 +19,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
@@ -852,31 +853,34 @@ func TestSMExecute_StopWithoutMessagesIfPulseChangedBeforeOutgoing(t *testing.T)
 		caller    = gen.UniqueGlobalRef()
 		objectRef = gen.UniqueGlobalRef()
 
-		catalog     object.Catalog         = object.NewLocalCatalog()
-		authService authentication.Service = authentication.NewServiceMock(t)
+		catalogWrapper                        = object.NewCatalogMockWrapper(mc)
+		catalog        object.Catalog         = catalogWrapper.Mock()
+		authService    authentication.Service = authentication.NewServiceMock(t)
 
 		limiter = tool.NewRunnerLimiter(4)
 	)
 
 	slotMachine := virtualdebugger.New(ctx, t)
-	slotMachine.PrepareMockedMessageSender(mc)
+	slotMachine.InitEmptyMessageSender(mc)
 	slotMachine.PrepareMockedRunner(ctx, mc)
 	slotMachine.AddInterfaceDependency(&catalog)
 	slotMachine.AddInterfaceDependency(&authService)
 	slotMachine.AddDependency(limiter)
 
-	var vStateReportRecv = make(chan struct{})
-	checkMessage := func(msg payload.Marshaler) {
-		res, ok := msg.(*payload.VStateReport)
-		require.True(t, ok)
-		assert.Equal(t, objectRef, res.Object)
-		assert.Equal(t, payload.Ready, res.Status)
-		assert.Equal(t, int32(0), res.OrderedPendingCount)
-		assert.Equal(t, int32(0), res.UnorderedPendingCount)
-		assert.Equal(t, []byte(stateMemory), res.ProvidedContent.LatestDirtyState.State)
-		close(vStateReportRecv)
+	obj := object.Info{
+		Reference:      objectRef,
+		PendingTable:   callregistry.NewRequestTable(),
+		KnownRequests:  callregistry.NewWorkingTable(),
+		ReadyToWork:    smsync.NewConditional(1, "ReadyToWork").SyncLink(),
+		OrderedExecute: limiter.NewChildSemaphore(1, "MutableExecution").SyncLink(),
 	}
-	slotMachine.MessageSender.SendRole.SetCheckMessage(checkMessage)
+	obj.SetState(object.HasState)
+	obj.SetDescriptorDirty(descriptor.NewObject(reference.Global{}, reference.Local{}, class, []byte(stateMemory), false))
+	sharedStateData := smachine.NewUnboundSharedData(&object.SharedState{Info: obj})
+	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
+
+	catalogWrapper.AddObject(objectRef, smObjectAccessor)
+	catalogWrapper.AllowAccessMode(object.CatalogMockAccessGetOrCreate)
 
 	outgoing := reference.NewRecordOf(objectRef, slotMachine.GenerateLocal())
 
@@ -885,11 +889,6 @@ func TestSMExecute_StopWithoutMessagesIfPulseChangedBeforeOutgoing(t *testing.T)
 		contract.MethodIsolation{Interference: contract.CallTolerable, State: contract.CallDirty},
 		nil,
 	)
-
-	smObject := object.NewStateMachineObject(objectRef)
-	smObject.SetState(object.HasState)
-	smObject.SetDescriptorDirty(descriptor.NewObject(reference.Global{}, reference.Local{}, class, []byte(stateMemory),  false,))
-	slotMachine.AddStateMachine(ctx, smObject)
 
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
@@ -914,15 +913,14 @@ func TestSMExecute_StopWithoutMessagesIfPulseChangedBeforeOutgoing(t *testing.T)
 	slotMachine.Migrate()
 	slotMachine.RunTil(smWrapper.AfterStop())
 
-	go slotMachine.RunTil(func(event debuglogger.UpdateEvent) bool {
-		select {
-		case <-vStateReportRecv:
-			return true
-		default:
-			return false
-		}
-	})
-	commonTestUtils.WaitSignalsTimed(t, 10*time.Second, vStateReportRecv)
+	report := obj.BuildStateReport()
+	assert.Equal(t, objectRef, report.Object)
+	assert.Equal(t, payload.Ready, report.Status)
+	assert.Equal(t, int32(0), report.OrderedPendingCount)
+	assert.Equal(t, int32(0), report.UnorderedPendingCount)
+	state := obj.BuildLatestDirtyState()
+	assert.Equal(t, []byte(stateMemory), state.State)
+	assert.False(t, state.Deactivated)
 
 	mc.Finish()
 }
