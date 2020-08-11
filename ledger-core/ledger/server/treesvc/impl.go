@@ -76,11 +76,15 @@ func (p *LocalTree) advance(pn pulse.Number) {
 	p.treePrev, p.treeCurr = p.treeCurr, p.treeNext
 }
 
-func (p *LocalTree) GetTrees() (prev, cur jet.PrefixTree) {
+func (p *LocalTree) GetTrees(pn pulse.Number) (prev, cur jet.PrefixTree, ok bool) {
 	p.mutex.RLock()
 	defer p.mutex.RUnlock()
 
-	return p.treePrev, p.treeCurr
+	if p.isGenesis() || p.last.IsUnknownOrEqualTo(pn) {
+		return p.treePrev, p.treeCurr, true
+	}
+
+	return jet.PrefixTree{}, jet.PrefixTree{}, false
 }
 
 func (p *LocalTree) isGenesis() bool {

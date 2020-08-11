@@ -155,3 +155,10 @@ func (p *TestServer) App() *insconveyor.AppCompartment {
 func (p *TestServer) Injector() injector.DependencyInjector {
 	return injector.NewDependencyInjector(struct {}{}, p.App().Conveyor(), nil)
 }
+
+func (p *TestServer) Pulsar() *testutils.PulseGenerator {
+	if p.pg == nil {
+		panic(throw.IllegalState())
+	}
+	return p.pg
+}

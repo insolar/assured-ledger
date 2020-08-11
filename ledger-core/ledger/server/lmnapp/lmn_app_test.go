@@ -9,8 +9,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/treesvc"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
 
 func TestStartCtm(t *testing.T) {
@@ -34,14 +37,20 @@ func TestStartCtm(t *testing.T) {
 
 	// genesis will run here and will initialize jet tree
 	for {
-		_, cur := treeSvc.GetTrees()
-		if !cur.IsEmpty() {
+		_, cur, ok := treeSvc.GetTrees(pulse.Unknown) // ignored for genesis
+		if !ok || !cur.IsEmpty() {
 			break
 		}
 		time.Sleep(10*time.Millisecond)
 	}
 
-//	server.NextPulse() 	// drops will be created
+	pn := server.Pulsar().GetLastPulseData().PulseNumber
+	prev, cur, ok := treeSvc.GetTrees(pn)
+	require.True(t, ok)
+	require.True(t, prev.IsEmpty())
+	require.False(t, cur.IsEmpty())
+
+	//	server.NextPulse() 	// drops will be created
 
 	// for i := 5; i > 0; i-- {
 	// 	server.NextPulse()
