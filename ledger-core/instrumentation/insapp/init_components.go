@@ -136,7 +136,6 @@ func (s *Server) initComponents(ctx context.Context, cfg configuration.Configura
 		pulses,
 		publisher,
 		pm,
-		nw,
 		availabilityChecker,
 		metricsComp,
 	)
