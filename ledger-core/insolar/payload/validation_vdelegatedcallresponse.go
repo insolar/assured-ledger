@@ -33,7 +33,7 @@ func (m *VDelegatedCallResponse) Validate(currentPulse pulse.Number) error {
 		return throw.New("CallIncoming local part should have valid time pulse lesser than current pulse")
 	case !isTimePulseBefore(incomingBasePulse, currentPulse):
 		return throw.New("CallIncoming base part should have valid time pulse lesser than current pulse")
-	case !globalBasePulseBeforeOrEqLocalPulse(m.CallIncoming):
+	case !globalBasePulseIsSpecialOrBeforeOrEqLocalPulse(m.CallIncoming):
 		return throw.New("CallIncoming base pulse should be less or equal than local pulse")
 	}
 

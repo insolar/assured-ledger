@@ -16,7 +16,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
-	"github.com/insolar/assured-ledger/ledger-core/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -50,23 +49,21 @@ func TestVirtual_Constructor_BadClassRef(t *testing.T) {
 
 	utils.AssertNotJumpToStep(t, server.Journal, "stepTakeLock")
 
-	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 2)
+	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 
-	isolation := contract.ConstructorIsolation()
-	outgoingOne := server.BuildRandomOutgoingWithPulse()
-	outgoingTwo := server.BuildRandomOutgoingWithPulse()
+	var (
+		outgoingTwo = server.BuildRandomOutgoingWithPulse()
+	)
+
 	expectedError, err := foundation.MarshalMethodErrorResult(errors.New("bad class reference"))
 	require.NoError(t, err)
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-	randomCallee := server.RandomGlobalWithPulse()
 
-	object1Ref := reference.NewSelf(outgoingOne.GetLocal())
 	object2Ref := reference.NewSelf(outgoingTwo.GetLocal())
 
 	leftMessages := map[reference.Global]struct{}{
-		object1Ref: struct{}{},
-		object2Ref: struct{}{},
+		object2Ref: {},
 	}
 	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
 		if _, ok := leftMessages[res.Callee]; !ok {
@@ -82,31 +79,17 @@ func TestVirtual_Constructor_BadClassRef(t *testing.T) {
 		return false // no resend msg
 	})
 
-	// Call constructor on an empty class ref
-	server.SendPayload(ctx, &payload.VCallRequest{
-		CallType:       payload.CTConstructor,
-		CallFlags:      payload.BuildCallFlags(isolation.Interference, isolation.State),
-		CallSiteMethod: "New",
-		CallOutgoing:   outgoingOne,
-		Arguments:      insolar.MustSerialize([]interface{}{}),
-	})
+	{
+		pl := utils.GenerateVCallRequestConstructor(server)
+		pl.CallOutgoing = outgoingTwo
 
-	server.WaitActiveThenIdleConveyor()
-
-	// Call constructor on a bad class ref
-	server.SendPayload(ctx, &payload.VCallRequest{
-		CallType:       payload.CTConstructor,
-		Callee:         randomCallee,
-		CallFlags:      payload.BuildCallFlags(isolation.Interference, isolation.State),
-		CallSiteMethod: "New",
-		CallOutgoing:   outgoingTwo,
-		Arguments:      insolar.MustSerialize([]interface{}{}),
-	})
+		server.SendPayload(ctx, pl)
+	}
 
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
-	assert.Equal(t, 2, typedChecker.VCallResult.Count())
+	assert.Equal(t, 1, typedChecker.VCallResult.Count())
 	require.Len(t, leftMessages, 0)
 
 	mc.Finish()
@@ -117,9 +100,7 @@ func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
 	insrail.LogCase(t, "C4995")
 
 	var (
-		mc        = minimock.NewController(t)
-		isolation = contract.ConstructorIsolation()
-		class     = gen.UniqueGlobalRef()
+		mc = minimock.NewController(t)
 	)
 
 	server, ctx := utils.NewUninitializedServer(nil, t)
@@ -131,21 +112,15 @@ func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
 
+	pl := utils.GenerateVCallRequestConstructor(server)
+
 	var (
 		p            = server.GetPulse().PulseNumber
-		outgoing     = server.BuildRandomOutgoingWithPulse()
+		outgoing     = pl.CallOutgoing
 		objectRef    = reference.NewSelf(outgoing.GetLocal())
 		runnerResult = []byte("123")
+		class        = pl.Callee
 	)
-
-	flags := payload.BuildCallFlags(isolation.Interference, isolation.State)
-	pl := payload.VCallRequest{
-		CallType:       payload.CTConstructor,
-		CallFlags:      flags,
-		Callee:         class,
-		CallSiteMethod: "test",
-		CallOutgoing:   outgoing,
-	}
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
@@ -153,7 +128,7 @@ func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
 		require.Equal(t, objectRef, res.Callee)
 		require.Equal(t, outgoing, res.CallOutgoing)
 		require.Equal(t, payload.CTConstructor, res.CallType)
-		require.Equal(t, flags, res.CallFlags)
+		require.Equal(t, pl.CallFlags, res.CallFlags)
 
 		return false // no resend msg
 	})
@@ -190,7 +165,7 @@ func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
 			})
 	}
 
-	server.SendPayload(ctx, &pl)
+	server.SendPayload(ctx, pl)
 
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
@@ -211,9 +186,7 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 	// VE has object's state record with Status==Missing
 	// Constructor call should work on top of such entry
 	var (
-		mc        = minimock.NewController(t)
-		isolation = contract.ConstructorIsolation()
-		class     = gen.UniqueGlobalRef()
+		mc = minimock.NewController(t)
 	)
 
 	server, ctx := utils.NewUninitializedServer(nil, t)
@@ -226,24 +199,19 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 	server.Init(ctx)
 	server.IncrementPulseAndWaitIdle(ctx)
 
+	pl := utils.GenerateVCallRequestConstructor(server)
+	pl.Arguments = []byte("arguments")
+
 	var (
 		prevPulse = server.GetPulse().PulseNumber
-		outgoing  = server.BuildRandomOutgoingWithPulse()
+		class     = pl.Callee
+		outgoing  = pl.CallOutgoing
 		objectRef = reference.NewSelf(outgoing.GetLocal())
 	)
 
 	server.IncrementPulseAndWaitIdle(ctx)
 
 	currPulse := server.GetPulse().PulseNumber
-
-	pl := payload.VCallRequest{
-		CallType:       payload.CTConstructor,
-		CallFlags:      payload.BuildCallFlags(isolation.Interference, isolation.State),
-		Callee:         class,
-		CallSiteMethod: "New",
-		CallOutgoing:   outgoing,
-		Arguments:      []byte("arguments"),
-	}
 
 	{
 		requestResult := requestresult.New([]byte("123"), gen.UniqueGlobalRef())
@@ -296,7 +264,7 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 		commontestutils.WaitSignalsTimed(t, 10*time.Second, done)
 	}
 
-	server.SendPayload(ctx, &pl)
+	server.SendPayload(ctx, pl)
 
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
@@ -317,9 +285,7 @@ func TestVirtual_Constructor_PrevPulseStateWithMissingStatus(t *testing.T) {
 	insrail.LogCase(t, "C4997")
 
 	var (
-		mc        = minimock.NewController(t)
-		isolation = contract.ConstructorIsolation()
-		class     = gen.UniqueGlobalRef()
+		mc = minimock.NewController(t)
 	)
 
 	server, ctx := utils.NewUninitializedServer(nil, t)
@@ -333,6 +299,7 @@ func TestVirtual_Constructor_PrevPulseStateWithMissingStatus(t *testing.T) {
 		p1        = server.GetPulse().PulseNumber
 		outgoing  = server.BuildRandomOutgoingWithPulse()
 		objectRef = reference.NewSelf(outgoing.GetLocal())
+		class     = server.BuildRandomOutgoingWithPulse()
 	)
 
 	server.IncrementPulseAndWaitIdle(ctx)
@@ -391,14 +358,10 @@ func TestVirtual_Constructor_PrevPulseStateWithMissingStatus(t *testing.T) {
 		return false
 	})
 
-	pl := payload.VCallRequest{
-		CallType:       payload.CTConstructor,
-		CallFlags:      payload.BuildCallFlags(isolation.Interference, isolation.State),
-		Callee:         class,
-		CallSiteMethod: "New",
-		CallOutgoing:   outgoing,
-		Arguments:      []byte("arguments"),
-	}
+	pl := utils.GenerateVCallRequestConstructor(server)
+	pl.Callee = class
+	pl.CallOutgoing = outgoing
+	pl.Arguments = []byte("arguments")
 
 	{
 		requestResult := requestresult.New([]byte("123"), gen.UniqueGlobalRef())
@@ -416,7 +379,7 @@ func TestVirtual_Constructor_PrevPulseStateWithMissingStatus(t *testing.T) {
 
 	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 
-	server.SendPayload(ctx, &pl)
+	server.SendPayload(ctx, pl)
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
 
 	server.IncrementPulseAndWaitIdle(ctx)
@@ -456,16 +419,15 @@ func TestVirtual_CallConstructorFromConstructor(t *testing.T) {
 		classA    = server.RandomGlobalWithPulse()
 		outgoingA = server.BuildRandomOutgoingWithPulse()
 		objectA   = reference.NewSelf(outgoingA.GetLocal())
+		incomingA = reference.NewRecordOf(classA, outgoingA.GetLocal())
 
 		classB        = server.RandomGlobalWithPulse()
 		objectBGlobal = server.RandomGlobalWithPulse()
-
-		outgoingCallRef = server.BuildRandomOutgoingWithPulse()
 	)
 
 	// add ExecutionMocks to runnerMock
 	{
-		outgoingCall := execution.NewRPCBuilder(outgoingCallRef, objectA).CallConstructor(classB, "New", []byte("123"))
+		outgoingCall := execution.NewRPCBuilder(incomingA, objectA).CallConstructor(classB, "New", []byte("123"))
 		objectAResult := requestresult.New([]byte("finish A.New"), outgoingA)
 		objectAResult.SetActivate(reference.Global{}, classA, []byte("state A"))
 		objectAExecutionMock := runnerMock.AddExecutionMock(classA.String())
@@ -512,11 +474,10 @@ func TestVirtual_CallConstructorFromConstructor(t *testing.T) {
 	{
 		typedChecker.VCallRequest.Set(func(request *payload.VCallRequest) bool {
 			assert.Equal(t, classB, request.Callee)
-			require.Equal(t, objectA, request.Caller)
+			assert.Equal(t, objectA, request.Caller)
 			assert.Equal(t, []byte("123"), request.Arguments)
 			assert.Equal(t, payload.CTConstructor, request.CallType)
 			assert.Equal(t, uint32(1), request.CallSequence)
-			assert.Equal(t, outgoingCallRef, request.CallReason)
 			assert.Equal(t, callFlags, request.CallFlags)
 			assert.Equal(t, server.GetPulse().PulseNumber, request.CallOutgoing.GetLocal().Pulse())
 			return true // resend
@@ -540,17 +501,10 @@ func TestVirtual_CallConstructorFromConstructor(t *testing.T) {
 		})
 	}
 
-	pl := payload.VCallRequest{
-		CallType:       payload.CTConstructor,
-		CallFlags:      callFlags,
-		Caller:         server.GlobalCaller(),
-		Callee:         classA,
-		CallSiteMethod: "New",
-		CallOutgoing:   outgoingA,
-	}
-
-	msg := server.WrapPayload(&pl).Finalize()
-	server.SendMessage(ctx, msg)
+	pl := utils.GenerateVCallRequestConstructor(server)
+	pl.Callee = classA
+	pl.CallOutgoing = outgoingA
+	server.SendPayload(ctx, pl)
 
 	// wait for all calls and SMs
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
@@ -577,20 +531,14 @@ func TestVirtual_Constructor_WrongConstructorName(t *testing.T) {
 
 	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 
+	pl := utils.GenerateVCallRequestConstructor(server)
+	pl.Callee = testwallet.GetClass()
+	pl.CallSiteMethod = "NotExistingConstructorName"
+
 	var (
-		isolation = contract.ConstructorIsolation()
-		outgoing  = server.BuildRandomOutgoingWithPulse()
+		outgoing  = pl.CallOutgoing
 		objectRef = reference.NewSelf(outgoing.GetLocal())
 	)
-
-	pl := payload.VCallRequest{
-		CallType:       payload.CTConstructor,
-		CallFlags:      payload.BuildCallFlags(isolation.Interference, isolation.State),
-		Callee:         testwallet.GetClass(),
-		CallSiteMethod: "NotExistingConstructorName",
-		CallOutgoing:   outgoing,
-		Arguments:      insolar.MustSerialize([]interface{}{}),
-	}
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
@@ -605,7 +553,7 @@ func TestVirtual_Constructor_WrongConstructorName(t *testing.T) {
 		return false // no resend msg
 	})
 
-	server.SendPayload(ctx, &pl)
+	server.SendPayload(ctx, pl)
 
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
@@ -634,27 +582,20 @@ func TestVirtual_Constructor_PulseChangedWhileOutgoing(t *testing.T) {
 
 	server.Init(ctx)
 
+	pl := utils.GenerateVCallRequestConstructor(server)
+
 	var (
 		isolation = contract.ConstructorIsolation()
 		callFlags = payload.BuildCallFlags(isolation.Interference, isolation.State)
 
-		class     = server.RandomGlobalWithPulse()
-		outgoing  = server.BuildRandomOutgoingWithPulse()
+		class     = pl.Callee
+		outgoing  = pl.CallOutgoing
 		objectRef = reference.NewSelf(outgoing.GetLocal())
 
 		constructorPulse = server.GetPulse().PulseNumber
 
 		delegationToken payload.CallDelegationToken
 	)
-
-	pl := payload.VCallRequest{
-		CallType:       payload.CTConstructor,
-		CallFlags:      callFlags,
-		CallAsOf:       constructorPulse,
-		Callee:         class,
-		CallSiteMethod: "New",
-		CallOutgoing:   outgoing,
-	}
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
@@ -746,7 +687,7 @@ func TestVirtual_Constructor_PulseChangedWhileOutgoing(t *testing.T) {
 		})
 	}
 
-	server.SendPayload(ctx, &pl)
+	server.SendPayload(ctx, pl)
 
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, synchronizeExecution.Wait())
 	server.IncrementPulseAndWaitIdle(ctx)
@@ -807,8 +748,6 @@ func TestVirtual_CallConstructor_WithTwicePulseChange(t *testing.T) {
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
 	var (
-		constructorIsolation = contract.ConstructorIsolation()
-
 		classA    = server.RandomGlobalWithPulse()
 		outgoing  = server.BuildRandomOutgoingWithPulse()
 		objectRef = reference.NewSelf(outgoing.GetLocal())
@@ -905,16 +844,10 @@ func TestVirtual_CallConstructor_WithTwicePulseChange(t *testing.T) {
 		})
 	}
 
-	pl := payload.VCallRequest{
-		CallType:       payload.CTConstructor,
-		CallFlags:      payload.BuildCallFlags(constructorIsolation.Interference, constructorIsolation.State),
-		Caller:         server.GlobalCaller(),
-		Callee:         classA,
-		CallSiteMethod: "New",
-		CallOutgoing:   outgoing,
-	}
-
-	server.SendPayload(ctx, &pl)
+	pl := utils.GenerateVCallRequestConstructor(server)
+	pl.Callee = classA
+	pl.CallOutgoing = outgoing
+	server.SendPayload(ctx, pl)
 
 	// wait for results
 	{
@@ -977,8 +910,14 @@ func TestVirtual_Constructor_IsolationNegotiation(t *testing.T) {
 
 			executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 
-			outgoing := server.BuildRandomOutgoingWithPulse()
-			objectRef := reference.NewSelf(outgoing.GetLocal())
+			pl := utils.GenerateVCallRequestConstructor(server)
+			pl.CallFlags = payload.BuildCallFlags(test.isolation.Interference, test.isolation.State)
+			pl.Callee = testwallet.GetClass()
+
+			var (
+				outgoing  = pl.CallOutgoing
+				objectRef = reference.NewSelf(outgoing.GetLocal())
+			)
 
 			expectedError := throw.W(throw.IllegalValue(), "failed to negotiate call isolation params", struct {
 				methodIsolation contract.MethodIsolation
@@ -1001,14 +940,7 @@ func TestVirtual_Constructor_IsolationNegotiation(t *testing.T) {
 				return false // no resend msg
 			})
 
-			pl := payload.VCallRequest{
-				CallType:       payload.CTConstructor,
-				CallFlags:      payload.BuildCallFlags(test.isolation.Interference, test.isolation.State),
-				Callee:         testwallet.GetClass(),
-				CallSiteMethod: "New",
-				CallOutgoing:   outgoing,
-			}
-			server.SendPayload(ctx, &pl)
+			server.SendPayload(ctx, pl)
 
 			commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
 			commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
