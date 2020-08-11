@@ -6,58 +6,112 @@
 package treesvc
 
 import (
+	"sync"
+
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/managed"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-var _ Service = &treeSvc{}
-// var _ managed.ComponentWithPulse = &treeSvc{}
-type treeSvc struct {
-	trees [3]jet.PrefixTree
-	treeIdx uint8
+func NewEmpty() *LocalTree {
+	return &LocalTree{}
 }
 
-// func (p *treeSvc) Init(holder managed.Holder) {
-// 	panic("implement me")
-// }
-//
-// func (p *treeSvc) Start(holder managed.Holder) {
-// 	panic("implement me")
-// }
-//
-// func (p *treeSvc) Stop(holder managed.Holder) {
-// 	panic("implement me")
-// }
+func New(tree jet.PrefixTree, pn pulse.Number) *LocalTree {
+	if tree.IsEmpty() != pn.IsUnknown() {
+		panic(throw.IllegalValue())
+	}
 
-func (p *treeSvc) pulseMigration(holder managed.Holder, p2 pulse.Range) {
-	panic("implement me")
-}
-
-func (p *treeSvc) GetTrees() (prev, cur jet.PrefixTree) {
-	panic("implement me")
-}
-
-func (p *treeSvc) advance() {
-	p.treeIdx++
-	if p.treeIdx == uint8(len(p.trees)) {
-		p.treeIdx = 0
+	return &LocalTree{
+		treePrev: tree,
+		treeCurr: tree,
+		treeNext: tree,
+		last: pn,
 	}
 }
 
-func (p *treeSvc) isGenesis() bool {
-	return p.treeIdx == 0 && p.trees[1].IsEmpty()
+var _ Service = &LocalTree{}
+
+var _ managed.ComponentWithPulse = &LocalTree{}
+type LocalTree struct {
+	mutex sync.RWMutex
+
+	treePrev jet.PrefixTree
+	treeCurr jet.PrefixTree
+	treeNext jet.PrefixTree
+	last     pulse.Number
 }
 
-func (p *treeSvc) FinishGenesis(depth uint8, afterPulse pulse.Number) {
-	if !p.isGenesis() {
+func (p *LocalTree) Init(managed.Holder) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
+	p.treePrev.Init()
+	p.treeCurr.Init()
+	p.treeNext.Init()
+}
+
+func (p *LocalTree) Start(managed.Holder) {
+}
+
+func (p *LocalTree) Stop(managed.Holder) {
+}
+
+func (p *LocalTree) PulseMigration(_ managed.Holder, pr pulse.Range) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
+	pn := pr.RightBoundData().PulseNumber
+
+	if p.isGenesis() {
+		// genesis can only be switched explicitly
+		return
+	}
+	p.advance(pn)
+}
+
+func (p *LocalTree) advance(pn pulse.Number) {
+	p.last = pn
+	p.treePrev, p.treeCurr = p.treeCurr, p.treeNext
+}
+
+func (p *LocalTree) GetTrees() (prev, cur jet.PrefixTree) {
+	p.mutex.RLock()
+	defer p.mutex.RUnlock()
+
+	return p.treePrev, p.treeCurr
+}
+
+func (p *LocalTree) isGenesis() bool {
+	return p.treeCurr.IsEmpty()
+}
+
+func (p *LocalTree) FinishGenesis(depth uint8, lastGenesisPulse pulse.Number) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
+	switch {
+	case !lastGenesisPulse.IsTimePulse():
+		panic(throw.IllegalValue())
+	case !p.isGenesis():
 		panic(throw.IllegalState())
 	}
-	p.trees[2].MakePerfect(depth)
-	p.treeIdx++
+	p.treeNext.MakePerfect(depth)
+	p.advance(lastGenesisPulse)
 }
 
-func (p *treeSvc) SplitNext(id jet.DropID) {
-	panic("implement me")
+func (p *LocalTree) SplitNext(id jet.DropID) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
+	switch {
+	case p.treeCurr.IsEmpty():
+		panic(throw.IllegalState())
+	case id.CreatedAt() != p.last: // make sure that changes are actual
+		panic(throw.IllegalValue())
+	}
+	pfx, pln := p.treeCurr.GetPrefix(id.ID().AsPrefix()) // get current prefix of the jet
+	p.treeNext.Split(pfx, pln) // this can only be applied once - guarantees that jet can only be split once per pulse
 }
+

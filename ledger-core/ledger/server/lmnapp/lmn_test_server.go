@@ -26,6 +26,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/testpop"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -142,4 +143,15 @@ func (p *TestServer) Stop() {
 		err := p.app.Stop(context.Background())
 		require.NoError(p.t, err)
 	})
+}
+
+func (p *TestServer) App() *insconveyor.AppCompartment {
+	if p.app == nil {
+		panic(throw.IllegalState())
+	}
+	return p.app
+}
+
+func (p *TestServer) Injector() injector.DependencyInjector {
+	return injector.NewDependencyInjector(struct {}{}, p.App().Conveyor(), nil)
 }

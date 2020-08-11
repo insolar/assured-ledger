@@ -13,7 +13,7 @@ import (
 type Service interface {
 	GetTrees() (prev, cur jet.PrefixTree)
 
-	FinishGenesis(depth uint8, afterPulse pulse.Number)
+	FinishGenesis(depth uint8, lastGenesisPulse pulse.Number)
 
 	SplitNext(jet.DropID)
 	// MergeNext(jet.DropID)

@@ -10,6 +10,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/treesvc"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -23,6 +24,7 @@ type SMPlash struct {
 	pulseSlot  *conveyor.PulseSlot
 	builderSvc buildersvc.Adapter
 	cataloger  DropCataloger
+	treeSvc    treesvc.Service
 
 	// shared unbound
 	sd *PlashSharedData
@@ -45,6 +47,7 @@ func (p *SMPlash) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLin
 	injector.MustInject(&p.pulseSlot)
 	injector.MustInject(&p.builderSvc)
 	injector.MustInject(&p.cataloger)
+	injector.MustInject(&p.treeSvc)
 }
 
 func (p *SMPlash) stepInit(ctx smachine.InitializationContext) smachine.StateUpdate {
@@ -64,16 +67,10 @@ func (p *SMPlash) stepInit(ctx smachine.InitializationContext) smachine.StateUpd
 	return ctx.Jump(p.stepGetTree)
 }
 
-// func (p *SMPlash) getJetTree() (prev, cur jet.Tree) {
-// 	// TODO get jetTree
-// 	tree := jet.NewPrefixTree(true)
-//
-// 	// Empty tree will initiate genesis procedure, so we have to do a split
-// 	tree.Split(0, 0)
-//
-// }
-
 func (p *SMPlash) stepGetTree(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	prev, curr := p.treeSvc.GetTrees() // TODO this is a simple implementation that is only valid for one-LMN network
+	p.treePrev, p.treeCur = &prev, &curr
+
 	return ctx.Jump(p.stepCreatePlush)
 }
 
@@ -149,7 +146,8 @@ func (p *SMPlash) stepGenesis(ctx smachine.ExecutionContext) smachine.StateUpdat
 		ctx.InitChild(func(ctx smachine.ConstructionContext) smachine.StateMachine {
 			return &SMGenesis{
 				jetAssist: p.sd.jetAssist,
-				jetGenesis: p.jets[0],
+				// LegID remembers the pulse when genesis was started
+				jetGenesis: p.jets[0].AsLeg(p.pulseSlot.PulseNumber()),
 			}
 		})
 	case 0:
@@ -158,7 +156,8 @@ func (p *SMPlash) stepGenesis(ctx smachine.ExecutionContext) smachine.StateUpdat
 		panic(throw.Impossible())
 	}
 
-	ctx.ApplyAdjustment(p.sd.enableAccess())
+	// NB! Regular SMs can NOT be allowed to run during genesis-related pulse(s)
+	// ctx.ApplyAdjustment(p.sd.enableAccess())
 	return ctx.Stop()
 }
 

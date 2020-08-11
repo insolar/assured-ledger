@@ -14,6 +14,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/datawriter"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/treesvc"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 )
 
@@ -41,6 +42,12 @@ func NewAppCompartment(_ configuration.Ledger, comps insapp.AppComponents) *insc
 				setup.Dependencies.AddInterfaceDependency(&plashCatalog)
 				setup.Dependencies.AddInterfaceDependency(&dropCatalog)
 				setup.Dependencies.AddInterfaceDependency(&lineCatalog)
+
+				var treeServiceImpl = treesvc.NewEmpty()
+				var treeService treesvc.Service = treeServiceImpl
+
+				setup.AddComponent(treeServiceImpl)
+				setup.Dependencies.AddInterfaceDependency(&treeService)
 			}
 
 			setup.AddComponent(buildersvc.NewAdapterComponent(smadapter.Config{}, comps.CryptoScheme))

@@ -10,6 +10,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/treesvc"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -25,11 +26,12 @@ type SMGenesis struct {
 
 	// provided by creator
 	jetAssist buildersvc.PlashAssistant
-	jetGenesis jet.ExactID
+	jetGenesis jet.LegID
 
 	// injected
 	pulseSlot  *conveyor.PulseSlot
 	builderSvc buildersvc.Adapter
+	treeSvc    treesvc.Service
 
 	// runtime
 	lastPN     pulse.Number
@@ -46,10 +48,11 @@ func (p *SMGenesis) GetInitStateFor(smachine.StateMachine) smachine.InitFunc {
 func (p *SMGenesis) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLink, injector injector.DependencyInjector) {
 	injector.MustInject(&p.pulseSlot)
 	injector.MustInject(&p.builderSvc)
+	injector.MustInject(&p.treeSvc)
 }
 
 func (p *SMGenesis) stepInit(ctx smachine.InitializationContext) smachine.StateUpdate {
-	if !ctx.PublishGlobalAlias(GenesisKeyValue) {
+	if !ctx.PublishGlobalAlias(GenesisKeyValue) { // ensure only one
 		panic(throw.IllegalState())
 	}
 
@@ -64,12 +67,10 @@ func (p *SMGenesis) stepInit(ctx smachine.InitializationContext) smachine.StateU
 func (p *SMGenesis) stepPrepare(ctx smachine.ExecutionContext) smachine.StateUpdate {
 
 	// init and run genesis service here
-	postGenesisTreeDepth := uint8(1)
+	postGenesisTreeDepth := uint8(2)
+	p.treeSvc.FinishGenesis(postGenesisTreeDepth, p.lastPN)
 
-	tree := jet.NewPrefixTree(false)
-	tree.MakePerfect(postGenesisTreeDepth)
-
-	panic("implement me")
+	return ctx.Stop()
 }
 
 func (p *SMGenesis) migrateTracker(ctx smachine.MigrationContext) smachine.StateUpdate {
