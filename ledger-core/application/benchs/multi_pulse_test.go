@@ -6,6 +6,7 @@
 package benchs
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -16,17 +17,18 @@ import (
 func BenchmarkMultiPulse(b *testing.B) {
 	instestlogger.SetTestOutput(b)
 
+	ctx := context.Background()
 	for numNodes := 2; numNodes <= 5; numNodes++ {
 		b.Run(fmt.Sprintf("Nodes %d", numNodes), func(b *testing.B) {
 
 			res := launchnet.CustomRunWithPulsar(numNodes, 0, 0, func(apiAddresses []string) int {
 				setAPIAddresses(apiAddresses)
 
-				numWallets := numNodes * 1000
+				numWallets := numNodes * 10
 
 				wallets := make([]string, 0, numWallets)
 				for i := 0; i < numWallets; i++ {
-					wallet, err := createSimpleWallet()
+					wallet, err := createSimpleWallet(ctx)
 					if err != nil {
 						return 2
 					}

@@ -22,6 +22,7 @@ import (
 func BenchmarkSinglePulse(b *testing.B) {
 	instestlogger.SetTestOutput(b)
 
+	ctx := context.Background()
 	for numNodes := 2; numNodes <= 5; numNodes++ {
 		b.Run(fmt.Sprintf("Nodes %d", numNodes), func(b *testing.B) {
 
@@ -32,7 +33,7 @@ func BenchmarkSinglePulse(b *testing.B) {
 
 				wallets := make([]string, 0, numWallets)
 				for i := 0; i < numWallets; i++ {
-					wallet, err := createSimpleWallet()
+					wallet, err := createSimpleWallet(ctx)
 					if err != nil {
 						return 2
 					}
@@ -62,20 +63,26 @@ func runGetBench(wallets []string) error {
 	fmt.Println("==== Get run")
 
 	// default Parallelism will be equal to NumCPU
-	g, _ := errgroup.WithContext(context.Background())
+	g, ctx := errgroup.WithContext(context.Background())
 
 	counter := ratecounter.NewRateCounter(60 * time.Second)
 	timingCounter := ratecounter.NewAvgRateCounter(60 * time.Second)
 	startBench := time.Now()
 
 	for i := 1; i < 100000; i++ {
+		// prevent extra requests if group context is cancelled
+		select {
+		case <-ctx.Done():
+			break
+		default:
+		}
 		g.Go(func() error {
 			walletRef := wallets[rand.Intn(len(wallets))]
 			getBalanceURL := getURL(walletGetBalancePath, "")
 
 			startTime := time.Now()
 
-			_, err := getWalletBalance(getBalanceURL, walletRef)
+			_, err := getWalletBalance(ctx, getBalanceURL, walletRef)
 
 			timingCounter.Incr(time.Since(startTime).Nanoseconds())
 			counter.Incr(1)
@@ -102,7 +109,7 @@ func runSetBench(wallets []string) error {
 	fmt.Println("==== Set run")
 
 	// default Parallelism will be equal to NumCPU
-	g, _ := errgroup.WithContext(context.Background())
+	g, ctx := errgroup.WithContext(context.Background())
 
 	counter := ratecounter.NewRateCounter(60 * time.Second)
 	timingCounter := ratecounter.NewAvgRateCounter(60 * time.Second)
@@ -110,12 +117,18 @@ func runSetBench(wallets []string) error {
 
 	for i := 1; i < 100000; i++ {
 		g.Go(func() error {
+			// prevent extra requests if group context is cancelled
+			select {
+			case <-ctx.Done():
+				break
+			default:
+			}
 			walletRef := wallets[rand.Intn(len(wallets))]
 			addAmountURL := getURL(walletAddAmountPath, "")
 
 			startTime := time.Now()
 
-			err := addAmountToWallet(addAmountURL, walletRef, 1000)
+			err := addAmountToWallet(ctx, addAmountURL, walletRef, 1000)
 
 			timingCounter.Incr(time.Since(startTime).Nanoseconds())
 			counter.Incr(1)

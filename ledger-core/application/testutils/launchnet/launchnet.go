@@ -320,7 +320,7 @@ func startCustomNet(withPulsar bool, numVirtual, numLight, numHeavy int) (*exec.
 		_ = os.Chdir(cwd)
 	}()
 
-	cmd := exec.Command("./scripts/insolard/launchnet.sh", "-pwg")
+	cmd := exec.Command("./scripts/insolard/launchnet.sh", "-pwdg")
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, fmt.Sprintf("NUM_DISCOVERY_VIRTUAL_NODES=%d", numVirtual))
 	cmd.Env = append(cmd.Env, fmt.Sprintf("NUM_DISCOVERY_LIGHT_NODES=%d", numLight))

@@ -7,6 +7,7 @@ package benchs
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -55,13 +56,13 @@ func createHTTPClient() *http.Client {
 }
 
 // Creates http.Request with all necessary fields.
-func prepareReq(url string, body interface{}) (*http.Request, error) {
+func prepareReq(ctx context.Context, url string, body interface{}) (*http.Request, error) {
 	jsonValue, err := jsoniter.Marshal(body)
 	if err != nil {
 		return nil, throw.W(err, "problem with marshaling params")
 	}
 
-	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(jsonValue))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(jsonValue))
 	if err != nil {
 		return nil, throw.W(err, "problem with creating request")
 	}
@@ -103,8 +104,8 @@ func getURL(path, apiAddr string) string {
 	return res
 }
 
-func sendAPIRequest(url string, body interface{}) ([]byte, error) {
-	req, err := prepareReq(url, body)
+func sendAPIRequest(ctx context.Context, url string, body interface{}) ([]byte, error) {
+	req, err := prepareReq(ctx, url, body)
 	if err != nil {
 		return nil, throw.W(err, "problem with preparing request")
 	}
@@ -113,9 +114,9 @@ func sendAPIRequest(url string, body interface{}) ([]byte, error) {
 }
 
 // Creates wallet and returns it's reference.
-func createSimpleWallet() (string, error) {
+func createSimpleWallet(ctx context.Context) (string, error) {
 	createURL := getURL(walletCreatePath, "")
-	rawResp, err := sendAPIRequest(createURL, nil)
+	rawResp, err := sendAPIRequest(ctx, createURL, nil)
 	if err != nil {
 		return "", throw.W(err, "failed to send request or get response body")
 	}
@@ -131,8 +132,8 @@ func createSimpleWallet() (string, error) {
 }
 
 // Returns wallet balance.
-func getWalletBalance(url, ref string) (uint, error) {
-	rawResp, err := sendAPIRequest(url, walletGetBalanceRequestBody{Ref: ref})
+func getWalletBalance(ctx context.Context, url, ref string) (uint, error) {
+	rawResp, err := sendAPIRequest(ctx, url, walletGetBalanceRequestBody{Ref: ref})
 	if err != nil {
 		return 0, throw.W(err, "failed to send request or get response body")
 	}
@@ -148,8 +149,8 @@ func getWalletBalance(url, ref string) (uint, error) {
 }
 
 // Adds amount to wallet.
-func addAmountToWallet(url, ref string, amount uint) error {
-	rawResp, err := sendAPIRequest(url, walletAddAmountRequestBody{To: ref, Amount: amount})
+func addAmountToWallet(ctx context.Context, url, ref string, amount uint) error {
+	rawResp, err := sendAPIRequest(ctx, url, walletAddAmountRequestBody{To: ref, Amount: amount})
 	if err != nil {
 		return throw.W(err, "failed to send request or get response body")
 	}
