@@ -6,11 +6,11 @@
 package adapters
 
 import (
-	"crypto"
 	"crypto/ecdsa"
 	"fmt"
 	"time"
 
+	"github.com/insolar/assured-ledger/ledger-core/crypto/legacyadapter"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/network"
@@ -116,8 +116,8 @@ func NewStaticProfileExt(networkNode nodeinfo.NetworkNode, addr string, certific
 		networkNode.GetStatic().GetStartPower(),
 		NewStaticProfileExtension(networkNode),
 		NewOutbound(addr),
-		NewECDSAPublicKeyStore(publicKey),
-		NewECDSASignatureKeyHolder(publicKey, keyProcessor),
+		legacyadapter.NewECDSAPublicKeyStoreFromPK(publicKey),
+		legacyadapter.NewECDSASignatureKeyHolder(publicKey, keyProcessor),
 		signature,
 	)
 }
@@ -126,16 +126,9 @@ func NewStaticProfileExt(networkNode nodeinfo.NetworkNode, addr string, certific
 func ECDSAPublicKeyOfNode(n nodeinfo.NetworkNode) *ecdsa.PublicKey {
 	nip := n.GetStatic()
 	store := nip.GetPublicKeyStore()
-	return store.(*ECDSAPublicKeyStore).publicKey
+	return store.(*legacyadapter.ECDSAPublicKeyStore).CryptoPublicKey().(*ecdsa.PublicKey)
 }
 
-
-func ECDSAPublicKeyAsPublicKeyStore(pk crypto.PublicKey) cryptkit.PublicKeyStore {
-	if pk == nil {
-		return nil
-	}
-	return NewECDSAPublicKeyStore(pk.(*ecdsa.PublicKey))
-}
 
 func NewStaticProfileExt2(
 	shortID node.ShortNodeID,

@@ -3,9 +3,10 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package adapters
+package legacyadapter
 
 import (
+	"crypto"
 	"crypto/ecdsa"
 	"io"
 
@@ -15,72 +16,31 @@ import (
 )
 
 const (
-	SHA3512Digest = cryptkit.DigestMethod("sha3-512")
 	SECP256r1Sign = cryptkit.SigningMethod("secp256r1")
 )
 
-type Sha3512Digester struct {
-	scheme cryptography.PlatformCryptographyScheme
-}
-
-func NewSha3512Digester(scheme cryptography.PlatformCryptographyScheme) *Sha3512Digester {
-	return &Sha3512Digester{
-		scheme: scheme,
+func NewECDSAPublicKeyStore(skh cryptkit.SignatureKeyHolder) *ECDSAPublicKeyStore {
+	return &ECDSAPublicKeyStore{
+		publicKey: skh.(*ECDSASignatureKeyHolder).publicKey,
 	}
 }
 
-func (pd *Sha3512Digester) DigestData(reader io.Reader) cryptkit.Digest {
-	hasher := pd.scheme.IntegrityHasher()
-
-	_, err := io.Copy(hasher, reader)
-	if err != nil {
-		panic(err)
+func NewECDSAPublicKeyStoreFromPK(pk crypto.PublicKey) *ECDSAPublicKeyStore {
+	return &ECDSAPublicKeyStore{
+		publicKey: pk.(*ecdsa.PublicKey),
 	}
-
-	bytes := hasher.Sum(nil)
-	bits := longbits.NewBits512FromBytes(bytes)
-
-	return cryptkit.NewDigest(bits, pd.GetDigestMethod())
-}
-
-func (pd *Sha3512Digester) DigestBytes(bytes []byte) cryptkit.Digest {
-	hasher := pd.scheme.IntegrityHasher()
-
-	hasher.Hash(bytes)
-
-	bytes = hasher.Sum(nil)
-	bits := longbits.NewBits512FromBytes(bytes)
-
-	return cryptkit.NewDigest(bits, pd.GetDigestMethod())
-}
-
-func (pd *Sha3512Digester) NewHasher() cryptkit.DigestHasher {
-	return cryptkit.DigestHasher{BasicDigester: pd, Hash: pd.scheme.IntegrityHasher()}
-}
-
-func (pd *Sha3512Digester) GetDigestSize() int {
-	return 64
-}
-
-func (pd *Sha3512Digester) GetDigestMethod() cryptkit.DigestMethod {
-	return SHA3512Digest
 }
 
 type ECDSAPublicKeyStore struct {
 	publicKey *ecdsa.PublicKey
 }
 
-func NewECDSAPublicKeyStore(publicKey *ecdsa.PublicKey) *ECDSAPublicKeyStore {
-	return &ECDSAPublicKeyStore{
-		publicKey: publicKey,
-	}
+func (p *ECDSAPublicKeyStore) CryptoPublicKey() crypto.PublicKey {
+	return p.publicKey
 }
 
-func (pks *ECDSAPublicKeyStore) PublicKeyStore() {}
+func (*ECDSAPublicKeyStore) PublicKeyStore() {}
 
-type ECDSASecretKeyStore struct {
-	privateKey *ecdsa.PrivateKey
-}
 
 func NewECDSASecretKeyStore(privateKey *ecdsa.PrivateKey) *ECDSASecretKeyStore {
 	return &ECDSASecretKeyStore{
@@ -88,10 +48,14 @@ func NewECDSASecretKeyStore(privateKey *ecdsa.PrivateKey) *ECDSASecretKeyStore {
 	}
 }
 
+type ECDSASecretKeyStore struct {
+	privateKey *ecdsa.PrivateKey
+}
+
 func (ks *ECDSASecretKeyStore) PrivateKeyStore() {}
 
 func (ks *ECDSASecretKeyStore) AsPublicKeyStore() cryptkit.PublicKeyStore {
-	return NewECDSAPublicKeyStore(&ks.privateKey.PublicKey)
+	return &ECDSAPublicKeyStore{&ks.privateKey.PublicKey }
 }
 
 type ECDSADigestSigner struct {
@@ -99,10 +63,17 @@ type ECDSADigestSigner struct {
 	privateKey *ecdsa.PrivateKey
 }
 
-func NewECDSADigestSigner(privateKey *ecdsa.PrivateKey, scheme cryptography.PlatformCryptographyScheme) *ECDSADigestSigner {
+func NewECDSADigestSigner(sks cryptkit.SecretKeyStore, scheme cryptography.PlatformCryptographyScheme) *ECDSADigestSigner {
 	return &ECDSADigestSigner{
 		scheme:     scheme,
-		privateKey: privateKey,
+		privateKey: sks.(*ECDSASecretKeyStore).privateKey,
+	}
+}
+
+func NewECDSADigestSignerFromSK(sk crypto.PrivateKey, scheme cryptography.PlatformCryptographyScheme) *ECDSADigestSigner {
+	return &ECDSADigestSigner{
+		scheme:     scheme,
+		privateKey: sk.(*ecdsa.PrivateKey),
 	}
 }
 
@@ -127,25 +98,19 @@ func (ds *ECDSADigestSigner) GetSigningMethod() cryptkit.SigningMethod {
 }
 
 type ECDSASignatureVerifier struct {
-	digester  *Sha3512Digester
 	scheme    cryptography.PlatformCryptographyScheme
 	publicKey *ecdsa.PublicKey
 }
 
-func NewECDSASignatureVerifier(
-	digester *Sha3512Digester,
-	scheme cryptography.PlatformCryptographyScheme,
-	publicKey *ecdsa.PublicKey,
-) *ECDSASignatureVerifier {
+func NewECDSASignatureVerifier(pcs cryptography.PlatformCryptographyScheme, pks cryptkit.PublicKeyStore) *ECDSASignatureVerifier {
 	return &ECDSASignatureVerifier{
-		digester:  digester,
-		scheme:    scheme,
-		publicKey: publicKey,
+		scheme:    pcs,
+		publicKey: pks.(*ECDSAPublicKeyStore).publicKey,
 	}
 }
 
 func (sv *ECDSASignatureVerifier) IsDigestMethodSupported(method cryptkit.DigestMethod) bool {
-	return method == SHA3512Digest
+	return method == SHA3Digest512
 }
 
 func (sv *ECDSASignatureVerifier) IsSignMethodSupported(method cryptkit.SigningMethod) bool {
@@ -170,13 +135,12 @@ func (sv *ECDSASignatureVerifier) IsValidDigestSignature(digest cryptkit.DigestH
 }
 
 func (sv *ECDSASignatureVerifier) IsValidDataSignature(data io.Reader, signature cryptkit.SignatureHolder) bool {
-	if sv.digester.GetDigestMethod() != signature.GetSignatureMethod().DigestMethod() {
+	digester := NewSha3Digester512(sv.scheme)
+	if digester.GetDigestMethod() != signature.GetSignatureMethod().DigestMethod() {
 		return false
 	}
-
-	digest := sv.digester.DigestData(data)
-
-	return sv.IsValidDigestSignature(digest.AsDigestHolder(), signature)
+	digest := digester.DigestData(data)
+	return sv.IsValidDigestSignature(digest, signature)
 }
 
 type ECDSASignatureKeyHolder struct {
@@ -214,7 +178,7 @@ func (kh *ECDSASignatureKeyHolder) GetSigningMethod() cryptkit.SigningMethod {
 }
 
 func (kh *ECDSASignatureKeyHolder) GetSignatureKeyMethod() cryptkit.SignatureMethod {
-	return SHA3512Digest.SignedBy(SECP256r1Sign)
+	return SHA3Digest512.SignedBy(SECP256r1Sign)
 }
 
 func (kh *ECDSASignatureKeyHolder) GetSignatureKeyType() cryptkit.SignatureKeyType {

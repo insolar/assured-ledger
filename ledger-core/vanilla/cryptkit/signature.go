@@ -133,7 +133,8 @@ type SignatureVerifier interface {
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit.SignatureVerifierFactory -o . -s _mock.go -g
 
 type SignatureVerifierFactory interface {
-	CreateSignatureVerifierWithPKS(pks PublicKeyStore) SignatureVerifier
+	CreateSignatureVerifierWithPKS(PublicKeyStore) SignatureVerifier
+	// CreateSignatureVerifierWithKey(SignatureKeyHolder) SignatureVerifier
 	// TODO Add	CreateDataSignatureVerifier(k SignatureKey, m SignatureMethod) DataSignatureVerifier
 }
 

@@ -9,6 +9,7 @@ import (
 	"context"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smadapter"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -153,10 +154,10 @@ func (a *serviceAdapter) PrepareExecutionClassify(ctx smachine.ExecutionContext,
 func createRunnerAdapter(ctx context.Context, svc *DefaultService) *serviceAdapter {
 	parallelReaders := 16
 
-	runAdapterExecutor, runChannel := smachine.NewCallChannelExecutor(ctx, -1, false, parallelReaders)
+	runAdapterExecutor, runChannel := smadapter.NewCallChannelExecutor(ctx, -1, false, parallelReaders)
 	newWorker(ctx, svc).Run(runChannel)
 
-	parallelAdapterExecutor, parallelChannel := smachine.NewCallChannelExecutor(ctx, -1, false, parallelReaders)
+	parallelAdapterExecutor, parallelChannel := smadapter.NewCallChannelExecutor(ctx, -1, false, parallelReaders)
 	smachine.StartChannelWorkerParallelCalls(ctx, 0, parallelChannel, nil)
 
 	return &serviceAdapter{

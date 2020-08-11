@@ -69,7 +69,7 @@ func (c *conveyorDispatcher) CommitBeat(change beat.Beat) {
 		}
 	}
 
-	if err := c.conveyor.CommitPulseChange(pulseRange, change.StartedAt); err != nil {
+	if err := c.conveyor.CommitPulseChange(pulseRange, change.StartedAt, change.Online); err != nil {
 		panic(throw.WithStack(err))
 	}
 	c.prevPulse = change.PulseNumber

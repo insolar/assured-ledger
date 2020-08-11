@@ -22,10 +22,10 @@ type DropCataloger interface {
 	Get(ctx smachine.SharedStateContext, dropID jet.DropID) DropDataLink
 }
 
-var _ DropCataloger = &DropCatalog{}
+var _ DropCataloger = DropCatalog{}
 type DropCatalog struct {}
 
-func (*DropCatalog) Create(ctx smachine.ExecutionContext, jetID jet.ExactID, pn pulse.Number) DropDataLink {
+func (DropCatalog) Create(ctx smachine.ExecutionContext, jetID jet.ExactID, pn pulse.Number) DropDataLink {
 	dropID := jetID.AsDrop(pn)
 
 	if ctx.GetPublished(JetDropKey(dropID)) != nil {
@@ -37,14 +37,14 @@ func (*DropCatalog) Create(ctx smachine.ExecutionContext, jetID jet.ExactID, pn 
 	switch sdl := ctx.GetPublishedLink(JetDropKey(dropID)); {
 	case sdl.IsZero():
 		panic(throw.IllegalState())
-	case sdl.IsAssignableTo(&DropDataLink{}):
+	case sdl.IsAssignableTo(&DropSharedData{}):
 		return DropDataLink{sdl}
 	default:
 		panic(throw.IllegalState())
 	}
 }
 
-func (*DropCatalog) Get(ctx smachine.SharedStateContext, dropID jet.DropID) DropDataLink {
+func (DropCatalog) Get(ctx smachine.SharedStateContext, dropID jet.DropID) DropDataLink {
 	switch sdl := ctx.GetPublishedLink(JetDropKey(dropID)); {
 	case sdl.IsZero():
 	case sdl.IsAssignableTo(&DropDataLink{}):
