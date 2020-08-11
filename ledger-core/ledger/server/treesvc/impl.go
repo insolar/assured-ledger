@@ -36,7 +36,7 @@ func (p *treeSvc) pulseMigration(holder managed.Holder, p2 pulse.Range) {
 }
 
 func (p *treeSvc) GetTrees() (prev, cur jet.PrefixTree) {
-
+	panic("implement me")
 }
 
 func (p *treeSvc) advance() {
