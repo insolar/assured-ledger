@@ -3,20 +3,22 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package smachine
+package smadapter
 
 import (
 	"context"
 	"sync"
+
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 )
 
-var _ AdapterExecutor = &OverflowPanicCallChannel{}
+var _ smachine.AdapterExecutor = &OverflowPanicCallChannel{}
 
-func NewCallChannelExecutor(ctx context.Context, bufMax int, requestCancel bool, parallelReaders int) (AdapterExecutor, chan AdapterCall) {
+func NewCallChannelExecutor(ctx context.Context, bufMax int, requestCancel bool, parallelReaders int) (smachine.AdapterExecutor, chan smachine.AdapterCall) {
 	if parallelReaders <= 0 {
 		panic("illegal value")
 	}
-	switch output := make(chan AdapterCall, parallelReaders<<1); {
+	switch output := make(chan smachine.AdapterCall, parallelReaders<<1); {
 	case bufMax == 0:
 		return WrapCallChannelNoBuffer(requestCancel, output), output
 	case bufMax < 0: //unlimited buffer
@@ -26,33 +28,33 @@ func NewCallChannelExecutor(ctx context.Context, bufMax int, requestCancel bool,
 	}
 }
 
-func WrapCallChannel(ctx context.Context, bufMax int, requestCancel bool, output chan AdapterCall) *OverflowBufferCallChannel {
+func WrapCallChannel(ctx context.Context, bufMax int, requestCancel bool, output chan smachine.AdapterCall) *OverflowBufferCallChannel {
 	if bufMax <= 0 {
 		panic("illegal value")
 	}
 	return &OverflowBufferCallChannel{ctx: ctx, output: output, needCancel: requestCancel, bufMax: bufMax}
 }
 
-func WrapCallChannelNoLimit(ctx context.Context, requestCancel bool, output chan AdapterCall) *OverflowBufferCallChannel {
+func WrapCallChannelNoLimit(ctx context.Context, requestCancel bool, output chan smachine.AdapterCall) *OverflowBufferCallChannel {
 	return &OverflowBufferCallChannel{ctx: ctx, output: output, needCancel: requestCancel}
 }
 
-func WrapCallChannelNoBuffer(requestCancel bool, output chan AdapterCall) OverflowPanicCallChannel {
+func WrapCallChannelNoBuffer(requestCancel bool, output chan smachine.AdapterCall) OverflowPanicCallChannel {
 	return OverflowPanicCallChannel{output, requestCancel}
 }
 
-type channelRecord = AdapterCall
+type channelRecord = smachine.AdapterCall
 
 type OverflowPanicCallChannel struct {
 	output     chan channelRecord
 	needCancel bool
 }
 
-func (v OverflowPanicCallChannel) TrySyncCall(context.Context, AdapterCallFunc) (bool, AsyncResultFunc) {
+func (v OverflowPanicCallChannel) TrySyncCall(context.Context, smachine.AdapterCallFunc) (bool, smachine.AsyncResultFunc) {
 	return false, nil
 }
 
-func (v OverflowPanicCallChannel) StartCall(ctx context.Context, fn AdapterCallFunc, callback *AdapterCallback, needCancel bool) context.CancelFunc {
+func (v OverflowPanicCallChannel) StartCall(ctx context.Context, fn smachine.AdapterCallFunc, callback *smachine.AdapterCallback, needCancel bool) context.CancelFunc {
 	switch {
 	case fn == nil:
 		panic("illegal value")
@@ -67,11 +69,11 @@ func (v OverflowPanicCallChannel) StartCall(ctx context.Context, fn AdapterCallF
 	return cancelFn
 }
 
-func (v OverflowPanicCallChannel) SendNotify(ctx context.Context, fn AdapterNotifyFunc) {
+func (v OverflowPanicCallChannel) SendNotify(ctx context.Context, fn smachine.AdapterNotifyFunc) {
 	if fn == nil {
 		panic("illegal value")
 	}
-	r := channelRecord{Context: ctx, CallFn: func(ctx context.Context, svc interface{}) AsyncResultFunc {
+	r := channelRecord{Context: ctx, CallFn: func(ctx context.Context, svc interface{}) smachine.AsyncResultFunc {
 		fn(ctx, svc)
 		return nil
 	}}
@@ -90,7 +92,7 @@ func (v OverflowPanicCallChannel) queueCall(r channelRecord) {
 	}
 }
 
-var _ AdapterExecutor = &OverflowBufferCallChannel{}
+var _ smachine.AdapterExecutor = &OverflowBufferCallChannel{}
 
 // This wrapper doesn't allocate a buffer unless the channel is full
 type OverflowBufferCallChannel struct {
@@ -102,11 +104,11 @@ type OverflowBufferCallChannel struct {
 	needCancel bool
 }
 
-func (p *OverflowBufferCallChannel) TrySyncCall(context.Context, AdapterCallFunc) (bool, AsyncResultFunc) {
+func (p *OverflowBufferCallChannel) TrySyncCall(context.Context, smachine.AdapterCallFunc) (bool, smachine.AsyncResultFunc) {
 	return false, nil
 }
 
-func (p *OverflowBufferCallChannel) StartCall(ctx context.Context, fn AdapterCallFunc, callback *AdapterCallback, needCancel bool) context.CancelFunc {
+func (p *OverflowBufferCallChannel) StartCall(ctx context.Context, fn smachine.AdapterCallFunc, callback *smachine.AdapterCallback, needCancel bool) context.CancelFunc {
 	switch {
 	case fn == nil:
 		panic("illegal value")
@@ -121,11 +123,11 @@ func (p *OverflowBufferCallChannel) StartCall(ctx context.Context, fn AdapterCal
 	return cancelFn
 }
 
-func (p *OverflowBufferCallChannel) SendNotify(ctx context.Context, fn AdapterNotifyFunc) {
+func (p *OverflowBufferCallChannel) SendNotify(ctx context.Context, fn smachine.AdapterNotifyFunc) {
 	if fn == nil {
 		panic("illegal value")
 	}
-	r := channelRecord{Context: ctx, CallFn: func(ctx context.Context, svc interface{}) AsyncResultFunc {
+	r := channelRecord{Context: ctx, CallFn: func(ctx context.Context, svc interface{}) smachine.AsyncResultFunc {
 		fn(ctx, svc)
 		return nil
 	}}

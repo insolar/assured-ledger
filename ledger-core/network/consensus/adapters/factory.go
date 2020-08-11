@@ -6,8 +6,7 @@
 package adapters
 
 import (
-	"crypto/ecdsa"
-
+	"github.com/insolar/assured-ledger/ledger-core/crypto/legacyadapter"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
@@ -21,12 +20,12 @@ import (
 )
 
 type ECDSASignatureVerifierFactory struct {
-	digester *Sha3512Digester
+	digester *legacyadapter.Sha3Digester512
 	scheme   cryptography.PlatformCryptographyScheme
 }
 
 func NewECDSASignatureVerifierFactory(
-	digester *Sha3512Digester,
+	digester *legacyadapter.Sha3Digester512,
 	scheme cryptography.PlatformCryptographyScheme,
 ) *ECDSASignatureVerifierFactory {
 	return &ECDSASignatureVerifierFactory{
@@ -36,11 +35,7 @@ func NewECDSASignatureVerifierFactory(
 }
 
 func (vf *ECDSASignatureVerifierFactory) CreateSignatureVerifierWithPKS(pks cryptkit.PublicKeyStore) cryptkit.SignatureVerifier {
-	return NewECDSASignatureVerifier(
-		vf.digester,
-		vf.scheme,
-		pks.(*ECDSAPublicKeyStore).publicKey,
-	)
+	return legacyadapter.NewECDSASignatureVerifier(vf.scheme, pks)
 }
 
 type TransportCryptographyFactory struct {
@@ -52,7 +47,7 @@ type TransportCryptographyFactory struct {
 func NewTransportCryptographyFactory(scheme cryptography.PlatformCryptographyScheme) *TransportCryptographyFactory {
 	return &TransportCryptographyFactory{
 		verifierFactory: NewECDSASignatureVerifierFactory(
-			NewSha3512Digester(scheme),
+			legacyadapter.NewSha3Digester512(scheme),
 			scheme,
 		),
 		digestFactory: NewConsensusDigestFactory(scheme),
@@ -69,15 +64,11 @@ func (cf *TransportCryptographyFactory) GetDigestFactory() transport.ConsensusDi
 }
 
 func (cf *TransportCryptographyFactory) CreateNodeSigner(sks cryptkit.SecretKeyStore) cryptkit.DigestSigner {
-	ks := sks.(*ECDSASecretKeyStore)
-
-	return NewECDSADigestSigner(ks.privateKey, cf.scheme)
+	return legacyadapter.NewECDSADigestSigner(sks, cf.scheme)
 }
 
 func (cf *TransportCryptographyFactory) CreatePublicKeyStore(skh cryptkit.SignatureKeyHolder) cryptkit.PublicKeyStore {
-	kh := skh.(*ECDSASignatureKeyHolder)
-
-	return NewECDSAPublicKeyStore(kh.publicKey)
+	return legacyadapter.NewECDSAPublicKeyStore(skh)
 }
 
 type RoundStrategyFactory struct {
@@ -136,7 +127,7 @@ func (p *keyStoreFactory) CreatePublicKeyStore(keyHolder cryptkit.SignatureKeyHo
 	if err != nil {
 		panic(err)
 	}
-	return NewECDSAPublicKeyStore(pk.(*ecdsa.PublicKey))
+	return legacyadapter.NewECDSAPublicKeyStoreFromPK(pk)
 }
 
 func NewNodeProfileFactory(keyProcessor cryptography.KeyProcessor) profiles.Factory {
@@ -158,23 +149,23 @@ func NewConsensusDigestFactory(scheme cryptography.PlatformCryptographyScheme) *
 }
 
 func (cdf *ConsensusDigestFactory) CreateDataDigester() cryptkit.DataDigester {
-	return NewSha3512Digester(cdf.scheme)
+	return legacyadapter.NewSha3Digester512(cdf.scheme)
 }
 
 func (cdf *ConsensusDigestFactory) CreateSequenceDigester() cryptkit.SequenceDigester {
-	return NewSequenceDigester(NewSha3512Digester(cdf.scheme))
+	return NewSequenceDigester(legacyadapter.NewSha3Digester512(cdf.scheme))
 }
 
 func (cdf *ConsensusDigestFactory) CreateForkingDigester() cryptkit.ForkingDigester {
-	return NewSequenceDigester(NewSha3512Digester(cdf.scheme))
+	return NewSequenceDigester(legacyadapter.NewSha3Digester512(cdf.scheme))
 }
 
 func (cdf *ConsensusDigestFactory) CreateAnnouncementDigester() cryptkit.ForkingDigester {
-	return NewSequenceDigester(NewSha3512Digester(cdf.scheme))
+	return NewSequenceDigester(legacyadapter.NewSha3Digester512(cdf.scheme))
 }
 
 func (cdf *ConsensusDigestFactory) CreateGlobulaStateDigester() transport.StateDigester {
 	return NewStateDigester(
-		NewSequenceDigester(NewSha3512Digester(cdf.scheme)),
+		NewSequenceDigester(legacyadapter.NewSha3Digester512(cdf.scheme)),
 	)
 }

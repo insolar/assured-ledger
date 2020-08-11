@@ -187,7 +187,7 @@ func (p *RawBinary) marshalToSizedBuffer(b []byte) (n int, err error) {
 }
 
 func (p *RawBinary) unmarshal(b []byte) error {
-	p.value = longbits.NewImmutableFixedSize(b)
+	p.value = longbits.CopyBytes(b)
 	return nil
 }
 
@@ -196,7 +196,7 @@ func (p *RawBinary) SetBytes(value []byte) {
 		p.value = nil
 		return
 	}
-	p.value = longbits.NewMutableFixedSize(value)
+	p.value = longbits.WrapBytes(value)
 }
 
 func (p *RawBinary) Set(value longbits.FixedReader) {

@@ -94,25 +94,26 @@ func (p *PulseSlotMachine) activate(workerCtx context.Context,
 }
 
 func (p *PulseSlotMachine) setFuture(pd pulse.Data) {
-	if !pd.IsValidExpectedPulsarData() {
-		panic("illegal value")
-	}
-
 	switch {
+	case !pd.IsValidExpectedPulsarData():
+		panic(throw.IllegalValue())
 	case p.pulseSlot.pulseData == nil:
-		p.pulseSlot.pulseData = &futurePulseDataHolder{expected: pd}
+		p.pulseSlot.pulseData = &futurePulseDataHolder{
+			state: Future,
+			bd:    BeatData{ Range: pd.AsRange() },
+		}
 	default:
-		panic("illegal state")
+		panic(throw.IllegalState())
 	}
 }
 
-func (p *PulseSlotMachine) setPresent(pr pulse.Range, pulseStart time.Time) {
+func (p *PulseSlotMachine) setPresent(bd BeatData, pulseStart time.Time) {
 	switch {
 	case p.pulseSlot.pulseData == nil || p.innerMachine.IsEmpty():
-		pr.RightBoundData().EnsurePulsarData()
-		p.pulseSlot.pulseData = &presentPulseDataHolder{pr: pr, at: pulseStart}
+		bd.Range.RightBoundData().EnsurePulsarData()
+		p.pulseSlot.pulseData = &presentPulseDataHolder{bd: bd, at: pulseStart}
 	default:
-		p.pulseSlot.pulseData.MakePresent(pr, pulseStart)
+		p.pulseSlot.pulseData.MakePresent(bd, pulseStart)
 	}
 }
 
@@ -155,6 +156,8 @@ func (p *PulseSlotMachine) GetInitStateFor(sm smachine.StateMachine) smachine.In
 func (p *PulseSlotMachine) stepInit(ctx smachine.InitializationContext) smachine.StateUpdate {
 	ctx.SetDefaultErrorHandler(p.errorHandler)
 
+	p.pulseSlot.postMigrate(0, p.innerMachine.AsHolder())
+
 	switch p.pulseSlot.State() {
 	case Future:
 		ctx.SetDefaultMigration(p.migrateFromFuture)
@@ -169,7 +172,7 @@ func (p *PulseSlotMachine) stepInit(ctx smachine.InitializationContext) smachine
 		ctx.SetDefaultMigration(p.migrateAntique)
 		return ctx.Jump(p.stepPastLoop)
 	default:
-		panic("illegal state")
+		panic(throw.IllegalState())
 	}
 }
 
@@ -182,10 +185,10 @@ func (p *PulseSlotMachine) onTerminate(smachine.TerminationData) {
 	}
 }
 
-func (p *PulseSlotMachine) _runInnerMigrate(ctx smachine.MigrationContext) {
+func (p *PulseSlotMachine) _runInnerMigrate(ctx smachine.MigrationContext, prevState PulseSlotState) {
 	// TODO PLAT-23 ensure that p.innerWorker is stopped or detached
 	p.innerMachine.MigrateNested(ctx)
-	p.pulseSlot.postMigrate(p.innerMachine.AsHolder())
+	p.pulseSlot.postMigrate(prevState, p.innerMachine.AsHolder())
 }
 
 /* ------------- Future handlers --------------- */
@@ -200,7 +203,7 @@ func (p *PulseSlotMachine) stepFutureLoop(ctx smachine.ExecutionContext) smachin
 
 func (p *PulseSlotMachine) migrateFromFuture(ctx smachine.MigrationContext) smachine.StateUpdate {
 	ctx.SetDefaultMigration(p.migrateFromPresent)
-	p._runInnerMigrate(ctx)
+	p._runInnerMigrate(ctx, Future)
 	return ctx.Jump(p.stepPresentLoop)
 }
 
@@ -274,7 +277,7 @@ func (p *PulseSlotMachine) cancelPulseChange(ctx smachine.BargeInContext) smachi
 
 func (p *PulseSlotMachine) migrateFromPresent(ctx smachine.MigrationContext) smachine.StateUpdate {
 	ctx.SetDefaultMigration(p.migratePast)
-	p._runInnerMigrate(ctx)
+	p._runInnerMigrate(ctx, Present)
 	return ctx.Jump(p.stepPastLoop)
 }
 
@@ -297,7 +300,7 @@ func (p *PulseSlotMachine) stepPastLoop(ctx smachine.ExecutionContext) smachine.
 }
 
 func (p *PulseSlotMachine) migratePast(ctx smachine.MigrationContext) smachine.StateUpdate {
-	p._runInnerMigrate(ctx)
+	p._runInnerMigrate(ctx, Past)
 
 	if p.innerMachine.IsEmpty() {
 		ctx.UnpublishAll()
@@ -308,6 +311,6 @@ func (p *PulseSlotMachine) migratePast(ctx smachine.MigrationContext) smachine.S
 
 func (p *PulseSlotMachine) migrateAntique(ctx smachine.MigrationContext) smachine.StateUpdate {
 	ctx.SkipMultipleMigrations()
-	p._runInnerMigrate(ctx)
+	p._runInnerMigrate(ctx, Antique)
 	return ctx.Stay()
 }

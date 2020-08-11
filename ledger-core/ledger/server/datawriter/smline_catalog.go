@@ -18,10 +18,10 @@ type LineCataloger interface {
 	GetOrCreate(ctx smachine.ExecutionContext, lineRef reference.Global) LineDataLink
 }
 
-var _ LineCataloger = &LineCatalog{}
+var _ LineCataloger = LineCatalog{}
 type LineCatalog struct {}
 
-func (*LineCatalog) GetOrCreate(ctx smachine.ExecutionContext, lineRef reference.Global) LineDataLink {
+func (LineCatalog) GetOrCreate(ctx smachine.ExecutionContext, lineRef reference.Global) LineDataLink {
 	switch sdl := ctx.GetPublishedLink(LineKey(lineRef)); {
 	case sdl.IsZero():
 		break
