@@ -6,11 +6,11 @@
 package adapters
 
 import (
-	"crypto"
 	"crypto/ecdsa"
 	"fmt"
 	"time"
 
+	"github.com/insolar/assured-ledger/ledger-core/crypto/legacyadapter"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/common/endpoints"
@@ -85,7 +85,9 @@ type StaticProfile struct {
 
 // deprecated // for legacy code only
 func ECDSAPublicKeyOfNode(n nodeinfo.NetworkNode) *ecdsa.PublicKey {
-	return ECDSAPublicKeyOfProfile(n.GetStatic())
+	nip := n.GetStatic()
+	store := nip.GetPublicKeyStore()
+	return store.(*legacyadapter.ECDSAPublicKeyStore).CryptoPublicKey().(*ecdsa.PublicKey)
 }
 
 func ECDSAPublicKeyOfProfile(nip profiles.StaticProfile) *ecdsa.PublicKey {
