@@ -159,7 +159,7 @@ func (s *Server) initComponents(ctx context.Context, cfg configuration.Configura
 
 			APIWrapper := api.NewWrapper(API, AdminAPIRunner)
 
-			cm.Register(ns, APIWrapper)
+			cm.Register(APIWrapper)
 		}
 
 		appComponents := AppComponents{
