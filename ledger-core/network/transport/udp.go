@@ -9,7 +9,6 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"runtime/debug"
 	"sync"
 	"sync/atomic"
 
@@ -77,7 +76,6 @@ func (t *udpTransport) Start(ctx context.Context) error {
 		t.mutex.Lock()
 		defer t.mutex.Unlock()
 
-		logger.Warn(string(debug.Stack()))
 		var err error
 		t.conn, err = net.ListenPacket("udp", t.address)
 		if err != nil {
