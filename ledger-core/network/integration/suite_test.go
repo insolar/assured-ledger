@@ -80,7 +80,7 @@ func initLogger(ctx context.Context, t *testing.T, level log.Level) context.Cont
 			return true // must fail
 		case strings.Contains(s, "Failed to process packet: packet type (") && strings.Contains(s, ") limit exceeded"):
 			return false // skip it
-		case strings.Contains(s, "Failed to send datagram: failed to send datagram: transport is not started"):
+		case strings.Contains(s, "Failed to send datagram: failed to "):
 			return false // skip it
 		}
 		return true
