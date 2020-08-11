@@ -27,6 +27,7 @@ type PlashAssistant interface {
 
 	CalculateJetDrop(reference.Holder) jet.DropID
 	GetResolver() lineage.DependencyResolver
+	IsGenesis() bool
 }
 
 type AppendFuture interface {
@@ -34,7 +35,8 @@ type AppendFuture interface {
 }
 
 type Service interface {
-	CreatePlash(pulse.Range, jet.Tree, census.OnlinePopulation) (PlashAssistant, []jet.ExactID)
+	CreatePlash(pr pulse.Range, treePrev, treeCur jet.Tree, online census.OnlinePopulation) (PlashAssistant, []jet.ExactID)
+	CreateGenesis(pulse.Range, census.OnlinePopulation) (PlashAssistant, jet.ExactID)
 	AppendToDrop(jet.DropID, AppendFuture, lineage.ResolvedBundle)
 }
 
@@ -80,10 +82,9 @@ func (p *serviceImpl) get(pn pulse.Number) *plashAssistant {
 	return p.plashes[pn]
 }
 
-func (p *serviceImpl) CreatePlash(pr pulse.Range, tree jet.Tree, population census.OnlinePopulation) (PlashAssistant, []jet.ExactID) {
-
-	localNodeID := population.GetLocalProfile().GetNodeID()
-	if localNodeID.IsAbsent() {
+func (p *serviceImpl) CreatePlash(pr pulse.Range, treePrev, tree jet.Tree, population census.OnlinePopulation) (PlashAssistant, []jet.ExactID) {
+	if tree == nil || tree.IsEmpty() {
+		// missing value or genesis tree
 		panic(throw.IllegalValue())
 	}
 
@@ -101,22 +102,27 @@ func (p *serviceImpl) CreatePlash(pr pulse.Range, tree jet.Tree, population cens
 		panic(throw.E("retrograde plash", struct { PN, LastPN pulse.Number }{ pn, p.lastPN }))
 	}
 
+	return p.createPlash(pr, *tree, population)
+}
+
+func (p *serviceImpl) createPlash(pr pulse.Range, tree jet.PrefixTree, population census.OnlinePopulation) (PlashAssistant, []jet.ExactID) {
+	localNodeID := population.GetLocalProfile().GetNodeID()
+	if localNodeID.IsAbsent() {
+		panic(throw.IllegalValue())
+	}
+
+	pd := pr.RightBoundData()
+	pd.EnsurePulsarData()
+	pn := pd.PulseNumber
+
 	pa := &plashAssistant{
 		pulseData: pd,
+		tree:      tree,
 		population: population,
 		dropAssists: map[jet.ID]*dropAssistant{},
 		merkle: merkler.NewForkingCalculator(p.merklePair, cryptkit.Digest{}),
 	}
 
-	if tree == nil || tree.IsEmpty() {
-		pa.tree.Init()
-
-		// TODO genesis
-		panic(throw.NotImplemented())
-		// return pa, []jet.ExactID{jet.GenesisExactID}
-	}
-
-	pa.tree = *tree
 	pa.tree.SetPropagate() // grants O(1) to find jet
 
 	jetCount := pa.tree.Count()
@@ -169,4 +175,28 @@ func (p *serviceImpl) CreatePlash(pr pulse.Range, tree jet.Tree, population cens
 	return pa, result
 }
 
-// TODO a configuration set for conveyor that provides adapters and input-SM mapper
+
+func (p *serviceImpl) CreateGenesis(pr pulse.Range, population census.OnlinePopulation) (PlashAssistant, jet.ExactID) {
+	pd := pr.RightBoundData()
+	pd.EnsurePulsarData()
+
+	p.mapMutex.Lock()
+	defer p.mapMutex.Unlock()
+
+	pn := pd.PulseNumber
+	if len(p.plashes) > 0 {
+		panic(throw.E("duplicate genesis", struct { PN pulse.Number }{ pn }))
+	}
+
+	pa, jets := p.createPlash(pr, jet.NewPrefixTree(true), population)
+
+	switch len(jets) {
+	case 0:
+		return pa, 0
+	case 1:
+		return pa, jets[0]
+	default:
+		panic(throw.Impossible())
+	}
+}
+

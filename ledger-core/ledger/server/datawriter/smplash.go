@@ -29,6 +29,8 @@ type SMPlash struct {
 
 	// runtime
 	jets      []jet.ExactID
+	treePrev  jet.Tree
+	treeCur   jet.Tree
 }
 
 func (p *SMPlash) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
@@ -56,35 +58,71 @@ func (p *SMPlash) stepInit(ctx smachine.InitializationContext) smachine.StateUpd
 		panic(throw.IllegalState())
 	}
 
-	ctx.SetDefaultMigration(p.migratePresent)
+	ctx.SetDefaultMigration(func(ctx smachine.MigrationContext) smachine.StateUpdate {
+		panic(throw.IllegalState())
+	})
+	return ctx.Jump(p.stepGetTree)
+}
+
+// func (p *SMPlash) getJetTree() (prev, cur jet.Tree) {
+// 	// TODO get jetTree
+// 	tree := jet.NewPrefixTree(true)
+//
+// 	// Empty tree will initiate genesis procedure, so we have to do a split
+// 	tree.Split(0, 0)
+//
+// }
+
+func (p *SMPlash) stepGetTree(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	return ctx.Jump(p.stepCreatePlush)
 }
 
 func (p *SMPlash) stepCreatePlush(ctx smachine.ExecutionContext) smachine.StateUpdate {
-
+	if p.treeCur == nil {
+		return ctx.Sleep().ThenRepeat()
+	}
 
 	bd, _ := p.pulseSlot.BeatData()
 	pop := bd.Online
 
-	// TODO get jetTree
-	tree := jet.NewPrefixTree(true)
-
-	// Empty tree will initiate genesis procedure, so we have to do a split
-	tree.Split(0, 0)
-
-
 	pr := p.sd.pr
-	return p.builderSvc.PrepareAsync(ctx, func(svc buildersvc.Service) smachine.AsyncResultFunc {
-		jetAssist, jets := svc.CreatePlash(pr, &tree, pop)
 
-		return func(ctx smachine.AsyncResultContext) {
-			if jetAssist == nil {
-				panic(throw.IllegalValue())
-			}
-			p.sd.jetAssist = jetAssist
-			p.jets = jets
+	switch {
+	case p.treeCur.IsEmpty():
+		if p.treePrev != nil && !p.treePrev.IsEmpty() {
+			panic(throw.IllegalState())
 		}
-	}).DelayedStart().Sleep().ThenJump(p.stepCreateJetDrops)
+
+		return p.builderSvc.PrepareAsync(ctx, func(svc buildersvc.Service) smachine.AsyncResultFunc {
+			jetAssist, jetGenesis := svc.CreateGenesis(pr, pop)
+
+			return func(ctx smachine.AsyncResultContext) {
+				if jetAssist == nil {
+					panic(throw.IllegalValue())
+				}
+				p.sd.jetAssist = jetAssist
+				if jetGenesis != 0 {
+					p.jets = []jet.ExactID{jetGenesis}
+				}
+			}
+		}).DelayedStart().Sleep().ThenJump(p.stepGenesis)
+
+	case p.treePrev == nil:
+		panic(throw.IllegalState())
+	default:
+
+		return p.builderSvc.PrepareAsync(ctx, func(svc buildersvc.Service) smachine.AsyncResultFunc {
+			jetAssist, jets := svc.CreatePlash(pr, p.treePrev, p.treeCur, pop)
+
+			return func(ctx smachine.AsyncResultContext) {
+				if jetAssist == nil {
+					panic(throw.IllegalValue())
+				}
+				p.sd.jetAssist = jetAssist
+				p.jets = jets
+			}
+		}).DelayedStart().Sleep().ThenJump(p.stepCreateJetDrops)
+	}
 }
 
 func (p *SMPlash) stepCreateJetDrops(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -101,8 +139,26 @@ func (p *SMPlash) stepCreateJetDrops(ctx smachine.ExecutionContext) smachine.Sta
 	return ctx.Stop()
 }
 
-func (p *SMPlash) migratePresent(ctx smachine.MigrationContext) smachine.StateUpdate {
-	// should NOT happen
-	panic(throw.IllegalState())
+func (p *SMPlash) stepGenesis(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	if p.sd.jetAssist == nil {
+		return ctx.Sleep().ThenRepeat()
+	}
+
+	switch len(p.jets) {
+	case 1:
+		ctx.InitChild(func(ctx smachine.ConstructionContext) smachine.StateMachine {
+			return &SMGenesis{
+				jetAssist: p.sd.jetAssist,
+				jetGenesis: p.jets[0],
+			}
+		})
+	case 0:
+		// this node can't run genesis
+	default:
+		panic(throw.Impossible())
+	}
+
+	ctx.ApplyAdjustment(p.sd.enableAccess())
+	return ctx.Stop()
 }
 

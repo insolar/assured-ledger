@@ -129,6 +129,10 @@ func (p *plashAssistant) GetResolver() lineage.DependencyResolver {
 	panic("implement me")
 }
 
+func (p *plashAssistant) IsGenesis() bool {
+	return false
+}
+
 func (p *plashAssistant) CalculateJetDrop(holder reference.Holder) jet.DropID {
 	switch {
 	case reference.IsEmpty(holder):
