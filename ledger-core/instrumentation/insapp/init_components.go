@@ -140,10 +140,13 @@ func (s *Server) initComponents(ctx context.Context, cfg configuration.Configura
 		metricsComp,
 	)
 
+	cm.Register(s.extra...)
+
 	var appComponent AppComponent
 
 	if s.appFn != nil {
 		affine := affinity.NewAffinityHelper(certManager.GetCertificate().GetNodeRef())
+		cm.Register(affine)
 
 		if ns != nil {
 			API, err := api.NewRunner(&cfg.APIRunner,
@@ -170,12 +173,8 @@ func (s *Server) initComponents(ctx context.Context, cfg configuration.Configura
 		appComponent, err = s.appFn(ctx, cfg, appComponents)
 		checkError(ctx, err, "failed to start AppCompartment")
 
-		cm.Register(
-			affine,
-			appComponent,
-		)
+		cm.Register(appComponent)
 	}
-	cm.Register(s.extra...)
 	cm.Inject()
 
 	err := cm.Init(ctx)
@@ -262,7 +261,7 @@ func startRouter(ctx context.Context, router *message.Router) {
 
 func checkError(ctx context.Context, err error, message string) {
 	if err != nil {
-		inslogger.FromContext(ctx).Fatalf("%v: %v", message, err.Error())
+		inslogger.FromContext(ctx).Fatalf("%v: %v", message, throw.ErrorWithStack(err))
 	}
 }
 

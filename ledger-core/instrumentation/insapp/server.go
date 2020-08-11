@@ -18,6 +18,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/trace"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/version"
 )
 
@@ -103,7 +104,7 @@ func (s *Server) Serve() {
 
 		for i, cm := range cms {
 			if err := cm.GracefulStop(contexts[i]); err != nil {
-				baseLogger.Fatalf("graceful stop failed [%d]: %s", i, err.Error())
+				baseLogger.Fatalf("graceful stop failed [%d]: %s", i, throw.ErrorWithStack(err))
 			}
 		}
 
@@ -115,14 +116,14 @@ func (s *Server) Serve() {
 
 		for i, cm := range cms {
 			if err := cm.Stop(contexts[i]); err != nil {
-				baseLogger.Fatalf("stop failed [%d]: %s", i, err.Error())
+				baseLogger.Fatalf("stop failed [%d]: %s", i, throw.ErrorWithStack(err))
 			}
 		}
 	}()
 
 	for i, cm := range cms {
 		if err := cm.Start(contexts[i]); err != nil {
-			baseLogger.Fatalf("start failed [%d]: %s", i, err.Error())
+			baseLogger.Fatalf("start failed [%d]: %s", i, throw.ErrorWithStack(err))
 		}
 	}
 

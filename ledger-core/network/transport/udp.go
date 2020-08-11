@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"runtime/debug"
 	"sync"
 	"sync/atomic"
 
@@ -79,6 +80,7 @@ func (t *udpTransport) Start(ctx context.Context) error {
 		var err error
 		t.conn, err = net.ListenPacket("udp", t.address)
 		if err != nil {
+			logger.Warn(string(debug.Stack()))
 			return errors.W(err, "failed to listen UDP")
 		}
 
