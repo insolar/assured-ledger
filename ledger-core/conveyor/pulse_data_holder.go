@@ -16,79 +16,56 @@ import (
 
 type pulseDataHolder interface {
 	// PulseRange is nil for Future and Antique
-	PulseRange() (pulse.Range, PulseSlotState)
+	BeatData() (BeatData, PulseSlotState)
 	// PulseData is provided for Future, and empty for Antique
-	PulseData() (pulse.Data, PulseSlotState)
+	PulseData() pulse.Data
 	// PulseStartedAt returns time at which the pulse was started. Only valid for Present and Past
 	PulseStartedAt() time.Time
 
-	MakePresent(pr pulse.Range, pulseStart time.Time)
+	MakePresent(bd BeatData, pulseStart time.Time)
 	MakePast()
 }
 
 var _ pulseDataHolder = &futurePulseDataHolder{}
 
 type futurePulseDataHolder struct {
-	mutex    sync.RWMutex
-	expected pulse.Data
-	pr       pulse.Range
-	at       time.Time
-	isPast   bool
+	mutex sync.RWMutex
+	bd    BeatData
+	at    time.Time
+	state PulseSlotState
 }
 
-func (p *futurePulseDataHolder) PulseData() (pulse.Data, PulseSlotState) {
+func (p *futurePulseDataHolder) PulseData() pulse.Data {
 	p.mutex.RLock()
 	defer p.mutex.RUnlock()
 
-	switch {
-	case p.pr == nil:
-		switch {
-		case p.expected.IsEmpty():
-			return pulse.Data{}, 0
-		case p.isPast:
-			panic(throw.IllegalState())
-		}
-		return p.expected, Future
-	case p.isPast:
-		return p.pr.RightBoundData(), Past
-	default:
-		return p.pr.RightBoundData(), Present
+	if p.bd.Range == nil {
+		return pulse.Data{}
 	}
+	return p.bd.Range.RightBoundData()
 }
 
-func (p *futurePulseDataHolder) PulseRange() (pulse.Range, PulseSlotState) {
+func (p *futurePulseDataHolder) BeatData() (BeatData, PulseSlotState) {
 	p.mutex.RLock()
 	defer p.mutex.RUnlock()
-	return p._pulseRange()
+	return p._beatData()
 }
 
-func (p *futurePulseDataHolder) _pulseRange() (pulse.Range, PulseSlotState) {
-	switch {
-	case p.pr == nil:
-		switch {
-		case p.expected.IsEmpty():
-			return nil, 0
-		case p.isPast:
-			panic(throw.IllegalState())
-		}
-		return p.expected.AsRange(), Future
-	case p.isPast:
-		return p.pr, Past
-	default:
-		return p.pr, Present
-	}
+func (p *futurePulseDataHolder) _beatData() (BeatData, PulseSlotState) {
+	return p.bd, p.state
 }
 
-func (p *futurePulseDataHolder) MakePresent(pr pulse.Range, pulseStart time.Time) {
-	pr.RightBoundData().EnsurePulsarData()
+func (p *futurePulseDataHolder) MakePresent(bd BeatData, pulseStart time.Time) {
+	bd.Range.RightBoundData().EnsurePulsarData()
 
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
-	if _, ps := p._pulseRange(); ps != Future {
+	if p.state > Future {
 		panic(throw.IllegalState())
 	}
-	p.pr = pr
+	p.state = Present
+	p.bd = bd
 	p.at = pulseStart
 }
 
@@ -96,17 +73,17 @@ func (p *futurePulseDataHolder) MakePast() {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
-	if _, ps := p._pulseRange(); ps != Present {
+	if p.state != Present {
 		panic(throw.IllegalState())
 	}
-	p.isPast = true
+	p.state = Past
 }
 
 func (p *futurePulseDataHolder) PulseStartedAt() time.Time {
 	p.mutex.RLock()
 	defer p.mutex.RUnlock()
 
-	if _, ps := p._pulseRange(); ps == Future {
+	if p.state <= Future {
 		panic(throw.IllegalState())
 	}
 	return p.at
@@ -117,17 +94,17 @@ func (p *futurePulseDataHolder) PulseStartedAt() time.Time {
 var _ pulseDataHolder = &presentPulseDataHolder{}
 
 type presentPulseDataHolder struct {
-	pr     pulse.Range
+	bd     BeatData
 	at     time.Time
 	isPast uint32 // atomic
 }
 
-func (p *presentPulseDataHolder) PulseData() (pulse.Data, PulseSlotState) {
-	return p.pr.RightBoundData(), p.State()
+func (p *presentPulseDataHolder) PulseData() pulse.Data {
+	return p.bd.Range.RightBoundData()
 }
 
-func (p *presentPulseDataHolder) PulseRange() (pulse.Range, PulseSlotState) {
-	return p.pr, p.State()
+func (p *presentPulseDataHolder) BeatData() (BeatData, PulseSlotState) {
+	return p.bd, p.State()
 }
 
 func (p *presentPulseDataHolder) State() PulseSlotState {
@@ -137,7 +114,7 @@ func (p *presentPulseDataHolder) State() PulseSlotState {
 	return Past
 }
 
-func (p *presentPulseDataHolder) MakePresent(pulse.Range, time.Time) {
+func (p *presentPulseDataHolder) MakePresent(BeatData, time.Time) {
 	panic(throw.IllegalState())
 }
 
@@ -153,22 +130,21 @@ func (p *presentPulseDataHolder) PulseStartedAt() time.Time {
 
 var _ pulseDataHolder = &antiqueNoPulseDataHolder{}
 
-type antiqueNoPulseDataHolder struct {
+type antiqueNoPulseDataHolder struct {}
+
+func (antiqueNoPulseDataHolder) PulseData() pulse.Data {
+	return pulse.Data{}
 }
 
-func (antiqueNoPulseDataHolder) PulseData() (pulse.Data, PulseSlotState) {
-	return pulse.Data{}, Antique
-}
-
-func (antiqueNoPulseDataHolder) PulseRange() (pulse.Range, PulseSlotState) {
-	return nil, Antique
+func (antiqueNoPulseDataHolder) BeatData() (BeatData, PulseSlotState) {
+	return BeatData{}, Antique
 }
 
 func (antiqueNoPulseDataHolder) PulseStartedAt() time.Time {
 	panic(throw.IllegalState())
 }
 
-func (antiqueNoPulseDataHolder) MakePresent(pulse.Range, time.Time) {
+func (antiqueNoPulseDataHolder) MakePresent(BeatData, time.Time) {
 	panic(throw.IllegalState())
 }
 

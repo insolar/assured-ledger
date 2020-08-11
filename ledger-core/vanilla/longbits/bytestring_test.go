@@ -245,8 +245,8 @@ func TestByteString_String(t *testing.T) {
 func TestByteStringEqual(t *testing.T) {
 	require.False(t, EmptyByteString.Equal(nil))
 	require.True(t, EmptyByteString.Equal(EmptyByteString))
-	require.True(t, EmptyByteString.Equal(NewMutableFixedSize([]byte{})))
-	require.True(t, WrapStr("abc").Equal(NewMutableFixedSize([]byte("abc"))))
+	require.True(t, EmptyByteString.Equal(WrapBytes([]byte{})))
+	require.True(t, WrapStr("abc").Equal(WrapBytes([]byte("abc"))))
 }
 
 func TestByteStringFold64Unaligned(t *testing.T) {

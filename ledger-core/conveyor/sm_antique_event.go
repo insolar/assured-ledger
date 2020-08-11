@@ -42,7 +42,7 @@ func (sm *antiqueEventSM) stepInit(ctx smachine.InitializationContext) smachine.
 
 func (sm *antiqueEventSM) stepRequestOldPulseData(ctx smachine.ExecutionContext) smachine.StateUpdate {
 
-	return sm.ps.pulseManager.preparePulseDataRequest(ctx, sm.pn, func(p pulse.Range) {
+	return sm.ps.pulseManager.preparePulseDataRequest(ctx, sm.pn, func(BeatData) {
 		// we don't need to store PD as it will also be in the cache for a while
 	}).DelayedStart().Sleep().ThenJump(sm.stepGotAnswer)
 }

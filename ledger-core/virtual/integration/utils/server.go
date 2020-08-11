@@ -8,7 +8,6 @@ package utils
 import (
 	"context"
 	"sync"
-	"time"
 
 	"github.com/ThreeDotsLabs/watermill/message"
 
@@ -18,7 +17,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor/memstor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/convlog"
@@ -26,12 +24,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
-	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
-	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
-	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles"
-	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/censusimpl"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -40,8 +34,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/journal"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/testpop"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
-	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual"
@@ -147,7 +141,7 @@ func newServerExt(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFi
 
 	s.pulseManager = PulseManager
 	s.pulseStorage = Pulses
-	censusMock := createOneNodePopulationMock(t, s.caller)
+	censusMock := testpop.CreateOneNodePopulationMock(t, s.caller, member.PrimaryRoleVirtual)
 	s.pulseGenerator = testutils.NewPulseGenerator(10, censusMock)
 	s.incrementPulse()
 
@@ -200,36 +194,6 @@ func newServerExt(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFi
 	return &s, ctx
 }
 
-//nolint:interfacer
-func createOneNodePopulationMock(t Tester, localRef reference.Global) census.OnlinePopulation {
-	localNode := node.ShortNodeID(10)
-	cp := profiles.NewCandidateProfileMock(t)
-	cp.GetBriefIntroSignedDigestMock.Return(cryptkit.SignedDigest{})
-	cp.GetDefaultEndpointMock.Return(adapters.NewOutbound("127.0.0.1:1"))
-	cp.GetExtraEndpointsMock.Return(nil)
-	cp.GetIssuedAtPulseMock.Return(pulse.MinTimePulse)
-	cp.GetIssuedAtTimeMock.Return(time.Now())
-	cp.GetIssuerIDMock.Return(localNode)
-	cp.GetIssuerSignatureMock.Return(cryptkit.Signature{})
-	cp.GetNodePublicKeyMock.Return(cryptkit.NewSignatureKeyHolderMock(t))
-	cp.GetPowerLevelsMock.Return(member.PowerSet{0, 0, 0, 1})
-	cp.GetPrimaryRoleMock.Return(member.PrimaryRoleVirtual)
-	cp.GetReferenceMock.Return(localRef)
-	cp.GetSpecialRolesMock.Return(0)
-	cp.GetStartPowerMock.Return(1)
-	cp.GetStaticNodeIDMock.Return(localNode)
-
-	svf := cryptkit.NewSignatureVerifierFactoryMock(t)
-	svf.CreateSignatureVerifierWithPKSMock.Return(nil)
-
-	np := profiles.NewStaticProfileByFull(cp, nil)
-	op := censusimpl.NewManyNodePopulation([]profiles.StaticProfile{np}, localNode, svf)
-
-	// cs := census.NewActiveMock(t)
-	// cs.GetOnlinePopulationMock.Return(&op)
-	return &op
-}
-
 func (s *Server) Init(ctx context.Context) {
 	if err := s.virtual.Init(ctx); err != nil {
 		panic(err)
@@ -249,11 +213,11 @@ func (s *Server) StartRecordingExt(limit int, discardOnOverflow bool) {
 }
 
 func (s *Server) GetPulse() beat.Beat {
-	return s.pulseGenerator.GetLastPulseAsPulse()
+	return s.pulseGenerator.GetLastBeat()
 }
 
 func (s *Server) GetPrevPulse() beat.Beat {
-	return s.pulseGenerator.GetPrevPulseAsPulse()
+	return s.pulseGenerator.GetPrevBeat()
 }
 
 func (s *Server) incrementPulse() {

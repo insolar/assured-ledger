@@ -10,6 +10,7 @@ import (
 	"crypto/ecdsa"
 	"time"
 
+	"github.com/insolar/assured-ledger/ledger-core/crypto/legacyadapter"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
@@ -66,7 +67,7 @@ func NewLocalNodeConfiguration(ctx context.Context, keyStore cryptography.KeySto
 		ctx:              ctx,
 		timings:          defaultRoundTimings,
 		ephemeralTimings: defaultEphemeralTimings,
-		secretKeyStore:   NewECDSASecretKeyStore(ecdsaPrivateKey),
+		secretKeyStore:   legacyadapter.NewECDSASecretKeyStore(ecdsaPrivateKey),
 	}
 }
 

@@ -9,6 +9,7 @@ import (
 	"context"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smadapter"
 )
 
 /* Actual service */
@@ -49,7 +50,7 @@ func (a *ServiceAdapterA) PrepareAsync(ctx smachine.ExecutionContext, fn func(sv
 
 func CreateServiceAdapterA() *ServiceAdapterA {
 	ctx := context.Background()
-	ae, ch := smachine.NewCallChannelExecutor(ctx, 0, false, 5)
+	ae, ch := smadapter.NewCallChannelExecutor(ctx, 0, false, 5)
 	ea := smachine.NewExecutionAdapter("ServiceA", ae)
 
 	smachine.StartChannelWorker(ctx, ch, nil)
