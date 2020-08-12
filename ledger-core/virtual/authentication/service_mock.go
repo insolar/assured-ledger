@@ -18,6 +18,12 @@ import (
 type ServiceMock struct {
 	t minimock.Tester
 
+	funcCheckMessageFromAuthorizedVirtual          func(ctx context.Context, payloadObj interface{}, sender reference.Global, pr pulse.Range) (mustReject bool, err error)
+	inspectFuncCheckMessageFromAuthorizedVirtual   func(ctx context.Context, payloadObj interface{}, sender reference.Global, pr pulse.Range)
+	afterCheckMessageFromAuthorizedVirtualCounter  uint64
+	beforeCheckMessageFromAuthorizedVirtualCounter uint64
+	CheckMessageFromAuthorizedVirtualMock          mServiceMockCheckMessageFromAuthorizedVirtual
+
 	funcGetCallDelegationToken          func(outgoing reference.Global, to reference.Global, pn pulse.Number, object reference.Global) (c1 payload.CallDelegationToken)
 	inspectFuncGetCallDelegationToken   func(outgoing reference.Global, to reference.Global, pn pulse.Number, object reference.Global)
 	afterGetCallDelegationTokenCounter  uint64
@@ -29,12 +35,6 @@ type ServiceMock struct {
 	afterHasToSendTokenCounter  uint64
 	beforeHasToSendTokenCounter uint64
 	HasToSendTokenMock          mServiceMockHasToSendToken
-
-	funcIsMessageFromVirtualLegitimate          func(ctx context.Context, payloadObj interface{}, sender reference.Global, pr pulse.Range) (mustReject bool, err error)
-	inspectFuncIsMessageFromVirtualLegitimate   func(ctx context.Context, payloadObj interface{}, sender reference.Global, pr pulse.Range)
-	afterIsMessageFromVirtualLegitimateCounter  uint64
-	beforeIsMessageFromVirtualLegitimateCounter uint64
-	IsMessageFromVirtualLegitimateMock          mServiceMockIsMessageFromVirtualLegitimate
 }
 
 // NewServiceMock returns a mock for Service
@@ -44,16 +44,235 @@ func NewServiceMock(t minimock.Tester) *ServiceMock {
 		controller.RegisterMocker(m)
 	}
 
+	m.CheckMessageFromAuthorizedVirtualMock = mServiceMockCheckMessageFromAuthorizedVirtual{mock: m}
+	m.CheckMessageFromAuthorizedVirtualMock.callArgs = []*ServiceMockCheckMessageFromAuthorizedVirtualParams{}
+
 	m.GetCallDelegationTokenMock = mServiceMockGetCallDelegationToken{mock: m}
 	m.GetCallDelegationTokenMock.callArgs = []*ServiceMockGetCallDelegationTokenParams{}
 
 	m.HasToSendTokenMock = mServiceMockHasToSendToken{mock: m}
 	m.HasToSendTokenMock.callArgs = []*ServiceMockHasToSendTokenParams{}
 
-	m.IsMessageFromVirtualLegitimateMock = mServiceMockIsMessageFromVirtualLegitimate{mock: m}
-	m.IsMessageFromVirtualLegitimateMock.callArgs = []*ServiceMockIsMessageFromVirtualLegitimateParams{}
-
 	return m
+}
+
+type mServiceMockCheckMessageFromAuthorizedVirtual struct {
+	mock               *ServiceMock
+	defaultExpectation *ServiceMockCheckMessageFromAuthorizedVirtualExpectation
+	expectations       []*ServiceMockCheckMessageFromAuthorizedVirtualExpectation
+
+	callArgs []*ServiceMockCheckMessageFromAuthorizedVirtualParams
+	mutex    sync.RWMutex
+}
+
+// ServiceMockCheckMessageFromAuthorizedVirtualExpectation specifies expectation struct of the Service.CheckMessageFromAuthorizedVirtual
+type ServiceMockCheckMessageFromAuthorizedVirtualExpectation struct {
+	mock    *ServiceMock
+	params  *ServiceMockCheckMessageFromAuthorizedVirtualParams
+	results *ServiceMockCheckMessageFromAuthorizedVirtualResults
+	Counter uint64
+}
+
+// ServiceMockCheckMessageFromAuthorizedVirtualParams contains parameters of the Service.CheckMessageFromAuthorizedVirtual
+type ServiceMockCheckMessageFromAuthorizedVirtualParams struct {
+	ctx        context.Context
+	payloadObj interface{}
+	sender     reference.Global
+	pr         pulse.Range
+}
+
+// ServiceMockCheckMessageFromAuthorizedVirtualResults contains results of the Service.CheckMessageFromAuthorizedVirtual
+type ServiceMockCheckMessageFromAuthorizedVirtualResults struct {
+	mustReject bool
+	err        error
+}
+
+// Expect sets up expected params for Service.CheckMessageFromAuthorizedVirtual
+func (mmCheckMessageFromAuthorizedVirtual *mServiceMockCheckMessageFromAuthorizedVirtual) Expect(ctx context.Context, payloadObj interface{}, sender reference.Global, pr pulse.Range) *mServiceMockCheckMessageFromAuthorizedVirtual {
+	if mmCheckMessageFromAuthorizedVirtual.mock.funcCheckMessageFromAuthorizedVirtual != nil {
+		mmCheckMessageFromAuthorizedVirtual.mock.t.Fatalf("ServiceMock.CheckMessageFromAuthorizedVirtual mock is already set by Set")
+	}
+
+	if mmCheckMessageFromAuthorizedVirtual.defaultExpectation == nil {
+		mmCheckMessageFromAuthorizedVirtual.defaultExpectation = &ServiceMockCheckMessageFromAuthorizedVirtualExpectation{}
+	}
+
+	mmCheckMessageFromAuthorizedVirtual.defaultExpectation.params = &ServiceMockCheckMessageFromAuthorizedVirtualParams{ctx, payloadObj, sender, pr}
+	for _, e := range mmCheckMessageFromAuthorizedVirtual.expectations {
+		if minimock.Equal(e.params, mmCheckMessageFromAuthorizedVirtual.defaultExpectation.params) {
+			mmCheckMessageFromAuthorizedVirtual.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmCheckMessageFromAuthorizedVirtual.defaultExpectation.params)
+		}
+	}
+
+	return mmCheckMessageFromAuthorizedVirtual
+}
+
+// Inspect accepts an inspector function that has same arguments as the Service.CheckMessageFromAuthorizedVirtual
+func (mmCheckMessageFromAuthorizedVirtual *mServiceMockCheckMessageFromAuthorizedVirtual) Inspect(f func(ctx context.Context, payloadObj interface{}, sender reference.Global, pr pulse.Range)) *mServiceMockCheckMessageFromAuthorizedVirtual {
+	if mmCheckMessageFromAuthorizedVirtual.mock.inspectFuncCheckMessageFromAuthorizedVirtual != nil {
+		mmCheckMessageFromAuthorizedVirtual.mock.t.Fatalf("Inspect function is already set for ServiceMock.CheckMessageFromAuthorizedVirtual")
+	}
+
+	mmCheckMessageFromAuthorizedVirtual.mock.inspectFuncCheckMessageFromAuthorizedVirtual = f
+
+	return mmCheckMessageFromAuthorizedVirtual
+}
+
+// Return sets up results that will be returned by Service.CheckMessageFromAuthorizedVirtual
+func (mmCheckMessageFromAuthorizedVirtual *mServiceMockCheckMessageFromAuthorizedVirtual) Return(mustReject bool, err error) *ServiceMock {
+	if mmCheckMessageFromAuthorizedVirtual.mock.funcCheckMessageFromAuthorizedVirtual != nil {
+		mmCheckMessageFromAuthorizedVirtual.mock.t.Fatalf("ServiceMock.CheckMessageFromAuthorizedVirtual mock is already set by Set")
+	}
+
+	if mmCheckMessageFromAuthorizedVirtual.defaultExpectation == nil {
+		mmCheckMessageFromAuthorizedVirtual.defaultExpectation = &ServiceMockCheckMessageFromAuthorizedVirtualExpectation{mock: mmCheckMessageFromAuthorizedVirtual.mock}
+	}
+	mmCheckMessageFromAuthorizedVirtual.defaultExpectation.results = &ServiceMockCheckMessageFromAuthorizedVirtualResults{mustReject, err}
+	return mmCheckMessageFromAuthorizedVirtual.mock
+}
+
+//Set uses given function f to mock the Service.CheckMessageFromAuthorizedVirtual method
+func (mmCheckMessageFromAuthorizedVirtual *mServiceMockCheckMessageFromAuthorizedVirtual) Set(f func(ctx context.Context, payloadObj interface{}, sender reference.Global, pr pulse.Range) (mustReject bool, err error)) *ServiceMock {
+	if mmCheckMessageFromAuthorizedVirtual.defaultExpectation != nil {
+		mmCheckMessageFromAuthorizedVirtual.mock.t.Fatalf("Default expectation is already set for the Service.CheckMessageFromAuthorizedVirtual method")
+	}
+
+	if len(mmCheckMessageFromAuthorizedVirtual.expectations) > 0 {
+		mmCheckMessageFromAuthorizedVirtual.mock.t.Fatalf("Some expectations are already set for the Service.CheckMessageFromAuthorizedVirtual method")
+	}
+
+	mmCheckMessageFromAuthorizedVirtual.mock.funcCheckMessageFromAuthorizedVirtual = f
+	return mmCheckMessageFromAuthorizedVirtual.mock
+}
+
+// When sets expectation for the Service.CheckMessageFromAuthorizedVirtual which will trigger the result defined by the following
+// Then helper
+func (mmCheckMessageFromAuthorizedVirtual *mServiceMockCheckMessageFromAuthorizedVirtual) When(ctx context.Context, payloadObj interface{}, sender reference.Global, pr pulse.Range) *ServiceMockCheckMessageFromAuthorizedVirtualExpectation {
+	if mmCheckMessageFromAuthorizedVirtual.mock.funcCheckMessageFromAuthorizedVirtual != nil {
+		mmCheckMessageFromAuthorizedVirtual.mock.t.Fatalf("ServiceMock.CheckMessageFromAuthorizedVirtual mock is already set by Set")
+	}
+
+	expectation := &ServiceMockCheckMessageFromAuthorizedVirtualExpectation{
+		mock:   mmCheckMessageFromAuthorizedVirtual.mock,
+		params: &ServiceMockCheckMessageFromAuthorizedVirtualParams{ctx, payloadObj, sender, pr},
+	}
+	mmCheckMessageFromAuthorizedVirtual.expectations = append(mmCheckMessageFromAuthorizedVirtual.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Service.CheckMessageFromAuthorizedVirtual return parameters for the expectation previously defined by the When method
+func (e *ServiceMockCheckMessageFromAuthorizedVirtualExpectation) Then(mustReject bool, err error) *ServiceMock {
+	e.results = &ServiceMockCheckMessageFromAuthorizedVirtualResults{mustReject, err}
+	return e.mock
+}
+
+// CheckMessageFromAuthorizedVirtual implements Service
+func (mmCheckMessageFromAuthorizedVirtual *ServiceMock) CheckMessageFromAuthorizedVirtual(ctx context.Context, payloadObj interface{}, sender reference.Global, pr pulse.Range) (mustReject bool, err error) {
+	mm_atomic.AddUint64(&mmCheckMessageFromAuthorizedVirtual.beforeCheckMessageFromAuthorizedVirtualCounter, 1)
+	defer mm_atomic.AddUint64(&mmCheckMessageFromAuthorizedVirtual.afterCheckMessageFromAuthorizedVirtualCounter, 1)
+
+	if mmCheckMessageFromAuthorizedVirtual.inspectFuncCheckMessageFromAuthorizedVirtual != nil {
+		mmCheckMessageFromAuthorizedVirtual.inspectFuncCheckMessageFromAuthorizedVirtual(ctx, payloadObj, sender, pr)
+	}
+
+	mm_params := &ServiceMockCheckMessageFromAuthorizedVirtualParams{ctx, payloadObj, sender, pr}
+
+	// Record call args
+	mmCheckMessageFromAuthorizedVirtual.CheckMessageFromAuthorizedVirtualMock.mutex.Lock()
+	mmCheckMessageFromAuthorizedVirtual.CheckMessageFromAuthorizedVirtualMock.callArgs = append(mmCheckMessageFromAuthorizedVirtual.CheckMessageFromAuthorizedVirtualMock.callArgs, mm_params)
+	mmCheckMessageFromAuthorizedVirtual.CheckMessageFromAuthorizedVirtualMock.mutex.Unlock()
+
+	for _, e := range mmCheckMessageFromAuthorizedVirtual.CheckMessageFromAuthorizedVirtualMock.expectations {
+		if minimock.Equal(e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.mustReject, e.results.err
+		}
+	}
+
+	if mmCheckMessageFromAuthorizedVirtual.CheckMessageFromAuthorizedVirtualMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmCheckMessageFromAuthorizedVirtual.CheckMessageFromAuthorizedVirtualMock.defaultExpectation.Counter, 1)
+		mm_want := mmCheckMessageFromAuthorizedVirtual.CheckMessageFromAuthorizedVirtualMock.defaultExpectation.params
+		mm_got := ServiceMockCheckMessageFromAuthorizedVirtualParams{ctx, payloadObj, sender, pr}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmCheckMessageFromAuthorizedVirtual.t.Errorf("ServiceMock.CheckMessageFromAuthorizedVirtual got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmCheckMessageFromAuthorizedVirtual.CheckMessageFromAuthorizedVirtualMock.defaultExpectation.results
+		if mm_results == nil {
+			mmCheckMessageFromAuthorizedVirtual.t.Fatal("No results are set for the ServiceMock.CheckMessageFromAuthorizedVirtual")
+		}
+		return (*mm_results).mustReject, (*mm_results).err
+	}
+	if mmCheckMessageFromAuthorizedVirtual.funcCheckMessageFromAuthorizedVirtual != nil {
+		return mmCheckMessageFromAuthorizedVirtual.funcCheckMessageFromAuthorizedVirtual(ctx, payloadObj, sender, pr)
+	}
+	mmCheckMessageFromAuthorizedVirtual.t.Fatalf("Unexpected call to ServiceMock.CheckMessageFromAuthorizedVirtual. %v %v %v %v", ctx, payloadObj, sender, pr)
+	return
+}
+
+// CheckMessageFromAuthorizedVirtualAfterCounter returns a count of finished ServiceMock.CheckMessageFromAuthorizedVirtual invocations
+func (mmCheckMessageFromAuthorizedVirtual *ServiceMock) CheckMessageFromAuthorizedVirtualAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmCheckMessageFromAuthorizedVirtual.afterCheckMessageFromAuthorizedVirtualCounter)
+}
+
+// CheckMessageFromAuthorizedVirtualBeforeCounter returns a count of ServiceMock.CheckMessageFromAuthorizedVirtual invocations
+func (mmCheckMessageFromAuthorizedVirtual *ServiceMock) CheckMessageFromAuthorizedVirtualBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmCheckMessageFromAuthorizedVirtual.beforeCheckMessageFromAuthorizedVirtualCounter)
+}
+
+// Calls returns a list of arguments used in each call to ServiceMock.CheckMessageFromAuthorizedVirtual.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmCheckMessageFromAuthorizedVirtual *mServiceMockCheckMessageFromAuthorizedVirtual) Calls() []*ServiceMockCheckMessageFromAuthorizedVirtualParams {
+	mmCheckMessageFromAuthorizedVirtual.mutex.RLock()
+
+	argCopy := make([]*ServiceMockCheckMessageFromAuthorizedVirtualParams, len(mmCheckMessageFromAuthorizedVirtual.callArgs))
+	copy(argCopy, mmCheckMessageFromAuthorizedVirtual.callArgs)
+
+	mmCheckMessageFromAuthorizedVirtual.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockCheckMessageFromAuthorizedVirtualDone returns true if the count of the CheckMessageFromAuthorizedVirtual invocations corresponds
+// the number of defined expectations
+func (m *ServiceMock) MinimockCheckMessageFromAuthorizedVirtualDone() bool {
+	for _, e := range m.CheckMessageFromAuthorizedVirtualMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.CheckMessageFromAuthorizedVirtualMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterCheckMessageFromAuthorizedVirtualCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcCheckMessageFromAuthorizedVirtual != nil && mm_atomic.LoadUint64(&m.afterCheckMessageFromAuthorizedVirtualCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockCheckMessageFromAuthorizedVirtualInspect logs each unmet expectation
+func (m *ServiceMock) MinimockCheckMessageFromAuthorizedVirtualInspect() {
+	for _, e := range m.CheckMessageFromAuthorizedVirtualMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to ServiceMock.CheckMessageFromAuthorizedVirtual with params: %#v", *e.params)
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.CheckMessageFromAuthorizedVirtualMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterCheckMessageFromAuthorizedVirtualCounter) < 1 {
+		if m.CheckMessageFromAuthorizedVirtualMock.defaultExpectation.params == nil {
+			m.t.Error("Expected call to ServiceMock.CheckMessageFromAuthorizedVirtual")
+		} else {
+			m.t.Errorf("Expected call to ServiceMock.CheckMessageFromAuthorizedVirtual with params: %#v", *m.CheckMessageFromAuthorizedVirtualMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcCheckMessageFromAuthorizedVirtual != nil && mm_atomic.LoadUint64(&m.afterCheckMessageFromAuthorizedVirtualCounter) < 1 {
+		m.t.Error("Expected call to ServiceMock.CheckMessageFromAuthorizedVirtual")
+	}
 }
 
 type mServiceMockGetCallDelegationToken struct {
@@ -489,233 +708,14 @@ func (m *ServiceMock) MinimockHasToSendTokenInspect() {
 	}
 }
 
-type mServiceMockIsMessageFromVirtualLegitimate struct {
-	mock               *ServiceMock
-	defaultExpectation *ServiceMockIsMessageFromVirtualLegitimateExpectation
-	expectations       []*ServiceMockIsMessageFromVirtualLegitimateExpectation
-
-	callArgs []*ServiceMockIsMessageFromVirtualLegitimateParams
-	mutex    sync.RWMutex
-}
-
-// ServiceMockIsMessageFromVirtualLegitimateExpectation specifies expectation struct of the Service.IsMessageFromVirtualLegitimate
-type ServiceMockIsMessageFromVirtualLegitimateExpectation struct {
-	mock    *ServiceMock
-	params  *ServiceMockIsMessageFromVirtualLegitimateParams
-	results *ServiceMockIsMessageFromVirtualLegitimateResults
-	Counter uint64
-}
-
-// ServiceMockIsMessageFromVirtualLegitimateParams contains parameters of the Service.IsMessageFromVirtualLegitimate
-type ServiceMockIsMessageFromVirtualLegitimateParams struct {
-	ctx        context.Context
-	payloadObj interface{}
-	sender     reference.Global
-	pr         pulse.Range
-}
-
-// ServiceMockIsMessageFromVirtualLegitimateResults contains results of the Service.IsMessageFromVirtualLegitimate
-type ServiceMockIsMessageFromVirtualLegitimateResults struct {
-	mustReject bool
-	err        error
-}
-
-// Expect sets up expected params for Service.IsMessageFromVirtualLegitimate
-func (mmIsMessageFromVirtualLegitimate *mServiceMockIsMessageFromVirtualLegitimate) Expect(ctx context.Context, payloadObj interface{}, sender reference.Global, pr pulse.Range) *mServiceMockIsMessageFromVirtualLegitimate {
-	if mmIsMessageFromVirtualLegitimate.mock.funcIsMessageFromVirtualLegitimate != nil {
-		mmIsMessageFromVirtualLegitimate.mock.t.Fatalf("ServiceMock.IsMessageFromVirtualLegitimate mock is already set by Set")
-	}
-
-	if mmIsMessageFromVirtualLegitimate.defaultExpectation == nil {
-		mmIsMessageFromVirtualLegitimate.defaultExpectation = &ServiceMockIsMessageFromVirtualLegitimateExpectation{}
-	}
-
-	mmIsMessageFromVirtualLegitimate.defaultExpectation.params = &ServiceMockIsMessageFromVirtualLegitimateParams{ctx, payloadObj, sender, pr}
-	for _, e := range mmIsMessageFromVirtualLegitimate.expectations {
-		if minimock.Equal(e.params, mmIsMessageFromVirtualLegitimate.defaultExpectation.params) {
-			mmIsMessageFromVirtualLegitimate.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmIsMessageFromVirtualLegitimate.defaultExpectation.params)
-		}
-	}
-
-	return mmIsMessageFromVirtualLegitimate
-}
-
-// Inspect accepts an inspector function that has same arguments as the Service.IsMessageFromVirtualLegitimate
-func (mmIsMessageFromVirtualLegitimate *mServiceMockIsMessageFromVirtualLegitimate) Inspect(f func(ctx context.Context, payloadObj interface{}, sender reference.Global, pr pulse.Range)) *mServiceMockIsMessageFromVirtualLegitimate {
-	if mmIsMessageFromVirtualLegitimate.mock.inspectFuncIsMessageFromVirtualLegitimate != nil {
-		mmIsMessageFromVirtualLegitimate.mock.t.Fatalf("Inspect function is already set for ServiceMock.IsMessageFromVirtualLegitimate")
-	}
-
-	mmIsMessageFromVirtualLegitimate.mock.inspectFuncIsMessageFromVirtualLegitimate = f
-
-	return mmIsMessageFromVirtualLegitimate
-}
-
-// Return sets up results that will be returned by Service.IsMessageFromVirtualLegitimate
-func (mmIsMessageFromVirtualLegitimate *mServiceMockIsMessageFromVirtualLegitimate) Return(mustReject bool, err error) *ServiceMock {
-	if mmIsMessageFromVirtualLegitimate.mock.funcIsMessageFromVirtualLegitimate != nil {
-		mmIsMessageFromVirtualLegitimate.mock.t.Fatalf("ServiceMock.IsMessageFromVirtualLegitimate mock is already set by Set")
-	}
-
-	if mmIsMessageFromVirtualLegitimate.defaultExpectation == nil {
-		mmIsMessageFromVirtualLegitimate.defaultExpectation = &ServiceMockIsMessageFromVirtualLegitimateExpectation{mock: mmIsMessageFromVirtualLegitimate.mock}
-	}
-	mmIsMessageFromVirtualLegitimate.defaultExpectation.results = &ServiceMockIsMessageFromVirtualLegitimateResults{mustReject, err}
-	return mmIsMessageFromVirtualLegitimate.mock
-}
-
-//Set uses given function f to mock the Service.IsMessageFromVirtualLegitimate method
-func (mmIsMessageFromVirtualLegitimate *mServiceMockIsMessageFromVirtualLegitimate) Set(f func(ctx context.Context, payloadObj interface{}, sender reference.Global, pr pulse.Range) (mustReject bool, err error)) *ServiceMock {
-	if mmIsMessageFromVirtualLegitimate.defaultExpectation != nil {
-		mmIsMessageFromVirtualLegitimate.mock.t.Fatalf("Default expectation is already set for the Service.IsMessageFromVirtualLegitimate method")
-	}
-
-	if len(mmIsMessageFromVirtualLegitimate.expectations) > 0 {
-		mmIsMessageFromVirtualLegitimate.mock.t.Fatalf("Some expectations are already set for the Service.IsMessageFromVirtualLegitimate method")
-	}
-
-	mmIsMessageFromVirtualLegitimate.mock.funcIsMessageFromVirtualLegitimate = f
-	return mmIsMessageFromVirtualLegitimate.mock
-}
-
-// When sets expectation for the Service.IsMessageFromVirtualLegitimate which will trigger the result defined by the following
-// Then helper
-func (mmIsMessageFromVirtualLegitimate *mServiceMockIsMessageFromVirtualLegitimate) When(ctx context.Context, payloadObj interface{}, sender reference.Global, pr pulse.Range) *ServiceMockIsMessageFromVirtualLegitimateExpectation {
-	if mmIsMessageFromVirtualLegitimate.mock.funcIsMessageFromVirtualLegitimate != nil {
-		mmIsMessageFromVirtualLegitimate.mock.t.Fatalf("ServiceMock.IsMessageFromVirtualLegitimate mock is already set by Set")
-	}
-
-	expectation := &ServiceMockIsMessageFromVirtualLegitimateExpectation{
-		mock:   mmIsMessageFromVirtualLegitimate.mock,
-		params: &ServiceMockIsMessageFromVirtualLegitimateParams{ctx, payloadObj, sender, pr},
-	}
-	mmIsMessageFromVirtualLegitimate.expectations = append(mmIsMessageFromVirtualLegitimate.expectations, expectation)
-	return expectation
-}
-
-// Then sets up Service.IsMessageFromVirtualLegitimate return parameters for the expectation previously defined by the When method
-func (e *ServiceMockIsMessageFromVirtualLegitimateExpectation) Then(mustReject bool, err error) *ServiceMock {
-	e.results = &ServiceMockIsMessageFromVirtualLegitimateResults{mustReject, err}
-	return e.mock
-}
-
-// IsMessageFromVirtualLegitimate implements Service
-func (mmIsMessageFromVirtualLegitimate *ServiceMock) IsMessageFromVirtualLegitimate(ctx context.Context, payloadObj interface{}, sender reference.Global, pr pulse.Range) (mustReject bool, err error) {
-	mm_atomic.AddUint64(&mmIsMessageFromVirtualLegitimate.beforeIsMessageFromVirtualLegitimateCounter, 1)
-	defer mm_atomic.AddUint64(&mmIsMessageFromVirtualLegitimate.afterIsMessageFromVirtualLegitimateCounter, 1)
-
-	if mmIsMessageFromVirtualLegitimate.inspectFuncIsMessageFromVirtualLegitimate != nil {
-		mmIsMessageFromVirtualLegitimate.inspectFuncIsMessageFromVirtualLegitimate(ctx, payloadObj, sender, pr)
-	}
-
-	mm_params := &ServiceMockIsMessageFromVirtualLegitimateParams{ctx, payloadObj, sender, pr}
-
-	// Record call args
-	mmIsMessageFromVirtualLegitimate.IsMessageFromVirtualLegitimateMock.mutex.Lock()
-	mmIsMessageFromVirtualLegitimate.IsMessageFromVirtualLegitimateMock.callArgs = append(mmIsMessageFromVirtualLegitimate.IsMessageFromVirtualLegitimateMock.callArgs, mm_params)
-	mmIsMessageFromVirtualLegitimate.IsMessageFromVirtualLegitimateMock.mutex.Unlock()
-
-	for _, e := range mmIsMessageFromVirtualLegitimate.IsMessageFromVirtualLegitimateMock.expectations {
-		if minimock.Equal(e.params, mm_params) {
-			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.mustReject, e.results.err
-		}
-	}
-
-	if mmIsMessageFromVirtualLegitimate.IsMessageFromVirtualLegitimateMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmIsMessageFromVirtualLegitimate.IsMessageFromVirtualLegitimateMock.defaultExpectation.Counter, 1)
-		mm_want := mmIsMessageFromVirtualLegitimate.IsMessageFromVirtualLegitimateMock.defaultExpectation.params
-		mm_got := ServiceMockIsMessageFromVirtualLegitimateParams{ctx, payloadObj, sender, pr}
-		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmIsMessageFromVirtualLegitimate.t.Errorf("ServiceMock.IsMessageFromVirtualLegitimate got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
-		}
-
-		mm_results := mmIsMessageFromVirtualLegitimate.IsMessageFromVirtualLegitimateMock.defaultExpectation.results
-		if mm_results == nil {
-			mmIsMessageFromVirtualLegitimate.t.Fatal("No results are set for the ServiceMock.IsMessageFromVirtualLegitimate")
-		}
-		return (*mm_results).mustReject, (*mm_results).err
-	}
-	if mmIsMessageFromVirtualLegitimate.funcIsMessageFromVirtualLegitimate != nil {
-		return mmIsMessageFromVirtualLegitimate.funcIsMessageFromVirtualLegitimate(ctx, payloadObj, sender, pr)
-	}
-	mmIsMessageFromVirtualLegitimate.t.Fatalf("Unexpected call to ServiceMock.IsMessageFromVirtualLegitimate. %v %v %v %v", ctx, payloadObj, sender, pr)
-	return
-}
-
-// IsMessageFromVirtualLegitimateAfterCounter returns a count of finished ServiceMock.IsMessageFromVirtualLegitimate invocations
-func (mmIsMessageFromVirtualLegitimate *ServiceMock) IsMessageFromVirtualLegitimateAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmIsMessageFromVirtualLegitimate.afterIsMessageFromVirtualLegitimateCounter)
-}
-
-// IsMessageFromVirtualLegitimateBeforeCounter returns a count of ServiceMock.IsMessageFromVirtualLegitimate invocations
-func (mmIsMessageFromVirtualLegitimate *ServiceMock) IsMessageFromVirtualLegitimateBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmIsMessageFromVirtualLegitimate.beforeIsMessageFromVirtualLegitimateCounter)
-}
-
-// Calls returns a list of arguments used in each call to ServiceMock.IsMessageFromVirtualLegitimate.
-// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmIsMessageFromVirtualLegitimate *mServiceMockIsMessageFromVirtualLegitimate) Calls() []*ServiceMockIsMessageFromVirtualLegitimateParams {
-	mmIsMessageFromVirtualLegitimate.mutex.RLock()
-
-	argCopy := make([]*ServiceMockIsMessageFromVirtualLegitimateParams, len(mmIsMessageFromVirtualLegitimate.callArgs))
-	copy(argCopy, mmIsMessageFromVirtualLegitimate.callArgs)
-
-	mmIsMessageFromVirtualLegitimate.mutex.RUnlock()
-
-	return argCopy
-}
-
-// MinimockIsMessageFromVirtualLegitimateDone returns true if the count of the IsMessageFromVirtualLegitimate invocations corresponds
-// the number of defined expectations
-func (m *ServiceMock) MinimockIsMessageFromVirtualLegitimateDone() bool {
-	for _, e := range m.IsMessageFromVirtualLegitimateMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.IsMessageFromVirtualLegitimateMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterIsMessageFromVirtualLegitimateCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcIsMessageFromVirtualLegitimate != nil && mm_atomic.LoadUint64(&m.afterIsMessageFromVirtualLegitimateCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockIsMessageFromVirtualLegitimateInspect logs each unmet expectation
-func (m *ServiceMock) MinimockIsMessageFromVirtualLegitimateInspect() {
-	for _, e := range m.IsMessageFromVirtualLegitimateMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to ServiceMock.IsMessageFromVirtualLegitimate with params: %#v", *e.params)
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.IsMessageFromVirtualLegitimateMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterIsMessageFromVirtualLegitimateCounter) < 1 {
-		if m.IsMessageFromVirtualLegitimateMock.defaultExpectation.params == nil {
-			m.t.Error("Expected call to ServiceMock.IsMessageFromVirtualLegitimate")
-		} else {
-			m.t.Errorf("Expected call to ServiceMock.IsMessageFromVirtualLegitimate with params: %#v", *m.IsMessageFromVirtualLegitimateMock.defaultExpectation.params)
-		}
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcIsMessageFromVirtualLegitimate != nil && mm_atomic.LoadUint64(&m.afterIsMessageFromVirtualLegitimateCounter) < 1 {
-		m.t.Error("Expected call to ServiceMock.IsMessageFromVirtualLegitimate")
-	}
-}
-
 // MinimockFinish checks that all mocked methods have been called the expected number of times
 func (m *ServiceMock) MinimockFinish() {
 	if !m.minimockDone() {
+		m.MinimockCheckMessageFromAuthorizedVirtualInspect()
+
 		m.MinimockGetCallDelegationTokenInspect()
 
 		m.MinimockHasToSendTokenInspect()
-
-		m.MinimockIsMessageFromVirtualLegitimateInspect()
 		m.t.FailNow()
 	}
 }
@@ -739,7 +739,7 @@ func (m *ServiceMock) MinimockWait(timeout mm_time.Duration) {
 func (m *ServiceMock) minimockDone() bool {
 	done := true
 	return done &&
+		m.MinimockCheckMessageFromAuthorizedVirtualDone() &&
 		m.MinimockGetCallDelegationTokenDone() &&
-		m.MinimockHasToSendTokenDone() &&
-		m.MinimockIsMessageFromVirtualLegitimateDone()
+		m.MinimockHasToSendTokenDone()
 }
