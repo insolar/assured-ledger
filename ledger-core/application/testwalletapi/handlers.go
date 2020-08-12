@@ -7,12 +7,11 @@ package testwalletapi
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
 
-	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	jsoniter "github.com/json-iterator/go"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/application/testwalletapi/statemachine"
@@ -26,6 +25,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+)
+
+var (
+	json = jsoniter.ConfigCompatibleWithStandardLibrary
 )
 
 type logIncomingRequest struct {
@@ -114,7 +117,7 @@ func (s *TestWalletServer) Create(w http.ResponseWriter, req *http.Request) {
 	err = foundation.UnmarshalMethodResultSimplified(walletRes, &ref, &contractCallErr)
 	switch {
 	case err != nil:
-		result.Error = errors.W(err, "Failed to unmarshal response").Error()
+		result.Error = throw.W(err, "Failed to unmarshal response").Error()
 	case contractCallErr != nil:
 		result.Error = contractCallErr.Error()
 	default:
