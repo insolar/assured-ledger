@@ -135,6 +135,12 @@ type MigrationContextMock struct {
 	beforeNewBargeInWithParamCounter uint64
 	NewBargeInWithParamMock          mMigrationContextMockNewBargeInWithParam
 
+	funcOverrideDynamicBoost          func(b1 bool)
+	inspectFuncOverrideDynamicBoost   func(b1 bool)
+	afterOverrideDynamicBoostCounter  uint64
+	beforeOverrideDynamicBoostCounter uint64
+	OverrideDynamicBoostMock          mMigrationContextMockOverrideDynamicBoost
+
 	funcParentLink          func() (s1 SlotLink)
 	inspectFuncParentLink   func()
 	afterParentLinkCounter  uint64
@@ -206,12 +212,6 @@ type MigrationContextMock struct {
 	afterSetDefaultTerminationResultCounter  uint64
 	beforeSetDefaultTerminationResultCounter uint64
 	SetDefaultTerminationResultMock          mMigrationContextMockSetDefaultTerminationResult
-
-	funcSetDynamicBoost          func(b1 bool)
-	inspectFuncSetDynamicBoost   func(b1 bool)
-	afterSetDynamicBoostCounter  uint64
-	beforeSetDynamicBoostCounter uint64
-	SetDynamicBoostMock          mMigrationContextMockSetDynamicBoost
 
 	funcSetLogTracing          func(b1 bool)
 	inspectFuncSetLogTracing   func(b1 bool)
@@ -348,6 +348,9 @@ func NewMigrationContextMock(t minimock.Tester) *MigrationContextMock {
 	m.NewBargeInWithParamMock = mMigrationContextMockNewBargeInWithParam{mock: m}
 	m.NewBargeInWithParamMock.callArgs = []*MigrationContextMockNewBargeInWithParamParams{}
 
+	m.OverrideDynamicBoostMock = mMigrationContextMockOverrideDynamicBoost{mock: m}
+	m.OverrideDynamicBoostMock.callArgs = []*MigrationContextMockOverrideDynamicBoostParams{}
+
 	m.ParentLinkMock = mMigrationContextMockParentLink{mock: m}
 
 	m.PublishMock = mMigrationContextMockPublish{mock: m}
@@ -381,9 +384,6 @@ func NewMigrationContextMock(t minimock.Tester) *MigrationContextMock {
 
 	m.SetDefaultTerminationResultMock = mMigrationContextMockSetDefaultTerminationResult{mock: m}
 	m.SetDefaultTerminationResultMock.callArgs = []*MigrationContextMockSetDefaultTerminationResultParams{}
-
-	m.SetDynamicBoostMock = mMigrationContextMockSetDynamicBoost{mock: m}
-	m.SetDynamicBoostMock.callArgs = []*MigrationContextMockSetDynamicBoostParams{}
 
 	m.SetLogTracingMock = mMigrationContextMockSetLogTracing{mock: m}
 	m.SetLogTracingMock.callArgs = []*MigrationContextMockSetLogTracingParams{}
@@ -4361,6 +4361,193 @@ func (m *MigrationContextMock) MinimockNewBargeInWithParamInspect() {
 	}
 }
 
+type mMigrationContextMockOverrideDynamicBoost struct {
+	mock               *MigrationContextMock
+	defaultExpectation *MigrationContextMockOverrideDynamicBoostExpectation
+	expectations       []*MigrationContextMockOverrideDynamicBoostExpectation
+
+	callArgs []*MigrationContextMockOverrideDynamicBoostParams
+	mutex    sync.RWMutex
+}
+
+// MigrationContextMockOverrideDynamicBoostExpectation specifies expectation struct of the MigrationContext.OverrideDynamicBoost
+type MigrationContextMockOverrideDynamicBoostExpectation struct {
+	mock   *MigrationContextMock
+	params *MigrationContextMockOverrideDynamicBoostParams
+
+	Counter uint64
+}
+
+// MigrationContextMockOverrideDynamicBoostParams contains parameters of the MigrationContext.OverrideDynamicBoost
+type MigrationContextMockOverrideDynamicBoostParams struct {
+	b1 bool
+}
+
+// Expect sets up expected params for MigrationContext.OverrideDynamicBoost
+func (mmOverrideDynamicBoost *mMigrationContextMockOverrideDynamicBoost) Expect(b1 bool) *mMigrationContextMockOverrideDynamicBoost {
+	if mmOverrideDynamicBoost.mock.funcOverrideDynamicBoost != nil {
+		mmOverrideDynamicBoost.mock.t.Fatalf("MigrationContextMock.OverrideDynamicBoost mock is already set by Set")
+	}
+
+	if mmOverrideDynamicBoost.defaultExpectation == nil {
+		mmOverrideDynamicBoost.defaultExpectation = &MigrationContextMockOverrideDynamicBoostExpectation{}
+	}
+
+	mmOverrideDynamicBoost.defaultExpectation.params = &MigrationContextMockOverrideDynamicBoostParams{b1}
+	for _, e := range mmOverrideDynamicBoost.expectations {
+		if minimock.Equal(e.params, mmOverrideDynamicBoost.defaultExpectation.params) {
+			mmOverrideDynamicBoost.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmOverrideDynamicBoost.defaultExpectation.params)
+		}
+	}
+
+	return mmOverrideDynamicBoost
+}
+
+// Inspect accepts an inspector function that has same arguments as the MigrationContext.OverrideDynamicBoost
+func (mmOverrideDynamicBoost *mMigrationContextMockOverrideDynamicBoost) Inspect(f func(b1 bool)) *mMigrationContextMockOverrideDynamicBoost {
+	if mmOverrideDynamicBoost.mock.inspectFuncOverrideDynamicBoost != nil {
+		mmOverrideDynamicBoost.mock.t.Fatalf("Inspect function is already set for MigrationContextMock.OverrideDynamicBoost")
+	}
+
+	mmOverrideDynamicBoost.mock.inspectFuncOverrideDynamicBoost = f
+
+	return mmOverrideDynamicBoost
+}
+
+// Return sets up results that will be returned by MigrationContext.OverrideDynamicBoost
+func (mmOverrideDynamicBoost *mMigrationContextMockOverrideDynamicBoost) Return() *MigrationContextMock {
+	if mmOverrideDynamicBoost.mock.funcOverrideDynamicBoost != nil {
+		mmOverrideDynamicBoost.mock.t.Fatalf("MigrationContextMock.OverrideDynamicBoost mock is already set by Set")
+	}
+
+	if mmOverrideDynamicBoost.defaultExpectation == nil {
+		mmOverrideDynamicBoost.defaultExpectation = &MigrationContextMockOverrideDynamicBoostExpectation{mock: mmOverrideDynamicBoost.mock}
+	}
+
+	return mmOverrideDynamicBoost.mock
+}
+
+//Set uses given function f to mock the MigrationContext.OverrideDynamicBoost method
+func (mmOverrideDynamicBoost *mMigrationContextMockOverrideDynamicBoost) Set(f func(b1 bool)) *MigrationContextMock {
+	if mmOverrideDynamicBoost.defaultExpectation != nil {
+		mmOverrideDynamicBoost.mock.t.Fatalf("Default expectation is already set for the MigrationContext.OverrideDynamicBoost method")
+	}
+
+	if len(mmOverrideDynamicBoost.expectations) > 0 {
+		mmOverrideDynamicBoost.mock.t.Fatalf("Some expectations are already set for the MigrationContext.OverrideDynamicBoost method")
+	}
+
+	mmOverrideDynamicBoost.mock.funcOverrideDynamicBoost = f
+	return mmOverrideDynamicBoost.mock
+}
+
+// OverrideDynamicBoost implements MigrationContext
+func (mmOverrideDynamicBoost *MigrationContextMock) OverrideDynamicBoost(b1 bool) {
+	mm_atomic.AddUint64(&mmOverrideDynamicBoost.beforeOverrideDynamicBoostCounter, 1)
+	defer mm_atomic.AddUint64(&mmOverrideDynamicBoost.afterOverrideDynamicBoostCounter, 1)
+
+	if mmOverrideDynamicBoost.inspectFuncOverrideDynamicBoost != nil {
+		mmOverrideDynamicBoost.inspectFuncOverrideDynamicBoost(b1)
+	}
+
+	mm_params := &MigrationContextMockOverrideDynamicBoostParams{b1}
+
+	// Record call args
+	mmOverrideDynamicBoost.OverrideDynamicBoostMock.mutex.Lock()
+	mmOverrideDynamicBoost.OverrideDynamicBoostMock.callArgs = append(mmOverrideDynamicBoost.OverrideDynamicBoostMock.callArgs, mm_params)
+	mmOverrideDynamicBoost.OverrideDynamicBoostMock.mutex.Unlock()
+
+	for _, e := range mmOverrideDynamicBoost.OverrideDynamicBoostMock.expectations {
+		if minimock.Equal(e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return
+		}
+	}
+
+	if mmOverrideDynamicBoost.OverrideDynamicBoostMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmOverrideDynamicBoost.OverrideDynamicBoostMock.defaultExpectation.Counter, 1)
+		mm_want := mmOverrideDynamicBoost.OverrideDynamicBoostMock.defaultExpectation.params
+		mm_got := MigrationContextMockOverrideDynamicBoostParams{b1}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmOverrideDynamicBoost.t.Errorf("MigrationContextMock.OverrideDynamicBoost got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		return
+
+	}
+	if mmOverrideDynamicBoost.funcOverrideDynamicBoost != nil {
+		mmOverrideDynamicBoost.funcOverrideDynamicBoost(b1)
+		return
+	}
+	mmOverrideDynamicBoost.t.Fatalf("Unexpected call to MigrationContextMock.OverrideDynamicBoost. %v", b1)
+
+}
+
+// OverrideDynamicBoostAfterCounter returns a count of finished MigrationContextMock.OverrideDynamicBoost invocations
+func (mmOverrideDynamicBoost *MigrationContextMock) OverrideDynamicBoostAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmOverrideDynamicBoost.afterOverrideDynamicBoostCounter)
+}
+
+// OverrideDynamicBoostBeforeCounter returns a count of MigrationContextMock.OverrideDynamicBoost invocations
+func (mmOverrideDynamicBoost *MigrationContextMock) OverrideDynamicBoostBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmOverrideDynamicBoost.beforeOverrideDynamicBoostCounter)
+}
+
+// Calls returns a list of arguments used in each call to MigrationContextMock.OverrideDynamicBoost.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmOverrideDynamicBoost *mMigrationContextMockOverrideDynamicBoost) Calls() []*MigrationContextMockOverrideDynamicBoostParams {
+	mmOverrideDynamicBoost.mutex.RLock()
+
+	argCopy := make([]*MigrationContextMockOverrideDynamicBoostParams, len(mmOverrideDynamicBoost.callArgs))
+	copy(argCopy, mmOverrideDynamicBoost.callArgs)
+
+	mmOverrideDynamicBoost.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockOverrideDynamicBoostDone returns true if the count of the OverrideDynamicBoost invocations corresponds
+// the number of defined expectations
+func (m *MigrationContextMock) MinimockOverrideDynamicBoostDone() bool {
+	for _, e := range m.OverrideDynamicBoostMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.OverrideDynamicBoostMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterOverrideDynamicBoostCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcOverrideDynamicBoost != nil && mm_atomic.LoadUint64(&m.afterOverrideDynamicBoostCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockOverrideDynamicBoostInspect logs each unmet expectation
+func (m *MigrationContextMock) MinimockOverrideDynamicBoostInspect() {
+	for _, e := range m.OverrideDynamicBoostMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to MigrationContextMock.OverrideDynamicBoost with params: %#v", *e.params)
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.OverrideDynamicBoostMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterOverrideDynamicBoostCounter) < 1 {
+		if m.OverrideDynamicBoostMock.defaultExpectation.params == nil {
+			m.t.Error("Expected call to MigrationContextMock.OverrideDynamicBoost")
+		} else {
+			m.t.Errorf("Expected call to MigrationContextMock.OverrideDynamicBoost with params: %#v", *m.OverrideDynamicBoostMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcOverrideDynamicBoost != nil && mm_atomic.LoadUint64(&m.afterOverrideDynamicBoostCounter) < 1 {
+		m.t.Error("Expected call to MigrationContextMock.OverrideDynamicBoost")
+	}
+}
+
 type mMigrationContextMockParentLink struct {
 	mock               *MigrationContextMock
 	defaultExpectation *MigrationContextMockParentLinkExpectation
@@ -6688,193 +6875,6 @@ func (m *MigrationContextMock) MinimockSetDefaultTerminationResultInspect() {
 	}
 }
 
-type mMigrationContextMockSetDynamicBoost struct {
-	mock               *MigrationContextMock
-	defaultExpectation *MigrationContextMockSetDynamicBoostExpectation
-	expectations       []*MigrationContextMockSetDynamicBoostExpectation
-
-	callArgs []*MigrationContextMockSetDynamicBoostParams
-	mutex    sync.RWMutex
-}
-
-// MigrationContextMockSetDynamicBoostExpectation specifies expectation struct of the MigrationContext.SetDynamicBoost
-type MigrationContextMockSetDynamicBoostExpectation struct {
-	mock   *MigrationContextMock
-	params *MigrationContextMockSetDynamicBoostParams
-
-	Counter uint64
-}
-
-// MigrationContextMockSetDynamicBoostParams contains parameters of the MigrationContext.SetDynamicBoost
-type MigrationContextMockSetDynamicBoostParams struct {
-	b1 bool
-}
-
-// Expect sets up expected params for MigrationContext.SetDynamicBoost
-func (mmSetDynamicBoost *mMigrationContextMockSetDynamicBoost) Expect(b1 bool) *mMigrationContextMockSetDynamicBoost {
-	if mmSetDynamicBoost.mock.funcSetDynamicBoost != nil {
-		mmSetDynamicBoost.mock.t.Fatalf("MigrationContextMock.SetDynamicBoost mock is already set by Set")
-	}
-
-	if mmSetDynamicBoost.defaultExpectation == nil {
-		mmSetDynamicBoost.defaultExpectation = &MigrationContextMockSetDynamicBoostExpectation{}
-	}
-
-	mmSetDynamicBoost.defaultExpectation.params = &MigrationContextMockSetDynamicBoostParams{b1}
-	for _, e := range mmSetDynamicBoost.expectations {
-		if minimock.Equal(e.params, mmSetDynamicBoost.defaultExpectation.params) {
-			mmSetDynamicBoost.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmSetDynamicBoost.defaultExpectation.params)
-		}
-	}
-
-	return mmSetDynamicBoost
-}
-
-// Inspect accepts an inspector function that has same arguments as the MigrationContext.SetDynamicBoost
-func (mmSetDynamicBoost *mMigrationContextMockSetDynamicBoost) Inspect(f func(b1 bool)) *mMigrationContextMockSetDynamicBoost {
-	if mmSetDynamicBoost.mock.inspectFuncSetDynamicBoost != nil {
-		mmSetDynamicBoost.mock.t.Fatalf("Inspect function is already set for MigrationContextMock.SetDynamicBoost")
-	}
-
-	mmSetDynamicBoost.mock.inspectFuncSetDynamicBoost = f
-
-	return mmSetDynamicBoost
-}
-
-// Return sets up results that will be returned by MigrationContext.SetDynamicBoost
-func (mmSetDynamicBoost *mMigrationContextMockSetDynamicBoost) Return() *MigrationContextMock {
-	if mmSetDynamicBoost.mock.funcSetDynamicBoost != nil {
-		mmSetDynamicBoost.mock.t.Fatalf("MigrationContextMock.SetDynamicBoost mock is already set by Set")
-	}
-
-	if mmSetDynamicBoost.defaultExpectation == nil {
-		mmSetDynamicBoost.defaultExpectation = &MigrationContextMockSetDynamicBoostExpectation{mock: mmSetDynamicBoost.mock}
-	}
-
-	return mmSetDynamicBoost.mock
-}
-
-//Set uses given function f to mock the MigrationContext.SetDynamicBoost method
-func (mmSetDynamicBoost *mMigrationContextMockSetDynamicBoost) Set(f func(b1 bool)) *MigrationContextMock {
-	if mmSetDynamicBoost.defaultExpectation != nil {
-		mmSetDynamicBoost.mock.t.Fatalf("Default expectation is already set for the MigrationContext.SetDynamicBoost method")
-	}
-
-	if len(mmSetDynamicBoost.expectations) > 0 {
-		mmSetDynamicBoost.mock.t.Fatalf("Some expectations are already set for the MigrationContext.SetDynamicBoost method")
-	}
-
-	mmSetDynamicBoost.mock.funcSetDynamicBoost = f
-	return mmSetDynamicBoost.mock
-}
-
-// SetDynamicBoost implements MigrationContext
-func (mmSetDynamicBoost *MigrationContextMock) SetDynamicBoost(b1 bool) {
-	mm_atomic.AddUint64(&mmSetDynamicBoost.beforeSetDynamicBoostCounter, 1)
-	defer mm_atomic.AddUint64(&mmSetDynamicBoost.afterSetDynamicBoostCounter, 1)
-
-	if mmSetDynamicBoost.inspectFuncSetDynamicBoost != nil {
-		mmSetDynamicBoost.inspectFuncSetDynamicBoost(b1)
-	}
-
-	mm_params := &MigrationContextMockSetDynamicBoostParams{b1}
-
-	// Record call args
-	mmSetDynamicBoost.SetDynamicBoostMock.mutex.Lock()
-	mmSetDynamicBoost.SetDynamicBoostMock.callArgs = append(mmSetDynamicBoost.SetDynamicBoostMock.callArgs, mm_params)
-	mmSetDynamicBoost.SetDynamicBoostMock.mutex.Unlock()
-
-	for _, e := range mmSetDynamicBoost.SetDynamicBoostMock.expectations {
-		if minimock.Equal(e.params, mm_params) {
-			mm_atomic.AddUint64(&e.Counter, 1)
-			return
-		}
-	}
-
-	if mmSetDynamicBoost.SetDynamicBoostMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmSetDynamicBoost.SetDynamicBoostMock.defaultExpectation.Counter, 1)
-		mm_want := mmSetDynamicBoost.SetDynamicBoostMock.defaultExpectation.params
-		mm_got := MigrationContextMockSetDynamicBoostParams{b1}
-		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmSetDynamicBoost.t.Errorf("MigrationContextMock.SetDynamicBoost got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
-		}
-
-		return
-
-	}
-	if mmSetDynamicBoost.funcSetDynamicBoost != nil {
-		mmSetDynamicBoost.funcSetDynamicBoost(b1)
-		return
-	}
-	mmSetDynamicBoost.t.Fatalf("Unexpected call to MigrationContextMock.SetDynamicBoost. %v", b1)
-
-}
-
-// SetDynamicBoostAfterCounter returns a count of finished MigrationContextMock.SetDynamicBoost invocations
-func (mmSetDynamicBoost *MigrationContextMock) SetDynamicBoostAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmSetDynamicBoost.afterSetDynamicBoostCounter)
-}
-
-// SetDynamicBoostBeforeCounter returns a count of MigrationContextMock.SetDynamicBoost invocations
-func (mmSetDynamicBoost *MigrationContextMock) SetDynamicBoostBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmSetDynamicBoost.beforeSetDynamicBoostCounter)
-}
-
-// Calls returns a list of arguments used in each call to MigrationContextMock.SetDynamicBoost.
-// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmSetDynamicBoost *mMigrationContextMockSetDynamicBoost) Calls() []*MigrationContextMockSetDynamicBoostParams {
-	mmSetDynamicBoost.mutex.RLock()
-
-	argCopy := make([]*MigrationContextMockSetDynamicBoostParams, len(mmSetDynamicBoost.callArgs))
-	copy(argCopy, mmSetDynamicBoost.callArgs)
-
-	mmSetDynamicBoost.mutex.RUnlock()
-
-	return argCopy
-}
-
-// MinimockSetDynamicBoostDone returns true if the count of the SetDynamicBoost invocations corresponds
-// the number of defined expectations
-func (m *MigrationContextMock) MinimockSetDynamicBoostDone() bool {
-	for _, e := range m.SetDynamicBoostMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.SetDynamicBoostMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterSetDynamicBoostCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcSetDynamicBoost != nil && mm_atomic.LoadUint64(&m.afterSetDynamicBoostCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockSetDynamicBoostInspect logs each unmet expectation
-func (m *MigrationContextMock) MinimockSetDynamicBoostInspect() {
-	for _, e := range m.SetDynamicBoostMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to MigrationContextMock.SetDynamicBoost with params: %#v", *e.params)
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.SetDynamicBoostMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterSetDynamicBoostCounter) < 1 {
-		if m.SetDynamicBoostMock.defaultExpectation.params == nil {
-			m.t.Error("Expected call to MigrationContextMock.SetDynamicBoost")
-		} else {
-			m.t.Errorf("Expected call to MigrationContextMock.SetDynamicBoost with params: %#v", *m.SetDynamicBoostMock.defaultExpectation.params)
-		}
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcSetDynamicBoost != nil && mm_atomic.LoadUint64(&m.afterSetDynamicBoostCounter) < 1 {
-		m.t.Error("Expected call to MigrationContextMock.SetDynamicBoost")
-	}
-}
-
 type mMigrationContextMockSetLogTracing struct {
 	mock               *MigrationContextMock
 	defaultExpectation *MigrationContextMockSetLogTracingExpectation
@@ -8995,6 +8995,8 @@ func (m *MigrationContextMock) MinimockFinish() {
 
 		m.MinimockNewBargeInWithParamInspect()
 
+		m.MinimockOverrideDynamicBoostInspect()
+
 		m.MinimockParentLinkInspect()
 
 		m.MinimockPublishInspect()
@@ -9018,8 +9020,6 @@ func (m *MigrationContextMock) MinimockFinish() {
 		m.MinimockSetDefaultMigrationInspect()
 
 		m.MinimockSetDefaultTerminationResultInspect()
-
-		m.MinimockSetDynamicBoostInspect()
 
 		m.MinimockSetLogTracingInspect()
 
@@ -9087,6 +9087,7 @@ func (m *MigrationContextMock) minimockDone() bool {
 		m.MinimockLogDone() &&
 		m.MinimockNewBargeInDone() &&
 		m.MinimockNewBargeInWithParamDone() &&
+		m.MinimockOverrideDynamicBoostDone() &&
 		m.MinimockParentLinkDone() &&
 		m.MinimockPublishDone() &&
 		m.MinimockPublishGlobalAliasDone() &&
@@ -9099,7 +9100,6 @@ func (m *MigrationContextMock) minimockDone() bool {
 		m.MinimockSetDefaultFlagsDone() &&
 		m.MinimockSetDefaultMigrationDone() &&
 		m.MinimockSetDefaultTerminationResultDone() &&
-		m.MinimockSetDynamicBoostDone() &&
 		m.MinimockSetLogTracingDone() &&
 		m.MinimockShareDone() &&
 		m.MinimockSkipMultipleMigrationsDone() &&
