@@ -1,8 +1,6 @@
 name: consensus-checks # consensus perfomance checks
 on:
-  push:
-    branches:
-      - master
+  pull_request:
   schedule:
     - cron: '0 0 * * 6' # run at midnight on saturdays
 env:
