@@ -161,55 +161,6 @@ func TestVirtual_BadMethod_WithExecutor(t *testing.T) {
 	mc.Finish()
 }
 
-func TestVirtual_Method_WithExecutor(t *testing.T) {
-	defer commontestutils.LeakTester(t)
-	insrail.LogCase(t, "C5088")
-
-	var (
-		mc = minimock.NewController(t)
-	)
-
-	server, ctx := utils.NewServer(nil, t)
-	defer server.Stop()
-
-	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
-	server.IncrementPulseAndWaitIdle(ctx)
-
-	var (
-		class        = testwallet.GetClass()
-		objectLocal  = server.RandomLocalWithPulse()
-		objectGlobal = reference.NewSelf(objectLocal)
-		prevPulse    = server.GetPulse().PulseNumber
-	)
-
-	// need for correct handle state report (should from prev pulse)
-	server.IncrementPulse(ctx)
-
-	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal, prevPulse)
-
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-	typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool { return false })
-
-	pl := payload.VCallRequest{
-		CallType:            payload.CTMethod,
-		CallFlags:           payload.BuildCallFlags(contract.CallIntolerable, contract.CallValidated),
-		Caller:              server.GlobalCaller(),
-		Callee:              objectGlobal,
-		CallSiteDeclaration: class,
-		CallSiteMethod:      "GetBalance",
-		CallOutgoing:        server.BuildRandomOutgoingWithPulse(),
-	}
-
-	server.SendPayload(ctx, &pl)
-
-	commontestutils.WaitSignalsTimed(t, 20*time.Second, executeDone)
-	commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
-
-	require.Equal(t, 1, typedChecker.VCallResult.Count())
-
-	mc.Finish()
-}
-
 func TestVirtual_Method_WithExecutor_ObjectIsNotExist(t *testing.T) {
 	defer commontestutils.LeakTester(t)
 	insrail.LogCase(t, "C4974")
@@ -461,92 +412,6 @@ func TestVirtual_Method_WithoutExecutor_Ordered(t *testing.T) {
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, awaitFullStop)
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 	assert.Equal(t, 2, typedChecker.VCallResult.Count())
-
-	mc.Finish()
-}
-
-func TestVirtual_CallMethodAfterPulseChange(t *testing.T) {
-	defer commontestutils.LeakTester(t)
-	insrail.LogCase(t, "C4870")
-
-	mc := minimock.NewController(t)
-
-	server, ctx := utils.NewServer(nil, t)
-	defer server.Stop()
-
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-	typedChecker.VCallRequest.SetResend(true)
-	typedChecker.VCallResult.SetResend(true)
-	typedChecker.VStateReport.SetResend(true)
-	typedChecker.VStateRequest.SetResend(true)
-
-	server.IncrementPulseAndWaitIdle(ctx)
-
-	var (
-		objectLocal  = server.RandomLocalWithPulse()
-		objectGlobal = reference.NewSelf(objectLocal)
-		prevPulse    = server.GetPulse().PulseNumber
-	)
-
-	server.IncrementPulseAndWaitIdle(ctx)
-
-	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal, prevPulse)
-
-	// Change pulse to force send VStateReport
-	server.IncrementPulseAndWaitIdle(ctx)
-
-	checkBalance(ctx, t, server, objectGlobal, initialBalance)
-
-	{
-		assert.Equal(t, 1, typedChecker.VCallRequest.Count())
-		assert.Equal(t, 1, typedChecker.VCallResult.Count())
-		assert.Equal(t, 1, typedChecker.VStateReport.Count())
-	}
-
-	mc.Finish()
-}
-
-func TestVirtual_CallMethodAfterMultiplePulseChanges(t *testing.T) {
-	defer commontestutils.LeakTester(t)
-	insrail.LogCase(t, "C4918")
-
-	mc := minimock.NewController(t)
-
-	server, ctx := utils.NewServer(nil, t)
-	defer server.Stop()
-
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-	typedChecker.VCallRequest.SetResend(true)
-	typedChecker.VCallResult.SetResend(true)
-	typedChecker.VStateReport.SetResend(true)
-	typedChecker.VStateRequest.SetResend(true)
-
-	server.IncrementPulseAndWaitIdle(ctx)
-
-	var (
-		objectLocal  = server.RandomLocalWithPulse()
-		objectGlobal = reference.NewSelf(objectLocal)
-		prevPulse    = server.GetPulse().PulseNumber
-	)
-
-	server.IncrementPulseAndWaitIdle(ctx)
-
-	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal, prevPulse)
-
-	numPulseChanges := 5
-	for i := 0; i < numPulseChanges; i++ {
-		wait := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
-		server.IncrementPulseAndWaitIdle(ctx)
-		commontestutils.WaitSignalsTimed(t, 10*time.Second, wait)
-	}
-
-	checkBalance(ctx, t, server, objectGlobal, initialBalance)
-
-	{
-		assert.Equal(t, 1, typedChecker.VCallRequest.Count())
-		assert.Equal(t, 1, typedChecker.VCallResult.Count())
-		assert.Equal(t, numPulseChanges, typedChecker.VStateReport.Count())
-	}
 
 	mc.Finish()
 }
@@ -1026,6 +891,7 @@ func TestVirtual_CallContractTwoTimes(t *testing.T) {
 				Caller:          request.Caller,
 				Callee:          request.Callee,
 				CallOutgoing:    request.CallOutgoing,
+				CallIncoming:    server.RandomGlobalWithPulse(),
 				ReturnArguments: []byte("finish B.Bar"),
 			}
 			msg := server.WrapPayload(&result).Finalize()
