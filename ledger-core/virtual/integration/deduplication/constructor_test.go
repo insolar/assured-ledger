@@ -259,6 +259,9 @@ func (test *DeduplicationDifferentPulsesCase) run(t *testing.T) {
 	if test.ExecuteShouldHaveError != "" {
 		foundError = test.Server.Journal.Wait(func(event debuglogger.UpdateEvent) bool {
 			if event.Data.Error != nil {
+				if _, ok := event.Data.Error.(throw.StackTraceHolder); !ok {
+					return false
+				}
 				stack := throw.DeepestStackTraceOf(event.Data.Error)
 				return strings.Contains(stack.StackTraceAsText(), test.ExecuteShouldHaveError)
 			}
@@ -276,6 +279,10 @@ func (test *DeduplicationDifferentPulsesCase) run(t *testing.T) {
 	// populate needed VFindCallResponse fields
 	if test.VFindCall != nil {
 		test.VFindCall.Callee = object
+		if test.VFindCall.CallResult != nil {
+			test.VFindCall.CallResult = utils.MakeMinimumValidVStateResult(server, ExecutionResultFromPreviousNode)
+			test.VFindCall.CallResult.Callee = object
+		}
 		test.VFindCall.Outgoing = outgoing
 	}
 
@@ -445,7 +452,7 @@ func TestDeduplication_DifferentPulses_EmptyState(t *testing.T) {
 				VState:   vStateReportEmptyOnePendingRequest,
 				VFindCall: &payload.VFindCallResponse{
 					Status:     payload.FoundCall,
-					CallResult: &payload.VCallResult{ReturnArguments: ExecutionResultFromPreviousNode},
+					CallResult: &payload.VCallResult{},
 				},
 				VCallResultExpected: true,
 				ExpectedResult:      ExecutionResultFromPreviousNode,
@@ -531,7 +538,7 @@ func TestDeduplication_DifferentPulses_EmptyState_WithDelegationToken(t *testing
 				VDelegatedRequestFinished: &payload.VDelegatedRequestFinished{},
 				VFindCall: &payload.VFindCallResponse{
 					Status:     payload.FoundCall,
-					CallResult: &payload.VCallResult{ReturnArguments: ExecutionResultFromPreviousNode},
+					CallResult: &payload.VCallResult{},
 				},
 				VCallResultExpected: true,
 				ExpectedResult:      ExecutionResultFromPreviousNode,
@@ -612,7 +619,7 @@ func TestDeduplication_DifferentPulses_ReadyState(t *testing.T) {
 				VState:   vStateReportReadyNoPendingRequests,
 				VFindCall: &payload.VFindCallResponse{
 					Status:     payload.FoundCall,
-					CallResult: &payload.VCallResult{ReturnArguments: ExecutionResultFromPreviousNode},
+					CallResult: &payload.VCallResult{},
 				},
 				VCallResultExpected: true,
 				ExecutionExpected:   false,
@@ -672,7 +679,7 @@ func TestDeduplication_DifferentPulses_ReadyState(t *testing.T) {
 				VState:   vStateReportReadyOnePendingRequest,
 				VFindCall: &payload.VFindCallResponse{
 					Status:     payload.FoundCall,
-					CallResult: &payload.VCallResult{ReturnArguments: ExecutionResultFromPreviousNode},
+					CallResult: &payload.VCallResult{},
 				},
 				VCallResultExpected: true,
 				ExecutionExpected:   false,
@@ -740,7 +747,7 @@ func TestDeduplication_DifferentPulses_InactiveState(t *testing.T) {
 				VState:   vStateReportInactive,
 				VFindCall: &payload.VFindCallResponse{
 					Status:     payload.FoundCall,
-					CallResult: &payload.VCallResult{ReturnArguments: ExecutionResultFromPreviousNode},
+					CallResult: &payload.VCallResult{},
 				},
 				VCallResultExpected: true,
 				ExecutionExpected:   false,

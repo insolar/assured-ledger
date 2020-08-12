@@ -165,6 +165,14 @@ func TestVirtual_SenderCheck_With_ExpectedVE(t *testing.T) {
 
 						m.AsOf = pn
 						m.Object = gen.UniqueGlobalRefWithPulse(pn)
+					case *payload.VCallResult:
+						m.CallFlags = payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty)
+						m.CallType = payload.CTMethod
+						m.Callee = server.RandomGlobalWithPulse()
+						m.Caller = server.GlobalCaller()
+						m.CallOutgoing = server.BuildRandomOutgoingWithPulse()
+						m.CallIncoming = server.RandomGlobalWithPulse()
+						m.ReturnArguments = []byte("some result")
 					}
 
 					server.SendPayload(ctx, testMsg.msg.(payload.Marshaler)) // default caller == server.GlobalCaller()

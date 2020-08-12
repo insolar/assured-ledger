@@ -81,9 +81,9 @@ func TestSMTestAPICall_MethodResends(t *testing.T) {
 	testutils.WaitSignalsTimed(t, 10*time.Second, messageSent)
 
 	response := &payload.VCallResult{
-		Caller:   gen.UniqueGlobalRef(),
-		Callee:   gen.UniqueGlobalRef(),
-		CallAsOf: gen.PulseNumber(),
+		Caller:          gen.UniqueGlobalRef(),
+		Callee:          gen.UniqueGlobalRef(),
+		CallAsOf:        gen.PulseNumber(),
 		ReturnArguments: []byte("some results"),
 	}
 

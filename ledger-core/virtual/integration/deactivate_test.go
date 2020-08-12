@@ -930,8 +930,12 @@ func TestVirtual_DeduplicateCallAfterDeactivation_PrevVE(t *testing.T) {
 						Outgoing: request.Outgoing,
 						Status:   payload.FoundCall,
 						CallResult: &payload.VCallResult{
+							CallType:        payload.CTMethod,
+							CallFlags:       payload.BuildCallFlags(testCase.flags.Interference, testCase.flags.State),
 							Callee:          request.Callee,
+							Caller:          server.GlobalCaller(),
 							CallOutgoing:    request.Outgoing,
+							CallIncoming:    server.RandomGlobalWithPulse(),
 							ReturnArguments: []byte("result from past"),
 						},
 					}
