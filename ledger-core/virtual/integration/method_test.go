@@ -161,55 +161,6 @@ func TestVirtual_BadMethod_WithExecutor(t *testing.T) {
 	mc.Finish()
 }
 
-func TestVirtual_Method_WithExecutor(t *testing.T) {
-	defer commontestutils.LeakTester(t)
-	insrail.LogCase(t, "C5088")
-
-	var (
-		mc = minimock.NewController(t)
-	)
-
-	server, ctx := utils.NewServer(nil, t)
-	defer server.Stop()
-
-	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
-	server.IncrementPulseAndWaitIdle(ctx)
-
-	var (
-		class        = testwallet.GetClass()
-		objectLocal  = server.RandomLocalWithPulse()
-		objectGlobal = reference.NewSelf(objectLocal)
-		prevPulse    = server.GetPulse().PulseNumber
-	)
-
-	// need for correct handle state report (should from prev pulse)
-	server.IncrementPulse(ctx)
-
-	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal, prevPulse)
-
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-	typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool { return false })
-
-	pl := payload.VCallRequest{
-		CallType:            payload.CTMethod,
-		CallFlags:           payload.BuildCallFlags(contract.CallIntolerable, contract.CallValidated),
-		Caller:              server.GlobalCaller(),
-		Callee:              objectGlobal,
-		CallSiteDeclaration: class,
-		CallSiteMethod:      "GetBalance",
-		CallOutgoing:        server.BuildRandomOutgoingWithPulse(),
-	}
-
-	server.SendPayload(ctx, &pl)
-
-	commontestutils.WaitSignalsTimed(t, 20*time.Second, executeDone)
-	commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
-
-	require.Equal(t, 1, typedChecker.VCallResult.Count())
-
-	mc.Finish()
-}
-
 func TestVirtual_Method_WithExecutor_ObjectIsNotExist(t *testing.T) {
 	defer commontestutils.LeakTester(t)
 	insrail.LogCase(t, "C4974")
