@@ -15,7 +15,7 @@ import (
 )
 
 func NewTestServer(t logcommon.TestingLogger) *TestServer {
-	return NewTestServerWithErrorFilter(t, func(string) bool { return false })
+	return NewTestServerWithErrorFilter(t, func(string) bool { return false }) // TODO return true when test(s) are ok
 }
 
 func NewTestServerWithErrorFilter(t logcommon.TestingLogger, filterFn logcommon.ErrorFilterFunc) *TestServer {

@@ -21,9 +21,11 @@ type SMDropBuilder struct {
 	smachine.StateMachineDeclTemplate
 
 	pulseSlot *conveyor.PulseSlot
+	// catalog   PlashCataloger
 
-	sd DropSharedData
+	sd         DropSharedData
 	prevReport datareader.PrevDropReport
+	// jetAssist  *PlashSharedData
 }
 
 func (p *SMDropBuilder) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
@@ -36,6 +38,7 @@ func (p *SMDropBuilder) GetInitStateFor(smachine.StateMachine) smachine.InitFunc
 
 func (p *SMDropBuilder) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLink, injector injector.DependencyInjector) {
 	injector.MustInject(&p.pulseSlot)
+	// injector.MustInject(&p.catalog)
 }
 
 func (p *SMDropBuilder) stepInit(ctx smachine.InitializationContext) smachine.StateUpdate {
@@ -43,7 +46,7 @@ func (p *SMDropBuilder) stepInit(ctx smachine.InitializationContext) smachine.St
 		return ctx.Error(throw.E("not a present pulse"))
 	}
 
-	p.sd.prevReport = ctx.NewBargeInWithParam(func(v interface{}) smachine.BargeInCallbackFunc {
+	p.sd.prevReportBargein = ctx.NewBargeInWithParam(func(v interface{}) smachine.BargeInCallbackFunc {
 		report := v.(datareader.PrevDropReport)
 		return func(ctx smachine.BargeInContext) smachine.StateUpdate {
 			if p.receivePrevReport(report, ctx) {
@@ -53,6 +56,8 @@ func (p *SMDropBuilder) stepInit(ctx smachine.InitializationContext) smachine.St
 		}
 	})
 
+	// p.jetAssist = p.catalog.Get(ctx, p.sd.id.CreatedAt())
+
 	if !RegisterJetDrop(ctx, &p.sd) {
 		panic(throw.IllegalState())
 	}
@@ -61,7 +66,7 @@ func (p *SMDropBuilder) stepInit(ctx smachine.InitializationContext) smachine.St
 	return ctx.Jump(p.stepWaitPrevDrop)
 }
 
-const passiveWaitPortion = 50
+const passiveWaitPortion = 50 // wait for 1/50th of pulse
 
 func (p *SMDropBuilder) getPassiveDeadline(startedAt time.Time, pulseDelta uint16) time.Time {
 	switch {

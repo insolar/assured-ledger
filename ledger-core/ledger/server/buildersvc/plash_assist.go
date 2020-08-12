@@ -130,7 +130,7 @@ func (p *plashAssistant) GetResolver() lineage.DependencyResolver {
 }
 
 func (p *plashAssistant) IsGenesis() bool {
-	return false
+	return p.tree.IsEmpty()
 }
 
 func (p *plashAssistant) CalculateJetDrop(holder reference.Holder) jet.DropID {

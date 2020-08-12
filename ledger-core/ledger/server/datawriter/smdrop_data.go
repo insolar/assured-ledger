@@ -15,9 +15,9 @@ import (
 )
 
 type DropSharedData struct {
-	id      jet.DropID
-	ready   smsync.BoolConditionalLink
-	prevReport smachine.BargeInWithParam
+	id                jet.DropID
+	ready             smsync.BoolConditionalLink
+	prevReportBargein smachine.BargeInWithParam
 
 	state atomickit.Uint32
 }
@@ -38,7 +38,7 @@ func (p *DropSharedData) ensureAccess() {
 }
 
 func (p *DropSharedData) SetPrevDropReport(report datareader.PrevDropReport) {
-	p.prevReport.CallWithParam(report)
+	p.prevReportBargein.CallWithParam(report)
 }
 
 func (p *DropSharedData) addPrevReport(datareader.PrevDropReport) {

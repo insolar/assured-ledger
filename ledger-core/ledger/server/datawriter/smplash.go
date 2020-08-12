@@ -133,8 +133,31 @@ func (p *SMPlash) stepCreateJetDrops(ctx smachine.ExecutionContext) smachine.Sta
 	}
 
 	pn := p.pulseSlot.PulseNumber()
+	prevPN := p.pulseSlot.PrevOperationPulseNumber()
+	if prevPN.IsUnknown() {
+		// Ledger must have information about the immediately previous pulse
+		panic(throw.Impossible())
+	}
+
 	for _, jetID := range p.jets {
-		p.cataloger.Create(ctx, jetID, pn)
+		prevJet, pln := p.treePrev.GetPrefix(jetID.ID().AsPrefix())
+
+		op := JetStraight
+		switch bl := jetID.BitLen(); {
+		case pln == bl:
+		case pln > bl:
+			op = JetMerge
+		case p.treePrev.IsEmpty():
+			op = JetGenesisSplit
+		default:
+			op = JetSplit
+		}
+
+		p.cataloger.Create(ctx, DropConfig{
+			ID: jetID.AsDrop(pn),
+			PrevID: prevJet.AsID().AsDrop(prevPN),
+			LastOp: op,
+		})
 	}
 
 	ctx.ApplyAdjustment(p.sd.enableAccess())

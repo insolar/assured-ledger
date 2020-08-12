@@ -37,10 +37,11 @@ var _ managed.ComponentWithPulse = &LocalTree{}
 type LocalTree struct {
 	mutex sync.RWMutex
 
-	treePrev jet.PrefixTree
-	treeCurr jet.PrefixTree
-	treeNext jet.PrefixTree
-	last     pulse.Number
+	treePrev    jet.PrefixTree
+	treeCurr    jet.PrefixTree
+	treeNext    jet.PrefixTree
+	last        pulse.Number
+	postGenesis bool
 }
 
 func (p *LocalTree) Init(managed.Holder) {
@@ -62,17 +63,23 @@ func (p *LocalTree) PulseMigration(_ managed.Holder, pr pulse.Range) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
-	pn := pr.RightBoundData().PulseNumber
-
-	if p.isGenesis() {
+	switch pn := pr.RightBoundData().PulseNumber; {
+	case p.last >= pn:
+		if p.last == pn && p.isGenesis() {
+			// this is an exception for ahead-of-time genesis finish
+			break
+		}
+		panic(throw.IllegalValue())
+	case p.isGenesis():
 		// genesis can only be switched explicitly
+		p.last = pn
 		return
+	default:
+		p.last = pn
 	}
-	p.advance(pn)
-}
-
-func (p *LocalTree) advance(pn pulse.Number) {
-	p.last = pn
+	if p.treeNext.IsEmpty() {
+		panic(throw.IllegalState())
+	}
 	p.treePrev, p.treeCurr = p.treeCurr, p.treeNext
 }
 
@@ -88,7 +95,7 @@ func (p *LocalTree) GetTrees(pn pulse.Number) (prev, cur jet.PrefixTree, ok bool
 }
 
 func (p *LocalTree) isGenesis() bool {
-	return p.treeCurr.IsEmpty()
+	return !p.postGenesis
 }
 
 func (p *LocalTree) FinishGenesis(depth uint8, lastGenesisPulse pulse.Number) {
@@ -101,8 +108,25 @@ func (p *LocalTree) FinishGenesis(depth uint8, lastGenesisPulse pulse.Number) {
 	case !p.isGenesis():
 		panic(throw.IllegalState())
 	}
+
 	p.treeNext.MakePerfect(depth)
-	p.advance(lastGenesisPulse)
+	p.postGenesis = true
+
+	switch {
+	case p.last < lastGenesisPulse:
+		// no pulses arrived yet or genesis will finish _after_ the given pulse
+		// so don't switch trees - wait for pulse
+		p.last = lastGenesisPulse
+
+	case p.last > lastGenesisPulse:
+		// this update is a bit late
+		// switch here
+		p.treePrev, p.treeCurr = p.treeCurr, p.treeNext
+
+	default:
+		// this pulse is current
+		// so don't switch trees - wait for pulse
+	}
 }
 
 func (p *LocalTree) SplitNext(id jet.DropID) {
@@ -111,6 +135,7 @@ func (p *LocalTree) SplitNext(id jet.DropID) {
 
 	switch {
 	case p.treeCurr.IsEmpty():
+		// operation is not allowed until pulse is changed after genesis
 		panic(throw.IllegalState())
 	case id.CreatedAt() != p.last: // make sure that changes are actual
 		panic(throw.IllegalValue())

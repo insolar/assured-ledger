@@ -37,6 +37,7 @@ func IsBasedOn(t, lookFor TestingLogger) bool {
 	return false
 }
 
+// ErrorFilterFunc should return true to pass error and false to ignore it
 type ErrorFilterFunc = func(string) bool
 
 type TestingLoggerOutput struct {

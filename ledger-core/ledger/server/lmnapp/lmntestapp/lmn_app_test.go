@@ -7,6 +7,7 @@ package lmntestapp
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -42,16 +43,26 @@ func TestGenesisTree(t *testing.T) {
 	// genesis will run here and will initialize jet tree
 	<- ch
 
+	// but the jet tree is not available till pulse change
 	pn := server.Pulsar().GetLastPulseData().PulseNumber
 	prev, cur, ok := treeSvc.GetTrees(pn)
 	require.True(t, ok)
 	require.True(t, prev.IsEmpty())
-	require.False(t, cur.IsEmpty())
+	require.True(t, cur.IsEmpty())
 
 	ch = jrn.WaitStopOf(&datawriter.SMPlash{}, 1)
 	ch2 := jrn.WaitInitOf(&datawriter.SMDropBuilder{}, 1<<datawriter.DefaultGenesisSplitDepth)
 
-	server.IncrementPulse() 	// drops will be created as genesis is finished
+	server.IncrementPulse() 	// tree will switch and drops will be created
+
+	// but the jet tree is not available till pulse change
+	pn = server.Pulsar().GetLastPulseData().PulseNumber
+	prev, cur, ok = treeSvc.GetTrees(pn)
+	require.True(t, ok)
+	require.True(t, prev.IsEmpty())
+	require.False(t, cur.IsEmpty())
+
+	time.Sleep(time.Second/4)
 
 	<- ch
 	<- ch2
