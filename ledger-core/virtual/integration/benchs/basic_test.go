@@ -15,6 +15,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
@@ -29,7 +30,7 @@ func BenchmarkVCallRequestGetMethod(b *testing.B) {
 
 	var (
 		class  = walletproxy.GetClass()
-		object = reference.NewSelf(server.RandomLocalWithPulse())
+		object = reference.NewSelf(gen.UniqueLocalRefWithPulse(prevPulse.PulseNumber))
 	)
 
 	walletMemory := insolar.MustSerialize(testwallet.Wallet{
@@ -95,7 +96,7 @@ func BenchmarkVCallRequestAcceptMethod(b *testing.B) {
 
 	var (
 		class  = walletproxy.GetClass()
-		object = reference.NewSelf(server.RandomLocalWithPulse())
+		object = reference.NewSelf(gen.UniqueLocalRefWithPulse(prevPulse.PulseNumber))
 	)
 
 	walletMemory := insolar.MustSerialize(testwallet.Wallet{
@@ -219,7 +220,7 @@ func BenchmarkTestAPIGetBalance(b *testing.B) {
 
 	var (
 		class  = walletproxy.GetClass()
-		object = reference.NewSelf(server.RandomLocalWithPulse())
+		object = reference.NewSelf(gen.UniqueLocalRefWithPulse(prevPulse.PulseNumber))
 	)
 
 	walletMemory := insolar.MustSerialize(testwallet.Wallet{
@@ -261,7 +262,7 @@ func BenchmarkTestAPIGetBalanceParallel(b *testing.B) {
 
 	var (
 		class  = walletproxy.GetClass()
-		object = reference.NewSelf(server.RandomLocalWithPulse())
+		object = reference.NewSelf(gen.UniqueLocalRefWithPulse(prevPulse.PulseNumber))
 	)
 
 	walletMemory := insolar.MustSerialize(testwallet.Wallet{
