@@ -45,7 +45,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        target: [aks-10node, aks-20node]
+        target: [aks-60node, aks-80node, aks-100node]
     steps:
       - name: Checkout code
         uses: actions/checkout@master
