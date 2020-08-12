@@ -259,10 +259,10 @@ func (test *DeduplicationDifferentPulsesCase) run(t *testing.T) {
 	if test.ExecuteShouldHaveError != "" {
 		foundError = test.Server.Journal.Wait(func(event debuglogger.UpdateEvent) bool {
 			if event.Data.Error != nil {
-				if _, ok := event.Data.Error.(throw.StackTraceHolder); !ok {
+				stack := throw.DeepestStackTraceOf(event.Data.Error)
+				if stack == nil {
 					return false
 				}
-				stack := throw.DeepestStackTraceOf(event.Data.Error)
 				return strings.Contains(stack.StackTraceAsText(), test.ExecuteShouldHaveError)
 			}
 			return false
