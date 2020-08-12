@@ -444,8 +444,16 @@ func (s *Slot) ensureLocal(link SlotLink) {
 	}
 }
 
-func (s *Slot) isPriority() bool {
+func (s *Slot) isExecPriority() bool {
 	return s.step.Flags&StepPriority != 0
+}
+
+func (s *Slot) isSyncPriority() bool {
+	return s.isExecPriority()
+}
+
+func (s *Slot) isSyncBoost() bool {
+	return s.step.Flags&StepSyncBoost != 0 || s.isBoosted()
 }
 
 func (s *Slot) getMigration() MigrateFunc {
