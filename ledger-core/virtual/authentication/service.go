@@ -21,7 +21,7 @@ var deadBeef = [...]byte{0xde, 0xad, 0xbe, 0xef}
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/virtual/authentication.Service -o ./ -s _mock.go -g
 type Service interface {
 	GetCallDelegationToken(outgoing reference.Global, to reference.Global, pn pulse.Number, object reference.Global) payload.CallDelegationToken
-	IsMessageFromVirtualLegitimate(ctx context.Context, payloadObj interface{}, sender reference.Global, pr pulse.Range) (mustReject bool, err error)
+	CheckMessageFromAuthorizedVirtual(ctx context.Context, payloadObj interface{}, sender reference.Global, pr pulse.Range) (mustReject bool, err error)
 	HasToSendToken(token payload.CallDelegationToken) bool
 }
 
@@ -94,7 +94,7 @@ func (s service) getExpectedVE(ctx context.Context, subjectRef reference.Global,
 	return expectedVE[0], nil
 }
 
-func (s service) IsMessageFromVirtualLegitimate(ctx context.Context, payloadObj interface{}, sender reference.Global, pr pulse.Range) (bool, error) {
+func (s service) CheckMessageFromAuthorizedVirtual(ctx context.Context, payloadObj interface{}, sender reference.Global, pr pulse.Range) (bool, error) {
 	verifyForPulse := pr.RightBoundData().PulseNumber
 	subjectRef, mode, ok := payload.GetSenderAuthenticationSubjectAndPulse(payloadObj)
 	if !ok {
