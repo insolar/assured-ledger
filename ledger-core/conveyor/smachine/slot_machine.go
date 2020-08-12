@@ -698,7 +698,7 @@ func (m *SlotMachine) _activateSlot(slot *Slot, mode slotActivationMode) {
 	case mode == activateHotWaitSlot:
 		// hot wait ignores boosted to reduce interference
 		switch {
-		case slot.isPriority():
+		case slot.isExecPriority():
 			m.prioritySlots.AddLast(slot)
 		// case slot.isBoosted():
 		//	m.boostedSlots.AddLast(slot)
@@ -708,7 +708,7 @@ func (m *SlotMachine) _activateSlot(slot *Slot, mode slotActivationMode) {
 	case slot.isLastScan(m.getScanCount()):
 		m.hotWaitOnly = false
 		switch {
-		case slot.isPriority():
+		case slot.isExecPriority():
 			m.prioritySlots.AddLast(slot)
 		case slot.isBoosted():
 			m.boostedSlots.AddLast(slot)
@@ -717,7 +717,7 @@ func (m *SlotMachine) _activateSlot(slot *Slot, mode slotActivationMode) {
 		}
 	default:
 		// addSlotToWorkingQueue
-		if slot.isPriority() {
+		if slot.isExecPriority() {
 			m.workingSlots.AddFirst(slot)
 		} else {
 			m.workingSlots.AddLast(slot)

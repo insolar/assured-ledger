@@ -155,7 +155,7 @@ func (p *slotContext) GetDefaultTerminationResult() interface{} {
 	return p.s.defResult
 }
 
-func (p *slotContext) SetDynamicBoost(boosted bool) {
+func (p *slotContext) OverrideDynamicBoost(boosted bool) {
 	p.ensureAtLeast(updCtxInit)
 	if boosted {
 		p.s.boost = activeBoost
@@ -395,9 +395,9 @@ func (p *slotContext) acquire(link SyncLink, autoRelease bool, flags SlotDepende
 	switch {
 	case link.IsZero():
 		panic(throw.IllegalValue())
-	case p.s.isPriority():
+	case p.s.isSyncPriority():
 		flags |= SyncPriorityHigh
-	case p.s.isBoosted():
+	case p.s.isSyncBoost():
 		flags |= SyncPriorityBoosted
 	}
 
