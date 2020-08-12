@@ -82,7 +82,7 @@ func (s *Server) initCertificateManager(ctx context.Context, cfg configuration.C
 
 // initComponents creates and links all insolard components
 func (s *Server) initComponents(ctx context.Context, cfg configuration.Configuration, networkFn NetworkInitFunc,
-	comps preComponents, certManager nodeinfo.CertificateManager, roleName string,
+	comps preComponents, certManager nodeinfo.CertificateManager,
 ) (*component.Manager, func()) {
 	cm := component.NewManager(nil)
 	logger := inslogger.FromContext(ctx)
@@ -113,6 +113,10 @@ func (s *Server) initComponents(ctx context.Context, cfg configuration.Configura
 		cm.Register(nw)
 	}
 
+	nodeCert := certManager.GetCertificate()
+	nodeRole := nodeCert.GetRole()
+
+	roleName := nodeRole.String()
 	metricsComp := metrics.NewMetrics(cfg.Metrics, metrics.GetInsolarRegistry(roleName), roleName)
 
 	pulses := memstor.NewStorageMem()
@@ -163,6 +167,9 @@ func (s *Server) initComponents(ctx context.Context, cfg configuration.Configura
 		}
 
 		appComponents := AppComponents{
+			LocalNodeRef:  nodeCert.GetNodeRef(),
+			LocalNodeRole: nodeRole,
+
 			BeatHistory:    pulses,
 			AffinityHelper: affine,
 			MessageSender:  messagesender.NewDefaultService(publisher, affine, pulses),

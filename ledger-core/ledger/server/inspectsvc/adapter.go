@@ -12,6 +12,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smadapter"
 	"github.com/insolar/assured-ledger/ledger-core/crypto"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -26,8 +27,8 @@ func NewAdapterExt(adapterID smachine.AdapterID, executor smachine.AdapterExecut
 	}
 }
 
-func NewAdapterComponent(cfg smadapter.Config, ps crypto.PlatformScheme) managed.Component {
-	svc := NewService(ps.RecordScheme())
+func NewAdapterComponent(cfg smadapter.Config, localRef reference.Holder, ps crypto.PlatformScheme) managed.Component {
+	svc := NewService(localRef, ps.RecordScheme())
 
 	var adapter Adapter
 	executor, component := smadapter.NewComponent(context.Background(), cfg, svc, func(holder managed.Holder) {

@@ -238,17 +238,17 @@ func (p *BundleResolver) resolveRecordDependencies(upd *resolvedRecord, policy R
 		p.addRefError("RedirectRef", err)
 	}
 
-	if err := policy.CheckReasonRef(upd.Excerpt.ReasonRef.Get(), func(ref reference.Holder) (ResolvedDependency, error) {
-		if rd := p.findResolved(ref); rd != nil {
-			return rd.asResolvedDependency(), nil
-		}
-
-		return p.resolveSupplementaryRef(rootRef, ref)
-
-	}); err != nil {
-		p.addRefError("ReasonRef", err)
-	}
-
+	// TODO re-enable
+	// if err := policy.CheckReasonRef(upd.Excerpt.ReasonRef.Get(), func(ref reference.Holder) (ResolvedDependency, error) {
+	// 	if rd := p.findResolved(ref); rd != nil {
+	// 		return rd.asResolvedDependency(), nil
+	// 	}
+	//
+	// 	return p.resolveSupplementaryRef(rootRef, ref)
+	//
+	// }); err != nil {
+	// 	p.addRefError("ReasonRef", err)
+	// }
 }
 
 func (p *BundleResolver) resolvePrevRef(upd *resolvedRecord, policy RecordPolicy, details PolicyCheckDetails) (prevRecordType RecordType) {

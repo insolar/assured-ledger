@@ -19,6 +19,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lmnapp/lmntestapp"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/requests"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/treesvc"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/journal"
 )
 
@@ -129,7 +132,7 @@ func TestRunGenesis(t *testing.T) {
 }
 
 func TestAddRecords(t *testing.T) {
-	t.Skip("WIP")
+//	t.Skip("WIP")
 
 	server := lmntestapp.NewTestServer(t)
 	defer server.Stop()
@@ -144,9 +147,21 @@ func TestAddRecords(t *testing.T) {
 	server.RunGenesis()
 	server.IncrementPulse()
 
+	ch := jrn.WaitStopOf(&requests.SMRegisterRecordSet{}, 1)
+
+	rStart := &rms.RLifelineStart{}
 	recordSet := inspectsvc.RegisterRequestSet{}
 
-	ch := jrn.WaitStopOf(&requests.SMRegisterRecordSet{}, 1)
+	regReq := &rms.LRegisterRequest{}
+	regReq.Set(rStart)
+
+	pn := server.LastPulseNumber()
+	regReq.AnticipatedRef.Set(reference.NewSelf(gen.UniqueLocalRefWithPulse(pn)))
+	regReq.ProducedBy.Set(gen.UniqueGlobalRef())
+
+	recordSet.Requests = append(recordSet.Requests, regReq)
+	recordSet.Excerpt.RecordType = rms.TypeRLifelineStartPolymorthID
+	recordSet.Excerpt.ReasonRef.Set(gen.UniqueGlobalRefWithPulse(pn))
 
 	conv := server.App().Conveyor()
 	err := conv.AddInputExt(server.LastPulseNumber(),

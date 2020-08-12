@@ -61,7 +61,7 @@ func (DropCatalog) Create(ctx smachine.ExecutionContext, dropCfg DropConfig) Dro
 func (DropCatalog) Get(ctx smachine.SharedStateContext, dropID jet.DropID) DropDataLink {
 	switch sdl := ctx.GetPublishedLink(JetDropKey(dropID)); {
 	case sdl.IsZero():
-	case sdl.IsAssignableTo(&DropDataLink{}):
+	case sdl.IsAssignableTo(&DropSharedData{}):
 		return DropDataLink{sdl}
 	}
 	return DropDataLink{}

@@ -21,12 +21,15 @@ type Service interface {
 
 var _ Service = &serviceImpl{}
 
-func NewService(crypto.RecordScheme) Service {
-	return &serviceImpl{}
+func NewService(registrarRef reference.Holder, rs crypto.RecordScheme) Service {
+	return &serviceImpl{
+		registrarRef: reference.Copy(registrarRef),
+		signer: rs.RecordSigner(),
+	}
 }
 
 type serviceImpl struct {
-	registrarRef reference.Holder
+	registrarRef reference.Global
 	signer cryptkit.DigestSigner
 }
 
@@ -45,6 +48,7 @@ func (p *serviceImpl) InspectRecordSet(set RegisterRequestSet) (irs InspectedRec
 	return irs, nil
 }
 
+//nolint
 func (p *serviceImpl) inspectRecord(r *rms.LRegisterRequest, rec *lineage.Record, exr *catalog.Excerpt) error {
 	switch {
 	case r == nil:
@@ -56,24 +60,25 @@ func (p *serviceImpl) inspectRecord(r *rms.LRegisterRequest, rec *lineage.Record
 	}
 
 	lrv := r.AnyRecordLazy.TryGetLazy()
-	if lrv.IsEmpty() {
-		return throw.E("empty record")
-	}
-
-	sv := p.getProducerSignatureVerifier(r.ProducedBy.Get())
-	if sv == nil {
-		return throw.E("unknown producer")
-	}
-	if sv.GetDigestSize() != r.ProducerSignature.FixedByteSize() {
-		return throw.E("wrong signature length")
-	}
-
-	rd := sv.NewHasher().DigestOf(lrv).SumToDigest()
-	rs := cryptkit.NewSignature(r.ProducerSignature.AsByteString(), sv.GetSignatureMethod())
-
-	if !sv.IsValidDigestSignature(rd, rs) {
-		return throw.E("signature mismatch")
-	}
+	// if lrv.IsEmpty() {
+	// 	return throw.E("lazy record is required")
+	// }
+	//
+	// sv := p.getProducerSignatureVerifier(r.ProducedBy.Get())
+	// if sv == nil {
+	// 	return throw.E("unknown producer")
+	// }
+	// if sv.GetDigestSize() != r.ProducerSignature.FixedByteSize() {
+	// 	return throw.E("wrong signature length")
+	// }
+	//
+	// rd := sv.NewHasher().DigestOf(lrv).SumToDigest()
+	// rs := cryptkit.NewSignature(r.ProducerSignature.AsByteString(), sv.GetSignatureMethod())
+	//
+	// if !sv.IsValidDigestSignature(rd, rs) {
+	// 	return throw.E("signature mismatch")
+	// }
+	//
 
 	if exr != nil {
 		*rec = lineage.NewRegRecord(*exr, r)
@@ -85,16 +90,19 @@ func (p *serviceImpl) inspectRecord(r *rms.LRegisterRequest, rec *lineage.Record
 		*rec = lineage.NewRegRecord(excerpt, r)
 	}
 
-	p.applyRegistrarSignature(rd, rec)
+	//
+	// p.applyRegistrarSignature(rd, rec)
 	return nil
 }
 
+//nolint
 func (p *serviceImpl) applyRegistrarSignature(digest cryptkit.Digest, rec *lineage.Record) {
 	rec.RegisteredBy = p.registrarRef
 	signature := p.signer.SignDigest(digest)
 	rec.RegistrarSignature = cryptkit.NewSignedDigest(digest, signature)
 }
 
+//nolint
 func (p *serviceImpl) getProducerSignatureVerifier(producer reference.Holder) cryptkit.DataSignatureVerifier {
 	_ = producer
 	panic(throw.NotImplemented())

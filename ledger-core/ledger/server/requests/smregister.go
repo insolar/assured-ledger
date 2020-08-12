@@ -39,7 +39,7 @@ type SMRegisterRecordSet struct {
 
 	// runtime
 	sdl          datawriter.LineDataLink
-	inspectedSet *inspectsvc.InspectedRecordSet
+	inspectedSet inspectsvc.InspectedRecordSet
 	hasRequested bool
 
 	// results
@@ -130,22 +130,24 @@ func (p *SMRegisterRecordSet) stepLineIsReady(ctx smachine.ExecutionContext) sma
 	}
 
 	// do chaining, hashing and signing via adapter
-	return p.inspectSvc.PrepareInspectRecordSet(ctx, p.recordSet, func(ctx smachine.AsyncResultContext, set inspectsvc.InspectedRecordSet, err error) {
-		if err != nil {
-			panic(err)
-		}
-		p.inspectedSet = &set
-	}).DelayedStart().Sleep().ThenJump(p.stepApplyRecordSet)
+	return p.inspectSvc.PrepareInspectRecordSet(ctx, p.recordSet,
+		func(ctx smachine.AsyncResultContext, set inspectsvc.InspectedRecordSet, err error) {
+			if err != nil {
+				panic(err)
+			}
+			p.inspectedSet = set
+		},
+	).DelayedStart().Sleep().ThenJump(p.stepApplyRecordSet)
 }
 
 func (p *SMRegisterRecordSet) stepApplyRecordSet(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if p.inspectedSet == nil {
+	if p.inspectedSet.Records == nil {
 		return ctx.Sleep().ThenRepeat()
 	}
 
 	var errors []error
 	switch p.sdl.TryAccess(ctx, func(sd *datawriter.LineSharedData) (wakeup bool) {
-		switch future, bundle := sd.TryApplyRecordSet(ctx, *p.inspectedSet); {
+		switch future, bundle := sd.TryApplyRecordSet(ctx, p.inspectedSet); {
 		case bundle == nil:
 			p.updated = future
 			return false
@@ -222,12 +224,13 @@ func (p *SMRegisterRecordSet) stepSendFinalResponse(ctx smachine.ExecutionContex
 	return ctx.Stop()
 }
 
+//nolint
 func (p *SMRegisterRecordSet) sendResponse(ctx smachine.ExecutionContext, safe bool) {
-	// TODO
-	if safe {
-		runtime.KeepAlive(ctx)
-	}
-	panic(throw.NotImplemented())
+	// // TODO
+	// if safe {
+	// 	runtime.KeepAlive(ctx)
+	// }
+	// panic(throw.NotImplemented())
 }
 
 func (p *SMRegisterRecordSet) sendFailResponse(ctx smachine.ExecutionContext, errors ...error) {

@@ -50,7 +50,14 @@ func (v RegisterRequestSet) Validate() {
 }
 
 func (v RegisterRequestSet) GetRootRef() reference.Global {
-	return v.Excerpt.RootRef.GetGlobal()
+	switch {
+	case !v.Excerpt.RootRef.IsEmpty():
+		return v.Excerpt.RootRef.GetGlobal()
+	case v.Requests[0].AnticipatedRef.IsEmpty():
+		panic(throw.IllegalValue())
+	default:
+		return v.Requests[0].AnticipatedRef.GetGlobal()
+	}
 }
 
 func (v RegisterRequestSet) GetFlags() rms.RegistrationFlags {

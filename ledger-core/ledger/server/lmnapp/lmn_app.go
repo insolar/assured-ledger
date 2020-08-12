@@ -52,7 +52,7 @@ func NewAppCompartment(_ configuration.Ledger, comps insapp.AppComponents) *insc
 			}
 
 			setup.AddComponent(buildersvc.NewAdapterComponent(smadapter.Config{}, comps.CryptoScheme))
-			setup.AddComponent(inspectsvc.NewAdapterComponent(smadapter.Config{}, comps.CryptoScheme))
+			setup.AddComponent(inspectsvc.NewAdapterComponent(smadapter.Config{}, comps.LocalNodeRef, comps.CryptoScheme))
 
 			f := NewEventFactory(ctx)
 			setup.ConveyorConfig.PulseSlotMigration = f.PostMigrate

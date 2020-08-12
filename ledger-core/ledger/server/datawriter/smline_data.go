@@ -74,13 +74,14 @@ func (p *LineSharedData) applyBundle(ctx smachine.ExecutionContext, br *lineage.
 	}
 
 	future := buildersvc.NewFuture("")
+	resolved := br.GetResolved()
 	if !p.data.AddBundle(br, future) {
 		return nil, br
 	}
 
 	dropID := p.jetDropID
 	p.adapter.PrepareNotify(ctx, func(service buildersvc.Service) {
-		service.AppendToDrop(dropID, future, br.GetResolved())
+		service.AppendToDrop(dropID, future, resolved)
 	}).Send()
 
 	return future, nil
