@@ -81,35 +81,6 @@ func checkBalance(ctx context.Context, t *testing.T, server *utils.Server, objec
 	require.Equal(t, uint(testBalance), response.Amount)
 }
 
-func TestVirtual_VStateReport_HappyPath(t *testing.T) {
-	defer commontestutils.LeakTester(t)
-	insrail.LogCase(t, "C4866")
-
-	server, ctx := utils.NewServer(nil, t)
-	defer server.Stop()
-	server.IncrementPulse(ctx)
-
-	var (
-		testBalance    = uint32(555)
-		pulseNumber    = server.GetPulse().PulseNumber
-		objectLocal    = server.RandomLocalWithPulse()
-		objectGlobal   = reference.NewSelf(objectLocal)
-		stateID        = server.RandomLocalWithPulse()
-		rawWalletState = makeRawWalletState(testBalance)
-	)
-
-	server.IncrementPulseAndWaitIdle(ctx)
-
-	{
-		// send VStateReport: save wallet
-
-		pl := makeVStateReportEvent(objectGlobal, stateID, pulseNumber, rawWalletState)
-		server.SendPayload(ctx, pl)
-	}
-
-	checkBalance(ctx, t, server, objectGlobal, testBalance)
-}
-
 func TestVirtual_VStateReport_TwoStateReports(t *testing.T) {
 	defer commontestutils.LeakTester(t)
 	insrail.LogCase(t, "C4919")
