@@ -748,6 +748,7 @@ func (s *deduplicateMethodUsingPrevVETest) setMessageCheckers(
 					Caller:          s.getCaller(),
 					Callee:          s.getObject(),
 					CallOutgoing:    s.getOutgoingLocal(),
+					CallIncoming:    s.getIncomingRef(),
 					ReturnArguments: []byte("found request"),
 				}
 			}

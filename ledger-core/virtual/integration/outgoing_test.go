@@ -235,6 +235,7 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 					Caller:          request.Caller,
 					Callee:          request.Callee,
 					CallOutgoing:    request.CallOutgoing,
+					CallIncoming:    server.RandomGlobalWithPulse(),
 					ReturnArguments: []byte("finish B.Bar"),
 				})
 			default:
@@ -456,6 +457,7 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 					Caller:          request.Caller,
 					Callee:          request.Callee,
 					CallOutgoing:    request.CallOutgoing,
+					CallIncoming:    server.RandomGlobalWithPulse(),
 					ReturnArguments: []byte("finish B.Bar"),
 				})
 			default:

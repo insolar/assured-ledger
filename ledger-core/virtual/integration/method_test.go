@@ -1026,6 +1026,7 @@ func TestVirtual_CallContractTwoTimes(t *testing.T) {
 				Caller:          request.Caller,
 				Callee:          request.Callee,
 				CallOutgoing:    request.CallOutgoing,
+				CallIncoming:    server.RandomGlobalWithPulse(),
 				ReturnArguments: []byte("finish B.Bar"),
 			}
 			msg := server.WrapPayload(&result).Finalize()
