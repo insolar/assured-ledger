@@ -32,8 +32,9 @@ func (p *EventFactory) InputEvent(ctx context.Context, event conveyor.InputEvent
 				return requests.NewSMRegisterRecordSet(ev)
 			},
 		}, nil
+	default:
+		panic(throw.Unsupported())
 	}
-	panic("implement me")
 }
 
 func (p *EventFactory) PostMigrate(prevState conveyor.PulseSlotState, ps *conveyor.PulseSlot, m smachine.SlotMachineHolder) {
