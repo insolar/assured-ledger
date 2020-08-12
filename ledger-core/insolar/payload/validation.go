@@ -27,5 +27,5 @@ func globalBasePulseBeforeOrEqLocalPulse(global reference.Global) bool {
 		basePulse  = global.GetBase().GetPulseNumber()
 		localPulse = global.GetLocal().GetPulseNumber()
 	)
-	return basePulse.IsBeforeOrEq(localPulse)
+	return basePulse.IsSpecial() || basePulse.IsBeforeOrEq(localPulse)
 }
