@@ -11,6 +11,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/datawriter"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/inspectsvc"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/requests"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -23,6 +25,14 @@ type EventFactory struct {
 }
 
 func (p *EventFactory) InputEvent(ctx context.Context, event conveyor.InputEvent, context conveyor.InputContext) (conveyor.InputSetup, error) {
+	switch ev := event.(type) {
+	case inspectsvc.RegisterRequestSet:
+		return conveyor.InputSetup{
+			CreateFn: func(ctx smachine.ConstructionContext) smachine.StateMachine {
+				return requests.NewSMRegisterRecordSet(ev)
+			},
+		}, nil
+	}
 	panic("implement me")
 }
 

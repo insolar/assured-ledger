@@ -14,6 +14,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/datawriter"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/inspectsvc"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/treesvc"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 )
@@ -51,6 +52,7 @@ func NewAppCompartment(_ configuration.Ledger, comps insapp.AppComponents) *insc
 			}
 
 			setup.AddComponent(buildersvc.NewAdapterComponent(smadapter.Config{}, comps.CryptoScheme))
+			setup.AddComponent(inspectsvc.NewAdapterComponent(smadapter.Config{}, comps.CryptoScheme))
 
 			f := NewEventFactory(ctx)
 			setup.ConveyorConfig.PulseSlotMigration = f.PostMigrate

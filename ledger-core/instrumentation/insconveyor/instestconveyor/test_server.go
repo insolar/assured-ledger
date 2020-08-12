@@ -24,6 +24,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/testpop"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
@@ -243,4 +244,8 @@ func (p *ServerTemplate) Pulsar() *testutils.PulseGenerator {
 		panic(throw.IllegalState())
 	}
 	return p.pg
+}
+
+func (p *ServerTemplate) LastPulseNumber() pulse.Number {
+	return p.Pulsar().GetLastPulseData().PulseNumber
 }

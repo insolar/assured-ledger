@@ -20,6 +20,12 @@ import (
 
 var _ smachine.StateMachine = &SMRegisterRecordSet{}
 
+func NewSMRegisterRecordSet(reqs inspectsvc.RegisterRequestSet) *SMRegisterRecordSet {
+	return &SMRegisterRecordSet{
+		recordSet: reqs,
+	}
+}
+
 type SMRegisterRecordSet struct {
 	smachine.StateMachineDeclTemplate
 
@@ -29,7 +35,7 @@ type SMRegisterRecordSet struct {
 	// injected
 	pulseSlot  *conveyor.PulseSlot
 	cataloger  datawriter.LineCataloger
-	inspectSvc *inspectsvc.Adapter
+	inspectSvc inspectsvc.Adapter
 
 	// runtime
 	sdl          datawriter.LineDataLink

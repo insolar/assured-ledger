@@ -6,6 +6,7 @@
 package inspectsvc
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/crypto"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/catalog"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lineage"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -20,7 +21,7 @@ type Service interface {
 
 var _ Service = &serviceImpl{}
 
-func NewService() Service {
+func NewService(crypto.RecordScheme) Service {
 	return &serviceImpl{}
 }
 

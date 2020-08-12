@@ -136,7 +136,8 @@ func (p *SMPlash) stepCreateJetDrops(ctx smachine.ExecutionContext) smachine.Sta
 	prevPN := p.pulseSlot.PrevOperationPulseNumber()
 	if prevPN.IsUnknown() {
 		// Ledger must have information about the immediately previous pulse
-		panic(throw.Impossible())
+		ctx.Log().Warn("previous pulse is unavailable")
+		return ctx.Stop()
 	}
 
 	for _, jetID := range p.jets {

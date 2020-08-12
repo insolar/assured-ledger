@@ -31,6 +31,7 @@ func (p *DropSharedData) enableAccess() smachine.SyncAdjustment {
 	return p.ready.NewValue(true)
 }
 
+//nolint
 func (p *DropSharedData) ensureAccess() {
 	if p.state.Load() == 0 {
 		panic(throw.IllegalState())
@@ -41,7 +42,6 @@ func (p *DropSharedData) SetPrevDropReport(report datareader.PrevDropReport) {
 	p.prevReportBargein.CallWithParam(report)
 }
 
-func (p *DropSharedData) addPrevReport(datareader.PrevDropReport) {
-	p.ensureAccess()
+func (p *DropSharedData) setPrevReport(datareader.PrevDropReport) {
 	// TODO
 }

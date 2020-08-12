@@ -18,6 +18,12 @@ func NewEmpty() *LocalTree {
 	return &LocalTree{}
 }
 
+func NewPerfect(depth uint8, pn pulse.Number) *LocalTree {
+	tree := jet.NewPrefixTree(false)
+	tree.MakePerfect(depth)
+	return New(tree, pn)
+}
+
 func New(tree jet.PrefixTree, pn pulse.Number) *LocalTree {
 	if tree.IsEmpty() != pn.IsUnknown() {
 		panic(throw.IllegalValue())
@@ -96,6 +102,13 @@ func (p *LocalTree) GetTrees(pn pulse.Number) (prev, cur jet.PrefixTree, ok bool
 
 func (p *LocalTree) isGenesis() bool {
 	return !p.postGenesis
+}
+
+func (p *LocalTree) IsGenesisFinished() bool {
+	p.mutex.RLock()
+	defer p.mutex.RUnlock()
+
+	return p.postGenesis
 }
 
 func (p *LocalTree) FinishGenesis(depth uint8, lastGenesisPulse pulse.Number) {
