@@ -29,6 +29,7 @@ type Server struct {
 	extra   []interface{}
 }
 
+// New creates a one-node process.
 func New(cfgPath string, appFn AppFactoryFunc, extraComponents ...interface{}) *Server {
 	return &Server{
 		cfgPath: cfgPath,
