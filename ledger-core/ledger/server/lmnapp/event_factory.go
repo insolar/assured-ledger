@@ -24,7 +24,7 @@ type EventFactory struct {
 	ctx context.Context
 }
 
-func (p *EventFactory) InputEvent(ctx context.Context, event conveyor.InputEvent, context conveyor.InputContext) (conveyor.InputSetup, error) {
+func (p *EventFactory) InputEvent(_ context.Context, event conveyor.InputEvent, _ conveyor.InputContext) (conveyor.InputSetup, error) {
 	switch ev := event.(type) {
 	case inspectsvc.RegisterRequestSet:
 		return conveyor.InputSetup{
@@ -42,7 +42,7 @@ func (p *EventFactory) PostMigrate(prevState conveyor.PulseSlotState, ps *convey
 	case ps.State() != conveyor.Present:
 		return
 	case prevState == conveyor.Present:
-		panic(throw.IllegalState())
+		panic(throw.Impossible())
 	}
 
 	m.AddNewByFunc(p.ctx, datawriter.PlashCreate(), smachine.CreateDefaultValues{})

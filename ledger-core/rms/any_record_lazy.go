@@ -31,6 +31,10 @@ func (p *AnyRecordLazy) Set(v BasicRecord) {
 	p.value = v.(goGoMarshaler)
 }
 
+func (p *AnyRecordLazy) SetAsLazy(v BasicRecord) error {
+	return p.anyLazy.SetAsLazy(v.(MarshalerTo))
+}
+
 func (p *AnyRecordLazy) TryGet() (isLazy bool, r BasicRecord) {
 	switch p.value.(type) {
 	case nil:
