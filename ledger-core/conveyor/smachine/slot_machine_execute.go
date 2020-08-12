@@ -172,7 +172,7 @@ func (m *SlotMachine) executeWorkingSlots(currentScanNo uint32, priorityOnly boo
 		currentSlot.removeFromQueue()
 
 		switch {
-		case currentSlot.isPriority():
+		case currentSlot.isExecPriority():
 			// execute anyway
 		case priorityOnly:
 			// skip non-priority by putting them back to queues

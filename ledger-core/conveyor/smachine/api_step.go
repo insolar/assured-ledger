@@ -8,17 +8,19 @@ package smachine
 type StepFlags uint16
 
 const (
-	// Indicates that Slot's default flags (set by SetDefaultFlags()) will be ignored, otherwise ORed.
+	// StepResetAllFlags indicates that Slot's default flags (set by SetDefaultFlags()) will be ignored, otherwise ORed.
 	StepResetAllFlags StepFlags = 1 << iota
 
-	// When SM is at a step that has StepWeak flag, then SM is considered as "weak".
-	// SlotMachine will stop all "weak" SMs when there are neither non-weak nor non-waiting SMs left.
+	// StepWeak marks a "weak" step - SlotMachine can be stopped automatically when all SMs are at "weak" steps.
 	StepWeak
 
-	// A step with StepPriority flag will be executed before other steps in a cycle.
+	// StepPriority makes SM's step to be executed before other steps in a cycle. Implies StepSyncPriority.
 	StepPriority
 
-	// A marker for logger to log this step without tracing
+	// StepSyncBoost makes SM's step to be handled as boosted for sync queues, but doesn't prioritise step in SlotMachine.
+	StepSyncBoost
+
+	// StepElevatedLog informs logger to provide alternative (e.g. higher levels) for output of this step.
 	StepElevatedLog
 
 	// stepSleepState is used to restore sleep status on RestoreStep() after AffectedStep

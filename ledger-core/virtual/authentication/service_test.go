@@ -24,7 +24,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-func Test_IsMessageFromVirtualLegitimate_UnexpectedMessageType(t *testing.T) {
+func Test_CheckMessageFromAuthorizedVirtual_UnexpectedMessageType(t *testing.T) {
 	ctx := instestlogger.TestContext(t)
 	authService := NewService(ctx, nil)
 
@@ -32,11 +32,11 @@ func Test_IsMessageFromVirtualLegitimate_UnexpectedMessageType(t *testing.T) {
 
 	rg := pulse.NewPulseRange([]pulse.Data{pdLeft})
 
-	_, err := authService.IsMessageFromVirtualLegitimate(ctx, 333, reference.Global{}, rg)
+	_, err := authService.CheckMessageFromAuthorizedVirtual(ctx, 333, reference.Global{}, rg)
 	require.EqualError(t, err, "Unexpected message type")
 }
 
-func Test_IsMessageFromVirtualLegitimate_TemporaryIgnoreChecking_APIRequests(t *testing.T) {
+func Test_CheckMessageFromAuthorizedVirtual_TemporaryIgnoreChecking_APIRequests(t *testing.T) {
 	ctx := context.Background()
 	selfRef := gen.UniqueGlobalRef()
 	sender := statemachine.APICaller
@@ -51,7 +51,7 @@ func Test_IsMessageFromVirtualLegitimate_TemporaryIgnoreChecking_APIRequests(t *
 		Object: statemachine.APICaller,
 	}
 
-	mustReject, err := authService.IsMessageFromVirtualLegitimate(ctx, msg, sender, rg)
+	mustReject, err := authService.CheckMessageFromAuthorizedVirtual(ctx, msg, sender, rg)
 	require.NoError(t, err)
 	require.False(t, mustReject)
 }
@@ -62,7 +62,7 @@ func insertToken(token payload.CallDelegationToken, msg interface{}) {
 	reflect.ValueOf(msg).Elem().FieldByName("DelegationSpec").Set(field.Elem())
 }
 
-func Test_IsMessageFromVirtualLegitimate_WithToken(t *testing.T) {
+func Test_CheckMessageFromAuthorizedVirtual_WithToken(t *testing.T) {
 	cases := []struct {
 		name         string
 		msg          interface{}
@@ -120,7 +120,7 @@ func Test_IsMessageFromVirtualLegitimate_WithToken(t *testing.T) {
 
 			rg := pulse.NewSequenceRange([]pulse.Data{pulse.NewPulsarData(pulse.MinTimePulse<<1, 10, 1, longbits.Bits256{})})
 
-			mustReject, err := authService.IsMessageFromVirtualLegitimate(ctx, testCase.msg, sender, rg)
+			mustReject, err := authService.CheckMessageFromAuthorizedVirtual(ctx, testCase.msg, sender, rg)
 			require.NoError(t, err)
 			require.False(t, mustReject)
 		})
@@ -146,7 +146,7 @@ func Test_IsMessageFromVirtualLegitimate_WithToken(t *testing.T) {
 			reflect.ValueOf(testCase.msg).MethodByName("Reset").Call([]reflect.Value{})
 			insertToken(token, testCase.msg)
 
-			_, err := authService.IsMessageFromVirtualLegitimate(ctx, testCase.msg, sender, rg)
+			_, err := authService.CheckMessageFromAuthorizedVirtual(ctx, testCase.msg, sender, rg)
 			require.Contains(t, err.Error(), "sender cannot be approver of the token")
 		})
 
@@ -174,7 +174,7 @@ func Test_IsMessageFromVirtualLegitimate_WithToken(t *testing.T) {
 			}
 			insertToken(token, testCase.msg)
 
-			_, err := authService.IsMessageFromVirtualLegitimate(ctx, testCase.msg, expectedVE, rg)
+			_, err := authService.CheckMessageFromAuthorizedVirtual(ctx, testCase.msg, expectedVE, rg)
 			require.Contains(t, err.Error(), "token Approver and expectedVE are different")
 		})
 
@@ -202,14 +202,14 @@ func Test_IsMessageFromVirtualLegitimate_WithToken(t *testing.T) {
 			}
 			insertToken(token, testCase.msg)
 
-			_, err := authService.IsMessageFromVirtualLegitimate(ctx, testCase.msg, expectedVE, rg)
+			_, err := authService.CheckMessageFromAuthorizedVirtual(ctx, testCase.msg, expectedVE, rg)
 			require.Contains(t, err.Error(), "token Approver and expectedVE are different")
 		})
 	}
 
 }
 
-func Test_IsMessageFromVirtualLegitimate_WithoutToken(t *testing.T) {
+func Test_CheckMessageFromAuthorizedVirtual_WithoutToken(t *testing.T) {
 	cases := []struct {
 		name         string
 		msg          interface{}
@@ -276,7 +276,7 @@ func Test_IsMessageFromVirtualLegitimate_WithoutToken(t *testing.T) {
 
 			authService := NewService(ctx, jetCoordinatorMock)
 
-			mustReject, err := authService.IsMessageFromVirtualLegitimate(ctx, testCase.msg, sender, pulseRange)
+			mustReject, err := authService.CheckMessageFromAuthorizedVirtual(ctx, testCase.msg, sender, pulseRange)
 			require.NoError(t, err)
 			require.False(t, mustReject)
 
@@ -295,7 +295,7 @@ func Test_IsMessageFromVirtualLegitimate_WithoutToken(t *testing.T) {
 
 			authService := NewService(ctx, jetCoordinatorMock)
 
-			mustReject, err := authService.IsMessageFromVirtualLegitimate(ctx, testCase.msg, badSender, pulseRange)
+			mustReject, err := authService.CheckMessageFromAuthorizedVirtual(ctx, testCase.msg, badSender, pulseRange)
 			if testCase.mode == payload.UseAnyPulse {
 				require.NoError(t, err)
 				require.False(t, mustReject)
@@ -319,7 +319,7 @@ func Test_IsMessageFromVirtualLegitimate_WithoutToken(t *testing.T) {
 			// reject all messages since pulseRange has bad previous delta
 			pr := pulse.NewOnePulseRange(pulse.NewPulsarData(pulse.MinTimePulse<<1, 10, 0, longbits.Bits256{}))
 
-			mustReject, err := authService.IsMessageFromVirtualLegitimate(ctx, testCase.msg, sender, pr)
+			mustReject, err := authService.CheckMessageFromAuthorizedVirtual(ctx, testCase.msg, sender, pr)
 			require.NoError(t, err)
 			if testCase.mode == payload.UsePrevPulse {
 				require.True(t, mustReject)
@@ -343,12 +343,12 @@ func Test_IsMessageFromVirtualLegitimate_WithoutToken(t *testing.T) {
 			rg := pulse.NewSequenceRange([]pulse.Data{pulse.NewPulsarData(pulse.MinTimePulse<<1, 10, 1, longbits.Bits256{})})
 
 			if testCase.mode == payload.UseAnyPulse {
-				mustReject, err := authService.IsMessageFromVirtualLegitimate(ctx, testCase.msg, sender, rg)
+				mustReject, err := authService.CheckMessageFromAuthorizedVirtual(ctx, testCase.msg, sender, rg)
 				require.NoError(t, err)
 				require.False(t, mustReject)
 			} else {
 				require.Panics(t, func() {
-					authService.IsMessageFromVirtualLegitimate(ctx, testCase.msg, sender, rg)
+					authService.CheckMessageFromAuthorizedVirtual(ctx, testCase.msg, sender, rg)
 				})
 			}
 		})
@@ -369,7 +369,7 @@ func Test_IsMessageFromVirtualLegitimate_WithoutToken(t *testing.T) {
 
 			rg := pulse.NewSequenceRange([]pulse.Data{pulse.NewPulsarData(pulse.MinTimePulse<<1, 10, 1, longbits.Bits256{})})
 
-			mustReject, err := authService.IsMessageFromVirtualLegitimate(ctx, testCase.msg, sender, rg)
+			mustReject, err := authService.CheckMessageFromAuthorizedVirtual(ctx, testCase.msg, sender, rg)
 			if testCase.mode == payload.UseAnyPulse {
 				require.NoError(t, err)
 				require.False(t, mustReject)

@@ -780,7 +780,7 @@ func TestVirtual_Constructor_PulseChangedWhileOutgoing(t *testing.T) {
 			assert.Equal(t, objectRef, token.Callee)
 			return true
 		})
-		authService.IsMessageFromVirtualLegitimateMock.Set(func(ctx context.Context, payloadObj interface{}, sender reference.Global, pr pulse.Range) (mustReject bool, err error) {
+		authService.CheckMessageFromAuthorizedVirtualMock.Set(func(ctx context.Context, payloadObj interface{}, sender reference.Global, pr pulse.Range) (mustReject bool, err error) {
 			assert.Equal(t, server.GlobalCaller(), sender)
 			return false, nil
 		})
