@@ -119,30 +119,28 @@ func TestDelegationToken_SuccessCheckCorrectToken(t *testing.T) {
 }
 
 func TestDelegationToken_CheckTokenField(t *testing.T) {
+	insrail.LogSkipCase(t, "C5197", "https://insolar.atlassian.net/browse/PLAT-588")
+
 	tests := []struct {
 		name         string
-		testRailID   string
 		fakeCaller   bool
 		fakeCallee   bool
 		fakeOutgoing bool
 	}{
 		{
 			name:         "Fail with wrong caller in token",
-			testRailID:   "C5197",
 			fakeCaller:   true,
 			fakeCallee:   false,
 			fakeOutgoing: false,
 		},
 		{
 			name:         "Fail with wrong callee in token",
-			testRailID:   "C5198",
 			fakeCaller:   false,
 			fakeCallee:   true,
 			fakeOutgoing: false,
 		},
 		{
 			name:         "Fail with wrong outgoing in token",
-			testRailID:   "C5199",
 			fakeCaller:   false,
 			fakeCallee:   false,
 			fakeOutgoing: true,
@@ -151,7 +149,6 @@ func TestDelegationToken_CheckTokenField(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			defer commontestutils.LeakTester(t)
-			insrail.LogSkipCase(t, test.testRailID, "https://insolar.atlassian.net/browse/PLAT-588")
 
 			mc := minimock.NewController(t)
 
@@ -247,11 +244,12 @@ type testCase struct {
 }
 
 func TestDelegationToken_CheckMessageFromAuthorizedVirtual(t *testing.T) {
+	insrail.LogCase(t, "C5192")
+
 	fixedVe := gen.UniqueGlobalRef()
 	cases := []testCase{
 		{
 			name:       "Fail if sender eq approver",
-			testRailID: "C5193",
 			zeroToken:  false,
 			expectedVE: veSetServer,
 			approverVE: veSetServer,
@@ -263,7 +261,6 @@ func TestDelegationToken_CheckMessageFromAuthorizedVirtual(t *testing.T) {
 		},
 		{
 			name:       "Fail if wrong approver",
-			testRailID: "C5192",
 			zeroToken:  false,
 			expectedVE: veSetFake,
 			approverVE: veSetFake,
@@ -275,7 +272,6 @@ func TestDelegationToken_CheckMessageFromAuthorizedVirtual(t *testing.T) {
 		},
 		{
 			name:       "Fail if wrong delegate",
-			testRailID: "C5194",
 			zeroToken:  false,
 			expectedVE: veSetFixed,
 			approverVE: veSetFixed,
@@ -290,7 +286,6 @@ func TestDelegationToken_CheckMessageFromAuthorizedVirtual(t *testing.T) {
 	for _, testCase := range cases {
 		t.Run(testCase.name, func(t *testing.T) {
 			defer commontestutils.LeakTester(t)
-			insrail.LogCase(t, testCase.testRailID)
 
 			for _, testMsg := range messagesWithToken {
 				mc := minimock.NewController(t)
@@ -377,26 +372,24 @@ func TestDelegationToken_CheckMessageFromAuthorizedVirtual(t *testing.T) {
 }
 
 func TestDelegationToken_OldVEVDelegatedCallRequest(t *testing.T) {
+	insrail.LogCase(t, "C5186")
+
 	testCases := []struct {
 		name          string
-		testRailID    string
 		haveCorrectDT bool
 	}{
 		{
 			name:          "Success run SM if DT is correct",
-			testRailID:    "C5186",
 			haveCorrectDT: true,
 		},
 		{
 			name:          "Fail if message have no DT",
-			testRailID:    "C5187",
 			haveCorrectDT: false,
 		},
 	}
 	for _, test := range testCases {
 		t.Run(test.name, func(t *testing.T) {
 			defer commontestutils.LeakTester(t)
-			insrail.LogCase(t, test.testRailID)
 
 			mc := minimock.NewController(t)
 
