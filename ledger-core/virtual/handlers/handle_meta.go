@@ -76,7 +76,7 @@ func (f FactoryMeta) Process(ctx context.Context, msg insconveyor.DispatchedMess
 
 	// don't check sender for future pulses in R0
 	if !pr.RightBoundData().IsExpectedPulse() {
-		mustReject, err := f.AuthService.IsMessageFromVirtualLegitimate(logCtx, payloadObj, payloadMeta.Sender, pr)
+		mustReject, err := f.AuthService.CheckMessageFromAuthorizedVirtual(logCtx, payloadObj, payloadMeta.Sender, pr)
 		if err != nil {
 			logger.Warn(throw.W(err, "illegitimate msg", skippedMessage{
 				messageTypeID: payloadTypeID,
