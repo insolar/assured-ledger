@@ -37,57 +37,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 )
 
-func TestVirtual_Constructor_WithExecutor(t *testing.T) {
-	defer commontestutils.LeakTester(t)
-	insrail.LogCase(t, "C5180")
-
-	var (
-		mc = minimock.NewController(t)
-	)
-
-	server, ctx := utils.NewServer(nil, t)
-	defer server.Stop()
-
-	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
-
-	var (
-		isolation = contract.ConstructorIsolation()
-		outgoing  = server.BuildRandomOutgoingWithPulse()
-		objectRef = reference.NewSelf(outgoing.GetLocal())
-	)
-
-	pl := payload.VCallRequest{
-		CallType:       payload.CTConstructor,
-		CallFlags:      payload.BuildCallFlags(isolation.Interference, isolation.State),
-		Callee:         testwallet.GetClass(),
-		CallSiteMethod: "New",
-		CallOutgoing:   outgoing,
-		Arguments:      insolar.MustSerialize([]interface{}{}),
-	}
-
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-
-	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
-		require.Equal(t, objectRef, res.Callee)
-		require.Equal(t, outgoing, res.CallOutgoing)
-
-		contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments)
-		require.NoError(t, sysErr)
-		require.Nil(t, contractErr)
-
-		return false // no resend msg
-	})
-
-	server.SendPayload(ctx, &pl)
-
-	commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
-	commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
-
-	assert.Equal(t, 1, typedChecker.VCallResult.Count())
-
-	mc.Finish()
-}
-
 func TestVirtual_Constructor_BadClassRef(t *testing.T) {
 	defer commontestutils.LeakTester(t)
 	insrail.LogCase(t, "C5030")
