@@ -44,6 +44,7 @@ jobs:
     needs: prepare
     runs-on: ubuntu-latest
     strategy:
+      max-parallel: 1
       matrix:
         target: [aks-60node, aks-80node, aks-100node]
     steps:
