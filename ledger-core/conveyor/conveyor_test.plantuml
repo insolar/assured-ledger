@@ -3,7 +3,11 @@ state "GetInitStateFor" as T00_S001
 T00_S001 : emptySM
 [*] --> T00_S001
 T00_S001 --> T00_S002
+state "burn" as T00_S003
+T00_S003 : emptySM
+T00_S003 --[dashed]> T00_S003 : Yield
 state "stepInit" as T00_S002
 T00_S002 : emptySM
-T00_S002 --> [*]
+T00_S002 --> [*] : [!sm.burner]
+T00_S002 --> T00_S003
 @enduml
