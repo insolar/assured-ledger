@@ -299,7 +299,7 @@ func TestVirtual_Constructor_PrevPulseStateWithMissingStatus(t *testing.T) {
 		p1        = server.GetPulse().PulseNumber
 		outgoing  = server.BuildRandomOutgoingWithPulse()
 		objectRef = reference.NewSelf(outgoing.GetLocal())
-		class     = server.BuildRandomOutgoingWithPulse()
+		class     = server.RandomGlobalWithPulse()
 	)
 
 	server.IncrementPulseAndWaitIdle(ctx)
