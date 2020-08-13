@@ -192,11 +192,10 @@ func (p *serviceImpl) CreateGenesis(pr pulse.Range, population census.OnlinePopu
 
 	switch len(jets) {
 	case 0:
-		return pa, 0
+		return pa, jet.UnknownExactID
 	case 1:
 		return pa, jets[0]
-	default:
-		panic(throw.Impossible())
 	}
+	panic(throw.Impossible())
 }
 
