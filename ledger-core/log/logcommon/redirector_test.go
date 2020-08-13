@@ -156,7 +156,7 @@ func TestTestingLoggerOutputErrorOrPanic(t *testing.T) {
 	sample := []byte("testSample")
 
 	for _, level := range []Level{ErrorLevel, PanicLevel} {
-		to := &TestingLoggerOutput{}
+		to := &TestingLoggerOutput{LogFiltered: true}
 		m1 := &outMock{}
 		mt := &tMock{}
 		to.Output = m1
