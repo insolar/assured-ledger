@@ -6,11 +6,13 @@
 package insapp
 
 import (
-	"github.com/ThreeDotsLabs/watermill/message"
+	"context"
+
 	"github.com/insolar/component-manager"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/network"
+	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -20,8 +22,7 @@ type NetworkSupport interface {
 	network.NodeNetwork
 	nodeinfo.CertificateGetter
 
-	// GetSendMessageHandler returns a handler that will receive messages sent from an app compartment.
-	GetSendMessageHandler() message.NoPublishHandlerFunc
+	CreateMessagesRouter(context.Context) messagesender.MessageRouter
 }
 
 // NetworkInitFunc should instantiate a network support for app compartment by the given configuration and root component manager.

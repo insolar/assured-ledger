@@ -80,7 +80,7 @@ type DispatchedMessage struct {
 	PayloadMeta payload.Meta
 }
 
-func (c *conveyorDispatcher) Process(msg *message.Message) error {
+func (c *conveyorDispatcher) Process(msg beat.Message) error {
 	msg.Ack()
 	dm := DispatchedMessage{ MessageMeta: msg.Metadata }
 
