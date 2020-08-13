@@ -8,7 +8,6 @@ package pulsenetwork
 import (
 	"bytes"
 	"context"
-	"crypto/ecdsa"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -17,6 +16,7 @@ import (
 	"github.com/opentracing/opentracing-go/log"
 	"go.opencensus.io/stats"
 
+	"github.com/insolar/assured-ledger/ledger-core/crypto/legacyadapter"
 	"github.com/insolar/assured-ledger/ledger-core/pulsar"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
@@ -92,9 +92,8 @@ func (d *distributor) Init(context.Context) error {
 	if err != nil {
 		return errors.W(err, "failed to get private key")
 	}
-	ecdsaPrivateKey := privateKey.(*ecdsa.PrivateKey)
 
-	d.signer = adapters.NewECDSADigestSigner(ecdsaPrivateKey, d.Scheme)
+	d.signer = legacyadapter.NewECDSADigestSignerFromSK(privateKey, d.Scheme)
 
 	return nil
 }

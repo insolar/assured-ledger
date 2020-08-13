@@ -9,6 +9,7 @@ import (
 	"context"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smadapter"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 )
 
@@ -49,7 +50,7 @@ func (a *ParallelMessageSender) PrepareNotify(ctx smachine.ExecutionContext, fn 
 func CreateMessageSendService(ctx context.Context, messenger messagesender.Service) *ParallelMessageSender {
 	// it's copy/past from other realizations
 	parallelReaders := 16
-	ae, ch := smachine.NewCallChannelExecutor(ctx, -1, false, parallelReaders)
+	ae, ch := smadapter.NewCallChannelExecutor(ctx, -1, false, parallelReaders)
 	smachine.StartChannelWorkerParallelCalls(ctx, 0, ch, nil)
 
 	return &ParallelMessageSender{

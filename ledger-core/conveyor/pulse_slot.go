@@ -23,21 +23,23 @@ const (
 	Antique // non-individual past
 )
 
+// NewPresentPulseSlot is for test use only
 func NewPresentPulseSlot(pulseManager *PulseDataManager, pr pulse.Range) PulseSlot {
 	return PulseSlot{
 		pulseManager: pulseManager,
 		pulseData: &presentPulseDataHolder{
-			pr: pr,
+			bd: BeatData{ Range: pr },
 			at: time.Unix(int64(pr.RightBoundData().Timestamp), 0),
 		},
 	}
 }
 
+// NewPastPulseSlot is for test use only
 func NewPastPulseSlot(pulseManager *PulseDataManager, pr pulse.Range) PulseSlot {
 	return PulseSlot{
 		pulseManager: pulseManager,
 		pulseData: &presentPulseDataHolder{
-			pr:     pr,
+			bd:     BeatData{ Range: pr },
 			at:     time.Unix(int64(pr.RightBoundData().Timestamp), 0),
 			isPast: 1,
 		},
@@ -50,7 +52,7 @@ type PulseSlot struct {
 }
 
 func (p *PulseSlot) State() PulseSlotState {
-	_, ps := p.pulseData.PulseRange()
+	_, ps := p.pulseData.BeatData()
 	return ps
 }
 
@@ -59,7 +61,7 @@ func (p *PulseSlot) PulseNumber() pulse.Number {
 }
 
 func (p *PulseSlot) PulseData() pulse.Data {
-	pd, _ := p.pulseData.PulseData()
+	pd := p.pulseData.PulseData()
 	if pd.IsEmpty() {
 		// possible incorrect injection for SM in the Antique slot
 		panic(throw.IllegalState())
@@ -68,12 +70,12 @@ func (p *PulseSlot) PulseData() pulse.Data {
 }
 
 func (p *PulseSlot) PrevOperationPulseNumber() pulse.Number {
-	pr, _ := p.pulseData.PulseRange()
+	bd, _ := p.pulseData.BeatData()
 
-	if pr == nil {
+	if bd.Range == nil {
 		// this is a backup
 		// TODO reconsider if this is a viable option
-		pd, _ := p.pulseData.PulseData()
+		pd := p.pulseData.PulseData()
 		if pn, ok := pd.PulseNumber.TryPrev(pd.PrevPulseDelta); ok {
 			return pn
 		}
@@ -81,13 +83,13 @@ func (p *PulseSlot) PrevOperationPulseNumber() pulse.Number {
 	}
 
 
-	switch prd := pr.LeftPrevDelta(); {
+	switch prd := bd.Range.LeftPrevDelta(); {
 	case prd == 0:
 		// first pulse, it has no prev
-	case pr.IsArticulated():
+	case bd.Range.IsArticulated():
 		// there is no data about an immediate previous pulse
 	default:
-		if pn, ok := pr.LeftBoundNumber().TryPrev(prd); ok {
+		if pn, ok := bd.Range.LeftBoundNumber().TryPrev(prd); ok {
 			return pn
 		}
 	}
@@ -96,12 +98,21 @@ func (p *PulseSlot) PrevOperationPulseNumber() pulse.Number {
 }
 
 func (p *PulseSlot) PulseRange() (pulse.Range, PulseSlotState) {
-	pr, st := p.pulseData.PulseRange()
-	if pr == nil {
+	bd, st := p.pulseData.BeatData()
+	if bd.Range == nil {
 		// possible incorrect injection for SM in the Antique slot
-		panic("illegal state - not initialized")
+		panic(throw.IllegalState())
 	}
-	return pr, st
+	return bd.Range, st
+}
+
+func (p *PulseSlot) BeatData() (BeatData, PulseSlotState) {
+	bd, st := p.pulseData.BeatData()
+	if bd.Range == nil {
+		// possible incorrect injection for SM in the Antique slot
+		panic(throw.IllegalState())
+	}
+	return bd, st
 }
 
 func (p *PulseSlot) PulseStartedAt() time.Time {
@@ -140,17 +151,17 @@ func (p *PulseSlot) isAcceptedFutureOrPresent(pn pulse.Number) (isFuture, isAcce
 func (p *PulseSlot) _isAcceptedPresent(presentPN, pn pulse.Number) (PulseSlotState, bool) {
 	var isProhibited bool
 
-	switch pr, ps := p.pulseData.PulseRange(); {
+	switch bd, ps := p.pulseData.BeatData(); {
 	case ps != Present:
 		return ps, false
 	case pn == presentPN:
 		return ps, true
-	case pn < pr.LeftBoundNumber():
+	case pn < bd.Range.LeftBoundNumber():
 		// pn belongs to Past or Antique for sure
 		return Past, false
-	case pr.IsSingular():
+	case bd.Range.IsSingular():
 		return ps, false
-	case !pr.EnumNonArticulatedNumbers(func(n pulse.Number, prevDelta, nextDelta uint16) bool {
+	case !bd.Range.EnumNonArticulatedNumbers(func(n pulse.Number, prevDelta, nextDelta uint16) bool {
 		switch {
 		case n == pn:
 		case pn.IsEqOrOut(n, prevDelta, nextDelta):
@@ -163,7 +174,7 @@ func (p *PulseSlot) _isAcceptedPresent(presentPN, pn pulse.Number) (PulseSlotSta
 		return true
 	}):
 		// we've seen neither positive nor negative match
-		if pr.IsArticulated() {
+		if bd.Range.IsArticulated() {
 			// Present range is articulated, so anything that is not wrong - can be valid as present
 			return ps, true
 		}
@@ -177,14 +188,14 @@ func (p *PulseSlot) _isAcceptedPresent(presentPN, pn pulse.Number) (PulseSlotSta
 }
 
 func (p *PulseSlot) HasPulseData(pn pulse.Number) bool {
-	if pr, _ := p.pulseData.PulseRange(); pr != nil {
+	if bd, _ := p.pulseData.BeatData(); bd.Range != nil {
 		return true
 	}
 	return p.pulseManager.HasPulseData(pn)
 }
 
-func (p *PulseSlot) postMigrate(holder smachine.SlotMachineHolder) {
+func (p *PulseSlot) postMigrate(prevState PulseSlotState, holder smachine.SlotMachineHolder) {
 	if fn := p.pulseManager.pulseMigrateFn; fn != nil {
-		fn(p, holder)
+		fn(prevState, p, holder)
 	}
 }

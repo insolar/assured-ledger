@@ -9,6 +9,7 @@ import (
 	"context"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smadapter"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -23,8 +24,8 @@ func NewAdapterExt(adapterID smachine.AdapterID, executor smachine.AdapterExecut
 	}
 }
 
-func NewAdapter(cfg smachine.AdapterExecutorConfig) Adapter {
-	executor := smachine.StartAdapterExecutor(context.Background(), cfg, nil)
+func NewAdapter(cfg smadapter.Config) Adapter {
+	executor := smadapter.StartExecutorFor(context.Background(), cfg, nil)
 	return NewAdapterExt("RecordInspector", executor, NewService())
 }
 

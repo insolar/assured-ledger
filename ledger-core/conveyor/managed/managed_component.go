@@ -7,6 +7,7 @@ package managed
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 )
@@ -49,8 +50,15 @@ type Holder interface {
 
 type DataManager interface {
 	GetPresentPulse() (present pulse.Number, nearestFuture pulse.Number)
-	GetPrevPulseRange() (pulse.Number, pulse.Range)
-	GetPulseRange(pn pulse.Number) pulse.Range
+	GetPrevBeatData() (pulse.Number, BeatData)
+	GetBeatData(pn pulse.Number) BeatData
 	HasPulseData(pn pulse.Number) bool
 	TouchPulseData(pn pulse.Number) bool
 }
+
+type BeatData struct {
+	Range  pulse.Range
+	Online census.OnlinePopulation
+}
+
+

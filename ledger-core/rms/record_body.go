@@ -254,7 +254,7 @@ func (p *RecordBody) Unmarshal(b []byte) error {
 
 		n = 1
 		for ; count > 0; count-- {
-			digest := cryptkit.NewDigest(longbits.NewImmutableFixedSize(b[n:n+digestSize]), "")
+			digest := cryptkit.NewDigest(longbits.CopyBytes(b[n:n+digestSize]), "")
 			n += digestSize
 			p.digests = append(p.digests, digest)
 		}

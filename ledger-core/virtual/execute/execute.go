@@ -1011,7 +1011,8 @@ func (s *SMExecute) stepSendCallResult(ctx smachine.ExecutionContext) smachine.S
 		CallAsOf:        s.Payload.CallAsOf,
 		Caller:          s.Payload.Caller,
 		Callee:          s.execution.Object,
-		CallOutgoing:    s.Payload.CallOutgoing,
+		CallOutgoing:    s.execution.Outgoing,
+		CallIncoming:    s.execution.Incoming,
 		ReturnArguments: executionResult,
 		DelegationSpec:  s.getToken(),
 	}

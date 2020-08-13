@@ -182,28 +182,23 @@ func (m *SlotMachine) FindDependency(id string) (interface{}, bool) {
 }
 
 func (m *SlotMachine) AddDependency(v interface{}) {
-	if !m.TryPutDependency(injector.GetDefaultInjectionID(v), v) {
-		panic(fmt.Errorf("duplicate dependency: %T %[1]v", v))
-	}
+	injector.AddDependency(m, v)
 }
 
 func (m *SlotMachine) AddInterfaceDependency(v interface{}) {
-	vv, vt := injector.GetInterfaceTypeAndValue(v)
-	if !m.TryPutDependency(injector.GetDefaultInjectionIDByType(vt), vv) {
-		panic(fmt.Errorf("duplicate dependency: %T %[1]v", v))
-	}
+	injector.AddInterfaceDependency(m, v)
 }
 
 func (m *SlotMachine) PutDependency(id string, v interface{}) {
 	if id == "" {
-		panic("illegal key")
+		panic(throw.IllegalValue())
 	}
 	m.localRegistry.Store(dependencyKey(id), v)
 }
 
 func (m *SlotMachine) TryPutDependency(id string, v interface{}) bool {
 	if id == "" {
-		panic("illegal key")
+		panic(throw.IllegalValue())
 	}
 	_, loaded := m.localRegistry.LoadOrStore(dependencyKey(id), v)
 	return !loaded
@@ -703,7 +698,7 @@ func (m *SlotMachine) _activateSlot(slot *Slot, mode slotActivationMode) {
 	case mode == activateHotWaitSlot:
 		// hot wait ignores boosted to reduce interference
 		switch {
-		case slot.isPriority():
+		case slot.isExecPriority():
 			m.prioritySlots.AddLast(slot)
 		// case slot.isBoosted():
 		//	m.boostedSlots.AddLast(slot)
@@ -713,7 +708,7 @@ func (m *SlotMachine) _activateSlot(slot *Slot, mode slotActivationMode) {
 	case slot.isLastScan(m.getScanCount()):
 		m.hotWaitOnly = false
 		switch {
-		case slot.isPriority():
+		case slot.isExecPriority():
 			m.prioritySlots.AddLast(slot)
 		case slot.isBoosted():
 			m.boostedSlots.AddLast(slot)
@@ -722,7 +717,7 @@ func (m *SlotMachine) _activateSlot(slot *Slot, mode slotActivationMode) {
 		}
 	default:
 		// addSlotToWorkingQueue
-		if slot.isPriority() {
+		if slot.isExecPriority() {
 			m.workingSlots.AddFirst(slot)
 		} else {
 			m.workingSlots.AddLast(slot)

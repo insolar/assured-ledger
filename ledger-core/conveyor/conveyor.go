@@ -15,6 +15,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/managed"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/sworker"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
@@ -52,7 +53,8 @@ type PulseChanger interface {
 	CommitPulseChange(pr pulse.Range) error
 }
 
-type PulseSlotPostMigrateFunc = func(*PulseSlot, smachine.SlotMachineHolder)
+// PulseSlotPostMigrateFunc is called on migration and on creation of the slot. For creation (prevState) will be zero.
+type PulseSlotPostMigrateFunc = func(prevState PulseSlotState, slot *PulseSlot, h smachine.SlotMachineHolder)
 
 type PulseConveyorConfig struct {
 	ConveyorMachineConfig             smachine.SlotMachineConfig
@@ -77,14 +79,18 @@ func NewPulseConveyor(
 		factoryFn:      factoryFn,
 		eventlessSleep: config.EventlessSleep,
 	}
+	if registry != nil {
+		r.sharedRegistry = *injector.NewDynamicContainer(registry)
+	}
+
 	r.slotConfig.config.CleanupWeakOnMigrate = true
 	r.slotMachine = smachine.NewSlotMachine(config.ConveyorMachineConfig,
 		r.internalSignal.NextBroadcast,
 		combineCallbacks(r.externalSignal.NextBroadcast, r.internalSignal.NextBroadcast),
-		registry)
+		&r.sharedRegistry)
 
 	r.slotConfig.eventCallback = r.internalSignal.NextBroadcast
-	r.slotConfig.parentRegistry = r.slotMachine
+	r.slotConfig.parentRegistry = &r.sharedRegistry
 
 	// shared SlotId sequence
 	r.slotConfig.config.SlotIDGenerateFn = r.slotMachine.CopyConfig().SlotIDGenerateFn
@@ -107,6 +113,7 @@ type PulseConveyor struct {
 	externalSignal synckit.VersionedSignal
 	internalSignal synckit.VersionedSignal
 
+	sharedRegistry injector.DynamicContainer
 	slotMachine   *smachine.SlotMachine
 	machineWorker smachine.AttachableSlotWorker
 
@@ -121,6 +128,9 @@ type PulseConveyor struct {
 }
 
 func (p *PulseConveyor) SetFactoryFunc(factory PulseEventFactoryFunc) {
+	if p.machineWorker != nil {
+		panic(throw.IllegalState())
+	}
 	p.factoryFn = factory
 }
 
@@ -129,30 +139,27 @@ func (p *PulseConveyor) GetDataManager() *PulseDataManager {
 }
 
 func (p *PulseConveyor) AddManagedComponent(c managed.Component) {
-	if c == nil {
-		panic(throw.IllegalState())
-	}
 	p.comps.Add(p, c)
 }
 
+func (p *PulseConveyor) FindDependency(id string) (interface{}, bool) {
+	return p.sharedRegistry.FindDependency(id)
+}
+
 func (p *PulseConveyor) AddDependency(v interface{}) {
-	p.slotMachine.AddDependency(v)
+	p.sharedRegistry.AddDependency(v)
 }
 
 func (p *PulseConveyor) AddInterfaceDependency(v interface{}) {
-	p.slotMachine.AddInterfaceDependency(v)
-}
-
-func (p *PulseConveyor) FindDependency(id string) (interface{}, bool) {
-	return p.slotMachine.FindDependency(id)
+	p.sharedRegistry.AddInterfaceDependency(v)
 }
 
 func (p *PulseConveyor) PutDependency(id string, v interface{}) {
-	p.slotMachine.PutDependency(id, v)
+	p.sharedRegistry.PutDependency(id, v)
 }
 
 func (p *PulseConveyor) TryPutDependency(id string, v interface{}) bool {
-	return p.slotMachine.TryPutDependency(id, v)
+	return p.sharedRegistry.TryPutDependency(id, v)
 }
 
 func (p *PulseConveyor) GetPublishedGlobalAliasAndBargeIn(key interface{}) (smachine.SlotLink, smachine.BargeInHolder) {
@@ -185,7 +192,8 @@ func (p *PulseConveyor) AddInputExt(pn pulse.Number, event InputEvent,
 	if pulseState != Antique {
 		pr, _ = pulseSlotMachine.pulseSlot.PulseRange()
 	} else if pulseSlot := p.pdm.getCachedPulseSlot(targetPN); pulseSlot != nil {
-		pr, _ = pulseSlot.pulseData.PulseRange()
+		bd, _ := pulseSlot.pulseData.BeatData()
+		pr = bd.Range
 	}
 
 	setup, err := p.factoryFn(createDefaults.Context, event, InputContext{targetPN, pr})
@@ -459,7 +467,7 @@ func (p *PulseConveyor) CancelPulseChange() error {
 	})
 }
 
-func (p *PulseConveyor) CommitPulseChange(pr pulse.Range, pulseStart time.Time) error {
+func (p *PulseConveyor) CommitPulseChange(pr pulse.Range, pulseStart time.Time, online census.OnlinePopulation) error {
 	pd := pr.RightBoundData()
 	pd.EnsurePulsarData()
 
@@ -486,7 +494,8 @@ func (p *PulseConveyor) CommitPulseChange(pr pulse.Range, pulseStart time.Time) 
 			}
 		}
 
-		p.pdm.putPulseRange(pr)
+		bd := BeatData{Range: pr, Online: online}
+		p.pdm.putPulseUpdate(bd)
 
 		if p.presentMachine != nil {
 			p.presentMachine.setPast()
@@ -497,12 +506,12 @@ func (p *PulseConveyor) CommitPulseChange(pr pulse.Range, pulseStart time.Time) 
 		p.comps.PulseChanged(p, pr)
 
 		ctx.Migrate(func() {
-			p._migratePulseSlots(ctx, pr, prevPresentPN, prevFuturePN, pulseStart.UTC())
+			p._migratePulseSlots(ctx, bd, prevPresentPN, prevFuturePN, pulseStart.UTC())
 		})
 	})
 }
 
-func (p *PulseConveyor) _migratePulseSlots(ctx smachine.MachineCallContext, pr pulse.Range,
+func (p *PulseConveyor) _migratePulseSlots(ctx smachine.MachineCallContext, bd BeatData,
 	_ /* prevPresentPN */, prevFuturePN pulse.Number, pulseStart time.Time,
 ) {
 	if p.unpublishPulse.IsTimePulse() {
@@ -511,10 +520,10 @@ func (p *PulseConveyor) _migratePulseSlots(ctx smachine.MachineCallContext, pr p
 		p.unpublishPulse = pulse.Unknown
 	}
 
-	pd := pr.RightBoundData()
+	pd := bd.Range.RightBoundData()
 
 	prevFuture, activatePresent := p._publishUninitializedPulseSlotMachine(prevFuturePN)
-	prevFuture.setPresent(pr, pulseStart)
+	prevFuture.setPresent(bd, pulseStart)
 	p.presentMachine = prevFuture
 
 	if prevFuturePN != pd.PulseNumber {
@@ -531,7 +540,7 @@ func (p *PulseConveyor) _migratePulseSlots(ctx smachine.MachineCallContext, pr p
 	if activatePresent {
 		p.presentMachine.activate(p.workerCtx, ctx.AddNew)
 	}
-	p.pdm.setPresentPulse(pr) // reroutes incoming events
+	p.pdm.setPresentPulse(bd.Range) // reroutes incoming events
 }
 
 func (p *PulseConveyor) StopNoWait() {

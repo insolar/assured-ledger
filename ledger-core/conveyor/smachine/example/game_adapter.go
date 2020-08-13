@@ -11,6 +11,7 @@ import (
 	"sync/atomic"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smadapter"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 )
 
@@ -29,7 +30,7 @@ func (a *GameChooseAdapter) PrepareAsync(ctx smachine.ExecutionContext, fn func(
 }
 
 func NewGameAdapter(ctx context.Context, svc GameChooseService) *GameChooseAdapter {
-	exec, ch := smachine.NewCallChannelExecutor(ctx, -1, false, 1)
+	exec, ch := smadapter.NewCallChannelExecutor(ctx, -1, false, 1)
 	smachine.StartChannelWorkerParallelCalls(ctx, 1, ch, svc)
 
 	return &GameChooseAdapter{smachine.NewExecutionAdapter("GameAdapter", exec)}
