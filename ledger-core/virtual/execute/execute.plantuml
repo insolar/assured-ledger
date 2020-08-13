@@ -165,7 +165,7 @@ T01_S015 --> T01_S020 : Migrate: s.migrateDuringExecution
 state "stepTakeLock" as T01_S014
 T01_S014 : SMExecute
 T01_S014 --[dotted]> T01_S001
-T01_S014 --[dashed]> T01_S014 : [ctx.Acquire().IsNotPassed()]\nSleep
+T01_S014 --[dashed]> T01_S014 : [!stepUpdate.IsEmpty()]\n[ctx.Acquire().IsNotPassed()]...\nSleep
 T01_S014 --> T01_S015
 state "stepTakeLockAfterOutgoing" as T01_S026
 T01_S026 : SMExecute
