@@ -388,21 +388,24 @@ func TestPulseConveyor_PulsePreparing(t *testing.T) {
 
 	conveyor, emerChan := newTestPulseConveyor(ctx, t, nil,
 		func(state CycleState) {
-			switch state {
-			case ScanIdle:
-				cycleCount.Add(1)
-			case ScanActive:
-				cycleCount.Add(1<<32)
-			default:
+			if state == Scanning {
 				return
 			}
+
+			cycleLock.Lock()
+			defer cycleLock.Unlock()
+
 			select {
 			case nextCycleSig <- struct{}{}:
 			default:
 			}
 
-			cycleLock.Lock()
-			cycleLock.Unlock()
+			switch state {
+			case ScanIdle:
+				cycleCount.Add(1)
+			case ScanActive:
+				cycleCount.Add(1<<32)
+			}
 		})
 
 	defer func() {
@@ -419,39 +422,42 @@ func TestPulseConveyor_PulsePreparing(t *testing.T) {
 	require.NoError(t, conveyor.PreparePulseChange(nil))
 	require.NoError(t, conveyor.CommitPulseChange(pd.AsRange(), time.Now(), nil))
 
-	// make sure AddInput is handled
-	<-nextCycleSig
-	<-nextCycleSig
+	// make sure AddInput is handled etc
+	for i := 10; i > 0; i-- {
+		<-nextCycleSig
+	}
 
 	pd = pd.CreateNextPulse(emptyEntropyFn)
 
-	cycleLock.Lock()
-	go func() {
-		require.NoError(t, conveyor.PreparePulseChange(nil))
-	}()
+	require.NoError(t, conveyor.PreparePulseChange(func(PreparedState) {
+		cycleLock.Lock()
+	}))
 
-	for !conveyor.pdm.isPreparingPulse() {
-		time.Sleep(time.Millisecond)
-	}
-	// after this moment there are only priority SMs are allowed
-	// but cycle is blocked
+	// after this moment there are only priority SMs allowed
+	// and cycle is blocked
 
 	// flush mark and reset counters
+	select {
+	case <-nextCycleSig:
+	default:
+	}
 	require.NotZero(t, cycleCount.Swap(0))
 
 	cycleLock.Unlock()
-
-	// here we should have 2 actives (apply of PreparePulseChange, then first run of stepPreparingChange) and one idle cycle
-	expectedCounts := uint64(2<<32) | 1
-	for cycleCount.Load() < expectedCounts {
-		time.Sleep(time.Millisecond)
-	}
 	<-nextCycleSig
 
-	require.Equal(t, expectedCounts, cycleCount.Load())
+	// here it may have a few active cycles (PreparePulseChange, then stepPreparingChange) and one idle cycle
+	for uint32(cycleCount.Load()) == 0 { // wait for idle cycle
+		time.Sleep(time.Millisecond)
+	}
+
+	expectedCounts := cycleCount.Load()
+
+	require.EqualValues(t, 1, uint32(expectedCounts))
+	require.GreaterOrEqual(t, 2, int(expectedCounts>>32))
 
 	time.Sleep(10*time.Millisecond)
-	// should be no new cycles
+	// should be no more new cycles
 	require.EqualValues(t, expectedCounts, cycleCount.Load())
 
 	require.NoError(t, conveyor.CommitPulseChange(pd.AsRange(), time.Now(), nil))
@@ -463,7 +469,6 @@ func TestPulseConveyor_PulsePreparing(t *testing.T) {
 
 	count := cycleCount.Load()
 
-	require.Equal(t, uint32(expectedCounts), uint32(count)) // should be NO more idle cycles as SMs are burning
-	count>>=32
-	require.Less(t, 2+(expectedCounts>>32), count) // at least +2 as waited for 2 signals
+	require.EqualValues(t, uint32(expectedCounts), uint32(count)) // should be NO more idle cycles as SMs are burning
+	require.LessOrEqual(t, 2+(expectedCounts>>32), count>>32) // at least +2 as waited for 2 signals
 }
