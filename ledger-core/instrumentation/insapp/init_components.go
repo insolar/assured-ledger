@@ -114,6 +114,7 @@ func (s *Server) initComponents(ctx context.Context, cfg configuration.Configura
 	availabilityChecker := api.NewNetworkChecker(cfg.AvailabilityChecker)
 
 	mr := nw.CreateMessagesRouter(ctx)
+	// TODO introspection support, cfg.Introspection
 
 	cm.Register(
 		pulses,
