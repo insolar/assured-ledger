@@ -444,9 +444,8 @@ func TestPulseConveyor_PulsePreparing(t *testing.T) {
 	require.NotZero(t, cycleCount.Swap(0))
 
 	cycleLock.Unlock()
-	<-nextCycleSig
 
-	// here it may have a few active cycles (PreparePulseChange, then stepPreparingChange) and one idle cycle
+	// here it will have 1-2 active cycles (PreparePulseChange, then stepPreparingChange) and one idle cycle
 	for uint32(cycleCount.Load()) == 0 { // wait for idle cycle
 		time.Sleep(time.Millisecond)
 	}
@@ -460,10 +459,15 @@ func TestPulseConveyor_PulsePreparing(t *testing.T) {
 	// should be no more new cycles
 	require.EqualValues(t, expectedCounts, cycleCount.Load())
 
+	// flush mark
+	select {
+	case <-nextCycleSig:
+	default:
+	}
+
 	require.NoError(t, conveyor.CommitPulseChange(pd.AsRange(), time.Now(), nil))
 
 	// normal activities are restored
-	<-nextCycleSig // possible residual
 	<-nextCycleSig // extra cycle 1
 	<-nextCycleSig // extra cycle 2
 
