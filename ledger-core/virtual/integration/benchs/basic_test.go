@@ -64,15 +64,16 @@ func BenchmarkVCallRequestGetMethod(b *testing.B) {
 		return false
 	})
 
+	pl := *utils.GenerateVCallRequestMethod(server)
+	pl.CallFlags = payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty)
+	pl.Callee = object
+	pl.CallSiteMethod = "GetBalance"
+
 	b.StopTimer()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		pl := utils.GenerateVCallRequestMethod(server)
-		pl.CallFlags = payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty)
-		pl.Callee = object
-		pl.CallSiteMethod = "GetBalance"
 		pl.CallOutgoing = server.BuildRandomOutgoingWithPulse()
-		msg := server.WrapPayload(pl).Finalize()
+		msg := server.WrapPayload(&pl).Finalize()
 
 		b.StartTimer()
 		server.SendMessage(ctx, msg)
@@ -124,14 +125,15 @@ func BenchmarkVCallRequestAcceptMethod(b *testing.B) {
 		return false
 	})
 
+	pl := *utils.GenerateVCallRequestMethod(server)
+	pl.Callee = object
+	pl.CallSiteMethod = "Accept"
+
 	b.StopTimer()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		pl := utils.GenerateVCallRequestMethod(server)
-		pl.Callee = object
-		pl.CallSiteMethod = "Accept"
 		pl.CallOutgoing = server.BuildRandomOutgoingWithPulse()
-		msg := server.WrapPayload(pl).Finalize()
+		msg := server.WrapPayload(&pl).Finalize()
 
 		b.StartTimer()
 		server.SendMessage(ctx, msg)
