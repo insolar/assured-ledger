@@ -651,8 +651,10 @@ func (m *SlotMachine) updateSlotQueue(slot *Slot, w FixedSlotWorker, activation 
 func (m *SlotMachine) _updateSlotQueue(slot *Slot, inplaceUpdate bool, activation slotActivationMode) *Slot {
 	if !slot.isQueueHead() {
 		if inplaceUpdate {
-			switch activation {
-			case activateSlot:
+			switch {
+			case activation == deactivateSlot || slot.slotFlags & slotPriorityChanged != 0:
+				// has to re-apply into activity queue due to priority changes
+			case activation == activateSlot:
 				switch slot.QueueType() {
 				case ActiveSlots:
 					m.hotWaitOnly = false
@@ -660,7 +662,7 @@ func (m *SlotMachine) _updateSlotQueue(slot *Slot, inplaceUpdate bool, activatio
 				case WorkingSlots:
 					return nil
 				}
-			case activateHotWaitSlot:
+			case activation == activateHotWaitSlot:
 				if slot.QueueType() == ActiveSlots {
 					return nil
 				}
@@ -670,6 +672,8 @@ func (m *SlotMachine) _updateSlotQueue(slot *Slot, inplaceUpdate bool, activatio
 			slot.ensureNotInQueue()
 		}
 
+		slot.slotFlags &^= slotPriorityChanged
+
 		if activation == deactivateSlot {
 			return nil
 		}
@@ -678,8 +682,10 @@ func (m *SlotMachine) _updateSlotQueue(slot *Slot, inplaceUpdate bool, activatio
 	}
 
 	if slot.QueueType() != ActivationOfSlot {
-		panic("illegal state")
+		panic(throw.IllegalState())
 	}
+
+	slot.slotFlags &^= slotPriorityChanged
 
 	if activation == deactivateSlot {
 		if !inplaceUpdate {
