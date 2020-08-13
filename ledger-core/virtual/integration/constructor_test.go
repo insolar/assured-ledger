@@ -458,7 +458,7 @@ func TestVirtual_CallConstructorFromConstructor(t *testing.T) {
 		objectA   = reference.NewSelf(outgoingA.GetLocal())
 
 		classB        = server.RandomGlobalWithPulse()
-		objectBGlobal = reference.NewSelf(server.RandomLocalWithPulse())
+		objectBGlobal = server.RandomGlobalWithPulse()
 
 		outgoingCallRef = server.BuildRandomOutgoingWithPulse()
 	)
@@ -532,11 +532,11 @@ func TestVirtual_CallConstructorFromConstructor(t *testing.T) {
 				require.Equal(t, outgoingA, res.CallOutgoing)
 			default:
 				require.Equal(t, []byte("finish B.New"), res.ReturnArguments)
-				//require.Equal(t, outgoingA, res.Caller)
+				require.Equal(t, objectA, res.Caller)
 				require.Equal(t, server.GetPulse().PulseNumber, res.CallOutgoing.GetLocal().Pulse())
 			}
 			// we should resend that message only if it's CallResult from B to A
-			return true //res.Caller == outgoingA
+			return res.Caller == objectA
 		})
 	}
 
