@@ -10,6 +10,7 @@ package conveyor
 import (
 	"context"
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -19,6 +20,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 )
@@ -35,6 +37,7 @@ type emptySM struct {
 	pn         pulse.Number
 	eventValue interface{}
 	expiry     time.Time
+	burner     bool
 }
 
 func (sm *emptySM) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
@@ -53,7 +56,14 @@ func (sm *emptySM) GetInitStateFor(machine smachine.StateMachine) smachine.InitF
 }
 
 func (sm *emptySM) stepInit(ctx smachine.InitializationContext) smachine.StateUpdate {
-	return ctx.Stop()
+	if !sm.burner {
+		return ctx.Stop()
+	}
+	return ctx.Jump(sm.burn)
+}
+
+func (sm *emptySM) burn(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	return ctx.Yield().ThenRepeat()
 }
 
 func handleFactory(_ context.Context, input InputEvent, _ InputContext) (InputSetup, error) {
@@ -67,9 +77,6 @@ func TestNewPulseConveyor(t *testing.T) {
 	t.Run("bad input", func(t *testing.T) {
 		require.Panics(t, func() {
 			NewPulseConveyor(nil, PulseConveyorConfig{
-				ConveyorMachineConfig: smachine.SlotMachineConfig{},
-				SlotMachineConfig:     smachine.SlotMachineConfig{},
-				EventlessSleep:        0,
 				MinCachePulseAge:      0,
 				MaxPastPulseAge:       0,
 			}, handleFactory, nil)
@@ -77,9 +84,6 @@ func TestNewPulseConveyor(t *testing.T) {
 
 		require.Panics(t, func() {
 			NewPulseConveyor(nil, PulseConveyorConfig{
-				ConveyorMachineConfig: smachine.SlotMachineConfig{},
-				SlotMachineConfig:     smachine.SlotMachineConfig{},
-				EventlessSleep:        0,
 				MinCachePulseAge:      1,
 				MaxPastPulseAge:       0,
 			}, handleFactory, nil)
@@ -87,9 +91,6 @@ func TestNewPulseConveyor(t *testing.T) {
 
 		require.Panics(t, func() {
 			NewPulseConveyor(nil, PulseConveyorConfig{
-				ConveyorMachineConfig: smachine.SlotMachineConfig{},
-				SlotMachineConfig:     smachine.SlotMachineConfig{},
-				EventlessSleep:        0,
 				MinCachePulseAge:      1,
 				MaxPastPulseAge:       1,
 			}, handleFactory, nil)
@@ -107,7 +108,6 @@ func TestNewPulseConveyor(t *testing.T) {
 		NewPulseConveyor(nil, PulseConveyorConfig{
 			ConveyorMachineConfig: machineConfig,
 			SlotMachineConfig:     machineConfig,
-			EventlessSleep:        100 * time.Millisecond,
 			MinCachePulseAge:      100,
 			MaxPastPulseAge:       1000,
 		}, handleFactory, nil)
@@ -116,7 +116,9 @@ func TestNewPulseConveyor(t *testing.T) {
 
 const maxPastPulseAge = 100
 
-func newTestPulseConveyor(ctx context.Context, t *testing.T, preFactoryFn func(pulse.Number, pulse.Range)) (*PulseConveyor, chan struct{}) {
+func newTestPulseConveyor(ctx context.Context, t *testing.T,
+	preFactoryFn func(pulse.Number, pulse.Range), cycleFn PulseConveyorCycleFunc,
+) (*PulseConveyor, chan struct{}) {
 	instestlogger.SetTestOutput(t)
 
 	machineConfig := smachine.SlotMachineConfig{
@@ -129,22 +131,24 @@ func newTestPulseConveyor(ctx context.Context, t *testing.T, preFactoryFn func(p
 	conveyor := NewPulseConveyor(ctx, PulseConveyorConfig{
 		ConveyorMachineConfig: machineConfig,
 		SlotMachineConfig:     machineConfig,
-		EventlessSleep:        100 * time.Millisecond,
 		MinCachePulseAge:      maxPastPulseAge / 2,
 		MaxPastPulseAge:       maxPastPulseAge,
 	}, func(_ context.Context, input InputEvent, ic InputContext) (InputSetup, error) {
-		require.Nil(t, input)
 		if preFactoryFn != nil {
 			preFactoryFn(ic.PulseNumber, ic.PulseRange)
 		}
+		burn := false
+		if b, ok := input.(bool); ok && b {
+			burn = true
+		}
 		return InputSetup{
 			CreateFn: func(ctx smachine.ConstructionContext) smachine.StateMachine {
-				return &emptySM{}
+				return &emptySM{ burner: burn}
 			}}, nil
 	}, nil)
 
 	emerChan := make(chan struct{})
-	conveyor.StartWorker(emerChan, nil)
+	conveyor.StartWorkerExt(emerChan, nil, cycleFn)
 	return conveyor, emerChan
 }
 
@@ -159,7 +163,7 @@ func TestPulseConveyor_AddInput(t *testing.T) {
 			require.NotNil(t, pr)
 			require.True(t, pr.RightBoundData().IsExpectedPulse())
 			require.Equal(t, pn, inputPN)
-		})
+		}, nil)
 
 		defer func() {
 			close(emerChan)
@@ -179,7 +183,7 @@ func TestPulseConveyor_AddInput(t *testing.T) {
 			require.NotNil(t, pr)
 			require.True(t, pr.RightBoundData().IsExpectedPulse())
 			require.Equal(t, pn, inputPN)
-		})
+		}, nil)
 
 		defer func() {
 			close(emerChan)
@@ -200,7 +204,7 @@ func TestPulseConveyor_AddInput(t *testing.T) {
 			require.NotNil(t, pr)
 			require.False(t, pr.RightBoundData().IsExpectedPulse())
 			require.Equal(t, startPn, inputPN)
-		})
+		}, nil)
 		defer func() {
 			close(emerChan)
 			conveyor.Stop()
@@ -221,7 +225,7 @@ func TestPulseConveyor_AddInput(t *testing.T) {
 		conveyor, emerChan := newTestPulseConveyor(ctx, t, func(inputPN pulse.Number, pr pulse.Range) {
 			require.NotNil(t, pr)
 			require.False(t, pr.RightBoundData().IsExpectedPulse())
-		})
+		}, nil)
 		defer func() {
 			close(emerChan)
 			conveyor.Stop()
@@ -247,7 +251,7 @@ func TestPulseConveyor_AddInput(t *testing.T) {
 		conveyor, emerChan := newTestPulseConveyor(ctx, t, func(inputPN pulse.Number, pr pulse.Range) {
 			require.Nil(t, pr)
 			require.Equal(t, firstPn, inputPN)
-		})
+		}, nil)
 		defer func() {
 			close(emerChan)
 			conveyor.Stop()
@@ -268,7 +272,7 @@ func TestPulseConveyor_AddInput(t *testing.T) {
 			require.NotNil(t, pr)
 			require.False(t, pr.RightBoundData().IsExpectedPulse())
 			require.Equal(t, firstPn, inputPN)
-		})
+		}, nil)
 		defer func() {
 			close(emerChan)
 			conveyor.Stop()
@@ -295,7 +299,7 @@ func TestPulseConveyor_AddInput(t *testing.T) {
 		conveyor, emerChan := newTestPulseConveyor(ctx, t, func(inputPN pulse.Number, pr pulse.Range) {
 			require.Nil(t, pr)
 			require.Equal(t, firstPn, inputPN)
-		})
+		}, nil)
 		defer func() {
 			close(emerChan)
 			conveyor.Stop()
@@ -371,4 +375,92 @@ func TestPulseConveyor_Cache(t *testing.T) {
 	prevPN, prevBeat = dm.GetPrevBeatData()
 	require.Equal(t, firstPn, prevPN)
 	require.Equal(t, pd.AsRange(), prevBeat.Range)
+}
+
+func TestPulseConveyor_PulsePreparing(t *testing.T) {
+	ctx := context.Background()
+	const delta = 10
+	pd := pulse.NewFirstPulsarData(delta, longbits.Bits256{})
+
+	cycleCount := atomickit.NewUint64(0)
+	nextCycleSig := make(chan struct{}, 1)
+	cycleLock := sync.Mutex{}
+
+	conveyor, emerChan := newTestPulseConveyor(ctx, t, nil,
+		func(state CycleState) {
+			switch state {
+			case ScanIdle:
+				cycleCount.Add(1)
+			case ScanActive:
+				cycleCount.Add(1<<32)
+			}
+			select {
+			case nextCycleSig <- struct{}{}:
+			default:
+			}
+
+			cycleLock.Lock()
+			cycleLock.Unlock()
+		})
+
+	defer func() {
+		close(emerChan)
+		conveyor.Stop()
+	}()
+
+	require.NoError(t, conveyor.CommitPulseChange(pd.AsRange(), time.Now(), nil))
+	require.NoError(t, conveyor.AddInput(ctx, pd.PulseNumber, true))
+
+	pd = pd.CreateNextPulse(emptyEntropyFn)
+	require.NoError(t, conveyor.AddInput(ctx, pd.PulseNumber, true))
+
+	require.NoError(t, conveyor.PreparePulseChange(nil))
+	require.NoError(t, conveyor.CommitPulseChange(pd.AsRange(), time.Now(), nil))
+
+	// make sure AddInput is handled
+	<-nextCycleSig
+	<-nextCycleSig
+
+	pd = pd.CreateNextPulse(emptyEntropyFn)
+
+	cycleLock.Lock()
+	go func() {
+		require.NoError(t, conveyor.PreparePulseChange(nil))
+	}()
+
+	for !conveyor.pdm.isPreparingPulse() {
+		time.Sleep(time.Millisecond)
+	}
+	// after this moment there are only priority SMs are allowed
+	// but cycle is blocked
+
+	// flush mark and reset counters
+	require.NotZero(t, cycleCount.Swap(0))
+
+	cycleLock.Unlock()
+
+	// here we should have 2 actives (apply of PreparePulseChange, then first run of stepPreparingChange) and one idle cycle
+	expectedCounts := uint64(2<<32) | 1
+	for cycleCount.Load() < expectedCounts {
+		time.Sleep(time.Millisecond)
+	}
+	<-nextCycleSig
+
+	require.Equal(t, expectedCounts, cycleCount.Load())
+
+	time.Sleep(10*time.Millisecond)
+	// should be no new cycles
+	require.EqualValues(t, expectedCounts, cycleCount.Load())
+
+	require.NoError(t, conveyor.CommitPulseChange(pd.AsRange(), time.Now(), nil))
+
+	// normal activities are restored
+	<-nextCycleSig
+	<-nextCycleSig
+
+	count := cycleCount.Load()
+
+	require.Equal(t, uint32(expectedCounts), uint32(count)) // should be NO more idle cycles as SMs are burning
+	count>>=32
+	require.Greater(t, count, 2+(expectedCounts>>32)) // at least +2 as waited for 2 signals
 }
