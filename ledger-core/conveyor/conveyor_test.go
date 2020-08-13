@@ -460,7 +460,7 @@ func TestPulseConveyor_PulsePreparing(t *testing.T) {
 
 	count := cycleCount.Load()
 
-	require.Equal(t, uint32(expectedCounts), uint32(count)) // should be more idle cycles as SMs are burning
+	require.Equal(t, uint32(expectedCounts), uint32(count)) // should be NO more idle cycles as SMs are burning
 	count>>=32
 	require.Greater(t, count, 2+(expectedCounts>>32)) // at least +2 as waited for 2 signals
 }
