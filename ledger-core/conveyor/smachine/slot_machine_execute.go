@@ -207,7 +207,7 @@ func (m *SlotMachine) _executeSlot(slot *Slot, prevStepNo uint32, worker Attache
 		released := slot._releaseAllDependency()
 		m.activateDependants(released, slot.NewLink(), worker.AsFixedSlotWorker())
 	}
-	slot.slotFlags &^= slotWokenUp
+	slot.slotFlags &^= slotWokenUp|slotPriorityChanged
 
 	var stateUpdate StateUpdate
 
