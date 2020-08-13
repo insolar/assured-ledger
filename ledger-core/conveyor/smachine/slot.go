@@ -97,6 +97,7 @@ const (
 	slotHadAsync // purely diagnostic
 	slotIsTracing
 	slotIsBoosted
+	slotPriorityChanged
 	slotStepSuspendMigrate
 )
 
@@ -119,7 +120,7 @@ const stepIncrement uint64 = 1 << stepIncrementShift
 const slotFlagBusy uint64 = 1 << slotFlagBusyShift
 const slotIDMask = slotFlagBusy - 1
 
-//see also numberOfReservedSteps
+// see also numberOfReservedSteps
 
 /*
 	Slot and step numbers are interpreted together with isBusy flag:
@@ -397,7 +398,7 @@ func (s *slotData) isLastScan(scanNo uint32) bool {
 func (s *Slot) setNextStep(step SlotStep, stepDecl *StepDeclaration) {
 	if step.Transition == nil {
 		if step.Flags != 0 || step.Migration != nil {
-			panic("illegal value")
+			panic(throw.IllegalValue())
 		}
 		// leave as-is
 		return
@@ -421,6 +422,10 @@ func (s *Slot) setNextStep(step SlotStep, stepDecl *StepDeclaration) {
 		step.Flags |= defFlags
 	} else {
 		step.Flags &^= StepResetAllFlags
+	}
+
+	if (s.step.Flags & StepPriority) != (step.Flags & StepPriority) {
+		s.slotFlags ^= slotPriorityChanged
 	}
 
 	s.step = step
