@@ -17,10 +17,10 @@ import (
 )
 
 type RecordBuilder struct {
-	RS crypto.RecordScheme
-	RT reference.Template
-	DS cryptkit.DataSigner
-	PS reference.Holder
+	RecordScheme   crypto.RecordScheme
+	RefTemplate    reference.Template
+	ProducerSigner cryptkit.DataSigner
+	ProducerRef    reference.Holder
 }
 
 func (v RecordBuilder) ApplySignature(req *rms.LRegisterRequest) {
@@ -42,7 +42,7 @@ func (v RecordBuilder) ApplySignature(req *rms.LRegisterRequest) {
 		panic(throw.IllegalValue())
 	}
 
-	digester := v.RS.RecordDigester().NewHasher()
+	digester := v.RecordScheme.RecordDigester().NewHasher()
 	digester.DigestOf(rlv)
 	if req.OverrideRecordType != 0 {
 		rc := rms.LRegisterRequest{
@@ -63,12 +63,20 @@ func (v RecordBuilder) ApplySignature(req *rms.LRegisterRequest) {
 	}
 	digest := digester.SumToDigest()
 
-	sign := v.DS.SignDigest(digest)
+	sign := v.ProducerSigner.SignDigest(digest)
 	req.ProducerSignature.Set(sign)
-	req.ProducedBy.Set(v.PS)
+	req.ProducedBy.Set(v.ProducerRef)
+}
+
+func (v RecordBuilder) MakeLineStart(record rms.BasicRecord) *rms.LRegisterRequest {
+	return v.makeRequest(record, true)
 }
 
 func (v RecordBuilder) MakeRequest(record rms.BasicRecord) *rms.LRegisterRequest {
+	return v.makeRequest(record, false)
+}
+
+func (v RecordBuilder) makeRequest(record rms.BasicRecord, selfRef bool) *rms.LRegisterRequest {
 	req := &rms.LRegisterRequest{}
 	if err := req.SetAsLazy(record); err != nil {
 		panic(err)
@@ -79,10 +87,17 @@ func (v RecordBuilder) MakeRequest(record rms.BasicRecord) *rms.LRegisterRequest
 		panic(throw.IllegalValue())
 	}
 
-	digester := v.RS.RefDataDigester().NewHasher()
+	digester := v.RecordScheme.RefDataDigester().NewHasher()
 	digest := digester.DigestOf(rlv).SumToDigest()
-	ref := v.RT.WithHash(reference.CopyToLocalHash(digest))
-	req.AnticipatedRef.Set(ref)
+	localHash := reference.CopyToLocalHash(digest)
+
+	if selfRef {
+		ref := v.RefTemplate.WithHashAsSelf(localHash)
+		req.AnticipatedRef.Set(ref)
+	} else {
+		ref := v.RefTemplate.WithHash(localHash)
+		req.AnticipatedRef.Set(ref)
+	}
 
 	return req
 }
