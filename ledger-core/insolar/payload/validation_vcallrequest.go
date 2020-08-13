@@ -96,14 +96,14 @@ func (m *VCallRequest) Validate(currentPulse PulseNumber) error {
 	}
 
 	if !m.Callee.IsSelfScope() {
-		return throw.New("")
+		return throw.New("Callee should be self scoped reference")
 	}
 
 	var (
 		calleePulse = m.Caller.GetLocal().GetPulseNumber()
 	)
 	if !isSpecialOrTimePulseBeforeOrEq(calleePulse, currentPulse) {
-		return throw.New("")
+		return throw.New("Callee should have special or valid time pulse before or equal to current pulse")
 	}
 
 	if m.CallOutgoing.IsEmpty() {
