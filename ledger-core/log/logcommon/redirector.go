@@ -41,10 +41,11 @@ func IsBasedOn(t, lookFor TestingLogger) bool {
 type ErrorFilterFunc = func(string) bool
 
 type TestingLoggerOutput struct {
-	Output, EchoTo    io.Writer
+	Output, EchoTo io.Writer
 	Testing        TestingLogger
 	InterceptFatal func([]byte) bool
 	ErrorFilterFn  ErrorFilterFunc
+	LogFiltered    bool
 }
 
 func (r *TestingLoggerOutput) Close() error {
@@ -90,7 +91,7 @@ func (r *TestingLoggerOutput) LogLevelWrite(level Level, b []byte) (int, error) 
 	case PanicLevel, ErrorLevel:
 		if r.ErrorFilterFn == nil || r.ErrorFilterFn(msg) {
 			defer r.Testing.Error(msg)
-		} else {
+		} else if r.LogFiltered {
 			defer r.Testing.Log(msg)
 		}
 	}
