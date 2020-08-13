@@ -45,7 +45,6 @@ type SMExecute struct {
 
 	// internal data
 	pendingConstructorFinished smachine.SyncLink
-	semaphoreExecute           smachine.SyncLink
 
 	isConstructor     bool
 	execution         execution.Context
