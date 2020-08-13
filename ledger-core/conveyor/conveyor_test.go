@@ -393,6 +393,8 @@ func TestPulseConveyor_PulsePreparing(t *testing.T) {
 				cycleCount.Add(1)
 			case ScanActive:
 				cycleCount.Add(1<<32)
+			default:
+				return
 			}
 			select {
 			case nextCycleSig <- struct{}{}:
@@ -455,12 +457,13 @@ func TestPulseConveyor_PulsePreparing(t *testing.T) {
 	require.NoError(t, conveyor.CommitPulseChange(pd.AsRange(), time.Now(), nil))
 
 	// normal activities are restored
-	<-nextCycleSig
-	<-nextCycleSig
+	<-nextCycleSig // possible residual
+	<-nextCycleSig // extra cycle 1
+	<-nextCycleSig // extra cycle 2
 
 	count := cycleCount.Load()
 
 	require.Equal(t, uint32(expectedCounts), uint32(count)) // should be NO more idle cycles as SMs are burning
 	count>>=32
-	require.Greater(t, count, 2+(expectedCounts>>32)) // at least +2 as waited for 2 signals
+	require.GreaterOrEqual(t, count, 2+(expectedCounts>>32)) // at least +2 as waited for 2 signals
 }
