@@ -439,6 +439,7 @@ func (p *PulseConveyor) sendSignal(fn smachine.MachineCallFunc) error {
 }
 
 func (p *PulseConveyor) PreparePulseChange(out PreparePulseChangeFunc) error {
+	p.pdm.awaitPreparingPulse()
 	return p.sendSignal(func(ctx smachine.MachineCallContext) {
 		if p.presentMachine == nil {
 			// wrong - first pulse can only be committed but not prepared
@@ -610,7 +611,13 @@ func (p *PulseConveyor) runWorker(emergencyStop <-chan struct{}, closeOnStop cha
 			nextPollTime time.Time
 		)
 		_, callCount := p.machineWorker.AttachTo(p.slotMachine, p.externalSignal.Mark(), math.MaxUint32, func(worker smachine.AttachedSlotWorker) {
-			repeatNow, nextPollTime = p.slotMachine.ScanOnce(smachine.ScanDefault, worker)
+
+			scanMode := smachine.ScanDefault
+			if p.pdm.isPriorityWorkOnly() {
+				scanMode = smachine.ScanPriorityOnly
+			}
+
+			repeatNow, nextPollTime = p.slotMachine.ScanOnce(scanMode, worker)
 		})
 
 		select {
