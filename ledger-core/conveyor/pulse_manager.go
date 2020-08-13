@@ -14,6 +14,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smadapter"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -34,7 +35,7 @@ type PulseDataManager struct {
 	// mutable
 	presentAndFuturePulse uint64 // atomic
 	earliestCacheBound    uint32 // atomic
-	preparingPulseFlag    uint32 // atomic
+	preparingPulseFlag    atomickit.Uint32
 }
 
 type BeatDataService interface {
@@ -149,15 +150,23 @@ func (p *PulseDataManager) getEarliestCacheBound() pulse.Number {
 }
 
 func (p *PulseDataManager) isPreparingPulse() bool {
-	return atomic.LoadUint32(&p.preparingPulseFlag) != 0
+	return p.preparingPulseFlag.Load() > 0
+}
+
+func (p *PulseDataManager) isPriorityWorkOnly() bool {
+	return p.preparingPulseFlag.Load() > 0
+}
+
+func (p *PulseDataManager) awaitPreparingPulse() {
+	p.preparingPulseFlag.Store(1)
 }
 
 func (p *PulseDataManager) setPreparingPulse(_ PreparePulseChangeFunc) {
-	atomic.StoreUint32(&p.preparingPulseFlag, 1)
+	p.preparingPulseFlag.Store(1)
 }
 
 func (p *PulseDataManager) unsetPreparingPulse() {
-	atomic.StoreUint32(&p.preparingPulseFlag, 0)
+	p.preparingPulseFlag.Store(0)
 }
 
 func (p *PulseDataManager) GetPulseData(pn pulse.Number) (pulse.Data, bool) {
