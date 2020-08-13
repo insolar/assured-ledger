@@ -395,7 +395,6 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 		Meta: &payload.Meta{
 			Sender: caller,
 		},
-		semaphoreOrdered: sharedState.OrderedExecute,
 	}
 	catalogWrapper := object.NewCatalogMockWrapper(mc)
 
