@@ -168,8 +168,8 @@ message VDelegatedRequestFinished {
 
     bytes ResultFlags = 23;
 
-    bytes CallOutgoing = 24 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/reference.Global", (insproto.zeroable) = false];
-    bytes CallIncoming = 25 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/reference.Global", (insproto.zeroable) = false];
+    Reference CallOutgoing = 24;
+    Reference CallIncoming = 25;
 
     CallDelegationToken DelegationSpec = 26;
 
