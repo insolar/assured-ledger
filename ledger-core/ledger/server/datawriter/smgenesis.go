@@ -18,6 +18,7 @@ import (
 
 type GenesisKey string
 const GenesisKeyValue GenesisKey = "genesis"
+const DefaultGenesisSplitDepth = 2
 
 var _ smachine.StateMachine = &SMGenesis{}
 
@@ -67,8 +68,7 @@ func (p *SMGenesis) stepInit(ctx smachine.InitializationContext) smachine.StateU
 func (p *SMGenesis) stepPrepare(ctx smachine.ExecutionContext) smachine.StateUpdate {
 
 	// init and run genesis service here
-	postGenesisTreeDepth := uint8(2)
-	p.treeSvc.FinishGenesis(postGenesisTreeDepth, p.lastPN)
+	p.treeSvc.FinishGenesis(DefaultGenesisSplitDepth, p.lastPN)
 
 	return ctx.Stop()
 }

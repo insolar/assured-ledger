@@ -18,15 +18,20 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 )
 
+// AppComponent is an interface for a component that wraps an application compartment.
+// This component will be managed by ComponentManager.
 type AppComponent interface {
 	// Init(ctx context.Context) error
 	// Start(ctx context.Context) error
 	// Stop(ctx context.Context) error
 
+	// GetMessageHandler provides a handler to receive inbound messages.
 	GetMessageHandler() message.NoPublishHandlerFunc
+	// GetBeatDispatcher provides a handler to receive pulse beats.
 	GetBeatDispatcher() beat.Dispatcher
 }
 
+// AppFactoryFunc is a factory method to create an app component with the given configuration and dependencies.
 type AppFactoryFunc = func(context.Context, configuration.Configuration, AppComponents) (AppComponent, error)
 
 type AppComponents struct {
@@ -36,6 +41,7 @@ type AppComponents struct {
 	CryptoScheme   crypto.PlatformScheme
 }
 
+// AddInterfaceDependencies is a convenience method to add non-nil references into a injector.DependencyContainer.
 func (v AppComponents) AddInterfaceDependencies(container injector.DependencyContainer) {
 	if v.AffinityHelper != nil {
 		injector.AddInterfaceDependency(container, &v.AffinityHelper)

@@ -55,7 +55,7 @@ func rootCommand(cmd *cobra.Command, args []string) {
 	}
 
 	ctx := context.Background()
-	ctx, logger := inslogger.InitNodeLogger(ctx, cfg.Log, "", "keeperd")
+	ctx, logger := inslogger.InitGlobalNodeLogger(ctx, cfg.Log, "", "keeperd")
 
 	m := metrics.NewMetrics(cfg.Metrics, GetRegistry(), "keeper")
 	err = m.Init(ctx)
