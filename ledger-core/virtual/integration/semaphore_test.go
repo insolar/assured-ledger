@@ -13,7 +13,6 @@ import (
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -62,7 +61,6 @@ func TestVirtual_SemaphoreLimitNotExceeded(t *testing.T) {
 	}
 
 	var (
-		class            = testwallet.GetClass()
 		interferenceFlag = contract.CallIntolerable
 		stateFlag        = contract.CallDirty
 		numParallelExecs = int64(0)
@@ -98,16 +96,12 @@ func TestVirtual_SemaphoreLimitNotExceeded(t *testing.T) {
 	// Send VCallRequests
 	{
 		for i := 0; i < numObject; i++ {
-			pl := payload.VCallRequest{
-				CallType:            payload.CTMethod,
-				CallFlags:           payload.BuildCallFlags(interferenceFlag, stateFlag),
-				Caller:              server.GlobalCaller(),
-				Callee:              objects[i],
-				CallSiteDeclaration: class,
-				CallSiteMethod:      objects[i].String(),
-				CallOutgoing:        server.BuildRandomOutgoingWithPulse(),
-			}
-			server.SendPayload(ctx, &pl)
+			pl := utils.GenerateVCallRequestMethod(server)
+			pl.CallFlags = payload.BuildCallFlags(interferenceFlag, stateFlag)
+			pl.Callee = objects[i]
+			pl.CallSiteMethod = objects[i].String()
+
+			server.SendPayload(ctx, pl)
 		}
 	}
 
