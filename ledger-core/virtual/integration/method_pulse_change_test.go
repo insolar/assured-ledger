@@ -28,6 +28,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/predicate"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/synchronization"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
@@ -115,15 +116,14 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 				isFirstToken    = true
 			)
 
-			pl := payload.VCallRequest{
-				CallType:       payload.CTMethod,
-				CallFlags:      payload.BuildCallFlags(test.isolation.Interference, test.isolation.State),
-				Callee:         object,
-				CallSiteMethod: "SomeMethod",
-				CallOutgoing:   outgoing,
-			}
+			pl := utils.GenerateVCallRequestMethod(server)
+			pl.CallFlags = payload.BuildCallFlags(test.isolation.Interference, test.isolation.State)
+			pl.Callee = object
+			pl.CallSiteMethod = "SomeMethod"
+			pl.CallOutgoing = outgoing
 
 			synchronizeExecution := synchronization.NewPoint(1)
+			defer synchronizeExecution.Done()
 
 			// add ExecutionMocks to runnerMock
 			{
@@ -220,7 +220,7 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 				})
 			}
 
-			server.SendPayload(ctx, &pl)
+			server.SendPayload(ctx, pl)
 
 			commonTestUtils.WaitSignalsTimed(t, 10*time.Second, synchronizeExecution.Wait())
 			for i := 0; i < test.countChangePulse; i++ {
@@ -280,19 +280,11 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
 	var (
-		prevPulse = server.GetPulse().PulseNumber
-		object    = gen.UniqueGlobalRefWithPulse(prevPulse)
-
-		approver = gen.UniqueGlobalRef()
-
 		content *payload.VStateReport_ProvidedContentBody
 
-		request = payload.VCallRequest{
-			CallType: payload.CTMethod,
-			Caller:   server.GlobalCaller(),
-			Callee:   object,
-			// set flags, outgoing and method name later
-		}
+		prevPulse = server.GetPulse().PulseNumber
+		object    = server.RandomGlobalWithPulse()
+		approver  = server.RandomGlobalWithPulse()
 	)
 
 	server.IncrementPulse(ctx)
@@ -324,6 +316,7 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 	}
 
 	synchronizeExecution := synchronization.NewPoint(3)
+	defer synchronizeExecution.Done()
 
 	// add checks to typedChecker
 	{
@@ -387,41 +380,43 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 	}
 
 	for i := int64(0); i < 4; i++ {
-
 		var (
 			objectExecutionMock *logicless.ExecutionMock
 			result              *requestresult.RequestResult
 
-			req              = request
-			outgoing         = server.BuildRandomOutgoingWithPulse()
 			newObjDescriptor = descriptor.NewObject(
 				reference.Global{}, reference.Local{}, gen.UniqueGlobalRef(), []byte(""), false,
 			)
 		)
 
+		request := utils.GenerateVCallRequestMethod(server)
+		request.Callee = object
+
 		switch i {
 		case 0, 1:
-			req.CallSiteMethod = "ordered" + strconv.FormatInt(i, 10)
-			req.CallFlags = payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty)
+			request.CallSiteMethod = "ordered" + strconv.FormatInt(i, 10)
+			request.CallFlags = payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty)
 
-			runnerMock.AddExecutionClassify(req.CallSiteMethod, tolerableFlags(), nil)
+			runnerMock.AddExecutionClassify(request.CallSiteMethod, tolerableFlags(), nil)
 			result = requestresult.New([]byte("call result"), object)
 			result.SetAmend(newObjDescriptor, []byte("new memory"))
-			objectExecutionMock = runnerMock.AddExecutionMock(req.CallSiteMethod)
+			objectExecutionMock = runnerMock.AddExecutionMock(request.CallSiteMethod)
 
 		case 2, 3:
-			req.CallSiteMethod = "unordered" + strconv.FormatInt(i, 10)
-			req.CallFlags = payload.BuildCallFlags(contract.CallIntolerable, contract.CallValidated)
+			request.CallSiteMethod = "unordered" + strconv.FormatInt(i, 10)
+			request.CallFlags = payload.BuildCallFlags(contract.CallIntolerable, contract.CallValidated)
 
-			runnerMock.AddExecutionClassify(req.CallSiteMethod, intolerableFlags(), nil)
-			objectExecutionMock = runnerMock.AddExecutionMock(req.CallSiteMethod)
+			runnerMock.AddExecutionClassify(request.CallSiteMethod, intolerableFlags(), nil)
+			objectExecutionMock = runnerMock.AddExecutionMock(request.CallSiteMethod)
 			result = requestresult.New([]byte("call result"), object)
+		default:
+			panic(throw.Impossible())
 		}
 
-		req.CallOutgoing = outgoing
+		request.CallOutgoing = server.BuildRandomOutgoingWithPulse()
 		objectExecutionMock.AddStart(
 			func(_ execution.Context) {
-				logger.Debug("ExecutionStart [" + req.CallSiteMethod + "]")
+				logger.Debug("ExecutionStart [" + request.CallSiteMethod + "]")
 				synchronizeExecution.Synchronize()
 			},
 			&execution.Update{
@@ -429,7 +424,7 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 				Result: result,
 			},
 		)
-		server.SendPayload(ctx, &req)
+		server.SendPayload(ctx, request)
 	}
 
 	commonTestUtils.WaitSignalsTimed(t, 20*time.Second, synchronizeExecution.Wait())
@@ -529,19 +524,16 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 				requestResult := requestresult.New([]byte("call result"), gen.UniqueGlobalRef())
 
 				objectExecutionMock := runnerMock.AddExecutionMock("SomeMethod")
-				objectExecutionMock.AddStart(
-					func(ctx execution.Context) {
-						logger.Debug("ExecutionStart [SomeMethod]")
-						require.Equal(t, object, ctx.Request.Callee)
-						require.Equal(t, []byte("new object memory"), ctx.ObjectDescriptor.Memory())
-						require.Equal(t, dirtyStateRef, ctx.ObjectDescriptor.StateID())
-						require.True(t, getDelegated)
-					},
-					&execution.Update{
-						Type:   execution.Done,
-						Result: requestResult,
-					},
-				)
+				objectExecutionMock.AddStart(func(ctx execution.Context) {
+					logger.Debug("ExecutionStart [SomeMethod]")
+					require.Equal(t, object, ctx.Request.Callee)
+					require.Equal(t, []byte("new object memory"), ctx.ObjectDescriptor.Memory())
+					require.Equal(t, dirtyStateRef, ctx.ObjectDescriptor.StateID())
+					require.True(t, getDelegated)
+				}, &execution.Update{
+					Type:   execution.Done,
+					Result: requestResult,
+				})
 			}
 
 			// add checks to typedChecker
@@ -558,16 +550,13 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 
 			// VCallRequest
 			{
-				pl := payload.VCallRequest{
-					CallType:            payload.CTMethod,
-					CallFlags:           payload.BuildCallFlags(test.isolation.Interference, test.isolation.State),
-					Caller:              server.GlobalCaller(),
-					Callee:              object,
-					CallSiteDeclaration: class,
-					CallSiteMethod:      "SomeMethod",
-					CallOutgoing:        outgoingP2,
-				}
-				server.SendPayload(ctx, &pl)
+				pl := utils.GenerateVCallRequestMethod(server)
+				pl.CallFlags = payload.BuildCallFlags(test.isolation.Interference, test.isolation.State)
+				pl.Callee = object
+				pl.CallSiteMethod = "SomeMethod"
+				pl.CallOutgoing = outgoingP2
+
+				server.SendPayload(ctx, pl)
 			}
 			// VDelegatedCallRequest
 			{

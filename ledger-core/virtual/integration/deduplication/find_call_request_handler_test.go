@@ -230,16 +230,12 @@ func StepMethodStart(s *VFindCallRequestHandlingSuite, ctx context.Context, t *t
 	}
 	s.addPayloadAndWaitIdle(ctx, &report)
 
-	req := payload.VCallRequest{
-		CallType:       payload.CTMethod,
-		CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
-		Caller:         s.getCaller(),
-		Callee:         s.getObject(),
-		CallSiteMethod: "SomeMethod",
-		CallSequence:   1,
-		CallOutgoing:   s.getOutgoingRef(),
-	}
-	s.addPayloadAndWaitIdle(ctx, &req)
+	req := utils.GenerateVCallRequestMethod(s.server)
+	req.Caller = s.getCaller()
+	req.Callee = s.getObject()
+	req.CallOutgoing = s.getOutgoingRef()
+
+	s.addPayloadAndWaitIdle(ctx, req)
 	s.finalizedMessageSent = make(chan struct{})
 
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, s.executionPoint.Wait())
@@ -260,16 +256,12 @@ func StepConstructorStart(s *VFindCallRequestHandlingSuite, ctx context.Context,
 		s.addPayloadAndWaitIdle(ctx, &report)
 	}
 
-	req := payload.VCallRequest{
-		CallType:       payload.CTConstructor,
-		CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
-		Caller:         s.getCaller(),
-		Callee:         s.getClass(),
-		CallSiteMethod: "New",
-		CallSequence:   1,
-		CallOutgoing:   s.getOutgoingRef(),
-	}
-	s.addPayloadAndWaitIdle(ctx, &req)
+	req := utils.GenerateVCallRequestConstructor(s.server)
+	req.Caller = s.getCaller()
+	req.Callee = s.getClass()
+	req.CallOutgoing = s.getOutgoingRef()
+
+	s.addPayloadAndWaitIdle(ctx, req)
 	s.finalizedMessageSent = make(chan struct{})
 
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, s.executionPoint.Wait())
@@ -321,9 +313,7 @@ func (s *VFindCallRequestHandlingSuite) initServer(t *testing.T) context.Context
 	server, ctx := utils.NewUninitializedServer(nil, t)
 	s.server = server
 
-	s.runnerMock = logicless.NewServiceMock(ctx, t, func(execution execution.Context) string {
-		return execution.Request.CallSiteMethod
-	})
+	s.runnerMock = logicless.NewServiceMock(ctx, t, nil)
 	server.ReplaceRunner(s.runnerMock)
 
 	server.Init(ctx)
@@ -354,9 +344,7 @@ func (s *VFindCallRequestHandlingSuite) switchToP3(ctx context.Context) {
 }
 
 func (s *VFindCallRequestHandlingSuite) generateCaller() {
-	p := s.getP1()
-	local := gen.UniqueLocalRefWithPulse(p)
-	s.caller = reference.NewSelf(local)
+	s.caller = s.server.GlobalCaller()
 }
 
 func (s *VFindCallRequestHandlingSuite) generateObjectRef() {
@@ -458,7 +446,7 @@ func (s *VFindCallRequestHandlingSuite) setMessageCheckers(
 
 func (s *VFindCallRequestHandlingSuite) setRunnerMock() {
 	isolation := contract.MethodIsolation{Interference: contract.CallTolerable, State: contract.CallDirty}
-	s.runnerMock.AddExecutionClassify("SomeMethod", isolation, nil)
+	s.runnerMock.AddExecutionClassify(s.getOutgoingRef().String(), isolation, nil)
 
 	newObjDescriptor := descriptor.NewObject(
 		reference.Global{}, reference.Local{}, s.getClass(), []byte(""), false,
@@ -468,7 +456,7 @@ func (s *VFindCallRequestHandlingSuite) setRunnerMock() {
 		methodResult := requestresult.New([]byte("execution"), gen.UniqueGlobalRef())
 		methodResult.SetAmend(newObjDescriptor, []byte("new memory"))
 
-		executionMock := s.runnerMock.AddExecutionMock("SomeMethod")
+		executionMock := s.runnerMock.AddExecutionMock(s.getOutgoingRef().String())
 		executionMock.AddStart(func(ctx execution.Context) {
 			s.executionPoint.Synchronize()
 		}, &execution.Update{
