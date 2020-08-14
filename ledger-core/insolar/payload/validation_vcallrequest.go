@@ -11,7 +11,7 @@ import (
 
 var _ Validatable = &VCallRequest{}
 
-func validCallType(ct CallTypeNew) error {
+func validCallType(ct CallType) error {
 	switch ct {
 	case CTMethod, CTConstructor:
 	case CTInboundAPICall, CTOutboundAPICall, CTNotifyCall, CTSAGACall, CTParallelCall, CTScheduleCall:
