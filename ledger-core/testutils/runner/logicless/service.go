@@ -18,6 +18,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner"
 	"github.com/insolar/assured-ledger/ledger-core/runner/call"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
+	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -171,10 +172,14 @@ func (s *ServiceMock) ExecutionStart(execution execution.Context) runner.RunStat
 	return executionMock.state
 }
 
-func (s *ServiceMock) ExecutionContinue(run runner.RunState, outgoingResult []byte) {
+func (s *ServiceMock) ExecutionContinue(run runner.RunState, outgoingResult requestresult.OutgoingExecutionResult) {
 	r, ok := run.(*runState)
 	if !ok {
 		panic(throw.IllegalValue())
+	}
+
+	if outgoingResult.Err != nil {
+		panic(throw.NotImplemented())
 	}
 
 	executionMock, ok := s.executionMapping.getByID(r.id)
@@ -196,7 +201,7 @@ func (s *ServiceMock) ExecutionContinue(run runner.RunState, outgoingResult []by
 		if !ok {
 			panic(throw.IllegalState())
 		} else if checkFunc != nil {
-			checkFunc(outgoingResult)
+			checkFunc(outgoingResult.ExecutionResult)
 		}
 	}
 
