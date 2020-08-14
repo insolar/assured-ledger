@@ -20,10 +20,16 @@ type SendResultFullFlag byte
 const (
 	SendResultDefault SendResultFullFlag = iota
 	SendResultFull
+
+	sendResultMax = iota
 )
 
 func (f SendResultFullFlag) IsZero() bool {
 	return f == 0
+}
+
+func (f SendResultFullFlag) IsValid() bool {
+	return f < sendResultMax
 }
 
 type RepeatedCallFlag byte
@@ -31,10 +37,16 @@ type RepeatedCallFlag byte
 const (
 	CallDefault RepeatedCallFlag = iota
 	RepeatedCall
+
+	callMax = iota
 )
 
 func (f RepeatedCallFlag) IsZero() bool {
 	return f == 0
+}
+
+func (f RepeatedCallFlag) IsValid() bool {
+	return f < callMax
 }
 
 const (
@@ -76,6 +88,10 @@ func (f CallRequestFlags) GetRepeatedCall() RepeatedCallFlag {
 }
 
 func BuildCallRequestFlags(sendResultFull SendResultFullFlag, repeatedCall RepeatedCallFlag) CallRequestFlags {
-
 	return CallRequestFlags(0).WithSendResultFull(sendResultFull).WithRepeatedCall(repeatedCall)
+}
+
+func (f CallRequestFlags) IsValid() bool {
+	return f.GetRepeatedCall().IsValid() && f.GetSendResult().IsValid() &&
+		f.WithRepeatedCall(0).WithSendResultFull(0) == 0
 }

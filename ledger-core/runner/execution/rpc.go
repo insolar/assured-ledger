@@ -109,7 +109,6 @@ func (e CallConstructor) ConstructVCallRequest(execution Context) *payload.VCall
 		Callee:              e.class,
 		CallSiteMethod:      e.constructor,
 		CallSequence:        0, // must be filled in the caller
-		CallReason:          e.parentRequestReference,
 		KnownCalleeIncoming: reference.Global{},
 		CallOutgoing:        reference.Global{}, // must be filled in the caller
 		Arguments:           e.arguments,
@@ -165,8 +164,7 @@ func (e CallMethod) ConstructVCallRequest(execution Context) *payload.VCallReque
 		Caller:         e.parentObjectReference,
 		Callee:         e.object,
 		CallSiteMethod: e.method,
-		CallSequence:   0, // must be filled in the caller
-		CallReason:     e.parentRequestReference,
+		CallSequence:   0,                  // must be filled in the caller
 		CallOutgoing:   reference.Global{}, // must be filled in the caller
 		Arguments:      e.arguments,
 	}

@@ -381,16 +381,13 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) startNewPending(
 		nil,
 	)
 
-	pl := payload.VCallRequest{
-		CallType:       payload.CTMethod,
-		CallFlags:      payload.BuildCallFlags(intFlag, contract.CallDirty),
-		Caller:         s.getCaller(),
-		Callee:         s.getObject(),
-		CallSiteMethod: "Some",
-		CallSequence:   1,
-		CallOutgoing:   outgoing,
-	}
-	s.addPayloadAndWaitIdle(ctx, &pl)
+	pl := utils.GenerateVCallRequestMethod(s.server)
+	pl.CallFlags = payload.BuildCallFlags(intFlag, contract.CallDirty)
+	pl.Caller = s.getCaller()
+	pl.Callee = s.getObject()
+	pl.CallOutgoing = outgoing
+
+	s.addPayloadAndWaitIdle(ctx, pl)
 
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, inExecutor)
 }
