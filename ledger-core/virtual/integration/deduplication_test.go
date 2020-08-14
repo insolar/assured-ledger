@@ -103,8 +103,8 @@ func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 			}
 
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-			// Checks
-			{
+
+			{ // Checks
 				typedChecker.VCallResult.SetResend(false)
 
 				typedChecker.VFindCallRequest.Set(func(req *payload.VFindCallRequest) bool {
@@ -125,15 +125,14 @@ func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 				})
 			}
 
-			pl := payload.VCallRequest{
-				CallType:       payload.CTMethod,
-				CallFlags:      payload.BuildCallFlags(isolation.Interference, isolation.State),
-				Callee:         object,
-				CallSiteMethod: "SomeMethod",
-				CallOutgoing:   outgoing,
-			}
-			server.SendPayload(ctx, &pl)
-			server.SendPayload(ctx, &pl)
+			pl := utils.GenerateVCallRequestMethod(server)
+			pl.CallFlags = payload.BuildCallFlags(isolation.Interference, isolation.State)
+			pl.Callee = object
+			pl.CallSiteMethod = "SomeMethod"
+			pl.CallOutgoing = outgoing
+
+			server.SendPayload(ctx, pl)
+			server.SendPayload(ctx, pl)
 
 			commontestutils.WaitSignalsTimed(t, 10*time.Second, oneExecutionEnded)
 
@@ -253,20 +252,19 @@ func TestDeduplication_SecondCallOfMethodAfterExecution(t *testing.T) {
 				})
 			}
 
-			pl := payload.VCallRequest{
-				CallType:       payload.CTMethod,
-				CallFlags:      payload.BuildCallFlags(isolation.Interference, isolation.State),
-				Callee:         object,
-				CallSiteMethod: "SomeMethod",
-				CallOutgoing:   outgoing,
-			}
+			pl := utils.GenerateVCallRequestMethod(server)
+			pl.CallFlags = payload.BuildCallFlags(isolation.Interference, isolation.State)
+			pl.Callee = object
+			pl.CallSiteMethod = "SomeMethod"
+			pl.CallOutgoing = outgoing
+
 			oneExecutionEnded := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 			executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 2)
 
-			server.SendPayload(ctx, &pl)
+			server.SendPayload(ctx, pl)
 			commontestutils.WaitSignalsTimed(t, 10*time.Second, oneExecutionEnded)
 
-			server.SendPayload(ctx, &pl)
+			server.SendPayload(ctx, pl)
 			commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
 			commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
@@ -486,16 +484,14 @@ func TestDeduplication_MethodUsingPrevVE(t *testing.T) {
 				suite.finishPending(ctx)
 			}
 
-			request := payload.VCallRequest{
-				CallType:       payload.CTMethod,
-				CallFlags:      payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
-				Caller:         suite.getCaller(),
-				Callee:         suite.getObject(),
-				CallSiteMethod: "SomeMethod",
-				CallSequence:   1,
-				CallOutgoing:   suite.getOutgoingLocal(),
-			}
-			suite.addPayloadAndWaitIdle(ctx, &request)
+			request := utils.GenerateVCallRequestMethod(suite.server)
+			request.CallFlags = payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty)
+			request.Caller = suite.getCaller()
+			request.Callee = suite.getObject()
+			request.CallSiteMethod = "SomeMethod"
+			request.CallOutgoing = suite.getOutgoingLocal()
+
+			suite.addPayloadAndWaitIdle(ctx, request)
 
 			commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
 			commontestutils.WaitSignalsTimed(t, 10*time.Second, suite.server.Journal.WaitAllAsyncCallsDone())
