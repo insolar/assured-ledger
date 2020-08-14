@@ -18,19 +18,19 @@ func isTimePulseBefore(pn pulse.Number, before pulse.Number) bool {
 	return pn.IsTimePulse() && pn.IsBefore(before)
 }
 
-func isSpecialTimePulseBefore(pn pulse.Number, before pulse.Number) bool {
-	return pn.IsSpecial() || pn.IsTimePulse() && pn.IsBefore(before)
+func isSpecialOrTimePulseBefore(pn pulse.Number, before pulse.Number) bool {
+	return pn.IsSpecial() || (pn.IsTimePulse() && pn.IsBefore(before))
 }
 
 func isTimePulseBeforeOrEq(pn pulse.Number, before pulse.Number) bool {
 	return pn.IsTimePulse() && pn.IsBeforeOrEq(before)
 }
 
-func isSpecialTimePulseBeforeOrEq(pn pulse.Number, before pulse.Number) bool {
+func isSpecialOrTimePulseBeforeOrEq(pn pulse.Number, before pulse.Number) bool {
 	return pn.IsSpecial() || (pn.IsTimePulse() && pn.IsBeforeOrEq(before))
 }
 
-func globalBasePulseBeforeOrEqLocalPulse(global reference.Global) bool {
+func globalBasePulseIsSpecialOrBeforeOrEqLocalPulse(global reference.Global) bool {
 	var (
 		basePulse  = global.GetBase().GetPulseNumber()
 		localPulse = global.GetLocal().GetPulseNumber()
