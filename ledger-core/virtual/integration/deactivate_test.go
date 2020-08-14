@@ -262,7 +262,7 @@ func TestVirtual_CallMethod_On_CompletelyDeactivatedObject(t *testing.T) {
 
 			callTypeTestCases := []struct {
 				name     string
-				callType payload.CallTypeNew
+				callType payload.CallType
 				errorMsg string
 			}{
 				{
