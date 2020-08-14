@@ -1001,7 +1001,6 @@ func (s *SMExecute) stepSendCallResult(ctx smachine.ExecutionContext) smachine.S
 	msg := payload.VCallResult{
 		CallType:        s.Payload.CallType,
 		CallFlags:       s.Payload.CallFlags,
-		CallAsOf:        s.Payload.CallAsOf,
 		Caller:          s.Payload.Caller,
 		Callee:          s.execution.Object,
 		CallOutgoing:    s.execution.Outgoing,

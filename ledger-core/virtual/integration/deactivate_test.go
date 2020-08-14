@@ -193,15 +193,10 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 			// Deactivate object if it's active
 			{
 				if !(test.dirtyIsDeactivated || test.entirelyDeactivated) {
-					pl := &payload.VCallRequest{
-						CallType:            payload.CTMethod,
-						CallFlags:           payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
-						Callee:              objectGlobal,
-						CallSiteDeclaration: class,
-						CallSiteMethod:      "Deactivate",
-						CallOutgoing:        outgoingDestroy,
-						Arguments:           insolar.MustSerialize([]interface{}{}),
-					}
+					pl := utils.GenerateVCallRequestMethod(server)
+					pl.Callee = objectGlobal
+					pl.CallOutgoing = outgoingDestroy
+
 					executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 					server.SendPayload(ctx, pl)
 					commonTestUtils.WaitSignalsTimed(t, 10*time.Second, executeDone)
@@ -211,31 +206,25 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 			// VCallRequest get state dirty/validated
 			{
 				// get validated state
-				pl := payload.VCallRequest{
-					CallType:            payload.CTMethod,
-					CallFlags:           payload.BuildCallFlags(contract.CallIntolerable, contract.CallValidated),
-					Caller:              server.GlobalCaller(),
-					Callee:              objectGlobal,
-					CallSiteDeclaration: class,
-					CallSiteMethod:      "GetValidated",
-					CallOutgoing:        outgoingGetValidated,
-				}
+				pl := utils.GenerateVCallRequestMethod(server)
+				pl.CallFlags = payload.BuildCallFlags(contract.CallIntolerable, contract.CallValidated)
+				pl.Callee = objectGlobal
+				pl.CallSiteMethod = "GetValidated"
+				pl.CallOutgoing = outgoingGetValidated
+
 				executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
-				server.SendPayload(ctx, &pl)
+				server.SendPayload(ctx, pl)
 				commonTestUtils.WaitSignalsTimed(t, 10*time.Second, executeDone)
 
 				// get dirty state
-				pl = payload.VCallRequest{
-					CallType:            payload.CTMethod,
-					CallFlags:           payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
-					Caller:              server.GlobalCaller(),
-					Callee:              objectGlobal,
-					CallSiteDeclaration: class,
-					CallSiteMethod:      "GetDirty",
-					CallOutgoing:        outgoingGetDirty,
-				}
+				pl = utils.GenerateVCallRequestMethod(server)
+				pl.CallFlags = payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty)
+				pl.Callee = objectGlobal
+				pl.CallSiteMethod = "GetDirty"
+				pl.CallOutgoing = outgoingGetDirty
+
 				executeDone = server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
-				server.SendPayload(ctx, &pl)
+				server.SendPayload(ctx, pl)
 				commonTestUtils.WaitSignalsTimed(t, 10*time.Second, executeDone)
 			}
 
@@ -445,15 +434,11 @@ func TestVirtual_CallDeactivate_Intolerable(t *testing.T) {
 
 			// Deactivate object with wrong callFlags
 			{
-				pl := &payload.VCallRequest{
-					CallType:            payload.CTMethod,
-					CallFlags:           payload.BuildCallFlags(contract.CallIntolerable, testCase.state),
-					Callee:              objectGlobal,
-					CallSiteDeclaration: class,
-					CallSiteMethod:      "Destroy",
-					CallOutgoing:        server.BuildRandomOutgoingWithPulse(),
-					Arguments:           insolar.MustSerialize([]interface{}{}),
-				}
+				pl := utils.GenerateVCallRequestMethod(server)
+				pl.CallFlags = payload.BuildCallFlags(contract.CallIntolerable, testCase.state)
+				pl.Callee = objectGlobal
+				pl.CallSiteMethod = "Destroy"
+
 				server.SendPayload(ctx, pl)
 				commonTestUtils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitStopOf(&execute.SMExecute{}, 1))
 			}
@@ -602,16 +587,12 @@ func TestVirtual_DeactivateObject_ChangePulse(t *testing.T) {
 	})
 
 	{
-		pl := payload.VCallRequest{
-			CallType:            payload.CTMethod,
-			CallFlags:           payload.BuildCallFlags(deactivateIsolation.Interference, deactivateIsolation.State),
-			Caller:              server.GlobalCaller(),
-			Callee:              objectRef,
-			CallSiteDeclaration: class,
-			CallSiteMethod:      "Deactivate",
-			CallOutgoing:        outgoing,
-		}
-		server.SendPayload(ctx, &pl)
+		pl := utils.GenerateVCallRequestMethod(server)
+		pl.Callee = objectRef
+		pl.CallSiteMethod = "Deactivate"
+		pl.CallOutgoing = outgoing
+
+		server.SendPayload(ctx, pl)
 	}
 
 	commonTestUtils.WaitSignalsTimed(t, 10*time.Second, synchronizeExecution.Wait())
@@ -663,8 +644,10 @@ func TestVirtual_CallMethod_After_Deactivation(t *testing.T) {
 
 	outgoingDeactivate := server.BuildRandomOutgoingWithPulse()
 	outgoingSomeMethod := server.BuildRandomOutgoingWithPulse()
-	synchronizeExecution := synchronization.NewPoint(1)
 	twoExecutionEnded := server.Journal.WaitStopOf(&execute.SMExecute{}, 2)
+
+	synchronizeExecution := synchronization.NewPoint(1)
+	defer synchronizeExecution.Done()
 
 	// mock
 	{
@@ -676,15 +659,12 @@ func TestVirtual_CallMethod_After_Deactivation(t *testing.T) {
 		objectExecutionMock.AddStart(nil, &execution.Update{
 			Type:     execution.OutgoingCall,
 			Outgoing: execution.NewRPCBuilder(server.RandomGlobalWithPulse(), objectRef).Deactivate(),
-		}).AddContinue(
-			func(result []byte) {
-				synchronizeExecution.Synchronize()
-			},
-			&execution.Update{
-				Type:   execution.Done,
-				Result: requestResult,
-			},
-		)
+		}).AddContinue(func(result []byte) {
+			synchronizeExecution.Synchronize()
+		}, &execution.Update{
+			Type:   execution.Done,
+			Result: requestResult,
+		})
 		runnerMock.AddExecutionClassify("Destroy", deactivateIsolation, nil)
 		runnerMock.AddExecutionClassify("SomeMethod", deactivateIsolation, nil)
 	}
@@ -709,32 +689,25 @@ func TestVirtual_CallMethod_After_Deactivation(t *testing.T) {
 
 	// Deactivate
 	{
-		deactivateRequest := &payload.VCallRequest{
-			CallType:            payload.CTMethod,
-			CallFlags:           payload.BuildCallFlags(deactivateIsolation.Interference, deactivateIsolation.State),
-			Callee:              objectRef,
-			CallSiteDeclaration: class,
-			CallSiteMethod:      "Destroy",
-			CallOutgoing:        outgoingDeactivate,
-			Arguments:           insolar.MustSerialize([]interface{}{}),
-		}
-		server.SendPayload(ctx, deactivateRequest)
+		pl := utils.GenerateVCallRequestMethod(server)
+		pl.Callee = objectRef
+		pl.CallSiteMethod = "Destroy"
+		pl.CallOutgoing = outgoingDeactivate
+
+		server.SendPayload(ctx, pl)
 	}
+	commonTestUtils.WaitSignalsTimed(t, 10*time.Second, synchronizeExecution.Wait())
 
 	// vCallRequest
+	{
+		pl := utils.GenerateVCallRequestMethod(server)
+		pl.Callee = objectRef
+		pl.CallSiteMethod = "SomeMethod"
+		pl.CallOutgoing = outgoingSomeMethod
 
-	pl := &payload.VCallRequest{
-		CallType:            payload.CTMethod,
-		CallFlags:           payload.BuildCallFlags(deactivateIsolation.Interference, deactivateIsolation.State),
-		Callee:              objectRef,
-		CallSiteDeclaration: class,
-		CallSiteMethod:      "SomeMethod",
-		CallOutgoing:        outgoingSomeMethod,
-		Arguments:           insolar.MustSerialize([]interface{}{}),
+		server.SendPayload(ctx, pl)
 	}
 
-	commonTestUtils.WaitSignalsTimed(t, 10*time.Second, synchronizeExecution.Wait())
-	server.SendPayload(ctx, pl)
 	time.Sleep(100 * time.Millisecond)
 	synchronizeExecution.WakeUp()
 
@@ -769,7 +742,6 @@ func TestVirtual_Deactivation_Deduplicate(t *testing.T) {
 			Interference: contract.CallTolerable,
 			State:        contract.CallDirty,
 		}
-		oneExecutionConstructor, oneExecutionDeactivate bool
 	)
 
 	// mock
@@ -780,18 +752,10 @@ func TestVirtual_Deactivation_Deduplicate(t *testing.T) {
 		requestResult.SetDeactivate(descr)
 
 		deactivationMock := runnerMock.AddExecutionMock(outgoingDeactivate.String())
-		deactivationMock.AddStart(func(ctx execution.Context) {
-			if !oneExecutionDeactivate {
-				oneExecutionDeactivate = true
-			} else {
-				oneExecutionDeactivate = false
-			}
-		},
-			&execution.Update{
-				Type:   execution.Done,
-				Result: requestResult,
-			},
-		)
+		deactivationMock.AddStart(nil, &execution.Update{
+			Type:   execution.Done,
+			Result: requestResult,
+		})
 		runnerMock.AddExecutionClassify(outgoingDeactivate.String(), isolation, nil)
 
 		// Constructor mock
@@ -799,18 +763,10 @@ func TestVirtual_Deactivation_Deduplicate(t *testing.T) {
 		result.SetActivate(reference.Global{}, class, []byte("state"))
 
 		constructorMock := runnerMock.AddExecutionMock(outgoing.String())
-		constructorMock.AddStart(func(ctx execution.Context) {
-			if !oneExecutionConstructor {
-				oneExecutionConstructor = true
-			} else {
-				oneExecutionConstructor = false
-			}
-		},
-			&execution.Update{
-				Type:   execution.Done,
-				Result: result,
-			},
-		)
+		constructorMock.AddStart(nil, &execution.Update{
+			Type:   execution.Done,
+			Result: result,
+		})
 		runnerMock.AddExecutionClassify(outgoing.String(), isolation, nil)
 	}
 
@@ -831,41 +787,26 @@ func TestVirtual_Deactivation_Deduplicate(t *testing.T) {
 	}
 
 	// Constructor
+	constructRequest := utils.GenerateVCallRequestConstructor(server)
+	constructRequest.Callee = objectRef
+	constructRequest.CallSiteMethod = "Destroy"
+	constructRequest.CallOutgoing = outgoing
 
-	pl := payload.VCallRequest{
-		CallType:       payload.CTConstructor,
-		CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
-		Caller:         server.GlobalCaller(),
-		Callee:         class,
-		CallSiteMethod: "New",
-		CallOutgoing:   outgoing,
-		Arguments:      insolar.MustSerialize([]interface{}{}),
-	}
+	// Deactivation
+	deactivateRequest := utils.GenerateVCallRequestMethod(server)
+	deactivateRequest.Callee = objectRef
+	deactivateRequest.CallSiteMethod = "Destroy"
+	deactivateRequest.CallOutgoing = outgoingDeactivate
 
-	// Deactivate
-
-	deactivateRequest := payload.VCallRequest{
-		CallType:            payload.CTMethod,
-		CallFlags:           payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
-		Callee:              objectRef,
-		CallSiteDeclaration: class,
-		CallSiteMethod:      "Destroy",
-		CallOutgoing:        outgoingDeactivate,
-		Arguments:           insolar.MustSerialize([]interface{}{}),
-	}
-
-	requests := []payload.VCallRequest{pl, deactivateRequest, pl, deactivateRequest}
+	requests := []*payload.VCallRequest{constructRequest, deactivateRequest, constructRequest, deactivateRequest}
 	for _, r := range requests {
 		await := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
-		server.SendPayload(ctx, &r)
+		server.SendPayload(ctx, r)
 		commonTestUtils.WaitSignalsTimed(t, 10*time.Second, await)
 	}
 
 	commonTestUtils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 	require.Equal(t, 4, typedChecker.VCallResult.Count())
-
-	require.True(t, oneExecutionDeactivate)
-	require.True(t, oneExecutionConstructor)
 
 	mc.Finish()
 }
@@ -895,7 +836,6 @@ func TestVirtual_DeduplicateCallAfterDeactivation_PrevVE(t *testing.T) {
 			server.Init(ctx)
 
 			var (
-				class             = server.RandomGlobalWithPulse()
 				objectGlobal      = server.RandomGlobalWithPulse()
 				prevPulse         = server.GetPulse().PulseNumber
 				outgoingPrevPulse = server.BuildRandomOutgoingWithPulse()
@@ -955,16 +895,12 @@ func TestVirtual_DeduplicateCallAfterDeactivation_PrevVE(t *testing.T) {
 
 			// VCallRequest from previous pulse
 			{
-				pl := &payload.VCallRequest{
-					CallType:            payload.CTMethod,
-					CallFlags:           payload.BuildCallFlags(testCase.flags.Interference, testCase.flags.State),
-					CallAsOf:            prevPulse,
-					Callee:              objectGlobal,
-					CallSiteDeclaration: class,
-					CallSiteMethod:      "Foo",
-					CallOutgoing:        outgoingPrevPulse,
-					Arguments:           insolar.MustSerialize([]interface{}{}),
-				}
+				pl := utils.GenerateVCallRequestMethod(server)
+				pl.CallFlags = payload.BuildCallFlags(testCase.flags.Interference, testCase.flags.State)
+				pl.Callee = objectGlobal
+				pl.CallSiteMethod = "Foo"
+				pl.CallOutgoing = outgoingPrevPulse
+
 				executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 				server.SendPayload(ctx, pl)
 				commonTestUtils.WaitSignalsTimed(t, 10*time.Second, executeDone)
@@ -1124,18 +1060,15 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 			}
 
 			{
-				plEnded := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
-				pl := payload.VCallRequest{
-					CallType:            payload.CTMethod,
-					CallFlags:           payload.BuildCallFlags(testCase.isolation.Interference, testCase.isolation.State),
-					Caller:              server.GlobalCaller(),
-					Callee:              objectRef,
-					CallSiteDeclaration: class,
-					CallSiteMethod:      "Check",
-					CallOutgoing:        checkOutgoing,
-				}
-				server.SendPayload(ctx, &pl)
-				commonTestUtils.WaitSignalsTimed(t, 10*time.Second, plEnded)
+				pl := utils.GenerateVCallRequestMethod(server)
+				pl.CallFlags = payload.BuildCallFlags(testCase.isolation.Interference, testCase.isolation.State)
+				pl.Callee = objectRef
+				pl.CallSiteMethod = "Check"
+				pl.CallOutgoing = checkOutgoing
+
+				await := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
+				server.SendPayload(ctx, pl)
+				commonTestUtils.WaitSignalsTimed(t, 10*time.Second, await)
 			}
 
 			server.IncrementPulse(ctx)

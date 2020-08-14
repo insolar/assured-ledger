@@ -128,21 +128,15 @@ func TestDelegationToken_CheckTokenField(t *testing.T) {
 		fakeOutgoing bool
 	}{
 		{
-			name:         "Fail with wrong caller in token",
-			fakeCaller:   true,
-			fakeCallee:   false,
-			fakeOutgoing: false,
+			name:       "Fail with wrong caller in token",
+			fakeCaller: true,
 		},
 		{
-			name:         "Fail with wrong callee in token",
-			fakeCaller:   false,
-			fakeCallee:   true,
-			fakeOutgoing: false,
+			name:       "Fail with wrong callee in token",
+			fakeCallee: true,
 		},
 		{
 			name:         "Fail with wrong outgoing in token",
-			fakeCaller:   false,
-			fakeCallee:   false,
 			fakeOutgoing: true,
 		},
 	}
@@ -177,19 +171,13 @@ func TestDelegationToken_CheckTokenField(t *testing.T) {
 				MeMock.Return(jetCaller).
 				QueryRoleMock.Return([]reference.Global{jetCaller}, nil)
 
+			pl := utils.GenerateVCallRequestConstructor(server)
+
 			var (
-				isolation = contract.ConstructorIsolation()
-				callFlags = payload.BuildCallFlags(isolation.Interference, isolation.State)
-
-				class    = gen.UniqueGlobalRef()
-				outgoing = server.BuildRandomOutgoingWithPulse()
-
-				constructorPulse = server.GetPulse().PulseNumber
-
 				delegationToken payload.CallDelegationToken
 			)
 
-			delegationToken = server.DelegationToken(reference.NewRecordOf(class, outgoing.GetLocal()), server.GlobalCaller(), outgoing)
+			delegationToken = server.DelegationToken(pl.CallOutgoing, pl.Caller, pl.Callee)
 			switch {
 			case test.fakeCaller:
 				delegationToken.Caller = server.RandomGlobalWithPulse()
@@ -199,16 +187,9 @@ func TestDelegationToken_CheckTokenField(t *testing.T) {
 				delegationToken.Outgoing = server.RandomGlobalWithPulse()
 			}
 
-			pl := payload.VCallRequest{
-				CallType:       payload.CTConstructor,
-				CallFlags:      callFlags,
-				CallAsOf:       constructorPulse,
-				Callee:         class,
-				CallSiteMethod: "New",
-				CallOutgoing:   outgoing,
-				DelegationSpec: delegationToken,
-			}
-			server.SendPayload(ctx, &pl)
+			pl.DelegationSpec = delegationToken
+
+			server.SendPayload(ctx, pl)
 			server.WaitIdleConveyor()
 
 			assert.True(t, errorFound)
