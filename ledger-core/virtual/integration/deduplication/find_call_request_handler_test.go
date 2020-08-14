@@ -278,8 +278,9 @@ func StepRequestFinish(s *VFindCallRequestHandlingSuite, ctx context.Context, t 
 
 	commontestutils.WaitSignalsTimed(t, 20*time.Second, s.executeIsFinished)
 	// wait for VCallResult, VDelegatedRequestFinished
-	if s.withDelegation {
+	if s.vDelegatedRequestSent != nil {
 		commontestutils.WaitSignalsTimed(t, 10*time.Second, s.typedChecker.VDelegatedRequestFinished.Wait(ctx, 1))
+		close(s.vDelegatedRequestSent)
 	}
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, s.typedChecker.VCallResult.Wait(ctx, 1))
 }
@@ -307,13 +308,13 @@ type VFindCallRequestHandlingSuite struct {
 	object   reference.Global
 	outgoing reference.Local
 
-	isConstructor  bool
-	withDelegation bool
+	isConstructor bool
 
 	executionPoint        *synchronization.Point
 	executeIsFinished     synckit.SignalChannel
 	vStateReportSent      chan struct{}
 	vFindCallResponseSent chan struct{}
+	vDelegatedRequestSent chan struct{}
 }
 
 func (s *VFindCallRequestHandlingSuite) initServer(t *testing.T) context.Context {
@@ -436,7 +437,7 @@ func (s *VFindCallRequestHandlingSuite) setMessageCheckers(
 			ResponseDelegationSpec: delegationToken,
 		})
 
-		s.withDelegation = true
+		s.vDelegatedRequestSent = make(chan struct{}, 0)
 		return false
 	})
 	s.typedChecker.VDelegatedRequestFinished.SetResend(false)
