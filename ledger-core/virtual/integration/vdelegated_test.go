@@ -100,6 +100,10 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 	}
 }
 
+// -> VStateReport with ordered pending
+// -> VDelegatedCallRequest from VE(P-1)
+// -> VDelegatedRequestFinished from VE(P-1) with nes state BUT without token
+// -> increment pulse and check VStateReport
 func TestVirtual_VDelegatedRequestFinished_WithoutToken(t *testing.T) {
 	defer commontestutils.LeakTester(t)
 	insrail.LogCase(t, "C5146")
@@ -113,7 +117,7 @@ func TestVirtual_VDelegatedRequestFinished_WithoutToken(t *testing.T) {
 		mc        = minimock.NewController(t)
 		prevPulse = server.GetPulse().PulseNumber
 		objectRef = server.RandomGlobalWithPulse()
-		sender    = server.RandomGlobalWithPulse()
+		prevVE    = server.RandomGlobalWithPulse()
 		class     = server.RandomGlobalWithPulse()
 
 		outgoing = server.BuildRandomOutgoingWithPulse()
@@ -122,7 +126,7 @@ func TestVirtual_VDelegatedRequestFinished_WithoutToken(t *testing.T) {
 
 	server.IncrementPulseAndWaitIdle(ctx)
 
-	// send VStateReport with ordered pending
+	// send VStateReport with ordered pending and initial state
 	{
 		stateID := gen.UniqueLocalRefWithPulse(prevPulse)
 		payloadMeta := &payload.VStateReport{
@@ -144,24 +148,28 @@ func TestVirtual_VDelegatedRequestFinished_WithoutToken(t *testing.T) {
 		commontestutils.WaitSignalsTimed(t, 10*time.Second, wait)
 	}
 
-	node := server.RandomGlobalWithPulse()
-	server.JetCoordinatorMock.MeMock.Return(node)
-	server.JetCoordinatorMock.QueryRoleMock.Return([]reference.Global{sender}, nil)
+	currentVE := server.RandomGlobalWithPulse()
+	server.JetCoordinatorMock.MeMock.Return(currentVE)
+	server.JetCoordinatorMock.QueryRoleMock.Return([]reference.Global{prevVE}, nil)
 
+	// add checker to check VStateReport after pulse increment
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-	typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
-		// bug , VDelegatedRequestFinished without token updated state
-		assert.Equal(t, []byte("new state"), report.ProvidedContent.LatestDirtyState.State)
-		return false
-	})
-	typedChecker.VDelegatedCallResponse.Set(func(pl *payload.VDelegatedCallResponse) bool {
-		require.NotEmpty(t, pl.ResponseDelegationSpec)
-		require.Equal(t, objectRef, pl.ResponseDelegationSpec.Callee)
-		require.Equal(t, sender, pl.ResponseDelegationSpec.DelegateTo)
-		return false // no resend msg
-	})
+	{
+		typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
+			// BUG ??? , VDelegatedRequestFinished without token updated state
+			assert.Equal(t, []byte("new state"), report.ProvidedContent.LatestDirtyState.State)
+			return false
+		})
+		typedChecker.VDelegatedCallResponse.Set(func(pl *payload.VDelegatedCallResponse) bool {
+			require.NotEmpty(t, pl.ResponseDelegationSpec)
+			require.Equal(t, objectRef, pl.ResponseDelegationSpec.Callee)
+			require.Equal(t, prevVE, pl.ResponseDelegationSpec.DelegateTo)
+			require.Equal(t, currentVE, pl.ResponseDelegationSpec.Approver)
+			return false
+		})
+	}
 
-	// send VDelegatedCallRequest
+	// send VDelegatedCallRequest from VE(P-1)
 	{
 		pl := payload.VDelegatedCallRequest{
 			CallOutgoing: outgoing,
@@ -170,12 +178,12 @@ func TestVirtual_VDelegatedRequestFinished_WithoutToken(t *testing.T) {
 			CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 		}
 		wait := server.Journal.WaitStopOf(&handlers.SMVDelegatedCallRequest{}, 1)
-		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(sender).Finalize()
+		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(prevVE).Finalize()
 		server.SendMessage(ctx, msg)
 		commontestutils.WaitSignalsTimed(t, 10*time.Second, wait)
 	}
 
-	// send VDelegatedRequestFinished
+	// send VDelegatedRequestFinished from VE(P-1) with new state BUT without token
 	{
 		pl := payload.VDelegatedRequestFinished{
 			CallType:     payload.CTMethod,
@@ -186,15 +194,16 @@ func TestVirtual_VDelegatedRequestFinished_WithoutToken(t *testing.T) {
 			LatestState: &payload.ObjectState{
 				State: []byte("new state"),
 			},
+			DelegationSpec: payload.CallDelegationToken{}, // NO token
 		}
 		wait := server.Journal.WaitStopOf(&handlers.SMVDelegatedRequestFinished{}, 1)
-		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(sender).Finalize()
+		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(prevVE).Finalize()
 		server.SendMessage(ctx, msg)
 		commontestutils.WaitSignalsTimed(t, 10*time.Second, wait)
 	}
 
+	// increment pulse and wait for VStateReport
 	server.IncrementPulse(ctx)
-
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 1))
 
 	mc.Finish()
