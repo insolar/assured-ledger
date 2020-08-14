@@ -83,6 +83,11 @@ func (s *SMVStateReport) stepProcess(ctx smachine.ExecutionContext) smachine.Sta
 		return ctx.Error(throw.IllegalValue())
 	}
 
+	// We expected state report only from previous executor and previous pulse.
+	if s.pulseSlot != nil && s.Payload.AsOf < s.pulseSlot.PrevOperationPulseNumber() {
+		return ctx.Stop()
+	}
+
 	objectRef := s.Payload.Object
 	sharedObjectState := s.objectCatalog.GetOrCreate(ctx, objectRef)
 	setStateFunc := func(data interface{}) (wakeup bool) {

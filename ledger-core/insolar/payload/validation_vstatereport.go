@@ -66,7 +66,7 @@ func (m *VStateReport) validateStatusEmpty(currPulse PulseNumber) error {
 	objectPulse := m.GetAsOf()
 	orderedPendingPulse := m.GetOrderedPendingEarliestPulse()
 
-	if !orderedPendingPulse.IsTimePulse() || orderedPendingPulse < objectPulse || currPulse < orderedPendingPulse {
+	if !orderedPendingPulse.IsTimePulse() || orderedPendingPulse > objectPulse || currPulse < orderedPendingPulse {
 		return throw.New("Incorrect pending ordered pulse number")
 	}
 
