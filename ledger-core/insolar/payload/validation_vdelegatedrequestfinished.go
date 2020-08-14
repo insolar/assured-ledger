@@ -32,14 +32,8 @@ func (m *VDelegatedRequestFinished) Validate(currentPulse pulse.Number) error {
 		return err
 	}
 
-	switch m.GetCallType() {
-	case CTMethod, CTConstructor:
-	case CTInboundAPICall, CTOutboundAPICall, CTNotifyCall, CTSAGACall, CTParallelCall, CTScheduleCall:
-		return throw.New("CallType is not implemented")
-	case CTInvalid:
-		fallthrough
-	default:
-		return throw.New("CallType must be valid")
+	if err := validCallType(m.GetCallType()); err != nil {
+		return err
 	}
 
 	if !m.GetCallFlags().IsValid() {
@@ -70,7 +64,7 @@ func (m *VDelegatedRequestFinished) Validate(currentPulse pulse.Number) error {
 		return throw.New("CallIncoming local part should have valid time pulse lesser than current pulse")
 	case !isTimePulseBefore(incomingBasePulse, currentPulse):
 		return throw.New("CallIncoming base part should have valid time pulse lesser than current pulse")
-	case !globalBasePulseBeforeOrEqLocalPulse(m.CallIncoming):
+	case !globalBasePulseIsSpecialOrBeforeOrEqLocalPulse(m.CallIncoming):
 		return throw.New("CallIncoming base pulse should be less or equal than local pulse")
 	}
 
@@ -85,10 +79,10 @@ func (m *VDelegatedRequestFinished) Validate(currentPulse pulse.Number) error {
 	switch {
 	case !isTimePulseBefore(outgoingLocalPulse, currentPulse):
 		return throw.New("CallOutgoing local part should have valid time pulse lesser than current pulse")
-	case !isSpecialTimePulseBefore(outgoingBasePulse, currentPulse):
+	case !isSpecialOrTimePulseBefore(outgoingBasePulse, currentPulse):
 		// probably call outgoing base part can be special (API Call)
 		return throw.New("CallOutgoing base part should have valid pulse lesser than current pulse")
-	case !globalBasePulseBeforeOrEqLocalPulse(m.CallOutgoing):
+	case !globalBasePulseIsSpecialOrBeforeOrEqLocalPulse(m.CallOutgoing):
 		return throw.New("CallOutgoing base pulse should be less or equal than local pulse")
 	}
 

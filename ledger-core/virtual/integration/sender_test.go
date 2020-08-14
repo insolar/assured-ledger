@@ -173,6 +173,9 @@ func TestVirtual_SenderCheck_With_ExpectedVE(t *testing.T) {
 						m.CallOutgoing = server.BuildRandomOutgoingWithPulse()
 						m.CallIncoming = server.RandomGlobalWithPulse()
 						m.ReturnArguments = []byte("some result")
+
+					case *payload.VCallRequest:
+						testMsg.msg = utils.GenerateVCallRequestMethod(server)
 					}
 
 					server.SendPayload(ctx, testMsg.msg.(payload.Marshaler)) // default caller == server.GlobalCaller()

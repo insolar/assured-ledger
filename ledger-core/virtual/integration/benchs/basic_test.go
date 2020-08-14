@@ -64,15 +64,10 @@ func BenchmarkVCallRequestGetMethod(b *testing.B) {
 		return false
 	})
 
-	pl := payload.VCallRequest{
-		CallType:            payload.CTMethod,
-		CallFlags:           payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
-		Caller:              server.GlobalCaller(),
-		Callee:              object,
-		CallSiteDeclaration: class,
-		CallSiteMethod:      "GetBalance",
-		Arguments:           insolar.MustSerialize([]interface{}{}),
-	}
+	pl := *utils.GenerateVCallRequestMethod(server)
+	pl.CallFlags = payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty)
+	pl.Callee = object
+	pl.CallSiteMethod = "GetBalance"
 
 	b.StopTimer()
 	b.ResetTimer()
@@ -130,15 +125,9 @@ func BenchmarkVCallRequestAcceptMethod(b *testing.B) {
 		return false
 	})
 
-	pl := payload.VCallRequest{
-		CallType:            payload.CTMethod,
-		CallFlags:           payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
-		Caller:              server.GlobalCaller(),
-		Callee:              object,
-		CallSiteDeclaration: class,
-		CallSiteMethod:      "Accept",
-		Arguments:           insolar.MustSerialize([]interface{}{uint32(10)}),
-	}
+	pl := *utils.GenerateVCallRequestMethod(server)
+	pl.Callee = object
+	pl.CallSiteMethod = "Accept"
 
 	b.StopTimer()
 	b.ResetTimer()
@@ -166,14 +155,10 @@ func BenchmarkVCallRequestConstructor(b *testing.B) {
 		return false
 	})
 
-	pl := payload.VCallRequest{
-		CallType:       payload.CTConstructor,
-		CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
-		Caller:         server.GlobalCaller(),
-		Callee:         walletproxy.GetClass(),
-		CallSiteMethod: "New",
-		Arguments:      insolar.MustSerialize([]interface{}{}),
-	}
+	pl := *utils.GenerateVCallRequestConstructor(server)
+	pl.Callee = walletproxy.GetClass()
+	pl.CallSiteMethod = "New"
+	pl.CallOutgoing = server.BuildRandomOutgoingWithPulse()
 
 	b.ReportAllocs()
 	b.StopTimer()
