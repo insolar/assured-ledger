@@ -7,6 +7,7 @@ package logicless
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -141,9 +142,10 @@ func (s *ServiceMock) AddExecutionMock(key string) *ExecutionMock {
 }
 
 func (s *ServiceMock) ExecutionStart(execution execution.Context) runner.RunState {
-	executionMock, ok := s.executionMapping.getByKey(s.keyConstructor(execution))
+	key := s.keyConstructor(execution)
+	executionMock, ok := s.executionMapping.getByKey(key)
 	if !ok {
-		panic(throw.NotImplemented())
+		panic(fmt.Sprintf("failed to find state with id %s", key))
 	}
 
 	executionMock.state.result = nil

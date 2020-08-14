@@ -73,9 +73,9 @@ func (m *VCallResult) Validate(currentPulse PulseNumber) error {
 			return throw.New("Caller must be valid self scoped Reference")
 		case !m.Callee.IsSelfScope():
 			return throw.New("Callee must be valid self scoped Reference")
-		case !isSpecialTimePulseBeforeOrEq(calleePulse, currentPulse):
+		case !isSpecialOrTimePulseBeforeOrEq(calleePulse, currentPulse):
 			return throw.New("Callee must have valid time pulse with pulse lesser than current pulse")
-		case !isSpecialTimePulseBeforeOrEq(callerPulse, currentPulse):
+		case !isSpecialOrTimePulseBeforeOrEq(callerPulse, currentPulse):
 			return throw.New("Caller should have special or valid time pulse before or equal to current pulse")
 		}
 	}
@@ -86,9 +86,9 @@ func (m *VCallResult) Validate(currentPulse PulseNumber) error {
 			return throw.New("CallOutgoing should be non-empty")
 		case m.CallIncoming.IsEmpty():
 			return throw.New("CallIncoming should be non-empty")
-		case !globalBasePulseBeforeOrEqLocalPulse(m.CallOutgoing):
+		case !globalBasePulseIsSpecialOrBeforeOrEqLocalPulse(m.CallOutgoing):
 			return throw.New("CallOutgoing base pulse should be less or equal than local pulse")
-		case !globalBasePulseBeforeOrEqLocalPulse(m.CallIncoming):
+		case !globalBasePulseIsSpecialOrBeforeOrEqLocalPulse(m.CallIncoming):
 			return throw.New("CallIncoming base pulse should be less or equal than local pulse")
 		}
 
@@ -99,10 +99,10 @@ func (m *VCallResult) Validate(currentPulse PulseNumber) error {
 		switch {
 		case !isTimePulseBeforeOrEq(outgoingLocalPulse, currentPulse):
 			return throw.New("CallOutgoing local part should have valid time pulse lesser than current pulse")
-		case !isSpecialTimePulseBeforeOrEq(outgoingBasePulse, currentPulse):
+		case !isSpecialOrTimePulseBeforeOrEq(outgoingBasePulse, currentPulse):
 			// probably call outgoing base part can be special (API Call)
 			return throw.New("CallOutgoing base part should have valid pulse lesser than current pulse")
-		case !globalBasePulseBeforeOrEqLocalPulse(m.CallOutgoing):
+		case !globalBasePulseIsSpecialOrBeforeOrEqLocalPulse(m.CallOutgoing):
 			return throw.New("CallOutgoing base pulse should be less or equal than local pulse")
 		}
 
