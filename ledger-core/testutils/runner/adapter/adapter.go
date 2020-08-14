@@ -13,12 +13,13 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/runner"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
+	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type Service interface {
 	ExecutionStart(execution execution.Context) runner.RunState
-	ExecutionContinue(run runner.RunState, outgoingResult []byte)
+	ExecutionContinue(run runner.RunState, outgoingResult requestresult.OutgoingExecutionResult)
 	ExecutionAbort(run runner.RunState)
 	ExecutionClassify(execution execution.Context) (contract.MethodIsolation, error)
 }
@@ -34,7 +35,7 @@ func (a *Imposter) PrepareExecutionStart(ctx smachine.ExecutionContext, executio
 	})
 }
 
-func (a *Imposter) PrepareExecutionContinue(ctx smachine.ExecutionContext, state runner.RunState, outgoingResult []byte, fn func()) smachine.AsyncCallRequester {
+func (a *Imposter) PrepareExecutionContinue(ctx smachine.ExecutionContext, state runner.RunState, outgoingResult requestresult.OutgoingExecutionResult, fn func()) smachine.AsyncCallRequester {
 	if state == nil {
 		panic(throw.IllegalValue())
 	}

@@ -12,6 +12,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smadapter"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
+	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -57,7 +58,7 @@ func (p *runnerServiceInterceptor) ExecutionStart(execution execution.Context) R
 	return p.last
 }
 
-func (p *runnerServiceInterceptor) ExecutionContinue(run RunState, outgoingResult []byte) {
+func (p *runnerServiceInterceptor) ExecutionContinue(run RunState, outgoingResult requestresult.OutgoingExecutionResult) {
 	if p.last != nil {
 		panic(throw.IllegalState())
 	}
@@ -96,7 +97,7 @@ type serviceAdapter struct {
 
 type ServiceAdapter interface {
 	PrepareExecutionStart(ctx smachine.ExecutionContext, execution execution.Context, fn func(RunState)) smachine.AsyncCallRequester
-	PrepareExecutionContinue(ctx smachine.ExecutionContext, state RunState, outgoingResult []byte, fn func()) smachine.AsyncCallRequester
+	PrepareExecutionContinue(ctx smachine.ExecutionContext, state RunState, outgoingResult requestresult.OutgoingExecutionResult, fn func()) smachine.AsyncCallRequester
 	PrepareExecutionAbort(ctx smachine.ExecutionContext, state RunState) smachine.AsyncCallRequester
 	PrepareExecutionClassify(ctx smachine.ExecutionContext, execution execution.Context, fn func(contract.MethodIsolation, error)) smachine.AsyncCallRequester
 }
@@ -112,7 +113,7 @@ func (a *serviceAdapter) PrepareExecutionStart(ctx smachine.ExecutionContext, ex
 	})
 }
 
-func (a *serviceAdapter) PrepareExecutionContinue(ctx smachine.ExecutionContext, state RunState, outgoingResult []byte, fn func()) smachine.AsyncCallRequester {
+func (a *serviceAdapter) PrepareExecutionContinue(ctx smachine.ExecutionContext, state RunState, outgoingResult requestresult.OutgoingExecutionResult, fn func()) smachine.AsyncCallRequester {
 	if state == nil {
 		panic(throw.IllegalValue())
 	}
