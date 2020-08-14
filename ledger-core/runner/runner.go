@@ -34,7 +34,7 @@ const (
 
 type UnmanagedService interface {
 	ExecutionStart(execution execution.Context) RunState
-	ExecutionContinue(run RunState, outgoingResult []byte)
+	ExecutionContinue(run RunState, outgoingResult requestresult.OutgoingExecutionResult)
 	ExecutionAbort(run RunState)
 }
 
