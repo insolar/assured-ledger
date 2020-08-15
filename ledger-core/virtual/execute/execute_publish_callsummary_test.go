@@ -37,12 +37,12 @@ func TestSMExecute_PublishVCallResultToCallSummarySM(t *testing.T) {
 
 		pd          = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 		pulseSlot   = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-		outgoingRef = reference.NewRecordOf(gen.UniqueGlobalRef(), gen.UniqueLocalRefWithPulse(pd.PulseNumber))
+		outgoingRef = reference.NewRecordOf(gen.UniqueGlobalRefWithPulse(pd.PulseNumber), gen.UniqueLocalRefWithPulse(pd.PulseNumber))
 
 		callFlags = payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty)
 	)
 
-	class := gen.UniqueGlobalRef()
+	class := gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
 
 	request := &payload.VCallRequest{
 		CallType:            payload.CTConstructor,
