@@ -65,7 +65,7 @@ func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 
 			var (
 				prevPulse = server.GetPulse().PulseNumber
-				class     = gen.UniqueGlobalRef()
+				class     = server.RandomGlobalWithPulse()
 				outgoing  = server.BuildRandomOutgoingWithPulse()
 				object    = reference.NewSelf(outgoing.GetLocal())
 				isolation = tolerableFlags()
