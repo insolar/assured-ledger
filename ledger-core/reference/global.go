@@ -47,6 +47,10 @@ func NewRecordOf(owner Global, localID Local) Global {
 	// if base.IsEmpty() {
 	// 	panic(throw.IllegalValue())
 	// }
+	basePulse := base.Pulse()
+	if !basePulse.IsSpecial() && base.Pulse() > localID.Pulse() {
+		panic(throw.IllegalValue())
+	}
 	return Global{addressLocal: localID, addressBase: base}
 }
 

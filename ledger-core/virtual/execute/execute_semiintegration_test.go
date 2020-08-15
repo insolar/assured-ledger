@@ -38,9 +38,15 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 	var (
 		mc  = minimock.NewController(t)
 		ctx = instestlogger.TestContext(t)
+	)
 
-		class   = gen.UniqueGlobalRef()
-		caller  = gen.UniqueGlobalRef()
+	slotMachine := virtualdebugger.New(ctx, t)
+	slotMachine.InitEmptyMessageSender(mc)
+	slotMachine.PrepareRunner(ctx, mc)
+
+	var (
+		class   = gen.UniqueGlobalRefWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
+		caller  = gen.UniqueGlobalRefWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
 		limiter = tool.NewRunnerLimiter(4)
 
 		sharedState = &object.SharedState{
@@ -52,10 +58,6 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 			},
 		}
 	)
-
-	slotMachine := virtualdebugger.New(ctx, t)
-	slotMachine.InitEmptyMessageSender(mc)
-	slotMachine.PrepareRunner(ctx, mc)
 
 	outgoing := reference.NewRecordOf(caller, slotMachine.GenerateLocal())
 	objectRef := reference.NewSelf(outgoing.GetLocal())
@@ -115,10 +117,16 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 	var (
 		mc  = minimock.NewController(t)
 		ctx = instestlogger.TestContext(t)
+	)
 
-		class       = gen.UniqueGlobalRef()
-		caller      = gen.UniqueGlobalRef()
-		callee      = gen.UniqueGlobalRef()
+	slotMachine := virtualdebugger.New(ctx, t)
+	slotMachine.InitEmptyMessageSender(mc)
+	slotMachine.PrepareRunner(ctx, mc)
+
+	var (
+		class       = gen.UniqueGlobalRefWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
+		caller      = gen.UniqueGlobalRefWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
+		callee      = gen.UniqueGlobalRefWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
 		limiter     = tool.NewRunnerLimiter(4)
 		sharedState = &object.SharedState{
 			Info: object.Info{
@@ -129,10 +137,6 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 			},
 		}
 	)
-
-	slotMachine := virtualdebugger.New(ctx, t)
-	slotMachine.InitEmptyMessageSender(mc)
-	slotMachine.PrepareRunner(ctx, mc)
 
 	outgoing := reference.NewRecordOf(caller, slotMachine.GenerateLocal())
 	objectRef := reference.NewSelf(outgoing.GetLocal())
@@ -194,9 +198,15 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 	var (
 		mc  = minimock.NewController(t)
 		ctx = instestlogger.TestContext(t)
+	)
 
-		class       = gen.UniqueGlobalRef()
-		caller      = gen.UniqueGlobalRef()
+	slotMachine := virtualdebugger.New(ctx, t)
+	slotMachine.InitEmptyMessageSender(mc)
+	slotMachine.PrepareRunner(ctx, mc)
+
+	var (
+		class       = gen.UniqueGlobalRefWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
+		caller      = gen.UniqueGlobalRefWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
 		limiter     = tool.NewRunnerLimiter(4)
 		sharedState = &object.SharedState{
 			Info: object.Info{
@@ -207,10 +217,6 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 			},
 		}
 	)
-
-	slotMachine := virtualdebugger.New(ctx, t)
-	slotMachine.InitEmptyMessageSender(mc)
-	slotMachine.PrepareRunner(ctx, mc)
 
 	outgoing := reference.NewRecordOf(caller, slotMachine.GenerateLocal())
 	objectRef := reference.NewSelf(outgoing.GetLocal())
@@ -279,8 +285,8 @@ func TestSMExecute_Semi_ConstructorOnMissingObject(t *testing.T) {
 	slotMachine.PrepareRunner(ctx, mc)
 
 	var (
-		class       = gen.UniqueGlobalRef()
-		caller      = gen.UniqueGlobalRef()
+		class       = gen.UniqueGlobalRefWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
+		caller      = gen.UniqueGlobalRefWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
 		outgoing    = reference.NewRecordOf(caller, slotMachine.GenerateLocal())
 		objectRef   = reference.NewSelf(outgoing.GetLocal())
 		limiter     = tool.NewRunnerLimiter(4)
@@ -361,13 +367,13 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 	slotMachine.MessageSender.SendTarget.Set(func(_ context.Context, msg payload.Marshaler, target reference.Global, _ ...messagesender.SendOption) error {
 		res := msg.(*payload.VCallResult)
 		contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments)
-		require.Contains(t, contractErr.Error(), "try to call method on deactivated object")
 		require.NoError(t, sysErr)
+		require.Contains(t, contractErr.Error(), "try to call method on deactivated object")
 		return nil
 	})
 	var (
-		class       = gen.UniqueGlobalRef()
-		caller      = gen.UniqueGlobalRef()
+		class       = gen.UniqueGlobalRefWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
+		caller      = gen.UniqueGlobalRefWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
 		outgoing    = reference.NewRecordOf(caller, slotMachine.GenerateLocal())
 		objectRef   = reference.NewSelf(outgoing.GetLocal())
 		sharedState = &object.SharedState{
