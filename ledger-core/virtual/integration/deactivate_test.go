@@ -262,7 +262,7 @@ func TestVirtual_CallMethod_On_CompletelyDeactivatedObject(t *testing.T) {
 
 			callTypeTestCases := []struct {
 				name     string
-				callType payload.CallTypeNew
+				callType payload.CallType
 				errorMsg string
 			}{
 				{
@@ -514,77 +514,70 @@ func TestVirtual_DeactivateObject_ChangePulse(t *testing.T) {
 	}
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-	typedChecker.VStateRequest.Set(func(req *payload.VStateRequest) bool {
-		require.Equal(t, p1, req.AsOf)
-		require.Equal(t, objectRef, req.Object)
+	{
+		typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
+			require.Equal(t, objectRef, res.Callee)
+			require.Equal(t, outgoing, res.CallOutgoing)
+			require.Equal(t, []byte("finish Deactivate"), res.ReturnArguments)
+			return false
+		})
+		typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
+			require.Equal(t, objectRef, report.Object)
+			require.Equal(t, payload.Ready, report.Status)
+			require.True(t, report.DelegationSpec.IsZero())
+			require.Equal(t, int32(0), report.UnorderedPendingCount)
+			require.Equal(t, int32(1), report.OrderedPendingCount)
+			require.NotNil(t, report.ProvidedContent)
+			require.NotNil(t, report.ProvidedContent.LatestDirtyState)
+			require.False(t, report.ProvidedContent.LatestDirtyState.Deactivated)
+			require.Equal(t, []byte(origDirtyMem), report.ProvidedContent.LatestDirtyState.State)
+			require.NotNil(t, report.ProvidedContent.LatestValidatedState)
+			require.False(t, report.ProvidedContent.LatestValidatedState.Deactivated)
+			require.Equal(t, []byte(origDirtyMem), report.ProvidedContent.LatestValidatedState.State)
+			return false
+		})
+		typedChecker.VDelegatedCallRequest.Set(func(request *payload.VDelegatedCallRequest) bool {
+			require.Equal(t, objectRef, request.Callee)
+			require.Equal(t, outgoing, request.CallOutgoing)
+			token := server.DelegationToken(request.CallOutgoing, server.GlobalCaller(), request.Callee)
 
-		flags := payload.RequestLatestDirtyState | payload.RequestLatestValidatedState |
-			payload.RequestOrderedQueue | payload.RequestUnorderedQueue
-		require.Equal(t, flags, req.RequestedContent)
-
-		content := &payload.VStateReport_ProvidedContentBody{
-			LatestDirtyState: &payload.ObjectState{
-				Reference: reference.Local{},
-				Class:     class,
-				State:     []byte(origDirtyMem),
-			},
-			LatestValidatedState: &payload.ObjectState{
-				Reference: reference.Local{},
-				Class:     class,
-				State:     []byte(origValidatedMem),
-			},
-		}
-
+			response := payload.VDelegatedCallResponse{
+				Callee:                 request.Callee,
+				CallIncoming:           request.CallIncoming,
+				ResponseDelegationSpec: token,
+			}
+			server.SendPayload(ctx, &response)
+			return false
+		})
+		typedChecker.VDelegatedRequestFinished.Set(func(finished *payload.VDelegatedRequestFinished) bool {
+			require.NotNil(t, finished.LatestState)
+			require.True(t, finished.LatestState.Deactivated)
+			require.Nil(t, finished.LatestState.State)
+			return false
+		})
+	}
+	{
 		report := payload.VStateReport{
-			Status:          payload.Ready,
-			AsOf:            req.AsOf,
-			Object:          objectRef,
-			ProvidedContent: content,
+			Status: payload.Ready,
+			AsOf:   p1,
+			Object: objectRef,
+			ProvidedContent: &payload.VStateReport_ProvidedContentBody{
+				LatestDirtyState: &payload.ObjectState{
+					Reference: reference.Local{},
+					Class:     class,
+					State:     []byte(origDirtyMem),
+				},
+				LatestValidatedState: &payload.ObjectState{
+					Reference: reference.Local{},
+					Class:     class,
+					State:     []byte(origValidatedMem),
+				},
+			},
 		}
+		wait := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
 		server.SendPayload(ctx, &report)
-		return false
-	})
-
-	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
-		require.Equal(t, objectRef, res.Callee)
-		require.Equal(t, outgoing, res.CallOutgoing)
-		require.Equal(t, []byte("finish Deactivate"), res.ReturnArguments)
-		return false
-	})
-	typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
-		require.Equal(t, objectRef, report.Object)
-		require.Equal(t, payload.Ready, report.Status)
-		require.True(t, report.DelegationSpec.IsZero())
-		require.Equal(t, int32(0), report.UnorderedPendingCount)
-		require.Equal(t, int32(1), report.OrderedPendingCount)
-		require.NotNil(t, report.ProvidedContent)
-		require.NotNil(t, report.ProvidedContent.LatestDirtyState)
-		require.False(t, report.ProvidedContent.LatestDirtyState.Deactivated)
-		require.Equal(t, []byte(origDirtyMem), report.ProvidedContent.LatestDirtyState.State)
-		require.NotNil(t, report.ProvidedContent.LatestValidatedState)
-		require.False(t, report.ProvidedContent.LatestValidatedState.Deactivated)
-		require.Equal(t, []byte(origDirtyMem), report.ProvidedContent.LatestValidatedState.State)
-		return false
-	})
-	typedChecker.VDelegatedCallRequest.Set(func(request *payload.VDelegatedCallRequest) bool {
-		require.Equal(t, objectRef, request.Callee)
-		require.Equal(t, outgoing, request.CallOutgoing)
-		token := server.DelegationToken(request.CallOutgoing, server.GlobalCaller(), request.Callee)
-
-		response := payload.VDelegatedCallResponse{
-			Callee:                 request.Callee,
-			CallIncoming:           request.CallIncoming,
-			ResponseDelegationSpec: token,
-		}
-		server.SendPayload(ctx, &response)
-		return false
-	})
-	typedChecker.VDelegatedRequestFinished.Set(func(finished *payload.VDelegatedRequestFinished) bool {
-		require.NotNil(t, finished.LatestState)
-		require.True(t, finished.LatestState.Deactivated)
-		require.Nil(t, finished.LatestState.State)
-		return false
-	})
+		commonTestUtils.WaitSignalsTimed(t, 10*time.Second, wait)
+	}
 
 	{
 		pl := utils.GenerateVCallRequestMethod(server)
@@ -602,7 +595,6 @@ func TestVirtual_DeactivateObject_ChangePulse(t *testing.T) {
 	commonTestUtils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 	require.Equal(t, 1, typedChecker.VStateReport.Count())
-	require.Equal(t, 1, typedChecker.VStateRequest.Count())
 	require.Equal(t, 1, typedChecker.VDelegatedRequestFinished.Count())
 	require.Equal(t, 1, typedChecker.VCallResult.Count())
 
