@@ -223,7 +223,7 @@ func (test *DeduplicationDifferentPulsesCase) run(t *testing.T) {
 		server = test.Server
 
 		isolation     = contract.ConstructorIsolation()
-		class         = gen.UniqueGlobalRef()
+		class         = server.RandomGlobalWithPulse()
 		previousPulse = test.Server.GetPulse().PulseNumber
 		outgoing      = test.Server.BuildRandomOutgoingWithPulse()
 		object        = reference.NewSelf(outgoing.GetLocal())
