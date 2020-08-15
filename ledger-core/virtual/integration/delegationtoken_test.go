@@ -100,7 +100,7 @@ func TestDelegationToken_SuccessCheckCorrectToken(t *testing.T) {
 				MeMock.Return(approver).
 				QueryRoleMock.Return([]reference.Global{approver}, nil)
 
-			class := gen.UniqueGlobalRef()
+			class := server.RandomGlobalWithPulse()
 			outgoing := server.BuildRandomOutgoingWithPulse()
 			delegationToken := server.DelegationToken(reference.NewRecordOf(class, outgoing.GetLocal()), server.GlobalCaller(), outgoing)
 
@@ -330,7 +330,7 @@ func TestDelegationToken_CheckMessageFromAuthorizedVirtual(t *testing.T) {
 						TokenTypeAndFlags: payload.DelegationTokenTypeUninitialized,
 					}
 				} else {
-					class := gen.UniqueGlobalRef()
+					class := server.RandomGlobalWithPulse()
 					outgoing := server.BuildRandomOutgoingWithPulse()
 					delegateTo := server.GlobalCaller()
 					if !testCase.customDelegate.IsZero() {

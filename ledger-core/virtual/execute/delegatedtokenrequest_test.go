@@ -23,7 +23,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
@@ -44,8 +43,8 @@ func TestVDelegatedCallRequest(t *testing.T) {
 	slotMachine.PrepareMockedMessageSender(mc)
 
 	var (
-		caller    = gen.UniqueGlobalRef()
-		callee    = gen.UniqueGlobalRef()
+		caller    = slotMachine.GenerateGlobal()
+		callee    = slotMachine.GenerateGlobal()
 		outgoing  = reference.NewRecordOf(caller, slotMachine.GenerateLocal())
 		objectRef = reference.NewSelf(outgoing.GetLocal())
 		tokenKey  = DelegationTokenAwaitKey{outgoing}
