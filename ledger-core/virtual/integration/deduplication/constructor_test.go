@@ -269,7 +269,7 @@ func (test *DeduplicationDifferentPulsesCase) run(t *testing.T) {
 		}
 		test.VDelegatedCall.Callee = object
 		test.VDelegatedCall.CallFlags = payload.BuildCallFlags(isolation.Interference, isolation.State)
-		test.VDelegatedCall.CallIncoming = reference.NewRecordOf(test.VDelegatedCall.Callee, test.VDelegatedCall.CallOutgoing.GetLocal())
+		test.VDelegatedCall.CallIncoming = reference.NewRecordOf(class, test.VDelegatedCall.CallOutgoing.GetLocal())
 	}
 
 	if test.VDelegatedRequestFinished != nil {
@@ -278,7 +278,7 @@ func (test *DeduplicationDifferentPulsesCase) run(t *testing.T) {
 			CallFlags:    payload.BuildCallFlags(isolation.Interference, isolation.State),
 			Callee:       object,
 			CallOutgoing: outgoing,
-			CallIncoming: reference.NewRecordOf(object, outgoing.GetLocal()),
+			CallIncoming: reference.NewRecordOf(class, outgoing.GetLocal()),
 			LatestState: &payload.ObjectState{
 				Class: class,
 				State: ExecutionResultFromPreviousNode,
