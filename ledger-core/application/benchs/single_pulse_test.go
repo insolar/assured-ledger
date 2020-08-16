@@ -8,7 +8,6 @@ package benchs
 import (
 	"context"
 	"fmt"
-	"math/rand"
 	"testing"
 	"time"
 
@@ -79,7 +78,7 @@ func runGetBench(wallets []string) error {
 		default:
 		}
 		g.Go(func() error {
-			walletRef := wallets[rand.Intn(len(wallets))]
+			walletRef := wallets[i%len(wallets)]
 			getBalanceURL := getURL(walletGetBalancePath, "")
 
 			startTime := time.Now()
@@ -125,7 +124,7 @@ func runSetBench(wallets []string) error {
 				break
 			default:
 			}
-			walletRef := wallets[rand.Intn(len(wallets))]
+			walletRef := wallets[i%len(wallets)]
 			addAmountURL := getURL(walletAddAmountPath, "")
 
 			startTime := time.Now()
