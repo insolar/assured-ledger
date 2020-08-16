@@ -9,6 +9,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 )
 
 func GenerateVCallRequestConstructor(server *Server) *payload.VCallRequest {
@@ -20,7 +22,7 @@ func GenerateVCallRequestConstructor(server *Server) *payload.VCallRequest {
 		CallType:       payload.CTConstructor,
 		CallFlags:      payload.BuildCallFlags(isolation.Interference, isolation.State),
 		Caller:         server.GlobalCaller(),
-		Callee:         server.RandomGlobalWithPulse(),
+		Callee:         gen.UniqueGlobalRefWithPulse(pulse.LocalRelative),
 		CallSiteMethod: "New",
 		CallSequence:   1,
 		CallOutgoing:   server.BuildRandomOutgoingWithPulse(),
