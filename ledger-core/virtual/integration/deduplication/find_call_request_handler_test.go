@@ -42,8 +42,9 @@ type VFindCallRequestHandlingTestInfo struct {
 	requestFromP1        bool
 	requestIsConstructor bool
 
-	expectedStatus payload.VFindCallResponse_CallState
-	expectedResult bool
+	expectedStatus     payload.VFindCallResponse_CallState
+	expectedResult     bool
+	expectedDelegation bool
 }
 
 func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
@@ -95,19 +96,22 @@ func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
 			name:   "found request, method, pending, no result",
 			events: []TestStep{StepMethodStart, StepIncrementPulseToP3, StepFindMessage, StepRequestFinish},
 
-			expectedStatus: payload.FoundCall,
+			expectedStatus:     payload.FoundCall,
+			expectedDelegation: true,
 		},
 		{
 			name:   "found request, method, pending, no result, earlyMsg",
 			events: []TestStep{StepFindMessage, StepMethodStart, StepIncrementPulseToP3, StepRequestFinish},
 
-			expectedStatus: payload.FoundCall,
+			expectedStatus:     payload.FoundCall,
+			expectedDelegation: true,
 		},
 		{
 			name:   "found request, method, pending, result",
 			events: []TestStep{StepMethodStart, StepIncrementPulseToP3, StepRequestFinish, StepFindMessage},
 
-			expectedStatus: payload.FoundCall,
+			expectedStatus:     payload.FoundCall,
+			expectedDelegation: true,
 		},
 
 		{
@@ -132,21 +136,24 @@ func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
 			events:               []TestStep{StepConstructorStart, StepIncrementPulseToP3, StepFindMessage, StepRequestFinish},
 			requestIsConstructor: true,
 
-			expectedStatus: payload.FoundCall,
+			expectedStatus:     payload.FoundCall,
+			expectedDelegation: true,
 		},
 		{
 			name:                 "found request, constructor, pending, no result, earlyMsg",
 			events:               []TestStep{StepFindMessage, StepConstructorStart, StepIncrementPulseToP3, StepRequestFinish},
 			requestIsConstructor: true,
 
-			expectedStatus: payload.FoundCall,
+			expectedStatus:     payload.FoundCall,
+			expectedDelegation: true,
 		},
 		{
 			name:                 "found request, constructor, pending, result",
 			events:               []TestStep{StepConstructorStart, StepIncrementPulseToP3, StepRequestFinish, StepFindMessage},
 			requestIsConstructor: true,
 
-			expectedStatus: payload.FoundCall,
+			expectedStatus:     payload.FoundCall,
+			expectedDelegation: true,
 		},
 	}
 
@@ -159,7 +166,7 @@ func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
 			ctx := suite.initServer(t)
 			defer suite.stopServer()
 
-			handlerEnded := suite.server.Journal.WaitStopOf(&handlers.SMVFindCallRequest{}, 1)
+			smVFindCallRequestEnded := suite.server.Journal.WaitStopOf(&handlers.SMVFindCallRequest{}, 1)
 
 			suite.initPulsesP1andP2(ctx)
 			suite.generateClass()
@@ -182,14 +189,15 @@ func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
 				event(suite, ctx, t)
 			}
 
-			suite.waitFindRequestResponse(t)
-
-			if suite.finalizedMessageSent != nil {
-				commontestutils.WaitSignalsTimed(t, 10*time.Second, suite.finalizedMessageSent)
+			// wait for VDelegatedRequestFinished
+			if test.expectedDelegation {
+				commontestutils.WaitSignalsTimed(t, 10*time.Second, suite.typedChecker.VDelegatedRequestFinished.Wait(ctx, 1))
 			}
 
-			commontestutils.WaitSignalsTimed(t, 10*time.Second, suite.server.Journal.WaitAllAsyncCallsDone())
-			commontestutils.WaitSignalsTimed(t, 10*time.Second, handlerEnded)
+			// wait for VFindCallResponse
+			commontestutils.WaitSignalsTimed(t, 10*time.Second, suite.vFindCallResponseSent)
+
+			commontestutils.WaitSignalsTimed(t, 10*time.Second, smVFindCallRequestEnded)
 
 			suite.finish()
 		})
@@ -198,6 +206,11 @@ func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
 
 func StepIncrementPulseToP3(s *VFindCallRequestHandlingSuite, ctx context.Context, t *testing.T) {
 	s.server.IncrementPulseAndWaitIdle(ctx)
+
+	// wait for VStateReport after pulse change
+	if s.vStateReportSent != nil {
+		commontestutils.WaitSignalsTimed(t, 10*time.Second, s.vStateReportSent)
+	}
 }
 
 func StepFindMessage(s *VFindCallRequestHandlingSuite, ctx context.Context, t *testing.T) {
@@ -226,6 +239,11 @@ func StepMethodStart(s *VFindCallRequestHandlingSuite, ctx context.Context, t *t
 				Class:     s.getClass(),
 				State:     []byte("object memory"),
 			},
+			LatestValidatedState: &payload.ObjectState{
+				Reference: gen.UniqueLocalRefWithPulse(s.getP1()),
+				Class:     s.getClass(),
+				State:     []byte("object memory"),
+			},
 		},
 	}
 	s.addPayloadAndWaitIdle(ctx, &report)
@@ -236,7 +254,7 @@ func StepMethodStart(s *VFindCallRequestHandlingSuite, ctx context.Context, t *t
 	req.CallOutgoing = s.getOutgoingRef()
 
 	s.addPayloadAndWaitIdle(ctx, req)
-	s.finalizedMessageSent = make(chan struct{})
+	s.vStateReportSent = make(chan struct{})
 
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, s.executionPoint.Wait())
 }
@@ -262,15 +280,16 @@ func StepConstructorStart(s *VFindCallRequestHandlingSuite, ctx context.Context,
 	req.CallOutgoing = s.getOutgoingRef()
 
 	s.addPayloadAndWaitIdle(ctx, req)
-	s.finalizedMessageSent = make(chan struct{})
+	s.vStateReportSent = make(chan struct{})
 
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, s.executionPoint.Wait())
 }
 
-func StepRequestFinish(s *VFindCallRequestHandlingSuite, _ context.Context, t *testing.T) {
+func StepRequestFinish(s *VFindCallRequestHandlingSuite, ctx context.Context, t *testing.T) {
 	s.executionPoint.WakeUp()
 
-	commontestutils.WaitSignalsTimed(t, 10*time.Second, s.executeIsFinished)
+	commontestutils.WaitSignalsTimed(t, 20*time.Second, s.executeIsFinished)
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, s.typedChecker.VCallResult.Wait(ctx, 1))
 }
 
 func StepMethodStartAndFinish(s *VFindCallRequestHandlingSuite, ctx context.Context, t *testing.T) {
@@ -296,17 +315,17 @@ type VFindCallRequestHandlingSuite struct {
 	object   reference.Global
 	outgoing reference.Local
 
-	isConstructor        bool
-	finalizedMessageSent chan struct{}
+	isConstructor bool
 
-	executionPoint         *synchronization.Point
-	executeIsFinished      synckit.SignalChannel
-	haveFindResponseSignal chan struct{}
+	executionPoint        *synchronization.Point
+	executeIsFinished     synckit.SignalChannel
+	vStateReportSent      chan struct{}
+	vFindCallResponseSent chan struct{}
 }
 
 func (s *VFindCallRequestHandlingSuite) initServer(t *testing.T) context.Context {
 
-	s.haveFindResponseSignal = make(chan struct{}, 0)
+	s.vFindCallResponseSent = make(chan struct{}, 0)
 
 	s.mc = minimock.NewController(t)
 
@@ -389,7 +408,7 @@ func (s *VFindCallRequestHandlingSuite) setMessageCheckers(
 
 	s.typedChecker.VFindCallResponse.Set(func(res *payload.VFindCallResponse) bool {
 		defer func() {
-			close(s.haveFindResponseSignal)
+			close(s.vFindCallResponseSent)
 		}()
 		assert.Equal(t, s.getP2(), res.LookedAt)
 		assert.Equal(t, s.getObject(), res.Callee)
@@ -407,8 +426,8 @@ func (s *VFindCallRequestHandlingSuite) setMessageCheckers(
 	s.typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
 		assert.Equal(t, s.getP2(), report.AsOf)
 		assert.Equal(t, s.getObject(), report.Object)
-		if s.finalizedMessageSent != nil {
-			close(s.finalizedMessageSent)
+		if s.vStateReportSent != nil {
+			close(s.vStateReportSent)
 		}
 		return false
 	})
@@ -477,13 +496,6 @@ func (s *VFindCallRequestHandlingSuite) setRunnerMock() {
 			Result: constructorResult,
 		})
 	}
-}
-
-func (s *VFindCallRequestHandlingSuite) waitFindRequestResponse(
-	t *testing.T,
-) {
-	t.Helper()
-	commontestutils.WaitSignalsTimed(t, 10*time.Second, s.haveFindResponseSignal)
 }
 
 func (s *VFindCallRequestHandlingSuite) addPayloadAndWaitIdle(
