@@ -13,33 +13,19 @@ import (
 var _ Validatable = &VDelegatedCallResponse{}
 
 func (m *VDelegatedCallResponse) Validate(currentPulse pulse.Number) error {
-	if !m.Callee.IsSelfScope() {
-		return throw.New("Callee must be valid self scoped Reference")
+	calleePulse, err := validSelfScopedGlobalWithPulseSpecialOrBefore(m.Callee, currentPulse, "Callee")
+	if err != nil {
+		return err
 	}
 
-	var (
-		calleePulse = m.Callee.GetLocal().GetPulseNumber()
-	)
-	if !calleePulse.IsTimePulse() || !calleePulse.IsBefore(currentPulse) {
-		return throw.New("Callee must have valid time pulse with pulse lesser than current pulse")
-	}
-
-	var (
-		incomingLocalPulse = m.CallIncoming.GetLocal().GetPulseNumber()
-		incomingBasePulse  = m.CallIncoming.GetBase().GetPulseNumber()
-	)
-	switch {
-	case !isTimePulseBefore(incomingLocalPulse, currentPulse):
-		return throw.New("CallIncoming local part should have valid time pulse lesser than current pulse")
-	case !isSpecialOrTimePulseBefore(incomingBasePulse, currentPulse):
-		return throw.New("CallIncoming base part should have valid time pulse lesser than current pulse")
-	case !globalBasePulseIsSpecialOrBeforeOrEqLocalPulse(m.CallIncoming):
-		return throw.New("CallIncoming base pulse should be less or equal than local pulse")
+	incomingLocalPulse, err := validOutgoingWithPulseBefore(m.CallIncoming, currentPulse, "CallIncoming")
+	if err != nil {
+		return err
 	}
 
 	switch {
 	case !incomingLocalPulse.IsEqOrAfter(calleePulse):
-		return throw.New("Callee pulse should be less or equal than CallOutgoing pulse")
+		return throw.New("Callee pulse should be less or equal than CallIncoming pulse")
 	}
 
 	return nil

@@ -11,45 +11,27 @@ import (
 
 var _ Validatable = &VFindCallRequest{}
 
-func (m *VFindCallRequest) Validate(currPulse PulseNumber) error {
-	var (
-		lookAtPulse   = m.GetLookAt()
-		calleePulse   = m.GetCallee().GetLocal().Pulse()
-		outgoingPulse = m.GetOutgoing().GetLocal().Pulse()
-	)
-
-	if !m.Callee.IsSelfScope() {
-		return throw.New("callee should is self scope")
+func (m *VFindCallRequest) Validate(currentPulse PulseNumber) error {
+	lookAtPulse := m.GetLookAt()
+	if !isTimePulseBeforeOrEq(lookAtPulse, currentPulse) {
+		return throw.New("LookAt should be valid time pulse before current pulse")
 	}
 
-	switch {
-	case !lookAtPulse.IsTimePulse():
-		return throw.New("invalid lookAt pulse")
-	case !calleePulse.IsTimePulse():
-		return throw.New("invalid callee pulse")
-	case !outgoingPulse.IsTimePulse():
-		return throw.New("invalid outgoing pulse")
+	calleePulse, err := validSelfScopedGlobalWithPulseSpecialOrBefore(m.Callee, currentPulse, "Callee")
+	if err != nil {
+		return err
 	}
 
-	if calleePulse > lookAtPulse {
-		return throw.New("lookAt pulse should be more or equals callee pulse")
+	outgoingLocalPulse, err := validOutgoingWithPulseBeforeOrEq(m.Outgoing, currentPulse, "CallOutgoing")
+	if err != nil {
+		return err
 	}
 
-	if calleePulse > outgoingPulse {
-		return throw.New("outgoing pulse should be more or equals callee pulse")
-	}
-
-	if outgoingPulse > lookAtPulse {
-		return throw.New("lookAt pulse should be more or equals outgoing pulse")
-	}
-
-	switch {
-	case lookAtPulse > currPulse:
-		return throw.New("lookAt pulse should be less or equals current pulse")
-	case calleePulse > currPulse:
-		return throw.New("callee pulse should be less or equals current pulse")
-	case outgoingPulse > currPulse:
-		return throw.New("outgoing pulse should be less or equals current pulse")
+	// lookAtPulse >= outgoing >= calleePulse,
+	if !lookAtPulse.IsEqOrAfter(outgoingLocalPulse) {
+		return throw.New("LookAt should be more or equal Outgoing local pulse")
+	} else if !outgoingLocalPulse.IsEqOrAfter(calleePulse) {
+		return throw.New("Outgoing local pulse should be more or equal Callee pulse")
 	}
 
 	return nil

@@ -317,14 +317,13 @@ func TestVirtual_CallMethod_On_CompletelyDeactivatedObject(t *testing.T) {
 					})
 
 					pl := payload.VCallRequest{
-						CallType:            callTypeTest.callType,
-						CallFlags:           payload.BuildCallFlags(isolation.Interference, isolation.State),
-						Caller:              server.GlobalCaller(),
-						Callee:              object,
-						CallSiteDeclaration: gen.UniqueGlobalRef(),
-						CallSiteMethod:      methodName,
-						CallOutgoing:        server.BuildRandomOutgoingWithPulse(),
-						Arguments:           insolar.MustSerialize([]interface{}{}),
+						CallType:       callTypeTest.callType,
+						CallFlags:      payload.BuildCallFlags(isolation.Interference, isolation.State),
+						Caller:         server.GlobalCaller(),
+						Callee:         object,
+						CallSiteMethod: methodName,
+						CallOutgoing:   server.BuildRandomOutgoingWithPulse(),
+						Arguments:      insolar.MustSerialize([]interface{}{}),
 					}
 					server.SendPayload(ctx, &pl)
 

@@ -31,23 +31,17 @@ func (m *VStateRequest) Validate(currentPulse PulseNumber) error {
 		return err
 	}
 
-	if !isTimePulseBefore(m.AsOf, currentPulse) {
-		return throw.New("AsOf should be valid time pulse before current pulse")
+	objectPulse, err := validSelfScopedGlobalWithPulseBeforeOrEq(m.Object, currentPulse, "Object")
+	if err != nil {
+		return err
 	}
 
-	if !m.Object.IsSelfScope() {
-		return throw.New("Object should be valid self scoped reference")
-	}
-
-	objectPulse := m.Object.GetLocal().Pulse()
 	switch {
-	case !isTimePulseBefore(objectPulse, currentPulse):
-		return throw.New("Object pulse should be valid time pulse before current pulse")
+	case !isTimePulseBefore(m.AsOf, currentPulse):
+		return throw.New("AsOf should be valid time pulse before current pulse")
 	case !objectPulse.IsBeforeOrEq(m.AsOf):
 		return throw.New("Object pulse should be before or equal AsOf pulse")
-	}
-
-	if !m.RequestedContent.IsValid() {
+	case !m.RequestedContent.IsValid():
 		return throw.New("RequestedContent should be valid")
 	}
 
