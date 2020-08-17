@@ -25,7 +25,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/testpop"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
@@ -140,6 +142,9 @@ func (p *ServerTemplate) Start() {
 		require.NoError(p.t, err)
 
 		ac.CryptoScheme = legacyadapter.New(pcs, kp, keystore.NewInplaceKeyStore(sk.Private))
+	}
+	if reference.IsEmpty(ac.LocalNodeRef) {
+		ac.LocalNodeRef = gen.UniqueGlobalRefWithPulse(pulse.MinTimePulse)
 	}
 
 	ctx := context.Background()

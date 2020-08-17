@@ -32,7 +32,13 @@ func (p *AnyRecordLazy) Set(v BasicRecord) {
 }
 
 func (p *AnyRecordLazy) SetAsLazy(v BasicRecord) error {
-	return p.anyLazy.SetAsLazy(v.(MarshalerTo))
+	lv, err := p.asLazy(v.(MarshalerTo))
+	if err != nil {
+		return err
+	}
+
+	p.value = LazyRecordValue{ lv, nil }
+	return nil
 }
 
 func (p *AnyRecordLazy) TryGet() (isLazy bool, r BasicRecord) {

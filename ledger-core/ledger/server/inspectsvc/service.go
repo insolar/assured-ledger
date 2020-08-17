@@ -12,6 +12,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/protokit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -22,15 +24,24 @@ type Service interface {
 var _ Service = &serviceImpl{}
 
 func NewService(registrarRef reference.Holder, rs crypto.RecordScheme) Service {
+	digester := rs.RecordDigester()
+	signer := rs.RecordSigner()
+
 	return &serviceImpl{
 		registrarRef: reference.Copy(registrarRef),
-		signer: rs.RecordSigner(),
+		digester: digester,
+		signer:   signer,
+		localSV:  rs.SelfVerifier(),
+		signatureMethod: digester.GetDigestMethod().SignedBy(signer.GetSigningMethod()),
 	}
 }
 
 type serviceImpl struct {
-	registrarRef reference.Global
-	signer cryptkit.DigestSigner
+	registrarRef    reference.Global
+	digester        crypto.RecordDigester
+	signer          cryptkit.DigestSigner
+	localSV         cryptkit.SignatureVerifier
+	signatureMethod cryptkit.SignatureMethod
 }
 
 func (p *serviceImpl) InspectRecordSet(set RegisterRequestSet) (irs InspectedRecordSet, err error) {
@@ -49,63 +60,92 @@ func (p *serviceImpl) InspectRecordSet(set RegisterRequestSet) (irs InspectedRec
 }
 
 //nolint
-func (p *serviceImpl) inspectRecord(r *rms.LRegisterRequest, rec *lineage.Record, exr *catalog.Excerpt) error {
+func (p *serviceImpl) inspectRecord(req *rms.LRegisterRequest, rec *lineage.Record, exr *catalog.Excerpt) error {
 	switch {
-	case r == nil:
+	case req == nil:
 		return throw.E("nil message")
-	case r.AnticipatedRef.IsEmpty():
+	case req.AnticipatedRef.IsEmpty():
 		return throw.E("empty record ref")
-	case r.ProducedBy.IsEmpty():
+	case req.ProducedBy.IsEmpty():
 		return throw.E("empty producer")
 	}
 
-	lrv := r.AnyRecordLazy.TryGetLazy()
-	// if lrv.IsEmpty() {
-	// 	return throw.E("lazy record is required")
-	// }
-	//
-	// sv := p.getProducerSignatureVerifier(r.ProducedBy.Get())
-	// if sv == nil {
-	// 	return throw.E("unknown producer")
-	// }
-	// if sv.GetDigestSize() != r.ProducerSignature.FixedByteSize() {
-	// 	return throw.E("wrong signature length")
-	// }
-	//
-	// rd := sv.NewHasher().DigestOf(lrv).SumToDigest()
-	// rs := cryptkit.NewSignature(r.ProducerSignature.AsByteString(), sv.GetSignatureMethod())
-	//
-	// if !sv.IsValidDigestSignature(rd, rs) {
-	// 	return throw.E("signature mismatch")
-	// }
-	//
+	lrv := req.AnyRecordLazy.TryGetLazy()
+	if lrv.IsZero() {
+		return throw.E("lazy record is required")
+	}
+
+	sv := p.getProducerSignatureVerifier(req.ProducedBy.Get())
+	if sv == nil {
+		return throw.E("unknown producer")
+	}
+	if p.digester.GetDigestSize() != req.ProducerSignature.FixedByteSize() {
+		return throw.E("wrong signature length")
+	}
+
+	rh := p.digester.NewDataAndRefHasher()
+	rh.DigestOf(lrv)
+
+	var refDigest cryptkit.Digest
+ 	rh, refDigest = p.digester.GetRefDigestAndContinueData(rh)
+
+	if recRef := req.AnticipatedRef.GetLocal().GetLocal(); !longbits.Equal(recRef.IdentityHash(), refDigest) {
+		return throw.E("reference mismatched content")
+	}
+
+	// TODO make a separate function in RMS
+	if req.OverrideRecordType != 0 {
+		rc := rms.LRegisterRequest{
+			OverrideRecordType: req.OverrideRecordType,
+			OverrideRootRef: req.OverrideRootRef,
+			OverridePrevRef: req.OverridePrevRef,
+			OverrideReasonRef: req.OverrideReasonRef,
+		}
+		b, err := rc.Marshal()
+		if err != nil {
+			panic(err)
+		}
+		_, sz, err := protokit.DecodePolymorphFromBytes(b, true)
+		if err != nil {
+			panic(err)
+		}
+		rh.DigestBytes(b[sz:])
+	}
+
+	dataDigest := rh.SumToDigest()
+
+	rs := cryptkit.NewSignature(req.ProducerSignature.AsByteString(), p.signatureMethod)
+
+	if !sv.IsValidDigestSignature(dataDigest, rs) {
+		return throw.E("signature mismatch")
+	}
 
 	if exr != nil {
-		*rec = lineage.NewRegRecord(*exr, r)
+		*rec = lineage.NewRegRecord(*exr, req)
 	} else {
 		excerpt, err := catalog.ReadExcerptFromLazy(lrv)
 		if err != nil {
 			return throw.W(err, "cant read excerpt")
 		}
-		*rec = lineage.NewRegRecord(excerpt, r)
+		*rec = lineage.NewRegRecord(excerpt, req)
 	}
 
-	//
-	// p.applyRegistrarSignature(rd, rec)
+	p.applyRegistrarSignature(dataDigest, rec)
 	return nil
 }
 
-//nolint
 func (p *serviceImpl) applyRegistrarSignature(digest cryptkit.Digest, rec *lineage.Record) {
 	rec.RegisteredBy = p.registrarRef
 	signature := p.signer.SignDigest(digest)
 	rec.RegistrarSignature = cryptkit.NewSignedDigest(digest, signature)
 }
 
-//nolint
-func (p *serviceImpl) getProducerSignatureVerifier(producer reference.Holder) cryptkit.DataSignatureVerifier {
-	_ = producer
-	panic(throw.NotImplemented())
+func (p *serviceImpl) getProducerSignatureVerifier(producer reference.Holder) cryptkit.SignatureVerifier {
+	if p.registrarRef.Equal(producer) {
+		return p.localSV
+	}
+	// TODO find node profile
+	return nil
 }
 
 func (p *serviceImpl) InspectRecap() (InspectedRecordSet, error) {

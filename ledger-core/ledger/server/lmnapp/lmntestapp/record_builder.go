@@ -7,14 +7,30 @@ package lmntestapp
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/crypto"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/catalog"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/inspectsvc"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/protokit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
+
+func NewRecordBuilderFromDependencies(deps injector.DependencyInjector) RecordBuilder {
+	var ps crypto.PlatformScheme
+	var ref reference.Global
+	deps.MustInject(&ps)
+	deps.MustInjectByID(insapp.LocalNodeRefInjectionID, &ref)
+	rs := ps.RecordScheme()
+
+	return RecordBuilder{
+		RecordScheme:   rs,
+		ProducerSigner: cryptkit.AsDataSigner(rs.RecordDigester(), rs.RecordSigner()),
+		ProducerRef:    ref,
+	}
+}
 
 type RecordBuilder struct {
 	RecordScheme   crypto.RecordScheme
@@ -38,11 +54,12 @@ func (v RecordBuilder) ApplySignature(req *rms.LRegisterRequest) {
 	}
 
 	rlv := req.TryGetLazy()
-	if rlv.IsEmpty() {
+	if rlv.IsZero() {
 		panic(throw.IllegalValue())
 	}
 
-	digester := v.RecordScheme.RecordDigester().NewHasher()
+	rs := v.RecordScheme.RecordDigester()
+	digester := rs.NewHasher()
 	digester.DigestOf(rlv)
 	if req.OverrideRecordType != 0 {
 		rc := rms.LRegisterRequest{
@@ -68,59 +85,57 @@ func (v RecordBuilder) ApplySignature(req *rms.LRegisterRequest) {
 	req.ProducedBy.Set(v.ProducerRef)
 }
 
-func (v RecordBuilder) MakeLineStart(record rms.BasicRecord) *rms.LRegisterRequest {
-	return v.makeRequest(record, true)
+func (v RecordBuilder) MakeLineStart(record rms.BasicRecord) (*rms.LRegisterRequest, RecordBuilder) {
+	initRq := v.makeRequest(record)
+	v.RefTemplate = reference.NewRefTemplate(initRq.AnticipatedRef.Get(), v.RefTemplate.LocalHeader().Pulse())
+	return initRq, v
 }
 
 func (v RecordBuilder) MakeRequest(record rms.BasicRecord) *rms.LRegisterRequest {
-	return v.makeRequest(record, false)
+	return v.makeRequest(record)
 }
 
-func (v RecordBuilder) makeRequest(record rms.BasicRecord, selfRef bool) *rms.LRegisterRequest {
+func (v RecordBuilder) makeRequest(record rms.BasicRecord) *rms.LRegisterRequest {
 	req := &rms.LRegisterRequest{}
 	if err := req.SetAsLazy(record); err != nil {
 		panic(err)
 	}
 
 	rlv := req.TryGetLazy()
-	if rlv.IsEmpty() {
+	if rlv.IsZero() {
 		panic(throw.IllegalValue())
 	}
 
-	digester := v.RecordScheme.RefDataDigester().NewHasher()
+	digester := v.RecordScheme.ReferenceDigester().NewHasher()
 	digest := digester.DigestOf(rlv).SumToDigest()
 	localHash := reference.CopyToLocalHash(digest)
 
-	if selfRef {
-		ref := v.RefTemplate.WithHashAsSelf(localHash)
-		req.AnticipatedRef.Set(ref)
-	} else {
-		ref := v.RefTemplate.WithHash(localHash)
-		req.AnticipatedRef.Set(ref)
-	}
+	ref := v.RefTemplate.WithHash(localHash)
+	req.AnticipatedRef.Set(ref)
 
 	return req
 }
 
-func (v RecordBuilder) MakeSet(records ...*rms.LRegisterRequest) (r inspectsvc.RegisterRequestSet) {
-	if len(records) == 0 {
+func (v RecordBuilder) MakeSet(requests ...*rms.LRegisterRequest) (r inspectsvc.RegisterRequestSet) {
+	if len(requests) == 0 {
 		return
 	}
 
-	r.Requests = records
+	r.Requests = requests
 
-	for _, req := range records {
+	for _, req := range requests {
 		switch {
 		case req.AnticipatedRef.IsEmpty():
 			panic(throw.IllegalValue())
 		case req.ProducedBy.IsEmpty():
 			v.ApplySignature(req)
+
 		}
 	}
 
 	r0 := r.Requests[0]
-	rlv := r0.TryGetLazy()
-	if rlv.IsEmpty() {
+	rlv := r0.AnyRecordLazy.TryGetLazy()
+	if rlv.IsZero() {
 		panic(throw.IllegalValue())
 	}
 
@@ -129,6 +144,8 @@ func (v RecordBuilder) MakeSet(records ...*rms.LRegisterRequest) (r inspectsvc.R
 	if err != nil {
 		panic(err)
 	}
+
+	r.Excerpt.ProducerSignature = r0.ProducerSignature
 
 	if r0.OverrideRecordType != 0 {
 		r.Excerpt.RecordType = r0.OverrideRecordType
@@ -143,6 +160,5 @@ func (v RecordBuilder) MakeSet(records ...*rms.LRegisterRequest) (r inspectsvc.R
 			r.Excerpt.ReasonRef = r0.OverrideReasonRef
 		}
 	}
-
 	return r
 }

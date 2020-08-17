@@ -15,7 +15,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/datawriter"
-	"github.com/insolar/assured-ledger/ledger-core/ledger/server/inspectsvc"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lmnapp/lmntestapp"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/requests"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/treesvc"
@@ -79,7 +78,6 @@ func TestReadyTree(t *testing.T) {
 	defer server.Stop()
 
 	jrn := journal.New()
-	// jrn.StartRecording(1000, true)
 
 	var treeSvc treesvc.Service = treesvc.NewPerfect(
 		datawriter.DefaultGenesisSplitDepth,
@@ -138,8 +136,11 @@ func TestAddRecords(t *testing.T) {
 	defer server.Stop()
 
 	jrn := journal.New()
+	var rb lmntestapp.RecordBuilder
+
 
 	server.SetImposer(func(params *insconveyor.ImposedParams) {
+		rb = lmntestapp.NewRecordBuilderFromDependencies(params.AppInject)
 		params.EventJournal = jrn
 	})
 
@@ -149,19 +150,16 @@ func TestAddRecords(t *testing.T) {
 
 	ch := jrn.WaitStopOf(&requests.SMRegisterRecordSet{}, 1)
 
-	rStart := &rms.RLifelineStart{}
-	recordSet := inspectsvc.RegisterRequestSet{}
-
-	regReq := &rms.LRegisterRequest{}
-	regReq.Set(rStart)
-
 	pn := server.LastPulseNumber()
-	regReq.AnticipatedRef.Set(reference.NewSelf(gen.UniqueLocalRefWithPulse(pn)))
-	regReq.ProducedBy.Set(gen.UniqueGlobalRef())
+	rb.RefTemplate = reference.NewSelfRefTemplate(pn, reference.SelfScopeLifeline)
 
-	recordSet.Requests = append(recordSet.Requests, regReq)
-	recordSet.Excerpt.RecordType = rms.TypeRLifelineStartPolymorthID
-	recordSet.Excerpt.ReasonRef.Set(gen.UniqueGlobalRefWithPulse(pn))
+	rStart := &rms.RLifelineStart{}
+	var lrq *rms.LRegisterRequest
+	lrq, rb = rb.MakeLineStart(rStart)
+	lrq.OverrideRecordType = rms.TypeRLifelineStartPolymorthID
+	lrq.OverrideReasonRef.Set(gen.UniqueGlobalRefWithPulse(pn))
+
+	recordSet := rb.MakeSet(lrq)
 
 	conv := server.App().Conveyor()
 	err := conv.AddInputExt(server.LastPulseNumber(),

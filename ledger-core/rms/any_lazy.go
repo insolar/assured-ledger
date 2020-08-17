@@ -35,18 +35,27 @@ func (p *AnyLazy) Set(v GoGoSerializable) {
 	p.value = v
 }
 
-func (p *AnyLazy) SetAsLazy(v MarshalerTo) error {
+func (p *AnyLazy) asLazy(v MarshalerTo) (LazyValue, error) {
 	n := v.ProtoSize()
 	b := make([]byte, n)
 	if n > 0 {
 		switch n2, err := v.MarshalTo(b); {
 		case err != nil:
-			return err
+			return LazyValue{}, err
 		case n != n2:
-			return io.ErrShortWrite
+			return LazyValue{}, io.ErrShortWrite
 		}
 	}
-	p.value = LazyValue{ b, reflect.TypeOf(v) }
+	return LazyValue{ b, reflect.TypeOf(v) }, nil
+}
+
+func (p *AnyLazy) SetAsLazy(v MarshalerTo) error {
+	lv, err := p.asLazy(v)
+	if err != nil {
+		return err
+	}
+
+	p.value = lv
 	return nil
 }
 

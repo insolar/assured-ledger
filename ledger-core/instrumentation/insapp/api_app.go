@@ -18,6 +18,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 // AppComponent is an interface for a component that wraps an application compartment.
@@ -46,8 +47,14 @@ type AppComponents struct {
 	LocalNodeRole  member.PrimaryRole
 }
 
-// AddInterfaceDependencies is a convenience method to add non-nil references into a injector.DependencyContainer.
-func (v AppComponents) AddInterfaceDependencies(container injector.DependencyContainer) {
+const LocalNodeRefInjectionID = "LocalNodeRef"
+
+// AddAsDependencies is a convenience method to add non-nil references into a injector.DependencyContainer.
+func (v AppComponents) AddAsDependencies(container injector.DependencyContainer) {
+	if !container.TryPutDependency(LocalNodeRefInjectionID, reference.Copy(v.LocalNodeRef)) {
+		panic(throw.IllegalState())
+	}
+
 	if v.AffinityHelper != nil {
 		injector.AddInterfaceDependency(container, &v.AffinityHelper)
 	}

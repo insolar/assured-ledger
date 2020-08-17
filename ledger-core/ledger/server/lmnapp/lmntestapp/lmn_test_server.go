@@ -15,6 +15,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lmnapp"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/treesvc"
 	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -27,6 +28,7 @@ func NewTestServerWithErrorFilter(t logcommon.TestingLogger, filterFn logcommon.
 	s := instestconveyor.NewTestServerTemplate(t, filterFn)
 	s.InitTemplate(
 		func(c configuration.Configuration, comps insapp.AppComponents) *insconveyor.AppCompartment {
+			comps.LocalNodeRole = member.PrimaryRoleLightMaterial
 			return lmnapp.NewAppCompartment(c.Ledger, comps)
 		}, nil)
 	return &TestServer{s}
