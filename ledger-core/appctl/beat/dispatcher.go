@@ -10,5 +10,5 @@ type Dispatcher interface {
 	PrepareBeat(Ack)
 	CancelBeat()
 	CommitBeat(Beat)
-	Process(msg *Message) error
+	Process(Message) error
 }

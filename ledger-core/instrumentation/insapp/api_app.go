@@ -8,8 +8,6 @@ package insapp
 import (
 	"context"
 
-	"github.com/ThreeDotsLabs/watermill/message"
-
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
@@ -25,8 +23,6 @@ type AppComponent interface {
 	// Start(ctx context.Context) error
 	// Stop(ctx context.Context) error
 
-	// GetMessageHandler provides a handler to receive inbound messages.
-	GetMessageHandler() message.NoPublishHandlerFunc
 	// GetBeatDispatcher provides a handler to receive pulse beats.
 	GetBeatDispatcher() beat.Dispatcher
 }
