@@ -174,8 +174,10 @@ func (p *SMRegisterRecordSet) stepApplyRecordSet(ctx smachine.ExecutionContext) 
 
 	switch {
 	case len(errors) > 0:
-		p.sendFailResponse(ctx, errors...)
-		return ctx.Stop()
+		return ctx.Error(errors[0])
+
+		// p.sendFailResponse(ctx, errors...)
+		// return ctx.Stop()
 
 	case p.updated == nil:
 		return ctx.Sleep().ThenRepeat()

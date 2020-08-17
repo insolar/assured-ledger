@@ -115,6 +115,11 @@ func (p *BundleResolver) Add(record Record) bool {
 		return p.addError(throw.E("unknown type"))
 	}
 
+	payloads := record.AsBasicRecord().GetRecordPayloads()
+	if !payloads.IsEmpty() && policy.PolicyFlags&PayloadAllowed == 0 {
+		return p.addError(throw.E("payload forbidden"))
+	}
+
 	switch base := p.resolver.getLineBase().GetLocal(); {
 	case !p.checkBase(base, "RecordRef", ref):
 	case !p.checkBase(base, "RootRef", upd.Excerpt.RootRef.Get()):

@@ -22,27 +22,27 @@ var setUnblockedInbound = []RecordType{tRLineInboundRequest, tRInboundRequest, t
 var setDirectActivate = setOf(appendCopy(setLineStart, tRLineMemoryInit)...)
 
 var policies = []RecordPolicy{
-	tRLifelineStart: 		{ PolicyFlags: LineStart|ReasonRequired },
-	tRSidelineStart: 		{ PolicyFlags: LineStart| BranchedStart |ReasonRequired },
+	tRLifelineStart: 		{ PolicyFlags: LineStart|ReasonRequired|PayloadAllowed},
+	tRSidelineStart: 		{ PolicyFlags: LineStart| BranchedStart |ReasonRequired|PayloadAllowed},
 
 	tRLineInboundRequest:	{
-		PolicyFlags: FilamentStart|ReasonRequired,
+		PolicyFlags: FilamentStart|ReasonRequired|PayloadAllowed,
 		CanFollow:   setUnblockedLine},
 
 	tRInboundRequest: 	 	{
-		PolicyFlags: FilamentStart| BranchedStart |ReasonRequired,
+		PolicyFlags: FilamentStart| BranchedStart |ReasonRequired|PayloadAllowed,
 		CanFollow:   setUnblockedLine},
 
 	tRInboundResponse:		{
-		PolicyFlags: FilamentEnd| MustBeBranch,
+		PolicyFlags: FilamentEnd| MustBeBranch|PayloadAllowed,
 		CanFollow:   setOf(appendCopy(setUnblockedInbound, tROutboundRequest, tROutRetryableRequest, tROutRetryRequest)...)},
 
 	tROutboundRequest: 		{
-		PolicyFlags: MustBeBranch,
+		PolicyFlags: MustBeBranch|PayloadAllowed,
 		CanFollow:   setOf(setUnblockedInbound...)},
 
 	tROutRetryableRequest:	{
-		PolicyFlags: MustBeBranch,
+		PolicyFlags: MustBeBranch|PayloadAllowed,
 		CanFollow:   setOf(setUnblockedInbound...)},
 
 	tROutRetryRequest:		{
@@ -50,7 +50,7 @@ var policies = []RecordPolicy{
 		CanFollow:   setOf(tROutRetryableRequest, tROutRetryRequest), RedirectTo: setOf(tROutRetryableRequest)},
 
 	tROutboundResponse: 	{
-		PolicyFlags: 0,
+		PolicyFlags: PayloadAllowed,
 		CanFollow:   setOf(tROutboundRequest, tROutRetryableRequest, tROutRetryRequest)},
 
 	tRLineActivate: 		{ // NB! Special behavior. See RecordPolicy.CheckRejoinRef
@@ -61,12 +61,12 @@ var policies = []RecordPolicy{
 		PolicyFlags: FilamentEnd|SideEffect,
 		CanFollow:   setUnblockedLine},
 
-	tRLineMemoryInit: 		{
-		PolicyFlags: 0,
+	tRLineMemoryInit: 		{ // NB! Special behavior. See RecordPolicy.CheckRejoinRef
+		PolicyFlags: PayloadAllowed,
 		CanFollow:   setOf(setLineStart...)},
 
 	tRLineMemory: 			{
-		PolicyFlags: SideEffect,
+		PolicyFlags: SideEffect|PayloadAllowed,
 		CanFollow:   setOf(tRLineInboundRequest, tRLineMemoryExpected)},
 
 	tRLineMemoryReuse: 		{
@@ -78,7 +78,7 @@ var policies = []RecordPolicy{
 		CanFollow:   setOf(tRLineInboundRequest)},
 
 	tRLineMemoryProvided: 	{ // NB! Special behavior. See RecordPolicy.CheckPrevRef
-		PolicyFlags: 0,
+		PolicyFlags: PayloadAllowed,
 		CanFollow:   setOf(tRLineMemoryExpected)},
 
 	tRLineRecap:	{

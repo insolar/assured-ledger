@@ -89,7 +89,7 @@ func (p *serviceImpl) inspectRecord(req *rms.LRegisterRequest, rec *lineage.Reco
 	var refDigest cryptkit.Digest
  	rh, refDigest = p.digester.GetRefDigestAndContinueData(rh)
 
-	if recRef := req.AnticipatedRef.GetLocal().GetLocal(); !longbits.Equal(recRef.IdentityHash(), refDigest) {
+	if recRef := req.AnticipatedRef.Get().GetLocal(); !longbits.Equal(recRef.IdentityHash(), refDigest) {
 		return throw.E("reference mismatched content")
 	}
 

@@ -21,8 +21,8 @@ type AnyRecordLazy struct {
 }
 
 func (p *AnyRecordLazy) TryGetLazy() LazyRecordValue {
-	if vv, ok := p.value.(LazyRecordValue); ok {
-		return vv
+	if vv, ok := p.value.(*LazyRecordValue); ok {
+		return *vv
 	}
 	return LazyRecordValue{}
 }
@@ -37,7 +37,15 @@ func (p *AnyRecordLazy) SetAsLazy(v BasicRecord) error {
 		return err
 	}
 
-	p.value = LazyRecordValue{ lv, nil }
+	lrv := &LazyRecordValue{ lv, nil }
+
+	if rp := v.GetRecordPayloads(); !rp.IsEmpty() {
+		body := &RecordBodyForLazy{}
+		body.RecordBody.CopyRecordPayloads(rp)
+		lrv.body = body
+	}
+
+	p.value = lrv
 	return nil
 }
 

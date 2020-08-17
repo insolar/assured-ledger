@@ -153,13 +153,27 @@ func TestAddRecords(t *testing.T) {
 	pn := server.LastPulseNumber()
 	rb.RefTemplate = reference.NewSelfRefTemplate(pn, reference.SelfScopeLifeline)
 
-	rStart := &rms.RLifelineStart{}
-	var lrq *rms.LRegisterRequest
-	lrq, rb = rb.MakeLineStart(rStart)
-	lrq.OverrideRecordType = rms.TypeRLifelineStartPolymorthID
-	lrq.OverrideReasonRef.Set(gen.UniqueGlobalRefWithPulse(pn))
+	var rootRq *rms.LRegisterRequest
+	rb, rootRq = rb.MakeLineStart(&rms.RLifelineStart{})
+	rootRq.OverrideRecordType = rms.TypeRLifelineStartPolymorthID
+	rootRq.OverrideReasonRef.Set(gen.UniqueGlobalRefWithPulse(pn))
 
-	recordSet := rb.MakeSet(lrq)
+	rMem := &rms.RLineMemoryInit{
+		Polymorph: rms.TypeRLineMemoryInitPolymorthID,
+		RootRef: rootRq.AnticipatedRef,
+		PrevRef: rootRq.AnticipatedRef,
+	}
+	rMem.SetDigester(rb.RecordScheme.RecordDigester())
+	rMem.SetPayload(rms.NewRawBytes(make([]byte, 1024)))
+
+	rq := rb.Add(rMem)
+
+	rq = rb.Add(&rms.RLineActivate{
+		RootRef: rootRq.AnticipatedRef,
+		PrevRef: rq.AnticipatedRef,
+	})
+
+	recordSet := rb.MakeSet()
 
 	conv := server.App().Conveyor()
 	err := conv.AddInputExt(server.LastPulseNumber(),

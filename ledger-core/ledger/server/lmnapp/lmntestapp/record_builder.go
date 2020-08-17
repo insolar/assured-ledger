@@ -37,6 +37,8 @@ type RecordBuilder struct {
 	RefTemplate    reference.Template
 	ProducerSigner cryptkit.DataSigner
 	ProducerRef    reference.Holder
+
+	Requests []*rms.LRegisterRequest
 }
 
 func (v RecordBuilder) ApplySignature(req *rms.LRegisterRequest) {
@@ -85,17 +87,24 @@ func (v RecordBuilder) ApplySignature(req *rms.LRegisterRequest) {
 	req.ProducedBy.Set(v.ProducerRef)
 }
 
-func (v RecordBuilder) MakeLineStart(record rms.BasicRecord) (*rms.LRegisterRequest, RecordBuilder) {
-	initRq := v.makeRequest(record)
+func (v RecordBuilder) MakeLineStart(record rms.BasicRecord) (RecordBuilder, *rms.LRegisterRequest) {
+	initRq := v.buildRequest(record)
 	v.RefTemplate = reference.NewRefTemplate(initRq.AnticipatedRef.Get(), v.RefTemplate.LocalHeader().Pulse())
-	return initRq, v
+	v.Requests = []*rms.LRegisterRequest{initRq}
+	return v, initRq
 }
 
-func (v RecordBuilder) MakeRequest(record rms.BasicRecord) *rms.LRegisterRequest {
-	return v.makeRequest(record)
+func (v RecordBuilder) BuildRequest(record rms.BasicRecord) *rms.LRegisterRequest {
+	return v.buildRequest(record)
 }
 
-func (v RecordBuilder) makeRequest(record rms.BasicRecord) *rms.LRegisterRequest {
+func (v *RecordBuilder) Add(record rms.BasicRecord) *rms.LRegisterRequest {
+	req := v.buildRequest(record)
+	v.Requests = append(v.Requests, req)
+	return req
+}
+
+func (v RecordBuilder) buildRequest(record rms.BasicRecord) *rms.LRegisterRequest {
 	req := &rms.LRegisterRequest{}
 	if err := req.SetAsLazy(record); err != nil {
 		panic(err)
@@ -116,7 +125,11 @@ func (v RecordBuilder) makeRequest(record rms.BasicRecord) *rms.LRegisterRequest
 	return req
 }
 
-func (v RecordBuilder) MakeSet(requests ...*rms.LRegisterRequest) (r inspectsvc.RegisterRequestSet) {
+func (v RecordBuilder) MakeSet() inspectsvc.RegisterRequestSet {
+	return v.BuildSet(v.Requests...)
+}
+
+func (v RecordBuilder) BuildSet(requests ...*rms.LRegisterRequest) (r inspectsvc.RegisterRequestSet) {
 	if len(requests) == 0 {
 		return
 	}

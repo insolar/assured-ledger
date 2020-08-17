@@ -20,7 +20,7 @@ type AnyLazy struct {
 	value goGoMarshaler
 }
 
-func (p *AnyRecordLazy) IsZero() bool {
+func (p *AnyLazy) IsZero() bool {
 	return p.value == nil
 }
 
