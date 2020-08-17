@@ -8,13 +8,12 @@ package servicenetwork
 import (
 	"context"
 
-	"github.com/ThreeDotsLabs/watermill/message"
-
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
+	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeset"
-	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/component-manager"
 
@@ -41,9 +40,6 @@ type ServiceNetwork struct {
 	// dependencies
 	CertificateManager nodeinfo.CertificateManager `inject:""`
 
-	// watermill support interfaces
-	Pub message.Publisher `inject:""`
-
 	// subcomponents
 	RPC                controller.RPCController   `inject:"subcomponent"`
 	NodeKeeper         network.NodeKeeper         `inject:"subcomponent"`
@@ -53,6 +49,8 @@ type ServiceNetwork struct {
 
 	Gatewayer   network.Gatewayer
 	BaseGateway *gateway.Base
+
+	router watermillRouter
 }
 
 // NewServiceNetwork returns a new ServiceNetwork.
@@ -69,7 +67,7 @@ func NewServiceNetwork(conf configuration.Configuration, rootCm *component.Manag
 func (n *ServiceNetwork) Init(ctx context.Context) error {
 	hostNetwork, err := hostnetwork.NewHostNetwork(n.CertificateManager.GetCertificate().GetNodeRef().String())
 	if err != nil {
-		return errors.W(err, "failed to create hostnetwork")
+		return throw.W(err, "failed to create hostnetwork")
 	}
 	n.HostNetwork = hostNetwork
 
@@ -79,7 +77,7 @@ func (n *ServiceNetwork) Init(ctx context.Context) error {
 
 	nodeNetwork, err := nodeset.NewNodeNetwork(n.cfg.Host.Transport, cert)
 	if err != nil {
-		return errors.W(err, "failed to create NodeNetwork")
+		return throw.W(err, "failed to create NodeNetwork")
 	}
 
 	n.BaseGateway = &gateway.Base{Options: options}
@@ -103,7 +101,7 @@ func (n *ServiceNetwork) Init(ctx context.Context) error {
 
 	err = n.cm.Init(ctx)
 	if err != nil {
-		return errors.W(err, "failed to init internal components")
+		return throw.W(err, "failed to init internal components")
 	}
 
 	return nil
@@ -113,7 +111,7 @@ func (n *ServiceNetwork) Init(ctx context.Context) error {
 func (n *ServiceNetwork) Start(ctx context.Context) error {
 	err := n.cm.Start(ctx)
 	if err != nil {
-		return errors.W(err, "failed to start component manager")
+		return throw.W(err, "failed to start component manager")
 	}
 
 	// pc, err := n.PulseAccessor.Latest(ctx)
@@ -179,7 +177,9 @@ func (n *ServiceNetwork) GetCert(ctx context.Context, ref reference.Global) (nod
 	return n.Gatewayer.Gateway().Auther().GetCert(ctx, ref)
 }
 
-func (n *ServiceNetwork) GetSendMessageHandler() message.NoPublishHandlerFunc {
-	return n.SendMessageHandler
+func (n *ServiceNetwork) CreateMessagesRouter(ctx context.Context) messagesender.MessageRouter {
+	if n.router.IsZero() {
+		n.router = newWatermillRouter(ctx, n.SendMessageHandler)
+	}
+	return n.router
 }
-
