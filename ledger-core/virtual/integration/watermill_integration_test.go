@@ -39,7 +39,7 @@ var (
 	}
 )
 
-func newDispatcherWithConveyor(factoryFn conveyor.PulseEventFactoryFunc) beat.Dispatcher {
+func newPublisherForConveyor(factoryFn conveyor.PulseEventFactoryFunc) message.NoPublishHandlerFunc {
 	ctx := context.Background()
 	pulseConveyor := conveyor.NewPulseConveyor(ctx, conveyor.PulseConveyorConfig{
 		ConveyorMachineConfig: machineConfig,
@@ -48,24 +48,31 @@ func newDispatcherWithConveyor(factoryFn conveyor.PulseEventFactoryFunc) beat.Di
 		MinCachePulseAge:      100,
 		MaxPastPulseAge:       1000,
 	}, factoryFn, nil)
-	return insconveyor.NewConveyorDispatcher(ctx, pulseConveyor)
+
+	disp := insconveyor.NewConveyorDispatcher(ctx, pulseConveyor)
+
+	return func(msg *message.Message) error {
+		bm := beat.NewMessageExt(msg.UUID, msg.Payload, msg)
+		bm.Metadata = msg.Metadata
+		return disp.Process(bm)
+	}
 }
 
-type WatermillLogErrorHandler func(logger *logwatermill.WatermillLogAdapter, msg string, err error, fields watermill.LogFields) bool
+type watermillLogErrorHandler func(logger *logwatermill.WatermillLogAdapter, msg string, err error, fields watermill.LogFields) bool
 
-func NewWatermillLogAdapterWrapper(log log.Logger, errorHandler WatermillLogErrorHandler) *WatermillLogAdapterWrapper {
-	return &WatermillLogAdapterWrapper{
+func newWatermillLogAdapterWrapper(log log.Logger, errorHandler watermillLogErrorHandler) *watermillLogAdapterWrapper {
+	return &watermillLogAdapterWrapper{
 		WatermillLogAdapter: *logwatermill.NewWatermillLogAdapter(log),
 		errorHandler:        errorHandler,
 	}
 }
 
-type WatermillLogAdapterWrapper struct {
+type watermillLogAdapterWrapper struct {
 	logwatermill.WatermillLogAdapter
-	errorHandler WatermillLogErrorHandler
+	errorHandler watermillLogErrorHandler
 }
 
-func (w *WatermillLogAdapterWrapper) Error(msg string, err error, fields watermill.LogFields) {
+func (w *watermillLogAdapterWrapper) Error(msg string, err error, fields watermill.LogFields) {
 	if w.errorHandler != nil && w.errorHandler(&w.WatermillLogAdapter, msg, err, fields) {
 		return
 	}
@@ -103,7 +110,7 @@ func TestWatermill_HandleErrorCorrect(t *testing.T) {
 	}
 	var (
 		ctx        = context.Background()
-		wmLogger   = NewWatermillLogAdapterWrapper(inslogger.FromContext(ctx), watermillErrorHandler)
+		wmLogger   = newWatermillLogAdapterWrapper(inslogger.FromContext(ctx), watermillErrorHandler)
 		subscriber = gochannel.NewGoChannel(gochannel.Config{}, wmLogger)
 
 		cnt atomickit.Int
@@ -114,7 +121,7 @@ func TestWatermill_HandleErrorCorrect(t *testing.T) {
 		return conveyor.InputSetup{}, throw.E(errorMsg)
 	}
 
-	wmStop := startWatermill(ctx, wmLogger, subscriber, newDispatcherWithConveyor(dispatchFn).Process)
+	wmStop := startWatermill(ctx, wmLogger, subscriber, newPublisherForConveyor(dispatchFn))
 	defer wmStop()
 
 	meta := payload.Meta{Pulse: pulse.Number(pulse.MinTimePulse + 1)}
@@ -139,7 +146,7 @@ func TestWatermill_HandlePanicCorrect(t *testing.T) {
 	}
 	var (
 		ctx        = context.Background()
-		wmLogger   = NewWatermillLogAdapterWrapper(inslogger.FromContext(ctx), watermillErrorHandler)
+		wmLogger   = newWatermillLogAdapterWrapper(inslogger.FromContext(ctx), watermillErrorHandler)
 		subscriber = gochannel.NewGoChannel(gochannel.Config{}, wmLogger)
 
 		cnt atomickit.Int
@@ -150,7 +157,7 @@ func TestWatermill_HandlePanicCorrect(t *testing.T) {
 		panic(throw.E(panicMsg))
 	}
 
-	wmStop := startWatermill(ctx, wmLogger, subscriber, newDispatcherWithConveyor(dispatchFn).Process)
+	wmStop := startWatermill(ctx, wmLogger, subscriber, newPublisherForConveyor(dispatchFn))
 	defer wmStop()
 
 	meta := payload.Meta{Pulse: pulse.Number(pulse.MinTimePulse + 1)}
