@@ -8,8 +8,6 @@ package insconveyor
 import (
 	"context"
 
-	"github.com/ThreeDotsLabs/watermill/message"
-
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/managed"
@@ -158,10 +156,6 @@ func (p *AppCompartment) AppDependencies() injector.DependencyRegistry {
 
 func (p *AppCompartment) Conveyor() *conveyor.PulseConveyor {
 	return p.conveyor
-}
-
-func (p *AppCompartment) GetMessageHandler() message.NoPublishHandlerFunc {
-	return p.flowDispatcher.Process
 }
 
 func (p *AppCompartment) GetBeatDispatcher() beat.Dispatcher {

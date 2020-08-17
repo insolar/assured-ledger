@@ -7,11 +7,7 @@ package insapp
 
 import (
 	"context"
-	"io"
 
-	"github.com/ThreeDotsLabs/watermill"
-	"github.com/ThreeDotsLabs/watermill/message"
-	"github.com/ThreeDotsLabs/watermill/pubsub/gochannel"
 	"github.com/insolar/component-manager"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
@@ -22,14 +18,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/defaults"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor/memstor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/logwatermill"
 	"github.com/insolar/assured-ledger/ledger-core/metrics"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
-	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/servicenetwork"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -122,23 +115,13 @@ func (s *Server) initComponents(ctx context.Context, cfg configuration.Configura
 	pulses := memstor.NewStorageMem()
 	pm := NewPulseManager()
 
-	wmLogger := logwatermill.NewWatermillLogAdapter(logger)
-	var (
-		publisher  message.Publisher
-		subscriber message.Subscriber
-	)
-	{
-		pubsub := gochannel.NewGoChannel(gochannel.Config{}, wmLogger)
-		subscriber = pubsub
-		publisher = pubsub
-	}
-
-	publisher = publisherWrapper(ctx, cm, cfg.Introspection, publisher)
 	availabilityChecker := api.NewNetworkChecker(cfg.AvailabilityChecker)
+
+	mr := nw.CreateMessagesRouter(ctx)
+	// TODO introspection support, cfg.Introspection
 
 	cm.Register(
 		pulses,
-		publisher,
 		pm,
 		availabilityChecker,
 		metricsComp,
@@ -172,7 +155,7 @@ func (s *Server) initComponents(ctx context.Context, cfg configuration.Configura
 
 			BeatHistory:    pulses,
 			AffinityHelper: affine,
-			MessageSender:  messagesender.NewDefaultService(publisher, affine, pulses),
+			MessageSender:  mr.CreateMessageSender(affine, pulses),
 			CryptoScheme:   comps.CryptoScheme,
 		}
 
@@ -192,78 +175,12 @@ func (s *Server) initComponents(ctx context.Context, cfg configuration.Configura
 	}
 
 	// must be after Init
-	pm.AddDispatcher(appComponent.GetBeatDispatcher())
+	bd := appComponent.GetBeatDispatcher()
+	pm.AddDispatcher(bd)
 
-	stopWatermillFn := startWatermill(
-		ctx, wmLogger, subscriber,
-		nw.GetSendMessageHandler(),
-		appComponent.GetMessageHandler(),
-	)
+	stopFn := mr.SubscribeForMessages(bd.Process)
 
-	return cm, stopWatermillFn
-}
-
-func startWatermill(
-	ctx context.Context,
-	logger watermill.LoggerAdapter,
-	sub message.Subscriber,
-	outHandler, inHandler message.NoPublishHandlerFunc,
-) func() {
-	switch {
-	case sub == nil:
-		panic(throw.IllegalState())
-	case outHandler == nil:
-		panic(throw.IllegalState())
-	case inHandler == nil:
-		panic(throw.IllegalState())
-	}
-
-	inRouter, err := message.NewRouter(message.RouterConfig{}, logger)
-	if err != nil {
-		panic(err)
-	}
-	outRouter, err := message.NewRouter(message.RouterConfig{}, logger)
-	if err != nil {
-		panic(err)
-	}
-
-	outRouter.AddNoPublisherHandler(
-		"OutgoingHandler",
-		defaults.TopicOutgoing,
-		sub,
-		outHandler,
-	)
-
-	inRouter.AddNoPublisherHandler(
-		"IncomingHandler",
-		defaults.TopicIncoming,
-		sub,
-		inHandler,
-	)
-	startRouter(ctx, inRouter)
-	startRouter(ctx, outRouter)
-
-	return stopWatermill(ctx, inRouter, outRouter)
-}
-
-func stopWatermill(ctx context.Context, routers ...io.Closer) func() {
-	return func() {
-		for _, r := range routers {
-			err := r.Close()
-			if err != nil {
-				inslogger.FromContext(ctx).Error("Error while closing router", err)
-			}
-		}
-	}
-}
-
-func startRouter(ctx context.Context, router *message.Router) {
-	go func() {
-		if err := router.Run(ctx); err != nil {
-			inslogger.FromContext(ctx).Error("Error while running router", err)
-		}
-	}()
-	<-router.Running()
+	return cm, stopFn
 }
 
 func checkError(ctx context.Context, err error, message string) {
