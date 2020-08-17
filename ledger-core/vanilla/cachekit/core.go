@@ -22,9 +22,9 @@ type Strategy interface {
 	// CurrentAge should provide time marks when this Strategy needs to use time-based retention.
 	CurrentAge() Age
 
-	// GetAllocationPage is called once on Core creation to provide a size of entry pages (# of items).
+	// AllocationPageSize is called once on Core creation to provide a size of entry pages (# of items).
 	// It is recommended for cache implementation to use same size for paged storage.
-	GetAllocationPage() int
+	AllocationPageSize() int
 
 	// NextGenerationCapacity is called on creation of every generation page.
 	// Parameters are length and capacity of the previous generation page, or (-1, -1) for a first page,
@@ -32,6 +32,9 @@ type Strategy interface {
 	// Fence - is a per-generation map to detect and ignore multiple touches for the same entry. It reduced cost to track frequency to once per generations
 	// and is relevant for heavy load scenario only.
 	NextGenerationCapacity(prevLen int, prevCap int) (pageSize int, useFence bool)
+	// InitGenerationCapacity is an analogue of NextGenerationCapacity but when a new page is created.
+	InitGenerationCapacity() (pageSize int, useFence bool)
+
 
 	// CanAdvanceGeneration is intended to provide custom logic to switch to a new generation page.
 	// This logic can consider a number of hits and age of a current generation.
@@ -45,9 +48,11 @@ type Strategy interface {
 	// generation pages by converting LFU into LRU entries.
 	// It receives a total number of entries, a total number of LFU generation pages, and ages of the recent generation,
 	// of the least-frequent generation (rarest) and of the oldest LRU generation.
+	// Zero or negative result will skip trimming.
 	CanTrimGenerations(totalCount, freqGenCount int, recent, rarest, oldest Age) int
 	// CanTrimEntries should return a number entries to be cleaned up from the cache.
 	// It receives a total number of entries, and ages of the recent and of the the oldest LRU generation.
+	// Zero or negative result will skip trimming.
 	CanTrimEntries(totalCount int, recent, oldest Age) int
 }
 
@@ -70,7 +75,7 @@ func NewCore(s Strategy, trimFn TrimFunc) Core {
 	}
 
 	return Core{
-		alloc: newAllocationTracker(s.GetAllocationPage()),
+		alloc: newAllocationTracker(s.AllocationPageSize()),
 		strat: s,
 		trimFn: trimFn,
 		trimEach: s.TrimOnEachAddition(),
@@ -123,7 +128,7 @@ func (p *Core) addToGen(index Index, added bool) GenNo {
 			start:  age,
 			end:    age,
 		}
-		p.recent.init(p.strat.NextGenerationCapacity(-1, -1))
+		p.recent.init(p.strat.InitGenerationCapacity())
 
 		p.rarest = p.recent
 		p.oldest = p.recent
@@ -365,12 +370,15 @@ func (p *generation) trimGeneration(c *Core, prev *generation) {
 	switch prevN := len(prev.access); {
 	case prevN == 0:
 		return
-	case prevN < j && prevN + j <= cap(p.access):
-		p.access = append(p.access, prev.access...)
-		prev.access = nil
+	case prevN + j <= cap(p.access):
+		prev.access = append(p.access, prev.access...)
 	case prevN + j <= cap(prev.access):
-		prev.access = append(prev.access, p.access...)
-		p.access = nil
+		combined := prev.access[:prevN + j] // expand within capacity
+		copy(combined[j:], prev.access) // move older records to the end
+		copy(combined, p.access[:j]) // put newer records to the front
 	}
+
+	prev.start = p.start
+	p.access = nil // enable this generation to be deleted
 }
 

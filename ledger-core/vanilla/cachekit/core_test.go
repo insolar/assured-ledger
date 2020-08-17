@@ -93,40 +93,64 @@ func BenchmarkCore(b *testing.B) {
 }
 
 func benchmarkCore(b *testing.B, s Strategy) {
-	sc := NewUintCache(s)
+	c := NewUintCache(s)
 	b.Run("put", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := b.N; i > 0; i-- {
-			sc.Put(uint64(i), "")
+			c.Put(uint64(i), "")
 		}
 	})
 
-	max := sc.Occupied()
+	max := c.Occupied()
 	b.Run("put-dup", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := b.N; i > 0; i-- {
-			sc.Put(uint64(i%max), "")
+			c.Put(uint64(i%max), "")
 		}
 	})
 
 	b.Run("peek", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := b.N; i > 0; i-- {
-			sc.Peek(uint64(i%max))
+			c.Peek(uint64(i%max))
 		}
 	})
 
 	b.Run("get", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := b.N; i > 0; i-- {
-			sc.Get(uint64(i%max))
+			c.Get(uint64(i%max))
 		}
 	})
 
 	b.Run("get-subset", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := b.N; i > 0; i-- {
-			sc.Get(uint64((i&0xFF)<<10)) // access a small (256) set of records across all
+			c.Get(uint64((i&0xFF)<<10)) // access a small (256) set of records across all
 		}
 	})
+}
+
+func BenchmarkFence(b *testing.B) {
+	b.Run("fenced", func(b *testing.B) {
+		benchmarkFence(b, newStrategy(32, 4, true, false))
+	})
+
+	b.Run("bare", func(b *testing.B) {
+		benchmarkFence(b, newStrategy(32, 4, false, false))
+	})
+}
+
+func benchmarkFence(b *testing.B, s Strategy) {
+	c := NewUintCache(s)
+	c.Put(0, "")
+	c.Put(1, "")
+
+	b.Run("get", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := b.N; i > 0; i-- {
+			c.Get(uint64(i)&1)
+		}
+	})
+
 }

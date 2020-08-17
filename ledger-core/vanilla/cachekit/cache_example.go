@@ -5,6 +5,10 @@
 
 package cachekit
 
+import (
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+)
+
 type Key = uint64
 type Value = string
 
@@ -20,13 +24,13 @@ const zeroValue = ""
  */
 
 func NewUintCache(cs Strategy) *UintCache {
-	sc := &UintCache{
+	c := &UintCache{
 		keys: map[Key]Index{},
-		values: [][]uintEntry { make([]uintEntry, cs.GetAllocationPage()) },
+		values: [][]uintEntry { make([]uintEntry, cs.AllocationPageSize()) },
 	}
-	sc.core = NewCore(cs, sc.trimBatch)
+	c.core = NewCore(cs, c.trimBatch)
 
-	return sc
+	return c
 }
 
 // UintCache is an example/template implementation of a cache that uses the Core.
@@ -79,6 +83,7 @@ func (p *UintCache) Replace(key Key, value Value) bool {
 	}
 	idx, _ = p.core.Add()
 	p.keys[key] = idx
+	p.putEntry(idx, uintEntry{key, value})
 	return true
 }
 
@@ -120,6 +125,9 @@ func (p *UintCache) Delete(key Key) bool {
 		return false
 	}
 	ce := p.getEntry(idx)
+	if ce.key != key {
+		panic(throw.IllegalState())
+	}
 	delete(p.keys, ce.key)
 	*ce = uintEntry{}
 	return true

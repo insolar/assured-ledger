@@ -33,8 +33,12 @@ func (v cacheStrategy) CurrentAge() Age {
 	return 0
 }
 
-func (v cacheStrategy) GetAllocationPage() int {
+func (v cacheStrategy) AllocationPageSize() int {
 	return v.pgSize
+}
+
+func (v cacheStrategy) InitGenerationCapacity() (pageSize int, useFence bool) {
+	return v.pgSize, v.useFence
 }
 
 func (v cacheStrategy) NextGenerationCapacity(prevLen int, prevCap int) (int, bool) {
