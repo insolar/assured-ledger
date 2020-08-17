@@ -112,42 +112,42 @@ func (p *allocationTracker) Set(index int, value int32) bool {
 	}
 }
 
-func (p *allocationTracker) Inc(index int) (int32, bool) {
+func (p *allocationTracker) Inc(index int) (int32, bool, bool) {
 	switch vi := p.get(index); {
 	case vi == nil:
-		return -1, false
+		return -1, false, false
 	case *vi < 0:
-		return -1, false
+		return -1, false, false
 	default:
 		switch n := *vi; {
 		case n < 0:
 			panic(throw.IllegalValue())
 		case n == math.MaxInt32:
-			return math.MaxInt32, true
+			return math.MaxInt32, true, true
 		default:
 			n++
 			*vi = n
-			return n, true
+			return n, false, true
 		}
 	}
 }
 
-func (p *allocationTracker) Dec(index int) (int32, bool, bool) {
+func (p *allocationTracker) Dec(index int) (int32, bool) {
 	switch vi := p.get(index); {
 	case vi == nil:
-		return -1, false, false
+		return -1, false
 	case *vi < 0:
-		return -1, false, false
+		return -1, false
 	default:
 		switch n := *vi; {
 		case n < 0:
 			panic(throw.IllegalValue())
 		case n == 0:
-			return 0, false, true
+			return 0, true
 		default:
 			n--
 			*vi = n
-			return n, true, true
+			return n, true
 		}
 	}
 }

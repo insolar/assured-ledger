@@ -128,6 +128,7 @@ func (p *UintCache) Delete(key Key) bool {
 	if ce.key != key {
 		panic(throw.IllegalState())
 	}
+	p.core.Delete(idx)
 	delete(p.keys, ce.key)
 	*ce = uintEntry{}
 	return true

@@ -32,9 +32,8 @@ type Strategy interface {
 	// Fence - is a per-generation map to detect and ignore multiple touches for the same entry. It reduced cost to track frequency to once per generations
 	// and is relevant for heavy load scenario only.
 	NextGenerationCapacity(prevLen int, prevCap int) (pageSize int, useFence bool)
-	// InitGenerationCapacity is an analogue of NextGenerationCapacity but when a new page is created.
+	// InitGenerationCapacity is an analogue of NextGenerationCapacity but when a first page is created.
 	InitGenerationCapacity() (pageSize int, useFence bool)
-
 
 	// CanAdvanceGeneration is intended to provide custom logic to switch to a new generation page.
 	// This logic can consider a number of hits and age of a current generation.
@@ -42,7 +41,11 @@ type Strategy interface {
 	// When (createGeneration) is (true) - a new generation page will be created and the given limits (hitCount) and (ageLimit) will be applied.
 	// When (createGeneration) is (false) - the given limits (hitCount) and (ageLimit) will be applied to the current generation page.
 	// NB! A new generation page will always be created when capacity is exhausted. See NextGenerationCapacity.
-	CanAdvanceGeneration(curLen int, curCap int, hitRemains uint64) (createGeneration bool, hitLimit uint64, ageLimit Age)
+	CanAdvanceGeneration(curLen int, curCap int, hitRemains uint64, start, end Age) (createGeneration bool, hitLimit uint64, ageLimit Age)
+
+	// InitialAdvanceLimits is an analogue of CanAdvanceGeneration applied when a generation is created.
+	// Age given as (start) is the age of the first record to be added.
+	InitialAdvanceLimits(curCap int, start Age) (hitLimit uint64, ageLimit Age)
 
 	// CanTrimGenerations should return a number of LFU generation pages to be trimmed. This trim does NOT free cache entries, but compacts
 	// generation pages by converting LFU into LRU entries.
@@ -50,9 +53,11 @@ type Strategy interface {
 	// of the least-frequent generation (rarest) and of the oldest LRU generation.
 	// Zero or negative result will skip trimming.
 	CanTrimGenerations(totalCount, freqGenCount int, recent, rarest, oldest Age) int
+
 	// CanTrimEntries should return a number entries to be cleaned up from the cache.
 	// It receives a total number of entries, and ages of the recent and of the the oldest LRU generation.
 	// Zero or negative result will skip trimming.
+	// Trimming, initiated by positive result of CanTrimEntries may prevent CanTrimGenerations to be called.
 	CanTrimEntries(totalCount int, recent, oldest Age) int
 }
 
@@ -109,20 +114,26 @@ func (p *Core) Occupied() int {
 }
 
 func (p *Core) Add() (Index, GenNo) {
-	n := p.alloc.Add(1)
-	return n, p.addToGen(n, true)
+	n := p.alloc.Add(2) // +1 is for tracking oldest
+	return n, p.addToGen(n, true, false)
+}
+
+// Delete can ONLY be called once per index, otherwise counting will be broken
+func (p *Core) Delete(idx Index) {
+	p.alloc.Dec(idx) // this will remove +1 for oldest tracking
+	                 // so the entry will be removed at the "rarest" generation
 }
 
 func (p *Core) Touch(index Index) GenNo {
-	if _, ok := p.alloc.Inc(index); !ok {
+	_, overflow, ok := p.alloc.Inc(index)
+	if !ok {
 		return -1
 	}
-	return p.addToGen(index, false)
+	return p.addToGen(index, false, overflow)
 }
 
-func (p *Core) addToGen(index Index, added bool) GenNo {
+func (p *Core) addToGen(index Index, addedEntry, overflow bool) GenNo {
 	age := p.strat.CurrentAge()
-
 	if p.recent == nil {
 		p.recent = &generation{
 			start:  age,
@@ -132,21 +143,32 @@ func (p *Core) addToGen(index Index, added bool) GenNo {
 
 		p.rarest = p.recent
 		p.oldest = p.recent
-		return p.recent.Add(index, age)
+		genNo, _ := p.recent.Add(index, age) // first entry will always be added
+		return genNo
 	}
 
-	p.checkGen(age, added)
-	return p.recent.Add(index, age)
+	p.useOrAdvanceGen(age, addedEntry)
+
+	genNo, addedEvent := p.recent.Add(index, age)
+	switch {
+	case addedEvent:
+	case addedEntry:
+		panic(throw.Impossible())
+	case !overflow:
+		_, _ = p.alloc.Dec(index)
+	}
+	return genNo
 }
 
-func (p *Core) checkGen(age Age, added bool) {
-	trimmed := false
+func (p *Core) useOrAdvanceGen(age Age, added bool) {
+	trimmedEntries, trimmedGens := false, false
+
 	if p.trimEach && added {
 		trimCount := p.strat.CanTrimEntries(p.alloc.Count(), // is already allocated
 			p.recent.end, p.oldest.start)
 
-		p.trimEntries(trimCount)
-		trimmed = trimCount > 0
+		trimmedEntries = trimCount > 0
+		trimmedGens = p.trimEntriesAndGenerations(trimCount)
 	}
 
 	if p.hitLimit > 0 {
@@ -156,10 +178,9 @@ func (p *Core) checkGen(age Age, added bool) {
 
 	switch {
 	case curLen == curCap:
-		p.hitLimit, p.ageLimit = 0, 0 // enforce call to CanAdvanceGeneration on next update
 	case p.hitLimit == 0 || p.ageLimit <= age:
 		createGen := false
-		createGen, p.hitLimit, p.ageLimit = p.strat.CanAdvanceGeneration(curLen, curCap, p.hitLimit)
+		createGen, p.hitLimit, p.ageLimit = p.strat.CanAdvanceGeneration(curLen, curCap, p.hitLimit, p.recent.start, p.recent.end)
 		if createGen {
 			break
 		}
@@ -171,47 +192,55 @@ func (p *Core) checkGen(age Age, added bool) {
 	newGen := &generation{
 		genNo: p.recent.genNo + 1,
 		start: age,
+		end: age,
 	}
 	newGen.init(p.strat.NextGenerationCapacity(curLen, curCap))
-
-	if newGen.start < p.recent.end {
-		newGen.start = p.recent.end
-	}
-	newGen.end = newGen.start
 
 	p.recent.next = newGen
 	p.recent = newGen
 
-	if !trimmed {
-		totalCount := p.alloc.Count()
+	p.hitLimit, p.ageLimit = p.strat.InitialAdvanceLimits(cap(newGen.access), age)
 
-		trimCount := p.strat.CanTrimEntries(totalCount, p.recent.end, p.oldest.start)
-		p.trimEntries(trimCount)
+	if !trimmedEntries {
+		trimCount := p.strat.CanTrimEntries(p.alloc.Count(), p.recent.end, p.oldest.start)
+		trimmedGens = p.trimEntriesAndGenerations(trimCount)
+	}
 
-		if trimCount <= 0 {
-			trimCount = p.strat.CanTrimGenerations(totalCount, p.recent.genNo - p.rarest.genNo + 1,
+	if !trimmedGens {
+		trimGenCount := p.strat.CanTrimGenerations(p.alloc.Count(), p.recent.genNo - p.rarest.genNo + 1,
 				p.recent.end, p.rarest.start, p.oldest.start)
-
-			p.trimGenerations(trimCount)
-		}
+		p.trimGenerations(trimGenCount)
 	}
 }
 
-func (p *Core) trimEntries(count int) {
-	for count > 0 && p.oldest != p.rarest {
+func (p *Core) trimEntriesAndGenerations(count int) bool {
+	for ; count > 0 && p.oldest != p.rarest; p.oldest = p.oldest.next {
 		count = p.oldest.trimOldest(p, count)
-		if len(p.oldest.access) == 0 {
-			p.oldest = p.oldest.next
-		}
 	}
 
-	for count > 0 && p.recent != p.rarest {
-		count = p.rarest.trimRarest(p, count)
-		if len(p.rarest.access) == 0 {
-			p.rarest = p.rarest.next
-			p.oldest = p.rarest
-		}
+	if count <= 0 {
+		return false
 	}
+
+	for ; count > 0 && p.recent != p.rarest; p.rarest = p.rarest.next {
+		count = p.rarest.trimRarest(p, count)
+		if len(p.rarest.access) != 0 {
+			break
+		}
+		p.oldest = p.rarest
+	}
+
+	if count <= 0 {
+		return true
+	}
+
+	count = p.recent.trimRarest(p, count)
+
+	if count > 0 && p.alloc.Count() > 0 {
+		panic(throw.Impossible())
+	}
+
+	return true
 }
 
 func (p *Core) trimGenerations(count int) {
@@ -235,10 +264,6 @@ func (p *Core) trimGenerations(count int) {
 	}
 }
 
-func (p *Core) ResetGenerations() {
-
-}
-
 /*******************************************/
 
 type generation struct {
@@ -257,24 +282,34 @@ func (p *generation) init(capacity int, loadFence bool) {
 	}
 }
 
-func (p *generation) Add(index Index, age Age) GenNo {
-	if p.end < age {
+func (p *generation) Add(index Index, age Age) (GenNo, bool) {
+	idx := uint32(index)
+	n := len(p.access)
+
+	switch {
+	case n == 0:
+		p.access = append(p.access, idx)
+		if p.fence != nil {
+			p.fence[idx] = struct{}{}
+		}
+		return p.genNo, true
+	case p.end < age:
 		p.end = age
 	}
 
-	idx := uint32(index)
-	if p.fence != nil {
+	switch {
+	case p.fence != nil:
 		if _, ok := p.fence[idx]; !ok {
 			p.fence[idx] = struct{}{}
 			p.access = append(p.access, idx)
+			return p.genNo, true
 		}
-	} else {
-		if n := len(p.access); n == 0 || p.access[n - 1] != idx {
-			p.access = append(p.access, idx)
-		}
+	case p.access[n - 1] != idx:
+		p.access = append(p.access, idx)
+		return p.genNo, true
 	}
 
-	return p.genNo
+	return p.genNo, false
 }
 
 func (p *generation) trimOldest(c *Core, count int) int {
@@ -282,7 +317,15 @@ func (p *generation) trimOldest(c *Core, count int) int {
 	i, j := 0, 0
 	for _, idx := range p.access {
 		i++
-		if v, ok := c.alloc.Get(Index(idx)); !ok || v > 0 {
+		switch v, ok := c.alloc.Dec(Index(idx)); {
+		case !ok:
+			// was removed
+			continue
+		case v > 0:
+			// it seems to be revived
+			// so it will be back in a while
+			// restore the counter
+			c.alloc.Inc(Index(idx))
 			continue
 		}
 		c.alloc.Delete(Index(idx))
@@ -309,15 +352,15 @@ func (p *generation) trimRarest(c *Core, count int) int {
 	i, j := 0, 0
 	for _, idx := range p.access {
 		i++
-		switch v, changed, ok := c.alloc.Dec(Index(idx)); {
+		switch v, ok := c.alloc.Dec(Index(idx)); {
 		case !ok:
 			// was removed
 			continue
-		case v > 0:
-			// not yet rare
-			continue
-		case !changed:
-			// is already among the oldest
+		case v > 1:
+			// it has other events
+			// so it will be back in a while
+			// restore the counter
+			c.alloc.Inc(Index(idx))
 			continue
 		}
 		c.alloc.Delete(Index(idx))
@@ -342,18 +385,20 @@ func (p *generation) trimGeneration(c *Core, prev *generation) {
 	indices := p.access
 	j := 0
 	for _, idx := range p.access {
-		switch v, changed, ok := c.alloc.Dec(Index(idx)); {
+		switch v, ok := c.alloc.Dec(Index(idx)); {
 		case !ok:
 			// was removed
 			continue
-		case v > 0:
+		case v > 1:
 			// not yet rare
 			continue
-		case !changed:
-			// is already among the oldest
+		case v == 0:
+			// it was explicitly removed
+			// so do not pass it further
+			c.alloc.Delete(Index(idx))
 			continue
 		}
-
+		// v == 1 - leave for FIFO removal
 		indices[j] = idx
 		j++
 	}

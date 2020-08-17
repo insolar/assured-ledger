@@ -6,6 +6,7 @@
 package cachekit
 
 import (
+	"math"
 	"strconv"
 	"testing"
 
@@ -13,39 +14,130 @@ import (
 )
 
 func TestBasicLimits(t *testing.T) {
-	sc := NewUintCache(newStrategy(5, 15, false, true))
+	c := NewUintCache(newStrategy(5, 15, false, true))
 
 	for i := 1; i <= 20; i++ {
 		s := strconv.Itoa(i)
-		sc.Put(uint64(i), "V" + s)
+		c.Put(uint64(i), "V" + s)
 	}
 
-	require.Equal(t, 15, sc.Occupied())
-	require.Equal(t, 15, sc.core.Occupied())
-	require.Equal(t, 20, sc.Allocated())
+	require.Equal(t, 15, c.Occupied())
+	require.Equal(t, 15, c.core.Occupied())
+	require.Equal(t, 20, c.Allocated())
 
 	for i := 1; i <= 5; i++ {
-		require.False(t, sc.Contains(uint64(i)), i)
+		require.False(t, c.Contains(uint64(i)), i)
 	}
 
 	for i := 6; i <= 20; i++ {
 		s := strconv.Itoa(i)
-		require.True(t, sc.Contains(uint64(i)), i)
-		v, ok := sc.Get(uint64(i))
+		require.True(t, c.Contains(uint64(i)), i)
+		v, ok := c.Peek(uint64(i))
 		require.True(t, ok, i)
 		require.Equal(t, "V" + s, v)
 	}
 }
 
+func TestDelete(t *testing.T) {
+	c := NewUintCache(newStrategy(5, 15, false, true))
+
+	for i := 1; i <= 15; i++ {
+		s := strconv.Itoa(i)
+		c.Put(uint64(i), "V" + s)
+	}
+
+	c.Delete(8)
+	require.False(t, c.Contains(8))
+
+	for i := 16; i <= 20; i++ {
+		s := strconv.Itoa(i)
+		c.Put(uint64(i), "V" + s)
+	}
+
+	require.Equal(t, 14, c.Occupied())
+	require.Equal(t, 15, c.core.Occupied())
+	require.Equal(t, 20, c.Allocated())
+
+	// this loop forces creation of generations and cleanup of them
+	// so the deleted item can be collected
+	for i := 100; i > 0; i-- {
+		c.Get(19)
+		c.Get(20)
+	}
+
+	require.Equal(t, 14, c.core.Occupied())
+
+	for i := 1; i <= 5; i++ {
+		require.False(t, c.Contains(uint64(i)), i)
+	}
+
+	for i := 6; i <= 7; i++ {
+		s := strconv.Itoa(i)
+		require.True(t, c.Contains(uint64(i)), i)
+		v, ok := c.Peek(uint64(i))
+		require.True(t, ok, i)
+		require.Equal(t, "V" + s, v)
+	}
+
+	require.False(t, c.Contains(8))
+
+	for i := 9; i <= 20; i++ {
+		s := strconv.Itoa(i)
+		require.True(t, c.Contains(uint64(i)), i)
+		v, ok := c.Peek(uint64(i))
+		require.True(t, ok, i)
+		require.Equal(t, "V" + s, v)
+	}
+
+	// it uses the empty slot released by deletion
+	c.Put(21, "V21")
+
+	require.Equal(t, 15, c.Occupied())
+	require.Equal(t, 15, c.core.Occupied())
+	require.Equal(t, 20, c.Allocated())
+}
+
+func TestCounter(t *testing.T) {
+	c := NewUintCache(newStrategy(2, 2, false, true))
+	c.Put(1, "A")
+	c.Put(2, "B")
+	for i := 100; i > 0; i-- {
+		c.Get(1)
+		c.Get(2)
+	}
+
+	require.Less(t, int32(2), *c.core.alloc.get(1))
+
+	c.core.trimGenerations(math.MaxUint32)
+
+	require.EqualValues(t, 2, *c.core.alloc.get(1))
+}
+
+func TestFencedCounter(t *testing.T) {
+	c := NewUintCache(newStrategy(4, 2, true, true))
+	c.Put(1, "A")
+	c.Put(2, "B")
+	for i := 100; i > 0; i-- {
+		c.Get(1)
+		c.Get(2)
+	}
+
+	require.EqualValues(t, 2, *c.core.alloc.get(1))
+
+	c.core.trimGenerations(math.MaxUint32)
+
+	require.EqualValues(t, 2, *c.core.alloc.get(1))
+}
+
 func TestTouch(t *testing.T) {
-	sc := NewUintCache(newStrategy(5, 15, true, true))
+	c := NewUintCache(newStrategy(5, 15, true, true))
 
 	for i := 1; i <= 20; i++ {
 		s := strconv.Itoa(i)
-		sc.Put(uint64(i), "V" + s)
+		c.Put(uint64(i), "V" + s)
 
-		_, _ = sc.Peek(4)
-		v, ok := sc.Get(5)
+		_, _ = c.Peek(4)
+		v, ok := c.Get(5)
 
 		if i < 5 {
 			require.False(t, ok, i)
@@ -55,20 +147,20 @@ func TestTouch(t *testing.T) {
 		}
 	}
 
-	require.Equal(t, 15, sc.Occupied())
-	require.Equal(t, 15, sc.core.Occupied())
-	require.Equal(t, 20, sc.Allocated())
+	require.Equal(t, 15, c.Occupied())
+	require.Equal(t, 15, c.core.Occupied())
+	require.Equal(t, 20, c.Allocated())
 
 	for i := 1; i <= 4; i++ {
-		require.False(t, sc.Contains(uint64(i)), i)
+		require.False(t, c.Contains(uint64(i)), i)
 	}
 
-	require.True(t, sc.Contains(5))
+	require.True(t, c.Contains(5))
 
 	for i := 7; i <= 20; i++ {
 		s := strconv.Itoa(i)
-		require.True(t, sc.Contains(uint64(i)), i)
-		v, ok := sc.Get(uint64(i))
+		require.True(t, c.Contains(uint64(i)), i)
+		v, ok := c.Peek(uint64(i))
 		require.True(t, ok, i)
 		require.Equal(t, "V" + s, v)
 	}

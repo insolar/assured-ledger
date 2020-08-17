@@ -57,7 +57,11 @@ func (v cacheStrategy) CanTrimEntries(totalCount int, recent, oldest Age) int {
 	return totalCount - v.maxTotal
 }
 
-func (v cacheStrategy) CanAdvanceGeneration(curLen int, curCap int, hitRemains uint64) (createGeneration bool, hitLimit uint64, ageLimit Age) {
+func (v cacheStrategy) CanAdvanceGeneration(curLen int, curCap int, hitRemains uint64, start, end Age) (createGeneration bool, hitLimit uint64, ageLimit Age) {
 	return false, math.MaxUint64, math.MaxInt64
+}
+
+func (v cacheStrategy) InitialAdvanceLimits(curCap int, start Age) (hitLimit uint64, ageLimit Age) {
+	return math.MaxUint64, math.MaxInt64
 }
 
