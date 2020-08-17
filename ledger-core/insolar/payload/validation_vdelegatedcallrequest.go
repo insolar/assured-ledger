@@ -31,12 +31,12 @@ func (m *VDelegatedCallRequest) Validate(currentPulse pulse.Number) error {
 		return err
 	}
 
-	outgoingLocalPulse, err := validOutgoingWithPulseBefore(m.CallOutgoing, currentPulse, "CallOutgoing")
+	outgoingLocalPulse, err := validRequestGlobalWithPulseBefore(m.CallOutgoing, currentPulse, "CallOutgoing")
 	if err != nil {
 		return err
 	}
 
-	incomingLocalPulse, err := validOutgoingWithPulseBefore(m.CallIncoming, currentPulse, "CallIncoming")
+	incomingLocalPulse, err := validRequestGlobalWithPulseBefore(m.CallIncoming, currentPulse, "CallIncoming")
 	if err != nil {
 		return err
 	}

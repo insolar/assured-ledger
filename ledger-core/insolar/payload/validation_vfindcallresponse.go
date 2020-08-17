@@ -21,7 +21,7 @@ func (m *VFindCallResponse) Validate(currentPulse PulseNumber) error {
 		return err
 	}
 
-	outgoingLocalPulse, err := validOutgoingWithPulseBefore(m.Outgoing, currentPulse, "Outgoing")
+	outgoingLocalPulse, err := validRequestGlobalWithPulseBefore(m.Outgoing, currentPulse, "Outgoing")
 	if err != nil {
 		return err
 	}

@@ -145,7 +145,7 @@ func validSelfScopedGlobalWithPulseSpecialOrBeforeOrEq(global reference.Global, 
 	return validSelfScopedGlobalWithPulseCheck(global, before, fieldName, specialOrTmePulseBeforeOrEq{})
 }
 
-func validOutgoingWithPulseCheck(outgoing reference.Global, before pulse.Number, fieldName string, checker ExtendedPulseValidator) (pulse.Number, error) {
+func validRequestGlobalWithPulseCheck(outgoing reference.Global, before pulse.Number, fieldName string, checker ExtendedPulseValidator) (pulse.Number, error) {
 	if outgoing.IsEmpty() {
 		return pulse.Unknown, throw.New("Reference should be non-empty", fieldNameDescription{
 			FieldName: fieldName,
@@ -184,12 +184,12 @@ func validOutgoingWithPulseCheck(outgoing reference.Global, before pulse.Number,
 	return outgoingLocalPulse, nil
 }
 
-func validOutgoingWithPulseBefore(outgoing reference.Global, before pulse.Number, fieldName string) (pulse.Number, error) {
-	return validOutgoingWithPulseCheck(outgoing, before, fieldName, timePulseBefore{})
+func validRequestGlobalWithPulseBefore(outgoing reference.Global, before pulse.Number, fieldName string) (pulse.Number, error) {
+	return validRequestGlobalWithPulseCheck(outgoing, before, fieldName, timePulseBefore{})
 }
 
-func validOutgoingWithPulseBeforeOrEq(outgoing reference.Global, before pulse.Number, fieldName string) (pulse.Number, error) {
-	return validOutgoingWithPulseCheck(outgoing, before, fieldName, timePulseBeforeOrEq{})
+func validRequestGlobalWithPulseBeforeOrEq(outgoing reference.Global, before pulse.Number, fieldName string) (pulse.Number, error) {
+	return validRequestGlobalWithPulseCheck(outgoing, before, fieldName, timePulseBeforeOrEq{})
 }
 
 func validCallType(ct CallType) error {

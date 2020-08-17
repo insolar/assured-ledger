@@ -82,7 +82,7 @@ func (m *VCallRequest) Validate(currentPulse PulseNumber) error {
 		return err
 	}
 
-	outgoingLocalPulse, err := validOutgoingWithPulseBeforeOrEq(m.CallOutgoing, currentPulse, "CallOutgoing")
+	outgoingLocalPulse, err := validRequestGlobalWithPulseBeforeOrEq(m.CallOutgoing, currentPulse, "CallOutgoing")
 	if err != nil {
 		return err
 	}
