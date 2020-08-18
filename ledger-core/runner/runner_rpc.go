@@ -26,7 +26,7 @@ func (r *DefaultService) CallMethod(in rpctypes.UpCallMethodReq, out *rpctypes.U
 	r.awaitedRunFinish(in.ID, false)
 
 	result := sink.WaitInput()
-	if result.Err != nil {
+	if result.Error != nil {
 		panic(throw.NotImplemented())
 	}
 
@@ -53,7 +53,7 @@ func (r *DefaultService) CallConstructor(in rpctypes.UpCallConstructorReq, out *
 	r.awaitedRunFinish(in.ID, false)
 
 	result := sink.WaitInput()
-	if result.Err != nil {
+	if result.Error != nil {
 		panic(throw.NotImplemented())
 	}
 
@@ -78,7 +78,7 @@ func (r *DefaultService) DeactivateObject(in rpctypes.UpDeactivateObjectReq, out
 	r.awaitedRunFinish(in.ID, false)
 
 	result := sink.WaitInput()
-	if result.Err != nil {
+	if result.Error != nil {
 		panic(throw.NotImplemented())
 	}
 	out.Result = result.ExecutionResult
