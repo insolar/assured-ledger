@@ -11,6 +11,7 @@ import (
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/require"
 
+	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -64,4 +65,88 @@ func TestVStateReport_CreateObjectWithoutState(t *testing.T) {
 
 	require.NoError(t, catalog.CheckDone())
 	mc.Finish()
+}
+
+func TestVStateReport_StopSMIfAsOfOutdated(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
+	var (
+		emptyEntropyFn = func() longbits.Bits256 {
+			return longbits.Bits256{}
+		}
+
+		mc = minimock.NewController(t)
+
+		pdPMinusThree = pulse.NewPulsarData(pulse.MinTimePulse<<1, 10, 1, longbits.Bits256{})
+		pdPMinusTwo   = pdPMinusThree.CreateNextPulse(emptyEntropyFn)
+		pdPMinusOne   = pdPMinusTwo.CreateNextPulse(emptyEntropyFn)
+		pd            = pdPMinusOne.CreateNextPulse(emptyEntropyFn)
+
+		catalog          = object.NewCatalogMockWrapper(mc)
+		initState        = []byte("init state")
+		initRef          = gen.UniqueLocalRef()
+		class            = gen.UniqueGlobalRef()
+		smObjectID       = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
+		smGlobalRef      = reference.NewSelf(smObjectID)
+		smObject         = object.NewStateMachineObject(smGlobalRef)
+		sharedStateData  = smachine.NewUnboundSharedData(&smObject.SharedState)
+		smObjectAccessor = object.SharedStateAccessor{SharedDataLink: sharedStateData}
+	)
+
+	catalog.AddObject(smGlobalRef, smObjectAccessor)
+	catalog.AllowAccessMode(object.CatalogMockAccessGetOrCreate)
+
+	pulseSlot := conveyor.NewPresentPulseSlot(nil, pd.AsRange())
+
+	table := []struct {
+		name     string
+		outdated bool
+		asOf     pulse.Number
+	}{
+		{name: "pulse-1", outdated: false, asOf: pdPMinusOne.PulseNumber},
+		{name: "pulse-2", outdated: true, asOf: pdPMinusTwo.PulseNumber},
+		{name: "pulse-3", outdated: true, asOf: pdPMinusThree.PulseNumber},
+	}
+
+	for _, testCase := range table {
+		t.Run(testCase.name, func(t *testing.T) {
+			mc := minimock.NewController(t)
+
+			smVStateReport := SMVStateReport{
+				Payload: &payload.VStateReport{
+					Status: payload.Ready,
+					Object: smGlobalRef,
+					AsOf:   testCase.asOf,
+					ProvidedContent: &payload.VStateReport_ProvidedContentBody{
+						LatestDirtyState: &payload.ObjectState{
+							Reference: initRef,
+							Class:     class,
+							State:     initState,
+						},
+						LatestValidatedState: &payload.ObjectState{
+							Reference: initRef,
+							Class:     class,
+							State:     initState,
+						},
+					},
+				},
+				pulseSlot:     &pulseSlot,
+				objectCatalog: catalog.Mock(),
+			}
+
+			execCtx := smachine.NewExecutionContextMock(mc)
+
+			if testCase.outdated {
+				execCtx.JumpMock.Set(commontestutils.AssertJumpStep(t, smVStateReport.stepAsOfOutdated))
+			} else {
+				execCtx.UseSharedMock.Set(shareddata.CallSharedDataAccessor).
+					StopMock.Return(smachine.StateUpdate{})
+			}
+
+			smVStateReport.stepProcess(execCtx)
+
+			mc.Finish()
+		})
+	}
+
 }
