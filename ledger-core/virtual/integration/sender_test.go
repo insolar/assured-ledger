@@ -129,25 +129,25 @@ func TestVirtual_SenderCheck_With_ExpectedVE(t *testing.T) {
 
 					switch m := (testMsg.msg).(type) {
 					case *payload.VStateReport:
-						m.Status = payload.Missing
-						m.AsOf = server.GetPulse().PulseNumber
-						m.Object = reference.NewSelf(server.RandomLocalWithPulse())
-						server.IncrementPulseAndWaitIdle(ctx)
+						pn := server.GetPrevPulse().PulseNumber
 
-						testMsg.msg = m
+						m.Status = payload.Missing
+						m.AsOf = pn
+						m.Object = gen.UniqueGlobalRefWithPulse(pn)
+
 					case *payload.VFindCallRequest:
-						pn := server.GetPulse().PulseNumber
+						pn := server.GetPrevPulse().PulseNumber
+
 						m.LookAt = pn
 						m.Callee = gen.UniqueGlobalRefWithPulse(pn)
-						m.Outgoing = gen.UniqueGlobalRefWithPulse(pn)
-
-						testMsg.msg = m
+						m.Outgoing = server.BuildRandomOutgoingWithGivenPulse(pn)
 					case *payload.VFindCallResponse:
-						m.LookedAt = server.GetPrevPulse().PulseNumber
+						pn := server.GetPrevPulse().PulseNumber
+
+						m.LookedAt = pn
+						m.Callee = gen.UniqueGlobalRefWithPulse(pn)
+						m.Outgoing = server.BuildRandomOutgoingWithGivenPulse(pn)
 						m.Status = payload.MissingCall
-						m.Callee = reference.NewSelf(gen.UniqueLocalRefWithPulse(m.LookedAt))
-						m.Outgoing = reference.New(gen.UniqueLocalRefWithPulse(m.LookedAt), gen.UniqueLocalRefWithPulse(m.LookedAt))
-						testMsg.msg = m
 					case *payload.VDelegatedCallRequest:
 						pn := server.GetPrevPulse().PulseNumber
 
@@ -173,7 +173,6 @@ func TestVirtual_SenderCheck_With_ExpectedVE(t *testing.T) {
 						m.CallOutgoing = server.BuildRandomOutgoingWithPulse()
 						m.CallIncoming = server.RandomGlobalWithPulse()
 						m.ReturnArguments = []byte("some result")
-
 					case *payload.VCallRequest:
 						testMsg.msg = utils.GenerateVCallRequestMethod(server)
 					}

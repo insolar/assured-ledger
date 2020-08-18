@@ -6,7 +6,6 @@
 package integration
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -267,8 +266,6 @@ func TestVirtual_CallContractFromContract(t *testing.T) {
 				objectA = server.RandomGlobalWithPulse()
 				objectB = server.RandomGlobalWithPulse()
 			)
-
-			fmt.Println(objectA.String(), objectB.String())
 
 			server.IncrementPulseAndWaitIdle(ctx)
 
@@ -669,11 +666,7 @@ func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 
 	defer server.Stop()
 
-	logger := inslogger.FromContext(ctx)
-
-	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
-		return execution.Request.CallSiteMethod
-	})
+	runnerMock := logicless.NewServiceMock(ctx, mc, nil)
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
 
@@ -701,22 +694,20 @@ func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 	pl := utils.GenerateVCallRequestMethod(server)
 	pl.CallFlags = payload.BuildCallFlags(tolerableFlags().Interference, tolerableFlags().State)
 	pl.Callee = object
-	pl.CallSiteMethod = "SomeMethod"
 
 	// add ExecutionMocks to runnerMock
 	{
-		runnerMock.AddExecutionClassify("SomeMethod", tolerableFlags(), nil)
+		key := pl.CallOutgoing.String()
+		runnerMock.AddExecutionClassify(key, tolerableFlags(), nil)
 
-		objectExecutionMock := runnerMock.AddExecutionMock("SomeMethod")
-		objectExecutionMock.AddStart(
-			func(_ execution.Context) {
-				logger.Debug("ExecutionStart [SomeMethod]")
-			},
-			&execution.Update{
-				Type:     execution.OutgoingCall,
-				Outgoing: execution.CallMethod{},
-			},
-		)
+		builder := execution.NewRPCBuilder(pl.CallOutgoing, pl.Callee)
+		callMethod := builder.CallMethod(server.RandomGlobalWithPulse(), reference.Global{}, "Method", pl.Arguments)
+
+		objectExecutionMock := runnerMock.AddExecutionMock(key)
+		objectExecutionMock.AddStart(nil, &execution.Update{
+			Type:     execution.OutgoingCall,
+			Outgoing: callMethod,
+		})
 	}
 
 	point := synchronization.NewPoint(1)
@@ -755,7 +746,6 @@ func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 		})
 
 		typedChecker.VDelegatedRequestFinished.Set(func(finished *payload.VDelegatedRequestFinished) bool { return false })
-
 	}
 
 	server.SendPayload(ctx, pl)
