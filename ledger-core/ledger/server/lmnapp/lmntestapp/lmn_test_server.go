@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/convlog"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor/instestconveyor"
@@ -25,6 +26,11 @@ func NewTestServer(t logcommon.TestingLogger) *TestServer {
 }
 
 func NewTestServerWithErrorFilter(t logcommon.TestingLogger, filterFn logcommon.ErrorFilterFunc) *TestServer {
+	if _, ok := t.(interface{ StartTimer() }); ok {
+		// this is testing.B
+		convlog.DisableTextConvLog()
+	}
+
 	s := instestconveyor.NewTestServerTemplate(t, filterFn)
 	s.InitTemplate(
 		func(c configuration.Configuration, comps insapp.AppComponents) *insconveyor.AppCompartment {

@@ -7,21 +7,23 @@ package tests
 
 import (
 	"context"
+	"strconv"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/datawriter"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lmnapp/lmntestapp"
-	"github.com/insolar/assured-ledger/ledger-core/ledger/server/requests"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/treesvc"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/journal"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
 )
 
 func TestGenesisTree(t *testing.T) {
@@ -130,57 +132,153 @@ func TestRunGenesis(t *testing.T) {
 }
 
 func TestAddRecords(t *testing.T) {
-//	t.Skip("WIP")
-
 	server := lmntestapp.NewTestServer(t)
 	defer server.Stop()
 
-	jrn := journal.New()
-	var rb lmntestapp.RecordBuilder
-
+	var recBuilder lmntestapp.RecordBuilder
 
 	server.SetImposer(func(params *insconveyor.ImposedParams) {
-		rb = lmntestapp.NewRecordBuilderFromDependencies(params.AppInject)
-		params.EventJournal = jrn
+		recBuilder = lmntestapp.NewRecordBuilderFromDependencies(params.AppInject)
 	})
 
 	server.Start()
 	server.RunGenesis()
 	server.IncrementPulse()
 
-	ch := jrn.WaitStopOf(&requests.SMRegisterRecordSet{}, 1)
+	recBuilder.RefTemplate = reference.NewSelfRefTemplate(server.LastPulseNumber(), reference.SelfScopeLifeline)
 
-	pn := server.LastPulseNumber()
-	rb.RefTemplate = reference.NewSelfRefTemplate(pn, reference.SelfScopeLifeline)
+	genNewLine := generatorNewLifeline{
+		recBuilder: recBuilder,
+		conv: server.App().Conveyor(),
+		body: make([]byte, 1<<10),
+	}
 
-	var rootRq *rms.LRegisterRequest
-	rb, rootRq = rb.MakeLineStart(&rms.RLifelineStart{})
-	rootRq.OverrideRecordType = rms.TypeRLifelineStartPolymorthID
-	rootRq.OverrideReasonRef.Set(gen.UniqueGlobalRefWithPulse(pn))
+	for N := 10; N > 0; N-- {
+		genNewLine.registerNewLine()
+	}
+}
+
+func BenchmarkWriteNew(b *testing.B) {
+	b.Run("1k", func(b *testing.B) {
+		benchmarkWriteNew(b, 1<<10, false)
+	})
+
+	b.Run("1k-par", func(b *testing.B) {
+		benchmarkWriteNew(b, 1<<10, true)
+	})
+
+	b.Run("16k", func(b *testing.B) {
+		benchmarkWriteNew(b, 1<<14, false)
+	})
+
+	b.Run("16k-par", func(b *testing.B) {
+		benchmarkWriteNew(b, 1<<14, true)
+	})
+
+	b.Run("128k", func(b *testing.B) {
+		benchmarkWriteNew(b, 1<<17, false)
+	})
+
+	b.Run("128k-par", func(b *testing.B) {
+		benchmarkWriteNew(b, 1<<17, true)
+	})
+
+	b.Run("1M", func(b *testing.B) {
+		benchmarkWriteNew(b, 1<<20, false)
+	})
+
+	b.Run("1M-par", func(b *testing.B) {
+		benchmarkWriteNew(b, 1<<20, true)
+	})
+}
+
+func benchmarkWriteNew(b *testing.B, bodySize int, parallel bool) {
+	server := lmntestapp.NewTestServer(b)
+	defer server.Stop()
+
+	var recBuilder lmntestapp.RecordBuilder
+
+	server.SetImposer(func(params *insconveyor.ImposedParams) {
+		recBuilder = lmntestapp.NewRecordBuilderFromDependencies(params.AppInject)
+	})
+
+	server.Start()
+	server.RunGenesis()
+	server.IncrementPulse()
+
+	recBuilder.RefTemplate = reference.NewSelfRefTemplate(server.LastPulseNumber(), reference.SelfScopeLifeline)
+
+	genNewLine := generatorNewLifeline{
+		recBuilder: recBuilder,
+		conv: server.App().Conveyor(),
+		body: make([]byte, bodySize),
+	}
+
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	if parallel {
+		b.RunParallel(func(pb *testing.PB) {
+			for pb.Next() {
+				genNewLine.registerNewLine()
+			}
+		})
+	} else {
+		for i := b.N; i > 0; i-- {
+			genNewLine.registerNewLine()
+		}
+	}
+
+	b.SetBytes(int64(genNewLine.totalBytes.Load()) / int64(genNewLine.seqNo.Load()))
+}
+
+type generatorNewLifeline struct {
+	recBuilder lmntestapp.RecordBuilder
+	seqNo atomickit.Uint32
+	totalBytes atomickit.Uint64
+	body []byte
+	conv *conveyor.PulseConveyor
+}
+
+func (p *generatorNewLifeline) registerNewLine() {
+	pn := p.recBuilder.RefTemplate.LocalHeader().Pulse()
+
+	rb, rootRec := p.recBuilder.MakeLineStart(&rms.RLifelineStart{
+		Str: strconv.Itoa(int(p.seqNo.Add(1))),
+	})
+	rootRec.OverrideRecordType = rms.TypeRLifelineStartPolymorthID
+	rootRec.OverrideReasonRef.Set(gen.UniqueGlobalRefWithPulse(pn))
 
 	rMem := &rms.RLineMemoryInit{
 		Polymorph: rms.TypeRLineMemoryInitPolymorthID,
-		RootRef: rootRq.AnticipatedRef,
-		PrevRef: rootRq.AnticipatedRef,
+		RootRef:   rootRec.AnticipatedRef,
+		PrevRef:   rootRec.AnticipatedRef,
 	}
 	rMem.SetDigester(rb.RecordScheme.RecordDigester())
-	rMem.SetPayload(rms.NewRawBytes(make([]byte, 1024)))
+	rMem.SetPayload(rms.NewRawBytes(p.body))
 
 	rq := rb.Add(rMem)
 
 	rq = rb.Add(&rms.RLineActivate{
-		RootRef: rootRq.AnticipatedRef,
+		RootRef: rootRec.AnticipatedRef,
 		PrevRef: rq.AnticipatedRef,
 	})
 
 	recordSet := rb.MakeSet()
 
-	conv := server.App().Conveyor()
-	err := conv.AddInputExt(server.LastPulseNumber(),
+	p.totalBytes.Add(uint64(len(p.body)))
+
+	ch := make(chan struct{})
+	err := p.conv.AddInputExt(pn,
 		recordSet,
-		smachine.CreateDefaultValues{ Context: context.Background() })
-
-	require.NoError(t, err)
-
+		smachine.CreateDefaultValues{
+			Context: context.Background(),
+			TerminationHandler: func(smachine.TerminationData) {
+				close(ch)
+			},
+		})
+	if err != nil {
+		panic(err)
+	}
 	<- ch
 }

@@ -149,6 +149,7 @@ func (p *serviceImpl) createPlash(pr pulse.Range, tree jet.PrefixTree, populatio
 	}
 
 	sw := p.storageFactoryFn(pn)
+	bw := bundle.NewWriter(sw) // NB! MUST be one writer per storage
 
 	result := jets[:0]
 	for _, jetPID := range jets {
@@ -169,7 +170,7 @@ func (p *serviceImpl) createPlash(pr pulse.Range, tree jet.PrefixTree, populatio
 			if len(jets) > 1 {
 				da.merkle = pa.merkle.ForkSequence()
 			}
-			da.writer = bundle.NewWriter(sw)
+			da.writer = bw
 		}
 		pa.dropAssists[jetID] = da
 	}
