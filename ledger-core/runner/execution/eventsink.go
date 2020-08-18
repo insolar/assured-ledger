@@ -150,7 +150,7 @@ func (c *EventSink) InputFlush() {
 	}
 
 	input := c.inputLocked
-	c.inputLocked = requestresult.EmptyOutgoingExecutionResult
+	c.inputLocked = requestresult.OutgoingExecutionResult{}
 
 	// we should be able to make write here
 	// otherwise code is buggy and will lead to deadlock

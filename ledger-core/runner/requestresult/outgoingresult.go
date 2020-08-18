@@ -5,8 +5,6 @@
 
 package requestresult
 
-var EmptyOutgoingExecutionResult = OutgoingExecutionResult{}
-
 type OutgoingExecutionResult struct {
 	initialized     bool
 	ExecutionResult []byte
