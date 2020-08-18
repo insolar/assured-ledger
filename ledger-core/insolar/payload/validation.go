@@ -21,10 +21,9 @@ type PulseValidator interface {
 }
 
 type ExtendedPulseValidator interface {
+	PulseValidator
 	GetSpecialValidator() PulseValidator
 	ValidateSpecialOrTime(pn pulse.Number, before pulse.Number) bool
-	ValidateTime(pn pulse.Number, before pulse.Number) bool
-	Relation() string
 }
 
 func isSpecialOrTimePulseBefore(pn pulse.Number, before pulse.Number) bool {
