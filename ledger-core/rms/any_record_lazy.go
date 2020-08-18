@@ -53,7 +53,7 @@ func (p *AnyRecordLazy) TryGet() (isLazy bool, r BasicRecord) {
 	switch p.value.(type) {
 	case nil:
 		return false, nil
-	case LazyRecordValue:
+	case *LazyRecordValue:
 		return true, nil
 	}
 	return false, p.value.(BasicRecord)
@@ -114,7 +114,7 @@ func (p *AnyRecordLazy) unmarshalCustom(b []byte, copyBytes bool, typeFn func(ui
 		return err
 	}
 
-	p.value = LazyRecordValue{ v, nil }
+	p.value = &LazyRecordValue{ v, nil }
 	return nil
 }
 
