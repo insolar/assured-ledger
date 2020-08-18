@@ -83,7 +83,6 @@ func TestSMTestAPICall_MethodResends(t *testing.T) {
 	response := &payload.VCallResult{
 		Caller:          gen.UniqueGlobalRef(),
 		Callee:          gen.UniqueGlobalRef(),
-		CallAsOf:        gen.PulseNumber(),
 		ReturnArguments: []byte("some results"),
 	}
 

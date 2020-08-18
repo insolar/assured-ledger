@@ -9,10 +9,10 @@ import (
 	"testing"
 
 	"github.com/gojuno/minimock/v3"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
-	"github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
@@ -43,23 +43,34 @@ func TestSMExecute_MigrationDuringSendOutgoing(t *testing.T) {
 
 		callFlags = payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty)
 	)
-	defer mc.Finish()
+	// defer mc.Finish()
 
 	jetCoordinatorMock := affinity.NewHelperMock(t).
 		MeMock.Return(gen.UniqueGlobalRef())
 
+	pl := &payload.VCallRequest{
+		CallType:       payload.CTConstructor,
+		Callee:         gen.UniqueGlobalRefWithPulse(pd.PulseNumber),
+		Caller:         gen.UniqueGlobalRefWithPulse(pd.PulseNumber),
+		CallFlags:      callFlags,
+		CallSiteMethod: "New",
+		CallOutgoing:   reference.New(gen.UniqueLocalRef(), smObjectID),
+		Arguments:      insolar.MustSerialize([]interface{}{}),
+	}
+
+	builder := execution.NewRPCBuilder(pl.CallOutgoing, pl.Callee)
+	callMethod := builder.CallMethod(
+		gen.UniqueGlobalRefWithPulse(pd.PulseNumber),
+		gen.UniqueGlobalRefWithPulse(pd.PulseNumber),
+		"Method", pl.Arguments,
+	)
+
 	smExecute := SMExecute{
-		Payload: &payload.VCallRequest{
-			CallType:            payload.CTConstructor,
-			CallFlags:           callFlags,
-			CallSiteDeclaration: testwallet.GetClass(),
-			CallSiteMethod:      "New",
-			CallOutgoing:        reference.New(gen.UniqueLocalRef(), smObjectID),
-			Arguments:           insolar.MustSerialize([]interface{}{}),
-		},
+		Payload:   pl,
 		pulseSlot: &pulseSlot,
 		executionNewState: &execution.Update{
-			Outgoing: execution.CallMethod{},
+			Type:     execution.OutgoingCall,
+			Outgoing: callMethod,
 		},
 		authenticationService: authentication.NewService(ctx, jetCoordinatorMock),
 		messageSender: adapter.NewMessageSenderMock(t).PrepareAsyncMock.Set(func(e1 smachine.ExecutionContext, fn adapter.AsyncCallFunc) (a1 smachine.AsyncCallRequester) {
@@ -78,7 +89,7 @@ func TestSMExecute_MigrationDuringSendOutgoing(t *testing.T) {
 		stepChecker.AddStep(exec.stepSendOutgoing)
 		stepChecker.AddStep(exec.stepGetDelegationToken)
 	}
-	defer func() { require.NoError(t, stepChecker.CheckDone()) }()
+	defer func() { assert.NoError(t, stepChecker.CheckDone()) }()
 
 	{
 		initCtx := smachine.NewInitializationContextMock(mc).
@@ -134,4 +145,6 @@ func TestSMExecute_MigrationDuringSendOutgoing(t *testing.T) {
 
 		smExecute.stepSendOutgoing(execCtx)
 	}
+
+	mc.Finish()
 }
