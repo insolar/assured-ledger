@@ -61,7 +61,7 @@ var policies = []RecordPolicy{
 		PolicyFlags: FilamentEnd|SideEffect,
 		CanFollow:   setUnblockedLine},
 
-	tRLineMemoryInit: 		{ // NB! Special behavior. See RecordPolicy.CheckRejoinRef
+	tRLineMemoryInit: 		{
 		PolicyFlags: PayloadAllowed,
 		CanFollow:   setOf(setLineStart...)},
 
