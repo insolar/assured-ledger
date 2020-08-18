@@ -12,25 +12,22 @@ import (
 var _ Validatable = &VFindCallResponse{}
 
 func (m *VFindCallResponse) Validate(currentPulse PulseNumber) error {
-	if lookedAt := m.GetLookedAt(); !lookedAt.IsTimePulse() || lookedAt >= currentPulse {
+	if !isTimePulseBefore(m.LookedAt, currentPulse) {
 		return throw.New("LookedAt should be valid pulse lesser than current pulse")
 	}
 
-	if callee := m.GetCallee(); !callee.IsSelfScope() {
-		return throw.New("Callee should be self scoped reference")
-	} else if pn := m.GetCallee().GetLocal().Pulse(); !pn.IsTimePulse() || pn >= currentPulse {
-		return throw.New("Callee pulse should be valid pulse lesser than current pulse")
+	calleePulse, err := validSelfScopedGlobalWithPulseSpecialOrBefore(m.Callee, currentPulse, "Callee")
+	if err != nil {
+		return err
 	}
 
-	if m.GetOutgoing().IsEmpty() {
-		return throw.New("Outgoing local should be non-empty ")
-	} else if pn := m.GetOutgoing().GetLocal().Pulse(); !pn.IsTimePulse() || pn >= currentPulse {
-		return throw.New("Outgoing local pulse should be valid time pulse lesser than current")
-	} else if !pn.IsSpecialOrTimePulse() || pn >= currentPulse {
-		// call outgoing base part can be special (API Call)
-		return throw.New("Outgoing base pulse should be valid pulse lesser than current")
-	} else if pn < m.GetCallee().GetLocal().Pulse() {
-		return throw.New("Callee pulse should be more or equal than Outgoing pulse")
+	outgoingLocalPulse, err := validRequestGlobalWithPulseBefore(m.Outgoing, currentPulse, "Outgoing")
+	if err != nil {
+		return err
+	}
+
+	if !outgoingLocalPulse.IsEqOrAfter(calleePulse) {
+		return throw.New("Callee pulse should be before outgoing pulse")
 	}
 
 	switch m.GetStatus() {

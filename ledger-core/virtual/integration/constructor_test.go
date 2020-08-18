@@ -51,29 +51,12 @@ func TestVirtual_Constructor_BadClassRef(t *testing.T) {
 
 	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 
-	var (
-		outgoingTwo = server.BuildRandomOutgoingWithPulse()
-	)
-
 	expectedError, err := foundation.MarshalMethodErrorResult(errors.New("bad class reference"))
 	require.NoError(t, err)
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
-	object2Ref := reference.NewSelf(outgoingTwo.GetLocal())
-
-	leftMessages := map[reference.Global]struct{}{
-		object2Ref: {},
-	}
 	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
-		if _, ok := leftMessages[res.Callee]; !ok {
-			require.FailNow(t, "unexpected Callee")
-		}
-		objectRef := reference.NewSelf(res.CallOutgoing.GetLocal())
-
-		require.Equal(t, res.Callee, objectRef)
-		delete(leftMessages, objectRef)
-
 		require.Equal(t, expectedError, res.ReturnArguments)
 
 		return false // no resend msg
@@ -81,7 +64,6 @@ func TestVirtual_Constructor_BadClassRef(t *testing.T) {
 
 	{
 		pl := utils.GenerateVCallRequestConstructor(server)
-		pl.CallOutgoing = outgoingTwo
 
 		server.SendPayload(ctx, pl)
 	}
@@ -90,7 +72,6 @@ func TestVirtual_Constructor_BadClassRef(t *testing.T) {
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 	assert.Equal(t, 1, typedChecker.VCallResult.Count())
-	require.Len(t, leftMessages, 0)
 
 	mc.Finish()
 }
