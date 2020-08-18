@@ -809,7 +809,8 @@ func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.
 
 	s.executionNewState = nil
 
-	return s.runner.PrepareExecutionContinue(ctx, s.run, requestresult.OutgoingExecutionResult{ExecutionResult: outgoingResult}, func() {
+	executionResult := requestresult.NewOutgoingExecutionResult(outgoingResult, nil)
+	return s.runner.PrepareExecutionContinue(ctx, s.run, executionResult, func() {
 		if s.run == nil {
 			panic(throw.IllegalState())
 		}
