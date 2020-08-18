@@ -11,7 +11,6 @@ import (
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
@@ -45,13 +44,12 @@ func TestSMExecute_PublishVCallResultToCallSummarySM(t *testing.T) {
 	class := gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
 
 	request := &payload.VCallRequest{
-		CallType:            payload.CTConstructor,
-		CallFlags:           callFlags,
-		CallSiteDeclaration: testwallet.GetClass(),
-		CallSiteMethod:      "New",
-		CallOutgoing:        outgoingRef,
-		Callee:              class,
-		Arguments:           insolar.MustSerialize([]interface{}{}),
+		CallType:       payload.CTConstructor,
+		CallFlags:      callFlags,
+		CallSiteMethod: "New",
+		CallOutgoing:   outgoingRef,
+		Callee:         class,
+		Arguments:      insolar.MustSerialize([]interface{}{}),
 	}
 
 	smExecute := SMExecute{
