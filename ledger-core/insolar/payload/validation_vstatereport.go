@@ -14,6 +14,19 @@ var _ Validatable = &VStateReport{}
 
 type vStateReportValidateStatusFunc func(pulse.Number, pulse.Number) error
 
+func (m *VStateReport) getValidateStatusFunc(s VStateReport_StateStatus) (vStateReportValidateStatusFunc, bool) {
+	switch s {
+	case Ready:
+		return m.validateStatusReady, true
+	case Empty:
+		return m.validateStatusEmpty, true
+	case Missing, Inactive:
+		return m.validateStatusMissingOrInactive, true
+	}
+
+	return nil, false
+}
+
 func (m *VStateReport) Validate(currentPulse pulse.Number) error {
 	if err := m.validateUnimplemented(); err != nil {
 		return err
@@ -28,14 +41,7 @@ func (m *VStateReport) Validate(currentPulse pulse.Number) error {
 		return err
 	}
 
-	validateStatus := map[VStateReport_StateStatus]vStateReportValidateStatusFunc{
-		Ready:    m.validateStatusReady,
-		Empty:    m.validateStatusEmpty,
-		Missing:  m.validateStatusMissingOrInactive,
-		Inactive: m.validateStatusMissingOrInactive,
-	}
-
-	if validateStatusFunc, ok := validateStatus[m.GetStatus()]; !ok {
+	if validateStatusFunc, ok := m.getValidateStatusFunc(m.GetStatus()); !ok {
 		return throw.New("Unexpected state received")
 	} else {
 		if err := validateStatusFunc(objectPulse, currentPulse); err != nil {
