@@ -15,6 +15,7 @@ import (
 	"gotest.tools/assert"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
@@ -24,9 +25,16 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/predicate"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/slotdebugger"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
+
+func TestBuiltinTestAPIEchoValue(t *testing.T) {
+	ref, err := reference.Decode(BuiltinTestAPIEcho)
+	require.NoError(t, err)
+	require.Equal(t, pulse.BuiltinContract, ref.GetBase().Pulse())
+}
 
 func TestSMTestAPICall_MethodResends(t *testing.T) {
 	var (
@@ -96,6 +104,46 @@ func TestSMTestAPICall_MethodResends(t *testing.T) {
 	slotMachine.RunTil(smWrapper.BeforeStep(smRequest.stepProcessResult))
 	require.Equal(t, []byte("some results"), smRequest.responsePayload)
 	slotMachine.RunTil(smWrapper.AfterStop())
+}
+
+func TestSMTestAPICall_MethodEcho(t *testing.T) {
+	var (
+		mc  = minimock.NewController(t)
+		ctx = instestlogger.TestContext(t)
+	)
+
+	slotMachine := slotdebugger.New(ctx, t)
+
+	request := payload.VCallRequest{
+		CallType:       payload.CTMethod,
+		Callee:         BuiltinTestAPIEchoRef,
+		CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+		CallSiteMethod: "can be any",
+		Arguments:      []byte("some args"),
+	}
+
+	slotMachine.PrepareMockedMessageSender(mc)
+
+	slotMachine.Start()
+	defer slotMachine.Stop()
+
+	smRequest := &SMTestAPICall{
+		requestPayload: request,
+	}
+
+	ch := make(chan []byte, 1)
+	_, ok := slotMachine.SlotMachine.AddNew(ctx, smRequest, smachine.CreateDefaultValues{
+		TerminationHandler: func(data smachine.TerminationData) {
+			ch <- data.Result.([]byte)
+			close(ch)
+		},
+	})
+	require.True(t, ok)
+
+	slotMachine.RunTil(predicate.OnAnyRecycle)
+	slotMachine.Continue()
+
+	require.Equal(t, request.Arguments, <-ch)
 }
 
 func TestSMTestAPICall_Constructor(t *testing.T) {
