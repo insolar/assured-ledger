@@ -26,7 +26,8 @@ import (
 )
 
 const BuiltinTestAPIEcho = "insolar:0AAABApiTestEcho____"
-var BuiltinTestAPIEchoRef, _ = reference.GlobalObjectFromString(BuiltinTestAPIEcho)
+const BuiltinTestAPIBriefEcho = "insolar:0AAABrief.0AAABApiTestEcho____"
+var builtinTestAPIEchoRef, _ = reference.GlobalObjectFromString(BuiltinTestAPIEcho)
 
 var APICaller, _ = reference.GlobalObjectFromString("insolar:0AAABAnRB0CKuqXTeTfQNTolmyixqQGMJz5sVvW81Dng")
 
@@ -150,20 +151,8 @@ func (s *SMTestAPICall) sendRequest(ctx smachine.ExecutionContext) {
 		payloadData.CallRequestFlags.WithRepeatedCall(payload.RepeatedCall)
 	}
 
-	if s.object.Equal(BuiltinTestAPIEchoRef) {
-		sendFn := s.sendEchoResultFn(ctx)
-
-		s.messageSender.PrepareAsync(ctx, func(context.Context, messagesender.Service) smachine.AsyncResultFunc {
-			ok := sendFn()
-			s.messageSentTimes.Add(1)
-
-			if ok {
-				return nil
-			}
-			return func(ctx smachine.AsyncResultContext) {
-				ctx.Log().Warn("barge-in was not found for BuiltinTestAPIEcho")
-			}
-		}).WithoutAutoWakeUp().Start()
+	if s.object.GetBase().Equal(builtinTestAPIEchoRef.GetBase()) {
+		s.sendEchoRequest(ctx)
 		return
 	}
 
@@ -180,15 +169,31 @@ func (s *SMTestAPICall) sendRequest(ctx smachine.ExecutionContext) {
 	}).WithoutAutoWakeUp().Start()
 }
 
+func (s *SMTestAPICall) sendEchoRequest(ctx smachine.ExecutionContext) {
+	if !s.object.Equal(builtinTestAPIEchoRef) {
+		s.responsePayload = s.requestPayload.Arguments
+		return
+	}
 
-func (s *SMTestAPICall) sendEchoResultFn(ctx smachine.ExecutionContext) func() bool {
 	_, bargeIn := ctx.GetPublishedGlobalAliasAndBargeIn(s.requestPayload.CallOutgoing)
 
 	result := &payload.VCallResult{
 		ReturnArguments: s.requestPayload.Arguments,
 	}
 
-	return func() bool {
+	sendFn := func() bool {
 		return bargeIn.CallWithParam(result)
 	}
+
+	s.messageSender.PrepareAsync(ctx, func(context.Context, messagesender.Service) smachine.AsyncResultFunc {
+		ok := sendFn()
+		s.messageSentTimes.Add(1)
+
+		if ok {
+			return nil
+		}
+		return func(ctx smachine.AsyncResultContext) {
+			ctx.Log().Warn("barge-in was not found for BuiltinTestAPIEcho")
+		}
+	}).WithoutAutoWakeUp().Start()
 }

@@ -34,6 +34,10 @@ func TestBuiltinTestAPIEchoValue(t *testing.T) {
 	ref, err := reference.Decode(BuiltinTestAPIEcho)
 	require.NoError(t, err)
 	require.Equal(t, pulse.BuiltinContract, ref.GetBase().Pulse())
+
+	ref, err = reference.Decode(BuiltinTestAPIBriefEcho)
+	require.NoError(t, err)
+	require.Equal(t, pulse.BuiltinContract, ref.GetBase().Pulse())
 }
 
 func TestSMTestAPICall_MethodResends(t *testing.T) {
@@ -114,9 +118,12 @@ func TestSMTestAPICall_MethodEcho(t *testing.T) {
 
 	slotMachine := slotdebugger.New(ctx, t)
 
+	echoRef, err := reference.GlobalFromString(BuiltinTestAPIBriefEcho)
+	require.NoError(t, err)
+
 	request := payload.VCallRequest{
 		CallType:       payload.CTMethod,
-		Callee:         BuiltinTestAPIEchoRef,
+		Callee:         echoRef,
 		CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 		CallSiteMethod: "can be any",
 		Arguments:      []byte("some args"),
