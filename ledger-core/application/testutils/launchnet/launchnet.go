@@ -66,7 +66,49 @@ func rootPath() string {
 	return filepath.Join(projectRoot, "ledger-core")
 }
 
-// Method starts launchnet before execution of callback function (cb) and stops launchnet after.
+func CustomRunWithPulsar(numVirtual, numLight, numHeavy int, cb func([]string) int) int {
+	return customRun(true, numVirtual, numLight, numHeavy, cb)
+}
+
+func CustomRunWithoutPulsar(numVirtual, numLight, numHeavy int, cb func([]string) int) int {
+	return customRun(false, numVirtual, numLight, numHeavy, cb)
+}
+
+func customRun(withPulsar bool, numVirtual, numLight, numHeavy int, cb func([]string) int) int {
+	apiAddresses, teardown, err := newNetSetup(withPulsar, numVirtual, numLight, numHeavy)
+	defer teardown()
+	if err != nil {
+		fmt.Println("error while setup, skip tests: ", err)
+		return 1
+	}
+
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Interrupt)
+
+	go func() {
+		sig := <-c
+		fmt.Printf("Got %s signal. Aborting...\n", sig)
+		teardown()
+
+		os.Exit(2)
+	}()
+
+	pulseWatcher, config := pulseWatcherPath()
+
+	code := cb(apiAddresses)
+
+	if code != 0 {
+		out, err := exec.Command(pulseWatcher, "-c", config, "-s").CombinedOutput()
+		if err != nil {
+			fmt.Println("PulseWatcher execution error: ", err)
+			return 1
+		}
+		fmt.Println(string(out))
+	}
+	return code
+}
+
+// Run starts launchnet before execution of callback function (cb) and stops launchnet after.
 // Returns exit code as a result from calling callback function.
 func Run(cb func() int) int {
 	teardown, err := setup()
@@ -263,6 +305,56 @@ func waitForNet(cfg appConfig) error {
 	return nil
 }
 
+func startCustomNet(withPulsar bool, numVirtual, numLight, numHeavy int) (*exec.Cmd, []string, error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return nil, nil, throw.W(err, "failed to get working directory")
+	}
+	rootPath := rootPath()
+
+	err = os.Chdir(rootPath)
+	if err != nil {
+		return nil, nil, throw.W(err, "[ startNet  ] Can't change dir")
+	}
+	defer func() {
+		_ = os.Chdir(cwd)
+	}()
+
+	cmd := exec.Command("./scripts/insolard/launchnet.sh", "-pwg")
+	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env, fmt.Sprintf("NUM_DISCOVERY_VIRTUAL_NODES=%d", numVirtual))
+	cmd.Env = append(cmd.Env, fmt.Sprintf("NUM_DISCOVERY_LIGHT_NODES=%d", numLight))
+	cmd.Env = append(cmd.Env, fmt.Sprintf("NUM_DISCOVERY_HEAVY_NODES=%d", numHeavy))
+	pulsarOneShot := 0
+	if withPulsar {
+		pulsarOneShot = 1
+	}
+
+	cmd.Env = append(cmd.Env, fmt.Sprintf("PULSAR_ONESHOT=%d", pulsarOneShot))
+
+	err = waitForLaunch(cmd)
+	if err != nil {
+		return cmd, nil, throw.W(err, "[ startNet ] couldn't waitForLaunch more")
+	}
+
+	appCfg, err := readAppConfig()
+	if err != nil {
+		return cmd, nil, throw.W(err, "[ startNet ] couldn't read nodes config")
+	}
+
+	err = waitForNet(appCfg)
+	if err != nil {
+		return cmd, nil, throw.W(err, "[ startNet ] couldn't waitForNet more")
+	}
+
+	apiAddresses := make([]string, 0, len(appCfg.Nodes))
+	for _, nodeCfg := range appCfg.Nodes {
+		apiAddresses = append(apiAddresses, nodeCfg.TestWalletAPI.Address)
+	}
+
+	return cmd, apiAddresses, nil
+}
+
 func startNet() (*exec.Cmd, error) {
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -299,6 +391,7 @@ func startNet() (*exec.Cmd, error) {
 
 type nodeConfig struct {
 	AdminAPIRunner configuration.APIRunner
+	TestWalletAPI  configuration.TestWalletAPI
 }
 
 type appConfig struct {
@@ -406,6 +499,26 @@ func RunOnlyWithLaunchnet(t *testing.T) {
 	if disableLaunchnet {
 		t.Skip()
 	}
+}
+
+func newNetSetup(withPulsar bool, numVirtual, numLight, numHeavy int) (apiAddresses []string, cancelFunc func(), err error) {
+	cmd, apiAddresses, err := startCustomNet(withPulsar, numVirtual, numLight, numHeavy)
+	cancelFunc = func() {}
+	if cmd != nil {
+		cancelFunc = func() {
+			err := stopInsolard(cmd)
+			if err != nil {
+				fmt.Println("[ teardown ]  failed to stop insolard:", err)
+				return
+			}
+			fmt.Println("[ teardown ] insolard was successfully stopped")
+		}
+	}
+	if err != nil {
+		return nil, cancelFunc, throw.W(err, "[ setup ] could't startNet")
+	}
+
+	return apiAddresses, cancelFunc, nil
 }
 
 func setup() (cancelFunc func(), err error) {
