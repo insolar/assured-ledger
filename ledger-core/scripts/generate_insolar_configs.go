@@ -135,6 +135,7 @@ func validateNodesConfig() {
 func prepareBootstrapVars() commonConfigVars {
 	res := commonConfigVars{
 		BaseDir:         baseDir(),
+		MajorityRule:    numVirtual + numLight + numHeavy,
 		MinHeavyNodes:   numHeavy,
 		MinLightNodes:   numLight,
 		MinVirtualNodes: numVirtual,
@@ -304,6 +305,8 @@ type node struct {
 
 type commonConfigVars struct {
 	BaseDir string
+
+	MajorityRule int
 
 	MinHeavyNodes, MinLightNodes, MinVirtualNodes int
 
