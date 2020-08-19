@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package nodeset
+package memstor
 
 import (
 	"testing"
@@ -13,7 +13,7 @@ import (
 
 func TestSnapshot_GetPulse(t *testing.T) {
 	snapshot := NewSnapshot(10, nil)
-	assert.EqualValues(t, 10, snapshot.GetPulse())
+	assert.EqualValues(t, 10, snapshot.GetPulseNumber())
 	snapshot = NewSnapshot(152, nil)
-	assert.EqualValues(t, 152, snapshot.GetPulse())
+	assert.EqualValues(t, 152, snapshot.GetPulseNumber())
 }

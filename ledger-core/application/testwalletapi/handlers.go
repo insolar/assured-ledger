@@ -459,7 +459,7 @@ func (s *TestWalletServer) Delete(w http.ResponseWriter, req *http.Request) {
 }
 
 func (s *TestWalletServer) runWalletRequest(ctx context.Context, req payload.VCallRequest) ([]byte, error) {
-	latestPulse, err := s.accessor.Latest(ctx)
+	latestPulse, err := s.accessor.LatestTimeBeat()
 	if err != nil {
 		return nil, throw.W(err, "Failed to get latest pulse", nil)
 	}

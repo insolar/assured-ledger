@@ -17,7 +17,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
-	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/censusimpl"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
@@ -34,7 +34,7 @@ type BeatChanger interface {
 }
 
 type StateUpdater interface {
-	UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes []nodeinfo.NetworkNode, cloudStateHash []byte)
+	UpdateState(context.Context, beat.Beat)
 }
 
 type UpstreamController struct {
@@ -62,31 +62,22 @@ func (u *UpstreamController) ConsensusFinished(report api.UpstreamReport, expect
 	logger := inslogger.FromContext(ctx)
 	population := expectedCensus.GetOnlinePopulation()
 
-	var networkNodes []nodeinfo.NetworkNode
-	if report.MemberMode.IsEvicted() || report.MemberMode.IsSuspended() || !population.IsValid() {
+	// TODO this mimics legacy code. Must be changed
+	switch {
+	case report.MemberMode.IsEvicted() || !population.IsValid():
+		pop := censusimpl.CopySelfNodePopulation(population)
+		population = &pop
+		fallthrough
+	case report.MemberMode.IsSuspended():
 		logger.Warnf("Consensus finished unexpectedly mode: %s, population: %v", report.MemberMode, expectedCensus)
-
-		networkNodes = []nodeinfo.NetworkNode{
-			NewNetworkNode(expectedCensus.GetOnlinePopulation().GetLocalProfile()),
-		}
-	} else {
-		networkNodes = NewNetworkNodeList(population.GetProfiles())
 	}
 
-	u.stateUpdater.UpdateState(
-		ctx,
-		report.PulseNumber, // not used
-		networkNodes,
-		longbits.AsBytes(expectedCensus.GetCloudStateHash()), // not used
-	)
-
-	// todo: ??
 	_, pd := expectedCensus.GetNearestPulseData()
-	if pd.IsFromEphemeral() {
-		// Fix bootstrap. Commit active list right after consensus finished
-		// for NodeKeeper active list move sync to active
-		u.CommitPulseChange(report, pd, expectedCensus)
-	}
+	u.stateUpdater.UpdateState(ctx, beat.Beat{
+		BeatSeq:     0,
+		Data:        pd,
+		Online:      population,
+	})
 
 	u.mu.RLock()
 	defer u.mu.RUnlock()

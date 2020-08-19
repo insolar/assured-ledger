@@ -18,10 +18,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/network/mutable"
 
-	"github.com/insolar/assured-ledger/ledger-core/testutils"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/network"
-
 	"github.com/stretchr/testify/assert"
+
+	"github.com/insolar/assured-ledger/ledger-core/testutils"
 )
 
 type mockResponseWriter struct {
@@ -74,30 +73,30 @@ func mockCertManager(t *testing.T, nodeList []nodeinfo.DiscoveryNode) *testutils
 	return cm
 }
 
-func mockNodeNetwork(t *testing.T, nodeList []nodeinfo.DiscoveryNode) *network.NodeNetworkMock {
-	nn := network.NewNodeNetworkMock(t)
+func mockNodeNetwork(t *testing.T, nodeList []nodeinfo.DiscoveryNode) *beat.NodeNetworkMock {
+	nn := beat.NewNodeNetworkMock(t)
 	nodeMap := make(map[reference.Global]nodeinfo.DiscoveryNode)
 	for _, node := range nodeList {
 		nodeMap[node.GetNodeRef()] = node
 	}
 
-	accessorMock := network.NewAccessorMock(t)
-	accessorMock.GetWorkingNodeMock.Set(func(ref reference.Global) nodeinfo.NetworkNode {
+	accessorMock := beat.NewNodeSnapshotMock(t)
+	accessorMock.FindNodeByRefMock.Set(func(ref reference.Global) nodeinfo.NetworkNode {
 		if _, ok := nodeMap[ref]; ok {
 			return mutable.NewTestNode(ref, member.PrimaryRoleNeutral, "")
 		}
 		return nil
 	})
 
-	nn.GetAccessorMock.Return(accessorMock)
-	nn.GetLatestAccessorMock.Return(accessorMock)
+	nn.GetNodeSnapshotMock.Return(accessorMock)
+	nn.FindAnyLatestNodeSnapshotMock.Return(accessorMock)
 
 	return nn
 }
 
-func mockPulseAccessor(t *testing.T) *beat.AccessorMock {
-	pa := beat.NewAccessorMock(t)
-	pa.LatestMock.Return(pulsestor.GenesisPulse, nil)
+func mockPulseAccessor(t *testing.T) *beat.AppenderMock {
+	pa := beat.NewAppenderMock(t)
+	pa.LatestTimeBeatMock.Return(pulsestor.GenesisPulse, nil)
 	return pa
 }
 
