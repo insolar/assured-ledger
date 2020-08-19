@@ -141,16 +141,16 @@ func (s *Server) StartComponents(ctx context.Context, cfg configuration.Configur
 	certManager := s.initCertificateManager(ctx, cfg, preComponents)
 
 	nodeCert := certManager.GetCertificate()
-	nodeRole := nodeCert.GetRole().String()
+	nodeRole := nodeCert.GetRole()
 	nodeRef := nodeCert.GetNodeRef().String()
 
-	ctx = loggerFn(ctx, cfg.Log, nodeRef, nodeRole)
+	ctx = loggerFn(ctx, cfg.Log, nodeRef, nodeRole.String())
 	traceID := trace.RandID() + "_main"
 
 	if cfg.Tracer.Jaeger.AgentEndpoint != "" {
-		jaegerFlush := jaeger(ctx, cfg.Tracer.Jaeger, traceID, nodeRef, nodeRole)
+		jaegerFlush := jaeger(ctx, cfg.Tracer.Jaeger, traceID, nodeRef, nodeRole.String())
 		defer jaegerFlush()
 	}
 
-	return s.initComponents(ctx, cfg, networkFn, preComponents, certManager, nodeRole)
+	return s.initComponents(ctx, cfg, networkFn, preComponents, certManager)
 }

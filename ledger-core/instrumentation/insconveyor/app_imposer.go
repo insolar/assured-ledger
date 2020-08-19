@@ -11,6 +11,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/managed"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/journal"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 )
 
 // ImposerFunc enables imposing of test-specific overrides on an app compartment.
@@ -21,6 +22,8 @@ type ImposedParams struct {
 	// InitContext provides a context given into Init() of app component (not compartment).
 	// This context is cancelled on stop.
 	InitContext          context.Context
+	// AppInject contains dependencies provided from Server to App component
+	AppInject injector.DependencyInjector
 	// CompartmentSetup is a configuration of conveyor-based app compartment.
 	CompartmentSetup     AppCompartmentSetup
 	// ComponentInterceptFn for use by ServerTemplate.InitTemplate.

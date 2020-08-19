@@ -100,6 +100,7 @@ func (p *AppCompartment) Init(ctx context.Context) error {
 	if p.imposeFn != nil {
 		params := ImposedParams{
 			InitContext: ctx,
+			AppInject: inject,
 			CompartmentSetup:  appCfg,
 		}
 		p.imposeFn(&params)

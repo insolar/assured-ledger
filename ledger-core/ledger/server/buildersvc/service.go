@@ -11,6 +11,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jetalloc"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/bundle"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lineage"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -40,18 +41,25 @@ type Service interface {
 	AppendToDrop(jet.DropID, AppendFuture, lineage.ResolvedBundle)
 }
 
+type StorageSnapshotFactoryFunc = func(pulse.Number) bundle.SnapshotWriter
+
 var _ Service = &serviceImpl{}
 
-func NewService(allocStrategy jetalloc.MaterialAllocationStrategy, merklePair cryptkit.PairDigester) Service {
+func NewService(allocStrategy jetalloc.MaterialAllocationStrategy, merklePair cryptkit.PairDigester,
+	storageFactoryFn StorageSnapshotFactoryFunc,
+) Service {
 	return &serviceImpl{
 		allocStrategy: allocStrategy,
 		merklePair: merklePair,
+		storageFactoryFn: storageFactoryFn,
 	}
 }
 
 type serviceImpl struct {
 	allocStrategy jetalloc.MaterialAllocationStrategy
 	merklePair    cryptkit.PairDigester
+
+	storageFactoryFn StorageSnapshotFactoryFunc
 
 	mapMutex sync.RWMutex
 	lastPN   pulse.Number
@@ -140,6 +148,9 @@ func (p *serviceImpl) createPlash(pr pulse.Range, tree jet.PrefixTree, populatio
 		panic(throw.IllegalState())
 	}
 
+	sw := p.storageFactoryFn(pn)
+	bw := bundle.NewWriter(sw) // NB! MUST be one writer per storage
+
 	result := jets[:0]
 	for _, jetPID := range jets {
 
@@ -152,13 +163,14 @@ func (p *serviceImpl) createPlash(pr pulse.Range, tree jet.PrefixTree, populatio
 
 		case localNodeID == assignedNodeID:
 			result = append(result, jetPID)
-			da = &dropAssistant{}
-			da.nodeID = assignedNodeID
-			da.dropID = jetPID.AsDrop(pn)
+			da = &dropAssistant{
+				nodeID: assignedNodeID,
+				dropID: jetPID.AsDrop(pn),
+			}
 			if len(jets) > 1 {
 				da.merkle = pa.merkle.ForkSequence()
 			}
-			// da.writer = ; // TODO writer factory
+			da.writer = bw
 		}
 		pa.dropAssists[jetID] = da
 	}

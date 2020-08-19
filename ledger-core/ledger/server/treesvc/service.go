@@ -21,6 +21,9 @@ type Service interface {
 	// when genesis was yet active.
 	FinishGenesis(depth uint8, lastGenesisPulse pulse.Number)
 
+	// IsGenesisFinished returns true after FinishGenesis is called even without a pulse change.
+	IsGenesisFinished() bool
+
 	// SplitNext registers a split operation to be applied at next pulse.
 	// Only one split or merge operation can be applied to a jet per pulse.
 	SplitNext(jet.DropID)

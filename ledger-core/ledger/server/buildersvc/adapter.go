@@ -12,7 +12,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smadapter"
 	"github.com/insolar/assured-ledger/ledger-core/crypto"
+	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jetalloc"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/bundle"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/dropstorage"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -28,9 +32,15 @@ func NewAdapterExt(adapterID smachine.AdapterID, executor smachine.AdapterExecut
 }
 
 func NewAdapterComponent(cfg smadapter.Config, ps crypto.PlatformScheme) managed.Component {
+
 	svc := NewService(
 		jetalloc.NewMaterialAllocationStrategy(false),
-		ps.ConsensusScheme().NewMerkleDigester())
+		ps.ConsensusScheme().NewMerkleDigester(),
+
+		func(pulse.Number) bundle.SnapshotWriter {
+			return dropstorage.NewMemoryStorageWriter(ledger.DefaultDustSection, 1<<17)
+		},
+	)
 
 	var adapter Adapter
 	executor, component := smadapter.NewComponent(context.Background(), cfg, svc, func(holder managed.Holder) {
