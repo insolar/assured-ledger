@@ -16,6 +16,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/application/testutils/launchnet"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 func BenchmarkSinglePulse(b *testing.B) {
@@ -60,35 +61,80 @@ func runBenchOnNetwork(numNodes int) func(apiAddresses []string) int {
 	}
 }
 
-func runGetBench(wallets []string) error {
-	fmt.Println("==== Get run")
+func runSetBench(wallets []string) error {
+	i := 0
+	return runBench(10000, "set", func(ctx context.Context) error {
+		walletRef := wallets[i%len(wallets)]
+		i++
+		addAmountURL := getURL(walletAddAmountPath, "")
 
+		return addAmountToWallet(ctx, addAmountURL, walletRef, 1000)
+	})
+}
+
+func runGetBench(wallets []string) error {
+	i := 0
+	return runBench(10000, "get", func(ctx context.Context) error {
+		walletRef := wallets[i%len(wallets)]
+		getBalanceURL := getURL(walletGetBalancePath, "")
+		i++
+
+		_, err := getWalletBalance(ctx, getBalanceURL, walletRef)
+
+		return err
+	})
+}
+
+func runBench(iterations int, name string, workerFunc func(ctx context.Context) error) error {
+	fmt.Println("==== Running " + name)
 	// default Parallelism will be equal to NumCPU
 	g, ctx := errgroup.WithContext(context.Background())
 
-	counter := ratecounter.NewRateCounter(60 * time.Second)
-	timingCounter := ratecounter.NewAvgRateCounter(60 * time.Second)
+	var (
+		counter           = ratecounter.NewRateCounter(60 * time.Second)
+		timingCounter     = ratecounter.NewAvgRateCounter(60 * time.Second)
+		secondRateCounter = ratecounter.NewRateCounter(time.Second)
+	)
+
 	startBench := time.Now()
 
-	for i := 1; i < 100000; i++ {
+	// I don't use ticker, because with a lot of goroutines it cannot handle the case
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
+			time.Sleep(time.Second)
+			fmt.Printf("one second rate %d req/s\n", secondRateCounter.Rate())
+		}
+	}()
+
+	for i := 1; i <= iterations; i++ {
 		// prevent extra requests if group context is cancelled
 		select {
 		case <-ctx.Done():
 			break
 		default:
 		}
-		g.Go(func() error {
-			walletRef := wallets[i%len(wallets)]
-			getBalanceURL := getURL(walletGetBalancePath, "")
 
+		g.Go(func() error {
 			startTime := time.Now()
 
-			_, err := getWalletBalance(ctx, getBalanceURL, walletRef)
+			err := workerFunc(ctx)
 
 			timingCounter.Incr(time.Since(startTime).Nanoseconds())
 			counter.Incr(1)
+			secondRateCounter.Incr(1)
+
 			return err
 		})
+	}
+
+	err := g.Wait()
+	if err != nil {
+		return throw.W(err, "api failed")
 	}
 
 	finished := time.Since(startBench)
@@ -101,54 +147,7 @@ func runGetBench(wallets []string) error {
 		finished = 60 * time.Second
 	}
 
-	fmt.Printf("get rate %d req/s, avg time %.0f ns\n", counter.Rate()/int64(finished.Seconds()), timingCounter.Rate())
+	fmt.Printf("scenario=%s: %d req/s, avg time %.0f ns\n", name, counter.Rate()/int64(finished.Seconds()), timingCounter.Rate())
 
-	return g.Wait()
-}
-
-func runSetBench(wallets []string) error {
-	fmt.Println("==== Set run")
-
-	// default Parallelism will be equal to NumCPU
-	g, ctx := errgroup.WithContext(context.Background())
-
-	counter := ratecounter.NewRateCounter(60 * time.Second)
-	timingCounter := ratecounter.NewAvgRateCounter(60 * time.Second)
-	startBench := time.Now()
-
-	for i := 1; i < 100000; i++ {
-		g.Go(func() error {
-			// prevent extra requests if group context is cancelled
-			select {
-			case <-ctx.Done():
-				break
-			default:
-			}
-			walletRef := wallets[i%len(wallets)]
-			addAmountURL := getURL(walletAddAmountPath, "")
-
-			startTime := time.Now()
-
-			err := addAmountToWallet(ctx, addAmountURL, walletRef, 1000)
-
-			timingCounter.Incr(time.Since(startTime).Nanoseconds())
-			counter.Incr(1)
-
-			return err
-		})
-	}
-
-	finished := time.Since(startBench)
-
-	finished.Round(time.Second)
-
-	fmt.Printf("Run took %d seconds\n", int(finished.Seconds()))
-
-	if finished.Seconds() > 60 {
-		finished = 60 * time.Second
-	}
-
-	fmt.Printf("set rate %d req/s, avg time %.0f ns\n", counter.Rate()/int64(finished.Seconds()), timingCounter.Rate())
-
-	return g.Wait()
+	return nil
 }
