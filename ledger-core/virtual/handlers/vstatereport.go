@@ -83,6 +83,23 @@ func (s *SMVStateReport) stepProcess(ctx smachine.ExecutionContext) smachine.Sta
 		return ctx.Error(throw.IllegalValue())
 	}
 
+	asOfPulse := s.Payload.AsOf
+	prevPulse := s.pulseSlot.PrevOperationPulseNumber()
+
+	// We expected state report only from previous executor and previous pulse.
+	if asOfPulse < prevPulse {
+		ctx.Log().Trace(struct {
+			*log.Msg  `txt:"stop processing VStateReport, AsOf pulse is outdated"`
+			asOfPulse string
+			prevPulse string
+		}{
+			asOfPulse: asOfPulse.String(),
+			prevPulse: prevPulse.String(),
+		})
+
+		return ctx.Jump(s.stepAsOfOutdated)
+	}
+
 	objectRef := s.Payload.Object
 	sharedObjectState := s.objectCatalog.GetOrCreate(ctx, objectRef)
 	setStateFunc := func(data interface{}) (wakeup bool) {
@@ -105,6 +122,10 @@ func (s *SMVStateReport) stepProcess(ctx smachine.ExecutionContext) smachine.Sta
 		panic(throw.Impossible())
 	}
 
+	return ctx.Stop()
+}
+
+func (s *SMVStateReport) stepAsOfOutdated(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	return ctx.Stop()
 }
 
