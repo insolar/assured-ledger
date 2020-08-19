@@ -996,21 +996,6 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 				require.NotEmpty(t, response.ResponseDelegationSpec)
 				require.Equal(t, objectRef, response.ResponseDelegationSpec.Callee)
 				require.Equal(t, server.GlobalCaller(), response.ResponseDelegationSpec.DelegateTo)
-
-				// send delegation request finished with deactivate flag
-				pl := payload.VDelegatedRequestFinished{
-					CallType:     payload.CTMethod,
-					Callee:       objectRef,
-					CallOutgoing: outgoing,
-					CallIncoming: incoming,
-					CallFlags:    payload.BuildCallFlags(deactivateIsolation.Interference, deactivateIsolation.State),
-					LatestState: &payload.ObjectState{
-						State:       nil,
-						Deactivated: true,
-					},
-				}
-				server.SendPayload(ctx, &pl)
-				server.WaitActiveThenIdleConveyor()
 				return false
 			})
 
@@ -1049,6 +1034,24 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 				}
 				server.SendPayload(ctx, &dcr)
 				commonTestUtils.WaitSignalsTimed(t, 10*time.Second, dcrAwait)
+				commonTestUtils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+			}
+
+			{ // send delegation request finished with deactivate flag
+				pl := payload.VDelegatedRequestFinished{
+					CallType:     payload.CTMethod,
+					Callee:       objectRef,
+					CallOutgoing: outgoing,
+					CallIncoming: incoming,
+					CallFlags:    payload.BuildCallFlags(deactivateIsolation.Interference, deactivateIsolation.State),
+					LatestState: &payload.ObjectState{
+						State:       nil,
+						Deactivated: true,
+					},
+				}
+				await := server.Journal.WaitStopOf(&handlers.SMVDelegatedRequestFinished{}, 1)
+				server.SendPayload(ctx, &pl)
+				commonTestUtils.WaitSignalsTimed(t, 10*time.Second, await)
 			}
 
 			{
