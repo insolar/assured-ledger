@@ -29,3 +29,8 @@ mergeable:
         required:
           assignees: true
           message: 'All assignees must approve this PR before merging.'
+        block:
+          changes_requested: true
+          message: 'Merge is blocked, changes requested.'
+        limit:
+          teams: ['insolar/dev-core']
