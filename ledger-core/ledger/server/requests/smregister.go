@@ -175,6 +175,7 @@ func (p *SMRegisterRecordSet) stepApplyRecordSet(ctx smachine.ExecutionContext) 
 
 	switch {
 	case len(errors) > 0:
+		ctx.ReleaseAll()
 		return p.handleFailure(ctx, errors...)
 
 	case committedDuplicates:
@@ -186,10 +187,15 @@ func (p *SMRegisterRecordSet) stepApplyRecordSet(ctx smachine.ExecutionContext) 
 		return ctx.Sleep().ThenRepeat()
 
 	case p.recordSet.GetFlags() & rms.RegistrationFlags_Fast != 0:
-		p.sendResponse(ctx, false)
-	}
+		ctx.ReleaseAll()
+		// this check is to avoid sending unsafe and safe responses simultaneously
+		if !ctx.Acquire(p.updated.GetReadySync()) {
+			p.sendResponse(ctx, false)
+		}
 
-	ctx.ReleaseAll()
+	default:
+		ctx.ReleaseAll()
+	}
 	return ctx.Jump(p.stepWaitUpdated)
 }
 
