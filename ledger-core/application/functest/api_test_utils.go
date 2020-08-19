@@ -9,7 +9,6 @@ package functest
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -18,6 +17,7 @@ import (
 	"time"
 
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	jsoniter "github.com/json-iterator/go"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/testutils/launchnet"
 )
@@ -58,7 +58,7 @@ func createHTTPClient() *http.Client {
 
 // Creates http.Request with all necessary fields.
 func prepareReq(url string, body interface{}) (*http.Request, error) {
-	jsonValue, err := json.Marshal(body)
+	jsonValue, err := jsoniter.Marshal(body)
 	if err != nil {
 		return nil, errors.W(err, "problem with marshaling params")
 	}
