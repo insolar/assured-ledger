@@ -62,10 +62,8 @@ func runBenchOnNetwork(numNodes int) func(apiAddresses []string) int {
 }
 
 func runSetBench(wallets []string) error {
-	i := 0
-	return runBench(10000, "set", func(ctx context.Context) error {
-		walletRef := wallets[i%len(wallets)]
-		i++
+	return runBench(10000, "set", func(ctx context.Context, iterator int) error {
+		walletRef := wallets[iterator%len(wallets)]
 		addAmountURL := getURL(walletAddAmountPath, "")
 
 		return addAmountToWallet(ctx, addAmountURL, walletRef, 1000)
@@ -73,11 +71,9 @@ func runSetBench(wallets []string) error {
 }
 
 func runGetBench(wallets []string) error {
-	i := 0
-	return runBench(10000, "get", func(ctx context.Context) error {
-		walletRef := wallets[i%len(wallets)]
+	return runBench(10000, "get", func(ctx context.Context, iterator int) error {
+		walletRef := wallets[iterator%len(wallets)]
 		getBalanceURL := getURL(walletGetBalancePath, "")
-		i++
 
 		_, err := getWalletBalance(ctx, getBalanceURL, walletRef)
 
@@ -85,7 +81,7 @@ func runGetBench(wallets []string) error {
 	})
 }
 
-func runBench(iterations int, name string, workerFunc func(ctx context.Context) error) error {
+func runBench(iterations int, name string, workerFunc func(ctx context.Context, iterator int) error) error {
 	fmt.Println("==== Running " + name)
 	// default Parallelism will be equal to NumCPU
 	g, ctx := errgroup.WithContext(context.Background())
@@ -122,7 +118,7 @@ func runBench(iterations int, name string, workerFunc func(ctx context.Context) 
 		g.Go(func() error {
 			startTime := time.Now()
 
-			err := workerFunc(ctx)
+			err := workerFunc(ctx, i)
 
 			timingCounter.Incr(time.Since(startTime).Nanoseconds())
 			counter.Incr(1)
