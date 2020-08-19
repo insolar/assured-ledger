@@ -28,6 +28,12 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
+func TestBuiltinTestAPIEchoValue(t *testing.T) {
+	ref, err := reference.Decode(BuiltinTestAPIEcho)
+	require.NoError(t, err)
+	require.Equal(t, pulse.BuiltinContract, ref.GetBase().Pulse())
+}
+
 func TestSMTestAPICall_MethodResends(t *testing.T) {
 	var (
 		mc  = minimock.NewController(t)
