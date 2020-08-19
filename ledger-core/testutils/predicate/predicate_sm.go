@@ -13,8 +13,15 @@ import (
 )
 
 func AfterAnyStopOrError(event debuglogger.UpdateEvent) bool {
-	updateType := event.Update.UpdateType
-	return updateType == "stop" || updateType == "panic" || updateType == "error"
+	switch event.Update.UpdateType {
+	case "stop", "panic", "error":
+		return true
+	}
+	return false
+}
+
+func OnAnyRecycle(event debuglogger.UpdateEvent) bool {
+	return event.Update.UpdateType == "recycle"
 }
 
 func AfterInit(event debuglogger.UpdateEvent) bool {
