@@ -27,7 +27,8 @@ import (
 
 const BuiltinTestAPIEcho = "insolar:0AAABApiTestEcho____"
 const BuiltinTestAPIBriefEcho = "insolar:0AAABrief.0AAABApiTestEcho____"
-var builtinTestAPIEchoRef, _ = reference.GlobalObjectFromString(BuiltinTestAPIEcho)
+var builtinTestAPIEchoRef, _ = reference.GlobalFromString(BuiltinTestAPIEcho)
+var builtinTestAPIEchoBriefRef, _ = reference.GlobalFromString(BuiltinTestAPIBriefEcho)
 
 var APICaller, _ = reference.GlobalObjectFromString("insolar:0AAABAnRB0CKuqXTeTfQNTolmyixqQGMJz5sVvW81Dng")
 
