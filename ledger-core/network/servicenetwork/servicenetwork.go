@@ -8,15 +8,12 @@ package servicenetwork
 import (
 	"context"
 
-	"github.com/ThreeDotsLabs/watermill/message"
-
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat/memstor"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
-	"github.com/insolar/assured-ledger/ledger-core/network/nodeset"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/component-manager"

@@ -51,7 +51,7 @@ func (v watermillRouter) IsZero() bool {
 	return v.pub == nil
 }
 
-func (v watermillRouter) CreateMessageSender(helper affinity.Helper, accessor beat.Accessor) messagesender.Service {
+func (v watermillRouter) CreateMessageSender(helper affinity.Helper, accessor beat.History) messagesender.Service {
 	return messagesender.NewDefaultService(v.pub, helper, accessor)
 }
 

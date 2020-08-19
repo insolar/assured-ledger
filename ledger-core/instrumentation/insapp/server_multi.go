@@ -10,6 +10,7 @@ import (
 
 	"github.com/insolar/component-manager"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
@@ -19,7 +20,7 @@ import (
 
 // NetworkSupport provides network-related functions to an app compartment
 type NetworkSupport interface {
-	network.NodeNetwork
+	beat.NodeNetwork
 	nodeinfo.CertificateGetter
 
 	CreateMessagesRouter(context.Context) messagesender.MessageRouter

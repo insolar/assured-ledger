@@ -19,7 +19,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/defaults"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/metrics"
 	"github.com/insolar/assured-ledger/ledger-core/network"
