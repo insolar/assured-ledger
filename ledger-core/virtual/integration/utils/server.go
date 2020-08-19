@@ -292,6 +292,10 @@ func (s *Server) RandomLocalWithPulse() reference.Local {
 	return gen.UniqueLocalRefWithPulse(s.GetPulse().PulseNumber)
 }
 
+func (s *Server) BuildRandomOutgoingWithGivenPulse(pn pulse.Number) reference.Global {
+	return reference.NewRecordOf(s.GlobalCaller(), gen.UniqueLocalRefWithPulse(pn))
+}
+
 func (s *Server) BuildRandomOutgoingWithPulse() reference.Global {
 	return reference.NewRecordOf(s.GlobalCaller(), s.RandomLocalWithPulse())
 }

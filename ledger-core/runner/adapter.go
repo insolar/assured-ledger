@@ -67,7 +67,7 @@ func (p *runnerServiceInterceptor) ExecutionContinue(run RunState, outgoingResul
 	if !ok {
 		panic(throw.IllegalValue())
 	}
-	p.last.state.ProvideInput(outgoingResult)
+	p.last.state.InputProvide(outgoingResult)
 	p.last.mode = Continue
 }
 

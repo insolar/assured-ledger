@@ -6,51 +6,83 @@
 package payload
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 var _ Validatable = &VStateReport{}
 
-func (m *VStateReport) Validate(currPulse PulseNumber) error {
+type vStateReportValidateStatusFunc func(pulse.Number, pulse.Number) error
+
+func (m *VStateReport) getValidateStatusFunc(s VStateReport_StateStatus) (vStateReportValidateStatusFunc, bool) {
+	switch s {
+	case Ready:
+		return m.validateStatusReady, true
+	case Empty:
+		return m.validateStatusEmpty, true
+	case Missing, Inactive:
+		return m.validateStatusMissingOrInactive, true
+	}
+
+	return nil, false
+}
+
+func (m *VStateReport) Validate(currentPulse pulse.Number) error {
 	if err := m.validateUnimplemented(); err != nil {
 		return err
 	}
 
-	if asOf := m.GetAsOf(); !asOf.IsTimePulse() || asOf >= currPulse {
+	if !isTimePulseBefore(m.GetAsOf(), currentPulse) {
 		return throw.New("AsOf should be time pulse and less that current pulse")
 	}
 
-	switch object := m.GetObject(); {
-	case !object.IsSelfScope():
-		return throw.New("Object reference should be self scoped")
-	case !object.GetLocal().Pulse().IsTimePulse():
-		fallthrough
-	case object.GetLocal().Pulse() >= currPulse:
-		return throw.New("Object pulse should be valid time pulse less that current pulse")
+	objectPulse, err := validSelfScopedGlobalWithPulseBeforeOrEq(m.Object, currentPulse, "Object")
+	if err != nil {
+		return err
 	}
 
-	switch m.GetStatus() {
-	case Ready:
-		objectPulseNumber := m.GetObject().GetLocal().GetPulseNumber()
-		if err := m.validateStatusReady(objectPulseNumber, currPulse); err != nil {
-			return err
-		}
-	case Empty:
-		if err := m.validateStatusEmpty(currPulse); err != nil {
-			return err
-		}
-	case Missing, Inactive:
-		if err := m.validateStatusMissingOrInactive(); err != nil {
-			return err
-		}
-	default:
+	if validateStatusFunc, ok := m.getValidateStatusFunc(m.GetStatus()); !ok {
 		return throw.New("Unexpected state received")
+	} else {
+		if err := validateStatusFunc(objectPulse, currentPulse); err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
-func (m *VStateReport) validateStatusEmpty(currPulse PulseNumber) error {
+func (m *VStateReport) validateStatusReady(objectPulse pulse.Number, currentPulse pulse.Number) error {
+	switch pendingCount, earliestPendingPulse := m.GetUnorderedPendingCount(), m.GetUnorderedPendingEarliestPulse(); {
+	case pendingCount == 0:
+		if !earliestPendingPulse.IsUnknown() {
+			return throw.New("UnorderedPendingEarliestPulse should be Unknown")
+		}
+	case pendingCount > 0 && pendingCount < 127:
+		if !isTimePulseBeforeOrEq(earliestPendingPulse, currentPulse) || !earliestPendingPulse.IsEqOrAfter(objectPulse) {
+			return throw.New("UnorderedPendingEarliestPulse should be in range [objectPulse..currentPulse]")
+		}
+	default:
+		return throw.New("UnorderedPendingCount should be in range [0..127)")
+	}
+
+	switch pendingCount, earliestPendingPulse := m.GetOrderedPendingCount(), m.GetOrderedPendingEarliestPulse(); {
+	case pendingCount == 0:
+		if !earliestPendingPulse.IsUnknown() {
+			return throw.New("UnorderedPendingEarliestPulse should be Unknown")
+		}
+	case pendingCount > 0 && pendingCount < 127:
+		if !isTimePulseBeforeOrEq(earliestPendingPulse, currentPulse) || !earliestPendingPulse.IsEqOrAfter(objectPulse) {
+			return throw.New("OrderedPendingEarliestPulse should be in range [objectPulse..currentPulse]")
+		}
+	default:
+		return throw.New("UnorderedPendingCount should be in range [0..127)")
+	}
+
+	return nil
+}
+
+func (m *VStateReport) validateStatusEmpty(objectPulse pulse.Number, currentPulse pulse.Number) error {
 	if m.GetOrderedPendingCount() != 1 {
 		return throw.New("Should be one ordered pending")
 	}
@@ -63,10 +95,11 @@ func (m *VStateReport) validateStatusEmpty(currPulse PulseNumber) error {
 		return throw.New("Unordered pending earliest pulse should be Unknown")
 	}
 
-	objectPulse := m.GetAsOf()
-	orderedPendingPulse := m.GetOrderedPendingEarliestPulse()
+	var (
+		orderedPendingPulse = m.GetOrderedPendingEarliestPulse()
+	)
 
-	if !orderedPendingPulse.IsTimePulse() || orderedPendingPulse > objectPulse || currPulse < orderedPendingPulse {
+	if !isTimePulseBefore(orderedPendingPulse, currentPulse) || !objectPulse.IsBeforeOrEq(orderedPendingPulse) {
 		return throw.New("Incorrect pending ordered pulse number")
 	}
 
@@ -81,37 +114,7 @@ func (m *VStateReport) validateStatusEmpty(currPulse PulseNumber) error {
 	return nil
 }
 
-func (m *VStateReport) validateStatusReady(objectPulse PulseNumber, currPulse PulseNumber) error {
-	switch pendingCount, earliestPendingPulse := m.GetUnorderedPendingCount(), m.GetUnorderedPendingEarliestPulse(); {
-	case pendingCount == 0:
-		if !earliestPendingPulse.IsUnknown() {
-			return throw.New("UnorderedPendingEarliestPulse should be Unknown")
-		}
-	case pendingCount > 0 && pendingCount < 127:
-		if !earliestPendingPulse.IsTimePulse() || earliestPendingPulse < objectPulse || earliestPendingPulse > currPulse {
-			return throw.New("UnorderedPendingEarliestPulse should be in range (objectPulse..currPulse]")
-		}
-	default:
-		return throw.New("UnorderedPendingCount should be in range [0..127)")
-	}
-
-	switch pendingCount, earliestPendingPulse := m.GetOrderedPendingCount(), m.GetOrderedPendingEarliestPulse(); {
-	case pendingCount == 0:
-		if !earliestPendingPulse.IsUnknown() {
-			return throw.New("UnorderedPendingEarliestPulse should be Unknown")
-		}
-	case pendingCount > 0 && pendingCount < 127:
-		if !earliestPendingPulse.IsTimePulse() || earliestPendingPulse < objectPulse || earliestPendingPulse > currPulse {
-			return throw.New("OrderedPendingEarliestPulse should be in range (objectPulse..currPulse]")
-		}
-	default:
-		return throw.New("UnorderedPendingCount should be in range [0..127)")
-	}
-
-	return nil
-}
-
-func (m *VStateReport) validateStatusMissingOrInactive() error {
+func (m *VStateReport) validateStatusMissingOrInactive(pulse.Number, pulse.Number) error {
 	// validate we've got zero pendings on object
 	switch {
 	case m.GetOrderedPendingCount() != 0:
@@ -159,7 +162,7 @@ func (m *VStateReport) validateUnimplemented() error {
 		return throw.New("DelegationSpec should be empty")
 	case m.GetPreRegisteredQueueCount() != 0:
 		return throw.New("PriorityCallQueueCount should be 0")
-	case !m.PreRegisteredEarliestPulse.IsUnknown():
+	case !m.GetPreRegisteredEarliestPulse().IsUnknown():
 		return throw.New("PreRegisteredEarliestPulse should be unknown")
 	case m.GetPriorityCallQueueCount() != 0:
 		return throw.New("PriorityCallQueueCount should be 0")

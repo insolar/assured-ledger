@@ -178,7 +178,7 @@ func (s *ServiceMock) ExecutionContinue(run runner.RunState, outgoingResult requ
 		panic(throw.IllegalValue())
 	}
 
-	if outgoingResult.Err != nil {
+	if outgoingResult.Error != nil {
 		panic(throw.NotImplemented())
 	}
 
