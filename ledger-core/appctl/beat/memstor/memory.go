@@ -6,17 +6,15 @@
 package memstor
 
 import (
-	"context"
 	"sync"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
 
-var _ beat.Accessor = &StorageMem{}
+var _ beat.History = &StorageMem{}
 
 // StorageMem is a memory storage implementation. It saves pulses to memory and allows removal.
 type StorageMem struct {
@@ -38,44 +36,43 @@ func NewStorageMem() *StorageMem {
 	}
 }
 
-// Of returns pulse for provided Pulse number. If not found, ErrNotFound will be returned.
-func (s *StorageMem) Of(ctx context.Context, pn pulse.Number) (beat.Beat, error) {
+// TimeBeat returns pulse for provided Pulse number. If not found, ErrNotFound will be returned.
+func (s *StorageMem) TimeBeat(pn pulse.Number) (beat.Beat, error) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
 	if node, ok := s.storage[pn]; ok {
 		return node.pulse, nil
 	}
-	return beat.Beat{}, pulsestor.ErrNotFound
+	return beat.Beat{}, throw.WithStack(ErrNotFound)
 }
 
-// Latest returns a latest pulse saved in memory. If not found, ErrNotFound will be returned.
-func (s *StorageMem) Latest(ctx context.Context) (pulse beat.Beat, err error) {
+// LatestTimeBeat returns a latest pulse saved in memory. If not found, ErrNotFound will be returned.
+func (s *StorageMem) LatestTimeBeat() (beat.Beat, error) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
-	if s.tail == nil {
-		err = pulsestor.ErrNotFound
-		return
+	if s.tail != nil {
+		return s.tail.pulse, nil
 	}
-
-	return s.tail.pulse, nil
+	return beat.Beat{}, throw.WithStack(ErrNotFound)
 }
 
-func (s *StorageMem) EnsureLatest(ctx context.Context, pulse beat.Beat) error {
-	switch latest, err := s.Latest(ctx); {
+func (s *StorageMem) EnsureLatestTimeBeat(pulse beat.Beat) error {
+	switch latest, err := s.LatestTimeBeat(); {
 	case err != nil:
 		return err
 	case pulse.Data != latest.Data:
-		return pulsestor.ErrBadPulse
+		return throw.WithStack(ErrBadPulse)
 	}
 	return nil
 }
 
-// Append appends provided a pulse to current storage. Pulse number should be greater than currently saved for preserving
-// pulse consistency. If provided Pulse does not meet the requirements, ErrBadPulse will be returned.
-func (s *StorageMem) Append(_ context.Context, pulse beat.Beat) error {
-	// TODO it must NOT be allowed to add non-time pulse, but old code needs it
+func (s *StorageMem) AddExpectedBeat(beat.Beat) error {
+	return nil
+}
+
+func (s *StorageMem) AddCommittedBeat(pulse beat.Beat) error {
 	if !pulse.PulseEpoch.IsTimeEpoch() {
 		panic(throw.IllegalValue())
 	}
@@ -83,40 +80,34 @@ func (s *StorageMem) Append(_ context.Context, pulse beat.Beat) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	var appendTail = func() {
-		oldTail := s.tail
-		newTail := &memNode{
-			prev:  oldTail,
-			pulse: pulse,
-		}
-		oldTail.next = newTail
-		newTail.prev = oldTail
-		s.storage[newTail.pulse.PulseNumber] = newTail
-		s.tail = newTail
-	}
-	var appendHead = func() {
+	if s.head == nil {
 		s.tail = &memNode{
 			pulse: pulse,
 		}
 		s.storage[pulse.PulseNumber] = s.tail
 		s.head = s.tail
-	}
-
-	if s.head == nil {
-		appendHead()
 		return nil
 	}
 
 	if pulse.PulseNumber <= s.tail.pulse.PulseNumber {
-		return pulsestor.ErrBadPulse
+		return throw.WithStack(ErrBadPulse)
 	}
-	appendTail()
+
+	oldTail := s.tail
+	newTail := &memNode{
+		prev:  oldTail,
+		pulse: pulse,
+	}
+	oldTail.next = newTail
+	newTail.prev = oldTail
+	s.storage[newTail.pulse.PulseNumber] = newTail
+	s.tail = newTail
 
 	return nil
 }
 
 // Trim removes oldest pulse from storage. If the storage is empty, an error will be returned.
-func (s *StorageMem) Trim(_ context.Context, pn pulse.Number) (err error) {
+func (s *StorageMem) Trim(pn pulse.Number) (err error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -140,3 +131,4 @@ func (s *StorageMem) Trim(_ context.Context, pn pulse.Number) (err error) {
 
 	return nil
 }
+

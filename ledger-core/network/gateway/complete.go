@@ -12,15 +12,16 @@ import (
 
 	"go.opencensus.io/stats"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/instracer"
 	"github.com/insolar/assured-ledger/ledger-core/network"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet/types"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
-	"github.com/insolar/assured-ledger/ledger-core/network/nodeset"
 	"github.com/insolar/assured-ledger/ledger-core/network/rules"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -141,22 +142,21 @@ func (g *Complete) signCertHandler(ctx context.Context, request network.Received
 	return g.HostNetwork.BuildResponse(ctx, request, &packet.SignCertResponse{Sign: sign.Bytes()}), nil
 }
 
-func (g *Complete) EphemeralMode(nodes []nodeinfo.NetworkNode) bool {
+func (g *Complete) EphemeralMode(census.OnlinePopulation) bool {
 	return false
 }
 
-func (g *Complete) UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes []nodeinfo.NetworkNode, cloudStateHash []byte) {
-	workingNodes := nodeset.SelectWorking(nodes)
+func (g *Complete) UpdateState(ctx context.Context, beat beat.Beat) {
 
-	if _, err := rules.CheckMajorityRule(g.CertificateManager.GetCertificate(), workingNodes); err != nil {
+	if _, err := rules.CheckMajorityRule(g.CertificateManager.GetCertificate(), beat.Online); err != nil {
 		g.FailState(ctx, err.Error())
 	}
 
-	if err := rules.CheckMinRole(g.CertificateManager.GetCertificate(), workingNodes); err != nil { // Return error
+	if err := rules.CheckMinRole(g.CertificateManager.GetCertificate(), beat.Online); err != nil { // Return error
 		g.FailState(ctx, err.Error())
 	}
 
-	g.Base.UpdateState(ctx, pulseNumber, nodes, cloudStateHash)
+	g.Base.UpdateState(ctx, beat)
 }
 
 func (g *Complete) RequestNodeState(fn chorus.NodeStateFunc) {
@@ -181,15 +181,14 @@ func (g *Complete) OnPulseFromConsensus(ctx context.Context, pulse network.Netwo
 	span.SetTag("pulse.Number", int64(pulse.PulseNumber))
 	defer span.Finish()
 
-	err := g.PulseAppender.Append(ctx, pulse)
-	if err != nil {
+	if err := g.PulseAppender.AddCommittedBeat(pulse); err != nil {
 		inslogger.FromContext(ctx).Panic("failed to append pulse: ", err.Error())
 	}
 
-	err = g.PulseManager.CommitPulseChange(pulse)
-	if err != nil {
+	if err := g.PulseManager.CommitPulseChange(pulse); err != nil {
 		logger.Fatalf("Failed to set new pulse: %s", err.Error())
 	}
+
 	logger.Infof("Set new current pulse number: %d", pulse.PulseNumber)
 	stats.Record(ctx, statPulse.M(int64(pulse.PulseNumber)))
 }

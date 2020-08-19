@@ -106,6 +106,9 @@ type updatableSlot struct {
 }
 
 func (c *updatableSlot) AsActiveNode() profiles.ActiveNode {
+	if c == nil {
+		return nil
+	}
 	return &c.NodeProfileSlot
 }
 

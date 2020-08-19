@@ -13,12 +13,12 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat/memstor"
 	"github.com/insolar/assured-ledger/ledger-core/application/testwalletapi"
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor/memstor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/convlog"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
@@ -226,7 +226,7 @@ func (s *Server) incrementPulse() {
 	s.pulseManager.RequestNodeState(func(api.UpstreamState) {})
 
 	pc := s.GetPulse()
-	if err := s.pulseStorage.Append(context.Background(), pc); err != nil {
+	if err := s.pulseStorage.AddCommittedBeat(pc); err != nil {
 		panic(err)
 	}
 
