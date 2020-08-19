@@ -118,7 +118,7 @@ func TestSMTestAPICall_MethodEcho(t *testing.T) {
 
 	slotMachine := slotdebugger.New(ctx, t)
 
-	echoRef, err := reference.GlobalFromString(BuiltinTestAPIBriefEcho)
+	echoRef, err := reference.GlobalFromString(BuiltinTestAPIEcho)
 	require.NoError(t, err)
 
 	request := payload.VCallRequest{
