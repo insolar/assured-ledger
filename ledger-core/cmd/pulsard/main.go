@@ -10,15 +10,12 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 
-	"github.com/spf13/cobra"
-	jww "github.com/spf13/jwalterweatherman"
-	"github.com/spf13/viper"
-
 	"github.com/insolar/component-manager"
+	"github.com/insolar/insconfig"
+	jww "github.com/spf13/jwalterweatherman"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/keystore"
@@ -35,53 +32,23 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/version"
 )
 
-const PulsarOneShotEnv = "PULSAR.ONESHOT"
-
-type inputParams struct {
-	configPath string
-	oneShot    bool
-}
-
-func parseInputParams() inputParams {
-	var rootCmd = &cobra.Command{Use: "pulsard --config=<path to config>"}
-	var result inputParams
-	rootCmd.Flags().StringVarP(&result.configPath, "config", "c", "", "path to config file")
-	rootCmd.Flags().BoolVarP(&result.oneShot, "one-shot", "o", false, "send one pulse and die")
-	rootCmd.AddCommand(version.GetCommand("pulsard"))
-	err := rootCmd.Execute()
-	if err != nil {
-		fmt.Println("Wrong input params:", err.Error())
-	}
-
-	return result
-}
+const EnvPrefix = "PULSARD"
 
 // Need to fix problem with start pulsar
 func main() {
-	params := parseInputParams()
-
 	jww.SetStdoutThreshold(jww.LevelDebug)
 	var err error
 
-	vp := viper.New()
-	vp.AutomaticEnv()
-	vp.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-	_ = vp.BindEnv("Pulsar.PulseTime")
-	_ = vp.BindEnv(PulsarOneShotEnv)
-	if len(params.configPath) != 0 {
-		vp.SetConfigFile(params.configPath)
-	}
-	err = vp.ReadInConfig()
-	if err != nil {
-		global.Warn("failed to load configuration from file: ", err.Error())
-	}
 	pCfg := configuration.NewPulsarConfiguration()
-	err = vp.Unmarshal(&pCfg)
+	paramsCfg := insconfig.Params{
+		EnvPrefix:        EnvPrefix,
+		ConfigPathGetter: &insconfig.DefaultPathGetter{},
+	}
+	insConfigurator := insconfig.New(paramsCfg)
+	err = insConfigurator.Load(&pCfg)
 	if err != nil {
 		global.Warn("failed to load configuration from file: ", err.Error())
 	}
-	oneShot := vp.GetBool(PulsarOneShotEnv)
-	params.oneShot = params.oneShot || oneShot
 
 	ctx := context.Background()
 	ctx, inslog := inslogger.InitNodeLogger(ctx, pCfg.Log, "", "pulsar")
@@ -114,7 +81,7 @@ func main() {
 
 	cm, server := initPulsar(ctx, pCfg)
 
-	if params.oneShot {
+	if pCfg.OneShot {
 		nextPulseNumber := pulse.OfNow()
 		err := server.Send(ctx, nextPulseNumber)
 		if err != nil {
