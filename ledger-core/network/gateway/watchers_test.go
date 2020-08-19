@@ -18,7 +18,7 @@ import (
 
 func TestPulseWatchdog(t *testing.T) {
 	mc := minimock.NewController(t)
-	defer mc.Wait(time.Second*10)
+	defer mc.Wait(time.Second * 10)
 	defer mc.Finish()
 
 	gw := network.NewGatewayMock(mc)
@@ -33,7 +33,7 @@ func TestPulseWatchdog(t *testing.T) {
 
 func TestPulseWatchdog_timeout_exceeded(t *testing.T) {
 	mc := minimock.NewController(t)
-	defer mc.Wait(time.Second*10)
+	defer mc.Wait(time.Second * 10)
 	defer mc.Finish()
 
 	gw := network.NewGatewayMock(mc)
@@ -41,8 +41,8 @@ func TestPulseWatchdog_timeout_exceeded(t *testing.T) {
 		assert.Equal(t, "New valid pulse timeout exceeded", reason)
 	})
 
-	wd := newPulseWatchdog(context.Background(), gw, 300*time.Millisecond)
+	wd := newPulseWatchdog(context.Background(), gw, 30*time.Millisecond)
 	wd.Reset()
-	<-time.After(400 * time.Millisecond)
+	<-time.After(40 * time.Millisecond)
 	defer wd.Stop()
 }
