@@ -1006,13 +1006,15 @@ func TestVirtual_FutureMessageAddedToSlot(t *testing.T) {
 
 	Method_PrepareObject(ctx, server, payload.Ready, objectGlobal, prevPulse)
 
+	p := server.GetPulse().PulseNumber
+
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool { return false })
 	typedChecker.VStateReport.Set(func(res *payload.VStateReport) bool { return false })
 	typedChecker.VStateRequest.Set(func(res *payload.VStateRequest) bool {
 		report := &payload.VStateReport{
 			Status:               payload.Ready,
-			AsOf:                 prevPulse,
+			AsOf:                 p,
 			Object:               objectGlobal,
 			LatestValidatedState: validatedState,
 			LatestDirtyState:     dirtyState,
@@ -1279,6 +1281,7 @@ func TestVirtual_Method_ForObjectWithMissingState(t *testing.T) {
 			server.IncrementPulseAndWaitIdle(ctx)
 
 			if testCase.outgoingFromPast {
+				prevPulse = server.GetPulse().PulseNumber
 				server.IncrementPulseAndWaitIdle(ctx)
 			}
 
