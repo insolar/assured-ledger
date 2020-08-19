@@ -20,7 +20,7 @@ type Handler struct {
 	terminating bool
 
 	Leaver        Leaver
-	PulseAccessor beat.Accessor `inject:""`
+	PulseAccessor beat.History `inject:""`
 }
 
 func NewHandler(l Leaver) *Handler {

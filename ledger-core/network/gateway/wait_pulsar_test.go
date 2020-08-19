@@ -15,12 +15,12 @@ import (
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	mock "github.com/insolar/assured-ledger/ledger-core/testutils/network"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/network/mutable"
 )
 
 func createBase(mc *minimock.Controller) *Base {
@@ -31,14 +31,14 @@ func createBase(mc *minimock.Controller) *Base {
 		require.Contains(mc, reason, bootstrapTimeoutMessage)
 	})
 
-	nk := mock.NewNodeKeeperMock(mc)
+	nk := beat.NewNodeKeeperMock(mc)
 	ref := gen.UniqueGlobalRef()
-	nk.GetOriginMock.Return(mutable.NewTestNode(gen.UniqueGlobalRef(), member.PrimaryRoleVirtual, "127.0.0.1:123"))
 	nk.GetLocalNodeReferenceMock.Return(ref)
 	nk.GetLocalNodeRoleMock.Return(member.PrimaryRoleVirtual)
+	nk.FindAnyLatestNodeSnapshotMock.Return(nil)
 
 	// avoid errors when these methods were not used
-	nk.GetOrigin()
+	nk.FindAnyLatestNodeSnapshot()
 	nk.GetLocalNodeReference()
 	nk.GetLocalNodeRole()
 

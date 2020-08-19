@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/crypto/legacyadapter"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/network"
@@ -70,13 +71,15 @@ type Dep struct {
 	KeyStore              cryptography.KeyStore
 	TransportCryptography transport2.CryptographyAssistant
 
-	NodeKeeper        network.NodeKeeper
+	NodeKeeper        beat.NodeKeeper
 	DatagramTransport transport.DatagramTransport
 
 	StateGetter         adapters.NodeStater
 	PulseChanger        adapters.BeatChanger
 	StateUpdater        adapters.StateUpdater
 	EphemeralController adapters.EphemeralController
+
+	LocalNodeProfile    profiles.StaticProfile
 }
 
 func (cd *Dep) verify() {
@@ -113,11 +116,8 @@ func newConstructor(ctx context.Context, dep *Dep) *constructor {
 		c.consensusConfiguration,
 	)
 	c.misbehaviorRegistry = adapters.NewMisbehaviorRegistry()
-	c.offlinePopulation = adapters.NewOfflinePopulation(
-		dep.NodeKeeper,
-		dep.CertificateManager,
-		dep.KeyProcessor,
-	)
+	c.offlinePopulation = adapters.NewOfflinePopulation(dep.NodeKeeper) // TODO should use mandate storage
+
 	c.versionedRegistries = adapters.NewVersionedRegistries(
 		c.mandateRegistry,
 		c.misbehaviorRegistry,
@@ -174,9 +174,13 @@ func (c Installer) ControllerFor(mode Mode, setters ...packetProcessorSetter) Co
 	}
 	candidateFeeder := coreapi.NewSequentialCandidateFeeder(candidateQueueSize)
 
-	na := c.dep.NodeKeeper.GetLatestAccessor()
+	var pop census.OnlinePopulation
+	if na := c.dep.NodeKeeper.FindAnyLatestNodeSnapshot(); na != nil {
+		pop = na.GetPopulation()
+	}
+
 	var ephemeralFeeder api.EphemeralControlFeeder
-	if c.dep.EphemeralController.EphemeralMode(na.GetActiveNodes()) {
+	if c.dep.EphemeralController.EphemeralMode(pop) {
 		ephemeralFeeder = adapters.NewEphemeralControlFeeder(c.dep.EphemeralController)
 	}
 
@@ -186,7 +190,7 @@ func (c Installer) ControllerFor(mode Mode, setters ...packetProcessorSetter) Co
 		c.dep.StateUpdater,
 	)
 
-	consensusChronicles := c.createConsensusChronicles(mode, na)
+	consensusChronicles := c.createConsensusChronicles(mode, pop)
 	consensusController := c.createConsensusController(
 		consensusChronicles,
 		controlFeederInterceptor.Feeder(),
@@ -203,33 +207,32 @@ func (c Installer) ControllerFor(mode Mode, setters ...packetProcessorSetter) Co
 	return newController(controlFeederInterceptor, candidateFeeder, consensusController, upstreamController, consensusChronicles)
 }
 
-func (c *Installer) createCensus(mode Mode, na network.Accessor) *censusimpl.PrimingCensusTemplate {
-	certificate := c.dep.CertificateManager.GetCertificate()
-	origin := c.dep.NodeKeeper.GetOrigin()
-	knownNodes := na.GetActiveNodes()
+func (c *Installer) createCensus(mode Mode, pop census.OnlinePopulation) *censusimpl.PrimingCensusTemplate {
 
-	node := adapters.NewStaticProfile(origin, certificate, c.dep.KeyProcessor)
-	nodes := adapters.NewStaticProfileList(knownNodes, certificate, c.dep.KeyProcessor)
+	var nodes []profiles.StaticProfile
+	if pop != nil {
+		nodes = nodeinfo.NewStaticProfileList(pop.GetProfiles())
+	}
+
+	localProfile := c.dep.LocalNodeProfile
+	if len(nodes) == 0 {
+		nodes = append(nodes, localProfile)
+	}
 
 	if mode == Joiner {
-		return adapters.NewCensusForJoiner(
-			node,
-			c.consensus.versionedRegistries,
-			c.consensus.transportCryptographyFactory,
+		return adapters.NewCensusForJoiner(localProfile,
+			c.consensus.versionedRegistries, c.consensus.transportCryptographyFactory,
 		)
 	}
 
-	return adapters.NewCensus(
-		node,
-		nodes,
-		c.consensus.versionedRegistries,
-		c.consensus.transportCryptographyFactory,
+	return adapters.NewCensus(localProfile, nodes,
+		c.consensus.versionedRegistries, c.consensus.transportCryptographyFactory,
 	)
 }
 
-func (c *Installer) createConsensusChronicles(mode Mode, na network.Accessor) censusimpl.LocalConsensusChronicles {
+func (c *Installer) createConsensusChronicles(mode Mode, pop census.OnlinePopulation) censusimpl.LocalConsensusChronicles {
 	consensusChronicles := adapters.NewChronicles(c.consensus.nodeProfileFactory)
-	c.createCensus(mode, na).SetAsActiveTo(consensusChronicles)
+	c.createCensus(mode, pop).SetAsActiveTo(consensusChronicles)
 	return consensusChronicles
 }
 

@@ -11,14 +11,12 @@ import (
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles"
-	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
-
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/power"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/proofs"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/transport"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -31,7 +29,7 @@ const (
 )
 
 type EphemeralController interface {
-	EphemeralMode(nodes []nodeinfo.NetworkNode) bool
+	EphemeralMode(census.OnlinePopulation) bool
 }
 
 var _ api.ConsensusControlFeeder = &ConsensusControlFeeder{}
@@ -273,15 +271,11 @@ func (f *EphemeralControlFeeder) CanStopEphemeralByCensus(expected census.Expect
 	if expected == nil {
 		return false
 	}
-
 	population := expected.GetOnlinePopulation()
 	if !population.IsValid() {
 		return false
 	}
-
-	networkNodes := NewNetworkNodeList(population.GetProfiles())
-
-	return !f.ephemeralController.EphemeralMode(networkNodes)
+	return !f.ephemeralController.EphemeralMode(population)
 }
 
 func (f *EphemeralControlFeeder) EphemeralConsensusFinished(isNextEphemeral bool, roundStartedAt time.Time, expected census.Operational) {
