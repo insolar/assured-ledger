@@ -5,7 +5,7 @@ T00_S001 : SMTestAPICall
 T00_S001 --> T00_S002
 state "migrateResend" as T00_S004
 T00_S004 : SMTestAPICall
-T00_S004 --> T00_S005 : [s.messageSentTimes>=MaxRepeats]
+T00_S004 --> T00_S005 : [(...).messageSentTimes.Load()>=MaxRepeats]
 T00_S004 --> T00_S003
 state "stepProcessResult" as T00_S005
 T00_S005 : SMTestAPICall
