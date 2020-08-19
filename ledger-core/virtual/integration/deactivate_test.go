@@ -226,6 +226,7 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 				executeDone = server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 				server.SendPayload(ctx, pl)
 				commonTestUtils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+				commonTestUtils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 			}
 
 			// Check VStateReport after pulse change
