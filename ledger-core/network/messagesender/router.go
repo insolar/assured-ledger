@@ -11,6 +11,6 @@ import (
 )
 
 type MessageRouter interface {
-	CreateMessageSender(affinity.Helper, beat.Accessor) Service
+	CreateMessageSender(affinity.Helper, beat.History) Service
 	SubscribeForMessages(func(beat.Message) error) (stopFn func())
 }

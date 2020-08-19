@@ -9,8 +9,12 @@ package jet
 
 import (
 	"bytes"
+	"fmt"
+	"math"
+	"math/bits"
 	"runtime"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -146,5 +150,119 @@ func checkSerialized(t *testing.T, pt *PrefixTree, buf *bytes.Buffer) {
 	}
 	if *pt != pt2 {
 		require.Equal(t, *pt, pt2) // test performance tweak
+	}
+}
+
+func TestPrefixTree_Propagate_Get_Performance(t *testing.T) {
+	timings := [2]int64{}
+	for i := 0; i <= 1; i++ {
+		idx := i
+		t.Run(fmt.Sprintf("tree=zero16 propagate=%v", idx != 0), func(t *testing.T) {
+			pt := NewPrefixTree(idx != 0)
+			splitZero(&pt, 0, 15)
+			startedAt := time.Now()
+			for j := 0; j < 10000000; j++ {
+				pt.GetPrefix(math.MaxUint16)
+			}
+			timings[idx] = int64(time.Since(startedAt))
+		})
+	}
+	require.Less(t, timings[1], timings[0]>>2) // must be at least 4 times faster
+}
+
+func TestPrefixTree_Propagate_Get_ZeroThenOne(t *testing.T) {
+	for i := 0; i <= 1; i++ {
+		pt := NewPrefixTree(i != 0)
+		for i := Prefix(0); i <= math.MaxUint16*2; i++ {
+			_, l := pt.GetPrefix(i)
+			require.Equal(t, uint8(0), l)
+		}
+		splitZero(&pt, 0, 15)
+		mask := Prefix(math.MaxUint16)
+
+		t.Run(fmt.Sprintf("tree=zero16 propagate=%v", pt.autoPropagate), func(t *testing.T) {
+			for i := Prefix(0); i <= math.MaxUint16*2; i++ {
+				masked := i & mask
+				expected := uint8(16)
+				if masked != 0 {
+					expected = uint8(bits.TrailingZeros(uint(masked)) + 1)
+				}
+				_, l := pt.GetPrefix(i)
+				require.Equal(t, expected, l, i)
+			}
+		})
+
+		splitOne(&pt, 1, 15)
+
+		t.Run(fmt.Sprintf("tree=zero16+one16 propagate=%v", pt.autoPropagate), func(t *testing.T) {
+			for i := Prefix(0); i <= math.MaxUint16*2; i++ {
+				masked := i & mask
+				expected := uint8(16)
+				switch {
+				case masked == 0:
+				case masked <= 2:
+					expected = 2
+				case masked == math.MaxUint16:
+					expected = 16
+				case masked&1 == 0:
+					expected = uint8(bits.TrailingZeros(uint(masked)) + 1)
+				default:
+					expected = uint8(bits.TrailingZeros(^uint(masked)) + 1)
+				}
+				_, l := pt.GetPrefix(i)
+				require.Equal(t, expected, l, i)
+			}
+		})
+	}
+}
+
+func TestPrefixTree_Propagate_Get_OneThenZero(t *testing.T) {
+	for i := 0; i <= 1; i++ {
+		pt := NewPrefixTree(i != 0)
+		for i := Prefix(0); i <= math.MaxUint16*2; i++ {
+			_, l := pt.GetPrefix(i)
+			require.Equal(t, uint8(0), l)
+		}
+		splitOne(&pt, 0, 15)
+		mask := Prefix(math.MaxUint16)
+
+		t.Run(fmt.Sprintf("tree=one16 propagate=%v", pt.autoPropagate), func(t *testing.T) {
+			for i := Prefix(0); i <= math.MaxUint16*2; i++ {
+				masked := i & mask
+				expected := uint8(0)
+				switch {
+				case masked == 0:
+					expected = 1
+				case masked == math.MaxUint16:
+					expected = 16
+				default:
+					expected = uint8(bits.TrailingZeros(^uint(masked)) + 1)
+				}
+				_, l := pt.GetPrefix(i)
+				require.Equal(t, expected, l, i)
+			}
+		})
+
+		splitZero(&pt, 1, 15)
+
+		t.Run(fmt.Sprintf("tree=one16+zero16 propagate=%v", pt.autoPropagate), func(t *testing.T) {
+			for i := Prefix(0); i <= math.MaxUint16*2; i++ {
+				masked := i & mask
+				expected := uint8(16)
+				switch {
+				case masked == 0:
+				case masked <= 2:
+					expected = 2
+				case masked == math.MaxUint16:
+					expected = 16
+				case masked&1 == 0:
+					expected = uint8(bits.TrailingZeros(uint(masked)) + 1)
+				default:
+					expected = uint8(bits.TrailingZeros(^uint(masked)) + 1)
+				}
+				_, l := pt.GetPrefix(i)
+				require.Equal(t, expected, l, i)
+			}
+		})
 	}
 }

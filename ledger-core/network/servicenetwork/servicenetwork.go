@@ -8,11 +8,12 @@ package servicenetwork
 import (
 	"context"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat/memstor"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
-	"github.com/insolar/assured-ledger/ledger-core/network/nodeset"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/component-manager"
@@ -31,7 +32,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
-var _ network.NodeNetwork = &ServiceNetwork{}
+var _ beat.NodeNetwork = &ServiceNetwork{}
 
 type ServiceNetwork struct {
 	cfg configuration.Configuration
@@ -42,7 +43,7 @@ type ServiceNetwork struct {
 
 	// subcomponents
 	RPC                controller.RPCController   `inject:"subcomponent"`
-	NodeKeeper         network.NodeKeeper         `inject:"subcomponent"`
+	NodeKeeper         beat.NodeKeeper            `inject:"subcomponent"`
 	TerminationHandler network.TerminationHandler `inject:"subcomponent"`
 
 	HostNetwork network.HostNetwork
@@ -75,7 +76,7 @@ func (n *ServiceNetwork) Init(ctx context.Context) error {
 
 	cert := n.CertificateManager.GetCertificate()
 
-	nodeNetwork, err := nodeset.NewNodeNetwork(n.cfg.Host.Transport, cert)
+	nodeNetwork, err := memstor.NewNodeNetwork(n.cfg.Host.Transport, cert)
 	if err != nil {
 		return throw.W(err, "failed to create NodeNetwork")
 	}
@@ -93,7 +94,7 @@ func (n *ServiceNetwork) Init(ctx context.Context) error {
 		nodeNetwork,
 		controller.NewRPCController(options),
 		bootstrap.NewRequester(options),
-		nodeset.NewMemoryStorage(),
+		memstor.NewMemoryStorage(),
 		n.BaseGateway,
 		n.Gatewayer,
 		termination.NewHandler(n),
@@ -114,11 +115,8 @@ func (n *ServiceNetwork) Start(ctx context.Context) error {
 		return throw.W(err, "failed to start component manager")
 	}
 
-	// pc, err := n.PulseAccessor.Latest(ctx)
-	// if err != nil {
 	p := network.NetworkedPulse{}
 	p.PulseEpoch = pulse.EphemeralPulseEpoch
-	// }
 
 	n.Gatewayer.Gateway().Run(ctx, p.Data)
 	n.RPC.RemoteProcedureRegister(deliverWatermillMsg, n.processIncoming)
@@ -148,7 +146,7 @@ func (n *ServiceNetwork) GracefulStop(ctx context.Context) error {
 	return nil
 }
 
-// Stop implements insolar.Component
+// Stop implements component.Stopper
 func (n *ServiceNetwork) Stop(ctx context.Context) error {
 	return n.cm.Stop(ctx)
 }
@@ -161,16 +159,12 @@ func (n *ServiceNetwork) GetLocalNodeRole() member.PrimaryRole {
 	return n.NodeKeeper.GetLocalNodeRole()
 }
 
-func (n *ServiceNetwork) GetOrigin() nodeinfo.NetworkNode {
-	return n.NodeKeeper.GetOrigin()
+func (n *ServiceNetwork) GetNodeSnapshot(p pulse.Number) beat.NodeSnapshot {
+	return n.NodeKeeper.GetNodeSnapshot(p)
 }
 
-func (n *ServiceNetwork) GetAccessor(p pulse.Number) network.Accessor {
-	return n.NodeKeeper.GetAccessor(p)
-}
-
-func (n *ServiceNetwork) GetLatestAccessor() network.Accessor {
-	return n.NodeKeeper.GetLatestAccessor()
+func (n *ServiceNetwork) FindAnyLatestNodeSnapshot() beat.NodeSnapshot {
+	return n.NodeKeeper.FindAnyLatestNodeSnapshot()
 }
 
 func (n *ServiceNetwork) GetCert(ctx context.Context, ref reference.Global) (nodeinfo.Certificate, error) {

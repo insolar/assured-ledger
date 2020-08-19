@@ -106,6 +106,7 @@ func (r *TestingLoggerOutput) LogLevelWrite(level Level, b []byte) (int, error) 
 }
 
 func (r *TestingLoggerOutput) LowLatencyWrite(level Level, b []byte) (int, error) {
+	b = append([]byte(nil), b...)
 	//nolint
 	go r.LogLevelWrite(level, b)
 	return len(b), nil

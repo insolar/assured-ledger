@@ -48,7 +48,7 @@ test_slow_long: ## run tests with slowtest tag
 
 .PHONY: test_extended
 test_extended: ## run tests with slowtest tag
-	$(GOTEST) -count=1 $(TEST_ARGS) -tags "extendedtest convlogtxt" $(PACKAGES)
+	$(GOTEST) -count=1 -timeout 30m -tags "extendedtest convlogtxt" $(PACKAGES)
 
 .PHONY: kube_start_net
 kube_start_net: ## run insolar net in local kubernetes cluster

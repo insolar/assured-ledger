@@ -823,7 +823,6 @@ func TestSendVStateReportWithMissingState_IfConstructorWasInterruptedBeforeRunne
 		},
 	}
 	slotMachine.Start()
-	defer slotMachine.Stop()
 
 	smWrapper := slotMachine.AddStateMachine(ctx, &smExecute)
 	slotMachine.RunTil(smWrapper.BeforeStep(smExecute.stepStartRequestProcessing))
@@ -838,6 +837,7 @@ func TestSendVStateReportWithMissingState_IfConstructorWasInterruptedBeforeRunne
 	})
 	commonTestUtils.WaitSignalsTimed(t, 10*time.Second, vStateReportRecv)
 
+	slotMachine.Stop()
 	mc.Finish()
 }
 

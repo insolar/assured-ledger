@@ -3,20 +3,15 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package nodeset
+package memstor
 
 import (
-	"errors"
 	"sync"
 
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
 
 const entriesCount = 10
-
-// ErrNotFound is returned when value was not found.
-var ErrNotFound = errors.New("value not found")
-
 
 // NewMemoryStorage constructor creates MemoryStorage
 func NewMemoryStorage() *MemoryStorage {
@@ -63,7 +58,7 @@ func (m *MemoryStorage) Append(snapshot *Snapshot) error {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
-	pn := snapshot.GetPulse()
+	pn := snapshot.GetPulseNumber()
 
 	if m.snapshotEntries == nil {
 		m.snapshotEntries = make(map[pulse.Number]*Snapshot)
