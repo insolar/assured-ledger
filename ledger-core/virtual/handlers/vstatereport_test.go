@@ -35,6 +35,7 @@ func TestVStateReport_CreateObjectWithoutState(t *testing.T) {
 		smObject         = object.NewStateMachineObject(smGlobalRef)
 		sharedStateData  = smachine.NewUnboundSharedData(&smObject.SharedState)
 		smObjectAccessor = object.SharedStateAccessor{SharedDataLink: sharedStateData}
+		pulseSlot        = conveyor.NewPastPulseSlot(nil, pd.AsRange())
 	)
 
 	catalog.AddObject(smGlobalRef, smObjectAccessor)
@@ -50,6 +51,7 @@ func TestVStateReport_CreateObjectWithoutState(t *testing.T) {
 			ProvidedContent:       &payload.VStateReport_ProvidedContentBody{},
 		},
 		objectCatalog: catalog.Mock(),
+		pulseSlot:     &pulseSlot,
 	}
 
 	execCtx := smachine.NewExecutionContextMock(mc).

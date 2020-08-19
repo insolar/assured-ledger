@@ -84,7 +84,7 @@ func (s *SMVStateReport) stepProcess(ctx smachine.ExecutionContext) smachine.Sta
 	}
 
 	// We expected state report only from previous executor and previous pulse.
-	if s.pulseSlot != nil && s.Payload.AsOf < s.pulseSlot.PrevOperationPulseNumber() {
+	if s.Payload.AsOf < s.pulseSlot.PrevOperationPulseNumber() {
 		return ctx.Jump(s.stepAsOfOutdated)
 	}
 
