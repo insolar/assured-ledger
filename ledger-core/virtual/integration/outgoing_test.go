@@ -94,7 +94,6 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 
 		firstPulse  = server.GetPulse().PulseNumber
 		secondPulse pulse.Number
-		thirdPulse  pulse.Number
 
 		firstApprover  = gen.UniqueGlobalRef()
 		secondApprover = gen.UniqueGlobalRef()
@@ -189,6 +188,7 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 				msg.ResponseDelegationSpec.Approver = firstApprover
 			case 2:
 				assert.Equal(t, firstExpectedToken, request.DelegationSpec)
+				secondExpectedToken.PulseNumber = server.GetPulse().PulseNumber
 				msg.ResponseDelegationSpec.Approver = secondApprover
 			default:
 				t.Fatal("unexpected")
@@ -212,17 +212,12 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 				assert.NotEqual(t, payload.RepeatedCall, request.CallRequestFlags.GetRepeatedCall())
 
 				server.IncrementPulse(ctx)
-				thirdPulse = server.GetPulse().PulseNumber
-				secondExpectedToken.PulseNumber = thirdPulse
-				expectedVCallRequest.DelegationSpec = secondExpectedToken
-				server.WaitActiveThenIdleConveyor()
 
-				// request will be sent in previous pulse
-				// omit sending
 			case 2:
 				assert.Equal(t, secondPulse, request.CallOutgoing.GetLocal().Pulse()) // the same pulse
 
 				// reRequest -> check all fields
+				expectedVCallRequest.DelegationSpec = secondExpectedToken
 				expectedVCallRequest.CallOutgoing = request.CallOutgoing
 				assert.Equal(t, &expectedVCallRequest, request)
 
