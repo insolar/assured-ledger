@@ -139,7 +139,8 @@ func TestVStateReport_StopSMIfAsOfOutdated(t *testing.T) {
 			execCtx := smachine.NewExecutionContextMock(mc)
 
 			if testCase.outdated {
-				execCtx.JumpMock.Set(commontestutils.AssertJumpStep(t, smVStateReport.stepAsOfOutdated))
+				execCtx.JumpMock.Set(commontestutils.AssertJumpStep(t, smVStateReport.stepAsOfOutdated)).
+					LogMock.Return(smachine.Logger{})
 			} else {
 				execCtx.UseSharedMock.Set(shareddata.CallSharedDataAccessor).
 					StopMock.Return(smachine.StateUpdate{})
