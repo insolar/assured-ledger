@@ -42,7 +42,7 @@ func createFixture(t *testing.T) fixture {
 		CertificateManager: mandates.NewCertificateManager(cert),
 		BootstrapRequester: requester,
 		Gatewayer:          gatewayer,
-		originCandidate:    &adapters.Candidate{},
+		localCandidate:     &adapters.Candidate{},
 	})
 
 	return fixture{

@@ -6,14 +6,12 @@
 package adapters
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/cryptography"
-	"github.com/insolar/assured-ledger/ledger-core/network"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/misbehavior"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/proofs"
-	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 )
@@ -56,31 +54,26 @@ func (mr *MandateRegistry) GetPrimingCloudHash() proofs.CloudStateHash {
 }
 
 type OfflinePopulation struct {
-	// TODO: should't use nodekeeper here.
-	nodeKeeper   network.NodeKeeper
-	manager      nodeinfo.CertificateManager
-	keyProcessor cryptography.KeyProcessor
+	// TODO should use mandate storage
+	nodeKeeper beat.NodeKeeper
 }
 
-func NewOfflinePopulation(nodeKeeper network.NodeKeeper, manager nodeinfo.CertificateManager, keyProcessor cryptography.KeyProcessor) *OfflinePopulation {
+func NewOfflinePopulation(nodeKeeper beat.NodeKeeper) *OfflinePopulation {
 	return &OfflinePopulation{
 		nodeKeeper:   nodeKeeper,
-		manager:      manager,
-		keyProcessor: keyProcessor,
 	}
 }
 
 func (op *OfflinePopulation) FindRegisteredProfile(identity endpoints.Inbound) profiles.Host {
-	na := op.nodeKeeper.GetLatestAccessor()
+	na := op.nodeKeeper.FindAnyLatestNodeSnapshot()
 	if na == nil {
 		return nil
 	}
-	node := na.GetActiveNodeByAddr(identity.GetNameAddress().String())
+	node := na.FindNodeByAddr(identity.GetNameAddress().String())
 	if node == nil {
 		return nil
 	}
-	cert := op.manager.GetCertificate()
-	return NewStaticProfile(node, cert, op.keyProcessor)
+	return node.GetStatic()
 }
 
 type VersionedRegistries struct {

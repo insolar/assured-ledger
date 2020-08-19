@@ -51,10 +51,10 @@ type Service interface {
 type DefaultService struct {
 	pub      message.Publisher
 	affinity affinity.Helper
-	pulses   beat.Accessor
+	pulses   beat.History
 }
 
-func NewDefaultService(pub message.Publisher, affinity affinity.Helper, pulses beat.Accessor) *DefaultService {
+func NewDefaultService(pub message.Publisher, affinity affinity.Helper, pulses beat.History) *DefaultService {
 	return &DefaultService{
 		pub:      pub,
 		affinity: affinity,
@@ -72,7 +72,7 @@ func (dm *DefaultService) SendRole(ctx context.Context, msg payload.Marshaler, r
 		return throw.W(err, "Can't create watermill message")
 	}
 
-	nodes, err := dm.affinity.QueryRole(ctx, role, object, pn)
+	nodes, err := dm.affinity.QueryRole(role, object, pn)
 	if err != nil {
 		return throw.W(err, "failed to calculate role")
 	}
@@ -100,7 +100,7 @@ func (dm *DefaultService) sendTarget(
 ) error {
 
 	var pulse pulse.Number
-	latestPulse, err := dm.pulses.Latest(context.Background())
+	latestPulse, err := dm.pulses.LatestTimeBeat()
 	if err == nil {
 		pulse = latestPulse.PulseNumber
 	} else {

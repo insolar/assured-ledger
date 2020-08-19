@@ -6,7 +6,6 @@
 package affinity
 
 import (
-	"context"
 	"crypto/sha256"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
@@ -23,7 +22,7 @@ import (
 type Coordinator struct {
 	PlatformCryptographyScheme cryptography.PlatformCryptographyScheme `inject:""`
 
-	PulseAccessor beat.Accessor `inject:""`
+	PulseAccessor beat.History `inject:""`
 
 	originRef reference.Global
 }
@@ -39,14 +38,9 @@ func (jc *Coordinator) Me() reference.Global {
 }
 
 // QueryRole returns node refs responsible for role bound operations for given object and pulse.
-func (jc *Coordinator) QueryRole(
-	ctx context.Context,
-	role DynamicRole,
-	objID reference.Holder,
-	pn pulse.Number,
-) ([]reference.Global, error) {
+func (jc *Coordinator) QueryRole(role DynamicRole, objID reference.Holder, pn pulse.Number) ([]reference.Global, error) {
 	if role == DynamicRoleVirtualExecutor {
-		n, err := jc.VirtualExecutorForObject(ctx, objID, pn)
+		n, err := jc.VirtualExecutorForObject(objID, pn)
 		if err != nil {
 			return nil, throw.WithDetails(err, struct {
 				Ref reference.Holder
@@ -60,10 +54,8 @@ func (jc *Coordinator) QueryRole(
 }
 
 // VirtualExecutorForObject returns list of VEs for a provided pulse and objID
-func (jc *Coordinator) VirtualExecutorForObject(
-	ctx context.Context, objID reference.Holder, pn pulse.Number,
-) (reference.Global, error) {
-	pc, err := jc.PulseAccessor.Of(ctx, pn)
+func (jc *Coordinator) VirtualExecutorForObject(objID reference.Holder, pn pulse.Number) (reference.Global, error) {
+	pc, err := jc.PulseAccessor.TimeBeat(pn)
 	switch {
 	case err != nil:
 		return reference.Global{}, err
