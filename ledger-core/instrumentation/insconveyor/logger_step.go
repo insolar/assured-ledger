@@ -7,6 +7,7 @@ package insconveyor
 
 import (
 	"context"
+	"reflect"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
@@ -89,16 +90,13 @@ func (c ConveyorLogger) LogAdapter(data smachine.StepLoggerData, adapterID smach
 	logMsg := c.logPrepare(data)
 	logMsg.Message = data.FormatForLog("")
 
-	extra := struct {
-		AdapterID smachine.AdapterID
-		CallID    uint64
-	}{adapterID, callID}
+	logMsg.AdapterID = adapterID
+	logMsg.CallID = callID
 
 	if err := data.Error; err != nil {
-		c.logger.Eventm(level, throw.WithDetails(err, logMsg, extra), fields...)
+		c.logger.Eventm(level, throw.WithDetails(err, logMsg), fields...)
 	} else {
-		em := global.Logger().FieldsOf(extra)
-		c.logger.Eventm(level, logMsg, logfmt.JoinFields(fields, em)...)
+		c.logger.Eventm(level, logMsg, fields...)
 	}
 }
 
@@ -143,14 +141,11 @@ func (c ConveyorLogger) logPrepare(data smachine.StepLoggerData) LogStepInfo {
 }
 
 type LogStepInfo struct {
-	*log.Msg
-
-	Message   string `opt:""`
-	Component string `txt:"sm"`
+	Message   string
 
 	MachineID   string
 	CycleNo     uint32
-	Declaration interface{} `fmt:"%T"`
+	Declaration smachine.StateMachineHelper `fmt:"%T"`
 	SlotID      smachine.SlotID
 	SlotStepNo  uint32
 
@@ -159,4 +154,51 @@ type LogStepInfo struct {
 
 	ExecutionTime  int64 `opt:""`
 	InactivityTime int64 `opt:""`
+
+	AdapterID smachine.AdapterID `opt:""`
+	CallID    uint64 `opt:""`
 }
+
+// DisableLogStepInfoMarshaller is for benchmarking
+var DisableLogStepInfoMarshaller bool
+
+func (v LogStepInfo) GetLogObjectMarshaller() logfmt.LogObjectMarshaller {
+	if DisableLogStepInfoMarshaller {
+		return nil
+	}
+	return v
+}
+
+func (v LogStepInfo) MarshalLogObject(w logfmt.LogObjectWriter, _ logfmt.LogObjectMetricCollector) (msg string, defMsg bool) {
+	w.AddStrField("Component", "sm", logfmt.LogFieldFormat{Kind: reflect.String})
+	w.AddStrField("MachineID", v.MachineID, logfmt.LogFieldFormat{Kind: reflect.String})
+
+	w.AddUintField("CycleNo", uint64(v.CycleNo), logfmt.LogFieldFormat{Kind: reflect.Uint32})
+
+	if v.Declaration != nil {
+		w.AddStrField("Declaration", reflect.TypeOf(v.Declaration).String(), logfmt.LogFieldFormat{Kind: reflect.String})
+	}
+
+	w.AddUintField("SlotID", uint64(v.SlotID), logfmt.LogFieldFormat{Kind: reflect.Uint32})
+	w.AddUintField("SlotStepNo", uint64(v.SlotStepNo), logfmt.LogFieldFormat{Kind: reflect.Uint32})
+
+	w.AddStrField("CurrentStep", v.CurrentStep, logfmt.LogFieldFormat{Kind: reflect.String})
+	if v.NextStep != "" {
+		w.AddStrField("NextStep", v.NextStep, logfmt.LogFieldFormat{Kind: reflect.String})
+	}
+
+	if v.ExecutionTime != 0 {
+		w.AddIntField("ExecutionTime", v.ExecutionTime, logfmt.LogFieldFormat{Kind: reflect.Int64})
+	}
+	if v.InactivityTime != 0 {
+		w.AddIntField("InactivityTime", v.InactivityTime, logfmt.LogFieldFormat{Kind: reflect.Int64})
+	}
+
+	if v.AdapterID != "" {
+		w.AddStrField("AdapterID", string(v.AdapterID), logfmt.LogFieldFormat{Kind: reflect.String})
+		w.AddUintField("CallID", v.CallID, logfmt.LogFieldFormat{Kind: reflect.Uint64})
+	}
+
+	return v.Message, false
+}
+

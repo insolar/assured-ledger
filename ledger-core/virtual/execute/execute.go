@@ -45,8 +45,6 @@ type SMExecute struct {
 
 	// internal data
 	pendingConstructorFinished smachine.SyncLink
-	semaphoreOrdered           smachine.SyncLink
-	semaphoreUnordered         smachine.SyncLink
 
 	isConstructor     bool
 	execution         execution.Context
@@ -194,8 +192,6 @@ func (s *SMExecute) intolerableCall() bool {
 func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var (
 		semaphoreReadyToWork                smachine.SyncLink
-		semaphoreOrdered                    smachine.SyncLink
-		semaphoreUnordered                  smachine.SyncLink
 		semaphorePendingConstructorFinished smachine.SyncLink
 
 		objectDescriptor descriptor.Object
@@ -204,9 +200,6 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 
 	action := func(state *object.SharedState) {
 		semaphoreReadyToWork = state.ReadyToWork
-
-		semaphoreOrdered = state.OrderedExecute
-		semaphoreUnordered = state.UnorderedExecute
 		semaphorePendingConstructorFinished = state.PendingConstructorFinished
 
 		objectDescriptor = s.getDescriptor(state)
@@ -222,8 +215,6 @@ func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.
 		return ctx.Sleep().ThenRepeat()
 	}
 
-	s.semaphoreOrdered = semaphoreOrdered
-	s.semaphoreUnordered = semaphoreUnordered
 	s.execution.ObjectDescriptor = objectDescriptor
 	s.pendingConstructorFinished = semaphorePendingConstructorFinished
 
@@ -492,19 +483,25 @@ func (s *SMExecute) stepProcessFindCallResponse(ctx smachine.ExecutionContext) s
 }
 
 func (s *SMExecute) stepTakeLock(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if ctx.Acquire(s.getExecutionSemaphore()).IsNotPassed() {
+	var executionSemaphore smachine.SyncLink
+	action := func(state *object.SharedState) {
+		if s.execution.Isolation.Interference == contract.CallIntolerable {
+			executionSemaphore = state.UnorderedExecute
+		} else {
+			executionSemaphore = state.OrderedExecute
+		}
+	}
+
+	if stepUpdate := s.shareObjectAccess(ctx, action); !stepUpdate.IsEmpty() {
+		return stepUpdate
+	}
+
+	if ctx.Acquire(executionSemaphore).IsNotPassed() {
 		// wait for semaphore to be released
 		return ctx.Sleep().ThenRepeat()
 	}
 
 	return ctx.Jump(s.stepStartRequestProcessing)
-}
-
-func (s *SMExecute) getExecutionSemaphore() smachine.SyncLink {
-	if s.execution.Isolation.Interference == contract.CallIntolerable {
-		return s.semaphoreUnordered
-	}
-	return s.semaphoreOrdered
 }
 
 func (s *SMExecute) getDescriptor(state *object.SharedState) descriptor.Object {
@@ -812,7 +809,8 @@ func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.
 
 	s.executionNewState = nil
 
-	return s.runner.PrepareExecutionContinue(ctx, s.run, outgoingResult, func() {
+	executionResult := requestresult.NewOutgoingExecutionResult(outgoingResult, nil)
+	return s.runner.PrepareExecutionContinue(ctx, s.run, executionResult, func() {
 		if s.run == nil {
 			panic(throw.IllegalState())
 		}
@@ -892,8 +890,6 @@ func (s *SMExecute) stepAwaitSMCallSummary(ctx smachine.ExecutionContext) smachi
 		}).TryUse(ctx).GetDecision() {
 		case smachine.NotPassed:
 			return ctx.WaitShared(syncAccessor.SharedDataLink).ThenRepeat()
-		case smachine.Impossible:
-			panic(throw.NotImplemented())
 		case smachine.Passed:
 			// go further
 		default:
@@ -923,8 +919,6 @@ func (s *SMExecute) stepPublishDataCallSummary(ctx smachine.ExecutionContext) sm
 		switch callSummaryAccessor.Prepare(action).TryUse(ctx).GetDecision() {
 		case smachine.NotPassed:
 			return ctx.WaitShared(callSummaryAccessor.SharedDataLink).ThenRepeat()
-		case smachine.Impossible:
-			panic(throw.NotImplemented())
 		case smachine.Passed:
 			// go further
 		default:
@@ -1008,10 +1002,10 @@ func (s *SMExecute) stepSendCallResult(ctx smachine.ExecutionContext) smachine.S
 	msg := payload.VCallResult{
 		CallType:        s.Payload.CallType,
 		CallFlags:       s.Payload.CallFlags,
-		CallAsOf:        s.Payload.CallAsOf,
 		Caller:          s.Payload.Caller,
 		Callee:          s.execution.Object,
-		CallOutgoing:    s.Payload.CallOutgoing,
+		CallOutgoing:    s.execution.Outgoing,
+		CallIncoming:    s.execution.Incoming,
 		ReturnArguments: executionResult,
 		DelegationSpec:  s.getToken(),
 	}
@@ -1077,8 +1071,6 @@ func (s *SMExecute) shareObjectAccess(
 	switch s.objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
 	case smachine.NotPassed:
 		return ctx.WaitShared(s.objectSharedState.SharedDataLink).ThenRepeat()
-	case smachine.Impossible:
-		panic(throw.NotImplemented())
 	case smachine.Passed:
 		return smachine.StateUpdate{}
 	default:

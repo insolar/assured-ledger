@@ -7,6 +7,7 @@ package logicless
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -17,6 +18,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner"
 	"github.com/insolar/assured-ledger/ledger-core/runner/call"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
+	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -141,9 +143,10 @@ func (s *ServiceMock) AddExecutionMock(key string) *ExecutionMock {
 }
 
 func (s *ServiceMock) ExecutionStart(execution execution.Context) runner.RunState {
-	executionMock, ok := s.executionMapping.getByKey(s.keyConstructor(execution))
+	key := s.keyConstructor(execution)
+	executionMock, ok := s.executionMapping.getByKey(key)
 	if !ok {
-		panic(throw.NotImplemented())
+		panic(fmt.Sprintf("failed to find state with id %s", key))
 	}
 
 	executionMock.state.result = nil
@@ -169,10 +172,14 @@ func (s *ServiceMock) ExecutionStart(execution execution.Context) runner.RunStat
 	return executionMock.state
 }
 
-func (s *ServiceMock) ExecutionContinue(run runner.RunState, outgoingResult []byte) {
+func (s *ServiceMock) ExecutionContinue(run runner.RunState, outgoingResult requestresult.OutgoingExecutionResult) {
 	r, ok := run.(*runState)
 	if !ok {
 		panic(throw.IllegalValue())
+	}
+
+	if outgoingResult.Error != nil {
+		panic(throw.NotImplemented())
 	}
 
 	executionMock, ok := s.executionMapping.getByID(r.id)
@@ -194,7 +201,7 @@ func (s *ServiceMock) ExecutionContinue(run runner.RunState, outgoingResult []by
 		if !ok {
 			panic(throw.IllegalState())
 		} else if checkFunc != nil {
-			checkFunc(outgoingResult)
+			checkFunc(outgoingResult.ExecutionResult)
 		}
 	}
 

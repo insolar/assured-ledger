@@ -13,7 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	walletproxy "github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
-	"github.com/insolar/assured-ledger/ledger-core/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -48,14 +47,9 @@ func BenchmarkOnWallets(b *testing.B) {
 		return false
 	})
 
-	pl := payload.VCallRequest{
-		CallType:       payload.CTConstructor,
-		CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
-		Caller:         server.GlobalCaller(),
-		Callee:         walletproxy.GetClass(),
-		CallSiteMethod: "New",
-		Arguments:      insolar.MustSerialize([]interface{}{}),
-	}
+	pl := *utils.GenerateVCallRequestConstructor(server)
+	pl.Callee = walletproxy.GetClass()
+	pl.CallSiteMethod = "New"
 
 	// create 1000 wallets to run get/set on them
 	for i := 0; i < 1000; i++ {
@@ -85,13 +79,9 @@ func BenchmarkOnWallets(b *testing.B) {
 			return false
 		})
 
-		pl := payload.VCallRequest{
-			CallType:       payload.CTMethod,
-			CallFlags:      payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
-			Caller:         server.GlobalCaller(),
-			CallSiteMethod: "GetBalance",
-			Arguments:      insolar.MustSerialize([]interface{}{}),
-		}
+		pl := *utils.GenerateVCallRequestMethod(server)
+		pl.CallFlags = payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty)
+		pl.CallSiteMethod = "GetBalance"
 
 		b.StopTimer()
 		b.ResetTimer()
@@ -101,6 +91,7 @@ func BenchmarkOnWallets(b *testing.B) {
 			pl.Callee = wallets[walletNum%len(wallets)]
 			walletNum++
 			msg := server.WrapPayload(&pl).Finalize()
+
 			b.StartTimer()
 			server.SendMessage(ctx, msg)
 			testutils.WaitSignalsTimed(b, 10*time.Second, resultSignal)
@@ -115,13 +106,8 @@ func BenchmarkOnWallets(b *testing.B) {
 			return false
 		})
 
-		pl := payload.VCallRequest{
-			CallType:       payload.CTMethod,
-			CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
-			Caller:         server.GlobalCaller(),
-			CallSiteMethod: "Accept",
-			Arguments:      insolar.MustSerialize([]interface{}{uint32(10)}),
-		}
+		pl := *utils.GenerateVCallRequestMethod(server)
+		pl.CallSiteMethod = "Accept"
 
 		b.StopTimer()
 		b.ResetTimer()

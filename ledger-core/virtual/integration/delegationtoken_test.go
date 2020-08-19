@@ -100,7 +100,7 @@ func TestDelegationToken_SuccessCheckCorrectToken(t *testing.T) {
 				MeMock.Return(approver).
 				QueryRoleMock.Return([]reference.Global{approver}, nil)
 
-			class := gen.UniqueGlobalRef()
+			class := server.RandomGlobalWithPulse()
 			outgoing := server.BuildRandomOutgoingWithPulse()
 			delegationToken := server.DelegationToken(reference.NewRecordOf(class, outgoing.GetLocal()), server.GlobalCaller(), outgoing)
 
@@ -119,39 +119,30 @@ func TestDelegationToken_SuccessCheckCorrectToken(t *testing.T) {
 }
 
 func TestDelegationToken_CheckTokenField(t *testing.T) {
+	insrail.LogSkipCase(t, "C5197", "https://insolar.atlassian.net/browse/PLAT-588")
+
 	tests := []struct {
 		name         string
-		testRailID   string
 		fakeCaller   bool
 		fakeCallee   bool
 		fakeOutgoing bool
 	}{
 		{
-			name:         "Fail with wrong caller in token",
-			testRailID:   "C5197",
-			fakeCaller:   true,
-			fakeCallee:   false,
-			fakeOutgoing: false,
+			name:       "Fail with wrong caller in token",
+			fakeCaller: true,
 		},
 		{
-			name:         "Fail with wrong callee in token",
-			testRailID:   "C5198",
-			fakeCaller:   false,
-			fakeCallee:   true,
-			fakeOutgoing: false,
+			name:       "Fail with wrong callee in token",
+			fakeCallee: true,
 		},
 		{
 			name:         "Fail with wrong outgoing in token",
-			testRailID:   "C5199",
-			fakeCaller:   false,
-			fakeCallee:   false,
 			fakeOutgoing: true,
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			defer commontestutils.LeakTester(t)
-			insrail.LogSkipCase(t, test.testRailID, "https://insolar.atlassian.net/browse/PLAT-588")
 
 			mc := minimock.NewController(t)
 
@@ -180,19 +171,13 @@ func TestDelegationToken_CheckTokenField(t *testing.T) {
 				MeMock.Return(jetCaller).
 				QueryRoleMock.Return([]reference.Global{jetCaller}, nil)
 
+			pl := utils.GenerateVCallRequestConstructor(server)
+
 			var (
-				isolation = contract.ConstructorIsolation()
-				callFlags = payload.BuildCallFlags(isolation.Interference, isolation.State)
-
-				class    = gen.UniqueGlobalRef()
-				outgoing = server.BuildRandomOutgoingWithPulse()
-
-				constructorPulse = server.GetPulse().PulseNumber
-
 				delegationToken payload.CallDelegationToken
 			)
 
-			delegationToken = server.DelegationToken(reference.NewRecordOf(class, outgoing.GetLocal()), server.GlobalCaller(), outgoing)
+			delegationToken = server.DelegationToken(pl.CallOutgoing, pl.Caller, pl.Callee)
 			switch {
 			case test.fakeCaller:
 				delegationToken.Caller = server.RandomGlobalWithPulse()
@@ -202,16 +187,9 @@ func TestDelegationToken_CheckTokenField(t *testing.T) {
 				delegationToken.Outgoing = server.RandomGlobalWithPulse()
 			}
 
-			pl := payload.VCallRequest{
-				CallType:       payload.CTConstructor,
-				CallFlags:      callFlags,
-				CallAsOf:       constructorPulse,
-				Callee:         class,
-				CallSiteMethod: "New",
-				CallOutgoing:   outgoing,
-				DelegationSpec: delegationToken,
-			}
-			server.SendPayload(ctx, &pl)
+			pl.DelegationSpec = delegationToken
+
+			server.SendPayload(ctx, pl)
 			server.WaitIdleConveyor()
 
 			assert.True(t, errorFound)
@@ -246,12 +224,13 @@ type testCase struct {
 	customDelegate reference.Global
 }
 
-func TestDelegationToken_IsMessageFromVirtualLegitimate(t *testing.T) {
+func TestDelegationToken_CheckMessageFromAuthorizedVirtual(t *testing.T) {
+	insrail.LogCase(t, "C5192")
+
 	fixedVe := gen.UniqueGlobalRef()
 	cases := []testCase{
 		{
 			name:       "Fail if sender eq approver",
-			testRailID: "C5193",
 			zeroToken:  false,
 			expectedVE: veSetServer,
 			approverVE: veSetServer,
@@ -263,7 +242,6 @@ func TestDelegationToken_IsMessageFromVirtualLegitimate(t *testing.T) {
 		},
 		{
 			name:       "Fail if wrong approver",
-			testRailID: "C5192",
 			zeroToken:  false,
 			expectedVE: veSetFake,
 			approverVE: veSetFake,
@@ -275,7 +253,6 @@ func TestDelegationToken_IsMessageFromVirtualLegitimate(t *testing.T) {
 		},
 		{
 			name:       "Fail if wrong delegate",
-			testRailID: "C5194",
 			zeroToken:  false,
 			expectedVE: veSetFixed,
 			approverVE: veSetFixed,
@@ -290,7 +267,6 @@ func TestDelegationToken_IsMessageFromVirtualLegitimate(t *testing.T) {
 	for _, testCase := range cases {
 		t.Run(testCase.name, func(t *testing.T) {
 			defer commontestutils.LeakTester(t)
-			insrail.LogCase(t, testCase.testRailID)
 
 			for _, testMsg := range messagesWithToken {
 				mc := minimock.NewController(t)
@@ -354,7 +330,7 @@ func TestDelegationToken_IsMessageFromVirtualLegitimate(t *testing.T) {
 						TokenTypeAndFlags: payload.DelegationTokenTypeUninitialized,
 					}
 				} else {
-					class := gen.UniqueGlobalRef()
+					class := server.RandomGlobalWithPulse()
 					outgoing := server.BuildRandomOutgoingWithPulse()
 					delegateTo := server.GlobalCaller()
 					if !testCase.customDelegate.IsZero() {
@@ -377,26 +353,24 @@ func TestDelegationToken_IsMessageFromVirtualLegitimate(t *testing.T) {
 }
 
 func TestDelegationToken_OldVEVDelegatedCallRequest(t *testing.T) {
+	insrail.LogCase(t, "C5186")
+
 	testCases := []struct {
 		name          string
-		testRailID    string
 		haveCorrectDT bool
 	}{
 		{
 			name:          "Success run SM if DT is correct",
-			testRailID:    "C5186",
 			haveCorrectDT: true,
 		},
 		{
 			name:          "Fail if message have no DT",
-			testRailID:    "C5187",
 			haveCorrectDT: false,
 		},
 	}
 	for _, test := range testCases {
 		t.Run(test.name, func(t *testing.T) {
 			defer commontestutils.LeakTester(t)
-			insrail.LogCase(t, test.testRailID)
 
 			mc := minimock.NewController(t)
 
@@ -437,6 +411,8 @@ func TestDelegationToken_OldVEVDelegatedCallRequest(t *testing.T) {
 
 			server.IncrementPulse(ctx)
 
+			p := server.GetPulse().PulseNumber
+
 			approver := server.RandomGlobalWithPulse()
 			jetCoordinatorMock.
 				MeMock.Return(approver).
@@ -464,7 +440,7 @@ func TestDelegationToken_OldVEVDelegatedCallRequest(t *testing.T) {
 			statePl := payload.VStateReport{
 				Status:                      payload.Empty,
 				Object:                      object,
-				AsOf:                        firstPulse.PulseNumber,
+				AsOf:                        p,
 				OrderedPendingCount:         1,
 				OrderedPendingEarliestPulse: firstPulse.PulseNumber,
 			}

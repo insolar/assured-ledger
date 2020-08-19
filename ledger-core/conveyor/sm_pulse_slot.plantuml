@@ -31,7 +31,7 @@ T00_S008 --[dotted]> T00_S009
 T00_S008 --[dashed]> T00_S008 : [(...).pulseManager.isPreparingPulse()]\n[repeatNow]...\n[!nextPollTime.IsZero()]...\nWaitAny, Yield, WaitAnyUntil
 state "stepPreparingChange" as T00_S006
 T00_S006 : PulseSlotMachine
-T00_S006 --[dashed]> T00_S006 : [repeatNow]\n[!nextPollTime.IsZero()]...\n[(...).innerMachine.HasPriorityWork()]...\nRepeat(presentSlotCycleBoost), WaitAnyUntil, Yield
+T00_S006 --[dashed]> T00_S006 : [repeatNow]\n[!nextPollTime.IsZero()]...\nYield, WaitAnyUntil
 state "stepPresentLoop" as T00_S005
 T00_S005 : PulseSlotMachine
 T00_S005 --[dotted]> T00_S007

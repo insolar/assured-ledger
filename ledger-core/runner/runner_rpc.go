@@ -25,7 +25,12 @@ func (r *DefaultService) CallMethod(in rpctypes.UpCallMethodReq, out *rpctypes.U
 	}
 	r.awaitedRunFinish(in.ID, false)
 
-	out.Result = sink.WaitInput()
+	result := sink.WaitInput()
+	if result.Error != nil {
+		panic(throw.NotImplemented())
+	}
+
+	out.Result = result.ExecutionResult
 	if out.Result == nil {
 		panic(throw.E("CallMethod result unexpected type, got nil"))
 	}
@@ -47,7 +52,12 @@ func (r *DefaultService) CallConstructor(in rpctypes.UpCallConstructorReq, out *
 	}
 	r.awaitedRunFinish(in.ID, false)
 
-	out.Result = sink.WaitInput()
+	result := sink.WaitInput()
+	if result.Error != nil {
+		panic(throw.NotImplemented())
+	}
+
+	out.Result = result.ExecutionResult
 	if out.Result == nil {
 		panic(throw.E("CallConstructor result unexpected type, got nil"))
 	}
@@ -67,7 +77,11 @@ func (r *DefaultService) DeactivateObject(in rpctypes.UpDeactivateObjectReq, out
 	}
 	r.awaitedRunFinish(in.ID, false)
 
-	out.Result = sink.WaitInput()
+	result := sink.WaitInput()
+	if result.Error != nil {
+		panic(throw.NotImplemented())
+	}
+	out.Result = result.ExecutionResult
 	if out.Result != nil {
 		panic(throw.E("Deactivate result unexpected type, expected nil"))
 	}

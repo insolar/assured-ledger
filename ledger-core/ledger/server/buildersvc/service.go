@@ -8,7 +8,6 @@ package buildersvc
 import (
 	"sync"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jetalloc"
@@ -17,6 +16,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/merkler"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -34,18 +34,22 @@ type AppendFuture interface {
 }
 
 type Service interface {
-	CreatePlash(node.ShortNodeID, pulse.Range, jet.Tree, census.OnlinePopulation) (PlashAssistant, []jet.ExactID)
+	CreatePlash(pulse.Range, jet.Tree, census.OnlinePopulation) (PlashAssistant, []jet.ExactID)
 	AppendToDrop(jet.DropID, AppendFuture, lineage.ResolvedBundle)
 }
 
 var _ Service = &serviceImpl{}
 
-func NewService() Service {
-	return &serviceImpl{}
+func NewService(allocStrategy jetalloc.MaterialAllocationStrategy, merklePair cryptkit.PairDigester) Service {
+	return &serviceImpl{
+		allocStrategy: allocStrategy,
+		merklePair: merklePair,
+	}
 }
 
 type serviceImpl struct {
-	allocationStrategy jetalloc.MaterialAllocationStrategy
+	allocStrategy jetalloc.MaterialAllocationStrategy
+	merklePair    cryptkit.PairDigester
 
 	mapMutex sync.RWMutex
 	lastPN   pulse.Number
@@ -76,13 +80,13 @@ func (p *serviceImpl) get(pn pulse.Number) *plashAssistant {
 	return p.plashes[pn]
 }
 
-func (p *serviceImpl) CreatePlash(localNodeID node.ShortNodeID, pr pulse.Range, tree jet.Tree, population census.OnlinePopulation) (PlashAssistant, []jet.ExactID) {
-	switch {
-	case population == nil:
-		panic(throw.IllegalValue())
-	case localNodeID.IsAbsent():
+func (p *serviceImpl) CreatePlash(pr pulse.Range, tree jet.Tree, population census.OnlinePopulation) (PlashAssistant, []jet.ExactID) {
+
+	localNodeID := population.GetLocalProfile().GetNodeID()
+	if localNodeID.IsAbsent() {
 		panic(throw.IllegalValue())
 	}
+
 	pd := pr.RightBoundData()
 	pd.EnsurePulsarData()
 
@@ -101,6 +105,7 @@ func (p *serviceImpl) CreatePlash(localNodeID node.ShortNodeID, pr pulse.Range, 
 		pulseData: pd,
 		population: population,
 		dropAssists: map[jet.ID]*dropAssistant{},
+		merkle: merkler.NewForkingCalculator(p.merklePair, cryptkit.Digest{}),
 	}
 
 	if tree == nil || tree.IsEmpty() {
@@ -122,7 +127,7 @@ func (p *serviceImpl) CreatePlash(localNodeID node.ShortNodeID, pr pulse.Range, 
 		return false
 	})
 
-	pa.calc = p.allocationStrategy.CreateCalculator(pa.pulseData.PulseEntropy, population)
+	pa.calc = p.allocStrategy.CreateCalculator(pa.pulseData.PulseEntropy, population)
 	jet2nodes := pa.calc.AllocationOfJets(jets, pn)
 
 	if len(jet2nodes) != len(jets) {

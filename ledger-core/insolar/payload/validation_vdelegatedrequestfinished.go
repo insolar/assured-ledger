@@ -30,66 +30,27 @@ func (m *VDelegatedRequestFinished) isIntolerable() bool {
 func (m *VDelegatedRequestFinished) Validate(currentPulse pulse.Number) error {
 	if err := m.validateUnimplemented(); err != nil {
 		return err
-	}
-
-	switch m.GetCallType() {
-	case CTMethod, CTConstructor:
-	case CTInboundAPICall, CTOutboundAPICall, CTNotifyCall, CTSAGACall, CTParallelCall, CTScheduleCall:
-		return throw.New("CallType is not implemented")
-	case CTInvalid:
-		fallthrough
-	default:
-		return throw.New("CallType must be valid")
+	} else if err := validCallType(m.GetCallType()); err != nil {
+		return err
 	}
 
 	if !m.GetCallFlags().IsValid() {
 		return throw.New("CallFlags should be valid")
 	}
 
-	if !m.Callee.IsSelfScope() {
-		return throw.New("Callee must be valid self scoped Reference")
+	calleePulse, err := validSelfScopedGlobalWithPulseSpecialOrBeforeOrEq(m.Callee, currentPulse, "Callee")
+	if err != nil {
+		return err
 	}
 
-	var (
-		calleePulse = m.Callee.GetLocal().GetPulseNumber()
-	)
-	if !calleePulse.IsTimePulse() || !calleePulse.IsBefore(currentPulse) {
-		return throw.New("Callee must have valid time pulse with pulse lesser than current pulse")
+	outgoingLocalPulse, err := validRequestGlobalWithPulseBeforeOrEq(m.CallOutgoing, currentPulse, "CallOutgoing")
+	if err != nil {
+		return err
 	}
 
-	if m.CallIncoming.IsEmpty() {
-		return throw.New("CallIncoming should be non-empty")
-	}
-
-	var (
-		incomingLocalPulse = m.CallIncoming.GetLocal().GetPulseNumber()
-		incomingBasePulse  = m.CallIncoming.GetBase().GetPulseNumber()
-	)
-	switch {
-	case !isTimePulseBefore(incomingLocalPulse, currentPulse):
-		return throw.New("CallIncoming local part should have valid time pulse lesser than current pulse")
-	case !isTimePulseBefore(incomingBasePulse, currentPulse):
-		return throw.New("CallIncoming base part should have valid time pulse lesser than current pulse")
-	case !globalBasePulseBeforeOrEqLocalPulse(m.CallIncoming):
-		return throw.New("CallIncoming base pulse should be less or equal than local pulse")
-	}
-
-	if m.CallOutgoing.IsEmpty() {
-		return throw.New("CallOutgoing should be non-empty")
-	}
-
-	var (
-		outgoingLocalPulse = m.CallOutgoing.GetLocal().GetPulseNumber()
-		outgoingBasePulse  = m.CallOutgoing.GetBase().GetPulseNumber()
-	)
-	switch {
-	case !isTimePulseBefore(outgoingLocalPulse, currentPulse):
-		return throw.New("CallOutgoing local part should have valid time pulse lesser than current pulse")
-	case !isSpecialTimePulseBefore(outgoingBasePulse, currentPulse):
-		// probably call outgoing base part can be special (API Call)
-		return throw.New("CallOutgoing base part should have valid pulse lesser than current pulse")
-	case !globalBasePulseBeforeOrEqLocalPulse(m.CallOutgoing):
-		return throw.New("CallOutgoing base pulse should be less or equal than local pulse")
+	incomingLocalPulse, err := validRequestGlobalWithPulseBeforeOrEq(m.CallIncoming, currentPulse, "CallIncoming")
+	if err != nil {
+		return err
 	}
 
 	switch {

@@ -11,7 +11,7 @@ option (insproto.zeroable_all) = true;
 option (gogoproto.goproto_enum_prefix_all) = false;
 option (insproto.register_all) = "RegisterMessageType";
 
-enum CallTypeNew {
+enum CallType {
     CTInvalid = 0; // zero value in Go
     CTInboundAPICall = 1;
     CTOutboundAPICall = 2;
@@ -25,7 +25,7 @@ enum CallTypeNew {
 
 message VCallRequest {
     option (insproto.id) = 1001;
-    CallTypeNew CallType = 20;
+    CallType CallType = 20;
     uint32 CallFlags = 21 [(gogoproto.casttype) = "CallFlags"];
     uint32 CallAsOf = 22 [(gogoproto.casttype) = "PulseNumber"];
     Reference Caller = 23;
@@ -63,7 +63,7 @@ message VCallRequest {
 
 message VCallResult {
     option (insproto.id) = 1002;
-    CallTypeNew CallType = 20;
+    CallType CallType = 20;
     uint32 CallFlags = 21 [(gogoproto.casttype) = "CallFlags"];
     uint32 CallAsOf = 22 [(gogoproto.casttype) = "PulseNumber"];
     Reference Caller = 23;
@@ -108,12 +108,11 @@ message VStateReport {
     option (insproto.id) = 1004;
 
     enum StateStatus {
-        InvalidStateStatus = 0; // zero value in Go
-        Unknown = 1;
-        Ready = 2;
-        Empty = 3;
-        Inactive = 4;
-        Missing = 5;
+        Unknown = 0; // zero value in Go
+        Ready = 1;
+        Empty = 2;
+        Inactive = 3;
+        Missing = 4;
     }
     StateStatus Status = 37;
 
@@ -162,14 +161,14 @@ message ObjectState {
 
 message VDelegatedRequestFinished {
     option (insproto.id) = 1006;
-    CallTypeNew CallType = 20;
+    CallType CallType = 20;
     uint32 CallFlags = 21 [(gogoproto.casttype) = "CallFlags"];
     Reference Callee = 22;
 
     bytes ResultFlags = 23;
 
-    bytes CallOutgoing = 24 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/reference.Global", (insproto.zeroable) = false];
-    bytes CallIncoming = 25 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/reference.Global", (insproto.zeroable) = false];
+    Reference CallOutgoing = 24;
+    Reference CallIncoming = 25;
 
     CallDelegationToken DelegationSpec = 26;
 

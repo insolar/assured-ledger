@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/sworker"
@@ -89,4 +90,85 @@ func TestSlotMachine_AddSMAndMigrate(t *testing.T) {
 
 	assert.True(t, s.ok)
 	assert.False(t, s.notOk)
+}
+
+type smTestRestoreStep struct {
+	smachine.StateMachineDeclTemplate
+
+	wasContinued bool
+}
+
+func (s *smTestRestoreStep) GetInitStateFor(_ smachine.StateMachine) smachine.InitFunc {
+	return s.stepInit
+}
+
+func (s *smTestRestoreStep) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
+	return s
+}
+
+func (s *smTestRestoreStep) stepInit(ctx smachine.InitializationContext) smachine.StateUpdate {
+	ctx.SetDefaultMigration(s.migrate)
+	return ctx.Jump(s.stepWaitInfinity)
+}
+
+func (s *smTestRestoreStep) stepWaitInfinity(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	s.wasContinued = true
+	return ctx.Sleep().ThenRepeat()
+}
+
+func (s *smTestRestoreStep) migrate(ctx smachine.MigrationContext) smachine.StateUpdate {
+	s.wasContinued = false
+	return ctx.RestoreStep(ctx.AffectedStep())
+}
+
+func TestSlotMachine_RestoreStep(t *testing.T) {
+	ctx := instestlogger.TestContext(t)
+
+	scanCountLimit := 1000
+
+	signal := synckit.NewVersionedSignal()
+	m := smachine.NewSlotMachine(smachine.SlotMachineConfig{
+		SlotPageSize:    1000,
+		PollingPeriod:   10 * time.Millisecond,
+		PollingTruncate: 1 * time.Microsecond,
+		ScanCountLimit:  scanCountLimit,
+	}, signal.NextBroadcast, signal.NextBroadcast, nil)
+
+	workerFactory := sworker.NewAttachableSimpleSlotWorker()
+	neverSignal := synckit.NewNeverSignal()
+
+	s := smTestRestoreStep{}
+	m.AddNew(ctx, &s, smachine.CreateDefaultValues{})
+
+	require.False(t, s.wasContinued)
+
+	if !m.ScheduleCall(func(callContext smachine.MachineCallContext) {}, true) {
+		panic(throw.IllegalState())
+	}
+
+	iterFn := func() {
+		for {
+			var repeatNow bool
+			workerFactory.AttachTo(m, neverSignal, uint32(scanCountLimit), func(worker smachine.AttachedSlotWorker) {
+				repeatNow, _ = m.ScanOnce(0, worker)
+			})
+			if repeatNow {
+				continue
+			}
+			break
+		}
+	}
+
+	// make 1 iteration
+	iterFn()
+
+	require.True(t, s.wasContinued)
+
+	if !m.ScheduleCall(func(callContext smachine.MachineCallContext) {
+		callContext.Migrate(nil)
+	}, true) {
+		panic(throw.IllegalState())
+	}
+	iterFn()
+	require.False(t, s.wasContinued)
 }

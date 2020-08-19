@@ -182,28 +182,23 @@ func (m *SlotMachine) FindDependency(id string) (interface{}, bool) {
 }
 
 func (m *SlotMachine) AddDependency(v interface{}) {
-	if !m.TryPutDependency(injector.GetDefaultInjectionID(v), v) {
-		panic(fmt.Errorf("duplicate dependency: %T %[1]v", v))
-	}
+	injector.AddDependency(m, v)
 }
 
 func (m *SlotMachine) AddInterfaceDependency(v interface{}) {
-	vv, vt := injector.GetInterfaceTypeAndValue(v)
-	if !m.TryPutDependency(injector.GetDefaultInjectionIDByType(vt), vv) {
-		panic(fmt.Errorf("duplicate dependency: %T %[1]v", v))
-	}
+	injector.AddInterfaceDependency(m, v)
 }
 
 func (m *SlotMachine) PutDependency(id string, v interface{}) {
 	if id == "" {
-		panic("illegal key")
+		panic(throw.IllegalValue())
 	}
 	m.localRegistry.Store(dependencyKey(id), v)
 }
 
 func (m *SlotMachine) TryPutDependency(id string, v interface{}) bool {
 	if id == "" {
-		panic("illegal key")
+		panic(throw.IllegalValue())
 	}
 	_, loaded := m.localRegistry.LoadOrStore(dependencyKey(id), v)
 	return !loaded
@@ -407,7 +402,7 @@ func (m *SlotMachine) runTerminationHandler(th internalTerminationHandlerFunc, t
 			defer func() {
 				err = RecoverSlotPanicWithStack("termination handler", recover(), nil, ErrorHandlerArea)
 			}()
-			th(td, nil)
+			th(td, FixedSlotWorker{})
 			return nil
 		}()
 		if err != nil {
@@ -656,8 +651,10 @@ func (m *SlotMachine) updateSlotQueue(slot *Slot, w FixedSlotWorker, activation 
 func (m *SlotMachine) _updateSlotQueue(slot *Slot, inplaceUpdate bool, activation slotActivationMode) *Slot {
 	if !slot.isQueueHead() {
 		if inplaceUpdate {
-			switch activation {
-			case activateSlot:
+			switch {
+			case activation == deactivateSlot || slot.slotFlags & slotPriorityChanged != 0:
+				// has to re-apply into activity queue due to priority changes
+			case activation == activateSlot:
 				switch slot.QueueType() {
 				case ActiveSlots:
 					m.hotWaitOnly = false
@@ -665,7 +662,7 @@ func (m *SlotMachine) _updateSlotQueue(slot *Slot, inplaceUpdate bool, activatio
 				case WorkingSlots:
 					return nil
 				}
-			case activateHotWaitSlot:
+			case activation == activateHotWaitSlot:
 				if slot.QueueType() == ActiveSlots {
 					return nil
 				}
@@ -675,6 +672,8 @@ func (m *SlotMachine) _updateSlotQueue(slot *Slot, inplaceUpdate bool, activatio
 			slot.ensureNotInQueue()
 		}
 
+		slot.slotFlags &^= slotPriorityChanged
+
 		if activation == deactivateSlot {
 			return nil
 		}
@@ -683,8 +682,10 @@ func (m *SlotMachine) _updateSlotQueue(slot *Slot, inplaceUpdate bool, activatio
 	}
 
 	if slot.QueueType() != ActivationOfSlot {
-		panic("illegal state")
+		panic(throw.IllegalState())
 	}
+
+	slot.slotFlags &^= slotPriorityChanged
 
 	if activation == deactivateSlot {
 		if !inplaceUpdate {
@@ -703,7 +704,7 @@ func (m *SlotMachine) _activateSlot(slot *Slot, mode slotActivationMode) {
 	case mode == activateHotWaitSlot:
 		// hot wait ignores boosted to reduce interference
 		switch {
-		case slot.isPriority():
+		case slot.isExecPriority():
 			m.prioritySlots.AddLast(slot)
 		// case slot.isBoosted():
 		//	m.boostedSlots.AddLast(slot)
@@ -713,7 +714,7 @@ func (m *SlotMachine) _activateSlot(slot *Slot, mode slotActivationMode) {
 	case slot.isLastScan(m.getScanCount()):
 		m.hotWaitOnly = false
 		switch {
-		case slot.isPriority():
+		case slot.isExecPriority():
 			m.prioritySlots.AddLast(slot)
 		case slot.isBoosted():
 			m.boostedSlots.AddLast(slot)
@@ -722,7 +723,7 @@ func (m *SlotMachine) _activateSlot(slot *Slot, mode slotActivationMode) {
 		}
 	default:
 		// addSlotToWorkingQueue
-		if slot.isPriority() {
+		if slot.isExecPriority() {
 			m.workingSlots.AddFirst(slot)
 		} else {
 			m.workingSlots.AddLast(slot)
@@ -907,7 +908,7 @@ func (m *SlotMachine) _wakeupOnDeactivateAsync(wakeUp, waitOn SlotLink) {
 		case !wakeUp.IsValid():
 			// requester is dead - no need to to anything
 			return true
-		case worker != nil && waitOn.isValidAndBusy():
+		case !worker.IsZero() && waitOn.isValidAndBusy():
 			// have to wait further, add this back
 			return false
 		}
@@ -916,7 +917,7 @@ func (m *SlotMachine) _wakeupOnDeactivateAsync(wakeUp, waitOn SlotLink) {
 		switch {
 		case wakeUpM == nil:
 			return true
-		case worker == nil:
+		case worker.IsZero():
 			break
 		case waitOn.isMachine(wakeUpM):
 			if worker.NonDetachableCall(wakeUp.activateSlot) {
@@ -967,7 +968,7 @@ func (m *SlotMachine) useSlotAsShared(link SharedDataLink, accessFn SharedDataFu
 	default:
 		// as worker can't help us, then we do it in a hard way
 		// this may be inefficient under high parallelism, but this isn't our case
-		ok = tm._useSlotAsShared(link.link, link.flags, data, accessFn, nil)
+		ok = tm._useSlotAsShared(link.link, link.flags, data, accessFn, DetachableSlotWorker{})
 	}
 	if ok {
 		return SharedSlotRemoteAvailable
@@ -984,7 +985,7 @@ func (m *SlotMachine) _useSlotAsShared(link SlotLink, flags ShareDataFlags, data
 	defer slot.stopWorking()
 	wakeUp := accessFn(data)
 
-	if worker != nil {
+	if !worker.IsZero() {
 		m.syncQueue.ProcessSlotCallbacksByDetachable(link, worker)
 	}
 
@@ -993,7 +994,7 @@ func (m *SlotMachine) _useSlotAsShared(link SlotLink, flags ShareDataFlags, data
 	}
 	slot.slotFlags |= slotWokenUp
 
-	if worker != nil && worker.NonDetachableCall(slot.activateSlot) {
+	if !worker.IsZero() && worker.NonDetachableCall(slot.activateSlot) {
 		return true
 	}
 

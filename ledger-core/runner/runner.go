@@ -34,7 +34,7 @@ const (
 
 type UnmanagedService interface {
 	ExecutionStart(execution execution.Context) RunState
-	ExecutionContinue(run RunState, outgoingResult []byte)
+	ExecutionContinue(run RunState, outgoingResult requestresult.OutgoingExecutionResult)
 	ExecutionAbort(run RunState)
 }
 
@@ -326,10 +326,13 @@ func (r *DefaultService) runStart(run *execution.EventSink, resumeFn func()) {
 
 func (r *DefaultService) runContinue(run *execution.EventSink, resumeFn func()) {
 	r.awaitedRunAdd(run, resumeFn)
+
+	run.InputFlush()
 }
 
 func (r *DefaultService) runAbort(run *execution.EventSink, resumeFn func()) {
 	run.InternalAbort()
+
 	resumeFn()
 }
 

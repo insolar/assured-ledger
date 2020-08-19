@@ -110,7 +110,7 @@ func (m *SlotMachine) ScanOnce(scanMode ScanMode, worker AttachedSlotWorker) (re
 		return m.stopAll(worker), time.Time{}
 	}
 
-	repeatNow = m.syncQueue.ProcessUpdates(worker)
+	repeatNow = m.syncQueue.ProcessUpdates(worker.AsFixedSlotWorker())
 	hasUpdates, hasSignal, wasDetached := m.syncQueue.ProcessCallbacks(worker)
 	if hasUpdates {
 		repeatNow = true
@@ -135,13 +135,14 @@ func (m *SlotMachine) beforeScan(scanTime time.Time) {
 }
 
 func (m *SlotMachine) stopAll(worker AttachedSlotWorker) (repeatNow bool) {
+	fw := worker.AsFixedSlotWorker()
 	clean := m.slotPool.ScanAndCleanup(true, func(slot *Slot) {
-		m.recycleSlot(slot, worker)
+		m.recycleSlot(slot, fw)
 	}, func(slots []Slot) (isPageEmptyOrWeak, hasWeakSlots bool) {
-		return m.stopPage(slots, worker)
+		return m.stopPage(slots, fw)
 	})
 
-	hasUpdates := m.syncQueue.ProcessUpdates(worker)
+	hasUpdates := m.syncQueue.ProcessUpdates(fw)
 	hasCallbacks, _, _ := m.syncQueue.ProcessCallbacks(worker)
 
 	if hasUpdates || hasCallbacks || !clean || !m.syncQueue.CleanupDetachQueues() || !m.slotPool.IsEmpty() {
@@ -171,7 +172,7 @@ func (m *SlotMachine) executeWorkingSlots(currentScanNo uint32, priorityOnly boo
 		currentSlot.removeFromQueue()
 
 		switch {
-		case currentSlot.isPriority():
+		case currentSlot.isExecPriority():
 			// execute anyway
 		case priorityOnly:
 			// skip non-priority by putting them back to queues
@@ -204,9 +205,9 @@ func (m *SlotMachine) _executeSlot(slot *Slot, prevStepNo uint32, worker Attache
 
 	if dep := slot.dependency; dep != nil && dep.IsReleaseOnWorking() {
 		released := slot._releaseAllDependency()
-		m.activateDependants(released, slot.NewLink(), worker)
+		m.activateDependants(released, slot.NewLink(), worker.AsFixedSlotWorker())
 	}
-	slot.slotFlags &^= slotWokenUp
+	slot.slotFlags &^= slotWokenUp|slotPriorityChanged
 
 	var stateUpdate StateUpdate
 
@@ -270,7 +271,7 @@ func (m *SlotMachine) _executeSlot(slot *Slot, prevStepNo uint32, worker Attache
 		return true, loopCount
 	}
 
-	hasAsync := m.slotPostExecution(slot, stateUpdate, worker, prevStepNo, 0, inactivityNano)
+	hasAsync := m.slotPostExecution(slot, stateUpdate, worker.AsFixedSlotWorker(), prevStepNo, 0, inactivityNano)
 	if hasAsync && !hasSignal {
 		_, hasSignal, wasDetached = m.syncQueue.ProcessCallbacks(worker)
 		return hasSignal || wasDetached, loopCount
@@ -350,7 +351,7 @@ func (m *SlotMachine) applyAsyncCallback(link SlotLink, inlineFlags postExecFlag
 	if !m._canCallback(link) {
 		return true
 	}
-	if worker == nil {
+	if worker.IsZero() {
 		if m.IsActive() {
 			step, _ := link.GetStepLink()
 			m.logInternal(step, "async detachment retry limit exceeded", nil)

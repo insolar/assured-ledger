@@ -25,9 +25,10 @@ type EventSink struct {
 	id    call.ID
 	state int
 
-	context Context
-	output  *Update
-	input   chan []byte
+	context     Context
+	output      *Update
+	input       chan requestresult.OutgoingExecutionResult
+	inputLocked requestresult.OutgoingExecutionResult
 }
 
 func (c *EventSink) GetEvent() *Update {
@@ -125,13 +126,31 @@ func (c *EventSink) Context() Context {
 }
 
 // should be called only from interceptor worker
-func (c *EventSink) ProvideInput(input []byte) {
+func (c *EventSink) InputProvide(input requestresult.OutgoingExecutionResult) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+
+	if !c.inputLocked.IsEmpty() {
+		panic(throw.IllegalState())
+	}
+
+	c.inputLocked = input
+}
+
+func (c *EventSink) InputFlush() {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
 	if c.state >= SinkAborted {
 		panic(throw.IllegalState())
 	}
+
+	if c.inputLocked.IsEmpty() {
+		panic(throw.IllegalState())
+	}
+
+	input := c.inputLocked
+	c.inputLocked = requestresult.OutgoingExecutionResult{}
 
 	// we should be able to make write here
 	// otherwise code is buggy and will lead to deadlock
@@ -144,7 +163,7 @@ func (c *EventSink) ProvideInput(input []byte) {
 
 // should be called only from execution goroutine
 // safe to be called not under lock
-func (c *EventSink) WaitInput() []byte {
+func (c *EventSink) WaitInput() requestresult.OutgoingExecutionResult {
 	rv, ok := <-c.input
 	if !ok {
 		runtime.Goexit()
@@ -156,6 +175,6 @@ func NewEventSink(id call.ID, execution Context) *EventSink {
 	return &EventSink{
 		id:      id,
 		context: execution,
-		input:   make(chan []byte, 1),
+		input:   make(chan requestresult.OutgoingExecutionResult, 1),
 	}
 }

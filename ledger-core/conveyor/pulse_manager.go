@@ -12,12 +12,14 @@ import (
 	"sync/atomic"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smadapter"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-type PulseDataServicePrepareFunc func(smachine.ExecutionContext, func(context.Context, PulseDataService) smachine.AsyncResultFunc) smachine.AsyncCallRequester
+type PulseDataServicePrepareFunc func(smachine.ExecutionContext, func(context.Context, BeatDataService) smachine.AsyncResultFunc) smachine.AsyncCallRequester
 
 type PulseDataManager struct {
 	// set at construction, immutable
@@ -33,14 +35,14 @@ type PulseDataManager struct {
 	// mutable
 	presentAndFuturePulse uint64 // atomic
 	earliestCacheBound    uint32 // atomic
-	preparingPulseFlag    uint32 // atomic
+	preparingPulseFlag    atomickit.Uint32
 }
 
-type PulseDataService interface {
-	LoadPulseData(context.Context, pulse.Number) (pulse.Range, bool)
+type BeatDataService interface {
+	LoadBeatData(context.Context, pulse.Number) (BeatData, bool)
 }
 
-func CreatePulseDataAdapterFn(ctx context.Context, pds PulseDataService, bufMax, parallelReaders int) PulseDataServicePrepareFunc {
+func CreatePulseDataAdapterFn(ctx context.Context, pds BeatDataService, bufMax, parallelReaders int) PulseDataServicePrepareFunc {
 	if pds == nil {
 		panic("illegal value")
 	}
@@ -52,14 +54,14 @@ func CreatePulseDataAdapterFn(ctx context.Context, pds PulseDataService, bufMax,
 		panic("illegal value")
 	}
 
-	executor, callChan := smachine.NewCallChannelExecutor(ctx, bufMax, false, n)
+	executor, callChan := smadapter.NewCallChannelExecutor(ctx, bufMax, false, n)
 	pulseDataAdapter := smachine.NewExecutionAdapter(smachine.AdapterID(injector.GetDefaultInjectionID(pds)), executor)
 
 	smachine.StartChannelWorkerParallelCalls(ctx, uint16(parallelReaders), callChan, pds)
 
-	return func(ctx smachine.ExecutionContext, fn func(ctx context.Context, svc PulseDataService) smachine.AsyncResultFunc) smachine.AsyncCallRequester {
+	return func(ctx smachine.ExecutionContext, fn func(ctx context.Context, svc BeatDataService) smachine.AsyncResultFunc) smachine.AsyncCallRequester {
 		return pulseDataAdapter.PrepareAsync(ctx, func(ctx context.Context, svc interface{}) smachine.AsyncResultFunc {
-			fn(ctx, svc.(PulseDataService))
+			fn(ctx, svc.(BeatDataService))
 			return nil
 		})
 	}
@@ -87,22 +89,22 @@ func (p *PulseDataManager) GetPresentPulse() (present pulse.Number, nearestFutur
 	return p._split(v)
 }
 
-func (p *PulseDataManager) GetPrevPulseRange() (pulse.Number, pulse.Range) {
+func (p *PulseDataManager) GetPrevBeatData() (pulse.Number, BeatData) {
 	// check if there is any pulse available
 	if ppn, _ := p.GetPresentPulse(); ppn.IsTimePulse() {
 		// check if the current pulse has data and this pulse has no gaps (e.g. node was down)
-		if ppr := p.GetPulseRange(ppn); ppr != nil && !ppr.IsArticulated() {
+		if pbd := p.GetBeatData(ppn); pbd.Range != nil && !pbd.Range.IsArticulated() {
 			// check if this is not the very first pulse
-			if prevDelta := ppr.LeftPrevDelta(); prevDelta > 0 {
-				if prevPulse, ok := ppr.LeftBoundNumber().TryPrev(prevDelta); ok {
+			if prevDelta := pbd.Range.LeftPrevDelta(); prevDelta > 0 {
+				if prevPulse, ok := pbd.Range.LeftBoundNumber().TryPrev(prevDelta); ok {
 					// finally, check if there are data in the cache
-					return prevPulse, p.GetPulseRange(prevPulse)
+					return prevPulse, p.GetBeatData(prevPulse)
 				}
 			}
 		}
 	}
 
-	return 0, nil
+	return 0, BeatData{}
 }
 
 func (p *PulseDataManager) setUninitializedFuturePulse(futurePN pulse.Number) bool {
@@ -118,8 +120,8 @@ func (p *PulseDataManager) setPresentPulse(pr pulse.Range) {
 	presentPN := pd.PulseNumber
 	futurePN := pd.NextPulseNumber()
 
-	if epr := p.cache.Check(presentPN); epr != nil {
-		if !pr.Equal(epr) {
+	if ebd := p.cache.Check(presentPN); ebd.Range != nil {
+		if !pr.Equal(ebd.Range) {
 			panic(throw.IllegalState())
 		}
 	}
@@ -148,25 +150,33 @@ func (p *PulseDataManager) getEarliestCacheBound() pulse.Number {
 }
 
 func (p *PulseDataManager) isPreparingPulse() bool {
-	return atomic.LoadUint32(&p.preparingPulseFlag) != 0
+	return p.preparingPulseFlag.Load() > 0
+}
+
+func (p *PulseDataManager) isPriorityWorkOnly() bool {
+	return p.preparingPulseFlag.Load() > 0
+}
+
+func (p *PulseDataManager) awaitPreparingPulse() {
+	p.preparingPulseFlag.Store(1)
 }
 
 func (p *PulseDataManager) setPreparingPulse(_ PreparePulseChangeFunc) {
-	atomic.StoreUint32(&p.preparingPulseFlag, 1)
+	p.preparingPulseFlag.Store(1)
 }
 
 func (p *PulseDataManager) unsetPreparingPulse() {
-	atomic.StoreUint32(&p.preparingPulseFlag, 0)
+	p.preparingPulseFlag.Store(0)
 }
 
 func (p *PulseDataManager) GetPulseData(pn pulse.Number) (pulse.Data, bool) {
-	if pr := p.cache.Get(pn); pr != nil {
-		return pr.RightBoundData(), true
+	if bd := p.cache.Get(pn); bd.Range != nil {
+		return bd.Range.RightBoundData(), true
 	}
 	return pulse.Data{}, false
 }
 
-func (p *PulseDataManager) GetPulseRange(pn pulse.Number) pulse.Range {
+func (p *PulseDataManager) GetBeatData(pn pulse.Number) BeatData {
 	return p.cache.Get(pn)
 }
 
@@ -218,8 +228,7 @@ func (p *PulseDataManager) isRecentPastRange(presentPN pulse.Number, pastPN puls
 }
 
 func (p *PulseDataManager) preparePulseDataRequest(ctx smachine.ExecutionContext,
-	pn pulse.Number,
-	resultFn func(pr pulse.Range),
+	pn pulse.Number, resultFn func(BeatData),
 ) smachine.AsyncCallRequester {
 	switch {
 	case resultFn == nil:
@@ -227,24 +236,24 @@ func (p *PulseDataManager) preparePulseDataRequest(ctx smachine.ExecutionContext
 	case p.pulseDataAdapterFn == nil:
 		panic("illegal state")
 	}
-	if pr := p.GetPulseRange(pn); pr != nil {
-		resultFn(pr)
+	if pd := p.GetBeatData(pn); pd.Range != nil {
+		resultFn(pd)
 	}
 
-	return p.pulseDataAdapterFn(ctx, func(ctx context.Context, svc PulseDataService) smachine.AsyncResultFunc {
-		pr, ok := svc.LoadPulseData(ctx, pn)
+	return p.pulseDataAdapterFn(ctx, func(ctx context.Context, svc BeatDataService) smachine.AsyncResultFunc {
+		pd, ok := svc.LoadBeatData(ctx, pn)
 
 		return func(ctx smachine.AsyncResultContext) {
-			if ok && pr.RightBoundData().IsValidPulsarData() {
-				p.putPulseRange(pr)
-				resultFn(pr)
+			if ok && pd.Range.RightBoundData().IsValidPulsarData() {
+				p.putPulseUpdate(pd)
+				resultFn(pd)
 			} else {
-				resultFn(nil)
+				resultFn(BeatData{})
 			}
 		}
 	}).WithFlags(smachine.AutoWakeUp)
 }
 
-func (p *PulseDataManager) putPulseRange(pr pulse.Range) {
-	p.cache.Put(pr)
+func (p *PulseDataManager) putPulseUpdate(pd BeatData) {
+	p.cache.Put(pd)
 }

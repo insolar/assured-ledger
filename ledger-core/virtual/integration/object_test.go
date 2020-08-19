@@ -13,9 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/reference"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
@@ -47,12 +45,8 @@ func TestInitViaCTMethod(t *testing.T) {
 
 	{
 		// Call method on non-existent object, expect calling of VStateRequest
-		pl := payload.VCallRequest{
-			CallType:  payload.CTMethod,
-			Callee:    reference.NewSelf(server.RandomLocalWithPulse()),
-			CallFlags: payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
-		}
-		server.SendPayload(ctx, &pl)
+		pl := utils.GenerateVCallRequestMethod(server)
+		server.SendPayload(ctx, pl)
 	}
 
 	// potentially failing test, if execution would sleep for some time before that check

@@ -9,15 +9,17 @@ import (
 	"context"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smadapter"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/runner"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
+	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type Service interface {
 	ExecutionStart(execution execution.Context) runner.RunState
-	ExecutionContinue(run runner.RunState, outgoingResult []byte)
+	ExecutionContinue(run runner.RunState, outgoingResult requestresult.OutgoingExecutionResult)
 	ExecutionAbort(run runner.RunState)
 	ExecutionClassify(execution execution.Context) (contract.MethodIsolation, error)
 }
@@ -33,7 +35,7 @@ func (a *Imposter) PrepareExecutionStart(ctx smachine.ExecutionContext, executio
 	})
 }
 
-func (a *Imposter) PrepareExecutionContinue(ctx smachine.ExecutionContext, state runner.RunState, outgoingResult []byte, fn func()) smachine.AsyncCallRequester {
+func (a *Imposter) PrepareExecutionContinue(ctx smachine.ExecutionContext, state runner.RunState, outgoingResult requestresult.OutgoingExecutionResult, fn func()) smachine.AsyncCallRequester {
 	if state == nil {
 		panic(throw.IllegalValue())
 	}
@@ -78,7 +80,7 @@ type Imposter struct {
 }
 
 func NewImposter(ctx context.Context, svc Service, parallelReaders int) *Imposter {
-	parallelAdapterExecutor, parallelChannel := smachine.NewCallChannelExecutor(ctx, -1, false, parallelReaders)
+	parallelAdapterExecutor, parallelChannel := smadapter.NewCallChannelExecutor(ctx, -1, false, parallelReaders)
 	smachine.StartChannelWorkerParallelCalls(ctx, 0, parallelChannel, nil)
 
 	return &Imposter{

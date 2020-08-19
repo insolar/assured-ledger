@@ -44,12 +44,6 @@ func TestConstructor_SamePulse_WhileExecution(t *testing.T) {
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
 
-	var (
-		isolation = contract.ConstructorIsolation()
-		outgoing  = server.BuildRandomOutgoingWithPulse()
-		class     = gen.UniqueGlobalRef()
-	)
-
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool {
 		return false
@@ -61,23 +55,17 @@ func TestConstructor_SamePulse_WhileExecution(t *testing.T) {
 		synchronizeExecution.Synchronize()
 	}
 
+	pl := utils.GenerateVCallRequestConstructor(server)
+
 	{
 		requestResult := requestresult.New([]byte("123"), gen.UniqueGlobalRef())
-		requestResult.SetActivate(gen.UniqueGlobalRef(), class, []byte("234"))
+		requestResult.SetActivate(gen.UniqueGlobalRef(), pl.Callee, []byte("234"))
 
-		executionMock := runnerMock.AddExecutionMock(outgoing.String())
+		executionMock := runnerMock.AddExecutionMock(pl.CallOutgoing.String())
 		executionMock.AddStart(executionFn, &execution.Update{
 			Type:   execution.Done,
 			Result: requestResult,
 		})
-	}
-
-	pl := payload.VCallRequest{
-		CallType:       payload.CTConstructor,
-		CallFlags:      payload.BuildCallFlags(isolation.Interference, isolation.State),
-		Callee:         class,
-		CallSiteMethod: "New",
-		CallOutgoing:   outgoing,
 	}
 
 	awaitStopFirstSM := server.Journal.WaitStopOf(&execute.SMExecute{}, 2)
@@ -85,7 +73,7 @@ func TestConstructor_SamePulse_WhileExecution(t *testing.T) {
 
 	{
 		// send first call request
-		server.SendPayload(ctx, &pl)
+		server.SendPayload(ctx, pl)
 	}
 
 	// await first SMExecute go to step execute (in this point machine is still not publish result to table in SMObject)
@@ -93,7 +81,7 @@ func TestConstructor_SamePulse_WhileExecution(t *testing.T) {
 
 	{
 		// send second call request
-		server.SendPayload(ctx, &pl)
+		server.SendPayload(ctx, pl)
 	}
 
 	// second SMExecute should stop in deduplication algorithm and she should not send result because she started during execution first machine
@@ -125,34 +113,22 @@ func TestConstructor_SamePulse_AfterExecution(t *testing.T) {
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
 
-	var (
-		isolation = contract.ConstructorIsolation()
-		outgoing  = server.BuildRandomOutgoingWithPulse()
-		class     = gen.UniqueGlobalRef()
-	)
-
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool {
 		return false
 	})
 
+	pl := utils.GenerateVCallRequestConstructor(server)
+
 	{
 		requestResult := requestresult.New([]byte("123"), gen.UniqueGlobalRef())
-		requestResult.SetActivate(gen.UniqueGlobalRef(), class, []byte("234"))
+		requestResult.SetActivate(gen.UniqueGlobalRef(), pl.Callee, []byte("234"))
 
-		executionMock := runnerMock.AddExecutionMock(outgoing.String())
+		executionMock := runnerMock.AddExecutionMock(pl.CallOutgoing.String())
 		executionMock.AddStart(nil, &execution.Update{
 			Type:   execution.Done,
 			Result: requestResult,
 		})
-	}
-
-	pl := payload.VCallRequest{
-		CallType:       payload.CTConstructor,
-		CallFlags:      payload.BuildCallFlags(isolation.Interference, isolation.State),
-		Callee:         class,
-		CallSiteMethod: "New",
-		CallOutgoing:   outgoing,
 	}
 
 	awaitStopFirstSM := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
@@ -160,7 +136,7 @@ func TestConstructor_SamePulse_AfterExecution(t *testing.T) {
 
 	{
 		// send first call request
-		server.SendPayload(ctx, &pl)
+		server.SendPayload(ctx, pl)
 	}
 
 	// await first SMExecute go completed work (after complete SMExecute publish result to table in SMObject)
@@ -168,7 +144,7 @@ func TestConstructor_SamePulse_AfterExecution(t *testing.T) {
 
 	{
 		// send second call request
-		server.SendPayload(ctx, &pl)
+		server.SendPayload(ctx, pl)
 	}
 
 	// second SMExecute should send result again because she started after first machine complete
@@ -243,23 +219,24 @@ var (
 
 func (test *DeduplicationDifferentPulsesCase) run(t *testing.T) {
 	var (
-		isolation     = contract.ConstructorIsolation()
-		class         = gen.UniqueGlobalRef()
-		previousPulse = test.Server.GetPulse().PulseNumber
-		outgoingLocal = gen.UniqueLocalRefWithPulse(previousPulse)
-		outgoing      = reference.NewRecordOf(test.Server.GlobalCaller(), outgoingLocal)
-		object        = reference.NewSelf(outgoingLocal)
-		executeDone   = test.Server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
-		foundError    = synckit.ClosedChannel()
-
 		ctx    = test.Context
 		server = test.Server
-	)
 
+		isolation     = contract.ConstructorIsolation()
+		class         = server.RandomGlobalWithPulse()
+		previousPulse = test.Server.GetPulse().PulseNumber
+		outgoing      = test.Server.BuildRandomOutgoingWithPulse()
+		object        = reference.NewSelf(outgoing.GetLocal())
+		executeDone   = test.Server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
+		foundError    = synckit.ClosedChannel()
+	)
 	if test.ExecuteShouldHaveError != "" {
 		foundError = test.Server.Journal.Wait(func(event debuglogger.UpdateEvent) bool {
 			if event.Data.Error != nil {
 				stack := throw.DeepestStackTraceOf(event.Data.Error)
+				if stack == nil {
+					return false
+				}
 				return strings.Contains(stack.StackTraceAsText(), test.ExecuteShouldHaveError)
 			}
 			return false
@@ -276,6 +253,10 @@ func (test *DeduplicationDifferentPulsesCase) run(t *testing.T) {
 	// populate needed VFindCallResponse fields
 	if test.VFindCall != nil {
 		test.VFindCall.Callee = object
+		if test.VFindCall.CallResult != nil {
+			test.VFindCall.CallResult = utils.MakeMinimumValidVStateResult(server, ExecutionResultFromPreviousNode)
+			test.VFindCall.CallResult.Callee = object
+		}
 		test.VFindCall.Outgoing = outgoing
 	}
 
@@ -288,7 +269,7 @@ func (test *DeduplicationDifferentPulsesCase) run(t *testing.T) {
 		}
 		test.VDelegatedCall.Callee = object
 		test.VDelegatedCall.CallFlags = payload.BuildCallFlags(isolation.Interference, isolation.State)
-		test.VDelegatedCall.CallIncoming = reference.NewRecordOf(test.VDelegatedCall.Callee, test.VDelegatedCall.CallOutgoing.GetLocal())
+		test.VDelegatedCall.CallIncoming = reference.NewRecordOf(class, test.VDelegatedCall.CallOutgoing.GetLocal())
 	}
 
 	if test.VDelegatedRequestFinished != nil {
@@ -297,7 +278,7 @@ func (test *DeduplicationDifferentPulsesCase) run(t *testing.T) {
 			CallFlags:    payload.BuildCallFlags(isolation.Interference, isolation.State),
 			Callee:       object,
 			CallOutgoing: outgoing,
-			CallIncoming: reference.NewRecordOf(object, outgoingLocal),
+			CallIncoming: reference.NewRecordOf(class, outgoing.GetLocal()),
 			LatestState: &payload.ObjectState{
 				Class: class,
 				State: ExecutionResultFromPreviousNode,
@@ -366,15 +347,11 @@ func (test *DeduplicationDifferentPulsesCase) run(t *testing.T) {
 	}
 
 	{
-		pl := payload.VCallRequest{
-			CallType:       payload.CTConstructor,
-			CallFlags:      payload.BuildCallFlags(isolation.Interference, isolation.State),
-			Callee:         class,
-			CallSiteMethod: "New",
-			CallOutgoing:   outgoing,
-		}
+		pl := utils.GenerateVCallRequestConstructor(server)
+		pl.Callee = class
+		pl.CallOutgoing = outgoing
 
-		server.SendPayload(ctx, &pl)
+		server.SendPayload(ctx, pl)
 	}
 
 	{
@@ -445,7 +422,7 @@ func TestDeduplication_DifferentPulses_EmptyState(t *testing.T) {
 				VState:   vStateReportEmptyOnePendingRequest,
 				VFindCall: &payload.VFindCallResponse{
 					Status:     payload.FoundCall,
-					CallResult: &payload.VCallResult{ReturnArguments: ExecutionResultFromPreviousNode},
+					CallResult: &payload.VCallResult{},
 				},
 				VCallResultExpected: true,
 				ExpectedResult:      ExecutionResultFromPreviousNode,
@@ -531,7 +508,7 @@ func TestDeduplication_DifferentPulses_EmptyState_WithDelegationToken(t *testing
 				VDelegatedRequestFinished: &payload.VDelegatedRequestFinished{},
 				VFindCall: &payload.VFindCallResponse{
 					Status:     payload.FoundCall,
-					CallResult: &payload.VCallResult{ReturnArguments: ExecutionResultFromPreviousNode},
+					CallResult: &payload.VCallResult{},
 				},
 				VCallResultExpected: true,
 				ExpectedResult:      ExecutionResultFromPreviousNode,
@@ -612,7 +589,7 @@ func TestDeduplication_DifferentPulses_ReadyState(t *testing.T) {
 				VState:   vStateReportReadyNoPendingRequests,
 				VFindCall: &payload.VFindCallResponse{
 					Status:     payload.FoundCall,
-					CallResult: &payload.VCallResult{ReturnArguments: ExecutionResultFromPreviousNode},
+					CallResult: &payload.VCallResult{},
 				},
 				VCallResultExpected: true,
 				ExecutionExpected:   false,
@@ -672,7 +649,7 @@ func TestDeduplication_DifferentPulses_ReadyState(t *testing.T) {
 				VState:   vStateReportReadyOnePendingRequest,
 				VFindCall: &payload.VFindCallResponse{
 					Status:     payload.FoundCall,
-					CallResult: &payload.VCallResult{ReturnArguments: ExecutionResultFromPreviousNode},
+					CallResult: &payload.VCallResult{},
 				},
 				VCallResultExpected: true,
 				ExecutionExpected:   false,
@@ -740,7 +717,7 @@ func TestDeduplication_DifferentPulses_InactiveState(t *testing.T) {
 				VState:   vStateReportInactive,
 				VFindCall: &payload.VFindCallResponse{
 					Status:     payload.FoundCall,
-					CallResult: &payload.VCallResult{ReturnArguments: ExecutionResultFromPreviousNode},
+					CallResult: &payload.VCallResult{},
 				},
 				VCallResultExpected: true,
 				ExecutionExpected:   false,

@@ -9,8 +9,10 @@ import (
 	"context"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smadapter"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
+	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -56,7 +58,7 @@ func (p *runnerServiceInterceptor) ExecutionStart(execution execution.Context) R
 	return p.last
 }
 
-func (p *runnerServiceInterceptor) ExecutionContinue(run RunState, outgoingResult []byte) {
+func (p *runnerServiceInterceptor) ExecutionContinue(run RunState, outgoingResult requestresult.OutgoingExecutionResult) {
 	if p.last != nil {
 		panic(throw.IllegalState())
 	}
@@ -65,7 +67,7 @@ func (p *runnerServiceInterceptor) ExecutionContinue(run RunState, outgoingResul
 	if !ok {
 		panic(throw.IllegalValue())
 	}
-	p.last.state.ProvideInput(outgoingResult)
+	p.last.state.InputProvide(outgoingResult)
 	p.last.mode = Continue
 }
 
@@ -95,7 +97,7 @@ type serviceAdapter struct {
 
 type ServiceAdapter interface {
 	PrepareExecutionStart(ctx smachine.ExecutionContext, execution execution.Context, fn func(RunState)) smachine.AsyncCallRequester
-	PrepareExecutionContinue(ctx smachine.ExecutionContext, state RunState, outgoingResult []byte, fn func()) smachine.AsyncCallRequester
+	PrepareExecutionContinue(ctx smachine.ExecutionContext, state RunState, outgoingResult requestresult.OutgoingExecutionResult, fn func()) smachine.AsyncCallRequester
 	PrepareExecutionAbort(ctx smachine.ExecutionContext, state RunState) smachine.AsyncCallRequester
 	PrepareExecutionClassify(ctx smachine.ExecutionContext, execution execution.Context, fn func(contract.MethodIsolation, error)) smachine.AsyncCallRequester
 }
@@ -111,7 +113,7 @@ func (a *serviceAdapter) PrepareExecutionStart(ctx smachine.ExecutionContext, ex
 	})
 }
 
-func (a *serviceAdapter) PrepareExecutionContinue(ctx smachine.ExecutionContext, state RunState, outgoingResult []byte, fn func()) smachine.AsyncCallRequester {
+func (a *serviceAdapter) PrepareExecutionContinue(ctx smachine.ExecutionContext, state RunState, outgoingResult requestresult.OutgoingExecutionResult, fn func()) smachine.AsyncCallRequester {
 	if state == nil {
 		panic(throw.IllegalValue())
 	}
@@ -153,10 +155,10 @@ func (a *serviceAdapter) PrepareExecutionClassify(ctx smachine.ExecutionContext,
 func createRunnerAdapter(ctx context.Context, svc *DefaultService) *serviceAdapter {
 	parallelReaders := 16
 
-	runAdapterExecutor, runChannel := smachine.NewCallChannelExecutor(ctx, -1, false, parallelReaders)
+	runAdapterExecutor, runChannel := smadapter.NewCallChannelExecutor(ctx, -1, false, parallelReaders)
 	newWorker(ctx, svc).Run(runChannel)
 
-	parallelAdapterExecutor, parallelChannel := smachine.NewCallChannelExecutor(ctx, -1, false, parallelReaders)
+	parallelAdapterExecutor, parallelChannel := smadapter.NewCallChannelExecutor(ctx, -1, false, parallelReaders)
 	smachine.StartChannelWorkerParallelCalls(ctx, 0, parallelChannel, nil)
 
 	return &serviceAdapter{

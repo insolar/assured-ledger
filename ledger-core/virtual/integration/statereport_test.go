@@ -6,43 +6,21 @@
 package integration
 
 import (
-	"context"
-	"strings"
 	"testing"
+	"time"
 
-	"github.com/stretchr/testify/require"
+	"github.com/gojuno/minimock/v3"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/builtin/contract/testwallet"
-	testwalletProxy "github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 )
-
-func makeVStateReportEvent(
-	objectRef reference.Global,
-	stateRef reference.Local,
-	pulseNumber payload.PulseNumber,
-	rawState []byte,
-) *payload.VStateReport {
-	class := testwalletProxy.GetClass()
-
-	return &payload.VStateReport{
-		Status: payload.Ready,
-		Object: objectRef,
-		AsOf:   pulseNumber,
-		ProvidedContent: &payload.VStateReport_ProvidedContentBody{
-			LatestDirtyState: &payload.ObjectState{
-				Reference: stateRef,
-				Class:     class,
-				State:     rawState,
-			},
-		},
-	}
-}
 
 func makeVStateReportWithState(
 	objectRef reference.Global,
@@ -70,137 +48,103 @@ func makeRawWalletState(balance uint32) []byte {
 	})
 }
 
-func checkBalance(ctx context.Context, t *testing.T, server *utils.Server, objectRef reference.Global, testBalance uint32) {
-	code, byteBuffer := server.CallAPIGetBalance(ctx, objectRef)
-	require.Equal(t, 200, code, string(byteBuffer))
-
-	response, err := utils.UnmarshalWalletGetBalanceResponse(byteBuffer)
-	require.NoError(t, err)
-	require.Empty(t, response.Err)
-	require.NotEmpty(t, response.TraceID)
-	require.Equal(t, uint(testBalance), response.Amount)
-}
-
-func TestVirtual_VStateReport_HappyPath(t *testing.T) {
-	defer commontestutils.LeakTester(t)
-	insrail.LogCase(t, "C4866")
-
-	server, ctx := utils.NewServer(nil, t)
-	defer server.Stop()
-	server.IncrementPulse(ctx)
-
-	var (
-		testBalance    = uint32(555)
-		pulseNumber    = server.GetPulse().PulseNumber
-		objectLocal    = server.RandomLocalWithPulse()
-		objectGlobal   = reference.NewSelf(objectLocal)
-		stateID        = server.RandomLocalWithPulse()
-		rawWalletState = makeRawWalletState(testBalance)
-	)
-
-	server.IncrementPulseAndWaitIdle(ctx)
-
-	{
-		// send VStateReport: save wallet
-
-		pl := makeVStateReportEvent(objectGlobal, stateID, pulseNumber, rawWalletState)
-		server.SendPayload(ctx, pl)
-	}
-
-	checkBalance(ctx, t, server, objectGlobal, testBalance)
-}
-
-func TestVirtual_VStateReport_TwoStateReports(t *testing.T) {
-	defer commontestutils.LeakTester(t)
-	insrail.LogCase(t, "C4919")
-
-	server, ctx := utils.NewServer(nil, t)
-	defer server.Stop()
-	server.IncrementPulse(ctx)
-
-	var (
-		testBalance    = uint32(555)
-		pulseNumber    = server.GetPulse().PulseNumber
-		objectLocal    = server.RandomLocalWithPulse()
-		objectGlobal   = reference.NewSelf(objectLocal)
-		stateID        = server.RandomLocalWithPulse()
-		newStateID     = server.RandomLocalWithPulse()
-		rawWalletState = makeRawWalletState(testBalance)
-	)
-
-	server.IncrementPulseAndWaitIdle(ctx)
-
-	{
-		// send VStateReport: save wallet
-		pl := makeVStateReportEvent(objectGlobal, stateID, pulseNumber, rawWalletState)
-		server.SendPayload(ctx, pl)
-	}
-
-	checkBalance(ctx, t, server, objectGlobal, testBalance)
-
-	{
-		// send VStateReport: one more time to simulate rewrite
-		pl := makeVStateReportEvent(objectGlobal, newStateID, pulseNumber, makeRawWalletState(444))
-		server.SendPayload(ctx, pl)
-	}
-
-	checkBalance(ctx, t, server, objectGlobal, testBalance)
-}
-
-func TestVirtual_VStateReport_BadState_NoSuchObject(t *testing.T) {
-	defer commontestutils.LeakTester(t)
-	insrail.LogCase(t, "C4864")
-
-	server, ctx := utils.NewServer(nil, t)
-	defer server.Stop()
-	server.IncrementPulse(ctx)
-
-	var (
-		objectLocal  = server.RandomLocalWithPulse()
-		objectGlobal = reference.NewSelf(objectLocal)
-		pulse        = server.GetPulse().PulseNumber
-	)
-
-	reasons := []payload.VStateReport_StateStatus{payload.Inactive, payload.Missing, payload.Unknown}
-	for _, reason := range reasons {
-		pl := makeVStateReportWithState(objectGlobal, reason, nil, pulse)
-		server.SendPayload(ctx, pl)
-	}
-}
-
-func TestVirtual_VStateReport_BadState_StateAlreadyExists(t *testing.T) {
+func TestVirtual_VStateReport_StateAlreadyExists(t *testing.T) {
 	defer commontestutils.LeakTester(t)
 	insrail.LogCase(t, "C4865")
 
-	server, ctx := utils.NewServerWithErrorFilter(nil, t, func(s string) bool {
-		// Pass all errors, except for (*SMVStateReport).stepProcess
-		return !strings.Contains(s, "(*SMVStateReport).stepProcess")
-	})
-	defer server.Stop()
-	server.IncrementPulse(ctx)
-
-	var (
-		testBalance    = uint32(555)
-		pulseNumber    = server.GetPulse().PulseNumber
-		objectLocal    = server.RandomLocalWithPulse()
-		objectGlobal   = reference.NewSelf(objectLocal)
-		stateID        = server.RandomLocalWithPulse()
-		rawWalletState = makeRawWalletState(testBalance)
-	)
-
-	server.IncrementPulseAndWaitIdle(ctx)
-
-	{
-		// send VStateReport: save wallet
-		pl := makeVStateReportEvent(objectGlobal, stateID, pulseNumber, rawWalletState)
-		server.SendPayload(ctx, pl)
+	table := []struct {
+		name   string
+		status payload.VStateReport_StateStatus
+	}{
+		{name: "ready state", status: payload.Ready},
+		{name: "inactive state", status: payload.Inactive},
+		{name: "missing state", status: payload.Missing},
 	}
 
-	reasons := []payload.VStateReport_StateStatus{payload.Inactive, payload.Missing}
-	for _, reason := range reasons {
-		pl := makeVStateReportWithState(objectGlobal, reason, nil, pulseNumber)
-		server.SendPayload(ctx, pl)
-	}
+	for _, testCase := range table {
+		t.Run(testCase.name, func(t *testing.T) {
+			mc := minimock.NewController(t)
 
-	checkBalance(ctx, t, server, objectGlobal, testBalance)
+			server, ctx := utils.NewServer(nil, t)
+			defer server.Stop()
+
+			var (
+				initState    = []byte("init state")
+				initRef      = server.RandomLocalWithPulse()
+				prevPulse    = server.GetPulse().PulseNumber
+				objectGlobal = server.RandomGlobalWithPulse()
+				class        = server.RandomGlobalWithPulse()
+			)
+
+			// send first VStateReport
+			{
+				server.IncrementPulse(ctx)
+
+				pl := &payload.VStateReport{
+					Status: payload.Ready,
+					Object: objectGlobal,
+					AsOf:   prevPulse,
+					ProvidedContent: &payload.VStateReport_ProvidedContentBody{
+						LatestDirtyState: &payload.ObjectState{
+							Reference: initRef,
+							Class:     class,
+							State:     initState,
+						},
+						LatestValidatedState: &payload.ObjectState{
+							Reference: initRef,
+							Class:     class,
+							State:     initState,
+						},
+					},
+				}
+				waitReport := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
+				server.SendPayload(ctx, pl)
+				commontestutils.WaitSignalsTimed(t, 10*time.Second, waitReport)
+			}
+
+			// add checker
+			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+			{
+				typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
+					assert.NotNil(t, report.ProvidedContent)
+					assert.Equal(t, payload.Ready, report.Status)
+					assert.Equal(t, initRef, report.ProvidedContent.LatestDirtyState.Reference)
+					assert.Equal(t, initRef, report.ProvidedContent.LatestValidatedState.Reference)
+					assert.Equal(t, initState, report.ProvidedContent.LatestDirtyState.State)
+					assert.Equal(t, initState, report.ProvidedContent.LatestValidatedState.State)
+					return false
+				})
+			}
+
+			// send second VStateReport
+			{
+				pl := &payload.VStateReport{
+					Status: testCase.status,
+					Object: objectGlobal,
+					AsOf:   prevPulse,
+				}
+				if testCase.status == payload.Ready {
+					pl.ProvidedContent = &payload.VStateReport_ProvidedContentBody{
+						LatestDirtyState: &payload.ObjectState{
+							Reference: server.RandomLocalWithPulse(),
+							Class:     class,
+							State:     []byte("new state"),
+						},
+					}
+				}
+				waitReport := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
+				server.SendPayload(ctx, pl)
+				commontestutils.WaitSignalsTimed(t, 10*time.Second, waitReport)
+			}
+
+			// increment pulse and check VStateReport
+			{
+				server.IncrementPulse(ctx)
+				commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 1))
+				assert.Equal(t, 1, typedChecker.VStateReport.Count())
+			}
+
+			mc.Finish()
+		})
+	}
 }

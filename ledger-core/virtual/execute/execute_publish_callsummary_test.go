@@ -11,7 +11,6 @@ import (
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
@@ -37,21 +36,20 @@ func TestSMExecute_PublishVCallResultToCallSummarySM(t *testing.T) {
 
 		pd          = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 		pulseSlot   = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-		outgoingRef = reference.NewRecordOf(gen.UniqueGlobalRef(), gen.UniqueLocalRefWithPulse(pd.PulseNumber))
+		outgoingRef = reference.NewRecordOf(gen.UniqueGlobalRefWithPulse(pd.PulseNumber), gen.UniqueLocalRefWithPulse(pd.PulseNumber))
 
 		callFlags = payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty)
 	)
 
-	class := gen.UniqueGlobalRef()
+	class := gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
 
 	request := &payload.VCallRequest{
-		CallType:            payload.CTConstructor,
-		CallFlags:           callFlags,
-		CallSiteDeclaration: testwallet.GetClass(),
-		CallSiteMethod:      "New",
-		CallOutgoing:        outgoingRef,
-		Callee:              class,
-		Arguments:           insolar.MustSerialize([]interface{}{}),
+		CallType:       payload.CTConstructor,
+		CallFlags:      callFlags,
+		CallSiteMethod: "New",
+		CallOutgoing:   outgoingRef,
+		Callee:         class,
+		Arguments:      insolar.MustSerialize([]interface{}{}),
 	}
 
 	smExecute := SMExecute{

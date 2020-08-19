@@ -11,7 +11,6 @@ import (
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
@@ -147,18 +146,19 @@ func Test_Execute_stepIsolationNegotiation(t *testing.T) {
 
 				pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 				pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-				smGlobalRef     = reference.NewRecordOf(gen.UniqueGlobalRef(), gen.UniqueLocalRefWithPulse(pd.PulseNumber))
+				smGlobalRef     = reference.NewRecordOf(gen.UniqueGlobalRefWithPulse(pd.PulseNumber), gen.UniqueLocalRefWithPulse(pd.PulseNumber))
 				smObject        = object.NewStateMachineObject(smGlobalRef)
 				sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 			)
 
 			request := &payload.VCallRequest{
-				CallType:            payload.CTConstructor,
-				CallFlags:           payload.BuildCallFlags(tc.callIsolation.Interference, tc.callIsolation.State),
-				CallSiteDeclaration: testwallet.GetClass(),
-				CallSiteMethod:      "New",
-				CallOutgoing:        smGlobalRef,
-				Arguments:           insolar.MustSerialize([]interface{}{}),
+				CallType:       payload.CTConstructor,
+				CallFlags:      payload.BuildCallFlags(tc.callIsolation.Interference, tc.callIsolation.State),
+				CallSiteMethod: "New",
+				CallOutgoing:   gen.UniqueGlobalRefWithPulse(pd.PulseNumber),
+				Caller:         gen.UniqueGlobalRefWithPulse(pd.PulseNumber),
+				Callee:         smGlobalRef,
+				Arguments:      insolar.MustSerialize([]interface{}{}),
 			}
 
 			smExecute := SMExecute{

@@ -42,11 +42,16 @@ func New(domainID, localID Local) Global {
 }
 
 func NewRecordOf(owner Global, localID Local) Global {
-	base := owner.GetBase()
-	// TODO enable when tests are fixed
-	// if base.IsEmpty() {
-	// 	panic(throw.IllegalValue())
-	// }
+	var (
+		base      = owner.GetBase()
+		basePulse = base.Pulse()
+	)
+	if base.IsEmpty() {
+		panic(throw.IllegalValue())
+	}
+	if !basePulse.IsSpecial() && base.Pulse() > localID.Pulse() {
+		panic(throw.IllegalValue())
+	}
 	return Global{addressLocal: localID, addressBase: base}
 }
 

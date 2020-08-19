@@ -12,8 +12,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/convlog"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
@@ -28,7 +30,7 @@ func BenchmarkVCallRequestGetMethod(b *testing.B) {
 
 	var (
 		class  = walletproxy.GetClass()
-		object = reference.NewSelf(server.RandomLocalWithPulse())
+		object = reference.NewSelf(gen.UniqueLocalRefWithPulse(prevPulse.PulseNumber))
 	)
 
 	walletMemory := insolar.MustSerialize(testwallet.Wallet{
@@ -62,15 +64,10 @@ func BenchmarkVCallRequestGetMethod(b *testing.B) {
 		return false
 	})
 
-	pl := payload.VCallRequest{
-		CallType:            payload.CTMethod,
-		CallFlags:           payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
-		Caller:              server.GlobalCaller(),
-		Callee:              object,
-		CallSiteDeclaration: class,
-		CallSiteMethod:      "GetBalance",
-		Arguments:           insolar.MustSerialize([]interface{}{}),
-	}
+	pl := *utils.GenerateVCallRequestMethod(server)
+	pl.CallFlags = payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty)
+	pl.Callee = object
+	pl.CallSiteMethod = "GetBalance"
 
 	b.StopTimer()
 	b.ResetTimer()
@@ -94,7 +91,7 @@ func BenchmarkVCallRequestAcceptMethod(b *testing.B) {
 
 	var (
 		class  = walletproxy.GetClass()
-		object = reference.NewSelf(server.RandomLocalWithPulse())
+		object = reference.NewSelf(gen.UniqueLocalRefWithPulse(prevPulse.PulseNumber))
 	)
 
 	walletMemory := insolar.MustSerialize(testwallet.Wallet{
@@ -128,15 +125,9 @@ func BenchmarkVCallRequestAcceptMethod(b *testing.B) {
 		return false
 	})
 
-	pl := payload.VCallRequest{
-		CallType:            payload.CTMethod,
-		CallFlags:           payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
-		Caller:              server.GlobalCaller(),
-		Callee:              object,
-		CallSiteDeclaration: class,
-		CallSiteMethod:      "Accept",
-		Arguments:           insolar.MustSerialize([]interface{}{uint32(10)}),
-	}
+	pl := *utils.GenerateVCallRequestMethod(server)
+	pl.Callee = object
+	pl.CallSiteMethod = "Accept"
 
 	b.StopTimer()
 	b.ResetTimer()
@@ -164,26 +155,45 @@ func BenchmarkVCallRequestConstructor(b *testing.B) {
 		return false
 	})
 
-	pl := payload.VCallRequest{
-		CallType:       payload.CTConstructor,
-		CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
-		Caller:         server.GlobalCaller(),
-		Callee:         walletproxy.GetClass(),
-		CallSiteMethod: "New",
-		Arguments:      insolar.MustSerialize([]interface{}{}),
-	}
+	pl := *utils.GenerateVCallRequestConstructor(server)
+	pl.Callee = walletproxy.GetClass()
+	pl.CallSiteMethod = "New"
+	pl.CallOutgoing = server.BuildRandomOutgoingWithPulse()
 
+	b.ReportAllocs()
 	b.StopTimer()
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		pl.CallOutgoing = server.BuildRandomOutgoingWithPulse()
-		msg := server.WrapPayload(&pl).Finalize()
 
-		b.StartTimer()
-		server.SendMessage(ctx, msg)
-		testutils.WaitSignalsTimed(b, 10*time.Second, resultSignal)
+	b.Run("reflect marshaller", func(b *testing.B) {
+		b.ReportAllocs()
+		insconveyor.DisableLogStepInfoMarshaller = true
 		b.StopTimer()
-	}
+		for i := 0; i < b.N; i++ {
+			pl.CallOutgoing = server.BuildRandomOutgoingWithPulse()
+			msg := server.WrapPayload(&pl).Finalize()
+
+			b.StartTimer()
+			server.SendMessage(ctx, msg)
+			testutils.WaitSignalsTimed(b, 10*time.Second, resultSignal)
+			b.StopTimer()
+		}
+	})
+
+	b.Run("code marshaller", func(b *testing.B) {
+		b.ReportAllocs()
+		insconveyor.DisableLogStepInfoMarshaller = false
+		b.StopTimer()
+		for i := 0; i < b.N; i++ {
+			pl.CallOutgoing = server.BuildRandomOutgoingWithPulse()
+			msg := server.WrapPayload(&pl).Finalize()
+
+			b.StartTimer()
+			server.SendMessage(ctx, msg)
+			testutils.WaitSignalsTimed(b, 10*time.Second, resultSignal)
+			b.StopTimer()
+		}
+	})
+
 }
 
 func BenchmarkTestAPIGetBalance(b *testing.B) {
@@ -195,7 +205,7 @@ func BenchmarkTestAPIGetBalance(b *testing.B) {
 
 	var (
 		class  = walletproxy.GetClass()
-		object = reference.NewSelf(server.RandomLocalWithPulse())
+		object = reference.NewSelf(gen.UniqueLocalRefWithPulse(prevPulse.PulseNumber))
 	)
 
 	walletMemory := insolar.MustSerialize(testwallet.Wallet{
@@ -237,7 +247,7 @@ func BenchmarkTestAPIGetBalanceParallel(b *testing.B) {
 
 	var (
 		class  = walletproxy.GetClass()
-		object = reference.NewSelf(server.RandomLocalWithPulse())
+		object = reference.NewSelf(gen.UniqueLocalRefWithPulse(prevPulse.PulseNumber))
 	)
 
 	walletMemory := insolar.MustSerialize(testwallet.Wallet{
