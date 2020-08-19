@@ -56,7 +56,11 @@ type Node struct {
 	nodeAddress   endpoints.IPAddress
 	nodePower     member.Power
 	digest        cryptkit.SignedDigest
+	pks           cryptkit.PublicKeyStore
+	npk           cryptkit.SignatureKeyHolder
 }
+
+func (n *Node) LocalNodeProfile() {}
 
 func (n *Node) GetSignatureVerifier() cryptkit.SignatureVerifier {
 	panic(throw.NotImplemented())
@@ -123,19 +127,19 @@ func (n *Node) GetExtraEndpoints() []endpoints.Outbound {
 }
 
 func (n *Node) GetIssuedAtPulse() pulse.Number {
-	panic(throw.NotImplemented())
+	return pulse.MinTimePulse
 }
 
 func (n *Node) GetIssuedAtTime() time.Time {
-	panic(throw.NotImplemented())
+	return time.Now()
 }
 
 func (n *Node) GetIssuerID() node.ShortNodeID {
-	panic(throw.NotImplemented())
+	return n.nodeShortID
 }
 
 func (n *Node) GetIssuerSignature() cryptkit.SignatureHolder {
-	panic(throw.NotImplemented())
+	return n.digest.GetSignatureHolder()
 }
 
 func (n *Node) GetDefaultEndpoint() endpoints.Outbound {
@@ -143,7 +147,11 @@ func (n *Node) GetDefaultEndpoint() endpoints.Outbound {
 }
 
 func (n *Node) GetPublicKeyStore() cryptkit.PublicKeyStore {
-	panic(throw.NotImplemented())
+	return n.pks
+}
+
+func (n *Node) SetPublicKeyStore(pks cryptkit.PublicKeyStore) {
+	n.pks = pks
 }
 
 func (n *Node) IsAcceptableHost(from endpoints.Inbound) bool {
@@ -159,7 +167,11 @@ func (n *Node) GetSpecialRoles() member.SpecialRole {
 }
 
 func (n *Node) GetNodePublicKey() cryptkit.SignatureKeyHolder {
-	panic(throw.NotImplemented())
+	return n.npk
+}
+
+func (n *Node) SetNodePublicKey(npk cryptkit.SignatureKeyHolder) {
+	n.npk = npk
 }
 
 func (n *Node) GetStartPower() member.Power {

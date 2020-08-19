@@ -6,7 +6,7 @@
 package routing
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/network"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/host"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -15,7 +15,7 @@ import (
 )
 
 type Table struct {
-	NodeKeeper    network.NodeKeeper `inject:""`
+	NodeKeeper beat.NodeKeeper `inject:""`
 }
 
 func (t *Table) isLocalNode(reference.Global) bool {
@@ -29,11 +29,11 @@ func (t *Table) resolveRemoteNode(reference.Global) (*host.Host, error) {
 // Resolve NodeID -> ShortID, Address. Can initiate network requests.
 func (t *Table) Resolve(ref reference.Global) (*host.Host, error) {
 	if t.isLocalNode(ref) {
-		na := t.NodeKeeper.GetLatestAccessor()
+		na := t.NodeKeeper.FindAnyLatestNodeSnapshot()
 		if na == nil {
 			return nil, errors.E("failed to get latest pulse --==-- ")
 		}
-		node := na.GetActiveNode(ref)
+		node := na.FindNodeByRef(ref)
 		if node == nil {
 			return nil, errors.New("no such local node with NodeID: " + ref.String())
 		}

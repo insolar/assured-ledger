@@ -37,6 +37,7 @@ func IsBasedOn(t, lookFor TestingLogger) bool {
 	return false
 }
 
+// ErrorFilterFunc should return true to pass and false to ignore an error
 type ErrorFilterFunc = func(string) bool
 
 type TestingLoggerOutput struct {
@@ -105,6 +106,7 @@ func (r *TestingLoggerOutput) LogLevelWrite(level Level, b []byte) (int, error) 
 }
 
 func (r *TestingLoggerOutput) LowLatencyWrite(level Level, b []byte) (int, error) {
+	b = append([]byte(nil), b...)
 	//nolint
 	go r.LogLevelWrite(level, b)
 	return len(b), nil

@@ -8,10 +8,9 @@ package gateway
 import (
 	"context"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/network"
-	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
-	"github.com/insolar/assured-ledger/ledger-core/network/nodeset"
 	"github.com/insolar/assured-ledger/ledger-core/network/rules"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -37,18 +36,16 @@ func (g *WaitPulsar) Run(ctx context.Context, pulse pulse.Data) {
 	}
 }
 
-func (g *WaitPulsar) UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes []nodeinfo.NetworkNode, cloudStateHash []byte) {
-	workingNodes := nodeset.SelectWorking(nodes)
-
-	if _, err := rules.CheckMajorityRule(g.CertificateManager.GetCertificate(), workingNodes); err != nil {
+func (g *WaitPulsar) UpdateState(ctx context.Context, beat beat.Beat) {
+	if _, err := rules.CheckMajorityRule(g.CertificateManager.GetCertificate(), beat.Online); err != nil {
 		g.FailState(ctx, err.Error())
 	}
 
-	if err := rules.CheckMinRole(g.CertificateManager.GetCertificate(), workingNodes); err != nil {
+	if err := rules.CheckMinRole(g.CertificateManager.GetCertificate(), beat.Online); err != nil {
 		g.FailState(ctx, err.Error())
 	}
 
-	g.Base.UpdateState(ctx, pulseNumber, nodes, cloudStateHash)
+	g.Base.UpdateState(ctx, beat)
 }
 
 func (g *WaitPulsar) GetState() network.State {
@@ -73,7 +70,7 @@ func (g *WaitPulsar) OnPulseFromConsensus(ctx context.Context, pulse network.Net
 		panic(throw.IllegalState())
 	}
 
-	err := g.PulseAppender.Append(ctx, pulse)
+	err := g.PulseAppender.AddCommittedBeat(pulse)
 	if err != nil {
 		inslogger.FromContext(ctx).Panic("failed to append pulse: ", err.Error())
 	}
