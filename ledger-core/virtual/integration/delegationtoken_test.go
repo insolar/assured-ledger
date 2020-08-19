@@ -411,6 +411,8 @@ func TestDelegationToken_OldVEVDelegatedCallRequest(t *testing.T) {
 
 			server.IncrementPulse(ctx)
 
+			p := server.GetPulse().PulseNumber
+
 			approver := server.RandomGlobalWithPulse()
 			jetCoordinatorMock.
 				MeMock.Return(approver).
@@ -438,7 +440,7 @@ func TestDelegationToken_OldVEVDelegatedCallRequest(t *testing.T) {
 			statePl := payload.VStateReport{
 				Status:                      payload.Empty,
 				Object:                      object,
-				AsOf:                        firstPulse.PulseNumber,
+				AsOf:                        p,
 				OrderedPendingCount:         1,
 				OrderedPendingEarliestPulse: firstPulse.PulseNumber,
 			}
