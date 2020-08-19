@@ -15,6 +15,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 )
 
+func (p *LineStages) addBundle(bundle *BundleResolver, tracker StageTracker) bool {
+	ok, _, _ := p.AddBundle(bundle, tracker)
+	return ok
+}
+
 func TestLineStages_Create(t *testing.T) {
 	base := gen.UniqueLocalRef()
 	resolver := NewDependencyResolverMock(t)

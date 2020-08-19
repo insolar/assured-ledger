@@ -159,11 +159,16 @@ func TestAddRecords(t *testing.T) {
 		genNewLine.registerNewLine(reasonRef)
 	}
 
+	// repeat the same sequence
+	// all registrations must be ok as they will be deduplicated
+	
 	genNewLine.seqNo.Store(0)
 
 	for N := 10; N > 0; N-- {
 		genNewLine.registerNewLine(reasonRef)
 	}
+
+	// TODO check that records were not duplicated ....
 }
 
 func BenchmarkWriteNew(b *testing.B) {

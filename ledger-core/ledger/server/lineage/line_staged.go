@@ -55,12 +55,6 @@ func (p *LineStages) NewBundle() *BundleResolver {
 	return newBundleResolver(p, GetRecordPolicy)
 }
 
-// deprecated // test use only
-func (p *LineStages) addBundle(bundle *BundleResolver, tracker StageTracker) bool {
-	ok, _, _ := p.AddBundle(bundle, tracker)
-	return ok
-}
-
 func (p *LineStages) AddBundle(bundle *BundleResolver, tracker StageTracker) (bool, StageTracker, ResolvedBundle) {
 	switch {
 	case tracker == nil:
