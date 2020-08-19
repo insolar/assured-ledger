@@ -6,6 +6,7 @@
 package adapters
 
 import (
+	"crypto"
 	"crypto/ecdsa"
 	"fmt"
 	"time"
@@ -13,7 +14,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/crypto/legacyadapter"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
-	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles"
@@ -21,7 +21,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
-	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 const DefaultStartPower = member.Power(10)
@@ -32,15 +31,7 @@ type StaticProfileExtension struct {
 	signature cryptkit.Signature
 }
 
-func NewStaticProfileExtension(networkNode nodeinfo.NetworkNode) *StaticProfileExtension {
-	return NewStaticProfileExtensionExt(
-		networkNode.GetNodeID(),
-		nodeinfo.NodeRef(networkNode),
-		nodeinfo.NodeSignedDigest(networkNode).GetSignatureHolder().CopyOfSignature(),
-	)
-}
-
-func NewStaticProfileExtensionExt(shortID node.ShortNodeID, ref reference.Global, signature cryptkit.Signature) *StaticProfileExtension {
+func NewStaticProfileExtension(shortID node.ShortNodeID, ref reference.Global, signature cryptkit.Signature) *StaticProfileExtension {
 	return &StaticProfileExtension{
 		shortID:   shortID,
 		ref:       ref,
@@ -93,35 +84,6 @@ type StaticProfile struct {
 	signature  cryptkit.SignedDigestHolder
 }
 
-func NewStaticProfile(networkNode nodeinfo.NetworkNode, certificate nodeinfo.Certificate, keyProcessor cryptography.KeyProcessor) *StaticProfile {
-	return NewStaticProfileExt(networkNode, nodeinfo.NodeAddr(networkNode),
-		certificate, keyProcessor, nodeinfo.NodeSignedDigest(networkNode))
-}
-
-func NewStaticProfileExt(networkNode nodeinfo.NetworkNode, addr string, certificate nodeinfo.Certificate,
-	keyProcessor cryptography.KeyProcessor, signature cryptkit.SignedDigestHolder,
-) *StaticProfile {
-
-	specialRole := member.SpecialRoleNone
-	if network.IsDiscovery(nodeinfo.NodeRef(networkNode), certificate) {
-		specialRole = member.SpecialRoleDiscovery
-	}
-
-	publicKey := ECDSAPublicKeyOfNode(networkNode)
-
-	return NewStaticProfileExt2(
-		networkNode.GetNodeID(),
-		nodeinfo.NodeRole(networkNode),
-		specialRole,
-		networkNode.GetStatic().GetStartPower(),
-		NewStaticProfileExtension(networkNode),
-		NewOutbound(addr),
-		legacyadapter.NewECDSAPublicKeyStoreFromPK(publicKey),
-		legacyadapter.NewECDSASignatureKeyHolder(publicKey, keyProcessor),
-		signature,
-	)
-}
-
 // deprecated // for legacy code only
 func ECDSAPublicKeyOfNode(n nodeinfo.NetworkNode) *ecdsa.PublicKey {
 	nip := n.GetStatic()
@@ -129,8 +91,26 @@ func ECDSAPublicKeyOfNode(n nodeinfo.NetworkNode) *ecdsa.PublicKey {
 	return store.(*legacyadapter.ECDSAPublicKeyStore).CryptoPublicKey().(*ecdsa.PublicKey)
 }
 
+func ECDSAPublicKeyOfProfile(nip profiles.StaticProfile) crypto.PublicKey {
+	store := nip.GetPublicKeyStore()
+	return store.(*legacyadapter.ECDSAPublicKeyStore).CryptoPublicKey()
+}
 
-func NewStaticProfileExt2(
+func ECDSAPublicKeyAsPublicKeyStore(pk crypto.PublicKey) cryptkit.PublicKeyStore {
+	if pk == nil {
+		return nil
+	}
+	return legacyadapter.NewECDSAPublicKeyStoreFromPK(pk.(*ecdsa.PublicKey))
+}
+
+func ECDSAPublicKeyAsSignatureKeyHolder(pk crypto.PublicKey, kp cryptography.KeyProcessor) cryptkit.SignatureKeyHolder {
+	if pk == nil {
+		return nil
+	}
+	return legacyadapter.NewECDSASignatureKeyHolder(pk.(*ecdsa.PublicKey), kp)
+}
+
+func NewStaticProfile(
 	shortID node.ShortNodeID,
 	primaryRole member.PrimaryRole,
 	specialRole member.SpecialRole,
@@ -244,29 +224,3 @@ func (p *Outbound) GetIPAddress() endpoints.IPAddress {
 	return p.addr
 }
 
-func NewStaticProfileList(nodes []nodeinfo.NetworkNode, certificate nodeinfo.Certificate, keyProcessor cryptography.KeyProcessor) []profiles.StaticProfile {
-	intros := make([]profiles.StaticProfile, len(nodes))
-	for i, n := range nodes {
-		intros[i] = NewStaticProfile(n, certificate, keyProcessor)
-	}
-
-	profiles.SortStaticProfiles(intros, false)
-
-	return intros
-}
-
-func NewNetworkNode(profile profiles.ActiveNode) nodeinfo.NetworkNode {
-	if profile == nil {
-		panic(throw.IllegalValue())
-	}
-	return profile
-}
-
-func NewNetworkNodeList(profiles []profiles.ActiveNode) []nodeinfo.NetworkNode {
-	networkNodes := make([]nodeinfo.NetworkNode, len(profiles))
-	for i, p := range profiles {
-		networkNodes[i] = NewNetworkNode(p)
-	}
-
-	return networkNodes
-}

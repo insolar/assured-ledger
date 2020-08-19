@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat/memstor"
 	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/crypto/legacyadapter"
@@ -24,19 +25,17 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
-	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/common/endpoints"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles"
 	"github.com/insolar/assured-ledger/ledger-core/network/gateway"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
-	"github.com/insolar/assured-ledger/ledger-core/network/nodeset"
 	"github.com/insolar/assured-ledger/ledger-core/network/transport"
-	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/network/mutable"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
@@ -79,7 +78,7 @@ func testCase(stopAfter, startCaseAfter time.Duration, test func()) {
 type InitializedNodes struct {
 	addresses      []string
 	controllers    []consensus.Controller
-	nodeKeepers    []network.NodeKeeper
+	nodeKeepers    []beat.NodeKeeper
 	transports     []transport.DatagramTransport
 	contexts       []context.Context
 	staticProfiles []profiles.StaticProfile
@@ -91,7 +90,7 @@ type GeneratedNodes struct {
 	discoveryNodes []nodeinfo.NetworkNode
 }
 
-func generateNodes(countNeutral, countHeavy, countLight, countVirtual int, discoveryNodes []nodeinfo.NetworkNode) (*GeneratedNodes, error) {
+func generateNodes(countNeutral, countHeavy, countLight, countVirtual int, discoveryNodes []nodeinfo.NetworkNode) (GeneratedNodes, error) {
 	nodeIdentities := generateNodeIdentities(countNeutral, countHeavy, countLight, countVirtual)
 	nodeInfos := generateNodeInfos(nodeIdentities)
 	nodes, dn, err := nodesFromInfo(nodeInfos)
@@ -101,10 +100,10 @@ func generateNodes(countNeutral, countHeavy, countLight, countVirtual int, disco
 	}
 
 	if err != nil {
-		return nil, err
+		return GeneratedNodes{}, err
 	}
 
-	return &GeneratedNodes{
+	return GeneratedNodes{
 		nodes:          nodes,
 		meta:           nodeInfos,
 		discoveryNodes: dn,
@@ -118,16 +117,16 @@ func newNodes(size int) InitializedNodes {
 		transports:     make([]transport.DatagramTransport, size),
 		contexts:       make([]context.Context, size),
 		staticProfiles: make([]profiles.StaticProfile, size),
-		nodeKeepers:    make([]network.NodeKeeper, size),
+		nodeKeepers:    make([]beat.NodeKeeper, size),
 	}
 }
 
-func initNodes(ctx context.Context, mode consensus.Mode, nodes GeneratedNodes, strategy NetStrategy) (*InitializedNodes, error) {
+func initNodes(ctx context.Context, mode consensus.Mode, nodes GeneratedNodes, strategy NetStrategy) (InitializedNodes, error) {
 	ns := newNodes(len(nodes.nodes))
 
 	for i, n := range nodes.nodes {
-		nodeKeeper := nodeset.NewNodeKeeper(nodeinfo.NodeRef(n), nodeinfo.NodeRole(n))
-		nodeKeeper.SetInitialSnapshot(nodes.nodes)
+		nodeKeeper := memstor.NewNodeKeeper(nodeinfo.NodeRef(n), nodeinfo.NodeRole(n))
+		// nodeKeeper.SetInitialSnapshot(nodes.nodes)
 		ns.nodeKeepers[i] = nodeKeeper
 
 		certificateManager := initCrypto(n, nodes.discoveryNodes)
@@ -140,7 +139,7 @@ func initNodes(ctx context.Context, mode consensus.Mode, nodes GeneratedNodes, s
 		transportFactory := transport.NewFactory(conf)
 		datagramTransport, err := transportFactory.CreateDatagramTransport(datagramHandler)
 		if err != nil {
-			return nil, err
+			return InitializedNodes{}, err
 		}
 
 		delayTransport := strategy.GetLink(datagramTransport)
@@ -154,6 +153,8 @@ func initNodes(ctx context.Context, mode consensus.Mode, nodes GeneratedNodes, s
 
 			NodeKeeper:        nodeKeeper,
 			DatagramTransport: delayTransport,
+
+			LocalNodeProfile: nil, // TODO
 
 			StateGetter: &nshGen{nshDelay: defaultNshGenerationDelay},
 			PulseChanger: &pulseChanger{
@@ -175,13 +176,13 @@ func initNodes(ctx context.Context, mode consensus.Mode, nodes GeneratedNodes, s
 		ns.contexts[i] = ctx
 		err = delayTransport.Start(ctx)
 		if err != nil {
-			return nil, err
+			return InitializedNodes{}, err
 		}
 
-		ns.staticProfiles[i] = adapters.NewStaticProfile(n, certificateManager.GetCertificate(), keyProcessor)
+		ns.staticProfiles[i] = n.GetStatic()
 	}
 
-	return &ns, nil
+	return ns, nil
 }
 
 func initPulsar(ctx context.Context, delta uint16, ns InitializedNodes) {
@@ -310,6 +311,8 @@ func nodesFromInfo(nodeInfos []*nodeMeta) ([]nodeinfo.NetworkNode, []nodeinfo.Ne
 func newNetworkNode(addr string, role member.PrimaryRole, pk crypto.PublicKey) *mutable.Node {
 	n := mutable.NewTestNode(gen.UniqueGlobalRef(), role, addr)
 	n.SetShortID(node.ShortNodeID(shortNodeIdOffset))
+	n.SetPublicKeyStore(adapters.ECDSAPublicKeyAsPublicKeyStore(pk))
+	n.SetNodePublicKey(adapters.ECDSAPublicKeyAsSignatureKeyHolder(pk, keyProcessor))
 
 	shortNodeIdOffset += 1
 	return n
@@ -371,28 +374,38 @@ func (ng *nshGen) RequestNodeState(fn chorus.NodeStateFunc) {
 func (ng *nshGen) CancelNodeState() {}
 
 type pulseChanger struct {
-	nodeKeeper network.NodeKeeper
+	nodeKeeper beat.NodeKeeper
 }
 
-func (pc *pulseChanger) ChangeBeat(ctx context.Context, report api.UpstreamReport, pulse beat.Beat) {
+func (pc *pulseChanger) ChangeBeat(ctx context.Context, report api.UpstreamReport, pu beat.Beat) {
 	inslogger.FromContext(ctx).Info(">>>>>> Change pulse called")
-	pc.nodeKeeper.MoveSyncToActive(ctx, pulse.PulseNumber)
+	if err := pc.nodeKeeper.AddCommittedBeat(pu); err != nil {
+		panic(err)
+	}
 }
 
 type stateUpdater struct {
-	nodeKeeper network.NodeKeeper
+	nodeKeeper beat.NodeKeeper
 }
 
-func (su *stateUpdater) UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes []nodeinfo.NetworkNode, cloudStateHash []byte) {
+func (su *stateUpdater) UpdateState(ctx context.Context, beat beat.Beat) {
 	inslogger.FromContext(ctx).Info(">>>>>> Update state called")
 
-	su.nodeKeeper.Sync(ctx, nodes)
+	if err := su.nodeKeeper.AddExpectedBeat(beat); err != nil {
+		panic(err)
+	}
+	if beat.IsFromPulsar() {
+		return
+	}
+	if err := su.nodeKeeper.AddCommittedBeat(beat); err != nil {
+		panic(err)
+	}
 }
 
 type ephemeralController struct {
 	allowed bool
 }
 
-func (e *ephemeralController) EphemeralMode(nodes []nodeinfo.NetworkNode) bool {
+func (e *ephemeralController) EphemeralMode(census.OnlinePopulation) bool {
 	return e.allowed
 }

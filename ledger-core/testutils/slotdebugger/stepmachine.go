@@ -165,6 +165,10 @@ func (c *StepController) RunTil(predicate func(event debuglogger.UpdateEvent) bo
 	}
 }
 
+func (c *StepController) Continue() {
+	c.debugLogger.Continue()
+}
+
 func (c *StepController) Stop() {
 	c.watchdog.Stop()
 
