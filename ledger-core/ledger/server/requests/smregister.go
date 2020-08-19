@@ -6,8 +6,6 @@
 package requests
 
 import (
-	"runtime"
-
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc"
@@ -138,23 +136,26 @@ func (p *SMRegisterRecordSet) stepApplyRecordSet(ctx smachine.ExecutionContext) 
 	}
 
 	var errors []error
+	committedDuplicates := false
 	switch p.sdl.TryAccess(ctx, func(sd *datawriter.LineSharedData) (wakeup bool) {
 		switch future, bundle := sd.TryApplyRecordSet(ctx, *p.inspectedSet); {
-		case bundle == nil:
+		case future != nil:
+			if bundle != nil {
+				panic(throw.Impossible())
+			}
 			p.updated = future
-			return false
+		case bundle == nil:
+			committedDuplicates = true
 		case bundle.HasErrors():
 			errors = bundle.GetErrors()
-			return false
-
 		case p.hasRequested:
 			//
-			return false
 		default:
 			p.hasRequested = true
 			sd.RequestDependencies(bundle, ctx.NewBargeIn().WithWakeUp())
 			return true
 		}
+		return false
 	}) {
 	case smachine.Passed:
 		//
@@ -166,7 +167,11 @@ func (p *SMRegisterRecordSet) stepApplyRecordSet(ctx smachine.ExecutionContext) 
 
 	switch {
 	case len(errors) > 0:
-		p.sendFailResponse(ctx, errors...)
+		return p.handleFailure(ctx, errors...)
+
+	case committedDuplicates:
+		ctx.ReleaseAll()
+		p.sendResponse(ctx, true)
 		return ctx.Stop()
 
 	case p.updated == nil:
@@ -202,37 +207,41 @@ func (p *SMRegisterRecordSet) migratePast(ctx smachine.MigrationContext) smachin
 
 func (p *SMRegisterRecordSet) stepSendFinalResponse(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	if p.updated == nil {
-		p.sendFailResponse(ctx, throw.E("cancelled"))
-	} else {
-		switch ready, err := p.updated.GetFutureResult(); {
-		case !ready:
-			p.sendFailResponse(ctx, throw.E("aborted"))
-		case err != nil:
-			p.sendFailResponse(ctx, err)
-		default:
-			p.sendResponse(ctx, true)
-		}
+		return p.handleFailure(ctx, throw.E("cancelled"))
 	}
-	return ctx.Stop()
+
+	switch ready, err := p.updated.GetFutureResult(); {
+	case !ready:
+		return p.handleFailure(ctx, throw.E("aborted"))
+	case err != nil:
+		return p.handleFailure(ctx, err)
+	default:
+		p.sendResponse(ctx, true)
+		return ctx.Stop()
+	}
 }
 
-func (p *SMRegisterRecordSet) sendResponse(ctx smachine.ExecutionContext, safe bool) {
-	// TODO
-	if safe {
-		runtime.KeepAlive(ctx)
-	}
-	panic(throw.NotImplemented())
-}
-
-func (p *SMRegisterRecordSet) sendFailResponse(ctx smachine.ExecutionContext, errors ...error) {
+func (p *SMRegisterRecordSet) handleFailure(ctx smachine.ExecutionContext, errors ...error) smachine.StateUpdate {
 	if len(errors) == 0 || errors[0] == nil {
-		panic(throw.IllegalState())
+		panic(throw.IllegalValue())
 	}
-	// TODO
-	if ctx != nil {
-		runtime.KeepAlive(ctx)
+
+	if p.sendFailResponse(ctx, errors) {
+		return ctx.Stop()
 	}
-	panic(throw.NotImplemented())
+
+	return ctx.Error(errors[0])
+}
+
+//nolint
+func (p *SMRegisterRecordSet) sendResponse(ctx smachine.ExecutionContext, safe bool) {
+	// TODO implement
+}
+
+//nolint
+func (p *SMRegisterRecordSet) sendFailResponse(ctx smachine.ExecutionContext, errors []error) bool {
+	// TODO implement
+	return false
 }
 
 func (p *SMRegisterRecordSet) handleError(ctx smachine.FailureContext) {

@@ -69,21 +69,44 @@ func (p *LineSharedData) TryApplyRecordSet(ctx smachine.ExecutionContext, set in
 }
 
 func (p *LineSharedData) applyBundle(ctx smachine.ExecutionContext, br *lineage.BundleResolver) (*buildersvc.Future, *lineage.BundleResolver) {
+
 	if !br.IsResolved() {
 		return nil, br
 	}
 
 	future := buildersvc.NewFuture("")
-	if !p.data.AddBundle(br, future) {
+
+	switch ok, fut, resolved := p.data.AddBundle(br, future); {
+	case !ok:
+		// got an error or an unresolved dependency
 		return nil, br
+
+	case fut == nil:
+		// all entries were already added and committed
+		if !resolved.IsZero() {
+			panic(throw.Impossible())
+		}
+		return nil, nil
+
+	case resolved.IsZero():
+		// all entries were already added, but not yet committed
+		return fut.(*buildersvc.Future), nil
+
+	default:
+		// entries has to be added
+
+		if future != fut {
+			panic(throw.Impossible())
+		}
+
+		dropID := p.jetDropID
+		p.adapter.PrepareNotify(ctx, func(service buildersvc.Service) {
+			service.AppendToDrop(dropID, future, resolved)
+		}).Send()
+
+		return future, nil
 	}
 
-	dropID := p.jetDropID
-	p.adapter.PrepareNotify(ctx, func(service buildersvc.Service) {
-		service.AppendToDrop(dropID, future, br.GetResolved())
-	}).Send()
-
-	return future, nil
 }
 
 func (p *LineSharedData) RequestDependencies(br *lineage.BundleResolver, wakeup smachine.BargeInNoArgHolder) {
@@ -147,11 +170,6 @@ func (p *LineSharedData) addSoloRecord(ctx smachine.ExecutionContext, rec lineag
 	p.ensureDataAccess()
 	br := p.data.NewBundle()
 	br.Add(rec)
-
-	if br.IsEmpty() {
-		// was deduplicated
-		return nil
-	}
 
 	if f, _ := p.applyBundle(ctx, br); f != nil {
 		return f

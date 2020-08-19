@@ -18,6 +18,7 @@ func NewRegRecord(excerpt catalog.Excerpt, req *rms.LRegisterRequest) Record {
 		Excerpt:            excerpt,
 		RecRef:             req.AnticipatedRef.Get(),
 		ProducedBy: 		req.ProducedBy.Get(),
+		ProducerSignature:  req.ProducerSignature,
 		regReq:             req,
 	}
 }
@@ -43,6 +44,7 @@ type Record struct {
 	RecRef             reference.Holder
 	RecapRef           reference.Holder
 	ProducedBy         reference.Holder
+	ProducerSignature  rms.Binary
 	RegisteredBy	   reference.Holder
 	RegistrarSignature cryptkit.SignedDigest
 
@@ -52,6 +54,10 @@ type Record struct {
 
 func (v Record) Equal(record Record) bool {
 	return v.regReq != nil && v.regReq.Equal(record.regReq)
+}
+
+func (v Record) EqualForRecordIdempotency(record Record) bool {
+	return v.Excerpt.Equal(&record.Excerpt)
 }
 
 func (v Record) GetRecordRef() reference.Holder {

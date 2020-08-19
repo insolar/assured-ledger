@@ -55,16 +55,22 @@ func (p *LineStages) NewBundle() *BundleResolver {
 	return newBundleResolver(p, GetRecordPolicy)
 }
 
-func (p *LineStages) AddBundle(bundle *BundleResolver, tracker StageTracker) bool {
+// deprecated // test use only
+func (p *LineStages) addBundle(bundle *BundleResolver, tracker StageTracker) bool {
+	ok, _, _ := p.AddBundle(bundle, tracker)
+	return ok
+}
+
+func (p *LineStages) AddBundle(bundle *BundleResolver, tracker StageTracker) (bool, StageTracker, ResolvedBundle) {
 	switch {
 	case tracker == nil:
 		panic(throw.IllegalValue())
 	case bundle == nil:
 		panic(throw.IllegalValue())
 	case bundle.IsEmpty():
-		return true
+		return true, nil, ResolvedBundle{}
 	case !bundle.IsResolved():
-		return false
+		return false, nil, ResolvedBundle{}
 	}
 
 	prevFilamentCount := 0
@@ -94,9 +100,20 @@ func (p *LineStages) AddBundle(bundle *BundleResolver, tracker StageTracker) boo
 
 	defer bundle.setLastRecord(nil)
 
+	notFoundCount := 0
+	latestFound := recordNo(0)
+
 	for i := range bundle.records {
 		rec := &bundle.records[i]
 		bundle.setLastRecord(rec.GetRecordRef())
+
+		if rec.isFound {
+			if latestFound < rec.recordNo {
+				latestFound = rec.recordNo
+			}
+			continue
+		}
+		notFoundCount++
 
 		if err := p.checkReason(rec); err != nil {
 			bundle.addError(err)
@@ -121,22 +138,35 @@ func (p *LineStages) AddBundle(bundle *BundleResolver, tracker StageTracker) boo
 
 	if err := validator.postCheck(); err != nil {
 		bundle.addError(err)
-		return false
 	}
 
 	if !bundle.IsResolved() {
-		return false
+		// has errors or unresolved dependencies
+		return false, nil, ResolvedBundle{}
 	}
 
-	return p.addStage(bundle, stage, prevFilamentCount, validator.filRoot)
+	if notFoundCount == 0 {
+		// all records were added earlier
+		if s := p.findStage(latestFound); s != nil {
+			return true, s.tracker, ResolvedBundle{}
+		}
+		return true, nil, ResolvedBundle{}
+	}
+
+	// block this bundle from being reused without reprocessing
+	defer bundle.addError(throw.New("discarded bundle"))
+
+	if p.addStage(bundle, stage, prevFilamentCount, validator.filRoot) {
+		return true, tracker, bundle.getResolved()
+	}
+
+	return false, nil, ResolvedBundle{}
 }
 
 func (p *LineStages) addStage(bundle *BundleResolver, stage *updateStage, prevFilamentCount int, filRoot reference.Local) bool {
 	cutOffRec := stage.firstRec
 
 	defer func() {
-		// block this bundle from being reused without reprocessing
-		bundle.addError(throw.New("discarded bundle"))
 		if cutOffRec > 0 {
 			p.restoreLatest(cutOffRec)
 		} else {
@@ -190,6 +220,21 @@ func (p *LineStages) addStage(bundle *BundleResolver, stage *updateStage, prevFi
 	p.latest = stage
 
 	return true
+}
+
+func (p *LineStages) findStage(recNo recordNo) *updateStage {
+	var prev *updateStage
+
+	for stage := p.earliest; stage != nil; prev, stage = stage, stage.next {
+		switch {
+		case stage.firstRec > recNo:
+			return prev
+		case stage.firstRec == recNo:
+			return stage
+		}
+	}
+
+	return nil
 }
 
 func (p *LineStages) TrimCommittedStages() {
@@ -422,7 +467,7 @@ func (p *LineStages) findCollision(local reference.LocalHolder, record *Record) 
 		return 0, nil
 	}
 	found := p.get(recNo)
-	if found.Record.Equal(*record) {
+	if found.Record.EqualForRecordIdempotency(*record) {
 		return recNo, nil
 	}
 	return 0, throw.E("record content mismatch", struct { Existing, New Record	}{ found.Record, *record })

@@ -53,7 +53,7 @@ func (p *BundleResolver) Hint(recordCount int) {
 	p.records = make([]resolvedRecord, 0, recordCount)
 }
 
-func (p *BundleResolver) GetResolved() ResolvedBundle {
+func (p *BundleResolver) getResolved() ResolvedBundle {
 	if p.IsResolved() {
 		return ResolvedBundle{ p.records }
 	}
@@ -73,7 +73,7 @@ func (p *BundleResolver) GetErrors() []error {
 }
 
 func (p *BundleResolver) IsEmpty() bool {
-	return len(p.records) == 0
+	return len(p.records) == 0 && len(p.errors) == 0 && len(p.unresolved) == 0
 }
 
 func (p *BundleResolver) IsResolved() bool {
@@ -137,7 +137,8 @@ func (p *BundleResolver) Add(record Record) bool {
 		case err != nil:
 			return p.addRefError("RecordRef", err)
 		case hasCopy:
-			return true
+			p.records = append(p.records, upd)
+			return p.isResolved
 		case policy.IsAnyFilamentStart():
 			if len(p.records) == 0 {
 				if p.maxRecNo > 1 {
@@ -181,6 +182,7 @@ func (p *BundleResolver) checkCollision(upd *resolvedRecord, ref reference.Holde
 			panic(throw.IllegalState())
 		}
 		upd.recordNo = foundNo
+		upd.isFound = true
 		return true, nil
 	case p.findResolved(refLocal) != nil:
 		return false, throw.E("duplicate")
