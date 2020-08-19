@@ -8,9 +8,9 @@ package gateway
 import (
 	"context"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
-	"github.com/insolar/assured-ledger/ledger-core/network/nodeset"
 	"github.com/insolar/assured-ledger/ledger-core/network/rules"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
@@ -35,14 +35,27 @@ func (g *WaitMinRoles) Run(ctx context.Context, pulse pulse.Data) {
 	}
 }
 
-func (g *WaitMinRoles) UpdateState(ctx context.Context, pulseNumber pulse.Number, nodes []nodeinfo.NetworkNode, cloudStateHash []byte) {
-	workingNodes := nodeset.SelectWorking(nodes)
-
-	if _, err := rules.CheckMajorityRule(g.CertificateManager.GetCertificate(), workingNodes); err != nil {
+func (g *WaitMinRoles) UpdateState(ctx context.Context, beat beat.Beat) {
+	if _, err := rules.CheckMajorityRule(g.CertificateManager.GetCertificate(), beat.Online); err != nil {
 		g.FailState(ctx, err.Error())
 	}
 
-	g.Base.UpdateState(ctx, pulseNumber, nodes, cloudStateHash)
+	g.Base.UpdateState(ctx, beat)
+}
+
+// deprecated // improve
+func SelectWorking(nodes []nodeinfo.NetworkNode) []nodeinfo.NetworkNode {
+	result := make([]nodeinfo.NetworkNode, 0, len(nodes))
+	for _, nd := range nodes {
+		if isWorkingNode(nd) {
+			result = append(result, nd)
+		}
+	}
+	return result
+}
+
+func isWorkingNode(nd nodeinfo.NetworkNode) bool {
+	return nd.IsPowered()
 }
 
 func (g *WaitMinRoles) GetState() network.State {
@@ -56,7 +69,7 @@ func (g *WaitMinRoles) OnConsensusFinished(ctx context.Context, report network.R
 func (g *WaitMinRoles) switchOnMinRoles(_ context.Context, pulse pulse.Data) {
 	err := rules.CheckMinRole(
 		g.CertificateManager.GetCertificate(),
-		g.NodeKeeper.GetAccessor(pulse.PulseNumber).GetWorkingNodes(),
+		g.NodeKeeper.GetNodeSnapshot(pulse.PulseNumber).GetPopulation(),
 	)
 
 	if err == nil {

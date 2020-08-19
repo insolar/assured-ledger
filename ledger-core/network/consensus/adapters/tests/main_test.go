@@ -40,13 +40,13 @@ func TestConsensusJoin(t *testing.T) {
 	joiners, err := generateNodes(0, 0, 6, 1, nodes.discoveryNodes)
 	require.NoError(t, err)
 
-	ns, err := initNodes(ctx, consensus.ReadyNetwork, *nodes, strategy)
+	ns, err := initNodes(ctx, consensus.ReadyNetwork, nodes, strategy)
 	require.NoError(t, err)
 
-	js, err := initNodes(ctx, consensus.Joiner, *joiners, strategy)
+	js, err := initNodes(ctx, consensus.Joiner, joiners, strategy)
 	require.NoError(t, err)
 
-	initPulsar(ctx, defaultPulseDelta, *ns)
+	initPulsar(ctx, defaultPulseDelta, ns)
 
 	testCase(defaultTestDuration, defaultStartCaseAfter, func() {
 		for i, joiner := range js.staticProfiles {
@@ -59,7 +59,7 @@ func TestConsensusJoin(t *testing.T) {
 		}
 	})
 
-	// require.Len(t, ns.nodeKeepers[0].GetAccessor().GetActiveNodes(), len(nodes.nodes)+len(joiners.nodes))
+	// require.Len(t, ns.nodeKeepers[0].GetNodeSnapshot().GetOnlineNodes(), len(nodes.nodes)+len(joiners.nodes))
 }
 
 func TestConsensusLeave(t *testing.T) {
@@ -68,10 +68,10 @@ func TestConsensusLeave(t *testing.T) {
 	nodes, err := generateNodes(0, 1, 3, 5, nil)
 	require.NoError(t, err)
 
-	ns, err := initNodes(ctx, consensus.ReadyNetwork, *nodes, strategy)
+	ns, err := initNodes(ctx, consensus.ReadyNetwork, nodes, strategy)
 	require.NoError(t, err)
 
-	initPulsar(ctx, defaultPulseDelta, *ns)
+	initPulsar(ctx, defaultPulseDelta, ns)
 
 	testCase(defaultTestDuration, defaultStartCaseAfter, func() {
 		nodeIdx := 1
@@ -82,7 +82,7 @@ func TestConsensusLeave(t *testing.T) {
 		ns.controllers[nodeIdx].Abort()
 	})
 
-	// require.Len(t, ns.nodeKeepers[0].GetAccessor().GetActiveNodes(), len(nodes.nodes)-1)
+	// require.Len(t, ns.nodeKeepers[0].GetNodeSnapshot().GetOnlineNodes(), len(nodes.nodes)-1)
 }
 
 func TestConsensusDrop(t *testing.T) {
@@ -91,10 +91,10 @@ func TestConsensusDrop(t *testing.T) {
 	nodes, err := generateNodes(0, 1, 3, 5, nil)
 	require.NoError(t, err)
 
-	ns, err := initNodes(ctx, consensus.ReadyNetwork, *nodes, strategy)
+	ns, err := initNodes(ctx, consensus.ReadyNetwork, nodes, strategy)
 	require.NoError(t, err)
 
-	initPulsar(ctx, defaultPulseDelta, *ns)
+	initPulsar(ctx, defaultPulseDelta, ns)
 
 	testCase(defaultTestDuration, defaultStartCaseAfter, func() {
 		nodeIdx := 1
@@ -103,7 +103,7 @@ func TestConsensusDrop(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	// require.Len(t, ns.nodeKeepers[0].GetAccessor().GetActiveNodes(), len(nodes.nodes)-1)
+	// require.Len(t, ns.nodeKeepers[0].GetNodeSnapshot().GetOnlineNodes(), len(nodes.nodes)-1)
 }
 
 func TestConsensusJoinLeave(t *testing.T) {
@@ -117,13 +117,13 @@ func TestConsensusJoinLeave(t *testing.T) {
 	joiners, err := generateNodes(0, 0, 0, 1, nodes.discoveryNodes)
 	require.NoError(t, err)
 
-	ns, err := initNodes(ctx, consensus.ReadyNetwork, *nodes, strategy)
+	ns, err := initNodes(ctx, consensus.ReadyNetwork, nodes, strategy)
 	require.NoError(t, err)
 
-	js, err := initNodes(ctx, consensus.Joiner, *joiners, strategy)
+	js, err := initNodes(ctx, consensus.Joiner, joiners, strategy)
 	require.NoError(t, err)
 
-	initPulsar(ctx, defaultPulseDelta, *ns)
+	initPulsar(ctx, defaultPulseDelta, ns)
 
 	testCase(defaultTestDuration, defaultStartCaseAfter, func() {
 		wg := &sync.WaitGroup{}
@@ -156,7 +156,7 @@ func TestConsensusJoinLeave(t *testing.T) {
 		wg.Wait()
 	})
 
-	// require.Len(t, ns.nodeKeepers[0].GetAccessor().GetActiveNodes(), len(nodes.nodes)+len(joiners.nodes)-1)
+	// require.Len(t, ns.nodeKeepers[0].GetNodeSnapshot().GetOnlineNodes(), len(nodes.nodes)+len(joiners.nodes)-1)
 }
 
 func TestConsensusJoinDrop(t *testing.T) {
@@ -170,13 +170,13 @@ func TestConsensusJoinDrop(t *testing.T) {
 	joiners, err := generateNodes(0, 0, 0, 1, nodes.discoveryNodes)
 	require.NoError(t, err)
 
-	ns, err := initNodes(ctx, consensus.ReadyNetwork, *nodes, strategy)
+	ns, err := initNodes(ctx, consensus.ReadyNetwork, nodes, strategy)
 	require.NoError(t, err)
 
-	js, err := initNodes(ctx, consensus.Joiner, *joiners, strategy)
+	js, err := initNodes(ctx, consensus.Joiner, joiners, strategy)
 	require.NoError(t, err)
 
-	initPulsar(ctx, defaultPulseDelta, *ns)
+	initPulsar(ctx, defaultPulseDelta, ns)
 
 	testCase(defaultTestDuration, defaultStartCaseAfter, func() {
 		wg := &sync.WaitGroup{}
@@ -207,7 +207,7 @@ func TestConsensusJoinDrop(t *testing.T) {
 		wg.Wait()
 	})
 
-	// require.Len(t, ns.nodeKeepers[0].GetAccessor().GetActiveNodes(), len(nodes.nodes)+len(joiners.nodes)-1)
+	// require.Len(t, ns.nodeKeepers[0].GetNodeSnapshot().GetOnlineNodes(), len(nodes.nodes)+len(joiners.nodes)-1)
 }
 
 func TestConsensusDropLeave(t *testing.T) {
@@ -216,10 +216,10 @@ func TestConsensusDropLeave(t *testing.T) {
 	nodes, err := generateNodes(0, 1, 3, 5, nil)
 	require.NoError(t, err)
 
-	ns, err := initNodes(ctx, consensus.ReadyNetwork, *nodes, strategy)
+	ns, err := initNodes(ctx, consensus.ReadyNetwork, nodes, strategy)
 	require.NoError(t, err)
 
-	initPulsar(ctx, defaultPulseDelta, *ns)
+	initPulsar(ctx, defaultPulseDelta, ns)
 
 	testCase(defaultTestDuration, defaultStartCaseAfter, func() {
 		wg := &sync.WaitGroup{}
@@ -248,7 +248,7 @@ func TestConsensusDropLeave(t *testing.T) {
 		wg.Wait()
 	})
 
-	// require.Len(t, ns.nodeKeepers[0].GetAccessor().GetActiveNodes(), len(nodes.nodes)-2)
+	// require.Len(t, ns.nodeKeepers[0].GetNodeSnapshot().GetOnlineNodes(), len(nodes.nodes)-2)
 }
 
 func TestConsensusAll(t *testing.T) {
@@ -262,13 +262,13 @@ func TestConsensusAll(t *testing.T) {
 	joiners, err := generateNodes(0, 0, 1, 1, nodes.discoveryNodes)
 	require.NoError(t, err)
 
-	ns, err := initNodes(ctx, consensus.ReadyNetwork, *nodes, strategy)
+	ns, err := initNodes(ctx, consensus.ReadyNetwork, nodes, strategy)
 	require.NoError(t, err)
 
-	js, err := initNodes(ctx, consensus.Joiner, *joiners, strategy)
+	js, err := initNodes(ctx, consensus.Joiner, joiners, strategy)
 	require.NoError(t, err)
 
-	initPulsar(ctx, defaultPulseDelta, *ns)
+	initPulsar(ctx, defaultPulseDelta, ns)
 
 	testCase(defaultTestDuration, defaultStartCaseAfter, func() {
 		wg := &sync.WaitGroup{}
@@ -310,5 +310,5 @@ func TestConsensusAll(t *testing.T) {
 		wg.Wait()
 	})
 
-	// require.Len(t, ns.nodeKeepers[0].GetAccessor().GetActiveNodes(), len(nodes.nodes)+len(joiners.nodes)-2)
+	// require.Len(t, ns.nodeKeepers[0].GetNodeSnapshot().GetOnlineNodes(), len(nodes.nodes)+len(joiners.nodes)-2)
 }

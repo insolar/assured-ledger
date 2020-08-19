@@ -16,6 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat/memstor"
 	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
@@ -24,7 +25,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
-	"github.com/insolar/assured-ledger/ledger-core/network/nodeset"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/network/controller"
@@ -37,7 +37,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
-	networkUtils "github.com/insolar/assured-ledger/ledger-core/testutils/network"
 )
 
 type PublisherMock struct{}
@@ -54,9 +53,7 @@ func prepareNetwork(t *testing.T, cfg configuration.Configuration) (*ServiceNetw
 	serviceNetwork, err := NewServiceNetwork(cfg, component.NewManager(nil))
 	require.NoError(t, err)
 
-	nodeKeeper := networkUtils.NewNodeKeeperMock(t)
-	// nodeMock := mutable.NewTestNode(gen.UniqueGlobalRef(), member.PrimaryRoleNeutral, "")
-	// nodeKeeper.GetOriginMock.Return(nodeMock)
+	nodeKeeper := beat.NewNodeKeeperMock(t)
 	ref := gen.UniqueGlobalRef()
 	nodeKeeper.GetLocalNodeReferenceMock.Return(ref)
 	serviceNetwork.NodeKeeper = nodeKeeper
@@ -91,8 +88,8 @@ func TestSendMessageHandler_SameNode(t *testing.T) {
 	svcNw, nodeRef := prepareNetwork(t, configuration.NewConfiguration())
 	svcNw.Pub = &PublisherMock{}
 
-	pulseMock := beat.NewAccessorMock(t)
-	pulseMock.LatestMock.Return(pulsestor.GenesisPulse, nil)
+	pulseMock := beat.NewAppenderMock(t)
+	pulseMock.LatestTimeBeatMock.Return(pulsestor.GenesisPulse, nil)
 
 	p := []byte{1, 2, 3, 4, 5}
 	meta := payload.Meta{
@@ -116,8 +113,8 @@ func TestSendMessageHandler_SendError(t *testing.T) {
 	rpc.SendBytesMock.Set(func(p context.Context, p1 reference.Global, p2 string, p3 []byte) (r []byte, r1 error) {
 		return nil, throw.New("test error")
 	})
-	pulseMock := beat.NewAccessorMock(t)
-	pulseMock.LatestMock.Return(pulsestor.GenesisPulse, nil)
+	pulseMock := beat.NewAppenderMock(t)
+	pulseMock.LatestTimeBeatMock.Return(pulsestor.GenesisPulse, nil)
 	svcNw.RPC = rpc
 
 	p := []byte{1, 2, 3, 4, 5}
@@ -142,8 +139,8 @@ func TestSendMessageHandler_WrongReply(t *testing.T) {
 	rpc.SendBytesMock.Set(func(p context.Context, p1 reference.Global, p2 string, p3 []byte) (r []byte, r1 error) {
 		return nil, nil
 	})
-	pulseMock := beat.NewAccessorMock(t)
-	pulseMock.LatestMock.Return(pulsestor.GenesisPulse, nil)
+	pulseMock := beat.NewAppenderMock(t)
+	pulseMock.LatestTimeBeatMock.Return(pulsestor.GenesisPulse, nil)
 	svcNw.RPC = rpc
 
 	p := []byte{1, 2, 3, 4, 5}
@@ -168,8 +165,8 @@ func TestSendMessageHandler(t *testing.T) {
 	rpc.SendBytesMock.Set(func(p context.Context, p1 reference.Global, p2 string, p3 []byte) (r []byte, r1 error) {
 		return ack, nil
 	})
-	pulseMock := beat.NewAccessorMock(t)
-	pulseMock.LatestMock.Return(pulsestor.GenesisPulse, nil)
+	pulseMock := beat.NewAppenderMock(t)
+	pulseMock.LatestTimeBeatMock.Return(pulsestor.GenesisPulse, nil)
 	svcNw.RPC = rpc
 
 	p := []byte{1, 2, 3, 4, 5}
@@ -201,7 +198,7 @@ func TestServiceNetwork_StartStop(t *testing.T) {
 	cm.SetLogger(global.Logger())
 
 	originRef := gen.UniqueGlobalRef()
-	nk := nodeset.NewNodeKeeper(originRef, member.PrimaryRoleUnknown)
+	nk := memstor.NewNodeKeeper(originRef, member.PrimaryRoleUnknown)
 
 	cert := &mandates.Certificate{}
 	cert.Reference = originRef.String()
@@ -221,7 +218,7 @@ func TestServiceNetwork_StartStop(t *testing.T) {
 	cm.Inject(svcNw, nk, certManager,
 		keystore.NewInplaceKeyStore(skey),
 		&platformpolicy.NodeCryptographyService{},
-		beat.NewAccessorMock(t),
+		beat.NewAppenderMock(t),
 		/* testutils.NewTerminationHandlerMock(t), */
 		chorus.NewConductorMock(t),
 		&PublisherMock{}, &stater{},

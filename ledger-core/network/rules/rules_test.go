@@ -11,6 +11,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -22,24 +23,20 @@ import (
 )
 
 func TestRules_CheckMinRole(t *testing.T) {
+	role := census.NewRolePopulationMock(t)
+	role.GetWorkingCountMock.Return(1)
+	role.GetIdleCountMock.Return(1)
+
+	pop := census.NewOnlinePopulationMock(t)
+	pop.GetRolePopulationMock.Return(role)
+
 	cert := testutils.NewCertificateMock(t)
-	nodes := []nodeinfo.NetworkNode{
-		mutable.NewTestNode(gen.UniqueGlobalRef(), member.PrimaryRoleHeavyMaterial, ""),
-		mutable.NewTestNode(gen.UniqueGlobalRef(), member.PrimaryRoleLightMaterial, ""),
-		mutable.NewTestNode(gen.UniqueGlobalRef(), member.PrimaryRoleLightMaterial, ""),
-		mutable.NewTestNode(gen.UniqueGlobalRef(), member.PrimaryRoleVirtual, ""),
-		mutable.NewTestNode(gen.UniqueGlobalRef(), member.PrimaryRoleVirtual, ""),
-	}
-	cert.GetMinRolesMock.Set(func() (r uint, r1 uint, r2 uint) {
-		return 1, 0, 0
-	})
-	err := CheckMinRole(cert, nodes)
+	cert.GetMinRolesMock.Return(2, 0, 0)
+	err := CheckMinRole(cert, pop)
 	require.NoError(t, err)
 
-	cert.GetMinRolesMock.Set(func() (r uint, r1 uint, r2 uint) {
-		return 3, 2, 4
-	})
-	err = CheckMinRole(cert, nodes)
+	cert.GetMinRolesMock.Return(3, 2, 4)
+	err = CheckMinRole(cert, pop)
 	require.Error(t, err)
 }
 
@@ -53,13 +50,20 @@ func TestRules_CheckMajorityRule(t *testing.T) {
 	cert.GetMajorityRuleMock.Set(func() (r int) {
 		return discNodesCount
 	})
-	count, err := CheckMajorityRule(cert, netNodes)
+
+	pop := census.NewOnlinePopulationMock(t)
+	pop.GetProfilesMock.Return(netNodes)
+
+	count, err := CheckMajorityRule(cert, pop)
 	require.NoError(t, err)
 
 	require.Equal(t, discNodesCount, count)
 
 	netNodes = netNodes[:len(netNodes)-len(netNodes)/2]
-	count, err = CheckMajorityRule(cert, netNodes)
+	pop = census.NewOnlinePopulationMock(t)
+	pop.GetProfilesMock.Return(netNodes)
+
+	count, err = CheckMajorityRule(cert, pop)
 	require.Error(t, err)
 	require.Equal(t, len(netNodes), count)
 }

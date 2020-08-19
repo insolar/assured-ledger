@@ -92,13 +92,13 @@ func TestComplete_GetCert(t *testing.T) {
 	certNodeRef := gen.UniqueGlobalRef()
 
 	gatewayer := mock.NewGatewayerMock(t)
-	nodekeeper := mock.NewNodeKeeperMock(t)
+	nodekeeper := beat.NewNodeKeeperMock(t)
 	hn := mock.NewHostNetworkMock(t)
 
 	cm := mockCertificateManager(t, certNodeRef, certNodeRef, true)
 	cs := mockCryptographyService(t, true)
 	pm := mockPulseManager(t)
-	pa := beat.NewAccessorMock(t)
+	pa := beat.NewAppenderMock(t)
 
 	var ge network.Gateway
 	ge = newNoNetwork(&Base{
@@ -112,7 +112,7 @@ func TestComplete_GetCert(t *testing.T) {
 	ge = ge.NewGateway(context.Background(), network.CompleteNetworkState)
 	ctx := context.Background()
 
-	pa.LatestMock.Expect(ctx).Return(pulsestor.GenesisPulse, nil)
+	pa.LatestTimeBeatMock.Return(pulsestor.GenesisPulse, nil)
 
 	result, err := ge.Auther().GetCert(ctx, nodeRef)
 	require.NoError(t, err)
@@ -140,12 +140,12 @@ func TestComplete_handler(t *testing.T) {
 	certNodeRef := gen.UniqueGlobalRef()
 
 	gatewayer := mock.NewGatewayerMock(t)
-	nodekeeper := mock.NewNodeKeeperMock(t)
+	nodekeeper := beat.NewNodeKeeperMock(t)
 
 	cm := mockCertificateManager(t, certNodeRef, certNodeRef, true)
 	cs := mockCryptographyService(t, true)
 	pm := mockPulseManager(t)
-	pa := beat.NewAccessorMock(t)
+	pa := beat.NewAppenderMock(t)
 
 	hn := mock.NewHostNetworkMock(t)
 
@@ -161,7 +161,7 @@ func TestComplete_handler(t *testing.T) {
 
 	ge = ge.NewGateway(context.Background(), network.CompleteNetworkState)
 	ctx := context.Background()
-	pa.LatestMock.Expect(ctx).Return(pulsestor.GenesisPulse, nil)
+	pa.LatestTimeBeatMock.Return(pulsestor.GenesisPulse, nil)
 
 	p := packet.NewReceivedPacket(packet.NewPacket(nil, nil, types.SignCert, 1), nil)
 	p.SetRequest(&packet.SignCertRequest{NodeRef: nodeRef})
