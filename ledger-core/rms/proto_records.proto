@@ -89,6 +89,9 @@ message RPrevDropReport {
 message RLineActivate {
     option (insproto.id) = 20;
     RecordBody RecordBody = 19 [(gogoproto.embed)=true];
+
+    Reference PrevRef = 24;
+    Reference RootRef = 25;
 }
 
 message RLineDeactivate {
@@ -104,6 +107,9 @@ message RLineMemory {
     reserved 1 to 15, 17 to 18, 20 to 23, 26 to 39, 1792 to max;
     uint32 Polymorph = 16; // an explicit field is required to be able to alter record type
     RecordBody RecordBody = 19 [(gogoproto.embed)=true];
+
+    Reference PrevRef = 24;
+    Reference RootRef = 25;
 }
 
 message RLineMemoryExpected {

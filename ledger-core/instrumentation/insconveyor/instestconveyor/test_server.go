@@ -24,7 +24,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/testpop"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
@@ -140,6 +143,9 @@ func (p *ServerTemplate) Start() {
 
 		ac.CryptoScheme = legacyadapter.New(pcs, kp, keystore.NewInplaceKeyStore(sk.Private))
 	}
+	if reference.IsEmpty(ac.LocalNodeRef) {
+		ac.LocalNodeRef = gen.UniqueGlobalRefWithPulse(pulse.MinTimePulse)
+	}
 
 	ctx := context.Background()
 	ctx, p.ctxCancelFn = context.WithCancel(ctx)
@@ -243,4 +249,8 @@ func (p *ServerTemplate) Pulsar() *testutils.PulseGenerator {
 		panic(throw.IllegalState())
 	}
 	return p.pg
+}
+
+func (p *ServerTemplate) LastPulseNumber() pulse.Number {
+	return p.Pulsar().GetLastPulseData().PulseNumber
 }

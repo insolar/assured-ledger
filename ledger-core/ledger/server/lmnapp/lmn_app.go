@@ -14,8 +14,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/datawriter"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/inspectsvc"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/treesvc"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 // AppFactory is an entry point for ledger-core/server logic
@@ -24,8 +27,12 @@ func AppFactory(_ context.Context, cfg configuration.Configuration, comps insapp
 }
 
 func NewAppCompartment(_ configuration.Ledger, comps insapp.AppComponents) *insconveyor.AppCompartment {
+	if comps.LocalNodeRole != member.PrimaryRoleLightMaterial {
+		panic(throw.FailHere("Role is different"))
+	}
+
 	appDeps := injector.NewDynamicContainer(nil)
-	comps.AddInterfaceDependencies(appDeps)
+	comps.AddAsDependencies(appDeps)
 
 	return insconveyor.NewAppCompartment("LMN", appDeps,
 
@@ -51,6 +58,10 @@ func NewAppCompartment(_ configuration.Ledger, comps insapp.AppComponents) *insc
 			}
 
 			setup.AddComponent(buildersvc.NewAdapterComponent(smadapter.Config{}, comps.CryptoScheme))
+			setup.AddComponent(inspectsvc.NewAdapterComponent(smadapter.Config{
+				// ExpectedParallelReaders: -1,
+				// MaxBufferCapacity: -1,
+			}, comps.LocalNodeRef, comps.CryptoScheme))
 
 			f := NewEventFactory(ctx)
 			setup.ConveyorConfig.PulseSlotMigration = f.PostMigrate

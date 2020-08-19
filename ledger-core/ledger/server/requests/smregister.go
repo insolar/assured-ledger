@@ -18,6 +18,12 @@ import (
 
 var _ smachine.StateMachine = &SMRegisterRecordSet{}
 
+func NewSMRegisterRecordSet(reqs inspectsvc.RegisterRequestSet) *SMRegisterRecordSet {
+	return &SMRegisterRecordSet{
+		recordSet: reqs,
+	}
+}
+
 type SMRegisterRecordSet struct {
 	smachine.StateMachineDeclTemplate
 
@@ -27,11 +33,11 @@ type SMRegisterRecordSet struct {
 	// injected
 	pulseSlot  *conveyor.PulseSlot
 	cataloger  datawriter.LineCataloger
-	inspectSvc *inspectsvc.Adapter
+	inspectSvc inspectsvc.Adapter
 
 	// runtime
 	sdl          datawriter.LineDataLink
-	inspectedSet *inspectsvc.InspectedRecordSet
+	inspectedSet inspectsvc.InspectedRecordSet
 	hasRequested bool
 
 	// results
@@ -122,23 +128,25 @@ func (p *SMRegisterRecordSet) stepLineIsReady(ctx smachine.ExecutionContext) sma
 	}
 
 	// do chaining, hashing and signing via adapter
-	return p.inspectSvc.PrepareInspectRecordSet(ctx, p.recordSet, func(ctx smachine.AsyncResultContext, set inspectsvc.InspectedRecordSet, err error) {
-		if err != nil {
-			panic(err)
-		}
-		p.inspectedSet = &set
-	}).DelayedStart().Sleep().ThenJump(p.stepApplyRecordSet)
+	return p.inspectSvc.PrepareInspectRecordSet(ctx, p.recordSet,
+		func(ctx smachine.AsyncResultContext, set inspectsvc.InspectedRecordSet, err error) {
+			if err != nil {
+				panic(err)
+			}
+			p.inspectedSet = set
+		},
+	).DelayedStart().Sleep().ThenJump(p.stepApplyRecordSet)
 }
 
 func (p *SMRegisterRecordSet) stepApplyRecordSet(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if p.inspectedSet == nil {
+	if p.inspectedSet.Records == nil {
 		return ctx.Sleep().ThenRepeat()
 	}
 
 	var errors []error
 	committedDuplicates := false
 	switch p.sdl.TryAccess(ctx, func(sd *datawriter.LineSharedData) (wakeup bool) {
-		switch future, bundle := sd.TryApplyRecordSet(ctx, *p.inspectedSet); {
+		switch future, bundle := sd.TryApplyRecordSet(ctx, p.inspectedSet); {
 		case future != nil:
 			if bundle != nil {
 				panic(throw.Impossible())

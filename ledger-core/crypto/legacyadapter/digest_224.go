@@ -19,13 +19,13 @@ type Sha3Digester224 struct {
 	scheme cryptography.PlatformCryptographyScheme
 }
 
-func NewSha3Digester224(scheme cryptography.PlatformCryptographyScheme) *Sha3Digester224 {
-	return &Sha3Digester224{
+func NewSha3Digester224(scheme cryptography.PlatformCryptographyScheme) Sha3Digester224 {
+	return Sha3Digester224{
 		scheme: scheme,
 	}
 }
 
-func (pd *Sha3Digester224) DigestData(reader io.Reader) cryptkit.Digest {
+func (pd Sha3Digester224) DigestData(reader io.Reader) cryptkit.Digest {
 	hasher := pd.scheme.ReferenceHasher()
 
 	_, err := io.Copy(hasher, reader)
@@ -39,7 +39,7 @@ func (pd *Sha3Digester224) DigestData(reader io.Reader) cryptkit.Digest {
 	return cryptkit.NewDigest(bits, pd.GetDigestMethod())
 }
 
-func (pd *Sha3Digester224) DigestBytes(bytes []byte) cryptkit.Digest {
+func (pd Sha3Digester224) DigestBytes(bytes []byte) cryptkit.Digest {
 	hasher := pd.scheme.ReferenceHasher()
 
 	bytes = hasher.Hash(bytes)
@@ -48,15 +48,15 @@ func (pd *Sha3Digester224) DigestBytes(bytes []byte) cryptkit.Digest {
 	return cryptkit.NewDigest(bits, pd.GetDigestMethod())
 }
 
-func (pd *Sha3Digester224) NewHasher() cryptkit.DigestHasher {
+func (pd Sha3Digester224) NewHasher() cryptkit.DigestHasher {
 	return cryptkit.DigestHasher{BasicDigester: pd, Hash: pd.scheme.ReferenceHasher()}
 }
 
-func (pd *Sha3Digester224) GetDigestSize() int {
+func (pd Sha3Digester224) GetDigestSize() int {
 	return 28
 }
 
-func (pd *Sha3Digester224) GetDigestMethod() cryptkit.DigestMethod {
+func (pd Sha3Digester224) GetDigestMethod() cryptkit.DigestMethod {
 	return SHA3Digest224
 }
 

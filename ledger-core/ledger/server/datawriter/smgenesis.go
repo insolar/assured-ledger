@@ -68,8 +68,11 @@ func (p *SMGenesis) stepInit(ctx smachine.InitializationContext) smachine.StateU
 func (p *SMGenesis) stepPrepare(ctx smachine.ExecutionContext) smachine.StateUpdate {
 
 	// init and run genesis service here
-	p.treeSvc.FinishGenesis(DefaultGenesisSplitDepth, p.lastPN)
+	//
+	// ...
 
+	// FinishGenesis must be immediately before the stop
+	p.treeSvc.FinishGenesis(DefaultGenesisSplitDepth, p.lastPN)
 	return ctx.Stop()
 }
 
