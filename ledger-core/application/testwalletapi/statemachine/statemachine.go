@@ -164,6 +164,7 @@ func (s *SMTestAPICall) sendRequest(ctx smachine.ExecutionContext) {
 				ctx.Log().Warn("barge-in was not found for BuiltinTestAPIEcho")
 			}
 		}).WithoutAutoWakeUp().Start()
+		return
 	}
 
 	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
