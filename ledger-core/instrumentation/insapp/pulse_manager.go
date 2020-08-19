@@ -57,8 +57,7 @@ func (m *PulseManager) CommitPulseChange(pulseChange beat.Beat) error {
 	// 	panic(throw.IllegalState())
 	}
 
-	ctx := context.Background()
-	return m._commit(ctx, pulseChange)
+	return m._commit(pulseChange)
 }
 
 func (m *PulseManager) CommitFirstPulseChange(pulseChange beat.Beat) error {
@@ -68,8 +67,7 @@ func (m *PulseManager) CommitFirstPulseChange(pulseChange beat.Beat) error {
 	if ackFn := m.ackFn; ackFn != nil {
 		panic(throw.IllegalState())
 	}
-	ctx := context.Background()
-	return m._commit(ctx, pulseChange)
+	return m._commit(pulseChange)
 }
 
 func (m *PulseManager) RequestNodeState(stateFunc chorus.NodeStateFunc) {
@@ -103,8 +101,8 @@ func (m *PulseManager) CancelNodeState() {
 	panic(throw.IllegalState())
 }
 
-func (m *PulseManager) _commit(ctx context.Context, pulseChange beat.Beat) error {
-	if err := m.PulseAppender.EnsureLatest(ctx, pulseChange); err != nil {
+func (m *PulseManager) _commit(pulseChange beat.Beat) error {
+	if err := m.PulseAppender.EnsureLatestTimeBeat(pulseChange); err != nil {
 		return throw.W(err, "call of Ensure pulseChange failed")
 	}
 

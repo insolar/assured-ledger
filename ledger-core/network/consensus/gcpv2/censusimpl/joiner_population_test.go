@@ -72,7 +72,7 @@ func TestOJPGetRolePopulation(t *testing.T) {
 
 func TestOJPGetWorkingRoles(t *testing.T) {
 	ojp := OneJoinerPopulation{}
-	require.Nil(t, ojp.GetWorkingRoles())
+	require.Nil(t, ojp.GetPoweredRoles())
 }
 
 func TestOJPCopyTo(t *testing.T) {
