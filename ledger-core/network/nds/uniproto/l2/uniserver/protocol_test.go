@@ -126,6 +126,10 @@ var _ cryptkit.DataSigner = TestDataSigner{}
 
 type TestDataSigner struct{}
 
+func (v TestDataSigner) GetSignatureMethod() cryptkit.SignatureMethod {
+	return testSignatureMethod
+}
+
 func (v TestDataSigner) SignDigest(digest cryptkit.Digest) cryptkit.Signature {
 	return cryptkit.NewSignature(digest, testSignatureMethod)
 }
@@ -201,7 +205,7 @@ type TestDataVerifier struct {
 	TestDataSigner
 }
 
-func (t TestDataVerifier) GetSignatureMethod() cryptkit.SignatureMethod {
+func (t TestDataVerifier) GetDefaultSignatureMethod() cryptkit.SignatureMethod {
 	return testSignatureMethod
 }
 
