@@ -8,13 +8,17 @@ package network
 import (
 	"time"
 
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
 type StatusReply struct {
 	NetworkState    State
-	Origin          nodeinfo.NetworkNode
+	LocalRef        reference.Holder
+	LocalRole       member.PrimaryRole
+	LocalNode 		nodeinfo.NetworkNode
 	ActiveListSize  int
 	WorkingListSize int
 	// Nodes from active list

@@ -9,8 +9,9 @@ import (
 	"testing"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
-	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/network/mutable"
@@ -37,30 +38,35 @@ func TestGetNetworkStatus(t *testing.T) {
 	ppn := pc.PulseNumber
 	pc.NextPulseDelta = 10
 
-	nk := testutils.NewNodeKeeperMock(t)
-	a := testutils.NewAccessorMock(t)
-	activeLen := 1
-	active := make([]nodeinfo.NetworkNode, activeLen)
-	a.GetActiveNodesMock.Return(active)
-	a.GetPulseNumberMock.Return(pc.PulseNumber)
-
 	workingLen := 2
-	working := make([]nodeinfo.NetworkNode, workingLen)
-	a.GetWorkingNodesMock.Return(working)
 
-	nk.GetLatestAccessorMock.Return(a)
+	nk := beat.NewNodeKeeperMock(t)
+	a := beat.NewNodeSnapshotMock(t)
+	activeLen := 1
+	a.GetPulseNumberMock.Return(pc.PulseNumber)
 
 	ref := gen.UniqueGlobalRef()
 	nn := mutable.NewTestNode(ref, member.PrimaryRoleNeutral, "")
+
+	pop := census.NewOnlinePopulationMock(t)
+	pop.GetIndexedCountMock.Return(workingLen)
+	pop.GetIdleCountMock.Return(0)
+	pop.GetLocalProfileMock.Return(nn)
+	pop.GetProfilesMock.Return(make([]profiles.ActiveNode, activeLen))
+	a.GetPopulationMock.Return(pop)
+
+	nk.FindAnyLatestNodeSnapshotMock.Return(a)
+
 	nk.GetLocalNodeReferenceMock.Return(ref)
-	nk.GetOriginMock.Return(nn)
+	nk.GetLocalNodeRoleMock.Return(member.PrimaryRoleNeutral)
+
 
 	sn.NodeKeeper = nk
 
 	ns := sn.GetNetworkStatus()
 	require.Equal(t, ins, ns.NetworkState)
 
-	require.Equal(t, nn, ns.Origin)
+	require.Equal(t, nn, ns.LocalNode)
 
 	require.Equal(t, activeLen, ns.ActiveListSize)
 
@@ -75,7 +81,7 @@ func TestGetNetworkStatus(t *testing.T) {
 	ns = sn.GetNetworkStatus()
 	require.Equal(t, ins, ns.NetworkState)
 
-	require.Equal(t, nn, ns.Origin)
+	require.Equal(t, nn, ns.LocalNode)
 
 	require.Equal(t, activeLen, ns.ActiveListSize)
 

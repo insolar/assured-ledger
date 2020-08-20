@@ -34,7 +34,7 @@ func (g *JoinerBootstrap) Run(ctx context.Context, p pulse.Data) {
 		return
 	}
 
-	resp, err := g.BootstrapRequester.Bootstrap(ctx, permit, *g.originCandidate)
+	resp, err := g.BootstrapRequester.Bootstrap(ctx, permit, *g.localCandidate)
 	if err != nil {
 		logger.Warn("Failed to bootstrap: ", err.Error())
 		g.Gatewayer.SwitchState(ctx, network.NoNetworkState, p)

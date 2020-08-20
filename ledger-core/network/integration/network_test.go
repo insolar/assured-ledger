@@ -8,6 +8,7 @@
 package integration
 
 import (
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -15,7 +16,6 @@ import (
 )
 
 func TestNetworkConsensusManyTimes(t *testing.T) {
-	t.Parallel()
 	s := startNetworkSuite(t)
 	defer s.stopNetworkSuite()
 
@@ -24,21 +24,20 @@ func TestNetworkConsensusManyTimes(t *testing.T) {
 }
 
 func TestJoinerNodeConnect(t *testing.T) {
-	t.Parallel()
 	s := startNetworkSuite(t)
 	defer s.stopNetworkSuite()
 
 	joinerNode := s.startNewNetworkNode("JoinerNode")
 	defer s.StopNode(joinerNode)
 
-	assert.True(t, s.waitForNodeJoin(joinerNode.id, maxPulsesForJoin), "JoinerNode not found in active list after 3 pulses")
+	joined := s.waitForNodeJoin(joinerNode.ref, maxPulsesForJoin)
+	require.True(t, joined, "JoinerNode not found in active list after 3 pulses")
 
 	s.AssertActiveNodesCountDelta(1)
 }
 
 func TestNodeConnectInvalidVersion(t *testing.T) {
-	t.Skip("protocol version should not be exposed")
-	t.Parallel()
+	t.Skip("protocol version should not be exposed to app logic level")
 	s := startNetworkSuite(t)
 	defer s.stopNetworkSuite()
 
@@ -51,7 +50,7 @@ func TestNodeConnectInvalidVersion(t *testing.T) {
 	assert.NoError(t, err)
 	defer s.StopNode(testNode)
 
-	assert.False(t, s.waitForNodeJoin(testNode.id, maxPulsesForJoin), "testNode joined with incorrect version")
+	assert.False(t, s.waitForNodeJoin(testNode.ref, maxPulsesForJoin), "testNode joined with incorrect version")
 }
 
 func TestNodeLeave(t *testing.T) {
@@ -59,47 +58,52 @@ func TestNodeLeave(t *testing.T) {
 	defer s.stopNetworkSuite()
 
 	testNode := s.startNewNetworkNode("testNode")
-	assert.True(t, s.waitForNodeJoin(testNode.id, 3), "testNode not found in active list after 3 pulses")
+	assert.True(t, s.waitForNodeJoin(testNode.ref, 3), "testNode not found in active list after 3 pulses")
 
 	s.AssertActiveNodesCountDelta(1)
 	s.AssertWorkingNodesCountDelta(1)
 
 	s.StopNode(testNode)
 
-	assert.True(t, s.waitForNodeLeave(testNode.id, 3), "testNode found in active list after 3 pulses")
+	assert.True(t, s.waitForNodeLeave(testNode.ref, 3), "testNode found in active list after 3 pulses")
 
 	s.AssertWorkingNodesCountDelta(0)
 	s.AssertActiveNodesCountDelta(0)
 }
 
 func TestNodeGracefulLeave(t *testing.T) {
-	//	t.Skip("FIXME node GracefulStop")
+	t.Skip("FIXME actual implementation does NOT do graceful leave")
 
-	// TODO actual implementation does NOT do graceful leave
 	s := startNetworkSuite(t)
 	defer s.stopNetworkSuite()
 
 	testNode := s.startNewNetworkNode("testNode")
-	assert.True(t, s.waitForNodeJoin(testNode.id, 3), "testNode not found in active list after 3 pulses")
+	assert.True(t, s.waitForNodeJoin(testNode.ref, 3), "testNode not found in active list after 3 pulses")
 
 	s.GracefulStop(testNode)
 
-	assert.True(t, s.waitForNodeLeave(testNode.id, 3), "testNode found in active list after 3 pulses")
+	assert.True(t, s.waitForNodeLeave(testNode.ref, 3), "testNode found in active list after 3 pulses")
 
 	s.AssertWorkingNodesCountDelta(0)
 	s.AssertActiveNodesCountDelta(0)
 }
 
 func TestDiscoveryDown(t *testing.T) {
-	t.Skip("FIXME - causes unhandled panic by AbortMock")
+	t.Skip("FIXME - hangs")
 	s := startNetworkSuite(t)
+	wasAborted := false
+	s.abortFn = func(s string) {
+		require.Contains(t, s, "MinRoles failed")
+		wasAborted = true
+		runtime.Goexit()
+	}
 	defer s.stopNetworkSuite()
 
 	s.StopNode(s.bootstrapNodes[0])
-	s.waitForConsensusExcept(2, s.bootstrapNodes[0].id)
+	s.waitForConsensusExcept(2, s.bootstrapNodes[0].ref)
+	require.True(t, wasAborted)
 	for i := 1; i < s.getNodesCount(); i++ {
-		activeNodes := s.bootstrapNodes[i].GetWorkingNodes()
-		require.Equal(t, s.getNodesCount()-1, len(activeNodes))
+		require.Equal(t, s.getNodesCount()-1, s.bootstrapNodes[i].GetWorkingNodeCount())
 	}
 }
 

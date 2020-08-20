@@ -13,16 +13,17 @@ import (
 	"github.com/insolar/rpc/v2"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/api/requester"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/trace"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
 // Get returns status info
 func (s *NodeService) GetStatus(r *http.Request, args *interface{}, requestBody *rpc.RequestBody, reply *requester.StatusResponse) error {
 	traceID := trace.RandID()
-	ctx, inslog := inslogger.WithTraceField(context.Background(), traceID)
+	_, inslog := inslogger.WithTraceField(context.Background(), traceID)
 
 	inslog.Infof("[ NodeService.GetStatus ] Incoming request: %s", r.RequestURI)
 	if !s.runner.cfg.IsAdmin {
@@ -47,19 +48,22 @@ func (s *NodeService) GetStatus(r *http.Request, args *interface{}, requestBody 
 	reply.Nodes = nodes
 
 	reply.Origin = requester.Node{
-		Reference: nodeinfo.NodeRef(statusReply.Origin).String(),
-		Role:      nodeinfo.NodeRole(statusReply.Origin).String(),
-		IsWorking: statusReply.Origin.IsPowered(),
-		ID:        uint32(statusReply.Origin.GetNodeID()),
+		Reference: reference.Encode(statusReply.LocalRef),
+		Role:      statusReply.LocalRole.String(),
+	}
+
+	if statusReply.LocalNode != nil {
+		reply.Origin.IsWorking = statusReply.LocalNode.IsPowered()
+		reply.Origin.ID = uint32(statusReply.LocalNode.GetNodeID())
 	}
 
 	reply.NetworkPulseNumber = uint32(statusReply.PulseNumber)
 
-	p, err := s.runner.PulseAccessor.Latest(ctx)
-	if err != nil {
-		p = pulsestor.GenesisPulse
+	if p, err := s.runner.PulseAccessor.LatestTimeBeat(); err == nil {
+		reply.PulseNumber = uint32(p.PulseNumber)
+	} else {
+		reply.PulseNumber = pulse.MinTimePulse
 	}
-	reply.PulseNumber = uint32(p.PulseNumber)
 
 	reply.Version = statusReply.Version
 	reply.StartTime = statusReply.StartTime
