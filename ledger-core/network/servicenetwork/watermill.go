@@ -56,7 +56,7 @@ func (n *ServiceNetwork) sendMessage(ctx context.Context, msg *message.Message) 
 
 	// Short path when sending to self node. Skip serialization
 	if nodeRef.Equal(n.NodeKeeper.GetLocalNodeReference()) {
-		err := n.Pub.Publish(getIncomingTopic(msg), msg)
+		err := n.router.pub.Publish(getIncomingTopic(msg), msg)
 		if err != nil {
 			return errors.W(err, "error while publish msg to TopicIncoming")
 		}
@@ -90,7 +90,7 @@ func (n *ServiceNetwork) processIncoming(ctx context.Context, args []byte) ([]by
 	}
 	// TODO: check pulse here
 
-	err = n.Pub.Publish(getIncomingTopic(msg), msg)
+	err = n.router.pub.Publish(getIncomingTopic(msg), msg)
 	if err != nil {
 		err = errors.W(err, "error while publish msg to TopicIncoming")
 		logger.Error(err)

@@ -10,6 +10,8 @@ import (
 	"math"
 	"math/bits"
 	"strings"
+
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 func NewPrefixTree(autoPropagate bool) PrefixTree {
@@ -38,6 +40,7 @@ func NewPrefixTree(autoPropagate bool) PrefixTree {
 //
 // Serialization is supported, with O(n log n) per operation.
 //
+
 type PrefixTree struct {
 	mask          Prefix
 	minDepth      uint8
@@ -120,11 +123,11 @@ func (p *PrefixTree) getPrefixLength(prefix uint16) (uint8, bool) {
 func (p *PrefixTree) setPrefixLength(prefix uint16, depth uint8) {
 	switch {
 	case depth > 16:
-		panic("illegal value")
+		panic(throw.IllegalValue())
 	case depth != 0:
 		depth--
 	case prefix != 0:
-		panic("illegal value")
+		panic(throw.IllegalValue())
 	default:
 		p.lenNibles[0] = 0
 		return
@@ -164,7 +167,7 @@ func (p *PrefixTree) findPrefixLength(prefix Prefix) (uint16, uint8) {
 		return maskedPrefix, depth
 	case p.autoPropagate:
 		// with auto-propagation all entries must have a value
-		panic("illegal state")
+		panic(throw.IllegalState())
 	}
 	return p._findPrefixLength(maskedPrefix)
 }
@@ -190,7 +193,7 @@ func (p *PrefixTree) _findPrefixLength(maskedPrefix uint16) (uint16, uint8) {
 		}
 	}
 
-	panic("illegal state")
+	panic(throw.IllegalState())
 }
 
 // Splits the given jet into 2 sub-jets (converts a leaf node into a full node with 2 leafs).
@@ -200,20 +203,45 @@ func (p *PrefixTree) _findPrefixLength(maskedPrefix uint16) (uint16, uint8) {
 func (p *PrefixTree) Split(prefix Prefix, prefixLimit uint8) {
 	switch maskedPrefix, prefixLen := p.findPrefixLength(prefix); {
 	case prefixLimit < prefixLen:
-		panic("illegal value")
+		panic(throw.IllegalValue())
 	case int(prefixLen) >= len(p.leafCounts):
-		panic("illegal value") // TODO return as error?
+		panic(throw.IllegalValue())
 	default:
 		p._split(maskedPrefix, prefixLen, p.autoPropagate)
+	}
+}
+
+// MakePerfect fills an empty tree with branches of the given depth - makes a perfect binary tree.
+func (p *PrefixTree) MakePerfect(depth uint8) {
+	switch {
+	case depth > 16:
+		panic(throw.IllegalValue())
+	case !p.IsEmpty():
+			panic(throw.IllegalState())
+	case depth == 0:
+		return
+	}
+
+	p.minDepth = depth
+	p.maxDepth = depth
+	p.leafCounts[0] = 0
+	p.leafCounts[depth] = 1<<depth
+	p.mask = (1<<depth) - 1
+
+	nibble := depth - 1
+	nibble |= nibble <<4
+
+	for i := int(p.mask >> 1); i >= 0; i-- {
+		p.lenNibles[i] = nibble
 	}
 }
 
 func (p *PrefixTree) splitForDeserialize(maskedPrefix uint16, prefixLimit uint8) {
 	switch prefixLen, ok := p.getPrefixLength(maskedPrefix); {
 	case !ok:
-		panic("illegal value")
+		panic(throw.IllegalValue())
 	case prefixLen != prefixLimit:
-		panic("illegal value")
+		panic(throw.IllegalValue())
 	default:
 		p._split(maskedPrefix, prefixLen, false)
 	}
@@ -232,7 +260,7 @@ func (p *PrefixTree) _split(maskedPrefix uint16, prefixLen uint8, doPropagate bo
 		// zero state
 		p.minDepth++
 	default:
-		panic("illegal state")
+		panic(throw.IllegalState())
 	}
 
 	if prefixLen == p.maxDepth {
@@ -263,26 +291,13 @@ func (p *PrefixTree) _split(maskedPrefix uint16, prefixLen uint8, doPropagate bo
 func (p *PrefixTree) Merge(prefix Prefix, prefixLimit uint8) {
 	switch maskedPrefix, prefixLen := p.findPrefixLength(prefix); {
 	case prefixLimit < prefixLen:
-		panic("illegal value")
+		panic(throw.IllegalValue())
 	case prefixLen == 0:
-		panic("illegal value")
+		panic(throw.IllegalValue())
 	default:
 		p._merge(maskedPrefix, prefixLen, p.autoPropagate)
 	}
 }
-
-//func (p *PrefixTree) merge(maskedPrefix uint16, prefixLimit uint8) {
-//	switch prefixLen, ok := p.getPrefixLength(maskedPrefix); {
-//	case !ok:
-//		panic("illegal value")
-//	case prefixLen != prefixLimit:
-//		panic("illegal value")
-//	case prefixLen == 0:
-//		panic("illegal value")
-//	default:
-//		p._merge(maskedPrefix, prefixLen, false)
-//	}
-//}
 
 func (p *PrefixTree) _merge(maskedPrefix uint16, prefixLen uint8, doPropagate bool) {
 	pairedPrefix := maskedPrefix | (1 << (prefixLen - 1))
@@ -302,7 +317,7 @@ func (p *PrefixTree) _merge(maskedPrefix uint16, prefixLen uint8, doPropagate bo
 	case n == 2:
 		switch p.maxDepth {
 		case 0:
-			panic("illegal state")
+			panic(throw.IllegalState())
 		case prefixLen:
 			p.maxDepth--
 			p.mask >>= 1
@@ -310,7 +325,7 @@ func (p *PrefixTree) _merge(maskedPrefix uint16, prefixLen uint8, doPropagate bo
 		}
 		p.leafCounts[prefixLen] = 0
 	default:
-		panic("illegal state")
+		panic(throw.IllegalState())
 	}
 
 	if prefixLen == p.minDepth {
@@ -333,13 +348,13 @@ func (p *PrefixTree) _merge(maskedPrefix uint16, prefixLen uint8, doPropagate bo
 func (p *PrefixTree) propagate(prefix uint16, baseDepth uint8) {
 	switch {
 	case baseDepth == 0 || baseDepth > p.maxDepth:
-		panic("illegal state")
+		panic(throw.IllegalState())
 	case baseDepth == p.maxDepth:
 		return
 	}
 	incStep := 1 << baseDepth
 	if int(prefix) >= incStep {
-		panic("illegal state")
+		panic(throw.IllegalState())
 	}
 	setDepth := baseDepth - 1
 	maxStep := 1 << p.maxDepth
@@ -360,10 +375,10 @@ func (p *PrefixTree) propagate(prefix uint16, baseDepth uint8) {
 func (p *PrefixTree) propagateAllocatedDepth() {
 	switch {
 	case p.maxDepth == 0:
-		panic("illegal state")
+		panic(throw.IllegalState())
 	case p.maxDepth <= 2:
 		if p.lenNibles[0] != 0 {
-			panic("illegal state")
+			panic(throw.IllegalState())
 		}
 		if p.maxDepth == 2 {
 			p.lenNibles[1] = 0
@@ -378,15 +393,15 @@ func (p *PrefixTree) cleanupReleasedDepth() {
 	switch p.maxDepth {
 	case 1:
 		if p.lenNibles[1]&0xEE != 0 {
-			panic("illegal state")
+			panic(throw.IllegalState())
 		}
 		if p.lenNibles[0]&0xEE != 0 {
-			panic("illegal state")
+			panic(throw.IllegalState())
 		}
 		return
 	case 0:
 		if p.lenNibles[0] != 0 {
-			panic("illegal state")
+			panic(throw.IllegalState())
 		}
 		return
 	}
@@ -446,10 +461,10 @@ func (p *PrefixTree) Cleanup() {
 			p.leafCounts[0] = 1
 		case 1:
 		default:
-			panic("illegal state")
+			panic(throw.IllegalState())
 		}
 	case p.maxDepth > 16:
-		panic("illegal state")
+		panic(throw.IllegalState())
 	default:
 		if p.autoPropagate {
 			for i := 1 << (p.maxDepth - 1); i < len(p.lenNibles); i++ {
@@ -457,13 +472,13 @@ func (p *PrefixTree) Cleanup() {
 			}
 		}
 		if p.leafCounts[0] != 0 {
-			panic("illegal state")
+			panic(throw.IllegalState())
 		}
 	}
 
 	for i := len(p.leafCounts) - 1; i > int(p.maxDepth); i-- {
 		if p.leafCounts[i] != 0 {
-			panic("illegal state")
+			panic(throw.IllegalState())
 		}
 	}
 }

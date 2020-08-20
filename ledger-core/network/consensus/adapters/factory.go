@@ -20,12 +20,12 @@ import (
 )
 
 type ECDSASignatureVerifierFactory struct {
-	digester *legacyadapter.Sha3Digester512
+	digester legacyadapter.Sha3Digester512
 	scheme   cryptography.PlatformCryptographyScheme
 }
 
 func NewECDSASignatureVerifierFactory(
-	digester *legacyadapter.Sha3Digester512,
+	digester legacyadapter.Sha3Digester512,
 	scheme cryptography.PlatformCryptographyScheme,
 ) *ECDSASignatureVerifierFactory {
 	return &ECDSASignatureVerifierFactory{

@@ -147,7 +147,9 @@ func (p *RawBinary) marshalToSizedBuffer(b []byte) (n int, err error) {
 		return 0, nil
 	case longbits.FixedReader:
 		expected = vv.FixedByteSize()
-		n = vv.CopyTo(b[len(b)-expected:])
+		if expected > 0 {
+			n = vv.CopyTo(b[len(b)-expected:])
+		}
 	case interface{ BinaryMarshalToSizedBuffer(b []byte) (int, error) }:
 		return vv.BinaryMarshalToSizedBuffer(b)
 	case interface{ MarshalTo(b []byte) (int, error) }:
