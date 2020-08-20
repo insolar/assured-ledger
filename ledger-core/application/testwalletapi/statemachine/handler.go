@@ -21,3 +21,14 @@ func (v TestAPICall) AsSMCreate() smachine.CreateFunc {
 		}
 	}
 }
+
+func (v TestAPICall) CanBeBrief() (bool, []byte) {
+	switch {
+	case v.Payload.CallType != payload.CTMethod:
+	case !builtinTestAPIEchoBriefRef.Equal(v.Payload.Callee):
+	default:
+		return true, v.Payload.Arguments
+	}
+
+	return false, nil
+}
