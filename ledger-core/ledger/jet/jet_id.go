@@ -38,7 +38,7 @@ func (v ID) AsExact(bitLen uint8) ExactID {
 		panic(throw.IllegalValue())
 	}
 
-	return (ExactID(bitLen) << exactLenOfs) | ExactID(v)
+	return (ExactID(1 + bitLen) << exactLenOfs) | ExactID(v)
 }
 
 func (v ID) AsLeg(bitLen uint8, createdAt pulse.Number) LegID {
@@ -50,6 +50,10 @@ func (v ID) AsDrop(createdAt pulse.Number) DropID {
 		panic(throw.IllegalValue())
 	}
 	return DropID(createdAt) | (DropID(v)<<32)
+}
+
+func (v ID) AsPrefix() Prefix {
+	return Prefix(v)
 }
 
 /***************************************************************/
@@ -65,6 +69,10 @@ const (
 	GenesisExactID ExactID = 1<< exactLenOfs
 	UnknownExactID ExactID = 0
 )
+
+func (v ExactID) IsZero() bool {
+	return v == 0
+}
 
 func (v ExactID) ID() ID {
 	return ID(v)
@@ -91,10 +99,16 @@ func (v ExactID) HasLength() bool {
 }
 
 func (v ExactID) AsDrop(pn pulse.Number) DropID {
+	if v == UnknownExactID {
+		panic(throw.IllegalState())
+	}
 	return v.ID().AsDrop(pn)
 }
 
 func (v ExactID) AsLeg(createdAt pulse.Number) LegID {
+	if v == UnknownExactID {
+		panic(throw.IllegalState())
+	}
 	if !createdAt.IsTimePulse() {
 		panic(throw.IllegalValue())
 	}

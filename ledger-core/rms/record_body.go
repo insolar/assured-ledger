@@ -174,6 +174,9 @@ func (p *RecordBody) _rawEstimateSize() int {
 	case 0:
 		return 0
 	}
+	if p.digester == nil {
+		panic(throw.FailHere("digester not set"))
+	}
 	n *= p.digester.GetDigestSize()
 	n++ // 1 byte for count
 	return n
@@ -348,7 +351,30 @@ func (p *RecordBody) Equal(o *RecordBody) bool {
 }
 
 func (p *RecordBody) GetRecordPayloads() RecordPayloads {
-	return RecordPayloads{payloads: p.payloads}
+	if len(p.payloads) != len(p.digests) {
+		return RecordPayloads{
+			payloads: p.payloads,
+		}
+	}
+
+	return RecordPayloads{
+		payloads: p.payloads,
+		digester: p.digester,
+		digests:  p.digests,
+	}
+}
+
+func (p *RecordBody) CopyRecordPayloads(rp RecordPayloads) {
+	switch {
+	case len(p.payloads) > 0 || len(p.digests) > 0:
+		panic(throw.IllegalState())
+	case len(rp.payloads) != len(rp.digests):
+		panic(throw.IllegalValue())
+	}
+
+	p.payloads = rp.payloads
+	p.digester = rp.digester
+	p.digests = rp.digests
 }
 
 func (p *RecordBody) SetRecordPayloads(rp RecordPayloads, digester cryptkit.DataDigester) error {

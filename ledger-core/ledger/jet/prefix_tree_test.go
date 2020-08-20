@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"math"
 	"math/bits"
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -370,4 +371,97 @@ func TestPrefixTree_Propagate_Get_OneThenZero_WithStep(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestPrefixTree_SetPropagate(t *testing.T) {
+	pt := PrefixTree{}
+	pt.Split(0, 0)
+	pt.Split(0, 1)
+	pt.Split(1, 1)
+	pt.Split(0, 2)
+	pt.Split(1, 2)
+	pt.Split(2, 2) // unbalanced
+
+	et := NewPrefixTree(true)
+	et.Split(0, 0)
+	et.Split(0, 1)
+	et.Split(1, 1)
+	et.Split(0, 2)
+	et.Split(1, 2)
+	et.Split(2, 2)
+
+	pt.autoPropagate = true
+	require.NotEqual(t, pt, et) // propagation logic must make the difference for unbalanced trees
+
+	pt.autoPropagate = false
+	pt.SetPropagate()
+	require.Equal(t, pt, et)
+}
+
+func TestPrefixTree_MakePerfect(t *testing.T) {
+	pt := PrefixTree{}
+	pt.Split(0, 0)
+	pt.Split(0, 1)
+	pt.Split(1, 1)
+	pt.Split(0, 2)
+	pt.Split(1, 2)
+	pt.Split(2, 2)
+	pt.Split(3, 2)
+
+	et := PrefixTree{}
+	et.MakePerfect(3)
+
+	require.Equal(t, pt, et)
+
+	pt.SetPropagate()
+
+	et = NewPrefixTree(true)
+	et.MakePerfect(3)
+
+	require.Equal(t, pt, et)
+}
+
+func BenchmarkPrefixTree_DeepSplit(b *testing.B) {
+	b.Run("non-propagate", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := b.N; i >= 0; i-- {
+			pt := PrefixTree{}
+			splitZero(&pt, 0, 15)
+		}
+	})
+
+	b.Run("propagate", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := b.N; i >= 0; i-- {
+			pt := PrefixTree{}
+			pt.SetPropagate()
+			splitOne(&pt, 0, 15)
+		}
+	})
+}
+
+func BenchmarkPrefixTree_GetPrefix(b *testing.B) {
+	pt := PrefixTree{}
+	splitZero(&pt, 0, 15)
+	splitOne(&pt, 1, 15)
+
+	v1, v2 := pt.GetPrefix(0)
+
+	b.Run("non-propagate", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := b.N; i >= 0; i-- {
+			v1, v2 = pt.GetPrefix(Prefix(i))
+		}
+	})
+
+	pt.SetPropagate()
+	b.Run("propagate", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := b.N; i >= 0; i-- {
+			v1, v2 = pt.GetPrefix(Prefix(i))
+		}
+	})
+
+	runtime.KeepAlive(v1)
+	runtime.KeepAlive(v2)
 }

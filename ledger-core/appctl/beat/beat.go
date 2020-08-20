@@ -8,13 +8,9 @@ package beat
 import (
 	"time"
 
-	"github.com/ThreeDotsLabs/watermill/message"
-
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
-
-type Message = message.Message
 
 type Beat struct {
 	BeatSeq uint32

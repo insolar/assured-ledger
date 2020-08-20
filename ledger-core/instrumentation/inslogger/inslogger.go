@@ -116,8 +116,21 @@ func InitNodeLogger(ctx context.Context, cfg configuration.Log, nodeRef, nodeRol
 	return initNodeLogger(ctx, inslog, nodeRef, nodeRole)
 }
 
+func InitGlobalNodeLogger(ctx context.Context, cfg configuration.Log, nodeRef, nodeRole string) (context.Context, log.Logger) {
+	inslog, err := NewLog(cfg)
+	if err != nil {
+		panic(err)
+	}
+
+	ctx, logger := initNodeLogger(ctx, inslog, nodeRef, nodeRole)
+	global.SetLogger(logger)
+	return ctx, logger
+}
+
 func InitNodeLoggerByGlobal(nodeRef, nodeRole string) (context.Context, log.Logger) {
-	return initNodeLogger(context.Background(), global.Logger(), nodeRef, nodeRole)
+	ctx, logger := initNodeLogger(context.Background(), global.Logger(), nodeRef, nodeRole)
+	global.SetLogger(logger)
+	return ctx, logger
 }
 
 func initNodeLogger(ctx context.Context, inslog log.Logger, nodeRef, nodeRole string) (context.Context, log.Logger) {
@@ -131,8 +144,6 @@ func initNodeLogger(ctx context.Context, inslog log.Logger, nodeRef, nodeRole st
 	inslog = inslog.WithFields(fields)
 
 	ctx = SetLogger(ctx, inslog)
-	global.SetLogger(inslog)
-
 	return ctx, inslog
 }
 

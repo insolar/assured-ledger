@@ -21,7 +21,7 @@ type SMLine struct {
 	// injected
 	pulseSlot *conveyor.PulseSlot
 	cataloger DropCataloger
-	plasher   PlashCatalog
+	plasher   PlashCataloger
 
 	// input & shared
 	sd     LineSharedData
@@ -40,6 +40,7 @@ func (p *SMLine) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLink
 	injector.MustInject(&p.pulseSlot)
 	injector.MustInject(&p.cataloger)
 	injector.MustInject(&p.plasher)
+	injector.MustInject(&p.sd.adapter)
 }
 
 func (p *SMLine) stepInit(ctx smachine.InitializationContext) smachine.StateUpdate {
@@ -68,7 +69,9 @@ func (p *SMLine) stepFindDrop(ctx smachine.ExecutionContext) smachine.StateUpdat
 	}
 	readySync := ssd.GetReadySync()
 
-	if ctx.AcquireForThisStep(readySync) {
+	// NB! can't use AcquireForThisStep here as ctx.Sleep().ThenJump() will cancel it
+	if ctx.Acquire(readySync) {
+		ctx.Release(readySync)
 		p.sd.jetDropID = ssd.GetDrop(p.sd.lineRef)
 		return ctx.Jump(p.stepDropIsCreated)
 	}
@@ -93,7 +96,8 @@ func (p *SMLine) stepDropIsCreated(ctx smachine.ExecutionContext) smachine.State
 		readySync = sd.GetReadySync()
 	})
 
-	if ctx.AcquireForThisStep(readySync) {
+	if ctx.Acquire(readySync) {
+		ctx.Release(readySync)
 		sdl.MustAccess(func(sd *DropSharedData) {
 			p.sd.onDropReady(sd)
 		})
@@ -101,13 +105,13 @@ func (p *SMLine) stepDropIsCreated(ctx smachine.ExecutionContext) smachine.State
 	}
 
 	return ctx.Sleep().ThenJump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
-		if ctx.AcquireForThisStep(readySync) {
-			sdl.MustAccess(func(sd *DropSharedData) {
-				p.sd.onDropReady(sd)
-			})
-			return ctx.Jump(p.stepDropIsReady)
+		if !ctx.AcquireForThisStep(readySync) {
+			return ctx.Sleep().ThenRepeat()
 		}
-		return ctx.Sleep().ThenRepeat()
+		sdl.MustAccess(func(sd *DropSharedData) {
+			p.sd.onDropReady(sd)
+		})
+		return ctx.Jump(p.stepDropIsReady)
 	})
 }
 

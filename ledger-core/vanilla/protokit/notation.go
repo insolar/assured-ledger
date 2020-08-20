@@ -33,6 +33,7 @@ const (
 )
 
 const PolymorphFieldID = illegalUtf8FirstByte >> WireTypeBits // = 16
+const MaxSafeForPolymorphFieldID = (legalUtf8 >> WireTypeBits) - 1
 
 // As a valid pbuf payload cant start with groupEnd tag, so we can use it as an indicator of a non-parsable payload.
 // Number of BinaryMarkers is limited by valid UTF-8 codes, starting at 0xC0
@@ -208,4 +209,40 @@ func PeekContentTypeAndPolymorphIDFromBytes(b []byte) (ContentType, uint64, erro
 			return ContentText, 0, nil
 		}
 	}
+}
+
+func DecodePolymorphFromBytes(b []byte, onlyVarint bool) (id uint64, size int, err error) {
+	u, n := DecodeVarintFromBytes(b)
+	if n == 0 {
+		return 0, 0, throw.E("invalid wire tag, overflow")
+	}
+	wt, err := SafeWireTag(u)
+	if err != nil {
+		return 0, 0, err
+	}
+	switch fid := wt.FieldID(); {
+	case fid == int(PolymorphFieldID):
+	case fid < int(PolymorphFieldID) || fid > int(MaxSafeForPolymorphFieldID):
+		return 0, 0, throw.E("invalid polymorph content")
+	default:
+		return 0, 0, nil
+	}
+
+	switch wt.Type() {
+	case WireVarint:
+	case WireFixed64, WireFixed32:
+		if !onlyVarint {
+			break
+		}
+		fallthrough
+	default:
+		return 0, 0, throw.E("unknown polymorph tag")
+	}
+
+	size = n
+	id, n, err = wt.ReadValueFromBytes(b[n:])
+	if err != nil {
+		return 0, 0, err
+	}
+	return id, size + n, nil
 }

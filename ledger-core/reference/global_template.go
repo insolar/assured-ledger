@@ -79,6 +79,13 @@ func (v Template) HasBase() bool {
 	return v.base.pulseAndScope != 0
 }
 
+func (v Template) LocalHeader() LocalHeader {
+	if v.local == 0 {
+		panic(throw.IllegalState())
+	}
+	return v.local
+}
+
 // WithHash panics on zero or record ref template
 func (v Template) WithHash(h LocalHash) Global {
 	switch {
@@ -88,13 +95,28 @@ func (v Template) WithHash(h LocalHash) Global {
 		panic(throw.IllegalState())
 	case v.isSelfRef():
 		return Global{
-			addressLocal: Local{v.local, h},
-			addressBase:  Local{v.local.WithSubScope(v.base.SubScope()), h},
+			addressLocal: v.local.WithHash(h),
+			addressBase:  v.local.WithSubScope(v.base.SubScope()).WithHash(h),
 		}
 	}
 	return Global{
 		addressLocal: Local{v.local, h},
 		addressBase:  v.base,
+	}
+}
+
+// WithHashAsSelf panics on zero or record ref template
+func (v Template) WithHashAsSelf(h LocalHash) Global {
+	switch {
+	case v.local == 0:
+		panic(throw.IllegalState())
+	case v.base.pulseAndScope == 0:
+		panic(throw.IllegalState())
+	}
+
+	return Global{
+		addressLocal: v.local.WithHash(h),
+		addressBase:  v.local.WithSubScope(v.base.SubScope()).WithHash(h),
 	}
 }
 

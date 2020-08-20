@@ -38,7 +38,7 @@ func TestAppFactory(t *testing.T) {
 
 	server := insapp.New("", nil, &AppComponent{})
 
-	cm, stopWatermill := server.StartComponents(ctx, cfg, func(context.Context, configuration.Log, string, string) context.Context {
+	cm, stopWatermill := server.StartComponents(ctx, cfg, nil, func(context.Context, configuration.Log, string, string) context.Context {
 		return ctx
 	})
 

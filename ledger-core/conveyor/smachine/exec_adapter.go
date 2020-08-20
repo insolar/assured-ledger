@@ -60,12 +60,20 @@ func (p ExecutionAdapter) PrepareNotify(ctx ExecutionContext, fn AdapterNotifyFu
 		executor: p.executor, mode: adapterAsyncCallContext}
 }
 
-func (p ExecutionAdapter) SendFailureNotify(ctx FailureContext, fn AdapterNotifyFunc) {
+func (p ExecutionAdapter) SendFailureNotify(ctx FailureExecutionContext, fn AdapterNotifyFunc) {
 	if fn == nil {
 		panic(throw.IllegalValue())
 	}
-	fc := ctx.(*failureContext)
-	ec := &executionContext{slotContext: fc.slotContext}
+
+	var ec *executionContext
+	switch fc := ctx.(type) {
+	case *failureContext:
+		ec = &executionContext{slotContext: fc.slotContext}
+	case *executionContext:
+		ec = fc
+	default:
+		panic(throw.Unsupported())
+	}
 
 	rq := &adapterNotifyRequest{ctx: ec, fn: fn, adapterID: p.adapterID, isLogging: ec.s.getAdapterLogging(),
 		executor: p.executor, mode: adapterAsyncCallContext}

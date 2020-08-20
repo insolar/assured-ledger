@@ -7,11 +7,7 @@ package insapp
 
 import (
 	"context"
-	"io"
 
-	"github.com/ThreeDotsLabs/watermill"
-	"github.com/ThreeDotsLabs/watermill/message"
-	"github.com/ThreeDotsLabs/watermill/pubsub/gochannel"
 	"github.com/insolar/component-manager"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
@@ -23,13 +19,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/defaults"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/logwatermill"
-	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/metrics"
+	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
-	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/servicenetwork"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -45,7 +38,8 @@ type preComponents struct {
 
 func (s *Server) initBootstrapComponents(ctx context.Context, cfg configuration.Configuration) preComponents {
 	earlyComponents := component.NewManager(nil)
-	earlyComponents.SetLogger(global.Logger())
+	logger := inslogger.FromContext(ctx)
+	earlyComponents.SetLogger(logger)
 
 	keyStore, err := keystore.NewKeyStore(cfg.KeysPath)
 	checkError(ctx, err, "failed to load KeyStore: ")
@@ -80,24 +74,12 @@ func (s *Server) initCertificateManager(ctx context.Context, cfg configuration.C
 }
 
 // initComponents creates and links all insolard components
-func (s *Server) initComponents(ctx context.Context, cfg configuration.Configuration,
+func (s *Server) initComponents(ctx context.Context, cfg configuration.Configuration, networkFn NetworkInitFunc,
 	comps preComponents, certManager nodeinfo.CertificateManager,
 ) (*component.Manager, func()) {
 	cm := component.NewManager(nil)
-	cm.SetLogger(global.Logger())
-
-	// Watermill.
-	var (
-		wmLogger   *logwatermill.WatermillLogAdapter
-		publisher  message.Publisher
-		subscriber message.Subscriber
-	)
-	{
-		wmLogger = logwatermill.NewWatermillLogAdapter(inslogger.FromContext(ctx))
-		pubsub := gochannel.NewGoChannel(gochannel.Config{}, wmLogger)
-		subscriber = pubsub
-		publisher = pubsub
-	}
+	logger := inslogger.FromContext(ctx)
+	cm.SetLogger(logger)
 
 	cm.Register(
 		comps.PlatformCryptographyScheme,
@@ -107,60 +89,85 @@ func (s *Server) initComponents(ctx context.Context, cfg configuration.Configura
 		certManager,
 	)
 
-	nw, err := servicenetwork.NewServiceNetwork(cfg, cm)
-	checkError(ctx, err, "failed to start Network")
+	var nw NetworkSupport
+	var ns network.Status
 
-	metricsComp := metrics.NewMetrics(cfg.Metrics, metrics.GetInsolarRegistry("virtual"), "virtual")
+	if networkFn == nil {
+		nsn, err := servicenetwork.NewServiceNetwork(cfg, cm)
+		checkError(ctx, err, "failed to start ServiceNetwork")
+		cm.Register(nsn)
+
+		nw = nsn
+		ns = nsn
+	} else {
+		var err error
+		nw, ns, err = networkFn(cfg, cm)
+		checkError(ctx, err, "failed to start ServiceNetwork by factory")
+		cm.Register(nw)
+	}
+
+	nodeCert := certManager.GetCertificate()
+	nodeRole := nodeCert.GetRole()
+
+	roleName := nodeRole.String()
+	metricsComp := metrics.NewMetrics(cfg.Metrics, metrics.GetInsolarRegistry(roleName), roleName)
 
 	pulses := memstor.NewStorageMem()
 	pm := NewPulseManager()
-	publisher = publisherWrapper(ctx, cm, cfg.Introspection, publisher)
+
 	availabilityChecker := api.NewNetworkChecker(cfg.AvailabilityChecker)
+
+	mr := nw.CreateMessagesRouter(ctx)
+	// TODO introspection support, cfg.Introspection
 
 	cm.Register(
 		pulses,
-		publisher,
 		pm,
-		nw,
 		availabilityChecker,
 		metricsComp,
 	)
+
+	cm.Register(s.extra...)
 
 	var appComponent AppComponent
 
 	if s.appFn != nil {
 		affine := affinity.NewAffinityHelper(certManager.GetCertificate().GetNodeRef())
+		cm.Register(affine)
 
-		API, err := api.NewRunner(&cfg.APIRunner,
-			certManager, nw, nw, pulses, affine, nw, availabilityChecker)
-		checkError(ctx, err, "failed to start ApiRunner")
+		if ns != nil {
+			API, err := api.NewRunner(&cfg.APIRunner,
+				certManager, nw, nw, pulses, affine, ns, availabilityChecker)
+			checkError(ctx, err, "failed to start ApiRunner")
 
-		AdminAPIRunner, err := api.NewRunner(&cfg.AdminAPIRunner,
-			certManager, nw, nw, pulses, affine, nw, availabilityChecker)
-		checkError(ctx, err, "failed to start AdminAPIRunner")
+			AdminAPIRunner, err := api.NewRunner(&cfg.AdminAPIRunner,
+				certManager, nw, nw, pulses, affine, ns, availabilityChecker)
+			checkError(ctx, err, "failed to start AdminAPIRunner")
 
-		APIWrapper := api.NewWrapper(API, AdminAPIRunner)
+			APIWrapper := api.NewWrapper(API, AdminAPIRunner)
+
+			cm.Register(APIWrapper)
+		}
 
 		appComponents := AppComponents{
+			LocalNodeRef:  nodeCert.GetNodeRef(),
+			LocalNodeRole: nodeRole,
+
 			BeatHistory:    pulses,
 			AffinityHelper: affine,
-			MessageSender:  messagesender.NewDefaultService(publisher, affine, pulses),
+			MessageSender:  mr.CreateMessageSender(affine, pulses),
 			CryptoScheme:   comps.CryptoScheme,
 		}
 
+		var err error
 		appComponent, err = s.appFn(ctx, cfg, appComponents)
 		checkError(ctx, err, "failed to start AppCompartment")
 
-		cm.Register(
-			affine,
-			APIWrapper,
-			appComponent,
-		)
+		cm.Register(appComponent)
 	}
-	cm.Register(s.extra...)
 	cm.Inject()
 
-	err = cm.Init(ctx)
+	err := cm.Init(ctx)
 	checkError(ctx, err, "failed to init components")
 
 	if appComponent == nil {
@@ -168,76 +175,17 @@ func (s *Server) initComponents(ctx context.Context, cfg configuration.Configura
 	}
 
 	// must be after Init
-	pm.AddDispatcher(appComponent.GetBeatDispatcher())
+	bd := appComponent.GetBeatDispatcher()
+	pm.AddDispatcher(bd)
 
-	stopWatermillFn := startWatermill(
-		ctx, wmLogger, subscriber,
-		nw.SendMessageHandler,
-		appComponent.GetMessageHandler(),
-	)
+	stopFn := mr.SubscribeForMessages(bd.Process)
 
-	return cm, stopWatermillFn
+	return cm, stopFn
 }
 
-func startWatermill(
-	ctx context.Context,
-	logger watermill.LoggerAdapter,
-	sub message.Subscriber,
-	outHandler, inHandler message.NoPublishHandlerFunc,
-) func() {
-	switch {
-	case sub == nil:
-		panic(throw.IllegalState())
-	case outHandler == nil:
-		panic(throw.IllegalState())
-	case inHandler == nil:
-		panic(throw.IllegalState())
-	}
-
-	inRouter, err := message.NewRouter(message.RouterConfig{}, logger)
+func checkError(ctx context.Context, err error, message string) {
 	if err != nil {
-		panic(err)
-	}
-	outRouter, err := message.NewRouter(message.RouterConfig{}, logger)
-	if err != nil {
-		panic(err)
-	}
-
-	outRouter.AddNoPublisherHandler(
-		"OutgoingHandler",
-		defaults.TopicOutgoing,
-		sub,
-		outHandler,
-	)
-
-	inRouter.AddNoPublisherHandler(
-		"IncomingHandler",
-		defaults.TopicIncoming,
-		sub,
-		inHandler,
-	)
-	startRouter(ctx, inRouter)
-	startRouter(ctx, outRouter)
-
-	return stopWatermill(ctx, inRouter, outRouter)
-}
-
-func stopWatermill(ctx context.Context, routers ...io.Closer) func() {
-	return func() {
-		for _, r := range routers {
-			err := r.Close()
-			if err != nil {
-				inslogger.FromContext(ctx).Error("Error while closing router", err)
-			}
-		}
+		inslogger.FromContext(ctx).Fatalf("%v: %v", message, throw.ErrorWithStack(err))
 	}
 }
 
-func startRouter(ctx context.Context, router *message.Router) {
-	go func() {
-		if err := router.Run(ctx); err != nil {
-			inslogger.FromContext(ctx).Error("Error while running router", err)
-		}
-	}()
-	<-router.Running()
-}

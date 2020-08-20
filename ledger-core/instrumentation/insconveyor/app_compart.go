@@ -8,8 +8,6 @@ package insconveyor
 import (
 	"context"
 
-	"github.com/ThreeDotsLabs/watermill/message"
-
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/managed"
@@ -32,17 +30,24 @@ func NewAppCompartment(name string, appDeps injector.DependencyRegistry, setupFn
 	return &AppCompartment{	name: name,	appDeps: appDeps, setupFn: setupFn }
 }
 
+// AppCompartmentSetup is a setup of an app compartment.
 type AppCompartmentSetup struct {
+	// ConveyorConfig provides settings for conveyor.
 	ConveyorConfig     conveyor.PulseConveyorConfig
+	// EventFactoryFn provides event factory for conveyor.
 	EventFactoryFn     conveyor.PulseEventFactoryFunc
+	// Components will be added with conveyor.PulseConveyor.AddManagedComponent().
 	Components         []managed.Component
+	// Dependencies will be added as dependencies to conveyor.PulseConveyor.
 	Dependencies       *injector.DynamicContainer
 }
 
+// AddComponent is a convenience method to add to the Components field.
 func (p *AppCompartmentSetup) AddComponent(c managed.Component) {
 	p.Components = append(p.Components, c)
 }
 
+// ConfigReviserFunc enables AppCompartmentSetup to be revised before creation of an app compartment.
 type ConfigReviserFunc = func (context.Context, injector.DependencyInjector, AppCompartmentSetup) AppCompartmentSetup
 
 var _ insapp.AppComponent = &AppCompartment{}
@@ -94,6 +99,8 @@ func (p *AppCompartment) Init(ctx context.Context) error {
 	var cycleFn conveyor.PulseConveyorCycleFunc
 	if p.imposeFn != nil {
 		params := ImposedParams{
+			InitContext: ctx,
+			AppInject: inject,
 			CompartmentSetup:  appCfg,
 		}
 		p.imposeFn(&params)
@@ -149,10 +156,6 @@ func (p *AppCompartment) AppDependencies() injector.DependencyRegistry {
 
 func (p *AppCompartment) Conveyor() *conveyor.PulseConveyor {
 	return p.conveyor
-}
-
-func (p *AppCompartment) GetMessageHandler() message.NoPublishHandlerFunc {
-	return p.flowDispatcher.Process
 }
 
 func (p *AppCompartment) GetBeatDispatcher() beat.Dispatcher {

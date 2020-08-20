@@ -175,7 +175,7 @@ func draftCatalogEntry(rec lineage.Record) catalog.Entry {
 		RejoinRef:			rec.Excerpt.RejoinRef,
 		RecapRef: 			rms.NewReference(rec.RecapRef),
 
-		ProducerSignature:  rec.Excerpt.ProducerSignature,
+		ProducerSignature:  rec.ProducerSignature,
 		ProducedBy:         rms.NewReference(rec.ProducedBy),
 
 		RegistrarSignature: rms.NewRaw(rec.RegistrarSignature.GetSignature()).AsBinary(),
