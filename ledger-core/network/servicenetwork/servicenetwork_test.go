@@ -39,16 +39,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 )
 
-type PublisherMock struct{}
-
-func (p *PublisherMock) Publish(topic string, messages ...*message.Message) error {
-	return nil
-}
-
-func (p *PublisherMock) Close() error {
-	return nil
-}
-
 func prepareNetwork(t *testing.T, cfg configuration.Configuration) (*ServiceNetwork, reference.Global) {
 	serviceNetwork, err := NewServiceNetwork(cfg, component.NewManager(nil))
 	require.NoError(t, err)
@@ -86,7 +76,7 @@ func TestSendMessageHandler_ReceiverNotSet(t *testing.T) {
 
 func TestSendMessageHandler_SameNode(t *testing.T) {
 	svcNw, nodeRef := prepareNetwork(t, configuration.NewConfiguration())
-	svcNw.Pub = &PublisherMock{}
+	svcNw.router.pub = &publisherMock{}
 
 	pulseMock := beat.NewAppenderMock(t)
 	pulseMock.LatestTimeBeatMock.Return(pulsestor.GenesisPulse, nil)
@@ -107,7 +97,7 @@ func TestSendMessageHandler_SameNode(t *testing.T) {
 
 func TestSendMessageHandler_SendError(t *testing.T) {
 	svcNw, _ := prepareNetwork(t, configuration.NewConfiguration())
-	svcNw.Pub = &PublisherMock{}
+	svcNw.router.pub = &publisherMock{}
 
 	rpc := controller.NewRPCControllerMock(t)
 	rpc.SendBytesMock.Set(func(p context.Context, p1 reference.Global, p2 string, p3 []byte) (r []byte, r1 error) {
@@ -133,7 +123,7 @@ func TestSendMessageHandler_SendError(t *testing.T) {
 
 func TestSendMessageHandler_WrongReply(t *testing.T) {
 	svcNw, _ := prepareNetwork(t, configuration.NewConfiguration())
-	svcNw.Pub = &PublisherMock{}
+	svcNw.router.pub = &publisherMock{}
 
 	rpc := controller.NewRPCControllerMock(t)
 	rpc.SendBytesMock.Set(func(p context.Context, p1 reference.Global, p2 string, p3 []byte) (r []byte, r1 error) {
@@ -159,7 +149,7 @@ func TestSendMessageHandler_WrongReply(t *testing.T) {
 
 func TestSendMessageHandler(t *testing.T) {
 	svcNw, _ := prepareNetwork(t, configuration.NewConfiguration())
-	svcNw.Pub = &PublisherMock{}
+	svcNw.router.pub = &publisherMock{}
 
 	rpc := controller.NewRPCControllerMock(t)
 	rpc.SendBytesMock.Set(func(p context.Context, p1 reference.Global, p2 string, p3 []byte) (r []byte, r1 error) {
@@ -221,7 +211,7 @@ func TestServiceNetwork_StartStop(t *testing.T) {
 		beat.NewAppenderMock(t),
 		/* testutils.NewTerminationHandlerMock(t), */
 		chorus.NewConductorMock(t),
-		&PublisherMock{}, &stater{},
+		&publisherMock{}, &stater{},
 		testutils.NewPlatformCryptographyScheme(), kpm)
 	err = svcNw.Init(ctx)
 	require.NoError(t, err)
@@ -246,7 +236,7 @@ func TestServiceNetwork_processIncoming(t *testing.T) {
 	serviceNetwork, err := NewServiceNetwork(configuration.NewConfiguration(), component.NewManager(nil))
 	require.NoError(t, err)
 	pub := &publisherMock{}
-	serviceNetwork.Pub = pub
+	serviceNetwork.router.pub = pub
 	ctx := context.Background()
 	_, err = serviceNetwork.processIncoming(ctx, []byte("ololo"))
 	assert.Error(t, err)

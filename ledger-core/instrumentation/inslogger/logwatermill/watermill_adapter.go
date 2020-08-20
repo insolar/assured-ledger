@@ -36,7 +36,7 @@ func (w *WatermillLogAdapter) With(fields watermill.LogFields) watermill.LoggerA
 }
 
 func (w *WatermillLogAdapter) Error(msg string, err error, fields watermill.LogFields) {
-	w.event(fields, log.ErrorLevel, msg+"; " + throw.ErrorWithStack(err))
+	w.log.Errorm(throw.E(msg, err), logfmt.FieldMapMarshaller(fields))
 }
 
 func (w *WatermillLogAdapter) Info(msg string, fields watermill.LogFields) {

@@ -33,6 +33,10 @@ func (v LocalHeader) WithSubScope(scope SubScope) LocalHeader {
 	return LocalHeader(v.Pulse().WithFlags(int(scope)))
 }
 
+func (v LocalHeader) WithHash(h LocalHash) Local {
+	return Local{v, h}
+}
+
 func (v LocalHeader) String() string {
 	sc := v.SubScope()
 	if sc == 0 {

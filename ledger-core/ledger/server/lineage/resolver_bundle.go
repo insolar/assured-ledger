@@ -44,6 +44,7 @@ type resolveResults struct {
 	isResolved  bool
 
 	records    []resolvedRecord
+	dupRecords []recordNo
 }
 
 func (p *BundleResolver) Hint(recordCount int) {
@@ -51,13 +52,7 @@ func (p *BundleResolver) Hint(recordCount int) {
 		panic(throw.IllegalState())
 	}
 	p.records = make([]resolvedRecord, 0, recordCount)
-}
-
-func (p *BundleResolver) GetResolved() ResolvedBundle {
-	if p.IsResolved() {
-		return ResolvedBundle{ p.records }
-	}
-	panic(throw.IllegalState())
+	p.dupRecords = make([]recordNo, 0, recordCount)
 }
 
 func (p *BundleResolver) GetUnresolvedDependencies() []UnresolvedDependency {
@@ -73,29 +68,32 @@ func (p *BundleResolver) GetErrors() []error {
 }
 
 func (p *BundleResolver) IsEmpty() bool {
-	return len(p.records) == 0
+	return len(p.records) == 0 && len(p.dupRecords) == 0 && p.hasNoTroubles()
 }
 
-func (p *BundleResolver) IsResolved() bool {
-	return len(p.records) > 0 && len(p.errors) == 0 && len(p.unresolved) == 0
+func (p *BundleResolver) hasNoTroubles() bool {
+	return len(p.errors) == 0 && len(p.unresolved) == 0
 }
 
-func (p *BundleResolver) Reprocess() bool {
-	if p.IsEmpty() {
-		return false
-	}
+func (p *BundleResolver) IsReadyForStage() bool {
+	return (len(p.records) > 0 || len(p.dupRecords) > 0) && p.hasNoTroubles()
+}
+
+func (p *BundleResolver) Reprocess() {
 	records := p.records
-	p.resolveResults = resolveResults{}
+	p.resolveResults = resolveResults{} // reset fields
+	if len(records) == 0 {
+		return
+	}
 
 	// NB! required filament(s) can be retrieved from prev drops
+	p.maxRecNo = p.resolver.getNextRecNo()
 	p.maxFilNo = p.resolver.getNextFilNo()
 
-	p.Hint(len(records))
+	p.records = make([]resolvedRecord, 0, len(records))
 	for i := range records {
 		p.Add(records[i].Record)
 	}
-
-	return p.IsResolved()
 }
 
 func (p *BundleResolver) Add(record Record) bool {
@@ -113,6 +111,11 @@ func (p *BundleResolver) Add(record Record) bool {
 	policy := GetRecordPolicy(recType)
 	if !policy.IsValid() {
 		return p.addError(throw.E("unknown type"))
+	}
+
+	payloads := record.asBasicRecord().GetRecordPayloads()
+	if !payloads.IsEmpty() && policy.PolicyFlags&PayloadAllowed == 0 {
+		return p.addError(throw.E("payload forbidden"))
 	}
 
 	switch base := p.resolver.getLineBase().GetLocal(); {
@@ -133,22 +136,21 @@ func (p *BundleResolver) Add(record Record) bool {
 			return p.addRefError("RecordRef", err)
 		}
 
-		switch hasCopy, err := p.checkCollision(&upd, ref); {
+		switch isFound, err := p.checkCollision(&upd, ref); {
 		case err != nil:
 			return p.addRefError("RecordRef", err)
-		case hasCopy:
-			return true
-		case policy.IsAnyFilamentStart():
-			if len(p.records) == 0 {
-				if p.maxRecNo > 1 {
-					p.branchStart = upd.recordNo
-				} else {
-					p.isLineStart = true
-					upd.filNo = 1
-				}
-				break
+		case isFound:
+			p.dupRecords = append(p.dupRecords, upd.recordNo)
+			return p.isResolved
+		case !policy.IsAnyFilamentStart():
+		case len(p.records) == 0:
+			if p.maxRecNo <= 1 {
+				p.isLineStart = true
+				upd.filNo = 1
+			} else {
+				p.branchStart = upd.recordNo
 			}
-
+		default:
 			switch {
 			case p.branchStart != 0:
 				return p.addError(throw.E("can only be one branch in bundle"))
@@ -238,17 +240,17 @@ func (p *BundleResolver) resolveRecordDependencies(upd *resolvedRecord, policy R
 		p.addRefError("RedirectRef", err)
 	}
 
-	if err := policy.CheckReasonRef(upd.Excerpt.ReasonRef.Get(), func(ref reference.Holder) (ResolvedDependency, error) {
-		if rd := p.findResolved(ref); rd != nil {
-			return rd.asResolvedDependency(), nil
-		}
-
-		return p.resolveSupplementaryRef(rootRef, ref)
-
-	}); err != nil {
-		p.addRefError("ReasonRef", err)
-	}
-
+	// TODO re-enable
+	// if err := policy.CheckReasonRef(upd.Excerpt.ReasonRef.Get(), func(ref reference.Holder) (ResolvedDependency, error) {
+	// 	if rd := p.findResolved(ref); rd != nil {
+	// 		return rd.asResolvedDependency(), nil
+	// 	}
+	//
+	// 	return p.resolveSupplementaryRef(rootRef, ref)
+	//
+	// }); err != nil {
+	// 	p.addRefError("ReasonRef", err)
+	// }
 }
 
 func (p *BundleResolver) resolvePrevRef(upd *resolvedRecord, policy RecordPolicy, details PolicyCheckDetails) (prevRecordType RecordType) {

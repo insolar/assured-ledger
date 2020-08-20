@@ -53,7 +53,7 @@ func TestDropAssistAppend(t *testing.T) {
 	ref := reference.NewSelf(local)
 	for i := range fts {
 		fts[i] = NewFuture("test")
-		err := da.append(pa, fts[i], newResolvedBundle(ref, byte(i+1)))
+		err := da.append(pa, fts[i], newUpdateBundle(ref, byte(i+1)))
 		require.NoError(t, err)
 	}
 
@@ -117,7 +117,7 @@ func TestDropAssistAppendWithPulseChange(t *testing.T) {
 	ref := reference.NewSelf(local)
 	for i := range fts {
 		fts[i] = NewFuture("test")
-		err := da.append(pa, fts[i], newResolvedBundle(ref, byte(i+1)))
+		err := da.append(pa, fts[i], newUpdateBundle(ref, byte(i+1)))
 		require.NoError(t, err)
 	}
 
@@ -197,7 +197,7 @@ func TestDropAssistAppendWithPulseCancel(t *testing.T) {
 	ref := reference.NewSelf(local)
 	for i := range fts {
 		fts[i] = NewFuture("test")
-		err := da.append(pa, fts[i], newResolvedBundle(ref, byte(i+1)))
+		err := da.append(pa, fts[i], newUpdateBundle(ref, byte(i+1)))
 		require.NoError(t, err)
 	}
 
@@ -297,12 +297,12 @@ func prepareDropAssistFoAppend(t *testing.T, local reference.Local, started, com
 	}
 }
 
-func newResolvedBundle(ref reference.Holder, id byte) lineage.ResolvedBundle {
+func newUpdateBundle(ref reference.Holder, id byte) lineage.UpdateBundle {
 	rec := lineage.NewRegRecord(catalog.Excerpt{}, &rms.LRegisterRequest{
 		AnticipatedRef: rms.NewReference(ref),
 	})
 	rec.RegistrarSignature = cryptkit.NewSignedDigest(
 		cryptkit.NewDigest(longbits.WrapBytes([]byte{id}), "testDigestMethod"),
 		cryptkit.NewSignature(longbits.WrapStr("signature"), "testSignMethod"))
-	return lineage.NewResolvedBundleForTestOnly([]lineage.Record{rec})
+	return lineage.NewUpdateBundleForTestOnly([]lineage.Record{rec})
 }

@@ -308,7 +308,7 @@ func (p *cabinetSection) rollbackChap(c int, ofs uint32) bool {
 	switch {
 	case c == 0:
 		return true
-	case c >= len(p.chapters):
+	case c > len(p.chapters):
 		return false
 	}
 	p.chapters = p.chapters[:c]

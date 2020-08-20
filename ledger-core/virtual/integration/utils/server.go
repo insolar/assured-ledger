@@ -248,11 +248,19 @@ func (s *Server) IncrementPulseAndWaitIdle(ctx context.Context) {
 	s.WaitActiveThenIdleConveyor()
 }
 
+// deprecated // use SendMsg
 func (s *Server) SendMessage(_ context.Context, msg *message.Message) {
+	bm := beat.NewMessageExt(msg.UUID, msg.Payload, msg)
+	bm.Metadata = msg.Metadata
+	s.SendMsg(bm)
+}
+
+func (s *Server) SendMsg(msg beat.Message) {
 	if err := s.virtual.FlowDispatcher.Process(msg); err != nil {
 		panic(err)
 	}
 }
+
 
 func (s *Server) ReplaceRunner(svc runner.Service) {
 	s.virtual.Runner = svc

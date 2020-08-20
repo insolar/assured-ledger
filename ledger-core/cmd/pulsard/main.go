@@ -84,7 +84,7 @@ func main() {
 	params.oneShot = params.oneShot || oneShot
 
 	ctx := context.Background()
-	ctx, inslog := inslogger.InitNodeLogger(ctx, pCfg.Log, "", "pulsar")
+	ctx, inslog := inslogger.InitGlobalNodeLogger(ctx, pCfg.Log, "", "pulsar")
 
 	jaegerflush := func() {}
 	if pCfg.Tracer.Jaeger.AgentEndpoint != "" {

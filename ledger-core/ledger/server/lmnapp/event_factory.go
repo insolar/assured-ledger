@@ -11,6 +11,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/datawriter"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/inspectsvc"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/requests"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -22,8 +24,17 @@ type EventFactory struct {
 	ctx context.Context
 }
 
-func (p *EventFactory) InputEvent(ctx context.Context, event conveyor.InputEvent, context conveyor.InputContext) (conveyor.InputSetup, error) {
-	panic("implement me")
+func (p *EventFactory) InputEvent(_ context.Context, event conveyor.InputEvent, _ conveyor.InputContext) (conveyor.InputSetup, error) {
+	switch ev := event.(type) {
+	case inspectsvc.RegisterRequestSet:
+		return conveyor.InputSetup{
+			CreateFn: func(ctx smachine.ConstructionContext) smachine.StateMachine {
+				return requests.NewSMRegisterRecordSet(ev)
+			},
+		}, nil
+	default:
+		panic(throw.Unsupported())
+	}
 }
 
 func (p *EventFactory) PostMigrate(prevState conveyor.PulseSlotState, ps *conveyor.PulseSlot, m smachine.SlotMachineHolder) {
@@ -31,7 +42,7 @@ func (p *EventFactory) PostMigrate(prevState conveyor.PulseSlotState, ps *convey
 	case ps.State() != conveyor.Present:
 		return
 	case prevState == conveyor.Present:
-		panic(throw.IllegalState())
+		panic(throw.Impossible())
 	}
 
 	m.AddNewByFunc(p.ctx, datawriter.PlashCreate(), smachine.CreateDefaultValues{})

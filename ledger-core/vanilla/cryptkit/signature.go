@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type SigningMethod string
@@ -83,7 +84,7 @@ type DigestSigner interface {
 type DataSigner interface {
 	DigestSigner
 	DataDigester
-	// GetSignatureMethod() SignatureMethod
+	GetSignatureMethod() SignatureMethod
 }
 
 type SequenceSigner interface {
@@ -115,7 +116,7 @@ func (v SignatureKeyType) IsSecret() bool {
 
 type DataSignatureVerifier interface {
 	DataDigester
-	GetSignatureMethod() SignatureMethod
+	GetDefaultSignatureMethod() SignatureMethod
 	SignatureVerifier
 }
 
@@ -147,3 +148,48 @@ type DataSignerFactory interface {
 	IsSignatureKeySupported(SignatureKey) bool
 	CreateDataSigner(SignatureKey) DataSigner
 }
+
+
+
+type dataSigner struct {
+	DigestSigner
+	DataDigester
+}
+
+func (v dataSigner) GetSignatureMethod() SignatureMethod {
+	return v.DataDigester.GetDigestMethod().SignedBy(v.DigestSigner.GetSigningMethod())
+}
+
+func AsDataSigner(dd DataDigester, ds DigestSigner) DataSigner {
+	switch {
+	case ds == nil:
+		panic(throw.IllegalValue())
+	case dd == nil:
+		panic(throw.IllegalValue())
+	}
+
+	return dataSigner{ds, dd}
+}
+
+func AsDataSignatureVerifier(dd DataDigester, sv SignatureVerifier, defSigning SigningMethod) DataSignatureVerifier {
+	switch {
+	case sv == nil:
+		panic(throw.IllegalValue())
+	case dd == nil:
+		panic(throw.IllegalValue())
+	}
+
+	return dataSignatureVerifier{dd, sv, dd.GetDigestMethod().SignedBy(defSigning) }
+}
+
+type dataSignatureVerifier struct {
+	DataDigester
+	SignatureVerifier
+
+	defSignature SignatureMethod
+}
+
+func (v dataSignatureVerifier) GetDefaultSignatureMethod() SignatureMethod {
+	return v.defSignature
+}
+
