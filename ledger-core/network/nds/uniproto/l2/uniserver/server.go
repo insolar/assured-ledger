@@ -159,7 +159,7 @@ func (p *UnifiedServer) StartNoListen() {
 	}
 	p.ptf.SetSessionless(l1.NewUDP(binding, uint16(udpSize)), p.receiveSessionless)
 
-	var tcp l1.SessionfulTransport
+	var tcp l1.SessionfulTransportProvider
 	if p.config.TLSConfig == nil {
 		tcp = l1.NewTCP(binding)
 	} else {

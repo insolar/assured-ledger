@@ -21,7 +21,7 @@ import (
 // const MinUdpSize = 1300
 const MaxUDPSize = 2048
 
-func NewUDP(binding nwapi.Address, maxByteSize uint16) SessionlessTransport {
+func NewUDP(binding nwapi.Address, maxByteSize uint16) SessionlessTransportProvider {
 	if maxByteSize == 0 {
 		panic(throw.IllegalValue())
 	}
@@ -46,16 +46,16 @@ func (p *UDPTransport) IsZero() bool {
 }
 
 // SessionlessReceiveFunc MUST NOT reuse (b) after return
-func (p *UDPTransport) ListenOverride(receiveFn SessionlessReceiveFunc, binding nwapi.Address) (OutTransportFactory, error) {
+func (p *UDPTransport) CreateListeningFactoryWithAddress(receiveFn SessionlessReceiveFunc, binding nwapi.Address) (OutTransportFactory, error) {
 	if binding.IsZero() {
-		return p.Listen(receiveFn)
+		return p.CreateListeningFactory(receiveFn)
 	}
 	cp := &UDPTransport{binding.AsUDPAddr(), nil, p.maxByteSize}
-	return cp.Listen(receiveFn)
+	return cp.CreateListeningFactory(receiveFn)
 }
 
 // SessionlessReceiveFunc MUST NOT reuse (b) after return
-func (p *UDPTransport) Listen(receiveFn SessionlessReceiveFunc) (OutTransportFactory, error) {
+func (p *UDPTransport) CreateListeningFactory(receiveFn SessionlessReceiveFunc) (OutTransportFactory, error) {
 	switch {
 	case receiveFn == nil:
 		panic(throw.IllegalValue())
@@ -73,7 +73,7 @@ func (p *UDPTransport) Listen(receiveFn SessionlessReceiveFunc) (OutTransportFac
 	return p, nil
 }
 
-func (p *UDPTransport) Outgoing() (OutTransportFactory, error) {
+func (p *UDPTransport) CreateOutgoingOnlyFactory() (OutTransportFactory, error) {
 	switch {
 	case p.conn != nil:
 		return p, nil

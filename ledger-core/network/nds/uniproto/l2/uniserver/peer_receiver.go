@@ -258,7 +258,7 @@ func toHostID(id uint32, supp uniproto.Supporter) nwapi.HostID {
 	case supp == nil:
 		return nwapi.HostID(id)
 	default:
-		return supp.ToHostID(id)
+		return supp.FromPacketToHostID(id)
 	}
 }
 
@@ -433,9 +433,9 @@ func (p PeerReceiver) processHTTP(req *http.Request, _ uniproto.VerifyHeaderFunc
 }
 
 func (p PeerReceiver) getLocalHostID(supp uniproto.Supporter) uint32 {
-	id := uint32(p.PeerManager.Local().GetNodeID())
+	localID := p.PeerManager.Local().GetHostID()
 	if supp == nil {
-		return id
+		return uint32(localID)
 	}
-	return supp.GetLocalNodeID(id)
+	return supp.FromLocalToPacket(localID)
 }

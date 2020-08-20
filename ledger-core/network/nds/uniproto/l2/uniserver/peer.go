@@ -236,11 +236,11 @@ func (p *Peer) GetLocalUID() nwapi.Address {
 	return nwapi.NewLocalUID(p.transport.uid, nwapi.HostID(p.nodeID))
 }
 
-func (p *Peer) GetHostID() nwapi.Address {
+func (p *Peer) GetHostID() nwapi.HostID {
 	p.transport.mutex.RLock()
 	defer p.transport.mutex.RUnlock()
 
-	return nwapi.NewHostID(nwapi.HostID(p.nodeID))
+	return nwapi.HostID(p.nodeID)
 }
 
 func (p *Peer) SetProtoInfo(pt uniproto.ProtocolType, info io.Closer) {

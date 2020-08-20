@@ -19,11 +19,11 @@ var _ PeerTransportFactory = &peerTransportFactory{}
 type peerTransportFactory struct {
 	listen atomickit.StartStopFlag
 
-	tcp         l1.SessionfulTransport
+	tcp         l1.SessionfulTransportProvider
 	tcpConnect  l1.SessionfulConnectFunc
 	tcpOutgoing l1.SessionfulConnectFunc
 
-	udp        l1.SessionlessTransport
+	udp        l1.SessionlessTransportProvider
 	udpReceive l1.SessionlessReceiveFunc
 
 	tcpListen l1.OutTransportFactory
@@ -38,7 +38,7 @@ func (p *peerTransportFactory) MaxSessionlessSize() uint16 {
 	return p.udp.MaxByteSize()
 }
 
-func (p *peerTransportFactory) SetSessionless(udp l1.SessionlessTransport, slFn l1.SessionlessReceiveFunc) {
+func (p *peerTransportFactory) SetSessionless(udp l1.SessionlessTransportProvider, slFn l1.SessionlessReceiveFunc) {
 	switch {
 	case udp == nil:
 		panic(throw.IllegalValue())
@@ -51,7 +51,7 @@ func (p *peerTransportFactory) SetSessionless(udp l1.SessionlessTransport, slFn 
 	p.udpReceive = slFn
 }
 
-func (p *peerTransportFactory) SetSessionful(tcp l1.SessionfulTransport, outFn, sfFn l1.SessionfulConnectFunc) {
+func (p *peerTransportFactory) SetSessionful(tcp l1.SessionfulTransportProvider, outFn, sfFn l1.SessionfulConnectFunc) {
 	switch {
 	case tcp == nil:
 		panic(throw.IllegalValue())
@@ -78,18 +78,18 @@ func (p *peerTransportFactory) Listen() (err error) {
 	}
 
 	if p.listen.DoStart(func() {
-		if p.tcpListen, err = p.tcp.Listen(p.tcpConnect); err != nil {
+		if p.tcpListen, err = p.tcp.CreateListeningFactory(p.tcpConnect); err != nil {
 			return
 		}
 		if p.updateLocalAddr == nil {
-			p.udpListen, err = p.udp.Listen(p.udpReceive)
+			p.udpListen, err = p.udp.CreateListeningFactory(p.udpReceive)
 			return
 		}
 
 		localAddr := p.tcpListen.LocalAddr()
 		p.updateLocalAddr(localAddr)
 
-		if p.udpListen, err = p.udp.ListenOverride(p.udpReceive, localAddr); err != nil {
+		if p.udpListen, err = p.udp.CreateListeningFactoryWithAddress(p.udpReceive, localAddr); err != nil {
 			return
 		}
 
@@ -122,7 +122,7 @@ func (p *peerTransportFactory) SessionlessConnectTo(to nwapi.Address) (l1.OutTra
 	case p.listen.IsActive():
 		return p.udpListen.ConnectTo(to, p.preference)
 	}
-	out, err := p.udp.Outgoing()
+	out, err := p.udp.CreateOutgoingOnlyFactory()
 	if err != nil {
 		return nil, err
 	}
@@ -137,7 +137,7 @@ func (p *peerTransportFactory) SessionfulConnectTo(to nwapi.Address) (l1.OutTran
 	case p.listen.IsActive():
 		return p.tcpListen.ConnectTo(to, p.preference)
 	}
-	out, err := p.tcp.Outgoing(p.tcpOutgoing)
+	out, err := p.tcp.CreateOutgoingOnlyFactory(p.tcpOutgoing)
 	if err != nil {
 		return nil, err
 	}

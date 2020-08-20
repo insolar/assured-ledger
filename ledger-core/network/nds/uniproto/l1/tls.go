@@ -17,7 +17,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
 )
 
-func NewTLS(binding nwapi.Address, config *tls.Config) SessionfulTransport {
+func NewTLS(binding nwapi.Address, config *tls.Config) SessionfulTransportProvider {
 	return &TLSTransport{addr: binding.AsTCPAddr(), config: config}
 }
 
@@ -36,7 +36,7 @@ func (p *TLSTransport) IsZero() bool {
 	return p.conn == nil && p.addr.IP == nil
 }
 
-func (p *TLSTransport) Listen(receiveFn SessionfulConnectFunc) (OutTransportFactory, error) {
+func (p *TLSTransport) CreateListeningFactory(receiveFn SessionfulConnectFunc) (OutTransportFactory, error) {
 	switch {
 	case receiveFn == nil:
 		panic(throw.IllegalValue())
@@ -47,7 +47,7 @@ func (p *TLSTransport) Listen(receiveFn SessionfulConnectFunc) (OutTransportFact
 	case len(p.config.Certificates) > 0 || p.config.GetCertificate != nil || p.config.GetConfigForClient != nil:
 		// ok
 	default:
-		// mimics tls.Listen
+		// mimics tls.CreateListeningFactory
 		return nil, errors.New("tls: neither Certificates, GetCertificate, nor GetConfigForClient set in Config")
 	}
 
@@ -61,7 +61,7 @@ func (p *TLSTransport) Listen(receiveFn SessionfulConnectFunc) (OutTransportFact
 	return p, nil
 }
 
-func (p *TLSTransport) Outgoing(receiveFn SessionfulConnectFunc) (OutTransportFactory, error) {
+func (p *TLSTransport) CreateOutgoingOnlyFactory(receiveFn SessionfulConnectFunc) (OutTransportFactory, error) {
 	return &TLSTransport{p.config, p.addr, nil, receiveFn}, nil
 }
 

@@ -14,9 +14,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/ratelimiter"
 )
 
-type SessionfulTransport interface {
-	Listen(SessionfulConnectFunc) (OutTransportFactory, error)
-	Outgoing(SessionfulConnectFunc) (OutTransportFactory, error)
+// SessionfulTransportProvider is a meta-factory for session-full connections like TCP and TLS
+type SessionfulTransportProvider interface {
+	// CreateListeningFactory starts listening and provides OutTransportFactory that has same local address as the listening socket.
+	CreateListeningFactory(SessionfulConnectFunc) (OutTransportFactory, error)
+	CreateOutgoingOnlyFactory(SessionfulConnectFunc) (OutTransportFactory, error)
 	Close() error
 }
 
@@ -32,12 +34,12 @@ type OutTransportFactory interface {
 
 /**************************/
 
-type SessionlessTransport interface {
-	Listen(SessionlessReceiveFunc) (OutTransportFactory, error)
-	ListenOverride(SessionlessReceiveFunc, nwapi.Address) (OutTransportFactory, error)
-	Outgoing() (OutTransportFactory, error)
-	Close() error
+type SessionlessTransportProvider interface {
+	CreateListeningFactory(SessionlessReceiveFunc) (OutTransportFactory, error)
+	CreateListeningFactoryWithAddress(SessionlessReceiveFunc, nwapi.Address) (OutTransportFactory, error)
+	CreateOutgoingOnlyFactory() (OutTransportFactory, error)
 	MaxByteSize() uint16
+	Close() error
 }
 
 // SessionlessReceiveFunc MUST NOT reuse (b) after return

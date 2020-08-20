@@ -17,7 +17,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/ratelimiter"
 )
 
-func NewTCP(binding nwapi.Address) SessionfulTransport {
+func NewTCP(binding nwapi.Address) SessionfulTransportProvider {
 	return &TCPTransport{addr: binding.AsTCPAddr()}
 }
 
@@ -35,7 +35,7 @@ func (p *TCPTransport) IsZero() bool {
 	return p.conn == nil && p.addr.IP == nil
 }
 
-func (p *TCPTransport) Listen(receiveFn SessionfulConnectFunc) (OutTransportFactory, error) {
+func (p *TCPTransport) CreateListeningFactory(receiveFn SessionfulConnectFunc) (OutTransportFactory, error) {
 	switch {
 	case receiveFn == nil:
 		panic(throw.IllegalValue())
@@ -54,7 +54,7 @@ func (p *TCPTransport) Listen(receiveFn SessionfulConnectFunc) (OutTransportFact
 	return p, nil
 }
 
-func (p *TCPTransport) Outgoing(receiveFn SessionfulConnectFunc) (OutTransportFactory, error) {
+func (p *TCPTransport) CreateOutgoingOnlyFactory(receiveFn SessionfulConnectFunc) (OutTransportFactory, error) {
 	return &TCPTransport{p.addr, nil, receiveFn}, nil
 }
 

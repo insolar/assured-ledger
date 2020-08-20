@@ -23,6 +23,6 @@ type Receiver interface {
 
 type Supporter interface {
 	VerifyHeader(*Header, pulse.Number, cryptkit.DataSignatureVerifier) (cryptkit.DataSignatureVerifier, error)
-	ToHostID(id uint32) nwapi.HostID
-	GetLocalNodeID(id uint32) uint32 // fix naming either peer or host
+	FromPacketToHostID(id uint32) nwapi.HostID
+	FromLocalToPacket(nwapi.HostID) uint32
 }
