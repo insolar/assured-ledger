@@ -49,7 +49,7 @@ func NewExecutor(ctx context.Context, cfg Config, runArg interface{}) (exec smac
 	switch output := make(chan smachine.AdapterCall, chanLimit<<1); {
 	case cfg.MaxBufferCapacity == 0:
 		exec, ch = WrapCallChannelNoBuffer(cfg.ProvideCancel, output), output
-	case cfg.MaxBufferCapacity < 0: //unlimited buffer
+	case cfg.MaxBufferCapacity < 0: // unlimited buffer
 		exec, ch = WrapCallChannelNoLimit(ctx, cfg.ProvideCancel, output), output
 	default:
 		exec, ch = WrapCallChannel(ctx, cfg.MaxBufferCapacity, cfg.ProvideCancel, output), output

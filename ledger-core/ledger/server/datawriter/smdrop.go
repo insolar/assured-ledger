@@ -11,6 +11,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/datareader"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -21,9 +22,11 @@ type SMDropBuilder struct {
 	smachine.StateMachineDeclTemplate
 
 	pulseSlot *conveyor.PulseSlot
+	// catalog   PlashCataloger
 
-	sd DropSharedData
+	sd         DropSharedData
 	prevReport datareader.PrevDropReport
+	// jetAssist  *PlashSharedData
 }
 
 func (p *SMDropBuilder) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
@@ -36,6 +39,7 @@ func (p *SMDropBuilder) GetInitStateFor(smachine.StateMachine) smachine.InitFunc
 
 func (p *SMDropBuilder) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLink, injector injector.DependencyInjector) {
 	injector.MustInject(&p.pulseSlot)
+	// injector.MustInject(&p.catalog)
 }
 
 func (p *SMDropBuilder) stepInit(ctx smachine.InitializationContext) smachine.StateUpdate {
@@ -43,7 +47,7 @@ func (p *SMDropBuilder) stepInit(ctx smachine.InitializationContext) smachine.St
 		return ctx.Error(throw.E("not a present pulse"))
 	}
 
-	p.sd.prevReport = ctx.NewBargeInWithParam(func(v interface{}) smachine.BargeInCallbackFunc {
+	p.sd.prevReportBargein = ctx.NewBargeInWithParam(func(v interface{}) smachine.BargeInCallbackFunc {
 		report := v.(datareader.PrevDropReport)
 		return func(ctx smachine.BargeInContext) smachine.StateUpdate {
 			if p.receivePrevReport(report, ctx) {
@@ -53,6 +57,8 @@ func (p *SMDropBuilder) stepInit(ctx smachine.InitializationContext) smachine.St
 		}
 	})
 
+	// p.jetAssist = p.catalog.Get(ctx, p.sd.id.CreatedAt())
+
 	if !RegisterJetDrop(ctx, &p.sd) {
 		panic(throw.IllegalState())
 	}
@@ -61,7 +67,7 @@ func (p *SMDropBuilder) stepInit(ctx smachine.InitializationContext) smachine.St
 	return ctx.Jump(p.stepWaitPrevDrop)
 }
 
-const passiveWaitPortion = 50
+const passiveWaitPortion = 50 // wait for 1/50th of pulse
 
 func (p *SMDropBuilder) getPassiveDeadline(startedAt time.Time, pulseDelta uint16) time.Time {
 	switch {
@@ -74,6 +80,11 @@ func (p *SMDropBuilder) getPassiveDeadline(startedAt time.Time, pulseDelta uint1
 }
 
 func (p *SMDropBuilder) stepWaitPrevDrop(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	// TODO this is a temporary stub
+	p.prevReport.ReportRec = &rms.RPrevDropReport{}
+	if !p.prevReport.IsZero() {
+		return ctx.Jump(p.stepDropStart)
+	}
 
 	passiveUntil := p.getPassiveDeadline(p.pulseSlot.PulseStartedAt(), p.pulseSlot.PulseData().NextPulseDelta)
 	return ctx.Jump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -139,12 +150,12 @@ func (p *SMDropBuilder) receivePrevReport(report datareader.PrevDropReport, ctx 
 	}
 
 	p.prevReport = report
-	p.sd.addPrevReport(report)
+	p.sd.setPrevReport(report)
 	return true
 }
 
 func (p *SMDropBuilder) verifyPrevReport(report datareader.PrevDropReport) bool {
 	// TODO verification vs jet tree etc
-	return true
+	return !report.IsZero()
 }
 

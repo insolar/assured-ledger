@@ -8,7 +8,6 @@ package virtual
 import (
 	"context"
 
-	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/insolar/component-manager"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
@@ -58,10 +57,6 @@ func (v wrapper) Stop(ctx context.Context) error {
 		return err
 	}
 	return nil
-}
-
-func (v wrapper) GetMessageHandler() message.NoPublishHandlerFunc {
-	return v.virtualDispatcher.FlowDispatcher.Process
 }
 
 func (v wrapper) GetBeatDispatcher() beat.Dispatcher {

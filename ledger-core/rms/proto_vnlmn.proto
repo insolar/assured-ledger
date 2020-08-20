@@ -41,9 +41,16 @@ message LRegisterRequest {
 
     RegistrationFlags Flags = 1800;
     Reference AnticipatedRef = 1801;
-    Binary    ProducerSignature = 1802;
-    Reference ProducedBy = 1803;
-    // Token  ProducerToken = 1804;
+
+    uint32 OverrideRecordType = 1816;
+    Reference OverridePrevRef = 1824;
+    Reference OverrideRootRef = 1825;
+    Reference OverrideReasonRef = 1826;
+
+    Binary    ProducerSignature = 1839;
+    Reference ProducedBy = 1840;
+
+    // Token  ProducerToken = 1841;
 }
 
 message LRegisterResponse {

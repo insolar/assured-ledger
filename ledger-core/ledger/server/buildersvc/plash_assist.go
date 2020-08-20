@@ -75,7 +75,7 @@ func (p *plashAssistant) CommitPulseChange() {
 	p.commit.Unlock()
 }
 
-func (p *plashAssistant) appendToDrop(id jet.DropID, future AppendFuture, bundle lineage.ResolvedBundle) error {
+func (p *plashAssistant) appendToDrop(id jet.DropID, future AppendFuture, bundle lineage.UpdateBundle) error {
 	assist, ok := p.dropAssists[id.ID()]
 	switch {
 	case !ok:
@@ -127,6 +127,10 @@ func (p *plashAssistant) commitDropUpdate(fn func() error) error {
 
 func (p *plashAssistant) GetResolver() lineage.DependencyResolver {
 	panic("implement me")
+}
+
+func (p *plashAssistant) IsGenesis() bool {
+	return p.tree.IsEmpty()
 }
 
 func (p *plashAssistant) CalculateJetDrop(holder reference.Holder) jet.DropID {
