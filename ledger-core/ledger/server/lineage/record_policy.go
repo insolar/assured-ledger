@@ -34,6 +34,7 @@ const (
 	BlockNextPulse
 	Recap // can follow up any record (Deactivate?)
 	ReasonRequired
+	PayloadAllowed
 )
 
 type DustMode uint8

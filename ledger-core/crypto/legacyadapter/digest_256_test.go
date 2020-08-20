@@ -45,6 +45,6 @@ func TestSha3Digester256_GetDigestOf(t *testing.T) {
 func TestSha3Digester256_GetDigestMethod(t *testing.T) {
 	digester := NewSha3Digester256(scheme)
 
-	require.Equal(t, digester.GetDigestMethod(), SHA3Digest256)
+	require.Equal(t, digester.GetDigestMethod(), SHA3Digest512as256)
 }
 

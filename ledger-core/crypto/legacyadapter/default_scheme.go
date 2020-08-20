@@ -18,10 +18,12 @@ func New(pcs cryptography.PlatformCryptographyScheme, _ cryptography.KeyProcesso
 	if err != nil {
 		panic(err)
 	}
+	ecdsaSK := localSK.(*ecdsa.PrivateKey)
 
 	return &platformSchemeLegacy{
 		pcs: pcs,
-		signer: NewECDSADigestSigner(NewECDSASecretKeyStore(localSK.(*ecdsa.PrivateKey)), pcs),
+		signer: NewECDSADigestSigner(NewECDSASecretKeyStore(ecdsaSK), pcs),
+		verifier: NewECDSASignatureVerifier(pcs, NewECDSAPublicKeyStoreFromPK(ecdsaSK.Public())),
 	}
 }
 
@@ -30,6 +32,7 @@ type platformSchemeLegacy struct {
 	pcs cryptography.PlatformCryptographyScheme
 	// kp  cryptography.KeyProcessor
 	signer cryptkit.DigestSigner
+	verifier cryptkit.SignatureVerifier
 }
 
 func (p *platformSchemeLegacy) PacketDigester() cryptkit.DataDigester {
@@ -44,8 +47,8 @@ func (p *platformSchemeLegacy) NewMerkleDigester() cryptkit.PairDigester {
 	return NewSha3Digester512(p.pcs)
 }
 
-func (p *platformSchemeLegacy) RefDataDigester() cryptkit.DataDigester {
-	return NewSha3Digester224(p.pcs)
+func (p *platformSchemeLegacy) ReferenceDigester() cryptkit.DataDigester {
+	return p.RecordScheme().ReferenceDigester()
 }
 
 func (p *platformSchemeLegacy) CreateSignatureVerifierWithPKS(pks cryptkit.PublicKeyStore) cryptkit.SignatureVerifier {
@@ -56,24 +59,12 @@ func (p *platformSchemeLegacy) CreatePublicKeyStore(skh cryptkit.SignatureKeyHol
 	return NewECDSAPublicKeyStore(skh)
 }
 
-func (p *platformSchemeLegacy) RecordDigester() cryptkit.DataDigester {
-	return NewSha3Digester512(p.pcs)
-}
-
-func (p *platformSchemeLegacy) RecordSigner() cryptkit.DigestSigner {
-	return p.signer
-}
-
-func (p *platformSchemeLegacy) GetSchemeName() crypto.SchemeName {
-	return crypto.PlatformSchemeName
-}
-
 func (p *platformSchemeLegacy) ReferenceScheme() crypto.ReferenceScheme {
 	return p
 }
 
 func (p *platformSchemeLegacy) RecordScheme() crypto.RecordScheme {
-	return p
+	return p.CustomScheme("")
 }
 
 func (p *platformSchemeLegacy) TransportScheme() crypto.TransportScheme {
@@ -85,8 +76,8 @@ func (p *platformSchemeLegacy) ConsensusScheme() crypto.ConsensusScheme {
 }
 
 func (p *platformSchemeLegacy) CustomScheme(name crypto.SchemeName) crypto.CustomScheme {
-	if name == crypto.PlatformSchemeName || name == "" {
-		return p
+	if name == "" || name == crypto.PlatformSchemeName {
+		return recordSchemeLegacy{p.pcs, p.signer, p.verifier }
 	}
 	return nil
 }

@@ -20,7 +20,7 @@ type AnyLazy struct {
 	value goGoMarshaler
 }
 
-func (p *AnyRecordLazy) IsZero() bool {
+func (p *AnyLazy) IsZero() bool {
 	return p.value == nil
 }
 
@@ -33,6 +33,30 @@ func (p *AnyLazy) TryGetLazy() LazyValue {
 
 func (p *AnyLazy) Set(v GoGoSerializable) {
 	p.value = v
+}
+
+func (p *AnyLazy) asLazy(v MarshalerTo) (LazyValue, error) {
+	n := v.ProtoSize()
+	b := make([]byte, n)
+	if n > 0 {
+		switch n2, err := v.MarshalTo(b); {
+		case err != nil:
+			return LazyValue{}, err
+		case n != n2:
+			return LazyValue{}, io.ErrShortWrite
+		}
+	}
+	return LazyValue{ b, reflect.TypeOf(v) }, nil
+}
+
+func (p *AnyLazy) SetAsLazy(v MarshalerTo) error {
+	lv, err := p.asLazy(v)
+	if err != nil {
+		return err
+	}
+
+	p.value = lv
+	return nil
 }
 
 func (p *AnyLazy) TryGet() (isLazy bool, r GoGoSerializable) {

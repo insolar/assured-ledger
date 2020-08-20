@@ -16,6 +16,10 @@ import (
 type RecordPayloads struct {
 	sizes    []int
 	payloads []RawBinary
+
+	// for CopyRecordPayloads only
+	digester cryptkit.DataDigester
+	digests  []cryptkit.Digest
 }
 
 func (p *RecordPayloads) isRawBytes() bool {
@@ -144,8 +148,11 @@ func (p *RecordPayloads) Count() int {
 }
 
 func (p *RecordPayloads) GetPayloadOrExtension(index int) MarshalerTo {
-	// rb := p.payloads[index]
-	panic(throw.NotImplemented())
+	payload := p.payloads[index]
+	if payload.IsZero() {
+		panic(throw.IllegalState())
+	}
+	return rawBinaryMarshal{payload}
 }
 
 func (p *RecordPayloads) GetExtensionID(index int) uint32 {
