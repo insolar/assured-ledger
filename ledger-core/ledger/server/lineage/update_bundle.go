@@ -6,6 +6,7 @@
 package lineage
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -38,9 +39,9 @@ func (v UpdateBundle) Count() int {
 	return len(v.records)
 }
 
-func (v UpdateBundle) Enum(fn func (Record, DustMode) bool) bool {
+func (v UpdateBundle) Enum(fn func (Record, rms.BasicRecord, DustMode) bool) bool {
 	for _, r := range v.records {
-		if fn(r.Record, 0) {
+		if fn(r.Record, r.asBasicRecord(), 0) {
 			return true
 		}
 	}

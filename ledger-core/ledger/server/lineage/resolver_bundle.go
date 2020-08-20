@@ -113,7 +113,7 @@ func (p *BundleResolver) Add(record Record) bool {
 		return p.addError(throw.E("unknown type"))
 	}
 
-	payloads := record.AsBasicRecord().GetRecordPayloads()
+	payloads := record.asBasicRecord().GetRecordPayloads()
 	if !payloads.IsEmpty() && policy.PolicyFlags&PayloadAllowed == 0 {
 		return p.addError(throw.E("payload forbidden"))
 	}

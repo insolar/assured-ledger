@@ -203,6 +203,13 @@ func (p *SMRegisterRecordSet) stepWaitUpdated(ctx smachine.ExecutionContext) sma
 	if !ctx.Acquire(p.updated.GetReadySync()) {
 		return ctx.Sleep().ThenRepeat()
 	}
+
+	// don't worry when there is no access - it will be trimmed later then
+	p.sdl.TryAccess(ctx, func(sd *datawriter.LineSharedData) (wakeup bool) {
+		sd.TrimStages()
+		return false
+	})
+
 	return ctx.Jump(p.stepSendFinalResponse)
 }
 

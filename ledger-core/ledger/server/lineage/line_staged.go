@@ -508,6 +508,7 @@ func (p *LineStages) setAllocations(stage *updateStage, allocBase []ledger.Direc
 	for i := uint32(0); i < max; i++ {
 		rec := p.get(stage.firstRec + recordNo(i))
 		rec.storageIndex = allocBase[i]
+		rec.cleanup()
 	}
 }
 

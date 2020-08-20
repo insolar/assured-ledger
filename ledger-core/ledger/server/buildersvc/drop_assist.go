@@ -13,6 +13,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/bundle"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lineage"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -31,8 +32,7 @@ func (p *dropAssistant) append(pa *plashAssistant, future AppendFuture, b lineag
 	entries := make([]draftEntry, 0, b.Count())
 	digests := make([]cryptkit.Digest, 0, b.Count())
 
-	b.Enum(func(record lineage.Record, dust lineage.DustMode) bool {
-		br := record.AsBasicRecord()
+	b.Enum(func(record lineage.Record, br rms.BasicRecord, dust lineage.DustMode) bool {
 		recPayloads := br.GetRecordPayloads()
 		payloadCount := recPayloads.Count()
 

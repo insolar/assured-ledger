@@ -53,11 +53,13 @@ func (p *LineSharedData) ensureDataAccess() {
 }
 
 func (p *LineSharedData) TryApplyRecordSet(ctx smachine.ExecutionContext, set inspectsvc.InspectedRecordSet) (*buildersvc.Future, *lineage.BundleResolver) {
+
+	p.ensureDataAccess()
 	if set.IsEmpty() {
 		panic(throw.IllegalValue())
 	}
-	p.ensureDataAccess()
 
+	p.data.TrimCommittedStages()
 	br := p.data.NewBundle()
 	br.Hint(set.Count())
 
@@ -195,6 +197,11 @@ func (p *LineSharedData) getUnresolved() UnresolvedDependencyMap {
 	return p.deps.GetPendingUnresolved()
 }
 
-func (p *LineSharedData) onDropReady(sd *DropSharedData) {
+func (p *LineSharedData) onDropReady(*DropSharedData) {
 
+}
+
+func (p *LineSharedData) TrimStages() {
+	p.ensureDataAccess()
+	p.data.TrimCommittedStages()
 }

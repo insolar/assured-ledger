@@ -52,8 +52,8 @@ type Record struct {
 	recapRec   *rms.RLineRecap
 }
 
-func (v Record) Equal(record Record) bool {
-	return v.regReq != nil && v.regReq.Equal(record.regReq)
+func (v Record) cleanup()  {
+	v.regReq = nil
 }
 
 func (v Record) EqualForRecordIdempotency(record Record) bool {
@@ -61,13 +61,7 @@ func (v Record) EqualForRecordIdempotency(record Record) bool {
 }
 
 func (v Record) GetRecordRef() reference.Holder {
-	if v.RecRef != nil {
-		return v.RecRef
-	}
-	if v.regReq != nil {
-		return v.regReq.AnticipatedRef.Get()
-	}
-	return nil
+	return v.RecRef
 }
 
 func (v Record) IsValid() bool {
@@ -83,7 +77,7 @@ func (v Record) IsValid() bool {
 	}
 }
 
-func (v Record) AsBasicRecord() rms.BasicRecord {
+func (v Record) asBasicRecord() rms.BasicRecord {
 	switch {
 	case v.regReq != nil:
 		return &v.regReq.AnyRecordLazy
