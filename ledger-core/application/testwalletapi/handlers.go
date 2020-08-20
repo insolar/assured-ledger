@@ -476,26 +476,31 @@ func (s *TestWalletServer) runWalletRequest(ctx context.Context, req payload.VCa
 		res  []byte
 	)
 
-	createDefaults := smachine.CreateDefaultValues{
-		Context: ctx,
-		TerminationHandler: func(data smachine.TerminationData) {
-			defer func() {
-				close(readyChan)
-			}()
+	if isBrief, response := call.CanBeBrief(); isBrief {
+		res = response
+		close(readyChan)
+	} else {
+		createDefaults := smachine.CreateDefaultValues{
+			Context: ctx,
+			TerminationHandler: func(data smachine.TerminationData) {
+				defer func() {
+					close(readyChan)
+				}()
 
-			fail = data.Error
+				fail = data.Error
 
-			resData, ok := data.Result.([]byte)
-			if ok {
-				res = resData
-			}
-		},
-		TracerID: trace.ID(ctx),
-	}
+				resData, ok := data.Result.([]byte)
+				if ok {
+					res = resData
+				}
+			},
+			TracerID: trace.ID(ctx),
+		}
 
-	err = s.feeder.AddInputExt(latestPulse.PulseNumber, call, createDefaults)
-	if err != nil {
-		return nil, throw.W(err, "Failed to add call to conveyor", nil)
+		err = s.feeder.AddInputExt(latestPulse.PulseNumber, call, createDefaults)
+		if err != nil {
+			return nil, throw.W(err, "Failed to add call to conveyor", nil)
+		}
 	}
 
 	select {
