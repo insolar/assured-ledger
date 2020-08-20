@@ -40,7 +40,7 @@ func (v PacketVerifier) VerifyWhole(h *Header, b []byte) error {
 }
 
 func (v PacketVerifier) VerifySignature(digest cryptkit.Digest, signatureBytes []byte) error {
-	signature := cryptkit.NewSignature(longbits.NewMutableFixedSize(signatureBytes), v.Verifier.GetSignatureMethod())
+	signature := cryptkit.NewSignature(longbits.WrapBytes(signatureBytes), v.Verifier.GetSignatureMethod())
 
 	if !v.Verifier.IsValidDigestSignature(digest, signature) {
 		return throw.Violation("packet signature mismatch")
