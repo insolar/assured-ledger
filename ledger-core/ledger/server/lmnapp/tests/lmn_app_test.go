@@ -25,6 +25,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/journal"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 )
 
 func TestGenesisTree(t *testing.T) {
@@ -156,11 +157,15 @@ func TestAddRecords(t *testing.T) {
 
 	reasonRef := gen.UniqueGlobalRefWithPulse(server.LastPulseNumber())
 
+	var bundleSignatures [][]cryptkit.Signature
+
 	t.Run("one bundle", func(t *testing.T) {
 		for N := 10; N > 0; N-- {
 			// one bundle per object
-			_, err := genNewLine.registerNewLine(reasonRef)
+			sg, err := genNewLine.registerNewLine(reasonRef)
 			require.NoError(t, err)
+			require.Len(t, sg, 3)
+			bundleSignatures = append(bundleSignatures, sg)
 		}
 	})
 
@@ -172,12 +177,18 @@ func TestAddRecords(t *testing.T) {
 
 			// first record only
 			firstSet.Requests = firstSet.Requests[:1]
-			_, err := genNewLine.callRegister(firstSet)
+			sg, err := genNewLine.callRegister(firstSet)
 			require.NoError(t, err)
+			require.Len(t, sg, 1)
+			sgCopy := sg[0]
 
 			// all records together
-			_, err = genNewLine.callRegister(fullSet)
+			sg, err = genNewLine.callRegister(fullSet)
 			require.NoError(t, err)
+			require.Len(t, sg, 3)
+			require.True(t, sgCopy.Equals(sg[0]))
+
+			bundleSignatures = append(bundleSignatures, sg)
 		}
 	})
 
@@ -186,13 +197,20 @@ func TestAddRecords(t *testing.T) {
 	genNewLine.seqNo.Store(0)
 
 	t.Run("duplicates", func(t *testing.T) {
+		i := 0
 		for N := 20; N > 0; N-- {
-			_, err := genNewLine.registerNewLine(reasonRef)
+			sg, err := genNewLine.registerNewLine(reasonRef)
 			require.NoError(t, err)
+			require.Len(t, sg, 3)
+
+			// make sure to get exactly same signatures - this is only possible when records were deduplicated
+			for j := range sg {
+				require.True(t, bundleSignatures[i][j].Equals(sg[j]), i)
+			}
+
+			i++
 		}
 	})
-
-	// TODO check that records were not duplicated ....
 }
 
 func BenchmarkWriteNew(b *testing.B) {
@@ -305,7 +323,7 @@ func (p *generatorNewLifeline) makeSet(reasonRef reference.Holder) inspectsvc.Re
 	return rb.MakeSet()
 }
 
-func (p *generatorNewLifeline) callRegister(recordSet inspectsvc.RegisterRequestSet) (interface{}, error) {
+func (p *generatorNewLifeline) callRegister(recordSet inspectsvc.RegisterRequestSet) ([]cryptkit.Signature, error) {
 	pn := p.recBuilder.RefTemplate.LocalHeader().Pulse()
 
 	setSize := 0
@@ -331,10 +349,14 @@ func (p *generatorNewLifeline) callRegister(recordSet inspectsvc.RegisterRequest
 		panic(err)
 	}
 	data := <- ch
-	return data.Result, data.Error
+	if data.Result == nil {
+		return nil, data.Error
+	}
+
+	return data.Result.([]cryptkit.Signature), data.Error
 }
 
-func (p *generatorNewLifeline) registerNewLine(reasonRef reference.Holder) (interface{}, error) {
+func (p *generatorNewLifeline) registerNewLine(reasonRef reference.Holder) ([]cryptkit.Signature, error) {
 	recordSet := p.makeSet(reasonRef)
 	return p.callRegister(recordSet)
 }

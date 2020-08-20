@@ -476,9 +476,19 @@ type SubroutineStartContext interface {
 	SetSubroutineCleanupMode(SubroutineCleanupMode)
 }
 
-type FailureContext interface {
+var _ FailureExecutionContext = ExecutionContext(nil) // MUST be assignable
+type FailureExecutionContext interface {
 	SharedStateContext
 	minimalSynchronizationContext
+
+	// NewChild - See ExecutionContext.NewChild
+	NewChild(CreateFunc) SlotLink
+	// InitChild - See ExecutionContext.InitChild
+	InitChild(CreateFunc) SlotLink
+}
+
+type FailureContext interface {
+	FailureExecutionContext
 
 	// AffectedStep is a step the slot is at
 	AffectedStep() SlotStep
@@ -506,9 +516,4 @@ type FailureContext interface {
 	// SetAction chooses an action to be applied.
 	// Recovery actions will be ignored when CanRecover() is false.
 	SetAction(action ErrorHandlerAction)
-
-	// NewChild - See ExecutionContext.NewChild
-	NewChild(CreateFunc) SlotLink
-	// InitChild - See ExecutionContext.InitChild
-	InitChild(CreateFunc) SlotLink
 }

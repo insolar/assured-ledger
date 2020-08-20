@@ -9,6 +9,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -510,5 +511,14 @@ func (p *LineStages) setAllocations(stage *updateStage, allocBase []ledger.Direc
 		rec.storageIndex = allocBase[i]
 		rec.cleanup()
 	}
+}
+
+func (p *LineStages) Find(ref reference.Holder) (found bool, recordIndex ledger.DirectoryIndex, registrarSignature cryptkit.SignedDigest) {
+	if rn, ok := p.recordRefs[ref.GetLocal().IdentityHash()]; ok {
+		if r := p.get(rn); r != nil {
+			return true, r.storageIndex, r.RegistrarSignature
+		}
+	}
+	return false, 0, cryptkit.SignedDigest{}
 }
 

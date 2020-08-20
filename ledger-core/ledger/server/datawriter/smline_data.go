@@ -205,3 +205,18 @@ func (p *LineSharedData) TrimStages() {
 	p.ensureDataAccess()
 	p.data.TrimCommittedStages()
 }
+
+func (p *LineSharedData) CollectSignatures(set inspectsvc.InspectedRecordSet) {
+	p.ensureDataAccess()
+
+	for i := range set.Records {
+		r := &set.Records[i]
+		ok := false
+		switch ok, _, r.RegistrarSignature = p.data.Find(r.RecRef); {
+		case !ok:
+			panic(throw.IllegalValue())
+		case r.RegistrarSignature.IsEmpty():
+			panic(throw.Impossible())
+		}
+	}
+}
