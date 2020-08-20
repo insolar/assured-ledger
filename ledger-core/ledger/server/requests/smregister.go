@@ -6,14 +6,13 @@
 package requests
 
 import (
-	"runtime"
-
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/datawriter"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/inspectsvc"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -41,9 +40,10 @@ type SMRegisterRecordSet struct {
 	sdl          datawriter.LineDataLink
 	inspectedSet inspectsvc.InspectedRecordSet
 	hasRequested bool
+	isCommitted  bool
 
 	// results
-	updated     *buildersvc.Future
+	committed *buildersvc.Future
 }
 
 func (p *SMRegisterRecordSet) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
@@ -146,23 +146,30 @@ func (p *SMRegisterRecordSet) stepApplyRecordSet(ctx smachine.ExecutionContext) 
 	}
 
 	var errors []error
+	committedDuplicates := false
+
 	switch p.sdl.TryAccess(ctx, func(sd *datawriter.LineSharedData) (wakeup bool) {
 		switch future, bundle := sd.TryApplyRecordSet(ctx, p.inspectedSet); {
+		case future != nil:
+			if bundle != nil {
+				panic(throw.Impossible())
+			}
+			sd.CollectSignatures(p.inspectedSet)
+			p.committed = future
 		case bundle == nil:
-			p.updated = future
-			return false
+			committedDuplicates = true
+			sd.CollectSignatures(p.inspectedSet)
+
 		case bundle.HasErrors():
 			errors = bundle.GetErrors()
-			return false
-
 		case p.hasRequested:
 			//
-			return false
 		default:
 			p.hasRequested = true
 			sd.RequestDependencies(bundle, ctx.NewBargeIn().WithWakeUp())
 			return true
 		}
+		return false
 	}) {
 	case smachine.Passed:
 		//
@@ -172,37 +179,60 @@ func (p *SMRegisterRecordSet) stepApplyRecordSet(ctx smachine.ExecutionContext) 
 		panic(throw.IllegalState())
 	}
 
+	sendUnsafeConfo := false
 	switch {
 	case len(errors) > 0:
-		return ctx.Error(errors[0])
+		ctx.ReleaseAll()
+		return p.handleFailure(ctx, errors...)
 
-		// p.sendFailResponse(ctx, errors...)
-		// return ctx.Stop()
+	case committedDuplicates:
+		p.isCommitted = true
 
-	case p.updated == nil:
+	case p.committed == nil:
 		return ctx.Sleep().ThenRepeat()
 
 	case p.recordSet.GetFlags() & rms.RegistrationFlags_Fast != 0:
+		// this check is to avoid sending unsafe and safe responses simultaneously
+		if !ctx.Acquire(p.committed.GetReadySync()) {
+			sendUnsafeConfo = true
+		} else {
+			p.cleanup(ctx)
+			p.isCommitted = true
+		}
+	}
+	ctx.ReleaseAll()
+
+	if p.isCommitted {
+		return ctx.Jump(p.stepSendFinalResponse)
+	}
+
+	if sendUnsafeConfo {
 		p.sendResponse(ctx, false)
 	}
 
-	ctx.ReleaseAll()
-	return ctx.Jump(p.stepWaitUpdated)
+	return ctx.Jump(p.stepWaitCommitted)
 }
 
-func (p *SMRegisterRecordSet) stepWaitUpdated(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if !ctx.Acquire(p.updated.GetReadySync()) {
+func (p *SMRegisterRecordSet) stepWaitCommitted(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	if !ctx.Acquire(p.committed.GetReadySync()) {
 		return ctx.Sleep().ThenRepeat()
 	}
+
+	p.cleanup(ctx)
+
 	return ctx.Jump(p.stepSendFinalResponse)
 }
 
 func (p *SMRegisterRecordSet) migratePresent(ctx smachine.MigrationContext) smachine.StateUpdate {
 	ctx.SetDefaultMigration(p.migratePast)
 
-	if p.updated == nil {
+	if p.committed == nil {
+		// records were not pushed into the storage
+		// probably we are waiting to resolve dependencies or just late
 		return ctx.Jump(p.stepSendFinalResponse)
 	}
+
+	// have to wait for confirmation from storage
 	return ctx.Stay()
 }
 
@@ -211,42 +241,60 @@ func (p *SMRegisterRecordSet) migratePast(ctx smachine.MigrationContext) smachin
 }
 
 func (p *SMRegisterRecordSet) stepSendFinalResponse(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if p.updated == nil {
-		p.sendFailResponse(ctx, throw.E("cancelled"))
-	} else {
-		switch ready, err := p.updated.GetFutureResult(); {
+	switch {
+	case p.committed != nil:
+		switch ready, err := p.committed.GetFutureResult(); {
 		case !ready:
-			p.sendFailResponse(ctx, throw.E("aborted"))
+			return p.handleFailure(ctx, throw.E("aborted"))
 		case err != nil:
-			p.sendFailResponse(ctx, err)
-		default:
-			p.sendResponse(ctx, true)
+			return p.handleFailure(ctx, err)
 		}
+	case !p.isCommitted:
+		return p.handleFailure(ctx, throw.E("cancelled"))
 	}
+
+	p.sendResponse(ctx, true)
 	return ctx.Stop()
 }
 
-//nolint
-func (p *SMRegisterRecordSet) sendResponse(ctx smachine.ExecutionContext, safe bool) {
-	// // TODO
-	// if safe {
-	// 	runtime.KeepAlive(ctx)
-	// }
-	// panic(throw.NotImplemented())
+func (p *SMRegisterRecordSet) handleFailure(ctx smachine.ExecutionContext, errors ...error) smachine.StateUpdate {
+	if len(errors) == 0 || errors[0] == nil {
+		panic(throw.IllegalValue())
+	}
+
+	if p.sendFailResponse(ctx, errors...) {
+		return ctx.Stop()
+	}
+
+	return ctx.Error(errors[0])
 }
 
-func (p *SMRegisterRecordSet) sendFailResponse(ctx smachine.ExecutionContext, errors ...error) {
-	if len(errors) == 0 || errors[0] == nil {
-		panic(throw.IllegalState())
+func (p *SMRegisterRecordSet) sendResponse(ctx smachine.ExecutionContext, safe bool) {
+	signatures := make([]cryptkit.Signature, len(p.inspectedSet.Records))
+	for i := range p.inspectedSet.Records {
+		signatures[i] = p.inspectedSet.Records[i].RegistrarSignature.GetSignature()
 	}
-	// TODO
-	if ctx != nil {
-		runtime.KeepAlive(ctx)
+
+	if safe {
+		ctx.SetDefaultTerminationResult(signatures)
 	}
-	panic(throw.NotImplemented())
+
+	// TODO implement send
+}
+
+func (p *SMRegisterRecordSet) sendFailResponse(smachine.FailureExecutionContext, ...error) bool {
+	// TODO implement failure send
+	return false
 }
 
 func (p *SMRegisterRecordSet) handleError(ctx smachine.FailureContext) {
-// TODO p.sendResponse(ctx, ctx.GetError())
+	p.sendFailResponse(ctx, ctx.GetError())
 }
 
+func (p *SMRegisterRecordSet) cleanup(ctx smachine.ExecutionContext) {
+	// don't worry when there is no access - it will be trimmed later then
+	p.sdl.TryAccess(ctx, func(sd *datawriter.LineSharedData) (wakeup bool) {
+		sd.TrimStages()
+		return false
+	})
+}

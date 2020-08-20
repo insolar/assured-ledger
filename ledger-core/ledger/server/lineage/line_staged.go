@@ -9,6 +9,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -55,16 +56,32 @@ func (p *LineStages) NewBundle() *BundleResolver {
 	return newBundleResolver(p, GetRecordPolicy)
 }
 
-func (p *LineStages) AddBundle(bundle *BundleResolver, tracker StageTracker) bool {
+func (p *LineStages) AddBundle(bundle *BundleResolver, tracker StageTracker) (bool, StageTracker, UpdateBundle) {
 	switch {
 	case tracker == nil:
 		panic(throw.IllegalValue())
 	case bundle == nil:
 		panic(throw.IllegalValue())
-	case bundle.IsEmpty():
-		return true
-	case !bundle.IsResolved():
-		return false
+	case !bundle.hasNoTroubles():
+		return false, nil, UpdateBundle{}
+	case len(bundle.records) > 0:
+	case len(bundle.dupRecords) == 0:
+		return true, nil, UpdateBundle{}
+	default:
+		// all records were deduplicated
+		// we have to find the latest relevant tracker
+		// so the caller can wait on it
+
+		latestRec := bundle.dupRecords[0]
+		for _, rn := range bundle.dupRecords[1:] {
+			if latestRec < rn {
+				latestRec = rn
+			}
+		}
+		if s := p.findStage(latestRec); s != nil {
+			return true, s.tracker, UpdateBundle{}
+		}
+		return true, nil, UpdateBundle{}
 	}
 
 	prevFilamentCount := 0
@@ -121,22 +138,26 @@ func (p *LineStages) AddBundle(bundle *BundleResolver, tracker StageTracker) boo
 
 	if err := validator.postCheck(); err != nil {
 		bundle.addError(err)
-		return false
 	}
 
-	if !bundle.IsResolved() {
-		return false
+	if !bundle.hasNoTroubles() {
+		// has errors or unresolved dependencies
+		return false, nil, UpdateBundle{}
 	}
 
-	return p.addStage(bundle, stage, prevFilamentCount, validator.filRoot)
+	// block this bundle from being reused without reprocessing - to protect bundle.records
+	defer bundle.addError(throw.New("discarded bundle"))
+
+	if p.addStage(bundle, stage, prevFilamentCount, validator.filRoot) {
+		return true, tracker, UpdateBundle{bundle.records }
+	}
+	return false, nil, UpdateBundle{}
 }
 
 func (p *LineStages) addStage(bundle *BundleResolver, stage *updateStage, prevFilamentCount int, filRoot reference.Local) bool {
 	cutOffRec := stage.firstRec
 
 	defer func() {
-		// block this bundle from being reused without reprocessing
-		bundle.addError(throw.New("discarded bundle"))
 		if cutOffRec > 0 {
 			p.restoreLatest(cutOffRec)
 		} else {
@@ -151,12 +172,14 @@ func (p *LineStages) addStage(bundle *BundleResolver, stage *updateStage, prevFi
 		p.filamentRefs = map[reference.Local]filamentNo{}
 	}
 
+	recNo := stage.firstRec
 	for i := range bundle.records {
 		rec := &bundle.records[i]
 
-		if stage.firstRec + recordNo(i) != rec.recordNo {
+		if recNo != rec.recordNo {
 			panic(throw.Impossible())
 		}
+		recNo++
 
 		if prev := rec.prev; prev > 0 && prev < stage.firstRec {
 			prevRec := p.get(prev)
@@ -169,6 +192,10 @@ func (p *LineStages) addStage(bundle *BundleResolver, stage *updateStage, prevFi
 		key := rec.GetRecordRef().GetLocal().IdentityHash()
 		p.recordRefs[key] = rec.recordNo
 		p.putReason(rec)
+	}
+
+	if recNo == stage.firstRec {
+		panic(throw.Impossible())
 	}
 
 	if prevFilamentCount == 0 {
@@ -190,6 +217,21 @@ func (p *LineStages) addStage(bundle *BundleResolver, stage *updateStage, prevFi
 	p.latest = stage
 
 	return true
+}
+
+func (p *LineStages) findStage(recNo recordNo) *updateStage {
+	var prev *updateStage
+
+	for stage := p.earliest; stage != nil; prev, stage = stage, stage.next {
+		switch {
+		case stage.firstRec > recNo:
+			return prev
+		case stage.firstRec == recNo:
+			return stage
+		}
+	}
+
+	return nil
 }
 
 func (p *LineStages) TrimCommittedStages() {
@@ -422,7 +464,7 @@ func (p *LineStages) findCollision(local reference.LocalHolder, record *Record) 
 		return 0, nil
 	}
 	found := p.get(recNo)
-	if found.Record.Equal(*record) {
+	if found.Record.EqualForRecordIdempotency(*record) {
 		return recNo, nil
 	}
 	return 0, throw.E("record content mismatch", struct { Existing, New Record	}{ found.Record, *record })
@@ -467,6 +509,16 @@ func (p *LineStages) setAllocations(stage *updateStage, allocBase []ledger.Direc
 	for i := uint32(0); i < max; i++ {
 		rec := p.get(stage.firstRec + recordNo(i))
 		rec.storageIndex = allocBase[i]
+		rec.cleanup()
 	}
+}
+
+func (p *LineStages) Find(ref reference.Holder) (found bool, recordIndex ledger.DirectoryIndex, registrarSignature cryptkit.SignedDigest) {
+	if rn, ok := p.recordRefs[ref.GetLocal().IdentityHash()]; ok {
+		if r := p.get(rn); r != nil {
+			return true, r.storageIndex, r.RegistrarSignature
+		}
+	}
+	return false, 0, cryptkit.SignedDigest{}
 }
 

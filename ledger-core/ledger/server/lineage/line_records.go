@@ -9,6 +9,7 @@ import (
 	"math"
 
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type stageNo uint32
@@ -66,15 +67,25 @@ func (p *lineRecords) getCount() int {
 	return n * cap(p.records[0]) + len(p.records[n]) + 1
 }
 
-const defaultPageSize = 100
+const pageSizeThreshold = 1024
+const pageSizeMin = 8
 
 func (p *lineRecords) add(r updateRecord) {
-	pgSize := defaultPageSize
-	if n := len(p.records) - 1; n >= 0 {
-		pg := &p.records[n]
-		pgSize = cap(*pg)
+	pgSize := pageSizeMin
 
-		if pgSize > len(*pg) {
+	if n := len(p.records); n > 0 {
+		pg := &p.records[n-1]
+		pgSize = cap(*pg)
+		switch {
+		case pgSize > len(*pg):
+			*pg = append(*pg, r)
+			return
+		case pgSize >= pageSizeThreshold:
+			// full page mode
+		case n != 1:
+			// only the first page can be small
+			panic(throw.Impossible())
+		default:
 			*pg = append(*pg, r)
 			return
 		}
@@ -86,14 +97,18 @@ func (p *lineRecords) add(r updateRecord) {
 }
 
 func (p *lineRecords) get(recNo recordNo) *updateRecord {
+	if recNo == 0 {
+		return nil
+	}
+
 	n := len(p.records) - 1
-	if n < 0 || recNo == 0 {
+	if n < 0 {
 		return nil
 	}
 
 	recNo--
 
-	pgSize := cap(p.records[n])
+	pgSize := cap(p.records[0])
 	pgIndex := int(recNo) / pgSize
 	pgItem := int(recNo) % pgSize
 
@@ -122,7 +137,7 @@ func (p *lineRecords) truncate(recNo recordNo) {
 
 	recNo--
 
-	pgSize := cap(p.records[n])
+	pgSize := cap(p.records[0])
 	pgIndex := int(recNo) / pgSize
 	pgItem := int(recNo) % pgSize
 

@@ -75,7 +75,7 @@ func (v Adapter) PrepareNotify(ctx smachine.ExecutionContext, callFn func(Servic
 	})
 }
 
-func (v Adapter) SendFailureNotify(ctx smachine.FailureContext, callFn func(Service)) {
+func (v Adapter) SendFailureNotify(ctx smachine.FailureExecutionContext, callFn func(Service)) {
 	if callFn == nil {
 		panic(throw.IllegalValue())
 	}

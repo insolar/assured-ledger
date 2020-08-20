@@ -38,7 +38,7 @@ type AppendFuture interface {
 type Service interface {
 	CreatePlash(pr pulse.Range, treePrev, treeCur jet.Tree, online census.OnlinePopulation) (PlashAssistant, []jet.ExactID)
 	CreateGenesis(pulse.Range, census.OnlinePopulation) (PlashAssistant, jet.ExactID)
-	AppendToDrop(jet.DropID, AppendFuture, lineage.ResolvedBundle)
+	AppendToDrop(jet.DropID, AppendFuture, lineage.UpdateBundle)
 }
 
 type StorageSnapshotFactoryFunc = func(pulse.Number) bundle.SnapshotWriter
@@ -66,7 +66,7 @@ type serviceImpl struct {
 	plashes  map[pulse.Number]*plashAssistant
 }
 
-func (p *serviceImpl) AppendToDrop(id jet.DropID, future AppendFuture, bundle lineage.ResolvedBundle) {
+func (p *serviceImpl) AppendToDrop(id jet.DropID, future AppendFuture, bundle lineage.UpdateBundle) {
 	pa := p.get(id.CreatedAt())
 	var err error
 	switch {

@@ -17,6 +17,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/datawriter"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/inspectsvc"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lmnapp/lmntestapp"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/treesvc"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -24,6 +25,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/journal"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 )
 
 func TestGenesisTree(t *testing.T) {
@@ -153,9 +155,62 @@ func TestAddRecords(t *testing.T) {
 		body: make([]byte, 1<<10),
 	}
 
-	for N := 10; N > 0; N-- {
-		genNewLine.registerNewLine()
-	}
+	reasonRef := gen.UniqueGlobalRefWithPulse(server.LastPulseNumber())
+
+	var bundleSignatures [][]cryptkit.Signature
+
+	t.Run("one bundle", func(t *testing.T) {
+		for N := 10; N > 0; N-- {
+			// one bundle per object
+			sg, err := genNewLine.registerNewLine(reasonRef)
+			require.NoError(t, err)
+			require.Len(t, sg, 3)
+			bundleSignatures = append(bundleSignatures, sg)
+		}
+	})
+
+	t.Run("overlapped", func(t *testing.T) {
+		for N := 10; N > 0; N-- {
+			// two intersecting bundles per object
+			fullSet := genNewLine.makeSet(reasonRef)
+			firstSet := fullSet
+
+			// first record only
+			firstSet.Requests = firstSet.Requests[:1]
+			sg, err := genNewLine.callRegister(firstSet)
+			require.NoError(t, err)
+			require.Len(t, sg, 1)
+			sgCopy := sg[0]
+
+			// all records together
+			sg, err = genNewLine.callRegister(fullSet)
+			require.NoError(t, err)
+			require.Len(t, sg, 3)
+			require.True(t, sgCopy.Equals(sg[0]))
+
+			bundleSignatures = append(bundleSignatures, sg)
+		}
+	})
+
+	// repeat the same sequence
+	// all registrations must be ok as they will be deduplicated
+	genNewLine.seqNo.Store(0)
+
+	t.Run("duplicates", func(t *testing.T) {
+		i := 0
+		for N := 20; N > 0; N-- {
+			sg, err := genNewLine.registerNewLine(reasonRef)
+			require.NoError(t, err)
+			require.Len(t, sg, 3)
+
+			// make sure to get exactly same signatures - this is only possible when records were deduplicated
+			for j := range sg {
+				require.True(t, bundleSignatures[i][j].Equals(sg[j]), i)
+			}
+
+			i++
+		}
+	})
 }
 
 func BenchmarkWriteNew(b *testing.B) {
@@ -214,18 +269,20 @@ func benchmarkWriteNew(b *testing.B, bodySize int, parallel bool) {
 		body: make([]byte, bodySize),
 	}
 
+	reasonRef := gen.UniqueGlobalRefWithPulse(server.LastPulseNumber())
+
 	b.ResetTimer()
 	b.ReportAllocs()
 
 	if parallel {
 		b.RunParallel(func(pb *testing.PB) {
 			for pb.Next() {
-				genNewLine.registerNewLine()
+				_, _ = genNewLine.registerNewLine(reasonRef)
 			}
 		})
 	} else {
 		for i := b.N; i > 0; i-- {
-			genNewLine.registerNewLine()
+			_, _ = genNewLine.registerNewLine(reasonRef)
 		}
 	}
 
@@ -240,14 +297,13 @@ type generatorNewLifeline struct {
 	conv *conveyor.PulseConveyor
 }
 
-func (p *generatorNewLifeline) registerNewLine() {
-	pn := p.recBuilder.RefTemplate.LocalHeader().Pulse()
+func (p *generatorNewLifeline) makeSet(reasonRef reference.Holder) inspectsvc.RegisterRequestSet {
 
 	rb, rootRec := p.recBuilder.MakeLineStart(&rms.RLifelineStart{
 		Str: strconv.Itoa(int(p.seqNo.Add(1))),
 	})
 	rootRec.OverrideRecordType = rms.TypeRLifelineStartPolymorthID
-	rootRec.OverrideReasonRef.Set(gen.UniqueGlobalRefWithPulse(pn))
+	rootRec.OverrideReasonRef.Set(reasonRef)
 
 	rMem := &rms.RLineMemoryInit{
 		Polymorph: rms.TypeRLineMemoryInitPolymorthID,
@@ -264,21 +320,43 @@ func (p *generatorNewLifeline) registerNewLine() {
 		PrevRef: rq.AnticipatedRef,
 	})
 
-	recordSet := rb.MakeSet()
+	return rb.MakeSet()
+}
 
-	p.totalBytes.Add(uint64(len(p.body)))
+func (p *generatorNewLifeline) callRegister(recordSet inspectsvc.RegisterRequestSet) ([]cryptkit.Signature, error) {
+	pn := p.recBuilder.RefTemplate.LocalHeader().Pulse()
 
-	ch := make(chan struct{})
+	setSize := 0
+	for _, r := range recordSet.Requests {
+		setSize += r.ProtoSize()
+		rp := r.GetRecordPayloads()
+		setSize += rp.ProtoSize()
+	}
+
+	p.totalBytes.Add(uint64(setSize))
+
+	ch := make(chan smachine.TerminationData, 1)
 	err := p.conv.AddInputExt(pn,
 		recordSet,
 		smachine.CreateDefaultValues{
 			Context: context.Background(),
-			TerminationHandler: func(smachine.TerminationData) {
+			TerminationHandler: func(data smachine.TerminationData) {
+				ch <- data
 				close(ch)
 			},
 		})
 	if err != nil {
 		panic(err)
 	}
-	<- ch
+	data := <- ch
+	if data.Result == nil {
+		return nil, data.Error
+	}
+
+	return data.Result.([]cryptkit.Signature), data.Error
+}
+
+func (p *generatorNewLifeline) registerNewLine(reasonRef reference.Holder) ([]cryptkit.Signature, error) {
+	recordSet := p.makeSet(reasonRef)
+	return p.callRegister(recordSet)
 }

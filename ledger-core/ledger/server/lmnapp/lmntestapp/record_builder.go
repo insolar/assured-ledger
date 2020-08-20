@@ -142,7 +142,6 @@ func (v RecordBuilder) BuildSet(requests ...*rms.LRegisterRequest) (r inspectsvc
 			panic(throw.IllegalValue())
 		case req.ProducedBy.IsEmpty():
 			v.ApplySignature(req)
-
 		}
 	}
 
@@ -157,8 +156,6 @@ func (v RecordBuilder) BuildSet(requests ...*rms.LRegisterRequest) (r inspectsvc
 	if err != nil {
 		panic(err)
 	}
-
-	r.Excerpt.ProducerSignature = r0.ProducerSignature
 
 	if r0.OverrideRecordType != 0 {
 		r.Excerpt.RecordType = r0.OverrideRecordType

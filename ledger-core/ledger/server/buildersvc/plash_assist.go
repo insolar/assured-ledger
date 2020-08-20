@@ -75,7 +75,7 @@ func (p *plashAssistant) CommitPulseChange() {
 	p.commit.Unlock()
 }
 
-func (p *plashAssistant) appendToDrop(id jet.DropID, future AppendFuture, bundle lineage.ResolvedBundle) error {
+func (p *plashAssistant) appendToDrop(id jet.DropID, future AppendFuture, bundle lineage.UpdateBundle) error {
 	assist, ok := p.dropAssists[id.ID()]
 	switch {
 	case !ok:
