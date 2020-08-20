@@ -159,7 +159,8 @@ func TestAddRecords(t *testing.T) {
 	t.Run("one bundle", func(t *testing.T) {
 		for N := 10; N > 0; N-- {
 			// one bundle per object
-			genNewLine.registerNewLine(reasonRef)
+			_, err := genNewLine.registerNewLine(reasonRef)
+			require.NoError(t, err)
 		}
 	})
 
@@ -171,10 +172,12 @@ func TestAddRecords(t *testing.T) {
 
 			// first record only
 			firstSet.Requests = firstSet.Requests[:1]
-			genNewLine.callRegister(firstSet)
+			_, err := genNewLine.callRegister(firstSet)
+			require.NoError(t, err)
 
-			// all records
-			genNewLine.callRegister(fullSet)
+			// all records together
+			_, err = genNewLine.callRegister(fullSet)
+			require.NoError(t, err)
 		}
 	})
 
@@ -184,7 +187,8 @@ func TestAddRecords(t *testing.T) {
 
 	t.Run("duplicates", func(t *testing.T) {
 		for N := 20; N > 0; N-- {
-			genNewLine.registerNewLine(reasonRef)
+			_, err := genNewLine.registerNewLine(reasonRef)
+			require.NoError(t, err)
 		}
 	})
 
@@ -255,12 +259,12 @@ func benchmarkWriteNew(b *testing.B, bodySize int, parallel bool) {
 	if parallel {
 		b.RunParallel(func(pb *testing.PB) {
 			for pb.Next() {
-				genNewLine.registerNewLine(reasonRef)
+				_, _ = genNewLine.registerNewLine(reasonRef)
 			}
 		})
 	} else {
 		for i := b.N; i > 0; i-- {
-			genNewLine.registerNewLine(reasonRef)
+			_, _ = genNewLine.registerNewLine(reasonRef)
 		}
 	}
 
@@ -301,27 +305,36 @@ func (p *generatorNewLifeline) makeSet(reasonRef reference.Holder) inspectsvc.Re
 	return rb.MakeSet()
 }
 
-func (p *generatorNewLifeline) callRegister(recordSet inspectsvc.RegisterRequestSet) {
+func (p *generatorNewLifeline) callRegister(recordSet inspectsvc.RegisterRequestSet) (interface{}, error) {
 	pn := p.recBuilder.RefTemplate.LocalHeader().Pulse()
 
-	p.totalBytes.Add(uint64(len(p.body)))
+	setSize := 0
+	for _, r := range recordSet.Requests {
+		setSize += r.ProtoSize()
+		rp := r.GetRecordPayloads()
+		setSize += rp.ProtoSize()
+	}
 
-	ch := make(chan struct{})
+	p.totalBytes.Add(uint64(setSize))
+
+	ch := make(chan smachine.TerminationData, 1)
 	err := p.conv.AddInputExt(pn,
 		recordSet,
 		smachine.CreateDefaultValues{
 			Context: context.Background(),
-			TerminationHandler: func(smachine.TerminationData) {
+			TerminationHandler: func(data smachine.TerminationData) {
+				ch <- data
 				close(ch)
 			},
 		})
 	if err != nil {
 		panic(err)
 	}
-	<- ch
+	data := <- ch
+	return data.Result, data.Error
 }
 
-func (p *generatorNewLifeline) registerNewLine(reasonRef reference.Holder) {
+func (p *generatorNewLifeline) registerNewLine(reasonRef reference.Holder) (interface{}, error) {
 	recordSet := p.makeSet(reasonRef)
-	p.callRegister(recordSet)
+	return p.callRegister(recordSet)
 }
