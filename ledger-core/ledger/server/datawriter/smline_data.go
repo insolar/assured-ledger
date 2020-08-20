@@ -70,7 +70,7 @@ func (p *LineSharedData) TryApplyRecordSet(ctx smachine.ExecutionContext, set in
 
 func (p *LineSharedData) applyBundle(ctx smachine.ExecutionContext, br *lineage.BundleResolver) (*buildersvc.Future, *lineage.BundleResolver) {
 
-	if !br.IsResolved() {
+	if !br.IsReadyForStage() {
 		return nil, br
 	}
 

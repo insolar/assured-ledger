@@ -19,7 +19,6 @@ type resolvedRecord struct {
 	recapNo  recordNo
 
 	storageIndex ledger.DirectoryIndex
-	isFound      bool
 
 	redirectToType RecordType
 	Record

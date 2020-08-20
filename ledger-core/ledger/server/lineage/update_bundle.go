@@ -9,11 +9,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-func NewResolvedBundleForTestOnly(records []Record) ResolvedBundle {
+func NewUpdateBundleForTestOnly(records []Record) UpdateBundle {
 	if len(records) == 0 {
 		panic(throw.IllegalValue())
 	}
-	rb := ResolvedBundle{records: make([]resolvedRecord, len(records))}
+	rb := UpdateBundle{records: make([]resolvedRecord, len(records))}
 
 	for i := range records {
 		rb.records[i].Record = records[i]
@@ -22,23 +22,23 @@ func NewResolvedBundleForTestOnly(records []Record) ResolvedBundle {
 	return rb
 }
 
-type ResolvedBundle struct {
+type UpdateBundle struct {
 	records    []resolvedRecord
 }
 
-func (v ResolvedBundle) IsZero() bool {
+func (v UpdateBundle) IsZero() bool {
 	return v.records == nil
 }
 
-func (v ResolvedBundle) IsValid() bool {
+func (v UpdateBundle) IsValid() bool {
 	return len(v.records) > 0
 }
 
-func (v ResolvedBundle) Count() int {
+func (v UpdateBundle) Count() int {
 	return len(v.records)
 }
 
-func (v ResolvedBundle) Enum(fn func (Record, DustMode) bool) bool {
+func (v UpdateBundle) Enum(fn func (Record, DustMode) bool) bool {
 	for _, r := range v.records {
 		if fn(r.Record, 0) {
 			return true

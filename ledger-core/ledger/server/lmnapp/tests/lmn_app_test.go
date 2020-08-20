@@ -17,6 +17,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/datawriter"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/inspectsvc"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lmnapp/lmntestapp"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/treesvc"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -155,18 +156,37 @@ func TestAddRecords(t *testing.T) {
 
 	reasonRef := gen.UniqueGlobalRefWithPulse(server.LastPulseNumber())
 
-	for N := 10; N > 0; N-- {
-		genNewLine.registerNewLine(reasonRef)
-	}
+	t.Run("one bundle", func(t *testing.T) {
+		for N := 10; N > 0; N-- {
+			// one bundle per object
+			genNewLine.registerNewLine(reasonRef)
+		}
+	})
+
+	t.Run("overlapped", func(t *testing.T) {
+		for N := 10; N > 0; N-- {
+			// two intersecting bundles per object
+			fullSet := genNewLine.makeSet(reasonRef)
+			firstSet := fullSet
+
+			// first record only
+			firstSet.Requests = firstSet.Requests[:1]
+			genNewLine.callRegister(firstSet)
+
+			// all records
+			genNewLine.callRegister(fullSet)
+		}
+	})
 
 	// repeat the same sequence
 	// all registrations must be ok as they will be deduplicated
-	
 	genNewLine.seqNo.Store(0)
 
-	for N := 10; N > 0; N-- {
-		genNewLine.registerNewLine(reasonRef)
-	}
+	t.Run("duplicates", func(t *testing.T) {
+		for N := 20; N > 0; N-- {
+			genNewLine.registerNewLine(reasonRef)
+		}
+	})
 
 	// TODO check that records were not duplicated ....
 }
@@ -255,8 +275,7 @@ type generatorNewLifeline struct {
 	conv *conveyor.PulseConveyor
 }
 
-func (p *generatorNewLifeline) registerNewLine(reasonRef reference.Holder) {
-	pn := p.recBuilder.RefTemplate.LocalHeader().Pulse()
+func (p *generatorNewLifeline) makeSet(reasonRef reference.Holder) inspectsvc.RegisterRequestSet {
 
 	rb, rootRec := p.recBuilder.MakeLineStart(&rms.RLifelineStart{
 		Str: strconv.Itoa(int(p.seqNo.Add(1))),
@@ -279,7 +298,11 @@ func (p *generatorNewLifeline) registerNewLine(reasonRef reference.Holder) {
 		PrevRef: rq.AnticipatedRef,
 	})
 
-	recordSet := rb.MakeSet()
+	return rb.MakeSet()
+}
+
+func (p *generatorNewLifeline) callRegister(recordSet inspectsvc.RegisterRequestSet) {
+	pn := p.recBuilder.RefTemplate.LocalHeader().Pulse()
 
 	p.totalBytes.Add(uint64(len(p.body)))
 
@@ -296,4 +319,9 @@ func (p *generatorNewLifeline) registerNewLine(reasonRef reference.Holder) {
 		panic(err)
 	}
 	<- ch
+}
+
+func (p *generatorNewLifeline) registerNewLine(reasonRef reference.Holder) {
+	recordSet := p.makeSet(reasonRef)
+	p.callRegister(recordSet)
 }

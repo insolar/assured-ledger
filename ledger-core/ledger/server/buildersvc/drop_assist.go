@@ -27,7 +27,7 @@ type dropAssistant struct {
 	merkle  cryptkit.ForkingDigester
 }
 
-func (p *dropAssistant) append(pa *plashAssistant, future AppendFuture, b lineage.ResolvedBundle) (err error) {
+func (p *dropAssistant) append(pa *plashAssistant, future AppendFuture, b lineage.UpdateBundle) (err error) {
 	entries := make([]draftEntry, 0, b.Count())
 	digests := make([]cryptkit.Digest, 0, b.Count())
 
