@@ -28,9 +28,13 @@ func newDispatcherWithConveyor(factoryFn conveyor.PulseEventFactoryFunc) beat.Di
 	return NewConveyorDispatcher(ctx, pulseConveyor)
 }
 
+func newMessage(uuid string, pl []byte) beat.Message {
+	return beat.NewMessageExt(uuid, pl, message.NewMessage(uuid, pl))
+}
+
 func TestConveyorDispatcher_ErrorUnmarshalHandling(t *testing.T) {
 	msgDispatcher := newDispatcherWithConveyor(nil)
-	msg := message.NewMessage("", nil)
+	msg := newMessage("", nil)
 	require.False(t, isMessageAcked(msg))
 	require.NotPanics(t, func() {
 		require.Error(t, msgDispatcher.Process(msg))
@@ -42,7 +46,7 @@ func TestConveyorDispatcher_WrongMetaTypeHandling(t *testing.T) {
 	msgDispatcher := newDispatcherWithConveyor(nil)
 	req := payload.VCallRequest{}
 	pl, _ := req.Marshal()
-	msg := message.NewMessage("", pl)
+	msg := newMessage("", pl)
 	require.False(t, isMessageAcked(msg))
 	require.NotPanics(t, func() {
 		require.Error(t, msgDispatcher.Process(msg))
@@ -57,7 +61,7 @@ func TestConveyorDispatcher_PanicInAddInputHandling(t *testing.T) {
 		})
 	meta := payload.Meta{Pulse: pulse.Number(pulse.MinTimePulse + 1)}
 	metaPl, _ := meta.Marshal()
-	msg := message.NewMessage("", metaPl)
+	msg := newMessage("", metaPl)
 	require.False(t, isMessageAcked(msg))
 	require.Panics(t, func() {
 		require.NoError(t, msgDispatcher.Process(msg))
@@ -72,7 +76,7 @@ func TestConveyorDispatcher_ErrorInAddInputHandling(t *testing.T) {
 		})
 	meta := payload.Meta{Pulse: pulse.Number(pulse.MinTimePulse + 1)}
 	metaPl, _ := meta.Marshal()
-	msg := message.NewMessage("", metaPl)
+	msg := newMessage("", metaPl)
 	require.False(t, isMessageAcked(msg))
 	require.NotPanics(t, func() {
 		require.Error(t, msgDispatcher.Process(msg))
@@ -80,7 +84,7 @@ func TestConveyorDispatcher_ErrorInAddInputHandling(t *testing.T) {
 	require.True(t, isMessageAcked(msg))
 }
 
-func isMessageAcked(msg *message.Message) bool {
+func isMessageAcked(msg beat.Message) bool {
 	select {
 	case _, ok := <-msg.Acked():
 		return !ok

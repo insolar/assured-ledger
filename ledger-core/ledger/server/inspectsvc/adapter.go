@@ -8,8 +8,11 @@ package inspectsvc
 import (
 	"context"
 
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/managed"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smadapter"
+	"github.com/insolar/assured-ledger/ledger-core/crypto"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -24,9 +27,15 @@ func NewAdapterExt(adapterID smachine.AdapterID, executor smachine.AdapterExecut
 	}
 }
 
-func NewAdapter(cfg smadapter.Config) Adapter {
-	executor := smadapter.StartExecutorFor(context.Background(), cfg, nil)
-	return NewAdapterExt("RecordInspector", executor, NewService())
+func NewAdapterComponent(cfg smadapter.Config, localRef reference.Holder, ps crypto.PlatformScheme) managed.Component {
+	svc := NewService(localRef, ps.RecordScheme())
+
+	var adapter Adapter
+	executor, component := smadapter.NewComponent(context.Background(), cfg, svc, func(holder managed.Holder) {
+		holder.AddDependency(adapter)
+	})
+	adapter = NewAdapterExt("RecordInspector", executor, svc)
+	return component
 }
 
 type Adapter struct {

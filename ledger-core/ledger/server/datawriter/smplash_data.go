@@ -23,8 +23,6 @@ type PlashSharedData struct {
 	state atomickit.Uint32
 	pr    pulse.Range
 	jetAssist buildersvc.PlashAssistant
-	// jetTree
-	// population
 }
 
 func (p *PlashSharedData) GetReadySync() smachine.SyncLink {

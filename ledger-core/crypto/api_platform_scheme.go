@@ -27,7 +27,7 @@ type CustomScheme interface {
 }
 
 type ReferenceScheme interface {
-	RefDataDigester() cryptkit.DataDigester
+	ReferenceDigester() cryptkit.DataDigester
 }
 
 type RecordScheme interface {
@@ -36,8 +36,18 @@ type RecordScheme interface {
 	cryptkit.SignatureVerifierFactory
 	cryptkit.KeyStoreFactory
 
-	RecordDigester() cryptkit.DataDigester
+	RecordDigester() RecordDigester
 	RecordSigner() cryptkit.DigestSigner
+
+	SelfVerifier() cryptkit.SignatureVerifier
+}
+
+type RecordDigester interface {
+	cryptkit.DataDigester
+
+	NewDataAndRefHasher() cryptkit.DigestHasher
+	GetDataAndRefDigests(cryptkit.DigestHasher) (data, ref cryptkit.Digest)
+	GetRefDigestAndContinueData(cryptkit.DigestHasher) (data cryptkit.DigestHasher, ref cryptkit.Digest)
 }
 
 type TransportScheme interface {

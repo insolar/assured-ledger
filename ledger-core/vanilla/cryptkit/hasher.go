@@ -119,7 +119,7 @@ func (v *HashingTeeReader) ReadAndVerifySignature(verifier DataSignatureVerifier
 	if err != nil {
 		return nil, err
 	}
-	s := NewSignature(longbits.WrapBytes(b), verifier.GetSignatureMethod())
+	s := NewSignature(longbits.WrapBytes(b), verifier.GetDefaultSignatureMethod())
 	if !verifier.IsValidDigestSignature(d, s) {
 		err = throw.RemoteBreach("packet signature mismatch")
 	}

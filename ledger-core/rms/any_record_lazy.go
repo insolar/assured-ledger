@@ -21,8 +21,8 @@ type AnyRecordLazy struct {
 }
 
 func (p *AnyRecordLazy) TryGetLazy() LazyRecordValue {
-	if vv, ok := p.value.(LazyRecordValue); ok {
-		return vv
+	if vv, ok := p.value.(*LazyRecordValue); ok {
+		return *vv
 	}
 	return LazyRecordValue{}
 }
@@ -31,11 +31,29 @@ func (p *AnyRecordLazy) Set(v BasicRecord) {
 	p.value = v.(goGoMarshaler)
 }
 
+func (p *AnyRecordLazy) SetAsLazy(v BasicRecord) error {
+	lv, err := p.asLazy(v.(MarshalerTo))
+	if err != nil {
+		return err
+	}
+
+	lrv := &LazyRecordValue{ lv, nil }
+
+	if rp := v.GetRecordPayloads(); !rp.IsEmpty() {
+		body := &RecordBodyForLazy{}
+		body.RecordBody.CopyRecordPayloads(rp)
+		lrv.body = body
+	}
+
+	p.value = lrv
+	return nil
+}
+
 func (p *AnyRecordLazy) TryGet() (isLazy bool, r BasicRecord) {
 	switch p.value.(type) {
 	case nil:
 		return false, nil
-	case LazyRecordValue:
+	case *LazyRecordValue:
 		return true, nil
 	}
 	return false, p.value.(BasicRecord)
@@ -96,7 +114,7 @@ func (p *AnyRecordLazy) unmarshalCustom(b []byte, copyBytes bool, typeFn func(ui
 		return err
 	}
 
-	p.value = LazyRecordValue{ v, nil }
+	p.value = &LazyRecordValue{ v, nil }
 	return nil
 }
 

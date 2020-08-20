@@ -18,6 +18,7 @@ type PlashKey pulse.Number
 
 type PlashCataloger interface {
 	GetOrCreate(ctx smachine.ExecutionContext, pn pulse.Number) *PlashSharedData
+	Get(ctx smachine.SharedStateContext, pn pulse.Number) *PlashSharedData
 }
 
 var _ PlashCataloger = PlashCatalog{}
@@ -36,6 +37,14 @@ func (PlashCatalog) GetOrCreate(ctx smachine.ExecutionContext, pn pulse.Number) 
 		panic(throw.IllegalState())
 	}
 	return sdl.TryDirectAccess().(*PlashSharedData)
+}
+
+func (PlashCatalog) Get(ctx smachine.SharedStateContext, pn pulse.Number) *PlashSharedData {
+	sdl := ctx.GetPublishedLink(PlashKey(pn))
+	if !sdl.IsZero() {
+		return sdl.TryDirectAccess().(*PlashSharedData)
+	}
+	panic(throw.IllegalState())
 }
 
 func PlashCreate() smachine.CreateFunc {

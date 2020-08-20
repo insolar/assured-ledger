@@ -32,8 +32,8 @@ type DispatcherMock struct {
 	beforePrepareBeatCounter uint64
 	PrepareBeatMock          mDispatcherMockPrepareBeat
 
-	funcProcess          func(msg *Message) (err error)
-	inspectFuncProcess   func(msg *Message)
+	funcProcess          func(m1 Message) (err error)
+	inspectFuncProcess   func(m1 Message)
 	afterProcessCounter  uint64
 	beforeProcessCounter uint64
 	ProcessMock          mDispatcherMockProcess
@@ -588,7 +588,7 @@ type DispatcherMockProcessExpectation struct {
 
 // DispatcherMockProcessParams contains parameters of the Dispatcher.Process
 type DispatcherMockProcessParams struct {
-	msg *Message
+	m1 Message
 }
 
 // DispatcherMockProcessResults contains results of the Dispatcher.Process
@@ -597,7 +597,7 @@ type DispatcherMockProcessResults struct {
 }
 
 // Expect sets up expected params for Dispatcher.Process
-func (mmProcess *mDispatcherMockProcess) Expect(msg *Message) *mDispatcherMockProcess {
+func (mmProcess *mDispatcherMockProcess) Expect(m1 Message) *mDispatcherMockProcess {
 	if mmProcess.mock.funcProcess != nil {
 		mmProcess.mock.t.Fatalf("DispatcherMock.Process mock is already set by Set")
 	}
@@ -606,7 +606,7 @@ func (mmProcess *mDispatcherMockProcess) Expect(msg *Message) *mDispatcherMockPr
 		mmProcess.defaultExpectation = &DispatcherMockProcessExpectation{}
 	}
 
-	mmProcess.defaultExpectation.params = &DispatcherMockProcessParams{msg}
+	mmProcess.defaultExpectation.params = &DispatcherMockProcessParams{m1}
 	for _, e := range mmProcess.expectations {
 		if minimock.Equal(e.params, mmProcess.defaultExpectation.params) {
 			mmProcess.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmProcess.defaultExpectation.params)
@@ -617,7 +617,7 @@ func (mmProcess *mDispatcherMockProcess) Expect(msg *Message) *mDispatcherMockPr
 }
 
 // Inspect accepts an inspector function that has same arguments as the Dispatcher.Process
-func (mmProcess *mDispatcherMockProcess) Inspect(f func(msg *Message)) *mDispatcherMockProcess {
+func (mmProcess *mDispatcherMockProcess) Inspect(f func(m1 Message)) *mDispatcherMockProcess {
 	if mmProcess.mock.inspectFuncProcess != nil {
 		mmProcess.mock.t.Fatalf("Inspect function is already set for DispatcherMock.Process")
 	}
@@ -641,7 +641,7 @@ func (mmProcess *mDispatcherMockProcess) Return(err error) *DispatcherMock {
 }
 
 //Set uses given function f to mock the Dispatcher.Process method
-func (mmProcess *mDispatcherMockProcess) Set(f func(msg *Message) (err error)) *DispatcherMock {
+func (mmProcess *mDispatcherMockProcess) Set(f func(m1 Message) (err error)) *DispatcherMock {
 	if mmProcess.defaultExpectation != nil {
 		mmProcess.mock.t.Fatalf("Default expectation is already set for the Dispatcher.Process method")
 	}
@@ -656,14 +656,14 @@ func (mmProcess *mDispatcherMockProcess) Set(f func(msg *Message) (err error)) *
 
 // When sets expectation for the Dispatcher.Process which will trigger the result defined by the following
 // Then helper
-func (mmProcess *mDispatcherMockProcess) When(msg *Message) *DispatcherMockProcessExpectation {
+func (mmProcess *mDispatcherMockProcess) When(m1 Message) *DispatcherMockProcessExpectation {
 	if mmProcess.mock.funcProcess != nil {
 		mmProcess.mock.t.Fatalf("DispatcherMock.Process mock is already set by Set")
 	}
 
 	expectation := &DispatcherMockProcessExpectation{
 		mock:   mmProcess.mock,
-		params: &DispatcherMockProcessParams{msg},
+		params: &DispatcherMockProcessParams{m1},
 	}
 	mmProcess.expectations = append(mmProcess.expectations, expectation)
 	return expectation
@@ -676,15 +676,15 @@ func (e *DispatcherMockProcessExpectation) Then(err error) *DispatcherMock {
 }
 
 // Process implements Dispatcher
-func (mmProcess *DispatcherMock) Process(msg *Message) (err error) {
+func (mmProcess *DispatcherMock) Process(m1 Message) (err error) {
 	mm_atomic.AddUint64(&mmProcess.beforeProcessCounter, 1)
 	defer mm_atomic.AddUint64(&mmProcess.afterProcessCounter, 1)
 
 	if mmProcess.inspectFuncProcess != nil {
-		mmProcess.inspectFuncProcess(msg)
+		mmProcess.inspectFuncProcess(m1)
 	}
 
-	mm_params := &DispatcherMockProcessParams{msg}
+	mm_params := &DispatcherMockProcessParams{m1}
 
 	// Record call args
 	mmProcess.ProcessMock.mutex.Lock()
@@ -701,7 +701,7 @@ func (mmProcess *DispatcherMock) Process(msg *Message) (err error) {
 	if mmProcess.ProcessMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmProcess.ProcessMock.defaultExpectation.Counter, 1)
 		mm_want := mmProcess.ProcessMock.defaultExpectation.params
-		mm_got := DispatcherMockProcessParams{msg}
+		mm_got := DispatcherMockProcessParams{m1}
 		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
 			mmProcess.t.Errorf("DispatcherMock.Process got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
@@ -713,9 +713,9 @@ func (mmProcess *DispatcherMock) Process(msg *Message) (err error) {
 		return (*mm_results).err
 	}
 	if mmProcess.funcProcess != nil {
-		return mmProcess.funcProcess(msg)
+		return mmProcess.funcProcess(m1)
 	}
-	mmProcess.t.Fatalf("Unexpected call to DispatcherMock.Process. %v", msg)
+	mmProcess.t.Fatalf("Unexpected call to DispatcherMock.Process. %v", m1)
 	return
 }
 

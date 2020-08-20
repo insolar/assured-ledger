@@ -22,8 +22,6 @@ message RecordExcerptForCatalogEntry {
     Reference ReasonRef = 26;
     Reference RedirectRef = 27;
     Reference RejoinRef = 28;
-
-    Binary ProducerSignature = 39;
 }
 
 message RecordBodyForLazy {

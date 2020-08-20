@@ -75,6 +75,15 @@ func AddInterfaceDependency(m DependencyContainer, v interface{}) {
 	}
 }
 
+func NameOfDependency(v interface{}) string {
+	return GetDefaultInjectionID(v)
+}
+
+func NameOfInterfaceDependency(v interface{}) string {
+	_, vt := GetInterfaceTypeAndValue(v)
+	return GetDefaultInjectionIDByType(vt)
+}
+
 func (m *DynamicContainer) AddDependency(v interface{}) {
 	AddDependency(m, v)
 }
@@ -108,3 +117,17 @@ func (m *DynamicContainer) CopyAsStatic() StaticContainer {
 	}
 	return NewStaticContainer(m.parentRegistry, m)
 }
+
+func (m *DynamicContainer) ReplaceDependency(v interface{}) {
+	id := GetDefaultInjectionID(v)
+	m.localRegistry.Delete(id)
+	m.PutDependency(id, v)
+}
+
+func (m *DynamicContainer) ReplaceInterfaceDependency(v interface{}) {
+	vv, vt := GetInterfaceTypeAndValue(v)
+	id := GetDefaultInjectionIDByType(vt)
+	m.localRegistry.Delete(id)
+	m.PutDependency(id, vv)
+}
+
