@@ -128,7 +128,7 @@ func (p *UDPTransport) ConnectTo(to nwapi.Address) (OutTransport, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &udpOutTransport{resolved.AsUDPAddr(), nil, p, 0}, nil
+	return &udpOutTransport{resolved.AsUDPAddr(), nil, p.conn, p.maxByteSize, 0 }, nil
 }
 
 func (p *UDPTransport) Close() error {
@@ -164,7 +164,8 @@ var _ OutTransport = &udpOutTransport{}
 type udpOutTransport struct {
 	addr  net.UDPAddr
 	quota ratelimiter.RateQuota
-	conn  *UDPTransport
+	conn  *net.UDPConn
+	maxByteSize uint16
 	tag   int
 }
 
@@ -176,7 +177,7 @@ func (p *udpOutTransport) Write(b []byte) (int, error) {
 		return 0, throw.IllegalState()
 	case len(b) == 0:
 		return 0, nil
-	case len(b) > int(p.conn.maxByteSize):
+	case len(b) > int(p.maxByteSize):
 		return 0, errTooLarge
 	}
 
@@ -185,7 +186,7 @@ func (p *udpOutTransport) Write(b []byte) (int, error) {
 		return 0, err
 	}
 
-	return p.conn.conn.WriteToUDP(b, &p.addr)
+	return p.conn.WriteToUDP(b, &p.addr)
 }
 
 func (p *udpOutTransport) SendBytes(payload []byte) error {
@@ -198,8 +199,8 @@ func (p *udpOutTransport) ReadFrom(r io.Reader) (int64, error) {
 	switch {
 	case n == 0:
 		return 0, nil
-	case n > int64(p.conn.maxByteSize):
-		n = int64(p.conn.maxByteSize) + 1 // to allow too large error
+	case n > int64(p.maxByteSize):
+		n = int64(p.maxByteSize) + 1 // to allow too large error
 	}
 
 	b := make([]byte, n)
