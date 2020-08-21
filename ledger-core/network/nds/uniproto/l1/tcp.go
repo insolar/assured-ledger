@@ -17,79 +17,94 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/ratelimiter"
 )
 
-func NewTCP(binding nwapi.Address) SessionfulTransportProvider {
-	return &TCPTransport{addr: binding.AsTCPAddr()}
+func NewTCP(binding nwapi.Address, preference nwapi.Preference) SessionfulTransportProvider {
+	return TCPProvider{addr: binding.AsTCPAddr(), preference: preference}
 }
 
-func NewTCPTransport(binding nwapi.Address) TCPTransport {
-	return TCPTransport{addr: binding.AsTCPAddr()}
+type TCPProvider struct {
+	addr       net.TCPAddr
+	preference nwapi.Preference
 }
 
-type TCPTransport struct {
-	addr      net.TCPAddr
-	conn      *net.TCPListener
-	receiveFn SessionfulConnectFunc
+func (v TCPProvider) IsZero() bool {
+	return v.addr.IP == nil
 }
 
-func (p *TCPTransport) IsZero() bool {
-	return p.conn == nil && p.addr.IP == nil
-}
-
-func (p *TCPTransport) CreateListeningFactory(receiveFn SessionfulConnectFunc) (OutTransportFactory, error) {
+func (v TCPProvider) CreateListeningFactory(receiveFn SessionfulConnectFunc) (OutTransportFactory, nwapi.Address, error) {
 	switch {
 	case receiveFn == nil:
 		panic(throw.IllegalValue())
-	case p.conn != nil:
-		return nil, throw.IllegalState()
-	case p.addr.IP == nil:
-		return nil, throw.IllegalState()
+	case v.IsZero():
+		panic(throw.IllegalState())
 	}
-	var err error
-	p.conn, err = net.ListenTCP("tcp", &p.addr)
+
+	conn, err := net.ListenTCP("tcp", &v.addr)
 	if err != nil {
-		return nil, err
+		return nil, nwapi.Address{}, err
 	}
-	p.receiveFn = receiveFn
-	go runTCPListener(p.conn, receiveFn)
-	return p, nil
+
+	localAddr := *conn.Addr().(*net.TCPAddr)
+
+	t := &TCPTransport{ conn, receiveFn, localAddr, v.preference }
+	t.addr.Port = 0
+
+	go runTCPListener(conn, receiveFn)
+	return t, nwapi.FromTCPAddr(&localAddr), nil
 }
 
-func (p *TCPTransport) CreateOutgoingOnlyFactory(receiveFn SessionfulConnectFunc) (OutTransportFactory, error) {
-	return &TCPTransport{p.addr, nil, receiveFn}, nil
+func (v TCPProvider) CreateOutgoingOnlyFactory(receiveFn SessionfulConnectFunc) (OutTransportFactory, error) {
+	t := &TCPTransport{nil, receiveFn, v.addr, v.preference }
+	t.addr.Port = 0
+
+	return t, nil
+}
+
+func (v TCPProvider) Close() error {
+	return nil
+}
+
+/*********************************/
+
+type TCPTransport struct {
+	conn      *net.TCPListener
+	receiveFn SessionfulConnectFunc
+	addr      net.TCPAddr
+	preference nwapi.Preference
+}
+
+func (p *TCPTransport) IsZero() bool {
+	return p.addr.IP == nil
 }
 
 func (p *TCPTransport) Close() error {
-	if p.conn == nil {
-		return throw.IllegalState()
-	}
-	return p.conn.Close()
-}
-
-func (p *TCPTransport) LocalAddr() nwapi.Address {
 	if p.conn != nil {
-		return nwapi.AsAddress(p.conn.Addr())
+		return p.conn.Close()
 	}
-	return nwapi.AsAddress(&p.addr)
+	return nil
 }
 
-func (p *TCPTransport) ConnectTo(to nwapi.Address, preference nwapi.Preference) (OutTransport, error) {
+func (p *TCPTransport) ConnectTo(to nwapi.Address) (OutTransport, error) {
+	if !to.IsNetCompatible() {
+		return nil, nil
+	}
+
 	var err error
-	to, err = to.Resolve(context.Background(), net.DefaultResolver, preference)
+	to, err = to.Resolve(context.Background(), net.DefaultResolver, p.preference)
 	if err != nil {
 		return nil, err
 	}
 
 	remote := to.AsTCPAddr()
-	local := p.addr
-	local.Port = 0
 
 	var conn *net.TCPConn
-	if conn, err = net.DialTCP("tcp", &local, &remote); err != nil {
+	if conn, err = net.DialTCP("tcp", &p.addr, &remote); err != nil {
 		return nil, err
 	}
 
 	tcpOut := tcpOutTransport{conn, nil, 0}
 	if p.receiveFn == nil {
+		// by default - when ConnectReceiver(nil) is invoked
+		// then the unused read-side of TCP will be closed as a precaution
 		return &tcpSemiTransport{tcpOut, func(_, _ nwapi.Address, conn io.ReadWriteCloser, _ OutTransport, _ error) bool {
 			_ = conn.(*net.TCPConn).CloseRead()
 			return false
@@ -143,9 +158,6 @@ func (p *tcpOutTransport) Write(b []byte) (n int, err error) {
 }
 
 func (p *tcpOutTransport) Close() error {
-	if p.conn == nil {
-		return throw.IllegalState()
-	}
 	err := p.conn.Close()
 	p.conn = nil
 	return err
@@ -208,9 +220,10 @@ func (p *tcpSemiTransport) ConnectReceiver(fn SessionfulConnectFunc) (bool, TwoW
 		fn = p.receiveFn
 	}
 	p.receiveFn = nil
-	return fn(
-			nwapi.AsAddress(p.conn.LocalAddr()),
-			nwapi.AsAddress(p.conn.RemoteAddr()),
-			p.conn, nil, nil),
-		&p.tcpOutTransport
+	ok := fn(
+		nwapi.AsAddress(p.conn.LocalAddr()),
+		nwapi.AsAddress(p.conn.RemoteAddr()),
+		p.conn, nil, nil)
+
+	return ok, &p.tcpOutTransport
 }
