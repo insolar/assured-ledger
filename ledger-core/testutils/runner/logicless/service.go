@@ -20,6 +20,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/adapter"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -86,6 +87,7 @@ func (m *executionMapping) minimockDone() bool {
 type ServiceMock struct {
 	ctx            context.Context
 	t              minimock.Tester
+	timeout        time.Duration
 	lastID         call.ID
 	keyConstructor func(execution execution.Context) string
 
@@ -104,6 +106,7 @@ func NewServiceMock(ctx context.Context, t minimock.Tester, keyConstructor func(
 	m := &ServiceMock{
 		ctx:            ctx,
 		t:              t,
+		timeout:        10 * time.Second,
 		lastID:         0,
 		keyConstructor: keyConstructor,
 
@@ -163,7 +166,19 @@ func (s *ServiceMock) ExecutionStart(execution execution.Context) runner.RunStat
 		if !ok {
 			panic(throw.IllegalState())
 		} else if checkFunc != nil {
-			checkFunc(execution)
+			done := make(synckit.ClosableSignalChannel)
+
+			go func() {
+				defer func() { _ = synckit.SafeClose(done) }()
+
+				checkFunc(execution)
+			}()
+
+			select {
+			case <-done:
+			case <-time.After(s.timeout):
+				s.t.Error("timeout: failed to check ExecutionStart")
+			}
 		}
 	}
 
@@ -201,7 +216,19 @@ func (s *ServiceMock) ExecutionContinue(run runner.RunState, outgoingResult requ
 		if !ok {
 			panic(throw.IllegalState())
 		} else if checkFunc != nil {
-			checkFunc(outgoingResult.ExecutionResult)
+			done := make(synckit.ClosableSignalChannel)
+
+			go func() {
+				defer func() { _ = synckit.SafeClose(done) }()
+
+				checkFunc(outgoingResult.ExecutionResult)
+			}()
+
+			select {
+			case <-done:
+			case <-time.After(s.timeout):
+				s.t.Error("timeout: failed to check ExecutionContinue")
+			}
 		}
 	}
 
@@ -233,7 +260,19 @@ func (s *ServiceMock) ExecutionAbort(run runner.RunState) {
 		if !ok {
 			panic(throw.IllegalState())
 		} else if checkFunc != nil {
-			checkFunc()
+			done := make(synckit.ClosableSignalChannel)
+
+			go func() {
+				defer func() { _ = synckit.SafeClose(done) }()
+
+				checkFunc()
+			}()
+
+			select {
+			case <-done:
+			case <-time.After(s.timeout):
+				s.t.Error("timeout: failed to check ExecutionAbort")
+			}
 		}
 	}
 

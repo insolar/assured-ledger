@@ -85,6 +85,7 @@ const (
 
 		type Typed struct {
 			t             minimock.Tester
+			timeout       time.Duration
 			ctx           context.Context
 			defaultResend bool
 			resend        func(ctx context.Context, msg *message.Message)
@@ -101,6 +102,7 @@ const (
 				t:             t,
 				ctx:           ctx,
 				defaultResend: false,
+				timeout:       10 * time.Second,
 				resend:        sender.SendMessage,
 
 				Handlers: TypedHandlers{
@@ -144,10 +146,22 @@ const (
 
 				resend = p.defaultResend
 
-				hdlStruct.countBefore.Add(1)
+				oldCount := hdlStruct.countBefore.Add(1)
 
 				if hdlStruct.handler != nil {
-					resend = hdlStruct.handler(payload)
+					done := make(synckit.ClosableSignalChannel)
+
+					go func() {
+						defer func() { _ = synckit.SafeClose(done) }()
+
+						resend = hdlStruct.handler(payload)
+					}()
+
+					select {
+					case <-done:
+					case <-time.After(p.timeout):
+						p.t.Error("timeout: failed to check message {{ $msg }} (position: %s)", oldCount)
+					}
 				} else if !p.defaultResend && !hdlStruct.touched {
 					p.t.Fatalf("unexpected %T payload", payload)
 					return
