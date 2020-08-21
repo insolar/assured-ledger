@@ -544,3 +544,17 @@ func (p *PeerTransport) sendPacket(tp uniproto.OutType, fn uniproto.OutFunc) err
 		panic(throw.Impossible())
 	}
 }
+
+func (p *PeerTransport) limitReader(c io.ReadCloser) io.ReadCloser {
+	if p.rateQuota != nil {
+		return iokit.RateLimitReader(c, p.rateQuota)
+	}
+	return c
+}
+
+func (p *PeerTransport) limitWriter(c io.WriteCloser) io.WriteCloser {
+	if p.rateQuota != nil {
+		return iokit.RateLimitWriter(c, p.rateQuota.WriteBucket())
+	}
+	return c
+}

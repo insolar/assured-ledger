@@ -7,11 +7,11 @@ package uniserver
 
 import (
 	"bufio"
+	"context"
 	"crypto/tls"
 	"errors"
 	"io"
 	"net/http"
-	"runtime"
 
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
@@ -24,8 +24,10 @@ import (
 )
 
 type PeerReceiver struct {
+	Ctx         context.Context
 	PeerManager *PeerManager
 	Relayer     Relayer
+	HTTP        HTTPReceiverFunc
 	Parser      uniproto.Parser
 }
 
@@ -38,13 +40,13 @@ type ConnErrDetails struct {
 	Local, Remote nwapi.Address
 }
 
-func (p PeerReceiver) ReceiveStream(remote nwapi.Address, conn io.ReadWriteCloser, w l1.OutTransport) (runFn func() error, err error) {
+func (p PeerReceiver) ReceiveStream(remote nwapi.Address, conn io.ReadWriteCloser, wOut l1.OutTransport) (runFn func() error, err error) {
 	defer func() {
 		_ = iokit.SafeClose(conn)
 		err = throw.R(recover(), err)
 	}()
 
-	isIncoming := w != nil
+	isIncoming := wOut != nil
 
 	var (
 		fn    uniproto.VerifyHeaderFunc
@@ -52,7 +54,7 @@ func (p PeerReceiver) ReceiveStream(remote nwapi.Address, conn io.ReadWriteClose
 		limit TransportStreamFormat
 	)
 
-	// ATTENTION! Don't run "go" before checks - this will prevent an attacker from creation of multiple routines.
+	// ATTENTION! Do all check here - this will prevent an attacker from creation of multiple routines.
 
 	if fn, peer, err = p.resolvePeer(remote, isIncoming, conn); err != nil {
 		return nil, err
@@ -62,10 +64,14 @@ func (p PeerReceiver) ReceiveStream(remote nwapi.Address, conn io.ReadWriteClose
 		return nil, err
 	}
 
+	var tlsState *tls.ConnectionState
+
 	isHTTP := limit.IsHTTP()
 	if isIncoming {
 		if tlsConn, ok := conn.(*tls.Conn); ok {
 			state := tlsConn.ConnectionState()
+			tlsState = &state
+
 			switch state.NegotiatedProtocol {
 			case "http/1.1":
 				isHTTP = true
@@ -83,19 +89,21 @@ func (p PeerReceiver) ReceiveStream(remote nwapi.Address, conn io.ReadWriteClose
 	c := conn
 	conn = nil // don't close by defer
 
+	if isHTTP {
+		return func() error {
+			defer peer.transport.removeReceiver(c)
+
+			r := peer.transport.limitReader(c)
+			w := peer.transport.limitWriter(c)
+			err := p.receiveHTTPStream(remote, tlsState, nil, r, w, fn, limit)
+			return err
+		}, nil
+	}
+
 	return func() error {
 		defer peer.transport.removeReceiver(c)
 
-		var r io.ReadCloser
-		if q := peer.transport.rateQuota; q != nil {
-			r = iokit.RateLimitReader(c, q)
-		} else {
-			r = c
-		}
-
-		if isHTTP {
-			return p.receiveHTTPStream(nil, r, fn, limit)
-		}
+		r := peer.transport.limitReader(c)
 
 		for {
 			packet := uniproto.ReceivedPacket{From: remote, Peer: peer}
@@ -107,15 +115,23 @@ func (p PeerReceiver) ReceiveStream(remote nwapi.Address, conn io.ReadWriteClose
 				case io.EOF:
 					return nil
 				case uniproto.ErrPossibleHTTPRequest:
-					if !limit.IsDefined() || limit.IsHTTP() {
-						return p.receiveHTTPStream(preRead, r, fn, limit)
+					switch {
+					case limit.IsHTTP():
+					case limit.IsDefined():
+						return err
+					case !isIncoming:
+						// TODO support some day outgoing HTTP format
+						return throw.Violation("outgoing HTTP is not implemented")
 					}
+
+					w := peer.transport.limitWriter(c)
+					return p.receiveHTTPStream(remote, tlsState, preRead, r, w, fn, limit)
 				}
 			case err == io.EOF:
 				isEOF = true
 				fallthrough
 			case err == nil:
-				if w != nil {
+				if wOut != nil {
 					switch {
 					case limit != DetectByFirstPacket:
 					case more == 0:
@@ -125,13 +141,13 @@ func (p PeerReceiver) ReceiveStream(remote nwapi.Address, conn io.ReadWriteClose
 					}
 
 					if q := peer.transport.rateQuota; q != nil {
-						w = w.WithQuota(q.WriteBucket())
+						wOut = wOut.WithQuota(q.WriteBucket())
 					}
-					w.SetTag(int(limit))
+					wOut.SetTag(int(limit))
 					// to prevent possible deadlock
 					// don't worry for late additions - a closed connection will be detected and removed
-					go peer.transport.addConnection(w)
-					w = nil
+					go peer.transport.addConnection(wOut)
+					wOut = nil
 				}
 
 				switch {
@@ -402,10 +418,16 @@ func (p PeerReceiver) checkPeer(peer *Peer, tlsConn *tls.Conn) (uniproto.VerifyH
 	}, nil
 }
 
-func (p PeerReceiver) receiveHTTPStream(preRead []byte, r io.ReadCloser, fn uniproto.VerifyHeaderFunc, limit TransportStreamFormat) error {
+func (p PeerReceiver) receiveHTTPStream(remote nwapi.Address, tlsState *tls.ConnectionState,
+	preRead []byte, r io.ReadCloser, w io.WriteCloser, fn uniproto.VerifyHeaderFunc, limit TransportStreamFormat,
+) error {
+
 	defer func() {
 		_ = r.Close()
+		_ = w.Close()
 	}()
+
+	remoteAddr := remote.String()
 
 	var reader *bufio.Reader
 	if len(preRead) > 0 {
@@ -419,22 +441,40 @@ func (p PeerReceiver) receiveHTTPStream(preRead []byte, r io.ReadCloser, fn unip
 		reader = bufio.NewReader(r)
 	}
 
+	writer := bufio.NewWriter(w)
+
+	defer func() {
+		_ = writer.Flush()
+	}()
+
+	if p.HTTP == nil {
+		// TODO return a correct HTTP response
+		return throw.Unsupported()
+	}
+
+	recData := &HTTPReceiver{
+		PeerManager: p.PeerManager,
+		Relayer:     p.Relayer,
+		Parser:      p.Parser,
+		VerifyFn:    fn,
+		Format:      limit,
+	}
+
 	for {
 		req, err := http.ReadRequest(reader)
 		if err != nil {
 			return err
 		}
-		err = p.processHTTP(req, fn, limit)
-		if err != nil {
+		if p.Ctx != nil {
+			req = req.WithContext(p.Ctx)
+		}
+		req.RemoteAddr = remoteAddr
+		req.TLS = tlsState
+
+		if err = p.HTTP(req, writer, recData); err != nil {
 			return err
 		}
 	}
-}
-
-func (p PeerReceiver) processHTTP(req *http.Request, _ uniproto.VerifyHeaderFunc, _ TransportStreamFormat) error {
-	// TODO Read packet from HTTP body
-	runtime.KeepAlive(req)
-	return throw.NotImplemented()
 }
 
 func (p PeerReceiver) getLocalHostID(supp uniproto.Supporter) uint32 {
