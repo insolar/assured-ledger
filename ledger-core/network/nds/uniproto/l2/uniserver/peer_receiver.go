@@ -433,7 +433,7 @@ func (p PeerReceiver) processHTTP(req *http.Request, _ uniproto.VerifyHeaderFunc
 }
 
 func (p PeerReceiver) getLocalHostID(supp uniproto.Supporter) uint32 {
-	localID := p.PeerManager.Local().GetHostID()
+	localID := p.PeerManager.Local().GetNodeID()
 	if supp == nil {
 		return uint32(localID)
 	}

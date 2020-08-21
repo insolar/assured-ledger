@@ -23,12 +23,15 @@ type PeerState uint8
 
 const (
 	_ PeerState = iota
-	//Established
+	// Established
 	Connected
 	Verified
 	Trusted
 )
 
+// Peer represents a logical peer for communications. One Peer may have multiple addresses and identities.
+// Initially, a Peer is created by connection's remote address, but a Peer can be merged with another Peer after identification.
+// Also, Peer can have multiple connections of different types.
 type Peer struct {
 	transport PeerTransport
 
@@ -42,9 +45,11 @@ type Peer struct {
 	// HostIds for indirectly accessible hosts?
 
 	protoMutex sync.RWMutex
+	// protoInfo contains links to Peer's projection for each protocol it was connected through.
 	protoInfo  [uniproto.ProtocolTypeCount]io.Closer
 }
 
+// GetPrimary returns a peer's primary identity
 func (p *Peer) GetPrimary() nwapi.Address {
 	p.transport.mutex.RLock()
 	defer p.transport.mutex.RUnlock()
@@ -55,6 +60,7 @@ func (p *Peer) GetPrimary() nwapi.Address {
 	return nwapi.Address{}
 }
 
+// updatePrimary is ONLY for use by server to update Local peer identity after start of listening.
 func (p *Peer) updatePrimary(addr nwapi.Address) nwapi.Address {
 	p.transport.mutex.Lock()
 	defer p.transport.mutex.Unlock()
@@ -83,10 +89,16 @@ func (p *Peer) onRemoved() []nwapi.Address {
 	return p.transport.kill()
 }
 
+// verifyByTLS is invoked to verify TLS connection.
+// Return (true, nil) for positive on peer's identity (accept).
+// Return (false, nil) for unknown, neither positive nor negative (proceed further).
+// Return (-, err) for negative on peer's identity (deny).
+// NB! this can use a better abstraction.
 func (p *Peer) verifyByTLS(_ *tls.Conn) (verified bool, err error) {
 	return false, nil
 }
 
+// SetSignatureKey sets/updates peer's signature key. Key can be zero.
 func (p *Peer) SetSignatureKey(pk cryptkit.SignatureKey) {
 	p.transport.mutex.Lock()
 	defer p.transport.mutex.Unlock()
@@ -100,6 +112,7 @@ func (p *Peer) SetSignatureKey(pk cryptkit.SignatureKey) {
 	p.dsg = nil
 }
 
+// GetSignatureKey returns peer's signature key. Key can be zero (default).
 func (p *Peer) GetSignatureKey() cryptkit.SignatureKey {
 	p.transport.mutex.RLock()
 	defer p.transport.mutex.RUnlock()
@@ -121,6 +134,7 @@ func (p *Peer) _useKeyAndFactory(fn func(PeerCryptographyFactory) bool) error {
 	return nil
 }
 
+// GetDataVerifier returns DataSignatureVerifier to check data provided by this peer. Will return error when SignatureKey is not set.
 func (p *Peer) GetDataVerifier() (cryptkit.DataSignatureVerifier, error) {
 	p.transport.mutex.RLock()
 	if d := p.dsv; d != nil {
@@ -142,7 +156,9 @@ func (p *Peer) GetDataVerifier() (cryptkit.DataSignatureVerifier, error) {
 	return p.dsv, err
 }
 
-func (p *Peer) GetDataSigner() (cryptkit.DataSigner, error) {
+// getDataSigner returns DataSigner to sign data by this peer. Applicable to Local peer only.
+// Will return error when SignatureKey is not set.
+func (p *Peer) getDataSigner() (cryptkit.DataSigner, error) {
 	p.transport.mutex.RLock()
 	if d := p.dsg; d != nil {
 		p.transport.mutex.RUnlock()
@@ -163,6 +179,8 @@ func (p *Peer) GetDataSigner() (cryptkit.DataSigner, error) {
 	return p.dsg, err
 }
 
+// getDataSigner returns Decrypter to decrypt data for this peer. Applicable to Local peer only.
+// Will return error when SignatureKey is not set.
 func (p *Peer) getDataDecrypter() (d cryptkit.Decrypter, err error) {
 	p.transport.mutex.RLock()
 	defer p.transport.mutex.RUnlock()
@@ -174,6 +192,7 @@ func (p *Peer) getDataDecrypter() (d cryptkit.Decrypter, err error) {
 	return d, err
 }
 
+// GetDataVerifier returns Encrypter to encrypt data for this peer. Will return error when SignatureKey is not set.
 func (p *Peer) GetDataEncrypter() (d cryptkit.Encrypter, err error) {
 	p.transport.mutex.RLock()
 	defer p.transport.mutex.RUnlock()
@@ -185,6 +204,7 @@ func (p *Peer) GetDataEncrypter() (d cryptkit.Encrypter, err error) {
 	return d, err
 }
 
+// UpgradeState rises state of this peer. Will ignore lower values.
 func (p *Peer) UpgradeState(state PeerState) {
 	p.state.SetGreater(uint32(state))
 }
@@ -193,6 +213,7 @@ func (p *Peer) getState() PeerState {
 	return PeerState(p.state.Load())
 }
 
+// HasState returns true when the peer has same or higher state.
 func (p *Peer) HasState(state PeerState) bool {
 	return p.getState() >= state
 }
@@ -208,6 +229,7 @@ func (p *Peer) removeAlias(a nwapi.Address) bool {
 	return p.transport.removeAlias(a)
 }
 
+// GetNodeID returns ShortNodeID of the peer. Result can be zero. ShortNodeID is related to consensus operations.
 func (p *Peer) GetNodeID() nwapi.ShortNodeID {
 	p.transport.mutex.RLock()
 	defer p.transport.mutex.RUnlock()
@@ -215,6 +237,7 @@ func (p *Peer) GetNodeID() nwapi.ShortNodeID {
 	return p.nodeID
 }
 
+// SetNodeID sets peer's ShortNodeID. Will panic on zero.
 func (p *Peer) SetNodeID(id nwapi.ShortNodeID) {
 	if id == 0 {
 		panic(throw.IllegalState())
@@ -229,6 +252,8 @@ func (p *Peer) SetNodeID(id nwapi.ShortNodeID) {
 	p.nodeID = id
 }
 
+// GetLocalUID returns a locally unique peer's address.
+// This address can only be used locally and it will change after each disconnection of the peer.
 func (p *Peer) GetLocalUID() nwapi.Address {
 	p.transport.mutex.RLock()
 	defer p.transport.mutex.RUnlock()
@@ -236,19 +261,14 @@ func (p *Peer) GetLocalUID() nwapi.Address {
 	return nwapi.NewLocalUID(p.transport.uid, nwapi.HostID(p.nodeID))
 }
 
-func (p *Peer) GetHostID() nwapi.HostID {
-	p.transport.mutex.RLock()
-	defer p.transport.mutex.RUnlock()
-
-	return nwapi.HostID(p.nodeID)
-}
-
+// SetProtoInfo sets/updated per-protocol peer's projection (info). It will be closed when the peer is unregistered.
 func (p *Peer) SetProtoInfo(pt uniproto.ProtocolType, info io.Closer) {
 	p.transport.mutex.Lock()
 	defer p.transport.mutex.Unlock()
 	p.protoInfo[pt] = info
 }
 
+// GetOrCreateProtoInfo performs "atomic" get or create of peer's projection for the given protocol.
 func (p *Peer) GetOrCreateProtoInfo(pt uniproto.ProtocolType, factoryFn func(uniproto.Peer) io.Closer) io.Closer {
 	if factoryFn == nil {
 		panic(throw.IllegalValue())
@@ -267,21 +287,29 @@ func (p *Peer) GetOrCreateProtoInfo(pt uniproto.ProtocolType, factoryFn func(uni
 	return r
 }
 
+// GetProtoInfo returns peer's projection for the given protocol. Result can be nil.
 func (p *Peer) GetProtoInfo(pt uniproto.ProtocolType) io.Closer {
 	p.protoMutex.RLock()
 	defer p.protoMutex.RUnlock()
 	return p.protoInfo[pt]
 }
 
+// Transport returns a multiplexed transport over available peer's transports.
+// This transport does internally connection management (retry, reconnect, etc).
 func (p *Peer) Transport() uniproto.OutTransport {
 	return &p.transport
 }
 
+// SendPacket is a convenience handler to send a packet provided by uniproto.PacketPreparer.
+// See SendPreparedPacket for details.
 func (p *Peer) SendPacket(tp uniproto.OutType, packet uniproto.PacketPreparer) error {
 	t, sz, fn := packet.PreparePacket()
 	return p.SendPreparedPacket(tp, &t.Packet, sz, fn, nil)
 }
 
+// SendPreparedPacket prepares uniproto packet and checks its eligibility for the given (uniproto.OutType).
+// Can also choose a specific out type by properties of packet and value of (uniproto.OutType).
+// See SendingPacket.NewTransportFunc for details about serialization.
 func (p *Peer) SendPreparedPacket(tp uniproto.OutType, packet *uniproto.Packet, dataSize uint, fn uniproto.PayloadSerializerFunc, checkFn func() bool) error {
 
 	sp := p.createSendingPacket(packet)
@@ -331,7 +359,7 @@ func (p *Peer) createSendingPacket(packet *uniproto.Packet) *uniproto.SendingPac
 			panic(err)
 		}
 	}
-	if sig, err = p.GetDataSigner(); err != nil {
+	if sig, err = p.getDataSigner(); err != nil {
 		panic(err)
 	}
 	sp := uniproto.NewSendingPacket(sig, enc)
