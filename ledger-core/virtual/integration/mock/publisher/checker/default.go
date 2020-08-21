@@ -61,10 +61,16 @@ func NewDefault(fn CallbackFn) *Default {
 }
 
 func NewResend(ctx context.Context, sender Sender) *Default {
-	return NewDefault(func(topic string, messages ...*message.Message) error {
+	resend := func(topic string, messages ...*message.Message) error {
 		for _, msg := range messages {
 			sender.SendMessage(ctx, msg)
 		}
 		return nil
-	})
+	}
+	if sender == nil {
+		resend = func(topic string, messages ...*message.Message) error {
+			return nil
+		}
+	}
+	return NewDefault(resend)
 }
