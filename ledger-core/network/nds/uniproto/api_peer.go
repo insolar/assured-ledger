@@ -44,14 +44,27 @@ type Peer interface {
 	SendPreparedPacket(tp OutType, packet *Packet, dataSize uint, fn PayloadSerializerFunc, checkFn func() bool) error
 }
 
+// OutType defines a type of transport allowed for a send operation.
 type OutType uint8
 
 const (
+	// Any enables use of any transport based on packet size. Sessionless will be preferred over SessionfulSmall.
 	Any OutType = iota
+	// SessionfulAny allows use of either SessionfulSmall or SessionfulLarge based on packet size.
 	SessionfulAny
+	// SessionfulLarge allows ONLY use of sessionful large-packet transport, irrelevant of packet size.
 	SessionfulLarge
+	// SessionfulLarge allows ONLY use of sessionful small-packet transport, irrelevant of packet size.
+	// Packets larger than uniproto.MaxNonExcessiveLength will be rejected locally with an error.
 	SessionfulSmall
+	// SmallAny allows use of either Sessionless or SessionfulSmall. Sessionless is preferred when size allows.
+	// Packets larger than uniproto.MaxNonExcessiveLength will be rejected locally with an error.
 	SmallAny
+	// Sessionless allows ONLY use of sessionless transport.
+	// Packets larger than transport's size limit will be rejected locally with an error.
 	Sessionless
+	// SessionlessNoQuota allows ONLY use of sessionless transport. Quota limits will be ignored.
+	// Packets larger than transport's size limit will be rejected locally with an error.
+	// NB! Only for use by consensus / low latency packets.
 	SessionlessNoQuota
 )

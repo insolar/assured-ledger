@@ -18,7 +18,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
 )
 
+// PacketPreparer is a factory to provide a to-be-sent packet and necessary information.
 type PacketPreparer interface {
+	// PreparePacket returns pre-populated header, size of data to be included into the packet (excludes all packet fields),
+	// and a data serialization function.
 	PreparePacket() (template PacketTemplate, dataSize uint, dataFn PayloadSerializerFunc)
 }
 
@@ -35,21 +38,20 @@ type PacketTemplate struct {
 type PayloadSerializerFunc func(nwapi.SerializationContext, *Packet, *iokit.LimitedWriter) error
 type PacketSerializerFunc func() (template PacketTemplate, dataSize uint, dataFn PayloadSerializerFunc)
 
-//var _ PacketSerializerFunc = PacketSerializer(nil).SerializePacket
 
-type SerializationHelper struct {
-	// TODO signature size
-	// TODO size limit
-}
-
+// NewSendingPacket creates a to-be-sent packet. Param (encrypter) is only required when encryption is needed.
 func NewSendingPacket(signer cryptkit.DataSigner, encrypter cryptkit.Encrypter) *SendingPacket {
 	p := &SendingPacket{encrypter: encrypter}
 	p.signer.Signer = signer
 	return p
 }
 
+// ReceivedPacket represents a to-be-sent packet.
+// Also ReceivedPacket provides a few convenience functions to unify serialization of different packet types.
 type SendingPacket struct {
+	// Packet is a standard part of a packet.
 	Packet
+	// Peer represents a peer for this packet. Not in use.
 	Peer      Peer
 	signer    PacketDataSigner
 	encrypter cryptkit.Encrypter
@@ -97,6 +99,8 @@ func (p *SendingPacket) preSerialize(dataSize uint, alwaysComplete bool) ([]byte
 	return preBuf, n, packetSize
 }
 
+// SerializeToBytes assists with serialization of a packet into memory from the given payload data size
+// and PayloadSerializerFunc
 func (p *SendingPacket) SerializeToBytes(dataSize uint, fn PayloadSerializerFunc) ([]byte, error) {
 	preBuf, n, packetSize := p.preSerialize(dataSize, true)
 	hasher := p.signer.NewHasherWith(&p.Header, preBuf[:n])
@@ -116,6 +120,9 @@ func (p *SendingPacket) SerializeToBytes(dataSize uint, fn PayloadSerializerFunc
 	return preBuf, nil
 }
 
+// NewTransportFunc provides ready-to-use arguments for OutTransport methods.
+// for the given payload data and PayloadSerializerFunc.
+// When option (checkFn) is provided, it will be invoked before each send attempt and it can return false to prevent from (re)sending.
 func (p *SendingPacket) NewTransportFunc(dataSize uint, fn PayloadSerializerFunc, checkFn func() bool) (uint, OutFunc) {
 	preBuf, n, packetSize := p.preSerialize(dataSize, false)
 
@@ -172,6 +179,7 @@ func (p *SendingPacket) NewTransportFunc(dataSize uint, fn PayloadSerializerFunc
 	}
 }
 
+// GetSignatureSize returns size of a signature applicable fot this packet.
 func (p *SendingPacket) GetSignatureSize() uint {
 	return p.signer.GetSignatureSize()
 }

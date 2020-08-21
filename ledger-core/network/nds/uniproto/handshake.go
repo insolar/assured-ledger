@@ -12,9 +12,9 @@ import (
 /*
 	ByteSize=16
 */
+// HandshakeHeader is compatible with Header, but uses length = 0, which is invalid for a normal header.
+// It is used for off-protocol operations, like handshake or heartbeat.
 type HandshakeHeader struct {
-	// HandshakeHeader is compatible with Header, but uses length = 0, which is invalid for a normal header
-
 	// Magic   [3]uint8 = "INS"
 	Phase uint8
 	// _    uint8          `insolar-transport:"[:]=0"`

@@ -450,11 +450,8 @@ func (p *PeerTransport) UseSessionful(size int64, applyFn uniproto.OutFunc) erro
 	return p.useTransport(p.getSessionfulLargeTransport, true, applyFn)
 }
 
-func (p *PeerTransport) UseAny(size int64, applyFn uniproto.OutFunc) error {
-	if size <= int64(p.central.maxSessionlessSize) {
-		return p.UseSessionless(applyFn)
-	}
-	return p.UseSessionful(size, applyFn)
+func (p *PeerTransport) CanUseSessionless(size int64) bool {
+	return size <= int64(p.central.maxSessionlessSize)
 }
 
 func (p *PeerTransport) setAddresses(primary nwapi.Address, aliases []nwapi.Address) {

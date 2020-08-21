@@ -140,9 +140,9 @@ func (p PeerReceiver) ReceiveStream(remote nwapi.Address, conn io.ReadWriteClose
 					case p.Relayer == nil:
 						err = throw.Unsupported()
 					case more == 0:
-						err = p.Relayer.RelaySmallPacket(&packet.Packet, preRead)
+						err = p.Relayer.RelaySmallPacket(p.PeerManager, &packet.Packet, preRead)
 					default:
-						err = p.Relayer.RelayLargePacket(&packet.Packet, preRead, io.LimitedReader{R: r, N: more})
+						err = p.Relayer.RelayLargePacket(p.PeerManager, &packet.Packet, preRead, io.LimitedReader{R: r, N: more})
 					}
 				case packet.Header.IsBodyEncrypted():
 					packet.Decrypter, err = p.PeerManager.GetLocalDataDecrypter()
@@ -197,7 +197,7 @@ func (p PeerReceiver) ReceiveDatagram(remote nwapi.Address, b []byte) (err error
 		case p.Relayer == nil:
 			err = throw.Unsupported()
 		default:
-			err = p.Relayer.RelaySessionlessPacket(&packet.Packet, b)
+			err = p.Relayer.RelaySessionlessPacket(p.PeerManager, &packet.Packet, b)
 		}
 
 		switch {
@@ -388,6 +388,11 @@ func (p PeerReceiver) checkPeer(peer *Peer, tlsConn *tls.Conn) (uniproto.VerifyH
 				// TODO support header/content validation without signature field when TLS is available by providing zero len hasher/verifier
 				return nil, throw.NotImplemented()
 			}
+		}
+
+		if selfVerified {
+			// TODO read PK from packet and verify it
+			return nil, throw.NotImplemented()
 		}
 
 		if dsv == nil {
