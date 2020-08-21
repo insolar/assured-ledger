@@ -4,7 +4,7 @@ GOTEST          ?= go test
 TEST_ARGS       ?= -timeout 1200s
 TESTED_PACKAGES ?= $(shell go list ${ALL_PACKAGES} | grep -v "${MOCKS_PACKAGE}" | grep -v /drafts/)
 PACKAGES        ?= $(shell go list ./... | grep -v /drafts/)
-PULSAR_ONESHOT  ?= TRUE
+PULSARD_ONESHOT  ?= TRUE
 
 EXTENDED_INTEGRATION_LOG ?= "$(shell pwd)/integration_extended_test.log"
 EXTENDED_FUNCTIONAL_LOG  ?= "$(shell pwd)/functional_extended_test.log"
@@ -25,13 +25,13 @@ test_with_coverage: ## run unit and slow tests with generation of coverage file
 .PHONY: test_func
 test_func: ## run functest FUNCTEST_COUNT times
 	pkill -9 insolard || echo "No insolard running" # dirty hack to terminate all insolard processes
-	PULSAR_ONESHOT=$(PULSAR_ONESHOT) \
-	PULSAR_PULSETIME=$(PULSAR_PULSETIME) \
+	PULSARD_ONESHOT=$(PULSARD_ONESHOT) \
+	PULSARD_PULSAR_PULSETIME=$(PULSARD_PULSAR_PULSETIME) \
 	CGO_ENABLED=1 $(GOTEST) -test.v $(TEST_ARGS) -tags "functest copylogtxt" ./application/functest -count=$(FUNCTEST_COUNT) -args TESTLOG_OUT=$(EXTENDED_FUNCTIONAL_LOG) TESTLOG_MARKS=1 TESTLOG_TXT=1
 
 .PHONY: test_func_slow
 test_func_slow: # Run functests as long as practical to catch unexpected behavior during pulse change
-	FUNCTEST_COUNT=100 PULSAR_ONESHOT=FALSE PULSAR_PULSETIME=5000 TEST_ARGS='-timeout 1200s -failfast' $(MAKE) test_func
+	FUNCTEST_COUNT=100 PULSARD_ONESHOT=FALSE PULSARD_PULSAR_PULSETIME=5000 TEST_ARGS='-timeout 1200s -failfast' $(MAKE) test_func
 
 .PNONY: test_func_race
 test_func_race: ## run functest 10 times with -race flag
@@ -85,8 +85,8 @@ test_func_kubernetes: ## run functest FUNCTEST_COUNT times in kubernetes cluster
 	INSOLAR_FUNC_RPC_URL="http://localhost/admin-api/rpc" \
 	INSOLAR_FUNC_KEYS_PATH="/tmp/insolar/" \
 	INSOLAR_FUNC_TESTWALLET_HOST="localhost" \
-	PULSAR_ONESHOT=$(PULSAR_ONESHOT) \
-	PULSAR_PULSETIME=$(PULSAR_PULSETIME) \
+	PULSARD_ONESHOT=$(PULSARD_ONESHOT) \
+	PULSARD_PULSAR_PULSETIME=$(PULSARD_PULSAR_PULSETIME) \
 	CGO_ENABLED=1 $(GOTEST) -test.v $(TEST_ARGS) -tags "functest" ./application/functest -count=$(FUNCTEST_COUNT)
 
 .PHONY: test_func_kubernetes_ci
@@ -95,8 +95,8 @@ test_func_kubernetes_ci: ## run functest FUNCTEST_COUNT times in kubernetes clus
 	INSOLAR_FUNC_RPC_URL="http://localhost/admin-api/rpc" \
 	INSOLAR_FUNC_KEYS_PATH="/tmp/insolar/" \
 	INSOLAR_FUNC_TESTWALLET_HOST="localhost" \
-	PULSAR_ONESHOT=$(PULSAR_ONESHOT) \
-	PULSAR_PULSETIME=$(PULSAR_PULSETIME) \
+	PULSARD_ONESHOT=$(PULSARD_ONESHOT) \
+	PULSARD_PULSAR_PULSETIME=$(PULSARD_PULSAR_PULSETIME) \
 	CGO_ENABLED=1 $(GOTEST) -test.v $(TEST_ARGS) -tags "functest" ./application/functest -count=$(FUNCTEST_COUNT)
 
 .PHONY: publish_integration_tests
