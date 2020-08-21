@@ -434,7 +434,7 @@ then
     echo "start pulsar ..."
     echo "   log: ${LAUNCHNET_LOGS_DIR}pulsar_output.log"
     set -x
-    ${PULSARD} -c ${PULSAR_CONFIG} &> ${LAUNCHNET_LOGS_DIR}pulsar_output.log &
+    ${PULSARD} --config ${PULSAR_CONFIG} &> ${LAUNCHNET_LOGS_DIR}pulsar_output.log &
     { set +x; } 2>/dev/null
     echo "pulsar log: ${LAUNCHNET_LOGS_DIR}pulsar_output.log"
 else
