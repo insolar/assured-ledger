@@ -94,6 +94,10 @@ func (p *UnifiedServer) SetRelayer(r Relayer) {
 	p.receiver.Relayer = r
 }
 
+func (p *UnifiedServer) SetHTTPReceiver(fn HTTPReceiverFunc) {
+	p.receiver.HTTP = fn
+}
+
 func (p *UnifiedServer) StartNoListen() {
 	if p.peers.central.factory != nil {
 		panic(throw.IllegalState())
