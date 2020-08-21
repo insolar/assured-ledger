@@ -278,7 +278,7 @@ func waitForNetworkState(cfg appConfig, state network.State) error {
 }
 
 func runPulsar() error {
-	pulsarCmd := exec.Command("sh", "-c", "./bin/pulsard -c .artifacts/launchnet/pulsar.yaml")
+	pulsarCmd := exec.Command("sh", "-c", "./bin/pulsard --config .artifacts/launchnet/pulsar.yaml")
 	if err := pulsarCmd.Start(); err != nil {
 		return throw.W(err, "failed to launch pulsar")
 	}
