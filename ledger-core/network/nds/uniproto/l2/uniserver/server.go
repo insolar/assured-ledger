@@ -63,8 +63,6 @@ type UnifiedServer struct {
 	peers      PeerManager
 	receiver   PeerReceiver
 	udpSema    synckit.Semaphore
-
-	preference nwapi.Preference
 }
 
 func (p *UnifiedServer) SetConfig(config ServerConfig) {
