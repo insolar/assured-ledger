@@ -37,21 +37,10 @@ func NewPeerManager(factory PeerTransportFactory, local nwapi.Address, localFn f
 	return pm
 }
 
-type PeerCryptographyFactory interface {
-	// TODO for some reason linter can't handle multiple declarations of the same method while it is valid for 1.14
-	// cryptkit.DataSignatureVerifierFactory
-	// cryptkit.DataSignerFactory
-	CreateDataSignatureVerifier(cryptkit.SignatureKey) cryptkit.DataSignatureVerifier
-	CreateDataSigner(cryptkit.SignatureKey) cryptkit.DataSigner
-	IsSignatureKeySupported(cryptkit.SignatureKey) bool
-	CreateDataDecrypter(cryptkit.SignatureKey) cryptkit.Decrypter
-	CreateDataEncrypter(cryptkit.SignatureKey) cryptkit.Encrypter
-	GetMaxSignatureSize() int
-}
-
+// PeerManager runs a map of peers. See PeerMap
 type PeerManager struct {
-	quotaFactory PeerQuotaFactoryFunc
-	peerFactory  OfflinePeerFactoryFunc
+	quotaFactoryFn PeerQuotaFactoryFunc
+	peerMapperFn   PeerMapperFunc
 
 	central PeerTransportCentral
 	// LOCK: WARNING! PeerTransport.mutex can be acquired under this mutex
@@ -59,9 +48,12 @@ type PeerManager struct {
 	peers     PeerMap
 }
 
+// PeerQuotaFactoryFunc is invoked to create a transfer rate quota for a peer. Quota applies to all connections of the peer. Can return nil.
 type PeerQuotaFactoryFunc = func([]nwapi.Address) ratelimiter.RWRateQuota
-type OfflinePeerFactoryFunc = func(*Peer) (remapTo nwapi.Address, err error)
+// PeerMapperFunc is invoked after a new peer is registered to check if this peek has to be merged with another one.
+type PeerMapperFunc = func(*Peer) (remapTo nwapi.Address, err error)
 
+// SetPeerConnectionLimit sets a max number of sessionful connections established to/from peer.
 func (p *PeerManager) SetPeerConnectionLimit(n uint8) {
 	p.peerMutex.Lock()
 	defer p.peerMutex.Unlock()
@@ -69,6 +61,7 @@ func (p *PeerManager) SetPeerConnectionLimit(n uint8) {
 	p.central.maxPeerConn = n
 }
 
+// SetMaxSessionlessSize sets limit for size of a data packet that can be transferred over a sessionless connection.
 func (p *PeerManager) SetMaxSessionlessSize(n uint16) {
 	p.peerMutex.Lock()
 	defer p.peerMutex.Unlock()
@@ -76,22 +69,24 @@ func (p *PeerManager) SetMaxSessionlessSize(n uint16) {
 	p.central.maxSessionlessSize = n
 }
 
+// SetQuotaFactory sets factory to allocate traffic quota when a peer is added.
 func (p *PeerManager) SetQuotaFactory(quotaFn PeerQuotaFactoryFunc) {
 	p.peerMutex.Lock()
 	defer p.peerMutex.Unlock()
 
 	p.peers.ensureEmpty()
-	p.quotaFactory = quotaFn
+	p.quotaFactoryFn = quotaFn
 }
 
-func (p *PeerManager) SetPeerFactory(fn OfflinePeerFactoryFunc) {
+func (p *PeerManager) SetPeerMapper(fn PeerMapperFunc) {
 	p.peerMutex.Lock()
 	defer p.peerMutex.Unlock()
 
 	p.peers.ensureEmpty()
-	p.peerFactory = fn
+	p.peerMapperFn = fn
 }
 
+// SetSignatureFactory sets a provider of cryptographic tools. Changing this factory will not unset already created cryptographic tools.
 func (p *PeerManager) SetSignatureFactory(f PeerCryptographyFactory) {
 	p.peerMutex.Lock()
 	defer p.peerMutex.Unlock()
@@ -140,16 +135,19 @@ func (p *PeerManager) _peerNotLocal(a nwapi.Address) (*Peer, error) {
 	return peer, nil
 }
 
+// HasAddress return true when there is a peer registered with the given address or alias.
 func (p *PeerManager) HasAddress(a nwapi.Address) bool {
 	return !p.GetPrimary(a).IsZero()
 }
 
+// Local returns a local peer - peer that represents a local node.
 func (p *PeerManager) Local() *Peer {
 	p.peerMutex.RLock()
 	defer p.peerMutex.RUnlock()
 	return p.peers.peers[0]
 }
 
+// GetPrimary returns primary address of a peer registered with the given address or alias. Will return zero value when not found.
 func (p *PeerManager) GetPrimary(a nwapi.Address) nwapi.Address {
 	if _, peer := p.peer(a); peer != nil {
 		return peer.GetPrimary()
@@ -157,6 +155,7 @@ func (p *PeerManager) GetPrimary(a nwapi.Address) nwapi.Address {
 	return nwapi.Address{}
 }
 
+// RemovePeer removes/unregisters a peer with the given address or alias.
 func (p *PeerManager) RemovePeer(a nwapi.Address) bool {
 	p.peerMutex.Lock()
 	defer p.peerMutex.Unlock()
@@ -173,6 +172,7 @@ func (p *PeerManager) RemovePeer(a nwapi.Address) bool {
 	return true
 }
 
+// RemoveAlias removes/unregisters the given alias. Will return false when the alias is unknown or can't be unregistered (is primary).
 func (p *PeerManager) RemoveAlias(a nwapi.Address) bool {
 	p.peerMutex.Lock()
 	defer p.peerMutex.Unlock()
@@ -189,7 +189,7 @@ func (p *PeerManager) addLocal(primary nwapi.Address, aliases []nwapi.Address, n
 		panic(throw.IllegalValue())
 	}
 
-	_, err := p._newPeer(newPeerFn, primary, aliases)
+	_, _, err := p._newPeer(newPeerFn, primary, aliases)
 	return err
 }
 
@@ -199,7 +199,8 @@ func (p *PeerManager) updateLocalPrimary(primary nwapi.Address) {
 	p.peers.updatePrimary(primary, 0)
 }
 
-func (p *PeerManager) AddPeer(primary nwapi.Address, aliases ...nwapi.Address) {
+// MustAddPeer creates a peer for the given primary address and aliases. Panics on collisions.
+func (p *PeerManager) MustAddPeer(primary nwapi.Address, aliases ...nwapi.Address) {
 	if err := p.addPeer(primary, aliases...); err != nil {
 		panic(err)
 	}
@@ -213,13 +214,14 @@ func (p *PeerManager) addPeer(primary nwapi.Address, aliases ...nwapi.Address) e
 	p.peerMutex.Lock()
 	defer p.peerMutex.Unlock()
 
-	if _, err := p._newPeer(nil, primary, aliases); err != nil {
+	if _, _, err := p._newPeer(nil, primary, aliases); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (p *PeerManager) AddAliases(to nwapi.Address, aliases ...nwapi.Address) {
+// MustAddAliases adds aliases for a peer identified by (to). Panics on an unknown peer or on collisions.
+func (p *PeerManager) MustAddAliases(to nwapi.Address, aliases ...nwapi.Address) {
 	if err := p.addAliases(to, aliases...); err != nil {
 		panic(err)
 	}
@@ -249,7 +251,7 @@ func (p *PeerManager) addAliases(to nwapi.Address, aliases ...nwapi.Address) err
 	return p.peers.addAliases(peerIndex, aliases)
 }
 
-func (p *PeerManager) _newPeer(newPeerFn func(*Peer) error, primary nwapi.Address, aliases []nwapi.Address) (peer *Peer, err error) {
+func (p *PeerManager) _newPeer(newPeerFn func(*Peer) error, primary nwapi.Address, aliases []nwapi.Address) (peer *Peer, peerIdx uint32, err error) {
 	peer = &Peer{}
 	peer.transport.uid = NextPeerUID()
 	peer.transport.central = &p.central
@@ -257,8 +259,8 @@ func (p *PeerManager) _newPeer(newPeerFn func(*Peer) error, primary nwapi.Addres
 
 	remapped := false
 	if err = func() error {
-		if p.peerFactory != nil && !p.peers.isEmpty() {
-			switch remapTo, err := p.peerFactory(peer); {
+		if p.peerMapperFn != nil && !p.peers.isEmpty() {
+			switch remapTo, err := p.peerMapperFn(peer); {
 			case err != nil:
 				return err
 			case !remapTo.IsZero():
@@ -295,20 +297,21 @@ func (p *PeerManager) _newPeer(newPeerFn func(*Peer) error, primary nwapi.Addres
 		return err
 
 	}(); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	if remapped {
 		return
 	}
 
-	if p.quotaFactory != nil {
-		peer.transport.rateQuota = p.quotaFactory(peer.transport.aliases)
+	if p.quotaFactoryFn != nil {
+		peer.transport.rateQuota = p.quotaFactoryFn(peer.transport.aliases)
 	}
 
-	p.peers.addPeer(peer)
-	return peer, nil
+	peerIdx = p.peers.addPeer(peer)
+	return peer, peerIdx, nil
 }
 
+// Close removes all peers with relevant finalization of them.
 func (p *PeerManager) Close() error {
 	p.peerMutex.Lock()
 	defer p.peerMutex.Unlock()
@@ -326,11 +329,12 @@ func (p *PeerManager) connectionFrom(remote nwapi.Address, newPeerFn func(*Peer)
 
 	peer, err := p._peerNotLocal(remote)
 	if err == nil && peer == nil {
-		peer, err = p._newPeer(newPeerFn, remote, nil)
+		peer, _, err = p._newPeer(newPeerFn, remote, nil)
 	}
 	return peer, err
 }
 
+// AddHostID adds an alias with protocol specific HostID. When HostID is NodeID then will also call SetNodeID
 func (p *PeerManager) AddHostID(to nwapi.Address, id nwapi.HostID) (bool, error) {
 	peerIndex, peer, err := p.getPeer(to)
 	if err != nil {
@@ -374,15 +378,20 @@ func (p *PeerManager) connectPeer(remote nwapi.Address) (*Peer, error) {
 		return nil, nil
 
 	}
-	if peer, err = p._newPeer(nil, remote, nil); err != nil {
+
+	var peerIdx uint32
+	if peer, peerIdx, err = p._newPeer(nil, remote, nil); err != nil {
 		return nil, err
 	}
+
 	if err = peer.transport.EnsureConnect(); err != nil {
+		p.peers.remove(peerIdx)
 		return nil, err
 	}
 	return peer, nil
 }
 
+// GetLocalDataDecrypter returns Decrypter for the local peer.
 func (p *PeerManager) GetLocalDataDecrypter() (cryptkit.Decrypter, error) {
 	return p.Local().getDataDecrypter()
 }

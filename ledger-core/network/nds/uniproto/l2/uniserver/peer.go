@@ -112,7 +112,7 @@ func (p *Peer) SetSignatureKey(pk cryptkit.SignatureKey) {
 	p.dsg = nil
 }
 
-// GetSignatureKey returns peer's signature key. Key can be zero (default).
+// GetSignatureKey returns peer's signature key. Key can be zero.
 func (p *Peer) GetSignatureKey() cryptkit.SignatureKey {
 	p.transport.mutex.RLock()
 	defer p.transport.mutex.RUnlock()
@@ -295,7 +295,7 @@ func (p *Peer) GetProtoInfo(pt uniproto.ProtocolType) io.Closer {
 }
 
 // Transport returns a multiplexed transport over available peer's transports.
-// This transport does internally connection management (retry, reconnect, etc).
+// This transport does internal connection management (retry, reconnect, etc).
 func (p *Peer) Transport() uniproto.OutTransport {
 	return &p.transport
 }

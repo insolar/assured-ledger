@@ -78,8 +78,8 @@ func (p *UnifiedServer) SetQuotaFactory(quotaFn PeerQuotaFactoryFunc) {
 	p.peers.SetQuotaFactory(quotaFn)
 }
 
-func (p *UnifiedServer) SetPeerFactory(fn OfflinePeerFactoryFunc) {
-	p.peers.SetPeerFactory(fn)
+func (p *UnifiedServer) SetPeerFactory(fn PeerMapperFunc) {
+	p.peers.SetPeerMapper(fn)
 }
 
 func (p *UnifiedServer) SetSignatureFactory(f PeerCryptographyFactory) {

@@ -29,7 +29,7 @@ func TestServer(t *testing.T) {
 	vf := TestVerifierFactory{}
 	sk := cryptkit.NewSignatureKey(longbits.Zero(testDigestSize), testSignatureMethod, cryptkit.PublicAsymmetricKey)
 
-	var peerProfileFn OfflinePeerFactoryFunc
+	var peerProfileFn PeerMapperFunc
 	peerProfileFn = func(peer *Peer) (remapTo nwapi.Address, err error) {
 		peer.SetSignatureKey(sk)
 		return nwapi.Address{}, nil
