@@ -64,9 +64,7 @@ var messagesWithoutToken = []struct {
 	},
 }
 
-type reseter interface {
-	Reset()
-}
+func ignoreErrors(_ string) bool { return false }
 
 func TestVirtual_SenderCheck_With_ExpectedVE(t *testing.T) {
 	defer commontestutils.LeakTester(t)
@@ -88,13 +86,13 @@ func TestVirtual_SenderCheck_With_ExpectedVE(t *testing.T) {
 
 					mc := minimock.NewController(t)
 
-					server, ctx := utils.NewUninitializedServerWithErrorFilter(nil, t, func(s string) bool {
-						return false
-					})
+					server, ctx := utils.NewUninitializedServerWithErrorFilter(nil, t, ignoreErrors)
+					defer server.Stop()
 
 					jetCoordinatorMock := affinity.NewHelperMock(mc)
 					auth := authentication.NewService(ctx, jetCoordinatorMock)
 					server.ReplaceAuthenticationService(auth)
+					server.PublisherMock.SetResendMode(ctx, nil)
 
 					var errorFound bool
 					{
@@ -115,7 +113,6 @@ func TestVirtual_SenderCheck_With_ExpectedVE(t *testing.T) {
 					}
 
 					server.Init(ctx)
-					server.IncrementPulseAndWaitIdle(ctx)
 
 					if !testMsg.ignoreSenderCheck {
 						rv := server.RandomGlobalWithPulse()
@@ -124,8 +121,6 @@ func TestVirtual_SenderCheck_With_ExpectedVE(t *testing.T) {
 						}
 						jetCoordinatorMock.QueryRoleMock.Return([]reference.Global{rv}, nil)
 					}
-
-					testMsg.msg.(reseter).Reset()
 
 					switch m := (testMsg.msg).(type) {
 					case *payload.VStateReport:
@@ -141,6 +136,7 @@ func TestVirtual_SenderCheck_With_ExpectedVE(t *testing.T) {
 						m.LookAt = pn
 						m.Callee = gen.UniqueGlobalRefWithPulse(pn)
 						m.Outgoing = server.BuildRandomOutgoingWithGivenPulse(pn)
+
 					case *payload.VFindCallResponse:
 						pn := server.GetPrevPulse().PulseNumber
 
@@ -148,6 +144,7 @@ func TestVirtual_SenderCheck_With_ExpectedVE(t *testing.T) {
 						m.Callee = gen.UniqueGlobalRefWithPulse(pn)
 						m.Outgoing = server.BuildRandomOutgoingWithGivenPulse(pn)
 						m.Status = payload.MissingCall
+
 					case *payload.VDelegatedCallRequest:
 						pn := server.GetPrevPulse().PulseNumber
 
@@ -155,16 +152,19 @@ func TestVirtual_SenderCheck_With_ExpectedVE(t *testing.T) {
 						m.CallOutgoing = reference.NewRecordOf(server.GlobalCaller(), gen.UniqueLocalRefWithPulse(pn))
 						m.CallIncoming = reference.NewRecordOf(m.Callee, m.CallOutgoing.GetLocal())
 						m.CallFlags = payload.CallFlags(0).WithInterference(contract.CallIntolerable).WithState(contract.CallValidated)
+
 					case *payload.VDelegatedCallResponse:
 						pn := server.GetPrevPulse().PulseNumber
 
 						m.Callee = gen.UniqueGlobalRefWithPulse(pn)
 						m.CallIncoming = reference.NewRecordOf(m.Callee, gen.UniqueLocalRefWithPulse(pn))
+
 					case *payload.VStateRequest:
 						pn := server.GetPrevPulse().PulseNumber
 
 						m.AsOf = pn
 						m.Object = gen.UniqueGlobalRefWithPulse(pn)
+
 					case *payload.VCallResult:
 						m.CallFlags = payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty)
 						m.CallType = payload.CTMethod
@@ -173,6 +173,7 @@ func TestVirtual_SenderCheck_With_ExpectedVE(t *testing.T) {
 						m.CallOutgoing = server.BuildRandomOutgoingWithPulse()
 						m.CallIncoming = server.RandomGlobalWithPulse()
 						m.ReturnArguments = []byte("some result")
+
 					case *payload.VCallRequest:
 						testMsg.msg = utils.GenerateVCallRequestMethod(server)
 					}
@@ -187,7 +188,7 @@ func TestVirtual_SenderCheck_With_ExpectedVE(t *testing.T) {
 						// we don't wait anything cause Sender check is part of call to SendPayload
 						assert.Equal(t, true, errorFound, "Fail "+testMsg.name)
 					}
-					server.Stop()
+
 					mc.Finish()
 				})
 			}
