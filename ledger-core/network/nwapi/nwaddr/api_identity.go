@@ -19,7 +19,7 @@ const (
 	HostPK
 	// HostID is numeric id of a node
 	HostID
-	// LocalUID is a locally unique id assigned to a node. It changes each time when node is unregistered locally
+	// LocalUID is a locally unique id assigned to a node. It changes each time when node is unregistered/disconnected.
 	LocalUID
 )
 

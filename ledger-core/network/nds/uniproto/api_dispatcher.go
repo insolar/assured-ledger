@@ -7,11 +7,16 @@ package uniproto
 
 import "math"
 
+// Dispatcher provides life-cycle management for a set of protocols.
+// Dispatcher can only be started (and stopped) once.
 type Dispatcher interface {
 	Controller
 
+	// GetMode returns information about allowed protocols and flags.
 	GetMode() ConnectionMode
+	// GetReceiver returns a Receiver for the given protocol. Will return nil when the protocol is not know / not supported.
 	GetReceiver(pt ProtocolType) Receiver
+	// Seal should return a list of protocol's descriptors known to this Dispatcher. No changes are allowed after this call.
 	Seal() Descriptors
 }
 

@@ -59,16 +59,14 @@ type UnifiedServer struct {
 	blacklist BlacklistManager
 	logger    MiniLogger
 
-	ptf      peerTransportFactory
-	peers    PeerManager
-	receiver PeerReceiver
-	udpSema  synckit.Semaphore
+	ptf        peerTransportFactory
+	peers      PeerManager
+	receiver   PeerReceiver
+	udpSema    synckit.Semaphore
 }
 
 func (p *UnifiedServer) SetConfig(config ServerConfig) {
 	p.config = config
-
-	p.ptf.preference = config.NetPreference
 
 	p.peers.central.retryLimit = config.RetryLimit
 	p.peers.central.retryDelayInc = config.RetryDelayInc
@@ -80,8 +78,8 @@ func (p *UnifiedServer) SetQuotaFactory(quotaFn PeerQuotaFactoryFunc) {
 	p.peers.SetQuotaFactory(quotaFn)
 }
 
-func (p *UnifiedServer) SetPeerFactory(fn OfflinePeerFactoryFunc) {
-	p.peers.SetPeerFactory(fn)
+func (p *UnifiedServer) SetPeerFactory(fn PeerMapperFunc) {
+	p.peers.SetPeerMapper(fn)
 }
 
 func (p *UnifiedServer) SetSignatureFactory(f PeerCryptographyFactory) {
@@ -157,13 +155,13 @@ func (p *UnifiedServer) StartNoListen() {
 	case udpSize > math.MaxUint16:
 		udpSize = math.MaxUint16
 	}
-	p.ptf.SetSessionless(l1.NewUDP(binding, uint16(udpSize)), p.receiveSessionless)
+	p.ptf.SetSessionless(l1.NewUDP(binding, p.config.NetPreference, uint16(udpSize)), p.receiveSessionless)
 
 	var tcp l1.SessionfulTransportProvider
 	if p.config.TLSConfig == nil {
-		tcp = l1.NewTCP(binding)
+		tcp = l1.NewTCP(binding, p.config.NetPreference)
 	} else {
-		tcp = l1.NewTLS(binding, p.config.TLSConfig)
+		tcp = l1.NewTLS(binding, p.config.NetPreference, p.config.TLSConfig)
 	}
 	p.ptf.SetSessionful(tcp, p.connectSessionful, p.connectSessionfulListen)
 

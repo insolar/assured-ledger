@@ -18,23 +18,27 @@ import (
 
 const (
 	PacketByteSizeMin                       = HeaderByteSizeMin + pulse.NumberSize
-	LargePacketBaselineWithoutSignatureSize = HeaderByteSizeMax + pulse.NumberSize //+ PacketSignatureSize
+	LargePacketBaselineWithoutSignatureSize = HeaderByteSizeMax + pulse.NumberSize // + PacketSignatureSize
 )
 
+// Packet represents a logical packet of a protocol
 type Packet struct {
 	Header      Header
 	PulseNumber pulse.Number `insolar-transport:"[30-31]=0"`
 
+	// The fields below are optional, their presence depends on packet type and size.
 	/*
 
-		SourceKey []byte // self-identified packets, not implemented, presence depends on protocol
+	SourcePK []byte // self-identified packets, not implemented, presence depends on protocol
 
-		// HeaderSignature provides earlier verification for large packets to prevent
-		// an unauthorized sender from sending large data packets
-		HeaderSignature []byte   `insolar-transport:"optional=IsExcessiveLength"`
-		EncryptableBody struct{} `insolar-transport:"send=placeholder"`
-		EncryptionData  []byte   `insolar-transport:"optional=IsBodyEncrypted"`
-		PacketSignature []byte   `insolar-transport:"generate=signature"` // can be zero length, depends on protocol
+	// HeaderSignature provides earlier verification for large packets to prevent
+	// an unauthorized sender from sending large data packets
+	HeaderSignature []byte   `insolar-transport:"optional=IsExcessiveLength"`
+
+	EncryptableBody struct{} `insolar-transport:"send=placeholder"`
+	EncryptionData  []byte   `insolar-transport:"optional=IsBodyEncrypted"`
+
+	PacketSignature []byte   `insolar-transport:"generate=signature"` // can be zero length, depends on protocol
 
 	*/
 }

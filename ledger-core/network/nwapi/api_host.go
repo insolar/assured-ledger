@@ -12,7 +12,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-// HostID is a protocol-independent locally unique id of a peer. This id wll change after de-registration of a peer.
+// LocalUniqueID is a protocol-independent locally unique id of a peer. This id wll change after de-registration of a peer.
 type LocalUniqueID uint64
 
 func (v LocalUniqueID) IsAbsent() bool { return v == 0 }
@@ -48,7 +48,7 @@ const (
 	LocalUIDByteSize = 8
 )
 
-// ShortNodeID is the shortened ID of a peer that belongs to a member of a globula
+// ShortNodeID is the shortened ID of a peer that belongs to a member of a globula.
 type ShortNodeID uint32
 
 const (

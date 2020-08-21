@@ -12,6 +12,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
+// Parser is a helper structure to receive and check packet
 type Parser struct {
 	Protocols   Descriptors
 	SigSizeHint int // a pre-allocation hint, MUST be >= actual size from cryptkit.DataSignatureVerifier

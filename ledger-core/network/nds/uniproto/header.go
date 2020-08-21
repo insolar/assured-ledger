@@ -21,6 +21,8 @@ const (
 /*
 	ByteSize=16-20
 */
+// Header represents a header of uniproto packet.
+// It is non-encrypted part of a packet with minimal set of identities, flags and packet size.
 type Header struct {
 	// Functions of TargetID, SourceID and ReceiverID depends on ProtocolType
 
@@ -29,9 +31,11 @@ type Header struct {
 	ProtocolAndPacketType  uint8  `insolar-transport:"[0:3]=header:Packet;[4:7]=header:Protocol"` // [00-03]PacketType [04-07]ProtocolType
 	PacketFlags            uint8  `insolar-transport:"[0]=IsRelayRestricted;[1]=IsBodyEncrypted;[2:]=flags:PacketFlags"`
 	HeaderAndPayloadLength uint16 `insolar-transport:"[14]=reserved;[15]=IsExcessiveLength"`
-	SourceID               uint32 // may differ from actual sender when relay is in use, MUST NOT =0
+	SourceID               uint32 // may differ from actual sender when relay is in use
 	TargetID               uint32 // indicates final destination, if IsRelayRestricted then there is no relay allowed by sender and receiver MUST decline a packet if actual sender != source
-	// end of HeaderByteSizeMin
+
+	// <<<< here is end of HeaderByteSizeMin
+
 	ExcessiveLength uint32 `insolar-transport:"optional=IsExcessiveLength"`
 }
 
@@ -49,11 +53,11 @@ type Header struct {
 	N	_	K	Invalid when IsRelayRestricted == true
 */
 
+// ProtocolType defines a type of a protocol for a packet. Can be [0, 15].
 // ATTENTION! To provide compatibility with HTTP GET, PUT and POST following restrictions apply
 // 1) "POST /", "HEAD /" - Protocol=2, Packet=0 must have PacketFlags[5:] = 0
 // 2) "GET /", "PUT /" Protocol=2, Packet=0x0F is forbidden
 // 3) "OPTION" - Protocol=4, Packet=0xF must have PacketFlags[6:] = 0
-
 type ProtocolType uint8
 
 const (
@@ -271,6 +275,7 @@ func (h *Header) DeserializeFromBytes(b []byte) (uint, error) {
 	}
 }
 
+// ErrPossibleHTTPRequest is returned when a protected HTTP header is detected
 var ErrPossibleHTTPRequest = errors.New("possible HTTP request")
 var DefaultByteOrder = binary.BigEndian
 

@@ -21,119 +21,134 @@ import (
 // const MinUdpSize = 1300
 const MaxUDPSize = 2048
 
-func NewUDP(binding nwapi.Address, maxByteSize uint16) SessionlessTransportProvider {
+func NewUDP(binding nwapi.Address, preference nwapi.Preference, maxByteSize uint16) SessionlessTransportProvider {
 	if maxByteSize == 0 {
 		panic(throw.IllegalValue())
 	}
-	return &UDPTransport{addr: binding.AsUDPAddr(), maxByteSize: maxByteSize}
+	return UDPProvider{addr: binding.AsUDPAddr(), preference: preference, maxByteSize: maxByteSize}
 }
 
-func NewUDPTransport(binding nwapi.Address, maxByteSize uint16) UDPTransport {
-	if maxByteSize == 0 {
+type UDPProvider struct {
+	addr        net.UDPAddr
+	preference  nwapi.Preference
+	maxByteSize uint16
+}
+
+func (v UDPProvider) IsZero() bool {
+	return v.addr.IP == nil
+}
+
+func (v UDPProvider) MaxByteSize() uint16 {
+	return v.maxByteSize
+}
+
+func (v UDPProvider) CreateListeningFactoryWithAddress(receiveFn SessionlessReceiveFunc, binding nwapi.Address) (OutTransportFactory, error) {
+	switch {
+	case binding.IsZero():
+		panic(throw.IllegalValue())
+	case !binding.HasPort():
 		panic(throw.IllegalValue())
 	}
-	return UDPTransport{addr: binding.AsUDPAddr(), maxByteSize: maxByteSize}
+
+	// this instance is by-value, so it is safe to change it here
+	v.addr = binding.AsUDPAddr()
+	out, _, err := v.CreateListeningFactory(receiveFn)
+	return out, err
 }
+
+// SessionlessReceiveFunc MUST NOT reuse (b) after return
+func (v UDPProvider) CreateListeningFactory(receiveFn SessionlessReceiveFunc) (OutTransportFactory, nwapi.Address, error) {
+	switch {
+	case receiveFn == nil:
+		panic(throw.IllegalValue())
+	case v.IsZero():
+		panic(throw.IllegalState())
+	}
+
+	t := &UDPTransport{v.addr, nil, v.preference, v.maxByteSize}
+
+	var err error
+	t.conn, err = net.ListenUDP("udp", &t.addr)
+	if err != nil {
+		return nil, nwapi.Address{}, err
+	}
+	listenAddr := nwapi.FromUDPAddr(t.conn.LocalAddr().(*net.UDPAddr))
+
+	go runUDPListener(t, receiveFn)
+	return t, listenAddr, nil
+}
+
+func (v UDPProvider) CreateOutgoingOnlyFactory() (OutTransportFactory, error) {
+	if v.IsZero() {
+		panic(throw.IllegalState())
+	}
+
+	t := &UDPTransport{v.addr, nil, v.preference, v.maxByteSize}
+
+	var err error
+	t.conn, err = net.DialUDP("udp", &t.addr, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return t, nil
+}
+
+func (v UDPProvider) Close() error {
+	return nil
+}
+
+/***********************/
 
 type UDPTransport struct {
-	addr        net.UDPAddr
+	addr        net.UDPAddr // this field is passed by UDPProvider as a pointer into Dial
 	conn        *net.UDPConn
+	preference  nwapi.Preference
 	maxByteSize uint16
 }
 
 func (p *UDPTransport) IsZero() bool {
-	return p.conn == nil && p.addr.IP == nil
-}
-
-// SessionlessReceiveFunc MUST NOT reuse (b) after return
-func (p *UDPTransport) CreateListeningFactoryWithAddress(receiveFn SessionlessReceiveFunc, binding nwapi.Address) (OutTransportFactory, error) {
-	if binding.IsZero() {
-		return p.CreateListeningFactory(receiveFn)
-	}
-	cp := &UDPTransport{binding.AsUDPAddr(), nil, p.maxByteSize}
-	return cp.CreateListeningFactory(receiveFn)
-}
-
-// SessionlessReceiveFunc MUST NOT reuse (b) after return
-func (p *UDPTransport) CreateListeningFactory(receiveFn SessionlessReceiveFunc) (OutTransportFactory, error) {
-	switch {
-	case receiveFn == nil:
-		panic(throw.IllegalValue())
-	case p.conn != nil:
-		return nil, throw.IllegalState()
-	case p.addr.IP == nil:
-		return nil, throw.IllegalState()
-	}
-	var err error
-	p.conn, err = net.ListenUDP("udp", &p.addr)
-	if err != nil {
-		return nil, err
-	}
-	go p.run(receiveFn)
-	return p, nil
-}
-
-func (p *UDPTransport) CreateOutgoingOnlyFactory() (OutTransportFactory, error) {
-	switch {
-	case p.conn != nil:
-		return p, nil
-	case p.addr.IP == nil:
-		return nil, throw.IllegalState()
-	}
-	cp := &UDPTransport{p.addr, nil, p.maxByteSize}
-	var err error
-	cp.conn, err = net.DialUDP("udp", &cp.addr, nil)
-	if err != nil {
-		return nil, err
-	}
-	return cp, nil
+	return p.addr.IP == nil
 }
 
 func (p *UDPTransport) MaxByteSize() uint16 {
 	return p.maxByteSize
 }
 
-func (p *UDPTransport) LocalAddr() nwapi.Address {
-	if p.conn != nil {
-		return nwapi.AsAddress(p.conn.LocalAddr())
-	}
-	return nwapi.AsAddress(&p.addr)
-}
-
-func (p *UDPTransport) ConnectTo(to nwapi.Address, preference nwapi.Preference) (OutTransport, error) {
-	if p.conn == nil {
+func (p *UDPTransport) ConnectTo(to nwapi.Address) (OutTransport, error) {
+	if p.IsZero() {
 		return nil, throw.IllegalState()
 	}
 
-	resolved, err := to.Resolve(context.Background(), net.DefaultResolver, preference)
+	if !to.IsNetCompatible() {
+		return nil, nil
+	}
+
+	resolved, err := to.Resolve(context.Background(), net.DefaultResolver, p.preference)
 	if err != nil {
 		return nil, err
 	}
-	return &udpOutTransport{resolved.AsUDPAddr(), nil, p, 0}, nil
+	return &udpOutTransport{resolved.AsUDPAddr(), nil, p.conn, p.maxByteSize, 0 }, nil
 }
 
 func (p *UDPTransport) Close() error {
-	if p.conn == nil {
-		return throw.IllegalState()
+	if p.conn != nil {
+		return p.conn.Close()
 	}
-	return p.conn.Close()
+	return nil
 }
 
-func (p *UDPTransport) run(receiveFn SessionlessReceiveFunc) {
-	if p.conn == nil {
-		panic(throw.IllegalState())
-	}
-
+func runUDPListener(t *UDPTransport, receiveFn SessionlessReceiveFunc) {
 	defer func() {
-		_ = p.conn.Close()
+		_ = t.conn.Close()
 		_ = recover()
 	}()
 
-	to := nwapi.FromUDPAddr(p.conn.LocalAddr().(*net.UDPAddr))
-	buf := make([]byte, p.maxByteSize)
+	to := nwapi.FromUDPAddr(t.conn.LocalAddr().(*net.UDPAddr))
+	buf := make([]byte, t.maxByteSize)
 
 	for {
-		n, addr, err := p.conn.ReadFromUDP(buf)
+		n, addr, err := t.conn.ReadFromUDP(buf)
 
 		if !receiveFn(to, nwapi.FromUDPAddr(addr), buf[:n], err) {
 			break
@@ -149,7 +164,8 @@ var _ OutTransport = &udpOutTransport{}
 type udpOutTransport struct {
 	addr  net.UDPAddr
 	quota ratelimiter.RateQuota
-	conn  *UDPTransport
+	conn  *net.UDPConn
+	maxByteSize uint16
 	tag   int
 }
 
@@ -161,7 +177,7 @@ func (p *udpOutTransport) Write(b []byte) (int, error) {
 		return 0, throw.IllegalState()
 	case len(b) == 0:
 		return 0, nil
-	case len(b) > int(p.conn.maxByteSize):
+	case len(b) > int(p.maxByteSize):
 		return 0, errTooLarge
 	}
 
@@ -170,7 +186,7 @@ func (p *udpOutTransport) Write(b []byte) (int, error) {
 		return 0, err
 	}
 
-	return p.conn.conn.WriteToUDP(b, &p.addr)
+	return p.conn.WriteToUDP(b, &p.addr)
 }
 
 func (p *udpOutTransport) SendBytes(payload []byte) error {
@@ -183,8 +199,8 @@ func (p *udpOutTransport) ReadFrom(r io.Reader) (int64, error) {
 	switch {
 	case n == 0:
 		return 0, nil
-	case n > int64(p.conn.maxByteSize):
-		n = int64(p.conn.maxByteSize) + 1 // to allow too large error
+	case n > int64(p.maxByteSize):
+		n = int64(p.maxByteSize) + 1 // to allow too large error
 	}
 
 	b := make([]byte, n)
@@ -201,9 +217,6 @@ func (p *udpOutTransport) Send(payload io.WriterTo) error {
 }
 
 func (p *udpOutTransport) Close() error {
-	if p.conn == nil {
-		return throw.IllegalState()
-	}
 	p.conn = nil
 	return nil
 }

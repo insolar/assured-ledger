@@ -24,5 +24,5 @@ type Receiver interface {
 type Supporter interface {
 	VerifyHeader(*Header, pulse.Number, cryptkit.DataSignatureVerifier) (cryptkit.DataSignatureVerifier, error)
 	FromPacketToHostID(id uint32) nwapi.HostID
-	FromLocalToPacket(nwapi.HostID) uint32
+	FromLocalToPacket(nwapi.ShortNodeID) uint32
 }

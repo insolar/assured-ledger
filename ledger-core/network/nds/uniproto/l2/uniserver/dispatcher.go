@@ -17,6 +17,9 @@ import (
 
 var _ uniproto.Dispatcher = &Dispatcher{}
 
+// Dispatcher provides registration and management of protocols.
+// Set of protocols can't be changed after Seal.
+// But individual protocols can be enabled or disabled at any time with GetMode / SetMode functions.
 type Dispatcher struct {
 	mutex     sync.Mutex
 	manager   uniproto.PeerManager
@@ -64,6 +67,7 @@ const (
 	stopped
 )
 
+// IsSealed returns true when set of protocols was sealed and can't be changed.
 func (p *Dispatcher) IsSealed() bool {
 	return p.state.Load() > 0
 }
@@ -162,6 +166,8 @@ func (p *Dispatcher) GetMode() uniproto.ConnectionMode {
 	return uniproto.ConnectionMode(p.mode.Load())
 }
 
+// SetMode changes a set of available protocols.
+// When Dispatcher was started, changing a set of allowed protocols will result in starting/stopping of relevant protocols.
 func (p *Dispatcher) SetMode(mode uniproto.ConnectionMode) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()

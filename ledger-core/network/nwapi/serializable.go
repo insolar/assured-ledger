@@ -13,13 +13,13 @@ import (
 
 type SerializationContext interface {
 	SerializationContext()
-	//GetPayloadSigner() cryptkit.DataSigner
-	//GetPayloadEncrypter() cryptkit.Encrypter
+	// GetPayloadSigner() cryptkit.DataSigner
+	// GetPayloadEncrypter() cryptkit.Encrypter
 }
 
 type DeserializationContext interface {
-	//GetPayloadVerifier() cryptkit.DataSignatureVerifier
-	//GetPayloadDecrypter() cryptkit.Decrypter
+	// GetPayloadVerifier() cryptkit.DataSignatureVerifier
+	// GetPayloadDecrypter() cryptkit.Decrypter
 	GetPayloadFactory() DeserializationFactory
 }
 
