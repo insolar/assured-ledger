@@ -77,6 +77,7 @@ type PulsarConfiguration struct {
 	Tracer   Tracer
 	KeysPath string
 	Metrics  Metrics
+	OneShot  bool
 }
 
 // Holder provides methods to manage configuration
@@ -114,6 +115,7 @@ func NewPulsarConfiguration() PulsarConfiguration {
 		Tracer:   NewTracer(),
 		KeysPath: "./",
 		Metrics:  NewMetrics(),
+		OneShot:  false,
 	}
 }
 
