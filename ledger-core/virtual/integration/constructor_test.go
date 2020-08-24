@@ -830,6 +830,7 @@ func TestVirtual_CallConstructor_WithTwicePulseChange(t *testing.T) {
 	pl := utils.GenerateVCallRequestConstructor(server)
 	pl.Callee = classA
 	pl.CallOutgoing = outgoing
+	execDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 	server.SendPayload(ctx, pl)
 
 	// wait for results
@@ -850,7 +851,7 @@ func TestVirtual_CallConstructor_WithTwicePulseChange(t *testing.T) {
 
 		synchronizeExecution.Done()
 		// wait for SMExecutcute finish
-		commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitStopOf(&execute.SMExecute{}, 1))
+		commontestutils.WaitSignalsTimed(t, 10*time.Second, execDone)
 		commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 	}
 
