@@ -1053,8 +1053,9 @@ func TestVirtual_FutureMessageAddedToSlot(t *testing.T) {
 	jetCoordinatorMock.MeMock.Return(server.GlobalCaller())
 
 	// switch pulse and start processing request from future slot
+	execDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 	server.IncrementPulseAndWaitIdle(ctx)
-	commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitStopOf(&execute.SMExecute{}, 1))
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, execDone)
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 	mc.Finish()
