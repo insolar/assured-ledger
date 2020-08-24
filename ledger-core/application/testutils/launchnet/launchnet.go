@@ -330,7 +330,7 @@ func startCustomNet(withPulsar bool, numVirtual, numLight, numHeavy int) (*exec.
 		pulsarOneShot = "TRUE"
 	}
 
-	cmd.Env = append(cmd.Env, fmt.Sprintf("PULSARD_ONESHOT=%d", pulsarOneShot))
+	cmd.Env = append(cmd.Env, fmt.Sprintf("PULSARD_ONESHOT=%s", pulsarOneShot))
 
 	err = waitForLaunch(cmd)
 	if err != nil {
