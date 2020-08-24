@@ -18,9 +18,7 @@ func BenchmarkMultiPulse(b *testing.B) {
 
 	for numNodes := 2; numNodes <= 5; numNodes++ {
 		b.Run(fmt.Sprintf("Nodes %d", numNodes), func(b *testing.B) {
-
-			res := launchnet.CustomRunWithPulsar(numNodes, 0, 0, runBenchOnNetwork(numNodes))
-
+			res := launchnet.CustomRunWithPulsar(numNodes, 0, 0, runBenchOnNetwork(b, numNodes))
 			if res != 0 {
 				b.Error("network run failed")
 				b.Fatal("failed test run")
