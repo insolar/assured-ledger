@@ -439,8 +439,9 @@ func TestVirtual_CallDeactivate_Intolerable(t *testing.T) {
 				pl.Callee = objectGlobal
 				pl.CallSiteMethod = "Destroy"
 
+				execDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 				server.SendPayload(ctx, pl)
-				commonTestUtils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitStopOf(&execute.SMExecute{}, 1))
+				commonTestUtils.WaitSignalsTimed(t, 10*time.Second, execDone)
 			}
 
 			commonTestUtils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
