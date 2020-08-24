@@ -47,9 +47,9 @@ func TestVirtual_Constructor_BadClassRef(t *testing.T) {
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
 
-	utils.AssertNotJumpToStep(t, server.Journal, "stepTakeLock")
-
 	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
+
+	utils.AssertNotJumpToStep(t, server.Journal, "stepTakeLock")
 
 	expectedError, err := foundation.MarshalMethodErrorResult(errors.New("bad class reference"))
 	require.NoError(t, err)
