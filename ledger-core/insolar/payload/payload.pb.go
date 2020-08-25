@@ -119,7 +119,7 @@ var fileDescriptor_33334fec96407f54 = []byte{
 	0x40, 0x00, 0x00, 0x00, 0xff, 0xff, 0xe4, 0x86, 0x31, 0x92, 0x8b, 0x02, 0x00, 0x00,
 }
 
-const TypeMetaPolymorthID = 1000
+const TypeMetaPolymorphID = 1000
 
 func (*Meta) GetDefaultPolymorphID() uint64 {
 	return 1000
