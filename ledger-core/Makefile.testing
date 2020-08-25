@@ -106,3 +106,7 @@ publish_integration_tests: ## send results to testrail
 .PHONY: publish_functest
 publish_functest: ## send results to testrail
 	${GOPATH}/bin/testrail-cli --url https://insolar.testrail.io/ --user $(TR_USER) --password $(TR_PASSWORD) --run-id 105 --file functional_extended_test.log
+
+.PHONY: benchmarks
+benchmarks: ## run all the benchmarks
+	$(GOTEST) -bench=. ./...
