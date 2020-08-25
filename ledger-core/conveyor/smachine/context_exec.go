@@ -8,6 +8,8 @@ package smachine
 import (
 	"math"
 	"time"
+
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 var _ ExecutionContext = &executionContext{}
@@ -75,7 +77,7 @@ func (p *executionContext) newConditionalUpdate(updType stateUpdKind) conditiona
 func (p *executionContext) waitFor(link SlotLink, updMode stateUpdKind) StateConditionalBuilder {
 	p.ensure(updCtxExec)
 	if link.IsZero() {
-		panic("illegal value")
+		panic(throw.IllegalValue())
 		//		return &conditionalUpdate{marker: p.getMarker()}
 	}
 
@@ -187,7 +189,7 @@ func (c *conditionalUpdate) then(slotStep SlotStep) StateUpdate {
 		return c.template.newStepUntil(slotStep, c.kickOff, c.until)
 	}
 	if c.until != 0 {
-		panic("illegal value")
+		panic(throw.IllegalValue())
 	}
 	return c.template.newStepLink(slotStep, c.dependency)
 }
