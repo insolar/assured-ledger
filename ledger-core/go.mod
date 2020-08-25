@@ -13,7 +13,7 @@ require (
 	github.com/gojuno/minimock/v3 v3.0.6
 	github.com/golang/protobuf v1.4.0
 	github.com/google/gofuzz v1.0.0
-	github.com/google/gops v0.3.6
+	github.com/google/gops v0.3.11
 	github.com/grpc-ecosystem/grpc-gateway v1.9.6
 	github.com/insolar/component-manager v0.2.1-0.20191028200619-751a91771d2f
 	github.com/insolar/consensus-reports v0.0.0-20200515131339-fea7a784f1d6
@@ -24,7 +24,6 @@ require (
 	github.com/insolar/x-crypto v0.0.0-20191031140942-75fab8a325f6
 	github.com/jbenet/go-base58 v0.0.0-20150317085156-6237cf65f3a6
 	github.com/json-iterator/go v1.1.9
-	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/mitchellh/mapstructure v1.3.3 // indirect
 	github.com/neilotoole/errgroup v0.1.5
@@ -49,7 +48,7 @@ require (
 	go.uber.org/goleak v1.0.0
 	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
 	golang.org/x/net v0.0.0-20200226121028-0de0cce0169b
-	golang.org/x/sys v0.0.0-20200728102440-3e129f6d46b1
+	golang.org/x/sys v0.0.0-20200824131525-c12d262b63d8
 	golang.org/x/text v0.3.3 // indirect
 	golang.org/x/tools v0.0.0-20200312153518-5e2df02acb1e
 	google.golang.org/genproto v0.0.0-20191108220845-16a3f7862a1a

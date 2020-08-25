@@ -325,12 +325,12 @@ func startCustomNet(withPulsar bool, numVirtual, numLight, numHeavy int) (*exec.
 	cmd.Env = append(cmd.Env, fmt.Sprintf("NUM_DISCOVERY_VIRTUAL_NODES=%d", numVirtual))
 	cmd.Env = append(cmd.Env, fmt.Sprintf("NUM_DISCOVERY_LIGHT_NODES=%d", numLight))
 	cmd.Env = append(cmd.Env, fmt.Sprintf("NUM_DISCOVERY_HEAVY_NODES=%d", numHeavy))
-	pulsarOneShot := 0
+	pulsarOneShot := "FALSE"
 	if withPulsar {
-		pulsarOneShot = 1
+		pulsarOneShot = "TRUE"
 	}
 
-	cmd.Env = append(cmd.Env, fmt.Sprintf("PULSAR_ONESHOT=%d", pulsarOneShot))
+	cmd.Env = append(cmd.Env, fmt.Sprintf("PULSARD_ONESHOT=%s", pulsarOneShot))
 
 	err = waitForLaunch(cmd)
 	if err != nil {
