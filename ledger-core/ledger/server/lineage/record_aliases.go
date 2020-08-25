@@ -9,32 +9,31 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 )
 
+const (
+	tRLifelineStart = RecordType(rms.TypeRLifelineStartPolymorphID)
+	tRSidelineStart = RecordType(rms.TypeRSidelineStartPolymorphID)
 
-const tRLifelineStart = RecordType(rms.TypeRLifelineStartPolymorthID)
-const tRSidelineStart = RecordType(rms.TypeRSidelineStartPolymorthID)
+	tRLineInboundRequest = RecordType(rms.TypeRLineInboundRequestPolymorphID)
+	tRInboundRequest     = RecordType(rms.TypeRInboundRequestPolymorphID)
+	tRInboundResponse    = RecordType(rms.TypeRInboundResponsePolymorphID)
 
-const tRLineInboundRequest = RecordType(rms.TypeRLineInboundRequestPolymorthID)
+	tROutboundRequest     = RecordType(rms.TypeROutboundRequestPolymorphID)
+	tROutRetryableRequest = RecordType(rms.TypeROutboundRetryableRequestPolymorphID)
+	tROutRetryRequest     = RecordType(rms.TypeROutboundRetryRequestPolymorphID)
+	tROutboundResponse    = RecordType(rms.TypeROutboundResponsePolymorphID)
 
-const tRInboundRequest = RecordType(rms.TypeRInboundRequestPolymorthID)
+	tRLineActivate   = RecordType(rms.TypeRLineActivatePolymorphID)
+	tRLineDeactivate = RecordType(rms.TypeRLineDeactivatePolymorphID)
 
-const tROutboundRequest = RecordType(rms.TypeROutboundRequestPolymorthID)
-const tROutRetryableRequest = RecordType(rms.TypeROutboundRetryableRequestPolymorthID)
-const tROutRetryRequest = RecordType(rms.TypeROutboundRetryRequestPolymorthID)
-const tROutboundResponse = RecordType(rms.TypeROutboundResponsePolymorthID)
-const tRInboundResponse = RecordType(rms.TypeRInboundResponsePolymorthID)
+	tRLineMemory         = RecordType(rms.TypeRLineMemoryPolymorphID)
+	tRLineMemoryInit     = RecordType(rms.TypeRLineMemoryInitPolymorphID)
+	tRLineMemoryReuse    = RecordType(rms.TypeRLineMemoryReusePolymorphID)
+	tRLineMemoryExpected = RecordType(rms.TypeRLineMemoryExpectedPolymorphID)
+	tRLineMemoryProvided = RecordType(rms.TypeRLineMemoryProvidedPolymorphID)
 
-const tRLineActivate = RecordType(rms.TypeRLineActivatePolymorthID)
-const tRLineDeactivate = RecordType(rms.TypeRLineDeactivatePolymorthID)
+	tRLineRecap = RecordType(rms.TypeRLineRecapPolymorphID)
+)
 
-const tRLineMemoryInit = RecordType(rms.TypeRLineMemoryInitPolymorthID)
-const tRLineMemory = RecordType(rms.TypeRLineMemoryPolymorthID)
-const tRLineMemoryReuse = RecordType(rms.TypeRLineMemoryReusePolymorthID)
-const tRLineMemoryExpected = RecordType(rms.TypeRLineMemoryExpectedPolymorthID)
-const tRLineMemoryProvided = RecordType(rms.TypeRLineMemoryProvidedPolymorthID)
-
-
-const tRLineRecap = RecordType(rms.TypeRLineRecapPolymorthID)
-
-func appendCopy(v []RecordType, u... RecordType) []RecordType {
+func appendCopy(v []RecordType, u ...RecordType) []RecordType {
 	return append(append([]RecordType(nil), v...), u...)
 }

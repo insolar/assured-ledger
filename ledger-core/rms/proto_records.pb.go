@@ -1411,7 +1411,7 @@ func (m *RecordExample) Visit(ctx RecordVisitor) error {
 	return ctx.Record(m, 999999999)
 }
 
-const TypeRecordExamplePolymorthID = 999999999
+const TypeRecordExamplePolymorphID = 999999999
 
 func (*RecordExample) GetDefaultPolymorphID() uint64 {
 	return 999999999
@@ -1513,7 +1513,7 @@ func (m *RLineRecap) Visit(ctx RecordVisitor) error {
 	return ctx.Record(m, 19)
 }
 
-const TypeRLineRecapPolymorthID = 19
+const TypeRLineRecapPolymorphID = 19
 
 func (*RLineRecap) GetDefaultPolymorphID() uint64 {
 	return 19
@@ -1768,7 +1768,7 @@ func (m *RLineActivate) Visit(ctx RecordVisitor) error {
 	return ctx.Record(m, 20)
 }
 
-const TypeRLineActivatePolymorthID = 20
+const TypeRLineActivatePolymorphID = 20
 
 func (*RLineActivate) GetDefaultPolymorphID() uint64 {
 	return 20
@@ -1857,7 +1857,7 @@ func (m *RLineDeactivate) Visit(ctx RecordVisitor) error {
 	return ctx.Record(m, 21)
 }
 
-const TypeRLineDeactivatePolymorthID = 21
+const TypeRLineDeactivatePolymorphID = 21
 
 func (*RLineDeactivate) GetDefaultPolymorphID() uint64 {
 	return 21
@@ -1918,7 +1918,7 @@ func (m *RLineMemory) Visit(ctx RecordVisitor) error {
 	return ctx.Record(m, 22)
 }
 
-const TypeRLineMemoryPolymorthID = 22
+const TypeRLineMemoryPolymorphID = 22
 
 func (*RLineMemory) GetDefaultPolymorphID() uint64 {
 	return 22
@@ -2013,7 +2013,7 @@ func (m *RLineMemoryExpected) Visit(ctx RecordVisitor) error {
 	return ctx.Record(m, 25)
 }
 
-const TypeRLineMemoryExpectedPolymorthID = 25
+const TypeRLineMemoryExpectedPolymorphID = 25
 
 func (*RLineMemoryExpected) GetDefaultPolymorphID() uint64 {
 	return 25
@@ -2074,7 +2074,7 @@ func (m *RLineMemoryReuse) Visit(ctx RecordVisitor) error {
 	return ctx.Record(m, 26)
 }
 
-const TypeRLineMemoryReusePolymorthID = 26
+const TypeRLineMemoryReusePolymorphID = 26
 
 func (*RLineMemoryReuse) GetDefaultPolymorphID() uint64 {
 	return 26
@@ -2135,7 +2135,7 @@ func (m *RLineInboundRequest) Visit(ctx RecordVisitor) error {
 	return ctx.Record(m, 27)
 }
 
-const TypeRLineInboundRequestPolymorthID = 27
+const TypeRLineInboundRequestPolymorphID = 27
 
 func (*RLineInboundRequest) GetDefaultPolymorphID() uint64 {
 	return 27
@@ -2196,7 +2196,7 @@ func (m *RInboundRequest) Visit(ctx RecordVisitor) error {
 	return ctx.Record(m, 28)
 }
 
-const TypeRInboundRequestPolymorthID = 28
+const TypeRInboundRequestPolymorphID = 28
 
 func (*RInboundRequest) GetDefaultPolymorphID() uint64 {
 	return 28
@@ -2257,7 +2257,7 @@ func (m *RInboundResponse) Visit(ctx RecordVisitor) error {
 	return ctx.Record(m, 29)
 }
 
-const TypeRInboundResponsePolymorthID = 29
+const TypeRInboundResponsePolymorphID = 29
 
 func (*RInboundResponse) GetDefaultPolymorphID() uint64 {
 	return 29
@@ -2318,7 +2318,7 @@ func (m *ROutboundResponse) Visit(ctx RecordVisitor) error {
 	return ctx.Record(m, 30)
 }
 
-const TypeROutboundResponsePolymorthID = 30
+const TypeROutboundResponsePolymorphID = 30
 
 func (*ROutboundResponse) GetDefaultPolymorphID() uint64 {
 	return 30
@@ -2379,7 +2379,7 @@ func (m *ROutboundRequest) Visit(ctx RecordVisitor) error {
 	return ctx.Record(m, 31)
 }
 
-const TypeROutboundRequestPolymorthID = 31
+const TypeROutboundRequestPolymorphID = 31
 
 func (*ROutboundRequest) GetDefaultPolymorphID() uint64 {
 	return 31
