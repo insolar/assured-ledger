@@ -108,7 +108,7 @@ func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
 		require.Equal(t, runnerResult, res.ReturnArguments)
 		require.Equal(t, objectRef, res.Callee)
 		require.Equal(t, outgoing, res.CallOutgoing)
-		require.Equal(t, payload.CTConstructor, res.CallType)
+		require.Equal(t, payload.CallTypeConstructor, res.CallType)
 		require.Equal(t, pl.CallFlags, res.CallFlags)
 
 		return false // no resend msg
@@ -119,7 +119,7 @@ func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
 			Class: class,
 		}
 		expected := &payload.VStateReport{
-			Status:           payload.Ready,
+			Status:           payload.StateStatusReady,
 			AsOf:             p,
 			Object:           objectRef,
 			LatestDirtyState: objectRef,
@@ -164,7 +164,7 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 	defer commontestutils.LeakTester(t)
 	insrail.LogCase(t, "C4996")
 
-	// VE has object's state record with Status==Missing
+	// VE has object's state record with Status==StateStatusMissing
 	// Constructor call should work on top of such entry
 	var (
 		mc = minimock.NewController(t)
@@ -222,7 +222,7 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 			Class: class,
 		}
 		expected := &payload.VStateReport{
-			Status:           payload.Ready,
+			Status:           payload.StateStatusReady,
 			AsOf:             currPulse,
 			Object:           objectRef,
 			LatestDirtyState: objectRef,
@@ -240,7 +240,7 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 
 	{
 		done := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
-		pl := makeVStateReportWithState(objectRef, payload.Missing, nil, prevPulse)
+		pl := makeVStateReportWithState(objectRef, payload.StateStatusMissing, nil, prevPulse)
 		server.SendPayload(ctx, pl)
 		commontestutils.WaitSignalsTimed(t, 10*time.Second, done)
 	}
@@ -262,7 +262,7 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 func TestVirtual_Constructor_PrevPulseStateWithMissingStatus(t *testing.T) {
 	defer commontestutils.LeakTester(t)
 	// Constructor call with outgoing.Pulse < currentPulse
-	// state request, state report{Status: Missing}
+	// state request, state report{Status: StateStatusMissing}
 	insrail.LogCase(t, "C4997")
 
 	var (
@@ -301,7 +301,7 @@ func TestVirtual_Constructor_PrevPulseStateWithMissingStatus(t *testing.T) {
 		require.Equal(t, flags, req.RequestedContent)
 
 		report := payload.VStateReport{
-			Status: payload.Missing,
+			Status: payload.StateStatusMissing,
 			AsOf:   p1,
 			Object: objectRef,
 		}
@@ -323,7 +323,7 @@ func TestVirtual_Constructor_PrevPulseStateWithMissingStatus(t *testing.T) {
 			Class: class,
 		}
 		expected := &payload.VStateReport{
-			Status:           payload.Ready,
+			Status:           payload.StateStatusReady,
 			AsOf:             p2,
 			Object:           objectRef,
 			LatestDirtyState: objectRef,
@@ -459,14 +459,14 @@ func TestVirtual_CallConstructorFromConstructor(t *testing.T) {
 			assert.Equal(t, classB, request.Callee)
 			assert.Equal(t, objectA, request.Caller)
 			assert.Equal(t, []byte("123"), request.Arguments)
-			assert.Equal(t, payload.CTConstructor, request.CallType)
+			assert.Equal(t, payload.CallTypeConstructor, request.CallType)
 			assert.Equal(t, uint32(1), request.CallSequence)
 			assert.Equal(t, callFlags, request.CallFlags)
 			assert.Equal(t, server.GetPulse().PulseNumber, request.CallOutgoing.GetLocal().Pulse())
 			return true // resend
 		})
 		typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
-			assert.Equal(t, payload.CTConstructor, res.CallType)
+			assert.Equal(t, payload.CallTypeConstructor, res.CallType)
 			assert.Equal(t, callFlags, res.CallFlags)
 
 			switch res.Callee {
@@ -586,7 +586,7 @@ func TestVirtual_Constructor_PulseChangedWhileOutgoing(t *testing.T) {
 	{
 		typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
 			assert.Equal(t, objectRef, report.Object)
-			assert.Equal(t, payload.Empty, report.Status)
+			assert.Equal(t, payload.StateStatusEmpty, report.Status)
 			assert.Equal(t, int32(1), report.OrderedPendingCount)
 			assert.Equal(t, constructorPulse, report.OrderedPendingEarliestPulse)
 			assert.Equal(t, int32(0), report.UnorderedPendingCount)
@@ -611,7 +611,7 @@ func TestVirtual_Constructor_PulseChangedWhileOutgoing(t *testing.T) {
 			return false
 		})
 		typedChecker.VDelegatedRequestFinished.Set(func(finished *payload.VDelegatedRequestFinished) bool {
-			assert.Equal(t, payload.CTConstructor, finished.CallType)
+			assert.Equal(t, payload.CallTypeConstructor, finished.CallType)
 			assert.Equal(t, callFlags, finished.CallFlags)
 			assert.Equal(t, outgoing, finished.CallOutgoing)
 			assert.Equal(t, objectRef, finished.Callee)
@@ -624,7 +624,7 @@ func TestVirtual_Constructor_PulseChangedWhileOutgoing(t *testing.T) {
 			assert.Equal(t, []byte("123"), res.ReturnArguments)
 			assert.Equal(t, outgoing, res.CallOutgoing)
 			assert.Equal(t, objectRef, res.Callee)
-			assert.Equal(t, payload.CTConstructor, res.CallType)
+			assert.Equal(t, payload.CallTypeConstructor, res.CallType)
 			assert.Equal(t, callFlags, res.CallFlags)
 			assert.Equal(t, delegationToken, res.DelegationSpec)
 			return false
@@ -765,7 +765,7 @@ func TestVirtual_CallConstructor_WithTwicePulseChange(t *testing.T) {
 		typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
 			// check for pending counts must be in tests: call constructor/call terminal method
 			assert.Equal(t, objectRef, report.Object)
-			assert.Equal(t, payload.Empty, report.Status)
+			assert.Equal(t, payload.StateStatusEmpty, report.Status)
 			assert.Zero(t, report.DelegationSpec)
 			return false
 		})
@@ -812,7 +812,7 @@ func TestVirtual_CallConstructor_WithTwicePulseChange(t *testing.T) {
 		})
 		typedChecker.VDelegatedRequestFinished.Set(func(finished *payload.VDelegatedRequestFinished) bool {
 			assert.Equal(t, objectRef, finished.Callee)
-			assert.Equal(t, payload.CTConstructor, finished.CallType)
+			assert.Equal(t, payload.CallTypeConstructor, finished.CallType)
 			assert.NotNil(t, finished.LatestState)
 			assert.Equal(t, secondExpectedToken, finished.DelegationSpec)
 			assert.Equal(t, []byte("state A"), finished.LatestState.State)

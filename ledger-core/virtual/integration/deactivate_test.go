@@ -93,7 +93,7 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 				}
 
 				pl := &payload.VStateReport{
-					Status:          payload.Ready,
+					Status:          payload.StateStatusReady,
 					Object:          objectGlobal,
 					AsOf:            pulseNumberFirst,
 					ProvidedContent: content,
@@ -101,7 +101,7 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 
 				if test.entirelyDeactivated {
 					pl.ProvidedContent = nil
-					pl.Status = payload.Inactive
+					pl.Status = payload.StateStatusInactive
 				}
 
 				wait := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
@@ -152,7 +152,7 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 			{
 				typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
 					assert.Equal(t, objectGlobal, report.Object)
-					assert.Equal(t, payload.Inactive, report.Status)
+					assert.Equal(t, payload.StateStatusInactive, report.Status)
 					assert.True(t, report.DelegationSpec.IsZero())
 					assert.Nil(t, report.ProvidedContent)
 					assert.Empty(t, report.LatestValidatedState)
@@ -268,7 +268,7 @@ func TestVirtual_CallMethod_On_CompletelyDeactivatedObject(t *testing.T) {
 			}{
 				{
 					name:     "call method",
-					callType: payload.CTMethod,
+					callType: payload.CallTypeMethod,
 					errorMsg: "try to call method on deactivated object",
 				},
 			}
@@ -300,7 +300,7 @@ func TestVirtual_CallMethod_On_CompletelyDeactivatedObject(t *testing.T) {
 					)
 
 					server.IncrementPulseAndWaitIdle(ctx)
-					Method_PrepareObject(ctx, server, payload.Inactive, object, prevPulse)
+					Method_PrepareObject(ctx, server, payload.StateStatusInactive, object, prevPulse)
 
 					gotResult := make(chan struct{})
 
@@ -374,7 +374,7 @@ func TestVirtual_CallDeactivate_Intolerable(t *testing.T) {
 				server.IncrementPulse(ctx)
 
 				report := &payload.VStateReport{
-					Status: payload.Ready,
+					Status: payload.StateStatusReady,
 					Object: objectGlobal,
 					AsOf:   prevPulse,
 					ProvidedContent: &payload.VStateReport_ProvidedContentBody{
@@ -524,7 +524,7 @@ func TestVirtual_DeactivateObject_ChangePulse(t *testing.T) {
 		})
 		typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
 			require.Equal(t, objectRef, report.Object)
-			require.Equal(t, payload.Ready, report.Status)
+			require.Equal(t, payload.StateStatusReady, report.Status)
 			require.True(t, report.DelegationSpec.IsZero())
 			require.Equal(t, int32(0), report.UnorderedPendingCount)
 			require.Equal(t, int32(1), report.OrderedPendingCount)
@@ -559,7 +559,7 @@ func TestVirtual_DeactivateObject_ChangePulse(t *testing.T) {
 	}
 	{
 		report := payload.VStateReport{
-			Status: payload.Ready,
+			Status: payload.StateStatusReady,
 			AsOf:   p1,
 			Object: objectRef,
 			ProvidedContent: &payload.VStateReport_ProvidedContentBody{
@@ -632,7 +632,7 @@ func TestVirtual_CallMethod_After_Deactivation(t *testing.T) {
 	// Create object
 	{
 		server.IncrementPulseAndWaitIdle(ctx)
-		Method_PrepareObject(ctx, server, payload.Ready, objectRef, p1)
+		Method_PrepareObject(ctx, server, payload.StateStatusReady, objectRef, p1)
 	}
 
 	outgoingDeactivate := server.BuildRandomOutgoingWithPulse()
@@ -839,7 +839,7 @@ func TestVirtual_DeduplicateCallAfterDeactivation_PrevVE(t *testing.T) {
 				server.IncrementPulse(ctx)
 
 				report := &payload.VStateReport{
-					Status:          payload.Inactive,
+					Status:          payload.StateStatusInactive,
 					Object:          objectGlobal,
 					AsOf:            prevPulse,
 					ProvidedContent: nil,
@@ -861,9 +861,9 @@ func TestVirtual_DeduplicateCallAfterDeactivation_PrevVE(t *testing.T) {
 						LookedAt: request.LookAt,
 						Callee:   request.Callee,
 						Outgoing: request.Outgoing,
-						Status:   payload.FoundCall,
+						Status:   payload.CallStateFound,
 						CallResult: &payload.VCallResult{
-							CallType:        payload.CTMethod,
+							CallType:        payload.CallTypeMethod,
 							CallFlags:       payload.BuildCallFlags(testCase.flags.Interference, testCase.flags.State),
 							Callee:          request.Callee,
 							Caller:          server.GlobalCaller(),
@@ -985,7 +985,7 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 			})
 			typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
 				require.Equal(t, objectRef, report.Object)
-				require.Equal(t, payload.Inactive, report.Status)
+				require.Equal(t, payload.StateStatusInactive, report.Status)
 				require.True(t, report.DelegationSpec.IsZero())
 				require.Equal(t, int32(0), report.UnorderedPendingCount)
 				require.Equal(t, int32(0), report.OrderedPendingCount)
@@ -1002,7 +1002,7 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 
 			{ // create object with pending deactivation
 				report := payload.VStateReport{
-					Status:                      payload.Ready,
+					Status:                      payload.StateStatusReady,
 					AsOf:                        p1,
 					Object:                      objectRef,
 					OrderedPendingCount:         1,
@@ -1040,7 +1040,7 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 
 			{ // send delegation request finished with deactivate flag
 				pl := payload.VDelegatedRequestFinished{
-					CallType:     payload.CTMethod,
+					CallType:     payload.CallTypeMethod,
 					Callee:       objectRef,
 					CallOutgoing: outgoing,
 					CallIncoming: incoming,

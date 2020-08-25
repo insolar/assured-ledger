@@ -193,10 +193,10 @@ func validRequestGlobalWithPulseBeforeOrEq(outgoing reference.Global, before pul
 
 func validCallType(ct CallType) error {
 	switch ct {
-	case CTMethod, CTConstructor:
-	case CTInboundAPICall, CTOutboundAPICall, CTNotifyCall, CTSAGACall, CTParallelCall, CTScheduleCall:
+	case CallTypeMethod, CallTypeConstructor:
+	case CallTypeInboundAPI, CallTypeOutboundAPI, CallTypeNotify, CallTypeSAGA, CallTypeParallel, CallTypeSchedule:
 		return throw.New("CallType is not implemented")
-	case CTInvalid:
+	case CallTypeInvalid:
 		fallthrough
 	default:
 		return throw.New("CallType must be valid")

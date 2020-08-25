@@ -43,7 +43,7 @@ func TestVStateReport_CreateObjectWithoutState(t *testing.T) {
 
 	smVStateReport := SMVStateReport{
 		Payload: &payload.VStateReport{
-			Status:                payload.Empty,
+			Status:                payload.StateStatusEmpty,
 			Object:                smGlobalRef,
 			AsOf:                  pd.PulseNumber,
 			UnorderedPendingCount: 1,
@@ -116,7 +116,7 @@ func TestVStateReport_StopSMIfAsOfOutdated(t *testing.T) {
 
 			smVStateReport := SMVStateReport{
 				Payload: &payload.VStateReport{
-					Status: payload.Ready,
+					Status: payload.StateStatusReady,
 					Object: smGlobalRef,
 					AsOf:   testCase.asOf,
 					ProvidedContent: &payload.VStateReport_ProvidedContentBody{

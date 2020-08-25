@@ -60,7 +60,7 @@ func (m *VDelegatedRequestFinished) Validate(currentPulse pulse.Number) error {
 		return throw.New("Callee pulse should be less or equal than CallOutgoing pulse")
 	case m.isIntolerable() && m.LatestState != nil:
 		return throw.New("LatestState should be empty on Intolerable call")
-	case m.CallType == CTConstructor && m.LatestState == nil:
+	case m.CallType == CallTypeConstructor && m.LatestState == nil:
 		return throw.New("LatestState should be non-empty on Constructor call")
 	}
 

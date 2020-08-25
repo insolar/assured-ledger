@@ -59,7 +59,7 @@ func expectedInitState(ctx context.Context, sm SMExecute) SMExecute {
 	sm.execution.Request = sm.Payload
 	sm.execution.Pulse = sm.pulseSlot.PulseData()
 
-	if sm.Payload.CallType == payload.CTConstructor {
+	if sm.Payload.CallType == payload.CallTypeConstructor {
 		sm.isConstructor = true
 		sm.execution.Object = reference.NewSelf(sm.Payload.CallOutgoing.GetLocal())
 	} else {
@@ -97,7 +97,7 @@ func TestSMExecute_Init(t *testing.T) {
 
 	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 	request := &payload.VCallRequest{
-		CallType:       payload.CTConstructor,
+		CallType:       payload.CallTypeConstructor,
 		CallFlags:      callFlags,
 		CallSiteMethod: "New",
 		Caller:         caller,
@@ -149,7 +149,7 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 
 	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 	request := &payload.VCallRequest{
-		CallType:       payload.CTConstructor,
+		CallType:       payload.CallTypeConstructor,
 		CallFlags:      callFlags,
 		Caller:         caller,
 		Callee:         callee,
@@ -212,7 +212,7 @@ func TestSMExecute_DeduplicationUsingPendingsTableRequestNotExist(t *testing.T) 
 
 	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 	request := &payload.VCallRequest{
-		CallType:       payload.CTConstructor,
+		CallType:       payload.CallTypeConstructor,
 		CallFlags:      callFlags,
 		Callee:         callee,
 		CallSiteMethod: "New",
@@ -262,7 +262,7 @@ func TestSMExecute_DeduplicationUsingPendingsTableRequestExist(t *testing.T) {
 
 	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 	request := &payload.VCallRequest{
-		CallType:       payload.CTConstructor,
+		CallType:       payload.CallTypeConstructor,
 		CallFlags:      callFlags,
 		CallSiteMethod: "New",
 		Callee:         callee,
@@ -333,7 +333,7 @@ func TestSMExecute_DeduplicateThroughPreviousExecutor(t *testing.T) {
 
 	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 	request := &payload.VCallRequest{
-		CallType:       payload.CTMethod,
+		CallType:       payload.CallTypeMethod,
 		Callee:         objectRef,
 		CallFlags:      callFlags,
 		CallSiteMethod: "Method",
@@ -420,7 +420,7 @@ func TestSMExecute_ProcessFindCallResponse(t *testing.T) {
 
 	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 	request := &payload.VCallRequest{
-		CallType:       payload.CTMethod,
+		CallType:       payload.CallTypeMethod,
 		Callee:         objectRef,
 		CallFlags:      callFlags,
 		CallSiteMethod: "Method",
@@ -438,7 +438,7 @@ func TestSMExecute_ProcessFindCallResponse(t *testing.T) {
 	smExecute = expectedInitState(ctx, smExecute)
 
 	{
-		smExecute.findCallResponse = &payload.VFindCallResponse{Status: payload.MissingCall}
+		smExecute.findCallResponse = &payload.VFindCallResponse{Status: payload.CallStateMissing}
 		pendingList := smObject.PendingTable.GetList(contract.CallIntolerable)
 		pendingList.Add(smExecute.execution.Outgoing)
 
@@ -449,7 +449,7 @@ func TestSMExecute_ProcessFindCallResponse(t *testing.T) {
 	}
 
 	{
-		smExecute.findCallResponse = &payload.VFindCallResponse{Status: payload.UnknownCall}
+		smExecute.findCallResponse = &payload.VFindCallResponse{Status: payload.CallStateUnknown}
 		pendingList := smObject.PendingTable.GetList(contract.CallIntolerable)
 		pendingList.Add(smExecute.execution.Outgoing)
 
@@ -461,7 +461,7 @@ func TestSMExecute_ProcessFindCallResponse(t *testing.T) {
 
 	{
 		smExecute.findCallResponse = &payload.VFindCallResponse{
-			Status:     payload.FoundCall,
+			Status:     payload.CallStateFound,
 			CallResult: nil,
 		}
 
@@ -478,7 +478,7 @@ func TestSMExecute_ProcessFindCallResponse(t *testing.T) {
 	{
 		returnArguments := []byte{1, 2, 3}
 		smExecute.findCallResponse = &payload.VFindCallResponse{
-			Status: payload.FoundCall,
+			Status: payload.CallStateFound,
 			CallResult: &payload.VCallResult{
 				ReturnArguments: returnArguments,
 			},
@@ -535,7 +535,7 @@ func TestSMExecute_DeduplicationForOldRequest(t *testing.T) {
 
 	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 	request := &payload.VCallRequest{
-		CallType:       payload.CTMethod,
+		CallType:       payload.CallTypeMethod,
 		Caller:         caller,
 		Callee:         objectRef,
 		CallFlags:      callFlags,
@@ -617,7 +617,7 @@ func TestSMExecute_TokenInOutgoingMessage(t *testing.T) {
 
 			smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 			request := &payload.VCallRequest{
-				CallType:       payload.CTConstructor,
+				CallType:       payload.CallTypeConstructor,
 				CallFlags:      callFlags,
 				Caller:         caller,
 				Callee:         callee,
@@ -709,7 +709,7 @@ func TestSMExecute_VCallResultPassedToSMObject(t *testing.T) {
 
 	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 	request := &payload.VCallRequest{
-		CallType:       payload.CTConstructor,
+		CallType:       payload.CallTypeConstructor,
 		CallFlags:      callFlags,
 		CallSiteMethod: "New",
 		CallOutgoing:   smGlobalRef,
@@ -799,7 +799,7 @@ func TestSendVStateReportWithMissingState_IfConstructorWasInterruptedBeforeRunne
 	slotMachine.MessageSender.SendRole.SetCheckMessage(func(msg payload.Marshaler) {
 		res, ok := msg.(*payload.VStateReport)
 		require.True(t, ok)
-		assert.Equal(t, payload.Missing, res.Status)
+		assert.Equal(t, payload.StateStatusMissing, res.Status)
 		assert.Equal(t, reference.NewSelf(outgoing.GetLocal()), res.Object)
 		assert.Equal(t, int32(0), res.OrderedPendingCount)
 		assert.Equal(t, int32(0), res.UnorderedPendingCount)
@@ -810,7 +810,7 @@ func TestSendVStateReportWithMissingState_IfConstructorWasInterruptedBeforeRunne
 
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
-			CallType:     payload.CTConstructor,
+			CallType:     payload.CallTypeConstructor,
 			CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 			CallOutgoing: outgoing,
 
@@ -897,7 +897,7 @@ func TestSMExecute_StopWithoutMessagesIfPulseChangedBeforeOutgoing(t *testing.T)
 
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
-			CallType:       payload.CTMethod,
+			CallType:       payload.CallTypeMethod,
 			Caller:         caller,
 			Callee:         objectRef,
 			CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
@@ -919,7 +919,7 @@ func TestSMExecute_StopWithoutMessagesIfPulseChangedBeforeOutgoing(t *testing.T)
 
 	report := obj.BuildStateReport()
 	assert.Equal(t, objectRef, report.Object)
-	assert.Equal(t, payload.Ready, report.Status)
+	assert.Equal(t, payload.StateStatusReady, report.Status)
 	assert.Equal(t, int32(0), report.OrderedPendingCount)
 	assert.Equal(t, int32(0), report.UnorderedPendingCount)
 	state := obj.BuildLatestDirtyState()

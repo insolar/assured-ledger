@@ -56,9 +56,9 @@ func TestVirtual_VStateReport_StateAlreadyExists(t *testing.T) {
 		name   string
 		status payload.VStateReport_StateStatus
 	}{
-		{name: "ready state", status: payload.Ready},
-		{name: "inactive state", status: payload.Inactive},
-		{name: "missing state", status: payload.Missing},
+		{name: "ready state", status: payload.StateStatusReady},
+		{name: "inactive state", status: payload.StateStatusInactive},
+		{name: "missing state", status: payload.StateStatusMissing},
 	}
 
 	for _, testCase := range table {
@@ -81,7 +81,7 @@ func TestVirtual_VStateReport_StateAlreadyExists(t *testing.T) {
 				server.IncrementPulse(ctx)
 
 				pl := &payload.VStateReport{
-					Status: payload.Ready,
+					Status: payload.StateStatusReady,
 					Object: objectGlobal,
 					AsOf:   prevPulse,
 					ProvidedContent: &payload.VStateReport_ProvidedContentBody{
@@ -107,7 +107,7 @@ func TestVirtual_VStateReport_StateAlreadyExists(t *testing.T) {
 			{
 				typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
 					assert.NotNil(t, report.ProvidedContent)
-					assert.Equal(t, payload.Ready, report.Status)
+					assert.Equal(t, payload.StateStatusReady, report.Status)
 					assert.Equal(t, initRef, report.ProvidedContent.LatestDirtyState.Reference)
 					assert.Equal(t, initRef, report.ProvidedContent.LatestValidatedState.Reference)
 					assert.Equal(t, initState, report.ProvidedContent.LatestDirtyState.State)
@@ -123,7 +123,7 @@ func TestVirtual_VStateReport_StateAlreadyExists(t *testing.T) {
 					Object: objectGlobal,
 					AsOf:   prevPulse,
 				}
-				if testCase.status == payload.Ready {
+				if testCase.status == payload.StateStatusReady {
 					pl.ProvidedContent = &payload.VStateReport_ProvidedContentBody{
 						LatestDirtyState: &payload.ObjectState{
 							Reference: server.RandomLocalWithPulse(),

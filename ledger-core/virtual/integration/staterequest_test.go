@@ -52,7 +52,7 @@ func TestVirtual_VStateRequest(t *testing.T) {
 			// create object
 			{
 				server.IncrementPulseAndWaitIdle(ctx)
-				Method_PrepareObject(ctx, server, payload.Ready, object, pulseNumber)
+				Method_PrepareObject(ctx, server, payload.StateStatusReady, object, pulseNumber)
 
 				pulseNumber = server.GetPulse().PulseNumber
 				waitMigrate := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
@@ -64,7 +64,7 @@ func TestVirtual_VStateRequest(t *testing.T) {
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 			{
 				expectedVStateReport := &payload.VStateReport{
-					Status:           payload.Ready,
+					Status:           payload.StateStatusReady,
 					AsOf:             pulseNumber,
 					Object:           object,
 					LatestDirtyState: object,
@@ -133,7 +133,7 @@ func TestVirtual_VStateRequest_Unknown(t *testing.T) {
 			assert.Equal(t, &payload.VStateReport{
 				AsOf:   pn,
 				Object: object,
-				Status: payload.Missing,
+				Status: payload.StateStatusMissing,
 			}, report)
 
 			return false
@@ -179,7 +179,7 @@ func TestVirtual_VStateRequest_WhenObjectIsDeactivated(t *testing.T) {
 				pulseNumber  = server.GetPulse().PulseNumber
 				vStateReport = &payload.VStateReport{
 					AsOf:            pulseNumber,
-					Status:          payload.Inactive,
+					Status:          payload.StateStatusInactive,
 					Object:          objectGlobal,
 					ProvidedContent: nil,
 				}

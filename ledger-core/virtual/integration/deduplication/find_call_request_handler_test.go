@@ -55,62 +55,62 @@ func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
 			name:   "don't know request, missing",
 			events: []TestStep{StepIncrementPulseToP3, StepFindMessage},
 
-			expectedStatus: payload.MissingCall,
+			expectedStatus: payload.CallStateMissing,
 		},
 		{
 			name:   "don't know request, missing, early msg",
 			events: []TestStep{StepFindMessage, StepIncrementPulseToP3},
 
-			expectedStatus: payload.MissingCall,
+			expectedStatus: payload.CallStateMissing,
 		},
 		{
 			name:          "don't know request, unknown",
 			events:        []TestStep{StepIncrementPulseToP3, StepFindMessage},
 			requestFromP1: true,
 
-			expectedStatus: payload.UnknownCall,
+			expectedStatus: payload.CallStateUnknown,
 		},
 		{
 			name:          "don't know request, unknown, early msg",
 			events:        []TestStep{StepFindMessage, StepIncrementPulseToP3},
 			requestFromP1: true,
 
-			expectedStatus: payload.UnknownCall,
+			expectedStatus: payload.CallStateUnknown,
 		},
 
 		{
 			name:   "found request, method, not pending, result",
 			events: []TestStep{StepMethodStartAndFinish, StepIncrementPulseToP3, StepFindMessage},
 
-			expectedStatus: payload.FoundCall,
+			expectedStatus: payload.CallStateFound,
 			expectedResult: true,
 		},
 		{
 			name:   "found request, method, not pending, result, early msg",
 			events: []TestStep{StepFindMessage, StepMethodStartAndFinish, StepIncrementPulseToP3},
 
-			expectedStatus: payload.FoundCall,
+			expectedStatus: payload.CallStateFound,
 			expectedResult: true,
 		},
 		{
 			name:   "found request, method, pending, no result",
 			events: []TestStep{StepMethodStart, StepIncrementPulseToP3, StepFindMessage, StepRequestFinish},
 
-			expectedStatus:     payload.FoundCall,
+			expectedStatus:     payload.CallStateFound,
 			expectedDelegation: true,
 		},
 		{
 			name:   "found request, method, pending, no result, earlyMsg",
 			events: []TestStep{StepFindMessage, StepMethodStart, StepIncrementPulseToP3, StepRequestFinish},
 
-			expectedStatus:     payload.FoundCall,
+			expectedStatus:     payload.CallStateFound,
 			expectedDelegation: true,
 		},
 		{
 			name:   "found request, method, pending, result",
 			events: []TestStep{StepMethodStart, StepIncrementPulseToP3, StepRequestFinish, StepFindMessage},
 
-			expectedStatus:     payload.FoundCall,
+			expectedStatus:     payload.CallStateFound,
 			expectedDelegation: true,
 		},
 
@@ -119,7 +119,7 @@ func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
 			events:               []TestStep{StepConstructorStartAndFinish, StepIncrementPulseToP3, StepFindMessage},
 			requestIsConstructor: true,
 
-			expectedStatus: payload.FoundCall,
+			expectedStatus: payload.CallStateFound,
 			expectedResult: true,
 		},
 		//TODO failed
@@ -128,7 +128,7 @@ func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
 			events:               []TestStep{StepFindMessage, StepConstructorStartAndFinish, StepIncrementPulseToP3},
 			requestIsConstructor: true,
 
-			expectedStatus: payload.FoundCall,
+			expectedStatus: payload.CallStateFound,
 			expectedResult: true,
 		},
 		{
@@ -136,7 +136,7 @@ func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
 			events:               []TestStep{StepConstructorStart, StepIncrementPulseToP3, StepFindMessage, StepRequestFinish},
 			requestIsConstructor: true,
 
-			expectedStatus:     payload.FoundCall,
+			expectedStatus:     payload.CallStateFound,
 			expectedDelegation: true,
 		},
 		{
@@ -144,7 +144,7 @@ func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
 			events:               []TestStep{StepFindMessage, StepConstructorStart, StepIncrementPulseToP3, StepRequestFinish},
 			requestIsConstructor: true,
 
-			expectedStatus:     payload.FoundCall,
+			expectedStatus:     payload.CallStateFound,
 			expectedDelegation: true,
 		},
 		{
@@ -152,7 +152,7 @@ func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
 			events:               []TestStep{StepConstructorStart, StepIncrementPulseToP3, StepRequestFinish, StepFindMessage},
 			requestIsConstructor: true,
 
-			expectedStatus:     payload.FoundCall,
+			expectedStatus:     payload.CallStateFound,
 			expectedDelegation: true,
 		},
 	}
@@ -230,7 +230,7 @@ func StepMethodStart(s *VFindCallRequestHandlingSuite, ctx context.Context, t *t
 
 	report := payload.VStateReport{
 		AsOf:   s.getP1(),
-		Status: payload.Ready,
+		Status: payload.StateStatusReady,
 		Object: s.getObject(),
 
 		ProvidedContent: &payload.VStateReport_ProvidedContentBody{
@@ -268,7 +268,7 @@ func StepConstructorStart(s *VFindCallRequestHandlingSuite, ctx context.Context,
 	if s.getObject().GetLocal().GetPulseNumber() < s.getP2() {
 		report := payload.VStateReport{
 			AsOf:   s.getP1(),
-			Status: payload.Missing,
+			Status: payload.StateStatusMissing,
 			Object: s.getObject(),
 		}
 		s.addPayloadAndWaitIdle(ctx, &report)
@@ -456,7 +456,7 @@ func (s *VFindCallRequestHandlingSuite) setMessageCheckers(
 			LookedAt: s.getP2(),
 			Callee:   s.getObject(),
 			Outgoing: s.getOutgoingRef(),
-			Status:   payload.MissingCall,
+			Status:   payload.CallStateMissing,
 		}
 		s.server.SendPayload(ctx, &pl)
 		return false

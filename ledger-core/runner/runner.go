@@ -296,9 +296,9 @@ func (r *DefaultService) execute(ctx context.Context, id call.ID) {
 	}()
 
 	switch executionSink.Context().Request.CallType {
-	case payload.CTMethod:
+	case payload.CallTypeMethod:
 		result, err = r.executeMethod(ctx, id, executionSink)
-	case payload.CTConstructor:
+	case payload.CallTypeConstructor:
 		result, err = r.executeConstructor(ctx, id, executionSink)
 	default:
 		panic(throw.Unsupported())

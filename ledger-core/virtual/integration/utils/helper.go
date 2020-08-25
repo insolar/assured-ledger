@@ -47,7 +47,7 @@ func (h *Helper) CreateObject(ctx context.Context, t *testing.T) reference.Globa
 	)
 
 	pl := payload.VCallRequest{
-		CallType:       payload.CTConstructor,
+		CallType:       payload.CallTypeConstructor,
 		CallFlags:      payload.BuildCallFlags(isolation.Interference, isolation.State),
 		Caller:         h.server.GlobalCaller(),
 		Callee:         h.class,

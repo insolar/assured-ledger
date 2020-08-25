@@ -75,11 +75,11 @@ type stateAlreadyExistsErrorMsg struct {
 }
 
 func (s *SMVStateReport) stepProcess(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if s.Payload.Status == payload.Unknown {
+	if s.Payload.Status == payload.StateStatusInvalid {
 		return ctx.Error(throw.IllegalValue())
 	}
 
-	if s.Payload.Status >= payload.Empty && s.gotLatestDirty() {
+	if s.Payload.Status >= payload.StateStatusEmpty && s.gotLatestDirty() {
 		return ctx.Error(throw.IllegalValue())
 	}
 
@@ -136,24 +136,24 @@ func (s *SMVStateReport) updateSharedState(
 
 	var objState object.State
 	switch s.Payload.Status {
-	case payload.Unknown:
+	case payload.StateStatusInvalid:
 		panic(throw.IllegalValue())
-	case payload.Ready:
+	case payload.StateStatusReady:
 		if !s.gotLatestDirty() {
 			panic(throw.IllegalState())
 		}
 		objState = object.HasState
-	case payload.Empty:
+	case payload.StateStatusEmpty:
 		objState = object.Empty
-	case payload.Inactive:
+	case payload.StateStatusInactive:
 		objState = object.Inactive
-	case payload.Missing:
+	case payload.StateStatusMissing:
 		objState = object.Missing
 	default:
 		panic(throw.IllegalValue())
 	}
 
-	if s.Payload.Status >= payload.Empty && s.gotLatestDirty() {
+	if s.Payload.Status >= payload.StateStatusEmpty && s.gotLatestDirty() {
 		panic(throw.IllegalState())
 	}
 

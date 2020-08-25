@@ -47,7 +47,7 @@ func (s *SMVCallResult) Init(ctx smachine.InitializationContext) smachine.StateU
 }
 
 func (s *SMVCallResult) stepProcess(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if s.Payload.CallType != payload.CTMethod && s.Payload.CallType != payload.CTConstructor {
+	if s.Payload.CallType != payload.CallTypeMethod && s.Payload.CallType != payload.CallTypeConstructor {
 		panic(throw.IllegalValue())
 	}
 

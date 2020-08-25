@@ -73,7 +73,7 @@ func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 			server.IncrementPulse(ctx)
 
 			// Send report
-			Method_PrepareObject(ctx, server, payload.Ready, object, prevPulse)
+			Method_PrepareObject(ctx, server, payload.StateStatusReady, object, prevPulse)
 
 			if test.countVFindCallRequest == 0 {
 				outgoing = server.BuildRandomOutgoingWithPulse()
@@ -116,7 +116,7 @@ func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 						LookedAt:   prevPulse,
 						Callee:     object,
 						Outgoing:   outgoing,
-						Status:     payload.MissingCall,
+						Status:     payload.CallStateMissing,
 						CallResult: nil,
 					}
 
@@ -192,7 +192,7 @@ func TestDeduplication_SecondCallOfMethodAfterExecution(t *testing.T) {
 			server.IncrementPulseAndWaitIdle(ctx)
 
 			// Send report
-			Method_PrepareObject(ctx, server, payload.Ready, object, prevPulse)
+			Method_PrepareObject(ctx, server, payload.StateStatusReady, object, prevPulse)
 
 			if test.countVFindCallRequest == 0 {
 				outgoing = server.BuildRandomOutgoingWithPulse()
@@ -243,7 +243,7 @@ func TestDeduplication_SecondCallOfMethodAfterExecution(t *testing.T) {
 						LookedAt:   prevPulse,
 						Callee:     object,
 						Outgoing:   outgoing,
-						Status:     payload.MissingCall,
+						Status:     payload.CallStateMissing,
 						CallResult: nil,
 					}
 
@@ -317,7 +317,7 @@ func TestDeduplication_MethodUsingPrevVE(t *testing.T) {
 			name: "no pendings, findCall message, missing call",
 
 			expectFindRequestMessage: true,
-			findRequestStatus:        payload.MissingCall,
+			findRequestStatus:        payload.CallStateMissing,
 
 			expectExecution:     true,
 			expectResultMessage: true,
@@ -326,7 +326,7 @@ func TestDeduplication_MethodUsingPrevVE(t *testing.T) {
 			name: "no pendings, findCall message, unknown call",
 
 			expectFindRequestMessage: true,
-			findRequestStatus:        payload.UnknownCall,
+			findRequestStatus:        payload.CallStateUnknown,
 
 			expectExecution:     true,
 			expectResultMessage: true,
@@ -335,7 +335,7 @@ func TestDeduplication_MethodUsingPrevVE(t *testing.T) {
 			name: "no pendings, findCall message, found call, has result",
 
 			expectFindRequestMessage: true,
-			findRequestStatus:        payload.FoundCall,
+			findRequestStatus:        payload.CallStateFound,
 			findRequestHasResult:     true,
 
 			expectResultMessage: true,
@@ -348,7 +348,7 @@ func TestDeduplication_MethodUsingPrevVE(t *testing.T) {
 			pendingIsTheRequest: true,
 
 			expectFindRequestMessage: true,
-			findRequestStatus:        payload.FoundCall,
+			findRequestStatus:        payload.CallStateFound,
 		},
 		{
 			name: "pending is the request, no confirmation, findCall message, found call, has result",
@@ -357,7 +357,7 @@ func TestDeduplication_MethodUsingPrevVE(t *testing.T) {
 			pendingIsTheRequest: true,
 
 			expectFindRequestMessage: true,
-			findRequestStatus:        payload.FoundCall,
+			findRequestStatus:        payload.CallStateFound,
 			findRequestHasResult:     true,
 
 			expectResultMessage: true,
@@ -378,7 +378,7 @@ func TestDeduplication_MethodUsingPrevVE(t *testing.T) {
 			finishPending:       true,
 
 			expectFindRequestMessage: true,
-			findRequestStatus:        payload.FoundCall,
+			findRequestStatus:        payload.CallStateFound,
 			findRequestHasResult:     true,
 
 			expectResultMessage: true,
@@ -390,7 +390,7 @@ func TestDeduplication_MethodUsingPrevVE(t *testing.T) {
 			pending: true,
 
 			expectFindRequestMessage: true,
-			findRequestStatus:        payload.MissingCall,
+			findRequestStatus:        payload.CallStateMissing,
 
 			expectExecution:     true,
 			expectResultMessage: true,
@@ -401,7 +401,7 @@ func TestDeduplication_MethodUsingPrevVE(t *testing.T) {
 			pending: true,
 
 			expectFindRequestMessage: true,
-			findRequestStatus:        payload.UnknownCall,
+			findRequestStatus:        payload.CallStateUnknown,
 
 			expectExecution:     true,
 			expectResultMessage: true,
@@ -412,7 +412,7 @@ func TestDeduplication_MethodUsingPrevVE(t *testing.T) {
 			pending: true,
 
 			expectFindRequestMessage: true,
-			findRequestStatus:        payload.FoundCall,
+			findRequestStatus:        payload.CallStateFound,
 			findRequestHasResult:     true,
 
 			expectResultMessage: true,
@@ -425,7 +425,7 @@ func TestDeduplication_MethodUsingPrevVE(t *testing.T) {
 			confirmPending: true,
 
 			expectFindRequestMessage: true,
-			findRequestStatus:        payload.MissingCall,
+			findRequestStatus:        payload.CallStateMissing,
 
 			expectExecution:     true,
 			expectResultMessage: true,
@@ -437,7 +437,7 @@ func TestDeduplication_MethodUsingPrevVE(t *testing.T) {
 			confirmPending: true,
 
 			expectFindRequestMessage: true,
-			findRequestStatus:        payload.UnknownCall,
+			findRequestStatus:        payload.CallStateUnknown,
 
 			expectExecution:     true,
 			expectResultMessage: true,
@@ -449,7 +449,7 @@ func TestDeduplication_MethodUsingPrevVE(t *testing.T) {
 			confirmPending: true,
 
 			expectFindRequestMessage: true,
-			findRequestStatus:        payload.FoundCall,
+			findRequestStatus:        payload.CallStateFound,
 			findRequestHasResult:     true,
 
 			expectResultMessage: true,
@@ -680,7 +680,7 @@ func (s *deduplicateMethodUsingPrevVETest) finishPending(
 		Callee:       s.getObject(),
 		CallOutgoing: s.pendingOutgoing,
 		CallIncoming: s.pendingIncoming,
-		CallType:     payload.CTMethod,
+		CallType:     payload.CallTypeMethod,
 		CallFlags:    payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
 	}
 	s.addPayloadAndWaitIdle(ctx, &pl)
@@ -698,7 +698,7 @@ func (s *deduplicateMethodUsingPrevVETest) setMessageCheckers(
 
 		report := payload.VStateReport{
 			AsOf:   s.getP1(),
-			Status: payload.Ready,
+			Status: payload.StateStatusReady,
 			Object: s.getObject(),
 
 			ProvidedContent: &payload.VStateReport_ProvidedContentBody{
@@ -739,7 +739,7 @@ func (s *deduplicateMethodUsingPrevVETest) setMessageCheckers(
 
 			if testInfo.findRequestHasResult {
 				response.CallResult = &payload.VCallResult{
-					CallType:        payload.CTMethod,
+					CallType:        payload.CallTypeMethod,
 					CallFlags:       payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
 					Caller:          s.getCaller(),
 					Callee:          s.getObject(),
@@ -756,7 +756,7 @@ func (s *deduplicateMethodUsingPrevVETest) setMessageCheckers(
 
 	if testInfo.expectResultMessage {
 		s.typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
-			require.Equal(t, payload.CTMethod, res.CallType)
+			require.Equal(t, payload.CallTypeMethod, res.CallType)
 			flags := payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty)
 			require.Equal(t, flags, res.CallFlags)
 			require.Equal(t, s.getCaller(), res.Caller)
