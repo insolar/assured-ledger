@@ -117,7 +117,7 @@ func (s *SMExecute) prepareExecution(ctx context.Context) {
 	s.execution.Request = s.Payload
 	s.execution.Pulse = s.pulseSlot.PulseData()
 
-	if s.Payload.CallType == payload.CTConstructor {
+	if s.Payload.CallType == payload.CallTypeConstructor {
 		s.isConstructor = true
 		s.execution.Object = reference.NewSelf(s.Payload.CallOutgoing.GetLocal())
 	} else {
@@ -148,11 +148,11 @@ func (s *SMExecute) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 
 func (s *SMExecute) stepCheckRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	switch s.Payload.CallType {
-	case payload.CTConstructor:
-	case payload.CTMethod:
+	case payload.CallTypeConstructor:
+	case payload.CallTypeMethod:
 
-	case payload.CTInboundAPICall, payload.CTOutboundAPICall, payload.CTNotifyCall,
-		payload.CTSAGACall, payload.CTParallelCall, payload.CTScheduleCall:
+	case payload.CallTypeInboundAPI, payload.CallTypeOutboundAPI, payload.CallTypeNotify,
+		payload.CallTypeSAGA, payload.CallTypeParallel, payload.CallTypeSchedule:
 		panic(throw.NotImplemented())
 	default:
 		panic(throw.IllegalValue())
@@ -444,7 +444,7 @@ func (s *SMExecute) stepWaitFindCallResponse(ctx smachine.ExecutionContext) smac
 
 func (s *SMExecute) stepProcessFindCallResponse(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	switch {
-	case s.findCallResponse.Status == payload.FoundCall && s.findCallResponse.CallResult == nil:
+	case s.findCallResponse.Status == payload.CallStateFound && s.findCallResponse.CallResult == nil:
 		ctx.Log().Trace("request found on previous executor, but there was no result")
 
 		if s.isConstructor && (s.hasState || s.duplicateFinished) {
@@ -453,7 +453,7 @@ func (s *SMExecute) stepProcessFindCallResponse(ctx smachine.ExecutionContext) s
 
 		return ctx.Stop()
 
-	case s.findCallResponse.Status == payload.FoundCall && s.findCallResponse.CallResult != nil:
+	case s.findCallResponse.Status == payload.CallStateFound && s.findCallResponse.CallResult != nil:
 		ctx.Log().Trace("request found on previous executor, resending result")
 
 		target := s.Meta.Sender
@@ -468,9 +468,9 @@ func (s *SMExecute) stepProcessFindCallResponse(ctx smachine.ExecutionContext) s
 
 		return ctx.Stop()
 
-	case s.findCallResponse.Status == payload.MissingCall:
+	case s.findCallResponse.Status == payload.CallStateMissing:
 		fallthrough
-	case s.findCallResponse.Status == payload.UnknownCall:
+	case s.findCallResponse.Status == payload.CallStateUnknown:
 		if s.isConstructor {
 			panic(throw.Impossible())
 		}

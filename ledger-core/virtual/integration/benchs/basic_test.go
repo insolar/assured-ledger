@@ -47,7 +47,7 @@ func BenchmarkVCallRequestGetMethod(b *testing.B) {
 
 	report := &payload.VStateReport{
 		AsOf:            prevPulse.GetPulseNumber(),
-		Status:          payload.Ready,
+		Status:          payload.StateStatusReady,
 		Object:          object,
 		ProvidedContent: content,
 	}
@@ -108,7 +108,7 @@ func BenchmarkVCallRequestAcceptMethod(b *testing.B) {
 
 	report := &payload.VStateReport{
 		AsOf:            prevPulse.GetPulseNumber(),
-		Status:          payload.Ready,
+		Status:          payload.StateStatusReady,
 		Object:          object,
 		ProvidedContent: content,
 	}
@@ -222,7 +222,7 @@ func BenchmarkTestAPIGetBalance(b *testing.B) {
 
 	report := &payload.VStateReport{
 		AsOf:            prevPulse.GetPulseNumber(),
-		Status:          payload.Ready,
+		Status:          payload.StateStatusReady,
 		Object:          object,
 		ProvidedContent: content,
 	}
@@ -264,7 +264,7 @@ func BenchmarkTestAPIGetBalanceParallel(b *testing.B) {
 
 	report := &payload.VStateReport{
 		AsOf:            prevPulse.GetPulseNumber(),
-		Status:          payload.Ready,
+		Status:          payload.StateStatusReady,
 		Object:          object,
 		ProvidedContent: content,
 	}

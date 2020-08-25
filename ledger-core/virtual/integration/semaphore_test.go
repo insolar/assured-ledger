@@ -56,7 +56,7 @@ func TestVirtual_SemaphoreLimitNotExceeded(t *testing.T) {
 
 		for i := 0; i < numObject; i++ {
 			objects = append(objects, gen.UniqueGlobalRefWithPulse(pulse))
-			Method_PrepareObject(ctx, server, payload.Ready, objects[i], pulse)
+			Method_PrepareObject(ctx, server, payload.StateStatusReady, objects[i], pulse)
 		}
 	}
 

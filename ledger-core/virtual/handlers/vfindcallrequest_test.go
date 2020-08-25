@@ -188,7 +188,7 @@ func TestVFindCallRequest(t *testing.T) {
 					require.Equal(t, pd.GetPulseNumber(), msg0.LookedAt)
 					require.Equal(t, objectRef, msg0.Callee)
 					require.Equal(t, outgoing, msg0.Outgoing)
-					require.Equal(t, payload.MissingCall, msg0.Status)
+					require.Equal(t, payload.CallStateMissing, msg0.Status)
 					require.Nil(t, msg0.CallResult)
 				default:
 					panic("Unexpected message type")
@@ -218,7 +218,7 @@ func TestVFindCallRequest(t *testing.T) {
 
 			smVFindCallRequest.stepGetRequestData(execCtx)
 
-			require.Equal(t, payload.FoundCall, smVFindCallRequest.status)
+			require.Equal(t, payload.CallStateFound, smVFindCallRequest.status)
 			require.Equal(t, &vCallResult, smVFindCallRequest.callResult)
 		}
 
@@ -235,7 +235,7 @@ func TestVFindCallRequest(t *testing.T) {
 					require.Equal(t, pd.GetPulseNumber(), msg0.LookedAt)
 					require.Equal(t, objectRef, msg0.Callee)
 					require.Equal(t, outgoing, msg0.Outgoing)
-					require.Equal(t, payload.FoundCall, msg0.Status)
+					require.Equal(t, payload.CallStateFound, msg0.Status)
 					require.Equal(t, &vCallResult, msg0.CallResult)
 				default:
 					panic("Unexpected message type")

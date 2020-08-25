@@ -40,7 +40,7 @@ func TestAbort(t *testing.T) {
 		ObjectDescriptor: descriptor.NewObject(object, reference.Local{}, class, defaultObject, false),
 		Context:          ctx,
 		Request: &payload.VCallRequest{
-			CallType:       payload.CTMethod,
+			CallType:       payload.CallTypeMethod,
 			CallSiteMethod: "Transfer",
 			Arguments:      insolar.MustSerialize([]interface{}{remoteObject, uint32(100)}),
 		},

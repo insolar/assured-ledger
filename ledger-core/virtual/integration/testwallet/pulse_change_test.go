@@ -56,7 +56,7 @@ func createWallet(
 	}
 
 	vsrPayload := &payload.VStateReport{
-		Status:          payload.Ready,
+		Status:          payload.StateStatusReady,
 		Object:          object,
 		AsOf:            pulse,
 		ProvidedContent: content,

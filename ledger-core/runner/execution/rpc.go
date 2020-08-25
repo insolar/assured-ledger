@@ -103,7 +103,7 @@ func (e CallConstructor) ParentRequestReference() reference.Global {
 
 func (e CallConstructor) ConstructVCallRequest(execution Context) *payload.VCallRequest {
 	return &payload.VCallRequest{
-		CallType:            payload.CTConstructor,
+		CallType:            payload.CallTypeConstructor,
 		CallFlags:           payload.BuildCallFlags(execution.Isolation.Interference, execution.Isolation.State),
 		Caller:              e.parentObjectReference,
 		Callee:              e.class,
@@ -159,7 +159,7 @@ func (e CallMethod) ParentRequestReference() reference.Global {
 
 func (e CallMethod) ConstructVCallRequest(execution Context) *payload.VCallRequest {
 	return &payload.VCallRequest{
-		CallType:       payload.CTMethod,
+		CallType:       payload.CallTypeMethod,
 		CallFlags:      payload.BuildCallFlags(execution.Isolation.Interference, execution.Isolation.State),
 		Caller:         e.parentObjectReference,
 		Callee:         e.object,

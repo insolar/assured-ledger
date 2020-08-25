@@ -19,7 +19,7 @@ func GenerateVCallRequestConstructor(server *Server) *payload.VCallRequest {
 	)
 
 	return &payload.VCallRequest{
-		CallType:       payload.CTConstructor,
+		CallType:       payload.CallTypeConstructor,
 		CallFlags:      payload.BuildCallFlags(isolation.Interference, isolation.State),
 		Caller:         server.GlobalCaller(),
 		Callee:         gen.UniqueGlobalRefWithPulse(pulse.LocalRelative),
@@ -30,10 +30,10 @@ func GenerateVCallRequestConstructor(server *Server) *payload.VCallRequest {
 	}
 }
 
-// GenerateVCallRequestMethod returns CTMethod VCallRequest for tolerable/dirty request by default
+// GenerateVCallRequestMethod returns CallTypeMethod VCallRequest for tolerable/dirty request by default
 func GenerateVCallRequestMethod(server *Server) *payload.VCallRequest {
 	return &payload.VCallRequest{
-		CallType:       payload.CTMethod,
+		CallType:       payload.CallTypeMethod,
 		CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 		Caller:         server.GlobalCaller(),
 		Callee:         server.RandomGlobalWithPulse(),

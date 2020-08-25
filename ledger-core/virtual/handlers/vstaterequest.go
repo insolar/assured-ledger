@@ -102,7 +102,7 @@ func (s *SMVStateRequest) stepCheckCatalog(ctx smachine.ExecutionContext) smachi
 
 func (s *SMVStateRequest) stepBuildMissing(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	s.objectStateReport = &payload.VStateReport{
-		Status: payload.Missing,
+		Status: payload.StateStatusMissing,
 		AsOf:   s.Payload.AsOf,
 		Object: s.Payload.Object,
 	}

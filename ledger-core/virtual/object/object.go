@@ -133,19 +133,19 @@ func (i *Info) BuildStateReport() payload.VStateReport {
 	case Unknown:
 		panic(throw.IllegalState())
 	case Missing:
-		res.Status = payload.Missing
+		res.Status = payload.StateStatusMissing
 	case Inactive:
-		res.Status = payload.Inactive
+		res.Status = payload.StateStatusInactive
 	case Empty:
 		if i.KnownRequests.GetList(contract.CallTolerable).CountActive() == 0 {
 			// constructor has not started
-			res.Status = payload.Missing
+			res.Status = payload.StateStatusMissing
 		} else {
-			res.Status = payload.Empty
+			res.Status = payload.StateStatusEmpty
 		}
 	case HasState:
 		// ok case
-		res.Status = payload.Ready
+		res.Status = payload.StateStatusReady
 	default:
 		panic(throw.IllegalValue())
 	}
@@ -376,7 +376,7 @@ func (sm *SMObject) migrate(ctx smachine.MigrationContext) smachine.StateUpdate 
 		sm.SetState(Inactive)
 	}
 	sm.smFinalizer.Report = sm.BuildStateReport()
-	if sm.DescriptorDirty() != nil && sm.smFinalizer.Report.GetStatus() != payload.Inactive {
+	if sm.DescriptorDirty() != nil && sm.smFinalizer.Report.GetStatus() != payload.StateStatusInactive {
 		state := sm.BuildLatestDirtyState()
 		sm.smFinalizer.Report.ProvidedContent.LatestDirtyState = state
 		sm.smFinalizer.Report.ProvidedContent.LatestValidatedState = state

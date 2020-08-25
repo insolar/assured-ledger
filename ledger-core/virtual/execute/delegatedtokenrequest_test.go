@@ -53,7 +53,7 @@ func TestVDelegatedCallRequest(t *testing.T) {
 
 		smExecute = SMExecute{
 			Payload: &payload.VCallRequest{
-				CallType:     payload.CTConstructor,
+				CallType:     payload.CallTypeConstructor,
 				CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 				CallOutgoing: outgoing,
 
