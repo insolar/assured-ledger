@@ -59,7 +59,7 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 		stateID := gen.UniqueLocalRefWithPulse(prevPulse)
 		rawWalletState := makeRawWalletState(testBalance)
 		payloadMeta := &payload.VStateReport{
-			Status:                        payload.Ready,
+			Status:                        payload.StateStatusReady,
 			Object:                        objectRef,
 			AsOf:                          prevPulse,
 			UnorderedPendingCount:         1,

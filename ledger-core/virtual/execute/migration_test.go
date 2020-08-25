@@ -49,7 +49,7 @@ func TestSMExecute_MigrationDuringSendOutgoing(t *testing.T) {
 		MeMock.Return(gen.UniqueGlobalRef())
 
 	pl := &payload.VCallRequest{
-		CallType:       payload.CTConstructor,
+		CallType:       payload.CallTypeConstructor,
 		Callee:         gen.UniqueGlobalRefWithPulse(pd.PulseNumber),
 		Caller:         gen.UniqueGlobalRefWithPulse(pd.PulseNumber),
 		CallFlags:      callFlags,

@@ -274,7 +274,7 @@ func (test *DeduplicationDifferentPulsesCase) run(t *testing.T) {
 
 	if test.VDelegatedRequestFinished != nil {
 		test.VDelegatedRequestFinished = &payload.VDelegatedRequestFinished{
-			CallType:     payload.CTConstructor,
+			CallType:     payload.CallTypeConstructor,
 			CallFlags:    payload.BuildCallFlags(isolation.Interference, isolation.State),
 			Callee:       object,
 			CallOutgoing: outgoing,
@@ -377,7 +377,7 @@ func TestDeduplication_DifferentPulses_EmptyState(t *testing.T) {
 
 	{
 		vStateReportEmptyOnePendingRequest := payload.VStateReport{
-			Status:              payload.Empty,
+			Status:              payload.StateStatusEmpty,
 			OrderedPendingCount: 1,
 		}
 
@@ -387,7 +387,7 @@ func TestDeduplication_DifferentPulses_EmptyState(t *testing.T) {
 				TestCase: utils.NewTestCase("empty object, 1 pending, missing call").WithErrorFilter(filterErrorFindCall),
 				VState:   vStateReportEmptyOnePendingRequest,
 				VFindCall: &payload.VFindCallResponse{
-					Status:     payload.MissingCall,
+					Status:     payload.CallStateMissing,
 					CallResult: nil,
 				},
 				VCallResultExpected:    false,
@@ -399,7 +399,7 @@ func TestDeduplication_DifferentPulses_EmptyState(t *testing.T) {
 				TestCase: utils.NewTestCase("empty object, 1 pending, unknown call").WithErrorFilter(filterErrorFindCall),
 				VState:   vStateReportEmptyOnePendingRequest,
 				VFindCall: &payload.VFindCallResponse{
-					Status:     payload.UnknownCall,
+					Status:     payload.CallStateUnknown,
 					CallResult: nil,
 				},
 				VCallResultExpected:    false,
@@ -411,7 +411,7 @@ func TestDeduplication_DifferentPulses_EmptyState(t *testing.T) {
 				TestCase: utils.NewTestCase("empty object, 1 pending, known call wo result"),
 				VState:   vStateReportEmptyOnePendingRequest,
 				VFindCall: &payload.VFindCallResponse{
-					Status:     payload.FoundCall,
+					Status:     payload.CallStateFound,
 					CallResult: nil,
 				},
 				VCallResultExpected: false,
@@ -421,7 +421,7 @@ func TestDeduplication_DifferentPulses_EmptyState(t *testing.T) {
 				TestCase: utils.NewTestCase("empty object, 1 pending, known call w result"),
 				VState:   vStateReportEmptyOnePendingRequest,
 				VFindCall: &payload.VFindCallResponse{
-					Status:     payload.FoundCall,
+					Status:     payload.CallStateFound,
 					CallResult: &payload.VCallResult{},
 				},
 				VCallResultExpected: true,
@@ -448,7 +448,7 @@ func TestDeduplication_DifferentPulses_EmptyState_WithDelegationToken(t *testing
 
 	{
 		vStateReportEmptyOnePendingRequest := payload.VStateReport{
-			Status:              payload.Empty,
+			Status:              payload.StateStatusEmpty,
 			OrderedPendingCount: 1,
 		}
 
@@ -468,7 +468,7 @@ func TestDeduplication_DifferentPulses_EmptyState_WithDelegationToken(t *testing
 				VDelegatedCall:            &payload.VDelegatedCallRequest{},
 				VDelegatedRequestFinished: &payload.VDelegatedRequestFinished{},
 				VFindCall: &payload.VFindCallResponse{
-					Status:     payload.MissingCall,
+					Status:     payload.CallStateMissing,
 					CallResult: nil,
 				},
 				VCallResultExpected:    false,
@@ -481,7 +481,7 @@ func TestDeduplication_DifferentPulses_EmptyState_WithDelegationToken(t *testing
 				VDelegatedCall:            &payload.VDelegatedCallRequest{},
 				VDelegatedRequestFinished: &payload.VDelegatedRequestFinished{},
 				VFindCall: &payload.VFindCallResponse{
-					Status:     payload.UnknownCall,
+					Status:     payload.CallStateUnknown,
 					CallResult: nil,
 				},
 				VCallResultExpected:    false,
@@ -494,7 +494,7 @@ func TestDeduplication_DifferentPulses_EmptyState_WithDelegationToken(t *testing
 				VDelegatedCall:            &payload.VDelegatedCallRequest{},
 				VDelegatedRequestFinished: &payload.VDelegatedRequestFinished{},
 				VFindCall: &payload.VFindCallResponse{
-					Status:     payload.FoundCall,
+					Status:     payload.CallStateFound,
 					CallResult: nil,
 				},
 				VCallResultExpected:    false,
@@ -507,7 +507,7 @@ func TestDeduplication_DifferentPulses_EmptyState_WithDelegationToken(t *testing
 				VDelegatedCall:            &payload.VDelegatedCallRequest{},
 				VDelegatedRequestFinished: &payload.VDelegatedRequestFinished{},
 				VFindCall: &payload.VFindCallResponse{
-					Status:     payload.FoundCall,
+					Status:     payload.CallStateFound,
 					CallResult: &payload.VCallResult{},
 				},
 				VCallResultExpected: true,
@@ -540,7 +540,7 @@ func TestDeduplication_DifferentPulses_ReadyState(t *testing.T) {
 
 	{
 		vStateReportReadyNoPendingRequests := payload.VStateReport{
-			Status:              payload.Ready,
+			Status:              payload.StateStatusReady,
 			OrderedPendingCount: 0,
 			ProvidedContent: &payload.VStateReport_ProvidedContentBody{
 				LatestDirtyState: &payload.ObjectState{State: []byte("123")},
@@ -553,7 +553,7 @@ func TestDeduplication_DifferentPulses_ReadyState(t *testing.T) {
 				TestCase: utils.NewTestCase("no pending requests, missing call").WithErrorFilter(filterError),
 				VState:   vStateReportReadyNoPendingRequests,
 				VFindCall: &payload.VFindCallResponse{
-					Status:     payload.MissingCall,
+					Status:     payload.CallStateMissing,
 					CallResult: nil,
 				},
 				VCallResultExpected:    false,
@@ -565,7 +565,7 @@ func TestDeduplication_DifferentPulses_ReadyState(t *testing.T) {
 				TestCase: utils.NewTestCase("no pending requests, unknown call").WithErrorFilter(filterError),
 				VState:   vStateReportReadyNoPendingRequests,
 				VFindCall: &payload.VFindCallResponse{
-					Status:     payload.UnknownCall,
+					Status:     payload.CallStateUnknown,
 					CallResult: nil,
 				},
 				VCallResultExpected:    false,
@@ -577,7 +577,7 @@ func TestDeduplication_DifferentPulses_ReadyState(t *testing.T) {
 				TestCase: utils.NewTestCase("no pending requests, known call wo result").WithErrorFilter(filterError),
 				VState:   vStateReportReadyNoPendingRequests,
 				VFindCall: &payload.VFindCallResponse{
-					Status:     payload.FoundCall,
+					Status:     payload.CallStateFound,
 					CallResult: nil,
 				},
 				VCallResultExpected:    false,
@@ -588,7 +588,7 @@ func TestDeduplication_DifferentPulses_ReadyState(t *testing.T) {
 				TestCase: utils.NewTestCase("no pending requests, known call w result"),
 				VState:   vStateReportReadyNoPendingRequests,
 				VFindCall: &payload.VFindCallResponse{
-					Status:     payload.FoundCall,
+					Status:     payload.CallStateFound,
 					CallResult: &payload.VCallResult{},
 				},
 				VCallResultExpected: true,
@@ -600,7 +600,7 @@ func TestDeduplication_DifferentPulses_ReadyState(t *testing.T) {
 
 	{
 		vStateReportReadyOnePendingRequest := payload.VStateReport{
-			Status:              payload.Ready,
+			Status:              payload.StateStatusReady,
 			OrderedPendingCount: 1,
 			ProvidedContent: &payload.VStateReport_ProvidedContentBody{
 				LatestDirtyState: &payload.ObjectState{State: []byte("123")},
@@ -613,7 +613,7 @@ func TestDeduplication_DifferentPulses_ReadyState(t *testing.T) {
 				TestCase: utils.NewTestCase("one pending request, missing call").WithErrorFilter(filterError),
 				VState:   vStateReportReadyOnePendingRequest,
 				VFindCall: &payload.VFindCallResponse{
-					Status:     payload.MissingCall,
+					Status:     payload.CallStateMissing,
 					CallResult: nil,
 				},
 				VCallResultExpected:    false,
@@ -625,7 +625,7 @@ func TestDeduplication_DifferentPulses_ReadyState(t *testing.T) {
 				TestCase: utils.NewTestCase("one pending requests, unknown call").WithErrorFilter(filterError),
 				VState:   vStateReportReadyOnePendingRequest,
 				VFindCall: &payload.VFindCallResponse{
-					Status:     payload.UnknownCall,
+					Status:     payload.CallStateUnknown,
 					CallResult: nil,
 				},
 				VCallResultExpected:    false,
@@ -637,7 +637,7 @@ func TestDeduplication_DifferentPulses_ReadyState(t *testing.T) {
 				TestCase: utils.NewTestCase("one pending requests, known call wo result").WithErrorFilter(filterError),
 				VState:   vStateReportReadyOnePendingRequest,
 				VFindCall: &payload.VFindCallResponse{
-					Status:     payload.FoundCall,
+					Status:     payload.CallStateFound,
 					CallResult: nil,
 				},
 				VCallResultExpected:    false,
@@ -648,7 +648,7 @@ func TestDeduplication_DifferentPulses_ReadyState(t *testing.T) {
 				TestCase: utils.NewTestCase("one pending requests, known call w result"),
 				VState:   vStateReportReadyOnePendingRequest,
 				VFindCall: &payload.VFindCallResponse{
-					Status:     payload.FoundCall,
+					Status:     payload.CallStateFound,
 					CallResult: &payload.VCallResult{},
 				},
 				VCallResultExpected: true,
@@ -670,7 +670,7 @@ func TestDeduplication_DifferentPulses_InactiveState(t *testing.T) {
 
 	{
 		vStateReportInactive := payload.VStateReport{
-			Status:              payload.Inactive,
+			Status:              payload.StateStatusInactive,
 			OrderedPendingCount: 0,
 			ProvidedContent:     nil,
 		}
@@ -681,7 +681,7 @@ func TestDeduplication_DifferentPulses_InactiveState(t *testing.T) {
 				TestCase: utils.NewTestCase("missing call").WithErrorFilter(filterErrorDeduplicate),
 				VState:   vStateReportInactive,
 				VFindCall: &payload.VFindCallResponse{
-					Status:     payload.MissingCall,
+					Status:     payload.CallStateMissing,
 					CallResult: nil,
 				},
 				VCallResultExpected:    false,
@@ -693,7 +693,7 @@ func TestDeduplication_DifferentPulses_InactiveState(t *testing.T) {
 				TestCase: utils.NewTestCase("unknown call").WithErrorFilter(filterErrorDeduplicate),
 				VState:   vStateReportInactive,
 				VFindCall: &payload.VFindCallResponse{
-					Status:     payload.UnknownCall,
+					Status:     payload.CallStateUnknown,
 					CallResult: nil,
 				},
 				VCallResultExpected:    false,
@@ -705,7 +705,7 @@ func TestDeduplication_DifferentPulses_InactiveState(t *testing.T) {
 				TestCase: utils.NewTestCase("known call wo result").WithErrorFilter(filterErrorDeduplicate),
 				VState:   vStateReportInactive,
 				VFindCall: &payload.VFindCallResponse{
-					Status:     payload.FoundCall,
+					Status:     payload.CallStateFound,
 					CallResult: nil,
 				},
 				VCallResultExpected:    false,
@@ -716,7 +716,7 @@ func TestDeduplication_DifferentPulses_InactiveState(t *testing.T) {
 				TestCase: utils.NewTestCase("known call w result"),
 				VState:   vStateReportInactive,
 				VFindCall: &payload.VFindCallResponse{
-					Status:     payload.FoundCall,
+					Status:     payload.CallStateFound,
 					CallResult: &payload.VCallResult{},
 				},
 				VCallResultExpected: true,

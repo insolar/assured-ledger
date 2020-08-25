@@ -75,7 +75,7 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 
 	server.IncrementPulseAndWaitIdle(ctx)
 
-	Method_PrepareObject(ctx, server, payload.Ready, objectAGlobal, prevPulse)
+	Method_PrepareObject(ctx, server, payload.StateStatusReady, objectAGlobal, prevPulse)
 
 	var (
 		barIsolation = contract.MethodIsolation{
@@ -116,7 +116,7 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 		}
 
 		expectedVCallRequest = payload.VCallRequest{
-			CallType:         payload.CTMethod,
+			CallType:         payload.CallTypeMethod,
 			CallFlags:        payload.BuildCallFlags(barIsolation.Interference, barIsolation.State),
 			Callee:           objectBGlobal,
 			Caller:           objectAGlobal,
@@ -327,7 +327,7 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 		firstExpectedToken, secondExpectedToken payload.CallDelegationToken
 
 		expectedVCallRequest = payload.VCallRequest{
-			CallType:         payload.CTMethod,
+			CallType:         payload.CallTypeMethod,
 			CallFlags:        payload.BuildCallFlags(barIsolation.Interference, barIsolation.State),
 			Callee:           objectBGlobal,
 			Caller:           objectRef,
@@ -365,7 +365,7 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 		typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
 			// check for pending counts must be in tests: call constructor/call terminal method
 			assert.Equal(t, objectRef, report.Object)
-			assert.Equal(t, payload.Empty, report.Status)
+			assert.Equal(t, payload.StateStatusEmpty, report.Status)
 			assert.Zero(t, report.DelegationSpec)
 			return false
 		})
@@ -414,7 +414,7 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 		typedChecker.VDelegatedRequestFinished.Set(func(finished *payload.VDelegatedRequestFinished) bool {
 			assert.Equal(t, objectRef, finished.Callee)
 			assert.Equal(t, secondExpectedToken, finished.DelegationSpec)
-			assert.Equal(t, payload.CTConstructor, finished.CallType)
+			assert.Equal(t, payload.CallTypeConstructor, finished.CallType)
 			assert.NotNil(t, finished.LatestState)
 			return false
 		})
@@ -517,8 +517,8 @@ func TestVirtual_CallContractOutgoingReturnsError(t *testing.T) {
 
 	// create objects
 	{
-		Method_PrepareObject(ctx, server, payload.Ready, objectA, prevPulse)
-		Method_PrepareObject(ctx, server, payload.Ready, objectB, prevPulse)
+		Method_PrepareObject(ctx, server, payload.StateStatusReady, objectA, prevPulse)
+		Method_PrepareObject(ctx, server, payload.StateStatusReady, objectB, prevPulse)
 	}
 
 	var (
@@ -600,7 +600,7 @@ func TestVirtual_CallContractOutgoingReturnsError(t *testing.T) {
 	{
 		typedChecker.VCallRequest.Set(func(request *payload.VCallRequest) bool {
 			assert.Equal(t, objectA, request.Caller)
-			assert.Equal(t, payload.CTMethod, request.CallType)
+			assert.Equal(t, payload.CallTypeMethod, request.CallType)
 			assert.Equal(t, callFlags, request.CallFlags)
 			assert.Equal(t, p, request.CallOutgoing.GetLocal().Pulse())
 
@@ -614,7 +614,7 @@ func TestVirtual_CallContractOutgoingReturnsError(t *testing.T) {
 			return true // resend
 		})
 		typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
-			assert.Equal(t, payload.CTMethod, res.CallType)
+			assert.Equal(t, payload.CallTypeMethod, res.CallType)
 			assert.Equal(t, callFlags, res.CallFlags)
 
 			switch res.Callee {

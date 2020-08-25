@@ -54,7 +54,7 @@ func assertVCallResult(t *testing.T,
 	flagsCaller contract.MethodIsolation,
 	outgoing reference.Global) {
 
-	require.Equal(t, payload.CTMethod, res.CallType)
+	require.Equal(t, payload.CallTypeMethod, res.CallType)
 	require.Equal(t, objectCaller, res.Caller)
 	require.Equal(t, objectCallee, res.Callee)
 	require.Equal(t, outgoing.GetLocal().Pulse(), res.CallOutgoing.GetLocal().Pulse())
@@ -71,7 +71,7 @@ func assertVCallRequest(t *testing.T,
 
 	assert.Equal(t, objectCallee, request.Callee)
 	assert.Equal(t, objectCaller, request.Caller)
-	assert.Equal(t, payload.CTMethod, request.CallType)
+	assert.Equal(t, payload.CallTypeMethod, request.CallType)
 	assert.Equal(t, flagsCaller.Interference, request.CallFlags.GetInterference())
 	assert.Equal(t, flagsCaller.State, request.CallFlags.GetState())
 	assert.Equal(t, uint32(1), request.CallSequence)
@@ -128,8 +128,8 @@ func Test_NoDeadLock_WhenOutgoingComeToSameNode(t *testing.T) {
 
 			server.IncrementPulseAndWaitIdle(ctx)
 
-			Method_PrepareObject(ctx, server, payload.Ready, objectAGlobal, pulse)
-			Method_PrepareObject(ctx, server, payload.Ready, objectBGlobal, pulse)
+			Method_PrepareObject(ctx, server, payload.StateStatusReady, objectAGlobal, pulse)
+			Method_PrepareObject(ctx, server, payload.StateStatusReady, objectBGlobal, pulse)
 
 			outgoingCallRef := gen.UniqueGlobalRef()
 			outgoingA := server.BuildRandomOutgoingWithPulse()
@@ -269,8 +269,8 @@ func TestVirtual_CallContractFromContract(t *testing.T) {
 
 			server.IncrementPulseAndWaitIdle(ctx)
 
-			Method_PrepareObject(ctx, server, payload.Ready, objectA, pn)
-			Method_PrepareObject(ctx, server, payload.Ready, objectB, pn)
+			Method_PrepareObject(ctx, server, payload.StateStatusReady, objectA, pn)
+			Method_PrepareObject(ctx, server, payload.StateStatusReady, objectB, pn)
 
 			var (
 				class     = server.RandomGlobalWithPulse()
@@ -409,7 +409,7 @@ func TestVirtual_CallOtherMethodInObject(t *testing.T) {
 
 			server.IncrementPulseAndWaitIdle(ctx)
 
-			Method_PrepareObject(ctx, server, payload.Ready, objectAGlobal, prevPulse)
+			Method_PrepareObject(ctx, server, payload.StateStatusReady, objectAGlobal, prevPulse)
 
 			var (
 				class     = server.RandomGlobalWithPulse()
@@ -546,7 +546,7 @@ func TestVirtual_CallMethodFromConstructor(t *testing.T) {
 
 			server.IncrementPulseAndWaitIdle(ctx)
 
-			Method_PrepareObject(ctx, server, payload.Ready, objectBGlobal, prevPulse)
+			Method_PrepareObject(ctx, server, payload.StateStatusReady, objectBGlobal, prevPulse)
 
 			var (
 				callFlags = tolerableFlags()
@@ -617,12 +617,12 @@ func TestVirtual_CallMethodFromConstructor(t *testing.T) {
 					switch res.Callee {
 					case objectAGlobal:
 						require.Equal(t, []byte("finish A.New"), res.ReturnArguments)
-						require.Equal(t, payload.CTConstructor, res.CallType)
+						require.Equal(t, payload.CallTypeConstructor, res.CallType)
 						require.Equal(t, server.GlobalCaller(), res.Caller)
 						require.Equal(t, outgoingA, res.CallOutgoing)
 					case objectBGlobal:
 						require.Equal(t, []byte("finish B.Foo"), res.ReturnArguments)
-						require.Equal(t, payload.CTMethod, res.CallType)
+						require.Equal(t, payload.CallTypeMethod, res.CallType)
 						require.Equal(t, objectAGlobal, res.Caller)
 						require.Equal(t, server.GetPulse().PulseNumber, res.CallOutgoing.GetLocal().Pulse())
 
@@ -689,7 +689,7 @@ func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 
 	server.IncrementPulseAndWaitIdle(ctx)
 
-	Method_PrepareObject(ctx, server, payload.Ready, object, pulse)
+	Method_PrepareObject(ctx, server, payload.StateStatusReady, object, pulse)
 
 	pl := utils.GenerateVCallRequestMethod(server)
 	pl.CallFlags = payload.BuildCallFlags(tolerableFlags().Interference, tolerableFlags().State)

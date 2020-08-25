@@ -16,11 +16,11 @@ type vStateReportValidateStatusFunc func(pulse.Number, pulse.Number) error
 
 func (m *VStateReport) getValidateStatusFunc(s VStateReport_StateStatus) (vStateReportValidateStatusFunc, bool) {
 	switch s {
-	case Ready:
+	case StateStatusReady:
 		return m.validateStatusReady, true
-	case Empty:
+	case StateStatusEmpty:
 		return m.validateStatusEmpty, true
-	case Missing, Inactive:
+	case StateStatusMissing, StateStatusInactive:
 		return m.validateStatusMissingOrInactive, true
 	}
 
@@ -119,8 +119,8 @@ func (m *VStateReport) validateStatusMissingOrInactive(pulse.Number, pulse.Numbe
 	switch {
 	case m.GetOrderedPendingCount() != 0:
 		return throw.New("OrderedPendingCount should be 0")
-	// TODO: PLAT-717: VStateReport can be Inactive and contain UnorderedPendingCount > 0 in R0
-	case m.GetStatus() == Missing && m.GetUnorderedPendingCount() != 0:
+	// TODO: PLAT-717: VStateReport can be StateStatusInactive and contain UnorderedPendingCount > 0 in R0
+	case m.GetStatus() == StateStatusMissing && m.GetUnorderedPendingCount() != 0:
 		return throw.New("UnorderedPendingCount should be 0")
 	case !m.GetOrderedPendingEarliestPulse().IsUnknown():
 		return throw.New("OrderedPendingEarliestPulse should be Unknown")

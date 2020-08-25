@@ -438,7 +438,7 @@ func TestDelegationToken_OldVEVDelegatedCallRequest(t *testing.T) {
 			})
 
 			statePl := payload.VStateReport{
-				Status:                      payload.Empty,
+				Status:                      payload.StateStatusEmpty,
 				Object:                      object,
 				AsOf:                        p,
 				OrderedPendingCount:         1,

@@ -12,15 +12,15 @@ option (gogoproto.goproto_enum_prefix_all) = false;
 option (insproto.register_all) = "RegisterMessageType";
 
 enum CallType {
-    CTInvalid = 0; // zero value in Go
-    CTInboundAPICall = 1;
-    CTOutboundAPICall = 2;
-    CTMethod = 3;
-    CTConstructor = 4;
-    CTNotifyCall = 5;
-    CTSAGACall = 6;
-    CTParallelCall = 7;
-    CTScheduleCall = 8;
+    CallTypeInvalid = 0; // zero value in Go
+    CallTypeInboundAPI = 1;
+    CallTypeOutboundAPI = 2;
+    CallTypeMethod = 3;
+    CallTypeConstructor = 4;
+    CallTypeNotify = 5;
+    CallTypeSAGA = 6;
+    CallTypeParallel = 7;
+    CallTypeSchedule = 8;
 }
 
 message VCallRequest {
@@ -108,11 +108,11 @@ message VStateReport {
     option (insproto.id) = 1004;
 
     enum StateStatus {
-        Unknown = 0; // zero value in Go
-        Ready = 1;
-        Empty = 2;
-        Inactive = 3;
-        Missing = 4;
+        StateStatusInvalid = 0; // zero value in Go
+        StateStatusReady = 1;
+        StateStatusEmpty = 2;
+        StateStatusInactive = 3;
+        StateStatusMissing = 4;
     }
     StateStatus Status = 37;
 
@@ -218,10 +218,10 @@ message VFindCallRequest {
 message VFindCallResponse {
     option (insproto.id) = 1012;
     enum CallState {
-        InvalidCallState = 0; // zero value in Go
-        MissingCall = 1;
-        UnknownCall = 2;
-        FoundCall = 3;
+        CallStateInvalid = 0; // zero value in Go
+        CallStateMissing = 1;
+        CallStateUnknown = 2;
+        CallStateFound = 3;
     }
     uint32 LookedAt = 20 [(gogoproto.casttype) = "PulseNumber"];
     Reference Callee = 21;

@@ -27,6 +27,7 @@ import (
 
 const BuiltinTestAPIEcho = "insolar:0AAABApiTestEcho____"
 const BuiltinTestAPIBriefEcho = "insolar:0AAABrief.0AAABApiTestEcho____"
+
 var builtinTestAPIEchoRef, _ = reference.GlobalFromString(BuiltinTestAPIEcho)
 var builtinTestAPIEchoBriefRef, _ = reference.GlobalFromString(BuiltinTestAPIBriefEcho)
 
@@ -82,9 +83,9 @@ func (s *SMTestAPICall) stepSend(ctx smachine.ExecutionContext) smachine.StateUp
 	s.requestPayload.CallOutgoing = reference.NewRecordOf(APICaller, outLocal)
 
 	switch s.requestPayload.CallType {
-	case payload.CTMethod:
+	case payload.CallTypeMethod:
 		s.object = s.requestPayload.Callee
-	case payload.CTConstructor:
+	case payload.CallTypeConstructor:
 		s.object = reference.NewSelf(outLocal)
 	default:
 		panic(throw.IllegalValue())

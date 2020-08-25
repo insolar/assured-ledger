@@ -32,7 +32,7 @@ func BenchmarkOnWallets(b *testing.B) {
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, b, server)
 	typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool {
-		if result.CallType == payload.CTConstructor {
+		if result.CallType == payload.CallTypeConstructor {
 			var (
 				err             error
 				ref             reference.Global

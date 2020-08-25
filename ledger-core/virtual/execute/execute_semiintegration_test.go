@@ -64,7 +64,7 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
-			CallType:     payload.CTConstructor,
+			CallType:     payload.CallTypeConstructor,
 			CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 			CallOutgoing: outgoing,
 
@@ -143,7 +143,7 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
-			CallType:     payload.CTConstructor,
+			CallType:     payload.CallTypeConstructor,
 			CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 			CallOutgoing: outgoing,
 
@@ -223,7 +223,7 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
-			CallType:     payload.CTConstructor,
+			CallType:     payload.CallTypeConstructor,
 			CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 			CallOutgoing: outgoing,
 
@@ -304,7 +304,7 @@ func TestSMExecute_Semi_ConstructorOnMissingObject(t *testing.T) {
 
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
-			CallType:     payload.CTConstructor,
+			CallType:     payload.CallTypeConstructor,
 			CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 			CallOutgoing: outgoing,
 
@@ -390,7 +390,7 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
-			CallType:     payload.CTConstructor,
+			CallType:     payload.CallTypeConstructor,
 			CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 			CallOutgoing: outgoing,
 
@@ -472,7 +472,7 @@ func TestSMExecute_Semi_MethodOnEmptyObject(t *testing.T) {
 
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
-			CallType:     payload.CTMethod,
+			CallType:     payload.CallTypeMethod,
 			CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 			CallOutgoing: outgoing,
 
