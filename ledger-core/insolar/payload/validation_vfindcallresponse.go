@@ -31,13 +31,13 @@ func (m *VFindCallResponse) Validate(currentPulse PulseNumber) error {
 	}
 
 	switch m.GetStatus() {
-	case MissingCall:
+	case CallStateMissing:
 		fallthrough
-	case UnknownCall:
+	case CallStateUnknown:
 		if m.CallResult != nil {
 			return throw.New("Call result should be empty")
 		}
-	case FoundCall:
+	case CallStateFound:
 		if m.CallResult != nil {
 			return m.CallResult.Validate(currentPulse)
 		}

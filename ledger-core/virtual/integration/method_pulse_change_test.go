@@ -97,7 +97,7 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 
 				server.IncrementPulse(ctx)
 
-				Method_PrepareObject(ctx, server, payload.Ready, object, prevPulse)
+				Method_PrepareObject(ctx, server, payload.StateStatusReady, object, prevPulse)
 			}
 
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
@@ -155,7 +155,7 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 				typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
 					// check for pending counts must be in tests: call terminal method case C5104
 					assert.Equal(t, object, report.Object)
-					assert.Equal(t, payload.Ready, report.Status)
+					assert.Equal(t, payload.StateStatusReady, report.Status)
 					assert.Zero(t, report.DelegationSpec)
 					return false
 				})
@@ -304,7 +304,7 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 		}
 
 		vsrPayload := &payload.VStateReport{
-			Status:          payload.Ready,
+			Status:          payload.StateStatusReady,
 			Object:          object,
 			AsOf:            prevPulse,
 			ProvidedContent: content,
@@ -321,7 +321,7 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 	// add checks to typedChecker
 	{
 		typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
-			assert.Equal(t, payload.Ready, report.Status)
+			assert.Equal(t, payload.StateStatusReady, report.Status)
 			assert.Equal(t, currPulse, report.AsOf)
 			assert.Equal(t, object, report.Object)
 			assert.Zero(t, report.DelegationSpec)
@@ -507,7 +507,7 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 			// create object state
 			{
 				vsrPayload := &payload.VStateReport{
-					Status:                      payload.Empty,
+					Status:                      payload.StateStatusEmpty,
 					Object:                      object,
 					AsOf:                        p1,
 					OrderedPendingCount:         1,
@@ -571,7 +571,7 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 			// VDelegatedRequestFinished
 			{
 				finished := payload.VDelegatedRequestFinished{
-					CallType:     payload.CTMethod,
+					CallType:     payload.CallTypeMethod,
 					CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 					Callee:       object,
 					CallOutgoing: outgoingP1,

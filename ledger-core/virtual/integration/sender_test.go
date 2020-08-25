@@ -126,7 +126,7 @@ func TestVirtual_SenderCheck_With_ExpectedVE(t *testing.T) {
 					case *payload.VStateReport:
 						pn := server.GetPrevPulse().PulseNumber
 
-						m.Status = payload.Missing
+						m.Status = payload.StateStatusMissing
 						m.AsOf = pn
 						m.Object = gen.UniqueGlobalRefWithPulse(pn)
 
@@ -143,7 +143,7 @@ func TestVirtual_SenderCheck_With_ExpectedVE(t *testing.T) {
 						m.LookedAt = pn
 						m.Callee = gen.UniqueGlobalRefWithPulse(pn)
 						m.Outgoing = server.BuildRandomOutgoingWithGivenPulse(pn)
-						m.Status = payload.MissingCall
+						m.Status = payload.CallStateMissing
 
 					case *payload.VDelegatedCallRequest:
 						pn := server.GetPrevPulse().PulseNumber
@@ -167,7 +167,7 @@ func TestVirtual_SenderCheck_With_ExpectedVE(t *testing.T) {
 
 					case *payload.VCallResult:
 						m.CallFlags = payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty)
-						m.CallType = payload.CTMethod
+						m.CallType = payload.CallTypeMethod
 						m.Callee = server.RandomGlobalWithPulse()
 						m.Caller = server.GlobalCaller()
 						m.CallOutgoing = server.BuildRandomOutgoingWithPulse()

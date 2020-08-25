@@ -44,7 +44,7 @@ func TestSMExecute_PublishVCallResultToCallSummarySM(t *testing.T) {
 	class := gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
 
 	request := &payload.VCallRequest{
-		CallType:       payload.CTConstructor,
+		CallType:       payload.CallTypeConstructor,
 		CallFlags:      callFlags,
 		CallSiteMethod: "New",
 		CallOutgoing:   outgoingRef,

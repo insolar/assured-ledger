@@ -152,7 +152,7 @@ func Test_Execute_stepIsolationNegotiation(t *testing.T) {
 			)
 
 			request := &payload.VCallRequest{
-				CallType:       payload.CTConstructor,
+				CallType:       payload.CallTypeConstructor,
 				CallFlags:      payload.BuildCallFlags(tc.callIsolation.Interference, tc.callIsolation.State),
 				CallSiteMethod: "New",
 				CallOutgoing:   gen.UniqueGlobalRefWithPulse(pd.PulseNumber),
