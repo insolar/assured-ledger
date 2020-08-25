@@ -15,6 +15,7 @@ import (
 	"github.com/paulbellamy/ratecounter"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/testutils/launchnet"
+	"github.com/insolar/assured-ledger/ledger-core/application/testwalletapi/statemachine"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -24,7 +25,7 @@ func BenchmarkSinglePulse(b *testing.B) {
 
 	for numNodes := 2; numNodes <= 5; numNodes++ {
 		b.Run(fmt.Sprintf("Nodes %d", numNodes), func(b *testing.B) {
-			res := launchnet.CustomRunWithoutPulsar(numNodes, 0, 0, runBenchOnNetwork(numNodes))
+			res := launchnet.CustomRunWithoutPulsar(numNodes, 0, 0, runBenchOnNetwork(b, numNodes))
 			if res != 0 {
 				b.Error("network run failed")
 				b.Fatal("failed test run")
@@ -33,7 +34,7 @@ func BenchmarkSinglePulse(b *testing.B) {
 	}
 }
 
-func runBenchOnNetwork(numNodes int) func(apiAddresses []string) int {
+func runBenchOnNetwork(b *testing.B, numNodes int) func(apiAddresses []string) int {
 	return func(apiAddresses []string) int {
 		ctx := context.Background()
 		setAPIAddresses(apiAddresses)
@@ -49,20 +50,56 @@ func runBenchOnNetwork(numNodes int) func(apiAddresses []string) int {
 			wallets = append(wallets, wallet)
 		}
 
-		res := runGetBench(wallets)
-		if res != nil {
+		err := runBriefEchoBench()
+		if err != nil {
+			b.Error(err)
 			return 2
 		}
-		res = runSetBench(wallets)
-		if res != nil {
+
+		err = runEchoBench()
+		if err != nil {
+			b.Error(err)
+			return 2
+		}
+
+		err = runGetBench(wallets)
+		if err != nil {
+			b.Error(err)
+			return 2
+		}
+		err = runSetBench(wallets)
+		if err != nil {
+			b.Error(err)
 			return 2
 		}
 		return 0
 	}
 }
 
+func runBriefEchoBench() error {
+	return runBench(500000, "brief echo", func(ctx context.Context, iterator int) error {
+		walletRef := statemachine.BuiltinTestAPIBriefEcho
+		getBalanceURL := getURL(walletGetBalancePath, "")
+
+		_, err := getWalletBalance(ctx, getBalanceURL, walletRef)
+
+		return err
+	})
+}
+
+func runEchoBench() error {
+	return runBench(100000, "echo", func(ctx context.Context, iterator int) error {
+		walletRef := statemachine.BuiltinTestAPIEcho
+		getBalanceURL := getURL(walletGetBalancePath, "")
+
+		_, err := getWalletBalance(ctx, getBalanceURL, walletRef)
+
+		return err
+	})
+}
+
 func runSetBench(wallets []string) error {
-	return runBench(10000, "set", func(ctx context.Context, iterator int) error {
+	return runBench(5000, "set", func(ctx context.Context, iterator int) error {
 		walletRef := wallets[iterator%len(wallets)]
 		addAmountURL := getURL(walletAddAmountPath, "")
 
@@ -71,7 +108,7 @@ func runSetBench(wallets []string) error {
 }
 
 func runGetBench(wallets []string) error {
-	return runBench(10000, "get", func(ctx context.Context, iterator int) error {
+	return runBench(5000, "get", func(ctx context.Context, iterator int) error {
 		walletRef := wallets[iterator%len(wallets)]
 		getBalanceURL := getURL(walletGetBalancePath, "")
 
@@ -93,9 +130,11 @@ func runBench(iterations int, name string, workerFunc func(ctx context.Context, 
 	)
 
 	startBench := time.Now()
+	counterStopped := make(chan struct{})
 
 	// I don't use ticker, because with a lot of goroutines it cannot handle the case
 	go func() {
+		defer close(counterStopped)
 		for {
 			select {
 			case <-ctx.Done():
@@ -116,13 +155,25 @@ func runBench(iterations int, name string, workerFunc func(ctx context.Context, 
 		}
 
 		g.Go(func() error {
+			select {
+			case <-ctx.Done():
+				return nil
+			default:
+			}
+
 			startTime := time.Now()
 
 			err := workerFunc(ctx, i)
 
-			timingCounter.Incr(time.Since(startTime).Nanoseconds())
-			counter.Incr(1)
-			secondRateCounter.Incr(1)
+			defer func() {
+				timingCounter.Incr(time.Since(startTime).Nanoseconds())
+				counter.Incr(1)
+				secondRateCounter.Incr(1)
+			}()
+
+			if err == context.Canceled {
+				return nil
+			}
 
 			return err
 		})
@@ -132,6 +183,8 @@ func runBench(iterations int, name string, workerFunc func(ctx context.Context, 
 	if err != nil {
 		return throw.W(err, "api failed")
 	}
+
+	<-counterStopped
 
 	finished := time.Since(startBench)
 

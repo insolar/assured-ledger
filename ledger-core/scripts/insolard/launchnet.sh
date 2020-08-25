@@ -12,7 +12,7 @@ INSOLAR_LOG_FORMATTER=${INSOLAR_LOG_FORMATTER:-"json"}
 INSOLAR_LOG_LEVEL=${INSOLAR_LOG_LEVEL:-"debug"}
 # we can skip build binaries (by default in CI environment they skips)
 SKIP_BUILD=${SKIP_BUILD:-${CI_ENV}}
-BUILD_TAGS=${BUILD_TAGS:-''}
+BUILD_TAGS=${BUILD_TAGS:-'debug'}
 EXTRA_BUILD_ARGS=''
 
 # predefined/dependent environment variables
