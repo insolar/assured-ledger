@@ -6,31 +6,31 @@
 package rms
 
 const (
-	TypeRLifelineStartPolymorthID = TypeROutboundRequestPolymorthID +1
-	TypeRSidelineStartPolymorthID = TypeROutboundRequestPolymorthID +2
-	TypeROutboundRetryableRequestPolymorthID = TypeROutboundRequestPolymorthID +3
-	TypeROutboundRetryRequestPolymorthID = TypeROutboundRequestPolymorthID +4
+	TypeRLifelineStartPolymorphID            = TypeROutboundRequestPolymorphID + 1
+	TypeRSidelineStartPolymorphID            = TypeROutboundRequestPolymorphID + 2
+	TypeROutboundRetryableRequestPolymorphID = TypeROutboundRequestPolymorphID + 3
+	TypeROutboundRetryRequestPolymorphID     = TypeROutboundRequestPolymorphID + 4
 
-	TypeRLineMemoryInitPolymorthID = TypeRLineMemoryPolymorthID +1
-	TypeRLineMemoryProvidedPolymorthID = TypeRLineMemoryPolymorthID +2
+	TypeRLineMemoryInitPolymorphID     = TypeRLineMemoryPolymorphID + 1
+	TypeRLineMemoryProvidedPolymorphID = TypeRLineMemoryPolymorphID + 2
 )
 
 type (
-	RLifelineStart = ROutboundRequest
-	RSidelineStart = ROutboundRequest
+	RLifelineStart            = ROutboundRequest
+	RSidelineStart            = ROutboundRequest
 	ROutboundRetryableRequest = ROutboundRequest
-	ROutboundRetryRequest = ROutboundRequest
+	ROutboundRetryRequest     = ROutboundRequest
 
-	RLineMemoryInit = RLineMemory
+	RLineMemoryInit     = RLineMemory
 	RLineMemoryProvided = RLineMemory
 )
 
 func init() {
-	RegisterRecordType(TypeRLifelineStartPolymorthID, "", (*RLifelineStart)(nil))
-	RegisterRecordType(TypeRSidelineStartPolymorthID, "", (*RSidelineStart)(nil))
-	RegisterRecordType(TypeROutboundRetryableRequestPolymorthID, "", (*ROutboundRetryableRequest)(nil))
-	RegisterRecordType(TypeROutboundRetryRequestPolymorthID, "", (*ROutboundRetryRequest)(nil))
+	RegisterRecordType(TypeRLifelineStartPolymorphID, "", (*RLifelineStart)(nil))
+	RegisterRecordType(TypeRSidelineStartPolymorphID, "", (*RSidelineStart)(nil))
+	RegisterRecordType(TypeROutboundRetryableRequestPolymorphID, "", (*ROutboundRetryableRequest)(nil))
+	RegisterRecordType(TypeROutboundRetryRequestPolymorphID, "", (*ROutboundRetryRequest)(nil))
 
-	RegisterRecordType(TypeRLineMemoryInitPolymorthID, "", (*RLineMemoryInit)(nil))
-	RegisterRecordType(TypeRLineMemoryProvidedPolymorthID, "", (*RLineMemoryProvided)(nil))
+	RegisterRecordType(TypeRLineMemoryInitPolymorphID, "", (*RLineMemoryInit)(nil))
+	RegisterRecordType(TypeRLineMemoryProvidedPolymorphID, "", (*RLineMemoryProvided)(nil))
 }

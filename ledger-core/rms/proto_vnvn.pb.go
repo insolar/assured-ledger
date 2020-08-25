@@ -273,7 +273,7 @@ func (m *MessageExample) Visit(ctx MessageVisitor) error {
 	return ctx.Message(m, 999999990)
 }
 
-const TypeMessageExamplePolymorthID = 999999990
+const TypeMessageExamplePolymorphID = 999999990
 
 func (*MessageExample) GetDefaultPolymorphID() uint64 {
 	return 999999990
@@ -343,7 +343,7 @@ func (m *MessageExample_Head) Visit(ctx MessageVisitor) error {
 	return ctx.Message(m, 999999990)
 }
 
-const TypeMessageExample_HeadPolymorthID = 999999990
+const TypeMessageExample_HeadPolymorphID = 999999990
 
 func (*MessageExample_Head) GetDefaultPolymorphID() uint64 {
 	return 999999990
