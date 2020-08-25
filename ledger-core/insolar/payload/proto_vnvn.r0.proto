@@ -229,3 +229,27 @@ message VFindCallResponse {
     CallState Status = 23;
     VCallResult CallResult = 24 [(gogoproto.nullable) = true];
 }
+
+message VCachedMemoryRequest {
+    option (insproto.id) = 1013;
+    Reference Object = 21;
+    Reference StateID = 50;
+}
+
+message VCachedMemoryResponse {
+    option (insproto.id) = 1014;
+    enum Status {
+        Unknown = 0; // zero value in Go
+        Found = 1;
+        Redirect = 2;
+        Missing = 3;
+    }
+
+    Reference Object = 21;
+    Reference StateID = 50;
+    Status CallStatus = 51;
+    Reference Node = 52;
+    Reference PrevStateID = 53;
+    bool Inactive = 25;
+    bytes Memory = 54;
+}
