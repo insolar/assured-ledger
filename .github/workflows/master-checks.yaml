@@ -108,12 +108,24 @@ jobs:
         if: always()
         run: tar --warning=no-file-changed -cvzf nodes-output.tgz .artifacts/launchnet/logs/discoverynodes/*/output.log || true
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
+      - name: Run benchmarks
+        run: make benchmarks
+          working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
+      - name: Aggregate logs after benchmarks
+        run: tar --warning=no-file-changed -cvzf benchamrks-nodes-output.tgz .artifacts/launchnet/logs/discoverynodes/*/output.log || true
+          working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
       - name: Upload logs to artifacts
         if: always()
         uses: actions/upload-artifact@v1
         with:
           name: nodes-output
           path: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/nodes-output.tgz
+      - name: Upload logs to artifacts
+        if: always()
+        uses: actions/upload-artifact@v1
+        with:
+          name: nodes-output
+          path: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/benchamrks-nodes-output.tgz
       - name: Send failure notification to Slack
         if: ${{ failure() }}
         uses: 8398a7/action-slack@v3

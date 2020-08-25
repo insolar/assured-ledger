@@ -15,9 +15,17 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/google/gops/agent"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	jsoniter "github.com/json-iterator/go"
 )
+
+func init() {
+	// starts gops agent https://github.com/google/gops on default addr (127.0.0.1:0)
+	if err := agent.Listen(agent.Options{}); err != nil {
+		panic(err)
+	}
+}
 
 var (
 	httpClient   *http.Client
@@ -48,8 +56,10 @@ func init() {
 // createHTTPClient for connection re-use
 func createHTTPClient() *http.Client {
 	client := &http.Client{
-		Transport: &http.Transport{},
-		Timeout:   requestTimeout,
+		Transport: &http.Transport{
+			MaxIdleConnsPerHost: 10000,
+		},
+		Timeout: requestTimeout,
 	}
 
 	return client
@@ -77,11 +87,6 @@ func doReq(req *http.Request) ([]byte, error) {
 	if err != nil {
 		return nil, throw.W(err, "problem with sending request")
 	}
-
-	if postResp == nil {
-		return nil, throw.New("response is nil")
-	}
-
 	defer postResp.Body.Close()
 	if http.StatusOK != postResp.StatusCode {
 		return nil, throw.New("bad http response code: " + strconv.Itoa(postResp.StatusCode))
