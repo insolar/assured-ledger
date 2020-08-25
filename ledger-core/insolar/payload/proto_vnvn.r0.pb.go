@@ -1600,7 +1600,7 @@ var fileDescriptor_8a268ff04305613a = []byte{
 	0x00, 0xff, 0xff, 0x97, 0x81, 0x52, 0x62, 0x04, 0x1e, 0x00, 0x00,
 }
 
-const TypeVCallRequestPolymorthID = 1001
+const TypeVCallRequestPolymorphID = 1001
 
 func (*VCallRequest) GetDefaultPolymorphID() uint64 {
 	return 1001
@@ -1952,7 +1952,7 @@ func (m *VCallRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-const TypeVCallResultPolymorthID = 1002
+const TypeVCallResultPolymorphID = 1002
 
 func (*VCallResult) GetDefaultPolymorphID() uint64 {
 	return 1002
@@ -2204,7 +2204,7 @@ func (m *VCallResult) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-const TypeVStateRequestPolymorthID = 1003
+const TypeVStateRequestPolymorphID = 1003
 
 func (*VStateRequest) GetDefaultPolymorphID() uint64 {
 	return 1003
@@ -2320,7 +2320,7 @@ func (m *VStateRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-const TypeVStateReportPolymorthID = 1004
+const TypeVStateReportPolymorphID = 1004
 
 func (*VStateReport) GetDefaultPolymorphID() uint64 {
 	return 1004
@@ -2735,7 +2735,7 @@ func (m *ObjectState) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-const TypeVDelegatedRequestFinishedPolymorthID = 1006
+const TypeVDelegatedRequestFinishedPolymorphID = 1006
 
 func (*VDelegatedRequestFinished) GetDefaultPolymorphID() uint64 {
 	return 1006
@@ -2877,7 +2877,7 @@ func (m *VDelegatedRequestFinished) MarshalToSizedBuffer(dAtA []byte) (int, erro
 	return len(dAtA) - i, nil
 }
 
-const TypeVDelegatedCallRequestPolymorthID = 1008
+const TypeVDelegatedCallRequestPolymorphID = 1008
 
 func (*VDelegatedCallRequest) GetDefaultPolymorphID() uint64 {
 	return 1008
@@ -2988,7 +2988,7 @@ func (m *VDelegatedCallRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-const TypeVDelegatedCallResponsePolymorthID = 1009
+const TypeVDelegatedCallResponsePolymorphID = 1009
 
 func (*VDelegatedCallResponse) GetDefaultPolymorphID() uint64 {
 	return 1009
@@ -3064,7 +3064,7 @@ func (m *VDelegatedCallResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) 
 	return len(dAtA) - i, nil
 }
 
-const TypeCallDelegationTokenPolymorthID = 1010
+const TypeCallDelegationTokenPolymorphID = 1010
 
 func (*CallDelegationToken) GetDefaultPolymorphID() uint64 {
 	return 1010
@@ -3193,7 +3193,7 @@ func (m *CallDelegationToken) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-const TypeVFindCallRequestPolymorthID = 1011
+const TypeVFindCallRequestPolymorphID = 1011
 
 func (*VFindCallRequest) GetDefaultPolymorphID() uint64 {
 	return 1011
@@ -3262,7 +3262,7 @@ func (m *VFindCallRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-const TypeVFindCallResponsePolymorthID = 1012
+const TypeVFindCallResponsePolymorphID = 1012
 
 func (*VFindCallResponse) GetDefaultPolymorphID() uint64 {
 	return 1012

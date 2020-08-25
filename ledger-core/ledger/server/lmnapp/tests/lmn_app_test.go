@@ -52,7 +52,7 @@ func TestGenesisTree(t *testing.T) {
 	server.IncrementPulse()
 
 	// genesis will run here and will initialize jet tree
-	<- ch
+	<-ch
 
 	// but the jet tree is not available till pulse change
 	prev, cur, ok := treeSvc.GetTrees(server.LastPulseNumber())
@@ -63,7 +63,7 @@ func TestGenesisTree(t *testing.T) {
 	ch = jrn.WaitStopOf(&datawriter.SMPlash{}, 1)
 	ch2 := jrn.WaitInitOf(&datawriter.SMDropBuilder{}, 1<<datawriter.DefaultGenesisSplitDepth)
 
-	server.IncrementPulse() 	// tree will switch and drops will be created
+	server.IncrementPulse() // tree will switch and drops will be created
 
 	// but the jet tree is not available till pulse change
 	prev, cur, ok = treeSvc.GetTrees(server.LastPulseNumber())
@@ -71,10 +71,10 @@ func TestGenesisTree(t *testing.T) {
 	require.True(t, prev.IsEmpty())
 	require.False(t, cur.IsEmpty())
 
-	time.Sleep(time.Second/4)
+	time.Sleep(time.Second / 4)
 
-	<- ch
-	<- ch2
+	<-ch
+	<-ch2
 }
 
 func TestReadyTree(t *testing.T) {
@@ -99,7 +99,7 @@ func TestReadyTree(t *testing.T) {
 
 	server.Start()
 	server.IncrementPulse() // trigger plash creation, but it will stop without a prev pulse
-	<- ch
+	<-ch
 
 	// but the jet tree is already available
 	prev, cur, ok := treeSvc.GetTrees(server.LastPulseNumber())
@@ -110,10 +110,9 @@ func TestReadyTree(t *testing.T) {
 	ch = jrn.WaitStopOf(&datawriter.SMPlash{}, 1)
 	ch2 := jrn.WaitInitOf(&datawriter.SMDropBuilder{}, 1<<datawriter.DefaultGenesisSplitDepth)
 	server.IncrementPulse() // trigger plash creation
-	<- ch
-	<- ch2
+	<-ch
+	<-ch2
 }
-
 
 func TestRunGenesis(t *testing.T) {
 	server := lmntestapp.NewTestServer(t)
@@ -130,7 +129,7 @@ func TestRunGenesis(t *testing.T) {
 	ch := jrn.WaitInitOf(&datawriter.SMDropBuilder{}, 1<<datawriter.DefaultGenesisSplitDepth)
 	server.IncrementPulse()
 
-	<- ch
+	<-ch
 }
 
 func TestAddRecords(t *testing.T) {
@@ -151,8 +150,8 @@ func TestAddRecords(t *testing.T) {
 
 	genNewLine := generatorNewLifeline{
 		recBuilder: recBuilder,
-		conv: server.App().Conveyor(),
-		body: make([]byte, 1<<10),
+		conv:       server.App().Conveyor(),
+		body:       make([]byte, 1<<10),
 	}
 
 	reasonRef := gen.UniqueGlobalRefWithPulse(server.LastPulseNumber())
@@ -265,8 +264,8 @@ func benchmarkWriteNew(b *testing.B, bodySize int, parallel bool) {
 
 	genNewLine := generatorNewLifeline{
 		recBuilder: recBuilder,
-		conv: server.App().Conveyor(),
-		body: make([]byte, bodySize),
+		conv:       server.App().Conveyor(),
+		body:       make([]byte, bodySize),
 	}
 
 	reasonRef := gen.UniqueGlobalRefWithPulse(server.LastPulseNumber())
@@ -291,10 +290,10 @@ func benchmarkWriteNew(b *testing.B, bodySize int, parallel bool) {
 
 type generatorNewLifeline struct {
 	recBuilder lmntestapp.RecordBuilder
-	seqNo atomickit.Uint32
+	seqNo      atomickit.Uint32
 	totalBytes atomickit.Uint64
-	body []byte
-	conv *conveyor.PulseConveyor
+	body       []byte
+	conv       *conveyor.PulseConveyor
 }
 
 func (p *generatorNewLifeline) makeSet(reasonRef reference.Holder) inspectsvc.RegisterRequestSet {
@@ -302,11 +301,11 @@ func (p *generatorNewLifeline) makeSet(reasonRef reference.Holder) inspectsvc.Re
 	rb, rootRec := p.recBuilder.MakeLineStart(&rms.RLifelineStart{
 		Str: strconv.Itoa(int(p.seqNo.Add(1))),
 	})
-	rootRec.OverrideRecordType = rms.TypeRLifelineStartPolymorthID
+	rootRec.OverrideRecordType = rms.TypeRLifelineStartPolymorphID
 	rootRec.OverrideReasonRef.Set(reasonRef)
 
 	rMem := &rms.RLineMemoryInit{
-		Polymorph: rms.TypeRLineMemoryInitPolymorthID,
+		Polymorph: rms.TypeRLineMemoryInitPolymorphID,
 		RootRef:   rootRec.AnticipatedRef,
 		PrevRef:   rootRec.AnticipatedRef,
 	}
@@ -348,7 +347,7 @@ func (p *generatorNewLifeline) callRegister(recordSet inspectsvc.RegisterRequest
 	if err != nil {
 		panic(err)
 	}
-	data := <- ch
+	data := <-ch
 	if data.Result == nil {
 		return nil, data.Error
 	}
