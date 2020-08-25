@@ -32,4 +32,4 @@ metrics:
   reportingperiod: 0s
 log:
   level: debug
-oneshot: true
+oneshot: false
