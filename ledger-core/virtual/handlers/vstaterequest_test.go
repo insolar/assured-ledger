@@ -34,7 +34,7 @@ func TestVStateRequest_ProcessObjectWithoutState(t *testing.T) {
 		smObjectID      = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
 		smGlobalRef     = reference.NewSelf(smObjectID)
 		sharedStateData = smachine.NewUnboundSharedData(&payload.VStateReport{
-			Status:              payload.Empty,
+			Status:              payload.StateStatusEmpty,
 			AsOf:                pulse.Unknown,
 			Object:              smGlobalRef,
 			OrderedPendingCount: 1,

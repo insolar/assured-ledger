@@ -49,7 +49,7 @@ func TestSMTestAPICall_MethodResends(t *testing.T) {
 	slotMachine := slotdebugger.New(ctx, t)
 
 	request := payload.VCallRequest{
-		CallType:       payload.CTMethod,
+		CallType:       payload.CallTypeMethod,
 		Callee:         gen.UniqueGlobalRef(),
 		CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 		CallSiteMethod: "New",
@@ -122,7 +122,7 @@ func TestSMTestAPICall_MethodEcho(t *testing.T) {
 	require.NoError(t, err)
 
 	request := payload.VCallRequest{
-		CallType:       payload.CTMethod,
+		CallType:       payload.CallTypeMethod,
 		Callee:         echoRef,
 		CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 		CallSiteMethod: "can be any",
@@ -162,7 +162,7 @@ func TestSMTestAPICall_Constructor(t *testing.T) {
 	slotMachine := slotdebugger.New(ctx, t)
 
 	request := payload.VCallRequest{
-		CallType:       payload.CTConstructor,
+		CallType:       payload.CallTypeConstructor,
 		Callee:         gen.UniqueGlobalRef(),
 		CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 		CallSiteMethod: "New",
@@ -212,7 +212,7 @@ func TestSMTestAPICall_RetriesExceeded(t *testing.T) {
 	slotMachine := slotdebugger.New(ctx, t)
 
 	request := payload.VCallRequest{
-		CallType:       payload.CTMethod,
+		CallType:       payload.CallTypeMethod,
 		Callee:         gen.UniqueGlobalRef(),
 		CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
 		CallSiteMethod: "New",

@@ -168,7 +168,7 @@ func TestVirtual_StateReport_CheckPendingCountersAndPulses(t *testing.T) {
 
 			report := payload.VStateReport{
 				AsOf:   suite.getPulse(3),
-				Status: payload.Ready,
+				Status: payload.StateStatusReady,
 				Object: suite.getObject(),
 
 				UnorderedPendingCount:         2,
@@ -335,7 +335,7 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) finishActivePending(
 ) {
 	reqInfo := s.requests[reqName]
 	pl := payload.VDelegatedRequestFinished{
-		CallType:     payload.CTMethod,
+		CallType:     payload.CallTypeMethod,
 		CallFlags:    reqInfo.flags,
 		Callee:       s.getObject(),
 		CallOutgoing: reqInfo.ref,
@@ -493,7 +493,7 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) setMessageCheckers(
 			LookedAt: s.getPulse(3),
 			Callee:   s.getObject(),
 			Outgoing: req.Outgoing,
-			Status:   payload.MissingCall,
+			Status:   payload.CallStateMissing,
 		}
 		s.server.SendPayload(ctx, &pl)
 

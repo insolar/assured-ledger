@@ -161,7 +161,7 @@ func (s *SMVDelegatedRequestFinished) updateSharedState(
 		state.SetDescriptorDirty(s.latestState())
 		s.updateObjectState(state)
 	} else if s.Payload.CallFlags.GetInterference() == contract.CallTolerable &&
-		s.Payload.CallType == payload.CTConstructor &&
+		s.Payload.CallType == payload.CallTypeConstructor &&
 		state.GetState() == object.Empty {
 
 		ctx.Log().Warn(noLatestStateTolerableVDelegateRequestFinished{

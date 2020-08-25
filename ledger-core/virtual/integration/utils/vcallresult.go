@@ -13,7 +13,7 @@ import (
 
 func MakeMinimumValidVStateResult(server *Server, returnArgs []byte) *payload.VCallResult {
 	return &payload.VCallResult{
-		CallType:        payload.CTMethod,
+		CallType:        payload.CallTypeMethod,
 		CallFlags:       payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
 		Callee:          reference.NewSelf(server.RandomLocalWithPulse()),
 		Caller:          server.GlobalCaller(),

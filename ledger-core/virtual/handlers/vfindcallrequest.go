@@ -154,15 +154,15 @@ func (s *SMVFindCallRequest) stepGetRequestData(ctx smachine.ExecutionContext) s
 		return ctx.Jump(s.stepNotFoundResponse)
 	}
 
-	s.status = payload.FoundCall
+	s.status = payload.CallStateFound
 
 	return ctx.Jump(s.stepSendResponse)
 }
 
 func (s *SMVFindCallRequest) stepNotFoundResponse(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	s.status = payload.MissingCall
+	s.status = payload.CallStateMissing
 	if s.Payload.Outgoing.GetLocal().Pulse() < s.Payload.LookAt {
-		s.status = payload.UnknownCall
+		s.status = payload.CallStateUnknown
 	}
 	return ctx.Jump(s.stepSendResponse)
 }
