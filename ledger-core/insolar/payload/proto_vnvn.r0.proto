@@ -239,10 +239,10 @@ message VCachedMemoryRequest {
 message VCachedMemoryResponse {
     option (insproto.id) = 1014;
     enum Status {
-        UnknownCachedMemoryState = 0; // zero value in Go
-        FoundCachedMemoryState = 1;
-        RedirectCachedMemoryState = 2;
-        MissingCachedMemoryState = 3;
+        CachedMemoryStateUnknown = 0; // zero value in Go
+        CachedMemoryStateFound = 1;
+        CachedMemoryStateRedirect = 2;
+        CachedMemoryStateMissing = 3;
     }
 
     Reference Object = 21;
