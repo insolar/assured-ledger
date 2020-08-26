@@ -42,6 +42,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/mock/publisher"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/memorycache"
 )
 
 type Server struct {
@@ -56,6 +57,7 @@ type Server struct {
 	virtual       *virtual.Dispatcher
 	Runner        *runner.DefaultService
 	messageSender *messagesender.DefaultService
+	memoryCache   *memorycache.DefaultService
 
 	// testing components and Mocks
 	PublisherMock      *publisher.Mock
@@ -161,6 +163,8 @@ func newServerExt(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFi
 	messageSender := messagesender.NewDefaultService(s.PublisherMock, s.JetCoordinatorMock, s.pulseStorage)
 	s.messageSender = messageSender
 
+	s.memoryCache = memorycache.NewDefaultService()
+
 	var machineLogger smachine.SlotMachineLogger
 
 	if convlog.UseTextConvLog() {
@@ -260,7 +264,6 @@ func (s *Server) SendMsg(msg beat.Message) {
 		panic(err)
 	}
 }
-
 
 func (s *Server) ReplaceRunner(svc runner.Service) {
 	s.virtual.Runner = svc
