@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/gojuno/minimock/v3"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gotest.tools/assert"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
@@ -33,7 +33,7 @@ func TestVirtual_VCachedMemoryRequest(t *testing.T) {
 		constructor bool
 		pending     bool
 	}{
-		// {name: "Object state created from constructor", constructor: true},
+		{name: "Object state created from constructor", constructor: true},
 		{name: "Object state created from method", method: true},
 		{name: "Object state created from pending", pending: true},
 	}
@@ -54,6 +54,7 @@ func TestVirtual_VCachedMemoryRequest(t *testing.T) {
 
 			runnerMock := logicless.NewServiceMock(ctx, t, nil)
 			server.ReplaceRunner(runnerMock)
+			server.Init(ctx)
 
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
@@ -129,7 +130,6 @@ func TestVirtual_VCachedMemoryRequest(t *testing.T) {
 
 				// add ExecutionMocks to runnerMock
 				{
-
 					runnerMock.AddExecutionClassify(key, contract.MethodIsolation{pl.CallFlags.GetInterference(), pl.CallFlags.GetState()}, nil)
 
 					requestResult := requestresult.New([]byte("call result"), gen.UniqueGlobalRef())
@@ -151,6 +151,54 @@ func TestVirtual_VCachedMemoryRequest(t *testing.T) {
 					)
 				}
 
+				// add checks to typedChecker
+				{
+					typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
+						assert.Equal(t, objectGlobal, report.Object)
+						assert.Equal(t, payload.StateStatusReady, report.Status)
+						assert.Zero(t, report.DelegationSpec)
+						return false
+					})
+					typedChecker.VDelegatedCallRequest.Set(func(request *payload.VDelegatedCallRequest) bool {
+						p2 := server.GetPulse().PulseNumber
+
+						assert.Equal(t, objectGlobal, request.Callee)
+						assert.Zero(t, request.DelegationSpec)
+
+						approver := gen.UniqueGlobalRef()
+
+						firstTokenValue := payload.CallDelegationToken{
+							TokenTypeAndFlags: payload.DelegationTokenTypeCall,
+							PulseNumber:       p2,
+							Callee:            request.Callee,
+							Outgoing:          request.CallOutgoing,
+							DelegateTo:        server.JetCoordinatorMock.Me(),
+							Approver:          approver,
+						}
+						msg := payload.VDelegatedCallResponse{
+							Callee:                 request.Callee,
+							CallIncoming:           request.CallIncoming,
+							ResponseDelegationSpec: firstTokenValue,
+						}
+
+						server.SendPayload(ctx, &msg)
+						return false
+					})
+					typedChecker.VDelegatedRequestFinished.Set(func(finished *payload.VDelegatedRequestFinished) bool {
+						assert.Equal(t, objectGlobal, finished.Callee)
+						assert.NotEmpty(t, finished.LatestState)
+						assert.Equal(t, []byte(pendingState), finished.LatestState.State)
+
+						return false
+					})
+					typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
+						assert.Equal(t, objectGlobal, res.Callee)
+						assert.Equal(t, []byte("call result"), res.ReturnArguments)
+						return false
+					})
+				}
+				executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
+
 				server.SendPayload(ctx, pl)
 
 				commonTestUtils.WaitSignalsTimed(t, 10*time.Second, synchronizeExecution.Wait())
@@ -168,6 +216,16 @@ func TestVirtual_VCachedMemoryRequest(t *testing.T) {
 
 				synchronizeExecution.WakeUp()
 				expectedState = pendingState
+				commonTestUtils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+				commonTestUtils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+
+				{
+					assert.Equal(t, 1, typedChecker.VCallResult.Count())
+					assert.Equal(t, 1, typedChecker.VStateReport.Count())
+					assert.Equal(t, 1, typedChecker.VDelegatedRequestFinished.Count())
+
+					assert.Equal(t, 1, typedChecker.VDelegatedCallRequest.Count())
+				}
 			}
 
 			var stateRef payload.Reference
