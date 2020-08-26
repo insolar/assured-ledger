@@ -25,7 +25,7 @@ import (
 )
 
 func TestVirtual_VCachedMemoryRequest(t *testing.T) {
-	insrail.LogCase(t, "")
+	insrail.LogSkipCase(t, "", "https://insolar.atlassian.net/browse/PLAT-747")
 	defer commonTestUtils.LeakTester(t)
 	testCases := []struct {
 		name        string
@@ -254,7 +254,7 @@ func TestVirtual_VCachedMemoryRequest(t *testing.T) {
 			commonTestUtils.WaitSignalsTimed(t, 10*time.Second, executeDone)
 			commonTestUtils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
-			assert.Equal(t, 1, typedChecker.VCallResult.Count())
+			assert.Equal(t, 1, typedChecker.VCachedMemoryResponse.Count())
 			mc.Finish()
 
 		})
