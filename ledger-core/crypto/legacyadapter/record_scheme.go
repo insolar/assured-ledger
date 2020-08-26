@@ -18,7 +18,7 @@ type recordSchemeLegacy struct {
 }
 
 func (v recordSchemeLegacy) ReferenceDigester() cryptkit.DataDigester {
-	return NewSha3Digester224(v.pcs)
+	return NewSha3Digester512as224(v.pcs)
 }
 
 func (v recordSchemeLegacy) CreateSignatureVerifierWithPKS(pks cryptkit.PublicKeyStore) cryptkit.SignatureVerifier {
