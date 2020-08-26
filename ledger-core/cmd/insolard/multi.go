@@ -6,7 +6,10 @@
 package main
 
 import (
+	"io/ioutil"
+
 	jww "github.com/spf13/jwalterweatherman"
+	"gopkg.in/yaml.v2"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
@@ -28,19 +31,24 @@ func runInsolardCloud(configPath string) {
 	jww.SetStdoutThreshold(jww.LevelDebug)
 
 	if err := psAgentLauncher(); err != nil {
-		global.Warnf("Failed to launch gops agent: %s", err)
+		global.Fatal("Failed to launch gops agent: %s", err)
+	}
+
+	yamlFile, err := ioutil.ReadFile(configPath)
+	if err != nil {
+		global.Fatal("failed ro read config file", err)
+	}
+
+	var cloudConf configuration.BaseCloudConfig
+	err = yaml.Unmarshal(yamlFile, &cloudConf)
+	if err != nil {
+		global.Fatal("Failed to parse YAML file", err)
 	}
 
 	var multiFn insapp.MultiNodeConfigFunc
 	multiFn = func(cfgPath string, baseCfg configuration.Configuration) ([]configuration.Configuration, insapp.NetworkInitFunc) {
 		appConfigs := []configuration.Configuration{}
-		for _, conf := range []string{
-			".artifacts/launchnet/discoverynodes/1/insolard.yaml",
-			".artifacts/launchnet/discoverynodes/2/insolard.yaml",
-			".artifacts/launchnet/discoverynodes/3/insolard.yaml",
-			".artifacts/launchnet/discoverynodes/4/insolard.yaml",
-			".artifacts/launchnet/discoverynodes/5/insolard.yaml",
-		} {
+		for _, conf := range cloudConf.NodeConfigPaths {
 			appConfigs = append(appConfigs, readConfig(conf))
 		}
 		return appConfigs, nil

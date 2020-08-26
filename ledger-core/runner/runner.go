@@ -8,6 +8,7 @@ package runner
 import (
 	"bytes"
 	"context"
+	"runtime/debug"
 	"sync"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
@@ -282,7 +283,7 @@ func (r *DefaultService) execute(ctx context.Context, id call.ID) {
 		switch {
 		case recoveredError != nil:
 			// panic was catched
-			err := throw.R(recoveredError, throw.E("ContractRunnerService panic"))
+			err := throw.R(recoveredError, throw.E("ContractRunnerService panic: "+string(debug.Stack())))
 			executionSink.Error(err)
 		case (result == nil && err == nil) || executionSink.IsAborted():
 			// cancellation

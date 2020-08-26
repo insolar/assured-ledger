@@ -85,10 +85,14 @@ var (
 	debugLevel string
 
 	numVirtual, numLight, numHeavy int
+	base_cloud                     bool
 )
 
 func parseInputParams() {
 	var rootCmd = &cobra.Command{}
+
+	rootCmd.Flags().BoolVar(
+		&base_cloud, "base-cloud", false, "generate base cloud config only")
 
 	rootCmd.Flags().IntVar(
 		&numVirtual, "num-virtual-nodes", 5, "number of nodes with role virtual")
@@ -174,8 +178,44 @@ func prepareBootstrapVars() commonConfigVars {
 	return res
 }
 
+func generateBaseCloudConfig() {
+	if numVirtual < 1 {
+		check("cannot generate config", throw.New("virtual count must be more than zero"))
+	}
+
+	logConfig := configuration.Log{
+		Level:     debugLevel,
+		Adapter:   "zerolog",
+		Formatter: "json",
+	}
+
+	nodeConfigPathTmpl := ".artifacts/launchnet/discoverynodes/%d/insolard.yaml"
+	nodeConfigs := []string{}
+	for i := 1; i <= numVirtual; i++ {
+		nodeConfigs = append(nodeConfigs, fmt.Sprintf(nodeConfigPathTmpl, i))
+	}
+
+	conf := configuration.BaseCloudConfig{
+		Log:             logConfig,
+		NodeConfigPaths: nodeConfigs,
+	}
+
+	rawData, err := yaml.Marshal(conf)
+	check("Can't Marshal insolard config", err)
+
+	fileName := withBaseDir("configs/base_cloud.yaml")
+
+	err = createFileWithDir(fileName, string(rawData))
+	check("failed to create base cloud config: "+fileName, err)
+}
+
 func main() {
 	parseInputParams()
+
+	if base_cloud {
+		generateBaseCloudConfig()
+		return
+	}
 
 	validateNodesConfig()
 

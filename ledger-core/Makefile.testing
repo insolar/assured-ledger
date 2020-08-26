@@ -22,12 +22,17 @@ test_with_coverage: ## run unit and slow tests with generation of coverage file
 	cat coverage.tmp.out | grep -v _mock.go > coverage.out
 	go tool cover -html=coverage.out -o coverage.html
 
+
 .PHONY: test_func
 test_func: ## run functest FUNCTEST_COUNT times
 	pkill -9 insolard || echo "No insolard running" # dirty hack to terminate all insolard processes
 	PULSARD_ONESHOT=$(PULSARD_ONESHOT) \
 	PULSARD_PULSAR_PULSETIME=$(PULSARD_PULSAR_PULSETIME) \
 	CGO_ENABLED=1 $(GOTEST) -test.v $(TEST_ARGS) -tags "functest copylogtxt" ./application/functest -count=$(FUNCTEST_COUNT) -args TESTLOG_OUT=$(EXTENDED_FUNCTIONAL_LOG) TESTLOG_MARKS=1 TESTLOG_TXT=1
+
+.PHONY: test_func_cloud
+test_func_cloud: ## run functest on insolard in cloud mode
+	PULSARD_ONESHOT=FALSE CLOUD_MODE=TRUE PULSARD_PULSAR_PULSETIME=5000 FUNCTEST_COUNT=1000 $(MAKE) test_func
 
 .PHONY: test_func_slow
 test_func_slow: # Run functests as long as practical to catch unexpected behavior during pulse change
