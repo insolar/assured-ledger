@@ -19,8 +19,11 @@ import (
 )
 
 func TestInfo_GetEarliestPulse(t *testing.T) {
-	currentPulse := pulse.OfNow()
-	prevPulse := pulse.OfNow().Prev(10)
+	var (
+		previousPulse = pulse.OfNow().Prev(10)
+		currentPulse  = pulse.OfNow()
+		nextPulse     = pulse.OfNow().Next(10)
+	)
 
 	tolerance := contract.CallTolerable
 
@@ -57,7 +60,7 @@ func TestInfo_GetEarliestPulse(t *testing.T) {
 			ExpectedEarliestPulse: currentPulse,
 		},
 		{
-			name: "both",
+			name: "both (should be first)",
 			getPendingTable: func() callregistry.PendingTable {
 				table := callregistry.NewRequestTable()
 				ref := reference.NewSelf(gen.UniqueLocalRefWithPulse(currentPulse))
@@ -66,12 +69,29 @@ func TestInfo_GetEarliestPulse(t *testing.T) {
 			},
 			getKnownRequests: func() callregistry.WorkingTable {
 				table := callregistry.NewWorkingTable()
-				ref := reference.NewSelf(gen.UniqueLocalRefWithPulse(prevPulse))
+				ref := reference.NewSelf(gen.UniqueLocalRefWithPulse(previousPulse))
 				table.Add(tolerance, ref)
 				table.SetActive(tolerance, ref)
 				return table
 			},
-			ExpectedEarliestPulse: prevPulse,
+			ExpectedEarliestPulse: previousPulse,
+		},
+		{
+			name: "both (should be second)",
+			getPendingTable: func() callregistry.PendingTable {
+				table := callregistry.NewRequestTable()
+				ref := reference.NewSelf(gen.UniqueLocalRefWithPulse(currentPulse))
+				table.GetList(tolerance).Add(ref)
+				return table
+			},
+			getKnownRequests: func() callregistry.WorkingTable {
+				table := callregistry.NewWorkingTable()
+				ref := reference.NewSelf(gen.UniqueLocalRefWithPulse(nextPulse))
+				table.Add(tolerance, ref)
+				table.SetActive(tolerance, ref)
+				return table
+			},
+			ExpectedEarliestPulse: currentPulse,
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
