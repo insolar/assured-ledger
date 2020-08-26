@@ -109,22 +109,33 @@ func (i *Info) DescriptorValidated() descriptor.Object {
 }
 
 func (i Info) GetEarliestPulse(tolerance contract.InterferenceFlag) pulse.Number {
-	minPulse := i.PendingTable.GetList(tolerance).EarliestPulse()
-	knownPulse := i.KnownRequests.GetList(tolerance).EarliestPulse()
-	if knownPulse != pulse.Unknown && (minPulse == pulse.Unknown || knownPulse < minPulse) {
-		minPulse = knownPulse
+	var (
+		minPendingRequestPulse = i.PendingTable.GetList(tolerance).EarliestPulse()
+		minKnownRequestPulse   = i.KnownRequests.GetList(tolerance).EarliestPulse()
+	)
+
+	switch {
+	case !minKnownRequestPulse.IsUnknownOrTimePulse(), !minPendingRequestPulse.IsUnknownOrTimePulse():
+		panic(throw.IllegalState())
+	case minKnownRequestPulse.IsUnknown(), minPendingRequestPulse.IsBefore(minKnownRequestPulse):
+		return minPendingRequestPulse
+	default:
+		return minKnownRequestPulse
 	}
-	return minPulse
 }
 
 func (i *Info) BuildStateReport() payload.VStateReport {
-	previousExecutorUnorderedPendingCount := i.PendingTable.GetList(contract.CallIntolerable).CountActive()
-	previousExecutorOrderedPendingCount := i.PendingTable.GetList(contract.CallTolerable).CountActive()
+	unorderedPendingCount := i.PendingTable.GetList(contract.CallIntolerable).CountActive()
+	unorderedPendingCount += i.KnownRequests.GetList(contract.CallIntolerable).CountActive()
+
+	orderedPendingCount := i.PendingTable.GetList(contract.CallTolerable).CountActive()
+	orderedPendingCount += i.KnownRequests.GetList(contract.CallTolerable).CountActive()
+
 	res := payload.VStateReport{
 		Object:                        i.Reference,
-		UnorderedPendingCount:         int32(previousExecutorUnorderedPendingCount) + int32(i.KnownRequests.GetList(contract.CallIntolerable).CountActive()),
+		UnorderedPendingCount:         int32(unorderedPendingCount),
 		UnorderedPendingEarliestPulse: i.GetEarliestPulse(contract.CallIntolerable),
-		OrderedPendingCount:           int32(previousExecutorOrderedPendingCount) + int32(i.KnownRequests.GetList(contract.CallTolerable).CountActive()),
+		OrderedPendingCount:           int32(orderedPendingCount),
 		OrderedPendingEarliestPulse:   i.GetEarliestPulse(contract.CallTolerable),
 		ProvidedContent:               &payload.VStateReport_ProvidedContentBody{},
 	}
@@ -289,6 +300,7 @@ func (sm *SMObject) stepSendStateRequest(ctx smachine.ExecutionContext) smachine
 			}
 		}
 	}).WithoutAutoWakeUp().Start()
+
 	return ctx.Jump(sm.stepWaitState)
 }
 
