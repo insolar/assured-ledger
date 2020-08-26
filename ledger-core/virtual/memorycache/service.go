@@ -15,7 +15,7 @@ import (
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/virtual/memorycache.Service -o ./ -s _mock.go -g
 type Service interface {
 	Get(ctx context.Context, objectReference reference.Global) (descriptor.Object, error)
-	Set(ctx context.Context, objectDescriptor descriptor.Object) (reference.Global, error)
+	Set(ctx context.Context, objectReference reference.Global, objectDescriptor descriptor.Object) error
 }
 
 type DefaultService struct {
@@ -28,9 +28,9 @@ func (s *DefaultService) Get(ctx context.Context, objectReference reference.Glob
 	return object, nil
 }
 
-func (s *DefaultService) Set(ctx context.Context, objectDescriptor descriptor.Object) (reference.Global, error) {
+func (s *DefaultService) Set(ctx context.Context, objectReference reference.Global, objectDescriptor descriptor.Object) error {
 	// todo
-	return reference.Global{}, nil
+	return nil
 }
 
 func NewDefaultService() *DefaultService {
