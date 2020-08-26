@@ -1,0 +1,16 @@
+@startuml
+state "Init" as T01_S001
+T01_S001 : SMVObjectTranscriptReport
+[*] --> T01_S001
+T01_S001 --> T01_S002
+state "stepProcess" as T01_S002
+T01_S002 : SMVObjectTranscriptReport
+T01_S002 --> [*]
+state "GetInitStateFor" as T00_S001
+T00_S001 : dSMVObjectTranscriptReport
+[*] --> T00_S001
+state "s.Init" as T00_U001
+T00_U001 : dSMVObjectTranscriptReport
+T00_U001 : UNKNOWN 
+T00_S001 --> T00_U001
+@enduml
