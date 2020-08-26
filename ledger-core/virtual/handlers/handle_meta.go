@@ -133,6 +133,8 @@ func (f FactoryMeta) Process(ctx context.Context, msg insconveyor.DispatchedMess
 			return obj.LookAt, &SMVFindCallRequest{Meta: payloadMeta, Payload: obj}
 		case *payload.VFindCallResponse:
 			return targetPulse, &SMVFindCallResponse{Meta: payloadMeta, Payload: obj}
+		case *payload.VObjectTranscript:
+			return targetPulse, &SMVObjectTranscript{Meta: payloadMeta, Payload: obj}
 		default:
 			logger.Warnm(struct {
 				Msg             string

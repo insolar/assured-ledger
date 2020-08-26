@@ -253,3 +253,21 @@ message VCachedMemoryResponse {
     bool Inactive = 25;
     bytes Memory = 54;
 }
+
+message VObjectTranscript {
+    option (insproto.id) = 1015;
+
+    uint32 AsOf = 20 [(gogoproto.casttype) = "PulseNumber"];
+    Reference Object = 21;
+
+    message Transcript {
+        option (insproto.id) = 0;
+
+        // stub
+        //repeated Any Entries = 20;
+    }
+
+    repeated Transcript PendingTranscripts = 22;
+
+    Transcript ObjectTranscript = 23;
+}

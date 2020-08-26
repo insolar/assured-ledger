@@ -314,6 +314,48 @@ func (p PubVFindCallResponseMock) Wait(ctx context.Context, count int) synckit.S
 
 // ============================================================================
 
+type VObjectTranscriptDefinition struct {
+	touched       bool
+	count         atomickit.Int
+	countBefore   atomickit.Int
+	expectedCount int
+	handler       VObjectTranscriptHandler
+}
+type VObjectTranscriptHandler func(*payload.VObjectTranscript) bool
+type PubVObjectTranscriptMock struct{ parent *Typed }
+
+func (p PubVObjectTranscriptMock) ExpectedCount(count int) PubVObjectTranscriptMock {
+	p.parent.Handlers.VObjectTranscript.touched = true
+	p.parent.Handlers.VObjectTranscript.expectedCount = count
+	return p
+}
+
+func (p PubVObjectTranscriptMock) Set(handler VObjectTranscriptHandler) PubVObjectTranscriptMock {
+	p.parent.Handlers.VObjectTranscript.touched = true
+	p.parent.Handlers.VObjectTranscript.handler = handler
+	return p
+}
+
+func (p PubVObjectTranscriptMock) SetResend(resend bool) PubVObjectTranscriptMock {
+	p.parent.Handlers.VObjectTranscript.touched = true
+	p.parent.Handlers.VObjectTranscript.handler = func(*payload.VObjectTranscript) bool { return resend }
+	return p
+}
+
+func (p PubVObjectTranscriptMock) Count() int {
+	return p.parent.Handlers.VObjectTranscript.count.Load()
+}
+
+func (p PubVObjectTranscriptMock) CountBefore() int {
+	return p.parent.Handlers.VObjectTranscript.countBefore.Load()
+}
+
+func (p PubVObjectTranscriptMock) Wait(ctx context.Context, count int) synckit.SignalChannel {
+	return waitCounterIndefinitely(ctx, &p.parent.Handlers.VObjectTranscript.count, count)
+}
+
+// ============================================================================
+
 type VStateReportDefinition struct {
 	touched       bool
 	count         atomickit.Int
@@ -406,6 +448,7 @@ type TypedHandlers struct {
 	VDelegatedRequestFinished VDelegatedRequestFinishedDefinition
 	VFindCallRequest          VFindCallRequestDefinition
 	VFindCallResponse         VFindCallResponseDefinition
+	VObjectTranscript         VObjectTranscriptDefinition
 	VStateReport              VStateReportDefinition
 	VStateRequest             VStateRequestDefinition
 
@@ -430,6 +473,7 @@ type Typed struct {
 	VDelegatedRequestFinished PubVDelegatedRequestFinishedMock
 	VFindCallRequest          PubVFindCallRequestMock
 	VFindCallResponse         PubVFindCallResponseMock
+	VObjectTranscript         PubVObjectTranscriptMock
 	VStateReport              PubVStateReportMock
 	VStateRequest             PubVStateRequestMock
 }
@@ -450,6 +494,7 @@ func NewTyped(ctx context.Context, t minimock.Tester, sender Sender) *Typed {
 			VDelegatedRequestFinished: VDelegatedRequestFinishedDefinition{expectedCount: -1},
 			VFindCallRequest:          VFindCallRequestDefinition{expectedCount: -1},
 			VFindCallResponse:         VFindCallResponseDefinition{expectedCount: -1},
+			VObjectTranscript:         VObjectTranscriptDefinition{expectedCount: -1},
 			VStateReport:              VStateReportDefinition{expectedCount: -1},
 			VStateRequest:             VStateRequestDefinition{expectedCount: -1},
 		},
@@ -462,6 +507,7 @@ func NewTyped(ctx context.Context, t minimock.Tester, sender Sender) *Typed {
 	checker.VDelegatedRequestFinished = PubVDelegatedRequestFinishedMock{parent: checker}
 	checker.VFindCallRequest = PubVFindCallRequestMock{parent: checker}
 	checker.VFindCallResponse = PubVFindCallResponseMock{parent: checker}
+	checker.VObjectTranscript = PubVObjectTranscriptMock{parent: checker}
 	checker.VStateReport = PubVStateReportMock{parent: checker}
 	checker.VStateRequest = PubVStateRequestMock{parent: checker}
 
@@ -685,6 +731,34 @@ func (p *Typed) checkMessage(ctx context.Context, msg *message.Message) {
 
 		hdlStruct.count.Add(1)
 
+	case *payload.VObjectTranscript:
+		hdlStruct := &p.Handlers.VObjectTranscript
+
+		resend = p.defaultResend
+
+		oldCount := hdlStruct.countBefore.Add(1)
+
+		if hdlStruct.handler != nil {
+			done := make(synckit.ClosableSignalChannel)
+
+			go func() {
+				defer func() { _ = synckit.SafeClose(done) }()
+
+				resend = hdlStruct.handler(payload)
+			}()
+
+			select {
+			case <-done:
+			case <-time.After(p.timeout):
+				p.t.Error("timeout: failed to check message VObjectTranscript (position: %s)", oldCount)
+			}
+		} else if !p.defaultResend && !hdlStruct.touched {
+			p.t.Fatalf("unexpected %T payload", payload)
+			return
+		}
+
+		hdlStruct.count.Add(1)
+
 	case *payload.VStateReport:
 		hdlStruct := &p.Handlers.VStateReport
 
@@ -870,6 +944,24 @@ func (p *Typed) minimockDone() bool {
 	{
 		fn := func() bool {
 			hdl := &p.Handlers.VFindCallResponse
+
+			switch {
+			case hdl.expectedCount < 0:
+				return true
+			case p.defaultResend:
+				return true
+			case hdl.expectedCount == 0:
+				return true
+			}
+
+			return hdl.count.Load() == hdl.expectedCount
+		}
+
+		ok = ok && fn()
+	}
+	{
+		fn := func() bool {
+			hdl := &p.Handlers.VObjectTranscript
 
 			switch {
 			case hdl.expectedCount < 0:
