@@ -9,13 +9,13 @@ import (
 	"context"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/network/memorycache"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/memorycache"
 )
 
 type CallFunc func(ctx context.Context, svc memorycache.Service)
 type AsyncCallFunc func(ctx context.Context, svc memorycache.Service) smachine.AsyncResultFunc
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network/memorycache/adapter.MemoryCache -o ./ -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/virtual/memorycache/adapter.MemoryCache -o ./ -s _mock.go -g
 type MemoryCache interface {
 	PrepareSync(ctx smachine.ExecutionContext, fn CallFunc) smachine.SyncCallRequester
 	PrepareAsync(ctx smachine.ExecutionContext, fn AsyncCallFunc) smachine.AsyncCallRequester

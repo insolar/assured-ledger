@@ -12,7 +12,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 )
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network/memorycache.Service -o ./ -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/virtual/memorycache.Service -o ./ -s _mock.go -g
 type Service interface {
 	Get(ctx context.Context, objectReference reference.Global) (descriptor.Object, error)
 	Set(ctx context.Context, objectDescriptor descriptor.Object) (reference.Global, error)
