@@ -26,6 +26,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
+	"github.com/insolar/assured-ledger/ledger-core/network/memorycache"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -56,6 +57,7 @@ type Server struct {
 	virtual       *virtual.Dispatcher
 	Runner        *runner.DefaultService
 	messageSender *messagesender.DefaultService
+	memoryCache   *memorycache.DefaultService
 
 	// testing components and Mocks
 	PublisherMock      *publisher.Mock
@@ -161,6 +163,8 @@ func newServerExt(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFi
 	messageSender := messagesender.NewDefaultService(s.PublisherMock, s.JetCoordinatorMock, s.pulseStorage)
 	s.messageSender = messageSender
 
+	s.memoryCache = memorycache.NewDefaultService()
+
 	var machineLogger smachine.SlotMachineLogger
 
 	if convlog.UseTextConvLog() {
@@ -260,7 +264,6 @@ func (s *Server) SendMsg(msg beat.Message) {
 		panic(err)
 	}
 }
-
 
 func (s *Server) ReplaceRunner(svc runner.Service) {
 	s.virtual.Runner = svc

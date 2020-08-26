@@ -16,6 +16,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/network/memorycache"
+	memoryCacheAdapter "github.com/insolar/assured-ledger/ledger-core/network/memorycache/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -75,6 +77,7 @@ type Dispatcher struct {
 	MessageSender         messagesender.Service
 	AuthenticationService authentication.Service
 	Affinity              affinity.Helper
+	MemoryCache           memorycache.Service
 
 	EventlessSleep            time.Duration
 	FactoryLogContextOverride context.Context
@@ -83,6 +86,7 @@ type Dispatcher struct {
 
 	runnerAdapter        runner.ServiceAdapter
 	messageSenderAdapter messageSenderAdapter.MessageSender
+	memoryCacheAdapter   memoryCacheAdapter.MemoryCache
 }
 
 func NewDispatcher() *Dispatcher {
@@ -130,6 +134,7 @@ func (lr *Dispatcher) Init(ctx context.Context) error {
 
 	lr.runnerAdapter = lr.Runner.CreateAdapter(ctx)
 	lr.messageSenderAdapter = messageSenderAdapter.CreateMessageSendService(ctx, lr.MessageSender)
+	lr.memoryCacheAdapter = memoryCacheAdapter.CreateMemoryCacheAdapter(ctx, lr.MemoryCache)
 
 	lr.Conveyor.AddInterfaceDependency(&lr.runnerAdapter)
 	lr.Conveyor.AddInterfaceDependency(&lr.messageSenderAdapter)
