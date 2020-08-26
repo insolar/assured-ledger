@@ -59,6 +59,7 @@ func NewServiceNetwork(conf configuration.Configuration, rootCm *component.Manag
 	if rootCm != nil {
 		rootCm.SetLogger(global.Logger())
 	}
+
 	serviceNetwork := &ServiceNetwork{cm: component.NewManager(rootCm), cfg: conf}
 	serviceNetwork.cm.SetLogger(global.Logger())
 	return serviceNetwork, nil

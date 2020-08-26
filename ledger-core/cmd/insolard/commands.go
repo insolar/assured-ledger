@@ -94,7 +94,8 @@ func testCloudCommand() *cobra.Command {
 It is used for development and debugging of smart contracts`,
 		Run: func(cmd *cobra.Command, args []string) {
 			// todo: implement mode
-			global.Fatalm(throw.NotImplemented())
+			//global.Fatalm(throw.NotImplemented())
+			runInsolardCloud(cmd.Flag(configFlag).Value.String())
 		},
 	}
 	return c
