@@ -39,7 +39,7 @@ type memoryCachTest struct {
 }
 
 func TestVirtual_VCachedMemoryRequest(t *testing.T) {
-	insrail.LogSkipCase(t, "", "https://insolar.atlassian.net/browse/PLAT-747")
+	insrail.LogSkipCase(t, "C5681", "https://insolar.atlassian.net/browse/PLAT-747")
 	defer commonTestUtils.LeakTester(t)
 	testCases := []struct {
 		name         string
