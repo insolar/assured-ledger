@@ -62,3 +62,7 @@ func (m *VFindCallRequest) customSubject() (Reference, AuthSubjectMode) {
 func (m *VFindCallResponse) customSubject() (Reference, AuthSubjectMode) {
 	return m.GetCallee(), UseAnyPulse
 }
+
+func (m *VCachedMemoryRequest) customSubject() (Reference, AuthSubjectMode) {
+	return m.GetObject(), UseCurrentPulse
+}
