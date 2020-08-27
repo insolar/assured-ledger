@@ -20,8 +20,6 @@
 package testwallet
 
 import (
-	"fmt"
-
 	XXX_contract "github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common"
@@ -294,7 +292,6 @@ func INSMETHOD_Transfer(object []byte, data []byte) (newState []byte, result []b
 			return
 		}
 		if recoveredError := throw.RW(recover(), nil, "Failed to execute method (panic)"); recoveredError != nil {
-			fmt.Println("=========================================", recoveredError.Error())
 			recoveredError = ph.MakeErrorSerializable(recoveredError)
 
 			if PanicIsLogicalError {
