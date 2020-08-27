@@ -464,7 +464,7 @@ echo "start discovery nodes ..."
 if [ "$cloud_mode" == true ]
 then
   echo "run in cloud mode ( one process )"
-  go run -mod=vendor scripts/generate_insolar_configs.go --base-cloud --num-virtual-nodes=5
+  go run -mod=vendor scripts/generate_insolar_configs.go --base-cloud --num-virtual-nodes=$NUM_DISCOVERY_NODES
   set -x
   $INSOLARD test cloud --config ${CONFIGS_DIR}/base_cloud.yaml \
             2>&1 | ${LOGROTATOR} ${DISCOVERY_NODE_LOGS}/cloud.log > /dev/null &

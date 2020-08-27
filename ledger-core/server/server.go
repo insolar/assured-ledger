@@ -24,7 +24,7 @@ func NewVirtualServer(cfgPath string) Server {
 	return insapp.New(cfgPath, virtual.AppFactory)
 }
 
-func NewVirtualMultiServer(cfgPath string, multiFn insapp.MultiNodeConfigFunc) Server {
+func NewMultiServer(cfgPath string, multiFn insapp.MultiNodeConfigFunc) Server {
 	return insapp.NewMulti(cfgPath, virtual.AppFactory, multiFn)
 }
 
