@@ -22,7 +22,6 @@ test_with_coverage: ## run unit and slow tests with generation of coverage file
 	cat coverage.tmp.out | grep -v _mock.go > coverage.out
 	go tool cover -html=coverage.out -o coverage.html
 
-
 .PHONY: test_func
 test_func: ## run functest FUNCTEST_COUNT times
 	pkill -9 insolard || echo "No insolard running" # dirty hack to terminate all insolard processes
