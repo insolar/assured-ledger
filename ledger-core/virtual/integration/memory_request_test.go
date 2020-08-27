@@ -41,7 +41,7 @@ type memoryCachTest struct {
 func TestVirtual_VCachedMemoryRequest(t *testing.T) {
 	insrail.LogSkipCase(t, "C5681", "https://insolar.atlassian.net/browse/PLAT-747")
 	defer commonTestUtils.LeakTester(t)
-	testCases := []struct {
+	var testCases = []struct {
 		name         string
 		precondition TestStep
 	}{
@@ -49,7 +49,6 @@ func TestVirtual_VCachedMemoryRequest(t *testing.T) {
 		{name: "Object state created from method", precondition: methodPrecondition},
 		{name: "Object state created from pending", precondition: pendingPrecondition},
 	}
-
 	for _, cases := range testCases {
 		t.Run(cases.name, func(t *testing.T) {
 
