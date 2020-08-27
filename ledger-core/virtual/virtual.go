@@ -138,6 +138,7 @@ func (lr *Dispatcher) Init(ctx context.Context) error {
 
 	lr.Conveyor.AddInterfaceDependency(&lr.runnerAdapter)
 	lr.Conveyor.AddInterfaceDependency(&lr.messageSenderAdapter)
+	lr.Conveyor.AddInterfaceDependency(&lr.memoryCacheAdapter)
 	lr.Conveyor.AddInterfaceDependency(&lr.AuthenticationService)
 
 	var objectCatalog object.Catalog = object.NewLocalCatalog()
