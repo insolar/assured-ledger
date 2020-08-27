@@ -1,8 +1,34 @@
 @startuml
-state "Init" as T01_S001
+state "Init" as T01_S002
+T01_S002 : SMVCachedMemoryRequest
+[*] --> T01_S002
+T01_S002 --> [*] : [(...).pulseSlot.State()!=conveyor.Present]
+T01_S002 --> T01_S003 : Migrate: s.migrationDefault
+state "buildResult" as T01_S006
+T01_S006 : SMVCachedMemoryRequest
+T01_S006 --[dotted]> T01_S001
+T01_S006 --> T01_S007 : [s.object.HeadRef().IsEmpty()]
+T01_S006 --> T01_S007
+state "getMemory" as T01_S003
+T01_S003 : SMVCachedMemoryRequest
+T01_S003 --[dotted]> T01_S001
+T01_S003 --> T01_S004 : PrepareAsync(ctx)
+T01_S003 --> T01_S005
+state "migrationDefault" as T01_S001
 T01_S001 : SMVCachedMemoryRequest
-[*] --> T01_S001
 T01_S001 --> [*]
+state "s.memoryCache" as T01_S004 <<sdlreceive>>
+state "s.messageSender" as T01_S008 <<sdlreceive>>
+state "sendResult" as T01_S007
+T01_S007 : SMVCachedMemoryRequest
+T01_S007 --[dotted]> T01_S001
+T01_S007 --> T01_S008 : PrepareAsync(ctx).WithoutAutoWakeUp()
+T01_S007 --> [*]
+state "waitResult" as T01_S005
+T01_S005 : SMVCachedMemoryRequest
+T01_S005 --[dotted]> T01_S001
+T01_S005 --[dashed]> T01_S005 : [s.object==nil]\nSleep
+T01_S005 --> T01_S006
 state "GetInitStateFor" as T00_S001
 T00_S001 : dSMVCachedMemoryRequest
 [*] --> T00_S001
