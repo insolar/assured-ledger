@@ -8,7 +8,6 @@ package handlers
 import (
 	"context"
 
-	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
@@ -26,7 +25,6 @@ type SMVCachedMemoryRequest struct {
 
 	messageSender messageSenderAdapter.MessageSender
 	memoryCache   memoryCacheAdapter.MemoryCache
-	pulseSlot     *conveyor.PulseSlot
 
 	object   descriptor.Object
 	response *payload.VCachedMemoryResponse
@@ -43,7 +41,6 @@ type dSMVCachedMemoryRequest struct {
 func (*dSMVCachedMemoryRequest) InjectDependencies(sm smachine.StateMachine, _ smachine.SlotLink, injector injector.DependencyInjector) {
 	s := sm.(*SMVCachedMemoryRequest)
 
-	injector.MustInject(&s.pulseSlot)
 	injector.MustInject(&s.messageSender)
 	injector.MustInject(&s.memoryCache)
 }
@@ -58,7 +55,6 @@ func (*dSMVCachedMemoryRequest) GetInitStateFor(sm smachine.StateMachine) smachi
 func (*SMVCachedMemoryRequest) InjectDependencies(sm smachine.StateMachine, _ smachine.SlotLink, injector injector.DependencyInjector) {
 	s := sm.(*SMVCachedMemoryRequest)
 
-	injector.MustInject(&s.pulseSlot)
 	injector.MustInject(&s.memoryCache)
 	injector.MustInject(&s.messageSender)
 }
@@ -67,21 +63,11 @@ func (s *SMVCachedMemoryRequest) GetStateMachineDeclaration() smachine.StateMach
 	return dSMVCachedMemoryRequestInstance
 }
 
-func (s *SMVCachedMemoryRequest) migrationDefault(ctx smachine.MigrationContext) smachine.StateUpdate {
-	ctx.Log().Trace("stop processing VCachedMemoryRequest since pulse was changed")
-	return ctx.Stop()
-}
-
 func (s *SMVCachedMemoryRequest) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
-	if s.pulseSlot.State() != conveyor.Present {
-		ctx.Log().Trace("stop processing VCachedMemoryRequest since we are not in present pulse")
-		return ctx.Stop()
-	}
-	ctx.SetDefaultMigration(s.migrationDefault)
-	return ctx.Jump(s.getMemory)
+	return ctx.Jump(s.stepGetMemory)
 }
 
-func (s *SMVCachedMemoryRequest) getMemory(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (s *SMVCachedMemoryRequest) stepGetMemory(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	s.memoryCache.PrepareAsync(ctx, func(ctx context.Context, svc memorycache.Service) smachine.AsyncResultFunc {
 		obj, err := svc.Get(ctx, s.Payload.Object)
 		return func(ctx smachine.AsyncResultContext) {
@@ -91,24 +77,24 @@ func (s *SMVCachedMemoryRequest) getMemory(ctx smachine.ExecutionContext) smachi
 			}
 		}
 	}).Start()
-	return ctx.Jump(s.waitResult)
+	return ctx.Jump(s.stepWaitResult)
 }
 
-func (s *SMVCachedMemoryRequest) waitResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (s *SMVCachedMemoryRequest) stepWaitResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	if s.object == nil {
 		return ctx.Sleep().ThenRepeat()
 	}
-	return ctx.Jump(s.buildResult)
+	return ctx.Jump(s.stepBuildResult)
 }
 
-func (s *SMVCachedMemoryRequest) buildResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (s *SMVCachedMemoryRequest) stepBuildResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	if s.object.HeadRef().IsEmpty() {
 		s.response = &payload.VCachedMemoryResponse{
 			Object:     s.Payload.Object,
 			StateID:    s.Payload.StateID,
 			CallStatus: payload.CachedMemoryStateMissing,
 		}
-		return ctx.Jump(s.sendResult)
+		return ctx.Jump(s.stepSendResult)
 	}
 
 	s.response = &payload.VCachedMemoryResponse{
@@ -120,10 +106,10 @@ func (s *SMVCachedMemoryRequest) buildResult(ctx smachine.ExecutionContext) smac
 		Inactive: s.object.Deactivated(),
 		Memory:   s.object.Memory(),
 	}
-	return ctx.Jump(s.sendResult)
+	return ctx.Jump(s.stepSendResult)
 }
 
-func (s *SMVCachedMemoryRequest) sendResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (s *SMVCachedMemoryRequest) stepSendResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
 		err := svc.SendTarget(goCtx, s.response, s.Meta.Sender)
 		return func(ctx smachine.AsyncResultContext) {
