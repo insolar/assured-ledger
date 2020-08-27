@@ -18,6 +18,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/mock/publisher/checker"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 )
@@ -25,6 +26,17 @@ import (
 type TestStep func(s *memoryCachTest, ctx context.Context, t *testing.T)
 
 const newState = "new state"
+
+type memoryCachTest struct {
+	mc           *minimock.Controller
+	server       *utils.Server
+	runnerMock   *logicless.ServiceMock
+	typedChecker *checker.Typed
+
+	class  reference.Global
+	caller reference.Global
+	object reference.Global
+}
 
 func TestVirtual_VCachedMemoryRequest(t *testing.T) {
 	insrail.LogSkipCase(t, "", "https://insolar.atlassian.net/browse/PLAT-747")
@@ -35,7 +47,7 @@ func TestVirtual_VCachedMemoryRequest(t *testing.T) {
 	}{
 		{name: "Object state created from constructor", precondition: constructorPrecondition},
 		{name: "Object state created from method", precondition: methodPrecondition},
-		// {name: "Object state created from pending", pending: true},
+		{name: "Object state created from pending", precondition: pendingPrecondition},
 	}
 
 	for _, cases := range testCases {
@@ -44,6 +56,9 @@ func TestVirtual_VCachedMemoryRequest(t *testing.T) {
 			suite := &memoryCachTest{}
 
 			ctx := suite.initServer(t)
+
+			suite.object = reference.NewSelf(suite.server.RandomLocalWithPulse())
+			suite.class = suite.server.RandomGlobalWithPulse()
 
 			cases.precondition(suite, ctx, t)
 
@@ -129,17 +144,6 @@ func constructorPrecondition(s *memoryCachTest, ctx context.Context, t *testing.
 	s.server.SendPayload(ctx, pl)
 }
 
-type memoryCachTest struct {
-	mc           *minimock.Controller
-	server       *utils.Server
-	runnerMock   *logicless.ServiceMock
-	typedChecker *checker.Typed
-
-	class  reference.Global
-	caller reference.Global
-	object reference.Global
-}
-
 func (s *memoryCachTest) initServer(t *testing.T) context.Context {
 
 	s.mc = minimock.NewController(t)
@@ -157,115 +161,53 @@ func (s *memoryCachTest) initServer(t *testing.T) context.Context {
 	return ctx
 }
 
-/*
+func pendingPrecondition(s *memoryCachTest, ctx context.Context, t *testing.T) {
+	var token payload.CallDelegationToken
+	prevPulse := s.server.GetPulse().PulseNumber
+	outgoing := s.server.BuildRandomOutgoingWithPulse()
 
-	// pending
-	if cases.pending {
-		pl := utils.GenerateVCallRequestMethod(server)
-		pl.Callee = objectGlobal
-		pl.CallSiteMethod = "Pending"
-		callOutgoing := pl.CallOutgoing
-		key := callOutgoing.String()
+	s.server.IncrementPulse(ctx)
 
-		synchronizeExecution := synchronization.NewPoint(1)
-		defer synchronizeExecution.Done()
+	report := utils.GenerateVStateReport(s.server, s.object, prevPulse)
+	report.OrderedPendingCount = 1
+	report.OrderedPendingEarliestPulse = prevPulse
 
-		// add ExecutionMocks to runnerMock
-		{
-			runnerMock.AddExecutionClassify(key, contract.MethodIsolation{pl.CallFlags.GetInterference(), pl.CallFlags.GetState()}, nil)
+	wait := s.server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
+	s.server.SendPayload(ctx, report)
+	commonTestUtils.WaitSignalsTimed(t, 10*time.Second, wait)
 
-			requestResult := requestresult.New([]byte("call result"), gen.UniqueGlobalRef())
+	flags := payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty)
 
-			newObjDescriptor := descriptor.NewObject(
-				reference.Global{}, reference.Local{}, gen.UniqueGlobalRef(), []byte(""), false,
-			)
-			requestResult.SetAmend(newObjDescriptor, []byte(pendingState))
+	s.typedChecker.VDelegatedCallResponse.Set(func(response *payload.VDelegatedCallResponse) bool {
+		token = response.ResponseDelegationSpec
+		return false
+	})
 
-			objectExecutionMock := runnerMock.AddExecutionMock(key)
-			objectExecutionMock.AddStart(
-				func(_ execution.Context) {
-					synchronizeExecution.Synchronize()
-				},
-				&execution.Update{
-					Type:   execution.Done,
-					Result: requestResult,
-				},
-			)
+	{ // delegation request
+		delegationReq := &payload.VDelegatedCallRequest{
+			Callee:       s.object,
+			CallFlags:    flags,
+			CallOutgoing: outgoing,
 		}
-
-		// add checks to typedChecker
-		{
-			typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
-				assert.Equal(t, objectGlobal, report.Object)
-				assert.Equal(t, payload.StateStatusReady, report.Status)
-				assert.Zero(t, report.DelegationSpec)
-				return false
-			})
-			typedChecker.VDelegatedCallRequest.Set(func(request *payload.VDelegatedCallRequest) bool {
-				p2 := server.GetPulse().PulseNumber
-
-				assert.Equal(t, objectGlobal, request.Callee)
-				assert.Zero(t, request.DelegationSpec)
-
-				approver := gen.UniqueGlobalRef()
-
-				firstTokenValue := payload.CallDelegationToken{
-					TokenTypeAndFlags: payload.DelegationTokenTypeCall,
-					PulseNumber:       p2,
-					Callee:            request.Callee,
-					Outgoing:          request.CallOutgoing,
-					DelegateTo:        server.JetCoordinatorMock.Me(),
-					Approver:          approver,
-				}
-				msg := payload.VDelegatedCallResponse{
-					Callee:                 request.Callee,
-					CallIncoming:           request.CallIncoming,
-					ResponseDelegationSpec: firstTokenValue,
-				}
-
-				server.SendPayload(ctx, &msg)
-				return false
-			})
-			typedChecker.VDelegatedRequestFinished.Set(func(finished *payload.VDelegatedRequestFinished) bool {
-				assert.Equal(t, objectGlobal, finished.Callee)
-				assert.NotEmpty(t, finished.LatestState)
-				assert.Equal(t, []byte(pendingState), finished.LatestState.State)
-
-				return false
-			})
-			typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
-				assert.Equal(t, objectGlobal, res.Callee)
-				assert.Equal(t, []byte("call result"), res.ReturnArguments)
-				return false
-			})
+		await := s.server.Journal.WaitStopOf(&handlers.SMVDelegatedCallRequest{}, 1)
+		s.server.SendPayload(ctx, delegationReq)
+		commonTestUtils.WaitSignalsTimed(t, 10*time.Second, await)
+		commonTestUtils.WaitSignalsTimed(t, 10*time.Second, s.server.Journal.WaitAllAsyncCallsDone())
+	}
+	{ // send delegation request finished with new state
+		pl := payload.VDelegatedRequestFinished{
+			CallType:       payload.CallTypeMethod,
+			Callee:         s.object,
+			CallOutgoing:   outgoing,
+			CallFlags:      flags,
+			DelegationSpec: token,
+			LatestState: &payload.ObjectState{
+				State: []byte(newState),
+			},
 		}
-		executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
-
-		server.SendPayload(ctx, pl)
-
-		commonTestUtils.WaitSignalsTimed(t, 10*time.Second, synchronizeExecution.Wait())
-
-		tokenRequestDone := server.Journal.Wait(
-			predicate.ChainOf(
-				predicate.NewSMTypeFilter(&execute.SMDelegatedTokenRequest{}, predicate.AfterAnyStopOrError),
-				predicate.NewSMTypeFilter(&execute.SMExecute{}, predicate.BeforeStep((&execute.SMExecute{}).StepWaitExecutionResult)),
-			),
-		)
-
-		server.IncrementPulseAndWaitIdle(ctx)
-
-		commonTestUtils.WaitSignalsTimed(t, 10*time.Second, tokenRequestDone)
-
-		synchronizeExecution.WakeUp()
-		expectedState = pendingState
-		commonTestUtils.WaitSignalsTimed(t, 10*time.Second, executeDone)
-		commonTestUtils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
-
-		{
-			assert.Equal(t, 1, typedChecker.VCallResult.Count())
-			assert.Equal(t, 1, typedChecker.VStateReport.Count())
-			assert.Equal(t, 1, typedChecker.VDelegatedRequestFinished.Count())
-
-			assert.Equal(t, 1, typedChecker.VDelegatedCallRequest.Count())
-		}
-	}*/
+		await := s.server.Journal.WaitStopOf(&handlers.SMVDelegatedRequestFinished{}, 1)
+		s.server.SendPayload(ctx, &pl)
+		commonTestUtils.WaitSignalsTimed(t, 10*time.Second, await)
+		commonTestUtils.WaitSignalsTimed(t, 10*time.Second, s.server.Journal.WaitAllAsyncCallsDone())
+	}
+}
