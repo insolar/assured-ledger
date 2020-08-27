@@ -92,7 +92,7 @@ func (s *SMVCachedMemoryRequest) stepBuildResult(ctx smachine.ExecutionContext) 
 		s.response = &payload.VCachedMemoryResponse{
 			Object:     s.Payload.Object,
 			StateID:    s.Payload.StateID,
-			CallStatus: payload.CachedMemoryStateMissing,
+			CallStatus: payload.CachedMemoryStateUnknown,
 		}
 		return ctx.Jump(s.stepSendResult)
 	}
