@@ -68,14 +68,9 @@ func generateBaseCloudConfig() {
 		check("Filed to find configs:", throw.New("list is empty"))
 	}
 
-	nodeConfigs := []string{}
-	for _, cfg := range foundConfigs {
-		nodeConfigs = append(nodeConfigs, cfg)
-	}
-
 	conf := configuration.BaseCloudConfig{
 		Log:             logConfig,
-		NodeConfigPaths: nodeConfigs,
+		NodeConfigPaths: foundConfigs,
 	}
 
 	rawData, err := yaml.Marshal(conf)
