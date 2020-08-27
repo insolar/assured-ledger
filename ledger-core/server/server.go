@@ -24,6 +24,10 @@ func NewVirtualServer(cfgPath string) Server {
 	return insapp.New(cfgPath, virtual.AppFactory)
 }
 
+func NewMultiServer(cfgPath string, multiFn insapp.MultiNodeConfigFunc) Server {
+	return insapp.NewMulti(cfgPath, virtual.AppFactory, multiFn)
+}
+
 func NewHeadlessNetworkNodeServer(cfgPath string) Server {
 	return insapp.New(cfgPath, nil, &headless.AppComponent{})
 }
