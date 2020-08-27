@@ -177,6 +177,7 @@ func (p *UnifiedServer) StartNoListen() {
 
 func (p *UnifiedServer) StartListen() {
 	if !p.ptf.HasTransports() {
+		// todo: ??? this is not explicit
 		p.StartNoListen()
 	}
 

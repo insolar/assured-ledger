@@ -180,7 +180,7 @@ func (p ReceiveBuffer) ReceiveLargePacket(rp *uniproto.ReceivedPacket, preRead [
 	return nil
 }
 
-// For initialization only
+// For initialization only todo: ???
 func (p *ReceiveBuffer) RunWorkers(count int, priorityOnly bool) {
 	switch {
 	case !priorityOnly:

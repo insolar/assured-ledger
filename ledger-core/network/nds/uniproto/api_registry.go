@@ -14,7 +14,7 @@ import (
 // RegisterControllerFunc is provided to register a protocol.
 // For each protocol there should be provided ProtocolType, a Descriptor with protocol's packets and feature, a Controller and Receiver.
 type RegisterControllerFunc func(ProtocolType, Descriptor, Controller, Receiver)
-type RegisterProtocolFunc func(RegisterControllerFunc)
+type RegisterProtocolFunc func(RegisterControllerFunc) // todo: ??? unused
 
 // Controller is an interface for life-cycle of a protocol or a set of protocols.
 type Controller interface {
