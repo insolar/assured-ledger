@@ -93,7 +93,6 @@ func testCloudCommand() *cobra.Command {
 		Long: `Single-process-cloud mode implies no consensus and no pulsar service (pulses are still generated).
 It is used for development and debugging of smart contracts`,
 		Run: func(cmd *cobra.Command, args []string) {
-			// todo: implement mode
 			runInsolardCloud(cmd.Flag(configFlag).Value.String())
 		},
 	}

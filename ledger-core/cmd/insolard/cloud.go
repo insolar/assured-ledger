@@ -26,7 +26,6 @@ func readConfig(cfgPath string) configuration.Configuration {
 	return *cfgHolder.Configuration
 }
 
-// nolint:unparam
 func runInsolardCloud(configPath string) {
 	jww.SetStdoutThreshold(jww.LevelDebug)
 
