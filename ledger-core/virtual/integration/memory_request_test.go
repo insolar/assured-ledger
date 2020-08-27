@@ -162,9 +162,9 @@ func (s *memoryCachTest) initServer(t *testing.T) context.Context {
 }
 
 func pendingPrecondition(s *memoryCachTest, ctx context.Context, t *testing.T) {
-	var token payload.CallDelegationToken
 	prevPulse := s.server.GetPulse().PulseNumber
 	outgoing := s.server.BuildRandomOutgoingWithPulse()
+	incoming := reference.NewRecordOf(s.object, outgoing.GetLocal())
 
 	s.server.IncrementPulse(ctx)
 
@@ -178,16 +178,14 @@ func pendingPrecondition(s *memoryCachTest, ctx context.Context, t *testing.T) {
 
 	flags := payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty)
 
-	s.typedChecker.VDelegatedCallResponse.Set(func(response *payload.VDelegatedCallResponse) bool {
-		token = response.ResponseDelegationSpec
-		return false
-	})
+	s.typedChecker.VDelegatedCallResponse.SetResend(false)
 
 	{ // delegation request
 		delegationReq := &payload.VDelegatedCallRequest{
 			Callee:       s.object,
 			CallFlags:    flags,
 			CallOutgoing: outgoing,
+			CallIncoming: incoming,
 		}
 		await := s.server.Journal.WaitStopOf(&handlers.SMVDelegatedCallRequest{}, 1)
 		s.server.SendPayload(ctx, delegationReq)
@@ -196,11 +194,11 @@ func pendingPrecondition(s *memoryCachTest, ctx context.Context, t *testing.T) {
 	}
 	{ // send delegation request finished with new state
 		pl := payload.VDelegatedRequestFinished{
-			CallType:       payload.CallTypeMethod,
-			Callee:         s.object,
-			CallOutgoing:   outgoing,
-			CallFlags:      flags,
-			DelegationSpec: token,
+			CallType:     payload.CallTypeMethod,
+			Callee:       s.object,
+			CallOutgoing: outgoing,
+			CallIncoming: incoming,
+			CallFlags:    flags,
 			LatestState: &payload.ObjectState{
 				State: []byte(newState),
 			},
@@ -209,5 +207,7 @@ func pendingPrecondition(s *memoryCachTest, ctx context.Context, t *testing.T) {
 		s.server.SendPayload(ctx, &pl)
 		commonTestUtils.WaitSignalsTimed(t, 10*time.Second, await)
 		commonTestUtils.WaitSignalsTimed(t, 10*time.Second, s.server.Journal.WaitAllAsyncCallsDone())
+
+		require.Equal(t, 1, s.typedChecker.VDelegatedCallResponse.Count())
 	}
 }
