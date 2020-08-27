@@ -18,19 +18,19 @@ import (
 )
 
 func NewTCP(binding nwapi.Address, preference nwapi.Preference) SessionfulTransportProvider {
-	return TCPProvider{addr: binding.AsTCPAddr(), preference: preference}
+	return tcpProvider{addr: binding.AsTCPAddr(), preference: preference}
 }
 
-type TCPProvider struct {
+type tcpProvider struct {
 	addr       net.TCPAddr
 	preference nwapi.Preference
 }
 
-func (v TCPProvider) IsZero() bool {
+func (v tcpProvider) IsZero() bool {
 	return v.addr.IP == nil
 }
 
-func (v TCPProvider) CreateListeningFactory(receiveFn SessionfulConnectFunc) (OutTransportFactory, nwapi.Address, error) {
+func (v tcpProvider) CreateListeningFactory(receiveFn SessionfulConnectFunc) (OutTransportFactory, nwapi.Address, error) {
 	switch {
 	case receiveFn == nil:
 		panic(throw.IllegalValue())
@@ -38,52 +38,52 @@ func (v TCPProvider) CreateListeningFactory(receiveFn SessionfulConnectFunc) (Ou
 		panic(throw.IllegalState())
 	}
 
-	conn, err := net.ListenTCP("tcp", &v.addr)
+	listener, err := net.ListenTCP("tcp", &v.addr)
 	if err != nil {
 		return nil, nwapi.Address{}, err
 	}
 
-	localAddr := *conn.Addr().(*net.TCPAddr)
+	localAddr := *listener.Addr().(*net.TCPAddr)
 
-	t := &TCPTransport{ conn, receiveFn, localAddr, v.preference }
+	t := &tcpTransportFactory{listener, receiveFn, localAddr, v.preference }
 	t.addr.Port = 0
 
-	go runTCPListener(conn, receiveFn)
+	go runTCPListener(listener, receiveFn)
 	return t, nwapi.FromTCPAddr(&localAddr), nil
 }
 
-func (v TCPProvider) CreateOutgoingOnlyFactory(receiveFn SessionfulConnectFunc) (OutTransportFactory, error) {
-	t := &TCPTransport{nil, receiveFn, v.addr, v.preference }
+func (v tcpProvider) CreateOutgoingOnlyFactory(receiveFn SessionfulConnectFunc) (OutTransportFactory, error) {
+	t := &tcpTransportFactory{nil, receiveFn, v.addr, v.preference }
 	t.addr.Port = 0
 
 	return t, nil
 }
 
-func (v TCPProvider) Close() error {
+func (v tcpProvider) Close() error {
 	return nil
 }
 
 /*********************************/
 
-type TCPTransport struct {
-	conn      *net.TCPListener
-	receiveFn SessionfulConnectFunc
-	addr      net.TCPAddr
+type tcpTransportFactory struct {
+	listener   *net.TCPListener
+	receiveFn  SessionfulConnectFunc
+	addr       net.TCPAddr
 	preference nwapi.Preference
 }
 
-func (p *TCPTransport) IsZero() bool {
+func (p *tcpTransportFactory) IsZero() bool {
 	return p.addr.IP == nil
 }
 
-func (p *TCPTransport) Close() error {
-	if p.conn != nil {
-		return p.conn.Close()
+func (p *tcpTransportFactory) Close() error {
+	if p.listener != nil {
+		return p.listener.Close()
 	}
 	return nil
 }
 
-func (p *TCPTransport) ConnectTo(to nwapi.Address) (OutTransport, error) {
+func (p *tcpTransportFactory) ConnectTo(to nwapi.Address) (OneWayTransport, error) {
 	if !to.IsNetCompatible() {
 		return nil, nil
 	}
@@ -105,7 +105,7 @@ func (p *TCPTransport) ConnectTo(to nwapi.Address) (OutTransport, error) {
 	if p.receiveFn == nil {
 		// by default - when ConnectReceiver(nil) is invoked
 		// then the unused read-side of TCP will be closed as a precaution
-		return &tcpSemiTransport{tcpOut, func(_, _ nwapi.Address, conn io.ReadWriteCloser, _ OutTransport, _ error) bool {
+		return &tcpSemiTransport{tcpOut, func(_, _ nwapi.Address, conn io.ReadWriteCloser, _ OneWayTransport, _ error) bool {
 			_ = conn.(*net.TCPConn).CloseRead()
 			return false
 		}}, nil
@@ -188,7 +188,7 @@ func (p *tcpOutTransport) SetTag(tag int) {
 	p.tag = tag
 }
 
-func (p *tcpOutTransport) WithQuota(q ratelimiter.RateQuota) OutTransport {
+func (p *tcpOutTransport) WithQuota(q ratelimiter.RateQuota) OneWayTransport {
 	if p.quota == q {
 		return p
 	}

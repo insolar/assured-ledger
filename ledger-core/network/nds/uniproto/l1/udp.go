@@ -25,24 +25,24 @@ func NewUDP(binding nwapi.Address, preference nwapi.Preference, maxByteSize uint
 	if maxByteSize == 0 {
 		panic(throw.IllegalValue())
 	}
-	return UDPProvider{addr: binding.AsUDPAddr(), preference: preference, maxByteSize: maxByteSize}
+	return udpProvider{addr: binding.AsUDPAddr(), preference: preference, maxByteSize: maxByteSize}
 }
 
-type UDPProvider struct {
+type udpProvider struct {
 	addr        net.UDPAddr
 	preference  nwapi.Preference
 	maxByteSize uint16
 }
 
-func (v UDPProvider) IsZero() bool {
+func (v udpProvider) IsZero() bool {
 	return v.addr.IP == nil
 }
 
-func (v UDPProvider) MaxByteSize() uint16 {
+func (v udpProvider) MaxByteSize() uint16 {
 	return v.maxByteSize
 }
 
-func (v UDPProvider) CreateListeningFactoryWithAddress(receiveFn SessionlessReceiveFunc, binding nwapi.Address) (OutTransportFactory, error) {
+func (v udpProvider) CreateListeningFactoryWithAddress(receiveFn SessionlessReceiveFunc, binding nwapi.Address) (OutTransportFactory, error) {
 	switch {
 	case binding.IsZero():
 		panic(throw.IllegalValue())
@@ -57,7 +57,7 @@ func (v UDPProvider) CreateListeningFactoryWithAddress(receiveFn SessionlessRece
 }
 
 // SessionlessReceiveFunc MUST NOT reuse (b) after return
-func (v UDPProvider) CreateListeningFactory(receiveFn SessionlessReceiveFunc) (OutTransportFactory, nwapi.Address, error) {
+func (v udpProvider) CreateListeningFactory(receiveFn SessionlessReceiveFunc) (OutTransportFactory, nwapi.Address, error) {
 	switch {
 	case receiveFn == nil:
 		panic(throw.IllegalValue())
@@ -65,7 +65,7 @@ func (v UDPProvider) CreateListeningFactory(receiveFn SessionlessReceiveFunc) (O
 		panic(throw.IllegalState())
 	}
 
-	t := &UDPTransport{v.addr, nil, v.preference, v.maxByteSize}
+	t := &udpTransportFactory{v.addr, nil, v.preference, v.maxByteSize}
 
 	var err error
 	t.conn, err = net.ListenUDP("udp", &t.addr)
@@ -78,12 +78,12 @@ func (v UDPProvider) CreateListeningFactory(receiveFn SessionlessReceiveFunc) (O
 	return t, listenAddr, nil
 }
 
-func (v UDPProvider) CreateOutgoingOnlyFactory() (OutTransportFactory, error) {
+func (v udpProvider) CreateOutgoingOnlyFactory() (OutTransportFactory, error) {
 	if v.IsZero() {
 		panic(throw.IllegalState())
 	}
 
-	t := &UDPTransport{v.addr, nil, v.preference, v.maxByteSize}
+	t := &udpTransportFactory{v.addr, nil, v.preference, v.maxByteSize}
 
 	var err error
 	t.conn, err = net.DialUDP("udp", &t.addr, nil)
@@ -94,28 +94,28 @@ func (v UDPProvider) CreateOutgoingOnlyFactory() (OutTransportFactory, error) {
 	return t, nil
 }
 
-func (v UDPProvider) Close() error {
+func (v udpProvider) Close() error {
 	return nil
 }
 
 /***********************/
 
-type UDPTransport struct {
-	addr        net.UDPAddr // this field is passed by UDPProvider as a pointer into Dial
+type udpTransportFactory struct {
+	addr        net.UDPAddr // this field is passed by udpProvider as a pointer into Dial
 	conn        *net.UDPConn
 	preference  nwapi.Preference
 	maxByteSize uint16
 }
 
-func (p *UDPTransport) IsZero() bool {
+func (p *udpTransportFactory) IsZero() bool {
 	return p.addr.IP == nil
 }
 
-func (p *UDPTransport) MaxByteSize() uint16 {
+func (p *udpTransportFactory) MaxByteSize() uint16 {
 	return p.maxByteSize
 }
 
-func (p *UDPTransport) ConnectTo(to nwapi.Address) (OutTransport, error) {
+func (p *udpTransportFactory) ConnectTo(to nwapi.Address) (OneWayTransport, error) {
 	if p.IsZero() {
 		return nil, throw.IllegalState()
 	}
@@ -131,14 +131,14 @@ func (p *UDPTransport) ConnectTo(to nwapi.Address) (OutTransport, error) {
 	return &udpOutTransport{resolved.AsUDPAddr(), nil, p.conn, p.maxByteSize, 0 }, nil
 }
 
-func (p *UDPTransport) Close() error {
+func (p *udpTransportFactory) Close() error {
 	if p.conn != nil {
 		return p.conn.Close()
 	}
 	return nil
 }
 
-func runUDPListener(t *UDPTransport, receiveFn SessionlessReceiveFunc) {
+func runUDPListener(t *udpTransportFactory, receiveFn SessionlessReceiveFunc) {
 	defer func() {
 		_ = t.conn.Close()
 		_ = recover()
@@ -159,7 +159,7 @@ func runUDPListener(t *UDPTransport, receiveFn SessionlessReceiveFunc) {
 	}
 }
 
-var _ OutTransport = &udpOutTransport{}
+var _ OneWayTransport = &udpOutTransport{}
 
 type udpOutTransport struct {
 	addr  net.UDPAddr
@@ -229,7 +229,7 @@ func (p *udpOutTransport) SetTag(tag int) {
 	p.tag = tag
 }
 
-func (p *udpOutTransport) WithQuota(q ratelimiter.RateQuota) OutTransport {
+func (p *udpOutTransport) WithQuota(q ratelimiter.RateQuota) OneWayTransport {
 	if p.quota == q {
 		return p
 	}

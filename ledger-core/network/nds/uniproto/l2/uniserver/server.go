@@ -232,7 +232,7 @@ func (p *UnifiedServer) receiveSessionless(local, remote nwapi.Address, b []byte
 	return true
 }
 
-func (p *UnifiedServer) connectSessionfulListen(local, remote nwapi.Address, conn io.ReadWriteCloser, w l1.OutTransport, err error) bool {
+func (p *UnifiedServer) connectSessionfulListen(local, remote nwapi.Address, conn io.ReadWriteCloser, w l1.OneWayTransport, err error) bool {
 	if !p.ptf.listen.IsActive() {
 		// can't accept incoming connections until listen initializer is finished
 		_ = conn.Close()
@@ -241,7 +241,7 @@ func (p *UnifiedServer) connectSessionfulListen(local, remote nwapi.Address, con
 	return p.connectSessionful(local, remote, conn, w, err)
 }
 
-func (p *UnifiedServer) connectSessionful(local, remote nwapi.Address, conn io.ReadWriteCloser, w l1.OutTransport, err error) bool {
+func (p *UnifiedServer) connectSessionful(local, remote nwapi.Address, conn io.ReadWriteCloser, w l1.OneWayTransport, err error) bool {
 	// DO NOT report checkConnection errors to blacklist
 	if err = p.checkConnection(local, remote, err); err != nil {
 		_ = conn.Close()

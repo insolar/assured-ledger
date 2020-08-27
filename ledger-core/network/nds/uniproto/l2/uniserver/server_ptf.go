@@ -117,7 +117,7 @@ func (p *peerTransportFactory) Close() (err error) {
 }
 
 // LOCK: WARNING! This method is called under PeerTransport.mutex
-func (p *peerTransportFactory) SessionlessConnectTo(to nwapi.Address) (l1.OutTransport, error) {
+func (p *peerTransportFactory) SessionlessConnectTo(to nwapi.Address) (l1.OneWayTransport, error) {
 	if p.listen.IsActive() {
 		return p.udpListen.ConnectTo(to)
 	}
@@ -131,7 +131,7 @@ func (p *peerTransportFactory) SessionlessConnectTo(to nwapi.Address) (l1.OutTra
 }
 
 // LOCK: WARNING! This method is called under PeerTransport.mutex
-func (p *peerTransportFactory) SessionfulConnectTo(to nwapi.Address) (l1.OutTransport, error) {
+func (p *peerTransportFactory) SessionfulConnectTo(to nwapi.Address) (l1.OneWayTransport, error) {
 	if p.listen.IsActive() {
 		return p.tcpListen.ConnectTo(to)
 	}

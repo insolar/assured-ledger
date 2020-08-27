@@ -40,7 +40,7 @@ type ConnErrDetails struct {
 	Local, Remote nwapi.Address
 }
 
-func (p PeerReceiver) ReceiveStream(remote nwapi.Address, conn io.ReadWriteCloser, wOut l1.OutTransport) (runFn func() error, err error) {
+func (p PeerReceiver) ReceiveStream(remote nwapi.Address, conn io.ReadWriteCloser, wOut l1.OneWayTransport) (runFn func() error, err error) {
 	defer func() {
 		_ = iokit.SafeClose(conn)
 		err = throw.R(recover(), err)

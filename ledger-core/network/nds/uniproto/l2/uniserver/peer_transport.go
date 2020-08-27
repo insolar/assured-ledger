@@ -26,9 +26,9 @@ import (
 
 type PeerTransportFactory interface {
 	// LOCK: WARNING! This method is called under PeerTransport.mutex
-	SessionlessConnectTo(to nwapi.Address) (l1.OutTransport, error)
+	SessionlessConnectTo(to nwapi.Address) (l1.OneWayTransport, error)
 	// LOCK: WARNING! This method is called under PeerTransport.mutex
-	SessionfulConnectTo(to nwapi.Address) (l1.OutTransport, error)
+	SessionfulConnectTo(to nwapi.Address) (l1.OneWayTransport, error)
 	IsActive() bool
 	MaxSessionlessSize() uint16
 }
@@ -103,8 +103,8 @@ type PeerTransport struct {
 	addrIndex uint8
 	connCount uint8
 
-	sessionless l1.OutTransport
-	sessionful  l1.OutTransport
+	sessionless l1.OneWayTransport
+	sessionful  l1.OneWayTransport
 	connections []io.Closer
 }
 
@@ -136,7 +136,7 @@ func (p *PeerTransport) checkActive() error {
 }
 
 // nolint:interfacer
-func (p *PeerTransport) discardTransportAndAddress(t l1.OutTransport, changeAddress bool) (hasMore bool) {
+func (p *PeerTransport) discardTransportAndAddress(t l1.OneWayTransport, changeAddress bool) (hasMore bool) {
 	if t == nil {
 		return false
 	}
@@ -198,9 +198,9 @@ func (p *PeerTransport) _resetConnection(t io.Closer, changeAddress bool) {
 	_ = t.Close()
 }
 
-type connectFunc = func(to nwapi.Address) (l1.OutTransport, error)
+type connectFunc = func(to nwapi.Address) (l1.OneWayTransport, error)
 
-func (p *PeerTransport) tryConnect(factoryFn connectFunc, limit TransportStreamFormat) (l1.OutTransport, error) {
+func (p *PeerTransport) tryConnect(factoryFn connectFunc, limit TransportStreamFormat) (l1.OneWayTransport, error) {
 
 	startIndex := p.addrIndex
 	for {
@@ -241,7 +241,7 @@ func (p *PeerTransport) tryConnect(factoryFn connectFunc, limit TransportStreamF
 	}
 }
 
-func (p *PeerTransport) getSessionlessTransport() (l1.OutTransport, error) {
+func (p *PeerTransport) getSessionlessTransport() (l1.OneWayTransport, error) {
 	p.mutex.RLock()
 	if t := p.sessionless; t != nil {
 		p.mutex.RUnlock()
@@ -260,7 +260,7 @@ func (p *PeerTransport) getSessionlessTransport() (l1.OutTransport, error) {
 	return p.sessionless, err
 }
 
-func (p *PeerTransport) getSessionfulSmallTransport() (l1.OutTransport, error) {
+func (p *PeerTransport) getSessionfulSmallTransport() (l1.OneWayTransport, error) {
 	p.mutex.RLock()
 	if t := p.sessionful; t != nil {
 		p.mutex.RUnlock()
@@ -282,7 +282,7 @@ func (p *PeerTransport) getSessionfulSmallTransport() (l1.OutTransport, error) {
 	return t, nil
 }
 
-func (p *PeerTransport) getSessionfulLargeTransport() (l1.OutTransport, error) {
+func (p *PeerTransport) getSessionfulLargeTransport() (l1.OneWayTransport, error) {
 	p.mutex.RLock()
 	if t := p._getSessionfulTransport(false); t != nil {
 		p.mutex.RUnlock()
@@ -296,16 +296,16 @@ func (p *PeerTransport) getSessionfulLargeTransport() (l1.OutTransport, error) {
 	return p._newSessionfulTransport(false)
 }
 
-func (p *PeerTransport) _getSessionfulTransport(limitedLength bool) l1.OutTransport {
+func (p *PeerTransport) _getSessionfulTransport(limitedLength bool) l1.OneWayTransport {
 	for _, s := range p.connections {
-		if o, ok := s.(l1.OutTransport); ok && TransportStreamFormat(o.GetTag()).IsDefinedLimited() == limitedLength {
+		if o, ok := s.(l1.OneWayTransport); ok && TransportStreamFormat(o.GetTag()).IsDefinedLimited() == limitedLength {
 			return o
 		}
 	}
 	return nil
 }
 
-func (p *PeerTransport) _newSessionfulTransport(limitedLength bool) (t l1.OutTransport, err error) {
+func (p *PeerTransport) _newSessionfulTransport(limitedLength bool) (t l1.OneWayTransport, err error) {
 	if t = p._getSessionfulTransport(limitedLength); t != nil {
 		return
 	}
@@ -369,7 +369,7 @@ func (p *PeerTransport) removeReceiver(conn io.Closer) {
 	p._resetConnection(conn, false)
 }
 
-type transportGetterFunc = func() (l1.OutTransport, error)
+type transportGetterFunc = func() (l1.OneWayTransport, error)
 
 func (p *PeerTransport) useTransport(getTransportFn transportGetterFunc, sessionfulTransport bool, applyFn uniproto.OutFunc) error {
 	var delay time.Duration
@@ -533,7 +533,7 @@ func (p *PeerTransport) sendPacket(tp uniproto.OutType, fn uniproto.OutFunc) err
 			return p.useTransport(p.getSessionlessTransport, false, fn)
 		}
 
-		return p.useTransport(func() (t l1.OutTransport, err error) {
+		return p.useTransport(func() (t l1.OneWayTransport, err error) {
 			if t, err = p.getSessionlessTransport(); t == nil {
 				return
 			}

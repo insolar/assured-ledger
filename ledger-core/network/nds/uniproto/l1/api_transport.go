@@ -27,8 +27,8 @@ type SessionfulTransportProvider interface {
 
 // SessionfulConnectFunc receives either inbound connection(s) from listen or inbound direction of an outgoing connection.
 // Param (w) is not nil for an inbound connection (for an outbound connection it is returned by ConnectTo).
-// Param (conn) is a raw bi-directional connection.
-type SessionfulConnectFunc func(local, remote nwapi.Address, conn io.ReadWriteCloser, w OutTransport, err error) (ok bool)
+// Param (conn) is a raw bi-directional connection. // todo: ??? why we need to pass raw connection ?
+type SessionfulConnectFunc func(local, remote nwapi.Address, conn io.ReadWriteCloser, w OneWayTransport, err error) (ok bool)
 
 // VerifyPeerCertificateFunc verifies raw and pre-verified certs from a connection. Errors should be returned when credentials aren't allowed to connect.
 type VerifyPeerCertificateFunc func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error
@@ -37,7 +37,8 @@ type VerifyPeerCertificateFunc func(rawCerts [][]byte, verifiedChains [][]*x509.
 type OutTransportFactory interface {
 	// ConnectTo resolves provided address and makes a connection
 	// Can return (nil, nil) when the given address is of unsupported type.
-	ConnectTo(nwapi.Address) (OutTransport, error)
+	ConnectTo(nwapi.Address) (OneWayTransport, error)
+	// todo: ConnectToAndVerify(nwapi.Address, VerifyPeerCertificateFunc) (OneWayTransport, error)
 	Close() error
 }
 
@@ -65,17 +66,17 @@ type BasicOutTransport interface {
 	SendBytes(b []byte) error
 }
 
-type OutTransport interface {
+type OneWayTransport interface {
 	BasicOutTransport
 	io.Closer
 	GetTag() int
 	SetTag(int)
 
-	WithQuota(ratelimiter.RateQuota) OutTransport
+	WithQuota(ratelimiter.RateQuota) OneWayTransport
 }
 
 type TwoWayTransport interface {
-	OutTransport
+	OneWayTransport
 
 	// TwoWayConn returns an underlying two-way connection. Only applies to a sessionful transport.
 	TwoWayConn() io.ReadWriteCloser
@@ -95,6 +96,6 @@ type SemiTransport interface {
 type OutNetTransport interface {
 	io.ReaderFrom
 	io.Writer
-	OutTransport
+	OneWayTransport
 	NetConn() net.Conn
 }
