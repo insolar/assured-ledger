@@ -370,7 +370,13 @@ func startNet() (*exec.Cmd, error) {
 		_ = os.Chdir(cwd)
 	}()
 
-	cmd := exec.Command("./scripts/insolard/launchnet.sh", "-pwdg")
+	args := "-pwdg"
+	cloudMode := os.Getenv("CLOUD_MODE")
+	if strings.ToLower(cloudMode) == "true" {
+		args += "m"
+	}
+
+	cmd := exec.Command("./scripts/insolard/launchnet.sh", args)
 	err = waitForLaunch(cmd)
 	if err != nil {
 		return cmd, throw.W(err, "[ startNet ] couldn't waitForLaunch more")

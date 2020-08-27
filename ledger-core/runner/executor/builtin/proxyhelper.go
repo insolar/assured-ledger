@@ -123,7 +123,10 @@ func (h *ProxyHelper) DeactivateObject(object reference.Global) error {
 }
 
 func (h *ProxyHelper) MakeErrorSerializable(err error) error {
-	if err == nil || err == (*foundation.Error)(nil) || reflect.ValueOf(err).IsNil() {
+	switch {
+	case err == nil, err == (*foundation.Error)(nil):
+		return nil
+	case reflect.ValueOf(err).Kind() == reflect.Ptr && reflect.ValueOf(err).IsNil():
 		return nil
 	}
 	return &foundation.Error{S: err.Error()}

@@ -52,6 +52,11 @@ type HeavyNodeConfig struct {
 	LogicRunner LogicRunner
 }
 
+type BaseCloudConfig struct {
+	Log             Log
+	NodeConfigPaths []string
+}
+
 // Configuration contains configuration params for all Insolar components
 type Configuration struct {
 	Host                HostNetwork
