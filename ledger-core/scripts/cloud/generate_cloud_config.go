@@ -22,14 +22,14 @@ import (
 
 var (
 	debugLevel string
-	numVirtual int
+	configDir  string
 )
 
 func parseInputParams() {
 	var rootCmd = &cobra.Command{}
 
-	rootCmd.Flags().IntVar(
-		&numVirtual, "num-virtual-nodes", 5, "number of nodes with role virtual")
+	rootCmd.Flags().StringVar(
+		&configDir, "config-dir", "./", "directory with configs")
 
 	rootCmd.Flags().StringVarP(
 		&debugLevel, "debuglevel", "d", "Debug", "debug level")
@@ -55,9 +55,6 @@ func main() {
 }
 
 func generateBaseCloudConfig() {
-	if numVirtual < 1 {
-		check("cannot generate config", throw.New("virtual count must be more than zero"))
-	}
 
 	logConfig := configuration.Log{
 		Level:     debugLevel,
@@ -65,10 +62,15 @@ func generateBaseCloudConfig() {
 		Formatter: "json",
 	}
 
-	nodeConfigPathTmpl := ".artifacts/launchnet/discoverynodes/%d/insolard.yaml"
+	foundConfigs, err := filepath.Glob(withBaseDir("discoverynodes/*/insolard.yaml"))
+	check("Filed to find configs:", err)
+	if len(foundConfigs) < 1 {
+		check("Filed to find configs:", throw.New("list is empty"))
+	}
+
 	nodeConfigs := []string{}
-	for i := 1; i <= numVirtual; i++ {
-		nodeConfigs = append(nodeConfigs, fmt.Sprintf(nodeConfigPathTmpl, i))
+	for _, cfg := range foundConfigs {
+		nodeConfigs = append(nodeConfigs, cfg)
 	}
 
 	conf := configuration.BaseCloudConfig{
