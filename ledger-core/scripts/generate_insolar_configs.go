@@ -85,14 +85,14 @@ var (
 	debugLevel string
 
 	numVirtual, numLight, numHeavy int
-	base_cloud                     bool
+	baseCloud                      bool
 )
 
 func parseInputParams() {
 	var rootCmd = &cobra.Command{}
 
 	rootCmd.Flags().BoolVar(
-		&base_cloud, "base-cloud", false, "generate base cloud config only")
+		&baseCloud, "base-cloud", false, "generate base cloud config only")
 
 	rootCmd.Flags().IntVar(
 		&numVirtual, "num-virtual-nodes", 5, "number of nodes with role virtual")
@@ -212,7 +212,7 @@ func generateBaseCloudConfig() {
 func main() {
 	parseInputParams()
 
-	if base_cloud {
+	if baseCloud {
 		generateBaseCloudConfig()
 		return
 	}
