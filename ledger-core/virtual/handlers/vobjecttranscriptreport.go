@@ -10,13 +10,14 @@ package handlers
 import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 )
 
 type SMVObjectTranscriptReport struct {
 	// input arguments
 	Meta    *payload.Meta
-	Payload *payload.VObjectTranscriptReport
+	Payload *rms.VObjectTranscriptReport
 }
 
 /* -------- Declaration ------------- */
