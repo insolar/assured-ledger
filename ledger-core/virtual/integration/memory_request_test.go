@@ -1,3 +1,8 @@
+// Copyright 2020 Insolar Network Ltd.
+// All rights reserved.
+// This material is licensed under the Insolar License version 1.0,
+// available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
+
 package integration
 
 import (
@@ -15,8 +20,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	commonTestUtils "github.com/insolar/assured-ledger/ledger-core/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/mock/publisher/checker"
@@ -51,12 +58,11 @@ func TestVirtual_VCachedMemoryRequestHandler(t *testing.T) {
 	}
 	for _, cases := range testCases {
 		t.Run(cases.name, func(t *testing.T) {
-
 			suite := &memoryCachTest{}
 
 			ctx := suite.initServer(t)
 
-			suite.object = reference.NewSelf(suite.server.RandomLocalWithPulse())
+			suite.object = suite.server.RandomGlobalWithPulse()
 			suite.class = suite.server.RandomGlobalWithPulse()
 
 			cases.precondition(suite, ctx, t)
@@ -106,7 +112,9 @@ func methodPrecondition(s *memoryCachTest, ctx context.Context, t *testing.T) {
 	pl.CallSiteMethod = "ordered"
 	callOutgoing := pl.CallOutgoing
 
-	result := requestresult.New([]byte(newState), s.object)
+	newObjDescriptor := descriptor.NewObject(reference.Global{}, reference.Local{}, gen.UniqueGlobalRef(), []byte(""), false)
+	result := requestresult.New([]byte("result"), s.object)
+	result.SetAmend(newObjDescriptor, []byte(newState))
 
 	key := callOutgoing.String()
 	s.runnerMock.AddExecutionMock(key).
@@ -127,7 +135,8 @@ func constructorPrecondition(s *memoryCachTest, ctx context.Context, t *testing.
 	pl.Caller = s.class
 	callOutgoing := pl.CallOutgoing
 
-	result := requestresult.New([]byte(newState), s.object)
+	result := requestresult.New([]byte("result"), s.object)
+	result.SetActivate(reference.Global{}, s.class, []byte(newState))
 
 	key := callOutgoing.String()
 	s.runnerMock.AddExecutionMock(key).
@@ -144,7 +153,6 @@ func constructorPrecondition(s *memoryCachTest, ctx context.Context, t *testing.
 }
 
 func (s *memoryCachTest) initServer(t *testing.T) context.Context {
-
 	s.mc = minimock.NewController(t)
 
 	server, ctx := utils.NewUninitializedServer(nil, t)
