@@ -132,6 +132,10 @@ func (lr *Dispatcher) Init(ctx context.Context) error {
 
 	lr.Conveyor.SetFactoryFunc(defaultHandlers.Classify)
 
+	if lr.MemoryCache == nil || lr.MessageSender == nil {
+		panic(throw.IllegalValue())
+	}
+
 	lr.runnerAdapter = lr.Runner.CreateAdapter(ctx)
 	lr.messageSenderAdapter = messageSenderAdapter.CreateMessageSendService(ctx, lr.MessageSender)
 	lr.memoryCacheAdapter = memoryCacheAdapter.CreateMemoryCacheAdapter(ctx, lr.MemoryCache)
