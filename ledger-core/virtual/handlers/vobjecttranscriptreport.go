@@ -38,10 +38,6 @@ func (*dSMVObjectTranscriptReport) GetInitStateFor(sm smachine.StateMachine) sma
 
 /* -------- Instance ------------- */
 
-func (*SMVObjectTranscriptReport) InjectDependencies(sm smachine.StateMachine, _ smachine.SlotLink, injector *injector.DependencyInjector) {
-	_ = sm.(*SMVObjectTranscriptReport)
-}
-
 func (s *SMVObjectTranscriptReport) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
 	return dSMVObjectTranscriptReportInstance
 }
