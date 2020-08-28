@@ -1049,7 +1049,7 @@ func GenerateInitializationList(out io.Writer, contracts ContractList) error {
 			"XXX_contract":    `"github.com/insolar/assured-ledger/ledger-core/insolar/contract"`,
 			"XXX_descriptor":  `"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"`,
 			"XXX_reference":   `"github.com/insolar/assured-ledger/ledger-core/reference"`,
-			"XXX_machinetype": `"github.com/insolar/assured-ledger/ledger-core/runner/machine/type"`,
+			"XXX_machinetype": `"github.com/insolar/assured-ledger/ledger-core/runner/machine/machinetype"`,
 			"throw":           `"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"`,
 		},
 	}
