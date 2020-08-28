@@ -26,6 +26,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/servicenetwork"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/memorycache"
 )
 
 type preComponents struct {
@@ -156,6 +157,7 @@ func (s *Server) initComponents(ctx context.Context, cfg configuration.Configura
 			BeatHistory:    pulses,
 			AffinityHelper: affine,
 			MessageSender:  mr.CreateMessageSender(affine, pulses),
+			MemoryCache:    memorycache.NewDefaultService(),
 			CryptoScheme:   comps.CryptoScheme,
 		}
 
@@ -188,4 +190,3 @@ func checkError(ctx context.Context, err error, message string) {
 		inslogger.FromContext(ctx).Fatalf("%v: %v", message, throw.ErrorWithStack(err))
 	}
 }
-

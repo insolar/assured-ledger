@@ -23,6 +23,7 @@ func AppFactory(ctx context.Context, cfg configuration.Configuration, comps insa
 
 	virtualDispatcher.Runner = runnerService
 	virtualDispatcher.MessageSender = comps.MessageSender
+	virtualDispatcher.MemoryCache = comps.MemoryCache
 	virtualDispatcher.Affinity = comps.AffinityHelper
 	virtualDispatcher.AuthenticationService = authentication.NewService(ctx, comps.AffinityHelper)
 
@@ -36,6 +37,5 @@ func AppFactory(ctx context.Context, cfg configuration.Configuration, comps insa
 	testAPI := testwalletapi.NewTestWalletServer(cfg.TestWalletAPI, virtualDispatcher, comps.BeatHistory)
 
 	// ComponentManager can only work with by-pointer objects
-	return &wrapper{runnerService, virtualDispatcher, testAPI }, nil
+	return &wrapper{runnerService, virtualDispatcher, testAPI}, nil
 }
-

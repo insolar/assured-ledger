@@ -163,7 +163,8 @@ func newServerExt(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFi
 	messageSender := messagesender.NewDefaultService(s.PublisherMock, s.JetCoordinatorMock, s.pulseStorage)
 	s.messageSender = messageSender
 
-	s.memoryCache = memorycache.NewDefaultService()
+	memoryCache := memorycache.NewDefaultService()
+	s.memoryCache = memoryCache
 
 	var machineLogger smachine.SlotMachineLogger
 
@@ -180,7 +181,7 @@ func newServerExt(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFi
 	virtualDispatcher.MessageSender = messageSender
 	virtualDispatcher.Affinity = s.JetCoordinatorMock
 	virtualDispatcher.AuthenticationService = authentication.NewService(ctx, virtualDispatcher.Affinity)
-	virtualDispatcher.MemoryCache = s.memoryCache
+	virtualDispatcher.MemoryCache = memoryCache
 
 	virtualDispatcher.CycleFn = s.onConveyorCycle
 	virtualDispatcher.EventlessSleep = -1 // disable EventlessSleep for proper WaitActiveThenIdleConveyor behavior

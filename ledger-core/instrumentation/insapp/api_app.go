@@ -17,6 +17,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/memorycache"
 )
 
 // AppComponent is an interface for a component that wraps an application compartment.
@@ -37,10 +38,11 @@ type AppComponents struct {
 	AffinityHelper affinity.Helper
 	BeatHistory    beat.History
 	MessageSender  messagesender.Service
+	MemoryCache    memorycache.Service
 	CryptoScheme   crypto.PlatformScheme
 
-	LocalNodeRef   reference.Holder
-	LocalNodeRole  member.PrimaryRole
+	LocalNodeRef  reference.Holder
+	LocalNodeRole member.PrimaryRole
 }
 
 const LocalNodeRefInjectionID = "LocalNodeRef"
@@ -62,5 +64,8 @@ func (v AppComponents) AddAsDependencies(container injector.DependencyContainer)
 	}
 	if v.CryptoScheme != nil {
 		injector.AddInterfaceDependency(container, &v.CryptoScheme)
+	}
+	if v.MemoryCache != nil {
+		injector.AddInterfaceDependency(container, &v.MemoryCache)
 	}
 }

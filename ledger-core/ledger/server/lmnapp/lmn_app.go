@@ -39,6 +39,7 @@ func NewAppCompartment(_ configuration.Ledger, comps insapp.AppComponents) *insc
 		func(ctx context.Context, _ injector.DependencyInjector, setup insconveyor.AppCompartmentSetup) insconveyor.AppCompartmentSetup {
 
 			setup.Dependencies.AddInterfaceDependency(&comps.MessageSender)
+			setup.Dependencies.AddInterfaceDependency(&comps.MemoryCache)
 			setup.Dependencies.AddInterfaceDependency(&comps.CryptoScheme)
 
 			{
