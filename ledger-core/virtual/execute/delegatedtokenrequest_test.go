@@ -25,7 +25,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/memorycache"
+	memoryCacheAdapter "github.com/insolar/assured-ledger/ledger-core/virtual/memorycache/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/virtualdebugger"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
@@ -67,9 +67,9 @@ func TestVDelegatedCallRequest(t *testing.T) {
 	{
 		catalogWrapper := object.NewCatalogMockWrapper(mc)
 		var (
-			catalog     object.Catalog         = catalogWrapper.Mock()
-			authService authentication.Service = authentication.NewServiceMock(t)
-			memoryCache memorycache.Service    = memorycache.NewServiceMock(t)
+			catalog     object.Catalog                 = catalogWrapper.Mock()
+			authService authentication.Service         = authentication.NewServiceMock(t)
+			memoryCache memoryCacheAdapter.MemoryCache = memoryCacheAdapter.NewMemoryCacheMock(t)
 		)
 		slotMachine.AddInterfaceDependency(&catalog)
 		slotMachine.AddInterfaceDependency(&authService)
