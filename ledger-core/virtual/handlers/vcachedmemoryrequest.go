@@ -52,13 +52,6 @@ func (*dSMVCachedMemoryRequest) GetInitStateFor(sm smachine.StateMachine) smachi
 
 /* -------- Instance ------------- */
 
-func (*SMVCachedMemoryRequest) InjectDependencies(sm smachine.StateMachine, _ smachine.SlotLink, injector injector.DependencyInjector) {
-	s := sm.(*SMVCachedMemoryRequest)
-
-	injector.MustInject(&s.memoryCache)
-	injector.MustInject(&s.messageSender)
-}
-
 func (s *SMVCachedMemoryRequest) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
 	return dSMVCachedMemoryRequestInstance
 }

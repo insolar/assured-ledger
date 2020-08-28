@@ -22,7 +22,12 @@ const (
 			"github.com/ThreeDotsLabs/watermill/message"
 			"github.com/gojuno/minimock/v3"
 
+		{{ if .PayloadIsUsed }}
 			"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
+		{{- end }}
+		{{- if .RMSIsUsed }}
+			"github.com/insolar/assured-ledger/ledger-core/rms"
+		{{- end }}
 			"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
 			"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 		)
@@ -30,44 +35,44 @@ const (
 		// ============================================================================
 
 	{{ range $pos, $msg := .Messages }}
-		type {{ $msg }}Definition struct {
+		type {{ $msg.Type }}Definition struct {
 			touched       bool
 			count         atomickit.Int
 			countBefore   atomickit.Int
 			expectedCount int
-			handler       {{ $msg }}Handler
+			handler       {{ $msg.Type }}Handler
 		}
-		type {{ $msg }}Handler func(*payload.{{ $msg }} ) bool
-		type Pub{{ $msg }}Mock struct{ parent *Typed }
+		type {{ $msg.Type }}Handler func(*{{ $msg.TypeWithPackage }} ) bool
+		type Pub{{ $msg.Type }}Mock struct{ parent *Typed }
 
-		func (p Pub{{ $msg }}Mock) ExpectedCount(count int) Pub{{ $msg }}Mock {
-			p.parent.Handlers.{{ $msg }}.touched = true
-			p.parent.Handlers.{{ $msg }}.expectedCount = count
+		func (p Pub{{ $msg.Type }}Mock) ExpectedCount(count int) Pub{{ $msg.Type }}Mock {
+			p.parent.Handlers.{{ $msg.Type }}.touched = true
+			p.parent.Handlers.{{ $msg.Type }}.expectedCount = count
 			return p
 		}
 
-		func (p Pub{{ $msg }}Mock) Set(handler {{ $msg }}Handler) Pub{{ $msg }}Mock {
-			p.parent.Handlers.{{ $msg }}.touched = true
-			p.parent.Handlers.{{ $msg }}.handler = handler
+		func (p Pub{{ $msg.Type }}Mock) Set(handler {{ $msg.Type }}Handler) Pub{{ $msg.Type }}Mock {
+			p.parent.Handlers.{{ $msg.Type }}.touched = true
+			p.parent.Handlers.{{ $msg.Type }}.handler = handler
 			return p
 		}
 
-		func (p Pub{{ $msg }}Mock) SetResend(resend bool) Pub{{ $msg }}Mock {
-			p.parent.Handlers.{{ $msg }}.touched = true
-			p.parent.Handlers.{{ $msg }}.handler = func(*payload.{{ $msg }}) bool { return resend }
+		func (p Pub{{ $msg.Type }}Mock) SetResend(resend bool) Pub{{ $msg.Type }}Mock {
+			p.parent.Handlers.{{ $msg.Type }}.touched = true
+			p.parent.Handlers.{{ $msg.Type }}.handler = func(*{{ $msg.TypeWithPackage }}) bool { return resend }
 			return p
 		}
 
-		func (p Pub{{ $msg }}Mock) Count() int {
-			return p.parent.Handlers.{{ $msg }}.count.Load()
+		func (p Pub{{ $msg.Type }}Mock) Count() int {
+			return p.parent.Handlers.{{ $msg.Type }}.count.Load()
 		}
 
-		func (p Pub{{ $msg }}Mock) CountBefore() int {
-			return p.parent.Handlers.{{ $msg }}.countBefore.Load()
+		func (p Pub{{ $msg.Type }}Mock) CountBefore() int {
+			return p.parent.Handlers.{{ $msg.Type }}.countBefore.Load()
 		}
 
-		func (p Pub{{ $msg }}Mock) Wait(ctx context.Context, count int) synckit.SignalChannel {
-			return waitCounterIndefinitely(ctx, &p.parent.Handlers.{{ $msg }}.count, count)
+		func (p Pub{{ $msg.Type }}Mock) Wait(ctx context.Context, count int) synckit.SignalChannel {
+			return waitCounterIndefinitely(ctx, &p.parent.Handlers.{{ $msg.Type }}.count, count)
 		}
 
 		// ============================================================================
@@ -75,7 +80,7 @@ const (
 
 		type TypedHandlers struct {
 		{{ range $pos, $msg := .Messages -}}
-			{{ $msg }} {{ $msg }}Definition
+			{{ $msg.Type }} {{ $msg.Type }}Definition
 		{{ end }}
 
 			BaseMessage struct {
@@ -93,7 +98,7 @@ const (
 			Handlers TypedHandlers
 
 		{{ range $pos, $msg := .Messages -}}
-			{{ $msg }} Pub{{ $msg }}Mock
+			{{ $msg.Type }} Pub{{ $msg.Type }}Mock
 		{{ end }}
 		}
 
@@ -107,13 +112,13 @@ const (
 
 				Handlers: TypedHandlers{
 				{{ range $pos, $msg := .Messages -}}
-					{{ $msg }}: {{ $msg }}Definition{expectedCount: -1},
+					{{ $msg.Type }}: {{ $msg.Type }}Definition{expectedCount: -1},
 				{{ end }}
 				},
 			}
 
 			{{ range $pos, $msg := .Messages -}}
-				checker.{{ $msg }} = Pub{{ $msg }}Mock{parent: checker}
+				checker.{{ $msg.Type }} = Pub{{ $msg.Type }}Mock{parent: checker}
 			{{ end }}
 
 			if controller, ok := t.(minimock.MockController); ok {
@@ -141,8 +146,8 @@ const (
 
 			switch payload := basePayload.(type) {
 		{{- range $pos, $msg := .Messages }}
-			case *payload.{{ $msg }}:
-				hdlStruct := &p.Handlers.{{ $msg }}
+			case *{{ $msg.TypeWithPackage }}:
+				hdlStruct := &p.Handlers.{{ $msg.Type }}
 
 				resend = p.defaultResend
 
@@ -160,7 +165,7 @@ const (
 					select {
 					case <-done:
 					case <-time.After(p.timeout):
-						p.t.Error("timeout: failed to check message {{ $msg }} (position: %s)", oldCount)
+						p.t.Error("timeout: failed to check message {{ $msg.Type }} (position: %s)", oldCount)
 					}
 				} else if !p.defaultResend && !hdlStruct.touched {
 					p.t.Fatalf("unexpected %T payload", payload)
@@ -191,7 +196,7 @@ const (
 		{{ range $pos, $msg := .Messages -}}
 			{
 				fn := func () bool {
-					hdl := &p.Handlers.{{ $msg }}
+					hdl := &p.Handlers.{{ $msg.Type }}
 
 					switch {
 					case hdl.expectedCount < 0:

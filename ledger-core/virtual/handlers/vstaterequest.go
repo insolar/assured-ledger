@@ -58,13 +58,6 @@ func (*dSMVStateRequest) GetInitStateFor(sm smachine.StateMachine) smachine.Init
 
 /* -------- Instance ------------- */
 
-func (*SMVStateRequest) InjectDependencies(sm smachine.StateMachine, _ smachine.SlotLink, injector *injector.DependencyInjector) {
-	s := sm.(*SMVStateRequest)
-
-	injector.MustInject(&s.pulseSlot)
-	injector.MustInject(&s.messageSender)
-}
-
 func (s *SMVStateRequest) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
 	return dSMVStateRequestInstance
 }
