@@ -23,10 +23,10 @@ import (
 	XXX_contract "github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	XXX_reference "github.com/insolar/assured-ledger/ledger-core/reference"
 	XXX_machinetype "github.com/insolar/assured-ledger/ledger-core/runner/machine/machinetype"
-	throw "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	XXX_descriptor "github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 
-	testwallet "github.com/insolar/assured-ledger/ledger-core/application/builtin/contract/testwallet"
+	"github.com/insolar/assured-ledger/ledger-core/application/builtin/contract/testwallet"
 )
 
 func InitializeContractMethods() map[string]XXX_contract.Wrapper {

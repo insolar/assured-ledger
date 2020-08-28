@@ -611,7 +611,6 @@ func (pf *ParsedFile) typeName(t ast.Expr) string {
 
 func (pf *ParsedFile) generateImports(extraImports []string) map[string]bool {
 	imports := make(map[string]bool)
-	//importList := []string{proxyctxPath, foundationPath}
 	importList := []string{foundationPath}
 
 	if extraImports != nil {

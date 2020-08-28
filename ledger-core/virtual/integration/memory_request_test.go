@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
@@ -182,7 +183,7 @@ func pendingPrecondition(s *memoryCacheTest, ctx context.Context, t *testing.T) 
 	s.server.SendPayload(ctx, report)
 	commonTestUtils.WaitSignalsTimed(t, 10*time.Second, wait)
 
-	flags := payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty)
+	flags := payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty)
 
 	s.typedChecker.VDelegatedCallResponse.SetResend(false)
 
