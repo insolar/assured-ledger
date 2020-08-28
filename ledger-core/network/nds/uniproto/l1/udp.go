@@ -86,7 +86,7 @@ func (v udpProvider) CreateOutgoingOnlyFactory() (OutTransportFactory, error) {
 	t := &udpTransportFactory{v.addr, nil, v.preference, v.maxByteSize}
 
 	var err error
-	t.conn, err = net.DialUDP("udp", &t.addr, nil)
+	t.conn, err = net.ListenUDP("udp", &t.addr)
 	if err != nil {
 		return nil, err
 	}
