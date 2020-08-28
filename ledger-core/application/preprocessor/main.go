@@ -34,8 +34,6 @@ import (
 )
 
 var foundationPath = "github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
-
-var proxyctxPath = "github.com/insolar/assured-ledger/ledger-core/runner/executor/common"
 var referencePath = "github.com/insolar/assured-ledger/ledger-core/reference"
 
 var immutableFlag = "ins:immutable"
