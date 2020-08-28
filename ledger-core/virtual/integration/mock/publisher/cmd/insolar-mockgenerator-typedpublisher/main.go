@@ -96,29 +96,33 @@ func getReceiver(recv *ast.FieldList) string {
 	}
 }
 
-func getTypeName(typeAst ast.Expr) string {
+func getTypeName(typeAst ast.Expr, withPackage bool) string {
 	typeSelector, ok := typeAst.(*ast.SelectorExpr)
 	if !ok {
 		return ""
 	}
 
+	if packageName, ok := typeSelector.X.(*ast.Ident); withPackage && ok {
+		return packageName.Name + "." + typeSelector.Sel.Name
+	}
+
 	return typeSelector.Sel.Name
 }
 
-func getStarTypeName(typeAst ast.Expr) string {
+func getStarTypeName(typeAst ast.Expr, withPackage bool) string {
 	typeStarExpr, ok := typeAst.(*ast.StarExpr)
 	if !ok {
 		return ""
 	}
 
-	return getTypeName(typeStarExpr.X)
+	return getTypeName(typeStarExpr.X, withPackage)
 }
 
-func getOptStarTypeName(typeAst ast.Expr) string {
-	if rv := getStarTypeName(typeAst); rv != "" {
+func getOptStarTypeName(typeAst ast.Expr, withPackage bool) string {
+	if rv := getStarTypeName(typeAst, withPackage); rv != "" {
 		return rv
 	}
-	return getTypeName(typeAst)
+	return getTypeName(typeAst, withPackage)
 }
 
 func checkArgumentType(paramList *ast.FieldList, position int, tp string) bool {
@@ -126,7 +130,7 @@ func checkArgumentType(paramList *ast.FieldList, position int, tp string) bool {
 		return false
 	}
 
-	return getTypeName(paramList.List[position].Type) == tp
+	return getTypeName(paramList.List[position].Type, false) == tp
 }
 
 // GetStateMachineName returns empty string on parsing non GetStateMachineDeclaration
@@ -156,7 +160,7 @@ func getStructName(fn *ast.TypeSpec) (string, string) {
 
 	for _, val := range structDef.Fields.List {
 		if len(val.Names) == 1 && val.Names[0].Name == "Payload" {
-			return fn.Name.Name, getOptStarTypeName(val.Type)
+			return fn.Name.Name, getOptStarTypeName(val.Type, true)
 		}
 	}
 
@@ -181,7 +185,14 @@ func loadFiles(files []*ast.File) []string {
 					if !ok {
 						panic(throw.IllegalState())
 					}
-					if smName, payloadType := getStructName(spec); smName != "" && payloadType != "" {
+
+					smName, payloadType := getStructName(spec)
+					switch {
+					case smName == "" || payloadType == "":
+						// do nothing
+					case !strings.HasPrefix(payloadType, "payload.") && !strings.HasPrefix(payloadType, "rms."):
+						// do nothing
+					default:
 						payloadMapping[smName] = payloadType
 					}
 				}
@@ -244,12 +255,55 @@ func parseHandlers() ([]string, error) {
 	return messages, nil
 }
 
-func generateMock(messages []string) (*bytes.Buffer, error) {
-	data := struct {
-		Messages []string
-	}{
-		Messages: messages,
+func checkRMSIsUsed(messages []string) bool {
+	for _, message := range messages {
+		if strings.HasPrefix(message, "rms.") {
+			return true
+		}
 	}
+	return false
+}
+
+func checkPayloadIsUsed(messages []string) bool {
+	return true
+}
+
+func messageListToMessageDataList(messages []string) []MessageData {
+	messagesData := make([]MessageData, len(messages))
+
+	for pos, message := range messages {
+		messageTypeSpliced := strings.SplitN(message, ".", 2)
+		if len(messageTypeSpliced) != 2 {
+			panic(throw.IllegalState())
+		}
+
+		messagesData[pos] = MessageData{
+			TypeWithPackage: message,
+			Type:            messageTypeSpliced[1],
+		}
+	}
+
+	return messagesData
+}
+
+type MessageData struct {
+	Type            string
+	TypeWithPackage string
+}
+
+type GeneratorData struct {
+	Messages      []MessageData
+	RMSIsUsed     bool
+	PayloadIsUsed bool
+}
+
+func generateMock(messages []string) (*bytes.Buffer, error) {
+	data := GeneratorData{
+		Messages:      messageListToMessageDataList(messages),
+		RMSIsUsed:     checkRMSIsUsed(messages),
+		PayloadIsUsed: checkPayloadIsUsed(messages),
+	}
+
 	var (
 		tpl = template.New("typed.go.tpl")
 		buf = bytes.Buffer{}

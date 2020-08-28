@@ -105,42 +105,384 @@ func (m *MessageExample_Head) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_MessageExample_Head proto.InternalMessageInfo
 
+type VObjectTranscriptReport struct {
+	// FIXME: this is here just to make generator silent
+	Any                `protobuf:"bytes,19,opt,name=Record,proto3,embedded=Record" json:"Record"`
+	AsOf               PulseNumber                          `protobuf:"varint,1800,opt,name=AsOf,proto3,casttype=PulseNumber" json:"AsOf"`
+	Object             Reference                            `protobuf:"bytes,1801,opt,name=Object,proto3" json:"Object"`
+	PendingTranscripts []VObjectTranscriptReport_Transcript `protobuf:"bytes,1803,rep,name=PendingTranscripts,proto3" json:"PendingTranscripts"`
+	ObjectTranscript   VObjectTranscriptReport_Transcript   `protobuf:"bytes,1804,opt,name=ObjectTranscript,proto3" json:"ObjectTranscript"`
+}
+
+func (m *VObjectTranscriptReport) Reset()         { *m = VObjectTranscriptReport{} }
+func (m *VObjectTranscriptReport) String() string { return proto.CompactTextString(m) }
+func (*VObjectTranscriptReport) ProtoMessage()    {}
+func (*VObjectTranscriptReport) Descriptor() ([]byte, []int) {
+	return fileDescriptor_fc353dc03c844eae, []int{1}
+}
+func (m *VObjectTranscriptReport) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *VObjectTranscriptReport) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *VObjectTranscriptReport) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_VObjectTranscriptReport.Merge(m, src)
+}
+func (m *VObjectTranscriptReport) XXX_Size() int {
+	return m.ProtoSize()
+}
+func (m *VObjectTranscriptReport) XXX_DiscardUnknown() {
+	xxx_messageInfo_VObjectTranscriptReport.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_VObjectTranscriptReport proto.InternalMessageInfo
+
+func (m *VObjectTranscriptReport) GetAsOf() PulseNumber {
+	if m != nil {
+		return m.AsOf
+	}
+	return 0
+}
+
+func (m *VObjectTranscriptReport) GetObject() Reference {
+	if m != nil {
+		return m.Object
+	}
+	return Reference{}
+}
+
+func (m *VObjectTranscriptReport) GetPendingTranscripts() []VObjectTranscriptReport_Transcript {
+	if m != nil {
+		return m.PendingTranscripts
+	}
+	return nil
+}
+
+func (m *VObjectTranscriptReport) GetObjectTranscript() VObjectTranscriptReport_Transcript {
+	if m != nil {
+		return m.ObjectTranscript
+	}
+	return VObjectTranscriptReport_Transcript{}
+}
+
+type VObjectTranscriptReport_TranscriptEntryIncomingRequest struct {
+	ObjectMemory Reference `protobuf:"bytes,1800,opt,name=ObjectMemory,proto3" json:"ObjectMemory"`
+	Incoming     Reference `protobuf:"bytes,1801,opt,name=Incoming,proto3" json:"Incoming"`
+	Request      []byte    `protobuf:"bytes,1802,opt,name=Request,proto3" json:"Request"`
+}
+
+func (m *VObjectTranscriptReport_TranscriptEntryIncomingRequest) Reset() {
+	*m = VObjectTranscriptReport_TranscriptEntryIncomingRequest{}
+}
+func (m *VObjectTranscriptReport_TranscriptEntryIncomingRequest) String() string {
+	return proto.CompactTextString(m)
+}
+func (*VObjectTranscriptReport_TranscriptEntryIncomingRequest) ProtoMessage() {}
+func (*VObjectTranscriptReport_TranscriptEntryIncomingRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_fc353dc03c844eae, []int{1, 0}
+}
+func (m *VObjectTranscriptReport_TranscriptEntryIncomingRequest) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *VObjectTranscriptReport_TranscriptEntryIncomingRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *VObjectTranscriptReport_TranscriptEntryIncomingRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_VObjectTranscriptReport_TranscriptEntryIncomingRequest.Merge(m, src)
+}
+func (m *VObjectTranscriptReport_TranscriptEntryIncomingRequest) XXX_Size() int {
+	return m.ProtoSize()
+}
+func (m *VObjectTranscriptReport_TranscriptEntryIncomingRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_VObjectTranscriptReport_TranscriptEntryIncomingRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_VObjectTranscriptReport_TranscriptEntryIncomingRequest proto.InternalMessageInfo
+
+func (m *VObjectTranscriptReport_TranscriptEntryIncomingRequest) GetObjectMemory() Reference {
+	if m != nil {
+		return m.ObjectMemory
+	}
+	return Reference{}
+}
+
+func (m *VObjectTranscriptReport_TranscriptEntryIncomingRequest) GetIncoming() Reference {
+	if m != nil {
+		return m.Incoming
+	}
+	return Reference{}
+}
+
+func (m *VObjectTranscriptReport_TranscriptEntryIncomingRequest) GetRequest() []byte {
+	if m != nil {
+		return m.Request
+	}
+	return nil
+}
+
+type VObjectTranscriptReport_TranscriptEntryOutgoingRequest struct {
+	Outgoing Reference `protobuf:"bytes,1800,opt,name=Outgoing,proto3" json:"Outgoing"`
+}
+
+func (m *VObjectTranscriptReport_TranscriptEntryOutgoingRequest) Reset() {
+	*m = VObjectTranscriptReport_TranscriptEntryOutgoingRequest{}
+}
+func (m *VObjectTranscriptReport_TranscriptEntryOutgoingRequest) String() string {
+	return proto.CompactTextString(m)
+}
+func (*VObjectTranscriptReport_TranscriptEntryOutgoingRequest) ProtoMessage() {}
+func (*VObjectTranscriptReport_TranscriptEntryOutgoingRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_fc353dc03c844eae, []int{1, 1}
+}
+func (m *VObjectTranscriptReport_TranscriptEntryOutgoingRequest) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *VObjectTranscriptReport_TranscriptEntryOutgoingRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *VObjectTranscriptReport_TranscriptEntryOutgoingRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_VObjectTranscriptReport_TranscriptEntryOutgoingRequest.Merge(m, src)
+}
+func (m *VObjectTranscriptReport_TranscriptEntryOutgoingRequest) XXX_Size() int {
+	return m.ProtoSize()
+}
+func (m *VObjectTranscriptReport_TranscriptEntryOutgoingRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_VObjectTranscriptReport_TranscriptEntryOutgoingRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_VObjectTranscriptReport_TranscriptEntryOutgoingRequest proto.InternalMessageInfo
+
+func (m *VObjectTranscriptReport_TranscriptEntryOutgoingRequest) GetOutgoing() Reference {
+	if m != nil {
+		return m.Outgoing
+	}
+	return Reference{}
+}
+
+type VObjectTranscriptReport_TranscriptEntryOutgoingResult struct {
+	OutgoingResult Reference `protobuf:"bytes,1800,opt,name=OutgoingResult,proto3" json:"OutgoingResult"`
+	CallResult     []byte    `protobuf:"bytes,1801,opt,name=CallResult,proto3" json:"CallResult"`
+}
+
+func (m *VObjectTranscriptReport_TranscriptEntryOutgoingResult) Reset() {
+	*m = VObjectTranscriptReport_TranscriptEntryOutgoingResult{}
+}
+func (m *VObjectTranscriptReport_TranscriptEntryOutgoingResult) String() string {
+	return proto.CompactTextString(m)
+}
+func (*VObjectTranscriptReport_TranscriptEntryOutgoingResult) ProtoMessage() {}
+func (*VObjectTranscriptReport_TranscriptEntryOutgoingResult) Descriptor() ([]byte, []int) {
+	return fileDescriptor_fc353dc03c844eae, []int{1, 2}
+}
+func (m *VObjectTranscriptReport_TranscriptEntryOutgoingResult) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *VObjectTranscriptReport_TranscriptEntryOutgoingResult) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *VObjectTranscriptReport_TranscriptEntryOutgoingResult) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_VObjectTranscriptReport_TranscriptEntryOutgoingResult.Merge(m, src)
+}
+func (m *VObjectTranscriptReport_TranscriptEntryOutgoingResult) XXX_Size() int {
+	return m.ProtoSize()
+}
+func (m *VObjectTranscriptReport_TranscriptEntryOutgoingResult) XXX_DiscardUnknown() {
+	xxx_messageInfo_VObjectTranscriptReport_TranscriptEntryOutgoingResult.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_VObjectTranscriptReport_TranscriptEntryOutgoingResult proto.InternalMessageInfo
+
+func (m *VObjectTranscriptReport_TranscriptEntryOutgoingResult) GetOutgoingResult() Reference {
+	if m != nil {
+		return m.OutgoingResult
+	}
+	return Reference{}
+}
+
+func (m *VObjectTranscriptReport_TranscriptEntryOutgoingResult) GetCallResult() []byte {
+	if m != nil {
+		return m.CallResult
+	}
+	return nil
+}
+
+type VObjectTranscriptReport_TranscriptEntryIncomingResult struct {
+	IncomingResult Reference `protobuf:"bytes,1800,opt,name=IncomingResult,proto3" json:"IncomingResult"`
+	ObjectState    Reference `protobuf:"bytes,1801,opt,name=ObjectState,proto3" json:"ObjectState"`
+}
+
+func (m *VObjectTranscriptReport_TranscriptEntryIncomingResult) Reset() {
+	*m = VObjectTranscriptReport_TranscriptEntryIncomingResult{}
+}
+func (m *VObjectTranscriptReport_TranscriptEntryIncomingResult) String() string {
+	return proto.CompactTextString(m)
+}
+func (*VObjectTranscriptReport_TranscriptEntryIncomingResult) ProtoMessage() {}
+func (*VObjectTranscriptReport_TranscriptEntryIncomingResult) Descriptor() ([]byte, []int) {
+	return fileDescriptor_fc353dc03c844eae, []int{1, 3}
+}
+func (m *VObjectTranscriptReport_TranscriptEntryIncomingResult) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *VObjectTranscriptReport_TranscriptEntryIncomingResult) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *VObjectTranscriptReport_TranscriptEntryIncomingResult) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_VObjectTranscriptReport_TranscriptEntryIncomingResult.Merge(m, src)
+}
+func (m *VObjectTranscriptReport_TranscriptEntryIncomingResult) XXX_Size() int {
+	return m.ProtoSize()
+}
+func (m *VObjectTranscriptReport_TranscriptEntryIncomingResult) XXX_DiscardUnknown() {
+	xxx_messageInfo_VObjectTranscriptReport_TranscriptEntryIncomingResult.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_VObjectTranscriptReport_TranscriptEntryIncomingResult proto.InternalMessageInfo
+
+func (m *VObjectTranscriptReport_TranscriptEntryIncomingResult) GetIncomingResult() Reference {
+	if m != nil {
+		return m.IncomingResult
+	}
+	return Reference{}
+}
+
+func (m *VObjectTranscriptReport_TranscriptEntryIncomingResult) GetObjectState() Reference {
+	if m != nil {
+		return m.ObjectState
+	}
+	return Reference{}
+}
+
+type VObjectTranscriptReport_Transcript struct {
+	// stub
+	Entries []Any `protobuf:"bytes,1800,rep,name=Entries,proto3" json:"Entries"`
+}
+
+func (m *VObjectTranscriptReport_Transcript) Reset()         { *m = VObjectTranscriptReport_Transcript{} }
+func (m *VObjectTranscriptReport_Transcript) String() string { return proto.CompactTextString(m) }
+func (*VObjectTranscriptReport_Transcript) ProtoMessage()    {}
+func (*VObjectTranscriptReport_Transcript) Descriptor() ([]byte, []int) {
+	return fileDescriptor_fc353dc03c844eae, []int{1, 4}
+}
+func (m *VObjectTranscriptReport_Transcript) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *VObjectTranscriptReport_Transcript) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *VObjectTranscriptReport_Transcript) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_VObjectTranscriptReport_Transcript.Merge(m, src)
+}
+func (m *VObjectTranscriptReport_Transcript) XXX_Size() int {
+	return m.ProtoSize()
+}
+func (m *VObjectTranscriptReport_Transcript) XXX_DiscardUnknown() {
+	xxx_messageInfo_VObjectTranscriptReport_Transcript.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_VObjectTranscriptReport_Transcript proto.InternalMessageInfo
+
+func (m *VObjectTranscriptReport_Transcript) GetEntries() []Any {
+	if m != nil {
+		return m.Entries
+	}
+	return nil
+}
+
 func init() {
 	proto.RegisterType((*MessageExample)(nil), "rms.MessageExample")
 	proto.RegisterType((*MessageExample_Head)(nil), "rms.MessageExample.Head")
+	proto.RegisterType((*VObjectTranscriptReport)(nil), "rms.VObjectTranscriptReport")
+	proto.RegisterType((*VObjectTranscriptReport_TranscriptEntryIncomingRequest)(nil), "rms.VObjectTranscriptReport.TranscriptEntryIncomingRequest")
+	proto.RegisterType((*VObjectTranscriptReport_TranscriptEntryOutgoingRequest)(nil), "rms.VObjectTranscriptReport.TranscriptEntryOutgoingRequest")
+	proto.RegisterType((*VObjectTranscriptReport_TranscriptEntryOutgoingResult)(nil), "rms.VObjectTranscriptReport.TranscriptEntryOutgoingResult")
+	proto.RegisterType((*VObjectTranscriptReport_TranscriptEntryIncomingResult)(nil), "rms.VObjectTranscriptReport.TranscriptEntryIncomingResult")
+	proto.RegisterType((*VObjectTranscriptReport_Transcript)(nil), "rms.VObjectTranscriptReport.Transcript")
 }
 
 func init() { proto.RegisterFile("proto_vnvn.proto", fileDescriptor_fc353dc03c844eae) }
 
 var fileDescriptor_fc353dc03c844eae = []byte{
-	// 430 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x91, 0xb1, 0xcb, 0xd3, 0x40,
-	0x18, 0xc6, 0x73, 0x36, 0xdf, 0x67, 0xbe, 0x7c, 0x52, 0x4a, 0xf2, 0x09, 0xa1, 0xc3, 0x5d, 0xd5,
-	0xa5, 0x4b, 0x1b, 0xf0, 0xdb, 0x3a, 0x69, 0x40, 0x90, 0x42, 0x41, 0xa2, 0xb8, 0xca, 0xb5, 0x3d,
-	0xcf, 0x40, 0x93, 0xab, 0x77, 0x69, 0xb1, 0xff, 0x41, 0xeb, 0x24, 0x0a, 0x42, 0x33, 0xd5, 0xad,
-	0x38, 0x3a, 0x3b, 0x38, 0x76, 0x2c, 0x4e, 0x19, 0xa4, 0x68, 0xb2, 0x08, 0x2e, 0xe2, 0xe0, 0xd0,
-	0x49, 0x72, 0xb9, 0x4a, 0x71, 0x72, 0xca, 0xfb, 0x3e, 0xef, 0xef, 0x7d, 0xf2, 0xdc, 0x9d, 0x59,
-	0x1b, 0x73, 0x16, 0xb3, 0x27, 0xd3, 0x68, 0x1a, 0xb5, 0x65, 0x69, 0x55, 0x78, 0x28, 0xea, 0x2d,
-	0x1a, 0xc4, 0xcf, 0x26, 0xfd, 0xf6, 0x80, 0x85, 0x2e, 0x65, 0x94, 0xb9, 0x72, 0xd6, 0x9f, 0x3c,
-	0x95, 0x9d, 0x6c, 0x64, 0x55, 0xee, 0xd4, 0xef, 0x1c, 0xe1, 0x41, 0x24, 0xd8, 0x08, 0x73, 0x17,
-	0x0b, 0x31, 0xe1, 0x64, 0xd8, 0x1a, 0x91, 0x21, 0x25, 0xdc, 0x2d, 0x3f, 0xad, 0x01, 0xe3, 0xa4,
-	0x40, 0x4a, 0x8b, 0x20, 0x12, 0xca, 0xe1, 0x8c, 0x87, 0x87, 0xd2, 0x2e, 0x23, 0x71, 0x32, 0x60,
-	0x7c, 0xa8, 0xc4, 0x9b, 0x1f, 0xaf, 0x98, 0xd5, 0x1e, 0x11, 0x02, 0x53, 0x72, 0xef, 0x05, 0x0e,
-	0xc7, 0x23, 0x62, 0xdd, 0x35, 0x4f, 0x7d, 0xc9, 0x38, 0x76, 0x03, 0x34, 0xcf, 0x6f, 0x5b, 0xed,
-	0xc2, 0xa3, 0x94, 0x14, 0xe3, 0x5d, 0xdf, 0xec, 0x90, 0xb6, 0xdd, 0x21, 0xb0, 0x7f, 0xdb, 0x38,
-	0xeb, 0x09, 0x5a, 0x4e, 0x7d, 0xb5, 0x68, 0xdd, 0x30, 0x8d, 0x9e, 0xa0, 0x0f, 0x30, 0xc7, 0xa1,
-	0x33, 0xaf, 0x36, 0x40, 0x53, 0xf7, 0xf4, 0x62, 0xc3, 0xff, 0x2b, 0x2b, 0xc4, 0x9b, 0xc5, 0x44,
-	0x38, 0x8b, 0x02, 0xb9, 0x76, 0x84, 0x48, 0xb9, 0xbe, 0x00, 0xa6, 0x7e, 0x9f, 0xe0, 0xff, 0xb2,
-	0xbb, 0x65, 0x56, 0x1e, 0xc6, 0xdc, 0x69, 0xca, 0xc4, 0xe7, 0x32, 0xb1, 0x17, 0x44, 0x98, 0xcf,
-	0x14, 0x59, 0x4c, 0x3b, 0x97, 0xf3, 0x15, 0xd2, 0xd6, 0x2b, 0x04, 0x7e, 0xbe, 0x43, 0xda, 0x3a,
-	0x45, 0xe0, 0x53, 0x8a, 0x7e, 0xbf, 0xf9, 0xf1, 0xa5, 0xf2, 0x39, 0x45, 0x27, 0x8f, 0x03, 0x11,
-	0xc4, 0xbf, 0x52, 0x74, 0xb8, 0x0e, 0xd9, 0x33, 0xde, 0xd5, 0x0d, 0x50, 0xbb, 0xe8, 0x18, 0x07,
-	0x54, 0xf6, 0x76, 0xf7, 0xc4, 0xb8, 0xa8, 0xcd, 0xab, 0xde, 0xf3, 0xcd, 0x37, 0x08, 0xd6, 0x19,
-	0x04, 0x9b, 0x0c, 0x82, 0x6d, 0x06, 0x41, 0x9a, 0x41, 0xf0, 0x35, 0x83, 0xda, 0xab, 0x1c, 0x6a,
-	0xab, 0x1c, 0x82, 0x6d, 0x0e, 0xb5, 0x34, 0x87, 0xda, 0xf7, 0x25, 0x02, 0xfb, 0x25, 0xba, 0xaa,
-	0xcc, 0x5f, 0x26, 0x48, 0x1e, 0xed, 0x75, 0xa2, 0x7e, 0xfc, 0x3e, 0x41, 0xb6, 0x4f, 0x68, 0x20,
-	0x62, 0xc2, 0x15, 0xf3, 0x68, 0x36, 0x26, 0x1f, 0x92, 0x7f, 0xf3, 0xf4, 0x4f, 0xe5, 0xc3, 0x5d,
-	0xfe, 0x09, 0x00, 0x00, 0xff, 0xff, 0x33, 0xe7, 0xe4, 0x8d, 0x62, 0x02, 0x00, 0x00,
+	// 763 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x54, 0x41, 0x68, 0xdb, 0x48,
+	0x14, 0xd5, 0xac, 0x9d, 0x58, 0x19, 0x67, 0x8d, 0x91, 0xb3, 0xac, 0x31, 0xac, 0xc6, 0x9b, 0x65,
+	0x59, 0xef, 0x82, 0x6d, 0x92, 0x1c, 0x96, 0x35, 0x2c, 0xd4, 0x2e, 0x81, 0x36, 0xe0, 0x26, 0x38,
+	0x21, 0x87, 0x42, 0x5b, 0x64, 0x7b, 0xa2, 0xaa, 0x58, 0x92, 0x33, 0x33, 0x0a, 0xf5, 0xb5, 0xa7,
+	0x24, 0x2d, 0xb4, 0xb4, 0x50, 0x88, 0x4f, 0xc9, 0x2d, 0xf4, 0xd8, 0x5b, 0xa1, 0x87, 0x1c, 0x73,
+	0x0c, 0x3d, 0xf9, 0x50, 0x42, 0x6b, 0x5f, 0x0a, 0xbd, 0x94, 0x1e, 0x5a, 0xc8, 0xa9, 0x68, 0x34,
+	0xb2, 0x65, 0xa7, 0x71, 0xdb, 0x93, 0xe6, 0xbf, 0xff, 0xfe, 0x9b, 0xa7, 0xff, 0xa5, 0x0f, 0xe3,
+	0x4d, 0x62, 0x33, 0xfb, 0xd6, 0x96, 0xb5, 0x65, 0xe5, 0xf8, 0x51, 0x09, 0x11, 0x93, 0xa6, 0xb2,
+	0xba, 0xc1, 0x6e, 0x3b, 0xd5, 0x5c, 0xcd, 0x36, 0xf3, 0xba, 0xad, 0xdb, 0x79, 0x9e, 0xab, 0x3a,
+	0x1b, 0x3c, 0xe2, 0x01, 0x3f, 0x79, 0x35, 0xa9, 0x4b, 0x01, 0xba, 0x61, 0x51, 0xbb, 0xa1, 0x91,
+	0xbc, 0x46, 0xa9, 0x43, 0x70, 0x3d, 0xdb, 0xc0, 0x75, 0x1d, 0x93, 0xbc, 0xf7, 0xc8, 0xd6, 0x6c,
+	0x82, 0x5d, 0x8a, 0x27, 0x61, 0x58, 0x54, 0x28, 0x4c, 0x11, 0xd3, 0x3f, 0x26, 0x3c, 0x4b, 0x04,
+	0xd7, 0x6c, 0x52, 0x17, 0xe0, 0xec, 0xcb, 0x9f, 0x60, 0xac, 0x8c, 0x29, 0xd5, 0x74, 0xbc, 0x78,
+	0x57, 0x33, 0x9b, 0x0d, 0xac, 0x14, 0xe1, 0x64, 0x85, 0x73, 0x92, 0x89, 0x34, 0xc8, 0x44, 0xe7,
+	0x95, 0x9c, 0xab, 0xe1, 0x41, 0x82, 0x53, 0xfa, 0xe5, 0xf8, 0x14, 0x49, 0x27, 0xa7, 0x08, 0x9c,
+	0x3d, 0x4d, 0x4f, 0x95, 0xa9, 0xee, 0x65, 0x2b, 0xa2, 0x50, 0xf9, 0x1d, 0xca, 0x65, 0xaa, 0xaf,
+	0x68, 0x44, 0x33, 0x93, 0xdb, 0xb1, 0x34, 0xc8, 0x84, 0x4b, 0x61, 0xb7, 0xa2, 0xd2, 0x87, 0x05,
+	0xa5, 0xd4, 0x62, 0x98, 0x26, 0x77, 0x5c, 0xca, 0x74, 0x80, 0xc2, 0xe1, 0xd4, 0x0e, 0x80, 0xe1,
+	0x2b, 0x58, 0xfb, 0x2e, 0xb9, 0x3f, 0x60, 0x68, 0x95, 0x91, 0x64, 0x86, 0x3b, 0x8e, 0x72, 0xc7,
+	0x25, 0xc3, 0xd2, 0x48, 0x4b, 0x30, 0xdd, 0x6c, 0x61, 0x61, 0x7b, 0x1f, 0x49, 0x87, 0xfb, 0x08,
+	0x7c, 0x38, 0x40, 0xd2, 0x61, 0x07, 0x81, 0xa3, 0x0e, 0xfa, 0xf4, 0xe4, 0xfd, 0xeb, 0xd0, 0xab,
+	0x0e, 0x9a, 0x58, 0x37, 0xa8, 0xc1, 0x3e, 0x76, 0x90, 0xdf, 0x0e, 0x1e, 0xdb, 0x64, 0x29, 0x2c,
+	0x83, 0xf8, 0x4c, 0x41, 0xf6, 0xa9, 0x3c, 0x4e, 0x2c, 0x4d, 0xc8, 0x33, 0xf1, 0xed, 0xd8, 0xec,
+	0x3d, 0x19, 0xfe, 0xba, 0xbe, 0x5c, 0xbd, 0x83, 0x6b, 0x6c, 0x8d, 0x68, 0x16, 0xad, 0x11, 0xa3,
+	0xc9, 0x2a, 0xb8, 0x69, 0x13, 0xa6, 0xfc, 0x33, 0xd2, 0x47, 0x99, 0xbb, 0x2a, 0x5a, 0xad, 0x92,
+	0xec, 0x77, 0xaf, 0xdf, 0xb0, 0x0c, 0x0c, 0x17, 0xe9, 0xf2, 0x86, 0xf7, 0x76, 0x3f, 0x97, 0x12,
+	0x2e, 0xe1, 0xec, 0x14, 0x45, 0x57, 0x9c, 0x06, 0xc5, 0xd7, 0x1c, 0xb3, 0x8a, 0x49, 0x85, 0x33,
+	0x94, 0x2c, 0x9c, 0xf4, 0xee, 0xf3, 0xba, 0x16, 0x9d, 0x8f, 0x89, 0xf1, 0x6c, 0x60, 0x82, 0xad,
+	0x1a, 0x16, 0xef, 0x2b, 0x48, 0xca, 0x4d, 0xa8, 0xac, 0x60, 0xab, 0x6e, 0x58, 0xfa, 0xc0, 0x1f,
+	0x4d, 0xde, 0x8f, 0xa5, 0x43, 0x99, 0xe8, 0xfc, 0x5f, 0xbc, 0xf4, 0x02, 0xff, 0xb9, 0x01, 0x20,
+	0x34, 0xbf, 0xa2, 0xa4, 0x5c, 0x87, 0xf1, 0xd1, 0xf2, 0xe4, 0x03, 0xcf, 0xd8, 0x0f, 0xaa, 0x9f,
+	0xd3, 0x49, 0xbd, 0x00, 0x50, 0x1d, 0x84, 0x8b, 0x16, 0x23, 0xad, 0xab, 0x56, 0xcd, 0x36, 0x0d,
+	0x4b, 0xaf, 0xe0, 0x4d, 0x07, 0x53, 0xa6, 0xfc, 0x07, 0xa7, 0xbd, 0xb2, 0x32, 0x36, 0x6d, 0xd2,
+	0xf2, 0xfa, 0x77, 0x51, 0x4f, 0x86, 0xa8, 0xca, 0x1c, 0x94, 0x7d, 0xb5, 0xf1, 0xad, 0xec, 0xd3,
+	0x14, 0x04, 0x23, 0xe2, 0xe2, 0xe4, 0x6e, 0xf0, 0x93, 0xf5, 0xd1, 0x82, 0x2c, 0x3e, 0x2a, 0x29,
+	0x75, 0xe3, 0x9c, 0xf5, 0x65, 0x87, 0xe9, 0x76, 0xc0, 0xfa, 0x1c, 0x94, 0x7d, 0x68, 0xbc, 0xed,
+	0x3e, 0x2d, 0x20, 0xff, 0x10, 0xc0, 0xdf, 0x2e, 0xd4, 0xa7, 0x4e, 0x83, 0x29, 0xff, 0xc3, 0xd8,
+	0x30, 0x32, 0xfe, 0x92, 0x11, 0xb2, 0xf2, 0x27, 0x84, 0x97, 0xb5, 0x46, 0x43, 0x94, 0x0e, 0xfd,
+	0xa0, 0x81, 0x44, 0xc0, 0xd1, 0xc1, 0x79, 0x47, 0x83, 0x61, 0xf9, 0x8e, 0x86, 0x91, 0x6f, 0x38,
+	0x1a, 0x29, 0xff, 0x17, 0x46, 0xbd, 0xf9, 0xad, 0x32, 0x8d, 0xe1, 0xf1, 0x23, 0x0b, 0x32, 0x03,
+	0x1e, 0x8b, 0x10, 0x0e, 0x2c, 0x2a, 0x7f, 0xc3, 0x88, 0x6b, 0xd3, 0xc0, 0xd4, 0x35, 0x12, 0x1a,
+	0xfa, 0x43, 0xc5, 0x5c, 0x45, 0x7e, 0x20, 0x51, 0x98, 0x38, 0xea, 0xa0, 0xcf, 0x91, 0xa1, 0x25,
+	0x50, 0xda, 0x3c, 0x7e, 0xab, 0x82, 0xc3, 0xae, 0x0a, 0x8e, 0xbb, 0x2a, 0x38, 0xe9, 0xaa, 0xa0,
+	0xd3, 0x55, 0xc1, 0x9b, 0xae, 0x2a, 0x3d, 0xea, 0xa9, 0xd2, 0x7e, 0x4f, 0x05, 0x27, 0x3d, 0x55,
+	0xea, 0xf4, 0x54, 0xe9, 0xdd, 0x1e, 0x02, 0x67, 0x7b, 0x28, 0x22, 0x36, 0xcc, 0x6e, 0x1b, 0xf1,
+	0xfd, 0xf6, 0xb8, 0x2d, 0xb6, 0xcf, 0xb3, 0x36, 0x4a, 0x54, 0xb0, 0x6e, 0x50, 0x86, 0x89, 0xe0,
+	0xac, 0xb5, 0x9a, 0xf8, 0x79, 0x7b, 0x74, 0x29, 0x55, 0x27, 0xf9, 0xf6, 0x5e, 0xf8, 0x12, 0x00,
+	0x00, 0xff, 0xff, 0x1e, 0x86, 0xca, 0xb5, 0x67, 0x06, 0x00, 0x00,
 }
 
 func (this *MessageExample) Equal(that interface{}) bool {
@@ -197,6 +539,184 @@ func (this *MessageExample_Head) Equal(that interface{}) bool {
 	}
 	if this.MsgParam != that1.MsgParam {
 		return false
+	}
+	return true
+}
+func (this *VObjectTranscriptReport) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*VObjectTranscriptReport)
+	if !ok {
+		that2, ok := that.(VObjectTranscriptReport)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.Any.Equal(&that1.Any) {
+		return false
+	}
+	if this.AsOf != that1.AsOf {
+		return false
+	}
+	if !this.Object.Equal(&that1.Object) {
+		return false
+	}
+	if len(this.PendingTranscripts) != len(that1.PendingTranscripts) {
+		return false
+	}
+	for i := range this.PendingTranscripts {
+		if !this.PendingTranscripts[i].Equal(&that1.PendingTranscripts[i]) {
+			return false
+		}
+	}
+	if !this.ObjectTranscript.Equal(&that1.ObjectTranscript) {
+		return false
+	}
+	return true
+}
+func (this *VObjectTranscriptReport_TranscriptEntryIncomingRequest) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*VObjectTranscriptReport_TranscriptEntryIncomingRequest)
+	if !ok {
+		that2, ok := that.(VObjectTranscriptReport_TranscriptEntryIncomingRequest)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.ObjectMemory.Equal(&that1.ObjectMemory) {
+		return false
+	}
+	if !this.Incoming.Equal(&that1.Incoming) {
+		return false
+	}
+	if !bytes.Equal(this.Request, that1.Request) {
+		return false
+	}
+	return true
+}
+func (this *VObjectTranscriptReport_TranscriptEntryOutgoingRequest) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*VObjectTranscriptReport_TranscriptEntryOutgoingRequest)
+	if !ok {
+		that2, ok := that.(VObjectTranscriptReport_TranscriptEntryOutgoingRequest)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.Outgoing.Equal(&that1.Outgoing) {
+		return false
+	}
+	return true
+}
+func (this *VObjectTranscriptReport_TranscriptEntryOutgoingResult) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*VObjectTranscriptReport_TranscriptEntryOutgoingResult)
+	if !ok {
+		that2, ok := that.(VObjectTranscriptReport_TranscriptEntryOutgoingResult)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.OutgoingResult.Equal(&that1.OutgoingResult) {
+		return false
+	}
+	if !bytes.Equal(this.CallResult, that1.CallResult) {
+		return false
+	}
+	return true
+}
+func (this *VObjectTranscriptReport_TranscriptEntryIncomingResult) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*VObjectTranscriptReport_TranscriptEntryIncomingResult)
+	if !ok {
+		that2, ok := that.(VObjectTranscriptReport_TranscriptEntryIncomingResult)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if !this.IncomingResult.Equal(&that1.IncomingResult) {
+		return false
+	}
+	if !this.ObjectState.Equal(&that1.ObjectState) {
+		return false
+	}
+	return true
+}
+func (this *VObjectTranscriptReport_Transcript) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*VObjectTranscriptReport_Transcript)
+	if !ok {
+		that2, ok := that.(VObjectTranscriptReport_Transcript)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if len(this.Entries) != len(that1.Entries) {
+		return false
+	}
+	for i := range this.Entries {
+		if !this.Entries[i].Equal(&that1.Entries[i]) {
+			return false
+		}
 	}
 	return true
 }
@@ -398,6 +918,401 @@ func (m *MessageExample_Head) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *VObjectTranscriptReport) Visit(ctx MessageVisitor) error {
+	return ctx.Message(m, 1015)
+}
+
+const TypeVObjectTranscriptReportPolymorphID = 1015
+
+func (*VObjectTranscriptReport) GetDefaultPolymorphID() uint64 {
+	return 1015
+}
+
+func (m *VObjectTranscriptReport) Marshal() (dAtA []byte, err error) {
+	size := m.ProtoSize()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *VObjectTranscriptReport) MarshalTo(dAtA []byte) (int, error) {
+	size := m.ProtoSize()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *VObjectTranscriptReport) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l, fieldEnd int
+	_, _ = l, fieldEnd
+	{
+		size, err := m.ObjectTranscript.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvn(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x70
+			i--
+			dAtA[i] = 0xe2
+		}
+	}
+	if len(m.PendingTranscripts) > 0 {
+		for iNdEx := len(m.PendingTranscripts) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.PendingTranscripts[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintProtoVnvn(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x70
+			i--
+			dAtA[i] = 0xda
+		}
+	}
+	{
+		size, err := m.Object.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvn(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x70
+			i--
+			dAtA[i] = 0xca
+		}
+	}
+	if m.AsOf != 0 {
+		i = encodeVarintProtoVnvn(dAtA, i, uint64(m.AsOf))
+		i--
+		dAtA[i] = 0x70
+		i--
+		dAtA[i] = 0xc0
+	}
+	{
+		size, err := m.Any.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvn(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0x9a
+		}
+	}
+	i = encodeVarintProtoVnvn(dAtA, i, uint64(1015))
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0x80
+	return len(dAtA) - i, nil
+}
+
+func (m *VObjectTranscriptReport_TranscriptEntryIncomingRequest) Visit(ctx MessageVisitor) error {
+	return ctx.Message(m, 0)
+}
+
+func (m *VObjectTranscriptReport_TranscriptEntryIncomingRequest) Marshal() (dAtA []byte, err error) {
+	size := m.ProtoSize()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *VObjectTranscriptReport_TranscriptEntryIncomingRequest) MarshalTo(dAtA []byte) (int, error) {
+	size := m.ProtoSize()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *VObjectTranscriptReport_TranscriptEntryIncomingRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l, fieldEnd int
+	_, _ = l, fieldEnd
+	if len(m.Request) > 0 {
+		i -= len(m.Request)
+		copy(dAtA[i:], m.Request)
+		i--
+		dAtA[i] = 132
+		i = encodeVarintProtoVnvn(dAtA, i, uint64(len(m.Request)+1))
+		i--
+		dAtA[i] = 0x70
+		i--
+		dAtA[i] = 0xd2
+	}
+	{
+		size, err := m.Incoming.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvn(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x70
+			i--
+			dAtA[i] = 0xca
+		}
+	}
+	{
+		size, err := m.ObjectMemory.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvn(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x70
+			i--
+			dAtA[i] = 0xc2
+		}
+	}
+	if i < len(dAtA) {
+		i = encodeVarintProtoVnvn(dAtA, i, uint64(0))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *VObjectTranscriptReport_TranscriptEntryOutgoingRequest) Visit(ctx MessageVisitor) error {
+	return ctx.Message(m, 0)
+}
+
+func (m *VObjectTranscriptReport_TranscriptEntryOutgoingRequest) Marshal() (dAtA []byte, err error) {
+	size := m.ProtoSize()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *VObjectTranscriptReport_TranscriptEntryOutgoingRequest) MarshalTo(dAtA []byte) (int, error) {
+	size := m.ProtoSize()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *VObjectTranscriptReport_TranscriptEntryOutgoingRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l, fieldEnd int
+	_, _ = l, fieldEnd
+	{
+		size, err := m.Outgoing.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvn(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x70
+			i--
+			dAtA[i] = 0xc2
+		}
+	}
+	if i < len(dAtA) {
+		i = encodeVarintProtoVnvn(dAtA, i, uint64(0))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *VObjectTranscriptReport_TranscriptEntryOutgoingResult) Visit(ctx MessageVisitor) error {
+	return ctx.Message(m, 0)
+}
+
+func (m *VObjectTranscriptReport_TranscriptEntryOutgoingResult) Marshal() (dAtA []byte, err error) {
+	size := m.ProtoSize()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *VObjectTranscriptReport_TranscriptEntryOutgoingResult) MarshalTo(dAtA []byte) (int, error) {
+	size := m.ProtoSize()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *VObjectTranscriptReport_TranscriptEntryOutgoingResult) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l, fieldEnd int
+	_, _ = l, fieldEnd
+	if len(m.CallResult) > 0 {
+		i -= len(m.CallResult)
+		copy(dAtA[i:], m.CallResult)
+		i--
+		dAtA[i] = 132
+		i = encodeVarintProtoVnvn(dAtA, i, uint64(len(m.CallResult)+1))
+		i--
+		dAtA[i] = 0x70
+		i--
+		dAtA[i] = 0xca
+	}
+	{
+		size, err := m.OutgoingResult.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvn(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x70
+			i--
+			dAtA[i] = 0xc2
+		}
+	}
+	if i < len(dAtA) {
+		i = encodeVarintProtoVnvn(dAtA, i, uint64(0))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *VObjectTranscriptReport_TranscriptEntryIncomingResult) Visit(ctx MessageVisitor) error {
+	return ctx.Message(m, 0)
+}
+
+func (m *VObjectTranscriptReport_TranscriptEntryIncomingResult) Marshal() (dAtA []byte, err error) {
+	size := m.ProtoSize()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *VObjectTranscriptReport_TranscriptEntryIncomingResult) MarshalTo(dAtA []byte) (int, error) {
+	size := m.ProtoSize()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *VObjectTranscriptReport_TranscriptEntryIncomingResult) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l, fieldEnd int
+	_, _ = l, fieldEnd
+	{
+		size, err := m.ObjectState.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvn(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x70
+			i--
+			dAtA[i] = 0xca
+		}
+	}
+	{
+		size, err := m.IncomingResult.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvn(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x70
+			i--
+			dAtA[i] = 0xc2
+		}
+	}
+	if i < len(dAtA) {
+		i = encodeVarintProtoVnvn(dAtA, i, uint64(0))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *VObjectTranscriptReport_Transcript) Visit(ctx MessageVisitor) error {
+	return ctx.Message(m, 0)
+}
+
+func (m *VObjectTranscriptReport_Transcript) Marshal() (dAtA []byte, err error) {
+	size := m.ProtoSize()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *VObjectTranscriptReport_Transcript) MarshalTo(dAtA []byte) (int, error) {
+	size := m.ProtoSize()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *VObjectTranscriptReport_Transcript) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l, fieldEnd int
+	_, _ = l, fieldEnd
+	if len(m.Entries) > 0 {
+		for iNdEx := len(m.Entries) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.Entries[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintProtoVnvn(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0x70
+			i--
+			dAtA[i] = 0xc2
+		}
+	}
+	if i < len(dAtA) {
+		i = encodeVarintProtoVnvn(dAtA, i, uint64(0))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x80
+	}
+	return len(dAtA) - i, nil
+}
+
 func encodeVarintProtoVnvn(dAtA []byte, offset int, v uint64) int {
 	offset -= sovProtoVnvn(v)
 	base := offset
@@ -413,6 +1328,7 @@ func encodeVarintProtoVnvn(dAtA []byte, offset int, v uint64) int {
 func init() {
 	RegisterMessageType(999999990, "", (*MessageExample)(nil))
 	RegisterMessageType(999999990, "Head", (*MessageExample_Head)(nil))
+	RegisterMessageType(1015, "", (*VObjectTranscriptReport)(nil))
 }
 
 func (m *MessageExample) ProtoSize() (n int) {
@@ -449,6 +1365,128 @@ func (m *MessageExample_Head) ProtoSize() (n int) {
 		n += 2 + sovProtoVnvn(uint64(m.MsgParam))
 	}
 	n += 2 + sovProtoVnvn(999999990)
+	return n
+}
+
+func (m *VObjectTranscriptReport) ProtoSize() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if l = m.Any.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvn(uint64(l))
+	}
+	if m.AsOf != 0 {
+		n += 2 + sovProtoVnvn(uint64(m.AsOf))
+	}
+	if l = m.Object.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvn(uint64(l))
+	}
+	if len(m.PendingTranscripts) > 0 {
+		for _, e := range m.PendingTranscripts {
+			l = e.ProtoSize()
+			n += 2 + l + sovProtoVnvn(uint64(l))
+		}
+	}
+	if l = m.ObjectTranscript.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvn(uint64(l))
+	}
+	n += 2 + sovProtoVnvn(1015)
+	return n
+}
+
+func (m *VObjectTranscriptReport_TranscriptEntryIncomingRequest) ProtoSize() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if l = m.ObjectMemory.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvn(uint64(l))
+	}
+	if l = m.Incoming.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvn(uint64(l))
+	}
+	l = len(m.Request)
+	if l > 0 {
+		l++
+		n += 2 + l + sovProtoVnvn(uint64(l))
+	}
+	if n > 0 {
+		n += 2 + sovProtoVnvn(0)
+	}
+	return n
+}
+
+func (m *VObjectTranscriptReport_TranscriptEntryOutgoingRequest) ProtoSize() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if l = m.Outgoing.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvn(uint64(l))
+	}
+	if n > 0 {
+		n += 2 + sovProtoVnvn(0)
+	}
+	return n
+}
+
+func (m *VObjectTranscriptReport_TranscriptEntryOutgoingResult) ProtoSize() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if l = m.OutgoingResult.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvn(uint64(l))
+	}
+	l = len(m.CallResult)
+	if l > 0 {
+		l++
+		n += 2 + l + sovProtoVnvn(uint64(l))
+	}
+	if n > 0 {
+		n += 2 + sovProtoVnvn(0)
+	}
+	return n
+}
+
+func (m *VObjectTranscriptReport_TranscriptEntryIncomingResult) ProtoSize() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if l = m.IncomingResult.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvn(uint64(l))
+	}
+	if l = m.ObjectState.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvn(uint64(l))
+	}
+	if n > 0 {
+		n += 2 + sovProtoVnvn(0)
+	}
+	return n
+}
+
+func (m *VObjectTranscriptReport_Transcript) ProtoSize() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.Entries) > 0 {
+		for _, e := range m.Entries {
+			l = e.ProtoSize()
+			n += 2 + l + sovProtoVnvn(uint64(l))
+		}
+	}
+	if n > 0 {
+		n += 2 + sovProtoVnvn(0)
+	}
 	return n
 }
 
@@ -696,6 +1734,842 @@ func (m *MessageExample_Head) UnmarshalWithUnknownCallback(dAtA []byte, skipFn f
 					break
 				}
 			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipFn(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				l = iNdEx
+				break
+			}
+			if skippy == 0 {
+				if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
+					return err
+				}
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthProtoVnvn
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *VObjectTranscriptReport) Unmarshal(dAtA []byte) error {
+	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
+}
+func (m *VObjectTranscriptReport) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtoVnvn
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: VObjectTranscriptReport: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: VObjectTranscriptReport: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 19:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Any", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoVnvn
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoVnvn
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoVnvn
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.Any.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 1800:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AsOf", wireType)
+			}
+			m.AsOf = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoVnvn
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.AsOf |= PulseNumber(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 1801:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Object", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoVnvn
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoVnvn
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoVnvn
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.Object.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 1803:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PendingTranscripts", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoVnvn
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoVnvn
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoVnvn
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PendingTranscripts = append(m.PendingTranscripts, VObjectTranscriptReport_Transcript{})
+			if err := m.PendingTranscripts[len(m.PendingTranscripts)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 1804:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectTranscript", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoVnvn
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoVnvn
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoVnvn
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.ObjectTranscript.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipFn(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				l = iNdEx
+				break
+			}
+			if skippy == 0 {
+				if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
+					return err
+				}
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthProtoVnvn
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *VObjectTranscriptReport_TranscriptEntryIncomingRequest) Unmarshal(dAtA []byte) error {
+	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
+}
+func (m *VObjectTranscriptReport_TranscriptEntryIncomingRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtoVnvn
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: TranscriptEntryIncomingRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: TranscriptEntryIncomingRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1800:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectMemory", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoVnvn
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoVnvn
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoVnvn
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.ObjectMemory.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 1801:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Incoming", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoVnvn
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoVnvn
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoVnvn
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.Incoming.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 1802:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Request", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoVnvn
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthProtoVnvn
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoVnvn
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if byteLen > 0 {
+				if dAtA[iNdEx] != 132 {
+					return ErrExpectedBinaryMarkerProtoVnvn
+				}
+				iNdEx++
+			}
+			m.Request = append(m.Request[:0], dAtA[iNdEx:postIndex]...)
+			if m.Request == nil {
+				m.Request = []byte{}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipFn(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				l = iNdEx
+				break
+			}
+			if skippy == 0 {
+				if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
+					return err
+				}
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthProtoVnvn
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *VObjectTranscriptReport_TranscriptEntryOutgoingRequest) Unmarshal(dAtA []byte) error {
+	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
+}
+func (m *VObjectTranscriptReport_TranscriptEntryOutgoingRequest) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtoVnvn
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: TranscriptEntryOutgoingRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: TranscriptEntryOutgoingRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1800:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Outgoing", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoVnvn
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoVnvn
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoVnvn
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.Outgoing.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipFn(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				l = iNdEx
+				break
+			}
+			if skippy == 0 {
+				if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
+					return err
+				}
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthProtoVnvn
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *VObjectTranscriptReport_TranscriptEntryOutgoingResult) Unmarshal(dAtA []byte) error {
+	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
+}
+func (m *VObjectTranscriptReport_TranscriptEntryOutgoingResult) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtoVnvn
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: TranscriptEntryOutgoingResult: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: TranscriptEntryOutgoingResult: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1800:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OutgoingResult", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoVnvn
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoVnvn
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoVnvn
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.OutgoingResult.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 1801:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field CallResult", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoVnvn
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthProtoVnvn
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoVnvn
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if byteLen > 0 {
+				if dAtA[iNdEx] != 132 {
+					return ErrExpectedBinaryMarkerProtoVnvn
+				}
+				iNdEx++
+			}
+			m.CallResult = append(m.CallResult[:0], dAtA[iNdEx:postIndex]...)
+			if m.CallResult == nil {
+				m.CallResult = []byte{}
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipFn(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				l = iNdEx
+				break
+			}
+			if skippy == 0 {
+				if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
+					return err
+				}
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthProtoVnvn
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *VObjectTranscriptReport_TranscriptEntryIncomingResult) Unmarshal(dAtA []byte) error {
+	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
+}
+func (m *VObjectTranscriptReport_TranscriptEntryIncomingResult) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtoVnvn
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: TranscriptEntryIncomingResult: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: TranscriptEntryIncomingResult: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1800:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field IncomingResult", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoVnvn
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoVnvn
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoVnvn
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.IncomingResult.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 1801:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ObjectState", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoVnvn
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoVnvn
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoVnvn
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.ObjectState.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipFn(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				l = iNdEx
+				break
+			}
+			if skippy == 0 {
+				if skippy, err = skipProtoVnvn(dAtA[iNdEx:]); err != nil {
+					return err
+				}
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthProtoVnvn
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *VObjectTranscriptReport_Transcript) Unmarshal(dAtA []byte) error {
+	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvn)
+}
+func (m *VObjectTranscriptReport_Transcript) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtoVnvn
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: Transcript: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Transcript: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1800:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Entries", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoVnvn
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoVnvn
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoVnvn
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Entries = append(m.Entries, Any{})
+			if err := m.Entries[len(m.Entries)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipFn(dAtA[iNdEx:])
