@@ -30,18 +30,17 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 )
 
-type TestStep func(s *memoryCachTest, ctx context.Context, t *testing.T)
+type TestStep func(s *memoryCacheTest, ctx context.Context, t *testing.T)
 
 const newState = "new state"
 
-type memoryCachTest struct {
+type memoryCacheTest struct {
 	mc           *minimock.Controller
 	server       *utils.Server
 	runnerMock   *logicless.ServiceMock
 	typedChecker *checker.Typed
 
 	class  reference.Global
-	caller reference.Global
 	object reference.Global
 }
 
@@ -58,7 +57,7 @@ func TestVirtual_VCachedMemoryRequestHandler(t *testing.T) {
 	}
 	for _, cases := range testCases {
 		t.Run(cases.name, func(t *testing.T) {
-			suite := &memoryCachTest{}
+			suite := &memoryCacheTest{}
 
 			ctx := suite.initServer(t)
 
@@ -100,7 +99,7 @@ func TestVirtual_VCachedMemoryRequestHandler(t *testing.T) {
 
 }
 
-func methodPrecondition(s *memoryCachTest, ctx context.Context, t *testing.T) {
+func methodPrecondition(s *memoryCacheTest, ctx context.Context, t *testing.T) {
 	prevPulse := s.server.GetPulse().PulseNumber
 
 	s.server.IncrementPulse(ctx)
@@ -130,7 +129,7 @@ func methodPrecondition(s *memoryCachTest, ctx context.Context, t *testing.T) {
 	s.server.SendPayload(ctx, pl)
 }
 
-func constructorPrecondition(s *memoryCachTest, ctx context.Context, t *testing.T) {
+func constructorPrecondition(s *memoryCacheTest, ctx context.Context, t *testing.T) {
 	pl := utils.GenerateVCallRequestConstructor(s.server)
 	pl.Caller = s.class
 	callOutgoing := pl.CallOutgoing
@@ -152,7 +151,7 @@ func constructorPrecondition(s *memoryCachTest, ctx context.Context, t *testing.
 	s.server.SendPayload(ctx, pl)
 }
 
-func (s *memoryCachTest) initServer(t *testing.T) context.Context {
+func (s *memoryCacheTest) initServer(t *testing.T) context.Context {
 	s.mc = minimock.NewController(t)
 
 	server, ctx := utils.NewUninitializedServer(nil, t)
@@ -168,7 +167,7 @@ func (s *memoryCachTest) initServer(t *testing.T) context.Context {
 	return ctx
 }
 
-func pendingPrecondition(s *memoryCachTest, ctx context.Context, t *testing.T) {
+func pendingPrecondition(s *memoryCacheTest, ctx context.Context, t *testing.T) {
 	prevPulse := s.server.GetPulse().PulseNumber
 	outgoing := s.server.BuildRandomOutgoingWithPulse()
 	incoming := reference.NewRecordOf(s.object, outgoing.GetLocal())
