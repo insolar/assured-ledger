@@ -29,8 +29,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/application/genesisrefs"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	_type "github.com/insolar/assured-ledger/ledger-core/runner/machine/type"
-
+	"github.com/insolar/assured-ledger/ledger-core/runner/machine/machinetype"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -70,7 +69,7 @@ type ParsedFile struct {
 	code                []byte
 	fileSet             *token.FileSet
 	node                *ast.File
-	machineType         _type.Type
+	machineType         machinetype.Type
 	panicIsLogicalError bool
 
 	types        map[string]*ast.TypeSpec
@@ -81,7 +80,7 @@ type ParsedFile struct {
 
 // ParseFile parses a file as Go source code of a smart contract
 // and returns it as `ParsedFile`
-func ParseFile(fileName string, machineType _type.Type) (*ParsedFile, error) {
+func ParseFile(fileName string, machineType machinetype.Type) (*ParsedFile, error) {
 	res := &ParsedFile{
 		name:        fileName,
 		machineType: machineType,
@@ -244,8 +243,8 @@ func (pf *ParsedFile) ContractName() string {
 	return pf.node.Name.Name
 }
 
-func checkMachineType(machineType _type.Type) error {
-	if machineType != _type.Builtin {
+func checkMachineType(machineType machinetype.Type) error {
+	if machineType != machinetype.Builtin {
 		return errors.New("Unsupported machine type")
 	}
 	return nil
@@ -324,7 +323,7 @@ func (pf *ParsedFile) WriteWrapper(out io.Writer, packageName string) error {
 	for _, t := range pf.types {
 		extendImportsMapWithType(pf, t, imports)
 	}
-	if pf.machineType == _type.Builtin || len(functionsInfo) > 0 {
+	if pf.machineType == machinetype.Builtin || len(functionsInfo) > 0 {
 		imports[fmt.Sprintf(`"%s"`, referencePath)] = true
 	}
 
@@ -339,7 +338,7 @@ func (pf *ParsedFile) WriteWrapper(out io.Writer, packageName string) error {
 		"CustomImports": map[string]string{
 			"XXX_contract": `"github.com/insolar/assured-ledger/ledger-core/insolar/contract"`,
 		},
-		"GenerateInitialize":  pf.machineType == _type.Builtin,
+		"GenerateInitialize":  pf.machineType == machinetype.Builtin,
 		"PanicIsLogicalError": pf.panicIsLogicalError,
 	}
 

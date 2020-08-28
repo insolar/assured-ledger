@@ -17,7 +17,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	_type "github.com/insolar/assured-ledger/ledger-core/runner/machine/type"
+	"github.com/insolar/assured-ledger/ledger-core/runner/machine/machinetype"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/genesisrefs"
@@ -63,7 +63,7 @@ func (r *outputFlag) Type() string {
 
 type machineTypeFlag struct {
 	name string
-	num  _type.Type
+	num  machinetype.Type
 }
 
 func newMachineTypeFlag(name string) *machineTypeFlag {
@@ -77,7 +77,7 @@ func newMachineTypeFlag(name string) *machineTypeFlag {
 func (r *machineTypeFlag) Set(arg string) error {
 	switch arg {
 	case "builtin":
-		r.num = _type.Builtin
+		r.num = machinetype.Builtin
 	default:
 		return fmt.Errorf("unknown machine type: %s", arg)
 	}
@@ -93,7 +93,7 @@ func (r *machineTypeFlag) Type() string {
 	return "machineType"
 }
 
-func (r *machineTypeFlag) Value() _type.Type {
+func (r *machineTypeFlag) Value() machinetype.Type {
 	return r.num
 }
 
@@ -133,8 +133,8 @@ func getBuiltinContractDir(dir string) (string, error) {
 	return path.Join(projectRoot, "application", "builtin", dir), nil
 }
 
-func getAppropriateContractDir(machineType _type.Type, dir string) (string, error) {
-	if machineType == _type.Builtin {
+func getAppropriateContractDir(machineType machinetype.Type, dir string) (string, error) {
+	if machineType == machinetype.Builtin {
 		return getBuiltinContractDir(dir)
 	}
 	panic("unreachable")
@@ -158,7 +158,7 @@ func mkdirIfNotExists(pathParts ...string) (string, error) {
 }
 
 func openDefaultProxyPath(proxyOut *outputFlag,
-	machineType _type.Type,
+	machineType machinetype.Type,
 	parsed *preprocessor.ParsedFile) error {
 
 	p, err := getAppropriateContractDir(machineType, "proxy")
@@ -310,7 +310,7 @@ func main() {
 
 					contractPath := findContractPath(contractDirPath)
 					if contractPath != nil {
-						parsedFile, err := preprocessor.ParseFile(*contractPath, _type.Builtin)
+						parsedFile, err := preprocessor.ParseFile(*contractPath, machinetype.Builtin)
 						checkError(err)
 
 						contract := preprocessor.ContractListEntry{
@@ -327,7 +327,7 @@ func main() {
 			for _, contract := range contractList {
 				/* write proxy */
 				output := newOutputFlag("")
-				err := openDefaultProxyPath(output, _type.Builtin, contract.Parsed)
+				err := openDefaultProxyPath(output, machinetype.Builtin, contract.Parsed)
 				checkError(err)
 				reference := genesisrefs.GenerateClassReferenceFromContractID(preprocessor.ClassType, contract.Name, contract.Version)
 				err = contract.Parsed.WriteProxy(reference.String(), output.writer)

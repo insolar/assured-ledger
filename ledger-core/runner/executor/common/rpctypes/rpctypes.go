@@ -9,7 +9,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/call"
-	_type "github.com/insolar/assured-ledger/ledger-core/runner/machine/type"
+	"github.com/insolar/assured-ledger/ledger-core/runner/machine/machinetype"
 )
 
 // Types for RPC requests and responses between goplugin and goinsider.
@@ -62,7 +62,7 @@ type UpRespIface interface{}
 // UpGetCodeReq is a set of arguments for GetCode RPC in goplugin
 type UpGetCodeReq struct {
 	UpBaseReq
-	MType _type.Type
+	MType machinetype.Type
 	Code  reference.Global
 }
 
