@@ -11,7 +11,7 @@ import (
 )
 
 // MethodFunc is a typedef for wrapper contract header
-type MethodFunc func(oldState []byte, args []byte) (newState []byte, result []byte, err error)
+type MethodFunc func(oldState []byte, args []byte, helper ProxyHelper) (newState []byte, result []byte, err error)
 
 func ConstructorIsolation() MethodIsolation {
 	return MethodIsolation{
@@ -39,7 +39,7 @@ type Method struct {
 type Methods map[string]Method
 
 // Constructor is a typedef of typical contract constructor
-type Constructor func(ref reference.Global, args []byte) (state []byte, result []byte, err error)
+type Constructor func(ref reference.Global, args []byte, helper ProxyHelper) (state []byte, result []byte, err error)
 
 // Constructors maps name to contract constructor
 type Constructors map[string]Constructor

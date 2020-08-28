@@ -43,7 +43,7 @@ func (w *Wallet) Transfer(toWallet reference.Global, amount uint32) error {
 		return errors.New("wallet balance doesn't have enough amount")
 	}
 
-	proxyWallet := testwallet.GetObject(toWallet)
+	proxyWallet := testwallet.GetObject(w.ProxyHelper, toWallet)
 	if proxyWallet == nil {
 		return errors.New("toWallet is not object reference")
 	}

@@ -43,17 +43,19 @@ type {{ .ContractType }} struct {
 	Reference reference.Global
 	Class reference.Global
 	Code reference.Global
+	ProxyHelper XXX_contract.ProxyHelper
 }
 
 // ContractConstructorHolder holds logic with object construction
 type ContractConstructorHolder struct {
+    proxyHelper XXX_contract.ProxyHelper
 	constructorName string
 	argsSerialized []byte
 }
 
 // AsChild saves object as child
 func (r *ContractConstructorHolder) AsChild(objRef reference.Global) (*{{ .ContractType }}, error) {
-	var ph = common.CurrentProxyCtx()
+	var ph = r.proxyHelper
 	ret, err := ph.CallConstructor(objRef, ClassReference, r.constructorName, r.argsSerialized)
 	if err != nil {
 		return nil, err
@@ -81,11 +83,11 @@ func (r *ContractConstructorHolder) AsChild(objRef reference.Global) (*{{ .Contr
 }
 
 // GetObject returns proxy object
-func GetObject(ref reference.Global) *{{ .ContractType }} {
+func GetObject(proxyHelper XXX_contract.ProxyHelper, ref reference.Global) *{{ .ContractType }} {
     if !ref.IsObjectReference() {
         return nil
     }
-	return &{{ .ContractType }}{Reference: ref}
+	return &{{ .ContractType }}{Reference: ref, ProxyHelper: proxyHelper}
 }
 
 // GetClass returns reference to the class
@@ -95,16 +97,16 @@ func GetClass() reference.Global {
 
 {{ range $func := .ConstructorsProxies }}
 // {{ $func.Name }} is constructor
-func {{ $func.Name }}( {{ $func.Arguments }} ) *ContractConstructorHolder {
+func {{ $func.Name }}( proxyHelper XXX_contract.ProxyHelper, {{ $func.Arguments }} ) *ContractConstructorHolder {
 	{{ $func.InitArgs }}
 
 	var argsSerialized []byte
-	err := common.CurrentProxyCtx().Serialize(args, &argsSerialized)
+	err := proxyHelper.Serialize(args, &argsSerialized)
 	if err != nil {
 		panic(err)
 	}
 
-	return &ContractConstructorHolder{constructorName: "{{ $func.Name }}", argsSerialized: argsSerialized}
+	return &ContractConstructorHolder{constructorName: "{{ $func.Name }}", argsSerialized: argsSerialized, proxyHelper: proxyHelper}
 }
 {{ end }}
 
@@ -115,7 +117,7 @@ func (r *{{ $.ContractType }}) GetReference() reference.Global {
 
 // GetClass returns reference to the code
 func (r *{{ $.ContractType }}) GetClass() (reference.Global, error) {
-	var ph = common.CurrentProxyCtx()
+	var ph = r.ProxyHelper
 	if r.Class.IsEmpty() {
 		ret := [2]interface{}{}
 		var ret0 reference.Global
@@ -147,7 +149,7 @@ func (r *{{ $.ContractType }}) GetClass() (reference.Global, error) {
 
 // GetCode returns reference to the code
 func (r *{{ $.ContractType }}) GetCode() (reference.Global, error) {
-	var ph = common.CurrentProxyCtx()
+	var ph = r.ProxyHelper
 	if r.Code.IsEmpty() {
 		ret := [2]interface{}{}
 		var ret0 reference.Global
@@ -184,7 +186,7 @@ func (r *{{ $.ContractType }}) {{ $method.Name }}{{if $method.Immutable}}AsMutab
 
 	{{ $method.ResultZeroList }}
 
-	var ph = common.CurrentProxyCtx()
+	var ph = r.ProxyHelper
 
 	err := ph.Serialize(args, &argsSerialized)
 	if err != nil {
@@ -231,7 +233,7 @@ func (r *{{ $.ContractType }}) {{ $method.Name }}{{if not $method.Immutable}}AsI
 
 	{{ $method.ResultZeroList }}
 
-	var ph = common.CurrentProxyCtx()
+	var ph = r.ProxyHelper
 
     err := ph.Serialize(args, &argsSerialized)
 	if err != nil {

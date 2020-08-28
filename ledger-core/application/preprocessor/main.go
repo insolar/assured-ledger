@@ -35,6 +35,7 @@ import (
 )
 
 var foundationPath = "github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
+
 var proxyctxPath = "github.com/insolar/assured-ledger/ledger-core/runner/executor/common"
 var referencePath = "github.com/insolar/assured-ledger/ledger-core/reference"
 
@@ -556,7 +557,8 @@ func (pf *ParsedFile) WriteProxy(classReference string, out io.Writer) error {
 		"ConstructorsProxies": constructorProxies,
 		"ClassReference":      classReference,
 		"CustomImports": map[string]string{
-			"XXX_contract": `"github.com/insolar/assured-ledger/ledger-core/insolar/contract"`,
+			"XXX_contract":  `"github.com/insolar/assured-ledger/ledger-core/insolar/contract"`,
+			"XXX_isolation": `"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"`,
 		},
 		"Imports": pf.generateImports([]string{
 			referencePath}),
@@ -612,7 +614,8 @@ func (pf *ParsedFile) typeName(t ast.Expr) string {
 
 func (pf *ParsedFile) generateImports(extraImports []string) map[string]bool {
 	imports := make(map[string]bool)
-	importList := []string{proxyctxPath, foundationPath}
+	//importList := []string{proxyctxPath, foundationPath}
+	importList := []string{foundationPath}
 
 	if extraImports != nil {
 		importList = append(importList, extraImports...)
@@ -1044,11 +1047,11 @@ func GenerateInitializationList(out io.Writer, contracts ContractList) error {
 		"Contracts": generateContractList(contracts),
 		"Package":   "builtin",
 		"CustomImports": map[string]string{
-			"XXX_contract":   `"github.com/insolar/assured-ledger/ledger-core/insolar/contract"`,
-			"XXX_descriptor": `"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"`,
-			"XXX_reference":  `"github.com/insolar/assured-ledger/ledger-core/reference"`,
-			"XXX_machine":    `"github.com/insolar/assured-ledger/ledger-core/runner/machine"`,
-			"throw":          `"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"`,
+			"XXX_contract":    `"github.com/insolar/assured-ledger/ledger-core/insolar/contract"`,
+			"XXX_descriptor":  `"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"`,
+			"XXX_reference":   `"github.com/insolar/assured-ledger/ledger-core/reference"`,
+			"XXX_machinetype": `"github.com/insolar/assured-ledger/ledger-core/runner/machine/type"`,
+			"throw":           `"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"`,
 		},
 	}
 

@@ -6,8 +6,6 @@
 package contract
 
 import (
-	"sync"
-
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common"
@@ -27,25 +25,4 @@ type ProxyHelper interface {
 	) (result []byte, err error)
 	DeactivateObject(object reference.Global) error
 	MakeErrorSerializable(error) error
-}
-
-// CurrentProxyCtx - hackish way to give proxies access to the current environment. Also,
-// to avoid compiling in whole Insolar platform into every contract based on GoPlugin.
-var (
-	currentProxyCtxLock sync.RWMutex
-	currentProxyCtx     ProxyHelper
-)
-
-func CurrentProxyCtx() ProxyHelper {
-	currentProxyCtxLock.RLock()
-	defer currentProxyCtxLock.RUnlock()
-
-	return currentProxyCtx
-}
-
-func SetCurrentProxyCtx(ctx ProxyHelper) {
-	currentProxyCtxLock.Lock()
-	defer currentProxyCtxLock.Unlock()
-
-	currentProxyCtx = ctx
 }

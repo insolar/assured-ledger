@@ -14,13 +14,14 @@ import (
 
 // BaseContract is a base embeddable struct for all insolar contracts
 type BaseContract struct {
+	ProxyHelper contract.ProxyHelper
 }
 
 // ProxyInterface interface any proxy of a contract implements
 type ProxyInterface interface {
-	GetReference() reference.Global
-	GetClass() (reference.Global, error)
-	GetCode() (reference.Global, error)
+	GetReference(BaseContractInterface) reference.Global
+	GetClass(BaseContractInterface) (reference.Global, error)
+	GetCode(BaseContractInterface) (reference.Global, error)
 }
 
 // BaseContractInterface is an interface to deal with any contract same way
@@ -28,6 +29,7 @@ type BaseContractInterface interface {
 	GetReference() reference.Global
 	GetClass() reference.Global
 	GetCode() reference.Global
+	CurrentProxyCtx() contract.ProxyHelper
 }
 
 // GetReference - Returns public reference of contract
@@ -56,5 +58,10 @@ func (bc *BaseContract) getContext() *call.LogicContext {
 
 // SelfDestruct contract will be marked as deleted
 func (bc *BaseContract) SelfDestruct() error {
-	return contract.CurrentProxyCtx().DeactivateObject(bc.GetReference())
+	return bc.CurrentProxyCtx().DeactivateObject(bc.GetReference())
+}
+
+// Foundation returns foundation
+func (bc *BaseContract) CurrentProxyCtx() contract.ProxyHelper {
+	return bc.ProxyHelper
 }

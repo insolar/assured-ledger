@@ -32,20 +32,22 @@ var ClassReference, _ = reference.GlobalFromString("insolar:0AAABAqiF7kGalgYGa1b
 
 // Wallet holds proxy type
 type Wallet struct {
-	Reference reference.Global
-	Class     reference.Global
-	Code      reference.Global
+	Reference   reference.Global
+	Class       reference.Global
+	Code        reference.Global
+	ProxyHelper XXX_contract.ProxyHelper
 }
 
 // ContractConstructorHolder holds logic with object construction
 type ContractConstructorHolder struct {
+	proxyHelper     XXX_contract.ProxyHelper
 	constructorName string
 	argsSerialized  []byte
 }
 
 // AsChild saves object as child
 func (r *ContractConstructorHolder) AsChild(objRef reference.Global) (*Wallet, error) {
-	var ph = XXX_contract.CurrentProxyCtx()
+	var ph = r.proxyHelper
 	ret, err := ph.CallConstructor(objRef, ClassReference, r.constructorName, r.argsSerialized)
 	if err != nil {
 		return nil, err
@@ -73,11 +75,11 @@ func (r *ContractConstructorHolder) AsChild(objRef reference.Global) (*Wallet, e
 }
 
 // GetObject returns proxy object
-func GetObject(ref reference.Global) *Wallet {
+func GetObject(proxyHelper XXX_contract.ProxyHelper, ref reference.Global) *Wallet {
 	if !ref.IsObjectReference() {
 		return nil
 	}
-	return &Wallet{Reference: ref}
+	return &Wallet{Reference: ref, ProxyHelper: proxyHelper}
 }
 
 // GetClass returns reference to the class
@@ -86,16 +88,16 @@ func GetClass() reference.Global {
 }
 
 // New is constructor
-func New() *ContractConstructorHolder {
+func New(proxyHelper XXX_contract.ProxyHelper) *ContractConstructorHolder {
 	var args [0]interface{}
 
 	var argsSerialized []byte
-	err := XXX_contract.CurrentProxyCtx().Serialize(args, &argsSerialized)
+	err := proxyHelper.Serialize(args, &argsSerialized)
 	if err != nil {
 		panic(err)
 	}
 
-	return &ContractConstructorHolder{constructorName: "New", argsSerialized: argsSerialized}
+	return &ContractConstructorHolder{constructorName: "New", argsSerialized: argsSerialized, proxyHelper: proxyHelper}
 }
 
 // GetReference returns reference of the object
@@ -105,7 +107,7 @@ func (r *Wallet) GetReference() reference.Global {
 
 // GetClass returns reference to the code
 func (r *Wallet) GetClass() (reference.Global, error) {
-	var ph = XXX_contract.CurrentProxyCtx()
+	var ph = r.ProxyHelper
 	if r.Class.IsEmpty() {
 		ret := [2]interface{}{}
 		var ret0 reference.Global
@@ -137,7 +139,7 @@ func (r *Wallet) GetClass() (reference.Global, error) {
 
 // GetCode returns reference to the code
 func (r *Wallet) GetCode() (reference.Global, error) {
-	var ph = XXX_contract.CurrentProxyCtx()
+	var ph = r.ProxyHelper
 	if r.Code.IsEmpty() {
 		ret := [2]interface{}{}
 		var ret0 reference.Global
@@ -178,7 +180,7 @@ func (r *Wallet) GetBalanceAsMutable() (uint32, error) {
 	var ret1 *foundation.Error
 	ret[1] = &ret1
 
-	var ph = XXX_contract.CurrentProxyCtx()
+	var ph = r.ProxyHelper
 
 	err := ph.Serialize(args, &argsSerialized)
 	if err != nil {
@@ -219,7 +221,7 @@ func (r *Wallet) GetBalance() (uint32, error) {
 	var ret1 *foundation.Error
 	ret[1] = &ret1
 
-	var ph = XXX_contract.CurrentProxyCtx()
+	var ph = r.ProxyHelper
 
 	err := ph.Serialize(args, &argsSerialized)
 	if err != nil {
@@ -260,7 +262,7 @@ func (r *Wallet) Accept(amount uint32) error {
 	var ret0 *foundation.Error
 	ret[0] = &ret0
 
-	var ph = XXX_contract.CurrentProxyCtx()
+	var ph = r.ProxyHelper
 
 	err := ph.Serialize(args, &argsSerialized)
 	if err != nil {
@@ -300,7 +302,7 @@ func (r *Wallet) AcceptAsImmutable(amount uint32) error {
 	var ret0 *foundation.Error
 	ret[0] = &ret0
 
-	var ph = XXX_contract.CurrentProxyCtx()
+	var ph = r.ProxyHelper
 
 	err := ph.Serialize(args, &argsSerialized)
 	if err != nil {
@@ -342,7 +344,7 @@ func (r *Wallet) Transfer(toWallet reference.Global, amount uint32) error {
 	var ret0 *foundation.Error
 	ret[0] = &ret0
 
-	var ph = XXX_contract.CurrentProxyCtx()
+	var ph = r.ProxyHelper
 
 	err := ph.Serialize(args, &argsSerialized)
 	if err != nil {
@@ -383,7 +385,7 @@ func (r *Wallet) TransferAsImmutable(toWallet reference.Global, amount uint32) e
 	var ret0 *foundation.Error
 	ret[0] = &ret0
 
-	var ph = XXX_contract.CurrentProxyCtx()
+	var ph = r.ProxyHelper
 
 	err := ph.Serialize(args, &argsSerialized)
 	if err != nil {
@@ -423,7 +425,7 @@ func (r *Wallet) Destroy() error {
 	var ret0 *foundation.Error
 	ret[0] = &ret0
 
-	var ph = XXX_contract.CurrentProxyCtx()
+	var ph = r.ProxyHelper
 
 	err := ph.Serialize(args, &argsSerialized)
 	if err != nil {
@@ -462,7 +464,7 @@ func (r *Wallet) DestroyAsImmutable() error {
 	var ret0 *foundation.Error
 	ret[0] = &ret0
 
-	var ph = XXX_contract.CurrentProxyCtx()
+	var ph = r.ProxyHelper
 
 	err := ph.Serialize(args, &argsSerialized)
 	if err != nil {
