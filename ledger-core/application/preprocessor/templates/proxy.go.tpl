@@ -124,7 +124,7 @@ func (r *{{ $.ContractType }}) GetClass() (reference.Global, error) {
 		ret[1] = &ret1
 
 		res, err := ph.CallMethod(
-			r.Reference, XXX_contract.CallIntolerable, XXX_contract.CallValidated, false, "GetClass", make([]byte, 0), ClassReference)
+			r.Reference, XXX_isolation.CallIntolerable, XXX_isolation.CallValidated, false, "GetClass", make([]byte, 0), ClassReference)
 		if err != nil {
 			return ret0, err
 		}
@@ -156,7 +156,7 @@ func (r *{{ $.ContractType }}) GetCode() (reference.Global, error) {
 		ret[1] = &ret1
 
 		res, err := ph.CallMethod(
-			r.Reference, XXX_contract.CallIntolerable, XXX_contract.CallValidated, false, "GetCode", make([]byte, 0), ClassReference)
+			r.Reference, XXX_isolation.CallIntolerable, XXX_isolation.CallValidated, false, "GetCode", make([]byte, 0), ClassReference)
 		if err != nil {
 			return ret0, err
 		}
@@ -193,12 +193,12 @@ func (r *{{ $.ContractType }}) {{ $method.Name }}{{if $method.Immutable}}AsMutab
 
 	{{/* Saga call doesn't has a reply (it's `nil`), thus we shouldn't try to deserialize it. */}}
 	{{if $method.SagaInfo.IsSaga }}
-	_, err = ph.CallMethod(r.Reference, XXX_contract.CallTolerable, XXX_contract.CallDirty, {{ $method.SagaInfo.IsSaga }}, "{{ $method.Name }}", argsSerialized, ClassReference)
+	_, err = ph.CallMethod(r.Reference, XXX_isolation.CallTolerable, XXX_isolation.CallDirty, {{ $method.SagaInfo.IsSaga }}, "{{ $method.Name }}", argsSerialized, ClassReference)
 	if err != nil {
 		return {{ $method.ResultsWithErr }}
 	}
 	{{else}}
-	res, err := ph.CallMethod(r.Reference, XXX_contract.CallTolerable, XXX_contract.CallDirty, {{ $method.SagaInfo.IsSaga }}, "{{ $method.Name }}", argsSerialized, ClassReference)
+	res, err := ph.CallMethod(r.Reference, XXX_isolation.CallTolerable, XXX_isolation.CallDirty, {{ $method.SagaInfo.IsSaga }}, "{{ $method.Name }}", argsSerialized, ClassReference)
 	if err != nil {
 		return {{ $method.ResultsWithErr }}
 	}
@@ -239,7 +239,7 @@ func (r *{{ $.ContractType }}) {{ $method.Name }}{{if not $method.Immutable}}AsI
 	}
 
 	res, err := ph.CallMethod(
-			r.Reference, XXX_contract.CallIntolerable, XXX_contract.CallValidated, false, "{{ $method.Name }}", argsSerialized, ClassReference)
+			r.Reference, XXX_isolation.CallIntolerable, XXX_isolation.CallValidated, false, "{{ $method.Name }}", argsSerialized, ClassReference)
 	if err != nil {
 		return {{ $method.ResultsWithErr }}
 	}

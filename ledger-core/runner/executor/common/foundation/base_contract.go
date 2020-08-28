@@ -7,9 +7,9 @@
 package foundation
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/call"
-	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common"
 )
 
 // BaseContract is a base embeddable struct for all insolar contracts
@@ -56,5 +56,5 @@ func (bc *BaseContract) getContext() *call.LogicContext {
 
 // SelfDestruct contract will be marked as deleted
 func (bc *BaseContract) SelfDestruct() error {
-	return common.CurrentProxyCtx().DeactivateObject(bc.GetReference())
+	return contract.CurrentProxyCtx().DeactivateObject(bc.GetReference())
 }

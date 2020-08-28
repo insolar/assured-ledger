@@ -28,6 +28,7 @@ import (
 
 	testwalletProxy "github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -424,8 +425,8 @@ func TestVirtual_CallContractFromContract_InterferenceViolation(t *testing.T) {
 				objectAGlobal = reference.NewSelf(server.RandomLocalWithPulse())
 
 				flags = contract.MethodIsolation{
-					Interference: contract.CallIntolerable,
-					State:        contract.CallDirty,
+					Interference: isolation.CallIntolerable,
+					State:        isolation.CallDirty,
 				}
 				outgoingCall  execution.RPC
 				expectedError []byte
@@ -442,7 +443,7 @@ func TestVirtual_CallContractFromContract_InterferenceViolation(t *testing.T) {
 			case "method":
 				expectedError, err = foundation.MarshalMethodErrorResult(throw.E("interference violation: ordered call from unordered call"))
 				require.NoError(t, err)
-				outgoingCall = execution.NewRPCBuilder(outgoingCallRef, objectAGlobal).CallMethod(objectAGlobal, class, "Bar", byteArguments).SetInterference(contract.CallTolerable)
+				outgoingCall = execution.NewRPCBuilder(outgoingCallRef, objectAGlobal).CallMethod(objectAGlobal, class, "Bar", byteArguments).SetInterference(isolation.CallTolerable)
 			case "constructor":
 				expectedError, err = foundation.MarshalMethodErrorResult(throw.E("interference violation: constructor call from unordered call"))
 				require.NoError(t, err)
@@ -548,7 +549,7 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 	p := server.GetPulse().PulseNumber
 
 	var (
-		flags     = contract.MethodIsolation{Interference: contract.CallTolerable, State: contract.CallDirty}
+		flags     = contract.MethodIsolation{Interference: isolation.CallTolerable, State: isolation.CallDirty}
 		callFlags = payload.BuildCallFlags(flags.Interference, flags.State)
 
 		classB1 = server.RandomGlobalWithPulse()
@@ -742,7 +743,7 @@ func TestVirtual_CallContractTwoTimes(t *testing.T) {
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
 	var (
-		flags     = contract.MethodIsolation{Interference: contract.CallTolerable, State: contract.CallDirty}
+		flags     = contract.MethodIsolation{Interference: isolation.CallTolerable, State: isolation.CallDirty}
 		callFlags = payload.BuildCallFlags(flags.Interference, flags.State)
 
 		classB = gen.UniqueGlobalRef()
@@ -925,12 +926,12 @@ func Test_CallMethodWithBadIsolationFlags(t *testing.T) {
 		callIsolation   contract.MethodIsolation
 	}{
 		methodIsolation: contract.MethodIsolation{
-			Interference: contract.CallTolerable,
-			State:        contract.CallDirty,
+			Interference: isolation.CallTolerable,
+			State:        isolation.CallDirty,
 		},
 		callIsolation: contract.MethodIsolation{
-			Interference: contract.CallIntolerable,
-			State:        contract.CallValidated,
+			Interference: isolation.CallIntolerable,
+			State:        isolation.CallValidated,
 		},
 	})
 
@@ -1080,24 +1081,24 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 			name:           "Tolerable call can change object state",
 			canChangeState: true,
 			isolation: contract.MethodIsolation{
-				Interference: contract.CallTolerable,
-				State:        contract.CallDirty,
+				Interference: isolation.CallTolerable,
+				State:        isolation.CallDirty,
 			},
 		},
 		{
 			name:           "Intolerable call cannot change object state",
 			canChangeState: false,
 			isolation: contract.MethodIsolation{
-				Interference: contract.CallIntolerable,
-				State:        contract.CallValidated,
+				Interference: isolation.CallIntolerable,
+				State:        isolation.CallValidated,
 			},
 		},
 		{
 			name:           "Intolerable call on Dirty state cannot change object state",
 			canChangeState: false,
 			isolation: contract.MethodIsolation{
-				Interference: contract.CallIntolerable,
-				State:        contract.CallDirty,
+				Interference: isolation.CallIntolerable,
+				State:        isolation.CallDirty,
 			},
 		},
 	}
@@ -1147,7 +1148,7 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 						require.Equal(t, objectRef, ctx.Request.Callee)
 						require.Equal(t, outgoing, ctx.Outgoing)
 						expectedMemory := origValidatedObjectMem
-						if testCase.isolation.State == contract.CallDirty {
+						if testCase.isolation.State == isolation.CallDirty {
 							expectedMemory = origDirtyObjectMem
 						}
 						require.Equal(t, []byte(expectedMemory), ctx.ObjectDescriptor.Memory())
@@ -1204,9 +1205,9 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 					require.Equal(t, int32(0), report.OrderedPendingCount)
 					require.NotNil(t, report.ProvidedContent)
 					switch testCase.isolation.Interference {
-					case contract.CallIntolerable:
+					case isolation.CallIntolerable:
 						require.Equal(t, []byte(origDirtyObjectMem), report.ProvidedContent.LatestDirtyState.State)
-					case contract.CallTolerable:
+					case isolation.CallTolerable:
 						require.Equal(t, []byte(changedObjectMem), report.ProvidedContent.LatestValidatedState.State)
 					default:
 						t.Fatal("StateStatusInvalid test case isolation interference")
@@ -1307,7 +1308,7 @@ func TestVirtual_Method_ForObjectWithMissingState(t *testing.T) {
 
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 			typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool {
-				require.Equal(t, payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty), result.CallFlags)
+				require.Equal(t, payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty), result.CallFlags)
 				require.Equal(t, objectRef, result.Callee)
 				require.Equal(t, outgoing, result.CallOutgoing)
 				require.Equal(t, server.GlobalCaller(), result.Caller)
@@ -1319,7 +1320,7 @@ func TestVirtual_Method_ForObjectWithMissingState(t *testing.T) {
 			})
 
 			pl := utils.GenerateVCallRequestMethod(server)
-			pl.CallFlags = payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty)
+			pl.CallFlags = payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty)
 			pl.Callee = objectRef
 			pl.CallSiteMethod = "Method"
 			pl.CallOutgoing = outgoing
@@ -1351,7 +1352,7 @@ func TestVirtual_Method_ForbiddenIsolation(t *testing.T) {
 		{
 			name:         "Method tolerable + validated cannot be executed",
 			testRailCase: "C5449",
-			callFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallValidated),
+			callFlags:    payload.BuildCallFlags(isolation.CallTolerable, isolation.CallValidated),
 			dirtyStateBuilder: func(objectRef, classRef reference.Global, pn pulse.Number) descriptor.Object {
 				return descriptor.NewObject(
 					objectRef,
@@ -1376,7 +1377,7 @@ func TestVirtual_Method_ForbiddenIsolation(t *testing.T) {
 		{
 			name:         "Method intolerable + validated cannot be executed if no validated state",
 			testRailCase: "C5475",
-			callFlags:    payload.BuildCallFlags(contract.CallIntolerable, contract.CallValidated),
+			callFlags:    payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallValidated),
 			dirtyStateBuilder: func(objectRef, classRef reference.Global, pn pulse.Number) descriptor.Object {
 				return descriptor.NewObject(
 					objectRef,
@@ -1546,8 +1547,8 @@ func TestVirtual_Method_IntolerableCallChangeState(t *testing.T) {
 		objectRef = reference.NewSelf(server.RandomLocalWithPulse())
 		p1        = server.GetPulse().PulseNumber
 		isolation = contract.MethodIsolation{
-			Interference: contract.CallIntolerable,
-			State:        contract.CallValidated,
+			Interference: isolation.CallIntolerable,
+			State:        isolation.CallValidated,
 		}
 	)
 
@@ -1704,7 +1705,7 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 
 		runnerMock.AddExecutionMock("GetValidatedMethod1").AddStart(
 			func(ctx execution.Context) {
-				assert.Equal(t, contract.CallValidated, ctx.Isolation.State)
+				assert.Equal(t, isolation.CallValidated, ctx.Isolation.State)
 				assert.Equal(t, initialState, ctx.ObjectDescriptor.Memory())
 			},
 			&execution.Update{
@@ -1714,7 +1715,7 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 		)
 		runnerMock.AddExecutionMock("GetDirtyMethod1").AddStart(
 			func(ctx execution.Context) {
-				assert.Equal(t, contract.CallDirty, ctx.Isolation.State)
+				assert.Equal(t, isolation.CallDirty, ctx.Isolation.State)
 				assert.Equal(t, initialState, ctx.ObjectDescriptor.Memory())
 			},
 			&execution.Update{
@@ -1724,7 +1725,7 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 		)
 		runnerMock.AddExecutionMock("GetValidatedMethod2").AddStart(
 			func(ctx execution.Context) {
-				assert.Equal(t, contract.CallValidated, ctx.Isolation.State)
+				assert.Equal(t, isolation.CallValidated, ctx.Isolation.State)
 				assert.Equal(t, initialState, ctx.ObjectDescriptor.Memory())
 			},
 			&execution.Update{
@@ -1734,7 +1735,7 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 		)
 		runnerMock.AddExecutionMock("GetDirtyMethod2").AddStart(
 			func(ctx execution.Context) {
-				assert.Equal(t, contract.CallDirty, ctx.Isolation.State)
+				assert.Equal(t, isolation.CallDirty, ctx.Isolation.State)
 				assert.Equal(t, newState, ctx.ObjectDescriptor.Memory())
 			},
 			&execution.Update{
@@ -1744,8 +1745,8 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 		)
 		runnerMock.AddExecutionClassify("GetValidatedMethod1", intolerableFlags(), nil)
 		runnerMock.AddExecutionClassify("GetValidatedMethod2", intolerableFlags(), nil)
-		runnerMock.AddExecutionClassify("GetDirtyMethod1", contract.MethodIsolation{Interference: contract.CallIntolerable, State: contract.CallDirty}, nil)
-		runnerMock.AddExecutionClassify("GetDirtyMethod2", contract.MethodIsolation{Interference: contract.CallIntolerable, State: contract.CallDirty}, nil)
+		runnerMock.AddExecutionClassify("GetDirtyMethod1", contract.MethodIsolation{Interference: isolation.CallIntolerable, State: isolation.CallDirty}, nil)
+		runnerMock.AddExecutionClassify("GetDirtyMethod2", contract.MethodIsolation{Interference: isolation.CallIntolerable, State: isolation.CallDirty}, nil)
 	}
 
 	// add typedChecker mock
@@ -1801,7 +1802,7 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 	{
 		executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 		pl := utils.GenerateVCallRequestMethod(server)
-		pl.CallFlags = payload.BuildCallFlags(contract.CallIntolerable, contract.CallValidated)
+		pl.CallFlags = payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallValidated)
 		pl.Callee = objectGlobal
 		pl.CallSiteMethod = "GetValidatedMethod1"
 
@@ -1810,7 +1811,7 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 
 		executeDone = server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 		pl = utils.GenerateVCallRequestMethod(server)
-		pl.CallFlags = payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty)
+		pl.CallFlags = payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty)
 		pl.Callee = objectGlobal
 		pl.CallSiteMethod = "GetDirtyMethod1"
 
@@ -1822,7 +1823,7 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 	{
 		executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 		pl := utils.GenerateVCallRequestMethod(server)
-		pl.CallFlags = payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty)
+		pl.CallFlags = payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty)
 		pl.Callee = objectGlobal
 		pl.CallSiteMethod = "ChangeMethod"
 
@@ -1835,7 +1836,7 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 		executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 
 		pl := utils.GenerateVCallRequestMethod(server)
-		pl.CallFlags = payload.BuildCallFlags(contract.CallIntolerable, contract.CallValidated)
+		pl.CallFlags = payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallValidated)
 		pl.Callee = objectGlobal
 		pl.CallSiteMethod = "GetValidatedMethod2"
 
@@ -1845,7 +1846,7 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 		executeDone = server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 
 		pl = utils.GenerateVCallRequestMethod(server)
-		pl.CallFlags = payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty)
+		pl.CallFlags = payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty)
 		pl.Callee = objectGlobal
 		pl.CallSiteMethod = "GetDirtyMethod2"
 
@@ -1905,7 +1906,7 @@ func TestVirtual_Method_TwoUnorderedCalls(t *testing.T) {
 		runnerMock.AddExecutionMock(firstOutgoing.String()).AddStart(
 			func(ctx execution.Context) {
 				assert.Equal(t, objectGlobal, ctx.Object)
-				assert.Equal(t, contract.CallIntolerable, ctx.Isolation.Interference)
+				assert.Equal(t, isolation.CallIntolerable, ctx.Isolation.Interference)
 				synchronizeExecution.Synchronize()
 			},
 			&execution.Update{
@@ -1917,7 +1918,7 @@ func TestVirtual_Method_TwoUnorderedCalls(t *testing.T) {
 		runnerMock.AddExecutionMock(secondOutgoing.String()).AddStart(
 			func(ctx execution.Context) {
 				assert.Equal(t, objectGlobal, ctx.Object)
-				assert.Equal(t, contract.CallIntolerable, ctx.Isolation.Interference)
+				assert.Equal(t, isolation.CallIntolerable, ctx.Isolation.Interference)
 				synchronizeExecution.WakeUp()
 			},
 			&execution.Update{

@@ -9,7 +9,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/application/builtin/contract/testwallet"
 	walletproxy "github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/convlog"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
@@ -65,7 +65,7 @@ func BenchmarkVCallRequestGetMethod(b *testing.B) {
 	})
 
 	pl := *utils.GenerateVCallRequestMethod(server)
-	pl.CallFlags = payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty)
+	pl.CallFlags = payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty)
 	pl.Callee = object
 	pl.CallSiteMethod = "GetBalance"
 

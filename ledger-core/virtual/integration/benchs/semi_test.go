@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	walletproxy "github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
@@ -80,7 +80,7 @@ func BenchmarkOnWallets(b *testing.B) {
 		})
 
 		pl := *utils.GenerateVCallRequestMethod(server)
-		pl.CallFlags = payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty)
+		pl.CallFlags = payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty)
 		pl.CallSiteMethod = "GetBalance"
 
 		b.StopTimer()

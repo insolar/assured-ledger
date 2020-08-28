@@ -72,7 +72,7 @@ T01_S023 : SMExecute
 T01_S023 --[dotted]> T01_S016
 T01_S023 --> T01_S027 : [s.intolerableCall()]
 T01_S023 --> T01_S027 : [s.intolerableCall()]
-T01_S023 --> T01_S027 : [...&&(...).Interference()==contract.CallTolerable]
+T01_S023 --> T01_S027 : [...&&(...).Interference()==isolation.CallTolerable]
 T01_S023 --> T01_S025 : [s.outgoing!=nil]
 T01_S023 --> T01_S027
 state "stepExecuteStart" as T01_S020

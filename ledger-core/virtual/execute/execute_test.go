@@ -21,6 +21,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
@@ -92,7 +93,7 @@ func TestSMExecute_Init(t *testing.T) {
 		smObject        = object.NewStateMachineObject(smGlobalRef)
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 
-		callFlags = payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty)
+		callFlags = payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty)
 	)
 
 	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
@@ -144,7 +145,7 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 		smObject        = object.NewStateMachineObject(smGlobalRef)
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 
-		callFlags = payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty)
+		callFlags = payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty)
 	)
 
 	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
@@ -168,8 +169,8 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 
 	smObject.SharedState.Info.KnownRequests.Add(callFlags.GetInterference(), smExecute.execution.Outgoing)
 
-	require.Equal(t, 0, smObject.KnownRequests.GetList(contract.CallTolerable).CountActive())
-	require.Equal(t, 0, smObject.KnownRequests.GetList(contract.CallIntolerable).CountActive())
+	require.Equal(t, 0, smObject.KnownRequests.GetList(isolation.CallTolerable).CountActive())
+	require.Equal(t, 0, smObject.KnownRequests.GetList(isolation.CallIntolerable).CountActive())
 
 	assert.Equal(t, 1, smObject.KnownRequests.Len())
 
@@ -182,11 +183,11 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 		smExecute.stepStartRequestProcessing(execCtx)
 	}
 
-	require.Equal(t, 1, smObject.KnownRequests.GetList(contract.CallTolerable).CountActive())
-	require.Equal(t, 0, smObject.KnownRequests.GetList(contract.CallIntolerable).CountActive())
+	require.Equal(t, 1, smObject.KnownRequests.GetList(isolation.CallTolerable).CountActive())
+	require.Equal(t, 0, smObject.KnownRequests.GetList(isolation.CallIntolerable).CountActive())
 
 	assert.Equal(t, 1, smObject.KnownRequests.Len())
-	assert.Equal(t, callregistry.RequestProcessing, smObject.KnownRequests.GetList(contract.CallTolerable).GetState(smExecute.execution.Outgoing))
+	assert.Equal(t, callregistry.RequestProcessing, smObject.KnownRequests.GetList(isolation.CallTolerable).GetState(smExecute.execution.Outgoing))
 
 	mc.Finish()
 }
@@ -207,7 +208,7 @@ func TestSMExecute_DeduplicationUsingPendingsTableRequestNotExist(t *testing.T) 
 		smObject          = object.NewStateMachineObject(objectRef)
 		sharedStateData   = smachine.NewUnboundSharedData(&smObject.SharedState)
 
-		callFlags = payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty)
+		callFlags = payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty)
 	)
 
 	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
@@ -257,7 +258,7 @@ func TestSMExecute_DeduplicationUsingPendingsTableRequestExist(t *testing.T) {
 		smObject          = object.NewStateMachineObject(objectRef)
 		sharedStateData   = smachine.NewUnboundSharedData(&smObject.SharedState)
 
-		callFlags = payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty)
+		callFlags = payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty)
 	)
 
 	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
@@ -281,7 +282,7 @@ func TestSMExecute_DeduplicationUsingPendingsTableRequestExist(t *testing.T) {
 	{
 		// duplicate pending request exists and is active
 		// expect SM stop
-		pendingList := smObject.PendingTable.GetList(contract.CallIntolerable)
+		pendingList := smObject.PendingTable.GetList(isolation.CallIntolerable)
 		pendingList.Add(smExecute.execution.Outgoing)
 
 		execCtx := smachine.NewExecutionContextMock(mc).
@@ -298,7 +299,7 @@ func TestSMExecute_DeduplicationUsingPendingsTableRequestExist(t *testing.T) {
 
 		// duplicate pending request exists, but is finished
 		// expect jump
-		pendingList := smObject.PendingTable.GetList(contract.CallIntolerable)
+		pendingList := smObject.PendingTable.GetList(isolation.CallIntolerable)
 		pendingList.Add(smExecute.execution.Outgoing)
 		pendingList.Finish(smExecute.execution.Outgoing)
 
@@ -328,7 +329,7 @@ func TestSMExecute_DeduplicateThroughPreviousExecutor(t *testing.T) {
 		smObject        = object.NewStateMachineObject(objectRef)
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 
-		callFlags = payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty)
+		callFlags = payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty)
 	)
 
 	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
@@ -368,7 +369,7 @@ func TestSMExecute_DeduplicateThroughPreviousExecutor(t *testing.T) {
 	{
 		// expect publish bargeIn and send VFindCallRequest
 
-		pendingList := smObject.PendingTable.GetList(contract.CallIntolerable)
+		pendingList := smObject.PendingTable.GetList(isolation.CallIntolerable)
 		pendingList.Add(smExecute.execution.Outgoing)
 
 		execCtx := smachine.NewExecutionContextMock(mc).
@@ -413,7 +414,7 @@ func TestSMExecute_ProcessFindCallResponse(t *testing.T) {
 		smObject        = object.NewStateMachineObject(objectRef)
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 
-		callFlags = payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty)
+		callFlags = payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty)
 
 		sender = gen.UniqueGlobalRef()
 	)
@@ -439,7 +440,7 @@ func TestSMExecute_ProcessFindCallResponse(t *testing.T) {
 
 	{
 		smExecute.findCallResponse = &payload.VFindCallResponse{Status: payload.CallStateMissing}
-		pendingList := smObject.PendingTable.GetList(contract.CallIntolerable)
+		pendingList := smObject.PendingTable.GetList(isolation.CallIntolerable)
 		pendingList.Add(smExecute.execution.Outgoing)
 
 		execCtx := smachine.NewExecutionContextMock(mc).
@@ -450,7 +451,7 @@ func TestSMExecute_ProcessFindCallResponse(t *testing.T) {
 
 	{
 		smExecute.findCallResponse = &payload.VFindCallResponse{Status: payload.CallStateUnknown}
-		pendingList := smObject.PendingTable.GetList(contract.CallIntolerable)
+		pendingList := smObject.PendingTable.GetList(isolation.CallIntolerable)
 		pendingList.Add(smExecute.execution.Outgoing)
 
 		execCtx := smachine.NewExecutionContextMock(mc).
@@ -465,7 +466,7 @@ func TestSMExecute_ProcessFindCallResponse(t *testing.T) {
 			CallResult: nil,
 		}
 
-		pendingList := smObject.PendingTable.GetList(contract.CallIntolerable)
+		pendingList := smObject.PendingTable.GetList(isolation.CallIntolerable)
 		pendingList.Add(smExecute.execution.Outgoing)
 
 		execCtx := smachine.NewExecutionContextMock(mc).
@@ -530,7 +531,7 @@ func TestSMExecute_DeduplicationForOldRequest(t *testing.T) {
 		smObject        = object.NewStateMachineObject(objectRef)
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 
-		callFlags = payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty)
+		callFlags = payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty)
 	)
 
 	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
@@ -612,7 +613,7 @@ func TestSMExecute_TokenInOutgoingMessage(t *testing.T) {
 				smObject        = object.NewStateMachineObject(smGlobalRef)
 				sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 
-				callFlags = payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty)
+				callFlags = payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty)
 			)
 
 			smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
@@ -704,7 +705,7 @@ func TestSMExecute_VCallResultPassedToSMObject(t *testing.T) {
 		smObject        = object.NewStateMachineObject(smGlobalRef)
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 
-		callFlags = payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty)
+		callFlags = payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty)
 	)
 
 	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
@@ -740,8 +741,8 @@ func TestSMExecute_VCallResultPassedToSMObject(t *testing.T) {
 
 	smExecute = expectedInitState(ctx, smExecute)
 
-	smObject.KnownRequests.Add(contract.CallTolerable, request.CallOutgoing)
-	smObject.KnownRequests.SetActive(contract.CallTolerable, request.CallOutgoing)
+	smObject.KnownRequests.Add(isolation.CallTolerable, request.CallOutgoing)
+	smObject.KnownRequests.SetActive(isolation.CallTolerable, request.CallOutgoing)
 
 	{
 		execCtx := smachine.NewExecutionContextMock(mc).
@@ -811,7 +812,7 @@ func TestSendVStateReportWithMissingState_IfConstructorWasInterruptedBeforeRunne
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
 			CallType:     payload.CallTypeConstructor,
-			CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+			CallFlags:    payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 			CallOutgoing: outgoing,
 
 			Caller:         caller,
@@ -891,7 +892,7 @@ func TestSMExecute_StopWithoutMessagesIfPulseChangedBeforeOutgoing(t *testing.T)
 
 	slotMachine.RunnerMock.AddExecutionClassify(
 		outgoing.String(),
-		contract.MethodIsolation{Interference: contract.CallTolerable, State: contract.CallDirty},
+		contract.MethodIsolation{Interference: isolation.CallTolerable, State: isolation.CallDirty},
 		nil,
 	)
 
@@ -900,7 +901,7 @@ func TestSMExecute_StopWithoutMessagesIfPulseChangedBeforeOutgoing(t *testing.T)
 			CallType:       payload.CallTypeMethod,
 			Caller:         caller,
 			Callee:         objectRef,
-			CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+			CallFlags:      payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 			CallOutgoing:   outgoing,
 			CallSiteMethod: "test",
 			Arguments:      insolar.MustSerialize([]interface{}{}),

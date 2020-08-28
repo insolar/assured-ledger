@@ -6,7 +6,7 @@
 package payload
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -24,7 +24,7 @@ func (m *VDelegatedRequestFinished) validateUnimplemented() error {
 }
 
 func (m *VDelegatedRequestFinished) isIntolerable() bool {
-	return m.GetCallFlags().GetInterference() == contract.CallIntolerable
+	return m.GetCallFlags().GetInterference() == isolation.CallIntolerable
 }
 
 func (m *VDelegatedRequestFinished) Validate(currentPulse pulse.Number) error {

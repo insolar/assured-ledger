@@ -27,9 +27,9 @@ import (
 	"text/template"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/genesisrefs"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	"github.com/insolar/assured-ledger/ledger-core/runner/machine"
+	_type "github.com/insolar/assured-ledger/ledger-core/runner/machine/type"
 
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -69,7 +69,7 @@ type ParsedFile struct {
 	code                []byte
 	fileSet             *token.FileSet
 	node                *ast.File
-	machineType         machine.Type
+	machineType         _type.Type
 	panicIsLogicalError bool
 
 	types        map[string]*ast.TypeSpec
@@ -80,7 +80,7 @@ type ParsedFile struct {
 
 // ParseFile parses a file as Go source code of a smart contract
 // and returns it as `ParsedFile`
-func ParseFile(fileName string, machineType machine.Type) (*ParsedFile, error) {
+func ParseFile(fileName string, machineType _type.Type) (*ParsedFile, error) {
 	res := &ParsedFile{
 		name:        fileName,
 		machineType: machineType,
@@ -243,8 +243,8 @@ func (pf *ParsedFile) ContractName() string {
 	return pf.node.Name.Name
 }
 
-func checkMachineType(machineType machine.Type) error {
-	if machineType != machine.Builtin {
+func checkMachineType(machineType _type.Type) error {
+	if machineType != _type.Builtin {
 		return errors.New("Unsupported machine type")
 	}
 	return nil
@@ -323,7 +323,7 @@ func (pf *ParsedFile) WriteWrapper(out io.Writer, packageName string) error {
 	for _, t := range pf.types {
 		extendImportsMapWithType(pf, t, imports)
 	}
-	if pf.machineType == machine.Builtin || len(functionsInfo) > 0 {
+	if pf.machineType == _type.Builtin || len(functionsInfo) > 0 {
 		imports[fmt.Sprintf(`"%s"`, referencePath)] = true
 	}
 
@@ -338,7 +338,7 @@ func (pf *ParsedFile) WriteWrapper(out io.Writer, packageName string) error {
 		"CustomImports": map[string]string{
 			"XXX_contract": `"github.com/insolar/assured-ledger/ledger-core/insolar/contract"`,
 		},
-		"GenerateInitialize":  pf.machineType == machine.Builtin,
+		"GenerateInitialize":  pf.machineType == _type.Builtin,
 		"PanicIsLogicalError": pf.panicIsLogicalError,
 	}
 
@@ -913,8 +913,8 @@ func isImmutable(decl *ast.FuncDecl) bool {
 	return isImmutable
 }
 
-func getInterference(decl *ast.FuncDecl) contract.InterferenceFlag {
-	interference := contract.CallTolerable
+func getInterference(decl *ast.FuncDecl) isolation.InterferenceFlag {
+	interference := isolation.CallTolerable
 	if decl.Doc != nil && decl.Doc.List != nil {
 		for _, comment := range decl.Doc.List {
 			slice, err := skipCommentBeginning(comment.Text)
@@ -923,7 +923,7 @@ func getInterference(decl *ast.FuncDecl) contract.InterferenceFlag {
 				continue
 			}
 			if slice == immutableFlag {
-				interference = contract.CallIntolerable
+				interference = isolation.CallIntolerable
 				break
 			}
 		}
@@ -931,8 +931,8 @@ func getInterference(decl *ast.FuncDecl) contract.InterferenceFlag {
 	return interference
 }
 
-func getState(decl *ast.FuncDecl) contract.StateFlag {
-	state := contract.CallDirty
+func getState(decl *ast.FuncDecl) isolation.StateFlag {
+	state := isolation.CallDirty
 	if decl.Doc != nil && decl.Doc.List != nil {
 		for _, comment := range decl.Doc.List {
 			slice, err := skipCommentBeginning(comment.Text)
@@ -941,7 +941,7 @@ func getState(decl *ast.FuncDecl) contract.StateFlag {
 				continue
 			}
 			if slice == immutableFlag {
-				state = contract.CallValidated
+				state = isolation.CallValidated
 				break
 			}
 		}

@@ -22,7 +22,6 @@ package testwallet
 import (
 	XXX_contract "github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -36,7 +35,7 @@ func INS_META_INFO() []map[string]string {
 }
 
 func INSMETHOD_GetCode(object []byte, data []byte) ([]byte, []byte, error) {
-	ph := common.CurrentProxyCtx()
+	ph := XXX_contract.CurrentProxyCtx()
 	self := new(Wallet)
 
 	if len(object) == 0 {
@@ -62,7 +61,7 @@ func INSMETHOD_GetCode(object []byte, data []byte) ([]byte, []byte, error) {
 }
 
 func INSMETHOD_GetClass(object []byte, data []byte) ([]byte, []byte, error) {
-	ph := common.CurrentProxyCtx()
+	ph := XXX_contract.CurrentProxyCtx()
 	self := new(Wallet)
 
 	if len(object) == 0 {
@@ -88,7 +87,7 @@ func INSMETHOD_GetClass(object []byte, data []byte) ([]byte, []byte, error) {
 }
 
 func INSMETHOD_GetBalance(object []byte, data []byte) (newState []byte, result []byte, err error) {
-	ph := common.CurrentProxyCtx()
+	ph := XXX_contract.CurrentProxyCtx()
 	ph.SetSystemError(nil)
 
 	self := new(Wallet)
@@ -168,7 +167,7 @@ func INSMETHOD_GetBalance(object []byte, data []byte) (newState []byte, result [
 }
 
 func INSMETHOD_Accept(object []byte, data []byte) (newState []byte, result []byte, err error) {
-	ph := common.CurrentProxyCtx()
+	ph := XXX_contract.CurrentProxyCtx()
 	ph.SetSystemError(nil)
 
 	self := new(Wallet)
@@ -249,7 +248,7 @@ func INSMETHOD_Accept(object []byte, data []byte) (newState []byte, result []byt
 }
 
 func INSMETHOD_Transfer(object []byte, data []byte) (newState []byte, result []byte, err error) {
-	ph := common.CurrentProxyCtx()
+	ph := XXX_contract.CurrentProxyCtx()
 	ph.SetSystemError(nil)
 
 	self := new(Wallet)
@@ -332,7 +331,7 @@ func INSMETHOD_Transfer(object []byte, data []byte) (newState []byte, result []b
 }
 
 func INSMETHOD_Destroy(object []byte, data []byte) (newState []byte, result []byte, err error) {
-	ph := common.CurrentProxyCtx()
+	ph := XXX_contract.CurrentProxyCtx()
 	ph.SetSystemError(nil)
 
 	self := new(Wallet)
@@ -411,7 +410,7 @@ func INSMETHOD_Destroy(object []byte, data []byte) (newState []byte, result []by
 }
 
 func INSCONSTRUCTOR_New(ref reference.Global, data []byte) (state []byte, result []byte, err error) {
-	ph := common.CurrentProxyCtx()
+	ph := XXX_contract.CurrentProxyCtx()
 	ph.SetSystemError(nil)
 
 	args := []interface{}{}

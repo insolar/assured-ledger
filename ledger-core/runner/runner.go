@@ -18,6 +18,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/builtin"
 	"github.com/insolar/assured-ledger/ledger-core/runner/machine"
+	_type "github.com/insolar/assured-ledger/ledger-core/runner/machine/type"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
@@ -381,7 +382,7 @@ func NewService() *DefaultService {
 
 func (r *DefaultService) Init() error {
 	exec := builtin.New(r)
-	if err := r.Manager.RegisterExecutor(machine.Builtin, exec); err != nil {
+	if err := r.Manager.RegisterExecutor(_type.Builtin, exec); err != nil {
 		panic(throw.W(err, "failed to register executor", nil))
 	}
 

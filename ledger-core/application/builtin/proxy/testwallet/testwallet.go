@@ -21,8 +21,8 @@ package testwallet
 
 import (
 	XXX_contract "github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	XXX_isolation "github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
 )
 
@@ -45,7 +45,7 @@ type ContractConstructorHolder struct {
 
 // AsChild saves object as child
 func (r *ContractConstructorHolder) AsChild(objRef reference.Global) (*Wallet, error) {
-	var ph = common.CurrentProxyCtx()
+	var ph = XXX_contract.CurrentProxyCtx()
 	ret, err := ph.CallConstructor(objRef, ClassReference, r.constructorName, r.argsSerialized)
 	if err != nil {
 		return nil, err
@@ -90,7 +90,7 @@ func New() *ContractConstructorHolder {
 	var args [0]interface{}
 
 	var argsSerialized []byte
-	err := common.CurrentProxyCtx().Serialize(args, &argsSerialized)
+	err := XXX_contract.CurrentProxyCtx().Serialize(args, &argsSerialized)
 	if err != nil {
 		panic(err)
 	}
@@ -105,7 +105,7 @@ func (r *Wallet) GetReference() reference.Global {
 
 // GetClass returns reference to the code
 func (r *Wallet) GetClass() (reference.Global, error) {
-	var ph = common.CurrentProxyCtx()
+	var ph = XXX_contract.CurrentProxyCtx()
 	if r.Class.IsEmpty() {
 		ret := [2]interface{}{}
 		var ret0 reference.Global
@@ -114,7 +114,7 @@ func (r *Wallet) GetClass() (reference.Global, error) {
 		ret[1] = &ret1
 
 		res, err := ph.CallMethod(
-			r.Reference, XXX_contract.CallIntolerable, XXX_contract.CallValidated, false, "GetClass", make([]byte, 0), ClassReference)
+			r.Reference, XXX_isolation.CallIntolerable, XXX_isolation.CallValidated, false, "GetClass", make([]byte, 0), ClassReference)
 		if err != nil {
 			return ret0, err
 		}
@@ -137,7 +137,7 @@ func (r *Wallet) GetClass() (reference.Global, error) {
 
 // GetCode returns reference to the code
 func (r *Wallet) GetCode() (reference.Global, error) {
-	var ph = common.CurrentProxyCtx()
+	var ph = XXX_contract.CurrentProxyCtx()
 	if r.Code.IsEmpty() {
 		ret := [2]interface{}{}
 		var ret0 reference.Global
@@ -146,7 +146,7 @@ func (r *Wallet) GetCode() (reference.Global, error) {
 		ret[1] = &ret1
 
 		res, err := ph.CallMethod(
-			r.Reference, XXX_contract.CallIntolerable, XXX_contract.CallValidated, false, "GetCode", make([]byte, 0), ClassReference)
+			r.Reference, XXX_isolation.CallIntolerable, XXX_isolation.CallValidated, false, "GetCode", make([]byte, 0), ClassReference)
 		if err != nil {
 			return ret0, err
 		}
@@ -178,14 +178,14 @@ func (r *Wallet) GetBalanceAsMutable() (uint32, error) {
 	var ret1 *foundation.Error
 	ret[1] = &ret1
 
-	var ph = common.CurrentProxyCtx()
+	var ph = XXX_contract.CurrentProxyCtx()
 
 	err := ph.Serialize(args, &argsSerialized)
 	if err != nil {
 		return ret0, err
 	}
 
-	res, err := ph.CallMethod(r.Reference, XXX_contract.CallTolerable, XXX_contract.CallDirty, false, "GetBalance", argsSerialized, ClassReference)
+	res, err := ph.CallMethod(r.Reference, XXX_isolation.CallTolerable, XXX_isolation.CallDirty, false, "GetBalance", argsSerialized, ClassReference)
 	if err != nil {
 		return ret0, err
 	}
@@ -219,7 +219,7 @@ func (r *Wallet) GetBalance() (uint32, error) {
 	var ret1 *foundation.Error
 	ret[1] = &ret1
 
-	var ph = common.CurrentProxyCtx()
+	var ph = XXX_contract.CurrentProxyCtx()
 
 	err := ph.Serialize(args, &argsSerialized)
 	if err != nil {
@@ -227,7 +227,7 @@ func (r *Wallet) GetBalance() (uint32, error) {
 	}
 
 	res, err := ph.CallMethod(
-		r.Reference, XXX_contract.CallIntolerable, XXX_contract.CallValidated, false, "GetBalance", argsSerialized, ClassReference)
+		r.Reference, XXX_isolation.CallIntolerable, XXX_isolation.CallValidated, false, "GetBalance", argsSerialized, ClassReference)
 	if err != nil {
 		return ret0, err
 	}
@@ -260,14 +260,14 @@ func (r *Wallet) Accept(amount uint32) error {
 	var ret0 *foundation.Error
 	ret[0] = &ret0
 
-	var ph = common.CurrentProxyCtx()
+	var ph = XXX_contract.CurrentProxyCtx()
 
 	err := ph.Serialize(args, &argsSerialized)
 	if err != nil {
 		return err
 	}
 
-	res, err := ph.CallMethod(r.Reference, XXX_contract.CallTolerable, XXX_contract.CallDirty, false, "Accept", argsSerialized, ClassReference)
+	res, err := ph.CallMethod(r.Reference, XXX_isolation.CallTolerable, XXX_isolation.CallDirty, false, "Accept", argsSerialized, ClassReference)
 	if err != nil {
 		return err
 	}
@@ -300,7 +300,7 @@ func (r *Wallet) AcceptAsImmutable(amount uint32) error {
 	var ret0 *foundation.Error
 	ret[0] = &ret0
 
-	var ph = common.CurrentProxyCtx()
+	var ph = XXX_contract.CurrentProxyCtx()
 
 	err := ph.Serialize(args, &argsSerialized)
 	if err != nil {
@@ -308,7 +308,7 @@ func (r *Wallet) AcceptAsImmutable(amount uint32) error {
 	}
 
 	res, err := ph.CallMethod(
-		r.Reference, XXX_contract.CallIntolerable, XXX_contract.CallValidated, false, "Accept", argsSerialized, ClassReference)
+		r.Reference, XXX_isolation.CallIntolerable, XXX_isolation.CallValidated, false, "Accept", argsSerialized, ClassReference)
 	if err != nil {
 		return err
 	}
@@ -342,14 +342,14 @@ func (r *Wallet) Transfer(toWallet reference.Global, amount uint32) error {
 	var ret0 *foundation.Error
 	ret[0] = &ret0
 
-	var ph = common.CurrentProxyCtx()
+	var ph = XXX_contract.CurrentProxyCtx()
 
 	err := ph.Serialize(args, &argsSerialized)
 	if err != nil {
 		return err
 	}
 
-	res, err := ph.CallMethod(r.Reference, XXX_contract.CallTolerable, XXX_contract.CallDirty, false, "Transfer", argsSerialized, ClassReference)
+	res, err := ph.CallMethod(r.Reference, XXX_isolation.CallTolerable, XXX_isolation.CallDirty, false, "Transfer", argsSerialized, ClassReference)
 	if err != nil {
 		return err
 	}
@@ -383,7 +383,7 @@ func (r *Wallet) TransferAsImmutable(toWallet reference.Global, amount uint32) e
 	var ret0 *foundation.Error
 	ret[0] = &ret0
 
-	var ph = common.CurrentProxyCtx()
+	var ph = XXX_contract.CurrentProxyCtx()
 
 	err := ph.Serialize(args, &argsSerialized)
 	if err != nil {
@@ -391,7 +391,7 @@ func (r *Wallet) TransferAsImmutable(toWallet reference.Global, amount uint32) e
 	}
 
 	res, err := ph.CallMethod(
-		r.Reference, XXX_contract.CallIntolerable, XXX_contract.CallValidated, false, "Transfer", argsSerialized, ClassReference)
+		r.Reference, XXX_isolation.CallIntolerable, XXX_isolation.CallValidated, false, "Transfer", argsSerialized, ClassReference)
 	if err != nil {
 		return err
 	}
@@ -423,14 +423,14 @@ func (r *Wallet) Destroy() error {
 	var ret0 *foundation.Error
 	ret[0] = &ret0
 
-	var ph = common.CurrentProxyCtx()
+	var ph = XXX_contract.CurrentProxyCtx()
 
 	err := ph.Serialize(args, &argsSerialized)
 	if err != nil {
 		return err
 	}
 
-	res, err := ph.CallMethod(r.Reference, XXX_contract.CallTolerable, XXX_contract.CallDirty, false, "Destroy", argsSerialized, ClassReference)
+	res, err := ph.CallMethod(r.Reference, XXX_isolation.CallTolerable, XXX_isolation.CallDirty, false, "Destroy", argsSerialized, ClassReference)
 	if err != nil {
 		return err
 	}
@@ -462,7 +462,7 @@ func (r *Wallet) DestroyAsImmutable() error {
 	var ret0 *foundation.Error
 	ret[0] = &ret0
 
-	var ph = common.CurrentProxyCtx()
+	var ph = XXX_contract.CurrentProxyCtx()
 
 	err := ph.Serialize(args, &argsSerialized)
 	if err != nil {
@@ -470,7 +470,7 @@ func (r *Wallet) DestroyAsImmutable() error {
 	}
 
 	res, err := ph.CallMethod(
-		r.Reference, XXX_contract.CallIntolerable, XXX_contract.CallValidated, false, "Destroy", argsSerialized, ClassReference)
+		r.Reference, XXX_isolation.CallIntolerable, XXX_isolation.CallValidated, false, "Destroy", argsSerialized, ClassReference)
 	if err != nil {
 		return err
 	}

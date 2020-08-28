@@ -14,13 +14,13 @@ import (
 	"strings"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/defaults"
+	_type "github.com/insolar/assured-ledger/ledger-core/runner/machine/type"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/genesisrefs"
 	"github.com/insolar/assured-ledger/ledger-core/application/preprocessor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
-	"github.com/insolar/assured-ledger/ledger-core/runner/machine"
 )
 
 var (
@@ -73,7 +73,7 @@ func (cb *contractsBuilder) clean() {
 }
 
 func (cb *contractsBuilder) parseContract(name string) (*preprocessor.ParsedFile, error) {
-	return preprocessor.ParseFile(cb.getContractPath(name), machine.Builtin)
+	return preprocessor.ParseFile(cb.getContractPath(name), _type.Builtin)
 }
 
 type buildResult struct {

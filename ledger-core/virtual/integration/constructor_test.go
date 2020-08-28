@@ -17,6 +17,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -873,15 +874,15 @@ func TestVirtual_Constructor_IsolationNegotiation(t *testing.T) {
 	}{
 		{
 			name:      "call constructor with intolerable and dirty flags",
-			isolation: contract.MethodIsolation{Interference: contract.CallIntolerable, State: contract.CallDirty},
+			isolation: contract.MethodIsolation{Interference: isolation.CallIntolerable, State: isolation.CallDirty},
 		},
 		{
 			name:      "call constructor with tolerable and validated flags",
-			isolation: contract.MethodIsolation{Interference: contract.CallTolerable, State: contract.CallValidated},
+			isolation: contract.MethodIsolation{Interference: isolation.CallTolerable, State: isolation.CallValidated},
 		},
 		{
 			name:      "call constructor with intolerable and validated flags",
-			isolation: contract.MethodIsolation{Interference: contract.CallIntolerable, State: contract.CallValidated},
+			isolation: contract.MethodIsolation{Interference: isolation.CallIntolerable, State: isolation.CallValidated},
 		},
 	}
 

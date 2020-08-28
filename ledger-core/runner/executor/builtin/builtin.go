@@ -30,7 +30,7 @@ type Runner struct {
 
 // New is an constructor
 func New(stub common.RunnerRPCStub) *Runner {
-	common.SetCurrentProxyCtx(NewProxyHelper(stub))
+	contract.SetCurrentProxyCtx(NewProxyHelper(stub))
 
 	descriptorRegistry := make(map[reference.Global]interface{})
 
