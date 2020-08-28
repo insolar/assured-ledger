@@ -24,7 +24,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/mock/publisher/checker"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
@@ -60,6 +59,7 @@ func TestVirtual_VCachedMemoryRequestHandler(t *testing.T) {
 			suite := &memoryCacheTest{}
 
 			ctx := suite.initServer(t)
+			defer suite.server.Stop()
 
 			suite.object = suite.server.RandomGlobalWithPulse()
 			suite.class = suite.server.RandomGlobalWithPulse()
@@ -80,7 +80,7 @@ func TestVirtual_VCachedMemoryRequestHandler(t *testing.T) {
 				return false
 			})
 
-			executeDone := suite.server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
+			executeDone := suite.server.Journal.WaitStopOf(&handlers.SMVCachedMemoryRequest{}, 1)
 
 			{
 				cachReq := &payload.VCachedMemoryRequest{
