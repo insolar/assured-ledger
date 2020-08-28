@@ -25,6 +25,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/memorycache"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/virtualdebugger"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
@@ -68,9 +69,11 @@ func TestVDelegatedCallRequest(t *testing.T) {
 		var (
 			catalog     object.Catalog         = catalogWrapper.Mock()
 			authService authentication.Service = authentication.NewServiceMock(t)
+			memoryCache memorycache.Service    = memorycache.NewServiceMock(t)
 		)
 		slotMachine.AddInterfaceDependency(&catalog)
 		slotMachine.AddInterfaceDependency(&authService)
+		slotMachine.AddInterfaceDependency(&memoryCache)
 		limiter := tool.NewRunnerLimiter(4)
 		slotMachine.AddDependency(limiter)
 

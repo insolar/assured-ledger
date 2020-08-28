@@ -8,6 +8,8 @@
 package handlers
 
 import (
+	"context"
+
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
@@ -17,6 +19,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/memorycache"
+	memoryCacheAdapter "github.com/insolar/assured-ledger/ledger-core/virtual/memorycache/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 )
 
@@ -31,6 +35,7 @@ type SMVDelegatedRequestFinished struct {
 	// dependencies
 	objectCatalog object.Catalog
 	pulseSlot     *conveyor.PulseSlot
+	memoryCache   memoryCacheAdapter.MemoryCache
 }
 
 type stateIsNotReady struct {
@@ -62,6 +67,7 @@ func (*dSMVDelegatedRequestFinished) InjectDependencies(sm smachine.StateMachine
 
 	injector.MustInject(&s.objectCatalog)
 	injector.MustInject(&s.pulseSlot)
+	injector.MustInject(&s.memoryCache)
 }
 
 func (*dSMVDelegatedRequestFinished) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc {
@@ -134,6 +140,7 @@ func (s *SMVDelegatedRequestFinished) stepProcess(ctx smachine.ExecutionContext)
 		}
 
 		s.updateSharedState(ctx, state)
+		s.updateMemoryCache(ctx, state)
 
 		return false
 	}
@@ -217,6 +224,17 @@ func (s *SMVDelegatedRequestFinished) updateObjectState(state *object.SharedStat
 	default:
 		panic(throw.Impossible())
 	}
+}
+
+func (s *SMVDelegatedRequestFinished) updateMemoryCache(ctx smachine.ExecutionContext, state *object.SharedState) {
+	s.memoryCache.PrepareAsync(ctx, func(ctx context.Context, svc memorycache.Service) smachine.AsyncResultFunc {
+		err := svc.Set(ctx, state.DescriptorDirty().HeadRef(), state.DescriptorDirty())
+		return func(ctx smachine.AsyncResultContext) {
+			if err != nil {
+				ctx.Log().Error("failed to set dirty memory", err)
+			}
+		}
+	}).WithoutAutoWakeUp().Start()
 }
 
 func (s *SMVDelegatedRequestFinished) hasLatestState() bool {
