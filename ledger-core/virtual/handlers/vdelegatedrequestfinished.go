@@ -227,6 +227,10 @@ func (s *SMVDelegatedRequestFinished) updateObjectState(state *object.SharedStat
 }
 
 func (s *SMVDelegatedRequestFinished) updateMemoryCache(ctx smachine.ExecutionContext, state *object.SharedState) {
+	if state.DescriptorDirty() == nil {
+		return
+	}
+
 	s.memoryCache.PrepareAsync(ctx, func(ctx context.Context, svc memorycache.Service) smachine.AsyncResultFunc {
 		err := svc.Set(ctx, state.DescriptorDirty().HeadRef(), state.DescriptorDirty())
 		return func(ctx smachine.AsyncResultContext) {
