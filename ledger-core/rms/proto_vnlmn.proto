@@ -132,8 +132,10 @@ message LReadResponse {
         Reference RegisteredBy = 45;
         // Token RegistrarToken = 46;
 
-        // NextRecordSize is provided when
         uint32   RecordSize = 1801;
         uint32   RecordPayloadsSize = 1802;
     }
+
+    uint32   NextRecordSize = 1801;
+    uint32   NextRecordPayloadsSize = 1802;
 }
