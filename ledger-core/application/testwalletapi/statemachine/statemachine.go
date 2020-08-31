@@ -23,6 +23,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	memoryCacheAdapter "github.com/insolar/assured-ledger/ledger-core/virtual/memorycache/adapter"
 )
 
 const BuiltinTestAPIEcho = "insolar:0AAABApiTestEcho____"
@@ -45,6 +46,7 @@ type SMTestAPICall struct {
 	// injected arguments
 	pulseSlot     *conveyor.PulseSlot
 	messageSender messageSenderAdapter.MessageSender
+	memoryCache   memoryCacheAdapter.MemoryCache
 }
 
 /* -------- Declaration ------------- */
@@ -60,6 +62,7 @@ func (*dSMTestAPICall) InjectDependencies(sm smachine.StateMachine, _ smachine.S
 
 	injector.MustInject(&s.pulseSlot)
 	injector.MustInject(&s.messageSender)
+	injector.MustInject(&s.memoryCache)
 }
 
 func (dSMTestAPICall) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc {

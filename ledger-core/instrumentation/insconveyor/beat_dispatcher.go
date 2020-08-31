@@ -82,7 +82,7 @@ type DispatchedMessage struct {
 
 func (c *conveyorDispatcher) Process(msg beat.Message) error {
 	msg.Ack()
-	dm := DispatchedMessage{ MessageMeta: msg.Metadata }
+	dm := DispatchedMessage{MessageMeta: msg.Metadata}
 
 	if err := rms.UnmarshalAs(msg.Payload, &dm.PayloadMeta, nil); err != nil {
 		return throw.W(err, "failed to unmarshal payload.Meta")
@@ -91,5 +91,9 @@ func (c *conveyorDispatcher) Process(msg beat.Message) error {
 }
 
 func NewConveyorDispatcher(ctx context.Context, conveyor *conveyor.PulseConveyor) beat.Dispatcher {
-	return &conveyorDispatcher{ ctx: ctx, conveyor: conveyor}
+	if conveyor == nil {
+		panic(throw.IllegalValue())
+	}
+
+	return &conveyorDispatcher{ctx: ctx, conveyor: conveyor}
 }

@@ -27,6 +27,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/predicate"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
+	memoryCacheAdapter "github.com/insolar/assured-ledger/ledger-core/virtual/memorycache/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/virtualdebugger"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
@@ -80,11 +81,13 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 
 	{
 		var (
-			authService authentication.Service = authentication.NewServiceMock(t)
-			catalog     object.Catalog         = catalogWrapper.Mock()
+			authService authentication.Service         = authentication.NewServiceMock(t)
+			catalog     object.Catalog                 = catalogWrapper.Mock()
+			memoryCache memoryCacheAdapter.MemoryCache = memoryCacheAdapter.NewMemoryCacheMock(t)
 		)
 		slotMachine.AddInterfaceDependency(&authService)
 		slotMachine.AddInterfaceDependency(&catalog)
+		slotMachine.AddInterfaceDependency(&memoryCache)
 		slotMachine.AddDependency(limiter)
 
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
@@ -159,11 +162,13 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 
 	{
 		var (
-			authService authentication.Service = authentication.NewServiceMock(t)
-			catalog     object.Catalog         = catalogWrapper.Mock()
+			authService authentication.Service         = authentication.NewServiceMock(t)
+			catalog     object.Catalog                 = catalogWrapper.Mock()
+			memoryCache memoryCacheAdapter.MemoryCache = memoryCacheAdapter.NewMemoryCacheMock(t)
 		)
 		slotMachine.AddInterfaceDependency(&authService)
 		slotMachine.AddInterfaceDependency(&catalog)
+		slotMachine.AddInterfaceDependency(&memoryCache)
 		slotMachine.AddDependency(limiter)
 
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
@@ -239,11 +244,13 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 
 	{
 		var (
-			authService authentication.Service = authentication.NewServiceMock(t)
-			catalog     object.Catalog         = catalogWrapper.Mock()
+			authService authentication.Service         = authentication.NewServiceMock(t)
+			catalog     object.Catalog                 = catalogWrapper.Mock()
+			memoryCache memoryCacheAdapter.MemoryCache = memoryCacheAdapter.NewMemoryCacheMock(t)
 		)
 		slotMachine.AddInterfaceDependency(&authService)
 		slotMachine.AddInterfaceDependency(&catalog)
+		slotMachine.AddInterfaceDependency(&memoryCache)
 		slotMachine.AddDependency(limiter)
 
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
@@ -320,11 +327,13 @@ func TestSMExecute_Semi_ConstructorOnMissingObject(t *testing.T) {
 
 	{
 		var (
-			authService authentication.Service = authentication.NewServiceMock(t)
-			catalog     object.Catalog         = catalogWrapper.Mock()
+			authService authentication.Service         = authentication.NewServiceMock(t)
+			catalog     object.Catalog                 = catalogWrapper.Mock()
+			memoryCache memoryCacheAdapter.MemoryCache = memoryCacheAdapter.NewMemoryCacheMock(t)
 		)
 		slotMachine.AddInterfaceDependency(&authService)
 		slotMachine.AddInterfaceDependency(&catalog)
+		slotMachine.AddInterfaceDependency(&memoryCache)
 		slotMachine.AddDependency(limiter)
 
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
@@ -406,13 +415,15 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 
 	{
 		var (
-			catalog object.Catalog = catalogWrapper.Mock()
+			catalog     object.Catalog                 = catalogWrapper.Mock()
+			memoryCache memoryCacheAdapter.MemoryCache = memoryCacheAdapter.NewMemoryCacheMock(t)
 		)
 		authServiceMock := authentication.NewServiceMock(t)
 		authServiceMock.HasToSendTokenMock.Return(false)
 		authService := authentication.Service(authServiceMock)
 		slotMachine.AddInterfaceDependency(&authService)
 		slotMachine.AddInterfaceDependency(&catalog)
+		slotMachine.AddInterfaceDependency(&memoryCache)
 		slotMachine.AddDependency(limiter)
 
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
@@ -488,11 +499,13 @@ func TestSMExecute_Semi_MethodOnEmptyObject(t *testing.T) {
 
 	{
 		var (
-			authService authentication.Service = authentication.NewServiceMock(t)
-			catalog     object.Catalog         = catalogWrapper.Mock()
+			authService authentication.Service         = authentication.NewServiceMock(t)
+			catalog     object.Catalog                 = catalogWrapper.Mock()
+			memoryCache memoryCacheAdapter.MemoryCache = memoryCacheAdapter.NewMemoryCacheMock(t)
 		)
 		slotMachine.AddInterfaceDependency(&authService)
 		slotMachine.AddInterfaceDependency(&catalog)
+		slotMachine.AddInterfaceDependency(&memoryCache)
 		slotMachine.AddDependency(limiter)
 
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
