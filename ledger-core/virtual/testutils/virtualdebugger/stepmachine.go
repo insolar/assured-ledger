@@ -18,6 +18,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/slotdebugger"
+	memoryCacheAdapter "github.com/insolar/assured-ledger/ledger-core/virtual/memorycache/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils"
 )
 
@@ -27,6 +28,7 @@ type VirtualStepController struct {
 	RunnerMock            *logicless.ServiceMock
 	RunnerDescriptorCache *testutils.DescriptorCacheMockWrapper
 	MachineManager        machine.Manager
+	MemoryCache           memoryCacheAdapter.MemoryCache
 }
 
 func NewWithErrorFilter(ctx context.Context, t *testing.T, filterFn logcommon.ErrorFilterFunc) *VirtualStepController {
