@@ -8,7 +8,7 @@ package datawriter
 import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/ledger/server/datareader"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/datafinder"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -125,7 +125,7 @@ func (p *SMLine) stepDropIsReady(ctx smachine.ExecutionContext) smachine.StateUp
 		return ctx.Jump(p.stepLineIsReady)
 	case pn < refPN:
 		// It was before - find a recap
-		sm := &datareader.SMFindRecap{ RootRef: p.sd.lineRef }
+		sm := &datafinder.SMFindRecap{ RootRef: p.sd.lineRef }
 		return ctx.CallSubroutine(sm, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
 			if sm.RecapRec == nil {
 				// TODO Unknown object
@@ -156,7 +156,7 @@ func (p *SMLine) stepWaitForContextUpdates(ctx smachine.ExecutionContext) smachi
 	for _, ur := range p.sd.getUnresolved() {
 		unresolved := ur
 		ctx.NewChild(func(ctx smachine.ConstructionContext) smachine.StateMachine {
-			return &datareader.SMFindRecord{
+			return &datafinder.SMFindRecord{
 				Unresolved: unresolved,
 				FindCallback:    p.onFind,
 			}

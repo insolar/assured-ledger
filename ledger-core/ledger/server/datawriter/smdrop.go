@@ -10,7 +10,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/ledger/server/datareader"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/datafinder"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -25,7 +25,7 @@ type SMDropBuilder struct {
 	// catalog   PlashCataloger
 
 	sd         DropSharedData
-	prevReport datareader.PrevDropReport
+	prevReport datafinder.PrevDropReport
 	// jetAssist  *PlashSharedData
 }
 
@@ -48,7 +48,7 @@ func (p *SMDropBuilder) stepInit(ctx smachine.InitializationContext) smachine.St
 	}
 
 	p.sd.prevReportBargein = ctx.NewBargeInWithParam(func(v interface{}) smachine.BargeInCallbackFunc {
-		report := v.(datareader.PrevDropReport)
+		report := v.(datafinder.PrevDropReport)
 		return func(ctx smachine.BargeInContext) smachine.StateUpdate {
 			if p.receivePrevReport(report, ctx) {
 				return ctx.WakeUp()
@@ -97,7 +97,7 @@ func (p *SMDropBuilder) stepWaitPrevDrop(ctx smachine.ExecutionContext) smachine
 
 func (p *SMDropBuilder) stepFindPrevDrop(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	ctx.NewChild(func(smachine.ConstructionContext) smachine.StateMachine {
-		return &datareader.SMFindDrop{
+		return &datafinder.SMFindDrop{
 			// this is safe as relevant fields are immutable
 			// and inside this method there is a barge-in
 			ReportFn: p.sd.SetPrevDropReport,
@@ -134,7 +134,7 @@ func (p *SMDropBuilder) stepFinalize(ctx smachine.ExecutionContext) smachine.Sta
 	return ctx.Stop()
 }
 
-func (p *SMDropBuilder) receivePrevReport(report datareader.PrevDropReport, ctx smachine.BargeInContext) (wakeup bool) {
+func (p *SMDropBuilder) receivePrevReport(report datafinder.PrevDropReport, ctx smachine.BargeInContext) (wakeup bool) {
 	switch {
 	case !p.prevReport.IsZero():
 		if p.prevReport.Equal(report) {
@@ -154,7 +154,7 @@ func (p *SMDropBuilder) receivePrevReport(report datareader.PrevDropReport, ctx 
 	return true
 }
 
-func (p *SMDropBuilder) verifyPrevReport(report datareader.PrevDropReport) bool {
+func (p *SMDropBuilder) verifyPrevReport(report datafinder.PrevDropReport) bool {
 	// TODO verification vs jet tree etc
 	return !report.IsZero()
 }
