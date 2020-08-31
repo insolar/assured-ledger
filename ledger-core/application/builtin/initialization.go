@@ -22,7 +22,7 @@ package builtin
 import (
 	XXX_contract "github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	XXX_reference "github.com/insolar/assured-ledger/ledger-core/reference"
-	XXX_machine "github.com/insolar/assured-ledger/ledger-core/runner/machine"
+	XXX_machinetype "github.com/insolar/assured-ledger/ledger-core/runner/machine/machinetype"
 	throw "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	XXX_descriptor "github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 
@@ -65,7 +65,7 @@ func InitializeCodeDescriptors() []XXX_descriptor.Code {
 	// testwallet
 	rv = append(rv, XXX_descriptor.NewCode(
 		/* code:        */ nil,
-		/* machineType: */ XXX_machine.Builtin,
+		/* machineType: */ XXX_machinetype.Builtin,
 		/* ref:         */ shouldLoadRef("insolar:0AAABAl_vPviVYDW1UkqOuygiJYr8FWd-7mDbJtjlwx4.record"),
 	))
 

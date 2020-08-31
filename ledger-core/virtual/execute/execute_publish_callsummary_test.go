@@ -14,7 +14,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -38,7 +38,7 @@ func TestSMExecute_PublishVCallResultToCallSummarySM(t *testing.T) {
 		pulseSlot   = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
 		outgoingRef = reference.NewRecordOf(gen.UniqueGlobalRefWithPulse(pd.PulseNumber), gen.UniqueLocalRefWithPulse(pd.PulseNumber))
 
-		callFlags = payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty)
+		callFlags = payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty)
 	)
 
 	class := gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
@@ -82,8 +82,8 @@ func TestSMExecute_PublishVCallResultToCallSummarySM(t *testing.T) {
 		outgoingRef = reference.NewSelf(outgoingRef.GetLocal())
 
 		workingTable := callregistry.NewWorkingTable()
-		workingTable.Add(contract.CallTolerable, smExecute.execution.Outgoing)
-		workingTable.SetActive(contract.CallTolerable, smExecute.execution.Outgoing)
+		workingTable.Add(isolation.CallTolerable, smExecute.execution.Outgoing)
+		workingTable.SetActive(isolation.CallTolerable, smExecute.execution.Outgoing)
 
 		sharedCallSummary.Requests.AddObjectCallResults(outgoingRef, callregistry.ObjectCallResults{
 			CallResults: workingTable.GetResults(),

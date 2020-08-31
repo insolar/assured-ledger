@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
@@ -50,12 +50,12 @@ func TestSMObject_CallSummarySM(t *testing.T) {
 	req1Ref := res1.CallOutgoing
 	req2Ref := res2.CallOutgoing
 
-	smObject.SharedState.KnownRequests.Add(contract.CallTolerable, req1Ref)
-	smObject.SharedState.KnownRequests.Add(contract.CallIntolerable, req2Ref)
-	smObject.SharedState.KnownRequests.SetActive(contract.CallTolerable, req1Ref)
-	smObject.SharedState.KnownRequests.SetActive(contract.CallIntolerable, req2Ref)
-	smObject.SharedState.KnownRequests.Finish(contract.CallTolerable, req1Ref, &res1)
-	smObject.SharedState.KnownRequests.Finish(contract.CallIntolerable, req2Ref, &res2)
+	smObject.SharedState.KnownRequests.Add(isolation.CallTolerable, req1Ref)
+	smObject.SharedState.KnownRequests.Add(isolation.CallIntolerable, req2Ref)
+	smObject.SharedState.KnownRequests.SetActive(isolation.CallTolerable, req1Ref)
+	smObject.SharedState.KnownRequests.SetActive(isolation.CallIntolerable, req2Ref)
+	smObject.SharedState.KnownRequests.Finish(isolation.CallTolerable, req1Ref, &res1)
+	smObject.SharedState.KnownRequests.Finish(isolation.CallIntolerable, req2Ref, &res2)
 
 	pulseNumber := smObject.pulseSlot.PulseData().PulseNumber
 

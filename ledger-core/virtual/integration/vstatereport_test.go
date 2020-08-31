@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -73,7 +74,7 @@ func TestVirtual_StateReport_CheckPendingCountersAndPulses(t *testing.T) {
 		name    string
 		confirm []string
 		finish  []string
-		start   []contract.InterferenceFlag
+		start   []isolation.InterferenceFlag
 
 		checks stateReportCheckPendingCountersAndPulsesTestChecks
 	}{
@@ -135,9 +136,9 @@ func TestVirtual_StateReport_CheckPendingCountersAndPulses(t *testing.T) {
 			confirm: []string{"Ordered1", "Unordered1", "Unordered2"},
 			finish:  []string{"Ordered1", "Unordered2"},
 
-			start: []contract.InterferenceFlag{
-				contract.CallIntolerable,
-				contract.CallTolerable,
+			start: []isolation.InterferenceFlag{
+				isolation.CallIntolerable,
+				isolation.CallTolerable,
 			},
 
 			checks: stateReportCheckPendingCountersAndPulsesTestChecks{
@@ -304,15 +305,15 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) generateRequests(ctx cont
 	s.requests = map[string]*stateReportCheckPendingCountersAndPulsesTestRequestInfo{
 		"Ordered1": {
 			ref:   reference.NewRecordOf(s.getCaller(), gen.UniqueLocalRefWithPulse(s.getPulse(2))),
-			flags: payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+			flags: payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 		},
 		"Unordered1": {
 			ref:   reference.NewRecordOf(s.getCaller(), gen.UniqueLocalRefWithPulse(s.getPulse(2))),
-			flags: payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
+			flags: payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty),
 		},
 		"Unordered2": {
 			ref:   reference.NewRecordOf(s.getCaller(), gen.UniqueLocalRefWithPulse(s.getPulse(3))),
-			flags: payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
+			flags: payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty),
 		},
 	}
 }
@@ -347,7 +348,7 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) finishActivePending(
 func (s *stateReportCheckPendingCountersAndPulsesTest) startNewPending(
 	ctx context.Context,
 	t *testing.T,
-	intFlag contract.InterferenceFlag,
+	intFlag isolation.InterferenceFlag,
 ) {
 	pulseNumber := s.getPulse(1)
 	outgoing := reference.NewRecordOf(s.getObject(), gen.UniqueLocalRefWithPulse(pulseNumber))
@@ -376,13 +377,13 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) startNewPending(
 		key,
 		contract.MethodIsolation{
 			Interference: intFlag,
-			State:        contract.CallDirty,
+			State:        isolation.CallDirty,
 		},
 		nil,
 	)
 
 	pl := utils.GenerateVCallRequestMethod(s.server)
-	pl.CallFlags = payload.BuildCallFlags(intFlag, contract.CallDirty)
+	pl.CallFlags = payload.BuildCallFlags(intFlag, isolation.CallDirty)
 	pl.Caller = s.getCaller()
 	pl.Callee = s.getObject()
 	pl.CallOutgoing = outgoing

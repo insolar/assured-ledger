@@ -22,6 +22,7 @@ import (
 
 // Runner is a contract runner engine
 type Runner struct {
+	Helper             contract.ProxyHelper
 	DescriptorRegistry map[reference.Global]interface{}
 	CodeRegistry       map[string]contract.Wrapper
 	CodeRefRegistry    map[reference.Global]string
@@ -30,8 +31,6 @@ type Runner struct {
 
 // New is an constructor
 func New(stub common.RunnerRPCStub) *Runner {
-	common.SetCurrentProxyCtx(NewProxyHelper(stub))
-
 	descriptorRegistry := make(map[reference.Global]interface{})
 
 	for _, classDescriptor := range builtin.InitializeClassDescriptors() {
@@ -42,6 +41,7 @@ func New(stub common.RunnerRPCStub) *Runner {
 	}
 
 	return &Runner{
+		Helper:             NewProxyHelper(stub),
 		DescriptorRegistry: descriptorRegistry,
 		CodeRegistry:       builtin.InitializeContractMethods(),
 		CodeRefRegistry:    builtin.InitializeCodeRefs(),
@@ -70,7 +70,7 @@ func (r *Runner) CallConstructor(
 		return nil, nil, errors.New("failed to find contracts constructor")
 	}
 
-	return constructorFunc(callCtx.Callee, args)
+	return constructorFunc(callCtx.Callee, args, r.Helper)
 }
 
 func (r *Runner) CallMethod(
@@ -95,7 +95,7 @@ func (r *Runner) CallMethod(
 		return nil, nil, errors.New("failed to find contracts method")
 	}
 
-	return methodObject.Func(data, args)
+	return methodObject.Func(data, args, r.Helper)
 }
 
 func (r *Runner) ClassifyMethod(_ context.Context,
