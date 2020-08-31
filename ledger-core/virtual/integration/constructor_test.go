@@ -20,6 +20,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
@@ -135,6 +136,12 @@ func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
 		return false
 	})
 
+	typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
+		t.FailNow()
+		// TODO add asserts and check counter after https://insolar.atlassian.net/browse/PLAT-753
+		return false
+	})
+
 	{
 		requestResult := requestresult.New(runnerResult, outgoing)
 		requestResult.SetActivate(reference.Global{}, class, []byte("some memory"))
@@ -153,6 +160,10 @@ func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
 
 	server.IncrementPulseAndWaitIdle(ctx)
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 1))
+
+	// TODO uncommented after https://insolar.atlassian.net/browse/PLAT-753
+	// commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VObjectTranscriptReport.Wait(ctx, 1))
+	// assert.Equal(t, 1, typedChecker.VObjectTranscriptReport.Count())
 
 	assert.Equal(t, 1, typedChecker.VCallResult.Count())
 	assert.Equal(t, 1, typedChecker.VStateReport.Count())
@@ -178,7 +189,6 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 	runnerMock := logicless.NewServiceMock(ctx, mc, nil)
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
-	server.IncrementPulseAndWaitIdle(ctx)
 
 	pl := utils.GenerateVCallRequestConstructor(server)
 	pl.Arguments = []byte("arguments")
@@ -237,6 +247,11 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 
 		return false
 	})
+	typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
+		t.FailNow()
+		// TODO add asserts and check counter after https://insolar.atlassian.net/browse/PLAT-753
+		return false
+	})
 
 	{
 		done := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
@@ -252,6 +267,9 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 
 	server.IncrementPulseAndWaitIdle(ctx)
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 1))
+	// TODO uncommented after https://insolar.atlassian.net/browse/PLAT-753
+	// commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VObjectTranscriptReport.Wait(ctx, 1))
+	// assert.Equal(t, 1, typedChecker.VObjectTranscriptReport.Count())
 
 	assert.Equal(t, 1, typedChecker.VCallResult.Count())
 	assert.Equal(t, 1, typedChecker.VStateReport.Count())
@@ -338,6 +356,11 @@ func TestVirtual_Constructor_PrevPulseStateWithMissingStatus(t *testing.T) {
 
 		return false
 	})
+	typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
+		t.FailNow()
+		// TODO add asserts and check counter after https://insolar.atlassian.net/browse/PLAT-753
+		return false
+	})
 
 	pl := utils.GenerateVCallRequestConstructor(server)
 	pl.Callee = class
@@ -367,6 +390,9 @@ func TestVirtual_Constructor_PrevPulseStateWithMissingStatus(t *testing.T) {
 	server.IncrementPulseAndWaitIdle(ctx)
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 1))
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateRequest.Wait(ctx, 1))
+	// TODO uncommented after https://insolar.atlassian.net/browse/PLAT-753
+	// commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VObjectTranscriptReport.Wait(ctx, 1))
+	// assert.Equal(t, 1, typedChecker.VObjectTranscriptReport.Count())
 
 	require.Equal(t, 1, typedChecker.VStateRequest.Count())
 	require.Equal(t, 1, typedChecker.VCallResult.Count())
@@ -597,6 +623,11 @@ func TestVirtual_Constructor_PulseChangedWhileOutgoing(t *testing.T) {
 			assert.Zero(t, report.DelegationSpec)
 			return false
 		})
+		typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
+			t.FailNow()
+			// TODO add asserts and check counter after https://insolar.atlassian.net/browse/PLAT-753
+			return false
+		})
 		typedChecker.VDelegatedCallRequest.Set(func(msg *payload.VDelegatedCallRequest) bool {
 			assert.Zero(t, msg.DelegationSpec)
 			assert.Equal(t, objectRef, msg.Callee)
@@ -688,6 +719,9 @@ func TestVirtual_Constructor_PulseChangedWhileOutgoing(t *testing.T) {
 
 	server.SendPayload(ctx, &msgVStateRequest)
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 2))
+	// TODO uncommented after https://insolar.atlassian.net/browse/PLAT-753
+	// commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VObjectTranscriptReport.Wait(ctx, 2)) // one pulse change, 2 obj
+	// assert.Equal(t, 2, typedChecker.VObjectTranscriptReport.Count())
 
 	{
 		assert.Equal(t, 1, typedChecker.VCallResult.Count())
@@ -767,6 +801,12 @@ func TestVirtual_CallConstructor_WithTwicePulseChange(t *testing.T) {
 			assert.Equal(t, objectRef, report.Object)
 			assert.Equal(t, payload.StateStatusEmpty, report.Status)
 			assert.Zero(t, report.DelegationSpec)
+			return false
+		})
+		typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
+			t.FailNow()
+			// TODO add asserts and check counter after https://insolar.atlassian.net/browse/PLAT-753
+			// see all obj and all pulse change, add check for count
 			return false
 		})
 		typedChecker.VDelegatedCallRequest.Set(func(request *payload.VDelegatedCallRequest) bool {
