@@ -24,7 +24,7 @@ import (
 
 var TestProtocolDescriptor = uniproto.Descriptor{
 	SupportedPackets: uniproto.PacketDescriptors{
-		0: {Flags: uniproto.NoSourceID | uniproto.OptionalTarget, LengthBits: 16},
+		0: {Flags: uniproto.NoSourceID | uniproto.OptionalTarget | uniproto.DatagramAllowed, LengthBits: 16},
 	},
 }
 

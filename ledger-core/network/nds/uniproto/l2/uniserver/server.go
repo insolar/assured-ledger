@@ -68,6 +68,7 @@ type UnifiedServer struct {
 func (p *UnifiedServer) SetConfig(config ServerConfig) {
 	p.config = config
 
+	p.peers.central.maxSessionlessSize = uint16(config.UDPMaxSize)
 	p.peers.central.retryLimit = config.RetryLimit
 	p.peers.central.retryDelayInc = config.RetryDelayInc
 	p.peers.central.retryDelayMax = config.RetryDelayMax

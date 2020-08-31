@@ -84,6 +84,30 @@ func TestServer(t *testing.T) {
 	require.NotNil(t, conn21)
 	require.NoError(t, conn21.Transport().EnsureConnect())
 
+	t.Run("sessionless", func(t *testing.T) {
+		testStr := "sessionless msg"
+		msgBytes := marshaller.SerializeMsg(0, 0, pulse.MinTimePulse, testStr)
+
+		require.NoError(t, conn21.Transport().UseSessionful(int64(len(msgBytes)), func(t l1.BasicOutTransport) (bool, error) {
+			return true, t.SendBytes(msgBytes)
+		}))
+
+		marshaller.Wait(0)
+		marshaller.Count.Store(0)
+
+		require.Equal(t, testStr, marshaller.LastMsg)
+		require.Equal(t, pulse.Number(pulse.MinTimePulse), marshaller.LastPacket.PulseNumber)
+
+		testStr += "2"
+		require.NoError(t, conn21.SendPacket(uniproto.Sessionless, &TestPacket{testStr}))
+
+		marshaller.Wait(0)
+		marshaller.Count.Store(0)
+
+		require.Equal(t, testStr, marshaller.LastMsg)
+		require.Equal(t, pulse.Number(pulse.MinTimePulse), marshaller.LastPacket.PulseNumber)
+	})
+
 	t.Run("small", func(t *testing.T) {
 		testStr := "short msg"
 		msgBytes := marshaller.SerializeMsg(0, 0, pulse.MinTimePulse, testStr)
