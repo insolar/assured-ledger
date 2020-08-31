@@ -355,6 +355,39 @@ func (p *generatorNewLifeline) callRegister(recordSet inspectsvc.RegisterRequest
 	return data.Result.([]cryptkit.Signature), data.Error
 }
 
+// func (p *generatorNewLifeline) callVerify(recordSet inspectsvc.RegisterRequestSet) ([]cryptkit.Signature, error) {
+// 	pn := p.recBuilder.RefTemplate.LocalHeader().Pulse()
+//
+// 	setSize := 0
+// 	for _, r := range recordSet.Requests {
+// 		setSize += r.ProtoSize()
+// 		rp := r.GetRecordPayloads()
+// 		setSize += rp.ProtoSize()
+// 	}
+//
+// 	p.totalBytes.Add(uint64(setSize))
+//
+// 	ch := make(chan smachine.TerminationData, 1)
+// 	err := p.conv.AddInputExt(pn,
+// 		recordSet,
+// 		smachine.CreateDefaultValues{
+// 			Context: context.Background(),
+// 			TerminationHandler: func(data smachine.TerminationData) {
+// 				ch <- data
+// 				close(ch)
+// 			},
+// 		})
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// 	data := <-ch
+// 	if data.Result == nil {
+// 		return nil, data.Error
+// 	}
+//
+// 	return data.Result.([]cryptkit.Signature), data.Error
+// }
+
 func (p *generatorNewLifeline) registerNewLine(reasonRef reference.Holder) ([]cryptkit.Signature, error) {
 	recordSet := p.makeSet(reasonRef)
 	return p.callRegister(recordSet)

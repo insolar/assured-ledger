@@ -56,6 +56,34 @@ func (p *LineStages) NewBundle() *BundleResolver {
 	return newBundleResolver(p, GetRecordPolicy)
 }
 
+func (p *LineStages) VerifyBundle(bundle *BundleResolver) (bool, StageTracker) {
+	switch {
+	case bundle == nil:
+		panic(throw.IllegalValue())
+	case !bundle.hasNoTroubles():
+		return false, nil
+	case len(bundle.records) > 0:
+		return false, nil
+	case len(bundle.dupRecords) == 0:
+		return true, nil
+	default:
+		// all records were deduplicated
+		// we have to find the latest relevant tracker
+		// so the caller can wait on it
+
+		latestRec := bundle.dupRecords[0]
+		for _, rn := range bundle.dupRecords[1:] {
+			if latestRec < rn {
+				latestRec = rn
+			}
+		}
+		if s := p.findStage(latestRec); s != nil {
+			return true, s.tracker
+		}
+		return true, nil
+	}
+}
+
 func (p *LineStages) AddBundle(bundle *BundleResolver, tracker StageTracker) (bool, StageTracker, UpdateBundle) {
 	switch {
 	case tracker == nil:

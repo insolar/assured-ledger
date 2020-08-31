@@ -31,6 +31,8 @@ type RegisterRequestSet struct {
 	Excerpt  catalog.Excerpt
 }
 
+type VerifyRequestSet RegisterRequestSet
+
 func (v RegisterRequestSet) IsEmpty() bool {
 	return len(v.Requests) == 0
 }
@@ -41,7 +43,7 @@ func (v RegisterRequestSet) Validate() {
 		case r == nil:
 			panic(throw.IllegalValue())
 		case r.AnticipatedRef.IsEmpty():
-			panic(throw.IllegalValue())
+			panic(throw.IllegalState())
 		}
 	}
 	if v.Excerpt.RecordType == 0 {
@@ -63,6 +65,8 @@ func (v RegisterRequestSet) GetRootRef() reference.Global {
 func (v RegisterRequestSet) GetFlags() rms.RegistrationFlags {
 	return v.Requests[0].Flags
 }
+
+/*******************************************************/
 
 type InspectedRecordSet struct {
 	Records []lineage.Record

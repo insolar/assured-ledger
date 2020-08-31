@@ -14,12 +14,11 @@ import (
 
 var _ GoGoSerializableWithText = &RecordBody{}
 
-const maxExtensionCount = 0x7F
 
 type RecordBody struct {
+	rbd      RecordBodyDigest
 	digester cryptkit.DataDigester
 	payloads []RawBinary
-	digests  []cryptkit.Digest
 }
 
 func (p RecordBody) MarshalText() (text []byte, err error) {
@@ -32,7 +31,7 @@ func (p *RecordBody) Reset() {
 
 func (p *RecordBody) SetDigester(digester cryptkit.DataDigester) {
 	if p.digester != nil {
-		p.digests = nil
+		p.rbd.Reset()
 	}
 	p.digester = digester
 }
@@ -42,7 +41,7 @@ func (p *RecordBody) HasPayload() bool {
 }
 
 func (p *RecordBody) HasPayloadDigest() bool {
-	return len(p.digests) > 0
+	return p.rbd.HasPayloadDigest()
 }
 
 func (p *RecordBody) SetPayload(body RawBinary) {
@@ -54,7 +53,7 @@ func (p *RecordBody) SetPayload(body RawBinary) {
 	} else {
 		p.payloads[0] = body
 	}
-	p.digests = nil
+	p.rbd.Reset()
 }
 
 func (p *RecordBody) GetPayload() RawBinary {
@@ -65,19 +64,14 @@ func (p *RecordBody) GetPayload() RawBinary {
 }
 
 func (p *RecordBody) GetExtensionPayloadCount() int {
-	n := len(p.payloads)
-	if n < 2 {
-		return 0
+	if n := len(p.payloads); n > 1 {
+		return n - 1
 	}
-	return n - 1
+	return 0
 }
 
 func (p *RecordBody) GetExtensionDigestCount() int {
-	n := len(p.digests)
-	if n < 2 {
-		return 0
-	}
-	return n - 1
+	return p.rbd.GetExtensionDigestCount()
 }
 
 func (p *RecordBody) AddExtensionPayload(body RawBinary) {
@@ -90,7 +84,7 @@ func (p *RecordBody) AddExtensionPayload(body RawBinary) {
 		panic(throw.IllegalState())
 	}
 	p.payloads = append(p.payloads, body)
-	p.digests = nil
+	p.rbd.Reset()
 }
 
 func (p *RecordBody) GetExtensionPayload(index int) RawBinary {
@@ -100,7 +94,7 @@ func (p *RecordBody) GetExtensionPayload(index int) RawBinary {
 		panic(throw.IllegalValue())
 	case index < len(p.payloads):
 		return p.payloads[index]
-	case index >= len(p.digests):
+	case index >= len(p.rbd.digests):
 		panic(throw.IllegalValue())
 	default:
 		return RawBinary{}
@@ -111,20 +105,20 @@ func (p *RecordBody) prepare() {
 	nPayloads := len(p.payloads)
 	switch {
 	case nPayloads == 0:
-		p.digests = nil
+		p.rbd.Reset()
 		return
 	case nPayloads == 1 && p.payloads[0].IsZero():
 		m := cryptkit.DigestMethod("")
 		if p.digester != nil {
 			m = p.digester.GetDigestMethod()
 		}
-		p.digests = []cryptkit.Digest{cryptkit.NewZeroSizeDigest(m)}
+		p.rbd.digests = []cryptkit.Digest{cryptkit.NewZeroSizeDigest(m)}
 		return
 	case p.digester == nil:
 		panic(throw.IllegalState())
 	}
 
-	for i := len(p.digests); i < nPayloads; i++ {
+	for i := len(p.rbd.digests); i < nPayloads; i++ {
 		hasher := p.digester.NewHasher()
 		switch n, err := p.payloads[i].WriteTo(hasher); {
 		case err != nil:
@@ -133,15 +127,15 @@ func (p *RecordBody) prepare() {
 			panic(throw.FailHere("extension can't be empty"))
 		}
 		digest := hasher.SumToDigest()
-		p.digests = append(p.digests, digest)
+		p.rbd.digests = append(p.rbd.digests, digest)
 	}
 }
 
 func (p *RecordBody) isPrepared() bool {
 	switch {
-	case len(p.payloads) != len(p.digests):
+	case len(p.payloads) != len(p.rbd.digests):
 		return false
-	case len(p.digests) > 0 && p.digests[0].IsZero():
+	case len(p.rbd.digests) > 0 && p.rbd.digests[0].IsZero():
 		return false
 	}
 	return true
@@ -185,10 +179,10 @@ func (p *RecordBody) _rawEstimateSize() int {
 func (p *RecordBody) _rawPreparedSize() int {
 	p.prepare()
 	n := 0
-	switch len(p.digests) {
+	switch len(p.rbd.digests) {
 	case 1:
 		// body can be empty, hence first digest can be 0
-		n = p.digests[0].FixedByteSize()
+		n = p.rbd.digests[0].FixedByteSize()
 		if n == 0 {
 			return 0
 		}
@@ -196,7 +190,7 @@ func (p *RecordBody) _rawPreparedSize() int {
 		return 0
 	default:
 		// extensions can only exists with a body
-		n = len(p.digests) * p.digester.GetDigestSize()
+		n = len(p.rbd.digests) * p.digester.GetDigestSize()
 	}
 	n++ // 1 byte for count
 	return n
@@ -204,88 +198,42 @@ func (p *RecordBody) _rawPreparedSize() int {
 
 func (p *RecordBody) MarshalTo(b []byte) (int, error) {
 	p.ensure()
-	return protokit.BinaryMarshalTo(b, p._marshal)
-}
-
-func (p *RecordBody) _marshal(b []byte) (int, error) {
-	n := len(p.digests)
-	switch {
-	case n == 0:
-		return 0, nil
-	case n > maxExtensionCount:
-		panic(throw.IllegalState())
-	}
-	b[0] = uint8(n)
-	n = 1
-	for i := range p.digests {
-		n += p.digests[i].CopyTo(b[n:])
-	}
-	return n, nil
+	return protokit.BinaryMarshalTo(b, p.rbd._marshal)
 }
 
 func (p *RecordBody) MarshalToSizedBuffer(b []byte) (int, error) {
 	p.ensure()
 	return protokit.BinaryMarshalToSizedBuffer(b, func(b []byte) (int, error) {
 		n := p._rawPreparedSize()
-		return p._marshal(b[len(b)-n:])
+		return p.rbd._marshal(b[len(b)-n:])
 	})
 }
 
 func (p *RecordBody) Unmarshal(b []byte) error {
 	p.payloads = nil
-	return protokit.BinaryUnmarshal(b, func(b []byte) error {
-		n := len(b)
-		if n == 0 {
-			p.digests = nil
-			return nil
-		}
-		n--
-		count := int(b[0])
-		switch {
-		case count == 0 || count > maxExtensionCount:
-			return throw.FailHere("wrong count")
-		case n == 0:
-			if count != 1 {
-				return throw.FailHere("empty extensions")
-			}
-			p.digests = []cryptkit.Digest{cryptkit.NewZeroSizeDigest("")}
-			return nil
-		case n%count != 0:
-			return throw.FailHere("count and size mismatched")
-		}
-		digestSize := n / count
-
-		n = 1
-		for ; count > 0; count-- {
-			digest := cryptkit.NewDigest(longbits.CopyBytes(b[n:n+digestSize]), "")
-			n += digestSize
-			p.digests = append(p.digests, digest)
-		}
-
-		return nil
-	})
+	return p.rbd.Unmarshal(b)
 }
 
 func (p *RecordBody) VerifyAnyPayload(index int, data RawBinary) (err error) {
-	if len(p.digests) == 0 && index == -1 {
+	if len(p.rbd.digests) == 0 && index == -1 {
 		return p.verifyPayload(cryptkit.Digest{}, data)
 	}
-	return p.verifyPayload(p.digests[index+1], data)
+	return p.verifyPayload(p.rbd.digests[index+1], data)
 }
 
 func (p *RecordBody) PostUnmarshalVerifyAndAdd(data RawBinary) (err error) {
 	n := len(p.payloads)
 	switch {
-	case len(p.digests) == 0:
+	case len(p.rbd.digests) == 0:
 		if n == 0 {
 			err = p.verifyPayload(cryptkit.Digest{}, data)
 			break
 		}
 		fallthrough
-	case len(p.digests) <= n:
+	case len(p.rbd.digests) <= n:
 		return throw.FailHere("too many payloads")
 	default:
-		err = p.verifyPayload(p.digests[n], data)
+		err = p.verifyPayload(p.rbd.digests[n], data)
 	}
 
 	if err != nil {
@@ -297,7 +245,7 @@ func (p *RecordBody) PostUnmarshalVerifyAndAdd(data RawBinary) (err error) {
 }
 
 func (p *RecordBody) IsPostUnmarshalCompleted() bool {
-	n := len(p.digests)
+	n := len(p.rbd.digests)
 	if n > 0 {
 		return len(p.payloads) == n
 	}
@@ -336,22 +284,16 @@ func (p *RecordBody) Equal(o *RecordBody) bool {
 	case p == o:
 		return true
 	case o == nil:
-		return len(p.digests) == 0
+		return p.rbd.Equal(nil)
 	case p == nil:
-		return len(o.digests) == 0
-	case len(p.digests) != len(o.digests):
-		return false
+		return o.rbd.Equal(nil)
+	default:
+		return p.rbd.Equal(&o.rbd)
 	}
-	for i := range p.digests {
-		if !longbits.Equal(p.digests[i], o.digests[i]) {
-			return false
-		}
-	}
-	return true
 }
 
 func (p *RecordBody) GetRecordPayloads() RecordPayloads {
-	if len(p.payloads) != len(p.digests) {
+	if len(p.payloads) != len(p.rbd.digests) {
 		return RecordPayloads{
 			payloads: p.payloads,
 		}
@@ -360,13 +302,13 @@ func (p *RecordBody) GetRecordPayloads() RecordPayloads {
 	return RecordPayloads{
 		payloads: p.payloads,
 		digester: p.digester,
-		digests:  p.digests,
+		digests:  p.rbd.digests,
 	}
 }
 
 func (p *RecordBody) CopyRecordPayloads(rp RecordPayloads) {
 	switch {
-	case len(p.payloads) > 0 || len(p.digests) > 0:
+	case len(p.payloads) > 0 || len(p.rbd.digests) > 0:
 		panic(throw.IllegalState())
 	case len(rp.payloads) != len(rp.digests):
 		panic(throw.IllegalValue())
@@ -374,7 +316,7 @@ func (p *RecordBody) CopyRecordPayloads(rp RecordPayloads) {
 
 	p.payloads = rp.payloads
 	p.digester = rp.digester
-	p.digests = rp.digests
+	p.rbd.digests = rp.digests
 }
 
 func (p *RecordBody) SetRecordPayloads(rp RecordPayloads, digester cryptkit.DataDigester) error {
@@ -382,9 +324,12 @@ func (p *RecordBody) SetRecordPayloads(rp RecordPayloads, digester cryptkit.Data
 	case p.digester == nil:
 		p.digester = digester
 	case digester == nil:
-		//
-	case digester.GetDigestMethod() != p.digester.GetDigestMethod():
-		panic(throw.IllegalState())
+		digester = rp.digester
+		fallthrough
+	default:
+		if digester.GetDigestMethod() != p.digester.GetDigestMethod() {
+			panic(throw.IllegalState())
+		}
 	}
 
 	n := len(rp.payloads)

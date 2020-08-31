@@ -16,10 +16,19 @@ import (
 
 type LineCataloger interface {
 	GetOrCreate(ctx smachine.ExecutionContext, lineRef reference.Global) LineDataLink
+	Get(ctx smachine.ExecutionContext, lineRef reference.Global) LineDataLink
 }
 
 var _ LineCataloger = LineCatalog{}
 type LineCatalog struct {}
+
+func (LineCatalog) Get(ctx smachine.ExecutionContext, lineRef reference.Global) LineDataLink {
+	sdl := ctx.GetPublishedLink(LineKey(lineRef))
+	if sdl.IsAssignableTo(&LineSharedData{}) {
+		return LineDataLink{sdl}
+	}
+	return LineDataLink{}
+}
 
 func (LineCatalog) GetOrCreate(ctx smachine.ExecutionContext, lineRef reference.Global) LineDataLink {
 	switch sdl := ctx.GetPublishedLink(LineKey(lineRef)); {
