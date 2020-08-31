@@ -188,3 +188,4 @@ func checkError(ctx context.Context, err error, message string) {
 		inslogger.FromContext(ctx).Fatalf("%v: %v", message, throw.ErrorWithStack(err))
 	}
 }
+

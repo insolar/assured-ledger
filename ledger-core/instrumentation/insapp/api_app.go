@@ -39,8 +39,8 @@ type AppComponents struct {
 	MessageSender  messagesender.Service
 	CryptoScheme   crypto.PlatformScheme
 
-	LocalNodeRef  reference.Holder
-	LocalNodeRole member.PrimaryRole
+	LocalNodeRef   reference.Holder
+	LocalNodeRole  member.PrimaryRole
 }
 
 const LocalNodeRefInjectionID = "LocalNodeRef"
