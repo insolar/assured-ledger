@@ -10,7 +10,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
@@ -36,11 +36,11 @@ func BenchmarkWorkingTable(b *testing.B) {
 func TestPendingTable(t *testing.T) {
 	rt := NewRequestTable()
 
-	require.Equal(t, 0, len(rt.GetList(contract.CallIntolerable).requests))
-	require.Equal(t, 0, len(rt.GetList(contract.CallTolerable).requests))
+	require.Equal(t, 0, len(rt.GetList(isolation.CallIntolerable).requests))
+	require.Equal(t, 0, len(rt.GetList(isolation.CallTolerable).requests))
 
-	require.Equal(t, pulse.Number(0), rt.GetList(contract.CallIntolerable).earliestActivePulse)
-	require.Equal(t, pulse.Number(0), rt.GetList(contract.CallTolerable).earliestActivePulse)
+	require.Equal(t, pulse.Number(0), rt.GetList(isolation.CallIntolerable).earliestActivePulse)
+	require.Equal(t, pulse.Number(0), rt.GetList(isolation.CallTolerable).earliestActivePulse)
 
 	pd := pulse.NewFirstPulsarData(10, longbits.Bits256{})
 	currentPulse := pd.PulseNumber
@@ -48,12 +48,12 @@ func TestPendingTable(t *testing.T) {
 	object := gen.UniqueLocalRefWithPulse(currentPulse)
 	ref := reference.NewSelf(object)
 
-	intolerableList := rt.GetList(contract.CallIntolerable)
+	intolerableList := rt.GetList(isolation.CallIntolerable)
 	intolerableList.Add(ref)
 
-	require.Equal(t, 1, len(rt.GetList(contract.CallIntolerable).requests))
-	require.Equal(t, 0, len(rt.GetList(contract.CallTolerable).requests))
-	require.Equal(t, currentPulse, rt.GetList(contract.CallIntolerable).EarliestPulse())
+	require.Equal(t, 1, len(rt.GetList(isolation.CallIntolerable).requests))
+	require.Equal(t, 0, len(rt.GetList(isolation.CallTolerable).requests))
+	require.Equal(t, currentPulse, rt.GetList(isolation.CallIntolerable).EarliestPulse())
 }
 
 func TestPendingList(t *testing.T) {

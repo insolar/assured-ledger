@@ -7,20 +7,22 @@
 package foundation
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/call"
-	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 // BaseContract is a base embeddable struct for all insolar contracts
 type BaseContract struct {
+	contractFoundation *ContractFoundationImpl
 }
 
 // ProxyInterface interface any proxy of a contract implements
 type ProxyInterface interface {
-	GetReference() reference.Global
-	GetClass() (reference.Global, error)
-	GetCode() (reference.Global, error)
+	GetReference(BaseContractInterface) reference.Global
+	GetClass(BaseContractInterface) (reference.Global, error)
+	GetCode(BaseContractInterface) (reference.Global, error)
 }
 
 // BaseContractInterface is an interface to deal with any contract same way
@@ -28,6 +30,44 @@ type BaseContractInterface interface {
 	GetReference() reference.Global
 	GetClass() reference.Global
 	GetCode() reference.Global
+	Foundation() ContractFoundation
+	InitFoundation(proxyHelper contract.ProxyHelper)
+	ResetFoundation()
+}
+
+// ------------ ContractFoundation
+
+type ContractFoundation interface {
+	CurrentProxyCtx() contract.ProxyHelper
+}
+
+type ContractFoundationImpl struct {
+	proxyHelper contract.ProxyHelper
+}
+
+// CurrentProxyCtx returns foundation
+func (cf *ContractFoundationImpl) CurrentProxyCtx() contract.ProxyHelper {
+	return cf.proxyHelper
+}
+
+// InitFoundation initializes foundation
+func (bc *BaseContract) InitFoundation(proxyHelper contract.ProxyHelper) {
+	if bc.contractFoundation != nil {
+		panic(throw.IllegalState())
+	}
+	bc.contractFoundation = &ContractFoundationImpl{
+		proxyHelper: proxyHelper,
+	}
+}
+
+// ResetFoundation nullifies foundation
+func (bc *BaseContract) ResetFoundation() {
+	bc.contractFoundation = nil
+}
+
+// Foundation returns instance of foundation
+func (bc BaseContract) Foundation() ContractFoundation {
+	return bc.contractFoundation
 }
 
 // GetReference - Returns public reference of contract
@@ -56,5 +96,5 @@ func (bc *BaseContract) getContext() *call.LogicContext {
 
 // SelfDestruct contract will be marked as deleted
 func (bc *BaseContract) SelfDestruct() error {
-	return common.CurrentProxyCtx().DeactivateObject(bc.GetReference())
+	return bc.Foundation().CurrentProxyCtx().DeactivateObject(bc.GetReference())
 }

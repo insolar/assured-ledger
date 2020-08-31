@@ -15,6 +15,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -47,92 +48,92 @@ func Test_Execute_stepIsolationNegotiation(t *testing.T) {
 			name:            "bad constuctor",
 			methodIsolation: contract.ConstructorIsolation(),
 			callIsolation: contract.MethodIsolation{
-				Interference: contract.CallIntolerable,
-				State:        contract.CallDirty,
+				Interference: isolation.CallIntolerable,
+				State:        isolation.CallDirty,
 			},
 			expectedError: true,
 		},
 		{
 			name: "method immutable",
 			callIsolation: contract.MethodIsolation{
-				Interference: contract.CallIntolerable,
-				State:        contract.CallValidated,
+				Interference: isolation.CallIntolerable,
+				State:        isolation.CallValidated,
 			},
 			methodIsolation: contract.MethodIsolation{
-				Interference: contract.CallIntolerable,
-				State:        contract.CallValidated,
+				Interference: isolation.CallIntolerable,
+				State:        isolation.CallValidated,
 			},
 			expectedIsolation: contract.MethodIsolation{
-				Interference: contract.CallIntolerable,
-				State:        contract.CallValidated,
+				Interference: isolation.CallIntolerable,
+				State:        isolation.CallValidated,
 			},
 		},
 		{
 			name: "method mutable",
 			callIsolation: contract.MethodIsolation{
-				Interference: contract.CallTolerable,
-				State:        contract.CallDirty,
+				Interference: isolation.CallTolerable,
+				State:        isolation.CallDirty,
 			},
 			methodIsolation: contract.MethodIsolation{
-				Interference: contract.CallTolerable,
-				State:        contract.CallDirty,
+				Interference: isolation.CallTolerable,
+				State:        isolation.CallDirty,
 			},
 			expectedIsolation: contract.MethodIsolation{
-				Interference: contract.CallTolerable,
-				State:        contract.CallDirty,
+				Interference: isolation.CallTolerable,
+				State:        isolation.CallDirty,
 			},
 		},
 		{
 			name: "mixed interference",
 			callIsolation: contract.MethodIsolation{
-				Interference: contract.CallTolerable,
-				State:        contract.CallDirty,
+				Interference: isolation.CallTolerable,
+				State:        isolation.CallDirty,
 			},
 			methodIsolation: contract.MethodIsolation{
-				Interference: contract.CallIntolerable,
-				State:        contract.CallDirty,
+				Interference: isolation.CallIntolerable,
+				State:        isolation.CallDirty,
 			},
 			expectedIsolation: contract.MethodIsolation{
-				Interference: contract.CallIntolerable,
-				State:        contract.CallDirty,
+				Interference: isolation.CallIntolerable,
+				State:        isolation.CallDirty,
 			},
 		},
 		{
 			name: "bad interference",
 			callIsolation: contract.MethodIsolation{
-				Interference: contract.CallIntolerable,
-				State:        contract.CallDirty,
+				Interference: isolation.CallIntolerable,
+				State:        isolation.CallDirty,
 			},
 			methodIsolation: contract.MethodIsolation{
-				Interference: contract.CallTolerable,
-				State:        contract.CallDirty,
+				Interference: isolation.CallTolerable,
+				State:        isolation.CallDirty,
 			},
 			expectedError: true,
 		},
 		{
 			name: "mixed state",
 			callIsolation: contract.MethodIsolation{
-				Interference: contract.CallTolerable,
-				State:        contract.CallDirty,
+				Interference: isolation.CallTolerable,
+				State:        isolation.CallDirty,
 			},
 			methodIsolation: contract.MethodIsolation{
-				Interference: contract.CallIntolerable,
-				State:        contract.CallValidated,
+				Interference: isolation.CallIntolerable,
+				State:        isolation.CallValidated,
 			},
 			expectedIsolation: contract.MethodIsolation{
-				Interference: contract.CallIntolerable,
-				State:        contract.CallDirty,
+				Interference: isolation.CallIntolerable,
+				State:        isolation.CallDirty,
 			},
 		},
 		{
 			name: "bad state",
 			callIsolation: contract.MethodIsolation{
-				Interference: contract.CallTolerable,
-				State:        contract.CallValidated,
+				Interference: isolation.CallTolerable,
+				State:        isolation.CallValidated,
 			},
 			methodIsolation: contract.MethodIsolation{
-				Interference: contract.CallTolerable,
-				State:        contract.CallDirty,
+				Interference: isolation.CallTolerable,
+				State:        isolation.CallDirty,
 			},
 			expectedError: true,
 		},

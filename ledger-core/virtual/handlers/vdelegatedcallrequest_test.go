@@ -15,7 +15,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
@@ -35,18 +35,18 @@ var deadBeef = [...]byte{0xde, 0xad, 0xbe, 0xef}
 func TestSMVDelegatedCallRequest(t *testing.T) {
 	insrail.LogCase(t, "C4984")
 	oneRandomOrderedTable := callregistry.NewRequestTable()
-	oneRandomOrderedTable.GetList(contract.CallTolerable).Add(gen.UniqueGlobalRef())
+	oneRandomOrderedTable.GetList(isolation.CallTolerable).Add(gen.UniqueGlobalRef())
 
 	oneRandomUnorderedTable := callregistry.NewRequestTable()
-	oneRandomUnorderedTable.GetList(contract.CallIntolerable).Add(gen.UniqueGlobalRef())
+	oneRandomUnorderedTable.GetList(isolation.CallIntolerable).Add(gen.UniqueGlobalRef())
 
 	retryOrderedRequestRef := reference.NewSelf(gen.UniqueLocalRefWithPulse(pulse.OfNow()))
 	retryOrderedTable := callregistry.NewRequestTable()
-	oneRandomOrderedTable.GetList(contract.CallTolerable).Add(retryOrderedRequestRef)
+	oneRandomOrderedTable.GetList(isolation.CallTolerable).Add(retryOrderedRequestRef)
 
 	retryUnorderedRequestRef := reference.NewSelf(gen.UniqueLocalRefWithPulse(pulse.OfNow()))
 	retryUnorderedTable := callregistry.NewRequestTable()
-	oneRandomOrderedTable.GetList(contract.CallTolerable).Add(retryUnorderedRequestRef)
+	oneRandomOrderedTable.GetList(isolation.CallTolerable).Add(retryUnorderedRequestRef)
 
 	oneRandomOrderedRequest := reference.NewSelf(gen.UniqueLocalRefWithPulse(pulse.OfNow()))
 	oneRandomUnorderedRequest := reference.NewSelf(gen.UniqueLocalRefWithPulse(pulse.OfNow()))
@@ -69,7 +69,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 			requestRef:                  oneRandomOrderedRequest,
 			OrderedPendingEarliestPulse: pulse.OfNow() - 100,
 			ActiveOrderedPendingCount:   1,
-			callFlags:                   payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+			callFlags:                   payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 			expectedResponse: &payload.VDelegatedCallResponse{
 				ResponseDelegationSpec: payload.CallDelegationToken{
 					TokenTypeAndFlags: payload.DelegationTokenTypeCall,
@@ -84,7 +84,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 			requestRef:                    oneRandomUnorderedRequest,
 			UnorderedPendingEarliestPulse: pulse.OfNow() - 100,
 			ActiveUnorderedPendingCount:   1,
-			callFlags:                     payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
+			callFlags:                     payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty),
 			expectedResponse: &payload.VDelegatedCallResponse{
 				ResponseDelegationSpec: payload.CallDelegationToken{
 					TokenTypeAndFlags: payload.DelegationTokenTypeCall,
@@ -99,7 +99,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 			requestRef:                  retryOrderedRequestRef,
 			OrderedPendingEarliestPulse: pulse.OfNow() - 100,
 			ActiveOrderedPendingCount:   1,
-			callFlags:                   payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+			callFlags:                   payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 			expectedResponse: &payload.VDelegatedCallResponse{
 				ResponseDelegationSpec: payload.CallDelegationToken{
 					TokenTypeAndFlags: payload.DelegationTokenTypeCall,
@@ -114,7 +114,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 			requestRef:                    retryUnorderedRequestRef,
 			UnorderedPendingEarliestPulse: pulse.OfNow() - 100,
 			ActiveUnorderedPendingCount:   1,
-			callFlags:                     payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
+			callFlags:                     payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty),
 			expectedResponse: &payload.VDelegatedCallResponse{
 				ResponseDelegationSpec: payload.CallDelegationToken{
 					TokenTypeAndFlags: payload.DelegationTokenTypeCall,
@@ -130,7 +130,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 			requestRef:                    reference.NewSelf(gen.UniqueLocalRefWithPulse(pulse.OfNow() - 110)),
 			UnorderedPendingEarliestPulse: pulse.Unknown,
 			ActiveUnorderedPendingCount:   0,
-			callFlags:                     payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
+			callFlags:                     payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty),
 			expectedError:                 true,
 		},
 		{
@@ -139,7 +139,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 			requestRef:                  reference.NewSelf(gen.UniqueLocalRefWithPulse(pulse.OfNow() - 110)),
 			OrderedPendingEarliestPulse: pulse.Unknown,
 			ActiveOrderedPendingCount:   0,
-			callFlags:                   payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+			callFlags:                   payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 			expectedError:               true,
 		},
 		{
@@ -148,7 +148,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 			requestRef:                    reference.NewSelf(gen.UniqueLocalRefWithPulse(pulse.OfNow() - 110)),
 			UnorderedPendingEarliestPulse: pulse.OfNow() - 100,
 			ActiveUnorderedPendingCount:   1,
-			callFlags:                     payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
+			callFlags:                     payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty),
 			expectedError:                 true,
 		},
 		{
@@ -157,7 +157,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 			requestRef:                  reference.NewSelf(gen.UniqueLocalRefWithPulse(pulse.OfNow() - 110)),
 			OrderedPendingEarliestPulse: pulse.OfNow() - 100,
 			ActiveOrderedPendingCount:   1,
-			callFlags:                   payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+			callFlags:                   payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 			expectedError:               true,
 		},
 		{
@@ -166,7 +166,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 			requestRef:                    reference.NewSelf(gen.UniqueLocalRefWithPulse(pulse.OfNow() - 110)),
 			UnorderedPendingEarliestPulse: pulse.OfNow() - 100,
 			ActiveUnorderedPendingCount:   1,
-			callFlags:                     payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
+			callFlags:                     payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty),
 			expectedError:                 true,
 		},
 		{
@@ -175,7 +175,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 			requestRef:                  reference.NewSelf(gen.UniqueLocalRefWithPulse(pulse.OfNow() - 110)),
 			OrderedPendingEarliestPulse: pulse.OfNow() - 100,
 			ActiveOrderedPendingCount:   1,
-			callFlags:                   payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+			callFlags:                   payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 			expectedError:               true,
 		},
 		{
@@ -184,7 +184,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 			requestRef:                    reference.NewSelf(gen.UniqueLocalRefWithPulse(pulse.OfNow())),
 			UnorderedPendingEarliestPulse: pulse.OfNow() - 100,
 			ActiveUnorderedPendingCount:   1,
-			callFlags:                     payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+			callFlags:                     payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 			expectedError:                 true,
 		},
 		{
@@ -193,7 +193,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 			requestRef:                  reference.NewSelf(gen.UniqueLocalRefWithPulse(pulse.OfNow())),
 			OrderedPendingEarliestPulse: pulse.OfNow() - 100,
 			ActiveOrderedPendingCount:   1,
-			callFlags:                   payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
+			callFlags:                   payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty),
 			expectedError:               true,
 		},
 	} {

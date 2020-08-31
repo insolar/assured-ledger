@@ -6,22 +6,23 @@
 package contract
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
 // MethodFunc is a typedef for wrapper contract header
-type MethodFunc func(oldState []byte, args []byte) (newState []byte, result []byte, err error)
+type MethodFunc func(oldState []byte, args []byte, helper ProxyHelper) (newState []byte, result []byte, err error)
 
 func ConstructorIsolation() MethodIsolation {
 	return MethodIsolation{
-		Interference: CallTolerable,
-		State:        CallDirty,
+		Interference: isolation.CallTolerable,
+		State:        isolation.CallDirty,
 	}
 }
 
 type MethodIsolation struct {
-	Interference InterferenceFlag
-	State        StateFlag
+	Interference isolation.InterferenceFlag
+	State        isolation.StateFlag
 }
 
 func (i MethodIsolation) IsZero() bool {
@@ -38,7 +39,7 @@ type Method struct {
 type Methods map[string]Method
 
 // Constructor is a typedef of typical contract constructor
-type Constructor func(ref reference.Global, args []byte) (state []byte, result []byte, err error)
+type Constructor func(ref reference.Global, args []byte, helper ProxyHelper) (state []byte, result []byte, err error)
 
 // Constructors maps name to contract constructor
 type Constructors map[string]Constructor
@@ -50,40 +51,4 @@ type Wrapper struct {
 
 	Methods      Methods
 	Constructors Constructors
-}
-
-type StateFlag byte
-
-const (
-	stateInvalid StateFlag = iota
-	CallDirty
-	CallValidated
-
-	StateFlagCount = iota
-)
-
-func (f StateFlag) IsZero() bool {
-	return f == 0
-}
-
-func (f StateFlag) IsValid() bool {
-	return f > stateInvalid && f < StateFlagCount
-}
-
-type InterferenceFlag byte
-
-const (
-	interferenceInvalid InterferenceFlag = iota
-	CallIntolerable
-	CallTolerable
-
-	InterferenceFlagCount = iota
-)
-
-func (f InterferenceFlag) IsZero() bool {
-	return f == 0
-}
-
-func (f InterferenceFlag) IsValid() bool {
-	return f > interferenceInvalid && f < InterferenceFlagCount
 }

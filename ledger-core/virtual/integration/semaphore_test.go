@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
@@ -61,8 +62,8 @@ func TestVirtual_SemaphoreLimitNotExceeded(t *testing.T) {
 	}
 
 	var (
-		interferenceFlag = contract.CallIntolerable
-		stateFlag        = contract.CallDirty
+		interferenceFlag = isolation.CallIntolerable
+		stateFlag        = isolation.CallDirty
 		numParallelExecs = int64(0)
 	)
 
