@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -34,15 +35,15 @@ var byteArguments = []byte("123")
 
 func tolerableFlags() contract.MethodIsolation {
 	return contract.MethodIsolation{
-		Interference: contract.CallTolerable,
-		State:        contract.CallDirty,
+		Interference: isolation.CallTolerable,
+		State:        isolation.CallDirty,
 	}
 }
 
 func intolerableFlags() contract.MethodIsolation {
 	return contract.MethodIsolation{
-		Interference: contract.CallIntolerable,
-		State:        contract.CallValidated,
+		Interference: isolation.CallIntolerable,
+		State:        isolation.CallValidated,
 	}
 }
 

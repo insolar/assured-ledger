@@ -15,7 +15,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
@@ -271,8 +271,8 @@ func TestSMObject_checkPendingCounters_DontChangeIt(t *testing.T) {
 	smObject := NewStateMachineObject(smGlobalRef)
 	smObject.PreviousExecutorUnorderedPendingCount = 2
 	smObject.PreviousExecutorOrderedPendingCount = 2
-	smObject.PendingTable.GetList(contract.CallIntolerable).Add(gen.UniqueGlobalRef())
-	smObject.PendingTable.GetList(contract.CallTolerable).Add(gen.UniqueGlobalRef())
+	smObject.PendingTable.GetList(isolation.CallIntolerable).Add(gen.UniqueGlobalRef())
+	smObject.PendingTable.GetList(isolation.CallTolerable).Add(gen.UniqueGlobalRef())
 	smObject.checkPendingCounters(smachine.Logger{})
 	require.Equal(t, uint8(2), smObject.PreviousExecutorUnorderedPendingCount)
 	require.Equal(t, uint8(2), smObject.PreviousExecutorOrderedPendingCount)

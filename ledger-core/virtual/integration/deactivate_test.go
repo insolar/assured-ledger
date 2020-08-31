@@ -15,6 +15,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
@@ -132,7 +133,7 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 
 				// get methods
 				runnerMock.AddExecutionClassify(outgoingGetValidated.String(), intolerableFlags(), nil)
-				runnerMock.AddExecutionClassify(outgoingGetDirty.String(), contract.MethodIsolation{Interference: contract.CallIntolerable, State: contract.CallDirty}, nil)
+				runnerMock.AddExecutionClassify(outgoingGetDirty.String(), contract.MethodIsolation{Interference: isolation.CallIntolerable, State: isolation.CallDirty}, nil)
 
 				runnerMock.AddExecutionMock(outgoingGetValidated.String()).AddStart(
 					func(ctx execution.Context) {
@@ -207,7 +208,7 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 			{
 				// get validated state
 				pl := utils.GenerateVCallRequestMethod(server)
-				pl.CallFlags = payload.BuildCallFlags(contract.CallIntolerable, contract.CallValidated)
+				pl.CallFlags = payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallValidated)
 				pl.Callee = objectGlobal
 				pl.CallSiteMethod = "GetValidated"
 				pl.CallOutgoing = outgoingGetValidated
@@ -218,7 +219,7 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 
 				// get dirty state
 				pl = utils.GenerateVCallRequestMethod(server)
-				pl.CallFlags = payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty)
+				pl.CallFlags = payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty)
 				pl.Callee = objectGlobal
 				pl.CallSiteMethod = "GetDirty"
 				pl.CallOutgoing = outgoingGetDirty
@@ -246,15 +247,15 @@ func TestVirtual_CallMethod_On_CompletelyDeactivatedObject(t *testing.T) {
 	insrail.LogCase(t, "C4975")
 	stateTestCases := []struct {
 		name        string
-		objectState contract.StateFlag
+		objectState isolation.StateFlag
 	}{
 		{
 			name:        "call on validated state",
-			objectState: contract.CallValidated,
+			objectState: isolation.CallValidated,
 		},
 		{
 			name:        "call on dirty state",
-			objectState: contract.CallDirty,
+			objectState: isolation.CallDirty,
 		},
 	}
 
@@ -286,7 +287,7 @@ func TestVirtual_CallMethod_On_CompletelyDeactivatedObject(t *testing.T) {
 						return execution.Request.CallSiteMethod
 					})
 
-					isolation := contract.MethodIsolation{Interference: contract.CallIntolerable, State: stateTest.objectState}
+					isolation := contract.MethodIsolation{Interference: isolation.CallIntolerable, State: stateTest.objectState}
 					methodName := "MyFavorMethod" + callTypeTest.name
 					runnerMock.AddExecutionClassify(methodName, isolation, nil)
 					server.ReplaceRunner(runnerMock)
@@ -342,10 +343,10 @@ func TestVirtual_CallDeactivate_Intolerable(t *testing.T) {
 
 	table := []struct {
 		name  string
-		state contract.StateFlag
+		state isolation.StateFlag
 	}{
-		{name: "ValidatedState", state: contract.CallValidated},
-		{name: "DirtyState", state: contract.CallDirty},
+		{name: "ValidatedState", state: isolation.CallValidated},
+		{name: "DirtyState", state: isolation.CallDirty},
 	}
 
 	for _, testCase := range table {
@@ -408,7 +409,7 @@ func TestVirtual_CallDeactivate_Intolerable(t *testing.T) {
 
 			// Add executor mock for method `Destroy`
 			{
-				runnerMock.AddExecutionClassify("Destroy", contract.MethodIsolation{Interference: contract.CallIntolerable, State: testCase.state}, nil)
+				runnerMock.AddExecutionClassify("Destroy", contract.MethodIsolation{Interference: isolation.CallIntolerable, State: testCase.state}, nil)
 
 				requestResult := requestresult.New([]byte("outgoing call"), objectGlobal)
 				requestResult.SetDeactivate(descriptor.NewObject(objectGlobal, server.RandomLocalWithPulse(), class, []byte("initial state"), false))
@@ -435,7 +436,7 @@ func TestVirtual_CallDeactivate_Intolerable(t *testing.T) {
 			// Deactivate object with wrong callFlags
 			{
 				pl := utils.GenerateVCallRequestMethod(server)
-				pl.CallFlags = payload.BuildCallFlags(contract.CallIntolerable, testCase.state)
+				pl.CallFlags = payload.BuildCallFlags(isolation.CallIntolerable, testCase.state)
 				pl.Callee = objectGlobal
 				pl.CallSiteMethod = "Destroy"
 
@@ -479,8 +480,8 @@ func TestVirtual_DeactivateObject_ChangePulse(t *testing.T) {
 		objectRef           = server.RandomGlobalWithPulse()
 		p1                  = server.GetPulse().PulseNumber
 		deactivateIsolation = contract.MethodIsolation{
-			Interference: contract.CallTolerable,
-			State:        contract.CallDirty,
+			Interference: isolation.CallTolerable,
+			State:        isolation.CallDirty,
 		}
 	)
 
@@ -624,8 +625,8 @@ func TestVirtual_CallMethod_After_Deactivation(t *testing.T) {
 		objectRef           = server.RandomGlobalWithPulse()
 		p1                  = server.GetPulse().PulseNumber
 		deactivateIsolation = contract.MethodIsolation{
-			Interference: contract.CallTolerable,
-			State:        contract.CallDirty,
+			Interference: isolation.CallTolerable,
+			State:        isolation.CallDirty,
 		}
 	)
 
@@ -732,8 +733,8 @@ func TestVirtual_Deactivation_Deduplicate(t *testing.T) {
 		objectRef          = reference.NewSelf(outgoing.GetLocal())
 		outgoingDeactivate = server.BuildRandomOutgoingWithPulse()
 		isolation          = contract.MethodIsolation{
-			Interference: contract.CallTolerable,
-			State:        contract.CallDirty,
+			Interference: isolation.CallTolerable,
+			State:        isolation.CallDirty,
 		}
 	)
 
@@ -943,8 +944,8 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 				objectRef           = server.RandomGlobalWithPulse()
 				p1                  = server.GetPulse().PulseNumber
 				deactivateIsolation = contract.MethodIsolation{
-					Interference: contract.CallTolerable,
-					State:        contract.CallDirty,
+					Interference: isolation.CallTolerable,
+					State:        isolation.CallDirty,
 				}
 				stateRef = server.RandomGlobalWithPulse()
 				outgoing = server.BuildRandomOutgoingWithPulse()
@@ -956,7 +957,7 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 
 			{
 				runnerMock.AddExecutionClassify(checkOutgoing.String(), testCase.isolation, nil)
-				if testCase.isolation.State == contract.CallValidated {
+				if testCase.isolation.State == isolation.CallValidated {
 					runnerMock.AddExecutionMock(checkOutgoing.String()).AddStart(
 						func(ctx execution.Context) {
 							require.Equal(t, objectRef, ctx.Request.Callee)
@@ -974,7 +975,7 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 			typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
 				require.Equal(t, objectRef, res.Callee)
 				require.Equal(t, checkOutgoing, res.CallOutgoing)
-				if testCase.isolation.State == contract.CallValidated {
+				if testCase.isolation.State == isolation.CallValidated {
 					require.Equal(t, []byte("check done"), res.ReturnArguments)
 				} else {
 					contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments)

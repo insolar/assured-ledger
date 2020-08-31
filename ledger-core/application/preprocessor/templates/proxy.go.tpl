@@ -43,17 +43,19 @@ type {{ .ContractType }} struct {
 	Reference reference.Global
 	Class reference.Global
 	Code reference.Global
+	ProxyHelper XXX_contract.ProxyHelper
 }
 
 // ContractConstructorHolder holds logic with object construction
 type ContractConstructorHolder struct {
+    proxyHelper XXX_contract.ProxyHelper
 	constructorName string
 	argsSerialized []byte
 }
 
 // AsChild saves object as child
 func (r *ContractConstructorHolder) AsChild(objRef reference.Global) (*{{ .ContractType }}, error) {
-	var ph = common.CurrentProxyCtx()
+	var ph = r.proxyHelper
 	ret, err := ph.CallConstructor(objRef, ClassReference, r.constructorName, r.argsSerialized)
 	if err != nil {
 		return nil, err
@@ -81,11 +83,11 @@ func (r *ContractConstructorHolder) AsChild(objRef reference.Global) (*{{ .Contr
 }
 
 // GetObject returns proxy object
-func GetObject(ref reference.Global) *{{ .ContractType }} {
+func GetObject(foundation foundation.ContractFoundation, ref reference.Global) *{{ .ContractType }} {
     if !ref.IsObjectReference() {
         return nil
     }
-	return &{{ .ContractType }}{Reference: ref}
+	return &{{ .ContractType }}{Reference: ref, ProxyHelper: foundation.CurrentProxyCtx()}
 }
 
 // GetClass returns reference to the class
@@ -95,16 +97,20 @@ func GetClass() reference.Global {
 
 {{ range $func := .ConstructorsProxies }}
 // {{ $func.Name }} is constructor
-func {{ $func.Name }}( {{ $func.Arguments }} ) *ContractConstructorHolder {
+func {{ $func.Name }}( foundation foundation.ContractFoundation, {{ $func.Arguments }} ) *ContractConstructorHolder {
 	{{ $func.InitArgs }}
 
 	var argsSerialized []byte
-	err := common.CurrentProxyCtx().Serialize(args, &argsSerialized)
+	err := foundation.CurrentProxyCtx().Serialize(args, &argsSerialized)
 	if err != nil {
 		panic(err)
 	}
 
-	return &ContractConstructorHolder{constructorName: "{{ $func.Name }}", argsSerialized: argsSerialized}
+	return &ContractConstructorHolder{
+	    constructorName: "{{ $func.Name }}",
+	    argsSerialized: argsSerialized,
+	    proxyHelper: foundation.CurrentProxyCtx(),
+	}
 }
 {{ end }}
 
@@ -115,7 +121,7 @@ func (r *{{ $.ContractType }}) GetReference() reference.Global {
 
 // GetClass returns reference to the code
 func (r *{{ $.ContractType }}) GetClass() (reference.Global, error) {
-	var ph = common.CurrentProxyCtx()
+	var ph = r.ProxyHelper
 	if r.Class.IsEmpty() {
 		ret := [2]interface{}{}
 		var ret0 reference.Global
@@ -124,7 +130,7 @@ func (r *{{ $.ContractType }}) GetClass() (reference.Global, error) {
 		ret[1] = &ret1
 
 		res, err := ph.CallMethod(
-			r.Reference, XXX_contract.CallIntolerable, XXX_contract.CallValidated, false, "GetClass", make([]byte, 0), ClassReference)
+			r.Reference, XXX_isolation.CallIntolerable, XXX_isolation.CallValidated, false, "GetClass", make([]byte, 0), ClassReference)
 		if err != nil {
 			return ret0, err
 		}
@@ -147,7 +153,7 @@ func (r *{{ $.ContractType }}) GetClass() (reference.Global, error) {
 
 // GetCode returns reference to the code
 func (r *{{ $.ContractType }}) GetCode() (reference.Global, error) {
-	var ph = common.CurrentProxyCtx()
+	var ph = r.ProxyHelper
 	if r.Code.IsEmpty() {
 		ret := [2]interface{}{}
 		var ret0 reference.Global
@@ -156,7 +162,7 @@ func (r *{{ $.ContractType }}) GetCode() (reference.Global, error) {
 		ret[1] = &ret1
 
 		res, err := ph.CallMethod(
-			r.Reference, XXX_contract.CallIntolerable, XXX_contract.CallValidated, false, "GetCode", make([]byte, 0), ClassReference)
+			r.Reference, XXX_isolation.CallIntolerable, XXX_isolation.CallValidated, false, "GetCode", make([]byte, 0), ClassReference)
 		if err != nil {
 			return ret0, err
 		}
@@ -184,7 +190,7 @@ func (r *{{ $.ContractType }}) {{ $method.Name }}{{if $method.Immutable}}AsMutab
 
 	{{ $method.ResultZeroList }}
 
-	var ph = common.CurrentProxyCtx()
+	var ph = r.ProxyHelper
 
 	err := ph.Serialize(args, &argsSerialized)
 	if err != nil {
@@ -193,12 +199,12 @@ func (r *{{ $.ContractType }}) {{ $method.Name }}{{if $method.Immutable}}AsMutab
 
 	{{/* Saga call doesn't has a reply (it's `nil`), thus we shouldn't try to deserialize it. */}}
 	{{if $method.SagaInfo.IsSaga }}
-	_, err = ph.CallMethod(r.Reference, XXX_contract.CallTolerable, XXX_contract.CallDirty, {{ $method.SagaInfo.IsSaga }}, "{{ $method.Name }}", argsSerialized, ClassReference)
+	_, err = ph.CallMethod(r.Reference, XXX_isolation.CallTolerable, XXX_isolation.CallDirty, {{ $method.SagaInfo.IsSaga }}, "{{ $method.Name }}", argsSerialized, ClassReference)
 	if err != nil {
 		return {{ $method.ResultsWithErr }}
 	}
 	{{else}}
-	res, err := ph.CallMethod(r.Reference, XXX_contract.CallTolerable, XXX_contract.CallDirty, {{ $method.SagaInfo.IsSaga }}, "{{ $method.Name }}", argsSerialized, ClassReference)
+	res, err := ph.CallMethod(r.Reference, XXX_isolation.CallTolerable, XXX_isolation.CallDirty, {{ $method.SagaInfo.IsSaga }}, "{{ $method.Name }}", argsSerialized, ClassReference)
 	if err != nil {
 		return {{ $method.ResultsWithErr }}
 	}
@@ -231,7 +237,7 @@ func (r *{{ $.ContractType }}) {{ $method.Name }}{{if not $method.Immutable}}AsI
 
 	{{ $method.ResultZeroList }}
 
-	var ph = common.CurrentProxyCtx()
+	var ph = r.ProxyHelper
 
     err := ph.Serialize(args, &argsSerialized)
 	if err != nil {
@@ -239,7 +245,7 @@ func (r *{{ $.ContractType }}) {{ $method.Name }}{{if not $method.Immutable}}AsI
 	}
 
 	res, err := ph.CallMethod(
-			r.Reference, XXX_contract.CallIntolerable, XXX_contract.CallValidated, false, "{{ $method.Name }}", argsSerialized, ClassReference)
+			r.Reference, XXX_isolation.CallIntolerable, XXX_isolation.CallValidated, false, "{{ $method.Name }}", argsSerialized, ClassReference)
 	if err != nil {
 		return {{ $method.ResultsWithErr }}
 	}

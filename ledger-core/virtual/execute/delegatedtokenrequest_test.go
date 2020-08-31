@@ -16,6 +16,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	messageSender "github.com/insolar/assured-ledger/ledger-core/network/messagesender"
@@ -55,7 +56,7 @@ func TestVDelegatedCallRequest(t *testing.T) {
 		smExecute = SMExecute{
 			Payload: &payload.VCallRequest{
 				CallType:     payload.CallTypeConstructor,
-				CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+				CallFlags:    payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 				CallOutgoing: outgoing,
 
 				Caller: caller,
@@ -105,8 +106,8 @@ func TestVDelegatedCallRequest(t *testing.T) {
 
 	{
 		slotMachine.RunnerMock.AddExecutionClassify(outgoing.String(), contract.MethodIsolation{
-			Interference: contract.CallTolerable,
-			State:        contract.CallDirty,
+			Interference: isolation.CallTolerable,
+			State:        isolation.CallDirty,
 		}, nil)
 		slotMachine.RunnerMock.AddExecutionMock(outgoing.String()).AddStart(
 			nil,

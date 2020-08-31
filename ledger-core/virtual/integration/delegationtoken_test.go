@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -449,7 +449,7 @@ func TestDelegationToken_OldVEVDelegatedCallRequest(t *testing.T) {
 
 			pl := payload.VDelegatedCallRequest{
 				Callee:         object,
-				CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+				CallFlags:      payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 				CallIncoming:   incoming,
 				CallOutgoing:   outgoing,
 				DelegationSpec: delegationToken,

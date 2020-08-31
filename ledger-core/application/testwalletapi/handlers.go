@@ -17,7 +17,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/application/testwalletapi/statemachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/trace"
@@ -36,7 +36,7 @@ type logIncomingRequest struct {
 
 	URL     string
 	Handler string
-	State   contract.StateFlag
+	State   isolation.StateFlag
 }
 
 const (
@@ -98,7 +98,7 @@ func (s *TestWalletServer) Create(w http.ResponseWriter, req *http.Request) {
 
 	walletReq := payload.VCallRequest{
 		CallType:       payload.CallTypeConstructor,
-		CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+		CallFlags:      payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 		Callee:         testwallet.GetClass(),
 		Arguments:      insolar.MustSerialize([]interface{}{}),
 		CallSiteMethod: create,
@@ -193,7 +193,7 @@ func (s *TestWalletServer) Transfer(w http.ResponseWriter, req *http.Request) {
 
 	walletReq := payload.VCallRequest{
 		CallType:       payload.CallTypeMethod,
-		CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+		CallFlags:      payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 		Callee:         fromRef,
 		Arguments:      serTransferParams,
 		CallSiteMethod: transfer,
@@ -225,7 +225,7 @@ func (g *GetBalanceParams) isValid() bool {
 	return len(g.WalletRef) > 0
 }
 
-func (s *TestWalletServer) getBalance(w http.ResponseWriter, req *http.Request, state contract.StateFlag) {
+func (s *TestWalletServer) getBalance(w http.ResponseWriter, req *http.Request, state isolation.StateFlag) {
 	var (
 		ctx     = req.Context()
 		traceID = trace.RandID()
@@ -266,7 +266,7 @@ func (s *TestWalletServer) getBalance(w http.ResponseWriter, req *http.Request, 
 
 	walletReq := payload.VCallRequest{
 		CallType:       payload.CallTypeMethod,
-		CallFlags:      payload.BuildCallFlags(contract.CallIntolerable, state),
+		CallFlags:      payload.BuildCallFlags(isolation.CallIntolerable, state),
 		Callee:         ref,
 		CallSiteMethod: getBalance,
 		Arguments:      insolar.MustSerialize([]interface{}{}),
@@ -296,11 +296,11 @@ func (s *TestWalletServer) getBalance(w http.ResponseWriter, req *http.Request, 
 }
 
 func (s *TestWalletServer) GetBalanceValidated(w http.ResponseWriter, req *http.Request) {
-	s.getBalance(w, req, contract.CallValidated)
+	s.getBalance(w, req, isolation.CallValidated)
 }
 
 func (s *TestWalletServer) GetBalance(w http.ResponseWriter, req *http.Request) {
-	s.getBalance(w, req, contract.CallDirty)
+	s.getBalance(w, req, isolation.CallDirty)
 }
 
 type AddAmountParams struct {
@@ -359,7 +359,7 @@ func (s *TestWalletServer) AddAmount(w http.ResponseWriter, req *http.Request) {
 
 	walletReq := payload.VCallRequest{
 		CallType:       payload.CallTypeMethod,
-		CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+		CallFlags:      payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 		Callee:         ref,
 		Arguments:      param,
 		CallSiteMethod: addAmount,
@@ -434,7 +434,7 @@ func (s *TestWalletServer) Delete(w http.ResponseWriter, req *http.Request) {
 
 	walletReq := payload.VCallRequest{
 		CallType:       payload.CallTypeMethod,
-		CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+		CallFlags:      payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 		Callee:         ref,
 		CallSiteMethod: "Destroy",
 		Arguments:      insolar.MustSerialize([]interface{}{}),

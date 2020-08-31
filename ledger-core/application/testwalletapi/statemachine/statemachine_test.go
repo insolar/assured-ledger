@@ -16,7 +16,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
@@ -52,7 +52,7 @@ func TestSMTestAPICall_MethodResends(t *testing.T) {
 	request := payload.VCallRequest{
 		CallType:       payload.CallTypeMethod,
 		Callee:         gen.UniqueGlobalRef(),
-		CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+		CallFlags:      payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 		CallSiteMethod: "New",
 		Arguments:      []byte("some args"),
 	}
@@ -128,7 +128,7 @@ func TestSMTestAPICall_MethodEcho(t *testing.T) {
 	request := payload.VCallRequest{
 		CallType:       payload.CallTypeMethod,
 		Callee:         echoRef,
-		CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+		CallFlags:      payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 		CallSiteMethod: "can be any",
 		Arguments:      []byte("some args"),
 	}
@@ -171,7 +171,7 @@ func TestSMTestAPICall_Constructor(t *testing.T) {
 	request := payload.VCallRequest{
 		CallType:       payload.CallTypeConstructor,
 		Callee:         gen.UniqueGlobalRef(),
-		CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+		CallFlags:      payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 		CallSiteMethod: "New",
 		Arguments:      []byte("some args"),
 	}
@@ -224,7 +224,7 @@ func TestSMTestAPICall_RetriesExceeded(t *testing.T) {
 	request := payload.VCallRequest{
 		CallType:       payload.CallTypeMethod,
 		Callee:         gen.UniqueGlobalRef(),
-		CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+		CallFlags:      payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 		CallSiteMethod: "New",
 		Arguments:      []byte("some args"),
 	}

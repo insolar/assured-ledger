@@ -6,10 +6,10 @@
 package rpctypes
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/call"
-	"github.com/insolar/assured-ledger/ledger-core/runner/machine"
+	"github.com/insolar/assured-ledger/ledger-core/runner/machine/machinetype"
 )
 
 // Types for RPC requests and responses between goplugin and goinsider.
@@ -62,7 +62,7 @@ type UpRespIface interface{}
 // UpGetCodeReq is a set of arguments for GetCode RPC in goplugin
 type UpGetCodeReq struct {
 	UpBaseReq
-	MType machine.Type
+	MType machinetype.Type
 	Code  reference.Global
 }
 
@@ -74,8 +74,8 @@ type UpGetCodeResp struct {
 // UpCallMethodReq is a set of arguments for Send RPC in goplugin
 type UpCallMethodReq struct {
 	UpBaseReq
-	Interference contract.InterferenceFlag
-	Isolation    contract.StateFlag
+	Interference isolation.InterferenceFlag
+	Isolation    isolation.StateFlag
 	Saga         bool
 	Object       reference.Global
 	Method       string

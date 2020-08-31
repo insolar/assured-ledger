@@ -6,7 +6,7 @@
 package callregistry
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -14,7 +14,7 @@ import (
 )
 
 type WorkingTable struct {
-	requests [contract.InterferenceFlagCount - 1]*WorkingList
+	requests [isolation.InterferenceFlagCount - 1]*WorkingList
 	results  map[reference.Global]CallSummary
 }
 
@@ -30,7 +30,7 @@ func NewWorkingTable() WorkingTable {
 	return rt
 }
 
-func (wt WorkingTable) GetList(flag contract.InterferenceFlag) *WorkingList {
+func (wt WorkingTable) GetList(flag isolation.InterferenceFlag) *WorkingList {
 	if flag > 0 && int(flag) <= len(wt.requests) {
 		return wt.requests[flag-1]
 	}
@@ -43,11 +43,11 @@ func (wt WorkingTable) GetResults() map[reference.Global]CallSummary {
 
 // Add adds reference.Global
 // returns true if added and false if already exists
-func (wt WorkingTable) Add(flag contract.InterferenceFlag, ref reference.Global) bool {
+func (wt WorkingTable) Add(flag isolation.InterferenceFlag, ref reference.Global) bool {
 	return wt.GetList(flag).add(ref)
 }
 
-func (wt WorkingTable) SetActive(flag contract.InterferenceFlag, ref reference.Global) bool {
+func (wt WorkingTable) SetActive(flag isolation.InterferenceFlag, ref reference.Global) bool {
 	if ok := wt.GetList(flag).setActive(ref); ok {
 		wt.results[ref] = CallSummary{}
 
@@ -58,7 +58,7 @@ func (wt WorkingTable) SetActive(flag contract.InterferenceFlag, ref reference.G
 }
 
 func (wt WorkingTable) Finish(
-	flag contract.InterferenceFlag,
+	flag isolation.InterferenceFlag,
 	ref reference.Global,
 	result *payload.VCallResult,
 ) bool {

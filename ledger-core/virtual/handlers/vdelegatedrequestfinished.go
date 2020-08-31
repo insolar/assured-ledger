@@ -12,7 +12,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -167,7 +167,7 @@ func (s *SMVDelegatedRequestFinished) updateSharedState(
 	if s.hasLatestState() {
 		state.SetDescriptorDirty(s.latestState())
 		s.updateObjectState(state)
-	} else if s.Payload.CallFlags.GetInterference() == contract.CallTolerable &&
+	} else if s.Payload.CallFlags.GetInterference() == isolation.CallTolerable &&
 		s.Payload.CallType == payload.CallTypeConstructor &&
 		state.GetState() == object.Empty {
 
@@ -190,7 +190,7 @@ func (s *SMVDelegatedRequestFinished) updateSharedState(
 	}
 
 	switch s.Payload.CallFlags.GetInterference() {
-	case contract.CallIntolerable:
+	case isolation.CallIntolerable:
 		if state.PreviousExecutorUnorderedPendingCount == 0 {
 			ctx.Log().Warn(unexpectedVDelegateRequestFinished{
 				Object:  objectRef,
@@ -198,7 +198,7 @@ func (s *SMVDelegatedRequestFinished) updateSharedState(
 				Ordered: false,
 			})
 		}
-	case contract.CallTolerable:
+	case isolation.CallTolerable:
 		if state.PreviousExecutorOrderedPendingCount == 0 {
 			ctx.Log().Warn(unexpectedVDelegateRequestFinished{
 				Object:  objectRef,

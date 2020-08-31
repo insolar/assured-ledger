@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -29,7 +29,7 @@ func TestSMVDelegatedRequestFinished_FailIfCallNotRegistered(t *testing.T) {
 		smGlobalRef = reference.NewSelf(smObjectID)
 		smObject    = object.NewStateMachineObject(smGlobalRef)
 		smExecID    = reference.NewSelf(gen.UniqueLocalRefWithPulse(pd.PulseNumber))
-		callMode    = contract.CallTolerable
+		callMode    = isolation.CallTolerable
 	)
 
 	table := smObject.PendingTable.GetList(callMode)
@@ -38,7 +38,7 @@ func TestSMVDelegatedRequestFinished_FailIfCallNotRegistered(t *testing.T) {
 	sm := SMVDelegatedRequestFinished{
 		Payload: &payload.VDelegatedRequestFinished{
 			Callee:    smExecID,
-			CallFlags: payload.BuildCallFlags(callMode, contract.CallDirty),
+			CallFlags: payload.BuildCallFlags(callMode, isolation.CallDirty),
 		},
 	}
 
@@ -59,7 +59,7 @@ func TestSMVDelegatedRequestFinished_TolerableUpdateSharedState_OneActiveCounter
 		smGlobalRef = reference.NewSelf(smObjectID)
 		smObject    = object.NewStateMachineObject(smGlobalRef)
 		smExecID    = reference.NewSelf(gen.UniqueLocalRefWithPulse(pd.PulseNumber))
-		callMode    = contract.CallTolerable
+		callMode    = isolation.CallTolerable
 	)
 
 	smObject.PreviousExecutorOrderedPendingCount = 1
@@ -73,7 +73,7 @@ func TestSMVDelegatedRequestFinished_TolerableUpdateSharedState_OneActiveCounter
 		Payload: &payload.VDelegatedRequestFinished{
 			Callee:       smGlobalRef,
 			CallOutgoing: smExecID,
-			CallFlags:    payload.BuildCallFlags(callMode, contract.CallDirty),
+			CallFlags:    payload.BuildCallFlags(callMode, isolation.CallDirty),
 		},
 	}
 
@@ -96,7 +96,7 @@ func TestSMVDelegatedRequestFinished_TolerableUpdateSharedState_ManyActiveCounte
 		smGlobalRef = reference.NewSelf(smObjectID)
 		smObject    = object.NewStateMachineObject(smGlobalRef)
 		smExecID    = reference.NewSelf(gen.UniqueLocalRefWithPulse(pd.PulseNumber))
-		callMode    = contract.CallTolerable
+		callMode    = isolation.CallTolerable
 	)
 
 	smObject.PreviousExecutorOrderedPendingCount = 2
@@ -113,7 +113,7 @@ func TestSMVDelegatedRequestFinished_TolerableUpdateSharedState_ManyActiveCounte
 		Payload: &payload.VDelegatedRequestFinished{
 			Callee:       smGlobalRef,
 			CallOutgoing: smExecID,
-			CallFlags:    payload.BuildCallFlags(callMode, contract.CallDirty),
+			CallFlags:    payload.BuildCallFlags(callMode, isolation.CallDirty),
 		},
 	}
 
@@ -135,7 +135,7 @@ func TestSMVDelegatedRequestFinished_IntolerableUpdateSharedStateUpdatePendingTa
 		smGlobalRef = reference.NewSelf(smObjectID)
 		smObject    = object.NewStateMachineObject(smGlobalRef)
 		smExecID    = reference.NewSelf(gen.UniqueLocalRefWithPulse(pd.PulseNumber))
-		callMode    = contract.CallIntolerable
+		callMode    = isolation.CallIntolerable
 	)
 
 	smObject.PreviousExecutorUnorderedPendingCount = 1
@@ -149,7 +149,7 @@ func TestSMVDelegatedRequestFinished_IntolerableUpdateSharedStateUpdatePendingTa
 		Payload: &payload.VDelegatedRequestFinished{
 			Callee:       smGlobalRef,
 			CallOutgoing: smExecID,
-			CallFlags:    payload.BuildCallFlags(callMode, contract.CallDirty),
+			CallFlags:    payload.BuildCallFlags(callMode, isolation.CallDirty),
 		},
 	}
 	execCtx := smachine.NewExecutionContextMock(mc)
