@@ -11,6 +11,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smadapter"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type CallFunc func(ctx context.Context, svc messagesender.Service)
@@ -47,14 +48,18 @@ func (a *ParallelMessageSender) PrepareNotify(ctx smachine.ExecutionContext, fn 
 	})
 }
 
-func CreateMessageSendService(ctx context.Context, messenger messagesender.Service) *ParallelMessageSender {
+func CreateMessageSendService(ctx context.Context, svc messagesender.Service) *ParallelMessageSender {
+	if svc == nil {
+		panic(throw.IllegalValue())
+	}
+
 	// it's copy/past from other realizations
 	parallelReaders := 16
 	ae, ch := smadapter.NewCallChannelExecutor(ctx, -1, false, parallelReaders)
 	smachine.StartChannelWorkerParallelCalls(ctx, 0, ch, nil)
 
 	return &ParallelMessageSender{
-		svc:  messenger,
+		svc:  svc,
 		exec: smachine.NewExecutionAdapter("MessageSendService", ae),
 	}
 }

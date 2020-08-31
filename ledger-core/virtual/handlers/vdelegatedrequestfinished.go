@@ -231,8 +231,10 @@ func (s *SMVDelegatedRequestFinished) updateMemoryCache(ctx smachine.ExecutionCo
 		return
 	}
 
+	objectDescriptor := state.DescriptorDirty()
+
 	s.memoryCache.PrepareAsync(ctx, func(ctx context.Context, svc memorycache.Service) smachine.AsyncResultFunc {
-		err := svc.Set(ctx, state.DescriptorDirty().HeadRef(), state.DescriptorDirty())
+		err := svc.Set(ctx, objectDescriptor.HeadRef(), objectDescriptor)
 		return func(ctx smachine.AsyncResultContext) {
 			if err != nil {
 				ctx.Log().Error("failed to set dirty memory", err)
