@@ -32,7 +32,8 @@ message LRegisterRequest {
     // = 1201 LVerifyRequest
 
     //*** Start of predefined section ***//
-    reserved 1 to 18, 20 to 1799;
+    reserved 1 to 15, 17, 20 to 1799;
+    uint32 Polymorph = 16; // an explicit field is required to be able to alter record type
     AnyRecordLazy Record = 19 [(gogoproto.embed) = true, (insproto.ctx_apply)="MsgRecord"]; // put proper Record type here
     //*** End of predefined section ***//
 
