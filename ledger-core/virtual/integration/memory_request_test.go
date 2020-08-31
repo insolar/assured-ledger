@@ -113,7 +113,7 @@ func methodPrecondition(s *memoryCacheTest, ctx context.Context, t *testing.T) {
 	pl.CallSiteMethod = "ordered"
 	callOutgoing := pl.CallOutgoing
 
-	newObjDescriptor := descriptor.NewObject(reference.Global{}, reference.Local{}, gen.UniqueGlobalRef(), []byte(newState), false)
+	newObjDescriptor := descriptor.NewObject(reference.Global{}, reference.Local{}, gen.UniqueGlobalRef(), []byte("blabla"), false)
 	result := requestresult.New([]byte("result"), s.object)
 	result.SetAmend(newObjDescriptor, []byte(newState))
 
