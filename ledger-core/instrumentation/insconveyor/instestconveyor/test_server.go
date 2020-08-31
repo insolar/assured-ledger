@@ -32,7 +32,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/memorycache"
 )
 
 func NewTestServerTemplate(t logcommon.TestingLogger, filterFn logcommon.ErrorFilterFunc) *ServerTemplate {
@@ -135,9 +134,6 @@ func (p *ServerTemplate) Start() {
 
 	if ac.MessageSender == nil {
 		ac.MessageSender = messagesender.NewServiceMock(p.t)
-	}
-	if ac.MemoryCache == nil {
-		ac.MemoryCache = memorycache.NewServiceMock(p.t)
 	}
 	if ac.CryptoScheme == nil {
 		pcs := platformpolicy.NewPlatformCryptographyScheme()
