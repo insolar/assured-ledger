@@ -69,3 +69,43 @@ message LRegisterResponse {
     // Reference RegisteredBy = 1806;
     // Token  RegistrarToken = 1807;
 }
+
+message LReadRequest {
+    option (insproto.id) = 1204;
+
+    //*** Start of predefined section ***//
+    reserved 1 to 1799;
+    //*** End of predefined section ***//
+
+    // Add here custom fields
+
+    RegistrationFlags Flags = 1800;
+    Reference AnticipatedRef = 1801;
+
+    uint32 OverrideRecordType = 1816;
+    Reference OverridePrevRef = 1824;
+    Reference OverrideRootRef = 1825;
+    Reference OverrideReasonRef = 1826;
+
+    Binary    ProducerSignature = 1839;
+    Reference ProducedBy = 1840;
+
+    // Token  ProducerToken = 1841;
+}
+
+message LReadResponse {
+    option (insproto.id) = 1205;
+
+    //*** Start of predefined section ***//
+    reserved 1 to 1799;
+    //*** End of predefined section ***//
+
+    // Add here custom fields
+
+    RegistrationFlags Flags = 1800;
+    Reference AnticipatedRef = 1801;
+
+    Binary    RegistrarSignature = 1805;
+    // Reference RegisteredBy = 1806;
+    // Token  RegistrarToken = 1807;
+}
