@@ -545,6 +545,7 @@ func (p *PeerTransport) sendPacket(tp uniproto.OutType, fn uniproto.OutFunc) err
 	}
 }
 
+// nolint:interfacer
 func (p *PeerTransport) limitReader(c io.ReadCloser) io.ReadCloser {
 	if p.rateQuota != nil {
 		return iokit.RateLimitReader(c, p.rateQuota)
@@ -552,6 +553,7 @@ func (p *PeerTransport) limitReader(c io.ReadCloser) io.ReadCloser {
 	return c
 }
 
+// nolint:interfacer
 func (p *PeerTransport) limitWriter(c io.WriteCloser) io.WriteCloser {
 	if p.rateQuota != nil {
 		return iokit.RateLimitWriter(c, p.rateQuota.WriteBucket())
