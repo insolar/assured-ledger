@@ -8,7 +8,9 @@ package memorycache
 import (
 	"context"
 
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 )
 
@@ -19,20 +21,27 @@ type Service interface {
 }
 
 type DefaultService struct {
-	// todo
+	memoryCache *LRUMemoryCache
 }
 
 func (s *DefaultService) Get(ctx context.Context, objectReference reference.Global) (descriptor.Object, error) {
-	// todo
-	object := descriptor.NewObject(objectReference, reference.Local{}, reference.Global{}, []byte("implement me"), false)
+	object, found := s.memoryCache.Get(objectReference)
+	if !found {
+		return nil, throw.New("key not found")
+	}
 	return object, nil
 }
 
 func (s *DefaultService) Set(ctx context.Context, objectReference reference.Global, objectDescriptor descriptor.Object) error {
-	// todo
+	added := s.memoryCache.Replace(objectReference, objectDescriptor)
+	if !added {
+		inslogger.FromContext(ctx).Debug("key already exists in cache, value updated")
+	}
 	return nil
 }
 
 func NewDefaultService() *DefaultService {
-	return &DefaultService{}
+	return &DefaultService{
+		memoryCache: NewMemoryCache(),
+	}
 }
