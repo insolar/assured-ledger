@@ -8,7 +8,7 @@ package builtin
 import (
 	"reflect"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
@@ -42,7 +42,7 @@ func (h *ProxyHelper) getUpBaseReq() rpctypes.UpBaseReq {
 }
 
 func (h *ProxyHelper) CallMethod(
-	ref reference.Global, tolerance contract.InterferenceFlag, isolation contract.StateFlag,
+	ref reference.Global, tolerance isolation.InterferenceFlag, isolation isolation.StateFlag,
 	_ bool, method string, args []byte,
 	proxyClass reference.Global,
 ) (

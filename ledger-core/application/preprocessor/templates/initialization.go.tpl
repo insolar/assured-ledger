@@ -72,7 +72,7 @@ func InitializeCodeDescriptors() []XXX_descriptor.Code {
     // {{ $contract.Name }}
     rv = append(rv, XXX_descriptor.NewCode(
         /* code:        */ nil,
-        /* machineType: */ XXX_machine.Builtin,
+        /* machineType: */ XXX_machinetype.Builtin,
         /* ref:         */ shouldLoadRef("{{ $contract.CodeReference }}"),
     ))
     {{ end }}

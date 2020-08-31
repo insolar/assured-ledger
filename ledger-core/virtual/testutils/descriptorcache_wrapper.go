@@ -13,7 +13,7 @@ import (
 	"github.com/gojuno/minimock/v3"
 
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	"github.com/insolar/assured-ledger/ledger-core/runner/machine"
+	"github.com/insolar/assured-ledger/ledger-core/runner/machine/machinetype"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
@@ -71,7 +71,7 @@ func (w *DescriptorCacheMockWrapper) AddClassCodeDescriptor(
 
 	w.Classes[head] = descriptorPair{
 		class: descriptor.NewClass(head, state, code),
-		code:  descriptor.NewCode(gen.UniqueGlobalRef().AsBytes(), machine.Builtin, code),
+		code:  descriptor.NewCode(gen.UniqueGlobalRef().AsBytes(), machinetype.Builtin, code),
 	}
 
 	w.childMock.ByClassRefMock.Set(w.byClassRefImpl)

@@ -12,7 +12,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
@@ -134,12 +134,12 @@ func (s *SMVDelegatedCallRequest) stepProcessRequest(ctx smachine.ExecutionConte
 		callTolerance := s.Payload.CallFlags.GetInterference()
 
 		switch callTolerance {
-		case contract.CallTolerable:
-			pendingList = state.PendingTable.GetList(contract.CallTolerable)
+		case isolation.CallTolerable:
+			pendingList = state.PendingTable.GetList(isolation.CallTolerable)
 			oldestPulse = state.OrderedPendingEarliestPulse
 			previousExecutorPendingCount = int(state.PreviousExecutorOrderedPendingCount)
-		case contract.CallIntolerable:
-			pendingList = state.PendingTable.GetList(contract.CallIntolerable)
+		case isolation.CallIntolerable:
+			pendingList = state.PendingTable.GetList(isolation.CallIntolerable)
 			oldestPulse = state.UnorderedPendingEarliestPulse
 			previousExecutorPendingCount = int(state.PreviousExecutorUnorderedPendingCount)
 		default:

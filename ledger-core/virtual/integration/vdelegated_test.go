@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	testwalletProxy "github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
@@ -84,7 +84,7 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 			CallOutgoing: outgoing,
 			CallIncoming: incoming,
 			Callee:       objectRef,
-			CallFlags:    payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
+			CallFlags:    payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty),
 		}
 
 		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(sender).SetSender(server.JetCoordinatorMock.Me()).Finalize()

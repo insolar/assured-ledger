@@ -16,6 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -485,7 +486,7 @@ func TestDeduplication_MethodUsingPrevVE(t *testing.T) {
 			}
 
 			request := utils.GenerateVCallRequestMethod(suite.server)
-			request.CallFlags = payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty)
+			request.CallFlags = payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty)
 			request.Caller = suite.getCaller()
 			request.Callee = suite.getObject()
 			request.CallSiteMethod = "SomeMethod"
@@ -667,7 +668,7 @@ func (s *deduplicateMethodUsingPrevVETest) confirmPending(
 		Callee:       s.getObject(),
 		CallOutgoing: s.pendingOutgoing,
 		CallIncoming: s.pendingIncoming,
-		CallFlags:    payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
+		CallFlags:    payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty),
 	}
 
 	s.addPayloadAndWaitIdle(ctx, &pl)
@@ -681,7 +682,7 @@ func (s *deduplicateMethodUsingPrevVETest) finishPending(
 		CallOutgoing: s.pendingOutgoing,
 		CallIncoming: s.pendingIncoming,
 		CallType:     payload.CallTypeMethod,
-		CallFlags:    payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
+		CallFlags:    payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty),
 	}
 	s.addPayloadAndWaitIdle(ctx, &pl)
 }
@@ -740,7 +741,7 @@ func (s *deduplicateMethodUsingPrevVETest) setMessageCheckers(
 			if testInfo.findRequestHasResult {
 				response.CallResult = &payload.VCallResult{
 					CallType:        payload.CallTypeMethod,
-					CallFlags:       payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
+					CallFlags:       payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty),
 					Caller:          s.getCaller(),
 					Callee:          s.getObject(),
 					CallOutgoing:    s.getOutgoingLocal(),
@@ -757,7 +758,7 @@ func (s *deduplicateMethodUsingPrevVETest) setMessageCheckers(
 	if testInfo.expectResultMessage {
 		s.typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
 			require.Equal(t, payload.CallTypeMethod, res.CallType)
-			flags := payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty)
+			flags := payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty)
 			require.Equal(t, flags, res.CallFlags)
 			require.Equal(t, s.getCaller(), res.Caller)
 			require.Equal(t, s.getObject(), res.Callee)
@@ -775,7 +776,7 @@ func (s *deduplicateMethodUsingPrevVETest) setMessageCheckers(
 }
 
 func (s *deduplicateMethodUsingPrevVETest) setRunnerMock() {
-	isolation := contract.MethodIsolation{Interference: contract.CallIntolerable, State: contract.CallDirty}
+	isolation := contract.MethodIsolation{Interference: isolation.CallIntolerable, State: isolation.CallDirty}
 	s.runnerMock.AddExecutionClassify("SomeMethod", isolation, nil)
 
 	requestResult := requestresult.New([]byte("execution"), gen.UniqueGlobalRef())

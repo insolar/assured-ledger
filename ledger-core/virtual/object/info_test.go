@@ -10,7 +10,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
@@ -25,7 +25,7 @@ func TestInfo_GetEarliestPulse(t *testing.T) {
 		nextPulse     = pulse.OfNow().Next(10)
 	)
 
-	tolerance := contract.CallTolerable
+	tolerance := isolation.CallTolerable
 
 	for _, tc := range []struct {
 		name                  string

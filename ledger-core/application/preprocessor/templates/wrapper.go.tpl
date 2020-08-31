@@ -47,8 +47,7 @@ func INS_META_INFO() ([] map[string]string) {
 	return result
 }
 
-func INSMETHOD_GetCode(object []byte, data []byte) ([]byte, []byte, error) {
-	ph := common.CurrentProxyCtx()
+func INSMETHOD_GetCode(object []byte, data []byte, ph XXX_contract.ProxyHelper) ([]byte, []byte, error) {
 	self := new({{ $.ContractType }})
 
 	if len(object) == 0 {
@@ -73,8 +72,7 @@ func INSMETHOD_GetCode(object []byte, data []byte) ([]byte, []byte, error) {
 	return state, ret, err
 }
 
-func INSMETHOD_GetClass(object []byte, data []byte) ([]byte, []byte, error) {
-	ph := common.CurrentProxyCtx()
+func INSMETHOD_GetClass(object []byte, data []byte, ph XXX_contract.ProxyHelper) ([]byte, []byte, error) {
 	self := new({{ $.ContractType }})
 
 	if len(object) == 0 {
@@ -100,8 +98,7 @@ func INSMETHOD_GetClass(object []byte, data []byte) ([]byte, []byte, error) {
 }
 
 {{ range $method := .Methods }}
-func INSMETHOD_{{ $method.Name }}(object []byte, data []byte) (newState []byte, result []byte, err error) {
-	ph := common.CurrentProxyCtx()
+func INSMETHOD_{{ $method.Name }}(object []byte, data []byte, ph XXX_contract.ProxyHelper) (newState []byte, result []byte, err error) {
 	ph.SetSystemError(nil)
 
 	self := new({{ $.ContractType }})
@@ -123,6 +120,9 @@ func INSMETHOD_{{ $method.Name }}(object []byte, data []byte) (newState []byte, 
 		err = &foundation.Error{ S: "[ Fake{{ $method.Name }} ] ( INSMETHOD_* ) ( Generated Method ) Can't deserialize args.Arguments: " + err.Error() }
 		return
 	}
+
+    // Set Foundation since it will be required for outgoing calls
+	self.InitFoundation(ph)
 
 	{{ $method.ResultDefinitions }}
 
@@ -157,6 +157,10 @@ func INSMETHOD_{{ $method.Name }}(object []byte, data []byte) (newState []byte, 
 
 	{{ $method.Results }} = self.{{ $method.Name }}( {{ $method.Arguments }} )
 
+    // Nullify Foundation since we don't need to store it with contract
+    // It must be done after method call and before serialization of new state
+	self.ResetFoundation()
+
 	needRecover = false
 
 	if ph.GetSystemError() != nil {
@@ -183,8 +187,7 @@ func INSMETHOD_{{ $method.Name }}(object []byte, data []byte) (newState []byte, 
 
 
 {{ range $f := .Functions }}
-func INSCONSTRUCTOR_{{ $f.Name }}(ref reference.Global, data []byte) (state []byte, result []byte, err error) {
-	ph := common.CurrentProxyCtx()
+func INSCONSTRUCTOR_{{ $f.Name }}(ref reference.Global, data []byte, ph XXX_contract.ProxyHelper) (state []byte, result []byte, err error) {
 	ph.SetSystemError(nil)
 
 	{{ $f.ArgumentsZeroList }}
