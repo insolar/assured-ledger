@@ -75,11 +75,11 @@ func (r *ContractConstructorHolder) AsChild(objRef reference.Global) (*Wallet, e
 }
 
 // GetObject returns proxy object
-func GetObject(proxyHelper XXX_contract.ProxyHelper, ref reference.Global) *Wallet {
+func GetObject(foundation foundation.ContractFoundation, ref reference.Global) *Wallet {
 	if !ref.IsObjectReference() {
 		return nil
 	}
-	return &Wallet{Reference: ref, ProxyHelper: proxyHelper}
+	return &Wallet{Reference: ref, ProxyHelper: foundation.CurrentProxyCtx()}
 }
 
 // GetClass returns reference to the class
@@ -88,16 +88,20 @@ func GetClass() reference.Global {
 }
 
 // New is constructor
-func New(proxyHelper XXX_contract.ProxyHelper) *ContractConstructorHolder {
+func New(foundation foundation.ContractFoundation) *ContractConstructorHolder {
 	var args [0]interface{}
 
 	var argsSerialized []byte
-	err := proxyHelper.Serialize(args, &argsSerialized)
+	err := foundation.CurrentProxyCtx().Serialize(args, &argsSerialized)
 	if err != nil {
 		panic(err)
 	}
 
-	return &ContractConstructorHolder{constructorName: "New", argsSerialized: argsSerialized, proxyHelper: proxyHelper}
+	return &ContractConstructorHolder{
+		constructorName: "New",
+		argsSerialized:  argsSerialized,
+		proxyHelper:     foundation.CurrentProxyCtx(),
+	}
 }
 
 // GetReference returns reference of the object

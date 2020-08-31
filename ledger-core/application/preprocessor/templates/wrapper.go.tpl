@@ -121,8 +121,8 @@ func INSMETHOD_{{ $method.Name }}(object []byte, data []byte, ph XXX_contract.Pr
 		return
 	}
 
-    // Set ProxyHelper since it will be required for outgoing calls
-	self.ProxyHelper = ph
+    // Set Foundation since it will be required for outgoing calls
+	self.InitFoundation(ph)
 
 	{{ $method.ResultDefinitions }}
 
@@ -157,9 +157,9 @@ func INSMETHOD_{{ $method.Name }}(object []byte, data []byte, ph XXX_contract.Pr
 
 	{{ $method.Results }} = self.{{ $method.Name }}( {{ $method.Arguments }} )
 
-    // Nullify ProxyHelper since we don't need to store it with contract
+    // Nullify Foundation since we don't need to store it with contract
     // It must be done after method call and before serialization of new state
-	self.ProxyHelper = nil
+	self.ResetFoundation()
 
 	needRecover = false
 

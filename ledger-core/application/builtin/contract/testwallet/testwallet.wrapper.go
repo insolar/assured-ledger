@@ -108,8 +108,8 @@ func INSMETHOD_GetBalance(object []byte, data []byte, ph XXX_contract.ProxyHelpe
 		return
 	}
 
-	// Set ProxyHelper since it will be required for outgoing calls
-	self.ProxyHelper = ph
+	// Set Foundation since it will be required for outgoing calls
+	self.InitFoundation(ph)
 
 	var ret0 uint32
 	var ret1 error
@@ -145,9 +145,9 @@ func INSMETHOD_GetBalance(object []byte, data []byte, ph XXX_contract.ProxyHelpe
 
 	ret0, ret1 = self.GetBalance()
 
-	// Nullify ProxyHelper since we don't need to store it with contract
+	// Nullify Foundation since we don't need to store it with contract
 	// It must be done after method call and before serialization of new state
-	self.ProxyHelper = nil
+	self.ResetFoundation()
 
 	needRecover = false
 
@@ -196,8 +196,8 @@ func INSMETHOD_Accept(object []byte, data []byte, ph XXX_contract.ProxyHelper) (
 		return
 	}
 
-	// Set ProxyHelper since it will be required for outgoing calls
-	self.ProxyHelper = ph
+	// Set Foundation since it will be required for outgoing calls
+	self.InitFoundation(ph)
 
 	var ret0 error
 
@@ -232,9 +232,9 @@ func INSMETHOD_Accept(object []byte, data []byte, ph XXX_contract.ProxyHelper) (
 
 	ret0 = self.Accept(args0)
 
-	// Nullify ProxyHelper since we don't need to store it with contract
+	// Nullify Foundation since we don't need to store it with contract
 	// It must be done after method call and before serialization of new state
-	self.ProxyHelper = nil
+	self.ResetFoundation()
 
 	needRecover = false
 
@@ -285,8 +285,8 @@ func INSMETHOD_Transfer(object []byte, data []byte, ph XXX_contract.ProxyHelper)
 		return
 	}
 
-	// Set ProxyHelper since it will be required for outgoing calls
-	self.ProxyHelper = ph
+	// Set Foundation since it will be required for outgoing calls
+	self.InitFoundation(ph)
 
 	var ret0 error
 
@@ -321,9 +321,9 @@ func INSMETHOD_Transfer(object []byte, data []byte, ph XXX_contract.ProxyHelper)
 
 	ret0 = self.Transfer(args0, args1)
 
-	// Nullify ProxyHelper since we don't need to store it with contract
+	// Nullify Foundation since we don't need to store it with contract
 	// It must be done after method call and before serialization of new state
-	self.ProxyHelper = nil
+	self.ResetFoundation()
 
 	needRecover = false
 
@@ -370,8 +370,8 @@ func INSMETHOD_Destroy(object []byte, data []byte, ph XXX_contract.ProxyHelper) 
 		return
 	}
 
-	// Set ProxyHelper since it will be required for outgoing calls
-	self.ProxyHelper = ph
+	// Set Foundation since it will be required for outgoing calls
+	self.InitFoundation(ph)
 
 	var ret0 error
 
@@ -406,9 +406,9 @@ func INSMETHOD_Destroy(object []byte, data []byte, ph XXX_contract.ProxyHelper) 
 
 	ret0 = self.Destroy()
 
-	// Nullify ProxyHelper since we don't need to store it with contract
+	// Nullify Foundation since we don't need to store it with contract
 	// It must be done after method call and before serialization of new state
-	self.ProxyHelper = nil
+	self.ResetFoundation()
 
 	needRecover = false
 

@@ -83,11 +83,11 @@ func (r *ContractConstructorHolder) AsChild(objRef reference.Global) (*{{ .Contr
 }
 
 // GetObject returns proxy object
-func GetObject(proxyHelper XXX_contract.ProxyHelper, ref reference.Global) *{{ .ContractType }} {
+func GetObject(foundation foundation.ContractFoundation, ref reference.Global) *{{ .ContractType }} {
     if !ref.IsObjectReference() {
         return nil
     }
-	return &{{ .ContractType }}{Reference: ref, ProxyHelper: proxyHelper}
+	return &{{ .ContractType }}{Reference: ref, ProxyHelper: foundation.CurrentProxyCtx()}
 }
 
 // GetClass returns reference to the class
@@ -97,16 +97,20 @@ func GetClass() reference.Global {
 
 {{ range $func := .ConstructorsProxies }}
 // {{ $func.Name }} is constructor
-func {{ $func.Name }}( proxyHelper XXX_contract.ProxyHelper, {{ $func.Arguments }} ) *ContractConstructorHolder {
+func {{ $func.Name }}( foundation foundation.ContractFoundation, {{ $func.Arguments }} ) *ContractConstructorHolder {
 	{{ $func.InitArgs }}
 
 	var argsSerialized []byte
-	err := proxyHelper.Serialize(args, &argsSerialized)
+	err := foundation.CurrentProxyCtx().Serialize(args, &argsSerialized)
 	if err != nil {
 		panic(err)
 	}
 
-	return &ContractConstructorHolder{constructorName: "{{ $func.Name }}", argsSerialized: argsSerialized, proxyHelper: proxyHelper}
+	return &ContractConstructorHolder{
+	    constructorName: "{{ $func.Name }}",
+	    argsSerialized: argsSerialized,
+	    proxyHelper: foundation.CurrentProxyCtx(),
+	}
 }
 {{ end }}
 
