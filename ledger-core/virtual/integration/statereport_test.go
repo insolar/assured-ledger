@@ -16,6 +16,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
@@ -114,6 +115,11 @@ func TestVirtual_VStateReport_StateAlreadyExists(t *testing.T) {
 					assert.Equal(t, initState, report.ProvidedContent.LatestValidatedState.State)
 					return false
 				})
+				typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
+					t.FailNow()
+					// TODO add asserts and check counter after https://insolar.atlassian.net/browse/PLAT-753
+					return false
+				})
 			}
 
 			// send second VStateReport
@@ -143,6 +149,9 @@ func TestVirtual_VStateReport_StateAlreadyExists(t *testing.T) {
 				commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 1))
 				assert.Equal(t, 1, typedChecker.VStateReport.Count())
 			}
+			// TODO uncommented after https://insolar.atlassian.net/browse/PLAT-753
+			// commontestutils.WaitSignalsTimed(t, 10*time.Second, suite.typedChecker.VObjectTranscriptReport.Wait(ctx, 1))
+			// assert.Equal(t, 1, suite.typedChecker.VObjectTranscriptReport.Count())
 
 			mc.Finish()
 		})

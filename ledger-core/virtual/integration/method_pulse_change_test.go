@@ -19,6 +19,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
@@ -159,6 +160,11 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 					assert.Zero(t, report.DelegationSpec)
 					return false
 				})
+				typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
+					t.FailNow()
+					// TODO add asserts and check counter after https://insolar.atlassian.net/browse/PLAT-753
+					return false
+				})
 
 				typedChecker.VDelegatedCallRequest.Set(func(request *payload.VDelegatedCallRequest) bool {
 					p2 := server.GetPulse().PulseNumber
@@ -243,6 +249,8 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 			{
 				assert.Equal(t, 1, typedChecker.VCallResult.Count())
 				assert.Equal(t, 1, typedChecker.VStateReport.Count())
+				// TODO uncommented after https://insolar.atlassian.net/browse/PLAT-753
+				// assert.Equal(t, 1, suite.typedChecker.VObjectTranscriptReport.Count())
 				assert.Equal(t, 1, typedChecker.VDelegatedRequestFinished.Count())
 
 				assert.Equal(t, test.countChangePulse, typedChecker.VDelegatedCallRequest.Count())
@@ -343,6 +351,11 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 			assert.Equal(t, content, report.ProvidedContent)
 			return false
 		})
+		typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
+			t.FailNow()
+			// TODO add asserts and check counter after https://insolar.atlassian.net/browse/PLAT-753
+			return false
+		})
 		typedChecker.VDelegatedCallRequest.Set(func(request *payload.VDelegatedCallRequest) bool {
 			assert.Equal(t, object, request.Callee)
 			assert.Zero(t, request.DelegationSpec)
@@ -439,6 +452,8 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 		require.Equal(t, 3, typedChecker.VDelegatedCallRequest.Count())
 		require.Equal(t, 3, typedChecker.VDelegatedRequestFinished.Count())
 		require.Equal(t, 3, typedChecker.VCallResult.Count())
+		// TODO uncommented after https://insolar.atlassian.net/browse/PLAT-753
+		// assert.Equal(t, 1, suite.typedChecker.VObjectTranscriptReport.Count())
 	}
 
 	mc.Finish()

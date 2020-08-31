@@ -19,6 +19,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/synchronization"
@@ -1011,6 +1012,11 @@ func TestVirtual_FutureMessageAddedToSlot(t *testing.T) {
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool { return false })
 	typedChecker.VStateReport.Set(func(res *payload.VStateReport) bool { return false })
+	typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
+		t.FailNow()
+		// TODO add asserts and check counter after https://insolar.atlassian.net/browse/PLAT-753
+		return false
+	})
 	typedChecker.VStateRequest.Set(func(res *payload.VStateRequest) bool {
 		report := &payload.VStateReport{
 			Status:               payload.StateStatusReady,
@@ -1211,6 +1217,11 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 					default:
 						t.Fatal("StateStatusInvalid test case isolation interference")
 					}
+					return false
+				})
+				typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
+					t.FailNow()
+					// TODO add asserts and check counter after https://insolar.atlassian.net/browse/PLAT-753
 					return false
 				})
 			}
@@ -1623,6 +1634,11 @@ func TestVirtual_Method_IntolerableCallChangeState(t *testing.T) {
 			require.Equal(t, []byte(origObjectMem), report.ProvidedContent.LatestDirtyState.State)
 			return false
 		})
+		typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
+			t.FailNow()
+			// TODO add asserts and check counter after https://insolar.atlassian.net/browse/PLAT-753
+			return false
+		})
 	}
 	{
 		pl := utils.GenerateVCallRequestMethod(server)
@@ -1754,6 +1770,11 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 		typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
 			assert.Equal(t, newState, report.ProvidedContent.LatestDirtyState.State)
 			assert.Equal(t, newState, report.ProvidedContent.LatestValidatedState.State)
+			return false
+		})
+		typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
+			t.FailNow()
+			// TODO add asserts and check counter after https://insolar.atlassian.net/browse/PLAT-753
 			return false
 		})
 		typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool {

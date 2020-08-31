@@ -19,6 +19,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
@@ -165,6 +166,11 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 			assert.Zero(t, report.DelegationSpec)
 			return false
 		})
+		typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
+			t.FailNow()
+			// TODO add asserts and check counter after https://insolar.atlassian.net/browse/PLAT-753
+			return false
+		})
 		typedChecker.VDelegatedCallRequest.Set(func(request *payload.VDelegatedCallRequest) bool {
 			assert.Equal(t, objectAGlobal, request.Callee)
 
@@ -264,7 +270,8 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 	assert.Equal(t, 1, typedChecker.VStateReport.Count())
 	assert.Equal(t, 2, typedChecker.VDelegatedCallRequest.Count())
 	assert.Equal(t, 1, typedChecker.VDelegatedRequestFinished.Count())
-
+	// TODO uncommented after https://insolar.atlassian.net/browse/PLAT-753
+	// assert.Equal(t, 1, suite.typedChecker.VObjectTranscriptReport.Count())
 	mc.Finish()
 }
 
@@ -367,6 +374,11 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 			assert.Equal(t, objectRef, report.Object)
 			assert.Equal(t, payload.StateStatusEmpty, report.Status)
 			assert.Zero(t, report.DelegationSpec)
+			return false
+		})
+		typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
+			t.FailNow()
+			// TODO add asserts and check counter after https://insolar.atlassian.net/browse/PLAT-753
 			return false
 		})
 		typedChecker.VDelegatedCallRequest.Set(func(request *payload.VDelegatedCallRequest) bool {
@@ -479,6 +491,8 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 	assert.Equal(t, 1, typedChecker.VStateReport.Count())
 	assert.Equal(t, 2, typedChecker.VDelegatedCallRequest.Count())
 	assert.Equal(t, 1, typedChecker.VDelegatedRequestFinished.Count())
+	// TODO uncommented after https://insolar.atlassian.net/browse/PLAT-753
+	// assert.Equal(t, 2, typedChecker.VObjectTranscriptReport.Count())
 
 	mc.Finish()
 }
@@ -503,7 +517,6 @@ func TestVirtual_CallContractOutgoingReturnsError(t *testing.T) {
 	})
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
-	server.IncrementPulseAndWaitIdle(ctx)
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
