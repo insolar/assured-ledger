@@ -83,6 +83,25 @@ func (p *AnyRecordLazy) SetRecordPayloads(payloads RecordPayloads, digester cryp
 	return nil
 }
 
+func (p *AnyRecordLazy) CopyNoPayloads() AnyRecordLazy {
+	if p.value == nil {
+		return AnyRecordLazy{}
+	}
+
+	if lv := p.TryGetLazy(); !lv.IsZero() {
+		lv.body = nil
+		r := AnyRecordLazy{}
+		r.value = &lv
+		return r
+	}
+
+	r := AnyRecordLazy{}
+	if err := r.SetAsLazy(p.value.(BasicRecord)); err != nil {
+		panic(err)
+	}
+	return r
+}
+
 func (p *AnyRecordLazy) Unmarshal(b []byte) error {
 	return p.unmarshalCustom(b, false, GetRegistry().Get)
 }

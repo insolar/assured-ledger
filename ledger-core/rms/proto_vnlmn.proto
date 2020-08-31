@@ -29,8 +29,7 @@ enum RegistrationFlags {
 
 message LRegisterRequest {
     option (insproto.id) = 1200;
-    // = 1201 LRegisterLifelineRequest
-    // = 1202 LRegisterSidelineRequest
+    // = 1201 LVerifyRequest
 
     //*** Start of predefined section ***//
     reserved 1 to 18, 20 to 1799;
@@ -39,6 +38,8 @@ message LRegisterRequest {
 
     // Add here custom fields
 
+    // RegistrationFlags must be zero for LVerifyRequest
+    // RegistrationFlags is ignored for a non-first entry of a registration set
     RegistrationFlags Flags = 1800;
     Reference AnticipatedRef = 1801;
 
@@ -48,13 +49,14 @@ message LRegisterRequest {
     Reference OverrideReasonRef = 1826;
 
     Binary    ProducerSignature = 1839;
+    // ProducedBy can be omitted for a non-first entry of a registration set
     Reference ProducedBy = 1840;
 
     // Token  ProducerToken = 1841;
 }
 
 message LRegisterResponse {
-    option (insproto.id) = 1203;
+    option (insproto.id) = 1202;
 
     //*** Start of predefined section ***//
     reserved 1 to 1799;
