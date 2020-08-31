@@ -10,6 +10,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smadapter"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/memorycache"
 )
 
@@ -48,6 +49,10 @@ func (a *DefaultMemoryCacheAdapter) PrepareNotify(ctx smachine.ExecutionContext,
 }
 
 func CreateMemoryCacheAdapter(ctx context.Context, svc memorycache.Service) *DefaultMemoryCacheAdapter {
+	if svc == nil {
+		panic(throw.IllegalValue())
+	}
+
 	// it's copy/past from other realizations
 	parallelReaders := 16
 	ae, ch := smadapter.NewCallChannelExecutor(ctx, -1, false, parallelReaders)
