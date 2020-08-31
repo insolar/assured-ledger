@@ -15,7 +15,6 @@ import (
 
 // BaseContract is a base embeddable struct for all insolar contracts
 type BaseContract struct {
-	//ProxyHelper contract.ProxyHelper
 	contractFoundation *ContractFoundationImpl
 }
 
