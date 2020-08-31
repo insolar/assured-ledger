@@ -140,7 +140,6 @@ func (s *SMVDelegatedRequestFinished) stepProcess(ctx smachine.ExecutionContext)
 		}
 
 		s.updateSharedState(ctx, state)
-		s.updateMemoryCache(ctx, state)
 
 		return false
 	}
@@ -152,6 +151,8 @@ func (s *SMVDelegatedRequestFinished) stepProcess(ctx smachine.ExecutionContext)
 	default:
 		panic(throw.Impossible())
 	}
+
+	s.updateMemoryCache(ctx)
 
 	return ctx.Stop()
 }
@@ -226,12 +227,11 @@ func (s *SMVDelegatedRequestFinished) updateObjectState(state *object.SharedStat
 	}
 }
 
-func (s *SMVDelegatedRequestFinished) updateMemoryCache(ctx smachine.ExecutionContext, state *object.SharedState) {
-	if state.DescriptorDirty() == nil {
+func (s *SMVDelegatedRequestFinished) updateMemoryCache(ctx smachine.ExecutionContext) {
+	if !s.hasLatestState() {
 		return
 	}
-
-	objectDescriptor := state.DescriptorDirty()
+	objectDescriptor := s.latestState()
 
 	s.memoryCache.PrepareAsync(ctx, func(ctx context.Context, svc memorycache.Service) smachine.AsyncResultFunc {
 		err := svc.Set(ctx, objectDescriptor.HeadRef(), objectDescriptor)
