@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -151,7 +151,7 @@ func TestVirtual_SenderCheck_With_ExpectedVE(t *testing.T) {
 						m.Callee = gen.UniqueGlobalRefWithPulse(pn)
 						m.CallOutgoing = reference.NewRecordOf(server.GlobalCaller(), gen.UniqueLocalRefWithPulse(pn))
 						m.CallIncoming = reference.NewRecordOf(m.Callee, m.CallOutgoing.GetLocal())
-						m.CallFlags = payload.CallFlags(0).WithInterference(contract.CallIntolerable).WithState(contract.CallValidated)
+						m.CallFlags = payload.CallFlags(0).WithInterference(isolation.CallIntolerable).WithState(isolation.CallValidated)
 
 					case *payload.VDelegatedCallResponse:
 						pn := server.GetPrevPulse().PulseNumber
@@ -166,7 +166,7 @@ func TestVirtual_SenderCheck_With_ExpectedVE(t *testing.T) {
 						m.Object = gen.UniqueGlobalRefWithPulse(pn)
 
 					case *payload.VCallResult:
-						m.CallFlags = payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty)
+						m.CallFlags = payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty)
 						m.CallType = payload.CallTypeMethod
 						m.Callee = server.RandomGlobalWithPulse()
 						m.Caller = server.GlobalCaller()

@@ -16,6 +16,7 @@ import (
 
 	testwalletProxy "github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -408,7 +409,7 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 		switch i {
 		case 0, 1:
 			request.CallSiteMethod = "ordered" + strconv.FormatInt(i, 10)
-			request.CallFlags = payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty)
+			request.CallFlags = payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty)
 
 			runnerMock.AddExecutionClassify(request.CallSiteMethod, tolerableFlags(), nil)
 			result = requestresult.New([]byte("call result"), object)
@@ -417,7 +418,7 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 
 		case 2, 3:
 			request.CallSiteMethod = "unordered" + strconv.FormatInt(i, 10)
-			request.CallFlags = payload.BuildCallFlags(contract.CallIntolerable, contract.CallValidated)
+			request.CallFlags = payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallValidated)
 
 			runnerMock.AddExecutionClassify(request.CallSiteMethod, intolerableFlags(), nil)
 			objectExecutionMock = runnerMock.AddExecutionMock(request.CallSiteMethod)
@@ -473,8 +474,8 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 		{
 			name: "unordered call when constructor execution is pending",
 			isolation: contract.MethodIsolation{
-				Interference: contract.CallIntolerable,
-				State:        contract.CallDirty, // use dirty state because R0 does not copy dirty to validated state
+				Interference: isolation.CallIntolerable,
+				State:        isolation.CallDirty, // use dirty state because R0 does not copy dirty to validated state
 			},
 		},
 	}
@@ -577,7 +578,7 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 			{
 				delegatedRequest := payload.VDelegatedCallRequest{
 					Callee:       object,
-					CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+					CallFlags:    payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 					CallOutgoing: outgoingP1,
 					CallIncoming: incomingP1,
 				}
@@ -587,7 +588,7 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 			{
 				finished := payload.VDelegatedRequestFinished{
 					CallType:     payload.CallTypeMethod,
-					CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+					CallFlags:    payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 					Callee:       object,
 					CallOutgoing: outgoingP1,
 					CallIncoming: incomingP1,

@@ -6,7 +6,7 @@
 package utils
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
@@ -14,7 +14,7 @@ import (
 func MakeMinimumValidVStateResult(server *Server, returnArgs []byte) *payload.VCallResult {
 	return &payload.VCallResult{
 		CallType:        payload.CallTypeMethod,
-		CallFlags:       payload.BuildCallFlags(contract.CallIntolerable, contract.CallDirty),
+		CallFlags:       payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty),
 		Callee:          reference.NewSelf(server.RandomLocalWithPulse()),
 		Caller:          server.GlobalCaller(),
 		ReturnArguments: returnArgs,

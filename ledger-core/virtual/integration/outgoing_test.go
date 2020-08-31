@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -80,12 +81,12 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 
 	var (
 		barIsolation = contract.MethodIsolation{
-			Interference: contract.CallTolerable,
-			State:        contract.CallDirty,
+			Interference: isolation.CallTolerable,
+			State:        isolation.CallDirty,
 		}
 		fooIsolation = contract.MethodIsolation{
-			Interference: contract.CallTolerable,
-			State:        contract.CallDirty,
+			Interference: isolation.CallTolerable,
+			State:        isolation.CallDirty,
 		}
 
 		outgoingCallRef = reference.NewRecordOf(objectAGlobal, server.RandomLocalWithPulse())
@@ -314,8 +315,8 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 		constructorIsolation = contract.ConstructorIsolation()
 
 		barIsolation = contract.MethodIsolation{
-			Interference: contract.CallTolerable,
-			State:        contract.CallDirty,
+			Interference: isolation.CallTolerable,
+			State:        isolation.CallDirty,
 		}
 
 		classA    = server.RandomGlobalWithPulse()
@@ -535,7 +536,7 @@ func TestVirtual_CallContractOutgoingReturnsError(t *testing.T) {
 	}
 
 	var (
-		flags     = contract.MethodIsolation{Interference: contract.CallTolerable, State: contract.CallDirty}
+		flags     = contract.MethodIsolation{Interference: isolation.CallTolerable, State: isolation.CallDirty}
 		callFlags = payload.BuildCallFlags(flags.Interference, flags.State)
 
 		classB          = gen.UniqueGlobalRef()

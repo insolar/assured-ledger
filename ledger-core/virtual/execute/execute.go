@@ -15,6 +15,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
@@ -186,7 +187,7 @@ func (s *SMExecute) outgoingFromSlotPulse() bool {
 }
 
 func (s *SMExecute) intolerableCall() bool {
-	return s.execution.Isolation.Interference == contract.CallIntolerable
+	return s.execution.Isolation.Interference == isolation.CallIntolerable
 }
 
 func (s *SMExecute) stepWaitObjectReady(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -304,7 +305,7 @@ func (s *SMExecute) stepIsolationNegotiation(ctx smachine.ExecutionContext) smac
 
 	// forbidden isolation
 	// it requires special processing path that will be implemented later on
-	if negotiatedIsolation.Interference == contract.CallTolerable && negotiatedIsolation.State == contract.CallValidated {
+	if negotiatedIsolation.Interference == isolation.CallTolerable && negotiatedIsolation.State == isolation.CallValidated {
 		panic(throw.NotImplemented())
 	}
 
@@ -321,7 +322,7 @@ func negotiateIsolation(methodIsolation, callIsolation contract.MethodIsolation)
 	switch {
 	case methodIsolation.Interference == callIsolation.Interference:
 		// ok case
-	case methodIsolation.Interference == contract.CallIntolerable && callIsolation.Interference == contract.CallTolerable:
+	case methodIsolation.Interference == isolation.CallIntolerable && callIsolation.Interference == isolation.CallTolerable:
 		res.Interference = methodIsolation.Interference
 	default:
 		return contract.MethodIsolation{}, throw.IllegalValue()
@@ -329,7 +330,7 @@ func negotiateIsolation(methodIsolation, callIsolation contract.MethodIsolation)
 	switch {
 	case methodIsolation.State == callIsolation.State:
 		// ok case
-	case methodIsolation.State == contract.CallValidated && callIsolation.State == contract.CallDirty:
+	case methodIsolation.State == isolation.CallValidated && callIsolation.State == isolation.CallDirty:
 		res.State = callIsolation.State
 	default:
 		return contract.MethodIsolation{}, throw.IllegalValue()
@@ -485,7 +486,7 @@ func (s *SMExecute) stepProcessFindCallResponse(ctx smachine.ExecutionContext) s
 func (s *SMExecute) stepTakeLock(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var executionSemaphore smachine.SyncLink
 	action := func(state *object.SharedState) {
-		if s.execution.Isolation.Interference == contract.CallIntolerable {
+		if s.execution.Isolation.Interference == isolation.CallIntolerable {
 			executionSemaphore = state.UnorderedExecute
 		} else {
 			executionSemaphore = state.OrderedExecute
@@ -506,9 +507,9 @@ func (s *SMExecute) stepTakeLock(ctx smachine.ExecutionContext) smachine.StateUp
 
 func (s *SMExecute) getDescriptor(state *object.SharedState) descriptor.Object {
 	switch s.execution.Isolation.State {
-	case contract.CallDirty:
+	case isolation.CallDirty:
 		return state.DescriptorDirty()
-	case contract.CallValidated:
+	case isolation.CallValidated:
 		return state.DescriptorValidated()
 	default:
 		panic(throw.IllegalState())
@@ -548,7 +549,7 @@ func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) sm
 		return ctx.Jump(s.stepSendCallResult)
 	}
 
-	if s.execution.Isolation.State == contract.CallValidated && s.execution.ObjectDescriptor == nil {
+	if s.execution.Isolation.State == isolation.CallValidated && s.execution.ObjectDescriptor == nil {
 		panic(throw.NotImplemented())
 	}
 
@@ -703,7 +704,7 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 		s.outgoing.CallSequence = s.execution.Sequence
 		s.outgoingObject = s.outgoing.CallOutgoing
 	case execution.CallMethod:
-		if s.intolerableCall() && outgoing.Interference() == contract.CallTolerable {
+		if s.intolerableCall() && outgoing.Interference() == isolation.CallTolerable {
 			err := throw.E("interference violation: ordered call from unordered call")
 			ctx.Log().Warn(err)
 			s.prepareOutgoingError(err)

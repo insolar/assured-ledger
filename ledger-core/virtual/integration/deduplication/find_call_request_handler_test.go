@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -474,7 +475,7 @@ func (s *VFindCallRequestHandlingSuite) setMessageCheckers(
 }
 
 func (s *VFindCallRequestHandlingSuite) setRunnerMock() {
-	isolation := contract.MethodIsolation{Interference: contract.CallTolerable, State: contract.CallDirty}
+	isolation := contract.MethodIsolation{Interference: isolation.CallTolerable, State: isolation.CallDirty}
 	s.runnerMock.AddExecutionClassify(s.getOutgoingRef().String(), isolation, nil)
 
 	newObjDescriptor := descriptor.NewObject(
