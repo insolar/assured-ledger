@@ -39,8 +39,9 @@ message CatalogEntry {
     fixed32 Ordinal = 19 [(gogoproto.casttype)="CatalogOrdinal"];
     // End of fixed-size portion.
 
-    ExtLocators ExtensionLoc = 20;
-    Binary RecordBodyHash = 21;
+    uint32 PayloadSize = 20;
+    ExtLocators ExtensionLoc = 21;
+    Binary RecordBodyHash = 22;
 
     // Start of Excerpt portion
     // MUST match with RecordExcerpt
@@ -71,4 +72,5 @@ message ExtLocator {
     option (insproto.id) = 0;
     fixed32 ExtensionID = 17 [(gogoproto.casttype)="ExtensionID"];
     fixed64 PayloadLoc = 18  [(gogoproto.casttype)="StorageLocator"];
+    uint32 PayloadSize = 20;
 }

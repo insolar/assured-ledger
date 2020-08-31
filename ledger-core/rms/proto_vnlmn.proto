@@ -37,7 +37,7 @@ message LRegisterRequest {
     AnyRecordLazy Record = 19 [(gogoproto.embed) = true, (insproto.ctx_apply)="MsgRecord"]; // put proper Record type here
     //*** End of predefined section ***//
 
-    // Add here custom fields
+    // Add custom fields below
 
     RegistrationFlags Flags = 1800;
     Reference AnticipatedRef = 1801;
@@ -60,7 +60,7 @@ message LRegisterResponse {
     reserved 1 to 1799;
     //*** End of predefined section ***//
 
-    // Add here custom fields
+    // Add custom fields below
 
     RegistrationFlags Flags = 1800;
     Reference AnticipatedRef = 1801;
@@ -68,6 +68,19 @@ message LRegisterResponse {
     Binary    RegistrarSignature = 1805;
     // Reference RegisteredBy = 1806;
     // Token  RegistrarToken = 1807;
+}
+
+enum ReadFlags {
+    option allow_alias = true;
+
+    IgnoreAllPayloads = 0;
+    TakeEarliestPayload = 1;
+    TakeLatestPayload = 2;
+    TakeAllPayloads = 4; // Supersedes TakeEarliest and TakeLatest
+
+    TransparentRedirection = 0;
+    ExplicitRedirection = 8;
+    IgnoreRedirection = 16; // Supersedes ExplicitRedirection
 }
 
 message LReadRequest {
@@ -77,20 +90,13 @@ message LReadRequest {
     reserved 1 to 1799;
     //*** End of predefined section ***//
 
-    // Add here custom fields
+    // Add custom fields below
 
-    RegistrationFlags Flags = 1800;
-    Reference AnticipatedRef = 1801;
-
-    uint32 OverrideRecordType = 1816;
-    Reference OverridePrevRef = 1824;
-    Reference OverrideRootRef = 1825;
-    Reference OverrideReasonRef = 1826;
-
-    Binary    ProducerSignature = 1839;
-    Reference ProducedBy = 1840;
-
-    // Token  ProducerToken = 1841;
+    ReadFlags Flags = 1800;
+    Reference TargetRef = 1801;
+    Reference LimitRef = 1802;
+    uint32    LimitCount = 1803;
+    uint32    LimitSize = 1804;
 }
 
 message LReadResponse {
@@ -100,12 +106,34 @@ message LReadResponse {
     reserved 1 to 1799;
     //*** End of predefined section ***//
 
-    // Add here custom fields
+    // Add custom fields below
 
-    RegistrationFlags Flags = 1800;
-    Reference AnticipatedRef = 1801;
 
-    Binary    RegistrarSignature = 1805;
-    // Reference RegisteredBy = 1806;
-    // Token  RegistrarToken = 1807;
+    repeated Entry Entries = 1800;
+
+    message Entry {
+        uint32 RecordType = 16;
+
+        repeated bytes Payloads = 17;
+        bytes RecordBinary = 18;
+        Binary RecordBodyHash = 19;
+        Reference RecordRef = 20;
+
+        Reference PrevRef = 24;
+        Reference RootRef = 25;
+        Reference ReasonRef = 26;
+        Reference RedirectRef = 27;
+        Reference RejoinRef = 28;
+
+        Binary ProducerSignature = 39;
+        Reference ProducedBy = 42;
+        // Token ProducerToken = 43;
+        Binary RegistrarSignature = 44;
+        Reference RegisteredBy = 45;
+        // Token RegistrarToken = 46;
+
+        // NextRecordSize is provided when
+        uint32   RecordSize = 1801;
+        uint32   RecordPayloadsSize = 1802;
+    }
 }
