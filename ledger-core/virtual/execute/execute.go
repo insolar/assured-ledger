@@ -84,6 +84,12 @@ type SMExecute struct {
 	stepAfterTokenGet   smachine.SlotStep
 
 	findCallResponse *rms.VFindCallResponse
+
+	// registration in LMN
+	registeredIncoming bool
+	registeredOutgoing bool
+	// field will be in Payload with right type
+	inboundRecord rms.BasicRecord
 }
 
 /* -------- Declaration ------------- */
@@ -633,7 +639,7 @@ func (s *SMExecute) stepExecuteDecideNextStep(ctx smachine.ExecutionContext) sma
 	switch newState.Type {
 	case execution.Done:
 		// send VCallResult here
-		return ctx.Jump(s.stepSaveNewObject)
+		return ctx.Jump(s.stepRegisterDoneOnLMN)
 	case execution.Error:
 		if d := new(runner.ErrorDetail); throw.FindDetail(newState.Error, d) {
 			switch d.Type {
@@ -654,10 +660,43 @@ func (s *SMExecute) stepExecuteDecideNextStep(ctx smachine.ExecutionContext) sma
 		s.prepareExecutionError(err)
 		return ctx.Jump(s.stepExecuteAborted)
 	case execution.OutgoingCall:
-		return ctx.Jump(s.stepExecuteOutgoing)
+		return ctx.Jump(s.stepRegisterOutgoingOnLMN)
 	default:
 		panic(throw.IllegalValue())
 	}
+}
+
+func (s *SMExecute) stepRegisterDoneOnLMN(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	subroutineSM := &SMRegisterOnLMN{
+		object:        s.execution.Object,
+		isConstructor: s.isConstructor,
+		interference:  s.methodIsolation.Interference,
+		newState:      s.executionNewState,
+	}
+	if !s.registeredIncoming {
+		subroutineSM.incoming = s.inboundRecord
+	}
+	return ctx.CallSubroutine(subroutineSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
+		s.registeredIncoming = subroutineSM.incomingRegistered
+		return ctx.Jump(s.stepSaveNewObject)
+	})
+}
+
+func (s *SMExecute) stepRegisterOutgoingOnLMN(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	subroutineSM := &SMRegisterOnLMN{
+		object:        s.execution.Object,
+		isConstructor: s.isConstructor,
+		outgoing:      s.execution.Outgoing,
+		interference:  s.methodIsolation.Interference,
+		newState:      s.executionNewState,
+	}
+	if !s.registeredIncoming {
+		subroutineSM.incoming = s.inboundRecord
+	}
+	return ctx.CallSubroutine(subroutineSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
+		s.registeredIncoming = subroutineSM.incomingRegistered
+		return ctx.Jump(s.stepExecuteOutgoing)
+	})
 }
 
 func (s *SMExecute) prepareExecutionError(err error) {

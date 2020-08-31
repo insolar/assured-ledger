@@ -97,6 +97,9 @@ message RLineActivate {
 message RLineDeactivate {
     option (insproto.id) = 21;
     RecordBody RecordBody = 19 [(gogoproto.embed)=true];
+
+    Reference PrevRef = 24;
+    Reference RootRef = 25;
 }
 
 message RLineMemory {
@@ -125,21 +128,33 @@ message RLineMemoryReuse {
 message RLineInboundRequest {
     option (insproto.id) = 27;
     RecordBody RecordBody = 19 [(gogoproto.embed)=true];
+
+    Reference PrevRef = 24;
+    Reference RootRef = 25;
 }
 
 message RInboundRequest {
     option (insproto.id) = 28;
     RecordBody RecordBody = 19 [(gogoproto.embed)=true];
+
+    Reference PrevRef = 24;
+    Reference RootRef = 25;
 }
 
 message RInboundResponse {
     option (insproto.id) = 29;
     RecordBody RecordBody = 19 [(gogoproto.embed)=true];
+
+    Reference PrevRef = 24;
+    Reference RootRef = 25;
 }
 
 message ROutboundResponse {
     option (insproto.id) = 30;
     RecordBody RecordBody = 19 [(gogoproto.embed)=true];
+
+    Reference PrevRef = 24;
+    Reference RootRef = 25;
 }
 
 message ROutboundRequest {

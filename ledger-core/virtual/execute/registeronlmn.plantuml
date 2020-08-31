@@ -1,0 +1,27 @@
+@startuml
+state "Init" as T01_S001
+T01_S001 : SMRegisterOnLMN
+[*] --> T01_S001
+T01_S001 --> T01_S002 : [s.incoming!=nil]
+T01_S001 --> T01_S003
+state "stepRegisterDone" as T01_S005
+T01_S005 : SMRegisterOnLMN
+T01_S005 --> [*]
+state "stepRegisterIncoming" as T01_S002
+T01_S002 : SMRegisterOnLMN
+T01_S002 --> T01_S003
+state "stepRegisterOutgoing" as T01_S004
+T01_S004 : SMRegisterOnLMN
+T01_S004 --> [*]
+state "stepRegisterRecords" as T01_S003
+T01_S003 : SMRegisterOnLMN
+T01_S003 --> T01_S005 : [s.outgoing.IsEmpty()]
+T01_S003 --> T01_S004
+state "GetInitStateFor" as T00_S001
+T00_S001 : dSMRegisterOnLMN
+[*] --> T00_S001
+state "nil" as T00_U001
+T00_U001 : dSMRegisterOnLMN
+T00_U001 : UNKNOWN 
+T00_S001 --> T00_U001
+@enduml
