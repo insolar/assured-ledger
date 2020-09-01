@@ -161,9 +161,13 @@ func (p *DeliveryPeer) sendState(packet StatePacket) {
 }
 
 func (p *DeliveryPeer) sendParcel(msg *msgShipment, isBody, isRepeated bool) {
-	packet := ParcelPacket{ParcelID: msg.id.ShortID(), ReturnID: msg.returnID, RepeatedSend: isRepeated}
+	packet := ParcelPacket{
+		ParcelID:     msg.id.ShortID(),
+		ReturnID:     msg.returnID,
+		RepeatedSend: isRepeated,
+		ParcelType:   nwapi.CompletePayload,
+	}
 
-	packet.ParcelType = nwapi.CompletePayload
 	cycle, pn := p.ctl.getPulseCycle()
 
 	if msg.expires < cycle {

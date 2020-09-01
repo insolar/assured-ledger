@@ -46,7 +46,7 @@ type Peer struct {
 
 	protoMutex sync.RWMutex
 	// protoInfo contains links to Peer's projection for each protocol it was connected through.
-	protoInfo  [uniproto.ProtocolTypeCount]io.Closer
+	protoInfo [uniproto.ProtocolTypeCount]io.Closer
 }
 
 // GetPrimary returns a peer's primary identity
@@ -310,8 +310,13 @@ func (p *Peer) SendPacket(tp uniproto.OutType, packet uniproto.PacketPreparer) e
 // SendPreparedPacket prepares uniproto packet and checks its eligibility for the given (uniproto.OutType).
 // Can also choose a specific out type by properties of packet and value of (uniproto.OutType).
 // See SendingPacket.NewTransportFunc for details about serialization.
-func (p *Peer) SendPreparedPacket(tp uniproto.OutType, packet *uniproto.Packet, dataSize uint, fn uniproto.PayloadSerializerFunc, checkFn func() bool) error {
-
+func (p *Peer) SendPreparedPacket(
+	tp uniproto.OutType,
+	packet *uniproto.Packet,
+	dataSize uint,
+	fn uniproto.PayloadSerializerFunc,
+	checkFn func() bool,
+) error {
 	sp := p.createSendingPacket(packet)
 
 	packetSize, sendFn := sp.NewTransportFunc(dataSize, fn, checkFn)
