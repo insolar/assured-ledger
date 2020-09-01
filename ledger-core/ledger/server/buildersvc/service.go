@@ -145,7 +145,7 @@ func (p *serviceImpl) createPlash(pr pulse.Range, tree jet.PrefixTree, populatio
 	}
 
 	sw := p.storageFactoryFn(pn)
-//	pa.dirtyReader = sw.
+	pa.dirtyReader = sw.DirtyReader()
 	bw := bundle.NewWriter(sw) // NB! MUST be one writer per storage
 
 	result := jets[:0]

@@ -20,7 +20,7 @@ type SnapshotWriter interface {
 	TakeSnapshot() (Snapshot, error)
 	MarkReadOnly() error
 
-	// DirtyReader() DirtyReader
+	DirtyReader() DirtyReader
 }
 
 // Snapshot represents a written bundle / transaction.
