@@ -233,7 +233,7 @@ func (p *LineSharedData) TrimStages() {
 	p.data.TrimCommittedStages()
 }
 
-func (p *LineSharedData) CollectSignatures(set inspectsvc.InspectedRecordSet, canBePartial bool) {
+func (p *LineSharedData) CollectSignatures(set inspectsvc.InspectedRecordSet, canBePartial bool) int {
 	p.ensureDataAccess()
 
 	for i := range set.Records {
@@ -241,7 +241,7 @@ func (p *LineSharedData) CollectSignatures(set inspectsvc.InspectedRecordSet, ca
 		switch ok, _, rec := p.data.Find(r.RecRef); {
 		case !ok:
 			if canBePartial {
-				return
+				return i
 			}
 			panic(throw.IllegalValue())
 		case !rec.RegistrarSignature.IsEmpty():
@@ -250,6 +250,8 @@ func (p *LineSharedData) CollectSignatures(set inspectsvc.InspectedRecordSet, ca
 			panic(throw.Impossible())
 		}
 	}
+
+	return len(set.Records)
 }
 
 func (p *LineSharedData) FindWithTracker(ref reference.Holder) (bool, ledger.DirectoryIndex, *buildersvc.Future, lineage.Record) {

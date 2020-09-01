@@ -190,7 +190,8 @@ func (p *SMRegisterRecordSet) stepApplyRecordSet(ctx smachine.ExecutionContext) 
 			// some (or all) records were not found, but we can give answer
 			// but not for all of records
 			allRecordsDone = true
-			sd.CollectSignatures(p.inspectedSet, true)
+			found := sd.CollectSignatures(p.inspectedSet, true)
+			p.inspectedSet.Records = p.inspectedSet.Records[:found]
 
 		case p.hasRequested:
 			// dependencies were already requested, but weren't fully resolved yet
