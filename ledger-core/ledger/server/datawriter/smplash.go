@@ -161,6 +161,19 @@ func (p *SMPlash) stepCreateJetDrops(ctx smachine.ExecutionContext) smachine.Sta
 		})
 	}
 
+	pa := p.sd.jetAssist
+	err := p.pulseSlot.SetPulseChanger(func(outFn conveyor.PreparePulseCallbackFunc) {
+		if outFn == nil {
+			pa.CancelPulseChange()
+			return
+		}
+
+		pa.PreparePulseChange(outFn)
+	})
+	if err != nil {
+		return ctx.Error(err)
+	}
+
 	ctx.ApplyAdjustment(p.sd.enableAccess())
 	return ctx.Stop()
 }

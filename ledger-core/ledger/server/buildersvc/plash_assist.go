@@ -8,6 +8,7 @@ package buildersvc
 import (
 	"sync"
 
+	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jetalloc"
@@ -40,7 +41,7 @@ type plashAssistant struct {
 	merkle   merkler.ForkingCalculator
 }
 
-func (p *plashAssistant) PreparePulseChange(out chan<- cryptkit.Digest) {
+func (p *plashAssistant) PreparePulseChange(outFn conveyor.PreparePulseCallbackFunc) {
 	if p.status.Load() != plashStarted { // NB! Makes consecutive calls to fail, not to block
 		panic(throw.IllegalState())
 	}
@@ -54,9 +55,13 @@ func (p *plashAssistant) PreparePulseChange(out chan<- cryptkit.Digest) {
 
 	go func() {
 		root := forked.FinishSequence()
-		if out != nil {
-			out <- root
+		if outFn == nil {
+			return
 		}
+
+		state := conveyor.PreparedState{}
+		state.NodeState = root
+		outFn(state)
 	}()
 }
 
@@ -123,10 +128,6 @@ func (p *plashAssistant) commitDropUpdate(fn func() error) error {
 	}
 
 	return fn()
-}
-
-func (p *plashAssistant) GetResolver() lineage.DependencyResolver {
-	panic("implement me")
 }
 
 func (p *plashAssistant) IsGenesis() bool {
