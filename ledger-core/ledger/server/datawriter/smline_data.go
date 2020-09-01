@@ -8,6 +8,7 @@ package datawriter
 import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
+	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/catalog"
@@ -23,6 +24,7 @@ type LineKey reference.Global
 type LineSharedData struct {
 	lineRef reference.Global
 	limiter smsync.SemaphoreLink
+
 	ready   bool
 	valid   bool
 
@@ -39,6 +41,10 @@ func (p *LineSharedData) LineRef() reference.Global {
 }
 
 func (p *LineSharedData) GetLimiter() smachine.SyncLink {
+	return p.limiter.SyncLink()
+}
+
+func (p *LineSharedData) GetActiveSync() smachine.SyncLink {
 	return p.limiter.SyncLink()
 }
 
@@ -211,12 +217,26 @@ func (p *LineSharedData) CollectSignatures(set inspectsvc.InspectedRecordSet) {
 
 	for i := range set.Records {
 		r := &set.Records[i]
-		ok := false
-		switch ok, _, r.RegistrarSignature = p.data.Find(r.RecRef); {
+		switch ok, _, rec := p.data.Find(r.RecRef); {
 		case !ok:
 			panic(throw.IllegalValue())
-		case r.RegistrarSignature.IsEmpty():
+		case !rec.RegistrarSignature.IsEmpty():
+			r.RegistrarSignature = rec.RegistrarSignature
+		default:
 			panic(throw.Impossible())
 		}
+	}
+}
+
+func (p *LineSharedData) FindWithTracker(ref reference.Holder) (bool, ledger.DirectoryIndex, *buildersvc.Future, lineage.Record) {
+	p.ensureDataAccess()
+
+	switch ok, dirIdx, tracker, rec := p.data.FindWithTracker(ref); {
+	case !ok:
+		return false, 0, nil, lineage.Record{}
+	case tracker != nil:
+		return true, 0, tracker.(*buildersvc.Future), rec
+	default:
+		return true, dirIdx, nil, rec
 	}
 }

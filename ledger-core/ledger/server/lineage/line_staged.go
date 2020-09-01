@@ -9,7 +9,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -513,12 +512,25 @@ func (p *LineStages) setAllocations(stage *updateStage, allocBase []ledger.Direc
 	}
 }
 
-func (p *LineStages) Find(ref reference.Holder) (found bool, recordIndex ledger.DirectoryIndex, registrarSignature cryptkit.SignedDigest) {
+func (p *LineStages) Find(ref reference.Holder) (found bool, recordIndex ledger.DirectoryIndex, recordInfo Record) {
 	if rn, ok := p.recordRefs[ref.GetLocal().IdentityHash()]; ok {
 		if r := p.get(rn); r != nil {
-			return true, r.storageIndex, r.RegistrarSignature
+			return true, r.storageIndex, r.Record
 		}
 	}
-	return false, 0, cryptkit.SignedDigest{}
+	return false, 0, Record{}
 }
+
+func (p *LineStages) FindWithTracker(ref reference.Holder) (found bool, recordIndex ledger.DirectoryIndex, tracker StageTracker, recordInfo Record) {
+	if rn, ok := p.recordRefs[ref.GetLocal().IdentityHash()]; ok {
+		if r := p.get(rn); r != nil {
+			if stage := p.findStage(rn); stage != nil {
+				tracker = stage.tracker
+			}
+			return true, r.storageIndex, tracker, r.Record
+		}
+	}
+	return false, 0, nil, Record{}
+}
+
 

@@ -11,6 +11,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/datawriter"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/inspectsvc"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
@@ -78,7 +79,7 @@ func (p *SMRegisterRecordSet) stepInit(ctx smachine.InitializationContext) smach
 
 func (p *SMRegisterRecordSet) stepFindLine(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	if p.sdl.IsZero() {
-		lineRef := p.recordSet.GetRootRef()
+		lineRef := reference.NormCopy(p.recordSet.GetRootRef())
 
 		p.sdl = p.cataloger.GetOrCreate(ctx, lineRef)
 		if p.sdl.IsZero() {
