@@ -14,7 +14,7 @@ message RecordExcerptForCatalogEntry {
     reserved 1 to 15, 17 to 18, 40 to max;
 
     uint32 RecordType = 16;
-    Binary RecordBodyHash = 19;
+    RecordBodyDigests PayloadDigests = 19;
 
     // MUST match with Excerpt portion of CatalogEntry
     Reference PrevRef = 24;
@@ -41,7 +41,7 @@ message CatalogEntry {
 
     uint32 PayloadSize = 20;
     ExtLocators ExtensionLoc = 21;
-    Binary RecordBodyHash = 22;
+    RecordBodyDigests PayloadDigests = 22;
 
     // Start of Excerpt portion
     // MUST match with RecordExcerpt

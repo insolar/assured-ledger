@@ -26,11 +26,23 @@ func NewSMRegisterRecordSet(reqs inspectsvc.RegisterRequestSet) *SMRegisterRecor
 	}
 }
 
+func NewSMVerifyRecordSet(reqs inspectsvc.RegisterRequestSet) *SMRegisterRecordSet {
+	if reqs.GetFlags() & rms.RegistrationFlags_Fast != 0 {
+		panic(throw.IllegalValue())
+	}
+
+	return &SMRegisterRecordSet{
+		recordSet: reqs,
+		verifyMode: true,
+	}
+}
+
 type SMRegisterRecordSet struct {
 	smachine.StateMachineDeclTemplate
 
 	// input
-	recordSet inspectsvc.RegisterRequestSet
+	recordSet  inspectsvc.RegisterRequestSet
+	verifyMode bool
 
 	// injected
 	pulseSlot  *conveyor.PulseSlot
@@ -41,7 +53,7 @@ type SMRegisterRecordSet struct {
 	sdl          datawriter.LineDataLink
 	inspectedSet inspectsvc.InspectedRecordSet
 	hasRequested bool
-	isCommitted  bool
+	isCompleted  bool
 
 	// results
 	committed *buildersvc.Future
@@ -63,10 +75,10 @@ func (p *SMRegisterRecordSet) InjectDependencies(_ smachine.StateMachine, _ smac
 
 func (p *SMRegisterRecordSet) stepInit(ctx smachine.InitializationContext) smachine.StateUpdate {
 	switch {
-	case p.pulseSlot.State() != conveyor.Present:
-		return ctx.Error(throw.E("not a present pulse"))
 	case p.recordSet.IsEmpty():
 		return ctx.Error(throw.E("empty record set"))
+	case !p.verifyMode && p.pulseSlot.State() != conveyor.Present:
+		return ctx.Error(throw.E("not a present pulse"))
 	}
 
 	ctx.SetDefaultMigration(p.migratePresent)
@@ -81,9 +93,18 @@ func (p *SMRegisterRecordSet) stepFindLine(ctx smachine.ExecutionContext) smachi
 	if p.sdl.IsZero() {
 		lineRef := reference.NormCopy(p.recordSet.GetRootRef())
 
-		p.sdl = p.cataloger.GetOrCreate(ctx, lineRef)
-		if p.sdl.IsZero() {
-			panic(throw.IllegalState())
+		if p.verifyMode {
+			p.sdl = p.cataloger.Get(ctx, lineRef)
+			if p.sdl.IsZero() {
+				// there is no line, so nothing was added during this pulse
+				p.isCompleted = true
+				return ctx.Jump(p.stepSendFinalResponse)
+			}
+		} else {
+			p.sdl = p.cataloger.GetOrCreate(ctx, lineRef)
+			if p.sdl.IsZero() {
+				panic(throw.IllegalState())
+			}
 		}
 	}
 
@@ -147,24 +168,33 @@ func (p *SMRegisterRecordSet) stepApplyRecordSet(ctx smachine.ExecutionContext) 
 	}
 
 	var errors []error
-	committedDuplicates := false
+	allRecordsDone := false
 
 	switch p.sdl.TryAccess(ctx, func(sd *datawriter.LineSharedData) (wakeup bool) {
-		switch future, bundle := sd.TryApplyRecordSet(ctx, p.inspectedSet); {
+		switch future, bundle := sd.TryApplyRecordSet(ctx, p.inspectedSet, p.verifyMode); {
 		case future != nil:
 			if bundle != nil {
 				panic(throw.Impossible())
 			}
-			sd.CollectSignatures(p.inspectedSet)
+			sd.CollectSignatures(p.inspectedSet, false)
 			p.committed = future
+
 		case bundle == nil:
-			committedDuplicates = true
-			sd.CollectSignatures(p.inspectedSet)
+			allRecordsDone = true
+			sd.CollectSignatures(p.inspectedSet, false)
 
 		case bundle.HasErrors():
 			errors = bundle.GetErrors()
+
+		case p.verifyMode:
+			// some (or all) records were not found, but we can give answer
+			// but not for all of records
+			allRecordsDone = true
+			sd.CollectSignatures(p.inspectedSet, true)
+
 		case p.hasRequested:
-			//
+			// dependencies were already requested, but weren't fully resolved yet
+
 		default:
 			p.hasRequested = true
 			sd.RequestDependencies(bundle, ctx.NewBargeIn().WithWakeUp())
@@ -186,8 +216,8 @@ func (p *SMRegisterRecordSet) stepApplyRecordSet(ctx smachine.ExecutionContext) 
 		ctx.ReleaseAll()
 		return p.handleFailure(ctx, errors...)
 
-	case committedDuplicates:
-		p.isCommitted = true
+	case allRecordsDone:
+		p.isCompleted = true
 
 	case p.committed == nil:
 		return ctx.Sleep().ThenRepeat()
@@ -198,12 +228,12 @@ func (p *SMRegisterRecordSet) stepApplyRecordSet(ctx smachine.ExecutionContext) 
 			sendUnsafeConfo = true
 		} else {
 			p.cleanup(ctx)
-			p.isCommitted = true
+			p.isCompleted = true
 		}
 	}
 	ctx.ReleaseAll()
 
-	if p.isCommitted {
+	if p.isCompleted {
 		return ctx.Jump(p.stepSendFinalResponse)
 	}
 
@@ -250,7 +280,7 @@ func (p *SMRegisterRecordSet) stepSendFinalResponse(ctx smachine.ExecutionContex
 		case err != nil:
 			return p.handleFailure(ctx, err)
 		}
-	case !p.isCommitted:
+	case !p.isCompleted:
 		return p.handleFailure(ctx, throw.E("cancelled"))
 	}
 
@@ -271,9 +301,13 @@ func (p *SMRegisterRecordSet) handleFailure(ctx smachine.ExecutionContext, error
 }
 
 func (p *SMRegisterRecordSet) sendResponse(ctx smachine.ExecutionContext, safe bool) {
-	signatures := make([]cryptkit.Signature, len(p.inspectedSet.Records))
+	signatures := make([]cryptkit.Signature, 0, len(p.inspectedSet.Records))
 	for i := range p.inspectedSet.Records {
-		signatures[i] = p.inspectedSet.Records[i].RegistrarSignature.GetSignature()
+		sig := p.inspectedSet.Records[i].RegistrarSignature.GetSignature()
+		if p.verifyMode && sig.IsEmpty() {
+			break
+		}
+		signatures = append(signatures, sig)
 	}
 
 	if safe {

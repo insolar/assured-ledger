@@ -48,7 +48,7 @@ func TestExcerptReadFromLazy(t *testing.T) {
 	require.Equal(t, rec.RootRef, excerpt.RootRef)
 	require.True(t, excerpt.ReasonRef.IsEmpty())
 	require.True(t, excerpt.RedirectRef.IsEmpty())
-	require.True(t, excerpt.RecordBodyHash.IsEmpty())
+	require.True(t, excerpt.PayloadDigests.IsEmpty())
 }
 
 func TestExcerptReadPartial(t *testing.T) {
@@ -77,6 +77,6 @@ func TestExcerptReadPartial(t *testing.T) {
 	require.Equal(t, rec.RootRef, excerpt.RootRef)
 	require.True(t, excerpt.ReasonRef.IsEmpty())
 	require.True(t, excerpt.RedirectRef.IsEmpty())
-	require.True(t, excerpt.RecordBodyHash.IsEmpty())
+	require.True(t, excerpt.PayloadDigests.IsEmpty())
 }
 

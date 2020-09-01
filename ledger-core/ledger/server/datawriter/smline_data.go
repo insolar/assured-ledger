@@ -58,7 +58,9 @@ func (p *LineSharedData) ensureDataAccess() {
 	}
 }
 
-func (p *LineSharedData) TryApplyRecordSet(ctx smachine.ExecutionContext, set inspectsvc.InspectedRecordSet) (*buildersvc.Future, *lineage.BundleResolver) {
+func (p *LineSharedData) TryApplyRecordSet(ctx smachine.ExecutionContext,
+	set inspectsvc.InspectedRecordSet, verifyOnly bool,
+) (*buildersvc.Future, *lineage.BundleResolver) {
 
 	p.ensureDataAccess()
 	if set.IsEmpty() {
@@ -73,7 +75,27 @@ func (p *LineSharedData) TryApplyRecordSet(ctx smachine.ExecutionContext, set in
 		br.Add(r)
 	}
 
+	if verifyOnly {
+		return p.verifyBundle(br)
+	}
 	return p.applyBundle(ctx, br)
+}
+
+func (p *LineSharedData) verifyBundle(br *lineage.BundleResolver) (*buildersvc.Future, *lineage.BundleResolver) {
+	if !br.IsReadyForStage() {
+		return nil, br
+	}
+
+	switch ok, fut := p.data.VerifyBundle(br); {
+	case !ok:
+		// got an error or an unresolved dependency, or a missing record
+		return nil, br
+	case fut == nil:
+		// all entries were already added and committed
+		return nil, nil
+	default:
+		return fut.(*buildersvc.Future), nil
+	}
 }
 
 func (p *LineSharedData) applyBundle(ctx smachine.ExecutionContext, br *lineage.BundleResolver) (*buildersvc.Future, *lineage.BundleResolver) {
@@ -114,7 +136,6 @@ func (p *LineSharedData) applyBundle(ctx smachine.ExecutionContext, br *lineage.
 
 		return future, nil
 	}
-
 }
 
 func (p *LineSharedData) RequestDependencies(br *lineage.BundleResolver, wakeup smachine.BargeInNoArgHolder) {
@@ -212,13 +233,16 @@ func (p *LineSharedData) TrimStages() {
 	p.data.TrimCommittedStages()
 }
 
-func (p *LineSharedData) CollectSignatures(set inspectsvc.InspectedRecordSet) {
+func (p *LineSharedData) CollectSignatures(set inspectsvc.InspectedRecordSet, canBePartial bool) {
 	p.ensureDataAccess()
 
 	for i := range set.Records {
 		r := &set.Records[i]
 		switch ok, _, rec := p.data.Find(r.RecRef); {
 		case !ok:
+			if canBePartial {
+				return
+			}
 			panic(throw.IllegalValue())
 		case !rec.RegistrarSignature.IsEmpty():
 			r.RegistrarSignature = rec.RegistrarSignature

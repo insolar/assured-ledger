@@ -167,7 +167,7 @@ type sectionPayload struct {
 func draftCatalogEntry(rec lineage.Record) catalog.Entry {
 	return catalog.Entry{
 		RecordType:         rec.Excerpt.RecordType,
-		RecordBodyHash:     rec.Excerpt.RecordBodyHash,
+		PayloadDigests:     rec.Excerpt.PayloadDigests,
 		PrevRef:			rec.Excerpt.PrevRef,
 		RootRef:			rec.Excerpt.RootRef,
 		ReasonRef:			rec.Excerpt.ReasonRef,

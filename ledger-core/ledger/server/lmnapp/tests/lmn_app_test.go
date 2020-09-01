@@ -20,6 +20,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/inspectsvc"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lmnapp/lmntestapp"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/treesvc"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
@@ -168,26 +169,48 @@ func TestAddRecords(t *testing.T) {
 		}
 	})
 
-	t.Run("overlapped", func(t *testing.T) {
+	t.Run("idempotency + verify", func(t *testing.T) {
 		for N := 10; N > 0; N-- {
 			// two intersecting bundles per object
 			fullSet := genNewLine.makeSet(reasonRef)
 			firstSet := fullSet
 
-			// first record only
+			// check for non-existence
+			sg, err := genNewLine.callVerify(fullSet)
+			require.NoError(t, err)
+			require.Len(t, sg, 0)
+
+			// add first record only
 			firstSet.Requests = firstSet.Requests[:1]
-			sg, err := genNewLine.callRegister(firstSet)
+			sg, err = genNewLine.callRegister(firstSet)
 			require.NoError(t, err)
 			require.Len(t, sg, 1)
 			sgCopy := sg[0]
 
-			// all records together
+			// check for existence of the first record
+			sg, err = genNewLine.callVerify(fullSet)
+			require.NoError(t, err)
+			require.Len(t, sg, 1)
+			require.True(t, sgCopy.Equals(sg[0]))
+
+			// add all records together, first record must be deduplicated
 			sg, err = genNewLine.callRegister(fullSet)
 			require.NoError(t, err)
 			require.Len(t, sg, 3)
 			require.True(t, sgCopy.Equals(sg[0]))
 
 			bundleSignatures = append(bundleSignatures, sg)
+
+			sgCopyAll := sg
+
+			// check for existence of all records
+			sg, err = genNewLine.callVerify(fullSet)
+			require.NoError(t, err)
+			require.Len(t, sg, 3)
+
+			for j := range sg {
+				require.True(t, sgCopyAll[j].Equals(sg[j]), j)
+			}
 		}
 	})
 
@@ -334,6 +357,26 @@ func (p *generatorNewLifeline) callRegister(recordSet inspectsvc.RegisterRequest
 
 	p.totalBytes.Add(uint64(setSize))
 
+	return p._call(pn, recordSet)
+}
+
+func (p *generatorNewLifeline) callVerify(regRecordSet inspectsvc.RegisterRequestSet) ([]cryptkit.Signature, error) {
+	pn := p.recBuilder.RefTemplate.LocalHeader().Pulse()
+
+	var recordSet inspectsvc.VerifyRequestSet
+	recordSet.Excerpt = regRecordSet.Excerpt
+	recordSet.Requests = make([]*rms.LRegisterRequest, len(regRecordSet.Requests))
+
+	for i, r := range regRecordSet.Requests {
+		rc := *r
+		rc.AnyRecordLazy = r.AnyRecordLazy.CopyNoPayloads()
+		recordSet.Requests[i] = &rc
+	}
+
+	return p._call(pn, recordSet)
+}
+
+func (p *generatorNewLifeline) _call(pn pulse.Number, recordSet interface{}) ([]cryptkit.Signature, error) {
 	ch := make(chan smachine.TerminationData, 1)
 	err := p.conv.AddInputExt(pn,
 		recordSet,
@@ -354,6 +397,7 @@ func (p *generatorNewLifeline) callRegister(recordSet inspectsvc.RegisterRequest
 
 	return data.Result.([]cryptkit.Signature), data.Error
 }
+
 
 func (p *generatorNewLifeline) registerNewLine(reasonRef reference.Holder) ([]cryptkit.Signature, error) {
 	recordSet := p.makeSet(reasonRef)
