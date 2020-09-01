@@ -7,6 +7,7 @@ package dropstorage
 
 import (
 	"testing"
+	"unsafe"
 
 	"github.com/stretchr/testify/require"
 
@@ -240,4 +241,8 @@ func BenchmarkMemoryStorageParallelWrite(b *testing.B) {
 			<- ch
 		}
 	})
+}
+
+func TestDirectoryEntrySize(t *testing.T) {
+	require.EqualValues(t, directoryEntrySize, unsafe.Sizeof(directoryEntry{}))
 }

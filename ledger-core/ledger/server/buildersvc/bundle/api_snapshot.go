@@ -19,6 +19,8 @@ type SnapshotWriter interface {
 	// Not concurrent at SnapshotWriter, but can be called before commit of previous snapshot(s).
 	TakeSnapshot() (Snapshot, error)
 	MarkReadOnly() error
+
+	// DirtyReader() DirtyReader
 }
 
 // Snapshot represents a written bundle / transaction.

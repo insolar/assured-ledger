@@ -7,6 +7,7 @@ package dropstorage
 
 import (
 	"io"
+	"sync"
 
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/bundle"
@@ -60,7 +61,7 @@ const (
 )
 
 func (p *MemoryStorageWriter) TakeSnapshot() (bundle.Snapshot, error) {
-	if err := p.checkState(); err != nil {
+	if err := p.checkWriteable(); err != nil {
 		return nil, err
 	}
 
@@ -74,10 +75,10 @@ func (p *MemoryStorageWriter) MarkReadOnly() error {
 	if p.state.CompareAndSwap(0, stateReadOnly) {
 		return nil
 	}
-	return p.checkState()
+	return p.checkWriteable()
 }
 
-func (p *MemoryStorageWriter) checkState() error {
+func (p *MemoryStorageWriter) checkWriteable() error {
 	switch p.state.Load() {
 	case 0:
 		return nil
@@ -89,6 +90,44 @@ func (p *MemoryStorageWriter) checkState() error {
 		return throw.Impossible()
 	}
 }
+
+func (p *MemoryStorageWriter) checkReadable() error {
+	switch p.state.Load() {
+	case 0, stateReadOnly:
+		return nil
+	case stateBroken:
+		return throw.FailHere("broken")
+	default:
+		return throw.Impossible()
+	}
+}
+
+func (p *MemoryStorageWriter) DirtyReader() bundle.DirtyReader {
+	return p
+}
+
+func (p *MemoryStorageWriter) getReadSection(id ledger.SectionID) *cabinetSection {
+	panic("implement me")
+}
+
+func (p *MemoryStorageWriter) GetDirectoryEntry(index ledger.DirectoryIndex) (reference.Holder, ledger.StorageLocator) {
+	section := p.getReadSection(index.SectionID())
+	if section == nil {
+		return nil, 0
+	}
+	panic("implement me")
+}
+
+func (p *MemoryStorageWriter) GetEntryStorage(locator ledger.StorageLocator) []byte {
+	panic("implement me")
+}
+
+func (p *MemoryStorageWriter) GetPayloadStorage(locator ledger.StorageLocator) []byte {
+	panic("implement me")
+}
+
+
+/*********************************/
 
 type memorySnapshot struct {
 	storage  *MemoryStorageWriter
@@ -144,7 +183,7 @@ func (p *memorySnapshot) GetDirectorySection(id ledger.SectionID) (bundle.Direct
 }
 
 func (p *memorySnapshot) getSection(sectionID ledger.SectionID, directory bool) (*sectionSnapshot, error) {
-	if err := p.storage.checkState(); err != nil {
+	if err := p.storage.checkWriteable(); err != nil {
 		return nil, err
 	}
 
@@ -164,6 +203,8 @@ func (p *memorySnapshot) getSection(sectionID ledger.SectionID, directory bool) 
 	}
 	return s, nil
 }
+
+/*********************************/
 
 type sectionSnapshot struct {
 	section  *cabinetSection
@@ -188,18 +229,28 @@ func (p *sectionSnapshot) AllocatePayloadStorage(size int, extID ledger.Extensio
 	return p.section.allocatePayloadStorage(p, size, extID)
 }
 
+/*********************************/
+
 type cabinetSection struct {
 	sectionID    ledger.SectionID
+	// mutex allows
+	mutex        sync.RWMutex
 
 	chapters  [][]byte
 	directory [][]directoryEntry
 }
 
 func (p *cabinetSection) hasDirectory() bool {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
 	return len(p.directory) > 0
 }
 
 func (p *cabinetSection) getNextDirectoryIndex(snap *sectionSnapshot) ledger.DirectoryIndex {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
 	n := len(p.directory)
 	if n == 0 {
 		panic(throw.IllegalState())
@@ -215,6 +266,9 @@ func (p *cabinetSection) getNextDirectoryIndex(snap *sectionSnapshot) ledger.Dir
 }
 
 func (p *cabinetSection) setDirectoryEntry(index ledger.DirectoryIndex, key reference.Holder, loc ledger.StorageLocator) error {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
 	n := len(p.directory)
 	switch {
 	case n == 0:
@@ -250,8 +304,11 @@ func (p *cabinetSection) setDirectoryEntry(index ledger.DirectoryIndex, key refe
 	return nil
 }
 
-// allocatePayloadStorage can reorder payloads
+// allocatePayloadStorage is allowed to reorder payloads
 func (p *cabinetSection) allocatePayloadStorage(snap *sectionSnapshot, size int, _ ledger.ExtensionID) (bundle.PayloadReceptacle, ledger.StorageLocator, error) {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
 	switch {
 	case size < 0:
 		panic(throw.IllegalValue())
@@ -293,18 +350,21 @@ func (p *cabinetSection) allocatePayloadStorage(snap *sectionSnapshot, size int,
 }
 
 func (p *cabinetSection) rollback(snapshot sectionSnapshot, chained bool) bool {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
 	ok := true
-	if !p.rollbackDir(int(snapshot.dirIndex)) && !chained {
+	if !p._rollbackDir(int(snapshot.dirIndex)) && !chained {
 		ok = false
 	}
 
-	if !p.rollbackChap(int(snapshot.chapter), snapshot.lastOfs) && !chained {
+	if !p._rollbackChap(int(snapshot.chapter), snapshot.lastOfs) && !chained {
 		ok = false
 	}
 	return ok
 }
 
-func (p *cabinetSection) rollbackChap(c int, ofs uint32) bool {
+func (p *cabinetSection) _rollbackChap(c int, ofs uint32) bool {
 	switch {
 	case c == 0:
 		return true
@@ -322,7 +382,7 @@ func (p *cabinetSection) rollbackChap(c int, ofs uint32) bool {
 	return true
 }
 
-func (p *cabinetSection) rollbackDir(dirIndex int) bool {
+func (p *cabinetSection) _rollbackDir(dirIndex int) bool {
 	if dirIndex == 0 {
 		return true
 	}
@@ -344,6 +404,8 @@ func (p *cabinetSection) rollbackDir(dirIndex int) bool {
 	return true
 }
 
+/*********************************/
+
 type byteReceptacle []byte
 
 func (b byteReceptacle) ApplyMarshalTo(to bundle.MarshalerTo) error {
@@ -362,6 +424,8 @@ func (b byteReceptacle) ApplyFixedReader(r longbits.FixedReader) error {
 	}
 	return nil
 }
+
+/*********************************/
 
 const directoryEntrySize = reference.GlobalBinarySize + 8
 
