@@ -26,6 +26,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/mock/publisher/checker"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
@@ -46,7 +47,7 @@ type memoryCacheTest struct {
 }
 
 func TestVirtual_VCachedMemoryRequestHandler(t *testing.T) {
-	insrail.LogSkipCase(t, "C5681", "https://insolar.atlassian.net/browse/PLAT-747")
+	insrail.LogCase(t, "C5681")
 	defer commonTestUtils.LeakTester(t)
 	var testCases = []struct {
 		name         string
@@ -68,11 +69,11 @@ func TestVirtual_VCachedMemoryRequestHandler(t *testing.T) {
 
 			cases.precondition(suite, ctx, t)
 
-			var stateRef payload.Reference
+			syncChan := make(chan payload.Reference, 1)
+			defer close(syncChan)
 
-			suite.server.IncrementPulse(ctx)
 			suite.typedChecker.VStateReport.Set(func(rep *payload.VStateReport) bool {
-				stateRef = rep.LatestValidatedState
+				syncChan <- rep.LatestValidatedState
 				return false // no resend msg
 			})
 			suite.typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
@@ -82,14 +83,24 @@ func TestVirtual_VCachedMemoryRequestHandler(t *testing.T) {
 				return false
 			})
 
+			suite.server.IncrementPulse(ctx)
+			commonTestUtils.WaitSignalsTimed(t, 10*time.Second, suite.typedChecker.VStateReport.Wait(ctx, 1))
+
 			suite.typedChecker.VCachedMemoryResponse.Set(func(resp *payload.VCachedMemoryResponse) bool {
 				require.Equal(t, suite.object, resp.Object)
-				require.Equal(t, newState, resp.Memory)
+				require.Equal(t, []byte(newState), resp.Memory)
 				return false
 			})
 
-			executeDone := suite.server.Journal.WaitStopOf(&handlers.SMVCachedMemoryRequest{}, 1)
+			var stateRef payload.Reference
 
+			select {
+			case stateRef = <-syncChan:
+			case <-time.After(10 * time.Second):
+				require.FailNow(t, "timeout")
+			}
+
+			executeDone := suite.server.Journal.WaitStopOf(&handlers.SMVCachedMemoryRequest{}, 1)
 			{
 				cachReq := &payload.VCachedMemoryRequest{
 					Object:  suite.object,
@@ -119,7 +130,7 @@ func methodPrecondition(s *memoryCacheTest, ctx context.Context, t *testing.T) {
 	pl.CallSiteMethod = "ordered"
 	callOutgoing := pl.CallOutgoing
 
-	newObjDescriptor := descriptor.NewObject(reference.Global{}, reference.Local{}, gen.UniqueGlobalRef(), []byte(""), false)
+	newObjDescriptor := descriptor.NewObject(reference.Global{}, reference.Local{}, gen.UniqueGlobalRef(), []byte("blabla"), false)
 	result := requestresult.New([]byte("result"), s.object)
 	result.SetAmend(newObjDescriptor, []byte(newState))
 
@@ -134,13 +145,23 @@ func methodPrecondition(s *memoryCacheTest, ctx context.Context, t *testing.T) {
 		State:        pl.CallFlags.GetState(),
 	}, nil)
 
+	s.typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool {
+		assert.Equal(t, s.object, result.Callee)
+		assert.Equal(t, []byte("result"), result.ReturnArguments)
+		return false
+	})
+
+	executeDone := s.server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 	s.server.SendPayload(ctx, pl)
+	commonTestUtils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+	commonTestUtils.WaitSignalsTimed(t, 10*time.Second, s.server.Journal.WaitAllAsyncCallsDone())
 }
 
 func constructorPrecondition(s *memoryCacheTest, ctx context.Context, t *testing.T) {
 	pl := utils.GenerateVCallRequestConstructor(s.server)
 	pl.Caller = s.class
 	callOutgoing := pl.CallOutgoing
+	s.object = reference.NewSelf(callOutgoing.GetLocal())
 
 	result := requestresult.New([]byte("result"), s.object)
 	result.SetActivate(reference.Global{}, s.class, []byte(newState))
@@ -156,7 +177,16 @@ func constructorPrecondition(s *memoryCacheTest, ctx context.Context, t *testing
 		State:        pl.CallFlags.GetState(),
 	}, nil)
 
+	s.typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool {
+		assert.Equal(t, s.object, result.Callee)
+		assert.Equal(t, []byte("result"), result.ReturnArguments)
+		return false
+	})
+
+	executeDone := s.server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 	s.server.SendPayload(ctx, pl)
+	commonTestUtils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+	commonTestUtils.WaitSignalsTimed(t, 10*time.Second, s.server.Journal.WaitAllAsyncCallsDone())
 }
 
 func (s *memoryCacheTest) initServer(t *testing.T) context.Context {
