@@ -71,11 +71,12 @@ func TestVirtual_VCachedMemoryRequestHandler(t *testing.T) {
 			syncChan := make(chan payload.Reference, 1)
 			defer close(syncChan)
 
-			suite.server.IncrementPulse(ctx)
 			suite.typedChecker.VStateReport.Set(func(rep *payload.VStateReport) bool {
 				syncChan <- rep.LatestValidatedState
 				return false // no resend msg
 			})
+
+			suite.server.IncrementPulse(ctx)
 			commonTestUtils.WaitSignalsTimed(t, 10*time.Second, suite.typedChecker.VStateReport.Wait(ctx, 1))
 
 			suite.typedChecker.VCachedMemoryResponse.Set(func(resp *payload.VCachedMemoryResponse) bool {
