@@ -246,7 +246,10 @@ type EnumQueueFunc func(qId int, link SlotLink, flags SlotDependencyFlags) bool
 
 // Internals of a sync object
 type DependencyController interface {
+	// CheckState returns current state (open = true, closed = false)
 	CheckState() BoolDecision
+	// CreateDependency creates a dependency to this sync object.
+	// Can return (true, nil) when this sync object doesn't have "open" limit, e.g. for conditional sync.
 	CreateDependency(holder SlotLink, flags SlotDependencyFlags) (BoolDecision, SlotDependency)
 	// UseDependency also handles partial acquire of hierarchical syncs
 	UseDependency(dep SlotDependency, flags SlotDependencyFlags) Decision
