@@ -221,50 +221,6 @@ generate_pulsar_keys()
     bin/insolar gen-key-pair > ${PULSAR_KEYS}
 }
 
-generate_root_member_keys()
-{
-    echo "generate members keys in dir: $CONFIGS_DIR"
-    bin/insolar gen-key-pair > ${CONFIGS_DIR}root_member_keys.json
-
-    bin/insolar gen-key-pair > ${CONFIGS_DIR}fee_member_keys.json
-    bin/insolar gen-key-pair > ${CONFIGS_DIR}migration_admin_member_keys.json
-    for (( b = 0; b < 10; b++ ))
-    do
-    bin/insolar gen-key-pair > ${CONFIGS_DIR}migration_daemon_${b}_member_keys.json
-    done
-
-    for (( b = 0; b < 30; b++ ))
-    do
-    bin/insolar gen-key-pair > ${CONFIGS_DIR}network_incentives_${b}_member_keys.json
-    done
-
-    for (( b = 0; b < 30; b++ ))
-    do
-    bin/insolar gen-key-pair > ${CONFIGS_DIR}application_incentives_${b}_member_keys.json
-    done
-
-    for (( b = 0; b < 30; b++ ))
-    do
-    bin/insolar gen-key-pair > ${CONFIGS_DIR}foundation_${b}_member_keys.json
-    done
-
-    for (( b = 0; b < 1; b++ ))
-    do
-    bin/insolar gen-key-pair > ${CONFIGS_DIR}funds_${b}_member_keys.json
-    done
-
-    for (( b = 0; b < 4; b++ ))
-    do
-    bin/insolar gen-key-pair > ${CONFIGS_DIR}enterprise_${b}_member_keys.json
-    done
-}
-
-generate_migration_addresses()
-{
-    echo "generate migration addresses: ${CONFIGS_DIR}migration_addresses.json"
-    bin/insolar gen-migration-addresses > ${CONFIGS_DIR}migration_addresses.json
-}
-
 check_working_dir()
 {
     echo "check_working_dir() starts ..."
@@ -390,9 +346,7 @@ bootstrap()
         echo "SKIP: build binaries (SKIP_BUILD=$SKIP_BUILD)"
     fi
     generate_pulsar_keys
-    generate_root_member_keys
     generate_insolard_configs
-    generate_migration_addresses
 
     echo "start bootstrap ..."
     CMD="${INSOLAR_CLI} bootstrap --config=${BOOTSTRAP_CONFIG} --certificates-out-dir=${DISCOVERY_NODES_DATA}certs"
