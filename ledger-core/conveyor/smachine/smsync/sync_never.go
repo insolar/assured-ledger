@@ -17,7 +17,7 @@ func NewInfiniteLock(name string) smachine.SyncLink {
 
 type infiniteLock struct {
 	name  string
-	count int32 //atomic
+	count int32 // atomic
 }
 
 func (p *infiniteLock) CheckState() smachine.BoolDecision {
