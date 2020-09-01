@@ -30,6 +30,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object/preservedstatereport"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/validation"
 )
 
 type State int32
@@ -71,6 +72,8 @@ type Info struct {
 	OrderedPendingEarliestPulse   pulse.Number
 
 	objectState State
+
+	Transcript validation.Transcript
 }
 
 func (i *Info) IsReady() bool {
@@ -193,6 +196,7 @@ func NewStateMachineObject(objectReference reference.Global) *SMObject {
 				Reference:     objectReference,
 				KnownRequests: callregistry.NewWorkingTable(),
 				PendingTable:  callregistry.NewRequestTable(),
+				Transcript:    validation.NewTranscript(),
 			},
 		},
 	}
