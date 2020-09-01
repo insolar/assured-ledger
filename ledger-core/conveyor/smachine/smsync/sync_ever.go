@@ -7,6 +7,7 @@ package smsync
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 func NewAlwaysOpen(name string) smachine.SyncLink {
@@ -39,7 +40,7 @@ func (p *openLock) GetLimit() (limit int, isAdjustable bool) {
 }
 
 func (p *openLock) AdjustLimit(int, bool) ([]smachine.StepLink, bool) {
-	panic("illegal state")
+	panic(throw.IllegalState())
 }
 
 func (p *openLock) GetCounts() (active, inactive int) {
