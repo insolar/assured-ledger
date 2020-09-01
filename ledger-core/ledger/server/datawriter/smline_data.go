@@ -24,6 +24,7 @@ type LineKey reference.Global
 type LineSharedData struct {
 	lineRef reference.Global
 	limiter smsync.SemaphoreLink
+	activeSync smsync.BoolConditionalLink
 
 	ready   bool
 	valid   bool
@@ -45,8 +46,17 @@ func (p *LineSharedData) GetLimiter() smachine.SyncLink {
 }
 
 func (p *LineSharedData) GetActiveSync() smachine.SyncLink {
-	return p.limiter.SyncLink()
+	return p.activeSync.SyncLink()
+
+	// switch {
+	// case !p.ready:
+	// 	return p.activeSync.SyncLink()
+	// case !p.activeSync.IsZero():
+	// 	p.activeSync = smsync.BoolConditionalLink{}
+	// }
+	// return
 }
+
 
 func (p *LineSharedData) ensureDataAccess() {
 	p.ensureAccess()
@@ -166,7 +176,7 @@ func (p *LineSharedData) IsValid() bool {
 
 func (p *LineSharedData) enableAccess() smachine.SyncAdjustment {
 	p.ready = true
-	return p.limiter.NewValue(1)
+	return p.limiter.NewValue(1).MergeWith(p.activeSync.NewValue(true))
 }
 
 func (p *LineSharedData) disableAccess() {

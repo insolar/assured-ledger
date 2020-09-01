@@ -7,6 +7,9 @@ package smachine
 
 import (
 	"fmt"
+	"strings"
+
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type SynchronizationContext interface {
@@ -65,7 +68,7 @@ type minimalSynchronizationContext interface {
 
 func NewSyncLink(controller DependencyController) SyncLink {
 	if controller == nil {
-		panic("illegal value")
+		panic(throw.IllegalValue())
 	}
 	return SyncLink{controller}
 }
@@ -141,7 +144,7 @@ func (v SyncLink) String() string {
 
 func NewSyncAdjustment(controller DependencyController, adjustment int, isAbsolute bool) SyncAdjustment {
 	if controller == nil {
-		panic("illegal value")
+		panic(throw.IllegalValue())
 	}
 	return SyncAdjustment{controller, adjustment, isAbsolute}
 }
@@ -160,7 +163,46 @@ func (v SyncAdjustment) IsEmpty() bool {
 	return v.controller == nil || !v.isAbsolute && v.adjustment == 0
 }
 
+func (v SyncAdjustment) MergeWith(u ...SyncAdjustment) SyncAdjustment {
+	if v.controller == nil {
+		panic(throw.IllegalState())
+	}
+
+	total := 0
+	for _, adj := range u {
+		if adj.IsZero() {
+			panic(throw.IllegalValue())
+		}
+		if ma, ok := adj.controller.(mergedAdjustments); ok {
+			total += len(ma.adjustments)
+		} else {
+			total++
+		}
+	}
+
+	if total == 0 {
+		return v
+	}
+
+	tma := mergedAdjustments{ make([]SyncAdjustment, 1, 1 + total) }
+	tma.adjustments[0] = v
+
+	for _, adj := range u {
+		if ma, ok := adj.controller.(mergedAdjustments); ok {
+			tma.adjustments = append(tma.adjustments, ma.adjustments...)
+		} else {
+			tma.adjustments = append(tma.adjustments, adj)
+		}
+	}
+
+	return SyncAdjustment{ tma, 0, false }
+}
+
 func (v SyncAdjustment) String() string {
+	if _, ok := v.controller.(mergedAdjustments); ok {
+		return v.controller.GetName()
+	}
+
 	name := SyncLink{v.controller}.String()
 	switch {
 	case v.isAbsolute:
@@ -219,3 +261,44 @@ type DependencyController interface {
 
 	EnumQueues(EnumQueueFunc) bool
 }
+
+/****************************************/
+
+var _ DependencyController = mergedAdjustments{}
+// mergedAdjustments is a stub controller to merge multiple adjustments
+type mergedAdjustments struct {
+	adjustments []SyncAdjustment
+}
+
+func (v mergedAdjustments) AdjustLimit(int, bool) (deps []StepLink, activate bool) {
+	for _, adj := range v.adjustments {
+		switch adjDeps, adjAct := adj.controller.AdjustLimit(adj.adjustment, adj.isAbsolute); {
+		case adjAct:
+			activate = true
+			deps = append(deps, adjDeps...)
+		case len(adjDeps) > 0:
+			panic(throw.Impossible())
+		}
+	}
+	return
+}
+
+func (v mergedAdjustments) GetName() string {
+	sb := strings.Builder{}
+	for i, adj := range v.adjustments {
+		if i > 0 {
+			sb.WriteString(", ")
+		}
+		sb.WriteString(adj.String())
+	}
+	return sb.String()
+}
+
+func (v mergedAdjustments) CheckState() BoolDecision { panic(throw.Unsupported()) }
+func (v mergedAdjustments) CreateDependency(SlotLink, SlotDependencyFlags) (BoolDecision, SlotDependency) { panic(throw.Unsupported()) }
+func (v mergedAdjustments) UseDependency(SlotDependency, SlotDependencyFlags) Decision { panic(throw.Unsupported()) }
+func (v mergedAdjustments) ReleaseDependency(dep SlotDependency) (bool, SlotDependency, []PostponedDependency, []StepLink) { panic(throw.Unsupported()) }
+func (v mergedAdjustments) GetLimit() (int, bool) { panic(throw.Unsupported()) }
+func (v mergedAdjustments) GetCounts() (int, int) { panic(throw.Unsupported()) }
+func (v mergedAdjustments) EnumQueues(queueFunc EnumQueueFunc) bool { panic(throw.Unsupported()) }
+
