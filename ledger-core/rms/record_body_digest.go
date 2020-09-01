@@ -14,49 +14,59 @@ import (
 
 const maxExtensionCount = 0x7F
 
-type RecordBodyDigest struct {
+type RecordBodyDigests struct {
 	digests  []cryptkit.Digest
 }
 
-func (p RecordBodyDigest) MarshalText() (text []byte, err error) {
+func (p RecordBodyDigests) MarshalText() (text []byte, err error) {
 	return nil, nil
 }
 
-func (p *RecordBodyDigest) Reset() {
-	*p = RecordBodyDigest{}
+func (p *RecordBodyDigests) Reset() {
+	*p = RecordBodyDigests{}
 }
 
-func (p *RecordBodyDigest) isEmpty() bool {
+func (p *RecordBodyDigests) IsEmpty() bool {
 	return len(p.digests) == 0
 }
 
-func (p *RecordBodyDigest) HasPayloadDigest() bool {
-	return len(p.digests) > 0
-}
-
-func (p *RecordBodyDigest) GetExtensionDigestCount() int {
-	if n := len(p.digests); n > 1 {
-		return n - 1
+func (p *RecordBodyDigests) GetDigest(index int) cryptkit.Digest {
+	if n := len(p.digests); n <= index || index < 0 {
+		return cryptkit.Digest{}
 	}
-	return 0
+	return p.digests[index]
 }
 
-func (p *RecordBodyDigest) ProtoSize() int {
+func (p *RecordBodyDigests) AddDigest(d0 cryptkit.Digest) {
+	switch n := len(p.digests); {
+	case n >= maxExtensionCount:
+		panic(throw.IllegalState())
+	case n != 0	&& d0.IsEmpty():
+		panic(throw.IllegalValue())
+	}
+	p.digests = append(p.digests, d0)
+}
+
+func (p *RecordBodyDigests) Count() int {
+	return len(p.digests)
+}
+
+func (p *RecordBodyDigests) ProtoSize() int {
 	return protokit.BinaryProtoSize(p.rawProtoSize())
 }
 
-func (p *RecordBodyDigest) rawProtoSize() int {
+func (p *RecordBodyDigests) rawProtoSize() int {
 	if n := len(p.digests); n > 0 {
 		return 1 + n * p.digests[0].FixedByteSize()
 	}
 	return 0
 }
 
-func (p *RecordBodyDigest) MarshalTo(b []byte) (int, error) {
+func (p *RecordBodyDigests) MarshalTo(b []byte) (int, error) {
 	return protokit.BinaryMarshalTo(b, p._marshal)
 }
 
-func (p *RecordBodyDigest) _marshal(b []byte) (int, error) {
+func (p *RecordBodyDigests) _marshal(b []byte) (int, error) {
 	n := len(p.digests)
 	switch {
 	case n == 0:
@@ -72,14 +82,14 @@ func (p *RecordBodyDigest) _marshal(b []byte) (int, error) {
 	return n, nil
 }
 
-func (p *RecordBodyDigest) MarshalToSizedBuffer(b []byte) (int, error) {
+func (p *RecordBodyDigests) MarshalToSizedBuffer(b []byte) (int, error) {
 	return protokit.BinaryMarshalToSizedBuffer(b, func(b []byte) (int, error) {
 		n := p.rawProtoSize()
 		return p._marshal(b[len(b)-n:])
 	})
 }
 
-func (p *RecordBodyDigest) Unmarshal(b []byte) error {
+func (p *RecordBodyDigests) Unmarshal(b []byte) error {
 	return protokit.BinaryUnmarshal(b, func(b []byte) error {
 		n := len(b)
 		if n == 0 {
@@ -113,18 +123,7 @@ func (p *RecordBodyDigest) Unmarshal(b []byte) error {
 	})
 }
 
-func (p *RecordBodyDigest) GetRecordPayloads() RecordPayloads {
-	return RecordPayloads{}
-}
-
-func (p *RecordBodyDigest) SetRecordPayloads(rp RecordPayloads, _ cryptkit.DataDigester) error {
-	if len(rp.payloads) != 0 {
-		return throw.FailHere("payload(s) not allowed")
-	}
-	return nil
-}
-
-func (p *RecordBodyDigest) Equal(o *RecordBodyDigest) bool {
+func (p *RecordBodyDigests) Equal(o *RecordBodyDigests) bool {
 	switch {
 	case p == o:
 		return true
@@ -141,4 +140,35 @@ func (p *RecordBodyDigest) Equal(o *RecordBodyDigest) bool {
 		}
 	}
 	return true
+}
+
+func (p *RecordBodyDigests) VerifyDigest(index int, data RawBinary, digester cryptkit.DataDigester) error {
+	return verifyBodyDigest(p.GetDigest(index), data, digester)
+}
+
+func verifyBodyDigest(d0 cryptkit.Digest, data RawBinary, digester cryptkit.DataDigester) error {
+	switch {
+	case digester == nil:
+		switch {
+		case !data.IsEmpty():
+			panic(throw.IllegalValue())
+		case d0.IsEmpty():
+			return nil
+		}
+	case !d0.IsEmpty():
+		hasher := digester.NewHasher()
+		_, _ = data.WriteTo(hasher)
+		d1 := hasher.SumToDigest()
+
+		if m0 := d0.GetDigestMethod(); m0 != "" && m0 == d1.GetDigestMethod() {
+			return throw.E("digest method mismatched", struct{ M0, M1 cryptkit.DigestMethod }{m0, d1.GetDigestMethod()})
+		}
+		if longbits.Equal(d0, d1) {
+			return nil
+		}
+		return throw.E("digest mismatched", struct{ D0, D1 cryptkit.Digest }{d0, d1})
+	case data.IsEmpty():
+		return nil
+	}
+	return throw.E("digest unmatched", struct{ D0 cryptkit.Digest }{d0})
 }

@@ -7,7 +7,6 @@ package rms
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
-	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/protokit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -16,7 +15,7 @@ var _ GoGoSerializableWithText = &RecordBody{}
 
 
 type RecordBody struct {
-	rbd      RecordBodyDigest
+	rbd      RecordBodyDigests
 	digester cryptkit.DataDigester
 	payloads []RawBinary
 }
@@ -41,7 +40,7 @@ func (p *RecordBody) HasPayload() bool {
 }
 
 func (p *RecordBody) HasPayloadDigest() bool {
-	return p.rbd.HasPayloadDigest()
+	return !p.rbd.IsEmpty()
 }
 
 func (p *RecordBody) SetPayload(body RawBinary) {
@@ -71,7 +70,10 @@ func (p *RecordBody) GetExtensionPayloadCount() int {
 }
 
 func (p *RecordBody) GetExtensionDigestCount() int {
-	return p.rbd.GetExtensionDigestCount()
+	if n := p.rbd.Count(); n > 1 {
+		return n - 1
+	}
+	return 0
 }
 
 func (p *RecordBody) AddExtensionPayload(body RawBinary) {
@@ -178,22 +180,22 @@ func (p *RecordBody) _rawEstimateSize() int {
 
 func (p *RecordBody) _rawPreparedSize() int {
 	p.prepare()
-	n := 0
-	switch len(p.rbd.digests) {
+	size := 0
+	switch p.rbd.Count() {
 	case 1:
 		// body can be empty, hence first digest can be 0
-		n = p.rbd.digests[0].FixedByteSize()
-		if n == 0 {
+		size = p.rbd.digests[0].FixedByteSize()
+		if size == 0 {
 			return 0
 		}
 	case 0:
 		return 0
 	default:
 		// extensions can only exists with a body
-		n = len(p.rbd.digests) * p.digester.GetDigestSize()
+		size = p.rbd.Count() * p.digester.GetDigestSize()
 	}
-	n++ // 1 byte for count
-	return n
+	size++ // 1 byte for count
+	return size
 }
 
 func (p *RecordBody) MarshalTo(b []byte) (int, error) {
@@ -215,25 +217,22 @@ func (p *RecordBody) Unmarshal(b []byte) error {
 }
 
 func (p *RecordBody) VerifyAnyPayload(index int, data RawBinary) (err error) {
-	if len(p.rbd.digests) == 0 && index == -1 {
-		return p.verifyPayload(cryptkit.Digest{}, data)
-	}
-	return p.verifyPayload(p.rbd.digests[index+1], data)
+	return p.rbd.VerifyDigest(index+1, data, p.digester)
 }
 
 func (p *RecordBody) PostUnmarshalVerifyAndAdd(data RawBinary) (err error) {
 	n := len(p.payloads)
 	switch {
-	case len(p.rbd.digests) == 0:
+	case p.rbd.IsEmpty():
 		if n == 0 {
-			err = p.verifyPayload(cryptkit.Digest{}, data)
+			err = p.rbd.VerifyDigest(0, data, p.digester)
 			break
 		}
 		fallthrough
 	case len(p.rbd.digests) <= n:
 		return throw.FailHere("too many payloads")
 	default:
-		err = p.verifyPayload(p.rbd.digests[n], data)
+		err = p.rbd.VerifyDigest(n, data, p.digester)
 	}
 
 	if err != nil {
@@ -245,38 +244,16 @@ func (p *RecordBody) PostUnmarshalVerifyAndAdd(data RawBinary) (err error) {
 }
 
 func (p *RecordBody) IsPostUnmarshalCompleted() bool {
-	n := len(p.rbd.digests)
-	if n > 0 {
+	if n := p.rbd.Count(); n > 0 {
 		return len(p.payloads) == n
 	}
-	return len(p.payloads) == 0 || p.payloads[0].IsZero()
-}
-
-func (p *RecordBody) verifyPayload(d0 cryptkit.Digest, data RawBinary) error {
-	switch {
-	case p.digester == nil:
-		switch {
-		case !data.IsEmpty():
-			panic(throw.IllegalValue())
-		case d0.IsEmpty():
-			return nil
-		}
-	case !d0.IsEmpty():
-		hasher := p.digester.NewHasher()
-		_, _ = data.WriteTo(hasher)
-		d1 := hasher.SumToDigest()
-
-		if m0 := d0.GetDigestMethod(); m0 != "" && m0 == d1.GetDigestMethod() {
-			return throw.E("digest method mismatched", struct{ M0, M1 cryptkit.DigestMethod }{m0, d1.GetDigestMethod()})
-		}
-		if longbits.Equal(d0, d1) {
-			return nil
-		}
-		return throw.E("digest mismatched", struct{ D0, D1 cryptkit.Digest }{d0, d1})
-	case data.IsEmpty():
-		return nil
+	switch len(p.payloads) {
+	case 0:
+		return true
+	case 1:
+		return p.payloads[0].IsZero()
 	}
-	return throw.E("digest unmatched", struct{ D0 cryptkit.Digest }{d0})
+	return false
 }
 
 func (p *RecordBody) Equal(o *RecordBody) bool {
