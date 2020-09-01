@@ -1,0 +1,156 @@
+@startuml
+
+package uniproto {
+ interface Receiver {
+       ReceiveSmallPacket(rp *ReceivedPacket, b []byte)
+       ReceiveLargePacket(rp *ReceivedPacket, preRead []byte, r io.LimitedReader) error
+    }
+
+    interface PeerManager  {
+    	ConnectPeer(nwapi.Address) (Peer, error)
+    	ConnectedPeer(nwapi.Address) (Peer, error)
+    	LocalPeer() Peer
+    }
+package message-delivery(l3) {
+    interface Service  {
+    	ShipTo(to DeliveryAddress, shipment Shipment) error
+    	ShipReturn(to ReturnAddress, shipment Shipment) error
+    	PullBody(from ReturnAddress, shipmentRq ShipmentRequest) error
+    	RejectBody(from ReturnAddress) error
+    }
+
+    packetReceiver --|> Receiver
+    facade --|> Service
+    facade *-- Controller
+    Controller *-- packetReceiver
+
+
+    class Controller{
+    receiver packetReceiver
+    sender   msgSender
+    stater     stateSender
+
+    SetConfig(c Config)
+    }
+    class DeliveryPeer{
+        ctl      *Controller
+    	dedup receiveDeduplicator
+    	prepared StatePacket
+    	peer     uniproto.Peer
+    }
+
+    DeliveryPeer ..> Controller
+
+    class facade {
+    ctl *Controller
+    }
+
+    class packetReceiver{
+    ctl *Controller
+    }
+
+    class Config{
+        MessageSender: SenderConfig
+        StateSender: SenderConfig
+    }
+    class SenderConfig{
+        SenderWorkerConfig
+    }
+    class SenderWorkerConfig{
+    	ParallelWorkers
+    	ParallelPeersPerWorker
+    	MaxPostponedPerWorker
+    }
+
+
+    class msgSender{
+    }
+    Controller *-- msgSender
+    msgSender --|> RetryStrategy
+
+    class stateSender{
+    }
+
+    stateSender --|> RetryStrategy
+    Controller *-- stateSender
+
+    class protoStarter{
+    	ctl   *Controller
+    	state atomickit.StartStopFlag
+    	peers uniproto.PeerManager
+    }
+
+    Controller *-- protoStarter
+
+    PeerManager ..> protoStarter
+
+    class ParcelPacket
+    class StatePacket{
+    	BodyRqList []ShortShipmentID
+    	BodyAckList []ShortShipmentID
+    	RejectList []ShortShipmentID
+    	AckList []ShortShipmentID
+    }
+
+    DeliveryPeer *-- StatePacket
+
+    class Shipment{
+        Head   nwapi.SizeAwareSerializer
+    	Body   nwapi.SizeAwareSerializer
+    	Cancel *synckit.ChainedCancel
+    }
+    class ShipmentRequest{
+        ReceiveFn ReceiverFunc
+    	Cancel    *synckit.ChainedCancel
+    }
+
+    Shipment ..> Service
+    ShipmentRequest ..> Service
+
+    class msgShipment{
+    	returnID ShortShipmentID
+    	shipment Shipment
+
+    	peer *DeliveryPeer
+    }
+
+    msgShipment *-- Shipment
+
+    class rqShipment{
+    peer    *DeliveryPeer
+    request ShipmentRequest
+    }
+
+    rqShipment *-- ShipmentRequest
+
+    class DeliveryAddress
+    DeliveryAddress ..> Service
+    class ReturnAddress
+    ReturnAddress ..> Service
+
+    interface RetryStrategy{
+    	Retry(ids []RetryID, repeatFn func(RetryID))
+    	CheckState(RetryID) RetryState
+    	Remove([]RetryID)
+    }
+
+    Config ..> Controller
+    Config *-- SenderConfig
+    SenderConfig *-- SenderWorkerConfig
+    msgShipment ..> Controller
+    rqShipment ..> Controller
+
+
+    class StagedController {
+    	batchHeads batch
+    	stages     [RetryStages]retryStage
+
+    	minHeadBatchWeight uint
+    }
+
+    stateSender *-- StagedController
+    msgSender *-- StagedController
+
+    StagedController ..> RetryStrategy
+}
+@enduml
