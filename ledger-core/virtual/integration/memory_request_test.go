@@ -68,13 +68,15 @@ func TestVirtual_VCachedMemoryRequestHandler(t *testing.T) {
 
 			cases.precondition(suite, ctx, t)
 
-			var stateRef payload.Reference
+			syncChan := make(chan payload.Reference, 1)
+			defer close(syncChan)
 
 			suite.server.IncrementPulse(ctx)
 			suite.typedChecker.VStateReport.Set(func(rep *payload.VStateReport) bool {
-				stateRef = rep.LatestValidatedState
+				syncChan <- rep.LatestValidatedState
 				return false // no resend msg
 			})
+			commonTestUtils.WaitSignalsTimed(t, 10*time.Second, suite.typedChecker.VStateReport.Wait(ctx, 1))
 
 			suite.typedChecker.VCachedMemoryResponse.Set(func(resp *payload.VCachedMemoryResponse) bool {
 				require.Equal(t, suite.object, resp.Object)
@@ -82,8 +84,15 @@ func TestVirtual_VCachedMemoryRequestHandler(t *testing.T) {
 				return false
 			})
 
-			executeDone := suite.server.Journal.WaitStopOf(&handlers.SMVCachedMemoryRequest{}, 1)
+			var stateRef payload.Reference
 
+			select {
+			case stateRef = <-syncChan:
+			case <-time.After(10 * time.Second):
+				require.FailNow(t, "timeout")
+			}
+
+			executeDone := suite.server.Journal.WaitStopOf(&handlers.SMVCachedMemoryRequest{}, 1)
 			{
 				cachReq := &payload.VCachedMemoryRequest{
 					Object:  suite.object,
