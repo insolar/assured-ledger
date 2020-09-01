@@ -40,6 +40,7 @@ func NewMemoryStorageWriter(maxSection ledger.SectionID, pageSize int) *MemorySt
 		s.chapters = [][]byte{ make([]byte, 0, pageSize) }
 
 		if s.sectionID <= ledger.DefaultDustSection {
+			s.hasDir = true
 			s.directory = [][]directoryEntry{make([]directoryEntry, 1, dirSize) } // ordinal==0 is reserved
 		}
 	}
@@ -106,24 +107,45 @@ func (p *MemoryStorageWriter) DirtyReader() bundle.DirtyReader {
 	return p
 }
 
-func (p *MemoryStorageWriter) getReadSection(id ledger.SectionID) *cabinetSection {
-	panic("implement me")
+func (p *MemoryStorageWriter) getDirtyReadSection(sectionID ledger.SectionID) *cabinetSection {
+	if err := p.checkReadable(); err != nil {
+		return nil
+	}
+	if int(sectionID) >= len(p.sections) {
+		return nil
+	}
+	s := &p.sections[sectionID]
+	if s.chapters == nil { // uninitialized/skipped section
+		return nil
+	}
+	return s
 }
 
 func (p *MemoryStorageWriter) GetDirectoryEntry(index ledger.DirectoryIndex) (reference.Holder, ledger.StorageLocator) {
-	section := p.getReadSection(index.SectionID())
-	if section == nil {
-		return nil, 0
+	switch section := p.getDirtyReadSection(index.SectionID()); {
+	case section == nil:
+	case !section.hasDirectory():
+	default:
+		return section.readDirtyEntry(index)
 	}
-	panic("implement me")
+	return nil, 0
 }
 
 func (p *MemoryStorageWriter) GetEntryStorage(locator ledger.StorageLocator) []byte {
-	panic("implement me")
+	switch section := p.getDirtyReadSection(locator.SectionID()); {
+	case section == nil:
+	case !section.hasDirectory():
+	default:
+		return section.readDirtyStorage(locator)
+	}
+	return nil
 }
 
 func (p *MemoryStorageWriter) GetPayloadStorage(locator ledger.StorageLocator) []byte {
-	panic("implement me")
+	if section := p.getDirtyReadSection(locator.SectionID()); section != nil {
+		return section.readDirtyStorage(locator)
+	}
+	return nil
 }
 
 
@@ -232,19 +254,19 @@ func (p *sectionSnapshot) AllocatePayloadStorage(size int, extID ledger.Extensio
 /*********************************/
 
 type cabinetSection struct {
-	sectionID    ledger.SectionID
-	// mutex allows
-	mutex        sync.RWMutex
+	// set at construction
 
+	sectionID ledger.SectionID
+	hasDir     bool // must correlate with directory
+
+	// mutex allows
+	mutex     sync.RWMutex
 	chapters  [][]byte
 	directory [][]directoryEntry
 }
 
 func (p *cabinetSection) hasDirectory() bool {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-
-	return len(p.directory) > 0
+	return p.hasDir
 }
 
 func (p *cabinetSection) getNextDirectoryIndex(snap *sectionSnapshot) ledger.DirectoryIndex {
@@ -402,6 +424,53 @@ func (p *cabinetSection) _rollbackDir(dirIndex int) bool {
 	}
 	p.directory[page] = dirPage[:ofs]
 	return true
+}
+
+func (p *cabinetSection) readDirtyEntry(index ledger.DirectoryIndex) (reference.Holder, ledger.StorageLocator) {
+	p.mutex.RLock()
+	defer p.mutex.RUnlock()
+
+	n := len(p.directory)
+	switch {
+	case n == 0:
+		panic(throw.IllegalState())
+	case index.SectionID() != p.sectionID:
+		panic(throw.IllegalValue())
+	}
+
+	defCap := cap(p.directory[0])
+
+	pgN := int(index.Ordinal()) / defCap
+	if pgN >= n {
+		return nil, 0
+	}
+	pg := p.directory[pgN]
+
+	idx := int(index.Ordinal()) % defCap
+	if idx >= len(pg) {
+		return nil, 0
+	}
+	pgE := &pg[idx]
+
+	return pgE.key, pgE.entryLoc
+}
+
+func (p *cabinetSection) readDirtyStorage(locator ledger.StorageLocator) []byte {
+	p.mutex.RLock()
+	defer p.mutex.RUnlock()
+
+	chapterID := locator.ChapterID()
+	if chapterID == 0 || int(chapterID) > len(p.chapters) {
+		return nil
+	}
+
+	chapter := p.chapters[chapterID - 1]
+	chapterOfs := locator.ChapterOffset()
+	if int(chapterOfs) >= len(chapter) {
+		return nil
+	}
+
+	return chapter[chapterOfs:]
 }
 
 /*********************************/
