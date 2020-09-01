@@ -22,7 +22,7 @@ type SMPlash struct {
 
 	// injected
 	pulseSlot  *conveyor.PulseSlot
-	builderSvc buildersvc.Adapter
+	builderSvc buildersvc.WriteAdapter
 	cataloger  DropCataloger
 	treeSvc    treesvc.Service
 

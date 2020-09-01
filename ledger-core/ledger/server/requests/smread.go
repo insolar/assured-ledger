@@ -8,6 +8,8 @@ package requests
 import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/datareader"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/datawriter"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -25,11 +27,12 @@ type SMRead struct {
 	request *rms.LReadRequest
 
 	// injected
-	pulseSlot  *conveyor.PulseSlot
-	cataloger  datawriter.LineCataloger
+	pulseSlot *conveyor.PulseSlot
+	cataloger datawriter.LineCataloger
 
 	// runtime
-	sdl          datawriter.LineDataLink
+	sdl         datawriter.LineDataLink
+	extractor   datareader.SequenceExtractor
 }
 
 func (p *SMRead) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
@@ -46,6 +49,9 @@ func (p *SMRead) GetInitStateFor(smachine.StateMachine) smachine.InitFunc {
 }
 
 func (p *SMRead) stepInit(ctx smachine.InitializationContext) smachine.StateUpdate {
+	ctx.SetDefaultMigration(p.migrateOnce)
+	ctx.SetDefaultErrorHandler(p.handleError)
+
 	switch ps := p.pulseSlot.State(); {
 	case p.request == nil:
 		return ctx.Error(throw.E("missing request"))
@@ -53,17 +59,18 @@ func (p *SMRead) stepInit(ctx smachine.InitializationContext) smachine.StateUpda
 		return ctx.Error(throw.E("missing target"))
 	case ps == conveyor.Antique:
 		panic(throw.NotImplemented()) // TODO alternative reader
-	case ps == conveyor.Present:
-		ctx.SetDefaultMigration(p.migratePresent)
-	default:
-		ctx.SetDefaultMigration(p.migratePast)
+	case p.request.Flags & (rms.ReadFlags_ExplicitRedirection|rms.ReadFlags_IgnoreRedirection) != 0:
+		panic(throw.NotImplemented())
 	}
-
-	ctx.SetDefaultErrorHandler(p.handleError)
 
 	if tpn := p.request.TargetRef.Get().GetLocal().Pulse(); tpn != p.pulseSlot.PulseNumber() {
 		return ctx.Error(throw.E("wrong target pulse", struct { TargetPN, SlotPN pulse.Number }{ tpn, p.pulseSlot.PulseNumber() }))
 	}
+
+	// p.request.LimitCount
+	// p.request.LimitSize
+	// p.request.LimitRef
+	// p.request.Flags
 
 	return ctx.Jump(p.stepFindLine)
 }
@@ -80,9 +87,9 @@ func (p *SMRead) stepFindLine(ctx smachine.ExecutionContext) smachine.StateUpdat
 		}
 	}
 
-	var limiter smachine.SyncLink
+	var activator smachine.SyncLink
 	switch p.sdl.TryAccess(ctx, func(sd *datawriter.LineSharedData) (wakeup bool) {
-		limiter = sd.GetActiveSync()
+		activator = sd.GetActiveSync()
 		return false
 	}) {
 	case smachine.Passed:
@@ -93,33 +100,33 @@ func (p *SMRead) stepFindLine(ctx smachine.ExecutionContext) smachine.StateUpdat
 		panic(throw.IllegalState())
 	}
 
-	if ctx.Acquire(limiter) {
+	if ctx.Acquire(activator) {
+		ctx.ReleaseAll()
 		return ctx.Jump(p.stepLineIsReady)
 	}
 
 	return ctx.Sleep().ThenJump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
-		if ctx.Acquire(limiter) {
+		if ctx.Acquire(activator) {
+			ctx.ReleaseAll()
 			return ctx.Jump(p.stepLineIsReady)
 		}
 		return ctx.Sleep().ThenRepeat()
 	})
-
 }
 
 func (p *SMRead) stepLineIsReady(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	ctx.ReleaseAll()
+	var future *buildersvc.Future
 
-	isValid := false
 	switch p.sdl.TryAccess(ctx, func(sd *datawriter.LineSharedData) (wakeup bool) {
 		if !sd.IsValid() {
 			return
 		}
-		isValid = true
 
 		sd.TrimStages()
-		// switch ok, idx, fut, rec := sd.FindWithTracker(); {
-		//
-		// }
+
+		normTargetRef := reference.NormCopy(p.request.TargetRef.Get())
+		_, future = sd.FindSequence(normTargetRef, p.extractor.AddRecord)
+
 		return false
 	}) {
 	case smachine.Passed:
@@ -130,26 +137,91 @@ func (p *SMRead) stepLineIsReady(ctx smachine.ExecutionContext) smachine.StateUp
 		panic(throw.IllegalState())
 	}
 
-	if !isValid {
-		return ctx.Jump(p.stepSendFinalResponse)
+	if future == nil {
+		return ctx.Jump(p.stepPrepareData)
 	}
 
-	return ctx.Error(throw.NotImplemented())
+	ready := future.GetReadySync()
+
+	if ctx.Acquire(ready) {
+		ctx.ReleaseAll()
+		return ctx.Jump(p.stepDataIsReady)
+	}
+
+	return ctx.Sleep().ThenJump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
+		if ctx.Acquire(ready) {
+			ctx.ReleaseAll()
+			return ctx.Jump(p.stepDataIsReady)
+		}
+		return ctx.Sleep().ThenRepeat()
+	})
 }
 
-func (p *SMRead) stepSendFinalResponse(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	return ctx.Error(throw.NotImplemented())
+func (p *SMRead) stepDataIsReady(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	switch p.sdl.TryAccess(ctx, func(sd *datawriter.LineSharedData) (wakeup bool) {
+		sd.TrimStages()
+
+		normTargetRef := reference.NormCopy(p.request.TargetRef.Get())
+		if _, future := sd.FindSequence(normTargetRef, p.extractor.AddRecord); future != nil {
+			panic(throw.Impossible())
+		}
+
+		return false
+	}) {
+	case smachine.Passed:
+		//
+	case smachine.NotPassed:
+		return ctx.WaitShared(p.sdl.SharedDataLink).ThenRepeat()
+	default:
+		panic(throw.IllegalState())
+	}
+
+	return ctx.Jump(p.stepPrepareData)
 }
 
-func (p *SMRead) migratePresent(ctx smachine.MigrationContext) smachine.StateUpdate {
-	return ctx.Error(throw.NotImplemented())
+func (p *SMRead) stepPrepareData(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	if p.extractor.NeedsDirtyReader() {
+		return ctx.Jump(p.stepPrepareDataWithReader)
+	}
+
+	if p.extractor.ExtractMoreRecords(100) {
+		return ctx.Repeat(100)
+	}
+
+	return ctx.Jump(p.stepSendResponse)
 }
 
-func (p *SMRead) migratePast(ctx smachine.MigrationContext) smachine.StateUpdate {
+func (p *SMRead) stepPrepareDataWithReader(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	return ctx.Error(throw.NotImplemented())
+	// TODO send adapter call
+	// return ctx.Sleep().ThenJump(p.stepSendResponse)
+}
+
+func (p *SMRead) stepSendResponse(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	response := &rms.LReadResponse{}
+
+	response.Entries = p.extractor.GetExtractRecords()
+
+	nextInfo := p.extractor.GetExtractedTail()
+	response.NextRecordSize = uint32(nextInfo.NextRecordSize)
+	response.NextRecordPayloadsSize = uint32(nextInfo.NextRecordPayloadsSize)
+
+	ctx.SetDefaultTerminationResult(response)
+
+	// TODO send response back
+
+	return ctx.Stop()
+}
+
+func (p *SMRead) migrateOnce(ctx smachine.MigrationContext) smachine.StateUpdate {
+	ctx.SetDefaultMigration(p.migrateTwice)
+	return ctx.Stay()
+}
+
+func (p *SMRead) migrateTwice(ctx smachine.MigrationContext) smachine.StateUpdate {
+	return ctx.Error(throw.E("expired"))
 }
 
 func (p *SMRead) handleError(ctx smachine.FailureContext) {
-
+	// TODO implement failure send
 }
-

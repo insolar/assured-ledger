@@ -8,7 +8,6 @@ package datawriter
 import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
-	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/catalog"
@@ -31,7 +30,7 @@ type LineSharedData struct {
 
 	jetDropID jet.DropID
 	resolver  lineage.DependencyResolver
-	adapter   buildersvc.Adapter
+	adapter   buildersvc.WriteAdapter
 
 	data *lineage.LineStages
 	deps DependencyTracker
@@ -46,17 +45,16 @@ func (p *LineSharedData) GetLimiter() smachine.SyncLink {
 }
 
 func (p *LineSharedData) GetActiveSync() smachine.SyncLink {
-	return p.activeSync.SyncLink()
-
-	// switch {
-	// case !p.ready:
-	// 	return p.activeSync.SyncLink()
-	// case !p.activeSync.IsZero():
-	// 	p.activeSync = smsync.BoolConditionalLink{}
-	// }
-	// return
+	switch {
+	case !p.ready:
+		return p.activeSync.SyncLink()
+	case !p.activeSync.IsZero():
+		p.activeSync = smsync.BoolConditionalLink{}
+	}
+	return everOpenSync
 }
 
+var everOpenSync = smsync.NewAlwaysOpen("SMLine.always-open")
 
 func (p *LineSharedData) ensureDataAccess() {
 	p.ensureAccess()
@@ -248,14 +246,14 @@ func (p *LineSharedData) CollectSignatures(set inspectsvc.InspectedRecordSet, ca
 
 	for i := range set.Records {
 		r := &set.Records[i]
-		switch ok, _, rec := p.data.Find(r.RecRef); {
+		switch ok, _, sig := p.data.FindRegistrarSignature(r.RecRef); {
 		case !ok:
 			if canBePartial {
 				return i
 			}
 			panic(throw.IllegalValue())
-		case !rec.RegistrarSignature.IsEmpty():
-			r.RegistrarSignature = rec.RegistrarSignature
+		case !sig.IsEmpty():
+			r.RegistrarSignature = sig
 		default:
 			panic(throw.Impossible())
 		}
@@ -264,15 +262,25 @@ func (p *LineSharedData) CollectSignatures(set inspectsvc.InspectedRecordSet, ca
 	return len(set.Records)
 }
 
-func (p *LineSharedData) FindWithTracker(ref reference.Holder) (bool, ledger.DirectoryIndex, *buildersvc.Future, lineage.Record) {
+func (p *LineSharedData) FindWithTracker(ref reference.Holder) (bool, *buildersvc.Future, lineage.ReadRecord) {
 	p.ensureDataAccess()
 
-	switch ok, dirIdx, tracker, rec := p.data.FindWithTracker(ref); {
+	switch ok, tracker, rec := p.data.FindWithTracker(ref); {
 	case !ok:
-		return false, 0, nil, lineage.Record{}
+		return false, nil, lineage.ReadRecord{}
 	case tracker != nil:
-		return true, 0, tracker.(*buildersvc.Future), rec
+		return true, tracker.(*buildersvc.Future), rec
 	default:
-		return true, dirIdx, nil, rec
+		return true, nil, rec
 	}
+}
+
+func (p *LineSharedData) FindSequence(ref reference.Holder, findFn func(record lineage.ReadRecord) bool) (bool, *buildersvc.Future) {
+	p.ensureDataAccess()
+
+	ok, fut := p.data.FindSequence(ref, findFn)
+	if fut == nil {
+		return ok, nil
+	}
+	return ok, fut.(*buildersvc.Future)
 }
