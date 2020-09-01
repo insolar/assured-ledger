@@ -45,13 +45,19 @@ type serviceImpl struct {
 }
 
 func (p *serviceImpl) InspectRecordSet(set RegisterRequestSet) (irs InspectedRecordSet, err error) {
+	if len(set.Requests) == 0 {
+		return
+	}
+
 	irs.Records = make([]lineage.Record, len(set.Requests))
-	for i, r := range set.Requests {
-		if i == 0 {
-			err = p.inspectRecord(r, &irs.Records[0], &set.Excerpt)
-		} else {
-			err = p.inspectRecord(r, &irs.Records[i], nil)
-		}
+
+	if err = p.inspectRecord(set.Requests[0], &irs.Records[0], &set.Excerpt, nil); err != nil {
+		return InspectedRecordSet{}, err
+	}
+	producer := set.Requests[0].ProducedBy.Get()
+
+	for i := 1; i < len(set.Requests); i++ {
+		err = p.inspectRecord(set.Requests[i], &irs.Records[i], nil, producer)
 		if err != nil {
 			return InspectedRecordSet{}, err
 		}
@@ -60,13 +66,15 @@ func (p *serviceImpl) InspectRecordSet(set RegisterRequestSet) (irs InspectedRec
 }
 
 //nolint
-func (p *serviceImpl) inspectRecord(req *rms.LRegisterRequest, rec *lineage.Record, exr *catalog.Excerpt) error {
+func (p *serviceImpl) inspectRecord(req *rms.LRegisterRequest, rec *lineage.Record, exr *catalog.Excerpt, producer reference.Holder) error {
 	switch {
 	case req == nil:
 		return throw.E("nil message")
 	case req.AnticipatedRef.IsEmpty():
 		return throw.E("empty record ref")
-	case req.ProducedBy.IsEmpty():
+	case !req.ProducedBy.IsEmpty():
+		producer = req.ProducedBy.Get()
+	case producer == nil:
 		return throw.E("empty producer")
 	}
 
@@ -75,7 +83,7 @@ func (p *serviceImpl) inspectRecord(req *rms.LRegisterRequest, rec *lineage.Reco
 		return throw.E("lazy record is required")
 	}
 
-	sv := p.getProducerSignatureVerifier(req.ProducedBy.Get())
+	sv := p.getProducerSignatureVerifier(producer)
 	if sv == nil {
 		return throw.E("unknown producer")
 	}
