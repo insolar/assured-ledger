@@ -204,7 +204,16 @@ func (p *DeliveryPeer) sendParcel(msg *msgShipment, isBody, isRepeated bool) {
 }
 
 func (p *DeliveryPeer) sendLargeParcel(msg *msgShipment, isRepeated bool) {
-	packet := ParcelPacket{ParcelID: msg.id.ShortID(), ReturnID: msg.returnID, RepeatedSend: isRepeated, ParcelType: nwapi.CompletePayload}
+	_, pn := p.ctl.getPulseCycle()
+	//TODO how to correct calculate pn?
+	packet := ParcelPacket{
+		PulseNumber:  pn,
+		ParcelID:     msg.id.ShortID(),
+		ReturnID:     msg.returnID,
+		RepeatedSend: isRepeated,
+		ParcelType:   nwapi.CompletePayload,
+	}
+
 	packet.Data = msg.shipment.Body
 
 	p._sendParcel(uniproto.SessionfulLarge, packet, msg.canSendBody)

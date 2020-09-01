@@ -54,6 +54,8 @@ func (p *stateSender) init(oobQueue, jobQueue int) {
 	p.oob = make(chan rqShipment, oobQueue)
 	p.states = make(chan stateJob, oobQueue)
 	p.jobs = make(chan retryJob, jobQueue)
+	p.requests = make(map[ShipmentID]rqShipment)
+	p.suspends = make(map[ShipmentID]struct{})
 }
 
 func (p *stateSender) Add(rq rqShipment) error {
