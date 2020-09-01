@@ -38,43 +38,61 @@ import (
 )
 
 func TestVirtual_Constructor_BadClassRef(t *testing.T) {
-	defer commontestutils.LeakTester(t)
 	insrail.LogCase(t, "C5030")
 
-	var (
-		mc = minimock.NewController(t)
-	)
-
-	server, ctx := utils.NewServer(nil, t)
-	defer server.Stop()
-
-	utils.AssertNotJumpToStep(t, server.Journal, "stepTakeLock")
-
-	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
-
-	expectedError, err := foundation.MarshalMethodErrorResult(errors.New("bad class reference"))
-	require.NoError(t, err)
-
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-
-	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
-		require.Equal(t, expectedError, res.ReturnArguments)
-
-		return false // no resend msg
-	})
-
-	{
-		pl := utils.GenerateVCallRequestConstructor(server)
-
-		server.SendPayload(ctx, pl)
+	table := []struct {
+		name         string
+		randomCallee bool
+	}{
+		// {"Callee is empty", false},
+		{"Callee is randomRef", true},
 	}
 
-	commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
-	commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+	for _, test := range table {
+		t.Run(test.name, func(t *testing.T) {
+			defer commontestutils.LeakTester(t)
 
-	assert.Equal(t, 1, typedChecker.VCallResult.Count())
+			var (
+				mc     = minimock.NewController(t)
+				callee payload.Reference
+			)
 
-	mc.Finish()
+			server, ctx := utils.NewServer(nil, t)
+			defer server.Stop()
+
+			utils.AssertNotJumpToStep(t, server.Journal, "stepTakeLock")
+
+			executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
+
+			expectedError, err := foundation.MarshalMethodErrorResult(errors.New("bad class reference"))
+			require.NoError(t, err)
+
+			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+
+			typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
+				require.Equal(t, expectedError, res.ReturnArguments)
+
+				return false // no resend msg
+			})
+
+			if test.randomCallee {
+				callee = server.RandomGlobalWithPulse()
+			}
+
+			{
+				pl := utils.GenerateVCallRequestConstructor(server)
+				pl.Callee = callee
+
+				server.SendPayload(ctx, pl)
+				commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+				commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+			}
+
+			assert.Equal(t, 1, typedChecker.VCallResult.Count())
+
+			mc.Finish()
+		})
+	}
 }
 
 func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
