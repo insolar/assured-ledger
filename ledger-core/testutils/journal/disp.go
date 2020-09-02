@@ -60,8 +60,10 @@ func (p *Dispenser) Subscribe(outFn predicate.SubscriberFunc) {
 
 // EnsureSubscription should be used after Subscribe to guarantee that there is no unprocessed events.
 // LOCK! Will cause deadlock when invoked inside an event handler.
+//nolint:staticcheck
 func (p *Dispenser) EnsureSubscription() {
 	p.eventLock.Lock()
+	// empty section is intentional
 	p.eventLock.Unlock()
 }
 
