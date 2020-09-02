@@ -6,6 +6,7 @@
 package memorycache
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -103,4 +104,35 @@ func TestLRUMemoryCache(t *testing.T) {
 			assert.False(t, mCache.Contains(key2))
 		})
 	}
+}
+
+func TestLRUMemoryCache_Concurrent(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+
+	mCache := NewMemoryCache(cacheStrategy{pgSize: 2, maxTotal: 5, trimEach: true})
+	wg := sync.WaitGroup{}
+
+	action := func(key reference.Global) {
+		defer wg.Done()
+		var (
+			value1 = descriptor.NewObject(reference.Global{}, reference.Local{}, reference.Global{}, []byte("value 1"), false)
+			value2 = descriptor.NewObject(reference.Global{}, reference.Local{}, reference.Global{}, []byte("value 2"), false)
+		)
+
+		assert.True(t, mCache.Put(key, value1))
+		assert.False(t, mCache.Replace(key, value2))
+		_, ok := mCache.Get(key)
+		assert.True(t, ok)
+		assert.Greater(t, mCache.Occupied(), 0)
+		assert.Greater(t, mCache.Allocated(), 0)
+		assert.True(t, mCache.Delete(key))
+	}
+
+	keys := gen.UniqueGlobalRefs(5)
+	for _, key := range keys {
+		wg.Add(1)
+		go action(key)
+	}
+
+	wg.Wait()
 }

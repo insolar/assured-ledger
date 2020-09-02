@@ -29,7 +29,7 @@ func NewMemoryCache(cs cachekit.Strategy) *LRUMemoryCache {
 }
 
 type LRUMemoryCache struct {
-	mutex  sync.Mutex
+	mutex  sync.RWMutex
 	core   cachekit.Core
 	keys   map[Key]cachekit.Index
 	values [][]valueEntry
@@ -43,16 +43,16 @@ type valueEntry struct {
 // Allocated returns a total number of cache entries allocated, but some of them may be unused.
 // NB! Cache can only grow.
 func (p *LRUMemoryCache) Allocated() int {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
+	p.mutex.RLock()
+	defer p.mutex.RUnlock()
 
 	return len(p.values) * cap(p.values[0])
 }
 
 // Occupied returns a number of added / available cache entries.
 func (p *LRUMemoryCache) Occupied() int {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
+	p.mutex.RLock()
+	defer p.mutex.RUnlock()
 
 	return len(p.keys)
 }
@@ -111,8 +111,8 @@ func (p *LRUMemoryCache) Get(key Key) (Value, bool) {
 // Peek returns value and presence flag for the given key.
 // Access to the key is not updated.
 func (p *LRUMemoryCache) Peek(key Key) (Value, bool) {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
+	p.mutex.RLock()
+	defer p.mutex.RUnlock()
 
 	idx, ok := p.keys[key]
 	if !ok {
@@ -125,8 +125,8 @@ func (p *LRUMemoryCache) Peek(key Key) (Value, bool) {
 // Contains returns (true) when the key is present.
 // Access to the key is not updated.
 func (p *LRUMemoryCache) Contains(key Key) bool {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
+	p.mutex.RLock()
+	defer p.mutex.RUnlock()
 
 	_, ok := p.keys[key]
 	return ok
