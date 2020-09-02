@@ -88,13 +88,6 @@ func (p *tlsTransportFactory) Close() error {
 	return nil
 }
 
-func (p *tlsTransportFactory) LocalAddr() nwapi.Address {
-	if p.listener != nil {
-		return nwapi.AsAddress(p.listener.Addr())
-	}
-	return nwapi.AsAddress(&p.addr)
-}
-
 func (p *tlsTransportFactory) ConnectTo(to nwapi.Address) (OneWayTransport, error) {
 	return p.ConnectToExt(to, nil)
 }
