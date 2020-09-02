@@ -12,6 +12,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/bundle"
@@ -132,8 +133,10 @@ func TestDropAssistAppendWithPulseChange(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	stateHash := make(chan cryptkit.Digest, 1)
-	pa.PreparePulseChange(stateHash)
+	stateHash := make(chan struct{})
+	pa.PreparePulseChange(func(conveyor.PreparedState) {
+		close(stateHash)
+	})
 	// we don't wait for pending bundles, as state hash is calculated before all pending bundles are released
 	<- stateHash
 	// nothing was added
@@ -212,8 +215,10 @@ func TestDropAssistAppendWithPulseCancel(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	stateHash := make(chan cryptkit.Digest, 1)
-	pa.PreparePulseChange(stateHash)
+	stateHash := make(chan struct{})
+	pa.PreparePulseChange(func(conveyor.PreparedState) {
+		close(stateHash)
+	})
 	// we don't wait for pending bundles, as state hash is calculated before all pending bundles are released
 	<- stateHash
 	// nothing was added

@@ -11,7 +11,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/sworker"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -224,15 +223,8 @@ func (p *PulseSlotMachine) stepPresentLoop(ctx smachine.ExecutionContext) smachi
 }
 
 // Conveyor direct barge-in
-func (p *PulseSlotMachine) preparePulseChange(ctx smachine.BargeInContext, outFn PreparePulseChangeFunc) smachine.StateUpdate {
-	// =================
-	// HERE - initiate state calculations
-	// =================
-
-	if outFn != nil {
-		// TODO temporary hack
-		outFn(beat.AckData{})
-	}
+func (p *PulseSlotMachine) preparePulseChange(ctx smachine.BargeInContext, outFn PreparePulseCallbackFunc) smachine.StateUpdate {
+	p.pulseSlot.prepareMigrate(outFn)
 
 	if !isSlotInitialized(ctx) {
 		// direct barge-in has arrived BEFORE completion of init step
@@ -263,6 +255,7 @@ func isSlotInitialized(ctx smachine.BasicContext) bool {
 
 // Conveyor direct barge-in
 func (p *PulseSlotMachine) cancelPulseChange(ctx smachine.BargeInContext) smachine.StateUpdate {
+	p.pulseSlot.cancelMigrate()
 
 	if !isSlotInitialized(ctx) {
 		// direct barge-in has arrived BEFORE completion of init step
