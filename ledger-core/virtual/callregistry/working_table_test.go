@@ -10,7 +10,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -21,11 +21,11 @@ import (
 func TestWorkingTable(t *testing.T) {
 	wt := NewWorkingTable()
 
-	assert.Equal(t, 0, wt.GetList(contract.CallIntolerable).Count())
-	assert.Equal(t, 0, len(wt.GetList(contract.CallTolerable).requests))
+	assert.Equal(t, 0, wt.GetList(isolation.CallIntolerable).Count())
+	assert.Equal(t, 0, len(wt.GetList(isolation.CallTolerable).requests))
 
-	assert.Equal(t, pulse.Number(0), wt.GetList(contract.CallIntolerable).earliestActivePulse)
-	assert.Equal(t, pulse.Number(0), wt.GetList(contract.CallTolerable).earliestActivePulse)
+	assert.Equal(t, pulse.Number(0), wt.GetList(isolation.CallIntolerable).earliestActivePulse)
+	assert.Equal(t, pulse.Number(0), wt.GetList(isolation.CallTolerable).earliestActivePulse)
 
 	pd := pulse.NewFirstPulsarData(10, longbits.Bits256{})
 	currentPulse := pd.PulseNumber
@@ -33,37 +33,37 @@ func TestWorkingTable(t *testing.T) {
 	object := gen.UniqueLocalRefWithPulse(currentPulse)
 	ref := reference.NewSelf(object)
 
-	intolerableList := wt.GetList(contract.CallIntolerable)
+	intolerableList := wt.GetList(isolation.CallIntolerable)
 	assert.True(t, intolerableList.add(ref))
 
-	assert.Equal(t, 1, wt.GetList(contract.CallIntolerable).Count())
-	assert.Equal(t, 0, wt.GetList(contract.CallTolerable).Count())
-	assert.Equal(t, pulse.Unknown, wt.GetList(contract.CallIntolerable).EarliestPulse())
+	assert.Equal(t, 1, wt.GetList(isolation.CallIntolerable).Count())
+	assert.Equal(t, 0, wt.GetList(isolation.CallTolerable).Count())
+	assert.Equal(t, pulse.Unknown, wt.GetList(isolation.CallIntolerable).EarliestPulse())
 
 	assert.True(t, intolerableList.setActive(ref))
 
-	assert.Equal(t, 1, wt.GetList(contract.CallIntolerable).Count())
-	assert.Equal(t, 0, wt.GetList(contract.CallTolerable).Count())
-	assert.Equal(t, currentPulse, wt.GetList(contract.CallIntolerable).EarliestPulse())
+	assert.Equal(t, 1, wt.GetList(isolation.CallIntolerable).Count())
+	assert.Equal(t, 0, wt.GetList(isolation.CallTolerable).Count())
+	assert.Equal(t, currentPulse, wt.GetList(isolation.CallIntolerable).EarliestPulse())
 
 	assert.Equal(t, 0, wt.Len())
-	assert.True(t, wt.Add(contract.CallTolerable, ref))
-	assert.False(t, wt.Add(contract.CallTolerable, ref))
+	assert.True(t, wt.Add(isolation.CallTolerable, ref))
+	assert.False(t, wt.Add(isolation.CallTolerable, ref))
 	assert.Equal(t, 1, wt.Len())
 
-	assert.True(t, wt.SetActive(contract.CallTolerable, ref))
-	assert.False(t, wt.SetActive(contract.CallTolerable, ref))
-	assert.False(t, wt.SetActive(contract.CallTolerable, gen.UniqueGlobalRef()))
+	assert.True(t, wt.SetActive(isolation.CallTolerable, ref))
+	assert.False(t, wt.SetActive(isolation.CallTolerable, ref))
+	assert.False(t, wt.SetActive(isolation.CallTolerable, gen.UniqueGlobalRef()))
 
 	res := &payload.VCallResult{
 		Callee: gen.UniqueGlobalRef(),
 	}
 
-	assert.True(t, wt.Finish(contract.CallTolerable, ref, res))
-	assert.False(t, wt.Finish(contract.CallTolerable, ref, res))
+	assert.True(t, wt.Finish(isolation.CallTolerable, ref, res))
+	assert.False(t, wt.Finish(isolation.CallTolerable, ref, res))
 
-	assert.True(t, wt.Finish(contract.CallIntolerable, ref, res))
-	assert.False(t, wt.Finish(contract.CallIntolerable, ref, res))
+	assert.True(t, wt.Finish(isolation.CallIntolerable, ref, res))
+	assert.False(t, wt.Finish(isolation.CallIntolerable, ref, res))
 
 	results := wt.GetResults()
 
@@ -73,7 +73,7 @@ func TestWorkingTable(t *testing.T) {
 	assert.Equal(t, res.Callee, summary.Result.Callee)
 
 	// bad flags
-	assert.Panics(t, func() { wt.GetList(contract.InterferenceFlag(0)) })
+	assert.Panics(t, func() { wt.GetList(isolation.InterferenceFlag(0)) })
 }
 
 func TestWorkingList(t *testing.T) {

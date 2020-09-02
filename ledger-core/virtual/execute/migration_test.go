@@ -16,7 +16,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
@@ -41,7 +41,7 @@ func TestSMExecute_MigrationDuringSendOutgoing(t *testing.T) {
 		pulseSlot  = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
 		smObjectID = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
 
-		callFlags = payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty)
+		callFlags = payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty)
 	)
 	// defer mc.Finish()
 

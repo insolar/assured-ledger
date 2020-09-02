@@ -14,7 +14,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -105,9 +105,9 @@ func TestVFindCallRequest(t *testing.T) {
 		CallOutgoing: outgoing,
 	}
 
-	reqs.Add(contract.CallTolerable, outgoing)
-	reqs.SetActive(contract.CallTolerable, outgoing)
-	reqs.Finish(contract.CallTolerable, outgoing, &vCallResult)
+	reqs.Add(isolation.CallTolerable, outgoing)
+	reqs.SetActive(isolation.CallTolerable, outgoing)
+	reqs.Finish(isolation.CallTolerable, outgoing, &vCallResult)
 
 	sharedCallSummary.Requests.AddObjectCallResults(objectRef,
 		callregistry.ObjectCallResults{

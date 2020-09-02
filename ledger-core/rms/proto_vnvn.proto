@@ -35,3 +35,53 @@ message MessageExample {
         Binary Str = 40;
     }
 }
+
+message VObjectTranscriptReport {
+    option (insproto.id) = 1015;
+
+    //*** Start of predefined section ***//
+    reserved 1 to 18, 20 to 1799;
+    // FIXME: this is here just to make generator silent
+    Any Record = 19 [(gogoproto.embed) = true];
+    //*** End of predefined section ***//
+
+    uint32 AsOf = 1800 [(gogoproto.casttype) = "PulseNumber"];
+    Reference Object = 1801;
+
+    message TranscriptEntryIncomingRequest {
+        option (insproto.id) = 0;
+
+        Reference ObjectMemory = 1800;
+        Reference Incoming = 1801;
+        bytes Request = 1802; // fixme: waiting for messages to move to RMS package
+    }
+    message TranscriptEntryOutgoingRequest {
+        option (insproto.id) = 0;
+
+        Reference Outgoing = 1800;
+    }
+    message TranscriptEntryOutgoingResult {
+        option (insproto.id) = 0;
+
+        Reference OutgoingResult = 1800;
+        bytes CallResult = 1801; // fixme: waiting for messages to move to RMS package
+    }
+    message TranscriptEntryIncomingResult {
+        option (insproto.id) = 0;
+
+        Reference IncomingResult = 1800;
+        Reference ObjectState = 1801;
+    }
+
+    message Transcript {
+        option (insproto.id) = 0;
+
+        // stub
+        repeated Any Entries = 1800;
+    }
+
+    repeated Transcript PendingTranscripts = 1803;
+
+    Transcript ObjectTranscript = 1804;
+}
+

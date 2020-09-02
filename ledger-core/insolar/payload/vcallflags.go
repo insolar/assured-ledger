@@ -6,7 +6,7 @@
 package payload
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -28,42 +28,42 @@ const (
 	bitInterferenceMask = ((1 << bitInterferenceFlagCount) - 1) << bitInterferenceFlagOffset
 )
 
-func (f CallFlags) WithInterference(t contract.InterferenceFlag) CallFlags {
+func (f CallFlags) WithInterference(t isolation.InterferenceFlag) CallFlags {
 	if t == 0 {
 		panic(throw.IllegalValue())
 	}
-	if t > contract.InterferenceFlagCount {
+	if t > isolation.InterferenceFlagCount {
 		panic(throw.IllegalValue())
 	}
 	return (f &^ bitInterferenceMask) | (CallFlags(t) << bitInterferenceFlagOffset)
 }
 
-func (f CallFlags) GetInterference() contract.InterferenceFlag {
-	return contract.InterferenceFlag(f&bitInterferenceMask) >> bitInterferenceFlagOffset
+func (f CallFlags) GetInterference() isolation.InterferenceFlag {
+	return isolation.InterferenceFlag(f&bitInterferenceMask) >> bitInterferenceFlagOffset
 }
 
 const (
 	bitStateFlagMask = ((1 << bitStateFlagCount) - 1) << bitStateFlagOffset
 )
 
-func (f CallFlags) WithState(s contract.StateFlag) CallFlags {
+func (f CallFlags) WithState(s isolation.StateFlag) CallFlags {
 	if s == 0 {
 		panic(throw.IllegalValue())
 	}
-	if s > contract.StateFlagCount {
+	if s > isolation.StateFlagCount {
 		panic(throw.IllegalValue())
 	}
 	return (f &^ bitStateFlagMask) | (CallFlags(s) << bitStateFlagOffset)
 }
 
-func (f CallFlags) GetState() contract.StateFlag {
-	return contract.StateFlag(f&bitStateFlagMask) >> bitStateFlagOffset
+func (f CallFlags) GetState() isolation.StateFlag {
+	return isolation.StateFlag(f&bitStateFlagMask) >> bitStateFlagOffset
 }
 
 func (f CallFlags) IsValid() bool {
 	return f.GetInterference().IsValid() && f.GetState().IsValid() && (f&^bitStateFlagMask&^bitInterferenceMask == 0)
 }
 
-func BuildCallFlags(interference contract.InterferenceFlag, state contract.StateFlag) CallFlags {
+func BuildCallFlags(interference isolation.InterferenceFlag, state isolation.StateFlag) CallFlags {
 	return CallFlags(0).WithInterference(interference).WithState(state)
 }

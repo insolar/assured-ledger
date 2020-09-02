@@ -8,6 +8,7 @@ package utils
 import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
@@ -34,7 +35,7 @@ func GenerateVCallRequestConstructor(server *Server) *payload.VCallRequest {
 func GenerateVCallRequestMethod(server *Server) *payload.VCallRequest {
 	return &payload.VCallRequest{
 		CallType:       payload.CallTypeMethod,
-		CallFlags:      payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+		CallFlags:      payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 		Caller:         server.GlobalCaller(),
 		Callee:         server.RandomGlobalWithPulse(),
 		CallSiteMethod: "Method",
@@ -46,7 +47,7 @@ func GenerateVCallRequestMethod(server *Server) *payload.VCallRequest {
 
 func GenerateVCallRequestMethodImmutable(server *Server) *payload.VCallRequest {
 	pl := GenerateVCallRequestMethod(server)
-	pl.CallFlags = payload.BuildCallFlags(contract.CallIntolerable, contract.CallValidated)
+	pl.CallFlags = payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallValidated)
 
 	return pl
 }

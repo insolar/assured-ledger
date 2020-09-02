@@ -6,7 +6,7 @@
 package execution
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
@@ -125,11 +125,11 @@ type CallMethod struct {
 	arguments    []byte
 	object       reference.Global
 	class        reference.Global
-	interference contract.InterferenceFlag
-	isolation    contract.StateFlag
+	interference isolation.InterferenceFlag
+	isolation    isolation.StateFlag
 }
 
-func (e CallMethod) Interference() contract.InterferenceFlag {
+func (e CallMethod) Interference() isolation.InterferenceFlag {
 	return e.interference
 }
 
@@ -170,12 +170,12 @@ func (e CallMethod) ConstructVCallRequest(execution Context) *payload.VCallReque
 	}
 }
 
-func (e CallMethod) SetInterference(interference contract.InterferenceFlag) CallMethod {
+func (e CallMethod) SetInterference(interference isolation.InterferenceFlag) CallMethod {
 	e.interference = interference
 	return e
 }
 
-func (e CallMethod) SetIsolation(isolation contract.StateFlag) CallMethod {
+func (e CallMethod) SetIsolation(isolation isolation.StateFlag) CallMethod {
 	e.isolation = isolation
 	return e
 }

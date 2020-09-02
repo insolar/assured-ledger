@@ -8,15 +8,19 @@
 package handlers
 
 import (
+	"context"
+
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/memorycache"
+	memoryCacheAdapter "github.com/insolar/assured-ledger/ledger-core/virtual/memorycache/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 )
 
@@ -31,6 +35,7 @@ type SMVDelegatedRequestFinished struct {
 	// dependencies
 	objectCatalog object.Catalog
 	pulseSlot     *conveyor.PulseSlot
+	memoryCache   memoryCacheAdapter.MemoryCache
 }
 
 type stateIsNotReady struct {
@@ -62,6 +67,7 @@ func (*dSMVDelegatedRequestFinished) InjectDependencies(sm smachine.StateMachine
 
 	injector.MustInject(&s.objectCatalog)
 	injector.MustInject(&s.pulseSlot)
+	injector.MustInject(&s.memoryCache)
 }
 
 func (*dSMVDelegatedRequestFinished) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc {
@@ -146,6 +152,8 @@ func (s *SMVDelegatedRequestFinished) stepProcess(ctx smachine.ExecutionContext)
 		panic(throw.Impossible())
 	}
 
+	s.updateMemoryCache(ctx)
+
 	return ctx.Stop()
 }
 
@@ -160,7 +168,7 @@ func (s *SMVDelegatedRequestFinished) updateSharedState(
 	if s.hasLatestState() {
 		state.SetDescriptorDirty(s.latestState())
 		s.updateObjectState(state)
-	} else if s.Payload.CallFlags.GetInterference() == contract.CallTolerable &&
+	} else if s.Payload.CallFlags.GetInterference() == isolation.CallTolerable &&
 		s.Payload.CallType == payload.CallTypeConstructor &&
 		state.GetState() == object.Empty {
 
@@ -183,7 +191,7 @@ func (s *SMVDelegatedRequestFinished) updateSharedState(
 	}
 
 	switch s.Payload.CallFlags.GetInterference() {
-	case contract.CallIntolerable:
+	case isolation.CallIntolerable:
 		if state.PreviousExecutorUnorderedPendingCount == 0 {
 			ctx.Log().Warn(unexpectedVDelegateRequestFinished{
 				Object:  objectRef,
@@ -191,7 +199,7 @@ func (s *SMVDelegatedRequestFinished) updateSharedState(
 				Ordered: false,
 			})
 		}
-	case contract.CallTolerable:
+	case isolation.CallTolerable:
 		if state.PreviousExecutorOrderedPendingCount == 0 {
 			ctx.Log().Warn(unexpectedVDelegateRequestFinished{
 				Object:  objectRef,
@@ -217,6 +225,22 @@ func (s *SMVDelegatedRequestFinished) updateObjectState(state *object.SharedStat
 	default:
 		panic(throw.Impossible())
 	}
+}
+
+func (s *SMVDelegatedRequestFinished) updateMemoryCache(ctx smachine.ExecutionContext) {
+	if !s.hasLatestState() {
+		return
+	}
+	objectDescriptor := s.latestState()
+
+	s.memoryCache.PrepareAsync(ctx, func(ctx context.Context, svc memorycache.Service) smachine.AsyncResultFunc {
+		err := svc.Set(ctx, objectDescriptor.HeadRef(), objectDescriptor)
+		return func(ctx smachine.AsyncResultContext) {
+			if err != nil {
+				ctx.Log().Error("failed to set dirty memory", err)
+			}
+		}
+	}).WithoutAutoWakeUp().Start()
 }
 
 func (s *SMVDelegatedRequestFinished) hasLatestState() bool {

@@ -17,7 +17,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
@@ -27,6 +27,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/predicate"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
+	memoryCacheAdapter "github.com/insolar/assured-ledger/ledger-core/virtual/memorycache/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/virtualdebugger"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
@@ -65,7 +66,7 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
 			CallType:     payload.CallTypeConstructor,
-			CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+			CallFlags:    payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 			CallOutgoing: outgoing,
 
 			Caller:         caller,
@@ -80,11 +81,13 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 
 	{
 		var (
-			authService authentication.Service = authentication.NewServiceMock(t)
-			catalog     object.Catalog         = catalogWrapper.Mock()
+			authService authentication.Service         = authentication.NewServiceMock(t)
+			catalog     object.Catalog                 = catalogWrapper.Mock()
+			memoryCache memoryCacheAdapter.MemoryCache = memoryCacheAdapter.NewMemoryCacheMock(t)
 		)
 		slotMachine.AddInterfaceDependency(&authService)
 		slotMachine.AddInterfaceDependency(&catalog)
+		slotMachine.AddInterfaceDependency(&memoryCache)
 		slotMachine.AddDependency(limiter)
 
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
@@ -99,13 +102,13 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 
 	smWrapper := slotMachine.AddStateMachine(ctx, &smExecute)
 
-	require.Equal(t, 0, sharedState.KnownRequests.GetList(contract.CallTolerable).CountActive())
-	require.Equal(t, 0, sharedState.KnownRequests.GetList(contract.CallIntolerable).CountActive())
+	require.Equal(t, 0, sharedState.KnownRequests.GetList(isolation.CallTolerable).CountActive())
+	require.Equal(t, 0, sharedState.KnownRequests.GetList(isolation.CallIntolerable).CountActive())
 
 	slotMachine.RunTil(smWrapper.BeforeStep(smExecute.stepExecuteStart))
 
-	require.Equal(t, 1, sharedState.KnownRequests.GetList(contract.CallTolerable).CountActive())
-	require.Equal(t, 0, sharedState.KnownRequests.GetList(contract.CallIntolerable).CountActive())
+	require.Equal(t, 1, sharedState.KnownRequests.GetList(isolation.CallTolerable).CountActive())
+	require.Equal(t, 0, sharedState.KnownRequests.GetList(isolation.CallIntolerable).CountActive())
 
 	require.NoError(t, catalogWrapper.CheckDone())
 	mc.Finish()
@@ -144,7 +147,7 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
 			CallType:     payload.CallTypeConstructor,
-			CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+			CallFlags:    payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 			CallOutgoing: outgoing,
 
 			Caller:         class,
@@ -159,11 +162,13 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 
 	{
 		var (
-			authService authentication.Service = authentication.NewServiceMock(t)
-			catalog     object.Catalog         = catalogWrapper.Mock()
+			authService authentication.Service         = authentication.NewServiceMock(t)
+			catalog     object.Catalog                 = catalogWrapper.Mock()
+			memoryCache memoryCacheAdapter.MemoryCache = memoryCacheAdapter.NewMemoryCacheMock(t)
 		)
 		slotMachine.AddInterfaceDependency(&authService)
 		slotMachine.AddInterfaceDependency(&catalog)
+		slotMachine.AddInterfaceDependency(&memoryCache)
 		slotMachine.AddDependency(limiter)
 
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
@@ -224,7 +229,7 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
 			CallType:     payload.CallTypeConstructor,
-			CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+			CallFlags:    payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 			CallOutgoing: outgoing,
 
 			Caller:         caller,
@@ -239,11 +244,13 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 
 	{
 		var (
-			authService authentication.Service = authentication.NewServiceMock(t)
-			catalog     object.Catalog         = catalogWrapper.Mock()
+			authService authentication.Service         = authentication.NewServiceMock(t)
+			catalog     object.Catalog                 = catalogWrapper.Mock()
+			memoryCache memoryCacheAdapter.MemoryCache = memoryCacheAdapter.NewMemoryCacheMock(t)
 		)
 		slotMachine.AddInterfaceDependency(&authService)
 		slotMachine.AddInterfaceDependency(&catalog)
+		slotMachine.AddInterfaceDependency(&memoryCache)
 		slotMachine.AddDependency(limiter)
 
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
@@ -305,7 +312,7 @@ func TestSMExecute_Semi_ConstructorOnMissingObject(t *testing.T) {
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
 			CallType:     payload.CallTypeConstructor,
-			CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+			CallFlags:    payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 			CallOutgoing: outgoing,
 
 			Caller:         caller,
@@ -320,11 +327,13 @@ func TestSMExecute_Semi_ConstructorOnMissingObject(t *testing.T) {
 
 	{
 		var (
-			authService authentication.Service = authentication.NewServiceMock(t)
-			catalog     object.Catalog         = catalogWrapper.Mock()
+			authService authentication.Service         = authentication.NewServiceMock(t)
+			catalog     object.Catalog                 = catalogWrapper.Mock()
+			memoryCache memoryCacheAdapter.MemoryCache = memoryCacheAdapter.NewMemoryCacheMock(t)
 		)
 		slotMachine.AddInterfaceDependency(&authService)
 		slotMachine.AddInterfaceDependency(&catalog)
+		slotMachine.AddInterfaceDependency(&memoryCache)
 		slotMachine.AddDependency(limiter)
 
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
@@ -339,13 +348,13 @@ func TestSMExecute_Semi_ConstructorOnMissingObject(t *testing.T) {
 
 	smWrapper := slotMachine.AddStateMachine(ctx, &smExecute)
 
-	require.Equal(t, 0, sharedState.KnownRequests.GetList(contract.CallTolerable).CountActive())
-	require.Equal(t, 0, sharedState.KnownRequests.GetList(contract.CallIntolerable).CountActive())
+	require.Equal(t, 0, sharedState.KnownRequests.GetList(isolation.CallTolerable).CountActive())
+	require.Equal(t, 0, sharedState.KnownRequests.GetList(isolation.CallIntolerable).CountActive())
 
 	slotMachine.RunTil(smWrapper.BeforeStep(smExecute.stepExecuteStart))
 
-	require.Equal(t, 1, sharedState.KnownRequests.GetList(contract.CallTolerable).CountActive())
-	require.Equal(t, 0, sharedState.KnownRequests.GetList(contract.CallIntolerable).CountActive())
+	require.Equal(t, 1, sharedState.KnownRequests.GetList(isolation.CallTolerable).CountActive())
+	require.Equal(t, 0, sharedState.KnownRequests.GetList(isolation.CallIntolerable).CountActive())
 
 	require.NoError(t, catalogWrapper.CheckDone())
 	mc.Finish()
@@ -391,7 +400,7 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
 			CallType:     payload.CallTypeConstructor,
-			CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+			CallFlags:    payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 			CallOutgoing: outgoing,
 
 			Caller:         caller,
@@ -406,13 +415,15 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 
 	{
 		var (
-			catalog object.Catalog = catalogWrapper.Mock()
+			catalog     object.Catalog                 = catalogWrapper.Mock()
+			memoryCache memoryCacheAdapter.MemoryCache = memoryCacheAdapter.NewMemoryCacheMock(t)
 		)
 		authServiceMock := authentication.NewServiceMock(t)
 		authServiceMock.HasToSendTokenMock.Return(false)
 		authService := authentication.Service(authServiceMock)
 		slotMachine.AddInterfaceDependency(&authService)
 		slotMachine.AddInterfaceDependency(&catalog)
+		slotMachine.AddInterfaceDependency(&memoryCache)
 		slotMachine.AddDependency(limiter)
 
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
@@ -427,13 +438,13 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 
 	smWrapper := slotMachine.AddStateMachine(ctx, &smExecute)
 
-	require.Equal(t, 0, sharedState.KnownRequests.GetList(contract.CallTolerable).CountActive())
-	require.Equal(t, 0, sharedState.KnownRequests.GetList(contract.CallIntolerable).CountActive())
+	require.Equal(t, 0, sharedState.KnownRequests.GetList(isolation.CallTolerable).CountActive())
+	require.Equal(t, 0, sharedState.KnownRequests.GetList(isolation.CallIntolerable).CountActive())
 
 	slotMachine.RunTil(smWrapper.AfterStop())
 
-	require.Equal(t, 0, sharedState.KnownRequests.GetList(contract.CallTolerable).CountActive())
-	require.Equal(t, 0, sharedState.KnownRequests.GetList(contract.CallIntolerable).CountActive())
+	require.Equal(t, 0, sharedState.KnownRequests.GetList(isolation.CallTolerable).CountActive())
+	require.Equal(t, 0, sharedState.KnownRequests.GetList(isolation.CallIntolerable).CountActive())
 
 	require.NoError(t, catalogWrapper.CheckDone())
 	mc.Finish()
@@ -473,7 +484,7 @@ func TestSMExecute_Semi_MethodOnEmptyObject(t *testing.T) {
 	smExecute := SMExecute{
 		Payload: &payload.VCallRequest{
 			CallType:     payload.CallTypeMethod,
-			CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+			CallFlags:    payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 			CallOutgoing: outgoing,
 
 			Caller:         caller,
@@ -488,11 +499,13 @@ func TestSMExecute_Semi_MethodOnEmptyObject(t *testing.T) {
 
 	{
 		var (
-			authService authentication.Service = authentication.NewServiceMock(t)
-			catalog     object.Catalog         = catalogWrapper.Mock()
+			authService authentication.Service         = authentication.NewServiceMock(t)
+			catalog     object.Catalog                 = catalogWrapper.Mock()
+			memoryCache memoryCacheAdapter.MemoryCache = memoryCacheAdapter.NewMemoryCacheMock(t)
 		)
 		slotMachine.AddInterfaceDependency(&authService)
 		slotMachine.AddInterfaceDependency(&catalog)
+		slotMachine.AddInterfaceDependency(&memoryCache)
 		slotMachine.AddDependency(limiter)
 
 		sharedStateData := smachine.NewUnboundSharedData(sharedState)
@@ -507,13 +520,13 @@ func TestSMExecute_Semi_MethodOnEmptyObject(t *testing.T) {
 
 	smWrapper := slotMachine.AddStateMachine(ctx, &smExecute)
 
-	require.Equal(t, 0, sharedState.KnownRequests.GetList(contract.CallTolerable).CountActive())
-	require.Equal(t, 0, sharedState.KnownRequests.GetList(contract.CallIntolerable).CountActive())
+	require.Equal(t, 0, sharedState.KnownRequests.GetList(isolation.CallTolerable).CountActive())
+	require.Equal(t, 0, sharedState.KnownRequests.GetList(isolation.CallIntolerable).CountActive())
 
 	slotMachine.RunTil(predicate.AfterCustomEventType(reflect.TypeOf(markerPendingConstructorWait{})))
 
-	require.Equal(t, 0, sharedState.KnownRequests.GetList(contract.CallTolerable).CountActive())
-	require.Equal(t, 0, sharedState.KnownRequests.GetList(contract.CallIntolerable).CountActive())
+	require.Equal(t, 0, sharedState.KnownRequests.GetList(isolation.CallTolerable).CountActive())
+	require.Equal(t, 0, sharedState.KnownRequests.GetList(isolation.CallIntolerable).CountActive())
 
 	slotMachine.Migrate()
 

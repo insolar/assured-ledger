@@ -16,6 +16,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
@@ -29,6 +30,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object/preservedstatereport"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/validation"
 )
 
 type State int32
@@ -70,6 +72,8 @@ type Info struct {
 	OrderedPendingEarliestPulse   pulse.Number
 
 	objectState State
+
+	Transcript validation.Transcript
 }
 
 func (i *Info) IsReady() bool {
@@ -108,7 +112,7 @@ func (i *Info) DescriptorValidated() descriptor.Object {
 	return i.descriptorValidated
 }
 
-func (i Info) GetEarliestPulse(tolerance contract.InterferenceFlag) pulse.Number {
+func (i Info) GetEarliestPulse(tolerance isolation.InterferenceFlag) pulse.Number {
 	var (
 		minPendingRequestPulse = i.PendingTable.GetList(tolerance).EarliestPulse()
 		minKnownRequestPulse   = i.KnownRequests.GetList(tolerance).EarliestPulse()
@@ -125,18 +129,18 @@ func (i Info) GetEarliestPulse(tolerance contract.InterferenceFlag) pulse.Number
 }
 
 func (i *Info) BuildStateReport() payload.VStateReport {
-	unorderedPendingCount := i.PendingTable.GetList(contract.CallIntolerable).CountActive()
-	unorderedPendingCount += i.KnownRequests.GetList(contract.CallIntolerable).CountActive()
+	unorderedPendingCount := i.PendingTable.GetList(isolation.CallIntolerable).CountActive()
+	unorderedPendingCount += i.KnownRequests.GetList(isolation.CallIntolerable).CountActive()
 
-	orderedPendingCount := i.PendingTable.GetList(contract.CallTolerable).CountActive()
-	orderedPendingCount += i.KnownRequests.GetList(contract.CallTolerable).CountActive()
+	orderedPendingCount := i.PendingTable.GetList(isolation.CallTolerable).CountActive()
+	orderedPendingCount += i.KnownRequests.GetList(isolation.CallTolerable).CountActive()
 
 	res := payload.VStateReport{
 		Object:                        i.Reference,
 		UnorderedPendingCount:         int32(unorderedPendingCount),
-		UnorderedPendingEarliestPulse: i.GetEarliestPulse(contract.CallIntolerable),
+		UnorderedPendingEarliestPulse: i.GetEarliestPulse(isolation.CallIntolerable),
 		OrderedPendingCount:           int32(orderedPendingCount),
-		OrderedPendingEarliestPulse:   i.GetEarliestPulse(contract.CallTolerable),
+		OrderedPendingEarliestPulse:   i.GetEarliestPulse(isolation.CallTolerable),
 		ProvidedContent:               &payload.VStateReport_ProvidedContentBody{},
 	}
 
@@ -148,7 +152,7 @@ func (i *Info) BuildStateReport() payload.VStateReport {
 	case Inactive:
 		res.Status = payload.StateStatusInactive
 	case Empty:
-		if i.KnownRequests.GetList(contract.CallTolerable).CountActive() == 0 {
+		if i.KnownRequests.GetList(isolation.CallTolerable).CountActive() == 0 {
 			// constructor has not started
 			res.Status = payload.StateStatusMissing
 		} else {
@@ -192,6 +196,7 @@ func NewStateMachineObject(objectReference reference.Global) *SMObject {
 				Reference:     objectReference,
 				KnownRequests: callregistry.NewWorkingTable(),
 				PendingTable:  callregistry.NewRequestTable(),
+				Transcript:    validation.NewTranscript(),
 			},
 		},
 	}
@@ -471,7 +476,7 @@ type pendingCountersWarnMsg struct {
 }
 
 func (sm *SMObject) checkPendingCounters(logger smachine.Logger) {
-	unorderedPendingList := sm.PendingTable.GetList(contract.CallIntolerable)
+	unorderedPendingList := sm.PendingTable.GetList(isolation.CallIntolerable)
 	if int(sm.PreviousExecutorUnorderedPendingCount) != unorderedPendingList.Count() {
 		logger.Warn(pendingCountersWarnMsg{
 			CounterType:  "Unordered",
@@ -480,7 +485,7 @@ func (sm *SMObject) checkPendingCounters(logger smachine.Logger) {
 		})
 	}
 
-	orderedPendingList := sm.PendingTable.GetList(contract.CallTolerable)
+	orderedPendingList := sm.PendingTable.GetList(isolation.CallTolerable)
 	if int(sm.PreviousExecutorOrderedPendingCount) != orderedPendingList.Count() {
 		logger.Warn(pendingCountersWarnMsg{
 			CounterType:  "Ordered",

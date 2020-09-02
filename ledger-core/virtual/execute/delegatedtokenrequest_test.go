@@ -16,6 +16,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	messageSender "github.com/insolar/assured-ledger/ledger-core/network/messagesender"
@@ -25,6 +26,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
+	memoryCacheAdapter "github.com/insolar/assured-ledger/ledger-core/virtual/memorycache/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/virtualdebugger"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
@@ -54,7 +56,7 @@ func TestVDelegatedCallRequest(t *testing.T) {
 		smExecute = SMExecute{
 			Payload: &payload.VCallRequest{
 				CallType:     payload.CallTypeConstructor,
-				CallFlags:    payload.BuildCallFlags(contract.CallTolerable, contract.CallDirty),
+				CallFlags:    payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 				CallOutgoing: outgoing,
 
 				Caller: caller,
@@ -66,11 +68,13 @@ func TestVDelegatedCallRequest(t *testing.T) {
 	{
 		catalogWrapper := object.NewCatalogMockWrapper(mc)
 		var (
-			catalog     object.Catalog         = catalogWrapper.Mock()
-			authService authentication.Service = authentication.NewServiceMock(t)
+			catalog     object.Catalog                 = catalogWrapper.Mock()
+			authService authentication.Service         = authentication.NewServiceMock(t)
+			memoryCache memoryCacheAdapter.MemoryCache = memoryCacheAdapter.NewMemoryCacheMock(t)
 		)
 		slotMachine.AddInterfaceDependency(&catalog)
 		slotMachine.AddInterfaceDependency(&authService)
+		slotMachine.AddInterfaceDependency(&memoryCache)
 		limiter := tool.NewRunnerLimiter(4)
 		slotMachine.AddDependency(limiter)
 
@@ -102,8 +106,8 @@ func TestVDelegatedCallRequest(t *testing.T) {
 
 	{
 		slotMachine.RunnerMock.AddExecutionClassify(outgoing.String(), contract.MethodIsolation{
-			Interference: contract.CallTolerable,
-			State:        contract.CallDirty,
+			Interference: isolation.CallTolerable,
+			State:        isolation.CallDirty,
 		}, nil)
 		slotMachine.RunnerMock.AddExecutionMock(outgoing.String()).AddStart(
 			nil,

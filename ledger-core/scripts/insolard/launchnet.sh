@@ -221,50 +221,6 @@ generate_pulsar_keys()
     bin/insolar gen-key-pair > ${PULSAR_KEYS}
 }
 
-generate_root_member_keys()
-{
-    echo "generate members keys in dir: $CONFIGS_DIR"
-    bin/insolar gen-key-pair > ${CONFIGS_DIR}root_member_keys.json
-
-    bin/insolar gen-key-pair > ${CONFIGS_DIR}fee_member_keys.json
-    bin/insolar gen-key-pair > ${CONFIGS_DIR}migration_admin_member_keys.json
-    for (( b = 0; b < 10; b++ ))
-    do
-    bin/insolar gen-key-pair > ${CONFIGS_DIR}migration_daemon_${b}_member_keys.json
-    done
-
-    for (( b = 0; b < 30; b++ ))
-    do
-    bin/insolar gen-key-pair > ${CONFIGS_DIR}network_incentives_${b}_member_keys.json
-    done
-
-    for (( b = 0; b < 30; b++ ))
-    do
-    bin/insolar gen-key-pair > ${CONFIGS_DIR}application_incentives_${b}_member_keys.json
-    done
-
-    for (( b = 0; b < 30; b++ ))
-    do
-    bin/insolar gen-key-pair > ${CONFIGS_DIR}foundation_${b}_member_keys.json
-    done
-
-    for (( b = 0; b < 1; b++ ))
-    do
-    bin/insolar gen-key-pair > ${CONFIGS_DIR}funds_${b}_member_keys.json
-    done
-
-    for (( b = 0; b < 4; b++ ))
-    do
-    bin/insolar gen-key-pair > ${CONFIGS_DIR}enterprise_${b}_member_keys.json
-    done
-}
-
-generate_migration_addresses()
-{
-    echo "generate migration addresses: ${CONFIGS_DIR}migration_addresses.json"
-    bin/insolar gen-migration-addresses > ${CONFIGS_DIR}migration_addresses.json
-}
-
 check_working_dir()
 {
     echo "check_working_dir() starts ..."
@@ -300,7 +256,7 @@ process_input_params()
     # it must be manually reset between multiple calls to getopts
     # within the same shell invocation if a new set of parameters is to be used
     OPTIND=1
-    while getopts "h?gbdlwpC" opt; do
+    while getopts "h?gbdlwpCm" opt; do
         case "$opt" in
         h|\?)
             usage
@@ -332,6 +288,9 @@ process_input_params()
             ;;
         p)
             run_pulsar=false
+            ;;
+        m)
+            cloud_mode=true
             ;;
         C)
             generate_insolard_configs
@@ -387,9 +346,7 @@ bootstrap()
         echo "SKIP: build binaries (SKIP_BUILD=$SKIP_BUILD)"
     fi
     generate_pulsar_keys
-    generate_root_member_keys
     generate_insolard_configs
-    generate_migration_addresses
 
     echo "start bootstrap ..."
     CMD="${INSOLAR_CLI} bootstrap --config=${BOOTSTRAP_CONFIG} --certificates-out-dir=${DISCOVERY_NODES_DATA}certs"
@@ -423,6 +380,7 @@ bootstrap()
 
 watch_pulse=true
 run_pulsar=true
+cloud_mode=false
 check_working_dir
 process_input_params "$@"
 
@@ -457,8 +415,17 @@ fi
 trap 'handle_sigchld' SIGCHLD
 
 echo "start discovery nodes ..."
-for i in `seq 1 $NUM_DISCOVERY_NODES`
-do
+if [ "$cloud_mode" == true ]
+then
+  echo "run in cloud mode ( one process )"
+  go run -mod=vendor scripts/cloud/generate_cloud_config.go
+  set -x
+  $INSOLARD test cloud --config ${CONFIGS_DIR}/base_cloud.yaml \
+            2>&1 | ${LOGROTATOR} ${DISCOVERY_NODE_LOGS}/cloud.log > /dev/null &
+        { set +x; } 2>/dev/null
+else
+  for i in `seq 1 $NUM_DISCOVERY_NODES`
+  do
     if [ "$headless" == "true" ]
     then
        echo "start node $i in headless mode"
@@ -479,7 +446,8 @@ do
 
     echo "discovery node $i started in background"
     echo "log: ${DISCOVERY_NODE_LOGS}${i}/output.log"
-done
+  done
+fi
 
 echo "discovery nodes started ..."
 

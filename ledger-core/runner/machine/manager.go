@@ -6,16 +6,17 @@
 package machine
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/runner/machine/machinetype"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type Manager interface {
-	RegisterExecutor(Type, Executor) error
-	GetExecutor(Type) (Executor, error)
+	RegisterExecutor(machinetype.Type, Executor) error
+	GetExecutor(machinetype.Type) (Executor, error)
 }
 
 type defaultManager struct {
-	Executors [LastID]Executor
+	Executors [machinetype.LastID]Executor
 }
 
 func NewManager() Manager {
@@ -23,14 +24,14 @@ func NewManager() Manager {
 }
 
 // RegisterExecutor registers an executor for particular `Type`
-func (m *defaultManager) RegisterExecutor(t Type, e Executor) error {
+func (m *defaultManager) RegisterExecutor(t machinetype.Type, e Executor) error {
 	m.Executors[int(t)] = e
 	return nil
 }
 
 // GetExecutor returns an executor for the `Type` if it was registered (`RegisterExecutor`),
 // returns error otherwise
-func (m *defaultManager) GetExecutor(t Type) (Executor, error) {
+func (m *defaultManager) GetExecutor(t machinetype.Type) (Executor, error) {
 	if res := m.Executors[int(t)]; res != nil {
 		return res, nil
 	}

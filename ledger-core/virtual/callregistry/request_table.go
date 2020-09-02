@@ -6,7 +6,7 @@
 package callregistry
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -14,7 +14,7 @@ import (
 )
 
 type PendingTable struct {
-	lists [contract.InterferenceFlagCount - 1]*PendingList
+	lists [isolation.InterferenceFlagCount - 1]*PendingList
 }
 
 func NewRequestTable() PendingTable {
@@ -27,7 +27,7 @@ func NewRequestTable() PendingTable {
 	return rt
 }
 
-func (rt PendingTable) GetList(flag contract.InterferenceFlag) *PendingList {
+func (rt PendingTable) GetList(flag isolation.InterferenceFlag) *PendingList {
 	if flag > 0 && int(flag) <= len(rt.lists) {
 		return rt.lists[flag-1]
 	}
