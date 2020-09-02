@@ -8,7 +8,6 @@ package buildersvc
 import (
 	"sync"
 
-	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jetalloc"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/bundle"

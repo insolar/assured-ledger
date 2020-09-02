@@ -6,13 +6,13 @@
 package buildersvc
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lineage"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 )
 
 type Service interface {
@@ -22,12 +22,11 @@ type Service interface {
 }
 
 type PlashAssistant interface {
-	PreparePulseChange(out chan<- cryptkit.Digest)
+	PreparePulseChange(outFn conveyor.PreparePulseCallbackFunc)
 	CancelPulseChange()
 	CommitPulseChange()
 
 	CalculateJetDrop(reference.Holder) jet.DropID
-	GetResolver() lineage.DependencyResolver
 	IsGenesis() bool
 }
 
