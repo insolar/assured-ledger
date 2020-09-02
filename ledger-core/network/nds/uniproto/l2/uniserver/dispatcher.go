@@ -34,7 +34,6 @@ type Dispatcher struct {
 	started     uniproto.ProtocolSet
 }
 
-// todo: ??? unused
 func (p *Dispatcher) RegisterProtocolByFunc(fn uniproto.RegisterProtocolFunc) {
 	fn(p.RegisterProtocol)
 }

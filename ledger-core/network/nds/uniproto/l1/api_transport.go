@@ -22,7 +22,7 @@ type SessionfulTransportProvider interface {
 	// CreateOutgoingOnlyFactory creates a factory to open outgoing connections.
 	// Param (SessionfulConnectFunc) is to handle inbound flow of an outgoing connection.
 	CreateOutgoingOnlyFactory(SessionfulConnectFunc) (OutTransportFactory, error)
-	Close() error // todo: ??? remove
+	Close() error
 }
 
 // SessionfulConnectFunc receives either inbound connection(s) from listen or inbound direction of an outgoing connection.
@@ -55,7 +55,7 @@ type SessionlessTransportProvider interface {
 	CreateOutgoingOnlyFactory() (OutTransportFactory, error)
 	// MaxByteSize returns a maximum size of a supported/deliverable datagram.
 	MaxByteSize() uint16
-	Close() error // todo: ??? remove
+	Close() error
 }
 
 // SessionlessReceiveFunc MUST NOT reuse (b) after return
