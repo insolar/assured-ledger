@@ -54,7 +54,7 @@ func (p PeerReceiver) ReceiveStream(remote nwapi.Address, conn io.ReadWriteClose
 		limit TransportStreamFormat
 	)
 
-	// ATTENTION! Do all check here - this will prevent an attacker from creation of multiple routines.
+	// ATTENTION! Do all checks here - this will prevent an attacker from creation of multiple routines.
 
 	if fn, peer, err = p.resolvePeer(remote, isIncoming, conn); err != nil {
 		return nil, err
