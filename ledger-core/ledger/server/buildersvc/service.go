@@ -8,6 +8,7 @@ package buildersvc
 import (
 	"sync"
 
+	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jetalloc"
@@ -22,12 +23,11 @@ import (
 )
 
 type PlashAssistant interface {
-	PreparePulseChange(out chan<- cryptkit.Digest)
+	PreparePulseChange(outFn conveyor.PreparePulseCallbackFunc)
 	CancelPulseChange()
 	CommitPulseChange()
 
 	CalculateJetDrop(reference.Holder) jet.DropID
-	GetResolver() lineage.DependencyResolver
 	IsGenesis() bool
 }
 

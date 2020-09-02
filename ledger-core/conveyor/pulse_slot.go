@@ -8,6 +8,7 @@ package conveyor
 import (
 	"time"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -49,6 +50,7 @@ func NewPastPulseSlot(pulseManager *PulseDataManager, pr pulse.Range) PulseSlot 
 type PulseSlot struct {
 	pulseManager *PulseDataManager
 	pulseData    pulseDataHolder
+	pulseChanger PulseChangerFunc
 }
 
 func (p *PulseSlot) State() PulseSlotState {
@@ -198,4 +200,39 @@ func (p *PulseSlot) postMigrate(prevState PulseSlotState, holder smachine.SlotMa
 	if fn := p.pulseManager.pulseMigrateFn; fn != nil {
 		fn(prevState, p, holder)
 	}
+}
+
+var stubChanger PulseChangerFunc = func(outFn PreparePulseCallbackFunc) {
+	if outFn != nil {
+		// TODO temporary hack
+		outFn(beat.AckData{})
+	}
+}
+
+func (p *PulseSlot) prepareMigrate(outFn PreparePulseCallbackFunc) {
+	if p.pulseChanger == nil {
+		p.pulseChanger = stubChanger
+	}
+
+	if outFn != nil {
+		p.pulseChanger(outFn)
+	}
+}
+
+func (p *PulseSlot) cancelMigrate() {
+	p.pulseChanger(nil)
+}
+
+// PulseChangerFunc is invoked with non-nil PreparePulseCallbackFunc when pulse change is preparing, and with nil when pulse change was cancelled.
+type PulseChangerFunc func(PreparePulseCallbackFunc)
+
+func (p *PulseSlot) SetPulseChanger(fn PulseChangerFunc) error {
+	switch {
+	case fn == nil:
+		panic(throw.IllegalValue())
+	case p.pulseChanger != nil:
+		return throw.IllegalState()
+	}
+	p.pulseChanger = fn
+	return nil
 }

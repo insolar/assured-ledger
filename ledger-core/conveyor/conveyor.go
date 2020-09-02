@@ -45,10 +45,10 @@ type EventInputer interface {
 }
 
 type PreparedState = beat.AckData
-type PreparePulseChangeFunc = func(PreparedState)
+type PreparePulseCallbackFunc = func(PreparedState)
 
 type PulseChanger interface {
-	PreparePulseChange(out PreparePulseChangeFunc) error
+	PreparePulseChange(out PreparePulseCallbackFunc) error
 	CancelPulseChange() error
 	CommitPulseChange(pr pulse.Range) error
 }
@@ -438,7 +438,7 @@ func (p *PulseConveyor) sendSignal(fn smachine.MachineCallFunc) error {
 	return <-result
 }
 
-func (p *PulseConveyor) PreparePulseChange(out PreparePulseChangeFunc) error {
+func (p *PulseConveyor) PreparePulseChange(out PreparePulseCallbackFunc) error {
 	p.pdm.awaitPreparingPulse()
 	return p.sendSignal(func(ctx smachine.MachineCallContext) {
 		if p.presentMachine == nil {
