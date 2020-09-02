@@ -120,7 +120,7 @@ func (p *entryWriter) prepareRecord(snapshot bundle.Snapshot, entry *draftEntry)
 		return preparedEntry{}, err
 	}
 
-	if err := ds.AppendDirectoryEntry(entryIndex, entry.entryKey, entryLoc); err != nil {
+	if err := ds.AppendDirectoryEntry(entryIndex, bundle.DirectoryEntry{Key: reference.Copy(entry.entryKey), Loc: entryLoc}); err != nil {
 		return preparedEntry{}, err
 	}
 

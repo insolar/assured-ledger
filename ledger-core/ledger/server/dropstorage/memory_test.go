@@ -37,10 +37,10 @@ func TestMemorySnapshot(t *testing.T) {
 	require.Equal(t, nextIdx, es.GetNextDirectoryIndex())
 
 	require.Panics(t, func() {
-		_ = es.AppendDirectoryEntry(0, gen.UniqueGlobalRef(), loc)
+		_ = es.AppendDirectoryEntry(0, bundle.DirectoryEntry{ Key: gen.UniqueGlobalRef(), Loc: loc})
 	})
 
-	err = es.AppendDirectoryEntry(nextIdx, gen.UniqueGlobalRef(), loc)
+	err = es.AppendDirectoryEntry(nextIdx, bundle.DirectoryEntry{Key: gen.UniqueGlobalRef(), Loc: loc})
 	require.NoError(t, err)
 
 	r0 := r.(byteReceptacle)
@@ -73,7 +73,7 @@ func TestMemorySnapshotDirectoryPaging(t *testing.T) {
 		require.Equal(t, ledger.NewDirectoryIndex(ledger.DefaultEntrySection, j), nextIdx)
 		require.Equal(t, nextIdx, es.GetNextDirectoryIndex())
 
-		err = es.AppendDirectoryEntry(nextIdx, gen.UniqueGlobalRef(), loc)
+		err = es.AppendDirectoryEntry(nextIdx, bundle.DirectoryEntry{Key: gen.UniqueGlobalRef(), Loc: loc})
 		require.NoError(t, err)
 		j++
 		require.Equal(t, ledger.NewDirectoryIndex(ledger.DefaultEntrySection, j), es.GetNextDirectoryIndex())
@@ -93,7 +93,7 @@ func TestMemorySnapshotDirectoryPaging(t *testing.T) {
 	require.NoError(t, err)
 
 	nextIdx := es.GetNextDirectoryIndex()
-	err = es.AppendDirectoryEntry(nextIdx, gen.UniqueGlobalRef(), loc)
+	err = es.AppendDirectoryEntry(nextIdx, bundle.DirectoryEntry{Key: gen.UniqueGlobalRef(), Loc: loc})
 	require.NoError(t, err)
 
 	sm = s.(*memorySnapshot)
@@ -244,5 +244,5 @@ func BenchmarkMemoryStorageParallelWrite(b *testing.B) {
 }
 
 func TestDirectoryEntrySize(t *testing.T) {
-	require.EqualValues(t, directoryEntrySize, unsafe.Sizeof(directoryEntry{}))
+	require.EqualValues(t, directoryEntrySize, unsafe.Sizeof(bundle.DirectoryEntry{}))
 }

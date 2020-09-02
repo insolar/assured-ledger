@@ -41,7 +41,7 @@ func NewMemoryStorageWriter(maxSection ledger.SectionID, pageSize int) *MemorySt
 
 		if s.sectionID <= ledger.DefaultDustSection {
 			s.hasDir = true
-			s.directory = [][]directoryEntry{make([]directoryEntry, 1, dirSize) } // ordinal==0 is reserved
+			s.directory = [][]bundle.DirectoryEntry{make([]bundle.DirectoryEntry, 1, dirSize) } // ordinal==0 is reserved
 		}
 	}
 
@@ -121,14 +121,14 @@ func (p *MemoryStorageWriter) getDirtyReadSection(sectionID ledger.SectionID) *c
 	return s
 }
 
-func (p *MemoryStorageWriter) GetDirectoryEntry(index ledger.DirectoryIndex) (reference.Holder, ledger.StorageLocator) {
+func (p *MemoryStorageWriter) GetDirectoryEntry(index ledger.DirectoryIndex) bundle.DirectoryEntry {
 	switch section := p.getDirtyReadSection(index.SectionID()); {
 	case section == nil:
 	case !section.hasDirectory():
 	default:
 		return section.readDirtyEntry(index)
 	}
-	return nil, 0
+	return bundle.DirectoryEntry{}
 }
 
 func (p *MemoryStorageWriter) GetEntryStorage(locator ledger.StorageLocator) []byte {
@@ -239,8 +239,8 @@ func (p *sectionSnapshot) GetNextDirectoryIndex() ledger.DirectoryIndex {
 	return p.section.getNextDirectoryIndex(p)
 }
 
-func (p *sectionSnapshot) AppendDirectoryEntry(index ledger.DirectoryIndex, key reference.Holder, loc ledger.StorageLocator) error {
-	return p.section.setDirectoryEntry(index, key, loc)
+func (p *sectionSnapshot) AppendDirectoryEntry(index ledger.DirectoryIndex, entry bundle.DirectoryEntry) error {
+	return p.section.setDirectoryEntry(index, entry)
 }
 
 func (p *sectionSnapshot) AllocateEntryStorage(size int) (bundle.PayloadReceptacle, ledger.StorageLocator, error) {
@@ -262,7 +262,7 @@ type cabinetSection struct {
 	// mutex allows
 	mutex     sync.RWMutex
 	chapters  [][]byte
-	directory [][]directoryEntry
+	directory [][]bundle.DirectoryEntry
 }
 
 func (p *cabinetSection) hasDirectory() bool {
@@ -287,7 +287,7 @@ func (p *cabinetSection) getNextDirectoryIndex(snap *sectionSnapshot) ledger.Dir
 	return ledger.NewDirectoryIndex(p.sectionID, ord)
 }
 
-func (p *cabinetSection) setDirectoryEntry(index ledger.DirectoryIndex, key reference.Holder, loc ledger.StorageLocator) error {
+func (p *cabinetSection) setDirectoryEntry(index ledger.DirectoryIndex, entry bundle.DirectoryEntry) error {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
@@ -297,7 +297,7 @@ func (p *cabinetSection) setDirectoryEntry(index ledger.DirectoryIndex, key refe
 		panic(throw.IllegalState())
 	case index.SectionID() != p.sectionID:
 		panic(throw.IllegalValue())
-	case loc == 0:
+	case entry.Loc == 0:
 		panic(throw.IllegalValue())
 	}
 
@@ -309,20 +309,16 @@ func (p *cabinetSection) setDirectoryEntry(index ledger.DirectoryIndex, key refe
 		panic(throw.IllegalValue())
 	}
 
-	k := reference.Copy(key)
-	if k.IsEmpty() {
+	if entry.Key.IsEmpty() {
 		return throw.E("invalid key")
 	}
 
 	if defCap == len(last) {
-		last = make([]directoryEntry, 0, defCap)
+		last = make([]bundle.DirectoryEntry, 0, defCap)
 		p.directory = append(p.directory, last)
 		n++
 	}
-	p.directory[n] = append(last, directoryEntry{
-		key:      k,
-		entryLoc: loc,
-	})
+	p.directory[n] = append(last, entry)
 	return nil
 }
 
@@ -426,7 +422,7 @@ func (p *cabinetSection) _rollbackDir(dirIndex int) bool {
 	return true
 }
 
-func (p *cabinetSection) readDirtyEntry(index ledger.DirectoryIndex) (reference.Holder, ledger.StorageLocator) {
+func (p *cabinetSection) readDirtyEntry(index ledger.DirectoryIndex) bundle.DirectoryEntry {
 	p.mutex.RLock()
 	defer p.mutex.RUnlock()
 
@@ -442,17 +438,16 @@ func (p *cabinetSection) readDirtyEntry(index ledger.DirectoryIndex) (reference.
 
 	pgN := int(index.Ordinal()) / defCap
 	if pgN >= n {
-		return nil, 0
+		return bundle.DirectoryEntry{}
 	}
 	pg := p.directory[pgN]
 
 	idx := int(index.Ordinal()) % defCap
 	if idx >= len(pg) {
-		return nil, 0
+		return bundle.DirectoryEntry{}
 	}
-	pgE := &pg[idx]
 
-	return pgE.key, pgE.entryLoc
+	return pg[idx]
 }
 
 func (p *cabinetSection) readDirtyStorage(locator ledger.StorageLocator) []byte {
@@ -497,8 +492,3 @@ func (b byteReceptacle) ApplyFixedReader(r longbits.FixedReader) error {
 /*********************************/
 
 const directoryEntrySize = reference.GlobalBinarySize + 8
-
-type directoryEntry struct {
-	key      reference.Global
-	entryLoc ledger.StorageLocator
-}
