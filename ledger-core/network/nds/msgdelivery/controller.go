@@ -22,12 +22,8 @@ import (
 
 const minHeadBatchWeight = 1 << 20
 
-func NewController(
-	pt uniproto.ProtocolType,
-	factory nwapi.DeserializationFactory,
-	receiveFn ReceiverFunc,
-	resolverFn ResolverFunc,
-	logger uniserver.MiniLogger,
+func NewController(pt uniproto.ProtocolType, factory nwapi.DeserializationFactory,
+	receiveFn ReceiverFunc, resolverFn ResolverFunc, logger uniserver.MiniLogger,
 ) *Controller {
 	switch {
 	case factory == nil:
@@ -38,14 +34,8 @@ func NewController(
 		panic(throw.IllegalValue())
 	}
 
-	c := &Controller{
-		pType:      pt,
-		factory:    factory,
-		timeCycle:  10 * time.Millisecond,
-		receiveFn:  receiveFn,
-		resolverFn: resolverFn,
-		logger:     logger,
-	}
+	c := &Controller{pType: pt, factory: factory, timeCycle: 10 * time.Millisecond,
+		receiveFn: receiveFn, resolverFn: resolverFn, logger: logger}
 
 	c.senderConfig = SenderWorkerConfig{1, 5, 100}
 	c.sender.init(10, 10)

@@ -32,14 +32,14 @@ type ShipmentRequest struct {
 	Cancel    *synckit.ChainedCancel
 }
 
-type ShipmentID uint64 // NodeId + ShortShipmentID
-
 func AsShipmentID(node uint32, id ShortShipmentID) ShipmentID {
 	if id == 0 {
 		return 0
 	}
 	return ShipmentID(node)<<32 | ShipmentID(id)
 }
+
+type ShipmentID uint64 // NodeId + ShortShipmentID
 
 func (v ShipmentID) NodeID() uint32 {
 	return uint32(v >> 32)
