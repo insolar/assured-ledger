@@ -8,6 +8,7 @@ package datareader
 import (
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/bundle"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lineage"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 )
 
@@ -17,7 +18,7 @@ type ExtractedTail struct {
 }
 
 type SequenceExtractor interface {
-	AddRecord(lineage.ReadRecord) bool
+	AddLineRecord(lineage.ReadRecord) bool
 	NeedsDirtyReader() bool
 
 	ExtractAllRecordsWithReader(bundle.DirtyReader)
@@ -28,7 +29,7 @@ type SequenceExtractor interface {
 }
 
 type SequenceLimiter interface {
-
+	CanTakeNext(reference.Holder) bool
 }
 
 type ExtractionType uint8

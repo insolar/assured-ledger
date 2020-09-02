@@ -125,7 +125,7 @@ func (p *SMRead) stepLineIsReady(ctx smachine.ExecutionContext) smachine.StateUp
 		sd.TrimStages()
 
 		normTargetRef := reference.NormCopy(p.request.TargetRef.Get())
-		_, future = sd.FindSequence(normTargetRef, p.extractor.AddRecord)
+		_, future = sd.FindSequence(normTargetRef, p.extractor.AddLineRecord)
 
 		return false
 	}) {
@@ -162,7 +162,7 @@ func (p *SMRead) stepDataIsReady(ctx smachine.ExecutionContext) smachine.StateUp
 		sd.TrimStages()
 
 		normTargetRef := reference.NormCopy(p.request.TargetRef.Get())
-		if _, future := sd.FindSequence(normTargetRef, p.extractor.AddRecord); future != nil {
+		if _, future := sd.FindSequence(normTargetRef, p.extractor.AddLineRecord); future != nil {
 			panic(throw.Impossible())
 		}
 
