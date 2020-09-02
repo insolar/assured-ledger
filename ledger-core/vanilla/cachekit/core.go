@@ -80,9 +80,9 @@ func NewCore(s Strategy, trimFn TrimFunc) Core {
 	}
 
 	return Core{
-		alloc: newAllocationTracker(s.AllocationPageSize()),
-		strat: s,
-		trimFn: trimFn,
+		alloc:    newAllocationTracker(s.AllocationPageSize()),
+		strat:    s,
+		trimFn:   trimFn,
 		trimEach: s.TrimOnEachAddition(),
 	}
 }
@@ -121,7 +121,7 @@ func (p *Core) Add() (Index, GenNo) {
 // Delete can ONLY be called once per index, otherwise counting will be broken
 func (p *Core) Delete(idx Index) {
 	p.alloc.Dec(idx) // this will remove +1 for oldest tracking
-	                 // so the entry will be removed at the "rarest" generation
+	// so the entry will be removed at the "rarest" generation
 }
 
 func (p *Core) Touch(index Index) GenNo {
@@ -136,8 +136,8 @@ func (p *Core) addToGen(index Index, addedEntry, overflow bool) GenNo {
 	age := p.strat.CurrentAge()
 	if p.recent == nil {
 		p.recent = &generation{
-			start:  age,
-			end:    age,
+			start: age,
+			end:   age,
 		}
 		p.recent.init(p.strat.InitGenerationCapacity())
 
@@ -162,6 +162,16 @@ func (p *Core) addToGen(index Index, addedEntry, overflow bool) GenNo {
 
 func (p *Core) useOrAdvanceGen(age Age, added bool) {
 	trimmedEntries, trimmedGens := false, false
+
+	if p.oldest == nil {
+		panic(throw.Impossible())
+	}
+	if p.recent == nil {
+		panic(throw.Impossible())
+	}
+	if p.rarest == nil {
+		panic(throw.Impossible())
+	}
 
 	if p.trimEach && added {
 		trimCount := p.strat.CanTrimEntries(p.alloc.Count(), // is already allocated
@@ -192,7 +202,7 @@ func (p *Core) useOrAdvanceGen(age Age, added bool) {
 	newGen := &generation{
 		genNo: p.recent.genNo + 1,
 		start: age,
-		end: age,
+		end:   age,
 	}
 	newGen.init(p.strat.NextGenerationCapacity(curLen, curCap))
 
@@ -207,8 +217,8 @@ func (p *Core) useOrAdvanceGen(age Age, added bool) {
 	}
 
 	if !trimmedGens {
-		trimGenCount := p.strat.CanTrimGenerations(p.alloc.Count(), p.recent.genNo - p.rarest.genNo + 1,
-				p.recent.end, p.rarest.start, p.oldest.start)
+		trimGenCount := p.strat.CanTrimGenerations(p.alloc.Count(), p.recent.genNo-p.rarest.genNo+1,
+			p.recent.end, p.rarest.start, p.oldest.start)
 		p.trimGenerations(trimGenCount)
 	}
 }
@@ -249,7 +259,7 @@ func (p *Core) trimGenerations(count int) {
 		prev = nil
 	}
 
-	for ;count > 0 && p.recent != p.rarest; count-- {
+	for ; count > 0 && p.recent != p.rarest; count-- {
 		p.rarest.trimGeneration(p, prev)
 
 		if len(p.rarest.access) == 0 {
@@ -304,7 +314,7 @@ func (p *generation) Add(index Index, age Age) (GenNo, bool) {
 			p.access = append(p.access, idx)
 			return p.genNo, true
 		}
-	case p.access[n - 1] != idx:
+	case p.access[n-1] != idx:
 		p.access = append(p.access, idx)
 		return p.genNo, true
 	}
@@ -415,15 +425,14 @@ func (p *generation) trimGeneration(c *Core, prev *generation) {
 	switch prevN := len(prev.access); {
 	case prevN == 0:
 		return
-	case prevN + j <= cap(p.access):
+	case prevN+j <= cap(p.access):
 		prev.access = append(p.access, prev.access...)
-	case prevN + j <= cap(prev.access):
-		combined := prev.access[:prevN + j] // expand within capacity
-		copy(combined[j:], prev.access) // move older records to the end
-		copy(combined, p.access[:j]) // put newer records to the front
+	case prevN+j <= cap(prev.access):
+		combined := prev.access[:prevN+j] // expand within capacity
+		copy(combined[j:], prev.access)   // move older records to the end
+		copy(combined, p.access[:j])      // put newer records to the front
 	}
 
 	prev.start = p.start
 	p.access = nil // enable this generation to be deleted
 }
-
