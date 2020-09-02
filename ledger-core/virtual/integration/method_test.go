@@ -419,7 +419,7 @@ func TestVirtual_CallContractFromContract_InterferenceViolation(t *testing.T) {
 			server.Init(ctx)
 			server.IncrementPulseAndWaitIdle(ctx)
 			var (
-				class = gen.UniqueGlobalRef()
+				class = server.RandomGlobalWithPulse()
 
 				prevPulse     = server.GetPulse().PulseNumber
 				objectAGlobal = reference.NewSelf(server.RandomLocalWithPulse())
@@ -437,7 +437,7 @@ func TestVirtual_CallContractFromContract_InterferenceViolation(t *testing.T) {
 
 			Method_PrepareObject(ctx, server, payload.StateStatusReady, objectAGlobal, prevPulse)
 
-			outgoingCallRef := gen.UniqueGlobalRef()
+			outgoingCallRef := server.RandomGlobalWithPulse()
 
 			switch test.outgoingCall {
 			case "method":
@@ -746,7 +746,7 @@ func TestVirtual_CallContractTwoTimes(t *testing.T) {
 		flags     = contract.MethodIsolation{Interference: isolation.CallTolerable, State: isolation.CallDirty}
 		callFlags = payload.BuildCallFlags(flags.Interference, flags.State)
 
-		classB = gen.UniqueGlobalRef()
+		classB = server.RandomGlobalWithPulse()
 
 		objectAGlobal = reference.NewSelf(server.RandomLocalWithPulse())
 		objectBGlobal = reference.NewSelf(server.RandomLocalWithPulse())
@@ -990,7 +990,7 @@ func TestVirtual_FutureMessageAddedToSlot(t *testing.T) {
 	var (
 		objectLocal       = server.RandomLocalWithPulse()
 		objectGlobal      = reference.NewSelf(objectLocal)
-		class             = gen.UniqueGlobalRef()
+		class             = server.RandomGlobalWithPulse()
 		dirtyStateRef     = server.RandomLocalWithPulse()
 		dirtyState        = reference.NewSelf(dirtyStateRef)
 		validatedStateRef = server.RandomLocalWithPulse()
@@ -1123,7 +1123,7 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
 			var (
-				class     = gen.UniqueGlobalRef()
+				class     = server.RandomGlobalWithPulse()
 				objectRef = reference.NewSelf(server.RandomLocalWithPulse())
 				p1        = server.GetPulse().PulseNumber
 			)
@@ -1424,7 +1424,7 @@ func TestVirtual_Method_ForbiddenIsolation(t *testing.T) {
 			server.IncrementPulse(ctx)
 
 			var (
-				class       = gen.UniqueGlobalRef()
+				class       = server.RandomGlobalWithPulse()
 				pulseNumber = server.GetPulse().PulseNumber
 				objectRef   = gen.UniqueGlobalRefWithPulse(pulseNumber)
 
@@ -1543,7 +1543,7 @@ func TestVirtual_Method_IntolerableCallChangeState(t *testing.T) {
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
 	var (
-		class     = gen.UniqueGlobalRef()
+		class     = server.RandomGlobalWithPulse()
 		objectRef = reference.NewSelf(server.RandomLocalWithPulse())
 		p1        = server.GetPulse().PulseNumber
 		isolation = contract.MethodIsolation{
@@ -1557,7 +1557,7 @@ func TestVirtual_Method_IntolerableCallChangeState(t *testing.T) {
 
 	{
 		runnerMock.AddExecutionClassify("SomeMethod", isolation, nil)
-		requestResult := requestresult.New([]byte("call result"), gen.UniqueGlobalRef())
+		requestResult := requestresult.New([]byte("call result"), server.RandomGlobalWithPulse())
 		newObjDescriptor := descriptor.NewObject(
 			reference.Global{}, reference.Local{}, class, []byte(""), false,
 		)
@@ -1674,7 +1674,7 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 
 	var (
 		objectGlobal = reference.NewSelf(server.RandomLocalWithPulse())
-		class        = gen.UniqueGlobalRef()
+		class        = server.RandomGlobalWithPulse()
 		initialState = []byte("initial state")
 		newState     = []byte("updated state")
 		prevPulse    = server.GetPulse().PulseNumber
@@ -1689,7 +1689,7 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 			newState,
 			false,
 		)
-		requestResult := requestresult.New([]byte("done"), gen.UniqueGlobalRef())
+		requestResult := requestresult.New([]byte("done"), server.RandomGlobalWithPulse())
 		requestResult.SetAmend(objectDescriptor, newState)
 
 		runnerMock.AddExecutionMock("ChangeMethod").AddStart(
@@ -1710,7 +1710,7 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 			},
 			&execution.Update{
 				Type:   execution.Done,
-				Result: requestresult.New([]byte("get validated info 1"), gen.UniqueGlobalRef()),
+				Result: requestresult.New([]byte("get validated info 1"), server.RandomGlobalWithPulse()),
 			},
 		)
 		runnerMock.AddExecutionMock("GetDirtyMethod1").AddStart(
@@ -1720,7 +1720,7 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 			},
 			&execution.Update{
 				Type:   execution.Done,
-				Result: requestresult.New([]byte("get dirty info 1"), gen.UniqueGlobalRef()),
+				Result: requestresult.New([]byte("get dirty info 1"), server.RandomGlobalWithPulse()),
 			},
 		)
 		runnerMock.AddExecutionMock("GetValidatedMethod2").AddStart(
@@ -1730,7 +1730,7 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 			},
 			&execution.Update{
 				Type:   execution.Done,
-				Result: requestresult.New([]byte("get validated info 2"), gen.UniqueGlobalRef()),
+				Result: requestresult.New([]byte("get validated info 2"), server.RandomGlobalWithPulse()),
 			},
 		)
 		runnerMock.AddExecutionMock("GetDirtyMethod2").AddStart(
@@ -1740,7 +1740,7 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 			},
 			&execution.Update{
 				Type:   execution.Done,
-				Result: requestresult.New([]byte("get dirty info 2"), gen.UniqueGlobalRef()),
+				Result: requestresult.New([]byte("get dirty info 2"), server.RandomGlobalWithPulse()),
 			},
 		)
 		runnerMock.AddExecutionClassify("GetValidatedMethod1", intolerableFlags(), nil)

@@ -473,7 +473,7 @@ func (s *VFindCallRequestHandlingSuite) setRunnerMock() {
 	)
 
 	{
-		methodResult := requestresult.New([]byte("execution"), gen.UniqueGlobalRef())
+		methodResult := requestresult.New([]byte("execution"), s.server.RandomGlobalWithPulse())
 		methodResult.SetAmend(newObjDescriptor, []byte("new memory"))
 
 		executionMock := s.runnerMock.AddExecutionMock(s.getOutgoingRef().String())
