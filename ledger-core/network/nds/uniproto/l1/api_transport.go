@@ -27,7 +27,7 @@ type SessionfulTransportProvider interface {
 
 // SessionfulConnectFunc receives either inbound connection(s) from listen or inbound direction of an outgoing connection.
 // Param (w) is not nil for an inbound connection (for an outbound connection it is returned by ConnectTo).
-// Param (conn) is a raw bi-directional connection. // todo: ??? why we need to pass raw connection ?
+// Param (conn) is a raw bi-directional connection.
 type SessionfulConnectFunc func(local, remote nwapi.Address, conn io.ReadWriteCloser, w OneWayTransport, err error) (ok bool)
 
 // VerifyPeerCertificateFunc verifies raw and pre-verified certs from a connection. Errors should be returned when credentials aren't allowed to connect.
@@ -38,7 +38,6 @@ type OutTransportFactory interface {
 	// ConnectTo resolves provided address and makes a connection
 	// Can return (nil, nil) when the given address is of unsupported type.
 	ConnectTo(nwapi.Address) (OneWayTransport, error)
-	// todo: ConnectToAndVerify(nwapi.Address, VerifyPeerCertificateFunc) (OneWayTransport, error)
 	Close() error
 }
 
