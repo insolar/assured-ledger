@@ -30,22 +30,18 @@ func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 
-var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+func rndBytes(n int) []byte {
+	key := make([]byte, n)
 
-func RandStringRunes(n int) []rune {
-	b := make([]rune, n)
-	for i := range b {
-		b[i] = letterRunes[rand.Intn(len(letterRunes))]
-	}
-	return b
+	rand.Read(key)
+
+	return key
 }
 
 func TestShipToHead(t *testing.T) {
 	payloadLen := 64
 
-	runes := RandStringRunes(payloadLen)
-
-	head := TestString{string(runes)}
+	head := TestString{string(rndBytes(payloadLen))}
 
 	sh := Shipment{
 		Head: &head,
@@ -80,9 +76,7 @@ func TestShipToHead(t *testing.T) {
 func TestShipToBody(t *testing.T) {
 	payloadLen := 1024 * 1024 * 64
 
-	runes := RandStringRunes(payloadLen)
-
-	body := TestString{string(runes)}
+	body := TestString{string(rndBytes(payloadLen))}
 
 	sh := Shipment{
 		Body: &body,
@@ -117,10 +111,10 @@ func TestShipToBody(t *testing.T) {
 func TestShipToHeadAndBody(t *testing.T) {
 	payloadLen := 1024 * 1024 * 64
 
-	runes := RandStringRunes(payloadLen)
+	bytes := rndBytes(payloadLen)
 
-	head := TestString{string(runes[:64])}
-	body := TestString{string(runes)}
+	head := TestString{string(bytes[:64])}
+	body := TestString{string(bytes)}
 
 	sh := Shipment{
 		Head: &head,
@@ -176,9 +170,7 @@ func TestShipToHeadAndBody(t *testing.T) {
 func TestEchoHead(t *testing.T) {
 	payloadLen := 64
 
-	runes := RandStringRunes(payloadLen)
-
-	head := TestString{string(runes)}
+	head := TestString{string(rndBytes(payloadLen))}
 
 	sh := Shipment{
 		Head: &head,
@@ -229,10 +221,10 @@ func TestEchoHead(t *testing.T) {
 func TestEchoHeadAndBody(t *testing.T) {
 	payloadLen := 1024 * 1024 * 64
 
-	runes := RandStringRunes(payloadLen)
+	bytes := rndBytes(payloadLen)
 
-	head := TestString{string(runes[:64])}
-	body := TestString{string(runes)}
+	head := TestString{string(bytes[:64])}
+	body := TestString{string(bytes)}
 
 	sh := Shipment{
 		Head: &head,
@@ -315,11 +307,11 @@ func TestEchoHeadAndBody(t *testing.T) {
 }
 
 func TestShipToCancel(t *testing.T) {
+	t.Skip("https://insolar.atlassian.net/browse/PLAT-798")
+
 	payloadLen := 64
 
-	runes := RandStringRunes(payloadLen)
-
-	head := TestString{string(runes)}
+	head := TestString{string(rndBytes(payloadLen))}
 
 	ch := synckit.NewChainedCancel()
 	sh := Shipment{
@@ -355,11 +347,11 @@ func TestShipToCancel(t *testing.T) {
 }
 
 func TestShipReturnCancel(t *testing.T) {
+	t.Skip("https://insolar.atlassian.net/browse/PLAT-798")
+
 	payloadLen := 64
 
-	runes := RandStringRunes(payloadLen)
-
-	head := TestString{string(runes)}
+	head := TestString{string(rndBytes(payloadLen))}
 
 	sh := Shipment{
 		Head: &head,
@@ -411,13 +403,14 @@ func TestShipReturnCancel(t *testing.T) {
 }
 
 func TestPullBodyCancel(t *testing.T) {
-	t.Skip("")
+	t.Skip("https://insolar.atlassian.net/browse/PLAT-798")
+
 	payloadLen := 1024 * 1024 * 64
 
-	runes := RandStringRunes(payloadLen)
+	bytes := rndBytes(payloadLen)
 
-	head := TestString{string(runes[:64])}
-	body := TestString{string(runes)}
+	head := TestString{string(bytes[:64])}
+	body := TestString{string(bytes)}
 
 	sh := Shipment{
 		Head: &head,
@@ -467,13 +460,14 @@ func TestPullBodyCancel(t *testing.T) {
 }
 
 func TestRejectBody(t *testing.T) {
-	t.Skip("")
+	t.Skip("https://insolar.atlassian.net/browse/PLAT-799")
+
 	payloadLen := 1024 * 1024 * 512
 
-	runes := RandStringRunes(payloadLen)
+	bytes := rndBytes(payloadLen)
 
-	head := TestString{string(runes[:64])}
-	body := TestString{string(runes)}
+	head := TestString{string(bytes[:64])}
+	body := TestString{string(bytes)}
 
 	sh := Shipment{
 		Head: &head,
@@ -510,7 +504,7 @@ func TestRejectBody(t *testing.T) {
 			ReceiveFn: noopReceiver,
 		})
 
-		//TODO err maybe in ReceiveFn
+		// TODO err maybe in ReceiveFn
 		require.Error(t, err)
 
 		// Save received head
@@ -532,11 +526,11 @@ func TestRejectBody(t *testing.T) {
 }
 
 func TestShipToWithTTL(t *testing.T) {
-
+	t.Skip("https://insolar.atlassian.net/browse/PLAT-800")
 }
 
 func TestShipReturnWithTTL(t *testing.T) {
-
+	t.Skip("https://insolar.atlassian.net/browse/PLAT-800")
 }
 
 func startUniprotoServers(t *testing.T, recv1, recv2 ReceiverFunc) (Service, Service, func()) {

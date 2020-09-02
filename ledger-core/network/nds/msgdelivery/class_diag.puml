@@ -39,7 +39,7 @@ package message-delivery(l3) {
     	peer     uniproto.Peer
     }
 
-    DeliveryPeer ..> Controller
+    DeliveryPeer .. Controller
 
     class facade {
     ctl *Controller
@@ -82,7 +82,7 @@ package message-delivery(l3) {
 
     Controller *-- protoStarter
 
-    PeerManager ..> protoStarter
+    PeerManager .. protoStarter
 
     class ParcelPacket
     class StatePacket{
@@ -92,7 +92,7 @@ package message-delivery(l3) {
     	AckList []ShortShipmentID
     }
 
-    DeliveryPeer *-- StatePacket
+    DeliveryPeer .. StatePacket
 
     class Shipment{
         Head   nwapi.SizeAwareSerializer
@@ -104,8 +104,8 @@ package message-delivery(l3) {
     	Cancel    *synckit.ChainedCancel
     }
 
-    Shipment ..> Service
-    ShipmentRequest ..> Service
+    Shipment .. Service
+    ShipmentRequest .. Service
 
     class msgShipment{
     	returnID ShortShipmentID
@@ -124,9 +124,9 @@ package message-delivery(l3) {
     rqShipment *-- ShipmentRequest
 
     class DeliveryAddress
-    DeliveryAddress ..> Service
+    DeliveryAddress .. Service
     class ReturnAddress
-    ReturnAddress ..> Service
+    ReturnAddress .. Service
 
     interface RetryStrategy{
     	Retry(ids []RetryID, repeatFn func(RetryID))
@@ -134,11 +134,11 @@ package message-delivery(l3) {
     	Remove([]RetryID)
     }
 
-    Config ..> Controller
+    Config .. Controller
     Config *-- SenderConfig
     SenderConfig *-- SenderWorkerConfig
-    msgShipment ..> Controller
-    rqShipment ..> Controller
+    msgShipment .. Controller
+    rqShipment .. Controller
 
 
     class StagedController {
@@ -151,6 +151,6 @@ package message-delivery(l3) {
     stateSender *-- StagedController
     msgSender *-- StagedController
 
-    StagedController ..> RetryStrategy
+    StagedController .. RetryStrategy
 }
 @enduml
