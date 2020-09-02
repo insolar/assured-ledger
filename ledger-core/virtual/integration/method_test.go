@@ -35,7 +35,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
@@ -1426,7 +1425,7 @@ func TestVirtual_Method_ForbiddenIsolation(t *testing.T) {
 			var (
 				class       = server.RandomGlobalWithPulse()
 				pulseNumber = server.GetPulse().PulseNumber
-				objectRef   = gen.UniqueGlobalRefWithPulse(pulseNumber)
+				objectRef   = server.RandomGlobalWithPulse()
 
 				validatedStateHeadRef reference.Global
 				latestValidatedState  *payload.ObjectState

@@ -122,48 +122,43 @@ func TestVirtual_SenderCheck_With_ExpectedVE(t *testing.T) {
 						jetCoordinatorMock.QueryRoleMock.Return([]reference.Global{rv}, nil)
 					}
 
+					prevPulse := server.GetPrevPulse().PulseNumber
+
 					switch m := (testMsg.msg).(type) {
 					case *payload.VStateReport:
-						pn := server.GetPrevPulse().PulseNumber
-
 						m.Status = payload.StateStatusMissing
-						m.AsOf = pn
-						m.Object = gen.UniqueGlobalRefWithPulse(pn)
+						m.AsOf = prevPulse
+						m.Object = gen.UniqueGlobalRefWithPulse(prevPulse)
 
 					case *payload.VFindCallRequest:
-						pn := server.GetPrevPulse().PulseNumber
 
-						m.LookAt = pn
-						m.Callee = gen.UniqueGlobalRefWithPulse(pn)
-						m.Outgoing = server.BuildRandomOutgoingWithGivenPulse(pn)
+						m.LookAt = prevPulse
+						m.Callee = gen.UniqueGlobalRefWithPulse(prevPulse)
+						m.Outgoing = server.BuildRandomOutgoingWithGivenPulse(prevPulse)
 
 					case *payload.VFindCallResponse:
-						pn := server.GetPrevPulse().PulseNumber
 
-						m.LookedAt = pn
-						m.Callee = gen.UniqueGlobalRefWithPulse(pn)
-						m.Outgoing = server.BuildRandomOutgoingWithGivenPulse(pn)
+						m.LookedAt = prevPulse
+						m.Callee = gen.UniqueGlobalRefWithPulse(prevPulse)
+						m.Outgoing = server.BuildRandomOutgoingWithGivenPulse(prevPulse)
 						m.Status = payload.CallStateMissing
 
 					case *payload.VDelegatedCallRequest:
-						pn := server.GetPrevPulse().PulseNumber
 
-						m.Callee = gen.UniqueGlobalRefWithPulse(pn)
-						m.CallOutgoing = server.BuildRandomOutgoingWithGivenPulse(pn)
+						m.Callee = gen.UniqueGlobalRefWithPulse(prevPulse)
+						m.CallOutgoing = server.BuildRandomOutgoingWithGivenPulse(prevPulse)
 						m.CallIncoming = reference.NewRecordOf(m.Callee, m.CallOutgoing.GetLocal())
 						m.CallFlags = payload.CallFlags(0).WithInterference(isolation.CallIntolerable).WithState(isolation.CallValidated)
 
 					case *payload.VDelegatedCallResponse:
-						pn := server.GetPrevPulse().PulseNumber
 
-						m.Callee = gen.UniqueGlobalRefWithPulse(pn)
-						m.CallIncoming = reference.NewRecordOf(m.Callee, gen.UniqueLocalRefWithPulse(pn))
+						m.Callee = gen.UniqueGlobalRefWithPulse(prevPulse)
+						m.CallIncoming = reference.NewRecordOf(m.Callee, gen.UniqueLocalRefWithPulse(prevPulse))
 
 					case *payload.VStateRequest:
-						pn := server.GetPrevPulse().PulseNumber
 
-						m.AsOf = pn
-						m.Object = gen.UniqueGlobalRefWithPulse(pn)
+						m.AsOf = prevPulse
+						m.Object = gen.UniqueGlobalRefWithPulse(prevPulse)
 
 					case *payload.VCallResult:
 						m.CallFlags = payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty)
