@@ -163,13 +163,7 @@ func (p *Core) addToGen(index Index, addedEntry, overflow bool) GenNo {
 func (p *Core) useOrAdvanceGen(age Age, added bool) {
 	trimmedEntries, trimmedGens := false, false
 
-	if p.oldest == nil {
-		panic(throw.Impossible())
-	}
-	if p.recent == nil {
-		panic(throw.Impossible())
-	}
-	if p.rarest == nil {
+	if p.recent == nil || p.rarest == nil || p.oldest == nil {
 		panic(throw.Impossible())
 	}
 
