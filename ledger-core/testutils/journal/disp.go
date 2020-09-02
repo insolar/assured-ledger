@@ -14,7 +14,9 @@ import (
 )
 
 type Dispenser struct {
-	lock        sync.RWMutex
+	changeLock  sync.RWMutex
+	eventLock   sync.RWMutex
+
 	subscribers []predicate.SubscriberFunc
 	freeItems   []uint32
 	stopped     bool
@@ -25,6 +27,9 @@ func (p *Dispenser) EventInput(event debuglogger.UpdateEvent) predicate.Subscrib
 		p.Stop()
 		return predicate.RemoveSubscriber
 	}
+
+	p.eventLock.RLock()
+	defer p.eventLock.RUnlock()
 
 	for i, subFn := range p.getSubscribers() {
 		switch {
@@ -42,8 +47,8 @@ func (p *Dispenser) Subscribe(outFn predicate.SubscriberFunc) {
 		panic(throw.IllegalValue())
 	}
 
-	p.lock.Lock()
-	defer p.lock.Unlock()
+	p.changeLock.Lock()
+	defer p.changeLock.Unlock()
 
 	if p.stopped {
 		outFn(debuglogger.UpdateEvent{})
@@ -53,6 +58,15 @@ func (p *Dispenser) Subscribe(outFn predicate.SubscriberFunc) {
 	p.subscribers = append(p.subscribers, outFn)
 }
 
+// EnsureSubscription should be used after Subscribe to guarantee that there is no unprocessed events.
+// LOCK! Will cause deadlock when invoked inside an event handler.
+//nolint:staticcheck
+func (p *Dispenser) EnsureSubscription() {
+	p.eventLock.Lock()
+	// empty section is intentional
+	p.eventLock.Unlock()
+}
+
 func (p *Dispenser) Stop() {
 	for _, subFn := range p._stop() {
 		subFn(debuglogger.UpdateEvent{})
@@ -60,8 +74,8 @@ func (p *Dispenser) Stop() {
 }
 
 func (p *Dispenser) _stop() []predicate.SubscriberFunc {
-	p.lock.Lock()
-	defer p.lock.Unlock()
+	p.changeLock.Lock()
+	defer p.changeLock.Unlock()
 
 	if p.stopped {
 		return nil
@@ -76,15 +90,15 @@ func (p *Dispenser) _stop() []predicate.SubscriberFunc {
 }
 
 func (p *Dispenser) removeSubscriber(i int) {
-	p.lock.Lock()
-	defer p.lock.Unlock()
+	p.changeLock.Lock()
+	defer p.changeLock.Unlock()
 	p.subscribers[i] = nil
 	p.freeItems = append(p.freeItems, uint32(i))
 }
 
 func (p *Dispenser) getSubscribers() []predicate.SubscriberFunc {
-	p.lock.RLock()
-	defer p.lock.RUnlock()
+	p.changeLock.RLock()
+	defer p.changeLock.RUnlock()
 	return p.subscribers // to avoid cascades of locks
 }
 
@@ -93,17 +107,17 @@ func (p *Dispenser) Merge(other *Dispenser) {
 		return
 	}
 
-	p.lock.Lock()
+	p.changeLock.Lock()
 	if p.stopped {
-		p.lock.Unlock()
+		p.changeLock.Unlock()
 
 		other.Stop()
 		return
 	}
-	defer p.lock.Unlock()
+	defer p.changeLock.Unlock()
 
-	other.lock.Lock()
-	defer other.lock.Unlock()
+	other.changeLock.Lock()
+	defer other.changeLock.Unlock()
 
 	if other.stopped {
 		return
