@@ -27,3 +27,23 @@ type SequenceExtractor interface {
 	GetExtractedTail() ExtractedTail
 }
 
+type SequenceLimiter interface {
+
+}
+
+type ExtractionType uint8
+
+const (
+	ExtractNone ExtractionType = iota
+	ExtractProof
+	ExtractExcerpt
+
+	// Redirection support?
+
+	ExtractRecord
+	ExtractFull
+)
+
+type ExtractorStrategy interface {
+
+}
