@@ -200,7 +200,9 @@ func (p *ReceiveBuffer) RunWorkers(count int, priorityOnly bool) {
 
 func (p ReceiveBuffer) Close() {
 	close(p.regularBuf)
-	close(p.priorityBuf)
+	if p.priorityBuf != nil {
+		close(p.priorityBuf)
+	}
 	p.largeSema.Close()
 }
 
