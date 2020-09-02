@@ -149,7 +149,7 @@ func TestVirtual_SenderCheck_With_ExpectedVE(t *testing.T) {
 						pn := server.GetPrevPulse().PulseNumber
 
 						m.Callee = gen.UniqueGlobalRefWithPulse(pn)
-						m.CallOutgoing = reference.NewRecordOf(server.GlobalCaller(), gen.UniqueLocalRefWithPulse(pn))
+						m.CallOutgoing = server.BuildRandomOutgoingWithGivenPulse(pn)
 						m.CallIncoming = reference.NewRecordOf(m.Callee, m.CallOutgoing.GetLocal())
 						m.CallFlags = payload.CallFlags(0).WithInterference(isolation.CallIntolerable).WithState(isolation.CallValidated)
 

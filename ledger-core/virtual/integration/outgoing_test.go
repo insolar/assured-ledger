@@ -527,9 +527,7 @@ func TestVirtual_CallContractOutgoingReturnsError(t *testing.T) {
 		callFlags = payload.BuildCallFlags(flags.Interference, flags.State)
 
 		classB          = gen.UniqueGlobalRef()
-		outgoingCallRef = reference.NewRecordOf(
-			server.GlobalCaller(), server.RandomLocalWithPulse(),
-		)
+		outgoingCallRef = server.BuildRandomOutgoingWithPulse()
 	)
 
 	p := server.GetPulse().PulseNumber
