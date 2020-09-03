@@ -228,10 +228,13 @@ func (s *SMVDelegatedRequestFinished) updateObjectState(state *object.SharedStat
 }
 
 func (s *SMVDelegatedRequestFinished) updateMemoryCache(ctx smachine.ExecutionContext) {
-	if !s.hasLatestState() || s.Payload.LatestState.Deactivated {
+	if !s.hasLatestState() {
 		return
 	}
 	objectDescriptor := s.latestState()
+	if objectDescriptor.HeadRef().IsEmpty() || objectDescriptor.StateID().IsEmpty() {
+		return
+	}
 
 	s.memoryCache.PrepareAsync(ctx, func(ctx context.Context, svc memorycache.Service) smachine.AsyncResultFunc {
 		ref := reference.NewRecordOf(objectDescriptor.HeadRef(), objectDescriptor.StateID())
