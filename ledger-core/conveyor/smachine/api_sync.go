@@ -23,12 +23,12 @@ type SynchronizationContext interface {
 	//
 	// 2) NotPassed/false - SM can't proceed to access resources controlled by this sync object.
 	//    NotPassed holder remains valid and ensures that SM retains location an a queue of the sync object.
-	//    NotPassed holder will at some moment converted into Passed holder and the relevant SM will be be woken up.
-	//    NotPassed holder is MUST be released.
+	//    NotPassed holder will at some moment be converted into Passed holder and the relevant SM will be be woken up.
+	//    NotPassed holder MUST be released.
 	//
 	// Acquired holder will be released when SM is stopped.
 	// Panics on zero or incorrectly initialized value.
-	// Panics when another sync was acquired, but was not released.
+	// Panics when another sync was acquired, but was not released. This also applies then holder was previously acquired with different methods/flags/priority.
 	Acquire(SyncLink) BoolDecision
 	// AcquireAndRelease releases any previously acquired sync object AFTER acquiring a new one.
 	AcquireAndRelease(SyncLink) BoolDecision
