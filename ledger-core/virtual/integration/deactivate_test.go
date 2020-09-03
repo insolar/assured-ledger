@@ -22,7 +22,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	commonTestUtils "github.com/insolar/assured-ledger/ledger-core/testutils"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/synchronization"
@@ -142,7 +141,7 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 					},
 					&execution.Update{
 						Type:   execution.Done,
-						Result: requestresult.New([]byte("validated result"), gen.UniqueGlobalRef()),
+						Result: requestresult.New([]byte("validated result"), server.RandomGlobalWithPulse()),
 					},
 				)
 			}
