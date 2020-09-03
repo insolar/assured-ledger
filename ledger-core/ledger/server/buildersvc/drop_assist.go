@@ -32,7 +32,7 @@ func (p *dropAssistant) append(pa *plashAssistant, future AppendFuture, b lineag
 	entries := make([]draftEntry, 0, b.Count())
 	digests := make([]cryptkit.Digest, 0, b.Count())
 
-	b.Enum(func(record lineage.Record, br rms.BasicRecord, dust lineage.DustMode) bool {
+	b.Enum(func(record lineage.Record, br rms.BasicRecord, rel ledger.DirectoryIndexAndFlags, dust lineage.DustMode) bool {
 		recPayloads := br.GetRecordPayloads()
 		payloadCount := recPayloads.Count()
 
@@ -43,8 +43,17 @@ func (p *dropAssistant) append(pa *plashAssistant, future AppendFuture, b lineag
 			draft:     draftCatalogEntry(record),
 		}
 
-		if dust == lineage.DustRecord {
+		switch {
+		case dust == lineage.DustRecord:
 			bundleEntry.directory = ledger.DefaultDustSection
+			// dust record can't be considered as connected for cross-drop operations etc
+			// bundleEntry.relative = 0
+		case rel == 0:
+		case rel.SectionID() != bundleEntry.directory:
+			err = throw.E("mismatched relative section")
+			return true // stop now
+		default:
+			bundleEntry.relative = rel
 		}
 
 		bundleEntry.payloads[0].section = bundleEntry.directory

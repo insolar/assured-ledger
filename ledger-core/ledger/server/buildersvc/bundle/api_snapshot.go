@@ -77,6 +77,7 @@ type PayloadSection interface {
 type DirectoryEntry struct {
 	Key reference.Global
 	Loc ledger.StorageLocator
+	Rel ledger.DirectoryIndexAndFlags
 }
 
 func (v DirectoryEntry) IsZero() bool {

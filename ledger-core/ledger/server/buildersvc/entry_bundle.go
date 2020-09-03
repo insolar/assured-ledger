@@ -120,7 +120,13 @@ func (p *entryWriter) prepareRecord(snapshot bundle.Snapshot, entry *draftEntry)
 		return preparedEntry{}, err
 	}
 
-	if err := ds.AppendDirectoryEntry(entryIndex, bundle.DirectoryEntry{Key: reference.Copy(entry.entryKey), Loc: entryLoc}); err != nil {
+	if err := ds.AppendDirectoryEntry(entryIndex,
+		bundle.DirectoryEntry{
+			Key: reference.Copy(entry.entryKey),
+			Loc: entryLoc,
+			Rel: makeRelative(entry.relative, entryIndex),
+		},
+	); err != nil {
 		return preparedEntry{}, err
 	}
 
@@ -136,6 +142,17 @@ func (p *entryWriter) prepareRecord(snapshot bundle.Snapshot, entry *draftEntry)
 		entryKey:   entry.entryKey,
 		payloads:   preparedPayloads,
 	}, nil
+}
+
+func makeRelative(relative ledger.DirectoryIndexAndFlags, selfIndex ledger.DirectoryIndex) ledger.DirectoryIndexAndFlags {
+	switch {
+	case relative == 0:
+		return 0
+	case relative.Ordinal() == 0:
+		return selfIndex.WithFlags(relative.Flags())
+	default:
+		return relative
+	}
 }
 
 type preparedEntry struct {
@@ -155,6 +172,7 @@ type draftEntry struct {
 	entryKey  reference.Holder
 	payloads  []sectionPayload
 	directory ledger.SectionID
+	relative  ledger.DirectoryIndexAndFlags
 	draft     catalog.Entry
 }
 

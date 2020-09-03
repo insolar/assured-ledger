@@ -176,27 +176,63 @@ func (p *memorySnapshot) Completed() error {
 }
 
 func (p *memorySnapshot) Commit() error {
+
+	for i := range p.snapshot {
+		cs := p.snapshot[i].section
+		if cs == nil || p.snapshot[i].dirCount == 0 {
+			continue
+		}
+		if err := cs.commit(p.snapshot[i], true); err != nil {
+			return throw.W(err, "pre-commit failed")
+		}
+	}
+
+	hasChanges := false
+	for i := range p.snapshot {
+		cs := p.snapshot[i].section
+		if cs == nil || p.snapshot[i].dirCount == 0 {
+			continue
+		}
+
+		if err := cs.commit(p.snapshot[i], true); err != nil {
+			if hasChanges {
+				p.storage.state.Store(stateBroken)
+				return throw.W(err, "commit failed, storage is broken")
+			}
+			return throw.W(err, "commit failed")
+		}
+		hasChanges = true
+	}
+
 	return nil
 }
 
 func (p *memorySnapshot) Rollback(chained bool) error {
-	broken := false
-	for i := range p.snapshot {
-		cs := p.snapshot[i].section
-		if cs == nil {
-			continue
+	switch p.storage.state.Load() {
+	case stateBroken:
+		return throw.FailHere("rollback impossible, storage is broken")
+	case stateReadOnly:
+		p.storage.state.Store(stateBroken)
+		return throw.FailHere("rollback failed, storage is readonly")
+	default:
+		broken := false
+		for i := range p.snapshot {
+			cs := p.snapshot[i].section
+			if cs == nil {
+				continue
+			}
+			if !cs.rollback(p.snapshot[i], chained) {
+				broken = true
+			}
 		}
-		if !cs.rollback(p.snapshot[i], chained) {
-			broken = true
+
+		if !broken {
+			return nil
 		}
-	}
 
-	if !broken {
-		return nil
+		p.storage.state.Store(stateBroken)
+		return throw.FailHere("rollback failed, storage is broken")
 	}
-
-	p.storage.state.Store(stateBroken)
-	return throw.FailHere("rollback failed, storage is broken")
 }
 
 func (p *memorySnapshot) GetPayloadSection(id ledger.SectionID) (bundle.PayloadSection, error) {
@@ -244,6 +280,7 @@ type sectionSnapshot struct {
 	dirIndex ledger.Ordinal
 	chapter  ledger.ChapterID
 	lastOfs  uint32
+	dirCount uint32
 }
 
 func (p *sectionSnapshot) GetNextDirectoryIndex() ledger.DirectoryIndex {
@@ -251,7 +288,11 @@ func (p *sectionSnapshot) GetNextDirectoryIndex() ledger.DirectoryIndex {
 }
 
 func (p *sectionSnapshot) AppendDirectoryEntry(index ledger.DirectoryIndex, entry bundle.DirectoryEntry) error {
-	return p.section.setDirectoryEntry(index, entry)
+	if err := p.section.setDirectoryEntry(index, entry); err != nil {
+		return err
+	}
+	p.dirCount++
+	return nil
 }
 
 func (p *sectionSnapshot) AllocateEntryStorage(size int) (bundle.PayloadReceptacle, ledger.StorageLocator, error) {
@@ -391,6 +432,60 @@ func (p *cabinetSection) allocatePayloadStorage(snap *sectionSnapshot, vSize int
 	return byteReceptacle(b[n:]), loc, nil
 }
 
+func (p *cabinetSection) commit(snapshot sectionSnapshot, testOnly bool) error {
+	if testOnly {
+		p.mutex.RLock()
+		defer p.mutex.RUnlock()
+	} else {
+		p.mutex.Lock()
+		defer p.mutex.Unlock()
+	}
+
+	entryOrd := snapshot.dirIndex
+	for i := snapshot.dirCount; i > 0; i, entryOrd = i-1, entryOrd+1 {
+		switch entry := p._getDirEntry(entryOrd); {
+		case entry == nil:
+			return throw.Impossible()
+		case entry.Rel == 0:
+			// there is no relative - just skip it
+		case entry.Rel.SectionID() != p.sectionID:
+			return throw.E("wrong relative section", struct { Current, Relative ledger.SectionID }{ p.sectionID, entry.Rel.SectionID() })
+		case entry.Rel.Ordinal() == 0 || entry.Rel.Ordinal() > entryOrd:
+			return throw.E("wrong relative ordinal", struct { Current, Relative ledger.Ordinal }{ entryOrd, entry.Rel.Ordinal() })
+		case entry.Rel.Ordinal() == entryOrd:
+			// self-ref
+			if entry.Rel.Flags() & (ledger.FilamentStart|ledger.FilamentLocalStart) == 0 {
+				return throw.E("wrong self-relative", struct { Current ledger.Ordinal }{ entryOrd })
+			}
+		default:
+			switch relEntry := p._getDirEntry(entry.Rel.Ordinal()); {
+			case relEntry == nil:
+				return throw.Impossible()
+			case relEntry.Rel.Flags() & (ledger.FilamentStart|ledger.FilamentLocalStart) == 0:
+				return throw.E("wrong relative type", struct { Current, Relative ledger.Ordinal }{ entryOrd, entry.Rel.Ordinal() })
+			case relEntry.Rel.Flags() & ledger.FilamentClosed != 0:
+				if entry.Rel.Flags() & ledger.RollbackEntry == 0 {
+					return throw.E("closed relative", struct { Current, Relative ledger.Ordinal }{ entryOrd, entry.Rel.Ordinal() })
+				}
+
+				if !testOnly {
+					relEntry.Rel = ledger.NewDirectoryIndex(p.sectionID, entryOrd).WithFlags(relEntry.Rel.Flags() &^ ledger.FilamentClosed)
+				}
+
+			case entry.Rel.Flags() &^ (ledger.FilamentClosed|ledger.RollbackEntry) != 0:
+				return throw.E("inconsistent entry relative", struct { Current, Relative ledger.Ordinal }{ entryOrd, entry.Rel.Ordinal() })
+
+			default:
+				if !testOnly {
+					relEntry.Rel = relEntry.Rel.WithIndex(ledger.NewDirectoryIndex(p.sectionID, entryOrd))
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
 func (p *cabinetSection) rollback(snapshot sectionSnapshot, chained bool) bool {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
@@ -446,32 +541,43 @@ func (p *cabinetSection) _rollbackDir(dirIndex int) bool {
 	return true
 }
 
-func (p *cabinetSection) readDirtyEntry(index ledger.DirectoryIndex) bundle.DirectoryEntry {
-	p.mutex.RLock()
-	defer p.mutex.RUnlock()
-
+func (p *cabinetSection) _getDirEntry(index ledger.Ordinal) *bundle.DirectoryEntry {
 	n := len(p.directory)
 	switch {
 	case n == 0:
 		panic(throw.IllegalState())
-	case index.SectionID() != p.sectionID:
+	case index == 0:
 		panic(throw.IllegalValue())
 	}
 
 	defCap := cap(p.directory[0])
 
-	pgN := int(index.Ordinal()) / defCap
+	pgN := int(index) / defCap
 	if pgN >= n {
-		return bundle.DirectoryEntry{}
+		return nil
 	}
 	pg := p.directory[pgN]
 
-	idx := int(index.Ordinal()) % defCap
+	idx := int(index) % defCap
 	if idx >= len(pg) {
-		return bundle.DirectoryEntry{}
+		return nil
 	}
 
-	return pg[idx]
+	return &pg[idx]
+}
+
+func (p *cabinetSection) readDirtyEntry(index ledger.DirectoryIndex) bundle.DirectoryEntry {
+	if index.SectionID() != p.sectionID {
+		panic(throw.IllegalValue())
+	}
+
+	p.mutex.RLock()
+	defer p.mutex.RUnlock()
+
+	if dirEntry := p._getDirEntry(index.Ordinal()); dirEntry != nil {
+		return *dirEntry
+	}
+	return bundle.DirectoryEntry{}
 }
 
 func (p *cabinetSection) readDirtyStorage(locator ledger.StorageLocator) []byte {
@@ -515,4 +621,5 @@ func (b byteReceptacle) ApplyFixedReader(r longbits.FixedReader) error {
 
 /*********************************/
 
-const directoryEntrySize = reference.GlobalBinarySize + 8
+// size of bundle.DirectoryEntry
+const directoryEntrySize = reference.GlobalBinarySize + 8 /* StorageLocator */ + 8 /* DirectoryIndexAndFlags */

@@ -68,7 +68,7 @@ func (p *LineSharedData) ensureDataAccess() {
 
 func (p *LineSharedData) TryApplyRecordSet(ctx smachine.ExecutionContext,
 	set inspectsvc.InspectedRecordSet, verifyOnly bool,
-) (*buildersvc.Future, *lineage.BundleResolver) {
+) (*buildersvc.Future, *buildersvc.Future, *lineage.BundleResolver) {
 
 	p.ensureDataAccess()
 	if set.IsEmpty() {
@@ -84,8 +84,10 @@ func (p *LineSharedData) TryApplyRecordSet(ctx smachine.ExecutionContext,
 	}
 
 	if verifyOnly {
-		return p.verifyBundle(br)
+		fut, br := p.verifyBundle(br)
+		return nil, fut, br
 	}
+
 	return p.applyBundle(ctx, br)
 }
 
@@ -106,10 +108,10 @@ func (p *LineSharedData) verifyBundle(br *lineage.BundleResolver) (*buildersvc.F
 	}
 }
 
-func (p *LineSharedData) applyBundle(ctx smachine.ExecutionContext, br *lineage.BundleResolver) (*buildersvc.Future, *lineage.BundleResolver) {
+func (p *LineSharedData) applyBundle(ctx smachine.ExecutionContext, br *lineage.BundleResolver) (*buildersvc.Future, *buildersvc.Future, *lineage.BundleResolver) {
 
 	if !br.IsReadyForStage() {
-		return nil, br
+		return nil, nil, br
 	}
 
 	future := buildersvc.NewFuture("")
@@ -117,18 +119,18 @@ func (p *LineSharedData) applyBundle(ctx smachine.ExecutionContext, br *lineage.
 	switch ok, fut, resolved := p.data.AddBundle(br, future); {
 	case !ok:
 		// got an error or an unresolved dependency
-		return nil, br
+		return nil, nil, br
 
 	case fut == nil:
 		// all entries were already added and committed
 		if !resolved.IsZero() {
 			panic(throw.Impossible())
 		}
-		return nil, nil
+		return nil, nil, nil
 
 	case resolved.IsZero():
 		// all entries were already added, but not yet committed
-		return fut.(*buildersvc.Future), nil
+		return nil, fut.(*buildersvc.Future), nil
 
 	default:
 		// entries has to be added
@@ -142,7 +144,7 @@ func (p *LineSharedData) applyBundle(ctx smachine.ExecutionContext, br *lineage.
 			service.AppendToDrop(dropID, future, resolved)
 		}).Send()
 
-		return future, nil
+		return nil, future, nil
 	}
 }
 
@@ -203,28 +205,29 @@ func (p *LineSharedData) AddRecap(ctx smachine.ExecutionContext, ref reference.G
 
 }
 
-func (p *LineSharedData) addSoloRecord(ctx smachine.ExecutionContext, rec lineage.Record) *buildersvc.Future {
+func (p *LineSharedData) addSoloRecord(ctx smachine.ExecutionContext, rec lineage.Record) (*buildersvc.Future, *buildersvc.Future) {
 	p.ensureDataAccess()
 	br := p.data.NewBundle()
 	br.Add(rec)
 
-	if f, _ := p.applyBundle(ctx, br); f != nil {
-		return f
-	}
-
-	if len(br.GetUnresolvedDependencies()) == 0 {
-		panic(throw.Impossible())
-	}
-
-	errs := br.GetErrors()
-	if len(errs) == 0 {
-		panic(throw.Impossible())
-	}
-	err := errs[0]
-	for _, e2 := range errs[1:] {
-		err = throw.WithDetails(err, e2)
-	}
-	panic(err)
+	panic(throw.NotImplemented())
+	// if prevFut, fut, _ := p.applyBundle(ctx, br); f != nil {
+	// 	return prevFut, fut
+	// }
+	//
+	// if len(br.GetUnresolvedDependencies()) == 0 {
+	// 	panic(throw.Impossible())
+	// }
+	//
+	// errs := br.GetErrors()
+	// if len(errs) == 0 {
+	// 	panic(throw.Impossible())
+	// }
+	// err := errs[0]
+	// for _, e2 := range errs[1:] {
+	// 	err = throw.WithDetails(err, e2)
+	// }
+	// panic(err)
 }
 
 func (p *LineSharedData) getUnresolved() UnresolvedDependencyMap {

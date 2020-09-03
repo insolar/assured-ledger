@@ -18,7 +18,7 @@ const (
 	DefaultDustSection
 )
 
-const MaxSectionID = ^SectionID(0)
+const MaxSectionID = (^SectionID(0))>>1
 
 // DefaultDataSection is to store data indefinitely (except for wiping out & evictions)
 const DefaultDataSection = DefaultEntrySection

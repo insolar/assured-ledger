@@ -19,6 +19,7 @@ type resolvedRecord struct {
 	recapNo  recordNo
 
 	storageIndex ledger.DirectoryIndex
+	relativeIndex ledger.DirectoryIndexAndFlags
 
 	redirectToType RecordType
 	Record
