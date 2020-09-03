@@ -228,7 +228,7 @@ func (s *SMVDelegatedRequestFinished) updateObjectState(state *object.SharedStat
 }
 
 func (s *SMVDelegatedRequestFinished) updateMemoryCache(ctx smachine.ExecutionContext) {
-	if !s.hasLatestState() {
+	if !s.hasLatestState() || s.Payload.LatestState.Deactivated {
 		return
 	}
 	objectDescriptor := s.latestState()
