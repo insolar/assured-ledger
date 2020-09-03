@@ -541,7 +541,7 @@ func TestVirtual_CallMethodFromConstructor(t *testing.T) {
 
 			var (
 				prevPulse     = server.GetPulse().PulseNumber
-				objectBGlobal = reference.NewSelf(server.RandomLocalWithPulse())
+				objectBGlobal = server.RandomGlobalWithPulse()
 			)
 
 			server.IncrementPulseAndWaitIdle(ctx)
@@ -673,7 +673,7 @@ func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
 	var (
-		object     = reference.NewSelf(server.RandomLocalWithPulse())
+		object     = server.RandomGlobalWithPulse()
 		pulse      = server.GetPulse().PulseNumber
 		tokenValue payload.CallDelegationToken
 	)

@@ -568,7 +568,7 @@ func (s *deduplicateMethodUsingPrevVETest) generateCaller() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	s.caller = reference.NewSelf(gen.UniqueLocalRefWithPulse(s.p1))
+	s.caller = gen.UniqueGlobalRefWithPulse(s.p1)
 }
 
 func (s *deduplicateMethodUsingPrevVETest) generateObjectRef() {
@@ -577,7 +577,7 @@ func (s *deduplicateMethodUsingPrevVETest) generateObjectRef() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	s.object = reference.NewSelf(gen.UniqueLocalRefWithPulse(p))
+	s.object = gen.UniqueGlobalRefWithPulse(p)
 }
 
 func (s *deduplicateMethodUsingPrevVETest) generateOutgoing() {
