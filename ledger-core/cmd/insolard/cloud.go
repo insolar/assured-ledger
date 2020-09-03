@@ -7,6 +7,7 @@ package main
 
 import (
 	"io/ioutil"
+	"os"
 
 	jww "github.com/spf13/jwalterweatherman"
 	"gopkg.in/yaml.v2"
@@ -21,7 +22,8 @@ func readConfig(cfgPath string) configuration.Configuration {
 	cfgHolder := configuration.NewHolder(cfgPath)
 	err := cfgHolder.Load()
 	if err != nil {
-		global.Warn("failed to load configuration from file: ", err.Error())
+		global.Fatal("failed to load configuration from file: ", err.Error())
+		os.Exit(1)
 	}
 	return *cfgHolder.Configuration
 }
@@ -45,15 +47,15 @@ func runInsolardCloud(configPath string) {
 	}
 
 	var multiFn insapp.MultiNodeConfigFunc
-	multiFn = func(cfgPath string, baseCfg configuration.Configuration) ([]configuration.Configuration, insapp.NetworkInitFunc) {
-		appConfigs := []configuration.Configuration{}
+	multiFn = func(baseCfg configuration.Configuration) []configuration.Configuration {
+		appConfigs := make([]configuration.Configuration, 0, len(cloudConf.NodeConfigPaths))
 		for _, conf := range cloudConf.NodeConfigPaths {
 			appConfigs = append(appConfigs, readConfig(conf))
 		}
-		return appConfigs, nil
+		return appConfigs
 	}
 
-	s := server.NewMultiServer(configPath, multiFn)
+	s := server.NewMultiServer(cloudConf, multiFn)
 
 	s.Serve()
 }

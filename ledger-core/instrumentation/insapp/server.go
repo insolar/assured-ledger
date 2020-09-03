@@ -14,79 +14,84 @@ import (
 
 	"github.com/insolar/component-manager"
 
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
+	component2 "github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp/component"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp/internal/headless"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp/internal/virtual"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/trace"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lmnapp"
+	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/version"
 )
 
 type Server struct {
-	cfgPath string
-	appFn   AppFactoryFunc
-	multiFn MultiNodeConfigFunc
-	extra   []interface{}
+	cfg       configuration.Configuration
+	headless  bool
+	appFn     component2.AppFactoryFunc
+	networkFn NetworkInitFunc
+	extra     []interface{}
+
+	cm       *component.Manager
+	stopFunc func()
+
+	ctx    context.Context
+	logger log.Logger
+
+	dispatcher   beat.Dispatcher
+	pulseManager *PulseManager
+	certificate  nodeinfo.Certificate
 }
 
 // New creates a one-node process.
-func New(cfgPath string, appFn AppFactoryFunc, extraComponents ...interface{}) *Server {
+func New(cfg configuration.Configuration, extraComponents ...interface{}) *Server {
 	return &Server{
-		cfgPath: cfgPath,
-		appFn:   appFn,
-		extra:   extraComponents,
+		cfg:   cfg,
+		extra: extraComponents,
 	}
 }
 
-func (s *Server) readConfig(cfgPath string) configuration.Configuration {
-	cfgHolder := configuration.NewHolder(cfgPath)
-	err := cfgHolder.Load()
-	if err != nil {
-		global.Warn("failed to load configuration from file: ", err.Error())
+// NewWithNetworkFn creates a one-node process with given networkFn
+func NewWithNetworkFn(cfg configuration.Configuration, networkFn NetworkInitFunc, extraComponents ...interface{}) *Server {
+	return &Server{
+		cfg:   cfg,
+		extra: extraComponents,
 	}
-	return *cfgHolder.Configuration
 }
 
-func (s *Server) Serve() {
-	baseCfg := s.readConfig(s.cfgPath)
-	var configs []configuration.Configuration
-	var networkFn NetworkInitFunc
+// NewHeadless creates a one-node headless process.
+func NewHeadless(cfg configuration.Configuration, extraComponents ...interface{}) *Server {
+	extraComponents = append(extraComponents, &headless.AppComponent{})
+	return &Server{
+		cfg:      cfg,
+		headless: true,
+		extra:    extraComponents,
+	}
+}
 
+func (s *Server) prepare() {
 	fmt.Println("Version: ", version.GetFullVersion())
-	if s.multiFn != nil {
-		fmt.Println("Starts with multi-node configuration base:\n", configuration.ToString(&baseCfg))
-		configs, networkFn = s.multiFn(s.cfgPath, baseCfg)
-	} else {
-		configs = append(configs, baseCfg)
-	}
+	s.ctx, s.logger = inslogger.InitGlobalNodeLogger(context.Background(), s.cfg.Log, "", "")
 
-	baseCtx, baseLogger := inslogger.InitGlobalNodeLogger(context.Background(), baseCfg.Log, "", "")
+	fmt.Printf("Starts with configuration: \n%s\n", configuration.ToString(s.cfg))
 
-	n := len(configs)
-	cms := make([]*component.Manager, 0, n)
-	stops := make([]func(), 0, n)
-	contexts := make([]context.Context, 0, n)
+	s.cm, s.stopFunc = s.StartComponents(s.ctx, s.cfg, s.networkFn,
+		func(_ context.Context, cfg configuration.Log, nodeRef, nodeRole string) context.Context {
+			s.ctx, s.logger = inslogger.InitNodeLogger(s.ctx, cfg, nodeRef, nodeRole)
 
-	for i, cfg := range configs {
-		fmt.Printf("Starts with configuration [%d/%d]:\n%s\n", i + 1, n, configuration.ToString(&configs[0]))
+			global.SetLogger(s.logger)
 
-		cm, stopWatermill := s.StartComponents(baseCtx, cfg, networkFn,
-			func(_ context.Context, cfg configuration.Log, nodeRef, nodeRole string) context.Context {
-				ctx, logger := inslogger.InitNodeLogger(baseCtx, cfg, nodeRef, nodeRole)
-				contexts = append(contexts, ctx)
+			return s.ctx
+		})
 
-				if n == 1 {
-					baseCtx = ctx
-					baseLogger = logger
-					global.SetLogger(logger)
-				}
-				return ctx
-			})
+}
 
-		cms = append(cms, cm)
-		stops = append(stops, stopWatermill)
-	}
-
+func (s *Server) run() {
 	global.InitTicker()
 
 	var gracefulStop = make(chan os.Signal, 1)
@@ -99,37 +104,32 @@ func (s *Server) Serve() {
 		defer close(waitChannel)
 
 		sig := <-gracefulStop
-		baseLogger.Debug("caught sig: ", sig)
+		s.logger.Debug("caught sig: ", sig)
 
-		baseLogger.Info("stopping gracefully")
+		s.logger.Info("stopping gracefully")
 
-		for i, cm := range cms {
-			if err := cm.GracefulStop(contexts[i]); err != nil {
-				baseLogger.Fatalf("graceful stop failed [%d]: %s", i, throw.ErrorWithStack(err))
-			}
+		if err := s.cm.GracefulStop(s.ctx); err != nil {
+			s.logger.Fatalf("graceful stop failed: %s", throw.ErrorWithStack(err))
 		}
 
-		for _, stopFn := range stops {
-			if stopFn != nil {
-				stopFn()
-			}
-		}
+		s.stopFunc()
 
-		for i, cm := range cms {
-			if err := cm.Stop(contexts[i]); err != nil {
-				baseLogger.Fatalf("stop failed [%d]: %s", i, throw.ErrorWithStack(err))
-			}
+		if err := s.cm.Stop(s.ctx); err != nil {
+			s.logger.Fatalf("stop failed [%d]: %s", throw.ErrorWithStack(err))
 		}
 	}()
 
-	for i, cm := range cms {
-		if err := cm.Start(contexts[i]); err != nil {
-			baseLogger.Fatalf("start failed [%d]: %s", i, throw.ErrorWithStack(err))
-		}
+	if err := s.cm.Start(s.ctx); err != nil {
+		s.logger.Fatalf("start failed: %s", throw.ErrorWithStack(err))
 	}
 
 	fmt.Println("All components were started")
 	<-waitChannel
+}
+
+func (s *Server) Serve() {
+	s.prepare()
+	s.run()
 }
 
 type LoggerInitFunc = func(ctx context.Context, cfg configuration.Log, nodeRef, nodeRole string) context.Context
@@ -140,9 +140,20 @@ func (s *Server) StartComponents(ctx context.Context, cfg configuration.Configur
 	preComponents := s.initBootstrapComponents(ctx, cfg)
 	certManager := s.initCertificateManager(ctx, cfg, preComponents)
 
-	nodeCert := certManager.GetCertificate()
-	nodeRole := nodeCert.GetRole()
-	nodeRef := nodeCert.GetNodeRef().String()
+	s.certificate = certManager.GetCertificate()
+	nodeRole := s.certificate.GetRole()
+	nodeRef := s.certificate.GetNodeRef().String()
+
+	if !s.headless {
+		switch nodeRole {
+		case member.PrimaryRoleVirtual:
+			s.appFn = virtual.AppFactory
+		case member.PrimaryRoleLightMaterial:
+			s.appFn = lmnapp.AppFactory
+		default:
+			panic("unknown role")
+		}
+	}
 
 	ctx = loggerFn(ctx, cfg.Log, nodeRef, nodeRole.String())
 	traceID := trace.RandID() + "_main"

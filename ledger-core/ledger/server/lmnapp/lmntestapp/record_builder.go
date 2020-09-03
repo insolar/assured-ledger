@@ -7,7 +7,7 @@ package lmntestapp
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/crypto"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp/component"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/catalog"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/inspectsvc"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -22,7 +22,7 @@ func NewRecordBuilderFromDependencies(deps injector.DependencyInjector) RecordBu
 	var ps crypto.PlatformScheme
 	var ref reference.Global
 	deps.MustInject(&ps)
-	deps.MustInjectByID(insapp.LocalNodeRefInjectionID, &ref)
+	deps.MustInjectByID(component.LocalNodeRefInjectionID, &ref)
 	rs := ps.RecordScheme()
 
 	return RecordBuilder{
@@ -66,9 +66,9 @@ func (v RecordBuilder) ApplySignature(req *rms.LRegisterRequest) {
 	if req.OverrideRecordType != 0 {
 		rc := rms.LRegisterRequest{
 			OverrideRecordType: req.OverrideRecordType,
-			OverrideRootRef: req.OverrideRootRef,
-			OverridePrevRef: req.OverridePrevRef,
-			OverrideReasonRef: req.OverrideReasonRef,
+			OverrideRootRef:    req.OverrideRootRef,
+			OverridePrevRef:    req.OverridePrevRef,
+			OverrideReasonRef:  req.OverrideReasonRef,
 		}
 		b, err := rc.Marshal()
 		if err != nil {

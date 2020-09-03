@@ -10,7 +10,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/convlog"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp/component"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor/instestconveyor"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lmnapp"
@@ -33,7 +33,7 @@ func NewTestServerWithErrorFilter(t logcommon.TestingLogger, filterFn logcommon.
 
 	s := instestconveyor.NewTestServerTemplate(t, filterFn)
 	s.InitTemplate(
-		func(c configuration.Configuration, comps insapp.AppComponents) *insconveyor.AppCompartment {
+		func(c configuration.Configuration, comps component.AppComponents) *insconveyor.AppCompartment {
 			comps.LocalNodeRole = member.PrimaryRoleLightMaterial
 			return lmnapp.NewAppCompartment(c.Ledger, comps)
 		}, nil)

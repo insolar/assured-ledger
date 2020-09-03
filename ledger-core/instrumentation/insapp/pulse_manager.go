@@ -17,12 +17,12 @@ import (
 var _ chorus.Conductor = &PulseManager{}
 
 type PulseManager struct {
-	PulseAppender beat.Appender       `inject:""`
+	PulseAppender beat.Appender `inject:""`
 
-	mutex sync.RWMutex
-	dispatchers   []beat.Dispatcher
-	stopped bool
-	ackFn   func(ack bool)
+	mutex       sync.RWMutex
+	dispatchers []beat.Dispatcher
+	stopped     bool
+	ackFn       func(ack bool)
 }
 
 func NewPulseManager() *PulseManager {
@@ -51,8 +51,8 @@ func (m *PulseManager) CommitPulseChange(pulseChange beat.Beat) error {
 	if ackFn := m.ackFn; ackFn != nil {
 		m.ackFn = nil
 		ackFn(true)
-	// } else {
-	// 	panic(throw.IllegalState())
+		// } else {
+		// 	panic(throw.IllegalState())
 	}
 
 	return m._commit(pulseChange)

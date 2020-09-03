@@ -11,7 +11,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/managed"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp/component"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -27,19 +27,19 @@ func NewAppCompartment(name string, appDeps injector.DependencyRegistry, setupFn
 		panic(throw.IllegalValue())
 	}
 
-	return &AppCompartment{	name: name,	appDeps: appDeps, setupFn: setupFn }
+	return &AppCompartment{name: name, appDeps: appDeps, setupFn: setupFn}
 }
 
 // AppCompartmentSetup is a setup of an app compartment.
 type AppCompartmentSetup struct {
 	// ConveyorConfig provides settings for conveyor.
-	ConveyorConfig     conveyor.PulseConveyorConfig
+	ConveyorConfig conveyor.PulseConveyorConfig
 	// EventFactoryFn provides event factory for conveyor.
-	EventFactoryFn     conveyor.PulseEventFactoryFunc
+	EventFactoryFn conveyor.PulseEventFactoryFunc
 	// Components will be added with conveyor.PulseConveyor.AddManagedComponent().
-	Components         []managed.Component
+	Components []managed.Component
 	// Dependencies will be added as dependencies to conveyor.PulseConveyor.
-	Dependencies       *injector.DynamicContainer
+	Dependencies *injector.DynamicContainer
 }
 
 // AddComponent is a convenience method to add to the Components field.
@@ -48,9 +48,10 @@ func (p *AppCompartmentSetup) AddComponent(c managed.Component) {
 }
 
 // ConfigReviserFunc enables AppCompartmentSetup to be revised before creation of an app compartment.
-type ConfigReviserFunc = func (context.Context, injector.DependencyInjector, AppCompartmentSetup) AppCompartmentSetup
+type ConfigReviserFunc = func(context.Context, injector.DependencyInjector, AppCompartmentSetup) AppCompartmentSetup
 
-var _ insapp.AppComponent = &AppCompartment{}
+var _ component.App = &AppCompartment{}
+
 type AppCompartment struct {
 	// set by construction
 	name     string
@@ -80,10 +81,10 @@ func (p *AppCompartment) Init(ctx context.Context) error {
 
 	appCfg := AppCompartmentSetup{
 		ConveyorConfig: DefaultConfig(),
-		Dependencies: injector.NewDynamicContainer(nil),
+		Dependencies:   injector.NewDynamicContainer(nil),
 	}
 
-	inject := injector.NewDependencyInjector(struct {}{}, p.appDeps, nil)
+	inject := injector.NewDependencyInjector(struct{}{}, p.appDeps, nil)
 	p.appDeps = nil
 
 	overrides := ConfigOverrides{}
@@ -99,9 +100,9 @@ func (p *AppCompartment) Init(ctx context.Context) error {
 	var cycleFn conveyor.PulseConveyorCycleFunc
 	if p.imposeFn != nil {
 		params := ImposedParams{
-			InitContext: ctx,
-			AppInject: inject,
-			CompartmentSetup:  appCfg,
+			InitContext:      ctx,
+			AppInject:        inject,
+			CompartmentSetup: appCfg,
 		}
 		p.imposeFn(&params)
 		p.imposeFn = nil
@@ -161,4 +162,3 @@ func (p *AppCompartment) Conveyor() *conveyor.PulseConveyor {
 func (p *AppCompartment) GetBeatDispatcher() beat.Dispatcher {
 	return p.flowDispatcher
 }
-

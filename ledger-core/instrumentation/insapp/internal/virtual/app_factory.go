@@ -11,14 +11,14 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/application/testwalletapi"
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp/component"
 	"github.com/insolar/assured-ledger/ledger-core/runner"
 	"github.com/insolar/assured-ledger/ledger-core/virtual"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/memorycache"
 )
 
-func AppFactory(ctx context.Context, cfg configuration.Configuration, comps insapp.AppComponents) (insapp.AppComponent, error) {
+func AppFactory(ctx context.Context, cfg configuration.Configuration, comps component.AppComponents) (component.App, error) {
 	runnerService := runner.NewService()
 	memoryCache := memorycache.NewDefaultService()
 	virtualDispatcher := virtual.NewDispatcher()

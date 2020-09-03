@@ -18,7 +18,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/secrets"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/convlog"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp/component"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
@@ -36,7 +36,7 @@ import (
 
 func NewTestServerTemplate(t logcommon.TestingLogger, filterFn logcommon.ErrorFilterFunc) *ServerTemplate {
 	instestlogger.SetTestOutputWithErrorFilter(t, filterFn)
-	s := &ServerTemplate{ t: t.(minimock.Tester) }
+	s := &ServerTemplate{t: t.(minimock.Tester)}
 
 	pop := testpop.CreateManyNodePopulationMock(s.t, 1, member.PrimaryRoleLightMaterial)
 	s.pg = testutils.NewPulseGenerator(10, pop)
@@ -53,21 +53,21 @@ type ServerTemplate struct {
 	pg          *testutils.PulseGenerator
 
 	// set by setters
-	cfg   configuration.Configuration
-	ac    *insapp.AppComponents
-	fn    insconveyor.ImposerFunc
+	cfg configuration.Configuration
+	ac  *component.AppComponents
+	fn  insconveyor.ImposerFunc
 
 	// set by init
-	app   *insconveyor.AppCompartment
+	app         *insconveyor.AppCompartment
 	ctxCancelFn context.CancelFunc
-	state atomickit.StartStopFlag
+	state       atomickit.StartStopFlag
 }
 
 func (p *ServerTemplate) T() minimock.Tester {
 	return p.t
 }
 
-type AppCompartmentFunc = func(configuration.Configuration, insapp.AppComponents) *insconveyor.AppCompartment
+type AppCompartmentFunc = func(configuration.Configuration, component.AppComponents) *insconveyor.AppCompartment
 
 // InitTemplate is used to set up a default behavior for a test server. Can only be called once.
 // Handler (appFn) must be provided to create an app compartment.
@@ -108,7 +108,7 @@ func (p *ServerTemplate) SetImposer(fn insconveyor.ImposerFunc) {
 
 // SetAppComponents sets per-test overrides for app components. Nil values will be replaced by default.
 // Can only be called once and before the server is initialized / started.
-func (p *ServerTemplate) SetAppComponents(ac insapp.AppComponents) {
+func (p *ServerTemplate) SetAppComponents(ac component.AppComponents) {
 	switch {
 	case p.state.WasStarted():
 		panic(throw.IllegalState())
@@ -127,7 +127,7 @@ func (p *ServerTemplate) Start() {
 		panic(throw.IllegalState())
 	}
 
-	var ac insapp.AppComponents
+	var ac component.AppComponents
 	if p.ac != nil {
 		ac = *p.ac
 	}
@@ -240,7 +240,7 @@ func (p *ServerTemplate) App() *insconveyor.AppCompartment {
 // Injector returns a dependency injector with dependencies available for the app compartment.
 // There is NO access to dependencies added by pulse slots. Panics when wasn't started.
 func (p *ServerTemplate) Injector() injector.DependencyInjector {
-	return injector.NewDependencyInjector(struct {}{}, p.App().Conveyor(), nil)
+	return injector.NewDependencyInjector(struct{}{}, p.App().Conveyor(), nil)
 }
 
 // Pulsar returns a pulse generator. Panics when zero.

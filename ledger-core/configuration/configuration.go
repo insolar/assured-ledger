@@ -53,8 +53,9 @@ type HeavyNodeConfig struct {
 }
 
 type BaseCloudConfig struct {
-	Log             Log
-	NodeConfigPaths []string
+	Log                 Log
+	PulsarConfiguration PulsarConfiguration
+	NodeConfigPaths     []string
 }
 
 // Configuration contains configuration params for all Insolar components

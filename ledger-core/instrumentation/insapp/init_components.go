@@ -20,6 +20,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
+	component2 "github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp/component"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp/internal/cloud"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/metrics"
 	"github.com/insolar/assured-ledger/ledger-core/network"
@@ -90,7 +92,7 @@ func (s *Server) initComponents(ctx context.Context, cfg configuration.Configura
 		certManager,
 	)
 
-	var nw NetworkSupport
+	var nw cloud.NetworkSupport
 	var ns network.Status
 
 	var pulses beat.History
@@ -111,7 +113,7 @@ func (s *Server) initComponents(ctx context.Context, cfg configuration.Configura
 		addDispatcherFn = pm.AddDispatcher
 	} else {
 		var err error
-		nw, ns, err = networkFn(cfg, cm)
+		nw, ns, err = networkFn(s.certificate)
 		checkError(ctx, err, "failed to start ServiceNetwork by factory")
 		cm.Register(nw)
 		addDispatcherFn = nw.AddDispatcher
@@ -123,7 +125,6 @@ func (s *Server) initComponents(ctx context.Context, cfg configuration.Configura
 
 	roleName := nodeRole.String()
 	metricsComp := metrics.NewMetrics(cfg.Metrics, metrics.GetInsolarRegistry(roleName), roleName)
-
 
 	availabilityChecker := api.NewNetworkChecker(cfg.AvailabilityChecker)
 
@@ -138,7 +139,7 @@ func (s *Server) initComponents(ctx context.Context, cfg configuration.Configura
 
 	cm.Register(s.extra...)
 
-	var appComponent AppComponent
+	var appComponent component2.App
 
 	if s.appFn != nil {
 		affine := affinity.NewAffinityHelper(certManager.GetCertificate().GetNodeRef())
@@ -158,7 +159,7 @@ func (s *Server) initComponents(ctx context.Context, cfg configuration.Configura
 			cm.Register(APIWrapper)
 		}
 
-		appComponents := AppComponents{
+		appComponents := component2.AppComponents{
 			LocalNodeRef:  nodeCert.GetNodeRef(),
 			LocalNodeRole: nodeRole,
 
@@ -187,7 +188,7 @@ func (s *Server) initComponents(ctx context.Context, cfg configuration.Configura
 	bd := appComponent.GetBeatDispatcher()
 	addDispatcherFn(bd)
 
-	stopFn := mr.SubscribeForMessages(bd.Process)
+	stopFn := mr.SubscribeForMessages(s.dispatcher.Process)
 
 	return cm, stopFn
 }
@@ -197,4 +198,3 @@ func checkError(ctx context.Context, err error, message string) {
 		inslogger.FromContext(ctx).Fatalf("%v: %v", message, throw.ErrorWithStack(err))
 	}
 }
-
