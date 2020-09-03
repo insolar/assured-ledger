@@ -15,13 +15,16 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner"
 	"github.com/insolar/assured-ledger/ledger-core/virtual"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/memorycache"
 )
 
 func AppFactory(ctx context.Context, cfg configuration.Configuration, comps insapp.AppComponents) (insapp.AppComponent, error) {
 	runnerService := runner.NewService()
+	memoryCache := memorycache.NewDefaultService()
 	virtualDispatcher := virtual.NewDispatcher()
 
 	virtualDispatcher.Runner = runnerService
+	virtualDispatcher.MemoryCache = memoryCache
 	virtualDispatcher.MessageSender = comps.MessageSender
 	virtualDispatcher.Affinity = comps.AffinityHelper
 	virtualDispatcher.AuthenticationService = authentication.NewService(ctx, comps.AffinityHelper)
@@ -36,6 +39,5 @@ func AppFactory(ctx context.Context, cfg configuration.Configuration, comps insa
 	testAPI := testwalletapi.NewTestWalletServer(cfg.TestWalletAPI, virtualDispatcher, comps.BeatHistory)
 
 	// ComponentManager can only work with by-pointer objects
-	return &wrapper{runnerService, virtualDispatcher, testAPI }, nil
+	return &wrapper{runnerService, virtualDispatcher, testAPI}, nil
 }
-

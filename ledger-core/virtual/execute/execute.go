@@ -31,6 +31,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callsummary"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/memorycache"
+	memoryCacheAdapter "github.com/insolar/assured-ledger/ledger-core/virtual/memorycache/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
 )
@@ -68,6 +70,7 @@ type SMExecute struct {
 	pulseSlot             *conveyor.PulseSlot
 	authenticationService authentication.Service
 	globalSemaphore       tool.RunnerLimiter
+	memoryCache           memoryCacheAdapter.MemoryCache
 
 	outgoing            *payload.VCallRequest
 	outgoingObject      reference.Global
@@ -96,6 +99,7 @@ func (*dSMExecute) InjectDependencies(sm smachine.StateMachine, _ smachine.SlotL
 	injector.MustInject(&s.runner)
 	injector.MustInject(&s.pulseSlot)
 	injector.MustInject(&s.messageSender)
+	injector.MustInject(&s.memoryCache)
 	injector.MustInject(&s.objectCatalog)
 	injector.MustInject(&s.authenticationService)
 	injector.MustInject(&s.globalSemaphore)
@@ -856,6 +860,8 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 		return ctx.Jump(s.stepSendCallResult)
 	}
 
+	s.updateMemoryCache(ctx, s.newObjectDescriptor)
+
 	action := func(state *object.SharedState) {
 		state.SetDescriptorDirty(s.newObjectDescriptor)
 
@@ -874,6 +880,17 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 	}
 
 	return ctx.Jump(s.stepSendCallResult)
+}
+
+func (s *SMExecute) updateMemoryCache(ctx smachine.ExecutionContext, object descriptor.Object) {
+	s.memoryCache.PrepareAsync(ctx, func(ctx context.Context, svc memorycache.Service) smachine.AsyncResultFunc {
+		err := svc.Set(ctx, object.HeadRef(), object)
+		return func(ctx smachine.AsyncResultContext) {
+			if err != nil {
+				ctx.Log().Error("failed to set dirty memory", err)
+			}
+		}
+	}).WithoutAutoWakeUp().Start()
 }
 
 func (s *SMExecute) isIntolerableCallChangeState() bool {

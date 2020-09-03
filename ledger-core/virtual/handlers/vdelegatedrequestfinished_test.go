@@ -15,7 +15,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
-	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
@@ -25,10 +24,9 @@ func TestSMVDelegatedRequestFinished_FailIfCallNotRegistered(t *testing.T) {
 	var (
 		mc          = minimock.NewController(t)
 		pd          = pulse.NewFirstPulsarData(10, longbits.Bits256{})
-		smObjectID  = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
-		smGlobalRef = reference.NewSelf(smObjectID)
+		smGlobalRef = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
 		smObject    = object.NewStateMachineObject(smGlobalRef)
-		smExecID    = reference.NewSelf(gen.UniqueLocalRefWithPulse(pd.PulseNumber))
+		smExecID    = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
 		callMode    = isolation.CallTolerable
 	)
 
@@ -55,10 +53,9 @@ func TestSMVDelegatedRequestFinished_TolerableUpdateSharedState_OneActiveCounter
 	var (
 		mc          = minimock.NewController(t)
 		pd          = pulse.NewFirstPulsarData(10, longbits.Bits256{})
-		smObjectID  = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
-		smGlobalRef = reference.NewSelf(smObjectID)
+		smGlobalRef = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
 		smObject    = object.NewStateMachineObject(smGlobalRef)
-		smExecID    = reference.NewSelf(gen.UniqueLocalRefWithPulse(pd.PulseNumber))
+		smExecID    = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
 		callMode    = isolation.CallTolerable
 	)
 
@@ -92,10 +89,9 @@ func TestSMVDelegatedRequestFinished_TolerableUpdateSharedState_ManyActiveCounte
 	var (
 		mc          = minimock.NewController(t)
 		pd          = pulse.NewFirstPulsarData(10, longbits.Bits256{})
-		smObjectID  = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
-		smGlobalRef = reference.NewSelf(smObjectID)
+		smGlobalRef = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
 		smObject    = object.NewStateMachineObject(smGlobalRef)
-		smExecID    = reference.NewSelf(gen.UniqueLocalRefWithPulse(pd.PulseNumber))
+		smExecID    = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
 		callMode    = isolation.CallTolerable
 	)
 
@@ -105,7 +101,7 @@ func TestSMVDelegatedRequestFinished_TolerableUpdateSharedState_ManyActiveCounte
 	table.Add(smExecID)
 	require.Equal(t, 1, table.Count())
 	require.Equal(t, 1, table.CountActive())
-	table.Add(reference.NewSelf(gen.UniqueLocalRefWithPulse(pd.PulseNumber)))
+	table.Add(gen.UniqueGlobalRefWithPulse(pd.PulseNumber))
 	require.Equal(t, 2, table.Count())
 	require.Equal(t, 2, table.CountActive())
 
@@ -131,10 +127,9 @@ func TestSMVDelegatedRequestFinished_IntolerableUpdateSharedStateUpdatePendingTa
 	var (
 		mc          = minimock.NewController(t)
 		pd          = pulse.NewFirstPulsarData(10, longbits.Bits256{})
-		smObjectID  = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
-		smGlobalRef = reference.NewSelf(smObjectID)
+		smGlobalRef = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
 		smObject    = object.NewStateMachineObject(smGlobalRef)
-		smExecID    = reference.NewSelf(gen.UniqueLocalRefWithPulse(pd.PulseNumber))
+		smExecID    = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
 		callMode    = isolation.CallIntolerable
 	)
 

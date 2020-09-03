@@ -28,6 +28,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/predicate"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/slotdebugger"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	memoryCacheAdapter "github.com/insolar/assured-ledger/ledger-core/virtual/memorycache/adapter"
 )
 
 func TestBuiltinTestAPIEchoValue(t *testing.T) {
@@ -57,6 +58,9 @@ func TestSMTestAPICall_MethodResends(t *testing.T) {
 	}
 
 	slotMachine.PrepareMockedMessageSender(mc)
+
+	var memoryCache memoryCacheAdapter.MemoryCache = memoryCacheAdapter.NewMemoryCacheMock(t)
+	slotMachine.AddInterfaceDependency(&memoryCache)
 
 	slotMachine.Start()
 	defer slotMachine.Stop()
@@ -131,6 +135,9 @@ func TestSMTestAPICall_MethodEcho(t *testing.T) {
 
 	slotMachine.PrepareMockedMessageSender(mc)
 
+	var memoryCache memoryCacheAdapter.MemoryCache = memoryCacheAdapter.NewMemoryCacheMock(t)
+	slotMachine.AddInterfaceDependency(&memoryCache)
+
 	slotMachine.Start()
 	defer slotMachine.Stop()
 
@@ -170,6 +177,9 @@ func TestSMTestAPICall_Constructor(t *testing.T) {
 	}
 
 	slotMachine.PrepareMockedMessageSender(mc)
+
+	var memoryCache memoryCacheAdapter.MemoryCache = memoryCacheAdapter.NewMemoryCacheMock(t)
+	slotMachine.AddInterfaceDependency(&memoryCache)
 
 	slotMachine.Start()
 	defer slotMachine.Stop()
@@ -220,6 +230,9 @@ func TestSMTestAPICall_RetriesExceeded(t *testing.T) {
 	}
 
 	slotMachine.PrepareMockedMessageSender(mc)
+
+	var memoryCache memoryCacheAdapter.MemoryCache = memoryCacheAdapter.NewMemoryCacheMock(t)
+	slotMachine.AddInterfaceDependency(&memoryCache)
 
 	slotMachine.Start()
 	defer slotMachine.Stop()

@@ -41,6 +41,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
+	memoryCacheAdapter "github.com/insolar/assured-ledger/ledger-core/virtual/memorycache/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/testutils/virtualdebugger"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
@@ -86,10 +87,9 @@ func TestSMExecute_Init(t *testing.T) {
 
 		pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 		pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-		smObjectID      = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
 		caller          = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
 		callee          = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
-		smGlobalRef     = reference.NewRecordOf(caller, smObjectID)
+		smGlobalRef     = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
 		smObject        = object.NewStateMachineObject(smGlobalRef)
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 
@@ -138,10 +138,9 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 
 		pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 		pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-		smObjectID      = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
 		caller          = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
 		callee          = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
-		smGlobalRef     = reference.NewRecordOf(caller, smObjectID)
+		smGlobalRef     = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
 		smObject        = object.NewStateMachineObject(smGlobalRef)
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 
@@ -606,10 +605,9 @@ func TestSMExecute_TokenInOutgoingMessage(t *testing.T) {
 
 				pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 				pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-				smObjectID      = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
 				caller          = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
 				callee          = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
-				smGlobalRef     = reference.NewRecordOf(caller, smObjectID)
+				smGlobalRef     = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
 				smObject        = object.NewStateMachineObject(smGlobalRef)
 				sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 
@@ -699,9 +697,8 @@ func TestSMExecute_VCallResultPassedToSMObject(t *testing.T) {
 
 		pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 		pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-		smObjectID      = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
 		caller          = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
-		smGlobalRef     = reference.NewRecordOf(caller, smObjectID)
+		smGlobalRef     = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
 		smObject        = object.NewStateMachineObject(smGlobalRef)
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 
@@ -781,16 +778,18 @@ func TestSendVStateReportWithMissingState_IfConstructorWasInterruptedBeforeRunne
 	slotMachine.PrepareRunner(ctx, mc)
 
 	var (
-		class                              = gen.UniqueGlobalRefWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
-		caller                             = gen.UniqueGlobalRefWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
-		catalog     object.Catalog         = object.NewLocalCatalog()
-		authService authentication.Service = authentication.NewServiceMock(t)
+		class                                      = gen.UniqueGlobalRefWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
+		caller                                     = gen.UniqueGlobalRefWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
+		catalog     object.Catalog                 = object.NewLocalCatalog()
+		authService authentication.Service         = authentication.NewServiceMock(t)
+		memoryCache memoryCacheAdapter.MemoryCache = memoryCacheAdapter.NewMemoryCacheMock(t)
 
 		limiter = tool.NewRunnerLimiter(4)
 	)
 
 	slotMachine.AddInterfaceDependency(&catalog)
 	slotMachine.AddInterfaceDependency(&authService)
+	slotMachine.AddInterfaceDependency(&memoryCache)
 	slotMachine.AddDependency(limiter)
 
 	outgoing := reference.NewRecordOf(caller, slotMachine.GenerateLocal())
@@ -861,9 +860,10 @@ func TestSMExecute_StopWithoutMessagesIfPulseChangedBeforeOutgoing(t *testing.T)
 		caller    = gen.UniqueGlobalRefWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
 		objectRef = gen.UniqueGlobalRefWithPulse(slotMachine.PulseSlot.CurrentPulseNumber())
 
-		catalogWrapper                        = object.NewCatalogMockWrapper(mc)
-		catalog        object.Catalog         = catalogWrapper.Mock()
-		authService    authentication.Service = authentication.NewServiceMock(t)
+		catalogWrapper                                = object.NewCatalogMockWrapper(mc)
+		catalog        object.Catalog                 = catalogWrapper.Mock()
+		authService    authentication.Service         = authentication.NewServiceMock(t)
+		memoryCache    memoryCacheAdapter.MemoryCache = memoryCacheAdapter.NewMemoryCacheMock(t)
 
 		limiter = tool.NewRunnerLimiter(4)
 	)
@@ -871,6 +871,7 @@ func TestSMExecute_StopWithoutMessagesIfPulseChangedBeforeOutgoing(t *testing.T)
 	slotMachine.PrepareMockedRunner(ctx, mc)
 	slotMachine.AddInterfaceDependency(&catalog)
 	slotMachine.AddInterfaceDependency(&authService)
+	slotMachine.AddInterfaceDependency(&memoryCache)
 	slotMachine.AddDependency(limiter)
 
 	obj := object.Info{

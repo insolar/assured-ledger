@@ -198,8 +198,7 @@ func newSMObjectWithPulse() *SMObject {
 	var (
 		pd          = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 		pulseSlot   = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-		smObjectID  = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
-		smGlobalRef = reference.NewSelf(smObjectID)
+		smGlobalRef = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
 		smObject    = NewStateMachineObject(smGlobalRef)
 	)
 
