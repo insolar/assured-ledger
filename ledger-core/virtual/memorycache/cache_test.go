@@ -28,12 +28,6 @@ func TestLRUMemoryCache(t *testing.T) {
 		{name: "trimEach=true", strategy: cacheStrategy{pgSize: 2, maxTotal: 3, trimEach: true}},
 	}
 
-	createKey := func() Key {
-		return Key{
-			objectDescriptorRef: gen.UniqueGlobalRef(),
-			stateRef:            gen.UniqueGlobalRef(),
-		}
-	}
 	createValue := func(memory []byte) descriptor.Object {
 		return descriptor.NewObject(reference.Global{}, reference.Local{}, reference.Global{}, memory, false)
 	}
@@ -41,10 +35,7 @@ func TestLRUMemoryCache(t *testing.T) {
 	for _, testCase := range table {
 		t.Run(testCase.name, func(t *testing.T) {
 			var (
-				key1 = createKey()
-				key2 = createKey()
-				key3 = createKey()
-				key4 = createKey()
+				key1, key2, key3, key4 = gen.UniqueGlobalRef(), gen.UniqueGlobalRef(), gen.UniqueGlobalRef(), gen.UniqueGlobalRef()
 
 				value1   = createValue([]byte("value 1"))
 				value1v2 = createValue([]byte("value 1 version 2"))
@@ -137,14 +128,7 @@ func TestLRUMemoryCache_Concurrent(t *testing.T) {
 		assert.True(t, mCache.Delete(key))
 	}
 
-	keys := make([]Key, 5)
-	for i, _ := range keys {
-		keys[i] = Key{
-			objectDescriptorRef: gen.UniqueGlobalRef(),
-			stateRef:            gen.UniqueGlobalRef(),
-		}
-	}
-
+	keys := gen.UniqueGlobalRefs(5)
 	for _, key := range keys {
 		wg.Add(1)
 		go action(key)

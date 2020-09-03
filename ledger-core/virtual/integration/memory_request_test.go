@@ -68,12 +68,12 @@ func TestVirtual_VCachedMemoryRequestHandler(t *testing.T) {
 
 			cases.precondition(suite, ctx, t)
 
-			syncChan := make(chan payload.Reference, 1)
+			syncChan := make(chan payload.LocalReference, 1)
 			defer close(syncChan)
 
 			suite.typedChecker.VStateReport.Set(func(rep *payload.VStateReport) bool {
-				require.NotEmpty(t, rep.LatestDirtyState)
-				syncChan <- rep.LatestDirtyState
+				require.NotEmpty(t, rep.ProvidedContent.LatestDirtyState.Reference)
+				syncChan <- rep.ProvidedContent.LatestDirtyState.Reference
 				return false // no resend msg
 			})
 
@@ -86,7 +86,7 @@ func TestVirtual_VCachedMemoryRequestHandler(t *testing.T) {
 				return false
 			})
 
-			var stateRef payload.Reference
+			var stateRef payload.LocalReference
 
 			select {
 			case stateRef = <-syncChan:

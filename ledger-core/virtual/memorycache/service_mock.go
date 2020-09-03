@@ -17,14 +17,14 @@ import (
 type ServiceMock struct {
 	t minimock.Tester
 
-	funcGet          func(ctx context.Context, objectDescriptorRef reference.Global, stateRef reference.Global) (o1 descriptor.Object, err error)
-	inspectFuncGet   func(ctx context.Context, objectDescriptorRef reference.Global, stateRef reference.Global)
+	funcGet          func(ctx context.Context, stateReference reference.Global) (o1 descriptor.Object, err error)
+	inspectFuncGet   func(ctx context.Context, stateReference reference.Global)
 	afterGetCounter  uint64
 	beforeGetCounter uint64
 	GetMock          mServiceMockGet
 
-	funcSet          func(ctx context.Context, objectDescriptorRef reference.Global, stateRef reference.Global, objectDescriptor descriptor.Object) (err error)
-	inspectFuncSet   func(ctx context.Context, objectDescriptorRef reference.Global, stateRef reference.Global, objectDescriptor descriptor.Object)
+	funcSet          func(ctx context.Context, stateReference reference.Global, objectDescriptor descriptor.Object) (err error)
+	inspectFuncSet   func(ctx context.Context, stateReference reference.Global, objectDescriptor descriptor.Object)
 	afterSetCounter  uint64
 	beforeSetCounter uint64
 	SetMock          mServiceMockSet
@@ -65,9 +65,8 @@ type ServiceMockGetExpectation struct {
 
 // ServiceMockGetParams contains parameters of the Service.Get
 type ServiceMockGetParams struct {
-	ctx                 context.Context
-	objectDescriptorRef reference.Global
-	stateRef            reference.Global
+	ctx            context.Context
+	stateReference reference.Global
 }
 
 // ServiceMockGetResults contains results of the Service.Get
@@ -77,7 +76,7 @@ type ServiceMockGetResults struct {
 }
 
 // Expect sets up expected params for Service.Get
-func (mmGet *mServiceMockGet) Expect(ctx context.Context, objectDescriptorRef reference.Global, stateRef reference.Global) *mServiceMockGet {
+func (mmGet *mServiceMockGet) Expect(ctx context.Context, stateReference reference.Global) *mServiceMockGet {
 	if mmGet.mock.funcGet != nil {
 		mmGet.mock.t.Fatalf("ServiceMock.Get mock is already set by Set")
 	}
@@ -86,7 +85,7 @@ func (mmGet *mServiceMockGet) Expect(ctx context.Context, objectDescriptorRef re
 		mmGet.defaultExpectation = &ServiceMockGetExpectation{}
 	}
 
-	mmGet.defaultExpectation.params = &ServiceMockGetParams{ctx, objectDescriptorRef, stateRef}
+	mmGet.defaultExpectation.params = &ServiceMockGetParams{ctx, stateReference}
 	for _, e := range mmGet.expectations {
 		if minimock.Equal(e.params, mmGet.defaultExpectation.params) {
 			mmGet.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmGet.defaultExpectation.params)
@@ -97,7 +96,7 @@ func (mmGet *mServiceMockGet) Expect(ctx context.Context, objectDescriptorRef re
 }
 
 // Inspect accepts an inspector function that has same arguments as the Service.Get
-func (mmGet *mServiceMockGet) Inspect(f func(ctx context.Context, objectDescriptorRef reference.Global, stateRef reference.Global)) *mServiceMockGet {
+func (mmGet *mServiceMockGet) Inspect(f func(ctx context.Context, stateReference reference.Global)) *mServiceMockGet {
 	if mmGet.mock.inspectFuncGet != nil {
 		mmGet.mock.t.Fatalf("Inspect function is already set for ServiceMock.Get")
 	}
@@ -121,7 +120,7 @@ func (mmGet *mServiceMockGet) Return(o1 descriptor.Object, err error) *ServiceMo
 }
 
 //Set uses given function f to mock the Service.Get method
-func (mmGet *mServiceMockGet) Set(f func(ctx context.Context, objectDescriptorRef reference.Global, stateRef reference.Global) (o1 descriptor.Object, err error)) *ServiceMock {
+func (mmGet *mServiceMockGet) Set(f func(ctx context.Context, stateReference reference.Global) (o1 descriptor.Object, err error)) *ServiceMock {
 	if mmGet.defaultExpectation != nil {
 		mmGet.mock.t.Fatalf("Default expectation is already set for the Service.Get method")
 	}
@@ -136,14 +135,14 @@ func (mmGet *mServiceMockGet) Set(f func(ctx context.Context, objectDescriptorRe
 
 // When sets expectation for the Service.Get which will trigger the result defined by the following
 // Then helper
-func (mmGet *mServiceMockGet) When(ctx context.Context, objectDescriptorRef reference.Global, stateRef reference.Global) *ServiceMockGetExpectation {
+func (mmGet *mServiceMockGet) When(ctx context.Context, stateReference reference.Global) *ServiceMockGetExpectation {
 	if mmGet.mock.funcGet != nil {
 		mmGet.mock.t.Fatalf("ServiceMock.Get mock is already set by Set")
 	}
 
 	expectation := &ServiceMockGetExpectation{
 		mock:   mmGet.mock,
-		params: &ServiceMockGetParams{ctx, objectDescriptorRef, stateRef},
+		params: &ServiceMockGetParams{ctx, stateReference},
 	}
 	mmGet.expectations = append(mmGet.expectations, expectation)
 	return expectation
@@ -156,15 +155,15 @@ func (e *ServiceMockGetExpectation) Then(o1 descriptor.Object, err error) *Servi
 }
 
 // Get implements Service
-func (mmGet *ServiceMock) Get(ctx context.Context, objectDescriptorRef reference.Global, stateRef reference.Global) (o1 descriptor.Object, err error) {
+func (mmGet *ServiceMock) Get(ctx context.Context, stateReference reference.Global) (o1 descriptor.Object, err error) {
 	mm_atomic.AddUint64(&mmGet.beforeGetCounter, 1)
 	defer mm_atomic.AddUint64(&mmGet.afterGetCounter, 1)
 
 	if mmGet.inspectFuncGet != nil {
-		mmGet.inspectFuncGet(ctx, objectDescriptorRef, stateRef)
+		mmGet.inspectFuncGet(ctx, stateReference)
 	}
 
-	mm_params := &ServiceMockGetParams{ctx, objectDescriptorRef, stateRef}
+	mm_params := &ServiceMockGetParams{ctx, stateReference}
 
 	// Record call args
 	mmGet.GetMock.mutex.Lock()
@@ -181,7 +180,7 @@ func (mmGet *ServiceMock) Get(ctx context.Context, objectDescriptorRef reference
 	if mmGet.GetMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmGet.GetMock.defaultExpectation.Counter, 1)
 		mm_want := mmGet.GetMock.defaultExpectation.params
-		mm_got := ServiceMockGetParams{ctx, objectDescriptorRef, stateRef}
+		mm_got := ServiceMockGetParams{ctx, stateReference}
 		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
 			mmGet.t.Errorf("ServiceMock.Get got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
@@ -193,9 +192,9 @@ func (mmGet *ServiceMock) Get(ctx context.Context, objectDescriptorRef reference
 		return (*mm_results).o1, (*mm_results).err
 	}
 	if mmGet.funcGet != nil {
-		return mmGet.funcGet(ctx, objectDescriptorRef, stateRef)
+		return mmGet.funcGet(ctx, stateReference)
 	}
-	mmGet.t.Fatalf("Unexpected call to ServiceMock.Get. %v %v %v", ctx, objectDescriptorRef, stateRef)
+	mmGet.t.Fatalf("Unexpected call to ServiceMock.Get. %v %v", ctx, stateReference)
 	return
 }
 
@@ -283,10 +282,9 @@ type ServiceMockSetExpectation struct {
 
 // ServiceMockSetParams contains parameters of the Service.Set
 type ServiceMockSetParams struct {
-	ctx                 context.Context
-	objectDescriptorRef reference.Global
-	stateRef            reference.Global
-	objectDescriptor    descriptor.Object
+	ctx              context.Context
+	stateReference   reference.Global
+	objectDescriptor descriptor.Object
 }
 
 // ServiceMockSetResults contains results of the Service.Set
@@ -295,7 +293,7 @@ type ServiceMockSetResults struct {
 }
 
 // Expect sets up expected params for Service.Set
-func (mmSet *mServiceMockSet) Expect(ctx context.Context, objectDescriptorRef reference.Global, stateRef reference.Global, objectDescriptor descriptor.Object) *mServiceMockSet {
+func (mmSet *mServiceMockSet) Expect(ctx context.Context, stateReference reference.Global, objectDescriptor descriptor.Object) *mServiceMockSet {
 	if mmSet.mock.funcSet != nil {
 		mmSet.mock.t.Fatalf("ServiceMock.Set mock is already set by Set")
 	}
@@ -304,7 +302,7 @@ func (mmSet *mServiceMockSet) Expect(ctx context.Context, objectDescriptorRef re
 		mmSet.defaultExpectation = &ServiceMockSetExpectation{}
 	}
 
-	mmSet.defaultExpectation.params = &ServiceMockSetParams{ctx, objectDescriptorRef, stateRef, objectDescriptor}
+	mmSet.defaultExpectation.params = &ServiceMockSetParams{ctx, stateReference, objectDescriptor}
 	for _, e := range mmSet.expectations {
 		if minimock.Equal(e.params, mmSet.defaultExpectation.params) {
 			mmSet.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmSet.defaultExpectation.params)
@@ -315,7 +313,7 @@ func (mmSet *mServiceMockSet) Expect(ctx context.Context, objectDescriptorRef re
 }
 
 // Inspect accepts an inspector function that has same arguments as the Service.Set
-func (mmSet *mServiceMockSet) Inspect(f func(ctx context.Context, objectDescriptorRef reference.Global, stateRef reference.Global, objectDescriptor descriptor.Object)) *mServiceMockSet {
+func (mmSet *mServiceMockSet) Inspect(f func(ctx context.Context, stateReference reference.Global, objectDescriptor descriptor.Object)) *mServiceMockSet {
 	if mmSet.mock.inspectFuncSet != nil {
 		mmSet.mock.t.Fatalf("Inspect function is already set for ServiceMock.Set")
 	}
@@ -339,7 +337,7 @@ func (mmSet *mServiceMockSet) Return(err error) *ServiceMock {
 }
 
 //Set uses given function f to mock the Service.Set method
-func (mmSet *mServiceMockSet) Set(f func(ctx context.Context, objectDescriptorRef reference.Global, stateRef reference.Global, objectDescriptor descriptor.Object) (err error)) *ServiceMock {
+func (mmSet *mServiceMockSet) Set(f func(ctx context.Context, stateReference reference.Global, objectDescriptor descriptor.Object) (err error)) *ServiceMock {
 	if mmSet.defaultExpectation != nil {
 		mmSet.mock.t.Fatalf("Default expectation is already set for the Service.Set method")
 	}
@@ -354,14 +352,14 @@ func (mmSet *mServiceMockSet) Set(f func(ctx context.Context, objectDescriptorRe
 
 // When sets expectation for the Service.Set which will trigger the result defined by the following
 // Then helper
-func (mmSet *mServiceMockSet) When(ctx context.Context, objectDescriptorRef reference.Global, stateRef reference.Global, objectDescriptor descriptor.Object) *ServiceMockSetExpectation {
+func (mmSet *mServiceMockSet) When(ctx context.Context, stateReference reference.Global, objectDescriptor descriptor.Object) *ServiceMockSetExpectation {
 	if mmSet.mock.funcSet != nil {
 		mmSet.mock.t.Fatalf("ServiceMock.Set mock is already set by Set")
 	}
 
 	expectation := &ServiceMockSetExpectation{
 		mock:   mmSet.mock,
-		params: &ServiceMockSetParams{ctx, objectDescriptorRef, stateRef, objectDescriptor},
+		params: &ServiceMockSetParams{ctx, stateReference, objectDescriptor},
 	}
 	mmSet.expectations = append(mmSet.expectations, expectation)
 	return expectation
@@ -374,15 +372,15 @@ func (e *ServiceMockSetExpectation) Then(err error) *ServiceMock {
 }
 
 // Set implements Service
-func (mmSet *ServiceMock) Set(ctx context.Context, objectDescriptorRef reference.Global, stateRef reference.Global, objectDescriptor descriptor.Object) (err error) {
+func (mmSet *ServiceMock) Set(ctx context.Context, stateReference reference.Global, objectDescriptor descriptor.Object) (err error) {
 	mm_atomic.AddUint64(&mmSet.beforeSetCounter, 1)
 	defer mm_atomic.AddUint64(&mmSet.afterSetCounter, 1)
 
 	if mmSet.inspectFuncSet != nil {
-		mmSet.inspectFuncSet(ctx, objectDescriptorRef, stateRef, objectDescriptor)
+		mmSet.inspectFuncSet(ctx, stateReference, objectDescriptor)
 	}
 
-	mm_params := &ServiceMockSetParams{ctx, objectDescriptorRef, stateRef, objectDescriptor}
+	mm_params := &ServiceMockSetParams{ctx, stateReference, objectDescriptor}
 
 	// Record call args
 	mmSet.SetMock.mutex.Lock()
@@ -399,7 +397,7 @@ func (mmSet *ServiceMock) Set(ctx context.Context, objectDescriptorRef reference
 	if mmSet.SetMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmSet.SetMock.defaultExpectation.Counter, 1)
 		mm_want := mmSet.SetMock.defaultExpectation.params
-		mm_got := ServiceMockSetParams{ctx, objectDescriptorRef, stateRef, objectDescriptor}
+		mm_got := ServiceMockSetParams{ctx, stateReference, objectDescriptor}
 		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
 			mmSet.t.Errorf("ServiceMock.Set got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
@@ -411,9 +409,9 @@ func (mmSet *ServiceMock) Set(ctx context.Context, objectDescriptorRef reference
 		return (*mm_results).err
 	}
 	if mmSet.funcSet != nil {
-		return mmSet.funcSet(ctx, objectDescriptorRef, stateRef, objectDescriptor)
+		return mmSet.funcSet(ctx, stateReference, objectDescriptor)
 	}
-	mmSet.t.Fatalf("Unexpected call to ServiceMock.Set. %v %v %v %v", ctx, objectDescriptorRef, stateRef, objectDescriptor)
+	mmSet.t.Fatalf("Unexpected call to ServiceMock.Set. %v %v %v", ctx, stateReference, objectDescriptor)
 	return
 }
 
