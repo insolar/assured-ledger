@@ -100,9 +100,9 @@ func (m *PulseManager) CancelNodeState() {
 }
 
 func (m *PulseManager) _commit(pulseChange beat.Beat) error {
-	if err := m.PulseAppender.EnsureLatestTimeBeat(pulseChange); err != nil {
-		return throw.W(err, "call of Ensure pulseChange failed")
-	}
+	// if err := m.PulseAppender.EnsureLatestTimeBeat(pulseChange); err != nil {
+	// 	return throw.W(err, "call of Ensure pulseChange failed")
+	// }
 
 	for _, d := range m.dispatchers {
 		d.CommitBeat(pulseChange)

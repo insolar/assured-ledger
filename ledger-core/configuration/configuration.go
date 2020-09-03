@@ -129,7 +129,7 @@ func NewPulsarConfiguration() PulsarConfiguration {
 func NewHolder(path string) *Holder {
 	params := insconfig.Params{
 		EnvPrefix:        InsolarEnvPrefix,
-		ConfigPathGetter: &stringPathGetter{path},
+		ConfigPathGetter: &StringPathGetter{path},
 	}
 
 	return &Holder{&Configuration{}, params}
@@ -153,11 +153,11 @@ func (h *Holder) MustLoad() *Holder {
 	return h
 }
 
-type stringPathGetter struct {
+type StringPathGetter struct {
 	Path string
 }
 
-func (g *stringPathGetter) GetConfigPath() string {
+func (g *StringPathGetter) GetConfigPath() string {
 	return g.Path
 }
 

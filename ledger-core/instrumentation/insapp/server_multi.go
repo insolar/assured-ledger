@@ -6,6 +6,8 @@
 package insapp
 
 import (
+	"sync"
+
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp/internal/cloud"
 	"github.com/insolar/assured-ledger/ledger-core/network"
@@ -41,21 +43,22 @@ type MultiServer struct {
 func (s *MultiServer) Serve() {
 	network := cloud.NewNetwork()
 
+	var wg sync.WaitGroup
+
 	for _, nodeCfg := range s.multiFn(configuration.Configuration{}) {
+		wg.Add(1)
 		server := NewWithNetworkFn(nodeCfg, network.NetworkInitFunc)
 		server.prepare()
 		network.AddNode(server.certificate, server.pulseManager)
 		go func() {
+			defer wg.Done()
 			server.run()
 		}()
 	}
 
 	go func() {
-		cloud.RunFakePulse(&network, configuration.PulsarConfiguration{
-			Log: configuration.Log{
-				Level: "Debug",
-			},
-			Pulsar: configuration.NewPulsar(),
-		})
+		cloud.RunFakePulse(&network, s.cfg.PulsarConfiguration)
 	}()
+
+	wg.Wait()
 }

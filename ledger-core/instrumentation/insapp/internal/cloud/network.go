@@ -40,18 +40,6 @@ type NetworkSupport interface {
 	GetBeatHistory() beat.History
 }
 
-// type NetworkInitFunc func(configuration.Configuration, *component.Manager) (NetworkSupport, network.Status, error)
-
-// appComponents := AppComponents{
-// LocalNodeRef:  nodeCert.GetNodeRef(),
-// LocalNodeRole: nodeRole,
-//
-// BeatHistory:    pulses,
-// AffinityHelper: affine,
-// MessageSender:  mr.CreateMessageSender(affine, pulses),
-// CryptoScheme:   comps.CryptoScheme,
-// }
-
 type Node struct {
 	pulseManager chorus.Conductor
 	router       watermill.Router
@@ -86,7 +74,7 @@ func (n Network) getFirstBeat() beat.Beat {
 			PulseNumber: pulse.MinTimePulse,
 			DataExt: pulse.DataExt{
 				PulseEpoch:     pulse.MinTimePulse,
-				NextPulseDelta: 0,
+				NextPulseDelta: 100,
 				PrevPulseDelta: 0,
 				Timestamp:      pulse.MinTimePulse,
 				PulseEntropy:   longbits.Bits256{},
