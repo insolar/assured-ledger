@@ -87,10 +87,9 @@ func TestSMExecute_Init(t *testing.T) {
 
 		pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 		pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-		smObjectID      = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
 		caller          = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
 		callee          = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
-		smGlobalRef     = reference.NewRecordOf(caller, smObjectID)
+		smGlobalRef     = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
 		smObject        = object.NewStateMachineObject(smGlobalRef)
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 
@@ -139,10 +138,9 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 
 		pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 		pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-		smObjectID      = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
 		caller          = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
 		callee          = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
-		smGlobalRef     = reference.NewRecordOf(caller, smObjectID)
+		smGlobalRef     = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
 		smObject        = object.NewStateMachineObject(smGlobalRef)
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 
@@ -607,10 +605,9 @@ func TestSMExecute_TokenInOutgoingMessage(t *testing.T) {
 
 				pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 				pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-				smObjectID      = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
 				caller          = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
 				callee          = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
-				smGlobalRef     = reference.NewRecordOf(caller, smObjectID)
+				smGlobalRef     = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
 				smObject        = object.NewStateMachineObject(smGlobalRef)
 				sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 
@@ -700,9 +697,8 @@ func TestSMExecute_VCallResultPassedToSMObject(t *testing.T) {
 
 		pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 		pulseSlot       = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-		smObjectID      = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
 		caller          = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
-		smGlobalRef     = reference.NewRecordOf(caller, smObjectID)
+		smGlobalRef     = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
 		smObject        = object.NewStateMachineObject(smGlobalRef)
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 
