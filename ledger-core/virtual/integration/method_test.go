@@ -111,8 +111,7 @@ func TestVirtual_BadMethod_WithExecutor(t *testing.T) {
 	utils.AssertNotJumpToStep(t, server.Journal, "stepTakeLock")
 
 	var (
-		objectLocal  = server.RandomLocalWithPulse()
-		objectGlobal = reference.NewSelf(objectLocal)
+		objectGlobal = server.RandomGlobalWithPulse()
 		outgoing     = server.BuildRandomOutgoingWithPulse()
 		prevPulse    = server.GetPulse().PulseNumber
 	)
@@ -164,8 +163,7 @@ func TestVirtual_Method_WithExecutor_ObjectIsNotExist(t *testing.T) {
 	server.IncrementPulse(ctx)
 
 	var (
-		objectLocal  = server.RandomLocalWithPulse()
-		objectGlobal = reference.NewSelf(objectLocal)
+		objectGlobal = server.RandomGlobalWithPulse()
 		outgoing     = server.BuildRandomOutgoingWithPulse()
 		prevPulse    = server.GetPulse().PulseNumber
 	)
@@ -327,8 +325,7 @@ func TestVirtual_Method_WithoutExecutor_Ordered(t *testing.T) {
 	server.IncrementPulseAndWaitIdle(ctx)
 
 	var (
-		objectLocal  = server.RandomLocalWithPulse()
-		objectGlobal = reference.NewSelf(objectLocal)
+		objectGlobal = server.RandomGlobalWithPulse()
 		prevPulse    = server.GetPulse().PulseNumber
 	)
 
@@ -423,7 +420,7 @@ func TestVirtual_CallContractFromContract_InterferenceViolation(t *testing.T) {
 				class = gen.UniqueGlobalRef()
 
 				prevPulse     = server.GetPulse().PulseNumber
-				objectAGlobal = reference.NewSelf(server.RandomLocalWithPulse())
+				objectAGlobal = server.RandomGlobalWithPulse()
 
 				flags = contract.MethodIsolation{
 					Interference: isolation.CallIntolerable,
@@ -749,8 +746,8 @@ func TestVirtual_CallContractTwoTimes(t *testing.T) {
 
 		classB = gen.UniqueGlobalRef()
 
-		objectAGlobal = reference.NewSelf(server.RandomLocalWithPulse())
-		objectBGlobal = reference.NewSelf(server.RandomLocalWithPulse())
+		objectAGlobal = server.RandomGlobalWithPulse()
+		objectBGlobal = server.RandomGlobalWithPulse()
 
 		prevPulse = server.GetPulse().PulseNumber
 	)
@@ -911,8 +908,7 @@ func Test_CallMethodWithBadIsolationFlags(t *testing.T) {
 	utils.AssertNotJumpToStep(t, server.Journal, "stepTakeLock")
 
 	var (
-		objectLocal  = server.RandomLocalWithPulse()
-		objectGlobal = reference.NewSelf(objectLocal)
+		objectGlobal = server.RandomGlobalWithPulse()
 		prevPulse    = server.GetPulse().PulseNumber
 	)
 
@@ -989,8 +985,7 @@ func TestVirtual_FutureMessageAddedToSlot(t *testing.T) {
 	jetCoordinatorMock.MeMock.Return(server.GlobalCaller())
 
 	var (
-		objectLocal       = server.RandomLocalWithPulse()
-		objectGlobal      = reference.NewSelf(objectLocal)
+		objectGlobal      = server.RandomGlobalWithPulse()
 		class             = gen.UniqueGlobalRef()
 		dirtyStateRef     = server.RandomLocalWithPulse()
 		dirtyState        = reference.NewSelf(dirtyStateRef)
@@ -1130,7 +1125,7 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 
 			var (
 				class     = gen.UniqueGlobalRef()
-				objectRef = reference.NewSelf(server.RandomLocalWithPulse())
+				objectRef = server.RandomGlobalWithPulse()
 				p1        = server.GetPulse().PulseNumber
 			)
 
@@ -1555,7 +1550,7 @@ func TestVirtual_Method_IntolerableCallChangeState(t *testing.T) {
 
 	var (
 		class     = gen.UniqueGlobalRef()
-		objectRef = reference.NewSelf(server.RandomLocalWithPulse())
+		objectRef = server.RandomGlobalWithPulse()
 		p1        = server.GetPulse().PulseNumber
 		isolation = contract.MethodIsolation{
 			Interference: isolation.CallIntolerable,
@@ -1689,7 +1684,7 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 	server.Init(ctx)
 
 	var (
-		objectGlobal = reference.NewSelf(server.RandomLocalWithPulse())
+		objectGlobal = server.RandomGlobalWithPulse()
 		class        = gen.UniqueGlobalRef()
 		initialState = []byte("initial state")
 		newState     = []byte("updated state")

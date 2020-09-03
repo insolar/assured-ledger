@@ -40,16 +40,16 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 	oneRandomUnorderedTable := callregistry.NewRequestTable()
 	oneRandomUnorderedTable.GetList(isolation.CallIntolerable).Add(gen.UniqueGlobalRef())
 
-	retryOrderedRequestRef := reference.NewSelf(gen.UniqueLocalRefWithPulse(pulse.OfNow()))
+	retryOrderedRequestRef := gen.UniqueGlobalRefWithPulse(pulse.OfNow())
 	retryOrderedTable := callregistry.NewRequestTable()
 	oneRandomOrderedTable.GetList(isolation.CallTolerable).Add(retryOrderedRequestRef)
 
-	retryUnorderedRequestRef := reference.NewSelf(gen.UniqueLocalRefWithPulse(pulse.OfNow()))
+	retryUnorderedRequestRef := gen.UniqueGlobalRefWithPulse(pulse.OfNow())
 	retryUnorderedTable := callregistry.NewRequestTable()
 	oneRandomOrderedTable.GetList(isolation.CallTolerable).Add(retryUnorderedRequestRef)
 
-	oneRandomOrderedRequest := reference.NewSelf(gen.UniqueLocalRefWithPulse(pulse.OfNow()))
-	oneRandomUnorderedRequest := reference.NewSelf(gen.UniqueLocalRefWithPulse(pulse.OfNow()))
+	oneRandomOrderedRequest := gen.UniqueGlobalRefWithPulse(pulse.OfNow())
+	oneRandomUnorderedRequest := gen.UniqueGlobalRefWithPulse(pulse.OfNow())
 
 	for _, tc := range []struct {
 		name                          string
@@ -127,7 +127,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 		{
 			name:                          "unexpected intolerable",
 			PendingRequestTable:           callregistry.NewRequestTable(),
-			requestRef:                    reference.NewSelf(gen.UniqueLocalRefWithPulse(pulse.OfNow() - 110)),
+			requestRef:                    gen.UniqueGlobalRefWithPulse(pulse.OfNow() - 110),
 			UnorderedPendingEarliestPulse: pulse.Unknown,
 			ActiveUnorderedPendingCount:   0,
 			callFlags:                     payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty),
@@ -136,7 +136,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 		{
 			name:                        "unexpected tolerable",
 			PendingRequestTable:         callregistry.NewRequestTable(),
-			requestRef:                  reference.NewSelf(gen.UniqueLocalRefWithPulse(pulse.OfNow() - 110)),
+			requestRef:                  gen.UniqueGlobalRefWithPulse(pulse.OfNow() - 110),
 			OrderedPendingEarliestPulse: pulse.Unknown,
 			ActiveOrderedPendingCount:   0,
 			callFlags:                   payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
@@ -145,7 +145,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 		{
 			name:                          "too old intolerable",
 			PendingRequestTable:           callregistry.NewRequestTable(),
-			requestRef:                    reference.NewSelf(gen.UniqueLocalRefWithPulse(pulse.OfNow() - 110)),
+			requestRef:                    gen.UniqueGlobalRefWithPulse(pulse.OfNow() - 110),
 			UnorderedPendingEarliestPulse: pulse.OfNow() - 100,
 			ActiveUnorderedPendingCount:   1,
 			callFlags:                     payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty),
@@ -154,7 +154,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 		{
 			name:                        "too old tolerable",
 			PendingRequestTable:         callregistry.NewRequestTable(),
-			requestRef:                  reference.NewSelf(gen.UniqueLocalRefWithPulse(pulse.OfNow() - 110)),
+			requestRef:                  gen.UniqueGlobalRefWithPulse(pulse.OfNow() - 110),
 			OrderedPendingEarliestPulse: pulse.OfNow() - 100,
 			ActiveOrderedPendingCount:   1,
 			callFlags:                   payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
@@ -163,7 +163,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 		{
 			name:                          "full table intolerable",
 			PendingRequestTable:           oneRandomUnorderedTable,
-			requestRef:                    reference.NewSelf(gen.UniqueLocalRefWithPulse(pulse.OfNow() - 110)),
+			requestRef:                    gen.UniqueGlobalRefWithPulse(pulse.OfNow() - 110),
 			UnorderedPendingEarliestPulse: pulse.OfNow() - 100,
 			ActiveUnorderedPendingCount:   1,
 			callFlags:                     payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty),
@@ -172,7 +172,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 		{
 			name:                        "full table tolerable",
 			PendingRequestTable:         oneRandomOrderedTable,
-			requestRef:                  reference.NewSelf(gen.UniqueLocalRefWithPulse(pulse.OfNow() - 110)),
+			requestRef:                  gen.UniqueGlobalRefWithPulse(pulse.OfNow() - 110),
 			OrderedPendingEarliestPulse: pulse.OfNow() - 100,
 			ActiveOrderedPendingCount:   1,
 			callFlags:                   payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
@@ -181,7 +181,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 		{
 			name:                          "wrong call interference flag_expected intolerable, get tolerable",
 			PendingRequestTable:           callregistry.NewRequestTable(),
-			requestRef:                    reference.NewSelf(gen.UniqueLocalRefWithPulse(pulse.OfNow())),
+			requestRef:                    gen.UniqueGlobalRefWithPulse(pulse.OfNow()),
 			UnorderedPendingEarliestPulse: pulse.OfNow() - 100,
 			ActiveUnorderedPendingCount:   1,
 			callFlags:                     payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
@@ -190,7 +190,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 		{
 			name:                        "wrong call interference flag_expected tolerable, get intolerable",
 			PendingRequestTable:         callregistry.NewRequestTable(),
-			requestRef:                  reference.NewSelf(gen.UniqueLocalRefWithPulse(pulse.OfNow())),
+			requestRef:                  gen.UniqueGlobalRefWithPulse(pulse.OfNow()),
 			OrderedPendingEarliestPulse: pulse.OfNow() - 100,
 			ActiveOrderedPendingCount:   1,
 			callFlags:                   payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty),

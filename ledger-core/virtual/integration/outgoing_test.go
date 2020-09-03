@@ -72,7 +72,7 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 
 	var (
 		prevPulse     = server.GetPulse().PulseNumber
-		objectAGlobal = reference.NewSelf(server.RandomLocalWithPulse())
+		objectAGlobal = server.RandomGlobalWithPulse()
 	)
 
 	server.IncrementPulseAndWaitIdle(ctx)
@@ -92,7 +92,7 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 		outgoingCallRef = reference.NewRecordOf(objectAGlobal, server.RandomLocalWithPulse())
 
 		classB        = gen.UniqueGlobalRef()
-		objectBGlobal = reference.NewSelf(server.RandomLocalWithPulse())
+		objectBGlobal = server.RandomGlobalWithPulse()
 
 		firstPulse  = server.GetPulse().PulseNumber
 		secondPulse pulse.Number
