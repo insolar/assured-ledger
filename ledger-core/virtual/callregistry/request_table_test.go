@@ -12,7 +12,6 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
-	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 )
@@ -45,8 +44,7 @@ func TestPendingTable(t *testing.T) {
 	pd := pulse.NewFirstPulsarData(10, longbits.Bits256{})
 	currentPulse := pd.PulseNumber
 
-	object := gen.UniqueLocalRefWithPulse(currentPulse)
-	ref := reference.NewSelf(object)
+	ref := gen.UniqueGlobalRefWithPulse(currentPulse)
 
 	intolerableList := rt.GetList(isolation.CallIntolerable)
 	intolerableList.Add(ref)
@@ -60,14 +58,11 @@ func TestPendingList(t *testing.T) {
 	pd := pulse.NewFirstPulsarData(10, longbits.Bits256{})
 	currentPulse := pd.PulseNumber
 
-	objectOld := gen.UniqueLocalRefWithPulse(currentPulse)
-	RefOld := reference.NewSelf(objectOld)
+	RefOld := gen.UniqueGlobalRefWithPulse(currentPulse)
 
 	nextPulseNumber := currentPulse + pulse.Number(pd.NextPulseDelta)
-	objectOne := gen.UniqueLocalRefWithPulse(nextPulseNumber)
-	objectTwo := gen.UniqueLocalRefWithPulse(nextPulseNumber)
-	RefOne := reference.NewSelf(objectOne)
-	RefTwo := reference.NewSelf(objectTwo)
+	RefOne := gen.UniqueGlobalRefWithPulse(nextPulseNumber)
+	RefTwo := gen.UniqueGlobalRefWithPulse(nextPulseNumber)
 
 	rl := newRequestList()
 	require.Equal(t, 0, rl.Count())
@@ -112,7 +107,7 @@ func TestPendingList(t *testing.T) {
 	require.Equal(t, 2, rl.CountActive())
 
 	// try to finish ref that not in list
-	successFinish := rl.Finish(reference.NewSelf(gen.UniqueLocalRefWithPulse(currentPulse)))
+	successFinish := rl.Finish(gen.UniqueGlobalRefWithPulse(currentPulse))
 	require.Equal(t, false, successFinish)
 	require.Equal(t, 1, rl.CountFinish())
 	require.Equal(t, 2, rl.CountActive())
@@ -122,13 +117,11 @@ func TestPendingList_Finish(t *testing.T) {
 	pd := pulse.NewFirstPulsarData(10, longbits.Bits256{})
 	currentPulse := pd.PulseNumber
 
-	objectOne := gen.UniqueLocalRefWithPulse(currentPulse)
-	RefOne := reference.NewSelf(objectOne)
+	RefOne := gen.UniqueGlobalRefWithPulse(currentPulse)
 
 	nextPulseNumber := currentPulse + pulse.Number(pd.NextPulseDelta)
 
-	objectTwo := gen.UniqueLocalRefWithPulse(nextPulseNumber)
-	RefTwo := reference.NewSelf(objectTwo)
+	RefTwo := gen.UniqueGlobalRefWithPulse(nextPulseNumber)
 
 	rl := newRequestList()
 
@@ -154,8 +147,7 @@ func TestPendingList_MustGetIsActive(t *testing.T) {
 	pd := pulse.NewFirstPulsarData(10, longbits.Bits256{})
 	currentPulse := pd.PulseNumber
 
-	objectOne := gen.UniqueLocalRefWithPulse(currentPulse)
-	RefOne := reference.NewSelf(objectOne)
+	RefOne := gen.UniqueGlobalRefWithPulse(currentPulse)
 
 	rl := newRequestList()
 	isActive, exist := rl.GetState(RefOne)

@@ -93,7 +93,7 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 				server.Init(ctx)
 				server.IncrementPulseAndWaitIdle(ctx)
 
-				object = reference.NewSelf(server.RandomLocalWithPulse())
+				object = server.RandomGlobalWithPulse()
 				prevPulse := server.GetPulse().PulseNumber
 
 				server.IncrementPulse(ctx)
@@ -490,7 +490,7 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 
 			var (
 				class         = gen.UniqueGlobalRef()
-				object        = reference.NewSelf(server.RandomLocalWithPulse())
+				object        = server.RandomGlobalWithPulse()
 				outgoingP1    = server.BuildRandomOutgoingWithPulse()
 				incomingP1    = reference.NewRecordOf(object, outgoingP1.GetLocal())
 				dirtyStateRef = server.RandomLocalWithPulse()
