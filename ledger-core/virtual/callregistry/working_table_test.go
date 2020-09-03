@@ -13,7 +13,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
-	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 )
@@ -30,8 +29,7 @@ func TestWorkingTable(t *testing.T) {
 	pd := pulse.NewFirstPulsarData(10, longbits.Bits256{})
 	currentPulse := pd.PulseNumber
 
-	object := gen.UniqueLocalRefWithPulse(currentPulse)
-	ref := reference.NewSelf(object)
+	ref := gen.UniqueGlobalRefWithPulse(currentPulse)
 
 	intolerableList := wt.GetList(isolation.CallIntolerable)
 	assert.True(t, intolerableList.add(ref))
@@ -80,8 +78,7 @@ func TestWorkingList(t *testing.T) {
 	pd := pulse.NewFirstPulsarData(10, longbits.Bits256{})
 	currentPulse := pd.PulseNumber
 
-	objectOld := gen.UniqueLocalRefWithPulse(currentPulse)
-	RefOld := reference.NewSelf(objectOld)
+	RefOld := gen.UniqueGlobalRefWithPulse(currentPulse)
 
 	nextPulseNumber := currentPulse + pulse.Number(pd.NextPulseDelta)
 	RefOne := gen.UniqueGlobalRefWithPulse(nextPulseNumber)
@@ -134,7 +131,7 @@ func TestWorkingList(t *testing.T) {
 	assert.Equal(t, 2, rl.CountActive())
 
 	// try to finish ref that not in list
-	successFinish := rl.finish(reference.NewSelf(gen.UniqueLocalRefWithPulse(currentPulse)))
+	successFinish := rl.finish(gen.UniqueGlobalRefWithPulse(currentPulse))
 	assert.Equal(t, false, successFinish)
 	assert.Equal(t, 1, rl.CountFinish())
 	assert.Equal(t, 2, rl.CountActive())
@@ -148,8 +145,7 @@ func TestWorkingList_Finish(t *testing.T) {
 
 	nextPulseNumber := currentPulse + pulse.Number(pd.NextPulseDelta)
 
-	objectTwo := gen.UniqueLocalRefWithPulse(nextPulseNumber)
-	RefTwo := reference.NewSelf(objectTwo)
+	RefTwo := gen.UniqueGlobalRefWithPulse(nextPulseNumber)
 
 	rl := newWorkingList()
 
