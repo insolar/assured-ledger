@@ -289,6 +289,7 @@ func generateCertificates(nodesInfo []nodeInfo, settings netSettings) (map[strin
 }
 
 func Test_RunCloud(t *testing.T) {
+	t.Skip()
 	var multiFn insapp.MultiNodeConfigFunc
 
 	var (
