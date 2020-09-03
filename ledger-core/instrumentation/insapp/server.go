@@ -14,7 +14,6 @@ import (
 
 	"github.com/insolar/component-manager"
 
-	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	component2 "github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp/component"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp/internal/headless"
@@ -25,7 +24,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
-	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/version"
 )
@@ -39,13 +38,10 @@ type Server struct {
 
 	cm       *component.Manager
 	stopFunc func()
+	nodeRef  reference.Global
 
 	ctx    context.Context
 	logger log.Logger
-
-	dispatcher   beat.Dispatcher
-	pulseManager *PulseManager
-	certificate  nodeinfo.Certificate
 }
 
 // New creates a one-node process.
@@ -75,7 +71,7 @@ func NewHeadless(cfg configuration.Configuration, extraComponents ...interface{}
 	}
 }
 
-func (s *Server) prepare() {
+func (s *Server) Serve() {
 	fmt.Println("Version: ", version.GetFullVersion())
 	s.ctx, s.logger = inslogger.InitGlobalNodeLogger(context.Background(), s.cfg.Log, "", "")
 
@@ -89,10 +85,6 @@ func (s *Server) prepare() {
 
 			return s.ctx
 		})
-
-}
-
-func (s *Server) run() {
 
 	global.InitTicker()
 
@@ -129,11 +121,6 @@ func (s *Server) run() {
 	<-waitChannel
 }
 
-func (s *Server) Serve() {
-	s.prepare()
-	s.run()
-}
-
 type LoggerInitFunc = func(ctx context.Context, cfg configuration.Log, nodeRef, nodeRole string) context.Context
 
 func (s *Server) StartComponents(ctx context.Context, cfg configuration.Configuration,
@@ -142,9 +129,10 @@ func (s *Server) StartComponents(ctx context.Context, cfg configuration.Configur
 	preComponents := s.initBootstrapComponents(ctx, cfg)
 	certManager := s.initCertificateManager(ctx, cfg, preComponents)
 
-	s.certificate = certManager.GetCertificate()
-	nodeRole := s.certificate.GetRole()
-	nodeRef := s.certificate.GetNodeRef().String()
+	nodeCert := certManager.GetCertificate()
+	nodeRole := nodeCert.GetRole()
+	s.nodeRef = nodeCert.GetNodeRef()
+	nodeRef := nodeCert.GetNodeRef().String()
 
 	if !s.headless {
 		switch nodeRole {

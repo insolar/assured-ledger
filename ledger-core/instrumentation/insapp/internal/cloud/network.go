@@ -7,13 +7,16 @@ package cloud
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
 	"github.com/ThreeDotsLabs/watermill/message"
+	"github.com/insolar/component-manager"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
+	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/defaults"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
@@ -41,6 +44,7 @@ type NetworkSupport interface {
 }
 
 type Node struct {
+	BeatAppender beat.Appender
 	pulseManager chorus.Conductor
 	router       watermill.Router
 
@@ -50,7 +54,7 @@ type Node struct {
 func NewNetwork() Network {
 	return Network{
 		lock:  &sync.RWMutex{},
-		nodes: make(map[reference.Global]Node),
+		nodes: make(map[reference.Global]*Node),
 		start: time.Now(),
 	}
 }
@@ -58,7 +62,7 @@ func NewNetwork() Network {
 type Network struct {
 	lock  *sync.RWMutex
 	start time.Time
-	nodes map[reference.Global]Node
+	nodes map[reference.Global]*Node
 }
 
 func (n Network) nodeCount() int {
@@ -83,18 +87,32 @@ func (n Network) getFirstBeat() beat.Beat {
 	}
 }
 
-func (n Network) UpdateNode(cert nodeinfo.Certificate, pulseManager chorus.Conductor) {
+func (n Network) addNode(noderef reference.Global, node Node) {
+	n.lock.RLock()
+	defer n.lock.RUnlock()
+
+	n.nodes[noderef] = &node
+}
+
+func (n Network) firstPulse(nodeRef reference.Global) {
 	n.lock.Lock()
 	defer n.lock.Unlock()
 
-	node, err := n.getNode(cert.GetNodeRef())
+	node, err := n.getNode(nodeRef)
 	if err != nil {
 		panic(throw.IllegalState())
 	}
 
-	node.pulseManager = pulseManager
+	fmt.Println("Sending first pulse to node", nodeRef.String())
 
-	err = pulseManager.CommitPulseChange(n.getFirstBeat())
+	firstBeat := n.getFirstBeat()
+
+	err = node.BeatAppender.AddCommittedBeat(firstBeat)
+	if err != nil {
+		panic(err)
+	}
+
+	err = node.pulseManager.CommitFirstPulseChange(firstBeat)
 	if err != nil {
 		panic(err)
 	}
@@ -112,7 +130,7 @@ func (n Network) getNode(nodeID reference.Global) (*Node, error) {
 	if !ok {
 		return nil, throw.E("no node found for ref", struct{ reference reference.Global }{reference: nodeID})
 	}
-	return &node, nil
+	return node, nil
 }
 
 func (n Network) sendMessageHandler(msg *message.Message) error {
@@ -146,27 +164,62 @@ func (n Network) Distribute(_ context.Context, packet pulsar.PulsePacket) {
 	defer n.lock.RUnlock()
 
 	for _, node := range n.nodes {
-		node.pulseManager.CommitPulseChange(beat.Beat{
+		fmt.Println("Sending pulse to node", node.cert.GetNodeRef().String())
+
+		err := node.BeatAppender.AddCommittedBeat(beat.Beat{
 			Data: adapters.NewPulseData(packet),
 		})
+		if err != nil {
+			panic(err)
+		}
+
+		err = node.pulseManager.CommitFirstPulseChange(beat.Beat{
+			Data: adapters.NewPulseData(packet),
+		})
+		if err != nil {
+			panic(err)
+		}
 	}
 }
 
-func (n Network) NetworkInitFunc(cert nodeinfo.Certificate) (NetworkSupport, network.Status, error) {
-	cloudNetwork := &cloudStatus{
-		nodeRef: cert.GetNodeRef(),
-		role:    cert.GetRole(),
-		cert:    cert,
-		net:     &n,
+func (n Network) NetworkInitFunc(_ configuration.Configuration, cm *component.Manager) (NetworkSupport, network.Status, error) {
+	// NetworkInitFunc(cert nodeinfo.Certificate) (NetworkSupport, network.Status, error) {
+
+	statusNetwork := &cloudStatus{
+		net: &n,
 	}
-	return cloudNetwork, cloudNetwork, nil
+
+	cm.Register(statusNetwork)
+
+	return statusNetwork, statusNetwork, nil
 }
 
 type cloudStatus struct {
-	nodeRef reference.Global
-	role    member.PrimaryRole
-	cert    nodeinfo.Certificate
-	net     *Network
+	CertificateManager nodeinfo.CertificateManager `inject:""`
+	PulseManager       chorus.Conductor            `inject:""`
+	BeatAppender       beat.Appender               `inject:""`
+
+	Certificate nodeinfo.Certificate
+	router      watermill.Router
+
+	net *Network
+}
+
+func (s *cloudStatus) Init(_ context.Context) error {
+	fmt.Println("cloudStatus init")
+
+	s.Certificate = s.CertificateManager.GetCertificate()
+
+	s.net.addNode(s.Certificate.GetNodeRef(), Node{
+		cert:         s.Certificate,
+		pulseManager: s.PulseManager,
+		BeatAppender: s.BeatAppender,
+		router:       s.router,
+	})
+
+	s.net.firstPulse(s.Certificate.GetNodeRef())
+
+	return nil
 }
 
 func (s *cloudStatus) AddDispatcher(dispatcher beat.Dispatcher) {
@@ -178,7 +231,7 @@ func (s *cloudStatus) GetBeatHistory() beat.History {
 }
 
 func (s *cloudStatus) GetLocalNodeRole() member.PrimaryRole {
-	return s.role
+	return s.Certificate.GetRole()
 }
 
 func (s *cloudStatus) GetNodeSnapshot(number pulse.Number) beat.NodeSnapshot {
@@ -201,26 +254,21 @@ func (s *cloudStatus) CreateMessagesRouter(ctx context.Context) messagesender.Me
 	s.net.lock.Lock()
 	defer s.net.lock.Unlock()
 
-	router := watermill.NewRouter(ctx, s.net.sendMessageHandler)
+	s.router = watermill.NewRouter(ctx, s.net.sendMessageHandler)
 
-	s.net.nodes[s.cert.GetNodeRef()] = Node{
-		cert:   s.cert,
-		router: router,
-	}
-
-	return router
+	return s.router
 }
 
 func (s *cloudStatus) GetLocalNodeReference() reference.Holder {
-	return s.nodeRef
+	return s.Certificate.GetNodeRef()
 }
 
 func (s *cloudStatus) GetNetworkStatus() network.StatusReply {
 	nodeLen := s.net.nodeCount()
 	return network.StatusReply{
 		NetworkState:    network.CompleteNetworkState,
-		LocalRef:        s.nodeRef,
-		LocalRole:       s.role,
+		LocalRef:        s.Certificate.GetNodeRef(),
+		LocalRole:       s.Certificate.GetRole(),
 		ActiveListSize:  nodeLen,
 		WorkingListSize: nodeLen,
 

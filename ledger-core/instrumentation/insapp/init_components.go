@@ -99,7 +99,6 @@ func (s *Server) initComponents(ctx context.Context, cfg configuration.Configura
 	var addDispatcherFn func(beat.Dispatcher)
 
 	if networkFn == nil {
-		panic("should be set")
 		nsn, err := servicenetwork.NewServiceNetwork(cfg, cm)
 		checkError(ctx, err, "failed to start ServiceNetwork")
 		cm.Register(nsn)
@@ -108,13 +107,13 @@ func (s *Server) initComponents(ctx context.Context, cfg configuration.Configura
 		ns = nsn
 
 		pulses = memstor.NewStorageMem()
-		pm := NewPulseManager()
+		pm := component2.NewPulseManager()
 		cm.Register(pm)
 
 		addDispatcherFn = pm.AddDispatcher
 	} else {
 		var err error
-		nw, ns, err = networkFn(s.certificate)
+		nw, ns, err = networkFn(cfg, cm)
 		checkError(ctx, err, "failed to start ServiceNetwork by factory")
 		cm.Register(nw)
 		addDispatcherFn = nw.AddDispatcher
@@ -189,7 +188,7 @@ func (s *Server) initComponents(ctx context.Context, cfg configuration.Configura
 	bd := appComponent.GetBeatDispatcher()
 	addDispatcherFn(bd)
 
-	stopFn := mr.SubscribeForMessages(s.dispatcher.Process)
+	stopFn := mr.SubscribeForMessages(bd.Process)
 
 	return cm, stopFn
 }
