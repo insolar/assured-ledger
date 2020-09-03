@@ -25,8 +25,7 @@ func TestSMVDelegatedRequestFinished_FailIfCallNotRegistered(t *testing.T) {
 	var (
 		mc          = minimock.NewController(t)
 		pd          = pulse.NewFirstPulsarData(10, longbits.Bits256{})
-		smObjectID  = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
-		smGlobalRef = reference.NewSelf(smObjectID)
+		smGlobalRef = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
 		smObject    = object.NewStateMachineObject(smGlobalRef)
 		smExecID    = reference.NewSelf(gen.UniqueLocalRefWithPulse(pd.PulseNumber))
 		callMode    = isolation.CallTolerable
@@ -55,8 +54,7 @@ func TestSMVDelegatedRequestFinished_TolerableUpdateSharedState_OneActiveCounter
 	var (
 		mc          = minimock.NewController(t)
 		pd          = pulse.NewFirstPulsarData(10, longbits.Bits256{})
-		smObjectID  = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
-		smGlobalRef = reference.NewSelf(smObjectID)
+		smGlobalRef = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
 		smObject    = object.NewStateMachineObject(smGlobalRef)
 		smExecID    = reference.NewSelf(gen.UniqueLocalRefWithPulse(pd.PulseNumber))
 		callMode    = isolation.CallTolerable
@@ -92,8 +90,7 @@ func TestSMVDelegatedRequestFinished_TolerableUpdateSharedState_ManyActiveCounte
 	var (
 		mc          = minimock.NewController(t)
 		pd          = pulse.NewFirstPulsarData(10, longbits.Bits256{})
-		smObjectID  = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
-		smGlobalRef = reference.NewSelf(smObjectID)
+		smGlobalRef = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
 		smObject    = object.NewStateMachineObject(smGlobalRef)
 		smExecID    = reference.NewSelf(gen.UniqueLocalRefWithPulse(pd.PulseNumber))
 		callMode    = isolation.CallTolerable
@@ -131,8 +128,7 @@ func TestSMVDelegatedRequestFinished_IntolerableUpdateSharedStateUpdatePendingTa
 	var (
 		mc          = minimock.NewController(t)
 		pd          = pulse.NewFirstPulsarData(10, longbits.Bits256{})
-		smObjectID  = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
-		smGlobalRef = reference.NewSelf(smObjectID)
+		smGlobalRef = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
 		smObject    = object.NewStateMachineObject(smGlobalRef)
 		smExecID    = reference.NewSelf(gen.UniqueLocalRefWithPulse(pd.PulseNumber))
 		callMode    = isolation.CallIntolerable

@@ -64,10 +64,8 @@ func TestPendingList(t *testing.T) {
 	RefOld := reference.NewSelf(objectOld)
 
 	nextPulseNumber := currentPulse + pulse.Number(pd.NextPulseDelta)
-	objectOne := gen.UniqueLocalRefWithPulse(nextPulseNumber)
-	objectTwo := gen.UniqueLocalRefWithPulse(nextPulseNumber)
-	RefOne := reference.NewSelf(objectOne)
-	RefTwo := reference.NewSelf(objectTwo)
+	RefOne := gen.UniqueGlobalRefWithPulse(nextPulseNumber)
+	RefTwo := gen.UniqueGlobalRefWithPulse(nextPulseNumber)
 
 	rl := newRequestList()
 	require.Equal(t, 0, rl.Count())
@@ -122,8 +120,7 @@ func TestPendingList_Finish(t *testing.T) {
 	pd := pulse.NewFirstPulsarData(10, longbits.Bits256{})
 	currentPulse := pd.PulseNumber
 
-	objectOne := gen.UniqueLocalRefWithPulse(currentPulse)
-	RefOne := reference.NewSelf(objectOne)
+	RefOne := gen.UniqueGlobalRefWithPulse(currentPulse)
 
 	nextPulseNumber := currentPulse + pulse.Number(pd.NextPulseDelta)
 
@@ -154,8 +151,7 @@ func TestPendingList_MustGetIsActive(t *testing.T) {
 	pd := pulse.NewFirstPulsarData(10, longbits.Bits256{})
 	currentPulse := pd.PulseNumber
 
-	objectOne := gen.UniqueLocalRefWithPulse(currentPulse)
-	RefOne := reference.NewSelf(objectOne)
+	RefOne := gen.UniqueGlobalRefWithPulse(currentPulse)
 
 	rl := newRequestList()
 	isActive, exist := rl.GetState(RefOne)
