@@ -238,7 +238,10 @@ func pendingPrecondition(s *memoryCacheTest, ctx context.Context, t *testing.T) 
 			CallIncoming: incoming,
 			CallFlags:    flags,
 			LatestState: &payload.ObjectState{
-				State: []byte(newState),
+				Reference:     s.server.RandomLocalWithPulse(),
+				Class:         s.class,
+				State:         []byte(newState),
+				PreviousState: []byte("initial state"),
 			},
 		}
 		await := s.server.Journal.WaitStopOf(&handlers.SMVDelegatedRequestFinished{}, 1)
