@@ -103,24 +103,6 @@ func prepareStuff(virtual, light, heavy int) ([]configuration.Configuration, ins
 	return appConfigs, makeCertManagerFactory(certs), makeKeyFactory(nodes)
 }
 
-func Test_RunMulti(t *testing.T) {
-	var multiFn insapp.MultiNodeConfigFunc
-
-	var (
-		numVirtual        = 10
-		numLightMaterials = 0
-		numHeavyMaterials = 0
-	)
-
-	appConfigs, certFactory, keyFactory := prepareStuff(numVirtual, numLightMaterials, numHeavyMaterials)
-	multiFn = func(cfgPath string, baseCfg configuration.Configuration) ([]configuration.Configuration, insapp.NetworkInitFunc) {
-		return appConfigs, nil
-	}
-
-	s := server.NewMultiServer("testdata/insolard_base.yaml", multiFn, certFactory, keyFactory)
-	s.Serve()
-}
-
 func getRole(virtual, light, heavy *int) string {
 	switch {
 	case *virtual > 0:
@@ -304,4 +286,22 @@ func generateCertificates(nodesInfo []nodeInfo, settings netSettings) (map[strin
 	}
 
 	return certs, nil
+}
+
+func Test_RunCloud(t *testing.T) {
+	var multiFn insapp.MultiNodeConfigFunc
+
+	var (
+		numVirtual        = 10
+		numLightMaterials = 0
+		numHeavyMaterials = 0
+	)
+
+	appConfigs, certFactory, keyFactory := prepareStuff(numVirtual, numLightMaterials, numHeavyMaterials)
+	multiFn = func(cfgPath string, baseCfg configuration.Configuration) ([]configuration.Configuration, insapp.NetworkInitFunc) {
+		return appConfigs, nil
+	}
+
+	s := server.NewMultiServer("testdata/insolard_base.yaml", multiFn, certFactory, keyFactory)
+	s.Serve()
 }
