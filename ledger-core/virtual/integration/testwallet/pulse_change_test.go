@@ -96,8 +96,7 @@ func TestVirtual_CallMethodAfterMultiplePulseChanges(t *testing.T) {
 	server.IncrementPulseAndWaitIdle(ctx)
 
 	var (
-		objectLocal  = server.RandomLocalWithPulse()
-		objectGlobal = reference.NewSelf(objectLocal)
+		objectGlobal = server.RandomGlobalWithPulse()
 		prevPulse    = server.GetPulse().PulseNumber
 	)
 

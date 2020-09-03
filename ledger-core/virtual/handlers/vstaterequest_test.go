@@ -15,7 +15,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
-	"github.com/insolar/assured-ledger/ledger-core/reference"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/shareddata"
@@ -31,8 +30,7 @@ func TestVStateRequest_ProcessObjectWithoutState(t *testing.T) {
 	var (
 		mc              = minimock.NewController(t)
 		pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
-		smObjectID      = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
-		smGlobalRef     = reference.NewSelf(smObjectID)
+		smGlobalRef     = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
 		sharedStateData = smachine.NewUnboundSharedData(&payload.VStateReport{
 			Status:              payload.StateStatusEmpty,
 			AsOf:                pulse.Unknown,

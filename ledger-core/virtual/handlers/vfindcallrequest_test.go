@@ -34,8 +34,7 @@ func TestVFindCallRequest(t *testing.T) {
 		mc        = minimock.NewController(t)
 		pd        = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 		pulseSlot = conveyor.NewPastPulseSlot(nil, pd.AsRange())
-		objectID  = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
-		objectRef = reference.NewSelf(objectID)
+		objectRef = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
 		outgoing  = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
 	)
 

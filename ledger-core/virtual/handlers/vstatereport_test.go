@@ -15,7 +15,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
-	"github.com/insolar/assured-ledger/ledger-core/reference"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/shareddata"
@@ -30,8 +29,7 @@ func TestVStateReport_CreateObjectWithoutState(t *testing.T) {
 		mc               = minimock.NewController(t)
 		pd               = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 		catalog          = object.NewCatalogMockWrapper(mc)
-		smObjectID       = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
-		smGlobalRef      = reference.NewSelf(smObjectID)
+		smGlobalRef      = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
 		smObject         = object.NewStateMachineObject(smGlobalRef)
 		sharedStateData  = smachine.NewUnboundSharedData(&smObject.SharedState)
 		smObjectAccessor = object.SharedStateAccessor{SharedDataLink: sharedStateData}
@@ -88,8 +86,7 @@ func TestVStateReport_StopSMIfAsOfOutdated(t *testing.T) {
 		initState        = []byte("init state")
 		initRef          = gen.UniqueLocalRef()
 		class            = gen.UniqueGlobalRef()
-		smObjectID       = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
-		smGlobalRef      = reference.NewSelf(smObjectID)
+		smGlobalRef      = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
 		smObject         = object.NewStateMachineObject(smGlobalRef)
 		sharedStateData  = smachine.NewUnboundSharedData(&smObject.SharedState)
 		smObjectAccessor = object.SharedStateAccessor{SharedDataLink: sharedStateData}
