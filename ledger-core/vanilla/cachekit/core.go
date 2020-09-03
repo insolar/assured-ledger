@@ -120,8 +120,9 @@ func (p *Core) Add() (Index, GenNo) {
 
 // Delete can ONLY be called once per index, otherwise counting will be broken
 func (p *Core) Delete(idx Index) {
-	p.alloc.Dec(idx) // this will remove +1 for oldest tracking
+	// this will remove +1 for oldest tracking
 	// so the entry will be removed at the "rarest" generation
+	p.alloc.Dec(idx)
 }
 
 func (p *Core) Touch(index Index) GenNo {
