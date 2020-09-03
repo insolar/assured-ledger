@@ -15,7 +15,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 )
 
-type Key = reference.Global
+type Key = struct {
+	objectDescriptorRef reference.Global
+	stateRef            reference.Global
+}
 type Value = descriptor.Object
 
 func NewMemoryCache(cs cachekit.Strategy) *LRUMemoryCache {

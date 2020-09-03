@@ -884,7 +884,8 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 
 func (s *SMExecute) updateMemoryCache(ctx smachine.ExecutionContext, object descriptor.Object) {
 	s.memoryCache.PrepareAsync(ctx, func(ctx context.Context, svc memorycache.Service) smachine.AsyncResultFunc {
-		err := svc.Set(ctx, object.HeadRef(), object)
+		stateRef := reference.NewSelf(object.StateID())
+		err := svc.Set(ctx, object.HeadRef(), stateRef, object)
 		return func(ctx smachine.AsyncResultContext) {
 			if err != nil {
 				ctx.Log().Error("failed to set dirty memory", err)

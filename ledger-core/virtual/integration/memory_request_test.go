@@ -72,7 +72,8 @@ func TestVirtual_VCachedMemoryRequestHandler(t *testing.T) {
 			defer close(syncChan)
 
 			suite.typedChecker.VStateReport.Set(func(rep *payload.VStateReport) bool {
-				syncChan <- rep.LatestValidatedState
+				require.NotEmpty(t, rep.LatestDirtyState)
+				syncChan <- rep.LatestDirtyState
 				return false // no resend msg
 			})
 

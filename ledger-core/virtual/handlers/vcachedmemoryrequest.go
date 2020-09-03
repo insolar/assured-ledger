@@ -62,7 +62,7 @@ func (s *SMVCachedMemoryRequest) Init(ctx smachine.InitializationContext) smachi
 
 func (s *SMVCachedMemoryRequest) stepGetMemory(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	s.memoryCache.PrepareAsync(ctx, func(ctx context.Context, svc memorycache.Service) smachine.AsyncResultFunc {
-		obj, err := svc.Get(ctx, s.Payload.Object)
+		obj, err := svc.Get(ctx, s.Payload.Object, s.Payload.StateID)
 		return func(ctx smachine.AsyncResultContext) {
 			s.object = obj
 			if err != nil {
