@@ -348,6 +348,7 @@ bootstrap()
     generate_pulsar_keys
     generate_insolard_configs
 
+
     echo "start bootstrap ..."
     CMD="${INSOLAR_CLI} bootstrap --config=${BOOTSTRAP_CONFIG} --certificates-out-dir=${DISCOVERY_NODES_DATA}certs"
 
@@ -375,7 +376,7 @@ bootstrap()
     fi
     echo "bootstrap is done"
 
-    copy_discovery_certs
+    #copy_discovery_certs
 }
 
 watch_pulse=true

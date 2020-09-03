@@ -53,7 +53,7 @@ func runInsolardCloud(configPath string) {
 		return appConfigs, nil
 	}
 
-	s := server.NewMultiServer(configPath, multiFn)
+	s := server.NewMultiServer(configPath, multiFn, nil, nil)
 
 	s.Serve()
 }

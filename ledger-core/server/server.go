@@ -24,8 +24,15 @@ func NewVirtualServer(cfgPath string) Server {
 	return insapp.New(cfgPath, virtual.AppFactory)
 }
 
-func NewMultiServer(cfgPath string, multiFn insapp.MultiNodeConfigFunc) Server {
-	return insapp.NewMulti(cfgPath, virtual.AppFactory, multiFn)
+func NewMultiServer(cfgPath string, multiFn insapp.MultiNodeConfigFunc, certManagerFactory insapp.CertManagerFactory, keyStoreFactory insapp.KeyStoreFactory) Server {
+	server := insapp.NewMulti(cfgPath, virtual.AppFactory, multiFn)
+	if certManagerFactory != nil {
+		server.SetCertManagerFactory(certManagerFactory)
+	}
+	if keyStoreFactory != nil {
+		server.SetKeyStoreFactory(keyStoreFactory)
+	}
+	return server
 }
 
 func NewHeadlessNetworkNodeServer(cfgPath string) Server {

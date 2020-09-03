@@ -17,7 +17,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/crypto"
 	"github.com/insolar/assured-ledger/ledger-core/crypto/legacyadapter"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
-	"github.com/insolar/assured-ledger/ledger-core/cryptography/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/metrics"
@@ -28,7 +27,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-type preComponents struct {
+type PreComponents struct {
 	CryptographyService        cryptography.Service
 	PlatformCryptographyScheme cryptography.PlatformCryptographyScheme
 	KeyStore                   cryptography.KeyStore
@@ -36,12 +35,12 @@ type preComponents struct {
 	CryptoScheme               crypto.PlatformScheme
 }
 
-func (s *Server) initBootstrapComponents(ctx context.Context, cfg configuration.Configuration) preComponents {
+func (s *Server) initBootstrapComponents(ctx context.Context, cfg configuration.Configuration) PreComponents {
 	earlyComponents := component.NewManager(nil)
 	logger := inslogger.FromContext(ctx)
 	earlyComponents.SetLogger(logger)
 
-	keyStore, err := keystore.NewKeyStore(cfg.KeysPath)
+	keyStore, err := s.keyStoreFactory(cfg.KeysPath)
 	checkError(ctx, err, "failed to load KeyStore: ")
 
 	platformCryptographyScheme := platformpolicy.NewPlatformCryptographyScheme()
@@ -51,7 +50,7 @@ func (s *Server) initBootstrapComponents(ctx context.Context, cfg configuration.
 	earlyComponents.Register(platformCryptographyScheme, keyStore)
 	earlyComponents.Inject(cryptographyService, keyProcessor)
 
-	return preComponents{
+	return PreComponents{
 		CryptographyService:        cryptographyService,
 		PlatformCryptographyScheme: platformCryptographyScheme,
 		KeyStore:                   keyStore,
@@ -60,14 +59,14 @@ func (s *Server) initBootstrapComponents(ctx context.Context, cfg configuration.
 	}
 }
 
-func (s *Server) initCertificateManager(ctx context.Context, cfg configuration.Configuration, comps preComponents) *mandates.CertificateManager {
+func initCertificateManager(ctx context.Context, certPath string, comps PreComponents) nodeinfo.CertificateManager {
 	var certManager *mandates.CertificateManager
 	var err error
 
 	publicKey, err := comps.CryptographyService.GetPublicKey()
 	checkError(ctx, err, "failed to retrieve node public key")
 
-	certManager, err = mandates.NewManagerReadCertificate(publicKey, comps.KeyProcessor, cfg.CertificatePath)
+	certManager, err = mandates.NewManagerReadCertificate(publicKey, comps.KeyProcessor, certPath)
 	checkError(ctx, err, "failed to start Certificate")
 
 	return certManager
@@ -75,7 +74,7 @@ func (s *Server) initCertificateManager(ctx context.Context, cfg configuration.C
 
 // initComponents creates and links all insolard components
 func (s *Server) initComponents(ctx context.Context, cfg configuration.Configuration, networkFn NetworkInitFunc,
-	comps preComponents, certManager nodeinfo.CertificateManager,
+	comps PreComponents, certManager nodeinfo.CertificateManager,
 ) (*component.Manager, func()) {
 	cm := component.NewManager(nil)
 	logger := inslogger.FromContext(ctx)
@@ -188,4 +187,3 @@ func checkError(ctx context.Context, err error, message string) {
 		inslogger.FromContext(ctx).Fatalf("%v: %v", message, throw.ErrorWithStack(err))
 	}
 }
-

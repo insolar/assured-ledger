@@ -15,26 +15,36 @@ import (
 	"github.com/insolar/component-manager"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
+	"github.com/insolar/assured-ledger/ledger-core/cryptography"
+	"github.com/insolar/assured-ledger/ledger-core/cryptography/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/trace"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/version"
 )
 
+type CertManagerFactory func(ctx context.Context, certPath string, comps PreComponents) nodeinfo.CertificateManager
+type KeyStoreFactory func(path string) (cryptography.KeyStore, error)
+
 type Server struct {
-	cfgPath string
-	appFn   AppFactoryFunc
-	multiFn MultiNodeConfigFunc
-	extra   []interface{}
+	cfgPath            string
+	appFn              AppFactoryFunc
+	multiFn            MultiNodeConfigFunc
+	extra              []interface{}
+	certManagerFactory CertManagerFactory
+	keyStoreFactory    KeyStoreFactory
 }
 
 // New creates a one-node process.
 func New(cfgPath string, appFn AppFactoryFunc, extraComponents ...interface{}) *Server {
 	return &Server{
-		cfgPath: cfgPath,
-		appFn:   appFn,
-		extra:   extraComponents,
+		cfgPath:            cfgPath,
+		appFn:              appFn,
+		extra:              extraComponents,
+		certManagerFactory: initCertificateManager,
+		keyStoreFactory:    keystore.NewKeyStore,
 	}
 }
 
@@ -45,6 +55,14 @@ func (s *Server) readConfig(cfgPath string) configuration.Configuration {
 		global.Warn("failed to load configuration from file: ", err.Error())
 	}
 	return *cfgHolder.Configuration
+}
+
+func (s *Server) SetKeyStoreFactory(factoryFn KeyStoreFactory) {
+	s.keyStoreFactory = factoryFn
+}
+
+func (s *Server) SetCertManagerFactory(factoryFn CertManagerFactory) {
+	s.certManagerFactory = factoryFn
 }
 
 func (s *Server) Serve() {
@@ -68,7 +86,7 @@ func (s *Server) Serve() {
 	contexts := make([]context.Context, 0, n)
 
 	for i, cfg := range configs {
-		fmt.Printf("Starts with configuration [%d/%d]:\n%s\n", i + 1, n, configuration.ToString(&configs[0]))
+		fmt.Printf("Starts with configuration [%d/%d]:\n%s\n", i+1, n, configuration.ToString(&cfg))
 
 		cm, stopWatermill := s.StartComponents(baseCtx, cfg, networkFn,
 			func(_ context.Context, cfg configuration.Log, nodeRef, nodeRole string) context.Context {
@@ -138,7 +156,7 @@ func (s *Server) StartComponents(ctx context.Context, cfg configuration.Configur
 	networkFn NetworkInitFunc, loggerFn LoggerInitFunc,
 ) (*component.Manager, func()) {
 	preComponents := s.initBootstrapComponents(ctx, cfg)
-	certManager := s.initCertificateManager(ctx, cfg, preComponents)
+	certManager := s.certManagerFactory(ctx, cfg.CertificatePath, preComponents)
 
 	nodeCert := certManager.GetCertificate()
 	nodeRole := nodeCert.GetRole()
