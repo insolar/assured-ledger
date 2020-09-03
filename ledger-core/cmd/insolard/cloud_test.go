@@ -9,6 +9,7 @@ import (
 	"context"
 	"crypto"
 	"fmt"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -18,6 +19,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/secrets"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/defaults"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
@@ -73,22 +75,26 @@ func makeKeyFactory(nodes []nodeInfo) insapp.KeyStoreFactory {
 	}
 }
 
-func prepareStuff(num int, dataPath string) ([]configuration.Configuration, insapp.CertManagerFactory, insapp.KeyStoreFactory) {
-	nodes := make([]nodeInfo, num)
-	err := generateKeys(num, &nodes)
+func prepareStuff(virtual, light, heavy int) ([]configuration.Configuration, insapp.CertManagerFactory, insapp.KeyStoreFactory) {
+	totalNum := virtual + light + heavy
+	if totalNum < 1 {
+		panic("no nodes given")
+	}
+	nodes := make([]nodeInfo, totalNum)
+	err := generateKeys(totalNum, &nodes)
 	if err != nil {
 		panic(throw.W(err, "Failed to gen keys"))
 	}
 
-	appConfigs := makeConfigs(num, dataPath, &nodes)
+	appConfigs := makeConfigs(&nodes, virtual, light, heavy)
 
 	settings := netSettings{
-		majorityRule: num,
+		majorityRule: totalNum,
 		minRoles: struct {
 			virtual       uint
 			lightMaterial uint
 			heavyMaterial uint
-		}{virtual: uint(num), lightMaterial: 0, heavyMaterial: 0},
+		}{virtual: uint(virtual), lightMaterial: uint(light), heavyMaterial: uint(heavy)},
 	}
 	certs, err := generateCertificates(nodes, settings)
 	if err != nil {
@@ -100,28 +106,47 @@ func prepareStuff(num int, dataPath string) ([]configuration.Configuration, insa
 func Test_RunMulti(t *testing.T) {
 	var multiFn insapp.MultiNodeConfigFunc
 
-	dataPath := "/Users/ivansibitov/go/src/github.com/insolar/assured-ledger/ledger-core/"
-	NUM_NODES := 5
+	var (
+		numVirtual        = 10
+		numLightMaterials = 0
+		numHeavyMaterials = 0
+	)
 
-	appConfigs, certFactory, keyFactory := prepareStuff(NUM_NODES, dataPath)
+	appConfigs, certFactory, keyFactory := prepareStuff(numVirtual, numLightMaterials, numHeavyMaterials)
 	multiFn = func(cfgPath string, baseCfg configuration.Configuration) ([]configuration.Configuration, insapp.NetworkInitFunc) {
 		return appConfigs, nil
 	}
 
-	s := server.NewMultiServer(dataPath+"TEST_CONF.yaml", multiFn, certFactory, keyFactory)
+	s := server.NewMultiServer("testdata/insolard_base.yaml", multiFn, certFactory, keyFactory)
 	s.Serve()
 }
 
-func makeConfigs(numNodes int, dataPath string, nodes *[]nodeInfo) []configuration.Configuration {
+func getRole(virtual, light, heavy *int) string {
+	switch {
+	case *virtual > 0:
+		*virtual--
+		return "virtual"
+	case *light > 0:
+		*light--
+		return "light_material"
+	case *heavy > 0:
+		*heavy--
+		return "heavy_material"
+	default:
+		panic(throw.IllegalValue())
+	}
+}
+
+func makeConfigs(nodes *[]nodeInfo, virtual, light, heavy int) []configuration.Configuration {
 
 	var (
-		metricsPortStart      = 8001
-		LRRPCPortStart        = 13001
-		APIPortStart          = 18001
-		adminAPIPortStart     = 23001
-		testWalletPortStart   = 33001
-		introspectorPortStart = 38001
-		netPortStart          = 43001
+		metricsPort      = 8001
+		LRRPCPort        = 13001
+		APIPort          = 18001
+		adminAPIPort     = 23001
+		testWalletPort   = 33001
+		introspectorPort = 38001
+		netPort          = 43001
 
 		defaultHost     = "127.0.0.1"
 		certificatePath = "cert_%d.json"
@@ -131,39 +156,40 @@ func makeConfigs(numNodes int, dataPath string, nodes *[]nodeInfo) []configurati
 	origNodes := *nodes
 
 	appConfigs := []configuration.Configuration{}
-	for i := 0; i < numNodes; i++ {
-		origNodes[i].role = "virtual"
+	for i := 0; i < len(origNodes); i++ {
+		role := getRole(&virtual, &light, &heavy)
+		origNodes[i].role = role
 
 		conf := configuration.NewConfiguration()
 		{
-			conf.Host.Transport.Address = defaultHost + ":" + strconv.Itoa(netPortStart)
+			conf.Host.Transport.Address = defaultHost + ":" + strconv.Itoa(netPort)
 			origNodes[i].host = conf.Host.Transport.Address
-			netPortStart += 1
+			netPort += 1
 		}
 		{
-			conf.Metrics.ListenAddress = defaultHost + ":" + strconv.Itoa(metricsPortStart)
-			metricsPortStart++
+			conf.Metrics.ListenAddress = defaultHost + ":" + strconv.Itoa(metricsPort)
+			metricsPort++
 		}
 		{
-			conf.LogicRunner.RPCListen = defaultHost + ":" + strconv.Itoa(LRRPCPortStart)
-			conf.LogicRunner.GoPlugin.RunnerListen = defaultHost + ":" + strconv.Itoa(LRRPCPortStart+1)
-			LRRPCPortStart += 2
+			conf.LogicRunner.RPCListen = defaultHost + ":" + strconv.Itoa(LRRPCPort)
+			conf.LogicRunner.GoPlugin.RunnerListen = defaultHost + ":" + strconv.Itoa(LRRPCPort+1)
+			LRRPCPort += 2
 		}
 		{
-			conf.APIRunner.Address = defaultHost + ":" + strconv.Itoa(APIPortStart)
-			conf.APIRunner.SwaggerPath = dataPath + conf.APIRunner.SwaggerPath
-			APIPortStart++
+			conf.APIRunner.Address = defaultHost + ":" + strconv.Itoa(APIPort)
+			conf.APIRunner.SwaggerPath = filepath.Join(defaults.RootModuleDir(), conf.APIRunner.SwaggerPath)
+			APIPort++
 
-			conf.AdminAPIRunner.Address = defaultHost + ":" + strconv.Itoa(adminAPIPortStart)
-			conf.AdminAPIRunner.SwaggerPath = dataPath + conf.AdminAPIRunner.SwaggerPath
-			adminAPIPortStart++
+			conf.AdminAPIRunner.Address = defaultHost + ":" + strconv.Itoa(adminAPIPort)
+			conf.AdminAPIRunner.SwaggerPath = filepath.Join(defaults.RootModuleDir(), conf.AdminAPIRunner.SwaggerPath)
+			adminAPIPort++
 
-			conf.TestWalletAPI.Address = defaultHost + ":" + strconv.Itoa(testWalletPortStart)
-			testWalletPortStart++
+			conf.TestWalletAPI.Address = defaultHost + ":" + strconv.Itoa(testWalletPort)
+			testWalletPort++
 		}
 		{
-			conf.Introspection.Addr = defaultHost + ":" + strconv.Itoa(introspectorPortStart)
-			introspectorPortStart++
+			conf.Introspection.Addr = defaultHost + ":" + strconv.Itoa(introspectorPort)
+			introspectorPort++
 		}
 		{
 			conf.KeysPath = fmt.Sprintf(keyPath, i+1)

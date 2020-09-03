@@ -1,0 +1,9 @@
+log:
+  level: Debug
+  adapter: zerolog
+  formatter: json
+  outputtype: stderr
+  outputparallellimit: ""
+  outputparams: ""
+  buffersize: 0
+  llbuffersize: 0
