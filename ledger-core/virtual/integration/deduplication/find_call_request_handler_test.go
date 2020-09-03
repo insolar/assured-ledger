@@ -373,8 +373,7 @@ func (s *VFindCallRequestHandlingSuite) generateObjectRef() {
 		return
 	}
 	p := s.getP1()
-	local := gen.UniqueLocalRefWithPulse(p)
-	s.object = reference.NewSelf(local)
+	s.object = gen.UniqueGlobalRefWithPulse(p)
 }
 
 func (s *VFindCallRequestHandlingSuite) generateOutgoing(p pulse.Number) {

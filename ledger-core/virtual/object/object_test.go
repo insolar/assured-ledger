@@ -17,7 +17,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
-	"github.com/insolar/assured-ledger/ledger-core/reference"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/stepchecker"
@@ -33,8 +32,7 @@ func Test_Delay(t *testing.T) {
 	var (
 		pd          = pulse.NewPulsarData(pulse.OfNow(), 10, 10, longbits.Bits256{})
 		pulseSlot   = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-		smObjectID  = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
-		smGlobalRef = reference.NewSelf(smObjectID)
+		smGlobalRef = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
 	)
 
 	smObject := NewStateMachineObject(smGlobalRef)
@@ -122,8 +120,7 @@ func Test_PendingBlocksExecution(t *testing.T) {
 			var (
 				pd          = pulse.NewPulsarData(pulse.OfNow(), 10, 10, longbits.Bits256{})
 				pulseSlot   = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-				smObjectID  = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
-				smGlobalRef = reference.NewSelf(smObjectID)
+				smGlobalRef = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
 			)
 
 			smObject := NewStateMachineObject(smGlobalRef)
@@ -220,8 +217,7 @@ func TestSMObject_stepGotState_Set_PendingListFilled(t *testing.T) {
 		mc          = minimock.NewController(t)
 		pd          = pulse.NewPulsarData(pulse.OfNow(), 10, 10, longbits.Bits256{})
 		pulseSlot   = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
-		smObjectID  = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
-		smGlobalRef = reference.NewSelf(smObjectID)
+		smGlobalRef = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
 	)
 
 	smObject := NewStateMachineObject(smGlobalRef)
@@ -264,8 +260,7 @@ func TestSMObject_checkPendingCounters_DontChangeIt(t *testing.T) {
 
 	var (
 		pd          = pulse.NewPulsarData(pulse.OfNow(), 10, 10, longbits.Bits256{})
-		smObjectID  = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
-		smGlobalRef = reference.NewSelf(smObjectID)
+		smGlobalRef = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
 	)
 
 	smObject := NewStateMachineObject(smGlobalRef)

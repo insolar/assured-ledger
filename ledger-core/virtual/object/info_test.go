@@ -12,7 +12,6 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
-	"github.com/insolar/assured-ledger/ledger-core/reference"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
@@ -42,7 +41,7 @@ func TestInfo_GetEarliestPulse(t *testing.T) {
 			name: "only pending",
 			getPendingTable: func() callregistry.PendingTable {
 				table := callregistry.NewRequestTable()
-				ref := reference.NewSelf(gen.UniqueLocalRefWithPulse(currentPulse))
+				ref := gen.UniqueGlobalRefWithPulse(currentPulse)
 				table.GetList(tolerance).Add(ref)
 				return table
 			},
@@ -52,7 +51,7 @@ func TestInfo_GetEarliestPulse(t *testing.T) {
 			name: "only known",
 			getKnownRequests: func() callregistry.WorkingTable {
 				table := callregistry.NewWorkingTable()
-				ref := reference.NewSelf(gen.UniqueLocalRefWithPulse(currentPulse))
+				ref := gen.UniqueGlobalRefWithPulse(currentPulse)
 				table.Add(tolerance, ref)
 				table.SetActive(tolerance, ref)
 				return table
@@ -63,13 +62,13 @@ func TestInfo_GetEarliestPulse(t *testing.T) {
 			name: "both (should be first)",
 			getPendingTable: func() callregistry.PendingTable {
 				table := callregistry.NewRequestTable()
-				ref := reference.NewSelf(gen.UniqueLocalRefWithPulse(currentPulse))
+				ref := gen.UniqueGlobalRefWithPulse(currentPulse)
 				table.GetList(tolerance).Add(ref)
 				return table
 			},
 			getKnownRequests: func() callregistry.WorkingTable {
 				table := callregistry.NewWorkingTable()
-				ref := reference.NewSelf(gen.UniqueLocalRefWithPulse(previousPulse))
+				ref := gen.UniqueGlobalRefWithPulse(previousPulse)
 				table.Add(tolerance, ref)
 				table.SetActive(tolerance, ref)
 				return table
@@ -80,13 +79,13 @@ func TestInfo_GetEarliestPulse(t *testing.T) {
 			name: "both (should be second)",
 			getPendingTable: func() callregistry.PendingTable {
 				table := callregistry.NewRequestTable()
-				ref := reference.NewSelf(gen.UniqueLocalRefWithPulse(currentPulse))
+				ref := gen.UniqueGlobalRefWithPulse(currentPulse)
 				table.GetList(tolerance).Add(ref)
 				return table
 			},
 			getKnownRequests: func() callregistry.WorkingTable {
 				table := callregistry.NewWorkingTable()
-				ref := reference.NewSelf(gen.UniqueLocalRefWithPulse(nextPulse))
+				ref := gen.UniqueGlobalRefWithPulse(nextPulse)
 				table.Add(tolerance, ref)
 				table.SetActive(tolerance, ref)
 				return table
