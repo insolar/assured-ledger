@@ -131,10 +131,10 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 			{
 				runnerMock.AddExecutionClassify("SomeMethod", test.isolation, nil)
 
-				requestResult := requestresult.New([]byte("call result"), gen.UniqueGlobalRef())
+				requestResult := requestresult.New([]byte("call result"), server.RandomGlobalWithPulse())
 				if test.withSideEffect {
 					newObjDescriptor := descriptor.NewObject(
-						reference.Global{}, reference.Local{}, gen.UniqueGlobalRef(), []byte(""), false,
+						reference.Global{}, reference.Local{}, server.RandomGlobalWithPulse(), []byte(""), false,
 					)
 					requestResult.SetAmend(newObjDescriptor, []byte("new memory"))
 				}
@@ -180,7 +180,7 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 					}
 
 					expectedToken.PulseNumber = p2
-					approver := gen.UniqueGlobalRef()
+					approver := server.RandomGlobalWithPulse()
 					expectedToken.Approver = approver
 
 					firstTokenValue = payload.CallDelegationToken{
@@ -399,7 +399,7 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 			result              *requestresult.RequestResult
 
 			newObjDescriptor = descriptor.NewObject(
-				reference.Global{}, reference.Local{}, gen.UniqueGlobalRef(), []byte(""), false,
+				reference.Global{}, reference.Local{}, server.RandomGlobalWithPulse(), []byte(""), false,
 			)
 		)
 
@@ -504,7 +504,7 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
 			var (
-				class         = gen.UniqueGlobalRef()
+				class         = server.RandomGlobalWithPulse()
 				object        = server.RandomGlobalWithPulse()
 				outgoingP1    = server.BuildRandomOutgoingWithPulse()
 				incomingP1    = reference.NewRecordOf(object, outgoingP1.GetLocal())
@@ -537,7 +537,7 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 			// add ExecutionMock to runnerMock
 			{
 				runnerMock.AddExecutionClassify("SomeMethod", test.isolation, nil)
-				requestResult := requestresult.New([]byte("call result"), gen.UniqueGlobalRef())
+				requestResult := requestresult.New([]byte("call result"), server.RandomGlobalWithPulse())
 
 				objectExecutionMock := runnerMock.AddExecutionMock("SomeMethod")
 				objectExecutionMock.AddStart(func(ctx execution.Context) {

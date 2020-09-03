@@ -124,7 +124,7 @@ func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
 			expectedStatus: payload.CallStateFound,
 			expectedResult: true,
 		},
-		//TODO failed
+		// TODO failed
 		{
 			name:                 "found request, constructor, not pending, result, early msg",
 			events:               []TestStep{StepFindMessage, StepConstructorStartAndFinish, StepIncrementPulseToP3},
@@ -223,7 +223,7 @@ func StepFindMessage(s *VFindCallRequestHandlingSuite, ctx context.Context, t *t
 	findMsg := payload.VFindCallRequest{
 		LookAt:   s.getP2(),
 		Callee:   s.getObject(),
-		Outgoing: s.getOutgoingRef(),
+		Outgoing: s.outgoing,
 	}
 	s.addPayloadAndWaitIdle(ctx, &findMsg)
 }
@@ -257,7 +257,7 @@ func StepMethodStart(s *VFindCallRequestHandlingSuite, ctx context.Context, t *t
 	req := utils.GenerateVCallRequestMethod(s.server)
 	req.Caller = s.getCaller()
 	req.Callee = s.getObject()
-	req.CallOutgoing = s.getOutgoingRef()
+	req.CallOutgoing = s.outgoing
 
 	s.addPayloadAndWaitIdle(ctx, req)
 	s.vStateReportSent = make(chan struct{})
@@ -283,7 +283,7 @@ func StepConstructorStart(s *VFindCallRequestHandlingSuite, ctx context.Context,
 	req := utils.GenerateVCallRequestConstructor(s.server)
 	req.Caller = s.getCaller()
 	req.Callee = s.getClass()
-	req.CallOutgoing = s.getOutgoingRef()
+	req.CallOutgoing = s.outgoing
 
 	s.addPayloadAndWaitIdle(ctx, req)
 	s.vStateReportSent = make(chan struct{})
@@ -319,7 +319,7 @@ type VFindCallRequestHandlingSuite struct {
 	class    reference.Global
 	caller   reference.Global
 	object   reference.Global
-	outgoing reference.Local
+	outgoing reference.Global
 
 	isConstructor bool
 
@@ -374,7 +374,7 @@ func (s *VFindCallRequestHandlingSuite) generateCaller() {
 
 func (s *VFindCallRequestHandlingSuite) generateObjectRef() {
 	if s.isConstructor {
-		s.object = reference.NewSelf(s.outgoing)
+		s.object = reference.NewSelf(s.outgoing.GetLocal())
 		return
 	}
 	p := s.getP1()
@@ -382,7 +382,7 @@ func (s *VFindCallRequestHandlingSuite) generateObjectRef() {
 }
 
 func (s *VFindCallRequestHandlingSuite) generateOutgoing(p pulse.Number) {
-	s.outgoing = gen.UniqueLocalRefWithPulse(p)
+	s.outgoing = s.server.BuildRandomOutgoingWithGivenPulse(p)
 }
 
 func (s *VFindCallRequestHandlingSuite) generateClass() {
@@ -401,10 +401,6 @@ func (s *VFindCallRequestHandlingSuite) getClass() reference.Global {
 	return s.class
 }
 
-func (s *VFindCallRequestHandlingSuite) getOutgoingRef() reference.Global {
-	return reference.NewRecordOf(s.caller, s.outgoing)
-}
-
 func (s *VFindCallRequestHandlingSuite) setMessageCheckers(
 	ctx context.Context,
 	t *testing.T,
@@ -417,12 +413,12 @@ func (s *VFindCallRequestHandlingSuite) setMessageCheckers(
 		}()
 		assert.Equal(t, s.getP2(), res.LookedAt)
 		assert.Equal(t, s.getObject(), res.Callee)
-		assert.Equal(t, s.getOutgoingRef(), res.Outgoing)
+		assert.Equal(t, s.outgoing, res.Outgoing)
 		assert.Equal(t, testInfo.expectedStatus, res.Status)
 
 		if testInfo.expectedResult {
 			require.NotNil(t, res.CallResult)
-			require.Equal(t, s.getOutgoingRef(), res.CallResult.CallOutgoing)
+			require.Equal(t, s.outgoing, res.CallResult.CallOutgoing)
 		}
 
 		return false
@@ -460,12 +456,12 @@ func (s *VFindCallRequestHandlingSuite) setMessageCheckers(
 	s.typedChecker.VFindCallRequest.Set(func(req *payload.VFindCallRequest) bool {
 		assert.Equal(t, s.getP2(), req.LookAt)
 		assert.Equal(t, s.getObject(), req.Callee)
-		assert.Equal(t, s.getOutgoingRef(), req.Outgoing)
+		assert.Equal(t, s.outgoing, req.Outgoing)
 
 		pl := payload.VFindCallResponse{
 			LookedAt: s.getP2(),
 			Callee:   s.getObject(),
-			Outgoing: s.getOutgoingRef(),
+			Outgoing: s.outgoing,
 			Status:   payload.CallStateMissing,
 		}
 		s.server.SendPayload(ctx, &pl)
@@ -475,17 +471,17 @@ func (s *VFindCallRequestHandlingSuite) setMessageCheckers(
 
 func (s *VFindCallRequestHandlingSuite) setRunnerMock() {
 	isolation := contract.MethodIsolation{Interference: isolation.CallTolerable, State: isolation.CallDirty}
-	s.runnerMock.AddExecutionClassify(s.getOutgoingRef().String(), isolation, nil)
+	s.runnerMock.AddExecutionClassify(s.outgoing.String(), isolation, nil)
 
 	newObjDescriptor := descriptor.NewObject(
 		reference.Global{}, reference.Local{}, s.getClass(), []byte(""), false,
 	)
 
 	{
-		methodResult := requestresult.New([]byte("execution"), gen.UniqueGlobalRef())
+		methodResult := requestresult.New([]byte("execution"), s.server.RandomGlobalWithPulse())
 		methodResult.SetAmend(newObjDescriptor, []byte("new memory"))
 
-		executionMock := s.runnerMock.AddExecutionMock(s.getOutgoingRef().String())
+		executionMock := s.runnerMock.AddExecutionMock(s.outgoing.String())
 		executionMock.AddStart(func(ctx execution.Context) {
 			s.executionPoint.Synchronize()
 		}, &execution.Update{
