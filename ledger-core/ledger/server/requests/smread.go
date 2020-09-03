@@ -8,6 +8,7 @@ package requests
 import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/datareader"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/datawriter"
@@ -34,10 +35,12 @@ type SMRead struct {
 	// injected
 	pulseSlot *conveyor.PulseSlot
 	cataloger datawriter.LineCataloger
+	reader    buildersvc.ReadAdapter
 
 	// runtime
-	sdl         datawriter.LineDataLink
-	extractor   datareader.SequenceExtractor
+	sdl       datawriter.LineDataLink
+	dropID    jet.DropID
+	extractor datareader.SequenceExtractor
 }
 
 func (p *SMRead) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
@@ -47,6 +50,7 @@ func (p *SMRead) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
 func (p *SMRead) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLink, injector injector.DependencyInjector) {
 	injector.MustInject(&p.pulseSlot)
 	injector.MustInject(&p.cataloger)
+	injector.MustInject(&p.reader)
 }
 
 func (p *SMRead) GetInitStateFor(smachine.StateMachine) smachine.InitFunc {
@@ -77,7 +81,7 @@ func (p *SMRead) stepInit(ctx smachine.InitializationContext) smachine.StateUpda
 	// p.request.LimitRef
 	// p.request.Flags
 
-	p.extractor = &datareader.WholeExtractor{}
+	p.extractor = &datareader.WholeExtractor{ReadAll: true}
 
 	return ctx.Jump(p.stepFindLine)
 }
@@ -87,10 +91,10 @@ func (p *SMRead) stepFindLine(ctx smachine.ExecutionContext) smachine.StateUpdat
 		normTargetRef := reference.NormCopy(p.request.TargetRef.Get())
 		lineRef := reference.NewSelf(normTargetRef.GetBase())
 
-		// TODO use Get after merge
-		p.sdl = p.cataloger.GetOrCreate(ctx, lineRef)
+		p.sdl = p.cataloger.Get(ctx, lineRef)
 		if p.sdl.IsZero() {
-			panic(throw.IllegalState())
+			// line is absent
+			return ctx.Jump(p.stepSendResponse)
 		}
 	}
 
@@ -128,6 +132,7 @@ func (p *SMRead) stepLineIsReady(ctx smachine.ExecutionContext) smachine.StateUp
 		if !sd.IsValid() {
 			return
 		}
+		p.dropID = sd.DropID()
 
 		sd.TrimStages()
 
@@ -199,9 +204,15 @@ func (p *SMRead) stepPrepareData(ctx smachine.ExecutionContext) smachine.StateUp
 }
 
 func (p *SMRead) stepPrepareDataWithReader(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	return ctx.Error(throw.NotImplemented())
-	// TODO send adapter call
-	// return ctx.Sleep().ThenJump(p.stepSendResponse)
+	return p.reader.PrepareAsync(ctx, func(svc buildersvc.ReadService) smachine.AsyncResultFunc {
+		err := svc.DropReadDirty(p.dropID, p.extractor.ExtractAllRecordsWithReader)
+		return func(ctx smachine.AsyncResultContext) {
+			if err != nil {
+				panic(err)
+			}
+			ctx.WakeUp()
+		}
+	}).DelayedStart().Sleep().ThenJump(p.stepSendResponse)
 }
 
 func (p *SMRead) stepSendResponse(ctx smachine.ExecutionContext) smachine.StateUpdate {

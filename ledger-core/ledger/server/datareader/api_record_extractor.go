@@ -21,7 +21,7 @@ type SequenceExtractor interface {
 	AddLineRecord(lineage.ReadRecord) bool
 	NeedsDirtyReader() bool
 
-	ExtractAllRecordsWithReader(bundle.DirtyReader)
+	ExtractAllRecordsWithReader(bundle.DirtyReader) error
 	ExtractMoreRecords(batchCount int) bool
 
 	GetExtractRecords() []ExtractedRecord

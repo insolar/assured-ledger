@@ -284,3 +284,8 @@ func (p *LineSharedData) FindSequence(ref reference.Holder, findFn func(record l
 	}
 	return ok, fut.(*buildersvc.Future)
 }
+
+func (p *LineSharedData) DropID() jet.DropID {
+	p.ensureDataAccess()
+	return p.jetDropID
+}

@@ -18,6 +18,8 @@ import (
 var _ SequenceExtractor = &WholeExtractor{}
 
 type WholeExtractor struct {
+	ReadAll bool
+
 	records []ExtractedRecord
 	storage []ledger.DirectoryIndex
 	fullyExtracted int
@@ -48,14 +50,14 @@ func (p *WholeExtractor) AddLineRecord(record lineage.ReadRecord) bool {
 	})
 	p.storage = append(p.storage, record.StorageIndex)
 
-	return true
+	return !p.ReadAll
 }
 
 func (p *WholeExtractor) NeedsDirtyReader() bool {
 	return p.fullyExtracted < len(p.records)
 }
 
-func (p *WholeExtractor) ExtractAllRecordsWithReader(reader bundle.DirtyReader) {
+func (p *WholeExtractor) ExtractAllRecordsWithReader(reader bundle.DirtyReader) error {
 	for ;p.fullyExtracted < len(p.records); p.fullyExtracted++ {
 		r := &p.records[p.fullyExtracted]
 
@@ -77,6 +79,10 @@ func (p *WholeExtractor) ExtractAllRecordsWithReader(reader bundle.DirtyReader) 
 			panic(err)
 		}
 
+		if ce.BodyPayloadSizes == 0 {
+			panic(throw.IllegalState())
+		}
+
 		bodySize := uint32(ce.BodyPayloadSizes)
 		payloadSize := uint32(ce.BodyPayloadSizes>>32)
 
@@ -95,6 +101,8 @@ func (p *WholeExtractor) ExtractAllRecordsWithReader(reader bundle.DirtyReader) 
 			r.Payloads = append(r.Payloads, append([]byte(nil), b[:ext.PayloadSize]...))
 		}
 	}
+
+	return nil
 }
 
 func (p *WholeExtractor) ExtractMoreRecords(int) bool {

@@ -188,6 +188,7 @@ func prepareCatalogEntry(entry *catalog.Entry, idx ledger.DirectoryIndex, loc []
 ) {
 	entry.BodyLoc = loc[0]
 	entry.Ordinal =	idx.Ordinal()
+	entry.BodyPayloadSizes = uint64(preparedPayloads[0].size)
 
 	n := len(loc)
 	if n == 1 {
@@ -195,7 +196,7 @@ func prepareCatalogEntry(entry *catalog.Entry, idx ledger.DirectoryIndex, loc []
 	}
 
 	entry.PayloadLoc = loc[1]
-	entry.BodyPayloadSizes = uint64(preparedPayloads[1].size)<<32 | uint64(preparedPayloads[0].size)
+	entry.BodyPayloadSizes |= uint64(preparedPayloads[1].size)<<32
 
 	if n == 2 {
 		return
