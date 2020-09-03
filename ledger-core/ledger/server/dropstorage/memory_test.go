@@ -46,7 +46,7 @@ func TestMemorySnapshot(t *testing.T) {
 	r0 := r.(byteReceptacle)
 	r, loc, err = es.AllocateEntryStorage(16)
 	require.NoError(t, err)
-	require.Equal(t, ledger.NewLocator(ledger.DefaultEntrySection, 1, 10), loc)
+	require.Equal(t, ledger.NewLocator(ledger.DefaultEntrySection, 1, 11), loc)
 	require.NotNil(t, r)
 
 	err = r.ApplyFixedReader(longbits.WrapStr("0123456789"))
@@ -56,7 +56,8 @@ func TestMemorySnapshot(t *testing.T) {
 
 	_ = append(r0, "overflow"...) // check that an allocated slice is protected from overflow
 
-	require.Equal(t, "01234567890123456789ABCDEF", string(ms.sections[ledger.DefaultEntrySection].chapters[0]))
+	// Directory entry is appended with varint size prefix
+	require.Equal(t, "\x0a0123456789\x100123456789ABCDEF", string(ms.sections[ledger.DefaultEntrySection].chapters[0]))
 }
 
 func TestMemorySnapshotDirectoryPaging(t *testing.T) {

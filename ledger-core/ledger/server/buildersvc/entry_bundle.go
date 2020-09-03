@@ -111,10 +111,10 @@ func (p *entryWriter) prepareRecord(snapshot bundle.Snapshot, entry *draftEntry)
 		}
 	}
 
-	entryPayload := &entry.draft
-	prepareCatalogEntry(entryPayload, entryIndex, payloadLoc, entry.payloads, preparedPayloads[:nPayloads])
+	catalogEntry := &entry.draft
+	prepareCatalogEntry(catalogEntry, entryIndex, payloadLoc, entry.payloads, preparedPayloads[:nPayloads])
 
-	entrySize := entryPayload.ProtoSize()
+	entrySize := catalogEntry.ProtoSize()
 	receptacle, entryLoc, err := ds.AllocateEntryStorage(entrySize)
 	if err != nil {
 		return preparedEntry{}, err
@@ -125,7 +125,7 @@ func (p *entryWriter) prepareRecord(snapshot bundle.Snapshot, entry *draftEntry)
 	}
 
 	preparedPayloads[nPayloads] = preparedPayload{
-		payload: entryPayload,
+		payload: catalogEntry,
 		target:  receptacle,
 		loc:     entryLoc,
 		size:    uint32(entrySize),
@@ -195,7 +195,7 @@ func prepareCatalogEntry(entry *catalog.Entry, idx ledger.DirectoryIndex, loc []
 	}
 
 	entry.PayloadLoc = loc[1]
-	entry.PayloadSize = preparedPayloads[1].size
+	entry.BodyPayloadSizes = uint64(preparedPayloads[1].size)<<32 | uint64(preparedPayloads[0].size)
 
 	if n == 2 {
 		return

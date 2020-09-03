@@ -18,8 +18,13 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-var _ smachine.StateMachine = &SMRead{}
+func NewSMRead(request *rms.LReadRequest) *SMRead {
+	return &SMRead{
+		request: request,
+	}
+}
 
+var _ smachine.StateMachine = &SMRead{}
 type SMRead struct {
 	smachine.StateMachineDeclTemplate
 
@@ -71,6 +76,8 @@ func (p *SMRead) stepInit(ctx smachine.InitializationContext) smachine.StateUpda
 	// p.request.LimitSize
 	// p.request.LimitRef
 	// p.request.Flags
+
+	p.extractor = &datareader.WholeExtractor{}
 
 	return ctx.Jump(p.stepFindLine)
 }

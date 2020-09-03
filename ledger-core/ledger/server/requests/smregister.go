@@ -18,8 +18,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-var _ smachine.StateMachine = &SMRegisterRecordSet{}
-
 func NewSMRegisterRecordSet(reqs inspectsvc.RegisterRequestSet) *SMRegisterRecordSet {
 	return &SMRegisterRecordSet{
 		recordSet: reqs,
@@ -37,6 +35,7 @@ func NewSMVerifyRecordSet(reqs inspectsvc.RegisterRequestSet) *SMRegisterRecordS
 	}
 }
 
+var _ smachine.StateMachine = &SMRegisterRecordSet{}
 type SMRegisterRecordSet struct {
 	smachine.StateMachineDeclTemplate
 

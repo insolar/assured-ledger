@@ -119,7 +119,7 @@ message LReadResponse {
 
         repeated bytes Payloads = 17;
         bytes RecordBinary = 18;
-        Binary RecordBodyHash = 19; // RecordBodyDigests PayloadDigests
+        RecordBodyDigests PayloadDigests = 19;
         Reference RecordRef = 20;
 
         Reference PrevRef = 24;

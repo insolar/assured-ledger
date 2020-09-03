@@ -18,7 +18,6 @@ type DirtyReader interface {
 	// GetEntryStorage returns start of byte slice for the given locator. Invalid locator will return nil.
 	// RACE! Caller MUST ensure that the data to be read was fully written.
 	// WARNING! Caller MUST NOT change the byte slice.
-	// WARNING! Implementation MAY return a byte slice LONGER than the actual content.
 	GetEntryStorage(ledger.StorageLocator) []byte
 	// GetPayloadStorage returns start of byte slice for the given locator. Invalid locator will return nil.
 	// RACE! Caller MUST ensure that the data to be read was fully written.

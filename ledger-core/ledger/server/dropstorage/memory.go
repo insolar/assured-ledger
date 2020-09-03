@@ -7,6 +7,7 @@ package dropstorage
 
 import (
 	"io"
+	"math"
 	"sync"
 
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
@@ -14,6 +15,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/protokit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -136,7 +138,16 @@ func (p *MemoryStorageWriter) GetEntryStorage(locator ledger.StorageLocator) []b
 	case section == nil:
 	case !section.hasDirectory():
 	default:
-		return section.readDirtyStorage(locator)
+		b := section.readDirtyStorage(locator)
+		u, n := protokit.DecodeVarintFromBytes(b)
+		if n == 0 || u == 0 {
+			return nil
+		}
+		u += uint64(n)
+		if u > uint64(len(b)) {
+			return nil
+		}
+		return b[n:u:u]
 	}
 	return nil
 }
@@ -244,11 +255,11 @@ func (p *sectionSnapshot) AppendDirectoryEntry(index ledger.DirectoryIndex, entr
 }
 
 func (p *sectionSnapshot) AllocateEntryStorage(size int) (bundle.PayloadReceptacle, ledger.StorageLocator, error) {
-	return p.section.allocatePayloadStorage(p, size, 0)
+	return p.section.allocatePayloadStorage(p, size, true, 0)
 }
 
 func (p *sectionSnapshot) AllocatePayloadStorage(size int, extID ledger.ExtensionID) (bundle.PayloadReceptacle, ledger.StorageLocator, error) {
-	return p.section.allocatePayloadStorage(p, size, extID)
+	return p.section.allocatePayloadStorage(p, size, false, extID)
 }
 
 /*********************************/
@@ -323,15 +334,22 @@ func (p *cabinetSection) setDirectoryEntry(index ledger.DirectoryIndex, entry bu
 }
 
 // allocatePayloadStorage is allowed to reorder payloads
-func (p *cabinetSection) allocatePayloadStorage(snap *sectionSnapshot, size int, _ ledger.ExtensionID) (bundle.PayloadReceptacle, ledger.StorageLocator, error) {
+func (p *cabinetSection) allocatePayloadStorage(snap *sectionSnapshot, vSize int, sizePrefix bool, _ ledger.ExtensionID) (bundle.PayloadReceptacle, ledger.StorageLocator, error) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
 	switch {
-	case size < 0:
+	case vSize < 0:
 		panic(throw.IllegalValue())
-	case size == 0:
+	case vSize > math.MaxUint32:
+		panic(throw.IllegalValue())
+	case vSize == 0:
 		return nil, 0, nil
+	}
+
+	size := vSize
+	if sizePrefix {
+		size += protokit.SizeVarint32(uint32(vSize))
 	}
 
 	chapterID := ledger.ChapterID(len(p.chapters))
@@ -364,7 +382,13 @@ func (p *cabinetSection) allocatePayloadStorage(snap *sectionSnapshot, size int,
 	}
 
 	loc := ledger.NewLocator(p.sectionID, chapterID, uint32(lastOfs))
-	return byteReceptacle(b), loc, nil
+
+	if !sizePrefix {
+		return byteReceptacle(b), loc, nil
+	}
+
+	n := protokit.EncodeVarintToBytes(b, uint64(vSize))
+	return byteReceptacle(b[n:]), loc, nil
 }
 
 func (p *cabinetSection) rollback(snapshot sectionSnapshot, chained bool) bool {

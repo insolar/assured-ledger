@@ -31,17 +31,19 @@ message RecordBodyForLazy {
 
 message CatalogEntry {
     reserved 1 to 15, 29 to 38;
+    // bytes padding = 1;
+
     // Start of fixed-size portion.
     // Use of fixed-size fields allows direct memory mapping for fast access to a few critical fields
-    fixed32 RecordType = 16;
+    fixed32 Ordinal = 16 [(gogoproto.casttype)="CatalogOrdinal"];
     fixed64 BodyLoc = 17 [(gogoproto.casttype)="StorageLocator"];
     fixed64 PayloadLoc = 18 [(gogoproto.casttype)="StorageLocator"];
-    fixed32 Ordinal = 19 [(gogoproto.casttype)="CatalogOrdinal"];
+    fixed64 BodyPayloadSizes = 19; // low32 - bodySize, high32 - payloadSize
     // End of fixed-size portion.
 
-    uint32 PayloadSize = 20;
-    ExtLocators ExtensionLoc = 21;
-    RecordBodyDigests PayloadDigests = 22;
+    uint32 RecordType = 20;
+    RecordBodyDigests PayloadDigests = 21;
+    ExtLocators ExtensionLoc = 22;
 
     // Start of Excerpt portion
     // MUST match with RecordExcerpt
@@ -70,7 +72,8 @@ message ExtLocators {
 
 message ExtLocator {
     option (insproto.id) = 0;
-    fixed32 ExtensionID = 17 [(gogoproto.casttype)="ExtensionID"];
+    option (insproto.notation) = false; // this type actually satisfies the notation, but check of proto-gen-ins is too restrictive
+    uint32 ExtensionID = 17 [(gogoproto.casttype)="ExtensionID"];
     fixed64 PayloadLoc = 18  [(gogoproto.casttype)="StorageLocator"];
     uint32 PayloadSize = 20;
 }
