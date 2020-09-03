@@ -128,7 +128,7 @@ func (p *udpTransportFactory) ConnectTo(to nwapi.Address) (OneWayTransport, erro
 	if err != nil {
 		return nil, err
 	}
-	return &udpOutTransport{resolved.AsUDPAddr(), nil, p.conn, p.maxByteSize, 0 }, nil
+	return &udpOutTransport{resolved.AsUDPAddr(), nil, p.conn, p.maxByteSize, 0}, nil
 }
 
 func (p *udpTransportFactory) Close() error {
@@ -149,12 +149,15 @@ func runUDPListener(t *udpTransportFactory, receiveFn SessionlessReceiveFunc) {
 
 	for {
 		n, addr, err := t.conn.ReadFromUDP(buf)
-
-		if !receiveFn(to, nwapi.FromUDPAddr(addr), buf[:n], err) {
-			break
-		}
-		if ne, ok := err.(net.Error); !ok || !ne.Temporary() {
-			break
+		switch {
+		case err == nil:
+			if !receiveFn(to, nwapi.FromUDPAddr(addr), buf[:n], err) {
+				break
+			}
+		default:
+			if ne, ok := err.(net.Error); !ok || !ne.Temporary() {
+				break
+			}
 		}
 	}
 }
@@ -162,11 +165,11 @@ func runUDPListener(t *udpTransportFactory, receiveFn SessionlessReceiveFunc) {
 var _ OneWayTransport = &udpOutTransport{}
 
 type udpOutTransport struct {
-	addr  net.UDPAddr
-	quota ratelimiter.RateQuota
-	conn  *net.UDPConn
+	addr        net.UDPAddr
+	quota       ratelimiter.RateQuota
+	conn        *net.UDPConn
 	maxByteSize uint16
-	tag   int
+	tag         int
 }
 
 var errTooLarge = errors.New("exceeds UDP limit")

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -88,9 +89,10 @@ func TestServer(t *testing.T) {
 		testStr := "sessionless msg"
 		msgBytes := marshaller.SerializeMsg(0, 0, pulse.MinTimePulse, testStr)
 
-		require.NoError(t, conn21.Transport().UseSessionful(int64(len(msgBytes)), func(t l1.BasicOutTransport) (bool, error) {
-			return true, t.SendBytes(msgBytes)
-		}))
+		assert.True(t, conn21.Transport().CanUseSessionless(int64(len(msgBytes))))
+		conn21.Transport().UseSessionless(func(transport l1.BasicOutTransport) (canRetry bool, err error) {
+			return false, transport.SendBytes(msgBytes)
+		})
 
 		marshaller.Wait(0)
 		marshaller.Count.Store(0)
