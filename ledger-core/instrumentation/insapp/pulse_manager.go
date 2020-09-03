@@ -29,11 +29,9 @@ func NewPulseManager() *PulseManager {
 	return &PulseManager{}
 }
 
-func (m *PulseManager) AddDispatcher(d ...beat.Dispatcher) {
-	for _, dd := range d {
-		if dd == nil {
-			panic(throw.IllegalValue())
-		}
+func (m *PulseManager) AddDispatcher(d beat.Dispatcher) {
+	if d == nil {
+		panic(throw.IllegalValue())
 	}
 
 	m.mutex.Lock()
@@ -43,7 +41,7 @@ func (m *PulseManager) AddDispatcher(d ...beat.Dispatcher) {
 		panic(throw.IllegalState())
 	}
 
-	m.dispatchers = append(m.dispatchers, d...)
+	m.dispatchers = append(m.dispatchers, d)
 }
 
 func (m *PulseManager) CommitPulseChange(pulseChange beat.Beat) error {
