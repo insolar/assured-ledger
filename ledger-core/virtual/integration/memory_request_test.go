@@ -21,7 +21,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	commonTestUtils "github.com/insolar/assured-ledger/ledger-core/testutils"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
@@ -123,7 +122,7 @@ func methodPrecondition(s *memoryCacheTest, ctx context.Context, t *testing.T) {
 	pl.CallSiteMethod = "ordered"
 	callOutgoing := pl.CallOutgoing
 
-	newObjDescriptor := descriptor.NewObject(reference.Global{}, reference.Local{}, gen.UniqueGlobalRef(), []byte("blabla"), false)
+	newObjDescriptor := descriptor.NewObject(reference.Global{}, reference.Local{}, s.server.RandomGlobalWithPulse(), []byte("blabla"), false)
 	result := requestresult.New([]byte("result"), s.object)
 	result.SetAmend(newObjDescriptor, []byte(newState))
 

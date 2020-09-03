@@ -20,7 +20,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/debuglogger"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/synchronization"
@@ -58,8 +57,8 @@ func TestConstructor_SamePulse_WhileExecution(t *testing.T) {
 	pl := utils.GenerateVCallRequestConstructor(server)
 
 	{
-		requestResult := requestresult.New([]byte("123"), gen.UniqueGlobalRef())
-		requestResult.SetActivate(gen.UniqueGlobalRef(), pl.Callee, []byte("234"))
+		requestResult := requestresult.New([]byte("123"), server.RandomGlobalWithPulse())
+		requestResult.SetActivate(server.RandomGlobalWithPulse(), pl.Callee, []byte("234"))
 
 		executionMock := runnerMock.AddExecutionMock(pl.CallOutgoing.String())
 		executionMock.AddStart(executionFn, &execution.Update{
@@ -121,8 +120,8 @@ func TestConstructor_SamePulse_AfterExecution(t *testing.T) {
 	pl := utils.GenerateVCallRequestConstructor(server)
 
 	{
-		requestResult := requestresult.New([]byte("123"), gen.UniqueGlobalRef())
-		requestResult.SetActivate(gen.UniqueGlobalRef(), pl.Callee, []byte("234"))
+		requestResult := requestresult.New([]byte("123"), server.RandomGlobalWithPulse())
+		requestResult.SetActivate(server.RandomGlobalWithPulse(), pl.Callee, []byte("234"))
 
 		executionMock := runnerMock.AddExecutionMock(pl.CallOutgoing.String())
 		executionMock.AddStart(nil, &execution.Update{
@@ -287,8 +286,8 @@ func (test *DeduplicationDifferentPulsesCase) run(t *testing.T) {
 	}
 
 	if test.ExecutionExpected {
-		requestResult := requestresult.New(ExecutionResultFromExecutor, gen.UniqueGlobalRef())
-		requestResult.SetActivate(gen.UniqueGlobalRef(), class, []byte(""))
+		requestResult := requestresult.New(ExecutionResultFromExecutor, server.RandomGlobalWithPulse())
+		requestResult.SetActivate(server.RandomGlobalWithPulse(), class, []byte(""))
 
 		executionMock := test.Runner.AddExecutionMock(outgoing.String())
 		executionMock.AddStart(nil, &execution.Update{
