@@ -30,7 +30,7 @@ func BenchmarkVCallRequestGetMethod(b *testing.B) {
 
 	var (
 		class  = walletproxy.GetClass()
-		object = reference.NewSelf(gen.UniqueLocalRefWithPulse(prevPulse.PulseNumber))
+		object = gen.UniqueGlobalRefWithPulse(prevPulse.PulseNumber)
 	)
 
 	walletMemory := insolar.MustSerialize(testwallet.Wallet{
@@ -91,7 +91,7 @@ func BenchmarkVCallRequestAcceptMethod(b *testing.B) {
 
 	var (
 		class  = walletproxy.GetClass()
-		object = reference.NewSelf(gen.UniqueLocalRefWithPulse(prevPulse.PulseNumber))
+		object = gen.UniqueGlobalRefWithPulse(prevPulse.PulseNumber)
 	)
 
 	walletMemory := insolar.MustSerialize(testwallet.Wallet{
@@ -205,7 +205,7 @@ func BenchmarkTestAPIGetBalance(b *testing.B) {
 
 	var (
 		class  = walletproxy.GetClass()
-		object = reference.NewSelf(gen.UniqueLocalRefWithPulse(prevPulse.PulseNumber))
+		object = gen.UniqueGlobalRefWithPulse(prevPulse.PulseNumber)
 	)
 
 	walletMemory := insolar.MustSerialize(testwallet.Wallet{
@@ -247,7 +247,7 @@ func BenchmarkTestAPIGetBalanceParallel(b *testing.B) {
 
 	var (
 		class  = walletproxy.GetClass()
-		object = reference.NewSelf(gen.UniqueLocalRefWithPulse(prevPulse.PulseNumber))
+		object = gen.UniqueGlobalRefWithPulse(prevPulse.PulseNumber)
 	)
 
 	walletMemory := insolar.MustSerialize(testwallet.Wallet{
