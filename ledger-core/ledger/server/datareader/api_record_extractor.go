@@ -46,5 +46,5 @@ const (
 )
 
 type ExtractorStrategy interface {
-
+	NextExtractionType() ExtractionType
 }
