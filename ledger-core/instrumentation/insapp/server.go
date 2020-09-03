@@ -59,8 +59,9 @@ func New(cfg configuration.Configuration, extraComponents ...interface{}) *Serve
 // NewWithNetworkFn creates a one-node process with given networkFn
 func NewWithNetworkFn(cfg configuration.Configuration, networkFn NetworkInitFunc, extraComponents ...interface{}) *Server {
 	return &Server{
-		cfg:   cfg,
-		extra: extraComponents,
+		cfg:       cfg,
+		extra:     extraComponents,
+		networkFn: networkFn,
 	}
 }
 
@@ -92,6 +93,7 @@ func (s *Server) prepare() {
 }
 
 func (s *Server) run() {
+
 	global.InitTicker()
 
 	var gracefulStop = make(chan os.Signal, 1)

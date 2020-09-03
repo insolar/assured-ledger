@@ -80,28 +80,34 @@ func (n Network) getFirstBeat() beat.Beat {
 				PulseEntropy:   longbits.Bits256{},
 			},
 		},
-		StartedAt: n.start,
 	}
 }
 
-func (n Network) AddNode(cert nodeinfo.Certificate, pulseManager chorus.Conductor) {
+func (n Network) UpdateNode(cert nodeinfo.Certificate, pulseManager chorus.Conductor) {
 	n.lock.Lock()
 	defer n.lock.Unlock()
 
-	err := pulseManager.CommitPulseChange(n.getFirstBeat())
+	node, err := n.getNode(cert.GetNodeRef())
+	if err != nil {
+		panic(throw.IllegalState())
+	}
+
+	node.pulseManager = pulseManager
+
+	err = pulseManager.CommitPulseChange(n.getFirstBeat())
 	if err != nil {
 		panic(err)
 	}
+}
 
-	n.nodes[cert.GetNodeRef()] = Node{
-		pulseManager: pulseManager,
-		cert:         cert,
-	}
+func (n Network) GetNode(nodeID reference.Global) (*Node, error) {
+	n.lock.RLock()
+	defer n.lock.RUnlock()
+
+	return n.getNode(nodeID)
 }
 
 func (n Network) getNode(nodeID reference.Global) (*Node, error) {
-	n.lock.RLock()
-	defer n.lock.RUnlock()
 	node, ok := n.nodes[nodeID]
 	if !ok {
 		return nil, throw.E("no node found for ref", struct{ reference reference.Global }{reference: nodeID})
@@ -122,7 +128,7 @@ func (n Network) sendMessageHandler(msg *message.Message) error {
 		return throw.E("failed to send message: Receiver in message metadata is empty")
 	}
 
-	node, err := n.getNode(nodeRef)
+	node, err := n.GetNode(nodeRef)
 	if err != nil {
 		panic(throw.IllegalState())
 	}
@@ -150,6 +156,7 @@ func (n Network) NetworkInitFunc(cert nodeinfo.Certificate) (NetworkSupport, net
 	cloudNetwork := &cloudStatus{
 		nodeRef: cert.GetNodeRef(),
 		role:    cert.GetRole(),
+		cert:    cert,
 		net:     &n,
 	}
 	return cloudNetwork, cloudNetwork, nil
@@ -158,6 +165,7 @@ func (n Network) NetworkInitFunc(cert nodeinfo.Certificate) (NetworkSupport, net
 type cloudStatus struct {
 	nodeRef reference.Global
 	role    member.PrimaryRole
+	cert    nodeinfo.Certificate
 	net     *Network
 }
 
@@ -182,7 +190,7 @@ func (s *cloudStatus) FindAnyLatestNodeSnapshot() beat.NodeSnapshot {
 }
 
 func (s *cloudStatus) GetCert(ctx context.Context, global reference.Global) (nodeinfo.Certificate, error) {
-	node, err := s.net.getNode(global)
+	node, err := s.net.GetNode(global)
 	if err != nil {
 		return nil, throw.E("node not found")
 	}
@@ -190,14 +198,15 @@ func (s *cloudStatus) GetCert(ctx context.Context, global reference.Global) (nod
 }
 
 func (s *cloudStatus) CreateMessagesRouter(ctx context.Context) messagesender.MessageRouter {
+	s.net.lock.Lock()
+	defer s.net.lock.Unlock()
+
 	router := watermill.NewRouter(ctx, s.net.sendMessageHandler)
 
-	node, err := s.net.getNode(s.nodeRef)
-	if err != nil {
-		panic(throw.IllegalState())
+	s.net.nodes[s.cert.GetNodeRef()] = Node{
+		cert:   s.cert,
+		router: router,
 	}
-
-	node.router = router
 
 	return router
 }

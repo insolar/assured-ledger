@@ -49,7 +49,7 @@ func (s *MultiServer) Serve() {
 		wg.Add(1)
 		server := NewWithNetworkFn(nodeCfg, network.NetworkInitFunc)
 		server.prepare()
-		network.AddNode(server.certificate, server.pulseManager)
+		network.UpdateNode(server.certificate, server.pulseManager)
 		go func() {
 			defer wg.Done()
 			server.run()

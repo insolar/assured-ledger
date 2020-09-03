@@ -99,6 +99,7 @@ func (s *Server) initComponents(ctx context.Context, cfg configuration.Configura
 	var addDispatcherFn func(beat.Dispatcher)
 
 	if networkFn == nil {
+		panic("should be set")
 		nsn, err := servicenetwork.NewServiceNetwork(cfg, cm)
 		checkError(ctx, err, "failed to start ServiceNetwork")
 		cm.Register(nsn)

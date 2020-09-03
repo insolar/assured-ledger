@@ -25,6 +25,8 @@ import (
 )
 
 func RunFakePulse(distributor pulsar.PulseDistributor, cfg configuration.PulsarConfiguration) {
+	return
+
 	ctx := context.Background()
 
 	cm, server := initPulsar(ctx, cfg, distributor)

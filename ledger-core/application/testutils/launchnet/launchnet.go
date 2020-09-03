@@ -287,17 +287,17 @@ func runPulsar() error {
 }
 
 func waitForNet(cfg appConfig) error {
-	err := waitForNetworkState(cfg, network.WaitPulsar)
-	if err != nil {
-		return throw.W(err, "Can't wait for NetworkState "+network.WaitPulsar.String())
-	}
+	// err := waitForNetworkState(cfg, network.WaitPulsar)
+	// if err != nil {
+	// 	return throw.W(err, "Can't wait for NetworkState "+network.WaitPulsar.String())
+	// }
+	//
+	// err = runPulsar()
+	// if err != nil {
+	// 	return throw.W(err, "Can't run pulsar")
+	// }
 
-	err = runPulsar()
-	if err != nil {
-		return throw.W(err, "Can't run pulsar")
-	}
-
-	err = waitForNetworkState(cfg, network.CompleteNetworkState)
+	err := waitForNetworkState(cfg, network.CompleteNetworkState)
 	if err != nil {
 		return throw.W(err, "Can't wait for NetworkState "+network.CompleteNetworkState.String())
 	}
