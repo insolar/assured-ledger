@@ -5,12 +5,13 @@ package payload
 
 import (
 	fmt "fmt"
-	_ "github.com/gogo/protobuf/gogoproto"
-	proto "github.com/gogo/protobuf/proto"
-	_ "github.com/insolar/assured-ledger/ledger-core/insproto"
 	io "io"
 	math "math"
 	math_bits "math/bits"
+
+	_ "github.com/gogo/protobuf/gogoproto"
+	proto "github.com/gogo/protobuf/proto"
+	_ "github.com/insolar/assured-ledger/ledger-core/insproto"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -1614,6 +1615,62 @@ func (m *VCachedMemoryResponse) GetMemory() []byte {
 	return nil
 }
 
+type VObjectValidationReport struct {
+	Object    Reference   `protobuf:"bytes,21,opt,name=Object,proto3" json:"Object"`
+	In        PulseNumber `protobuf:"varint,55,opt,name=In,proto3,casttype=PulseNumber" json:"In"`
+	Validated Reference   `protobuf:"bytes,50,opt,name=Validated,proto3" json:"Validated"`
+}
+
+func (m *VObjectValidationReport) Reset()         { *m = VObjectValidationReport{} }
+func (m *VObjectValidationReport) String() string { return proto.CompactTextString(m) }
+func (*VObjectValidationReport) ProtoMessage()    {}
+func (*VObjectValidationReport) Descriptor() ([]byte, []int) {
+	return fileDescriptor_8a268ff04305613a, []int{13}
+}
+func (m *VObjectValidationReport) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *VObjectValidationReport) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	b = b[:cap(b)]
+	n, err := m.MarshalToSizedBuffer(b)
+	if err != nil {
+		return nil, err
+	}
+	return b[:n], nil
+}
+func (m *VObjectValidationReport) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_VObjectValidationReport.Merge(m, src)
+}
+func (m *VObjectValidationReport) XXX_Size() int {
+	return m.ProtoSize()
+}
+func (m *VObjectValidationReport) XXX_DiscardUnknown() {
+	xxx_messageInfo_VObjectValidationReport.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_VObjectValidationReport proto.InternalMessageInfo
+
+func (m *VObjectValidationReport) GetObject() Reference {
+	if m != nil {
+		return m.Object
+	}
+	return Reference{}
+}
+
+func (m *VObjectValidationReport) GetIn() PulseNumber {
+	if m != nil {
+		return m.In
+	}
+	return 0
+}
+
+func (m *VObjectValidationReport) GetValidated() Reference {
+	if m != nil {
+		return m.Validated
+	}
+	return Reference{}
+}
+
 func init() {
 	proto.RegisterEnum("payload.CallType", CallType_name, CallType_value)
 	proto.RegisterEnum("payload.VStateReport_StateStatus", VStateReport_StateStatus_name, VStateReport_StateStatus_value)
@@ -1633,6 +1690,7 @@ func init() {
 	proto.RegisterType((*VFindCallResponse)(nil), "payload.VFindCallResponse")
 	proto.RegisterType((*VCachedMemoryRequest)(nil), "payload.VCachedMemoryRequest")
 	proto.RegisterType((*VCachedMemoryResponse)(nil), "payload.VCachedMemoryResponse")
+	proto.RegisterType((*VObjectValidationReport)(nil), "payload.VObjectValidationReport")
 }
 
 func init() {
@@ -3758,6 +3816,78 @@ func (m *VCachedMemoryResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+const TypeVObjectValidationReportPolymorphID = 1016
+
+func (*VObjectValidationReport) GetDefaultPolymorphID() uint64 {
+	return 1016
+}
+
+func (m *VObjectValidationReport) Marshal() (dAtA []byte, err error) {
+	size := m.ProtoSize()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	if n != size {
+		panic("illegal state")
+	}
+	return dAtA[:n], nil
+}
+
+func (m *VObjectValidationReport) MarshalTo(dAtA []byte) (int, error) {
+	size := m.ProtoSize()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *VObjectValidationReport) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l, fieldEnd int
+	_, _ = l, fieldEnd
+	if m.In != 0 {
+		i = encodeVarintProtoVnvnR0(dAtA, i, uint64(m.In))
+		i--
+		dAtA[i] = 0x3
+		i--
+		dAtA[i] = 0xb8
+	}
+	{
+		size, err := m.Validated.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x3
+			i--
+			dAtA[i] = 0x92
+		}
+	}
+	{
+		size, err := m.Object.MarshalToSizedBuffer(dAtA[:i])
+		if err != nil {
+			return 0, err
+		}
+		if size > 0 {
+			i -= size
+			i = encodeVarintProtoVnvnR0(dAtA, i, uint64(size))
+			i--
+			dAtA[i] = 0x1
+			i--
+			dAtA[i] = 0xaa
+		}
+	}
+	i = encodeVarintProtoVnvnR0(dAtA, i, uint64(1016))
+	i--
+	dAtA[i] = 0x1
+	i--
+	dAtA[i] = 0x80
+	return len(dAtA) - i, nil
+}
+
 func encodeVarintProtoVnvnR0(dAtA []byte, offset int, v uint64) int {
 	offset -= sovProtoVnvnR0(v)
 	base := offset
@@ -3783,6 +3913,7 @@ func init() {
 	RegisterMessageType(1012, "", (*VFindCallResponse)(nil))
 	RegisterMessageType(1013, "", (*VCachedMemoryRequest)(nil))
 	RegisterMessageType(1014, "", (*VCachedMemoryResponse)(nil))
+	RegisterMessageType(1016, "", (*VObjectValidationReport)(nil))
 }
 
 func (m *VCallRequest) ProtoSize() (n int) {
@@ -4376,6 +4507,25 @@ func (m *VCachedMemoryResponse) ProtoSize() (n int) {
 		n += 2 + l + sovProtoVnvnR0(uint64(l))
 	}
 	n += 2 + sovProtoVnvnR0(1014)
+	return n
+}
+
+func (m *VObjectValidationReport) ProtoSize() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if l = m.Object.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvnR0(uint64(l))
+	}
+	if l = m.Validated.ProtoSize(); l > 0 {
+		n += 2 + l + sovProtoVnvnR0(uint64(l))
+	}
+	if m.In != 0 {
+		n += 2 + sovProtoVnvnR0(uint64(m.In))
+	}
+	n += 2 + sovProtoVnvnR0(1016)
 	return n
 }
 
@@ -9113,6 +9263,153 @@ func (m *VCachedMemoryResponse) UnmarshalWithUnknownCallback(dAtA []byte, skipFn
 				m.Memory = []byte{}
 			}
 			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipFn(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				l = iNdEx
+				break
+			}
+			if skippy == 0 {
+				if skippy, err = skipProtoVnvnR0(dAtA[iNdEx:]); err != nil {
+					return err
+				}
+			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthProtoVnvnR0
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *VObjectValidationReport) Unmarshal(dAtA []byte) error {
+	return m.UnmarshalWithUnknownCallback(dAtA, skipProtoVnvnR0)
+}
+func (m *VObjectValidationReport) UnmarshalWithUnknownCallback(dAtA []byte, skipFn func([]byte) (int, error)) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowProtoVnvnR0
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: VObjectValidationReport: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: VObjectValidationReport: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 21:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Object", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoVnvnR0
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoVnvnR0
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoVnvnR0
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.Object.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 50:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Validated", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoVnvnR0
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthProtoVnvnR0
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthProtoVnvnR0
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.Validated.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 55:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field In", wireType)
+			}
+			m.In = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowProtoVnvnR0
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.In |= PulseNumber(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := skipFn(dAtA[iNdEx:])
