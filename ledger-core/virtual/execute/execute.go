@@ -868,9 +868,21 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 
 		state.Transcript.Add(
 			validation.TranscriptEntry{
+				Custom: validation.TranscriptEntryIncomingRequest{
+					ObjectMemory: reference.NewRecordOf(
+						s.execution.Object, s.execution.ObjectDescriptor.StateID(),
+					),
+					Incoming:    reference.Global{},
+					CallRequest: *s.Payload,
+				},
+			},
+		)
+
+		state.Transcript.Add(
+			validation.TranscriptEntry{
 				Custom: validation.TranscriptEntryIncomingResult{
 					IncomingResult: reference.Global{},
-					ObjectMemory: reference.NewRecordOf(s.execution.Object, s.newObjectDescriptor.StateID()),
+					ObjectMemory:   reference.NewRecordOf(s.execution.Object, s.newObjectDescriptor.StateID()),
 				},
 			},
 		)
