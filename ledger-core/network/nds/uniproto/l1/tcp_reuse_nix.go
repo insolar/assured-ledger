@@ -17,7 +17,7 @@ import (
 )
 
 func ListenTCPWithReuse(network string, laddr *net.TCPAddr) (*net.TCPListener, error) {
-	sl := &net.ListenConfig{ Control: reuseSocketControl }
+	sl := &net.ListenConfig{Control: reuseSocketControl}
 	listener, err := sl.Listen(context.Background(), network, laddr.String())
 	if err != nil {
 		return nil, err
@@ -26,7 +26,7 @@ func ListenTCPWithReuse(network string, laddr *net.TCPAddr) (*net.TCPListener, e
 }
 
 func DialerTCPWithReuse(laddr *net.TCPAddr) *net.Dialer {
-	return &net.Dialer{ LocalAddr: laddr, Control: reuseSocketControl }
+	return &net.Dialer{LocalAddr: laddr, Control: reuseSocketControl}
 }
 
 func DialTCPWithReuse(network string, laddr, raddr *net.TCPAddr) (*net.TCPConn, error) {
