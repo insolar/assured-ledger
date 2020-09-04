@@ -300,8 +300,6 @@ func TestDelegationToken_CheckMessageFromAuthorizedVirtual(t *testing.T) {
 				server.OverrideConveyorFactoryLogContext(inslogger.SetLogger(ctx, logger))
 
 				server.Init(ctx)
-				// increment pulse for VStateReport and VDelegatedCallRequest
-				server.IncrementPulse(ctx)
 
 				switch testCase.expectedVE {
 				case veSetServer:
