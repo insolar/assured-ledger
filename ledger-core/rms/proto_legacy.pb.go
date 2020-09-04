@@ -170,6 +170,9 @@ func (m *PulseProto) Marshal() (dAtA []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
+	if n != size {
+		panic("illegal state")
+	}
 	return dAtA[:n], nil
 }
 
