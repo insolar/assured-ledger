@@ -24,7 +24,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
-	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/version"
 )
@@ -38,7 +37,6 @@ type Server struct {
 
 	cm       *component.Manager
 	stopFunc func()
-	nodeRef  reference.Global
 
 	ctx    context.Context
 	logger log.Logger
@@ -131,7 +129,6 @@ func (s *Server) StartComponents(ctx context.Context, cfg configuration.Configur
 
 	nodeCert := certManager.GetCertificate()
 	nodeRole := nodeCert.GetRole()
-	s.nodeRef = nodeCert.GetNodeRef()
 	nodeRef := nodeCert.GetNodeRef().String()
 
 	if !s.headless {

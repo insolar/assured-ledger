@@ -87,21 +87,6 @@ func (n Controller) nodeCount() int {
 	return len(n.nodes)
 }
 
-func (n Controller) getFirstBeat() beat.Beat {
-	return beat.Beat{
-		Data: pulse.Data{
-			PulseNumber: pulse.MinTimePulse,
-			DataExt: pulse.DataExt{
-				PulseEpoch:     pulse.MinTimePulse,
-				NextPulseDelta: 100,
-				PrevPulseDelta: 0,
-				Timestamp:      pulse.MinTimePulse,
-				PulseEntropy:   longbits.Bits256{},
-			},
-		},
-	}
-}
-
 func (n Controller) addNode(nodeRef reference.Global, netNode controlledNode) {
 	n.lock.Lock()
 	defer n.lock.Unlock()
@@ -180,17 +165,18 @@ func (n Controller) Distribute(_ context.Context, packet pulsar.PulsePacket) {
 	for _, netNode := range n.nodes {
 		onlinePopulation := censusimpl.NewManyNodePopulation(populationNodes, netNode.profile.GetStaticNodeID(), netNode.svf)
 
-		err := netNode.BeatAppender.AddCommittedBeat(beat.Beat{
-			Data:   adapters.NewPulseData(packet),
-			Online: prepareManyNodePopulation(netNode.profile.GetStaticNodeID(), onlinePopulation),
-		})
+		newBeat := beat.Beat{
+			Data:      adapters.NewPulseData(packet),
+			StartedAt: time.Now(),
+			Online:    prepareManyNodePopulation(netNode.profile.GetStaticNodeID(), onlinePopulation),
+		}
+
+		err := netNode.BeatAppender.AddCommittedBeat(newBeat)
 		if err != nil {
 			panic(err)
 		}
 
-		netNode.dispatcher.CommitBeat(beat.Beat{
-			Data: adapters.NewPulseData(packet),
-		})
+		netNode.dispatcher.CommitBeat(newBeat)
 	}
 }
 
