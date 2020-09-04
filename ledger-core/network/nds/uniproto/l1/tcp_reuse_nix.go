@@ -3,6 +3,8 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
+// +build !windows
+
 package l1
 
 import (
@@ -30,6 +32,6 @@ func DialTCPWithReuse(network string, laddr, raddr *net.TCPAddr) (*net.TCPConn, 
 
 func reuseSocketControl(_ string, _ string, c syscall.RawConn) (err error) {
 	return c.Control(func(fd uintptr) {
-		err = syscall.SetsockoptInt(syscall.Handle(fd), syscall.SOL_SOCKET, syscall.SO_REUSEADDR, 1)
+		err = os.NewSyscallError("setsockopt", syscall.SetsockoptInt(int(fd), syscall.SOL_SOCKET, syscall.SO_REUSEADDR, 1))
 	})
 }
