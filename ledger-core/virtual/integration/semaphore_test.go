@@ -43,7 +43,6 @@ func TestVirtual_SemaphoreLimitNotExceeded(t *testing.T) {
 	server.SetMaxParallelism(semaphoreParallelism)
 
 	server.Init(ctx)
-	server.IncrementPulseAndWaitIdle(ctx)
 
 	var (
 		numObject = 40
