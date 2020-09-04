@@ -62,7 +62,6 @@ func (rv *RequestValidator) ServeHTTP(w http.ResponseWriter, httpReq *http.Reque
 		if r := recover(); r != nil {
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			inslogger.FromContext(httpReq.Context()).Error(errors.Errorf("panic in validator: %v", r))
-			panic(r)
 		}
 	}()
 	err := rv.Validate(httpReq.Context(), httpReq)

@@ -87,9 +87,7 @@ func runHeadlessNetwork(configPath string) {
 		global.Warnf("Failed to launch gops agent: %s", err)
 	}
 
-	server := server.NewHeadlessNetworkNodeServer(readConfig(configPath))
-
-	server.Serve()
+	server.NewHeadlessNetworkNodeServer(readConfig(configPath)).Serve()
 }
 
 func readRoleFromCertificate(path string) (member.PrimaryRole, error) {

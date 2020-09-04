@@ -21,7 +21,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/trace"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lmnapp"
-	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -34,12 +33,6 @@ type Server struct {
 	appFn     component2.AppFactoryFunc
 	networkFn NetworkInitFunc
 	extra     []interface{}
-
-	cm       *component.Manager
-	stopFunc func()
-
-	ctx    context.Context
-	logger log.Logger
 }
 
 // New creates a one-node process.
@@ -71,17 +64,17 @@ func NewHeadless(cfg configuration.Configuration, extraComponents ...interface{}
 
 func (s *Server) Serve() {
 	fmt.Println("Version: ", version.GetFullVersion())
-	s.ctx, s.logger = inslogger.InitGlobalNodeLogger(context.Background(), s.cfg.Log, "", "")
+	baseCtx, baseLogger := inslogger.InitGlobalNodeLogger(context.Background(), s.cfg.Log, "", "")
 
 	fmt.Printf("Starts with configuration: \n%s\n", configuration.ToString(s.cfg))
 
-	s.cm, s.stopFunc = s.StartComponents(s.ctx, s.cfg, s.networkFn,
+	cm, stopFunc := s.StartComponents(baseCtx, s.cfg, s.networkFn,
 		func(_ context.Context, cfg configuration.Log, nodeRef, nodeRole string) context.Context {
-			s.ctx, s.logger = inslogger.InitNodeLogger(s.ctx, cfg, nodeRef, nodeRole)
+			baseCtx, baseLogger = inslogger.InitNodeLogger(baseCtx, cfg, nodeRef, nodeRole)
 
-			global.SetLogger(s.logger)
+			global.SetLogger(baseLogger)
 
-			return s.ctx
+			return baseCtx
 		})
 
 	global.InitTicker()
@@ -96,23 +89,23 @@ func (s *Server) Serve() {
 		defer close(waitChannel)
 
 		sig := <-gracefulStop
-		s.logger.Debug("caught sig: ", sig)
+		baseLogger.Debug("caught sig: ", sig)
 
-		s.logger.Info("stopping gracefully")
+		baseLogger.Info("stopping gracefully")
 
-		if err := s.cm.GracefulStop(s.ctx); err != nil {
-			s.logger.Fatalf("graceful stop failed: %s", throw.ErrorWithStack(err))
+		if err := cm.GracefulStop(baseCtx); err != nil {
+			baseLogger.Fatalf("graceful stop failed: %s", throw.ErrorWithStack(err))
 		}
 
-		s.stopFunc()
+		stopFunc()
 
-		if err := s.cm.Stop(s.ctx); err != nil {
-			s.logger.Fatalf("stop failed [%d]: %s", throw.ErrorWithStack(err))
+		if err := cm.Stop(baseCtx); err != nil {
+			baseLogger.Fatalf("stop failed [%d]: %s", throw.ErrorWithStack(err))
 		}
 	}()
 
-	if err := s.cm.Start(s.ctx); err != nil {
-		s.logger.Fatalf("start failed: %s", throw.ErrorWithStack(err))
+	if err := cm.Start(baseCtx); err != nil {
+		baseLogger.Fatalf("start failed: %s", throw.ErrorWithStack(err))
 	}
 
 	fmt.Println("All components were started")
