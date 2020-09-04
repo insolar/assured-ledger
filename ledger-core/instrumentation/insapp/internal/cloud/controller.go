@@ -8,7 +8,6 @@ package cloud
 import (
 	"context"
 	"crypto/ecdsa"
-	"fmt"
 	"sort"
 	"sync"
 	"time"
@@ -91,8 +90,7 @@ func (n Controller) addNode(nodeRef reference.Global, netNode controlledNode) {
 	n.lock.Lock()
 	defer n.lock.Unlock()
 
-	if existingNode, exists := n.nodes[nodeRef]; exists {
-		fmt.Printf("Collision:\n%s\n%s\n", existingNode.cert.GetNodeRef(), netNode.cert.GetNodeRef())
+	if _, exists := n.nodes[nodeRef]; exists {
 		panic(throw.IllegalState())
 	}
 	netNode.svf = adapters.NewTransportCryptographyFactory(netNode.PlatformCryptographyScheme)
