@@ -227,7 +227,7 @@ func (p *UnifiedServer) receiveSessionless(local, remote nwapi.Address, b []byte
 			p.reportError(err)
 		}()
 	} else {
-		p.reportError(throw.E("packet drop by timeout", ConnErrDetails{local, remote}))
+		p.reportError(throw.E("inbound packet dropped by timeout", ConnErrDetails{local, remote}))
 	}
 
 	return true

@@ -26,8 +26,10 @@ func TestController(t *testing.T) {
 	const Server2 = "127.0.0.1:0"
 
 	vf := TestVerifierFactory{}
-	sk := cryptkit.NewSignatureKey(longbits.Zero(testDigestSize), testSignatureMethod, cryptkit.PublicAsymmetricKey)
-
+	skBytes := [testDigestSize]byte{}
+	sk1 := cryptkit.NewSignatureKey(longbits.CopyBytes(skBytes[:]), testSignatureMethod, cryptkit.PublicAsymmetricKey)
+	skBytes[0] = 1
+	sk2 := cryptkit.NewSignatureKey(longbits.CopyBytes(skBytes[:]), testSignatureMethod, cryptkit.PublicAsymmetricKey)
 
 	var ctl1 Service
 	controller1 := NewController(Protocol, TestDeserializationFactory{},
@@ -51,7 +53,7 @@ func TestController(t *testing.T) {
 	})
 
 	ups1.SetPeerFactory(func(peer *uniserver.Peer) (remapTo nwapi.Address, err error) {
-		peer.SetSignatureKey(sk)
+		peer.SetSignatureKey(sk2)
 		peer.SetNodeID(2)
 		return nwapi.NewHostID(2), nil
 	})
@@ -92,13 +94,13 @@ func TestController(t *testing.T) {
 	})
 
 	ups2.SetPeerFactory(func(peer *uniserver.Peer) (remapTo nwapi.Address, err error) {
-		peer.SetSignatureKey(sk)
+		peer.SetSignatureKey(sk1)
 		peer.SetNodeID(1)
 		return nwapi.NewHostID(1), nil
 	})
 	ups2.SetSignatureFactory(vf)
 
-	ups2.StartNoListen()
+	ups2.StartListen()
 	dispatcher2.NextPulse(pr)
 
 	pm2 := ups2.PeerManager()

@@ -43,7 +43,7 @@ type PeerManager struct {
 	peerMapperFn   PeerMapperFunc
 
 	central PeerTransportCentral
-	// LOCK: WARNING! PeerTransport.mutex can be acquired under this mutex
+	// LOCK: WARNING! PeerTransport.connMutex can be acquired under this mutex
 	peerMutex sync.RWMutex
 	peers     PeerMap
 }

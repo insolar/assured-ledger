@@ -87,18 +87,23 @@ func NextPeerUID() uint64 {
 }
 
 type PeerTransport struct {
-	central *PeerTransportCentral
-	dead    atomickit.OnceFlag
-	uid     uint64
+	// set at construction
 
-	aliases []nwapi.Address
-
+	central   *PeerTransportCentral
+	dead      atomickit.OnceFlag
+	uid       uint64
 	rateQuota ratelimiter.RWRateQuota
 
-	// LOCK: WARNING! This mutex can be acquired under PeerManager.peerMutex
-	mutex      sync.RWMutex
+	// smallMutex is taken to guarantee exclusive write for small sessionful packets
 	smallMutex sync.Mutex
+	// largeMutex is taken to guarantee exclusive write for large packets
 	largeMutex sync.Mutex
+
+	// LOCK: WARNING! connMutex can be acquired under PeerManager.peerMutex
+	// connMutex controls aliases, connections etc
+	connMutex  sync.RWMutex
+
+	aliases []nwapi.Address
 
 	addrIndex uint8
 	connCount uint8
@@ -113,8 +118,8 @@ func (p *PeerTransport) kill() []nwapi.Address {
 		return nil
 	}
 
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
+	p.connMutex.Lock()
+	defer p.connMutex.Unlock()
 
 	_ = iokit.SafeClose(p.sessionless)
 	ss := p.connections
@@ -135,14 +140,14 @@ func (p *PeerTransport) checkActive() error {
 	return p.central.checkActive(p.dead.IsSet())
 }
 
-// nolint:interfacer
+//nolint:interfacer
 func (p *PeerTransport) discardTransportAndAddress(t l1.OneWayTransport, changeAddress bool) (hasMore bool) {
 	if t == nil {
 		return false
 	}
 
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
+	p.connMutex.Lock()
+	defer p.connMutex.Unlock()
 
 	p._resetConnection(t, changeAddress)
 
@@ -202,6 +207,8 @@ type connectFunc = func(to nwapi.Address) (l1.OneWayTransport, error)
 
 func (p *PeerTransport) tryConnect(factoryFn connectFunc, limit TransportStreamFormat) (l1.OneWayTransport, error) {
 
+	var lastErr error
+
 	startIndex := p.addrIndex
 	for {
 		addr := p.aliases[p.addrIndex]
@@ -211,7 +218,8 @@ func (p *PeerTransport) tryConnect(factoryFn connectFunc, limit TransportStreamF
 			// then there MUST be more addresses
 			p.addrIndex++
 			if startIndex == 1 {
-				return nil, nil
+				// index 0 was the last available address
+				return nil, lastErr
 			}
 			continue
 		}
@@ -222,15 +230,10 @@ func (p *PeerTransport) tryConnect(factoryFn connectFunc, limit TransportStreamF
 
 		switch t, err := factoryFn(addr); {
 		case err != nil:
-			//
-		case t == nil:
-			// non-connectable
-			if p.addrIndex++; int(p.addrIndex) >= len(p.aliases) {
-				p.addrIndex = 0
-			}
-			if p.addrIndex == startIndex {
-				return nil, nil
-			}
+			lastErr = err
+
+		case t == nil: // non-connectable
+
 		case p.rateQuota != nil:
 			t = t.WithQuota(p.rateQuota.WriteBucket())
 			fallthrough
@@ -238,19 +241,26 @@ func (p *PeerTransport) tryConnect(factoryFn connectFunc, limit TransportStreamF
 			t.SetTag(int(limit))
 			return t, nil
 		}
+
+		if p.addrIndex++; int(p.addrIndex) >= len(p.aliases) {
+			p.addrIndex = 0
+		}
+		if p.addrIndex == startIndex {
+			return nil, lastErr
+		}
 	}
 }
 
 func (p *PeerTransport) getSessionlessTransport() (l1.OneWayTransport, error) {
-	p.mutex.RLock()
+	p.connMutex.RLock()
 	if t := p.sessionless; t != nil {
-		p.mutex.RUnlock()
+		p.connMutex.RUnlock()
 		return t, nil
 	}
-	p.mutex.RUnlock()
+	p.connMutex.RUnlock()
 
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
+	p.connMutex.Lock()
+	defer p.connMutex.Unlock()
 	if p.sessionless != nil {
 		return p.sessionless, nil
 	}
@@ -261,15 +271,15 @@ func (p *PeerTransport) getSessionlessTransport() (l1.OneWayTransport, error) {
 }
 
 func (p *PeerTransport) getSessionfulSmallTransport() (l1.OneWayTransport, error) {
-	p.mutex.RLock()
+	p.connMutex.RLock()
 	if t := p.sessionful; t != nil {
-		p.mutex.RUnlock()
+		p.connMutex.RUnlock()
 		return t, nil
 	}
-	p.mutex.RUnlock()
+	p.connMutex.RUnlock()
 
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
+	p.connMutex.Lock()
+	defer p.connMutex.Unlock()
 
 	if p.sessionful != nil {
 		return p.sessionful, nil
@@ -283,15 +293,15 @@ func (p *PeerTransport) getSessionfulSmallTransport() (l1.OneWayTransport, error
 }
 
 func (p *PeerTransport) getSessionfulLargeTransport() (l1.OneWayTransport, error) {
-	p.mutex.RLock()
+	p.connMutex.RLock()
 	if t := p._getSessionfulTransport(false); t != nil {
-		p.mutex.RUnlock()
+		p.connMutex.RUnlock()
 		return t, nil
 	}
-	p.mutex.RUnlock()
+	p.connMutex.RUnlock()
 
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
+	p.connMutex.Lock()
+	defer p.connMutex.Unlock()
 
 	return p._newSessionfulTransport(false)
 }
@@ -326,14 +336,14 @@ func (p *PeerTransport) _newSessionfulTransport(limitedLength bool) (t l1.OneWay
 }
 
 func (p *PeerTransport) addConnection(s io.Closer) {
-	p.mutex.Lock()
+	p.connMutex.Lock()
 	p.connections = append(p.connections, s)
-	p.mutex.Unlock()
+	p.connMutex.Unlock()
 }
 
 func (p *PeerTransport) addReceiver(conn io.Closer, incomingConnection bool) (TransportStreamFormat, error) {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
+	p.connMutex.Lock()
+	defer p.connMutex.Unlock()
 
 	if incomingConnection {
 		if p.connCount >= p.central.maxPeerConn {
@@ -362,8 +372,8 @@ func (p *PeerTransport) addReceiver(conn io.Closer, incomingConnection bool) (Tr
 }
 
 func (p *PeerTransport) removeReceiver(conn io.Closer) {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
+	p.connMutex.Lock()
+	defer p.connMutex.Unlock()
 
 	p.connCount--
 	p._resetConnection(conn, false)
@@ -462,8 +472,8 @@ func (p *PeerTransport) setAddresses(primary nwapi.Address, aliases []nwapi.Addr
 		panic(throw.IllegalValue())
 	}
 
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
+	p.connMutex.Lock()
+	defer p.connMutex.Unlock()
 
 	if p.aliases != nil {
 		panic(throw.IllegalState())
@@ -486,8 +496,8 @@ func (p *PeerTransport) addAliases(aliases []nwapi.Address) {
 		return
 	}
 
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
+	p.connMutex.Lock()
+	defer p.connMutex.Unlock()
 
 	if n+len(p.aliases) > math.MaxUint8 {
 		panic(throw.IllegalValue())
@@ -500,8 +510,8 @@ func (p *PeerTransport) removeAlias(a nwapi.Address) bool {
 		return false
 	}
 
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
+	p.connMutex.Lock()
+	defer p.connMutex.Unlock()
 
 	for i, aa := range p.aliases {
 		if i != 0 && aa == a {
@@ -559,4 +569,33 @@ func (p *PeerTransport) limitWriter(c io.WriteCloser) io.WriteCloser {
 		return iokit.RateLimitWriter(c, p.rateQuota.WriteBucket())
 	}
 	return c
+}
+
+func (p *PeerTransport) getPrimary() nwapi.Address {
+	p.connMutex.RLock()
+	defer p.connMutex.RUnlock()
+
+	if aliases := p.aliases; len(aliases) > 0 {
+		return aliases[0]
+	}
+
+	return nwapi.Address{}
+}
+
+// updatePrimary is ONLY for use by server to update Local peer identity after start of listening.
+func (p *PeerTransport) updatePrimary(addr nwapi.Address) nwapi.Address {
+	p.connMutex.Lock()
+	defer p.connMutex.Unlock()
+
+	switch aliases := p.aliases; {
+	case len(aliases) == 0:
+		//
+	case aliases[0] == addr:
+		//
+	default:
+		prev := aliases[0]
+		aliases[0] = addr
+		return prev
+	}
+	return nwapi.Address{}
 }

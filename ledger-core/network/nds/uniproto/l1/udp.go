@@ -68,11 +68,11 @@ func (v udpProvider) CreateListeningFactory(receiveFn SessionlessReceiveFunc) (O
 	t := &udpTransportFactory{v.addr, nil, v.preference, v.maxByteSize}
 
 	var err error
-	t.listener, err = net.ListenUDP("udp", &v.addr)
+	t.conn, err = net.ListenUDP("udp", &v.addr)
 	if err != nil {
 		return nil, nwapi.Address{}, err
 	}
-	t.addr = *t.listener.LocalAddr().(*net.UDPAddr)
+	t.addr = *t.conn.LocalAddr().(*net.UDPAddr)
 
 	go runUDPListener(t, receiveFn)
 	return t, nwapi.FromUDPAddr(&t.addr), nil
@@ -85,12 +85,12 @@ func (v udpProvider) CreateOutgoingOnlyFactory() (OutTransportFactory, error) {
 
 	t := &udpTransportFactory{v.addr, nil, v.preference, v.maxByteSize}
 
-	conn, err := net.DialUDP("udp", &v.addr, &v.addr) // check addr
+	var err error
+	t.conn, err = net.ListenUDP("udp", &v.addr) // check addr
 	if err != nil {
 		return nil, err
 	}
-	t.addr = *conn.LocalAddr().(*net.UDPAddr)
-	_ = conn.Close()
+	t.addr = *t.conn.LocalAddr().(*net.UDPAddr)
 	return t, nil
 }
 
@@ -102,7 +102,7 @@ func (v udpProvider) Close() error {
 
 type udpTransportFactory struct {
 	addr        net.UDPAddr // this field is passed by udpProvider as a pointer into Dial
-	listener    *net.UDPConn
+	conn        *net.UDPConn
 	preference  nwapi.Preference
 	maxByteSize uint16
 }
@@ -129,33 +129,26 @@ func (p *udpTransportFactory) ConnectTo(to nwapi.Address) (OneWayTransport, erro
 		return nil, err
 	}
 
-	t := &udpOutTransport{resolved.AsUDPAddr(), nil, nil, p.maxByteSize, 0}
-	t.conn, err = net.DialUDP("udp", &p.addr, &t.addr)
-	if err != nil {
-		return nil, err
-	}
+	t := &udpOutTransport{resolved.AsUDPAddr(), nil, p.conn, p.maxByteSize, 0}
 
 	return t, nil
 }
 
 func (p *udpTransportFactory) Close() error {
-	if p.listener != nil {
-		return p.listener.Close()
-	}
-	return nil
+	return p.conn.Close()
 }
 
 func runUDPListener(t *udpTransportFactory, receiveFn SessionlessReceiveFunc) {
 	defer func() {
-		_ = t.listener.Close()
+		_ = t.conn.Close()
 		_ = recover()
 	}()
 
-	to := nwapi.FromUDPAddr(t.listener.LocalAddr().(*net.UDPAddr))
+	to := nwapi.FromUDPAddr(t.conn.LocalAddr().(*net.UDPAddr))
 	buf := make([]byte, t.maxByteSize)
 
 	for {
-		n, addr, err := t.listener.ReadFromUDP(buf)
+		n, addr, err := t.conn.ReadFromUDP(buf)
 		switch {
 		case err == nil:
 			if !receiveFn(to, nwapi.FromUDPAddr(addr), buf[:n], err) {
@@ -196,7 +189,7 @@ func (p *udpOutTransport) Write(b []byte) (int, error) {
 		return 0, err
 	}
 
-	return p.conn.Write(b)
+	return p.conn.WriteToUDP(b, &p.addr)
 }
 
 func (p *udpOutTransport) SendBytes(payload []byte) error {

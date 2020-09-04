@@ -11,9 +11,9 @@ const Protocol = uniproto.ProtocolTypeMessageDelivery
 
 var protoDescriptor = uniproto.Descriptor{
 	SupportedPackets: [16]uniproto.PacketDescriptor{
-		DeliveryState:          {Flags: uniproto.DatagramAllowed, LengthBits: uniproto.SmallLengthBits},
-		DeliveryParcelHead:     {Flags: uniproto.DatagramAllowed, LengthBits: uniproto.SmallLengthBits},
-		DeliveryParcelComplete: {Flags: uniproto.DatagramAllowed, LengthBits: uniproto.MaxLengthBits},
+		DeliveryState:          {Flags: 0 /* uniproto.DatagramAllowed */, LengthBits: uniproto.SmallLengthBits},
+		DeliveryParcelHead:     {Flags: 0 /* uniproto.DatagramAllowed */, LengthBits: uniproto.SmallLengthBits},
+		DeliveryParcelComplete: {Flags: 0 /* uniproto.DatagramAllowed */, LengthBits: uniproto.MaxLengthBits},
 	},
 }
 
