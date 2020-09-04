@@ -24,6 +24,9 @@ type NetworkSupport interface {
 	nodeinfo.CertificateGetter
 
 	CreateMessagesRouter(context.Context) messagesender.MessageRouter
+
+	AddDispatcher(beat.Dispatcher)
+	GetBeatHistory() beat.History
 }
 
 // NetworkInitFunc should instantiate a network support for app compartment by the given configuration and root component manager.

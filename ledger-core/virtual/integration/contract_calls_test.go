@@ -23,7 +23,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/debuglogger"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/synchronization"
@@ -132,7 +131,7 @@ func Test_NoDeadLock_WhenOutgoingComeToSameNode(t *testing.T) {
 			Method_PrepareObject(ctx, server, payload.StateStatusReady, objectAGlobal, pulse)
 			Method_PrepareObject(ctx, server, payload.StateStatusReady, objectBGlobal, pulse)
 
-			outgoingCallRef := gen.UniqueGlobalRef()
+			outgoingCallRef := server.RandomGlobalWithPulse()
 			outgoingA := server.BuildRandomOutgoingWithPulse()
 
 			// add mock
@@ -260,7 +259,6 @@ func TestVirtual_CallContractFromContract(t *testing.T) {
 			})
 			server.ReplaceRunner(runnerMock)
 			server.Init(ctx)
-			server.IncrementPulseAndWaitIdle(ctx)
 
 			var (
 				pn      = server.GetPulse().PulseNumber
@@ -536,7 +534,6 @@ func TestVirtual_CallMethodFromConstructor(t *testing.T) {
 			})
 			server.ReplaceRunner(runnerMock)
 			server.Init(ctx)
-			server.IncrementPulseAndWaitIdle(ctx)
 
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
@@ -721,7 +718,7 @@ func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 		typedChecker.VDelegatedCallRequest.Set(func(request *payload.VDelegatedCallRequest) bool {
 			require.Equal(t, object, request.Callee)
 			newPulse := server.GetPulse().PulseNumber
-			approver := gen.UniqueGlobalRef()
+			approver := server.RandomGlobalWithPulse()
 
 			tokenValue = payload.CallDelegationToken{
 				TokenTypeAndFlags: payload.DelegationTokenTypeCall,
