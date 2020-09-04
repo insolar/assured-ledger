@@ -104,7 +104,8 @@ func TestNewUDP(t *testing.T) {
 	assert.False(t, addr.IsZero())
 	require.NotEqual(t, 0, addr.AsUDPAddr().Port)
 
-	outTransport2, err := tp.CreateOutgoingOnlyFactory()
+	tp2 := NewUDP(nwapi.NewHostPort("127.0.0.1:10000", false), nwapi.PreferV4, MaxUDPSize)
+	outTransport2, err := tp2.CreateOutgoingOnlyFactory()
 	assert.NoError(t, err)
 	require.NotNil(t, outTransport2)
 	defer outTransport2.Close()
