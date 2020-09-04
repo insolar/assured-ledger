@@ -33,7 +33,7 @@ func NewRouter(ctx context.Context, outHandler message.NoPublishHandlerFunc) Rou
 	return Router{
 		ctx:        ctx,
 		logger:     wmLogger,
-		Pub:        pubsub,
+		pub:        pubsub,
 		sub:        pubsub,
 		outHandler: outHandler,
 	}
@@ -42,17 +42,26 @@ func NewRouter(ctx context.Context, outHandler message.NoPublishHandlerFunc) Rou
 type Router struct {
 	ctx        context.Context
 	logger     *logwatermill.WatermillLogAdapter
-	Pub        message.Publisher
+	pub        message.Publisher
 	sub        message.Subscriber
 	outHandler message.NoPublishHandlerFunc
 }
 
 func (v Router) IsZero() bool {
-	return v.Pub == nil
+	return v.pub == nil
 }
 
 func (v Router) CreateMessageSender(helper affinity.Helper, accessor beat.History) messagesender.Service {
-	return messagesender.NewDefaultService(v.Pub, helper, accessor)
+	return messagesender.NewDefaultService(v.pub, helper, accessor)
+}
+
+func (v Router) ReplacePublisher(publisher message.Publisher) Router {
+	v.pub = publisher
+	return v
+}
+
+func (v Router) PublishMessage(topic string, msg *message.Message) error {
+	return v.pub.Publish(topic, msg)
 }
 
 func (v Router) SubscribeForMessages(inHandler func(beat.Message) error) (stopFn func()) {

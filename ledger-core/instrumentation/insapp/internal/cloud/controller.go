@@ -143,7 +143,7 @@ func (n Controller) sendMessageHandler(msg *message.Message) error {
 		panic(throw.IllegalState())
 	}
 
-	err = node.router.Pub.Publish(defaults.TopicIncoming, msg)
+	err = node.router.PublishMessage(defaults.TopicIncoming, msg)
 	if err != nil {
 		return throw.W(err, "error while publish msg to TopicIncoming")
 	}
