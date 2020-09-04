@@ -41,7 +41,7 @@ type MultiServer struct {
 }
 
 func (s *MultiServer) Serve() {
-	network := cloud.NewNetwork()
+	network := cloud.NewController()
 
 	var wg sync.WaitGroup
 

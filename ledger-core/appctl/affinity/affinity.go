@@ -7,6 +7,7 @@ package affinity
 
 import (
 	"crypto/sha256"
+	"fmt"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
@@ -56,6 +57,7 @@ func (jc *Coordinator) QueryRole(role DynamicRole, objID reference.Holder, pn pu
 // VirtualExecutorForObject returns list of VEs for a provided pulse and objID
 func (jc *Coordinator) VirtualExecutorForObject(objID reference.Holder, pn pulse.Number) (reference.Global, error) {
 	pc, err := jc.PulseAccessor.TimeBeat(pn)
+	fmt.Println("[Coordinator] beat", pc)
 	switch {
 	case err != nil:
 		return reference.Global{}, err
@@ -64,6 +66,7 @@ func (jc *Coordinator) VirtualExecutorForObject(objID reference.Holder, pn pulse
 	}
 
 	role := pc.Online.GetRolePopulation(member.PrimaryRoleVirtual)
+	fmt.Println("[Coordinator] role", role)
 	if role == nil {
 		return reference.Global{}, throw.E("role without nodes", struct {
 			PrimaryRole member.PrimaryRole
@@ -87,6 +90,7 @@ func (jc *Coordinator) VirtualExecutorForObject(objID reference.Holder, pn pulse
 	metric := longbits.CutOutUint64(h.Sum(nil))
 
 	assigned, _ := role.GetAssignmentByCount(metric, 0)
+	fmt.Println("[Coordinator] assigned", assigned)
 	if assigned == nil {
 		return reference.Global{}, throw.E("unable to assign node of role", struct {
 			PrimaryRole member.PrimaryRole

@@ -7,7 +7,9 @@ package cloud
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"fmt"
+	"sort"
 	"sync"
 	"time"
 
@@ -15,18 +17,24 @@ import (
 	"github.com/insolar/component-manager"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
-	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat/memstor"
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
+	"github.com/insolar/assured-ledger/ledger-core/crypto/legacyadapter"
+	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/defaults"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/censusimpl"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/watermill"
 	"github.com/insolar/assured-ledger/ledger-core/pulsar"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/version"
@@ -43,36 +51,43 @@ type NetworkSupport interface {
 	GetBeatHistory() beat.History
 }
 
-type Node struct {
-	BeatAppender beat.Appender
-	pulseManager chorus.Conductor
-	router       watermill.Router
+type controlledNode struct {
+	BeatAppender               beat.Appender
+	dispatcher                 beat.Dispatcher
+	router                     watermill.Router
+	PlatformCryptographyScheme cryptography.PlatformCryptographyScheme
+	KeyProcessor               cryptography.KeyProcessor
+	cfg                        configuration.Configuration
+
+	svf cryptkit.SignatureVerifierFactory
 
 	cert nodeinfo.Certificate
+
+	profile *adapters.StaticProfile
 }
 
-func NewNetwork() Network {
-	return Network{
+func NewController() Controller {
+	return Controller{
 		lock:  &sync.RWMutex{},
-		nodes: make(map[reference.Global]*Node),
+		nodes: make(map[reference.Global]*controlledNode),
 		start: time.Now(),
 	}
 }
 
-type Network struct {
+type Controller struct {
 	lock  *sync.RWMutex
 	start time.Time
-	nodes map[reference.Global]*Node
+	nodes map[reference.Global]*controlledNode
 }
 
-func (n Network) nodeCount() int {
+func (n Controller) nodeCount() int {
 	n.lock.RLock()
 	defer n.lock.RUnlock()
 
 	return len(n.nodes)
 }
 
-func (n Network) getFirstBeat() beat.Beat {
+func (n Controller) getFirstBeat() beat.Beat {
 	return beat.Beat{
 		Data: pulse.Data{
 			PulseNumber: pulse.MinTimePulse,
@@ -87,45 +102,39 @@ func (n Network) getFirstBeat() beat.Beat {
 	}
 }
 
-func (n Network) addNode(noderef reference.Global, node Node) {
-	n.lock.RLock()
-	defer n.lock.RUnlock()
-
-	n.nodes[noderef] = &node
-}
-
-func (n Network) firstPulse(nodeRef reference.Global) {
+func (n Controller) addNode(nodeRef reference.Global, netNode controlledNode) {
 	n.lock.Lock()
 	defer n.lock.Unlock()
 
-	node, err := n.getNode(nodeRef)
-	if err != nil {
+	if existingNode, exists := n.nodes[nodeRef]; exists {
+		fmt.Printf("Collision:\n%s\n%s\n", existingNode.cert.GetNodeRef(), netNode.cert.GetNodeRef())
 		panic(throw.IllegalState())
 	}
+	netNode.svf = adapters.NewTransportCryptographyFactory(netNode.PlatformCryptographyScheme)
 
-	fmt.Println("Sending first pulse to node", nodeRef.String())
+	netNode.profile = adapters.NewStaticProfile(node.GenerateShortID(nodeRef),
+		netNode.cert.GetRole(), member.SpecialRoleNone, adapters.DefaultStartPower,
+		adapters.NewStaticProfileExtension(node.GenerateShortID(nodeRef), nodeRef, cryptkit.NewSignature(longbits.Bits512{}, "")),
+		adapters.NewOutbound(netNode.cfg.Host.Transport.Address),
+		legacyadapter.NewECDSAPublicKeyStoreFromPK(netNode.cert.GetPublicKey()),
+		legacyadapter.NewECDSASignatureKeyHolder(netNode.cert.GetPublicKey().(*ecdsa.PublicKey), netNode.KeyProcessor),
+		cryptkit.NewSignedDigest(
+			cryptkit.NewDigest(longbits.Bits512{}, legacyadapter.SHA3Digest512),
+			cryptkit.NewSignature(longbits.Bits512{}, legacyadapter.SHA3Digest512.SignedBy(legacyadapter.SECP256r1Sign)),
+		),
+	)
 
-	firstBeat := n.getFirstBeat()
-
-	err = node.BeatAppender.AddCommittedBeat(firstBeat)
-	if err != nil {
-		panic(err)
-	}
-
-	err = node.pulseManager.CommitFirstPulseChange(firstBeat)
-	if err != nil {
-		panic(err)
-	}
+	n.nodes[nodeRef] = &netNode
 }
 
-func (n Network) GetNode(nodeID reference.Global) (*Node, error) {
+func (n Controller) GetNode(nodeID reference.Global) (*controlledNode, error) {
 	n.lock.RLock()
 	defer n.lock.RUnlock()
 
 	return n.getNode(nodeID)
 }
 
-func (n Network) getNode(nodeID reference.Global) (*Node, error) {
+func (n Controller) getNode(nodeID reference.Global) (*controlledNode, error) {
 	node, ok := n.nodes[nodeID]
 	if !ok {
 		return nil, throw.E("no node found for ref", struct{ reference reference.Global }{reference: nodeID})
@@ -133,7 +142,7 @@ func (n Network) getNode(nodeID reference.Global) (*Node, error) {
 	return node, nil
 }
 
-func (n Network) sendMessageHandler(msg *message.Message) error {
+func (n Controller) sendMessageHandler(msg *message.Message) error {
 	receiver := msg.Metadata.Get(defaults.Receiver)
 	if receiver == "" {
 		return throw.E("failed to send message: Receiver in message metadata is not set")
@@ -159,75 +168,84 @@ func (n Network) sendMessageHandler(msg *message.Message) error {
 	return nil
 }
 
-func (n Network) Distribute(_ context.Context, packet pulsar.PulsePacket) {
-	n.lock.RLock()
-	defer n.lock.RUnlock()
+func (n Controller) Distribute(_ context.Context, packet pulsar.PulsePacket) {
+	n.lock.Lock()
+	defer n.lock.Unlock()
 
-	for _, node := range n.nodes {
-		fmt.Println("Sending pulse to node", node.cert.GetNodeRef().String())
+	populationNodes := make([]profiles.StaticProfile, 0, len(n.nodes))
+	for _, netNode := range n.nodes {
+		populationNodes = append(populationNodes, netNode.profile)
+	}
 
-		err := node.BeatAppender.AddCommittedBeat(beat.Beat{
-			Data: adapters.NewPulseData(packet),
+	sort.Slice(populationNodes, func(i, j int) bool {
+		return populationNodes[i].GetStaticNodeID() < populationNodes[j].GetStaticNodeID()
+	})
+
+	for nodeRef, netNode := range n.nodes {
+		onlinePopulation := censusimpl.NewManyNodePopulation(populationNodes, node.GenerateShortID(nodeRef), netNode.svf)
+
+		err := netNode.BeatAppender.AddCommittedBeat(beat.Beat{
+			Data:   adapters.NewPulseData(packet),
+			Online: &onlinePopulation,
 		})
 		if err != nil {
 			panic(err)
 		}
 
-		err = node.pulseManager.CommitFirstPulseChange(beat.Beat{
+		netNode.dispatcher.CommitBeat(beat.Beat{
 			Data: adapters.NewPulseData(packet),
 		})
-		if err != nil {
-			panic(err)
-		}
 	}
 }
 
-func (n Network) NetworkInitFunc(_ configuration.Configuration, cm *component.Manager) (NetworkSupport, network.Status, error) {
-	// NetworkInitFunc(cert nodeinfo.Certificate) (NetworkSupport, network.Status, error) {
-
+func (n Controller) NetworkInitFunc(cfg configuration.Configuration, cm *component.Manager) (NetworkSupport, network.Status, error) {
 	statusNetwork := &cloudStatus{
 		net: &n,
+		cfg: cfg,
 	}
-
-	cm.Register(statusNetwork)
 
 	return statusNetwork, statusNetwork, nil
 }
 
 type cloudStatus struct {
-	CertificateManager nodeinfo.CertificateManager `inject:""`
-	PulseManager       chorus.Conductor            `inject:""`
-	BeatAppender       beat.Appender               `inject:""`
+	CertificateManager         nodeinfo.CertificateManager             `inject:""`
+	PlatformCryptographyScheme cryptography.PlatformCryptographyScheme `inject:""`
+	KeyProcessor               cryptography.KeyProcessor               `inject:""`
+
+	BeatAppender beat.Appender
 
 	Certificate nodeinfo.Certificate
 	router      watermill.Router
+	dispatcher  beat.Dispatcher
 
-	net *Network
+	cfg configuration.Configuration
+
+	net *Controller
 }
 
-func (s *cloudStatus) Init(_ context.Context) error {
-	fmt.Println("cloudStatus init")
-
+func (s *cloudStatus) Start(_ context.Context) error {
 	s.Certificate = s.CertificateManager.GetCertificate()
 
-	s.net.addNode(s.Certificate.GetNodeRef(), Node{
-		cert:         s.Certificate,
-		pulseManager: s.PulseManager,
-		BeatAppender: s.BeatAppender,
-		router:       s.router,
+	s.net.addNode(s.Certificate.GetNodeRef(), controlledNode{
+		cert:                       s.Certificate,
+		dispatcher:                 s.dispatcher,
+		BeatAppender:               s.BeatAppender,
+		router:                     s.router,
+		PlatformCryptographyScheme: s.PlatformCryptographyScheme,
+		cfg:                        s.cfg,
+		KeyProcessor:               s.KeyProcessor,
 	})
-
-	s.net.firstPulse(s.Certificate.GetNodeRef())
 
 	return nil
 }
 
 func (s *cloudStatus) AddDispatcher(dispatcher beat.Dispatcher) {
-	panic("implement me")
+	s.dispatcher = dispatcher
 }
 
 func (s *cloudStatus) GetBeatHistory() beat.History {
-	panic("implement me")
+	s.BeatAppender = memstor.NewStorageMem()
+	return s.BeatAppender
 }
 
 func (s *cloudStatus) GetLocalNodeRole() member.PrimaryRole {
@@ -264,9 +282,18 @@ func (s *cloudStatus) GetLocalNodeReference() reference.Holder {
 }
 
 func (s *cloudStatus) GetNetworkStatus() network.StatusReply {
+	node, err := s.net.GetNode(s.Certificate.GetNodeRef())
+	if err != nil {
+		panic(throw.IllegalState())
+	}
+	state := network.CompleteNetworkState
+	if _, err := node.BeatAppender.LatestTimeBeat(); err != nil {
+		state = network.WaitPulsar
+	}
+
 	nodeLen := s.net.nodeCount()
 	return network.StatusReply{
-		NetworkState:    network.CompleteNetworkState,
+		NetworkState:    state,
 		LocalRef:        s.Certificate.GetNodeRef(),
 		LocalRole:       s.Certificate.GetRole(),
 		ActiveListSize:  nodeLen,
