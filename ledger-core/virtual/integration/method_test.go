@@ -225,7 +225,6 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 	server.ReplaceRunner(runnerMock)
 
 	server.Init(ctx)
-	server.IncrementPulseAndWaitIdle(ctx)
 
 	var (
 		waitInputChannel  = make(chan struct{}, 2)
@@ -320,7 +319,6 @@ func TestVirtual_Method_WithoutExecutor_Ordered(t *testing.T) {
 	server.ReplaceRunner(runnerMock)
 
 	server.Init(ctx)
-	server.IncrementPulseAndWaitIdle(ctx)
 
 	var (
 		objectGlobal = server.RandomGlobalWithPulse()
@@ -413,7 +411,7 @@ func TestVirtual_CallContractFromContract_InterferenceViolation(t *testing.T) {
 			})
 			server.ReplaceRunner(runnerMock)
 			server.Init(ctx)
-			server.IncrementPulseAndWaitIdle(ctx)
+
 			var (
 				class = server.RandomGlobalWithPulse()
 
@@ -520,7 +518,6 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 	})
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
-	server.IncrementPulseAndWaitIdle(ctx)
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
@@ -734,7 +731,6 @@ func TestVirtual_CallContractTwoTimes(t *testing.T) {
 	})
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
-	server.IncrementPulseAndWaitIdle(ctx)
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
@@ -976,7 +972,6 @@ func TestVirtual_FutureMessageAddedToSlot(t *testing.T) {
 	server.ReplaceAuthenticationService(auth)
 
 	server.Init(ctx)
-	server.IncrementPulse(ctx)
 
 	// legitimate sender
 	jetCoordinatorMock.QueryRoleMock.Return([]reference.Global{server.GlobalCaller()}, nil)
@@ -1415,7 +1410,6 @@ func TestVirtual_Method_ForbiddenIsolation(t *testing.T) {
 			server.ReplaceRunner(runnerMock)
 
 			server.Init(ctx)
-			server.IncrementPulse(ctx)
 
 			var (
 				class       = server.RandomGlobalWithPulse()
