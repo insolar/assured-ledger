@@ -21,6 +21,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/secrets"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/defaults"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -107,13 +108,13 @@ func getRole(virtual, light, heavy *int) string {
 	switch {
 	case *virtual > 0:
 		*virtual--
-		return "virtual"
+		return member.PrimaryRoleVirtual.String()
 	case *light > 0:
 		*light--
-		return "light_material"
+		return member.PrimaryRoleLightMaterial.String()
 	case *heavy > 0:
 		*heavy--
-		return "heavy_material"
+		return member.PrimaryRoleHeavyMaterial.String()
 	default:
 		panic(throw.IllegalValue())
 	}
