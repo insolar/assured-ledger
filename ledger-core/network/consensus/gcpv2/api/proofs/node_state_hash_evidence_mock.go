@@ -15,12 +15,6 @@ import (
 type NodeStateHashEvidenceMock struct {
 	t minimock.Tester
 
-	funcCopyOfSignedDigest          func() (s1 cryptkit.SignedDigest)
-	inspectFuncCopyOfSignedDigest   func()
-	afterCopyOfSignedDigestCounter  uint64
-	beforeCopyOfSignedDigestCounter uint64
-	CopyOfSignedDigestMock          mNodeStateHashEvidenceMockCopyOfSignedDigest
-
 	funcEquals          func(o cryptkit.SignedDigestHolder) (b1 bool)
 	inspectFuncEquals   func(o cryptkit.SignedDigestHolder)
 	afterEqualsCounter  uint64
@@ -65,8 +59,6 @@ func NewNodeStateHashEvidenceMock(t minimock.Tester) *NodeStateHashEvidenceMock 
 		controller.RegisterMocker(m)
 	}
 
-	m.CopyOfSignedDigestMock = mNodeStateHashEvidenceMockCopyOfSignedDigest{mock: m}
-
 	m.EqualsMock = mNodeStateHashEvidenceMockEquals{mock: m}
 	m.EqualsMock.callArgs = []*NodeStateHashEvidenceMockEqualsParams{}
 
@@ -83,149 +75,6 @@ func NewNodeStateHashEvidenceMock(t minimock.Tester) *NodeStateHashEvidenceMock 
 	m.VerifyWithMock.callArgs = []*NodeStateHashEvidenceMockVerifyWithParams{}
 
 	return m
-}
-
-type mNodeStateHashEvidenceMockCopyOfSignedDigest struct {
-	mock               *NodeStateHashEvidenceMock
-	defaultExpectation *NodeStateHashEvidenceMockCopyOfSignedDigestExpectation
-	expectations       []*NodeStateHashEvidenceMockCopyOfSignedDigestExpectation
-}
-
-// NodeStateHashEvidenceMockCopyOfSignedDigestExpectation specifies expectation struct of the NodeStateHashEvidence.CopyOfSignedDigest
-type NodeStateHashEvidenceMockCopyOfSignedDigestExpectation struct {
-	mock *NodeStateHashEvidenceMock
-
-	results *NodeStateHashEvidenceMockCopyOfSignedDigestResults
-	Counter uint64
-}
-
-// NodeStateHashEvidenceMockCopyOfSignedDigestResults contains results of the NodeStateHashEvidence.CopyOfSignedDigest
-type NodeStateHashEvidenceMockCopyOfSignedDigestResults struct {
-	s1 cryptkit.SignedDigest
-}
-
-// Expect sets up expected params for NodeStateHashEvidence.CopyOfSignedDigest
-func (mmCopyOfSignedDigest *mNodeStateHashEvidenceMockCopyOfSignedDigest) Expect() *mNodeStateHashEvidenceMockCopyOfSignedDigest {
-	if mmCopyOfSignedDigest.mock.funcCopyOfSignedDigest != nil {
-		mmCopyOfSignedDigest.mock.t.Fatalf("NodeStateHashEvidenceMock.CopyOfSignedDigest mock is already set by Set")
-	}
-
-	if mmCopyOfSignedDigest.defaultExpectation == nil {
-		mmCopyOfSignedDigest.defaultExpectation = &NodeStateHashEvidenceMockCopyOfSignedDigestExpectation{}
-	}
-
-	return mmCopyOfSignedDigest
-}
-
-// Inspect accepts an inspector function that has same arguments as the NodeStateHashEvidence.CopyOfSignedDigest
-func (mmCopyOfSignedDigest *mNodeStateHashEvidenceMockCopyOfSignedDigest) Inspect(f func()) *mNodeStateHashEvidenceMockCopyOfSignedDigest {
-	if mmCopyOfSignedDigest.mock.inspectFuncCopyOfSignedDigest != nil {
-		mmCopyOfSignedDigest.mock.t.Fatalf("Inspect function is already set for NodeStateHashEvidenceMock.CopyOfSignedDigest")
-	}
-
-	mmCopyOfSignedDigest.mock.inspectFuncCopyOfSignedDigest = f
-
-	return mmCopyOfSignedDigest
-}
-
-// Return sets up results that will be returned by NodeStateHashEvidence.CopyOfSignedDigest
-func (mmCopyOfSignedDigest *mNodeStateHashEvidenceMockCopyOfSignedDigest) Return(s1 cryptkit.SignedDigest) *NodeStateHashEvidenceMock {
-	if mmCopyOfSignedDigest.mock.funcCopyOfSignedDigest != nil {
-		mmCopyOfSignedDigest.mock.t.Fatalf("NodeStateHashEvidenceMock.CopyOfSignedDigest mock is already set by Set")
-	}
-
-	if mmCopyOfSignedDigest.defaultExpectation == nil {
-		mmCopyOfSignedDigest.defaultExpectation = &NodeStateHashEvidenceMockCopyOfSignedDigestExpectation{mock: mmCopyOfSignedDigest.mock}
-	}
-	mmCopyOfSignedDigest.defaultExpectation.results = &NodeStateHashEvidenceMockCopyOfSignedDigestResults{s1}
-	return mmCopyOfSignedDigest.mock
-}
-
-//Set uses given function f to mock the NodeStateHashEvidence.CopyOfSignedDigest method
-func (mmCopyOfSignedDigest *mNodeStateHashEvidenceMockCopyOfSignedDigest) Set(f func() (s1 cryptkit.SignedDigest)) *NodeStateHashEvidenceMock {
-	if mmCopyOfSignedDigest.defaultExpectation != nil {
-		mmCopyOfSignedDigest.mock.t.Fatalf("Default expectation is already set for the NodeStateHashEvidence.CopyOfSignedDigest method")
-	}
-
-	if len(mmCopyOfSignedDigest.expectations) > 0 {
-		mmCopyOfSignedDigest.mock.t.Fatalf("Some expectations are already set for the NodeStateHashEvidence.CopyOfSignedDigest method")
-	}
-
-	mmCopyOfSignedDigest.mock.funcCopyOfSignedDigest = f
-	return mmCopyOfSignedDigest.mock
-}
-
-// CopyOfSignedDigest implements NodeStateHashEvidence
-func (mmCopyOfSignedDigest *NodeStateHashEvidenceMock) CopyOfSignedDigest() (s1 cryptkit.SignedDigest) {
-	mm_atomic.AddUint64(&mmCopyOfSignedDigest.beforeCopyOfSignedDigestCounter, 1)
-	defer mm_atomic.AddUint64(&mmCopyOfSignedDigest.afterCopyOfSignedDigestCounter, 1)
-
-	if mmCopyOfSignedDigest.inspectFuncCopyOfSignedDigest != nil {
-		mmCopyOfSignedDigest.inspectFuncCopyOfSignedDigest()
-	}
-
-	if mmCopyOfSignedDigest.CopyOfSignedDigestMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmCopyOfSignedDigest.CopyOfSignedDigestMock.defaultExpectation.Counter, 1)
-
-		mm_results := mmCopyOfSignedDigest.CopyOfSignedDigestMock.defaultExpectation.results
-		if mm_results == nil {
-			mmCopyOfSignedDigest.t.Fatal("No results are set for the NodeStateHashEvidenceMock.CopyOfSignedDigest")
-		}
-		return (*mm_results).s1
-	}
-	if mmCopyOfSignedDigest.funcCopyOfSignedDigest != nil {
-		return mmCopyOfSignedDigest.funcCopyOfSignedDigest()
-	}
-	mmCopyOfSignedDigest.t.Fatalf("Unexpected call to NodeStateHashEvidenceMock.CopyOfSignedDigest.")
-	return
-}
-
-// CopyOfSignedDigestAfterCounter returns a count of finished NodeStateHashEvidenceMock.CopyOfSignedDigest invocations
-func (mmCopyOfSignedDigest *NodeStateHashEvidenceMock) CopyOfSignedDigestAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmCopyOfSignedDigest.afterCopyOfSignedDigestCounter)
-}
-
-// CopyOfSignedDigestBeforeCounter returns a count of NodeStateHashEvidenceMock.CopyOfSignedDigest invocations
-func (mmCopyOfSignedDigest *NodeStateHashEvidenceMock) CopyOfSignedDigestBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmCopyOfSignedDigest.beforeCopyOfSignedDigestCounter)
-}
-
-// MinimockCopyOfSignedDigestDone returns true if the count of the CopyOfSignedDigest invocations corresponds
-// the number of defined expectations
-func (m *NodeStateHashEvidenceMock) MinimockCopyOfSignedDigestDone() bool {
-	for _, e := range m.CopyOfSignedDigestMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.CopyOfSignedDigestMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterCopyOfSignedDigestCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcCopyOfSignedDigest != nil && mm_atomic.LoadUint64(&m.afterCopyOfSignedDigestCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockCopyOfSignedDigestInspect logs each unmet expectation
-func (m *NodeStateHashEvidenceMock) MinimockCopyOfSignedDigestInspect() {
-	for _, e := range m.CopyOfSignedDigestMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Error("Expected call to NodeStateHashEvidenceMock.CopyOfSignedDigest")
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.CopyOfSignedDigestMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterCopyOfSignedDigestCounter) < 1 {
-		m.t.Error("Expected call to NodeStateHashEvidenceMock.CopyOfSignedDigest")
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcCopyOfSignedDigest != nil && mm_atomic.LoadUint64(&m.afterCopyOfSignedDigestCounter) < 1 {
-		m.t.Error("Expected call to NodeStateHashEvidenceMock.CopyOfSignedDigest")
-	}
 }
 
 type mNodeStateHashEvidenceMockEquals struct {
@@ -1305,8 +1154,6 @@ func (m *NodeStateHashEvidenceMock) MinimockVerifyWithInspect() {
 // MinimockFinish checks that all mocked methods have been called the expected number of times
 func (m *NodeStateHashEvidenceMock) MinimockFinish() {
 	if !m.minimockDone() {
-		m.MinimockCopyOfSignedDigestInspect()
-
 		m.MinimockEqualsInspect()
 
 		m.MinimockGetDigestHolderInspect()
@@ -1341,7 +1188,6 @@ func (m *NodeStateHashEvidenceMock) MinimockWait(timeout mm_time.Duration) {
 func (m *NodeStateHashEvidenceMock) minimockDone() bool {
 	done := true
 	return done &&
-		m.MinimockCopyOfSignedDigestDone() &&
 		m.MinimockEqualsDone() &&
 		m.MinimockGetDigestHolderDone() &&
 		m.MinimockGetSignatureHolderDone() &&
