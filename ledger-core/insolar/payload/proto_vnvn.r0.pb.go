@@ -1793,6 +1793,9 @@ func (m *VCallRequest) Marshal() (dAtA []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
+	if n != size {
+		panic("illegal state")
+	}
 	return dAtA[:n], nil
 }
 
@@ -2145,6 +2148,9 @@ func (m *VCallResult) Marshal() (dAtA []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
+	if n != size {
+		panic("illegal state")
+	}
 	return dAtA[:n], nil
 }
 
@@ -2397,6 +2403,9 @@ func (m *VStateRequest) Marshal() (dAtA []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
+	if n != size {
+		panic("illegal state")
+	}
 	return dAtA[:n], nil
 }
 
@@ -2512,6 +2521,9 @@ func (m *VStateReport) Marshal() (dAtA []byte, err error) {
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
+	}
+	if n != size {
+		panic("illegal state")
 	}
 	return dAtA[:n], nil
 }
@@ -2704,6 +2716,9 @@ func (m *VStateReport_ProvidedContentBody) Marshal() (dAtA []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
+	if n != size {
+		panic("illegal state")
+	}
 	return dAtA[:n], nil
 }
 
@@ -2830,6 +2845,9 @@ func (m *ObjectState) Marshal() (dAtA []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
+	if n != size {
+		panic("illegal state")
+	}
 	return dAtA[:n], nil
 }
 
@@ -2927,6 +2945,9 @@ func (m *VDelegatedRequestFinished) Marshal() (dAtA []byte, err error) {
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
+	}
+	if n != size {
+		panic("illegal state")
 	}
 	return dAtA[:n], nil
 }
@@ -3070,6 +3091,9 @@ func (m *VDelegatedCallRequest) Marshal() (dAtA []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
+	if n != size {
+		panic("illegal state")
+	}
 	return dAtA[:n], nil
 }
 
@@ -3181,6 +3205,9 @@ func (m *VDelegatedCallResponse) Marshal() (dAtA []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
+	if n != size {
+		panic("illegal state")
+	}
 	return dAtA[:n], nil
 }
 
@@ -3256,6 +3283,9 @@ func (m *CallDelegationToken) Marshal() (dAtA []byte, err error) {
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
+	}
+	if n != size {
+		panic("illegal state")
 	}
 	return dAtA[:n], nil
 }
@@ -3386,6 +3416,9 @@ func (m *VFindCallRequest) Marshal() (dAtA []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
+	if n != size {
+		panic("illegal state")
+	}
 	return dAtA[:n], nil
 }
 
@@ -3454,6 +3487,9 @@ func (m *VFindCallResponse) Marshal() (dAtA []byte, err error) {
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
+	}
+	if n != size {
+		panic("illegal state")
 	}
 	return dAtA[:n], nil
 }
@@ -3547,6 +3583,9 @@ func (m *VCachedMemoryRequest) Marshal() (dAtA []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
+	if n != size {
+		panic("illegal state")
+	}
 	return dAtA[:n], nil
 }
 
@@ -3608,6 +3647,9 @@ func (m *VCachedMemoryResponse) Marshal() (dAtA []byte, err error) {
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
+	}
+	if n != size {
+		panic("illegal state")
 	}
 	return dAtA[:n], nil
 }
