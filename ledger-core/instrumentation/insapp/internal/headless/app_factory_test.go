@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package headless
+package headless_test
 
 import (
 	"context"
@@ -36,7 +36,7 @@ func TestAppFactory(t *testing.T) {
 	cfg.APIRunner.SwaggerPath = "../../../application/api/spec/api-exported.yaml"
 	cfg.AdminAPIRunner.SwaggerPath = "../../../application/api/spec/api-exported.yaml"
 
-	server := insapp.New("", nil, &AppComponent{})
+	server := insapp.NewHeadless(cfg)
 
 	cm, stopWatermill := server.StartComponents(ctx, cfg, nil, func(context.Context, configuration.Log, string, string) context.Context {
 		return ctx
