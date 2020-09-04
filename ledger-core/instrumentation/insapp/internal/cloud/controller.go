@@ -174,6 +174,10 @@ func (n Controller) Distribute(_ context.Context, packet pulsar.PulsePacket) {
 			panic(err)
 		}
 
+		sink, _ := beat.NewAck(func(data beat.AckData) {})
+
+		netNode.dispatcher.PrepareBeat(sink)
+
 		netNode.dispatcher.CommitBeat(newBeat)
 	}
 }
