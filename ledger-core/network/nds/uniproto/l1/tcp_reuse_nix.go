@@ -16,6 +16,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+//nolint:interfacer
 func ListenTCPWithReuse(network string, laddr *net.TCPAddr) (*net.TCPListener, error) {
 	sl := &net.ListenConfig{Control: reuseSocketControl}
 	listener, err := sl.Listen(context.Background(), network, laddr.String())
@@ -25,10 +26,12 @@ func ListenTCPWithReuse(network string, laddr *net.TCPAddr) (*net.TCPListener, e
 	return listener.(*net.TCPListener), nil
 }
 
+//nolint:interfacer
 func DialerTCPWithReuse(laddr *net.TCPAddr) *net.Dialer {
 	return &net.Dialer{LocalAddr: laddr, Control: reuseSocketControl}
 }
 
+//nolint:interfacer
 func DialTCPWithReuse(network string, laddr, raddr *net.TCPAddr) (*net.TCPConn, error) {
 	sl := DialerTCPWithReuse(laddr)
 	conn, err := sl.Dial(network, raddr.String())
