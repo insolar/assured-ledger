@@ -806,6 +806,9 @@ func (m *MessageExample) Marshal() (dAtA []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
+	if n != size {
+		panic("illegal state")
+	}
 	return dAtA[:n], nil
 }
 
@@ -876,6 +879,9 @@ func (m *MessageExample_Head) Marshal() (dAtA []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
+	if n != size {
+		panic("illegal state")
+	}
 	return dAtA[:n], nil
 }
 
@@ -934,6 +940,9 @@ func (m *VObjectTranscriptReport) Marshal() (dAtA []byte, err error) {
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
+	}
+	if n != size {
+		panic("illegal state")
 	}
 	return dAtA[:n], nil
 }
@@ -1032,6 +1041,9 @@ func (m *VObjectTranscriptReport_TranscriptEntryIncomingRequest) Marshal() (dAtA
 	if err != nil {
 		return nil, err
 	}
+	if n != size {
+		panic("illegal state")
+	}
 	return dAtA[:n], nil
 }
 
@@ -1105,6 +1117,9 @@ func (m *VObjectTranscriptReport_TranscriptEntryOutgoingRequest) Marshal() (dAtA
 	if err != nil {
 		return nil, err
 	}
+	if n != size {
+		panic("illegal state")
+	}
 	return dAtA[:n], nil
 }
 
@@ -1152,6 +1167,9 @@ func (m *VObjectTranscriptReport_TranscriptEntryOutgoingResult) Marshal() (dAtA 
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
+	}
+	if n != size {
+		panic("illegal state")
 	}
 	return dAtA[:n], nil
 }
@@ -1211,6 +1229,9 @@ func (m *VObjectTranscriptReport_TranscriptEntryIncomingResult) Marshal() (dAtA 
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
+	}
+	if n != size {
+		panic("illegal state")
 	}
 	return dAtA[:n], nil
 }
@@ -1273,6 +1294,9 @@ func (m *VObjectTranscriptReport_Transcript) Marshal() (dAtA []byte, err error) 
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
+	}
+	if n != size {
+		panic("illegal state")
 	}
 	return dAtA[:n], nil
 }
