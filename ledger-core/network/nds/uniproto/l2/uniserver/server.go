@@ -211,6 +211,8 @@ func (p *UnifiedServer) receiveSessionless(local, remote nwapi.Address, b []byte
 	}
 
 	if p.udpSema.LockTimeout(time.Second) {
+		b = append([]byte(nil), b...)
+
 		go func() {
 			defer p.udpSema.Unlock()
 
