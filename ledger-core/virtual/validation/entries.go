@@ -1,5 +1,7 @@
 package validation
 
+import "github.com/insolar/assured-ledger/ledger-core/reference"
+
 type TranscriptEntry struct {
 	// some common fields are expect, but a bit later
 
@@ -21,6 +23,8 @@ func (TranscriptEntryIncomingRequest) TranscriptEntryMarker() {
 var _ CustomTranscriptEntryPart = TranscriptEntryIncomingResult{}
 
 type TranscriptEntryIncomingResult struct {
+	IncomingResult reference.Global
+	ObjectMemory reference.Global
 }
 
 func (TranscriptEntryIncomingResult) TranscriptEntryMarker() {
