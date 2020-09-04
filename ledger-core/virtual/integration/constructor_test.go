@@ -178,7 +178,6 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 	runnerMock := logicless.NewServiceMock(ctx, mc, nil)
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
-	server.IncrementPulseAndWaitIdle(ctx)
 
 	pl := utils.GenerateVCallRequestConstructor(server)
 	pl.Arguments = []byte("arguments")
@@ -726,7 +725,6 @@ func TestVirtual_CallConstructor_WithTwicePulseChange(t *testing.T) {
 	server.ReplaceRunner(runnerMock)
 
 	server.Init(ctx)
-	server.IncrementPulseAndWaitIdle(ctx)
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
