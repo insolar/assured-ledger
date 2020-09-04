@@ -110,14 +110,14 @@ func (n Controller) addNode(nodeRef reference.Global, netNode controlledNode) {
 	n.nodes[nodeRef] = &netNode
 }
 
-func (n Controller) GetNode(nodeID reference.Global) (*controlledNode, error) {
+func (n Controller) getNode(nodeID reference.Global) (*controlledNode, error) {
 	n.lock.RLock()
 	defer n.lock.RUnlock()
 
-	return n.getNode(nodeID)
+	return n.unsafeGetNode(nodeID)
 }
 
-func (n Controller) getNode(nodeID reference.Global) (*controlledNode, error) {
+func (n Controller) unsafeGetNode(nodeID reference.Global) (*controlledNode, error) {
 	node, ok := n.nodes[nodeID]
 	if !ok {
 		return nil, throw.E("no node found for ref", struct{ reference reference.Global }{reference: nodeID})
@@ -138,7 +138,7 @@ func (n Controller) sendMessageHandler(msg *message.Message) error {
 		return throw.E("failed to send message: Receiver in message metadata is empty")
 	}
 
-	node, err := n.GetNode(nodeRef)
+	node, err := n.getNode(nodeRef)
 	if err != nil {
 		panic(throw.IllegalState())
 	}
@@ -271,7 +271,7 @@ func (s *cloudStatus) FindAnyLatestNodeSnapshot() beat.NodeSnapshot {
 }
 
 func (s *cloudStatus) GetCert(ctx context.Context, global reference.Global) (nodeinfo.Certificate, error) {
-	node, err := s.net.GetNode(global)
+	node, err := s.net.getNode(global)
 	if err != nil {
 		return nil, throw.E("node not found")
 	}
@@ -292,7 +292,7 @@ func (s *cloudStatus) GetLocalNodeReference() reference.Holder {
 }
 
 func (s *cloudStatus) GetNetworkStatus() network.StatusReply {
-	node, err := s.net.GetNode(s.Certificate.GetNodeRef())
+	node, err := s.net.getNode(s.Certificate.GetNodeRef())
 	if err != nil {
 		panic(throw.IllegalState())
 	}
