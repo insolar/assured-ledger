@@ -7,7 +7,6 @@ package main
 
 import (
 	"io/ioutil"
-	"os"
 
 	jww "github.com/spf13/jwalterweatherman"
 	"gopkg.in/yaml.v2"
@@ -23,7 +22,6 @@ func readConfig(cfgPath string) configuration.Configuration {
 	err := cfgHolder.Load()
 	if err != nil {
 		global.Fatal("failed to load configuration from file: ", err.Error())
-		os.Exit(1)
 	}
 	return *cfgHolder.Configuration
 }

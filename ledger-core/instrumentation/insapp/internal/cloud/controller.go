@@ -155,10 +155,15 @@ func (n Controller) Distribute(_ context.Context, packet pulsar.PulsePacket) {
 	n.lock.Lock()
 	defer n.lock.Unlock()
 
-	populationNodes := make([]profiles.StaticProfile, 0, len(n.nodes))
+	profiles := make([]profiles.StaticProfile, 0, len(n.nodes))
 	for _, netNode := range n.nodes {
-		populationNodes = append(populationNodes, netNode.profile)
+		profiles = append(profiles, netNode.profile)
 	}
+
+	// sort profiles by shortID
+	sort.Slice(profiles, func(i, j int) bool {
+		return profiles[j].GetStaticNodeID() < profiles[i].GetStaticNodeID()
+	})
 
 	newBeatData := beat.Beat{
 		Data:      adapters.NewPulseData(packet),
@@ -166,7 +171,7 @@ func (n Controller) Distribute(_ context.Context, packet pulsar.PulsePacket) {
 	}
 
 	for _, netNode := range n.nodes {
-		onlinePopulation := censusimpl.NewManyNodePopulation(populationNodes, netNode.profile.GetStaticNodeID(), netNode.svf)
+		onlinePopulation := censusimpl.NewManyNodePopulation(profiles, netNode.profile.GetStaticNodeID(), netNode.svf)
 
 		newBeat := beat.Beat{
 			Data:      newBeatData.Data,
@@ -206,7 +211,7 @@ func prepareManyNodePopulation(id node.ShortNodeID, op censusimpl.ManyNodePopula
 
 	sort.SliceStable(pfs, func(i, j int) bool {
 		// Power sorting is REVERSED
-		return pfs[j].GetDeclaredPower() < pfs[i].GetDeclaredPower()
+		return pfs[j].GetDeclaredPower() <= pfs[i].GetDeclaredPower() || pfs[j].GetNodeID() < pfs[i].GetNodeID()
 	})
 
 	idx := member.AsIndex(0)
