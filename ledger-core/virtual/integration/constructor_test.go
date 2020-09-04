@@ -25,7 +25,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/predicate"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
@@ -179,7 +178,6 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 	runnerMock := logicless.NewServiceMock(ctx, mc, nil)
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
-	server.IncrementPulseAndWaitIdle(ctx)
 
 	pl := utils.GenerateVCallRequestConstructor(server)
 	pl.Arguments = []byte("arguments")
@@ -196,8 +194,8 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 	currPulse := server.GetPulse().PulseNumber
 
 	{
-		requestResult := requestresult.New([]byte("123"), gen.UniqueGlobalRef())
-		requestResult.SetActivate(gen.UniqueGlobalRef(), class, []byte("some memory"))
+		requestResult := requestresult.New([]byte("123"), server.RandomGlobalWithPulse())
+		requestResult.SetActivate(server.RandomGlobalWithPulse(), class, []byte("some memory"))
 
 		runnerMock.AddExecutionMock(outgoing.String()).
 			AddStart(func(execution execution.Context) {
@@ -346,8 +344,8 @@ func TestVirtual_Constructor_PrevPulseStateWithMissingStatus(t *testing.T) {
 	pl.Arguments = []byte("arguments")
 
 	{
-		requestResult := requestresult.New([]byte("123"), gen.UniqueGlobalRef())
-		requestResult.SetActivate(gen.UniqueGlobalRef(), class, []byte("some memory"))
+		requestResult := requestresult.New([]byte("123"), server.RandomGlobalWithPulse())
+		requestResult.SetActivate(server.RandomGlobalWithPulse(), class, []byte("some memory"))
 
 		runnerMock.AddExecutionMock(outgoing.String()).
 			AddStart(func(execution execution.Context) {
@@ -727,7 +725,6 @@ func TestVirtual_CallConstructor_WithTwicePulseChange(t *testing.T) {
 	server.ReplaceRunner(runnerMock)
 
 	server.Init(ctx)
-	server.IncrementPulseAndWaitIdle(ctx)
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 

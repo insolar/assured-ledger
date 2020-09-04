@@ -1424,6 +1424,9 @@ func (m *RecordExample) Marshal() (dAtA []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
+	if n != size {
+		panic("illegal state")
+	}
 	return dAtA[:n], nil
 }
 
@@ -1525,6 +1528,9 @@ func (m *RLineRecap) Marshal() (dAtA []byte, err error) {
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
+	}
+	if n != size {
+		panic("illegal state")
 	}
 	return dAtA[:n], nil
 }
@@ -1663,6 +1669,9 @@ func (m *MemoryRecap) Marshal() (dAtA []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
+	if n != size {
+		panic("illegal state")
+	}
 	return dAtA[:n], nil
 }
 
@@ -1717,6 +1726,9 @@ func (m *RPrevDropReport) Marshal() (dAtA []byte, err error) {
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
+	}
+	if n != size {
+		panic("illegal state")
 	}
 	return dAtA[:n], nil
 }
@@ -1780,6 +1792,9 @@ func (m *RLineActivate) Marshal() (dAtA []byte, err error) {
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
+	}
+	if n != size {
+		panic("illegal state")
 	}
 	return dAtA[:n], nil
 }
@@ -1870,6 +1885,9 @@ func (m *RLineDeactivate) Marshal() (dAtA []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
+	if n != size {
+		panic("illegal state")
+	}
 	return dAtA[:n], nil
 }
 
@@ -1930,6 +1948,9 @@ func (m *RLineMemory) Marshal() (dAtA []byte, err error) {
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
+	}
+	if n != size {
+		panic("illegal state")
 	}
 	return dAtA[:n], nil
 }
@@ -2026,6 +2047,9 @@ func (m *RLineMemoryExpected) Marshal() (dAtA []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
+	if n != size {
+		panic("illegal state")
+	}
 	return dAtA[:n], nil
 }
 
@@ -2086,6 +2110,9 @@ func (m *RLineMemoryReuse) Marshal() (dAtA []byte, err error) {
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
+	}
+	if n != size {
+		panic("illegal state")
 	}
 	return dAtA[:n], nil
 }
@@ -2148,6 +2175,9 @@ func (m *RLineInboundRequest) Marshal() (dAtA []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
+	if n != size {
+		panic("illegal state")
+	}
 	return dAtA[:n], nil
 }
 
@@ -2208,6 +2238,9 @@ func (m *RInboundRequest) Marshal() (dAtA []byte, err error) {
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
+	}
+	if n != size {
+		panic("illegal state")
 	}
 	return dAtA[:n], nil
 }
@@ -2270,6 +2303,9 @@ func (m *RInboundResponse) Marshal() (dAtA []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
+	if n != size {
+		panic("illegal state")
+	}
 	return dAtA[:n], nil
 }
 
@@ -2331,6 +2367,9 @@ func (m *ROutboundResponse) Marshal() (dAtA []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
+	if n != size {
+		panic("illegal state")
+	}
 	return dAtA[:n], nil
 }
 
@@ -2391,6 +2430,9 @@ func (m *ROutboundRequest) Marshal() (dAtA []byte, err error) {
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
+	}
+	if n != size {
+		panic("illegal state")
 	}
 	return dAtA[:n], nil
 }

@@ -7,7 +7,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/builtin/contract/testwallet"
-	walletproxy "github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
@@ -15,7 +14,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
@@ -25,13 +23,14 @@ func BenchmarkVCallRequestGetMethod(b *testing.B) {
 	convlog.DisableTextConvLog()
 	server, ctx := utils.NewServer(nil, b)
 	defer server.Stop()
-	prevPulse := server.GetPulse()
-	server.IncrementPulseAndWaitIdle(ctx)
 
 	var (
-		class  = walletproxy.GetClass()
-		object = reference.NewSelf(gen.UniqueLocalRefWithPulse(prevPulse.PulseNumber))
+		prevPulse = server.GetPulse()
+		class     = server.RandomGlobalWithPulse()
+		object    = server.RandomGlobalWithPulse()
 	)
+
+	server.IncrementPulseAndWaitIdle(ctx)
 
 	walletMemory := insolar.MustSerialize(testwallet.Wallet{
 		Balance: 1234567,
@@ -86,13 +85,13 @@ func BenchmarkVCallRequestAcceptMethod(b *testing.B) {
 	convlog.DisableTextConvLog()
 	server, ctx := utils.NewServer(nil, b)
 	defer server.Stop()
-	prevPulse := server.GetPulse()
-	server.IncrementPulseAndWaitIdle(ctx)
 
 	var (
-		class  = walletproxy.GetClass()
-		object = reference.NewSelf(gen.UniqueLocalRefWithPulse(prevPulse.PulseNumber))
+		prevPulse = server.GetPulse()
+		class     = server.RandomGlobalWithPulse()
+		object    = server.RandomGlobalWithPulse()
 	)
+	server.IncrementPulseAndWaitIdle(ctx)
 
 	walletMemory := insolar.MustSerialize(testwallet.Wallet{
 		Balance: 1234567,
@@ -156,7 +155,7 @@ func BenchmarkVCallRequestConstructor(b *testing.B) {
 	})
 
 	pl := *utils.GenerateVCallRequestConstructor(server)
-	pl.Callee = walletproxy.GetClass()
+	pl.Callee = server.RandomGlobalWithPulse()
 	pl.CallSiteMethod = "New"
 	pl.CallOutgoing = server.BuildRandomOutgoingWithPulse()
 
@@ -200,13 +199,13 @@ func BenchmarkTestAPIGetBalance(b *testing.B) {
 	convlog.DisableTextConvLog()
 	server, ctx := utils.NewServer(nil, b)
 	defer server.Stop()
-	prevPulse := server.GetPulse()
-	server.IncrementPulseAndWaitIdle(ctx)
 
 	var (
-		class  = walletproxy.GetClass()
-		object = reference.NewSelf(gen.UniqueLocalRefWithPulse(prevPulse.PulseNumber))
+		prevPulse = server.GetPulse()
+		class     = server.RandomGlobalWithPulse()
+		object    = server.RandomGlobalWithPulse()
 	)
+	server.IncrementPulseAndWaitIdle(ctx)
 
 	walletMemory := insolar.MustSerialize(testwallet.Wallet{
 		Balance: 1234567,
@@ -242,13 +241,13 @@ func BenchmarkTestAPIGetBalanceParallel(b *testing.B) {
 	convlog.DisableTextConvLog()
 	server, ctx := utils.NewServer(nil, b)
 	defer server.Stop()
-	prevPulse := server.GetPulse()
-	server.IncrementPulseAndWaitIdle(ctx)
 
 	var (
-		class  = walletproxy.GetClass()
-		object = reference.NewSelf(gen.UniqueLocalRefWithPulse(prevPulse.PulseNumber))
+		prevPulse = server.GetPulse()
+		class     = server.RandomGlobalWithPulse()
+		object    = server.RandomGlobalWithPulse()
 	)
+	server.IncrementPulseAndWaitIdle(ctx)
 
 	walletMemory := insolar.MustSerialize(testwallet.Wallet{
 		Balance: 1234567,
