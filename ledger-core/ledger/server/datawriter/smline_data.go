@@ -205,6 +205,7 @@ func (p *LineSharedData) AddRecap(ctx smachine.ExecutionContext, ref reference.G
 
 }
 
+//nolint
 func (p *LineSharedData) addSoloRecord(ctx smachine.ExecutionContext, rec lineage.Record) (*buildersvc.Future, *buildersvc.Future) {
 	p.ensureDataAccess()
 	br := p.data.NewBundle()
