@@ -28,6 +28,12 @@ type ExecutionContextMock struct {
 	beforeAcquireAndReleaseCounter uint64
 	AcquireAndReleaseMock          mExecutionContextMockAcquireAndRelease
 
+	funcAcquireExt          func(s1 SyncLink, a1 AcquireFlags) (b1 BoolDecision)
+	inspectFuncAcquireExt   func(s1 SyncLink, a1 AcquireFlags)
+	afterAcquireExtCounter  uint64
+	beforeAcquireExtCounter uint64
+	AcquireExtMock          mExecutionContextMockAcquireExt
+
 	funcAcquireForThisStep          func(s1 SyncLink) (b1 BoolDecision)
 	inspectFuncAcquireForThisStep   func(s1 SyncLink)
 	afterAcquireForThisStepCounter  uint64
@@ -413,6 +419,9 @@ func NewExecutionContextMock(t minimock.Tester) *ExecutionContextMock {
 
 	m.AcquireAndReleaseMock = mExecutionContextMockAcquireAndRelease{mock: m}
 	m.AcquireAndReleaseMock.callArgs = []*ExecutionContextMockAcquireAndReleaseParams{}
+
+	m.AcquireExtMock = mExecutionContextMockAcquireExt{mock: m}
+	m.AcquireExtMock.callArgs = []*ExecutionContextMockAcquireExtParams{}
 
 	m.AcquireForThisStepMock = mExecutionContextMockAcquireForThisStep{mock: m}
 	m.AcquireForThisStepMock.callArgs = []*ExecutionContextMockAcquireForThisStepParams{}
@@ -1013,6 +1022,222 @@ func (m *ExecutionContextMock) MinimockAcquireAndReleaseInspect() {
 	// if func was set then invocations count should be greater than zero
 	if m.funcAcquireAndRelease != nil && mm_atomic.LoadUint64(&m.afterAcquireAndReleaseCounter) < 1 {
 		m.t.Error("Expected call to ExecutionContextMock.AcquireAndRelease")
+	}
+}
+
+type mExecutionContextMockAcquireExt struct {
+	mock               *ExecutionContextMock
+	defaultExpectation *ExecutionContextMockAcquireExtExpectation
+	expectations       []*ExecutionContextMockAcquireExtExpectation
+
+	callArgs []*ExecutionContextMockAcquireExtParams
+	mutex    sync.RWMutex
+}
+
+// ExecutionContextMockAcquireExtExpectation specifies expectation struct of the ExecutionContext.AcquireExt
+type ExecutionContextMockAcquireExtExpectation struct {
+	mock    *ExecutionContextMock
+	params  *ExecutionContextMockAcquireExtParams
+	results *ExecutionContextMockAcquireExtResults
+	Counter uint64
+}
+
+// ExecutionContextMockAcquireExtParams contains parameters of the ExecutionContext.AcquireExt
+type ExecutionContextMockAcquireExtParams struct {
+	s1 SyncLink
+	a1 AcquireFlags
+}
+
+// ExecutionContextMockAcquireExtResults contains results of the ExecutionContext.AcquireExt
+type ExecutionContextMockAcquireExtResults struct {
+	b1 BoolDecision
+}
+
+// Expect sets up expected params for ExecutionContext.AcquireExt
+func (mmAcquireExt *mExecutionContextMockAcquireExt) Expect(s1 SyncLink, a1 AcquireFlags) *mExecutionContextMockAcquireExt {
+	if mmAcquireExt.mock.funcAcquireExt != nil {
+		mmAcquireExt.mock.t.Fatalf("ExecutionContextMock.AcquireExt mock is already set by Set")
+	}
+
+	if mmAcquireExt.defaultExpectation == nil {
+		mmAcquireExt.defaultExpectation = &ExecutionContextMockAcquireExtExpectation{}
+	}
+
+	mmAcquireExt.defaultExpectation.params = &ExecutionContextMockAcquireExtParams{s1, a1}
+	for _, e := range mmAcquireExt.expectations {
+		if minimock.Equal(e.params, mmAcquireExt.defaultExpectation.params) {
+			mmAcquireExt.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmAcquireExt.defaultExpectation.params)
+		}
+	}
+
+	return mmAcquireExt
+}
+
+// Inspect accepts an inspector function that has same arguments as the ExecutionContext.AcquireExt
+func (mmAcquireExt *mExecutionContextMockAcquireExt) Inspect(f func(s1 SyncLink, a1 AcquireFlags)) *mExecutionContextMockAcquireExt {
+	if mmAcquireExt.mock.inspectFuncAcquireExt != nil {
+		mmAcquireExt.mock.t.Fatalf("Inspect function is already set for ExecutionContextMock.AcquireExt")
+	}
+
+	mmAcquireExt.mock.inspectFuncAcquireExt = f
+
+	return mmAcquireExt
+}
+
+// Return sets up results that will be returned by ExecutionContext.AcquireExt
+func (mmAcquireExt *mExecutionContextMockAcquireExt) Return(b1 BoolDecision) *ExecutionContextMock {
+	if mmAcquireExt.mock.funcAcquireExt != nil {
+		mmAcquireExt.mock.t.Fatalf("ExecutionContextMock.AcquireExt mock is already set by Set")
+	}
+
+	if mmAcquireExt.defaultExpectation == nil {
+		mmAcquireExt.defaultExpectation = &ExecutionContextMockAcquireExtExpectation{mock: mmAcquireExt.mock}
+	}
+	mmAcquireExt.defaultExpectation.results = &ExecutionContextMockAcquireExtResults{b1}
+	return mmAcquireExt.mock
+}
+
+//Set uses given function f to mock the ExecutionContext.AcquireExt method
+func (mmAcquireExt *mExecutionContextMockAcquireExt) Set(f func(s1 SyncLink, a1 AcquireFlags) (b1 BoolDecision)) *ExecutionContextMock {
+	if mmAcquireExt.defaultExpectation != nil {
+		mmAcquireExt.mock.t.Fatalf("Default expectation is already set for the ExecutionContext.AcquireExt method")
+	}
+
+	if len(mmAcquireExt.expectations) > 0 {
+		mmAcquireExt.mock.t.Fatalf("Some expectations are already set for the ExecutionContext.AcquireExt method")
+	}
+
+	mmAcquireExt.mock.funcAcquireExt = f
+	return mmAcquireExt.mock
+}
+
+// When sets expectation for the ExecutionContext.AcquireExt which will trigger the result defined by the following
+// Then helper
+func (mmAcquireExt *mExecutionContextMockAcquireExt) When(s1 SyncLink, a1 AcquireFlags) *ExecutionContextMockAcquireExtExpectation {
+	if mmAcquireExt.mock.funcAcquireExt != nil {
+		mmAcquireExt.mock.t.Fatalf("ExecutionContextMock.AcquireExt mock is already set by Set")
+	}
+
+	expectation := &ExecutionContextMockAcquireExtExpectation{
+		mock:   mmAcquireExt.mock,
+		params: &ExecutionContextMockAcquireExtParams{s1, a1},
+	}
+	mmAcquireExt.expectations = append(mmAcquireExt.expectations, expectation)
+	return expectation
+}
+
+// Then sets up ExecutionContext.AcquireExt return parameters for the expectation previously defined by the When method
+func (e *ExecutionContextMockAcquireExtExpectation) Then(b1 BoolDecision) *ExecutionContextMock {
+	e.results = &ExecutionContextMockAcquireExtResults{b1}
+	return e.mock
+}
+
+// AcquireExt implements ExecutionContext
+func (mmAcquireExt *ExecutionContextMock) AcquireExt(s1 SyncLink, a1 AcquireFlags) (b1 BoolDecision) {
+	mm_atomic.AddUint64(&mmAcquireExt.beforeAcquireExtCounter, 1)
+	defer mm_atomic.AddUint64(&mmAcquireExt.afterAcquireExtCounter, 1)
+
+	if mmAcquireExt.inspectFuncAcquireExt != nil {
+		mmAcquireExt.inspectFuncAcquireExt(s1, a1)
+	}
+
+	mm_params := &ExecutionContextMockAcquireExtParams{s1, a1}
+
+	// Record call args
+	mmAcquireExt.AcquireExtMock.mutex.Lock()
+	mmAcquireExt.AcquireExtMock.callArgs = append(mmAcquireExt.AcquireExtMock.callArgs, mm_params)
+	mmAcquireExt.AcquireExtMock.mutex.Unlock()
+
+	for _, e := range mmAcquireExt.AcquireExtMock.expectations {
+		if minimock.Equal(e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.b1
+		}
+	}
+
+	if mmAcquireExt.AcquireExtMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmAcquireExt.AcquireExtMock.defaultExpectation.Counter, 1)
+		mm_want := mmAcquireExt.AcquireExtMock.defaultExpectation.params
+		mm_got := ExecutionContextMockAcquireExtParams{s1, a1}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmAcquireExt.t.Errorf("ExecutionContextMock.AcquireExt got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmAcquireExt.AcquireExtMock.defaultExpectation.results
+		if mm_results == nil {
+			mmAcquireExt.t.Fatal("No results are set for the ExecutionContextMock.AcquireExt")
+		}
+		return (*mm_results).b1
+	}
+	if mmAcquireExt.funcAcquireExt != nil {
+		return mmAcquireExt.funcAcquireExt(s1, a1)
+	}
+	mmAcquireExt.t.Fatalf("Unexpected call to ExecutionContextMock.AcquireExt. %v %v", s1, a1)
+	return
+}
+
+// AcquireExtAfterCounter returns a count of finished ExecutionContextMock.AcquireExt invocations
+func (mmAcquireExt *ExecutionContextMock) AcquireExtAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmAcquireExt.afterAcquireExtCounter)
+}
+
+// AcquireExtBeforeCounter returns a count of ExecutionContextMock.AcquireExt invocations
+func (mmAcquireExt *ExecutionContextMock) AcquireExtBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmAcquireExt.beforeAcquireExtCounter)
+}
+
+// Calls returns a list of arguments used in each call to ExecutionContextMock.AcquireExt.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmAcquireExt *mExecutionContextMockAcquireExt) Calls() []*ExecutionContextMockAcquireExtParams {
+	mmAcquireExt.mutex.RLock()
+
+	argCopy := make([]*ExecutionContextMockAcquireExtParams, len(mmAcquireExt.callArgs))
+	copy(argCopy, mmAcquireExt.callArgs)
+
+	mmAcquireExt.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockAcquireExtDone returns true if the count of the AcquireExt invocations corresponds
+// the number of defined expectations
+func (m *ExecutionContextMock) MinimockAcquireExtDone() bool {
+	for _, e := range m.AcquireExtMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.AcquireExtMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterAcquireExtCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcAcquireExt != nil && mm_atomic.LoadUint64(&m.afterAcquireExtCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockAcquireExtInspect logs each unmet expectation
+func (m *ExecutionContextMock) MinimockAcquireExtInspect() {
+	for _, e := range m.AcquireExtMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to ExecutionContextMock.AcquireExt with params: %#v", *e.params)
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.AcquireExtMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterAcquireExtCounter) < 1 {
+		if m.AcquireExtMock.defaultExpectation.params == nil {
+			m.t.Error("Expected call to ExecutionContextMock.AcquireExt")
+		} else {
+			m.t.Errorf("Expected call to ExecutionContextMock.AcquireExt with params: %#v", *m.AcquireExtMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcAcquireExt != nil && mm_atomic.LoadUint64(&m.afterAcquireExtCounter) < 1 {
+		m.t.Error("Expected call to ExecutionContextMock.AcquireExt")
 	}
 }
 
@@ -12910,6 +13135,8 @@ func (m *ExecutionContextMock) MinimockFinish() {
 
 		m.MinimockAcquireAndReleaseInspect()
 
+		m.MinimockAcquireExtInspect()
+
 		m.MinimockAcquireForThisStepInspect()
 
 		m.MinimockAcquireForThisStepAndReleaseInspect()
@@ -13058,6 +13285,7 @@ func (m *ExecutionContextMock) minimockDone() bool {
 	return done &&
 		m.MinimockAcquireDone() &&
 		m.MinimockAcquireAndReleaseDone() &&
+		m.MinimockAcquireExtDone() &&
 		m.MinimockAcquireForThisStepDone() &&
 		m.MinimockAcquireForThisStepAndReleaseDone() &&
 		m.MinimockApplyAdjustmentDone() &&
