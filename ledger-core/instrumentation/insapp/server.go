@@ -15,7 +15,7 @@ import (
 	"github.com/insolar/component-manager"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
-	component2 "github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp/component"
+	app_component "github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp/component"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp/internal/headless"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp/internal/virtual"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
@@ -30,7 +30,7 @@ import (
 type Server struct {
 	cfg       configuration.Configuration
 	headless  bool
-	appFn     component2.AppFactoryFunc
+	appFn     app_component.AppFactoryFunc
 	networkFn NetworkInitFunc
 	extra     []interface{}
 }

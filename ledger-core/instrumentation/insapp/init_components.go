@@ -20,7 +20,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
-	component2 "github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp/component"
+	app_component "github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp/component"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp/internal/cloud"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/metrics"
@@ -107,7 +107,7 @@ func (s *Server) initComponents(ctx context.Context, cfg configuration.Configura
 		ns = nsn
 
 		pulses = memstor.NewStorageMem()
-		pm := component2.NewPulseManager()
+		pm := app_component.NewPulseManager()
 		cm.Register(pm)
 
 		addDispatcherFn = pm.AddDispatcher
@@ -139,7 +139,7 @@ func (s *Server) initComponents(ctx context.Context, cfg configuration.Configura
 
 	cm.Register(s.extra...)
 
-	var appComponent component2.App
+	var appComponent app_component.App
 
 	if s.appFn != nil {
 		affine := affinity.NewAffinityHelper(certManager.GetCertificate().GetNodeRef())
@@ -159,7 +159,7 @@ func (s *Server) initComponents(ctx context.Context, cfg configuration.Configura
 			cm.Register(APIWrapper)
 		}
 
-		appComponents := component2.AppComponents{
+		appComponents := app_component.AppComponents{
 			LocalNodeRef:  nodeCert.GetNodeRef(),
 			LocalNodeRole: nodeRole,
 
