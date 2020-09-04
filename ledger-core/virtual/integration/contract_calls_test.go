@@ -260,7 +260,6 @@ func TestVirtual_CallContractFromContract(t *testing.T) {
 			})
 			server.ReplaceRunner(runnerMock)
 			server.Init(ctx)
-			server.IncrementPulseAndWaitIdle(ctx)
 
 			var (
 				pn      = server.GetPulse().PulseNumber
@@ -536,7 +535,6 @@ func TestVirtual_CallMethodFromConstructor(t *testing.T) {
 			})
 			server.ReplaceRunner(runnerMock)
 			server.Init(ctx)
-			server.IncrementPulseAndWaitIdle(ctx)
 
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 

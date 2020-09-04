@@ -741,7 +741,6 @@ func TestVirtual_Deactivation_Deduplicate(t *testing.T) {
 	runnerMock := logicless.NewServiceMock(ctx, t, nil)
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
-	server.IncrementPulseAndWaitIdle(ctx)
 
 	var (
 		class              = server.RandomGlobalWithPulse()
