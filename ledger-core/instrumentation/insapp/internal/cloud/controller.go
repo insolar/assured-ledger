@@ -209,9 +209,11 @@ func prepareManyNodePopulation(id node.ShortNodeID, op censusimpl.ManyNodePopula
 		np.SetPower(pw)
 	}
 
-	sort.SliceStable(pfs, func(i, j int) bool {
-		// Power sorting is REVERSED
-		return pfs[j].GetDeclaredPower() <= pfs[i].GetDeclaredPower() || pfs[j].GetNodeID() < pfs[i].GetNodeID()
+	sort.Slice(pfs, func(i, j int) bool {
+		ni, nj := pfs[i], pfs[j]
+		ri := member.NewSortingRank(ni.GetNodeID(), ni.GetStatic().GetPrimaryRole(), ni.GetDeclaredPower(), ni.GetOpMode())
+		rj := member.NewSortingRank(nj.GetNodeID(), nj.GetStatic().GetPrimaryRole(), nj.GetDeclaredPower(), nj.GetOpMode())
+		return ri.Less(rj)
 	})
 
 	idx := member.AsIndex(0)
