@@ -64,7 +64,6 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 	server.ReplaceRunner(runnerMock)
 
 	server.Init(ctx)
-	server.IncrementPulseAndWaitIdle(ctx)
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
@@ -299,7 +298,6 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 	server.ReplaceRunner(runnerMock)
 
 	server.Init(ctx)
-	server.IncrementPulseAndWaitIdle(ctx)
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
@@ -503,7 +501,6 @@ func TestVirtual_CallContractOutgoingReturnsError(t *testing.T) {
 	})
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
-	server.IncrementPulseAndWaitIdle(ctx)
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
