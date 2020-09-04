@@ -160,12 +160,17 @@ func (n Controller) Distribute(_ context.Context, packet pulsar.PulsePacket) {
 		populationNodes = append(populationNodes, netNode.profile)
 	}
 
+	newBeatData := beat.Beat{
+		Data:      adapters.NewPulseData(packet),
+		StartedAt: time.Now(),
+	}
+
 	for _, netNode := range n.nodes {
 		onlinePopulation := censusimpl.NewManyNodePopulation(populationNodes, netNode.profile.GetStaticNodeID(), netNode.svf)
 
 		newBeat := beat.Beat{
-			Data:      adapters.NewPulseData(packet),
-			StartedAt: time.Now(),
+			Data:      newBeatData.Data,
+			StartedAt: newBeatData.StartedAt,
 			Online:    prepareManyNodePopulation(netNode.profile.GetStaticNodeID(), onlinePopulation),
 		}
 
@@ -199,7 +204,7 @@ func prepareManyNodePopulation(id node.ShortNodeID, op censusimpl.ManyNodePopula
 		np.SetPower(pw)
 	}
 
-	sort.Slice(pfs, func(i, j int) bool {
+	sort.SliceStable(pfs, func(i, j int) bool {
 		// Power sorting is REVERSED
 		return pfs[j].GetDeclaredPower() < pfs[i].GetDeclaredPower()
 	})
