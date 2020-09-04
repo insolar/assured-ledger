@@ -177,16 +177,12 @@ func (n Controller) Distribute(_ context.Context, packet pulsar.PulsePacket) {
 		populationNodes = append(populationNodes, netNode.profile)
 	}
 
-	sort.Slice(populationNodes, func(i, j int) bool {
-		return populationNodes[i].GetStaticNodeID() < populationNodes[j].GetStaticNodeID()
-	})
-
-	for nodeRef, netNode := range n.nodes {
-		onlinePopulation := censusimpl.NewManyNodePopulation(populationNodes, node.GenerateShortID(nodeRef), netNode.svf)
+	for _, netNode := range n.nodes {
+		onlinePopulation := censusimpl.NewManyNodePopulation(populationNodes, netNode.profile.GetStaticNodeID(), netNode.svf)
 
 		err := netNode.BeatAppender.AddCommittedBeat(beat.Beat{
 			Data:   adapters.NewPulseData(packet),
-			Online: &onlinePopulation,
+			Online: prepareManyNodePopulation(netNode.profile.GetStaticNodeID(), onlinePopulation),
 		})
 		if err != nil {
 			panic(err)
@@ -196,6 +192,36 @@ func (n Controller) Distribute(_ context.Context, packet pulsar.PulsePacket) {
 			Data: adapters.NewPulseData(packet),
 		})
 	}
+}
+
+func prepareManyNodePopulation(id node.ShortNodeID, op censusimpl.ManyNodePopulation) *censusimpl.ManyNodePopulation {
+	dp := censusimpl.NewDynamicPopulationCopySelf(&op)
+	for _, np := range op.GetProfiles() {
+		if np.GetNodeID() != id {
+			dp.AddProfile(np.GetStatic())
+		}
+	}
+
+	pfs := dp.GetUnorderedProfiles()
+	for _, np := range pfs {
+		np.SetOpMode(member.ModeNormal)
+		pw := np.GetStatic().GetStartPower()
+		np.SetPower(pw)
+	}
+
+	sort.Slice(pfs, func(i, j int) bool {
+		// Power sorting is REVERSED
+		return pfs[j].GetDeclaredPower() < pfs[i].GetDeclaredPower()
+	})
+
+	idx := member.AsIndex(0)
+	for _, np := range pfs {
+		np.SetIndex(idx)
+		idx++
+	}
+
+	ap, _ := dp.CopyAndSeparate(false, nil)
+	return ap
 }
 
 func (n Controller) NetworkInitFunc(cfg configuration.Configuration, cm *component.Manager) (NetworkSupport, network.Status, error) {
