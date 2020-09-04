@@ -29,7 +29,7 @@ import (
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-func generateKeys(num int, nodes *[]nodeInfo) error {
+func generateKeys(num int, nodes []nodeInfo) error {
 	for i := 0; i < num; i++ {
 		pair, err := secrets.GenerateKeyPair()
 
@@ -47,8 +47,8 @@ func generateKeys(num int, nodes *[]nodeInfo) error {
 			return errors.W(err, "couldn't export public key")
 		}
 
-		(*nodes)[i].publicKey = string(pubKeyStr)
-		(*nodes)[i].privateKey = pair.Private
+		nodes[i].publicKey = string(pubKeyStr)
+		nodes[i].privateKey = pair.Private
 	}
 
 	return nil
@@ -81,12 +81,12 @@ func prepareStuff(virtual, light, heavy int) ([]configuration.Configuration, ins
 		panic("no nodes given")
 	}
 	nodes := make([]nodeInfo, totalNum)
-	err := generateKeys(totalNum, &nodes)
+	err := generateKeys(totalNum, nodes)
 	if err != nil {
 		panic(throw.W(err, "Failed to gen keys"))
 	}
 
-	appConfigs := makeConfigs(&nodes, virtual, light, heavy)
+	appConfigs := makeConfigs(nodes, virtual, light, heavy)
 
 	settings := netSettings{
 		majorityRule: totalNum,
@@ -119,7 +119,7 @@ func getRole(virtual, light, heavy *int) string {
 	}
 }
 
-func makeConfigs(nodes *[]nodeInfo, virtual, light, heavy int) []configuration.Configuration {
+func makeConfigs(nodes []nodeInfo, virtual, light, heavy int) []configuration.Configuration {
 
 	var (
 		metricsPort      = 8001
@@ -135,17 +135,15 @@ func makeConfigs(nodes *[]nodeInfo, virtual, light, heavy int) []configuration.C
 		keyPath         = "node_%d.json"
 	)
 
-	origNodes := *nodes
-
 	appConfigs := []configuration.Configuration{}
-	for i := 0; i < len(origNodes); i++ {
+	for i := 0; i < len(nodes); i++ {
 		role := getRole(&virtual, &light, &heavy)
-		origNodes[i].role = role
+		nodes[i].role = role
 
 		conf := configuration.NewConfiguration()
 		{
 			conf.Host.Transport.Address = defaultHost + ":" + strconv.Itoa(netPort)
-			origNodes[i].host = conf.Host.Transport.Address
+			nodes[i].host = conf.Host.Transport.Address
 			netPort += 1
 		}
 		{
@@ -176,8 +174,8 @@ func makeConfigs(nodes *[]nodeInfo, virtual, light, heavy int) []configuration.C
 		{
 			conf.KeysPath = fmt.Sprintf(keyPath, i+1)
 			conf.CertificatePath = fmt.Sprintf(certificatePath, i+1)
-			origNodes[i].certName = conf.CertificatePath
-			origNodes[i].keyName = conf.KeysPath
+			nodes[i].certName = conf.CertificatePath
+			nodes[i].keyName = conf.KeysPath
 		}
 
 		appConfigs = append(appConfigs, conf)
