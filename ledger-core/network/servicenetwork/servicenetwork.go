@@ -54,6 +54,14 @@ type ServiceNetwork struct {
 	router watermillRouter
 }
 
+func (n *ServiceNetwork) GetBeatHistory() beat.History {
+	panic(throw.Unsupported())
+}
+
+func (n *ServiceNetwork) AddDispatcher(beat.Dispatcher) {
+	panic(throw.Unsupported())
+}
+
 // NewServiceNetwork returns a new ServiceNetwork.
 func NewServiceNetwork(conf configuration.Configuration, rootCm *component.Manager) (*ServiceNetwork, error) {
 	if rootCm != nil {

@@ -11,6 +11,7 @@ import (
 	"github.com/insolar/component-manager"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat/memstor"
 	"github.com/insolar/assured-ledger/ledger-core/application/api"
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
@@ -91,6 +92,9 @@ func (s *Server) initComponents(ctx context.Context, cfg configuration.Configura
 	var nw NetworkSupport
 	var ns network.Status
 
+	var pulses beat.History
+	var addDispatcherFn func(beat.Dispatcher)
+
 	if networkFn == nil {
 		nsn, err := servicenetwork.NewServiceNetwork(cfg, cm)
 		checkError(ctx, err, "failed to start ServiceNetwork")
@@ -98,11 +102,19 @@ func (s *Server) initComponents(ctx context.Context, cfg configuration.Configura
 
 		nw = nsn
 		ns = nsn
+
+		pulses = memstor.NewStorageMem()
+		pm := NewPulseManager()
+		cm.Register(pm)
+
+		addDispatcherFn = pm.AddDispatcher
 	} else {
 		var err error
 		nw, ns, err = networkFn(cfg, cm)
 		checkError(ctx, err, "failed to start ServiceNetwork by factory")
 		cm.Register(nw)
+		addDispatcherFn = nw.AddDispatcher
+		pulses = nw.GetBeatHistory()
 	}
 
 	nodeCert := certManager.GetCertificate()
@@ -111,8 +123,6 @@ func (s *Server) initComponents(ctx context.Context, cfg configuration.Configura
 	roleName := nodeRole.String()
 	metricsComp := metrics.NewMetrics(cfg.Metrics, metrics.GetInsolarRegistry(roleName), roleName)
 
-	pulses := memstor.NewStorageMem()
-	pm := NewPulseManager()
 
 	availabilityChecker := api.NewNetworkChecker(cfg.AvailabilityChecker)
 
@@ -121,7 +131,6 @@ func (s *Server) initComponents(ctx context.Context, cfg configuration.Configura
 
 	cm.Register(
 		pulses,
-		pm,
 		availabilityChecker,
 		metricsComp,
 	)
@@ -175,7 +184,7 @@ func (s *Server) initComponents(ctx context.Context, cfg configuration.Configura
 
 	// must be after Init
 	bd := appComponent.GetBeatDispatcher()
-	pm.AddDispatcher(bd)
+	addDispatcherFn(bd)
 
 	stopFn := mr.SubscribeForMessages(bd.Process)
 

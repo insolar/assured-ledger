@@ -355,6 +355,9 @@ func (m *LRegisterRequest) Marshal() (dAtA []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
+	if n != size {
+		panic("illegal state")
+	}
 	return dAtA[:n], nil
 }
 
@@ -504,6 +507,9 @@ func (m *LRegisterResponse) Marshal() (dAtA []byte, err error) {
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
+	}
+	if n != size {
+		panic("illegal state")
 	}
 	return dAtA[:n], nil
 }
