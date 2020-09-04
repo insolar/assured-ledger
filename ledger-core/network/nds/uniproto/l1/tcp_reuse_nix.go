@@ -14,8 +14,12 @@ import (
 )
 
 func ListenTCPWithReuse(network string, laddr *net.TCPAddr) (*net.TCPListener, error) {
-	// Linux has SO_REUSEADDR by default for listen operations
-	return net.ListenTCP(network, laddr)
+	sl := &net.ListenConfig{ Control: reuseSocketControl }
+	listener, err := sl.Listen(context.Background(), network, laddr.String())
+	if err != nil {
+		return nil, err
+	}
+	return listener.(*net.TCPListener), nil
 }
 
 func DialerTCPWithReuse(laddr *net.TCPAddr) *net.Dialer {
@@ -34,5 +38,9 @@ func DialTCPWithReuse(network string, laddr, raddr *net.TCPAddr) (*net.TCPConn, 
 func reuseSocketControl(_ string, _ string, c syscall.RawConn) (err error) {
 	return c.Control(func(fd uintptr) {
 		err = os.NewSyscallError("setsockopt", syscall.SetsockoptInt(int(fd), syscall.SOL_SOCKET, syscall.SO_REUSEADDR, 1))
+		if err != nil {
+			return
+		}
+		err = os.NewSyscallError("setsockopt", syscall.SetsockoptInt(int(fd), syscall.SOL_SOCKET, syscall.SO_REUSEPORT, 1))
 	})
 }
