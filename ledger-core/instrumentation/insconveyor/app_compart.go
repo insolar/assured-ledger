@@ -11,7 +11,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/managed"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp/component"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -50,7 +50,7 @@ func (p *AppCompartmentSetup) AddComponent(c managed.Component) {
 // ConfigReviserFunc enables AppCompartmentSetup to be revised before creation of an app compartment.
 type ConfigReviserFunc = func(context.Context, injector.DependencyInjector, AppCompartmentSetup) AppCompartmentSetup
 
-var _ component.App = &AppCompartment{}
+var _ insapp.AppComponent = &AppCompartment{}
 
 type AppCompartment struct {
 	// set by construction

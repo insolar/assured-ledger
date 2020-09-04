@@ -6,57 +6,53 @@
 package insapp
 
 import (
-	"sync"
+	"context"
 
-	"github.com/insolar/assured-ledger/ledger-core/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp/internal/cloud"
-	"github.com/insolar/assured-ledger/ledger-core/network"
-	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/component-manager"
+
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
+	"github.com/insolar/assured-ledger/ledger-core/configuration"
+	"github.com/insolar/assured-ledger/ledger-core/network"
+	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
+
+// NetworkSupport provides network-related functions to an app compartment
+type NetworkSupport interface {
+	beat.NodeNetwork
+	nodeinfo.CertificateGetter
+
+	CreateMessagesRouter(context.Context) messagesender.MessageRouter
+
+	AddDispatcher(beat.Dispatcher)
+	GetBeatHistory() beat.History
+}
 
 // NetworkInitFunc should instantiate a network support for app compartment by the given configuration and root component manager.
 // Returned NetworkSupport will be registered as a component and used to run app compartment.
 // Returned network.Status will not be registered as a component, it can be nil, then monitoring/admin APIs will not be started.
-type NetworkInitFunc = func(configuration.Configuration, *component.Manager) (cloud.NetworkSupport, network.Status, error)
+type NetworkInitFunc = func(configuration.Configuration, *component.Manager) (NetworkSupport, network.Status, error)
 
 // MultiNodeConfigFunc provides support for multi-node process initialization.
-// For the given base config this handler should return a list of configurations (one per node).
-type MultiNodeConfigFunc = func(baseCfg configuration.Configuration) []configuration.Configuration
+// For the given config path and base config this handler should return a list of configurations (one per node). And NetworkInitFunc
+// to initialize instantiate a network support for each app compartment (one per node). A default implementation is applied when NetworkInitFunc is nil.
+type MultiNodeConfigFunc = func(baseCfg configuration.Configuration) ([]configuration.Configuration, NetworkInitFunc)
 
-func NewMulti(cfg configuration.BaseCloudConfig, multiFn MultiNodeConfigFunc) *MultiServer {
+func NewMulti(cfg configuration.Configuration, appFn AppFactoryFunc, multiFn MultiNodeConfigFunc, extraComponents ...interface{}) *Server {
 	if multiFn == nil {
 		panic(throw.IllegalValue())
 	}
 
-	return &MultiServer{
+	return &Server{
 		cfg:     cfg,
+		appFn:   appFn,
 		multiFn: multiFn,
+		extra:   extraComponents,
 	}
 }
 
 type MultiServer struct {
 	cfg     configuration.BaseCloudConfig
 	multiFn MultiNodeConfigFunc
-}
-
-func (s *MultiServer) Serve() {
-	network := cloud.NewController()
-
-	var wg sync.WaitGroup
-
-	for _, nodeCfg := range s.multiFn(configuration.Configuration{}) {
-		wg.Add(1)
-		server := NewWithNetworkFn(nodeCfg, network.NetworkInitFunc)
-		go func() {
-			defer wg.Done()
-			server.Serve()
-		}()
-	}
-
-	go func() {
-		cloud.RunFakePulse(&network, s.cfg.PulsarConfiguration)
-	}()
-
-	wg.Wait()
 }

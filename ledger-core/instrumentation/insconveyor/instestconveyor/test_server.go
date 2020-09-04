@@ -18,7 +18,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/secrets"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/convlog"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp/component"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
@@ -54,7 +54,7 @@ type ServerTemplate struct {
 
 	// set by setters
 	cfg configuration.Configuration
-	ac  *component.AppComponents
+	ac  *insapp.AppComponents
 	fn  insconveyor.ImposerFunc
 
 	// set by init
@@ -67,7 +67,7 @@ func (p *ServerTemplate) T() minimock.Tester {
 	return p.t
 }
 
-type AppCompartmentFunc = func(configuration.Configuration, component.AppComponents) *insconveyor.AppCompartment
+type AppCompartmentFunc = func(configuration.Configuration, insapp.AppComponents) *insconveyor.AppCompartment
 
 // InitTemplate is used to set up a default behavior for a test server. Can only be called once.
 // Handler (appFn) must be provided to create an app compartment.
@@ -108,7 +108,7 @@ func (p *ServerTemplate) SetImposer(fn insconveyor.ImposerFunc) {
 
 // SetAppComponents sets per-test overrides for app components. Nil values will be replaced by default.
 // Can only be called once and before the server is initialized / started.
-func (p *ServerTemplate) SetAppComponents(ac component.AppComponents) {
+func (p *ServerTemplate) SetAppComponents(ac insapp.AppComponents) {
 	switch {
 	case p.state.WasStarted():
 		panic(throw.IllegalState())
@@ -127,7 +127,7 @@ func (p *ServerTemplate) Start() {
 		panic(throw.IllegalState())
 	}
 
-	var ac component.AppComponents
+	var ac insapp.AppComponents
 	if p.ac != nil {
 		ac = *p.ac
 	}

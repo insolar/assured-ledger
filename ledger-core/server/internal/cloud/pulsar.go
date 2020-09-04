@@ -7,9 +7,7 @@ package cloud
 
 import (
 	"context"
-	"os"
-	"os/signal"
-	"syscall"
+	"sync"
 	"time"
 
 	"github.com/insolar/component-manager"
@@ -24,29 +22,16 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 )
 
-func RunFakePulse(distributor pulsar.PulseDistributor, cfg configuration.PulsarConfiguration) {
-	ctx := context.Background()
-
-	cm, server := initPulsar(ctx, cfg, distributor)
-
-	pulseTicker := runPulsar(ctx, server, cfg.Pulsar)
-
-	defer func() {
-		pulseTicker.Stop()
-		err := cm.Stop(ctx)
-		if err != nil {
-			panic(err)
-		}
-	}()
-
-	var gracefulStop = make(chan os.Signal, 1)
-	signal.Notify(gracefulStop, syscall.SIGTERM)
-	signal.Notify(gracefulStop, syscall.SIGINT)
-
-	<-gracefulStop
+type PulsarWrapper struct {
+	cm     *component.Manager
+	server *pulsar.Pulsar
+	cfg    configuration.PulsarConfiguration
+	ticker *time.Ticker
 }
 
-func initPulsar(ctx context.Context, cfg configuration.PulsarConfiguration, distributor pulsar.PulseDistributor) (*component.Manager, *pulsar.Pulsar) {
+func NewPulsarWrapper(distributor pulsar.PulseDistributor, cfg configuration.PulsarConfiguration) *PulsarWrapper {
+	ctx := context.Background()
+
 	keyStore, err := keystore.NewKeyStore(cfg.KeysPath)
 	if err != nil {
 		panic(err)
@@ -78,7 +63,25 @@ func initPulsar(ctx context.Context, cfg configuration.PulsarConfiguration, dist
 		&entropygenerator.StandardEntropyGenerator{},
 	)
 
-	return cm, server
+	return &PulsarWrapper{
+		cm:     cm,
+		cfg:    cfg,
+		server: server,
+	}
+}
+
+var onePulsar sync.Once
+
+func (p *PulsarWrapper) Start(ctx context.Context) error {
+	onePulsar.Do(func() {
+		p.ticker = runPulsar(ctx, p.server, p.cfg.Pulsar)
+	})
+	return nil
+}
+
+func (p *PulsarWrapper) Stop(ctx context.Context) error {
+	p.ticker.Stop()
+	return p.cm.Stop(ctx)
 }
 
 func runPulsar(ctx context.Context, server *pulsar.Pulsar, cfg configuration.Pulsar) *time.Ticker {

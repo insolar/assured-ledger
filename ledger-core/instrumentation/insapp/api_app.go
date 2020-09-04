@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package component
+package insapp
 
 import (
 	"context"
@@ -14,14 +14,15 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/crypto"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-// App is an interface for a component that wraps an application compartment.
+// AppComponent is an interface for a component that wraps an application compartment.
 // This component will be managed by ComponentManager.
-type App interface {
+type AppComponent interface {
 	// Init(ctx context.Context) error
 	// Start(ctx context.Context) error
 	// Stop(ctx context.Context) error
@@ -31,13 +32,14 @@ type App interface {
 }
 
 // AppFactoryFunc is a factory method to create an app component with the given configuration and dependencies.
-type AppFactoryFunc = func(context.Context, configuration.Configuration, AppComponents) (App, error)
+type AppFactoryFunc = func(context.Context, configuration.Configuration, AppComponents) (AppComponent, error)
 
 type AppComponents struct {
 	AffinityHelper affinity.Helper
 	BeatHistory    beat.History
 	MessageSender  messagesender.Service
 	CryptoScheme   crypto.PlatformScheme
+	Certificate    nodeinfo.Certificate
 
 	LocalNodeRef  reference.Holder
 	LocalNodeRole member.PrimaryRole
@@ -49,6 +51,10 @@ const LocalNodeRefInjectionID = "LocalNodeRef"
 func (v AppComponents) AddAsDependencies(container injector.DependencyContainer) {
 	if !container.TryPutDependency(LocalNodeRefInjectionID, reference.Copy(v.LocalNodeRef)) {
 		panic(throw.IllegalState())
+	}
+
+	if v.Certificate != nil {
+		injector.AddInterfaceDependency(container, &v.Certificate)
 	}
 
 	if v.AffinityHelper != nil {

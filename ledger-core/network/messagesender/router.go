@@ -6,7 +6,6 @@
 package messagesender
 
 import (
-	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 )
@@ -14,5 +13,4 @@ import (
 type MessageRouter interface {
 	CreateMessageSender(affinity.Helper, beat.History) Service
 	SubscribeForMessages(func(beat.Message) error) (stopFn func())
-	PublishMessage(topic string, msg *message.Message) error
 }

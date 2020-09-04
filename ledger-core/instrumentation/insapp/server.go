@@ -15,67 +15,71 @@ import (
 	"github.com/insolar/component-manager"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
-	app_component "github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp/component"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp/internal/headless"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp/internal/virtual"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/trace"
-	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lmnapp"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
-	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/version"
 )
 
 type Server struct {
-	cfg       configuration.Configuration
-	headless  bool
-	appFn     app_component.AppFactoryFunc
-	networkFn NetworkInitFunc
-	extra     []interface{}
+	cfg     configuration.Configuration
+	appFn   AppFactoryFunc
+	multiFn MultiNodeConfigFunc
+	extra   []interface{}
 }
 
 // New creates a one-node process.
-func New(cfg configuration.Configuration, extraComponents ...interface{}) *Server {
+func New(cfg configuration.Configuration, appFn AppFactoryFunc, extraComponents ...interface{}) *Server {
 	return &Server{
 		cfg:   cfg,
+		appFn: appFn,
 		extra: extraComponents,
 	}
 }
 
-// NewWithNetworkFn creates a one-node process with given networkFn
-func NewWithNetworkFn(cfg configuration.Configuration, networkFn NetworkInitFunc, extraComponents ...interface{}) *Server {
-	return &Server{
-		cfg:       cfg,
-		extra:     extraComponents,
-		networkFn: networkFn,
-	}
-}
-
-// NewHeadless creates a one-node headless process.
-func NewHeadless(cfg configuration.Configuration, extraComponents ...interface{}) *Server {
-	extraComponents = append(extraComponents, &headless.AppComponent{})
-	return &Server{
-		cfg:      cfg,
-		headless: true,
-		extra:    extraComponents,
-	}
-}
-
 func (s *Server) Serve() {
+	var (
+		configs   []configuration.Configuration
+		networkFn NetworkInitFunc
+	)
+
 	fmt.Println("Version: ", version.GetFullVersion())
+
+	if s.multiFn != nil {
+		fmt.Println("Starts with multi-node configuration base:\n", configuration.ToString(&s.cfg))
+		configs, networkFn = s.multiFn(s.cfg)
+	} else {
+		configs = append(configs, s.cfg)
+	}
+
 	baseCtx, baseLogger := inslogger.InitGlobalNodeLogger(context.Background(), s.cfg.Log, "", "")
 
-	fmt.Printf("Starts with configuration: \n%s\n", configuration.ToString(s.cfg))
+	n := len(configs)
 
-	cm, stopFunc := s.StartComponents(baseCtx, s.cfg, s.networkFn,
-		func(_ context.Context, cfg configuration.Log, nodeRef, nodeRole string) context.Context {
-			baseCtx, baseLogger = inslogger.InitNodeLogger(baseCtx, cfg, nodeRef, nodeRole)
+	cms := make([]*component.Manager, 0, n)
+	stops := make([]func(), 0, n)
+	contexts := make([]context.Context, 0, n)
 
-			global.SetLogger(baseLogger)
+	for i, cfg := range configs {
+		fmt.Printf("Starts with configuration [%d/%d]:\n%s\n", i+1, n, configuration.ToString(&configs[0]))
 
-			return baseCtx
-		})
+		cm, stopFunc := s.StartComponents(baseCtx, cfg, networkFn,
+			func(_ context.Context, cfg configuration.Log, nodeRef, nodeRole string) context.Context {
+				ctx, logger := inslogger.InitNodeLogger(baseCtx, cfg, nodeRef, nodeRole)
+				contexts = append(contexts, ctx)
+
+				if n == 1 {
+					baseCtx = ctx
+					baseLogger = logger
+					global.SetLogger(logger)
+				}
+
+				return ctx
+			})
+		cms = append(cms, cm)
+		stops = append(stops, stopFunc)
+	}
 
 	global.InitTicker()
 
@@ -93,19 +97,29 @@ func (s *Server) Serve() {
 
 		baseLogger.Info("stopping gracefully")
 
-		if err := cm.GracefulStop(baseCtx); err != nil {
-			baseLogger.Fatalf("graceful stop failed: %s", throw.ErrorWithStack(err))
+		for i, cm := range cms {
+			if err := cm.GracefulStop(baseCtx); err != nil {
+				baseLogger.Fatalf("graceful stop failed [%d]: %s", i, throw.ErrorWithStack(err))
+			}
 		}
 
-		stopFunc()
+		for _, stopFn := range stops {
+			if stopFn != nil {
+				stopFn()
+			}
+		}
 
-		if err := cm.Stop(baseCtx); err != nil {
-			baseLogger.Fatalf("stop failed [%d]: %s", throw.ErrorWithStack(err))
+		for i, cm := range cms {
+			if err := cm.Stop(contexts[i]); err != nil {
+				baseLogger.Fatalf("stop failed [%d]: %s", i, throw.ErrorWithStack(err))
+			}
 		}
 	}()
 
-	if err := cm.Start(baseCtx); err != nil {
-		baseLogger.Fatalf("start failed: %s", throw.ErrorWithStack(err))
+	for i, cm := range cms {
+		if err := cm.Start(contexts[i]); err != nil {
+			baseLogger.Fatalf("start failed [%d]: %s", i, throw.ErrorWithStack(err))
+		}
 	}
 
 	fmt.Println("All components were started")
@@ -118,22 +132,10 @@ func (s *Server) StartComponents(ctx context.Context, cfg configuration.Configur
 	networkFn NetworkInitFunc, loggerFn LoggerInitFunc,
 ) (*component.Manager, func()) {
 	preComponents := s.initBootstrapComponents(ctx, cfg)
-	certManager := s.initCertificateManager(ctx, cfg, preComponents)
 
-	nodeCert := certManager.GetCertificate()
+	nodeCert := preComponents.CertificateManager.GetCertificate()
 	nodeRole := nodeCert.GetRole()
 	nodeRef := nodeCert.GetNodeRef().String()
-
-	if !s.headless {
-		switch nodeRole {
-		case member.PrimaryRoleVirtual:
-			s.appFn = virtual.AppFactory
-		case member.PrimaryRoleLightMaterial:
-			s.appFn = lmnapp.AppFactory
-		default:
-			panic("unknown role")
-		}
-	}
 
 	ctx = loggerFn(ctx, cfg.Log, nodeRef, nodeRole.String())
 	traceID := trace.RandID() + "_main"
@@ -143,5 +145,5 @@ func (s *Server) StartComponents(ctx context.Context, cfg configuration.Configur
 		defer jaegerFlush()
 	}
 
-	return s.initComponents(ctx, cfg, networkFn, preComponents, certManager)
+	return s.initComponents(ctx, cfg, networkFn, preComponents)
 }

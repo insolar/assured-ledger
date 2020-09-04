@@ -20,7 +20,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/convlog"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp/component"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
@@ -64,7 +64,7 @@ type Server struct {
 	JetCoordinatorMock *affinity.HelperMock
 	pulseGenerator     *testutils.PulseGenerator
 	pulseStorage       *memstor.StorageMem
-	pulseManager       *component.PulseManager
+	pulseManager       *insapp.PulseManager
 	Journal            *journal.Journal
 
 	// wait and suspend operations
@@ -132,12 +132,12 @@ func newServerExt(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFi
 
 	// Pulse-related components
 	var (
-		PulseManager *component.PulseManager
+		PulseManager *insapp.PulseManager
 		Pulses       *memstor.StorageMem
 	)
 	{
 		Pulses = memstor.NewStorageMem()
-		PulseManager = component.NewPulseManager()
+		PulseManager = insapp.NewPulseManager()
 		PulseManager.PulseAppender = Pulses
 	}
 

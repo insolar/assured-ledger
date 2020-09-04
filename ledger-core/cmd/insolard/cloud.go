@@ -12,7 +12,6 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/server"
 )
@@ -44,16 +43,7 @@ func runInsolardCloud(configPath string) {
 		global.Fatal("Failed to parse YAML file", err)
 	}
 
-	var multiFn insapp.MultiNodeConfigFunc
-	multiFn = func(baseCfg configuration.Configuration) []configuration.Configuration {
-		appConfigs := make([]configuration.Configuration, 0, len(cloudConf.NodeConfigPaths))
-		for _, conf := range cloudConf.NodeConfigPaths {
-			appConfigs = append(appConfigs, readConfig(conf))
-		}
-		return appConfigs
-	}
-
-	s := server.NewMultiServer(cloudConf, multiFn)
+	s := server.NewMultiServer(cloudConf)
 
 	s.Serve()
 }
