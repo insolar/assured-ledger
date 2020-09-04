@@ -8,9 +8,12 @@
 package l1
 
 import (
+	"context"
 	"net"
 	"os"
 	"syscall"
+
+	"golang.org/x/sys/unix"
 )
 
 func ListenTCPWithReuse(network string, laddr *net.TCPAddr) (*net.TCPListener, error) {
@@ -41,6 +44,6 @@ func reuseSocketControl(_ string, _ string, c syscall.RawConn) (err error) {
 		if err != nil {
 			return
 		}
-		err = os.NewSyscallError("setsockopt", syscall.SetsockoptInt(int(fd), syscall.SOL_SOCKET, syscall.SO_REUSEPORT, 1))
+		err = os.NewSyscallError("setsockopt", syscall.SetsockoptInt(int(fd), syscall.SOL_SOCKET, unix.SO_REUSEPORT, 1))
 	})
 }
