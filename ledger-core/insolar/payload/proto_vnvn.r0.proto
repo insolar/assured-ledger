@@ -233,7 +233,7 @@ message VFindCallResponse {
 message VCachedMemoryRequest {
     option (insproto.id) = 1013;
     Reference Object = 21;
-    Reference StateID = 50;
+    LocalReference StateID = 50;
 }
 
 message VCachedMemoryResponse {
@@ -246,10 +246,10 @@ message VCachedMemoryResponse {
     }
 
     Reference Object = 21;
-    Reference StateID = 50;
+    LocalReference StateID = 50;
     Status CallStatus = 51;
     Reference Node = 52;
-    Reference PrevStateID = 53;
+    LocalReference PrevStateID = 53;
     bool Inactive = 25;
     bytes Memory = 54;
 }

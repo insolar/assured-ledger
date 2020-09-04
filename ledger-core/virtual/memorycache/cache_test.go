@@ -112,7 +112,7 @@ func TestLRUMemoryCache_Concurrent(t *testing.T) {
 	mCache := NewMemoryCache(cacheStrategy{pgSize: 2, maxTotal: 5, trimEach: true})
 	wg := sync.WaitGroup{}
 
-	action := func(key reference.Global) {
+	action := func(key Key) {
 		defer wg.Done()
 		var (
 			value1 = descriptor.NewObject(reference.Global{}, reference.Local{}, reference.Global{}, []byte("value 1"), false)
