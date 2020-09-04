@@ -51,8 +51,3 @@ func NewMulti(cfg configuration.Configuration, appFn AppFactoryFunc, multiFn Mul
 		extra:   extraComponents,
 	}
 }
-
-type MultiServer struct {
-	cfg     configuration.BaseCloudConfig
-	multiFn MultiNodeConfigFunc
-}
