@@ -44,7 +44,7 @@ func (v tlsProvider) CreateListeningFactory(receiveFn SessionfulConnectFunc) (Ou
 		return nil, nwapi.Address{}, errors.New("tls: neither Certificates, GetCertificate, nor GetConfigForClient set in Config")
 	}
 
-	tcpConn, err := net.ListenTCP("tcp", &v.addr)
+	tcpConn, err := ListenTCPWithReuse("tcp", &v.addr)
 	if err != nil {
 		return nil, nwapi.Address{}, err
 	}
@@ -53,7 +53,6 @@ func (v tlsProvider) CreateListeningFactory(receiveFn SessionfulConnectFunc) (Ou
 
 	tlsConn := tls.NewListener(tcpConn, v.config)
 	t := &tlsTransportFactory{tlsConn, receiveFn, v.config, localAddr, v.preference}
-	t.addr.Port = 0
 
 	go runTCPListener(tlsConn, t.tlsConnect)
 	return t, nwapi.FromTCPAddr(&localAddr), nil
@@ -111,8 +110,14 @@ func (p *tlsTransportFactory) ConnectToExt(to nwapi.Address, peerVerify VerifyPe
 	}
 
 	var conn *tls.Conn
-	if conn, err = tls.DialWithDialer(&net.Dialer{LocalAddr: &p.addr}, "tcp", to.String(), peerConfig); err != nil {
-		return nil, err
+	if p.addr.Port == 0 {
+		if conn, err = tls.DialWithDialer(&net.Dialer{LocalAddr: &p.addr}, "tcp", to.String(), peerConfig); err != nil {
+			return nil, err
+		}
+	} else {
+		if conn, err = tls.DialWithDialer(DialerTCPWithReuse(&p.addr), "tcp", to.String(), peerConfig); err != nil {
+			return nil, err
+		}
 	}
 
 	// force connection setup now

@@ -38,7 +38,7 @@ func (v tcpProvider) CreateListeningFactory(receiveFn SessionfulConnectFunc) (Ou
 		panic(throw.IllegalState())
 	}
 
-	listener, err := net.ListenTCP("tcp", &v.addr)
+	listener, err := ListenTCPWithReuse("tcp", &v.addr)
 	if err != nil {
 		return nil, nwapi.Address{}, err
 	}
@@ -46,7 +46,6 @@ func (v tcpProvider) CreateListeningFactory(receiveFn SessionfulConnectFunc) (Ou
 	localAddr := *listener.Addr().(*net.TCPAddr)
 
 	t := &tcpTransportFactory{listener, receiveFn, localAddr, v.preference }
-	t.addr.Port = 0
 
 	go runTCPListener(listener, receiveFn)
 	return t, nwapi.FromTCPAddr(&localAddr), nil
@@ -97,8 +96,15 @@ func (p *tcpTransportFactory) ConnectTo(to nwapi.Address) (OneWayTransport, erro
 	remote := to.AsTCPAddr()
 
 	var conn *net.TCPConn
-	if conn, err = net.DialTCP("tcp", &p.addr, &remote); err != nil {
-		return nil, err
+
+	if p.addr.Port == 0 {
+		if conn, err = net.DialTCP("tcp", &p.addr, &remote); err != nil {
+			return nil, err
+		}
+	} else {
+		if conn, err = DialTCPWithReuse("tcp", &p.addr, &remote); err != nil {
+			return nil, err
+		}
 	}
 
 	tcpOut := tcpOutTransport{conn, nil, 0}
