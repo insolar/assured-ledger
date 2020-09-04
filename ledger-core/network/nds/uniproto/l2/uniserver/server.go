@@ -26,6 +26,7 @@ type ServerConfig struct {
 	PublicAddress  string
 	NetPreference  nwapi.Preference
 	TLSConfig      *tls.Config
+	// UDPMaxSize sets max size for UDP packets. Zero will disable UDP.
 	UDPMaxSize     int
 	UDPParallelism int
 	PeerLimit      int
@@ -68,7 +69,12 @@ type UnifiedServer struct {
 func (p *UnifiedServer) SetConfig(config ServerConfig) {
 	p.config = config
 
-	p.peers.central.maxSessionlessSize = uint16(config.UDPMaxSize)
+	if config.UDPMaxSize >= math.MaxUint16 {
+		p.ptf.maxSessionlessSize = math.MaxUint16
+	} else {
+		p.ptf.maxSessionlessSize = uint16(config.UDPMaxSize)
+	}
+
 	p.peers.central.retryLimit = config.RetryLimit
 	p.peers.central.retryDelayInc = config.RetryDelayInc
 	p.peers.central.retryDelayMax = config.RetryDelayMax

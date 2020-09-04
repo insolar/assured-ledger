@@ -23,7 +23,6 @@ func NewPeerManager(factory PeerTransportFactory, local nwapi.Address, localFn f
 	}
 	pm := &PeerManager{}
 	pm.central.factory = factory
-	pm.central.maxSessionlessSize = factory.MaxSessionlessSize()
 	pm.central.maxPeerConn = 4
 
 	if err := pm.addLocal(local, nil, func(peer *Peer) error {
@@ -59,14 +58,6 @@ func (p *PeerManager) SetPeerConnectionLimit(n uint8) {
 	defer p.peerMutex.Unlock()
 
 	p.central.maxPeerConn = n
-}
-
-// SetMaxSessionlessSize sets limit for size of a data packet that can be transferred over a sessionless connection.
-func (p *PeerManager) SetMaxSessionlessSize(n uint16) {
-	p.peerMutex.Lock()
-	defer p.peerMutex.Unlock()
-
-	p.central.maxSessionlessSize = n
 }
 
 // SetQuotaFactory sets factory to allocate traffic quota when a peer is added.
@@ -399,7 +390,6 @@ func (p *PeerManager) GetLocalDataDecrypter() (cryptkit.Decrypter, error) {
 func (p *PeerManager) Manager() uniproto.PeerManager {
 	return facadePeerManager{
 		peerManager:    p,
-		maxSessionless: p.central.maxSessionlessSize,
 		maxSmall:       uniproto.MaxNonExcessiveLength,
 	}
 }
@@ -410,7 +400,6 @@ var _ uniproto.PeerManager = &facadePeerManager{}
 
 type facadePeerManager struct {
 	peerManager    *PeerManager
-	maxSessionless uint16
 	maxSmall       uint16
 }
 
@@ -441,7 +430,7 @@ func (v facadePeerManager) LocalPeer() uniproto.Peer {
 }
 
 func (v facadePeerManager) MaxSessionlessPayloadSize() uint {
-	return uint(v.maxSessionless)
+	return uint(v.peerManager.central.factory.MaxSessionlessSize())
 }
 
 func (v facadePeerManager) MaxSmallPayloadSize() uint {

@@ -305,7 +305,7 @@ func (p *Peer) SendPreparedPacket(tp uniproto.OutType, packet *uniproto.Packet, 
 	packetSize, sendFn := sp.NewTransportFunc(dataSize, fn, checkFn)
 	switch tp {
 	case uniproto.Any:
-		if packetSize <= uint(p.transport.central.maxSessionlessSize) {
+		if p.transport.central.isSessionlessAllowed(int(packetSize)) {
 			tp = uniproto.Sessionless
 			break
 		}
@@ -317,7 +317,7 @@ func (p *Peer) SendPreparedPacket(tp uniproto.OutType, packet *uniproto.Packet, 
 			tp = uniproto.SessionfulLarge
 		}
 	case uniproto.SmallAny:
-		if packetSize <= uint(p.transport.central.maxSessionlessSize) {
+		if p.transport.central.isSessionlessAllowed(int(packetSize)) {
 			tp = uniproto.Sessionless
 			break
 		}
@@ -328,8 +328,8 @@ func (p *Peer) SendPreparedPacket(tp uniproto.OutType, packet *uniproto.Packet, 
 			panic(throw.FailHere("too big for non-excessive packet"))
 		}
 	case uniproto.Sessionless, uniproto.SessionlessNoQuota:
-		if packetSize > uint(p.transport.central.maxSessionlessSize) {
-			panic(throw.FailHere("too big for sessionless packet"))
+		if !p.transport.central.isSessionlessAllowed(int(packetSize)) {
+			panic(throw.FailHere("sessionless is not allowed"))
 		}
 	}
 	return p.transport.sendPacket(tp, sendFn)

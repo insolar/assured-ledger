@@ -31,19 +31,23 @@ type PeerTransportFactory interface {
 	SessionfulConnectTo(to nwapi.Address) (l1.OneWayTransport, error)
 	IsActive() bool
 	MaxSessionlessSize() uint16
+	IsSessionlessAllowed(int) bool
 }
 
 type PeerTransportCentral struct {
 	factory    PeerTransportFactory
 	sigFactory PeerCryptographyFactory
 
-	maxSessionlessSize uint16
 	maxPeerConn        uint8
 	preferHTTP         bool
 	retryLimit         uint8
 	retryDelayInc      time.Duration
 	retryDelayVariance time.Duration
 	retryDelayMax      time.Duration
+}
+
+func (p *PeerTransportCentral) isSessionlessAllowed(size int) bool {
+	return p.factory.IsSessionlessAllowed(size)
 }
 
 func (p *PeerTransportCentral) checkActive(deadPeer bool) error {
@@ -461,7 +465,7 @@ func (p *PeerTransport) UseSessionful(size int64, applyFn uniproto.OutFunc) erro
 }
 
 func (p *PeerTransport) CanUseSessionless(size int64) bool {
-	return size <= int64(p.central.maxSessionlessSize)
+	return p.central.isSessionlessAllowed(int(size))
 }
 
 func (p *PeerTransport) setAddresses(primary nwapi.Address, aliases []nwapi.Address) {
