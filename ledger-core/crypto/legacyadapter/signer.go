@@ -19,7 +19,7 @@ const (
 	SECP256r1Sign = cryptkit.SigningMethod("secp256r1")
 )
 
-func NewECDSAPublicKeyStore(skh cryptkit.SignatureKeyHolder) *ECDSAPublicKeyStore {
+func NewECDSAPublicKeyStore(skh cryptkit.SigningKeyHolder) *ECDSAPublicKeyStore {
 	return &ECDSAPublicKeyStore{
 		publicKey: skh.(*ECDSASignatureKeyHolder).publicKey,
 	}
@@ -109,21 +109,21 @@ func NewECDSASignatureVerifier(pcs cryptography.PlatformCryptographyScheme, pks 
 	}
 }
 
+func (sv *ECDSASignatureVerifier) GetDefaultSigningMethod() cryptkit.SigningMethod {
+	return SECP256r1Sign
+}
+
 func (sv *ECDSASignatureVerifier) IsDigestMethodSupported(method cryptkit.DigestMethod) bool {
 	return method == SHA3Digest512
 }
 
-func (sv *ECDSASignatureVerifier) IsSignMethodSupported(method cryptkit.SigningMethod) bool {
+func (sv *ECDSASignatureVerifier) IsSigningMethodSupported(method cryptkit.SigningMethod) bool {
 	return method == SECP256r1Sign
-}
-
-func (sv *ECDSASignatureVerifier) IsSignOfSignatureMethodSupported(method cryptkit.SignatureMethod) bool {
-	return method.SignMethod() == SECP256r1Sign
 }
 
 func (sv *ECDSASignatureVerifier) IsValidDigestSignature(digest cryptkit.DigestHolder, signature cryptkit.SignatureHolder) bool {
 	method := signature.GetSignatureMethod()
-	if digest.GetDigestMethod() != method.DigestMethod() || !sv.IsSignOfSignatureMethodSupported(method) {
+	if digest.GetDigestMethod() != method.DigestMethod() || !sv.IsSigningMethodSupported(method.SigningMethod()) {
 		return false
 	}
 
@@ -177,15 +177,11 @@ func (kh *ECDSASignatureKeyHolder) GetSigningMethod() cryptkit.SigningMethod {
 	return SECP256r1Sign
 }
 
-func (kh *ECDSASignatureKeyHolder) GetSignatureKeyMethod() cryptkit.SignatureMethod {
-	return SHA3Digest512.SignedBy(SECP256r1Sign)
-}
-
-func (kh *ECDSASignatureKeyHolder) GetSignatureKeyType() cryptkit.SignatureKeyType {
+func (kh *ECDSASignatureKeyHolder) GetSigningKeyType() cryptkit.SigningKeyType {
 	return cryptkit.PublicAsymmetricKey
 }
 
-func (kh *ECDSASignatureKeyHolder) Equals(other cryptkit.SignatureKeyHolder) bool {
+func (kh *ECDSASignatureKeyHolder) Equals(other cryptkit.SigningKeyHolder) bool {
 	okh, ok := other.(*ECDSASignatureKeyHolder)
 	if !ok {
 		return false

@@ -33,7 +33,7 @@ type InboundMock struct {
 	beforeGetTransportCertCounter uint64
 	GetTransportCertMock          mInboundMockGetTransportCert
 
-	funcGetTransportKey          func() (s1 cryptkit.SignatureKeyHolder)
+	funcGetTransportKey          func() (s1 cryptkit.SigningKeyHolder)
 	inspectFuncGetTransportKey   func()
 	afterGetTransportKeyCounter  uint64
 	beforeGetTransportKeyCounter uint64
@@ -503,7 +503,7 @@ type InboundMockGetTransportKeyExpectation struct {
 
 // InboundMockGetTransportKeyResults contains results of the Inbound.GetTransportKey
 type InboundMockGetTransportKeyResults struct {
-	s1 cryptkit.SignatureKeyHolder
+	s1 cryptkit.SigningKeyHolder
 }
 
 // Expect sets up expected params for Inbound.GetTransportKey
@@ -531,7 +531,7 @@ func (mmGetTransportKey *mInboundMockGetTransportKey) Inspect(f func()) *mInboun
 }
 
 // Return sets up results that will be returned by Inbound.GetTransportKey
-func (mmGetTransportKey *mInboundMockGetTransportKey) Return(s1 cryptkit.SignatureKeyHolder) *InboundMock {
+func (mmGetTransportKey *mInboundMockGetTransportKey) Return(s1 cryptkit.SigningKeyHolder) *InboundMock {
 	if mmGetTransportKey.mock.funcGetTransportKey != nil {
 		mmGetTransportKey.mock.t.Fatalf("InboundMock.GetTransportKey mock is already set by Set")
 	}
@@ -544,7 +544,7 @@ func (mmGetTransportKey *mInboundMockGetTransportKey) Return(s1 cryptkit.Signatu
 }
 
 //Set uses given function f to mock the Inbound.GetTransportKey method
-func (mmGetTransportKey *mInboundMockGetTransportKey) Set(f func() (s1 cryptkit.SignatureKeyHolder)) *InboundMock {
+func (mmGetTransportKey *mInboundMockGetTransportKey) Set(f func() (s1 cryptkit.SigningKeyHolder)) *InboundMock {
 	if mmGetTransportKey.defaultExpectation != nil {
 		mmGetTransportKey.mock.t.Fatalf("Default expectation is already set for the Inbound.GetTransportKey method")
 	}
@@ -558,7 +558,7 @@ func (mmGetTransportKey *mInboundMockGetTransportKey) Set(f func() (s1 cryptkit.
 }
 
 // GetTransportKey implements Inbound
-func (mmGetTransportKey *InboundMock) GetTransportKey() (s1 cryptkit.SignatureKeyHolder) {
+func (mmGetTransportKey *InboundMock) GetTransportKey() (s1 cryptkit.SigningKeyHolder) {
 	mm_atomic.AddUint64(&mmGetTransportKey.beforeGetTransportKeyCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetTransportKey.afterGetTransportKeyCounter, 1)
 
