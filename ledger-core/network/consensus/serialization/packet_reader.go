@@ -415,7 +415,7 @@ func (r *FullIntroductionReader) GetStartPower() member.Power {
 	return r.intro.StartPower
 }
 
-func (r *FullIntroductionReader) GetNodePublicKey() cryptkit.SignatureKeyHolder {
+func (r *FullIntroductionReader) GetNodePublicKey() cryptkit.SigningKeyHolder {
 	return legacyadapter.NewECDSASignatureKeyHolderFromBits(r.intro.NodePK, r.keyProcessor)
 }
 
