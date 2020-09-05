@@ -27,9 +27,9 @@ func TestController(t *testing.T) {
 
 	vf := TestVerifierFactory{}
 	skBytes := [testDigestSize]byte{}
-	sk1 := cryptkit.NewSignatureKey(longbits.CopyBytes(skBytes[:]), testSignatureMethod, cryptkit.PublicAsymmetricKey)
+	sk1 := cryptkit.NewSigningKey(longbits.CopyBytes(skBytes[:]), testSigningMethod, cryptkit.PublicAsymmetricKey)
 	skBytes[0] = 1
-	sk2 := cryptkit.NewSignatureKey(longbits.CopyBytes(skBytes[:]), testSignatureMethod, cryptkit.PublicAsymmetricKey)
+	sk2 := cryptkit.NewSigningKey(longbits.CopyBytes(skBytes[:]), testSigningMethod, cryptkit.PublicAsymmetricKey)
 
 	var ctl1 Service
 	controller1 := NewController(Protocol, TestDeserializationFactory{},

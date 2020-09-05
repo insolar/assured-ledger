@@ -39,7 +39,7 @@ type Peer struct {
 	// mutex controls local attributes
 	mutex sync.RWMutex
 
-	pk  cryptkit.SignatureKey
+	pk  cryptkit.SigningKey
 	dsv cryptkit.DataSignatureVerifier
 	dsg cryptkit.DataSigner
 
@@ -87,7 +87,7 @@ func (p *Peer) verifyByTLS(_ *tls.Conn) (verified bool, err error) {
 }
 
 // SetSignatureKey sets/updates peer's signature key. Key can be zero.
-func (p *Peer) SetSignatureKey(pk cryptkit.SignatureKey) {
+func (p *Peer) SetSignatureKey(pk cryptkit.SigningKey) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
@@ -101,7 +101,7 @@ func (p *Peer) SetSignatureKey(pk cryptkit.SignatureKey) {
 }
 
 // GetSignatureKey returns peer's signature key. Key can be zero.
-func (p *Peer) GetSignatureKey() cryptkit.SignatureKey {
+func (p *Peer) GetSignatureKey() cryptkit.SigningKey {
 	p.mutex.RLock()
 	defer p.mutex.RUnlock()
 
