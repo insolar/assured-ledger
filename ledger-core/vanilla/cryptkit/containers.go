@@ -22,6 +22,8 @@ func NewZeroSizeDigest(method DigestMethod) Digest {
 	return Digest{hFoldReader: longbits.EmptyByteString, digestMethod: method}
 }
 
+var _ DigestHolder = Digest{}
+
 type Digest struct {
 	hFoldReader
 	digestMethod DigestMethod
@@ -41,10 +43,6 @@ func (d Digest) FixedByteSize() int {
 		return d.hFoldReader.FixedByteSize()
 	}
 	return 0
-}
-
-func (d Digest) CopyOfDigest() Digest {
-	return Digest{hFoldReader: longbits.CopyFixed(d.hFoldReader), digestMethod: d.digestMethod}
 }
 
 func (d Digest) Equals(o DigestHolder) bool {
@@ -131,10 +129,6 @@ func (r SignedDigest) IsEmpty() bool {
 	return r.digest.IsEmpty() && r.signature.IsEmpty()
 }
 
-func (r SignedDigest) CopyOfSignedDigest() SignedDigest {
-	return NewSignedDigest(r.digest.CopyOfDigest(), r.signature.CopyOfSignature())
-}
-
 func (r SignedDigest) Equals(o SignedDigestHolder) bool {
 	return longbits.Equal(r.digest, o.GetDigestHolder()) &&
 		longbits.Equal(r.signature, o.GetSignatureHolder())
@@ -161,7 +155,7 @@ func (r SignedDigest) GetSignatureMethod() SignatureMethod {
 }
 
 func (r SignedDigest) IsVerifiableBy(v SignatureVerifier) bool {
-	return v.IsSignOfSignatureMethodSupported(r.signature.GetSignatureMethod())
+	return v.IsSigningMethodSupported(r.signature.GetSignatureMethod().SigningMethod())
 }
 
 func (r SignedDigest) VerifyWith(v SignatureVerifier) bool {
@@ -226,50 +220,45 @@ func (r SignedData) String() string {
 
 /*****************************************************************/
 
-func NewSignatureKey(data longbits.FoldableReader, signatureMethod SignatureMethod, keyType SignatureKeyType) SignatureKey {
-	return SignatureKey{
-		hFoldReader:     data,
-		signatureMethod: signatureMethod,
-		keyType:         keyType,
+func NewSigningKey(data longbits.FoldableReader, method SigningMethod, keyType SigningKeyType) SigningKey {
+	return SigningKey{
+		hFoldReader: data,
+		method:      method,
+		keyType:     keyType,
 	}
 }
 
-var _ SignatureKeyHolder = SignatureKey{}
+var _ SigningKeyHolder = SigningKey{}
 
-// TODO Rename to SigningKey
-type SignatureKey struct {
+type SigningKey struct {
 	hFoldReader
-	signatureMethod SignatureMethod
-	keyType         SignatureKeyType
+	method SigningMethod
+	keyType         SigningKeyType
 }
 
-func (p SignatureKey) IsEmpty() bool {
+func (p SigningKey) IsEmpty() bool {
 	return p.hFoldReader == nil
 }
 
-func (p SignatureKey) GetSigningMethod() SigningMethod {
-	return p.signatureMethod.SignMethod()
+func (p SigningKey) GetSigningMethod() SigningMethod {
+	return p.method
 }
 
-func (p SignatureKey) GetSignatureKeyMethod() SignatureMethod {
-	return p.signatureMethod
-}
-
-func (p SignatureKey) GetSignatureKeyType() SignatureKeyType {
+func (p SigningKey) GetSigningKeyType() SigningKeyType {
 	return p.keyType
 }
 
-func (p SignatureKey) FixedByteSize() int {
+func (p SigningKey) FixedByteSize() int {
 	if p.hFoldReader != nil {
 		return p.hFoldReader.FixedByteSize()
 	}
 	return 0
 }
 
-func (p SignatureKey) Equals(o SignatureKeyHolder) bool {
+func (p SigningKey) Equals(o SigningKeyHolder) bool {
 	return longbits.Equal(p, o)
 }
 
-func (p SignatureKey) String() string {
+func (p SigningKey) String() string {
 	return fmt.Sprintf("⚿%v", p.hFoldReader)
 }

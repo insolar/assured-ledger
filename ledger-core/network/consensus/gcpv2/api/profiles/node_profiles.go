@@ -36,7 +36,7 @@ type staticProfile interface {
 	GetStaticNodeID() node.ShortNodeID
 	GetPrimaryRole() member.PrimaryRole
 	GetSpecialRoles() member.SpecialRole
-	GetNodePublicKey() cryptkit.SignatureKeyHolder
+	GetNodePublicKey() cryptkit.SigningKeyHolder
 	GetStartPower() member.Power
 	GetBriefIntroSignedDigest() cryptkit.SignedDigestHolder
 }
