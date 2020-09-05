@@ -120,17 +120,15 @@ func TestECDSASignatureVerifier_IsDigestMethodSupported(t *testing.T) {
 func TestECDSASignatureVerifier_IsSignMethodSupported(t *testing.T) {
 	dv := NewECDSASignatureVerifier(scheme, NewECDSAPublicKeyStoreFromPK(publicKey))
 
-	require.True(t, dv.IsSignMethodSupported(SECP256r1Sign))
-	require.False(t, dv.IsSignMethodSupported("SOME SIGN METHOD"))
+	require.True(t, dv.IsSigningMethodSupported(SECP256r1Sign))
+	require.False(t, dv.IsSigningMethodSupported("SOME SIGN METHOD"))
 }
 
 func TestECDSASignatureVerifier_IsSignOfSignatureMethodSupported(t *testing.T) {
 	dv := NewECDSASignatureVerifier(scheme, NewECDSAPublicKeyStoreFromPK(publicKey))
 
-	require.True(t, dv.IsSignOfSignatureMethodSupported(SHA3Digest512.SignedBy(SECP256r1Sign)))
-	require.False(t, dv.IsSignOfSignatureMethodSupported("SOME SIGNATURE METHOD"))
-	require.False(t, dv.IsSignOfSignatureMethodSupported(SHA3Digest512.SignedBy("SOME SIGN METHOD")))
-	require.True(t, dv.IsSignOfSignatureMethodSupported(cryptkit.DigestMethod("SOME DIGEST METHOD").SignedBy(SECP256r1Sign)))
+	require.True(t, dv.IsSigningMethodSupported(SECP256r1Sign))
+	require.False(t, dv.IsSigningMethodSupported("SOME METHOD"))
 }
 
 func TestECDSASignatureVerifier_IsValidDigestSignature(t *testing.T) {
