@@ -65,9 +65,10 @@ func (p *retryMsgWorker) runRetry() {
 			case oob, ok = <-p.sender.oob:
 			case job, ok = <-p.sender.jobs:
 			case <-p.wakeup:
-				if p.isEmptyPostponed() {
-					continue
+				if !p.isEmptyPostponed() {
+					p.processPostponed()
 				}
+				continue
 			}
 		}
 
@@ -76,12 +77,10 @@ func (p *retryMsgWorker) runRetry() {
 			return
 		case oob != nil:
 			p.processOoB(oob)
-		case !p.isEmptyPostponed():
-			p.processPostponed()
-		}
-
-		for _, id := range job.ids {
-			p.processMsg(p.sender.get(ShipmentID(id)), job.repeatFn)
+		default:
+			for _, id := range job.ids {
+				p.processMsg(p.sender.get(ShipmentID(id)), job.repeatFn)
+			}
 		}
 	}
 }
