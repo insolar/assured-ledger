@@ -351,7 +351,7 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) startNewPending(
 	intFlag isolation.InterferenceFlag,
 ) {
 	pulseNumber := s.getPulse(1)
-	outgoing := reference.NewRecordOf(s.getObject(), gen.UniqueLocalRefWithPulse(pulseNumber))
+	outgoing := s.server.BuildRandomOutgoingWithGivenPulse(pulseNumber)
 	key := outgoing.String()
 
 	if s.newPendingsReleaser == nil {

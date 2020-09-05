@@ -11,8 +11,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-const initialBalance uint32 = 1000000000
-
 type Wallet struct {
 	Balance uint32
 }
