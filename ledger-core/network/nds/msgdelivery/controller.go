@@ -7,7 +7,6 @@ package msgdelivery
 
 import (
 	"io"
-	"log"
 	"math"
 	"time"
 
@@ -297,7 +296,7 @@ func (p *Controller) receiveParcel(packet *uniproto.ReceivedPacket, payload *Par
 
 	duplicate := !dPeer.dedup.Add(DedupID(payload.ParcelID))
 	// todo: remove me
-	log.Printf("peerID: %d ParcelID: %d duplicate: %t", dPeer.peerID, payload.ParcelID, duplicate)
+	// log.Printf("peerID: %d ParcelID: %d duplicate: %t", dPeer.peerID, payload.ParcelID, duplicate)
 
 	ok := false
 	if ok, _, retAddr.expires, err = p.adjustedExpiry(payload.PulseNumber, payload.TTLCycles, true); !ok {
