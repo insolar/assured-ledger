@@ -91,7 +91,6 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 			{
 				server.ReplaceRunner(runnerMock)
 				server.Init(ctx)
-				server.IncrementPulseAndWaitIdle(ctx)
 
 				object = server.RandomGlobalWithPulse()
 				prevPulse := server.GetPulse().PulseNumber
@@ -275,7 +274,6 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 	{
 		server.ReplaceRunner(runnerMock)
 		server.Init(ctx)
-		server.IncrementPulseAndWaitIdle(ctx)
 	}
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
@@ -483,7 +481,6 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 			{
 				server.ReplaceRunner(runnerMock)
 				server.Init(ctx)
-				server.IncrementPulseAndWaitIdle(ctx)
 			}
 
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)

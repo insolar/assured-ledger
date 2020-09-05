@@ -13,37 +13,41 @@ import (
 )
 
 type SynchronizationContext interface {
-	// Provides current state of a sync object.
+	// Check provides current state of a sync object.
 	// When the sync was previously acquired, then this function returns SM's status of a sync object.
 	// When the sync was not previously acquired, then this function returns a general status of a sync object
 	// Panics on zero or incorrectly initialized value.
 	Check(SyncLink) BoolDecision
 
-	// Acquires a holder of the sync object and returns status of the acquired holder:
+	// Acquire acquires a holder of the sync object and returns status of the acquired holder:
 	//
 	// 1) Passed/true - SM can proceed to access resources controlled by this sync object.
 	//    Passed holder MUST be released to ensure that other SM can also pass.
 	//
 	// 2) NotPassed/false - SM can't proceed to access resources controlled by this sync object.
 	//    NotPassed holder remains valid and ensures that SM retains location an a queue of the sync object.
-	//    NotPassed holder will at some moment converted into Passed holder and the relevant SM will be be woken up.
-	//    NotPassed holder is MUST be released.
+	//    NotPassed holder will at some moment be converted into Passed holder and the relevant SM will be be woken up.
+	//    NotPassed holder MUST be released.
 	//
 	// Acquired holder will be released when SM is stopped.
 	// Panics on zero or incorrectly initialized value.
-	// Panics when another sync was acquired, but was not released.
+	// Panics when another sync was acquired, but was not released. This also applies then holder was previously acquired with different methods/flags/priority.
 	Acquire(SyncLink) BoolDecision
-	// NB! This function RELEASES any previously acquired sync object after acquiring a new one.
+	// AcquireAndRelease releases any previously acquired sync object AFTER acquiring a new one.
 	AcquireAndRelease(SyncLink) BoolDecision
 
-	// Similar to Acquire(), but the acquired holder will also be released when a step is changed.
+	// AcquireForThisStep is similar to Acquire(), but the acquired holder will also be released when step is changed.
 	// To avoid doubt - Repeat(), WakeUp() and Stay() operations will not release.
-	// Other operations, including Jump() to the same step will do RELEASE.
+	// Other operations, including Jump() to the same step will do RELEASE even if they combined with Sleep() or similar predicates.
 	// Panics on zero or incorrectly initialized value.
 	AcquireForThisStep(SyncLink) BoolDecision
+	// AcquireForThisStepAndRelease combines features of both AcquireForThisStep() and AcquireAndRelease()
 	AcquireForThisStepAndRelease(SyncLink) BoolDecision
 
-	// Releases a holder of this SM for the given sync object.
+	// AcquireExt acquires a holder of the sync object with additional features/properties defined by AcquireFlags. See also Acquire* methods.
+	AcquireExt(SyncLink, AcquireFlags) BoolDecision
+
+	// Release releases a holder of this SM for the given sync object.
 	// When there is no holder or the current holder belongs to a different sync object then operation is ignored and false is returned.
 	// NB! Some sync objects (e.g. conditionals) may release a passed holder automatically, hence this function will return false as well.
 	// Panics on zero or incorrectly initialized value.
@@ -51,6 +55,22 @@ type SynchronizationContext interface {
 
 	minimalSynchronizationContext
 }
+
+type AcquireFlags uint8
+
+const (
+	// AcquireForThisStep flag grants property of SynchronizationContext.AcquireForThisStep()
+	AcquireForThisStep AcquireFlags = 1<<iota
+	// AcquireAndRelease flag grants property of SynchronizationContext.AcquireAndRelease()
+	AcquireAndRelease
+	// BoostedPriorityAcquire flag grants property of a boosted slot - it gets higher priority on relevant synchronization queues.
+	BoostedPriorityAcquire
+	// HighPriorityAcquire flag grants property of a priority slot - it gets the highest priority on relevant synchronization queues.
+	// USE WITH CAUTION.
+	HighPriorityAcquire
+	// NoPriorityAcquire flag suppresses slot's boost/priority status for the acquire operation.
+	NoPriorityAcquire
+)
 
 type minimalSynchronizationContext interface {
 	// Releases a holder of this SM for any sync object if present.

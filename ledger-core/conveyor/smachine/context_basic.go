@@ -373,28 +373,44 @@ func (p *slotContext) Check(link SyncLink) BoolDecision {
 	return link.controller.CheckState()
 }
 
-func (p *slotContext) AcquireForThisStep(link SyncLink) BoolDecision {
-	return p.acquire(link, false, SyncForOneStep)
+func (p *slotContext) AcquireExt(link SyncLink, flags AcquireFlags) BoolDecision {
+	sdf := SlotDependencyFlags(0)
+	if flags&AcquireForThisStep != 0 {
+		sdf |= SyncForOneStep
+	}
+	if flags&BoostedPriorityAcquire != 0 {
+		sdf |= SyncPriorityBoosted
+	}
+	if flags&HighPriorityAcquire != 0 {
+		sdf |= SyncPriorityHigh
+	}
+	return p.acquire(link, flags&AcquireAndRelease != 0, flags&NoPriorityAcquire != 0, sdf)
 }
 
+
 func (p *slotContext) Acquire(link SyncLink) BoolDecision {
-	return p.acquire(link, false, 0)
+	return p.acquire(link, false, false, 0)
+}
+
+func (p *slotContext) AcquireForThisStep(link SyncLink) BoolDecision {
+	return p.acquire(link, false, false, SyncForOneStep)
 }
 
 func (p *slotContext) AcquireAndRelease(link SyncLink) BoolDecision {
-	return p.acquire(link, true, 0)
+	return p.acquire(link, true, false, 0)
 }
 
 func (p *slotContext) AcquireForThisStepAndRelease(link SyncLink) BoolDecision {
-	return p.acquire(link, true, SyncForOneStep)
+	return p.acquire(link, true, false, SyncForOneStep)
 }
 
-func (p *slotContext) acquire(link SyncLink, autoRelease bool, flags SlotDependencyFlags) (d BoolDecision) {
+func (p *slotContext) acquire(link SyncLink, autoRelease, ignoreSlotPriority bool, flags SlotDependencyFlags) (d BoolDecision) {
 	p.ensureAtLeast(updCtxInit)
 
 	switch {
 	case link.IsZero():
 		panic(throw.IllegalValue())
+	case ignoreSlotPriority:
 	case p.s.isSyncPriority():
 		flags |= SyncPriorityHigh
 	case p.s.isSyncBoost():
@@ -411,7 +427,7 @@ func (p *slotContext) acquire(link SyncLink, autoRelease bool, flags SlotDepende
 	}
 
 	if !autoRelease {
-		panic("SM has already acquired another sync or the same one but with an incompatible mode")
+		panic("SM has already acquired another sync or the same one but with incompatible flags")
 	}
 
 	slotLink := p.s.NewLink()
