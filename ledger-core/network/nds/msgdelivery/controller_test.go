@@ -7,9 +7,9 @@ package msgdelivery
 
 import (
 	"fmt"
+	"math/rand"
 	"testing"
 	"time"
-	"math/rand"
 
 	"github.com/stretchr/testify/require"
 
@@ -544,12 +544,13 @@ func startUniprotoServers(t *testing.T, recv1, recv2 ReceiverFunc) (Service, Ser
 	sk2 := cryptkit.NewSigningKey(longbits.CopyBytes(skBytes[:]), testSigningMethod, cryptkit.PublicAsymmetricKey)
 
 	var srv1 Service
-	ctrl1 := NewController(Protocol, TestDeserializationFactory{},
-		func(a ReturnAddress, _ nwapi.PayloadCompleteness, v interface{}) error {
-			t.Log(a.String(), "Ctl1:", v)
-			s := v.(fmt.Stringer).String() + "-return"
-			return srv1.ShipReturn(a, Shipment{Head: &TestString{s}})
-		}, nil, TestLogAdapter{t})
+	ctrl1 := NewController(
+		Protocol,
+		TestDeserializationFactory{},
+		recv1,
+		nil,
+		TestLogAdapter{t},
+	)
 
 	srv1 = ctrl1.NewFacade()
 
