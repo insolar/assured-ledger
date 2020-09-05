@@ -23,7 +23,7 @@ type Peer interface {
 	GetNodeID() nwapi.ShortNodeID
 
 	// GetSignatureKey returns peer's signature key. Key can be zero.
-	GetSignatureKey() cryptkit.SignatureKey
+	GetSignatureKey() cryptkit.SigningKey
 
 	// SetProtoInfo sets/updated per-protocol peer's projection (info). It will be closed when the peer is unregistered.
 	SetProtoInfo(pt ProtocolType, info io.Closer)

@@ -29,9 +29,9 @@ func TestController(t *testing.T) {
 
 	vf := TestVerifierFactory{}
 	skBytes := [testDigestSize]byte{}
-	sk1 := cryptkit.NewSignatureKey(longbits.CopyBytes(skBytes[:]), testSignatureMethod, cryptkit.PublicAsymmetricKey)
+	sk1 := cryptkit.NewSigningKey(longbits.CopyBytes(skBytes[:]), testSigningMethod, cryptkit.PublicAsymmetricKey)
 	skBytes[0] = 1
-	sk2 := cryptkit.NewSignatureKey(longbits.CopyBytes(skBytes[:]), testSignatureMethod, cryptkit.PublicAsymmetricKey)
+	sk2 := cryptkit.NewSigningKey(longbits.CopyBytes(skBytes[:]), testSigningMethod, cryptkit.PublicAsymmetricKey)
 
 	var receive1 atomickit.Uint32
 	var receive2 atomickit.Uint32
@@ -263,9 +263,9 @@ func createPipe(t testing.TB, server1, server2 string, udpMaxSize int, resultFn 
 
 	vf := TestVerifierFactory{}
 	skBytes := [testDigestSize]byte{}
-	sk1 := cryptkit.NewSignatureKey(longbits.CopyBytes(skBytes[:]), testSignatureMethod, cryptkit.PublicAsymmetricKey)
+	sk1 := cryptkit.NewSigningKey(longbits.CopyBytes(skBytes[:]), testSigningMethod, cryptkit.PublicAsymmetricKey)
 	skBytes[0] = 1
-	sk2 := cryptkit.NewSignatureKey(longbits.CopyBytes(skBytes[:]), testSignatureMethod, cryptkit.PublicAsymmetricKey)
+	sk2 := cryptkit.NewSigningKey(longbits.CopyBytes(skBytes[:]), testSigningMethod, cryptkit.PublicAsymmetricKey)
 
 	controller1 := NewController(Protocol, TestDeserializationByteFactory{},
 		func(a ReturnAddress, _ nwapi.PayloadCompleteness, v interface{}) error {
