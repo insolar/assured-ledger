@@ -156,6 +156,31 @@ func (v TestString) String() string {
 }
 
 /**************************************/
+var _ nwapi.Serializable = &TestBytes{}
+
+type TestBytes struct {
+	S []byte
+}
+
+func (v *TestBytes) ByteSize() uint {
+	return uint(len(v.S))
+}
+
+func (v *TestBytes) SerializeTo(_ nwapi.SerializationContext, writer *iokit.LimitedWriter) error {
+	_, err := writer.Write(v.S)
+	return err
+}
+
+func (v *TestBytes) DeserializeFrom(_ nwapi.DeserializationContext, reader *iokit.LimitedReader) error {
+	b := make([]byte, reader.RemainingBytes())
+	if _, err := io.ReadFull(reader, b); err != nil {
+		return err
+	}
+	v.S = b
+	return nil
+}
+
+/**************************************/
 var _ nwapi.DeserializationFactory = TestDeserializationFactory{}
 
 type TestDeserializationFactory struct{}
@@ -168,10 +193,23 @@ func (TestDeserializationFactory) DeserializePayloadFrom(ctx nwapi.Deserializati
 	return &s, nil
 }
 
+/**************************************/
+var _ nwapi.DeserializationFactory = TestDeserializationByteFactory{}
+
+type TestDeserializationByteFactory struct{}
+
+func (TestDeserializationByteFactory) DeserializePayloadFrom(ctx nwapi.DeserializationContext, _ nwapi.PayloadCompleteness, reader *iokit.LimitedReader) (nwapi.Serializable, error) {
+	var s TestBytes
+	if err := s.DeserializeFrom(ctx, reader); err != nil {
+		return nil, err
+	}
+	return &s, nil
+}
+
 /****************************************/
 
 type TestLogAdapter struct {
-	t *testing.T
+	t testing.TB
 }
 
 func (t TestLogAdapter) LogError(err error) {

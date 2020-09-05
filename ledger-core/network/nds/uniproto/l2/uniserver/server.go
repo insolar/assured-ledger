@@ -105,6 +105,11 @@ func (p *UnifiedServer) SetHTTPReceiver(fn HTTPReceiverFunc) {
 	p.receiver.HTTP = fn
 }
 
+// SetIdentityClassifier can only be used for initialization
+func (p *UnifiedServer) SetIdentityClassifier(idWithPortFn func(nwapi.Address) bool) {
+	p.peers.SetIdentityClassifier(idWithPortFn)
+}
+
 func (p *UnifiedServer) StartNoListen() {
 	if p.peers.central.factory != nil {
 		panic(throw.IllegalState())

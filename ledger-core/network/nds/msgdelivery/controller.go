@@ -57,11 +57,11 @@ func NewController(pt uniproto.ProtocolType, factory nwapi.DeserializationFactor
 		c.parcelOutType = uniproto.SessionfulAny
 	}
 
-	c.senderConfig = SenderWorkerConfig{1, 5, 100}
+	c.senderConfig = SenderWorkerConfig{1, 5, 100000}
 	c.sender.init(10, 10)
 	c.sender.stages.InitStages(minHeadBatchWeight, [...]int{10, 50, 100})
 
-	c.staterConfig = SenderWorkerConfig{1, 5, 100}
+	c.staterConfig = SenderWorkerConfig{1, 5, 100000}
 	c.stater.init(10, 10)
 	c.stater.stages.InitStages(1, [...]int{5, 10, 50})
 

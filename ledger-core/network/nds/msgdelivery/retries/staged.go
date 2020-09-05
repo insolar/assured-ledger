@@ -45,8 +45,8 @@ func (p *StagedController) InitStages(minHeadBatchWeight uint, periods [RetrySta
 		}
 	}
 
-	//p.batchHeads.mutex.Lock()
-	//defer p.batchHeads.mutex.Unlock()
+	// p.batchHeads.mutex.Lock()
+	// defer p.batchHeads.mutex.Unlock()
 
 	p.minHeadBatchWeight = minHeadBatchWeight
 	for i, max := range periods {

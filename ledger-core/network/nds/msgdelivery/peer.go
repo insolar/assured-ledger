@@ -164,21 +164,10 @@ func (p *DeliveryPeer) sendParcel(msg *msgShipment, isBody, isRepeated bool) {
 	packet := ParcelPacket{ParcelID: msg.id.ShortID(), ReturnID: msg.returnID, RepeatedSend: isRepeated}
 
 	packet.ParcelType = nwapi.CompletePayload
-	cycle, pn := p.ctl.getPulseCycle()
 
-	if msg.expires < cycle {
+	if !p.assignAndCheckTTL(msg, &packet) {
 		msg.markExpired()
 		return
-	}
-
-	if msg.shipment.Policies&ExactPulse == 0 {
-		packet.PulseNumber = pn
-		if cycle = msg.expires - cycle; cycle > math.MaxUint8 {
-			cycle = math.MaxUint8
-		}
-	} else {
-		packet.PulseNumber = msg.shipment.PN
-		cycle = uint32(msg.shipment.TTL)
 	}
 
 	switch {
@@ -194,8 +183,9 @@ func (p *DeliveryPeer) sendParcel(msg *msgShipment, isBody, isRepeated bool) {
 		packet.ParcelType = nwapi.HeadOnlyPayload
 		packet.Data = msg.shipment.Head
 		packet.BodyScale = uint8(bits.Len(msg.shipment.Body.ByteSize()))
-		packet.TTLCycles = uint8(cycle)
+		packet.TTLCycles = msg.shipment.TTL
 	}
+
 	p._sendParcel(p.ctl.parcelOutType, packet, msg.canSendHead)
 }
 
@@ -203,7 +193,32 @@ func (p *DeliveryPeer) sendLargeParcel(msg *msgShipment, isRepeated bool) {
 	packet := ParcelPacket{ParcelID: msg.id.ShortID(), ReturnID: msg.returnID, RepeatedSend: isRepeated, ParcelType: nwapi.CompletePayload}
 	packet.Data = msg.shipment.Body
 
+	if !p.assignAndCheckTTL(msg, &packet) {
+		msg.markExpired()
+		return
+	}
+
 	p._sendParcel(uniproto.SessionfulLarge, packet, msg.canSendBody)
+}
+
+func (p *DeliveryPeer) assignAndCheckTTL(msg *msgShipment, packet *ParcelPacket) bool {
+	cycle, pn := p.ctl.getPulseCycle()
+
+	if msg.expires < cycle {
+		return false
+	}
+
+	if msg.shipment.Policies&ExactPulse == 0 {
+		msg.shipment.Policies |= ExactPulse
+		msg.shipment.PN = pn
+		if cycle = msg.expires - cycle; cycle > math.MaxUint8 {
+			cycle = math.MaxUint8
+		}
+		msg.shipment.TTL = uint8(cycle)
+	}
+
+	packet.PulseNumber = msg.shipment.PN
+	return true
 }
 
 func (p *DeliveryPeer) _sendParcel(tp uniproto.OutType, parcel ParcelPacket, checkFn func() bool) {

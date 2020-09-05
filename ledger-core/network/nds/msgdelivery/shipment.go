@@ -39,7 +39,7 @@ type msgShipment struct {
 }
 
 func (p *msgShipment) isImmediateSend() bool {
-	return false
+	return p.shipment.Policies & ImmediateSend != 0
 }
 
 func (p *msgShipment) isFireAndForget() bool {

@@ -52,6 +52,11 @@ type PeerQuotaFactoryFunc = func([]nwapi.Address) ratelimiter.RWRateQuota
 // PeerMapperFunc is invoked after a new peer is registered to check if this peek has to be merged with another one.
 type PeerMapperFunc = func(*Peer) (remapTo nwapi.Address, err error)
 
+// SetIdentityClassifier can only be used for initialization
+func (p *PeerManager) SetIdentityClassifier(idWithPortFn func(nwapi.Address) bool) {
+	p.peers.idWithPortFn = idWithPortFn
+}
+
 // SetPeerConnectionLimit sets a max number of sessionful connections established to/from peer.
 func (p *PeerManager) SetPeerConnectionLimit(n uint8) {
 	p.peerMutex.Lock()
