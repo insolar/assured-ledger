@@ -62,7 +62,7 @@ type CandidateProfileMock struct {
 	beforeGetIssuerSignatureCounter uint64
 	GetIssuerSignatureMock          mCandidateProfileMockGetIssuerSignature
 
-	funcGetNodePublicKey          func() (s1 cryptkit.SignatureKeyHolder)
+	funcGetNodePublicKey          func() (s1 cryptkit.SigningKeyHolder)
 	inspectFuncGetNodePublicKey   func()
 	afterGetNodePublicKeyCounter  uint64
 	beforeGetNodePublicKeyCounter uint64
@@ -1160,7 +1160,7 @@ type CandidateProfileMockGetNodePublicKeyExpectation struct {
 
 // CandidateProfileMockGetNodePublicKeyResults contains results of the CandidateProfile.GetNodePublicKey
 type CandidateProfileMockGetNodePublicKeyResults struct {
-	s1 cryptkit.SignatureKeyHolder
+	s1 cryptkit.SigningKeyHolder
 }
 
 // Expect sets up expected params for CandidateProfile.GetNodePublicKey
@@ -1188,7 +1188,7 @@ func (mmGetNodePublicKey *mCandidateProfileMockGetNodePublicKey) Inspect(f func(
 }
 
 // Return sets up results that will be returned by CandidateProfile.GetNodePublicKey
-func (mmGetNodePublicKey *mCandidateProfileMockGetNodePublicKey) Return(s1 cryptkit.SignatureKeyHolder) *CandidateProfileMock {
+func (mmGetNodePublicKey *mCandidateProfileMockGetNodePublicKey) Return(s1 cryptkit.SigningKeyHolder) *CandidateProfileMock {
 	if mmGetNodePublicKey.mock.funcGetNodePublicKey != nil {
 		mmGetNodePublicKey.mock.t.Fatalf("CandidateProfileMock.GetNodePublicKey mock is already set by Set")
 	}
@@ -1201,7 +1201,7 @@ func (mmGetNodePublicKey *mCandidateProfileMockGetNodePublicKey) Return(s1 crypt
 }
 
 //Set uses given function f to mock the CandidateProfile.GetNodePublicKey method
-func (mmGetNodePublicKey *mCandidateProfileMockGetNodePublicKey) Set(f func() (s1 cryptkit.SignatureKeyHolder)) *CandidateProfileMock {
+func (mmGetNodePublicKey *mCandidateProfileMockGetNodePublicKey) Set(f func() (s1 cryptkit.SigningKeyHolder)) *CandidateProfileMock {
 	if mmGetNodePublicKey.defaultExpectation != nil {
 		mmGetNodePublicKey.mock.t.Fatalf("Default expectation is already set for the CandidateProfile.GetNodePublicKey method")
 	}
@@ -1215,7 +1215,7 @@ func (mmGetNodePublicKey *mCandidateProfileMockGetNodePublicKey) Set(f func() (s
 }
 
 // GetNodePublicKey implements CandidateProfile
-func (mmGetNodePublicKey *CandidateProfileMock) GetNodePublicKey() (s1 cryptkit.SignatureKeyHolder) {
+func (mmGetNodePublicKey *CandidateProfileMock) GetNodePublicKey() (s1 cryptkit.SigningKeyHolder) {
 	mm_atomic.AddUint64(&mmGetNodePublicKey.beforeGetNodePublicKeyCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetNodePublicKey.afterGetNodePublicKeyCounter, 1)
 

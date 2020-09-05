@@ -55,7 +55,7 @@ func (p *platformSchemeLegacy) CreateSignatureVerifierWithPKS(pks cryptkit.Publi
 	return NewECDSASignatureVerifier(p.pcs, pks)
 }
 
-func (p *platformSchemeLegacy) CreatePublicKeyStore(skh cryptkit.SignatureKeyHolder) cryptkit.PublicKeyStore {
+func (p *platformSchemeLegacy) CreatePublicKeyStore(skh cryptkit.SigningKeyHolder) cryptkit.PublicKeyStore {
 	return NewECDSAPublicKeyStore(skh)
 }
 
