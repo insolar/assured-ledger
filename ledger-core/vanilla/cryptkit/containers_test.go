@@ -35,10 +35,9 @@ func TestCompareNilZero(t *testing.T) {
 	require.Nil(t, Signature{}.AsSignatureHolder())
 	require.True(t, Signature{}.IsEmpty())
 
-	require.Equal(t, 0, SignatureKey{}.FixedByteSize())
-	require.Equal(t, SignatureMethod(""), SignatureKey{}.GetSignatureKeyMethod())
-	require.Equal(t, SigningMethod(""), SignatureKey{}.GetSigningMethod())
-	require.True(t, SignatureKey{}.IsEmpty())
+	require.Equal(t, 0, SigningKey{}.FixedByteSize())
+	require.Equal(t, SigningMethod(""), SigningKey{}.GetSigningMethod())
+	require.True(t, SigningKey{}.IsEmpty())
 
 	require.Equal(t, 0, SignedData{}.FixedByteSize())
 	require.True(t, SignedData{}.IsEmpty())
@@ -90,28 +89,18 @@ func TestSignMethod(t *testing.T) {
 	td := "testDigest"
 	ts := "testSign"
 	sep := "/"
-	require.Equal(t, SigningMethod(ts), SignatureMethod(strings.Join([]string{td, ts}, sep)).SignMethod())
+	require.Equal(t, SigningMethod(ts), SignatureMethod(strings.Join([]string{td, ts}, sep)).SigningMethod())
 
 	emptySignMethod := SigningMethod("")
-	require.Equal(t, emptySignMethod, SignatureMethod("testSignature").SignMethod())
+	require.Equal(t, emptySignMethod, SignatureMethod("testSignature").SigningMethod())
 
-	require.Equal(t, emptySignMethod, SignatureMethod(strings.Join([]string{td, ts, "test"}, sep)).SignMethod())
+	require.Equal(t, emptySignMethod, SignatureMethod(strings.Join([]string{td, ts, "test"}, sep)).SigningMethod())
 }
 
 func TestString(t *testing.T) {
 	ts := "test"
 	sm := SignatureMethod(ts)
 	require.Equal(t, ts, sm.String())
-}
-
-func TestCopyOfDigest(t *testing.T) {
-	d := &Digest{digestMethod: "test"}
-	fd := longbits.NewFoldableReaderMock(t)
-	fd.FixedByteSizeMock.Set(func() int { return 0 })
-	fd.CopyToMock.Set(func(p []byte) int { return 0 })
-	d.hFoldReader = fd
-	cd := d.CopyOfDigest()
-	require.Equal(t, cd.digestMethod, d.digestMethod)
 }
 
 func TestDigestEquals(t *testing.T) {
@@ -210,10 +199,7 @@ func TestCopyOfSignedDigest(t *testing.T) {
 	fd2.CopyToMock.Set(func(p []byte) int { return 0 })
 	s.hFoldReader = fd2
 	sd := NewSignedDigest(d, s)
-	sdc := sd.CopyOfSignedDigest()
-	require.Equal(t, sdc.digest.digestMethod, sd.digest.digestMethod)
-
-	require.Equal(t, sdc.GetSignatureMethod(), sd.GetSignatureMethod())
+	require.Equal(t, s.GetSignatureMethod(), sd.GetSignatureMethod())
 }
 
 func TestSignedDigestEquals(t *testing.T) {
@@ -278,7 +264,7 @@ func TestIsVerifiableBy(t *testing.T) {
 	sd := NewSignedDigest(Digest{}, Signature{})
 	sv := NewSignatureVerifierMock(t)
 	supported := false
-	sv.IsSignOfSignatureMethodSupportedMock.Set(func(SignatureMethod) bool { return *(&supported) })
+	sv.IsSigningMethodSupportedMock.Set(func(SigningMethod) bool { return *(&supported) })
 	require.False(t, sd.IsVerifiableBy(sv))
 
 	supported = true
@@ -354,12 +340,12 @@ func TestSignedDataString(t *testing.T) {
 
 func TestNewSignatureKey(t *testing.T) {
 	fd := longbits.NewFoldableReaderMock(t)
-	ts := SignatureMethod("testSign")
+	ts := SigningMethod("testSign")
 	kt := PublicAsymmetricKey
-	sk := NewSignatureKey(fd, ts, kt)
+	sk := NewSigningKey(fd, ts, kt)
 	require.Equal(t, fd, sk.hFoldReader)
 
-	require.Equal(t, ts, sk.signatureMethod)
+	require.Equal(t, ts, sk.method)
 
 	require.Equal(t, kt, sk.keyType)
 }
@@ -367,36 +353,36 @@ func TestNewSignatureKey(t *testing.T) {
 func TestGetSignMethod(t *testing.T) {
 	fd := longbits.NewFoldableReaderMock(t)
 	ts := "testSign"
-	sk := NewSignatureKey(fd, SignatureMethod(strings.Join([]string{"testDigest", ts}, "/")), PublicAsymmetricKey)
+	sk := NewSigningKey(fd, SigningMethod(ts), PublicAsymmetricKey)
 	require.Equal(t, ts, sk.GetSigningMethod().String())
 }
 
 func TestGetSignatureKeyMethod(t *testing.T) {
 	fd := longbits.NewFoldableReaderMock(t)
-	s := strings.Join([]string{"testDigest", "testSign"}, "/")
-	sk := NewSignatureKey(fd, SignatureMethod(s), PublicAsymmetricKey)
-	require.Equal(t, s, sk.GetSignatureKeyMethod().String())
+	s := SigningMethod("testSign")
+	sk := NewSigningKey(fd, s, PublicAsymmetricKey)
+	require.Equal(t, s, sk.GetSigningMethod())
 }
 
 func TestGetSignatureKeyType(t *testing.T) {
 	fd := longbits.NewFoldableReaderMock(t)
 	kt := PublicAsymmetricKey
-	sk := NewSignatureKey(fd, "test", kt)
-	require.Equal(t, kt, sk.GetSignatureKeyType())
+	sk := NewSigningKey(fd, "test", kt)
+	require.Equal(t, kt, sk.GetSigningKeyType())
 }
 
 func TestEquals(t *testing.T) {
 	fd := longbits.NewFoldableReaderMock(t)
 	fd.FixedByteSizeMock.Set(func() int { return 0 })
 	fd.WriteToMock.Set(func(io.Writer) (int64, error) { return 0, nil })
-	sk1 := NewSignatureKey(fd, "test", PublicAsymmetricKey)
-	sk2 := NewSignatureKey(fd, "test", PublicAsymmetricKey)
+	sk1 := NewSigningKey(fd, "test", PublicAsymmetricKey)
+	sk2 := NewSigningKey(fd, "test", PublicAsymmetricKey)
 	require.True(t, sk1.Equals(&sk2))
 }
 
 func TestSignatureKeyString(t *testing.T) {
 	fd := longbits.NewFoldableReaderMock(t)
-	sk := NewSignatureKey(fd, "test", PublicAsymmetricKey)
+	sk := NewSigningKey(fd, "test", PublicAsymmetricKey)
 	require.NotEmpty(t, sk.String())
 }
 

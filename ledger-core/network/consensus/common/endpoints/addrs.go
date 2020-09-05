@@ -85,7 +85,7 @@ const (
 type Inbound interface {
 	GetNameAddress() Name
 	//	GetIPAddress() packets.IPAddress // TODO
-	GetTransportKey() cryptkit.SignatureKeyHolder
+	GetTransportKey() cryptkit.SigningKeyHolder
 	GetTransportCert() cryptkit.CertificateHolder
 	AsByteString() longbits.ByteString
 }
@@ -102,7 +102,7 @@ func NewHostIdentityFromHolder(h Inbound) InboundConnection {
 
 type InboundConnection struct {
 	Addr Name
-	Key  cryptkit.SignatureKeyHolder
+	Key  cryptkit.SigningKeyHolder
 	Cert cryptkit.CertificateHolder
 }
 
@@ -123,7 +123,7 @@ func (v *InboundConnection) GetNameAddress() Name {
 	return v.Addr
 }
 
-func (v *InboundConnection) GetTransportKey() cryptkit.SignatureKeyHolder {
+func (v *InboundConnection) GetTransportKey() cryptkit.SigningKeyHolder {
 	return v.Key
 }
 

@@ -79,7 +79,7 @@ type StaticProfile struct {
 	intro       profiles.StaticProfileExtension
 	endpoint    endpoints.Outbound
 	store       cryptkit.PublicKeyStore
-	keyHolder   cryptkit.SignatureKeyHolder
+	keyHolder   cryptkit.SigningKeyHolder
 
 	signature  cryptkit.SignedDigestHolder
 }
@@ -103,7 +103,7 @@ func ECDSAPublicKeyAsPublicKeyStore(pk crypto.PublicKey) cryptkit.PublicKeyStore
 	return legacyadapter.NewECDSAPublicKeyStoreFromPK(pk.(*ecdsa.PublicKey))
 }
 
-func ECDSAPublicKeyAsSignatureKeyHolder(pk crypto.PublicKey, kp cryptography.KeyProcessor) cryptkit.SignatureKeyHolder {
+func ECDSAPublicKeyAsSignatureKeyHolder(pk crypto.PublicKey, kp cryptography.KeyProcessor) cryptkit.SigningKeyHolder {
 	if pk == nil {
 		return nil
 	}
@@ -118,7 +118,7 @@ func NewStaticProfile(
 	intro profiles.StaticProfileExtension,
 	endpoint endpoints.Outbound,
 	store cryptkit.PublicKeyStore,
-	keyHolder cryptkit.SignatureKeyHolder,
+	keyHolder cryptkit.SigningKeyHolder,
 	signature cryptkit.SignedDigestHolder,
 ) *StaticProfile {
 	return &StaticProfile{
@@ -154,7 +154,7 @@ func (sp *StaticProfile) GetPublicKeyStore() cryptkit.PublicKeyStore {
 	return sp.store
 }
 
-func (sp *StaticProfile) GetNodePublicKey() cryptkit.SignatureKeyHolder {
+func (sp *StaticProfile) GetNodePublicKey() cryptkit.SigningKeyHolder {
 	return sp.keyHolder
 }
 

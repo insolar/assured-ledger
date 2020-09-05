@@ -95,7 +95,7 @@ func TestNewBlame(t *testing.T) {
 	violatorNode := bn
 	details := []interface{}{1, 2}
 	inc.GetNameAddressMock.Set(func() endpoints.Name { return "test" })
-	inc.GetTransportKeyMock.Set(func() cryptkit.SignatureKeyHolder { return nil })
+	inc.GetTransportKeyMock.Set(func() cryptkit.SigningKeyHolder { return nil })
 	inc.GetTransportCertMock.Set(func() cryptkit.CertificateHolder { return nil })
 	be := bf.NewBlame(fraudType, msg, violatorHost, violatorNode, details...)
 	require.Equal(t, fraudType, be.blameType)
@@ -133,7 +133,7 @@ func TestNewHostBlame(t *testing.T) {
 	violatorHost := inc
 	details := []interface{}{1, 2}
 	inc.GetNameAddressMock.Set(func() endpoints.Name { return "test" })
-	inc.GetTransportKeyMock.Set(func() cryptkit.SignatureKeyHolder { return nil })
+	inc.GetTransportKeyMock.Set(func() cryptkit.SigningKeyHolder { return nil })
 	inc.GetTransportCertMock.Set(func() cryptkit.CertificateHolder { return nil })
 	be := bf.NewHostBlame(fraudType, msg, violatorHost, details...)
 	require.Equal(t, msg, be.msg)
