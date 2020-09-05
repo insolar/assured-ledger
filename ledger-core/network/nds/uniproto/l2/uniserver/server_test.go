@@ -28,7 +28,7 @@ func TestServer(t *testing.T) {
 	marshaller := &TestProtocolMarshaller{}
 
 	vf := TestVerifierFactory{}
-	sk := cryptkit.NewSignatureKey(longbits.Zero(testDigestSize), testSignatureMethod, cryptkit.PublicAsymmetricKey)
+	sk := cryptkit.NewSigningKey(longbits.Zero(testDigestSize), testSigningMethod, cryptkit.PublicAsymmetricKey)
 
 	var peerProfileFn PeerMapperFunc
 	peerProfileFn = func(peer *Peer) (remapTo nwapi.Address, err error) {
