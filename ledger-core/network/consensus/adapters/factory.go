@@ -67,7 +67,7 @@ func (cf *TransportCryptographyFactory) CreateNodeSigner(sks cryptkit.SecretKeyS
 	return legacyadapter.NewECDSADigestSigner(sks, cf.scheme)
 }
 
-func (cf *TransportCryptographyFactory) CreatePublicKeyStore(skh cryptkit.SignatureKeyHolder) cryptkit.PublicKeyStore {
+func (cf *TransportCryptographyFactory) CreatePublicKeyStore(skh cryptkit.SigningKeyHolder) cryptkit.PublicKeyStore {
 	return legacyadapter.NewECDSAPublicKeyStore(skh)
 }
 
@@ -122,7 +122,7 @@ type keyStoreFactory struct {
 	keyProcessor cryptography.KeyProcessor
 }
 
-func (p *keyStoreFactory) CreatePublicKeyStore(keyHolder cryptkit.SignatureKeyHolder) cryptkit.PublicKeyStore {
+func (p *keyStoreFactory) CreatePublicKeyStore(keyHolder cryptkit.SigningKeyHolder) cryptkit.PublicKeyStore {
 	pk, err := p.keyProcessor.ImportPublicKeyBinary(longbits.AsBytes(keyHolder))
 	if err != nil {
 		panic(err)
