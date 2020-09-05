@@ -264,12 +264,16 @@ func (r *emuTransportCryptography) CreateGlobulaStateDigester() transport.StateD
 	return &gshDigester{&seqDigester{}, r.defaultDigest}
 }
 
-func (r *emuTransportCryptography) CreatePublicKeyStore(skh cryptkit.SignatureKeyHolder) cryptkit.PublicKeyStore {
+func (r *emuTransportCryptography) CreatePublicKeyStore(skh cryptkit.SigningKeyHolder) cryptkit.PublicKeyStore {
 	return nil
 }
 
 func (r *emuTransportCryptography) CreateAnnouncementDigester() cryptkit.ForkingDigester {
 	return &seqDigester{}
+}
+
+func (r *emuTransportCryptography) GetDefaultSigningMethod() cryptkit.SigningMethod {
+	return r.GetSigningMethod()
 }
 
 func (r *emuTransportCryptography) IsDigestMethodSupported(m cryptkit.DigestMethod) bool {
@@ -280,15 +284,11 @@ func (r *emuTransportCryptography) IsValidDataSignature(data io.Reader, signatur
 	return true
 }
 
-func (r *emuTransportCryptography) IsSignOfSignatureMethodSupported(m cryptkit.SignatureMethod) bool {
-	return true
-}
-
 func (r *emuTransportCryptography) IsDigestOfSignatureMethodSupported(m cryptkit.SignatureMethod) bool {
 	return true
 }
 
-func (r *emuTransportCryptography) IsSignMethodSupported(m cryptkit.SigningMethod) bool {
+func (r *emuTransportCryptography) IsSigningMethodSupported(m cryptkit.SigningMethod) bool {
 	return true
 }
 
