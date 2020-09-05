@@ -57,8 +57,8 @@ func (p *DeliveryPeer) _close() {
 
 	p.prepared = StatePacket{}
 	p.canFlush = false
-	//p.ctl = nil
-	//p.peer = nil
+	// p.ctl = nil
+	// p.peer = nil
 }
 
 func (p *DeliveryPeer) isValid() bool {
@@ -155,7 +155,7 @@ func (p *DeliveryPeer) sendState(packet StatePacket) {
 	_, template.PulseNumber = p.ctl.getPulseCycle()
 
 	p._setPacketForSend(&template)
-	if err := p.peer.SendPreparedPacket(uniproto.SmallAny, &template.Packet, dataSize, writeFn, nil); err != nil {
+	if err := p.peer.SendPreparedPacket(p.ctl.stateOutType, &template.Packet, dataSize, writeFn, nil); err != nil {
 		p.ctl.reportError(err)
 	}
 }
@@ -176,7 +176,7 @@ func (p *DeliveryPeer) sendParcel(msg *msgShipment, isBody, isRepeated bool) {
 	switch {
 	case isBody:
 		packet.Data = msg.shipment.Body
-		p._sendParcel(uniproto.Any, packet, msg.canSendBody)
+		p._sendParcel(p.ctl.parcelOutType, packet, msg.canSendBody)
 		return
 	case msg.shipment.Body == nil:
 		packet.Data = msg.shipment.Head
@@ -188,7 +188,7 @@ func (p *DeliveryPeer) sendParcel(msg *msgShipment, isBody, isRepeated bool) {
 		packet.BodyScale = uint8(bits.Len(msg.shipment.Body.ByteSize()))
 		packet.TTLCycles = msg.shipment.TTL
 	}
-	p._sendParcel(uniproto.Any, packet, msg.canSendHead)
+	p._sendParcel(p.ctl.parcelOutType, packet, msg.canSendHead)
 }
 
 func (p *DeliveryPeer) applyParcelExpiry(msg *msgShipment, packet *ParcelPacket) bool {

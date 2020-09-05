@@ -24,7 +24,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -65,13 +64,12 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 	server.ReplaceRunner(runnerMock)
 
 	server.Init(ctx)
-	server.IncrementPulseAndWaitIdle(ctx)
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
 	var (
 		prevPulse     = server.GetPulse().PulseNumber
-		objectAGlobal = reference.NewSelf(server.RandomLocalWithPulse())
+		objectAGlobal = server.RandomGlobalWithPulse()
 	)
 
 	server.IncrementPulseAndWaitIdle(ctx)
@@ -90,14 +88,14 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 
 		outgoingCallRef = reference.NewRecordOf(objectAGlobal, server.RandomLocalWithPulse())
 
-		classB        = gen.UniqueGlobalRef()
-		objectBGlobal = reference.NewSelf(server.RandomLocalWithPulse())
+		classB        = server.RandomGlobalWithPulse()
+		objectBGlobal = server.RandomGlobalWithPulse()
 
 		firstPulse  = server.GetPulse().PulseNumber
 		secondPulse pulse.Number
 
-		firstApprover  = gen.UniqueGlobalRef()
-		secondApprover = gen.UniqueGlobalRef()
+		firstApprover  = server.RandomGlobalWithPulse()
+		secondApprover = server.RandomGlobalWithPulse()
 
 		firstExpectedToken = payload.CallDelegationToken{
 			TokenTypeAndFlags: payload.DelegationTokenTypeCall,
@@ -300,7 +298,6 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 	server.ReplaceRunner(runnerMock)
 
 	server.Init(ctx)
-	server.IncrementPulseAndWaitIdle(ctx)
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
@@ -322,8 +319,8 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 		firstPulse  = server.GetPulse().PulseNumber
 		secondPulse pulse.Number
 
-		firstApprover  = gen.UniqueGlobalRef()
-		secondApprover = gen.UniqueGlobalRef()
+		firstApprover  = server.RandomGlobalWithPulse()
+		secondApprover = server.RandomGlobalWithPulse()
 
 		firstExpectedToken, secondExpectedToken payload.CallDelegationToken
 
@@ -504,7 +501,6 @@ func TestVirtual_CallContractOutgoingReturnsError(t *testing.T) {
 	})
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
-	server.IncrementPulseAndWaitIdle(ctx)
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
@@ -526,10 +522,8 @@ func TestVirtual_CallContractOutgoingReturnsError(t *testing.T) {
 		flags     = contract.MethodIsolation{Interference: isolation.CallTolerable, State: isolation.CallDirty}
 		callFlags = payload.BuildCallFlags(flags.Interference, flags.State)
 
-		classB          = gen.UniqueGlobalRef()
-		outgoingCallRef = reference.NewRecordOf(
-			server.GlobalCaller(), server.RandomLocalWithPulse(),
-		)
+		classB          = server.RandomGlobalWithPulse()
+		outgoingCallRef = server.BuildRandomOutgoingWithPulse()
 	)
 
 	p := server.GetPulse().PulseNumber

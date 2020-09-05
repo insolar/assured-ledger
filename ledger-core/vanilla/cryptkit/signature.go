@@ -29,7 +29,7 @@ func (s SignatureMethod) DigestMethod() DigestMethod {
 	return DigestMethod(parts[0])
 }
 
-func (s SignatureMethod) SignMethod() SigningMethod {
+func (s SignatureMethod) SigningMethod() SigningMethod {
 	parts := strings.Split(string(s), "/")
 	if len(parts) != 2 {
 		return ""
@@ -45,25 +45,20 @@ func (s SignatureMethod) String() string {
 
 type SignatureHolder interface {
 	longbits.FoldableReader
-	CopyOfSignature() Signature
 	GetSignatureMethod() SignatureMethod
 	Equals(other SignatureHolder) bool
 }
 
-//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit.SignatureKeyHolder -o . -s _mock.go -g
+//go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit.SigningKeyHolder -o . -s _mock.go -g
 
-// TODO rename to SigningKeyHolder
-type SignatureKeyHolder interface {
+type SigningKeyHolder interface {
 	longbits.FoldableReader
 	GetSigningMethod() SigningMethod
-	GetSignatureKeyMethod() SignatureMethod
-	// TODO rename to GetSigningKeyType
-	GetSignatureKeyType() SignatureKeyType
-	Equals(other SignatureKeyHolder) bool
+	GetSigningKeyType() SigningKeyType
+	Equals(other SigningKeyHolder) bool
 }
 
 type SignedDigestHolder interface {
-	CopyOfSignedDigest() SignedDigest
 	Equals(o SignedDigestHolder) bool
 	GetDigestHolder() DigestHolder
 	GetSignatureHolder() SignatureHolder
@@ -97,20 +92,19 @@ type SignedEvidenceHolder interface {
 	GetEvidence() SignedData
 }
 
-// TODO rename to SigningKeyType
-type SignatureKeyType uint8
+type SigningKeyType uint8
 
 const (
-	SymmetricKey SignatureKeyType = iota
+	SymmetricKey SigningKeyType = iota
 	SecretAsymmetricKey
 	PublicAsymmetricKey
 )
 
-func (v SignatureKeyType) IsSymmetric() bool {
+func (v SigningKeyType) IsSymmetric() bool {
 	return v == SymmetricKey
 }
 
-func (v SignatureKeyType) IsSecret() bool {
+func (v SigningKeyType) IsSecret() bool {
 	return v != PublicAsymmetricKey
 }
 
@@ -123,9 +117,10 @@ type DataSignatureVerifier interface {
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit.SignatureVerifier -o . -s _mock.go -g
 
 type SignatureVerifier interface {
+	GetDefaultSigningMethod() SigningMethod
+
 	IsDigestMethodSupported(m DigestMethod) bool
-	IsSignMethodSupported(m SigningMethod) bool
-	IsSignOfSignatureMethodSupported(m SignatureMethod) bool
+	IsSigningMethodSupported(m SigningMethod) bool
 
 	IsValidDigestSignature(digest DigestHolder, signature SignatureHolder) bool
 	IsValidDataSignature(data io.Reader, signature SignatureHolder) bool
@@ -135,18 +130,18 @@ type SignatureVerifier interface {
 
 type SignatureVerifierFactory interface {
 	CreateSignatureVerifierWithPKS(PublicKeyStore) SignatureVerifier
-	// CreateSignatureVerifierWithKey(SignatureKeyHolder) SignatureVerifier
-	// TODO Add	CreateDataSignatureVerifier(k SignatureKey, m SignatureMethod) DataSignatureVerifier
+	// CreateSignatureVerifierWithKey(SigningKeyHolder) SignatureVerifier
+	// TODO Add	CreateDataSignatureVerifier(k SigningKey, m SignatureMethod) DataSignatureVerifier
 }
 
 type DataSignatureVerifierFactory interface {
-	IsSignatureKeySupported(SignatureKey) bool
-	CreateDataSignatureVerifier(SignatureKey) DataSignatureVerifier
+	IsSignatureKeySupported(SigningKey) bool
+	CreateDataSignatureVerifier(SigningKey) DataSignatureVerifier
 }
 
 type DataSignerFactory interface {
-	IsSignatureKeySupported(SignatureKey) bool
-	CreateDataSigner(SignatureKey) DataSigner
+	IsSignatureKeySupported(SigningKey) bool
+	CreateDataSigner(SigningKey) DataSigner
 }
 
 

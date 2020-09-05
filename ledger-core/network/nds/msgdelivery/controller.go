@@ -37,6 +37,26 @@ func NewController(pt uniproto.ProtocolType, factory nwapi.DeserializationFactor
 	c := &Controller{pType: pt, factory: factory, timeCycle: 10 * time.Millisecond,
 		receiveFn: receiveFn, resolverFn: resolverFn, logger: logger}
 
+	switch f := protoDescriptor.SupportedPackets[DeliveryState].Flags; {
+	case f&uniproto.DatagramOnly != 0:
+		panic(throw.Unsupported())
+	case f&uniproto.DatagramAllowed != 0:
+		c.stateOutType = uniproto.SmallAny
+	default:
+		c.stateOutType = uniproto.SessionfulSmall
+	}
+
+	switch f := protoDescriptor.SupportedPackets[DeliveryParcelHead].Flags; {
+	case f&uniproto.DatagramOnly != 0:
+		panic(throw.Unsupported())
+	case f&uniproto.DatagramAllowed != 0:
+		c.parcelOutType = uniproto.Any
+	case f != protoDescriptor.SupportedPackets[DeliveryParcelComplete].Flags:
+		panic(throw.Unsupported())
+	default:
+		c.parcelOutType = uniproto.SessionfulAny
+	}
+
 	c.senderConfig = SenderWorkerConfig{1, 5, 100}
 	c.sender.init(10, 10)
 	c.sender.stages.InitStages(minHeadBatchWeight, [...]int{10, 50, 100})
@@ -68,9 +88,12 @@ type Controller struct {
 
 	pulseCycle atomickit.Uint64
 
-	stopSignal   synckit.ClosableSignalChannel
-	maxSmallSize uint
-	maxHeadSize  uint // <= maxSmallSize
+	stopSignal    synckit.ClosableSignalChannel
+	maxSmallSize  uint
+	maxHeadSize   uint // <= maxSmallSize
+
+	stateOutType  uniproto.OutType
+	parcelOutType uniproto.OutType
 }
 
 // for initialization only
@@ -255,12 +278,6 @@ func (p *Controller) receiveParcel(packet *uniproto.ReceivedPacket, payload *Par
 		return err
 	}
 
-	//if payload.RepeatedSend {
-	//	// TODO collect stats
-	//} else {
-	//
-	//}
-
 	peerID := packet.Header.SourceID
 
 	if payload.ReturnID != 0 {
@@ -278,6 +295,8 @@ func (p *Controller) receiveParcel(packet *uniproto.ReceivedPacket, payload *Par
 	}
 
 	duplicate := !dPeer.dedup.Add(DedupID(payload.ParcelID))
+	// todo: remove me
+	// log.Printf("peerID: %d ParcelID: %d duplicate: %t", dPeer.peerID, payload.ParcelID, duplicate)
 
 	ok := false
 	if ok, _, retAddr.expires, err = p.adjustedExpiry(payload.PulseNumber, payload.TTLCycles, true); !ok {

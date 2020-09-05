@@ -7,9 +7,9 @@ package msgdelivery
 
 import (
 	"fmt"
-	"math/rand"
 	"testing"
 	"time"
+	"math/rand"
 
 	"github.com/stretchr/testify/require"
 
@@ -538,15 +538,20 @@ func startUniprotoServers(t *testing.T, recv1, recv2 ReceiverFunc) (Service, Ser
 	const Server2 = "127.0.0.1:0"
 
 	vf := TestVerifierFactory{}
-	sk := cryptkit.NewSignatureKey(longbits.Zero(testDigestSize), testSignatureMethod, cryptkit.PublicAsymmetricKey)
+	skBytes := [testDigestSize]byte{}
+	sk1 := cryptkit.NewSigningKey(longbits.CopyBytes(skBytes[:]), testSigningMethod, cryptkit.PublicAsymmetricKey)
+	skBytes[0] = 1
+	sk2 := cryptkit.NewSigningKey(longbits.CopyBytes(skBytes[:]), testSigningMethod, cryptkit.PublicAsymmetricKey)
 
-	ctrl1 := NewController(Protocol,
-		TestDeserializationFactory{},
-		recv1,
-		nil,
-		TestLogAdapter{t},
-	)
-	srv1 := ctrl1.NewFacade()
+	var srv1 Service
+	ctrl1 := NewController(Protocol, TestDeserializationFactory{},
+		func(a ReturnAddress, _ nwapi.PayloadCompleteness, v interface{}) error {
+			t.Log(a.String(), "Ctl1:", v)
+			s := v.(fmt.Stringer).String() + "-return"
+			return srv1.ShipReturn(a, Shipment{Head: &TestString{s}})
+		}, nil, TestLogAdapter{t})
+
+	srv1 = ctrl1.NewFacade()
 
 	var dispatcher1 uniserver.Dispatcher
 	ctrl1.RegisterWith(dispatcher1.RegisterProtocol)
@@ -560,7 +565,7 @@ func startUniprotoServers(t *testing.T, recv1, recv2 ReceiverFunc) (Service, Ser
 	})
 
 	ups1.SetPeerFactory(func(peer *uniserver.Peer) (remapTo nwapi.Address, err error) {
-		peer.SetSignatureKey(sk)
+		peer.SetSignatureKey(sk2)
 		peer.SetNodeID(2)
 		return nwapi.NewHostID(2), nil
 	})
@@ -602,13 +607,13 @@ func startUniprotoServers(t *testing.T, recv1, recv2 ReceiverFunc) (Service, Ser
 	})
 
 	ups2.SetPeerFactory(func(peer *uniserver.Peer) (remapTo nwapi.Address, err error) {
-		peer.SetSignatureKey(sk)
+		peer.SetSignatureKey(sk1)
 		peer.SetNodeID(1)
 		return nwapi.NewHostID(1), nil
 	})
 	ups2.SetSignatureFactory(vf)
 
-	ups2.StartNoListen()
+	ups2.StartListen()
 	dispatcher2.NextPulse(pr)
 
 	pm2 := ups2.PeerManager()

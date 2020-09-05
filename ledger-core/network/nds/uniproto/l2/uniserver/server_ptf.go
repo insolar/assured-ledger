@@ -6,6 +6,8 @@
 package uniserver
 
 import (
+	"sync"
+
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/iokit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -30,10 +32,15 @@ type peerTransportFactory struct {
 	udpListen l1.OutTransportFactory
 
 	updateLocalAddr func(nwapi.Address)
+
+	// mutex protects outgoing factories
+	mutex sync.RWMutex
+	tcpOutgoing l1.OutTransportFactory
+	maxSessionlessSize uint16
 }
 
 func (p *peerTransportFactory) MaxSessionlessSize() uint16 {
-	return p.udpProvider.MaxByteSize()
+	return p.maxSessionlessSize // udpProvider.MaxByteSize()
 }
 
 func (p *peerTransportFactory) SetSessionless(udp l1.SessionlessTransportProvider, slFn l1.SessionlessReceiveFunc) {
@@ -76,6 +83,10 @@ func (p *peerTransportFactory) Listen() (err error) {
 	}
 
 	if p.listen.DoStart(func() {
+		if max := p.udpProvider.MaxByteSize(); max < p.maxSessionlessSize {
+			p.maxSessionlessSize = max
+		}
+
 		var localAddr nwapi.Address
 		if p.tcpListen, localAddr, err = p.tcpProvider.CreateListeningFactory(p.tcpIncomingFn); err != nil {
 			return
@@ -117,33 +128,65 @@ func (p *peerTransportFactory) Close() (err error) {
 }
 
 // LOCK: WARNING! This method is called under PeerTransport.mutex
-func (p *peerTransportFactory) SessionlessConnectTo(to nwapi.Address) (l1.OutTransport, error) {
+func (p *peerTransportFactory) SessionlessConnectTo(to nwapi.Address) (l1.OneWayTransport, error) {
+	if p.maxSessionlessSize == 0 {
+		return nil, throw.E("sessionless is disabled")
+	}
+
 	if p.listen.IsActive() {
 		return p.udpListen.ConnectTo(to)
 	}
 
-	// this is a bit inefficient, but ok
-	out, err := p.udpProvider.CreateOutgoingOnlyFactory()
-	if err != nil {
-		return nil, err
-	}
-	return out.ConnectTo(to)
+	return nil, throw.E("sessionless is unavailable without listener")
 }
 
 // LOCK: WARNING! This method is called under PeerTransport.mutex
-func (p *peerTransportFactory) SessionfulConnectTo(to nwapi.Address) (l1.OutTransport, error) {
+func (p *peerTransportFactory) SessionfulConnectTo(to nwapi.Address) (l1.OneWayTransport, error) {
 	if p.listen.IsActive() {
 		return p.tcpListen.ConnectTo(to)
 	}
 
-	// this is a bit inefficient, but ok
-	out, err := p.tcpProvider.CreateOutgoingOnlyFactory(p.tcpOutgoingFn)
+	t, err := p.getOutgoing()
 	if err != nil {
 		return nil, err
 	}
-	return out.ConnectTo(to)
+	return t.ConnectTo(to)
+}
+
+func (p *peerTransportFactory) IsSessionlessAllowed(size int) bool {
+	switch {
+	case size < 0:
+	case p.maxSessionlessSize == 0:
+	case size > int(p.maxSessionlessSize):
+	default:
+		return p.listen.WasStarted()
+	}
+	return false
 }
 
 func (p *peerTransportFactory) IsActive() bool {
 	return !p.listen.WasStopped()
+}
+
+func (p *peerTransportFactory) getOutgoing() (l1.OutTransportFactory, error) {
+	p.mutex.RLock()
+	if f := p.tcpOutgoing; f != nil {
+		p.mutex.RUnlock()
+		return f, nil
+	}
+	p.mutex.RUnlock()
+
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
+	if f := p.tcpOutgoing; f != nil {
+		return f, nil
+	}
+
+	t, err := p.tcpProvider.CreateOutgoingOnlyFactory(p.tcpOutgoingFn)
+	if err != nil {
+		return nil, err
+	}
+	p.tcpOutgoing = t
+	return t, err
 }

@@ -24,7 +24,7 @@ import (
 
 var TestProtocolDescriptor = uniproto.Descriptor{
 	SupportedPackets: uniproto.PacketDescriptors{
-		0: {Flags: uniproto.NoSourceID | uniproto.OptionalTarget, LengthBits: 16},
+		0: {Flags: uniproto.NoSourceID | uniproto.OptionalTarget | uniproto.DatagramAllowed, LengthBits: 16},
 	},
 }
 
@@ -138,9 +138,9 @@ func (v TestDataSigner) GetSigningMethod() cryptkit.SigningMethod {
 	return testSigningMethod
 }
 
-const testSigningMethod = "test-sign"
-const testDigestMethod = "test-hash"
-const testSignatureMethod = testDigestMethod + "/" + testSigningMethod
+const testSigningMethod cryptkit.SigningMethod = "test-sign"
+const testDigestMethod cryptkit.DigestMethod = "test-hash"
+const testSignatureMethod = cryptkit.SignatureMethod(testDigestMethod) + "/" + cryptkit.SignatureMethod(testSigningMethod)
 const testDigestSize = 4
 
 func (v TestDataSigner) GetDigestMethod() cryptkit.DigestMethod {
@@ -168,11 +168,11 @@ var _ cryptkit.DataSignatureVerifierFactory = TestVerifierFactory{}
 
 type TestVerifierFactory struct{}
 
-func (v TestVerifierFactory) CreateDataEncrypter(key cryptkit.SignatureKey) cryptkit.Encrypter {
+func (v TestVerifierFactory) CreateDataEncrypter(key cryptkit.SigningKey) cryptkit.Encrypter {
 	panic("implement me")
 }
 
-func (v TestVerifierFactory) CreateDataDecrypter(cryptkit.SignatureKey) cryptkit.Decrypter {
+func (v TestVerifierFactory) CreateDataDecrypter(cryptkit.SigningKey) cryptkit.Decrypter {
 	panic("implement me")
 }
 
@@ -180,18 +180,18 @@ func (v TestVerifierFactory) GetMaxSignatureSize() int {
 	return 4
 }
 
-func (v TestVerifierFactory) CreateDataSigner(k cryptkit.SignatureKey) cryptkit.DataSigner {
+func (v TestVerifierFactory) CreateDataSigner(k cryptkit.SigningKey) cryptkit.DataSigner {
 	if k.GetSigningMethod() == testSigningMethod {
 		return TestDataSigner{}
 	}
 	return nil
 }
 
-func (v TestVerifierFactory) IsSignatureKeySupported(k cryptkit.SignatureKey) bool {
+func (v TestVerifierFactory) IsSignatureKeySupported(k cryptkit.SigningKey) bool {
 	return k.GetSigningMethod() == testSigningMethod
 }
 
-func (v TestVerifierFactory) CreateDataSignatureVerifier(k cryptkit.SignatureKey) cryptkit.DataSignatureVerifier {
+func (v TestVerifierFactory) CreateDataSignatureVerifier(k cryptkit.SigningKey) cryptkit.DataSignatureVerifier {
 	if k.GetSigningMethod() == testSigningMethod {
 		return TestDataVerifier{}
 	}
@@ -205,6 +205,10 @@ type TestDataVerifier struct {
 	TestDataSigner
 }
 
+func (t TestDataVerifier) GetDefaultSigningMethod() cryptkit.SigningMethod {
+	return testSigningMethod
+}
+
 func (t TestDataVerifier) GetDefaultSignatureMethod() cryptkit.SignatureMethod {
 	return testSignatureMethod
 }
@@ -213,12 +217,8 @@ func (t TestDataVerifier) IsDigestMethodSupported(m cryptkit.DigestMethod) bool 
 	return m == testDigestMethod
 }
 
-func (t TestDataVerifier) IsSignMethodSupported(m cryptkit.SigningMethod) bool {
+func (t TestDataVerifier) IsSigningMethodSupported(m cryptkit.SigningMethod) bool {
 	return m == testSigningMethod
-}
-
-func (t TestDataVerifier) IsSignOfSignatureMethodSupported(m cryptkit.SignatureMethod) bool {
-	return m.SignMethod() == testSigningMethod
 }
 
 func (t TestDataVerifier) IsValidDigestSignature(digest cryptkit.DigestHolder, signature cryptkit.SignatureHolder) bool {
@@ -264,6 +264,7 @@ type TestLogAdapter struct {
 }
 
 func (t TestLogAdapter) LogError(err error) {
+	t.t.Helper()
 	if sv, ok := throw.GetSeverity(err); ok && sv.IsWarn() {
 		t.t.Error(throw.ErrorWithStack(err))
 	} else {

@@ -115,6 +115,8 @@ func (p *Journal) WaitAllAsyncCallsDone() synckit.SignalChannel {
 		return p.async.Count() == 0
 	})
 
+	p.dispenser.EnsureSubscription()
+
 	if p.async.Count() == 0 {
 		return synckit.ClosedChannel()
 	}

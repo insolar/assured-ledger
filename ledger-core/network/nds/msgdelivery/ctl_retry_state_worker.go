@@ -192,7 +192,8 @@ func (p *retryRqWorker) processState(state stateJob) {
 
 	// NB! Here we wrap send as retry call to reuse the postpone buffer
 	p._processState(nid, func(retries.RetryID) {
-		p._sendState(nid, state.peer, state.packet)
+		defer p._afterSend(nid)
+		state.peer.sendState(state.packet)
 	})
 }
 
@@ -210,9 +211,4 @@ func (p *retryRqWorker) _processState(nid uint32, fn func(retries.RetryID)) {
 	p.pushPostponed(rqShipment{
 		id: AsShipmentID(nid, 1),
 	}, fn)
-}
-
-func (p *retryRqWorker) _sendState(nid uint32, peer *DeliveryPeer, packet StatePacket) {
-	defer p._afterSend(nid)
-	peer.sendState(packet)
 }

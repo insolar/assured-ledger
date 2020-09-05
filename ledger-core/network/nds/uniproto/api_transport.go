@@ -22,7 +22,7 @@ type OutTransport interface {
 	// UseSessionful applies OutFunc on a sessionful transport, either for small or for large packets.
 	// This function is blocking. Both small and large transports have individual mutexes.
 	UseSessionful(size int64, applyFn OutFunc) error
-	// CanUseSessionless returns true when this size is supported by sessionless transport.
+	// CanUseSessionless returns true when Sessionless server is listening (otherwise replies will be lost) and size is supported by sessionless transport.
 	CanUseSessionless(size int64) bool
 	// EnsureConnect forces connection of sessionful transport for small packet. Is used to check availability of a peer.
 	// This function is non-blocking when a connection is established.

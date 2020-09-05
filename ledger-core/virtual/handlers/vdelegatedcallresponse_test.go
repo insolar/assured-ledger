@@ -13,7 +13,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
-	"github.com/insolar/assured-ledger/ledger-core/reference"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
@@ -27,8 +26,7 @@ func TestSMVDelegatedCallResponse_ErrorIfBargeInWasNotPublished(t *testing.T) {
 	var (
 		mc        = minimock.NewController(t)
 		pd        = pulse.NewFirstPulsarData(10, longbits.Bits256{})
-		bargeInID = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
-		globalRef = reference.NewSelf(bargeInID)
+		globalRef = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
 	)
 
 	sm := SMVDelegatedCallResponse{
@@ -50,8 +48,7 @@ func TestSMVDelegatedCallResponse_ErrorIfCallBargeInFailed(t *testing.T) {
 	var (
 		mc        = minimock.NewController(t)
 		pd        = pulse.NewFirstPulsarData(10, longbits.Bits256{})
-		bargeInID = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
-		globalRef = reference.NewSelf(bargeInID)
+		globalRef = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
 	)
 
 	sm := SMVDelegatedCallResponse{
@@ -75,8 +72,7 @@ func TestSMVDelegatedCallResponse_SuccessCallBargeIn(t *testing.T) {
 	var (
 		mc        = minimock.NewController(t)
 		pd        = pulse.NewFirstPulsarData(10, longbits.Bits256{})
-		bargeInID = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
-		globalRef = reference.NewSelf(bargeInID)
+		globalRef = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
 	)
 
 	sm := SMVDelegatedCallResponse{

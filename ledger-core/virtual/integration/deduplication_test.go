@@ -90,7 +90,7 @@ func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 					reference.Global{}, reference.Local{}, class, []byte(""), false,
 				)
 
-				requestResult := requestresult.New([]byte("call result"), gen.UniqueGlobalRef())
+				requestResult := requestresult.New([]byte("call result"), server.RandomGlobalWithPulse())
 				requestResult.SetAmend(newObjDescriptor, []byte("new memory"))
 
 				executionMock := runnerMock.AddExecutionMock(outgoing.String())
@@ -184,7 +184,7 @@ func TestDeduplication_SecondCallOfMethodAfterExecution(t *testing.T) {
 
 			var (
 				prevPulse = server.GetPulse().PulseNumber
-				class     = gen.UniqueGlobalRef()
+				class     = server.RandomGlobalWithPulse()
 				outgoing  = server.BuildRandomOutgoingWithPulse()
 				object    = reference.NewSelf(outgoing.GetLocal())
 				isolation = tolerableFlags()
@@ -208,7 +208,7 @@ func TestDeduplication_SecondCallOfMethodAfterExecution(t *testing.T) {
 					reference.Global{}, reference.Local{}, class, []byte(""), false,
 				)
 
-				requestResult := requestresult.New([]byte("call result"), gen.UniqueGlobalRef())
+				requestResult := requestresult.New([]byte("call result"), server.RandomGlobalWithPulse())
 				requestResult.SetAmend(newObjDescriptor, []byte("new memory"))
 
 				executionMock := runnerMock.AddExecutionMock(outgoing.String())
@@ -568,7 +568,7 @@ func (s *deduplicateMethodUsingPrevVETest) generateCaller() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	s.caller = reference.NewSelf(gen.UniqueLocalRefWithPulse(s.p1))
+	s.caller = gen.UniqueGlobalRefWithPulse(s.p1)
 }
 
 func (s *deduplicateMethodUsingPrevVETest) generateObjectRef() {
@@ -577,7 +577,7 @@ func (s *deduplicateMethodUsingPrevVETest) generateObjectRef() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	s.object = reference.NewSelf(gen.UniqueLocalRefWithPulse(p))
+	s.object = gen.UniqueGlobalRefWithPulse(p)
 }
 
 func (s *deduplicateMethodUsingPrevVETest) generateOutgoing() {
@@ -593,7 +593,7 @@ func (s *deduplicateMethodUsingPrevVETest) generateClass() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	s.class = gen.UniqueGlobalRef()
+	s.class = s.server.RandomGlobalWithPulse()
 }
 
 func (s *deduplicateMethodUsingPrevVETest) getObject() reference.Global {
@@ -779,7 +779,7 @@ func (s *deduplicateMethodUsingPrevVETest) setRunnerMock() {
 	isolation := contract.MethodIsolation{Interference: isolation.CallIntolerable, State: isolation.CallDirty}
 	s.runnerMock.AddExecutionClassify("SomeMethod", isolation, nil)
 
-	requestResult := requestresult.New([]byte("execution"), gen.UniqueGlobalRef())
+	requestResult := requestresult.New([]byte("execution"), s.server.RandomGlobalWithPulse())
 
 	executionMock := s.runnerMock.AddExecutionMock("SomeMethod")
 	executionMock.AddStart(func(ctx execution.Context) {

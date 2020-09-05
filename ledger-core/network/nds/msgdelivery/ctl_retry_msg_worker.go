@@ -86,16 +86,18 @@ func (p *retryMsgWorker) runRetry() {
 	}
 }
 
-func (p *retryMsgWorker) sendHead(msg *msgShipment, repeatFn func(retries.RetryID)) {
-	defer func() {
-		p.sema.Unlock()
-		p.marks.unmark(msg.id)
+func (p *retryMsgWorker) _afterSend(id ShipmentID) {
+	p.sema.Unlock()
+	p.marks.unmark(id)
 
-		select {
-		case p.wakeup <- struct{}{}:
-		default:
-		}
-	}()
+	select {
+	case p.wakeup <- struct{}{}:
+	default:
+	}
+}
+
+func (p *retryMsgWorker) sendHead(msg *msgShipment, repeatFn func(retries.RetryID)) {
+	defer p._afterSend(msg.id)
 
 	if msg.sendHead() {
 		repeatFn(retries.RetryID(msg.id))
