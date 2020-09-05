@@ -161,7 +161,7 @@ func (p *UnifiedServer) StartNoListen() {
 
 	udpSize := p.config.UDPMaxSize
 	switch {
-	case udpSize < 0:
+	case udpSize <= 0:
 		udpSize = l1.MaxUDPSize
 	case udpSize > math.MaxUint16:
 		udpSize = math.MaxUint16

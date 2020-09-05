@@ -109,15 +109,24 @@ func (p *tlsTransportFactory) ConnectToExt(to nwapi.Address, peerVerify VerifyPe
 		peerConfig = cfg
 	}
 
+
 	var conn *tls.Conn
-	if p.addr.Port == 0 {
-		if conn, err = tls.DialWithDialer(&net.Dialer{LocalAddr: &p.addr}, "tcp", to.String(), peerConfig); err != nil {
-			return nil, err
+
+	if p.addr.Port != 0 {
+		if conn, err = tls.DialWithDialer(DialerTCPWithReuse(&p.addr), "tcp", to.String(), peerConfig); err != nil {
+			if !isReusePortError(err) {
+				return nil, err
+			}
+			lAddr := p.addr
+			lAddr.Port = 0
+			conn, err = tls.DialWithDialer(&net.Dialer{LocalAddr: &lAddr}, "tcp", to.String(), peerConfig)
 		}
 	} else {
-		if conn, err = tls.DialWithDialer(DialerTCPWithReuse(&p.addr), "tcp", to.String(), peerConfig); err != nil {
-			return nil, err
-		}
+		conn, err = tls.DialWithDialer(&net.Dialer{LocalAddr: &p.addr}, "tcp", to.String(), peerConfig)
+	}
+
+	if err != nil {
+		return nil, err
 	}
 
 	// force connection setup now

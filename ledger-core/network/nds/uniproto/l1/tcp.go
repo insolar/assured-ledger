@@ -9,6 +9,7 @@ import (
 	"context"
 	"io"
 	"net"
+	"os"
 
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/iokit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -97,14 +98,21 @@ func (p *tcpTransportFactory) ConnectTo(to nwapi.Address) (OneWayTransport, erro
 
 	var conn *net.TCPConn
 
-	if p.addr.Port == 0 {
-		if conn, err = net.DialTCP("tcp", &p.addr, &remote); err != nil {
-			return nil, err
+	if p.addr.Port != 0 {
+		if conn, err = DialTCPWithReuse("tcp", &p.addr, &remote); err != nil {
+			if !isReusePortError(err) {
+				return nil, err
+			}
+			lAddr := p.addr
+			lAddr.Port = 0
+			conn, err = net.DialTCP("tcp", &lAddr, &remote)
 		}
 	} else {
-		if conn, err = DialTCPWithReuse("tcp", &p.addr, &remote); err != nil {
-			return nil, err
-		}
+		conn, err = net.DialTCP("tcp", &p.addr, &remote)
+	}
+
+	if err != nil {
+		return nil, err
 	}
 
 	tcpOut := tcpOutTransport{conn, nil, 0}
@@ -117,6 +125,16 @@ func (p *tcpTransportFactory) ConnectTo(to nwapi.Address) (OneWayTransport, erro
 		}}, nil
 	}
 	return &tcpSemiTransport{tcpOut, p.receiveFn}, nil
+}
+
+func isReusePortError(err error) bool {
+	if e, ok := err.(*net.OpError); ok {
+		if se, ok := e.Err.(*os.SyscallError); ok && e.Op == "dial" && se.Syscall == "connectex" {
+			// probably it is unable to reuse port
+			return true
+		}
+	}
+	return false
 }
 
 func runTCPListener(listenConn net.Listener, receiveFn SessionfulConnectFunc) {
