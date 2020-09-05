@@ -62,7 +62,7 @@ type FullIntroductionReaderMock struct {
 	beforeGetIssuerSignatureCounter uint64
 	GetIssuerSignatureMock          mFullIntroductionReaderMockGetIssuerSignature
 
-	funcGetNodePublicKey          func() (s1 cryptkit.SignatureKeyHolder)
+	funcGetNodePublicKey          func() (s1 cryptkit.SigningKeyHolder)
 	inspectFuncGetNodePublicKey   func()
 	afterGetNodePublicKeyCounter  uint64
 	beforeGetNodePublicKeyCounter uint64
@@ -1160,7 +1160,7 @@ type FullIntroductionReaderMockGetNodePublicKeyExpectation struct {
 
 // FullIntroductionReaderMockGetNodePublicKeyResults contains results of the FullIntroductionReader.GetNodePublicKey
 type FullIntroductionReaderMockGetNodePublicKeyResults struct {
-	s1 cryptkit.SignatureKeyHolder
+	s1 cryptkit.SigningKeyHolder
 }
 
 // Expect sets up expected params for FullIntroductionReader.GetNodePublicKey
@@ -1188,7 +1188,7 @@ func (mmGetNodePublicKey *mFullIntroductionReaderMockGetNodePublicKey) Inspect(f
 }
 
 // Return sets up results that will be returned by FullIntroductionReader.GetNodePublicKey
-func (mmGetNodePublicKey *mFullIntroductionReaderMockGetNodePublicKey) Return(s1 cryptkit.SignatureKeyHolder) *FullIntroductionReaderMock {
+func (mmGetNodePublicKey *mFullIntroductionReaderMockGetNodePublicKey) Return(s1 cryptkit.SigningKeyHolder) *FullIntroductionReaderMock {
 	if mmGetNodePublicKey.mock.funcGetNodePublicKey != nil {
 		mmGetNodePublicKey.mock.t.Fatalf("FullIntroductionReaderMock.GetNodePublicKey mock is already set by Set")
 	}
@@ -1201,7 +1201,7 @@ func (mmGetNodePublicKey *mFullIntroductionReaderMockGetNodePublicKey) Return(s1
 }
 
 //Set uses given function f to mock the FullIntroductionReader.GetNodePublicKey method
-func (mmGetNodePublicKey *mFullIntroductionReaderMockGetNodePublicKey) Set(f func() (s1 cryptkit.SignatureKeyHolder)) *FullIntroductionReaderMock {
+func (mmGetNodePublicKey *mFullIntroductionReaderMockGetNodePublicKey) Set(f func() (s1 cryptkit.SigningKeyHolder)) *FullIntroductionReaderMock {
 	if mmGetNodePublicKey.defaultExpectation != nil {
 		mmGetNodePublicKey.mock.t.Fatalf("Default expectation is already set for the FullIntroductionReader.GetNodePublicKey method")
 	}
@@ -1215,7 +1215,7 @@ func (mmGetNodePublicKey *mFullIntroductionReaderMockGetNodePublicKey) Set(f fun
 }
 
 // GetNodePublicKey implements FullIntroductionReader
-func (mmGetNodePublicKey *FullIntroductionReaderMock) GetNodePublicKey() (s1 cryptkit.SignatureKeyHolder) {
+func (mmGetNodePublicKey *FullIntroductionReaderMock) GetNodePublicKey() (s1 cryptkit.SigningKeyHolder) {
 	mm_atomic.AddUint64(&mmGetNodePublicKey.beforeGetNodePublicKeyCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetNodePublicKey.afterGetNodePublicKeyCounter, 1)
 

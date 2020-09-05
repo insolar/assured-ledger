@@ -211,10 +211,10 @@ func (c *EmuNodeIntro) GetIssuerSignature() cryptkit.SignatureHolder {
 	return cryptkit.NewSignature(&ds, "stubSign").AsSignatureHolder()
 }
 
-func (c *EmuNodeIntro) GetNodePublicKey() cryptkit.SignatureKeyHolder {
+func (c *EmuNodeIntro) GetNodePublicKey() cryptkit.SigningKeyHolder {
 	v := &longbits.Bits512{}
 	longbits.FillBitsWithStaticNoise(uint32(c.id), v[:])
-	k := cryptkit.NewSignatureKey(v, "stub/stub", cryptkit.PublicAsymmetricKey)
+	k := cryptkit.NewSigningKey(v, "stub/stub", cryptkit.PublicAsymmetricKey)
 	return &k
 }
 

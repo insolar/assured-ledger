@@ -22,12 +22,6 @@ type SignatureHolderMock struct {
 	beforeAsByteStringCounter uint64
 	AsByteStringMock          mSignatureHolderMockAsByteString
 
-	funcCopyOfSignature          func() (s1 Signature)
-	inspectFuncCopyOfSignature   func()
-	afterCopyOfSignatureCounter  uint64
-	beforeCopyOfSignatureCounter uint64
-	CopyOfSignatureMock          mSignatureHolderMockCopyOfSignature
-
 	funcCopyTo          func(p []byte) (i1 int)
 	inspectFuncCopyTo   func(p []byte)
 	afterCopyToCounter  uint64
@@ -73,8 +67,6 @@ func NewSignatureHolderMock(t minimock.Tester) *SignatureHolderMock {
 	}
 
 	m.AsByteStringMock = mSignatureHolderMockAsByteString{mock: m}
-
-	m.CopyOfSignatureMock = mSignatureHolderMockCopyOfSignature{mock: m}
 
 	m.CopyToMock = mSignatureHolderMockCopyTo{mock: m}
 	m.CopyToMock.callArgs = []*SignatureHolderMockCopyToParams{}
@@ -234,149 +226,6 @@ func (m *SignatureHolderMock) MinimockAsByteStringInspect() {
 	// if func was set then invocations count should be greater than zero
 	if m.funcAsByteString != nil && mm_atomic.LoadUint64(&m.afterAsByteStringCounter) < 1 {
 		m.t.Error("Expected call to SignatureHolderMock.AsByteString")
-	}
-}
-
-type mSignatureHolderMockCopyOfSignature struct {
-	mock               *SignatureHolderMock
-	defaultExpectation *SignatureHolderMockCopyOfSignatureExpectation
-	expectations       []*SignatureHolderMockCopyOfSignatureExpectation
-}
-
-// SignatureHolderMockCopyOfSignatureExpectation specifies expectation struct of the SignatureHolder.CopyOfSignature
-type SignatureHolderMockCopyOfSignatureExpectation struct {
-	mock *SignatureHolderMock
-
-	results *SignatureHolderMockCopyOfSignatureResults
-	Counter uint64
-}
-
-// SignatureHolderMockCopyOfSignatureResults contains results of the SignatureHolder.CopyOfSignature
-type SignatureHolderMockCopyOfSignatureResults struct {
-	s1 Signature
-}
-
-// Expect sets up expected params for SignatureHolder.CopyOfSignature
-func (mmCopyOfSignature *mSignatureHolderMockCopyOfSignature) Expect() *mSignatureHolderMockCopyOfSignature {
-	if mmCopyOfSignature.mock.funcCopyOfSignature != nil {
-		mmCopyOfSignature.mock.t.Fatalf("SignatureHolderMock.CopyOfSignature mock is already set by Set")
-	}
-
-	if mmCopyOfSignature.defaultExpectation == nil {
-		mmCopyOfSignature.defaultExpectation = &SignatureHolderMockCopyOfSignatureExpectation{}
-	}
-
-	return mmCopyOfSignature
-}
-
-// Inspect accepts an inspector function that has same arguments as the SignatureHolder.CopyOfSignature
-func (mmCopyOfSignature *mSignatureHolderMockCopyOfSignature) Inspect(f func()) *mSignatureHolderMockCopyOfSignature {
-	if mmCopyOfSignature.mock.inspectFuncCopyOfSignature != nil {
-		mmCopyOfSignature.mock.t.Fatalf("Inspect function is already set for SignatureHolderMock.CopyOfSignature")
-	}
-
-	mmCopyOfSignature.mock.inspectFuncCopyOfSignature = f
-
-	return mmCopyOfSignature
-}
-
-// Return sets up results that will be returned by SignatureHolder.CopyOfSignature
-func (mmCopyOfSignature *mSignatureHolderMockCopyOfSignature) Return(s1 Signature) *SignatureHolderMock {
-	if mmCopyOfSignature.mock.funcCopyOfSignature != nil {
-		mmCopyOfSignature.mock.t.Fatalf("SignatureHolderMock.CopyOfSignature mock is already set by Set")
-	}
-
-	if mmCopyOfSignature.defaultExpectation == nil {
-		mmCopyOfSignature.defaultExpectation = &SignatureHolderMockCopyOfSignatureExpectation{mock: mmCopyOfSignature.mock}
-	}
-	mmCopyOfSignature.defaultExpectation.results = &SignatureHolderMockCopyOfSignatureResults{s1}
-	return mmCopyOfSignature.mock
-}
-
-//Set uses given function f to mock the SignatureHolder.CopyOfSignature method
-func (mmCopyOfSignature *mSignatureHolderMockCopyOfSignature) Set(f func() (s1 Signature)) *SignatureHolderMock {
-	if mmCopyOfSignature.defaultExpectation != nil {
-		mmCopyOfSignature.mock.t.Fatalf("Default expectation is already set for the SignatureHolder.CopyOfSignature method")
-	}
-
-	if len(mmCopyOfSignature.expectations) > 0 {
-		mmCopyOfSignature.mock.t.Fatalf("Some expectations are already set for the SignatureHolder.CopyOfSignature method")
-	}
-
-	mmCopyOfSignature.mock.funcCopyOfSignature = f
-	return mmCopyOfSignature.mock
-}
-
-// CopyOfSignature implements SignatureHolder
-func (mmCopyOfSignature *SignatureHolderMock) CopyOfSignature() (s1 Signature) {
-	mm_atomic.AddUint64(&mmCopyOfSignature.beforeCopyOfSignatureCounter, 1)
-	defer mm_atomic.AddUint64(&mmCopyOfSignature.afterCopyOfSignatureCounter, 1)
-
-	if mmCopyOfSignature.inspectFuncCopyOfSignature != nil {
-		mmCopyOfSignature.inspectFuncCopyOfSignature()
-	}
-
-	if mmCopyOfSignature.CopyOfSignatureMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmCopyOfSignature.CopyOfSignatureMock.defaultExpectation.Counter, 1)
-
-		mm_results := mmCopyOfSignature.CopyOfSignatureMock.defaultExpectation.results
-		if mm_results == nil {
-			mmCopyOfSignature.t.Fatal("No results are set for the SignatureHolderMock.CopyOfSignature")
-		}
-		return (*mm_results).s1
-	}
-	if mmCopyOfSignature.funcCopyOfSignature != nil {
-		return mmCopyOfSignature.funcCopyOfSignature()
-	}
-	mmCopyOfSignature.t.Fatalf("Unexpected call to SignatureHolderMock.CopyOfSignature.")
-	return
-}
-
-// CopyOfSignatureAfterCounter returns a count of finished SignatureHolderMock.CopyOfSignature invocations
-func (mmCopyOfSignature *SignatureHolderMock) CopyOfSignatureAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmCopyOfSignature.afterCopyOfSignatureCounter)
-}
-
-// CopyOfSignatureBeforeCounter returns a count of SignatureHolderMock.CopyOfSignature invocations
-func (mmCopyOfSignature *SignatureHolderMock) CopyOfSignatureBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmCopyOfSignature.beforeCopyOfSignatureCounter)
-}
-
-// MinimockCopyOfSignatureDone returns true if the count of the CopyOfSignature invocations corresponds
-// the number of defined expectations
-func (m *SignatureHolderMock) MinimockCopyOfSignatureDone() bool {
-	for _, e := range m.CopyOfSignatureMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.CopyOfSignatureMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterCopyOfSignatureCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcCopyOfSignature != nil && mm_atomic.LoadUint64(&m.afterCopyOfSignatureCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockCopyOfSignatureInspect logs each unmet expectation
-func (m *SignatureHolderMock) MinimockCopyOfSignatureInspect() {
-	for _, e := range m.CopyOfSignatureMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Error("Expected call to SignatureHolderMock.CopyOfSignature")
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.CopyOfSignatureMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterCopyOfSignatureCounter) < 1 {
-		m.t.Error("Expected call to SignatureHolderMock.CopyOfSignature")
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcCopyOfSignature != nil && mm_atomic.LoadUint64(&m.afterCopyOfSignatureCounter) < 1 {
-		m.t.Error("Expected call to SignatureHolderMock.CopyOfSignature")
 	}
 }
 
@@ -1460,8 +1309,6 @@ func (m *SignatureHolderMock) MinimockFinish() {
 	if !m.minimockDone() {
 		m.MinimockAsByteStringInspect()
 
-		m.MinimockCopyOfSignatureInspect()
-
 		m.MinimockCopyToInspect()
 
 		m.MinimockEqualsInspect()
@@ -1497,7 +1344,6 @@ func (m *SignatureHolderMock) minimockDone() bool {
 	done := true
 	return done &&
 		m.MinimockAsByteStringDone() &&
-		m.MinimockCopyOfSignatureDone() &&
 		m.MinimockCopyToDone() &&
 		m.MinimockEqualsDone() &&
 		m.MinimockFixedByteSizeDone() &&

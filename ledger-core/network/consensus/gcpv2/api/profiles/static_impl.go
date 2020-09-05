@@ -55,7 +55,7 @@ type FixedStaticProfile struct {
 	specialRoles     member.SpecialRole
 	startPower       member.Power
 	briefIntroSigned cryptkit.SignedDigestHolder
-	pk               cryptkit.SignatureKeyHolder
+	pk               cryptkit.SigningKeyHolder
 	pks              cryptkit.PublicKeyStore
 
 	isFull   bool
@@ -148,7 +148,7 @@ func (p *FixedStaticProfile) GetSpecialRoles() member.SpecialRole {
 	return p.specialRoles
 }
 
-func (p *FixedStaticProfile) GetNodePublicKey() cryptkit.SignatureKeyHolder {
+func (p *FixedStaticProfile) GetNodePublicKey() cryptkit.SigningKeyHolder {
 	return p.pk
 }
 
