@@ -9,7 +9,6 @@ import (
 	"context"
 	"io"
 	"net"
-	"os"
 
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/iokit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -128,13 +127,13 @@ func (p *tcpTransportFactory) ConnectTo(to nwapi.Address) (OneWayTransport, erro
 }
 
 func isReusePortError(err error) bool {
-	if e, ok := err.(*net.OpError); ok {
-		if se, ok := e.Err.(*os.SyscallError); ok && e.Op == "dial" && se.Syscall == "connectex" {
-			// probably it is unable to reuse port
-			return true
-		}
-	}
-	return false
+	// if e, ok := err.(*net.OpError); ok {
+	// 	if se, ok := e.Err.(*os.SyscallError); ok && e.Op == "dial" && se.Syscall == "connectex" {
+	// 		// probably it is unable to reuse port
+	return true
+	// 	}
+	// }
+	// return false
 }
 
 func runTCPListener(listenConn net.Listener, receiveFn SessionfulConnectFunc) {
