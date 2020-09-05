@@ -61,8 +61,9 @@ func (s *Server) Serve() {
 	stops := make([]func(), 0, n)
 	contexts := make([]context.Context, 0, n)
 
-	for i, cfg := range configs {
-		fmt.Printf("Starts with configuration [%d/%d]:\n%s\n", i+1, n, configuration.ToString(&configs[0]))
+	for i := range configs {
+		cfg := configs[i]
+		fmt.Printf("Starts with configuration [%d/%d]:\n%s\n", i+1, n, configuration.ToString(&cfg))
 
 		cm, stopFunc := s.StartComponents(baseCtx, cfg, networkFn,
 			func(_ context.Context, cfg configuration.Log, nodeRef, nodeRole string) context.Context {
