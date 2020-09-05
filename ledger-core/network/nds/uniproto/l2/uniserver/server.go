@@ -26,6 +26,7 @@ type ServerConfig struct {
 	PublicAddress  string
 	NetPreference  nwapi.Preference
 	TLSConfig      *tls.Config
+	// UDPMaxSize sets max size for UDP packets. Zero will disable UDP.
 	UDPMaxSize     int
 	UDPParallelism int
 	PeerLimit      int
@@ -68,6 +69,12 @@ type UnifiedServer struct {
 func (p *UnifiedServer) SetConfig(config ServerConfig) {
 	p.config = config
 
+	if config.UDPMaxSize >= math.MaxUint16 {
+		p.ptf.maxSessionlessSize = math.MaxUint16
+	} else {
+		p.ptf.maxSessionlessSize = uint16(config.UDPMaxSize)
+	}
+
 	p.peers.central.retryLimit = config.RetryLimit
 	p.peers.central.retryDelayInc = config.RetryDelayInc
 	p.peers.central.retryDelayMax = config.RetryDelayMax
@@ -92,6 +99,10 @@ func (p *UnifiedServer) SetBlacklistManager(blacklist BlacklistManager) {
 
 func (p *UnifiedServer) SetRelayer(r Relayer) {
 	p.receiver.Relayer = r
+}
+
+func (p *UnifiedServer) SetHTTPReceiver(fn HTTPReceiverFunc) {
+	p.receiver.HTTP = fn
 }
 
 func (p *UnifiedServer) StartNoListen() {
@@ -150,7 +161,7 @@ func (p *UnifiedServer) StartNoListen() {
 
 	udpSize := p.config.UDPMaxSize
 	switch {
-	case udpSize < 0:
+	case udpSize <= 0:
 		udpSize = l1.MaxUDPSize
 	case udpSize > math.MaxUint16:
 		udpSize = math.MaxUint16
@@ -206,6 +217,8 @@ func (p *UnifiedServer) receiveSessionless(local, remote nwapi.Address, b []byte
 	}
 
 	if p.udpSema.LockTimeout(time.Second) {
+		b = append([]byte(nil), b...)
+
 		go func() {
 			defer p.udpSema.Unlock()
 
@@ -222,13 +235,13 @@ func (p *UnifiedServer) receiveSessionless(local, remote nwapi.Address, b []byte
 			p.reportError(err)
 		}()
 	} else {
-		p.reportError(throw.E("packet drop by timeout", ConnErrDetails{local, remote}))
+		p.reportError(throw.E("inbound packet dropped by timeout", ConnErrDetails{local, remote}))
 	}
 
 	return true
 }
 
-func (p *UnifiedServer) connectSessionfulListen(local, remote nwapi.Address, conn io.ReadWriteCloser, w l1.OutTransport, err error) bool {
+func (p *UnifiedServer) connectSessionfulListen(local, remote nwapi.Address, conn io.ReadWriteCloser, w l1.OneWayTransport, err error) bool {
 	if !p.ptf.listen.IsActive() {
 		// can't accept incoming connections until listen initializer is finished
 		_ = conn.Close()
@@ -237,7 +250,7 @@ func (p *UnifiedServer) connectSessionfulListen(local, remote nwapi.Address, con
 	return p.connectSessionful(local, remote, conn, w, err)
 }
 
-func (p *UnifiedServer) connectSessionful(local, remote nwapi.Address, conn io.ReadWriteCloser, w l1.OutTransport, err error) bool {
+func (p *UnifiedServer) connectSessionful(local, remote nwapi.Address, conn io.ReadWriteCloser, w l1.OneWayTransport, err error) bool {
 	// DO NOT report checkConnection errors to blacklist
 	if err = p.checkConnection(local, remote, err); err != nil {
 		_ = conn.Close()

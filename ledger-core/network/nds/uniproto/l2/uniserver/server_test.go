@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -73,7 +74,7 @@ func TestServer(t *testing.T) {
 	ups2.SetPeerFactory(peerProfileFn)
 	ups2.SetSignatureFactory(vf)
 
-	ups2.StartNoListen()
+	ups2.StartListen()
 
 	pm2 := ups2.PeerManager()
 	_, err = pm2.AddHostID(pm2.Local().GetPrimary(), 2)
@@ -83,6 +84,31 @@ func TestServer(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, conn21)
 	require.NoError(t, conn21.Transport().EnsureConnect())
+
+	t.Run("sessionless", func(t *testing.T) {
+		testStr := "sessionless msg"
+		msgBytes := marshaller.SerializeMsg(0, 0, pulse.MinTimePulse, testStr)
+
+		assert.True(t, conn21.Transport().CanUseSessionless(int64(len(msgBytes))))
+		require.NoError(t, conn21.Transport().UseSessionless(func(transport l1.BasicOutTransport) (canRetry bool, err error) {
+			return false, transport.SendBytes(msgBytes)
+		}))
+
+		marshaller.Wait(0)
+		marshaller.Count.Store(0)
+
+		require.Equal(t, testStr, marshaller.LastMsg)
+		require.Equal(t, pulse.Number(pulse.MinTimePulse), marshaller.LastPacket.PulseNumber)
+
+		testStr += "2"
+		require.NoError(t, conn21.SendPacket(uniproto.Sessionless, &TestPacket{testStr}))
+
+		marshaller.Wait(0)
+		marshaller.Count.Store(0)
+
+		require.Equal(t, testStr, marshaller.LastMsg)
+		require.Equal(t, pulse.Number(pulse.MinTimePulse), marshaller.LastPacket.PulseNumber)
+	})
 
 	t.Run("small", func(t *testing.T) {
 		testStr := "short msg"

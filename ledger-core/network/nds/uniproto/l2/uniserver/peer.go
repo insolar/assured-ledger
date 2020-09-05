@@ -35,6 +35,10 @@ const (
 type Peer struct {
 	transport PeerTransport
 
+	// LOCK: WARNING! mutex can be acquired under PeerManager.peerMutex
+	// mutex controls local attributes
+	mutex sync.RWMutex
+
 	pk  cryptkit.SignatureKey
 	dsv cryptkit.DataSignatureVerifier
 	dsg cryptkit.DataSigner
@@ -51,36 +55,20 @@ type Peer struct {
 
 // GetPrimary returns a peer's primary identity
 func (p *Peer) GetPrimary() nwapi.Address {
-	p.transport.mutex.RLock()
-	defer p.transport.mutex.RUnlock()
-
-	if aliases := p.transport.aliases; len(aliases) > 0 {
-		return aliases[0]
-	}
-	return nwapi.Address{}
+	return p.transport.getPrimary()
 }
 
 // updatePrimary is ONLY for use by server to update Local peer identity after start of listening.
 func (p *Peer) updatePrimary(addr nwapi.Address) nwapi.Address {
-	p.transport.mutex.Lock()
-	defer p.transport.mutex.Unlock()
-
-	switch aliases := p.transport.aliases; {
-	case len(aliases) == 0:
-		//
-	case aliases[0] == addr:
-		//
-	default:
-		prev := aliases[0]
-		aliases[0] = addr
-		return prev
-	}
-	return nwapi.Address{}
+	return p.transport.updatePrimary(addr)
 }
 
+// LOCK: WARNING! runs under PeerManager.peerMutex
 func (p *Peer) onRemoved() []nwapi.Address {
+	p.mutex.Lock()
 	info := p.protoInfo
 	p.protoInfo = [uniproto.ProtocolTypeCount]io.Closer{}
+	p.mutex.Unlock()
 
 	for _, c := range info {
 		_ = iokit.SafeClose(c)
@@ -100,8 +88,8 @@ func (p *Peer) verifyByTLS(_ *tls.Conn) (verified bool, err error) {
 
 // SetSignatureKey sets/updates peer's signature key. Key can be zero.
 func (p *Peer) SetSignatureKey(pk cryptkit.SignatureKey) {
-	p.transport.mutex.Lock()
-	defer p.transport.mutex.Unlock()
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
 
 	if p.pk.Equals(pk) {
 		return
@@ -114,8 +102,8 @@ func (p *Peer) SetSignatureKey(pk cryptkit.SignatureKey) {
 
 // GetSignatureKey returns peer's signature key. Key can be zero.
 func (p *Peer) GetSignatureKey() cryptkit.SignatureKey {
-	p.transport.mutex.RLock()
-	defer p.transport.mutex.RUnlock()
+	p.mutex.RLock()
+	defer p.mutex.RUnlock()
 
 	return p.pk
 }
@@ -136,15 +124,15 @@ func (p *Peer) _useKeyAndFactory(fn func(PeerCryptographyFactory) bool) error {
 
 // GetDataVerifier returns DataSignatureVerifier to check data provided by this peer. Will return error when SignatureKey is not set.
 func (p *Peer) GetDataVerifier() (cryptkit.DataSignatureVerifier, error) {
-	p.transport.mutex.RLock()
+	p.mutex.RLock()
 	if d := p.dsv; d != nil {
-		p.transport.mutex.RUnlock()
+		p.mutex.RUnlock()
 		return d, nil
 	}
-	p.transport.mutex.RUnlock()
+	p.mutex.RUnlock()
 
-	p.transport.mutex.Lock()
-	defer p.transport.mutex.Unlock()
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
 
 	if d := p.dsv; d != nil {
 		return d, nil
@@ -159,15 +147,15 @@ func (p *Peer) GetDataVerifier() (cryptkit.DataSignatureVerifier, error) {
 // getDataSigner returns DataSigner to sign data by this peer. Applicable to Local peer only.
 // Will return error when SignatureKey is not set.
 func (p *Peer) getDataSigner() (cryptkit.DataSigner, error) {
-	p.transport.mutex.RLock()
+	p.mutex.RLock()
 	if d := p.dsg; d != nil {
-		p.transport.mutex.RUnlock()
+		p.mutex.RUnlock()
 		return d, nil
 	}
-	p.transport.mutex.RUnlock()
+	p.mutex.RUnlock()
 
-	p.transport.mutex.Lock()
-	defer p.transport.mutex.Unlock()
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
 
 	if d := p.dsg; d != nil {
 		return d, nil
@@ -182,8 +170,8 @@ func (p *Peer) getDataSigner() (cryptkit.DataSigner, error) {
 // getDataSigner returns Decrypter to decrypt data for this peer. Applicable to Local peer only.
 // Will return error when SignatureKey is not set.
 func (p *Peer) getDataDecrypter() (d cryptkit.Decrypter, err error) {
-	p.transport.mutex.RLock()
-	defer p.transport.mutex.RUnlock()
+	p.mutex.RLock()
+	defer p.mutex.RUnlock()
 
 	err = p._useKeyAndFactory(func(f PeerCryptographyFactory) bool {
 		d = f.CreateDataDecrypter(p.pk)
@@ -194,8 +182,8 @@ func (p *Peer) getDataDecrypter() (d cryptkit.Decrypter, err error) {
 
 // GetDataVerifier returns Encrypter to encrypt data for this peer. Will return error when SignatureKey is not set.
 func (p *Peer) GetDataEncrypter() (d cryptkit.Encrypter, err error) {
-	p.transport.mutex.RLock()
-	defer p.transport.mutex.RUnlock()
+	p.mutex.RLock()
+	defer p.mutex.RUnlock()
 
 	err = p._useKeyAndFactory(func(f PeerCryptographyFactory) bool {
 		d = f.CreateDataEncrypter(p.pk)
@@ -231,8 +219,8 @@ func (p *Peer) removeAlias(a nwapi.Address) bool {
 
 // GetNodeID returns ShortNodeID of the peer. Result can be zero. ShortNodeID is related to consensus operations.
 func (p *Peer) GetNodeID() nwapi.ShortNodeID {
-	p.transport.mutex.RLock()
-	defer p.transport.mutex.RUnlock()
+	p.mutex.RLock()
+	defer p.mutex.RUnlock()
 
 	return p.nodeID
 }
@@ -243,8 +231,8 @@ func (p *Peer) SetNodeID(id nwapi.ShortNodeID) {
 		panic(throw.IllegalState())
 	}
 
-	p.transport.mutex.Lock()
-	defer p.transport.mutex.Unlock()
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
 
 	if !p.nodeID.IsAbsent() {
 		panic(throw.IllegalState())
@@ -255,16 +243,16 @@ func (p *Peer) SetNodeID(id nwapi.ShortNodeID) {
 // GetLocalUID returns a locally unique peer's address.
 // This address can only be used locally and it will change after each disconnection of the peer.
 func (p *Peer) GetLocalUID() nwapi.Address {
-	p.transport.mutex.RLock()
-	defer p.transport.mutex.RUnlock()
+	p.mutex.RLock()
+	defer p.mutex.RUnlock()
 
 	return nwapi.NewLocalUID(p.transport.uid, nwapi.HostID(p.nodeID))
 }
 
 // SetProtoInfo sets/updated per-protocol peer's projection (info). It will be closed when the peer is unregistered.
 func (p *Peer) SetProtoInfo(pt uniproto.ProtocolType, info io.Closer) {
-	p.transport.mutex.Lock()
-	defer p.transport.mutex.Unlock()
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
 	p.protoInfo[pt] = info
 }
 
@@ -317,7 +305,7 @@ func (p *Peer) SendPreparedPacket(tp uniproto.OutType, packet *uniproto.Packet, 
 	packetSize, sendFn := sp.NewTransportFunc(dataSize, fn, checkFn)
 	switch tp {
 	case uniproto.Any:
-		if packetSize <= uint(p.transport.central.maxSessionlessSize) {
+		if p.transport.central.isSessionlessAllowed(int(packetSize)) {
 			tp = uniproto.Sessionless
 			break
 		}
@@ -329,7 +317,7 @@ func (p *Peer) SendPreparedPacket(tp uniproto.OutType, packet *uniproto.Packet, 
 			tp = uniproto.SessionfulLarge
 		}
 	case uniproto.SmallAny:
-		if packetSize <= uint(p.transport.central.maxSessionlessSize) {
+		if p.transport.central.isSessionlessAllowed(int(packetSize)) {
 			tp = uniproto.Sessionless
 			break
 		}
@@ -340,8 +328,8 @@ func (p *Peer) SendPreparedPacket(tp uniproto.OutType, packet *uniproto.Packet, 
 			panic(throw.FailHere("too big for non-excessive packet"))
 		}
 	case uniproto.Sessionless, uniproto.SessionlessNoQuota:
-		if packetSize > uint(p.transport.central.maxSessionlessSize) {
-			panic(throw.FailHere("too big for sessionless packet"))
+		if !p.transport.central.isSessionlessAllowed(int(packetSize)) {
+			panic(throw.FailHere("sessionless is not allowed"))
 		}
 	}
 	return p.transport.sendPacket(tp, sendFn)

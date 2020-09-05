@@ -175,6 +175,7 @@ type TestLogAdapter struct {
 }
 
 func (t TestLogAdapter) LogError(err error) {
+	t.t.Helper()
 	msg := "error " + throw.ErrorWithStack(err)
 	if sv, ok := throw.GetSeverity(err); ok && sv.IsWarn() {
 		t.t.Error(msg)

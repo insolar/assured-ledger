@@ -18,20 +18,20 @@ import (
 )
 
 func NewTLS(binding nwapi.Address, preference nwapi.Preference, config *tls.Config) SessionfulTransportProvider {
-	return TLSProvider{addr: binding.AsTCPAddr(), preference: preference, config: config}
+	return tlsProvider{addr: binding.AsTCPAddr(), preference: preference, config: config}
 }
 
-type TLSProvider struct {
+type tlsProvider struct {
 	addr       net.TCPAddr
 	config     *tls.Config
 	preference nwapi.Preference
 }
 
-func (v TLSProvider) IsZero() bool {
+func (v tlsProvider) IsZero() bool {
 	return v.addr.IP == nil
 }
 
-func (v TLSProvider) CreateListeningFactory(receiveFn SessionfulConnectFunc) (OutTransportFactory, nwapi.Address, error) {
+func (v tlsProvider) CreateListeningFactory(receiveFn SessionfulConnectFunc) (OutTransportFactory, nwapi.Address, error) {
 	switch {
 	case receiveFn == nil:
 		panic(throw.IllegalValue())
@@ -44,7 +44,7 @@ func (v TLSProvider) CreateListeningFactory(receiveFn SessionfulConnectFunc) (Ou
 		return nil, nwapi.Address{}, errors.New("tls: neither Certificates, GetCertificate, nor GetConfigForClient set in Config")
 	}
 
-	tcpConn, err := net.ListenTCP("tcp", &v.addr)
+	tcpConn, err := ListenTCPWithReuse("tcp", &v.addr)
 	if err != nil {
 		return nil, nwapi.Address{}, err
 	}
@@ -52,54 +52,46 @@ func (v TLSProvider) CreateListeningFactory(receiveFn SessionfulConnectFunc) (Ou
 	localAddr := *tcpConn.Addr().(*net.TCPAddr)
 
 	tlsConn := tls.NewListener(tcpConn, v.config)
-	t := &TLSTransport{tlsConn, receiveFn, v.config, localAddr, v.preference}
-	t.addr.Port = 0
+	t := &tlsTransportFactory{tlsConn, receiveFn, v.config, localAddr, v.preference}
 
 	go runTCPListener(tlsConn, t.tlsConnect)
 	return t, nwapi.FromTCPAddr(&localAddr), nil
 }
 
-func (v TLSProvider) CreateOutgoingOnlyFactory(receiveFn SessionfulConnectFunc) (OutTransportFactory, error) {
-	return &TLSTransport{nil, receiveFn, v.config, v.addr, v.preference}, nil
+func (v tlsProvider) CreateOutgoingOnlyFactory(receiveFn SessionfulConnectFunc) (OutTransportFactory, error) {
+	return &tlsTransportFactory{nil, receiveFn, v.config, v.addr, v.preference}, nil
 }
 
-func (v TLSProvider) Close() error {
+func (v tlsProvider) Close() error {
 	return nil
 }
 
 /*********************************/
 
-type TLSTransport struct {
-	conn      net.Listener
-	receiveFn SessionfulConnectFunc
-	config    *tls.Config
-	addr      net.TCPAddr
+type tlsTransportFactory struct {
+	listener   net.Listener
+	receiveFn  SessionfulConnectFunc
+	config     *tls.Config
+	addr       net.TCPAddr
 	preference nwapi.Preference
 }
 
-func (p *TLSTransport) IsZero() bool {
+func (p *tlsTransportFactory) IsZero() bool {
 	return p.addr.IP == nil
 }
 
-func (p *TLSTransport) Close() error {
-	if p.conn != nil {
-		return p.conn.Close()
+func (p *tlsTransportFactory) Close() error {
+	if p.listener != nil {
+		return p.listener.Close()
 	}
 	return nil
 }
 
-func (p *TLSTransport) LocalAddr() nwapi.Address {
-	if p.conn != nil {
-		return nwapi.AsAddress(p.conn.Addr())
-	}
-	return nwapi.AsAddress(&p.addr)
-}
-
-func (p *TLSTransport) ConnectTo(to nwapi.Address) (OutTransport, error) {
+func (p *tlsTransportFactory) ConnectTo(to nwapi.Address) (OneWayTransport, error) {
 	return p.ConnectToExt(to, nil)
 }
 
-func (p *TLSTransport) ConnectToExt(to nwapi.Address, peerVerify VerifyPeerCertificateFunc) (OutTransport, error) {
+func (p *tlsTransportFactory) ConnectToExt(to nwapi.Address, peerVerify VerifyPeerCertificateFunc) (OneWayTransport, error) {
 	if !to.IsNetCompatible() {
 		return nil, nil
 	}
@@ -117,8 +109,23 @@ func (p *TLSTransport) ConnectToExt(to nwapi.Address, peerVerify VerifyPeerCerti
 		peerConfig = cfg
 	}
 
+
 	var conn *tls.Conn
-	if conn, err = tls.DialWithDialer(&net.Dialer{LocalAddr: &p.addr}, "tcp", to.String(), peerConfig); err != nil {
+
+	if p.addr.Port != 0 {
+		if conn, err = tls.DialWithDialer(DialerTCPWithReuse(&p.addr), "tcp", to.String(), peerConfig); err != nil {
+			if !isReusePortError(err) {
+				return nil, err
+			}
+			lAddr := p.addr
+			lAddr.Port = 0
+			conn, err = tls.DialWithDialer(&net.Dialer{LocalAddr: &lAddr}, "tcp", to.String(), peerConfig)
+		}
+	} else {
+		conn, err = tls.DialWithDialer(&net.Dialer{LocalAddr: &p.addr}, "tcp", to.String(), peerConfig)
+	}
+
+	if err != nil {
 		return nil, err
 	}
 
@@ -137,7 +144,7 @@ func (p *TLSTransport) ConnectToExt(to nwapi.Address, peerVerify VerifyPeerCerti
 	return &tcpSemiTransport{tcpOut, p.receiveFn}, nil
 }
 
-func (p *TLSTransport) tlsConnect(local, remote nwapi.Address, conn io.ReadWriteCloser, w OutTransport, err error) bool {
+func (p *tlsTransportFactory) tlsConnect(local, remote nwapi.Address, conn io.ReadWriteCloser, w OneWayTransport, err error) bool {
 	if err != nil {
 		return p.receiveFn(local, remote, conn, w, err)
 	}
@@ -163,7 +170,7 @@ func (p *TLSTransport) tlsConnect(local, remote nwapi.Address, conn io.ReadWrite
 	return p.receiveFn(local, remote, nil, nil, err)
 }
 
-func (p *TLSTransport) checkProtos(tlsConn *tls.Conn) error {
+func (p *tlsTransportFactory) checkProtos(tlsConn *tls.Conn) error {
 	if len(p.config.NextProtos) == 0 {
 		return nil
 	}
