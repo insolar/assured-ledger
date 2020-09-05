@@ -36,7 +36,7 @@ type StaticProfileMock struct {
 	beforeGetExtensionCounter uint64
 	GetExtensionMock          mStaticProfileMockGetExtension
 
-	funcGetNodePublicKey          func() (s1 cryptkit.SignatureKeyHolder)
+	funcGetNodePublicKey          func() (s1 cryptkit.SigningKeyHolder)
 	inspectFuncGetNodePublicKey   func()
 	afterGetNodePublicKeyCounter  uint64
 	beforeGetNodePublicKeyCounter uint64
@@ -555,7 +555,7 @@ type StaticProfileMockGetNodePublicKeyExpectation struct {
 
 // StaticProfileMockGetNodePublicKeyResults contains results of the StaticProfile.GetNodePublicKey
 type StaticProfileMockGetNodePublicKeyResults struct {
-	s1 cryptkit.SignatureKeyHolder
+	s1 cryptkit.SigningKeyHolder
 }
 
 // Expect sets up expected params for StaticProfile.GetNodePublicKey
@@ -583,7 +583,7 @@ func (mmGetNodePublicKey *mStaticProfileMockGetNodePublicKey) Inspect(f func()) 
 }
 
 // Return sets up results that will be returned by StaticProfile.GetNodePublicKey
-func (mmGetNodePublicKey *mStaticProfileMockGetNodePublicKey) Return(s1 cryptkit.SignatureKeyHolder) *StaticProfileMock {
+func (mmGetNodePublicKey *mStaticProfileMockGetNodePublicKey) Return(s1 cryptkit.SigningKeyHolder) *StaticProfileMock {
 	if mmGetNodePublicKey.mock.funcGetNodePublicKey != nil {
 		mmGetNodePublicKey.mock.t.Fatalf("StaticProfileMock.GetNodePublicKey mock is already set by Set")
 	}
@@ -596,7 +596,7 @@ func (mmGetNodePublicKey *mStaticProfileMockGetNodePublicKey) Return(s1 cryptkit
 }
 
 //Set uses given function f to mock the StaticProfile.GetNodePublicKey method
-func (mmGetNodePublicKey *mStaticProfileMockGetNodePublicKey) Set(f func() (s1 cryptkit.SignatureKeyHolder)) *StaticProfileMock {
+func (mmGetNodePublicKey *mStaticProfileMockGetNodePublicKey) Set(f func() (s1 cryptkit.SigningKeyHolder)) *StaticProfileMock {
 	if mmGetNodePublicKey.defaultExpectation != nil {
 		mmGetNodePublicKey.mock.t.Fatalf("Default expectation is already set for the StaticProfile.GetNodePublicKey method")
 	}
@@ -610,7 +610,7 @@ func (mmGetNodePublicKey *mStaticProfileMockGetNodePublicKey) Set(f func() (s1 c
 }
 
 // GetNodePublicKey implements StaticProfile
-func (mmGetNodePublicKey *StaticProfileMock) GetNodePublicKey() (s1 cryptkit.SignatureKeyHolder) {
+func (mmGetNodePublicKey *StaticProfileMock) GetNodePublicKey() (s1 cryptkit.SigningKeyHolder) {
 	mm_atomic.AddUint64(&mmGetNodePublicKey.beforeGetNodePublicKeyCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetNodePublicKey.afterGetNodePublicKeyCounter, 1)
 

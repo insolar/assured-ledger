@@ -15,23 +15,23 @@ import (
 type SignatureVerifierMock struct {
 	t minimock.Tester
 
+	funcGetDefaultSigningMethod          func() (s1 SigningMethod)
+	inspectFuncGetDefaultSigningMethod   func()
+	afterGetDefaultSigningMethodCounter  uint64
+	beforeGetDefaultSigningMethodCounter uint64
+	GetDefaultSigningMethodMock          mSignatureVerifierMockGetDefaultSigningMethod
+
 	funcIsDigestMethodSupported          func(m DigestMethod) (b1 bool)
 	inspectFuncIsDigestMethodSupported   func(m DigestMethod)
 	afterIsDigestMethodSupportedCounter  uint64
 	beforeIsDigestMethodSupportedCounter uint64
 	IsDigestMethodSupportedMock          mSignatureVerifierMockIsDigestMethodSupported
 
-	funcIsSignMethodSupported          func(m SigningMethod) (b1 bool)
-	inspectFuncIsSignMethodSupported   func(m SigningMethod)
-	afterIsSignMethodSupportedCounter  uint64
-	beforeIsSignMethodSupportedCounter uint64
-	IsSignMethodSupportedMock          mSignatureVerifierMockIsSignMethodSupported
-
-	funcIsSignOfSignatureMethodSupported          func(m SignatureMethod) (b1 bool)
-	inspectFuncIsSignOfSignatureMethodSupported   func(m SignatureMethod)
-	afterIsSignOfSignatureMethodSupportedCounter  uint64
-	beforeIsSignOfSignatureMethodSupportedCounter uint64
-	IsSignOfSignatureMethodSupportedMock          mSignatureVerifierMockIsSignOfSignatureMethodSupported
+	funcIsSigningMethodSupported          func(m SigningMethod) (b1 bool)
+	inspectFuncIsSigningMethodSupported   func(m SigningMethod)
+	afterIsSigningMethodSupportedCounter  uint64
+	beforeIsSigningMethodSupportedCounter uint64
+	IsSigningMethodSupportedMock          mSignatureVerifierMockIsSigningMethodSupported
 
 	funcIsValidDataSignature          func(data io.Reader, signature SignatureHolder) (b1 bool)
 	inspectFuncIsValidDataSignature   func(data io.Reader, signature SignatureHolder)
@@ -53,14 +53,13 @@ func NewSignatureVerifierMock(t minimock.Tester) *SignatureVerifierMock {
 		controller.RegisterMocker(m)
 	}
 
+	m.GetDefaultSigningMethodMock = mSignatureVerifierMockGetDefaultSigningMethod{mock: m}
+
 	m.IsDigestMethodSupportedMock = mSignatureVerifierMockIsDigestMethodSupported{mock: m}
 	m.IsDigestMethodSupportedMock.callArgs = []*SignatureVerifierMockIsDigestMethodSupportedParams{}
 
-	m.IsSignMethodSupportedMock = mSignatureVerifierMockIsSignMethodSupported{mock: m}
-	m.IsSignMethodSupportedMock.callArgs = []*SignatureVerifierMockIsSignMethodSupportedParams{}
-
-	m.IsSignOfSignatureMethodSupportedMock = mSignatureVerifierMockIsSignOfSignatureMethodSupported{mock: m}
-	m.IsSignOfSignatureMethodSupportedMock.callArgs = []*SignatureVerifierMockIsSignOfSignatureMethodSupportedParams{}
+	m.IsSigningMethodSupportedMock = mSignatureVerifierMockIsSigningMethodSupported{mock: m}
+	m.IsSigningMethodSupportedMock.callArgs = []*SignatureVerifierMockIsSigningMethodSupportedParams{}
 
 	m.IsValidDataSignatureMock = mSignatureVerifierMockIsValidDataSignature{mock: m}
 	m.IsValidDataSignatureMock.callArgs = []*SignatureVerifierMockIsValidDataSignatureParams{}
@@ -69,6 +68,149 @@ func NewSignatureVerifierMock(t minimock.Tester) *SignatureVerifierMock {
 	m.IsValidDigestSignatureMock.callArgs = []*SignatureVerifierMockIsValidDigestSignatureParams{}
 
 	return m
+}
+
+type mSignatureVerifierMockGetDefaultSigningMethod struct {
+	mock               *SignatureVerifierMock
+	defaultExpectation *SignatureVerifierMockGetDefaultSigningMethodExpectation
+	expectations       []*SignatureVerifierMockGetDefaultSigningMethodExpectation
+}
+
+// SignatureVerifierMockGetDefaultSigningMethodExpectation specifies expectation struct of the SignatureVerifier.GetDefaultSigningMethod
+type SignatureVerifierMockGetDefaultSigningMethodExpectation struct {
+	mock *SignatureVerifierMock
+
+	results *SignatureVerifierMockGetDefaultSigningMethodResults
+	Counter uint64
+}
+
+// SignatureVerifierMockGetDefaultSigningMethodResults contains results of the SignatureVerifier.GetDefaultSigningMethod
+type SignatureVerifierMockGetDefaultSigningMethodResults struct {
+	s1 SigningMethod
+}
+
+// Expect sets up expected params for SignatureVerifier.GetDefaultSigningMethod
+func (mmGetDefaultSigningMethod *mSignatureVerifierMockGetDefaultSigningMethod) Expect() *mSignatureVerifierMockGetDefaultSigningMethod {
+	if mmGetDefaultSigningMethod.mock.funcGetDefaultSigningMethod != nil {
+		mmGetDefaultSigningMethod.mock.t.Fatalf("SignatureVerifierMock.GetDefaultSigningMethod mock is already set by Set")
+	}
+
+	if mmGetDefaultSigningMethod.defaultExpectation == nil {
+		mmGetDefaultSigningMethod.defaultExpectation = &SignatureVerifierMockGetDefaultSigningMethodExpectation{}
+	}
+
+	return mmGetDefaultSigningMethod
+}
+
+// Inspect accepts an inspector function that has same arguments as the SignatureVerifier.GetDefaultSigningMethod
+func (mmGetDefaultSigningMethod *mSignatureVerifierMockGetDefaultSigningMethod) Inspect(f func()) *mSignatureVerifierMockGetDefaultSigningMethod {
+	if mmGetDefaultSigningMethod.mock.inspectFuncGetDefaultSigningMethod != nil {
+		mmGetDefaultSigningMethod.mock.t.Fatalf("Inspect function is already set for SignatureVerifierMock.GetDefaultSigningMethod")
+	}
+
+	mmGetDefaultSigningMethod.mock.inspectFuncGetDefaultSigningMethod = f
+
+	return mmGetDefaultSigningMethod
+}
+
+// Return sets up results that will be returned by SignatureVerifier.GetDefaultSigningMethod
+func (mmGetDefaultSigningMethod *mSignatureVerifierMockGetDefaultSigningMethod) Return(s1 SigningMethod) *SignatureVerifierMock {
+	if mmGetDefaultSigningMethod.mock.funcGetDefaultSigningMethod != nil {
+		mmGetDefaultSigningMethod.mock.t.Fatalf("SignatureVerifierMock.GetDefaultSigningMethod mock is already set by Set")
+	}
+
+	if mmGetDefaultSigningMethod.defaultExpectation == nil {
+		mmGetDefaultSigningMethod.defaultExpectation = &SignatureVerifierMockGetDefaultSigningMethodExpectation{mock: mmGetDefaultSigningMethod.mock}
+	}
+	mmGetDefaultSigningMethod.defaultExpectation.results = &SignatureVerifierMockGetDefaultSigningMethodResults{s1}
+	return mmGetDefaultSigningMethod.mock
+}
+
+//Set uses given function f to mock the SignatureVerifier.GetDefaultSigningMethod method
+func (mmGetDefaultSigningMethod *mSignatureVerifierMockGetDefaultSigningMethod) Set(f func() (s1 SigningMethod)) *SignatureVerifierMock {
+	if mmGetDefaultSigningMethod.defaultExpectation != nil {
+		mmGetDefaultSigningMethod.mock.t.Fatalf("Default expectation is already set for the SignatureVerifier.GetDefaultSigningMethod method")
+	}
+
+	if len(mmGetDefaultSigningMethod.expectations) > 0 {
+		mmGetDefaultSigningMethod.mock.t.Fatalf("Some expectations are already set for the SignatureVerifier.GetDefaultSigningMethod method")
+	}
+
+	mmGetDefaultSigningMethod.mock.funcGetDefaultSigningMethod = f
+	return mmGetDefaultSigningMethod.mock
+}
+
+// GetDefaultSigningMethod implements SignatureVerifier
+func (mmGetDefaultSigningMethod *SignatureVerifierMock) GetDefaultSigningMethod() (s1 SigningMethod) {
+	mm_atomic.AddUint64(&mmGetDefaultSigningMethod.beforeGetDefaultSigningMethodCounter, 1)
+	defer mm_atomic.AddUint64(&mmGetDefaultSigningMethod.afterGetDefaultSigningMethodCounter, 1)
+
+	if mmGetDefaultSigningMethod.inspectFuncGetDefaultSigningMethod != nil {
+		mmGetDefaultSigningMethod.inspectFuncGetDefaultSigningMethod()
+	}
+
+	if mmGetDefaultSigningMethod.GetDefaultSigningMethodMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmGetDefaultSigningMethod.GetDefaultSigningMethodMock.defaultExpectation.Counter, 1)
+
+		mm_results := mmGetDefaultSigningMethod.GetDefaultSigningMethodMock.defaultExpectation.results
+		if mm_results == nil {
+			mmGetDefaultSigningMethod.t.Fatal("No results are set for the SignatureVerifierMock.GetDefaultSigningMethod")
+		}
+		return (*mm_results).s1
+	}
+	if mmGetDefaultSigningMethod.funcGetDefaultSigningMethod != nil {
+		return mmGetDefaultSigningMethod.funcGetDefaultSigningMethod()
+	}
+	mmGetDefaultSigningMethod.t.Fatalf("Unexpected call to SignatureVerifierMock.GetDefaultSigningMethod.")
+	return
+}
+
+// GetDefaultSigningMethodAfterCounter returns a count of finished SignatureVerifierMock.GetDefaultSigningMethod invocations
+func (mmGetDefaultSigningMethod *SignatureVerifierMock) GetDefaultSigningMethodAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetDefaultSigningMethod.afterGetDefaultSigningMethodCounter)
+}
+
+// GetDefaultSigningMethodBeforeCounter returns a count of SignatureVerifierMock.GetDefaultSigningMethod invocations
+func (mmGetDefaultSigningMethod *SignatureVerifierMock) GetDefaultSigningMethodBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetDefaultSigningMethod.beforeGetDefaultSigningMethodCounter)
+}
+
+// MinimockGetDefaultSigningMethodDone returns true if the count of the GetDefaultSigningMethod invocations corresponds
+// the number of defined expectations
+func (m *SignatureVerifierMock) MinimockGetDefaultSigningMethodDone() bool {
+	for _, e := range m.GetDefaultSigningMethodMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.GetDefaultSigningMethodMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetDefaultSigningMethodCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcGetDefaultSigningMethod != nil && mm_atomic.LoadUint64(&m.afterGetDefaultSigningMethodCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockGetDefaultSigningMethodInspect logs each unmet expectation
+func (m *SignatureVerifierMock) MinimockGetDefaultSigningMethodInspect() {
+	for _, e := range m.GetDefaultSigningMethodMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Error("Expected call to SignatureVerifierMock.GetDefaultSigningMethod")
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.GetDefaultSigningMethodMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetDefaultSigningMethodCounter) < 1 {
+		m.t.Error("Expected call to SignatureVerifierMock.GetDefaultSigningMethod")
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcGetDefaultSigningMethod != nil && mm_atomic.LoadUint64(&m.afterGetDefaultSigningMethodCounter) < 1 {
+		m.t.Error("Expected call to SignatureVerifierMock.GetDefaultSigningMethod")
+	}
 }
 
 type mSignatureVerifierMockIsDigestMethodSupported struct {
@@ -286,433 +428,218 @@ func (m *SignatureVerifierMock) MinimockIsDigestMethodSupportedInspect() {
 	}
 }
 
-type mSignatureVerifierMockIsSignMethodSupported struct {
+type mSignatureVerifierMockIsSigningMethodSupported struct {
 	mock               *SignatureVerifierMock
-	defaultExpectation *SignatureVerifierMockIsSignMethodSupportedExpectation
-	expectations       []*SignatureVerifierMockIsSignMethodSupportedExpectation
+	defaultExpectation *SignatureVerifierMockIsSigningMethodSupportedExpectation
+	expectations       []*SignatureVerifierMockIsSigningMethodSupportedExpectation
 
-	callArgs []*SignatureVerifierMockIsSignMethodSupportedParams
+	callArgs []*SignatureVerifierMockIsSigningMethodSupportedParams
 	mutex    sync.RWMutex
 }
 
-// SignatureVerifierMockIsSignMethodSupportedExpectation specifies expectation struct of the SignatureVerifier.IsSignMethodSupported
-type SignatureVerifierMockIsSignMethodSupportedExpectation struct {
+// SignatureVerifierMockIsSigningMethodSupportedExpectation specifies expectation struct of the SignatureVerifier.IsSigningMethodSupported
+type SignatureVerifierMockIsSigningMethodSupportedExpectation struct {
 	mock    *SignatureVerifierMock
-	params  *SignatureVerifierMockIsSignMethodSupportedParams
-	results *SignatureVerifierMockIsSignMethodSupportedResults
+	params  *SignatureVerifierMockIsSigningMethodSupportedParams
+	results *SignatureVerifierMockIsSigningMethodSupportedResults
 	Counter uint64
 }
 
-// SignatureVerifierMockIsSignMethodSupportedParams contains parameters of the SignatureVerifier.IsSignMethodSupported
-type SignatureVerifierMockIsSignMethodSupportedParams struct {
+// SignatureVerifierMockIsSigningMethodSupportedParams contains parameters of the SignatureVerifier.IsSigningMethodSupported
+type SignatureVerifierMockIsSigningMethodSupportedParams struct {
 	m SigningMethod
 }
 
-// SignatureVerifierMockIsSignMethodSupportedResults contains results of the SignatureVerifier.IsSignMethodSupported
-type SignatureVerifierMockIsSignMethodSupportedResults struct {
+// SignatureVerifierMockIsSigningMethodSupportedResults contains results of the SignatureVerifier.IsSigningMethodSupported
+type SignatureVerifierMockIsSigningMethodSupportedResults struct {
 	b1 bool
 }
 
-// Expect sets up expected params for SignatureVerifier.IsSignMethodSupported
-func (mmIsSignMethodSupported *mSignatureVerifierMockIsSignMethodSupported) Expect(m SigningMethod) *mSignatureVerifierMockIsSignMethodSupported {
-	if mmIsSignMethodSupported.mock.funcIsSignMethodSupported != nil {
-		mmIsSignMethodSupported.mock.t.Fatalf("SignatureVerifierMock.IsSignMethodSupported mock is already set by Set")
+// Expect sets up expected params for SignatureVerifier.IsSigningMethodSupported
+func (mmIsSigningMethodSupported *mSignatureVerifierMockIsSigningMethodSupported) Expect(m SigningMethod) *mSignatureVerifierMockIsSigningMethodSupported {
+	if mmIsSigningMethodSupported.mock.funcIsSigningMethodSupported != nil {
+		mmIsSigningMethodSupported.mock.t.Fatalf("SignatureVerifierMock.IsSigningMethodSupported mock is already set by Set")
 	}
 
-	if mmIsSignMethodSupported.defaultExpectation == nil {
-		mmIsSignMethodSupported.defaultExpectation = &SignatureVerifierMockIsSignMethodSupportedExpectation{}
+	if mmIsSigningMethodSupported.defaultExpectation == nil {
+		mmIsSigningMethodSupported.defaultExpectation = &SignatureVerifierMockIsSigningMethodSupportedExpectation{}
 	}
 
-	mmIsSignMethodSupported.defaultExpectation.params = &SignatureVerifierMockIsSignMethodSupportedParams{m}
-	for _, e := range mmIsSignMethodSupported.expectations {
-		if minimock.Equal(e.params, mmIsSignMethodSupported.defaultExpectation.params) {
-			mmIsSignMethodSupported.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmIsSignMethodSupported.defaultExpectation.params)
+	mmIsSigningMethodSupported.defaultExpectation.params = &SignatureVerifierMockIsSigningMethodSupportedParams{m}
+	for _, e := range mmIsSigningMethodSupported.expectations {
+		if minimock.Equal(e.params, mmIsSigningMethodSupported.defaultExpectation.params) {
+			mmIsSigningMethodSupported.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmIsSigningMethodSupported.defaultExpectation.params)
 		}
 	}
 
-	return mmIsSignMethodSupported
+	return mmIsSigningMethodSupported
 }
 
-// Inspect accepts an inspector function that has same arguments as the SignatureVerifier.IsSignMethodSupported
-func (mmIsSignMethodSupported *mSignatureVerifierMockIsSignMethodSupported) Inspect(f func(m SigningMethod)) *mSignatureVerifierMockIsSignMethodSupported {
-	if mmIsSignMethodSupported.mock.inspectFuncIsSignMethodSupported != nil {
-		mmIsSignMethodSupported.mock.t.Fatalf("Inspect function is already set for SignatureVerifierMock.IsSignMethodSupported")
+// Inspect accepts an inspector function that has same arguments as the SignatureVerifier.IsSigningMethodSupported
+func (mmIsSigningMethodSupported *mSignatureVerifierMockIsSigningMethodSupported) Inspect(f func(m SigningMethod)) *mSignatureVerifierMockIsSigningMethodSupported {
+	if mmIsSigningMethodSupported.mock.inspectFuncIsSigningMethodSupported != nil {
+		mmIsSigningMethodSupported.mock.t.Fatalf("Inspect function is already set for SignatureVerifierMock.IsSigningMethodSupported")
 	}
 
-	mmIsSignMethodSupported.mock.inspectFuncIsSignMethodSupported = f
+	mmIsSigningMethodSupported.mock.inspectFuncIsSigningMethodSupported = f
 
-	return mmIsSignMethodSupported
+	return mmIsSigningMethodSupported
 }
 
-// Return sets up results that will be returned by SignatureVerifier.IsSignMethodSupported
-func (mmIsSignMethodSupported *mSignatureVerifierMockIsSignMethodSupported) Return(b1 bool) *SignatureVerifierMock {
-	if mmIsSignMethodSupported.mock.funcIsSignMethodSupported != nil {
-		mmIsSignMethodSupported.mock.t.Fatalf("SignatureVerifierMock.IsSignMethodSupported mock is already set by Set")
+// Return sets up results that will be returned by SignatureVerifier.IsSigningMethodSupported
+func (mmIsSigningMethodSupported *mSignatureVerifierMockIsSigningMethodSupported) Return(b1 bool) *SignatureVerifierMock {
+	if mmIsSigningMethodSupported.mock.funcIsSigningMethodSupported != nil {
+		mmIsSigningMethodSupported.mock.t.Fatalf("SignatureVerifierMock.IsSigningMethodSupported mock is already set by Set")
 	}
 
-	if mmIsSignMethodSupported.defaultExpectation == nil {
-		mmIsSignMethodSupported.defaultExpectation = &SignatureVerifierMockIsSignMethodSupportedExpectation{mock: mmIsSignMethodSupported.mock}
+	if mmIsSigningMethodSupported.defaultExpectation == nil {
+		mmIsSigningMethodSupported.defaultExpectation = &SignatureVerifierMockIsSigningMethodSupportedExpectation{mock: mmIsSigningMethodSupported.mock}
 	}
-	mmIsSignMethodSupported.defaultExpectation.results = &SignatureVerifierMockIsSignMethodSupportedResults{b1}
-	return mmIsSignMethodSupported.mock
+	mmIsSigningMethodSupported.defaultExpectation.results = &SignatureVerifierMockIsSigningMethodSupportedResults{b1}
+	return mmIsSigningMethodSupported.mock
 }
 
-//Set uses given function f to mock the SignatureVerifier.IsSignMethodSupported method
-func (mmIsSignMethodSupported *mSignatureVerifierMockIsSignMethodSupported) Set(f func(m SigningMethod) (b1 bool)) *SignatureVerifierMock {
-	if mmIsSignMethodSupported.defaultExpectation != nil {
-		mmIsSignMethodSupported.mock.t.Fatalf("Default expectation is already set for the SignatureVerifier.IsSignMethodSupported method")
+//Set uses given function f to mock the SignatureVerifier.IsSigningMethodSupported method
+func (mmIsSigningMethodSupported *mSignatureVerifierMockIsSigningMethodSupported) Set(f func(m SigningMethod) (b1 bool)) *SignatureVerifierMock {
+	if mmIsSigningMethodSupported.defaultExpectation != nil {
+		mmIsSigningMethodSupported.mock.t.Fatalf("Default expectation is already set for the SignatureVerifier.IsSigningMethodSupported method")
 	}
 
-	if len(mmIsSignMethodSupported.expectations) > 0 {
-		mmIsSignMethodSupported.mock.t.Fatalf("Some expectations are already set for the SignatureVerifier.IsSignMethodSupported method")
+	if len(mmIsSigningMethodSupported.expectations) > 0 {
+		mmIsSigningMethodSupported.mock.t.Fatalf("Some expectations are already set for the SignatureVerifier.IsSigningMethodSupported method")
 	}
 
-	mmIsSignMethodSupported.mock.funcIsSignMethodSupported = f
-	return mmIsSignMethodSupported.mock
+	mmIsSigningMethodSupported.mock.funcIsSigningMethodSupported = f
+	return mmIsSigningMethodSupported.mock
 }
 
-// When sets expectation for the SignatureVerifier.IsSignMethodSupported which will trigger the result defined by the following
+// When sets expectation for the SignatureVerifier.IsSigningMethodSupported which will trigger the result defined by the following
 // Then helper
-func (mmIsSignMethodSupported *mSignatureVerifierMockIsSignMethodSupported) When(m SigningMethod) *SignatureVerifierMockIsSignMethodSupportedExpectation {
-	if mmIsSignMethodSupported.mock.funcIsSignMethodSupported != nil {
-		mmIsSignMethodSupported.mock.t.Fatalf("SignatureVerifierMock.IsSignMethodSupported mock is already set by Set")
+func (mmIsSigningMethodSupported *mSignatureVerifierMockIsSigningMethodSupported) When(m SigningMethod) *SignatureVerifierMockIsSigningMethodSupportedExpectation {
+	if mmIsSigningMethodSupported.mock.funcIsSigningMethodSupported != nil {
+		mmIsSigningMethodSupported.mock.t.Fatalf("SignatureVerifierMock.IsSigningMethodSupported mock is already set by Set")
 	}
 
-	expectation := &SignatureVerifierMockIsSignMethodSupportedExpectation{
-		mock:   mmIsSignMethodSupported.mock,
-		params: &SignatureVerifierMockIsSignMethodSupportedParams{m},
+	expectation := &SignatureVerifierMockIsSigningMethodSupportedExpectation{
+		mock:   mmIsSigningMethodSupported.mock,
+		params: &SignatureVerifierMockIsSigningMethodSupportedParams{m},
 	}
-	mmIsSignMethodSupported.expectations = append(mmIsSignMethodSupported.expectations, expectation)
+	mmIsSigningMethodSupported.expectations = append(mmIsSigningMethodSupported.expectations, expectation)
 	return expectation
 }
 
-// Then sets up SignatureVerifier.IsSignMethodSupported return parameters for the expectation previously defined by the When method
-func (e *SignatureVerifierMockIsSignMethodSupportedExpectation) Then(b1 bool) *SignatureVerifierMock {
-	e.results = &SignatureVerifierMockIsSignMethodSupportedResults{b1}
+// Then sets up SignatureVerifier.IsSigningMethodSupported return parameters for the expectation previously defined by the When method
+func (e *SignatureVerifierMockIsSigningMethodSupportedExpectation) Then(b1 bool) *SignatureVerifierMock {
+	e.results = &SignatureVerifierMockIsSigningMethodSupportedResults{b1}
 	return e.mock
 }
 
-// IsSignMethodSupported implements SignatureVerifier
-func (mmIsSignMethodSupported *SignatureVerifierMock) IsSignMethodSupported(m SigningMethod) (b1 bool) {
-	mm_atomic.AddUint64(&mmIsSignMethodSupported.beforeIsSignMethodSupportedCounter, 1)
-	defer mm_atomic.AddUint64(&mmIsSignMethodSupported.afterIsSignMethodSupportedCounter, 1)
+// IsSigningMethodSupported implements SignatureVerifier
+func (mmIsSigningMethodSupported *SignatureVerifierMock) IsSigningMethodSupported(m SigningMethod) (b1 bool) {
+	mm_atomic.AddUint64(&mmIsSigningMethodSupported.beforeIsSigningMethodSupportedCounter, 1)
+	defer mm_atomic.AddUint64(&mmIsSigningMethodSupported.afterIsSigningMethodSupportedCounter, 1)
 
-	if mmIsSignMethodSupported.inspectFuncIsSignMethodSupported != nil {
-		mmIsSignMethodSupported.inspectFuncIsSignMethodSupported(m)
+	if mmIsSigningMethodSupported.inspectFuncIsSigningMethodSupported != nil {
+		mmIsSigningMethodSupported.inspectFuncIsSigningMethodSupported(m)
 	}
 
-	mm_params := &SignatureVerifierMockIsSignMethodSupportedParams{m}
+	mm_params := &SignatureVerifierMockIsSigningMethodSupportedParams{m}
 
 	// Record call args
-	mmIsSignMethodSupported.IsSignMethodSupportedMock.mutex.Lock()
-	mmIsSignMethodSupported.IsSignMethodSupportedMock.callArgs = append(mmIsSignMethodSupported.IsSignMethodSupportedMock.callArgs, mm_params)
-	mmIsSignMethodSupported.IsSignMethodSupportedMock.mutex.Unlock()
+	mmIsSigningMethodSupported.IsSigningMethodSupportedMock.mutex.Lock()
+	mmIsSigningMethodSupported.IsSigningMethodSupportedMock.callArgs = append(mmIsSigningMethodSupported.IsSigningMethodSupportedMock.callArgs, mm_params)
+	mmIsSigningMethodSupported.IsSigningMethodSupportedMock.mutex.Unlock()
 
-	for _, e := range mmIsSignMethodSupported.IsSignMethodSupportedMock.expectations {
+	for _, e := range mmIsSigningMethodSupported.IsSigningMethodSupportedMock.expectations {
 		if minimock.Equal(e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
 			return e.results.b1
 		}
 	}
 
-	if mmIsSignMethodSupported.IsSignMethodSupportedMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmIsSignMethodSupported.IsSignMethodSupportedMock.defaultExpectation.Counter, 1)
-		mm_want := mmIsSignMethodSupported.IsSignMethodSupportedMock.defaultExpectation.params
-		mm_got := SignatureVerifierMockIsSignMethodSupportedParams{m}
+	if mmIsSigningMethodSupported.IsSigningMethodSupportedMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmIsSigningMethodSupported.IsSigningMethodSupportedMock.defaultExpectation.Counter, 1)
+		mm_want := mmIsSigningMethodSupported.IsSigningMethodSupportedMock.defaultExpectation.params
+		mm_got := SignatureVerifierMockIsSigningMethodSupportedParams{m}
 		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmIsSignMethodSupported.t.Errorf("SignatureVerifierMock.IsSignMethodSupported got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+			mmIsSigningMethodSupported.t.Errorf("SignatureVerifierMock.IsSigningMethodSupported got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
 
-		mm_results := mmIsSignMethodSupported.IsSignMethodSupportedMock.defaultExpectation.results
+		mm_results := mmIsSigningMethodSupported.IsSigningMethodSupportedMock.defaultExpectation.results
 		if mm_results == nil {
-			mmIsSignMethodSupported.t.Fatal("No results are set for the SignatureVerifierMock.IsSignMethodSupported")
+			mmIsSigningMethodSupported.t.Fatal("No results are set for the SignatureVerifierMock.IsSigningMethodSupported")
 		}
 		return (*mm_results).b1
 	}
-	if mmIsSignMethodSupported.funcIsSignMethodSupported != nil {
-		return mmIsSignMethodSupported.funcIsSignMethodSupported(m)
+	if mmIsSigningMethodSupported.funcIsSigningMethodSupported != nil {
+		return mmIsSigningMethodSupported.funcIsSigningMethodSupported(m)
 	}
-	mmIsSignMethodSupported.t.Fatalf("Unexpected call to SignatureVerifierMock.IsSignMethodSupported. %v", m)
+	mmIsSigningMethodSupported.t.Fatalf("Unexpected call to SignatureVerifierMock.IsSigningMethodSupported. %v", m)
 	return
 }
 
-// IsSignMethodSupportedAfterCounter returns a count of finished SignatureVerifierMock.IsSignMethodSupported invocations
-func (mmIsSignMethodSupported *SignatureVerifierMock) IsSignMethodSupportedAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmIsSignMethodSupported.afterIsSignMethodSupportedCounter)
+// IsSigningMethodSupportedAfterCounter returns a count of finished SignatureVerifierMock.IsSigningMethodSupported invocations
+func (mmIsSigningMethodSupported *SignatureVerifierMock) IsSigningMethodSupportedAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmIsSigningMethodSupported.afterIsSigningMethodSupportedCounter)
 }
 
-// IsSignMethodSupportedBeforeCounter returns a count of SignatureVerifierMock.IsSignMethodSupported invocations
-func (mmIsSignMethodSupported *SignatureVerifierMock) IsSignMethodSupportedBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmIsSignMethodSupported.beforeIsSignMethodSupportedCounter)
+// IsSigningMethodSupportedBeforeCounter returns a count of SignatureVerifierMock.IsSigningMethodSupported invocations
+func (mmIsSigningMethodSupported *SignatureVerifierMock) IsSigningMethodSupportedBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmIsSigningMethodSupported.beforeIsSigningMethodSupportedCounter)
 }
 
-// Calls returns a list of arguments used in each call to SignatureVerifierMock.IsSignMethodSupported.
+// Calls returns a list of arguments used in each call to SignatureVerifierMock.IsSigningMethodSupported.
 // The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmIsSignMethodSupported *mSignatureVerifierMockIsSignMethodSupported) Calls() []*SignatureVerifierMockIsSignMethodSupportedParams {
-	mmIsSignMethodSupported.mutex.RLock()
+func (mmIsSigningMethodSupported *mSignatureVerifierMockIsSigningMethodSupported) Calls() []*SignatureVerifierMockIsSigningMethodSupportedParams {
+	mmIsSigningMethodSupported.mutex.RLock()
 
-	argCopy := make([]*SignatureVerifierMockIsSignMethodSupportedParams, len(mmIsSignMethodSupported.callArgs))
-	copy(argCopy, mmIsSignMethodSupported.callArgs)
+	argCopy := make([]*SignatureVerifierMockIsSigningMethodSupportedParams, len(mmIsSigningMethodSupported.callArgs))
+	copy(argCopy, mmIsSigningMethodSupported.callArgs)
 
-	mmIsSignMethodSupported.mutex.RUnlock()
+	mmIsSigningMethodSupported.mutex.RUnlock()
 
 	return argCopy
 }
 
-// MinimockIsSignMethodSupportedDone returns true if the count of the IsSignMethodSupported invocations corresponds
+// MinimockIsSigningMethodSupportedDone returns true if the count of the IsSigningMethodSupported invocations corresponds
 // the number of defined expectations
-func (m *SignatureVerifierMock) MinimockIsSignMethodSupportedDone() bool {
-	for _, e := range m.IsSignMethodSupportedMock.expectations {
+func (m *SignatureVerifierMock) MinimockIsSigningMethodSupportedDone() bool {
+	for _, e := range m.IsSigningMethodSupportedMock.expectations {
 		if mm_atomic.LoadUint64(&e.Counter) < 1 {
 			return false
 		}
 	}
 
 	// if default expectation was set then invocations count should be greater than zero
-	if m.IsSignMethodSupportedMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterIsSignMethodSupportedCounter) < 1 {
+	if m.IsSigningMethodSupportedMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterIsSigningMethodSupportedCounter) < 1 {
 		return false
 	}
 	// if func was set then invocations count should be greater than zero
-	if m.funcIsSignMethodSupported != nil && mm_atomic.LoadUint64(&m.afterIsSignMethodSupportedCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockIsSignMethodSupportedInspect logs each unmet expectation
-func (m *SignatureVerifierMock) MinimockIsSignMethodSupportedInspect() {
-	for _, e := range m.IsSignMethodSupportedMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to SignatureVerifierMock.IsSignMethodSupported with params: %#v", *e.params)
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.IsSignMethodSupportedMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterIsSignMethodSupportedCounter) < 1 {
-		if m.IsSignMethodSupportedMock.defaultExpectation.params == nil {
-			m.t.Error("Expected call to SignatureVerifierMock.IsSignMethodSupported")
-		} else {
-			m.t.Errorf("Expected call to SignatureVerifierMock.IsSignMethodSupported with params: %#v", *m.IsSignMethodSupportedMock.defaultExpectation.params)
-		}
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcIsSignMethodSupported != nil && mm_atomic.LoadUint64(&m.afterIsSignMethodSupportedCounter) < 1 {
-		m.t.Error("Expected call to SignatureVerifierMock.IsSignMethodSupported")
-	}
-}
-
-type mSignatureVerifierMockIsSignOfSignatureMethodSupported struct {
-	mock               *SignatureVerifierMock
-	defaultExpectation *SignatureVerifierMockIsSignOfSignatureMethodSupportedExpectation
-	expectations       []*SignatureVerifierMockIsSignOfSignatureMethodSupportedExpectation
-
-	callArgs []*SignatureVerifierMockIsSignOfSignatureMethodSupportedParams
-	mutex    sync.RWMutex
-}
-
-// SignatureVerifierMockIsSignOfSignatureMethodSupportedExpectation specifies expectation struct of the SignatureVerifier.IsSignOfSignatureMethodSupported
-type SignatureVerifierMockIsSignOfSignatureMethodSupportedExpectation struct {
-	mock    *SignatureVerifierMock
-	params  *SignatureVerifierMockIsSignOfSignatureMethodSupportedParams
-	results *SignatureVerifierMockIsSignOfSignatureMethodSupportedResults
-	Counter uint64
-}
-
-// SignatureVerifierMockIsSignOfSignatureMethodSupportedParams contains parameters of the SignatureVerifier.IsSignOfSignatureMethodSupported
-type SignatureVerifierMockIsSignOfSignatureMethodSupportedParams struct {
-	m SignatureMethod
-}
-
-// SignatureVerifierMockIsSignOfSignatureMethodSupportedResults contains results of the SignatureVerifier.IsSignOfSignatureMethodSupported
-type SignatureVerifierMockIsSignOfSignatureMethodSupportedResults struct {
-	b1 bool
-}
-
-// Expect sets up expected params for SignatureVerifier.IsSignOfSignatureMethodSupported
-func (mmIsSignOfSignatureMethodSupported *mSignatureVerifierMockIsSignOfSignatureMethodSupported) Expect(m SignatureMethod) *mSignatureVerifierMockIsSignOfSignatureMethodSupported {
-	if mmIsSignOfSignatureMethodSupported.mock.funcIsSignOfSignatureMethodSupported != nil {
-		mmIsSignOfSignatureMethodSupported.mock.t.Fatalf("SignatureVerifierMock.IsSignOfSignatureMethodSupported mock is already set by Set")
-	}
-
-	if mmIsSignOfSignatureMethodSupported.defaultExpectation == nil {
-		mmIsSignOfSignatureMethodSupported.defaultExpectation = &SignatureVerifierMockIsSignOfSignatureMethodSupportedExpectation{}
-	}
-
-	mmIsSignOfSignatureMethodSupported.defaultExpectation.params = &SignatureVerifierMockIsSignOfSignatureMethodSupportedParams{m}
-	for _, e := range mmIsSignOfSignatureMethodSupported.expectations {
-		if minimock.Equal(e.params, mmIsSignOfSignatureMethodSupported.defaultExpectation.params) {
-			mmIsSignOfSignatureMethodSupported.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmIsSignOfSignatureMethodSupported.defaultExpectation.params)
-		}
-	}
-
-	return mmIsSignOfSignatureMethodSupported
-}
-
-// Inspect accepts an inspector function that has same arguments as the SignatureVerifier.IsSignOfSignatureMethodSupported
-func (mmIsSignOfSignatureMethodSupported *mSignatureVerifierMockIsSignOfSignatureMethodSupported) Inspect(f func(m SignatureMethod)) *mSignatureVerifierMockIsSignOfSignatureMethodSupported {
-	if mmIsSignOfSignatureMethodSupported.mock.inspectFuncIsSignOfSignatureMethodSupported != nil {
-		mmIsSignOfSignatureMethodSupported.mock.t.Fatalf("Inspect function is already set for SignatureVerifierMock.IsSignOfSignatureMethodSupported")
-	}
-
-	mmIsSignOfSignatureMethodSupported.mock.inspectFuncIsSignOfSignatureMethodSupported = f
-
-	return mmIsSignOfSignatureMethodSupported
-}
-
-// Return sets up results that will be returned by SignatureVerifier.IsSignOfSignatureMethodSupported
-func (mmIsSignOfSignatureMethodSupported *mSignatureVerifierMockIsSignOfSignatureMethodSupported) Return(b1 bool) *SignatureVerifierMock {
-	if mmIsSignOfSignatureMethodSupported.mock.funcIsSignOfSignatureMethodSupported != nil {
-		mmIsSignOfSignatureMethodSupported.mock.t.Fatalf("SignatureVerifierMock.IsSignOfSignatureMethodSupported mock is already set by Set")
-	}
-
-	if mmIsSignOfSignatureMethodSupported.defaultExpectation == nil {
-		mmIsSignOfSignatureMethodSupported.defaultExpectation = &SignatureVerifierMockIsSignOfSignatureMethodSupportedExpectation{mock: mmIsSignOfSignatureMethodSupported.mock}
-	}
-	mmIsSignOfSignatureMethodSupported.defaultExpectation.results = &SignatureVerifierMockIsSignOfSignatureMethodSupportedResults{b1}
-	return mmIsSignOfSignatureMethodSupported.mock
-}
-
-//Set uses given function f to mock the SignatureVerifier.IsSignOfSignatureMethodSupported method
-func (mmIsSignOfSignatureMethodSupported *mSignatureVerifierMockIsSignOfSignatureMethodSupported) Set(f func(m SignatureMethod) (b1 bool)) *SignatureVerifierMock {
-	if mmIsSignOfSignatureMethodSupported.defaultExpectation != nil {
-		mmIsSignOfSignatureMethodSupported.mock.t.Fatalf("Default expectation is already set for the SignatureVerifier.IsSignOfSignatureMethodSupported method")
-	}
-
-	if len(mmIsSignOfSignatureMethodSupported.expectations) > 0 {
-		mmIsSignOfSignatureMethodSupported.mock.t.Fatalf("Some expectations are already set for the SignatureVerifier.IsSignOfSignatureMethodSupported method")
-	}
-
-	mmIsSignOfSignatureMethodSupported.mock.funcIsSignOfSignatureMethodSupported = f
-	return mmIsSignOfSignatureMethodSupported.mock
-}
-
-// When sets expectation for the SignatureVerifier.IsSignOfSignatureMethodSupported which will trigger the result defined by the following
-// Then helper
-func (mmIsSignOfSignatureMethodSupported *mSignatureVerifierMockIsSignOfSignatureMethodSupported) When(m SignatureMethod) *SignatureVerifierMockIsSignOfSignatureMethodSupportedExpectation {
-	if mmIsSignOfSignatureMethodSupported.mock.funcIsSignOfSignatureMethodSupported != nil {
-		mmIsSignOfSignatureMethodSupported.mock.t.Fatalf("SignatureVerifierMock.IsSignOfSignatureMethodSupported mock is already set by Set")
-	}
-
-	expectation := &SignatureVerifierMockIsSignOfSignatureMethodSupportedExpectation{
-		mock:   mmIsSignOfSignatureMethodSupported.mock,
-		params: &SignatureVerifierMockIsSignOfSignatureMethodSupportedParams{m},
-	}
-	mmIsSignOfSignatureMethodSupported.expectations = append(mmIsSignOfSignatureMethodSupported.expectations, expectation)
-	return expectation
-}
-
-// Then sets up SignatureVerifier.IsSignOfSignatureMethodSupported return parameters for the expectation previously defined by the When method
-func (e *SignatureVerifierMockIsSignOfSignatureMethodSupportedExpectation) Then(b1 bool) *SignatureVerifierMock {
-	e.results = &SignatureVerifierMockIsSignOfSignatureMethodSupportedResults{b1}
-	return e.mock
-}
-
-// IsSignOfSignatureMethodSupported implements SignatureVerifier
-func (mmIsSignOfSignatureMethodSupported *SignatureVerifierMock) IsSignOfSignatureMethodSupported(m SignatureMethod) (b1 bool) {
-	mm_atomic.AddUint64(&mmIsSignOfSignatureMethodSupported.beforeIsSignOfSignatureMethodSupportedCounter, 1)
-	defer mm_atomic.AddUint64(&mmIsSignOfSignatureMethodSupported.afterIsSignOfSignatureMethodSupportedCounter, 1)
-
-	if mmIsSignOfSignatureMethodSupported.inspectFuncIsSignOfSignatureMethodSupported != nil {
-		mmIsSignOfSignatureMethodSupported.inspectFuncIsSignOfSignatureMethodSupported(m)
-	}
-
-	mm_params := &SignatureVerifierMockIsSignOfSignatureMethodSupportedParams{m}
-
-	// Record call args
-	mmIsSignOfSignatureMethodSupported.IsSignOfSignatureMethodSupportedMock.mutex.Lock()
-	mmIsSignOfSignatureMethodSupported.IsSignOfSignatureMethodSupportedMock.callArgs = append(mmIsSignOfSignatureMethodSupported.IsSignOfSignatureMethodSupportedMock.callArgs, mm_params)
-	mmIsSignOfSignatureMethodSupported.IsSignOfSignatureMethodSupportedMock.mutex.Unlock()
-
-	for _, e := range mmIsSignOfSignatureMethodSupported.IsSignOfSignatureMethodSupportedMock.expectations {
-		if minimock.Equal(e.params, mm_params) {
-			mm_atomic.AddUint64(&e.Counter, 1)
-			return e.results.b1
-		}
-	}
-
-	if mmIsSignOfSignatureMethodSupported.IsSignOfSignatureMethodSupportedMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmIsSignOfSignatureMethodSupported.IsSignOfSignatureMethodSupportedMock.defaultExpectation.Counter, 1)
-		mm_want := mmIsSignOfSignatureMethodSupported.IsSignOfSignatureMethodSupportedMock.defaultExpectation.params
-		mm_got := SignatureVerifierMockIsSignOfSignatureMethodSupportedParams{m}
-		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmIsSignOfSignatureMethodSupported.t.Errorf("SignatureVerifierMock.IsSignOfSignatureMethodSupported got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
-		}
-
-		mm_results := mmIsSignOfSignatureMethodSupported.IsSignOfSignatureMethodSupportedMock.defaultExpectation.results
-		if mm_results == nil {
-			mmIsSignOfSignatureMethodSupported.t.Fatal("No results are set for the SignatureVerifierMock.IsSignOfSignatureMethodSupported")
-		}
-		return (*mm_results).b1
-	}
-	if mmIsSignOfSignatureMethodSupported.funcIsSignOfSignatureMethodSupported != nil {
-		return mmIsSignOfSignatureMethodSupported.funcIsSignOfSignatureMethodSupported(m)
-	}
-	mmIsSignOfSignatureMethodSupported.t.Fatalf("Unexpected call to SignatureVerifierMock.IsSignOfSignatureMethodSupported. %v", m)
-	return
-}
-
-// IsSignOfSignatureMethodSupportedAfterCounter returns a count of finished SignatureVerifierMock.IsSignOfSignatureMethodSupported invocations
-func (mmIsSignOfSignatureMethodSupported *SignatureVerifierMock) IsSignOfSignatureMethodSupportedAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmIsSignOfSignatureMethodSupported.afterIsSignOfSignatureMethodSupportedCounter)
-}
-
-// IsSignOfSignatureMethodSupportedBeforeCounter returns a count of SignatureVerifierMock.IsSignOfSignatureMethodSupported invocations
-func (mmIsSignOfSignatureMethodSupported *SignatureVerifierMock) IsSignOfSignatureMethodSupportedBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmIsSignOfSignatureMethodSupported.beforeIsSignOfSignatureMethodSupportedCounter)
-}
-
-// Calls returns a list of arguments used in each call to SignatureVerifierMock.IsSignOfSignatureMethodSupported.
-// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmIsSignOfSignatureMethodSupported *mSignatureVerifierMockIsSignOfSignatureMethodSupported) Calls() []*SignatureVerifierMockIsSignOfSignatureMethodSupportedParams {
-	mmIsSignOfSignatureMethodSupported.mutex.RLock()
-
-	argCopy := make([]*SignatureVerifierMockIsSignOfSignatureMethodSupportedParams, len(mmIsSignOfSignatureMethodSupported.callArgs))
-	copy(argCopy, mmIsSignOfSignatureMethodSupported.callArgs)
-
-	mmIsSignOfSignatureMethodSupported.mutex.RUnlock()
-
-	return argCopy
-}
-
-// MinimockIsSignOfSignatureMethodSupportedDone returns true if the count of the IsSignOfSignatureMethodSupported invocations corresponds
-// the number of defined expectations
-func (m *SignatureVerifierMock) MinimockIsSignOfSignatureMethodSupportedDone() bool {
-	for _, e := range m.IsSignOfSignatureMethodSupportedMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.IsSignOfSignatureMethodSupportedMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterIsSignOfSignatureMethodSupportedCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcIsSignOfSignatureMethodSupported != nil && mm_atomic.LoadUint64(&m.afterIsSignOfSignatureMethodSupportedCounter) < 1 {
+	if m.funcIsSigningMethodSupported != nil && mm_atomic.LoadUint64(&m.afterIsSigningMethodSupportedCounter) < 1 {
 		return false
 	}
 	return true
 }
 
-// MinimockIsSignOfSignatureMethodSupportedInspect logs each unmet expectation
-func (m *SignatureVerifierMock) MinimockIsSignOfSignatureMethodSupportedInspect() {
-	for _, e := range m.IsSignOfSignatureMethodSupportedMock.expectations {
+// MinimockIsSigningMethodSupportedInspect logs each unmet expectation
+func (m *SignatureVerifierMock) MinimockIsSigningMethodSupportedInspect() {
+	for _, e := range m.IsSigningMethodSupportedMock.expectations {
 		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to SignatureVerifierMock.IsSignOfSignatureMethodSupported with params: %#v", *e.params)
+			m.t.Errorf("Expected call to SignatureVerifierMock.IsSigningMethodSupported with params: %#v", *e.params)
 		}
 	}
 
 	// if default expectation was set then invocations count should be greater than zero
-	if m.IsSignOfSignatureMethodSupportedMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterIsSignOfSignatureMethodSupportedCounter) < 1 {
-		if m.IsSignOfSignatureMethodSupportedMock.defaultExpectation.params == nil {
-			m.t.Error("Expected call to SignatureVerifierMock.IsSignOfSignatureMethodSupported")
+	if m.IsSigningMethodSupportedMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterIsSigningMethodSupportedCounter) < 1 {
+		if m.IsSigningMethodSupportedMock.defaultExpectation.params == nil {
+			m.t.Error("Expected call to SignatureVerifierMock.IsSigningMethodSupported")
 		} else {
-			m.t.Errorf("Expected call to SignatureVerifierMock.IsSignOfSignatureMethodSupported with params: %#v", *m.IsSignOfSignatureMethodSupportedMock.defaultExpectation.params)
+			m.t.Errorf("Expected call to SignatureVerifierMock.IsSigningMethodSupported with params: %#v", *m.IsSigningMethodSupportedMock.defaultExpectation.params)
 		}
 	}
 	// if func was set then invocations count should be greater than zero
-	if m.funcIsSignOfSignatureMethodSupported != nil && mm_atomic.LoadUint64(&m.afterIsSignOfSignatureMethodSupportedCounter) < 1 {
-		m.t.Error("Expected call to SignatureVerifierMock.IsSignOfSignatureMethodSupported")
+	if m.funcIsSigningMethodSupported != nil && mm_atomic.LoadUint64(&m.afterIsSigningMethodSupportedCounter) < 1 {
+		m.t.Error("Expected call to SignatureVerifierMock.IsSigningMethodSupported")
 	}
 }
 
@@ -1151,11 +1078,11 @@ func (m *SignatureVerifierMock) MinimockIsValidDigestSignatureInspect() {
 // MinimockFinish checks that all mocked methods have been called the expected number of times
 func (m *SignatureVerifierMock) MinimockFinish() {
 	if !m.minimockDone() {
+		m.MinimockGetDefaultSigningMethodInspect()
+
 		m.MinimockIsDigestMethodSupportedInspect()
 
-		m.MinimockIsSignMethodSupportedInspect()
-
-		m.MinimockIsSignOfSignatureMethodSupportedInspect()
+		m.MinimockIsSigningMethodSupportedInspect()
 
 		m.MinimockIsValidDataSignatureInspect()
 
@@ -1183,9 +1110,9 @@ func (m *SignatureVerifierMock) MinimockWait(timeout mm_time.Duration) {
 func (m *SignatureVerifierMock) minimockDone() bool {
 	done := true
 	return done &&
+		m.MinimockGetDefaultSigningMethodDone() &&
 		m.MinimockIsDigestMethodSupportedDone() &&
-		m.MinimockIsSignMethodSupportedDone() &&
-		m.MinimockIsSignOfSignatureMethodSupportedDone() &&
+		m.MinimockIsSigningMethodSupportedDone() &&
 		m.MinimockIsValidDataSignatureDone() &&
 		m.MinimockIsValidDigestSignatureDone()
 }

@@ -70,7 +70,6 @@ type DigestFactory interface {
 type DigestHolder interface {
 	longbits.FoldableReader
 	SignWith(signer DigestSigner) SignedDigestHolder
-	CopyOfDigest() Digest
 	GetDigestMethod() DigestMethod
 	Equals(other DigestHolder) bool
 }
