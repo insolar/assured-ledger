@@ -57,7 +57,7 @@ type Node struct {
 	nodePower     member.Power
 	digest        cryptkit.SignedDigest
 	pks           cryptkit.PublicKeyStore
-	npk           cryptkit.SignatureKeyHolder
+	npk           cryptkit.SigningKeyHolder
 }
 
 func (n *Node) LocalNodeProfile() {}
@@ -166,11 +166,11 @@ func (n *Node) GetSpecialRoles() member.SpecialRole {
 	return 0
 }
 
-func (n *Node) GetNodePublicKey() cryptkit.SignatureKeyHolder {
+func (n *Node) GetNodePublicKey() cryptkit.SigningKeyHolder {
 	return n.npk
 }
 
-func (n *Node) SetNodePublicKey(npk cryptkit.SignatureKeyHolder) {
+func (n *Node) SetNodePublicKey(npk cryptkit.SigningKeyHolder) {
 	n.npk = npk
 }
 

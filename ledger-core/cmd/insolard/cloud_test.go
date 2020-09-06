@@ -6,7 +6,6 @@
 package main
 
 import (
-	"context"
 	"crypto"
 	"fmt"
 	"path/filepath"
@@ -20,36 +19,45 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/secrets"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/defaults"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
-	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/server"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-func generateKeys(num int, nodes []nodeInfo) error {
+func makeNodeWithKeys() (nodeInfo, error) {
+	pair, err := secrets.GenerateKeyPair()
+
+	if err != nil {
+		return nodeInfo{}, errors.W(err, "couldn't generate keys")
+	}
+
+	ks := platformpolicy.NewKeyProcessor()
+	if err != nil {
+		return nodeInfo{}, errors.W(err, "couldn't export private key")
+	}
+
+	pubKeyStr, err := ks.ExportPublicKeyPEM(pair.Public)
+	if err != nil {
+		return nodeInfo{}, errors.W(err, "couldn't export public key")
+	}
+
+	var node nodeInfo
+	node.publicKey = string(pubKeyStr)
+	node.privateKey = pair.Private
+
+	return node, nil
+}
+
+func generateNodeKeys(num int, nodes []nodeInfo) error {
 	for i := 0; i < num; i++ {
-		pair, err := secrets.GenerateKeyPair()
-
+		node, err := makeNodeWithKeys()
 		if err != nil {
-			return errors.W(err, "couldn't generate keys")
+			return errors.W(err, "couldn't make node with keys")
 		}
-
-		ks := platformpolicy.NewKeyProcessor()
-		if err != nil {
-			return errors.W(err, "couldn't export private key")
-		}
-
-		pubKeyStr, err := ks.ExportPublicKeyPEM(pair.Public)
-		if err != nil {
-			return errors.W(err, "couldn't export public key")
-		}
-
-		nodes[i].publicKey = string(pubKeyStr)
-		nodes[i].privateKey = pair.Private
+		nodes[i] = node
 	}
 
 	return nil
@@ -62,9 +70,12 @@ type inMemoryKeyStore struct {
 func (ks inMemoryKeyStore) GetPrivateKey(string) (crypto.PrivateKey, error) {
 	return ks.key, nil
 }
-func makeKeyFactory(nodes []nodeInfo) insapp.KeyStoreFactory {
+func makeKeyFactory(nodes []nodeInfo) configuration.KeyStoreFactory {
 	keysMap := make(map[string]crypto.PrivateKey)
 	for _, n := range nodes {
+		if _, ok := keysMap[n.keyName]; ok {
+			panic("Key duplicate: " + n.keyName)
+		}
 		keysMap[n.keyName] = n.privateKey
 	}
 
@@ -76,18 +87,23 @@ func makeKeyFactory(nodes []nodeInfo) insapp.KeyStoreFactory {
 	}
 }
 
-func prepareStuff(virtual, light, heavy int) ([]configuration.Configuration, insapp.CertManagerFactory, insapp.KeyStoreFactory) {
+func prepareCloudConfiguration(virtual, light, heavy int) (
+	[]configuration.Configuration,
+	configuration.BaseCloudConfig,
+	configuration.CertManagerFactory,
+	configuration.KeyStoreFactory,
+) {
 	totalNum := virtual + light + heavy
 	if totalNum < 1 {
 		panic("no nodes given")
 	}
 	nodes := make([]nodeInfo, totalNum)
-	err := generateKeys(totalNum, nodes)
+	err := generateNodeKeys(totalNum, nodes)
 	if err != nil {
 		panic(throw.W(err, "Failed to gen keys"))
 	}
 
-	appConfigs := makeConfigs(nodes, virtual, light, heavy)
+	appConfigs := generateNodeConfigs(nodes, virtual, light, heavy)
 
 	settings := netSettings{
 		majorityRule: totalNum,
@@ -101,26 +117,51 @@ func prepareStuff(virtual, light, heavy int) ([]configuration.Configuration, ins
 	if err != nil {
 		panic(throw.W(err, "Failed to gen certificates"))
 	}
-	return appConfigs, makeCertManagerFactory(certs), makeKeyFactory(nodes)
+
+	baseCloudConf := generateBaseCloudConfig(nodes)
+
+	pulsarKeys, err := makeNodeWithKeys()
+	if err != nil {
+		panic(throw.W(err, "Failed to gen pulsar keys"))
+	}
+	pulsarKeys.keyName = baseCloudConf.PulsarConfiguration.KeysPath
+
+	return appConfigs, baseCloudConf, makeCertManagerFactory(certs), makeKeyFactory(append(nodes, pulsarKeys))
 }
 
-func getRole(virtual, light, heavy *int) string {
+func generateBaseCloudConfig(nodes []nodeInfo) configuration.BaseCloudConfig {
+	pulsarConfig := configuration.NewPulsarConfiguration()
+	var bootstrapNodes []string
+	for _, el := range nodes {
+		bootstrapNodes = append(bootstrapNodes, el.host)
+	}
+	pulsarConfig.Pulsar.PulseDistributor.BootstrapHosts = bootstrapNodes
+	pulsarConfig.KeysPath = "pulsar.yaml"
+
+	return configuration.BaseCloudConfig{
+		Log:                 configuration.NewLog(),
+		PulsarConfiguration: pulsarConfig,
+	}
+
+}
+
+func getRole(virtual, light, heavy *int) member.PrimaryRole {
 	switch {
 	case *virtual > 0:
 		*virtual--
-		return member.PrimaryRoleVirtual.String()
+		return member.PrimaryRoleVirtual
 	case *light > 0:
 		*light--
-		return member.PrimaryRoleLightMaterial.String()
+		return member.PrimaryRoleLightMaterial
 	case *heavy > 0:
 		*heavy--
-		return member.PrimaryRoleHeavyMaterial.String()
+		return member.PrimaryRoleHeavyMaterial
 	default:
 		panic(throw.IllegalValue())
 	}
 }
 
-func makeConfigs(nodes []nodeInfo, virtual, light, heavy int) []configuration.Configuration {
+func generateNodeConfigs(nodes []nodeInfo, virtual, light, heavy int) []configuration.Configuration {
 
 	var (
 		metricsPort      = 8001
@@ -139,7 +180,7 @@ func makeConfigs(nodes []nodeInfo, virtual, light, heavy int) []configuration.Co
 	appConfigs := []configuration.Configuration{}
 	for i := 0; i < len(nodes); i++ {
 		role := getRole(&virtual, &light, &heavy)
-		nodes[i].role = role
+		nodes[i].role = role.String()
 
 		conf := configuration.NewConfiguration()
 		{
@@ -185,9 +226,9 @@ func makeConfigs(nodes []nodeInfo, virtual, light, heavy int) []configuration.Co
 	return appConfigs
 }
 
-func makeCertManagerFactory(certs map[string]*mandates.Certificate) insapp.CertManagerFactory {
-	return func(ctx context.Context, certPath string, comps insapp.PreComponents) nodeinfo.CertificateManager {
-		return mandates.NewCertificateManager(certs[certPath])
+func makeCertManagerFactory(certs map[string]*mandates.Certificate) configuration.CertManagerFactory {
+	return func(publicKey crypto.PublicKey, keyProcessor cryptography.KeyProcessor, certPath string) (*mandates.CertificateManager, error) {
+		return mandates.NewCertificateManager(certs[certPath]), nil
 	}
 }
 
@@ -288,8 +329,6 @@ func generateCertificates(nodesInfo []nodeInfo, settings netSettings) (map[strin
 }
 
 func Test_RunCloud(t *testing.T) {
-	t.Skip()
-	var multiFn insapp.MultiNodeConfigFunc
 
 	var (
 		numVirtual        = 10
@@ -297,11 +336,17 @@ func Test_RunCloud(t *testing.T) {
 		numHeavyMaterials = 0
 	)
 
-	appConfigs, certFactory, keyFactory := prepareStuff(numVirtual, numLightMaterials, numHeavyMaterials)
-	multiFn = func(cfgPath string, baseCfg configuration.Configuration) ([]configuration.Configuration, insapp.NetworkInitFunc) {
-		return appConfigs, nil
+	appConfigs, baseConf, certFactory, keyFactory := prepareCloudConfiguration(numVirtual, numLightMaterials, numHeavyMaterials)
+
+	confProvider := configuration.CloudConfigurationProvider{
+		CloudConfig:        baseConf,
+		CertificateFactory: certFactory,
+		KeyFactory:         keyFactory,
+		GetAppConfigs: func() []configuration.Configuration {
+			return appConfigs
+		},
 	}
 
-	s := server.NewMultiServer("testdata/insolard_base.yaml", multiFn, certFactory, keyFactory)
+	s := server.NewMultiServer(confProvider)
 	s.Serve()
 }

@@ -23,12 +23,6 @@ type CloudStateHashMock struct {
 	beforeAsByteStringCounter uint64
 	AsByteStringMock          mCloudStateHashMockAsByteString
 
-	funcCopyOfDigest          func() (d1 cryptkit.Digest)
-	inspectFuncCopyOfDigest   func()
-	afterCopyOfDigestCounter  uint64
-	beforeCopyOfDigestCounter uint64
-	CopyOfDigestMock          mCloudStateHashMockCopyOfDigest
-
 	funcCopyTo          func(p []byte) (i1 int)
 	inspectFuncCopyTo   func(p []byte)
 	afterCopyToCounter  uint64
@@ -80,8 +74,6 @@ func NewCloudStateHashMock(t minimock.Tester) *CloudStateHashMock {
 	}
 
 	m.AsByteStringMock = mCloudStateHashMockAsByteString{mock: m}
-
-	m.CopyOfDigestMock = mCloudStateHashMockCopyOfDigest{mock: m}
 
 	m.CopyToMock = mCloudStateHashMockCopyTo{mock: m}
 	m.CopyToMock.callArgs = []*CloudStateHashMockCopyToParams{}
@@ -244,149 +236,6 @@ func (m *CloudStateHashMock) MinimockAsByteStringInspect() {
 	// if func was set then invocations count should be greater than zero
 	if m.funcAsByteString != nil && mm_atomic.LoadUint64(&m.afterAsByteStringCounter) < 1 {
 		m.t.Error("Expected call to CloudStateHashMock.AsByteString")
-	}
-}
-
-type mCloudStateHashMockCopyOfDigest struct {
-	mock               *CloudStateHashMock
-	defaultExpectation *CloudStateHashMockCopyOfDigestExpectation
-	expectations       []*CloudStateHashMockCopyOfDigestExpectation
-}
-
-// CloudStateHashMockCopyOfDigestExpectation specifies expectation struct of the CloudStateHash.CopyOfDigest
-type CloudStateHashMockCopyOfDigestExpectation struct {
-	mock *CloudStateHashMock
-
-	results *CloudStateHashMockCopyOfDigestResults
-	Counter uint64
-}
-
-// CloudStateHashMockCopyOfDigestResults contains results of the CloudStateHash.CopyOfDigest
-type CloudStateHashMockCopyOfDigestResults struct {
-	d1 cryptkit.Digest
-}
-
-// Expect sets up expected params for CloudStateHash.CopyOfDigest
-func (mmCopyOfDigest *mCloudStateHashMockCopyOfDigest) Expect() *mCloudStateHashMockCopyOfDigest {
-	if mmCopyOfDigest.mock.funcCopyOfDigest != nil {
-		mmCopyOfDigest.mock.t.Fatalf("CloudStateHashMock.CopyOfDigest mock is already set by Set")
-	}
-
-	if mmCopyOfDigest.defaultExpectation == nil {
-		mmCopyOfDigest.defaultExpectation = &CloudStateHashMockCopyOfDigestExpectation{}
-	}
-
-	return mmCopyOfDigest
-}
-
-// Inspect accepts an inspector function that has same arguments as the CloudStateHash.CopyOfDigest
-func (mmCopyOfDigest *mCloudStateHashMockCopyOfDigest) Inspect(f func()) *mCloudStateHashMockCopyOfDigest {
-	if mmCopyOfDigest.mock.inspectFuncCopyOfDigest != nil {
-		mmCopyOfDigest.mock.t.Fatalf("Inspect function is already set for CloudStateHashMock.CopyOfDigest")
-	}
-
-	mmCopyOfDigest.mock.inspectFuncCopyOfDigest = f
-
-	return mmCopyOfDigest
-}
-
-// Return sets up results that will be returned by CloudStateHash.CopyOfDigest
-func (mmCopyOfDigest *mCloudStateHashMockCopyOfDigest) Return(d1 cryptkit.Digest) *CloudStateHashMock {
-	if mmCopyOfDigest.mock.funcCopyOfDigest != nil {
-		mmCopyOfDigest.mock.t.Fatalf("CloudStateHashMock.CopyOfDigest mock is already set by Set")
-	}
-
-	if mmCopyOfDigest.defaultExpectation == nil {
-		mmCopyOfDigest.defaultExpectation = &CloudStateHashMockCopyOfDigestExpectation{mock: mmCopyOfDigest.mock}
-	}
-	mmCopyOfDigest.defaultExpectation.results = &CloudStateHashMockCopyOfDigestResults{d1}
-	return mmCopyOfDigest.mock
-}
-
-//Set uses given function f to mock the CloudStateHash.CopyOfDigest method
-func (mmCopyOfDigest *mCloudStateHashMockCopyOfDigest) Set(f func() (d1 cryptkit.Digest)) *CloudStateHashMock {
-	if mmCopyOfDigest.defaultExpectation != nil {
-		mmCopyOfDigest.mock.t.Fatalf("Default expectation is already set for the CloudStateHash.CopyOfDigest method")
-	}
-
-	if len(mmCopyOfDigest.expectations) > 0 {
-		mmCopyOfDigest.mock.t.Fatalf("Some expectations are already set for the CloudStateHash.CopyOfDigest method")
-	}
-
-	mmCopyOfDigest.mock.funcCopyOfDigest = f
-	return mmCopyOfDigest.mock
-}
-
-// CopyOfDigest implements CloudStateHash
-func (mmCopyOfDigest *CloudStateHashMock) CopyOfDigest() (d1 cryptkit.Digest) {
-	mm_atomic.AddUint64(&mmCopyOfDigest.beforeCopyOfDigestCounter, 1)
-	defer mm_atomic.AddUint64(&mmCopyOfDigest.afterCopyOfDigestCounter, 1)
-
-	if mmCopyOfDigest.inspectFuncCopyOfDigest != nil {
-		mmCopyOfDigest.inspectFuncCopyOfDigest()
-	}
-
-	if mmCopyOfDigest.CopyOfDigestMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmCopyOfDigest.CopyOfDigestMock.defaultExpectation.Counter, 1)
-
-		mm_results := mmCopyOfDigest.CopyOfDigestMock.defaultExpectation.results
-		if mm_results == nil {
-			mmCopyOfDigest.t.Fatal("No results are set for the CloudStateHashMock.CopyOfDigest")
-		}
-		return (*mm_results).d1
-	}
-	if mmCopyOfDigest.funcCopyOfDigest != nil {
-		return mmCopyOfDigest.funcCopyOfDigest()
-	}
-	mmCopyOfDigest.t.Fatalf("Unexpected call to CloudStateHashMock.CopyOfDigest.")
-	return
-}
-
-// CopyOfDigestAfterCounter returns a count of finished CloudStateHashMock.CopyOfDigest invocations
-func (mmCopyOfDigest *CloudStateHashMock) CopyOfDigestAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmCopyOfDigest.afterCopyOfDigestCounter)
-}
-
-// CopyOfDigestBeforeCounter returns a count of CloudStateHashMock.CopyOfDigest invocations
-func (mmCopyOfDigest *CloudStateHashMock) CopyOfDigestBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmCopyOfDigest.beforeCopyOfDigestCounter)
-}
-
-// MinimockCopyOfDigestDone returns true if the count of the CopyOfDigest invocations corresponds
-// the number of defined expectations
-func (m *CloudStateHashMock) MinimockCopyOfDigestDone() bool {
-	for _, e := range m.CopyOfDigestMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.CopyOfDigestMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterCopyOfDigestCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcCopyOfDigest != nil && mm_atomic.LoadUint64(&m.afterCopyOfDigestCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockCopyOfDigestInspect logs each unmet expectation
-func (m *CloudStateHashMock) MinimockCopyOfDigestInspect() {
-	for _, e := range m.CopyOfDigestMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Error("Expected call to CloudStateHashMock.CopyOfDigest")
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.CopyOfDigestMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterCopyOfDigestCounter) < 1 {
-		m.t.Error("Expected call to CloudStateHashMock.CopyOfDigest")
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcCopyOfDigest != nil && mm_atomic.LoadUint64(&m.afterCopyOfDigestCounter) < 1 {
-		m.t.Error("Expected call to CloudStateHashMock.CopyOfDigest")
 	}
 }
 
@@ -1685,8 +1534,6 @@ func (m *CloudStateHashMock) MinimockFinish() {
 	if !m.minimockDone() {
 		m.MinimockAsByteStringInspect()
 
-		m.MinimockCopyOfDigestInspect()
-
 		m.MinimockCopyToInspect()
 
 		m.MinimockEqualsInspect()
@@ -1724,7 +1571,6 @@ func (m *CloudStateHashMock) minimockDone() bool {
 	done := true
 	return done &&
 		m.MinimockAsByteStringDone() &&
-		m.MinimockCopyOfDigestDone() &&
 		m.MinimockCopyToDone() &&
 		m.MinimockEqualsDone() &&
 		m.MinimockFixedByteSizeDone() &&

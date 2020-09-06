@@ -6,35 +6,39 @@
 package server
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
-	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lmnapp"
+	"github.com/insolar/assured-ledger/ledger-core/server/internal/cloud"
 	"github.com/insolar/assured-ledger/ledger-core/server/internal/headless"
-	"github.com/insolar/assured-ledger/ledger-core/server/internal/virtual"
 )
 
 type Server interface {
 	Serve()
 }
 
-func NewLightMaterialServer(cfgPath string) Server {
-	return insapp.New(cfgPath, lmnapp.AppFactory)
+func NewNode(cfg configuration.Configuration) Server {
+	return insapp.New(cfg, appFactory)
 }
 
-func NewVirtualServer(cfgPath string) Server {
-	return insapp.New(cfgPath, virtual.AppFactory)
-}
-
-func NewMultiServer(cfgPath string, multiFn insapp.MultiNodeConfigFunc, certManagerFactory insapp.CertManagerFactory, keyStoreFactory insapp.KeyStoreFactory) Server {
-	server := insapp.NewMulti(cfgPath, virtual.AppFactory, multiFn)
-	if certManagerFactory != nil {
-		server.SetCertManagerFactory(certManagerFactory)
+func NewMultiServer(configProvider configuration.CloudConfigurationProvider) Server {
+	controller := cloud.NewController()
+	if configProvider.GetAppConfigs == nil {
+		panic("GetAppConfigs cannot be nil")
 	}
-	if keyStoreFactory != nil {
-		server.SetKeyStoreFactory(keyStoreFactory)
+	cloudConf := configProvider.CloudConfig
+
+	multiFn := func(baseCfg configuration.Configuration) ([]configuration.Configuration, insapp.NetworkInitFunc) {
+		return configProvider.GetAppConfigs(), controller.NetworkInitFunc
 	}
-	return server
+
+	return insapp.NewMulti(
+		configProvider,
+		appFactory,
+		multiFn,
+		cloud.NewPulsarWrapper(&controller, cloudConf.PulsarConfiguration, configProvider.KeyFactory),
+	)
 }
 
-func NewHeadlessNetworkNodeServer(cfgPath string) Server {
-	return insapp.New(cfgPath, nil, &headless.AppComponent{})
+func NewHeadlessNetworkNodeServer(cfg configuration.Configuration) Server {
+	return insapp.New(cfg, nil, &headless.AppComponent{})
 }

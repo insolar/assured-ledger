@@ -67,11 +67,12 @@ func TestVirtual_VCachedMemoryRequestHandler(t *testing.T) {
 
 			cases.precondition(suite, ctx, t)
 
-			syncChan := make(chan payload.Reference, 1)
+			syncChan := make(chan payload.LocalReference, 1)
 			defer close(syncChan)
 
 			suite.typedChecker.VStateReport.Set(func(rep *payload.VStateReport) bool {
-				syncChan <- rep.LatestValidatedState
+				require.NotEmpty(t, rep.ProvidedContent.LatestDirtyState.Reference)
+				syncChan <- rep.ProvidedContent.LatestDirtyState.Reference
 				return false // no resend msg
 			})
 
@@ -84,7 +85,7 @@ func TestVirtual_VCachedMemoryRequestHandler(t *testing.T) {
 				return false
 			})
 
-			var stateRef payload.Reference
+			var stateRef payload.LocalReference
 
 			select {
 			case stateRef = <-syncChan:
@@ -236,7 +237,10 @@ func pendingPrecondition(s *memoryCacheTest, ctx context.Context, t *testing.T) 
 			CallIncoming: incoming,
 			CallFlags:    flags,
 			LatestState: &payload.ObjectState{
-				State: []byte(newState),
+				Reference:     s.server.RandomLocalWithPulse(),
+				Class:         s.class,
+				State:         []byte(newState),
+				PreviousState: []byte("initial state"),
 			},
 		}
 		await := s.server.Journal.WaitStopOf(&handlers.SMVDelegatedRequestFinished{}, 1)

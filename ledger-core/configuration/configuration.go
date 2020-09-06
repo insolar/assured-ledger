@@ -6,10 +6,14 @@
 package configuration
 
 import (
+	"crypto"
 	"fmt"
 
 	"github.com/insolar/insconfig"
 	"gopkg.in/yaml.v2"
+
+	"github.com/insolar/assured-ledger/ledger-core/cryptography"
+	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 )
 
 const InsolarEnvPrefix = "insolar"
@@ -53,8 +57,19 @@ type HeavyNodeConfig struct {
 }
 
 type BaseCloudConfig struct {
-	Log             Log
-	NodeConfigPaths []string
+	Log                 Log
+	PulsarConfiguration PulsarConfiguration
+	NodeConfigPaths     []string
+}
+
+type CertManagerFactory func(publicKey crypto.PublicKey, keyProcessor cryptography.KeyProcessor, certPath string) (*mandates.CertificateManager, error)
+type KeyStoreFactory func(path string) (cryptography.KeyStore, error)
+
+type CloudConfigurationProvider struct {
+	CloudConfig        BaseCloudConfig
+	CertificateFactory CertManagerFactory
+	KeyFactory         KeyStoreFactory
+	GetAppConfigs      func() []Configuration
 }
 
 // Configuration contains configuration params for all Insolar components
@@ -128,7 +143,7 @@ func NewPulsarConfiguration() PulsarConfiguration {
 func NewHolder(path string) *Holder {
 	params := insconfig.Params{
 		EnvPrefix:        InsolarEnvPrefix,
-		ConfigPathGetter: &stringPathGetter{path},
+		ConfigPathGetter: &StringPathGetter{path},
 	}
 
 	return &Holder{&Configuration{}, params}
@@ -152,11 +167,11 @@ func (h *Holder) MustLoad() *Holder {
 	return h
 }
 
-type stringPathGetter struct {
+type StringPathGetter struct {
 	Path string
 }
 
-func (g *stringPathGetter) GetConfigPath() string {
+func (g *StringPathGetter) GetConfigPath() string {
 	return g.Path
 }
 
