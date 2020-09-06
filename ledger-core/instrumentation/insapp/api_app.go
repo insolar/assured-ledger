@@ -14,6 +14,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/crypto"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -38,9 +39,10 @@ type AppComponents struct {
 	BeatHistory    beat.History
 	MessageSender  messagesender.Service
 	CryptoScheme   crypto.PlatformScheme
+	Certificate    nodeinfo.Certificate
 
-	LocalNodeRef   reference.Holder
-	LocalNodeRole  member.PrimaryRole
+	LocalNodeRef  reference.Holder
+	LocalNodeRole member.PrimaryRole
 }
 
 const LocalNodeRefInjectionID = "LocalNodeRef"
@@ -49,6 +51,10 @@ const LocalNodeRefInjectionID = "LocalNodeRef"
 func (v AppComponents) AddAsDependencies(container injector.DependencyContainer) {
 	if !container.TryPutDependency(LocalNodeRefInjectionID, reference.Copy(v.LocalNodeRef)) {
 		panic(throw.IllegalState())
+	}
+
+	if v.Certificate != nil {
+		injector.AddInterfaceDependency(container, &v.Certificate)
 	}
 
 	if v.AffinityHelper != nil {
