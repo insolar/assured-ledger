@@ -29,7 +29,7 @@ func NewPresentPulseSlot(pulseManager *PulseDataManager, pr pulse.Range) PulseSl
 	return PulseSlot{
 		pulseManager: pulseManager,
 		pulseData: &presentPulseDataHolder{
-			bd: BeatData{ Range: pr },
+			bd: BeatData{Range: pr},
 			at: time.Unix(int64(pr.RightBoundData().Timestamp), 0),
 		},
 	}
@@ -40,7 +40,7 @@ func NewPastPulseSlot(pulseManager *PulseDataManager, pr pulse.Range) PulseSlot 
 	return PulseSlot{
 		pulseManager: pulseManager,
 		pulseData: &presentPulseDataHolder{
-			bd:     BeatData{ Range: pr },
+			bd:     BeatData{Range: pr},
 			at:     time.Unix(int64(pr.RightBoundData().Timestamp), 0),
 			isPast: 1,
 		},
@@ -83,7 +83,6 @@ func (p *PulseSlot) PrevOperationPulseNumber() pulse.Number {
 		}
 		return pulse.Unknown
 	}
-
 
 	switch prd := bd.Range.LeftPrevDelta(); {
 	case prd == 0:

@@ -35,6 +35,7 @@ type preComponents struct {
 	KeyStore                   cryptography.KeyStore
 	KeyProcessor               cryptography.KeyProcessor
 	CryptoScheme               crypto.PlatformScheme
+	CertificateManager         nodeinfo.CertificateManager
 }
 
 func (s *Server) initBootstrapComponents(ctx context.Context, cfg configuration.Configuration) preComponents {
@@ -52,32 +53,25 @@ func (s *Server) initBootstrapComponents(ctx context.Context, cfg configuration.
 	earlyComponents.Register(platformCryptographyScheme, keyStore)
 	earlyComponents.Inject(cryptographyService, keyProcessor)
 
+	publicKey, err := cryptographyService.GetPublicKey()
+	checkError(ctx, err, "failed to retrieve node public key")
+
+	certManager, err := mandates.NewManagerReadCertificate(publicKey, keyProcessor, cfg.CertificatePath)
+	checkError(ctx, err, "failed to start Certificate")
+
 	return preComponents{
 		CryptographyService:        cryptographyService,
 		PlatformCryptographyScheme: platformCryptographyScheme,
 		KeyStore:                   keyStore,
 		KeyProcessor:               keyProcessor,
 		CryptoScheme:               legacyadapter.New(platformCryptographyScheme, keyProcessor, keyStore),
+		CertificateManager:         certManager,
 	}
-}
-
-func (s *Server) initCertificateManager(ctx context.Context, cfg configuration.Configuration, comps preComponents) *mandates.CertificateManager {
-	var certManager *mandates.CertificateManager
-	var err error
-
-	publicKey, err := comps.CryptographyService.GetPublicKey()
-	checkError(ctx, err, "failed to retrieve node public key")
-
-	certManager, err = mandates.NewManagerReadCertificate(publicKey, comps.KeyProcessor, cfg.CertificatePath)
-	checkError(ctx, err, "failed to start Certificate")
-
-	return certManager
 }
 
 // initComponents creates and links all insolard components
 func (s *Server) initComponents(ctx context.Context, cfg configuration.Configuration, networkFn NetworkInitFunc,
-	comps preComponents, certManager nodeinfo.CertificateManager,
-) (*component.Manager, func()) {
+	comps preComponents) (*component.Manager, func()) {
 	cm := component.NewManager(nil)
 	logger := inslogger.FromContext(ctx)
 	cm.SetLogger(logger)
@@ -87,7 +81,7 @@ func (s *Server) initComponents(ctx context.Context, cfg configuration.Configura
 		comps.KeyStore,
 		comps.CryptographyService,
 		comps.KeyProcessor,
-		certManager,
+		comps.CertificateManager,
 	)
 
 	var nw NetworkSupport
@@ -118,12 +112,11 @@ func (s *Server) initComponents(ctx context.Context, cfg configuration.Configura
 		pulses = nw.GetBeatHistory()
 	}
 
-	nodeCert := certManager.GetCertificate()
+	nodeCert := comps.CertificateManager.GetCertificate()
 	nodeRole := nodeCert.GetRole()
 
 	roleName := nodeRole.String()
 	metricsComp := metrics.NewMetrics(cfg.Metrics, metrics.GetInsolarRegistry(roleName), roleName)
-
 
 	availabilityChecker := api.NewNetworkChecker(cfg.AvailabilityChecker)
 
@@ -141,16 +134,16 @@ func (s *Server) initComponents(ctx context.Context, cfg configuration.Configura
 	var appComponent AppComponent
 
 	if s.appFn != nil {
-		affine := affinity.NewAffinityHelper(certManager.GetCertificate().GetNodeRef())
+		affine := affinity.NewAffinityHelper(nodeCert.GetNodeRef())
 		cm.Register(affine)
 
 		if ns != nil {
 			API, err := api.NewRunner(&cfg.APIRunner,
-				certManager, nw, nw, pulses, affine, ns, availabilityChecker)
+				comps.CertificateManager, nw, nw, pulses, affine, ns, availabilityChecker)
 			checkError(ctx, err, "failed to start ApiRunner")
 
 			AdminAPIRunner, err := api.NewRunner(&cfg.AdminAPIRunner,
-				certManager, nw, nw, pulses, affine, ns, availabilityChecker)
+				comps.CertificateManager, nw, nw, pulses, affine, ns, availabilityChecker)
 			checkError(ctx, err, "failed to start AdminAPIRunner")
 
 			APIWrapper := api.NewWrapper(API, AdminAPIRunner)
@@ -161,6 +154,7 @@ func (s *Server) initComponents(ctx context.Context, cfg configuration.Configura
 		appComponents := AppComponents{
 			LocalNodeRef:  nodeCert.GetNodeRef(),
 			LocalNodeRole: nodeRole,
+			Certificate:   comps.CertificateManager.GetCertificate(),
 
 			BeatHistory:    pulses,
 			AffinityHelper: affine,
@@ -197,4 +191,3 @@ func checkError(ctx context.Context, err error, message string) {
 		inslogger.FromContext(ctx).Fatalf("%v: %v", message, throw.ErrorWithStack(err))
 	}
 }
-
