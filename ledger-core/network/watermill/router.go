@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package servicenetwork
+package watermill
 
 import (
 	"context"
@@ -21,41 +21,50 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-var _ messagesender.MessageRouter = watermillRouter{}
+var _ messagesender.MessageRouter = Router{}
 
-func newWatermillRouter(ctx context.Context, outHandler message.NoPublishHandlerFunc) watermillRouter {
+func NewRouter(ctx context.Context, outHandler message.NoPublishHandlerFunc) Router {
 	if outHandler == nil {
 		panic(throw.IllegalValue())
 	}
 
 	wmLogger := logwatermill.NewWatermillLogAdapter(inslogger.FromContext(ctx))
 	pubsub := gochannel.NewGoChannel(gochannel.Config{}, wmLogger)
-	return watermillRouter{
-		ctx: ctx,
-		logger: wmLogger,
-		pub: pubsub,
-		sub: pubsub,
+	return Router{
+		ctx:        ctx,
+		logger:     wmLogger,
+		pub:        pubsub,
+		sub:        pubsub,
 		outHandler: outHandler,
 	}
 }
 
-type watermillRouter struct {
-	ctx    context.Context
-	logger *logwatermill.WatermillLogAdapter
-	pub    message.Publisher
-	sub    message.Subscriber
+type Router struct {
+	ctx        context.Context
+	logger     *logwatermill.WatermillLogAdapter
+	pub        message.Publisher
+	sub        message.Subscriber
 	outHandler message.NoPublishHandlerFunc
 }
 
-func (v watermillRouter) IsZero() bool {
+func (v Router) IsZero() bool {
 	return v.pub == nil
 }
 
-func (v watermillRouter) CreateMessageSender(helper affinity.Helper, accessor beat.History) messagesender.Service {
+func (v Router) CreateMessageSender(helper affinity.Helper, accessor beat.History) messagesender.Service {
 	return messagesender.NewDefaultService(v.pub, helper, accessor)
 }
 
-func (v watermillRouter) SubscribeForMessages(inHandler func(beat.Message) error) (stopFn func()) {
+func (v Router) ReplacePublisher(publisher message.Publisher) Router {
+	v.pub = publisher
+	return v
+}
+
+func (v Router) PublishMessage(topic string, msg *message.Message) error {
+	return v.pub.Publish(topic, msg)
+}
+
+func (v Router) SubscribeForMessages(inHandler func(beat.Message) error) (stopFn func()) {
 	switch {
 	case v.sub == nil:
 		panic(throw.IllegalState())
