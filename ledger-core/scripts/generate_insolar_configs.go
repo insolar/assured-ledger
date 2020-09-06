@@ -63,6 +63,7 @@ var (
 	defaultHost                      = "127.0.0.1"
 	defaultJaegerEndPoint            = ""
 	discoveryCertificatePathTemplate = withBaseDir("discoverynodes/certs/discovery_cert_%d.json")
+	fileLogTemplate                  = withBaseDir("logs/discoverynodes/%d/output.log")
 	nodeDataDirectoryTemplate        = "nodes/%d/data"
 	nodeCertificatePathTemplate      = "nodes/%d/cert.json"
 	pulsewatcherFileName             = withBaseDir("pulsewatcher.yaml")
@@ -193,6 +194,11 @@ func main() {
 		Jobs: map[string][]string{},
 	}
 
+	cloudMode := false
+	if os.Getenv("CLOUD_MODE") == "TRUE" {
+		cloudMode = true
+	}
+
 	// process discovery nodes
 	for index, node := range bootstrapConf.DiscoveryNodes {
 		nodeIndex := index + 1
@@ -225,6 +231,10 @@ func main() {
 		conf.Log.Level = debugLevel
 		conf.Log.Adapter = "zerolog"
 		conf.Log.Formatter = "json"
+		if cloudMode {
+			conf.Log.OutputType = "file"
+			conf.Log.OutputParams = fmt.Sprintf(fileLogTemplate, nodeIndex)
+		}
 
 		conf.KeysPath = bootstrapConf.DiscoveryKeysDir + fmt.Sprintf(bootstrapConf.KeysNameFormat, nodeIndex)
 		conf.CertificatePath = fmt.Sprintf(discoveryCertificatePathTemplate, nodeIndex)

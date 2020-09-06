@@ -66,9 +66,9 @@ func (v RecordBuilder) ApplySignature(req *rms.LRegisterRequest) {
 	if req.OverrideRecordType != 0 {
 		rc := rms.LRegisterRequest{
 			OverrideRecordType: req.OverrideRecordType,
-			OverrideRootRef: req.OverrideRootRef,
-			OverridePrevRef: req.OverridePrevRef,
-			OverrideReasonRef: req.OverrideReasonRef,
+			OverrideRootRef:    req.OverrideRootRef,
+			OverridePrevRef:    req.OverridePrevRef,
+			OverrideReasonRef:  req.OverrideReasonRef,
 		}
 		b, err := rc.Marshal()
 		if err != nil {

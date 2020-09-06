@@ -71,13 +71,12 @@ func runInsolardServer(configPath, genesisConfigPath, roleString string) {
 
 	var s server.Server
 	switch role {
-	case member.PrimaryRoleVirtual:
-		s = server.NewVirtualServer(configPath)
-	case member.PrimaryRoleLightMaterial:
-		s = server.NewLightMaterialServer(configPath)
+	// supported roles
+	case member.PrimaryRoleVirtual, member.PrimaryRoleLightMaterial:
 	default:
 		panic("unknown role")
 	}
+	s = server.NewNode(readConfig(configPath))
 	s.Serve()
 }
 
@@ -88,7 +87,7 @@ func runHeadlessNetwork(configPath string) {
 		global.Warnf("Failed to launch gops agent: %s", err)
 	}
 
-	server.NewHeadlessNetworkNodeServer(configPath).Serve()
+	server.NewHeadlessNetworkNodeServer(readConfig(configPath)).Serve()
 }
 
 func readRoleFromCertificate(path string) (member.PrimaryRole, error) {
