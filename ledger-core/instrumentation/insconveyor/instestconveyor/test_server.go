@@ -36,7 +36,7 @@ import (
 
 func NewTestServerTemplate(t logcommon.TestingLogger, filterFn logcommon.ErrorFilterFunc) *ServerTemplate {
 	instestlogger.SetTestOutputWithErrorFilter(t, filterFn)
-	s := &ServerTemplate{ t: t.(minimock.Tester) }
+	s := &ServerTemplate{t: t.(minimock.Tester)}
 
 	pop := testpop.CreateManyNodePopulationMock(s.t, 1, member.PrimaryRoleLightMaterial)
 	s.pg = testutils.NewPulseGenerator(10, pop)
@@ -53,14 +53,14 @@ type ServerTemplate struct {
 	pg          *testutils.PulseGenerator
 
 	// set by setters
-	cfg   configuration.Configuration
-	ac    *insapp.AppComponents
-	fn    insconveyor.ImposerFunc
+	cfg configuration.Configuration
+	ac  *insapp.AppComponents
+	fn  insconveyor.ImposerFunc
 
 	// set by init
-	app   *insconveyor.AppCompartment
+	app         *insconveyor.AppCompartment
 	ctxCancelFn context.CancelFunc
-	state atomickit.StartStopFlag
+	state       atomickit.StartStopFlag
 }
 
 func (p *ServerTemplate) T() minimock.Tester {
@@ -240,7 +240,7 @@ func (p *ServerTemplate) App() *insconveyor.AppCompartment {
 // Injector returns a dependency injector with dependencies available for the app compartment.
 // There is NO access to dependencies added by pulse slots. Panics when wasn't started.
 func (p *ServerTemplate) Injector() injector.DependencyInjector {
-	return injector.NewDependencyInjector(struct {}{}, p.App().Conveyor(), nil)
+	return injector.NewDependencyInjector(struct{}{}, p.App().Conveyor(), nil)
 }
 
 // Pulsar returns a pulse generator. Panics when zero.
