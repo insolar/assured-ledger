@@ -131,4 +131,3 @@ func (s *StorageMem) Trim(pn pulse.Number) (err error) {
 
 	return nil
 }
-
