@@ -21,31 +21,30 @@ func (t *Transcript) Add(e TranscriptEntry) {
 func (t *Transcript) GetRMSTranscript() rms.VObjectTranscriptReport_Transcript {
 	objectTranscript := rms.VObjectTranscriptReport_Transcript{}
 	for _, entry := range t.Entries {
-		transcript := new(rms.Any)
-		transcript.Set(&rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest{})
+		rmsEntry := new(rms.Any)
 
 		switch typedEntry := interface{}(entry).(type) {
 		case TranscriptEntryIncomingRequest:
-			transcript.Set(
+			rmsEntry.Set(
 				&rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest{
 					ObjectMemory: rms.NewReference(typedEntry.ObjectMemory),
 					Incoming:     rms.NewReference(typedEntry.Incoming),
 					Request:      []byte{}, // fixme: waiting for messages to move to RMS package
 				})
 		case TranscriptEntryIncomingResult:
-			transcript.Set(&rms.VObjectTranscriptReport_TranscriptEntryIncomingResult{
+			rmsEntry.Set(&rms.VObjectTranscriptReport_TranscriptEntryIncomingResult{
 				IncomingResult: rms.NewReference(typedEntry.IncomingResult),
 				ObjectState: rms.NewReference(typedEntry.ObjectMemory),
 			})
 
 			// TODO add this later
 			// case TranscriptEntryOutgoingRequest:
-			// 	transcript.Set(&rms.VObjectTranscriptReport_TranscriptEntryOutgoingRequest{})
+			// 	rmsEntry.Set(&rms.VObjectTranscriptReport_TranscriptEntryOutgoingRequest{})
 			// case TranscriptEntryOutgoingResult:
-			// 	transcript.Set(&rms.VObjectTranscriptReport_TranscriptEntryOutgoingResult{})
+			// 	rmsEntry.Set(&rms.VObjectTranscriptReport_TranscriptEntryOutgoingResult{})
 		}
 
-		objectTranscript.Entries = append(objectTranscript.Entries, *transcript)
+		objectTranscript.Entries = append(objectTranscript.Entries, *rmsEntry)
 	}
 
 	return objectTranscript
