@@ -168,7 +168,6 @@ func Test_NoDeadLock_WhenOutgoingComeToSameNode(t *testing.T) {
 						require.Equal(t, objectBGlobal, ctx.Request.Callee)
 						require.Equal(t, objectAGlobal, ctx.Request.Caller)
 						require.Equal(t, byteArguments, ctx.Request.Arguments)
-						require.Equal(t, outgoingCallRef, ctx.Outgoing) // todo ? how to replace this tests
 					},
 					&execution.Update{
 						Type:   execution.Done,
