@@ -329,7 +329,7 @@ func generateCertificates(nodesInfo []nodeInfo, settings netSettings) (map[strin
 }
 
 func Test_RunCloud(t *testing.T) {
-
+	t.Skip()
 	var (
 		numVirtual        = 10
 		numLightMaterials = 0
