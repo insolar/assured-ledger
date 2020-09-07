@@ -6,14 +6,31 @@
 package msgdelivery
 
 import (
-	"io"
-
+	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
+	"io"
 
 	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto"
-	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
 )
+
+// body = whole, body contains head
+type Shipment struct {
+	Head   nwapi.SizeAwareSerializer
+	Body   nwapi.SizeAwareSerializer
+	Cancel *synckit.ChainedCancel
+	PN     pulse.Number
+	// TTL defines how many pulses this shipment can survive before cancellation
+	TTL      uint8
+	Policies DeliveryPolicies
+}
+
+type ReceiverFunc func(ReturnAddress, nwapi.PayloadCompleteness, interface{}) error
+
+type ShipmentRequest struct {
+	ReceiveFn ReceiverFunc
+	Cancel    *synckit.ChainedCancel
+}
 
 func AsShipmentID(node uint32, id ShortShipmentID) ShipmentID {
 	if id == 0 {
@@ -64,19 +81,4 @@ func ShortShipmentIDReadFrom(reader io.Reader) (ShortShipmentID, error) {
 
 func ShortShipmentIDReadFromBytes(b []byte) ShortShipmentID {
 	return ShortShipmentID(uniproto.DefaultByteOrder.Uint32(b))
-}
-
-type Shipment struct {
-	Head   nwapi.SizeAwareSerializer
-	Body   nwapi.SizeAwareSerializer
-	Cancel *synckit.ChainedCancel
-	PN     pulse.Number
-	// TTL defines how many pulses this shipment can survive before cancellation
-	TTL      uint8
-	Policies DeliveryPolicies
-}
-
-type ShipmentRequest struct {
-	ReceiveFn ReceiverFunc
-	Cancel    *synckit.ChainedCancel
 }

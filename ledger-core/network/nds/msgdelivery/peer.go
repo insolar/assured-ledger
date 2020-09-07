@@ -161,24 +161,16 @@ func (p *DeliveryPeer) sendState(packet StatePacket) {
 }
 
 func (p *DeliveryPeer) sendParcel(msg *msgShipment, isBody, isRepeated bool) {
-	packet := ParcelPacket{ParcelID: msg.id.ShortID(), ReturnID: msg.returnID, RepeatedSend: isRepeated}
-
-	packet.ParcelType = nwapi.CompletePayload
-	cycle, pn := p.ctl.getPulseCycle()
-
-	if msg.expires < cycle {
-		msg.markExpired()
-		return
+	packet := ParcelPacket{
+		ParcelID:     msg.id.ShortID(),
+		ReturnID:     msg.returnID,
+		RepeatedSend: isRepeated,
+		ParcelType:   nwapi.CompletePayload,
 	}
 
-	if msg.shipment.Policies&ExactPulse == 0 {
-		packet.PulseNumber = pn
-		if cycle = msg.expires - cycle; cycle > math.MaxUint8 {
-			cycle = math.MaxUint8
-		}
-	} else {
-		packet.PulseNumber = msg.shipment.PN
-		cycle = uint32(msg.shipment.TTL)
+	if !p.applyParcelExpiry(msg, &packet) {
+		msg.markExpired()
+		return
 	}
 
 	switch {
@@ -194,13 +186,45 @@ func (p *DeliveryPeer) sendParcel(msg *msgShipment, isBody, isRepeated bool) {
 		packet.ParcelType = nwapi.HeadOnlyPayload
 		packet.Data = msg.shipment.Head
 		packet.BodyScale = uint8(bits.Len(msg.shipment.Body.ByteSize()))
-		packet.TTLCycles = uint8(cycle)
+		packet.TTLCycles = msg.shipment.TTL
 	}
 	p._sendParcel(p.ctl.parcelOutType, packet, msg.canSendHead)
 }
 
+func (p *DeliveryPeer) applyParcelExpiry(msg *msgShipment, packet *ParcelPacket) bool {
+	cycle, pn := p.ctl.getPulseCycle()
+
+	switch {
+	case msg.expires < cycle:
+		return false
+
+	case msg.shipment.Policies&ExactPulse == 0:
+		msg.shipment.Policies |= ExactPulse
+		msg.shipment.PN = pn
+		if cycle = msg.expires - cycle; cycle > math.MaxUint8 {
+			msg.shipment.TTL = math.MaxUint8
+		} else {
+			msg.shipment.TTL = uint8(cycle)
+		}
+	}
+
+	packet.PulseNumber = msg.shipment.PN
+	return true
+}
+
 func (p *DeliveryPeer) sendLargeParcel(msg *msgShipment, isRepeated bool) {
-	packet := ParcelPacket{ParcelID: msg.id.ShortID(), ReturnID: msg.returnID, RepeatedSend: isRepeated, ParcelType: nwapi.CompletePayload}
+	packet := ParcelPacket{
+		ParcelID:     msg.id.ShortID(),
+		ReturnID:     msg.returnID,
+		RepeatedSend: isRepeated,
+		ParcelType:   nwapi.CompletePayload,
+	}
+
+	if !p.applyParcelExpiry(msg, &packet) {
+		msg.markExpired()
+		return
+	}
+
 	packet.Data = msg.shipment.Body
 
 	p._sendParcel(uniproto.SessionfulLarge, packet, msg.canSendBody)

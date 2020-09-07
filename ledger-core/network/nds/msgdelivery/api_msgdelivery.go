@@ -5,16 +5,12 @@
 
 package msgdelivery
 
-import "github.com/insolar/assured-ledger/ledger-core/network/nwapi"
-
 type Service interface {
 	ShipTo(to DeliveryAddress, shipment Shipment) error
 	ShipReturn(to ReturnAddress, shipment Shipment) error
 	PullBody(from ReturnAddress, shipmentRq ShipmentRequest) error
 	RejectBody(from ReturnAddress) error
 }
-
-type ReceiverFunc func(ReturnAddress, nwapi.PayloadCompleteness, interface{}) error
 
 type DeliveryPolicies uint8
 

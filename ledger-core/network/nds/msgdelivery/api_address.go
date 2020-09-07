@@ -17,14 +17,21 @@ func NewDirectAddress(id nwapi.ShortNodeID) DeliveryAddress {
 	if id.IsAbsent() {
 		panic(throw.IllegalValue())
 	}
-	return DeliveryAddress{addrType: DirectAddress, nodeSelector: uint32(id)}
+	return DeliveryAddress{
+		addrType:     DirectAddress,
+		nodeSelector: uint32(id),
+	}
 }
 
 func NewRoleAddress(roleID uint8, dataSelector uint64) DeliveryAddress {
 	if roleID == 0 {
 		panic(throw.IllegalValue())
 	}
-	return DeliveryAddress{addrType: RoleAddress, nodeSelector: uint32(roleID), dataSelector: dataSelector}
+	return DeliveryAddress{
+		addrType:     RoleAddress,
+		nodeSelector: uint32(roleID),
+		dataSelector: dataSelector,
+	}
 }
 
 type ResolverFunc func(addrType AddressFlags, nodeSelector uint32, dataSelector uint64) nwapi.Address
@@ -66,9 +73,9 @@ func (v DeliveryAddress) ResolveWith(fn ResolverFunc) nwapi.Address {
 
 type AddressFlags uint32
 
-const DirectAddress AddressFlags = 0
 const (
-	RoleAddress AddressFlags = 1 << iota
+	DirectAddress AddressFlags = 0
+	RoleAddress   AddressFlags = 1 << iota
 )
 
 type ReturnAddress struct {
