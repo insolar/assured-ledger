@@ -63,14 +63,10 @@ func (h MessageHash) ProtoSize() int {
 // Meta data.
 func UnmarshalFromMeta(meta []byte) (Marshaler, error) {
 	m := Meta{}
-	// Can be optimized by using proto.NewBuffer.
 	err := m.Unmarshal(meta)
 	if err != nil {
 		return nil, err
 	}
-	_, pl, err := Unmarshal(m.Payload)
-	if err != nil {
-		return nil, err
-	}
+	pl := m.Payload.Get()
 	return pl.(Marshaler), nil
 }

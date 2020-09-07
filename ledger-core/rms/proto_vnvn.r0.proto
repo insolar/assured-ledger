@@ -14,7 +14,7 @@ option (insproto.register_all) = "RegisterMessageType";
 message Meta {
     option (insproto.id) = 1000;
 
-    Binary Payload = 20;
+    Any Payload = 20;
     Binary Sender = 21 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/reference.Global", (insproto.zeroable) = false];
     Binary Receiver = 22 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/reference.Global", (insproto.zeroable) = false];
     uint32 Pulse = 23 [(gogoproto.casttype) = "github.com/insolar/assured-ledger/ledger-core/pulse.Number", (insproto.zeroable) = false];
