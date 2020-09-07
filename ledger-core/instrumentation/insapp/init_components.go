@@ -18,18 +18,16 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/crypto"
 	"github.com/insolar/assured-ledger/ledger-core/crypto/legacyadapter"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
-	"github.com/insolar/assured-ledger/ledger-core/cryptography/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/metrics"
 	"github.com/insolar/assured-ledger/ledger-core/network"
-	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/servicenetwork"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-type preComponents struct {
+type PreComponents struct {
 	CryptographyService        cryptography.Service
 	PlatformCryptographyScheme cryptography.PlatformCryptographyScheme
 	KeyStore                   cryptography.KeyStore
@@ -38,12 +36,12 @@ type preComponents struct {
 	CertificateManager         nodeinfo.CertificateManager
 }
 
-func (s *Server) initBootstrapComponents(ctx context.Context, cfg configuration.Configuration) preComponents {
+func (s *Server) initBootstrapComponents(ctx context.Context, cfg configuration.Configuration) PreComponents {
 	earlyComponents := component.NewManager(nil)
 	logger := inslogger.FromContext(ctx)
 	earlyComponents.SetLogger(logger)
 
-	keyStore, err := keystore.NewKeyStore(cfg.KeysPath)
+	keyStore, err := s.confProvider.GetKeyStoreFactory()(cfg.KeysPath)
 	checkError(ctx, err, "failed to load KeyStore: ")
 
 	platformCryptographyScheme := platformpolicy.NewPlatformCryptographyScheme()
@@ -56,10 +54,10 @@ func (s *Server) initBootstrapComponents(ctx context.Context, cfg configuration.
 	publicKey, err := cryptographyService.GetPublicKey()
 	checkError(ctx, err, "failed to retrieve node public key")
 
-	certManager, err := mandates.NewManagerReadCertificate(publicKey, keyProcessor, cfg.CertificatePath)
+	certManager, err := s.confProvider.GetCertManagerFactory()(publicKey, keyProcessor, cfg.CertificatePath)
 	checkError(ctx, err, "failed to start Certificate")
 
-	return preComponents{
+	return PreComponents{
 		CryptographyService:        cryptographyService,
 		PlatformCryptographyScheme: platformCryptographyScheme,
 		KeyStore:                   keyStore,
@@ -71,7 +69,7 @@ func (s *Server) initBootstrapComponents(ctx context.Context, cfg configuration.
 
 // initComponents creates and links all insolard components
 func (s *Server) initComponents(ctx context.Context, cfg configuration.Configuration, networkFn NetworkInitFunc,
-	comps preComponents) (*component.Manager, func()) {
+	comps PreComponents) (*component.Manager, func()) {
 	cm := component.NewManager(nil)
 	logger := inslogger.FromContext(ctx)
 	cm.SetLogger(logger)
