@@ -327,3 +327,25 @@ func PrepareCloudConfiguration(virtual, light, heavy int) (
 
 	return appConfigs, baseCloudConf, makeCertManagerFactory(certs), makeKeyFactory(append(nodes, pulsarKeys))
 }
+
+// CloudConfigurationProvider
+
+type CloudConfigurationProvider struct {
+	PulsarConfig       configuration.PulsarConfiguration
+	BaseConfig         configuration.Configuration
+	CertificateFactory CertManagerFactory
+	KeyFactory         KeyStoreFactory
+	GetAppConfigs      func() []configuration.Configuration
+}
+
+func (cp CloudConfigurationProvider) Config() configuration.Configuration {
+	return cp.BaseConfig
+}
+
+func (cp CloudConfigurationProvider) GetCertManagerFactory() CertManagerFactory {
+	return cp.CertificateFactory
+}
+
+func (cp CloudConfigurationProvider) GetKeyStoreFactory() KeyStoreFactory {
+	return cp.KeyFactory
+}

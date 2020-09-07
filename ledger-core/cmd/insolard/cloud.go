@@ -46,10 +46,13 @@ func runInsolardCloud(configPath string) {
 		global.Fatal("Failed to parse YAML file", err)
 	}
 
+	baseConfig := configuration.NewConfiguration()
+	baseConfig.Log = cloudConf.Log
 	configProvider := &insapp.CloudConfigurationProvider{
 		CertificateFactory: mandates.NewManagerReadCertificate,
 		KeyFactory:         keystore.NewKeyStore,
-		CloudConfig:        cloudConf,
+		BaseConfig:         baseConfig,
+		PulsarConfig:       cloudConf.PulsarConfiguration,
 		GetAppConfigs: func() []configuration.Configuration {
 			appConfigs := make([]configuration.Configuration, 0, len(cloudConf.NodeConfigPaths))
 			for _, conf := range cloudConf.NodeConfigPaths {

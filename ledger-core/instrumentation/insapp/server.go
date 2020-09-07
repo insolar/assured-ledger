@@ -7,6 +7,7 @@ package insapp
 
 import (
 	"context"
+	"crypto"
 	"fmt"
 	"os"
 	"os/signal"
@@ -15,27 +16,54 @@ import (
 	"github.com/insolar/component-manager"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
+	"github.com/insolar/assured-ledger/ledger-core/cryptography"
+	"github.com/insolar/assured-ledger/ledger-core/cryptography/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/trace"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
+	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/version"
 )
 
+type CertManagerFactory func(publicKey crypto.PublicKey, keyProcessor cryptography.KeyProcessor, certPath string) (*mandates.CertificateManager, error)
+type KeyStoreFactory func(path string) (cryptography.KeyStore, error)
+
+type ConfigurationProvider interface {
+	Config() configuration.Configuration
+	GetKeyStoreFactory() KeyStoreFactory
+	GetCertManagerFactory() CertManagerFactory
+}
+
 type Server struct {
-	cfg          configuration.Configuration
 	appFn        AppFactoryFunc
 	multiFn      MultiNodeConfigFunc
 	extra        []interface{}
-	confProvider *CloudConfigurationProvider
+	confProvider ConfigurationProvider
+}
+
+type defaultConfigurationProvider struct {
+	config configuration.Configuration
+}
+
+func (cp defaultConfigurationProvider) Config() configuration.Configuration {
+	return cp.config
+}
+
+func (cp defaultConfigurationProvider) GetCertManagerFactory() CertManagerFactory {
+	return mandates.NewManagerReadCertificate
+}
+
+func (cp defaultConfigurationProvider) GetKeyStoreFactory() KeyStoreFactory {
+	return keystore.NewKeyStore
 }
 
 // New creates a one-node process.
 func New(cfg configuration.Configuration, appFn AppFactoryFunc, extraComponents ...interface{}) *Server {
 	return &Server{
-		cfg:   cfg,
-		appFn: appFn,
-		extra: extraComponents,
+		confProvider: &defaultConfigurationProvider{},
+		appFn:        appFn,
+		extra:        extraComponents,
 	}
 }
 
@@ -48,13 +76,14 @@ func (s *Server) Serve() {
 	fmt.Println("Version: ", version.GetFullVersion())
 
 	if s.multiFn != nil {
-		fmt.Println("Starts with multi-node configuration base:\n", configuration.ToString(&s.cfg))
-		configs, networkFn = s.multiFn(s.cfg)
+		baseConfig := s.confProvider.Config()
+		fmt.Println("Starts with multi-node configuration base:\n", configuration.ToString(&baseConfig))
+		configs, networkFn = s.multiFn(s.confProvider)
 	} else {
-		configs = append(configs, s.cfg)
+		configs = append(configs, s.confProvider.Config())
 	}
 
-	baseCtx, baseLogger := inslogger.InitGlobalNodeLogger(context.Background(), s.cfg.Log, "", "")
+	baseCtx, baseLogger := inslogger.InitGlobalNodeLogger(context.Background(), s.confProvider.Config().Log, "", "")
 
 	n := len(configs)
 

@@ -25,17 +25,17 @@ func NewMultiServer(configProvider *insapp.CloudConfigurationProvider) Server {
 	if configProvider.GetAppConfigs == nil {
 		panic("GetAppConfigs cannot be nil")
 	}
-	cloudConf := configProvider.CloudConfig
 
-	multiFn := func(baseCfg configuration.Configuration) ([]configuration.Configuration, insapp.NetworkInitFunc) {
-		return configProvider.GetAppConfigs(), controller.NetworkInitFunc
+	multiFn := func(provider insapp.ConfigurationProvider) ([]configuration.Configuration, insapp.NetworkInitFunc) {
+		conf := provider.(*insapp.CloudConfigurationProvider)
+		return conf.GetAppConfigs(), controller.NetworkInitFunc
 	}
 
 	return insapp.NewMulti(
 		configProvider,
 		appFactory,
 		multiFn,
-		cloud.NewPulsarWrapper(&controller, cloudConf.PulsarConfiguration, configProvider.KeyFactory),
+		cloud.NewPulsarWrapper(&controller, configProvider.PulsarConfig, configProvider.KeyFactory),
 	)
 }
 

@@ -18,12 +18,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/crypto"
 	"github.com/insolar/assured-ledger/ledger-core/crypto/legacyadapter"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
-	"github.com/insolar/assured-ledger/ledger-core/cryptography/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/metrics"
 	"github.com/insolar/assured-ledger/ledger-core/network"
-	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/servicenetwork"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -43,11 +41,7 @@ func (s *Server) initBootstrapComponents(ctx context.Context, cfg configuration.
 	logger := inslogger.FromContext(ctx)
 	earlyComponents.SetLogger(logger)
 
-	keyFactory := keystore.NewKeyStore
-	if s.confProvider != nil && s.confProvider.KeyFactory != nil {
-		keyFactory = s.confProvider.KeyFactory
-	}
-	keyStore, err := keyFactory(cfg.KeysPath)
+	keyStore, err := s.confProvider.GetKeyStoreFactory()(cfg.KeysPath)
 	checkError(ctx, err, "failed to load KeyStore: ")
 
 	platformCryptographyScheme := platformpolicy.NewPlatformCryptographyScheme()
@@ -60,11 +54,7 @@ func (s *Server) initBootstrapComponents(ctx context.Context, cfg configuration.
 	publicKey, err := cryptographyService.GetPublicKey()
 	checkError(ctx, err, "failed to retrieve node public key")
 
-	certFactory := mandates.NewManagerReadCertificate
-	if s.confProvider != nil && s.confProvider.CertificateFactory != nil {
-		certFactory = s.confProvider.CertificateFactory
-	}
-	certManager, err := certFactory(publicKey, keyProcessor, cfg.CertificatePath)
+	certManager, err := s.confProvider.GetCertManagerFactory()(publicKey, keyProcessor, cfg.CertificatePath)
 	checkError(ctx, err, "failed to start Certificate")
 
 	return PreComponents{
