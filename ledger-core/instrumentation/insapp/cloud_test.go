@@ -23,7 +23,7 @@ func Test_RunCloud(t *testing.T) {
 
 	appConfigs, baseConf, certFactory, keyFactory := insapp.PrepareCloudConfiguration(numVirtual, numLightMaterials, numHeavyMaterials)
 
-	confProvider := insapp.CloudConfigurationProvider{
+	confProvider := &insapp.CloudConfigurationProvider{
 		CloudConfig:        baseConf,
 		CertificateFactory: certFactory,
 		KeyFactory:         keyFactory,

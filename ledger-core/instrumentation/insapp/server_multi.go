@@ -52,20 +52,19 @@ type NetworkInitFunc = func(configuration.Configuration, *component.Manager) (Ne
 // to initialize instantiate a network support for each app compartment (one per node). A default implementation is applied when NetworkInitFunc is nil.
 type MultiNodeConfigFunc = func(baseCfg configuration.Configuration) ([]configuration.Configuration, NetworkInitFunc)
 
-func NewMulti(cfg CloudConfigurationProvider, appFn AppFactoryFunc, multiFn MultiNodeConfigFunc, extraComponents ...interface{}) *Server {
+func NewMulti(cfgProvider *CloudConfigurationProvider, appFn AppFactoryFunc, multiFn MultiNodeConfigFunc, extraComponents ...interface{}) *Server {
 	if multiFn == nil {
 		panic(throw.IllegalValue())
 	}
 
 	conf := configuration.NewConfiguration()
-	conf.Log = cfg.CloudConfig.Log
+	conf.Log = cfgProvider.CloudConfig.Log
 
 	return &Server{
-		cfg:                conf,
-		appFn:              appFn,
-		multiFn:            multiFn,
-		extra:              extraComponents,
-		certManagerFactory: cfg.CertificateFactory,
-		keyStoreFactory:    cfg.KeyFactory,
+		cfg:          conf,
+		appFn:        appFn,
+		multiFn:      multiFn,
+		extra:        extraComponents,
+		confProvider: cfgProvider,
 	}
 }

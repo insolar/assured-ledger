@@ -15,32 +15,27 @@ import (
 	"github.com/insolar/component-manager"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/cryptography/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/trace"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
-	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/version"
 )
 
 type Server struct {
-	cfg                configuration.Configuration
-	appFn              AppFactoryFunc
-	multiFn            MultiNodeConfigFunc
-	extra              []interface{}
-	certManagerFactory CertManagerFactory
-	keyStoreFactory    KeyStoreFactory
+	cfg          configuration.Configuration
+	appFn        AppFactoryFunc
+	multiFn      MultiNodeConfigFunc
+	extra        []interface{}
+	confProvider *CloudConfigurationProvider
 }
 
 // New creates a one-node process.
 func New(cfg configuration.Configuration, appFn AppFactoryFunc, extraComponents ...interface{}) *Server {
 	return &Server{
-		cfg:                cfg,
-		appFn:              appFn,
-		extra:              extraComponents,
-		certManagerFactory: mandates.NewManagerReadCertificate,
-		keyStoreFactory:    keystore.NewKeyStore,
+		cfg:   cfg,
+		appFn: appFn,
+		extra: extraComponents,
 	}
 }
 
@@ -87,6 +82,8 @@ func (s *Server) Serve() {
 		cms = append(cms, cm)
 		stops = append(stops, stopFunc)
 	}
+
+	s.confProvider = nil
 
 	global.InitTicker()
 

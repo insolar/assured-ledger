@@ -46,7 +46,7 @@ func runInsolardCloud(configPath string) {
 		global.Fatal("Failed to parse YAML file", err)
 	}
 
-	configProvider := insapp.CloudConfigurationProvider{
+	configProvider := &insapp.CloudConfigurationProvider{
 		CertificateFactory: mandates.NewManagerReadCertificate,
 		KeyFactory:         keystore.NewKeyStore,
 		CloudConfig:        cloudConf,
