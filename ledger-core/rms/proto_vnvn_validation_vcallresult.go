@@ -54,22 +54,22 @@ func (m *VCallResult) Validate(currentPulse PulseNumber) error {
 		return throw.New("ReturnArguments should not be empty")
 	}
 
-	callerPulse, err := validSelfScopedGlobalWithPulseSpecialOrBeforeOrEq(m.Caller.GetGlobal(), currentPulse, "Caller")
+	callerPulse, err := validSelfScopedGlobalWithPulseSpecialOrBeforeOrEq(m.Caller.GetValue(), currentPulse, "Caller")
 	if err != nil {
 		return err
 	}
 
-	calleePulse, err := validSelfScopedGlobalWithPulseSpecialOrBeforeOrEq(m.Callee.GetGlobal(), currentPulse, "Callee")
+	calleePulse, err := validSelfScopedGlobalWithPulseSpecialOrBeforeOrEq(m.Callee.GetValue(), currentPulse, "Callee")
 	if err != nil {
 		return err
 	}
 
-	outgoingLocalPulse, err := validRequestGlobalWithPulseBeforeOrEq(m.CallOutgoing.GetGlobal(), currentPulse, "CallOutgoing")
+	outgoingLocalPulse, err := validRequestGlobalWithPulseBeforeOrEq(m.CallOutgoing.GetValue(), currentPulse, "CallOutgoing")
 	if err != nil {
 		return err
 	}
 
-	incomingLocalPulse, err := validRequestGlobalWithPulseBeforeOrEq(m.CallIncoming.GetGlobal(), currentPulse, "CallIncoming")
+	incomingLocalPulse, err := validRequestGlobalWithPulseBeforeOrEq(m.CallIncoming.GetValue(), currentPulse, "CallIncoming")
 	if err != nil {
 		return err
 	}

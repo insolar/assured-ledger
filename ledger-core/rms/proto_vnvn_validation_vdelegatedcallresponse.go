@@ -13,12 +13,12 @@ import (
 var _ Validatable = &VDelegatedCallResponse{}
 
 func (m *VDelegatedCallResponse) Validate(currentPulse pulse.Number) error {
-	calleePulse, err := validSelfScopedGlobalWithPulseSpecialOrBefore(m.Callee.GetGlobal(), currentPulse, "Callee")
+	calleePulse, err := validSelfScopedGlobalWithPulseSpecialOrBefore(m.Callee.GetValue(), currentPulse, "Callee")
 	if err != nil {
 		return err
 	}
 
-	incomingLocalPulse, err := validRequestGlobalWithPulseBefore(m.CallIncoming.GetGlobal(), currentPulse, "CallIncoming")
+	incomingLocalPulse, err := validRequestGlobalWithPulseBefore(m.CallIncoming.GetValue(), currentPulse, "CallIncoming")
 	if err != nil {
 		return err
 	}

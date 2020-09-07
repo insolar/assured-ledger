@@ -72,17 +72,17 @@ func (m *VCallRequest) Validate(currentPulse PulseNumber) error {
 		return throw.New("Arguments shouldn't be nil")
 	}
 
-	callerPulse, err := validSelfScopedGlobalWithPulseSpecialOrBeforeOrEq(m.Caller.GetGlobal(), currentPulse, "Caller")
+	callerPulse, err := validSelfScopedGlobalWithPulseSpecialOrBeforeOrEq(m.Caller.GetValue(), currentPulse, "Caller")
 	if err != nil {
 		return err
 	}
 
-	calleePulse, err := validSelfScopedGlobalWithPulseSpecialOrBeforeOrEq(m.Caller.GetGlobal(), currentPulse, "Callee")
+	calleePulse, err := validSelfScopedGlobalWithPulseSpecialOrBeforeOrEq(m.Caller.GetValue(), currentPulse, "Callee")
 	if err != nil {
 		return err
 	}
 
-	outgoingLocalPulse, err := validRequestGlobalWithPulseBeforeOrEq(m.CallOutgoing.GetGlobal(), currentPulse, "CallOutgoing")
+	outgoingLocalPulse, err := validRequestGlobalWithPulseBeforeOrEq(m.CallOutgoing.GetValue(), currentPulse, "CallOutgoing")
 	if err != nil {
 		return err
 	}

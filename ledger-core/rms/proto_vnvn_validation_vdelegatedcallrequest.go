@@ -26,17 +26,17 @@ func (m *VDelegatedCallRequest) Validate(currentPulse pulse.Number) error {
 		return throw.New("CallFlags should be valid")
 	}
 
-	calleePulse, err := validSelfScopedGlobalWithPulseSpecialOrBefore(m.Callee.GetGlobal(), currentPulse, "Callee")
+	calleePulse, err := validSelfScopedGlobalWithPulseSpecialOrBefore(m.Callee.GetValue(), currentPulse, "Callee")
 	if err != nil {
 		return err
 	}
 
-	outgoingLocalPulse, err := validRequestGlobalWithPulseBefore(m.CallOutgoing.GetGlobal(), currentPulse, "CallOutgoing")
+	outgoingLocalPulse, err := validRequestGlobalWithPulseBefore(m.CallOutgoing.GetValue(), currentPulse, "CallOutgoing")
 	if err != nil {
 		return err
 	}
 
-	incomingLocalPulse, err := validRequestGlobalWithPulseBefore(m.CallIncoming.GetGlobal(), currentPulse, "CallIncoming")
+	incomingLocalPulse, err := validRequestGlobalWithPulseBefore(m.CallIncoming.GetValue(), currentPulse, "CallIncoming")
 	if err != nil {
 		return err
 	}

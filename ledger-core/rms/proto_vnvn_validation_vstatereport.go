@@ -36,7 +36,7 @@ func (m *VStateReport) Validate(currentPulse pulse.Number) error {
 		return throw.New("AsOf should be time pulse and less that current pulse")
 	}
 
-	objectPulse, err := validSelfScopedGlobalWithPulseBeforeOrEq(m.Object.GetGlobal(), currentPulse, "Object")
+	objectPulse, err := validSelfScopedGlobalWithPulseBeforeOrEq(m.Object.GetValue(), currentPulse, "Object")
 	if err != nil {
 		return err
 	}

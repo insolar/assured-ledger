@@ -16,12 +16,12 @@ func (m *VFindCallResponse) Validate(currentPulse PulseNumber) error {
 		return throw.New("LookedAt should be valid pulse lesser than current pulse")
 	}
 
-	calleePulse, err := validSelfScopedGlobalWithPulseSpecialOrBefore(m.Callee.GetGlobal(), currentPulse, "Callee")
+	calleePulse, err := validSelfScopedGlobalWithPulseSpecialOrBefore(m.Callee.GetValue(), currentPulse, "Callee")
 	if err != nil {
 		return err
 	}
 
-	outgoingLocalPulse, err := validRequestGlobalWithPulseBefore(m.Outgoing.GetGlobal(), currentPulse, "Outgoing")
+	outgoingLocalPulse, err := validRequestGlobalWithPulseBefore(m.Outgoing.GetValue(), currentPulse, "Outgoing")
 	if err != nil {
 		return err
 	}

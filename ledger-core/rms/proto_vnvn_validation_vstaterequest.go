@@ -31,7 +31,7 @@ func (m *VStateRequest) Validate(currentPulse PulseNumber) error {
 		return err
 	}
 
-	objectPulse, err := validSelfScopedGlobalWithPulseBeforeOrEq(m.Object.GetGlobal(), currentPulse, "Object")
+	objectPulse, err := validSelfScopedGlobalWithPulseBeforeOrEq(m.Object.GetValue(), currentPulse, "Object")
 	if err != nil {
 		return err
 	}

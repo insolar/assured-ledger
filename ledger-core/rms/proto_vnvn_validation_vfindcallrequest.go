@@ -17,12 +17,12 @@ func (m *VFindCallRequest) Validate(currentPulse PulseNumber) error {
 		return throw.New("LookAt should be valid time pulse before current pulse")
 	}
 
-	calleePulse, err := validSelfScopedGlobalWithPulseSpecialOrBefore(m.Callee.GetGlobal(), currentPulse, "Callee")
+	calleePulse, err := validSelfScopedGlobalWithPulseSpecialOrBefore(m.Callee.GetValue(), currentPulse, "Callee")
 	if err != nil {
 		return err
 	}
 
-	outgoingLocalPulse, err := validRequestGlobalWithPulseBeforeOrEq(m.Outgoing.GetGlobal(), currentPulse, "CallOutgoing")
+	outgoingLocalPulse, err := validRequestGlobalWithPulseBeforeOrEq(m.Outgoing.GetValue(), currentPulse, "CallOutgoing")
 	if err != nil {
 		return err
 	}
