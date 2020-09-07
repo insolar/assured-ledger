@@ -31,7 +31,7 @@ type SMGenesis struct {
 
 	// injected
 	pulseSlot  *conveyor.PulseSlot
-	builderSvc buildersvc.Adapter
+	builderSvc buildersvc.WriteAdapter
 	treeSvc    treesvc.Service
 
 	// runtime

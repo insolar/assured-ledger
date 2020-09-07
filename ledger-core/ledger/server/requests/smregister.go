@@ -11,13 +11,12 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/datawriter"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/inspectsvc"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
-
-var _ smachine.StateMachine = &SMRegisterRecordSet{}
 
 func NewSMRegisterRecordSet(reqs inspectsvc.RegisterRequestSet) *SMRegisterRecordSet {
 	return &SMRegisterRecordSet{
@@ -36,6 +35,7 @@ func NewSMVerifyRecordSet(reqs inspectsvc.RegisterRequestSet) *SMRegisterRecordS
 	}
 }
 
+var _ smachine.StateMachine = &SMRegisterRecordSet{}
 type SMRegisterRecordSet struct {
 	smachine.StateMachineDeclTemplate
 
@@ -90,7 +90,7 @@ func (p *SMRegisterRecordSet) stepInit(ctx smachine.InitializationContext) smach
 
 func (p *SMRegisterRecordSet) stepFindLine(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	if p.sdl.IsZero() {
-		lineRef := p.recordSet.GetRootRef()
+		lineRef := reference.NormCopy(p.recordSet.GetRootRef())
 
 		if p.verifyMode {
 			p.sdl = p.cataloger.Get(ctx, lineRef)
@@ -189,7 +189,8 @@ func (p *SMRegisterRecordSet) stepApplyRecordSet(ctx smachine.ExecutionContext) 
 			// some (or all) records were not found, but we can give answer
 			// but not for all of records
 			allRecordsDone = true
-			sd.CollectSignatures(p.inspectedSet, true)
+			found := sd.CollectSignatures(p.inspectedSet, true)
+			p.inspectedSet.Records = p.inspectedSet.Records[:found]
 
 		case p.hasRequested:
 			// dependencies were already requested, but weren't fully resolved yet

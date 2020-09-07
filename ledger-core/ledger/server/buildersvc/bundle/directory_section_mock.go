@@ -9,7 +9,6 @@ import (
 
 	"github.com/gojuno/minimock/v3"
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
-	"github.com/insolar/assured-ledger/ledger-core/reference"
 )
 
 // DirectorySectionMock implements DirectorySection
@@ -22,8 +21,8 @@ type DirectorySectionMock struct {
 	beforeAllocateEntryStorageCounter uint64
 	AllocateEntryStorageMock          mDirectorySectionMockAllocateEntryStorage
 
-	funcAppendDirectoryEntry          func(index ledger.DirectoryIndex, key reference.Holder, loc ledger.StorageLocator) (err error)
-	inspectFuncAppendDirectoryEntry   func(index ledger.DirectoryIndex, key reference.Holder, loc ledger.StorageLocator)
+	funcAppendDirectoryEntry          func(index ledger.DirectoryIndex, entry DirectoryEntry) (err error)
+	inspectFuncAppendDirectoryEntry   func(index ledger.DirectoryIndex, entry DirectoryEntry)
 	afterAppendDirectoryEntryCounter  uint64
 	beforeAppendDirectoryEntryCounter uint64
 	AppendDirectoryEntryMock          mDirectorySectionMockAppendDirectoryEntry
@@ -290,8 +289,7 @@ type DirectorySectionMockAppendDirectoryEntryExpectation struct {
 // DirectorySectionMockAppendDirectoryEntryParams contains parameters of the DirectorySection.AppendDirectoryEntry
 type DirectorySectionMockAppendDirectoryEntryParams struct {
 	index ledger.DirectoryIndex
-	key   reference.Holder
-	loc   ledger.StorageLocator
+	entry DirectoryEntry
 }
 
 // DirectorySectionMockAppendDirectoryEntryResults contains results of the DirectorySection.AppendDirectoryEntry
@@ -300,7 +298,7 @@ type DirectorySectionMockAppendDirectoryEntryResults struct {
 }
 
 // Expect sets up expected params for DirectorySection.AppendDirectoryEntry
-func (mmAppendDirectoryEntry *mDirectorySectionMockAppendDirectoryEntry) Expect(index ledger.DirectoryIndex, key reference.Holder, loc ledger.StorageLocator) *mDirectorySectionMockAppendDirectoryEntry {
+func (mmAppendDirectoryEntry *mDirectorySectionMockAppendDirectoryEntry) Expect(index ledger.DirectoryIndex, entry DirectoryEntry) *mDirectorySectionMockAppendDirectoryEntry {
 	if mmAppendDirectoryEntry.mock.funcAppendDirectoryEntry != nil {
 		mmAppendDirectoryEntry.mock.t.Fatalf("DirectorySectionMock.AppendDirectoryEntry mock is already set by Set")
 	}
@@ -309,7 +307,7 @@ func (mmAppendDirectoryEntry *mDirectorySectionMockAppendDirectoryEntry) Expect(
 		mmAppendDirectoryEntry.defaultExpectation = &DirectorySectionMockAppendDirectoryEntryExpectation{}
 	}
 
-	mmAppendDirectoryEntry.defaultExpectation.params = &DirectorySectionMockAppendDirectoryEntryParams{index, key, loc}
+	mmAppendDirectoryEntry.defaultExpectation.params = &DirectorySectionMockAppendDirectoryEntryParams{index, entry}
 	for _, e := range mmAppendDirectoryEntry.expectations {
 		if minimock.Equal(e.params, mmAppendDirectoryEntry.defaultExpectation.params) {
 			mmAppendDirectoryEntry.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmAppendDirectoryEntry.defaultExpectation.params)
@@ -320,7 +318,7 @@ func (mmAppendDirectoryEntry *mDirectorySectionMockAppendDirectoryEntry) Expect(
 }
 
 // Inspect accepts an inspector function that has same arguments as the DirectorySection.AppendDirectoryEntry
-func (mmAppendDirectoryEntry *mDirectorySectionMockAppendDirectoryEntry) Inspect(f func(index ledger.DirectoryIndex, key reference.Holder, loc ledger.StorageLocator)) *mDirectorySectionMockAppendDirectoryEntry {
+func (mmAppendDirectoryEntry *mDirectorySectionMockAppendDirectoryEntry) Inspect(f func(index ledger.DirectoryIndex, entry DirectoryEntry)) *mDirectorySectionMockAppendDirectoryEntry {
 	if mmAppendDirectoryEntry.mock.inspectFuncAppendDirectoryEntry != nil {
 		mmAppendDirectoryEntry.mock.t.Fatalf("Inspect function is already set for DirectorySectionMock.AppendDirectoryEntry")
 	}
@@ -344,7 +342,7 @@ func (mmAppendDirectoryEntry *mDirectorySectionMockAppendDirectoryEntry) Return(
 }
 
 //Set uses given function f to mock the DirectorySection.AppendDirectoryEntry method
-func (mmAppendDirectoryEntry *mDirectorySectionMockAppendDirectoryEntry) Set(f func(index ledger.DirectoryIndex, key reference.Holder, loc ledger.StorageLocator) (err error)) *DirectorySectionMock {
+func (mmAppendDirectoryEntry *mDirectorySectionMockAppendDirectoryEntry) Set(f func(index ledger.DirectoryIndex, entry DirectoryEntry) (err error)) *DirectorySectionMock {
 	if mmAppendDirectoryEntry.defaultExpectation != nil {
 		mmAppendDirectoryEntry.mock.t.Fatalf("Default expectation is already set for the DirectorySection.AppendDirectoryEntry method")
 	}
@@ -359,14 +357,14 @@ func (mmAppendDirectoryEntry *mDirectorySectionMockAppendDirectoryEntry) Set(f f
 
 // When sets expectation for the DirectorySection.AppendDirectoryEntry which will trigger the result defined by the following
 // Then helper
-func (mmAppendDirectoryEntry *mDirectorySectionMockAppendDirectoryEntry) When(index ledger.DirectoryIndex, key reference.Holder, loc ledger.StorageLocator) *DirectorySectionMockAppendDirectoryEntryExpectation {
+func (mmAppendDirectoryEntry *mDirectorySectionMockAppendDirectoryEntry) When(index ledger.DirectoryIndex, entry DirectoryEntry) *DirectorySectionMockAppendDirectoryEntryExpectation {
 	if mmAppendDirectoryEntry.mock.funcAppendDirectoryEntry != nil {
 		mmAppendDirectoryEntry.mock.t.Fatalf("DirectorySectionMock.AppendDirectoryEntry mock is already set by Set")
 	}
 
 	expectation := &DirectorySectionMockAppendDirectoryEntryExpectation{
 		mock:   mmAppendDirectoryEntry.mock,
-		params: &DirectorySectionMockAppendDirectoryEntryParams{index, key, loc},
+		params: &DirectorySectionMockAppendDirectoryEntryParams{index, entry},
 	}
 	mmAppendDirectoryEntry.expectations = append(mmAppendDirectoryEntry.expectations, expectation)
 	return expectation
@@ -379,15 +377,15 @@ func (e *DirectorySectionMockAppendDirectoryEntryExpectation) Then(err error) *D
 }
 
 // AppendDirectoryEntry implements DirectorySection
-func (mmAppendDirectoryEntry *DirectorySectionMock) AppendDirectoryEntry(index ledger.DirectoryIndex, key reference.Holder, loc ledger.StorageLocator) (err error) {
+func (mmAppendDirectoryEntry *DirectorySectionMock) AppendDirectoryEntry(index ledger.DirectoryIndex, entry DirectoryEntry) (err error) {
 	mm_atomic.AddUint64(&mmAppendDirectoryEntry.beforeAppendDirectoryEntryCounter, 1)
 	defer mm_atomic.AddUint64(&mmAppendDirectoryEntry.afterAppendDirectoryEntryCounter, 1)
 
 	if mmAppendDirectoryEntry.inspectFuncAppendDirectoryEntry != nil {
-		mmAppendDirectoryEntry.inspectFuncAppendDirectoryEntry(index, key, loc)
+		mmAppendDirectoryEntry.inspectFuncAppendDirectoryEntry(index, entry)
 	}
 
-	mm_params := &DirectorySectionMockAppendDirectoryEntryParams{index, key, loc}
+	mm_params := &DirectorySectionMockAppendDirectoryEntryParams{index, entry}
 
 	// Record call args
 	mmAppendDirectoryEntry.AppendDirectoryEntryMock.mutex.Lock()
@@ -404,7 +402,7 @@ func (mmAppendDirectoryEntry *DirectorySectionMock) AppendDirectoryEntry(index l
 	if mmAppendDirectoryEntry.AppendDirectoryEntryMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmAppendDirectoryEntry.AppendDirectoryEntryMock.defaultExpectation.Counter, 1)
 		mm_want := mmAppendDirectoryEntry.AppendDirectoryEntryMock.defaultExpectation.params
-		mm_got := DirectorySectionMockAppendDirectoryEntryParams{index, key, loc}
+		mm_got := DirectorySectionMockAppendDirectoryEntryParams{index, entry}
 		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
 			mmAppendDirectoryEntry.t.Errorf("DirectorySectionMock.AppendDirectoryEntry got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
@@ -416,9 +414,9 @@ func (mmAppendDirectoryEntry *DirectorySectionMock) AppendDirectoryEntry(index l
 		return (*mm_results).err
 	}
 	if mmAppendDirectoryEntry.funcAppendDirectoryEntry != nil {
-		return mmAppendDirectoryEntry.funcAppendDirectoryEntry(index, key, loc)
+		return mmAppendDirectoryEntry.funcAppendDirectoryEntry(index, entry)
 	}
-	mmAppendDirectoryEntry.t.Fatalf("Unexpected call to DirectorySectionMock.AppendDirectoryEntry. %v %v %v", index, key, loc)
+	mmAppendDirectoryEntry.t.Fatalf("Unexpected call to DirectorySectionMock.AppendDirectoryEntry. %v %v", index, entry)
 	return
 }
 

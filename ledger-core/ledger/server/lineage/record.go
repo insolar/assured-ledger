@@ -6,6 +6,7 @@
 package lineage
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/catalog"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
@@ -86,4 +87,11 @@ func (v Record) asBasicRecord() rms.BasicRecord {
 	default:
 		panic(throw.IllegalState())
 	}
+}
+
+
+/***********************************/
+type ReadRecord struct {
+	Record
+	StorageIndex ledger.DirectoryIndex
 }

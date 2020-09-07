@@ -111,21 +111,21 @@ func (p *entryWriter) prepareRecord(snapshot bundle.Snapshot, entry *draftEntry)
 		}
 	}
 
-	entryPayload := &entry.draft
-	prepareCatalogEntry(entryPayload, entryIndex, payloadLoc, entry.payloads)
+	catalogEntry := &entry.draft
+	prepareCatalogEntry(catalogEntry, entryIndex, payloadLoc, entry.payloads, preparedPayloads[:nPayloads])
 
-	entrySize := entryPayload.ProtoSize()
+	entrySize := catalogEntry.ProtoSize()
 	receptacle, entryLoc, err := ds.AllocateEntryStorage(entrySize)
 	if err != nil {
 		return preparedEntry{}, err
 	}
 
-	if err := ds.AppendDirectoryEntry(entryIndex, entry.entryKey, entryLoc); err != nil {
+	if err := ds.AppendDirectoryEntry(entryIndex, bundle.DirectoryEntry{Key: reference.Copy(entry.entryKey), Loc: entryLoc}); err != nil {
 		return preparedEntry{}, err
 	}
 
 	preparedPayloads[nPayloads] = preparedPayload{
-		payload: entryPayload,
+		payload: catalogEntry,
 		target:  receptacle,
 		loc:     entryLoc,
 		size:    uint32(entrySize),
@@ -183,9 +183,12 @@ func draftCatalogEntry(rec lineage.Record) catalog.Entry {
 	}
 }
 
-func prepareCatalogEntry(entry *catalog.Entry, idx ledger.DirectoryIndex, loc []ledger.StorageLocator, payloads []sectionPayload) {
+func prepareCatalogEntry(entry *catalog.Entry, idx ledger.DirectoryIndex, loc []ledger.StorageLocator,
+	payloads []sectionPayload, preparedPayloads []preparedPayload,
+) {
 	entry.BodyLoc = loc[0]
 	entry.Ordinal =	idx.Ordinal()
+	entry.BodyPayloadSizes = uint64(preparedPayloads[0].size)
 
 	n := len(loc)
 	if n == 1 {
@@ -193,6 +196,8 @@ func prepareCatalogEntry(entry *catalog.Entry, idx ledger.DirectoryIndex, loc []
 	}
 
 	entry.PayloadLoc = loc[1]
+	entry.BodyPayloadSizes |= uint64(preparedPayloads[1].size)<<32
+
 	if n == 2 {
 		return
 	}
@@ -202,6 +207,7 @@ func prepareCatalogEntry(entry *catalog.Entry, idx ledger.DirectoryIndex, loc []
 		entry.ExtensionLoc.Ext[i - 2] = rms.ExtLocator{
 			ExtensionID: payloads[i].extension,
 			PayloadLoc:  loc[i],
+			PayloadSize: preparedPayloads[i].size,
 		}
 	}
 }

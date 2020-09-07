@@ -23,12 +23,14 @@ type LineKey reference.Global
 type LineSharedData struct {
 	lineRef reference.Global
 	limiter smsync.SemaphoreLink
+	activeSync smsync.BoolConditionalLink
+
 	ready   bool
 	valid   bool
 
 	jetDropID jet.DropID
 	resolver  lineage.DependencyResolver
-	adapter   buildersvc.Adapter
+	adapter   buildersvc.WriteAdapter
 
 	data *lineage.LineStages
 	deps DependencyTracker
@@ -41,6 +43,18 @@ func (p *LineSharedData) LineRef() reference.Global {
 func (p *LineSharedData) GetLimiter() smachine.SyncLink {
 	return p.limiter.SyncLink()
 }
+
+func (p *LineSharedData) GetActiveSync() smachine.SyncLink {
+	switch {
+	case !p.ready:
+		return p.activeSync.SyncLink()
+	case !p.activeSync.IsZero():
+		p.activeSync = smsync.BoolConditionalLink{}
+	}
+	return everOpenSync
+}
+
+var everOpenSync = smsync.NewAlwaysOpen("SMLine.always-open")
 
 func (p *LineSharedData) ensureDataAccess() {
 	p.ensureAccess()
@@ -160,7 +174,7 @@ func (p *LineSharedData) IsValid() bool {
 
 func (p *LineSharedData) enableAccess() smachine.SyncAdjustment {
 	p.ready = true
-	return p.limiter.NewValue(1)
+	return p.limiter.NewValue(1).MergeWith(p.activeSync.NewValue(true))
 }
 
 func (p *LineSharedData) disableAccess() {
@@ -227,20 +241,51 @@ func (p *LineSharedData) TrimStages() {
 	p.data.TrimCommittedStages()
 }
 
-func (p *LineSharedData) CollectSignatures(set inspectsvc.InspectedRecordSet, canBePartial bool) {
+func (p *LineSharedData) CollectSignatures(set inspectsvc.InspectedRecordSet, canBePartial bool) int {
 	p.ensureDataAccess()
 
 	for i := range set.Records {
 		r := &set.Records[i]
-		ok := false
-		switch ok, _, r.RegistrarSignature = p.data.Find(r.RecRef); {
+		switch ok, _, sig := p.data.FindRegistrarSignature(r.RecRef); {
 		case !ok:
 			if canBePartial {
-				return
+				return i
 			}
 			panic(throw.IllegalValue())
-		case r.RegistrarSignature.IsEmpty():
+		case !sig.IsEmpty():
+			r.RegistrarSignature = sig
+		default:
 			panic(throw.Impossible())
 		}
 	}
+
+	return len(set.Records)
+}
+
+func (p *LineSharedData) FindWithTracker(ref reference.Holder) (bool, *buildersvc.Future, lineage.ReadRecord) {
+	p.ensureDataAccess()
+
+	switch ok, tracker, rec := p.data.FindWithTracker(ref); {
+	case !ok:
+		return false, nil, lineage.ReadRecord{}
+	case tracker != nil:
+		return true, tracker.(*buildersvc.Future), rec
+	default:
+		return true, nil, rec
+	}
+}
+
+func (p *LineSharedData) FindSequence(ref reference.Holder, findFn func(record lineage.ReadRecord) bool) (bool, *buildersvc.Future) {
+	p.ensureDataAccess()
+
+	ok, fut := p.data.FindSequence(ref, findFn)
+	if fut == nil {
+		return ok, nil
+	}
+	return ok, fut.(*buildersvc.Future)
+}
+
+func (p *LineSharedData) DropID() jet.DropID {
+	p.ensureDataAccess()
+	return p.jetDropID
 }

@@ -9,7 +9,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
-	"github.com/insolar/assured-ledger/ledger-core/ledger/server/datareader"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/datafinder"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -38,10 +38,10 @@ func (p *DropSharedData) ensureAccess() {
 	}
 }
 
-func (p *DropSharedData) SetPrevDropReport(report datareader.PrevDropReport) {
+func (p *DropSharedData) SetPrevDropReport(report datafinder.PrevDropReport) {
 	p.prevReportBargein.CallWithParam(report)
 }
 
-func (p *DropSharedData) setPrevReport(datareader.PrevDropReport) {
+func (p *DropSharedData) setPrevReport(datafinder.PrevDropReport) {
 	// TODO
 }

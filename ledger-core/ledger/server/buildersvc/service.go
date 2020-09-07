@@ -8,46 +8,25 @@ package buildersvc
 import (
 	"sync"
 
-	"github.com/insolar/assured-ledger/ledger-core/conveyor"
-	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jetalloc"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/bundle"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lineage"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
-	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/merkler"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-type PlashAssistant interface {
-	PreparePulseChange(outFn conveyor.PreparePulseCallbackFunc)
-	CancelPulseChange()
-	CommitPulseChange()
-
-	CalculateJetDrop(reference.Holder) jet.DropID
-	IsGenesis() bool
-}
-
-type AppendFuture interface {
-	TrySetFutureResult(allocations []ledger.DirectoryIndex, err error) bool
-}
-
-type Service interface {
-	CreatePlash(pr pulse.Range, treePrev, treeCur jet.Tree, online census.OnlinePopulation) (PlashAssistant, []jet.ExactID)
-	CreateGenesis(pulse.Range, census.OnlinePopulation) (PlashAssistant, jet.ExactID)
-	AppendToDrop(jet.DropID, AppendFuture, lineage.UpdateBundle)
-}
-
 type StorageSnapshotFactoryFunc = func(pulse.Number) bundle.SnapshotWriter
 
 var _ Service = &serviceImpl{}
+var _ ReadService = &serviceImpl{}
 
-func NewService(allocStrategy jetalloc.MaterialAllocationStrategy, merklePair cryptkit.PairDigester,
+func newService(allocStrategy jetalloc.MaterialAllocationStrategy, merklePair cryptkit.PairDigester,
 	storageFactoryFn StorageSnapshotFactoryFunc,
-) Service {
+) *serviceImpl {
 	return &serviceImpl{
 		allocStrategy: allocStrategy,
 		merklePair: merklePair,
@@ -64,6 +43,23 @@ type serviceImpl struct {
 	mapMutex sync.RWMutex
 	lastPN   pulse.Number
 	plashes  map[pulse.Number]*plashAssistant
+}
+
+func (p *serviceImpl) DropReadDirty(id jet.DropID, fn func(reader bundle.DirtyReader) error) error {
+	if fn == nil {
+		panic(throw.IllegalValue())
+	}
+
+	pa := p.get(id.CreatedAt())
+
+	switch {
+	case pa == nil:
+		return throw.E("unknown plash", struct { jet.DropID }{ id })
+	case pa.dropAssists[id.ID()] == nil:
+		return throw.E("unknown drop", struct { jet.DropID }{ id })
+	}
+
+	return fn(pa.dirtyReader)
 }
 
 func (p *serviceImpl) AppendToDrop(id jet.DropID, future AppendFuture, bundle lineage.UpdateBundle) {
@@ -149,6 +145,7 @@ func (p *serviceImpl) createPlash(pr pulse.Range, tree jet.PrefixTree, populatio
 	}
 
 	sw := p.storageFactoryFn(pn)
+	pa.dirtyReader = sw.DirtyReader()
 	bw := bundle.NewWriter(sw) // NB! MUST be one writer per storage
 
 	result := jets[:0]

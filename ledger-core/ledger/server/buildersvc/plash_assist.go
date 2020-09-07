@@ -12,6 +12,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jetalloc"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/bundle"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lineage"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -34,6 +35,7 @@ type plashAssistant struct {
 	tree        jet.PrefixTree
 	population  census.OnlinePopulation
 	calc        jetalloc.MaterialAllocationCalculator
+	dirtyReader bundle.DirtyReader
 	dropAssists map[jet.ID]*dropAssistant
 
 	status   atomickit.Uint32
