@@ -48,7 +48,7 @@ test_slow: ## run tests with slowtest tag
 
 .PHONY: test_slow_long
 test_slow_long: ## run tests with slowtest tag
-	$(GOTEST) -count=300 -timeout 30m -tags "slowtest longtest copylogtxt" $(PACKAGES) -args TESTLOG_OUT=$(EXTENDED_INTEGRATION_LOG) TESTLOG_MARKS=1 TESTLOG_TXT=1
+	$(GOTEST) -count=300 -timeout 90m -tags "slowtest longtest copylogtxt" $(PACKAGES) -args TESTLOG_OUT=$(EXTENDED_INTEGRATION_LOG) TESTLOG_MARKS=1 TESTLOG_TXT=1
 
 .PHONY: test_extended
 test_extended: ## run tests with slowtest tag
