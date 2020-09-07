@@ -17,7 +17,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/defaults"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	"github.com/insolar/insconfig"
 )
 
 var (
@@ -55,7 +57,6 @@ func main() {
 }
 
 func generateBaseCloudConfig() {
-
 	logConfig := configuration.Log{
 		Level:     debugLevel,
 		Adapter:   "zerolog",
@@ -68,9 +69,25 @@ func generateBaseCloudConfig() {
 		check("Filed to find configs:", throw.New("list is empty"))
 	}
 
+	pulsarCfgPath := withBaseDir("pulsar.yaml")
+
+	fmt.Println("reading pulsar config", pulsarCfgPath)
+
+	pCfg := configuration.NewPulsarConfiguration()
+	params := insconfig.Params{
+		EnvPrefix:        "pulsard",
+		ConfigPathGetter: &configuration.StringPathGetter{Path: pulsarCfgPath},
+	}
+	insConfigurator := insconfig.New(params)
+	err = insConfigurator.Load(&pCfg)
+	if err != nil {
+		global.Warn("failed to load configuration from file: ", err.Error())
+	}
+
 	conf := configuration.BaseCloudConfig{
-		Log:             logConfig,
-		NodeConfigPaths: foundConfigs,
+		Log:                 logConfig,
+		NodeConfigPaths:     foundConfigs,
+		PulsarConfiguration: pCfg,
 	}
 
 	rawData, err := yaml.Marshal(conf)
