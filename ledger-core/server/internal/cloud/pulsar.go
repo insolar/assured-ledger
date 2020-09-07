@@ -14,6 +14,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/network/transport"
 	"github.com/insolar/assured-ledger/ledger-core/pulsar"
@@ -28,7 +29,7 @@ type PulsarWrapper struct {
 	ticker *time.Ticker
 }
 
-func NewPulsarWrapper(distributor pulsar.PulseDistributor, cfg configuration.PulsarConfiguration, keyFactory configuration.KeyStoreFactory) *PulsarWrapper {
+func NewPulsarWrapper(distributor pulsar.PulseDistributor, cfg configuration.PulsarConfiguration, keyFactory insapp.KeyStoreFactory) *PulsarWrapper {
 	ctx := context.Background()
 
 	keyStore, err := keyFactory(cfg.KeysPath)

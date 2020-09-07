@@ -20,7 +20,7 @@ func NewNode(cfg configuration.Configuration) Server {
 	return insapp.New(cfg, appFactory)
 }
 
-func NewMultiServer(configProvider configuration.CloudConfigurationProvider) Server {
+func NewMultiServer(configProvider insapp.CloudConfigurationProvider) Server {
 	controller := cloud.NewController()
 	if configProvider.GetAppConfigs == nil {
 		panic("GetAppConfigs cannot be nil")

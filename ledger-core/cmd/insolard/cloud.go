@@ -13,6 +13,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/keystore"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/server"
@@ -45,7 +46,7 @@ func runInsolardCloud(configPath string) {
 		global.Fatal("Failed to parse YAML file", err)
 	}
 
-	configProvider := configuration.CloudConfigurationProvider{
+	configProvider := insapp.CloudConfigurationProvider{
 		CertificateFactory: mandates.NewManagerReadCertificate,
 		KeyFactory:         keystore.NewKeyStore,
 		CloudConfig:        cloudConf,

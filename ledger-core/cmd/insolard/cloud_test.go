@@ -19,6 +19,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/secrets"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/defaults"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -70,7 +71,7 @@ type inMemoryKeyStore struct {
 func (ks inMemoryKeyStore) GetPrivateKey(string) (crypto.PrivateKey, error) {
 	return ks.key, nil
 }
-func makeKeyFactory(nodes []nodeInfo) configuration.KeyStoreFactory {
+func makeKeyFactory(nodes []nodeInfo) insapp.KeyStoreFactory {
 	keysMap := make(map[string]crypto.PrivateKey)
 	for _, n := range nodes {
 		if _, ok := keysMap[n.keyName]; ok {
@@ -90,8 +91,8 @@ func makeKeyFactory(nodes []nodeInfo) configuration.KeyStoreFactory {
 func prepareCloudConfiguration(virtual, light, heavy int) (
 	[]configuration.Configuration,
 	configuration.BaseCloudConfig,
-	configuration.CertManagerFactory,
-	configuration.KeyStoreFactory,
+	insapp.CertManagerFactory,
+	insapp.KeyStoreFactory,
 ) {
 	totalNum := virtual + light + heavy
 	if totalNum < 1 {
@@ -226,7 +227,7 @@ func generateNodeConfigs(nodes []nodeInfo, virtual, light, heavy int) []configur
 	return appConfigs
 }
 
-func makeCertManagerFactory(certs map[string]*mandates.Certificate) configuration.CertManagerFactory {
+func makeCertManagerFactory(certs map[string]*mandates.Certificate) insapp.CertManagerFactory {
 	return func(publicKey crypto.PublicKey, keyProcessor cryptography.KeyProcessor, certPath string) (*mandates.CertificateManager, error) {
 		return mandates.NewCertificateManager(certs[certPath]), nil
 	}
@@ -338,7 +339,7 @@ func Test_RunCloud(t *testing.T) {
 
 	appConfigs, baseConf, certFactory, keyFactory := prepareCloudConfiguration(numVirtual, numLightMaterials, numHeavyMaterials)
 
-	confProvider := configuration.CloudConfigurationProvider{
+	confProvider := insapp.CloudConfigurationProvider{
 		CloudConfig:        baseConf,
 		CertificateFactory: certFactory,
 		KeyFactory:         keyFactory,

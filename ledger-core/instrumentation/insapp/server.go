@@ -29,8 +29,8 @@ type Server struct {
 	appFn              AppFactoryFunc
 	multiFn            MultiNodeConfigFunc
 	extra              []interface{}
-	certManagerFactory configuration.CertManagerFactory
-	keyStoreFactory    configuration.KeyStoreFactory
+	certManagerFactory CertManagerFactory
+	keyStoreFactory    KeyStoreFactory
 }
 
 // New creates a one-node process.
