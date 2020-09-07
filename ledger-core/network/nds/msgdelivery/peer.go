@@ -161,11 +161,14 @@ func (p *DeliveryPeer) sendState(packet StatePacket) {
 }
 
 func (p *DeliveryPeer) sendParcel(msg *msgShipment, isBody, isRepeated bool) {
-	packet := ParcelPacket{ParcelID: msg.id.ShortID(), ReturnID: msg.returnID, RepeatedSend: isRepeated}
+	packet := ParcelPacket{
+		ParcelID:     msg.id.ShortID(),
+		ReturnID:     msg.returnID,
+		RepeatedSend: isRepeated,
+		ParcelType:   nwapi.CompletePayload,
+	}
 
-	packet.ParcelType = nwapi.CompletePayload
-
-	if !p.assignAndCheckTTL(msg, &packet) {
+	if !p.applyParcelExpiry(msg, &packet) {
 		msg.markExpired()
 		return
 	}
@@ -185,40 +188,46 @@ func (p *DeliveryPeer) sendParcel(msg *msgShipment, isBody, isRepeated bool) {
 		packet.BodyScale = uint8(bits.Len(msg.shipment.Body.ByteSize()))
 		packet.TTLCycles = msg.shipment.TTL
 	}
-
 	p._sendParcel(p.ctl.parcelOutType, packet, msg.canSendHead)
 }
 
-func (p *DeliveryPeer) sendLargeParcel(msg *msgShipment, isRepeated bool) {
-	packet := ParcelPacket{ParcelID: msg.id.ShortID(), ReturnID: msg.returnID, RepeatedSend: isRepeated, ParcelType: nwapi.CompletePayload}
-	packet.Data = msg.shipment.Body
-
-	if !p.assignAndCheckTTL(msg, &packet) {
-		msg.markExpired()
-		return
-	}
-
-	p._sendParcel(uniproto.SessionfulLarge, packet, msg.canSendBody)
-}
-
-func (p *DeliveryPeer) assignAndCheckTTL(msg *msgShipment, packet *ParcelPacket) bool {
+func (p *DeliveryPeer) applyParcelExpiry(msg *msgShipment, packet *ParcelPacket) bool {
 	cycle, pn := p.ctl.getPulseCycle()
 
-	if msg.expires < cycle {
+	switch {
+	case msg.expires < cycle:
 		return false
-	}
 
-	if msg.shipment.Policies&ExactPulse == 0 {
+	case msg.shipment.Policies&ExactPulse == 0:
 		msg.shipment.Policies |= ExactPulse
 		msg.shipment.PN = pn
 		if cycle = msg.expires - cycle; cycle > math.MaxUint8 {
-			cycle = math.MaxUint8
+			msg.shipment.TTL = math.MaxUint8
+		} else {
+			msg.shipment.TTL = uint8(cycle)
 		}
-		msg.shipment.TTL = uint8(cycle)
 	}
 
 	packet.PulseNumber = msg.shipment.PN
 	return true
+}
+
+func (p *DeliveryPeer) sendLargeParcel(msg *msgShipment, isRepeated bool) {
+	packet := ParcelPacket{
+		ParcelID:     msg.id.ShortID(),
+		ReturnID:     msg.returnID,
+		RepeatedSend: isRepeated,
+		ParcelType:   nwapi.CompletePayload,
+	}
+
+	if !p.applyParcelExpiry(msg, &packet) {
+		msg.markExpired()
+		return
+	}
+
+	packet.Data = msg.shipment.Body
+
+	p._sendParcel(uniproto.SessionfulLarge, packet, msg.canSendBody)
 }
 
 func (p *DeliveryPeer) _sendParcel(tp uniproto.OutType, parcel ParcelPacket, checkFn func() bool) {
