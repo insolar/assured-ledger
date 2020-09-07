@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package main
+package insapp
 
 import (
 	"crypto"
@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"testing"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/genesisrefs"
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
@@ -19,11 +18,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/secrets"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/defaults"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	"github.com/insolar/assured-ledger/ledger-core/server"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -71,7 +68,7 @@ type inMemoryKeyStore struct {
 func (ks inMemoryKeyStore) GetPrivateKey(string) (crypto.PrivateKey, error) {
 	return ks.key, nil
 }
-func makeKeyFactory(nodes []nodeInfo) insapp.KeyStoreFactory {
+func makeKeyFactory(nodes []nodeInfo) KeyStoreFactory {
 	keysMap := make(map[string]crypto.PrivateKey)
 	for _, n := range nodes {
 		if _, ok := keysMap[n.keyName]; ok {
@@ -86,48 +83,6 @@ func makeKeyFactory(nodes []nodeInfo) insapp.KeyStoreFactory {
 		}
 		return &inMemoryKeyStore{keysMap[path]}, nil
 	}
-}
-
-func prepareCloudConfiguration(virtual, light, heavy int) (
-	[]configuration.Configuration,
-	configuration.BaseCloudConfig,
-	insapp.CertManagerFactory,
-	insapp.KeyStoreFactory,
-) {
-	totalNum := virtual + light + heavy
-	if totalNum < 1 {
-		panic("no nodes given")
-	}
-	nodes := make([]nodeInfo, totalNum)
-	err := generateNodeKeys(totalNum, nodes)
-	if err != nil {
-		panic(throw.W(err, "Failed to gen keys"))
-	}
-
-	appConfigs := generateNodeConfigs(nodes, virtual, light, heavy)
-
-	settings := netSettings{
-		majorityRule: totalNum,
-		minRoles: struct {
-			virtual       uint
-			lightMaterial uint
-			heavyMaterial uint
-		}{virtual: uint(virtual), lightMaterial: uint(light), heavyMaterial: uint(heavy)},
-	}
-	certs, err := generateCertificates(nodes, settings)
-	if err != nil {
-		panic(throw.W(err, "Failed to gen certificates"))
-	}
-
-	baseCloudConf := generateBaseCloudConfig(nodes)
-
-	pulsarKeys, err := makeNodeWithKeys()
-	if err != nil {
-		panic(throw.W(err, "Failed to gen pulsar keys"))
-	}
-	pulsarKeys.keyName = baseCloudConf.PulsarConfiguration.KeysPath
-
-	return appConfigs, baseCloudConf, makeCertManagerFactory(certs), makeKeyFactory(append(nodes, pulsarKeys))
 }
 
 func generateBaseCloudConfig(nodes []nodeInfo) configuration.BaseCloudConfig {
@@ -227,7 +182,7 @@ func generateNodeConfigs(nodes []nodeInfo, virtual, light, heavy int) []configur
 	return appConfigs
 }
 
-func makeCertManagerFactory(certs map[string]*mandates.Certificate) insapp.CertManagerFactory {
+func makeCertManagerFactory(certs map[string]*mandates.Certificate) CertManagerFactory {
 	return func(publicKey crypto.PublicKey, keyProcessor cryptography.KeyProcessor, certPath string) (*mandates.CertificateManager, error) {
 		return mandates.NewCertificateManager(certs[certPath]), nil
 	}
@@ -329,25 +284,46 @@ func generateCertificates(nodesInfo []nodeInfo, settings netSettings) (map[strin
 	return certs, nil
 }
 
-func Test_RunCloud(t *testing.T) {
-	t.Skip()
-	var (
-		numVirtual        = 10
-		numLightMaterials = 0
-		numHeavyMaterials = 0
-	)
-
-	appConfigs, baseConf, certFactory, keyFactory := prepareCloudConfiguration(numVirtual, numLightMaterials, numHeavyMaterials)
-
-	confProvider := insapp.CloudConfigurationProvider{
-		CloudConfig:        baseConf,
-		CertificateFactory: certFactory,
-		KeyFactory:         keyFactory,
-		GetAppConfigs: func() []configuration.Configuration {
-			return appConfigs
-		},
+// PrepareCloudConfiguration generates all configs and factories for launching cloud mode
+// It doesn't use file system at all. Everything generated in memory
+func PrepareCloudConfiguration(virtual, light, heavy int) (
+	[]configuration.Configuration,
+	configuration.BaseCloudConfig,
+	CertManagerFactory,
+	KeyStoreFactory,
+) {
+	totalNum := virtual + light + heavy
+	if totalNum < 1 {
+		panic("no nodes given")
+	}
+	nodes := make([]nodeInfo, totalNum)
+	err := generateNodeKeys(totalNum, nodes)
+	if err != nil {
+		panic(throw.W(err, "Failed to gen keys"))
 	}
 
-	s := server.NewMultiServer(confProvider)
-	s.Serve()
+	appConfigs := generateNodeConfigs(nodes, virtual, light, heavy)
+
+	settings := netSettings{
+		majorityRule: totalNum,
+		minRoles: struct {
+			virtual       uint
+			lightMaterial uint
+			heavyMaterial uint
+		}{virtual: uint(virtual), lightMaterial: uint(light), heavyMaterial: uint(heavy)},
+	}
+	certs, err := generateCertificates(nodes, settings)
+	if err != nil {
+		panic(throw.W(err, "Failed to gen certificates"))
+	}
+
+	baseCloudConf := generateBaseCloudConfig(nodes)
+
+	pulsarKeys, err := makeNodeWithKeys()
+	if err != nil {
+		panic(throw.W(err, "Failed to gen pulsar keys"))
+	}
+	pulsarKeys.keyName = baseCloudConf.PulsarConfiguration.KeysPath
+
+	return appConfigs, baseCloudConf, makeCertManagerFactory(certs), makeKeyFactory(append(nodes, pulsarKeys))
 }
