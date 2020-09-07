@@ -44,7 +44,7 @@ func (s *Server) initBootstrapComponents(ctx context.Context, cfg configuration.
 	earlyComponents.SetLogger(logger)
 
 	keyFactory := keystore.NewKeyStore
-	if s.confProvider.KeyFactory != nil {
+	if s.confProvider != nil && s.confProvider.KeyFactory != nil {
 		keyFactory = s.confProvider.KeyFactory
 	}
 	keyStore, err := keyFactory(cfg.KeysPath)
@@ -61,7 +61,7 @@ func (s *Server) initBootstrapComponents(ctx context.Context, cfg configuration.
 	checkError(ctx, err, "failed to retrieve node public key")
 
 	certFactory := mandates.NewManagerReadCertificate
-	if s.confProvider.CertificateFactory != nil {
+	if s.confProvider != nil && s.confProvider.CertificateFactory != nil {
 		certFactory = s.confProvider.CertificateFactory
 	}
 	certManager, err := certFactory(publicKey, keyProcessor, cfg.CertificatePath)
