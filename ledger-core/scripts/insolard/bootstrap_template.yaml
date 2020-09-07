@@ -1,7 +1,7 @@
 members_keys_dir: "{{ .BaseDir }}/configs/"
 discovery_keys_dir: "{{ .BaseDir }}/reusekeys/discovery/"
 not_discovery_keys_dir: "{{ .BaseDir }}/reusekeys/nodes/"
-keys_name_format: "/node_%02d.json"
+keys_name_format: "/node_%d.json"
 reuse_keys: false
 heavy_genesis_config_file: "{{ .BaseDir }}/configs/heavy_genesis.json"
 heavy_genesis_plugins_dir: "{{ .BaseDir }}/plugins/"

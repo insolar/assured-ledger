@@ -37,17 +37,17 @@ type NetworkInitFunc = func(configuration.Configuration, *component.Manager) (Ne
 // MultiNodeConfigFunc provides support for multi-node process initialization.
 // For the given config path and base config this handler should return a list of configurations (one per node). And NetworkInitFunc
 // to initialize instantiate a network support for each app compartment (one per node). A default implementation is applied when NetworkInitFunc is nil.
-type MultiNodeConfigFunc = func(baseCfg configuration.Configuration) ([]configuration.Configuration, NetworkInitFunc)
+type MultiNodeConfigFunc = func(baseCfg ConfigurationProvider) ([]configuration.Configuration, NetworkInitFunc)
 
-func NewMulti(cfg configuration.Configuration, appFn AppFactoryFunc, multiFn MultiNodeConfigFunc, extraComponents ...interface{}) *Server {
+func NewMulti(cfgProvider ConfigurationProvider, appFn AppFactoryFunc, multiFn MultiNodeConfigFunc, extraComponents ...interface{}) *Server {
 	if multiFn == nil {
 		panic(throw.IllegalValue())
 	}
 
 	return &Server{
-		cfg:     cfg,
-		appFn:   appFn,
-		multiFn: multiFn,
-		extra:   extraComponents,
+		appFn:        appFn,
+		multiFn:      multiFn,
+		extra:        extraComponents,
+		confProvider: cfgProvider,
 	}
 }

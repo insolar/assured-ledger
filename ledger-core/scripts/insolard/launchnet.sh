@@ -308,20 +308,6 @@ launch_keeperd()
     echo "launch_keeperd() end."
 }
 
-copy_discovery_certs()
-{
-    echo "copy_certs() starts ..."
-    i=0
-    for node in "${DISCOVERY_NODE_DIRS[@]}"
-    do
-        i=$((i + 1))
-        set -x
-        cp -v ${DISCOVERY_NODES_DATA}certs/discovery_cert_$i.json ${node}/cert.json
-        { set +x; } 2>/dev/null
-    done
-    echo "copy_certs() end."
-}
-
 wait_for_complete_network_state()
 {
     while true
@@ -347,6 +333,7 @@ bootstrap()
     fi
     generate_pulsar_keys
     generate_insolard_configs
+
 
     echo "start bootstrap ..."
     CMD="${INSOLAR_CLI} bootstrap --config=${BOOTSTRAP_CONFIG} --certificates-out-dir=${DISCOVERY_NODES_DATA}certs"
@@ -374,8 +361,6 @@ bootstrap()
         exit ${GENESIS_EXIT_CODE}
     fi
     echo "bootstrap is done"
-
-    copy_discovery_certs
 }
 
 watch_pulse=true
