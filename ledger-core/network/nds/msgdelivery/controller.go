@@ -499,7 +499,7 @@ func (p *Controller) send(to nwapi.Address, returnID ShortShipmentID, shipment S
 		msg.markBodyRq()
 		p.sender.sendBodyOnly(msg)
 	case msg.shipment.Body == nil && msg.isFireAndForget():
-		p.sender.sendHeadNoRetry(msg)
+		p.sender.sendHeadNow(msg)
 	default:
 		p.sender.sendHead(msg, sendSize, currentCycle)
 	}

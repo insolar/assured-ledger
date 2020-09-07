@@ -103,13 +103,23 @@ func (p *retryMsgWorker) sendHead(msg *msgShipment, repeatFn func(retries.RetryI
 	}
 }
 
+func noRetryFn(retries.RetryID) {}
+
 func (p *retryMsgWorker) processOoB(msg *msgShipment) {
+	var repeatFn func(retries.RetryID)
+
+	if msg.isFireAndForget() {
+		repeatFn = noRetryFn
+	} else {
+		repeatFn = p.sender.stages.AddHeadForRetry
+	}
+
 	switch {
 	case p.marks.mark(msg.id):
 		p.sema.Lock()
-		go p.sendHead(msg, p.sender.stages.AddHeadForRetry)
+		go p.sendHead(msg, repeatFn)
 	case msg.canSendHead():
-		p.pushPostponed(msg, p.sender.stages.AddHeadForRetry)
+		p.pushPostponed(msg, repeatFn)
 	}
 }
 

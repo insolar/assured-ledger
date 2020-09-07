@@ -22,7 +22,5 @@ const (
 
 	ExactPulse
 
-	ImmediateSend
-
 	largeBody
 )

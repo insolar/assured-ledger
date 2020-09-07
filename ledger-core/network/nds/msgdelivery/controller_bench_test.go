@@ -241,32 +241,28 @@ func (v benchSender) throughput(b *testing.B, payloadSize int) {
 	b.ReportAllocs()
 	b.SetBytes(int64(len(payload)))
 
-	received := 0
+	received := 100
 	for i := b.N; i > 0; i-- {
-		err := v.ctl.ShipTo(v.toAddr, Shipment{Body: &TestBytes{payload}, Policies: ImmediateSend})
+		err := v.ctl.ShipTo(v.toAddr, Shipment{Body: &TestBytes{payload}})
 		if err != nil {
 			panic(err)
 		}
 		select {
 		case <- v.results:
 			received++
-			println(received, b.N, " in-loop")
+			// println(received, b.N, " in-loop")
 		default:
 		}
 	}
 	for ;received < b.N; {
 		<- v.results
 		received++
-		println(received, b.N, " off-loop")
+		// println(received, b.N, " off-loop")
 	}
 }
 
 func (v benchSender) latency(b *testing.B, payloadSize int, oob bool) {
 	payload := make([]byte, payloadSize)
-	var policies DeliveryPolicies
-	if oob {
-		policies |= ImmediateSend
-	}
 	b.SetBytes(int64(len(payload)))
 
 	b.ResetTimer()
@@ -275,7 +271,7 @@ func (v benchSender) latency(b *testing.B, payloadSize int, oob bool) {
 	for i := b.N; i > 0; i-- {
 		nanos := time.Now().UnixNano()
 		binary.LittleEndian.PutUint64(payload, uint64(nanos))
-		err := v.ctl.ShipTo(v.toAddr, Shipment{Body: &TestBytes{payload}, Policies: policies})
+		err := v.ctl.ShipTo(v.toAddr, Shipment{Body: &TestBytes{payload}})
 		if err != nil {
 			panic(err)
 		}
