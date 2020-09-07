@@ -83,9 +83,7 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 
 			executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 
-			runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
-				return execution.Request.CallSiteMethod
-			})
+			runnerMock := logicless.NewServiceMock(ctx, mc, nil)
 
 			var object reference.Global
 			{
@@ -127,7 +125,7 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 
 			// add ExecutionMocks to runnerMock
 			{
-				runnerMock.AddExecutionClassify("SomeMethod", test.isolation, nil)
+				runnerMock.AddExecutionClassify(outgoing.String(), test.isolation, nil)
 
 				requestResult := requestresult.New([]byte("call result"), server.RandomGlobalWithPulse())
 				if test.withSideEffect {
@@ -137,7 +135,7 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 					requestResult.SetAmend(newObjDescriptor, []byte("new memory"))
 				}
 
-				objectExecutionMock := runnerMock.AddExecutionMock("SomeMethod")
+				objectExecutionMock := runnerMock.AddExecutionMock(outgoing.String())
 				objectExecutionMock.AddStart(
 					func(_ execution.Context) {
 						logger.Debug("ExecutionStart [SomeMethod]")
@@ -475,9 +473,7 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 			logger := inslogger.FromContext(ctx)
 			executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 
-			runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
-				return execution.Request.CallSiteMethod
-			})
+			runnerMock := logicless.NewServiceMock(ctx, mc, nil)
 			{
 				server.ReplaceRunner(runnerMock)
 				server.Init(ctx)
@@ -518,10 +514,10 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 
 			// add ExecutionMock to runnerMock
 			{
-				runnerMock.AddExecutionClassify("SomeMethod", test.isolation, nil)
+				runnerMock.AddExecutionClassify(outgoingP2.String(), test.isolation, nil)
 				requestResult := requestresult.New([]byte("call result"), server.RandomGlobalWithPulse())
 
-				objectExecutionMock := runnerMock.AddExecutionMock("SomeMethod")
+				objectExecutionMock := runnerMock.AddExecutionMock(outgoingP2.String())
 				objectExecutionMock.AddStart(func(ctx execution.Context) {
 					logger.Debug("ExecutionStart [SomeMethod]")
 					require.Equal(t, object, ctx.Request.Callee)
