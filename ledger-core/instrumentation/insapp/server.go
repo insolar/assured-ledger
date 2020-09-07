@@ -61,7 +61,7 @@ func (cp defaultConfigurationProvider) GetKeyStoreFactory() KeyStoreFactory {
 // New creates a one-node process.
 func New(cfg configuration.Configuration, appFn AppFactoryFunc, extraComponents ...interface{}) *Server {
 	return &Server{
-		confProvider: &defaultConfigurationProvider{},
+		confProvider: &defaultConfigurationProvider{config: cfg},
 		appFn:        appFn,
 		extra:        extraComponents,
 	}
