@@ -266,9 +266,7 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 
 	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 4)
 
-	runnerMock := logicless.NewServiceMock(ctx, t, func(execution execution.Context) string {
-		return execution.Request.CallSiteMethod
-	})
+	runnerMock := logicless.NewServiceMock(ctx, t, nil)
 	{
 		server.ReplaceRunner(runnerMock)
 		server.Init(ctx)
@@ -388,29 +386,29 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 
 		request := utils.GenerateVCallRequestMethod(server)
 		request.Callee = object
+		outgoing := server.BuildRandomOutgoingWithPulse()
 
 		switch i {
 		case 0, 1:
 			request.CallSiteMethod = "ordered" + strconv.FormatInt(i, 10)
 			request.CallFlags = payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty)
 
-			runnerMock.AddExecutionClassify(request.CallSiteMethod, tolerableFlags(), nil)
+			runnerMock.AddExecutionClassify(outgoing.String(), tolerableFlags(), nil)
 			result = requestresult.New([]byte("call result"), object)
 			result.SetAmend(newObjDescriptor, []byte("new memory"))
-			objectExecutionMock = runnerMock.AddExecutionMock(request.CallSiteMethod)
 
 		case 2, 3:
 			request.CallSiteMethod = "unordered" + strconv.FormatInt(i, 10)
 			request.CallFlags = payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallValidated)
 
-			runnerMock.AddExecutionClassify(request.CallSiteMethod, intolerableFlags(), nil)
-			objectExecutionMock = runnerMock.AddExecutionMock(request.CallSiteMethod)
+			runnerMock.AddExecutionClassify(outgoing.String(), intolerableFlags(), nil)
 			result = requestresult.New([]byte("call result"), object)
 		default:
 			panic(throw.Impossible())
 		}
 
-		request.CallOutgoing = server.BuildRandomOutgoingWithPulse()
+		request.CallOutgoing = outgoing
+		objectExecutionMock = runnerMock.AddExecutionMock(outgoing.String())
 		objectExecutionMock.AddStart(
 			func(_ execution.Context) {
 				logger.Debug("ExecutionStart [" + request.CallSiteMethod + "]")

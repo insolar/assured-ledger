@@ -282,13 +282,10 @@ func TestVirtual_CallMethod_On_CompletelyDeactivatedObject(t *testing.T) {
 					server, ctx := utils.NewUninitializedServer(nil, t)
 					defer server.Stop()
 
-					runnerMock := logicless.NewServiceMock(ctx, t, func(execution execution.Context) string {
-						return execution.Request.CallSiteMethod
-					})
+					runnerMock := logicless.NewServiceMock(ctx, t, nil)
 
 					isolation := contract.MethodIsolation{Interference: isolation.CallIntolerable, State: stateTest.objectState}
 					methodName := "MyFavorMethod" + callTypeTest.name
-					runnerMock.AddExecutionClassify(methodName, isolation, nil)
 					server.ReplaceRunner(runnerMock)
 
 					server.Init(ctx)
@@ -300,6 +297,8 @@ func TestVirtual_CallMethod_On_CompletelyDeactivatedObject(t *testing.T) {
 
 					server.IncrementPulseAndWaitIdle(ctx)
 					Method_PrepareObject(ctx, server, payload.StateStatusInactive, object, prevPulse)
+					outgoing := server.BuildRandomOutgoingWithPulse()
+					runnerMock.AddExecutionClassify(outgoing.String(), isolation, nil)
 
 					gotResult := make(chan struct{})
 
@@ -322,7 +321,7 @@ func TestVirtual_CallMethod_On_CompletelyDeactivatedObject(t *testing.T) {
 						Caller:         server.GlobalCaller(),
 						Callee:         object,
 						CallSiteMethod: methodName,
-						CallOutgoing:   server.BuildRandomOutgoingWithPulse(),
+						CallOutgoing:   outgoing,
 						Arguments:      insolar.MustSerialize([]interface{}{}),
 					}
 					server.SendPayload(ctx, &pl)
@@ -467,9 +466,7 @@ func TestVirtual_DeactivateObject_ChangePulse(t *testing.T) {
 
 	oneExecutionEnded := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 
-	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
-		return execution.Request.CallSiteMethod
-	})
+	runnerMock := logicless.NewServiceMock(ctx, mc, nil)
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
 
@@ -488,11 +485,11 @@ func TestVirtual_DeactivateObject_ChangePulse(t *testing.T) {
 
 	synchronizeExecution := synchronization.NewPoint(1)
 	{ // setup runner mock for deactivation call
-		runnerMock.AddExecutionClassify(deactivateMethodName, deactivateIsolation, nil)
+		runnerMock.AddExecutionClassify(outgoing.String(), deactivateIsolation, nil)
 		requestResult := requestresult.New([]byte(deactivateMethodName+" result"), objectRef)
 		requestResult.SetDeactivate(descriptor.NewObject(objectRef, server.RandomLocalWithPulse(), class, insolar.MustSerialize(initialBalance), false))
 
-		runnerMock.AddExecutionMock(deactivateMethodName).AddStart(
+		runnerMock.AddExecutionMock(outgoing.String()).AddStart(
 			func(ctx execution.Context) {
 				require.Equal(t, objectRef, ctx.Request.Callee)
 				require.Equal(t, []byte(origDirtyMem), ctx.ObjectDescriptor.Memory())

@@ -1518,9 +1518,7 @@ func TestVirtual_Method_IntolerableCallChangeState(t *testing.T) {
 
 	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 
-	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
-		return execution.Request.CallSiteMethod
-	})
+	runnerMock := logicless.NewServiceMock(ctx, mc, nil)
 	{
 		server.ReplaceRunner(runnerMock)
 		server.Init(ctx)
