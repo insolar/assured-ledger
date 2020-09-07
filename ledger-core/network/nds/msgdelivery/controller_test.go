@@ -8,6 +8,7 @@ package msgdelivery
 import (
 	"fmt"
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 
@@ -35,17 +36,22 @@ func TestController(t *testing.T) {
 	var receive1 atomickit.Uint32
 	var receive2 atomickit.Uint32
 
-	var ctl1 Service
+	results := make(chan string, 2000)
+
+	// var ctl1 Service
 	controller1 := NewController(Protocol, TestDeserializationFactory{},
 		func(a ReturnAddress, _ nwapi.PayloadCompleteness, v interface{}) error {
 			receive1.Add(1)
 			// t.Log(a.String(), "Ctl1:", v)
 			// fmt.Println(a.String(), "Ctl1:", v)
-			s := v.(fmt.Stringer).String() + "-return"
-			return ctl1.ShipReturn(a, Shipment{Head: &TestString{s}})
+			s := v.(fmt.Stringer).String()
+			results <- s
+			// s := v.(fmt.Stringer).String() + "-return"
+			// return ctl1.ShipReturn(a, Shipment{Head: &TestString{s}})
+			return nil
 		}, nil, TestLogAdapter{t})
 
-	ctl1 = controller1.NewFacade()
+	// ctl1 = controller1.NewFacade()
 
 	var dispatcher1 uniserver.Dispatcher
 	controller1.RegisterWith(dispatcher1.RegisterProtocol)
@@ -78,7 +84,6 @@ func TestController(t *testing.T) {
 
 	/********************************/
 
-	results := make(chan string, 2000)
 	controller2 := NewController(Protocol, TestDeserializationFactory{},
 		func(a ReturnAddress, _ nwapi.PayloadCompleteness, v interface{}) error {
 			receive2.Add(1)
@@ -131,21 +136,40 @@ func TestController(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, "loc0", <-results)
-	require.Equal(t, "rem0-return", <-results)
+	require.Equal(t, "rem0", <-results)
+	// require.Equal(t, "rem0-return", <-results)
 
-	for i := 1; i <= 100; i++ {
+	sentMap := sync.Map{}
+	totalCount := atomickit.Uint32{}
+
+	for i := 1; i <= 1000; i++ {
 		// loopback
 		// err = ctl2.ShipTo(NewDirectAddress(2), Shipment{Head: &TestString{"loc" + strconv.Itoa(i)}})
 		// require.NoError(t, err)
 
-		err = ctl2.ShipTo(NewDirectAddress(1), Shipment{Head: &TestString{"rem" + strconv.Itoa(i)}})
+		key := "rem" + strconv.Itoa(i)
+		sentMap.Store(key, nil)
+		totalCount.Add(1)
+		err = ctl2.ShipTo(NewDirectAddress(1), Shipment{Head: &TestString{key}})
 		require.NoError(t, err)
-
 	}
 
-	for i := 100; i > 0; i-- {
-		<-results
-	}
+	go func() {
+		for totalCount.Load() > 0 {
+			key := <-results
+			sentMap.Delete(key)
+			totalCount.Sub(1)
+		}
+	}()
 
-	time.Sleep(controller1.timeCycle*10)
+	time.Sleep(time.Second*10)
+
+	if totalCount.Load() > 0 {
+		sentMap.Range(func(key, value interface{}) bool {
+			fmt.Println(key)
+			return true
+		})
+
+		t.Fail()
+	}
 }

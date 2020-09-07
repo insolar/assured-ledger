@@ -58,22 +58,22 @@ func BenchmarkThroughput(b *testing.B) {
 		// })
 	})
 
-	b.Run("loopback", func(b *testing.B) {
-		bench := sender
-		bench.toAddr = NewDirectAddress(2) // loopback
-
-		b.Run("0.1k", func(b *testing.B) {
-			bench.throughput(b, 100)
-		})
-
-		b.Run("4k", func(b *testing.B) {
-			bench.throughput(b, 1<<12)
-		})
-
-		b.Run("16k", func(b *testing.B) {
-			bench.throughput(b, 1<<14)
-		})
-	})
+	// b.Run("loopback", func(b *testing.B) {
+	// 	bench := sender
+	// 	bench.toAddr = NewDirectAddress(2) // loopback
+	//
+	// 	b.Run("0.1k", func(b *testing.B) {
+	// 		bench.throughput(b, 100)
+	// 	})
+	//
+	// 	b.Run("4k", func(b *testing.B) {
+	// 		bench.throughput(b, 1<<12)
+	// 	})
+	//
+	// 	b.Run("16k", func(b *testing.B) {
+	// 		bench.throughput(b, 1<<14)
+	// 	})
+	// })
 }
 
 // WARNING! Benchmark is unstable due to packet drops on overflow.
@@ -241,21 +241,23 @@ func (v benchSender) throughput(b *testing.B, payloadSize int) {
 	b.ReportAllocs()
 	b.SetBytes(int64(len(payload)))
 
-	received := 100
+	received := 0
 	for i := b.N; i > 0; i-- {
-		err := v.ctl.ShipTo(v.toAddr, Shipment{Body: &TestBytes{payload}})
+		err := v.ctl.ShipTo(v.toAddr, Shipment{Body: &TestBytes{payload}, Policies: ImmediateSend})
 		if err != nil {
 			panic(err)
 		}
 		select {
 		case <- v.results:
 			received++
+			println(received, b.N, " in-loop")
 		default:
 		}
 	}
-	for ;received < b.N;received++ {
-		// println(received, b.N)
+	for ;received < b.N; {
 		<- v.results
+		received++
+		println(received, b.N, " off-loop")
 	}
 }
 
