@@ -142,7 +142,7 @@ func generateNodeConfigs(nodes []nodeInfo, virtual, light, heavy int) []configur
 		{
 			conf.Host.Transport.Address = defaultHost + ":" + strconv.Itoa(netPort)
 			nodes[i].host = conf.Host.Transport.Address
-			netPort += 1
+			netPort++
 		}
 		{
 			conf.Metrics.ListenAddress = defaultHost + ":" + strconv.Itoa(metricsPort)
