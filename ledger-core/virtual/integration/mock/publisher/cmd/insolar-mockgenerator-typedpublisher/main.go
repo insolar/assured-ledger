@@ -255,17 +255,17 @@ func parseHandlers() ([]string, error) {
 	return messages, nil
 }
 
-func checkRMSIsUsed(messages []string) bool {
+func checkRMSIsUsed(_ []string) bool {
+	return true
+}
+
+func checkPayloadIsUsed(messages []string) bool {
 	for _, message := range messages {
-		if strings.HasPrefix(message, "rms.") {
+		if strings.HasPrefix(message, "payload.") {
 			return true
 		}
 	}
 	return false
-}
-
-func checkPayloadIsUsed(messages []string) bool {
-	return true
 }
 
 func messageListToMessageDataList(messages []string) []MessageData {

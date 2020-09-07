@@ -666,7 +666,13 @@ func (p *Typed) CheckMessages(topic string, messages ...*message.Message) error 
 }
 
 func (p *Typed) checkMessage(ctx context.Context, msg *message.Message) {
-	basePayload, err := payload.UnmarshalFromMeta(msg.Payload)
+	var meta payload.Meta
+
+	if err := meta.Unmarshal(payload.Meta); err != nil {
+		return
+	}
+
+	basePayload, err := rms.Unmarshal(msg.Payload)
 	if err != nil {
 		return
 	}
