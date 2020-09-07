@@ -23,6 +23,7 @@ import (
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
@@ -460,6 +461,26 @@ func (sm *SMObject) stepPublishCallSummary(ctx smachine.ExecutionContext) smachi
 	}
 
 	ctx.ApplyAdjustment(sm.summaryDoneCtl.NewValue(true))
+
+	return ctx.Jump(sm.stepSendTranscriptReport)
+}
+
+func (sm *SMObject) stepSendTranscriptReport(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	msg := rms.VObjectTranscriptReport{
+		AsOf:             sm.pulseSlot.PulseNumber(),
+		Object:           rms.NewReference(sm.Reference),
+		ObjectTranscript: sm.Transcript.GetRMSTranscript(), // TODO later need to filter only finish requests
+		// PendingTranscripts: sm.Transcript.GetEntries(), // TODO how to get? filter by object
+	}
+
+	sm.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
+		err := svc.SendRole(goCtx, &msg, affinity.DynamicRoleVirtualValidator, sm.Reference, sm.pulseSlot.PulseNumber())
+		return func(ctx smachine.AsyncResultContext) {
+			if err != nil {
+				ctx.Log().Error("failed to send state", err)
+			}
+		}
+	}).WithoutAutoWakeUp().Start()
 
 	return ctx.Jump(sm.stepFinalize)
 }

@@ -798,7 +798,9 @@ func TestSendVStateReportWithMissingState_IfConstructorWasInterruptedBeforeRunne
 	slotMachine.PrepareMockedMessageSender(mc)
 	slotMachine.MessageSender.SendRole.SetCheckMessage(func(msg payload.Marshaler) {
 		res, ok := msg.(*payload.VStateReport)
-		require.True(t, ok)
+		if !ok {
+			return
+		}
 		assert.Equal(t, payload.StateStatusMissing, res.Status)
 		assert.Equal(t, reference.NewSelf(outgoing.GetLocal()), res.Object)
 		assert.Equal(t, int32(0), res.OrderedPendingCount)
