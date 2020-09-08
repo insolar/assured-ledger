@@ -7,13 +7,13 @@ package utils
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
-	payload "github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 )
 
-func MakeMinimumValidVStateResult(server *Server, returnArgs []byte) *payload.VCallResult {
-	return &payload.VCallResult{
-		CallType:        payload.CallTypeMethod,
-		CallFlags:       payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty),
+func MakeMinimumValidVStateResult(server *Server, returnArgs []byte) *rms.VCallResult {
+	return &rms.VCallResult{
+		CallType:        rms.CallTypeMethod,
+		CallFlags:       rms.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty),
 		Callee:          server.RandomGlobalWithPulse(),
 		Caller:          server.GlobalCaller(),
 		ReturnArguments: returnArgs,

@@ -12,19 +12,19 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/trace"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	payload "github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type RequestWrapper struct {
 	pulseNumber pulse.Number
-	payload     payload.Marshaler
+	payload     rms.Marshaler
 
 	sender   reference.Global
 	receiver reference.Global
 }
 
-func NewRequestWrapper(pulseNumber pulse.Number, payload payload.Marshaler) *RequestWrapper {
+func NewRequestWrapper(pulseNumber pulse.Number, payload rms.Marshaler) *RequestWrapper {
 	return &RequestWrapper{
 		pulseNumber: pulseNumber,
 		payload:     payload,
@@ -47,13 +47,13 @@ func (w *RequestWrapper) Finalize() *message.Message {
 		panic(throw.W(err, "failed to marshal message"))
 	}
 
-	msg, err := payload.NewMessage(&payload.Meta{
+	msg, err := rms.NewMessage(&rms.Meta{
 		Payload:    payloadBytes,
 		Sender:     w.sender,
 		Receiver:   w.receiver,
 		Pulse:      w.pulseNumber,
 		ID:         nil,
-		OriginHash: payload.MessageHash{},
+		OriginHash: rms.MessageHash{},
 	})
 	if err != nil {
 		panic(throw.W(err, "failed to create watermill message"))

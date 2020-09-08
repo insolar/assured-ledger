@@ -16,7 +16,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	payload "github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
@@ -119,7 +119,7 @@ func TestSMObject_MigrationCreateStateReport_IfStateIsEmptyAndNoCounters(t *test
 		ShareMock.Set(
 		func(data interface{}, flags smachine.ShareDataFlags) (s1 smachine.SharedDataLink) {
 			switch data.(type) {
-			case *payload.VStateReport:
+			case *rms.VStateReport:
 			case *smachine.SyncLink:
 				// no-op
 			default:

@@ -7,7 +7,7 @@ package callregistry
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	payload "github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -40,7 +40,7 @@ func (ort ObjectsResultCallRegistry) AddObjectCallResults(objectRef reference.Gl
 	return true
 }
 
-func (ort ObjectsResultCallRegistry) AddObjectCallResult(objectRef reference.Global, reqRef reference.Global, result *payload.VCallResult) {
+func (ort ObjectsResultCallRegistry) AddObjectCallResult(objectRef reference.Global, reqRef reference.Global, result *rms.VCallResult) {
 	requests, ok := ort.GetObjectCallResults(objectRef)
 	if !ok {
 		// we should have summary result for object if we finish operation.

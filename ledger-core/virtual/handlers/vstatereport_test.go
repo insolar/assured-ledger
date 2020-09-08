@@ -14,7 +14,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
-	payload "github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/shareddata"
@@ -40,13 +40,13 @@ func TestVStateReport_CreateObjectWithoutState(t *testing.T) {
 	catalog.AllowAccessMode(object.CatalogMockAccessGetOrCreate)
 
 	smVStateReport := SMVStateReport{
-		Payload: &payload.VStateReport{
-			Status:                payload.StateStatusEmpty,
+		Payload: &rms.VStateReport{
+			Status:                rms.StateStatusEmpty,
 			Object:                smGlobalRef,
 			AsOf:                  pd.PulseNumber,
 			UnorderedPendingCount: 1,
 			OrderedPendingCount:   1,
-			ProvidedContent:       &payload.VStateReport_ProvidedContentBody{},
+			ProvidedContent:       &rms.VStateReport_ProvidedContentBody{},
 		},
 		objectCatalog: catalog.Mock(),
 		pulseSlot:     &pulseSlot,
@@ -112,17 +112,17 @@ func TestVStateReport_StopSMIfAsOfOutdated(t *testing.T) {
 			mc := minimock.NewController(t)
 
 			smVStateReport := SMVStateReport{
-				Payload: &payload.VStateReport{
-					Status: payload.StateStatusReady,
+				Payload: &rms.VStateReport{
+					Status: rms.StateStatusReady,
 					Object: smGlobalRef,
 					AsOf:   testCase.asOf,
-					ProvidedContent: &payload.VStateReport_ProvidedContentBody{
-						LatestDirtyState: &payload.ObjectState{
+					ProvidedContent: &rms.VStateReport_ProvidedContentBody{
+						LatestDirtyState: &rms.ObjectState{
 							Reference: initRef,
 							Class:     class,
 							State:     initState,
 						},
-						LatestValidatedState: &payload.ObjectState{
+						LatestValidatedState: &rms.ObjectState{
 							Reference: initRef,
 							Class:     class,
 							State:     initState,

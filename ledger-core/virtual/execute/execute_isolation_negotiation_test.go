@@ -19,7 +19,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	payload "github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
@@ -152,9 +152,9 @@ func Test_Execute_stepIsolationNegotiation(t *testing.T) {
 				sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 			)
 
-			request := &payload.VCallRequest{
-				CallType:       payload.CallTypeConstructor,
-				CallFlags:      payload.BuildCallFlags(tc.callIsolation.Interference, tc.callIsolation.State),
+			request := &rms.VCallRequest{
+				CallType:       rms.CallTypeConstructor,
+				CallFlags:      rms.BuildCallFlags(tc.callIsolation.Interference, tc.callIsolation.State),
 				CallSiteMethod: "New",
 				CallOutgoing:   gen.UniqueGlobalRefWithPulse(pd.PulseNumber),
 				Caller:         gen.UniqueGlobalRefWithPulse(pd.PulseNumber),

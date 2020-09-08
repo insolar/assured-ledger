@@ -18,7 +18,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	payload "github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/messagesender"
@@ -38,7 +38,7 @@ func TestVFindCallRequest(t *testing.T) {
 		outgoing  = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
 	)
 
-	vFindCallRequest := payload.VFindCallRequest{
+	vFindCallRequest := rms.VFindCallRequest{
 		LookAt:   pd.GetPulseNumber(),
 		Callee:   objectRef,
 		Outgoing: outgoing,
@@ -46,7 +46,7 @@ func TestVFindCallRequest(t *testing.T) {
 
 	sender := gen.UniqueGlobalRef()
 	smVFindCallRequest := SMVFindCallRequest{
-		Meta: &payload.Meta{
+		Meta: &rms.Meta{
 			Sender: sender,
 		},
 		Payload:   &vFindCallRequest,
@@ -99,7 +99,7 @@ func TestVFindCallRequest(t *testing.T) {
 
 	reqs := callregistry.NewWorkingTable()
 
-	vCallResult := payload.VCallResult{
+	vCallResult := rms.VCallResult{
 		Callee:       objectRef,
 		CallOutgoing: outgoing,
 	}
@@ -118,14 +118,14 @@ func TestVFindCallRequest(t *testing.T) {
 	t.Run("not_found_in_callsummary", func(t *testing.T) {
 		t.Run("object", func(t *testing.T) {
 			// try to find for unknown object
-			vFindCallRequest := payload.VFindCallRequest{
+			vFindCallRequest := rms.VFindCallRequest{
 				LookAt:   pd.GetPulseNumber(),
 				Callee:   gen.UniqueGlobalRef(),
 				Outgoing: outgoing,
 			}
 
 			smVFindCallRequest := SMVFindCallRequest{
-				Meta: &payload.Meta{
+				Meta: &rms.Meta{
 					Sender: sender,
 				},
 				Payload:   &vFindCallRequest,
@@ -143,14 +143,14 @@ func TestVFindCallRequest(t *testing.T) {
 
 		t.Run("request", func(t *testing.T) {
 			// try to find for unknown request
-			vFindCallRequest := payload.VFindCallRequest{
+			vFindCallRequest := rms.VFindCallRequest{
 				LookAt:   pd.GetPulseNumber(),
 				Callee:   objectRef,
 				Outgoing: gen.UniqueGlobalRef(),
 			}
 
 			smVFindCallRequest := SMVFindCallRequest{
-				Meta: &payload.Meta{
+				Meta: &rms.Meta{
 					Sender: sender,
 				},
 				Payload:   &vFindCallRequest,
@@ -181,13 +181,13 @@ func TestVFindCallRequest(t *testing.T) {
 
 			smVFindCallRequest.messageSender = messageSenderAdapter.Mock()
 
-			checkMessage := func(msg payload.Marshaler) {
+			checkMessage := func(msg rms.Marshaler) {
 				switch msg0 := msg.(type) {
-				case *payload.VFindCallResponse:
+				case *rms.VFindCallResponse:
 					require.Equal(t, pd.GetPulseNumber(), msg0.LookedAt)
 					require.Equal(t, objectRef, msg0.Callee)
 					require.Equal(t, outgoing, msg0.Outgoing)
-					require.Equal(t, payload.CallStateMissing, msg0.Status)
+					require.Equal(t, rms.CallStateMissing, msg0.Status)
 					require.Nil(t, msg0.CallResult)
 				default:
 					panic("Unexpected message type")
@@ -217,7 +217,7 @@ func TestVFindCallRequest(t *testing.T) {
 
 			smVFindCallRequest.stepGetRequestData(execCtx)
 
-			require.Equal(t, payload.CallStateFound, smVFindCallRequest.status)
+			require.Equal(t, rms.CallStateFound, smVFindCallRequest.status)
 			require.Equal(t, &vCallResult, smVFindCallRequest.callResult)
 		}
 
@@ -228,13 +228,13 @@ func TestVFindCallRequest(t *testing.T) {
 
 			smVFindCallRequest.messageSender = messageSenderAdapter.Mock()
 
-			checkMessage := func(msg payload.Marshaler) {
+			checkMessage := func(msg rms.Marshaler) {
 				switch msg0 := msg.(type) {
-				case *payload.VFindCallResponse:
+				case *rms.VFindCallResponse:
 					require.Equal(t, pd.GetPulseNumber(), msg0.LookedAt)
 					require.Equal(t, objectRef, msg0.Callee)
 					require.Equal(t, outgoing, msg0.Outgoing)
-					require.Equal(t, payload.CallStateFound, msg0.Status)
+					require.Equal(t, rms.CallStateFound, msg0.Status)
 					require.Equal(t, &vCallResult, msg0.CallResult)
 				default:
 					panic("Unexpected message type")

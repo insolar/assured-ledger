@@ -15,7 +15,7 @@ import (
 	walletproxy "github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	payload "github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
@@ -31,8 +31,8 @@ func BenchmarkOnWallets(b *testing.B) {
 	wallets := make([]reference.Global, 0, 1000)
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, b, server)
-	typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool {
-		if result.CallType == payload.CallTypeConstructor {
+	typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
+		if result.CallType == rms.CallTypeConstructor {
 			var (
 				err             error
 				ref             reference.Global
@@ -74,13 +74,13 @@ func BenchmarkOnWallets(b *testing.B) {
 	b.ResetTimer()
 	b.Run("Get", func(b *testing.B) {
 		resultSignal := make(synckit.ClosableSignalChannel, 1)
-		typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool {
+		typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
 			resultSignal <- struct{}{}
 			return false
 		})
 
 		pl := *utils.GenerateVCallRequestMethod(server)
-		pl.CallFlags = payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty)
+		pl.CallFlags = rms.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty)
 		pl.CallSiteMethod = "GetBalance"
 
 		b.StopTimer()
@@ -101,7 +101,7 @@ func BenchmarkOnWallets(b *testing.B) {
 
 	b.Run("Set", func(b *testing.B) {
 		typedChecker := server.PublisherMock.SetTypedChecker(ctx, b, server)
-		typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool {
+		typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
 			resultSignal <- struct{}{}
 			return false
 		})

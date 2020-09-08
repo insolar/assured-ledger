@@ -21,7 +21,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	payload "github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
@@ -41,15 +41,15 @@ func TestSMExecute_MigrationDuringSendOutgoing(t *testing.T) {
 		pulseSlot  = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
 		smObjectID = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
 
-		callFlags = payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty)
+		callFlags = rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty)
 	)
 	// defer mc.Finish()
 
 	jetCoordinatorMock := affinity.NewHelperMock(t).
 		MeMock.Return(gen.UniqueGlobalRef())
 
-	pl := &payload.VCallRequest{
-		CallType:       payload.CallTypeConstructor,
+	pl := &rms.VCallRequest{
+		CallType:       rms.CallTypeConstructor,
 		Callee:         gen.UniqueGlobalRefWithPulse(pd.PulseNumber),
 		Caller:         gen.UniqueGlobalRefWithPulse(pd.PulseNumber),
 		CallFlags:      callFlags,

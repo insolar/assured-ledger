@@ -11,7 +11,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	payload "github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/runner/call"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 )
@@ -19,8 +19,8 @@ import (
 type Context struct {
 	ObjectDescriptor descriptor.Object
 	Context          context.Context
-	Request          *payload.VCallRequest
-	Result           *payload.VCallResult
+	Request          *rms.VCallRequest
+	Result           *rms.VCallResult
 	Sequence         uint32
 	Pulse            pulse.Data
 

@@ -15,7 +15,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	payload "github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -23,7 +23,7 @@ import (
 type SMPreservedStateReport struct {
 	Reference reference.Global
 
-	Report payload.VStateReport
+	Report rms.VStateReport
 
 	smachine.StateMachineDeclTemplate
 

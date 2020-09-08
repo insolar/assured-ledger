@@ -15,7 +15,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	payload "github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -26,10 +26,10 @@ type DelegationTokenAwaitKey struct {
 
 type SMDelegatedTokenRequest struct {
 	// input arguments
-	Meta           *payload.Meta
-	RequestPayload payload.VDelegatedCallRequest
+	Meta           *rms.Meta
+	RequestPayload rms.VDelegatedCallRequest
 
-	response *payload.VDelegatedCallResponse
+	response *rms.VDelegatedCallResponse
 
 	// dependencies
 	pulseSlot     *conveyor.PulseSlot
@@ -74,7 +74,7 @@ func (s *SMDelegatedTokenRequest) Init(ctx smachine.InitializationContext) smach
 
 func (s *SMDelegatedTokenRequest) stepRegisterBargeIn(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	bargeInCallback := ctx.NewBargeInWithParam(func(param interface{}) smachine.BargeInCallbackFunc {
-		res, ok := param.(*payload.VDelegatedCallResponse)
+		res, ok := param.(*rms.VDelegatedCallResponse)
 		if !ok || res == nil {
 			panic(throw.IllegalValue())
 		}

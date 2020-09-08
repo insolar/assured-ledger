@@ -22,7 +22,7 @@ import (
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	payload "github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
@@ -91,7 +91,7 @@ func (i *Info) GetState() State {
 func (i *Info) FinishRequest(
 	isolation contract.MethodIsolation,
 	requestRef reference.Global,
-	result *payload.VCallResult,
+	result *rms.VCallResult,
 ) {
 	i.KnownRequests.Finish(isolation.Interference, requestRef, result)
 }
@@ -128,39 +128,39 @@ func (i Info) GetEarliestPulse(tolerance isolation.InterferenceFlag) pulse.Numbe
 	}
 }
 
-func (i *Info) BuildStateReport() payload.VStateReport {
+func (i *Info) BuildStateReport() rms.VStateReport {
 	unorderedPendingCount := i.PendingTable.GetList(isolation.CallIntolerable).CountActive()
 	unorderedPendingCount += i.KnownRequests.GetList(isolation.CallIntolerable).CountActive()
 
 	orderedPendingCount := i.PendingTable.GetList(isolation.CallTolerable).CountActive()
 	orderedPendingCount += i.KnownRequests.GetList(isolation.CallTolerable).CountActive()
 
-	res := payload.VStateReport{
-		Object:                        payload.NewReference(i.Reference),
+	res := rms.VStateReport{
+		Object:                        rms.NewReference(i.Reference),
 		UnorderedPendingCount:         int32(unorderedPendingCount),
 		UnorderedPendingEarliestPulse: i.GetEarliestPulse(isolation.CallIntolerable),
 		OrderedPendingCount:           int32(orderedPendingCount),
 		OrderedPendingEarliestPulse:   i.GetEarliestPulse(isolation.CallTolerable),
-		ProvidedContent:               &payload.VStateReport_ProvidedContentBody{},
+		ProvidedContent:               &rms.VStateReport_ProvidedContentBody{},
 	}
 
 	switch i.GetState() {
 	case Unknown:
 		panic(throw.IllegalState())
 	case Missing:
-		res.Status = payload.StateStatusMissing
+		res.Status = rms.StateStatusMissing
 	case Inactive:
-		res.Status = payload.StateStatusInactive
+		res.Status = rms.StateStatusInactive
 	case Empty:
 		if i.KnownRequests.GetList(isolation.CallTolerable).CountActive() == 0 {
 			// constructor has not started
-			res.Status = payload.StateStatusMissing
+			res.Status = rms.StateStatusMissing
 		} else {
-			res.Status = payload.StateStatusEmpty
+			res.Status = rms.StateStatusEmpty
 		}
 	case HasState:
 		// ok case
-		res.Status = payload.StateStatusReady
+		res.Status = rms.StateStatusReady
 	default:
 		panic(throw.IllegalValue())
 	}
@@ -172,13 +172,13 @@ func (i *Info) BuildStateReport() payload.VStateReport {
 	return res
 }
 
-func (i *Info) BuildLatestDirtyState() *payload.ObjectState {
+func (i *Info) BuildLatestDirtyState() *rms.ObjectState {
 	if objDescriptor := i.DescriptorDirty(); objDescriptor != nil {
 		class, _ := objDescriptor.Class()
-		return &payload.ObjectState{
-			Reference:   payload.NewReferenceLocal(objDescriptor.StateID()),
-			Class:       payload.NewReference(class),
-			State:       payload.NewBytes(objDescriptor.Memory()),
+		return &rms.ObjectState{
+			Reference:   rms.NewReferenceLocal(objDescriptor.StateID()),
+			Class:       rms.NewReference(class),
+			State:       rms.NewBytes(objDescriptor.Memory()),
 			Deactivated: objDescriptor.Deactivated(),
 		}
 	}
@@ -279,9 +279,9 @@ func (sm *SMObject) initWaitGetStateUntil() {
 }
 
 func (sm *SMObject) stepSendStateRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	flags := payload.StateRequestContentFlags(0)
-	flags.Set(payload.RequestLatestDirtyState, payload.RequestLatestValidatedState,
-		payload.RequestOrderedQueue, payload.RequestUnorderedQueue)
+	flags := rms.StateRequestContentFlags(0)
+	flags.Set(rms.RequestLatestDirtyState, rms.RequestLatestValidatedState,
+		rms.RequestOrderedQueue, rms.RequestUnorderedQueue)
 
 	prevPulse := sm.pulseSlot.PrevOperationPulseNumber()
 	if prevPulse.IsUnknown() {
@@ -289,9 +289,9 @@ func (sm *SMObject) stepSendStateRequest(ctx smachine.ExecutionContext) smachine
 		panic(throw.NotImplemented())
 	}
 
-	msg := payload.VStateRequest{
+	msg := rms.VStateRequest{
 		AsOf:             prevPulse,
-		Object:           payload.NewReference(sm.Reference),
+		Object:           rms.NewReference(sm.Reference),
 		RequestedContent: flags,
 	}
 
@@ -393,7 +393,7 @@ func (sm *SMObject) migrate(ctx smachine.MigrationContext) smachine.StateUpdate 
 		sm.SetState(Inactive)
 	}
 	sm.smFinalizer.Report = sm.BuildStateReport()
-	if sm.DescriptorDirty() != nil && sm.smFinalizer.Report.GetStatus() != payload.StateStatusInactive {
+	if sm.DescriptorDirty() != nil && sm.smFinalizer.Report.GetStatus() != rms.StateStatusInactive {
 		state := sm.BuildLatestDirtyState()
 		sm.smFinalizer.Report.ProvidedContent.LatestDirtyState = state
 		sm.smFinalizer.Report.ProvidedContent.LatestValidatedState = state
@@ -497,7 +497,7 @@ func (sm *SMObject) checkPendingCounters(logger smachine.Logger) {
 
 func (sm *SMObject) sharedAndPublishStateReport(
 	ctx smachine.MigrationContext,
-	report *payload.VStateReport,
+	report *rms.VStateReport,
 ) error {
 	sdlStateReport := ctx.Share(report, 0)
 

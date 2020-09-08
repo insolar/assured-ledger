@@ -17,7 +17,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	payload "github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
@@ -78,22 +78,22 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 					dirtyStateRef = server.RandomLocalWithPulse()
 				}
 
-				content := &payload.VStateReport_ProvidedContentBody{
-					LatestDirtyState: &payload.ObjectState{
+				content := &rms.VStateReport_ProvidedContentBody{
+					LatestDirtyState: &rms.ObjectState{
 						Reference:   dirtyStateRef,
 						Class:       class,
 						State:       dirtyState,
 						Deactivated: test.dirtyIsDeactivated,
 					},
-					LatestValidatedState: &payload.ObjectState{
+					LatestValidatedState: &rms.ObjectState{
 						Reference: validatedStateRef,
 						Class:     class,
 						State:     validatedState,
 					},
 				}
 
-				pl := &payload.VStateReport{
-					Status:          payload.StateStatusReady,
+				pl := &rms.VStateReport{
+					Status:          rms.StateStatusReady,
 					Object:          objectGlobal,
 					AsOf:            pulseNumberFirst,
 					ProvidedContent: content,
@@ -101,7 +101,7 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 
 				if test.entirelyDeactivated {
 					pl.ProvidedContent = nil
-					pl.Status = payload.StateStatusInactive
+					pl.Status = rms.StateStatusInactive
 				}
 
 				wait := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
@@ -150,9 +150,9 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 
 			// typedChecker mock
 			{
-				typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
+				typedChecker.VStateReport.Set(func(report *rms.VStateReport) bool {
 					assert.Equal(t, objectGlobal, report.Object)
-					assert.Equal(t, payload.StateStatusInactive, report.Status)
+					assert.Equal(t, rms.StateStatusInactive, report.Status)
 					assert.True(t, report.DelegationSpec.IsZero())
 					assert.Nil(t, report.ProvidedContent)
 					assert.Empty(t, report.LatestValidatedState)
@@ -164,7 +164,7 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 
 					return false
 				})
-				typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool {
+				typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
 					assert.Equal(t, objectGlobal, result.Callee)
 
 					switch result.CallOutgoing {
@@ -207,7 +207,7 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 			{
 				// get validated state
 				pl := utils.GenerateVCallRequestMethod(server)
-				pl.CallFlags = payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallValidated)
+				pl.CallFlags = rms.BuildCallFlags(isolation.CallIntolerable, isolation.CallValidated)
 				pl.Callee = objectGlobal
 				pl.CallSiteMethod = "GetValidated"
 				pl.CallOutgoing = outgoingGetValidated
@@ -218,7 +218,7 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 
 				// get dirty state
 				pl = utils.GenerateVCallRequestMethod(server)
-				pl.CallFlags = payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty)
+				pl.CallFlags = rms.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty)
 				pl.Callee = objectGlobal
 				pl.CallSiteMethod = "GetDirty"
 				pl.CallOutgoing = outgoingGetDirty
@@ -263,12 +263,12 @@ func TestVirtual_CallMethod_On_CompletelyDeactivatedObject(t *testing.T) {
 
 			callTypeTestCases := []struct {
 				name     string
-				callType payload.CallType
+				callType rms.CallType
 				errorMsg string
 			}{
 				{
 					name:     "call method",
-					callType: payload.CallTypeMethod,
+					callType: rms.CallTypeMethod,
 					errorMsg: "try to call method on deactivated object",
 				},
 			}
@@ -299,12 +299,12 @@ func TestVirtual_CallMethod_On_CompletelyDeactivatedObject(t *testing.T) {
 					)
 
 					server.IncrementPulseAndWaitIdle(ctx)
-					Method_PrepareObject(ctx, server, payload.StateStatusInactive, object, prevPulse)
+					Method_PrepareObject(ctx, server, rms.StateStatusInactive, object, prevPulse)
 
 					gotResult := make(chan struct{})
 
 					typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-					typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
+					typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
 
 						assert.Equal(t, object, res.Callee)
 						contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments)
@@ -316,9 +316,9 @@ func TestVirtual_CallMethod_On_CompletelyDeactivatedObject(t *testing.T) {
 						return false // no resend msg
 					})
 
-					pl := payload.VCallRequest{
+					pl := rms.VCallRequest{
 						CallType:       callTypeTest.callType,
-						CallFlags:      payload.BuildCallFlags(isolation.Interference, isolation.State),
+						CallFlags:      rms.BuildCallFlags(isolation.Interference, isolation.State),
 						Caller:         server.GlobalCaller(),
 						Callee:         object,
 						CallSiteMethod: methodName,
@@ -372,17 +372,17 @@ func TestVirtual_CallDeactivate_Intolerable(t *testing.T) {
 			{
 				server.IncrementPulse(ctx)
 
-				report := &payload.VStateReport{
-					Status: payload.StateStatusReady,
+				report := &rms.VStateReport{
+					Status: rms.StateStatusReady,
 					Object: objectGlobal,
 					AsOf:   prevPulse,
-					ProvidedContent: &payload.VStateReport_ProvidedContentBody{
-						LatestDirtyState: &payload.ObjectState{
+					ProvidedContent: &rms.VStateReport_ProvidedContentBody{
+						LatestDirtyState: &rms.ObjectState{
 							Reference: reference.Local{},
 							Class:     class,
 							State:     []byte("initial state"),
 						},
-						LatestValidatedState: &payload.ObjectState{
+						LatestValidatedState: &rms.ObjectState{
 							Reference: reference.Local{},
 							Class:     class,
 							State:     []byte("initial state"),
@@ -398,7 +398,7 @@ func TestVirtual_CallDeactivate_Intolerable(t *testing.T) {
 
 			// Add VCallResult check
 			{
-				typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool {
+				typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
 					require.Equal(t, []byte("finish Deactivate"), result.ReturnArguments)
 
 					return false
@@ -434,7 +434,7 @@ func TestVirtual_CallDeactivate_Intolerable(t *testing.T) {
 			// Deactivate object with wrong callFlags
 			{
 				pl := utils.GenerateVCallRequestMethod(server)
-				pl.CallFlags = payload.BuildCallFlags(isolation.CallIntolerable, testCase.state)
+				pl.CallFlags = rms.BuildCallFlags(isolation.CallIntolerable, testCase.state)
 				pl.Callee = objectGlobal
 				pl.CallSiteMethod = "Destroy"
 
@@ -515,15 +515,15 @@ func TestVirtual_DeactivateObject_ChangePulse(t *testing.T) {
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	{
-		typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
+		typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
 			require.Equal(t, objectRef, res.Callee)
 			require.Equal(t, outgoing, res.CallOutgoing)
 			require.Equal(t, []byte("finish Deactivate"), res.ReturnArguments)
 			return false
 		})
-		typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
+		typedChecker.VStateReport.Set(func(report *rms.VStateReport) bool {
 			require.Equal(t, objectRef, report.Object)
-			require.Equal(t, payload.StateStatusReady, report.Status)
+			require.Equal(t, rms.StateStatusReady, report.Status)
 			require.True(t, report.DelegationSpec.IsZero())
 			require.Equal(t, int32(0), report.UnorderedPendingCount)
 			require.Equal(t, int32(1), report.OrderedPendingCount)
@@ -536,12 +536,12 @@ func TestVirtual_DeactivateObject_ChangePulse(t *testing.T) {
 			require.Equal(t, []byte(origDirtyMem), report.ProvidedContent.LatestValidatedState.State)
 			return false
 		})
-		typedChecker.VDelegatedCallRequest.Set(func(request *payload.VDelegatedCallRequest) bool {
+		typedChecker.VDelegatedCallRequest.Set(func(request *rms.VDelegatedCallRequest) bool {
 			require.Equal(t, objectRef, request.Callee)
 			require.Equal(t, outgoing, request.CallOutgoing)
 			token := server.DelegationToken(request.CallOutgoing, server.GlobalCaller(), request.Callee)
 
-			response := payload.VDelegatedCallResponse{
+			response := rms.VDelegatedCallResponse{
 				Callee:                 request.Callee,
 				CallIncoming:           request.CallIncoming,
 				ResponseDelegationSpec: token,
@@ -549,7 +549,7 @@ func TestVirtual_DeactivateObject_ChangePulse(t *testing.T) {
 			server.SendPayload(ctx, &response)
 			return false
 		})
-		typedChecker.VDelegatedRequestFinished.Set(func(finished *payload.VDelegatedRequestFinished) bool {
+		typedChecker.VDelegatedRequestFinished.Set(func(finished *rms.VDelegatedRequestFinished) bool {
 			require.NotNil(t, finished.LatestState)
 			require.True(t, finished.LatestState.Deactivated)
 			require.Nil(t, finished.LatestState.State)
@@ -557,17 +557,17 @@ func TestVirtual_DeactivateObject_ChangePulse(t *testing.T) {
 		})
 	}
 	{
-		report := payload.VStateReport{
-			Status: payload.StateStatusReady,
+		report := rms.VStateReport{
+			Status: rms.StateStatusReady,
 			AsOf:   p1,
 			Object: objectRef,
-			ProvidedContent: &payload.VStateReport_ProvidedContentBody{
-				LatestDirtyState: &payload.ObjectState{
+			ProvidedContent: &rms.VStateReport_ProvidedContentBody{
+				LatestDirtyState: &rms.ObjectState{
 					Reference: reference.Local{},
 					Class:     class,
 					State:     []byte(origDirtyMem),
 				},
-				LatestValidatedState: &payload.ObjectState{
+				LatestValidatedState: &rms.ObjectState{
 					Reference: reference.Local{},
 					Class:     class,
 					State:     []byte(origValidatedMem),
@@ -631,7 +631,7 @@ func TestVirtual_CallMethod_After_Deactivation(t *testing.T) {
 	// Create object
 	{
 		server.IncrementPulseAndWaitIdle(ctx)
-		Method_PrepareObject(ctx, server, payload.StateStatusReady, objectRef, p1)
+		Method_PrepareObject(ctx, server, rms.StateStatusReady, objectRef, p1)
 	}
 
 	outgoingDeactivate := server.BuildRandomOutgoingWithPulse()
@@ -665,7 +665,7 @@ func TestVirtual_CallMethod_After_Deactivation(t *testing.T) {
 
 	// Add check
 	{
-		typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
+		typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
 			require.Equal(t, objectRef, res.Callee)
 			if res.CallOutgoing == outgoingDeactivate {
 				require.Equal(t, []byte("done"), res.ReturnArguments)
@@ -764,7 +764,7 @@ func TestVirtual_Deactivation_Deduplicate(t *testing.T) {
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	// Add check
 	{
-		typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
+		typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
 			switch res.CallOutgoing {
 			case outgoing:
 				require.Equal(t, []byte("new"), res.ReturnArguments)
@@ -789,7 +789,7 @@ func TestVirtual_Deactivation_Deduplicate(t *testing.T) {
 	deactivateRequest.CallSiteMethod = "Destroy"
 	deactivateRequest.CallOutgoing = outgoingDeactivate
 
-	requests := []*payload.VCallRequest{constructRequest, deactivateRequest, constructRequest, deactivateRequest}
+	requests := []*rms.VCallRequest{constructRequest, deactivateRequest, constructRequest, deactivateRequest}
 	for _, r := range requests {
 		await := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 		server.SendPayload(ctx, r)
@@ -836,8 +836,8 @@ func TestVirtual_DeduplicateCallAfterDeactivation_PrevVE(t *testing.T) {
 			{
 				server.IncrementPulse(ctx)
 
-				report := &payload.VStateReport{
-					Status:          payload.StateStatusInactive,
+				report := &rms.VStateReport{
+					Status:          rms.StateStatusInactive,
 					Object:          objectGlobal,
 					AsOf:            prevPulse,
 					ProvidedContent: nil,
@@ -850,19 +850,19 @@ func TestVirtual_DeduplicateCallAfterDeactivation_PrevVE(t *testing.T) {
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 			// Add checker mock
 			{
-				typedChecker.VFindCallRequest.Set(func(request *payload.VFindCallRequest) bool {
+				typedChecker.VFindCallRequest.Set(func(request *rms.VFindCallRequest) bool {
 					assert.Equal(t, objectGlobal, request.Callee)
 					assert.Equal(t, outgoingPrevPulse, request.Outgoing)
 					assert.Equal(t, prevPulse, request.LookAt)
 
-					pl := &payload.VFindCallResponse{
+					pl := &rms.VFindCallResponse{
 						LookedAt: request.LookAt,
 						Callee:   request.Callee,
 						Outgoing: request.Outgoing,
-						Status:   payload.CallStateFound,
-						CallResult: &payload.VCallResult{
-							CallType:        payload.CallTypeMethod,
-							CallFlags:       payload.BuildCallFlags(testCase.flags.Interference, testCase.flags.State),
+						Status:   rms.CallStateFound,
+						CallResult: &rms.VCallResult{
+							CallType:        rms.CallTypeMethod,
+							CallFlags:       rms.BuildCallFlags(testCase.flags.Interference, testCase.flags.State),
 							Callee:          request.Callee,
 							Caller:          server.GlobalCaller(),
 							CallOutgoing:    request.Outgoing,
@@ -873,7 +873,7 @@ func TestVirtual_DeduplicateCallAfterDeactivation_PrevVE(t *testing.T) {
 					server.SendPayload(ctx, pl)
 					return false
 				})
-				typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool {
+				typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
 					assert.Equal(t, objectGlobal, result.Callee)
 					assert.Equal(t, outgoingPrevPulse, result.CallOutgoing)
 					assert.Equal(t, []byte("result from past"), result.ReturnArguments)
@@ -887,7 +887,7 @@ func TestVirtual_DeduplicateCallAfterDeactivation_PrevVE(t *testing.T) {
 			// VCallRequest from previous pulse
 			{
 				pl := utils.GenerateVCallRequestMethod(server)
-				pl.CallFlags = payload.BuildCallFlags(testCase.flags.Interference, testCase.flags.State)
+				pl.CallFlags = rms.BuildCallFlags(testCase.flags.Interference, testCase.flags.State)
 				pl.Callee = objectGlobal
 				pl.CallSiteMethod = "Foo"
 				pl.CallOutgoing = outgoingPrevPulse
@@ -969,7 +969,7 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 			}
 
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-			typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
+			typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
 				require.Equal(t, objectRef, res.Callee)
 				require.Equal(t, checkOutgoing, res.CallOutgoing)
 				if testCase.isolation.State == isolation.CallValidated {
@@ -981,16 +981,16 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 				}
 				return false
 			})
-			typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
+			typedChecker.VStateReport.Set(func(report *rms.VStateReport) bool {
 				require.Equal(t, objectRef, report.Object)
-				require.Equal(t, payload.StateStatusInactive, report.Status)
+				require.Equal(t, rms.StateStatusInactive, report.Status)
 				require.True(t, report.DelegationSpec.IsZero())
 				require.Equal(t, int32(0), report.UnorderedPendingCount)
 				require.Equal(t, int32(0), report.OrderedPendingCount)
 				require.Nil(t, report.ProvidedContent)
 				return false
 			})
-			typedChecker.VDelegatedCallResponse.Set(func(response *payload.VDelegatedCallResponse) bool {
+			typedChecker.VDelegatedCallResponse.Set(func(response *rms.VDelegatedCallResponse) bool {
 				require.Equal(t, objectRef, response.Callee)
 				require.NotEmpty(t, response.ResponseDelegationSpec)
 				require.Equal(t, objectRef, response.ResponseDelegationSpec.Callee)
@@ -999,20 +999,20 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 			})
 
 			{ // create object with pending deactivation
-				report := payload.VStateReport{
-					Status:                      payload.StateStatusReady,
+				report := rms.VStateReport{
+					Status:                      rms.StateStatusReady,
 					AsOf:                        p1,
 					Object:                      objectRef,
 					OrderedPendingCount:         1,
 					OrderedPendingEarliestPulse: p1,
 					LatestDirtyState:            stateRef,
-					ProvidedContent: &payload.VStateReport_ProvidedContentBody{
-						LatestDirtyState: &payload.ObjectState{
+					ProvidedContent: &rms.VStateReport_ProvidedContentBody{
+						LatestDirtyState: &rms.ObjectState{
 							Reference: stateRef.GetLocal(),
 							Class:     class,
 							State:     []byte(origMem),
 						},
-						LatestValidatedState: &payload.ObjectState{
+						LatestValidatedState: &rms.ObjectState{
 							Reference: stateRef.GetLocal(),
 							Class:     class,
 							State:     []byte(origMem),
@@ -1025,9 +1025,9 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 
 			{ // fill object pending table
 				dcrAwait := server.Journal.WaitStopOf(&handlers.SMVDelegatedCallRequest{}, 1)
-				dcr := payload.VDelegatedCallRequest{
+				dcr := rms.VDelegatedCallRequest{
 					Callee:       objectRef,
-					CallFlags:    payload.BuildCallFlags(deactivateIsolation.Interference, deactivateIsolation.State),
+					CallFlags:    rms.BuildCallFlags(deactivateIsolation.Interference, deactivateIsolation.State),
 					CallOutgoing: outgoing,
 					CallIncoming: incoming,
 				}
@@ -1037,13 +1037,13 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 			}
 
 			{ // send delegation request finished with deactivate flag
-				pl := payload.VDelegatedRequestFinished{
-					CallType:     payload.CallTypeMethod,
+				pl := rms.VDelegatedRequestFinished{
+					CallType:     rms.CallTypeMethod,
 					Callee:       objectRef,
 					CallOutgoing: outgoing,
 					CallIncoming: incoming,
-					CallFlags:    payload.BuildCallFlags(deactivateIsolation.Interference, deactivateIsolation.State),
-					LatestState: &payload.ObjectState{
+					CallFlags:    rms.BuildCallFlags(deactivateIsolation.Interference, deactivateIsolation.State),
+					LatestState: &rms.ObjectState{
 						State:       nil,
 						Deactivated: true,
 					},
@@ -1055,7 +1055,7 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 
 			{
 				pl := utils.GenerateVCallRequestMethod(server)
-				pl.CallFlags = payload.BuildCallFlags(testCase.isolation.Interference, testCase.isolation.State)
+				pl.CallFlags = rms.BuildCallFlags(testCase.isolation.Interference, testCase.isolation.State)
 				pl.Callee = objectRef
 				pl.CallSiteMethod = "Check"
 				pl.CallOutgoing = checkOutgoing

@@ -34,7 +34,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
-	payload "github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 )
@@ -62,7 +62,7 @@ func TestSendMessageHandler_ReceiverNotSet(t *testing.T) {
 	serviceNetwork, _ := prepareNetwork(t, configuration.NewConfiguration())
 
 	p := []byte{1, 2, 3, 4, 5}
-	meta := payload.Meta{
+	meta := rms.Meta{
 		Payload: p,
 	}
 	data, err := meta.Marshal()
@@ -82,7 +82,7 @@ func TestSendMessageHandler_SameNode(t *testing.T) {
 	pulseMock.LatestTimeBeatMock.Return(pulsestor.GenesisPulse, nil)
 
 	p := []byte{1, 2, 3, 4, 5}
-	meta := payload.Meta{
+	meta := rms.Meta{
 		Payload:  p,
 		Receiver: nodeRef,
 	}
@@ -108,7 +108,7 @@ func TestSendMessageHandler_SendError(t *testing.T) {
 	svcNw.RPC = rpc
 
 	p := []byte{1, 2, 3, 4, 5}
-	meta := payload.Meta{
+	meta := rms.Meta{
 		Payload:  p,
 		Receiver: gen.UniqueGlobalRef(),
 	}
@@ -134,7 +134,7 @@ func TestSendMessageHandler_WrongReply(t *testing.T) {
 	svcNw.RPC = rpc
 
 	p := []byte{1, 2, 3, 4, 5}
-	meta := payload.Meta{
+	meta := rms.Meta{
 		Payload:  p,
 		Receiver: gen.UniqueGlobalRef(),
 	}
@@ -160,7 +160,7 @@ func TestSendMessageHandler(t *testing.T) {
 	svcNw.RPC = rpc
 
 	p := []byte{1, 2, 3, 4, 5}
-	meta := payload.Meta{
+	meta := rms.Meta{
 		Payload:  p,
 		Receiver: gen.UniqueGlobalRef(),
 	}

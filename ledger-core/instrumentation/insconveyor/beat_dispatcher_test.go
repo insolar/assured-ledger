@@ -15,7 +15,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
-	payload "github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -44,7 +44,7 @@ func TestConveyorDispatcher_ErrorUnmarshalHandling(t *testing.T) {
 
 func TestConveyorDispatcher_WrongMetaTypeHandling(t *testing.T) {
 	msgDispatcher := newDispatcherWithConveyor(nil)
-	req := payload.VCallRequest{}
+	req := rms.VCallRequest{}
 	pl, _ := req.Marshal()
 	msg := newMessage("", pl)
 	require.False(t, isMessageAcked(msg))
@@ -59,7 +59,7 @@ func TestConveyorDispatcher_PanicInAddInputHandling(t *testing.T) {
 		func(context.Context, conveyor.InputEvent, conveyor.InputContext) (conveyor.InputSetup, error) {
 			panic(throw.E("handler panic"))
 		})
-	meta := payload.Meta{Pulse: pulse.Number(pulse.MinTimePulse + 1)}
+	meta := rms.Meta{Pulse: pulse.Number(pulse.MinTimePulse + 1)}
 	metaPl, _ := meta.Marshal()
 	msg := newMessage("", metaPl)
 	require.False(t, isMessageAcked(msg))
@@ -74,7 +74,7 @@ func TestConveyorDispatcher_ErrorInAddInputHandling(t *testing.T) {
 		func(context.Context, conveyor.InputEvent, conveyor.InputContext) (conveyor.InputSetup, error) {
 			return conveyor.InputSetup{}, throw.E("handler error")
 		})
-	meta := payload.Meta{Pulse: pulse.Number(pulse.MinTimePulse + 1)}
+	meta := rms.Meta{Pulse: pulse.Number(pulse.MinTimePulse + 1)}
 	metaPl, _ := meta.Marshal()
 	msg := newMessage("", metaPl)
 	require.False(t, isMessageAcked(msg))

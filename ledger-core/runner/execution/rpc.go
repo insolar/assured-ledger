@@ -8,7 +8,7 @@ package execution
 import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	payload "github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 )
 
 type RPC interface{ rpc() }
@@ -101,17 +101,17 @@ func (e CallConstructor) ParentRequestReference() reference.Global {
 	return e.parentRequestReference
 }
 
-func (e CallConstructor) ConstructVCallRequest(execution Context) *payload.VCallRequest {
-	return &payload.VCallRequest{
-		CallType:            payload.CallTypeConstructor,
-		CallFlags:           payload.BuildCallFlags(execution.Isolation.Interference, execution.Isolation.State),
-		Caller:              payload.NewReference(e.parentObjectReference),
-		Callee:              payload.NewReference(e.class),
+func (e CallConstructor) ConstructVCallRequest(execution Context) *rms.VCallRequest {
+	return &rms.VCallRequest{
+		CallType:            rms.CallTypeConstructor,
+		CallFlags:           rms.BuildCallFlags(execution.Isolation.Interference, execution.Isolation.State),
+		Caller:              rms.NewReference(e.parentObjectReference),
+		Callee:              rms.NewReference(e.class),
 		CallSiteMethod:      e.constructor,
-		KnownCalleeIncoming: payload.NewReference(reference.Global{}),
-		CallOutgoing:        payload.NewReference(reference.Global{}), // must be filled in the caller
-		CallSequence:        0,                                        // must be filled in the caller
-		Arguments:           payload.NewBytes(e.arguments),
+		KnownCalleeIncoming: rms.NewReference(reference.Global{}),
+		CallOutgoing:        rms.NewReference(reference.Global{}), // must be filled in the caller
+		CallSequence:        0,                                    // must be filled in the caller
+		Arguments:           rms.NewBytes(e.arguments),
 	}
 }
 
@@ -157,16 +157,16 @@ func (e CallMethod) ParentRequestReference() reference.Global {
 	return e.parentRequestReference
 }
 
-func (e CallMethod) ConstructVCallRequest(execution Context) *payload.VCallRequest {
-	return &payload.VCallRequest{
-		CallType:       payload.CallTypeMethod,
-		CallFlags:      payload.BuildCallFlags(execution.Isolation.Interference, execution.Isolation.State),
-		Caller:         payload.NewReference(e.parentObjectReference),
-		Callee:         payload.NewReference(e.object),
+func (e CallMethod) ConstructVCallRequest(execution Context) *rms.VCallRequest {
+	return &rms.VCallRequest{
+		CallType:       rms.CallTypeMethod,
+		CallFlags:      rms.BuildCallFlags(execution.Isolation.Interference, execution.Isolation.State),
+		Caller:         rms.NewReference(e.parentObjectReference),
+		Callee:         rms.NewReference(e.object),
 		CallSiteMethod: e.method,
-		CallSequence:   0,                                        // must be filled in the caller
-		CallOutgoing:   payload.NewReference(reference.Global{}), // must be filled in the caller
-		Arguments:      payload.NewBytes(e.arguments),
+		CallSequence:   0,                                    // must be filled in the caller
+		CallOutgoing:   rms.NewReference(reference.Global{}), // must be filled in the caller
+		Arguments:      rms.NewBytes(e.arguments),
 	}
 }
 

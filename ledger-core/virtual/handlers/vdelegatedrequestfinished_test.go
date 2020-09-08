@@ -14,7 +14,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
-	payload "github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
@@ -34,9 +34,9 @@ func TestSMVDelegatedRequestFinished_FailIfCallNotRegistered(t *testing.T) {
 	require.Equal(t, 0, table.Count())
 
 	sm := SMVDelegatedRequestFinished{
-		Payload: &payload.VDelegatedRequestFinished{
+		Payload: &rms.VDelegatedRequestFinished{
 			Callee:    smExecID,
-			CallFlags: payload.BuildCallFlags(callMode, isolation.CallDirty),
+			CallFlags: rms.BuildCallFlags(callMode, isolation.CallDirty),
 		},
 	}
 
@@ -67,10 +67,10 @@ func TestSMVDelegatedRequestFinished_TolerableUpdateSharedState_OneActiveCounter
 	require.Equal(t, 1, table.CountActive())
 
 	sm := SMVDelegatedRequestFinished{
-		Payload: &payload.VDelegatedRequestFinished{
+		Payload: &rms.VDelegatedRequestFinished{
 			Callee:       smGlobalRef,
 			CallOutgoing: smExecID,
-			CallFlags:    payload.BuildCallFlags(callMode, isolation.CallDirty),
+			CallFlags:    rms.BuildCallFlags(callMode, isolation.CallDirty),
 		},
 	}
 
@@ -106,10 +106,10 @@ func TestSMVDelegatedRequestFinished_TolerableUpdateSharedState_ManyActiveCounte
 	require.Equal(t, 2, table.CountActive())
 
 	sm := SMVDelegatedRequestFinished{
-		Payload: &payload.VDelegatedRequestFinished{
+		Payload: &rms.VDelegatedRequestFinished{
 			Callee:       smGlobalRef,
 			CallOutgoing: smExecID,
-			CallFlags:    payload.BuildCallFlags(callMode, isolation.CallDirty),
+			CallFlags:    rms.BuildCallFlags(callMode, isolation.CallDirty),
 		},
 	}
 
@@ -141,10 +141,10 @@ func TestSMVDelegatedRequestFinished_IntolerableUpdateSharedStateUpdatePendingTa
 	require.Equal(t, 1, table.CountActive())
 
 	sm := SMVDelegatedRequestFinished{
-		Payload: &payload.VDelegatedRequestFinished{
+		Payload: &rms.VDelegatedRequestFinished{
 			Callee:       smGlobalRef,
 			CallOutgoing: smExecID,
-			CallFlags:    payload.BuildCallFlags(callMode, isolation.CallDirty),
+			CallFlags:    rms.BuildCallFlags(callMode, isolation.CallDirty),
 		},
 	}
 	execCtx := smachine.NewExecutionContextMock(mc)

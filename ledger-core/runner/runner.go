@@ -13,7 +13,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	payload "github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/runner/call"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/builtin"
@@ -297,9 +297,9 @@ func (r *DefaultService) execute(ctx context.Context, id call.ID) {
 	}()
 
 	switch executionSink.Context().Request.CallType {
-	case payload.CallTypeMethod:
+	case rms.CallTypeMethod:
 		result, err = r.executeMethod(ctx, id, executionSink)
-	case payload.CallTypeConstructor:
+	case rms.CallTypeConstructor:
 		result, err = r.executeConstructor(ctx, id, executionSink)
 	default:
 		panic(throw.Unsupported())

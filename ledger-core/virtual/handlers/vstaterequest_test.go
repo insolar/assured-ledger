@@ -14,7 +14,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
-	payload "github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/shareddata"
@@ -31,8 +31,8 @@ func TestVStateRequest_ProcessObjectWithoutState(t *testing.T) {
 		mc              = minimock.NewController(t)
 		pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 		smGlobalRef     = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
-		sharedStateData = smachine.NewUnboundSharedData(&payload.VStateReport{
-			Status:              payload.StateStatusEmpty,
+		sharedStateData = smachine.NewUnboundSharedData(&rms.VStateReport{
+			Status:              rms.StateStatusEmpty,
 			AsOf:                pulse.Unknown,
 			Object:              smGlobalRef,
 			OrderedPendingCount: 1,
@@ -42,9 +42,9 @@ func TestVStateRequest_ProcessObjectWithoutState(t *testing.T) {
 	)
 
 	smVStateRequest := SMVStateRequest{
-		Payload: &payload.VStateRequest{
+		Payload: &rms.VStateRequest{
 			Object:           smGlobalRef,
-			RequestedContent: payload.RequestLatestDirtyState,
+			RequestedContent: rms.RequestLatestDirtyState,
 		},
 		reportAccessor: smObjectAccessor,
 	}
@@ -82,10 +82,10 @@ func TestDSMVStateRequest_PresentPulse(t *testing.T) {
 	slotMachine.AddInterfaceDependency(&catalog)
 
 	smStateRequest := SMVStateRequest{
-		Payload: &payload.VStateRequest{
+		Payload: &rms.VStateRequest{
 			Object: objectRef,
 		},
-		Meta: &payload.Meta{
+		Meta: &rms.Meta{
 			Sender: caller,
 		},
 	}
@@ -123,10 +123,10 @@ func TestDSMVStateRequest_PastPulse(t *testing.T) {
 	slotMachine.AddInterfaceDependency(&catalog)
 
 	smStateRequest := SMVStateRequest{
-		Payload: &payload.VStateRequest{
+		Payload: &rms.VStateRequest{
 			Object: objectRef,
 		},
-		Meta: &payload.Meta{
+		Meta: &rms.Meta{
 			Sender: caller,
 		},
 	}

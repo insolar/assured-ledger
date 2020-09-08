@@ -12,7 +12,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/application/testwalletapi/statemachine"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	payload "github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -20,9 +20,9 @@ var deadBeef = [...]byte{0xde, 0xad, 0xbe, 0xef}
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/virtual/authentication.Service -o ./ -s _mock.go -g
 type Service interface {
-	GetCallDelegationToken(outgoing reference.Global, to reference.Global, pn pulse.Number, object reference.Global) payload.CallDelegationToken
+	GetCallDelegationToken(outgoing reference.Global, to reference.Global, pn pulse.Number, object reference.Global) rms.CallDelegationToken
 	CheckMessageFromAuthorizedVirtual(ctx context.Context, payloadObj interface{}, sender reference.Global, pr pulse.Range) (mustReject bool, err error)
-	HasToSendToken(token payload.CallDelegationToken) bool
+	HasToSendToken(token rms.CallDelegationToken) bool
 }
 
 type service struct {
@@ -33,20 +33,20 @@ func NewService(_ context.Context, affinity affinity.Helper) Service {
 	return service{affinity: affinity}
 }
 
-func (s service) GetCallDelegationToken(outgoing reference.Global, to reference.Global, pn pulse.Number, object reference.Global) payload.CallDelegationToken {
-	return payload.CallDelegationToken{
-		TokenTypeAndFlags: payload.DelegationTokenTypeCall,
-		Approver:          payload.NewReference(s.affinity.Me()),
-		DelegateTo:        payload.NewReference(to),
+func (s service) GetCallDelegationToken(outgoing reference.Global, to reference.Global, pn pulse.Number, object reference.Global) rms.CallDelegationToken {
+	return rms.CallDelegationToken{
+		TokenTypeAndFlags: rms.DelegationTokenTypeCall,
+		Approver:          rms.NewReference(s.affinity.Me()),
+		DelegateTo:        rms.NewReference(to),
 		PulseNumber:       pn,
-		Callee:            payload.NewReference(object),
-		Caller:            payload.NewReference(to),
-		Outgoing:          payload.NewReference(outgoing),
-		ApproverSignature: payload.NewBytes(deadBeef[:]),
+		Callee:            rms.NewReference(object),
+		Caller:            rms.NewReference(to),
+		Outgoing:          rms.NewReference(outgoing),
+		ApproverSignature: rms.NewBytes(deadBeef[:]),
 	}
 }
 
-func (s service) HasToSendToken(token payload.CallDelegationToken) bool {
+func (s service) HasToSendToken(token rms.CallDelegationToken) bool {
 	useToken := true
 	if token.Approver.GetValue() == s.affinity.Me() {
 		useToken = false
@@ -54,7 +54,7 @@ func (s service) HasToSendToken(token payload.CallDelegationToken) bool {
 	return useToken
 }
 
-func (s service) checkDelegationToken(expectedVE reference.Global, token payload.CallDelegationToken, sender reference.Global) error {
+func (s service) checkDelegationToken(expectedVE reference.Global, token rms.CallDelegationToken, sender reference.Global) error {
 	// TODO: check signature
 
 	switch {
@@ -92,12 +92,12 @@ func (s service) getExpectedVE(subjectRef reference.Global, verifyForPulse pulse
 
 func (s service) CheckMessageFromAuthorizedVirtual(ctx context.Context, payloadObj interface{}, sender reference.Global, pr pulse.Range) (bool, error) {
 	verifyForPulse := pr.RightBoundData().PulseNumber
-	subjectRef, mode, ok := payload.GetSenderAuthenticationSubjectAndPulse(payloadObj)
+	subjectRef, mode, ok := rms.GetSenderAuthenticationSubjectAndPulse(payloadObj)
 	if !ok {
 		return false, throw.New("Unexpected message type")
 	}
 	switch mode {
-	case payload.UsePrevPulse:
+	case rms.UsePrevPulse:
 		if !pr.IsArticulated() {
 			if prevDelta := pr.LeftPrevDelta(); prevDelta > 0 {
 				if prevPN, ok := pr.LeftBoundNumber().TryPrev(prevDelta); ok {
@@ -109,9 +109,9 @@ func (s service) CheckMessageFromAuthorizedVirtual(ctx context.Context, payloadO
 		// this is either a first pulse or the node is just started. In both cases we should allow the message to run
 		// but have to indicate that it has to be rejected
 		verifyForPulse = pulse.Unknown
-	case payload.UseAnyPulse:
+	case rms.UseAnyPulse:
 		return false, nil
-	case payload.UseCurrentPulse:
+	case rms.UseCurrentPulse:
 		//
 	default:
 		panic(throw.IllegalValue())
@@ -131,7 +131,7 @@ func (s service) CheckMessageFromAuthorizedVirtual(ctx context.Context, payloadO
 		return false, throw.W(err, "can't get expected VE")
 	}
 
-	if token, ok := payload.GetSenderDelegationToken(payloadObj); ok && !token.IsZero() {
+	if token, ok := rms.GetSenderDelegationToken(payloadObj); ok && !token.IsZero() {
 		return false, s.checkDelegationToken(expectedVE, token, sender)
 	}
 

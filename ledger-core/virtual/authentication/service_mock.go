@@ -11,7 +11,7 @@ import (
 	"github.com/gojuno/minimock/v3"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	payload "github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 )
 
 // ServiceMock implements Service
@@ -24,14 +24,14 @@ type ServiceMock struct {
 	beforeCheckMessageFromAuthorizedVirtualCounter uint64
 	CheckMessageFromAuthorizedVirtualMock          mServiceMockCheckMessageFromAuthorizedVirtual
 
-	funcGetCallDelegationToken          func(outgoing reference.Global, to reference.Global, pn pulse.Number, object reference.Global) (c1 payload.CallDelegationToken)
+	funcGetCallDelegationToken          func(outgoing reference.Global, to reference.Global, pn pulse.Number, object reference.Global) (c1 rms.CallDelegationToken)
 	inspectFuncGetCallDelegationToken   func(outgoing reference.Global, to reference.Global, pn pulse.Number, object reference.Global)
 	afterGetCallDelegationTokenCounter  uint64
 	beforeGetCallDelegationTokenCounter uint64
 	GetCallDelegationTokenMock          mServiceMockGetCallDelegationToken
 
-	funcHasToSendToken          func(token payload.CallDelegationToken) (b1 bool)
-	inspectFuncHasToSendToken   func(token payload.CallDelegationToken)
+	funcHasToSendToken          func(token rms.CallDelegationToken) (b1 bool)
+	inspectFuncHasToSendToken   func(token rms.CallDelegationToken)
 	afterHasToSendTokenCounter  uint64
 	beforeHasToSendTokenCounter uint64
 	HasToSendTokenMock          mServiceMockHasToSendToken
@@ -302,7 +302,7 @@ type ServiceMockGetCallDelegationTokenParams struct {
 
 // ServiceMockGetCallDelegationTokenResults contains results of the Service.GetCallDelegationToken
 type ServiceMockGetCallDelegationTokenResults struct {
-	c1 payload.CallDelegationToken
+	c1 rms.CallDelegationToken
 }
 
 // Expect sets up expected params for Service.GetCallDelegationToken
@@ -337,7 +337,7 @@ func (mmGetCallDelegationToken *mServiceMockGetCallDelegationToken) Inspect(f fu
 }
 
 // Return sets up results that will be returned by Service.GetCallDelegationToken
-func (mmGetCallDelegationToken *mServiceMockGetCallDelegationToken) Return(c1 payload.CallDelegationToken) *ServiceMock {
+func (mmGetCallDelegationToken *mServiceMockGetCallDelegationToken) Return(c1 rms.CallDelegationToken) *ServiceMock {
 	if mmGetCallDelegationToken.mock.funcGetCallDelegationToken != nil {
 		mmGetCallDelegationToken.mock.t.Fatalf("ServiceMock.GetCallDelegationToken mock is already set by Set")
 	}
@@ -350,7 +350,7 @@ func (mmGetCallDelegationToken *mServiceMockGetCallDelegationToken) Return(c1 pa
 }
 
 //Set uses given function f to mock the Service.GetCallDelegationToken method
-func (mmGetCallDelegationToken *mServiceMockGetCallDelegationToken) Set(f func(outgoing reference.Global, to reference.Global, pn pulse.Number, object reference.Global) (c1 payload.CallDelegationToken)) *ServiceMock {
+func (mmGetCallDelegationToken *mServiceMockGetCallDelegationToken) Set(f func(outgoing reference.Global, to reference.Global, pn pulse.Number, object reference.Global) (c1 rms.CallDelegationToken)) *ServiceMock {
 	if mmGetCallDelegationToken.defaultExpectation != nil {
 		mmGetCallDelegationToken.mock.t.Fatalf("Default expectation is already set for the Service.GetCallDelegationToken method")
 	}
@@ -379,13 +379,13 @@ func (mmGetCallDelegationToken *mServiceMockGetCallDelegationToken) When(outgoin
 }
 
 // Then sets up Service.GetCallDelegationToken return parameters for the expectation previously defined by the When method
-func (e *ServiceMockGetCallDelegationTokenExpectation) Then(c1 payload.CallDelegationToken) *ServiceMock {
+func (e *ServiceMockGetCallDelegationTokenExpectation) Then(c1 rms.CallDelegationToken) *ServiceMock {
 	e.results = &ServiceMockGetCallDelegationTokenResults{c1}
 	return e.mock
 }
 
 // GetCallDelegationToken implements Service
-func (mmGetCallDelegationToken *ServiceMock) GetCallDelegationToken(outgoing reference.Global, to reference.Global, pn pulse.Number, object reference.Global) (c1 payload.CallDelegationToken) {
+func (mmGetCallDelegationToken *ServiceMock) GetCallDelegationToken(outgoing reference.Global, to reference.Global, pn pulse.Number, object reference.Global) (c1 rms.CallDelegationToken) {
 	mm_atomic.AddUint64(&mmGetCallDelegationToken.beforeGetCallDelegationTokenCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetCallDelegationToken.afterGetCallDelegationTokenCounter, 1)
 
@@ -512,7 +512,7 @@ type ServiceMockHasToSendTokenExpectation struct {
 
 // ServiceMockHasToSendTokenParams contains parameters of the Service.HasToSendToken
 type ServiceMockHasToSendTokenParams struct {
-	token payload.CallDelegationToken
+	token rms.CallDelegationToken
 }
 
 // ServiceMockHasToSendTokenResults contains results of the Service.HasToSendToken
@@ -521,7 +521,7 @@ type ServiceMockHasToSendTokenResults struct {
 }
 
 // Expect sets up expected params for Service.HasToSendToken
-func (mmHasToSendToken *mServiceMockHasToSendToken) Expect(token payload.CallDelegationToken) *mServiceMockHasToSendToken {
+func (mmHasToSendToken *mServiceMockHasToSendToken) Expect(token rms.CallDelegationToken) *mServiceMockHasToSendToken {
 	if mmHasToSendToken.mock.funcHasToSendToken != nil {
 		mmHasToSendToken.mock.t.Fatalf("ServiceMock.HasToSendToken mock is already set by Set")
 	}
@@ -541,7 +541,7 @@ func (mmHasToSendToken *mServiceMockHasToSendToken) Expect(token payload.CallDel
 }
 
 // Inspect accepts an inspector function that has same arguments as the Service.HasToSendToken
-func (mmHasToSendToken *mServiceMockHasToSendToken) Inspect(f func(token payload.CallDelegationToken)) *mServiceMockHasToSendToken {
+func (mmHasToSendToken *mServiceMockHasToSendToken) Inspect(f func(token rms.CallDelegationToken)) *mServiceMockHasToSendToken {
 	if mmHasToSendToken.mock.inspectFuncHasToSendToken != nil {
 		mmHasToSendToken.mock.t.Fatalf("Inspect function is already set for ServiceMock.HasToSendToken")
 	}
@@ -565,7 +565,7 @@ func (mmHasToSendToken *mServiceMockHasToSendToken) Return(b1 bool) *ServiceMock
 }
 
 //Set uses given function f to mock the Service.HasToSendToken method
-func (mmHasToSendToken *mServiceMockHasToSendToken) Set(f func(token payload.CallDelegationToken) (b1 bool)) *ServiceMock {
+func (mmHasToSendToken *mServiceMockHasToSendToken) Set(f func(token rms.CallDelegationToken) (b1 bool)) *ServiceMock {
 	if mmHasToSendToken.defaultExpectation != nil {
 		mmHasToSendToken.mock.t.Fatalf("Default expectation is already set for the Service.HasToSendToken method")
 	}
@@ -580,7 +580,7 @@ func (mmHasToSendToken *mServiceMockHasToSendToken) Set(f func(token payload.Cal
 
 // When sets expectation for the Service.HasToSendToken which will trigger the result defined by the following
 // Then helper
-func (mmHasToSendToken *mServiceMockHasToSendToken) When(token payload.CallDelegationToken) *ServiceMockHasToSendTokenExpectation {
+func (mmHasToSendToken *mServiceMockHasToSendToken) When(token rms.CallDelegationToken) *ServiceMockHasToSendTokenExpectation {
 	if mmHasToSendToken.mock.funcHasToSendToken != nil {
 		mmHasToSendToken.mock.t.Fatalf("ServiceMock.HasToSendToken mock is already set by Set")
 	}
@@ -600,7 +600,7 @@ func (e *ServiceMockHasToSendTokenExpectation) Then(b1 bool) *ServiceMock {
 }
 
 // HasToSendToken implements Service
-func (mmHasToSendToken *ServiceMock) HasToSendToken(token payload.CallDelegationToken) (b1 bool) {
+func (mmHasToSendToken *ServiceMock) HasToSendToken(token rms.CallDelegationToken) (b1 bool) {
 	mm_atomic.AddUint64(&mmHasToSendToken.beforeHasToSendTokenCounter, 1)
 	defer mm_atomic.AddUint64(&mmHasToSendToken.afterHasToSendTokenCounter, 1)
 

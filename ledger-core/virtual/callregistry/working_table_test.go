@@ -12,7 +12,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
-	payload "github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 )
@@ -53,7 +53,7 @@ func TestWorkingTable(t *testing.T) {
 	assert.False(t, wt.SetActive(isolation.CallTolerable, ref))
 	assert.False(t, wt.SetActive(isolation.CallTolerable, gen.UniqueGlobalRef()))
 
-	res := &payload.VCallResult{
+	res := &rms.VCallResult{
 		Callee: gen.UniqueGlobalRef(),
 	}
 

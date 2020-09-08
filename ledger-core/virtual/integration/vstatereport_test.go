@@ -18,7 +18,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	payload "github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
@@ -38,8 +38,8 @@ type stateReportCheckPendingCountersAndPulsesTestChecks struct {
 type stateReportCheckPendingCountersAndPulsesTestRequestInfo struct {
 	name  string
 	ref   reference.Global
-	flags payload.CallFlags
-	token payload.CallDelegationToken
+	flags rms.CallFlags
+	token rms.CallDelegationToken
 }
 
 type stateReportCheckPendingCountersAndPulsesTest struct {
@@ -167,9 +167,9 @@ func TestVirtual_StateReport_CheckPendingCountersAndPulses(t *testing.T) {
 
 			suite.setMessageCheckers(ctx, t, test.checks)
 
-			report := payload.VStateReport{
+			report := rms.VStateReport{
 				AsOf:   suite.getPulse(3),
-				Status: payload.StateStatusReady,
+				Status: rms.StateStatusReady,
 				Object: suite.getObject(),
 
 				UnorderedPendingCount:         2,
@@ -178,8 +178,8 @@ func TestVirtual_StateReport_CheckPendingCountersAndPulses(t *testing.T) {
 				OrderedPendingCount:         1,
 				OrderedPendingEarliestPulse: suite.getPulse(1),
 
-				ProvidedContent: &payload.VStateReport_ProvidedContentBody{
-					LatestDirtyState: &payload.ObjectState{
+				ProvidedContent: &rms.VStateReport_ProvidedContentBody{
+					LatestDirtyState: &rms.ObjectState{
 						Reference: gen.UniqueLocalRefWithPulse(suite.getPulse(1)),
 						Class:     suite.getClass(),
 						State:     []byte("object memory"),
@@ -214,7 +214,7 @@ func TestVirtual_StateReport_CheckPendingCountersAndPulses(t *testing.T) {
 			suite.waitMessagePublications(ctx, t, expectedPublished)
 
 			// request state again
-			reportRequest := payload.VStateRequest{
+			reportRequest := rms.VStateRequest{
 				AsOf:   suite.getPulse(4),
 				Object: suite.getObject(),
 			}
@@ -305,15 +305,15 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) generateRequests(ctx cont
 	s.requests = map[string]*stateReportCheckPendingCountersAndPulsesTestRequestInfo{
 		"Ordered1": {
 			ref:   reference.NewRecordOf(s.getCaller(), gen.UniqueLocalRefWithPulse(s.getPulse(2))),
-			flags: payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
+			flags: rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 		},
 		"Unordered1": {
 			ref:   reference.NewRecordOf(s.getCaller(), gen.UniqueLocalRefWithPulse(s.getPulse(2))),
-			flags: payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty),
+			flags: rms.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty),
 		},
 		"Unordered2": {
 			ref:   reference.NewRecordOf(s.getCaller(), gen.UniqueLocalRefWithPulse(s.getPulse(3))),
-			flags: payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty),
+			flags: rms.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty),
 		},
 	}
 }
@@ -322,7 +322,7 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) confirmPending(
 	ctx context.Context, reqName string,
 ) {
 	reqInfo := s.requests[reqName]
-	pl := payload.VDelegatedCallRequest{
+	pl := rms.VDelegatedCallRequest{
 		Callee:       s.getObject(),
 		CallOutgoing: reqInfo.ref,
 		CallIncoming: reference.NewRecordOf(s.getObject(), reqInfo.ref.GetLocal()),
@@ -335,8 +335,8 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) finishActivePending(
 	ctx context.Context, reqName string,
 ) {
 	reqInfo := s.requests[reqName]
-	pl := payload.VDelegatedRequestFinished{
-		CallType:     payload.CallTypeMethod,
+	pl := rms.VDelegatedRequestFinished{
+		CallType:     rms.CallTypeMethod,
 		CallFlags:    reqInfo.flags,
 		Callee:       s.getObject(),
 		CallOutgoing: reqInfo.ref,
@@ -383,7 +383,7 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) startNewPending(
 	)
 
 	pl := utils.GenerateVCallRequestMethod(s.server)
-	pl.CallFlags = payload.BuildCallFlags(intFlag, isolation.CallDirty)
+	pl.CallFlags = rms.BuildCallFlags(intFlag, isolation.CallDirty)
 	pl.Caller = s.getCaller()
 	pl.Callee = s.getObject()
 	pl.CallOutgoing = outgoing
@@ -408,7 +408,7 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) setMessageCheckers(
 ) {
 
 	typedChecker := s.server.PublisherMock.SetTypedChecker(ctx, s.mc, s.server)
-	typedChecker.VStateReport.Set(func(rep *payload.VStateReport) bool {
+	typedChecker.VStateReport.Set(func(rep *rms.VStateReport) bool {
 		require.Equal(t, s.getPulse(4), rep.AsOf)
 		require.Equal(t, s.getObject(), rep.Object)
 
@@ -428,7 +428,7 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) setMessageCheckers(
 
 		return false // no resend msg
 	})
-	typedChecker.VDelegatedCallResponse.Set(func(del *payload.VDelegatedCallResponse) bool {
+	typedChecker.VDelegatedCallResponse.Set(func(del *rms.VDelegatedCallResponse) bool {
 		outgoingRef := del.ResponseDelegationSpec.Outgoing
 		require.False(t, outgoingRef.IsZero())
 		require.False(t, outgoingRef.IsEmpty())
@@ -444,22 +444,22 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) setMessageCheckers(
 		require.True(t, found)
 		return false
 	})
-	typedChecker.VDelegatedCallRequest.Set(func(req *payload.VDelegatedCallRequest) bool {
+	typedChecker.VDelegatedCallRequest.Set(func(req *rms.VDelegatedCallRequest) bool {
 		outgoingRef := req.CallOutgoing
 		require.False(t, outgoingRef.IsZero())
 		require.False(t, outgoingRef.IsEmpty())
 
 		require.Equal(t, s.getObject(), req.Callee)
 
-		token := payload.CallDelegationToken{
-			TokenTypeAndFlags: payload.DelegationTokenTypeCall,
+		token := rms.CallDelegationToken{
+			TokenTypeAndFlags: rms.DelegationTokenTypeCall,
 			PulseNumber:       s.getPulse(5),
 			Callee:            s.getObject(),
 			Outgoing:          outgoingRef,
 			ApproverSignature: []byte("deadbeef"),
 		}
 
-		pl := payload.VDelegatedCallResponse{
+		pl := rms.VDelegatedCallResponse{
 			Callee:                 req.Callee,
 			CallIncoming:           req.CallIncoming,
 			ResponseDelegationSpec: token,
@@ -468,7 +468,7 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) setMessageCheckers(
 		s.server.SendPayload(ctx, &pl)
 		return false
 	})
-	typedChecker.VDelegatedRequestFinished.Set(func(res *payload.VDelegatedRequestFinished) bool {
+	typedChecker.VDelegatedRequestFinished.Set(func(res *rms.VDelegatedRequestFinished) bool {
 		outgoingRef := res.CallOutgoing
 		require.False(t, outgoingRef.IsZero())
 		require.False(t, outgoingRef.IsEmpty())
@@ -477,7 +477,7 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) setMessageCheckers(
 
 		return false
 	})
-	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
+	typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
 		outgoingRef := res.CallOutgoing
 		require.False(t, outgoingRef.IsZero())
 		require.False(t, outgoingRef.IsEmpty())
@@ -486,15 +486,15 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) setMessageCheckers(
 
 		return false
 	})
-	typedChecker.VFindCallRequest.Set(func(req *payload.VFindCallRequest) bool {
+	typedChecker.VFindCallRequest.Set(func(req *rms.VFindCallRequest) bool {
 		require.Equal(t, s.getPulse(3), req.LookAt)
 		require.Equal(t, s.getObject(), req.Callee)
 
-		pl := payload.VFindCallResponse{
+		pl := rms.VFindCallResponse{
 			LookedAt: s.getPulse(3),
 			Callee:   s.getObject(),
 			Outgoing: req.Outgoing,
-			Status:   payload.CallStateMissing,
+			Status:   rms.CallStateMissing,
 		}
 		s.server.SendPayload(ctx, &pl)
 
@@ -545,7 +545,7 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) waitMessagePublications(
 }
 
 func (s *stateReportCheckPendingCountersAndPulsesTest) addPayloadAndWaitIdle(
-	ctx context.Context, pl payload.Marshaler,
+	ctx context.Context, pl rms.Marshaler,
 ) {
 	s.server.SuspendConveyorAndWaitThenResetActive()
 	s.server.SendPayload(ctx, pl)

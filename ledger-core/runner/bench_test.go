@@ -13,7 +13,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	payload "github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
@@ -36,8 +36,8 @@ func BenchmarkRunnerService(b *testing.B) {
 	executionContext := execution.Context{
 		ObjectDescriptor: descriptor.NewObject(object, reference.Local{}, class, defaultObject, false),
 		Context:          ctx,
-		Request: &payload.VCallRequest{
-			CallType:       payload.CallTypeMethod,
+		Request: &rms.VCallRequest{
+			CallType:       rms.CallTypeMethod,
 			CallSiteMethod: "GetBalance",
 			Arguments:      insolar.MustSerialize([]interface{}{remoteObject, uint32(100)}),
 		},

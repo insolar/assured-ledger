@@ -17,7 +17,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	payload "github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	commonTestUtils "github.com/insolar/assured-ledger/ledger-core/testutils"
@@ -67,10 +67,10 @@ func TestVirtual_VCachedMemoryRequestHandler(t *testing.T) {
 
 			cases.precondition(suite, ctx, t)
 
-			syncChan := make(chan payload.LocalReference, 1)
+			syncChan := make(chan rms.LocalReference, 1)
 			defer close(syncChan)
 
-			suite.typedChecker.VStateReport.Set(func(rep *payload.VStateReport) bool {
+			suite.typedChecker.VStateReport.Set(func(rep *rms.VStateReport) bool {
 				require.NotEmpty(t, rep.ProvidedContent.LatestDirtyState.Reference)
 				syncChan <- rep.ProvidedContent.LatestDirtyState.Reference
 				return false // no resend msg
@@ -79,13 +79,13 @@ func TestVirtual_VCachedMemoryRequestHandler(t *testing.T) {
 			suite.server.IncrementPulse(ctx)
 			commonTestUtils.WaitSignalsTimed(t, 10*time.Second, suite.typedChecker.VStateReport.Wait(ctx, 1))
 
-			suite.typedChecker.VCachedMemoryResponse.Set(func(resp *payload.VCachedMemoryResponse) bool {
+			suite.typedChecker.VCachedMemoryResponse.Set(func(resp *rms.VCachedMemoryResponse) bool {
 				require.Equal(t, suite.object, resp.Object)
 				require.Equal(t, []byte(newState), resp.Memory)
 				return false
 			})
 
-			var stateRef payload.LocalReference
+			var stateRef rms.LocalReference
 
 			select {
 			case stateRef = <-syncChan:
@@ -95,7 +95,7 @@ func TestVirtual_VCachedMemoryRequestHandler(t *testing.T) {
 
 			executeDone := suite.server.Journal.WaitStopOf(&handlers.SMVCachedMemoryRequest{}, 1)
 			{
-				cachReq := &payload.VCachedMemoryRequest{
+				cachReq := &rms.VCachedMemoryRequest{
 					Object:  suite.object,
 					StateID: stateRef,
 				}
@@ -116,7 +116,7 @@ func methodPrecondition(s *memoryCacheTest, ctx context.Context, t *testing.T) {
 
 	s.server.IncrementPulse(ctx)
 
-	Method_PrepareObject(ctx, s.server, payload.StateStatusReady, s.object, prevPulse)
+	Method_PrepareObject(ctx, s.server, rms.StateStatusReady, s.object, prevPulse)
 
 	pl := utils.GenerateVCallRequestMethod(s.server)
 	pl.Callee = s.object
@@ -138,7 +138,7 @@ func methodPrecondition(s *memoryCacheTest, ctx context.Context, t *testing.T) {
 		State:        pl.CallFlags.GetState(),
 	}, nil)
 
-	s.typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool {
+	s.typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
 		assert.Equal(t, s.object, result.Callee)
 		assert.Equal(t, []byte("result"), result.ReturnArguments)
 		return false
@@ -170,7 +170,7 @@ func constructorPrecondition(s *memoryCacheTest, ctx context.Context, t *testing
 		State:        pl.CallFlags.GetState(),
 	}, nil)
 
-	s.typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool {
+	s.typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
 		assert.Equal(t, s.object, result.Callee)
 		assert.Equal(t, []byte("result"), result.ReturnArguments)
 		return false
@@ -213,12 +213,12 @@ func pendingPrecondition(s *memoryCacheTest, ctx context.Context, t *testing.T) 
 	s.server.SendPayload(ctx, report)
 	commonTestUtils.WaitSignalsTimed(t, 10*time.Second, wait)
 
-	flags := payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty)
+	flags := rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty)
 
 	s.typedChecker.VDelegatedCallResponse.SetResend(false)
 
 	{ // delegation request
-		delegationReq := &payload.VDelegatedCallRequest{
+		delegationReq := &rms.VDelegatedCallRequest{
 			Callee:       s.object,
 			CallFlags:    flags,
 			CallOutgoing: outgoing,
@@ -230,13 +230,13 @@ func pendingPrecondition(s *memoryCacheTest, ctx context.Context, t *testing.T) 
 		commonTestUtils.WaitSignalsTimed(t, 10*time.Second, s.server.Journal.WaitAllAsyncCallsDone())
 	}
 	{ // send delegation request finished with new state
-		pl := payload.VDelegatedRequestFinished{
-			CallType:     payload.CallTypeMethod,
+		pl := rms.VDelegatedRequestFinished{
+			CallType:     rms.CallTypeMethod,
 			Callee:       s.object,
 			CallOutgoing: outgoing,
 			CallIncoming: incoming,
 			CallFlags:    flags,
-			LatestState: &payload.ObjectState{
+			LatestState: &rms.ObjectState{
 				Reference:     s.server.RandomLocalWithPulse(),
 				Class:         s.class,
 				State:         []byte(newState),

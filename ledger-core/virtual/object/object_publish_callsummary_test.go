@@ -14,7 +14,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
-	payload "github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
@@ -38,11 +38,11 @@ func TestSMObject_CallSummarySM(t *testing.T) {
 	smObject.globalLimiter = tool.NewRunnerLimiter(4)
 	smObject.SetState(HasState)
 
-	res1 := payload.VCallResult{
+	res1 := rms.VCallResult{
 		Callee:       smObject.Reference,
 		CallOutgoing: gen.UniqueGlobalRef(),
 	}
-	res2 := payload.VCallResult{
+	res2 := rms.VCallResult{
 		Callee:       smObject.Reference,
 		CallOutgoing: gen.UniqueGlobalRef(),
 	}
@@ -77,7 +77,7 @@ func TestSMObject_CallSummarySM(t *testing.T) {
 	}
 
 	{
-		sdlStateReport := smachine.NewUnboundSharedData(&payload.VStateReport{})
+		sdlStateReport := smachine.NewUnboundSharedData(&rms.VStateReport{})
 		sdlSummarySync := smachine.NewUnboundSharedData(&smachine.SyncLink{})
 
 		publishDuringMigrate := func(key interface{}, data interface{}) (b1 bool) {
@@ -103,7 +103,7 @@ func TestSMObject_CallSummarySM(t *testing.T) {
 
 		getSharedLink := func(data interface{}, flags smachine.ShareDataFlags) (s1 smachine.SharedDataLink) {
 			switch data.(type) {
-			case *payload.VStateReport:
+			case *rms.VStateReport:
 				return sdlStateReport
 			case *smachine.SyncLink:
 				return sdlSummarySync

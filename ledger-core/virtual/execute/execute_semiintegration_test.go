@@ -21,7 +21,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	payload "github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/predicate"
@@ -64,16 +64,16 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 	objectRef := reference.NewSelf(outgoing.GetLocal())
 
 	smExecute := SMExecute{
-		Payload: &payload.VCallRequest{
-			CallType:     payload.CallTypeConstructor,
-			CallFlags:    payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
+		Payload: &rms.VCallRequest{
+			CallType:     rms.CallTypeConstructor,
+			CallFlags:    rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 			CallOutgoing: outgoing,
 
 			Caller:         caller,
 			Callee:         class,
 			CallSiteMethod: "New",
 		},
-		Meta: &payload.Meta{
+		Meta: &rms.Meta{
 			Sender: caller,
 		},
 	}
@@ -145,16 +145,16 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 	objectRef := reference.NewSelf(outgoing.GetLocal())
 
 	smExecute := SMExecute{
-		Payload: &payload.VCallRequest{
-			CallType:     payload.CallTypeConstructor,
-			CallFlags:    payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
+		Payload: &rms.VCallRequest{
+			CallType:     rms.CallTypeConstructor,
+			CallFlags:    rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 			CallOutgoing: outgoing,
 
 			Caller:         class,
 			Callee:         callee,
 			CallSiteMethod: "New",
 		},
-		Meta: &payload.Meta{
+		Meta: &rms.Meta{
 			Sender: caller,
 		},
 	}
@@ -227,16 +227,16 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 	objectRef := reference.NewSelf(outgoing.GetLocal())
 
 	smExecute := SMExecute{
-		Payload: &payload.VCallRequest{
-			CallType:     payload.CallTypeConstructor,
-			CallFlags:    payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
+		Payload: &rms.VCallRequest{
+			CallType:     rms.CallTypeConstructor,
+			CallFlags:    rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 			CallOutgoing: outgoing,
 
 			Caller:         caller,
 			Callee:         class,
 			CallSiteMethod: "New",
 		},
-		Meta: &payload.Meta{
+		Meta: &rms.Meta{
 			Sender: caller,
 		},
 	}
@@ -310,16 +310,16 @@ func TestSMExecute_Semi_ConstructorOnMissingObject(t *testing.T) {
 	sharedState.SetState(object.Missing)
 
 	smExecute := SMExecute{
-		Payload: &payload.VCallRequest{
-			CallType:     payload.CallTypeConstructor,
-			CallFlags:    payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
+		Payload: &rms.VCallRequest{
+			CallType:     rms.CallTypeConstructor,
+			CallFlags:    rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 			CallOutgoing: outgoing,
 
 			Caller:         caller,
 			Callee:         class,
 			CallSiteMethod: "New",
 		},
-		Meta: &payload.Meta{
+		Meta: &rms.Meta{
 			Sender: caller,
 		},
 	}
@@ -373,8 +373,8 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 	slotMachine.PrepareMockedMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 
-	slotMachine.MessageSender.SendTarget.Set(func(_ context.Context, msg payload.Marshaler, target reference.Global, _ ...messagesender.SendOption) error {
-		res := msg.(*payload.VCallResult)
+	slotMachine.MessageSender.SendTarget.Set(func(_ context.Context, msg rms.Marshaler, target reference.Global, _ ...messagesender.SendOption) error {
+		res := msg.(*rms.VCallResult)
 		contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments)
 		require.NoError(t, sysErr)
 		require.Contains(t, contractErr.Error(), "try to call method on deactivated object")
@@ -398,16 +398,16 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 	sharedState.SetState(object.Inactive)
 
 	smExecute := SMExecute{
-		Payload: &payload.VCallRequest{
-			CallType:     payload.CallTypeConstructor,
-			CallFlags:    payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
+		Payload: &rms.VCallRequest{
+			CallType:     rms.CallTypeConstructor,
+			CallFlags:    rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 			CallOutgoing: outgoing,
 
 			Caller:         caller,
 			Callee:         class,
 			CallSiteMethod: "New",
 		},
-		Meta: &payload.Meta{
+		Meta: &rms.Meta{
 			Sender: caller,
 		},
 	}
@@ -482,16 +482,16 @@ func TestSMExecute_Semi_MethodOnEmptyObject(t *testing.T) {
 	sharedState.SetState(object.Empty)
 
 	smExecute := SMExecute{
-		Payload: &payload.VCallRequest{
-			CallType:     payload.CallTypeMethod,
-			CallFlags:    payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
+		Payload: &rms.VCallRequest{
+			CallType:     rms.CallTypeMethod,
+			CallFlags:    rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 			CallOutgoing: outgoing,
 
 			Caller:         caller,
 			Callee:         objectRef,
 			CallSiteMethod: "New",
 		},
-		Meta: &payload.Meta{
+		Meta: &rms.Meta{
 			Sender: caller,
 		},
 	}

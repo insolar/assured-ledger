@@ -10,18 +10,18 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
-	payload "github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 )
 
-func GenerateVCallRequestConstructor(server *Server) *payload.VCallRequest {
+func GenerateVCallRequestConstructor(server *Server) *rms.VCallRequest {
 	var (
 		isolation = contract.ConstructorIsolation()
 	)
 
-	return &payload.VCallRequest{
-		CallType:       payload.CallTypeConstructor,
-		CallFlags:      payload.BuildCallFlags(isolation.Interference, isolation.State),
+	return &rms.VCallRequest{
+		CallType:       rms.CallTypeConstructor,
+		CallFlags:      rms.BuildCallFlags(isolation.Interference, isolation.State),
 		Caller:         server.GlobalCaller(),
 		Callee:         gen.UniqueGlobalRefWithPulse(pulse.LocalRelative),
 		CallSiteMethod: "New",
@@ -32,10 +32,10 @@ func GenerateVCallRequestConstructor(server *Server) *payload.VCallRequest {
 }
 
 // GenerateVCallRequestMethod returns CallTypeMethod VCallRequest for tolerable/dirty request by default
-func GenerateVCallRequestMethod(server *Server) *payload.VCallRequest {
-	return &payload.VCallRequest{
-		CallType:       payload.CallTypeMethod,
-		CallFlags:      payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
+func GenerateVCallRequestMethod(server *Server) *rms.VCallRequest {
+	return &rms.VCallRequest{
+		CallType:       rms.CallTypeMethod,
+		CallFlags:      rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 		Caller:         server.GlobalCaller(),
 		Callee:         server.RandomGlobalWithPulse(),
 		CallSiteMethod: "Method",
@@ -45,9 +45,9 @@ func GenerateVCallRequestMethod(server *Server) *payload.VCallRequest {
 	}
 }
 
-func GenerateVCallRequestMethodImmutable(server *Server) *payload.VCallRequest {
+func GenerateVCallRequestMethodImmutable(server *Server) *rms.VCallRequest {
 	pl := GenerateVCallRequestMethod(server)
-	pl.CallFlags = payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallValidated)
+	pl.CallFlags = rms.BuildCallFlags(isolation.CallIntolerable, isolation.CallValidated)
 
 	return pl
 }

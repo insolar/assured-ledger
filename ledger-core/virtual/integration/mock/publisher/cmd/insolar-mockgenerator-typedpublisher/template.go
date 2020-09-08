@@ -22,12 +22,7 @@ const (
 			"github.com/ThreeDotsLabs/watermill/message"
 			"github.com/gojuno/minimock/v3"
 
-		{{ if .PayloadIsUsed }}
-			payload "github.com/insolar/assured-ledger/ledger-core/rms"
-		{{- end }}
-		{{- if .RMSIsUsed }}
 			"github.com/insolar/assured-ledger/ledger-core/rms"
-		{{- end }}
 			"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
 			"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 		)

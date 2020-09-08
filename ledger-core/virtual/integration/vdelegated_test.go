@@ -16,7 +16,7 @@ import (
 	testwalletProxy "github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	payload "github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
@@ -44,7 +44,7 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 	)
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-	typedChecker.VDelegatedCallResponse.Set(func(pl *payload.VDelegatedCallResponse) bool {
+	typedChecker.VDelegatedCallResponse.Set(func(pl *rms.VDelegatedCallResponse) bool {
 		require.NotEmpty(t, pl.ResponseDelegationSpec)
 		require.Equal(t, objectRef, pl.ResponseDelegationSpec.Callee)
 		require.Equal(t, sender, pl.ResponseDelegationSpec.DelegateTo)
@@ -58,14 +58,14 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 		// send VStateReport: save wallet
 		stateID := gen.UniqueLocalRefWithPulse(prevPulse)
 		rawWalletState := makeRawWalletState(testBalance)
-		payloadMeta := &payload.VStateReport{
-			Status:                        payload.StateStatusReady,
+		payloadMeta := &rms.VStateReport{
+			Status:                        rms.StateStatusReady,
 			Object:                        objectRef,
 			AsOf:                          prevPulse,
 			UnorderedPendingCount:         1,
 			UnorderedPendingEarliestPulse: prevPulse,
-			ProvidedContent: &payload.VStateReport_ProvidedContentBody{
-				LatestDirtyState: &payload.ObjectState{
+			ProvidedContent: &rms.VStateReport_ProvidedContentBody{
+				LatestDirtyState: &rms.ObjectState{
 					Reference: stateID,
 					Class:     testwalletProxy.GetClass(),
 					State:     rawWalletState,
@@ -80,11 +80,11 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 
 	{
 		// send VDelegatedCall
-		pl := payload.VDelegatedCallRequest{
+		pl := rms.VDelegatedCallRequest{
 			CallOutgoing: outgoing,
 			CallIncoming: incoming,
 			Callee:       objectRef,
-			CallFlags:    payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty),
+			CallFlags:    rms.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty),
 		}
 
 		msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(sender).SetSender(server.JetCoordinatorMock.Me()).Finalize()

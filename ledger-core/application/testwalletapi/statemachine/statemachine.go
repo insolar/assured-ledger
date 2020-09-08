@@ -17,7 +17,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	payload "github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
@@ -37,7 +37,7 @@ var APICaller, _ = reference.GlobalObjectFromString("insolar:0AAABAnRB0CKuqXTeTf
 const MaxRepeats = 3
 
 type SMTestAPICall struct {
-	requestPayload  payload.VCallRequest
+	requestPayload  rms.VCallRequest
 	responsePayload []byte
 
 	object           reference.Global
@@ -86,9 +86,9 @@ func (s *SMTestAPICall) stepSend(ctx smachine.ExecutionContext) smachine.StateUp
 	s.requestPayload.CallOutgoing.Set(reference.NewRecordOf(APICaller, outLocal))
 
 	switch s.requestPayload.CallType {
-	case payload.CallTypeMethod:
+	case rms.CallTypeMethod:
 		s.object = s.requestPayload.Callee.GetValue()
-	case payload.CallTypeConstructor:
+	case rms.CallTypeConstructor:
 		s.object = reference.NewSelf(outLocal)
 	default:
 		panic(throw.IllegalValue())
@@ -136,7 +136,7 @@ func (s *SMTestAPICall) stepProcessResult(ctx smachine.ExecutionContext) smachin
 
 func (s *SMTestAPICall) newBargeIn(ctx smachine.ExecutionContext) smachine.BargeInWithParam {
 	return ctx.NewBargeInWithParam(func(param interface{}) smachine.BargeInCallbackFunc {
-		res, ok := param.(*payload.VCallResult)
+		res, ok := param.(*rms.VCallResult)
 		if !ok || res == nil {
 			panic(throw.IllegalValue())
 		}
@@ -153,7 +153,7 @@ func (s *SMTestAPICall) sendRequest(ctx smachine.ExecutionContext) {
 	payloadData := s.requestPayload
 
 	if s.messageSentTimes.Load() > 0 {
-		payloadData.CallRequestFlags.WithRepeatedCall(payload.RepeatedCall)
+		payloadData.CallRequestFlags.WithRepeatedCall(rms.RepeatedCall)
 	}
 
 	if s.object.GetBase().Equal(builtinTestAPIEchoRef.GetBase()) {
@@ -182,7 +182,7 @@ func (s *SMTestAPICall) sendEchoRequest(ctx smachine.ExecutionContext) {
 
 	_, bargeIn := ctx.GetPublishedGlobalAliasAndBargeIn(s.requestPayload.CallOutgoing)
 
-	result := &payload.VCallResult{
+	result := &rms.VCallResult{
 		ReturnArguments: s.requestPayload.Arguments,
 	}
 

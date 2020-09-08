@@ -21,7 +21,7 @@ import (
 	messageSender "github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	payload "github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
@@ -54,9 +54,9 @@ func TestVDelegatedCallRequest(t *testing.T) {
 		migrationPulse pulse.Number
 
 		smExecute = SMExecute{
-			Payload: &payload.VCallRequest{
-				CallType:     payload.CallTypeConstructor,
-				CallFlags:    payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
+			Payload: &rms.VCallRequest{
+				CallType:     rms.CallTypeConstructor,
+				CallFlags:    rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 				CallOutgoing: outgoing,
 
 				Caller: caller,
@@ -95,8 +95,8 @@ func TestVDelegatedCallRequest(t *testing.T) {
 	}
 
 	slotMachine.MessageSender.SendRole.Set(
-		func(_ context.Context, msg payload.Marshaler, role affinity.DynamicRole, object reference.Global, pn pulse.Number, _ ...messageSender.SendOption) error {
-			res, ok := msg.(*payload.VDelegatedCallRequest)
+		func(_ context.Context, msg rms.Marshaler, role affinity.DynamicRole, object reference.Global, pn pulse.Number, _ ...messageSender.SendOption) error {
+			res, ok := msg.(*rms.VDelegatedCallRequest)
 			require.True(t, ok)
 			require.NotNil(t, res)
 			require.Equal(t, objectRef, object)
@@ -133,8 +133,8 @@ func TestVDelegatedCallRequest(t *testing.T) {
 		slotLink, bargeInHolder := slotMachine.SlotMachine.GetPublishedGlobalAliasAndBargeIn(tokenKey)
 		require.False(t, slotLink.IsZero())
 
-		ok := bargeInHolder.CallWithParam(&payload.VDelegatedCallResponse{
-			ResponseDelegationSpec: payload.CallDelegationToken{Outgoing: outgoing},
+		ok := bargeInHolder.CallWithParam(&rms.VDelegatedCallResponse{
+			ResponseDelegationSpec: rms.CallDelegationToken{Outgoing: outgoing},
 		})
 		require.True(t, ok)
 	}

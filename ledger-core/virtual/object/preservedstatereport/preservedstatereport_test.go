@@ -16,7 +16,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	payload "github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
@@ -25,22 +25,22 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 )
 
-func buildStateReport(status payload.VStateReport_StateStatus, state descriptor.Object) payload.VStateReport {
+func buildStateReport(status rms.VStateReport_StateStatus, state descriptor.Object) rms.VStateReport {
 	var (
 		pd          = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 		smGlobalRef = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
 	)
 
-	res := payload.VStateReport{
+	res := rms.VStateReport{
 		Object:          smGlobalRef,
-		ProvidedContent: &payload.VStateReport_ProvidedContentBody{},
+		ProvidedContent: &rms.VStateReport_ProvidedContentBody{},
 		Status:          status,
 	}
 
 	if state != nil {
 		res.LatestDirtyState = state.HeadRef()
 		class, _ := state.Class()
-		res.ProvidedContent.LatestDirtyState = &payload.ObjectState{
+		res.ProvidedContent.LatestDirtyState = &rms.ObjectState{
 			Reference: state.StateID(),
 			Class:     class,
 			State:     state.Memory(),
@@ -73,11 +73,11 @@ func TestSMStateReport_SendVStateReport_IfDescriptorSet(t *testing.T) {
 	)
 
 	smReport := newSMReportWithPulse()
-	smReport.Report = buildStateReport(payload.StateStatusReady, descriptor.NewObject(reference.Global{}, reference.Local{}, reference.Global{}, nil, false))
+	smReport.Report = buildStateReport(rms.StateStatusReady, descriptor.NewObject(reference.Global{}, reference.Local{}, reference.Global{}, nil, false))
 
 	messageService := messageSenderWrapper.NewServiceMockWrapper(mc)
-	checkMessageFn := func(msg payload.Marshaler) {
-		stateReport, ok := msg.(*payload.VStateReport)
+	checkMessageFn := func(msg rms.Marshaler) {
+		stateReport, ok := msg.(*rms.VStateReport)
 		require.True(t, ok)
 		require.NotNil(t, stateReport.ProvidedContent)
 		require.NotNil(t, stateReport.ProvidedContent.LatestDirtyState)
@@ -108,11 +108,11 @@ func TestSMStateReport_SendVStateReport_IfDescriptorNotSetAndStateEmpty(t *testi
 	)
 
 	smReport := newSMReportWithPulse()
-	smReport.Report = buildStateReport(payload.StateStatusEmpty, nil)
+	smReport.Report = buildStateReport(rms.StateStatusEmpty, nil)
 
 	messageService := messageSenderWrapper.NewServiceMockWrapper(mc)
-	checkMessageFn := func(msg payload.Marshaler) {
-		stateReport, ok := msg.(*payload.VStateReport)
+	checkMessageFn := func(msg rms.Marshaler) {
+		stateReport, ok := msg.(*rms.VStateReport)
 		require.True(t, ok)
 		require.True(t, stateReport.LatestDirtyState.IsZero())
 		require.NotNil(t, stateReport.ProvidedContent)

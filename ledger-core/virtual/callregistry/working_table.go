@@ -9,7 +9,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	payload "github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -60,7 +60,7 @@ func (wt WorkingTable) SetActive(flag isolation.InterferenceFlag, ref reference.
 func (wt WorkingTable) Finish(
 	flag isolation.InterferenceFlag,
 	ref reference.Global,
-	result *payload.VCallResult,
+	result *rms.VCallResult,
 ) bool {
 	if ok := wt.GetList(flag).finish(ref); ok {
 		_, ok := wt.results[ref]
@@ -97,18 +97,18 @@ type WorkingList struct {
 	countActive         int
 	countFinish         int
 	requests            map[reference.Global]WorkingRequestState
-	activity            map[payload.PulseNumber]uint
+	activity            map[rms.PulseNumber]uint
 }
 
 func newWorkingList() *WorkingList {
 	return &WorkingList{
 		requests: make(map[reference.Global]WorkingRequestState),
-		activity: make(map[payload.PulseNumber]uint),
+		activity: make(map[rms.PulseNumber]uint),
 	}
 }
 
 type CallSummary struct {
-	Result *payload.VCallResult
+	Result *rms.VCallResult
 }
 
 func (rl *WorkingList) GetState(ref reference.Global) WorkingRequestState {
