@@ -58,6 +58,7 @@ type SMExecute struct {
 
 	// execution step
 	executionNewState   *execution.Update
+	outgoingVCallResult *rms.VCallResult
 	outgoingResult      []byte
 	deactivate          bool
 	run                 runner.RunState
@@ -86,10 +87,11 @@ type SMExecute struct {
 	findCallResponse *rms.VFindCallResponse
 
 	// registration in LMN
-	registeredIncoming bool
-	registeredOutgoing bool
-	// field will be in Payload with right type
-	inboundRecord rms.BasicRecord
+	lmnObjectRef       reference.Global
+	lmnLastFilamentRef reference.Global
+	lmnLastLifelineRef reference.Global
+
+	incomingRegistered bool
 }
 
 /* -------- Declaration ------------- */
@@ -567,6 +569,10 @@ func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) sm
 	ctx.SetDefaultMigration(s.migrateDuringExecution)
 	s.execution.ObjectDescriptor = objectDescriptor
 
+	if s.isConstructor {
+		return ctx.Jump(s.stepRegisterObjectLifeLine)
+	}
+
 	return ctx.Jump(s.stepExecuteStart)
 }
 
@@ -604,6 +610,17 @@ func (s *SMExecute) stepGetDelegationToken(ctx smachine.ExecutionContext) smachi
 			return ctx.Jump(s.stepSendOutgoing)
 		}
 		return ctx.JumpExt(s.stepAfterTokenGet)
+	})
+}
+
+func (s *SMExecute) stepRegisterObjectLifeLine(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	subroutineSM := &SMRegisterOnLMN{
+		Incoming: s.Payload,
+	}
+	return ctx.CallSubroutine(subroutineSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
+		s.lmnObjectRef = subroutineSM.NewObjectRef
+		s.lmnLastLifelineRef = subroutineSM.NewLastLifelineRef
+		return ctx.Jump(s.stepExecuteStart)
 	})
 }
 
@@ -668,33 +685,63 @@ func (s *SMExecute) stepExecuteDecideNextStep(ctx smachine.ExecutionContext) sma
 
 func (s *SMExecute) stepRegisterDoneOnLMN(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	subroutineSM := &SMRegisterOnLMN{
-		object:        s.execution.Object,
-		isConstructor: s.isConstructor,
-		interference:  s.methodIsolation.Interference,
-		newState:      s.executionNewState,
+		IncomingResult:  s.executionNewState,
+		OutgoingResult:  s.outgoingVCallResult,
+		Interference:    s.methodIsolation.Interference,
+		Object:          s.lmnObjectRef,
+		LastLifelineRef: s.lmnLastLifelineRef,
+		LastFilamentRef: s.lmnLastFilamentRef,
 	}
-	if !s.registeredIncoming {
-		subroutineSM.incoming = s.inboundRecord
+	if !s.incomingRegistered {
+		subroutineSM.Incoming = s.Payload
+		s.incomingRegistered = true
 	}
 	return ctx.CallSubroutine(subroutineSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
-		s.registeredIncoming = subroutineSM.incomingRegistered
+		s.lmnObjectRef = subroutineSM.NewObjectRef
+		s.lmnLastLifelineRef = subroutineSM.NewLastLifelineRef
+		s.lmnLastFilamentRef = subroutineSM.NewLastFilamentRef
 		return ctx.Jump(s.stepSaveNewObject)
 	})
 }
 
 func (s *SMExecute) stepRegisterOutgoingOnLMN(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	subroutineSM := &SMRegisterOnLMN{
-		object:        s.execution.Object,
-		isConstructor: s.isConstructor,
-		outgoing:      s.execution.Outgoing,
-		interference:  s.methodIsolation.Interference,
-		newState:      s.executionNewState,
+	switch outgoing := s.executionNewState.Outgoing.(type) {
+	case execution.Deactivate:
+		return ctx.Jump(s.stepExecuteOutgoing)
+	case execution.CallConstructor:
+		if s.intolerableCall() {
+			err := throw.E("interference violation: constructor call from unordered call")
+			ctx.Log().Warn(err)
+			s.prepareOutgoingError(err)
+			return ctx.Jump(s.stepExecuteContinue)
+		}
+	case execution.CallMethod:
+		if s.intolerableCall() && outgoing.Interference() == isolation.CallTolerable {
+			err := throw.E("interference violation: ordered call from unordered call")
+			ctx.Log().Warn(err)
+			s.prepareOutgoingError(err)
+			return ctx.Jump(s.stepExecuteContinue)
+		}
+	default:
+		panic(throw.IllegalValue())
 	}
-	if !s.registeredIncoming {
-		subroutineSM.incoming = s.inboundRecord
+
+	subroutineSM := &SMRegisterOnLMN{
+		Outgoing:        s.outgoing,
+		OutgoingResult:  s.outgoingVCallResult,
+		Interference:    s.methodIsolation.Interference,
+		Object:          s.lmnObjectRef,
+		LastLifelineRef: s.lmnLastLifelineRef,
+		LastFilamentRef: s.lmnLastFilamentRef,
+	}
+	if !s.incomingRegistered {
+		subroutineSM.Incoming = s.Payload
+		s.incomingRegistered = true
 	}
 	return ctx.CallSubroutine(subroutineSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
-		s.registeredIncoming = subroutineSM.incomingRegistered
+		s.lmnObjectRef = subroutineSM.NewObjectRef
+		s.lmnLastLifelineRef = subroutineSM.NewLastLifelineRef
+		s.lmnLastFilamentRef = subroutineSM.NewLastFilamentRef
 		return ctx.Jump(s.stepExecuteOutgoing)
 	})
 }
@@ -788,6 +835,7 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 
 			return func(ctx smachine.BargeInContext) smachine.StateUpdate {
 				s.outgoingResult = res.ReturnArguments.GetBytes()
+				s.outgoingVCallResult = res
 
 				return ctx.WakeUp()
 			}
@@ -852,6 +900,7 @@ func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.
 	s.outgoingObject = reference.Global{}
 	s.outgoing = nil
 	s.outgoingResult = []byte{}
+	s.outgoingVCallResult = nil
 	ctx.SetDefaultMigration(s.migrateDuringExecution)
 
 	s.executionNewState = nil

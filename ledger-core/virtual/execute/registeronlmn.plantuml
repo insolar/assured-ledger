@@ -2,26 +2,57 @@
 state "Init" as T01_S001
 T01_S001 : SMRegisterOnLMN
 [*] --> T01_S001
-T01_S001 --> T01_S002 : [s.incoming!=nil]
-T01_S001 --> T01_S003
-state "stepRegisterDone" as T01_S005
-T01_S005 : SMRegisterOnLMN
-T01_S005 --> [*]
-state "stepRegisterIncoming" as T01_S002
+T01_S001 --> T01_S002 : [...&&isConstructor()&&s.Object.IsEmpty()]
+T01_S001 --> T01_S003 : [s.Incoming!=nil]
+T01_S001 --> T01_S005 : [s.OutgoingResult!=nil]
+T01_S001 --> T01_S004 : [s.Outgoing!=nil]
+T01_S001 --> T01_S006 : [s.IncomingResult!=nil]
+state "s.messageSender" as T01_S009 <<sdlreceive>>
+state "stepRegisterIncoming" as T01_S003
+T01_S003 : SMRegisterOnLMN
+T01_S003 --> [*] : [err!=nil]\nError
+T01_S003 --> T01_S004 : [s.Outgoing!=nil]
+T01_S003 --> T01_S005 : [s.OutgoingResult!=nil]
+T01_S003 --> T01_S006 : [s.IncomingResult!=nil]
+state "stepRegisterIncomingResult" as T01_S006
+T01_S006 : SMRegisterOnLMN
+T01_S006 --> [*] : [err!=nil]\nError
+T01_S006 --> [*] : [err!=nil]\nError
+T01_S006 --> [*] : [err!=nil]\nError
+T01_S006 --> T01_S007
+state "stepRegisterLifeline" as T01_S002
 T01_S002 : SMRegisterOnLMN
-T01_S002 --> T01_S003
+T01_S002 --> [*] : [err!=nil]\nError
+T01_S002 --> T01_S007
 state "stepRegisterOutgoing" as T01_S004
 T01_S004 : SMRegisterOnLMN
-T01_S004 --> [*]
-state "stepRegisterRecords" as T01_S003
-T01_S003 : SMRegisterOnLMN
-T01_S003 --> T01_S005 : [s.outgoing.IsEmpty()]
-T01_S003 --> T01_S004
+T01_S004 --> [*] : [err!=nil]\nError
+T01_S004 --> T01_S007
+state "stepRegisterOutgoingResult" as T01_S005
+T01_S005 : SMRegisterOnLMN
+T01_S005 --> [*] : [err!=nil]\nError
+T01_S005 --> T01_S004 : [s.Outgoing!=nil]
+T01_S005 --> T01_S006 : [s.IncomingResult!=nil]
+state "stepSaveSafeCounter" as T01_S007
+T01_S007 : SMRegisterOnLMN
+T01_S007 --[dashed]> T01_S007 : [smachine.NotPassed]\nWaitShared
+T01_S007 --> T01_S008
+state "stepSendMessages" as T01_S008
+T01_S008 : SMRegisterOnLMN
+T01_S008 --> [*] : [msg==nil]
+state T01_U001 <<fork>>
+T01_S008 --> T01_U001
+T01_U001 --> T01_S009 : PrepareAsync(ctx)
+T01_U001 --[dashed]> T01_S010
+state "stepWaitResponses" as T01_S010
+T01_S010 : SMRegisterOnLMN
+T01_S010 --[dashed]> T01_S010 : [!(...).CurrentUnsentMessage().ResultReceived()]\nSleep
+T01_S010 --> T01_S007
 state "GetInitStateFor" as T00_S001
 T00_S001 : dSMRegisterOnLMN
 [*] --> T00_S001
-state "nil" as T00_U001
-T00_U001 : dSMRegisterOnLMN
-T00_U001 : UNKNOWN 
-T00_S001 --> T00_U001
+state "nil" as T00_U002
+T00_U002 : dSMRegisterOnLMN
+T00_U002 : UNKNOWN 
+T00_S001 --> T00_U002
 @enduml

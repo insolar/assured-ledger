@@ -71,6 +71,8 @@ type Info struct {
 	UnorderedPendingEarliestPulse pulse.Number
 	OrderedPendingEarliestPulse   pulse.Number
 
+	RequiredSafeCounter uint8
+
 	objectState State
 
 	Transcript validation.Transcript

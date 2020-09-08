@@ -1,0 +1,21 @@
+@startuml
+state "Init" as T01_S001
+T01_S001 : SMLMNSafeHandler
+[*] --> T01_S001
+T01_S001 --> [*]
+state "stepDecreaseCounter" as T01_S003
+T01_S003 : SMLMNSafeHandler
+T01_S003 --[dashed]> T01_S003 : [smachine.NotPassed]\nWaitShared
+T01_S003 --> [*] : [smachine.Passed]
+state "stepWaitResult" as T01_S002
+T01_S002 : SMLMNSafeHandler
+T01_S002 --[dashed]> T01_S002 : [!s.resultReceived]\nSleep
+T01_S002 --> T01_S003
+state "GetInitStateFor" as T00_S001
+T00_S001 : dSMLMNSafeHandler
+[*] --> T00_S001
+state "s.Init" as T00_U001
+T00_U001 : dSMLMNSafeHandler
+T00_U001 : UNKNOWN 
+T00_S001 --> T00_U001
+@enduml

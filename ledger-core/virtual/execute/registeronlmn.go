@@ -14,16 +14,17 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms/rmsreg"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 )
 
 func mustRecordToAnyRecordLazy(rec rms.BasicRecord) rms.AnyRecordLazy {
@@ -34,38 +35,89 @@ func mustRecordToAnyRecordLazy(rec rms.BasicRecord) rms.AnyRecordLazy {
 	return rv
 }
 
-func isConstructor(request *payload.VCallRequest) bool {
-	return request.CallType == payload.CallTypeConstructor
+func isConstructor(request *rms.VCallRequest) bool {
+	return request.CallType == rms.CallTypeConstructor
 }
 
-// TODO: make all input arguments to be distinguishable from output arguments
-// TODO: make all input and output arguments to be capitalized
-// TODO: make all internal data to be separate
-type SMRegisterOnLMN struct {
-	// translate from VCallRequest.Payload. If set we need register incoming before any other registration
-	// incoming rms.BasicRecord
-	//
-	// isConstructor bool
-	// object        reference.Global
-	// outgoing      reference.Global
-	// interference  isolation.InterferenceFlag
-	// newState      *execution.Update
-	//
-	// registeredOutbound bool
+type LMNResultAwaitKey struct {
+	Object         reference.Global
+	AnticipatedRef rms.Reference
+	RequiredFlag   rms.RegistrationFlags
+}
 
+type Message struct {
+	payload            rmsreg.GoGoSerializable
+	registrarSignature rms.Binary
+	resultKey          LMNResultAwaitKey
+}
+
+func (m *Message) ResultReceived() bool {
+	return m.registrarSignature.IsEmpty()
+}
+
+func (m *Message) SetResult(signature rms.Binary) {
+	m.registrarSignature = signature
+}
+
+func (m *Message) Payload() rmsreg.GoGoSerializable {
+	return m.payload
+}
+
+func (m *Message) CheckKey(key LMNResultAwaitKey) bool {
+	return m.resultKey == key
+}
+
+type MessagesHolder struct {
+	messages  []*Message
+	unsentIdx int
+}
+
+func NewMessagesHolder() *MessagesHolder {
+	return &MessagesHolder{
+		messages:  make([]*Message, 0),
+		unsentIdx: -1,
+	}
+}
+
+func (s *MessagesHolder) AppendRecord(record rmsreg.GoGoSerializable, resultKey LMNResultAwaitKey) {
+	s.messages = append(s.messages, &Message{
+		payload:   record,
+		resultKey: resultKey,
+	})
+}
+
+func (s *MessagesHolder) NextUnsentMessage() *Message {
+	s.unsentIdx++
+	if s.unsentIdx >= len(s.messages) {
+		return nil
+	}
+	return s.messages[s.unsentIdx]
+}
+
+func (s *MessagesHolder) CurrentUnsentMessage() *Message {
+	if s.unsentIdx < 0 && s.unsentIdx >= len(s.messages) {
+		panic(throw.IllegalState())
+	}
+	return s.messages[s.unsentIdx]
+}
+
+type SMRegisterOnLMN struct {
 	// input arguments
-	Incoming       *payload.VCallRequest
-	Outgoing       *payload.VCallRequest
-	OutgoingResult *payload.VCallResult
-	IncomingResult *execution.Update
-	Interference   isolation.InterferenceFlag
+	Incoming          *rms.VCallRequest
+	Outgoing          *rms.VCallRequest
+	OutgoingResult    *rms.VCallResult
+	IncomingResult    *execution.Update
+	Interference      isolation.InterferenceFlag
+	ObjectSharedState object.SharedStateAccessor
 
 	Object          reference.Global
 	LastFilamentRef reference.Global
 	LastLifelineRef reference.Global
 
 	// internal data
-	messages []payload.Marshaler
+	messages        *MessagesHolder
+	bargeInCallback smachine.BargeInHolder
+	requiredSafe    uint8
 
 	// output arguments
 	NewObjectRef       reference.Global
@@ -99,6 +151,7 @@ func (s *SMRegisterOnLMN) GetSubroutineInitState(ctx smachine.SubroutineStartCon
 
 	return s.Init
 }
+
 func (s *SMRegisterOnLMN) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
 	return dSMRegisterOnLMNInstance
 }
@@ -118,7 +171,71 @@ func (s *SMRegisterOnLMN) getRecordAnticipatedRef(object reference.Global, _ rms
 	return reference.NewRecordOf(object, uniqueLocal)
 }
 
+func (s *SMRegisterOnLMN) createBargeInCallback(ctx smachine.InitializationContext) {
+	s.bargeInCallback = ctx.NewBargeInWithParam(func(param interface{}) smachine.BargeInCallbackFunc {
+		res, ok := param.(*rms.LRegisterResponse)
+		if !ok || res == nil {
+			panic(throw.IllegalValue())
+		}
+
+		return func(ctx smachine.BargeInContext) smachine.StateUpdate {
+			var key = LMNResultAwaitKey{
+				Object:         s.Object,
+				AnticipatedRef: res.AnticipatedRef,
+				RequiredFlag:   res.Flags,
+			}
+
+			unsentMsg := s.messages.CurrentUnsentMessage()
+			if !unsentMsg.CheckKey(key) {
+				panic(throw.E("Message order is broken"))
+			}
+			unsentMsg.SetResult(res.RegistrarSignature)
+			return ctx.WakeUp()
+		}
+	})
+}
+
+func (s *SMRegisterOnLMN) registerMessage(ctx smachine.ExecutionContext, msg *rms.LRegisterRequest) error {
+	var (
+		bargeInKey = LMNResultAwaitKey{
+			Object:         s.Object,
+			AnticipatedRef: msg.AnticipatedRef,
+			RequiredFlag:   rms.RegistrationFlags_Fast,
+		}
+	)
+	switch msg.Flags {
+	case rms.RegistrationFlags_Safe:
+		bargeInKey.RequiredFlag = rms.RegistrationFlags_Safe
+		if !ctx.PublishGlobalAliasAndBargeIn(bargeInKey, s.bargeInCallback) {
+			return throw.E("failed to publish bargeIn callback")
+		}
+		s.messages.AppendRecord(msg, bargeInKey)
+	case rms.RegistrationFlags_FastSafe:
+		s.requiredSafe++
+		var safeKey = bargeInKey
+		safeKey.RequiredFlag = rms.RegistrationFlags_Safe
+		ctx.InitChild(func(ctx smachine.ConstructionContext) smachine.StateMachine {
+			return &SMLMNSafeHandler{
+				ObjectSharedState: s.ObjectSharedState,
+				ExpectedKey:       safeKey,
+			}
+		})
+		fallthrough
+	case rms.RegistrationFlags_Fast:
+		if !ctx.PublishGlobalAliasAndBargeIn(bargeInKey, s.bargeInCallback) {
+			return throw.E("failed to publish bargeIn callback")
+		}
+		s.messages.AppendRecord(msg, bargeInKey)
+	default:
+		panic(throw.IllegalValue())
+	}
+
+	return nil
+}
+
 func (s *SMRegisterOnLMN) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
+	s.messages = NewMessagesHolder()
+	s.createBargeInCallback(ctx)
 	// possible variants here:
 	// all
 	// CTConstructor -> Register (RLifelineStart and RInboundRequest) in one message (??)
@@ -132,10 +249,10 @@ func (s *SMRegisterOnLMN) Init(ctx smachine.InitializationContext) smachine.Stat
 		return ctx.Jump(s.stepRegisterLifeline)
 	case s.Incoming != nil: // we need to register incoming
 		return ctx.Jump(s.stepRegisterIncoming)
-	case s.Outgoing != nil: // we need to register outgoing
-		return ctx.Jump(s.stepRegisterOutgoing)
 	case s.OutgoingResult != nil: // we need to register outgoing result
 		return ctx.Jump(s.stepRegisterOutgoingResult)
+	case s.Outgoing != nil: // we need to register outgoing
+		return ctx.Jump(s.stepRegisterOutgoing)
 	case s.IncomingResult != nil: // we need to register incoming result
 		return ctx.Jump(s.stepRegisterIncomingResult)
 	default:
@@ -155,7 +272,10 @@ func (s *SMRegisterOnLMN) stepRegisterLifeline(ctx smachine.ExecutionContext) sm
 		anticipatedRef = s.getRecordAnticipatedRef(s.Object, record)
 	)
 
-	s.messages = append(s.messages, &rms.LRegisterRequest{
+	s.Object = anticipatedRef
+	s.LastFilamentRef = anticipatedRef
+
+	if err := s.registerMessage(ctx, &rms.LRegisterRequest{
 		AnticipatedRef: rms.NewReference(anticipatedRef),
 		Flags:          rms.RegistrationFlags_FastSafe,
 		AnyRecordLazy:  mustRecordToAnyRecordLazy(record), // it should be based on
@@ -165,12 +285,11 @@ func (s *SMRegisterOnLMN) stepRegisterLifeline(ctx smachine.ExecutionContext) sm
 		// OverridePrevRef:    NewReference(reference.Global{}), // must be empty
 		// OverrideRootRef:    NewReference(reference.Global{}), // must be empty
 		// OverrideReasonRef:  NewReference(<reference to outgoing>),
-	})
+	}); err != nil {
+		return ctx.Error(err)
+	}
 
-	s.Object = anticipatedRef
-	s.LastFilamentRef = anticipatedRef
-
-	return ctx.Jump(s.stepSendMessages)
+	return ctx.Jump(s.stepSaveSafeCounter)
 }
 
 func (s *SMRegisterOnLMN) stepRegisterIncoming(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -195,13 +314,15 @@ func (s *SMRegisterOnLMN) stepRegisterIncoming(ctx smachine.ExecutionContext) sm
 		}
 	}
 
-	anticipatedRef := s.getRecordAnticipatedRef(s.Object, record)
+	var anticipatedRef = s.getRecordAnticipatedRef(s.Object, record)
 
-	s.messages = append(s.messages, &rms.LRegisterRequest{
+	if err := s.registerMessage(ctx, &rms.LRegisterRequest{
 		AnticipatedRef: rms.NewReference(anticipatedRef),
 		Flags:          rms.RegistrationFlags_FastSafe,
 		AnyRecordLazy:  mustRecordToAnyRecordLazy(record), // TODO: here we should provide record from incoming
-	})
+	}); err != nil {
+		return ctx.Error(err)
+	}
 
 	switch s.Interference {
 	case isolation.CallTolerable:
@@ -213,6 +334,8 @@ func (s *SMRegisterOnLMN) stepRegisterIncoming(ctx smachine.ExecutionContext) sm
 	switch {
 	case s.Outgoing != nil:
 		return ctx.Jump(s.stepRegisterOutgoing)
+	case s.OutgoingResult != nil:
+		return ctx.Jump(s.stepRegisterOutgoingResult)
 	case s.IncomingResult != nil:
 		return ctx.Jump(s.stepRegisterIncomingResult)
 	default:
@@ -234,17 +357,19 @@ func (s *SMRegisterOnLMN) stepRegisterOutgoing(ctx smachine.ExecutionContext) sm
 		PrevRef: rms.NewReference(prevRef),
 	}
 
-	anticipatedRef := s.getRecordAnticipatedRef(s.Object, record)
+	var anticipatedRef = s.getRecordAnticipatedRef(s.Object, record)
 
-	s.messages = append(s.messages, &rms.LRegisterRequest{
+	if err := s.registerMessage(ctx, &rms.LRegisterRequest{
 		AnticipatedRef: rms.NewReference(anticipatedRef),
 		Flags:          rms.RegistrationFlags_FastSafe,
 		AnyRecordLazy:  mustRecordToAnyRecordLazy(record), // TODO: here we should provide record from incoming
-	})
+	}); err != nil {
+		return ctx.Error(err)
+	}
 
 	s.LastFilamentRef = anticipatedRef
 
-	return ctx.Jump(s.stepSendMessages)
+	return ctx.Jump(s.stepSaveSafeCounter)
 }
 
 func (s *SMRegisterOnLMN) stepRegisterOutgoingResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -257,17 +382,26 @@ func (s *SMRegisterOnLMN) stepRegisterOutgoingResult(ctx smachine.ExecutionConte
 		PrevRef: rms.NewReference(s.LastFilamentRef),
 	}
 
-	anticipatedRef := s.getRecordAnticipatedRef(s.Object, record)
+	var anticipatedRef = s.getRecordAnticipatedRef(s.Object, record)
 
-	s.messages = append(s.messages, &rms.LRegisterRequest{
+	if err := s.registerMessage(ctx, &rms.LRegisterRequest{
 		AnticipatedRef: rms.NewReference(anticipatedRef),
 		Flags:          rms.RegistrationFlags_FastSafe,
 		AnyRecordLazy:  mustRecordToAnyRecordLazy(record), // TODO: here we should provide record from incoming
-	})
+	}); err != nil {
+		return ctx.Error(err)
+	}
 
 	s.LastFilamentRef = anticipatedRef
 
-	return ctx.Jump(s.stepSendMessages)
+	switch {
+	case s.Outgoing != nil:
+		return ctx.Jump(s.stepRegisterOutgoing)
+	case s.IncomingResult != nil:
+		return ctx.Jump(s.stepRegisterIncomingResult)
+	default:
+		panic(throw.Unsupported())
+	}
 }
 
 func (s *SMRegisterOnLMN) stepRegisterIncomingResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -297,13 +431,15 @@ func (s *SMRegisterOnLMN) stepRegisterIncomingResult(ctx smachine.ExecutionConte
 			PrevRef: rms.NewReference(prevRef),
 		}
 
-		anticipatedRef := s.getRecordAnticipatedRef(s.Object, record)
+		var anticipatedRef = s.getRecordAnticipatedRef(s.Object, record)
 
-		s.messages = append(s.messages, &rms.LRegisterRequest{
+		if err := s.registerMessage(ctx, &rms.LRegisterRequest{
 			AnticipatedRef: rms.NewReference(anticipatedRef),
 			Flags:          rms.RegistrationFlags_Safe,
 			AnyRecordLazy:  mustRecordToAnyRecordLazy(record),
-		})
+		}); err != nil {
+			return ctx.Error(err)
+		}
 
 		s.LastFilamentRef = anticipatedRef
 	}
@@ -338,13 +474,15 @@ func (s *SMRegisterOnLMN) stepRegisterIncomingResult(ctx smachine.ExecutionConte
 		}
 
 		if record != nil {
-			anticipatedRef := s.getRecordAnticipatedRef(s.Object, record)
+			var anticipatedRef = s.getRecordAnticipatedRef(s.Object, record)
 
-			s.messages = append(s.messages, &rms.LRegisterRequest{
+			if err := s.registerMessage(ctx, &rms.LRegisterRequest{
 				AnticipatedRef: rms.NewReference(anticipatedRef),
 				Flags:          rms.RegistrationFlags_Safe,
 				AnyRecordLazy:  mustRecordToAnyRecordLazy(record),
-			})
+			}); err != nil {
+				return ctx.Error(err)
+			}
 
 			s.LastLifelineRef = anticipatedRef
 		}
@@ -370,39 +508,56 @@ func (s *SMRegisterOnLMN) stepRegisterIncomingResult(ctx smachine.ExecutionConte
 		}
 
 		if record != nil {
-			anticipatedRef := s.getRecordAnticipatedRef(s.Object, record)
+			var anticipatedRef = s.getRecordAnticipatedRef(s.Object, record)
 
-			s.messages = append(s.messages, &rms.LRegisterRequest{
+			if err := s.registerMessage(ctx, &rms.LRegisterRequest{
 				AnticipatedRef: rms.NewReference(anticipatedRef),
 				Flags:          rms.RegistrationFlags_Safe,
 				AnyRecordLazy:  mustRecordToAnyRecordLazy(record),
-			})
+			}); err != nil {
+				return ctx.Error(err)
+			}
 
 			s.LastLifelineRef = anticipatedRef
 		}
 	}
 
+	return ctx.Jump(s.stepSaveSafeCounter)
+}
+
+func (s *SMRegisterOnLMN) stepSaveSafeCounter(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	if s.requiredSafe > 0 {
+		action := func(state *object.SharedState) {
+			state.RequiredSafeCounter = s.requiredSafe
+		}
+
+		switch s.ObjectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
+		case smachine.NotPassed:
+			return ctx.WaitShared(s.ObjectSharedState.SharedDataLink).ThenRepeat()
+		case smachine.Passed:
+		default:
+			panic(throw.Impossible())
+		}
+	}
 	return ctx.Jump(s.stepSendMessages)
 }
 
 func (s *SMRegisterOnLMN) stepSendMessages(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var (
-		object       = s.Object
-		messages     = s.messages
+		obj          = s.Object
 		currentPulse = s.pulseSlot.CurrentPulseNumber()
+		msg          = s.messages.NextUnsentMessage()
 	)
 
-	if len(messages) == 0 {
-		panic(throw.IllegalState())
+	if msg == nil {
+		return ctx.Stop()
 	}
 
 	return s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
-		for _, msg := range messages {
-			err := svc.SendRole(goCtx, msg, affinity.DynamicRoleLightExecutor, object, currentPulse)
-			if err != nil {
-				return func(ctx smachine.AsyncResultContext) {
-					ctx.Log().Error("failed to send message", err)
-				}
+		err := svc.SendRole(goCtx, msg.Payload(), affinity.DynamicRoleLightExecutor, obj, currentPulse)
+		if err != nil {
+			return func(ctx smachine.AsyncResultContext) {
+				ctx.Log().Error("failed to send message", err)
 			}
 		}
 
@@ -415,7 +570,9 @@ func (s *SMRegisterOnLMN) stepWaitResponses(ctx smachine.ExecutionContext) smach
 	s.NewLastFilamentRef = s.LastFilamentRef
 	s.NewObjectRef = s.Object
 
-	// TODO: we should wait here for given number of FAST (and maybe safe) responses, so we should set
-	//       the right types and kinds of barge-ins in stepRegister***
-	return ctx.Stop()
+	if !s.messages.CurrentUnsentMessage().ResultReceived() {
+		return ctx.Sleep().ThenRepeat()
+	}
+
+	return ctx.Jump(s.stepSaveSafeCounter)
 }
