@@ -543,9 +543,7 @@ func (s *deduplicateMethodUsingPrevVETest) initServer(t *testing.T) context.Cont
 	server, ctx := utils.NewUninitializedServer(nil, t)
 	s.server = server
 
-	s.runnerMock = logicless.NewServiceMock(ctx, t, func(execution execution.Context) string {
-		return execution.Request.CallSiteMethod
-	})
+	s.runnerMock = logicless.NewServiceMock(ctx, t, nil)
 	server.ReplaceRunner(s.runnerMock)
 
 	server.Init(ctx)
@@ -777,11 +775,11 @@ func (s *deduplicateMethodUsingPrevVETest) setMessageCheckers(
 
 func (s *deduplicateMethodUsingPrevVETest) setRunnerMock() {
 	isolation := contract.MethodIsolation{Interference: isolation.CallIntolerable, State: isolation.CallDirty}
-	s.runnerMock.AddExecutionClassify("SomeMethod", isolation, nil)
+	s.runnerMock.AddExecutionClassify(s.outgoing.String(), isolation, nil)
 
 	requestResult := requestresult.New([]byte("execution"), s.server.RandomGlobalWithPulse())
 
-	executionMock := s.runnerMock.AddExecutionMock("SomeMethod")
+	executionMock := s.runnerMock.AddExecutionMock(s.outgoing.String())
 	executionMock.AddStart(func(ctx execution.Context) {
 		s.incNumberOfExecutions()
 	}, &execution.Update{
