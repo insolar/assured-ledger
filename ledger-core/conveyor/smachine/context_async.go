@@ -117,7 +117,7 @@ func (p *subroutineExitContext) GetError() error {
 func (p *subroutineExitContext) executeSubroutineExit(fn SubroutineExitFunc) (stateUpdate StateUpdate) {
 	p.setMode(updCtxSubrExit)
 	defer func() {
-		stateUpdate = p.discardAndUpdate("subroutine exit", recover(), stateUpdate, StateArea)
+		stateUpdate = p.discardAndUpdate("subroutine exit", recover(), stateUpdate, StepArea)
 	}()
 
 	return p.ensureAndPrepare(p.s, fn(p))

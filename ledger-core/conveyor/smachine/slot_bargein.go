@@ -183,13 +183,13 @@ func (v BargeIn) callInline(m *SlotMachine, worker DetachableSlotWorker) bool {
 	return m.executeBargeIn(link, worker, v._execute)
 }
 
-func (v BargeIn) _execute(slot *Slot, _ DetachableSlotWorker) StateUpdate {
+func (v BargeIn) _execute(slot *Slot, w DetachableSlotWorker) StateUpdate {
 	link := v.StepLink()
 	if !link.IsAtStep() {
 		return StateUpdate{}
 	}
 	stateUpdate := v.getStateUpdate()
-	return slot.forceSubroutineUpdate(stateUpdate, v.marker)
+	return slot.forceSubroutineUpdate(stateUpdate, v.marker, w)
 }
 
 func (m *SlotMachine) executeBargeIn(link StepLink, worker DetachableSlotWorker,
@@ -239,7 +239,7 @@ func (v BargeInWithParam) _execute(slot *Slot, w DetachableSlotWorker, resultFn 
 	bc := bargingInContext{slotContext{s: slot, w: w}, atExactStep}
 	stateUpdate := bc.executeBargeIn(resultFn)
 
-	return slot.forceSubroutineUpdate(stateUpdate, v.marker)
+	return slot.forceSubroutineUpdate(stateUpdate, v.marker, w)
 }
 
 func (m *SlotMachine) executeBargeInDirect(link StepLink, fn BargeInCallbackFunc, worker FixedSlotWorker) bool {
@@ -261,7 +261,7 @@ func (m *SlotMachine) executeBargeInDirect(link StepLink, fn BargeInCallbackFunc
 	_, atExactStep := link.isValidAndAtExactStep()
 	bc := bargingInContext{slotContext{s: slot, w: worker.asDetachable()}, atExactStep}
 	stateUpdate := bc.executeBargeInDirect(fn)
-	stateUpdate = slot.forceTopSubroutineUpdate(stateUpdate)
+	stateUpdate = slot.forceTopSubroutineUpdate(stateUpdate, bc.w)
 	needsStop = false
 
 	m.slotPostExecution(slot, stateUpdate, worker, prevStepNo, wasAsyncExec, durationNotApplicableNano)

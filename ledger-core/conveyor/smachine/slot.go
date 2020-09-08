@@ -46,6 +46,7 @@ type stateMachineData struct {
 	shadowMigrate   ShadowMigrateFunc              // nolint runs for all subroutines
 	stepLogger      StepLogger                     // nolint
 	defTerminate    internalTerminationHandlerFunc // nolint
+	defFinalize     FinalizeFunc				   // nolint
 	defMigrate      MigrateFunc                    // nolint
 	defErrorHandler ErrorHandlerFunc               // nolint
 	defFlags        StepFlags                      // nolint

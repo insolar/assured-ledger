@@ -14,6 +14,7 @@ type InitFunc func(ctx InitializationContext) StateUpdate
 type StateFunc func(ctx ExecutionContext) StateUpdate
 type CreateFunc func(ctx ConstructionContext) StateMachine
 type MigrateFunc func(ctx MigrationContext) StateUpdate
+type FinalizeFunc func(ctx FinalizationContext)
 type PostInitFunc func()
 type AsyncResultFunc func(ctx AsyncResultContext)
 type ErrorHandlerFunc func(ctx FailureContext)
@@ -182,10 +183,14 @@ type InOrderStepContext interface {
 	SetDefaultErrorHandler(ErrorHandlerFunc)
 	// SetDefaultFlags sets default flags that are merged when SlotStep is set.
 	SetDefaultFlags(StepFlags)
-	// SetDefaultTerminationResult sets a default value to be passed to TerminationHandlerFunc when the slot stops.
-	SetDefaultTerminationResult(interface{})
-	// GetDefaultTerminationResult returns a value from the last SetDefaultTerminationResult().
-	GetDefaultTerminationResult() interface{}
+	// SetTerminationResult sets a default value to be passed to TerminationHandlerFunc when the slot stops.
+	SetTerminationResult(interface{})
+	// GetTerminationResult returns a value from the last SetDefaultTerminationResult().
+	GetTerminationResult() interface{}
+
+	// SetFinalizer sets a finalization handler. It will be applied on regular stop or on errors, but it won't be called on SlotMachine stop.
+	// NB! ErrorHandler is not applied to FinalizeFunc. FinalizeFunc is applied after ErrorHandler.
+	SetFinalizer(FinalizeFunc)
 
 	// OverrideDynamicBoost sets boost mark that provides higher priority on scheduling and sync queues. Overrides automatic boost.
 	OverrideDynamicBoost(bool)
@@ -481,8 +486,8 @@ type SubroutineStartContext interface {
 	SetSubroutineCleanupMode(SubroutineCleanupMode)
 }
 
-var _ FailureExecutionContext = ExecutionContext(nil) // MUST be assignable
-type FailureExecutionContext interface {
+var _ LimitedExecutionContext = ExecutionContext(nil) // MUST be assignable
+type LimitedExecutionContext interface {
 	SharedStateContext
 	minimalSynchronizationContext
 
@@ -492,8 +497,21 @@ type FailureExecutionContext interface {
 	InitChild(CreateFunc) SlotLink
 }
 
+type FinalizationContext interface {
+	LimitedExecutionContext
+
+	// GetTerminationResult returns a last value set by SetTerminationResult()
+	GetTerminationResult() interface{}
+
+	// SetTerminationResult sets a value to be passed to TerminationHandlerFunc.
+	SetTerminationResult(interface{})
+
+	// GetError returns an error when finalization was caused by an error.
+	GetError() error
+}
+
 type FailureContext interface {
-	FailureExecutionContext
+	FinalizationContext
 
 	// AffectedStep is a step the slot is at
 	AffectedStep() SlotStep
@@ -511,14 +529,10 @@ type FailureContext interface {
 	// A panic inside async call / callback can be recovered.
 	CanRecover() bool
 
-	// GetDefaultTerminationResult returns a last value set by SetDefaultTerminationResult()
-	GetDefaultTerminationResult() interface{}
-
-	// SetTerminationResult sets a value to be passed to TerminationHandlerFunc.
-	// By default - termination result on error will be GetError()
-	SetTerminationResult(interface{})
-
 	// SetAction chooses an action to be applied.
 	// Recovery actions will be ignored when CanRecover() is false.
-	SetAction(action ErrorHandlerAction)
+	SetAction(ErrorHandlerAction)
+
+	// UnsetFinalizer is an equivalent InOrderStepContext.SetFinalizer(nil).
+	UnsetFinalizer()
 }

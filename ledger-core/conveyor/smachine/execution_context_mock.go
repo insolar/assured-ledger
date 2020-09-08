@@ -310,6 +310,12 @@ type ExecutionContextMock struct {
 	beforeSetDefaultTerminationResultCounter uint64
 	SetDefaultTerminationResultMock          mExecutionContextMockSetDefaultTerminationResult
 
+	funcSetFinalizer          func(f1 FinalizeFunc)
+	inspectFuncSetFinalizer   func(f1 FinalizeFunc)
+	afterSetFinalizerCounter  uint64
+	beforeSetFinalizerCounter uint64
+	SetFinalizerMock          mExecutionContextMockSetFinalizer
+
 	funcSetLogTracing          func(b1 bool)
 	inspectFuncSetLogTracing   func(b1 bool)
 	afterSetLogTracingCounter  uint64
@@ -550,6 +556,9 @@ func NewExecutionContextMock(t minimock.Tester) *ExecutionContextMock {
 
 	m.SetDefaultTerminationResultMock = mExecutionContextMockSetDefaultTerminationResult{mock: m}
 	m.SetDefaultTerminationResultMock.callArgs = []*ExecutionContextMockSetDefaultTerminationResultParams{}
+
+	m.SetFinalizerMock = mExecutionContextMockSetFinalizer{mock: m}
+	m.SetFinalizerMock.callArgs = []*ExecutionContextMockSetFinalizerParams{}
 
 	m.SetLogTracingMock = mExecutionContextMockSetLogTracing{mock: m}
 	m.SetLogTracingMock.callArgs = []*ExecutionContextMockSetLogTracingParams{}
@@ -3113,7 +3122,7 @@ type mExecutionContextMockGetDefaultTerminationResult struct {
 	expectations       []*ExecutionContextMockGetDefaultTerminationResultExpectation
 }
 
-// ExecutionContextMockGetDefaultTerminationResultExpectation specifies expectation struct of the ExecutionContext.GetDefaultTerminationResult
+// ExecutionContextMockGetDefaultTerminationResultExpectation specifies expectation struct of the ExecutionContext.GetTerminationResult
 type ExecutionContextMockGetDefaultTerminationResultExpectation struct {
 	mock *ExecutionContextMock
 
@@ -3121,15 +3130,15 @@ type ExecutionContextMockGetDefaultTerminationResultExpectation struct {
 	Counter uint64
 }
 
-// ExecutionContextMockGetDefaultTerminationResultResults contains results of the ExecutionContext.GetDefaultTerminationResult
+// ExecutionContextMockGetDefaultTerminationResultResults contains results of the ExecutionContext.GetTerminationResult
 type ExecutionContextMockGetDefaultTerminationResultResults struct {
 	p1 interface{}
 }
 
-// Expect sets up expected params for ExecutionContext.GetDefaultTerminationResult
+// Expect sets up expected params for ExecutionContext.GetTerminationResult
 func (mmGetDefaultTerminationResult *mExecutionContextMockGetDefaultTerminationResult) Expect() *mExecutionContextMockGetDefaultTerminationResult {
 	if mmGetDefaultTerminationResult.mock.funcGetDefaultTerminationResult != nil {
-		mmGetDefaultTerminationResult.mock.t.Fatalf("ExecutionContextMock.GetDefaultTerminationResult mock is already set by Set")
+		mmGetDefaultTerminationResult.mock.t.Fatalf("ExecutionContextMock.GetTerminationResult mock is already set by Set")
 	}
 
 	if mmGetDefaultTerminationResult.defaultExpectation == nil {
@@ -3139,10 +3148,10 @@ func (mmGetDefaultTerminationResult *mExecutionContextMockGetDefaultTerminationR
 	return mmGetDefaultTerminationResult
 }
 
-// Inspect accepts an inspector function that has same arguments as the ExecutionContext.GetDefaultTerminationResult
+// Inspect accepts an inspector function that has same arguments as the ExecutionContext.GetTerminationResult
 func (mmGetDefaultTerminationResult *mExecutionContextMockGetDefaultTerminationResult) Inspect(f func()) *mExecutionContextMockGetDefaultTerminationResult {
 	if mmGetDefaultTerminationResult.mock.inspectFuncGetDefaultTerminationResult != nil {
-		mmGetDefaultTerminationResult.mock.t.Fatalf("Inspect function is already set for ExecutionContextMock.GetDefaultTerminationResult")
+		mmGetDefaultTerminationResult.mock.t.Fatalf("Inspect function is already set for ExecutionContextMock.GetTerminationResult")
 	}
 
 	mmGetDefaultTerminationResult.mock.inspectFuncGetDefaultTerminationResult = f
@@ -3150,10 +3159,10 @@ func (mmGetDefaultTerminationResult *mExecutionContextMockGetDefaultTerminationR
 	return mmGetDefaultTerminationResult
 }
 
-// Return sets up results that will be returned by ExecutionContext.GetDefaultTerminationResult
+// Return sets up results that will be returned by ExecutionContext.GetTerminationResult
 func (mmGetDefaultTerminationResult *mExecutionContextMockGetDefaultTerminationResult) Return(p1 interface{}) *ExecutionContextMock {
 	if mmGetDefaultTerminationResult.mock.funcGetDefaultTerminationResult != nil {
-		mmGetDefaultTerminationResult.mock.t.Fatalf("ExecutionContextMock.GetDefaultTerminationResult mock is already set by Set")
+		mmGetDefaultTerminationResult.mock.t.Fatalf("ExecutionContextMock.GetTerminationResult mock is already set by Set")
 	}
 
 	if mmGetDefaultTerminationResult.defaultExpectation == nil {
@@ -3163,14 +3172,14 @@ func (mmGetDefaultTerminationResult *mExecutionContextMockGetDefaultTerminationR
 	return mmGetDefaultTerminationResult.mock
 }
 
-//Set uses given function f to mock the ExecutionContext.GetDefaultTerminationResult method
+//Set uses given function f to mock the ExecutionContext.GetTerminationResult method
 func (mmGetDefaultTerminationResult *mExecutionContextMockGetDefaultTerminationResult) Set(f func() (p1 interface{})) *ExecutionContextMock {
 	if mmGetDefaultTerminationResult.defaultExpectation != nil {
-		mmGetDefaultTerminationResult.mock.t.Fatalf("Default expectation is already set for the ExecutionContext.GetDefaultTerminationResult method")
+		mmGetDefaultTerminationResult.mock.t.Fatalf("Default expectation is already set for the ExecutionContext.GetTerminationResult method")
 	}
 
 	if len(mmGetDefaultTerminationResult.expectations) > 0 {
-		mmGetDefaultTerminationResult.mock.t.Fatalf("Some expectations are already set for the ExecutionContext.GetDefaultTerminationResult method")
+		mmGetDefaultTerminationResult.mock.t.Fatalf("Some expectations are already set for the ExecutionContext.GetTerminationResult method")
 	}
 
 	mmGetDefaultTerminationResult.mock.funcGetDefaultTerminationResult = f
@@ -3178,7 +3187,7 @@ func (mmGetDefaultTerminationResult *mExecutionContextMockGetDefaultTerminationR
 }
 
 // GetDefaultTerminationResult implements ExecutionContext
-func (mmGetDefaultTerminationResult *ExecutionContextMock) GetDefaultTerminationResult() (p1 interface{}) {
+func (mmGetDefaultTerminationResult *ExecutionContextMock) GetTerminationResult() (p1 interface{}) {
 	mm_atomic.AddUint64(&mmGetDefaultTerminationResult.beforeGetDefaultTerminationResultCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetDefaultTerminationResult.afterGetDefaultTerminationResultCounter, 1)
 
@@ -3191,14 +3200,14 @@ func (mmGetDefaultTerminationResult *ExecutionContextMock) GetDefaultTermination
 
 		mm_results := mmGetDefaultTerminationResult.GetDefaultTerminationResultMock.defaultExpectation.results
 		if mm_results == nil {
-			mmGetDefaultTerminationResult.t.Fatal("No results are set for the ExecutionContextMock.GetDefaultTerminationResult")
+			mmGetDefaultTerminationResult.t.Fatal("No results are set for the ExecutionContextMock.GetTerminationResult")
 		}
 		return (*mm_results).p1
 	}
 	if mmGetDefaultTerminationResult.funcGetDefaultTerminationResult != nil {
 		return mmGetDefaultTerminationResult.funcGetDefaultTerminationResult()
 	}
-	mmGetDefaultTerminationResult.t.Fatalf("Unexpected call to ExecutionContextMock.GetDefaultTerminationResult.")
+	mmGetDefaultTerminationResult.t.Fatalf("Unexpected call to ExecutionContextMock.GetTerminationResult.")
 	return
 }
 
@@ -3236,17 +3245,17 @@ func (m *ExecutionContextMock) MinimockGetDefaultTerminationResultDone() bool {
 func (m *ExecutionContextMock) MinimockGetDefaultTerminationResultInspect() {
 	for _, e := range m.GetDefaultTerminationResultMock.expectations {
 		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Error("Expected call to ExecutionContextMock.GetDefaultTerminationResult")
+			m.t.Error("Expected call to ExecutionContextMock.GetTerminationResult")
 		}
 	}
 
 	// if default expectation was set then invocations count should be greater than zero
 	if m.GetDefaultTerminationResultMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetDefaultTerminationResultCounter) < 1 {
-		m.t.Error("Expected call to ExecutionContextMock.GetDefaultTerminationResult")
+		m.t.Error("Expected call to ExecutionContextMock.GetTerminationResult")
 	}
 	// if func was set then invocations count should be greater than zero
 	if m.funcGetDefaultTerminationResult != nil && mm_atomic.LoadUint64(&m.afterGetDefaultTerminationResultCounter) < 1 {
-		m.t.Error("Expected call to ExecutionContextMock.GetDefaultTerminationResult")
+		m.t.Error("Expected call to ExecutionContextMock.GetTerminationResult")
 	}
 }
 
@@ -10077,7 +10086,7 @@ type mExecutionContextMockSetDefaultTerminationResult struct {
 	mutex    sync.RWMutex
 }
 
-// ExecutionContextMockSetDefaultTerminationResultExpectation specifies expectation struct of the ExecutionContext.SetDefaultTerminationResult
+// ExecutionContextMockSetDefaultTerminationResultExpectation specifies expectation struct of the ExecutionContext.SetTerminationResult
 type ExecutionContextMockSetDefaultTerminationResultExpectation struct {
 	mock   *ExecutionContextMock
 	params *ExecutionContextMockSetDefaultTerminationResultParams
@@ -10085,15 +10094,15 @@ type ExecutionContextMockSetDefaultTerminationResultExpectation struct {
 	Counter uint64
 }
 
-// ExecutionContextMockSetDefaultTerminationResultParams contains parameters of the ExecutionContext.SetDefaultTerminationResult
+// ExecutionContextMockSetDefaultTerminationResultParams contains parameters of the ExecutionContext.SetTerminationResult
 type ExecutionContextMockSetDefaultTerminationResultParams struct {
 	p1 interface{}
 }
 
-// Expect sets up expected params for ExecutionContext.SetDefaultTerminationResult
+// Expect sets up expected params for ExecutionContext.SetTerminationResult
 func (mmSetDefaultTerminationResult *mExecutionContextMockSetDefaultTerminationResult) Expect(p1 interface{}) *mExecutionContextMockSetDefaultTerminationResult {
 	if mmSetDefaultTerminationResult.mock.funcSetDefaultTerminationResult != nil {
-		mmSetDefaultTerminationResult.mock.t.Fatalf("ExecutionContextMock.SetDefaultTerminationResult mock is already set by Set")
+		mmSetDefaultTerminationResult.mock.t.Fatalf("ExecutionContextMock.SetTerminationResult mock is already set by Set")
 	}
 
 	if mmSetDefaultTerminationResult.defaultExpectation == nil {
@@ -10110,10 +10119,10 @@ func (mmSetDefaultTerminationResult *mExecutionContextMockSetDefaultTerminationR
 	return mmSetDefaultTerminationResult
 }
 
-// Inspect accepts an inspector function that has same arguments as the ExecutionContext.SetDefaultTerminationResult
+// Inspect accepts an inspector function that has same arguments as the ExecutionContext.SetTerminationResult
 func (mmSetDefaultTerminationResult *mExecutionContextMockSetDefaultTerminationResult) Inspect(f func(p1 interface{})) *mExecutionContextMockSetDefaultTerminationResult {
 	if mmSetDefaultTerminationResult.mock.inspectFuncSetDefaultTerminationResult != nil {
-		mmSetDefaultTerminationResult.mock.t.Fatalf("Inspect function is already set for ExecutionContextMock.SetDefaultTerminationResult")
+		mmSetDefaultTerminationResult.mock.t.Fatalf("Inspect function is already set for ExecutionContextMock.SetTerminationResult")
 	}
 
 	mmSetDefaultTerminationResult.mock.inspectFuncSetDefaultTerminationResult = f
@@ -10121,10 +10130,10 @@ func (mmSetDefaultTerminationResult *mExecutionContextMockSetDefaultTerminationR
 	return mmSetDefaultTerminationResult
 }
 
-// Return sets up results that will be returned by ExecutionContext.SetDefaultTerminationResult
+// Return sets up results that will be returned by ExecutionContext.SetTerminationResult
 func (mmSetDefaultTerminationResult *mExecutionContextMockSetDefaultTerminationResult) Return() *ExecutionContextMock {
 	if mmSetDefaultTerminationResult.mock.funcSetDefaultTerminationResult != nil {
-		mmSetDefaultTerminationResult.mock.t.Fatalf("ExecutionContextMock.SetDefaultTerminationResult mock is already set by Set")
+		mmSetDefaultTerminationResult.mock.t.Fatalf("ExecutionContextMock.SetTerminationResult mock is already set by Set")
 	}
 
 	if mmSetDefaultTerminationResult.defaultExpectation == nil {
@@ -10134,14 +10143,14 @@ func (mmSetDefaultTerminationResult *mExecutionContextMockSetDefaultTerminationR
 	return mmSetDefaultTerminationResult.mock
 }
 
-//Set uses given function f to mock the ExecutionContext.SetDefaultTerminationResult method
+//Set uses given function f to mock the ExecutionContext.SetTerminationResult method
 func (mmSetDefaultTerminationResult *mExecutionContextMockSetDefaultTerminationResult) Set(f func(p1 interface{})) *ExecutionContextMock {
 	if mmSetDefaultTerminationResult.defaultExpectation != nil {
-		mmSetDefaultTerminationResult.mock.t.Fatalf("Default expectation is already set for the ExecutionContext.SetDefaultTerminationResult method")
+		mmSetDefaultTerminationResult.mock.t.Fatalf("Default expectation is already set for the ExecutionContext.SetTerminationResult method")
 	}
 
 	if len(mmSetDefaultTerminationResult.expectations) > 0 {
-		mmSetDefaultTerminationResult.mock.t.Fatalf("Some expectations are already set for the ExecutionContext.SetDefaultTerminationResult method")
+		mmSetDefaultTerminationResult.mock.t.Fatalf("Some expectations are already set for the ExecutionContext.SetTerminationResult method")
 	}
 
 	mmSetDefaultTerminationResult.mock.funcSetDefaultTerminationResult = f
@@ -10149,7 +10158,7 @@ func (mmSetDefaultTerminationResult *mExecutionContextMockSetDefaultTerminationR
 }
 
 // SetDefaultTerminationResult implements ExecutionContext
-func (mmSetDefaultTerminationResult *ExecutionContextMock) SetDefaultTerminationResult(p1 interface{}) {
+func (mmSetDefaultTerminationResult *ExecutionContextMock) SetTerminationResult(p1 interface{}) {
 	mm_atomic.AddUint64(&mmSetDefaultTerminationResult.beforeSetDefaultTerminationResultCounter, 1)
 	defer mm_atomic.AddUint64(&mmSetDefaultTerminationResult.afterSetDefaultTerminationResultCounter, 1)
 
@@ -10176,7 +10185,7 @@ func (mmSetDefaultTerminationResult *ExecutionContextMock) SetDefaultTermination
 		mm_want := mmSetDefaultTerminationResult.SetDefaultTerminationResultMock.defaultExpectation.params
 		mm_got := ExecutionContextMockSetDefaultTerminationResultParams{p1}
 		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmSetDefaultTerminationResult.t.Errorf("ExecutionContextMock.SetDefaultTerminationResult got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+			mmSetDefaultTerminationResult.t.Errorf("ExecutionContextMock.SetTerminationResult got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
 
 		return
@@ -10186,7 +10195,7 @@ func (mmSetDefaultTerminationResult *ExecutionContextMock) SetDefaultTermination
 		mmSetDefaultTerminationResult.funcSetDefaultTerminationResult(p1)
 		return
 	}
-	mmSetDefaultTerminationResult.t.Fatalf("Unexpected call to ExecutionContextMock.SetDefaultTerminationResult. %v", p1)
+	mmSetDefaultTerminationResult.t.Fatalf("Unexpected call to ExecutionContextMock.SetTerminationResult. %v", p1)
 
 }
 
@@ -10237,21 +10246,208 @@ func (m *ExecutionContextMock) MinimockSetDefaultTerminationResultDone() bool {
 func (m *ExecutionContextMock) MinimockSetDefaultTerminationResultInspect() {
 	for _, e := range m.SetDefaultTerminationResultMock.expectations {
 		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to ExecutionContextMock.SetDefaultTerminationResult with params: %#v", *e.params)
+			m.t.Errorf("Expected call to ExecutionContextMock.SetTerminationResult with params: %#v", *e.params)
 		}
 	}
 
 	// if default expectation was set then invocations count should be greater than zero
 	if m.SetDefaultTerminationResultMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterSetDefaultTerminationResultCounter) < 1 {
 		if m.SetDefaultTerminationResultMock.defaultExpectation.params == nil {
-			m.t.Error("Expected call to ExecutionContextMock.SetDefaultTerminationResult")
+			m.t.Error("Expected call to ExecutionContextMock.SetTerminationResult")
 		} else {
-			m.t.Errorf("Expected call to ExecutionContextMock.SetDefaultTerminationResult with params: %#v", *m.SetDefaultTerminationResultMock.defaultExpectation.params)
+			m.t.Errorf("Expected call to ExecutionContextMock.SetTerminationResult with params: %#v", *m.SetDefaultTerminationResultMock.defaultExpectation.params)
 		}
 	}
 	// if func was set then invocations count should be greater than zero
 	if m.funcSetDefaultTerminationResult != nil && mm_atomic.LoadUint64(&m.afterSetDefaultTerminationResultCounter) < 1 {
-		m.t.Error("Expected call to ExecutionContextMock.SetDefaultTerminationResult")
+		m.t.Error("Expected call to ExecutionContextMock.SetTerminationResult")
+	}
+}
+
+type mExecutionContextMockSetFinalizer struct {
+	mock               *ExecutionContextMock
+	defaultExpectation *ExecutionContextMockSetFinalizerExpectation
+	expectations       []*ExecutionContextMockSetFinalizerExpectation
+
+	callArgs []*ExecutionContextMockSetFinalizerParams
+	mutex    sync.RWMutex
+}
+
+// ExecutionContextMockSetFinalizerExpectation specifies expectation struct of the ExecutionContext.SetFinalizer
+type ExecutionContextMockSetFinalizerExpectation struct {
+	mock   *ExecutionContextMock
+	params *ExecutionContextMockSetFinalizerParams
+
+	Counter uint64
+}
+
+// ExecutionContextMockSetFinalizerParams contains parameters of the ExecutionContext.SetFinalizer
+type ExecutionContextMockSetFinalizerParams struct {
+	f1 FinalizeFunc
+}
+
+// Expect sets up expected params for ExecutionContext.SetFinalizer
+func (mmSetFinalizer *mExecutionContextMockSetFinalizer) Expect(f1 FinalizeFunc) *mExecutionContextMockSetFinalizer {
+	if mmSetFinalizer.mock.funcSetFinalizer != nil {
+		mmSetFinalizer.mock.t.Fatalf("ExecutionContextMock.SetFinalizer mock is already set by Set")
+	}
+
+	if mmSetFinalizer.defaultExpectation == nil {
+		mmSetFinalizer.defaultExpectation = &ExecutionContextMockSetFinalizerExpectation{}
+	}
+
+	mmSetFinalizer.defaultExpectation.params = &ExecutionContextMockSetFinalizerParams{f1}
+	for _, e := range mmSetFinalizer.expectations {
+		if minimock.Equal(e.params, mmSetFinalizer.defaultExpectation.params) {
+			mmSetFinalizer.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmSetFinalizer.defaultExpectation.params)
+		}
+	}
+
+	return mmSetFinalizer
+}
+
+// Inspect accepts an inspector function that has same arguments as the ExecutionContext.SetFinalizer
+func (mmSetFinalizer *mExecutionContextMockSetFinalizer) Inspect(f func(f1 FinalizeFunc)) *mExecutionContextMockSetFinalizer {
+	if mmSetFinalizer.mock.inspectFuncSetFinalizer != nil {
+		mmSetFinalizer.mock.t.Fatalf("Inspect function is already set for ExecutionContextMock.SetFinalizer")
+	}
+
+	mmSetFinalizer.mock.inspectFuncSetFinalizer = f
+
+	return mmSetFinalizer
+}
+
+// Return sets up results that will be returned by ExecutionContext.SetFinalizer
+func (mmSetFinalizer *mExecutionContextMockSetFinalizer) Return() *ExecutionContextMock {
+	if mmSetFinalizer.mock.funcSetFinalizer != nil {
+		mmSetFinalizer.mock.t.Fatalf("ExecutionContextMock.SetFinalizer mock is already set by Set")
+	}
+
+	if mmSetFinalizer.defaultExpectation == nil {
+		mmSetFinalizer.defaultExpectation = &ExecutionContextMockSetFinalizerExpectation{mock: mmSetFinalizer.mock}
+	}
+
+	return mmSetFinalizer.mock
+}
+
+//Set uses given function f to mock the ExecutionContext.SetFinalizer method
+func (mmSetFinalizer *mExecutionContextMockSetFinalizer) Set(f func(f1 FinalizeFunc)) *ExecutionContextMock {
+	if mmSetFinalizer.defaultExpectation != nil {
+		mmSetFinalizer.mock.t.Fatalf("Default expectation is already set for the ExecutionContext.SetFinalizer method")
+	}
+
+	if len(mmSetFinalizer.expectations) > 0 {
+		mmSetFinalizer.mock.t.Fatalf("Some expectations are already set for the ExecutionContext.SetFinalizer method")
+	}
+
+	mmSetFinalizer.mock.funcSetFinalizer = f
+	return mmSetFinalizer.mock
+}
+
+// SetFinalizer implements ExecutionContext
+func (mmSetFinalizer *ExecutionContextMock) SetFinalizer(f1 FinalizeFunc) {
+	mm_atomic.AddUint64(&mmSetFinalizer.beforeSetFinalizerCounter, 1)
+	defer mm_atomic.AddUint64(&mmSetFinalizer.afterSetFinalizerCounter, 1)
+
+	if mmSetFinalizer.inspectFuncSetFinalizer != nil {
+		mmSetFinalizer.inspectFuncSetFinalizer(f1)
+	}
+
+	mm_params := &ExecutionContextMockSetFinalizerParams{f1}
+
+	// Record call args
+	mmSetFinalizer.SetFinalizerMock.mutex.Lock()
+	mmSetFinalizer.SetFinalizerMock.callArgs = append(mmSetFinalizer.SetFinalizerMock.callArgs, mm_params)
+	mmSetFinalizer.SetFinalizerMock.mutex.Unlock()
+
+	for _, e := range mmSetFinalizer.SetFinalizerMock.expectations {
+		if minimock.Equal(e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return
+		}
+	}
+
+	if mmSetFinalizer.SetFinalizerMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmSetFinalizer.SetFinalizerMock.defaultExpectation.Counter, 1)
+		mm_want := mmSetFinalizer.SetFinalizerMock.defaultExpectation.params
+		mm_got := ExecutionContextMockSetFinalizerParams{f1}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmSetFinalizer.t.Errorf("ExecutionContextMock.SetFinalizer got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		return
+
+	}
+	if mmSetFinalizer.funcSetFinalizer != nil {
+		mmSetFinalizer.funcSetFinalizer(f1)
+		return
+	}
+	mmSetFinalizer.t.Fatalf("Unexpected call to ExecutionContextMock.SetFinalizer. %v", f1)
+
+}
+
+// SetFinalizerAfterCounter returns a count of finished ExecutionContextMock.SetFinalizer invocations
+func (mmSetFinalizer *ExecutionContextMock) SetFinalizerAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmSetFinalizer.afterSetFinalizerCounter)
+}
+
+// SetFinalizerBeforeCounter returns a count of ExecutionContextMock.SetFinalizer invocations
+func (mmSetFinalizer *ExecutionContextMock) SetFinalizerBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmSetFinalizer.beforeSetFinalizerCounter)
+}
+
+// Calls returns a list of arguments used in each call to ExecutionContextMock.SetFinalizer.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmSetFinalizer *mExecutionContextMockSetFinalizer) Calls() []*ExecutionContextMockSetFinalizerParams {
+	mmSetFinalizer.mutex.RLock()
+
+	argCopy := make([]*ExecutionContextMockSetFinalizerParams, len(mmSetFinalizer.callArgs))
+	copy(argCopy, mmSetFinalizer.callArgs)
+
+	mmSetFinalizer.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockSetFinalizerDone returns true if the count of the SetFinalizer invocations corresponds
+// the number of defined expectations
+func (m *ExecutionContextMock) MinimockSetFinalizerDone() bool {
+	for _, e := range m.SetFinalizerMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.SetFinalizerMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterSetFinalizerCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcSetFinalizer != nil && mm_atomic.LoadUint64(&m.afterSetFinalizerCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockSetFinalizerInspect logs each unmet expectation
+func (m *ExecutionContextMock) MinimockSetFinalizerInspect() {
+	for _, e := range m.SetFinalizerMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to ExecutionContextMock.SetFinalizer with params: %#v", *e.params)
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.SetFinalizerMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterSetFinalizerCounter) < 1 {
+		if m.SetFinalizerMock.defaultExpectation.params == nil {
+			m.t.Error("Expected call to ExecutionContextMock.SetFinalizer")
+		} else {
+			m.t.Errorf("Expected call to ExecutionContextMock.SetFinalizer with params: %#v", *m.SetFinalizerMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcSetFinalizer != nil && mm_atomic.LoadUint64(&m.afterSetFinalizerCounter) < 1 {
+		m.t.Error("Expected call to ExecutionContextMock.SetFinalizer")
 	}
 }
 
@@ -13229,6 +13425,8 @@ func (m *ExecutionContextMock) MinimockFinish() {
 
 		m.MinimockSetDefaultTerminationResultInspect()
 
+		m.MinimockSetFinalizerInspect()
+
 		m.MinimockSetLogTracingInspect()
 
 		m.MinimockShareInspect()
@@ -13332,6 +13530,7 @@ func (m *ExecutionContextMock) minimockDone() bool {
 		m.MinimockSetDefaultFlagsDone() &&
 		m.MinimockSetDefaultMigrationDone() &&
 		m.MinimockSetDefaultTerminationResultDone() &&
+		m.MinimockSetFinalizerDone() &&
 		m.MinimockSetLogTracingDone() &&
 		m.MinimockShareDone() &&
 		m.MinimockSleepDone() &&
