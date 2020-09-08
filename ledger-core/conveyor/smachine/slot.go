@@ -723,15 +723,15 @@ func (s *Slot) touchAfterInactive() {
 }
 
 func (s *Slot) touchAfterAsync() {
-	if s.touchLast > 0 {
-		touchedAt := time.Now().UnixNano()
-		if s.touchAux = time.Duration(touchedAt - s.touchLast); s.touchAux <= 0 {
-			s.touchAux = durationUnknownOrTooShortNano
-		}
-		s.touchLast = 0
-	// } else {
-	// 	s.touchAux = durationNotApplicableNano
+	if s.touchLast == 0 {
+		return
 	}
+
+	touchedAt := time.Now().UnixNano()
+	if s.touchAux = time.Duration(touchedAt - s.touchLast); s.touchAux <= 0 {
+		s.touchAux = durationUnknownOrTooShortNano
+	}
+	s.touchLast = 0
 }
 
 func (s *Slot) touchFirstTime() {
