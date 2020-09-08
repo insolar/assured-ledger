@@ -81,7 +81,9 @@ type slotData struct {
 	dependency SlotDependency
 	defResult  interface{}
 
-	lastTouchNano  int64
+	touchLast int64
+	touchAux  time.Duration
+
 	migrationCount uint32 // can be wrapped on overflow
 	asyncCallCount uint16 // pending calls, overflow panics
 	lastWorkScan   uint8  // to check if a slot was executed in this cycle
@@ -562,28 +564,29 @@ func (s *Slot) logStepError(action ErrorHandlerAction, stateUpdate StateUpdate, 
 	if area.IsDetached() {
 		flags |= StepLoggerDetached
 	}
-	s._logStepUpdate(StepLoggerUpdate, durationUnknownOrTooShortNano, durationUnknownOrTooShortNano, stateUpdate, func(d *StepLoggerData, _ *StepLoggerUpdateData) {
-		d.Flags |= flags
-		d.Error = err
-	})
+	s._logStepUpdate(StepLoggerUpdate, s.touchAfterActive(), stateUpdate,
+		func(d *StepLoggerData, _ *StepLoggerUpdateData) {
+			d.Flags |= flags
+			d.Error = err
+		})
 }
 
-func (s *Slot) logStepMigrate(stateUpdate StateUpdate, appliedMigrateFn MigrateFunc, inactivityNano, activityNano time.Duration) {
+func (s *Slot) logStepMigrate(stateUpdate StateUpdate, appliedMigrateFn MigrateFunc, timings scheduleTimings) {
 	if !s._canLogEvent(StepLoggerMigrate, false) {
 		return
 	}
 
-	s._logStepUpdate(StepLoggerMigrate, inactivityNano, activityNano, stateUpdate, func(_ *StepLoggerData, upd *StepLoggerUpdateData) {
+	s._logStepUpdate(StepLoggerMigrate, timings, stateUpdate, func(_ *StepLoggerData, upd *StepLoggerUpdateData) {
 		upd.AppliedMigrate = appliedMigrateFn
 	})
 }
 
-func (s *Slot) logStepUpdate(stateUpdate StateUpdate, flags postExecFlags, inactivityNano, activityNano time.Duration) {
+func (s *Slot) logStepUpdate(stateUpdate StateUpdate, flags postExecFlags, timings scheduleTimings) {
 	if !s._canLogEvent(StepLoggerUpdate, false) {
 		return
 	}
 
-	s._logStepUpdate(StepLoggerUpdate, inactivityNano, activityNano, stateUpdate, func(d *StepLoggerData, _ *StepLoggerUpdateData) {
+	s._logStepUpdate(StepLoggerUpdate, timings, stateUpdate, func(d *StepLoggerData, _ *StepLoggerUpdateData) {
 		if flags&wasAsyncExec != 0 {
 			d.Flags |= StepLoggerDetached
 		}
@@ -593,12 +596,12 @@ func (s *Slot) logStepUpdate(stateUpdate StateUpdate, flags postExecFlags, inact
 	})
 }
 
-func (s *Slot) logShortLoopUpdate(stateUpdate StateUpdate, curStep StepDeclaration, inactivityNano, activityNano time.Duration) {
+func (s *Slot) logShortLoopUpdate(stateUpdate StateUpdate, curStep StepDeclaration, timings scheduleTimings) {
 	if !s._canLogEvent(StepLoggerUpdate, false) {
 		return
 	}
 
-	s._logStepUpdate(StepLoggerUpdate, inactivityNano, activityNano, stateUpdate, func(d *StepLoggerData, _ *StepLoggerUpdateData) {
+	s._logStepUpdate(StepLoggerUpdate, timings, stateUpdate, func(d *StepLoggerData, _ *StepLoggerUpdateData) {
 		d.Flags |= StepLoggerShortLoop
 		d.CurrentStep = curStep
 	})
@@ -614,13 +617,13 @@ func (s *Slot) _canLogEvent(eventType StepLoggerEvent, hasError bool) bool {
 	return s.stepLogger.CanLogEvent(eventType, s.getStepLogLevel())
 }
 
-func (s *Slot) _logStepUpdate(eventType StepLoggerEvent, inactivityNano, activityNano time.Duration,
+func (s *Slot) _logStepUpdate(eventType StepLoggerEvent, timings scheduleTimings,
 	stateUpdate StateUpdate, fn func(*StepLoggerData, *StepLoggerUpdateData)) {
 
 	stepData := s.newStepLoggerData(eventType, s.NewStepLink())
 	updData := StepLoggerUpdateData{
-		InactivityNano: inactivityNano,
-		ActivityNano:   activityNano,
+		InactivityNano: timings.inactivityNano,
+		ActivityNano:   timings.activityNano,
 	}
 
 	sut, sutName, _ := getStateUpdateTypeAndName(stateUpdate)
@@ -700,19 +703,55 @@ func (s *Slot) isBoosted() bool {
 	return s.slotFlags&slotIsBoosted != 0
 }
 
-func (s *Slot) touch(touchAt int64) time.Duration {
-	if s.lastTouchNano == 0 {
-		s.lastTouchNano = touchAt
-		return durationUnknownOrTooShortNano
-	}
+type scheduleTimings struct {
+	inactivityNano, activityNano time.Duration
+}
 
-	inactivityNano := time.Duration(touchAt - s.lastTouchNano)
-	s.lastTouchNano = touchAt
+const durationUnknownOrTooShortNano = time.Duration(1)
+const durationNotApplicableNano = time.Duration(0)
 
-	if inactivityNano <= durationUnknownOrTooShortNano {
-		return durationUnknownOrTooShortNano
+func (s *Slot) touchAfterInactive() {
+	touchedAt := time.Now().UnixNano()
+	if s.touchLast > 0 {
+		if s.touchAux = time.Duration(touchedAt - s.touchLast); s.touchAux <= 0 {
+			s.touchAux = durationUnknownOrTooShortNano
+		}
+	} else {
+		s.touchAux = durationNotApplicableNano
 	}
-	return inactivityNano
+	s.touchLast = touchedAt
+}
+
+func (s *Slot) touchAfterAsync() {
+	if s.touchLast > 0 {
+		touchedAt := time.Now().UnixNano()
+		if s.touchAux = time.Duration(touchedAt - s.touchLast); s.touchAux <= 0 {
+			s.touchAux = durationUnknownOrTooShortNano
+		}
+		s.touchLast = 0
+	// } else {
+	// 	s.touchAux = durationNotApplicableNano
+	}
+}
+
+func (s *Slot) touchFirstTime() {
+	s.touchAux = durationNotApplicableNano
+	s.touchLast = time.Now().UnixNano()
+}
+
+func (s *Slot) touchAfterActive() (timings scheduleTimings) {
+	touchedAt := time.Now().UnixNano()
+
+	timings.inactivityNano = s.touchAux
+	if s.touchLast > 0 {
+		if timings.activityNano = time.Duration(touchedAt - s.touchLast); timings.activityNano <= 0 {
+			timings.activityNano = durationUnknownOrTooShortNano
+		}
+	}
+	s.touchAux = durationUnknownOrTooShortNano
+	s.touchLast = touchedAt
+
+	return
 }
 
 func (s *Slot) runShadowMigrate(migrationDelta uint32) {
