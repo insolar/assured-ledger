@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -112,10 +113,14 @@ func TestWriterRollback(t *testing.T) {
 	snap.CompletedMock.Return(nil)
 	snap.CommitMock.Return(nil)
 
-	rollbackCount := 0
+	rollback := sync.WaitGroup{}
+	rollback.Add(1)
+	rollbackCount := atomickit.Int{}
 	snap.RollbackMock.Set(func(chained bool) error {
-		require.Equal(t, rollbackCount > 0, chained)
-		rollbackCount++
+		require.Equal(t, rollbackCount.Load() > 0, chained)
+		if rollbackCount.Add(1) == 1 {
+			rollback.Done()
+		}
 		return nil
 	})
 
@@ -130,7 +135,7 @@ func TestWriterRollback(t *testing.T) {
 	applied := sync.WaitGroup{}
 	applied.Add(2)
 	applied2 := sync.WaitGroup{}
-	applied2.Add(1)
+	applied2.Add(2)
 
 	wb1 := NewWriteableMock(t)
 	wb1.PrepareWriteMock.Return(nil)
@@ -151,7 +156,8 @@ func TestWriterRollback(t *testing.T) {
 	wb3 := NewWriteableMock(t)
 	wb3.PrepareWriteMock.Return(nil)
 	wb3.ApplyWriteMock.Set(func() ([]ledger.DirectoryIndex, error) {
-		applied.Done()
+		start.Wait()
+		defer applied.Done()
 		panic("mock panic")
 	})
 
@@ -162,7 +168,7 @@ func TestWriterRollback(t *testing.T) {
 	writeBundle(t, w, wb1, func() { check <- 1 }, false)
 	writeBundle(t, w, wb3, func() { check <- 2 }, true) // rollback starts here
 	writeBundle(t, w, wb2, func() {	check <- 3 }, true) // this will wait
-	writeBundle(t, w, wb3, func() {
+	writeBundle(t, w, wb2, func() {
 		check <- 4
 		panic("make it complicated")
 	}, true) // multiple errors
@@ -177,16 +183,15 @@ func TestWriterRollback(t *testing.T) {
 	default:
 	}
 
-	applied.Wait()
-	require.Equal(t, 0, rollbackCount)
-	applied.Add(1)
+	applied2.Wait()
+	require.Equal(t, 0, rollbackCount.Load())
 
 	start.Done()
 	require.Equal(t, 1, <- check)
 	require.Equal(t, 2, <- check)
 	applied.Wait()
-	applied2.Wait()
-	require.Equal(t, 1, rollbackCount)
+	rollback.Wait()
+	require.Equal(t, 1, rollbackCount.Load())
 
 	select {
 	case <- check:
@@ -199,7 +204,7 @@ func TestWriterRollback(t *testing.T) {
 	require.Equal(t, 4, <- check)
 	require.Equal(t, 5, <- check)
 
-	require.Equal(t, 3, rollbackCount)
+	require.Equal(t, 3, rollbackCount.Load())
 
 	w.WaitWriteBundles(nil, nil) // nothing to wait
 }
