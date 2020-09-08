@@ -282,13 +282,10 @@ func TestVirtual_CallMethod_On_CompletelyDeactivatedObject(t *testing.T) {
 					server, ctx := utils.NewUninitializedServer(nil, t)
 					defer server.Stop()
 
-					runnerMock := logicless.NewServiceMock(ctx, t, func(execution execution.Context) string {
-						return execution.Request.CallSiteMethod
-					})
+					runnerMock := logicless.NewServiceMock(ctx, t, nil)
 
 					isolation := contract.MethodIsolation{Interference: isolation.CallIntolerable, State: stateTest.objectState}
 					methodName := "MyFavorMethod" + callTypeTest.name
-					runnerMock.AddExecutionClassify(methodName, isolation, nil)
 					server.ReplaceRunner(runnerMock)
 
 					server.Init(ctx)
@@ -300,6 +297,8 @@ func TestVirtual_CallMethod_On_CompletelyDeactivatedObject(t *testing.T) {
 
 					server.IncrementPulseAndWaitIdle(ctx)
 					Method_PrepareObject(ctx, server, payload.StateStatusInactive, object, prevPulse)
+					outgoing := server.BuildRandomOutgoingWithPulse()
+					runnerMock.AddExecutionClassify(outgoing.String(), isolation, nil)
 
 					gotResult := make(chan struct{})
 
@@ -322,7 +321,7 @@ func TestVirtual_CallMethod_On_CompletelyDeactivatedObject(t *testing.T) {
 						Caller:         server.GlobalCaller(),
 						Callee:         object,
 						CallSiteMethod: methodName,
-						CallOutgoing:   server.BuildRandomOutgoingWithPulse(),
+						CallOutgoing:   outgoing,
 						Arguments:      insolar.MustSerialize([]interface{}{}),
 					}
 					server.SendPayload(ctx, &pl)
@@ -356,9 +355,7 @@ func TestVirtual_CallDeactivate_Intolerable(t *testing.T) {
 			server, ctx := utils.NewUninitializedServer(nil, t)
 			defer server.Stop()
 
-			runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
-				return execution.Request.CallSiteMethod
-			})
+			runnerMock := logicless.NewServiceMock(ctx, mc, nil)
 			server.ReplaceRunner(runnerMock)
 			server.Init(ctx)
 
@@ -395,6 +392,7 @@ func TestVirtual_CallDeactivate_Intolerable(t *testing.T) {
 			}
 
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+			outgoing := server.BuildRandomOutgoingWithPulse()
 
 			// Add VCallResult check
 			{
@@ -407,11 +405,11 @@ func TestVirtual_CallDeactivate_Intolerable(t *testing.T) {
 
 			// Add executor mock for method `Destroy`
 			{
-				runnerMock.AddExecutionClassify("Destroy", contract.MethodIsolation{Interference: isolation.CallIntolerable, State: testCase.state}, nil)
+				runnerMock.AddExecutionClassify(outgoing.String(), contract.MethodIsolation{Interference: isolation.CallIntolerable, State: testCase.state}, nil)
 
 				requestResult := requestresult.New([]byte("outgoing call"), objectGlobal)
 				requestResult.SetDeactivate(descriptor.NewObject(objectGlobal, server.RandomLocalWithPulse(), class, []byte("initial state"), false))
-				runnerMock.AddExecutionMock("Destroy").AddStart(
+				runnerMock.AddExecutionMock(outgoing.String()).AddStart(
 					nil,
 					&execution.Update{
 						Type:     execution.OutgoingCall,
@@ -437,6 +435,7 @@ func TestVirtual_CallDeactivate_Intolerable(t *testing.T) {
 				pl.CallFlags = payload.BuildCallFlags(isolation.CallIntolerable, testCase.state)
 				pl.Callee = objectGlobal
 				pl.CallSiteMethod = "Destroy"
+				pl.CallOutgoing = outgoing
 
 				execDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 				server.SendPayload(ctx, pl)
@@ -467,9 +466,7 @@ func TestVirtual_DeactivateObject_ChangePulse(t *testing.T) {
 
 	oneExecutionEnded := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 
-	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
-		return execution.Request.CallSiteMethod
-	})
+	runnerMock := logicless.NewServiceMock(ctx, mc, nil)
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
 
@@ -488,11 +485,11 @@ func TestVirtual_DeactivateObject_ChangePulse(t *testing.T) {
 
 	synchronizeExecution := synchronization.NewPoint(1)
 	{ // setup runner mock for deactivation call
-		runnerMock.AddExecutionClassify(deactivateMethodName, deactivateIsolation, nil)
+		runnerMock.AddExecutionClassify(outgoing.String(), deactivateIsolation, nil)
 		requestResult := requestresult.New([]byte(deactivateMethodName+" result"), objectRef)
 		requestResult.SetDeactivate(descriptor.NewObject(objectRef, server.RandomLocalWithPulse(), class, insolar.MustSerialize(initialBalance), false))
 
-		runnerMock.AddExecutionMock(deactivateMethodName).AddStart(
+		runnerMock.AddExecutionMock(outgoing.String()).AddStart(
 			func(ctx execution.Context) {
 				require.Equal(t, objectRef, ctx.Request.Callee)
 				require.Equal(t, []byte(origDirtyMem), ctx.ObjectDescriptor.Memory())
@@ -611,9 +608,7 @@ func TestVirtual_CallMethod_After_Deactivation(t *testing.T) {
 	server, ctx := utils.NewUninitializedServer(nil, t)
 	defer server.Stop()
 
-	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
-		return execution.Request.CallSiteMethod
-	})
+	runnerMock := logicless.NewServiceMock(ctx, mc, nil)
 
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
@@ -647,7 +642,7 @@ func TestVirtual_CallMethod_After_Deactivation(t *testing.T) {
 		requestResult := requestresult.New([]byte("done"), objectRef)
 		requestResult.SetDeactivate(descr)
 
-		objectExecutionMock := runnerMock.AddExecutionMock("Destroy")
+		objectExecutionMock := runnerMock.AddExecutionMock(outgoingDeactivate.String())
 		objectExecutionMock.AddStart(nil, &execution.Update{
 			Type:     execution.OutgoingCall,
 			Outgoing: execution.NewRPCBuilder(server.RandomGlobalWithPulse(), objectRef).Deactivate(),
@@ -657,8 +652,8 @@ func TestVirtual_CallMethod_After_Deactivation(t *testing.T) {
 			Type:   execution.Done,
 			Result: requestResult,
 		})
-		runnerMock.AddExecutionClassify("Destroy", deactivateIsolation, nil)
-		runnerMock.AddExecutionClassify("SomeMethod", deactivateIsolation, nil)
+		runnerMock.AddExecutionClassify(outgoingDeactivate.String(), deactivateIsolation, nil)
+		runnerMock.AddExecutionClassify(outgoingSomeMethod.String(), deactivateIsolation, nil)
 	}
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
