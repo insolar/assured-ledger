@@ -139,18 +139,13 @@ const (
 		func (p *Typed) checkMessage(ctx context.Context, msg *message.Message) {
 			var meta payload.Meta
 
-			if err := meta.Unmarshal(payload.Meta); err != nil {
-				return
-			}
-
-			basePayload, err := rms.Unmarshal(msg.Payload)
-			if err != nil {
+			if err := meta.Unmarshal(msg.Payload); err != nil {
 				return
 			}
 
 			var resend bool
 
-			switch payload := basePayload.(type) {
+			switch payload := meta.Payload.Get().(type) {
 		{{- range $pos, $msg := .Messages }}
 			case *{{ $msg.TypeWithPackage }}:
 				hdlStruct := &p.Handlers.{{ $msg.Type }}
@@ -182,7 +177,7 @@ const (
 		{{ end }}
 
 			default:
-				p.t.Fatalf("unexpected %T payload", basePayload)
+				p.t.Fatalf("unexpected %T payload", meta.Payload.Get())
 				return
 			}
 

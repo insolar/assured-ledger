@@ -12,7 +12,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	payload "github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/memorycache"
@@ -21,14 +21,14 @@ import (
 
 type SMVCachedMemoryRequest struct {
 	// input arguments
-	Meta    *payload.Meta
-	Payload *payload.VCachedMemoryRequest
+	Meta    *rms.Meta
+	Payload *rms.VCachedMemoryRequest
 
 	messageSender messageSenderAdapter.MessageSender
 	memoryCache   memoryCacheAdapter.MemoryCache
 
 	object   descriptor.Object
-	response *payload.VCachedMemoryResponse
+	response *rms.VCachedMemoryResponse
 }
 
 /* -------- Declaration ------------- */
@@ -89,20 +89,20 @@ func (s *SMVCachedMemoryRequest) stepWaitResult(ctx smachine.ExecutionContext) s
 
 func (s *SMVCachedMemoryRequest) stepBuildResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	if s.object.HeadRef().IsEmpty() {
-		s.response = &payload.VCachedMemoryResponse{
+		s.response = &rms.VCachedMemoryResponse{
 			Object:     s.Payload.Object,
 			StateID:    s.Payload.StateID,
-			CallStatus: payload.CachedMemoryStateUnknown,
+			CallStatus: rms.CachedMemoryStateUnknown,
 		}
 	} else {
-		s.response = &payload.VCachedMemoryResponse{
+		s.response = &rms.VCachedMemoryResponse{
 			Object:     s.Payload.Object,
 			StateID:    s.Payload.StateID,
-			CallStatus: payload.CachedMemoryStateFound,
+			CallStatus: rms.CachedMemoryStateFound,
 			// Node:        s.object.HeadRef(),
 			// PrevStateID: s.object.StateID(),
 			Inactive: s.object.Deactivated(),
-			Memory:   payload.NewBytes(s.object.Memory()),
+			Memory:   rms.NewBytes(s.object.Memory()),
 		}
 	}
 

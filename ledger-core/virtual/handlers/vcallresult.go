@@ -9,15 +9,15 @@ package handlers
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	payload "github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type SMVCallResult struct {
 	// input arguments
-	Meta    *payload.Meta
-	Payload *payload.VCallResult
+	Meta    *rms.Meta
+	Payload *rms.VCallResult
 }
 
 /* -------- Declaration ------------- */
@@ -47,7 +47,7 @@ func (s *SMVCallResult) Init(ctx smachine.InitializationContext) smachine.StateU
 }
 
 func (s *SMVCallResult) stepProcess(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if s.Payload.CallType != payload.CallTypeMethod && s.Payload.CallType != payload.CallTypeConstructor {
+	if s.Payload.CallType != rms.CallTypeMethod && s.Payload.CallType != rms.CallTypeConstructor {
 		panic(throw.IllegalValue())
 	}
 

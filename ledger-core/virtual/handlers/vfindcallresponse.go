@@ -10,7 +10,7 @@ package handlers
 import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	payload "github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
@@ -18,8 +18,8 @@ import (
 
 type SMVFindCallResponse struct {
 	// input arguments
-	Meta      *payload.Meta
-	Payload   *payload.VFindCallResponse
+	Meta      *rms.Meta
+	Payload   *rms.VFindCallResponse
 	pulseSlot *conveyor.PulseSlot
 }
 

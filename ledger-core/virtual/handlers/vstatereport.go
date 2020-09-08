@@ -12,7 +12,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	payload "github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
@@ -21,8 +21,8 @@ import (
 
 type SMVStateReport struct {
 	// input arguments
-	Meta    *payload.Meta
-	Payload *payload.VStateReport
+	Meta    *rms.Meta
+	Payload *rms.VStateReport
 
 	// dependencies
 	objectCatalog object.Catalog
@@ -75,11 +75,11 @@ type stateAlreadyExistsErrorMsg struct {
 }
 
 func (s *SMVStateReport) stepProcess(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if s.Payload.Status == payload.StateStatusInvalid {
+	if s.Payload.Status == rms.StateStatusInvalid {
 		return ctx.Error(throw.IllegalValue())
 	}
 
-	if s.Payload.Status >= payload.StateStatusEmpty && s.gotLatestDirty() {
+	if s.Payload.Status >= rms.StateStatusEmpty && s.gotLatestDirty() {
 		return ctx.Error(throw.IllegalValue())
 	}
 
@@ -137,24 +137,24 @@ func (s *SMVStateReport) updateSharedState(
 
 	var objState object.State
 	switch s.Payload.Status {
-	case payload.StateStatusInvalid:
+	case rms.StateStatusInvalid:
 		panic(throw.IllegalValue())
-	case payload.StateStatusReady:
+	case rms.StateStatusReady:
 		if !s.gotLatestDirty() {
 			panic(throw.IllegalState())
 		}
 		objState = object.HasState
-	case payload.StateStatusEmpty:
+	case rms.StateStatusEmpty:
 		objState = object.Empty
-	case payload.StateStatusInactive:
+	case rms.StateStatusInactive:
 		objState = object.Inactive
-	case payload.StateStatusMissing:
+	case rms.StateStatusMissing:
 		objState = object.Missing
 	default:
 		panic(throw.IllegalValue())
 	}
 
-	if s.Payload.Status >= payload.StateStatusEmpty && s.gotLatestDirty() {
+	if s.Payload.Status >= rms.StateStatusEmpty && s.gotLatestDirty() {
 		panic(throw.IllegalState())
 	}
 
@@ -188,7 +188,7 @@ func (s *SMVStateReport) gotLatestValidated() bool {
 	return content != nil && content.LatestValidatedState != nil
 }
 
-func buildObjectDescriptor(headRef reference.Global, state payload.ObjectState) descriptor.Object {
+func buildObjectDescriptor(headRef reference.Global, state rms.ObjectState) descriptor.Object {
 	return descriptor.NewObject(
 		headRef,
 		state.Reference.GetValueWithoutBase(),

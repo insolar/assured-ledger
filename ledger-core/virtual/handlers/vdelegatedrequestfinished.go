@@ -15,7 +15,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	payload "github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
@@ -26,8 +26,8 @@ import (
 
 type SMVDelegatedRequestFinished struct {
 	// input arguments
-	Meta    *payload.Meta
-	Payload *payload.VDelegatedRequestFinished
+	Meta    *rms.Meta
+	Payload *rms.VDelegatedRequestFinished
 
 	objectSharedState object.SharedStateAccessor
 	objectReadyToWork smachine.SyncLink
@@ -171,7 +171,7 @@ func (s *SMVDelegatedRequestFinished) updateSharedState(
 		state.SetDescriptorDirty(s.latestState())
 		s.updateObjectState(state)
 	} else if s.Payload.CallFlags.GetInterference() == isolation.CallTolerable &&
-		s.Payload.CallType == payload.CallTypeConstructor &&
+		s.Payload.CallType == rms.CallTypeConstructor &&
 		state.GetState() == object.Empty {
 
 		ctx.Log().Warn(noLatestStateTolerableVDelegateRequestFinished{

@@ -9,7 +9,7 @@ package handlers
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	payload "github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
@@ -17,8 +17,8 @@ import (
 
 type SMVDelegatedCallResponse struct {
 	// input arguments
-	Meta    *payload.Meta
-	Payload *payload.VDelegatedCallResponse
+	Meta    *rms.Meta
+	Payload *rms.VDelegatedCallResponse
 }
 
 var dSMVDelegatedCallResponseInstance smachine.StateMachineDeclaration = &dSMVDelegatedCallResponse{}

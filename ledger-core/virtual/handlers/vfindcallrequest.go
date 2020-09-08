@@ -14,7 +14,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
-	payload "github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callsummary"
@@ -22,8 +22,8 @@ import (
 
 type SMVFindCallRequest struct {
 	// input arguments
-	Meta    *payload.Meta
-	Payload *payload.VFindCallRequest
+	Meta    *rms.Meta
+	Payload *rms.VFindCallRequest
 
 	// dependencies
 	messageSender messageSenderAdapter.MessageSender
@@ -31,8 +31,8 @@ type SMVFindCallRequest struct {
 
 	syncLinkAccessor callsummary.SyncAccessor
 
-	callResult *payload.VCallResult
-	status     payload.VFindCallResponse_CallState
+	callResult *rms.VCallResult
+	status     rms.VFindCallResponse_CallState
 }
 
 /* -------- Declaration ------------- */
@@ -154,15 +154,15 @@ func (s *SMVFindCallRequest) stepGetRequestData(ctx smachine.ExecutionContext) s
 		return ctx.Jump(s.stepNotFoundResponse)
 	}
 
-	s.status = payload.CallStateFound
+	s.status = rms.CallStateFound
 
 	return ctx.Jump(s.stepSendResponse)
 }
 
 func (s *SMVFindCallRequest) stepNotFoundResponse(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	s.status = payload.CallStateMissing
+	s.status = rms.CallStateMissing
 	if s.Payload.Outgoing.GetPulseOfLocal() < s.Payload.LookAt {
-		s.status = payload.CallStateUnknown
+		s.status = rms.CallStateUnknown
 	}
 	return ctx.Jump(s.stepSendResponse)
 }
@@ -170,7 +170,7 @@ func (s *SMVFindCallRequest) stepNotFoundResponse(ctx smachine.ExecutionContext)
 func (s *SMVFindCallRequest) stepSendResponse(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	target := s.Meta.Sender
 
-	msg := payload.VFindCallResponse{
+	msg := rms.VFindCallResponse{
 		LookedAt:   s.Payload.LookAt,
 		Callee:     s.Payload.Callee,
 		Outgoing:   s.Payload.Outgoing,

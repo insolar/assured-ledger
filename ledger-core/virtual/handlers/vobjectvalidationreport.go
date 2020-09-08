@@ -7,14 +7,14 @@ package handlers
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	payload "github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 )
 
 type SMVObjectValidationReport struct {
 	// input arguments
-	Meta    *payload.Meta
-	Payload *payload.VObjectValidationReport
+	Meta    *rms.Meta
+	Payload *rms.VObjectValidationReport
 }
 
 /* -------- Declaration ------------- */

@@ -18,7 +18,7 @@ import (
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	payload "github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
@@ -28,8 +28,8 @@ import (
 
 type SMVDelegatedCallRequest struct {
 	// input arguments
-	Meta    *payload.Meta
-	Payload *payload.VDelegatedCallRequest
+	Meta    *rms.Meta
+	Payload *rms.VDelegatedCallRequest
 
 	objectSharedState object.SharedStateAccessor
 
@@ -206,7 +206,7 @@ func (s *SMVDelegatedCallRequest) stepBuildResponse(ctx smachine.ExecutionContex
 
 	token := s.authenticationService.GetCallDelegationToken(callOutgoing, delegateTo, pn, callee)
 
-	response := payload.VDelegatedCallResponse{
+	response := rms.VDelegatedCallResponse{
 		Callee:                 s.Payload.Callee,
 		CallIncoming:           s.Payload.CallIncoming,
 		ResponseDelegationSpec: token,
