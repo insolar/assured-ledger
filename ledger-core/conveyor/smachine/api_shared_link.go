@@ -25,9 +25,7 @@ func NewUnboundSharedData(data interface{}) SharedDataLink {
 	}
 }
 
-// Link to a data shared by a slot.
-// This link can live longer than its origin.
-// Unless ShareDataDirect or ShareDataUnbound are specified, then the shared data will NOT be retained by existence of this link.
+// SharedDataLink enables data sharing between different slots.
 type SharedDataLink struct {
 	link  SlotLink
 	data  interface{}
@@ -38,23 +36,27 @@ func (v SharedDataLink) IsZero() bool {
 	return v.data == nil
 }
 
-// Data is valid at the moment of this call
+// IsValid is ture when SharedDataLink is initialized and the data is valid at the moment of this call.
 func (v SharedDataLink) IsValid() bool {
 	return !v.IsZero() && (v.link.s == nil || v.link.IsValid())
 }
 
-// Data is unbound / can't be invalidated and is always available.
+// IsUnbound is true when this link points to an unbound data. Such data is always available, but must be safe for concurrent use.
 func (v SharedDataLink) IsUnbound() bool {
 	return v.link.s == nil
 }
 
-// Data is unbound / can't be invalidated and is always available.
+// IsDirectAccess returns true when data is either unbound, or shared as direct.
 func (v SharedDataLink) IsDirectAccess() bool {
 	return v.IsUnbound() || v.isDirect()
 }
 
 func (v SharedDataLink) isDirect() bool {
 	return v.flags&ShareDataDirect != 0
+}
+
+func (v SharedDataLink) isSharedForOthers() bool {
+	return v.flags&(ShareDataDirect|ShareDataUnbound|ShareDataWithOtherSlotMachines) != 0
 }
 
 func (v SharedDataLink) isOwnedBy(local *Slot) bool {
@@ -70,7 +72,7 @@ func (v SharedDataLink) getDataAndMachine() (*SlotMachine, interface{}) {
 	m := v.link.getActiveMachine()
 	if _, ok := v.data.(*uniqueSharedKey); ok {
 		if v.IsDirectAccess() { // shouldn't happen
-			panic("impossible")
+			panic(throw.Impossible())
 		}
 		if m != nil {
 			if data, ok := m.localRegistry.Load(v.data); ok {
@@ -82,7 +84,7 @@ func (v SharedDataLink) getDataAndMachine() (*SlotMachine, interface{}) {
 	return m, v.data
 }
 
-// Returns true when the underlying data is of the given type
+// IsOfType returns true when the underlying data is of the given type
 func (v SharedDataLink) IsOfType(t reflect.Type) bool {
 	if a, ok := v.data.(*uniqueSharedKey); ok {
 		return a.valueType == t
@@ -90,7 +92,7 @@ func (v SharedDataLink) IsOfType(t reflect.Type) bool {
 	return reflect.TypeOf(v.data) == t
 }
 
-// Returns true when the underlying data can be assigned to the given type
+// IsAssignableToType returns true when the underlying data can be assigned to the given type
 func (v SharedDataLink) IsAssignableToType(t reflect.Type) bool {
 	switch a := v.data.(type) {
 	case nil:
@@ -101,7 +103,7 @@ func (v SharedDataLink) IsAssignableToType(t reflect.Type) bool {
 	return reflect.TypeOf(v.data).AssignableTo(t)
 }
 
-// Returns true when the underlying data can be assigned to the given value
+// IsAssignableTo returns true when the underlying data can be assigned to the given value
 func (v SharedDataLink) IsAssignableTo(t interface{}) bool {
 	switch a := v.data.(type) {
 	case nil:
@@ -112,7 +114,7 @@ func (v SharedDataLink) IsAssignableTo(t interface{}) bool {
 	return reflect.TypeOf(v.data).AssignableTo(reflect.TypeOf(t))
 }
 
-// Panics when the underlying data is of a different type
+// EnsureType panics when the underlying data is of a different type
 func (v SharedDataLink) EnsureType(t reflect.Type) {
 	if v.data == nil {
 		panic(throw.IllegalState())
@@ -123,6 +125,7 @@ func (v SharedDataLink) EnsureType(t reflect.Type) {
 	}
 }
 
+// TryDirectAccess returns related data from an unbound or from a valid direct link. Returns nil otherwise.
 func (v SharedDataLink) TryDirectAccess() interface{} {
 	switch {
 	case v.data == nil:
@@ -137,7 +140,7 @@ func (v SharedDataLink) TryDirectAccess() interface{} {
 	return nil
 }
 
-// Creates an accessor that will apply the given function to the shared data.
+// PrepareAccess creates an accessor that will apply the given function to the shared data.
 // SharedDataAccessor gets same data retention rules as the original SharedDataLink.
 func (v SharedDataLink) PrepareAccess(fn SharedDataFunc) SharedDataAccessor {
 	if fn == nil {
@@ -146,7 +149,7 @@ func (v SharedDataLink) PrepareAccess(fn SharedDataFunc) SharedDataAccessor {
 	return SharedDataAccessor{v, fn}
 }
 
-// SharedDataAccessor gets same data retention rules as the original SharedDataLink.
+// SharedDataAccessor represents SharedDataLink with an accessor function attached.
 type SharedDataAccessor struct {
 	link     SharedDataLink
 	accessFn SharedDataFunc
@@ -156,11 +159,12 @@ func (v SharedDataAccessor) IsZero() bool {
 	return v.link.IsZero()
 }
 
-// Convenience wrapper of ExecutionContext.UseShared()
+// TryUse is a convenience wrapper of ExecutionContext.UseShared()
 func (v SharedDataAccessor) TryUse(ctx ExecutionContext) SharedAccessReport {
 	return ctx.UseShared(v)
 }
 
+// TryUseDirectAccess is a convenience equivalent of TryUse, but it can access unbound or direct values.
 func (v SharedDataAccessor) TryUseDirectAccess() SharedAccessReport {
 	switch v.accessByOwner(nil) {
 	case Passed:
@@ -193,17 +197,17 @@ var _ Decider = SharedAccessReport(0)
 type SharedAccessReport uint8
 
 const (
-	// Data is invalidated and can't be accessed anytime further
+	// SharedSlotAbsent indicates that a link was invalidated or is inaccessible and can't be accessed anytime further.
 	SharedSlotAbsent SharedAccessReport = iota
-	// Data is valid, but is in use by someone else. Data is shared by a slot that belongs to the same SlotMachine
+	// SharedSlotLocalBusy indicates that the link is valid, but data is in use by someone else. Data is from the same SlotMachine.
 	SharedSlotLocalBusy
-	// Data is valid, but is in use by someone else.
+	// SharedSlotRemoteBusy indicates that the link is valid, but data is in use by someone else. Data is from a different SlotMachine.
 	SharedSlotRemoteBusy
-	// Data is valid and is accessible / was accessed. Data belongs to this slot or is always available (unbound).
+	// SharedSlotAvailableAlways indicates that the data is accessible or was accessed. Data is always available: is unbound, direct or belongs to this slot.
 	SharedSlotAvailableAlways
-	// Data is valid and is accessible / was accessed. Data is shared by a slot that belongs to the same SlotMachine
+	// SharedSlotLocalAvailable indicates that the data is accessible or was accessed. Data is from the same SlotMachine.
 	SharedSlotLocalAvailable
-	// Data is valid and is accessible / was accessed.
+	// SharedSlotRemoteAvailable indicates that the data is accessible or was accessed. Data is from a different SlotMachine.
 	SharedSlotRemoteAvailable
 )
 
