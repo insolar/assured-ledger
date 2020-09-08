@@ -240,6 +240,11 @@ const (
 	// But keeping such SharedDataLink will retain the data in memory even when invalidated.
 	// ShareDataDirect is overridden by ShareDataUnbound.
 	ShareDataDirect
+
+	// ShareDataWithOtherSlotMachines allows access to it form SM's under different SlotMachine(s).
+	// By default, access only is allowed to SM's of owner's SlotMachine.
+	// This flag is ignored when either ShareDataUnbound or ShareDataDirect is set.
+	ShareDataWithOtherSlotMachines
 )
 
 type SubroutineCleanupMode uint8
