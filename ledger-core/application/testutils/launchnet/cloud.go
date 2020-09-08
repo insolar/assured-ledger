@@ -6,6 +6,7 @@
 package launchnet
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 	"syscall"
@@ -58,7 +59,10 @@ func prepareConfigProvider() (*insapp.CloudConfigurationProvider, error) {
 
 func setupCloud() (func(), error) {
 	cancelFunc := func() {
-		syscall.Kill(syscall.Getpid(), syscall.SIGINT)
+		err := syscall.Kill(syscall.Getpid(), syscall.SIGINT)
+		if err != nil {
+			fmt.Println("Can't send signal: ", err)
+		}
 	}
 
 	confProvider, err := prepareConfigProvider()

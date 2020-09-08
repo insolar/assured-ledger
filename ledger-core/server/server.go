@@ -39,7 +39,7 @@ func NewMultiServer(configProvider *insapp.CloudConfigurationProvider) Server {
 	)
 }
 
-func NewMultiServerWithConsensus(configProvider *insapp.CloudConfigurationProvider) Server {
+func NewMultiServerWithConsensus(configProvider *insapp.CloudConfigurationProvider) Server { // nolint:interfacer
 	if configProvider.GetAppConfigs == nil {
 		panic("GetAppConfigs cannot be nil")
 	}
