@@ -14,6 +14,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -23,6 +24,25 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
+type RecordList []rms.BasicRecord
+
+func (c RecordList) Append(message rms.BasicRecord) RecordList {
+	return append(c, message)
+}
+
+func (c RecordList) AsAnyRecordLazyList() ([]rms.AnyRecordLazy, error) {
+	rv := make([]rms.AnyRecordLazy, len(c))
+	for pos, record := range c {
+		if err := rv[pos].SetAsLazy(record); err != nil {
+			return nil, err
+		}
+	}
+	return rv, nil
+}
+
+// TODO: make all input arguments to be distinguishable from output arguments
+// TODO: make all input and output arguments to be capitalized
+// TODO: make all internal data to be separate
 type SMRegisterOnLMN struct {
 	// translate from VCallRequest.Payload. If set we need register incoming before any other registration
 	incoming rms.BasicRecord
@@ -34,6 +54,7 @@ type SMRegisterOnLMN struct {
 	newState      *execution.Update
 
 	registeredOutbound bool
+	messages           []payload.Marshaler
 
 	// result flags show registration status
 	incomingRegistered bool
@@ -71,28 +92,84 @@ func (s *SMRegisterOnLMN) GetStateMachineDeclaration() smachine.StateMachineDecl
 }
 
 func (s *SMRegisterOnLMN) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
-	if s.incoming != nil {
+	// possible variants here:
+	// all
+	// CTConstructor -> Register (RLifelineStart and RInboundRequest) in one message (??)
+	// Register (RInboundRequest + ROutboundRequest) in two separate messages
+	// Register ROutboundRequest
+	// Register ROutboundResponse
+	// Register *InboundResult* (all possible variants, different step, one message)
+	// Register (RInboundRequest + *InboundResult*) in two separate messages
+	switch {
+	case s.incoming != nil: // if we need to register incoming
 		return ctx.Jump(s.stepRegisterIncoming)
+	// case -- if we need to register outgoing
+	case s.registeredOutbound: // if we need to register outgoing
+		return ctx.Jump(s.stepRegisterOutgoingResult)
+	// case -- if we need to register incoming result
+	// case -- if we need to register outgoing result
+	default: // should be panic(throw.IllegalState) after all fixes
+		return ctx.Jump(s.stepRegisterRecords)
 	}
-	return ctx.Jump(s.stepRegisterRecords)
 }
 
 func (s *SMRegisterOnLMN) stepRegisterIncoming(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	s.sendIncoming(ctx, s.incoming)
+	records := RecordList{}
+
+	if s.isConstructor {
+		records = records.Append(&rms.RLifelineStart{})
+	}
+
+	records = records.Append(s.incoming)
+
+	lazyRecords, err := records.AsAnyRecordLazyList()
+	if err != nil {
+		panic(err)
+	}
+
+	req := &rms.LRegisterRequest{
+		Flags:   rms.RegistrationFlags_FastSafe,
+		Records: lazyRecords,
+	}
+
+	s.messages = append(s.messages, req)
+
 	return ctx.Jump(s.stepRegisterRecords)
 }
 
 func (s *SMRegisterOnLMN) stepRegisterRecords(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if s.outgoing.IsEmpty() {
+	if s.outgoing.IsEmpty() { // we should register result
 		return ctx.Jump(s.stepRegisterDone)
 	}
+
+	// we should register outgoing request
 	return ctx.Jump(s.stepRegisterOutgoing)
 }
 
+func (s *SMRegisterOnLMN) stepRegisterOutgoingResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	records := RecordList{&rms.ROutboundResponse{}}
+
+	lazyRecords, err := records.AsAnyRecordLazyList()
+	if err != nil {
+		panic(err)
+	}
+
+	req := &rms.LRegisterRequest{
+		Flags:   rms.RegistrationFlags_FastSafe,
+		Records: lazyRecords,
+	}
+
+	s.messages = append(s.messages, req)
+
+	return ctx.Jump(s.stepSendMessages)
+}
+
 func (s *SMRegisterOnLMN) stepRegisterOutgoing(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	records := make([]rms.BasicRecord, 0)
+	records := RecordList{}
+
 	if s.registeredOutbound {
-		records = append(records, &rms.ROutboundResponse{})
+	} else {
+		panic(throw.IllegalState())
 	}
 
 	switch s.interference {
@@ -102,9 +179,23 @@ func (s *SMRegisterOnLMN) stepRegisterOutgoing(ctx smachine.ExecutionContext) sm
 		records = append(records, &rms.RInboundRequest{})
 	}
 	records = append(records, &rms.ROutboundRequest{})
-	s.sendRecords(ctx, records)
 
-	return ctx.Stop()
+	lazyRecords := make([]rms.AnyRecordLazy, len(records))
+	for i, record := range records {
+		if err := lazyRecords[i].SetAsLazy(record); err != nil {
+			ctx.Log().Error("create lazyRecord fail", err)
+			panic(err)
+		}
+	}
+
+	req := &rms.LRegisterRequest{
+		Flags:   rms.RegistrationFlags_FastSafe,
+		Records: lazyRecords,
+	}
+
+	s.messages = append(s.messages, req)
+
+	return ctx.Jump(s.stepSendMessages)
 }
 
 func (s *SMRegisterOnLMN) stepRegisterDone(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -123,59 +214,50 @@ func (s *SMRegisterOnLMN) stepRegisterDone(ctx smachine.ExecutionContext) smachi
 	if s.isConstructor {
 		records = append(records, &rms.RLineActivate{})
 	}
-	s.sendRecords(ctx, records)
 
-	return ctx.Stop()
-}
-
-func (s *SMRegisterOnLMN) sendIncoming(ctx smachine.ExecutionContext, record rms.BasicRecord) {
-	req := &rms.LRegisterRequest{
-		Flags: rms.RegistrationFlags_FastSafe,
-	}
-	if err := req.SetAsLazy(record); err != nil {
-		panic(err)
-	}
-
-	rlv := req.TryGetLazy()
-	if rlv.IsZero() {
-		panic(throw.IllegalValue())
-	}
-
-	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
-		err := svc.SendRole(goCtx, req, affinity.DynamicRoleLightExecutor, s.object, s.pulseSlot.CurrentPulseNumber())
-		return func(ctx smachine.AsyncResultContext) {
-			if err != nil {
-				ctx.Log().Error("failed to send message", err)
-				panic(err)
-			}
-		}
-	}).WithoutAutoWakeUp().Start()
-}
-
-func (s *SMRegisterOnLMN) sendRecords(ctx smachine.ExecutionContext, records []rms.BasicRecord) {
 	lazyRecords := make([]rms.AnyRecordLazy, len(records))
 	for i, record := range records {
 		if err := lazyRecords[i].SetAsLazy(record); err != nil {
 			ctx.Log().Error("create lazyRecord fail", err)
 			panic(err)
 		}
-		rlv := lazyRecords[i].TryGetLazy()
-		if rlv.IsZero() {
-			panic(throw.IllegalValue())
-		}
 	}
+
 	req := &rms.LRegisterRequest{
 		Flags:   rms.RegistrationFlags_FastSafe,
 		Records: lazyRecords,
 	}
 
+	s.messages = append(s.messages, req)
+
+	return ctx.Jump(s.stepSendMessages)
+}
+
+func (s *SMRegisterOnLMN) stepSendMessages(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	var (
+		object       = s.object
+		messages     = s.messages
+		currentPulse = s.pulseSlot.CurrentPulseNumber()
+	)
+
 	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
-		err := svc.SendRole(goCtx, req, affinity.DynamicRoleLightExecutor, s.object, s.pulseSlot.CurrentPulseNumber())
-		return func(ctx smachine.AsyncResultContext) {
+		for _, msg := range messages {
+			err := svc.SendRole(goCtx, msg, affinity.DynamicRoleLightExecutor, object, currentPulse)
 			if err != nil {
-				ctx.Log().Error("failed to send message", err)
-				panic(err)
+				return func(ctx smachine.AsyncResultContext) {
+					ctx.Log().Error("failed to send message", err)
+				}
 			}
 		}
+
+		return nil
 	}).WithoutAutoWakeUp().Start()
+
+	return ctx.Jump(s.stepWaitResponses)
+}
+
+func (s *SMRegisterOnLMN) stepWaitResponses(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	// TODO: we should wait here for given number of FAST (and maybe safe) responses, so we should set
+	//       the right types and kinds of barge-ins in stepRegister***
+	return ctx.Stop()
 }
