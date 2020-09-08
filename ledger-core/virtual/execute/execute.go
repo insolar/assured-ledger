@@ -866,14 +866,24 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 	action := func(state *object.SharedState) {
 		state.SetDescriptorDirty(s.newObjectDescriptor)
 
+		var objectMemory reference.Global
+		if s.Payload.CallType == payload.CallTypeConstructor {
+			objectMemory = reference.Global{}
+		} else if s.execution.ObjectDescriptor == nil {
+			panic(throw.Impossible())
+		} else {
+			objectMemory = reference.NewRecordOf(
+				s.execution.Object,
+				s.execution.ObjectDescriptor.StateID(),
+			)
+		}
+
 		state.Transcript.Add(
 			validation.TranscriptEntry{
 				Custom: validation.TranscriptEntryIncomingRequest{
-					ObjectMemory: reference.NewRecordOf(
-						s.execution.Object, s.execution.ObjectDescriptor.StateID(),
-					),
-					Incoming:    reference.Global{},
-					CallRequest: *s.Payload,
+					ObjectMemory: objectMemory,
+					Incoming:     reference.Global{},
+					CallRequest:  *s.Payload,
 				},
 			},
 		)
@@ -882,7 +892,9 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 			validation.TranscriptEntry{
 				Custom: validation.TranscriptEntryIncomingResult{
 					IncomingResult: reference.Global{},
-					ObjectMemory:   reference.NewRecordOf(s.execution.Object, s.newObjectDescriptor.StateID()),
+					ObjectMemory: reference.NewRecordOf(
+						s.execution.Object,
+						s.newObjectDescriptor.StateID()),
 				},
 			},
 		)
