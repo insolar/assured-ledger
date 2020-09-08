@@ -17,12 +17,12 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	payload "github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callregistry"
@@ -136,7 +136,7 @@ func (i *Info) BuildStateReport() payload.VStateReport {
 	orderedPendingCount += i.KnownRequests.GetList(isolation.CallTolerable).CountActive()
 
 	res := payload.VStateReport{
-		Object:                        i.Reference,
+		Object:                        payload.NewReference(i.Reference),
 		UnorderedPendingCount:         int32(unorderedPendingCount),
 		UnorderedPendingEarliestPulse: i.GetEarliestPulse(isolation.CallIntolerable),
 		OrderedPendingCount:           int32(orderedPendingCount),
@@ -166,7 +166,7 @@ func (i *Info) BuildStateReport() payload.VStateReport {
 	}
 
 	if objDescriptor := i.DescriptorDirty(); objDescriptor != nil && !objDescriptor.Deactivated() {
-		res.LatestDirtyState = objDescriptor.HeadRef()
+		res.LatestDirtyState.Set(objDescriptor.HeadRef())
 	}
 
 	return res
@@ -176,9 +176,9 @@ func (i *Info) BuildLatestDirtyState() *payload.ObjectState {
 	if objDescriptor := i.DescriptorDirty(); objDescriptor != nil {
 		class, _ := objDescriptor.Class()
 		return &payload.ObjectState{
-			Reference:   objDescriptor.StateID(),
-			Class:       class,
-			State:       objDescriptor.Memory(),
+			Reference:   payload.NewReferenceLocal(objDescriptor.StateID()),
+			Class:       payload.NewReference(class),
+			State:       payload.NewBytes(objDescriptor.Memory()),
 			Deactivated: objDescriptor.Deactivated(),
 		}
 	}
@@ -291,7 +291,7 @@ func (sm *SMObject) stepSendStateRequest(ctx smachine.ExecutionContext) smachine
 
 	msg := payload.VStateRequest{
 		AsOf:             prevPulse,
-		Object:           sm.Reference,
+		Object:           payload.NewReference(sm.Reference),
 		RequestedContent: flags,
 	}
 

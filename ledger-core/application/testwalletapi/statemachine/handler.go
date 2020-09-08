@@ -7,7 +7,7 @@ package statemachine
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
+	payload "github.com/insolar/assured-ledger/ledger-core/rms"
 )
 
 type TestAPICall struct {
@@ -25,9 +25,9 @@ func (v TestAPICall) AsSMCreate() smachine.CreateFunc {
 func (v TestAPICall) CanBeBrief() (bool, []byte) {
 	switch {
 	case v.Payload.CallType != payload.CallTypeMethod:
-	case !builtinTestAPIEchoBriefRef.Equal(v.Payload.Callee):
+	case !builtinTestAPIEchoBriefRef.Equal(v.Payload.Callee.GetValue()):
 	default:
-		return true, v.Payload.Arguments
+		return true, v.Payload.Arguments.GetBytes()
 	}
 
 	return false, nil

@@ -14,15 +14,15 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	payload "github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 func newDispatcherWithConveyor(factoryFn conveyor.PulseEventFactoryFunc) beat.Dispatcher {
 	ctx := context.Background()
 
-	pulseConveyor := conveyor.NewPulseConveyor(ctx,	DefaultConfigNoEventless(),
+	pulseConveyor := conveyor.NewPulseConveyor(ctx, DefaultConfigNoEventless(),
 		factoryFn, nil)
 
 	return NewConveyorDispatcher(ctx, pulseConveyor)

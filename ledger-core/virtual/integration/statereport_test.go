@@ -14,8 +14,8 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/application/builtin/contract/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	payload "github.com/insolar/assured-ledger/ledger-core/rms"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"

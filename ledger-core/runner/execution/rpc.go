@@ -7,8 +7,8 @@ package execution
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	payload "github.com/insolar/assured-ledger/ledger-core/rms"
 )
 
 type RPC interface{ rpc() }
@@ -105,13 +105,13 @@ func (e CallConstructor) ConstructVCallRequest(execution Context) *payload.VCall
 	return &payload.VCallRequest{
 		CallType:            payload.CallTypeConstructor,
 		CallFlags:           payload.BuildCallFlags(execution.Isolation.Interference, execution.Isolation.State),
-		Caller:              e.parentObjectReference,
-		Callee:              e.class,
+		Caller:              payload.NewReference(e.parentObjectReference),
+		Callee:              payload.NewReference(e.class),
 		CallSiteMethod:      e.constructor,
-		CallSequence:        0, // must be filled in the caller
-		KnownCalleeIncoming: reference.Global{},
-		CallOutgoing:        reference.Global{}, // must be filled in the caller
-		Arguments:           e.arguments,
+		KnownCalleeIncoming: payload.NewReference(reference.Global{}),
+		CallOutgoing:        payload.NewReference(reference.Global{}), // must be filled in the caller
+		CallSequence:        0,                                        // must be filled in the caller
+		Arguments:           payload.NewBytes(e.arguments),
 	}
 }
 
@@ -161,12 +161,12 @@ func (e CallMethod) ConstructVCallRequest(execution Context) *payload.VCallReque
 	return &payload.VCallRequest{
 		CallType:       payload.CallTypeMethod,
 		CallFlags:      payload.BuildCallFlags(execution.Isolation.Interference, execution.Isolation.State),
-		Caller:         e.parentObjectReference,
-		Callee:         e.object,
+		Caller:         payload.NewReference(e.parentObjectReference),
+		Callee:         payload.NewReference(e.object),
 		CallSiteMethod: e.method,
-		CallSequence:   0,                  // must be filled in the caller
-		CallOutgoing:   reference.Global{}, // must be filled in the caller
-		Arguments:      e.arguments,
+		CallSequence:   0,                                        // must be filled in the caller
+		CallOutgoing:   payload.NewReference(reference.Global{}), // must be filled in the caller
+		Arguments:      payload.NewBytes(e.arguments),
 	}
 }
 

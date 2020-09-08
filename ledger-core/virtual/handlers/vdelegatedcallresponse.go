@@ -9,7 +9,7 @@ package handlers
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
+	payload "github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
@@ -46,7 +46,9 @@ func (s *SMVDelegatedCallResponse) Init(ctx smachine.InitializationContext) smac
 }
 
 func (s *SMVDelegatedCallResponse) stepProcess(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	key := execute.DelegationTokenAwaitKey{Outgoing: s.Payload.ResponseDelegationSpec.Outgoing}
+	key := execute.DelegationTokenAwaitKey{
+		Outgoing: s.Payload.ResponseDelegationSpec.Outgoing.GetValue(),
+	}
 	slotLink, bargeInHolder := ctx.GetPublishedGlobalAliasAndBargeIn(key)
 	if slotLink.IsZero() {
 		return ctx.Error(errors.New("bargeIn was not published"))

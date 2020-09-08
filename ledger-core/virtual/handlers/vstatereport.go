@@ -10,9 +10,9 @@ package handlers
 import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	payload "github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
@@ -100,7 +100,8 @@ func (s *SMVStateReport) stepProcess(ctx smachine.ExecutionContext) smachine.Sta
 		return ctx.Jump(s.stepAsOfOutdated)
 	}
 
-	objectRef := s.Payload.Object
+	objectRef := s.Payload.Object.GetValue()
+
 	sharedObjectState := s.objectCatalog.GetOrCreate(ctx, objectRef)
 	setStateFunc := func(data interface{}) (wakeup bool) {
 		state := data.(*object.SharedState)
@@ -132,7 +133,7 @@ func (s *SMVStateReport) stepAsOfOutdated(ctx smachine.ExecutionContext) smachin
 func (s *SMVStateReport) updateSharedState(
 	state *object.SharedState,
 ) {
-	objectRef := s.Payload.Object
+	objectRef := s.Payload.Object.GetValue()
 
 	var objState object.State
 	switch s.Payload.Status {
@@ -190,9 +191,9 @@ func (s *SMVStateReport) gotLatestValidated() bool {
 func buildObjectDescriptor(headRef reference.Global, state payload.ObjectState) descriptor.Object {
 	return descriptor.NewObject(
 		headRef,
-		state.Reference,
-		state.Class,
-		state.State,
+		state.Reference.GetValueWithoutBase(),
+		state.Class.GetValue(),
+		state.State.GetBytes(),
 		state.Deactivated,
 	)
 }

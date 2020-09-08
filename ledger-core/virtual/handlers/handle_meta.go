@@ -11,12 +11,12 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/defaults"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
+	payload "github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 )
@@ -48,25 +48,19 @@ func (f FactoryMeta) Process(ctx context.Context, msg insconveyor.DispatchedMess
 	}
 	logCtx, logger := inslogger.WithTraceField(logCtx, traceID)
 
-	payloadBytes := payloadMeta.Payload
-	payloadTypeID, payloadObj, err := rms.Unmarshal(payloadBytes)
-	if err != nil {
-		logger.Warnm(throw.WithSeverity(throw.W(err, "invalid msg"), throw.ViolationSeverity))
-		return pulse.Unknown, nil, nil
-	}
+	payloadObj := payloadMeta.Payload.Get()
 
 	payloadType := reflect.Indirect(reflect.ValueOf(payloadObj)).Type()
 
 	logger.Infom(struct {
 		Message        string
-		PayloadTypeID  uint64
 		PayloadType    reflect.Type
 		Source, Target reference.Holder
 	}{
 		"processing message",
-		payloadTypeID,
 		payloadType,
-		payloadMeta.Sender, payloadMeta.Receiver,
+		payloadMeta.Sender,
+		payloadMeta.Receiver,
 	})
 
 	targetPulse := pr.RightBoundData().PulseNumber
@@ -79,7 +73,6 @@ func (f FactoryMeta) Process(ctx context.Context, msg insconveyor.DispatchedMess
 		mustReject, err := f.AuthService.CheckMessageFromAuthorizedVirtual(logCtx, payloadObj, payloadMeta.Sender, pr)
 		if err != nil {
 			logger.Warn(throw.W(err, "illegitimate msg", skippedMessage{
-				messageTypeID: payloadTypeID,
 				messageType:   payloadType,
 				incomingPulse: payloadMeta.Pulse,
 				targetPulse:   targetPulse,
@@ -90,7 +83,6 @@ func (f FactoryMeta) Process(ctx context.Context, msg insconveyor.DispatchedMess
 
 		if mustReject {
 			logger.Warn(throw.W(err, "rejected msg", skippedMessage{
-				messageTypeID: payloadTypeID,
 				messageType:   payloadType,
 				incomingPulse: payloadMeta.Pulse,
 				targetPulse:   targetPulse,
@@ -104,7 +96,6 @@ func (f FactoryMeta) Process(ctx context.Context, msg insconveyor.DispatchedMess
 	if p, ok := payloadObj.(payload.Validatable); ok {
 		if err := p.Validate(targetPulse); err != nil {
 			logger.Warn(throw.W(err, "invalid msg", skippedMessage{
-				messageTypeID: payloadTypeID,
 				messageType:   payloadType,
 				incomingPulse: payloadMeta.Pulse,
 				targetPulse:   targetPulse,
@@ -142,9 +133,8 @@ func (f FactoryMeta) Process(ctx context.Context, msg insconveyor.DispatchedMess
 		default:
 			logger.Warnm(struct {
 				Msg             string
-				PayloadTypeID   uint64
 				PayloadTypeName string
-			}{"no handler for message type", payloadTypeID, payloadType.String()})
+			}{"no handler for message type", payloadType.String()})
 			return 0, nil
 		}
 	}(); sm != nil {

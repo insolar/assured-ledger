@@ -7,7 +7,7 @@ package utils
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
+	payload "github.com/insolar/assured-ledger/ledger-core/rms"
 )
 
 func MakeMinimumValidVStateResult(server *Server, returnArgs []byte) *payload.VCallResult {

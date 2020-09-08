@@ -9,9 +9,9 @@ import (
 	"context"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	payload "github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/runner/call"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 )

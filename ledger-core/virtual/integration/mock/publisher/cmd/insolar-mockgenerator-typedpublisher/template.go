@@ -23,7 +23,7 @@ const (
 			"github.com/gojuno/minimock/v3"
 
 		{{ if .PayloadIsUsed }}
-			"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
+			payload "github.com/insolar/assured-ledger/ledger-core/rms"
 		{{- end }}
 		{{- if .RMSIsUsed }}
 			"github.com/insolar/assured-ledger/ledger-core/rms"

@@ -12,9 +12,9 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
+	payload "github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
@@ -83,7 +83,7 @@ func (s *SMVStateRequest) stepWait(ctx smachine.ExecutionContext) smachine.State
 }
 
 func (s *SMVStateRequest) stepCheckCatalog(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	reportSharedState, stateFound := preservedstatereport.GetSharedStateReport(ctx, s.Payload.Object)
+	reportSharedState, stateFound := preservedstatereport.GetSharedStateReport(ctx, s.Payload.Object.GetValue())
 
 	if !stateFound {
 		return ctx.Jump(s.stepBuildMissing)

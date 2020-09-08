@@ -16,11 +16,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	payload "github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/runner"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
@@ -124,13 +124,13 @@ func (s *SMExecute) prepareExecution(ctx context.Context) {
 
 	if s.Payload.CallType == payload.CallTypeConstructor {
 		s.isConstructor = true
-		s.execution.Object = reference.NewSelf(s.Payload.CallOutgoing.GetLocal())
+		s.execution.Object = reference.NewSelf(s.Payload.CallOutgoing.GetValueWithoutBase())
 	} else {
-		s.execution.Object = s.Payload.Callee
+		s.execution.Object = s.Payload.Callee.GetValue()
 	}
 
-	s.execution.Incoming = reference.NewRecordOf(s.Payload.Callee, s.Payload.CallOutgoing.GetLocal())
-	s.execution.Outgoing = s.Payload.CallOutgoing
+	s.execution.Incoming = reference.NewRecordOf(s.Payload.Callee.GetValue(), s.Payload.CallOutgoing.GetValueWithoutBase())
+	s.execution.Outgoing = s.Payload.CallOutgoing.GetValue()
 
 	s.execution.Isolation = contract.MethodIsolation{
 		Interference: s.Payload.CallFlags.GetInterference(),
@@ -185,7 +185,7 @@ func (s *SMExecute) stepGetObject(ctx smachine.ExecutionContext) smachine.StateU
 }
 
 func (s *SMExecute) outgoingFromSlotPulse() bool {
-	outgoingPulse := s.Payload.CallOutgoing.GetLocal().GetPulseNumber()
+	outgoingPulse := s.Payload.CallOutgoing.GetPulseOfLocal()
 	slotPulse := s.pulseSlot.PulseData().GetPulseNumber()
 	return outgoingPulse == slotPulse
 }
@@ -402,8 +402,8 @@ func (s *SMExecute) stepDeduplicateThroughPreviousExecutor(ctx smachine.Executio
 
 	msg := payload.VFindCallRequest{
 		LookAt:   prevPulse,
-		Callee:   s.execution.Object,
-		Outgoing: s.execution.Outgoing,
+		Callee:   payload.NewReference(s.execution.Object),
+		Outgoing: payload.NewReference(s.execution.Outgoing),
 	}
 
 	bargeInCallback := ctx.NewBargeInWithParam(func(param interface{}) smachine.BargeInCallbackFunc {
@@ -420,8 +420,8 @@ func (s *SMExecute) stepDeduplicateThroughPreviousExecutor(ctx smachine.Executio
 
 	bargeInKey := DeduplicationBargeInKey{
 		LookAt:   prevPulse,
-		Callee:   msg.Callee,
-		Outgoing: msg.Outgoing,
+		Callee:   s.execution.Object,
+		Outgoing: s.execution.Outgoing,
 	}
 
 	if !ctx.PublishGlobalAliasAndBargeIn(bargeInKey, bargeInCallback) {
@@ -577,10 +577,10 @@ func (s *SMExecute) migrateDuringExecution(ctx smachine.MigrationContext) smachi
 
 func (s *SMExecute) stepGetDelegationToken(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var requestPayload = payload.VDelegatedCallRequest{
-		Callee:         s.execution.Object,
+		Callee:         payload.NewReference(s.execution.Object),
 		CallFlags:      payload.BuildCallFlags(s.execution.Isolation.Interference, s.execution.Isolation.State),
-		CallOutgoing:   s.execution.Outgoing,
-		CallIncoming:   s.execution.Incoming,
+		CallOutgoing:   payload.NewReference(s.execution.Outgoing),
+		CallIncoming:   payload.NewReference(s.execution.Incoming),
 		DelegationSpec: s.delegationTokenSpec,
 	}
 
@@ -703,10 +703,11 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 		}
 
 		s.outgoing = outgoing.ConstructVCallRequest(s.execution)
-		s.outgoing.CallOutgoing = reference.NewRecordOf(s.outgoing.Caller, gen.UniqueLocalRefWithPulse(pulseNumber))
+		newOutgoing := reference.NewRecordOf(s.outgoing.Caller.GetValue(), gen.UniqueLocalRefWithPulse(pulseNumber))
+		s.outgoing.CallOutgoing.Set(newOutgoing)
 		s.execution.Sequence++
 		s.outgoing.CallSequence = s.execution.Sequence
-		s.outgoingObject = s.outgoing.CallOutgoing
+		s.outgoingObject = reference.NewSelf(newOutgoing.GetLocal())
 	case execution.CallMethod:
 		if s.intolerableCall() && outgoing.Interference() == isolation.CallTolerable {
 			err := throw.E("interference violation: ordered call from unordered call")
@@ -716,10 +717,11 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 		}
 
 		s.outgoing = outgoing.ConstructVCallRequest(s.execution)
-		s.outgoing.CallOutgoing = reference.NewRecordOf(s.outgoing.Caller, gen.UniqueLocalRefWithPulse(pulseNumber))
+		newOutgoing := reference.NewRecordOf(s.outgoing.Caller.GetValue(), gen.UniqueLocalRefWithPulse(pulseNumber))
+		s.outgoing.CallOutgoing.Set(newOutgoing)
 		s.execution.Sequence++
 		s.outgoing.CallSequence = s.execution.Sequence
-		s.outgoingObject = s.outgoing.Callee
+		s.outgoingObject = s.outgoing.Callee.GetValue()
 	default:
 		panic(throw.IllegalValue())
 	}
@@ -745,7 +747,7 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 			}
 
 			return func(ctx smachine.BargeInContext) smachine.StateUpdate {
-				s.outgoingResult = res.ReturnArguments
+				s.outgoingResult = res.ReturnArguments.GetBytes()
 
 				return ctx.WakeUp()
 			}
@@ -958,9 +960,9 @@ func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionConte
 		}
 
 		lastState = &payload.ObjectState{
-			Reference:   s.executionNewState.Result.ObjectStateID,
-			State:       s.executionNewState.Result.Memory,
-			Class:       class,
+			Reference:   payload.NewReferenceLocal(s.executionNewState.Result.ObjectStateID),
+			State:       payload.NewBytes(s.executionNewState.Result.Memory),
+			Class:       payload.NewReference(class),
 			Deactivated: s.executionNewState.Result.SideEffectType == requestresult.SideEffectDeactivate,
 		}
 	}
@@ -974,9 +976,9 @@ func (s *SMExecute) sendDelegatedRequestFinished(ctx smachine.ExecutionContext, 
 	msg := payload.VDelegatedRequestFinished{
 		CallType:       s.Payload.CallType,
 		CallFlags:      s.Payload.CallFlags,
-		Callee:         s.execution.Object,
-		CallOutgoing:   s.execution.Outgoing,
-		CallIncoming:   s.execution.Incoming,
+		Callee:         payload.NewReference(s.execution.Object),
+		CallOutgoing:   payload.NewReference(s.execution.Outgoing),
+		CallIncoming:   payload.NewReference(s.execution.Incoming),
 		DelegationSpec: s.getToken(),
 		LatestState:    lastState,
 	}
@@ -1022,10 +1024,10 @@ func (s *SMExecute) stepSendCallResult(ctx smachine.ExecutionContext) smachine.S
 		CallType:        s.Payload.CallType,
 		CallFlags:       s.Payload.CallFlags,
 		Caller:          s.Payload.Caller,
-		Callee:          s.execution.Object,
-		CallOutgoing:    s.execution.Outgoing,
-		CallIncoming:    s.execution.Incoming,
-		ReturnArguments: executionResult,
+		Callee:          payload.NewReference(s.execution.Object),
+		CallOutgoing:    payload.NewReference(s.execution.Outgoing),
+		CallIncoming:    payload.NewReference(s.execution.Incoming),
+		ReturnArguments: payload.NewBytes(executionResult),
 		DelegationSpec:  s.getToken(),
 	}
 

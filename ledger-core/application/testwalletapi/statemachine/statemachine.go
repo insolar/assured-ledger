@@ -14,10 +14,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	payload "github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
@@ -81,13 +81,13 @@ func (s *SMTestAPICall) Init(ctx smachine.InitializationContext) smachine.StateU
 }
 
 func (s *SMTestAPICall) stepSend(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	s.requestPayload.Caller = APICaller
+	s.requestPayload.Caller.Set(APICaller)
 	outLocal := gen.UniqueLocalRefWithPulse(s.pulseSlot.CurrentPulseNumber())
-	s.requestPayload.CallOutgoing = reference.NewRecordOf(APICaller, outLocal)
+	s.requestPayload.CallOutgoing.Set(reference.NewRecordOf(APICaller, outLocal))
 
 	switch s.requestPayload.CallType {
 	case payload.CallTypeMethod:
-		s.object = s.requestPayload.Callee
+		s.object = s.requestPayload.Callee.GetValue()
 	case payload.CallTypeConstructor:
 		s.object = reference.NewSelf(outLocal)
 	default:
@@ -142,7 +142,7 @@ func (s *SMTestAPICall) newBargeIn(ctx smachine.ExecutionContext) smachine.Barge
 		}
 
 		return func(ctx smachine.BargeInContext) smachine.StateUpdate {
-			s.responsePayload = res.ReturnArguments
+			s.responsePayload = res.ReturnArguments.GetBytes()
 
 			return ctx.WakeUp()
 		}
@@ -176,7 +176,7 @@ func (s *SMTestAPICall) sendRequest(ctx smachine.ExecutionContext) {
 
 func (s *SMTestAPICall) sendEchoRequest(ctx smachine.ExecutionContext) {
 	if !s.object.Equal(builtinTestAPIEchoRef) {
-		s.responsePayload = s.requestPayload.Arguments
+		s.responsePayload = s.requestPayload.Arguments.GetBytes()
 		return
 	}
 

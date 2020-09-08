@@ -12,9 +12,9 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
+	payload "github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callsummary"
@@ -81,7 +81,7 @@ func (s *SMVFindCallRequest) migrateFutureMessage(ctx smachine.MigrationContext)
 }
 
 func (s *SMVFindCallRequest) stepProcessRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	accessor, isCondPublished := callsummary.GetSummarySMSyncAccessor(ctx, s.Payload.Callee)
+	accessor, isCondPublished := callsummary.GetSummarySMSyncAccessor(ctx, s.Payload.Callee.GetValue())
 	if isCondPublished {
 		// if cond is still published we need to wait for object to register itself in call summary
 		s.syncLinkAccessor = accessor
@@ -124,12 +124,12 @@ func (s *SMVFindCallRequest) stepGetRequestData(ctx smachine.ExecutionContext) s
 		foundResult bool
 	)
 	action := func(sharedCallSummary *callsummary.SharedCallSummary) {
-		requests, ok := sharedCallSummary.Requests.GetObjectCallResults(s.Payload.Callee)
+		requests, ok := sharedCallSummary.Requests.GetObjectCallResults(s.Payload.Callee.GetValue())
 		if !ok {
 			return
 		}
 
-		objectCallResult, ok := requests.CallResults[s.Payload.Outgoing]
+		objectCallResult, ok := requests.CallResults[s.Payload.Outgoing.GetValue()]
 		if !ok {
 			return
 		}
@@ -161,7 +161,7 @@ func (s *SMVFindCallRequest) stepGetRequestData(ctx smachine.ExecutionContext) s
 
 func (s *SMVFindCallRequest) stepNotFoundResponse(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	s.status = payload.CallStateMissing
-	if s.Payload.Outgoing.GetLocal().Pulse() < s.Payload.LookAt {
+	if s.Payload.Outgoing.GetPulseOfLocal() < s.Payload.LookAt {
 		s.status = payload.CallStateUnknown
 	}
 	return ctx.Jump(s.stepSendResponse)

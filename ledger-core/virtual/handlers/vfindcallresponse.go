@@ -10,7 +10,7 @@ package handlers
 import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
+	payload "github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
@@ -64,8 +64,8 @@ func (s *SMVFindCallResponse) migrationDefault(ctx smachine.MigrationContext) sm
 func (s *SMVFindCallResponse) stepProcess(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	key := execute.DeduplicationBargeInKey{
 		LookAt:   s.Payload.LookedAt,
-		Callee:   s.Payload.Callee,
-		Outgoing: s.Payload.Outgoing,
+		Callee:   s.Payload.Callee.GetValue(),
+		Outgoing: s.Payload.Outgoing.GetValue(),
 	}
 
 	link, bargeInCallback := ctx.GetPublishedGlobalAliasAndBargeIn(key)

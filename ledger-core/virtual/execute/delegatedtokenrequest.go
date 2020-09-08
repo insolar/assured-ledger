@@ -12,10 +12,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	payload "github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -86,7 +86,7 @@ func (s *SMDelegatedTokenRequest) stepRegisterBargeIn(ctx smachine.ExecutionCont
 		}
 	})
 
-	key := DelegationTokenAwaitKey{s.RequestPayload.CallOutgoing}
+	key := DelegationTokenAwaitKey{s.RequestPayload.CallOutgoing.GetValue()}
 
 	if !ctx.PublishGlobalAliasAndBargeIn(key, bargeInCallback) {
 		return ctx.Error(errors.New("failed to publish bargeIn callback"))
@@ -95,8 +95,14 @@ func (s *SMDelegatedTokenRequest) stepRegisterBargeIn(ctx smachine.ExecutionCont
 }
 
 func (s *SMDelegatedTokenRequest) stepSendRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	var (
+		pl = s.RequestPayload
+		pn = s.pulseSlot.CurrentPulseNumber()
+	)
+
 	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
-		err := svc.SendRole(goCtx, &s.RequestPayload, affinity.DynamicRoleVirtualExecutor, s.RequestPayload.Callee, s.pulseSlot.CurrentPulseNumber())
+		err := svc.SendRole(goCtx, &pl, affinity.DynamicRoleVirtualExecutor, pl.Callee.GetValue(), pn)
+
 		return func(ctx smachine.AsyncResultContext) {
 			if err != nil {
 				ctx.Log().Error("failed to send message", err)

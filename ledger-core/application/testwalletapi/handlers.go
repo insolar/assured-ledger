@@ -18,11 +18,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/trace"
 	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	payload "github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -99,8 +99,8 @@ func (s *TestWalletServer) Create(w http.ResponseWriter, req *http.Request) {
 	walletReq := payload.VCallRequest{
 		CallType:       payload.CallTypeConstructor,
 		CallFlags:      payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
-		Callee:         testwallet.GetClass(),
-		Arguments:      insolar.MustSerialize([]interface{}{}),
+		Callee:         payload.NewReference(testwallet.GetClass()),
+		Arguments:      payload.NewBytes(insolar.MustSerialize([]interface{}{})),
 		CallSiteMethod: create,
 	}
 
@@ -194,8 +194,8 @@ func (s *TestWalletServer) Transfer(w http.ResponseWriter, req *http.Request) {
 	walletReq := payload.VCallRequest{
 		CallType:       payload.CallTypeMethod,
 		CallFlags:      payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
-		Callee:         fromRef,
-		Arguments:      serTransferParams,
+		Callee:         payload.NewReference(fromRef),
+		Arguments:      payload.NewBytes(serTransferParams),
 		CallSiteMethod: transfer,
 	}
 
@@ -267,9 +267,9 @@ func (s *TestWalletServer) getBalance(w http.ResponseWriter, req *http.Request, 
 	walletReq := payload.VCallRequest{
 		CallType:       payload.CallTypeMethod,
 		CallFlags:      payload.BuildCallFlags(isolation.CallIntolerable, state),
-		Callee:         ref,
+		Callee:         payload.NewReference(ref),
 		CallSiteMethod: getBalance,
-		Arguments:      insolar.MustSerialize([]interface{}{}),
+		Arguments:      payload.NewBytes(insolar.MustSerialize([]interface{}{})),
 	}
 
 	walletRes, err := s.runWalletRequest(ctx, walletReq)
@@ -360,8 +360,8 @@ func (s *TestWalletServer) AddAmount(w http.ResponseWriter, req *http.Request) {
 	walletReq := payload.VCallRequest{
 		CallType:       payload.CallTypeMethod,
 		CallFlags:      payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
-		Callee:         ref,
-		Arguments:      param,
+		Callee:         payload.NewReference(ref),
+		Arguments:      payload.NewBytes(param),
 		CallSiteMethod: addAmount,
 	}
 
@@ -435,9 +435,9 @@ func (s *TestWalletServer) Delete(w http.ResponseWriter, req *http.Request) {
 	walletReq := payload.VCallRequest{
 		CallType:       payload.CallTypeMethod,
 		CallFlags:      payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
-		Callee:         ref,
+		Callee:         payload.NewReference(ref),
 		CallSiteMethod: "Destroy",
-		Arguments:      insolar.MustSerialize([]interface{}{}),
+		Arguments:      payload.NewBytes(insolar.MustSerialize([]interface{}{})),
 	}
 
 	walletRes, err := s.runWalletRequest(ctx, walletReq)

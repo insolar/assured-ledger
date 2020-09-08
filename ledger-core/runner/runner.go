@@ -11,9 +11,9 @@ import (
 	"sync"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	payload "github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/runner/call"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/builtin"
@@ -145,7 +145,7 @@ func generateCallContext(
 		Class: classDesc.HeadRef(),
 		Code:  codeDesc.Ref(),
 
-		Caller:      request.Caller,
+		Caller:      request.Caller.GetValue(),
 		CallerClass: classDesc.HeadRef(),
 
 		Request: execution.Incoming,
@@ -199,7 +199,7 @@ func (r *DefaultService) executeMethod(
 	logicContext := generateCallContext(ctx, id, executionContext, classDescriptor, codeDescriptor)
 
 	newData, result, err := codeExecutor.CallMethod(
-		ctx, logicContext, codeDescriptor.Ref(), objectDescriptor.Memory(), request.CallSiteMethod, request.Arguments,
+		ctx, logicContext, codeDescriptor.Ref(), objectDescriptor.Memory(), request.CallSiteMethod, request.Arguments.GetBytes(),
 	)
 	if err != nil {
 		return nil, throw.W(err, "execution error")
@@ -233,7 +233,7 @@ func (r *DefaultService) executeConstructor(
 		request          = executionContext.Request
 	)
 
-	classDescriptor, codeDescriptor, err := r.Cache.ByClassRef(ctx, request.Callee)
+	classDescriptor, codeDescriptor, err := r.Cache.ByClassRef(ctx, request.Callee.GetValue())
 	if err != nil {
 		return nil, throw.W(err, "couldn't get descriptors", ErrorDetail{DetailBadClassRef})
 	}
@@ -245,7 +245,7 @@ func (r *DefaultService) executeConstructor(
 
 	logicContext := generateCallContext(ctx, id, executionContext, classDescriptor, codeDescriptor)
 
-	newState, executionResult, err := codeExecutor.CallConstructor(ctx, logicContext, codeDescriptor.Ref(), request.CallSiteMethod, request.Arguments)
+	newState, executionResult, err := codeExecutor.CallConstructor(ctx, logicContext, codeDescriptor.Ref(), request.CallSiteMethod, request.Arguments.GetBytes())
 	if err != nil {
 		return nil, throw.W(err, "execution error")
 	}
@@ -256,7 +256,7 @@ func (r *DefaultService) executeConstructor(
 	// form and return executionResult
 	res := requestresult.New(executionResult, executionContext.Object)
 	if newState != nil {
-		res.SetActivate(request.Callee, logicContext.CallerClass, newState)
+		res.SetActivate(request.Callee.GetValue(), logicContext.CallerClass, newState)
 	}
 
 	return res, nil
