@@ -58,9 +58,7 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 
 	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 
-	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) interface{} {
-		return execution.Request.CallSiteMethod
-	})
+	runnerMock := logicless.NewServiceMock(ctx, mc, nil)
 	server.ReplaceRunner(runnerMock)
 
 	server.Init(ctx)
@@ -133,7 +131,7 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 			SetInterference(barIsolation.Interference).
 			SetIsolation(barIsolation.State)
 
-		runnerMock.AddExecutionMock("Foo").AddStart(func(_ execution.Context) {
+		runnerMock.AddExecutionMock(outgoingCallRef).AddStart(func(_ execution.Context) {
 			logger.Debug("ExecutionStart [A.Foo]")
 
 			server.IncrementPulse(ctx)
@@ -153,7 +151,7 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 			Result: requestresult.New([]byte("finish A.Foo"), objectAGlobal),
 		})
 
-		runnerMock.AddExecutionClassify("Foo", fooIsolation, nil)
+		runnerMock.AddExecutionClassify(outgoingCallRef, fooIsolation, nil)
 	}
 
 	// add checks to typedChecker
@@ -292,9 +290,7 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 
 	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 
-	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) interface{} {
-		return execution.Request.CallSiteMethod
-	})
+	runnerMock := logicless.NewServiceMock(ctx, mc, nil)
 	server.ReplaceRunner(runnerMock)
 
 	server.Init(ctx)
@@ -342,7 +338,7 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 		objectAResult := requestresult.New([]byte("finish A.New"), outgoing)
 		objectAResult.SetActivate(reference.Global{}, classA, []byte("state A"))
 
-		runnerMock.AddExecutionMock("New").AddStart(func(_ execution.Context) {
+		runnerMock.AddExecutionMock(outgoing).AddStart(func(_ execution.Context) {
 			server.IncrementPulse(ctx)
 			secondPulse = server.GetPulse().PulseNumber
 			server.WaitActiveThenIdleConveyor()

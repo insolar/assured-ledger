@@ -719,9 +719,7 @@ func TestVirtual_CallConstructor_WithTwicePulseChange(t *testing.T) {
 	server, ctx := utils.NewUninitializedServer(nil, t)
 	defer server.Stop()
 
-	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) interface{} {
-		return execution.Request.CallSiteMethod
-	})
+	runnerMock := logicless.NewServiceMock(ctx, mc, nil)
 	server.ReplaceRunner(runnerMock)
 
 	server.Init(ctx)
@@ -747,7 +745,7 @@ func TestVirtual_CallConstructor_WithTwicePulseChange(t *testing.T) {
 	{
 		objectAResult := requestresult.New([]byte("finish A.New"), outgoing)
 		objectAResult.SetActivate(reference.Global{}, classA, []byte("state A"))
-		runnerMock.AddExecutionMock("New").AddStart(
+		runnerMock.AddExecutionMock(outgoing).AddStart(
 			func(_ execution.Context) {
 				synchronizeExecution.Synchronize()
 			},

@@ -83,9 +83,7 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 
 			executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 
-			runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) interface{} {
-				return execution.Request.CallSiteMethod
-			})
+			runnerMock := logicless.NewServiceMock(ctx, mc, nil)
 
 			var object reference.Global
 			{
@@ -127,7 +125,7 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 
 			// add ExecutionMocks to runnerMock
 			{
-				runnerMock.AddExecutionClassify("SomeMethod", test.isolation, nil)
+				runnerMock.AddExecutionClassify(outgoing, test.isolation, nil)
 
 				requestResult := requestresult.New([]byte("call result"), server.RandomGlobalWithPulse())
 				if test.withSideEffect {
@@ -137,7 +135,7 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 					requestResult.SetAmend(newObjDescriptor, []byte("new memory"))
 				}
 
-				objectExecutionMock := runnerMock.AddExecutionMock("SomeMethod")
+				objectExecutionMock := runnerMock.AddExecutionMock(outgoing)
 				objectExecutionMock.AddStart(
 					func(_ execution.Context) {
 						logger.Debug("ExecutionStart [SomeMethod]")
@@ -268,9 +266,7 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 
 	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 4)
 
-	runnerMock := logicless.NewServiceMock(ctx, t, func(execution execution.Context) interface{} {
-		return execution.Request.CallSiteMethod
-	})
+	runnerMock := logicless.NewServiceMock(ctx, t, nil)
 	{
 		server.ReplaceRunner(runnerMock)
 		server.Init(ctx)
@@ -390,29 +386,29 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 
 		request := utils.GenerateVCallRequestMethod(server)
 		request.Callee = object
+		outgoing := server.BuildRandomOutgoingWithPulse()
 
 		switch i {
 		case 0, 1:
 			request.CallSiteMethod = "ordered" + strconv.FormatInt(i, 10)
 			request.CallFlags = payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty)
 
-			runnerMock.AddExecutionClassify(request.CallSiteMethod, tolerableFlags(), nil)
+			runnerMock.AddExecutionClassify(outgoing, tolerableFlags(), nil)
 			result = requestresult.New([]byte("call result"), object)
 			result.SetAmend(newObjDescriptor, []byte("new memory"))
-			objectExecutionMock = runnerMock.AddExecutionMock(request.CallSiteMethod)
 
 		case 2, 3:
 			request.CallSiteMethod = "unordered" + strconv.FormatInt(i, 10)
 			request.CallFlags = payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallValidated)
 
-			runnerMock.AddExecutionClassify(request.CallSiteMethod, intolerableFlags(), nil)
-			objectExecutionMock = runnerMock.AddExecutionMock(request.CallSiteMethod)
+			runnerMock.AddExecutionClassify(outgoing, intolerableFlags(), nil)
 			result = requestresult.New([]byte("call result"), object)
 		default:
 			panic(throw.Impossible())
 		}
 
-		request.CallOutgoing = server.BuildRandomOutgoingWithPulse()
+		request.CallOutgoing = outgoing
+		objectExecutionMock = runnerMock.AddExecutionMock(outgoing)
 		objectExecutionMock.AddStart(
 			func(_ execution.Context) {
 				logger.Debug("ExecutionStart [" + request.CallSiteMethod + "]")
@@ -475,9 +471,7 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 			logger := inslogger.FromContext(ctx)
 			executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 
-			runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) interface{} {
-				return execution.Request.CallSiteMethod
-			})
+			runnerMock := logicless.NewServiceMock(ctx, mc, nil)
 			{
 				server.ReplaceRunner(runnerMock)
 				server.Init(ctx)
@@ -518,10 +512,10 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 
 			// add ExecutionMock to runnerMock
 			{
-				runnerMock.AddExecutionClassify("SomeMethod", test.isolation, nil)
+				runnerMock.AddExecutionClassify(outgoingP2, test.isolation, nil)
 				requestResult := requestresult.New([]byte("call result"), server.RandomGlobalWithPulse())
 
-				objectExecutionMock := runnerMock.AddExecutionMock("SomeMethod")
+				objectExecutionMock := runnerMock.AddExecutionMock(outgoingP2)
 				objectExecutionMock.AddStart(func(ctx execution.Context) {
 					logger.Debug("ExecutionStart [SomeMethod]")
 					require.Equal(t, object, ctx.Request.Callee)
