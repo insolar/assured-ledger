@@ -516,9 +516,6 @@ type FailureContext interface {
 	// AffectedStep is a step the slot is at
 	AffectedStep() SlotStep
 
-	// GetError returns a reason of the failure
-	GetError() error
-
 	// IsPanic is false when the error was initiated by ctx.Error(). When true, then GetError() should be SlotPanicError
 	IsPanic() bool
 

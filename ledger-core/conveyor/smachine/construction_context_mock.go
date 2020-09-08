@@ -808,7 +808,7 @@ type ConstructionContextMockSetDefaultTerminationResultParams struct {
 // Expect sets up expected params for ConstructionContext.SetDefaultTerminationResult
 func (mmSetDefaultTerminationResult *mConstructionContextMockSetDefaultTerminationResult) Expect(p1 interface{}) *mConstructionContextMockSetDefaultTerminationResult {
 	if mmSetDefaultTerminationResult.mock.funcSetDefaultTerminationResult != nil {
-		mmSetDefaultTerminationResult.mock.t.Fatalf("ConstructionContextMock.SetTerminationResult mock is already set by Set")
+		mmSetDefaultTerminationResult.mock.t.Fatalf("ConstructionContextMock.SetDefaultTerminationResult mock is already set by Set")
 	}
 
 	if mmSetDefaultTerminationResult.defaultExpectation == nil {
@@ -828,7 +828,7 @@ func (mmSetDefaultTerminationResult *mConstructionContextMockSetDefaultTerminati
 // Inspect accepts an inspector function that has same arguments as the ConstructionContext.SetDefaultTerminationResult
 func (mmSetDefaultTerminationResult *mConstructionContextMockSetDefaultTerminationResult) Inspect(f func(p1 interface{})) *mConstructionContextMockSetDefaultTerminationResult {
 	if mmSetDefaultTerminationResult.mock.inspectFuncSetDefaultTerminationResult != nil {
-		mmSetDefaultTerminationResult.mock.t.Fatalf("Inspect function is already set for ConstructionContextMock.SetTerminationResult")
+		mmSetDefaultTerminationResult.mock.t.Fatalf("Inspect function is already set for ConstructionContextMock.SetDefaultTerminationResult")
 	}
 
 	mmSetDefaultTerminationResult.mock.inspectFuncSetDefaultTerminationResult = f
@@ -839,7 +839,7 @@ func (mmSetDefaultTerminationResult *mConstructionContextMockSetDefaultTerminati
 // Return sets up results that will be returned by ConstructionContext.SetDefaultTerminationResult
 func (mmSetDefaultTerminationResult *mConstructionContextMockSetDefaultTerminationResult) Return() *ConstructionContextMock {
 	if mmSetDefaultTerminationResult.mock.funcSetDefaultTerminationResult != nil {
-		mmSetDefaultTerminationResult.mock.t.Fatalf("ConstructionContextMock.SetTerminationResult mock is already set by Set")
+		mmSetDefaultTerminationResult.mock.t.Fatalf("ConstructionContextMock.SetDefaultTerminationResult mock is already set by Set")
 	}
 
 	if mmSetDefaultTerminationResult.defaultExpectation == nil {
@@ -852,11 +852,11 @@ func (mmSetDefaultTerminationResult *mConstructionContextMockSetDefaultTerminati
 //Set uses given function f to mock the ConstructionContext.SetDefaultTerminationResult method
 func (mmSetDefaultTerminationResult *mConstructionContextMockSetDefaultTerminationResult) Set(f func(p1 interface{})) *ConstructionContextMock {
 	if mmSetDefaultTerminationResult.defaultExpectation != nil {
-		mmSetDefaultTerminationResult.mock.t.Fatalf("Default expectation is already set for the ConstructionContext.SetTerminationResult method")
+		mmSetDefaultTerminationResult.mock.t.Fatalf("Default expectation is already set for the ConstructionContext.SetDefaultTerminationResult method")
 	}
 
 	if len(mmSetDefaultTerminationResult.expectations) > 0 {
-		mmSetDefaultTerminationResult.mock.t.Fatalf("Some expectations are already set for the ConstructionContext.SetTerminationResult method")
+		mmSetDefaultTerminationResult.mock.t.Fatalf("Some expectations are already set for the ConstructionContext.SetDefaultTerminationResult method")
 	}
 
 	mmSetDefaultTerminationResult.mock.funcSetDefaultTerminationResult = f
@@ -891,7 +891,7 @@ func (mmSetDefaultTerminationResult *ConstructionContextMock) SetDefaultTerminat
 		mm_want := mmSetDefaultTerminationResult.SetDefaultTerminationResultMock.defaultExpectation.params
 		mm_got := ConstructionContextMockSetDefaultTerminationResultParams{p1}
 		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmSetDefaultTerminationResult.t.Errorf("ConstructionContextMock.SetTerminationResult got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+			mmSetDefaultTerminationResult.t.Errorf("ConstructionContextMock.SetDefaultTerminationResult got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
 
 		return
@@ -901,7 +901,7 @@ func (mmSetDefaultTerminationResult *ConstructionContextMock) SetDefaultTerminat
 		mmSetDefaultTerminationResult.funcSetDefaultTerminationResult(p1)
 		return
 	}
-	mmSetDefaultTerminationResult.t.Fatalf("Unexpected call to ConstructionContextMock.SetTerminationResult. %v", p1)
+	mmSetDefaultTerminationResult.t.Fatalf("Unexpected call to ConstructionContextMock.SetDefaultTerminationResult. %v", p1)
 
 }
 
@@ -952,21 +952,21 @@ func (m *ConstructionContextMock) MinimockSetDefaultTerminationResultDone() bool
 func (m *ConstructionContextMock) MinimockSetDefaultTerminationResultInspect() {
 	for _, e := range m.SetDefaultTerminationResultMock.expectations {
 		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to ConstructionContextMock.SetTerminationResult with params: %#v", *e.params)
+			m.t.Errorf("Expected call to ConstructionContextMock.SetDefaultTerminationResult with params: %#v", *e.params)
 		}
 	}
 
 	// if default expectation was set then invocations count should be greater than zero
 	if m.SetDefaultTerminationResultMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterSetDefaultTerminationResultCounter) < 1 {
 		if m.SetDefaultTerminationResultMock.defaultExpectation.params == nil {
-			m.t.Error("Expected call to ConstructionContextMock.SetTerminationResult")
+			m.t.Error("Expected call to ConstructionContextMock.SetDefaultTerminationResult")
 		} else {
-			m.t.Errorf("Expected call to ConstructionContextMock.SetTerminationResult with params: %#v", *m.SetDefaultTerminationResultMock.defaultExpectation.params)
+			m.t.Errorf("Expected call to ConstructionContextMock.SetDefaultTerminationResult with params: %#v", *m.SetDefaultTerminationResultMock.defaultExpectation.params)
 		}
 	}
 	// if func was set then invocations count should be greater than zero
 	if m.funcSetDefaultTerminationResult != nil && mm_atomic.LoadUint64(&m.afterSetDefaultTerminationResultCounter) < 1 {
-		m.t.Error("Expected call to ConstructionContextMock.SetTerminationResult")
+		m.t.Error("Expected call to ConstructionContextMock.SetDefaultTerminationResult")
 	}
 }
 

@@ -81,12 +81,6 @@ type MigrationContextMock struct {
 	beforeGetContextCounter uint64
 	GetContextMock          mMigrationContextMockGetContext
 
-	funcGetDefaultTerminationResult          func() (p1 interface{})
-	inspectFuncGetDefaultTerminationResult   func()
-	afterGetDefaultTerminationResultCounter  uint64
-	beforeGetDefaultTerminationResultCounter uint64
-	GetDefaultTerminationResultMock          mMigrationContextMockGetDefaultTerminationResult
-
 	funcGetPublished          func(key interface{}) (p1 interface{})
 	inspectFuncGetPublished   func(key interface{})
 	afterGetPublishedCounter  uint64
@@ -110,6 +104,12 @@ type MigrationContextMock struct {
 	afterGetPublishedLinkCounter  uint64
 	beforeGetPublishedLinkCounter uint64
 	GetPublishedLinkMock          mMigrationContextMockGetPublishedLink
+
+	funcGetTerminationResult          func() (p1 interface{})
+	inspectFuncGetTerminationResult   func()
+	afterGetTerminationResultCounter  uint64
+	beforeGetTerminationResultCounter uint64
+	GetTerminationResultMock          mMigrationContextMockGetTerminationResult
 
 	funcJump          func(s1 StateFunc) (s2 StateUpdate)
 	inspectFuncJump   func(s1 StateFunc)
@@ -213,12 +213,6 @@ type MigrationContextMock struct {
 	beforeSetDefaultMigrationCounter uint64
 	SetDefaultMigrationMock          mMigrationContextMockSetDefaultMigration
 
-	funcSetDefaultTerminationResult          func(p1 interface{})
-	inspectFuncSetDefaultTerminationResult   func(p1 interface{})
-	afterSetDefaultTerminationResultCounter  uint64
-	beforeSetDefaultTerminationResultCounter uint64
-	SetDefaultTerminationResultMock          mMigrationContextMockSetDefaultTerminationResult
-
 	funcSetFinalizer          func(f1 FinalizeFunc)
 	inspectFuncSetFinalizer   func(f1 FinalizeFunc)
 	afterSetFinalizerCounter  uint64
@@ -230,6 +224,12 @@ type MigrationContextMock struct {
 	afterSetLogTracingCounter  uint64
 	beforeSetLogTracingCounter uint64
 	SetLogTracingMock          mMigrationContextMockSetLogTracing
+
+	funcSetTerminationResult          func(p1 interface{})
+	inspectFuncSetTerminationResult   func(p1 interface{})
+	afterSetTerminationResultCounter  uint64
+	beforeSetTerminationResultCounter uint64
+	SetTerminationResultMock          mMigrationContextMockSetTerminationResult
 
 	funcShare          func(data interface{}, flags ShareDataFlags) (s1 SharedDataLink)
 	inspectFuncShare   func(data interface{}, flags ShareDataFlags)
@@ -336,8 +336,6 @@ func NewMigrationContextMock(t minimock.Tester) *MigrationContextMock {
 
 	m.GetContextMock = mMigrationContextMockGetContext{mock: m}
 
-	m.GetDefaultTerminationResultMock = mMigrationContextMockGetDefaultTerminationResult{mock: m}
-
 	m.GetPublishedMock = mMigrationContextMockGetPublished{mock: m}
 	m.GetPublishedMock.callArgs = []*MigrationContextMockGetPublishedParams{}
 
@@ -349,6 +347,8 @@ func NewMigrationContextMock(t minimock.Tester) *MigrationContextMock {
 
 	m.GetPublishedLinkMock = mMigrationContextMockGetPublishedLink{mock: m}
 	m.GetPublishedLinkMock.callArgs = []*MigrationContextMockGetPublishedLinkParams{}
+
+	m.GetTerminationResultMock = mMigrationContextMockGetTerminationResult{mock: m}
 
 	m.JumpMock = mMigrationContextMockJump{mock: m}
 	m.JumpMock.callArgs = []*MigrationContextMockJumpParams{}
@@ -397,14 +397,14 @@ func NewMigrationContextMock(t minimock.Tester) *MigrationContextMock {
 	m.SetDefaultMigrationMock = mMigrationContextMockSetDefaultMigration{mock: m}
 	m.SetDefaultMigrationMock.callArgs = []*MigrationContextMockSetDefaultMigrationParams{}
 
-	m.SetDefaultTerminationResultMock = mMigrationContextMockSetDefaultTerminationResult{mock: m}
-	m.SetDefaultTerminationResultMock.callArgs = []*MigrationContextMockSetDefaultTerminationResultParams{}
-
 	m.SetFinalizerMock = mMigrationContextMockSetFinalizer{mock: m}
 	m.SetFinalizerMock.callArgs = []*MigrationContextMockSetFinalizerParams{}
 
 	m.SetLogTracingMock = mMigrationContextMockSetLogTracing{mock: m}
 	m.SetLogTracingMock.callArgs = []*MigrationContextMockSetLogTracingParams{}
+
+	m.SetTerminationResultMock = mMigrationContextMockSetTerminationResult{mock: m}
+	m.SetTerminationResultMock.callArgs = []*MigrationContextMockSetTerminationResultParams{}
 
 	m.ShareMock = mMigrationContextMockShare{mock: m}
 	m.ShareMock.callArgs = []*MigrationContextMockShareParams{}
@@ -2660,149 +2660,6 @@ func (m *MigrationContextMock) MinimockGetContextInspect() {
 	}
 }
 
-type mMigrationContextMockGetDefaultTerminationResult struct {
-	mock               *MigrationContextMock
-	defaultExpectation *MigrationContextMockGetDefaultTerminationResultExpectation
-	expectations       []*MigrationContextMockGetDefaultTerminationResultExpectation
-}
-
-// MigrationContextMockGetDefaultTerminationResultExpectation specifies expectation struct of the MigrationContext.GetTerminationResult
-type MigrationContextMockGetDefaultTerminationResultExpectation struct {
-	mock *MigrationContextMock
-
-	results *MigrationContextMockGetDefaultTerminationResultResults
-	Counter uint64
-}
-
-// MigrationContextMockGetDefaultTerminationResultResults contains results of the MigrationContext.GetTerminationResult
-type MigrationContextMockGetDefaultTerminationResultResults struct {
-	p1 interface{}
-}
-
-// Expect sets up expected params for MigrationContext.GetTerminationResult
-func (mmGetDefaultTerminationResult *mMigrationContextMockGetDefaultTerminationResult) Expect() *mMigrationContextMockGetDefaultTerminationResult {
-	if mmGetDefaultTerminationResult.mock.funcGetDefaultTerminationResult != nil {
-		mmGetDefaultTerminationResult.mock.t.Fatalf("MigrationContextMock.GetTerminationResult mock is already set by Set")
-	}
-
-	if mmGetDefaultTerminationResult.defaultExpectation == nil {
-		mmGetDefaultTerminationResult.defaultExpectation = &MigrationContextMockGetDefaultTerminationResultExpectation{}
-	}
-
-	return mmGetDefaultTerminationResult
-}
-
-// Inspect accepts an inspector function that has same arguments as the MigrationContext.GetTerminationResult
-func (mmGetDefaultTerminationResult *mMigrationContextMockGetDefaultTerminationResult) Inspect(f func()) *mMigrationContextMockGetDefaultTerminationResult {
-	if mmGetDefaultTerminationResult.mock.inspectFuncGetDefaultTerminationResult != nil {
-		mmGetDefaultTerminationResult.mock.t.Fatalf("Inspect function is already set for MigrationContextMock.GetTerminationResult")
-	}
-
-	mmGetDefaultTerminationResult.mock.inspectFuncGetDefaultTerminationResult = f
-
-	return mmGetDefaultTerminationResult
-}
-
-// Return sets up results that will be returned by MigrationContext.GetTerminationResult
-func (mmGetDefaultTerminationResult *mMigrationContextMockGetDefaultTerminationResult) Return(p1 interface{}) *MigrationContextMock {
-	if mmGetDefaultTerminationResult.mock.funcGetDefaultTerminationResult != nil {
-		mmGetDefaultTerminationResult.mock.t.Fatalf("MigrationContextMock.GetTerminationResult mock is already set by Set")
-	}
-
-	if mmGetDefaultTerminationResult.defaultExpectation == nil {
-		mmGetDefaultTerminationResult.defaultExpectation = &MigrationContextMockGetDefaultTerminationResultExpectation{mock: mmGetDefaultTerminationResult.mock}
-	}
-	mmGetDefaultTerminationResult.defaultExpectation.results = &MigrationContextMockGetDefaultTerminationResultResults{p1}
-	return mmGetDefaultTerminationResult.mock
-}
-
-//Set uses given function f to mock the MigrationContext.GetTerminationResult method
-func (mmGetDefaultTerminationResult *mMigrationContextMockGetDefaultTerminationResult) Set(f func() (p1 interface{})) *MigrationContextMock {
-	if mmGetDefaultTerminationResult.defaultExpectation != nil {
-		mmGetDefaultTerminationResult.mock.t.Fatalf("Default expectation is already set for the MigrationContext.GetTerminationResult method")
-	}
-
-	if len(mmGetDefaultTerminationResult.expectations) > 0 {
-		mmGetDefaultTerminationResult.mock.t.Fatalf("Some expectations are already set for the MigrationContext.GetTerminationResult method")
-	}
-
-	mmGetDefaultTerminationResult.mock.funcGetDefaultTerminationResult = f
-	return mmGetDefaultTerminationResult.mock
-}
-
-// GetDefaultTerminationResult implements MigrationContext
-func (mmGetDefaultTerminationResult *MigrationContextMock) GetTerminationResult() (p1 interface{}) {
-	mm_atomic.AddUint64(&mmGetDefaultTerminationResult.beforeGetDefaultTerminationResultCounter, 1)
-	defer mm_atomic.AddUint64(&mmGetDefaultTerminationResult.afterGetDefaultTerminationResultCounter, 1)
-
-	if mmGetDefaultTerminationResult.inspectFuncGetDefaultTerminationResult != nil {
-		mmGetDefaultTerminationResult.inspectFuncGetDefaultTerminationResult()
-	}
-
-	if mmGetDefaultTerminationResult.GetDefaultTerminationResultMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmGetDefaultTerminationResult.GetDefaultTerminationResultMock.defaultExpectation.Counter, 1)
-
-		mm_results := mmGetDefaultTerminationResult.GetDefaultTerminationResultMock.defaultExpectation.results
-		if mm_results == nil {
-			mmGetDefaultTerminationResult.t.Fatal("No results are set for the MigrationContextMock.GetTerminationResult")
-		}
-		return (*mm_results).p1
-	}
-	if mmGetDefaultTerminationResult.funcGetDefaultTerminationResult != nil {
-		return mmGetDefaultTerminationResult.funcGetDefaultTerminationResult()
-	}
-	mmGetDefaultTerminationResult.t.Fatalf("Unexpected call to MigrationContextMock.GetTerminationResult.")
-	return
-}
-
-// GetDefaultTerminationResultAfterCounter returns a count of finished MigrationContextMock.GetDefaultTerminationResult invocations
-func (mmGetDefaultTerminationResult *MigrationContextMock) GetDefaultTerminationResultAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmGetDefaultTerminationResult.afterGetDefaultTerminationResultCounter)
-}
-
-// GetDefaultTerminationResultBeforeCounter returns a count of MigrationContextMock.GetDefaultTerminationResult invocations
-func (mmGetDefaultTerminationResult *MigrationContextMock) GetDefaultTerminationResultBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmGetDefaultTerminationResult.beforeGetDefaultTerminationResultCounter)
-}
-
-// MinimockGetDefaultTerminationResultDone returns true if the count of the GetDefaultTerminationResult invocations corresponds
-// the number of defined expectations
-func (m *MigrationContextMock) MinimockGetDefaultTerminationResultDone() bool {
-	for _, e := range m.GetDefaultTerminationResultMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.GetDefaultTerminationResultMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetDefaultTerminationResultCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcGetDefaultTerminationResult != nil && mm_atomic.LoadUint64(&m.afterGetDefaultTerminationResultCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockGetDefaultTerminationResultInspect logs each unmet expectation
-func (m *MigrationContextMock) MinimockGetDefaultTerminationResultInspect() {
-	for _, e := range m.GetDefaultTerminationResultMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Error("Expected call to MigrationContextMock.GetTerminationResult")
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.GetDefaultTerminationResultMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetDefaultTerminationResultCounter) < 1 {
-		m.t.Error("Expected call to MigrationContextMock.GetTerminationResult")
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcGetDefaultTerminationResult != nil && mm_atomic.LoadUint64(&m.afterGetDefaultTerminationResultCounter) < 1 {
-		m.t.Error("Expected call to MigrationContextMock.GetTerminationResult")
-	}
-}
-
 type mMigrationContextMockGetPublished struct {
 	mock               *MigrationContextMock
 	defaultExpectation *MigrationContextMockGetPublishedExpectation
@@ -3661,6 +3518,149 @@ func (m *MigrationContextMock) MinimockGetPublishedLinkInspect() {
 	// if func was set then invocations count should be greater than zero
 	if m.funcGetPublishedLink != nil && mm_atomic.LoadUint64(&m.afterGetPublishedLinkCounter) < 1 {
 		m.t.Error("Expected call to MigrationContextMock.GetPublishedLink")
+	}
+}
+
+type mMigrationContextMockGetTerminationResult struct {
+	mock               *MigrationContextMock
+	defaultExpectation *MigrationContextMockGetTerminationResultExpectation
+	expectations       []*MigrationContextMockGetTerminationResultExpectation
+}
+
+// MigrationContextMockGetTerminationResultExpectation specifies expectation struct of the MigrationContext.GetTerminationResult
+type MigrationContextMockGetTerminationResultExpectation struct {
+	mock *MigrationContextMock
+
+	results *MigrationContextMockGetTerminationResultResults
+	Counter uint64
+}
+
+// MigrationContextMockGetTerminationResultResults contains results of the MigrationContext.GetTerminationResult
+type MigrationContextMockGetTerminationResultResults struct {
+	p1 interface{}
+}
+
+// Expect sets up expected params for MigrationContext.GetTerminationResult
+func (mmGetTerminationResult *mMigrationContextMockGetTerminationResult) Expect() *mMigrationContextMockGetTerminationResult {
+	if mmGetTerminationResult.mock.funcGetTerminationResult != nil {
+		mmGetTerminationResult.mock.t.Fatalf("MigrationContextMock.GetTerminationResult mock is already set by Set")
+	}
+
+	if mmGetTerminationResult.defaultExpectation == nil {
+		mmGetTerminationResult.defaultExpectation = &MigrationContextMockGetTerminationResultExpectation{}
+	}
+
+	return mmGetTerminationResult
+}
+
+// Inspect accepts an inspector function that has same arguments as the MigrationContext.GetTerminationResult
+func (mmGetTerminationResult *mMigrationContextMockGetTerminationResult) Inspect(f func()) *mMigrationContextMockGetTerminationResult {
+	if mmGetTerminationResult.mock.inspectFuncGetTerminationResult != nil {
+		mmGetTerminationResult.mock.t.Fatalf("Inspect function is already set for MigrationContextMock.GetTerminationResult")
+	}
+
+	mmGetTerminationResult.mock.inspectFuncGetTerminationResult = f
+
+	return mmGetTerminationResult
+}
+
+// Return sets up results that will be returned by MigrationContext.GetTerminationResult
+func (mmGetTerminationResult *mMigrationContextMockGetTerminationResult) Return(p1 interface{}) *MigrationContextMock {
+	if mmGetTerminationResult.mock.funcGetTerminationResult != nil {
+		mmGetTerminationResult.mock.t.Fatalf("MigrationContextMock.GetTerminationResult mock is already set by Set")
+	}
+
+	if mmGetTerminationResult.defaultExpectation == nil {
+		mmGetTerminationResult.defaultExpectation = &MigrationContextMockGetTerminationResultExpectation{mock: mmGetTerminationResult.mock}
+	}
+	mmGetTerminationResult.defaultExpectation.results = &MigrationContextMockGetTerminationResultResults{p1}
+	return mmGetTerminationResult.mock
+}
+
+//Set uses given function f to mock the MigrationContext.GetTerminationResult method
+func (mmGetTerminationResult *mMigrationContextMockGetTerminationResult) Set(f func() (p1 interface{})) *MigrationContextMock {
+	if mmGetTerminationResult.defaultExpectation != nil {
+		mmGetTerminationResult.mock.t.Fatalf("Default expectation is already set for the MigrationContext.GetTerminationResult method")
+	}
+
+	if len(mmGetTerminationResult.expectations) > 0 {
+		mmGetTerminationResult.mock.t.Fatalf("Some expectations are already set for the MigrationContext.GetTerminationResult method")
+	}
+
+	mmGetTerminationResult.mock.funcGetTerminationResult = f
+	return mmGetTerminationResult.mock
+}
+
+// GetTerminationResult implements MigrationContext
+func (mmGetTerminationResult *MigrationContextMock) GetTerminationResult() (p1 interface{}) {
+	mm_atomic.AddUint64(&mmGetTerminationResult.beforeGetTerminationResultCounter, 1)
+	defer mm_atomic.AddUint64(&mmGetTerminationResult.afterGetTerminationResultCounter, 1)
+
+	if mmGetTerminationResult.inspectFuncGetTerminationResult != nil {
+		mmGetTerminationResult.inspectFuncGetTerminationResult()
+	}
+
+	if mmGetTerminationResult.GetTerminationResultMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmGetTerminationResult.GetTerminationResultMock.defaultExpectation.Counter, 1)
+
+		mm_results := mmGetTerminationResult.GetTerminationResultMock.defaultExpectation.results
+		if mm_results == nil {
+			mmGetTerminationResult.t.Fatal("No results are set for the MigrationContextMock.GetTerminationResult")
+		}
+		return (*mm_results).p1
+	}
+	if mmGetTerminationResult.funcGetTerminationResult != nil {
+		return mmGetTerminationResult.funcGetTerminationResult()
+	}
+	mmGetTerminationResult.t.Fatalf("Unexpected call to MigrationContextMock.GetTerminationResult.")
+	return
+}
+
+// GetTerminationResultAfterCounter returns a count of finished MigrationContextMock.GetTerminationResult invocations
+func (mmGetTerminationResult *MigrationContextMock) GetTerminationResultAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetTerminationResult.afterGetTerminationResultCounter)
+}
+
+// GetTerminationResultBeforeCounter returns a count of MigrationContextMock.GetTerminationResult invocations
+func (mmGetTerminationResult *MigrationContextMock) GetTerminationResultBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmGetTerminationResult.beforeGetTerminationResultCounter)
+}
+
+// MinimockGetTerminationResultDone returns true if the count of the GetTerminationResult invocations corresponds
+// the number of defined expectations
+func (m *MigrationContextMock) MinimockGetTerminationResultDone() bool {
+	for _, e := range m.GetTerminationResultMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.GetTerminationResultMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetTerminationResultCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcGetTerminationResult != nil && mm_atomic.LoadUint64(&m.afterGetTerminationResultCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockGetTerminationResultInspect logs each unmet expectation
+func (m *MigrationContextMock) MinimockGetTerminationResultInspect() {
+	for _, e := range m.GetTerminationResultMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Error("Expected call to MigrationContextMock.GetTerminationResult")
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.GetTerminationResultMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterGetTerminationResultCounter) < 1 {
+		m.t.Error("Expected call to MigrationContextMock.GetTerminationResult")
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcGetTerminationResult != nil && mm_atomic.LoadUint64(&m.afterGetTerminationResultCounter) < 1 {
+		m.t.Error("Expected call to MigrationContextMock.GetTerminationResult")
 	}
 }
 
@@ -6922,193 +6922,6 @@ func (m *MigrationContextMock) MinimockSetDefaultMigrationInspect() {
 	}
 }
 
-type mMigrationContextMockSetDefaultTerminationResult struct {
-	mock               *MigrationContextMock
-	defaultExpectation *MigrationContextMockSetDefaultTerminationResultExpectation
-	expectations       []*MigrationContextMockSetDefaultTerminationResultExpectation
-
-	callArgs []*MigrationContextMockSetDefaultTerminationResultParams
-	mutex    sync.RWMutex
-}
-
-// MigrationContextMockSetDefaultTerminationResultExpectation specifies expectation struct of the MigrationContext.SetTerminationResult
-type MigrationContextMockSetDefaultTerminationResultExpectation struct {
-	mock   *MigrationContextMock
-	params *MigrationContextMockSetDefaultTerminationResultParams
-
-	Counter uint64
-}
-
-// MigrationContextMockSetDefaultTerminationResultParams contains parameters of the MigrationContext.SetTerminationResult
-type MigrationContextMockSetDefaultTerminationResultParams struct {
-	p1 interface{}
-}
-
-// Expect sets up expected params for MigrationContext.SetTerminationResult
-func (mmSetDefaultTerminationResult *mMigrationContextMockSetDefaultTerminationResult) Expect(p1 interface{}) *mMigrationContextMockSetDefaultTerminationResult {
-	if mmSetDefaultTerminationResult.mock.funcSetDefaultTerminationResult != nil {
-		mmSetDefaultTerminationResult.mock.t.Fatalf("MigrationContextMock.SetTerminationResult mock is already set by Set")
-	}
-
-	if mmSetDefaultTerminationResult.defaultExpectation == nil {
-		mmSetDefaultTerminationResult.defaultExpectation = &MigrationContextMockSetDefaultTerminationResultExpectation{}
-	}
-
-	mmSetDefaultTerminationResult.defaultExpectation.params = &MigrationContextMockSetDefaultTerminationResultParams{p1}
-	for _, e := range mmSetDefaultTerminationResult.expectations {
-		if minimock.Equal(e.params, mmSetDefaultTerminationResult.defaultExpectation.params) {
-			mmSetDefaultTerminationResult.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmSetDefaultTerminationResult.defaultExpectation.params)
-		}
-	}
-
-	return mmSetDefaultTerminationResult
-}
-
-// Inspect accepts an inspector function that has same arguments as the MigrationContext.SetTerminationResult
-func (mmSetDefaultTerminationResult *mMigrationContextMockSetDefaultTerminationResult) Inspect(f func(p1 interface{})) *mMigrationContextMockSetDefaultTerminationResult {
-	if mmSetDefaultTerminationResult.mock.inspectFuncSetDefaultTerminationResult != nil {
-		mmSetDefaultTerminationResult.mock.t.Fatalf("Inspect function is already set for MigrationContextMock.SetTerminationResult")
-	}
-
-	mmSetDefaultTerminationResult.mock.inspectFuncSetDefaultTerminationResult = f
-
-	return mmSetDefaultTerminationResult
-}
-
-// Return sets up results that will be returned by MigrationContext.SetTerminationResult
-func (mmSetDefaultTerminationResult *mMigrationContextMockSetDefaultTerminationResult) Return() *MigrationContextMock {
-	if mmSetDefaultTerminationResult.mock.funcSetDefaultTerminationResult != nil {
-		mmSetDefaultTerminationResult.mock.t.Fatalf("MigrationContextMock.SetTerminationResult mock is already set by Set")
-	}
-
-	if mmSetDefaultTerminationResult.defaultExpectation == nil {
-		mmSetDefaultTerminationResult.defaultExpectation = &MigrationContextMockSetDefaultTerminationResultExpectation{mock: mmSetDefaultTerminationResult.mock}
-	}
-
-	return mmSetDefaultTerminationResult.mock
-}
-
-//Set uses given function f to mock the MigrationContext.SetTerminationResult method
-func (mmSetDefaultTerminationResult *mMigrationContextMockSetDefaultTerminationResult) Set(f func(p1 interface{})) *MigrationContextMock {
-	if mmSetDefaultTerminationResult.defaultExpectation != nil {
-		mmSetDefaultTerminationResult.mock.t.Fatalf("Default expectation is already set for the MigrationContext.SetTerminationResult method")
-	}
-
-	if len(mmSetDefaultTerminationResult.expectations) > 0 {
-		mmSetDefaultTerminationResult.mock.t.Fatalf("Some expectations are already set for the MigrationContext.SetTerminationResult method")
-	}
-
-	mmSetDefaultTerminationResult.mock.funcSetDefaultTerminationResult = f
-	return mmSetDefaultTerminationResult.mock
-}
-
-// SetDefaultTerminationResult implements MigrationContext
-func (mmSetDefaultTerminationResult *MigrationContextMock) SetTerminationResult(p1 interface{}) {
-	mm_atomic.AddUint64(&mmSetDefaultTerminationResult.beforeSetDefaultTerminationResultCounter, 1)
-	defer mm_atomic.AddUint64(&mmSetDefaultTerminationResult.afterSetDefaultTerminationResultCounter, 1)
-
-	if mmSetDefaultTerminationResult.inspectFuncSetDefaultTerminationResult != nil {
-		mmSetDefaultTerminationResult.inspectFuncSetDefaultTerminationResult(p1)
-	}
-
-	mm_params := &MigrationContextMockSetDefaultTerminationResultParams{p1}
-
-	// Record call args
-	mmSetDefaultTerminationResult.SetDefaultTerminationResultMock.mutex.Lock()
-	mmSetDefaultTerminationResult.SetDefaultTerminationResultMock.callArgs = append(mmSetDefaultTerminationResult.SetDefaultTerminationResultMock.callArgs, mm_params)
-	mmSetDefaultTerminationResult.SetDefaultTerminationResultMock.mutex.Unlock()
-
-	for _, e := range mmSetDefaultTerminationResult.SetDefaultTerminationResultMock.expectations {
-		if minimock.Equal(e.params, mm_params) {
-			mm_atomic.AddUint64(&e.Counter, 1)
-			return
-		}
-	}
-
-	if mmSetDefaultTerminationResult.SetDefaultTerminationResultMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmSetDefaultTerminationResult.SetDefaultTerminationResultMock.defaultExpectation.Counter, 1)
-		mm_want := mmSetDefaultTerminationResult.SetDefaultTerminationResultMock.defaultExpectation.params
-		mm_got := MigrationContextMockSetDefaultTerminationResultParams{p1}
-		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmSetDefaultTerminationResult.t.Errorf("MigrationContextMock.SetTerminationResult got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
-		}
-
-		return
-
-	}
-	if mmSetDefaultTerminationResult.funcSetDefaultTerminationResult != nil {
-		mmSetDefaultTerminationResult.funcSetDefaultTerminationResult(p1)
-		return
-	}
-	mmSetDefaultTerminationResult.t.Fatalf("Unexpected call to MigrationContextMock.SetTerminationResult. %v", p1)
-
-}
-
-// SetDefaultTerminationResultAfterCounter returns a count of finished MigrationContextMock.SetDefaultTerminationResult invocations
-func (mmSetDefaultTerminationResult *MigrationContextMock) SetDefaultTerminationResultAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmSetDefaultTerminationResult.afterSetDefaultTerminationResultCounter)
-}
-
-// SetDefaultTerminationResultBeforeCounter returns a count of MigrationContextMock.SetDefaultTerminationResult invocations
-func (mmSetDefaultTerminationResult *MigrationContextMock) SetDefaultTerminationResultBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmSetDefaultTerminationResult.beforeSetDefaultTerminationResultCounter)
-}
-
-// Calls returns a list of arguments used in each call to MigrationContextMock.SetDefaultTerminationResult.
-// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmSetDefaultTerminationResult *mMigrationContextMockSetDefaultTerminationResult) Calls() []*MigrationContextMockSetDefaultTerminationResultParams {
-	mmSetDefaultTerminationResult.mutex.RLock()
-
-	argCopy := make([]*MigrationContextMockSetDefaultTerminationResultParams, len(mmSetDefaultTerminationResult.callArgs))
-	copy(argCopy, mmSetDefaultTerminationResult.callArgs)
-
-	mmSetDefaultTerminationResult.mutex.RUnlock()
-
-	return argCopy
-}
-
-// MinimockSetDefaultTerminationResultDone returns true if the count of the SetDefaultTerminationResult invocations corresponds
-// the number of defined expectations
-func (m *MigrationContextMock) MinimockSetDefaultTerminationResultDone() bool {
-	for _, e := range m.SetDefaultTerminationResultMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.SetDefaultTerminationResultMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterSetDefaultTerminationResultCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcSetDefaultTerminationResult != nil && mm_atomic.LoadUint64(&m.afterSetDefaultTerminationResultCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockSetDefaultTerminationResultInspect logs each unmet expectation
-func (m *MigrationContextMock) MinimockSetDefaultTerminationResultInspect() {
-	for _, e := range m.SetDefaultTerminationResultMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to MigrationContextMock.SetTerminationResult with params: %#v", *e.params)
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.SetDefaultTerminationResultMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterSetDefaultTerminationResultCounter) < 1 {
-		if m.SetDefaultTerminationResultMock.defaultExpectation.params == nil {
-			m.t.Error("Expected call to MigrationContextMock.SetTerminationResult")
-		} else {
-			m.t.Errorf("Expected call to MigrationContextMock.SetTerminationResult with params: %#v", *m.SetDefaultTerminationResultMock.defaultExpectation.params)
-		}
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcSetDefaultTerminationResult != nil && mm_atomic.LoadUint64(&m.afterSetDefaultTerminationResultCounter) < 1 {
-		m.t.Error("Expected call to MigrationContextMock.SetTerminationResult")
-	}
-}
-
 type mMigrationContextMockSetFinalizer struct {
 	mock               *MigrationContextMock
 	defaultExpectation *MigrationContextMockSetFinalizerExpectation
@@ -7480,6 +7293,193 @@ func (m *MigrationContextMock) MinimockSetLogTracingInspect() {
 	// if func was set then invocations count should be greater than zero
 	if m.funcSetLogTracing != nil && mm_atomic.LoadUint64(&m.afterSetLogTracingCounter) < 1 {
 		m.t.Error("Expected call to MigrationContextMock.SetLogTracing")
+	}
+}
+
+type mMigrationContextMockSetTerminationResult struct {
+	mock               *MigrationContextMock
+	defaultExpectation *MigrationContextMockSetTerminationResultExpectation
+	expectations       []*MigrationContextMockSetTerminationResultExpectation
+
+	callArgs []*MigrationContextMockSetTerminationResultParams
+	mutex    sync.RWMutex
+}
+
+// MigrationContextMockSetTerminationResultExpectation specifies expectation struct of the MigrationContext.SetTerminationResult
+type MigrationContextMockSetTerminationResultExpectation struct {
+	mock   *MigrationContextMock
+	params *MigrationContextMockSetTerminationResultParams
+
+	Counter uint64
+}
+
+// MigrationContextMockSetTerminationResultParams contains parameters of the MigrationContext.SetTerminationResult
+type MigrationContextMockSetTerminationResultParams struct {
+	p1 interface{}
+}
+
+// Expect sets up expected params for MigrationContext.SetTerminationResult
+func (mmSetTerminationResult *mMigrationContextMockSetTerminationResult) Expect(p1 interface{}) *mMigrationContextMockSetTerminationResult {
+	if mmSetTerminationResult.mock.funcSetTerminationResult != nil {
+		mmSetTerminationResult.mock.t.Fatalf("MigrationContextMock.SetTerminationResult mock is already set by Set")
+	}
+
+	if mmSetTerminationResult.defaultExpectation == nil {
+		mmSetTerminationResult.defaultExpectation = &MigrationContextMockSetTerminationResultExpectation{}
+	}
+
+	mmSetTerminationResult.defaultExpectation.params = &MigrationContextMockSetTerminationResultParams{p1}
+	for _, e := range mmSetTerminationResult.expectations {
+		if minimock.Equal(e.params, mmSetTerminationResult.defaultExpectation.params) {
+			mmSetTerminationResult.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmSetTerminationResult.defaultExpectation.params)
+		}
+	}
+
+	return mmSetTerminationResult
+}
+
+// Inspect accepts an inspector function that has same arguments as the MigrationContext.SetTerminationResult
+func (mmSetTerminationResult *mMigrationContextMockSetTerminationResult) Inspect(f func(p1 interface{})) *mMigrationContextMockSetTerminationResult {
+	if mmSetTerminationResult.mock.inspectFuncSetTerminationResult != nil {
+		mmSetTerminationResult.mock.t.Fatalf("Inspect function is already set for MigrationContextMock.SetTerminationResult")
+	}
+
+	mmSetTerminationResult.mock.inspectFuncSetTerminationResult = f
+
+	return mmSetTerminationResult
+}
+
+// Return sets up results that will be returned by MigrationContext.SetTerminationResult
+func (mmSetTerminationResult *mMigrationContextMockSetTerminationResult) Return() *MigrationContextMock {
+	if mmSetTerminationResult.mock.funcSetTerminationResult != nil {
+		mmSetTerminationResult.mock.t.Fatalf("MigrationContextMock.SetTerminationResult mock is already set by Set")
+	}
+
+	if mmSetTerminationResult.defaultExpectation == nil {
+		mmSetTerminationResult.defaultExpectation = &MigrationContextMockSetTerminationResultExpectation{mock: mmSetTerminationResult.mock}
+	}
+
+	return mmSetTerminationResult.mock
+}
+
+//Set uses given function f to mock the MigrationContext.SetTerminationResult method
+func (mmSetTerminationResult *mMigrationContextMockSetTerminationResult) Set(f func(p1 interface{})) *MigrationContextMock {
+	if mmSetTerminationResult.defaultExpectation != nil {
+		mmSetTerminationResult.mock.t.Fatalf("Default expectation is already set for the MigrationContext.SetTerminationResult method")
+	}
+
+	if len(mmSetTerminationResult.expectations) > 0 {
+		mmSetTerminationResult.mock.t.Fatalf("Some expectations are already set for the MigrationContext.SetTerminationResult method")
+	}
+
+	mmSetTerminationResult.mock.funcSetTerminationResult = f
+	return mmSetTerminationResult.mock
+}
+
+// SetTerminationResult implements MigrationContext
+func (mmSetTerminationResult *MigrationContextMock) SetTerminationResult(p1 interface{}) {
+	mm_atomic.AddUint64(&mmSetTerminationResult.beforeSetTerminationResultCounter, 1)
+	defer mm_atomic.AddUint64(&mmSetTerminationResult.afterSetTerminationResultCounter, 1)
+
+	if mmSetTerminationResult.inspectFuncSetTerminationResult != nil {
+		mmSetTerminationResult.inspectFuncSetTerminationResult(p1)
+	}
+
+	mm_params := &MigrationContextMockSetTerminationResultParams{p1}
+
+	// Record call args
+	mmSetTerminationResult.SetTerminationResultMock.mutex.Lock()
+	mmSetTerminationResult.SetTerminationResultMock.callArgs = append(mmSetTerminationResult.SetTerminationResultMock.callArgs, mm_params)
+	mmSetTerminationResult.SetTerminationResultMock.mutex.Unlock()
+
+	for _, e := range mmSetTerminationResult.SetTerminationResultMock.expectations {
+		if minimock.Equal(e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return
+		}
+	}
+
+	if mmSetTerminationResult.SetTerminationResultMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmSetTerminationResult.SetTerminationResultMock.defaultExpectation.Counter, 1)
+		mm_want := mmSetTerminationResult.SetTerminationResultMock.defaultExpectation.params
+		mm_got := MigrationContextMockSetTerminationResultParams{p1}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmSetTerminationResult.t.Errorf("MigrationContextMock.SetTerminationResult got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		return
+
+	}
+	if mmSetTerminationResult.funcSetTerminationResult != nil {
+		mmSetTerminationResult.funcSetTerminationResult(p1)
+		return
+	}
+	mmSetTerminationResult.t.Fatalf("Unexpected call to MigrationContextMock.SetTerminationResult. %v", p1)
+
+}
+
+// SetTerminationResultAfterCounter returns a count of finished MigrationContextMock.SetTerminationResult invocations
+func (mmSetTerminationResult *MigrationContextMock) SetTerminationResultAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmSetTerminationResult.afterSetTerminationResultCounter)
+}
+
+// SetTerminationResultBeforeCounter returns a count of MigrationContextMock.SetTerminationResult invocations
+func (mmSetTerminationResult *MigrationContextMock) SetTerminationResultBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmSetTerminationResult.beforeSetTerminationResultCounter)
+}
+
+// Calls returns a list of arguments used in each call to MigrationContextMock.SetTerminationResult.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmSetTerminationResult *mMigrationContextMockSetTerminationResult) Calls() []*MigrationContextMockSetTerminationResultParams {
+	mmSetTerminationResult.mutex.RLock()
+
+	argCopy := make([]*MigrationContextMockSetTerminationResultParams, len(mmSetTerminationResult.callArgs))
+	copy(argCopy, mmSetTerminationResult.callArgs)
+
+	mmSetTerminationResult.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockSetTerminationResultDone returns true if the count of the SetTerminationResult invocations corresponds
+// the number of defined expectations
+func (m *MigrationContextMock) MinimockSetTerminationResultDone() bool {
+	for _, e := range m.SetTerminationResultMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.SetTerminationResultMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterSetTerminationResultCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcSetTerminationResult != nil && mm_atomic.LoadUint64(&m.afterSetTerminationResultCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockSetTerminationResultInspect logs each unmet expectation
+func (m *MigrationContextMock) MinimockSetTerminationResultInspect() {
+	for _, e := range m.SetTerminationResultMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to MigrationContextMock.SetTerminationResult with params: %#v", *e.params)
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.SetTerminationResultMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterSetTerminationResultCounter) < 1 {
+		if m.SetTerminationResultMock.defaultExpectation.params == nil {
+			m.t.Error("Expected call to MigrationContextMock.SetTerminationResult")
+		} else {
+			m.t.Errorf("Expected call to MigrationContextMock.SetTerminationResult with params: %#v", *m.SetTerminationResultMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcSetTerminationResult != nil && mm_atomic.LoadUint64(&m.afterSetTerminationResultCounter) < 1 {
+		m.t.Error("Expected call to MigrationContextMock.SetTerminationResult")
 	}
 }
 
@@ -9398,8 +9398,6 @@ func (m *MigrationContextMock) MinimockFinish() {
 
 		m.MinimockGetContextInspect()
 
-		m.MinimockGetDefaultTerminationResultInspect()
-
 		m.MinimockGetPublishedInspect()
 
 		m.MinimockGetPublishedGlobalAliasInspect()
@@ -9407,6 +9405,8 @@ func (m *MigrationContextMock) MinimockFinish() {
 		m.MinimockGetPublishedGlobalAliasAndBargeInInspect()
 
 		m.MinimockGetPublishedLinkInspect()
+
+		m.MinimockGetTerminationResultInspect()
 
 		m.MinimockJumpInspect()
 
@@ -9442,11 +9442,11 @@ func (m *MigrationContextMock) MinimockFinish() {
 
 		m.MinimockSetDefaultMigrationInspect()
 
-		m.MinimockSetDefaultTerminationResultInspect()
-
 		m.MinimockSetFinalizerInspect()
 
 		m.MinimockSetLogTracingInspect()
+
+		m.MinimockSetTerminationResultInspect()
 
 		m.MinimockShareInspect()
 
@@ -9503,11 +9503,11 @@ func (m *MigrationContextMock) minimockDone() bool {
 		m.MinimockCheckDone() &&
 		m.MinimockErrorDone() &&
 		m.MinimockGetContextDone() &&
-		m.MinimockGetDefaultTerminationResultDone() &&
 		m.MinimockGetPublishedDone() &&
 		m.MinimockGetPublishedGlobalAliasDone() &&
 		m.MinimockGetPublishedGlobalAliasAndBargeInDone() &&
 		m.MinimockGetPublishedLinkDone() &&
+		m.MinimockGetTerminationResultDone() &&
 		m.MinimockJumpDone() &&
 		m.MinimockJumpExtDone() &&
 		m.MinimockLogDone() &&
@@ -9525,9 +9525,9 @@ func (m *MigrationContextMock) minimockDone() bool {
 		m.MinimockSetDefaultErrorHandlerDone() &&
 		m.MinimockSetDefaultFlagsDone() &&
 		m.MinimockSetDefaultMigrationDone() &&
-		m.MinimockSetDefaultTerminationResultDone() &&
 		m.MinimockSetFinalizerDone() &&
 		m.MinimockSetLogTracingDone() &&
+		m.MinimockSetTerminationResultDone() &&
 		m.MinimockShareDone() &&
 		m.MinimockSkipMultipleMigrationsDone() &&
 		m.MinimockSlotLinkDone() &&
