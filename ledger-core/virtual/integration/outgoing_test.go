@@ -58,7 +58,7 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 
 	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 
-	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
+	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) interface{} {
 		return execution.Request.CallSiteMethod
 	})
 	server.ReplaceRunner(runnerMock)
@@ -292,7 +292,7 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 
 	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 
-	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
+	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) interface{} {
 		return execution.Request.CallSiteMethod
 	})
 	server.ReplaceRunner(runnerMock)
@@ -496,8 +496,8 @@ func TestVirtual_CallContractOutgoingReturnsError(t *testing.T) {
 
 	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 2)
 
-	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
-		return execution.Request.Callee.String()
+	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) interface{} {
+		return execution.Request.Callee
 	})
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
@@ -531,7 +531,7 @@ func TestVirtual_CallContractOutgoingReturnsError(t *testing.T) {
 	// add ExecutionMocks to runnerMock
 	{
 		builder := execution.NewRPCBuilder(outgoingCallRef, objectA)
-		objectAExecutionMock := runnerMock.AddExecutionMock(objectA.String())
+		objectAExecutionMock := runnerMock.AddExecutionMock(objectA)
 		objectAExecutionMock.AddStart(
 			func(ctx execution.Context) {
 				logger.Debug("ExecutionStart [A.Foo]")
@@ -567,7 +567,7 @@ func TestVirtual_CallContractOutgoingReturnsError(t *testing.T) {
 			panic(throw.W(err, "can't create error result"))
 		}
 
-		objectBExecutionMock := runnerMock.AddExecutionMock(objectB.String())
+		objectBExecutionMock := runnerMock.AddExecutionMock(objectB)
 
 		objectBExecutionMock.AddStart(
 			func(ctx execution.Context) {
@@ -587,8 +587,8 @@ func TestVirtual_CallContractOutgoingReturnsError(t *testing.T) {
 			logger.Debug("aborted [B.Foo]")
 		})
 
-		runnerMock.AddExecutionClassify(objectA.String(), flags, nil)
-		runnerMock.AddExecutionClassify(objectB.String(), flags, nil)
+		runnerMock.AddExecutionClassify(objectA, flags, nil)
+		runnerMock.AddExecutionClassify(objectB, flags, nil)
 	}
 
 	// add checks to typedChecker

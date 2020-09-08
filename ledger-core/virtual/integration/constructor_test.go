@@ -139,7 +139,7 @@ func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
 		requestResult := requestresult.New(runnerResult, outgoing)
 		requestResult.SetActivate(reference.Global{}, class, []byte("some memory"))
 
-		runnerMock.AddExecutionMock(outgoing.String()).
+		runnerMock.AddExecutionMock(outgoing).
 			AddStart(nil, &execution.Update{
 				Type:   execution.Done,
 				Result: requestResult,
@@ -197,7 +197,7 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 		requestResult := requestresult.New([]byte("123"), server.RandomGlobalWithPulse())
 		requestResult.SetActivate(server.RandomGlobalWithPulse(), class, []byte("some memory"))
 
-		runnerMock.AddExecutionMock(outgoing.String()).
+		runnerMock.AddExecutionMock(outgoing).
 			AddStart(func(execution execution.Context) {
 				require.Equal(t, "New", execution.Request.CallSiteMethod)
 				require.Equal(t, []byte("arguments"), execution.Request.Arguments)
@@ -347,7 +347,7 @@ func TestVirtual_Constructor_PrevPulseStateWithMissingStatus(t *testing.T) {
 		requestResult := requestresult.New([]byte("123"), server.RandomGlobalWithPulse())
 		requestResult.SetActivate(server.RandomGlobalWithPulse(), class, []byte("some memory"))
 
-		runnerMock.AddExecutionMock(outgoing.String()).
+		runnerMock.AddExecutionMock(outgoing).
 			AddStart(func(execution execution.Context) {
 				require.Equal(t, "New", execution.Request.CallSiteMethod)
 				require.Equal(t, []byte("arguments"), execution.Request.Arguments)
@@ -386,8 +386,8 @@ func TestVirtual_CallConstructorFromConstructor(t *testing.T) {
 
 	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 2)
 
-	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
-		return execution.Request.Callee.String()
+	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) interface{} {
+		return execution.Request.Callee
 	})
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
@@ -412,7 +412,7 @@ func TestVirtual_CallConstructorFromConstructor(t *testing.T) {
 		outgoingCall := execution.NewRPCBuilder(incomingA, objectA).CallConstructor(classB, "New", []byte("123"))
 		objectAResult := requestresult.New([]byte("finish A.New"), outgoingA)
 		objectAResult.SetActivate(reference.Global{}, classA, []byte("state A"))
-		objectAExecutionMock := runnerMock.AddExecutionMock(classA.String())
+		objectAExecutionMock := runnerMock.AddExecutionMock(classA)
 		objectAExecutionMock.AddStart(
 			func(ctx execution.Context) {
 				t.Log("ExecutionStart [A.New]")
@@ -438,7 +438,7 @@ func TestVirtual_CallConstructorFromConstructor(t *testing.T) {
 
 		objectBResult := requestresult.New([]byte("finish B.New"), objectBGlobal)
 		objectBResult.SetActivate(reference.Global{}, classB, []byte("state B"))
-		runnerMock.AddExecutionMock(classB.String()).AddStart(
+		runnerMock.AddExecutionMock(classB).AddStart(
 			func(ctx execution.Context) {
 				t.Log("ExecutionStart [B.New]")
 				require.Equal(t, classB, ctx.Request.Callee)
@@ -637,7 +637,7 @@ func TestVirtual_Constructor_PulseChangedWhileOutgoing(t *testing.T) {
 		requestResult := requestresult.New([]byte("123"), outgoing)
 		requestResult.SetActivate(reference.Global{}, class, []byte("234"))
 
-		runnerMock.AddExecutionMock(outgoing.String()).
+		runnerMock.AddExecutionMock(outgoing).
 			AddStart(func(ctx execution.Context) {
 				synchronizeExecution.Synchronize()
 			}, &execution.Update{
@@ -719,7 +719,7 @@ func TestVirtual_CallConstructor_WithTwicePulseChange(t *testing.T) {
 	server, ctx := utils.NewUninitializedServer(nil, t)
 	defer server.Stop()
 
-	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
+	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) interface{} {
 		return execution.Request.CallSiteMethod
 	})
 	server.ReplaceRunner(runnerMock)
