@@ -406,9 +406,7 @@ func TestVirtual_CallContractFromContract_InterferenceViolation(t *testing.T) {
 
 			executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 
-			runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
-				return execution.Request.CallSiteMethod
-			})
+			runnerMock := logicless.NewServiceMock(ctx, mc, nil)
 			server.ReplaceRunner(runnerMock)
 			server.Init(ctx)
 
@@ -432,6 +430,7 @@ func TestVirtual_CallContractFromContract_InterferenceViolation(t *testing.T) {
 			Method_PrepareObject(ctx, server, payload.StateStatusReady, objectAGlobal, prevPulse)
 
 			outgoingCallRef := server.RandomGlobalWithPulse()
+			outgoing := server.BuildRandomOutgoingWithPulse()
 
 			switch test.outgoingCall {
 			case "method":
@@ -447,7 +446,7 @@ func TestVirtual_CallContractFromContract_InterferenceViolation(t *testing.T) {
 
 			}
 			expectedResult := []byte("finish A.Foo")
-			objectAExecutionMock := runnerMock.AddExecutionMock("Foo")
+			objectAExecutionMock := runnerMock.AddExecutionMock(outgoing.String())
 			objectAExecutionMock.AddStart(
 				func(ctx execution.Context) {
 					assert.Equal(t, objectAGlobal, ctx.Object)
@@ -467,7 +466,7 @@ func TestVirtual_CallContractFromContract_InterferenceViolation(t *testing.T) {
 				Result: requestresult.New(expectedResult, objectAGlobal),
 			})
 
-			runnerMock.AddExecutionClassify("Foo", flags, nil)
+			runnerMock.AddExecutionClassify(outgoing.String(), flags, nil)
 
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 			typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
@@ -484,6 +483,7 @@ func TestVirtual_CallContractFromContract_InterferenceViolation(t *testing.T) {
 			pl.CallFlags = payload.BuildCallFlags(flags.Interference, flags.State)
 			pl.Callee = objectAGlobal
 			pl.CallSiteMethod = "Foo"
+			pl.CallOutgoing = outgoing
 
 			server.SendPayload(ctx, pl)
 			{
@@ -1101,9 +1101,7 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 
 			executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 
-			runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
-				return execution.Request.CallSiteMethod
-			})
+			runnerMock := logicless.NewServiceMock(ctx, mc, nil)
 			{
 				server.ReplaceRunner(runnerMock)
 				server.Init(ctx)
@@ -1122,7 +1120,7 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 
 			// add ExecutionMock to runnerMock
 			{
-				runnerMock.AddExecutionClassify("SomeMethod", testCase.isolation, nil)
+				runnerMock.AddExecutionClassify(outgoing.String(), testCase.isolation, nil)
 				requestResult := requestresult.New([]byte(callResult), objectRef)
 				if testCase.canChangeState {
 					newObjDescriptor := descriptor.NewObject(
@@ -1131,7 +1129,7 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 					requestResult.SetAmend(newObjDescriptor, []byte(changedObjectMem))
 				}
 
-				objectExecutionMock := runnerMock.AddExecutionMock("SomeMethod")
+				objectExecutionMock := runnerMock.AddExecutionMock(outgoing.String())
 				objectExecutionMock.AddStart(
 					func(ctx execution.Context) {
 						require.Equal(t, objectRef, ctx.Request.Callee)
@@ -1520,9 +1518,7 @@ func TestVirtual_Method_IntolerableCallChangeState(t *testing.T) {
 
 	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 
-	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
-		return execution.Request.CallSiteMethod
-	})
+	runnerMock := logicless.NewServiceMock(ctx, mc, nil)
 	{
 		server.ReplaceRunner(runnerMock)
 		server.Init(ctx)
@@ -1544,14 +1540,14 @@ func TestVirtual_Method_IntolerableCallChangeState(t *testing.T) {
 	outgoing := server.BuildRandomOutgoingWithPulse()
 
 	{
-		runnerMock.AddExecutionClassify("SomeMethod", isolation, nil)
+		runnerMock.AddExecutionClassify(outgoing.String(), isolation, nil)
 		requestResult := requestresult.New([]byte("call result"), server.RandomGlobalWithPulse())
 		newObjDescriptor := descriptor.NewObject(
 			reference.Global{}, reference.Local{}, class, []byte(""), false,
 		)
 		requestResult.SetAmend(newObjDescriptor, []byte(changedObjectMem))
 
-		objectExecutionMock := runnerMock.AddExecutionMock("SomeMethod")
+		objectExecutionMock := runnerMock.AddExecutionMock(outgoing.String())
 		objectExecutionMock.AddStart(
 			func(ctx execution.Context) {
 				require.Equal(t, objectRef, ctx.Request.Callee)
@@ -1653,9 +1649,7 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 	server, ctx := utils.NewUninitializedServer(nil, t)
 	defer server.Stop()
 
-	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
-		return execution.Request.CallSiteMethod
-	})
+	runnerMock := logicless.NewServiceMock(ctx, mc, nil)
 
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
@@ -1667,75 +1661,6 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 		newState     = []byte("updated state")
 		prevPulse    = server.GetPulse().PulseNumber
 	)
-
-	// add ExecutionMock to runnerMock
-	{
-		objectDescriptor := descriptor.NewObject(
-			objectGlobal,
-			execute.NewStateID(server.GetPulse().PulseNumber, newState),
-			class,
-			newState,
-			false,
-		)
-		requestResult := requestresult.New([]byte("done"), server.RandomGlobalWithPulse())
-		requestResult.SetAmend(objectDescriptor, newState)
-
-		runnerMock.AddExecutionMock("ChangeMethod").AddStart(
-			func(ctx execution.Context) {
-				assert.Equal(t, initialState, ctx.ObjectDescriptor.Memory())
-			},
-			&execution.Update{
-				Type:   execution.Done,
-				Result: requestResult,
-			},
-		)
-		runnerMock.AddExecutionClassify("ChangeMethod", tolerableFlags(), nil)
-
-		runnerMock.AddExecutionMock("GetValidatedMethod1").AddStart(
-			func(ctx execution.Context) {
-				assert.Equal(t, isolation.CallValidated, ctx.Isolation.State)
-				assert.Equal(t, initialState, ctx.ObjectDescriptor.Memory())
-			},
-			&execution.Update{
-				Type:   execution.Done,
-				Result: requestresult.New([]byte("get validated info 1"), server.RandomGlobalWithPulse()),
-			},
-		)
-		runnerMock.AddExecutionMock("GetDirtyMethod1").AddStart(
-			func(ctx execution.Context) {
-				assert.Equal(t, isolation.CallDirty, ctx.Isolation.State)
-				assert.Equal(t, initialState, ctx.ObjectDescriptor.Memory())
-			},
-			&execution.Update{
-				Type:   execution.Done,
-				Result: requestresult.New([]byte("get dirty info 1"), server.RandomGlobalWithPulse()),
-			},
-		)
-		runnerMock.AddExecutionMock("GetValidatedMethod2").AddStart(
-			func(ctx execution.Context) {
-				assert.Equal(t, isolation.CallValidated, ctx.Isolation.State)
-				assert.Equal(t, initialState, ctx.ObjectDescriptor.Memory())
-			},
-			&execution.Update{
-				Type:   execution.Done,
-				Result: requestresult.New([]byte("get validated info 2"), server.RandomGlobalWithPulse()),
-			},
-		)
-		runnerMock.AddExecutionMock("GetDirtyMethod2").AddStart(
-			func(ctx execution.Context) {
-				assert.Equal(t, isolation.CallDirty, ctx.Isolation.State)
-				assert.Equal(t, newState, ctx.ObjectDescriptor.Memory())
-			},
-			&execution.Update{
-				Type:   execution.Done,
-				Result: requestresult.New([]byte("get dirty info 2"), server.RandomGlobalWithPulse()),
-			},
-		)
-		runnerMock.AddExecutionClassify("GetValidatedMethod1", intolerableFlags(), nil)
-		runnerMock.AddExecutionClassify("GetValidatedMethod2", intolerableFlags(), nil)
-		runnerMock.AddExecutionClassify("GetDirtyMethod1", contract.MethodIsolation{Interference: isolation.CallIntolerable, State: isolation.CallDirty}, nil)
-		runnerMock.AddExecutionClassify("GetDirtyMethod2", contract.MethodIsolation{Interference: isolation.CallIntolerable, State: isolation.CallDirty}, nil)
-	}
 
 	// add typedChecker mock
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
@@ -1786,6 +1711,81 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 		commontestutils.WaitSignalsTimed(t, 10*time.Second, waitReport)
 	}
 
+	outgoingValidated1 := server.BuildRandomOutgoingWithPulse()
+	outgoingValidated2 := server.BuildRandomOutgoingWithPulse()
+	outgoingDirty1 := server.BuildRandomOutgoingWithPulse()
+	outgoingDirty2 := server.BuildRandomOutgoingWithPulse()
+	outgoingChange := server.BuildRandomOutgoingWithPulse()
+
+	// add ExecutionMock to runnerMock
+	{
+		objectDescriptor := descriptor.NewObject(
+			objectGlobal,
+			execute.NewStateID(server.GetPulse().PulseNumber, newState),
+			class,
+			newState,
+			false,
+		)
+		requestResult := requestresult.New([]byte("done"), server.RandomGlobalWithPulse())
+		requestResult.SetAmend(objectDescriptor, newState)
+
+		runnerMock.AddExecutionMock(outgoingChange.String()).AddStart(
+			func(ctx execution.Context) {
+				assert.Equal(t, initialState, ctx.ObjectDescriptor.Memory())
+			},
+			&execution.Update{
+				Type:   execution.Done,
+				Result: requestResult,
+			},
+		)
+		runnerMock.AddExecutionClassify(outgoingChange.String(), tolerableFlags(), nil)
+
+		runnerMock.AddExecutionMock(outgoingValidated1.String()).AddStart(
+			func(ctx execution.Context) {
+				assert.Equal(t, isolation.CallValidated, ctx.Isolation.State)
+				assert.Equal(t, initialState, ctx.ObjectDescriptor.Memory())
+			},
+			&execution.Update{
+				Type:   execution.Done,
+				Result: requestresult.New([]byte("get validated info 1"), server.RandomGlobalWithPulse()),
+			},
+		)
+		runnerMock.AddExecutionMock(outgoingDirty1.String()).AddStart(
+			func(ctx execution.Context) {
+				assert.Equal(t, isolation.CallDirty, ctx.Isolation.State)
+				assert.Equal(t, initialState, ctx.ObjectDescriptor.Memory())
+			},
+			&execution.Update{
+				Type:   execution.Done,
+				Result: requestresult.New([]byte("get dirty info 1"), server.RandomGlobalWithPulse()),
+			},
+		)
+		runnerMock.AddExecutionMock(outgoingValidated2.String()).AddStart(
+			func(ctx execution.Context) {
+				assert.Equal(t, isolation.CallValidated, ctx.Isolation.State)
+				assert.Equal(t, initialState, ctx.ObjectDescriptor.Memory())
+			},
+			&execution.Update{
+				Type:   execution.Done,
+				Result: requestresult.New([]byte("get validated info 2"), server.RandomGlobalWithPulse()),
+			},
+		)
+		runnerMock.AddExecutionMock(outgoingDirty2.String()).AddStart(
+			func(ctx execution.Context) {
+				assert.Equal(t, isolation.CallDirty, ctx.Isolation.State)
+				assert.Equal(t, newState, ctx.ObjectDescriptor.Memory())
+			},
+			&execution.Update{
+				Type:   execution.Done,
+				Result: requestresult.New([]byte("get dirty info 2"), server.RandomGlobalWithPulse()),
+			},
+		)
+		runnerMock.AddExecutionClassify(outgoingValidated1.String(), intolerableFlags(), nil)
+		runnerMock.AddExecutionClassify(outgoingValidated2.String(), intolerableFlags(), nil)
+		runnerMock.AddExecutionClassify(outgoingDirty1.String(), contract.MethodIsolation{Interference: isolation.CallIntolerable, State: isolation.CallDirty}, nil)
+		runnerMock.AddExecutionClassify(outgoingDirty2.String(), contract.MethodIsolation{Interference: isolation.CallIntolerable, State: isolation.CallDirty}, nil)
+	}
+
 	// get object state
 	{
 		executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
@@ -1793,6 +1793,7 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 		pl.CallFlags = payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallValidated)
 		pl.Callee = objectGlobal
 		pl.CallSiteMethod = "GetValidatedMethod1"
+		pl.CallOutgoing = outgoingValidated1
 
 		server.SendPayload(ctx, pl)
 		commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
@@ -1802,6 +1803,7 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 		pl.CallFlags = payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty)
 		pl.Callee = objectGlobal
 		pl.CallSiteMethod = "GetDirtyMethod1"
+		pl.CallOutgoing = outgoingDirty1
 
 		server.SendPayload(ctx, pl)
 		commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
@@ -1814,6 +1816,7 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 		pl.CallFlags = payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty)
 		pl.Callee = objectGlobal
 		pl.CallSiteMethod = "ChangeMethod"
+		pl.CallOutgoing = outgoingChange
 
 		server.SendPayload(ctx, pl)
 		commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
@@ -1827,6 +1830,7 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 		pl.CallFlags = payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallValidated)
 		pl.Callee = objectGlobal
 		pl.CallSiteMethod = "GetValidatedMethod2"
+		pl.CallOutgoing = outgoingValidated2
 
 		server.SendPayload(ctx, pl)
 		commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
@@ -1837,6 +1841,7 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 		pl.CallFlags = payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty)
 		pl.Callee = objectGlobal
 		pl.CallSiteMethod = "GetDirtyMethod2"
+		pl.CallOutgoing = outgoingDirty2
 
 		server.SendPayload(ctx, pl)
 		commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
