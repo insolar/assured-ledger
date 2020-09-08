@@ -162,7 +162,8 @@ func (p *SMRegisterRecordSet) stepLineIsReady(ctx smachine.ExecutionContext) sma
 }
 
 func (p *SMRegisterRecordSet) stepReacquireLimiter(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if !ctx.Acquire(p.limiter) { // TODO use AcquireExt when merged
+	// get ahead of queue
+	if !ctx.AcquireExt(p.limiter, smachine.HighPriorityAcquire) {
 		return ctx.Sleep().ThenRepeat()
 	}
 	return ctx.Jump(p.stepApplyRecordSet)

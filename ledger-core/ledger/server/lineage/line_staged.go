@@ -174,7 +174,7 @@ func (p *LineStages) AddBundle(bundle *BundleResolver, tracker StageTracker) (bo
 	}
 
 	// block this bundle from being reused without reprocessing - to protect bundle.records
-	defer bundle.addError(throw.New("discarded bundle"))
+	defer bundle.addError(throw.New("processed bundle"))
 
 	if p.addStage(bundle, stage, prevFilamentCount, validator.filRoot) {
 		return true, tracker, UpdateBundle{bundle.records }
