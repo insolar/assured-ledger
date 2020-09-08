@@ -10,6 +10,7 @@ package launchnet
 import (
 	"fmt"
 	"os"
+	"syscall"
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
@@ -32,7 +33,13 @@ func Run(cb func() int) int {
 		return code
 	}
 
-	cancelFunc()
+	{
+		// stop running cloud insolar
+		err = syscall.Kill(syscall.Getpid(), syscall.SIGINT)
+		if err != nil {
+			fmt.Println("Can't send signal: ", err)
+		}
+	}
 	waitPeriod := 6
 	fmt.Printf("waiting %d seconds  for cloud stop..\n", waitPeriod)
 	time.Sleep(time.Duration(waitPeriod) * time.Second)

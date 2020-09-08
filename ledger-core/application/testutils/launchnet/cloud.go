@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	"syscall"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
@@ -59,10 +58,7 @@ func prepareConfigProvider() (*insapp.CloudConfigurationProvider, error) {
 
 func setupCloud() (func(), error) {
 	cancelFunc := func() {
-		err := syscall.Kill(syscall.Getpid(), syscall.SIGINT)
-		if err != nil {
-			fmt.Println("Can't send signal: ", err)
-		}
+		fmt.Println("Do nothing")
 	}
 
 	confProvider, err := prepareConfigProvider()
