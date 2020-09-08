@@ -123,6 +123,9 @@ message RLineMemoryExpected {
 message RLineMemoryReuse {
     option (insproto.id) = 26;
     RecordBody RecordBody = 19 [(gogoproto.embed)=true];
+
+    Reference PrevRef = 24;
+    Reference RootRef = 25;
 }
 
 message RLineInboundRequest {
