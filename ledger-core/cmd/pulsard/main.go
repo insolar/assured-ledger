@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -124,6 +125,12 @@ func initPulsar(ctx context.Context, cfg configuration.PulsarConfiguration) (*co
 	cryptographyScheme := platformpolicy.NewPlatformCryptographyScheme()
 	cryptographyService := platformpolicy.NewCryptographyService()
 	keyProcessor := platformpolicy.NewKeyProcessor()
+
+	distributeHost := os.Getenv("PULSARD_PULSAR_DISTR_HOST")
+	if len(distributeHost) != 0 {
+		cfg.Pulsar.PulseDistributor.BootstrapHosts = strings.Split(distributeHost, ",")
+		fmt.Println("PulseDistributor.BootstrapHosts is overwritten to: ", distributeHost)
+	}
 
 	pulseDistributor, err := pulsenetwork.NewDistributor(cfg.Pulsar.PulseDistributor)
 	if err != nil {

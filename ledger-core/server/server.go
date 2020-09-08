@@ -39,6 +39,23 @@ func NewMultiServer(configProvider *insapp.CloudConfigurationProvider) Server {
 	)
 }
 
+func NewMultiServerWithConsensus(configProvider *insapp.CloudConfigurationProvider) Server {
+	if configProvider.GetAppConfigs == nil {
+		panic("GetAppConfigs cannot be nil")
+	}
+
+	multiFn := func(provider insapp.ConfigurationProvider) ([]configuration.Configuration, insapp.NetworkInitFunc) {
+		conf := provider.(*insapp.CloudConfigurationProvider)
+		return conf.GetAppConfigs(), nil
+	}
+
+	return insapp.NewMulti(
+		configProvider,
+		appFactory,
+		multiFn,
+	)
+}
+
 func NewHeadlessNetworkNodeServer(cfg configuration.Configuration) Server {
 	return insapp.New(cfg, nil, &headless.AppComponent{})
 }
