@@ -106,16 +106,6 @@ func (p *PulseSlotMachine) setFuture(pd pulse.Data) {
 	}
 }
 
-// func (p *PulseSlotMachine) setPresent(bd BeatData, pulseStart time.Time) {
-// 	switch {
-// 	case p.pulseSlot.pulseData == nil:
-// 		bd.Range.RightBoundData().EnsurePulsarData()
-// 		p.pulseSlot.pulseData = &presentPulseDataHolder{bd: bd, at: pulseStart}
-// 	default:
-// 		p.pulseSlot.pulseData.MakePresent(bd, pulseStart)
-// 	}
-// }
-
 func (p *PulseSlotMachine) setPast() {
 	if p.pulseSlot.pulseData == nil {
 		panic(throw.IllegalState())
