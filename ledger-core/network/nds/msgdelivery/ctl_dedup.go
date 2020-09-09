@@ -189,7 +189,6 @@ func (p *receiveDeduplicator) _addToReceivedAndTrim() {
 	p.minReceived++
 	for {
 		delete(p.received, p.minReceived)
-		p.minReceived++
 		switch {
 		case p.minReceived == p.maxReceived:
 			p.received = nil
