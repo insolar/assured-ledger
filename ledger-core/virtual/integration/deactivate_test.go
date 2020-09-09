@@ -280,7 +280,6 @@ func TestVirtual_CallMethod_On_CompletelyDeactivatedObject(t *testing.T) {
 			)
 
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-			typedChecker.VStateReport.SetResend(false)
 			typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
 				assert.Equal(t, object, res.Callee)
 				contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments)
@@ -308,12 +307,11 @@ func TestVirtual_CallMethod_On_CompletelyDeactivatedObject(t *testing.T) {
 			execDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 			server.SendPayload(ctx, &pl)
 			commonTestUtils.WaitSignalsTimed(t, 10*time.Second, execDone)
+			commonTestUtils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
-			// require.Equal(t, 1, typedChecker.VCallResult.Count())
-			// require.Equal(t, 1, typedChecker.VStateReport.Count())
+			require.Equal(t, 1, typedChecker.VCallResult.Count())
 
 			mc.Finish()
-
 		})
 	}
 }
