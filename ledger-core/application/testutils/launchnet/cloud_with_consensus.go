@@ -10,8 +10,6 @@ package launchnet
 import (
 	"fmt"
 	"os"
-	"syscall"
-	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
 	"github.com/insolar/assured-ledger/ledger-core/network"
@@ -20,39 +18,15 @@ import (
 )
 
 func Run(cb func() int) int {
-	fmt.Println("Run tests on two clouds consequently: with and without consensus")
-	fmt.Println("Part 1: Run without consensus")
-	cancelFunc, err := setupCloud()
-	if err != nil {
-		fmt.Println("error while setup cloud, skip tests: ", err)
-		return 1
-	}
+	fmt.Println("Run tests on cloud with consensus")
 
-	code := cb()
-	if code != 0 {
-		return code
-	}
-
-	{
-		// stop running cloud insolar
-		err = syscall.Kill(syscall.Getpid(), syscall.SIGINT)
-		if err != nil {
-			fmt.Println("Can't send signal: ", err)
-		}
-	}
-	waitPeriod := 6
-	fmt.Printf("waiting %d seconds  for cloud stop..\n", waitPeriod)
-	time.Sleep(time.Duration(waitPeriod) * time.Second)
-	fmt.Println(fmt.Println("Part 1: finished successfully"))
-	fmt.Println(fmt.Println("Part 2: Run WITH consensus"))
-
-	cancelFunc, err = setupCloudWithConsensus()
+	cancelFunc, err := setupCloudWithConsensus()
 	if err != nil {
 		fmt.Println("error while setup cloud with consensus, skip tests: ", err)
 		return 1
 	}
 
-	code = cb()
+	code := cb()
 	cancelFunc()
 
 	return code
