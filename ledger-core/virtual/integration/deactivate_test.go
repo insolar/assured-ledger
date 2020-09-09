@@ -166,7 +166,7 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 					return false
 				})
 				typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
-					t.FailNow()
+					assert.Equal(t, objectGlobal, report.Object.GetGlobal())
 					// TODO add asserts and check counter after https://insolar.atlassian.net/browse/PLAT-753
 					return false
 				})
@@ -239,9 +239,8 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 			{
 				server.IncrementPulse(ctx)
 
-				// TODO uncommented after https://insolar.atlassian.net/browse/PLAT-753
-				// commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VObjectTranscriptReport.Wait(ctx, 2))
-				// assert.Equal(t, 2, typedChecker.VObjectTranscriptReport.Count())
+				commonTestUtils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VObjectTranscriptReport.Wait(ctx, 1))
+				assert.Equal(t, 1, typedChecker.VObjectTranscriptReport.Count())
 				commonTestUtils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 1))
 				assert.Equal(t, 1, typedChecker.VStateReport.Count())
 			}
