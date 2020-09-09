@@ -39,6 +39,11 @@ func (p *Any) Unmarshal(b []byte) error {
 }
 
 func (p *Any) UnmarshalCustom(b []byte, typeFn func(uint64) reflect.Type, skipFn UnknownCallbackFunc) error {
+	if len(b) == 0 {
+		p.value = nil
+		return nil
+	}
+
 	_, v, err := UnmarshalCustom(b, typeFn, skipFn)
 	if err != nil {
 		p.value = nil
@@ -51,18 +56,34 @@ func (p *Any) UnmarshalCustom(b []byte, typeFn func(uint64) reflect.Type, skipFn
 	return throw.IllegalValue()
 }
 
+var dummyType = reflect.TypeOf(1)
+
+func dummyResolveType(u uint64) reflect.Type {
+	return dummyType
+}
+
 func (p *Any) MarshalTo(b []byte) (int, error) {
-	if p.value != nil {
-		return p.value.MarshalTo(b)
+	if p.value == nil {
+		return 0, nil
 	}
-	return 0, nil
+
+	n, err := p.value.MarshalTo(b)
+	if err == nil {
+		_, _, err = UnmarshalType(b, dummyResolveType)
+	}
+	return n, err
 }
 
 func (p *Any) MarshalToSizedBuffer(b []byte) (int, error) {
-	if p.value != nil {
-		return p.value.MarshalToSizedBuffer(b)
+	if p.value == nil {
+		return 0, nil
 	}
-	return 0, nil
+
+	n, err := p.value.MarshalToSizedBuffer(b)
+	if err == nil {
+		_, _, err = UnmarshalType(b, dummyResolveType)
+	}
+	return n, err
 }
 
 func (p *Any) MarshalText() ([]byte, error) {
@@ -97,7 +118,7 @@ func (p *Any) Equal(that interface{}) bool {
 		return false
 	}
 
-	if eq, ok := thatValue.(interface{ Equal(that interface{}) bool}); ok {
+	if eq, ok := thatValue.(interface{ Equal(that interface{}) bool }); ok {
 		return eq.Equal(p.value)
 	}
 	return false
