@@ -258,13 +258,15 @@ func (m *SlotMachine) executeBargeInDirect(link StepLink, fn BargeInCallbackFunc
 		}
 	}()
 
+	slot.touchAfterInactive()
+
 	_, atExactStep := link.isValidAndAtExactStep()
 	bc := bargingInContext{slotContext{s: slot, w: worker.asDetachable()}, atExactStep}
 	stateUpdate := bc.executeBargeInDirect(fn)
 	stateUpdate = slot.forceTopSubroutineUpdate(stateUpdate)
 	needsStop = false
 
-	m.slotPostExecution(slot, stateUpdate, worker, prevStepNo, wasAsyncExec, durationNotApplicableNano)
+	m.slotPostExecution(slot, stateUpdate, worker, prevStepNo, wasAsyncExec)
 
 	return true
 }
