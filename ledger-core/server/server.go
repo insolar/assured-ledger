@@ -8,8 +8,10 @@ package server
 import (
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
+	"github.com/insolar/assured-ledger/ledger-core/network/pulsenetwork"
 	"github.com/insolar/assured-ledger/ledger-core/server/internal/cloud"
 	"github.com/insolar/assured-ledger/ledger-core/server/internal/headless"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type Server interface {
@@ -49,10 +51,16 @@ func NewMultiServerWithConsensus(configProvider *insapp.CloudConfigurationProvid
 		return conf.GetAppConfigs(), nil
 	}
 
+	pulseDistributor, err := pulsenetwork.NewDistributor(configProvider.PulsarConfig.Pulsar.PulseDistributor)
+	if err != nil {
+		panic(throw.W(err, "Failed to create distributor"))
+	}
+
 	return insapp.NewMulti(
 		configProvider,
 		appFactory,
 		multiFn,
+		cloud.NewPulsarWrapper(pulseDistributor, configProvider.PulsarConfig, configProvider.KeyFactory),
 	)
 }
 

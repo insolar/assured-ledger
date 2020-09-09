@@ -9,9 +9,7 @@ package launchnet
 
 import (
 	"fmt"
-	"os"
 
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/server"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -51,11 +49,6 @@ func setupCloudWithConsensus() (func(), error) {
 		s.Serve()
 	}()
 
-	err = launchPulsar(confProvider)
-	if err != nil {
-		return cancelFunc, throw.W(err, "Can't run pulsar")
-	}
-
 	var nodes []nodeConfig
 	for _, appCfg := range confProvider.GetAppConfigs() {
 		nodes = append(nodes, nodeConfig{
@@ -69,37 +62,4 @@ func setupCloudWithConsensus() (func(), error) {
 		return cancelFunc, throw.W(err, "Can't wait for NetworkState "+network.CompleteNetworkState.String())
 	}
 	return cancelFunc, nil
-}
-
-func launchPulsar(provider *insapp.CloudConfigurationProvider) error {
-	rootPath := rootPath()
-
-	cwd, err := os.Getwd()
-	if err != nil {
-		return throw.W(err, "failed to get working directory")
-	}
-	err = os.Chdir(rootPath)
-	if err != nil {
-		return throw.W(err, "[ startNet  ] Can't change dir")
-	}
-	defer func() {
-		_ = os.Chdir(cwd)
-	}()
-
-	var hosts string
-	for _, conf := range provider.GetAppConfigs() {
-		hosts += conf.Host.Transport.Address + ","
-	}
-
-	distrHost := "PULSARD_PULSAR_DISTR_HOST"
-	os.Setenv(distrHost, hosts[:len(hosts)-1])
-	defer func() {
-		os.Unsetenv(distrHost)
-	}()
-	err = runPulsar()
-	if err != nil {
-		return throw.W(err, "Can't run pulsar")
-	}
-
-	return nil
 }
