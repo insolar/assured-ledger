@@ -80,6 +80,10 @@ func (p *serviceImpl) AppendToDrop(id jet.DropID, future AppendFuture, bundle li
 	future.TrySetFutureResult(nil, err)
 }
 
+func (p *serviceImpl) AppendToDropSummary(id jet.DropID, summary lineage.LineSummary) {
+
+}
+
 func (p *serviceImpl) get(pn pulse.Number) *plashAssistant {
 	p.mapMutex.RLock()
 	defer p.mapMutex.RUnlock()

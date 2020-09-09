@@ -21,19 +21,20 @@ import (
 type LineKey reference.Global
 
 type LineSharedData struct {
-	lineRef reference.Global
-	limiter smsync.SemaphoreLink
+	lineRef    reference.Global
+	limiter    smsync.SemaphoreLink
 	activeSync smsync.BoolConditionalLink
 
-	ready   bool
-	valid   bool
+	ready bool
+	valid bool
 
 	jetDropID jet.DropID
 	resolver  lineage.DependencyResolver
 	adapter   buildersvc.WriteAdapter
 
-	data *lineage.LineStages
-	deps DependencyTracker
+	data             *lineage.LineStages
+	deps             DependencyTracker
+	dropFinalizeSync smachine.SyncLink
 }
 
 func (p *LineSharedData) LineRef() reference.Global {
@@ -236,8 +237,8 @@ func (p *LineSharedData) getUnresolved() UnresolvedDependencyMap {
 	return p.deps.GetPendingUnresolved()
 }
 
-func (p *LineSharedData) onDropReady(*DropSharedData) {
-
+func (p *LineSharedData) onDropReady(dd *DropSharedData) {
+	p.dropFinalizeSync = dd.GetFinalizeSync()
 }
 
 func (p *LineSharedData) TrimStages() {

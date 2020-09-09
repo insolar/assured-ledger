@@ -127,16 +127,19 @@ func (p *SMRead) stepFindLine(ctx smachine.ExecutionContext) smachine.StateUpdat
 
 func (p *SMRead) stepLineIsReady(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var future *buildersvc.Future
+	valid := false
 
 	switch p.sdl.TryAccess(ctx, func(sd *datawriter.LineSharedData) (wakeup bool) {
 		if !sd.IsValid() {
 			return
 		}
+		valid = true
 		p.dropID = sd.DropID()
 
 		sd.TrimStages()
 
 		normTargetRef := reference.NormCopy(p.request.TargetRef.Get())
+		// TODO do a few cycles when too many record
 		_, future = sd.FindSequence(normTargetRef, p.extractor.AddLineRecord)
 
 		return false
@@ -149,7 +152,10 @@ func (p *SMRead) stepLineIsReady(ctx smachine.ExecutionContext) smachine.StateUp
 		panic(throw.IllegalState())
 	}
 
-	if future == nil {
+	switch {
+	case !valid:
+		return ctx.Jump(p.stepSendResponse)
+	case future == nil:
 		return ctx.Jump(p.stepPrepareData)
 	}
 

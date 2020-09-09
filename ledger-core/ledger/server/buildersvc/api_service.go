@@ -19,6 +19,8 @@ type Service interface {
 	CreatePlash(pr pulse.Range, treePrev, treeCur jet.Tree, online census.OnlinePopulation) (PlashAssistant, []jet.ExactID)
 	CreateGenesis(pulse.Range, census.OnlinePopulation) (PlashAssistant, jet.ExactID)
 	AppendToDrop(jet.DropID, AppendFuture, lineage.UpdateBundle)
+	AppendToDropSummary(jet.DropID, lineage.LineSummary)
+//	FinalizeDropSummary(jet.DropID)
 }
 
 type PlashAssistant interface {

@@ -590,5 +590,9 @@ func (p *LineStages) scanSequence(rn recordNo, findFn func(ReadRecord) bool) boo
 	return false
 }
 
+func (p *LineStages) CreateSummary() LineSummary {
+	return LineSummary{}
+}
+
 
 

@@ -17,6 +17,7 @@ import (
 type DropSharedData struct {
 	id                jet.DropID
 	ready             smsync.BoolConditionalLink
+	finalize          smachine.SyncLink
 	prevReportBargein smachine.BargeInWithParam
 
 	state atomickit.Uint32
@@ -44,4 +45,8 @@ func (p *DropSharedData) SetPrevDropReport(report datafinder.PrevDropReport) {
 
 func (p *DropSharedData) setPrevReport(datafinder.PrevDropReport) {
 	// TODO
+}
+
+func (p *DropSharedData) GetFinalizeSync() smachine.SyncLink {
+	return p.finalize
 }

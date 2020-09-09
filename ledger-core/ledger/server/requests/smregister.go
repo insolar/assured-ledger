@@ -53,7 +53,7 @@ type SMRegisterRecordSet struct {
 	inspectedSet inspectsvc.InspectedRecordSet
 	hasRequested bool
 	isCompleted  bool
-	limiter smachine.SyncLink
+	limiter      smachine.SyncLink
 
 	// results
 	committed *buildersvc.Future

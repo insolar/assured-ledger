@@ -6,10 +6,12 @@
 package datawriter
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/datafinder"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
@@ -46,6 +48,9 @@ func (p *SMDropBuilder) stepInit(ctx smachine.InitializationContext) smachine.St
 	if p.pulseSlot.State() != conveyor.Present {
 		return ctx.Error(throw.E("not a present pulse"))
 	}
+
+	p.sd.ready = smsync.NewConditionalBool(false, fmt.Sprintf("StreamDrop{%d}.ready", ctx.SlotLink().SlotID()))
+	p.sd.finalize = smsync.NewExclusive(fmt.Sprintf("StreamDrop{%d}.finalize", ctx.SlotLink().SlotID()))
 
 	p.sd.prevReportBargein = ctx.NewBargeInWithParam(func(v interface{}) smachine.BargeInCallbackFunc {
 		report := v.(datafinder.PrevDropReport)
@@ -130,6 +135,15 @@ func (p *SMDropBuilder) migratePast(ctx smachine.MigrationContext) smachine.Stat
 }
 
 func (p *SMDropBuilder) stepFinalize(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	if !ctx.AcquireExt(p.sd.finalize, smachine.NoPriorityAcquire) {
+		return ctx.Sleep().ThenRepeat()
+	}
+
+	if _, inactive := p.sd.finalize.GetCounts(); inactive > 0 {
+		ctx.ReleaseAll()
+		return ctx.Yield().ThenRepeat()
+	}
+
 	// TODO drop finalization
 	return ctx.Stop()
 }

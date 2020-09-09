@@ -6,10 +6,7 @@
 package datawriter
 
 import (
-	"fmt"
-
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -82,8 +79,6 @@ func RegisterJetDrop(ctx smachine.SharedStateContext, sd *DropSharedData) bool {
 	case !sd.ready.IsZero():
 		panic(throw.IllegalState())
 	}
-
-	sd.ready = smsync.NewConditionalBool(false, fmt.Sprintf("StreamDrop{%d}.ready", ctx.SlotLink().SlotID()))
 
 	sdl := ctx.Share(sd, smachine.ShareDataDirect)
 	if !ctx.Publish(JetDropKey(sd.id), sdl) {
