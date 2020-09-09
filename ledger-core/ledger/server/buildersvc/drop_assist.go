@@ -8,7 +8,6 @@ package buildersvc
 import (
 	"sync"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/bundle"
@@ -20,7 +19,6 @@ import (
 
 type dropAssistant struct {
 	// set at construction
-	nodeID node.ShortNodeID
 	dropID jet.DropID
 	writer bundle.Writer
 

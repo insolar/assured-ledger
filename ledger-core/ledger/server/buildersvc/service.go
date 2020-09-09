@@ -164,6 +164,7 @@ func (p *serviceImpl) createPlash(pr pulse.Range, tree jet.PrefixTree, populatio
 	sw := p.storageFactoryFn(pn)
 	pa.dirtyReader = sw.DirtyReader()
 	bw := bundle.NewWriter(sw) // NB! MUST be one writer per storage
+	pa.writer = bw
 
 	result := jets[:0]
 	for _, jetPID := range jets {
@@ -178,13 +179,12 @@ func (p *serviceImpl) createPlash(pr pulse.Range, tree jet.PrefixTree, populatio
 		case localNodeID == assignedNodeID:
 			result = append(result, jetPID)
 			da = &dropAssistant{
-				nodeID: assignedNodeID,
 				dropID: jetPID.AsDrop(pn),
+				writer: bw,
 			}
 			if len(jets) > 1 {
 				da.merkle = pa.merkle.ForkSequence()
 			}
-			da.writer = bw
 		}
 		pa.dropAssists[jetID] = da
 	}

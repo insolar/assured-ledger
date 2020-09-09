@@ -32,7 +32,7 @@ func TestDropAssistAppend(t *testing.T) {
 	completed := sync.WaitGroup{}
 	hashed := sync.WaitGroup{}
 
-	da := prepareDropAssistFoAppend(t, local, &started, &completed, &hashed)
+	da := prepareDropAssistForAppend(t, local, &started, &completed, &hashed)
 
 	const bundleCount = 3
 	started.Add(bundleCount)
@@ -94,7 +94,7 @@ func TestDropAssistAppendWithPulseChange(t *testing.T) {
 	started := sync.WaitGroup{}
 	completed := sync.WaitGroup{}
 	hashed := sync.WaitGroup{}
-	da := prepareDropAssistFoAppend(t, local, &started, &completed, &hashed)
+	da := prepareDropAssistForAppend(t, local, &started, &completed, &hashed)
 
 	const bundleCount = 3
 	started.Add(bundleCount)
@@ -110,6 +110,7 @@ func TestDropAssistAppendWithPulseChange(t *testing.T) {
 		// use of stub enables merkle tree to be empty
 		// as we will rollback all operations
 		merkle: merkler.NewForkingCalculator(pair, cryptkit.NewDigest(longbits.WrapStr("stub"), "testMerkle")),
+		writer: da.writer,
 	}
 	pa.status.Store(plashStarted)
 
@@ -177,7 +178,7 @@ func TestDropAssistAppendWithPulseCancel(t *testing.T) {
 	started := sync.WaitGroup{}
 	completed := sync.WaitGroup{}
 	hashed := sync.WaitGroup{}
-	da := prepareDropAssistFoAppend(t, local, &started, &completed, &hashed)
+	da := prepareDropAssistForAppend(t, local, &started, &completed, &hashed)
 
 	const bundleCount = 3
 	started.Add(bundleCount)
@@ -255,7 +256,7 @@ func TestDropAssistAppendWithPulseCancel(t *testing.T) {
 	}
 }
 
-func prepareDropAssistFoAppend(t *testing.T, local reference.Local, started, completed, hashed *sync.WaitGroup) *dropAssistant {
+func prepareDropAssistForAppend(t *testing.T, local reference.Local, started, completed, hashed *sync.WaitGroup) *dropAssistant {
 	rcp := bundle.NewPayloadReceptacleMock(t)
 	rcp.ApplyMarshalToMock.Return(nil)
 
@@ -295,7 +296,6 @@ func prepareDropAssistFoAppend(t *testing.T, local reference.Local, started, com
 	})
 
 	return &dropAssistant{
-		nodeID: 1,
 		dropID: jet.ID(0).AsDrop(local.GetPulseNumber()),
 		writer: bundle.NewWriter(sw),
 		merkle: merkle,

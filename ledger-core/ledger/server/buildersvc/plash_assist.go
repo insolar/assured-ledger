@@ -37,15 +37,16 @@ type plashAssistant struct {
 	tree        jet.PrefixTree
 	population  census.OnlinePopulation
 	calc        jetalloc.MaterialAllocationCalculator
-	dirtyReader bundle.DirtyReader
 	dropAssists map[jet.ID]*dropAssistant
+	dirtyReader bundle.DirtyReader
+	writer      bundle.Writer
 
-	nextPlash   *plashAssistant
-	nextReady   smsync.BoolConditionalLink
+	nextPlash *plashAssistant
+	nextReady smsync.BoolConditionalLink
 
-	status    atomickit.Uint32
-	commit    sync.Mutex // LOCK: Spans across methods
-	merkle    merkler.ForkingCalculator
+	status atomickit.Uint32
+	commit sync.Mutex // LOCK: Spans across methods
+	merkle merkler.ForkingCalculator
 }
 
 func (p *plashAssistant) setNextPlash(next *plashAssistant) {
@@ -99,11 +100,14 @@ func (p *plashAssistant) CancelPulseChange() {
 }
 
 func (p *plashAssistant) CommitPulseChange() {
+	// plash will not accept writes anymore
 	if !p.status.CompareAndSwap(plashPendingPulse, plashClosed) {
 		panic(throw.IllegalState())
 	}
-	// TODO mark storage(s) as readonly?
+
 	p.commit.Unlock()
+
+	// NB! Underlying writer must NOT be marked read-only here as summary has to be written also
 }
 
 func (p *plashAssistant) appendToDrop(id jet.DropID, future AppendFuture, bundle lineage.UpdateBundle) error {
