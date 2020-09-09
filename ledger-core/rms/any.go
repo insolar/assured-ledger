@@ -56,10 +56,7 @@ func (p *Any) MarshalTo(b []byte) (int, error) {
 		return p.value.MarshalTo(b)
 	}
 	_, _, err := UnmarshalType(b, func(u uint64) reflect.Type { return reflect.TypeOf(struct{}{}) })
-	if err != nil {
-		return 0, err
-	}
-	return 0, nil
+	return 0, err
 }
 
 func (p *Any) MarshalToSizedBuffer(b []byte) (int, error) {
@@ -67,10 +64,7 @@ func (p *Any) MarshalToSizedBuffer(b []byte) (int, error) {
 		return p.value.MarshalToSizedBuffer(b)
 	}
 	_, _, err := UnmarshalType(b, func(u uint64) reflect.Type { return reflect.TypeOf(struct{}{}) })
-	if err != nil {
-		return 0, err
-	}
-	return 0, nil
+	return 0, err
 }
 
 func (p *Any) MarshalText() ([]byte, error) {
