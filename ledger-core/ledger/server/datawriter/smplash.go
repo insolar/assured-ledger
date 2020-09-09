@@ -154,10 +154,11 @@ func (p *SMPlash) stepCreateJetDrops(ctx smachine.ExecutionContext) smachine.Sta
 			op = JetSplit
 		}
 
-		p.cataloger.Create(ctx, DropConfig{
+		p.cataloger.Create(ctx, DropInfo{
 			ID: jetID.AsDrop(pn),
 			PrevID: prevJet.AsID().AsDrop(prevPN),
 			LastOp: op,
+			AssistData: p.sd,
 		})
 	}
 

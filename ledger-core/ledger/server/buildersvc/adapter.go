@@ -42,7 +42,7 @@ func NewReadAdapter(adapterID smachine.AdapterID, executor smachine.AdapterExecu
 	}
 }
 
-func NewAdapterComponent(cfg smadapter.Config, ps crypto.PlatformScheme) managed.Component {
+func NewAdapterComponent(cfg smadapter.Config, ps crypto.PlatformScheme, plashLimit int) managed.Component {
 
 	svc := newService(
 		jetalloc.NewMaterialAllocationStrategy(false),
@@ -51,6 +51,7 @@ func NewAdapterComponent(cfg smadapter.Config, ps crypto.PlatformScheme) managed
 		func(pulse.Number) bundle.SnapshotWriter {
 			return dropstorage.NewMemoryStorageWriter(ledger.DefaultDustSection, 1<<17)
 		},
+		plashLimit,
 	)
 
 	var writeAdapter WriteAdapter

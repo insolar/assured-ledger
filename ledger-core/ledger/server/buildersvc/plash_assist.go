@@ -9,6 +9,8 @@ import (
 	"sync"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jetalloc"
@@ -38,9 +40,31 @@ type plashAssistant struct {
 	dirtyReader bundle.DirtyReader
 	dropAssists map[jet.ID]*dropAssistant
 
-	status   atomickit.Uint32
-	commit   sync.Mutex // LOCK: Spans across methods
-	merkle   merkler.ForkingCalculator
+	nextPlash   *plashAssistant
+	nextReady   smsync.BoolConditionalLink
+
+	status    atomickit.Uint32
+	commit    sync.Mutex // LOCK: Spans across methods
+	merkle    merkler.ForkingCalculator
+}
+
+func (p *plashAssistant) setNextPlash(next *plashAssistant) {
+	if p.nextPlash != nil {
+		panic(throw.IllegalState())
+	}
+	p.nextPlash = next
+	smachine.ApplyAdjustmentAsync(p.nextReady.NewValue(true))
+}
+
+func (p *plashAssistant) GetNextPlashReadySync() smachine.SyncLink {
+	return p.nextReady.SyncLink()
+}
+
+func (p *plashAssistant) GetNextPlash() PlashAssistant {
+	if pa := p.nextPlash; pa != nil {
+		return pa
+	}
+	panic(throw.IllegalState())
 }
 
 func (p *plashAssistant) PreparePulseChange(outFn conveyor.PreparePulseCallbackFunc) {
@@ -173,4 +197,3 @@ func (p *plashAssistant) _updateMerkle(_ jet.DropID, indices []ledger.DirectoryI
 	}
 	return ords, nil
 }
-

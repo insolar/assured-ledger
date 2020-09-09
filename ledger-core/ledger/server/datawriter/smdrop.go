@@ -12,6 +12,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/catalog"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/datafinder"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
@@ -24,11 +26,11 @@ type SMDropBuilder struct {
 	smachine.StateMachineDeclTemplate
 
 	pulseSlot *conveyor.PulseSlot
-	// catalog   PlashCataloger
 
 	sd         DropSharedData
-	prevReport datafinder.PrevDropReport
-	// jetAssist  *PlashSharedData
+	prevReport catalog.DropReport
+	nextReport catalog.DropReport
+	adapter    buildersvc.WriteAdapter
 }
 
 func (p *SMDropBuilder) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
@@ -41,7 +43,7 @@ func (p *SMDropBuilder) GetInitStateFor(smachine.StateMachine) smachine.InitFunc
 
 func (p *SMDropBuilder) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLink, injector injector.DependencyInjector) {
 	injector.MustInject(&p.pulseSlot)
-	// injector.MustInject(&p.catalog)
+	injector.MustInject(&p.adapter)
 }
 
 func (p *SMDropBuilder) stepInit(ctx smachine.InitializationContext) smachine.StateUpdate {
@@ -53,7 +55,7 @@ func (p *SMDropBuilder) stepInit(ctx smachine.InitializationContext) smachine.St
 	p.sd.finalize = smsync.NewExclusive(fmt.Sprintf("StreamDrop{%d}.finalize", ctx.SlotLink().SlotID()))
 
 	p.sd.prevReportBargein = ctx.NewBargeInWithParam(func(v interface{}) smachine.BargeInCallbackFunc {
-		report := v.(datafinder.PrevDropReport)
+		report := v.(catalog.DropReport)
 		return func(ctx smachine.BargeInContext) smachine.StateUpdate {
 			if p.receivePrevReport(report, ctx) {
 				return ctx.WakeUp()
@@ -61,8 +63,6 @@ func (p *SMDropBuilder) stepInit(ctx smachine.InitializationContext) smachine.St
 			return ctx.Stay()
 		}
 	})
-
-	// p.jetAssist = p.catalog.Get(ctx, p.sd.id.CreatedAt())
 
 	if !RegisterJetDrop(ctx, &p.sd) {
 		panic(throw.IllegalState())
@@ -144,11 +144,40 @@ func (p *SMDropBuilder) stepFinalize(ctx smachine.ExecutionContext) smachine.Sta
 		return ctx.Yield().ThenRepeat()
 	}
 
-	// TODO drop finalization
+	jetID := p.sd.info.ID
+	p.adapter.PrepareAsync(ctx, func(svc buildersvc.Service) smachine.AsyncResultFunc {
+		dropReport := svc.FinalizeDropSummary(jetID)
+
+		return func(ctx smachine.AsyncResultContext) {
+			p.nextReport = dropReport
+			ctx.WakeUp()
+		}
+	}).Start()
+
+	return ctx.Sleep().ThenJump(p.stepWaitNextReadyAndSendReport)
+}
+
+func (p *SMDropBuilder) stepWaitNextReadyAndSendReport(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	if p.nextReport.IsZero() {
+		return ctx.Sleep().ThenRepeat()
+	}
+
+	jetAssist := p.sd.info.AssistData.jetAssist
+	// wait for confirmation from Plash of the next pulse / different slot
+	ready := jetAssist.GetNextPlashReadySync()
+	if !ctx.Acquire(ready) {
+		return ctx.Sleep().ThenRepeat()
+	}
+
+	// nextPlash := jetAssist.GetNextPlash()
+
+	// TODO find nodes for next drop (or drops on merge)
+	// TODO send dropReport to next LME
+
 	return ctx.Stop()
 }
 
-func (p *SMDropBuilder) receivePrevReport(report datafinder.PrevDropReport, ctx smachine.BargeInContext) (wakeup bool) {
+func (p *SMDropBuilder) receivePrevReport(report catalog.DropReport, ctx smachine.BargeInContext) (wakeup bool) {
 	switch {
 	case !p.prevReport.IsZero():
 		if p.prevReport.Equal(report) {
@@ -168,7 +197,7 @@ func (p *SMDropBuilder) receivePrevReport(report datafinder.PrevDropReport, ctx 
 	return true
 }
 
-func (p *SMDropBuilder) verifyPrevReport(report datafinder.PrevDropReport) bool {
+func (p *SMDropBuilder) verifyPrevReport(report catalog.DropReport) bool {
 	// TODO verification vs jet tree etc
 	return !report.IsZero()
 }

@@ -8,9 +8,11 @@ package buildersvc
 import (
 	"sync"
 
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jetalloc"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/bundle"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/catalog"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lineage"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -25,12 +27,17 @@ var _ Service = &serviceImpl{}
 var _ ReadService = &serviceImpl{}
 
 func newService(allocStrategy jetalloc.MaterialAllocationStrategy, merklePair cryptkit.PairDigester,
-	storageFactoryFn StorageSnapshotFactoryFunc,
+	storageFactoryFn StorageSnapshotFactoryFunc, plashLimit int,
 ) *serviceImpl {
+	if plashLimit <= 0 {
+		panic(throw.IllegalValue())
+	}
+
 	return &serviceImpl{
 		allocStrategy: allocStrategy,
 		merklePair: merklePair,
 		storageFactoryFn: storageFactoryFn,
+		plashLimiter: make(chan pulse.Number, plashLimit),
 	}
 }
 
@@ -43,6 +50,7 @@ type serviceImpl struct {
 	mapMutex sync.RWMutex
 	lastPN   pulse.Number
 	plashes  map[pulse.Number]*plashAssistant
+	plashLimiter chan pulse.Number
 }
 
 func (p *serviceImpl) DropReadDirty(id jet.DropID, fn func(reader bundle.DirtyReader) error) error {
@@ -82,6 +90,10 @@ func (p *serviceImpl) AppendToDrop(id jet.DropID, future AppendFuture, bundle li
 
 func (p *serviceImpl) AppendToDropSummary(id jet.DropID, summary lineage.LineSummary) {
 
+}
+
+func (p *serviceImpl) FinalizeDropSummary(jet.DropID) catalog.DropReport {
+	return catalog.DropReport{}
 }
 
 func (p *serviceImpl) get(pn pulse.Number) *plashAssistant {
@@ -129,6 +141,7 @@ func (p *serviceImpl) createPlash(pr pulse.Range, tree jet.PrefixTree, populatio
 		population: population,
 		dropAssists: map[jet.ID]*dropAssistant{},
 		merkle: merkler.NewForkingCalculator(p.merklePair, cryptkit.Digest{}),
+		nextReady: smsync.NewConditionalBool(false, "plash.nextReady"),
 	}
 
 	pa.tree.SetPropagate() // grants O(1) to find jet
@@ -178,16 +191,42 @@ func (p *serviceImpl) createPlash(pr pulse.Range, tree jet.PrefixTree, populatio
 
 	// TODO write down shared data?
 
-	if p.plashes == nil {
+	var prevPlash *plashAssistant
+
+	switch {
+	case p.plashes == nil:
 		p.plashes = map[pulse.Number]*plashAssistant{}
+	case p.lastPN.IsUnknown():
+	default:
+		if prevPlash = p.plashes[p.lastPN]; prevPlash == nil {
+			panic(throw.Impossible())
+		}
 	}
+
+	p.addAndExpire(pn)
 	p.plashes[pn] = pa
 	p.lastPN = pn
 	pa.status.Store(plashStarted)
 
+	if prevPlash != nil {
+		go prevPlash.setNextPlash(pa)
+	}
+
 	return pa, result
 }
 
+func (p *serviceImpl) addAndExpire(pn pulse.Number) {
+	select {
+	case p.plashLimiter <- pn:
+		return
+	default:
+	}
+
+	expiredPN := <- p.plashLimiter
+	p.plashLimiter <- pn
+
+	delete(p.plashes, expiredPN)
+}
 
 func (p *serviceImpl) CreateGenesis(pr pulse.Range, population census.OnlinePopulation) (PlashAssistant, jet.ExactID) {
 	pd := pr.RightBoundData()

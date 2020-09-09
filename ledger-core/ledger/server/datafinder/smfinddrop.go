@@ -7,6 +7,7 @@ package datafinder
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/catalog"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -16,7 +17,7 @@ type SMFindDrop struct {
 	smachine.StateMachineDeclTemplate
 
 //	Assistant buildersvc.JetDropAssistant
-	ReportFn  func(report PrevDropReport) // to avoid circular dependency
+	ReportFn  func(report catalog.DropReport) // to avoid circular dependency
 }
 
 func (p *SMFindDrop) GetStateMachineDeclaration() smachine.StateMachineDeclaration {

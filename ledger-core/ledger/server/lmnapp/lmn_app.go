@@ -57,7 +57,7 @@ func NewAppCompartment(_ configuration.Ledger, comps insapp.AppComponents) *insc
 				setup.Dependencies.AddInterfaceDependency(&treeService)
 			}
 
-			setup.AddComponent(buildersvc.NewAdapterComponent(smadapter.Config{}, comps.CryptoScheme))
+			setup.AddComponent(buildersvc.NewAdapterComponent(smadapter.Config{}, comps.CryptoScheme, 16))
 			setup.AddComponent(inspectsvc.NewAdapterComponent(smadapter.Config{
 				// ExpectedParallelReaders: -1,
 				// MaxBufferCapacity: -1,

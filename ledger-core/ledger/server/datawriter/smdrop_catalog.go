@@ -14,7 +14,7 @@ import (
 type JetDropKey jet.DropID
 
 type DropCataloger interface {
-	Create(ctx smachine.ExecutionContext, dropCfg DropConfig) DropDataLink
+	Create(ctx smachine.ExecutionContext, dropCfg DropInfo) DropDataLink
 	Get(ctx smachine.SharedStateContext, dropID jet.DropID) DropDataLink
 }
 
@@ -27,17 +27,10 @@ const (
 	JetMerge
 )
 
-type DropConfig struct {
-	ID jet.DropID
-	PrevID jet.DropID
-	LastOp JetTreeOp
-	// LegID jet.LegID // TODO LegID
-}
-
 var _ DropCataloger = DropCatalog{}
 type DropCatalog struct {}
 
-func (DropCatalog) Create(ctx smachine.ExecutionContext, dropCfg DropConfig) DropDataLink {
+func (DropCatalog) Create(ctx smachine.ExecutionContext, dropCfg DropInfo) DropDataLink {
 
 	if ctx.GetPublished(JetDropKey(dropCfg.ID)) != nil {
 		panic(throw.IllegalState())
@@ -64,24 +57,26 @@ func (DropCatalog) Get(ctx smachine.SharedStateContext, dropID jet.DropID) DropD
 	return DropDataLink{}
 }
 
-func JetDropCreate(dropCfg DropConfig) smachine.CreateFunc {
+func JetDropCreate(dropCfg DropInfo) smachine.CreateFunc {
 	return func(smachine.ConstructionContext) smachine.StateMachine {
 		sm := &SMDropBuilder{}
-		sm.sd.id = dropCfg.ID
+		sm.sd.info = dropCfg
 		return sm
 	}
 }
 
 func RegisterJetDrop(ctx smachine.SharedStateContext, sd *DropSharedData) bool {
 	switch {
-	case !sd.id.IsValid():
+	case !sd.info.ID.IsValid():
 		panic(throw.IllegalState())
-	case !sd.ready.IsZero():
+	case sd.ready.IsZero():
+		panic(throw.IllegalState())
+	case sd.finalize.IsZero():
 		panic(throw.IllegalState())
 	}
 
 	sdl := ctx.Share(sd, smachine.ShareDataDirect)
-	if !ctx.Publish(JetDropKey(sd.id), sdl) {
+	if !ctx.Publish(JetDropKey(sd.info.ID), sdl) {
 		ctx.Unshare(sdl)
 		return false
 	}

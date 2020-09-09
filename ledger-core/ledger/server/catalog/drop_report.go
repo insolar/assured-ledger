@@ -3,21 +3,21 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package datafinder
+package catalog
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 )
 
-type PrevDropReport struct {
+type DropReport struct {
 	ReportRec *rms.RPrevDropReport
 }
 
-func (v PrevDropReport) IsZero() bool {
+func (v DropReport) IsZero() bool {
 	return v.ReportRec == nil
 }
 
-func (v PrevDropReport) Equal(other PrevDropReport) bool {
+func (v DropReport) Equal(other DropReport) bool {
 	switch {
 	case v.ReportRec == other.ReportRec:
 		return true

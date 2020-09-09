@@ -7,8 +7,10 @@ package buildersvc
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/catalog"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lineage"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -20,7 +22,7 @@ type Service interface {
 	CreateGenesis(pulse.Range, census.OnlinePopulation) (PlashAssistant, jet.ExactID)
 	AppendToDrop(jet.DropID, AppendFuture, lineage.UpdateBundle)
 	AppendToDropSummary(jet.DropID, lineage.LineSummary)
-//	FinalizeDropSummary(jet.DropID)
+	FinalizeDropSummary(jet.DropID) catalog.DropReport
 }
 
 type PlashAssistant interface {
@@ -30,9 +32,13 @@ type PlashAssistant interface {
 
 	CalculateJetDrop(reference.Holder) jet.DropID
 	IsGenesis() bool
+
+	// GetNextPlashReadySync returns a sync object that will be opened after next Plash is started.
+	GetNextPlashReadySync() smachine.SyncLink
+	// GetNextPlash must NOT be accessed before GetNextPlashReadySync() is triggered.
+	GetNextPlash() PlashAssistant
 }
 
 type AppendFuture interface {
 	TrySetFutureResult(allocations []ledger.DirectoryIndex, err error) bool
 }
-
