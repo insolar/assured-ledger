@@ -349,7 +349,7 @@ func TestVirtual_Method_WithoutExecutor_Ordered(t *testing.T) {
 
 			result := requestresult.New([]byte("345"), objectGlobal)
 
-			key := callOutgoing.String()
+			key := callOutgoing
 			runnerMock.AddExecutionMock(key).
 				AddStart(func(ctx execution.Context) {
 					counter++
