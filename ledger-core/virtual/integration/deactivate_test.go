@@ -244,6 +244,7 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 
 func TestVirtual_CallMethod_On_CompletelyDeactivatedObject(t *testing.T) {
 	insrail.LogCase(t, "C4975")
+	defer commonTestUtils.LeakTester(t)
 	stateTestCases := []struct {
 		name        string
 		objectState isolation.StateFlag
@@ -260,77 +261,59 @@ func TestVirtual_CallMethod_On_CompletelyDeactivatedObject(t *testing.T) {
 
 	for _, stateTest := range stateTestCases {
 		t.Run(stateTest.name, func(t *testing.T) {
+			mc := minimock.NewController(t)
 
-			callTypeTestCases := []struct {
-				name     string
-				callType payload.CallType
-				errorMsg string
-			}{
-				{
-					name:     "call method",
-					callType: payload.CallTypeMethod,
-					errorMsg: "try to call method on deactivated object",
-				},
+			server, ctx := utils.NewUninitializedServer(nil, t)
+			defer server.Stop()
+
+			runnerMock := logicless.NewServiceMock(ctx, t, nil)
+
+			isolation := contract.MethodIsolation{Interference: isolation.CallIntolerable, State: stateTest.objectState}
+			methodName := "MyFavorMethod"
+			server.ReplaceRunner(runnerMock)
+
+			server.Init(ctx)
+
+			var (
+				object    = server.RandomGlobalWithPulse()
+				prevPulse = server.GetPulse().PulseNumber
+			)
+
+			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+			typedChecker.VStateReport.SetResend(false)
+			typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
+				assert.Equal(t, object, res.Callee)
+				contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments)
+				assert.NoError(t, sysErr)
+				assert.Contains(t, contractErr.Error(), "try to call method on deactivated object")
+				return false // no resend msg
+			})
+
+			server.IncrementPulseAndWaitIdle(ctx)
+			Method_PrepareObject(ctx, server, payload.StateStatusInactive, object, prevPulse)
+
+			outgoing := server.BuildRandomOutgoingWithPulse()
+			runnerMock.AddExecutionClassify(outgoing, isolation, nil)
+
+			pl := payload.VCallRequest{
+				CallType:       payload.CallTypeMethod,
+				CallFlags:      payload.BuildCallFlags(isolation.Interference, isolation.State),
+				Caller:         server.GlobalCaller(),
+				Callee:         object,
+				CallSiteMethod: methodName,
+				CallOutgoing:   outgoing,
+				Arguments:      insolar.MustSerialize([]interface{}{}),
 			}
 
-			for _, callTypeTest := range callTypeTestCases {
-				t.Run(callTypeTest.name, func(t *testing.T) {
-					defer commonTestUtils.LeakTester(t)
+			execDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
+			server.SendPayload(ctx, &pl)
+			commonTestUtils.WaitSignalsTimed(t, 10*time.Second, execDone)
 
-					mc := minimock.NewController(t)
+			// require.Equal(t, 1, typedChecker.VCallResult.Count())
+			// require.Equal(t, 1, typedChecker.VStateReport.Count())
 
-					server, ctx := utils.NewUninitializedServer(nil, t)
-					defer server.Stop()
+			mc.Finish()
 
-					runnerMock := logicless.NewServiceMock(ctx, t, nil)
-
-					isolation := contract.MethodIsolation{Interference: isolation.CallIntolerable, State: stateTest.objectState}
-					methodName := "MyFavorMethod" + callTypeTest.name
-					server.ReplaceRunner(runnerMock)
-
-					server.Init(ctx)
-
-					var (
-						object    = server.RandomGlobalWithPulse()
-						prevPulse = server.GetPulse().PulseNumber
-					)
-
-					server.IncrementPulseAndWaitIdle(ctx)
-					Method_PrepareObject(ctx, server, payload.StateStatusInactive, object, prevPulse)
-					outgoing := server.BuildRandomOutgoingWithPulse()
-					runnerMock.AddExecutionClassify(outgoing.String(), isolation, nil)
-
-					gotResult := make(chan struct{})
-
-					typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-					typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
-
-						assert.Equal(t, object, res.Callee)
-						contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments)
-						require.NoError(t, sysErr)
-						require.Contains(t, contractErr.Error(), callTypeTest.errorMsg)
-
-						gotResult <- struct{}{}
-
-						return false // no resend msg
-					})
-
-					pl := payload.VCallRequest{
-						CallType:       callTypeTest.callType,
-						CallFlags:      payload.BuildCallFlags(isolation.Interference, isolation.State),
-						Caller:         server.GlobalCaller(),
-						Callee:         object,
-						CallSiteMethod: methodName,
-						CallOutgoing:   outgoing,
-						Arguments:      insolar.MustSerialize([]interface{}{}),
-					}
-					server.SendPayload(ctx, &pl)
-
-					commonTestUtils.WaitSignalsTimed(t, 10*time.Second, gotResult)
-
-					mc.Finish()
-				})
-			}
 		})
 	}
 }
