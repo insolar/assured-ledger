@@ -18,6 +18,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
@@ -164,6 +165,11 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 
 					return false
 				})
+				typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
+					t.FailNow()
+					// TODO add asserts and check counter after https://insolar.atlassian.net/browse/PLAT-753
+					return false
+				})
 				typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool {
 					assert.Equal(t, objectGlobal, result.Callee)
 
@@ -233,6 +239,9 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 			{
 				server.IncrementPulse(ctx)
 
+				// TODO uncommented after https://insolar.atlassian.net/browse/PLAT-753
+				// commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VObjectTranscriptReport.Wait(ctx, 2))
+				// assert.Equal(t, 2, typedChecker.VObjectTranscriptReport.Count())
 				commonTestUtils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 1))
 				assert.Equal(t, 1, typedChecker.VStateReport.Count())
 			}
@@ -533,6 +542,11 @@ func TestVirtual_DeactivateObject_ChangePulse(t *testing.T) {
 			require.Equal(t, []byte(origDirtyMem), report.ProvidedContent.LatestValidatedState.State)
 			return false
 		})
+		typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
+			t.FailNow()
+			// TODO add asserts and check counter after https://insolar.atlassian.net/browse/PLAT-753
+			return false
+		})
 		typedChecker.VDelegatedCallRequest.Set(func(request *payload.VDelegatedCallRequest) bool {
 			require.Equal(t, objectRef, request.Callee)
 			require.Equal(t, outgoing, request.CallOutgoing)
@@ -590,6 +604,10 @@ func TestVirtual_DeactivateObject_ChangePulse(t *testing.T) {
 	synchronizeExecution.WakeUp()
 	commonTestUtils.WaitSignalsTimed(t, 10*time.Second, oneExecutionEnded)
 	commonTestUtils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+
+	// TODO uncommented after https://insolar.atlassian.net/browse/PLAT-753
+	// commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VObjectTranscriptReport.Wait(ctx, 1))
+	// assert.Equal(t, 1, typedChecker.VObjectTranscriptReport.Count())
 
 	require.Equal(t, 1, typedChecker.VStateReport.Count())
 	require.Equal(t, 1, typedChecker.VDelegatedRequestFinished.Count())
@@ -985,6 +1003,11 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 				require.Nil(t, report.ProvidedContent)
 				return false
 			})
+			typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
+				t.FailNow()
+				// TODO add asserts and check counter after https://insolar.atlassian.net/browse/PLAT-753
+				return false
+			})
 			typedChecker.VDelegatedCallResponse.Set(func(response *payload.VDelegatedCallResponse) bool {
 				require.Equal(t, objectRef, response.Callee)
 				require.NotEmpty(t, response.ResponseDelegationSpec)
@@ -1063,6 +1086,9 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 			server.IncrementPulse(ctx)
 			commonTestUtils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 1))
 			commonTestUtils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+			// TODO uncommented after https://insolar.atlassian.net/browse/PLAT-753
+			// commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VObjectTranscriptReport.Wait(ctx, 1))
+			// assert.Equal(t, 1, typedChecker.VObjectTranscriptReport.Count())
 
 			require.Equal(t, 1, typedChecker.VStateReport.Count())
 			require.Equal(t, 1, typedChecker.VDelegatedCallResponse.Count())
