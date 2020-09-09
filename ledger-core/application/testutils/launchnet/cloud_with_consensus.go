@@ -17,6 +17,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
+func isCloudMode() bool {
+	return true
+}
+
 func Run(cb func() int) int {
 	fmt.Println("Run tests on cloud with consensus")
 

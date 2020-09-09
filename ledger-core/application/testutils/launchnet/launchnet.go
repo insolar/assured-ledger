@@ -323,11 +323,6 @@ func startCustomNet(withPulsar bool, numVirtual, numLight, numHeavy int) (*exec.
 	return cmd, apiAddresses, nil
 }
 
-func isCloudMode() bool {
-	cloudMode := os.Getenv("CLOUD_MODE")
-	return strings.ToLower(cloudMode) == "true"
-}
-
 func startNet() (*exec.Cmd, error) {
 	cwd, err := os.Getwd()
 	if err != nil {

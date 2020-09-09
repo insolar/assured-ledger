@@ -12,7 +12,14 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"strconv"
 )
+
+func isCloudMode() bool {
+	cloudMode := os.Getenv("CLOUD_MODE")
+	v, err := strconv.ParseBool(cloudMode)
+	return err == nil && v
+}
 
 // Run starts launchnet before execution of callback function (cb) and stops launchnet after.
 // Returns exit code as a result from calling callback function.
