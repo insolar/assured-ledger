@@ -1740,7 +1740,7 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 		)
 		runnerMock.AddExecutionClassify(outgoingChange, tolerableFlags(), nil)
 
-		runnerMock.AddExecutionMock(outgoingValidated1.String()).AddStart(
+		runnerMock.AddExecutionMock(outgoingValidated1).AddStart(
 			func(ctx execution.Context) {
 				assert.Equal(t, isolation.CallValidated, ctx.Isolation.State)
 				assert.Equal(t, initialState, ctx.ObjectDescriptor.Memory())
