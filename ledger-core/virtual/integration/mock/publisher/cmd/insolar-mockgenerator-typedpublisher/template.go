@@ -139,6 +139,7 @@ const (
 		func (p *Typed) checkMessage(ctx context.Context, msg *message.Message) {
 			basePayload, err := payload.UnmarshalFromMeta(msg.Payload)
 			if err != nil {
+				p.t.Fatalf("failed to unmarshal %T", msg.Payload)
 				return
 			}
 

@@ -163,7 +163,7 @@ func UnmarshalCustom(b []byte, typeFn func(uint64) reflect.Type, skipFn UnknownC
 		obj, err := UnmarshalAsType(b, t, skipFn)
 		return id, obj, err
 	case id != 0:
-		return id, nil, throw.WithDetails(err, struct { ID uint64 }{ id })
+		return id, nil, throw.WithDetails(err, struct{ ID uint64 }{id})
 	default:
 		return id, nil, err
 	}
