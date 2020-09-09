@@ -127,7 +127,7 @@ func methodPrecondition(s *memoryCacheTest, ctx context.Context, t *testing.T) {
 	result := requestresult.New([]byte("result"), s.object)
 	result.SetAmend(newObjDescriptor, []byte(newState))
 
-	key := callOutgoing.String()
+	key := callOutgoing
 	s.runnerMock.AddExecutionMock(key).
 		AddStart(nil, &execution.Update{
 			Type:   execution.Done,
@@ -159,7 +159,7 @@ func constructorPrecondition(s *memoryCacheTest, ctx context.Context, t *testing
 	result := requestresult.New([]byte("result"), s.object)
 	result.SetActivate(reference.Global{}, s.class, []byte(newState))
 
-	key := callOutgoing.String()
+	key := callOutgoing
 	s.runnerMock.AddExecutionMock(key).
 		AddStart(nil, &execution.Update{
 			Type:   execution.Done,
