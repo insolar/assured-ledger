@@ -23,12 +23,6 @@ type GlobulaStateHashMock struct {
 	beforeAsByteStringCounter uint64
 	AsByteStringMock          mGlobulaStateHashMockAsByteString
 
-	funcCopyOfDigest          func() (d1 cryptkit.Digest)
-	inspectFuncCopyOfDigest   func()
-	afterCopyOfDigestCounter  uint64
-	beforeCopyOfDigestCounter uint64
-	CopyOfDigestMock          mGlobulaStateHashMockCopyOfDigest
-
 	funcCopyTo          func(p []byte) (i1 int)
 	inspectFuncCopyTo   func(p []byte)
 	afterCopyToCounter  uint64
@@ -80,8 +74,6 @@ func NewGlobulaStateHashMock(t minimock.Tester) *GlobulaStateHashMock {
 	}
 
 	m.AsByteStringMock = mGlobulaStateHashMockAsByteString{mock: m}
-
-	m.CopyOfDigestMock = mGlobulaStateHashMockCopyOfDigest{mock: m}
 
 	m.CopyToMock = mGlobulaStateHashMockCopyTo{mock: m}
 	m.CopyToMock.callArgs = []*GlobulaStateHashMockCopyToParams{}
@@ -244,149 +236,6 @@ func (m *GlobulaStateHashMock) MinimockAsByteStringInspect() {
 	// if func was set then invocations count should be greater than zero
 	if m.funcAsByteString != nil && mm_atomic.LoadUint64(&m.afterAsByteStringCounter) < 1 {
 		m.t.Error("Expected call to GlobulaStateHashMock.AsByteString")
-	}
-}
-
-type mGlobulaStateHashMockCopyOfDigest struct {
-	mock               *GlobulaStateHashMock
-	defaultExpectation *GlobulaStateHashMockCopyOfDigestExpectation
-	expectations       []*GlobulaStateHashMockCopyOfDigestExpectation
-}
-
-// GlobulaStateHashMockCopyOfDigestExpectation specifies expectation struct of the GlobulaStateHash.CopyOfDigest
-type GlobulaStateHashMockCopyOfDigestExpectation struct {
-	mock *GlobulaStateHashMock
-
-	results *GlobulaStateHashMockCopyOfDigestResults
-	Counter uint64
-}
-
-// GlobulaStateHashMockCopyOfDigestResults contains results of the GlobulaStateHash.CopyOfDigest
-type GlobulaStateHashMockCopyOfDigestResults struct {
-	d1 cryptkit.Digest
-}
-
-// Expect sets up expected params for GlobulaStateHash.CopyOfDigest
-func (mmCopyOfDigest *mGlobulaStateHashMockCopyOfDigest) Expect() *mGlobulaStateHashMockCopyOfDigest {
-	if mmCopyOfDigest.mock.funcCopyOfDigest != nil {
-		mmCopyOfDigest.mock.t.Fatalf("GlobulaStateHashMock.CopyOfDigest mock is already set by Set")
-	}
-
-	if mmCopyOfDigest.defaultExpectation == nil {
-		mmCopyOfDigest.defaultExpectation = &GlobulaStateHashMockCopyOfDigestExpectation{}
-	}
-
-	return mmCopyOfDigest
-}
-
-// Inspect accepts an inspector function that has same arguments as the GlobulaStateHash.CopyOfDigest
-func (mmCopyOfDigest *mGlobulaStateHashMockCopyOfDigest) Inspect(f func()) *mGlobulaStateHashMockCopyOfDigest {
-	if mmCopyOfDigest.mock.inspectFuncCopyOfDigest != nil {
-		mmCopyOfDigest.mock.t.Fatalf("Inspect function is already set for GlobulaStateHashMock.CopyOfDigest")
-	}
-
-	mmCopyOfDigest.mock.inspectFuncCopyOfDigest = f
-
-	return mmCopyOfDigest
-}
-
-// Return sets up results that will be returned by GlobulaStateHash.CopyOfDigest
-func (mmCopyOfDigest *mGlobulaStateHashMockCopyOfDigest) Return(d1 cryptkit.Digest) *GlobulaStateHashMock {
-	if mmCopyOfDigest.mock.funcCopyOfDigest != nil {
-		mmCopyOfDigest.mock.t.Fatalf("GlobulaStateHashMock.CopyOfDigest mock is already set by Set")
-	}
-
-	if mmCopyOfDigest.defaultExpectation == nil {
-		mmCopyOfDigest.defaultExpectation = &GlobulaStateHashMockCopyOfDigestExpectation{mock: mmCopyOfDigest.mock}
-	}
-	mmCopyOfDigest.defaultExpectation.results = &GlobulaStateHashMockCopyOfDigestResults{d1}
-	return mmCopyOfDigest.mock
-}
-
-//Set uses given function f to mock the GlobulaStateHash.CopyOfDigest method
-func (mmCopyOfDigest *mGlobulaStateHashMockCopyOfDigest) Set(f func() (d1 cryptkit.Digest)) *GlobulaStateHashMock {
-	if mmCopyOfDigest.defaultExpectation != nil {
-		mmCopyOfDigest.mock.t.Fatalf("Default expectation is already set for the GlobulaStateHash.CopyOfDigest method")
-	}
-
-	if len(mmCopyOfDigest.expectations) > 0 {
-		mmCopyOfDigest.mock.t.Fatalf("Some expectations are already set for the GlobulaStateHash.CopyOfDigest method")
-	}
-
-	mmCopyOfDigest.mock.funcCopyOfDigest = f
-	return mmCopyOfDigest.mock
-}
-
-// CopyOfDigest implements GlobulaStateHash
-func (mmCopyOfDigest *GlobulaStateHashMock) CopyOfDigest() (d1 cryptkit.Digest) {
-	mm_atomic.AddUint64(&mmCopyOfDigest.beforeCopyOfDigestCounter, 1)
-	defer mm_atomic.AddUint64(&mmCopyOfDigest.afterCopyOfDigestCounter, 1)
-
-	if mmCopyOfDigest.inspectFuncCopyOfDigest != nil {
-		mmCopyOfDigest.inspectFuncCopyOfDigest()
-	}
-
-	if mmCopyOfDigest.CopyOfDigestMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmCopyOfDigest.CopyOfDigestMock.defaultExpectation.Counter, 1)
-
-		mm_results := mmCopyOfDigest.CopyOfDigestMock.defaultExpectation.results
-		if mm_results == nil {
-			mmCopyOfDigest.t.Fatal("No results are set for the GlobulaStateHashMock.CopyOfDigest")
-		}
-		return (*mm_results).d1
-	}
-	if mmCopyOfDigest.funcCopyOfDigest != nil {
-		return mmCopyOfDigest.funcCopyOfDigest()
-	}
-	mmCopyOfDigest.t.Fatalf("Unexpected call to GlobulaStateHashMock.CopyOfDigest.")
-	return
-}
-
-// CopyOfDigestAfterCounter returns a count of finished GlobulaStateHashMock.CopyOfDigest invocations
-func (mmCopyOfDigest *GlobulaStateHashMock) CopyOfDigestAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmCopyOfDigest.afterCopyOfDigestCounter)
-}
-
-// CopyOfDigestBeforeCounter returns a count of GlobulaStateHashMock.CopyOfDigest invocations
-func (mmCopyOfDigest *GlobulaStateHashMock) CopyOfDigestBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmCopyOfDigest.beforeCopyOfDigestCounter)
-}
-
-// MinimockCopyOfDigestDone returns true if the count of the CopyOfDigest invocations corresponds
-// the number of defined expectations
-func (m *GlobulaStateHashMock) MinimockCopyOfDigestDone() bool {
-	for _, e := range m.CopyOfDigestMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.CopyOfDigestMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterCopyOfDigestCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcCopyOfDigest != nil && mm_atomic.LoadUint64(&m.afterCopyOfDigestCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockCopyOfDigestInspect logs each unmet expectation
-func (m *GlobulaStateHashMock) MinimockCopyOfDigestInspect() {
-	for _, e := range m.CopyOfDigestMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Error("Expected call to GlobulaStateHashMock.CopyOfDigest")
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.CopyOfDigestMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterCopyOfDigestCounter) < 1 {
-		m.t.Error("Expected call to GlobulaStateHashMock.CopyOfDigest")
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcCopyOfDigest != nil && mm_atomic.LoadUint64(&m.afterCopyOfDigestCounter) < 1 {
-		m.t.Error("Expected call to GlobulaStateHashMock.CopyOfDigest")
 	}
 }
 
@@ -1685,8 +1534,6 @@ func (m *GlobulaStateHashMock) MinimockFinish() {
 	if !m.minimockDone() {
 		m.MinimockAsByteStringInspect()
 
-		m.MinimockCopyOfDigestInspect()
-
 		m.MinimockCopyToInspect()
 
 		m.MinimockEqualsInspect()
@@ -1724,7 +1571,6 @@ func (m *GlobulaStateHashMock) minimockDone() bool {
 	done := true
 	return done &&
 		m.MinimockAsByteStringDone() &&
-		m.MinimockCopyOfDigestDone() &&
 		m.MinimockCopyToDone() &&
 		m.MinimockEqualsDone() &&
 		m.MinimockFixedByteSizeDone() &&

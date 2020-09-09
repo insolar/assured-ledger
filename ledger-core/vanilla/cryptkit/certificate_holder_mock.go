@@ -14,7 +14,7 @@ import (
 type CertificateHolderMock struct {
 	t minimock.Tester
 
-	funcGetPublicKey          func() (s1 SignatureKeyHolder)
+	funcGetPublicKey          func() (s1 SigningKeyHolder)
 	inspectFuncGetPublicKey   func()
 	afterGetPublicKeyCounter  uint64
 	beforeGetPublicKeyCounter uint64
@@ -58,7 +58,7 @@ type CertificateHolderMockGetPublicKeyExpectation struct {
 
 // CertificateHolderMockGetPublicKeyResults contains results of the CertificateHolder.GetPublicKey
 type CertificateHolderMockGetPublicKeyResults struct {
-	s1 SignatureKeyHolder
+	s1 SigningKeyHolder
 }
 
 // Expect sets up expected params for CertificateHolder.GetPublicKey
@@ -86,7 +86,7 @@ func (mmGetPublicKey *mCertificateHolderMockGetPublicKey) Inspect(f func()) *mCe
 }
 
 // Return sets up results that will be returned by CertificateHolder.GetPublicKey
-func (mmGetPublicKey *mCertificateHolderMockGetPublicKey) Return(s1 SignatureKeyHolder) *CertificateHolderMock {
+func (mmGetPublicKey *mCertificateHolderMockGetPublicKey) Return(s1 SigningKeyHolder) *CertificateHolderMock {
 	if mmGetPublicKey.mock.funcGetPublicKey != nil {
 		mmGetPublicKey.mock.t.Fatalf("CertificateHolderMock.GetPublicKey mock is already set by Set")
 	}
@@ -99,7 +99,7 @@ func (mmGetPublicKey *mCertificateHolderMockGetPublicKey) Return(s1 SignatureKey
 }
 
 //Set uses given function f to mock the CertificateHolder.GetPublicKey method
-func (mmGetPublicKey *mCertificateHolderMockGetPublicKey) Set(f func() (s1 SignatureKeyHolder)) *CertificateHolderMock {
+func (mmGetPublicKey *mCertificateHolderMockGetPublicKey) Set(f func() (s1 SigningKeyHolder)) *CertificateHolderMock {
 	if mmGetPublicKey.defaultExpectation != nil {
 		mmGetPublicKey.mock.t.Fatalf("Default expectation is already set for the CertificateHolder.GetPublicKey method")
 	}
@@ -113,7 +113,7 @@ func (mmGetPublicKey *mCertificateHolderMockGetPublicKey) Set(f func() (s1 Signa
 }
 
 // GetPublicKey implements CertificateHolder
-func (mmGetPublicKey *CertificateHolderMock) GetPublicKey() (s1 SignatureKeyHolder) {
+func (mmGetPublicKey *CertificateHolderMock) GetPublicKey() (s1 SigningKeyHolder) {
 	mm_atomic.AddUint64(&mmGetPublicKey.beforeGetPublicKeyCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetPublicKey.afterGetPublicKeyCounter, 1)
 

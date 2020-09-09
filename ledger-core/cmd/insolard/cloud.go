@@ -12,8 +12,10 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
+	"github.com/insolar/assured-ledger/ledger-core/cryptography/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
+	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/server"
 )
 
@@ -21,7 +23,7 @@ func readConfig(cfgPath string) configuration.Configuration {
 	cfgHolder := configuration.NewHolder(cfgPath)
 	err := cfgHolder.Load()
 	if err != nil {
-		global.Warn("failed to load configuration from file: ", err.Error())
+		global.Fatal("failed to load configuration from file: ", err.Error())
 	}
 	return *cfgHolder.Configuration
 }
@@ -44,16 +46,28 @@ func runInsolardCloud(configPath string) {
 		global.Fatal("Failed to parse YAML file", err)
 	}
 
-	var multiFn insapp.MultiNodeConfigFunc
-	multiFn = func(cfgPath string, baseCfg configuration.Configuration) ([]configuration.Configuration, insapp.NetworkInitFunc) {
-		appConfigs := []configuration.Configuration{}
-		for _, conf := range cloudConf.NodeConfigPaths {
-			appConfigs = append(appConfigs, readConfig(conf))
-		}
-		return appConfigs, nil
+	baseConfig := configuration.NewConfiguration()
+	baseConfig.Log = cloudConf.Log
+	configProvider := &insapp.CloudConfigurationProvider{
+		CertificateFactory: mandates.NewManagerReadCertificate,
+		KeyFactory:         keystore.NewKeyStore,
+		BaseConfig:         baseConfig,
+		PulsarConfig:       cloudConf.PulsarConfiguration,
+		GetAppConfigs: func() []configuration.Configuration {
+			appConfigs := make([]configuration.Configuration, 0, len(cloudConf.NodeConfigPaths))
+			for _, conf := range cloudConf.NodeConfigPaths {
+				cfgHolder := configuration.NewHolder(conf)
+				err := cfgHolder.Load()
+				if err != nil {
+					global.Fatal("failed to load configuration from file: ", err.Error())
+				}
+				appConfigs = append(appConfigs, *cfgHolder.Configuration)
+			}
+			return appConfigs
+		},
 	}
 
-	s := server.NewMultiServer(configPath, multiFn)
+	s := server.NewMultiServer(configProvider)
 
 	s.Serve()
 }

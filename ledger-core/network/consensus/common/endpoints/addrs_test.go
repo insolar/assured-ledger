@@ -52,8 +52,8 @@ func TestNewHostIdentityFromHolder(t *testing.T) {
 	in := NewInboundMock(t)
 	addr := Name("addr")
 	in.GetNameAddressMock.Set(func() Name { return addr })
-	skh := cryptkit.NewSignatureKeyHolderMock(t)
-	in.GetTransportKeyMock.Set(func() cryptkit.SignatureKeyHolder { return skh })
+	skh := cryptkit.NewSigningKeyHolderMock(t)
+	in.GetTransportKeyMock.Set(func() cryptkit.SigningKeyHolder { return skh })
 	ch := cryptkit.NewCertificateHolderMock(t)
 	in.GetTransportCertMock.Set(func() cryptkit.CertificateHolder { return ch })
 	inc := NewHostIdentityFromHolder(in)
@@ -80,7 +80,7 @@ func TestGetNameAddress(t *testing.T) {
 }
 
 func TestGetTransportKey(t *testing.T) {
-	skh := cryptkit.NewSignatureKeyHolderMock(t)
+	skh := cryptkit.NewSigningKeyHolderMock(t)
 	inc := InboundConnection{Key: skh}
 	require.Equal(t, skh, inc.GetTransportKey())
 }

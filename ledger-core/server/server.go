@@ -6,28 +6,39 @@
 package server
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
-	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lmnapp"
+	"github.com/insolar/assured-ledger/ledger-core/server/internal/cloud"
 	"github.com/insolar/assured-ledger/ledger-core/server/internal/headless"
-	"github.com/insolar/assured-ledger/ledger-core/server/internal/virtual"
 )
 
 type Server interface {
 	Serve()
 }
 
-func NewLightMaterialServer(cfgPath string) Server {
-	return insapp.New(cfgPath, lmnapp.AppFactory)
+func NewNode(cfg configuration.Configuration) Server {
+	return insapp.New(cfg, appFactory)
 }
 
-func NewVirtualServer(cfgPath string) Server {
-	return insapp.New(cfgPath, virtual.AppFactory)
+func NewMultiServer(configProvider *insapp.CloudConfigurationProvider) Server {
+	controller := cloud.NewController()
+	if configProvider.GetAppConfigs == nil {
+		panic("GetAppConfigs cannot be nil")
+	}
+
+	multiFn := func(provider insapp.ConfigurationProvider) ([]configuration.Configuration, insapp.NetworkInitFunc) {
+		conf := provider.(*insapp.CloudConfigurationProvider)
+		return conf.GetAppConfigs(), controller.NetworkInitFunc
+	}
+
+	return insapp.NewMulti(
+		configProvider,
+		appFactory,
+		multiFn,
+		cloud.NewPulsarWrapper(&controller, configProvider.PulsarConfig, configProvider.KeyFactory),
+	)
 }
 
-func NewMultiServer(cfgPath string, multiFn insapp.MultiNodeConfigFunc) Server {
-	return insapp.NewMulti(cfgPath, virtual.AppFactory, multiFn)
-}
-
-func NewHeadlessNetworkNodeServer(cfgPath string) Server {
-	return insapp.New(cfgPath, nil, &headless.AppComponent{})
+func NewHeadlessNetworkNodeServer(cfg configuration.Configuration) Server {
+	return insapp.New(cfg, nil, &headless.AppComponent{})
 }

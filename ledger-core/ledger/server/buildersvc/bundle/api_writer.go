@@ -29,7 +29,7 @@ type Writer interface {
 }
 
 type Writeable interface {
-	PrepareWrite(snapshot Snapshot) error
+	PrepareWrite(Snapshot) error
 	ApplyWrite() ([]ledger.DirectoryIndex, error)
 }
 
