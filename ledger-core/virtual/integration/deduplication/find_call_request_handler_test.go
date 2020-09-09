@@ -429,6 +429,7 @@ func (s *VFindCallRequestHandlingSuite) setMessageCheckers(
 	})
 
 	s.typedChecker.VCallResult.SetResend(false)
+	s.typedChecker.VObjectTranscriptReport.SetResend(false)
 
 	s.typedChecker.VDelegatedCallRequest.Set(func(req *payload.VDelegatedCallRequest) bool {
 		delegationToken := s.server.DelegationToken(req.CallOutgoing, s.getCaller(), req.Callee)
