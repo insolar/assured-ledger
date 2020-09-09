@@ -407,19 +407,23 @@ func (p *PulseConveyor) _publishPulseSlotMachine(pn pulse.Number, psm *PulseSlot
 	return psm
 }
 
-func (p *PulseConveyor) _publishUninitializedPulseSlotMachine(pn pulse.Number) (*PulseSlotMachine, bool) {
+func (p *PulseConveyor) _getOrPublishSlotMachineAsPresent(pn pulse.Number, bd BeatData, pulseStart time.Time) (*PulseSlotMachine, bool) {
 	if psm := p.getPulseSlotMachine(pn); psm != nil {
+		psm.pulseSlot.pulseData.MakePresent(bd, pulseStart)
 		return psm, false
 	}
+
 	psm := p.newPulseSlotMachine()
-	if psv, ok := p.slotMachine.TryPublish(pn, psm); !ok {
-		psm = psv.(*PulseSlotMachine)
-		if psm == nil {
-			panic(throw.IllegalState())
-		}
-		return psm, false
+	psm.pulseSlot.pulseData = &presentPulseDataHolder{bd: bd, at: pulseStart}
+
+	psv, ok := p.slotMachine.TryPublish(pn, psm)
+	if ok {
+		return psm, true
 	}
-	return psm, true
+
+	psm = psv.(*PulseSlotMachine)
+	psm.pulseSlot.pulseData.MakePresent(bd, pulseStart)
+	return psm, false
 }
 
 func (p *PulseConveyor) newPulseSlotMachine() *PulseSlotMachine {
@@ -507,13 +511,13 @@ func (p *PulseConveyor) CommitPulseChange(pr pulse.Range, pulseStart time.Time, 
 		p.comps.PulseChanged(p, pr)
 
 		ctx.Migrate(func() {
-			p._migratePulseSlots(ctx, bd, prevPresentPN, prevFuturePN, pulseStart.UTC())
+			p._migratePulseSlots(ctx, bd, pulseStart.UTC(), prevPresentPN, prevFuturePN)
 		})
 	})
 }
 
-func (p *PulseConveyor) _migratePulseSlots(ctx smachine.MachineCallContext, bd BeatData,
-	_ /* prevPresentPN */, prevFuturePN pulse.Number, pulseStart time.Time,
+func (p *PulseConveyor) _migratePulseSlots(ctx smachine.MachineCallContext, bd BeatData, pulseStart time.Time,
+	_ /* prevPresentPN */, prevFuturePN pulse.Number,
 ) {
 	if p.unpublishPulse.IsTimePulse() {
 		// we know what we do - right!?
@@ -522,10 +526,10 @@ func (p *PulseConveyor) _migratePulseSlots(ctx smachine.MachineCallContext, bd B
 	}
 
 	pd := bd.Range.RightBoundData()
+	pd.EnsurePulsarData()
 
-	prevFuture, activatePresent := p._publishUninitializedPulseSlotMachine(prevFuturePN)
-	prevFuture.setPresent(bd, pulseStart)
-	p.presentMachine = prevFuture
+	slotIsNew := false
+	p.presentMachine, slotIsNew = p._getOrPublishSlotMachineAsPresent(prevFuturePN, bd, pulseStart)
 
 	if prevFuturePN != pd.PulseNumber {
 		// new pulse is different than expected at the previous cycle, so we have to remove the pulse number alias
@@ -538,7 +542,7 @@ func (p *PulseConveyor) _migratePulseSlots(ctx smachine.MachineCallContext, bd B
 		}
 	}
 
-	if activatePresent {
+	if slotIsNew {
 		p.presentMachine.activate(p.workerCtx, ctx.AddNew)
 	}
 	p.pdm.setPresentPulse(bd.Range) // reroutes incoming events

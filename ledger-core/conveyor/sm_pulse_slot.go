@@ -9,7 +9,6 @@ package conveyor
 
 import (
 	"context"
-	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/sworker"
@@ -43,7 +42,7 @@ func NewPulseSlotMachine(config PulseSlotConfig, pulseManager *PulseDataManager)
 func combineCallbacks(mainFn, auxFn func()) func() {
 	switch {
 	case mainFn == nil:
-		panic("illegal state")
+		panic(throw.IllegalState())
 	case auxFn == nil:
 		return mainFn
 	default:
@@ -67,7 +66,7 @@ type PulseSlotMachine struct {
 
 func (p *PulseSlotMachine) SlotLink() smachine.SlotLink {
 	if p.selfLink.IsZero() {
-		panic("illegal state")
+		panic(throw.IllegalState())
 	}
 	return p.selfLink
 }
@@ -78,7 +77,7 @@ func (p *PulseSlotMachine) activate(workerCtx context.Context,
 	addFn func(context.Context, smachine.StateMachine, smachine.CreateDefaultValues) (smachine.SlotLink, bool),
 ) {
 	if !p.selfLink.IsZero() {
-		panic("illegal state")
+		panic(throw.IllegalState())
 	}
 	if p.pulseSlot.State() != Antique {
 		p.innerMachine.AddDependency(&p.pulseSlot)
@@ -106,26 +105,16 @@ func (p *PulseSlotMachine) setFuture(pd pulse.Data) {
 	}
 }
 
-func (p *PulseSlotMachine) setPresent(bd BeatData, pulseStart time.Time) {
-	switch {
-	case p.pulseSlot.pulseData == nil || p.innerMachine.IsEmpty():
-		bd.Range.RightBoundData().EnsurePulsarData()
-		p.pulseSlot.pulseData = &presentPulseDataHolder{bd: bd, at: pulseStart}
-	default:
-		p.pulseSlot.pulseData.MakePresent(bd, pulseStart)
-	}
-}
-
 func (p *PulseSlotMachine) setPast() {
 	if p.pulseSlot.pulseData == nil {
-		panic("illegal state")
+		panic(throw.IllegalState())
 	}
 	p.pulseSlot.pulseData.MakePast()
 }
 
 func (p *PulseSlotMachine) setAntique() {
 	if p.pulseSlot.pulseData != nil {
-		panic("illegal state")
+		panic(throw.IllegalState())
 	}
 	p.pulseSlot.pulseData = &antiqueNoPulseDataHolder{}
 }
