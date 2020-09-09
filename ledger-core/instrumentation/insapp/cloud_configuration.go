@@ -85,7 +85,7 @@ func makeKeyFactory(nodes []nodeInfo) KeyStoreFactory {
 	}
 }
 
-func generateBaseCloudConfig(nodes []nodeInfo) configuration.BaseCloudConfig {
+func generatePulsarConfig(nodes []nodeInfo, settings CloudSettings) configuration.PulsarConfiguration {
 	pulsarConfig := configuration.NewPulsarConfiguration()
 	var bootstrapNodes []string
 	for _, el := range nodes {
@@ -93,10 +93,17 @@ func generateBaseCloudConfig(nodes []nodeInfo) configuration.BaseCloudConfig {
 	}
 	pulsarConfig.Pulsar.PulseDistributor.BootstrapHosts = bootstrapNodes
 	pulsarConfig.KeysPath = "pulsar.yaml"
+	if settings.Pulsar.PulseTime != 0 {
+		pulsarConfig.Pulsar.PulseTime = int32(settings.Pulsar.PulseTime)
+	}
 
+	return pulsarConfig
+}
+
+func generateBaseCloudConfig(nodes []nodeInfo, settings CloudSettings) configuration.BaseCloudConfig {
 	return configuration.BaseCloudConfig{
 		Log:                 configuration.NewLog(),
-		PulsarConfiguration: pulsarConfig,
+		PulsarConfiguration: generatePulsarConfig(nodes, settings),
 	}
 
 }
@@ -117,7 +124,7 @@ func getRole(virtual, light, heavy *int) member.PrimaryRole {
 	}
 }
 
-func generateNodeConfigs(nodes []nodeInfo, virtual, light, heavy int) []configuration.Configuration {
+func generateNodeConfigs(nodes []nodeInfo, cloudSettings CloudSettings) []configuration.Configuration {
 
 	var (
 		metricsPort      = 8001
@@ -133,12 +140,20 @@ func generateNodeConfigs(nodes []nodeInfo, virtual, light, heavy int) []configur
 		keyPath         = "node_%d.json"
 	)
 
+	if cloudSettings.API.TestWalletAPIPortStart != 0 {
+		testWalletPort = cloudSettings.API.TestWalletAPIPortStart
+	}
+	if cloudSettings.API.AdminPort != 0 {
+		adminAPIPort = cloudSettings.API.AdminPort
+	}
+
 	appConfigs := []configuration.Configuration{}
 	for i := 0; i < len(nodes); i++ {
-		role := getRole(&virtual, &light, &heavy)
+		role := getRole(&cloudSettings.Virtual, &cloudSettings.Light, &cloudSettings.Heavy)
 		nodes[i].role = role.String()
 
 		conf := configuration.NewConfiguration()
+		conf.AvailabilityChecker.Enabled = false
 		{
 			conf.Host.Transport.Address = defaultHost + ":" + strconv.Itoa(netPort)
 			nodes[i].host = conf.Host.Transport.Address
@@ -284,15 +299,27 @@ func generateCertificates(nodesInfo []nodeInfo, settings netSettings) (map[strin
 	return certs, nil
 }
 
+type CloudSettings struct {
+	Virtual, Light, Heavy int
+
+	API struct {
+		TestWalletAPIPortStart int
+		AdminPort              int
+	}
+	Pulsar struct {
+		PulseTime int
+	}
+}
+
 // PrepareCloudConfiguration generates all configs and factories for launching cloud mode
 // It doesn't use file system at all. Everything generated in memory
-func PrepareCloudConfiguration(virtual, light, heavy int) (
+func PrepareCloudConfiguration(cloudSettings CloudSettings) (
 	[]configuration.Configuration,
 	configuration.BaseCloudConfig,
 	CertManagerFactory,
 	KeyStoreFactory,
 ) {
-	totalNum := virtual + light + heavy
+	totalNum := cloudSettings.Virtual + cloudSettings.Light + cloudSettings.Heavy
 	if totalNum < 1 {
 		panic("no nodes given")
 	}
@@ -302,7 +329,7 @@ func PrepareCloudConfiguration(virtual, light, heavy int) (
 		panic(throw.W(err, "Failed to gen keys"))
 	}
 
-	appConfigs := generateNodeConfigs(nodes, virtual, light, heavy)
+	appConfigs := generateNodeConfigs(nodes, cloudSettings)
 
 	settings := netSettings{
 		majorityRule: totalNum,
@@ -310,14 +337,14 @@ func PrepareCloudConfiguration(virtual, light, heavy int) (
 			virtual       uint
 			lightMaterial uint
 			heavyMaterial uint
-		}{virtual: uint(virtual), lightMaterial: uint(light), heavyMaterial: uint(heavy)},
+		}{virtual: uint(cloudSettings.Virtual), lightMaterial: uint(cloudSettings.Light), heavyMaterial: uint(cloudSettings.Heavy)},
 	}
 	certs, err := generateCertificates(nodes, settings)
 	if err != nil {
 		panic(throw.W(err, "Failed to gen certificates"))
 	}
 
-	baseCloudConf := generateBaseCloudConfig(nodes)
+	baseCloudConf := generateBaseCloudConfig(nodes, cloudSettings)
 
 	pulsarKeys, err := makeNodeWithKeys()
 	if err != nil {
