@@ -9,6 +9,7 @@ import (
 	"context"
 	"net"
 	"net/http"
+	"time"
 
 	jsoniter "github.com/json-iterator/go"
 
@@ -76,7 +77,15 @@ func (s *TestWalletServer) Start(ctx context.Context) error {
 }
 
 func (s *TestWalletServer) Stop(ctx context.Context) error {
-	return s.server.Close()
+	const timeOut = 5
+
+	ctxWithTimeout, cancel := context.WithTimeout(ctx, timeOut*time.Second)
+	defer cancel()
+	err := s.server.Shutdown(ctxWithTimeout)
+	if err != nil {
+		return errors.W(err, "Can't gracefully stop API server")
+	}
+	return nil
 }
 
 // NodeReadyMiddleware returns 503 ServiceUnavailable until node is ready
