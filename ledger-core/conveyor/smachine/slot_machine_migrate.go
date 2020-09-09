@@ -6,8 +6,6 @@
 package smachine
 
 import (
-	"time"
-
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -88,7 +86,7 @@ func (m *SlotMachine) migrateSlot(migrateCount uint32, slot *Slot, w FixedSlotWo
 
 func (m *SlotMachine) _migrateSlot(lastMigrationCount uint32, slot *Slot, worker FixedSlotWorker) (isEmptyOrWeak, isAvailable bool) {
 
-	inactivityNano := slot.touch(time.Now().UnixNano())
+	slot.touchAfterInactive()
 
 	var pendingUpdate StateUpdate
 
@@ -106,9 +104,7 @@ func (m *SlotMachine) _migrateSlot(lastMigrationCount uint32, slot *Slot, worker
 					}
 					stateUpdate, skipAll := mc.executeMigration(migrateFn)
 
-					activityNano := slot.touch(time.Now().UnixNano())
-					slot.logStepMigrate(stateUpdate, migrateFn, inactivityNano, activityNano)
-					inactivityNano = durationUnknownOrTooShortNano
+					slot.logStepMigrate(stateUpdate, migrateFn, slot.touchAfterActive())
 
 					switch {
 					case !typeOfStateUpdate(stateUpdate).IsSubroutineSafe():
