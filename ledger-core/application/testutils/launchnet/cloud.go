@@ -24,9 +24,14 @@ var (
 )
 
 func prepareConfigProvider() (*insapp.CloudConfigurationProvider, error) {
-	pulseTime, err := strconv.Atoi(os.Getenv("PULSARD_PULSAR_PULSETIME"))
-	if err != nil {
-		return nil, throw.W(err, "Can't convert env var")
+	pulseEnv := os.Getenv("PULSARD_PULSAR_PULSETIME")
+	var pulseTime int
+	var err error
+	if len(pulseEnv) != 0 {
+		pulseTime, err = strconv.Atoi(pulseEnv)
+		if err != nil {
+			return nil, throw.W(err, "Can't convert env var")
+		}
 	}
 
 	cloudSettings := insapp.CloudSettings{
