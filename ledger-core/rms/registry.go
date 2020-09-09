@@ -9,8 +9,6 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/gogo/protobuf/types"
-
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/protokit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -122,9 +120,6 @@ func (p *TypeRegistry) GetSpecial(id uint64, special string) reflect.Type {
 }
 
 func UnmarshalType(b []byte, typeFn func(uint64) reflect.Type) (uint64, reflect.Type, error) {
-	if len(b) == 0 {
-		return 0, reflect.TypeOf(types.BytesValue{}), nil
-	}
 	switch ct, id, err := protokit.PeekContentTypeAndPolymorphIDFromBytes(b); {
 	case err != nil:
 		return 0, nil, err

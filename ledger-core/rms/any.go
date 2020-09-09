@@ -55,12 +55,20 @@ func (p *Any) MarshalTo(b []byte) (int, error) {
 	if p.value != nil {
 		return p.value.MarshalTo(b)
 	}
+	_, _, err := UnmarshalType(b, func(u uint64) reflect.Type { return nil })
+	if err != nil {
+		return 0, err
+	}
 	return 0, nil
 }
 
 func (p *Any) MarshalToSizedBuffer(b []byte) (int, error) {
 	if p.value != nil {
 		return p.value.MarshalToSizedBuffer(b)
+	}
+	_, _, err := UnmarshalType(b, func(u uint64) reflect.Type { return nil })
+	if err != nil {
+		return 0, err
 	}
 	return 0, nil
 }
@@ -97,7 +105,7 @@ func (p *Any) Equal(that interface{}) bool {
 		return false
 	}
 
-	if eq, ok := thatValue.(interface{ Equal(that interface{}) bool}); ok {
+	if eq, ok := thatValue.(interface{ Equal(that interface{}) bool }); ok {
 		return eq.Equal(p.value)
 	}
 	return false
