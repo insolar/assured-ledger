@@ -35,9 +35,7 @@ func Run(cb func() int) int {
 }
 
 func setupCloudWithConsensus() (func(), error) {
-	cancelFunc := func() {
-		fmt.Println("Empty cancellation function. Nothing done")
-	}
+	cancelFunc := func() {}
 
 	confProvider, err := prepareConfigProvider()
 	if err != nil {
