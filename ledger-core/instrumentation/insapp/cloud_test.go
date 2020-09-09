@@ -21,8 +21,9 @@ func Test_RunCloud(t *testing.T) {
 		numHeavyMaterials = 0
 	)
 
-	appConfigs, cloudBaseConf, certFactory, keyFactory := insapp.PrepareCloudConfiguration(numVirtual, numLightMaterials, numHeavyMaterials)
+	cloudSettings := insapp.CloudSettings{Virtual: numVirtual, Light: numLightMaterials, Heavy: numHeavyMaterials}
 
+	appConfigs, cloudBaseConf, certFactory, keyFactory := insapp.PrepareCloudConfiguration(cloudSettings)
 	baseConfig := configuration.NewConfiguration()
 	baseConfig.Log = cloudBaseConf.Log
 
