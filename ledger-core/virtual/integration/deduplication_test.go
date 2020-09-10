@@ -115,8 +115,8 @@ func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 
 					response := rms.VFindCallResponse{
 						LookedAt:   prevPulse,
-						Callee:     object,
-						Outgoing:   outgoing,
+						Callee:     rms.NewReference(object),
+						Outgoing:   rms.NewReference(outgoing),
 						Status:     rms.CallStateMissing,
 						CallResult: nil,
 					}
@@ -242,8 +242,8 @@ func TestDeduplication_SecondCallOfMethodAfterExecution(t *testing.T) {
 
 					response := rms.VFindCallResponse{
 						LookedAt:   prevPulse,
-						Callee:     object,
-						Outgoing:   outgoing,
+						Callee:     rms.NewReference(object),
+						Outgoing:   rms.NewReference(outgoing),
 						Status:     rms.CallStateMissing,
 						CallResult: nil,
 					}
@@ -665,9 +665,9 @@ func (s *deduplicateMethodUsingPrevVETest) confirmPending(
 	}
 
 	pl := rms.VDelegatedCallRequest{
-		Callee:       s.getObject(),
-		CallOutgoing: s.pendingOutgoing,
-		CallIncoming: s.pendingIncoming,
+		Callee:       rms.NewReference(s.getObject()),
+		CallOutgoing: rms.NewReference(s.pendingOutgoing),
+		CallIncoming: rms.NewReference(s.pendingIncoming),
 		CallFlags:    rms.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty),
 	}
 
@@ -678,9 +678,9 @@ func (s *deduplicateMethodUsingPrevVETest) finishPending(
 	ctx context.Context,
 ) {
 	pl := rms.VDelegatedRequestFinished{
-		Callee:       s.getObject(),
-		CallOutgoing: s.pendingOutgoing,
-		CallIncoming: s.pendingIncoming,
+		Callee:       rms.NewReference(s.getObject()),
+		CallOutgoing: rms.NewReference(s.pendingOutgoing),
+		CallIncoming: rms.NewReference(s.pendingIncoming),
 		CallType:     rms.CallTypeMethod,
 		CallFlags:    rms.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty),
 	}
@@ -700,13 +700,13 @@ func (s *deduplicateMethodUsingPrevVETest) setMessageCheckers(
 		report := rms.VStateReport{
 			AsOf:   s.getP1(),
 			Status: rms.StateStatusReady,
-			Object: s.getObject(),
+			Object: rms.NewReference(s.getObject()),
 
 			ProvidedContent: &rms.VStateReport_ProvidedContentBody{
 				LatestDirtyState: &rms.ObjectState{
-					Reference: gen.UniqueLocalRefWithPulse(s.getP1()),
-					Class:     s.getClass(),
-					State:     []byte("object memory"),
+					Reference: rms.NewReference(gen.UniqueLocalRefWithPulse(s.getP1())),
+					Class:     rms.NewReference(s.getClass()),
+					State:     rms.NewBytes([]byte("object memory")),
 				},
 			},
 		}
@@ -733,8 +733,8 @@ func (s *deduplicateMethodUsingPrevVETest) setMessageCheckers(
 
 			response := rms.VFindCallResponse{
 				LookedAt: s.getP1(),
-				Callee:   s.getObject(),
-				Outgoing: s.getOutgoingRef(),
+				Callee:   rms.NewReference(s.getObject()),
+				Outgoing: rms.NewReference(s.getOutgoingRef()),
 				Status:   testInfo.findRequestStatus,
 			}
 
@@ -742,11 +742,11 @@ func (s *deduplicateMethodUsingPrevVETest) setMessageCheckers(
 				response.CallResult = &rms.VCallResult{
 					CallType:        rms.CallTypeMethod,
 					CallFlags:       rms.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty),
-					Caller:          s.getCaller(),
-					Callee:          s.getObject(),
-					CallOutgoing:    s.getOutgoingLocal(),
-					CallIncoming:    s.getIncomingRef(),
-					ReturnArguments: []byte("found request"),
+					Caller:          rms.NewReference(s.getCaller()),
+					Callee:          rms.NewReference(s.getObject()),
+					CallOutgoing:    rms.NewReference(s.getOutgoingLocal()),
+					CallIncoming:    rms.NewReference(s.getIncomingRef()),
+					ReturnArguments: rms.NewBytes([]byte("found request")),
 				}
 			}
 

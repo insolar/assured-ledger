@@ -38,16 +38,16 @@ func BenchmarkVCallRequestGetMethod(b *testing.B) {
 
 	content := &rms.VStateReport_ProvidedContentBody{
 		LatestDirtyState: &rms.ObjectState{
-			Reference: reference.Local{},
-			Class:     class,
-			State:     walletMemory,
+			Reference: rms.NewReference(reference.Local{}),
+			Class:     rms.NewReference(class),
+			State:     rms.NewBytes(walletMemory),
 		},
 	}
 
 	report := &rms.VStateReport{
 		AsOf:            prevPulse.GetPulseNumber(),
 		Status:          rms.StateStatusReady,
-		Object:          object,
+		Object:          rms.NewReference(object),
 		ProvidedContent: content,
 	}
 
@@ -99,16 +99,16 @@ func BenchmarkVCallRequestAcceptMethod(b *testing.B) {
 
 	content := &rms.VStateReport_ProvidedContentBody{
 		LatestDirtyState: &rms.ObjectState{
-			Reference: reference.Local{},
-			Class:     class,
-			State:     walletMemory,
+			Reference: rms.NewReference(reference.Local{}),
+			Class:     rms.NewReference(class),
+			State:     rms.NewBytes(walletMemory),
 		},
 	}
 
 	report := &rms.VStateReport{
 		AsOf:            prevPulse.GetPulseNumber(),
 		Status:          rms.StateStatusReady,
-		Object:          object,
+		Object:          rms.NewReference(object),
 		ProvidedContent: content,
 	}
 
@@ -213,16 +213,16 @@ func BenchmarkTestAPIGetBalance(b *testing.B) {
 
 	content := &rms.VStateReport_ProvidedContentBody{
 		LatestDirtyState: &rms.ObjectState{
-			Reference: reference.Local{},
-			Class:     class,
-			State:     walletMemory,
+			Reference: rms.NewReference(reference.Local{}),
+			Class:     rms.NewReference(class),
+			State:     rms.NewBytes(walletMemory),
 		},
 	}
 
 	report := &rms.VStateReport{
 		AsOf:            prevPulse.GetPulseNumber(),
 		Status:          rms.StateStatusReady,
-		Object:          object,
+		Object:          rms.NewReference(object),
 		ProvidedContent: content,
 	}
 
@@ -255,16 +255,16 @@ func BenchmarkTestAPIGetBalanceParallel(b *testing.B) {
 
 	content := &rms.VStateReport_ProvidedContentBody{
 		LatestDirtyState: &rms.ObjectState{
-			Reference: reference.Local{},
-			Class:     class,
-			State:     walletMemory,
+			Reference: rms.NewReference(reference.Local{}),
+			Class:     rms.NewReference(class),
+			State:     rms.NewBytes(walletMemory),
 		},
 	}
 
 	report := &rms.VStateReport{
 		AsOf:            prevPulse.GetPulseNumber(),
 		Status:          rms.StateStatusReady,
-		Object:          object,
+		Object:          rms.NewReference(object),
 		ProvidedContent: content,
 	}
 

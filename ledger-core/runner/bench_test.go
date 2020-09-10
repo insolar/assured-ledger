@@ -31,6 +31,7 @@ func BenchmarkRunnerService(b *testing.B) {
 		class         = testwalletProxy.GetClass()
 		wallet, _     = testwallet.New()
 		defaultObject = insolar.MustSerialize(wallet)
+		defaultArgs   = insolar.MustSerialize([]interface{}{remoteObject, uint32(100)})
 	)
 
 	executionContext := execution.Context{
@@ -39,7 +40,7 @@ func BenchmarkRunnerService(b *testing.B) {
 		Request: &rms.VCallRequest{
 			CallType:       rms.CallTypeMethod,
 			CallSiteMethod: "GetBalance",
-			Arguments:      insolar.MustSerialize([]interface{}{remoteObject, uint32(100)}),
+			Arguments:      rms.NewBytes(defaultArgs),
 		},
 		Sequence: 0,
 		Object:   object,

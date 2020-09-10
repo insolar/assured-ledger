@@ -57,7 +57,7 @@ func assertVCallResult(t *testing.T,
 	require.Equal(t, rms.CallTypeMethod, res.CallType)
 	require.Equal(t, objectCaller, res.Caller)
 	require.Equal(t, objectCallee, res.Callee)
-	require.Equal(t, outgoing.GetLocal().Pulse(), res.CallOutgoing.GetLocal().Pulse())
+	require.Equal(t, outgoing.GetLocal().Pulse(), res.CallOutgoing.GetPulseOfLocal())
 	assert.Equal(t, flagsCaller.Interference, res.CallFlags.GetInterference()) // copy from VCallRequest
 	assert.Equal(t, flagsCaller.State, res.CallFlags.GetState())
 }
@@ -187,7 +187,7 @@ func Test_NoDeadLock_WhenOutgoingComeToSameNode(t *testing.T) {
 				})
 
 				typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
-					switch res.Callee {
+					switch res.Callee.GetValue() {
 					case objectAGlobal:
 						require.Equal(t, []byte("finish A.Foo"), res.ReturnArguments)
 						assertVCallResult(t, res, server.GlobalCaller(), objectAGlobal, test.flagsA, outgoingA)
@@ -199,15 +199,15 @@ func Test_NoDeadLock_WhenOutgoingComeToSameNode(t *testing.T) {
 						t.Fatalf("wrong Callee")
 					}
 					// we should resend that message only if it's CallResult from B to A
-					return res.Caller == objectAGlobal
+					return res.Caller.GetValue() == objectAGlobal
 				})
 			}
 
 			pl := utils.GenerateVCallRequestMethod(server)
 			pl.CallFlags = rms.BuildCallFlags(test.flagsA.Interference, test.flagsA.State)
-			pl.Callee = objectAGlobal
+			pl.Callee.Set(objectAGlobal)
 			pl.CallSiteMethod = "Foo"
-			pl.CallOutgoing = outgoingA
+			pl.CallOutgoing.Set(outgoingA)
 			server.SendPayload(ctx, pl)
 
 			commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
@@ -327,12 +327,12 @@ func TestVirtual_CallContractFromContract(t *testing.T) {
 				typedChecker.VCallRequest.Set(func(request *rms.VCallRequest) bool {
 					assertVCallRequest(t, objectA, objectB, request, test.flagsA)
 					assert.Equal(t, byteArguments, request.Arguments)
-					assert.Equal(t, server.GetPulse().PulseNumber, request.CallOutgoing.GetLocal().Pulse())
+					assert.Equal(t, server.GetPulse().PulseNumber, request.CallOutgoing.GetPulseOfLocal())
 					return true // resend
 				})
 
 				typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
-					switch res.Callee {
+					switch res.Callee.GetValue() {
 					case objectA:
 						require.Equal(t, []byte("finish A.Foo"), res.ReturnArguments)
 						assertVCallResult(t, res, server.GlobalCaller(), objectA, test.flagsA, outgoingA)
@@ -344,15 +344,15 @@ func TestVirtual_CallContractFromContract(t *testing.T) {
 						t.Fatalf("wrong Callee")
 					}
 					// we should resend that message only if it's CallResult from B to A
-					return res.Caller == objectA
+					return res.Caller.GetValue() == objectA
 				})
 			}
 
 			pl := utils.GenerateVCallRequestMethod(server)
 			pl.CallFlags = rms.BuildCallFlags(test.flagsA.Interference, test.flagsA.State)
 			pl.CallSiteMethod = "Foo"
-			pl.Callee = objectA
-			pl.CallOutgoing = outgoingA
+			pl.Callee.Set(objectA)
+			pl.CallOutgoing.Set(outgoingA)
 			server.SendPayload(ctx, pl)
 
 			commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
@@ -465,12 +465,12 @@ func TestVirtual_CallOtherMethodInObject(t *testing.T) {
 				typedChecker.VCallRequest.Set(func(request *rms.VCallRequest) bool {
 					assertVCallRequest(t, objectAGlobal, objectAGlobal, request, test.stateSender)
 					assert.Equal(t, byteArguments, request.Arguments)
-					assert.Equal(t, server.GetPulse().PulseNumber, request.CallOutgoing.GetLocal().Pulse())
+					assert.Equal(t, server.GetPulse().PulseNumber, request.CallOutgoing.GetPulseOfLocal())
 					return true // resend
 				})
 
 				typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
-					switch res.Caller {
+					switch res.Caller.GetValue() {
 					case objectAGlobal:
 						require.Equal(t, []byte("finish A.Bar"), res.ReturnArguments)
 						assertVCallResult(t, res, objectAGlobal, objectAGlobal, test.stateSender, outgoingA)
@@ -479,15 +479,15 @@ func TestVirtual_CallOtherMethodInObject(t *testing.T) {
 						assertVCallResult(t, res, server.GlobalCaller(), objectAGlobal, test.stateSender, outgoingA)
 					}
 					// we should resend that message only if it's CallResult from A to A
-					return res.Caller == objectAGlobal
+					return res.Caller.GetValue() == objectAGlobal
 				})
 			}
 
 			pl := utils.GenerateVCallRequestMethod(server)
 			pl.CallFlags = rms.BuildCallFlags(test.stateSender.Interference, test.stateSender.State)
-			pl.Callee = objectAGlobal
+			pl.Callee.Set(objectAGlobal)
 			pl.CallSiteMethod = "Foo"
-			pl.CallOutgoing = outgoingA
+			pl.CallOutgoing.Set(outgoingA)
 			server.SendPayload(ctx, pl)
 
 			commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
@@ -605,14 +605,14 @@ func TestVirtual_CallMethodFromConstructor(t *testing.T) {
 			{
 				typedChecker.VCallRequest.Set(func(request *rms.VCallRequest) bool {
 					assertVCallRequest(t, objectAGlobal, objectBGlobal, request, callFlags)
-					assert.Equal(t, server.GetPulse().PulseNumber, request.CallOutgoing.GetLocal().Pulse())
+					assert.Equal(t, server.GetPulse().PulseNumber, request.CallOutgoing.GetPulseOfLocal())
 					return true // resend
 				})
 				typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
 					assert.Equal(t, callFlags.State, res.CallFlags.GetState())
 					assert.Equal(t, callFlags.Interference, res.CallFlags.GetInterference())
 
-					switch res.Callee {
+					switch res.Callee.GetValue() {
 					case objectAGlobal:
 						require.Equal(t, []byte("finish A.New"), res.ReturnArguments)
 						require.Equal(t, rms.CallTypeConstructor, res.CallType)
@@ -622,19 +622,19 @@ func TestVirtual_CallMethodFromConstructor(t *testing.T) {
 						require.Equal(t, []byte("finish B.Foo"), res.ReturnArguments)
 						require.Equal(t, rms.CallTypeMethod, res.CallType)
 						require.Equal(t, objectAGlobal, res.Caller)
-						require.Equal(t, server.GetPulse().PulseNumber, res.CallOutgoing.GetLocal().Pulse())
+						require.Equal(t, server.GetPulse().PulseNumber, res.CallOutgoing.GetPulseOfLocal())
 
 					default:
 						t.Fatalf("wrong Callee")
 					}
 					// we should resend that message only if it's CallResult from B to A
-					return res.Caller == objectAGlobal
+					return res.Caller.GetValue() == objectAGlobal
 				})
 			}
 
 			pl := utils.GenerateVCallRequestConstructor(server)
-			pl.Callee = classA
-			pl.CallOutgoing = outgoingA
+			pl.Callee.Set(classA)
+			pl.CallOutgoing.Set(outgoingA)
 			server.SendPayload(ctx, pl)
 
 			// wait for all calls and SMs
@@ -691,15 +691,15 @@ func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 
 	pl := utils.GenerateVCallRequestMethod(server)
 	pl.CallFlags = rms.BuildCallFlags(tolerableFlags().Interference, tolerableFlags().State)
-	pl.Callee = object
+	pl.Callee.Set(object)
 
 	// add ExecutionMocks to runnerMock
 	{
-		key := pl.CallOutgoing.String()
+		key := pl.CallOutgoing.GetValue().String()
 		runnerMock.AddExecutionClassify(key, tolerableFlags(), nil)
 
-		builder := execution.NewRPCBuilder(pl.CallOutgoing, pl.Callee)
-		callMethod := builder.CallMethod(server.RandomGlobalWithPulse(), reference.Global{}, "Method", pl.Arguments)
+		builder := execution.NewRPCBuilder(pl.CallOutgoing.GetValue(), pl.Callee.GetValue())
+		callMethod := builder.CallMethod(server.RandomGlobalWithPulse(), reference.Global{}, "Method", pl.Arguments.GetBytes())
 
 		objectExecutionMock := runnerMock.AddExecutionMock(key)
 		objectExecutionMock.AddStart(nil, &execution.Update{
@@ -725,8 +725,8 @@ func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 				PulseNumber:       newPulse,
 				Callee:            request.Callee,
 				Outgoing:          request.CallOutgoing,
-				DelegateTo:        server.JetCoordinatorMock.Me(),
-				Approver:          approver,
+				DelegateTo:        rms.NewReference(server.JetCoordinatorMock.Me()),
+				Approver:          rms.NewReference(approver),
 			}
 			msg := rms.VDelegatedCallResponse{
 				Callee:                 request.Callee,

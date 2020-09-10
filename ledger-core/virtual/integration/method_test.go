@@ -63,14 +63,14 @@ func Method_PrepareObject(
 	case rms.StateStatusReady:
 		content = &rms.VStateReport_ProvidedContentBody{
 			LatestDirtyState: &rms.ObjectState{
-				Reference: reference.Local{},
-				Class:     testwalletProxy.GetClass(),
-				State:     walletState,
+				Reference: rms.NewReference(reference.Local{}),
+				Class:     rms.NewReference(testwalletProxy.GetClass()),
+				State:     rms.NewBytes(walletState),
 			},
 			LatestValidatedState: &rms.ObjectState{
-				Reference: reference.Local{},
-				Class:     testwalletProxy.GetClass(),
-				State:     walletState,
+				Reference: rms.NewReference(reference.Local{}),
+				Class:     rms.NewReference(testwalletProxy.GetClass()),
+				State:     rms.NewBytes(walletState),
 			},
 		}
 	case rms.StateStatusInactive:
@@ -81,7 +81,7 @@ func Method_PrepareObject(
 
 	vsrPayload := &rms.VStateReport{
 		Status:          state,
-		Object:          object,
+		Object:          rms.NewReference(object),
 		AsOf:            pulse,
 		ProvidedContent: content,
 	}
@@ -651,7 +651,7 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 			assert.Equal(t, objectA, request.Caller)
 			assert.Equal(t, rms.CallTypeMethod, request.CallType)
 			assert.Equal(t, callFlags, request.CallFlags)
-			assert.Equal(t, p, request.CallOutgoing.GetLocal().Pulse())
+			assert.Equal(t, p, request.CallOutgoing.GetPulseOfLocal())
 
 			switch request.Callee {
 			case objectB1Global:
@@ -680,15 +680,15 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 			case objectB1Global:
 				require.Equal(t, []byte("finish B1.Bar"), res.ReturnArguments)
 				require.Equal(t, objectA, res.Caller)
-				require.Equal(t, p, res.CallOutgoing.GetLocal().Pulse())
+				require.Equal(t, p, res.CallOutgoing.GetPulseOfLocal())
 			case objectB2Global:
 				require.Equal(t, []byte("finish B2.Bar"), res.ReturnArguments)
 				require.Equal(t, objectA, res.Caller)
-				require.Equal(t, p, res.CallOutgoing.GetLocal().Pulse())
+				require.Equal(t, p, res.CallOutgoing.GetPulseOfLocal())
 			case objectB3Global:
 				require.Equal(t, []byte("finish B3.Bar"), res.ReturnArguments)
 				require.Equal(t, objectA, res.Caller)
-				require.Equal(t, p, res.CallOutgoing.GetLocal().Pulse())
+				require.Equal(t, p, res.CallOutgoing.GetPulseOfLocal())
 			default:
 				t.Fatal("wrong Callee")
 			}
@@ -836,11 +836,11 @@ func TestVirtual_CallContractTwoTimes(t *testing.T) {
 			result := rms.VCallResult{
 				CallType:        request.CallType,
 				CallFlags:       request.CallFlags,
-				Caller:          request.Caller,
-				Callee:          request.Callee,
-				CallOutgoing:    request.CallOutgoing,
-				CallIncoming:    server.RandomGlobalWithPulse(),
-				ReturnArguments: []byte("finish B.Bar"),
+				Caller:          rms.NewReference(request.Caller),
+				Callee:          rms.NewReference(request.Callee),
+				CallOutgoing:    rms.NewReference(request.CallOutgoing),
+				CallIncoming:    rms.NewReference(server.RandomGlobalWithPulse()),
+				ReturnArguments: rms.NewBytes([]byte("finish B.Bar")),
 			}
 			msg := server.WrapPayload(&result).Finalize()
 			server.SendMessage(ctx, msg)
@@ -1005,19 +1005,19 @@ func TestVirtual_FutureMessageAddedToSlot(t *testing.T) {
 		report := &rms.VStateReport{
 			Status:               rms.StateStatusReady,
 			AsOf:                 p,
-			Object:               objectGlobal,
-			LatestValidatedState: validatedState,
-			LatestDirtyState:     dirtyState,
+			Object:               rms.NewReference(objectGlobal),
+			LatestValidatedState: rms.NewReference(validatedState),
+			LatestDirtyState:     rms.NewReference(dirtyState),
 			ProvidedContent: &rms.VStateReport_ProvidedContentBody{
 				LatestValidatedState: &rms.ObjectState{
-					Reference: validatedStateRef,
-					Class:     class,
-					State:     []byte(validatedMem),
+					Reference: rms.NewReference(validatedStateRef),
+					Class:     rms.NewReference(class),
+					State:     rms.NewBytes([]byte(validatedMem)),
 				},
 				LatestDirtyState: &rms.ObjectState{
-					Reference: dirtyStateRef,
-					Class:     class,
-					State:     []byte(dirtyMem),
+					Reference: rms.NewReference(dirtyStateRef),
+					Class:     rms.NewReference(class),
+					State:     rms.NewBytes([]byte(dirtyMem)),
 				},
 			},
 		}
@@ -1160,21 +1160,21 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 
 					content := &rms.VStateReport_ProvidedContentBody{
 						LatestDirtyState: &rms.ObjectState{
-							Reference: reference.Local{},
-							Class:     class,
-							State:     []byte(origDirtyObjectMem),
+							Reference: rms.NewReference(reference.Local{}),
+							Class:     rms.NewReference(class),
+							State:     rms.NewBytes([]byte(origDirtyObjectMem)),
 						},
 						LatestValidatedState: &rms.ObjectState{
-							Reference: reference.Local{},
-							Class:     class,
-							State:     []byte(origValidatedObjectMem),
+							Reference: rms.NewReference(reference.Local{}),
+							Class:     rms.NewReference(class),
+							State:     rms.NewBytes([]byte(origValidatedObjectMem)),
 						},
 					}
 
 					report := rms.VStateReport{
 						Status:          rms.StateStatusReady,
 						AsOf:            req.AsOf,
-						Object:          objectRef,
+						Object:          rms.NewReference(objectRef),
 						ProvidedContent: content,
 					}
 					server.SendPayload(ctx, &report)
@@ -1279,7 +1279,7 @@ func TestVirtual_Method_ForObjectWithMissingState(t *testing.T) {
 			state := &rms.VStateReport{
 				Status: rms.StateStatusMissing,
 				AsOf:   prevPulse,
-				Object: objectRef,
+				Object: rms.NewReference(objectRef),
 			}
 
 			server.SendPayload(ctx, state)
@@ -1425,9 +1425,9 @@ func TestVirtual_Method_ForbiddenIsolation(t *testing.T) {
 			if validatedState != nil {
 				validatedStateHeadRef = validatedState.HeadRef()
 				latestValidatedState = &rms.ObjectState{
-					Reference: validatedState.StateID(),
-					Class:     class,
-					State:     validatedState.Memory(),
+					Reference: rms.NewReference(validatedState.StateID()),
+					Class:     rms.NewReference(class),
+					State:     rms.NewBytes(validatedState.Memory()),
 				}
 			}
 
@@ -1435,15 +1435,15 @@ func TestVirtual_Method_ForbiddenIsolation(t *testing.T) {
 				pl := rms.VStateReport{
 					AsOf:                 pulseNumber,
 					Status:               rms.StateStatusReady,
-					Object:               objectRef,
-					LatestValidatedState: validatedStateHeadRef,
-					LatestDirtyState:     dirtyState.HeadRef(),
+					Object:               rms.NewReference(objectRef),
+					LatestValidatedState: rms.NewReference(validatedStateHeadRef),
+					LatestDirtyState:     rms.NewReference(dirtyState.HeadRef()),
 					ProvidedContent: &rms.VStateReport_ProvidedContentBody{
 						LatestValidatedState: latestValidatedState,
 						LatestDirtyState: &rms.ObjectState{
-							Reference: dirtyState.StateID(),
-							Class:     class,
-							State:     dirtyState.Memory(),
+							Reference: rms.NewReference(dirtyState.StateID()),
+							Class:     rms.NewReference(class),
+							State:     rms.NewBytes(dirtyState.Memory()),
 						},
 					},
 				}
@@ -1574,20 +1574,20 @@ func TestVirtual_Method_IntolerableCallChangeState(t *testing.T) {
 
 			content := &rms.VStateReport_ProvidedContentBody{
 				LatestDirtyState: &rms.ObjectState{
-					Reference: reference.Local{},
-					Class:     testwalletProxy.GetClass(),
-					State:     []byte(origObjectMem),
+					Reference: rms.NewReference(reference.Local{}),
+					Class:     rms.NewReference(testwalletProxy.GetClass()),
+					State:     rms.NewBytes([]byte(origObjectMem)),
 				},
 				LatestValidatedState: &rms.ObjectState{
-					Reference: reference.Local{},
-					Class:     testwalletProxy.GetClass(),
-					State:     []byte(origObjectMem),
+					Reference: rms.NewReference(reference.Local{}),
+					Class:     rms.NewReference(testwalletProxy.GetClass()),
+					State:     rms.NewBytes([]byte(origObjectMem)),
 				},
 			}
 			report := rms.VStateReport{
 				Status:          rms.StateStatusReady,
 				AsOf:            req.AsOf,
-				Object:          objectRef,
+				Object:          rms.NewReference(objectRef),
 				ProvidedContent: content,
 			}
 			server.SendPayload(ctx, &report)
@@ -1766,18 +1766,18 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 
 		report := &rms.VStateReport{
 			Status: rms.StateStatusReady,
-			Object: objectGlobal,
+			Object: rms.NewReference(objectGlobal),
 			AsOf:   prevPulse,
 			ProvidedContent: &rms.VStateReport_ProvidedContentBody{
 				LatestDirtyState: &rms.ObjectState{
-					Reference: reference.Local{},
-					Class:     class,
-					State:     initialState,
+					Reference: rms.NewReference(reference.Local{}),
+					Class:     rms.NewReference(class),
+					State:     rms.NewBytes(initialState),
 				},
 				LatestValidatedState: &rms.ObjectState{
-					Reference: reference.Local{},
-					Class:     class,
-					State:     initialState,
+					Reference: rms.NewReference(reference.Local{}),
+					Class:     rms.NewReference(class),
+					State:     rms.NewBytes(initialState),
 				},
 			},
 		}

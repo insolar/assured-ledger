@@ -80,21 +80,21 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 
 				content := &rms.VStateReport_ProvidedContentBody{
 					LatestDirtyState: &rms.ObjectState{
-						Reference:   dirtyStateRef,
-						Class:       class,
-						State:       dirtyState,
+						Reference:   rms.NewReference(dirtyStateRef),
+						Class:       rms.NewReference(class),
+						State:       rms.NewBytes(dirtyState),
 						Deactivated: test.dirtyIsDeactivated,
 					},
 					LatestValidatedState: &rms.ObjectState{
-						Reference: validatedStateRef,
-						Class:     class,
-						State:     validatedState,
+						Reference: rms.NewReference(validatedStateRef),
+						Class:     rms.NewReference(class),
+						State:     rms.NewBytes(validatedState),
 					},
 				}
 
 				pl := &rms.VStateReport{
 					Status:          rms.StateStatusReady,
-					Object:          objectGlobal,
+					Object:          rms.NewReference(objectGlobal),
 					AsOf:            pulseNumberFirst,
 					ProvidedContent: content,
 				}
@@ -319,11 +319,11 @@ func TestVirtual_CallMethod_On_CompletelyDeactivatedObject(t *testing.T) {
 					pl := rms.VCallRequest{
 						CallType:       callTypeTest.callType,
 						CallFlags:      rms.BuildCallFlags(isolation.Interference, isolation.State),
-						Caller:         server.GlobalCaller(),
-						Callee:         object,
+						Caller:         rms.NewReference(server.GlobalCaller()),
+						Callee:         rms.NewReference(object),
 						CallSiteMethod: methodName,
-						CallOutgoing:   server.BuildRandomOutgoingWithPulse(),
-						Arguments:      insolar.MustSerialize([]interface{}{}),
+						CallOutgoing:   rms.NewReference(server.BuildRandomOutgoingWithPulse()),
+						Arguments:      rms.NewBytes(insolar.MustSerialize([]interface{}{})),
 					}
 					server.SendPayload(ctx, &pl)
 
@@ -374,18 +374,18 @@ func TestVirtual_CallDeactivate_Intolerable(t *testing.T) {
 
 				report := &rms.VStateReport{
 					Status: rms.StateStatusReady,
-					Object: objectGlobal,
+					Object: rms.NewReference(objectGlobal),
 					AsOf:   prevPulse,
 					ProvidedContent: &rms.VStateReport_ProvidedContentBody{
 						LatestDirtyState: &rms.ObjectState{
-							Reference: reference.Local{},
-							Class:     class,
-							State:     []byte("initial state"),
+							Reference: rms.NewReference(reference.Local{}),
+							Class:     rms.NewReference(class),
+							State:     rms.NewBytes([]byte("initial state")),
 						},
 						LatestValidatedState: &rms.ObjectState{
-							Reference: reference.Local{},
-							Class:     class,
-							State:     []byte("initial state"),
+							Reference: rms.NewReference(reference.Local{}),
+							Class:     rms.NewReference(class),
+							State:     rms.NewBytes([]byte("initial state")),
 						},
 					},
 				}
@@ -542,8 +542,8 @@ func TestVirtual_DeactivateObject_ChangePulse(t *testing.T) {
 			token := server.DelegationToken(request.CallOutgoing, server.GlobalCaller(), request.Callee)
 
 			response := rms.VDelegatedCallResponse{
-				Callee:                 request.Callee,
-				CallIncoming:           request.CallIncoming,
+				Callee:                 rms.NewReference(request.Callee),
+				CallIncoming:           rms.NewReference(request.CallIncoming),
 				ResponseDelegationSpec: token,
 			}
 			server.SendPayload(ctx, &response)
@@ -560,17 +560,17 @@ func TestVirtual_DeactivateObject_ChangePulse(t *testing.T) {
 		report := rms.VStateReport{
 			Status: rms.StateStatusReady,
 			AsOf:   p1,
-			Object: objectRef,
+			Object: rms.NewReference(objectRef),
 			ProvidedContent: &rms.VStateReport_ProvidedContentBody{
 				LatestDirtyState: &rms.ObjectState{
-					Reference: reference.Local{},
-					Class:     class,
-					State:     []byte(origDirtyMem),
+					Reference: rms.NewReference(reference.Local{}),
+					Class:     rms.NewReference(class),
+					State:     rms.NewBytes([]byte(origDirtyMem)),
 				},
 				LatestValidatedState: &rms.ObjectState{
-					Reference: reference.Local{},
-					Class:     class,
-					State:     []byte(origValidatedMem),
+					Reference: rms.NewReference(reference.Local{}),
+					Class:     rms.NewReference(class),
+					State:     rms.NewBytes([]byte(origValidatedMem)),
 				},
 			},
 		}
@@ -779,15 +779,15 @@ func TestVirtual_Deactivation_Deduplicate(t *testing.T) {
 
 	// Constructor
 	constructRequest := utils.GenerateVCallRequestConstructor(server)
-	constructRequest.Callee = objectRef
+	constructRequest.Callee.Set(objectRef)
 	constructRequest.CallSiteMethod = "Destroy"
-	constructRequest.CallOutgoing = outgoing
+	constructRequest.CallOutgoing.Set(outgoing)
 
 	// Deactivation
 	deactivateRequest := utils.GenerateVCallRequestMethod(server)
-	deactivateRequest.Callee = objectRef
+	deactivateRequest.Callee.Set(objectRef)
 	deactivateRequest.CallSiteMethod = "Destroy"
-	deactivateRequest.CallOutgoing = outgoingDeactivate
+	deactivateRequest.CallOutgoing.Set(outgoingDeactivate)
 
 	requests := []*rms.VCallRequest{constructRequest, deactivateRequest, constructRequest, deactivateRequest}
 	for _, r := range requests {
@@ -838,7 +838,7 @@ func TestVirtual_DeduplicateCallAfterDeactivation_PrevVE(t *testing.T) {
 
 				report := &rms.VStateReport{
 					Status:          rms.StateStatusInactive,
-					Object:          objectGlobal,
+					Object:          rms.NewReference(objectGlobal),
 					AsOf:            prevPulse,
 					ProvidedContent: nil,
 				}
@@ -857,17 +857,17 @@ func TestVirtual_DeduplicateCallAfterDeactivation_PrevVE(t *testing.T) {
 
 					pl := &rms.VFindCallResponse{
 						LookedAt: request.LookAt,
-						Callee:   request.Callee,
-						Outgoing: request.Outgoing,
+						Callee:   rms.NewReference(request.Callee),
+						Outgoing: rms.NewReference(request.Outgoing),
 						Status:   rms.CallStateFound,
 						CallResult: &rms.VCallResult{
 							CallType:        rms.CallTypeMethod,
 							CallFlags:       rms.BuildCallFlags(testCase.flags.Interference, testCase.flags.State),
-							Callee:          request.Callee,
-							Caller:          server.GlobalCaller(),
-							CallOutgoing:    request.Outgoing,
-							CallIncoming:    server.RandomGlobalWithPulse(),
-							ReturnArguments: []byte("result from past"),
+							Callee:          rms.NewReference(request.Callee),
+							Caller:          rms.NewReference(server.GlobalCaller()),
+							CallOutgoing:    rms.NewReference(request.Outgoing),
+							CallIncoming:    rms.NewReference(server.RandomGlobalWithPulse()),
+							ReturnArguments: rms.NewBytes([]byte("result from past")),
 						},
 					}
 					server.SendPayload(ctx, pl)
@@ -1002,20 +1002,20 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 				report := rms.VStateReport{
 					Status:                      rms.StateStatusReady,
 					AsOf:                        p1,
-					Object:                      objectRef,
+					Object:                      rms.NewReference(objectRef),
 					OrderedPendingCount:         1,
 					OrderedPendingEarliestPulse: p1,
-					LatestDirtyState:            stateRef,
+					LatestDirtyState:            rms.NewReference(stateRef),
 					ProvidedContent: &rms.VStateReport_ProvidedContentBody{
 						LatestDirtyState: &rms.ObjectState{
-							Reference: stateRef.GetLocal(),
-							Class:     class,
-							State:     []byte(origMem),
+							Reference: rms.NewReference(stateRef.GetLocal()),
+							Class:     rms.NewReference(class),
+							State:     rms.NewBytes([]byte(origMem)),
 						},
 						LatestValidatedState: &rms.ObjectState{
-							Reference: stateRef.GetLocal(),
-							Class:     class,
-							State:     []byte(origMem),
+							Reference: rms.NewReference(stateRef.GetLocal()),
+							Class:     rms.NewReference(class),
+							State:     rms.NewBytes([]byte(origMem)),
 						},
 					},
 				}
@@ -1026,10 +1026,10 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 			{ // fill object pending table
 				dcrAwait := server.Journal.WaitStopOf(&handlers.SMVDelegatedCallRequest{}, 1)
 				dcr := rms.VDelegatedCallRequest{
-					Callee:       objectRef,
+					Callee:       rms.NewReference(objectRef),
 					CallFlags:    rms.BuildCallFlags(deactivateIsolation.Interference, deactivateIsolation.State),
-					CallOutgoing: outgoing,
-					CallIncoming: incoming,
+					CallOutgoing: rms.NewReference(outgoing),
+					CallIncoming: rms.NewReference(incoming),
 				}
 				server.SendPayload(ctx, &dcr)
 				commonTestUtils.WaitSignalsTimed(t, 10*time.Second, dcrAwait)
@@ -1039,12 +1039,12 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 			{ // send delegation request finished with deactivate flag
 				pl := rms.VDelegatedRequestFinished{
 					CallType:     rms.CallTypeMethod,
-					Callee:       objectRef,
-					CallOutgoing: outgoing,
-					CallIncoming: incoming,
+					Callee:       rms.NewReference(objectRef),
+					CallOutgoing: rms.NewReference(outgoing),
+					CallIncoming: rms.NewReference(incoming),
 					CallFlags:    rms.BuildCallFlags(deactivateIsolation.Interference, deactivateIsolation.State),
 					LatestState: &rms.ObjectState{
-						State:       nil,
+						State:       rms.NewBytes(nil),
 						Deactivated: true,
 					},
 				}

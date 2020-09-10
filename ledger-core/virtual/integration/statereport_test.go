@@ -30,7 +30,7 @@ func makeVStateReportWithState(
 ) *rms.VStateReport {
 	res := rms.VStateReport{
 		Status: stateStatus,
-		Object: objectRef,
+		Object: rms.NewReference(objectRef),
 		AsOf:   asOf,
 	}
 	if state != nil {
@@ -82,18 +82,18 @@ func TestVirtual_VStateReport_StateAlreadyExists(t *testing.T) {
 
 				pl := &rms.VStateReport{
 					Status: rms.StateStatusReady,
-					Object: objectGlobal,
+					Object: rms.NewReference(objectGlobal),
 					AsOf:   prevPulse,
 					ProvidedContent: &rms.VStateReport_ProvidedContentBody{
 						LatestDirtyState: &rms.ObjectState{
-							Reference: initRef,
-							Class:     class,
-							State:     initState,
+							Reference: rms.NewReference(initRef),
+							Class:     rms.NewReference(class),
+							State:     rms.NewBytes(initState),
 						},
 						LatestValidatedState: &rms.ObjectState{
-							Reference: initRef,
-							Class:     class,
-							State:     initState,
+							Reference: rms.NewReference(initRef),
+							Class:     rms.NewReference(class),
+							State:     rms.NewBytes(initState),
 						},
 					},
 				}
@@ -120,15 +120,15 @@ func TestVirtual_VStateReport_StateAlreadyExists(t *testing.T) {
 			{
 				pl := &rms.VStateReport{
 					Status: testCase.status,
-					Object: objectGlobal,
+					Object: rms.NewReference(objectGlobal),
 					AsOf:   prevPulse,
 				}
 				if testCase.status == rms.StateStatusReady {
 					pl.ProvidedContent = &rms.VStateReport_ProvidedContentBody{
 						LatestDirtyState: &rms.ObjectState{
-							Reference: server.RandomLocalWithPulse(),
-							Class:     class,
-							State:     []byte("new state"),
+							Reference: rms.NewReference(server.RandomLocalWithPulse()),
+							Class:     rms.NewReference(class),
+							State:     rms.NewBytes([]byte("new state")),
 						},
 					}
 				}

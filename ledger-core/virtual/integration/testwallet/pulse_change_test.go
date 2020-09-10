@@ -44,20 +44,20 @@ func createWallet(
 
 	content := &rms.VStateReport_ProvidedContentBody{
 		LatestDirtyState: &rms.ObjectState{
-			Reference: reference.Local{},
-			Class:     testwalletProxy.GetClass(),
-			State:     walletState,
+			Reference: rms.NewReference(reference.Local{}),
+			Class:     rms.NewReference(testwalletProxy.GetClass()),
+			State:     rms.NewBytes(walletState),
 		},
 		LatestValidatedState: &rms.ObjectState{
-			Reference: reference.Local{},
-			Class:     testwalletProxy.GetClass(),
-			State:     walletState,
+			Reference: rms.NewReference(reference.Local{}),
+			Class:     rms.NewReference(testwalletProxy.GetClass()),
+			State:     rms.NewBytes(walletState),
 		},
 	}
 
 	vsrPayload := &rms.VStateReport{
 		Status:          rms.StateStatusReady,
-		Object:          object,
+		Object:          rms.NewReference(object),
 		AsOf:            pulse,
 		ProvidedContent: content,
 	}

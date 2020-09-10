@@ -96,8 +96,8 @@ func TestVirtual_VCachedMemoryRequestHandler(t *testing.T) {
 			executeDone := suite.server.Journal.WaitStopOf(&handlers.SMVCachedMemoryRequest{}, 1)
 			{
 				cachReq := &rms.VCachedMemoryRequest{
-					Object:  suite.object,
-					StateID: stateRef,
+					Object:  rms.NewReference(suite.object),
+					StateID: rms.NewReference(stateRef),
 				}
 				suite.server.SendPayload(ctx, cachReq)
 			}
@@ -219,10 +219,10 @@ func pendingPrecondition(s *memoryCacheTest, ctx context.Context, t *testing.T) 
 
 	{ // delegation request
 		delegationReq := &rms.VDelegatedCallRequest{
-			Callee:       s.object,
+			Callee:       rms.NewReference(s.object),
 			CallFlags:    flags,
-			CallOutgoing: outgoing,
-			CallIncoming: incoming,
+			CallOutgoing: rms.NewReference(outgoing),
+			CallIncoming: rms.NewReference(incoming),
 		}
 		await := s.server.Journal.WaitStopOf(&handlers.SMVDelegatedCallRequest{}, 1)
 		s.server.SendPayload(ctx, delegationReq)
@@ -232,15 +232,15 @@ func pendingPrecondition(s *memoryCacheTest, ctx context.Context, t *testing.T) 
 	{ // send delegation request finished with new state
 		pl := rms.VDelegatedRequestFinished{
 			CallType:     rms.CallTypeMethod,
-			Callee:       s.object,
-			CallOutgoing: outgoing,
-			CallIncoming: incoming,
+			Callee:       rms.NewReference(s.object),
+			CallOutgoing: rms.NewReference(outgoing),
+			CallIncoming: rms.NewReference(incoming),
 			CallFlags:    flags,
 			LatestState: &rms.ObjectState{
-				Reference:     s.server.RandomLocalWithPulse(),
-				Class:         s.class,
-				State:         []byte(newState),
-				PreviousState: []byte("initial state"),
+				Reference:     rms.NewReference(s.server.RandomLocalWithPulse()),
+				Class:         rms.NewReference(s.class),
+				State:         rms.NewBytes([]byte(newState)),
+				PreviousState: rms.NewBytes([]byte("initial state")),
 			},
 		}
 		await := s.server.Journal.WaitStopOf(&handlers.SMVDelegatedRequestFinished{}, 1)

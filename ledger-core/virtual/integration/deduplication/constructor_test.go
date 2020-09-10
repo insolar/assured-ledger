@@ -275,12 +275,12 @@ func (test *DeduplicationDifferentPulsesCase) run(t *testing.T) {
 		test.VDelegatedRequestFinished = &rms.VDelegatedRequestFinished{
 			CallType:     rms.CallTypeConstructor,
 			CallFlags:    rms.BuildCallFlags(isolation.Interference, isolation.State),
-			Callee:       object,
-			CallOutgoing: outgoing,
-			CallIncoming: reference.NewRecordOf(class, outgoing.GetLocal()),
+			Callee:       rms.NewReference(object),
+			CallOutgoing: rms.NewReference(outgoing),
+			CallIncoming: rms.NewReference(reference.NewRecordOf(class, outgoing.GetLocal())),
 			LatestState: &rms.ObjectState{
-				Class: class,
-				State: ExecutionResultFromPreviousNode,
+				Class: rms.NewReference(class),
+				State: rms.NewBytes(ExecutionResultFromPreviousNode),
 			},
 		}
 	}
@@ -542,7 +542,7 @@ func TestDeduplication_DifferentPulses_ReadyState(t *testing.T) {
 			Status:              rms.StateStatusReady,
 			OrderedPendingCount: 0,
 			ProvidedContent: &rms.VStateReport_ProvidedContentBody{
-				LatestDirtyState: &rms.ObjectState{State: []byte("123")},
+				LatestDirtyState: &rms.ObjectState{State: rms.NewBytes([]byte("123"))},
 			},
 		}
 
@@ -602,7 +602,7 @@ func TestDeduplication_DifferentPulses_ReadyState(t *testing.T) {
 			Status:              rms.StateStatusReady,
 			OrderedPendingCount: 1,
 			ProvidedContent: &rms.VStateReport_ProvidedContentBody{
-				LatestDirtyState: &rms.ObjectState{State: []byte("123")},
+				LatestDirtyState: &rms.ObjectState{State: rms.NewBytes([]byte("123"))},
 			},
 		}
 

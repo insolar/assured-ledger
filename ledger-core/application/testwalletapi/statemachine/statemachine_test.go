@@ -51,10 +51,10 @@ func TestSMTestAPICall_MethodResends(t *testing.T) {
 
 	request := rms.VCallRequest{
 		CallType:       rms.CallTypeMethod,
-		Callee:         gen.UniqueGlobalRef(),
+		Callee:         rms.NewReference(gen.UniqueGlobalRef()),
 		CallFlags:      rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 		CallSiteMethod: "New",
-		Arguments:      []byte("some args"),
+		Arguments:      rms.NewBytes([]byte("some args")),
 	}
 
 	slotMachine.PrepareMockedMessageSender(mc)
@@ -76,10 +76,11 @@ func TestSMTestAPICall_MethodResends(t *testing.T) {
 	messageSent := make(chan struct{}, 1)
 	slotMachine.MessageSender.SendRole.Set(func(_ context.Context, msg rms.Marshaler, role affinity.DynamicRole, object reference.Global, pn pulse.Number, _ ...messagesender.SendOption) error {
 		res := msg.(*rms.VCallRequest)
+
 		// ensure that both times request is the same
 		assert.Equal(t, APICaller, res.Caller)
-		assert.Equal(t, APICaller.GetBase(), res.CallOutgoing.GetBase())
-		assert.Equal(t, p1, res.CallOutgoing.GetLocal().GetPulseNumber())
+		assert.Equal(t, APICaller.GetBase(), res.CallOutgoing.GetValue().GetBase())
+		assert.Equal(t, p1, res.CallOutgoing.GetPulseOfLocal())
 		assert.Equal(t, affinity.DynamicRoleVirtualExecutor, role)
 		assert.Equal(t, request.Callee, object)
 
@@ -97,9 +98,9 @@ func TestSMTestAPICall_MethodResends(t *testing.T) {
 	testutils.WaitSignalsTimed(t, 10*time.Second, messageSent)
 
 	response := &rms.VCallResult{
-		Caller:          gen.UniqueGlobalRef(),
-		Callee:          gen.UniqueGlobalRef(),
-		ReturnArguments: []byte("some results"),
+		Caller:          rms.NewReference(gen.UniqueGlobalRef()),
+		Callee:          rms.NewReference(gen.UniqueGlobalRef()),
+		ReturnArguments: rms.NewBytes([]byte("some results")),
 	}
 
 	outgoingRef := smRequest.requestPayload.CallOutgoing
@@ -127,10 +128,10 @@ func TestSMTestAPICall_MethodEcho(t *testing.T) {
 
 	request := rms.VCallRequest{
 		CallType:       rms.CallTypeMethod,
-		Callee:         echoRef,
+		Callee:         rms.NewReference(echoRef),
 		CallFlags:      rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 		CallSiteMethod: "can be any",
-		Arguments:      []byte("some args"),
+		Arguments:      rms.NewBytes([]byte("some args")),
 	}
 
 	slotMachine.PrepareMockedMessageSender(mc)
@@ -170,10 +171,10 @@ func TestSMTestAPICall_Constructor(t *testing.T) {
 
 	request := rms.VCallRequest{
 		CallType:       rms.CallTypeConstructor,
-		Callee:         gen.UniqueGlobalRef(),
+		Callee:         rms.NewReference(gen.UniqueGlobalRef()),
 		CallFlags:      rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 		CallSiteMethod: "New",
-		Arguments:      []byte("some args"),
+		Arguments:      rms.NewBytes([]byte("some args")),
 	}
 
 	slotMachine.PrepareMockedMessageSender(mc)
@@ -198,10 +199,10 @@ func TestSMTestAPICall_Constructor(t *testing.T) {
 
 		// ensure that both times request is the same
 		assert.Equal(t, APICaller, res.Caller)
-		assert.Equal(t, APICaller.GetBase(), res.CallOutgoing.GetBase())
-		assert.Equal(t, p1, res.CallOutgoing.GetLocal().GetPulseNumber())
+		assert.Equal(t, APICaller.GetBase(), res.CallOutgoing.GetValue())
+		assert.Equal(t, p1, res.CallOutgoing.GetPulseOfLocal())
 		assert.Equal(t, affinity.DynamicRoleVirtualExecutor, role)
-		assert.Equal(t, reference.NewSelf(res.CallOutgoing.GetLocal()), object)
+		assert.Equal(t, reference.NewSelf(res.CallOutgoing.GetValueWithoutBase()), object)
 
 		messageSent <- struct{}{}
 		return nil
@@ -223,10 +224,10 @@ func TestSMTestAPICall_RetriesExceeded(t *testing.T) {
 
 	request := rms.VCallRequest{
 		CallType:       rms.CallTypeMethod,
-		Callee:         gen.UniqueGlobalRef(),
+		Callee:         rms.NewReference(gen.UniqueGlobalRef()),
 		CallFlags:      rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 		CallSiteMethod: "New",
-		Arguments:      []byte("some args"),
+		Arguments:      rms.NewBytes([]byte("some args")),
 	}
 
 	slotMachine.PrepareMockedMessageSender(mc)

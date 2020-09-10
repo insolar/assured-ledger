@@ -34,6 +34,7 @@ func TestAbort(t *testing.T) {
 		class         = testwalletProxy.GetClass()
 		wallet, _     = testwallet.New()
 		defaultObject = insolar.MustSerialize(wallet)
+		defaultArgs   = insolar.MustSerialize([]interface{}{remoteObject, uint32(100)})
 	)
 
 	executionContext := execution.Context{
@@ -42,7 +43,7 @@ func TestAbort(t *testing.T) {
 		Request: &rms.VCallRequest{
 			CallType:       rms.CallTypeMethod,
 			CallSiteMethod: "Transfer",
-			Arguments:      insolar.MustSerialize([]interface{}{remoteObject, uint32(100)}),
+			Arguments:      rms.NewBytes(defaultArgs),
 		},
 		Sequence: 0,
 		Object:   object,

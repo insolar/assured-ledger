@@ -14,10 +14,10 @@ func MakeMinimumValidVStateResult(server *Server, returnArgs []byte) *rms.VCallR
 	return &rms.VCallResult{
 		CallType:        rms.CallTypeMethod,
 		CallFlags:       rms.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty),
-		Callee:          server.RandomGlobalWithPulse(),
-		Caller:          server.GlobalCaller(),
-		ReturnArguments: returnArgs,
-		CallOutgoing:    server.BuildRandomOutgoingWithPulse(),
-		CallIncoming:    server.RandomGlobalWithPulse(),
+		Callee:          rms.NewReference(server.RandomGlobalWithPulse()),
+		Caller:          rms.NewReference(server.GlobalCaller()),
+		ReturnArguments: rms.NewBytes(returnArgs),
+		CallOutgoing:    rms.NewReference(server.BuildRandomOutgoingWithPulse()),
+		CallIncoming:    rms.NewReference(server.RandomGlobalWithPulse()),
 	}
 }

@@ -14,19 +14,19 @@ import (
 func GenerateVStateReport(server *Server, object rms.Reference, pulse rms.PulseNumber) *rms.VStateReport {
 	content := &rms.VStateReport_ProvidedContentBody{
 		LatestDirtyState: &rms.ObjectState{
-			Reference: reference.Local{},
-			Class:     testwalletProxy.GetClass(),
-			State:     []byte("dirty"),
+			Reference: rms.NewReference(reference.Local{}),
+			Class:     rms.NewReference(testwalletProxy.GetClass()),
+			State:     rms.NewBytes([]byte("dirty")),
 		},
 		LatestValidatedState: &rms.ObjectState{
-			Reference: reference.Local{},
-			Class:     testwalletProxy.GetClass(),
-			State:     []byte("validated"),
+			Reference: rms.NewReference(reference.Local{}),
+			Class:     rms.NewReference(testwalletProxy.GetClass()),
+			State:     rms.NewBytes([]byte("validated")),
 		},
 	}
 	return &rms.VStateReport{
 		Status:          rms.StateStatusReady,
-		Object:          object,
+		Object:          rms.NewReference(object),
 		AsOf:            pulse,
 		ProvidedContent: content,
 	}

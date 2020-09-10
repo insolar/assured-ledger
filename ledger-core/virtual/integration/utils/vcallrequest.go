@@ -22,12 +22,12 @@ func GenerateVCallRequestConstructor(server *Server) *rms.VCallRequest {
 	return &rms.VCallRequest{
 		CallType:       rms.CallTypeConstructor,
 		CallFlags:      rms.BuildCallFlags(isolation.Interference, isolation.State),
-		Caller:         server.GlobalCaller(),
-		Callee:         gen.UniqueGlobalRefWithPulse(pulse.LocalRelative),
+		Caller:         rms.NewReference(server.GlobalCaller()),
+		Callee:         rms.NewReference(gen.UniqueGlobalRefWithPulse(pulse.LocalRelative)),
 		CallSiteMethod: "New",
 		CallSequence:   1,
-		CallOutgoing:   server.BuildRandomOutgoingWithPulse(),
-		Arguments:      insolar.MustSerialize([]interface{}{}),
+		CallOutgoing:   rms.NewReference(server.BuildRandomOutgoingWithPulse()),
+		Arguments:      rms.NewBytes(insolar.MustSerialize([]interface{}{})),
 	}
 }
 
@@ -36,12 +36,12 @@ func GenerateVCallRequestMethod(server *Server) *rms.VCallRequest {
 	return &rms.VCallRequest{
 		CallType:       rms.CallTypeMethod,
 		CallFlags:      rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
-		Caller:         server.GlobalCaller(),
-		Callee:         server.RandomGlobalWithPulse(),
+		Caller:         rms.NewReference(server.GlobalCaller()),
+		Callee:         rms.NewReference(server.RandomGlobalWithPulse()),
 		CallSiteMethod: "Method",
 		CallSequence:   1,
-		CallOutgoing:   server.BuildRandomOutgoingWithPulse(),
-		Arguments:      insolar.MustSerialize([]interface{}{}),
+		CallOutgoing:   rms.NewReference(server.BuildRandomOutgoingWithPulse()),
+		Arguments:      rms.NewBytes(insolar.MustSerialize([]interface{}{})),
 	}
 }
 

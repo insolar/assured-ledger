@@ -437,7 +437,7 @@ func TestDelegationToken_OldVEVDelegatedCallRequest(t *testing.T) {
 
 			statePl := rms.VStateReport{
 				Status:                      rms.StateStatusEmpty,
-				Object:                      object,
+				Object:                      rms.NewReference(object),
 				AsOf:                        p,
 				OrderedPendingCount:         1,
 				OrderedPendingEarliestPulse: firstPulse.PulseNumber,
@@ -446,10 +446,10 @@ func TestDelegationToken_OldVEVDelegatedCallRequest(t *testing.T) {
 			server.WaitActiveThenIdleConveyor()
 
 			pl := rms.VDelegatedCallRequest{
-				Callee:         object,
+				Callee:         rms.NewReference(object),
 				CallFlags:      rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
-				CallIncoming:   incoming,
-				CallOutgoing:   outgoing,
+				CallIncoming:   rms.NewReference(incoming),
+				CallOutgoing:   rms.NewReference(outgoing),
 				DelegationSpec: delegationToken,
 			}
 			msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(executorRef).Finalize()

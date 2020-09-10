@@ -66,24 +66,24 @@ func TestVirtual_VStateRequest(t *testing.T) {
 				expectedVStateReport := &rms.VStateReport{
 					Status:           rms.StateStatusReady,
 					AsOf:             pulseNumber,
-					Object:           object,
-					LatestDirtyState: object,
+					Object:           rms.NewReference(object),
+					LatestDirtyState: rms.NewReference(object),
 				}
 				switch test.flags {
 				case rms.RequestLatestDirtyState:
 					expectedVStateReport.ProvidedContent = &rms.VStateReport_ProvidedContentBody{
 						LatestDirtyState: &rms.ObjectState{
-							Reference: reference.Local{},
-							State:     rawWalletState,
-							Class:     testwallet.ClassReference,
+							Reference: rms.NewReference(reference.Local{}),
+							State:     rms.NewBytes(rawWalletState),
+							Class:     rms.NewReference(testwallet.ClassReference),
 						},
 					}
 				case rms.RequestLatestValidatedState:
 					expectedVStateReport.ProvidedContent = &rms.VStateReport_ProvidedContentBody{
 						LatestValidatedState: &rms.ObjectState{
-							Reference: reference.Local{},
-							State:     rawWalletState,
-							Class:     testwallet.ClassReference,
+							Reference: rms.NewReference(reference.Local{}),
+							State:     rms.NewBytes(rawWalletState),
+							Class:     rms.NewReference(testwallet.ClassReference),
 						},
 					}
 				}
@@ -95,7 +95,7 @@ func TestVirtual_VStateRequest(t *testing.T) {
 
 			pl := &rms.VStateRequest{
 				AsOf:             pulseNumber,
-				Object:           object,
+				Object:           rms.NewReference(object),
 				RequestedContent: test.flags,
 			}
 			server.SendPayload(ctx, pl)
@@ -132,7 +132,7 @@ func TestVirtual_VStateRequest_Unknown(t *testing.T) {
 		typedChecker.VStateReport.Set(func(report *rms.VStateReport) bool {
 			assert.Equal(t, &rms.VStateReport{
 				AsOf:   pn,
-				Object: object,
+				Object: rms.NewReference(object),
 				Status: rms.StateStatusMissing,
 			}, report)
 
@@ -143,7 +143,7 @@ func TestVirtual_VStateRequest_Unknown(t *testing.T) {
 	{
 		pl := &rms.VStateRequest{
 			AsOf:             pn,
-			Object:           object,
+			Object:           rms.NewReference(object),
 			RequestedContent: rms.RequestLatestDirtyState,
 		}
 
@@ -180,7 +180,7 @@ func TestVirtual_VStateRequest_WhenObjectIsDeactivated(t *testing.T) {
 				vStateReport = &rms.VStateReport{
 					AsOf:            pulseNumber,
 					Status:          rms.StateStatusInactive,
-					Object:          objectGlobal,
+					Object:          rms.NewReference(objectGlobal),
 					ProvidedContent: nil,
 				}
 			)
@@ -208,7 +208,7 @@ func TestVirtual_VStateRequest_WhenObjectIsDeactivated(t *testing.T) {
 			{
 				payload := &rms.VStateRequest{
 					AsOf:             p2,
-					Object:           objectGlobal,
+					Object:           rms.NewReference(objectGlobal),
 					RequestedContent: test.requestState,
 				}
 				server.SendPayload(ctx, payload)

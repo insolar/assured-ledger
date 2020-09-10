@@ -100,29 +100,29 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 		firstExpectedToken = rms.CallDelegationToken{
 			TokenTypeAndFlags: rms.DelegationTokenTypeCall,
 			PulseNumber:       0, // fill later
-			Callee:            objectAGlobal,
-			Outgoing:          outgoingCallRef,
-			DelegateTo:        server.JetCoordinatorMock.Me(),
-			Approver:          firstApprover,
+			Callee:            rms.NewReference(objectAGlobal),
+			Outgoing:          rms.NewReference(outgoingCallRef),
+			DelegateTo:        rms.NewReference(server.JetCoordinatorMock.Me()),
+			Approver:          rms.NewReference(firstApprover),
 		}
 		secondExpectedToken = rms.CallDelegationToken{
 			TokenTypeAndFlags: rms.DelegationTokenTypeCall,
 			PulseNumber:       0, // fill later
-			Callee:            objectAGlobal,
-			Outgoing:          outgoingCallRef,
-			DelegateTo:        server.JetCoordinatorMock.Me(),
-			Approver:          secondApprover,
+			Callee:            rms.NewReference(objectAGlobal),
+			Outgoing:          rms.NewReference(outgoingCallRef),
+			DelegateTo:        rms.NewReference(server.JetCoordinatorMock.Me()),
+			Approver:          rms.NewReference(secondApprover),
 		}
 
 		expectedVCallRequest = rms.VCallRequest{
 			CallType:         rms.CallTypeMethod,
 			CallFlags:        rms.BuildCallFlags(barIsolation.Interference, barIsolation.State),
-			Callee:           objectBGlobal,
-			Caller:           objectAGlobal,
+			Callee:           rms.NewReference(objectBGlobal),
+			Caller:           rms.NewReference(objectAGlobal),
 			CallSequence:     1,
 			CallSiteMethod:   "Bar",
 			CallRequestFlags: rms.BuildCallRequestFlags(rms.SendResultDefault, rms.RepeatedCall),
-			Arguments:        []byte("123"),
+			Arguments:        rms.NewBytes([]byte("123")),
 		}
 	)
 
@@ -170,14 +170,14 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 			token := rms.CallDelegationToken{
 				TokenTypeAndFlags: rms.DelegationTokenTypeCall,
 				PulseNumber:       server.GetPulse().PulseNumber,
-				Callee:            request.Callee,
-				Outgoing:          request.CallOutgoing,
-				DelegateTo:        server.JetCoordinatorMock.Me(),
+				Callee:            rms.NewReference(request.Callee),
+				Outgoing:          rms.NewReference(request.CallOutgoing),
+				DelegateTo:        rms.NewReference(server.JetCoordinatorMock.Me()),
 			}
 
 			msg := rms.VDelegatedCallResponse{
-				Callee:                 request.Callee,
-				CallIncoming:           request.CallIncoming,
+				Callee:                 rms.NewReference(request.Callee),
+				CallIncoming:           rms.NewReference(request.CallIncoming),
 				ResponseDelegationSpec: token,
 			}
 
@@ -206,14 +206,14 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 
 			switch typedChecker.VCallRequest.CountBefore() {
 			case 1:
-				assert.Equal(t, secondPulse, request.CallOutgoing.GetLocal().Pulse()) // new pulse
+				assert.Equal(t, secondPulse, request.CallOutgoing.GetPulseOfLocal()) // new pulse
 				assert.Equal(t, firstExpectedToken, request.DelegationSpec)
 				assert.NotEqual(t, rms.RepeatedCall, request.CallRequestFlags.GetRepeatedCall())
 
 				server.IncrementPulse(ctx)
 
 			case 2:
-				assert.Equal(t, secondPulse, request.CallOutgoing.GetLocal().Pulse()) // the same pulse
+				assert.Equal(t, secondPulse, request.CallOutgoing.GetPulseOfLocal()) // the same pulse
 
 				// reRequest -> check all fields
 				expectedVCallRequest.DelegationSpec = secondExpectedToken
@@ -223,11 +223,11 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 				server.SendPayload(ctx, &rms.VCallResult{
 					CallType:        request.CallType,
 					CallFlags:       request.CallFlags,
-					Caller:          request.Caller,
-					Callee:          request.Callee,
-					CallOutgoing:    request.CallOutgoing,
-					CallIncoming:    server.RandomGlobalWithPulse(),
-					ReturnArguments: []byte("finish B.Bar"),
+					Caller:          rms.NewReference(request.Caller),
+					Callee:          rms.NewReference(request.Callee),
+					CallOutgoing:    rms.NewReference(request.CallOutgoing),
+					CallIncoming:    rms.NewReference(server.RandomGlobalWithPulse()),
+					ReturnArguments: rms.NewBytes([]byte("finish B.Bar")),
 				})
 			default:
 				t.Fatal("unexpected")
@@ -238,7 +238,7 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 		typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
 			assert.Equal(t, objectAGlobal, res.Callee)
 			assert.Equal(t, []byte("finish A.Foo"), res.ReturnArguments)
-			assert.Equal(t, int(firstPulse), int(res.CallOutgoing.GetLocal().Pulse()))
+			assert.Equal(t, int(firstPulse), int(res.CallOutgoing.GetPulseOfLocal()))
 			assert.Equal(t, secondExpectedToken, res.DelegationSpec)
 			return false
 		})
@@ -327,12 +327,12 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 		expectedVCallRequest = rms.VCallRequest{
 			CallType:         rms.CallTypeMethod,
 			CallFlags:        rms.BuildCallFlags(barIsolation.Interference, barIsolation.State),
-			Callee:           objectBGlobal,
-			Caller:           objectRef,
+			Callee:           rms.NewReference(objectBGlobal),
+			Caller:           rms.NewReference(objectRef),
 			CallSequence:     1,
 			CallSiteMethod:   "Bar",
 			CallRequestFlags: rms.BuildCallRequestFlags(rms.SendResultDefault, rms.RepeatedCall),
-			Arguments:        []byte("123"),
+			Arguments:        rms.NewBytes([]byte("123")),
 		}
 	)
 
@@ -372,8 +372,8 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 			assert.Equal(t, outgoing, request.CallOutgoing)
 
 			msg := rms.VDelegatedCallResponse{
-				Callee:       request.Callee,
-				CallIncoming: request.CallIncoming,
+				Callee:       rms.NewReference(request.Callee),
+				CallIncoming: rms.NewReference(request.CallIncoming),
 			}
 
 			switch typedChecker.VDelegatedCallRequest.CountBefore() {
@@ -383,10 +383,10 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 				firstExpectedToken = rms.CallDelegationToken{
 					TokenTypeAndFlags: rms.DelegationTokenTypeCall,
 					PulseNumber:       server.GetPulse().PulseNumber,
-					Callee:            request.Callee,
-					Outgoing:          request.CallOutgoing,
-					DelegateTo:        server.JetCoordinatorMock.Me(),
-					Approver:          firstApprover,
+					Callee:            rms.NewReference(request.Callee),
+					Outgoing:          rms.NewReference(request.CallOutgoing),
+					DelegateTo:        rms.NewReference(server.JetCoordinatorMock.Me()),
+					Approver:          rms.NewReference(firstApprover),
 				}
 				msg.ResponseDelegationSpec = firstExpectedToken
 			case 2:
@@ -395,10 +395,10 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 				secondExpectedToken = rms.CallDelegationToken{
 					TokenTypeAndFlags: rms.DelegationTokenTypeCall,
 					PulseNumber:       server.GetPulse().PulseNumber,
-					Callee:            request.Callee,
-					Outgoing:          request.CallOutgoing,
-					DelegateTo:        server.JetCoordinatorMock.Me(),
-					Approver:          secondApprover,
+					Callee:            rms.NewReference(request.Callee),
+					Outgoing:          rms.NewReference(request.CallOutgoing),
+					DelegateTo:        rms.NewReference(server.JetCoordinatorMock.Me()),
+					Approver:          rms.NewReference(secondApprover),
 				}
 				msg.ResponseDelegationSpec = secondExpectedToken
 				expectedVCallRequest.DelegationSpec = secondExpectedToken
@@ -421,7 +421,7 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 
 			switch typedChecker.VCallRequest.CountBefore() {
 			case 1:
-				assert.Equal(t, secondPulse, request.CallOutgoing.GetLocal().Pulse()) // new pulse
+				assert.Equal(t, secondPulse, request.CallOutgoing.GetPulseOfLocal()) // new pulse
 				assert.Equal(t, firstExpectedToken, request.DelegationSpec)
 				assert.NotEqual(t, rms.RepeatedCall, request.CallRequestFlags.GetRepeatedCall())
 
@@ -429,7 +429,7 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 				// request will be sent in previous pulse
 				// omit sending
 			case 2:
-				assert.Equal(t, secondPulse, request.CallOutgoing.GetLocal().Pulse()) // the same pulse
+				assert.Equal(t, secondPulse, request.CallOutgoing.GetPulseOfLocal()) // the same pulse
 
 				// reRequest -> check all fields
 				expectedVCallRequest.CallOutgoing = request.CallOutgoing
@@ -438,11 +438,11 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 				server.SendPayload(ctx, &rms.VCallResult{
 					CallType:        request.CallType,
 					CallFlags:       request.CallFlags,
-					Caller:          request.Caller,
-					Callee:          request.Callee,
-					CallOutgoing:    request.CallOutgoing,
-					CallIncoming:    server.RandomGlobalWithPulse(),
-					ReturnArguments: []byte("finish B.Bar"),
+					Caller:          rms.NewReference(request.Caller),
+					Callee:          rms.NewReference(request.Callee),
+					CallOutgoing:    rms.NewReference(request.CallOutgoing),
+					CallIncoming:    rms.NewReference(server.RandomGlobalWithPulse()),
+					ReturnArguments: rms.NewBytes([]byte("finish B.Bar")),
 				})
 			default:
 				t.Fatal("unexpected")
@@ -453,7 +453,7 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 		typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
 			assert.Equal(t, objectRef, res.Callee)
 			assert.Equal(t, []byte("finish A.New"), res.ReturnArguments)
-			assert.Equal(t, int(firstPulse), int(res.CallOutgoing.GetLocal().Pulse()))
+			assert.Equal(t, int(firstPulse), int(res.CallOutgoing.GetPulseOfLocal()))
 			assert.Equal(t, secondExpectedToken, res.DelegationSpec)
 			return false
 		})
@@ -597,7 +597,7 @@ func TestVirtual_CallContractOutgoingReturnsError(t *testing.T) {
 			assert.Equal(t, objectA, request.Caller)
 			assert.Equal(t, rms.CallTypeMethod, request.CallType)
 			assert.Equal(t, callFlags, request.CallFlags)
-			assert.Equal(t, p, request.CallOutgoing.GetLocal().Pulse())
+			assert.Equal(t, p, request.CallOutgoing.GetPulseOfLocal())
 
 			switch request.Callee {
 			case objectB:
@@ -625,7 +625,7 @@ func TestVirtual_CallContractOutgoingReturnsError(t *testing.T) {
 				require.Equal(t, expectedError.Error(), contractErr.Error())
 
 				require.Equal(t, objectA, res.Caller)
-				require.Equal(t, p, res.CallOutgoing.GetLocal().Pulse())
+				require.Equal(t, p, res.CallOutgoing.GetPulseOfLocal())
 			default:
 				t.Fatal("wrong Callee")
 			}

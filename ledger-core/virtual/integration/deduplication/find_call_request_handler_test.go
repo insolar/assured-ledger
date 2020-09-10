@@ -217,8 +217,8 @@ func StepIncrementPulseToP3(s *VFindCallRequestHandlingSuite, ctx context.Contex
 func StepFindMessage(s *VFindCallRequestHandlingSuite, ctx context.Context, t *testing.T) {
 	findMsg := rms.VFindCallRequest{
 		LookAt:   s.getP2(),
-		Callee:   s.getObject(),
-		Outgoing: s.outgoing,
+		Callee:   rms.NewReference(s.getObject()),
+		Outgoing: rms.NewReference(s.outgoing),
 	}
 	s.addPayloadAndWaitIdle(ctx, &findMsg)
 }
@@ -232,18 +232,18 @@ func StepMethodStart(s *VFindCallRequestHandlingSuite, ctx context.Context, t *t
 	report := rms.VStateReport{
 		AsOf:   s.getP1(),
 		Status: rms.StateStatusReady,
-		Object: s.getObject(),
+		Object: rms.NewReference(s.getObject()),
 
 		ProvidedContent: &rms.VStateReport_ProvidedContentBody{
 			LatestDirtyState: &rms.ObjectState{
-				Reference: gen.UniqueLocalRefWithPulse(s.getP1()),
-				Class:     s.getClass(),
-				State:     []byte("object memory"),
+				Reference: rms.NewReference(gen.UniqueLocalRefWithPulse(s.getP1())),
+				Class:     rms.NewReference(s.getClass()),
+				State:     rms.NewBytes([]byte("object memory")),
 			},
 			LatestValidatedState: &rms.ObjectState{
-				Reference: gen.UniqueLocalRefWithPulse(s.getP1()),
-				Class:     s.getClass(),
-				State:     []byte("object memory"),
+				Reference: rms.NewReference(gen.UniqueLocalRefWithPulse(s.getP1())),
+				Class:     rms.NewReference(s.getClass()),
+				State:     rms.NewBytes([]byte("object memory")),
 			},
 		},
 	}
@@ -270,7 +270,7 @@ func StepConstructorStart(s *VFindCallRequestHandlingSuite, ctx context.Context,
 		report := rms.VStateReport{
 			AsOf:   s.getP1(),
 			Status: rms.StateStatusMissing,
-			Object: s.getObject(),
+			Object: rms.NewReference(s.getObject()),
 		}
 		s.addPayloadAndWaitIdle(ctx, &report)
 	}
@@ -434,8 +434,8 @@ func (s *VFindCallRequestHandlingSuite) setMessageCheckers(
 		delegationToken := s.server.DelegationToken(req.CallOutgoing, s.getCaller(), req.Callee)
 
 		s.server.SendPayload(ctx, &rms.VDelegatedCallResponse{
-			Callee:                 req.Callee,
-			CallIncoming:           req.CallIncoming,
+			Callee:                 rms.NewReference(req.Callee),
+			CallIncoming:           rms.NewReference(req.CallIncoming),
 			ResponseDelegationSpec: delegationToken,
 		})
 
@@ -450,8 +450,8 @@ func (s *VFindCallRequestHandlingSuite) setMessageCheckers(
 
 		pl := rms.VFindCallResponse{
 			LookedAt: s.getP2(),
-			Callee:   s.getObject(),
-			Outgoing: s.outgoing,
+			Callee:   rms.NewReference(s.getObject()),
+			Outgoing: rms.NewReference(s.outgoing),
 			Status:   rms.CallStateMissing,
 		}
 		s.server.SendPayload(ctx, &pl)

@@ -61,10 +61,9 @@ func TestSendMessageHandler_ReceiverNotSet(t *testing.T) {
 
 	serviceNetwork, _ := prepareNetwork(t, configuration.NewConfiguration())
 
-	p := []byte{1, 2, 3, 4, 5}
-	meta := rms.Meta{
-		Payload: p,
-	}
+	meta := rms.Meta{}
+	meta.Payload.Set(&rms.VCallRequest{})
+
 	data, err := meta.Marshal()
 	require.NoError(t, err)
 
@@ -81,11 +80,9 @@ func TestSendMessageHandler_SameNode(t *testing.T) {
 	pulseMock := beat.NewAppenderMock(t)
 	pulseMock.LatestTimeBeatMock.Return(pulsestor.GenesisPulse, nil)
 
-	p := []byte{1, 2, 3, 4, 5}
-	meta := rms.Meta{
-		Payload:  p,
-		Receiver: nodeRef,
-	}
+	meta := rms.Meta{Receiver: nodeRef}
+	meta.Payload.Set(&rms.VCallRequest{})
+
 	data, err := meta.Marshal()
 	require.NoError(t, err)
 
@@ -107,11 +104,9 @@ func TestSendMessageHandler_SendError(t *testing.T) {
 	pulseMock.LatestTimeBeatMock.Return(pulsestor.GenesisPulse, nil)
 	svcNw.RPC = rpc
 
-	p := []byte{1, 2, 3, 4, 5}
-	meta := rms.Meta{
-		Payload:  p,
-		Receiver: gen.UniqueGlobalRef(),
-	}
+	meta := rms.Meta{Receiver: gen.UniqueGlobalRef()}
+	meta.Payload.Set(&rms.VCallRequest{})
+
 	data, err := meta.Marshal()
 	require.NoError(t, err)
 
@@ -133,11 +128,9 @@ func TestSendMessageHandler_WrongReply(t *testing.T) {
 	pulseMock.LatestTimeBeatMock.Return(pulsestor.GenesisPulse, nil)
 	svcNw.RPC = rpc
 
-	p := []byte{1, 2, 3, 4, 5}
-	meta := rms.Meta{
-		Payload:  p,
-		Receiver: gen.UniqueGlobalRef(),
-	}
+	meta := rms.Meta{Receiver: gen.UniqueGlobalRef()}
+	meta.Payload.Set(&rms.VCallRequest{})
+
 	data, err := meta.Marshal()
 	require.NoError(t, err)
 
@@ -159,11 +152,9 @@ func TestSendMessageHandler(t *testing.T) {
 	pulseMock.LatestTimeBeatMock.Return(pulsestor.GenesisPulse, nil)
 	svcNw.RPC = rpc
 
-	p := []byte{1, 2, 3, 4, 5}
-	meta := rms.Meta{
-		Payload:  p,
-		Receiver: gen.UniqueGlobalRef(),
-	}
+	meta := rms.Meta{Receiver: gen.UniqueGlobalRef()}
+	meta.Payload.Set(&rms.VCallRequest{})
+
 	data, err := meta.Marshal()
 	require.NoError(t, err)
 

@@ -60,15 +60,15 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 		rawWalletState := makeRawWalletState(testBalance)
 		payloadMeta := &rms.VStateReport{
 			Status:                        rms.StateStatusReady,
-			Object:                        objectRef,
+			Object:                        rms.NewReference(objectRef),
 			AsOf:                          prevPulse,
 			UnorderedPendingCount:         1,
 			UnorderedPendingEarliestPulse: prevPulse,
 			ProvidedContent: &rms.VStateReport_ProvidedContentBody{
 				LatestDirtyState: &rms.ObjectState{
-					Reference: stateID,
-					Class:     testwalletProxy.GetClass(),
-					State:     rawWalletState,
+					Reference: rms.NewReference(stateID),
+					Class:     rms.NewReference(testwalletProxy.GetClass()),
+					State:     rms.NewBytes(rawWalletState),
 				},
 			},
 		}
@@ -81,9 +81,9 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 	{
 		// send VDelegatedCall
 		pl := rms.VDelegatedCallRequest{
-			CallOutgoing: outgoing,
-			CallIncoming: incoming,
-			Callee:       objectRef,
+			CallOutgoing: rms.NewReference(outgoing),
+			CallIncoming: rms.NewReference(incoming),
+			Callee:       rms.NewReference(objectRef),
 			CallFlags:    rms.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty),
 		}
 
