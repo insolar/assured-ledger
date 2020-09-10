@@ -58,7 +58,7 @@ func (p *Any) UnmarshalCustom(b []byte, typeFn func(uint64) reflect.Type, skipFn
 
 var dummyType = reflect.TypeOf(1)
 
-func dummyResolveType(u uint64) reflect.Type {
+func dummyResolveType(uint64) reflect.Type {
 	return dummyType
 }
 
@@ -81,7 +81,7 @@ func (p *Any) MarshalToSizedBuffer(b []byte) (int, error) {
 
 	n, err := p.value.MarshalToSizedBuffer(b)
 	if err == nil {
-		_, _, err = UnmarshalType(b, dummyResolveType)
+		_, _, err = UnmarshalType(b[len(b)-n:], dummyResolveType)
 	}
 	return n, err
 }
