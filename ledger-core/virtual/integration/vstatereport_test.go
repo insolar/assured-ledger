@@ -352,7 +352,7 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) startNewPending(
 ) {
 	pulseNumber := s.getPulse(1)
 	outgoing := s.server.BuildRandomOutgoingWithGivenPulse(pulseNumber)
-	key := outgoing.String()
+	key := outgoing
 
 	if s.newPendingsReleaser == nil {
 		s.newPendingsReleaser = make(chan struct{}, 0)

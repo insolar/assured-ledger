@@ -944,6 +944,8 @@ func (m *SlotMachine) useSlotAsShared(link SharedDataLink, accessFn SharedDataFu
 		return SharedSlotAbsent
 	case tm == nil:
 		return SharedSlotAbsent
+	case tm != m && !link.isSharedForOthers():
+		return SharedSlotAbsent
 	case isBusy:
 		if m == tm {
 			return SharedSlotLocalBusy

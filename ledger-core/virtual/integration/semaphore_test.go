@@ -34,7 +34,7 @@ func TestVirtual_SemaphoreLimitNotExceeded(t *testing.T) {
 	server, ctx := utils.NewUninitializedServer(nil, t)
 	defer server.Stop()
 
-	runnerMock := logicless.NewServiceMock(ctx, t, func(execution execution.Context) string {
+	runnerMock := logicless.NewServiceMock(ctx, t, func(execution execution.Context) interface{} {
 		return execution.Request.CallSiteMethod
 	})
 	server.ReplaceRunner(runnerMock)

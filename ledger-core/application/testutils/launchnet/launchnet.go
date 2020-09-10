@@ -108,42 +108,6 @@ func customRun(withPulsar bool, numVirtual, numLight, numHeavy int, cb func([]st
 	return code
 }
 
-// Run starts launchnet before execution of callback function (cb) and stops launchnet after.
-// Returns exit code as a result from calling callback function.
-func Run(cb func() int) int {
-	teardown, err := setup()
-	defer teardown()
-	if err != nil {
-		fmt.Println("error while setup, skip tests: ", err)
-		return 1
-	}
-
-	c := make(chan os.Signal)
-	signal.Notify(c, os.Interrupt)
-
-	go func() {
-		sig := <-c
-		fmt.Printf("Got %s signal. Aborting...\n", sig)
-		teardown()
-
-		os.Exit(2)
-	}()
-
-	pulseWatcher, config := pulseWatcherPath()
-
-	code := cb()
-
-	if code != 0 {
-		out, err := exec.Command(pulseWatcher, "-c", config, "-s").CombinedOutput()
-		if err != nil {
-			fmt.Println("PulseWatcher execution error: ", err)
-			return 1
-		}
-		fmt.Println(string(out))
-	}
-	return code
-}
-
 type User struct {
 	Ref              string
 	PrivKey          string
@@ -197,6 +161,10 @@ func GetDiscoveryNodesCount() (int, error) {
 }
 
 func GetNodesCount() (int, error) {
+	if isCloudMode() {
+		return numVirtual + numLightMaterials + numHeavyMaterials, nil
+	}
+
 	type nodesConf struct {
 		DiscoverNodes []interface{} `yaml:"discovery_nodes"`
 		Nodes         []interface{} `yaml:"nodes"`
@@ -266,7 +234,7 @@ func waitForNetworkState(cfg appConfig, state network.State) error {
 		}
 
 		time.Sleep(time.Second)
-		fmt.Printf("[ waitForNet ] Waiting for net: attempt %d/%d\n", i, numAttempts)
+		fmt.Printf("[ waitForNet ] Waiting for net: attempt %d/%d, numOKs: %d\n", i, numAttempts, currentOk)
 	}
 
 	if currentOk != numNodes {
@@ -371,8 +339,7 @@ func startNet() (*exec.Cmd, error) {
 	}()
 
 	args := "-pwdg"
-	cloudMode := os.Getenv("CLOUD_MODE")
-	if strings.ToLower(cloudMode) == "true" {
+	if isCloudMode() {
 		args += "m"
 	}
 

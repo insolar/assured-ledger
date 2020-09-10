@@ -105,11 +105,11 @@ func TestVDelegatedCallRequest(t *testing.T) {
 		})
 
 	{
-		slotMachine.RunnerMock.AddExecutionClassify(outgoing.String(), contract.MethodIsolation{
+		slotMachine.RunnerMock.AddExecutionClassify(outgoing, contract.MethodIsolation{
 			Interference: isolation.CallTolerable,
 			State:        isolation.CallDirty,
 		}, nil)
-		slotMachine.RunnerMock.AddExecutionMock(outgoing.String()).AddStart(
+		slotMachine.RunnerMock.AddExecutionMock(outgoing).AddStart(
 			nil,
 			&execution.Update{
 				Type:   execution.Done,

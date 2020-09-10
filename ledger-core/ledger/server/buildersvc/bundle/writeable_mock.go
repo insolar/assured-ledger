@@ -21,8 +21,8 @@ type WriteableMock struct {
 	beforeApplyWriteCounter uint64
 	ApplyWriteMock          mWriteableMockApplyWrite
 
-	funcPrepareWrite          func(snapshot Snapshot) (err error)
-	inspectFuncPrepareWrite   func(snapshot Snapshot)
+	funcPrepareWrite          func(s1 Snapshot) (err error)
+	inspectFuncPrepareWrite   func(s1 Snapshot)
 	afterPrepareWriteCounter  uint64
 	beforePrepareWriteCounter uint64
 	PrepareWriteMock          mWriteableMockPrepareWrite
@@ -206,7 +206,7 @@ type WriteableMockPrepareWriteExpectation struct {
 
 // WriteableMockPrepareWriteParams contains parameters of the Writeable.PrepareWrite
 type WriteableMockPrepareWriteParams struct {
-	snapshot Snapshot
+	s1 Snapshot
 }
 
 // WriteableMockPrepareWriteResults contains results of the Writeable.PrepareWrite
@@ -215,7 +215,7 @@ type WriteableMockPrepareWriteResults struct {
 }
 
 // Expect sets up expected params for Writeable.PrepareWrite
-func (mmPrepareWrite *mWriteableMockPrepareWrite) Expect(snapshot Snapshot) *mWriteableMockPrepareWrite {
+func (mmPrepareWrite *mWriteableMockPrepareWrite) Expect(s1 Snapshot) *mWriteableMockPrepareWrite {
 	if mmPrepareWrite.mock.funcPrepareWrite != nil {
 		mmPrepareWrite.mock.t.Fatalf("WriteableMock.PrepareWrite mock is already set by Set")
 	}
@@ -224,7 +224,7 @@ func (mmPrepareWrite *mWriteableMockPrepareWrite) Expect(snapshot Snapshot) *mWr
 		mmPrepareWrite.defaultExpectation = &WriteableMockPrepareWriteExpectation{}
 	}
 
-	mmPrepareWrite.defaultExpectation.params = &WriteableMockPrepareWriteParams{snapshot}
+	mmPrepareWrite.defaultExpectation.params = &WriteableMockPrepareWriteParams{s1}
 	for _, e := range mmPrepareWrite.expectations {
 		if minimock.Equal(e.params, mmPrepareWrite.defaultExpectation.params) {
 			mmPrepareWrite.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmPrepareWrite.defaultExpectation.params)
@@ -235,7 +235,7 @@ func (mmPrepareWrite *mWriteableMockPrepareWrite) Expect(snapshot Snapshot) *mWr
 }
 
 // Inspect accepts an inspector function that has same arguments as the Writeable.PrepareWrite
-func (mmPrepareWrite *mWriteableMockPrepareWrite) Inspect(f func(snapshot Snapshot)) *mWriteableMockPrepareWrite {
+func (mmPrepareWrite *mWriteableMockPrepareWrite) Inspect(f func(s1 Snapshot)) *mWriteableMockPrepareWrite {
 	if mmPrepareWrite.mock.inspectFuncPrepareWrite != nil {
 		mmPrepareWrite.mock.t.Fatalf("Inspect function is already set for WriteableMock.PrepareWrite")
 	}
@@ -259,7 +259,7 @@ func (mmPrepareWrite *mWriteableMockPrepareWrite) Return(err error) *WriteableMo
 }
 
 //Set uses given function f to mock the Writeable.PrepareWrite method
-func (mmPrepareWrite *mWriteableMockPrepareWrite) Set(f func(snapshot Snapshot) (err error)) *WriteableMock {
+func (mmPrepareWrite *mWriteableMockPrepareWrite) Set(f func(s1 Snapshot) (err error)) *WriteableMock {
 	if mmPrepareWrite.defaultExpectation != nil {
 		mmPrepareWrite.mock.t.Fatalf("Default expectation is already set for the Writeable.PrepareWrite method")
 	}
@@ -274,14 +274,14 @@ func (mmPrepareWrite *mWriteableMockPrepareWrite) Set(f func(snapshot Snapshot) 
 
 // When sets expectation for the Writeable.PrepareWrite which will trigger the result defined by the following
 // Then helper
-func (mmPrepareWrite *mWriteableMockPrepareWrite) When(snapshot Snapshot) *WriteableMockPrepareWriteExpectation {
+func (mmPrepareWrite *mWriteableMockPrepareWrite) When(s1 Snapshot) *WriteableMockPrepareWriteExpectation {
 	if mmPrepareWrite.mock.funcPrepareWrite != nil {
 		mmPrepareWrite.mock.t.Fatalf("WriteableMock.PrepareWrite mock is already set by Set")
 	}
 
 	expectation := &WriteableMockPrepareWriteExpectation{
 		mock:   mmPrepareWrite.mock,
-		params: &WriteableMockPrepareWriteParams{snapshot},
+		params: &WriteableMockPrepareWriteParams{s1},
 	}
 	mmPrepareWrite.expectations = append(mmPrepareWrite.expectations, expectation)
 	return expectation
@@ -294,15 +294,15 @@ func (e *WriteableMockPrepareWriteExpectation) Then(err error) *WriteableMock {
 }
 
 // PrepareWrite implements Writeable
-func (mmPrepareWrite *WriteableMock) PrepareWrite(snapshot Snapshot) (err error) {
+func (mmPrepareWrite *WriteableMock) PrepareWrite(s1 Snapshot) (err error) {
 	mm_atomic.AddUint64(&mmPrepareWrite.beforePrepareWriteCounter, 1)
 	defer mm_atomic.AddUint64(&mmPrepareWrite.afterPrepareWriteCounter, 1)
 
 	if mmPrepareWrite.inspectFuncPrepareWrite != nil {
-		mmPrepareWrite.inspectFuncPrepareWrite(snapshot)
+		mmPrepareWrite.inspectFuncPrepareWrite(s1)
 	}
 
-	mm_params := &WriteableMockPrepareWriteParams{snapshot}
+	mm_params := &WriteableMockPrepareWriteParams{s1}
 
 	// Record call args
 	mmPrepareWrite.PrepareWriteMock.mutex.Lock()
@@ -319,7 +319,7 @@ func (mmPrepareWrite *WriteableMock) PrepareWrite(snapshot Snapshot) (err error)
 	if mmPrepareWrite.PrepareWriteMock.defaultExpectation != nil {
 		mm_atomic.AddUint64(&mmPrepareWrite.PrepareWriteMock.defaultExpectation.Counter, 1)
 		mm_want := mmPrepareWrite.PrepareWriteMock.defaultExpectation.params
-		mm_got := WriteableMockPrepareWriteParams{snapshot}
+		mm_got := WriteableMockPrepareWriteParams{s1}
 		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
 			mmPrepareWrite.t.Errorf("WriteableMock.PrepareWrite got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
@@ -331,9 +331,9 @@ func (mmPrepareWrite *WriteableMock) PrepareWrite(snapshot Snapshot) (err error)
 		return (*mm_results).err
 	}
 	if mmPrepareWrite.funcPrepareWrite != nil {
-		return mmPrepareWrite.funcPrepareWrite(snapshot)
+		return mmPrepareWrite.funcPrepareWrite(s1)
 	}
-	mmPrepareWrite.t.Fatalf("Unexpected call to WriteableMock.PrepareWrite. %v", snapshot)
+	mmPrepareWrite.t.Fatalf("Unexpected call to WriteableMock.PrepareWrite. %v", s1)
 	return
 }
 

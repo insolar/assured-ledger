@@ -111,7 +111,7 @@ func Test_NoDeadLock_WhenOutgoingComeToSameNode(t *testing.T) {
 
 			executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 2)
 
-			runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
+			runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) interface{} {
 				return execution.Request.CallSiteMethod
 			})
 			server.ReplaceRunner(runnerMock)
@@ -254,7 +254,7 @@ func TestVirtual_CallContractFromContract(t *testing.T) {
 
 			executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 2)
 
-			runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
+			runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) interface{} {
 				return execution.Request.CallSiteMethod
 			})
 			server.ReplaceRunner(runnerMock)
@@ -393,7 +393,7 @@ func TestVirtual_CallOtherMethodInObject(t *testing.T) {
 
 			logger := inslogger.FromContext(ctx)
 
-			runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
+			runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) interface{} {
 				return execution.Request.CallSiteMethod
 			})
 			server.ReplaceRunner(runnerMock)
@@ -529,7 +529,7 @@ func TestVirtual_CallMethodFromConstructor(t *testing.T) {
 
 			executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 2)
 
-			runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) string {
+			runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) interface{} {
 				return execution.Request.CallSiteMethod
 			})
 			server.ReplaceRunner(runnerMock)
@@ -695,7 +695,7 @@ func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 
 	// add ExecutionMocks to runnerMock
 	{
-		key := pl.CallOutgoing.GetValue().String()
+		key := pl.CallOutgoing.GetValue()
 		runnerMock.AddExecutionClassify(key, tolerableFlags(), nil)
 
 		builder := execution.NewRPCBuilder(pl.CallOutgoing.GetValue(), pl.Callee.GetValue())
