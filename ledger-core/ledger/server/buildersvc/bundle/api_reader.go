@@ -24,4 +24,9 @@ type DirtyReader interface {
 	// WARNING! Caller MUST NOT change the byte slice.
 	// WARNING! Implementation MAY return a byte slice LONGER than the actual content.
 	GetPayloadStorage(ledger.StorageLocator) []byte
+
+	// GetDirectoryEntries returns all known entries.
+	// RACE! Caller MUST ensure that the data to be read was fully written.
+	// WARNING! Caller MUST NOT change the slices.
+	GetDirectoryEntries(section ledger.SectionID) [][]DirectoryEntry
 }

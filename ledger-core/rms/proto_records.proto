@@ -32,53 +32,51 @@ message RecordExample {
 
 enum FilamentState {
     Unknown = 0;
-    Started = 1;
-    Activated = 2;
-    DirtyDeactivated = 126;
-    Dead = 127; // 1-byte varint
-}
+    Lifeline = 1;
+    Sideline = 2;
+    Call     = 3;
+    // SAGA
+    // Listing
+    // Timers
 
-enum FilamentType {
-    Lifeline = 0;
-    Sideline = 1;
-
-    InboundFilament = 16;
+    ActivatedFlag = 4096; // for Lifeline and Sideline only
+    ClosedFlag = 8192; // == Deactivated for Lifeline and Sideline
 }
 
 message RLineRecap {
     option (insproto.id) = 19;
 
     reserved 1 to 18, 20 to 23, 26 to 39, 1792 to max;
-    RecordBody RecordBody = 19 [(gogoproto.embed)=true];
+    RecordBody RecordBody = 19 [(gogoproto.embed)=true]; // TODO empty record body
 
     Reference PrevRef = 24;
     Reference RootRef = 25;
 
     FilamentState State = 40;
-    FilamentType  Type = 41;
-    uint32        PrevType = 42;
-    uint32        RedirectToType = 43;
-    Reference     PrevRedirectRef = 44;
+    uint32        ContinuedFrom = 41 [(gogoproto.casttype)="PulseNumber"];
+    uint32        PrevType = 43;
+    uint32        RedirectToType = 44;
+    Reference     PrevRedirectRef = 45;
 
-    repeated MemoryRecap Memory = 50;
+    repeated RunnableState Runnable = 50;
 }
 
-enum MemorySafety {
+enum SafetyLevel {
     UnknownSafety = 0;
-    Dirty = 1;
+    Committed = 1; // Dirty
     Validated = 2;
-    Final = 3;
+    Finalized = 3;
 }
 
-message MemoryRecap {
+message RunnableState {
     option (insproto.id) = 0;
     option (insproto.fields_mapping) = false;
     option (insproto.message_mapping) = false;
     option (insproto.context) = "";
-    MemorySafety Safety = 20;
+
+    SafetyLevel Level = 20;
     Reference Memory = 21;
-//    Reference Class = 22;
-//    Reference Code = 23;
+    Reference Code = 22;
 }
 
 message RPrevDropReport {

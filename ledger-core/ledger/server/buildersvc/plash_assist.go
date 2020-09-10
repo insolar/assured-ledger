@@ -15,6 +15,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jetalloc"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/bundle"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/ctlsec"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/server/catalog"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lineage"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -30,7 +32,7 @@ const (
 	plashStarted
 	plashPendingPulse
 	plashClosed
-//	plashSummarized
+	plashSummarized
 )
 
 type plashAssistant struct {
@@ -110,19 +112,9 @@ func (p *plashAssistant) CommitPulseChange() {
 	}
 
 	p.commit.Unlock()
-
 	// NB! Underlying writer must NOT be marked read-only here as summary has to be written also
-}
 
-func (p *plashAssistant) finalizeSummary()  {
-	// // underlying writer will be marked read only as soon as all writing bundles are completed / discarded
-	// // but CommitPulseChange will be released immediately after putting the closure into the write chain
-	// // and any further calls to WaitWriteBundles() or to WriteBundle() will wait for this closure to complete.
-	// p.writer.WaitWriteBundlesAsync(nil, func(bool) {
-	// 	if err := p.writer.MarkReadOnly(); err != nil {
-	// 		panic(throw.W(err, "failed to mark storage as read-only"))
-	// 	}
-	// })
+	go p.startSummary()
 }
 
 func (p *plashAssistant) getDropAssist(id jet.DropID) (*dropAssistant, error) {
@@ -156,10 +148,10 @@ func (p *plashAssistant) waitNotPending() error {
 			p.commit.Lock()
 			// NB! blocks until pending is finished
 			p.commit.Unlock()
-		case plashClosed:
-			return throw.E("plash closed")
-		default:
+		case 0:
 			return throw.E("plash not ready")
+		default:
+			return throw.E("plash closed")
 		}
 	}
 }
@@ -173,10 +165,10 @@ func (p *plashAssistant) commitDropUpdate(fn func() error) error {
 		//
 	case plashPendingPulse:
 		panic(throw.Impossible())
-	case plashClosed:
-		return throw.E("plash closed")
-	default:
+	case 0:
 		return throw.E("plash not ready")
+	default:
+		return throw.E("plash closed")
 	}
 
 	return fn()
@@ -264,4 +256,29 @@ func (p *plashAssistant) getDropsOfJet(id jet.ExactID) (result []jet.DropID) {
 	return result
 }
 
+func (p *plashAssistant) appendToDropSummary(id jet.DropID, summary lineage.LineSummary) error {
+	return nil
+}
+
+func (p *plashAssistant) finalizeDropSummary(id jet.DropID) (catalog.DropReport, error) {
+	return catalog.DropReport{}, nil
+}
+
+func (p *plashAssistant) startSummary() {
+	sw := &ctlsec.PlashSummaryWriter{}
+	sw.ReadCatalog(p.dirtyReader, len(p.dropAssists))
+
+	_ = p.writer.WriteBundle(sw, nil)
+}
+
+func (p *plashAssistant) finalizeSummary()  {
+	// // underlying writer will be marked read only as soon as all writing bundles are completed / discarded
+	// // but CommitPulseChange will be released immediately after putting the closure into the write chain
+	// // and any further calls to WaitWriteBundles() or to WriteBundle() will wait for this closure to complete.
+	// p.writer.WaitWriteBundlesAsync(nil, func(bool) {
+	// 	if err := p.writer.MarkReadOnly(); err != nil {
+	// 		panic(throw.W(err, "failed to mark storage as read-only"))
+	// 	}
+	// })
+}
 

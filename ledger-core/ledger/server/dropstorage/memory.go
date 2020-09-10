@@ -133,6 +133,16 @@ func (p *MemoryStorageWriter) GetDirectoryEntry(index ledger.DirectoryIndex) bun
 	return bundle.DirectoryEntry{}
 }
 
+func (p *MemoryStorageWriter) GetDirectoryEntries(section ledger.SectionID) [][]bundle.DirectoryEntry {
+	switch section := p.getDirtyReadSection(section); {
+	case section == nil:
+	case !section.hasDirectory():
+	default:
+		return section.directory
+	}
+	return nil
+}
+
 func (p *MemoryStorageWriter) GetEntryStorage(locator ledger.StorageLocator) []byte {
 	switch section := p.getDirtyReadSection(locator.SectionID()); {
 	case section == nil:
@@ -446,39 +456,30 @@ func (p *cabinetSection) commit(snapshot sectionSnapshot, testOnly bool) error {
 		switch entry := p._getDirEntry(entryOrd); {
 		case entry == nil:
 			return throw.Impossible()
-		case entry.Rel == 0:
+		case entry.Fil.Link == 0:
 			// there is no relative - just skip it
-		case entry.Rel.SectionID() != p.sectionID:
-			return throw.E("wrong relative section", struct { Current, Relative ledger.SectionID }{ p.sectionID, entry.Rel.SectionID() })
-		case entry.Rel.Ordinal() == 0 || entry.Rel.Ordinal() > entryOrd:
-			return throw.E("wrong relative ordinal", struct { Current, Relative ledger.Ordinal }{ entryOrd, entry.Rel.Ordinal() })
-		case entry.Rel.Ordinal() == entryOrd:
+		case entry.Fil.Link > entryOrd:
+			return throw.E("wrong head ordinal", struct { Current, Relative ledger.Ordinal }{ entryOrd, entry.Fil.Link })
+		case entry.Fil.Link == entryOrd:
 			// self-ref
-			if entry.Rel.Flags() & (ledger.FilamentStart|ledger.FilamentLocalStart) == 0 {
+			if entry.Fil.Flags & ledger.FilamentLocalStart == 0 {
 				return throw.E("wrong self-relative", struct { Current ledger.Ordinal }{ entryOrd })
 			}
+		case entry.Fil.Flags & ledger.FilamentLocalStart != 0:
+			return throw.E("wrong self-head", struct { Current ledger.Ordinal }{ entryOrd })
 		default:
-			switch relEntry := p._getDirEntry(entry.Rel.Ordinal()); {
+			switch relEntry := p._getDirEntry(entry.Fil.Link); {
 			case relEntry == nil:
 				return throw.Impossible()
-			case relEntry.Rel.Flags() & (ledger.FilamentStart|ledger.FilamentLocalStart) == 0:
-				return throw.E("wrong relative type", struct { Current, Relative ledger.Ordinal }{ entryOrd, entry.Rel.Ordinal() })
-			case relEntry.Rel.Flags() & ledger.FilamentClosed != 0:
-				if entry.Rel.Flags() & ledger.RollbackEntry == 0 {
-					return throw.E("closed relative", struct { Current, Relative ledger.Ordinal }{ entryOrd, entry.Rel.Ordinal() })
-				}
-
-				if !testOnly {
-					relEntry.Rel = ledger.NewDirectoryIndex(p.sectionID, entryOrd).WithFlags(relEntry.Rel.Flags() &^ ledger.FilamentClosed)
-				}
-
-			case entry.Rel.Flags() &^ (ledger.FilamentClosed|ledger.RollbackEntry) != 0:
-				return throw.E("inconsistent entry relative", struct { Current, Relative ledger.Ordinal }{ entryOrd, entry.Rel.Ordinal() })
-
+			case relEntry.Fil.Flags & ledger.FilamentLocalStart == 0:
+				return throw.E("wrong head type", struct { Current, Relative ledger.Ordinal }{ entryOrd, entry.Fil.Link })
+			// case relEntry.Fil.Flags & ledger.FilamentClosed != 0:
+			// 	if entry.Fil.Flags & ledger.FilamentReopen == 0 {
+			// 		return throw.E("closed head", struct { Current, Relative ledger.Ordinal }{ entryOrd, entry.Fil.Link })
+			// 	}
+			// case entry.Rel.Flags() &^ (ledger.FilamentClosed|ledger.FilamentReopen) != 0:
+			// 	return throw.E("inconsistent entry relative", struct { Current, Relative ledger.Ordinal }{ entryOrd, entry.Rel.Ordinal() })
 			default:
-				if !testOnly {
-					relEntry.Rel = relEntry.Rel.WithIndex(ledger.NewDirectoryIndex(p.sectionID, entryOrd))
-				}
 			}
 		}
 	}
@@ -617,6 +618,14 @@ func (b byteReceptacle) ApplyFixedReader(r longbits.FixedReader) error {
 		return io.ErrShortWrite
 	}
 	return nil
+}
+
+func (b byteReceptacle) WriteTo(w io.Writer) (int64, error) {
+	n, err := w.Write(b)
+	if err == nil && n != len(b) {
+		err = io.ErrShortWrite
+	}
+	return int64(n), err
 }
 
 /*********************************/

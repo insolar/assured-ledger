@@ -17,6 +17,11 @@ func E(msg string, description ...interface{}) error {
 	return New(msg, description...)
 }
 
+// ES creates an error with stack
+func ES(msg string, description ...interface{}) error {
+	return WithStackExt(E(msg, description...), 1)
+}
+
 // W wraps the given error with provided message and details.
 // Returns nil when (err) == nil
 func W(err error, msg string, description ...interface{}) error {
@@ -24,6 +29,14 @@ func W(err error, msg string, description ...interface{}) error {
 		return nil
 	}
 	return WithDetails(err, New(msg, description...))
+}
+
+// WS wraps the given error as W and adds stack
+func WS(err error, msg string, description ...interface{}) error {
+	if err == nil {
+		return nil
+	}
+	return WithStackExt(W(err, msg, description...), 1)
 }
 
 // R takes recovered panic and previous error if any, then wraps them together with current stack

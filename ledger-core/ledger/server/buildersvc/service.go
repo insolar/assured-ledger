@@ -58,43 +58,58 @@ func (p *serviceImpl) DropReadDirty(id jet.DropID, fn func(reader bundle.DirtyRe
 		panic(throw.IllegalValue())
 	}
 
-	pa := p.get(id.CreatedAt())
-
-	switch {
-	case pa == nil:
-		return throw.E("unknown plash", struct { jet.DropID }{ id })
-	case pa.dropAssists[id.ID()] == nil:
-		return throw.E("unknown drop", struct { jet.DropID }{ id })
+	pa, err := p.getPlashAssist(id)
+	if err != nil {
+		return err
+	}
+	if _, err := pa.getDropAssist(id); err != nil {
+		return err
 	}
 
 	return fn(pa.dirtyReader)
 }
 
-func (p *serviceImpl) AppendToDrop(id jet.DropID, future AppendFuture, bundle lineage.UpdateBundle) {
+func (p *serviceImpl) getPlashAssist(id jet.DropID) (*plashAssistant, error) {
 	pa := p.get(id.CreatedAt())
-	var err error
-	switch {
-	case pa != nil:
+	if pa == nil {
+		return nil, throw.E("unknown plash", struct{ jet.DropID }{id})
+	}
+	return pa, nil
+}
+
+func (p *serviceImpl) AppendToDrop(id jet.DropID, future AppendFuture, bundle lineage.UpdateBundle) {
+	pa, err := p.getPlashAssist(id)
+
+	if err == nil {
 		err = pa.appendToDrop(id, future, bundle)
-		if err == nil || future == nil {
+		if err == nil {
 			return
 		}
-	case future == nil:
-		return
-	default:
-		err = throw.E("unknown plash", struct { jet.DropID }{ id })
 	}
 
-	future.TrySetFutureResult(nil, err)
+	if future != nil {
+		future.TrySetFutureResult(nil, err)
+	}
 }
 
 func (p *serviceImpl) AppendToDropSummary(id jet.DropID, summary lineage.LineSummary) {
-	// pa := p.get(id.CreatedAt())
-
+	pa, err := p.getPlashAssist(id)
+	if err == nil {
+		if err = pa.appendToDropSummary(id, summary); err == nil {
+			return
+		}
+	}
+	panic(err)
 }
 
-func (p *serviceImpl) FinalizeDropSummary(id jet.DropID) catalog.DropReport {
-	return catalog.DropReport{}
+func (p *serviceImpl) FinalizeDropSummary(id jet.DropID) (report catalog.DropReport) {
+	pa, err := p.getPlashAssist(id)
+	if err == nil {
+		if report, err = pa.finalizeDropSummary(id); err == nil {
+			return report
+		}
+	}
+	panic(err)
 }
 
 func (p *serviceImpl) get(pn pulse.Number) *plashAssistant {

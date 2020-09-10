@@ -21,6 +21,7 @@ type PrimaryRole = member.PrimaryRole
 type StorageLocator = ledger.StorageLocator
 type ExtensionID = ledger.ExtensionID
 type CatalogOrdinal = ledger.Ordinal
+type DropOrdinal = ledger.DropOrdinal
 
 type RecordVisitor interface {
 	Record(BasicRecord, uint64) error

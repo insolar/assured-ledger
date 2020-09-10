@@ -12,6 +12,7 @@ package rms;
 message Binary {}
 message Reference {}
 message RecordBody {}
+// TODO message EmptyRecordBody {}
 message RecordBodyDigests {}
 
 message Any {}

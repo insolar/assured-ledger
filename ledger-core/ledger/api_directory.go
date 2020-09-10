@@ -82,5 +82,5 @@ const (
 	FilamentClosed DirectoryEntryFlags = 1<<iota
 	FilamentStart
 	FilamentLocalStart
-	RollbackEntry
+	FilamentReopen
 )

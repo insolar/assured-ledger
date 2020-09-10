@@ -35,7 +35,7 @@ message CatalogEntry {
 
     // Start of fixed-size portion.
     // Use of fixed-size fields allows direct memory mapping for fast access to a few critical fields
-    fixed32 Ordinal = 16 [(gogoproto.casttype)="CatalogOrdinal"];
+    fixed64 DropOrdinal = 16 [(gogoproto.casttype)="DropOrdinal"];
     fixed64 BodyLoc = 17 [(gogoproto.casttype)="StorageLocator"];
     fixed64 PayloadLoc = 18 [(gogoproto.casttype)="StorageLocator"];
     fixed64 BodyPayloadSizes = 19; // low32 - bodySize, high32 - payloadSize
@@ -74,6 +74,45 @@ message ExtLocator {
     option (insproto.id) = 0;
     option (insproto.notation) = false; // this type actually satisfies the notation, but check of proto-gen-ins is too restrictive
     uint32 ExtensionID = 17 [(gogoproto.casttype)="ExtensionID"];
-    fixed64 PayloadLoc = 18  [(gogoproto.casttype)="StorageLocator"];
+    fixed64 PayloadLoc = 18 [(gogoproto.casttype)="StorageLocator"];
     uint32 PayloadSize = 20;
+}
+
+message ControlCatalogSummary {
+    option (insproto.id) = 0;
+    reserved 1 to 19;
+
+    fixed64 RecToFilamentLoc = 20 [(gogoproto.casttype)="StorageLocator"]; // fixed size elements, []Ordinal
+    uint32  RecToFilamentSize = 21;
+
+    fixed64 FilamentHeadsLoc = 22 [(gogoproto.casttype)="StorageLocator"]; // fixed size elements, []
+    uint32  FilamentHeadsSize = 23;
+
+    fixed64 MerkleLogLoc = 24 [(gogoproto.casttype)="StorageLocator"]; // []Digest
+    uint32  MerkleLogSize = 25;
+}
+
+message ControlDropSummary {
+    option (insproto.id) = 0;
+    reserved 1 to 19;
+
+    fixed64 JetLegID = 20; // jet.LegID
+
+    fixed64 DropRecapLoc  = 22 [(gogoproto.casttype)="StorageLocator"];
+    uint32  DropRecapSize = 23;
+
+    fixed64 FilamentRecapsLoc = 24 [(gogoproto.casttype)="StorageLocator"]; // []StorageLocator
+    uint32  FilamentRecapsSize = 25;
+
+    // Binary MerkleRoot = 26; // inside drop recap
+
+    Reference ProducedBy = 40;
+    Binary DropRecapProducerSignature = 41;
+}
+
+message FilamentSummary {
+    option (insproto.id) = 0;
+//    RLineRecap Recap = 19;
+
+    Binary RecapProducerSignature = 39;
 }
