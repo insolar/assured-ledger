@@ -50,8 +50,10 @@ func prepareConfigProvider() (*insapp.CloudConfigurationProvider, error) {
 
 	appConfigs, cloudConfig, certFactory, keyFactory := insapp.PrepareCloudConfiguration(cloudSettings)
 
+	baseConf := configuration.Configuration{}
+	baseConf.Log = cloudConfig.Log
 	return &insapp.CloudConfigurationProvider{
-		BaseConfig:         configuration.NewConfiguration(),
+		BaseConfig:         baseConf,
 		PulsarConfig:       cloudConfig.PulsarConfiguration,
 		CertificateFactory: certFactory,
 		KeyFactory:         keyFactory,

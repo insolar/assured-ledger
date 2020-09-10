@@ -115,6 +115,10 @@ jobs:
         if: always()
         run: make test_func_race
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
+      - name: Run functional tests multiple times with race detector as local cloud
+        if: always()
+        run: make test_func_cloud_race
+        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
       - name: Aggregate logs into a single archive
         if: always()
         run: tar --warning=no-file-changed -cvzf nodes-output.tgz .artifacts/launchnet/logs/discoverynodes/*/output.log || true
