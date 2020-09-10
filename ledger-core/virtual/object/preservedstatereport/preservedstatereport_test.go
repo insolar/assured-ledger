@@ -32,18 +32,18 @@ func buildStateReport(status rms.VStateReport_StateStatus, state descriptor.Obje
 	)
 
 	res := rms.VStateReport{
-		Object:          smGlobalRef,
+		Object:          rms.NewReference(smGlobalRef),
 		ProvidedContent: &rms.VStateReport_ProvidedContentBody{},
 		Status:          status,
 	}
 
 	if state != nil {
-		res.LatestDirtyState = state.HeadRef()
+		res.LatestDirtyState.Set(state.HeadRef())
 		class, _ := state.Class()
 		res.ProvidedContent.LatestDirtyState = &rms.ObjectState{
-			Reference: state.StateID(),
-			Class:     class,
-			State:     state.Memory(),
+			Reference: rms.NewReferenceLocal(state.StateID()),
+			Class:     rms.NewReference(class),
+			State:     rms.NewBytes(state.Memory()),
 		}
 	}
 	return res

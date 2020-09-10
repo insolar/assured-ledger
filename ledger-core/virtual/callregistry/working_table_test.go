@@ -53,9 +53,8 @@ func TestWorkingTable(t *testing.T) {
 	assert.False(t, wt.SetActive(isolation.CallTolerable, ref))
 	assert.False(t, wt.SetActive(isolation.CallTolerable, gen.UniqueGlobalRef()))
 
-	res := &rms.VCallResult{
-		Callee: gen.UniqueGlobalRef(),
-	}
+	res := &rms.VCallResult{}
+	res.Callee.Set(gen.UniqueGlobalRef())
 
 	assert.True(t, wt.Finish(isolation.CallTolerable, ref, res))
 	assert.False(t, wt.Finish(isolation.CallTolerable, ref, res))

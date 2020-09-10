@@ -63,14 +63,12 @@ func Method_PrepareObject(
 	case rms.StateStatusReady:
 		content = &rms.VStateReport_ProvidedContentBody{
 			LatestDirtyState: &rms.ObjectState{
-				Reference: rms.NewReference(reference.Local{}),
-				Class:     rms.NewReference(testwalletProxy.GetClass()),
-				State:     rms.NewBytes(walletState),
+				Class: rms.NewReference(testwalletProxy.GetClass()),
+				State: rms.NewBytes(walletState),
 			},
 			LatestValidatedState: &rms.ObjectState{
-				Reference: rms.NewReference(reference.Local{}),
-				Class:     rms.NewReference(testwalletProxy.GetClass()),
-				State:     rms.NewBytes(walletState),
+				Class: rms.NewReference(testwalletProxy.GetClass()),
+				State: rms.NewBytes(walletState),
 			},
 		}
 	case rms.StateStatusInactive:
@@ -137,8 +135,8 @@ func TestVirtual_BadMethod_WithExecutor(t *testing.T) {
 
 	{
 		pl := utils.GenerateVCallRequestMethodImmutable(server)
-		pl.Callee = objectGlobal
-		pl.CallOutgoing = outgoing
+		pl.Callee.Set(objectGlobal)
+		pl.CallOutgoing.Set(outgoing)
 
 		server.SendPayload(ctx, pl)
 	}
@@ -186,7 +184,7 @@ func TestVirtual_Method_WithExecutor_ObjectIsNotExist(t *testing.T) {
 		assert.Equal(t, res.Callee, objectGlobal)
 		assert.Equal(t, res.CallOutgoing, outgoing)
 
-		contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments)
+		contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments.GetBytes())
 		require.NoError(t, sysErr)
 		require.Equal(t, expectedError.Error(), contractErr.Error())
 
@@ -195,9 +193,9 @@ func TestVirtual_Method_WithExecutor_ObjectIsNotExist(t *testing.T) {
 
 	{
 		pl := utils.GenerateVCallRequestMethodImmutable(server)
-		pl.Callee = objectGlobal
+		pl.Callee.Set(objectGlobal)
 		pl.CallSiteMethod = "GetBalance"
-		pl.CallOutgoing = outgoing
+		pl.CallOutgoing.Set(outgoing)
 
 		server.SendPayload(ctx, pl)
 	}
@@ -261,7 +259,7 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 
 		for i := 0; i < 2; i++ {
 			pl := utils.GenerateVCallRequestMethodImmutable(server)
-			pl.Callee = objectGlobal
+			pl.Callee.Set(objectGlobal)
 			pl.CallSiteMethod = "GetBalance"
 
 			result := requestresult.New([]byte("345"), objectGlobal)
@@ -343,7 +341,7 @@ func TestVirtual_Method_WithoutExecutor_Ordered(t *testing.T) {
 
 		for i := int64(0); i < 2; i++ {
 			pl := utils.GenerateVCallRequestMethod(server)
-			pl.Callee = objectGlobal
+			pl.Callee.Set(objectGlobal)
 			pl.CallSiteMethod = "ordered" + strconv.FormatInt(i, 10)
 			callOutgoing := pl.CallOutgoing
 
@@ -470,7 +468,7 @@ func TestVirtual_CallContractFromContract_InterferenceViolation(t *testing.T) {
 
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 			typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
-				switch res.Callee {
+				switch res.Callee.GetValue() {
 				case objectAGlobal:
 					assert.Equal(t, expectedResult, res.ReturnArguments)
 				default:
@@ -481,9 +479,9 @@ func TestVirtual_CallContractFromContract_InterferenceViolation(t *testing.T) {
 
 			pl := utils.GenerateVCallRequestMethod(server)
 			pl.CallFlags = rms.BuildCallFlags(flags.Interference, flags.State)
-			pl.Callee = objectAGlobal
+			pl.Callee.Set(objectAGlobal)
 			pl.CallSiteMethod = "Foo"
-			pl.CallOutgoing = outgoing
+			pl.CallOutgoing.Set(outgoing)
 
 			server.SendPayload(ctx, pl)
 			{
@@ -653,7 +651,7 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 			assert.Equal(t, callFlags, request.CallFlags)
 			assert.Equal(t, p, request.CallOutgoing.GetPulseOfLocal())
 
-			switch request.Callee {
+			switch request.Callee.GetValue() {
 			case objectB1Global:
 				require.Equal(t, []byte("B1"), request.Arguments)
 				require.Equal(t, uint32(1), request.CallSequence)
@@ -672,7 +670,7 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 			assert.Equal(t, rms.CallTypeMethod, res.CallType)
 			assert.Equal(t, callFlags, res.CallFlags)
 
-			switch res.Callee {
+			switch res.Callee.GetValue() {
 			case objectA:
 				require.Equal(t, []byte("finish A.Foo"), res.ReturnArguments)
 				require.Equal(t, server.GlobalCaller(), res.Caller)
@@ -693,14 +691,14 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 				t.Fatal("wrong Callee")
 			}
 			// we should resend that message only if it's CallResult from B to A
-			return res.Caller == objectA
+			return res.Caller.GetValue() == objectA
 		})
 	}
 
 	pl := utils.GenerateVCallRequestMethod(server)
 	pl.CallFlags = callFlags
-	pl.Callee = objectA
-	pl.CallOutgoing = outgoingCallRef
+	pl.Callee.Set(objectA)
+	pl.CallOutgoing.Set(outgoingCallRef)
 
 	server.SendPayload(ctx, pl)
 
@@ -822,7 +820,7 @@ func TestVirtual_CallContractTwoTimes(t *testing.T) {
 	// add publish checker
 	{
 		typedChecker.VCallRequest.Set(func(request *rms.VCallRequest) bool {
-			switch string(request.Arguments[0]) {
+			switch string(request.Arguments.GetBytes()[0]) {
 			case "f":
 				require.Equal(t, []byte("first"), request.Arguments)
 				require.Equal(t, uint32(1), request.CallSequence)
@@ -836,9 +834,9 @@ func TestVirtual_CallContractTwoTimes(t *testing.T) {
 			result := rms.VCallResult{
 				CallType:        request.CallType,
 				CallFlags:       request.CallFlags,
-				Caller:          rms.NewReference(request.Caller),
-				Callee:          rms.NewReference(request.Callee),
-				CallOutgoing:    rms.NewReference(request.CallOutgoing),
+				Caller:          request.Caller,
+				Callee:          request.Callee,
+				CallOutgoing:    request.CallOutgoing,
 				CallIncoming:    rms.NewReference(server.RandomGlobalWithPulse()),
 				ReturnArguments: rms.NewBytes([]byte("finish B.Bar")),
 			}
@@ -856,10 +854,10 @@ func TestVirtual_CallContractTwoTimes(t *testing.T) {
 	{ // send first VCallRequest A.Foo
 		pl := utils.GenerateVCallRequestMethod(server)
 		pl.CallFlags = callFlags
-		pl.Callee = objectAGlobal
+		pl.Callee.Set(objectAGlobal)
 		pl.CallSiteMethod = "Foo"
-		pl.CallOutgoing = outgoingFirstCall
-		pl.Arguments = []byte("call foo")
+		pl.CallOutgoing.Set(outgoingFirstCall)
+		pl.Arguments.SetBytes([]byte("call foo"))
 
 		server.SendPayload(ctx, pl)
 	}
@@ -869,10 +867,10 @@ func TestVirtual_CallContractTwoTimes(t *testing.T) {
 	{ // send second VCallRequest A.Foo
 		pl := utils.GenerateVCallRequestMethod(server)
 		pl.CallFlags = callFlags
-		pl.Callee = objectAGlobal
+		pl.Callee.Set(objectAGlobal)
 		pl.CallSiteMethod = "Foo"
-		pl.CallOutgoing = outgoingSecondCall
-		pl.Arguments = []byte("call foo")
+		pl.CallOutgoing.Set(outgoingSecondCall)
+		pl.Arguments.SetBytes([]byte("call foo"))
 
 		server.SendPayload(ctx, pl)
 	}
@@ -933,7 +931,7 @@ func Test_CallMethodWithBadIsolationFlags(t *testing.T) {
 		assert.Equal(t, res.Callee, objectGlobal)
 		assert.Equal(t, res.CallOutgoing, outgoing)
 
-		contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments)
+		contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments.GetBytes())
 		require.NoError(t, sysErr)
 		require.NotNil(t, contractErr)
 		require.Equal(t, expectedError.Error(), contractErr.Error())
@@ -943,9 +941,9 @@ func Test_CallMethodWithBadIsolationFlags(t *testing.T) {
 
 	{
 		pl := utils.GenerateVCallRequestMethodImmutable(server)
-		pl.Callee = objectGlobal
+		pl.Callee.Set(objectGlobal)
 		pl.CallSiteMethod = "Accept"
-		pl.CallOutgoing = outgoing
+		pl.CallOutgoing.Set(outgoing)
 
 		server.SendPayload(ctx, pl)
 	}
@@ -1010,12 +1008,12 @@ func TestVirtual_FutureMessageAddedToSlot(t *testing.T) {
 			LatestDirtyState:     rms.NewReference(dirtyState),
 			ProvidedContent: &rms.VStateReport_ProvidedContentBody{
 				LatestValidatedState: &rms.ObjectState{
-					Reference: rms.NewReference(validatedStateRef),
+					Reference: rms.NewReferenceLocal(validatedStateRef),
 					Class:     rms.NewReference(class),
 					State:     rms.NewBytes([]byte(validatedMem)),
 				},
 				LatestDirtyState: &rms.ObjectState{
-					Reference: rms.NewReference(dirtyStateRef),
+					Reference: rms.NewReferenceLocal(dirtyStateRef),
 					Class:     rms.NewReference(class),
 					State:     rms.NewBytes([]byte(dirtyMem)),
 				},
@@ -1026,7 +1024,7 @@ func TestVirtual_FutureMessageAddedToSlot(t *testing.T) {
 	})
 
 	pl := utils.GenerateVCallRequestMethodImmutable(server)
-	pl.Callee = objectGlobal
+	pl.Callee.Set(objectGlobal)
 	pl.CallSiteMethod = "Accept"
 
 	// now we are not legitimate sender
@@ -1158,12 +1156,12 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 
 					content := &rms.VStateReport_ProvidedContentBody{
 						LatestDirtyState: &rms.ObjectState{
-							Reference: rms.NewReference(reference.Local{}),
+							Reference: rms.NewReferenceLocal(reference.Local{}),
 							Class:     rms.NewReference(class),
 							State:     rms.NewBytes([]byte(origDirtyObjectMem)),
 						},
 						LatestValidatedState: &rms.ObjectState{
-							Reference: rms.NewReference(reference.Local{}),
+							Reference: rms.NewReferenceLocal(reference.Local{}),
 							Class:     rms.NewReference(class),
 							State:     rms.NewBytes([]byte(origValidatedObjectMem)),
 						},
@@ -1207,9 +1205,9 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 			{
 				pl := utils.GenerateVCallRequestMethod(server)
 				pl.CallFlags = rms.BuildCallFlags(testCase.isolation.Interference, testCase.isolation.State)
-				pl.Callee = objectRef
+				pl.Callee.Set(objectRef)
 				pl.CallSiteMethod = "SomeMethod"
-				pl.CallOutgoing = outgoing
+				pl.CallOutgoing.Set(outgoing)
 
 				server.SendPayload(ctx, pl)
 			}
@@ -1300,7 +1298,7 @@ func TestVirtual_Method_ForObjectWithMissingState(t *testing.T) {
 				require.Equal(t, outgoing, result.CallOutgoing)
 				require.Equal(t, server.GlobalCaller(), result.Caller)
 				require.True(t, result.DelegationSpec.IsZero())
-				contractErr, sysErr := foundation.UnmarshalMethodResult(result.ReturnArguments)
+				contractErr, sysErr := foundation.UnmarshalMethodResult(result.ReturnArguments.GetBytes())
 				require.NoError(t, sysErr)
 				require.Equal(t, expectedError.Error(), contractErr.Error())
 				return false
@@ -1308,9 +1306,9 @@ func TestVirtual_Method_ForObjectWithMissingState(t *testing.T) {
 
 			pl := utils.GenerateVCallRequestMethod(server)
 			pl.CallFlags = rms.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty)
-			pl.Callee = objectRef
+			pl.Callee.Set(objectRef)
 			pl.CallSiteMethod = "Method"
-			pl.CallOutgoing = outgoing
+			pl.CallOutgoing.Set(outgoing)
 
 			server.SendPayload(ctx, pl)
 
@@ -1423,7 +1421,7 @@ func TestVirtual_Method_ForbiddenIsolation(t *testing.T) {
 			if validatedState != nil {
 				validatedStateHeadRef = validatedState.HeadRef()
 				latestValidatedState = &rms.ObjectState{
-					Reference: rms.NewReference(validatedState.StateID()),
+					Reference: rms.NewReferenceLocal(validatedState.StateID()),
 					Class:     rms.NewReference(class),
 					State:     rms.NewBytes(validatedState.Memory()),
 				}
@@ -1439,7 +1437,7 @@ func TestVirtual_Method_ForbiddenIsolation(t *testing.T) {
 					ProvidedContent: &rms.VStateReport_ProvidedContentBody{
 						LatestValidatedState: latestValidatedState,
 						LatestDirtyState: &rms.ObjectState{
-							Reference: rms.NewReference(dirtyState.StateID()),
+							Reference: rms.NewReferenceLocal(dirtyState.StateID()),
 							Class:     rms.NewReference(class),
 							State:     rms.NewBytes(dirtyState.Memory()),
 						},
@@ -1464,8 +1462,8 @@ func TestVirtual_Method_ForbiddenIsolation(t *testing.T) {
 
 				pl := utils.GenerateVCallRequestMethod(server)
 				pl.CallFlags = test.callFlags
-				pl.Callee = objectRef
-				pl.CallOutgoing = outgoingRef
+				pl.Callee.Set(objectRef)
+				pl.CallOutgoing.Set(outgoingRef)
 
 				key := pl.CallOutgoing
 
@@ -1570,14 +1568,12 @@ func TestVirtual_Method_IntolerableCallChangeState(t *testing.T) {
 
 			content := &rms.VStateReport_ProvidedContentBody{
 				LatestDirtyState: &rms.ObjectState{
-					Reference: rms.NewReference(reference.Local{}),
-					Class:     rms.NewReference(testwalletProxy.GetClass()),
-					State:     rms.NewBytes([]byte(origObjectMem)),
+					Class: rms.NewReference(testwalletProxy.GetClass()),
+					State: rms.NewBytes([]byte(origObjectMem)),
 				},
 				LatestValidatedState: &rms.ObjectState{
-					Reference: rms.NewReference(reference.Local{}),
-					Class:     rms.NewReference(testwalletProxy.GetClass()),
-					State:     rms.NewBytes([]byte(origObjectMem)),
+					Class: rms.NewReference(testwalletProxy.GetClass()),
+					State: rms.NewBytes([]byte(origObjectMem)),
 				},
 			}
 			report := rms.VStateReport{
@@ -1593,7 +1589,7 @@ func TestVirtual_Method_IntolerableCallChangeState(t *testing.T) {
 		typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
 			require.Equal(t, objectRef, res.Callee)
 			require.Equal(t, outgoing, res.CallOutgoing)
-			contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments)
+			contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments.GetBytes())
 			require.NoError(t, sysErr)
 			require.Equal(t, "intolerable call trying to change object state", contractErr.Error())
 			return false // no resend msg
@@ -1612,9 +1608,9 @@ func TestVirtual_Method_IntolerableCallChangeState(t *testing.T) {
 	{
 		pl := utils.GenerateVCallRequestMethod(server)
 		pl.CallFlags = rms.BuildCallFlags(isolation.Interference, isolation.State)
-		pl.Callee = objectRef
+		pl.Callee.Set(objectRef)
 		pl.CallSiteMethod = "SomeMethod"
-		pl.CallOutgoing = outgoing
+		pl.CallOutgoing.Set(outgoing)
 
 		server.SendPayload(ctx, pl)
 	}
@@ -1665,13 +1661,13 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 	// add typedChecker mock
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	{
-		typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
+		typedChecker.VStateReport.Set(func(report *rms.VStateReport) bool {
 			assert.Equal(t, newState, report.ProvidedContent.LatestDirtyState.State)
 			assert.Equal(t, newState, report.ProvidedContent.LatestValidatedState.State)
 			return false
 		})
-		typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool {
-			switch string(result.ReturnArguments) {
+		typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
+			switch string(result.ReturnArguments.GetBytes()) {
 			case "get validated info 1":
 			case "get validated info 2":
 			case "get dirty info 1":
@@ -1689,20 +1685,18 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 		// need for correct handle state report (should from prev pulse)
 		server.IncrementPulse(ctx)
 
-		report := &payload.VStateReport{
-			Status: payload.StateStatusReady,
-			Object: objectGlobal,
+		report := &rms.VStateReport{
+			Status: rms.StateStatusReady,
+			Object: rms.NewReference(objectGlobal),
 			AsOf:   prevPulse,
-			ProvidedContent: &payload.VStateReport_ProvidedContentBody{
-				LatestDirtyState: &payload.ObjectState{
-					Reference: reference.Local{},
-					Class:     class,
-					State:     initialState,
+			ProvidedContent: &rms.VStateReport_ProvidedContentBody{
+				LatestDirtyState: &rms.ObjectState{
+					Class: rms.NewReference(class),
+					State: rms.NewBytes(initialState),
 				},
-				LatestValidatedState: &payload.ObjectState{
-					Reference: reference.Local{},
-					Class:     class,
-					State:     initialState,
+				LatestValidatedState: &rms.ObjectState{
+					Class: rms.NewReference(class),
+					State: rms.NewBytes(initialState),
 				},
 			},
 		}
@@ -1791,9 +1785,9 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 		executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 		pl := utils.GenerateVCallRequestMethod(server)
 		pl.CallFlags = rms.BuildCallFlags(isolation.CallIntolerable, isolation.CallValidated)
-		pl.Callee = objectGlobal
+		pl.Callee.Set(objectGlobal)
 		pl.CallSiteMethod = "GetValidatedMethod1"
-		pl.CallOutgoing = outgoingValidated1
+		pl.CallOutgoing.Set(outgoingValidated1)
 
 		server.SendPayload(ctx, pl)
 		commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
@@ -1801,9 +1795,9 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 		executeDone = server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 		pl = utils.GenerateVCallRequestMethod(server)
 		pl.CallFlags = rms.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty)
-		pl.Callee = objectGlobal
+		pl.Callee.Set(objectGlobal)
 		pl.CallSiteMethod = "GetDirtyMethod1"
-		pl.CallOutgoing = outgoingDirty1
+		pl.CallOutgoing.Set(outgoingDirty1)
 
 		server.SendPayload(ctx, pl)
 		commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
@@ -1814,9 +1808,9 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 		executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 		pl := utils.GenerateVCallRequestMethod(server)
 		pl.CallFlags = rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty)
-		pl.Callee = objectGlobal
+		pl.Callee.Set(objectGlobal)
 		pl.CallSiteMethod = "ChangeMethod"
-		pl.CallOutgoing = outgoingChange
+		pl.CallOutgoing.Set(outgoingChange)
 
 		server.SendPayload(ctx, pl)
 		commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
@@ -1828,9 +1822,9 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 
 		pl := utils.GenerateVCallRequestMethod(server)
 		pl.CallFlags = rms.BuildCallFlags(isolation.CallIntolerable, isolation.CallValidated)
-		pl.Callee = objectGlobal
+		pl.Callee.Set(objectGlobal)
 		pl.CallSiteMethod = "GetValidatedMethod2"
-		pl.CallOutgoing = outgoingValidated2
+		pl.CallOutgoing.Set(outgoingValidated2)
 
 		server.SendPayload(ctx, pl)
 		commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
@@ -1839,9 +1833,9 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 
 		pl = utils.GenerateVCallRequestMethod(server)
 		pl.CallFlags = rms.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty)
-		pl.Callee = objectGlobal
+		pl.Callee.Set(objectGlobal)
 		pl.CallSiteMethod = "GetDirtyMethod2"
-		pl.CallOutgoing = outgoingDirty2
+		pl.CallOutgoing.Set(outgoingDirty2)
 
 		server.SendPayload(ctx, pl)
 		commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
@@ -1928,7 +1922,7 @@ func TestVirtual_Method_TwoUnorderedCalls(t *testing.T) {
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	{
 		typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
-			switch result.CallOutgoing {
+			switch result.CallOutgoing.GetValue() {
 			case firstOutgoing:
 				assert.Equal(t, []byte("first result"), result.ReturnArguments)
 			case secondOutgoing:
@@ -1945,18 +1939,18 @@ func TestVirtual_Method_TwoUnorderedCalls(t *testing.T) {
 	{
 		// send first
 		pl := utils.GenerateVCallRequestMethod(server)
-		pl.Callee = objectGlobal
+		pl.Callee.Set(objectGlobal)
 		pl.CallSiteMethod = "GetMethod"
-		pl.CallOutgoing = firstOutgoing
+		pl.CallOutgoing.Set(firstOutgoing)
 
 		server.SendPayload(ctx, pl)
 		// wait for the first
 		commontestutils.WaitSignalsTimed(t, 10*time.Second, synchronizeExecution.Wait())
 		// send second
 		pl = utils.GenerateVCallRequestMethod(server)
-		pl.Callee = objectGlobal
+		pl.Callee.Set(objectGlobal)
 		pl.CallSiteMethod = "GetMethod"
-		pl.CallOutgoing = secondOutgoing
+		pl.CallOutgoing.Set(secondOutgoing)
 
 		server.SendPayload(ctx, pl)
 	}

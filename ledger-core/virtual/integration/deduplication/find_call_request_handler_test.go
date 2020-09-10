@@ -236,12 +236,12 @@ func StepMethodStart(s *VFindCallRequestHandlingSuite, ctx context.Context, t *t
 
 		ProvidedContent: &rms.VStateReport_ProvidedContentBody{
 			LatestDirtyState: &rms.ObjectState{
-				Reference: rms.NewReference(gen.UniqueLocalRefWithPulse(s.getP1())),
+				Reference: rms.NewReferenceLocal(gen.UniqueLocalRefWithPulse(s.getP1())),
 				Class:     rms.NewReference(s.getClass()),
 				State:     rms.NewBytes([]byte("object memory")),
 			},
 			LatestValidatedState: &rms.ObjectState{
-				Reference: rms.NewReference(gen.UniqueLocalRefWithPulse(s.getP1())),
+				Reference: rms.NewReferenceLocal(gen.UniqueLocalRefWithPulse(s.getP1())),
 				Class:     rms.NewReference(s.getClass()),
 				State:     rms.NewBytes([]byte("object memory")),
 			},
@@ -250,9 +250,9 @@ func StepMethodStart(s *VFindCallRequestHandlingSuite, ctx context.Context, t *t
 	s.addPayloadAndWaitIdle(ctx, &report)
 
 	req := utils.GenerateVCallRequestMethod(s.server)
-	req.Caller = s.getCaller()
-	req.Callee = s.getObject()
-	req.CallOutgoing = s.outgoing
+	req.Caller.Set(s.getCaller())
+	req.Callee.Set(s.getObject())
+	req.CallOutgoing.Set(s.outgoing)
 
 	s.addPayloadAndWaitIdle(ctx, req)
 	s.vStateReportSent = make(chan struct{})
@@ -276,9 +276,9 @@ func StepConstructorStart(s *VFindCallRequestHandlingSuite, ctx context.Context,
 	}
 
 	req := utils.GenerateVCallRequestConstructor(s.server)
-	req.Caller = s.getCaller()
-	req.Callee = s.getClass()
-	req.CallOutgoing = s.outgoing
+	req.Caller.Set(s.getCaller())
+	req.Callee.Set(s.getClass())
+	req.CallOutgoing.Set(s.outgoing)
 
 	s.addPayloadAndWaitIdle(ctx, req)
 	s.vStateReportSent = make(chan struct{})
@@ -431,11 +431,11 @@ func (s *VFindCallRequestHandlingSuite) setMessageCheckers(
 	s.typedChecker.VCallResult.SetResend(false)
 
 	s.typedChecker.VDelegatedCallRequest.Set(func(req *rms.VDelegatedCallRequest) bool {
-		delegationToken := s.server.DelegationToken(req.CallOutgoing, s.getCaller(), req.Callee)
+		delegationToken := s.server.DelegationToken(req.CallOutgoing.GetValue(), s.getCaller(), req.Callee.GetValue())
 
 		s.server.SendPayload(ctx, &rms.VDelegatedCallResponse{
-			Callee:                 rms.NewReference(req.Callee),
-			CallIncoming:           rms.NewReference(req.CallIncoming),
+			Callee:                 req.Callee,
+			CallIncoming:           req.CallIncoming,
 			ResponseDelegationSpec: delegationToken,
 		})
 
@@ -494,9 +494,7 @@ func (s *VFindCallRequestHandlingSuite) setRunnerMock() {
 	}
 }
 
-func (s *VFindCallRequestHandlingSuite) addPayloadAndWaitIdle(
-	ctx context.Context, pl rms.Marshaler,
-) {
+func (s *VFindCallRequestHandlingSuite) addPayloadAndWaitIdle(ctx context.Context, pl rms.GoGoSerializable) {
 	s.server.SuspendConveyorAndWaitThenResetActive()
 	s.server.SendPayload(ctx, pl)
 	s.server.WaitActiveThenIdleConveyor()

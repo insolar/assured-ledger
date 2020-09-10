@@ -128,9 +128,9 @@ func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 
 			pl := utils.GenerateVCallRequestMethod(server)
 			pl.CallFlags = rms.BuildCallFlags(isolation.Interference, isolation.State)
-			pl.Callee = object
+			pl.Callee.Set(object)
 			pl.CallSiteMethod = "SomeMethod"
-			pl.CallOutgoing = outgoing
+			pl.CallOutgoing.Set(outgoing)
 
 			server.SendPayload(ctx, pl)
 			server.SendPayload(ctx, pl)
@@ -255,9 +255,9 @@ func TestDeduplication_SecondCallOfMethodAfterExecution(t *testing.T) {
 
 			pl := utils.GenerateVCallRequestMethod(server)
 			pl.CallFlags = rms.BuildCallFlags(isolation.Interference, isolation.State)
-			pl.Callee = object
+			pl.Callee.Set(object)
 			pl.CallSiteMethod = "SomeMethod"
-			pl.CallOutgoing = outgoing
+			pl.CallOutgoing.Set(outgoing)
 
 			oneExecutionEnded := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 			executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 2)
@@ -487,10 +487,10 @@ func TestDeduplication_MethodUsingPrevVE(t *testing.T) {
 
 			request := utils.GenerateVCallRequestMethod(suite.server)
 			request.CallFlags = rms.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty)
-			request.Caller = suite.getCaller()
-			request.Callee = suite.getObject()
+			request.Caller.Set(suite.getCaller())
+			request.Callee.Set(suite.getObject())
 			request.CallSiteMethod = "SomeMethod"
-			request.CallOutgoing = suite.getOutgoingLocal()
+			request.CallOutgoing.Set(suite.getOutgoingLocal())
 
 			suite.addPayloadAndWaitIdle(ctx, request)
 
@@ -702,7 +702,7 @@ func (s *deduplicateMethodUsingPrevVETest) setMessageCheckers(
 
 			ProvidedContent: &rms.VStateReport_ProvidedContentBody{
 				LatestDirtyState: &rms.ObjectState{
-					Reference: rms.NewReference(gen.UniqueLocalRefWithPulse(s.getP1())),
+					Reference: rms.NewReferenceLocal(gen.UniqueLocalRefWithPulse(s.getP1())),
 					Class:     rms.NewReference(s.getClass()),
 					State:     rms.NewBytes([]byte("object memory")),
 				},
@@ -789,7 +789,7 @@ func (s *deduplicateMethodUsingPrevVETest) setRunnerMock() {
 }
 
 func (s *deduplicateMethodUsingPrevVETest) addPayloadAndWaitIdle(
-	ctx context.Context, pl rms.Marshaler,
+	ctx context.Context, pl rms.GoGoSerializable,
 ) {
 	s.server.SuspendConveyorAndWaitThenResetActive()
 	s.server.SendPayload(ctx, pl)

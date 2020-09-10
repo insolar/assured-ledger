@@ -38,7 +38,7 @@ func BenchmarkOnWallets(b *testing.B) {
 				ref             reference.Global
 				contractCallErr *foundation.Error
 			)
-			err = foundation.UnmarshalMethodResultSimplified(result.ReturnArguments, &ref, &contractCallErr)
+			err = foundation.UnmarshalMethodResultSimplified(result.ReturnArguments.GetBytes(), &ref, &contractCallErr)
 			require.NoError(b, err)
 			require.Nil(b, contractCallErr)
 			wallets = append(wallets, ref)
@@ -48,12 +48,12 @@ func BenchmarkOnWallets(b *testing.B) {
 	})
 
 	pl := *utils.GenerateVCallRequestConstructor(server)
-	pl.Callee = walletproxy.GetClass()
+	pl.Callee.Set(walletproxy.GetClass())
 	pl.CallSiteMethod = "New"
 
 	// create 1000 wallets to run get/set on them
 	for i := 0; i < 1000; i++ {
-		pl.CallOutgoing = server.BuildRandomOutgoingWithPulse()
+		pl.CallOutgoing.Set(server.BuildRandomOutgoingWithPulse())
 		msg := server.WrapPayload(&pl).Finalize()
 
 		server.SendMessage(ctx, msg)
@@ -87,8 +87,8 @@ func BenchmarkOnWallets(b *testing.B) {
 		b.ResetTimer()
 		walletNum := 0
 		for i := 0; i < b.N; i++ {
-			pl.CallOutgoing = server.BuildRandomOutgoingWithPulse()
-			pl.Callee = wallets[walletNum%len(wallets)]
+			pl.CallOutgoing.Set(server.BuildRandomOutgoingWithPulse())
+			pl.Callee.Set(wallets[walletNum%len(wallets)])
 			walletNum++
 			msg := server.WrapPayload(&pl).Finalize()
 
@@ -114,8 +114,8 @@ func BenchmarkOnWallets(b *testing.B) {
 
 		walletNum := 0
 		for i := 0; i < b.N; i++ {
-			pl.CallOutgoing = server.BuildRandomOutgoingWithPulse()
-			pl.Callee = wallets[walletNum%len(wallets)]
+			pl.CallOutgoing.Set(server.BuildRandomOutgoingWithPulse())
+			pl.Callee.Set(wallets[walletNum%len(wallets)])
 			walletNum++
 
 			msg := server.WrapPayload(&pl).Finalize()

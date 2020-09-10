@@ -30,7 +30,11 @@ func TestSMVDelegatedCallResponse_ErrorIfBargeInWasNotPublished(t *testing.T) {
 	)
 
 	sm := SMVDelegatedCallResponse{
-		Payload: &rms.VDelegatedCallResponse{ResponseDelegationSpec: rms.CallDelegationToken{Outgoing: globalRef}},
+		Payload: &rms.VDelegatedCallResponse{
+			ResponseDelegationSpec: rms.CallDelegationToken{
+				Outgoing: rms.NewReference(globalRef),
+			},
+		},
 	}
 
 	execCtx := smachine.NewExecutionContextMock(mc).
@@ -52,7 +56,11 @@ func TestSMVDelegatedCallResponse_ErrorIfCallBargeInFailed(t *testing.T) {
 	)
 
 	sm := SMVDelegatedCallResponse{
-		Payload: &rms.VDelegatedCallResponse{ResponseDelegationSpec: rms.CallDelegationToken{Outgoing: globalRef}},
+		Payload: &rms.VDelegatedCallResponse{
+			ResponseDelegationSpec: rms.CallDelegationToken{
+				Outgoing: rms.NewReference(globalRef),
+			},
+		},
 	}
 
 	slotLink := smachine.DeadSlotLink()
@@ -76,7 +84,11 @@ func TestSMVDelegatedCallResponse_SuccessCallBargeIn(t *testing.T) {
 	)
 
 	sm := SMVDelegatedCallResponse{
-		Payload: &rms.VDelegatedCallResponse{ResponseDelegationSpec: rms.CallDelegationToken{Outgoing: globalRef}},
+		Payload: &rms.VDelegatedCallResponse{
+			ResponseDelegationSpec: rms.CallDelegationToken{
+				Outgoing: rms.NewReference(globalRef),
+			},
+		},
 	}
 
 	slotLink := smachine.DeadSlotLink()

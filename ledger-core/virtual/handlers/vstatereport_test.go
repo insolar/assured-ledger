@@ -42,7 +42,7 @@ func TestVStateReport_CreateObjectWithoutState(t *testing.T) {
 	smVStateReport := SMVStateReport{
 		Payload: &rms.VStateReport{
 			Status:                rms.StateStatusEmpty,
-			Object:                smGlobalRef,
+			Object:                rms.NewReference(smGlobalRef),
 			AsOf:                  pd.PulseNumber,
 			UnorderedPendingCount: 1,
 			OrderedPendingCount:   1,
@@ -114,18 +114,18 @@ func TestVStateReport_StopSMIfAsOfOutdated(t *testing.T) {
 			smVStateReport := SMVStateReport{
 				Payload: &rms.VStateReport{
 					Status: rms.StateStatusReady,
-					Object: smGlobalRef,
+					Object: rms.NewReference(smGlobalRef),
 					AsOf:   testCase.asOf,
 					ProvidedContent: &rms.VStateReport_ProvidedContentBody{
 						LatestDirtyState: &rms.ObjectState{
-							Reference: initRef,
-							Class:     class,
-							State:     initState,
+							Reference: rms.NewReferenceLocal(initRef),
+							Class:     rms.NewReference(class),
+							State:     rms.NewBytes(initState),
 						},
 						LatestValidatedState: &rms.ObjectState{
-							Reference: initRef,
-							Class:     class,
-							State:     initState,
+							Reference: rms.NewReferenceLocal(initRef),
+							Class:     rms.NewReference(class),
+							State:     rms.NewBytes(initState),
 						},
 					},
 				},

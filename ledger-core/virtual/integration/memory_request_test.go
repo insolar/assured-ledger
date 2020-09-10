@@ -67,7 +67,7 @@ func TestVirtual_VCachedMemoryRequestHandler(t *testing.T) {
 
 			cases.precondition(suite, ctx, t)
 
-			syncChan := make(chan rms.LocalReference, 1)
+			syncChan := make(chan rms.Reference, 1)
 			defer close(syncChan)
 
 			suite.typedChecker.VStateReport.Set(func(rep *rms.VStateReport) bool {
@@ -85,7 +85,7 @@ func TestVirtual_VCachedMemoryRequestHandler(t *testing.T) {
 				return false
 			})
 
-			var stateRef rms.LocalReference
+			var stateRef rms.Reference
 
 			select {
 			case stateRef = <-syncChan:
@@ -97,7 +97,7 @@ func TestVirtual_VCachedMemoryRequestHandler(t *testing.T) {
 			{
 				cachReq := &rms.VCachedMemoryRequest{
 					Object:  rms.NewReference(suite.object),
-					StateID: rms.NewReference(stateRef),
+					StateID: stateRef,
 				}
 				suite.server.SendPayload(ctx, cachReq)
 			}
@@ -119,7 +119,7 @@ func methodPrecondition(s *memoryCacheTest, ctx context.Context, t *testing.T) {
 	Method_PrepareObject(ctx, s.server, rms.StateStatusReady, s.object, prevPulse)
 
 	pl := utils.GenerateVCallRequestMethod(s.server)
-	pl.Callee = s.object
+	pl.Callee.Set(s.object)
 	pl.CallSiteMethod = "ordered"
 	callOutgoing := pl.CallOutgoing
 
@@ -152,9 +152,10 @@ func methodPrecondition(s *memoryCacheTest, ctx context.Context, t *testing.T) {
 
 func constructorPrecondition(s *memoryCacheTest, ctx context.Context, t *testing.T) {
 	pl := utils.GenerateVCallRequestConstructor(s.server)
-	pl.Caller = s.class
+	pl.Caller.Set(s.class)
+
 	callOutgoing := pl.CallOutgoing
-	s.object = reference.NewSelf(callOutgoing.GetLocal())
+	s.object = reference.NewSelf(callOutgoing.GetValueWithoutBase())
 
 	result := requestresult.New([]byte("result"), s.object)
 	result.SetActivate(reference.Global{}, s.class, []byte(newState))
@@ -199,9 +200,11 @@ func (s *memoryCacheTest) initServer(t *testing.T) context.Context {
 }
 
 func pendingPrecondition(s *memoryCacheTest, ctx context.Context, t *testing.T) {
-	prevPulse := s.server.GetPulse().PulseNumber
-	outgoing := s.server.BuildRandomOutgoingWithPulse()
-	incoming := reference.NewRecordOf(s.object, outgoing.GetLocal())
+	var (
+		prevPulse = s.server.GetPulse().PulseNumber
+		outgoing  = s.server.BuildRandomOutgoingWithPulse()
+		incoming  = reference.NewRecordOf(s.object, outgoing.GetLocal())
+	)
 
 	s.server.IncrementPulse(ctx)
 
@@ -237,7 +240,7 @@ func pendingPrecondition(s *memoryCacheTest, ctx context.Context, t *testing.T) 
 			CallIncoming: rms.NewReference(incoming),
 			CallFlags:    flags,
 			LatestState: &rms.ObjectState{
-				Reference:     rms.NewReference(s.server.RandomLocalWithPulse()),
+				Reference:     rms.NewReferenceLocal(s.server.RandomLocalWithPulse()),
 				Class:         rms.NewReference(s.class),
 				State:         rms.NewBytes([]byte(newState)),
 				PreviousState: rms.NewBytes([]byte("initial state")),

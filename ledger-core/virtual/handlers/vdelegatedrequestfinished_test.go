@@ -35,7 +35,7 @@ func TestSMVDelegatedRequestFinished_FailIfCallNotRegistered(t *testing.T) {
 
 	sm := SMVDelegatedRequestFinished{
 		Payload: &rms.VDelegatedRequestFinished{
-			Callee:    smExecID,
+			Callee:    rms.NewReference(smExecID),
 			CallFlags: rms.BuildCallFlags(callMode, isolation.CallDirty),
 		},
 	}
@@ -68,8 +68,8 @@ func TestSMVDelegatedRequestFinished_TolerableUpdateSharedState_OneActiveCounter
 
 	sm := SMVDelegatedRequestFinished{
 		Payload: &rms.VDelegatedRequestFinished{
-			Callee:       smGlobalRef,
-			CallOutgoing: smExecID,
+			Callee:       rms.NewReference(smGlobalRef),
+			CallOutgoing: rms.NewReference(smExecID),
 			CallFlags:    rms.BuildCallFlags(callMode, isolation.CallDirty),
 		},
 	}
@@ -107,8 +107,8 @@ func TestSMVDelegatedRequestFinished_TolerableUpdateSharedState_ManyActiveCounte
 
 	sm := SMVDelegatedRequestFinished{
 		Payload: &rms.VDelegatedRequestFinished{
-			Callee:       smGlobalRef,
-			CallOutgoing: smExecID,
+			Callee:       rms.NewReference(smGlobalRef),
+			CallOutgoing: rms.NewReference(smExecID),
 			CallFlags:    rms.BuildCallFlags(callMode, isolation.CallDirty),
 		},
 	}
@@ -142,8 +142,8 @@ func TestSMVDelegatedRequestFinished_IntolerableUpdateSharedStateUpdatePendingTa
 
 	sm := SMVDelegatedRequestFinished{
 		Payload: &rms.VDelegatedRequestFinished{
-			Callee:       smGlobalRef,
-			CallOutgoing: smExecID,
+			Callee:       rms.NewReference(smGlobalRef),
+			CallOutgoing: rms.NewReference(smExecID),
 			CallFlags:    rms.BuildCallFlags(callMode, isolation.CallDirty),
 		},
 	}

@@ -50,19 +50,19 @@ func TestSMExecute_MigrationDuringSendOutgoing(t *testing.T) {
 
 	pl := &rms.VCallRequest{
 		CallType:       rms.CallTypeConstructor,
-		Callee:         gen.UniqueGlobalRefWithPulse(pd.PulseNumber),
-		Caller:         gen.UniqueGlobalRefWithPulse(pd.PulseNumber),
+		Callee:         rms.NewReference(gen.UniqueGlobalRefWithPulse(pd.PulseNumber)),
+		Caller:         rms.NewReference(gen.UniqueGlobalRefWithPulse(pd.PulseNumber)),
 		CallFlags:      callFlags,
 		CallSiteMethod: "New",
-		CallOutgoing:   reference.New(gen.UniqueLocalRef(), smObjectID),
-		Arguments:      insolar.MustSerialize([]interface{}{}),
+		CallOutgoing:   rms.NewReference(reference.New(gen.UniqueLocalRef(), smObjectID)),
+		Arguments:      rms.NewBytes(insolar.MustSerialize([]interface{}{})),
 	}
 
-	builder := execution.NewRPCBuilder(pl.CallOutgoing, pl.Callee)
+	builder := execution.NewRPCBuilder(pl.CallOutgoing.GetValue(), pl.Callee.GetValue())
 	callMethod := builder.CallMethod(
 		gen.UniqueGlobalRefWithPulse(pd.PulseNumber),
 		gen.UniqueGlobalRefWithPulse(pd.PulseNumber),
-		"Method", pl.Arguments,
+		"Method", pl.Arguments.GetBytes(),
 	)
 
 	smExecute := SMExecute{

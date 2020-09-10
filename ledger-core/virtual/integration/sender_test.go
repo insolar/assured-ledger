@@ -128,52 +128,52 @@ func TestVirtual_SenderCheck_With_ExpectedVE(t *testing.T) {
 					case *rms.VStateReport:
 						m.Status = rms.StateStatusMissing
 						m.AsOf = prevPulse
-						m.Object = gen.UniqueGlobalRefWithPulse(prevPulse)
+						m.Object.Set(gen.UniqueGlobalRefWithPulse(prevPulse))
 
 					case *rms.VFindCallRequest:
 
 						m.LookAt = prevPulse
-						m.Callee = gen.UniqueGlobalRefWithPulse(prevPulse)
-						m.Outgoing = server.BuildRandomOutgoingWithGivenPulse(prevPulse)
+						m.Callee.Set(gen.UniqueGlobalRefWithPulse(prevPulse))
+						m.Outgoing.Set(server.BuildRandomOutgoingWithGivenPulse(prevPulse))
 
 					case *rms.VFindCallResponse:
 
 						m.LookedAt = prevPulse
-						m.Callee = gen.UniqueGlobalRefWithPulse(prevPulse)
-						m.Outgoing = server.BuildRandomOutgoingWithGivenPulse(prevPulse)
+						m.Callee.Set(gen.UniqueGlobalRefWithPulse(prevPulse))
+						m.Outgoing.Set(server.BuildRandomOutgoingWithGivenPulse(prevPulse))
 						m.Status = rms.CallStateMissing
 
 					case *rms.VDelegatedCallRequest:
 
-						m.Callee = gen.UniqueGlobalRefWithPulse(prevPulse)
-						m.CallOutgoing = server.BuildRandomOutgoingWithGivenPulse(prevPulse)
-						m.CallIncoming = reference.NewRecordOf(m.Callee, m.CallOutgoing.GetLocal())
+						m.Callee.Set(gen.UniqueGlobalRefWithPulse(prevPulse))
+						m.CallOutgoing.Set(server.BuildRandomOutgoingWithGivenPulse(prevPulse))
+						m.CallIncoming.Set(reference.NewRecordOf(m.Callee.GetValue(), m.CallOutgoing.GetValueWithoutBase()))
 						m.CallFlags = rms.CallFlags(0).WithInterference(isolation.CallIntolerable).WithState(isolation.CallValidated)
 
 					case *rms.VDelegatedCallResponse:
 
-						m.Callee = gen.UniqueGlobalRefWithPulse(prevPulse)
-						m.CallIncoming = reference.NewRecordOf(m.Callee, gen.UniqueLocalRefWithPulse(prevPulse))
+						m.Callee.Set(gen.UniqueGlobalRefWithPulse(prevPulse))
+						m.CallIncoming.Set(reference.NewRecordOf(m.Callee.GetValue(), gen.UniqueLocalRefWithPulse(prevPulse)))
 
 					case *rms.VStateRequest:
 
 						m.AsOf = prevPulse
-						m.Object = gen.UniqueGlobalRefWithPulse(prevPulse)
+						m.Object.Set(gen.UniqueGlobalRefWithPulse(prevPulse))
 
 					case *rms.VCallResult:
 						m.CallFlags = rms.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty)
 						m.CallType = rms.CallTypeMethod
-						m.Callee = server.RandomGlobalWithPulse()
-						m.Caller = server.GlobalCaller()
-						m.CallOutgoing = server.BuildRandomOutgoingWithPulse()
-						m.CallIncoming = server.RandomGlobalWithPulse()
-						m.ReturnArguments = []byte("some result")
+						m.Callee.Set(server.RandomGlobalWithPulse())
+						m.Caller.Set(server.GlobalCaller())
+						m.CallOutgoing.Set(server.BuildRandomOutgoingWithPulse())
+						m.CallIncoming.Set(server.RandomGlobalWithPulse())
+						m.ReturnArguments.SetBytes([]byte("some result"))
 
 					case *rms.VCallRequest:
 						testMsg.msg = utils.GenerateVCallRequestMethod(server)
 					}
 
-					server.SendPayload(ctx, testMsg.msg.(rms.Marshaler)) // default caller == server.GlobalCaller()
+					server.SendPayload(ctx, testMsg.msg.(rms.GoGoSerializable)) // default caller == server.GlobalCaller()
 
 					expectNoError := cases.senderIsEqualExpectedVE || testMsg.ignoreSenderCheck == true
 					if expectNoError {

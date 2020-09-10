@@ -67,10 +67,10 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 		Payload: &rms.VCallRequest{
 			CallType:     rms.CallTypeConstructor,
 			CallFlags:    rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
-			CallOutgoing: outgoing,
+			CallOutgoing: rms.NewReference(outgoing),
 
-			Caller:         caller,
-			Callee:         class,
+			Caller:         rms.NewReference(caller),
+			Callee:         rms.NewReference(class),
 			CallSiteMethod: "New",
 		},
 		Meta: &rms.Meta{
@@ -148,10 +148,10 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 		Payload: &rms.VCallRequest{
 			CallType:     rms.CallTypeConstructor,
 			CallFlags:    rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
-			CallOutgoing: outgoing,
+			CallOutgoing: rms.NewReference(outgoing),
 
-			Caller:         class,
-			Callee:         callee,
+			Caller:         rms.NewReference(class),
+			Callee:         rms.NewReference(callee),
 			CallSiteMethod: "New",
 		},
 		Meta: &rms.Meta{
@@ -230,10 +230,10 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 		Payload: &rms.VCallRequest{
 			CallType:     rms.CallTypeConstructor,
 			CallFlags:    rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
-			CallOutgoing: outgoing,
+			CallOutgoing: rms.NewReference(outgoing),
 
-			Caller:         caller,
-			Callee:         class,
+			Caller:         rms.NewReference(caller),
+			Callee:         rms.NewReference(class),
 			CallSiteMethod: "New",
 		},
 		Meta: &rms.Meta{
@@ -313,10 +313,10 @@ func TestSMExecute_Semi_ConstructorOnMissingObject(t *testing.T) {
 		Payload: &rms.VCallRequest{
 			CallType:     rms.CallTypeConstructor,
 			CallFlags:    rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
-			CallOutgoing: outgoing,
+			CallOutgoing: rms.NewReference(outgoing),
 
-			Caller:         caller,
-			Callee:         class,
+			Caller:         rms.NewReference(caller),
+			Callee:         rms.NewReference(class),
 			CallSiteMethod: "New",
 		},
 		Meta: &rms.Meta{
@@ -375,7 +375,7 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 
 	slotMachine.MessageSender.SendTarget.Set(func(_ context.Context, msg rms.Marshaler, target reference.Global, _ ...messagesender.SendOption) error {
 		res := msg.(*rms.VCallResult)
-		contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments)
+		contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments.GetBytes())
 		require.NoError(t, sysErr)
 		require.Contains(t, contractErr.Error(), "try to call method on deactivated object")
 		return nil
@@ -401,10 +401,10 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 		Payload: &rms.VCallRequest{
 			CallType:     rms.CallTypeConstructor,
 			CallFlags:    rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
-			CallOutgoing: outgoing,
+			CallOutgoing: rms.NewReference(outgoing),
 
-			Caller:         caller,
-			Callee:         class,
+			Caller:         rms.NewReference(caller),
+			Callee:         rms.NewReference(class),
 			CallSiteMethod: "New",
 		},
 		Meta: &rms.Meta{
@@ -485,10 +485,10 @@ func TestSMExecute_Semi_MethodOnEmptyObject(t *testing.T) {
 		Payload: &rms.VCallRequest{
 			CallType:     rms.CallTypeMethod,
 			CallFlags:    rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
-			CallOutgoing: outgoing,
+			CallOutgoing: rms.NewReference(outgoing),
 
-			Caller:         caller,
-			Callee:         objectRef,
+			Caller:         rms.NewReference(caller),
+			Callee:         rms.NewReference(objectRef),
 			CallSiteMethod: "New",
 		},
 		Meta: &rms.Meta{

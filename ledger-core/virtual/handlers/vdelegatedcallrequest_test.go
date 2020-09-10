@@ -73,8 +73,8 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 			expectedResponse: &rms.VDelegatedCallResponse{
 				ResponseDelegationSpec: rms.CallDelegationToken{
 					TokenTypeAndFlags: rms.DelegationTokenTypeCall,
-					ApproverSignature: deadBeef[:],
-					Outgoing:          oneRandomOrderedRequest,
+					ApproverSignature: rms.NewBytes(deadBeef[:]),
+					Outgoing:          rms.NewReference(oneRandomOrderedRequest),
 				},
 			},
 		},
@@ -88,8 +88,8 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 			expectedResponse: &rms.VDelegatedCallResponse{
 				ResponseDelegationSpec: rms.CallDelegationToken{
 					TokenTypeAndFlags: rms.DelegationTokenTypeCall,
-					ApproverSignature: deadBeef[:],
-					Outgoing:          oneRandomUnorderedRequest,
+					ApproverSignature: rms.NewBytes(deadBeef[:]),
+					Outgoing:          rms.NewReference(oneRandomUnorderedRequest),
 				},
 			},
 		},
@@ -103,8 +103,8 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 			expectedResponse: &rms.VDelegatedCallResponse{
 				ResponseDelegationSpec: rms.CallDelegationToken{
 					TokenTypeAndFlags: rms.DelegationTokenTypeCall,
-					ApproverSignature: deadBeef[:],
-					Outgoing:          retryOrderedRequestRef,
+					ApproverSignature: rms.NewBytes(deadBeef[:]),
+					Outgoing:          rms.NewReference(retryOrderedRequestRef),
 				},
 			},
 		},
@@ -119,8 +119,8 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 				ResponseDelegationSpec: rms.CallDelegationToken{
 					TokenTypeAndFlags: rms.DelegationTokenTypeCall,
 					PulseNumber:       pulse.OfNow(),
-					ApproverSignature: deadBeef[:],
-					Outgoing:          retryUnorderedRequestRef,
+					ApproverSignature: rms.NewBytes(deadBeef[:]),
+					Outgoing:          rms.NewReference(retryUnorderedRequestRef),
 				},
 			},
 		},
@@ -242,9 +242,9 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 
 			smDelegatedCallRequest := SMVDelegatedCallRequest{
 				Payload: &rms.VDelegatedCallRequest{
-					CallOutgoing: tc.requestRef,
+					CallOutgoing: rms.NewReference(tc.requestRef),
 					CallFlags:    callFlags,
-					Callee:       objectRef,
+					Callee:       rms.NewReference(objectRef),
 				},
 				Meta: &rms.Meta{
 					Sender: caller,
@@ -277,12 +277,12 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 			}
 
 			expectedResponse := tc.expectedResponse
-			expectedResponse.ResponseDelegationSpec.Approver = nodeRef
-			expectedResponse.ResponseDelegationSpec.DelegateTo = caller
-			expectedResponse.ResponseDelegationSpec.Caller = caller
+			expectedResponse.ResponseDelegationSpec.Approver.Set(nodeRef)
+			expectedResponse.ResponseDelegationSpec.DelegateTo.Set(caller)
+			expectedResponse.ResponseDelegationSpec.Caller.Set(caller)
 			expectedResponse.ResponseDelegationSpec.PulseNumber = pulse.OfNow()
-			expectedResponse.ResponseDelegationSpec.Callee = objectRef
-			expectedResponse.Callee = objectRef
+			expectedResponse.ResponseDelegationSpec.Callee.Set(objectRef)
+			expectedResponse.Callee.Set(objectRef)
 
 			slotMachine.MessageSender.SendTarget.Set(func(_ context.Context, msg rms.Marshaler, target reference.Global, _ ...messagesender.SendOption) error {
 				res := msg.(*rms.VDelegatedCallResponse)

@@ -98,7 +98,7 @@ func TestVirtual_SemaphoreLimitNotExceeded(t *testing.T) {
 		for i := 0; i < numObject; i++ {
 			pl := utils.GenerateVCallRequestMethod(server)
 			pl.CallFlags = rms.BuildCallFlags(interferenceFlag, stateFlag)
-			pl.Callee = objects[i]
+			pl.Callee.Set(objects[i])
 			pl.CallSiteMethod = objects[i].String()
 
 			server.SendPayload(ctx, pl)

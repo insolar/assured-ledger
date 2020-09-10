@@ -486,20 +486,20 @@ func (s *Server) setWaitCallback(cycleFn ConveyorCycleFunc) {
 	})
 }
 
-func (s *Server) WrapPayload(pl rms.Marshaler) *RequestWrapper {
+func (s *Server) WrapPayload(pl rms.GoGoSerializable) *RequestWrapper {
 	return NewRequestWrapper(s.GetPulse().PulseNumber, pl).SetSender(s.caller)
 }
 
-func (s *Server) SendPayload(ctx context.Context, pl rms.Marshaler) {
+func (s *Server) SendPayload(ctx context.Context, pl rms.GoGoSerializable) {
 	msg := s.WrapPayload(pl).Finalize()
 	s.SendMessage(ctx, msg)
 }
 
-func (s *Server) WrapPayloadAsFuture(pl rms.Marshaler) *RequestWrapper {
+func (s *Server) WrapPayloadAsFuture(pl rms.GoGoSerializable) *RequestWrapper {
 	return NewRequestWrapper(s.GetPulse().NextPulseNumber(), pl).SetSender(s.caller)
 }
 
-func (s *Server) SendPayloadAsFuture(ctx context.Context, pl rms.Marshaler) {
+func (s *Server) SendPayloadAsFuture(ctx context.Context, pl rms.GoGoSerializable) {
 	msg := s.WrapPayloadAsFuture(pl).Finalize()
 	s.SendMessage(ctx, msg)
 }

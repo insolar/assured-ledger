@@ -116,9 +116,9 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 
 			pl := utils.GenerateVCallRequestMethod(server)
 			pl.CallFlags = rms.BuildCallFlags(test.isolation.Interference, test.isolation.State)
-			pl.Callee = object
+			pl.Callee.Set(object)
 			pl.CallSiteMethod = "SomeMethod"
-			pl.CallOutgoing = outgoing
+			pl.CallOutgoing.Set(outgoing)
 
 			synchronizeExecution := synchronization.NewPoint(1)
 			defer synchronizeExecution.Done()
@@ -172,19 +172,19 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 
 					expectedToken.PulseNumber = p2
 					approver := server.RandomGlobalWithPulse()
-					expectedToken.Approver = approver
+					expectedToken.Approver.Set(approver)
 
 					firstTokenValue = rms.CallDelegationToken{
 						TokenTypeAndFlags: rms.DelegationTokenTypeCall,
 						PulseNumber:       p2,
-						Callee:            rms.NewReference(request.Callee),
-						Outgoing:          rms.NewReference(request.CallOutgoing),
+						Callee:            request.Callee,
+						Outgoing:          request.CallOutgoing,
 						DelegateTo:        rms.NewReference(server.JetCoordinatorMock.Me()),
 						Approver:          rms.NewReference(approver),
 					}
 					msg := rms.VDelegatedCallResponse{
-						Callee:                 rms.NewReference(request.Callee),
-						CallIncoming:           rms.NewReference(request.CallIncoming),
+						Callee:                 request.Callee,
+						CallIncoming:           request.CallIncoming,
 						ResponseDelegationSpec: firstTokenValue,
 					}
 
@@ -206,7 +206,7 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 				typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
 					assert.Equal(t, object, res.Callee)
 					if test.isolation == intolerableFlags() && test.withSideEffect {
-						contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments)
+						contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments.GetBytes())
 						require.NoError(t, sysErr)
 						require.Equal(t, "intolerable call trying to change object state", contractErr.Error())
 					} else {
@@ -289,7 +289,7 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 	// create object state
 	{
 		objectState := rms.ObjectState{
-			Reference: rms.NewReference(gen.UniqueLocalRefWithPulse(prevPulse)),
+			Reference: rms.NewReferenceLocal(gen.UniqueLocalRefWithPulse(prevPulse)),
 			Class:     rms.NewReference(testwalletProxy.GetClass()),
 			State:     rms.NewBytes(makeRawWalletState(initialBalance)),
 		}
@@ -345,15 +345,15 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 			token := rms.CallDelegationToken{
 				TokenTypeAndFlags: rms.DelegationTokenTypeCall,
 				PulseNumber:       currPulse,
-				Callee:            rms.NewReference(request.Callee),
-				Outgoing:          rms.NewReference(request.CallOutgoing),
+				Callee:            request.Callee,
+				Outgoing:          request.CallOutgoing,
 				DelegateTo:        rms.NewReference(server.JetCoordinatorMock.Me()),
 				Approver:          rms.NewReference(approver),
 			}
 
 			msg := rms.VDelegatedCallResponse{
-				Callee:                 rms.NewReference(request.Callee),
-				CallIncoming:           rms.NewReference(request.CallIncoming),
+				Callee:                 request.Callee,
+				CallIncoming:           request.CallIncoming,
 				ResponseDelegationSpec: token,
 			}
 
@@ -385,7 +385,7 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 		)
 
 		request := utils.GenerateVCallRequestMethod(server)
-		request.Callee = object
+		request.Callee.Set(object)
 		outgoing := server.BuildRandomOutgoingWithPulse()
 
 		switch i {
@@ -407,7 +407,7 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 			panic(throw.Impossible())
 		}
 
-		request.CallOutgoing = outgoing
+		request.CallOutgoing.Set(outgoing)
 		objectExecutionMock = runnerMock.AddExecutionMock(outgoing)
 		objectExecutionMock.AddStart(
 			func(_ execution.Context) {
@@ -544,9 +544,9 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 			{
 				pl := utils.GenerateVCallRequestMethod(server)
 				pl.CallFlags = rms.BuildCallFlags(test.isolation.Interference, test.isolation.State)
-				pl.Callee = object
+				pl.Callee.Set(object)
 				pl.CallSiteMethod = "SomeMethod"
-				pl.CallOutgoing = outgoingP2
+				pl.CallOutgoing.Set(outgoingP2)
 
 				server.SendPayload(ctx, pl)
 			}
@@ -569,7 +569,7 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 					CallOutgoing: rms.NewReference(outgoingP1),
 					CallIncoming: rms.NewReference(incomingP1),
 					LatestState: &rms.ObjectState{
-						Reference: rms.NewReference(dirtyStateRef),
+						Reference: rms.NewReferenceLocal(dirtyStateRef),
 						Class:     rms.NewReference(class),
 						State:     rms.NewBytes([]byte("new object memory")),
 					},

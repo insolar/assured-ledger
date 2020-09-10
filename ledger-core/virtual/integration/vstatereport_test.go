@@ -180,7 +180,7 @@ func TestVirtual_StateReport_CheckPendingCountersAndPulses(t *testing.T) {
 
 				ProvidedContent: &rms.VStateReport_ProvidedContentBody{
 					LatestDirtyState: &rms.ObjectState{
-						Reference: rms.NewReference(gen.UniqueLocalRefWithPulse(suite.getPulse(1))),
+						Reference: rms.NewReferenceLocal(gen.UniqueLocalRefWithPulse(suite.getPulse(1))),
 						Class:     rms.NewReference(suite.getClass()),
 						State:     rms.NewBytes([]byte("object memory")),
 					},
@@ -384,9 +384,9 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) startNewPending(
 
 	pl := utils.GenerateVCallRequestMethod(s.server)
 	pl.CallFlags = rms.BuildCallFlags(intFlag, isolation.CallDirty)
-	pl.Caller = s.getCaller()
-	pl.Callee = s.getObject()
-	pl.CallOutgoing = outgoing
+	pl.Caller.Set(s.getCaller())
+	pl.Callee.Set(s.getObject())
+	pl.CallOutgoing.Set(outgoing)
 
 	s.addPayloadAndWaitIdle(ctx, pl)
 
@@ -435,7 +435,7 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) setMessageCheckers(
 
 		found := false
 		for _, reqInfo := range s.requests {
-			if outgoingRef.Equal(reqInfo.ref) {
+			if outgoingRef.GetValue().Equal(reqInfo.ref) {
 				found = true
 				reqInfo.token = del.ResponseDelegationSpec
 				break
@@ -445,7 +445,7 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) setMessageCheckers(
 		return false
 	})
 	typedChecker.VDelegatedCallRequest.Set(func(req *rms.VDelegatedCallRequest) bool {
-		outgoingRef := req.CallOutgoing
+		outgoingRef := req.CallOutgoing.GetValue()
 		require.False(t, outgoingRef.IsZero())
 		require.False(t, outgoingRef.IsEmpty())
 
@@ -455,13 +455,13 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) setMessageCheckers(
 			TokenTypeAndFlags: rms.DelegationTokenTypeCall,
 			PulseNumber:       s.getPulse(5),
 			Callee:            rms.NewReference(s.getObject()),
-			Outgoing:          rms.NewReference(outgoingRef),
+			Outgoing:          req.CallOutgoing,
 			ApproverSignature: rms.NewBytes([]byte("deadbeef")),
 		}
 
 		pl := rms.VDelegatedCallResponse{
-			Callee:                 rms.NewReference(req.Callee),
-			CallIncoming:           rms.NewReference(req.CallIncoming),
+			Callee:                 req.Callee,
+			CallIncoming:           req.CallIncoming,
 			ResponseDelegationSpec: token,
 		}
 
@@ -493,7 +493,7 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) setMessageCheckers(
 		pl := rms.VFindCallResponse{
 			LookedAt: s.getPulse(3),
 			Callee:   rms.NewReference(s.getObject()),
-			Outgoing: rms.NewReference(req.Outgoing),
+			Outgoing: req.Outgoing,
 			Status:   rms.CallStateMissing,
 		}
 		s.server.SendPayload(ctx, &pl)
@@ -545,7 +545,7 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) waitMessagePublications(
 }
 
 func (s *stateReportCheckPendingCountersAndPulsesTest) addPayloadAndWaitIdle(
-	ctx context.Context, pl rms.Marshaler,
+	ctx context.Context, pl rms.GoGoSerializable,
 ) {
 	s.server.SuspendConveyorAndWaitThenResetActive()
 	s.server.SendPayload(ctx, pl)

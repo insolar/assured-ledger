@@ -7,19 +7,20 @@ package utils
 
 import (
 	testwalletProxy "github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 )
 
-func GenerateVStateReport(server *Server, object rms.Reference, pulse rms.PulseNumber) *rms.VStateReport {
+func GenerateVStateReport(server *Server, object reference.Global, pulse pulse.Number) *rms.VStateReport {
 	content := &rms.VStateReport_ProvidedContentBody{
 		LatestDirtyState: &rms.ObjectState{
-			Reference: rms.NewReference(reference.Local{}),
+			Reference: rms.NewReferenceLocal(reference.Local{}),
 			Class:     rms.NewReference(testwalletProxy.GetClass()),
 			State:     rms.NewBytes([]byte("dirty")),
 		},
 		LatestValidatedState: &rms.ObjectState{
-			Reference: rms.NewReference(reference.Local{}),
+			Reference: rms.NewReferenceLocal(reference.Local{}),
 			Class:     rms.NewReference(testwalletProxy.GetClass()),
 			State:     rms.NewBytes([]byte("validated")),
 		},

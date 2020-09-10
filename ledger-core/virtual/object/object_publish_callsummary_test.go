@@ -39,16 +39,16 @@ func TestSMObject_CallSummarySM(t *testing.T) {
 	smObject.SetState(HasState)
 
 	res1 := rms.VCallResult{
-		Callee:       smObject.Reference,
-		CallOutgoing: gen.UniqueGlobalRef(),
+		Callee:       rms.NewReference(smObject.Reference),
+		CallOutgoing: rms.NewReference(gen.UniqueGlobalRef()),
 	}
 	res2 := rms.VCallResult{
-		Callee:       smObject.Reference,
-		CallOutgoing: gen.UniqueGlobalRef(),
+		Callee:       rms.NewReference(smObject.Reference),
+		CallOutgoing: rms.NewReference(gen.UniqueGlobalRef()),
 	}
 
-	req1Ref := res1.CallOutgoing
-	req2Ref := res2.CallOutgoing
+	req1Ref := res1.CallOutgoing.GetValue()
+	req2Ref := res2.CallOutgoing.GetValue()
 
 	smObject.SharedState.KnownRequests.Add(isolation.CallTolerable, req1Ref)
 	smObject.SharedState.KnownRequests.Add(isolation.CallIntolerable, req2Ref)

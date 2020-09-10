@@ -66,7 +66,7 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 			UnorderedPendingEarliestPulse: prevPulse,
 			ProvidedContent: &rms.VStateReport_ProvidedContentBody{
 				LatestDirtyState: &rms.ObjectState{
-					Reference: rms.NewReference(stateID),
+					Reference: rms.NewReferenceLocal(stateID),
 					Class:     rms.NewReference(testwalletProxy.GetClass()),
 					State:     rms.NewBytes(rawWalletState),
 				},

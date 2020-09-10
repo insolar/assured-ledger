@@ -57,10 +57,9 @@ func TestVDelegatedCallRequest(t *testing.T) {
 			Payload: &rms.VCallRequest{
 				CallType:     rms.CallTypeConstructor,
 				CallFlags:    rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
-				CallOutgoing: outgoing,
-
-				Caller: caller,
-				Callee: callee,
+				CallOutgoing: rms.NewReference(outgoing),
+				Caller:       rms.NewReference(caller),
+				Callee:       rms.NewReference(callee),
 			},
 		}
 	)
@@ -134,7 +133,7 @@ func TestVDelegatedCallRequest(t *testing.T) {
 		require.False(t, slotLink.IsZero())
 
 		ok := bargeInHolder.CallWithParam(&rms.VDelegatedCallResponse{
-			ResponseDelegationSpec: rms.CallDelegationToken{Outgoing: outgoing},
+			ResponseDelegationSpec: rms.CallDelegationToken{Outgoing: rms.NewReference(outgoing)},
 		})
 		require.True(t, ok)
 	}

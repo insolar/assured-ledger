@@ -18,13 +18,13 @@ import (
 
 type RequestWrapper struct {
 	pulseNumber pulse.Number
-	payload     rms.Marshaler
+	payload     rms.GoGoSerializable
 
 	sender   reference.Global
 	receiver reference.Global
 }
 
-func NewRequestWrapper(pulseNumber pulse.Number, payload rms.Marshaler) *RequestWrapper {
+func NewRequestWrapper(pulseNumber pulse.Number, payload rms.GoGoSerializable) *RequestWrapper {
 	return &RequestWrapper{
 		pulseNumber: pulseNumber,
 		payload:     payload,
@@ -42,19 +42,15 @@ func (w *RequestWrapper) SetReceiver(receiver reference.Global) *RequestWrapper 
 }
 
 func (w *RequestWrapper) Finalize() *message.Message {
-	payloadBytes, err := w.payload.Marshal()
-	if err != nil {
-		panic(throw.W(err, "failed to marshal message"))
-	}
-
-	msg, err := rms.NewMessage(&rms.Meta{
-		Payload:    payloadBytes,
+	meta := rms.Meta{
 		Sender:     w.sender,
 		Receiver:   w.receiver,
 		Pulse:      w.pulseNumber,
-		ID:         nil,
 		OriginHash: rms.MessageHash{},
-	})
+	}
+	meta.Payload.Set(w.payload)
+
+	msg, err := rms.NewMessage(&meta)
 	if err != nil {
 		panic(throw.W(err, "failed to create watermill message"))
 	}

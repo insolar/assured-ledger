@@ -58,7 +58,7 @@ func TestConstructor_SamePulse_WhileExecution(t *testing.T) {
 
 	{
 		requestResult := requestresult.New([]byte("123"), server.RandomGlobalWithPulse())
-		requestResult.SetActivate(server.RandomGlobalWithPulse(), pl.Callee, []byte("234"))
+		requestResult.SetActivate(server.RandomGlobalWithPulse(), pl.Callee.GetValue(), []byte("234"))
 
 		executionMock := runnerMock.AddExecutionMock(pl.CallOutgoing)
 		executionMock.AddStart(executionFn, &execution.Update{
@@ -121,7 +121,7 @@ func TestConstructor_SamePulse_AfterExecution(t *testing.T) {
 
 	{
 		requestResult := requestresult.New([]byte("123"), server.RandomGlobalWithPulse())
-		requestResult.SetActivate(server.RandomGlobalWithPulse(), pl.Callee, []byte("234"))
+		requestResult.SetActivate(server.RandomGlobalWithPulse(), pl.Callee.GetValue(), []byte("234"))
 
 		executionMock := runnerMock.AddExecutionMock(pl.CallOutgoing)
 		executionMock.AddStart(nil, &execution.Update{
@@ -243,7 +243,7 @@ func (test *DeduplicationDifferentPulsesCase) run(t *testing.T) {
 	}
 
 	// populate needed VStateReport fields
-	test.VState.Object = object
+	test.VState.Object.Set(object)
 	if test.VState.OrderedPendingCount > 0 {
 		test.VState.OrderedPendingEarliestPulse = previousPulse
 	}
@@ -251,24 +251,24 @@ func (test *DeduplicationDifferentPulsesCase) run(t *testing.T) {
 
 	// populate needed VFindCallResponse fields
 	if test.VFindCall != nil {
-		test.VFindCall.Callee = object
+		test.VFindCall.Callee.Set(object)
 		if test.VFindCall.CallResult != nil {
 			test.VFindCall.CallResult = utils.MakeMinimumValidVStateResult(server, ExecutionResultFromPreviousNode)
-			test.VFindCall.CallResult.Callee = object
+			test.VFindCall.CallResult.Callee.Set(object)
 		}
-		test.VFindCall.Outgoing = outgoing
+		test.VFindCall.Outgoing.Set(outgoing)
 	}
 
 	// populate needed VDelegatedCallResponse fields
 	if test.VDelegatedCall != nil {
 		if test.VDelegatedCallBadReference {
-			test.VDelegatedCall.CallOutgoing = test.Server.RandomGlobalWithPulse()
+			test.VDelegatedCall.CallOutgoing.Set(test.Server.RandomGlobalWithPulse())
 		} else {
-			test.VDelegatedCall.CallOutgoing = outgoing
+			test.VDelegatedCall.CallOutgoing.Set(outgoing)
 		}
-		test.VDelegatedCall.Callee = object
+		test.VDelegatedCall.Callee.Set(object)
 		test.VDelegatedCall.CallFlags = rms.BuildCallFlags(isolation.Interference, isolation.State)
-		test.VDelegatedCall.CallIncoming = reference.NewRecordOf(class, test.VDelegatedCall.CallOutgoing.GetLocal())
+		test.VDelegatedCall.CallIncoming.Set(reference.NewRecordOf(class, test.VDelegatedCall.CallOutgoing.GetValueWithoutBase()))
 	}
 
 	if test.VDelegatedRequestFinished != nil {
@@ -347,8 +347,8 @@ func (test *DeduplicationDifferentPulsesCase) run(t *testing.T) {
 
 	{
 		pl := utils.GenerateVCallRequestConstructor(server)
-		pl.Callee = class
-		pl.CallOutgoing = outgoing
+		pl.Callee.Set(class)
+		pl.CallOutgoing.Set(outgoing)
 
 		server.SendPayload(ctx, pl)
 	}

@@ -71,9 +71,9 @@ func TestSMObject_MigrationCreateStateReport_IfStateMissing(t *testing.T) {
 		assert.NotNil(t, data)
 		switch d := data.(type) {
 		case preservedstatereport.ReportKey:
-			assert.Equal(t, preservedstatereport.BuildReportKey(report.Object), d)
+			assert.Equal(t, preservedstatereport.BuildReportKey(report.Object.GetValue()), d)
 		case callsummary.SummarySyncKey:
-			assert.Equal(t, callsummary.BuildSummarySyncKey(report.Object), d)
+			assert.Equal(t, callsummary.BuildSummarySyncKey(report.Object.GetValue()), d)
 		}
 		return true
 	})
@@ -167,9 +167,9 @@ func TestSMObject_MigrationCreateStateReport_IfStateEmptyAndCountersSet(t *testi
 
 		switch k := key.(type) {
 		case preservedstatereport.ReportKey:
-			assert.Equal(t, preservedstatereport.BuildReportKey(report.Object), k)
+			assert.Equal(t, preservedstatereport.BuildReportKey(report.Object.GetValue()), k)
 		case callsummary.SummarySyncKey:
-			assert.Equal(t, callsummary.BuildSummarySyncKey(report.Object), k)
+			assert.Equal(t, callsummary.BuildSummarySyncKey(report.Object.GetValue()), k)
 		default:
 			t.Fatal("Unexpected published key")
 		}

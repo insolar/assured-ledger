@@ -40,8 +40,8 @@ func TestVFindCallRequest(t *testing.T) {
 
 	vFindCallRequest := rms.VFindCallRequest{
 		LookAt:   pd.GetPulseNumber(),
-		Callee:   objectRef,
-		Outgoing: outgoing,
+		Callee:   rms.NewReference(objectRef),
+		Outgoing: rms.NewReference(outgoing),
 	}
 
 	sender := gen.UniqueGlobalRef()
@@ -100,8 +100,8 @@ func TestVFindCallRequest(t *testing.T) {
 	reqs := callregistry.NewWorkingTable()
 
 	vCallResult := rms.VCallResult{
-		Callee:       objectRef,
-		CallOutgoing: outgoing,
+		Callee:       rms.NewReference(objectRef),
+		CallOutgoing: rms.NewReference(outgoing),
 	}
 
 	reqs.Add(isolation.CallTolerable, outgoing)
@@ -120,8 +120,8 @@ func TestVFindCallRequest(t *testing.T) {
 			// try to find for unknown object
 			vFindCallRequest := rms.VFindCallRequest{
 				LookAt:   pd.GetPulseNumber(),
-				Callee:   gen.UniqueGlobalRef(),
-				Outgoing: outgoing,
+				Callee:   rms.NewReference(gen.UniqueGlobalRef()),
+				Outgoing: rms.NewReference(outgoing),
 			}
 
 			smVFindCallRequest := SMVFindCallRequest{
@@ -145,8 +145,8 @@ func TestVFindCallRequest(t *testing.T) {
 			// try to find for unknown request
 			vFindCallRequest := rms.VFindCallRequest{
 				LookAt:   pd.GetPulseNumber(),
-				Callee:   objectRef,
-				Outgoing: gen.UniqueGlobalRef(),
+				Callee:   rms.NewReference(objectRef),
+				Outgoing: rms.NewReference(gen.UniqueGlobalRef()),
 			}
 
 			smVFindCallRequest := SMVFindCallRequest{

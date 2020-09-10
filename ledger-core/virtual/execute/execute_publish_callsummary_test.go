@@ -47,9 +47,9 @@ func TestSMExecute_PublishVCallResultToCallSummarySM(t *testing.T) {
 		CallType:       rms.CallTypeConstructor,
 		CallFlags:      callFlags,
 		CallSiteMethod: "New",
-		CallOutgoing:   outgoingRef,
-		Callee:         class,
-		Arguments:      insolar.MustSerialize([]interface{}{}),
+		CallOutgoing:   rms.NewReference(outgoingRef),
+		Callee:         rms.NewReference(class),
+		Arguments:      rms.NewBytes(insolar.MustSerialize([]interface{}{})),
 	}
 
 	smExecute := SMExecute{
@@ -60,8 +60,8 @@ func TestSMExecute_PublishVCallResultToCallSummarySM(t *testing.T) {
 	smExecute = expectedInitState(ctx, smExecute)
 
 	res := rms.VCallResult{
-		Callee:       class,
-		CallOutgoing: outgoingRef,
+		Callee:       rms.NewReference(class),
+		CallOutgoing: rms.NewReference(outgoingRef),
 	}
 
 	smExecute.execution.Result = &res

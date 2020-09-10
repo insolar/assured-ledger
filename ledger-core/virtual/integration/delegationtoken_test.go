@@ -107,7 +107,7 @@ func TestDelegationToken_SuccessCheckCorrectToken(t *testing.T) {
 			reflect.ValueOf(testMsg.msg).MethodByName("Reset").Call([]reflect.Value{})
 			insertToken(delegationToken, testMsg.msg)
 
-			server.SendPayload(ctx, testMsg.msg.(rms.Marshaler))
+			server.SendPayload(ctx, testMsg.msg.(rms.GoGoSerializable))
 			server.WaitActiveThenIdleConveyor()
 
 			assert.False(t, errorFound, "Fail "+testMsg.name)
@@ -177,14 +177,14 @@ func TestDelegationToken_CheckTokenField(t *testing.T) {
 				delegationToken rms.CallDelegationToken
 			)
 
-			delegationToken = server.DelegationToken(pl.CallOutgoing, pl.Caller, pl.Callee)
+			delegationToken = server.DelegationToken(pl.CallOutgoing.GetValue(), pl.Caller.GetValue(), pl.Callee.GetValue())
 			switch {
 			case test.fakeCaller:
-				delegationToken.Caller = server.RandomGlobalWithPulse()
+				delegationToken.Caller.Set(server.RandomGlobalWithPulse())
 			case test.fakeCallee:
-				delegationToken.Callee = server.RandomGlobalWithPulse()
+				delegationToken.Callee.Set(server.RandomGlobalWithPulse())
 			case test.fakeOutgoing:
-				delegationToken.Outgoing = server.RandomGlobalWithPulse()
+				delegationToken.Outgoing.Set(server.RandomGlobalWithPulse())
 			}
 
 			pl.DelegationSpec = delegationToken
@@ -339,7 +339,7 @@ func TestDelegationToken_CheckMessageFromAuthorizedVirtual(t *testing.T) {
 				reflect.ValueOf(testMsg.msg).MethodByName("Reset").Call([]reflect.Value{})
 				insertToken(delegationToken, testMsg.msg)
 
-				server.SendPayload(ctx, testMsg.msg.(rms.Marshaler))
+				server.SendPayload(ctx, testMsg.msg.(rms.GoGoSerializable))
 				server.WaitIdleConveyor()
 
 				assert.True(t, errorFound, "Fail "+testMsg.name)

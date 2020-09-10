@@ -14,7 +14,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
-	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
@@ -73,17 +72,15 @@ func TestVirtual_VStateRequest(t *testing.T) {
 				case rms.RequestLatestDirtyState:
 					expectedVStateReport.ProvidedContent = &rms.VStateReport_ProvidedContentBody{
 						LatestDirtyState: &rms.ObjectState{
-							Reference: rms.NewReference(reference.Local{}),
-							State:     rms.NewBytes(rawWalletState),
-							Class:     rms.NewReference(testwallet.ClassReference),
+							State: rms.NewBytes(rawWalletState),
+							Class: rms.NewReference(testwallet.ClassReference),
 						},
 					}
 				case rms.RequestLatestValidatedState:
 					expectedVStateReport.ProvidedContent = &rms.VStateReport_ProvidedContentBody{
 						LatestValidatedState: &rms.ObjectState{
-							Reference: rms.NewReference(reference.Local{}),
-							State:     rms.NewBytes(rawWalletState),
-							Class:     rms.NewReference(testwallet.ClassReference),
+							State: rms.NewBytes(rawWalletState),
+							Class: rms.NewReference(testwallet.ClassReference),
 						},
 					}
 				}

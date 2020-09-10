@@ -86,12 +86,12 @@ func TestVirtual_VStateReport_StateAlreadyExists(t *testing.T) {
 					AsOf:   prevPulse,
 					ProvidedContent: &rms.VStateReport_ProvidedContentBody{
 						LatestDirtyState: &rms.ObjectState{
-							Reference: rms.NewReference(initRef),
+							Reference: rms.NewReferenceLocal(initRef),
 							Class:     rms.NewReference(class),
 							State:     rms.NewBytes(initState),
 						},
 						LatestValidatedState: &rms.ObjectState{
-							Reference: rms.NewReference(initRef),
+							Reference: rms.NewReferenceLocal(initRef),
 							Class:     rms.NewReference(class),
 							State:     rms.NewBytes(initState),
 						},
@@ -126,7 +126,7 @@ func TestVirtual_VStateReport_StateAlreadyExists(t *testing.T) {
 				if testCase.status == rms.StateStatusReady {
 					pl.ProvidedContent = &rms.VStateReport_ProvidedContentBody{
 						LatestDirtyState: &rms.ObjectState{
-							Reference: rms.NewReference(server.RandomLocalWithPulse()),
+							Reference: rms.NewReferenceLocal(server.RandomLocalWithPulse()),
 							Class:     rms.NewReference(class),
 							State:     rms.NewBytes([]byte("new state")),
 						},

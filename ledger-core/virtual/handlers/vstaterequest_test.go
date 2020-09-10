@@ -34,7 +34,7 @@ func TestVStateRequest_ProcessObjectWithoutState(t *testing.T) {
 		sharedStateData = smachine.NewUnboundSharedData(&rms.VStateReport{
 			Status:              rms.StateStatusEmpty,
 			AsOf:                pulse.Unknown,
-			Object:              smGlobalRef,
+			Object:              rms.NewReference(smGlobalRef),
 			OrderedPendingCount: 1,
 			ProvidedContent:     nil,
 		})
@@ -43,7 +43,7 @@ func TestVStateRequest_ProcessObjectWithoutState(t *testing.T) {
 
 	smVStateRequest := SMVStateRequest{
 		Payload: &rms.VStateRequest{
-			Object:           smGlobalRef,
+			Object:           rms.NewReference(smGlobalRef),
 			RequestedContent: rms.RequestLatestDirtyState,
 		},
 		reportAccessor: smObjectAccessor,
@@ -83,7 +83,7 @@ func TestDSMVStateRequest_PresentPulse(t *testing.T) {
 
 	smStateRequest := SMVStateRequest{
 		Payload: &rms.VStateRequest{
-			Object: objectRef,
+			Object: rms.NewReference(objectRef),
 		},
 		Meta: &rms.Meta{
 			Sender: caller,
@@ -124,7 +124,7 @@ func TestDSMVStateRequest_PastPulse(t *testing.T) {
 
 	smStateRequest := SMVStateRequest{
 		Payload: &rms.VStateRequest{
-			Object: objectRef,
+			Object: rms.NewReference(objectRef),
 		},
 		Meta: &rms.Meta{
 			Sender: caller,

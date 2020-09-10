@@ -48,7 +48,7 @@ func Test_CheckMessageFromAuthorizedVirtual_TemporaryIgnoreChecking_APIRequests(
 	rg := pulse.NewSequenceRange([]pulse.Data{pulse.NewPulsarData(pulse.MinTimePulse<<1, 10, 1, longbits.Bits256{})})
 
 	msg := &rms.VStateRequest{
-		Object: statemachine.APICaller,
+		Object: rms.NewReference(statemachine.APICaller),
 	}
 
 	mustReject, err := authService.CheckMessageFromAuthorizedVirtual(ctx, msg, sender, rg)
@@ -105,8 +105,8 @@ func Test_CheckMessageFromAuthorizedVirtual_WithToken(t *testing.T) {
 
 			token := rms.CallDelegationToken{
 				TokenTypeAndFlags: rms.DelegationTokenTypeCall,
-				Approver:          approver,
-				DelegateTo:        sender,
+				Approver:          rms.NewReferenceLocal(approver),
+				DelegateTo:        rms.NewReference(sender),
 			}
 
 			reflect.ValueOf(testCase.msg).MethodByName("Reset").Call([]reflect.Value{})
@@ -139,8 +139,8 @@ func Test_CheckMessageFromAuthorizedVirtual_WithToken(t *testing.T) {
 
 			token := rms.CallDelegationToken{
 				TokenTypeAndFlags: rms.DelegationTokenTypeCall,
-				Approver:          sender,
-				DelegateTo:        sender,
+				Approver:          rms.NewReference(sender),
+				DelegateTo:        rms.NewReference(sender),
 			}
 
 			reflect.ValueOf(testCase.msg).MethodByName("Reset").Call([]reflect.Value{})
@@ -169,8 +169,8 @@ func Test_CheckMessageFromAuthorizedVirtual_WithToken(t *testing.T) {
 			reflect.ValueOf(testCase.msg).MethodByName("Reset").Call([]reflect.Value{})
 			token := rms.CallDelegationToken{
 				TokenTypeAndFlags: rms.DelegationTokenTypeCall,
-				Approver:          approver,
-				DelegateTo:        expectedVE,
+				Approver:          rms.NewReference(approver),
+				DelegateTo:        rms.NewReference(expectedVE),
 			}
 			insertToken(token, testCase.msg)
 
@@ -197,8 +197,8 @@ func Test_CheckMessageFromAuthorizedVirtual_WithToken(t *testing.T) {
 			reflect.ValueOf(testCase.msg).MethodByName("Reset").Call([]reflect.Value{})
 			token := rms.CallDelegationToken{
 				TokenTypeAndFlags: rms.DelegationTokenTypeCall,
-				Approver:          approver,
-				DelegateTo:        gen.UniqueGlobalRef(),
+				Approver:          rms.NewReference(approver),
+				DelegateTo:        rms.NewReference(gen.UniqueGlobalRef()),
 			}
 			insertToken(token, testCase.msg)
 
@@ -413,8 +413,8 @@ func TestService_HasToSendToken(t *testing.T) {
 			authService := NewService(ctx, affMock)
 
 			hasToSendToken := authService.HasToSendToken(rms.CallDelegationToken{
-				Approver: test.approver,
-				Caller:   selfRef,
+				Approver: rms.NewReference(test.approver),
+				Caller:   rms.NewReference(selfRef),
 			})
 
 			require.Equal(t, test.rv, hasToSendToken)

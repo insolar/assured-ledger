@@ -11,7 +11,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/convlog"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
-	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
@@ -38,9 +37,8 @@ func BenchmarkVCallRequestGetMethod(b *testing.B) {
 
 	content := &rms.VStateReport_ProvidedContentBody{
 		LatestDirtyState: &rms.ObjectState{
-			Reference: rms.NewReference(reference.Local{}),
-			Class:     rms.NewReference(class),
-			State:     rms.NewBytes(walletMemory),
+			Class: rms.NewReference(class),
+			State: rms.NewBytes(walletMemory),
 		},
 	}
 
@@ -65,13 +63,13 @@ func BenchmarkVCallRequestGetMethod(b *testing.B) {
 
 	pl := *utils.GenerateVCallRequestMethod(server)
 	pl.CallFlags = rms.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty)
-	pl.Callee = object
+	pl.Callee.Set(object)
 	pl.CallSiteMethod = "GetBalance"
 
 	b.StopTimer()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		pl.CallOutgoing = server.BuildRandomOutgoingWithPulse()
+		pl.CallOutgoing.Set(server.BuildRandomOutgoingWithPulse())
 		msg := server.WrapPayload(&pl).Finalize()
 
 		b.StartTimer()
@@ -99,9 +97,8 @@ func BenchmarkVCallRequestAcceptMethod(b *testing.B) {
 
 	content := &rms.VStateReport_ProvidedContentBody{
 		LatestDirtyState: &rms.ObjectState{
-			Reference: rms.NewReference(reference.Local{}),
-			Class:     rms.NewReference(class),
-			State:     rms.NewBytes(walletMemory),
+			Class: rms.NewReference(class),
+			State: rms.NewBytes(walletMemory),
 		},
 	}
 
@@ -125,13 +122,13 @@ func BenchmarkVCallRequestAcceptMethod(b *testing.B) {
 	})
 
 	pl := *utils.GenerateVCallRequestMethod(server)
-	pl.Callee = object
+	pl.Callee.Set(object)
 	pl.CallSiteMethod = "Accept"
 
 	b.StopTimer()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		pl.CallOutgoing = server.BuildRandomOutgoingWithPulse()
+		pl.CallOutgoing.Set(server.BuildRandomOutgoingWithPulse())
 		msg := server.WrapPayload(&pl).Finalize()
 
 		b.StartTimer()
@@ -155,9 +152,9 @@ func BenchmarkVCallRequestConstructor(b *testing.B) {
 	})
 
 	pl := *utils.GenerateVCallRequestConstructor(server)
-	pl.Callee = server.RandomGlobalWithPulse()
+	pl.Callee.Set(server.RandomGlobalWithPulse())
 	pl.CallSiteMethod = "New"
-	pl.CallOutgoing = server.BuildRandomOutgoingWithPulse()
+	pl.CallOutgoing.Set(server.BuildRandomOutgoingWithPulse())
 
 	b.ReportAllocs()
 	b.StopTimer()
@@ -168,7 +165,7 @@ func BenchmarkVCallRequestConstructor(b *testing.B) {
 		insconveyor.DisableLogStepInfoMarshaller = true
 		b.StopTimer()
 		for i := 0; i < b.N; i++ {
-			pl.CallOutgoing = server.BuildRandomOutgoingWithPulse()
+			pl.CallOutgoing.Set(server.BuildRandomOutgoingWithPulse())
 			msg := server.WrapPayload(&pl).Finalize()
 
 			b.StartTimer()
@@ -183,7 +180,7 @@ func BenchmarkVCallRequestConstructor(b *testing.B) {
 		insconveyor.DisableLogStepInfoMarshaller = false
 		b.StopTimer()
 		for i := 0; i < b.N; i++ {
-			pl.CallOutgoing = server.BuildRandomOutgoingWithPulse()
+			pl.CallOutgoing.Set(server.BuildRandomOutgoingWithPulse())
 			msg := server.WrapPayload(&pl).Finalize()
 
 			b.StartTimer()
@@ -213,9 +210,8 @@ func BenchmarkTestAPIGetBalance(b *testing.B) {
 
 	content := &rms.VStateReport_ProvidedContentBody{
 		LatestDirtyState: &rms.ObjectState{
-			Reference: rms.NewReference(reference.Local{}),
-			Class:     rms.NewReference(class),
-			State:     rms.NewBytes(walletMemory),
+			Class: rms.NewReference(class),
+			State: rms.NewBytes(walletMemory),
 		},
 	}
 
@@ -255,9 +251,8 @@ func BenchmarkTestAPIGetBalanceParallel(b *testing.B) {
 
 	content := &rms.VStateReport_ProvidedContentBody{
 		LatestDirtyState: &rms.ObjectState{
-			Reference: rms.NewReference(reference.Local{}),
-			Class:     rms.NewReference(class),
-			State:     rms.NewBytes(walletMemory),
+			Class: rms.NewReference(class),
+			State: rms.NewBytes(walletMemory),
 		},
 	}
 

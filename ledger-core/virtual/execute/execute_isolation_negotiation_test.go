@@ -156,10 +156,10 @@ func Test_Execute_stepIsolationNegotiation(t *testing.T) {
 				CallType:       rms.CallTypeConstructor,
 				CallFlags:      rms.BuildCallFlags(tc.callIsolation.Interference, tc.callIsolation.State),
 				CallSiteMethod: "New",
-				CallOutgoing:   gen.UniqueGlobalRefWithPulse(pd.PulseNumber),
-				Caller:         gen.UniqueGlobalRefWithPulse(pd.PulseNumber),
-				Callee:         smGlobalRef,
-				Arguments:      insolar.MustSerialize([]interface{}{}),
+				CallOutgoing:   rms.NewReference(gen.UniqueGlobalRefWithPulse(pd.PulseNumber)),
+				Caller:         rms.NewReference(gen.UniqueGlobalRefWithPulse(pd.PulseNumber)),
+				Callee:         rms.NewReference(smGlobalRef),
+				Arguments:      rms.NewBytes(insolar.MustSerialize([]interface{}{})),
 			}
 
 			smExecute := SMExecute{
