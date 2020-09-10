@@ -6,7 +6,6 @@
 package launchnet
 
 import (
-	"fmt"
 	"os"
 	"strconv"
 
@@ -80,16 +79,12 @@ func (cr *CloudRunner) PrepareConfig() {
 }
 
 func (cr CloudRunner) SetupCloud() (func(), error) {
-	cancelFunc := func() {
-		fmt.Println("Do nothing")
-	}
-
 	s := server.NewMultiServer(cr.ConfProvider)
 	go func() {
 		s.Serve()
 	}()
 
-	cancelFunc = s.(*insapp.Server).Stop
+	cancelFunc := s.(*insapp.Server).Stop
 
 	var nodes []nodeConfig
 	for _, appCfg := range cr.ConfProvider.GetAppConfigs() {
