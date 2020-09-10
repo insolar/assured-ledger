@@ -873,8 +873,8 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 			panic(throw.Impossible())
 		} else {
 			objectMemory = reference.NewRecordOf(
-				s.execution.Object,
-				s.execution.ObjectDescriptor.StateID(),
+				s.newObjectDescriptor.HeadRef(),
+				s.newObjectDescriptor.StateID(),
 			)
 		}
 
@@ -893,7 +893,7 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 				Custom: validation.TranscriptEntryIncomingResult{
 					IncomingResult: reference.Global{},
 					ObjectMemory: reference.NewRecordOf(
-						s.execution.Object,
+						s.newObjectDescriptor.HeadRef(),
 						s.newObjectDescriptor.StateID()),
 				},
 			},
