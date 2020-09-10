@@ -39,11 +39,11 @@ func (r runState) ID() call.ID {
 
 type executionMapping struct {
 	lock  sync.Mutex
-	byKey map[string]*ExecutionMock
+	byKey map[interface{}]*ExecutionMock
 	byID  map[call.ID]*ExecutionMock
 }
 
-func (m *executionMapping) add(key string, val *ExecutionMock) {
+func (m *executionMapping) add(key interface{}, val *ExecutionMock) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
@@ -58,7 +58,7 @@ func (m *executionMapping) add(key string, val *ExecutionMock) {
 	m.byID[val.state.ID()] = val
 }
 
-func (m *executionMapping) getByKey(key string) (*ExecutionMock, bool) {
+func (m *executionMapping) getByKey(key interface{}) (*ExecutionMock, bool) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
@@ -89,17 +89,17 @@ type ServiceMock struct {
 	t              minimock.Tester
 	timeout        time.Duration
 	lastID         call.ID
-	keyConstructor func(execution execution.Context) string
+	keyConstructor func(execution execution.Context) interface{}
 
 	executionMapping executionMapping
 	classifyMapping  ExecutionClassifyMock
 }
 
-func defaultKeyConstructor(execution execution.Context) string {
-	return execution.Outgoing.String()
+func defaultKeyConstructor(execution execution.Context) interface{} {
+	return execution.Outgoing
 }
 
-func NewServiceMock(ctx context.Context, t minimock.Tester, keyConstructor func(execution execution.Context) string) *ServiceMock {
+func NewServiceMock(ctx context.Context, t minimock.Tester, keyConstructor func(execution execution.Context) interface{}) *ServiceMock {
 	if keyConstructor == nil {
 		keyConstructor = defaultKeyConstructor
 	}
@@ -111,12 +111,12 @@ func NewServiceMock(ctx context.Context, t minimock.Tester, keyConstructor func(
 		keyConstructor: keyConstructor,
 
 		executionMapping: executionMapping{
-			byKey: make(map[string]*ExecutionMock),
+			byKey: make(map[interface{}]*ExecutionMock),
 			byID:  make(map[call.ID]*ExecutionMock),
 		},
 		classifyMapping: ExecutionClassifyMock{
 			t:      t,
-			mapper: make(map[string]*ExecutionClassifyMockInstance),
+			mapper: make(map[interface{}]*ExecutionClassifyMockInstance),
 		},
 	}
 
@@ -131,7 +131,7 @@ func (s *ServiceMock) CreateAdapter(ctx context.Context) runner.ServiceAdapter {
 	return adapter.NewImposter(ctx, s, 16)
 }
 
-func (s *ServiceMock) AddExecutionMock(key string) *ExecutionMock {
+func (s *ServiceMock) AddExecutionMock(key interface{}) *ExecutionMock {
 	s.lastID++
 
 	executionMock := &ExecutionMock{
@@ -317,10 +317,10 @@ type ExecutionClassifyMockInstance struct {
 type ExecutionClassifyMock struct {
 	lock   sync.Mutex
 	t      minimock.Tester
-	mapper map[string]*ExecutionClassifyMockInstance
+	mapper map[interface{}]*ExecutionClassifyMockInstance
 }
 
-func (m *ExecutionClassifyMock) Set(key string, v1 contract.MethodIsolation, v2 error) *ExecutionClassifyMock {
+func (m *ExecutionClassifyMock) Set(key interface{}, v1 contract.MethodIsolation, v2 error) *ExecutionClassifyMock {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
@@ -336,7 +336,7 @@ func (m *ExecutionClassifyMock) Set(key string, v1 contract.MethodIsolation, v2 
 	return m
 }
 
-func (m *ExecutionClassifyMock) Get(key string) (*ExecutionClassifyMockInstance, bool) {
+func (m *ExecutionClassifyMock) Get(key interface{}) (*ExecutionClassifyMockInstance, bool) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
@@ -355,7 +355,7 @@ func (s *ServiceMock) ExecutionClassify(execution execution.Context) (contract.M
 	return contract.MethodIsolation{}, nil
 }
 
-func (s *ServiceMock) AddExecutionClassify(key string, v1 contract.MethodIsolation, v2 error) {
+func (s *ServiceMock) AddExecutionClassify(key interface{}, v1 contract.MethodIsolation, v2 error) {
 	s.classifyMapping.Set(key, v1, v2)
 }
 
