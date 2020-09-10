@@ -10,14 +10,31 @@ package handlers
 import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
+	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
+	memoryCacheAdapter "github.com/insolar/assured-ledger/ledger-core/virtual/memorycache/adapter"
 )
+
+type CachedMemoryReportAwaitKey struct {
+	State reference.Global
+}
 
 type SMVObjectTranscriptReport struct {
 	// input arguments
 	Meta    *payload.Meta
 	Payload *rms.VObjectTranscriptReport
+
+	messageSender messageSenderAdapter.MessageSender
+	memoryCache   memoryCacheAdapter.MemoryCache
+
+	entryIndex int
+
+	objState reference.Global
+	objDesc descriptor.Object
+	incomingRequest *rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest
 }
 
 /* -------- Declaration ------------- */
@@ -29,7 +46,10 @@ type dSMVObjectTranscriptReport struct {
 }
 
 func (*dSMVObjectTranscriptReport) InjectDependencies(sm smachine.StateMachine, _ smachine.SlotLink, injector injector.DependencyInjector) {
-	_ = sm.(*SMVObjectTranscriptReport)
+	s := sm.(*SMVObjectTranscriptReport)
+
+	injector.MustInject(&s.memoryCache)
+	injector.MustInject(&s.messageSender)
 }
 
 func (*dSMVObjectTranscriptReport) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc {
@@ -48,5 +68,22 @@ func (s *SMVObjectTranscriptReport) Init(ctx smachine.InitializationContext) sma
 }
 
 func (s *SMVObjectTranscriptReport) stepProcess(ctx smachine.ExecutionContext) smachine.StateUpdate {
+
+	entries := s.Payload.ObjectTranscript.GetEntries()
+	entry := entries[s.entryIndex].Get()
+
+	switch tEntry := entry.(type) {
+	case *rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest:
+		s.incomingRequest = tEntry
+		return ctx.Jump(s.stepIncomingRequest)
+
+	}
+
+	return ctx.Stop()
+}
+
+func (s *SMVObjectTranscriptReport) stepIncomingRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	s.objState = s.incomingRequest.ObjectMemory.GetGlobal()
+
 	return ctx.Stop()
 }

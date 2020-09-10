@@ -14,6 +14,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
@@ -199,6 +200,10 @@ func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
 			commontestutils.WaitSignalsTimed(t, 10*time.Second, suite.vFindCallResponseSent)
 
 			commontestutils.WaitSignalsTimed(t, 10*time.Second, smVFindCallRequestEnded)
+
+			// TODO uncommented after https://insolar.atlassian.net/browse/PLAT-753
+			// commontestutils.WaitSignalsTimed(t, 10*time.Second, suite.typedChecker.VObjectTranscriptReport.Wait(ctx, 1))
+			// assert.Equal(t, 1, suite.typedChecker.VObjectTranscriptReport.Count())
 
 			suite.finish()
 		})
@@ -427,8 +432,14 @@ func (s *VFindCallRequestHandlingSuite) setMessageCheckers(
 		}
 		return false
 	})
+	s.typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
+		t.FailNow()
+		// TODO add asserts and check counter after https://insolar.atlassian.net/browse/PLAT-753
+		return false
+	})
 
 	s.typedChecker.VCallResult.SetResend(false)
+	s.typedChecker.VObjectTranscriptReport.SetResend(false)
 
 	s.typedChecker.VDelegatedCallRequest.Set(func(req *payload.VDelegatedCallRequest) bool {
 		delegationToken := s.server.DelegationToken(req.CallOutgoing, s.getCaller(), req.Callee)

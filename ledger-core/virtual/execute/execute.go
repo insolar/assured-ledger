@@ -35,6 +35,7 @@ import (
 	memoryCacheAdapter "github.com/insolar/assured-ledger/ledger-core/virtual/memorycache/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/tool"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/validation"
 )
 
 /* -------- Utilities ------------- */
@@ -864,6 +865,39 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 
 	action := func(state *object.SharedState) {
 		state.SetDescriptorDirty(s.newObjectDescriptor)
+
+		var objectMemory reference.Global
+		if s.Payload.CallType == payload.CallTypeConstructor {
+			objectMemory = reference.Global{}
+		} else if s.execution.ObjectDescriptor == nil {
+			panic(throw.Impossible())
+		} else {
+			objectMemory = reference.NewRecordOf(
+				s.newObjectDescriptor.HeadRef(),
+				s.newObjectDescriptor.StateID(),
+			)
+		}
+
+		state.Transcript.Add(
+			validation.TranscriptEntry{
+				Custom: validation.TranscriptEntryIncomingRequest{
+					ObjectMemory: objectMemory,
+					Incoming:     reference.Global{},
+					CallRequest:  *s.Payload,
+				},
+			},
+		)
+
+		state.Transcript.Add(
+			validation.TranscriptEntry{
+				Custom: validation.TranscriptEntryIncomingResult{
+					IncomingResult: reference.Global{},
+					ObjectMemory: reference.NewRecordOf(
+						s.newObjectDescriptor.HeadRef(),
+						s.newObjectDescriptor.StateID()),
+				},
+			},
+		)
 
 		switch state.GetState() {
 		case object.HasState:

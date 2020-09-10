@@ -19,6 +19,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
@@ -427,6 +428,11 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) setMessageCheckers(
 		)
 
 		return false // no resend msg
+	})
+	typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
+		t.FailNow()
+		// TODO add asserts and check counter after https://insolar.atlassian.net/browse/PLAT-753
+		return false
 	})
 	typedChecker.VDelegatedCallResponse.Set(func(del *payload.VDelegatedCallResponse) bool {
 		outgoingRef := del.ResponseDelegationSpec.Outgoing

@@ -18,6 +18,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	commonTestUtils "github.com/insolar/assured-ledger/ledger-core/testutils"
@@ -75,9 +76,16 @@ func TestVirtual_VCachedMemoryRequestHandler(t *testing.T) {
 				syncChan <- rep.ProvidedContent.LatestDirtyState.Reference
 				return false // no resend msg
 			})
+			suite.typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
+				assert.Equal(t, suite.object, report.Object.GetGlobal())
+				// TODO add asserts and check counter after https://insolar.atlassian.net/browse/PLAT-753
+				// write a method for checking the transcript after implementation
+				return false
+			})
 
 			suite.server.IncrementPulse(ctx)
 			commonTestUtils.WaitSignalsTimed(t, 10*time.Second, suite.typedChecker.VStateReport.Wait(ctx, 1))
+			commonTestUtils.WaitSignalsTimed(t, 10*time.Second, suite.typedChecker.VObjectTranscriptReport.Wait(ctx, 1))
 
 			suite.typedChecker.VCachedMemoryResponse.Set(func(resp *payload.VCachedMemoryResponse) bool {
 				require.Equal(t, suite.object, resp.Object)

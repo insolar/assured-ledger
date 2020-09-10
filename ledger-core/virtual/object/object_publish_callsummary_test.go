@@ -160,7 +160,7 @@ func TestSMObject_CallSummarySM(t *testing.T) {
 			UseSharedMock.Set(shareddata.CallSharedDataAccessor).
 			UnpublishMock.Expect(callsummary.BuildSummarySyncKey(smObject.Reference)).Return(true).
 			ApplyAdjustmentMock.Expect(smObject.summaryDoneCtl.NewValue(true)).Return(true).
-			JumpMock.Set(testutils.AssertJumpStep(t, smObject.stepFinalize))
+			JumpMock.Set(testutils.AssertJumpStep(t, smObject.stepSendTranscriptReport))
 
 		smObject.stepPublishCallSummary(executionCtx)
 
