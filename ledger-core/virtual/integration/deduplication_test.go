@@ -84,7 +84,7 @@ func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 			numberOfExecutions := 0
 			// Mock
 			{
-				runnerMock.AddExecutionClassify(outgoing.String(), isolation, nil)
+				runnerMock.AddExecutionClassify(outgoing, isolation, nil)
 
 				newObjDescriptor := descriptor.NewObject(
 					reference.Global{}, reference.Local{}, class, []byte(""), false,
@@ -93,7 +93,7 @@ func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 				requestResult := requestresult.New([]byte("call result"), server.RandomGlobalWithPulse())
 				requestResult.SetAmend(newObjDescriptor, []byte("new memory"))
 
-				executionMock := runnerMock.AddExecutionMock(outgoing.String())
+				executionMock := runnerMock.AddExecutionMock(outgoing)
 				executionMock.AddStart(func(ctx execution.Context) {
 					numberOfExecutions++
 					<-releaseBlockedExecution
@@ -202,7 +202,7 @@ func TestDeduplication_SecondCallOfMethodAfterExecution(t *testing.T) {
 			numberOfExecutions := 0
 			// Mock
 			{
-				runnerMock.AddExecutionClassify(outgoing.String(), isolation, nil)
+				runnerMock.AddExecutionClassify(outgoing, isolation, nil)
 
 				newObjDescriptor := descriptor.NewObject(
 					reference.Global{}, reference.Local{}, class, []byte(""), false,
@@ -211,7 +211,7 @@ func TestDeduplication_SecondCallOfMethodAfterExecution(t *testing.T) {
 				requestResult := requestresult.New([]byte("call result"), server.RandomGlobalWithPulse())
 				requestResult.SetAmend(newObjDescriptor, []byte("new memory"))
 
-				executionMock := runnerMock.AddExecutionMock(outgoing.String())
+				executionMock := runnerMock.AddExecutionMock(outgoing)
 				executionMock.AddStart(func(ctx execution.Context) {
 					numberOfExecutions++
 				}, &execution.Update{
@@ -775,11 +775,11 @@ func (s *deduplicateMethodUsingPrevVETest) setMessageCheckers(
 
 func (s *deduplicateMethodUsingPrevVETest) setRunnerMock() {
 	isolation := contract.MethodIsolation{Interference: isolation.CallIntolerable, State: isolation.CallDirty}
-	s.runnerMock.AddExecutionClassify(s.outgoing.String(), isolation, nil)
+	s.runnerMock.AddExecutionClassify(s.outgoing, isolation, nil)
 
 	requestResult := requestresult.New([]byte("execution"), s.server.RandomGlobalWithPulse())
 
-	executionMock := s.runnerMock.AddExecutionMock(s.outgoing.String())
+	executionMock := s.runnerMock.AddExecutionMock(s.outgoing)
 	executionMock.AddStart(func(ctx execution.Context) {
 		s.incNumberOfExecutions()
 	}, &execution.Update{

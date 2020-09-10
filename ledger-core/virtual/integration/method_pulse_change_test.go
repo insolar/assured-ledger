@@ -125,7 +125,7 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 
 			// add ExecutionMocks to runnerMock
 			{
-				runnerMock.AddExecutionClassify(outgoing.String(), test.isolation, nil)
+				runnerMock.AddExecutionClassify(outgoing, test.isolation, nil)
 
 				requestResult := requestresult.New([]byte("call result"), server.RandomGlobalWithPulse())
 				if test.withSideEffect {
@@ -135,7 +135,7 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 					requestResult.SetAmend(newObjDescriptor, []byte("new memory"))
 				}
 
-				objectExecutionMock := runnerMock.AddExecutionMock(outgoing.String())
+				objectExecutionMock := runnerMock.AddExecutionMock(outgoing)
 				objectExecutionMock.AddStart(
 					func(_ execution.Context) {
 						logger.Debug("ExecutionStart [SomeMethod]")
@@ -393,7 +393,7 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 			request.CallSiteMethod = "ordered" + strconv.FormatInt(i, 10)
 			request.CallFlags = payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty)
 
-			runnerMock.AddExecutionClassify(outgoing.String(), tolerableFlags(), nil)
+			runnerMock.AddExecutionClassify(outgoing, tolerableFlags(), nil)
 			result = requestresult.New([]byte("call result"), object)
 			result.SetAmend(newObjDescriptor, []byte("new memory"))
 
@@ -401,14 +401,14 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 			request.CallSiteMethod = "unordered" + strconv.FormatInt(i, 10)
 			request.CallFlags = payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallValidated)
 
-			runnerMock.AddExecutionClassify(outgoing.String(), intolerableFlags(), nil)
+			runnerMock.AddExecutionClassify(outgoing, intolerableFlags(), nil)
 			result = requestresult.New([]byte("call result"), object)
 		default:
 			panic(throw.Impossible())
 		}
 
 		request.CallOutgoing = outgoing
-		objectExecutionMock = runnerMock.AddExecutionMock(outgoing.String())
+		objectExecutionMock = runnerMock.AddExecutionMock(outgoing)
 		objectExecutionMock.AddStart(
 			func(_ execution.Context) {
 				logger.Debug("ExecutionStart [" + request.CallSiteMethod + "]")
@@ -512,10 +512,10 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 
 			// add ExecutionMock to runnerMock
 			{
-				runnerMock.AddExecutionClassify(outgoingP2.String(), test.isolation, nil)
+				runnerMock.AddExecutionClassify(outgoingP2, test.isolation, nil)
 				requestResult := requestresult.New([]byte("call result"), server.RandomGlobalWithPulse())
 
-				objectExecutionMock := runnerMock.AddExecutionMock(outgoingP2.String())
+				objectExecutionMock := runnerMock.AddExecutionMock(outgoingP2)
 				objectExecutionMock.AddStart(func(ctx execution.Context) {
 					logger.Debug("ExecutionStart [SomeMethod]")
 					require.Equal(t, object, ctx.Request.Callee)
