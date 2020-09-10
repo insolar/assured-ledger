@@ -18,7 +18,7 @@ const (
 	maxReceiveWindow     = 1 << 16
 	minReceiveWindow     = maxReceiveWindow - maxReceiveExceptions>>1
 
-	// TODO support overlap/overflow of DedupID
+	// TODO https://insolar.atlassian.net/browse/PLAT-819
 	// overlapLimit = ^DedupID(0) - maxReceiveWindow - 1
 )
 
@@ -182,13 +182,14 @@ func (p *receiveDeduplicator) _addToReceivedAndTrim() {
 	}
 
 	p.minReceived++
-	if !p.hasReceived(p.minReceived + 1) {
+	if !p.hasReceived(p.minReceived) {
 		return
 	}
 
 	p.minReceived++
 	for {
 		delete(p.received, p.minReceived)
+		p.minReceived++
 		switch {
 		case p.minReceived == p.maxReceived:
 			p.received = nil
