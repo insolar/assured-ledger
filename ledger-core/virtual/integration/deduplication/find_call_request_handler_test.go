@@ -461,7 +461,7 @@ func (s *VFindCallRequestHandlingSuite) setMessageCheckers(
 
 func (s *VFindCallRequestHandlingSuite) setRunnerMock() {
 	isolation := contract.MethodIsolation{Interference: isolation.CallTolerable, State: isolation.CallDirty}
-	s.runnerMock.AddExecutionClassify(s.outgoing.String(), isolation, nil)
+	s.runnerMock.AddExecutionClassify(s.outgoing, isolation, nil)
 
 	newObjDescriptor := descriptor.NewObject(
 		reference.Global{}, reference.Local{}, s.getClass(), []byte(""), false,
@@ -471,7 +471,7 @@ func (s *VFindCallRequestHandlingSuite) setRunnerMock() {
 		methodResult := requestresult.New([]byte("execution"), s.server.RandomGlobalWithPulse())
 		methodResult.SetAmend(newObjDescriptor, []byte("new memory"))
 
-		executionMock := s.runnerMock.AddExecutionMock(s.outgoing.String())
+		executionMock := s.runnerMock.AddExecutionMock(s.outgoing)
 		executionMock.AddStart(func(ctx execution.Context) {
 			s.executionPoint.Synchronize()
 		}, &execution.Update{
