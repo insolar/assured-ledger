@@ -137,8 +137,9 @@ func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
 	})
 
 	typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
-		t.FailNow()
-		// TODO add asserts and check counter after https://insolar.atlassian.net/browse/PLAT-753
+		assert.Equal(t, objectRef, report.Object.GetGlobal())
+		assert.Equal(t, pl.CallOutgoing.GetLocal().Pulse(), report.AsOf)
+		assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
 		return false
 	})
 
@@ -159,12 +160,11 @@ func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 	server.IncrementPulseAndWaitIdle(ctx)
+
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 1))
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VObjectTranscriptReport.Wait(ctx, 1))
 
-	// TODO uncommented after https://insolar.atlassian.net/browse/PLAT-753
-	// commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VObjectTranscriptReport.Wait(ctx, 1))
-	// assert.Equal(t, 1, typedChecker.VObjectTranscriptReport.Count())
-
+	assert.Equal(t, 1, typedChecker.VObjectTranscriptReport.Count())
 	assert.Equal(t, 1, typedChecker.VCallResult.Count())
 	assert.Equal(t, 1, typedChecker.VStateReport.Count())
 
@@ -248,8 +248,9 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 		return false
 	})
 	typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
-		t.FailNow()
-		// TODO add asserts and check counter after https://insolar.atlassian.net/browse/PLAT-753
+		assert.Equal(t, objectRef, report.Object.GetGlobal())
+		assert.Equal(t, currPulse, report.AsOf)
+		assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
 		return false
 	})
 
@@ -267,10 +268,9 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 
 	server.IncrementPulseAndWaitIdle(ctx)
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 1))
-	// TODO uncommented after https://insolar.atlassian.net/browse/PLAT-753
-	// commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VObjectTranscriptReport.Wait(ctx, 1))
-	// assert.Equal(t, 1, typedChecker.VObjectTranscriptReport.Count())
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VObjectTranscriptReport.Wait(ctx, 1))
 
+	assert.Equal(t, 1, typedChecker.VObjectTranscriptReport.Count())
 	assert.Equal(t, 1, typedChecker.VCallResult.Count())
 	assert.Equal(t, 1, typedChecker.VStateReport.Count())
 
@@ -357,8 +357,9 @@ func TestVirtual_Constructor_PrevPulseStateWithMissingStatus(t *testing.T) {
 		return false
 	})
 	typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
-		t.FailNow()
-		// TODO add asserts and check counter after https://insolar.atlassian.net/browse/PLAT-753
+		assert.Equal(t, objectRef, report.Object.GetGlobal())
+		assert.Equal(t, p2, report.AsOf)
+		assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
 		return false
 	})
 
@@ -388,12 +389,12 @@ func TestVirtual_Constructor_PrevPulseStateWithMissingStatus(t *testing.T) {
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 	server.IncrementPulseAndWaitIdle(ctx)
+
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 1))
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateRequest.Wait(ctx, 1))
-	// TODO uncommented after https://insolar.atlassian.net/browse/PLAT-753
-	// commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VObjectTranscriptReport.Wait(ctx, 1))
-	// assert.Equal(t, 1, typedChecker.VObjectTranscriptReport.Count())
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VObjectTranscriptReport.Wait(ctx, 1))
 
+	assert.Equal(t, 1, typedChecker.VObjectTranscriptReport.Count())
 	require.Equal(t, 1, typedChecker.VStateRequest.Count())
 	require.Equal(t, 1, typedChecker.VCallResult.Count())
 	require.Equal(t, 1, typedChecker.VStateReport.Count())
@@ -624,8 +625,9 @@ func TestVirtual_Constructor_PulseChangedWhileOutgoing(t *testing.T) {
 			return false
 		})
 		typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
-			t.FailNow()
-			// TODO add asserts and check counter after https://insolar.atlassian.net/browse/PLAT-753
+			assert.Equal(t, objectRef, report.Object.GetGlobal())
+			assert.Equal(t, pl.CallOutgoing.GetLocal().Pulse(), report.AsOf)
+			assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
 			return false
 		})
 		typedChecker.VDelegatedCallRequest.Set(func(msg *payload.VDelegatedCallRequest) bool {
@@ -719,9 +721,9 @@ func TestVirtual_Constructor_PulseChangedWhileOutgoing(t *testing.T) {
 
 	server.SendPayload(ctx, &msgVStateRequest)
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 2))
-	// TODO uncommented after https://insolar.atlassian.net/browse/PLAT-753
-	// commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VObjectTranscriptReport.Wait(ctx, 2)) // one pulse change, 2 obj
-	// assert.Equal(t, 2, typedChecker.VObjectTranscriptReport.Count())
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VObjectTranscriptReport.Wait(ctx, 1)) // one pulse change, 2 obj
+
+	assert.Equal(t, 1, typedChecker.VObjectTranscriptReport.Count())
 
 	{
 		assert.Equal(t, 1, typedChecker.VCallResult.Count())
@@ -801,9 +803,10 @@ func TestVirtual_CallConstructor_WithTwicePulseChange(t *testing.T) {
 			return false
 		})
 		typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
-			t.FailNow()
-			// TODO add asserts and check counter after https://insolar.atlassian.net/browse/PLAT-753
-			// see all obj and all pulse change, add check for count
+			assert.Equal(t, objectRef, report.Object.GetGlobal())
+			assert.Equal(t, outgoing.GetLocal().Pulse(), report.AsOf)
+			assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
+			// see all pulse change, add check for count
 			return false
 		})
 		typedChecker.VDelegatedCallRequest.Set(func(request *payload.VDelegatedCallRequest) bool {
@@ -896,6 +899,7 @@ func TestVirtual_CallConstructor_WithTwicePulseChange(t *testing.T) {
 	assert.Equal(t, 1, typedChecker.VStateReport.Count())
 	assert.Equal(t, 2, typedChecker.VDelegatedCallRequest.Count())
 	assert.Equal(t, 1, typedChecker.VDelegatedRequestFinished.Count())
+	assert.Equal(t, 1, typedChecker.VObjectTranscriptReport.Count())
 
 	mc.Finish()
 }
