@@ -892,7 +892,7 @@ func TestSMExecute_StopWithoutMessagesIfPulseChangedBeforeOutgoing(t *testing.T)
 	outgoing := reference.NewRecordOf(objectRef, slotMachine.GenerateLocal())
 
 	slotMachine.RunnerMock.AddExecutionClassify(
-		outgoing.String(),
+		outgoing,
 		contract.MethodIsolation{Interference: isolation.CallTolerable, State: isolation.CallDirty},
 		nil,
 	)
