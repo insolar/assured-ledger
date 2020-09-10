@@ -8,26 +8,31 @@
 package handlers
 
 import (
-	"context"
-
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
+	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
-	"github.com/insolar/assured-ledger/ledger-core/virtual/memorycache"
 	memoryCacheAdapter "github.com/insolar/assured-ledger/ledger-core/virtual/memorycache/adapter"
 )
+
+type CachedMemoryReportAwaitKey struct {
+	State reference.Global
+}
 
 type SMVObjectTranscriptReport struct {
 	// input arguments
 	Meta    *payload.Meta
 	Payload *rms.VObjectTranscriptReport
 
+	messageSender messageSenderAdapter.MessageSender
 	memoryCache   memoryCacheAdapter.MemoryCache
 
 	entryIndex int
 
+	objState reference.Global
 	objDesc descriptor.Object
 	incomingRequest *rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest
 }
@@ -44,6 +49,7 @@ func (*dSMVObjectTranscriptReport) InjectDependencies(sm smachine.StateMachine, 
 	s := sm.(*SMVObjectTranscriptReport)
 
 	injector.MustInject(&s.memoryCache)
+	injector.MustInject(&s.messageSender)
 }
 
 func (*dSMVObjectTranscriptReport) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc {
@@ -77,32 +83,7 @@ func (s *SMVObjectTranscriptReport) stepProcess(ctx smachine.ExecutionContext) s
 }
 
 func (s *SMVObjectTranscriptReport) stepIncomingRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	ref := s.incomingRequest.ObjectMemory.GetGlobal()
+	s.objState = s.incomingRequest.ObjectMemory.GetGlobal()
 
-	done := false
-	s.memoryCache.PrepareAsync(ctx, func(ctx context.Context, svc memorycache.Service) smachine.AsyncResultFunc {
-		obj, err := svc.Get(ctx, ref)
-		return func(ctx smachine.AsyncResultContext) {
-			defer func() { done = true }()
-			s.objDesc = obj
-			if err != nil {
-				ctx.Log().Error("failed to get memory", err)
-			}
-		}
-	}).Start()
-
-	return ctx.Sleep().ThenJump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
-		if !done {
-			return ctx.Sleep().ThenRepeat()
-		}
-		if s.objDesc == nil {
-			return ctx.Jump(s.stepRequestMemory)
-		}
-		return ctx.Jump(s.stepRequestMemory)
-
-	})
-}
-
-func (s *SMVObjectTranscriptReport) stepRequestMemory(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	return ctx.Stop()
 }
