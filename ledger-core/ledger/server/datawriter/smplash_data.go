@@ -52,3 +52,7 @@ func (p *PlashSharedData) GetDrop(ref reference.Holder) jet.DropID {
 	p.ensureAccess()
 	return p.jetAssist.CalculateJetDrop(ref)
 }
+
+func (p *PlashSharedData) onDropStop(smachine.TerminationData) {
+//	p.jetAssist.
+}

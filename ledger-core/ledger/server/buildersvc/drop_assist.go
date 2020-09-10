@@ -21,6 +21,7 @@ import (
 type dropAssistant struct {
 	// set at construction
 	dropID jet.DropID
+	exactID jet.ExactID
 	writer bundle.Writer
 
 	dropEntryCounter atomickit.Uint32
@@ -124,7 +125,7 @@ func (p *dropAssistant) bundleProcessedByWriter(pa *plashAssistant, indices []le
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
-	positions, err := pa._updateMerkle(p.dropID, indices, digests)
+	positions, err := pa._updateMerkle(indices, digests)
 	if err != nil {
 		return err
 	}

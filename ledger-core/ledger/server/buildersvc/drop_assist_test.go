@@ -296,6 +296,7 @@ func prepareDropAssistForAppend(t *testing.T, local reference.Local, started, co
 	})
 
 	return &dropAssistant{
+		exactID: jet.ID(0).AsExact(1),
 		dropID: jet.ID(0).AsDrop(local.GetPulseNumber()),
 		writer: bundle.NewWriter(sw),
 		merkle: merkle,

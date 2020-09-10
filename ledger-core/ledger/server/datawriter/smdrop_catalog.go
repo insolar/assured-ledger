@@ -14,7 +14,7 @@ import (
 type JetDropKey jet.DropID
 
 type DropCataloger interface {
-	Create(ctx smachine.ExecutionContext, dropCfg DropInfo) DropDataLink
+	Create(ctx smachine.ExecutionContext, dropCfg DropInfo, terminateFn smachine.TerminationHandlerFunc) DropDataLink
 	Get(ctx smachine.SharedStateContext, dropID jet.DropID) DropDataLink
 }
 
@@ -30,13 +30,13 @@ const (
 var _ DropCataloger = DropCatalog{}
 type DropCatalog struct {}
 
-func (DropCatalog) Create(ctx smachine.ExecutionContext, dropCfg DropInfo) DropDataLink {
+func (DropCatalog) Create(ctx smachine.ExecutionContext, dropCfg DropInfo, terminateFn smachine.TerminationHandlerFunc) DropDataLink {
 
 	if ctx.GetPublished(JetDropKey(dropCfg.ID)) != nil {
 		panic(throw.IllegalState())
 	}
 
-	ctx.InitChild(JetDropCreate(dropCfg))
+	ctx.InitChildExt(JetDropCreate(dropCfg), smachine.CreateDefaultValues{ TerminationHandler: terminateFn }, nil)
 
 	switch sdl := ctx.GetPublishedLink(JetDropKey(dropCfg.ID)); {
 	case sdl.IsZero():

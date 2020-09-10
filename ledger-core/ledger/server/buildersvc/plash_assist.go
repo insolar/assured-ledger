@@ -58,15 +58,18 @@ func (p *plashAssistant) setNextPlash(next *plashAssistant) {
 	smachine.ApplyAdjustmentAsync(p.nextReady.NewValue(true))
 }
 
-func (p *plashAssistant) GetNextPlashReadySync() smachine.SyncLink {
-	return p.nextReady.SyncLink()
-}
-
-func (p *plashAssistant) GetNextPlash() PlashAssistant {
-	if pa := p.nextPlash; pa != nil {
-		return pa
+// EXTREME LOCK WARNING!
+// This method is under locks of: (1) bundle writer, (2) plashAssistant, (3) dropAssistant.
+func (p *plashAssistant) _updateMerkle(indices []ledger.DirectoryIndex, digests []cryptkit.Digest) ([]ledger.Ordinal, error) {
+	ords := make([]ledger.Ordinal, 0, len(indices))
+	for i, ord := range indices {
+		if ord.SectionID() != ledger.DefaultEntrySection {
+			continue
+		}
+		ords = append(ords, ledger.Ordinal(p.merkle.Count()))
+		p.merkle.AddNext(digests[i])
 	}
-	panic(throw.IllegalState())
+	return ords, nil
 }
 
 func (p *plashAssistant) PreparePulseChange(outFn conveyor.PreparePulseCallbackFunc) {
@@ -122,16 +125,23 @@ func (p *plashAssistant) finalizeSummary()  {
 	// })
 }
 
-func (p *plashAssistant) appendToDrop(id jet.DropID, future AppendFuture, bundle lineage.UpdateBundle) error {
-	assist, ok := p.dropAssists[id.ID()]
-	switch {
+func (p *plashAssistant) getDropAssist(id jet.DropID) (*dropAssistant, error) {
+	switch assist, ok := p.dropAssists[id.ID()]; {
 	case !ok:
-		return throw.E("unknown drop", struct { jet.DropID }{ id })
+		return nil, throw.E("unknown drop", struct{ jet.DropID }{id})
 	case assist == nil:
-		return throw.E("drop is not local", struct { jet.DropID }{ id })
+		return nil, throw.E("drop is not local", struct{ jet.DropID }{id})
+	default:
+		return assist, nil
 	}
+}
 
-	if err := p.waitNotPending(); err != nil {
+func (p *plashAssistant) appendToDrop(id jet.DropID, future AppendFuture, bundle lineage.UpdateBundle) error {
+	assist, err := p.getDropAssist(id)
+	if err != nil {
+		return err
+	}
+	if err = p.waitNotPending(); err != nil {
 		return throw.WithDetails(err, struct{ jet.DropID }{id})
 	}
 	return assist.append(p, future, bundle)
@@ -199,17 +209,59 @@ func (p *plashAssistant) CalculateJetDrop(holder reference.Holder) jet.DropID {
 	}
 }
 
-// EXTREME LOCK WARNING!
-// This method is under locks of: (1) DropWriter, (2) plashAssistant, (3) dropAssistant.
-//nolint:unparam
-func (p *plashAssistant) _updateMerkle(_ jet.DropID, indices []ledger.DirectoryIndex, digests []cryptkit.Digest) ([]ledger.Ordinal, error) {
-	ords := make([]ledger.Ordinal, 0, len(indices))
-	for i, ord := range indices {
-		if ord.SectionID() != ledger.DefaultEntrySection {
-			continue
-		}
-		ords = append(ords, ledger.Ordinal(p.merkle.Count()))
-		p.merkle.AddNext(digests[i])
-	}
-	return ords, nil
+func (p *plashAssistant) GetNextReadySync() smachine.SyncLink {
+	return p.nextReady.SyncLink()
 }
+
+func (p *plashAssistant) getNextPlash() *plashAssistant {
+	if pa := p.nextPlash; pa != nil {
+		return pa
+	}
+	panic(throw.IllegalState())
+}
+
+func (p *plashAssistant) CalculateNextDrops(id jet.DropID) []jet.DropID {
+	assist, err := p.getDropAssist(id)
+	if err != nil {
+		panic(err)
+	}
+	return p.getNextPlash().getDropsOfJet(assist.exactID)
+}
+
+func (p *plashAssistant) getDropsOfJet(id jet.ExactID) (result []jet.DropID) {
+	prefix, pLen := p.tree.GetPrefix(id.ID().AsPrefix())
+
+	pn := p.pulseData.PulseNumber
+
+	if pLen <= id.BitLen() {
+		// jet was merged or remains same - there will be only one descendant
+		result = []jet.DropID{ prefix.AsID().AsDrop(pn) }
+	} else {
+		// jet was split. NB! Genesis can split into more than 2 jets.
+		splitDepth := pLen - id.BitLen()
+		if splitDepth > 16 {
+			panic(throw.Impossible())
+		}
+
+		splitPrefix := jet.Prefix(1<<splitDepth)
+		result = make([]jet.DropID, splitPrefix)
+
+		// generate ids for all sub-jets
+		for splitPrefix > 0 {
+			splitPrefix--
+			subJetPrefix := (splitPrefix<<pLen)|prefix
+			result[splitPrefix] = subJetPrefix.AsID().AsDrop(pn)
+		}
+	}
+
+	// double check
+	for _, subID := range result {
+		if _, err := p.getDropAssist(subID); err != nil {
+			panic(err)
+		}
+	}
+
+	return result
+}
+
+

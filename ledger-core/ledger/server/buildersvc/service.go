@@ -179,6 +179,7 @@ func (p *serviceImpl) createPlash(pr pulse.Range, tree jet.PrefixTree, populatio
 		case localNodeID == assignedNodeID:
 			result = append(result, jetPID)
 			da = &dropAssistant{
+				exactID: jetPID,
 				dropID: jetPID.AsDrop(pn),
 				writer: bw,
 			}

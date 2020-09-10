@@ -12,6 +12,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/catalog"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/datafinder"
@@ -25,12 +26,15 @@ var _ smachine.StateMachine = &SMDropBuilder{}
 type SMDropBuilder struct {
 	smachine.StateMachineDeclTemplate
 
+	// injected
 	pulseSlot *conveyor.PulseSlot
+	adapter    buildersvc.WriteAdapter
 
 	sd         DropSharedData
+
 	prevReport catalog.DropReport
 	nextReport catalog.DropReport
-	adapter    buildersvc.WriteAdapter
+	nextDrops  []jet.DropID
 }
 
 func (p *SMDropBuilder) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
@@ -131,7 +135,8 @@ func (p *SMDropBuilder) migratePresent(ctx smachine.MigrationContext) smachine.S
 }
 
 func (p *SMDropBuilder) migratePast(ctx smachine.MigrationContext) smachine.StateUpdate {
-	return ctx.Stop()
+	// can't get here normally
+	return ctx.Error(throw.IllegalState())
 }
 
 func (p *SMDropBuilder) stepFinalize(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -164,17 +169,13 @@ func (p *SMDropBuilder) stepWaitNextReadyAndSendReport(ctx smachine.ExecutionCon
 
 	jetAssist := p.sd.info.AssistData.jetAssist
 	// wait for confirmation from Plash of the next pulse / different slot
-	ready := jetAssist.GetNextPlashReadySync()
+	ready := jetAssist.GetNextReadySync()
 	if !ctx.Acquire(ready) {
 		return ctx.Sleep().ThenRepeat()
 	}
 
-	// nextPlash := jetAssist.GetNextPlash()
-
-	// TODO find nodes for next drop (or drops on merge)
-	// TODO send dropReport to next LME
-
-	return ctx.Stop()
+	p.nextDrops = jetAssist.CalculateNextDrops(p.sd.info.ID)
+	return ctx.Jump(p.sendReport)
 }
 
 func (p *SMDropBuilder) receivePrevReport(report catalog.DropReport, ctx smachine.BargeInContext) (wakeup bool) {
@@ -200,5 +201,10 @@ func (p *SMDropBuilder) receivePrevReport(report catalog.DropReport, ctx smachin
 func (p *SMDropBuilder) verifyPrevReport(report catalog.DropReport) bool {
 	// TODO verification vs jet tree etc
 	return !report.IsZero()
+}
+
+func (p *SMDropBuilder) sendReport(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	// TODO send dropReport to next LME
+	return ctx.Stop()
 }
 

@@ -33,12 +33,12 @@ type PlashAssistant interface {
 	CalculateJetDrop(reference.Holder) jet.DropID
 	IsGenesis() bool
 
-	// GetNextPlashReadySync returns a sync object that will be opened after next Plash is started.
-	GetNextPlashReadySync() smachine.SyncLink
-	// GetNextPlash must NOT be accessed before GetNextPlashReadySync() is triggered.
-	GetNextPlash() PlashAssistant
+	// CalculateDropNodes(jet.DropID) (executorID, validatorID)
 
-	// TODO removed GetNextPlash, but enable CalculateNextDrop(Executor)(prevDrop jet.DropID) ([]nodeId)
+	// GetNextReadySync returns a sync object that will be opened after next Plash is started.
+	GetNextReadySync() smachine.SyncLink
+	// CalculateNextDrops must NOT be accessed before GetNextReadySync() is triggered.
+	CalculateNextDrops(jet.DropID) []jet.DropID
 }
 
 type AppendFuture interface {
