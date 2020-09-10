@@ -44,17 +44,15 @@ func (p *Bool) Unset() {
 func (p *Bool) Swap(v bool) bool {
 	if v {
 		return atomic.SwapUint32(&p.v, 1) != 0
-	} else {
-		return atomic.SwapUint32(&p.v, 0) != 0
 	}
+	return atomic.SwapUint32(&p.v, 0) != 0
 }
 
 func (p *Bool) CompareAndFlip(old bool) bool {
 	if old {
 		return atomic.CompareAndSwapUint32(&p.v, 1, 0)
-	} else {
-		return atomic.CompareAndSwapUint32(&p.v, 0, 1)
 	}
+	return atomic.CompareAndSwapUint32(&p.v, 0, 1)
 }
 
 func (p *Bool) Flip() bool {
