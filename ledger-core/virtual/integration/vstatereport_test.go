@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/gojuno/minimock/v3"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
@@ -207,6 +208,7 @@ func TestVirtual_StateReport_CheckPendingCountersAndPulses(t *testing.T) {
 
 			suite.createPulseP5(ctx)
 			expectedPublished++                      // expect StateReport
+			expectedPublished++                      // expect VObjectTranscriptReport
 			expectedPublished += 2 * len(test.start) // expect GetToken + FindRequest
 			suite.waitMessagePublications(ctx, t, expectedPublished)
 
@@ -430,8 +432,8 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) setMessageCheckers(
 		return false // no resend msg
 	})
 	typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
-		t.FailNow()
-		// TODO add asserts and check counter after https://insolar.atlassian.net/browse/PLAT-753
+		assert.Equal(t, s.object, report.Object.GetGlobal())
+		assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
 		return false
 	})
 	typedChecker.VDelegatedCallResponse.Set(func(del *payload.VDelegatedCallResponse) bool {

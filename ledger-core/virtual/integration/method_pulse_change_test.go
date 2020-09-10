@@ -159,8 +159,9 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 					return false
 				})
 				typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
-					t.FailNow()
-					// TODO add asserts and check counter after https://insolar.atlassian.net/browse/PLAT-753
+					assert.Equal(t, object, report.Object.GetGlobal())
+					assert.Equal(t, outgoing.GetLocal().Pulse(), report.AsOf)
+					assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
 					return false
 				})
 
@@ -247,15 +248,12 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 			{
 				assert.Equal(t, 1, typedChecker.VCallResult.Count())
 				assert.Equal(t, 1, typedChecker.VStateReport.Count())
-				// TODO uncommented after https://insolar.atlassian.net/browse/PLAT-753
-				// assert.Equal(t, 1, suite.typedChecker.VObjectTranscriptReport.Count())
+				assert.Equal(t, 1, typedChecker.VObjectTranscriptReport.Count())
 				assert.Equal(t, 1, typedChecker.VDelegatedRequestFinished.Count())
 
 				assert.Equal(t, test.countChangePulse, typedChecker.VDelegatedCallRequest.Count())
 			}
-
 			mc.Finish()
-
 		})
 	}
 }
@@ -347,8 +345,9 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 			return false
 		})
 		typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
-			t.FailNow()
-			// TODO add asserts and check counter after https://insolar.atlassian.net/browse/PLAT-753
+			assert.Equal(t, object, report.Object.GetGlobal())
+			assert.Equal(t, currPulse, report.AsOf)
+			assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
 			return false
 		})
 		typedChecker.VDelegatedCallRequest.Set(func(request *payload.VDelegatedCallRequest) bool {
@@ -447,8 +446,7 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 		require.Equal(t, 3, typedChecker.VDelegatedCallRequest.Count())
 		require.Equal(t, 3, typedChecker.VDelegatedRequestFinished.Count())
 		require.Equal(t, 3, typedChecker.VCallResult.Count())
-		// TODO uncommented after https://insolar.atlassian.net/browse/PLAT-753
-		// assert.Equal(t, 1, suite.typedChecker.VObjectTranscriptReport.Count())
+		assert.Equal(t, 1, typedChecker.VObjectTranscriptReport.Count())
 	}
 
 	mc.Finish()

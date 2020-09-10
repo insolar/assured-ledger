@@ -717,8 +717,9 @@ func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 		typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool { return false })
 
 		typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
-			t.FailNow()
-			// TODO add asserts and check counter after https://insolar.atlassian.net/browse/PLAT-753
+			assert.Equal(t, object, report.Object.GetGlobal())
+			assert.Equal(t, pl.CallOutgoing.GetLocal().Pulse(), report.AsOf)
+			assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
 			return false
 		})
 
@@ -763,9 +764,9 @@ func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, executeStopped, foundError)
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
-	// TODO uncommented after https://insolar.atlassian.net/browse/PLAT-753
-	// commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VObjectTranscriptReport.Wait(ctx, 1))
-	// assert.Equal(t, countChangePulse, typedChecker.VObjectTranscriptReport.Count())
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VObjectTranscriptReport.Wait(ctx, 1))
+
+	assert.Equal(t, 1, typedChecker.VObjectTranscriptReport.Count())
 
 	require.Equal(t, countChangePulse, typedChecker.VCallRequest.Count())
 	require.Equal(t, countChangePulse, typedChecker.VDelegatedCallRequest.Count())
