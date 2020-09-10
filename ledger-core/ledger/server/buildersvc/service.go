@@ -89,10 +89,11 @@ func (p *serviceImpl) AppendToDrop(id jet.DropID, future AppendFuture, bundle li
 }
 
 func (p *serviceImpl) AppendToDropSummary(id jet.DropID, summary lineage.LineSummary) {
+	// pa := p.get(id.CreatedAt())
 
 }
 
-func (p *serviceImpl) FinalizeDropSummary(jet.DropID) catalog.DropReport {
+func (p *serviceImpl) FinalizeDropSummary(id jet.DropID) catalog.DropReport {
 	return catalog.DropReport{}
 }
 

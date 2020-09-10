@@ -14,6 +14,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
+// DropSharedData stores shared information about Drop
+// WARNING! This struct is accessed directly, no synchronization guarantees are provided.
 type DropSharedData struct {
 	info DropInfo
 
@@ -32,7 +34,6 @@ type DropInfo struct {
 	AssistData *PlashSharedData
 }
 
-
 func (p *DropSharedData) GetReadySync() smachine.SyncLink {
 	return p.ready.SyncLink()
 }
@@ -42,7 +43,6 @@ func (p *DropSharedData) enableAccess() smachine.SyncAdjustment {
 	return p.ready.NewValue(true)
 }
 
-//nolint
 func (p *DropSharedData) ensureAccess() {
 	if p.state.Load() == 0 {
 		panic(throw.IllegalState())
@@ -58,5 +58,6 @@ func (p *DropSharedData) setPrevReport(catalog.DropReport) {
 }
 
 func (p *DropSharedData) GetFinalizeSync() smachine.SyncLink {
+	p.ensureAccess()
 	return p.finalize
 }

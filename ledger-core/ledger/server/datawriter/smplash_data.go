@@ -16,7 +16,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-
+// PlashSharedData stores shared information about Plash
+// WARNING! This struct is accessed directly, no synchronization guarantees are provided.
 type PlashSharedData struct {
 	ready smsync.BoolConditionalLink
 
