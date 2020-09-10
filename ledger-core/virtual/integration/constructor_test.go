@@ -35,6 +35,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/validation"
 )
 
 func TestVirtual_Constructor_BadClassRef(t *testing.T) {
@@ -140,6 +141,17 @@ func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
 		assert.Equal(t, objectRef, report.Object.GetGlobal())
 		assert.Equal(t, pl.CallOutgoing.GetLocal().Pulse(), report.AsOf)
 		assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
+
+		entry, ok := report.ObjectTranscript.Entries[0].Get().(validation.CustomTranscriptEntryPart)
+		if ok {
+			// dont work now
+			t.FailNow()
+
+			request, ok := entry.(validation.TranscriptEntryIncomingRequest)
+			if ok {
+				assert.Equal(t, pl, request.CallRequest)
+			}
+		}
 		return false
 	})
 
