@@ -30,6 +30,7 @@ const (
 	plashStarted
 	plashPendingPulse
 	plashClosed
+//	plashSummarized
 )
 
 type plashAssistant struct {
@@ -108,6 +109,17 @@ func (p *plashAssistant) CommitPulseChange() {
 	p.commit.Unlock()
 
 	// NB! Underlying writer must NOT be marked read-only here as summary has to be written also
+}
+
+func (p *plashAssistant) finalizeSummary()  {
+	// // underlying writer will be marked read only as soon as all writing bundles are completed / discarded
+	// // but CommitPulseChange will be released immediately after putting the closure into the write chain
+	// // and any further calls to WaitWriteBundles() or to WriteBundle() will wait for this closure to complete.
+	// p.writer.WaitWriteBundlesAsync(nil, func(bool) {
+	// 	if err := p.writer.MarkReadOnly(); err != nil {
+	// 		panic(throw.W(err, "failed to mark storage as read-only"))
+	// 	}
+	// })
 }
 
 func (p *plashAssistant) appendToDrop(id jet.DropID, future AppendFuture, bundle lineage.UpdateBundle) error {
