@@ -36,10 +36,16 @@ func TestVirtual_ValidationReport(t *testing.T) {
 		class        = server.RandomGlobalWithPulse()
 	)
 
+	objDescriptor := descriptor.NewObject(objectGlobal, server.RandomLocalWithPulse(), class, []byte("new state"), false)
+	validatedStateRef := reference.NewRecordOf(objDescriptor.HeadRef(), objDescriptor.StateID())
+
 	// add checker
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	{
 		typedChecker.VCachedMemoryRequest.Set(func(request *payload.VCachedMemoryRequest) bool {
+			assert.Equal(t, objectGlobal, request.Object)
+			assert.Equal(t, validatedStateRef.GetLocal(), request.StateID)
+
 			pl := &payload.VCachedMemoryResponse{
 				Object:      request.Object,
 				StateID:     request.StateID,
@@ -74,8 +80,6 @@ func TestVirtual_ValidationReport(t *testing.T) {
 		server.SendPayload(ctx, pl)
 		commonTestUtils.WaitSignalsTimed(t, 10*time.Second, waitReport)
 
-		objDescriptor := descriptor.NewObject(objectGlobal, server.RandomLocalWithPulse(), class, []byte("new state"), false)
-		validatedStateRef := reference.NewRecordOf(objDescriptor.HeadRef(), objDescriptor.StateID())
 		validationReport := &payload.VObjectValidationReport{
 			Object:    objectGlobal,
 			In:        prevPulse,
