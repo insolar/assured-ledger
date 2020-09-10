@@ -13,6 +13,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/bundle"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lineage"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -21,6 +22,8 @@ type dropAssistant struct {
 	// set at construction
 	dropID jet.DropID
 	writer bundle.Writer
+
+	dropEntryCounter atomickit.Uint32
 
 	mutex   sync.Mutex // LOCK: Is used under plashAssistant.commit lock
 	merkle  cryptkit.ForkingDigester
@@ -90,7 +93,10 @@ func (p *dropAssistant) append(pa *plashAssistant, future AppendFuture, b lineag
 		return
 	}
 
-	writeBundle := &entryWriter{entries: entries}
+	writeBundle := &entryWriter{
+		dropOrder: &p.dropEntryCounter,
+		entries: entries,
+	}
 
 	return p.writer.WriteBundle(writeBundle, func(indices []ledger.DirectoryIndex, err error) bool {
 		// this closure is called later, after the bundle is completely written

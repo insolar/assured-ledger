@@ -122,7 +122,10 @@ func (p *bundleWriter) _prepareWait(alwaysSetNext bool) (prev synckit.SignalChan
 }
 
 func (p *bundleWriter) WriteBundle(bundle Writeable, completedFn ResultFunc) (errResult error) {
-	if completedFn == nil {
+	switch {
+	case completedFn == nil:
+		panic(throw.IllegalValue())
+	case bundle == nil:
 		panic(throw.IllegalValue())
 	}
 
@@ -141,6 +144,7 @@ func (p *bundleWriter) WriteBundle(bundle Writeable, completedFn ResultFunc) (er
 		if err := snapshot.Rollback(false); err != nil {
 			errResult = throw.WithDetails(err, errResult)
 		}
+		bundle.ApplyRollback()
 	}()
 
 	if err = bundle.PrepareWrite(snapshot); err != nil {
@@ -214,13 +218,18 @@ func (p *bundleWriter) applyBundleSafely(snapshot Snapshot, bundle Writeable,
 		defer func() {
 			_ = recover() // we can't allow panic here
 		}()
+
+		defer func() {
+			if err != nil {
+				completedFn(nil, err)
+			}
+		}()
+
 		if err2 := snapshot.Rollback(chained); err2 != nil {
 			err = throw.WithDetails(err2, err)
 		}
-		if err != nil {
-			// NB! error report may be missed if rollback panics
-			completedFn(nil, err)
-		}
+
+		bundle.ApplyRollback()
 	}()
 
 	err = func() (err error) {

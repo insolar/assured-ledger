@@ -106,7 +106,7 @@ func TestMemorySnapshotDirectoryPaging(t *testing.T) {
 
 	require.Equal(t, ledger.NewDirectoryIndex(ledger.DefaultEntrySection, j + 1), es.GetNextDirectoryIndex())
 
-	s.Rollback(false)
+	require.NoError(t, s.Rollback(false))
 
 	require.Equal(t, ledger.NewDirectoryIndex(ledger.DefaultEntrySection, j), es.GetNextDirectoryIndex())
 }
@@ -173,7 +173,7 @@ func TestMemorySnapshotPayloadPaging(t *testing.T) {
 	require.Equal(t, ledger.ChapterID(2), ess.chapter)
 	require.Equal(t, uint32(allocSize), ess.lastOfs)
 
-	s.Rollback(false)
+	require.NoError(t, s.Rollback(false))
 
 	chapters = ms.sections[ledger.DefaultEntrySection].chapters
 	require.Equal(t, 2, len(chapters))
@@ -185,6 +185,8 @@ type benchBundle struct {
 	data  []byte
 	recep bundle.PayloadReceptacle
 }
+
+func (p *benchBundle) ApplyRollback() {}
 
 func (p *benchBundle) PrepareWrite(snapshot bundle.Snapshot) error {
 	ps, err := snapshot.GetPayloadSection(ledger.DefaultEntrySection)

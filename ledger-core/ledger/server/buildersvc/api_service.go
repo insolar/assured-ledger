@@ -37,6 +37,8 @@ type PlashAssistant interface {
 	GetNextPlashReadySync() smachine.SyncLink
 	// GetNextPlash must NOT be accessed before GetNextPlashReadySync() is triggered.
 	GetNextPlash() PlashAssistant
+
+	// TODO removed GetNextPlash, but enable CalculateNextDrop(Executor)(prevDrop jet.DropID) ([]nodeId)
 }
 
 type AppendFuture interface {

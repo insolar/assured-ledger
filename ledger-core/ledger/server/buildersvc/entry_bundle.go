@@ -12,6 +12,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lineage"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -19,20 +20,26 @@ import (
 var _ bundle.Writeable = &entryWriter{}
 
 type entryWriter struct {
-	entries  []draftEntry
-	prepared []preparedEntry
+	dropOrder *atomickit.Uint32
+	dropBase  ledger.Ordinal
+
+	entries   []draftEntry
+	prepared  []preparedEntry
 }
 
 func (p *entryWriter) PrepareWrite(snapshot bundle.Snapshot) error {
-	if len(p.entries) == 0 {
+	n := uint32(len(p.entries))
+	if n == 0 {
 		panic(throw.IllegalState())
 	}
 
-	preparedEntries := make([]preparedEntry, len(p.entries))
+	p.dropBase = ledger.Ordinal(p.dropOrder.Add(n) - n) + 1 // ordinal starts with 1
+
+	preparedEntries := make([]preparedEntry, n)
 
 	for i := range p.entries {
 		var err error
-		preparedEntries[i], err = p.prepareRecord(snapshot, &p.entries[i])
+		preparedEntries[i], err = p.prepareRecord(snapshot, &p.entries[i], p.dropBase + ledger.Ordinal(i))
 		if err != nil {
 			return err
 		}
@@ -40,6 +47,12 @@ func (p *entryWriter) PrepareWrite(snapshot bundle.Snapshot) error {
 	p.prepared = preparedEntries
 	p.entries = nil
 	return nil
+}
+
+func (p *entryWriter) ApplyRollback() {
+	if p.dropBase > 0 {
+		p.dropOrder.SetLesser(uint32(p.dropBase - 1))
+	}
 }
 
 func (p *entryWriter) ApplyWrite() ([]ledger.DirectoryIndex, error) {
@@ -70,7 +83,7 @@ func (p *entryWriter) ApplyWrite() ([]ledger.DirectoryIndex, error) {
 	return indices, nil
 }
 
-func (p *entryWriter) prepareRecord(snapshot bundle.Snapshot, entry *draftEntry) (preparedEntry, error) {
+func (p *entryWriter) prepareRecord(snapshot bundle.Snapshot, entry *draftEntry, dropOrdinal ledger.Ordinal) (preparedEntry, error) {
 	ds, err := snapshot.GetDirectorySection(entry.directory)
 	if err != nil {
 		return preparedEntry{}, err
@@ -112,7 +125,7 @@ func (p *entryWriter) prepareRecord(snapshot bundle.Snapshot, entry *draftEntry)
 	}
 
 	catalogEntry := &entry.draft
-	prepareCatalogEntry(catalogEntry, entryIndex, payloadLoc, entry.payloads, preparedPayloads[:nPayloads])
+	prepareCatalogEntry(catalogEntry, dropOrdinal, payloadLoc, entry.payloads, preparedPayloads[:nPayloads])
 
 	entrySize := catalogEntry.ProtoSize()
 	receptacle, entryLoc, err := ds.AllocateEntryStorage(entrySize)
@@ -201,11 +214,11 @@ func draftCatalogEntry(rec lineage.Record) catalog.Entry {
 	}
 }
 
-func prepareCatalogEntry(entry *catalog.Entry, idx ledger.DirectoryIndex, loc []ledger.StorageLocator,
+func prepareCatalogEntry(entry *catalog.Entry, dropOrdinal ledger.Ordinal, loc []ledger.StorageLocator,
 	payloads []sectionPayload, preparedPayloads []preparedPayload,
 ) {
 	entry.BodyLoc = loc[0]
-	entry.Ordinal =	idx.Ordinal()
+	entry.Ordinal =	dropOrdinal
 	entry.BodyPayloadSizes = uint64(preparedPayloads[0].size)
 
 	n := len(loc)

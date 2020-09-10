@@ -33,6 +33,7 @@ type Writer interface {
 type Writeable interface {
 	PrepareWrite(Snapshot) error
 	ApplyWrite() ([]ledger.DirectoryIndex, error)
+	ApplyRollback()
 }
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/bundle.Writeable -s _mock.go -g
