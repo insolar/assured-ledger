@@ -142,7 +142,7 @@ func TestMassiveSend(t *testing.T) {
 	sentMap := sync.Map{}
 	totalCount := atomickit.Uint32{}
 
-	for i := 1; i <= 1000; i++ {
+	for i := 1; i <= 10000; i++ {
 		// loopback
 		// err = ctl2.ShipTo(NewDirectAddress(2), Shipment{Head: &TestString{"loc" + strconv.Itoa(i)}})
 		// require.NoError(t, err)
@@ -164,12 +164,12 @@ func TestMassiveSend(t *testing.T) {
 
 	time.Sleep(time.Second*10)
 
-	if totalCount.Load() > 0 {
+	if n := totalCount.Load(); n > 0 {
 		sentMap.Range(func(key, value interface{}) bool {
 			fmt.Println(key)
 			return true
 		})
 
-		t.Fail()
+		require.Zero(t, n)
 	}
 }
