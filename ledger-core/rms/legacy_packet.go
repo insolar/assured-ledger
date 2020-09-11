@@ -84,6 +84,7 @@ func (p *Packet) IsResponse() bool {
 	return p.GetResponse() != nil
 }
 
+//nolint:goconst
 func (p *Packet) DebugString() string {
 	if p == nil {
 		return "nil"

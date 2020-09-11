@@ -17,8 +17,9 @@ func (m *VDelegatedRequestFinished) validateUnimplemented() error {
 	switch {
 	case m.ResultFlags != 0:
 		return throw.New("ResultFlags should be zero")
+	default:
+		return nil
 	}
-	return nil
 }
 
 func (m *VDelegatedRequestFinished) isIntolerable() bool {

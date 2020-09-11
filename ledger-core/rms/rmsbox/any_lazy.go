@@ -32,6 +32,7 @@ func (p *AnyLazy) TryGetLazy() LazyValue {
 	return LazyValue{}
 }
 
+//nolint:interfacer
 func (p *AnyLazy) Set(v rmsreg.GoGoSerializable) {
 	p.value = v
 }
