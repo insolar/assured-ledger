@@ -60,6 +60,8 @@ type UnifiedServer struct {
 	blacklist BlacklistManager
 	logger    MiniLogger
 
+	transportProvider AllTransportProvider
+
 	ptf        peerTransportFactory
 	peers      PeerManager
 	receiver   PeerReceiver
@@ -79,6 +81,14 @@ func (p *UnifiedServer) SetConfig(config ServerConfig) {
 	p.peers.central.retryDelayInc = config.RetryDelayInc
 	p.peers.central.retryDelayMax = config.RetryDelayMax
 	p.peers.central.retryDelayVariance = config.RetryDelayVariance
+}
+
+func (p *UnifiedServer) SetTransportProvider(provider AllTransportProvider) {
+	if p.ptf.HasTransports() {
+		panic(throw.IllegalState())
+	}
+
+	p.transportProvider = provider
 }
 
 func (p *UnifiedServer) SetQuotaFactory(quotaFn PeerQuotaFactoryFunc) {
@@ -166,15 +176,25 @@ func (p *UnifiedServer) StartNoListen() {
 	case udpSize > math.MaxUint16:
 		udpSize = math.MaxUint16
 	}
-	p.ptf.SetSessionless(l1.NewUDP(binding, p.config.NetPreference, uint16(udpSize)), p.receiveSessionless)
 
-	var tcp l1.SessionfulTransportProvider
-	if p.config.TLSConfig == nil {
-		tcp = l1.NewTCP(binding, p.config.NetPreference)
+	var updProvider l1.SessionlessTransportProvider
+	if p.transportProvider != nil {
+		updProvider = p.transportProvider.CreateSessionlessProvider(binding, p.config.NetPreference, uint16(udpSize))
 	} else {
-		tcp = l1.NewTLS(binding, p.config.NetPreference, p.config.TLSConfig)
+		updProvider = l1.NewUDP(binding, p.config.NetPreference, uint16(udpSize))
 	}
-	p.ptf.SetSessionful(tcp, p.connectSessionful, p.connectSessionfulListen)
+	p.ptf.SetSessionless(updProvider, p.receiveSessionless)
+
+	var tcpProvider l1.SessionfulTransportProvider
+	switch {
+	case p.transportProvider != nil:
+		tcpProvider = p.transportProvider.CreateSessionfulProvider(binding, p.config.NetPreference, p.config.TLSConfig)
+	case p.config.TLSConfig != nil:
+		tcpProvider = l1.NewTLS(binding, p.config.NetPreference, p.config.TLSConfig)
+	default:
+		tcpProvider = l1.NewTCP(binding, p.config.NetPreference)
+	}
+	p.ptf.SetSessionful(tcpProvider, p.connectSessionful, p.connectSessionfulListen)
 
 	p.receiver.PeerManager = &p.peers
 	d := p.receiver.Parser.Dispatcher
