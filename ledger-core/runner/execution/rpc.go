@@ -109,8 +109,8 @@ func (e CallConstructor) ConstructVCallRequest(execution Context) *rms.VCallRequ
 		Callee:              rms.NewReference(e.class),
 		CallSiteMethod:      e.constructor,
 		KnownCalleeIncoming: rms.NewReference(reference.Global{}),
-		CallOutgoing:        rms.NewReference(reference.Global{}), // must be filled in the caller
-		CallSequence:        0,                                    // must be filled in the caller
+		CallOutgoing:        rms.NewReference(reference.Global{}), // must be filled by the caller
+		CallSequence:        0,                                    // must be filled by the caller
 		Arguments:           rms.NewBytes(e.arguments),
 	}
 }
@@ -164,8 +164,8 @@ func (e CallMethod) ConstructVCallRequest(execution Context) *rms.VCallRequest {
 		Caller:         rms.NewReference(e.parentObjectReference),
 		Callee:         rms.NewReference(e.object),
 		CallSiteMethod: e.method,
-		CallSequence:   0,                                    // must be filled in the caller
-		CallOutgoing:   rms.NewReference(reference.Global{}), // must be filled in the caller
+		CallSequence:   0,                                    // must be filled by the caller
+		CallOutgoing:   rms.NewReference(reference.Global{}), // must be filled by the caller
 		Arguments:      rms.NewBytes(e.arguments),
 	}
 }

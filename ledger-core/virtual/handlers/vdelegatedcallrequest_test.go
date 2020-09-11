@@ -247,7 +247,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 					Callee:       rms.NewReference(objectRef),
 				},
 				Meta: &rms.Meta{
-					Sender: caller,
+					Sender: rms.NewReference(caller),
 				},
 			}
 			catalogWrapper := object.NewCatalogMockWrapper(mc)

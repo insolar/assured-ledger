@@ -80,7 +80,7 @@ func TestSendMessageHandler_SameNode(t *testing.T) {
 	pulseMock := beat.NewAppenderMock(t)
 	pulseMock.LatestTimeBeatMock.Return(pulsestor.GenesisPulse, nil)
 
-	meta := rms.Meta{Receiver: nodeRef}
+	meta := rms.Meta{Receiver: rms.NewReference(nodeRef)}
 	meta.Payload.Set(&rms.VCallRequest{})
 
 	data, err := meta.Marshal()
@@ -104,7 +104,7 @@ func TestSendMessageHandler_SendError(t *testing.T) {
 	pulseMock.LatestTimeBeatMock.Return(pulsestor.GenesisPulse, nil)
 	svcNw.RPC = rpc
 
-	meta := rms.Meta{Receiver: gen.UniqueGlobalRef()}
+	meta := rms.Meta{Receiver: rms.NewReference(gen.UniqueGlobalRef())}
 	meta.Payload.Set(&rms.VCallRequest{})
 
 	data, err := meta.Marshal()
@@ -128,7 +128,7 @@ func TestSendMessageHandler_WrongReply(t *testing.T) {
 	pulseMock.LatestTimeBeatMock.Return(pulsestor.GenesisPulse, nil)
 	svcNw.RPC = rpc
 
-	meta := rms.Meta{Receiver: gen.UniqueGlobalRef()}
+	meta := rms.Meta{Receiver: rms.NewReference(gen.UniqueGlobalRef())}
 	meta.Payload.Set(&rms.VCallRequest{})
 
 	data, err := meta.Marshal()
@@ -152,7 +152,7 @@ func TestSendMessageHandler(t *testing.T) {
 	pulseMock.LatestTimeBeatMock.Return(pulsestor.GenesisPulse, nil)
 	svcNw.RPC = rpc
 
-	meta := rms.Meta{Receiver: gen.UniqueGlobalRef()}
+	meta := rms.Meta{Receiver: rms.NewReference(gen.UniqueGlobalRef())}
 	meta.Payload.Set(&rms.VCallRequest{})
 
 	data, err := meta.Marshal()

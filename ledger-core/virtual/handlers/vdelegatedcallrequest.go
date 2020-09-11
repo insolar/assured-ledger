@@ -198,7 +198,7 @@ func (s *SMVDelegatedCallRequest) stepProcessRequest(ctx smachine.ExecutionConte
 
 func (s *SMVDelegatedCallRequest) stepBuildResponse(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var (
-		delegateTo   = s.Meta.Sender
+		delegateTo   = s.Meta.Sender.GetValue()
 		callee       = s.Payload.Callee.GetValue()
 		pn           = s.pulseSlot.PulseNumber()
 		callOutgoing = s.Payload.CallOutgoing.GetValue()
