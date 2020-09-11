@@ -14,10 +14,10 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/application/testwalletapi/statemachine"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
@@ -47,8 +47,8 @@ func Test_CheckMessageFromAuthorizedVirtual_TemporaryIgnoreChecking_APIRequests(
 
 	rg := pulse.NewSequenceRange([]pulse.Data{pulse.NewPulsarData(pulse.MinTimePulse<<1, 10, 1, longbits.Bits256{})})
 
-	msg := &payload.VStateRequest{
-		Object: statemachine.APICaller,
+	msg := &rms.VStateRequest{
+		Object: rms.NewReference(statemachine.APICaller),
 	}
 
 	mustReject, err := authService.CheckMessageFromAuthorizedVirtual(ctx, msg, sender, rg)
@@ -56,7 +56,7 @@ func Test_CheckMessageFromAuthorizedVirtual_TemporaryIgnoreChecking_APIRequests(
 	require.False(t, mustReject)
 }
 
-func insertToken(token payload.CallDelegationToken, msg interface{}) {
+func insertToken(token rms.CallDelegationToken, msg interface{}) {
 	field := reflect.New(reflect.TypeOf(token))
 	field.Elem().Set(reflect.ValueOf(token))
 	reflect.ValueOf(msg).Elem().FieldByName("DelegationSpec").Set(field.Elem())
@@ -70,27 +70,27 @@ func Test_CheckMessageFromAuthorizedVirtual_WithToken(t *testing.T) {
 	}{
 		{
 			name: "VCallRequest",
-			msg:  &payload.VCallRequest{},
+			msg:  &rms.VCallRequest{},
 		},
 		{
 			name: "VCallResult",
-			msg:  &payload.VCallResult{},
+			msg:  &rms.VCallResult{},
 		},
 		{
 			name: "VStateRequest",
-			msg:  &payload.VStateRequest{},
+			msg:  &rms.VStateRequest{},
 		},
 		{
 			name: "VStateReport",
-			msg:  &payload.VStateReport{},
+			msg:  &rms.VStateReport{},
 		},
 		{
 			name: "VDelegatedRequestFinished",
-			msg:  &payload.VDelegatedRequestFinished{},
+			msg:  &rms.VDelegatedRequestFinished{},
 		},
 		{
 			name: "VDelegatedCallRequest",
-			msg:  &payload.VDelegatedCallRequest{},
+			msg:  &rms.VDelegatedCallRequest{},
 		},
 	}
 
@@ -103,10 +103,10 @@ func Test_CheckMessageFromAuthorizedVirtual_WithToken(t *testing.T) {
 			selfRef := refs[1]
 			approver := refs[2]
 
-			token := payload.CallDelegationToken{
-				TokenTypeAndFlags: payload.DelegationTokenTypeCall,
-				Approver:          approver,
-				DelegateTo:        sender,
+			token := rms.CallDelegationToken{
+				TokenTypeAndFlags: rms.DelegationTokenTypeCall,
+				Approver:          rms.NewReference(approver),
+				DelegateTo:        rms.NewReference(sender),
 			}
 
 			reflect.ValueOf(testCase.msg).MethodByName("Reset").Call([]reflect.Value{})
@@ -137,10 +137,10 @@ func Test_CheckMessageFromAuthorizedVirtual_WithToken(t *testing.T) {
 
 			rg := pulse.NewSequenceRange([]pulse.Data{pulse.NewPulsarData(pulse.MinTimePulse<<1, 10, 1, longbits.Bits256{})})
 
-			token := payload.CallDelegationToken{
-				TokenTypeAndFlags: payload.DelegationTokenTypeCall,
-				Approver:          sender,
-				DelegateTo:        sender,
+			token := rms.CallDelegationToken{
+				TokenTypeAndFlags: rms.DelegationTokenTypeCall,
+				Approver:          rms.NewReference(sender),
+				DelegateTo:        rms.NewReference(sender),
 			}
 
 			reflect.ValueOf(testCase.msg).MethodByName("Reset").Call([]reflect.Value{})
@@ -167,10 +167,10 @@ func Test_CheckMessageFromAuthorizedVirtual_WithToken(t *testing.T) {
 			rg := pulse.NewSequenceRange([]pulse.Data{pulse.NewPulsarData(pulse.MinTimePulse<<1, 10, 1, longbits.Bits256{})})
 
 			reflect.ValueOf(testCase.msg).MethodByName("Reset").Call([]reflect.Value{})
-			token := payload.CallDelegationToken{
-				TokenTypeAndFlags: payload.DelegationTokenTypeCall,
-				Approver:          approver,
-				DelegateTo:        expectedVE,
+			token := rms.CallDelegationToken{
+				TokenTypeAndFlags: rms.DelegationTokenTypeCall,
+				Approver:          rms.NewReference(approver),
+				DelegateTo:        rms.NewReference(expectedVE),
 			}
 			insertToken(token, testCase.msg)
 
@@ -195,10 +195,10 @@ func Test_CheckMessageFromAuthorizedVirtual_WithToken(t *testing.T) {
 			rg := pulse.NewSequenceRange([]pulse.Data{pulse.NewPulsarData(pulse.MinTimePulse<<1, 10, 1, longbits.Bits256{})})
 
 			reflect.ValueOf(testCase.msg).MethodByName("Reset").Call([]reflect.Value{})
-			token := payload.CallDelegationToken{
-				TokenTypeAndFlags: payload.DelegationTokenTypeCall,
-				Approver:          approver,
-				DelegateTo:        gen.UniqueGlobalRef(),
+			token := rms.CallDelegationToken{
+				TokenTypeAndFlags: rms.DelegationTokenTypeCall,
+				Approver:          rms.NewReference(approver),
+				DelegateTo:        rms.NewReference(gen.UniqueGlobalRef()),
 			}
 			insertToken(token, testCase.msg)
 
@@ -214,46 +214,46 @@ func Test_CheckMessageFromAuthorizedVirtual_WithoutToken(t *testing.T) {
 		name         string
 		msg          interface{}
 		testRailCase string
-		mode         payload.AuthSubjectMode
+		mode         rms.AuthSubjectMode
 	}{
 		{
 			name: "VCallRequest",
-			msg:  &payload.VCallRequest{},
+			msg:  &rms.VCallRequest{},
 		},
 		{
 			name: "VCallResult",
-			msg:  &payload.VCallResult{},
+			msg:  &rms.VCallResult{},
 		},
 		{
 			name: "VStateRequest",
-			msg:  &payload.VStateRequest{},
+			msg:  &rms.VStateRequest{},
 		},
 		{
 			name: "VStateReport",
-			msg:  &payload.VStateReport{},
-			mode: payload.UsePrevPulse,
+			msg:  &rms.VStateReport{},
+			mode: rms.UsePrevPulse,
 		},
 		{
 			name: "VDelegatedRequestFinished",
-			msg:  &payload.VDelegatedRequestFinished{},
+			msg:  &rms.VDelegatedRequestFinished{},
 		},
 		{
 			name: "VDelegatedCallRequest",
-			msg:  &payload.VDelegatedCallRequest{},
-			mode: payload.UsePrevPulse,
+			msg:  &rms.VDelegatedCallRequest{},
+			mode: rms.UsePrevPulse,
 		},
 		{
 			name: "VDelegatedCallResponse",
-			msg:  &payload.VDelegatedCallResponse{},
+			msg:  &rms.VDelegatedCallResponse{},
 		},
 		{
 			name: "VFindCallRequest",
-			msg:  &payload.VFindCallRequest{},
+			msg:  &rms.VFindCallRequest{},
 		},
 		{
 			name: "VFindCallResponse",
-			msg:  &payload.VFindCallResponse{},
-			mode: payload.UseAnyPulse,
+			msg:  &rms.VFindCallResponse{},
+			mode: rms.UseAnyPulse,
 		},
 	}
 
@@ -296,7 +296,7 @@ func Test_CheckMessageFromAuthorizedVirtual_WithoutToken(t *testing.T) {
 			authService := NewService(ctx, jetCoordinatorMock)
 
 			mustReject, err := authService.CheckMessageFromAuthorizedVirtual(ctx, testCase.msg, badSender, pulseRange)
-			if testCase.mode == payload.UseAnyPulse {
+			if testCase.mode == rms.UseAnyPulse {
 				require.NoError(t, err)
 				require.False(t, mustReject)
 			} else {
@@ -321,7 +321,7 @@ func Test_CheckMessageFromAuthorizedVirtual_WithoutToken(t *testing.T) {
 
 			mustReject, err := authService.CheckMessageFromAuthorizedVirtual(ctx, testCase.msg, sender, pr)
 			require.NoError(t, err)
-			if testCase.mode == payload.UsePrevPulse {
+			if testCase.mode == rms.UsePrevPulse {
 				require.True(t, mustReject)
 			} else {
 				require.False(t, mustReject)
@@ -342,7 +342,7 @@ func Test_CheckMessageFromAuthorizedVirtual_WithoutToken(t *testing.T) {
 
 			rg := pulse.NewSequenceRange([]pulse.Data{pulse.NewPulsarData(pulse.MinTimePulse<<1, 10, 1, longbits.Bits256{})})
 
-			if testCase.mode == payload.UseAnyPulse {
+			if testCase.mode == rms.UseAnyPulse {
 				mustReject, err := authService.CheckMessageFromAuthorizedVirtual(ctx, testCase.msg, sender, rg)
 				require.NoError(t, err)
 				require.False(t, mustReject)
@@ -370,7 +370,7 @@ func Test_CheckMessageFromAuthorizedVirtual_WithoutToken(t *testing.T) {
 			rg := pulse.NewSequenceRange([]pulse.Data{pulse.NewPulsarData(pulse.MinTimePulse<<1, 10, 1, longbits.Bits256{})})
 
 			mustReject, err := authService.CheckMessageFromAuthorizedVirtual(ctx, testCase.msg, sender, rg)
-			if testCase.mode == payload.UseAnyPulse {
+			if testCase.mode == rms.UseAnyPulse {
 				require.NoError(t, err)
 				require.False(t, mustReject)
 			} else {
@@ -412,9 +412,9 @@ func TestService_HasToSendToken(t *testing.T) {
 
 			authService := NewService(ctx, affMock)
 
-			hasToSendToken := authService.HasToSendToken(payload.CallDelegationToken{
-				Approver: test.approver,
-				Caller:   selfRef,
+			hasToSendToken := authService.HasToSendToken(rms.CallDelegationToken{
+				Approver: rms.NewReference(test.approver),
+				Caller:   rms.NewReference(selfRef),
 			})
 
 			require.Equal(t, test.rv, hasToSendToken)

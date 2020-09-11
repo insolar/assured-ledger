@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package payload
+package rms
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
@@ -15,9 +15,9 @@ var _ Validatable = &VDelegatedRequestFinished{}
 
 func (m *VDelegatedRequestFinished) validateUnimplemented() error {
 	switch {
-	case m.ResultFlags != nil:
+	case !m.ResultFlags.IsEmpty():
 		return throw.New("ResultFlags should be empty")
-	case m.EntryHeadHash != nil:
+	case !m.EntryHeadHash.IsEmpty():
 		return throw.New("EntryHeadHash should be empty")
 	}
 	return nil
@@ -38,17 +38,17 @@ func (m *VDelegatedRequestFinished) Validate(currentPulse pulse.Number) error {
 		return throw.New("CallFlags should be valid")
 	}
 
-	calleePulse, err := validSelfScopedGlobalWithPulseSpecialOrBeforeOrEq(m.Callee, currentPulse, "Callee")
+	calleePulse, err := validSelfScopedGlobalWithPulseSpecialOrBeforeOrEq(m.Callee.GetValue(), currentPulse, "Callee")
 	if err != nil {
 		return err
 	}
 
-	outgoingLocalPulse, err := validRequestGlobalWithPulseBeforeOrEq(m.CallOutgoing, currentPulse, "CallOutgoing")
+	outgoingLocalPulse, err := validRequestGlobalWithPulseBeforeOrEq(m.CallOutgoing.GetValue(), currentPulse, "CallOutgoing")
 	if err != nil {
 		return err
 	}
 
-	incomingLocalPulse, err := validRequestGlobalWithPulseBeforeOrEq(m.CallIncoming, currentPulse, "CallIncoming")
+	incomingLocalPulse, err := validRequestGlobalWithPulseBeforeOrEq(m.CallIncoming.GetValue(), currentPulse, "CallIncoming")
 	if err != nil {
 		return err
 	}

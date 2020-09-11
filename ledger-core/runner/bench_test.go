@@ -11,9 +11,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/application/builtin/contract/testwallet"
 	testwalletProxy "github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
@@ -31,15 +31,16 @@ func BenchmarkRunnerService(b *testing.B) {
 		class         = testwalletProxy.GetClass()
 		wallet, _     = testwallet.New()
 		defaultObject = insolar.MustSerialize(wallet)
+		defaultArgs   = insolar.MustSerialize([]interface{}{remoteObject, uint32(100)})
 	)
 
 	executionContext := execution.Context{
 		ObjectDescriptor: descriptor.NewObject(object, reference.Local{}, class, defaultObject, false),
 		Context:          ctx,
-		Request: &payload.VCallRequest{
-			CallType:       payload.CallTypeMethod,
+		Request: &rms.VCallRequest{
+			CallType:       rms.CallTypeMethod,
 			CallSiteMethod: "GetBalance",
-			Arguments:      insolar.MustSerialize([]interface{}{remoteObject, uint32(100)}),
+			Arguments:      rms.NewBytes(defaultArgs),
 		},
 		Sequence: 0,
 		Object:   object,

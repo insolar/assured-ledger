@@ -13,6 +13,10 @@ import (
 var _ GoGoSerializableWithText = &Binary{}
 var _ longbits.FixedReader = &Binary{}
 
+func NewBytes(in []byte) Binary {
+	return NewRawBytes(in).AsBinary()
+}
+
 type Binary struct {
 	rawBinary
 }

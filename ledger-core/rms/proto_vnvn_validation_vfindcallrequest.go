@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package payload
+package rms
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -17,12 +17,12 @@ func (m *VFindCallRequest) Validate(currentPulse PulseNumber) error {
 		return throw.New("LookAt should be valid time pulse before current pulse")
 	}
 
-	calleePulse, err := validSelfScopedGlobalWithPulseSpecialOrBefore(m.Callee, currentPulse, "Callee")
+	calleePulse, err := validSelfScopedGlobalWithPulseSpecialOrBefore(m.Callee.GetValue(), currentPulse, "Callee")
 	if err != nil {
 		return err
 	}
 
-	outgoingLocalPulse, err := validRequestGlobalWithPulseBeforeOrEq(m.Outgoing, currentPulse, "CallOutgoing")
+	outgoingLocalPulse, err := validRequestGlobalWithPulseBeforeOrEq(m.Outgoing.GetValue(), currentPulse, "CallOutgoing")
 	if err != nil {
 		return err
 	}

@@ -13,11 +13,12 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
@@ -27,8 +28,8 @@ import (
 
 type SMVDelegatedCallRequest struct {
 	// input arguments
-	Meta    *payload.Meta
-	Payload *payload.VDelegatedCallRequest
+	Meta    *rms.Meta
+	Payload *rms.VDelegatedCallRequest
 
 	objectSharedState object.SharedStateAccessor
 
@@ -81,8 +82,7 @@ func (s *SMVDelegatedCallRequest) migrationDefault(ctx smachine.MigrationContext
 }
 
 func (s *SMVDelegatedCallRequest) stepProcess(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	objectRef := s.Payload.Callee
-	s.objectSharedState = s.objectCatalog.GetOrCreate(ctx, objectRef)
+	s.objectSharedState = s.objectCatalog.GetOrCreate(ctx, s.Payload.Callee.GetValue())
 
 	return ctx.Jump(s.stepWaitObjectReady)
 }
@@ -146,22 +146,23 @@ func (s *SMVDelegatedCallRequest) stepProcessRequest(ctx smachine.ExecutionConte
 			panic(throw.Unsupported())
 		}
 
-		if oldestPulse == pulse.Unknown || s.Payload.CallOutgoing.GetLocal().GetPulseNumber() < oldestPulse {
+		if oldestPulse == pulse.Unknown || s.Payload.CallOutgoing.GetPulseOfLocal() < oldestPulse {
 			resultCheck = delegationOldRequest
 			return
 		}
 
 		// pendingList already full
-		if pendingList.Count() == previousExecutorPendingCount && !pendingList.Exist(s.Payload.CallOutgoing) {
+		callOutgoing := s.Payload.CallOutgoing.GetValue()
+		if pendingList.Count() == previousExecutorPendingCount && !pendingList.Exist(callOutgoing) {
 			resultCheck = delegationFullTable
 			return
 		}
 
-		if !pendingList.Add(s.Payload.CallOutgoing) {
+		if !pendingList.Add(callOutgoing) {
 			ctx.Log().Trace(struct {
 				*log.Msg  `txt:"request already in pending list"`
-				Reference string
-			}{Reference: s.Payload.CallOutgoing.String()})
+				Reference reference.Global
+			}{Reference: callOutgoing})
 			// request was already in the list we will delegate token, maybe it is repeated call
 			return
 		}
@@ -175,13 +176,17 @@ func (s *SMVDelegatedCallRequest) stepProcessRequest(ctx smachine.ExecutionConte
 		panic(throw.Impossible())
 	}
 
+	// TODO: sure about that? callIncoming here, but in action callOutgoing is used
+	callIncoming := s.Payload.CallIncoming.GetValue()
 	switch resultCheck {
 	case delegationOldRequest:
-		return ctx.Error(throw.E("There is no such object", struct{ Reference string }{Reference: s.Payload.CallIncoming.String()}))
+		return ctx.Error(throw.E("There is no such object", struct {
+			Reference reference.Global
+		}{Reference: callIncoming}))
 	case delegationFullTable:
 		return ctx.Error(throw.E("Pending table already full", struct {
-			Reference string
-		}{Reference: s.Payload.CallIncoming.String()}))
+			Reference reference.Global
+		}{Reference: callIncoming}))
 		// Ok case
 	case delegationOk:
 	default:
@@ -192,26 +197,34 @@ func (s *SMVDelegatedCallRequest) stepProcessRequest(ctx smachine.ExecutionConte
 }
 
 func (s *SMVDelegatedCallRequest) stepBuildResponse(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	target := s.Meta.Sender
+	var (
+		delegateTo   = s.Meta.Sender.GetValue()
+		callee       = s.Payload.Callee.GetValue()
+		pn           = s.pulseSlot.PulseNumber()
+		callOutgoing = s.Payload.CallOutgoing.GetValue()
+	)
 
-	token := s.authenticationService.GetCallDelegationToken(s.Payload.CallOutgoing, s.Meta.Sender, s.pulseSlot.PulseData().PulseNumber, s.Payload.Callee)
+	token := s.authenticationService.GetCallDelegationToken(callOutgoing, delegateTo, pn, callee)
 
-	response := payload.VDelegatedCallResponse{
+	response := rms.VDelegatedCallResponse{
 		Callee:                 s.Payload.Callee,
 		CallIncoming:           s.Payload.CallIncoming,
 		ResponseDelegationSpec: token,
 	}
 
 	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
-		err := svc.SendTarget(goCtx, &response, target)
+		err := svc.SendTarget(goCtx, &response, delegateTo)
+
 		return func(ctx smachine.AsyncResultContext) {
 			if err != nil {
 				ctx.Log().Error(struct {
-					*log.Msg `txt:"failed to send VDelegatedCallResponse"`
-					Object   string
-					Request  string
-					target   string
-				}{Object: s.Payload.Callee.String(), Request: s.Payload.String(), target: target.String()}, err)
+					*log.Msg   `txt:"failed to send VDelegatedCallResponse"`
+					Object     reference.Global
+					DelegateTo reference.Global
+				}{
+					Object:     callee,
+					DelegateTo: delegateTo,
+				}, err)
 			}
 		}
 	}).WithoutAutoWakeUp().Start()

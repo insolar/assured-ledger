@@ -12,9 +12,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/shareddata"
@@ -31,10 +31,10 @@ func TestVStateRequest_ProcessObjectWithoutState(t *testing.T) {
 		mc              = minimock.NewController(t)
 		pd              = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 		smGlobalRef     = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
-		sharedStateData = smachine.NewUnboundSharedData(&payload.VStateReport{
-			Status:              payload.StateStatusEmpty,
+		sharedStateData = smachine.NewUnboundSharedData(&rms.VStateReport{
+			Status:              rms.StateStatusEmpty,
 			AsOf:                pulse.Unknown,
-			Object:              smGlobalRef,
+			Object:              rms.NewReference(smGlobalRef),
 			OrderedPendingCount: 1,
 			ProvidedContent:     nil,
 		})
@@ -42,9 +42,9 @@ func TestVStateRequest_ProcessObjectWithoutState(t *testing.T) {
 	)
 
 	smVStateRequest := SMVStateRequest{
-		Payload: &payload.VStateRequest{
-			Object:           smGlobalRef,
-			RequestedContent: payload.RequestLatestDirtyState,
+		Payload: &rms.VStateRequest{
+			Object:           rms.NewReference(smGlobalRef),
+			RequestedContent: rms.RequestLatestDirtyState,
 		},
 		reportAccessor: smObjectAccessor,
 	}
@@ -82,11 +82,11 @@ func TestDSMVStateRequest_PresentPulse(t *testing.T) {
 	slotMachine.AddInterfaceDependency(&catalog)
 
 	smStateRequest := SMVStateRequest{
-		Payload: &payload.VStateRequest{
-			Object: objectRef,
+		Payload: &rms.VStateRequest{
+			Object: rms.NewReference(objectRef),
 		},
-		Meta: &payload.Meta{
-			Sender: caller,
+		Meta: &rms.Meta{
+			Sender: rms.NewReference(caller),
 		},
 	}
 
@@ -123,11 +123,11 @@ func TestDSMVStateRequest_PastPulse(t *testing.T) {
 	slotMachine.AddInterfaceDependency(&catalog)
 
 	smStateRequest := SMVStateRequest{
-		Payload: &payload.VStateRequest{
-			Object: objectRef,
+		Payload: &rms.VStateRequest{
+			Object: rms.NewReference(objectRef),
 		},
-		Meta: &payload.Meta{
-			Sender: caller,
+		Meta: &rms.Meta{
+			Sender: rms.NewReference(caller),
 		},
 	}
 

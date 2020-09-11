@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package payload
+package rms
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -128,6 +128,7 @@ func validSelfScopedGlobalWithPulseCheck(global reference.Global, before pulse.N
 	return pn, nil
 }
 
+//nolint:deadcode,unused
 func validSelfScopedGlobalWithPulseBefore(global reference.Global, before pulse.Number, fieldName string) (pulse.Number, error) {
 	return validSelfScopedGlobalWithPulseCheck(global, before, fieldName, timePulseBefore{})
 }
@@ -136,6 +137,7 @@ func validSelfScopedGlobalWithPulseBeforeOrEq(global reference.Global, before pu
 	return validSelfScopedGlobalWithPulseCheck(global, before, fieldName, timePulseBeforeOrEq{})
 }
 
+//nolint:unparam
 func validSelfScopedGlobalWithPulseSpecialOrBefore(global reference.Global, before pulse.Number, fieldName string) (pulse.Number, error) {
 	return validSelfScopedGlobalWithPulseCheck(global, before, fieldName, specialOrTmePulseBefore{})
 }
