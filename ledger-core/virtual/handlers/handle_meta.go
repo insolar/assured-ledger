@@ -11,7 +11,6 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/defaults"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -27,7 +26,6 @@ type FactoryMeta struct {
 }
 
 type skippedMessage struct {
-	messageTypeID uint64
 	messageType   reflect.Type
 	incomingPulse pulse.Number
 	targetPulse   pulse.Number
@@ -48,25 +46,19 @@ func (f FactoryMeta) Process(ctx context.Context, msg insconveyor.DispatchedMess
 	}
 	logCtx, logger := inslogger.WithTraceField(logCtx, traceID)
 
-	payloadBytes := payloadMeta.Payload
-	payloadTypeID, payloadObj, err := rms.Unmarshal(payloadBytes)
-	if err != nil {
-		logger.Warnm(throw.WithSeverity(throw.W(err, "invalid msg"), throw.ViolationSeverity))
-		return pulse.Unknown, nil, nil
-	}
+	payloadObj := payloadMeta.Payload.Get()
 
 	payloadType := reflect.Indirect(reflect.ValueOf(payloadObj)).Type()
 
 	logger.Infom(struct {
 		Message        string
-		PayloadTypeID  uint64
 		PayloadType    reflect.Type
 		Source, Target reference.Holder
 	}{
 		"processing message",
-		payloadTypeID,
 		payloadType,
-		payloadMeta.Sender, payloadMeta.Receiver,
+		payloadMeta.Sender,
+		payloadMeta.Receiver,
 	})
 
 	targetPulse := pr.RightBoundData().PulseNumber
@@ -79,7 +71,6 @@ func (f FactoryMeta) Process(ctx context.Context, msg insconveyor.DispatchedMess
 		mustReject, err := f.AuthService.CheckMessageFromAuthorizedVirtual(logCtx, payloadObj, payloadMeta.Sender, pr)
 		if err != nil {
 			logger.Warn(throw.W(err, "illegitimate msg", skippedMessage{
-				messageTypeID: payloadTypeID,
 				messageType:   payloadType,
 				incomingPulse: payloadMeta.Pulse,
 				targetPulse:   targetPulse,
@@ -90,7 +81,6 @@ func (f FactoryMeta) Process(ctx context.Context, msg insconveyor.DispatchedMess
 
 		if mustReject {
 			logger.Warn(throw.W(err, "rejected msg", skippedMessage{
-				messageTypeID: payloadTypeID,
 				messageType:   payloadType,
 				incomingPulse: payloadMeta.Pulse,
 				targetPulse:   targetPulse,
@@ -101,10 +91,9 @@ func (f FactoryMeta) Process(ctx context.Context, msg insconveyor.DispatchedMess
 	}
 
 	// validate message field invariants
-	if p, ok := payloadObj.(payload.Validatable); ok {
+	if p, ok := payloadObj.(rms.Validatable); ok {
 		if err := p.Validate(targetPulse); err != nil {
 			logger.Warn(throw.W(err, "invalid msg", skippedMessage{
-				messageTypeID: payloadTypeID,
 				messageType:   payloadType,
 				incomingPulse: payloadMeta.Pulse,
 				targetPulse:   targetPulse,
@@ -115,36 +104,35 @@ func (f FactoryMeta) Process(ctx context.Context, msg insconveyor.DispatchedMess
 
 	if pn, sm := func() (pulse.Number, smachine.StateMachine) {
 		switch obj := payloadObj.(type) {
-		case *payload.VCallRequest:
+		case *rms.VCallRequest:
 			return targetPulse, &SMVCallRequest{Meta: payloadMeta, Payload: obj}
-		case *payload.VCallResult:
+		case *rms.VCallResult:
 			return targetPulse, &SMVCallResult{Meta: payloadMeta, Payload: obj}
-		case *payload.VStateRequest:
+		case *rms.VStateRequest:
 			return obj.AsOf, &SMVStateRequest{Meta: payloadMeta, Payload: obj}
-		case *payload.VStateReport:
+		case *rms.VStateReport:
 			return targetPulse, &SMVStateReport{Meta: payloadMeta, Payload: obj}
-		case *payload.VDelegatedRequestFinished:
+		case *rms.VDelegatedRequestFinished:
 			return targetPulse, &SMVDelegatedRequestFinished{Meta: payloadMeta, Payload: obj}
-		case *payload.VDelegatedCallRequest:
+		case *rms.VDelegatedCallRequest:
 			return targetPulse, &SMVDelegatedCallRequest{Meta: payloadMeta, Payload: obj}
-		case *payload.VDelegatedCallResponse:
+		case *rms.VDelegatedCallResponse:
 			return targetPulse, &SMVDelegatedCallResponse{Meta: payloadMeta, Payload: obj}
-		case *payload.VFindCallRequest:
+		case *rms.VFindCallRequest:
 			return obj.LookAt, &SMVFindCallRequest{Meta: payloadMeta, Payload: obj}
-		case *payload.VFindCallResponse:
+		case *rms.VFindCallResponse:
 			return targetPulse, &SMVFindCallResponse{Meta: payloadMeta, Payload: obj}
 		case *rms.VObjectTranscriptReport:
 			return targetPulse, &SMVObjectTranscriptReport{Meta: payloadMeta, Payload: obj}
-		case *payload.VCachedMemoryRequest:
+		case *rms.VCachedMemoryRequest:
 			return targetPulse, &SMVCachedMemoryRequest{Meta: payloadMeta, Payload: obj}
-		case *payload.VObjectValidationReport:
+		case *rms.VObjectValidationReport:
 			return obj.In, &SMVObjectValidationReport{Meta: payloadMeta, Payload: obj}
 		default:
 			logger.Warnm(struct {
 				Msg             string
-				PayloadTypeID   uint64
 				PayloadTypeName string
-			}{"no handler for message type", payloadTypeID, payloadType.String()})
+			}{"no handler for message type", payloadType.String()})
 			return 0, nil
 		}
 	}(); sm != nil {

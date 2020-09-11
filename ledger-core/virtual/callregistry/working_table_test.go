@@ -11,8 +11,8 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 )
@@ -53,9 +53,8 @@ func TestWorkingTable(t *testing.T) {
 	assert.False(t, wt.SetActive(isolation.CallTolerable, ref))
 	assert.False(t, wt.SetActive(isolation.CallTolerable, gen.UniqueGlobalRef()))
 
-	res := &payload.VCallResult{
-		Callee: gen.UniqueGlobalRef(),
-	}
+	res := &rms.VCallResult{}
+	res.Callee.Set(gen.UniqueGlobalRef())
 
 	assert.True(t, wt.Finish(isolation.CallTolerable, ref, res))
 	assert.False(t, wt.Finish(isolation.CallTolerable, ref, res))

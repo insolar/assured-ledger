@@ -9,10 +9,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/application/builtin/contract/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/convlog"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
-	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
@@ -36,18 +35,17 @@ func BenchmarkVCallRequestGetMethod(b *testing.B) {
 		Balance: 1234567,
 	})
 
-	content := &payload.VStateReport_ProvidedContentBody{
-		LatestDirtyState: &payload.ObjectState{
-			Reference: reference.Local{},
-			Class:     class,
-			State:     walletMemory,
+	content := &rms.VStateReport_ProvidedContentBody{
+		LatestDirtyState: &rms.ObjectState{
+			Class: rms.NewReference(class),
+			State: rms.NewBytes(walletMemory),
 		},
 	}
 
-	report := &payload.VStateReport{
+	report := &rms.VStateReport{
 		AsOf:            prevPulse.GetPulseNumber(),
-		Status:          payload.StateStatusReady,
-		Object:          object,
+		Status:          rms.StateStatusReady,
+		Object:          rms.NewReference(object),
 		ProvidedContent: content,
 	}
 
@@ -58,20 +56,20 @@ func BenchmarkVCallRequestGetMethod(b *testing.B) {
 	resultSignal := make(synckit.ClosableSignalChannel, 1)
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, b, server)
-	typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool {
+	typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
 		resultSignal <- struct{}{}
 		return false
 	})
 
 	pl := *utils.GenerateVCallRequestMethod(server)
-	pl.CallFlags = payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty)
-	pl.Callee = object
+	pl.CallFlags = rms.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty)
+	pl.Callee.Set(object)
 	pl.CallSiteMethod = "GetBalance"
 
 	b.StopTimer()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		pl.CallOutgoing = server.BuildRandomOutgoingWithPulse()
+		pl.CallOutgoing.Set(server.BuildRandomOutgoingWithPulse())
 		msg := server.WrapPayload(&pl).Finalize()
 
 		b.StartTimer()
@@ -97,18 +95,17 @@ func BenchmarkVCallRequestAcceptMethod(b *testing.B) {
 		Balance: 1234567,
 	})
 
-	content := &payload.VStateReport_ProvidedContentBody{
-		LatestDirtyState: &payload.ObjectState{
-			Reference: reference.Local{},
-			Class:     class,
-			State:     walletMemory,
+	content := &rms.VStateReport_ProvidedContentBody{
+		LatestDirtyState: &rms.ObjectState{
+			Class: rms.NewReference(class),
+			State: rms.NewBytes(walletMemory),
 		},
 	}
 
-	report := &payload.VStateReport{
+	report := &rms.VStateReport{
 		AsOf:            prevPulse.GetPulseNumber(),
-		Status:          payload.StateStatusReady,
-		Object:          object,
+		Status:          rms.StateStatusReady,
+		Object:          rms.NewReference(object),
 		ProvidedContent: content,
 	}
 
@@ -119,19 +116,19 @@ func BenchmarkVCallRequestAcceptMethod(b *testing.B) {
 	resultSignal := make(synckit.ClosableSignalChannel, 1)
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, b, server)
-	typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool {
+	typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
 		resultSignal <- struct{}{}
 		return false
 	})
 
 	pl := *utils.GenerateVCallRequestMethod(server)
-	pl.Callee = object
+	pl.Callee.Set(object)
 	pl.CallSiteMethod = "Accept"
 
 	b.StopTimer()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		pl.CallOutgoing = server.BuildRandomOutgoingWithPulse()
+		pl.CallOutgoing.Set(server.BuildRandomOutgoingWithPulse())
 		msg := server.WrapPayload(&pl).Finalize()
 
 		b.StartTimer()
@@ -149,15 +146,15 @@ func BenchmarkVCallRequestConstructor(b *testing.B) {
 	resultSignal := make(synckit.ClosableSignalChannel, 1)
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, b, server)
-	typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool {
+	typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
 		resultSignal <- struct{}{}
 		return false
 	})
 
 	pl := *utils.GenerateVCallRequestConstructor(server)
-	pl.Callee = server.RandomGlobalWithPulse()
+	pl.Callee.Set(server.RandomGlobalWithPulse())
 	pl.CallSiteMethod = "New"
-	pl.CallOutgoing = server.BuildRandomOutgoingWithPulse()
+	pl.CallOutgoing.Set(server.BuildRandomOutgoingWithPulse())
 
 	b.ReportAllocs()
 	b.StopTimer()
@@ -168,7 +165,7 @@ func BenchmarkVCallRequestConstructor(b *testing.B) {
 		insconveyor.DisableLogStepInfoMarshaller = true
 		b.StopTimer()
 		for i := 0; i < b.N; i++ {
-			pl.CallOutgoing = server.BuildRandomOutgoingWithPulse()
+			pl.CallOutgoing.Set(server.BuildRandomOutgoingWithPulse())
 			msg := server.WrapPayload(&pl).Finalize()
 
 			b.StartTimer()
@@ -183,7 +180,7 @@ func BenchmarkVCallRequestConstructor(b *testing.B) {
 		insconveyor.DisableLogStepInfoMarshaller = false
 		b.StopTimer()
 		for i := 0; i < b.N; i++ {
-			pl.CallOutgoing = server.BuildRandomOutgoingWithPulse()
+			pl.CallOutgoing.Set(server.BuildRandomOutgoingWithPulse())
 			msg := server.WrapPayload(&pl).Finalize()
 
 			b.StartTimer()
@@ -211,18 +208,17 @@ func BenchmarkTestAPIGetBalance(b *testing.B) {
 		Balance: 1234567,
 	})
 
-	content := &payload.VStateReport_ProvidedContentBody{
-		LatestDirtyState: &payload.ObjectState{
-			Reference: reference.Local{},
-			Class:     class,
-			State:     walletMemory,
+	content := &rms.VStateReport_ProvidedContentBody{
+		LatestDirtyState: &rms.ObjectState{
+			Class: rms.NewReference(class),
+			State: rms.NewBytes(walletMemory),
 		},
 	}
 
-	report := &payload.VStateReport{
+	report := &rms.VStateReport{
 		AsOf:            prevPulse.GetPulseNumber(),
-		Status:          payload.StateStatusReady,
-		Object:          object,
+		Status:          rms.StateStatusReady,
+		Object:          rms.NewReference(object),
 		ProvidedContent: content,
 	}
 
@@ -253,18 +249,17 @@ func BenchmarkTestAPIGetBalanceParallel(b *testing.B) {
 		Balance: 1234567,
 	})
 
-	content := &payload.VStateReport_ProvidedContentBody{
-		LatestDirtyState: &payload.ObjectState{
-			Reference: reference.Local{},
-			Class:     class,
-			State:     walletMemory,
+	content := &rms.VStateReport_ProvidedContentBody{
+		LatestDirtyState: &rms.ObjectState{
+			Class: rms.NewReference(class),
+			State: rms.NewBytes(walletMemory),
 		},
 	}
 
-	report := &payload.VStateReport{
+	report := &rms.VStateReport{
 		AsOf:            prevPulse.GetPulseNumber(),
-		Status:          payload.StateStatusReady,
-		Object:          object,
+		Status:          rms.StateStatusReady,
+		Object:          rms.NewReference(object),
 		ProvidedContent: content,
 	}
 

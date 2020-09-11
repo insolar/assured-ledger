@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
@@ -31,12 +31,12 @@ func TestInitViaCTMethod(t *testing.T) {
 	defer server.Stop()
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-	typedChecker.VStateRequest.Set(func(request *payload.VStateRequest) bool {
-		for _, flag := range []payload.StateRequestContentFlags{
-			payload.RequestLatestValidatedState,
-			payload.RequestLatestDirtyState,
-			payload.RequestOrderedQueue,
-			payload.RequestUnorderedQueue,
+	typedChecker.VStateRequest.Set(func(request *rms.VStateRequest) bool {
+		for _, flag := range []rms.StateRequestContentFlags{
+			rms.RequestLatestValidatedState,
+			rms.RequestLatestDirtyState,
+			rms.RequestOrderedQueue,
+			rms.RequestUnorderedQueue,
 		} {
 			assert.True(t, request.RequestedContent.Contains(flag))
 		}
