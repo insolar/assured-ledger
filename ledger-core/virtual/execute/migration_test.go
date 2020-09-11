@@ -17,11 +17,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
@@ -41,28 +41,28 @@ func TestSMExecute_MigrationDuringSendOutgoing(t *testing.T) {
 		pulseSlot  = conveyor.NewPresentPulseSlot(nil, pd.AsRange())
 		smObjectID = gen.UniqueLocalRefWithPulse(pd.PulseNumber)
 
-		callFlags = payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty)
+		callFlags = rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty)
 	)
 	// defer mc.Finish()
 
 	jetCoordinatorMock := affinity.NewHelperMock(t).
 		MeMock.Return(gen.UniqueGlobalRef())
 
-	pl := &payload.VCallRequest{
-		CallType:       payload.CallTypeConstructor,
-		Callee:         gen.UniqueGlobalRefWithPulse(pd.PulseNumber),
-		Caller:         gen.UniqueGlobalRefWithPulse(pd.PulseNumber),
+	pl := &rms.VCallRequest{
+		CallType:       rms.CallTypeConstructor,
+		Callee:         rms.NewReference(gen.UniqueGlobalRefWithPulse(pd.PulseNumber)),
+		Caller:         rms.NewReference(gen.UniqueGlobalRefWithPulse(pd.PulseNumber)),
 		CallFlags:      callFlags,
 		CallSiteMethod: "New",
-		CallOutgoing:   reference.New(gen.UniqueLocalRef(), smObjectID),
-		Arguments:      insolar.MustSerialize([]interface{}{}),
+		CallOutgoing:   rms.NewReference(reference.New(gen.UniqueLocalRef(), smObjectID)),
+		Arguments:      rms.NewBytes(insolar.MustSerialize([]interface{}{})),
 	}
 
-	builder := execution.NewRPCBuilder(pl.CallOutgoing, pl.Callee)
+	builder := execution.NewRPCBuilder(pl.CallOutgoing.GetValue(), pl.Callee.GetValue())
 	callMethod := builder.CallMethod(
 		gen.UniqueGlobalRefWithPulse(pd.PulseNumber),
 		gen.UniqueGlobalRefWithPulse(pd.PulseNumber),
-		"Method", pl.Arguments,
+		"Method", pl.Arguments.GetBytes(),
 	)
 
 	smExecute := SMExecute{

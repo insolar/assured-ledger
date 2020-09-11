@@ -16,8 +16,8 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	commonTestUtils "github.com/insolar/assured-ledger/ledger-core/testutils"
@@ -67,10 +67,10 @@ func TestVirtual_VCachedMemoryRequestHandler(t *testing.T) {
 
 			cases.precondition(suite, ctx, t)
 
-			syncChan := make(chan payload.LocalReference, 1)
+			syncChan := make(chan rms.Reference, 1)
 			defer close(syncChan)
 
-			suite.typedChecker.VStateReport.Set(func(rep *payload.VStateReport) bool {
+			suite.typedChecker.VStateReport.Set(func(rep *rms.VStateReport) bool {
 				require.NotEmpty(t, rep.ProvidedContent.LatestDirtyState.Reference)
 				syncChan <- rep.ProvidedContent.LatestDirtyState.Reference
 				return false // no resend msg
@@ -79,13 +79,13 @@ func TestVirtual_VCachedMemoryRequestHandler(t *testing.T) {
 			suite.server.IncrementPulse(ctx)
 			commonTestUtils.WaitSignalsTimed(t, 10*time.Second, suite.typedChecker.VStateReport.Wait(ctx, 1))
 
-			suite.typedChecker.VCachedMemoryResponse.Set(func(resp *payload.VCachedMemoryResponse) bool {
-				require.Equal(t, suite.object, resp.Object)
-				require.Equal(t, []byte(newState), resp.Memory)
+			suite.typedChecker.VCachedMemoryResponse.Set(func(resp *rms.VCachedMemoryResponse) bool {
+				assert.Equal(t, suite.object, resp.Object.GetValue())
+				assert.Equal(t, []byte(newState), resp.Memory.GetBytes())
 				return false
 			})
 
-			var stateRef payload.LocalReference
+			var stateRef rms.Reference
 
 			select {
 			case stateRef = <-syncChan:
@@ -95,8 +95,8 @@ func TestVirtual_VCachedMemoryRequestHandler(t *testing.T) {
 
 			executeDone := suite.server.Journal.WaitStopOf(&handlers.SMVCachedMemoryRequest{}, 1)
 			{
-				cachReq := &payload.VCachedMemoryRequest{
-					Object:  suite.object,
+				cachReq := &rms.VCachedMemoryRequest{
+					Object:  rms.NewReference(suite.object),
 					StateID: stateRef,
 				}
 				suite.server.SendPayload(ctx, cachReq)
@@ -116,31 +116,29 @@ func methodPrecondition(s *memoryCacheTest, ctx context.Context, t *testing.T) {
 
 	s.server.IncrementPulse(ctx)
 
-	Method_PrepareObject(ctx, s.server, payload.StateStatusReady, s.object, prevPulse)
+	Method_PrepareObject(ctx, s.server, rms.StateStatusReady, s.object, prevPulse)
 
 	pl := utils.GenerateVCallRequestMethod(s.server)
-	pl.Callee = s.object
+	pl.Callee.Set(s.object)
 	pl.CallSiteMethod = "ordered"
-	callOutgoing := pl.CallOutgoing
 
 	newObjDescriptor := descriptor.NewObject(reference.Global{}, reference.Local{}, s.server.RandomGlobalWithPulse(), []byte("blabla"), false)
 	result := requestresult.New([]byte("result"), s.object)
 	result.SetAmend(newObjDescriptor, []byte(newState))
 
-	key := callOutgoing
-	s.runnerMock.AddExecutionMock(key).
-		AddStart(nil, &execution.Update{
-			Type:   execution.Done,
-			Result: result,
-		})
+	key := pl.CallOutgoing.GetValue()
+	s.runnerMock.AddExecutionMock(key).AddStart(nil, &execution.Update{
+		Type:   execution.Done,
+		Result: result,
+	})
 	s.runnerMock.AddExecutionClassify(key, contract.MethodIsolation{
 		Interference: pl.CallFlags.GetInterference(),
 		State:        pl.CallFlags.GetState(),
 	}, nil)
 
-	s.typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool {
-		assert.Equal(t, s.object, result.Callee)
-		assert.Equal(t, []byte("result"), result.ReturnArguments)
+	s.typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
+		assert.Equal(t, s.object, result.Callee.GetValue())
+		assert.Equal(t, []byte("result"), result.ReturnArguments.GetBytes())
 		return false
 	})
 
@@ -152,27 +150,26 @@ func methodPrecondition(s *memoryCacheTest, ctx context.Context, t *testing.T) {
 
 func constructorPrecondition(s *memoryCacheTest, ctx context.Context, t *testing.T) {
 	pl := utils.GenerateVCallRequestConstructor(s.server)
-	pl.Caller = s.class
-	callOutgoing := pl.CallOutgoing
-	s.object = reference.NewSelf(callOutgoing.GetLocal())
+	pl.Caller.Set(s.class)
+
+	s.object = reference.NewSelf(pl.CallOutgoing.GetValue().GetLocal())
 
 	result := requestresult.New([]byte("result"), s.object)
 	result.SetActivate(reference.Global{}, s.class, []byte(newState))
 
-	key := callOutgoing
-	s.runnerMock.AddExecutionMock(key).
-		AddStart(nil, &execution.Update{
-			Type:   execution.Done,
-			Result: result,
-		})
+	key := pl.CallOutgoing.GetValue()
+	s.runnerMock.AddExecutionMock(key).AddStart(nil, &execution.Update{
+		Type:   execution.Done,
+		Result: result,
+	})
 	s.runnerMock.AddExecutionClassify(key, contract.MethodIsolation{
 		Interference: pl.CallFlags.GetInterference(),
 		State:        pl.CallFlags.GetState(),
 	}, nil)
 
-	s.typedChecker.VCallResult.Set(func(result *payload.VCallResult) bool {
-		assert.Equal(t, s.object, result.Callee)
-		assert.Equal(t, []byte("result"), result.ReturnArguments)
+	s.typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
+		assert.Equal(t, s.object, result.Callee.GetValue())
+		assert.Equal(t, []byte("result"), result.ReturnArguments.GetBytes())
 		return false
 	})
 
@@ -199,9 +196,11 @@ func (s *memoryCacheTest) initServer(t *testing.T) context.Context {
 }
 
 func pendingPrecondition(s *memoryCacheTest, ctx context.Context, t *testing.T) {
-	prevPulse := s.server.GetPulse().PulseNumber
-	outgoing := s.server.BuildRandomOutgoingWithPulse()
-	incoming := reference.NewRecordOf(s.object, outgoing.GetLocal())
+	var (
+		prevPulse = s.server.GetPulse().PulseNumber
+		outgoing  = s.server.BuildRandomOutgoingWithPulse()
+		incoming  = reference.NewRecordOf(s.object, outgoing.GetLocal())
+	)
 
 	s.server.IncrementPulse(ctx)
 
@@ -213,16 +212,16 @@ func pendingPrecondition(s *memoryCacheTest, ctx context.Context, t *testing.T) 
 	s.server.SendPayload(ctx, report)
 	commonTestUtils.WaitSignalsTimed(t, 10*time.Second, wait)
 
-	flags := payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty)
+	flags := rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty)
 
 	s.typedChecker.VDelegatedCallResponse.SetResend(false)
 
 	{ // delegation request
-		delegationReq := &payload.VDelegatedCallRequest{
-			Callee:       s.object,
+		delegationReq := &rms.VDelegatedCallRequest{
+			Callee:       rms.NewReference(s.object),
 			CallFlags:    flags,
-			CallOutgoing: outgoing,
-			CallIncoming: incoming,
+			CallOutgoing: rms.NewReference(outgoing),
+			CallIncoming: rms.NewReference(incoming),
 		}
 		await := s.server.Journal.WaitStopOf(&handlers.SMVDelegatedCallRequest{}, 1)
 		s.server.SendPayload(ctx, delegationReq)
@@ -230,17 +229,17 @@ func pendingPrecondition(s *memoryCacheTest, ctx context.Context, t *testing.T) 
 		commonTestUtils.WaitSignalsTimed(t, 10*time.Second, s.server.Journal.WaitAllAsyncCallsDone())
 	}
 	{ // send delegation request finished with new state
-		pl := payload.VDelegatedRequestFinished{
-			CallType:     payload.CallTypeMethod,
-			Callee:       s.object,
-			CallOutgoing: outgoing,
-			CallIncoming: incoming,
+		pl := rms.VDelegatedRequestFinished{
+			CallType:     rms.CallTypeMethod,
+			Callee:       rms.NewReference(s.object),
+			CallOutgoing: rms.NewReference(outgoing),
+			CallIncoming: rms.NewReference(incoming),
 			CallFlags:    flags,
-			LatestState: &payload.ObjectState{
-				Reference:     s.server.RandomLocalWithPulse(),
-				Class:         s.class,
-				State:         []byte(newState),
-				PreviousState: []byte("initial state"),
+			LatestState: &rms.ObjectState{
+				Reference:     rms.NewReferenceLocal(s.server.RandomLocalWithPulse()),
+				Class:         rms.NewReference(s.class),
+				State:         rms.NewBytes([]byte(newState)),
+				PreviousState: rms.NewBytes([]byte("initial state")),
 			},
 		}
 		await := s.server.Journal.WaitStopOf(&handlers.SMVDelegatedRequestFinished{}, 1)
@@ -248,6 +247,6 @@ func pendingPrecondition(s *memoryCacheTest, ctx context.Context, t *testing.T) 
 		commonTestUtils.WaitSignalsTimed(t, 10*time.Second, await)
 		commonTestUtils.WaitSignalsTimed(t, 10*time.Second, s.server.Journal.WaitAllAsyncCallsDone())
 
-		require.Equal(t, 1, s.typedChecker.VDelegatedCallResponse.Count())
+		assert.Equal(t, 1, s.typedChecker.VDelegatedCallResponse.Count())
 	}
 }
