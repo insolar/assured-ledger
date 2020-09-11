@@ -131,7 +131,6 @@ func runBench(name string, workerFunc func(ctx context.Context, iterator int) er
 	startBench := time.Now()
 	counterStopped := make(chan struct{})
 
-	// I don't use ticker, because with a lot of goroutines it cannot handle the case
 	go func() {
 		reportTicker := time.NewTicker(time.Second)
 		defer close(counterStopped)
@@ -187,8 +186,6 @@ func runBench(name string, workerFunc func(ctx context.Context, iterator int) er
 	}
 
 	finished := time.Since(startBench)
-
-	//<-counterStopped
 
 	fmt.Printf("Run took %.02f seconds\n", finished.Seconds())
 
