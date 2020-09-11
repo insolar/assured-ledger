@@ -48,7 +48,7 @@ func TestVFindCallRequest(t *testing.T) {
 	sender := gen.UniqueGlobalRef()
 	smVFindCallRequest := SMVFindCallRequest{
 		Meta: &rms.Meta{
-			Sender: sender,
+			Sender: rms.NewReference(sender),
 		},
 		Payload:   &vFindCallRequest,
 		pulseSlot: &pulseSlot,
@@ -127,7 +127,7 @@ func TestVFindCallRequest(t *testing.T) {
 
 			smVFindCallRequest := SMVFindCallRequest{
 				Meta: &rms.Meta{
-					Sender: sender,
+					Sender: rms.NewReference(sender),
 				},
 				Payload:   &vFindCallRequest,
 				pulseSlot: &pulseSlot,
@@ -152,7 +152,7 @@ func TestVFindCallRequest(t *testing.T) {
 
 			smVFindCallRequest := SMVFindCallRequest{
 				Meta: &rms.Meta{
-					Sender: sender,
+					Sender: rms.NewReference(sender),
 				},
 				Payload:   &vFindCallRequest,
 				pulseSlot: &pulseSlot,
