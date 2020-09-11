@@ -81,7 +81,6 @@ message VCallRequest {
     Reference ExpenseCenter = 31;
     Reference ResourceCenter = 32;
 
-    Binary PayloadHash = 33;
     CallDelegationToken DelegationSpec = 34;
     Binary ProducerSignature = 36;
     Binary RegistrarSignature = 37;
@@ -89,15 +88,12 @@ message VCallRequest {
 
     int32 CallRequestFlags = 40 [(gogoproto.casttype) = "CallRequestFlags"];
     Reference KnownCalleeIncoming = 41;
-    Binary EntryHeadHash = 42;
     Reference CallOutgoing = 43;
     uint32 TXExpiry = 44 [(gogoproto.casttype) = "PulseNumber"];
 
     Binary SecurityContext = 45;
     Binary TXContext = 46;
     Binary Arguments = 47;
-    Binary ExtensionHashes = 48;
-    Binary Extensions = 49;
 }
 
 message VCallResult {
@@ -108,11 +104,10 @@ message VCallResult {
     Reference Caller = 23;
     Reference Callee = 24;
 
-    Binary ResultFlags = 25;
+    uint32 ResultFlags = 25;
     Reference CallOutgoing = 26;
     Reference CallIncoming = 27;
 
-    Binary PayloadHash = 28;
     CallDelegationToken DelegationSpec = 29;
 
     Reference CallIncomingResult = 31;
@@ -120,12 +115,9 @@ message VCallResult {
     Binary ProducerSignature = 32;
     Binary RegistrarSignature = 33;
     CallDelegationToken RegistrarDelegationSpec = 34;
-    Binary EntryHeadHash = 36;
 
     Binary SecurityContext = 37;
     Binary ReturnArguments = 38;
-    Binary ExtensionHashes = 39;
-    Binary Extensions = 40;
 }
 
 message VStateRequest {
@@ -135,7 +127,6 @@ message VStateRequest {
 
     int32 RequestedContent = 22 [(gogoproto.casttype) = "StateRequestContentFlags"];
     Binary RequestedContentLimit = 23;
-    Binary SupportedExtensions = 24;
 
     CallDelegationToken DelegationSpec = 25;
     Binary ProducerSignature = 27;
@@ -204,14 +195,13 @@ message VDelegatedRequestFinished {
     uint32 CallFlags = 21 [(gogoproto.casttype) = "CallFlags"];
     Reference Callee = 22;
 
-    Binary ResultFlags = 23;
+    uint32 ResultFlags = 23;
 
     Reference CallOutgoing = 24;
     Reference CallIncoming = 25;
 
     CallDelegationToken DelegationSpec = 26;
 
-    Binary EntryHeadHash = 28;
     ObjectState LatestState = 29 [(gogoproto.nullable) = true];
 }
 
@@ -221,7 +211,6 @@ message VDelegatedCallRequest {
     Reference Callee = 20;
     uint32 CallFlags = 21 [(gogoproto.casttype) = "CallFlags"];
     Reference CallOutgoing = 22;
-    Reference RecordHead = 23;
     Reference CallIncoming = 24;
     CallDelegationToken DelegationSpec = 25;
 }
@@ -306,25 +295,25 @@ message VObjectTranscriptReport {
     Reference Object = 1801;
 
     message TranscriptEntryIncomingRequest {
-        option (insproto.id) = 0;
+        option (insproto.id) = 101501;
 
         Reference ObjectMemory = 1800;
         Reference Incoming = 1801;
         bytes Request = 1802; // fixme: waiting for messages to move to RMS package
     }
     message TranscriptEntryOutgoingRequest {
-        option (insproto.id) = 0;
+        option (insproto.id) = 101502;
 
         Reference Outgoing = 1800;
     }
     message TranscriptEntryOutgoingResult {
-        option (insproto.id) = 0;
+        option (insproto.id) = 101503;
 
         Reference OutgoingResult = 1800;
         bytes CallResult = 1801; // fixme: waiting for messages to move to RMS package
     }
     message TranscriptEntryIncomingResult {
-        option (insproto.id) = 0;
+        option (insproto.id) = 101504;
 
         Reference IncomingResult = 1800;
         Reference ObjectState = 1801;
