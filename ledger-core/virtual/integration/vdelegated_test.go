@@ -46,8 +46,8 @@ func TestVirtual_VDelegatedCallRequest(t *testing.T) {
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	typedChecker.VDelegatedCallResponse.Set(func(pl *rms.VDelegatedCallResponse) bool {
 		require.NotEmpty(t, pl.ResponseDelegationSpec)
-		require.Equal(t, objectRef, pl.ResponseDelegationSpec.Callee)
-		require.Equal(t, sender, pl.ResponseDelegationSpec.DelegateTo)
+		assert.Equal(t, objectRef, pl.ResponseDelegationSpec.Callee.GetValue())
+		assert.Equal(t, sender, pl.ResponseDelegationSpec.DelegateTo.GetValue())
 
 		return false // no resend msg
 	})

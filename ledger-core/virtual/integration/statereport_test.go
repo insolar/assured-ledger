@@ -108,10 +108,10 @@ func TestVirtual_VStateReport_StateAlreadyExists(t *testing.T) {
 				typedChecker.VStateReport.Set(func(report *rms.VStateReport) bool {
 					assert.NotNil(t, report.ProvidedContent)
 					assert.Equal(t, rms.StateStatusReady, report.Status)
-					assert.Equal(t, initRef, report.ProvidedContent.LatestDirtyState.Reference)
-					assert.Equal(t, initRef, report.ProvidedContent.LatestValidatedState.Reference)
-					assert.Equal(t, initState, report.ProvidedContent.LatestDirtyState.State)
-					assert.Equal(t, initState, report.ProvidedContent.LatestValidatedState.State)
+					assert.Equal(t, initRef, report.ProvidedContent.LatestDirtyState.Reference.GetValueWithoutBase())
+					assert.Equal(t, initRef, report.ProvidedContent.LatestValidatedState.Reference.GetValueWithoutBase())
+					assert.Equal(t, initState, report.ProvidedContent.LatestDirtyState.State.GetBytes())
+					assert.Equal(t, initState, report.ProvidedContent.LatestValidatedState.State.GetBytes())
 					return false
 				})
 			}

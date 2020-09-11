@@ -47,7 +47,7 @@ func (m *AsyncCallRequesterMock) SetWithoutAutoWakeUp() *AsyncCallRequesterMock 
 
 type SendRoleFn func(
 	_ context.Context,
-	msg rms.Marshaler,
+	msg rms.GoGoSerializable,
 	role affinity.DynamicRole,
 	object reference.Global,
 	pn pulse.Number,
@@ -57,7 +57,7 @@ type SendRoleFn func(
 type AsyncCallRequesterSendRoleMock struct {
 	parentMock *ServiceMockWrapper
 
-	checkMessageFn     func(msg rms.Marshaler)
+	checkMessageFn     func(msg rms.GoGoSerializable)
 	checkRoleFn        func(role affinity.DynamicRole)
 	checkObjectFn      func(object reference.Global)
 	checkPulseNumberFn func(pn pulse.Number)
@@ -70,7 +70,7 @@ func NewAsyncCallRequesterSendRoleMock(parent *ServiceMockWrapper) *AsyncCallReq
 	return &mock
 }
 
-func (m *AsyncCallRequesterSendRoleMock) SetCheckMessage(fn func(rms.Marshaler)) *AsyncCallRequesterSendRoleMock {
+func (m *AsyncCallRequesterSendRoleMock) SetCheckMessage(fn func(rms.GoGoSerializable)) *AsyncCallRequesterSendRoleMock {
 	m.prepare()
 	m.checkMessageFn = fn
 	return m
@@ -98,7 +98,7 @@ func (m *AsyncCallRequesterSendRoleMock) SetCheckPulseNumber(fn func(pulse.Numbe
 
 func (m *AsyncCallRequesterSendRoleMock) check(
 	_ context.Context,
-	msg rms.Marshaler,
+	msg rms.GoGoSerializable,
 	role affinity.DynamicRole,
 	object reference.Global,
 	pn pulse.Number,
@@ -133,7 +133,7 @@ func (m *AsyncCallRequesterSendRoleMock) prepare() {
 
 type SendTargetFn func(
 	_ context.Context,
-	msg rms.Marshaler,
+	msg rms.GoGoSerializable,
 	target reference.Global,
 	_ ...messageSender.SendOption,
 ) error
@@ -141,7 +141,7 @@ type SendTargetFn func(
 type AsyncCallRequesterSendTargetMock struct {
 	parentMock *ServiceMockWrapper
 
-	checkMessageFn func(msg rms.Marshaler)
+	checkMessageFn func(msg rms.GoGoSerializable)
 	checkTargetFn  func(target reference.Global)
 }
 
@@ -152,7 +152,7 @@ func NewAsyncCallRequesterSendTargetMock(parent *ServiceMockWrapper) *AsyncCallR
 	return &mock
 }
 
-func (m *AsyncCallRequesterSendTargetMock) SetCheckMessage(fn func(rms.Marshaler)) *AsyncCallRequesterSendTargetMock {
+func (m *AsyncCallRequesterSendTargetMock) SetCheckMessage(fn func(rms.GoGoSerializable)) *AsyncCallRequesterSendTargetMock {
 	m.prepare()
 	m.checkMessageFn = fn
 	return m
@@ -166,7 +166,7 @@ func (m *AsyncCallRequesterSendTargetMock) SetCheckTarget(fn func(reference.Glob
 }
 func (m *AsyncCallRequesterSendTargetMock) check(
 	_ context.Context,
-	msg rms.Marshaler,
+	msg rms.GoGoSerializable,
 	target reference.Global,
 	_ ...messageSender.SendOption,
 ) error {

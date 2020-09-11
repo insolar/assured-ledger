@@ -67,7 +67,7 @@ func (s service) checkDelegationToken(expectedVE reference.Global, token rms.Cal
 		err := throw.New("token DelegateTo and sender are different", details)
 		return throw.WithSeverity(err, throw.RemoteBreachSeverity)
 
-	case token.Approver.GetValue() != sender:
+	case token.Approver.GetValue() == sender:
 		details := struct{ Sender reference.Global }{sender}
 		err := throw.New("sender cannot be approver of the token", details)
 		return throw.WithSeverity(err, throw.FraudSeverity)

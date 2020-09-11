@@ -373,7 +373,7 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 	slotMachine.PrepareMockedMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 
-	slotMachine.MessageSender.SendTarget.Set(func(_ context.Context, msg rms.Marshaler, target reference.Global, _ ...messagesender.SendOption) error {
+	slotMachine.MessageSender.SendTarget.Set(func(_ context.Context, msg rms.GoGoSerializable, target reference.Global, _ ...messagesender.SendOption) error {
 		res := msg.(*rms.VCallResult)
 		contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments.GetBytes())
 		require.NoError(t, sysErr)

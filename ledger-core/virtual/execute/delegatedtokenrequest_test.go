@@ -94,7 +94,7 @@ func TestVDelegatedCallRequest(t *testing.T) {
 	}
 
 	slotMachine.MessageSender.SendRole.Set(
-		func(_ context.Context, msg rms.Marshaler, role affinity.DynamicRole, object reference.Global, pn pulse.Number, _ ...messageSender.SendOption) error {
+		func(_ context.Context, msg rms.GoGoSerializable, role affinity.DynamicRole, object reference.Global, pn pulse.Number, _ ...messageSender.SendOption) error {
 			res, ok := msg.(*rms.VDelegatedCallRequest)
 			require.True(t, ok)
 			require.NotNil(t, res)
@@ -142,7 +142,7 @@ func TestVDelegatedCallRequest(t *testing.T) {
 		slotMachine.RunTil(smWrapper.AfterStep(smExecute.stepAfterTokenGet.Transition))
 
 		require.NotNil(t, smExecute.delegationTokenSpec)
-		require.Equal(t, outgoing, smExecute.delegationTokenSpec.Outgoing)
+		require.Equal(t, outgoing, smExecute.delegationTokenSpec.Outgoing.GetValue())
 	}
 
 	{

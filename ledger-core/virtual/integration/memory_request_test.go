@@ -80,8 +80,8 @@ func TestVirtual_VCachedMemoryRequestHandler(t *testing.T) {
 			commonTestUtils.WaitSignalsTimed(t, 10*time.Second, suite.typedChecker.VStateReport.Wait(ctx, 1))
 
 			suite.typedChecker.VCachedMemoryResponse.Set(func(resp *rms.VCachedMemoryResponse) bool {
-				require.Equal(t, suite.object, resp.Object)
-				require.Equal(t, []byte(newState), resp.Memory)
+				assert.Equal(t, suite.object, resp.Object.GetValue())
+				assert.Equal(t, []byte(newState), resp.Memory.GetBytes())
 				return false
 			})
 
@@ -121,26 +121,24 @@ func methodPrecondition(s *memoryCacheTest, ctx context.Context, t *testing.T) {
 	pl := utils.GenerateVCallRequestMethod(s.server)
 	pl.Callee.Set(s.object)
 	pl.CallSiteMethod = "ordered"
-	callOutgoing := pl.CallOutgoing
 
 	newObjDescriptor := descriptor.NewObject(reference.Global{}, reference.Local{}, s.server.RandomGlobalWithPulse(), []byte("blabla"), false)
 	result := requestresult.New([]byte("result"), s.object)
 	result.SetAmend(newObjDescriptor, []byte(newState))
 
-	key := callOutgoing
-	s.runnerMock.AddExecutionMock(key).
-		AddStart(nil, &execution.Update{
-			Type:   execution.Done,
-			Result: result,
-		})
+	key := pl.CallOutgoing.GetValue()
+	s.runnerMock.AddExecutionMock(key).AddStart(nil, &execution.Update{
+		Type:   execution.Done,
+		Result: result,
+	})
 	s.runnerMock.AddExecutionClassify(key, contract.MethodIsolation{
 		Interference: pl.CallFlags.GetInterference(),
 		State:        pl.CallFlags.GetState(),
 	}, nil)
 
 	s.typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
-		assert.Equal(t, s.object, result.Callee)
-		assert.Equal(t, []byte("result"), result.ReturnArguments)
+		assert.Equal(t, s.object, result.Callee.GetValue())
+		assert.Equal(t, []byte("result"), result.ReturnArguments.GetBytes())
 		return false
 	})
 
@@ -154,26 +152,24 @@ func constructorPrecondition(s *memoryCacheTest, ctx context.Context, t *testing
 	pl := utils.GenerateVCallRequestConstructor(s.server)
 	pl.Caller.Set(s.class)
 
-	callOutgoing := pl.CallOutgoing
-	s.object = reference.NewSelf(callOutgoing.GetValueWithoutBase())
+	s.object = reference.NewSelf(pl.CallOutgoing.GetValue().GetLocal())
 
 	result := requestresult.New([]byte("result"), s.object)
 	result.SetActivate(reference.Global{}, s.class, []byte(newState))
 
-	key := callOutgoing
-	s.runnerMock.AddExecutionMock(key).
-		AddStart(nil, &execution.Update{
-			Type:   execution.Done,
-			Result: result,
-		})
+	key := pl.CallOutgoing.GetValue()
+	s.runnerMock.AddExecutionMock(key).AddStart(nil, &execution.Update{
+		Type:   execution.Done,
+		Result: result,
+	})
 	s.runnerMock.AddExecutionClassify(key, contract.MethodIsolation{
 		Interference: pl.CallFlags.GetInterference(),
 		State:        pl.CallFlags.GetState(),
 	}, nil)
 
 	s.typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
-		assert.Equal(t, s.object, result.Callee)
-		assert.Equal(t, []byte("result"), result.ReturnArguments)
+		assert.Equal(t, s.object, result.Callee.GetValue())
+		assert.Equal(t, []byte("result"), result.ReturnArguments.GetBytes())
 		return false
 	})
 
@@ -251,6 +247,6 @@ func pendingPrecondition(s *memoryCacheTest, ctx context.Context, t *testing.T) 
 		commonTestUtils.WaitSignalsTimed(t, 10*time.Second, await)
 		commonTestUtils.WaitSignalsTimed(t, 10*time.Second, s.server.Journal.WaitAllAsyncCallsDone())
 
-		require.Equal(t, 1, s.typedChecker.VDelegatedCallResponse.Count())
+		assert.Equal(t, 1, s.typedChecker.VDelegatedCallResponse.Count())
 	}
 }

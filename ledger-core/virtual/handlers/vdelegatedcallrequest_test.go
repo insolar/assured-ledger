@@ -284,7 +284,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 			expectedResponse.ResponseDelegationSpec.Callee.Set(objectRef)
 			expectedResponse.Callee.Set(objectRef)
 
-			slotMachine.MessageSender.SendTarget.Set(func(_ context.Context, msg rms.Marshaler, target reference.Global, _ ...messagesender.SendOption) error {
+			slotMachine.MessageSender.SendTarget.Set(func(_ context.Context, msg rms.GoGoSerializable, target reference.Global, _ ...messagesender.SendOption) error {
 				res := msg.(*rms.VDelegatedCallResponse)
 				// ensure that both times request is the same
 				require.Equal(t, caller, target)

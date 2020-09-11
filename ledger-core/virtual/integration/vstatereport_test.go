@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/gojuno/minimock/v3"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
@@ -409,18 +409,18 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) setMessageCheckers(
 
 	typedChecker := s.server.PublisherMock.SetTypedChecker(ctx, s.mc, s.server)
 	typedChecker.VStateReport.Set(func(rep *rms.VStateReport) bool {
-		require.Equal(t, s.getPulse(4), rep.AsOf)
-		require.Equal(t, s.getObject(), rep.Object)
+		assert.Equal(t, s.getPulse(4), rep.AsOf)
+		assert.Equal(t, s.getObject(), rep.Object.GetValue())
 
-		require.Equal(t, checks.UnorderedPendingCount, rep.UnorderedPendingCount)
-		require.Equal(
+		assert.Equal(t, checks.UnorderedPendingCount, rep.UnorderedPendingCount)
+		assert.Equal(
 			t,
 			s.getPulse(checks.UnorderedPendingEarliestPulse),
 			rep.UnorderedPendingEarliestPulse,
 		)
 
-		require.Equal(t, checks.OrderedPendingCount, rep.OrderedPendingCount)
-		require.Equal(
+		assert.Equal(t, checks.OrderedPendingCount, rep.OrderedPendingCount)
+		assert.Equal(
 			t,
 			s.getPulse(checks.OrderedPendingEarliestPulse),
 			rep.OrderedPendingEarliestPulse,
@@ -430,8 +430,8 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) setMessageCheckers(
 	})
 	typedChecker.VDelegatedCallResponse.Set(func(del *rms.VDelegatedCallResponse) bool {
 		outgoingRef := del.ResponseDelegationSpec.Outgoing
-		require.False(t, outgoingRef.IsZero())
-		require.False(t, outgoingRef.IsEmpty())
+		assert.False(t, outgoingRef.IsZero())
+		assert.False(t, outgoingRef.IsEmpty())
 
 		found := false
 		for _, reqInfo := range s.requests {
@@ -441,15 +441,15 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) setMessageCheckers(
 				break
 			}
 		}
-		require.True(t, found)
+		assert.True(t, found)
 		return false
 	})
 	typedChecker.VDelegatedCallRequest.Set(func(req *rms.VDelegatedCallRequest) bool {
 		outgoingRef := req.CallOutgoing.GetValue()
-		require.False(t, outgoingRef.IsZero())
-		require.False(t, outgoingRef.IsEmpty())
+		assert.False(t, outgoingRef.IsZero())
+		assert.False(t, outgoingRef.IsEmpty())
 
-		require.Equal(t, s.getObject(), req.Callee)
+		assert.Equal(t, s.getObject(), req.Callee.GetValue())
 
 		token := rms.CallDelegationToken{
 			TokenTypeAndFlags: rms.DelegationTokenTypeCall,
@@ -470,25 +470,25 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) setMessageCheckers(
 	})
 	typedChecker.VDelegatedRequestFinished.Set(func(res *rms.VDelegatedRequestFinished) bool {
 		outgoingRef := res.CallOutgoing
-		require.False(t, outgoingRef.IsZero())
-		require.False(t, outgoingRef.IsEmpty())
+		assert.False(t, outgoingRef.IsZero())
+		assert.False(t, outgoingRef.IsEmpty())
 
-		require.Equal(t, s.getObject(), res.Callee)
+		assert.Equal(t, s.getObject(), res.Callee.GetValue())
 
 		return false
 	})
 	typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
 		outgoingRef := res.CallOutgoing
-		require.False(t, outgoingRef.IsZero())
-		require.False(t, outgoingRef.IsEmpty())
+		assert.False(t, outgoingRef.IsZero())
+		assert.False(t, outgoingRef.IsEmpty())
 
-		require.Equal(t, s.getObject(), res.Callee)
+		assert.Equal(t, s.getObject(), res.Callee.GetValue())
 
 		return false
 	})
 	typedChecker.VFindCallRequest.Set(func(req *rms.VFindCallRequest) bool {
-		require.Equal(t, s.getPulse(3), req.LookAt)
-		require.Equal(t, s.getObject(), req.Callee)
+		assert.Equal(t, s.getPulse(3), req.LookAt)
+		assert.Equal(t, s.getObject(), req.Callee.GetValue())
 
 		pl := rms.VFindCallResponse{
 			LookedAt: s.getPulse(3),
@@ -541,7 +541,7 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) waitMessagePublications(
 	if !s.server.PublisherMock.WaitCount(expected, 10*time.Second) {
 		panic("timeout waiting for messages on publisher")
 	}
-	require.Equal(t, expected, s.server.PublisherMock.GetCount())
+	assert.Equal(t, expected, s.server.PublisherMock.GetCount())
 }
 
 func (s *stateReportCheckPendingCountersAndPulsesTest) addPayloadAndWaitIdle(

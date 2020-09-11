@@ -85,7 +85,7 @@ func TestVirtual_VStateRequest(t *testing.T) {
 					}
 				}
 				typedChecker.VStateReport.Set(func(report *rms.VStateReport) bool {
-					assert.Equal(t, expectedVStateReport, report)
+					utils.AssertVStateReportsEqual(t, expectedVStateReport, report)
 					return false
 				})
 			}

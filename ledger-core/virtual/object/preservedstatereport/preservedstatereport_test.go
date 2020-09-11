@@ -76,7 +76,7 @@ func TestSMStateReport_SendVStateReport_IfDescriptorSet(t *testing.T) {
 	smReport.Report = buildStateReport(rms.StateStatusReady, descriptor.NewObject(reference.Global{}, reference.Local{}, reference.Global{}, nil, false))
 
 	messageService := messageSenderWrapper.NewServiceMockWrapper(mc)
-	checkMessageFn := func(msg rms.Marshaler) {
+	checkMessageFn := func(msg rms.GoGoSerializable) {
 		stateReport, ok := msg.(*rms.VStateReport)
 		require.True(t, ok)
 		require.NotNil(t, stateReport.ProvidedContent)
@@ -111,7 +111,7 @@ func TestSMStateReport_SendVStateReport_IfDescriptorNotSetAndStateEmpty(t *testi
 	smReport.Report = buildStateReport(rms.StateStatusEmpty, nil)
 
 	messageService := messageSenderWrapper.NewServiceMockWrapper(mc)
-	checkMessageFn := func(msg rms.Marshaler) {
+	checkMessageFn := func(msg rms.GoGoSerializable) {
 		stateReport, ok := msg.(*rms.VStateReport)
 		require.True(t, ok)
 		require.True(t, stateReport.LatestDirtyState.IsZero())

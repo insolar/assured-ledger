@@ -124,12 +124,12 @@ func (s *SMExecute) prepareExecution(ctx context.Context) {
 
 	if s.Payload.CallType == rms.CallTypeConstructor {
 		s.isConstructor = true
-		s.execution.Object = reference.NewSelf(s.Payload.CallOutgoing.GetValueWithoutBase())
+		s.execution.Object = reference.NewSelf(s.Payload.CallOutgoing.GetValue().GetLocal())
 	} else {
 		s.execution.Object = s.Payload.Callee.GetValue()
 	}
 
-	s.execution.Incoming = reference.NewRecordOf(s.Payload.Callee.GetValue(), s.Payload.CallOutgoing.GetValueWithoutBase())
+	s.execution.Incoming = reference.NewRecordOf(s.Payload.Callee.GetValue(), s.Payload.CallOutgoing.GetValue().GetLocal())
 	s.execution.Outgoing = s.Payload.CallOutgoing.GetValue()
 
 	s.execution.Isolation = contract.MethodIsolation{
@@ -1072,7 +1072,7 @@ func (s *SMExecute) getToken() rms.CallDelegationToken {
 	return s.delegationTokenSpec
 }
 
-func (s *SMExecute) sendResult(ctx smachine.ExecutionContext, message rms.Marshaler) {
+func (s *SMExecute) sendResult(ctx smachine.ExecutionContext, message rms.GoGoSerializable) {
 	target := s.Meta.Sender
 
 	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {

@@ -10,6 +10,8 @@ option (insproto.notation_all) = true;
 option (insproto.zeroable_all) = true;
 option (gogoproto.goproto_enum_prefix_all) = false;
 option (insproto.register_all) = "RegisterMessageType";
+option (gogoproto.goproto_getters_all) = true;
+option (gogoproto.equal_all) = true;
 
 message Meta {
     option (insproto.id) = 1000;

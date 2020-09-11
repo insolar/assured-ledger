@@ -136,8 +136,8 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 
 				runnerMock.AddExecutionMock(outgoingGetValidated).AddStart(
 					func(ctx execution.Context) {
-						require.Equal(t, objectGlobal, ctx.Request.Callee)
-						require.Equal(t, validatedState, ctx.ObjectDescriptor.Memory())
+						assert.Equal(t, objectGlobal, ctx.Request.Callee.GetValue())
+						assert.Equal(t, validatedState, ctx.ObjectDescriptor.Memory())
 					},
 					&execution.Update{
 						Type:   execution.Done,
@@ -151,7 +151,7 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 			// typedChecker mock
 			{
 				typedChecker.VStateReport.Set(func(report *rms.VStateReport) bool {
-					assert.Equal(t, objectGlobal, report.Object)
+					assert.Equal(t, objectGlobal, report.Object.GetValue())
 					assert.Equal(t, rms.StateStatusInactive, report.Status)
 					assert.True(t, report.DelegationSpec.IsZero())
 					assert.Nil(t, report.ProvidedContent)
@@ -165,18 +165,18 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 					return false
 				})
 				typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
-					assert.Equal(t, objectGlobal, result.Callee)
+					assert.Equal(t, objectGlobal, result.Callee.GetValue())
 
 					switch result.CallOutgoing.GetValue() {
 					case outgoingDestroy:
-						assert.Equal(t, []byte("deactivate result"), result.ReturnArguments)
+						assert.Equal(t, []byte("deactivate result"), result.ReturnArguments.GetBytes())
 					case outgoingGetValidated:
 						if test.entirelyDeactivated {
 							contractErr, sysErr := foundation.UnmarshalMethodResult(result.ReturnArguments.GetBytes())
 							require.NoError(t, sysErr)
 							assert.Contains(t, contractErr.Error(), "try to call method on deactivated object")
 						} else {
-							assert.Equal(t, []byte("validated result"), result.ReturnArguments)
+							assert.Equal(t, []byte("validated result"), result.ReturnArguments.GetBytes())
 						}
 					case outgoingGetDirty:
 						contractErr, sysErr := foundation.UnmarshalMethodResult(result.ReturnArguments.GetBytes())
@@ -281,7 +281,7 @@ func TestVirtual_CallMethod_On_CompletelyDeactivatedObject(t *testing.T) {
 
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 			typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
-				assert.Equal(t, object, res.Callee)
+				assert.Equal(t, object, res.Callee.GetValue())
 				contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments.GetBytes())
 				assert.NoError(t, sysErr)
 				assert.Contains(t, contractErr.Error(), "try to call method on deactivated object")
@@ -309,7 +309,7 @@ func TestVirtual_CallMethod_On_CompletelyDeactivatedObject(t *testing.T) {
 			commonTestUtils.WaitSignalsTimed(t, 10*time.Second, execDone)
 			commonTestUtils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
-			require.Equal(t, 1, typedChecker.VCallResult.Count())
+			assert.Equal(t, 1, typedChecker.VCallResult.Count())
 
 			mc.Finish()
 		})
@@ -376,7 +376,7 @@ func TestVirtual_CallDeactivate_Intolerable(t *testing.T) {
 			// Add VCallResult check
 			{
 				typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
-					require.Equal(t, []byte("finish Deactivate"), result.ReturnArguments)
+					assert.Equal(t, []byte("finish Deactivate"), result.ReturnArguments.GetBytes())
 
 					return false
 				})
@@ -399,7 +399,7 @@ func TestVirtual_CallDeactivate_Intolerable(t *testing.T) {
 					func(result []byte) {
 						contractErr, sysErr := foundation.UnmarshalMethodResult(result)
 						require.NoError(t, sysErr)
-						require.Equal(t, "interference violation: deactivate call from intolerable call", contractErr.Error())
+						assert.Equal(t, "interference violation: deactivate call from intolerable call", contractErr.Error())
 					},
 					&execution.Update{
 						Type:   execution.Done,
@@ -470,8 +470,8 @@ func TestVirtual_DeactivateObject_ChangePulse(t *testing.T) {
 
 		runnerMock.AddExecutionMock(outgoing).AddStart(
 			func(ctx execution.Context) {
-				require.Equal(t, objectRef, ctx.Request.Callee)
-				require.Equal(t, []byte(origDirtyMem), ctx.ObjectDescriptor.Memory())
+				assert.Equal(t, objectRef, ctx.Request.Callee.GetValue())
+				assert.Equal(t, []byte(origDirtyMem), ctx.ObjectDescriptor.Memory())
 			},
 			&execution.Update{
 				Type:     execution.OutgoingCall,
@@ -492,29 +492,29 @@ func TestVirtual_DeactivateObject_ChangePulse(t *testing.T) {
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	{
 		typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
-			require.Equal(t, objectRef, res.Callee)
-			require.Equal(t, outgoing, res.CallOutgoing)
-			require.Equal(t, []byte("finish Deactivate"), res.ReturnArguments)
+			assert.Equal(t, objectRef, res.Callee.GetValue())
+			assert.Equal(t, outgoing, res.CallOutgoing.GetValue())
+			assert.Equal(t, []byte("finish Deactivate"), res.ReturnArguments.GetBytes())
 			return false
 		})
 		typedChecker.VStateReport.Set(func(report *rms.VStateReport) bool {
-			require.Equal(t, objectRef, report.Object)
-			require.Equal(t, rms.StateStatusReady, report.Status)
-			require.True(t, report.DelegationSpec.IsZero())
-			require.Equal(t, int32(0), report.UnorderedPendingCount)
-			require.Equal(t, int32(1), report.OrderedPendingCount)
+			assert.Equal(t, objectRef, report.Object.GetValue())
+			assert.Equal(t, rms.StateStatusReady, report.Status)
+			assert.True(t, report.DelegationSpec.IsZero())
+			assert.Equal(t, int32(0), report.UnorderedPendingCount)
+			assert.Equal(t, int32(1), report.OrderedPendingCount)
 			require.NotNil(t, report.ProvidedContent)
 			require.NotNil(t, report.ProvidedContent.LatestDirtyState)
-			require.False(t, report.ProvidedContent.LatestDirtyState.Deactivated)
-			require.Equal(t, []byte(origDirtyMem), report.ProvidedContent.LatestDirtyState.State)
+			assert.False(t, report.ProvidedContent.LatestDirtyState.Deactivated)
+			assert.Equal(t, []byte(origDirtyMem), report.ProvidedContent.LatestDirtyState.State.GetBytes())
 			require.NotNil(t, report.ProvidedContent.LatestValidatedState)
-			require.False(t, report.ProvidedContent.LatestValidatedState.Deactivated)
-			require.Equal(t, []byte(origDirtyMem), report.ProvidedContent.LatestValidatedState.State)
+			assert.False(t, report.ProvidedContent.LatestValidatedState.Deactivated)
+			assert.Equal(t, []byte(origDirtyMem), report.ProvidedContent.LatestValidatedState.State.GetBytes())
 			return false
 		})
 		typedChecker.VDelegatedCallRequest.Set(func(request *rms.VDelegatedCallRequest) bool {
-			require.Equal(t, objectRef, request.Callee)
-			require.Equal(t, outgoing, request.CallOutgoing)
+			assert.Equal(t, objectRef, request.Callee.GetValue())
+			assert.Equal(t, outgoing, request.CallOutgoing.GetValue())
 			token := server.DelegationToken(request.CallOutgoing.GetValue(), server.GlobalCaller(), request.Callee.GetValue())
 
 			response := rms.VDelegatedCallResponse{
@@ -527,8 +527,8 @@ func TestVirtual_DeactivateObject_ChangePulse(t *testing.T) {
 		})
 		typedChecker.VDelegatedRequestFinished.Set(func(finished *rms.VDelegatedRequestFinished) bool {
 			require.NotNil(t, finished.LatestState)
-			require.True(t, finished.LatestState.Deactivated)
-			require.Nil(t, finished.LatestState.State)
+			assert.True(t, finished.LatestState.Deactivated)
+			assert.Nil(t, finished.LatestState.State.GetBytes())
 			return false
 		})
 	}
@@ -568,9 +568,9 @@ func TestVirtual_DeactivateObject_ChangePulse(t *testing.T) {
 	commonTestUtils.WaitSignalsTimed(t, 10*time.Second, oneExecutionEnded)
 	commonTestUtils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
-	require.Equal(t, 1, typedChecker.VStateReport.Count())
-	require.Equal(t, 1, typedChecker.VDelegatedRequestFinished.Count())
-	require.Equal(t, 1, typedChecker.VCallResult.Count())
+	assert.Equal(t, 1, typedChecker.VStateReport.Count())
+	assert.Equal(t, 1, typedChecker.VDelegatedRequestFinished.Count())
+	assert.Equal(t, 1, typedChecker.VCallResult.Count())
 
 	server.Stop()
 	mc.Finish()
@@ -638,15 +638,16 @@ func TestVirtual_CallMethod_After_Deactivation(t *testing.T) {
 	// Add check
 	{
 		typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
-			require.Equal(t, objectRef, res.Callee)
+			require.Equal(t, objectRef, res.Callee.GetValue())
+
 			switch res.CallOutgoing.GetValue() {
 			case outgoingDeactivate:
-				assert.Equal(t, []byte("done"), res.ReturnArguments)
+				assert.Equal(t, []byte("done"), res.ReturnArguments.GetBytes())
 			case outgoingSomeMethod:
 				contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments.GetBytes())
 				require.NoError(t, sysErr)
 				assert.Contains(t, contractErr.Error(), "try to call method on deactivated object")
-				assert.Equal(t, outgoingSomeMethod, res.CallOutgoing)
+				assert.Equal(t, outgoingSomeMethod, res.CallOutgoing.GetValue())
 			default:
 				assert.Fail(t, "unreachable")
 			}
@@ -682,7 +683,7 @@ func TestVirtual_CallMethod_After_Deactivation(t *testing.T) {
 	commonTestUtils.WaitSignalsTimed(t, 10*time.Second, twoExecutionEnded)
 	commonTestUtils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
-	require.Equal(t, 2, typedChecker.VCallResult.Count())
+	assert.Equal(t, 2, typedChecker.VCallResult.Count())
 
 	mc.Finish()
 }
@@ -743,11 +744,11 @@ func TestVirtual_Deactivation_Deduplicate(t *testing.T) {
 		typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
 			switch res.CallOutgoing.GetValue() {
 			case outgoing:
-				require.Equal(t, []byte("new"), res.ReturnArguments)
-				require.Equal(t, objectRef, res.Callee)
+				assert.Equal(t, []byte("new"), res.ReturnArguments.GetBytes())
+				assert.Equal(t, objectRef, res.Callee.GetValue())
 			case outgoingDeactivate:
-				require.Equal(t, []byte("deactivated"), res.ReturnArguments)
-				require.Equal(t, objectRef, res.Callee)
+				assert.Equal(t, []byte("deactivated"), res.ReturnArguments.GetBytes())
+				assert.Equal(t, objectRef, res.Callee.GetValue())
 			}
 			return false
 		})
@@ -773,7 +774,7 @@ func TestVirtual_Deactivation_Deduplicate(t *testing.T) {
 	}
 
 	commonTestUtils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
-	require.Equal(t, 4, typedChecker.VCallResult.Count())
+	assert.Equal(t, 4, typedChecker.VCallResult.Count())
 
 	mc.Finish()
 }
@@ -827,8 +828,8 @@ func TestVirtual_DeduplicateCallAfterDeactivation_PrevVE(t *testing.T) {
 			// Add checker mock
 			{
 				typedChecker.VFindCallRequest.Set(func(request *rms.VFindCallRequest) bool {
-					assert.Equal(t, objectGlobal, request.Callee)
-					assert.Equal(t, outgoingPrevPulse, request.Outgoing)
+					assert.Equal(t, objectGlobal, request.Callee.GetValue())
+					assert.Equal(t, outgoingPrevPulse, request.Outgoing.GetValue())
 					assert.Equal(t, prevPulse, request.LookAt)
 
 					pl := &rms.VFindCallResponse{
@@ -850,9 +851,9 @@ func TestVirtual_DeduplicateCallAfterDeactivation_PrevVE(t *testing.T) {
 					return false
 				})
 				typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
-					assert.Equal(t, objectGlobal, result.Callee)
-					assert.Equal(t, outgoingPrevPulse, result.CallOutgoing)
-					assert.Equal(t, []byte("result from past"), result.ReturnArguments)
+					assert.Equal(t, objectGlobal, result.Callee.GetValue())
+					assert.Equal(t, outgoingPrevPulse, result.CallOutgoing.GetValue())
+					assert.Equal(t, []byte("result from past"), result.ReturnArguments.GetBytes())
 					return false
 				})
 			}
@@ -933,8 +934,8 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 				if testCase.isolation.State == isolation.CallValidated {
 					runnerMock.AddExecutionMock(checkOutgoing).AddStart(
 						func(ctx execution.Context) {
-							require.Equal(t, objectRef, ctx.Request.Callee)
-							require.Equal(t, []byte(origMem), ctx.ObjectDescriptor.Memory())
+							assert.Equal(t, objectRef, ctx.Request.Callee.GetValue())
+							assert.Equal(t, []byte(origMem), ctx.ObjectDescriptor.Memory())
 						},
 						&execution.Update{
 							Type:   execution.Done,
@@ -946,31 +947,31 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 			typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
-				require.Equal(t, objectRef, res.Callee)
-				require.Equal(t, checkOutgoing, res.CallOutgoing)
+				assert.Equal(t, objectRef, res.Callee.GetValue())
+				assert.Equal(t, checkOutgoing, res.CallOutgoing.GetValue())
 				if testCase.isolation.State == isolation.CallValidated {
-					require.Equal(t, []byte("check done"), res.ReturnArguments)
+					assert.Equal(t, []byte("check done"), res.ReturnArguments.GetBytes())
 				} else {
 					contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments.GetBytes())
 					require.NoError(t, sysErr)
-					require.Contains(t, contractErr.Error(), "try to call method on deactivated object")
+					assert.Contains(t, contractErr.Error(), "try to call method on deactivated object")
 				}
 				return false
 			})
 			typedChecker.VStateReport.Set(func(report *rms.VStateReport) bool {
-				require.Equal(t, objectRef, report.Object)
-				require.Equal(t, rms.StateStatusInactive, report.Status)
-				require.True(t, report.DelegationSpec.IsZero())
-				require.Equal(t, int32(0), report.UnorderedPendingCount)
-				require.Equal(t, int32(0), report.OrderedPendingCount)
-				require.Nil(t, report.ProvidedContent)
+				assert.Equal(t, objectRef, report.Object.GetValue())
+				assert.Equal(t, rms.StateStatusInactive, report.Status)
+				assert.True(t, report.DelegationSpec.IsZero())
+				assert.Equal(t, int32(0), report.UnorderedPendingCount)
+				assert.Equal(t, int32(0), report.OrderedPendingCount)
+				assert.Nil(t, report.ProvidedContent)
 				return false
 			})
 			typedChecker.VDelegatedCallResponse.Set(func(response *rms.VDelegatedCallResponse) bool {
-				require.Equal(t, objectRef, response.Callee)
+				assert.Equal(t, objectRef, response.Callee.GetValue())
 				require.NotEmpty(t, response.ResponseDelegationSpec)
-				require.Equal(t, objectRef, response.ResponseDelegationSpec.Callee)
-				require.Equal(t, server.GlobalCaller(), response.ResponseDelegationSpec.DelegateTo)
+				assert.Equal(t, objectRef, response.ResponseDelegationSpec.Callee.GetValue())
+				assert.Equal(t, server.GlobalCaller(), response.ResponseDelegationSpec.DelegateTo.GetValue())
 				return false
 			})
 
@@ -1045,9 +1046,9 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 			commonTestUtils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 1))
 			commonTestUtils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
-			require.Equal(t, 1, typedChecker.VStateReport.Count())
-			require.Equal(t, 1, typedChecker.VDelegatedCallResponse.Count())
-			require.Equal(t, 1, typedChecker.VCallResult.Count())
+			assert.Equal(t, 1, typedChecker.VStateReport.Count())
+			assert.Equal(t, 1, typedChecker.VDelegatedCallResponse.Count())
+			assert.Equal(t, 1, typedChecker.VCallResult.Count())
 
 			server.Stop()
 			mc.Finish()

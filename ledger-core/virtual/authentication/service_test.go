@@ -105,7 +105,7 @@ func Test_CheckMessageFromAuthorizedVirtual_WithToken(t *testing.T) {
 
 			token := rms.CallDelegationToken{
 				TokenTypeAndFlags: rms.DelegationTokenTypeCall,
-				Approver:          rms.NewReferenceLocal(approver),
+				Approver:          rms.NewReference(approver),
 				DelegateTo:        rms.NewReference(sender),
 			}
 

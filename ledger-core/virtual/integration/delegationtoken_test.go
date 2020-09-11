@@ -13,7 +13,6 @@ import (
 
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
@@ -110,7 +109,7 @@ func TestDelegationToken_SuccessCheckCorrectToken(t *testing.T) {
 			server.SendPayload(ctx, testMsg.msg.(rms.GoGoSerializable))
 			server.WaitActiveThenIdleConveyor()
 
-			assert.False(t, errorFound, "Fail "+testMsg.name)
+			assert.False(t, errorFound)
 
 			server.Stop()
 			mc.Finish()
@@ -424,14 +423,14 @@ func TestDelegationToken_OldVEVDelegatedCallRequest(t *testing.T) {
 
 			if test.haveCorrectDT {
 				expectedToken = server.DelegationToken(outgoing, executorRef, object)
-				require.NotEqual(t, delegationToken.PulseNumber, expectedToken.PulseNumber)
-				require.Equal(t, delegationToken.DelegateTo, expectedToken.DelegateTo)
+				assert.NotEqual(t, delegationToken.PulseNumber, expectedToken.PulseNumber)
+				assert.Equal(t, delegationToken.DelegateTo, expectedToken.DelegateTo)
 			}
 
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 			typedChecker.VDelegatedCallResponse.Set(func(response *rms.VDelegatedCallResponse) bool {
-				assert.Equal(t, object, response.Callee)
-				assert.Equal(t, expectedToken, response.ResponseDelegationSpec)
+				assert.Equal(t, object, response.Callee.GetValue())
+				utils.AssertCallDelegationTokenEqual(t, &expectedToken, &response.ResponseDelegationSpec)
 				return false
 			})
 

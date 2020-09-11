@@ -60,7 +60,7 @@ func TestConstructor_SamePulse_WhileExecution(t *testing.T) {
 		requestResult := requestresult.New([]byte("123"), server.RandomGlobalWithPulse())
 		requestResult.SetActivate(server.RandomGlobalWithPulse(), pl.Callee.GetValue(), []byte("234"))
 
-		executionMock := runnerMock.AddExecutionMock(pl.CallOutgoing)
+		executionMock := runnerMock.AddExecutionMock(pl.CallOutgoing.GetValue())
 		executionMock.AddStart(executionFn, &execution.Update{
 			Type:   execution.Done,
 			Result: requestResult,
@@ -123,7 +123,7 @@ func TestConstructor_SamePulse_AfterExecution(t *testing.T) {
 		requestResult := requestresult.New([]byte("123"), server.RandomGlobalWithPulse())
 		requestResult.SetActivate(server.RandomGlobalWithPulse(), pl.Callee.GetValue(), []byte("234"))
 
-		executionMock := runnerMock.AddExecutionMock(pl.CallOutgoing)
+		executionMock := runnerMock.AddExecutionMock(pl.CallOutgoing.GetValue())
 		executionMock.AddStart(nil, &execution.Update{
 			Type:   execution.Done,
 			Result: requestResult,
@@ -268,7 +268,7 @@ func (test *DeduplicationDifferentPulsesCase) run(t *testing.T) {
 		}
 		test.VDelegatedCall.Callee.Set(object)
 		test.VDelegatedCall.CallFlags = rms.BuildCallFlags(isolation.Interference, isolation.State)
-		test.VDelegatedCall.CallIncoming.Set(reference.NewRecordOf(class, test.VDelegatedCall.CallOutgoing.GetValueWithoutBase()))
+		test.VDelegatedCall.CallIncoming.Set(reference.NewRecordOf(class, test.VDelegatedCall.CallOutgoing.GetValue().GetLocal()))
 	}
 
 	if test.VDelegatedRequestFinished != nil {
@@ -298,7 +298,7 @@ func (test *DeduplicationDifferentPulsesCase) run(t *testing.T) {
 
 	{
 		test.TypedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
-			assert.Equal(t, test.ExpectedResult, result.ReturnArguments)
+			assert.Equal(t, test.ExpectedResult, result.ReturnArguments.GetBytes())
 			return false
 		})
 		test.TypedChecker.VStateRequest.Set(func(request *rms.VStateRequest) bool {
@@ -316,8 +316,8 @@ func (test *DeduplicationDifferentPulsesCase) run(t *testing.T) {
 			}
 
 			assert.Equal(t, previousPulse, request.LookAt)
-			assert.Equal(t, object, request.Callee)
-			assert.Equal(t, outgoing, request.Outgoing)
+			assert.Equal(t, object, request.Callee.GetValue())
+			assert.Equal(t, outgoing, request.Outgoing.GetValue())
 
 			test.VFindCall.LookedAt = request.LookAt
 			server.SendPayload(test.Context, test.VFindCall)

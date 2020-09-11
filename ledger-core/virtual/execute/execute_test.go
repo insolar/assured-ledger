@@ -63,13 +63,13 @@ func expectedInitState(ctx context.Context, sm SMExecute) SMExecute {
 
 	if sm.Payload.CallType == rms.CallTypeConstructor {
 		sm.isConstructor = true
-		sm.execution.Object = reference.NewSelf(sm.Payload.CallOutgoing.GetLocal())
+		sm.execution.Object = reference.NewSelf(sm.Payload.CallOutgoing.GetValue().GetLocal())
 	} else {
-		sm.execution.Object = sm.Payload.Callee
+		sm.execution.Object = sm.Payload.Callee.GetValue()
 	}
 
-	sm.execution.Incoming = reference.NewRecordOf(sm.Payload.Callee, sm.Payload.CallOutgoing.GetLocal())
-	sm.execution.Outgoing = sm.Payload.CallOutgoing
+	sm.execution.Incoming = reference.NewRecordOf(sm.Payload.Callee.GetValue(), sm.Payload.CallOutgoing.GetValue().GetLocal())
+	sm.execution.Outgoing = sm.Payload.CallOutgoing.GetValue()
 
 	sm.execution.Isolation = contract.MethodIsolation{
 		Interference: sm.Payload.CallFlags.GetInterference(),
@@ -101,10 +101,10 @@ func TestSMExecute_Init(t *testing.T) {
 		CallType:       rms.CallTypeConstructor,
 		CallFlags:      callFlags,
 		CallSiteMethod: "New",
-		Caller:         caller,
-		Callee:         callee,
-		CallOutgoing:   smGlobalRef,
-		Arguments:      insolar.MustSerialize([]interface{}{}),
+		Caller:         rms.NewReference(caller),
+		Callee:         rms.NewReference(callee),
+		CallOutgoing:   rms.NewReference(smGlobalRef),
+		Arguments:      rms.NewBytes(insolar.MustSerialize([]interface{}{})),
 	}
 
 	smExecute := SMExecute{
@@ -124,7 +124,7 @@ func TestSMExecute_Init(t *testing.T) {
 		smExecute.Init(initCtx)
 	}
 
-	require.Equal(t, initializedSMExecute, smExecute)
+	assert.Equal(t, initializedSMExecute, smExecute)
 
 	mc.Finish()
 }
@@ -151,11 +151,11 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 	request := &rms.VCallRequest{
 		CallType:       rms.CallTypeConstructor,
 		CallFlags:      callFlags,
-		Caller:         caller,
-		Callee:         callee,
+		Caller:         rms.NewReference(caller),
+		Callee:         rms.NewReference(callee),
 		CallSiteMethod: "New",
-		CallOutgoing:   smGlobalRef,
-		Arguments:      insolar.MustSerialize([]interface{}{}),
+		CallOutgoing:   rms.NewReference(smGlobalRef),
+		Arguments:      rms.NewBytes(insolar.MustSerialize([]interface{}{})),
 	}
 
 	smExecute := SMExecute{
@@ -168,8 +168,8 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 
 	smObject.SharedState.Info.KnownRequests.Add(callFlags.GetInterference(), smExecute.execution.Outgoing)
 
-	require.Equal(t, 0, smObject.KnownRequests.GetList(isolation.CallTolerable).CountActive())
-	require.Equal(t, 0, smObject.KnownRequests.GetList(isolation.CallIntolerable).CountActive())
+	assert.Equal(t, 0, smObject.KnownRequests.GetList(isolation.CallTolerable).CountActive())
+	assert.Equal(t, 0, smObject.KnownRequests.GetList(isolation.CallIntolerable).CountActive())
 
 	assert.Equal(t, 1, smObject.KnownRequests.Len())
 
@@ -182,8 +182,8 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 		smExecute.stepStartRequestProcessing(execCtx)
 	}
 
-	require.Equal(t, 1, smObject.KnownRequests.GetList(isolation.CallTolerable).CountActive())
-	require.Equal(t, 0, smObject.KnownRequests.GetList(isolation.CallIntolerable).CountActive())
+	assert.Equal(t, 1, smObject.KnownRequests.GetList(isolation.CallTolerable).CountActive())
+	assert.Equal(t, 0, smObject.KnownRequests.GetList(isolation.CallIntolerable).CountActive())
 
 	assert.Equal(t, 1, smObject.KnownRequests.Len())
 	assert.Equal(t, callregistry.RequestProcessing, smObject.KnownRequests.GetList(isolation.CallTolerable).GetState(smExecute.execution.Outgoing))
@@ -214,10 +214,10 @@ func TestSMExecute_DeduplicationUsingPendingsTableRequestNotExist(t *testing.T) 
 	request := &rms.VCallRequest{
 		CallType:       rms.CallTypeConstructor,
 		CallFlags:      callFlags,
-		Callee:         callee,
+		Callee:         rms.NewReference(callee),
 		CallSiteMethod: "New",
-		CallOutgoing:   constructorOutRef,
-		Arguments:      insolar.MustSerialize([]interface{}{}),
+		CallOutgoing:   rms.NewReference(constructorOutRef),
+		Arguments:      rms.NewBytes(insolar.MustSerialize([]interface{}{})),
 	}
 
 	smExecute := SMExecute{
@@ -265,9 +265,9 @@ func TestSMExecute_DeduplicationUsingPendingsTableRequestExist(t *testing.T) {
 		CallType:       rms.CallTypeConstructor,
 		CallFlags:      callFlags,
 		CallSiteMethod: "New",
-		Callee:         callee,
-		CallOutgoing:   constructorOutRef,
-		Arguments:      insolar.MustSerialize([]interface{}{}),
+		Callee:         rms.NewReference(callee),
+		CallOutgoing:   rms.NewReference(constructorOutRef),
+		Arguments:      rms.NewBytes(insolar.MustSerialize([]interface{}{})),
 	}
 
 	smExecute := SMExecute{
@@ -334,23 +334,23 @@ func TestSMExecute_DeduplicateThroughPreviousExecutor(t *testing.T) {
 	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 	request := &rms.VCallRequest{
 		CallType:       rms.CallTypeMethod,
-		Callee:         objectRef,
+		Callee:         rms.NewReference(objectRef),
 		CallFlags:      callFlags,
 		CallSiteMethod: "Method",
-		CallOutgoing:   outgoingRef,
-		Arguments:      insolar.MustSerialize([]interface{}{}),
+		CallOutgoing:   rms.NewReference(outgoingRef),
+		Arguments:      rms.NewBytes(insolar.MustSerialize([]interface{}{})),
 	}
 
 	messageSender := messagesender.NewServiceMockWrapper(mc)
 	messageSenderAdapter := messageSender.NewAdapterMock()
 	messageSenderAdapter.SetDefaultPrepareAsyncCall(ctx)
 
-	checkMessage := func(msg rms.Marshaler) {
+	checkMessage := func(msg rms.GoGoSerializable) {
 		switch msg0 := msg.(type) {
 		case *rms.VFindCallRequest:
-			require.Equal(t, oldPd.PulseNumber, msg0.LookAt)
-			require.Equal(t, objectRef, msg0.Callee)
-			require.Equal(t, request.CallOutgoing, msg0.Outgoing)
+			assert.Equal(t, oldPd.PulseNumber, msg0.LookAt)
+			assert.Equal(t, objectRef, msg0.Callee.GetValue())
+			assert.Equal(t, request.CallOutgoing, msg0.Outgoing)
 		default:
 			panic("Unexpected message type")
 		}
@@ -383,9 +383,9 @@ func TestSMExecute_DeduplicateThroughPreviousExecutor(t *testing.T) {
 					panic("Unexpected message type")
 				}
 
-				require.Equal(t, oldPd.PulseNumber, res.LookAt)
-				require.Equal(t, smExecute.execution.Outgoing, res.Outgoing)
-				require.Equal(t, smExecute.execution.Object, res.Callee)
+				assert.Equal(t, oldPd.PulseNumber, res.LookAt)
+				assert.Equal(t, smExecute.execution.Outgoing, res.Outgoing)
+				assert.Equal(t, smExecute.execution.Object, res.Callee)
 
 				return true
 			}).
@@ -421,11 +421,11 @@ func TestSMExecute_ProcessFindCallResponse(t *testing.T) {
 	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 	request := &rms.VCallRequest{
 		CallType:       rms.CallTypeMethod,
-		Callee:         objectRef,
+		Callee:         rms.NewReference(objectRef),
 		CallFlags:      callFlags,
 		CallSiteMethod: "Method",
-		CallOutgoing:   outgoingRef,
-		Arguments:      insolar.MustSerialize([]interface{}{}),
+		CallOutgoing:   rms.NewReference(outgoingRef),
+		Arguments:      rms.NewBytes(insolar.MustSerialize([]interface{}{})),
 	}
 
 	smExecute := SMExecute{
@@ -480,23 +480,23 @@ func TestSMExecute_ProcessFindCallResponse(t *testing.T) {
 		smExecute.findCallResponse = &rms.VFindCallResponse{
 			Status: rms.CallStateFound,
 			CallResult: &rms.VCallResult{
-				ReturnArguments: returnArguments,
+				ReturnArguments: rms.NewBytes(returnArguments),
 			},
 		}
 
 		messageSender := messagesender.NewServiceMockWrapper(mc)
 		messageSenderAdapter := messageSender.NewAdapterMock()
 		messageSenderAdapter.SetDefaultPrepareAsyncCall(ctx)
-		checkMessage := func(msg rms.Marshaler) {
+		checkMessage := func(msg rms.GoGoSerializable) {
 			switch msg0 := msg.(type) {
 			case *rms.VCallResult:
-				require.Equal(t, returnArguments, msg0.ReturnArguments)
+				assert.Equal(t, returnArguments, msg0.ReturnArguments.GetBytes())
 			default:
 				panic("Unexpected message type")
 			}
 		}
 		checkTarget := func(target reference.Global) {
-			require.Equal(t, smExecute.Meta.Sender, target)
+			assert.Equal(t, smExecute.Meta.Sender, target)
 		}
 
 		messageSender.SendTarget.SetCheckMessage(checkMessage)
@@ -536,12 +536,12 @@ func TestSMExecute_DeduplicationForOldRequest(t *testing.T) {
 	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
 	request := &rms.VCallRequest{
 		CallType:       rms.CallTypeMethod,
-		Caller:         caller,
-		Callee:         objectRef,
+		Caller:         rms.NewReference(caller),
+		Callee:         rms.NewReference(objectRef),
 		CallFlags:      callFlags,
 		CallSiteMethod: "Method",
-		CallOutgoing:   outgoingRef,
-		Arguments:      insolar.MustSerialize([]interface{}{}),
+		CallOutgoing:   rms.NewReference(outgoingRef),
+		Arguments:      rms.NewBytes(insolar.MustSerialize([]interface{}{})),
 	}
 
 	smExecute := SMExecute{
@@ -581,16 +581,16 @@ func TestSMExecute_TokenInOutgoingMessage(t *testing.T) {
 		{
 			name: "SelfToken",
 			token: rms.CallDelegationToken{
-				Caller:   selfRef,
-				Approver: selfRef,
+				Caller:   rms.NewReference(selfRef),
+				Approver: rms.NewReference(selfRef),
 			},
 			expectedTokenIsEmpty: true,
 		},
 		{
 			name: "OtherToken",
 			token: rms.CallDelegationToken{
-				Caller:   selfRef,
-				Approver: otherRef,
+				Caller:   rms.NewReference(selfRef),
+				Approver: rms.NewReference(otherRef),
 			},
 			expectedTokenIsEmpty: false,
 		},
@@ -618,18 +618,18 @@ func TestSMExecute_TokenInOutgoingMessage(t *testing.T) {
 			request := &rms.VCallRequest{
 				CallType:       rms.CallTypeConstructor,
 				CallFlags:      callFlags,
-				Caller:         caller,
-				Callee:         callee,
+				Caller:         rms.NewReference(caller),
+				Callee:         rms.NewReference(callee),
 				CallSiteMethod: "New",
-				CallOutgoing:   smGlobalRef,
-				Arguments:      insolar.MustSerialize([]interface{}{}),
+				CallOutgoing:   rms.NewReference(smGlobalRef),
+				Arguments:      rms.NewBytes(insolar.MustSerialize([]interface{}{})),
 			}
 
 			affMock := affinity.NewHelperMock(t).MeMock.Return(selfRef)
 
 			authService := authentication.NewService(ctx, affMock)
 
-			checkMessage := func(msg rms.Marshaler) {
+			checkMessage := func(msg rms.GoGoSerializable) {
 				expectedToken := rms.CallDelegationToken{}
 				if !test.expectedTokenIsEmpty {
 					expectedToken = test.token
@@ -710,10 +710,10 @@ func TestSMExecute_VCallResultPassedToSMObject(t *testing.T) {
 		CallType:       rms.CallTypeConstructor,
 		CallFlags:      callFlags,
 		CallSiteMethod: "New",
-		CallOutgoing:   smGlobalRef,
-		Callee:         gen.UniqueGlobalRefWithPulse(pd.PulseNumber),
-		Caller:         caller,
-		Arguments:      insolar.MustSerialize([]interface{}{}),
+		CallOutgoing:   rms.NewReference(smGlobalRef),
+		Callee:         rms.NewReference(gen.UniqueGlobalRefWithPulse(pd.PulseNumber)),
+		Caller:         rms.NewReference(caller),
+		Arguments:      rms.NewBytes(insolar.MustSerialize([]interface{}{})),
 	}
 
 	smExecute := SMExecute{
@@ -738,8 +738,8 @@ func TestSMExecute_VCallResultPassedToSMObject(t *testing.T) {
 
 	smExecute = expectedInitState(ctx, smExecute)
 
-	smObject.KnownRequests.Add(isolation.CallTolerable, request.CallOutgoing)
-	smObject.KnownRequests.SetActive(isolation.CallTolerable, request.CallOutgoing)
+	smObject.KnownRequests.Add(isolation.CallTolerable, request.CallOutgoing.GetValue())
+	smObject.KnownRequests.SetActive(isolation.CallTolerable, request.CallOutgoing.GetValue())
 
 	{
 		execCtx := smachine.NewExecutionContextMock(mc).
@@ -755,12 +755,12 @@ func TestSMExecute_VCallResultPassedToSMObject(t *testing.T) {
 
 		smExecute.stepFinishRequest(execCtx)
 	}
-	require.Equal(t, 1, smObject.KnownRequests.Len())
+	assert.Equal(t, 1, smObject.KnownRequests.Len())
 
 	result, ok := smObject.KnownRequests.GetResults()[smGlobalRef]
 
-	require.True(t, ok, "object not in map")
-	require.NotNil(t, result)
+	assert.True(t, ok, "object not in map")
+	assert.NotNil(t, result)
 
 	mc.Finish()
 }
@@ -796,11 +796,11 @@ func TestSendVStateReportWithMissingState_IfConstructorWasInterruptedBeforeRunne
 
 	var vStateReportRecv = make(chan struct{})
 	slotMachine.PrepareMockedMessageSender(mc)
-	slotMachine.MessageSender.SendRole.SetCheckMessage(func(msg rms.Marshaler) {
+	slotMachine.MessageSender.SendRole.SetCheckMessage(func(msg rms.GoGoSerializable) {
 		res, ok := msg.(*rms.VStateReport)
 		require.True(t, ok)
 		assert.Equal(t, rms.StateStatusMissing, res.Status)
-		assert.Equal(t, reference.NewSelf(outgoing.GetLocal()), res.Object)
+		assert.Equal(t, reference.NewSelf(outgoing.GetLocal()), res.Object.GetValue())
 		assert.Equal(t, int32(0), res.OrderedPendingCount)
 		assert.Equal(t, int32(0), res.UnorderedPendingCount)
 		assert.Empty(t, res.LatestDirtyState)
@@ -812,10 +812,10 @@ func TestSendVStateReportWithMissingState_IfConstructorWasInterruptedBeforeRunne
 		Payload: &rms.VCallRequest{
 			CallType:     rms.CallTypeConstructor,
 			CallFlags:    rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
-			CallOutgoing: outgoing,
+			CallOutgoing: rms.NewReference(outgoing),
 
-			Caller:         caller,
-			Callee:         class,
+			Caller:         rms.NewReference(caller),
+			Callee:         rms.NewReference(class),
 			CallSiteMethod: "New",
 		},
 		Meta: &rms.Meta{
@@ -900,12 +900,12 @@ func TestSMExecute_StopWithoutMessagesIfPulseChangedBeforeOutgoing(t *testing.T)
 	smExecute := SMExecute{
 		Payload: &rms.VCallRequest{
 			CallType:       rms.CallTypeMethod,
-			Caller:         caller,
-			Callee:         objectRef,
+			Caller:         rms.NewReference(caller),
+			Callee:         rms.NewReference(objectRef),
 			CallFlags:      rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
-			CallOutgoing:   outgoing,
+			CallOutgoing:   rms.NewReference(outgoing),
 			CallSiteMethod: "test",
-			Arguments:      insolar.MustSerialize([]interface{}{}),
+			Arguments:      rms.NewBytes(insolar.MustSerialize([]interface{}{})),
 		},
 		Meta: &rms.Meta{
 			Sender: caller,
@@ -920,12 +920,12 @@ func TestSMExecute_StopWithoutMessagesIfPulseChangedBeforeOutgoing(t *testing.T)
 	slotMachine.RunTil(smWrapper.AfterStop())
 
 	report := obj.BuildStateReport()
-	assert.Equal(t, objectRef, report.Object)
+	assert.Equal(t, objectRef, report.Object.GetValue())
 	assert.Equal(t, rms.StateStatusReady, report.Status)
 	assert.Equal(t, int32(0), report.OrderedPendingCount)
 	assert.Equal(t, int32(0), report.UnorderedPendingCount)
 	state := obj.BuildLatestDirtyState()
-	assert.Equal(t, []byte(stateMemory), state.State)
+	assert.Equal(t, []byte(stateMemory), state.State.GetBytes())
 	assert.False(t, state.Deactivated)
 
 	mc.Finish()

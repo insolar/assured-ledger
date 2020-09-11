@@ -147,7 +147,7 @@ func TestVirtual_SenderCheck_With_ExpectedVE(t *testing.T) {
 
 						m.Callee.Set(gen.UniqueGlobalRefWithPulse(prevPulse))
 						m.CallOutgoing.Set(server.BuildRandomOutgoingWithGivenPulse(prevPulse))
-						m.CallIncoming.Set(reference.NewRecordOf(m.Callee.GetValue(), m.CallOutgoing.GetValueWithoutBase()))
+						m.CallIncoming.Set(reference.NewRecordOf(m.Callee.GetValue(), m.CallOutgoing.GetValue().GetLocal()))
 						m.CallFlags = rms.CallFlags(0).WithInterference(isolation.CallIntolerable).WithState(isolation.CallValidated)
 
 					case *rms.VDelegatedCallResponse:

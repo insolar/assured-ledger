@@ -152,7 +152,7 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 			{
 				typedChecker.VStateReport.Set(func(report *rms.VStateReport) bool {
 					// check for pending counts must be in tests: call terminal method case C5104
-					assert.Equal(t, object, report.Object)
+					assert.Equal(t, object, report.Object.GetValue())
 					assert.Equal(t, rms.StateStatusReady, report.Status)
 					assert.Zero(t, report.DelegationSpec)
 					return false
@@ -161,7 +161,7 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 				typedChecker.VDelegatedCallRequest.Set(func(request *rms.VDelegatedCallRequest) bool {
 					p2 := server.GetPulse().PulseNumber
 
-					assert.Equal(t, object, request.Callee)
+					assert.Equal(t, object, request.Callee.GetValue())
 					if isFirstToken {
 						assert.Zero(t, request.DelegationSpec)
 						isFirstToken = false
@@ -193,24 +193,25 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 				})
 
 				typedChecker.VDelegatedRequestFinished.Set(func(finished *rms.VDelegatedRequestFinished) bool {
-					assert.Equal(t, object, finished.Callee)
+					assert.Equal(t, object, finished.Callee.GetValue())
 					assert.Equal(t, expectedToken, finished.DelegationSpec)
+
 					if test.isolation == tolerableFlags() && test.withSideEffect {
-						assert.NotEmpty(t, finished.LatestState)
-						assert.Equal(t, []byte("new memory"), finished.LatestState.State)
+						require.NotEmpty(t, finished.LatestState)
+						assert.Equal(t, []byte("new memory"), finished.LatestState.State.GetBytes())
 					} else {
 						assert.Empty(t, finished.LatestState)
 					}
 					return false
 				})
 				typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
-					assert.Equal(t, object, res.Callee)
+					assert.Equal(t, object, res.Callee.GetValue())
 					if test.isolation == intolerableFlags() && test.withSideEffect {
 						contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments.GetBytes())
 						require.NoError(t, sysErr)
 						require.Equal(t, "intolerable call trying to change object state", contractErr.Error())
 					} else {
-						assert.Equal(t, []byte("call result"), res.ReturnArguments)
+						assert.Equal(t, []byte("call result"), res.ReturnArguments.GetBytes())
 					}
 					assert.Equal(t, p1, res.CallOutgoing.GetPulseOfLocal())
 					assert.Equal(t, expectedToken, res.DelegationSpec)
@@ -318,7 +319,7 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 		typedChecker.VStateReport.Set(func(report *rms.VStateReport) bool {
 			assert.Equal(t, rms.StateStatusReady, report.Status)
 			assert.Equal(t, currPulse, report.AsOf)
-			assert.Equal(t, object, report.Object)
+			assert.Equal(t, object, report.Object.GetValue())
 			assert.Zero(t, report.DelegationSpec)
 
 			assert.Equal(t, int32(2), report.UnorderedPendingCount)
@@ -335,11 +336,11 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 			assert.Empty(t, report.LatestValidatedCode)
 			assert.NotEmpty(t, report.LatestDirtyState)
 			assert.Empty(t, report.LatestDirtyCode)
-			assert.Equal(t, content, report.ProvidedContent)
+			utils.AssertVStateReport_ProvidedContentBodyEqual(t, content, report.ProvidedContent)
 			return false
 		})
 		typedChecker.VDelegatedCallRequest.Set(func(request *rms.VDelegatedCallRequest) bool {
-			assert.Equal(t, object, request.Callee)
+			assert.Equal(t, object, request.Callee.GetValue())
 			assert.Zero(t, request.DelegationSpec)
 
 			token := rms.CallDelegationToken{
@@ -361,13 +362,13 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 			return false
 		})
 		typedChecker.VDelegatedRequestFinished.Set(func(finished *rms.VDelegatedRequestFinished) bool {
-			assert.Equal(t, object, finished.Callee)
+			assert.Equal(t, object, finished.Callee.GetValue())
 			assert.NotEmpty(t, finished.DelegationSpec)
 			return false
 		})
 		typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
-			assert.Equal(t, object, res.Callee)
-			assert.Equal(t, []byte("call result"), res.ReturnArguments)
+			assert.Equal(t, object, res.Callee.GetValue())
+			assert.Equal(t, []byte("call result"), res.ReturnArguments.GetBytes())
 			assert.Equal(t, currPulse, res.CallOutgoing.GetPulseOfLocal())
 			assert.NotEmpty(t, res.DelegationSpec)
 			return false
@@ -518,7 +519,7 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 				objectExecutionMock := runnerMock.AddExecutionMock(outgoingP2)
 				objectExecutionMock.AddStart(func(ctx execution.Context) {
 					logger.Debug("ExecutionStart [SomeMethod]")
-					require.Equal(t, object, ctx.Request.Callee)
+					require.Equal(t, object, ctx.Request.Callee.GetValue())
 					require.Equal(t, []byte("new object memory"), ctx.ObjectDescriptor.Memory())
 					require.Equal(t, dirtyStateRef, ctx.ObjectDescriptor.StateID())
 					require.True(t, getDelegated)
@@ -531,8 +532,8 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 			// add checks to typedChecker
 			{
 				typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
-					assert.Equal(t, object, res.Callee)
-					assert.Equal(t, []byte("call result"), res.ReturnArguments)
+					assert.Equal(t, object, res.Callee.GetValue())
+					assert.Equal(t, []byte("call result"), res.ReturnArguments.GetBytes())
 					assert.Equal(t, p2, res.CallOutgoing.GetPulseOfLocal())
 					assert.Empty(t, res.DelegationSpec)
 					return false

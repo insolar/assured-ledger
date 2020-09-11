@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/gojuno/minimock/v3"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
@@ -181,20 +182,20 @@ func TestVFindCallRequest(t *testing.T) {
 
 			smVFindCallRequest.messageSender = messageSenderAdapter.Mock()
 
-			checkMessage := func(msg rms.Marshaler) {
+			checkMessage := func(msg rms.GoGoSerializable) {
 				switch msg0 := msg.(type) {
 				case *rms.VFindCallResponse:
-					require.Equal(t, pd.GetPulseNumber(), msg0.LookedAt)
-					require.Equal(t, objectRef, msg0.Callee)
-					require.Equal(t, outgoing, msg0.Outgoing)
-					require.Equal(t, rms.CallStateMissing, msg0.Status)
-					require.Nil(t, msg0.CallResult)
+					assert.Equal(t, pd.GetPulseNumber(), msg0.LookedAt)
+					assert.Equal(t, objectRef, msg0.Callee.GetValue())
+					assert.Equal(t, outgoing, msg0.Outgoing.GetValue())
+					assert.Equal(t, rms.CallStateMissing, msg0.Status)
+					assert.Nil(t, msg0.CallResult)
 				default:
 					panic("Unexpected message type")
 				}
 			}
 			checkTarget := func(target reference.Global) {
-				require.Equal(t, sender, target)
+				assert.Equal(t, sender, target)
 			}
 			messageSender.SendTarget.SetCheckMessage(checkMessage)
 			messageSender.SendTarget.SetCheckTarget(checkTarget)
@@ -217,8 +218,8 @@ func TestVFindCallRequest(t *testing.T) {
 
 			smVFindCallRequest.stepGetRequestData(execCtx)
 
-			require.Equal(t, rms.CallStateFound, smVFindCallRequest.status)
-			require.Equal(t, &vCallResult, smVFindCallRequest.callResult)
+			assert.Equal(t, rms.CallStateFound, smVFindCallRequest.status)
+			assert.Equal(t, &vCallResult, smVFindCallRequest.callResult)
 		}
 
 		{
@@ -228,20 +229,20 @@ func TestVFindCallRequest(t *testing.T) {
 
 			smVFindCallRequest.messageSender = messageSenderAdapter.Mock()
 
-			checkMessage := func(msg rms.Marshaler) {
+			checkMessage := func(msg rms.GoGoSerializable) {
 				switch msg0 := msg.(type) {
 				case *rms.VFindCallResponse:
-					require.Equal(t, pd.GetPulseNumber(), msg0.LookedAt)
-					require.Equal(t, objectRef, msg0.Callee)
-					require.Equal(t, outgoing, msg0.Outgoing)
-					require.Equal(t, rms.CallStateFound, msg0.Status)
-					require.Equal(t, &vCallResult, msg0.CallResult)
+					assert.Equal(t, pd.GetPulseNumber(), msg0.LookedAt)
+					assert.Equal(t, objectRef, msg0.Callee.GetValue())
+					assert.Equal(t, outgoing, msg0.Outgoing.GetValue())
+					assert.Equal(t, rms.CallStateFound, msg0.Status)
+					assert.Equal(t, &vCallResult, msg0.CallResult)
 				default:
 					panic("Unexpected message type")
 				}
 			}
 			checkTarget := func(target reference.Global) {
-				require.Equal(t, sender, target)
+				assert.Equal(t, sender, target)
 			}
 
 			messageSender.SendTarget.SetCheckMessage(checkMessage)

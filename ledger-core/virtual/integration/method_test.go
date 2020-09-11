@@ -126,9 +126,9 @@ func TestVirtual_BadMethod_WithExecutor(t *testing.T) {
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
-		assert.Equal(t, res.Callee, objectGlobal)
-		assert.Equal(t, res.CallOutgoing, outgoing)
-		assert.Equal(t, expectedError, res.ReturnArguments)
+		assert.Equal(t, objectGlobal, res.Callee.GetValue())
+		assert.Equal(t, outgoing, res.CallOutgoing.GetValue())
+		assert.Equal(t, expectedError, res.ReturnArguments.GetBytes())
 
 		return false // no resend msg
 	})
@@ -181,12 +181,12 @@ func TestVirtual_Method_WithExecutor_ObjectIsNotExist(t *testing.T) {
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
-		assert.Equal(t, res.Callee, objectGlobal)
-		assert.Equal(t, res.CallOutgoing, outgoing)
+		assert.Equal(t, objectGlobal, res.Callee.GetValue())
+		assert.Equal(t, outgoing, res.CallOutgoing.GetValue())
 
 		contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments.GetBytes())
 		require.NoError(t, sysErr)
-		require.Equal(t, expectedError.Error(), contractErr.Error())
+		assert.Equal(t, expectedError.Error(), contractErr.Error())
 
 		return false // no resend msg
 	})
@@ -235,22 +235,14 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 	// need for correct handle state report (should from prev pulse)
 	server.IncrementPulse(ctx)
 
-	checkExecution := func(_ execution.Context) {
-		// tell the test that we know about next request
-		waitInputChannel <- struct{}{}
-
-		// wait the test result
-		<-waitOutputChannel
-	}
-
 	Method_PrepareObject(ctx, server, rms.StateStatusReady, objectGlobal, prevPulse)
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
 	{
 		typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
-			require.Equal(t, res.ReturnArguments, []byte("345"))
-			require.Equal(t, res.Callee, objectGlobal)
+			assert.Equal(t, []byte("345"), res.ReturnArguments.GetBytes())
+			assert.Equal(t, objectGlobal, res.Callee.GetValue())
 
 			return false // no resend msg
 		})
@@ -264,12 +256,18 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 
 			result := requestresult.New([]byte("345"), objectGlobal)
 
-			key := pl.CallOutgoing
-			runnerMock.AddExecutionMock(key).
-				AddStart(checkExecution, &execution.Update{
-					Type:   execution.Done,
-					Result: result,
-				})
+			key := pl.CallOutgoing.GetValue()
+			runnerMock.AddExecutionMock(key).AddStart(func(_ execution.Context) {
+				// tell the test that we know about next request
+				waitInputChannel <- struct{}{}
+
+				// wait the test result
+				<-waitOutputChannel
+			}, &execution.Update{
+				Type:   execution.Done,
+				Result: result,
+			})
+
 			runnerMock.AddExecutionClassify(key, contract.MethodIsolation{
 				Interference: pl.GetCallFlags().GetInterference(),
 				State:        pl.GetCallFlags().GetState(),
@@ -334,8 +332,8 @@ func TestVirtual_Method_WithoutExecutor_Ordered(t *testing.T) {
 
 	{
 		typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
-			require.Equal(t, res.ReturnArguments, []byte("345"))
-			require.Equal(t, res.Callee, objectGlobal)
+			assert.Equal(t, []byte("345"), res.ReturnArguments.GetBytes())
+			assert.Equal(t, objectGlobal, res.Callee.GetValue())
 			return false // no resend msg
 		})
 
@@ -343,23 +341,21 @@ func TestVirtual_Method_WithoutExecutor_Ordered(t *testing.T) {
 			pl := utils.GenerateVCallRequestMethod(server)
 			pl.Callee.Set(objectGlobal)
 			pl.CallSiteMethod = "ordered" + strconv.FormatInt(i, 10)
-			callOutgoing := pl.CallOutgoing
 
 			result := requestresult.New([]byte("345"), objectGlobal)
 
-			key := callOutgoing
-			runnerMock.AddExecutionMock(key).
-				AddStart(func(ctx execution.Context) {
-					counter++
-					for k := 0; k < 5; k++ {
-						require.Equal(t, 1, counter)
-						time.Sleep(3 * time.Millisecond)
-					}
-					counter--
-				}, &execution.Update{
-					Type:   execution.Done,
-					Result: result,
-				})
+			key := pl.CallOutgoing.GetValue()
+			runnerMock.AddExecutionMock(key).AddStart(func(ctx execution.Context) {
+				counter++
+				for k := 0; k < 5; k++ {
+					require.Equal(t, 1, counter)
+					time.Sleep(3 * time.Millisecond)
+				}
+				counter--
+			}, &execution.Update{
+				Type:   execution.Done,
+				Result: result,
+			})
 			runnerMock.AddExecutionClassify(key, contract.MethodIsolation{
 				Interference: pl.CallFlags.GetInterference(),
 				State:        pl.CallFlags.GetState(),
@@ -470,7 +466,7 @@ func TestVirtual_CallContractFromContract_InterferenceViolation(t *testing.T) {
 			typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
 				switch res.Callee.GetValue() {
 				case objectAGlobal:
-					assert.Equal(t, expectedResult, res.ReturnArguments)
+					assert.Equal(t, expectedResult, res.ReturnArguments.GetBytes())
 				default:
 					assert.Fail(t, "unexpected VCallResult")
 				}
@@ -489,8 +485,8 @@ func TestVirtual_CallContractFromContract_InterferenceViolation(t *testing.T) {
 				commontestutils.WaitSignalsTimed(t, 20*time.Second, server.Journal.WaitAllAsyncCallsDone())
 			}
 
-			require.Equal(t, 0, typedChecker.VCallRequest.Count())
-			require.Equal(t, 1, typedChecker.VCallResult.Count())
+			assert.Equal(t, 0, typedChecker.VCallRequest.Count())
+			assert.Equal(t, 1, typedChecker.VCallResult.Count())
 
 			mc.Finish()
 		})
@@ -512,7 +508,7 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 4)
 
 	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) interface{} {
-		return execution.Request.Callee
+		return execution.Request.Callee.GetValue()
 	})
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
@@ -554,88 +550,69 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 	{
 		builder := execution.NewRPCBuilder(outgoingCallRef, objectA)
 		objectAExecutionMock := runnerMock.AddExecutionMock(objectA)
-		objectAExecutionMock.AddStart(
-			func(ctx execution.Context) {
-				logger.Debug("ExecutionStart [A.Foo]")
-				require.Equal(t, server.GlobalCaller(), ctx.Request.Caller)
-				require.Equal(t, objectA, ctx.Request.Callee)
-				require.Equal(t, outgoingCallRef, ctx.Request.CallOutgoing)
-			},
-			&execution.Update{
-				Type:     execution.OutgoingCall,
-				Outgoing: builder.CallMethod(objectB1Global, classB1, "Bar", []byte("B1")),
-			},
-		)
+		objectAExecutionMock.AddStart(func(ctx execution.Context) {
+			logger.Debug("ExecutionStart [A.Foo]")
+			assert.Equal(t, server.GlobalCaller(), ctx.Request.Caller.GetValue())
+			assert.Equal(t, objectA, ctx.Request.Callee.GetValue())
+			assert.Equal(t, outgoingCallRef, ctx.Request.CallOutgoing.GetValue())
+		}, &execution.Update{
+			Type:     execution.OutgoingCall,
+			Outgoing: builder.CallMethod(objectB1Global, classB1, "Bar", []byte("B1")),
+		})
 
-		objectAExecutionMock.AddContinue(
-			func(result []byte) {
-				logger.Debug("ExecutionContinue [A.Foo]")
-				require.Equal(t, []byte("finish B1.Bar"), result)
-			},
-			&execution.Update{
-				Type:     execution.OutgoingCall,
-				Outgoing: builder.CallMethod(objectB2Global, classB2, "Bar", []byte("B2")),
-			},
-		)
-		objectAExecutionMock.AddContinue(
-			func(result []byte) {
-				logger.Debug("ExecutionContinue [A.Foo]")
-				require.Equal(t, []byte("finish B2.Bar"), result)
-			},
-			&execution.Update{
-				Type:     execution.OutgoingCall,
-				Outgoing: builder.CallMethod(objectB3Global, classB3, "Bar", []byte("B3")),
-			},
-		)
-		objectAExecutionMock.AddContinue(
-			func(result []byte) {
-				logger.Debug("ExecutionContinue [A.Foo]")
-				require.Equal(t, []byte("finish B3.Bar"), result)
-			},
-			&execution.Update{
-				Type:   execution.Done,
-				Result: requestresult.New([]byte("finish A.Foo"), objectA),
-			},
-		)
+		objectAExecutionMock.AddContinue(func(result []byte) {
+			logger.Debug("ExecutionContinue [A.Foo]")
+			assert.Equal(t, []byte("finish B1.Bar"), result)
+		}, &execution.Update{
+			Type:     execution.OutgoingCall,
+			Outgoing: builder.CallMethod(objectB2Global, classB2, "Bar", []byte("B2")),
+		})
 
-		runnerMock.AddExecutionMock(objectB1Global).AddStart(
-			func(ctx execution.Context) {
-				logger.Debug("ExecutionStart [B1.Bar]")
-				require.Equal(t, objectB1Global, ctx.Request.Callee)
-				require.Equal(t, objectA, ctx.Request.Caller)
-				require.Equal(t, []byte("B1"), ctx.Request.Arguments)
-			},
-			&execution.Update{
-				Type:   execution.Done,
-				Result: requestresult.New([]byte("finish B1.Bar"), objectB1Global),
-			},
-		)
+		objectAExecutionMock.AddContinue(func(result []byte) {
+			logger.Debug("ExecutionContinue [A.Foo]")
+			assert.Equal(t, []byte("finish B2.Bar"), result)
+		}, &execution.Update{
+			Type:     execution.OutgoingCall,
+			Outgoing: builder.CallMethod(objectB3Global, classB3, "Bar", []byte("B3")),
+		})
 
-		runnerMock.AddExecutionMock(objectB2Global).AddStart(
-			func(ctx execution.Context) {
-				logger.Debug("ExecutionStart [B2.Bar]")
-				require.Equal(t, objectB2Global, ctx.Request.Callee)
-				require.Equal(t, objectA, ctx.Request.Caller)
-				require.Equal(t, []byte("B2"), ctx.Request.Arguments)
-			},
-			&execution.Update{
-				Type:   execution.Done,
-				Result: requestresult.New([]byte("finish B2.Bar"), objectB2Global),
-			},
-		)
+		objectAExecutionMock.AddContinue(func(result []byte) {
+			logger.Debug("ExecutionContinue [A.Foo]")
+			assert.Equal(t, []byte("finish B3.Bar"), result)
+		}, &execution.Update{
+			Type:   execution.Done,
+			Result: requestresult.New([]byte("finish A.Foo"), objectA),
+		})
 
-		runnerMock.AddExecutionMock(objectB3Global).AddStart(
-			func(ctx execution.Context) {
-				logger.Debug("ExecutionStart [B3.Bar]")
-				require.Equal(t, objectB3Global, ctx.Request.Callee)
-				require.Equal(t, objectA, ctx.Request.Caller)
-				require.Equal(t, []byte("B3"), ctx.Request.Arguments)
-			},
-			&execution.Update{
-				Type:   execution.Done,
-				Result: requestresult.New([]byte("finish B3.Bar"), objectB3Global),
-			},
-		)
+		runnerMock.AddExecutionMock(objectB1Global).AddStart(func(ctx execution.Context) {
+			logger.Debug("ExecutionStart [B1.Bar]")
+			assert.Equal(t, objectB1Global, ctx.Request.Callee.GetValue())
+			assert.Equal(t, objectA, ctx.Request.Caller.GetValue())
+			assert.Equal(t, []byte("B1"), ctx.Request.Arguments.GetBytes())
+		}, &execution.Update{
+			Type:   execution.Done,
+			Result: requestresult.New([]byte("finish B1.Bar"), objectB1Global),
+		})
+
+		runnerMock.AddExecutionMock(objectB2Global).AddStart(func(ctx execution.Context) {
+			logger.Debug("ExecutionStart [B2.Bar]")
+			assert.Equal(t, objectB2Global, ctx.Request.Callee.GetValue())
+			assert.Equal(t, objectA, ctx.Request.Caller.GetValue())
+			assert.Equal(t, []byte("B2"), ctx.Request.Arguments.GetBytes())
+		}, &execution.Update{
+			Type:   execution.Done,
+			Result: requestresult.New([]byte("finish B2.Bar"), objectB2Global),
+		})
+
+		runnerMock.AddExecutionMock(objectB3Global).AddStart(func(ctx execution.Context) {
+			logger.Debug("ExecutionStart [B3.Bar]")
+			assert.Equal(t, objectB3Global, ctx.Request.Callee.GetValue())
+			assert.Equal(t, objectA, ctx.Request.Caller.GetValue())
+			assert.Equal(t, []byte("B3"), ctx.Request.Arguments.GetBytes())
+		}, &execution.Update{
+			Type:   execution.Done,
+			Result: requestresult.New([]byte("finish B3.Bar"), objectB3Global),
+		})
 
 		runnerMock.AddExecutionClassify(objectA, flags, nil)
 		runnerMock.AddExecutionClassify(objectB1Global, flags, nil)
@@ -646,21 +623,21 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 	// add checks to typedChecker
 	{
 		typedChecker.VCallRequest.Set(func(request *rms.VCallRequest) bool {
-			assert.Equal(t, objectA, request.Caller)
+			assert.Equal(t, objectA, request.Caller.GetValue())
 			assert.Equal(t, rms.CallTypeMethod, request.CallType)
 			assert.Equal(t, callFlags, request.CallFlags)
 			assert.Equal(t, p, request.CallOutgoing.GetPulseOfLocal())
 
 			switch request.Callee.GetValue() {
 			case objectB1Global:
-				require.Equal(t, []byte("B1"), request.Arguments)
-				require.Equal(t, uint32(1), request.CallSequence)
+				assert.Equal(t, []byte("B1"), request.Arguments.GetBytes())
+				assert.Equal(t, uint32(1), request.CallSequence)
 			case objectB2Global:
-				require.Equal(t, []byte("B2"), request.Arguments)
-				require.Equal(t, uint32(2), request.CallSequence)
+				assert.Equal(t, []byte("B2"), request.Arguments.GetBytes())
+				assert.Equal(t, uint32(2), request.CallSequence)
 			case objectB3Global:
-				require.Equal(t, []byte("B3"), request.Arguments)
-				require.Equal(t, uint32(3), request.CallSequence)
+				assert.Equal(t, []byte("B3"), request.Arguments.GetBytes())
+				assert.Equal(t, uint32(3), request.CallSequence)
 			default:
 				t.Fatal("wrong Callee")
 			}
@@ -672,21 +649,21 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 
 			switch res.Callee.GetValue() {
 			case objectA:
-				require.Equal(t, []byte("finish A.Foo"), res.ReturnArguments)
-				require.Equal(t, server.GlobalCaller(), res.Caller)
-				require.Equal(t, outgoingCallRef, res.CallOutgoing)
+				assert.Equal(t, []byte("finish A.Foo"), res.ReturnArguments.GetBytes())
+				assert.Equal(t, server.GlobalCaller(), res.Caller.GetValue())
+				assert.Equal(t, outgoingCallRef, res.CallOutgoing.GetValue())
 			case objectB1Global:
-				require.Equal(t, []byte("finish B1.Bar"), res.ReturnArguments)
-				require.Equal(t, objectA, res.Caller)
-				require.Equal(t, p, res.CallOutgoing.GetPulseOfLocal())
+				assert.Equal(t, []byte("finish B1.Bar"), res.ReturnArguments.GetBytes())
+				assert.Equal(t, objectA, res.Caller.GetValue())
+				assert.Equal(t, p, res.CallOutgoing.GetPulseOfLocal())
 			case objectB2Global:
-				require.Equal(t, []byte("finish B2.Bar"), res.ReturnArguments)
-				require.Equal(t, objectA, res.Caller)
-				require.Equal(t, p, res.CallOutgoing.GetPulseOfLocal())
+				assert.Equal(t, []byte("finish B2.Bar"), res.ReturnArguments.GetBytes())
+				assert.Equal(t, objectA, res.Caller.GetValue())
+				assert.Equal(t, p, res.CallOutgoing.GetPulseOfLocal())
 			case objectB3Global:
-				require.Equal(t, []byte("finish B3.Bar"), res.ReturnArguments)
-				require.Equal(t, objectA, res.Caller)
-				require.Equal(t, p, res.CallOutgoing.GetPulseOfLocal())
+				assert.Equal(t, []byte("finish B3.Bar"), res.ReturnArguments.GetBytes())
+				assert.Equal(t, objectA, res.Caller.GetValue())
+				assert.Equal(t, p, res.CallOutgoing.GetPulseOfLocal())
 			default:
 				t.Fatal("wrong Callee")
 			}
@@ -706,8 +683,8 @@ func TestVirtual_CallMultipleContractsFromContract_Ordered(t *testing.T) {
 	commontestutils.WaitSignalsTimed(t, 20*time.Second, executeDone)
 	commontestutils.WaitSignalsTimed(t, 20*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
-	require.Equal(t, 3, typedChecker.VCallRequest.Count())
-	require.Equal(t, 4, typedChecker.VCallResult.Count())
+	assert.Equal(t, 3, typedChecker.VCallRequest.Count())
+	assert.Equal(t, 4, typedChecker.VCallResult.Count())
 
 	mc.Finish()
 }
@@ -725,7 +702,7 @@ func TestVirtual_CallContractTwoTimes(t *testing.T) {
 	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 2)
 
 	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) interface{} {
-		return execution.Request.CallOutgoing
+		return execution.Request.CallOutgoing.GetValue()
 	})
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
@@ -769,7 +746,7 @@ func TestVirtual_CallContractTwoTimes(t *testing.T) {
 		)
 		objectAExecutionFirstMock.AddContinue(
 			func(result []byte) {
-				require.Equal(t, []byte("finish B.Bar"), result)
+				assert.Equal(t, []byte("finish B.Bar"), result)
 			},
 			&execution.Update{
 				Type:     execution.OutgoingCall,
@@ -778,7 +755,7 @@ func TestVirtual_CallContractTwoTimes(t *testing.T) {
 		)
 		objectAExecutionFirstMock.AddContinue(
 			func(result []byte) {
-				require.Equal(t, []byte("finish B.Bar"), result)
+				assert.Equal(t, []byte("finish B.Bar"), result)
 			},
 			&execution.Update{
 				Type:   execution.Done,
@@ -796,7 +773,7 @@ func TestVirtual_CallContractTwoTimes(t *testing.T) {
 		)
 		objectAExecutionSecondMock.AddContinue(
 			func(result []byte) {
-				require.Equal(t, []byte("finish B.Bar"), result)
+				assert.Equal(t, []byte("finish B.Bar"), result)
 			},
 			&execution.Update{
 				Type:     execution.OutgoingCall,
@@ -805,7 +782,7 @@ func TestVirtual_CallContractTwoTimes(t *testing.T) {
 		)
 		objectAExecutionSecondMock.AddContinue(
 			func(result []byte) {
-				require.Equal(t, []byte("finish B.Bar"), result)
+				assert.Equal(t, []byte("finish B.Bar"), result)
 			},
 			&execution.Update{
 				Type:   execution.Done,
@@ -822,11 +799,11 @@ func TestVirtual_CallContractTwoTimes(t *testing.T) {
 		typedChecker.VCallRequest.Set(func(request *rms.VCallRequest) bool {
 			switch string(request.Arguments.GetBytes()[0]) {
 			case "f":
-				require.Equal(t, []byte("first"), request.Arguments)
-				require.Equal(t, uint32(1), request.CallSequence)
+				assert.Equal(t, []byte("first"), request.Arguments.GetBytes())
+				assert.Equal(t, uint32(1), request.CallSequence)
 			case "s":
-				require.Equal(t, []byte("second"), request.Arguments)
-				require.Equal(t, uint32(2), request.CallSequence)
+				assert.Equal(t, []byte("second"), request.Arguments.GetBytes())
+				assert.Equal(t, uint32(2), request.CallSequence)
 			default:
 				t.Fatal("wrong call args")
 			}
@@ -846,7 +823,7 @@ func TestVirtual_CallContractTwoTimes(t *testing.T) {
 			return false
 		})
 		typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
-			require.Equal(t, []byte("finish A.Foo"), result.ReturnArguments)
+			assert.Equal(t, []byte("finish A.Foo"), result.ReturnArguments.GetBytes())
 			return false
 		})
 	}
@@ -881,8 +858,8 @@ func TestVirtual_CallContractTwoTimes(t *testing.T) {
 		commontestutils.WaitSignalsTimed(t, 20*time.Second, server.Journal.WaitAllAsyncCallsDone())
 	}
 
-	require.Equal(t, 4, typedChecker.VCallRequest.Count())
-	require.Equal(t, 2, typedChecker.VCallResult.Count())
+	assert.Equal(t, 4, typedChecker.VCallRequest.Count())
+	assert.Equal(t, 2, typedChecker.VCallResult.Count())
 
 	mc.Finish()
 }
@@ -928,13 +905,13 @@ func Test_CallMethodWithBadIsolationFlags(t *testing.T) {
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
-		assert.Equal(t, res.Callee, objectGlobal)
-		assert.Equal(t, res.CallOutgoing, outgoing)
+		assert.Equal(t, objectGlobal, res.Callee.GetValue())
+		assert.Equal(t, outgoing, res.CallOutgoing.GetValue())
 
 		contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments.GetBytes())
 		require.NoError(t, sysErr)
 		require.NotNil(t, contractErr)
-		require.Equal(t, expectedError.Error(), contractErr.Error())
+		assert.Equal(t, expectedError.Error(), contractErr.Error())
 
 		return false // no resend msg
 	})
@@ -1128,31 +1105,28 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 				}
 
 				objectExecutionMock := runnerMock.AddExecutionMock(outgoing)
-				objectExecutionMock.AddStart(
-					func(ctx execution.Context) {
-						require.Equal(t, objectRef, ctx.Request.Callee)
-						require.Equal(t, outgoing, ctx.Outgoing)
-						expectedMemory := origValidatedObjectMem
-						if testCase.isolation.State == isolation.CallDirty {
-							expectedMemory = origDirtyObjectMem
-						}
-						require.Equal(t, []byte(expectedMemory), ctx.ObjectDescriptor.Memory())
-					},
-					&execution.Update{
-						Type:   execution.Done,
-						Result: requestResult,
-					},
-				)
+				objectExecutionMock.AddStart(func(ctx execution.Context) {
+					assert.Equal(t, objectRef, ctx.Request.Callee.GetValue())
+					assert.Equal(t, outgoing, ctx.Outgoing)
+					expectedMemory := origValidatedObjectMem
+					if testCase.isolation.State == isolation.CallDirty {
+						expectedMemory = origDirtyObjectMem
+					}
+					assert.Equal(t, []byte(expectedMemory), ctx.ObjectDescriptor.Memory())
+				}, &execution.Update{
+					Type:   execution.Done,
+					Result: requestResult,
+				})
 			}
 			// setup type checker
 			{
 				typedChecker.VStateRequest.Set(func(req *rms.VStateRequest) bool {
-					require.Equal(t, p1, req.AsOf)
-					require.Equal(t, objectRef, req.Object)
+					assert.Equal(t, p1, req.AsOf)
+					assert.Equal(t, objectRef, req.Object.GetValue())
 
 					flags := rms.RequestLatestDirtyState | rms.RequestLatestValidatedState |
 						rms.RequestOrderedQueue | rms.RequestUnorderedQueue
-					require.Equal(t, flags, req.RequestedContent)
+					assert.Equal(t, flags, req.RequestedContent)
 
 					content := &rms.VStateReport_ProvidedContentBody{
 						LatestDirtyState: &rms.ObjectState{
@@ -1177,23 +1151,23 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 					return false
 				})
 				typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
-					require.Equal(t, objectRef, res.Callee)
-					require.Equal(t, outgoing, res.CallOutgoing)
-					require.Equal(t, []byte(callResult), res.ReturnArguments)
+					assert.Equal(t, objectRef, res.Callee.GetValue())
+					assert.Equal(t, outgoing, res.CallOutgoing.GetValue())
+					assert.Equal(t, []byte(callResult), res.ReturnArguments.GetBytes())
 					return false
 				})
 				typedChecker.VStateReport.Set(func(report *rms.VStateReport) bool {
-					require.Equal(t, objectRef, report.Object)
-					require.Equal(t, rms.StateStatusReady, report.Status)
-					require.True(t, report.DelegationSpec.IsZero())
-					require.Equal(t, int32(0), report.UnorderedPendingCount)
-					require.Equal(t, int32(0), report.OrderedPendingCount)
+					assert.Equal(t, objectRef, report.Object.GetValue())
+					assert.Equal(t, rms.StateStatusReady, report.Status)
+					assert.True(t, report.DelegationSpec.IsZero())
+					assert.Equal(t, int32(0), report.UnorderedPendingCount)
+					assert.Equal(t, int32(0), report.OrderedPendingCount)
 					require.NotNil(t, report.ProvidedContent)
 					switch testCase.isolation.Interference {
 					case isolation.CallIntolerable:
-						require.Equal(t, []byte(origDirtyObjectMem), report.ProvidedContent.LatestDirtyState.State)
+						assert.Equal(t, []byte(origDirtyObjectMem), report.ProvidedContent.LatestDirtyState.State.GetBytes())
 					case isolation.CallTolerable:
-						require.Equal(t, []byte(changedObjectMem), report.ProvidedContent.LatestValidatedState.State)
+						assert.Equal(t, []byte(changedObjectMem), report.ProvidedContent.LatestValidatedState.State.GetBytes())
 					default:
 						t.Fatal("StateStatusInvalid test case isolation interference")
 					}
@@ -1219,9 +1193,9 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 			commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 1))
 			commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
-			require.Equal(t, 1, typedChecker.VStateReport.Count())
-			require.Equal(t, 1, typedChecker.VStateRequest.Count())
-			require.Equal(t, 1, typedChecker.VCallResult.Count())
+			assert.Equal(t, 1, typedChecker.VStateReport.Count())
+			assert.Equal(t, 1, typedChecker.VStateRequest.Count())
+			assert.Equal(t, 1, typedChecker.VCallResult.Count())
 
 			mc.Finish()
 		})
@@ -1293,14 +1267,14 @@ func TestVirtual_Method_ForObjectWithMissingState(t *testing.T) {
 
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 			typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
-				require.Equal(t, rms.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty), result.CallFlags)
-				require.Equal(t, objectRef, result.Callee)
-				require.Equal(t, outgoing, result.CallOutgoing)
-				require.Equal(t, server.GlobalCaller(), result.Caller)
-				require.True(t, result.DelegationSpec.IsZero())
+				assert.Equal(t, rms.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty), result.CallFlags)
+				assert.Equal(t, objectRef, result.Callee.GetValue())
+				assert.Equal(t, outgoing, result.CallOutgoing.GetValue())
+				assert.Equal(t, server.GlobalCaller(), result.Caller.GetValue())
+				assert.True(t, result.DelegationSpec.IsZero())
 				contractErr, sysErr := foundation.UnmarshalMethodResult(result.ReturnArguments.GetBytes())
 				require.NoError(t, sysErr)
-				require.Equal(t, expectedError.Error(), contractErr.Error())
+				assert.Equal(t, expectedError.Error(), contractErr.Error())
 				return false
 			})
 
@@ -1315,7 +1289,7 @@ func TestVirtual_Method_ForObjectWithMissingState(t *testing.T) {
 			commontestutils.WaitSignalsTimed(t, 10*time.Second, execDone)
 			commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
-			require.Equal(t, 1, typedChecker.VCallResult.Count())
+			assert.Equal(t, 1, typedChecker.VCallResult.Count())
 			typedChecker.MinimockWait(10 * time.Second)
 
 			mc.Finish()
@@ -1455,8 +1429,8 @@ func TestVirtual_Method_ForbiddenIsolation(t *testing.T) {
 
 			{
 				typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
-					require.Equal(t, objectRef, res.Callee)
-					assert.Equal(t, test.callResult, res.ReturnArguments)
+					assert.Equal(t, objectRef, res.Callee.GetValue())
+					assert.Equal(t, test.callResult, res.ReturnArguments.GetBytes())
 					return false // no resend msg
 				})
 
@@ -1465,7 +1439,7 @@ func TestVirtual_Method_ForbiddenIsolation(t *testing.T) {
 				pl.Callee.Set(objectRef)
 				pl.CallOutgoing.Set(outgoingRef)
 
-				key := pl.CallOutgoing
+				key := pl.CallOutgoing.GetValue()
 
 				runnerMock.AddExecutionClassify(key, contract.MethodIsolation{
 					Interference: test.callFlags.GetInterference(),
@@ -1476,11 +1450,11 @@ func TestVirtual_Method_ForbiddenIsolation(t *testing.T) {
 				if !test.expectedUnImplementedError {
 					result := requestresult.New(test.callResult, outgoingRef)
 					result.SetAmend(dirtyState, []byte("new stuff"))
-					runnerMock.AddExecutionMock(key).
-						AddStart(nil, &execution.Update{
-							Type:   execution.Done,
-							Result: result,
-						})
+
+					runnerMock.AddExecutionMock(key).AddStart(nil, &execution.Update{
+						Type:   execution.Done,
+						Result: result,
+					})
 
 				}
 
@@ -1546,25 +1520,22 @@ func TestVirtual_Method_IntolerableCallChangeState(t *testing.T) {
 		requestResult.SetAmend(newObjDescriptor, []byte(changedObjectMem))
 
 		objectExecutionMock := runnerMock.AddExecutionMock(outgoing)
-		objectExecutionMock.AddStart(
-			func(ctx execution.Context) {
-				require.Equal(t, objectRef, ctx.Request.Callee)
-				require.Equal(t, []byte(origObjectMem), ctx.ObjectDescriptor.Memory())
-			},
-			&execution.Update{
-				Type:   execution.Done,
-				Result: requestResult,
-			},
-		)
+		objectExecutionMock.AddStart(func(ctx execution.Context) {
+			assert.Equal(t, objectRef, ctx.Request.Callee.GetValue())
+			assert.Equal(t, []byte(origObjectMem), ctx.ObjectDescriptor.Memory())
+		}, &execution.Update{
+			Type:   execution.Done,
+			Result: requestResult,
+		})
 	}
 	{
 		typedChecker.VStateRequest.Set(func(req *rms.VStateRequest) bool {
-			require.Equal(t, p1, req.AsOf)
-			require.Equal(t, objectRef, req.Object)
+			assert.Equal(t, p1, req.AsOf)
+			assert.Equal(t, objectRef, req.Object.GetValue())
 
 			flags := rms.RequestLatestDirtyState | rms.RequestLatestValidatedState |
 				rms.RequestOrderedQueue | rms.RequestUnorderedQueue
-			require.Equal(t, flags, req.RequestedContent)
+			assert.Equal(t, flags, req.RequestedContent)
 
 			content := &rms.VStateReport_ProvidedContentBody{
 				LatestDirtyState: &rms.ObjectState{
@@ -1587,21 +1558,21 @@ func TestVirtual_Method_IntolerableCallChangeState(t *testing.T) {
 		})
 
 		typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
-			require.Equal(t, objectRef, res.Callee)
-			require.Equal(t, outgoing, res.CallOutgoing)
+			assert.Equal(t, objectRef, res.Callee.GetValue())
+			assert.Equal(t, outgoing, res.CallOutgoing.GetValue())
 			contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments.GetBytes())
 			require.NoError(t, sysErr)
-			require.Equal(t, "intolerable call trying to change object state", contractErr.Error())
+			assert.Equal(t, "intolerable call trying to change object state", contractErr.Error())
 			return false // no resend msg
 		})
 		typedChecker.VStateReport.Set(func(report *rms.VStateReport) bool {
-			require.Equal(t, objectRef, report.Object)
-			require.Equal(t, rms.StateStatusReady, report.Status)
-			require.True(t, report.DelegationSpec.IsZero())
-			require.Equal(t, int32(0), report.UnorderedPendingCount)
-			require.Equal(t, int32(0), report.OrderedPendingCount)
-			require.NotNil(t, report.ProvidedContent)
-			require.Equal(t, []byte(origObjectMem), report.ProvidedContent.LatestDirtyState.State)
+			assert.Equal(t, objectRef, report.Object.GetValue())
+			assert.Equal(t, rms.StateStatusReady, report.Status)
+			assert.True(t, report.DelegationSpec.IsZero())
+			assert.Equal(t, int32(0), report.UnorderedPendingCount)
+			assert.Equal(t, int32(0), report.OrderedPendingCount)
+			assert.NotNil(t, report.ProvidedContent)
+			assert.Equal(t, []byte(origObjectMem), report.ProvidedContent.LatestDirtyState.State.GetBytes())
 			return false
 		})
 	}
@@ -1622,9 +1593,9 @@ func TestVirtual_Method_IntolerableCallChangeState(t *testing.T) {
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 1))
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
-	require.Equal(t, 1, typedChecker.VStateReport.Count())
-	require.Equal(t, 1, typedChecker.VStateRequest.Count())
-	require.Equal(t, 1, typedChecker.VCallResult.Count())
+	assert.Equal(t, 1, typedChecker.VStateReport.Count())
+	assert.Equal(t, 1, typedChecker.VStateRequest.Count())
+	assert.Equal(t, 1, typedChecker.VCallResult.Count())
 	typedChecker.MinimockFinish()
 
 	server.Stop()
@@ -1662,8 +1633,8 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	{
 		typedChecker.VStateReport.Set(func(report *rms.VStateReport) bool {
-			assert.Equal(t, newState, report.ProvidedContent.LatestDirtyState.State)
-			assert.Equal(t, newState, report.ProvidedContent.LatestValidatedState.State)
+			assert.Equal(t, newState, report.ProvidedContent.LatestDirtyState.State.GetBytes())
+			assert.Equal(t, newState, report.ProvidedContent.LatestValidatedState.State.GetBytes())
 			return false
 		})
 		typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
@@ -1848,8 +1819,8 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 		// wait for all VCallResults
 		commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
-		require.Equal(t, 1, typedChecker.VStateReport.Count())
-		require.Equal(t, 5, typedChecker.VCallResult.Count())
+		assert.Equal(t, 1, typedChecker.VStateReport.Count())
+		assert.Equal(t, 5, typedChecker.VCallResult.Count())
 	}
 	mc.Finish()
 }
@@ -1924,9 +1895,9 @@ func TestVirtual_Method_TwoUnorderedCalls(t *testing.T) {
 		typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
 			switch result.CallOutgoing.GetValue() {
 			case firstOutgoing:
-				assert.Equal(t, []byte("first result"), result.ReturnArguments)
+				assert.Equal(t, []byte("first result"), result.ReturnArguments.GetBytes())
 			case secondOutgoing:
-				assert.Equal(t, []byte("second result"), result.ReturnArguments)
+				assert.Equal(t, []byte("second result"), result.ReturnArguments.GetBytes())
 			default:
 				t.Fatalf("unexpected outgoing")
 			}

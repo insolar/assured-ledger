@@ -407,13 +407,13 @@ func (s *VFindCallRequestHandlingSuite) setMessageCheckers(
 			close(s.vFindCallResponseSent)
 		}()
 		assert.Equal(t, s.getP2(), res.LookedAt)
-		assert.Equal(t, s.getObject(), res.Callee)
-		assert.Equal(t, s.outgoing, res.Outgoing)
+		assert.Equal(t, s.getObject(), res.Callee.GetValue())
+		assert.Equal(t, s.outgoing, res.Outgoing.GetValue())
 		assert.Equal(t, testInfo.expectedStatus, res.Status)
 
 		if testInfo.expectedResult {
 			require.NotNil(t, res.CallResult)
-			require.Equal(t, s.outgoing, res.CallResult.CallOutgoing)
+			assert.Equal(t, s.outgoing, res.CallResult.CallOutgoing.GetValue())
 		}
 
 		return false
@@ -421,7 +421,7 @@ func (s *VFindCallRequestHandlingSuite) setMessageCheckers(
 
 	s.typedChecker.VStateReport.Set(func(report *rms.VStateReport) bool {
 		assert.Equal(t, s.getP2(), report.AsOf)
-		assert.Equal(t, s.getObject(), report.Object)
+		assert.Equal(t, s.getObject(), report.Object.GetValue())
 		if s.vStateReportSent != nil {
 			close(s.vStateReportSent)
 		}

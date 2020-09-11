@@ -145,7 +145,7 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 			Outgoing: outgoingCall,
 		}).AddContinue(func(result []byte) {
 			logger.Debug("ExecutionContinue [A.Foo]")
-			require.Equal(t, []byte("finish B.Bar"), result)
+			assert.Equal(t, []byte("finish B.Bar"), result)
 		}, &execution.Update{
 			Type:   execution.Done,
 			Result: requestresult.New([]byte("finish A.Foo"), objectAGlobal),
@@ -158,12 +158,12 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 	{
 		typedChecker.VStateReport.Set(func(report *rms.VStateReport) bool {
 			// check for pending counts must be in tests: call constructor/call terminal method
-			assert.Equal(t, objectAGlobal, report.Object)
+			assert.Equal(t, objectAGlobal, report.Object.GetValue())
 			assert.Zero(t, report.DelegationSpec)
 			return false
 		})
 		typedChecker.VDelegatedCallRequest.Set(func(request *rms.VDelegatedCallRequest) bool {
-			assert.Equal(t, objectAGlobal, request.Callee)
+			assert.Equal(t, objectAGlobal, request.Callee.GetValue())
 
 			token := rms.CallDelegationToken{
 				TokenTypeAndFlags: rms.DelegationTokenTypeCall,
@@ -195,12 +195,12 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 			return false
 		})
 		typedChecker.VDelegatedRequestFinished.Set(func(finished *rms.VDelegatedRequestFinished) bool {
-			assert.Equal(t, objectAGlobal, finished.Callee)
+			assert.Equal(t, objectAGlobal, finished.Callee.GetValue())
 			assert.Equal(t, secondExpectedToken, finished.DelegationSpec)
 			return false
 		})
 		typedChecker.VCallRequest.Set(func(request *rms.VCallRequest) bool {
-			assert.Equal(t, objectBGlobal, request.Callee)
+			assert.Equal(t, objectBGlobal, request.Callee.GetValue())
 
 			switch typedChecker.VCallRequest.CountBefore() {
 			case 1:
@@ -216,7 +216,7 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 				// reRequest -> check all fields
 				expectedVCallRequest.DelegationSpec = secondExpectedToken
 				expectedVCallRequest.CallOutgoing = request.CallOutgoing
-				assert.Equal(t, &expectedVCallRequest, request)
+				utils.AssertVCallRequestEqual(t, &expectedVCallRequest, request)
 
 				server.SendPayload(ctx, &rms.VCallResult{
 					CallType:        request.CallType,
@@ -234,8 +234,8 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 			return false
 		})
 		typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
-			assert.Equal(t, objectAGlobal, res.Callee)
-			assert.Equal(t, []byte("finish A.Foo"), res.ReturnArguments)
+			assert.Equal(t, objectAGlobal, res.Callee.GetValue())
+			assert.Equal(t, []byte("finish A.Foo"), res.ReturnArguments.GetBytes())
 			assert.Equal(t, int(firstPulse), int(res.CallOutgoing.GetPulseOfLocal()))
 			assert.Equal(t, secondExpectedToken, res.DelegationSpec)
 			return false
@@ -347,7 +347,7 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 			Error:    nil,
 			Outgoing: outgoingCall,
 		}).AddContinue(func(result []byte) {
-			require.Equal(t, []byte("finish B.Bar"), result)
+			assert.Equal(t, []byte("finish B.Bar"), result)
 		}, &execution.Update{
 			Type:   execution.Done,
 			Result: objectAResult,
@@ -358,14 +358,14 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 	{
 		typedChecker.VStateReport.Set(func(report *rms.VStateReport) bool {
 			// check for pending counts must be in tests: call constructor/call terminal method
-			assert.Equal(t, objectRef, report.Object)
+			assert.Equal(t, objectRef, report.Object.GetValue())
 			assert.Equal(t, rms.StateStatusEmpty, report.Status)
 			assert.Zero(t, report.DelegationSpec)
 			return false
 		})
 		typedChecker.VDelegatedCallRequest.Set(func(request *rms.VDelegatedCallRequest) bool {
-			assert.Equal(t, objectRef, request.Callee)
-			assert.Equal(t, outgoing, request.CallOutgoing)
+			assert.Equal(t, objectRef, request.Callee.GetValue())
+			assert.Equal(t, outgoing, request.CallOutgoing.GetValue())
 
 			msg := rms.VDelegatedCallResponse{
 				Callee:       request.Callee,
@@ -406,14 +406,14 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 			return false
 		})
 		typedChecker.VDelegatedRequestFinished.Set(func(finished *rms.VDelegatedRequestFinished) bool {
-			assert.Equal(t, objectRef, finished.Callee)
+			assert.Equal(t, objectRef, finished.Callee.GetValue())
 			assert.Equal(t, secondExpectedToken, finished.DelegationSpec)
 			assert.Equal(t, rms.CallTypeConstructor, finished.CallType)
 			assert.NotNil(t, finished.LatestState)
 			return false
 		})
 		typedChecker.VCallRequest.Set(func(request *rms.VCallRequest) bool {
-			assert.Equal(t, objectBGlobal, request.Callee)
+			assert.Equal(t, objectBGlobal, request.Callee.GetValue())
 
 			switch typedChecker.VCallRequest.CountBefore() {
 			case 1:
@@ -429,7 +429,7 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 
 				// reRequest -> check all fields
 				expectedVCallRequest.CallOutgoing = request.CallOutgoing
-				assert.Equal(t, &expectedVCallRequest, request)
+				utils.AssertVCallRequestEqual(t, &expectedVCallRequest, request)
 
 				server.SendPayload(ctx, &rms.VCallResult{
 					CallType:        request.CallType,
@@ -447,8 +447,8 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 			return false
 		})
 		typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
-			assert.Equal(t, objectRef, res.Callee)
-			assert.Equal(t, []byte("finish A.New"), res.ReturnArguments)
+			assert.Equal(t, objectRef, res.Callee.GetValue())
+			assert.Equal(t, []byte("finish A.New"), res.ReturnArguments.GetBytes())
 			assert.Equal(t, int(firstPulse), int(res.CallOutgoing.GetPulseOfLocal()))
 			assert.Equal(t, secondExpectedToken, res.DelegationSpec)
 			return false
@@ -493,7 +493,7 @@ func TestVirtual_CallContractOutgoingReturnsError(t *testing.T) {
 	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 2)
 
 	runnerMock := logicless.NewServiceMock(ctx, mc, func(execution execution.Context) interface{} {
-		return execution.Request.Callee
+		return execution.Request.Callee.GetValue()
 	})
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
@@ -531,9 +531,9 @@ func TestVirtual_CallContractOutgoingReturnsError(t *testing.T) {
 		objectAExecutionMock.AddStart(
 			func(ctx execution.Context) {
 				logger.Debug("ExecutionStart [A.Foo]")
-				require.Equal(t, server.GlobalCaller(), ctx.Request.Caller)
-				require.Equal(t, objectA, ctx.Request.Callee)
-				require.Equal(t, outgoingCallRef, ctx.Request.CallOutgoing)
+				assert.Equal(t, server.GlobalCaller(), ctx.Request.Caller.GetValue())
+				assert.Equal(t, objectA, ctx.Request.Callee.GetValue())
+				assert.Equal(t, outgoingCallRef, ctx.Request.CallOutgoing.GetValue())
 			},
 			&execution.Update{
 				Type:     execution.OutgoingCall,
@@ -548,8 +548,7 @@ func TestVirtual_CallContractOutgoingReturnsError(t *testing.T) {
 				expectedError := throw.W(errors.New("some error"), "failed to execute request")
 				serializedErr, err := foundation.MarshalMethodErrorResult(expectedError)
 				require.NoError(t, err)
-				require.NotNil(t, serializedErr)
-				require.Equal(t, serializedErr, result)
+				assert.Equal(t, serializedErr, result)
 			},
 			&execution.Update{
 				Type:   execution.Done,
@@ -568,9 +567,9 @@ func TestVirtual_CallContractOutgoingReturnsError(t *testing.T) {
 		objectBExecutionMock.AddStart(
 			func(ctx execution.Context) {
 				logger.Debug("ExecutionStart [B.Bar]")
-				require.Equal(t, objectB, ctx.Request.Callee)
-				require.Equal(t, objectA, ctx.Request.Caller)
-				require.Equal(t, []byte("B"), ctx.Request.Arguments)
+				assert.Equal(t, objectB, ctx.Request.Callee.GetValue())
+				assert.Equal(t, objectA, ctx.Request.Caller.GetValue())
+				assert.Equal(t, []byte("B"), ctx.Request.Arguments.GetBytes())
 			},
 			&execution.Update{
 				Type:   execution.Error,
@@ -590,15 +589,15 @@ func TestVirtual_CallContractOutgoingReturnsError(t *testing.T) {
 	// add checks to typedChecker
 	{
 		typedChecker.VCallRequest.Set(func(request *rms.VCallRequest) bool {
-			assert.Equal(t, objectA, request.Caller)
+			assert.Equal(t, objectA, request.Caller.GetValue())
 			assert.Equal(t, rms.CallTypeMethod, request.CallType)
 			assert.Equal(t, callFlags, request.CallFlags)
 			assert.Equal(t, p, request.CallOutgoing.GetPulseOfLocal())
 
 			switch request.Callee.GetValue() {
 			case objectB:
-				require.Equal(t, []byte("B"), request.Arguments)
-				require.Equal(t, uint32(1), request.CallSequence)
+				assert.Equal(t, []byte("B"), request.Arguments.GetBytes())
+				assert.Equal(t, uint32(1), request.CallSequence)
 			default:
 				t.Fatal("wrong Callee")
 			}
@@ -610,18 +609,18 @@ func TestVirtual_CallContractOutgoingReturnsError(t *testing.T) {
 
 			switch res.Callee.GetValue() {
 			case objectA:
-				require.Equal(t, []byte("finish A.Foo"), res.ReturnArguments)
-				require.Equal(t, server.GlobalCaller(), res.Caller)
-				require.Equal(t, outgoingCallRef, res.CallOutgoing)
+				assert.Equal(t, []byte("finish A.Foo"), res.ReturnArguments.GetBytes())
+				assert.Equal(t, server.GlobalCaller(), res.Caller.GetValue())
+				assert.Equal(t, outgoingCallRef, res.CallOutgoing.GetValue())
 			case objectB:
 				expectedError := throw.W(errors.New("some error"), "failed to execute request")
 				contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments.GetBytes())
 				require.NoError(t, sysErr)
 				require.NotNil(t, contractErr)
-				require.Equal(t, expectedError.Error(), contractErr.Error())
+				assert.Equal(t, expectedError.Error(), contractErr.Error())
 
-				require.Equal(t, objectA, res.Caller)
-				require.Equal(t, p, res.CallOutgoing.GetPulseOfLocal())
+				assert.Equal(t, objectA, res.Caller.GetValue())
+				assert.Equal(t, p, res.CallOutgoing.GetPulseOfLocal())
 			default:
 				t.Fatal("wrong Callee")
 			}
@@ -642,8 +641,8 @@ func TestVirtual_CallContractOutgoingReturnsError(t *testing.T) {
 	commontestutils.WaitSignalsTimed(t, 20*time.Second, executeDone)
 	commontestutils.WaitSignalsTimed(t, 20*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
-	require.Equal(t, 1, typedChecker.VCallRequest.Count())
-	require.Equal(t, 2, typedChecker.VCallResult.Count())
+	assert.Equal(t, 1, typedChecker.VCallRequest.Count())
+	assert.Equal(t, 2, typedChecker.VCallResult.Count())
 
 	mc.Finish()
 }

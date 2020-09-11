@@ -13,7 +13,6 @@ import (
 
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
@@ -109,9 +108,9 @@ func TestDeduplication_SecondCallOfMethodDuringExecution(t *testing.T) {
 				typedChecker.VCallResult.SetResend(false)
 
 				typedChecker.VFindCallRequest.Set(func(req *rms.VFindCallRequest) bool {
-					require.Equal(t, prevPulse, req.LookAt)
-					require.Equal(t, object, req.Callee)
-					require.Equal(t, outgoing, req.Outgoing)
+					assert.Equal(t, prevPulse, req.LookAt)
+					assert.Equal(t, object, req.Callee.GetValue())
+					assert.Equal(t, outgoing, req.Outgoing.GetValue())
 
 					response := rms.VFindCallResponse{
 						LookedAt:   prevPulse,
@@ -227,7 +226,7 @@ func TestDeduplication_SecondCallOfMethodAfterExecution(t *testing.T) {
 
 				typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
 					if firstResult != nil {
-						require.Equal(t, firstResult, result)
+						assert.Equal(t, firstResult, result)
 					} else {
 						firstResult = result
 					}
@@ -236,9 +235,9 @@ func TestDeduplication_SecondCallOfMethodAfterExecution(t *testing.T) {
 				})
 
 				typedChecker.VFindCallRequest.Set(func(req *rms.VFindCallRequest) bool {
-					require.Equal(t, prevPulse, req.LookAt)
-					require.Equal(t, object, req.Callee)
-					require.Equal(t, outgoing, req.Outgoing)
+					assert.Equal(t, prevPulse, req.LookAt)
+					assert.Equal(t, object, req.Callee.GetValue())
+					assert.Equal(t, outgoing, req.Outgoing.GetValue())
 
 					response := rms.VFindCallResponse{
 						LookedAt:   prevPulse,
@@ -497,18 +496,18 @@ func TestDeduplication_MethodUsingPrevVE(t *testing.T) {
 			commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
 			commontestutils.WaitSignalsTimed(t, 10*time.Second, suite.server.Journal.WaitAllAsyncCallsDone())
 
-			require.Equal(t, 1, suite.typedChecker.VStateRequest.Count())
+			assert.Equal(t, 1, suite.typedChecker.VStateRequest.Count())
 			if test.expectResultMessage {
-				require.Equal(t, 1, suite.typedChecker.VCallResult.Count())
+				assert.Equal(t, 1, suite.typedChecker.VCallResult.Count())
 			}
 			if test.expectFindRequestMessage {
-				require.Equal(t, 1, suite.typedChecker.VFindCallRequest.Count())
+				assert.Equal(t, 1, suite.typedChecker.VFindCallRequest.Count())
 			}
 
 			if test.expectExecution {
-				require.Equal(t, 1, suite.getNumberOfExecutions())
+				assert.Equal(t, 1, suite.getNumberOfExecutions())
 			} else {
-				require.Equal(t, 0, suite.getNumberOfExecutions())
+				assert.Equal(t, 0, suite.getNumberOfExecutions())
 			}
 
 			suite.finish()
@@ -692,8 +691,8 @@ func (s *deduplicateMethodUsingPrevVETest) setMessageCheckers(
 ) {
 
 	s.typedChecker.VStateRequest.Set(func(req *rms.VStateRequest) bool {
-		require.Equal(t, s.getP1(), req.AsOf)
-		require.Equal(t, s.getObject(), req.Object)
+		assert.Equal(t, s.getP1(), req.AsOf)
+		assert.Equal(t, s.getObject(), req.Object.GetValue())
 
 		report := rms.VStateReport{
 			AsOf:   s.getP1(),
@@ -725,9 +724,9 @@ func (s *deduplicateMethodUsingPrevVETest) setMessageCheckers(
 
 	if testInfo.expectFindRequestMessage {
 		s.typedChecker.VFindCallRequest.Set(func(req *rms.VFindCallRequest) bool {
-			require.Equal(t, s.getP1(), req.LookAt)
-			require.Equal(t, s.getObject(), req.Callee)
-			require.Equal(t, s.getOutgoingRef(), req.Outgoing)
+			assert.Equal(t, s.getP1(), req.LookAt)
+			assert.Equal(t, s.getObject(), req.Callee.GetValue())
+			assert.Equal(t, s.getOutgoingRef(), req.Outgoing.GetValue())
 
 			response := rms.VFindCallResponse{
 				LookedAt: s.getP1(),
@@ -755,17 +754,17 @@ func (s *deduplicateMethodUsingPrevVETest) setMessageCheckers(
 
 	if testInfo.expectResultMessage {
 		s.typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
-			require.Equal(t, rms.CallTypeMethod, res.CallType)
+			assert.Equal(t, rms.CallTypeMethod, res.CallType)
 			flags := rms.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty)
-			require.Equal(t, flags, res.CallFlags)
-			require.Equal(t, s.getCaller(), res.Caller)
-			require.Equal(t, s.getObject(), res.Callee)
-			require.Equal(t, s.getOutgoingLocal(), res.CallOutgoing)
+			assert.Equal(t, flags, res.CallFlags)
+			assert.Equal(t, s.getCaller(), res.Caller.GetValue())
+			assert.Equal(t, s.getObject(), res.Callee.GetValue())
+			assert.Equal(t, s.getOutgoingLocal(), res.CallOutgoing.GetValue())
 
 			if testInfo.expectExecution {
-				require.Equal(t, []byte("execution"), res.ReturnArguments)
+				assert.Equal(t, []byte("execution"), res.ReturnArguments.GetBytes())
 			} else {
-				require.Equal(t, []byte("found request"), res.ReturnArguments)
+				assert.Equal(t, []byte("found request"), res.ReturnArguments.GetBytes())
 			}
 
 			return false
