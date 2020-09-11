@@ -74,7 +74,7 @@ func TestSMExecute_Semi_IncrementPendingCounters(t *testing.T) {
 			CallSiteMethod: "New",
 		},
 		Meta: &rms.Meta{
-			Sender: caller,
+			Sender: rms.NewReference(caller),
 		},
 	}
 	catalogWrapper := object.NewCatalogMockWrapper(mc)
@@ -155,7 +155,7 @@ func TestSMExecute_MigrateBeforeLock(t *testing.T) {
 			CallSiteMethod: "New",
 		},
 		Meta: &rms.Meta{
-			Sender: caller,
+			Sender: rms.NewReference(caller),
 		},
 	}
 	catalogWrapper := object.NewCatalogMockWrapper(mc)
@@ -237,7 +237,7 @@ func TestSMExecute_MigrateAfterLock(t *testing.T) {
 			CallSiteMethod: "New",
 		},
 		Meta: &rms.Meta{
-			Sender: caller,
+			Sender: rms.NewReference(caller),
 		},
 	}
 	catalogWrapper := object.NewCatalogMockWrapper(mc)
@@ -320,7 +320,7 @@ func TestSMExecute_Semi_ConstructorOnMissingObject(t *testing.T) {
 			CallSiteMethod: "New",
 		},
 		Meta: &rms.Meta{
-			Sender: caller,
+			Sender: rms.NewReference(caller),
 		},
 	}
 	catalogWrapper := object.NewCatalogMockWrapper(mc)
@@ -408,7 +408,7 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 			CallSiteMethod: "New",
 		},
 		Meta: &rms.Meta{
-			Sender: caller,
+			Sender: rms.NewReference(caller),
 		},
 	}
 	catalogWrapper := object.NewCatalogMockWrapper(mc)
@@ -492,7 +492,7 @@ func TestSMExecute_Semi_MethodOnEmptyObject(t *testing.T) {
 			CallSiteMethod: "New",
 		},
 		Meta: &rms.Meta{
-			Sender: caller,
+			Sender: rms.NewReference(caller),
 		},
 	}
 	catalogWrapper := object.NewCatalogMockWrapper(mc)

@@ -86,7 +86,7 @@ func TestDSMVStateRequest_PresentPulse(t *testing.T) {
 			Object: rms.NewReference(objectRef),
 		},
 		Meta: &rms.Meta{
-			Sender: caller,
+			Sender: rms.NewReference(caller),
 		},
 	}
 
@@ -127,7 +127,7 @@ func TestDSMVStateRequest_PastPulse(t *testing.T) {
 			Object: rms.NewReference(objectRef),
 		},
 		Meta: &rms.Meta{
-			Sender: caller,
+			Sender: rms.NewReference(caller),
 		},
 	}
 
