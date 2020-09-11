@@ -46,9 +46,11 @@ func (f FactoryMeta) Process(ctx context.Context, msg insconveyor.DispatchedMess
 	}
 	logCtx, logger := inslogger.WithTraceField(logCtx, traceID)
 
-	payloadObj := payloadMeta.Payload.Get()
-
-	payloadType := reflect.Indirect(reflect.ValueOf(payloadObj)).Type()
+	var (
+		payloadObj  = payloadMeta.Payload.Get()
+		payloadType = reflect.Indirect(reflect.ValueOf(payloadObj)).Type()
+		sender      = payloadMeta.Sender.GetValue()
+	)
 
 	logger.Infom(struct {
 		Message        string
@@ -57,8 +59,8 @@ func (f FactoryMeta) Process(ctx context.Context, msg insconveyor.DispatchedMess
 	}{
 		"processing message",
 		payloadType,
-		payloadMeta.Sender,
-		payloadMeta.Receiver,
+		sender,
+		payloadMeta.Receiver.GetValue(),
 	})
 
 	targetPulse := pr.RightBoundData().PulseNumber
@@ -68,7 +70,7 @@ func (f FactoryMeta) Process(ctx context.Context, msg insconveyor.DispatchedMess
 
 	// don't check sender for future pulses in R0
 	if !pr.RightBoundData().IsExpectedPulse() {
-		mustReject, err := f.AuthService.CheckMessageFromAuthorizedVirtual(logCtx, payloadObj, payloadMeta.Sender, pr)
+		mustReject, err := f.AuthService.CheckMessageFromAuthorizedVirtual(logCtx, payloadObj, sender, pr)
 		if err != nil {
 			logger.Warn(throw.W(err, "illegitimate msg", skippedMessage{
 				messageType:   payloadType,

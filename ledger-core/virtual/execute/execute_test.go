@@ -432,7 +432,7 @@ func TestSMExecute_ProcessFindCallResponse(t *testing.T) {
 		Payload:           request,
 		pulseSlot:         &pulseSlot,
 		objectSharedState: smObjectAccessor,
-		Meta:              &rms.Meta{Sender: sender},
+		Meta:              &rms.Meta{Sender: rms.NewReference(sender)},
 	}
 
 	smExecute = expectedInitState(ctx, smExecute)
@@ -496,7 +496,7 @@ func TestSMExecute_ProcessFindCallResponse(t *testing.T) {
 			}
 		}
 		checkTarget := func(target reference.Global) {
-			assert.Equal(t, smExecute.Meta.Sender, target)
+			assert.Equal(t, smExecute.Meta.Sender.GetValue(), target)
 		}
 
 		messageSender.SendTarget.SetCheckMessage(checkMessage)
@@ -652,7 +652,7 @@ func TestSMExecute_TokenInOutgoingMessage(t *testing.T) {
 
 			smExecute := SMExecute{
 				Meta: &rms.Meta{
-					Sender: otherRef,
+					Sender: rms.NewReference(otherRef),
 				},
 				Payload:               request,
 				pulseSlot:             &pulseSlot,
@@ -718,7 +718,7 @@ func TestSMExecute_VCallResultPassedToSMObject(t *testing.T) {
 
 	smExecute := SMExecute{
 		Meta: &rms.Meta{
-			Sender: gen.UniqueGlobalRef(),
+			Sender: rms.NewReference(gen.UniqueGlobalRef()),
 		},
 		Payload:           request,
 		pulseSlot:         &pulseSlot,
@@ -819,7 +819,7 @@ func TestSendVStateReportWithMissingState_IfConstructorWasInterruptedBeforeRunne
 			CallSiteMethod: "New",
 		},
 		Meta: &rms.Meta{
-			Sender: caller,
+			Sender: rms.NewReference(caller),
 		},
 	}
 	slotMachine.Start()
@@ -908,7 +908,7 @@ func TestSMExecute_StopWithoutMessagesIfPulseChangedBeforeOutgoing(t *testing.T)
 			Arguments:      rms.NewBytes(insolar.MustSerialize([]interface{}{})),
 		},
 		Meta: &rms.Meta{
-			Sender: caller,
+			Sender: rms.NewReference(caller),
 		},
 	}
 	slotMachine.Start()
