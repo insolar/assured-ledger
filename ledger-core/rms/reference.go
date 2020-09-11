@@ -8,6 +8,7 @@ package rms
 import (
 	"io"
 
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/protokit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -29,7 +30,7 @@ func NewReferenceLazy(v ReferenceProvider) Reference {
 
 func NewReferenceLocal(v reference.LocalHolder) Reference {
 	r := Reference{}
-	r.SetLocal(v)
+	r.SetWithoutBase(v)
 	return r
 }
 
@@ -102,11 +103,12 @@ func (p *Reference) Get() reference.Holder {
 	return p.value
 }
 
-func (p *Reference) GetGlobal() reference.Global {
+func (p *Reference) GetValue() reference.Global {
 	return reference.Copy(p.Get())
 }
 
-func (p *Reference) SetLocal(holder reference.LocalHolder) {
+// SetWithoutBase ignores base part and sets only local one.
+func (p *Reference) SetWithoutBase(holder reference.LocalHolder) {
 	p.lazy = nil
 	if holder == nil {
 		p.value = nil
@@ -115,7 +117,8 @@ func (p *Reference) SetLocal(holder reference.LocalHolder) {
 	p.value = reference.New(reference.Local{}, holder.GetLocal())
 }
 
-func (p *Reference) GetLocal() reference.LocalHolder {
+// GetWithoutBase returns only local part and PANICS when base part is present.
+func (p *Reference) GetWithoutBase() reference.LocalHolder {
 	p.ensure()
 	if p.value == nil {
 		return nil
@@ -126,6 +129,29 @@ func (p *Reference) GetLocal() reference.LocalHolder {
 		return local
 	}
 	panic(throw.IllegalState())
+}
+
+// GetValueWithoutBase returns only local part and PANICS when base part is present.
+func (p *Reference) GetValueWithoutBase() reference.Local {
+	return reference.CopyLocal(p.GetWithoutBase())
+}
+
+// GetPulseOfLocal returns pulse number of local portion of reference. Returns zero when reference is not set or empty.
+func (p *Reference) GetPulseOfLocal() pulse.Number {
+	p.ensure()
+	if p.value == nil {
+		return 0
+	}
+	return reference.PulseNumberOf(p.value)
+}
+
+// GetPulseOfBase returns pulse number of base portion of reference. Returns zero when reference is not set, is empty or has no base part.
+func (p *Reference) GetPulseOfBase() pulse.Number {
+	p.ensure()
+	if p.value == nil {
+		return 0
+	}
+	return reference.PulseNumberOf(p.value.GetBase())
 }
 
 func (p *Reference) Equal(o *Reference) bool {
