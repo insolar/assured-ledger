@@ -16,9 +16,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/network"
-	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet/types"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 )
 
@@ -51,7 +51,7 @@ func TestHostNetwork_SendRequestPacket2(t *testing.T) {
 
 	ref, err := reference.GlobalFromString(id2)
 	require.NoError(t, err)
-	f, err := s.n1.SendRequest(s.ctx1, types.RPC, &packet.RPCRequest{}, ref)
+	f, err := s.n1.SendRequest(s.ctx1, types.RPC, &rms.RPCRequest{}, ref)
 	require.NoError(t, err)
 	f.Cancel()
 

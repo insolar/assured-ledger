@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package host
+package legacyhost
 
 import (
 	"bytes"
@@ -12,7 +12,7 @@ import (
 	"io/ioutil"
 	"net"
 
-	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/node"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -32,7 +32,7 @@ type Host struct {
 func NewHost(address string) (*Host, error) {
 	addr, err := NewAddress(address)
 	if err != nil {
-		return nil, errors.W(err, "Failed to create Host")
+		return nil, throw.W(err, "Failed to create Host")
 	}
 	return &Host{Address: addr}, nil
 }
@@ -80,27 +80,27 @@ func (host *Host) Marshal() ([]byte, error) {
 	length := host.Size()
 	buffer := bytes.NewBuffer(make([]byte, 0, length))
 	if err := binary.Write(buffer, binary.BigEndian, host.NodeID); err != nil {
-		return nil, errors.W(err, "failed to marshal protobuf host NodeID")
+		return nil, throw.W(err, "failed to marshal protobuf host NodeID")
 	}
 	if err := binary.Write(buffer, binary.BigEndian, host.ShortID); err != nil {
-		return nil, errors.W(err, "failed to marshal protobuf host ShortID")
+		return nil, throw.W(err, "failed to marshal protobuf host ShortID")
 	}
 	header := byte(len(host.Address.IP))
 	if err := binary.Write(buffer, binary.BigEndian, header); err != nil {
-		return nil, errors.W(err, "failed to marshal protobuf host header")
+		return nil, throw.W(err, "failed to marshal protobuf host header")
 	}
 	if header == 0 {
 		// Address is not present, marshalling is finished
 		return buffer.Bytes(), nil
 	}
 	if err := binary.Write(buffer, binary.BigEndian, host.Address.IP); err != nil {
-		return nil, errors.W(err, "failed to marshal protobuf host IP")
+		return nil, throw.W(err, "failed to marshal protobuf host IP")
 	}
 	if err := binary.Write(buffer, binary.BigEndian, uint16(host.Address.Port)); err != nil {
-		return nil, errors.W(err, "failed to marshal protobuf host port")
+		return nil, throw.W(err, "failed to marshal protobuf host port")
 	}
 	if err := binary.Write(buffer, binary.BigEndian, []byte(host.Address.Zone)); err != nil {
-		return nil, errors.W(err, "failed to unmarshal protobuf host zone")
+		return nil, throw.W(err, "failed to unmarshal protobuf host zone")
 	}
 	return buffer.Bytes(), nil
 }
@@ -119,16 +119,16 @@ func (host *Host) Unmarshal(data []byte) error {
 
 	var nodeIDBinary [reference.GlobalBinarySize]byte
 	if err := binary.Read(reader, binary.BigEndian, &nodeIDBinary); err != nil {
-		return errors.W(err, "failed to unmarshal protobuf host NodeID")
+		return throw.W(err, "failed to unmarshal protobuf host NodeID")
 	}
 	host.NodeID = reference.GlobalFromBytes(nodeIDBinary[:])
 
 	if err := binary.Read(reader, binary.BigEndian, &host.ShortID); err != nil {
-		return errors.W(err, "failed to unmarshal protobuf host ShortID")
+		return throw.W(err, "failed to unmarshal protobuf host ShortID")
 	}
 	var header byte
 	if err := binary.Read(reader, binary.BigEndian, &header); err != nil {
-		return errors.W(err, "failed to unmarshal protobuf host header")
+		return throw.W(err, "failed to unmarshal protobuf host header")
 	}
 	if header == 0 {
 		// Address is not present, unmarshalling is finished
@@ -136,15 +136,15 @@ func (host *Host) Unmarshal(data []byte) error {
 	}
 	ip := make([]byte, header)
 	if err := binary.Read(reader, binary.BigEndian, ip); err != nil {
-		return errors.W(err, "failed to unmarshal protobuf host IP")
+		return throw.W(err, "failed to unmarshal protobuf host IP")
 	}
 	var port uint16
 	if err := binary.Read(reader, binary.BigEndian, &port); err != nil {
-		return errors.W(err, "failed to unmarshal protobuf host port")
+		return throw.W(err, "failed to unmarshal protobuf host port")
 	}
 	zone, err := ioutil.ReadAll(reader)
 	if err != nil {
-		return errors.W(err, "failed to unmarshal protobuf host zone")
+		return throw.W(err, "failed to unmarshal protobuf host zone")
 	}
 	host.Address = Address{UDPAddr: net.UDPAddr{IP: ip, Port: int(port), Zone: string(zone)}}
 	return nil

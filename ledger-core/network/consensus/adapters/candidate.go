@@ -10,12 +10,12 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/crypto/legacyadapter"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
-	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters/candidate"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 )
 
-type Candidate candidate.Profile
+type Candidate rms.Profile
 
 func (c Candidate) StaticProfile(keyProcessor cryptography.KeyProcessor) *StaticProfile {
 	publicKey, err := keyProcessor.ImportPublicKeyBinary(c.PublicKey)
@@ -30,7 +30,7 @@ func (c Candidate) StaticProfile(keyProcessor cryptography.KeyProcessor) *Static
 
 	extension := NewStaticProfileExtension(
 		c.ShortID,
-		c.Ref,
+		c.Ref.GetValue(),
 		signHolder,
 	)
 
@@ -49,8 +49,8 @@ func (c Candidate) StaticProfile(keyProcessor cryptography.KeyProcessor) *Static
 	)
 }
 
-func (c Candidate) Profile() candidate.Profile {
-	return candidate.Profile(c)
+func (c Candidate) Profile() rms.Profile {
+	return rms.Profile(c)
 }
 
 func NewCandidate(staticProfile *StaticProfile, keyProcessor cryptography.KeyProcessor) *Candidate {
@@ -65,7 +65,7 @@ func NewCandidate(staticProfile *StaticProfile, keyProcessor cryptography.KeyPro
 
 	return &Candidate{
 		Address:     staticProfile.GetDefaultEndpoint().GetIPAddress().String(),
-		Ref:         staticProfile.GetExtension().GetReference(),
+		Ref:         rms.NewReference(staticProfile.GetExtension().GetReference()),
 		ShortID:     staticProfile.GetStaticNodeID(),
 		PrimaryRole: staticProfile.GetPrimaryRole(),
 		SpecialRole: staticProfile.GetSpecialRoles(),

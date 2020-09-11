@@ -9,10 +9,11 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
+
 	mm_network "github.com/insolar/assured-ledger/ledger-core/network"
-	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/host"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet/types"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms/legacyhost"
 )
 
 // HostNetworkMock implements network.HostNetwork
@@ -43,8 +44,8 @@ type HostNetworkMock struct {
 	beforeSendRequestCounter uint64
 	SendRequestMock          mHostNetworkMockSendRequest
 
-	funcSendRequestToHost          func(ctx context.Context, t types.PacketType, requestData interface{}, receiver *host.Host) (f1 mm_network.Future, err error)
-	inspectFuncSendRequestToHost   func(ctx context.Context, t types.PacketType, requestData interface{}, receiver *host.Host)
+	funcSendRequestToHost          func(ctx context.Context, t types.PacketType, requestData interface{}, receiver *legacyhost.Host) (f1 mm_network.Future, err error)
+	inspectFuncSendRequestToHost   func(ctx context.Context, t types.PacketType, requestData interface{}, receiver *legacyhost.Host)
 	afterSendRequestToHostCounter  uint64
 	beforeSendRequestToHostCounter uint64
 	SendRequestToHostMock          mHostNetworkMockSendRequestToHost
@@ -881,7 +882,7 @@ type HostNetworkMockSendRequestToHostParams struct {
 	ctx         context.Context
 	t           types.PacketType
 	requestData interface{}
-	receiver    *host.Host
+	receiver    *legacyhost.Host
 }
 
 // HostNetworkMockSendRequestToHostResults contains results of the HostNetwork.SendRequestToHost
@@ -891,7 +892,7 @@ type HostNetworkMockSendRequestToHostResults struct {
 }
 
 // Expect sets up expected params for HostNetwork.SendRequestToHost
-func (mmSendRequestToHost *mHostNetworkMockSendRequestToHost) Expect(ctx context.Context, t types.PacketType, requestData interface{}, receiver *host.Host) *mHostNetworkMockSendRequestToHost {
+func (mmSendRequestToHost *mHostNetworkMockSendRequestToHost) Expect(ctx context.Context, t types.PacketType, requestData interface{}, receiver *legacyhost.Host) *mHostNetworkMockSendRequestToHost {
 	if mmSendRequestToHost.mock.funcSendRequestToHost != nil {
 		mmSendRequestToHost.mock.t.Fatalf("HostNetworkMock.SendRequestToHost mock is already set by Set")
 	}
@@ -911,7 +912,7 @@ func (mmSendRequestToHost *mHostNetworkMockSendRequestToHost) Expect(ctx context
 }
 
 // Inspect accepts an inspector function that has same arguments as the HostNetwork.SendRequestToHost
-func (mmSendRequestToHost *mHostNetworkMockSendRequestToHost) Inspect(f func(ctx context.Context, t types.PacketType, requestData interface{}, receiver *host.Host)) *mHostNetworkMockSendRequestToHost {
+func (mmSendRequestToHost *mHostNetworkMockSendRequestToHost) Inspect(f func(ctx context.Context, t types.PacketType, requestData interface{}, receiver *legacyhost.Host)) *mHostNetworkMockSendRequestToHost {
 	if mmSendRequestToHost.mock.inspectFuncSendRequestToHost != nil {
 		mmSendRequestToHost.mock.t.Fatalf("Inspect function is already set for HostNetworkMock.SendRequestToHost")
 	}
@@ -935,7 +936,7 @@ func (mmSendRequestToHost *mHostNetworkMockSendRequestToHost) Return(f1 mm_netwo
 }
 
 //Set uses given function f to mock the HostNetwork.SendRequestToHost method
-func (mmSendRequestToHost *mHostNetworkMockSendRequestToHost) Set(f func(ctx context.Context, t types.PacketType, requestData interface{}, receiver *host.Host) (f1 mm_network.Future, err error)) *HostNetworkMock {
+func (mmSendRequestToHost *mHostNetworkMockSendRequestToHost) Set(f func(ctx context.Context, t types.PacketType, requestData interface{}, receiver *legacyhost.Host) (f1 mm_network.Future, err error)) *HostNetworkMock {
 	if mmSendRequestToHost.defaultExpectation != nil {
 		mmSendRequestToHost.mock.t.Fatalf("Default expectation is already set for the HostNetwork.SendRequestToHost method")
 	}
@@ -950,7 +951,7 @@ func (mmSendRequestToHost *mHostNetworkMockSendRequestToHost) Set(f func(ctx con
 
 // When sets expectation for the HostNetwork.SendRequestToHost which will trigger the result defined by the following
 // Then helper
-func (mmSendRequestToHost *mHostNetworkMockSendRequestToHost) When(ctx context.Context, t types.PacketType, requestData interface{}, receiver *host.Host) *HostNetworkMockSendRequestToHostExpectation {
+func (mmSendRequestToHost *mHostNetworkMockSendRequestToHost) When(ctx context.Context, t types.PacketType, requestData interface{}, receiver *legacyhost.Host) *HostNetworkMockSendRequestToHostExpectation {
 	if mmSendRequestToHost.mock.funcSendRequestToHost != nil {
 		mmSendRequestToHost.mock.t.Fatalf("HostNetworkMock.SendRequestToHost mock is already set by Set")
 	}
@@ -970,7 +971,7 @@ func (e *HostNetworkMockSendRequestToHostExpectation) Then(f1 mm_network.Future,
 }
 
 // SendRequestToHost implements network.HostNetwork
-func (mmSendRequestToHost *HostNetworkMock) SendRequestToHost(ctx context.Context, t types.PacketType, requestData interface{}, receiver *host.Host) (f1 mm_network.Future, err error) {
+func (mmSendRequestToHost *HostNetworkMock) SendRequestToHost(ctx context.Context, t types.PacketType, requestData interface{}, receiver *legacyhost.Host) (f1 mm_network.Future, err error) {
 	mm_atomic.AddUint64(&mmSendRequestToHost.beforeSendRequestToHostCounter, 1)
 	defer mm_atomic.AddUint64(&mmSendRequestToHost.afterSendRequestToHostCounter, 1)
 
