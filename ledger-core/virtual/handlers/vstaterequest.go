@@ -144,7 +144,7 @@ func (s *SMVStateRequest) stepBuildStateReport(ctx smachine.ExecutionContext) sm
 }
 
 func (s *SMVStateRequest) stepSendResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	target := s.Meta.Sender
+	target := s.Meta.Sender.GetValue()
 
 	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
 		err := svc.SendTarget(goCtx, s.objectStateReport, target)
