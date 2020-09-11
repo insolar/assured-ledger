@@ -51,14 +51,14 @@ func (v RegisterRequestSet) Validate() {
 	}
 }
 
-func (v RegisterRequestSet) GetRootRef() reference.Global {
+func (v RegisterRequestSet) GetRootRef() reference.Holder {
 	switch {
 	case !v.Excerpt.RootRef.IsEmpty():
-		return v.Excerpt.RootRef.GetValue()
+		return v.Excerpt.RootRef.Get()
 	case v.Requests[0].AnticipatedRef.IsEmpty():
 		panic(throw.IllegalValue())
 	default:
-		return v.Requests[0].AnticipatedRef.GetValue()
+		return v.Requests[0].AnticipatedRef.Get()
 	}
 }
 
