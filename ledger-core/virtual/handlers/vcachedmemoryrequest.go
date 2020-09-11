@@ -112,7 +112,7 @@ func (s *SMVCachedMemoryRequest) stepBuildResult(ctx smachine.ExecutionContext) 
 func (s *SMVCachedMemoryRequest) stepSendResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var (
 		response = s.response
-		target   = s.Meta.Sender
+		target   = s.Meta.Sender.GetValue()
 	)
 
 	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {

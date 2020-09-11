@@ -42,14 +42,10 @@ func (w *RequestWrapper) SetReceiver(receiver reference.Global) *RequestWrapper 
 }
 
 func (w *RequestWrapper) Finalize() *message.Message {
-	meta := rms.Meta{
-		Sender:     w.sender,
-		Receiver:   w.receiver,
-		Pulse:      w.pulseNumber,
-		OriginHash: rms.MessageHash{},
-	}
+	meta := rms.Meta{Pulse: w.pulseNumber}
+	meta.Sender.Set(w.sender)
+	meta.Receiver.Set(w.receiver)
 	meta.Payload.Set(w.payload)
-
 	msg, err := rms.NewMessage(&meta)
 	if err != nil {
 		panic(throw.W(err, "failed to create watermill message"))
