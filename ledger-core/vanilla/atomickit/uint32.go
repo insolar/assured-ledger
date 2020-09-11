@@ -6,12 +6,12 @@
 package atomickit
 
 import (
-	"fmt"
+	"strconv"
 	"sync/atomic"
 )
 
-func NewUint32(initValue uint32) Uint32 {
-	return Uint32{initValue}
+func NewUint32(v uint32) Uint32 {
+	return Uint32{v}
 }
 
 type Uint32 struct {
@@ -36,6 +36,14 @@ func (p *Uint32) CompareAndSwap(old, new uint32) bool {
 
 func (p *Uint32) Add(v uint32) uint32 {
 	return atomic.AddUint32(&p.v, v)
+}
+
+func (p *Uint32) Sub(v uint32) uint32 {
+	return p.Add(^(v - 1))
+}
+
+func (p *Uint32) String() string {
+	return strconv.FormatUint(uint64(p.Load()), 10)
 }
 
 func (p *Uint32) SetBits(v uint32) uint32 {
@@ -90,14 +98,6 @@ func (p *Uint32) TryUnsetBits(v uint32, all bool) bool {
 			return true
 		}
 	}
-}
-
-func (p *Uint32) Sub(v uint32) uint32 {
-	return p.Add(^(v - 1))
-}
-
-func (p *Uint32) String() string {
-	return fmt.Sprint(p.Load())
 }
 
 func (p *Uint32) CompareAndSub(v uint32) bool {
