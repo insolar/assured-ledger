@@ -137,7 +137,7 @@ func TestAddRecords(t *testing.T) {
 			for i := range resp.Entries {
 				expected := recordSet.Requests[2-i]
 				actual := &resp.Entries[i]
-				require.Equal(t, expected.AnticipatedRef.GetGlobal(), actual.RecordRef.GetGlobal(), i)
+				require.Equal(t, expected.AnticipatedRef.GetValue(), actual.RecordRef.GetValue(), i)
 				require.NotEmpty(t, actual.RecordBinary)
 
 				require.True(t, expected.AnyRecordLazy.TryGetLazy().EqualBytes(actual.RecordBinary))
