@@ -197,40 +197,19 @@ func (v Global) Equal(other Holder) bool {
 	return Equal(v, other)
 }
 
-// deprecated: use reference.Encode
+// deprecated: use reference.Encode - is used to fence-off serialization logic of gogo. Remove when not used by gogo directly.
 func (v Global) MarshalText() ([]byte, error) {
 	return []byte(Encode(v)), nil
 }
 
-// deprecated: use reference.MarshalJSON
-func (v *Global) MarshalJSON() ([]byte, error) {
-	return MarshalJSON(v)
-}
-
-// deprecated: use reference.Marshal
-func (v *Global) Marshal() ([]byte, error) {
-	return Marshal(v)
-}
-
-// deprecated: use reference.Marshal
+// deprecated: use reference.Marshal, seems to be used by CBOR
 func (v *Global) MarshalBinary() ([]byte, error) {
 	return Marshal(v)
-}
-
-// deprecated: use reference.MarshalToSizedBuffer
-func (v Global) MarshalToSizedBuffer(data []byte) (int, error) {
-	return MarshalToSizedBuffer(v, data)
 }
 
 // deprecated: use reference.MarshalTo
 func (v Global) MarshalTo(b []byte) (int, error) {
 	return MarshalTo(v, b)
-}
-
-// deprecated: use reference.UnmarshalJSON
-func (v *Global) UnmarshalJSON(data []byte) (err error) {
-	*v, err = UnmarshalJSON(data)
-	return
 }
 
 // deprecated: use reference.Unmarshal
@@ -243,7 +222,7 @@ func (v *Global) Unmarshal(data []byte) (err error) {
 	return
 }
 
-// deprecated: use reference.Unmarshal
+// deprecated: use reference.Unmarshal, seems to be used by CBOR
 func (v *Global) UnmarshalBinary(data []byte) error {
 	return v.Unmarshal(data)
 }
