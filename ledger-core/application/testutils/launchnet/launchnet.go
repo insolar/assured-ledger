@@ -16,6 +16,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -50,6 +51,9 @@ var (
 	TestWalletHost      = "INSOLAR_FUNC_TESTWALLET_HOST"
 	keysPathVar         = "INSOLAR_FUNC_KEYS_PATH"
 
+	pulseTimeEnv     = "PULSARD_PULSAR_PULSETIME"
+	defaultPulseTime = 5000
+
 	rootOnce    sync.Once
 	projectRoot string
 )
@@ -66,16 +70,27 @@ func rootPath() string {
 	return filepath.Join(projectRoot, "ledger-core")
 }
 
-func CustomRunWithPulsar(numVirtual, numLight, numHeavy int, cb func([]string) int) int {
-	return customRun(true, numVirtual, numLight, numHeavy, cb)
-}
-
-func CustomRunWithoutPulsar(numVirtual, numLight, numHeavy int, cb func([]string) int) int {
+func CustomRunWithPulsar(numVirtual, numLight, numHeavy int, cb func([]string, int) int) int {
 	return customRun(false, numVirtual, numLight, numHeavy, cb)
 }
 
-func customRun(withPulsar bool, numVirtual, numLight, numHeavy int, cb func([]string) int) int {
-	apiAddresses, teardown, err := newNetSetup(withPulsar, numVirtual, numLight, numHeavy)
+func CustomRunWithoutPulsar(numVirtual, numLight, numHeavy int, cb func([]string, int) int) int {
+	return customRun(true, numVirtual, numLight, numHeavy, cb)
+}
+
+func getPulseTime() int {
+	if pulseTime := os.Getenv(pulseTimeEnv); len(pulseTime) != 0 {
+		res, err := strconv.Atoi(pulseTime)
+		if err != nil {
+			panic(err)
+		}
+		return res
+	}
+	return defaultPulseTime
+}
+
+func customRun(pulsarOneShot bool, numVirtual, numLight, numHeavy int, cb func([]string, int) int) int {
+	apiAddresses, teardown, err := newNetSetup(pulsarOneShot, numVirtual, numLight, numHeavy)
 	defer teardown()
 	if err != nil {
 		fmt.Println("error while setup, skip tests: ", err)
@@ -95,7 +110,7 @@ func customRun(withPulsar bool, numVirtual, numLight, numHeavy int, cb func([]st
 
 	pulseWatcher, config := pulseWatcherPath()
 
-	code := cb(apiAddresses)
+	code := cb(apiAddresses, getPulseTime())
 
 	if code != 0 {
 		out, err := exec.Command(pulseWatcher, "-c", config, "-s").CombinedOutput()
@@ -245,22 +260,30 @@ func waitForNetworkState(cfg appConfig, state network.State) error {
 	return nil
 }
 
-func runPulsar() error {
+func runPulsar(oneShot bool) error {
 	pulsarCmd := exec.Command("sh", "-c", "./bin/pulsard --config .artifacts/launchnet/pulsar.yaml")
+	pulsarOneShotStr := "FALSE"
+	if oneShot {
+		pulsarOneShotStr = "TRUE"
+	}
+	pulsarCmd.Env = append(pulsarCmd.Env, fmt.Sprintf("PULSARD_ONESHOT=%s", pulsarOneShotStr))
+	pulsarCmd.Env = append(pulsarCmd.Env, fmt.Sprintf("%s=%d", pulseTimeEnv, getPulseTime()))
+
 	if err := pulsarCmd.Start(); err != nil {
 		return throw.W(err, "failed to launch pulsar")
 	}
+
 	fmt.Println("Pulsar launched")
 	return nil
 }
 
-func waitForNet(cfg appConfig) error {
+func waitForNet(cfg appConfig, oneShot bool) error {
 	err := waitForNetworkState(cfg, network.WaitPulsar)
 	if err != nil {
 		return throw.W(err, "Can't wait for NetworkState "+network.WaitPulsar.String())
 	}
 
-	err = runPulsar()
+	err = runPulsar(oneShot)
 	if err != nil {
 		return throw.W(err, "Can't run pulsar")
 	}
@@ -273,7 +296,7 @@ func waitForNet(cfg appConfig) error {
 	return nil
 }
 
-func startCustomNet(withPulsar bool, numVirtual, numLight, numHeavy int) (*exec.Cmd, []string, error) {
+func startCustomNet(pulsarOneShot bool, numVirtual, numLight, numHeavy int) (*exec.Cmd, []string, error) {
 	cwd, err := os.Getwd()
 	if err != nil {
 		return nil, nil, throw.W(err, "failed to get working directory")
@@ -293,12 +316,6 @@ func startCustomNet(withPulsar bool, numVirtual, numLight, numHeavy int) (*exec.
 	cmd.Env = append(cmd.Env, fmt.Sprintf("NUM_DISCOVERY_VIRTUAL_NODES=%d", numVirtual))
 	cmd.Env = append(cmd.Env, fmt.Sprintf("NUM_DISCOVERY_LIGHT_NODES=%d", numLight))
 	cmd.Env = append(cmd.Env, fmt.Sprintf("NUM_DISCOVERY_HEAVY_NODES=%d", numHeavy))
-	pulsarOneShot := "FALSE"
-	if withPulsar {
-		pulsarOneShot = "TRUE"
-	}
-
-	cmd.Env = append(cmd.Env, fmt.Sprintf("PULSARD_ONESHOT=%s", pulsarOneShot))
 
 	err = waitForLaunch(cmd)
 	if err != nil {
@@ -310,7 +327,7 @@ func startCustomNet(withPulsar bool, numVirtual, numLight, numHeavy int) (*exec.
 		return cmd, nil, throw.W(err, "[ startNet ] couldn't read nodes config")
 	}
 
-	err = waitForNet(appCfg)
+	err = waitForNet(appCfg, pulsarOneShot)
 	if err != nil {
 		return cmd, nil, throw.W(err, "[ startNet ] couldn't waitForNet more")
 	}
@@ -354,7 +371,7 @@ func startNet() (*exec.Cmd, error) {
 		return cmd, throw.W(err, "[ startNet ] couldn't read nodes config")
 	}
 
-	err = waitForNet(appCfg)
+	err = waitForNet(appCfg, false)
 	if err != nil {
 		return cmd, throw.W(err, "[ startNet ] couldn't waitForNet more")
 	}
@@ -474,8 +491,8 @@ func RunOnlyWithLaunchnet(t *testing.T) {
 	}
 }
 
-func newNetSetup(withPulsar bool, numVirtual, numLight, numHeavy int) (apiAddresses []string, cancelFunc func(), err error) {
-	cmd, apiAddresses, err := startCustomNet(withPulsar, numVirtual, numLight, numHeavy)
+func newNetSetup(pulsarOneShot bool, numVirtual, numLight, numHeavy int) (apiAddresses []string, cancelFunc func(), err error) {
+	cmd, apiAddresses, err := startCustomNet(pulsarOneShot, numVirtual, numLight, numHeavy)
 	cancelFunc = func() {}
 	if cmd != nil {
 		cancelFunc = func() {

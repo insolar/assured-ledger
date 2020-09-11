@@ -34,8 +34,8 @@ func BenchmarkSinglePulse(b *testing.B) {
 	}
 }
 
-func runBenchOnNetwork(b *testing.B, numNodes int) func(apiAddresses []string) int {
-	return func(apiAddresses []string) int {
+func runBenchOnNetwork(b *testing.B, numNodes int) func(apiAddresses []string, pulseTime int) int {
+	return func(apiAddresses []string, pulseTime int) int {
 		ctx := context.Background()
 		setAPIAddresses(apiAddresses)
 
@@ -50,24 +50,24 @@ func runBenchOnNetwork(b *testing.B, numNodes int) func(apiAddresses []string) i
 			wallets = append(wallets, wallet)
 		}
 
-		err := runBriefEchoBench()
+		err := runBriefEchoBench(pulseTime)
 		if err != nil {
 			b.Error(err)
 			return 2
 		}
 
-		err = runEchoBench()
+		err = runEchoBench(pulseTime)
 		if err != nil {
 			b.Error(err)
 			return 2
 		}
 
-		err = runGetBench(wallets)
+		err = runGetBench(wallets, pulseTime)
 		if err != nil {
 			b.Error(err)
 			return 2
 		}
-		err = runSetBench(wallets)
+		err = runSetBench(wallets, pulseTime)
 		if err != nil {
 			b.Error(err)
 			return 2
@@ -76,49 +76,66 @@ func runBenchOnNetwork(b *testing.B, numNodes int) func(apiAddresses []string) i
 	}
 }
 
-func runBriefEchoBench() error {
-	return runBench(500000, "brief echo", func(ctx context.Context, iterator int) error {
+func runBriefEchoBench(pulseTime int) error {
+	return runBenchTimed("brief echo", func(ctx context.Context, iterator int) error {
 		walletRef := statemachine.BuiltinTestAPIBriefEcho
 		getBalanceURL := getURL(walletGetBalancePath, "")
 
 		_, err := getWalletBalance(ctx, getBalanceURL, walletRef)
 
 		return err
-	})
+	}, pulseTime)
 }
 
-func runEchoBench() error {
-	return runBench(100000, "echo", func(ctx context.Context, iterator int) error {
+func runEchoBench(pulseTime int) error {
+	return runBenchTimed("echo", func(ctx context.Context, iterator int) error {
 		walletRef := statemachine.BuiltinTestAPIEcho
 		getBalanceURL := getURL(walletGetBalancePath, "")
 
 		_, err := getWalletBalance(ctx, getBalanceURL, walletRef)
 
 		return err
-	})
+	}, pulseTime)
 }
 
-func runSetBench(wallets []string) error {
-	return runBench(5000, "set", func(ctx context.Context, iterator int) error {
+func runSetBench(wallets []string, pulseTime int) error {
+	return runBenchTimed("set", func(ctx context.Context, iterator int) error {
 		walletRef := wallets[iterator%len(wallets)]
 		addAmountURL := getURL(walletAddAmountPath, "")
 
 		return addAmountToWallet(ctx, addAmountURL, walletRef, 1000)
-	})
+	}, pulseTime)
+
 }
 
-func runGetBench(wallets []string) error {
-	return runBench(5000, "get", func(ctx context.Context, iterator int) error {
+func runGetBench(wallets []string, pulseTime int) error {
+	return runBenchTimed("get", func(ctx context.Context, iterator int) error {
 		walletRef := wallets[iterator%len(wallets)]
 		getBalanceURL := getURL(walletGetBalancePath, "")
 
 		_, err := getWalletBalance(ctx, getBalanceURL, walletRef)
 
 		return err
-	})
+	}, pulseTime)
 }
 
-func runBench(iterations int, name string, workerFunc func(ctx context.Context, iterator int) error) error {
+func getTimeToExecute(pulseTime int) int {
+	var (
+		minimumExecTime = 10 // seconds
+		numPulses       = 2
+	)
+	timeToRun := minimumExecTime
+	pulseTime = pulseTime / 1000 // convert to seconds
+
+	pulseTime = numPulses * pulseTime
+	if timeToRun < pulseTime {
+		timeToRun = pulseTime
+	}
+
+	return timeToRun
+}
+
+func runBenchTimed(name string, workerFunc func(ctx context.Context, iterator int) error, pulseTime int) error {
 	fmt.Println("==== Running " + name)
 	// default Parallelism will be equal to NumCPU
 	g, ctx := errgroup.WithContext(context.Background())
@@ -146,14 +163,15 @@ func runBench(iterations int, name string, workerFunc func(ctx context.Context, 
 		}
 	}()
 
-	for i := 1; i <= iterations; i++ {
-		// prevent extra requests if group context is cancelled
-		select {
-		case <-ctx.Done():
-			break
-		default:
-		}
+	timeFinished := make(chan struct{})
+	go func() {
+		timeToRun := getTimeToExecute(pulseTime)
+		time.Sleep(time.Duration(timeToRun) * time.Second)
+		close(timeFinished)
+	}()
 
+	canRun := true
+	for i := 0; canRun; i++ {
 		g.Go(func() error {
 			select {
 			case <-ctx.Done():
@@ -177,6 +195,16 @@ func runBench(iterations int, name string, workerFunc func(ctx context.Context, 
 
 			return err
 		})
+
+		select {
+		// prevent extra requests if group context is cancelled
+		case <-ctx.Done():
+			canRun = false
+		case <-timeFinished:
+			canRun = false
+		default:
+		}
+
 	}
 
 	err := g.Wait()
@@ -184,19 +212,22 @@ func runBench(iterations int, name string, workerFunc func(ctx context.Context, 
 		return throw.W(err, "api failed")
 	}
 
-	<-counterStopped
-
 	finished := time.Since(startBench)
 
-	finished.Round(time.Second)
+	<-counterStopped
 
-	fmt.Printf("Run took %d seconds\n", int(finished.Seconds()))
+	fmt.Printf("Run took %.02f seconds\n", finished.Seconds())
 
 	if finished.Seconds() > 60 {
 		finished = 60 * time.Second
 	}
 
-	fmt.Printf("scenario=%s: %d req/s, avg time %.0f ns\n", name, counter.Rate()/int64(finished.Seconds()), timingCounter.Rate())
+	fmt.Printf("scenario=%s: %d req/s, avg time %.0f ns, num reqs: %d\n",
+		name,
+		counter.Rate()*int64(time.Second)/finished.Nanoseconds(),
+		timingCounter.Rate(),
+		counter.Rate(),
+	)
 
 	return nil
 }

@@ -16,17 +16,17 @@ import (
 func BenchmarkMultiPulseOnCloud(b *testing.B) {
 	instestlogger.SetTestOutput(b)
 
-	for numNodes := 2; numNodes <= 5; numNodes++ {
+	for numNodes := 2; numNodes <= 2; numNodes++ {
 		b.Run(fmt.Sprintf("Nodes %d", numNodes), func(b *testing.B) {
 			runner := launchnet.CloudRunner{}
 			runner.SetNumVirtuals(numNodes)
 			runner.PrepareConfig()
 			runner.ConfProvider.PulsarConfig.Pulsar.PulseTime = 3000
-			runner.ConfProvider.BaseConfig.Log.Level = "Warn"
+			runner.ConfProvider.BaseConfig.Log.Level = "Info"
 
 			var apiAddresses []string
 			for i, el := range runner.ConfProvider.GetAppConfigs() {
-				runner.ConfProvider.GetAppConfigs()[i].Log.Level = "Warn"
+				runner.ConfProvider.GetAppConfigs()[i].Log.Level = "Info"
 				apiAddresses = append(apiAddresses, el.TestWalletAPI.Address)
 			}
 			teardown, err := runner.SetupCloud()
@@ -36,7 +36,7 @@ func BenchmarkMultiPulseOnCloud(b *testing.B) {
 			}
 
 			run := runBenchOnNetwork(b, numNodes)
-			retCode := run(apiAddresses)
+			retCode := run(apiAddresses, int(runner.ConfProvider.PulsarConfig.Pulsar.PulseTime))
 			if retCode != 0 {
 				b.Error("network run failed")
 				b.Fatal("failed test run")
