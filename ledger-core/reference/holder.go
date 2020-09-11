@@ -136,3 +136,14 @@ func AsBytes(h Holder) []byte {
 	WriteWholeLocalTo(h.GetBase(), val[LocalBinarySize:])
 	return val
 }
+
+func CopyLocal(h LocalHolder) Local {
+	switch hh := h.(type) {
+	case nil:
+		return Local{}
+	case Local:
+		return hh
+	default:
+		return h.GetLocal()
+	}
+}

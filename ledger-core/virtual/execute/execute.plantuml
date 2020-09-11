@@ -125,7 +125,7 @@ T01_S013 --[dotted]> T01_S001
 T01_S013 --> [*] : [...&&(...).findCallResponse.CallResult==nil]
 T01_S013 --> T01_S011 : PrepareAsync(ctx).WithoutAutoWakeUp()
 T01_S013 --> [*] : [...&&(...).findCallResponse.CallResult!=nil]
-T01_S013 --> T01_S014 : [(...).Status==payload.CallStateUnknown]
+T01_S013 --> T01_S014 : [(...).findCallResponse.Status==rms.CallStateUnknown]
 state "stepPublishDataCallSummary" as T01_S030
 T01_S030 : SMExecute
 T01_S030 --[dotted]> T01_S016
