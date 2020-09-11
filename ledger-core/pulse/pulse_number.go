@@ -204,16 +204,6 @@ func (n Number) String() string {
 	return strconv.FormatUint(uint64(n), 10)
 }
 
-// deprecated
-func (n Number) Equal(other Number) bool {
-	return n == other
-}
-
-// deprecated
-func (n Number) Size() int {
-	return NumberSize
-}
-
 func (n Number) EnsureTimePulse() Number {
 	if n.IsTimePulse() {
 		return n

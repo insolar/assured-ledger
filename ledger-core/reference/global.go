@@ -6,7 +6,6 @@
 package reference
 
 import (
-	"encoding"
 	"io"
 
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -54,8 +53,6 @@ func NewRecordOf(owner Global, localID Local) Global {
 	}
 	return Global{addressLocal: localID, addressBase: base}
 }
-
-var _ encoding.TextMarshaler = Global{}
 
 type Global struct {
 	addressLocal Local
@@ -197,44 +194,19 @@ func (v Global) Equal(other Holder) bool {
 	return Equal(v, other)
 }
 
-// deprecated: use reference.Encode - is used to fence-off serialization logic of gogo. Remove when not used by gogo directly.
-func (v Global) MarshalText() ([]byte, error) {
-	return []byte(Encode(v)), nil
-}
-
 // deprecated: use reference.Marshal, seems to be used by CBOR
 func (v *Global) MarshalBinary() ([]byte, error) {
 	return Marshal(v)
 }
 
-// deprecated: use reference.MarshalTo
-func (v Global) MarshalTo(b []byte) (int, error) {
-	return MarshalTo(v, b)
-}
-
-// deprecated: use reference.Unmarshal
-func (v *Global) Unmarshal(data []byte) (err error) {
+// deprecated: use reference.Unmarshal, seems to be used by CBOR
+func (v *Global) UnmarshalBinary(data []byte) (err error) {
 	if len(data) == 0 {
 		*v = Global{}
 		return nil
 	}
 	*v, err = UnmarshalGlobal(data)
 	return
-}
-
-// deprecated: use reference.Unmarshal, seems to be used by CBOR
-func (v *Global) UnmarshalBinary(data []byte) error {
-	return v.Unmarshal(data)
-}
-
-// deprecated: use reference.BinarySize
-func (v Global) Size() int {
-	return BinarySize(v)
-}
-
-// deprecated
-func (v *Global) ProtoSize() int {
-	return BinarySize(v)
 }
 
 func GlobalFromString(input string) (Global, error) {
