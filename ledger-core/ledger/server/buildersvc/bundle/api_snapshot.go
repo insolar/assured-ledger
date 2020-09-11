@@ -19,6 +19,8 @@ type SnapshotWriter interface {
 	// Not concurrent at SnapshotWriter, but can be called before commit of previous snapshot(s).
 	TakeSnapshot() (Snapshot, error)
 	MarkReadOnly() error
+
+	DirtyReader() DirtyReader
 }
 
 // Snapshot represents a written bundle / transaction.
@@ -72,11 +74,20 @@ type PayloadSection interface {
 	AllocatePayloadStorage(size int, extID ledger.ExtensionID) (PayloadReceptacle, ledger.StorageLocator, error)
 }
 
+type DirectoryEntry struct {
+	Key reference.Global
+	Loc ledger.StorageLocator
+}
+
+func (v DirectoryEntry) IsZero() bool {
+	return v.Loc == 0
+}
+
 type DirectorySection interface {
 	// GetNextDirectoryIndex provides an index for the next to-be-added directory entry.
 	GetNextDirectoryIndex() ledger.DirectoryIndex
 	// AppendDirectoryEntry adds a new item to the directory at the given index.
-	AppendDirectoryEntry(index ledger.DirectoryIndex, key reference.Holder, loc ledger.StorageLocator) error
+	AppendDirectoryEntry(index ledger.DirectoryIndex, entry DirectoryEntry) error
 
 	// AllocateEntryStorage MUST be called as the last per record and MUST guarantee that the allocated storage is
 	// located after any other data of the same record within the same section.

@@ -541,12 +541,54 @@ func (p *LineStages) setAllocations(stage *updateStage, allocBase []ledger.Direc
 	}
 }
 
-func (p *LineStages) Find(ref reference.Holder) (found bool, recordIndex ledger.DirectoryIndex, registrarSignature cryptkit.SignedDigest) {
+func (p *LineStages) FindRegistrarSignature(ref reference.Holder) (found bool, recordIndex ledger.DirectoryIndex, registrarSignature cryptkit.SignedDigest) {
 	if rn, ok := p.recordRefs[ref.GetLocal().IdentityHash()]; ok {
 		if r := p.get(rn); r != nil {
-			return true, r.storageIndex, r.RegistrarSignature
+			return true, r.storageIndex, r.Record.RegistrarSignature
 		}
 	}
 	return false, 0, cryptkit.SignedDigest{}
 }
+
+func (p *LineStages) FindWithTracker(ref reference.Holder) (found bool, tracker StageTracker, recordInfo ReadRecord) {
+	if rn, ok := p.recordRefs[ref.GetLocal().IdentityHash()]; ok {
+		if r := p.get(rn); r != nil {
+			if stage := p.findStage(rn); stage != nil {
+				tracker = stage.tracker
+			}
+			return true, tracker, ReadRecord{r.Record, r.storageIndex}
+		}
+	}
+	return false, nil, ReadRecord{}
+}
+
+func (p *LineStages) FindSequence(ref reference.Holder, findFn func(ReadRecord) bool) (found bool, tracker StageTracker) {
+	if findFn == nil {
+		panic(throw.IllegalValue())
+	}
+
+	if rn, ok := p.recordRefs[ref.GetLocal().IdentityHash()]; ok {
+		if stage := p.findStage(rn); stage != nil && stage.tracker != nil {
+			return false, stage.tracker
+		}
+		return p.scanSequence(rn, findFn), nil
+	}
+	return false, nil
+}
+
+func (p *LineStages) scanSequence(rn recordNo, findFn func(ReadRecord) bool) bool {
+	for rn != 0 {
+		switch r := p.get(rn); {
+		case r == nil:
+			return false
+		case findFn(ReadRecord{ r.Record, r.storageIndex }):
+			return true
+		default:
+			rn = r.prev
+		}
+	}
+	return false
+}
+
+
 

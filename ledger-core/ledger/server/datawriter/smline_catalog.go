@@ -69,6 +69,7 @@ func RegisterLine(ctx smachine.SharedStateContext, sd *LineSharedData) bool {
 	}
 
 	sd.limiter = smsync.NewSemaphore(0, fmt.Sprintf("SMLine{%d}.limiter", ctx.SlotLink().SlotID()))
+	sd.activeSync = smsync.NewConditionalBool(false, fmt.Sprintf("SMLine{%d}.active", ctx.SlotLink().SlotID()))
 
 	sdl := ctx.Share(sd, 0)
 	if !ctx.Publish(LineKey(sd.lineRef), sdl) {

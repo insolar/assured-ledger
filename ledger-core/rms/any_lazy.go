@@ -6,6 +6,7 @@
 package rms
 
 import (
+	"bytes"
 	"encoding"
 	"fmt"
 	"io"
@@ -179,82 +180,86 @@ type LazyValue struct {
 	vType  reflect.Type
 }
 
-func (p LazyValue) WriteTo(w io.Writer) (int64, error) {
-	if p.value == nil {
+func (v LazyValue) WriteTo(w io.Writer) (int64, error) {
+	if v.value == nil {
 		panic(throw.IllegalState())
 	}
-	n, err := w.Write(p.value)
+	n, err := w.Write(v.value)
 	return int64(n), err
 }
 
-func (p LazyValue) IsZero() bool {
-	return p.value == nil && p.vType == nil
+func (v LazyValue) IsZero() bool {
+	return v.value == nil && v.vType == nil
 }
 
-func (p LazyValue) IsEmpty() bool {
-	return len(p.value) == 0
+func (v LazyValue) IsEmpty() bool {
+	return len(v.value) == 0
 }
 
-func (p LazyValue) Type() reflect.Type {
-	return p.vType
+func (v LazyValue) Type() reflect.Type {
+	return v.vType
 }
 
-func (p LazyValue) Unmarshal() (GoGoSerializable, error) {
+func (v LazyValue) Unmarshal() (GoGoSerializable, error) {
 	switch {
-	case p.value == nil:
+	case v.value == nil:
 		return nil, nil
-	case p.vType == nil:
+	case v.vType == nil:
 		panic(throw.IllegalState())
 	}
-	return p.UnmarshalAsType(p.vType, nil)
+	return v.UnmarshalAsType(v.vType, nil)
 }
 
 var typeGoGoSerializable = reflect.TypeOf((*GoGoSerializable)(nil)).Elem()
 
-func (p LazyValue) UnmarshalAsType(vType reflect.Type, skipFn UnknownCallbackFunc) (GoGoSerializable, error) {
+func (v LazyValue) UnmarshalAsType(vType reflect.Type, skipFn UnknownCallbackFunc) (GoGoSerializable, error) {
 	switch {
 	case vType == nil || !vType.Implements(typeGoGoSerializable):
 		panic(throw.IllegalValue())
-	case p.value == nil:
+	case v.value == nil:
 		return nil, nil
 	}
 	
-	obj, err := UnmarshalAsType(p.value, vType, skipFn)
+	obj, err := UnmarshalAsType(v.value, vType, skipFn)
 	if err != nil {
 		return nil, err		
 	}
 	return obj.(GoGoSerializable), nil
 }
 
-func (p LazyValue) UnmarshalAs(v GoGoSerializable, skipFn UnknownCallbackFunc) (bool, error) {
-	if p.value == nil {
+func (v LazyValue) UnmarshalAs(target GoGoSerializable, skipFn UnknownCallbackFunc) (bool, error) {
+	if v.value == nil {
 		return false, nil
 	}
-	return true, UnmarshalAs(p.value, v, skipFn)
+	return true, UnmarshalAs(v.value, target, skipFn)
 }
 
-func (p LazyValue) UnmarshalAsAny(v interface{}, skipFn UnknownCallbackFunc) (bool, error) {
-	if p.value == nil {
+func (v LazyValue) UnmarshalAsAny(target interface{}, skipFn UnknownCallbackFunc) (bool, error) {
+	if v.value == nil {
 		return false, nil
 	}
-	return true, UnmarshalAs(p.value, v, skipFn)
+	return true, UnmarshalAs(v.value, target, skipFn)
 }
 
-func (p LazyValue) ProtoSize() int {
-	return len(p.value)
+func (v LazyValue) ProtoSize() int {
+	return len(v.value)
 }
 
-func (p LazyValue) MarshalTo(b []byte) (int, error) {
-	return copy(b, p.value), nil
+func (v LazyValue) MarshalTo(b []byte) (int, error) {
+	return copy(b, v.value), nil
 }
 
-func (p LazyValue) MarshalToSizedBuffer(b []byte) (int, error) {
-	if len(b) != len(p.value) {
+func (v LazyValue) MarshalToSizedBuffer(b []byte) (int, error) {
+	if len(b) != len(v.value) {
 		return 0, throw.IllegalState()
 	}
-	return copy(b, p.value), nil
+	return copy(b, v.value), nil
 }
 
-func (p LazyValue) MarshalText() ([]byte, error) {
-	return []byte(fmt.Sprintf("%T{[%d]byte, %v}", p, len(p.value), p.vType)), nil
+func (v LazyValue) MarshalText() ([]byte, error) {
+	return []byte(fmt.Sprintf("%T{[%d]byte, %v}", v, len(v.value), v.vType)), nil
+}
+
+func (v LazyValue) EqualBytes(b []byte) bool {
+	return bytes.Equal(b, v.value)
 }
