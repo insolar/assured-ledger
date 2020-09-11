@@ -214,17 +214,16 @@ func (s *SMVDelegatedCallRequest) stepBuildResponse(ctx smachine.ExecutionContex
 
 	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
 		err := svc.SendTarget(goCtx, &response, delegateTo)
+
 		return func(ctx smachine.AsyncResultContext) {
 			if err != nil {
 				ctx.Log().Error(struct {
 					*log.Msg   `txt:"failed to send VDelegatedCallResponse"`
 					Object     reference.Global
 					DelegateTo reference.Global
-					Request    string
 				}{
 					Object:     callee,
 					DelegateTo: delegateTo,
-					Request:    s.Payload.String(),
 				}, err)
 			}
 		}
