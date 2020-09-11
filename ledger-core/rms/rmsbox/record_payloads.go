@@ -3,11 +3,12 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package rms
+package rmsbox
 
 import (
 	"io"
 
+	"github.com/insolar/assured-ledger/ledger-core/rms/rmsreg"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/protokit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -36,7 +37,7 @@ func (p *RecordPayloads) ProtoSize() int {
 
 	rawBytes := p.isRawBytes()
 	n := uint64(0)
-	wt := protokit.WireBytes.Tag(MessageRecordPayloadsField)
+	wt := protokit.WireBytes.Tag(rmsreg.MessageRecordPayloadsField)
 	for _, sz := range p.sizes {
 		if !rawBytes {
 			sz = protokit.BinaryProtoSize(sz)
@@ -57,7 +58,7 @@ func (p *RecordPayloads) MarshalTo(b []byte) (int, error) {
 
 	rawBytes := p.isRawBytes()
 	pos := 0
-	wt := protokit.WireBytes.Tag(MessageRecordPayloadsField)
+	wt := protokit.WireBytes.Tag(rmsreg.MessageRecordPayloadsField)
 	for i, pl := range p.payloads {
 		sz := p.sizes[i]
 		if !rawBytes {
@@ -87,7 +88,7 @@ func (p *RecordPayloads) MarshalTo(b []byte) (int, error) {
 }
 
 func (p *RecordPayloads) TryUnmarshalPayloadFromBytes(b []byte) (int, error) {
-	wt := protokit.WireBytes.Tag(MessageRecordPayloadsField)
+	wt := protokit.WireBytes.Tag(rmsreg.MessageRecordPayloadsField)
 
 	minSize := wt.TagSize()
 	if len(b) < minSize {
@@ -147,7 +148,7 @@ func (p *RecordPayloads) Count() int {
 	return len(p.payloads)
 }
 
-func (p *RecordPayloads) GetPayloadOrExtension(index int) MarshalerTo {
+func (p *RecordPayloads) GetPayloadOrExtension(index int) rmsreg.MarshalerTo {
 	payload := p.payloads[index]
 	if payload.IsZero() {
 		panic(throw.IllegalState())

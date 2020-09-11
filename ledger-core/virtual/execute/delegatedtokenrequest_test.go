@@ -22,6 +22,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms/rmsreg"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
@@ -94,7 +95,7 @@ func TestVDelegatedCallRequest(t *testing.T) {
 	}
 
 	slotMachine.MessageSender.SendRole.Set(
-		func(_ context.Context, msg rms.GoGoSerializable, role affinity.DynamicRole, object reference.Global, pn pulse.Number, _ ...messageSender.SendOption) error {
+		func(_ context.Context, msg rmsreg.GoGoSerializable, role affinity.DynamicRole, object reference.Global, pn pulse.Number, _ ...messageSender.SendOption) error {
 			res, ok := msg.(*rms.VDelegatedCallRequest)
 			require.True(t, ok)
 			require.NotNil(t, res)

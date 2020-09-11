@@ -27,6 +27,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms/rmsreg"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
@@ -345,7 +346,7 @@ func TestSMExecute_DeduplicateThroughPreviousExecutor(t *testing.T) {
 	messageSenderAdapter := messageSender.NewAdapterMock()
 	messageSenderAdapter.SetDefaultPrepareAsyncCall(ctx)
 
-	checkMessage := func(msg rms.GoGoSerializable) {
+	checkMessage := func(msg rmsreg.GoGoSerializable) {
 		switch msg0 := msg.(type) {
 		case *rms.VFindCallRequest:
 			assert.Equal(t, oldPd.PulseNumber, msg0.LookAt)
@@ -487,7 +488,7 @@ func TestSMExecute_ProcessFindCallResponse(t *testing.T) {
 		messageSender := messagesender.NewServiceMockWrapper(mc)
 		messageSenderAdapter := messageSender.NewAdapterMock()
 		messageSenderAdapter.SetDefaultPrepareAsyncCall(ctx)
-		checkMessage := func(msg rms.GoGoSerializable) {
+		checkMessage := func(msg rmsreg.GoGoSerializable) {
 			switch msg0 := msg.(type) {
 			case *rms.VCallResult:
 				assert.Equal(t, returnArguments, msg0.ReturnArguments.GetBytes())
@@ -629,7 +630,7 @@ func TestSMExecute_TokenInOutgoingMessage(t *testing.T) {
 
 			authService := authentication.NewService(ctx, affMock)
 
-			checkMessage := func(msg rms.GoGoSerializable) {
+			checkMessage := func(msg rmsreg.GoGoSerializable) {
 				expectedToken := rms.CallDelegationToken{}
 				if !test.expectedTokenIsEmpty {
 					expectedToken = test.token
@@ -796,7 +797,7 @@ func TestSendVStateReportWithMissingState_IfConstructorWasInterruptedBeforeRunne
 
 	var vStateReportRecv = make(chan struct{})
 	slotMachine.PrepareMockedMessageSender(mc)
-	slotMachine.MessageSender.SendRole.SetCheckMessage(func(msg rms.GoGoSerializable) {
+	slotMachine.MessageSender.SendRole.SetCheckMessage(func(msg rmsreg.GoGoSerializable) {
 		res, ok := msg.(*rms.VStateReport)
 		require.True(t, ok)
 		assert.Equal(t, rms.StateStatusMissing, res.Status)

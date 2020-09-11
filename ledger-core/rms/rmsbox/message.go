@@ -3,18 +3,19 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package rms
+package rmsbox
 
 import (
 	"io"
 
+	"github.com/insolar/assured-ledger/ledger-core/rms/rmsreg"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/protokit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 func MarshalMessageWithPayloadsToBytes(m BasicMessage) ([]byte, error) {
-	ms := m.(GoGoSerializable)
+	ms := m.(rmsreg.GoGoSerializable)
 
 	ctx := &msgMarshalContext{m: m}
 	if err := m.Visit(ctx); err != nil {
@@ -84,7 +85,7 @@ func MarshalMessageWithPayloadsToBytes(m BasicMessage) ([]byte, error) {
 
 func UnmarshalMessageWithPayloadsFromBytes(b []byte, digester cryptkit.DataDigester) (uint64, BasicMessage, error) {
 	payloads := RecordPayloads{}
-	id, um, err := UnmarshalCustom(b, GetRegistry().Get, payloads.TryUnmarshalPayloadFromBytes)
+	id, um, err := rmsreg.UnmarshalCustom(b, rmsreg.GetRegistry().Get, payloads.TryUnmarshalPayloadFromBytes)
 	if err != nil {
 		return id, nil, err
 	}
@@ -138,7 +139,7 @@ func (p *msgMarshalContext) MsgRecord(m BasicMessage, fieldNum int, record Basic
 	switch {
 	case m != p.m:
 		panic(throw.Impossible())
-	case fieldNum != RecordBodyField:
+	case fieldNum != rmsreg.RecordBodyField:
 		panic(throw.IllegalValue())
 	case record == nil:
 		panic(throw.IllegalValue())

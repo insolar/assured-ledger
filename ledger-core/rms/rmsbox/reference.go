@@ -3,18 +3,19 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package rms
+package rmsbox
 
 import (
 	"io"
 
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms/rmsreg"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/protokit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-var _ GoGoSerializableWithText = &Reference{}
+var _ rmsreg.GoGoSerializableWithText = &Reference{}
 
 func NewReference(v reference.Holder) Reference {
 	r := Reference{}

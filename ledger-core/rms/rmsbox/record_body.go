@@ -3,16 +3,17 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package rms
+package rmsbox
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/rms/rmsreg"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/protokit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-var _ GoGoSerializableWithText = &RecordBody{}
+var _ rmsreg.GoGoSerializableWithText = &RecordBody{}
 
 const maxExtensionCount = 0x7F
 
@@ -413,4 +414,9 @@ func (p *RecordBody) isEmptyForCopy() bool {
 		return false
 	}
 	return true
+}
+
+
+func UnsetRecordBodyPayloadsForTest(r *RecordBody) {
+	r.payloads = nil
 }

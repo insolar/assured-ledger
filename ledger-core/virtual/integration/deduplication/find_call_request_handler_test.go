@@ -14,6 +14,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms/rmsreg"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
@@ -494,7 +495,7 @@ func (s *VFindCallRequestHandlingSuite) setRunnerMock() {
 	}
 }
 
-func (s *VFindCallRequestHandlingSuite) addPayloadAndWaitIdle(ctx context.Context, pl rms.GoGoSerializable) {
+func (s *VFindCallRequestHandlingSuite) addPayloadAndWaitIdle(ctx context.Context, pl rmsreg.GoGoSerializable) {
 	s.server.SuspendConveyorAndWaitThenResetActive()
 	s.server.SendPayload(ctx, pl)
 	s.server.WaitActiveThenIdleConveyor()
