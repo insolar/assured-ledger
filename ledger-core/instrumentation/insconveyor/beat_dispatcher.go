@@ -12,7 +12,6 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -77,7 +76,7 @@ func (c *conveyorDispatcher) CommitBeat(change beat.Beat) {
 
 type DispatchedMessage struct {
 	MessageMeta message.Metadata
-	PayloadMeta payload.Meta
+	PayloadMeta rms.Meta
 }
 
 func (c *conveyorDispatcher) Process(msg beat.Message) error {

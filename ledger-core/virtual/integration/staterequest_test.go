@@ -14,8 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
-	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
@@ -27,11 +26,11 @@ func TestVirtual_VStateRequest(t *testing.T) {
 
 	table := []struct {
 		name  string
-		flags payload.StateRequestContentFlags
+		flags rms.StateRequestContentFlags
 	}{
 		{name: "without flags", flags: 0},
-		{name: "with RequestLatestDirtyState flag", flags: payload.RequestLatestDirtyState},
-		{name: "with RequestLatestValidatedState flag", flags: payload.RequestLatestValidatedState},
+		{name: "with RequestLatestDirtyState flag", flags: rms.RequestLatestDirtyState},
+		{name: "with RequestLatestValidatedState flag", flags: rms.RequestLatestValidatedState},
 	}
 
 	for _, test := range table {
@@ -52,7 +51,7 @@ func TestVirtual_VStateRequest(t *testing.T) {
 			// create object
 			{
 				server.IncrementPulseAndWaitIdle(ctx)
-				Method_PrepareObject(ctx, server, payload.StateStatusReady, object, pulseNumber)
+				Method_PrepareObject(ctx, server, rms.StateStatusReady, object, pulseNumber)
 
 				pulseNumber = server.GetPulse().PulseNumber
 				waitMigrate := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
@@ -63,39 +62,37 @@ func TestVirtual_VStateRequest(t *testing.T) {
 			// prepare checker
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 			{
-				expectedVStateReport := &payload.VStateReport{
-					Status:           payload.StateStatusReady,
+				expectedVStateReport := &rms.VStateReport{
+					Status:           rms.StateStatusReady,
 					AsOf:             pulseNumber,
-					Object:           object,
-					LatestDirtyState: object,
+					Object:           rms.NewReference(object),
+					LatestDirtyState: rms.NewReference(object),
 				}
 				switch test.flags {
-				case payload.RequestLatestDirtyState:
-					expectedVStateReport.ProvidedContent = &payload.VStateReport_ProvidedContentBody{
-						LatestDirtyState: &payload.ObjectState{
-							Reference: reference.Local{},
-							State:     rawWalletState,
-							Class:     testwallet.ClassReference,
+				case rms.RequestLatestDirtyState:
+					expectedVStateReport.ProvidedContent = &rms.VStateReport_ProvidedContentBody{
+						LatestDirtyState: &rms.ObjectState{
+							State: rms.NewBytes(rawWalletState),
+							Class: rms.NewReference(testwallet.ClassReference),
 						},
 					}
-				case payload.RequestLatestValidatedState:
-					expectedVStateReport.ProvidedContent = &payload.VStateReport_ProvidedContentBody{
-						LatestValidatedState: &payload.ObjectState{
-							Reference: reference.Local{},
-							State:     rawWalletState,
-							Class:     testwallet.ClassReference,
+				case rms.RequestLatestValidatedState:
+					expectedVStateReport.ProvidedContent = &rms.VStateReport_ProvidedContentBody{
+						LatestValidatedState: &rms.ObjectState{
+							State: rms.NewBytes(rawWalletState),
+							Class: rms.NewReference(testwallet.ClassReference),
 						},
 					}
 				}
-				typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
-					assert.Equal(t, expectedVStateReport, report)
+				typedChecker.VStateReport.Set(func(report *rms.VStateReport) bool {
+					utils.AssertVStateReportsEqual(t, expectedVStateReport, report)
 					return false
 				})
 			}
 
-			pl := &payload.VStateRequest{
+			pl := &rms.VStateRequest{
 				AsOf:             pulseNumber,
-				Object:           object,
+				Object:           rms.NewReference(object),
 				RequestedContent: test.flags,
 			}
 			server.SendPayload(ctx, pl)
@@ -129,11 +126,11 @@ func TestVirtual_VStateRequest_Unknown(t *testing.T) {
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	{
-		typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
-			assert.Equal(t, &payload.VStateReport{
+		typedChecker.VStateReport.Set(func(report *rms.VStateReport) bool {
+			assert.Equal(t, &rms.VStateReport{
 				AsOf:   pn,
-				Object: object,
-				Status: payload.StateStatusMissing,
+				Object: rms.NewReference(object),
+				Status: rms.StateStatusMissing,
 			}, report)
 
 			return false
@@ -141,10 +138,10 @@ func TestVirtual_VStateRequest_Unknown(t *testing.T) {
 	}
 
 	{
-		pl := &payload.VStateRequest{
+		pl := &rms.VStateRequest{
 			AsOf:             pn,
-			Object:           object,
-			RequestedContent: payload.RequestLatestDirtyState,
+			Object:           rms.NewReference(object),
+			RequestedContent: rms.RequestLatestDirtyState,
 		}
 
 		server.SendPayload(ctx, pl)
@@ -157,12 +154,12 @@ func TestVirtual_VStateRequest_WhenObjectIsDeactivated(t *testing.T) {
 	insrail.LogCase(t, "C5474")
 	table := []struct {
 		name         string
-		requestState payload.StateRequestContentFlags
+		requestState rms.StateRequestContentFlags
 	}{
 		{name: "Request_State = dirty",
-			requestState: payload.RequestLatestDirtyState},
+			requestState: rms.RequestLatestDirtyState},
 		{name: "Request_State = validated",
-			requestState: payload.RequestLatestValidatedState},
+			requestState: rms.RequestLatestValidatedState},
 	}
 
 	for _, test := range table {
@@ -177,10 +174,10 @@ func TestVirtual_VStateRequest_WhenObjectIsDeactivated(t *testing.T) {
 			var (
 				objectGlobal = server.RandomGlobalWithPulse()
 				pulseNumber  = server.GetPulse().PulseNumber
-				vStateReport = &payload.VStateReport{
+				vStateReport = &rms.VStateReport{
 					AsOf:            pulseNumber,
-					Status:          payload.StateStatusInactive,
-					Object:          objectGlobal,
+					Status:          rms.StateStatusInactive,
+					Object:          rms.NewReference(objectGlobal),
 					ProvidedContent: nil,
 				}
 			)
@@ -188,7 +185,7 @@ func TestVirtual_VStateRequest_WhenObjectIsDeactivated(t *testing.T) {
 			p2 := server.GetPulse().PulseNumber
 
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-			typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
+			typedChecker.VStateReport.Set(func(report *rms.VStateReport) bool {
 				vStateReport.AsOf = p2
 				assert.Equal(t, vStateReport, report)
 				return false
@@ -206,9 +203,9 @@ func TestVirtual_VStateRequest_WhenObjectIsDeactivated(t *testing.T) {
 
 			// VStateRequest
 			{
-				payload := &payload.VStateRequest{
+				payload := &rms.VStateRequest{
 					AsOf:             p2,
-					Object:           objectGlobal,
+					Object:           rms.NewReference(objectGlobal),
 					RequestedContent: test.requestState,
 				}
 				server.SendPayload(ctx, payload)
