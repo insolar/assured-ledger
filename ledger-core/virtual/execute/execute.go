@@ -461,7 +461,7 @@ func (s *SMExecute) stepProcessFindCallResponse(ctx smachine.ExecutionContext) s
 	case s.findCallResponse.Status == rms.CallStateFound && s.findCallResponse.CallResult != nil:
 		ctx.Log().Trace("request found on previous executor, resending result")
 
-		target := s.Meta.Sender
+		target := s.Meta.Sender.GetValue()
 		s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
 			err := svc.SendTarget(goCtx, s.findCallResponse.CallResult, target)
 			return func(ctx smachine.AsyncResultContext) {
@@ -1073,10 +1073,11 @@ func (s *SMExecute) getToken() rms.CallDelegationToken {
 }
 
 func (s *SMExecute) sendResult(ctx smachine.ExecutionContext, message rms.GoGoSerializable) {
-	target := s.Meta.Sender
+	target := s.Meta.Sender.GetValue()
 
 	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
 		err := svc.SendTarget(goCtx, message, target)
+
 		return func(ctx smachine.AsyncResultContext) {
 			if err != nil {
 				ctx.Log().Error("failed to send message", err)
