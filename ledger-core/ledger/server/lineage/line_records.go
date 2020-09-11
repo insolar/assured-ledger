@@ -25,6 +25,7 @@ type updateStage struct {
 	tracker StageTracker
 	firstRec  recordNo
 
+	// TODO full copy will be inefficient with multiple open filaments
 	filaments     []filament
 }
 

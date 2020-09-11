@@ -154,7 +154,8 @@ func TestDropAssistAppendWithPulseChange(t *testing.T) {
 	}
 
 	// this preserves merkle tree by forcing rollback for all pending bundles
-	pa.CommitPulseChange()
+	// internal method is applied here to avoid summarization
+	pa.commitPulseChange()
 
 	// all futures are set to an error
 	for i := range fts {

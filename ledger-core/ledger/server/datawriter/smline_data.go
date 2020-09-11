@@ -117,35 +117,41 @@ func (p *LineSharedData) applyBundle(ctx smachine.ExecutionContext, br *lineage.
 
 	future := buildersvc.NewFuture("")
 
-	switch ok, fut, resolved := p.data.AddBundle(br, future); {
-	case !ok:
+	switch result, fut, resolved := p.data.AddBundle(br, future); result {
+	case lineage.UnableToAdd:
 		// got an error or an unresolved dependency
 		return nil, nil, br
 
-	case fut == nil:
-		// all entries were already added and committed
-		if !resolved.IsZero() {
-			panic(throw.Impossible())
-		}
-		return nil, nil, nil
-
-	case resolved.IsZero():
-		// all entries were already added, but not yet committed
-		return nil, fut.(*buildersvc.Future), nil
+	case lineage.WaitForHead:
+		return fut.(*buildersvc.Future), nil, nil
 
 	default:
-		// entries has to be added
+		switch {
+		case fut == nil:
+			// all entries were already added and committed
+			if !resolved.IsZero() {
+				panic(throw.Impossible())
+			}
+			return nil, nil, nil
 
-		if future != fut {
-			panic(throw.Impossible())
+		case resolved.IsZero():
+			// all entries were already added, but not yet committed
+			return nil, fut.(*buildersvc.Future), nil
+
+		default:
+			// entries has to be added
+
+			if future != fut {
+				panic(throw.Impossible())
+			}
+
+			dropID := p.jetDropID
+			p.adapter.PrepareNotify(ctx, func(service buildersvc.Service) {
+				service.AppendToDrop(dropID, future, resolved)
+			}).Send()
+
+			return nil, future, nil
 		}
-
-		dropID := p.jetDropID
-		p.adapter.PrepareNotify(ctx, func(service buildersvc.Service) {
-			service.AppendToDrop(dropID, future, resolved)
-		}).Send()
-
-		return nil, future, nil
 	}
 }
 
@@ -283,6 +289,7 @@ func (p *LineSharedData) FindWithTracker(ref reference.Holder) (bool, *buildersv
 func (p *LineSharedData) FindSequence(ref reference.Holder, findFn func(record lineage.ReadRecord) bool) (bool, *buildersvc.Future) {
 	p.ensureDataAccess()
 
+	p.data.RegisterRead()
 	ok, fut := p.data.FindSequence(ref, findFn)
 	if fut == nil {
 		return ok, nil

@@ -16,8 +16,8 @@ import (
 )
 
 func (p *LineStages) addBundle(bundle *BundleResolver, tracker StageTracker) bool {
-	ok, _, _ := p.AddBundle(bundle, tracker)
-	return ok
+	result, _, _ := p.AddBundle(bundle, tracker)
+	return result >= Added
 }
 
 func TestLineStages_Create(t *testing.T) {

@@ -87,9 +87,9 @@ func (p *stageValidator) _addFilament(rec *resolvedRecord) error {
 	return nil
 }
 
-func (p *stageValidator) applyFilament(rec *resolvedRecord) error {
+func (p *stageValidator) applyFilament(rec *resolvedRecord) (recordNo, error) {
 	if err := p._addFilament(rec); err != nil {
-		return err
+		return 0, err
 	}
 
 	filament := &p.stage.filaments[rec.filNo - 1]
@@ -98,16 +98,16 @@ func (p *stageValidator) applyFilament(rec *resolvedRecord) error {
 	case filament.earliest == 0:
 		//
 	case filament.latest != rec.prev:
-		return throw.New("inconsistent filament sequence")
+		return 0, throw.New("inconsistent filament sequence")
 	default:
 		if rec.recapNo != 0 && filament.recap != rec.recapNo {
-			return throw.New("inconsistent filament recap")
+			return 0, throw.New("inconsistent filament recap")
 		}
 		filament.latest = rec.recordNo
 		if rec.next == deadFilament {
 			filament.state = ended
 		}
-		return nil
+		return filament.earliest, nil
 	}
 
 	if !rec.IsRecap() {
@@ -117,27 +117,26 @@ func (p *stageValidator) applyFilament(rec *resolvedRecord) error {
 		if rec.next == deadFilament {
 			filament.state = ended
 		}
-
-		return nil
+		return filament.earliest, nil
 	}
 
 	switch {
 	case filament.recap != 0:
 		panic(throw.Impossible())
 	case rec.recapRec == nil:
-		return throw.New("recap body is missing")
-	case rec.recapRec.Type == rms.FilamentType_Lifeline:
+		return 0, throw.New("recap body is missing")
+	case rec.recapRec.State & rms.FilamentState_FilamentTypeMask == rms.FilamentState_Lifeline:
 		if rec.filNo != 1 {
-			return throw.New("recap mismatched line type")
+			return 0, throw.New("recap mismatched line type")
 		}
 	case rec.filNo == 1:
-		return throw.New("recap mismatched filament type")
+		return 0, throw.New("recap mismatched filament type")
 	}
 
-	switch rec.recapRec.State {
-	case rms.FilamentState_Unknown:
-		return throw.New("recap is invalid")
-	case rms.FilamentState_DirtyDeactivated, rms.FilamentState_Dead:
+	switch {
+	case rec.recapRec.State & rms.FilamentState_FilamentTypeMask == rms.FilamentState_Unknown:
+		return 0, throw.New("recap is invalid")
+	case rec.recapRec.State & rms.FilamentState_ClosedFlag != 0:
 		filament.earliest = deadFilament
 		filament.latest = deadFilament
 	}
@@ -151,12 +150,12 @@ func (p *stageValidator) applyFilament(rec *resolvedRecord) error {
 	if rType := RecordType(rec.recapRec.RedirectToType); rType != 0 {
 		filament.resolvedHead.RedirectToRef = rec.recapRec.PrevRedirectRef.Get()
 		if reference.IsEmpty(filament.resolvedHead.RedirectToRef) {
-			return throw.New("recap inconsistent redirect")
+			return 0, throw.New("recap inconsistent redirect")
 		}
 		filament.resolvedHead.RedirectToType = RecordType(rec.recapRec.RedirectToType)
 	}
 
-	return nil
+	return filament.earliest, nil
 }
 
 func (p *stageValidator) postCheck() error {

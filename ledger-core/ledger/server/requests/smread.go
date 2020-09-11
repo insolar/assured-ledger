@@ -139,7 +139,7 @@ func (p *SMRead) stepLineIsReady(ctx smachine.ExecutionContext) smachine.StateUp
 		sd.TrimStages()
 
 		normTargetRef := reference.NormCopy(p.request.TargetRef.Get())
-		// TODO do a few cycles when too many record
+		// TODO do a few sub-cycles when too many record
 		_, future = sd.FindSequence(normTargetRef, p.extractor.AddLineRecord)
 
 		return false

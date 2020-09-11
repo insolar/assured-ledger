@@ -38,6 +38,7 @@ enum FilamentState {
     // SAGA
     // Listing
     // Timers
+    FilamentTypeMask = 127;
 
     ActivatedFlag = 4096; // for Lifeline and Sideline only
     ClosedFlag = 8192; // == Deactivated for Lifeline and Sideline
@@ -75,8 +76,9 @@ message RunnableState {
     option (insproto.context) = "";
 
     SafetyLevel Level = 20;
-    Reference Memory = 21;
-    Reference Code = 22;
+    Reference MemoryRef = 21;
+    Reference CodeRef = 22;
+    Reference ProofRef = 23; // for Validated and Finalized levels
 }
 
 message RPrevDropReport {

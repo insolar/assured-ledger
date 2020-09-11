@@ -7,6 +7,7 @@ package buildersvc
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/ledger"
+	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/bundle"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/catalog"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lineage"
@@ -22,6 +23,7 @@ var _ bundle.Writeable = &entryWriter{}
 type entryWriter struct {
 	dropOrder *atomickit.Uint32
 	dropBase  ledger.Ordinal
+	jetID     jet.ExactID
 
 	entries   []draftEntry
 	prepared  []preparedEntry
@@ -38,8 +40,9 @@ func (p *entryWriter) PrepareWrite(snapshot bundle.Snapshot) error {
 	preparedEntries := make([]preparedEntry, n)
 
 	for i := range p.entries {
+		ord := p.dropBase + ledger.Ordinal(i)
 		var err error
-		preparedEntries[i], err = p.prepareRecord(snapshot, &p.entries[i], p.dropBase + ledger.Ordinal(i))
+		preparedEntries[i], err = p.prepareRecord(snapshot, &p.entries[i], ledger.NewDropOrdinal(p.jetID, ord))
 		if err != nil {
 			return err
 		}
@@ -83,7 +86,7 @@ func (p *entryWriter) ApplyWrite() ([]ledger.DirectoryIndex, error) {
 	return indices, nil
 }
 
-func (p *entryWriter) prepareRecord(snapshot bundle.Snapshot, entry *draftEntry, dropOrdinal ledger.Ordinal) (preparedEntry, error) {
+func (p *entryWriter) prepareRecord(snapshot bundle.Snapshot, entry *draftEntry, dropOrdinal ledger.DropOrdinal) (preparedEntry, error) {
 	ds, err := snapshot.GetDirectorySection(entry.directory)
 	if err != nil {
 		return preparedEntry{}, err
@@ -137,7 +140,12 @@ func (p *entryWriter) prepareRecord(snapshot bundle.Snapshot, entry *draftEntry,
 		bundle.DirectoryEntry{
 			Key: reference.Copy(entry.entryKey),
 			Loc: entryLoc,
-			Rel: makeRelative(entry.relative, entryIndex),
+			Fil: bundle.FilamentInfo{
+				Link:  0, // TODO FilamentInfo
+				JetID: p.jetID.ID(),
+				Flags: 0,
+			},
+			// Rel: makeRelative(entry.relative, entryIndex),
 		},
 	); err != nil {
 		return preparedEntry{}, err
@@ -214,11 +222,11 @@ func draftCatalogEntry(rec lineage.Record) catalog.Entry {
 	}
 }
 
-func prepareCatalogEntry(entry *catalog.Entry, dropOrdinal ledger.Ordinal, loc []ledger.StorageLocator,
+func prepareCatalogEntry(entry *catalog.Entry, dropOrdinal ledger.DropOrdinal, loc []ledger.StorageLocator,
 	payloads []sectionPayload, preparedPayloads []preparedPayload,
 ) {
 	entry.BodyLoc = loc[0]
-	entry.Ordinal =	dropOrdinal
+	entry.DropOrdinal =	dropOrdinal
 	entry.BodyPayloadSizes = uint64(preparedPayloads[0].size)
 
 	n := len(loc)

@@ -96,6 +96,7 @@ func (p *dropAssistant) append(pa *plashAssistant, future AppendFuture, b lineag
 
 	writeBundle := &entryWriter{
 		dropOrder: &p.dropEntryCounter,
+		jetID: p.exactID,
 		entries: entries,
 	}
 

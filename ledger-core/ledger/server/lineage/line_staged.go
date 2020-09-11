@@ -45,6 +45,8 @@ type LineStages struct {
 	earliest *updateStage
 	latest   *updateStage
 
+	accessFrequency uint64
+
 	recordRefs    map[reference.LocalHash]recordNo
 	filamentRefs  map[reference.Local]filamentNo
 	reasonRefs    map[reference.Global]recordNo
@@ -56,7 +58,13 @@ func (p *LineStages) NewBundle() *BundleResolver {
 	return newBundleResolver(p, GetRecordPolicy)
 }
 
+func (p *LineStages) RegisterRead() {
+	p.accessFrequency++
+}
+
 func (p *LineStages) VerifyBundle(bundle *BundleResolver) (bool, StageTracker) {
+	p.accessFrequency++
+
 	switch {
 	case bundle == nil:
 		panic(throw.IllegalValue())
@@ -84,17 +92,25 @@ func (p *LineStages) VerifyBundle(bundle *BundleResolver) (bool, StageTracker) {
 	}
 }
 
-func (p *LineStages) AddBundle(bundle *BundleResolver, tracker StageTracker) (bool, StageTracker, UpdateBundle) {
+type AddResult uint8
+const (
+	UnableToAdd AddResult = iota
+	WaitForHead
+	Added
+	Deduplicated
+)
+
+func (p *LineStages) AddBundle(bundle *BundleResolver, tracker StageTracker) (AddResult, StageTracker, UpdateBundle) {
 	switch {
 	case tracker == nil:
 		panic(throw.IllegalValue())
 	case bundle == nil:
 		panic(throw.IllegalValue())
 	case !bundle.hasNoTroubles():
-		return false, nil, UpdateBundle{}
+		return UnableToAdd, nil, UpdateBundle{}
 	case len(bundle.records) > 0:
 	case len(bundle.dupRecords) == 0:
-		return true, nil, UpdateBundle{}
+		return Deduplicated, nil, UpdateBundle{}
 	default:
 		// all records were deduplicated
 		// we have to find the latest relevant tracker
@@ -107,9 +123,9 @@ func (p *LineStages) AddBundle(bundle *BundleResolver, tracker StageTracker) (bo
 			}
 		}
 		if s := p.findStage(latestRec); s != nil {
-			return true, s.tracker, UpdateBundle{}
+			return Deduplicated, s.tracker, UpdateBundle{}
 		}
-		return true, nil, UpdateBundle{}
+		return Deduplicated, nil, UpdateBundle{}
 	}
 
 	prevFilamentCount := 0
@@ -139,6 +155,8 @@ func (p *LineStages) AddBundle(bundle *BundleResolver, tracker StageTracker) (bo
 
 	defer bundle.setLastRecord(nil)
 
+	var latestHeadRec recordNo
+
 	for i := range bundle.records {
 		rec := &bundle.records[i]
 		bundle.setLastRecord(rec.GetRecordRef())
@@ -158,9 +176,13 @@ func (p *LineStages) AddBundle(bundle *BundleResolver, tracker StageTracker) (bo
 			continue
 		}
 
-		if err := validator.applyFilament(rec); err != nil {
+		switch earliestRec, err := validator.applyFilament(rec); {
+		case err != nil:
 			bundle.addError(err)
 			continue
+		case earliestRec == 0 || earliestRec == deadFilament:
+		case earliestRec > latestHeadRec:
+			latestHeadRec = earliestRec
 		}
 	}
 
@@ -170,16 +192,23 @@ func (p *LineStages) AddBundle(bundle *BundleResolver, tracker StageTracker) (bo
 
 	if !bundle.hasNoTroubles() {
 		// has errors or unresolved dependencies
-		return false, nil, UpdateBundle{}
+		return UnableToAdd, nil, UpdateBundle{}
+	}
+
+	if latestHeadRec != 0 {
+		if s := p.findStage(latestHeadRec); s != nil && s.tracker != nil {
+			return WaitForHead, s.tracker, UpdateBundle{}
+		}
 	}
 
 	// block this bundle from being reused without reprocessing - to protect bundle.records
 	defer bundle.addError(throw.New("processed bundle"))
 
 	if p.addStage(bundle, stage, prevFilamentCount, validator.filRoot) {
-		return true, tracker, UpdateBundle{bundle.records }
+		p.accessFrequency++
+		return Added, tracker, UpdateBundle{bundle.records }
 	}
-	return false, nil, UpdateBundle{}
+	return UnableToAdd, nil, UpdateBundle{}
 }
 
 func (p *LineStages) addStage(bundle *BundleResolver, stage *updateStage, prevFilamentCount int, filRoot reference.Local) bool {

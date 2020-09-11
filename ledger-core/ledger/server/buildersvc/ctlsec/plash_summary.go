@@ -52,17 +52,9 @@ func (p *PlashSummaryWriter) ReadCatalog(dirtyReader bundle.DirtyReader, dropCou
 			}
 
 			head := entry.Fil.Link
-			if head == 0 {
-				// TODO temporary hack
-				continue
-			}
-
 			flags := entry.Fil.Flags
 
 			if flags & ledger.FilamentLocalStart != 0 {
-				if head != entryOrd {
-					return throw.Impossible()
-				}
 				p.recordToFilament[entryOrd] = entryOrd
 
 				filMap[entryOrd] = len(p.filamentHeads)
@@ -70,11 +62,10 @@ func (p *PlashSummaryWriter) ReadCatalog(dirtyReader bundle.DirtyReader, dropCou
 					Head:         entryOrd,
 					FilamentInfo: entry.Fil,
 				})
-				continue
-			}
-
-			if flags & ledger.FilamentStart != 0 {
-				return throw.Impossible()
+				if head == entryOrd {
+					// head to itself
+					continue
+				}
 			}
 
 			var fil *FilamentHead

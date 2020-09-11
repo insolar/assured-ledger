@@ -106,6 +106,12 @@ func (p *plashAssistant) CancelPulseChange() {
 }
 
 func (p *plashAssistant) CommitPulseChange() {
+	p.commitPulseChange()
+
+	go p.startSummary()
+}
+
+func (p *plashAssistant) commitPulseChange() {
 	// plash will not accept writes anymore
 	if !p.status.CompareAndSwap(plashPendingPulse, plashClosed) {
 		panic(throw.IllegalState())
@@ -113,8 +119,6 @@ func (p *plashAssistant) CommitPulseChange() {
 
 	p.commit.Unlock()
 	// NB! Underlying writer must NOT be marked read-only here as summary has to be written also
-
-	go p.startSummary()
 }
 
 func (p *plashAssistant) getDropAssist(id jet.DropID) (*dropAssistant, error) {
@@ -268,7 +272,7 @@ func (p *plashAssistant) startSummary() {
 	sw := &ctlsec.PlashSummaryWriter{}
 	sw.ReadCatalog(p.dirtyReader, len(p.dropAssists))
 
-	_ = p.writer.WriteBundle(sw, nil)
+	p.writer.WriteBundle(sw, nil)
 }
 
 func (p *plashAssistant) finalizeSummary()  {
