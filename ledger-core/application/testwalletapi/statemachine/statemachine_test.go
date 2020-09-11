@@ -11,17 +11,17 @@ import (
 	"time"
 
 	"github.com/gojuno/minimock/v3"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gotest.tools/assert"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
@@ -34,11 +34,11 @@ import (
 func TestBuiltinTestAPIEchoValue(t *testing.T) {
 	ref, err := reference.Decode(BuiltinTestAPIEcho)
 	require.NoError(t, err)
-	require.Equal(t, pulse.BuiltinContract, ref.GetBase().Pulse())
+	assert.Equal(t, pulse.BuiltinContract, ref.GetBase().Pulse())
 
 	ref, err = reference.Decode(BuiltinTestAPIBriefEcho)
 	require.NoError(t, err)
-	require.Equal(t, pulse.BuiltinContract, ref.GetBase().Pulse())
+	assert.Equal(t, pulse.BuiltinContract, ref.GetBase().Pulse())
 }
 
 func TestSMTestAPICall_MethodResends(t *testing.T) {
@@ -49,12 +49,12 @@ func TestSMTestAPICall_MethodResends(t *testing.T) {
 
 	slotMachine := slotdebugger.New(ctx, t)
 
-	request := payload.VCallRequest{
-		CallType:       payload.CallTypeMethod,
-		Callee:         gen.UniqueGlobalRef(),
-		CallFlags:      payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
+	request := rms.VCallRequest{
+		CallType:       rms.CallTypeMethod,
+		Callee:         rms.NewReference(gen.UniqueGlobalRef()),
+		CallFlags:      rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 		CallSiteMethod: "New",
-		Arguments:      []byte("some args"),
+		Arguments:      rms.NewBytes([]byte("some args")),
 	}
 
 	slotMachine.PrepareMockedMessageSender(mc)
@@ -74,14 +74,15 @@ func TestSMTestAPICall_MethodResends(t *testing.T) {
 	smWrapper := slotMachine.AddStateMachine(ctx, &smRequest)
 
 	messageSent := make(chan struct{}, 1)
-	slotMachine.MessageSender.SendRole.Set(func(_ context.Context, msg payload.Marshaler, role affinity.DynamicRole, object reference.Global, pn pulse.Number, _ ...messagesender.SendOption) error {
-		res := msg.(*payload.VCallRequest)
+	slotMachine.MessageSender.SendRole.Set(func(_ context.Context, msg rms.GoGoSerializable, role affinity.DynamicRole, object reference.Global, pn pulse.Number, _ ...messagesender.SendOption) error {
+		res := msg.(*rms.VCallRequest)
+
 		// ensure that both times request is the same
-		assert.Equal(t, APICaller, res.Caller)
-		assert.Equal(t, APICaller.GetBase(), res.CallOutgoing.GetBase())
-		assert.Equal(t, p1, res.CallOutgoing.GetLocal().GetPulseNumber())
+		assert.Equal(t, APICaller, res.Caller.GetValue())
+		assert.Equal(t, APICaller.GetBase(), res.CallOutgoing.GetValue().GetBase())
+		assert.Equal(t, p1, res.CallOutgoing.GetPulseOfLocal())
 		assert.Equal(t, affinity.DynamicRoleVirtualExecutor, role)
-		assert.Equal(t, request.Callee, object)
+		assert.Equal(t, request.Callee.GetValue(), object)
 
 		messageSent <- struct{}{}
 		return nil
@@ -96,10 +97,10 @@ func TestSMTestAPICall_MethodResends(t *testing.T) {
 	slotMachine.RunTil(smWrapper.BeforeStep(smRequest.stepProcessResult))
 	testutils.WaitSignalsTimed(t, 10*time.Second, messageSent)
 
-	response := &payload.VCallResult{
-		Caller:          gen.UniqueGlobalRef(),
-		Callee:          gen.UniqueGlobalRef(),
-		ReturnArguments: []byte("some results"),
+	response := &rms.VCallResult{
+		Caller:          rms.NewReference(gen.UniqueGlobalRef()),
+		Callee:          rms.NewReference(gen.UniqueGlobalRef()),
+		ReturnArguments: rms.NewBytes([]byte("some results")),
 	}
 
 	outgoingRef := smRequest.requestPayload.CallOutgoing
@@ -110,7 +111,7 @@ func TestSMTestAPICall_MethodResends(t *testing.T) {
 	require.True(t, bargeIn.CallWithParam(response))
 
 	slotMachine.RunTil(smWrapper.BeforeStep(smRequest.stepProcessResult))
-	require.Equal(t, []byte("some results"), smRequest.responsePayload)
+	assert.Equal(t, []byte("some results"), smRequest.responsePayload)
 	slotMachine.RunTil(smWrapper.AfterStop())
 }
 
@@ -125,12 +126,12 @@ func TestSMTestAPICall_MethodEcho(t *testing.T) {
 	echoRef, err := reference.GlobalFromString(BuiltinTestAPIEcho)
 	require.NoError(t, err)
 
-	request := payload.VCallRequest{
-		CallType:       payload.CallTypeMethod,
-		Callee:         echoRef,
-		CallFlags:      payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
+	request := rms.VCallRequest{
+		CallType:       rms.CallTypeMethod,
+		Callee:         rms.NewReference(echoRef),
+		CallFlags:      rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 		CallSiteMethod: "can be any",
-		Arguments:      []byte("some args"),
+		Arguments:      rms.NewBytes([]byte("some args")),
 	}
 
 	slotMachine.PrepareMockedMessageSender(mc)
@@ -157,7 +158,7 @@ func TestSMTestAPICall_MethodEcho(t *testing.T) {
 	slotMachine.RunTil(predicate.OnAnyRecycle)
 	slotMachine.Continue()
 
-	require.Equal(t, request.Arguments, <-ch)
+	assert.Equal(t, request.Arguments.GetBytes(), <-ch)
 }
 
 func TestSMTestAPICall_Constructor(t *testing.T) {
@@ -168,12 +169,12 @@ func TestSMTestAPICall_Constructor(t *testing.T) {
 
 	slotMachine := slotdebugger.New(ctx, t)
 
-	request := payload.VCallRequest{
-		CallType:       payload.CallTypeConstructor,
-		Callee:         gen.UniqueGlobalRef(),
-		CallFlags:      payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
+	request := rms.VCallRequest{
+		CallType:       rms.CallTypeConstructor,
+		Callee:         rms.NewReference(gen.UniqueGlobalRef()),
+		CallFlags:      rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 		CallSiteMethod: "New",
-		Arguments:      []byte("some args"),
+		Arguments:      rms.NewBytes([]byte("some args")),
 	}
 
 	slotMachine.PrepareMockedMessageSender(mc)
@@ -193,15 +194,15 @@ func TestSMTestAPICall_Constructor(t *testing.T) {
 	smWrapper := slotMachine.AddStateMachine(ctx, &smRequest)
 
 	messageSent := make(chan struct{}, 1)
-	slotMachine.MessageSender.SendRole.Set(func(_ context.Context, msg payload.Marshaler, role affinity.DynamicRole, object reference.Global, pn pulse.Number, _ ...messagesender.SendOption) error {
-		res := msg.(*payload.VCallRequest)
+	slotMachine.MessageSender.SendRole.Set(func(_ context.Context, msg rms.GoGoSerializable, role affinity.DynamicRole, object reference.Global, pn pulse.Number, _ ...messagesender.SendOption) error {
+		res := msg.(*rms.VCallRequest)
 
 		// ensure that both times request is the same
-		assert.Equal(t, APICaller, res.Caller)
-		assert.Equal(t, APICaller.GetBase(), res.CallOutgoing.GetBase())
-		assert.Equal(t, p1, res.CallOutgoing.GetLocal().GetPulseNumber())
+		assert.Equal(t, APICaller, res.Caller.GetValue())
+		assert.Equal(t, APICaller.GetBase(), res.CallOutgoing.GetValue().GetBase())
+		assert.Equal(t, p1, res.CallOutgoing.GetPulseOfLocal())
 		assert.Equal(t, affinity.DynamicRoleVirtualExecutor, role)
-		assert.Equal(t, reference.NewSelf(res.CallOutgoing.GetLocal()), object)
+		assert.Equal(t, reference.NewSelf(res.CallOutgoing.GetValue().GetLocal()), object)
 
 		messageSent <- struct{}{}
 		return nil
@@ -221,12 +222,12 @@ func TestSMTestAPICall_RetriesExceeded(t *testing.T) {
 
 	slotMachine := slotdebugger.New(ctx, t)
 
-	request := payload.VCallRequest{
-		CallType:       payload.CallTypeMethod,
-		Callee:         gen.UniqueGlobalRef(),
-		CallFlags:      payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
+	request := rms.VCallRequest{
+		CallType:       rms.CallTypeMethod,
+		Callee:         rms.NewReference(gen.UniqueGlobalRef()),
+		CallFlags:      rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 		CallSiteMethod: "New",
-		Arguments:      []byte("some args"),
+		Arguments:      rms.NewBytes([]byte("some args")),
 	}
 
 	slotMachine.PrepareMockedMessageSender(mc)
@@ -244,7 +245,7 @@ func TestSMTestAPICall_RetriesExceeded(t *testing.T) {
 	smWrapper := slotMachine.AddStateMachine(ctx, &smRequest)
 
 	messageSent := make(chan struct{}, 1)
-	slotMachine.MessageSender.SendRole.Set(func(_ context.Context, msg payload.Marshaler, role affinity.DynamicRole, object reference.Global, pn pulse.Number, _ ...messagesender.SendOption) error {
+	slotMachine.MessageSender.SendRole.Set(func(_ context.Context, msg rms.GoGoSerializable, role affinity.DynamicRole, object reference.Global, pn pulse.Number, _ ...messagesender.SendOption) error {
 		messageSent <- struct{}{}
 		return nil
 	})
@@ -259,6 +260,6 @@ func TestSMTestAPICall_RetriesExceeded(t *testing.T) {
 	slotMachine.RunTil(smWrapper.BeforeStep(smRequest.stepProcessResult))
 	res, err := foundation.MarshalMethodErrorResult(throw.New("timeout: exceeded resend limit"))
 	require.NoError(t, err)
-	require.Equal(t, res, smRequest.responsePayload)
+	assert.Equal(t, res, smRequest.responsePayload)
 	slotMachine.RunTil(smWrapper.AfterStop())
 }

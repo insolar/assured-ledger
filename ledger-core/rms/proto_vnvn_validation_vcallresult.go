@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package payload
+package rms
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -13,23 +13,23 @@ var _ Validatable = &VCallResult{}
 
 func (m *VCallResult) validateUnimplemented() error {
 	switch {
-	case m.Extensions != nil:
+	case !m.Extensions.IsEmpty():
 		return throw.New("Extensions should be empty")
-	case m.ExtensionHashes != nil:
+	case !m.ExtensionHashes.IsEmpty():
 		return throw.New("ExtensionHashes should be empty")
-	case m.SecurityContext != nil:
+	case !m.SecurityContext.IsEmpty():
 		return throw.New("SecurityContext should be empty")
-	case m.EntryHeadHash != nil:
+	case !m.EntryHeadHash.IsEmpty():
 		return throw.New("EntryHeadHash should be empty")
 	case !m.RegistrarDelegationSpec.IsZero():
 		return throw.New("RegistrarDelegationSpec should be zero")
-	case m.RegistrarSignature != nil:
+	case !m.RegistrarSignature.IsEmpty():
 		return throw.New("RegistrarSignature should be empty")
-	case m.ProducerSignature != nil:
+	case !m.ProducerSignature.IsEmpty():
 		return throw.New("ProducerSignature should be empty")
-	case m.PayloadHash != nil:
+	case !m.PayloadHash.IsEmpty():
 		return throw.New("PayloadHash should be empty")
-	case m.ResultFlags != nil:
+	case !m.ResultFlags.IsEmpty():
 		return throw.New("ResultFlags should be empty")
 	case !m.CallIncomingResult.IsEmpty():
 		return throw.New("CallIncomingResult should be empty")
@@ -50,26 +50,26 @@ func (m *VCallResult) Validate(currentPulse PulseNumber) error {
 	switch {
 	case !m.GetCallFlags().IsValid():
 		return throw.New("CallFlags should be valid")
-	case m.ReturnArguments == nil:
+	case m.ReturnArguments.IsEmpty():
 		return throw.New("ReturnArguments should not be empty")
 	}
 
-	callerPulse, err := validSelfScopedGlobalWithPulseSpecialOrBeforeOrEq(m.Caller, currentPulse, "Caller")
+	callerPulse, err := validSelfScopedGlobalWithPulseSpecialOrBeforeOrEq(m.Caller.GetValue(), currentPulse, "Caller")
 	if err != nil {
 		return err
 	}
 
-	calleePulse, err := validSelfScopedGlobalWithPulseSpecialOrBeforeOrEq(m.Callee, currentPulse, "Callee")
+	calleePulse, err := validSelfScopedGlobalWithPulseSpecialOrBeforeOrEq(m.Callee.GetValue(), currentPulse, "Callee")
 	if err != nil {
 		return err
 	}
 
-	outgoingLocalPulse, err := validRequestGlobalWithPulseBeforeOrEq(m.CallOutgoing, currentPulse, "CallOutgoing")
+	outgoingLocalPulse, err := validRequestGlobalWithPulseBeforeOrEq(m.CallOutgoing.GetValue(), currentPulse, "CallOutgoing")
 	if err != nil {
 		return err
 	}
 
-	incomingLocalPulse, err := validRequestGlobalWithPulseBeforeOrEq(m.CallIncoming, currentPulse, "CallIncoming")
+	incomingLocalPulse, err := validRequestGlobalWithPulseBeforeOrEq(m.CallIncoming.GetValue(), currentPulse, "CallIncoming")
 	if err != nil {
 		return err
 	}

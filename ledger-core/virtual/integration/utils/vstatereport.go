@@ -7,26 +7,28 @@ package utils
 
 import (
 	testwalletProxy "github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 )
 
-func GenerateVStateReport(server *Server, object payload.Reference, pulse payload.PulseNumber) *payload.VStateReport {
-	content := &payload.VStateReport_ProvidedContentBody{
-		LatestDirtyState: &payload.ObjectState{
-			Reference: reference.Local{},
-			Class:     testwalletProxy.GetClass(),
-			State:     []byte("dirty"),
+//nolint:interfacer
+func GenerateVStateReport(server *Server, object reference.Global, pulse pulse.Number) *rms.VStateReport {
+	content := &rms.VStateReport_ProvidedContentBody{
+		LatestDirtyState: &rms.ObjectState{
+			Reference: rms.NewReferenceLocal(reference.Local{}),
+			Class:     rms.NewReference(testwalletProxy.GetClass()),
+			State:     rms.NewBytes([]byte("dirty")),
 		},
-		LatestValidatedState: &payload.ObjectState{
-			Reference: reference.Local{},
-			Class:     testwalletProxy.GetClass(),
-			State:     []byte("validated"),
+		LatestValidatedState: &rms.ObjectState{
+			Reference: rms.NewReferenceLocal(reference.Local{}),
+			Class:     rms.NewReference(testwalletProxy.GetClass()),
+			State:     rms.NewBytes([]byte("validated")),
 		},
 	}
-	return &payload.VStateReport{
-		Status:          payload.StateStatusReady,
-		Object:          object,
+	return &rms.VStateReport{
+		Status:          rms.StateStatusReady,
+		Object:          rms.NewReference(object),
 		AsOf:            pulse,
 		ProvidedContent: content,
 	}

@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package payload
+package rms
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -13,11 +13,11 @@ var _ Validatable = &VStateRequest{}
 
 func (m *VStateRequest) validateUnimplemented() error {
 	switch {
-	case m.RequestedContentLimit != nil:
+	case !m.RequestedContentLimit.IsEmpty():
 		return throw.New("RequestedContentLimit should be empty")
-	case m.SupportedExtensions != nil:
+	case !m.SupportedExtensions.IsEmpty():
 		return throw.New("SupportedExtensions should be empty")
-	case m.ProducerSignature != nil:
+	case !m.ProducerSignature.IsEmpty():
 		return throw.New("ProducerSignature should be empty")
 	case m.CallRequestFlags != 0:
 		return throw.New("CallRequestFlags should be zero")
@@ -31,7 +31,7 @@ func (m *VStateRequest) Validate(currentPulse PulseNumber) error {
 		return err
 	}
 
-	objectPulse, err := validSelfScopedGlobalWithPulseBeforeOrEq(m.Object, currentPulse, "Object")
+	objectPulse, err := validSelfScopedGlobalWithPulseBeforeOrEq(m.Object.GetValue(), currentPulse, "Object")
 	if err != nil {
 		return err
 	}
