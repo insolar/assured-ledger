@@ -70,15 +70,15 @@ func rootPath() string {
 	return filepath.Join(projectRoot, "ledger-core")
 }
 
-func CustomRunWithPulsar(numVirtual, numLight, numHeavy int, cb func([]string, int) int) int {
+func CustomRunWithPulsar(numVirtual, numLight, numHeavy int, cb func([]string) int) int {
 	return customRun(false, numVirtual, numLight, numHeavy, cb)
 }
 
-func CustomRunWithoutPulsar(numVirtual, numLight, numHeavy int, cb func([]string, int) int) int {
+func CustomRunWithoutPulsar(numVirtual, numLight, numHeavy int, cb func([]string) int) int {
 	return customRun(true, numVirtual, numLight, numHeavy, cb)
 }
 
-func getPulseTime() int {
+func GetPulseTime() int {
 	if pulseTime := os.Getenv(pulseTimeEnv); len(pulseTime) != 0 {
 		res, err := strconv.Atoi(pulseTime)
 		if err != nil {
@@ -89,7 +89,12 @@ func getPulseTime() int {
 	return defaultPulseTime
 }
 
-func customRun(pulsarOneShot bool, numVirtual, numLight, numHeavy int, cb func([]string, int) int) int {
+type CaseRunner struct {
+	run       func([]string, int) int
+	pulseTime int
+}
+
+func customRun(pulsarOneShot bool, numVirtual, numLight, numHeavy int, cb func([]string) int) int {
 	apiAddresses, teardown, err := newNetSetup(pulsarOneShot, numVirtual, numLight, numHeavy)
 	defer teardown()
 	if err != nil {
@@ -110,7 +115,7 @@ func customRun(pulsarOneShot bool, numVirtual, numLight, numHeavy int, cb func([
 
 	pulseWatcher, config := pulseWatcherPath()
 
-	code := cb(apiAddresses, getPulseTime())
+	code := cb(apiAddresses)
 
 	if code != 0 {
 		out, err := exec.Command(pulseWatcher, "-c", config, "-s").CombinedOutput()
@@ -267,7 +272,7 @@ func runPulsar(oneShot bool) error {
 		pulsarOneShotStr = "TRUE"
 	}
 	pulsarCmd.Env = append(pulsarCmd.Env, fmt.Sprintf("PULSARD_ONESHOT=%s", pulsarOneShotStr))
-	pulsarCmd.Env = append(pulsarCmd.Env, fmt.Sprintf("%s=%d", pulseTimeEnv, getPulseTime()))
+	pulsarCmd.Env = append(pulsarCmd.Env, fmt.Sprintf("%s=%d", pulseTimeEnv, GetPulseTime()))
 
 	if err := pulsarCmd.Start(); err != nil {
 		return throw.W(err, "failed to launch pulsar")
