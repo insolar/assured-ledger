@@ -23,7 +23,7 @@ func (t *Transcript) GetRMSTranscript() (rms.VObjectTranscriptReport_Transcript,
 	for _, entry := range t.Entries {
 		rmsEntry := new(rms.Any)
 
-		switch typedEntry := interface{}(entry).(type) {
+		switch typedEntry := interface{}(entry.Custom).(type) {
 		case TranscriptEntryIncomingRequest:
 			requestMarshaled, err := typedEntry.CallRequest.Marshal()
 			if err != nil {

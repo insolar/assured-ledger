@@ -49,32 +49,32 @@ message VObjectTranscriptReport {
     Reference Object = 1801;
 
     message TranscriptEntryIncomingRequest {
-        option (insproto.id) = 0;
+        option (insproto.id) = 1017;
 
         Reference ObjectMemory = 1800;
         Reference Incoming = 1801;
         bytes Request = 1802; // fixme: waiting for messages to move to RMS package
     }
     message TranscriptEntryOutgoingRequest {
-        option (insproto.id) = 0;
+        option (insproto.id) = 1018;
 
         Reference Outgoing = 1800;
     }
     message TranscriptEntryOutgoingResult {
-        option (insproto.id) = 0;
+        option (insproto.id) = 1019;
 
         Reference OutgoingResult = 1800;
         bytes CallResult = 1801; // fixme: waiting for messages to move to RMS package
     }
     message TranscriptEntryIncomingResult {
-        option (insproto.id) = 0;
+        option (insproto.id) = 1020;
 
         Reference IncomingResult = 1800;
         Reference ObjectState = 1801;
     }
 
     message Transcript {
-        option (insproto.id) = 0;
+        option (insproto.id) = 1021;
 
         // stub
         repeated Any Entries = 1800;
