@@ -6,8 +6,6 @@
 package lineage
 
 import (
-	"github.com/insolar/assured-ledger/ledger-core/ledger"
-	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -40,9 +38,14 @@ func (v UpdateBundle) Count() int {
 	return len(v.records)
 }
 
-func (v UpdateBundle) Enum(fn func (Record, rms.BasicRecord, ledger.DirectoryIndexAndFlags, DustMode) bool) bool {
+func (v UpdateBundle) Enum(fn func (Record, RecordExtension) bool) bool {
 	for _, r := range v.records {
-		if fn(r.Record, r.asBasicRecord(), r.relativeIndex, 0) {
+		if fn(r.Record, RecordExtension{
+			Body:    r.asBasicRecord(),
+			FilHead: r.filamentStartIndex.DirectoryIndex(),
+			Flags:   r.filamentStartIndex.Flags(),
+			// Dust:    0,
+		}) {
 			return true
 		}
 	}

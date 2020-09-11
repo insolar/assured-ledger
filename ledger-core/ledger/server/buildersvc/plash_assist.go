@@ -62,7 +62,7 @@ func (p *plashAssistant) setNextPlash(next *plashAssistant) {
 
 // EXTREME LOCK WARNING!
 // This method is under locks of: (1) bundle writer, (2) plashAssistant, (3) dropAssistant.
-func (p *plashAssistant) _updateMerkle(indices []ledger.DirectoryIndex, digests []cryptkit.Digest) ([]ledger.Ordinal, error) {
+func (p *plashAssistant) _updateMerkle(indices []ledger.DirectoryIndex, digests []cryptkit.Digest) []ledger.Ordinal {
 	ords := make([]ledger.Ordinal, 0, len(indices))
 	for i, ord := range indices {
 		if ord.SectionID() != ledger.DefaultEntrySection {
@@ -71,7 +71,7 @@ func (p *plashAssistant) _updateMerkle(indices []ledger.DirectoryIndex, digests 
 		ords = append(ords, ledger.Ordinal(p.merkle.Count()))
 		p.merkle.AddNext(digests[i])
 	}
-	return ords, nil
+	return ords
 }
 
 func (p *plashAssistant) PreparePulseChange(outFn conveyor.PreparePulseCallbackFunc) {

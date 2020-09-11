@@ -12,7 +12,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/ledger/jet"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/bundle"
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lineage"
-	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -34,32 +33,33 @@ func (p *dropAssistant) append(pa *plashAssistant, future AppendFuture, b lineag
 	entries := make([]draftEntry, 0, b.Count())
 	digests := make([]cryptkit.Digest, 0, b.Count())
 
-	b.Enum(func(record lineage.Record, br rms.BasicRecord, rel ledger.DirectoryIndexAndFlags, dust lineage.DustMode) bool {
-		recPayloads := br.GetRecordPayloads()
+	b.Enum(func(record lineage.Record, recExt lineage.RecordExtension) bool {
+		recPayloads := recExt.Body.GetRecordPayloads()
 		payloadCount := recPayloads.Count()
 
 		bundleEntry := draftEntry{
-			directory: ledger.DefaultEntrySection, // todo depends on record policy
+			directory: ledger.DefaultEntrySection, // TODO depends on record policy
 			entryKey:  record.GetRecordRef(),
 			payloads:  make([]sectionPayload, 1+payloadCount),
 			draft:     draftCatalogEntry(record),
 		}
 
 		switch {
-		case dust == lineage.DustRecord:
+		case recExt.Dust == lineage.DustRecord:
 			bundleEntry.directory = ledger.DefaultDustSection
 			// dust record can't be considered as connected for cross-drop operations etc
-			// bundleEntry.relative = 0
-		case rel == 0:
-		case rel.SectionID() != bundleEntry.directory:
+			// bundleEntry.filHead = 0
+		case recExt.FilHead == 0 && recExt.Flags == 0:
+		case recExt.FilHead.SectionID() != bundleEntry.directory:
 			err = throw.E("mismatched relative section")
 			return true // stop now
 		default:
-			bundleEntry.relative = rel
+			bundleEntry.filHead = recExt.FilHead.Ordinal()
+			bundleEntry.filFlags = recExt.Flags
 		}
 
 		bundleEntry.payloads[0].section = bundleEntry.directory
-		if mt, ok := br.(bundle.MarshalerTo); ok {
+		if mt, ok := recExt.Body.(bundle.MarshalerTo); ok {
 			bundleEntry.payloads[0].payload = mt
 		} else {
 			err = throw.E("incompatible record")
@@ -67,7 +67,7 @@ func (p *dropAssistant) append(pa *plashAssistant, future AppendFuture, b lineag
 		}
 
 		if payloadCount > 0 {
-			if dust >= lineage.DustPayload {
+			if recExt.Dust >= lineage.DustPayload {
 				bundleEntry.payloads[1].section = ledger.DefaultDustSection
 			} else {
 				bundleEntry.payloads[1].section = ledger.DefaultDataSection
@@ -126,11 +126,9 @@ func (p *dropAssistant) bundleProcessedByWriter(pa *plashAssistant, indices []le
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
-	positions, err := pa._updateMerkle(indices, digests)
-	if err != nil {
-		return err
-	}
+	positions := pa._updateMerkle(indices, digests)
 	p._updateMerkle(positions, indices, digests)
+
 	return nil
 }
 

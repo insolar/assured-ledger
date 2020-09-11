@@ -10,14 +10,13 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/buildersvc/bundle"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
-	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type PlashSummaryWriter struct {
 	recordToFilament []ledger.Ordinal
 	filamentHeads    []FilamentHead
-	merkleLog        []cryptkit.Digest // TODO
+	// merkleLog        []cryptkit.Digest // TODO
 
 	summary          rms.ControlCatalogSummary
 	receptacles      [4]bundle.PayloadReceptacle
