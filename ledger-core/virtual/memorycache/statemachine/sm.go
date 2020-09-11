@@ -14,7 +14,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
-	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
@@ -30,15 +29,14 @@ type CachedMemoryReportAwaitKey struct {
 }
 
 type SMGetCachedMemory struct {
-	// input arguments
-	Meta    *payload.Meta
-	Payload *rms.VObjectTranscriptReport
-
+	// deps
 	messageSender messageSenderAdapter.MessageSender
 	memoryCache   memoryCacheAdapter.MemoryCache
 
+	// input
 	Object reference.Global
 	State  reference.Local
+	// output
 	Result descriptor.Object
 
 	stateGlobal reference.Global
@@ -69,6 +67,12 @@ func (*dSMGetCachedMemory) GetInitStateFor(sm smachine.StateMachine) smachine.In
 
 func (s *SMGetCachedMemory) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
 	return dSMGetCachedMemoryInstance
+}
+
+func (s *SMGetCachedMemory) GetSubroutineInitState(ctx smachine.SubroutineStartContext) smachine.InitFunc {
+	ctx.SetSubroutineCleanupMode(smachine.SubroutineCleanupAliasesAndShares)
+
+	return s.Init
 }
 
 func (s *SMGetCachedMemory) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
