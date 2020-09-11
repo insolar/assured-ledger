@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package payload
+package rms
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
@@ -36,20 +36,17 @@ func (m *VStateReport) Validate(currentPulse pulse.Number) error {
 		return throw.New("AsOf should be time pulse and less that current pulse")
 	}
 
-	objectPulse, err := validSelfScopedGlobalWithPulseBeforeOrEq(m.Object, currentPulse, "Object")
+	objectPulse, err := validSelfScopedGlobalWithPulseBeforeOrEq(m.Object.GetValue(), currentPulse, "Object")
 	if err != nil {
 		return err
 	}
 
-	if validateStatusFunc, ok := m.getValidateStatusFunc(m.GetStatus()); !ok {
+	validateStatusFunc, ok := m.getValidateStatusFunc(m.GetStatus())
+	if !ok {
 		return throw.New("Unexpected state received")
-	} else {
-		if err := validateStatusFunc(objectPulse, currentPulse); err != nil {
-			return err
-		}
 	}
 
-	return nil
+	return validateStatusFunc(objectPulse, currentPulse)
 }
 
 func (m *VStateReport) validateStatusReady(objectPulse pulse.Number, currentPulse pulse.Number) error {
@@ -143,13 +140,13 @@ func (m *VStateReport) validateStatusMissingOrInactive(pulse.Number, pulse.Numbe
 
 func (m *VStateReport) validateStateAndCodeAreEmpty() error {
 	switch {
-	case !m.GetLatestValidatedState().IsEmpty():
+	case !m.LatestValidatedState.IsEmpty():
 		return throw.New("LatestValidatedState should be empty")
-	case !m.GetLatestValidatedCode().IsEmpty():
+	case !m.LatestValidatedCode.IsEmpty():
 		return throw.New("LatestValidatedCode should be empty")
-	case !m.GetLatestDirtyState().IsEmpty():
+	case !m.LatestDirtyState.IsEmpty():
 		return throw.New("LatestDirtyState should be empty")
-	case !m.GetLatestDirtyCode().IsEmpty():
+	case !m.LatestDirtyCode.IsEmpty():
 		return throw.New("LatestDirtyCode should be empty")
 	}
 

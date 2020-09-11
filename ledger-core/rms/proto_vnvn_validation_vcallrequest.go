@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package payload
+package rms
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -25,27 +25,27 @@ func (m *VCallRequest) validateUnimplemented() error {
 		return throw.New("ExpenseCenter should be empty")
 	case !m.ResourceCenter.IsZero():
 		return throw.New("ResourceCenter should be empty")
-	case m.PayloadHash != nil:
+	case !m.PayloadHash.IsEmpty():
 		return throw.New("PayloadHash should be nil")
-	case m.ProducerSignature != nil:
+	case !m.ProducerSignature.IsEmpty():
 		return throw.New("ProducerSignature should be nil")
-	case m.RegistrarSignature != nil:
+	case !m.RegistrarSignature.IsEmpty():
 		return throw.New("RegistrarSignature should be nil")
 	case !m.RegistrarDelegationSpec.IsZero():
 		return throw.New("RegistrarDelegationSpec should be empty")
 	case !m.KnownCalleeIncoming.IsZero():
 		return throw.New("KnownCalleeIncoming should be empty")
-	case m.EntryHeadHash != nil:
+	case !m.EntryHeadHash.IsEmpty():
 		return throw.New("EntryHeadHash should be nil")
 	case !m.TXExpiry.IsUnknown():
 		return throw.New("TXExpiry should be unknown")
-	case m.SecurityContext != nil:
+	case !m.SecurityContext.IsEmpty():
 		return throw.New("SecurityContext should be nil")
-	case m.TXContext != nil:
+	case !m.TXContext.IsEmpty():
 		return throw.New("TXContext should be nil")
-	case m.ExtensionHashes != nil:
+	case !m.ExtensionHashes.IsEmpty():
 		return throw.New("ExtensionHashes should be nil")
-	case m.Extensions != nil:
+	case !m.Extensions.IsEmpty():
 		return throw.New("Extensions should be nil")
 	case !m.CallAsOf.IsUnknown():
 		return throw.New("CallAsOf should be zero")
@@ -68,21 +68,21 @@ func (m *VCallRequest) Validate(currentPulse PulseNumber) error {
 		return throw.New("CallSiteMethod shouldn't be empty")
 	case !m.GetCallRequestFlags().IsValid():
 		return throw.New("CallRequestFlags should be valid")
-	case m.Arguments == nil:
+	case m.Arguments.IsEmpty():
 		return throw.New("Arguments shouldn't be nil")
 	}
 
-	callerPulse, err := validSelfScopedGlobalWithPulseSpecialOrBeforeOrEq(m.Caller, currentPulse, "Caller")
+	callerPulse, err := validSelfScopedGlobalWithPulseSpecialOrBeforeOrEq(m.Caller.GetValue(), currentPulse, "Caller")
 	if err != nil {
 		return err
 	}
 
-	calleePulse, err := validSelfScopedGlobalWithPulseSpecialOrBeforeOrEq(m.Caller, currentPulse, "Callee")
+	calleePulse, err := validSelfScopedGlobalWithPulseSpecialOrBeforeOrEq(m.Caller.GetValue(), currentPulse, "Callee")
 	if err != nil {
 		return err
 	}
 
-	outgoingLocalPulse, err := validRequestGlobalWithPulseBeforeOrEq(m.CallOutgoing, currentPulse, "CallOutgoing")
+	outgoingLocalPulse, err := validRequestGlobalWithPulseBeforeOrEq(m.CallOutgoing.GetValue(), currentPulse, "CallOutgoing")
 	if err != nil {
 		return err
 	}

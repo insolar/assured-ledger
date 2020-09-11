@@ -14,9 +14,9 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
@@ -71,9 +71,9 @@ func TestSMObject_MigrationCreateStateReport_IfStateMissing(t *testing.T) {
 		assert.NotNil(t, data)
 		switch d := data.(type) {
 		case preservedstatereport.ReportKey:
-			assert.Equal(t, preservedstatereport.BuildReportKey(report.Object), d)
+			assert.Equal(t, preservedstatereport.BuildReportKey(report.Object.GetValue()), d)
 		case callsummary.SummarySyncKey:
-			assert.Equal(t, callsummary.BuildSummarySyncKey(report.Object), d)
+			assert.Equal(t, callsummary.BuildSummarySyncKey(report.Object.GetValue()), d)
 		}
 		return true
 	})
@@ -119,7 +119,7 @@ func TestSMObject_MigrationCreateStateReport_IfStateIsEmptyAndNoCounters(t *test
 		ShareMock.Set(
 		func(data interface{}, flags smachine.ShareDataFlags) (s1 smachine.SharedDataLink) {
 			switch data.(type) {
-			case *payload.VStateReport:
+			case *rms.VStateReport:
 			case *smachine.SyncLink:
 				// no-op
 			default:
@@ -167,9 +167,9 @@ func TestSMObject_MigrationCreateStateReport_IfStateEmptyAndCountersSet(t *testi
 
 		switch k := key.(type) {
 		case preservedstatereport.ReportKey:
-			assert.Equal(t, preservedstatereport.BuildReportKey(report.Object), k)
+			assert.Equal(t, preservedstatereport.BuildReportKey(report.Object.GetValue()), k)
 		case callsummary.SummarySyncKey:
-			assert.Equal(t, callsummary.BuildSummarySyncKey(report.Object), k)
+			assert.Equal(t, callsummary.BuildSummarySyncKey(report.Object.GetValue()), k)
 		default:
 			t.Fatal("Unexpected published key")
 		}

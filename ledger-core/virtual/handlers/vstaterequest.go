@@ -12,9 +12,9 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
@@ -23,10 +23,10 @@ import (
 
 type SMVStateRequest struct {
 	// input arguments
-	Meta    *payload.Meta
-	Payload *payload.VStateRequest
+	Meta    *rms.Meta
+	Payload *rms.VStateRequest
 
-	objectStateReport *payload.VStateReport
+	objectStateReport *rms.VStateReport
 	reportAccessor    preservedstatereport.SharedReportAccessor
 
 	// dependencies
@@ -83,7 +83,7 @@ func (s *SMVStateRequest) stepWait(ctx smachine.ExecutionContext) smachine.State
 }
 
 func (s *SMVStateRequest) stepCheckCatalog(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	reportSharedState, stateFound := preservedstatereport.GetSharedStateReport(ctx, s.Payload.Object)
+	reportSharedState, stateFound := preservedstatereport.GetSharedStateReport(ctx, s.Payload.Object.GetValue())
 
 	if !stateFound {
 		return ctx.Jump(s.stepBuildMissing)
@@ -94,8 +94,8 @@ func (s *SMVStateRequest) stepCheckCatalog(ctx smachine.ExecutionContext) smachi
 }
 
 func (s *SMVStateRequest) stepBuildMissing(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	s.objectStateReport = &payload.VStateReport{
-		Status: payload.StateStatusMissing,
+	s.objectStateReport = &rms.VStateReport{
+		Status: rms.StateStatusMissing,
 		AsOf:   s.Payload.AsOf,
 		Object: s.Payload.Object,
 	}
@@ -104,11 +104,11 @@ func (s *SMVStateRequest) stepBuildMissing(ctx smachine.ExecutionContext) smachi
 
 func (s *SMVStateRequest) stepBuildStateReport(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var (
-		response payload.VStateReport
-		content  *payload.VStateReport_ProvidedContentBody
+		response rms.VStateReport
+		content  *rms.VStateReport_ProvidedContentBody
 	)
 
-	action := func(report payload.VStateReport) {
+	action := func(report rms.VStateReport) {
 		response = report
 		content = report.ProvidedContent
 	}
@@ -126,12 +126,12 @@ func (s *SMVStateRequest) stepBuildStateReport(ctx smachine.ExecutionContext) sm
 
 	response.ProvidedContent = nil
 	if s.Payload.RequestedContent != 0 && content != nil {
-		response.ProvidedContent = &payload.VStateReport_ProvidedContentBody{}
-		if s.Payload.RequestedContent.Contains(payload.RequestLatestDirtyState) {
+		response.ProvidedContent = &rms.VStateReport_ProvidedContentBody{}
+		if s.Payload.RequestedContent.Contains(rms.RequestLatestDirtyState) {
 			response.ProvidedContent.LatestDirtyState = content.LatestDirtyState
 		}
 
-		if s.Payload.RequestedContent.Contains(payload.RequestLatestValidatedState) {
+		if s.Payload.RequestedContent.Contains(rms.RequestLatestValidatedState) {
 			response.ProvidedContent.LatestValidatedState = content.LatestValidatedState
 		}
 	}
@@ -144,7 +144,7 @@ func (s *SMVStateRequest) stepBuildStateReport(ctx smachine.ExecutionContext) sm
 }
 
 func (s *SMVStateRequest) stepSendResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	target := s.Meta.Sender
+	target := s.Meta.Sender.GetValue()
 
 	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
 		err := svc.SendTarget(goCtx, s.objectStateReport, target)

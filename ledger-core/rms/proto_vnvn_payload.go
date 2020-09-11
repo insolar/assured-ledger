@@ -3,12 +3,11 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package payload
+package rms
 
 import (
 	"encoding/base64"
 
-	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -64,14 +63,10 @@ func (h MessageHash) ProtoSize() int {
 // Meta data.
 func UnmarshalFromMeta(meta []byte) (Marshaler, error) {
 	m := Meta{}
-	// Can be optimized by using proto.NewBuffer.
 	err := m.Unmarshal(meta)
 	if err != nil {
 		return nil, err
 	}
-	_, pl, err := rms.Unmarshal(m.Payload)
-	if err != nil {
-		return nil, err
-	}
+	pl := m.Payload.Get()
 	return pl.(Marshaler), nil
 }

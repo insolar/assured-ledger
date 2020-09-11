@@ -1,7 +1,0 @@
-syntax = "proto3";
-
-package payload;
-
-
-message Reference {}
-message LocalReference {}
