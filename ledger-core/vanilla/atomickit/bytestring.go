@@ -14,16 +14,36 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
+func NewOnceByteString(v longbits.ByteString) OnceByteString {
+	header := (*reflect.StringHeader)(unsafe.Pointer(&v))
+
+	return OnceByteString{
+		len: Int{ len(v) },
+		str: unsafe.Pointer(header.Data),
+	}
+}
+
 type OnceByteString struct {
 	len Int
 	str unsafe.Pointer
 }
 
 func (p *OnceByteString) Load() longbits.ByteString {
+	s, _ := p.TryLoad()
+	return s
+}
+
+const (
+	strLenUpdating = -1
+	strLenZero = -2
+)
+
+func (p *OnceByteString) TryLoad() (longbits.ByteString, bool) {
 	ln := p.len.Load()
 	if ln <= 0 {
-		return ""
+		return "", ln == strLenZero
 	}
+
 	str := atomic.LoadPointer(&p.str)
 	if str == nil {
 		panic(throw.IllegalState())
@@ -34,15 +54,20 @@ func (p *OnceByteString) Load() longbits.ByteString {
 	resultHeader.Len = ln
 	resultHeader.Data = uintptr(str)
 
-	return longbits.WrapStr(result)
+	return longbits.WrapStr(result), true
 }
 
 func (p *OnceByteString) StoreOnce(v longbits.ByteString) bool {
 	switch header := (*reflect.StringHeader)(unsafe.Pointer(&v)); {
 	case header.Len == 0:
-		panic(throw.IllegalValue())
-		//return p.len.Load() == 0
-	case !p.len.CompareAndSwap(0, -1):
+		if p.len.CompareAndSwap(0, strLenZero) {
+			return true
+		}
+		for i := 0; p.len.Load() == strLenUpdating; i++ {
+			spinWait(i)
+		}
+		return false
+	case !p.len.CompareAndSwap(0, strLenUpdating):
 		return false
 	default:
 		atomic.StorePointer(&p.str, unsafe.Pointer(header.Data))
