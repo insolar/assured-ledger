@@ -13,13 +13,12 @@ import (
 
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
@@ -35,27 +34,27 @@ var messagesWithToken = []struct {
 }{
 	{
 		name: "VCallRequest",
-		msg:  &payload.VCallRequest{},
+		msg:  &rms.VCallRequest{},
 	},
 	{
 		name: "VCallResult",
-		msg:  &payload.VCallResult{},
+		msg:  &rms.VCallResult{},
 	},
 	{
 		name: "VStateReport",
-		msg:  &payload.VStateReport{},
+		msg:  &rms.VStateReport{},
 	},
 	{
 		name: "VStateRequest",
-		msg:  &payload.VStateRequest{},
+		msg:  &rms.VStateRequest{},
 	},
 	{
 		name: "VDelegatedCallRequest",
-		msg:  &payload.VDelegatedCallRequest{},
+		msg:  &rms.VDelegatedCallRequest{},
 	},
 	{
 		name: "VDelegatedRequestFinished",
-		msg:  &payload.VDelegatedRequestFinished{},
+		msg:  &rms.VDelegatedRequestFinished{},
 	},
 }
 
@@ -107,10 +106,10 @@ func TestDelegationToken_SuccessCheckCorrectToken(t *testing.T) {
 			reflect.ValueOf(testMsg.msg).MethodByName("Reset").Call([]reflect.Value{})
 			insertToken(delegationToken, testMsg.msg)
 
-			server.SendPayload(ctx, testMsg.msg.(payload.Marshaler))
+			server.SendPayload(ctx, testMsg.msg.(rms.GoGoSerializable))
 			server.WaitActiveThenIdleConveyor()
 
-			assert.False(t, errorFound, "Fail "+testMsg.name)
+			assert.False(t, errorFound)
 
 			server.Stop()
 			mc.Finish()
@@ -174,17 +173,17 @@ func TestDelegationToken_CheckTokenField(t *testing.T) {
 			pl := utils.GenerateVCallRequestConstructor(server)
 
 			var (
-				delegationToken payload.CallDelegationToken
+				delegationToken rms.CallDelegationToken
 			)
 
-			delegationToken = server.DelegationToken(pl.CallOutgoing, pl.Caller, pl.Callee)
+			delegationToken = server.DelegationToken(pl.CallOutgoing.GetValue(), pl.Caller.GetValue(), pl.Callee.GetValue())
 			switch {
 			case test.fakeCaller:
-				delegationToken.Caller = server.RandomGlobalWithPulse()
+				delegationToken.Caller.Set(server.RandomGlobalWithPulse())
 			case test.fakeCallee:
-				delegationToken.Callee = server.RandomGlobalWithPulse()
+				delegationToken.Callee.Set(server.RandomGlobalWithPulse())
 			case test.fakeOutgoing:
-				delegationToken.Outgoing = server.RandomGlobalWithPulse()
+				delegationToken.Outgoing.Set(server.RandomGlobalWithPulse())
 			}
 
 			pl.DelegationSpec = delegationToken
@@ -199,7 +198,7 @@ func TestDelegationToken_CheckTokenField(t *testing.T) {
 	}
 }
 
-func insertToken(token payload.CallDelegationToken, msg interface{}) {
+func insertToken(token rms.CallDelegationToken, msg interface{}) {
 	field := reflect.New(reflect.TypeOf(token))
 	field.Elem().Set(reflect.ValueOf(token))
 	reflect.ValueOf(msg).Elem().FieldByName("DelegationSpec").Set(field.Elem())
@@ -322,10 +321,10 @@ func TestDelegationToken_CheckMessageFromAuthorizedVirtual(t *testing.T) {
 					jetCoordinatorMock.MeMock.Return(fixedVe)
 				}
 
-				var delegationToken payload.CallDelegationToken
+				var delegationToken rms.CallDelegationToken
 				if testCase.zeroToken {
-					delegationToken = payload.CallDelegationToken{
-						TokenTypeAndFlags: payload.DelegationTokenTypeUninitialized,
+					delegationToken = rms.CallDelegationToken{
+						TokenTypeAndFlags: rms.DelegationTokenTypeUninitialized,
 					}
 				} else {
 					class := server.RandomGlobalWithPulse()
@@ -339,7 +338,7 @@ func TestDelegationToken_CheckMessageFromAuthorizedVirtual(t *testing.T) {
 				reflect.ValueOf(testMsg.msg).MethodByName("Reset").Call([]reflect.Value{})
 				insertToken(delegationToken, testMsg.msg)
 
-				server.SendPayload(ctx, testMsg.msg.(payload.Marshaler))
+				server.SendPayload(ctx, testMsg.msg.(rms.GoGoSerializable))
 				server.WaitIdleConveyor()
 
 				assert.True(t, errorFound, "Fail "+testMsg.name)
@@ -403,7 +402,7 @@ func TestDelegationToken_OldVEVDelegatedCallRequest(t *testing.T) {
 				executorRef = server.RandomGlobalWithPulse()
 				firstPulse  = server.GetPulse()
 
-				delegationToken, expectedToken      payload.CallDelegationToken
+				delegationToken, expectedToken      rms.CallDelegationToken
 				expectedVDelegatedCallResponseCount int
 			)
 
@@ -424,20 +423,20 @@ func TestDelegationToken_OldVEVDelegatedCallRequest(t *testing.T) {
 
 			if test.haveCorrectDT {
 				expectedToken = server.DelegationToken(outgoing, executorRef, object)
-				require.NotEqual(t, delegationToken.PulseNumber, expectedToken.PulseNumber)
-				require.Equal(t, delegationToken.DelegateTo, expectedToken.DelegateTo)
+				assert.NotEqual(t, delegationToken.PulseNumber, expectedToken.PulseNumber)
+				assert.Equal(t, delegationToken.DelegateTo, expectedToken.DelegateTo)
 			}
 
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-			typedChecker.VDelegatedCallResponse.Set(func(response *payload.VDelegatedCallResponse) bool {
-				assert.Equal(t, object, response.Callee)
-				assert.Equal(t, expectedToken, response.ResponseDelegationSpec)
+			typedChecker.VDelegatedCallResponse.Set(func(response *rms.VDelegatedCallResponse) bool {
+				assert.Equal(t, object, response.Callee.GetValue())
+				utils.AssertCallDelegationTokenEqual(t, &expectedToken, &response.ResponseDelegationSpec)
 				return false
 			})
 
-			statePl := payload.VStateReport{
-				Status:                      payload.StateStatusEmpty,
-				Object:                      object,
+			statePl := rms.VStateReport{
+				Status:                      rms.StateStatusEmpty,
+				Object:                      rms.NewReference(object),
 				AsOf:                        p,
 				OrderedPendingCount:         1,
 				OrderedPendingEarliestPulse: firstPulse.PulseNumber,
@@ -445,11 +444,11 @@ func TestDelegationToken_OldVEVDelegatedCallRequest(t *testing.T) {
 			server.SendMessage(ctx, utils.NewRequestWrapper(server.GetPulse().PulseNumber, &statePl).SetSender(approver).Finalize())
 			server.WaitActiveThenIdleConveyor()
 
-			pl := payload.VDelegatedCallRequest{
-				Callee:         object,
-				CallFlags:      payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
-				CallIncoming:   incoming,
-				CallOutgoing:   outgoing,
+			pl := rms.VDelegatedCallRequest{
+				Callee:         rms.NewReference(object),
+				CallFlags:      rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
+				CallIncoming:   rms.NewReference(incoming),
+				CallOutgoing:   rms.NewReference(outgoing),
 				DelegationSpec: delegationToken,
 			}
 			msg := utils.NewRequestWrapper(server.GetPulse().PulseNumber, &pl).SetSender(executorRef).Finalize()

@@ -17,9 +17,9 @@ import (
 	testwalletProxy "github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
@@ -95,7 +95,7 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 
 				server.IncrementPulse(ctx)
 
-				Method_PrepareObject(ctx, server, payload.StateStatusReady, object, prevPulse)
+				Method_PrepareObject(ctx, server, rms.StateStatusReady, object, prevPulse)
 			}
 
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
@@ -104,21 +104,21 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 				outgoing = server.BuildRandomOutgoingWithPulse()
 				p1       = server.GetPulse().PulseNumber
 
-				expectedToken = payload.CallDelegationToken{
-					TokenTypeAndFlags: payload.DelegationTokenTypeCall,
-					Callee:            object,
-					Outgoing:          outgoing,
-					DelegateTo:        server.JetCoordinatorMock.Me(),
+				expectedToken = rms.CallDelegationToken{
+					TokenTypeAndFlags: rms.DelegationTokenTypeCall,
+					Callee:            rms.NewReference(object),
+					Outgoing:          rms.NewReference(outgoing),
+					DelegateTo:        rms.NewReference(server.JetCoordinatorMock.Me()),
 				}
-				firstTokenValue payload.CallDelegationToken
+				firstTokenValue rms.CallDelegationToken
 				isFirstToken    = true
 			)
 
 			pl := utils.GenerateVCallRequestMethod(server)
-			pl.CallFlags = payload.BuildCallFlags(test.isolation.Interference, test.isolation.State)
-			pl.Callee = object
+			pl.CallFlags = rms.BuildCallFlags(test.isolation.Interference, test.isolation.State)
+			pl.Callee.Set(object)
 			pl.CallSiteMethod = "SomeMethod"
-			pl.CallOutgoing = outgoing
+			pl.CallOutgoing.Set(outgoing)
 
 			synchronizeExecution := synchronization.NewPoint(1)
 			defer synchronizeExecution.Done()
@@ -150,18 +150,18 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 
 			// add checks to typedChecker
 			{
-				typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
+				typedChecker.VStateReport.Set(func(report *rms.VStateReport) bool {
 					// check for pending counts must be in tests: call terminal method case C5104
-					assert.Equal(t, object, report.Object)
-					assert.Equal(t, payload.StateStatusReady, report.Status)
+					assert.Equal(t, object, report.Object.GetValue())
+					assert.Equal(t, rms.StateStatusReady, report.Status)
 					assert.Zero(t, report.DelegationSpec)
 					return false
 				})
 
-				typedChecker.VDelegatedCallRequest.Set(func(request *payload.VDelegatedCallRequest) bool {
+				typedChecker.VDelegatedCallRequest.Set(func(request *rms.VDelegatedCallRequest) bool {
 					p2 := server.GetPulse().PulseNumber
 
-					assert.Equal(t, object, request.Callee)
+					assert.Equal(t, object, request.Callee.GetValue())
 					if isFirstToken {
 						assert.Zero(t, request.DelegationSpec)
 						isFirstToken = false
@@ -172,17 +172,17 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 
 					expectedToken.PulseNumber = p2
 					approver := server.RandomGlobalWithPulse()
-					expectedToken.Approver = approver
+					expectedToken.Approver.Set(approver)
 
-					firstTokenValue = payload.CallDelegationToken{
-						TokenTypeAndFlags: payload.DelegationTokenTypeCall,
+					firstTokenValue = rms.CallDelegationToken{
+						TokenTypeAndFlags: rms.DelegationTokenTypeCall,
 						PulseNumber:       p2,
 						Callee:            request.Callee,
 						Outgoing:          request.CallOutgoing,
-						DelegateTo:        server.JetCoordinatorMock.Me(),
-						Approver:          approver,
+						DelegateTo:        rms.NewReference(server.JetCoordinatorMock.Me()),
+						Approver:          rms.NewReference(approver),
 					}
-					msg := payload.VDelegatedCallResponse{
+					msg := rms.VDelegatedCallResponse{
 						Callee:                 request.Callee,
 						CallIncoming:           request.CallIncoming,
 						ResponseDelegationSpec: firstTokenValue,
@@ -192,27 +192,28 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 					return false
 				})
 
-				typedChecker.VDelegatedRequestFinished.Set(func(finished *payload.VDelegatedRequestFinished) bool {
-					assert.Equal(t, object, finished.Callee)
+				typedChecker.VDelegatedRequestFinished.Set(func(finished *rms.VDelegatedRequestFinished) bool {
+					assert.Equal(t, object, finished.Callee.GetValue())
 					assert.Equal(t, expectedToken, finished.DelegationSpec)
+
 					if test.isolation == tolerableFlags() && test.withSideEffect {
-						assert.NotEmpty(t, finished.LatestState)
-						assert.Equal(t, []byte("new memory"), finished.LatestState.State)
+						require.NotEmpty(t, finished.LatestState)
+						assert.Equal(t, []byte("new memory"), finished.LatestState.State.GetBytes())
 					} else {
 						assert.Empty(t, finished.LatestState)
 					}
 					return false
 				})
-				typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
-					assert.Equal(t, object, res.Callee)
+				typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
+					assert.Equal(t, object, res.Callee.GetValue())
 					if test.isolation == intolerableFlags() && test.withSideEffect {
-						contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments)
+						contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments.GetBytes())
 						require.NoError(t, sysErr)
 						require.Equal(t, "intolerable call trying to change object state", contractErr.Error())
 					} else {
-						assert.Equal(t, []byte("call result"), res.ReturnArguments)
+						assert.Equal(t, []byte("call result"), res.ReturnArguments.GetBytes())
 					}
-					assert.Equal(t, p1, res.CallOutgoing.GetLocal().Pulse())
+					assert.Equal(t, p1, res.CallOutgoing.GetPulseOfLocal())
 					assert.Equal(t, expectedToken, res.DelegationSpec)
 					return false
 				})
@@ -275,7 +276,7 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
 	var (
-		content *payload.VStateReport_ProvidedContentBody
+		content *rms.VStateReport_ProvidedContentBody
 
 		prevPulse = server.GetPulse().PulseNumber
 		object    = server.RandomGlobalWithPulse()
@@ -288,19 +289,19 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 
 	// create object state
 	{
-		objectState := payload.ObjectState{
-			Reference: gen.UniqueLocalRefWithPulse(prevPulse),
-			Class:     testwalletProxy.GetClass(),
-			State:     makeRawWalletState(initialBalance),
+		objectState := rms.ObjectState{
+			Reference: rms.NewReferenceLocal(gen.UniqueLocalRefWithPulse(prevPulse)),
+			Class:     rms.NewReference(testwalletProxy.GetClass()),
+			State:     rms.NewBytes(makeRawWalletState(initialBalance)),
 		}
-		content = &payload.VStateReport_ProvidedContentBody{
+		content = &rms.VStateReport_ProvidedContentBody{
 			LatestDirtyState:     &objectState,
 			LatestValidatedState: &objectState,
 		}
 
-		vsrPayload := &payload.VStateReport{
-			Status:          payload.StateStatusReady,
-			Object:          object,
+		vsrPayload := &rms.VStateReport{
+			Status:          rms.StateStatusReady,
+			Object:          rms.NewReference(object),
 			AsOf:            prevPulse,
 			ProvidedContent: content,
 		}
@@ -315,10 +316,10 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 
 	// add checks to typedChecker
 	{
-		typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
-			assert.Equal(t, payload.StateStatusReady, report.Status)
+		typedChecker.VStateReport.Set(func(report *rms.VStateReport) bool {
+			assert.Equal(t, rms.StateStatusReady, report.Status)
 			assert.Equal(t, currPulse, report.AsOf)
-			assert.Equal(t, object, report.Object)
+			assert.Equal(t, object, report.Object.GetValue())
 			assert.Zero(t, report.DelegationSpec)
 
 			assert.Equal(t, int32(2), report.UnorderedPendingCount)
@@ -335,23 +336,23 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 			assert.Empty(t, report.LatestValidatedCode)
 			assert.NotEmpty(t, report.LatestDirtyState)
 			assert.Empty(t, report.LatestDirtyCode)
-			assert.Equal(t, content, report.ProvidedContent)
+			utils.AssertVStateReport_ProvidedContentBodyEqual(t, content, report.ProvidedContent)
 			return false
 		})
-		typedChecker.VDelegatedCallRequest.Set(func(request *payload.VDelegatedCallRequest) bool {
-			assert.Equal(t, object, request.Callee)
+		typedChecker.VDelegatedCallRequest.Set(func(request *rms.VDelegatedCallRequest) bool {
+			assert.Equal(t, object, request.Callee.GetValue())
 			assert.Zero(t, request.DelegationSpec)
 
-			token := payload.CallDelegationToken{
-				TokenTypeAndFlags: payload.DelegationTokenTypeCall,
+			token := rms.CallDelegationToken{
+				TokenTypeAndFlags: rms.DelegationTokenTypeCall,
 				PulseNumber:       currPulse,
 				Callee:            request.Callee,
 				Outgoing:          request.CallOutgoing,
-				DelegateTo:        server.JetCoordinatorMock.Me(),
-				Approver:          approver,
+				DelegateTo:        rms.NewReference(server.JetCoordinatorMock.Me()),
+				Approver:          rms.NewReference(approver),
 			}
 
-			msg := payload.VDelegatedCallResponse{
+			msg := rms.VDelegatedCallResponse{
 				Callee:                 request.Callee,
 				CallIncoming:           request.CallIncoming,
 				ResponseDelegationSpec: token,
@@ -360,15 +361,15 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 			server.SendPayload(ctx, &msg)
 			return false
 		})
-		typedChecker.VDelegatedRequestFinished.Set(func(finished *payload.VDelegatedRequestFinished) bool {
-			assert.Equal(t, object, finished.Callee)
+		typedChecker.VDelegatedRequestFinished.Set(func(finished *rms.VDelegatedRequestFinished) bool {
+			assert.Equal(t, object, finished.Callee.GetValue())
 			assert.NotEmpty(t, finished.DelegationSpec)
 			return false
 		})
-		typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
-			assert.Equal(t, object, res.Callee)
-			assert.Equal(t, []byte("call result"), res.ReturnArguments)
-			assert.Equal(t, currPulse, res.CallOutgoing.GetLocal().Pulse())
+		typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
+			assert.Equal(t, object, res.Callee.GetValue())
+			assert.Equal(t, []byte("call result"), res.ReturnArguments.GetBytes())
+			assert.Equal(t, currPulse, res.CallOutgoing.GetPulseOfLocal())
 			assert.NotEmpty(t, res.DelegationSpec)
 			return false
 		})
@@ -385,13 +386,13 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 		)
 
 		request := utils.GenerateVCallRequestMethod(server)
-		request.Callee = object
+		request.Callee.Set(object)
 		outgoing := server.BuildRandomOutgoingWithPulse()
 
 		switch i {
 		case 0, 1:
 			request.CallSiteMethod = "ordered" + strconv.FormatInt(i, 10)
-			request.CallFlags = payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty)
+			request.CallFlags = rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty)
 
 			runnerMock.AddExecutionClassify(outgoing, tolerableFlags(), nil)
 			result = requestresult.New([]byte("call result"), object)
@@ -399,7 +400,7 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 
 		case 2, 3:
 			request.CallSiteMethod = "unordered" + strconv.FormatInt(i, 10)
-			request.CallFlags = payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallValidated)
+			request.CallFlags = rms.BuildCallFlags(isolation.CallIntolerable, isolation.CallValidated)
 
 			runnerMock.AddExecutionClassify(outgoing, intolerableFlags(), nil)
 			result = requestresult.New([]byte("call result"), object)
@@ -407,7 +408,7 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 			panic(throw.Impossible())
 		}
 
-		request.CallOutgoing = outgoing
+		request.CallOutgoing.Set(outgoing)
 		objectExecutionMock = runnerMock.AddExecutionMock(outgoing)
 		objectExecutionMock.AddStart(
 			func(_ execution.Context) {
@@ -498,9 +499,9 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 
 			// create object state
 			{
-				vsrPayload := &payload.VStateReport{
-					Status:                      payload.StateStatusEmpty,
-					Object:                      object,
+				vsrPayload := &rms.VStateReport{
+					Status:                      rms.StateStatusEmpty,
+					Object:                      rms.NewReference(object),
 					AsOf:                        p1,
 					OrderedPendingCount:         1,
 					OrderedPendingEarliestPulse: p1,
@@ -518,7 +519,7 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 				objectExecutionMock := runnerMock.AddExecutionMock(outgoingP2)
 				objectExecutionMock.AddStart(func(ctx execution.Context) {
 					logger.Debug("ExecutionStart [SomeMethod]")
-					require.Equal(t, object, ctx.Request.Callee)
+					require.Equal(t, object, ctx.Request.Callee.GetValue())
 					require.Equal(t, []byte("new object memory"), ctx.ObjectDescriptor.Memory())
 					require.Equal(t, dirtyStateRef, ctx.ObjectDescriptor.StateID())
 					require.True(t, getDelegated)
@@ -530,10 +531,10 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 
 			// add checks to typedChecker
 			{
-				typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
-					assert.Equal(t, object, res.Callee)
-					assert.Equal(t, []byte("call result"), res.ReturnArguments)
-					assert.Equal(t, p2, res.CallOutgoing.GetLocal().Pulse())
+				typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
+					assert.Equal(t, object, res.Callee.GetValue())
+					assert.Equal(t, []byte("call result"), res.ReturnArguments.GetBytes())
+					assert.Equal(t, p2, res.CallOutgoing.GetPulseOfLocal())
 					assert.Empty(t, res.DelegationSpec)
 					return false
 				})
@@ -543,35 +544,35 @@ func TestVirtual_MethodCall_IfConstructorIsPending(t *testing.T) {
 			// VCallRequest
 			{
 				pl := utils.GenerateVCallRequestMethod(server)
-				pl.CallFlags = payload.BuildCallFlags(test.isolation.Interference, test.isolation.State)
-				pl.Callee = object
+				pl.CallFlags = rms.BuildCallFlags(test.isolation.Interference, test.isolation.State)
+				pl.Callee.Set(object)
 				pl.CallSiteMethod = "SomeMethod"
-				pl.CallOutgoing = outgoingP2
+				pl.CallOutgoing.Set(outgoingP2)
 
 				server.SendPayload(ctx, pl)
 			}
 			// VDelegatedCallRequest
 			{
-				delegatedRequest := payload.VDelegatedCallRequest{
-					Callee:       object,
-					CallFlags:    payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
-					CallOutgoing: outgoingP1,
-					CallIncoming: incomingP1,
+				delegatedRequest := rms.VDelegatedCallRequest{
+					Callee:       rms.NewReference(object),
+					CallFlags:    rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
+					CallOutgoing: rms.NewReference(outgoingP1),
+					CallIncoming: rms.NewReference(incomingP1),
 				}
 				server.SendPayload(ctx, &delegatedRequest)
 			}
 			// VDelegatedRequestFinished
 			{
-				finished := payload.VDelegatedRequestFinished{
-					CallType:     payload.CallTypeMethod,
-					CallFlags:    payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
-					Callee:       object,
-					CallOutgoing: outgoingP1,
-					CallIncoming: incomingP1,
-					LatestState: &payload.ObjectState{
-						Reference: dirtyStateRef,
-						Class:     class,
-						State:     []byte("new object memory"),
+				finished := rms.VDelegatedRequestFinished{
+					CallType:     rms.CallTypeMethod,
+					CallFlags:    rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
+					Callee:       rms.NewReference(object),
+					CallOutgoing: rms.NewReference(outgoingP1),
+					CallIncoming: rms.NewReference(incomingP1),
+					LatestState: &rms.ObjectState{
+						Reference: rms.NewReferenceLocal(dirtyStateRef),
+						Class:     rms.NewReference(class),
+						State:     rms.NewBytes([]byte("new object memory")),
 					},
 				}
 				server.SendPayload(ctx, &finished)

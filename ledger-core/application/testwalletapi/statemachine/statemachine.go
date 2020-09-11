@@ -14,10 +14,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
@@ -37,7 +37,7 @@ var APICaller, _ = reference.GlobalObjectFromString("insolar:0AAABAnRB0CKuqXTeTf
 const MaxRepeats = 3
 
 type SMTestAPICall struct {
-	requestPayload  payload.VCallRequest
+	requestPayload  rms.VCallRequest
 	responsePayload []byte
 
 	object           reference.Global
@@ -81,14 +81,14 @@ func (s *SMTestAPICall) Init(ctx smachine.InitializationContext) smachine.StateU
 }
 
 func (s *SMTestAPICall) stepSend(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	s.requestPayload.Caller = APICaller
+	s.requestPayload.Caller.Set(APICaller)
 	outLocal := gen.UniqueLocalRefWithPulse(s.pulseSlot.CurrentPulseNumber())
-	s.requestPayload.CallOutgoing = reference.NewRecordOf(APICaller, outLocal)
+	s.requestPayload.CallOutgoing.Set(reference.NewRecordOf(APICaller, outLocal))
 
 	switch s.requestPayload.CallType {
-	case payload.CallTypeMethod:
-		s.object = s.requestPayload.Callee
-	case payload.CallTypeConstructor:
+	case rms.CallTypeMethod:
+		s.object = s.requestPayload.Callee.GetValue()
+	case rms.CallTypeConstructor:
 		s.object = reference.NewSelf(outLocal)
 	default:
 		panic(throw.IllegalValue())
@@ -136,13 +136,13 @@ func (s *SMTestAPICall) stepProcessResult(ctx smachine.ExecutionContext) smachin
 
 func (s *SMTestAPICall) newBargeIn(ctx smachine.ExecutionContext) smachine.BargeInWithParam {
 	return ctx.NewBargeInWithParam(func(param interface{}) smachine.BargeInCallbackFunc {
-		res, ok := param.(*payload.VCallResult)
+		res, ok := param.(*rms.VCallResult)
 		if !ok || res == nil {
 			panic(throw.IllegalValue())
 		}
 
 		return func(ctx smachine.BargeInContext) smachine.StateUpdate {
-			s.responsePayload = res.ReturnArguments
+			s.responsePayload = res.ReturnArguments.GetBytes()
 
 			return ctx.WakeUp()
 		}
@@ -153,7 +153,7 @@ func (s *SMTestAPICall) sendRequest(ctx smachine.ExecutionContext) {
 	payloadData := s.requestPayload
 
 	if s.messageSentTimes.Load() > 0 {
-		payloadData.CallRequestFlags.WithRepeatedCall(payload.RepeatedCall)
+		payloadData.CallRequestFlags.WithRepeatedCall(rms.RepeatedCall)
 	}
 
 	if s.object.GetBase().Equal(builtinTestAPIEchoRef.GetBase()) {
@@ -176,13 +176,13 @@ func (s *SMTestAPICall) sendRequest(ctx smachine.ExecutionContext) {
 
 func (s *SMTestAPICall) sendEchoRequest(ctx smachine.ExecutionContext) {
 	if !s.object.Equal(builtinTestAPIEchoRef) {
-		s.responsePayload = s.requestPayload.Arguments
+		s.responsePayload = s.requestPayload.Arguments.GetBytes()
 		return
 	}
 
 	_, bargeIn := ctx.GetPublishedGlobalAliasAndBargeIn(s.requestPayload.CallOutgoing)
 
-	result := &payload.VCallResult{
+	result := &rms.VCallResult{
 		ReturnArguments: s.requestPayload.Arguments,
 	}
 
