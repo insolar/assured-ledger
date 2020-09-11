@@ -26,12 +26,8 @@ type AnyRecord = rmsbox.AnyRecord
 type AnyRecordLazy = rmsbox.AnyRecordLazy
 type AnyRecordLazyCopy = rmsbox.AnyRecordLazyCopy
 
-// type LazyValue = rmsbox.LazyValue
-// type LazyRecordValue = rmsbox.LazyRecordValue
-
 type Binary = rmsbox.Binary
 type RawBinary = rmsbox.RawBinary
-
 
 type PulseNumber = pulse.Number
 type PrimaryRole = member.PrimaryRole
