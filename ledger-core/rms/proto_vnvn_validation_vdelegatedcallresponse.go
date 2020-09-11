@@ -23,8 +23,7 @@ func (m *VDelegatedCallResponse) Validate(currentPulse pulse.Number) error {
 		return err
 	}
 
-	switch {
-	case !incomingLocalPulse.IsEqOrAfter(calleePulse):
+	if !incomingLocalPulse.IsEqOrAfter(calleePulse) {
 		return throw.New("Callee pulse should be less or equal than CallIncoming pulse")
 	}
 

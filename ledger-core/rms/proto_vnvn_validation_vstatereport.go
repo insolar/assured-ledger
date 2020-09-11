@@ -41,15 +41,12 @@ func (m *VStateReport) Validate(currentPulse pulse.Number) error {
 		return err
 	}
 
-	if validateStatusFunc, ok := m.getValidateStatusFunc(m.GetStatus()); !ok {
+	validateStatusFunc, ok := m.getValidateStatusFunc(m.GetStatus())
+	if !ok {
 		return throw.New("Unexpected state received")
-	} else {
-		if err := validateStatusFunc(objectPulse, currentPulse); err != nil {
-			return err
-		}
 	}
 
-	return nil
+	return validateStatusFunc(objectPulse, currentPulse)
 }
 
 func (m *VStateReport) validateStatusReady(objectPulse pulse.Number, currentPulse pulse.Number) error {

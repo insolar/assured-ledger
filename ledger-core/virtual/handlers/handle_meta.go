@@ -26,7 +26,6 @@ type FactoryMeta struct {
 }
 
 type skippedMessage struct {
-	messageTypeID uint64
 	messageType   reflect.Type
 	incomingPulse pulse.Number
 	targetPulse   pulse.Number

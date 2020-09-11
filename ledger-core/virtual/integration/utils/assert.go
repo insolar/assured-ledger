@@ -53,6 +53,7 @@ func AssertCallDelegationTokenEqual(t TestingT, expected, actual *rms.CallDelega
 	return ok
 }
 
+//nolint:golint
 func AssertVStateReport_ProvidedContentBodyEqual(t TestingT, expected, actual *rms.VStateReport_ProvidedContentBody, msgAndArgs ...interface{}) bool {
 	t.Helper()
 

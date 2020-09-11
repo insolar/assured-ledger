@@ -128,6 +128,7 @@ func validSelfScopedGlobalWithPulseCheck(global reference.Global, before pulse.N
 	return pn, nil
 }
 
+//nolint:deadcode,unused
 func validSelfScopedGlobalWithPulseBefore(global reference.Global, before pulse.Number, fieldName string) (pulse.Number, error) {
 	return validSelfScopedGlobalWithPulseCheck(global, before, fieldName, timePulseBefore{})
 }
@@ -136,6 +137,7 @@ func validSelfScopedGlobalWithPulseBeforeOrEq(global reference.Global, before pu
 	return validSelfScopedGlobalWithPulseCheck(global, before, fieldName, timePulseBeforeOrEq{})
 }
 
+//nolint:unparam
 func validSelfScopedGlobalWithPulseSpecialOrBefore(global reference.Global, before pulse.Number, fieldName string) (pulse.Number, error) {
 	return validSelfScopedGlobalWithPulseCheck(global, before, fieldName, specialOrTmePulseBefore{})
 }

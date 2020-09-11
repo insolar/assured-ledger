@@ -12,6 +12,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 )
 
+//nolint:interfacer
 func GenerateVStateReport(server *Server, object reference.Global, pulse pulse.Number) *rms.VStateReport {
 	content := &rms.VStateReport_ProvidedContentBody{
 		LatestDirtyState: &rms.ObjectState{
