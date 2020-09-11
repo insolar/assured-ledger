@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package memorycache
+package statemachine
 
 import (
 	"context"
@@ -18,6 +18,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/memorycache"
 	memoryCacheAdapter "github.com/insolar/assured-ledger/ledger-core/virtual/memorycache/adapter"
 )
 
@@ -85,7 +86,7 @@ func (s *SMGetCachedMemory) Init(ctx smachine.InitializationContext) smachine.St
 
 func (s *SMGetCachedMemory) stepProcess(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	done := false
-	s.memoryCache.PrepareAsync(ctx, func(ctx context.Context, svc Service) smachine.AsyncResultFunc {
+	s.memoryCache.PrepareAsync(ctx, func(ctx context.Context, svc memorycache.Service) smachine.AsyncResultFunc {
 		obj, err := svc.Get(ctx, s.stateGlobal)
 		return func(ctx smachine.AsyncResultContext) {
 			defer func() { done = true }()
@@ -169,7 +170,7 @@ func (s *SMGetCachedMemory) stepProcessResponse(ctx smachine.ExecutionContext) s
 		s.response.Inactive,
 	)
 
-	s.memoryCache.PrepareAsync(ctx, func(ctx context.Context, svc Service) smachine.AsyncResultFunc {
+	s.memoryCache.PrepareAsync(ctx, func(ctx context.Context, svc memorycache.Service) smachine.AsyncResultFunc {
 		err := svc.Set(ctx, s.stateGlobal, s.Result)
 		return func(ctx smachine.AsyncResultContext) {
 			if err != nil {

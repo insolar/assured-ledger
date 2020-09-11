@@ -1003,8 +1003,9 @@ func TestVirtual_FutureMessageAddedToSlot(t *testing.T) {
 	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool { return false })
 	typedChecker.VStateReport.Set(func(res *payload.VStateReport) bool { return false })
 	typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
-		t.FailNow()
-		// TODO add asserts and check counter after https://insolar.atlassian.net/browse/PLAT-753
+		assert.Equal(t, objectGlobal, report.Object.GetGlobal())
+		assert.Equal(t, p, report.AsOf)
+		assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
 		return false
 	})
 	typedChecker.VStateRequest.Set(func(res *payload.VStateRequest) bool {
@@ -1053,6 +1054,8 @@ func TestVirtual_FutureMessageAddedToSlot(t *testing.T) {
 	server.IncrementPulseAndWaitIdle(ctx)
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, execDone)
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+
+	require.Equal(t, 1, typedChecker.VObjectTranscriptReport.Count())
 
 	mc.Finish()
 }
@@ -1208,8 +1211,9 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 					return false
 				})
 				typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
-					t.FailNow()
-					// TODO add asserts and check counter after https://insolar.atlassian.net/browse/PLAT-753
+					assert.Equal(t, objectRef, report.Object.GetGlobal())
+					assert.Equal(t, outgoing.GetLocal().Pulse(), report.AsOf)
+					assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
 					return false
 				})
 			}
@@ -1235,6 +1239,7 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 			require.Equal(t, 1, typedChecker.VStateReport.Count())
 			require.Equal(t, 1, typedChecker.VStateRequest.Count())
 			require.Equal(t, 1, typedChecker.VCallResult.Count())
+			require.Equal(t, 1, typedChecker.VObjectTranscriptReport.Count())
 
 			mc.Finish()
 		})
@@ -1526,6 +1531,7 @@ func TestVirtual_Method_IntolerableCallChangeState(t *testing.T) {
 	mc := minimock.NewController(t)
 
 	server, ctx := utils.NewUninitializedServer(nil, t)
+	defer server.Stop()
 
 	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 
@@ -1620,8 +1626,9 @@ func TestVirtual_Method_IntolerableCallChangeState(t *testing.T) {
 			return false
 		})
 		typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
-			t.FailNow()
-			// TODO add asserts and check counter after https://insolar.atlassian.net/browse/PLAT-753
+			assert.Equal(t, objectRef, report.Object.GetGlobal())
+			assert.Equal(t, outgoing.GetLocal().Pulse(), report.AsOf)
+			assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
 			return false
 		})
 	}
@@ -1645,9 +1652,8 @@ func TestVirtual_Method_IntolerableCallChangeState(t *testing.T) {
 	require.Equal(t, 1, typedChecker.VStateReport.Count())
 	require.Equal(t, 1, typedChecker.VStateRequest.Count())
 	require.Equal(t, 1, typedChecker.VCallResult.Count())
-	typedChecker.MinimockFinish()
+	require.Equal(t, 1, typedChecker.VObjectTranscriptReport.Count())
 
-	server.Stop()
 	mc.Finish()
 }
 
@@ -1732,7 +1738,17 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 	outgoingDirty1 := server.BuildRandomOutgoingWithPulse()
 	outgoingDirty2 := server.BuildRandomOutgoingWithPulse()
 	outgoingChange := server.BuildRandomOutgoingWithPulse()
+	currentPulse := server.GetPulse().PulseNumber
 
+	// add checks
+	{
+		typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
+			assert.Equal(t, objectGlobal, report.Object.GetGlobal())
+			assert.Equal(t, currentPulse, report.AsOf)
+			assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
+			return false
+		})
+	}
 	// add ExecutionMock to runnerMock
 	{
 		objectDescriptor := descriptor.NewObject(
@@ -1867,11 +1883,13 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 	{
 		server.IncrementPulse(ctx)
 		commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 1))
+		commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VObjectTranscriptReport.Wait(ctx, 1))
 		// wait for all VCallResults
 		commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 		require.Equal(t, 1, typedChecker.VStateReport.Count())
 		require.Equal(t, 5, typedChecker.VCallResult.Count())
+		require.Equal(t, 1, typedChecker.VObjectTranscriptReport.Count())
 	}
 	mc.Finish()
 }

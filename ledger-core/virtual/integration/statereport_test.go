@@ -102,6 +102,7 @@ func TestVirtual_VStateReport_StateAlreadyExists(t *testing.T) {
 				server.SendPayload(ctx, pl)
 				commontestutils.WaitSignalsTimed(t, 10*time.Second, waitReport)
 			}
+			currentPulse := server.GetPulse().PulseNumber
 
 			// add checker
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
@@ -116,8 +117,9 @@ func TestVirtual_VStateReport_StateAlreadyExists(t *testing.T) {
 					return false
 				})
 				typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
-					t.FailNow()
-					// TODO add asserts and check counter after https://insolar.atlassian.net/browse/PLAT-753
+					assert.Equal(t, objectGlobal, report.Object.GetGlobal())
+					assert.Equal(t, currentPulse, report.AsOf)
+					assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
 					return false
 				})
 			}
@@ -147,11 +149,11 @@ func TestVirtual_VStateReport_StateAlreadyExists(t *testing.T) {
 			{
 				server.IncrementPulse(ctx)
 				commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 1))
+				commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VObjectTranscriptReport.Wait(ctx, 1))
+
 				assert.Equal(t, 1, typedChecker.VStateReport.Count())
+				assert.Equal(t, 1, typedChecker.VObjectTranscriptReport.Count())
 			}
-			// TODO uncommented after https://insolar.atlassian.net/browse/PLAT-753
-			// commontestutils.WaitSignalsTimed(t, 10*time.Second, suite.typedChecker.VObjectTranscriptReport.Wait(ctx, 1))
-			// assert.Equal(t, 1, suite.typedChecker.VObjectTranscriptReport.Count())
 
 			mc.Finish()
 		})
