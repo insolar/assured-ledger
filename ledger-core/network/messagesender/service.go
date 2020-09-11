@@ -91,8 +91,8 @@ func (dm *DefaultService) sendTarget(ctx context.Context, msg rms.GoGoSerializab
 	latestPN := latestPulse.PulseNumber
 
 	wrapPayload := rms.Meta{
-		Sender:   dm.affinity.Me(),
-		Receiver: target,
+		Sender:   rms.NewReference(dm.affinity.Me()),
+		Receiver: rms.NewReference(target),
 		Pulse:    latestPN,
 	}
 	wrapPayload.Payload.Set(msg) // TODO: here we should set message payload
