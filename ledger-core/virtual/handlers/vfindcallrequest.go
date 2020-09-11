@@ -168,7 +168,7 @@ func (s *SMVFindCallRequest) stepNotFoundResponse(ctx smachine.ExecutionContext)
 }
 
 func (s *SMVFindCallRequest) stepSendResponse(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	target := s.Meta.Sender
+	target := s.Meta.Sender.GetValue()
 
 	msg := rms.VFindCallResponse{
 		LookedAt:   s.Payload.LookAt,
