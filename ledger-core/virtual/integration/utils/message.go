@@ -9,22 +9,22 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message"
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/defaults"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/trace"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type RequestWrapper struct {
 	pulseNumber pulse.Number
-	payload     payload.Marshaler
+	payload     rms.GoGoSerializable
 
 	sender   reference.Global
 	receiver reference.Global
 }
 
-func NewRequestWrapper(pulseNumber pulse.Number, payload payload.Marshaler) *RequestWrapper {
+func NewRequestWrapper(pulseNumber pulse.Number, payload rms.GoGoSerializable) *RequestWrapper {
 	return &RequestWrapper{
 		pulseNumber: pulseNumber,
 		payload:     payload,
@@ -42,19 +42,15 @@ func (w *RequestWrapper) SetReceiver(receiver reference.Global) *RequestWrapper 
 }
 
 func (w *RequestWrapper) Finalize() *message.Message {
-	payloadBytes, err := w.payload.Marshal()
-	if err != nil {
-		panic(throw.W(err, "failed to marshal message"))
-	}
-
-	msg, err := payload.NewMessage(&payload.Meta{
-		Payload:    payloadBytes,
+	meta := rms.Meta{
 		Sender:     w.sender,
 		Receiver:   w.receiver,
 		Pulse:      w.pulseNumber,
-		ID:         nil,
-		OriginHash: payload.MessageHash{},
-	})
+		OriginHash: rms.MessageHash{},
+	}
+	meta.Payload.Set(w.payload)
+
+	msg, err := rms.NewMessage(&meta)
 	if err != nil {
 		panic(throw.W(err, "failed to create watermill message"))
 	}

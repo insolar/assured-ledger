@@ -22,12 +22,7 @@ const (
 			"github.com/ThreeDotsLabs/watermill/message"
 			"github.com/gojuno/minimock/v3"
 
-		{{ if .PayloadIsUsed }}
-			"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
-		{{- end }}
-		{{- if .RMSIsUsed }}
 			"github.com/insolar/assured-ledger/ledger-core/rms"
-		{{- end }}
 			"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
 			"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 		)
@@ -137,14 +132,16 @@ const (
 		}
 
 		func (p *Typed) checkMessage(ctx context.Context, msg *message.Message) {
-			basePayload, err := payload.UnmarshalFromMeta(msg.Payload)
-			if err != nil {
+			var meta rms.Meta
+
+			if err := meta.Unmarshal(msg.Payload); err != nil {
+				p.t.Fatalf("failed to unmarshal %T", msg.Payload)
 				return
 			}
 
 			var resend bool
 
-			switch payload := basePayload.(type) {
+			switch payload := meta.Payload.Get().(type) {
 		{{- range $pos, $msg := .Messages }}
 			case *{{ $msg.TypeWithPackage }}:
 				hdlStruct := &p.Handlers.{{ $msg.Type }}
@@ -176,7 +173,7 @@ const (
 		{{ end }}
 
 			default:
-				p.t.Fatalf("unexpected %T payload", basePayload)
+				p.t.Fatalf("unexpected %T payload", meta.Payload.Get())
 				return
 			}
 

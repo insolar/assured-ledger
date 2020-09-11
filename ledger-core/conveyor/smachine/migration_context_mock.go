@@ -27,6 +27,12 @@ type MigrationContextMock struct {
 	beforeAcquireAndReleaseCounter uint64
 	AcquireAndReleaseMock          mMigrationContextMockAcquireAndRelease
 
+	funcAcquireExt          func(s1 SyncLink, a1 AcquireFlags) (b1 BoolDecision)
+	inspectFuncAcquireExt   func(s1 SyncLink, a1 AcquireFlags)
+	afterAcquireExtCounter  uint64
+	beforeAcquireExtCounter uint64
+	AcquireExtMock          mMigrationContextMockAcquireExt
+
 	funcAcquireForThisStep          func(s1 SyncLink) (b1 BoolDecision)
 	inspectFuncAcquireForThisStep   func(s1 SyncLink)
 	afterAcquireForThisStepCounter  uint64
@@ -298,6 +304,9 @@ func NewMigrationContextMock(t minimock.Tester) *MigrationContextMock {
 
 	m.AcquireAndReleaseMock = mMigrationContextMockAcquireAndRelease{mock: m}
 	m.AcquireAndReleaseMock.callArgs = []*MigrationContextMockAcquireAndReleaseParams{}
+
+	m.AcquireExtMock = mMigrationContextMockAcquireExt{mock: m}
+	m.AcquireExtMock.callArgs = []*MigrationContextMockAcquireExtParams{}
 
 	m.AcquireForThisStepMock = mMigrationContextMockAcquireForThisStep{mock: m}
 	m.AcquireForThisStepMock.callArgs = []*MigrationContextMockAcquireForThisStepParams{}
@@ -845,6 +854,222 @@ func (m *MigrationContextMock) MinimockAcquireAndReleaseInspect() {
 	// if func was set then invocations count should be greater than zero
 	if m.funcAcquireAndRelease != nil && mm_atomic.LoadUint64(&m.afterAcquireAndReleaseCounter) < 1 {
 		m.t.Error("Expected call to MigrationContextMock.AcquireAndRelease")
+	}
+}
+
+type mMigrationContextMockAcquireExt struct {
+	mock               *MigrationContextMock
+	defaultExpectation *MigrationContextMockAcquireExtExpectation
+	expectations       []*MigrationContextMockAcquireExtExpectation
+
+	callArgs []*MigrationContextMockAcquireExtParams
+	mutex    sync.RWMutex
+}
+
+// MigrationContextMockAcquireExtExpectation specifies expectation struct of the MigrationContext.AcquireExt
+type MigrationContextMockAcquireExtExpectation struct {
+	mock    *MigrationContextMock
+	params  *MigrationContextMockAcquireExtParams
+	results *MigrationContextMockAcquireExtResults
+	Counter uint64
+}
+
+// MigrationContextMockAcquireExtParams contains parameters of the MigrationContext.AcquireExt
+type MigrationContextMockAcquireExtParams struct {
+	s1 SyncLink
+	a1 AcquireFlags
+}
+
+// MigrationContextMockAcquireExtResults contains results of the MigrationContext.AcquireExt
+type MigrationContextMockAcquireExtResults struct {
+	b1 BoolDecision
+}
+
+// Expect sets up expected params for MigrationContext.AcquireExt
+func (mmAcquireExt *mMigrationContextMockAcquireExt) Expect(s1 SyncLink, a1 AcquireFlags) *mMigrationContextMockAcquireExt {
+	if mmAcquireExt.mock.funcAcquireExt != nil {
+		mmAcquireExt.mock.t.Fatalf("MigrationContextMock.AcquireExt mock is already set by Set")
+	}
+
+	if mmAcquireExt.defaultExpectation == nil {
+		mmAcquireExt.defaultExpectation = &MigrationContextMockAcquireExtExpectation{}
+	}
+
+	mmAcquireExt.defaultExpectation.params = &MigrationContextMockAcquireExtParams{s1, a1}
+	for _, e := range mmAcquireExt.expectations {
+		if minimock.Equal(e.params, mmAcquireExt.defaultExpectation.params) {
+			mmAcquireExt.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmAcquireExt.defaultExpectation.params)
+		}
+	}
+
+	return mmAcquireExt
+}
+
+// Inspect accepts an inspector function that has same arguments as the MigrationContext.AcquireExt
+func (mmAcquireExt *mMigrationContextMockAcquireExt) Inspect(f func(s1 SyncLink, a1 AcquireFlags)) *mMigrationContextMockAcquireExt {
+	if mmAcquireExt.mock.inspectFuncAcquireExt != nil {
+		mmAcquireExt.mock.t.Fatalf("Inspect function is already set for MigrationContextMock.AcquireExt")
+	}
+
+	mmAcquireExt.mock.inspectFuncAcquireExt = f
+
+	return mmAcquireExt
+}
+
+// Return sets up results that will be returned by MigrationContext.AcquireExt
+func (mmAcquireExt *mMigrationContextMockAcquireExt) Return(b1 BoolDecision) *MigrationContextMock {
+	if mmAcquireExt.mock.funcAcquireExt != nil {
+		mmAcquireExt.mock.t.Fatalf("MigrationContextMock.AcquireExt mock is already set by Set")
+	}
+
+	if mmAcquireExt.defaultExpectation == nil {
+		mmAcquireExt.defaultExpectation = &MigrationContextMockAcquireExtExpectation{mock: mmAcquireExt.mock}
+	}
+	mmAcquireExt.defaultExpectation.results = &MigrationContextMockAcquireExtResults{b1}
+	return mmAcquireExt.mock
+}
+
+//Set uses given function f to mock the MigrationContext.AcquireExt method
+func (mmAcquireExt *mMigrationContextMockAcquireExt) Set(f func(s1 SyncLink, a1 AcquireFlags) (b1 BoolDecision)) *MigrationContextMock {
+	if mmAcquireExt.defaultExpectation != nil {
+		mmAcquireExt.mock.t.Fatalf("Default expectation is already set for the MigrationContext.AcquireExt method")
+	}
+
+	if len(mmAcquireExt.expectations) > 0 {
+		mmAcquireExt.mock.t.Fatalf("Some expectations are already set for the MigrationContext.AcquireExt method")
+	}
+
+	mmAcquireExt.mock.funcAcquireExt = f
+	return mmAcquireExt.mock
+}
+
+// When sets expectation for the MigrationContext.AcquireExt which will trigger the result defined by the following
+// Then helper
+func (mmAcquireExt *mMigrationContextMockAcquireExt) When(s1 SyncLink, a1 AcquireFlags) *MigrationContextMockAcquireExtExpectation {
+	if mmAcquireExt.mock.funcAcquireExt != nil {
+		mmAcquireExt.mock.t.Fatalf("MigrationContextMock.AcquireExt mock is already set by Set")
+	}
+
+	expectation := &MigrationContextMockAcquireExtExpectation{
+		mock:   mmAcquireExt.mock,
+		params: &MigrationContextMockAcquireExtParams{s1, a1},
+	}
+	mmAcquireExt.expectations = append(mmAcquireExt.expectations, expectation)
+	return expectation
+}
+
+// Then sets up MigrationContext.AcquireExt return parameters for the expectation previously defined by the When method
+func (e *MigrationContextMockAcquireExtExpectation) Then(b1 BoolDecision) *MigrationContextMock {
+	e.results = &MigrationContextMockAcquireExtResults{b1}
+	return e.mock
+}
+
+// AcquireExt implements MigrationContext
+func (mmAcquireExt *MigrationContextMock) AcquireExt(s1 SyncLink, a1 AcquireFlags) (b1 BoolDecision) {
+	mm_atomic.AddUint64(&mmAcquireExt.beforeAcquireExtCounter, 1)
+	defer mm_atomic.AddUint64(&mmAcquireExt.afterAcquireExtCounter, 1)
+
+	if mmAcquireExt.inspectFuncAcquireExt != nil {
+		mmAcquireExt.inspectFuncAcquireExt(s1, a1)
+	}
+
+	mm_params := &MigrationContextMockAcquireExtParams{s1, a1}
+
+	// Record call args
+	mmAcquireExt.AcquireExtMock.mutex.Lock()
+	mmAcquireExt.AcquireExtMock.callArgs = append(mmAcquireExt.AcquireExtMock.callArgs, mm_params)
+	mmAcquireExt.AcquireExtMock.mutex.Unlock()
+
+	for _, e := range mmAcquireExt.AcquireExtMock.expectations {
+		if minimock.Equal(e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.b1
+		}
+	}
+
+	if mmAcquireExt.AcquireExtMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmAcquireExt.AcquireExtMock.defaultExpectation.Counter, 1)
+		mm_want := mmAcquireExt.AcquireExtMock.defaultExpectation.params
+		mm_got := MigrationContextMockAcquireExtParams{s1, a1}
+		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmAcquireExt.t.Errorf("MigrationContextMock.AcquireExt got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmAcquireExt.AcquireExtMock.defaultExpectation.results
+		if mm_results == nil {
+			mmAcquireExt.t.Fatal("No results are set for the MigrationContextMock.AcquireExt")
+		}
+		return (*mm_results).b1
+	}
+	if mmAcquireExt.funcAcquireExt != nil {
+		return mmAcquireExt.funcAcquireExt(s1, a1)
+	}
+	mmAcquireExt.t.Fatalf("Unexpected call to MigrationContextMock.AcquireExt. %v %v", s1, a1)
+	return
+}
+
+// AcquireExtAfterCounter returns a count of finished MigrationContextMock.AcquireExt invocations
+func (mmAcquireExt *MigrationContextMock) AcquireExtAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmAcquireExt.afterAcquireExtCounter)
+}
+
+// AcquireExtBeforeCounter returns a count of MigrationContextMock.AcquireExt invocations
+func (mmAcquireExt *MigrationContextMock) AcquireExtBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmAcquireExt.beforeAcquireExtCounter)
+}
+
+// Calls returns a list of arguments used in each call to MigrationContextMock.AcquireExt.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmAcquireExt *mMigrationContextMockAcquireExt) Calls() []*MigrationContextMockAcquireExtParams {
+	mmAcquireExt.mutex.RLock()
+
+	argCopy := make([]*MigrationContextMockAcquireExtParams, len(mmAcquireExt.callArgs))
+	copy(argCopy, mmAcquireExt.callArgs)
+
+	mmAcquireExt.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockAcquireExtDone returns true if the count of the AcquireExt invocations corresponds
+// the number of defined expectations
+func (m *MigrationContextMock) MinimockAcquireExtDone() bool {
+	for _, e := range m.AcquireExtMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.AcquireExtMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterAcquireExtCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcAcquireExt != nil && mm_atomic.LoadUint64(&m.afterAcquireExtCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockAcquireExtInspect logs each unmet expectation
+func (m *MigrationContextMock) MinimockAcquireExtInspect() {
+	for _, e := range m.AcquireExtMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to MigrationContextMock.AcquireExt with params: %#v", *e.params)
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.AcquireExtMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterAcquireExtCounter) < 1 {
+		if m.AcquireExtMock.defaultExpectation.params == nil {
+			m.t.Error("Expected call to MigrationContextMock.AcquireExt")
+		} else {
+			m.t.Errorf("Expected call to MigrationContextMock.AcquireExt with params: %#v", *m.AcquireExtMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcAcquireExt != nil && mm_atomic.LoadUint64(&m.afterAcquireExtCounter) < 1 {
+		m.t.Error("Expected call to MigrationContextMock.AcquireExt")
 	}
 }
 
@@ -8959,6 +9184,8 @@ func (m *MigrationContextMock) MinimockFinish() {
 
 		m.MinimockAcquireAndReleaseInspect()
 
+		m.MinimockAcquireExtInspect()
+
 		m.MinimockAcquireForThisStepInspect()
 
 		m.MinimockAcquireForThisStepAndReleaseInspect()
@@ -9069,6 +9296,7 @@ func (m *MigrationContextMock) minimockDone() bool {
 	return done &&
 		m.MinimockAcquireDone() &&
 		m.MinimockAcquireAndReleaseDone() &&
+		m.MinimockAcquireExtDone() &&
 		m.MinimockAcquireForThisStepDone() &&
 		m.MinimockAcquireForThisStepAndReleaseDone() &&
 		m.MinimockAffectedStepDone() &&

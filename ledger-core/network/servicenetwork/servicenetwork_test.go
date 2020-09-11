@@ -33,8 +33,8 @@ import (
 	"github.com/insolar/component-manager"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 )
@@ -61,10 +61,9 @@ func TestSendMessageHandler_ReceiverNotSet(t *testing.T) {
 
 	serviceNetwork, _ := prepareNetwork(t, configuration.NewConfiguration())
 
-	p := []byte{1, 2, 3, 4, 5}
-	meta := payload.Meta{
-		Payload: p,
-	}
+	meta := rms.Meta{}
+	meta.Payload.Set(&rms.VCallRequest{})
+
 	data, err := meta.Marshal()
 	require.NoError(t, err)
 
@@ -76,16 +75,14 @@ func TestSendMessageHandler_ReceiverNotSet(t *testing.T) {
 
 func TestSendMessageHandler_SameNode(t *testing.T) {
 	svcNw, nodeRef := prepareNetwork(t, configuration.NewConfiguration())
-	svcNw.router.pub = &publisherMock{}
+	svcNw.router = svcNw.router.ReplacePublisher(&publisherMock{})
 
 	pulseMock := beat.NewAppenderMock(t)
 	pulseMock.LatestTimeBeatMock.Return(pulsestor.GenesisPulse, nil)
 
-	p := []byte{1, 2, 3, 4, 5}
-	meta := payload.Meta{
-		Payload:  p,
-		Receiver: nodeRef,
-	}
+	meta := rms.Meta{Receiver: nodeRef}
+	meta.Payload.Set(&rms.VCallRequest{})
+
 	data, err := meta.Marshal()
 	require.NoError(t, err)
 
@@ -97,7 +94,7 @@ func TestSendMessageHandler_SameNode(t *testing.T) {
 
 func TestSendMessageHandler_SendError(t *testing.T) {
 	svcNw, _ := prepareNetwork(t, configuration.NewConfiguration())
-	svcNw.router.pub = &publisherMock{}
+	svcNw.router = svcNw.router.ReplacePublisher(&publisherMock{})
 
 	rpc := controller.NewRPCControllerMock(t)
 	rpc.SendBytesMock.Set(func(p context.Context, p1 reference.Global, p2 string, p3 []byte) (r []byte, r1 error) {
@@ -107,11 +104,9 @@ func TestSendMessageHandler_SendError(t *testing.T) {
 	pulseMock.LatestTimeBeatMock.Return(pulsestor.GenesisPulse, nil)
 	svcNw.RPC = rpc
 
-	p := []byte{1, 2, 3, 4, 5}
-	meta := payload.Meta{
-		Payload:  p,
-		Receiver: gen.UniqueGlobalRef(),
-	}
+	meta := rms.Meta{Receiver: gen.UniqueGlobalRef()}
+	meta.Payload.Set(&rms.VCallRequest{})
+
 	data, err := meta.Marshal()
 	require.NoError(t, err)
 
@@ -123,7 +118,7 @@ func TestSendMessageHandler_SendError(t *testing.T) {
 
 func TestSendMessageHandler_WrongReply(t *testing.T) {
 	svcNw, _ := prepareNetwork(t, configuration.NewConfiguration())
-	svcNw.router.pub = &publisherMock{}
+	svcNw.router = svcNw.router.ReplacePublisher(&publisherMock{})
 
 	rpc := controller.NewRPCControllerMock(t)
 	rpc.SendBytesMock.Set(func(p context.Context, p1 reference.Global, p2 string, p3 []byte) (r []byte, r1 error) {
@@ -133,11 +128,9 @@ func TestSendMessageHandler_WrongReply(t *testing.T) {
 	pulseMock.LatestTimeBeatMock.Return(pulsestor.GenesisPulse, nil)
 	svcNw.RPC = rpc
 
-	p := []byte{1, 2, 3, 4, 5}
-	meta := payload.Meta{
-		Payload:  p,
-		Receiver: gen.UniqueGlobalRef(),
-	}
+	meta := rms.Meta{Receiver: gen.UniqueGlobalRef()}
+	meta.Payload.Set(&rms.VCallRequest{})
+
 	data, err := meta.Marshal()
 	require.NoError(t, err)
 
@@ -149,7 +142,7 @@ func TestSendMessageHandler_WrongReply(t *testing.T) {
 
 func TestSendMessageHandler(t *testing.T) {
 	svcNw, _ := prepareNetwork(t, configuration.NewConfiguration())
-	svcNw.router.pub = &publisherMock{}
+	svcNw.router = svcNw.router.ReplacePublisher(&publisherMock{})
 
 	rpc := controller.NewRPCControllerMock(t)
 	rpc.SendBytesMock.Set(func(p context.Context, p1 reference.Global, p2 string, p3 []byte) (r []byte, r1 error) {
@@ -159,11 +152,9 @@ func TestSendMessageHandler(t *testing.T) {
 	pulseMock.LatestTimeBeatMock.Return(pulsestor.GenesisPulse, nil)
 	svcNw.RPC = rpc
 
-	p := []byte{1, 2, 3, 4, 5}
-	meta := payload.Meta{
-		Payload:  p,
-		Receiver: gen.UniqueGlobalRef(),
-	}
+	meta := rms.Meta{Receiver: gen.UniqueGlobalRef()}
+	meta.Payload.Set(&rms.VCallRequest{})
+
 	data, err := meta.Marshal()
 	require.NoError(t, err)
 
@@ -236,7 +227,7 @@ func TestServiceNetwork_processIncoming(t *testing.T) {
 	serviceNetwork, err := NewServiceNetwork(configuration.NewConfiguration(), component.NewManager(nil))
 	require.NoError(t, err)
 	pub := &publisherMock{}
-	serviceNetwork.router.pub = pub
+	serviceNetwork.router = serviceNetwork.router.ReplacePublisher(pub)
 	ctx := context.Background()
 	_, err = serviceNetwork.processIncoming(ctx, []byte("ololo"))
 	assert.Error(t, err)

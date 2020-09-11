@@ -7,9 +7,9 @@ package callregistry
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -49,13 +49,13 @@ type PendingList struct {
 	countActive         int
 	countFinish         int
 	requests            map[reference.Global]isActive
-	activity            map[payload.PulseNumber]uint
+	activity            map[rms.PulseNumber]uint
 }
 
 func newRequestList() *PendingList {
 	return &PendingList{
 		requests: make(map[reference.Global]isActive),
-		activity: make(map[payload.PulseNumber]uint),
+		activity: make(map[rms.PulseNumber]uint),
 	}
 }
 

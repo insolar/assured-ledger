@@ -54,11 +54,11 @@ func (v RegisterRequestSet) Validate() {
 func (v RegisterRequestSet) GetRootRef() reference.Global {
 	switch {
 	case !v.Excerpt.RootRef.IsEmpty():
-		return v.Excerpt.RootRef.GetGlobal()
+		return v.Excerpt.RootRef.GetValue()
 	case v.Requests[0].AnticipatedRef.IsEmpty():
 		panic(throw.IllegalValue())
 	default:
-		return v.Requests[0].AnticipatedRef.GetGlobal()
+		return v.Requests[0].AnticipatedRef.GetValue()
 	}
 }
 

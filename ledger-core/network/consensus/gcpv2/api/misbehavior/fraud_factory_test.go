@@ -109,7 +109,7 @@ func TestNewFraud(t *testing.T) {
 	violatorNode := bn
 	details := []interface{}{1, 2}
 	inc.GetNameAddressMock.Set(func() endpoints.Name { return "test" })
-	inc.GetTransportKeyMock.Set(func() cryptkit.SignatureKeyHolder { return nil })
+	inc.GetTransportKeyMock.Set(func() cryptkit.SigningKeyHolder { return nil })
 	inc.GetTransportCertMock.Set(func() cryptkit.CertificateHolder { return nil })
 	be := bf.NewFraud(fraudType, msg, violatorHost, violatorNode, details...)
 	require.Equal(t, fraudType, be.fraudType)
@@ -146,7 +146,7 @@ func TestNewHostFraud(t *testing.T) {
 	violatorHost := inc
 	details := []interface{}{1, 2}
 	inc.GetNameAddressMock.Set(func() endpoints.Name { return "test" })
-	inc.GetTransportKeyMock.Set(func() cryptkit.SignatureKeyHolder { return nil })
+	inc.GetTransportKeyMock.Set(func() cryptkit.SigningKeyHolder { return nil })
 	inc.GetTransportCertMock.Set(func() cryptkit.CertificateHolder { return nil })
 	fe := ff.NewHostFraud(fraudType, msg, violatorHost, details...)
 	require.Equal(t, msg, fe.msg)

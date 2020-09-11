@@ -11,37 +11,37 @@ import (
 	"github.com/insolar/component-manager"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
+	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat/memstor"
 	"github.com/insolar/assured-ledger/ledger-core/application/api"
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/crypto"
 	"github.com/insolar/assured-ledger/ledger-core/crypto/legacyadapter"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
-	"github.com/insolar/assured-ledger/ledger-core/cryptography/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/metrics"
 	"github.com/insolar/assured-ledger/ledger-core/network"
-	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/servicenetwork"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-type preComponents struct {
+type PreComponents struct {
 	CryptographyService        cryptography.Service
 	PlatformCryptographyScheme cryptography.PlatformCryptographyScheme
 	KeyStore                   cryptography.KeyStore
 	KeyProcessor               cryptography.KeyProcessor
 	CryptoScheme               crypto.PlatformScheme
+	CertificateManager         nodeinfo.CertificateManager
 }
 
-func (s *Server) initBootstrapComponents(ctx context.Context, cfg configuration.Configuration) preComponents {
+func (s *Server) initBootstrapComponents(ctx context.Context, cfg configuration.Configuration) PreComponents {
 	earlyComponents := component.NewManager(nil)
 	logger := inslogger.FromContext(ctx)
 	earlyComponents.SetLogger(logger)
 
-	keyStore, err := keystore.NewKeyStore(cfg.KeysPath)
+	keyStore, err := s.confProvider.GetKeyStoreFactory()(cfg.KeysPath)
 	checkError(ctx, err, "failed to load KeyStore: ")
 
 	platformCryptographyScheme := platformpolicy.NewPlatformCryptographyScheme()
@@ -51,32 +51,25 @@ func (s *Server) initBootstrapComponents(ctx context.Context, cfg configuration.
 	earlyComponents.Register(platformCryptographyScheme, keyStore)
 	earlyComponents.Inject(cryptographyService, keyProcessor)
 
-	return preComponents{
+	publicKey, err := cryptographyService.GetPublicKey()
+	checkError(ctx, err, "failed to retrieve node public key")
+
+	certManager, err := s.confProvider.GetCertManagerFactory()(publicKey, keyProcessor, cfg.CertificatePath)
+	checkError(ctx, err, "failed to start Certificate")
+
+	return PreComponents{
 		CryptographyService:        cryptographyService,
 		PlatformCryptographyScheme: platformCryptographyScheme,
 		KeyStore:                   keyStore,
 		KeyProcessor:               keyProcessor,
 		CryptoScheme:               legacyadapter.New(platformCryptographyScheme, keyProcessor, keyStore),
+		CertificateManager:         certManager,
 	}
-}
-
-func (s *Server) initCertificateManager(ctx context.Context, cfg configuration.Configuration, comps preComponents) *mandates.CertificateManager {
-	var certManager *mandates.CertificateManager
-	var err error
-
-	publicKey, err := comps.CryptographyService.GetPublicKey()
-	checkError(ctx, err, "failed to retrieve node public key")
-
-	certManager, err = mandates.NewManagerReadCertificate(publicKey, comps.KeyProcessor, cfg.CertificatePath)
-	checkError(ctx, err, "failed to start Certificate")
-
-	return certManager
 }
 
 // initComponents creates and links all insolard components
 func (s *Server) initComponents(ctx context.Context, cfg configuration.Configuration, networkFn NetworkInitFunc,
-	comps preComponents, certManager nodeinfo.CertificateManager,
-) (*component.Manager, func()) {
+	comps PreComponents) (*component.Manager, func()) {
 	cm := component.NewManager(nil)
 	logger := inslogger.FromContext(ctx)
 	cm.SetLogger(logger)
@@ -86,11 +79,14 @@ func (s *Server) initComponents(ctx context.Context, cfg configuration.Configura
 		comps.KeyStore,
 		comps.CryptographyService,
 		comps.KeyProcessor,
-		certManager,
+		comps.CertificateManager,
 	)
 
 	var nw NetworkSupport
 	var ns network.Status
+
+	var pulses beat.History
+	var addDispatcherFn func(beat.Dispatcher)
 
 	if networkFn == nil {
 		nsn, err := servicenetwork.NewServiceNetwork(cfg, cm)
@@ -99,21 +95,26 @@ func (s *Server) initComponents(ctx context.Context, cfg configuration.Configura
 
 		nw = nsn
 		ns = nsn
+
+		pulses = memstor.NewStorageMem()
+		pm := NewPulseManager()
+		cm.Register(pm)
+
+		addDispatcherFn = pm.AddDispatcher
 	} else {
 		var err error
 		nw, ns, err = networkFn(cfg, cm)
 		checkError(ctx, err, "failed to start ServiceNetwork by factory")
 		cm.Register(nw)
+		addDispatcherFn = nw.AddDispatcher
+		pulses = nw.GetBeatHistory()
 	}
 
-	nodeCert := certManager.GetCertificate()
+	nodeCert := comps.CertificateManager.GetCertificate()
 	nodeRole := nodeCert.GetRole()
 
 	roleName := nodeRole.String()
 	metricsComp := metrics.NewMetrics(cfg.Metrics, metrics.GetInsolarRegistry(roleName), roleName)
-
-	pulses := memstor.NewStorageMem()
-	pm := NewPulseManager()
 
 	availabilityChecker := api.NewNetworkChecker(cfg.AvailabilityChecker)
 
@@ -122,7 +123,6 @@ func (s *Server) initComponents(ctx context.Context, cfg configuration.Configura
 
 	cm.Register(
 		pulses,
-		pm,
 		availabilityChecker,
 		metricsComp,
 	)
@@ -132,16 +132,16 @@ func (s *Server) initComponents(ctx context.Context, cfg configuration.Configura
 	var appComponent AppComponent
 
 	if s.appFn != nil {
-		affine := affinity.NewAffinityHelper(certManager.GetCertificate().GetNodeRef())
+		affine := affinity.NewAffinityHelper(nodeCert.GetNodeRef())
 		cm.Register(affine)
 
 		if ns != nil {
 			API, err := api.NewRunner(&cfg.APIRunner,
-				certManager, nw, nw, pulses, affine, ns, availabilityChecker)
+				comps.CertificateManager, nw, nw, pulses, affine, ns, availabilityChecker)
 			checkError(ctx, err, "failed to start ApiRunner")
 
 			AdminAPIRunner, err := api.NewRunner(&cfg.AdminAPIRunner,
-				certManager, nw, nw, pulses, affine, ns, availabilityChecker)
+				comps.CertificateManager, nw, nw, pulses, affine, ns, availabilityChecker)
 			checkError(ctx, err, "failed to start AdminAPIRunner")
 
 			APIWrapper := api.NewWrapper(API, AdminAPIRunner)
@@ -152,6 +152,7 @@ func (s *Server) initComponents(ctx context.Context, cfg configuration.Configura
 		appComponents := AppComponents{
 			LocalNodeRef:  nodeCert.GetNodeRef(),
 			LocalNodeRole: nodeRole,
+			Certificate:   comps.CertificateManager.GetCertificate(),
 
 			BeatHistory:    pulses,
 			AffinityHelper: affine,
@@ -176,7 +177,7 @@ func (s *Server) initComponents(ctx context.Context, cfg configuration.Configura
 
 	// must be after Init
 	bd := appComponent.GetBeatDispatcher()
-	pm.AddDispatcher(bd)
+	addDispatcherFn(bd)
 
 	stopFn := mr.SubscribeForMessages(bd.Process)
 
@@ -188,4 +189,3 @@ func checkError(ctx context.Context, err error, message string) {
 		inslogger.FromContext(ctx).Fatalf("%v: %v", message, throw.ErrorWithStack(err))
 	}
 }
-

@@ -11,8 +11,8 @@ import (
 	"github.com/gojuno/minimock/v3"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
@@ -30,7 +30,11 @@ func TestSMVDelegatedCallResponse_ErrorIfBargeInWasNotPublished(t *testing.T) {
 	)
 
 	sm := SMVDelegatedCallResponse{
-		Payload: &payload.VDelegatedCallResponse{ResponseDelegationSpec: payload.CallDelegationToken{Outgoing: globalRef}},
+		Payload: &rms.VDelegatedCallResponse{
+			ResponseDelegationSpec: rms.CallDelegationToken{
+				Outgoing: rms.NewReference(globalRef),
+			},
+		},
 	}
 
 	execCtx := smachine.NewExecutionContextMock(mc).
@@ -52,7 +56,11 @@ func TestSMVDelegatedCallResponse_ErrorIfCallBargeInFailed(t *testing.T) {
 	)
 
 	sm := SMVDelegatedCallResponse{
-		Payload: &payload.VDelegatedCallResponse{ResponseDelegationSpec: payload.CallDelegationToken{Outgoing: globalRef}},
+		Payload: &rms.VDelegatedCallResponse{
+			ResponseDelegationSpec: rms.CallDelegationToken{
+				Outgoing: rms.NewReference(globalRef),
+			},
+		},
 	}
 
 	slotLink := smachine.DeadSlotLink()
@@ -76,7 +84,11 @@ func TestSMVDelegatedCallResponse_SuccessCallBargeIn(t *testing.T) {
 	)
 
 	sm := SMVDelegatedCallResponse{
-		Payload: &payload.VDelegatedCallResponse{ResponseDelegationSpec: payload.CallDelegationToken{Outgoing: globalRef}},
+		Payload: &rms.VDelegatedCallResponse{
+			ResponseDelegationSpec: rms.CallDelegationToken{
+				Outgoing: rms.NewReference(globalRef),
+			},
+		},
 	}
 
 	slotLink := smachine.DeadSlotLink()

@@ -9,9 +9,10 @@ import (
 	"context"
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/memorycache"
@@ -20,14 +21,14 @@ import (
 
 type SMVCachedMemoryRequest struct {
 	// input arguments
-	Meta    *payload.Meta
-	Payload *payload.VCachedMemoryRequest
+	Meta    *rms.Meta
+	Payload *rms.VCachedMemoryRequest
 
 	messageSender messageSenderAdapter.MessageSender
 	memoryCache   memoryCacheAdapter.MemoryCache
 
 	object   descriptor.Object
-	response *payload.VCachedMemoryResponse
+	response *rms.VCachedMemoryResponse
 }
 
 /* -------- Declaration ------------- */
@@ -61,16 +62,22 @@ func (s *SMVCachedMemoryRequest) Init(ctx smachine.InitializationContext) smachi
 }
 
 func (s *SMVCachedMemoryRequest) stepGetMemory(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	s.memoryCache.PrepareAsync(ctx, func(ctx context.Context, svc memorycache.Service) smachine.AsyncResultFunc {
-		obj, err := svc.Get(ctx, s.Payload.Object)
+	var (
+		objectRootRef  = s.Payload.Object.GetValue()
+		objectStateID  = s.Payload.StateID.GetValueWithoutBase()
+		objectStateRef = reference.NewRecordOf(objectRootRef, objectStateID)
+	)
+
+	return s.memoryCache.PrepareAsync(ctx, func(ctx context.Context, svc memorycache.Service) smachine.AsyncResultFunc {
+		objectDescriptor, err := svc.Get(ctx, objectStateRef)
+
 		return func(ctx smachine.AsyncResultContext) {
-			s.object = obj
+			s.object = objectDescriptor
 			if err != nil {
 				ctx.Log().Error("failed to get memory", err)
 			}
 		}
-	}).Start()
-	return ctx.Jump(s.stepWaitResult)
+	}).DelayedStart().ThenJump(s.stepWaitResult)
 }
 
 func (s *SMVCachedMemoryRequest) stepWaitResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -82,34 +89,40 @@ func (s *SMVCachedMemoryRequest) stepWaitResult(ctx smachine.ExecutionContext) s
 
 func (s *SMVCachedMemoryRequest) stepBuildResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	if s.object.HeadRef().IsEmpty() {
-		s.response = &payload.VCachedMemoryResponse{
+		s.response = &rms.VCachedMemoryResponse{
 			Object:     s.Payload.Object,
 			StateID:    s.Payload.StateID,
-			CallStatus: payload.CachedMemoryStateUnknown,
+			CallStatus: rms.CachedMemoryStateUnknown,
 		}
-		return ctx.Jump(s.stepSendResult)
+	} else {
+		s.response = &rms.VCachedMemoryResponse{
+			Object:     s.Payload.Object,
+			StateID:    s.Payload.StateID,
+			CallStatus: rms.CachedMemoryStateFound,
+			// Node:        s.object.HeadRef(),
+			// PrevStateID: s.object.StateID(),
+			Inactive: s.object.Deactivated(),
+			Memory:   rms.NewBytes(s.object.Memory()),
+		}
 	}
 
-	s.response = &payload.VCachedMemoryResponse{
-		Object:     s.Payload.Object,
-		StateID:    s.Payload.StateID,
-		CallStatus: payload.CachedMemoryStateFound,
-		// Node:        s.object.HeadRef(),
-		// PrevStateID: s.object.StateID(),
-		Inactive: s.object.Deactivated(),
-		Memory:   s.object.Memory(),
-	}
 	return ctx.Jump(s.stepSendResult)
 }
 
 func (s *SMVCachedMemoryRequest) stepSendResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	var (
+		response = s.response
+		target   = s.Meta.Sender
+	)
+
 	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
-		err := svc.SendTarget(goCtx, s.response, s.Meta.Sender)
+		err := svc.SendTarget(goCtx, response, target)
 		return func(ctx smachine.AsyncResultContext) {
 			if err != nil {
 				ctx.Log().Error("failed to send message", err)
 			}
 		}
 	}).WithoutAutoWakeUp().Start()
+
 	return ctx.Stop()
 }

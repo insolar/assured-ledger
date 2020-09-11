@@ -16,11 +16,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/runner"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
@@ -43,8 +43,8 @@ const MaxOutgoingSendCount = 3
 
 type SMExecute struct {
 	// input arguments
-	Meta    *payload.Meta
-	Payload *payload.VCallRequest
+	Meta    *rms.Meta
+	Payload *rms.VCallRequest
 
 	// internal data
 	pendingConstructorFinished smachine.SyncLink
@@ -72,17 +72,17 @@ type SMExecute struct {
 	globalSemaphore       tool.RunnerLimiter
 	memoryCache           memoryCacheAdapter.MemoryCache
 
-	outgoing            *payload.VCallRequest
+	outgoing            *rms.VCallRequest
 	outgoingObject      reference.Global
 	outgoingSentCounter int
 
 	migrationHappened bool
 	objectCatalog     object.Catalog
 
-	delegationTokenSpec payload.CallDelegationToken
+	delegationTokenSpec rms.CallDelegationToken
 	stepAfterTokenGet   smachine.SlotStep
 
-	findCallResponse *payload.VFindCallResponse
+	findCallResponse *rms.VFindCallResponse
 }
 
 /* -------- Declaration ------------- */
@@ -122,15 +122,15 @@ func (s *SMExecute) prepareExecution(ctx context.Context) {
 	s.execution.Request = s.Payload
 	s.execution.Pulse = s.pulseSlot.PulseData()
 
-	if s.Payload.CallType == payload.CallTypeConstructor {
+	if s.Payload.CallType == rms.CallTypeConstructor {
 		s.isConstructor = true
-		s.execution.Object = reference.NewSelf(s.Payload.CallOutgoing.GetLocal())
+		s.execution.Object = reference.NewSelf(s.Payload.CallOutgoing.GetValue().GetLocal())
 	} else {
-		s.execution.Object = s.Payload.Callee
+		s.execution.Object = s.Payload.Callee.GetValue()
 	}
 
-	s.execution.Incoming = reference.NewRecordOf(s.Payload.Callee, s.Payload.CallOutgoing.GetLocal())
-	s.execution.Outgoing = s.Payload.CallOutgoing
+	s.execution.Incoming = reference.NewRecordOf(s.Payload.Callee.GetValue(), s.Payload.CallOutgoing.GetValue().GetLocal())
+	s.execution.Outgoing = s.Payload.CallOutgoing.GetValue()
 
 	s.execution.Isolation = contract.MethodIsolation{
 		Interference: s.Payload.CallFlags.GetInterference(),
@@ -153,11 +153,11 @@ func (s *SMExecute) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 
 func (s *SMExecute) stepCheckRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	switch s.Payload.CallType {
-	case payload.CallTypeConstructor:
-	case payload.CallTypeMethod:
+	case rms.CallTypeConstructor:
+	case rms.CallTypeMethod:
 
-	case payload.CallTypeInboundAPI, payload.CallTypeOutboundAPI, payload.CallTypeNotify,
-		payload.CallTypeSAGA, payload.CallTypeParallel, payload.CallTypeSchedule:
+	case rms.CallTypeInboundAPI, rms.CallTypeOutboundAPI, rms.CallTypeNotify,
+		rms.CallTypeSAGA, rms.CallTypeParallel, rms.CallTypeSchedule:
 		panic(throw.NotImplemented())
 	default:
 		panic(throw.IllegalValue())
@@ -185,7 +185,7 @@ func (s *SMExecute) stepGetObject(ctx smachine.ExecutionContext) smachine.StateU
 }
 
 func (s *SMExecute) outgoingFromSlotPulse() bool {
-	outgoingPulse := s.Payload.CallOutgoing.GetLocal().GetPulseNumber()
+	outgoingPulse := s.Payload.CallOutgoing.GetPulseOfLocal()
 	slotPulse := s.pulseSlot.PulseData().GetPulseNumber()
 	return outgoingPulse == slotPulse
 }
@@ -355,7 +355,7 @@ const (
 func (s *SMExecute) stepDeduplicate(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var (
 		deduplicateAction DeduplicationAction
-		msg               *payload.VCallResult
+		msg               *rms.VCallResult
 		err               error
 	)
 
@@ -400,14 +400,14 @@ func (s *SMExecute) stepDeduplicateThroughPreviousExecutor(ctx smachine.Executio
 		panic(throw.NotImplemented())
 	}
 
-	msg := payload.VFindCallRequest{
+	msg := rms.VFindCallRequest{
 		LookAt:   prevPulse,
-		Callee:   s.execution.Object,
-		Outgoing: s.execution.Outgoing,
+		Callee:   rms.NewReference(s.execution.Object),
+		Outgoing: rms.NewReference(s.execution.Outgoing),
 	}
 
 	bargeInCallback := ctx.NewBargeInWithParam(func(param interface{}) smachine.BargeInCallbackFunc {
-		res, ok := param.(*payload.VFindCallResponse)
+		res, ok := param.(*rms.VFindCallResponse)
 		if !ok || res == nil {
 			panic(throw.IllegalValue())
 		}
@@ -420,8 +420,8 @@ func (s *SMExecute) stepDeduplicateThroughPreviousExecutor(ctx smachine.Executio
 
 	bargeInKey := DeduplicationBargeInKey{
 		LookAt:   prevPulse,
-		Callee:   msg.Callee,
-		Outgoing: msg.Outgoing,
+		Callee:   s.execution.Object,
+		Outgoing: s.execution.Outgoing,
 	}
 
 	if !ctx.PublishGlobalAliasAndBargeIn(bargeInKey, bargeInCallback) {
@@ -449,7 +449,7 @@ func (s *SMExecute) stepWaitFindCallResponse(ctx smachine.ExecutionContext) smac
 
 func (s *SMExecute) stepProcessFindCallResponse(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	switch {
-	case s.findCallResponse.Status == payload.CallStateFound && s.findCallResponse.CallResult == nil:
+	case s.findCallResponse.Status == rms.CallStateFound && s.findCallResponse.CallResult == nil:
 		ctx.Log().Trace("request found on previous executor, but there was no result")
 
 		if s.isConstructor && (s.hasState || s.duplicateFinished) {
@@ -458,7 +458,7 @@ func (s *SMExecute) stepProcessFindCallResponse(ctx smachine.ExecutionContext) s
 
 		return ctx.Stop()
 
-	case s.findCallResponse.Status == payload.CallStateFound && s.findCallResponse.CallResult != nil:
+	case s.findCallResponse.Status == rms.CallStateFound && s.findCallResponse.CallResult != nil:
 		ctx.Log().Trace("request found on previous executor, resending result")
 
 		target := s.Meta.Sender
@@ -473,9 +473,9 @@ func (s *SMExecute) stepProcessFindCallResponse(ctx smachine.ExecutionContext) s
 
 		return ctx.Stop()
 
-	case s.findCallResponse.Status == payload.CallStateMissing:
+	case s.findCallResponse.Status == rms.CallStateMissing:
 		fallthrough
-	case s.findCallResponse.Status == payload.CallStateUnknown:
+	case s.findCallResponse.Status == rms.CallStateUnknown:
 		if s.isConstructor {
 			panic(throw.Impossible())
 		}
@@ -576,16 +576,16 @@ func (s *SMExecute) migrateDuringExecution(ctx smachine.MigrationContext) smachi
 }
 
 func (s *SMExecute) stepGetDelegationToken(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	var requestPayload = payload.VDelegatedCallRequest{
-		Callee:         s.execution.Object,
-		CallFlags:      payload.BuildCallFlags(s.execution.Isolation.Interference, s.execution.Isolation.State),
-		CallOutgoing:   s.execution.Outgoing,
-		CallIncoming:   s.execution.Incoming,
+	var requestPayload = rms.VDelegatedCallRequest{
+		Callee:         rms.NewReference(s.execution.Object),
+		CallFlags:      rms.BuildCallFlags(s.execution.Isolation.Interference, s.execution.Isolation.State),
+		CallOutgoing:   rms.NewReference(s.execution.Outgoing),
+		CallIncoming:   rms.NewReference(s.execution.Incoming),
 		DelegationSpec: s.delegationTokenSpec,
 	}
 
 	// reset token
-	s.delegationTokenSpec = payload.CallDelegationToken{}
+	s.delegationTokenSpec = rms.CallDelegationToken{}
 
 	subroutineSM := &SMDelegatedTokenRequest{Meta: s.Meta, RequestPayload: requestPayload}
 	return ctx.CallSubroutine(subroutineSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
@@ -703,10 +703,11 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 		}
 
 		s.outgoing = outgoing.ConstructVCallRequest(s.execution)
-		s.outgoing.CallOutgoing = reference.NewRecordOf(s.outgoing.Caller, gen.UniqueLocalRefWithPulse(pulseNumber))
+		newOutgoing := reference.NewRecordOf(s.outgoing.Caller.GetValue(), gen.UniqueLocalRefWithPulse(pulseNumber))
+		s.outgoing.CallOutgoing.Set(newOutgoing)
 		s.execution.Sequence++
 		s.outgoing.CallSequence = s.execution.Sequence
-		s.outgoingObject = s.outgoing.CallOutgoing
+		s.outgoingObject = reference.NewSelf(newOutgoing.GetLocal())
 	case execution.CallMethod:
 		if s.intolerableCall() && outgoing.Interference() == isolation.CallTolerable {
 			err := throw.E("interference violation: ordered call from unordered call")
@@ -716,10 +717,11 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 		}
 
 		s.outgoing = outgoing.ConstructVCallRequest(s.execution)
-		s.outgoing.CallOutgoing = reference.NewRecordOf(s.outgoing.Caller, gen.UniqueLocalRefWithPulse(pulseNumber))
+		newOutgoing := reference.NewRecordOf(s.outgoing.Caller.GetValue(), gen.UniqueLocalRefWithPulse(pulseNumber))
+		s.outgoing.CallOutgoing.Set(newOutgoing)
 		s.execution.Sequence++
 		s.outgoing.CallSequence = s.execution.Sequence
-		s.outgoingObject = s.outgoing.Callee
+		s.outgoingObject = s.outgoing.Callee.GetValue()
 	default:
 		panic(throw.IllegalValue())
 	}
@@ -739,13 +741,13 @@ func (s *SMExecute) stepExecuteAborted(ctx smachine.ExecutionContext) smachine.S
 func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	if s.outgoingSentCounter == 0 {
 		bargeInCallback := ctx.NewBargeInWithParam(func(param interface{}) smachine.BargeInCallbackFunc {
-			res, ok := param.(*payload.VCallResult)
+			res, ok := param.(*rms.VCallResult)
 			if !ok || res == nil {
 				panic(throw.IllegalValue())
 			}
 
 			return func(ctx smachine.BargeInContext) smachine.StateUpdate {
-				s.outgoingResult = res.ReturnArguments
+				s.outgoingResult = res.ReturnArguments.GetBytes()
 
 				return ctx.WakeUp()
 			}
@@ -763,7 +765,7 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 			return ctx.Error(throw.E("outgoing retries limit"))
 		}
 
-		s.outgoing.CallRequestFlags = payload.BuildCallRequestFlags(payload.SendResultDefault, payload.RepeatedCall)
+		s.outgoing.CallRequestFlags = rms.BuildCallRequestFlags(rms.SendResultDefault, rms.RepeatedCall)
 	}
 
 	s.outgoing.DelegationSpec = s.getToken()
@@ -884,7 +886,8 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 
 func (s *SMExecute) updateMemoryCache(ctx smachine.ExecutionContext, object descriptor.Object) {
 	s.memoryCache.PrepareAsync(ctx, func(ctx context.Context, svc memorycache.Service) smachine.AsyncResultFunc {
-		err := svc.Set(ctx, object.HeadRef(), object)
+		ref := reference.NewRecordOf(object.HeadRef(), object.StateID())
+		err := svc.Set(ctx, ref, object)
 		return func(ctx smachine.AsyncResultContext) {
 			if err != nil {
 				ctx.Log().Error("failed to set dirty memory", err)
@@ -948,7 +951,7 @@ func (s *SMExecute) stepPublishDataCallSummary(ctx smachine.ExecutionContext) sm
 }
 
 func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	var lastState *payload.ObjectState = nil
+	var lastState *rms.ObjectState = nil
 
 	if s.newObjectDescriptor != nil {
 		class, err := s.newObjectDescriptor.Class()
@@ -956,10 +959,10 @@ func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionConte
 			panic(throw.W(err, "failed to get class from descriptor", nil))
 		}
 
-		lastState = &payload.ObjectState{
-			Reference:   s.executionNewState.Result.ObjectStateID,
-			State:       s.executionNewState.Result.Memory,
-			Class:       class,
+		lastState = &rms.ObjectState{
+			Reference:   rms.NewReferenceLocal(s.executionNewState.Result.ObjectStateID),
+			State:       rms.NewBytes(s.executionNewState.Result.Memory),
+			Class:       rms.NewReference(class),
 			Deactivated: s.executionNewState.Result.SideEffectType == requestresult.SideEffectDeactivate,
 		}
 	}
@@ -969,13 +972,13 @@ func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionConte
 	return ctx.Stop()
 }
 
-func (s *SMExecute) sendDelegatedRequestFinished(ctx smachine.ExecutionContext, lastState *payload.ObjectState) {
-	msg := payload.VDelegatedRequestFinished{
+func (s *SMExecute) sendDelegatedRequestFinished(ctx smachine.ExecutionContext, lastState *rms.ObjectState) {
+	msg := rms.VDelegatedRequestFinished{
 		CallType:       s.Payload.CallType,
 		CallFlags:      s.Payload.CallFlags,
-		Callee:         s.execution.Object,
-		CallOutgoing:   s.execution.Outgoing,
-		CallIncoming:   s.execution.Incoming,
+		Callee:         rms.NewReference(s.execution.Object),
+		CallOutgoing:   rms.NewReference(s.execution.Outgoing),
+		CallIncoming:   rms.NewReference(s.execution.Incoming),
 		DelegationSpec: s.getToken(),
 		LatestState:    lastState,
 	}
@@ -1017,14 +1020,14 @@ func (s *SMExecute) stepSendCallResult(ctx smachine.ExecutionContext) smachine.S
 		executionResult   = executionNewState.Result()
 	)
 
-	msg := payload.VCallResult{
+	msg := rms.VCallResult{
 		CallType:        s.Payload.CallType,
 		CallFlags:       s.Payload.CallFlags,
 		Caller:          s.Payload.Caller,
-		Callee:          s.execution.Object,
-		CallOutgoing:    s.execution.Outgoing,
-		CallIncoming:    s.execution.Incoming,
-		ReturnArguments: executionResult,
+		Callee:          rms.NewReference(s.execution.Object),
+		CallOutgoing:    rms.NewReference(s.execution.Outgoing),
+		CallIncoming:    rms.NewReference(s.execution.Incoming),
+		ReturnArguments: rms.NewBytes(executionResult),
 		DelegationSpec:  s.getToken(),
 	}
 
@@ -1062,14 +1065,14 @@ func NewStateID(pn pulse.Number, data []byte) reference.Local {
 	return reference.NewLocal(pn, 0, reference.BytesToLocalHash(hash))
 }
 
-func (s *SMExecute) getToken() payload.CallDelegationToken {
+func (s *SMExecute) getToken() rms.CallDelegationToken {
 	if s.authenticationService != nil && !s.authenticationService.HasToSendToken(s.delegationTokenSpec) {
-		return payload.CallDelegationToken{}
+		return rms.CallDelegationToken{}
 	}
 	return s.delegationTokenSpec
 }
 
-func (s *SMExecute) sendResult(ctx smachine.ExecutionContext, message payload.Marshaler) {
+func (s *SMExecute) sendResult(ctx smachine.ExecutionContext, message rms.GoGoSerializable) {
 	target := s.Meta.Sender
 
 	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
@@ -1096,7 +1099,7 @@ func (s *SMExecute) shareObjectAccess(
 	}
 }
 
-func (s *SMExecute) deduplicate(state *object.SharedState) (DeduplicationAction, *payload.VCallResult, error) {
+func (s *SMExecute) deduplicate(state *object.SharedState) (DeduplicationAction, *rms.VCallResult, error) {
 	// if we can not add to request table, this mean that we already have operation in progress or completed
 	if !state.KnownRequests.Add(s.execution.Isolation.Interference, s.execution.Outgoing) {
 		results := state.KnownRequests.GetResults()

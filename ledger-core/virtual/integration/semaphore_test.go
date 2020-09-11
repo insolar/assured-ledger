@@ -15,8 +15,8 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	commonTestUtils "github.com/insolar/assured-ledger/ledger-core/testutils"
@@ -34,7 +34,7 @@ func TestVirtual_SemaphoreLimitNotExceeded(t *testing.T) {
 	server, ctx := utils.NewUninitializedServer(nil, t)
 	defer server.Stop()
 
-	runnerMock := logicless.NewServiceMock(ctx, t, func(execution execution.Context) string {
+	runnerMock := logicless.NewServiceMock(ctx, t, func(execution execution.Context) interface{} {
 		return execution.Request.CallSiteMethod
 	})
 	server.ReplaceRunner(runnerMock)
@@ -43,7 +43,6 @@ func TestVirtual_SemaphoreLimitNotExceeded(t *testing.T) {
 	server.SetMaxParallelism(semaphoreParallelism)
 
 	server.Init(ctx)
-	server.IncrementPulseAndWaitIdle(ctx)
 
 	var (
 		numObject = 40
@@ -57,7 +56,7 @@ func TestVirtual_SemaphoreLimitNotExceeded(t *testing.T) {
 
 		for i := 0; i < numObject; i++ {
 			objects = append(objects, gen.UniqueGlobalRefWithPulse(pulse))
-			Method_PrepareObject(ctx, server, payload.StateStatusReady, objects[i], pulse)
+			Method_PrepareObject(ctx, server, rms.StateStatusReady, objects[i], pulse)
 		}
 	}
 
@@ -90,7 +89,7 @@ func TestVirtual_SemaphoreLimitNotExceeded(t *testing.T) {
 	}
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-	typedChecker.VCallResult.Set(func(res *payload.VCallResult) bool {
+	typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
 		return false // no resend msg
 	})
 
@@ -98,8 +97,8 @@ func TestVirtual_SemaphoreLimitNotExceeded(t *testing.T) {
 	{
 		for i := 0; i < numObject; i++ {
 			pl := utils.GenerateVCallRequestMethod(server)
-			pl.CallFlags = payload.BuildCallFlags(interferenceFlag, stateFlag)
-			pl.Callee = objects[i]
+			pl.CallFlags = rms.BuildCallFlags(interferenceFlag, stateFlag)
+			pl.Callee.Set(objects[i])
 			pl.CallSiteMethod = objects[i].String()
 
 			server.SendPayload(ctx, pl)

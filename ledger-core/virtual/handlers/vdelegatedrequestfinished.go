@@ -13,9 +13,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
@@ -26,8 +26,8 @@ import (
 
 type SMVDelegatedRequestFinished struct {
 	// input arguments
-	Meta    *payload.Meta
-	Payload *payload.VDelegatedRequestFinished
+	Meta    *rms.Meta
+	Payload *rms.VDelegatedRequestFinished
 
 	objectSharedState object.SharedStateAccessor
 	objectReadyToWork smachine.SyncLink
@@ -97,7 +97,7 @@ func (s *SMVDelegatedRequestFinished) migrationDefault(ctx smachine.MigrationCon
 }
 
 func (s *SMVDelegatedRequestFinished) stepGetObject(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	s.objectSharedState = s.objectCatalog.GetOrCreate(ctx, s.Payload.Callee)
+	s.objectSharedState = s.objectCatalog.GetOrCreate(ctx, s.Payload.Callee.GetValue())
 
 	var (
 		semaphoreReadyToWork smachine.SyncLink
@@ -135,7 +135,7 @@ func (s *SMVDelegatedRequestFinished) stepProcess(ctx smachine.ExecutionContext)
 	setStateFunc := func(data interface{}) (wakeup bool) {
 		state := data.(*object.SharedState)
 		if !state.IsReady() {
-			ctx.Log().Trace(stateIsNotReady{Object: s.Payload.Callee})
+			ctx.Log().Trace(stateIsNotReady{Object: s.Payload.Callee.GetValue()})
 			return false
 		}
 
@@ -161,15 +161,17 @@ func (s *SMVDelegatedRequestFinished) updateSharedState(
 	ctx smachine.ExecutionContext,
 	state *object.SharedState,
 ) {
-	objectRef := s.Payload.Callee
-	requestRef := s.Payload.CallOutgoing
+	var (
+		objectRef  = s.Payload.Callee.GetValue()
+		requestRef = s.Payload.CallOutgoing.GetValue()
+	)
 
 	// Update object state.
 	if s.hasLatestState() {
 		state.SetDescriptorDirty(s.latestState())
 		s.updateObjectState(state)
 	} else if s.Payload.CallFlags.GetInterference() == isolation.CallTolerable &&
-		s.Payload.CallType == payload.CallTypeConstructor &&
+		s.Payload.CallType == rms.CallTypeConstructor &&
 		state.GetState() == object.Empty {
 
 		ctx.Log().Warn(noLatestStateTolerableVDelegateRequestFinished{
@@ -232,9 +234,13 @@ func (s *SMVDelegatedRequestFinished) updateMemoryCache(ctx smachine.ExecutionCo
 		return
 	}
 	objectDescriptor := s.latestState()
+	if objectDescriptor.HeadRef().IsEmpty() || objectDescriptor.StateID().IsEmpty() {
+		return
+	}
 
 	s.memoryCache.PrepareAsync(ctx, func(ctx context.Context, svc memorycache.Service) smachine.AsyncResultFunc {
-		err := svc.Set(ctx, objectDescriptor.HeadRef(), objectDescriptor)
+		ref := reference.NewRecordOf(objectDescriptor.HeadRef(), objectDescriptor.StateID())
+		err := svc.Set(ctx, ref, objectDescriptor)
 		return func(ctx smachine.AsyncResultContext) {
 			if err != nil {
 				ctx.Log().Error("failed to set dirty memory", err)
@@ -254,10 +260,10 @@ func (s *SMVDelegatedRequestFinished) latestState() descriptor.Object {
 	}
 
 	return descriptor.NewObject(
-		s.Payload.Callee,
-		state.Reference,
-		state.Class,
-		state.State,
+		s.Payload.Callee.GetValue(),
+		state.Reference.GetValueWithoutBase(),
+		state.Class.GetValue(),
+		state.State.GetBytes(),
 		state.Deactivated,
 	)
 }

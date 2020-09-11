@@ -662,6 +662,9 @@ func (m *RecordExcerptForCatalogEntry) Marshal() (dAtA []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
+	if n != size {
+		panic("illegal state")
+	}
 	return dAtA[:n], nil
 }
 
@@ -776,6 +779,9 @@ func (m *RecordBodyForLazy) Marshal() (dAtA []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
+	if n != size {
+		panic("illegal state")
+	}
 	return dAtA[:n], nil
 }
 
@@ -819,6 +825,9 @@ func (m *CatalogEntry) Marshal() (dAtA []byte, err error) {
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
+	}
+	if n != size {
+		panic("illegal state")
 	}
 	return dAtA[:n], nil
 }
@@ -1043,6 +1052,9 @@ func (m *ExtLocators) Marshal() (dAtA []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
+	if n != size {
+		panic("illegal state")
+	}
 	return dAtA[:n], nil
 }
 
@@ -1081,6 +1093,9 @@ func (m *ExtLocator) Marshal() (dAtA []byte, err error) {
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
+	}
+	if n != size {
+		panic("illegal state")
 	}
 	return dAtA[:n], nil
 }

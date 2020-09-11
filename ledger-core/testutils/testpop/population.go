@@ -93,7 +93,7 @@ func createStaticProfile(t minimock.Tester, id node.ShortNodeID, ref reference.G
 	cp.GetIssuedAtTimeMock.Return(time.Now())
 	cp.GetIssuerIDMock.Return(id)
 	cp.GetIssuerSignatureMock.Return(cryptkit.Signature{})
-	cp.GetNodePublicKeyMock.Return(cryptkit.NewSignatureKeyHolderMock(t))
+	cp.GetNodePublicKeyMock.Return(cryptkit.NewSigningKeyHolderMock(t))
 	cp.GetPowerLevelsMock.Return(member.PowerSet{0, 0, 0, 255})
 	cp.GetPrimaryRoleMock.Return(role)
 	cp.GetReferenceMock.Return(ref)

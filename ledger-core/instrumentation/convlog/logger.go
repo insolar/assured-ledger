@@ -101,8 +101,13 @@ func (v conveyorStepLogger) LogUpdate(data smachine.StepLoggerData, upd smachine
 	PrepareStepName(&upd.NextStep)
 
 	durations := ""
-	if upd.InactivityNano > 0 || upd.ActivityNano > 0 {
+	switch {
+	case upd.InactivityNano > 0 && upd.ActivityNano > 0:
 		durations = fmt.Sprintf(" timing=%s/%s", upd.InactivityNano, upd.ActivityNano)
+	case upd.InactivityNano > 0:
+		durations = fmt.Sprintf(" timing=%s/_", upd.InactivityNano)
+	case upd.ActivityNano > 0:
+		durations = fmt.Sprintf(" timing=_/%s", upd.ActivityNano)
 	}
 
 	msg := data.FormatForLog(upd.UpdateType)

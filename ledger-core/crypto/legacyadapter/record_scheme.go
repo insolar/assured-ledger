@@ -25,7 +25,7 @@ func (v recordSchemeLegacy) CreateSignatureVerifierWithPKS(pks cryptkit.PublicKe
 	return NewECDSASignatureVerifier(v.pcs, pks)
 }
 
-func (v recordSchemeLegacy) CreatePublicKeyStore(skh cryptkit.SignatureKeyHolder) cryptkit.PublicKeyStore {
+func (v recordSchemeLegacy) CreatePublicKeyStore(skh cryptkit.SigningKeyHolder) cryptkit.PublicKeyStore {
 	return NewECDSAPublicKeyStore(skh)
 }
 

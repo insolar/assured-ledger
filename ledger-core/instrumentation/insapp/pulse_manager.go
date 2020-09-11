@@ -17,23 +17,21 @@ import (
 var _ chorus.Conductor = &PulseManager{}
 
 type PulseManager struct {
-	PulseAppender beat.Appender       `inject:""`
+	PulseAppender beat.Appender `inject:""`
 
-	mutex sync.RWMutex
-	dispatchers   []beat.Dispatcher
-	stopped bool
-	ackFn   func(ack bool)
+	mutex       sync.RWMutex
+	dispatchers []beat.Dispatcher
+	stopped     bool
+	ackFn       func(ack bool)
 }
 
 func NewPulseManager() *PulseManager {
 	return &PulseManager{}
 }
 
-func (m *PulseManager) AddDispatcher(d ...beat.Dispatcher) {
-	for _, dd := range d {
-		if dd == nil {
-			panic(throw.IllegalValue())
-		}
+func (m *PulseManager) AddDispatcher(d beat.Dispatcher) {
+	if d == nil {
+		panic(throw.IllegalValue())
 	}
 
 	m.mutex.Lock()
@@ -43,7 +41,7 @@ func (m *PulseManager) AddDispatcher(d ...beat.Dispatcher) {
 		panic(throw.IllegalState())
 	}
 
-	m.dispatchers = append(m.dispatchers, d...)
+	m.dispatchers = append(m.dispatchers, d)
 }
 
 func (m *PulseManager) CommitPulseChange(pulseChange beat.Beat) error {
@@ -53,8 +51,8 @@ func (m *PulseManager) CommitPulseChange(pulseChange beat.Beat) error {
 	if ackFn := m.ackFn; ackFn != nil {
 		m.ackFn = nil
 		ackFn(true)
-	// } else {
-	// 	panic(throw.IllegalState())
+		// } else {
+		// 	panic(throw.IllegalState())
 	}
 
 	return m._commit(pulseChange)

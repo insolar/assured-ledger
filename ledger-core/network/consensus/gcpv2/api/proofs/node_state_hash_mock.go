@@ -23,12 +23,6 @@ type NodeStateHashMock struct {
 	beforeAsByteStringCounter uint64
 	AsByteStringMock          mNodeStateHashMockAsByteString
 
-	funcCopyOfDigest          func() (d1 cryptkit.Digest)
-	inspectFuncCopyOfDigest   func()
-	afterCopyOfDigestCounter  uint64
-	beforeCopyOfDigestCounter uint64
-	CopyOfDigestMock          mNodeStateHashMockCopyOfDigest
-
 	funcCopyTo          func(p []byte) (i1 int)
 	inspectFuncCopyTo   func(p []byte)
 	afterCopyToCounter  uint64
@@ -80,8 +74,6 @@ func NewNodeStateHashMock(t minimock.Tester) *NodeStateHashMock {
 	}
 
 	m.AsByteStringMock = mNodeStateHashMockAsByteString{mock: m}
-
-	m.CopyOfDigestMock = mNodeStateHashMockCopyOfDigest{mock: m}
 
 	m.CopyToMock = mNodeStateHashMockCopyTo{mock: m}
 	m.CopyToMock.callArgs = []*NodeStateHashMockCopyToParams{}
@@ -244,149 +236,6 @@ func (m *NodeStateHashMock) MinimockAsByteStringInspect() {
 	// if func was set then invocations count should be greater than zero
 	if m.funcAsByteString != nil && mm_atomic.LoadUint64(&m.afterAsByteStringCounter) < 1 {
 		m.t.Error("Expected call to NodeStateHashMock.AsByteString")
-	}
-}
-
-type mNodeStateHashMockCopyOfDigest struct {
-	mock               *NodeStateHashMock
-	defaultExpectation *NodeStateHashMockCopyOfDigestExpectation
-	expectations       []*NodeStateHashMockCopyOfDigestExpectation
-}
-
-// NodeStateHashMockCopyOfDigestExpectation specifies expectation struct of the NodeStateHash.CopyOfDigest
-type NodeStateHashMockCopyOfDigestExpectation struct {
-	mock *NodeStateHashMock
-
-	results *NodeStateHashMockCopyOfDigestResults
-	Counter uint64
-}
-
-// NodeStateHashMockCopyOfDigestResults contains results of the NodeStateHash.CopyOfDigest
-type NodeStateHashMockCopyOfDigestResults struct {
-	d1 cryptkit.Digest
-}
-
-// Expect sets up expected params for NodeStateHash.CopyOfDigest
-func (mmCopyOfDigest *mNodeStateHashMockCopyOfDigest) Expect() *mNodeStateHashMockCopyOfDigest {
-	if mmCopyOfDigest.mock.funcCopyOfDigest != nil {
-		mmCopyOfDigest.mock.t.Fatalf("NodeStateHashMock.CopyOfDigest mock is already set by Set")
-	}
-
-	if mmCopyOfDigest.defaultExpectation == nil {
-		mmCopyOfDigest.defaultExpectation = &NodeStateHashMockCopyOfDigestExpectation{}
-	}
-
-	return mmCopyOfDigest
-}
-
-// Inspect accepts an inspector function that has same arguments as the NodeStateHash.CopyOfDigest
-func (mmCopyOfDigest *mNodeStateHashMockCopyOfDigest) Inspect(f func()) *mNodeStateHashMockCopyOfDigest {
-	if mmCopyOfDigest.mock.inspectFuncCopyOfDigest != nil {
-		mmCopyOfDigest.mock.t.Fatalf("Inspect function is already set for NodeStateHashMock.CopyOfDigest")
-	}
-
-	mmCopyOfDigest.mock.inspectFuncCopyOfDigest = f
-
-	return mmCopyOfDigest
-}
-
-// Return sets up results that will be returned by NodeStateHash.CopyOfDigest
-func (mmCopyOfDigest *mNodeStateHashMockCopyOfDigest) Return(d1 cryptkit.Digest) *NodeStateHashMock {
-	if mmCopyOfDigest.mock.funcCopyOfDigest != nil {
-		mmCopyOfDigest.mock.t.Fatalf("NodeStateHashMock.CopyOfDigest mock is already set by Set")
-	}
-
-	if mmCopyOfDigest.defaultExpectation == nil {
-		mmCopyOfDigest.defaultExpectation = &NodeStateHashMockCopyOfDigestExpectation{mock: mmCopyOfDigest.mock}
-	}
-	mmCopyOfDigest.defaultExpectation.results = &NodeStateHashMockCopyOfDigestResults{d1}
-	return mmCopyOfDigest.mock
-}
-
-//Set uses given function f to mock the NodeStateHash.CopyOfDigest method
-func (mmCopyOfDigest *mNodeStateHashMockCopyOfDigest) Set(f func() (d1 cryptkit.Digest)) *NodeStateHashMock {
-	if mmCopyOfDigest.defaultExpectation != nil {
-		mmCopyOfDigest.mock.t.Fatalf("Default expectation is already set for the NodeStateHash.CopyOfDigest method")
-	}
-
-	if len(mmCopyOfDigest.expectations) > 0 {
-		mmCopyOfDigest.mock.t.Fatalf("Some expectations are already set for the NodeStateHash.CopyOfDigest method")
-	}
-
-	mmCopyOfDigest.mock.funcCopyOfDigest = f
-	return mmCopyOfDigest.mock
-}
-
-// CopyOfDigest implements NodeStateHash
-func (mmCopyOfDigest *NodeStateHashMock) CopyOfDigest() (d1 cryptkit.Digest) {
-	mm_atomic.AddUint64(&mmCopyOfDigest.beforeCopyOfDigestCounter, 1)
-	defer mm_atomic.AddUint64(&mmCopyOfDigest.afterCopyOfDigestCounter, 1)
-
-	if mmCopyOfDigest.inspectFuncCopyOfDigest != nil {
-		mmCopyOfDigest.inspectFuncCopyOfDigest()
-	}
-
-	if mmCopyOfDigest.CopyOfDigestMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmCopyOfDigest.CopyOfDigestMock.defaultExpectation.Counter, 1)
-
-		mm_results := mmCopyOfDigest.CopyOfDigestMock.defaultExpectation.results
-		if mm_results == nil {
-			mmCopyOfDigest.t.Fatal("No results are set for the NodeStateHashMock.CopyOfDigest")
-		}
-		return (*mm_results).d1
-	}
-	if mmCopyOfDigest.funcCopyOfDigest != nil {
-		return mmCopyOfDigest.funcCopyOfDigest()
-	}
-	mmCopyOfDigest.t.Fatalf("Unexpected call to NodeStateHashMock.CopyOfDigest.")
-	return
-}
-
-// CopyOfDigestAfterCounter returns a count of finished NodeStateHashMock.CopyOfDigest invocations
-func (mmCopyOfDigest *NodeStateHashMock) CopyOfDigestAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmCopyOfDigest.afterCopyOfDigestCounter)
-}
-
-// CopyOfDigestBeforeCounter returns a count of NodeStateHashMock.CopyOfDigest invocations
-func (mmCopyOfDigest *NodeStateHashMock) CopyOfDigestBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmCopyOfDigest.beforeCopyOfDigestCounter)
-}
-
-// MinimockCopyOfDigestDone returns true if the count of the CopyOfDigest invocations corresponds
-// the number of defined expectations
-func (m *NodeStateHashMock) MinimockCopyOfDigestDone() bool {
-	for _, e := range m.CopyOfDigestMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.CopyOfDigestMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterCopyOfDigestCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcCopyOfDigest != nil && mm_atomic.LoadUint64(&m.afterCopyOfDigestCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockCopyOfDigestInspect logs each unmet expectation
-func (m *NodeStateHashMock) MinimockCopyOfDigestInspect() {
-	for _, e := range m.CopyOfDigestMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Error("Expected call to NodeStateHashMock.CopyOfDigest")
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.CopyOfDigestMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterCopyOfDigestCounter) < 1 {
-		m.t.Error("Expected call to NodeStateHashMock.CopyOfDigest")
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcCopyOfDigest != nil && mm_atomic.LoadUint64(&m.afterCopyOfDigestCounter) < 1 {
-		m.t.Error("Expected call to NodeStateHashMock.CopyOfDigest")
 	}
 }
 
@@ -1685,8 +1534,6 @@ func (m *NodeStateHashMock) MinimockFinish() {
 	if !m.minimockDone() {
 		m.MinimockAsByteStringInspect()
 
-		m.MinimockCopyOfDigestInspect()
-
 		m.MinimockCopyToInspect()
 
 		m.MinimockEqualsInspect()
@@ -1724,7 +1571,6 @@ func (m *NodeStateHashMock) minimockDone() bool {
 	done := true
 	return done &&
 		m.MinimockAsByteStringDone() &&
-		m.MinimockCopyOfDigestDone() &&
 		m.MinimockCopyToDone() &&
 		m.MinimockEqualsDone() &&
 		m.MinimockFixedByteSizeDone() &&

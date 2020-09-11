@@ -14,6 +14,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/network/watermill"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/component-manager"
@@ -51,7 +52,15 @@ type ServiceNetwork struct {
 	Gatewayer   network.Gatewayer
 	BaseGateway *gateway.Base
 
-	router watermillRouter
+	router watermill.Router
+}
+
+func (n *ServiceNetwork) GetBeatHistory() beat.History {
+	panic(throw.Unsupported())
+}
+
+func (n *ServiceNetwork) AddDispatcher(beat.Dispatcher) {
+	panic(throw.Unsupported())
 }
 
 // NewServiceNetwork returns a new ServiceNetwork.
@@ -173,7 +182,7 @@ func (n *ServiceNetwork) GetCert(ctx context.Context, ref reference.Global) (nod
 
 func (n *ServiceNetwork) CreateMessagesRouter(ctx context.Context) messagesender.MessageRouter {
 	if n.router.IsZero() {
-		n.router = newWatermillRouter(ctx, n.SendMessageHandler)
+		n.router = watermill.NewRouter(ctx, n.SendMessageHandler)
 	}
 	return n.router
 }

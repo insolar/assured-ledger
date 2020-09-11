@@ -14,9 +14,9 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
@@ -31,35 +31,35 @@ var messagesWithoutToken = []struct {
 }{
 	{
 		name: "VCallRequest",
-		msg:  &payload.VCallRequest{},
+		msg:  &rms.VCallRequest{},
 	},
 	{
 		name: "VCallResult",
-		msg:  &payload.VCallResult{},
+		msg:  &rms.VCallResult{},
 	},
 	{
 		name: "VStateRequest",
-		msg:  &payload.VStateRequest{},
+		msg:  &rms.VStateRequest{},
 	},
 	{
 		name: "VStateReport",
-		msg:  &payload.VStateReport{},
+		msg:  &rms.VStateReport{},
 	},
 	{
 		name: "VDelegatedCallRequest",
-		msg:  &payload.VDelegatedCallRequest{},
+		msg:  &rms.VDelegatedCallRequest{},
 	},
 	{
 		name: "VDelegatedCallResponse",
-		msg:  &payload.VDelegatedCallResponse{},
+		msg:  &rms.VDelegatedCallResponse{},
 	},
 	{
 		name: "VFindCallRequest",
-		msg:  &payload.VFindCallRequest{},
+		msg:  &rms.VFindCallRequest{},
 	},
 	{
 		name:              "VFindCallResponse",
-		msg:               &payload.VFindCallResponse{},
+		msg:               &rms.VFindCallResponse{},
 		ignoreSenderCheck: true,
 	},
 }
@@ -125,55 +125,55 @@ func TestVirtual_SenderCheck_With_ExpectedVE(t *testing.T) {
 					prevPulse := server.GetPrevPulse().PulseNumber
 
 					switch m := (testMsg.msg).(type) {
-					case *payload.VStateReport:
-						m.Status = payload.StateStatusMissing
+					case *rms.VStateReport:
+						m.Status = rms.StateStatusMissing
 						m.AsOf = prevPulse
-						m.Object = gen.UniqueGlobalRefWithPulse(prevPulse)
+						m.Object.Set(gen.UniqueGlobalRefWithPulse(prevPulse))
 
-					case *payload.VFindCallRequest:
+					case *rms.VFindCallRequest:
 
 						m.LookAt = prevPulse
-						m.Callee = gen.UniqueGlobalRefWithPulse(prevPulse)
-						m.Outgoing = server.BuildRandomOutgoingWithGivenPulse(prevPulse)
+						m.Callee.Set(gen.UniqueGlobalRefWithPulse(prevPulse))
+						m.Outgoing.Set(server.BuildRandomOutgoingWithGivenPulse(prevPulse))
 
-					case *payload.VFindCallResponse:
+					case *rms.VFindCallResponse:
 
 						m.LookedAt = prevPulse
-						m.Callee = gen.UniqueGlobalRefWithPulse(prevPulse)
-						m.Outgoing = server.BuildRandomOutgoingWithGivenPulse(prevPulse)
-						m.Status = payload.CallStateMissing
+						m.Callee.Set(gen.UniqueGlobalRefWithPulse(prevPulse))
+						m.Outgoing.Set(server.BuildRandomOutgoingWithGivenPulse(prevPulse))
+						m.Status = rms.CallStateMissing
 
-					case *payload.VDelegatedCallRequest:
+					case *rms.VDelegatedCallRequest:
 
-						m.Callee = gen.UniqueGlobalRefWithPulse(prevPulse)
-						m.CallOutgoing = server.BuildRandomOutgoingWithGivenPulse(prevPulse)
-						m.CallIncoming = reference.NewRecordOf(m.Callee, m.CallOutgoing.GetLocal())
-						m.CallFlags = payload.CallFlags(0).WithInterference(isolation.CallIntolerable).WithState(isolation.CallValidated)
+						m.Callee.Set(gen.UniqueGlobalRefWithPulse(prevPulse))
+						m.CallOutgoing.Set(server.BuildRandomOutgoingWithGivenPulse(prevPulse))
+						m.CallIncoming.Set(reference.NewRecordOf(m.Callee.GetValue(), m.CallOutgoing.GetValue().GetLocal()))
+						m.CallFlags = rms.CallFlags(0).WithInterference(isolation.CallIntolerable).WithState(isolation.CallValidated)
 
-					case *payload.VDelegatedCallResponse:
+					case *rms.VDelegatedCallResponse:
 
-						m.Callee = gen.UniqueGlobalRefWithPulse(prevPulse)
-						m.CallIncoming = reference.NewRecordOf(m.Callee, gen.UniqueLocalRefWithPulse(prevPulse))
+						m.Callee.Set(gen.UniqueGlobalRefWithPulse(prevPulse))
+						m.CallIncoming.Set(reference.NewRecordOf(m.Callee.GetValue(), gen.UniqueLocalRefWithPulse(prevPulse)))
 
-					case *payload.VStateRequest:
+					case *rms.VStateRequest:
 
 						m.AsOf = prevPulse
-						m.Object = gen.UniqueGlobalRefWithPulse(prevPulse)
+						m.Object.Set(gen.UniqueGlobalRefWithPulse(prevPulse))
 
-					case *payload.VCallResult:
-						m.CallFlags = payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty)
-						m.CallType = payload.CallTypeMethod
-						m.Callee = server.RandomGlobalWithPulse()
-						m.Caller = server.GlobalCaller()
-						m.CallOutgoing = server.BuildRandomOutgoingWithPulse()
-						m.CallIncoming = server.RandomGlobalWithPulse()
-						m.ReturnArguments = []byte("some result")
+					case *rms.VCallResult:
+						m.CallFlags = rms.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty)
+						m.CallType = rms.CallTypeMethod
+						m.Callee.Set(server.RandomGlobalWithPulse())
+						m.Caller.Set(server.GlobalCaller())
+						m.CallOutgoing.Set(server.BuildRandomOutgoingWithPulse())
+						m.CallIncoming.Set(server.RandomGlobalWithPulse())
+						m.ReturnArguments.SetBytes([]byte("some result"))
 
-					case *payload.VCallRequest:
+					case *rms.VCallRequest:
 						testMsg.msg = utils.GenerateVCallRequestMethod(server)
 					}
 
-					server.SendPayload(ctx, testMsg.msg.(payload.Marshaler)) // default caller == server.GlobalCaller()
+					server.SendPayload(ctx, testMsg.msg.(rms.GoGoSerializable)) // default caller == server.GlobalCaller()
 
 					expectNoError := cases.senderIsEqualExpectedVE || testMsg.ignoreSenderCheck == true
 					if expectNoError {

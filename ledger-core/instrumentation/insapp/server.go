@@ -7,6 +7,7 @@ package insapp
 
 import (
 	"context"
+	"crypto"
 	"fmt"
 	"os"
 	"os/signal"
@@ -15,62 +16,86 @@ import (
 	"github.com/insolar/component-manager"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
+	"github.com/insolar/assured-ledger/ledger-core/cryptography"
+	"github.com/insolar/assured-ledger/ledger-core/cryptography/keystore"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/trace"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
+	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/version"
 )
 
+type CertManagerFactory func(publicKey crypto.PublicKey, keyProcessor cryptography.KeyProcessor, certPath string) (*mandates.CertificateManager, error)
+type KeyStoreFactory func(path string) (cryptography.KeyStore, error)
+
+type ConfigurationProvider interface {
+	Config() configuration.Configuration
+	GetKeyStoreFactory() KeyStoreFactory
+	GetCertManagerFactory() CertManagerFactory
+}
+
 type Server struct {
-	cfgPath string
-	appFn   AppFactoryFunc
-	multiFn MultiNodeConfigFunc
-	extra   []interface{}
+	appFn        AppFactoryFunc
+	multiFn      MultiNodeConfigFunc
+	extra        []interface{}
+	confProvider ConfigurationProvider
+}
+
+type defaultConfigurationProvider struct {
+	config configuration.Configuration
+}
+
+func (cp defaultConfigurationProvider) Config() configuration.Configuration {
+	return cp.config
+}
+
+func (cp defaultConfigurationProvider) GetCertManagerFactory() CertManagerFactory {
+	return mandates.NewManagerReadCertificate
+}
+
+func (cp defaultConfigurationProvider) GetKeyStoreFactory() KeyStoreFactory {
+	return keystore.NewKeyStore
 }
 
 // New creates a one-node process.
-func New(cfgPath string, appFn AppFactoryFunc, extraComponents ...interface{}) *Server {
+func New(cfg configuration.Configuration, appFn AppFactoryFunc, extraComponents ...interface{}) *Server {
 	return &Server{
-		cfgPath: cfgPath,
-		appFn:   appFn,
-		extra:   extraComponents,
+		confProvider: &defaultConfigurationProvider{config: cfg},
+		appFn:        appFn,
+		extra:        extraComponents,
 	}
-}
-
-func (s *Server) readConfig(cfgPath string) configuration.Configuration {
-	cfgHolder := configuration.NewHolder(cfgPath)
-	err := cfgHolder.Load()
-	if err != nil {
-		global.Warn("failed to load configuration from file: ", err.Error())
-	}
-	return *cfgHolder.Configuration
 }
 
 func (s *Server) Serve() {
-	baseCfg := s.readConfig(s.cfgPath)
-	var configs []configuration.Configuration
-	var networkFn NetworkInitFunc
+	var (
+		configs   []configuration.Configuration
+		networkFn NetworkInitFunc
+	)
 
 	fmt.Println("Version: ", version.GetFullVersion())
+
 	if s.multiFn != nil {
-		fmt.Println("Starts with multi-node configuration base:\n", configuration.ToString(&baseCfg))
-		configs, networkFn = s.multiFn(s.cfgPath, baseCfg)
+		baseConfig := s.confProvider.Config()
+		fmt.Println("Starts with multi-node configuration base:\n", configuration.ToString(&baseConfig))
+		configs, networkFn = s.multiFn(s.confProvider)
 	} else {
-		configs = append(configs, baseCfg)
+		configs = append(configs, s.confProvider.Config())
 	}
 
-	baseCtx, baseLogger := inslogger.InitGlobalNodeLogger(context.Background(), baseCfg.Log, "", "")
+	baseCtx, baseLogger := inslogger.InitGlobalNodeLogger(context.Background(), s.confProvider.Config().Log, "", "")
 
 	n := len(configs)
+
 	cms := make([]*component.Manager, 0, n)
 	stops := make([]func(), 0, n)
 	contexts := make([]context.Context, 0, n)
 
-	for i, cfg := range configs {
-		fmt.Printf("Starts with configuration [%d/%d]:\n%s\n", i + 1, n, configuration.ToString(&configs[0]))
+	for i := range configs {
+		cfg := configs[i]
+		fmt.Printf("Starts with configuration [%d/%d]:\n%s\n", i+1, n, configuration.ToString(&cfg))
 
-		cm, stopWatermill := s.StartComponents(baseCtx, cfg, networkFn,
+		cm, stopFunc := s.StartComponents(baseCtx, cfg, networkFn,
 			func(_ context.Context, cfg configuration.Log, nodeRef, nodeRole string) context.Context {
 				ctx, logger := inslogger.InitNodeLogger(baseCtx, cfg, nodeRef, nodeRole)
 				contexts = append(contexts, ctx)
@@ -80,12 +105,14 @@ func (s *Server) Serve() {
 					baseLogger = logger
 					global.SetLogger(logger)
 				}
+
 				return ctx
 			})
-
 		cms = append(cms, cm)
-		stops = append(stops, stopWatermill)
+		stops = append(stops, stopFunc)
 	}
+
+	s.confProvider = nil
 
 	global.InitTicker()
 
@@ -104,7 +131,7 @@ func (s *Server) Serve() {
 		baseLogger.Info("stopping gracefully")
 
 		for i, cm := range cms {
-			if err := cm.GracefulStop(contexts[i]); err != nil {
+			if err := cm.GracefulStop(baseCtx); err != nil {
 				baseLogger.Fatalf("graceful stop failed [%d]: %s", i, throw.ErrorWithStack(err))
 			}
 		}
@@ -138,9 +165,8 @@ func (s *Server) StartComponents(ctx context.Context, cfg configuration.Configur
 	networkFn NetworkInitFunc, loggerFn LoggerInitFunc,
 ) (*component.Manager, func()) {
 	preComponents := s.initBootstrapComponents(ctx, cfg)
-	certManager := s.initCertificateManager(ctx, cfg, preComponents)
 
-	nodeCert := certManager.GetCertificate()
+	nodeCert := preComponents.CertificateManager.GetCertificate()
 	nodeRole := nodeCert.GetRole()
 	nodeRef := nodeCert.GetNodeRef().String()
 
@@ -152,5 +178,5 @@ func (s *Server) StartComponents(ctx context.Context, cfg configuration.Configur
 		defer jaegerFlush()
 	}
 
-	return s.initComponents(ctx, cfg, networkFn, preComponents, certManager)
+	return s.initComponents(ctx, cfg, networkFn, preComponents)
 }

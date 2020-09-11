@@ -22,12 +22,6 @@ type DigestHolderMock struct {
 	beforeAsByteStringCounter uint64
 	AsByteStringMock          mDigestHolderMockAsByteString
 
-	funcCopyOfDigest          func() (d1 Digest)
-	inspectFuncCopyOfDigest   func()
-	afterCopyOfDigestCounter  uint64
-	beforeCopyOfDigestCounter uint64
-	CopyOfDigestMock          mDigestHolderMockCopyOfDigest
-
 	funcCopyTo          func(p []byte) (i1 int)
 	inspectFuncCopyTo   func(p []byte)
 	afterCopyToCounter  uint64
@@ -79,8 +73,6 @@ func NewDigestHolderMock(t minimock.Tester) *DigestHolderMock {
 	}
 
 	m.AsByteStringMock = mDigestHolderMockAsByteString{mock: m}
-
-	m.CopyOfDigestMock = mDigestHolderMockCopyOfDigest{mock: m}
 
 	m.CopyToMock = mDigestHolderMockCopyTo{mock: m}
 	m.CopyToMock.callArgs = []*DigestHolderMockCopyToParams{}
@@ -243,149 +235,6 @@ func (m *DigestHolderMock) MinimockAsByteStringInspect() {
 	// if func was set then invocations count should be greater than zero
 	if m.funcAsByteString != nil && mm_atomic.LoadUint64(&m.afterAsByteStringCounter) < 1 {
 		m.t.Error("Expected call to DigestHolderMock.AsByteString")
-	}
-}
-
-type mDigestHolderMockCopyOfDigest struct {
-	mock               *DigestHolderMock
-	defaultExpectation *DigestHolderMockCopyOfDigestExpectation
-	expectations       []*DigestHolderMockCopyOfDigestExpectation
-}
-
-// DigestHolderMockCopyOfDigestExpectation specifies expectation struct of the DigestHolder.CopyOfDigest
-type DigestHolderMockCopyOfDigestExpectation struct {
-	mock *DigestHolderMock
-
-	results *DigestHolderMockCopyOfDigestResults
-	Counter uint64
-}
-
-// DigestHolderMockCopyOfDigestResults contains results of the DigestHolder.CopyOfDigest
-type DigestHolderMockCopyOfDigestResults struct {
-	d1 Digest
-}
-
-// Expect sets up expected params for DigestHolder.CopyOfDigest
-func (mmCopyOfDigest *mDigestHolderMockCopyOfDigest) Expect() *mDigestHolderMockCopyOfDigest {
-	if mmCopyOfDigest.mock.funcCopyOfDigest != nil {
-		mmCopyOfDigest.mock.t.Fatalf("DigestHolderMock.CopyOfDigest mock is already set by Set")
-	}
-
-	if mmCopyOfDigest.defaultExpectation == nil {
-		mmCopyOfDigest.defaultExpectation = &DigestHolderMockCopyOfDigestExpectation{}
-	}
-
-	return mmCopyOfDigest
-}
-
-// Inspect accepts an inspector function that has same arguments as the DigestHolder.CopyOfDigest
-func (mmCopyOfDigest *mDigestHolderMockCopyOfDigest) Inspect(f func()) *mDigestHolderMockCopyOfDigest {
-	if mmCopyOfDigest.mock.inspectFuncCopyOfDigest != nil {
-		mmCopyOfDigest.mock.t.Fatalf("Inspect function is already set for DigestHolderMock.CopyOfDigest")
-	}
-
-	mmCopyOfDigest.mock.inspectFuncCopyOfDigest = f
-
-	return mmCopyOfDigest
-}
-
-// Return sets up results that will be returned by DigestHolder.CopyOfDigest
-func (mmCopyOfDigest *mDigestHolderMockCopyOfDigest) Return(d1 Digest) *DigestHolderMock {
-	if mmCopyOfDigest.mock.funcCopyOfDigest != nil {
-		mmCopyOfDigest.mock.t.Fatalf("DigestHolderMock.CopyOfDigest mock is already set by Set")
-	}
-
-	if mmCopyOfDigest.defaultExpectation == nil {
-		mmCopyOfDigest.defaultExpectation = &DigestHolderMockCopyOfDigestExpectation{mock: mmCopyOfDigest.mock}
-	}
-	mmCopyOfDigest.defaultExpectation.results = &DigestHolderMockCopyOfDigestResults{d1}
-	return mmCopyOfDigest.mock
-}
-
-//Set uses given function f to mock the DigestHolder.CopyOfDigest method
-func (mmCopyOfDigest *mDigestHolderMockCopyOfDigest) Set(f func() (d1 Digest)) *DigestHolderMock {
-	if mmCopyOfDigest.defaultExpectation != nil {
-		mmCopyOfDigest.mock.t.Fatalf("Default expectation is already set for the DigestHolder.CopyOfDigest method")
-	}
-
-	if len(mmCopyOfDigest.expectations) > 0 {
-		mmCopyOfDigest.mock.t.Fatalf("Some expectations are already set for the DigestHolder.CopyOfDigest method")
-	}
-
-	mmCopyOfDigest.mock.funcCopyOfDigest = f
-	return mmCopyOfDigest.mock
-}
-
-// CopyOfDigest implements DigestHolder
-func (mmCopyOfDigest *DigestHolderMock) CopyOfDigest() (d1 Digest) {
-	mm_atomic.AddUint64(&mmCopyOfDigest.beforeCopyOfDigestCounter, 1)
-	defer mm_atomic.AddUint64(&mmCopyOfDigest.afterCopyOfDigestCounter, 1)
-
-	if mmCopyOfDigest.inspectFuncCopyOfDigest != nil {
-		mmCopyOfDigest.inspectFuncCopyOfDigest()
-	}
-
-	if mmCopyOfDigest.CopyOfDigestMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmCopyOfDigest.CopyOfDigestMock.defaultExpectation.Counter, 1)
-
-		mm_results := mmCopyOfDigest.CopyOfDigestMock.defaultExpectation.results
-		if mm_results == nil {
-			mmCopyOfDigest.t.Fatal("No results are set for the DigestHolderMock.CopyOfDigest")
-		}
-		return (*mm_results).d1
-	}
-	if mmCopyOfDigest.funcCopyOfDigest != nil {
-		return mmCopyOfDigest.funcCopyOfDigest()
-	}
-	mmCopyOfDigest.t.Fatalf("Unexpected call to DigestHolderMock.CopyOfDigest.")
-	return
-}
-
-// CopyOfDigestAfterCounter returns a count of finished DigestHolderMock.CopyOfDigest invocations
-func (mmCopyOfDigest *DigestHolderMock) CopyOfDigestAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmCopyOfDigest.afterCopyOfDigestCounter)
-}
-
-// CopyOfDigestBeforeCounter returns a count of DigestHolderMock.CopyOfDigest invocations
-func (mmCopyOfDigest *DigestHolderMock) CopyOfDigestBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmCopyOfDigest.beforeCopyOfDigestCounter)
-}
-
-// MinimockCopyOfDigestDone returns true if the count of the CopyOfDigest invocations corresponds
-// the number of defined expectations
-func (m *DigestHolderMock) MinimockCopyOfDigestDone() bool {
-	for _, e := range m.CopyOfDigestMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.CopyOfDigestMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterCopyOfDigestCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcCopyOfDigest != nil && mm_atomic.LoadUint64(&m.afterCopyOfDigestCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockCopyOfDigestInspect logs each unmet expectation
-func (m *DigestHolderMock) MinimockCopyOfDigestInspect() {
-	for _, e := range m.CopyOfDigestMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Error("Expected call to DigestHolderMock.CopyOfDigest")
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.CopyOfDigestMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterCopyOfDigestCounter) < 1 {
-		m.t.Error("Expected call to DigestHolderMock.CopyOfDigest")
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcCopyOfDigest != nil && mm_atomic.LoadUint64(&m.afterCopyOfDigestCounter) < 1 {
-		m.t.Error("Expected call to DigestHolderMock.CopyOfDigest")
 	}
 }
 
@@ -1684,8 +1533,6 @@ func (m *DigestHolderMock) MinimockFinish() {
 	if !m.minimockDone() {
 		m.MinimockAsByteStringInspect()
 
-		m.MinimockCopyOfDigestInspect()
-
 		m.MinimockCopyToInspect()
 
 		m.MinimockEqualsInspect()
@@ -1723,7 +1570,6 @@ func (m *DigestHolderMock) minimockDone() bool {
 	done := true
 	return done &&
 		m.MinimockAsByteStringDone() &&
-		m.MinimockCopyOfDigestDone() &&
 		m.MinimockCopyToDone() &&
 		m.MinimockEqualsDone() &&
 		m.MinimockFixedByteSizeDone() &&

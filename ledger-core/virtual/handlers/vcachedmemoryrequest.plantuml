@@ -7,12 +7,13 @@ state "s.memoryCache" as T01_S003 <<sdlreceive>>
 state "s.messageSender" as T01_S007 <<sdlreceive>>
 state "stepBuildResult" as T01_S005
 T01_S005 : SMVCachedMemoryRequest
-T01_S005 --> T01_S006 : [s.object.HeadRef().IsEmpty()]
 T01_S005 --> T01_S006
 state "stepGetMemory" as T01_S002
 T01_S002 : SMVCachedMemoryRequest
-T01_S002 --> T01_S003 : PrepareAsync(ctx)
-T01_S002 --> T01_S004
+state T01_U001 <<fork>>
+T01_S002 --> T01_U001
+T01_U001 --> T01_S003 : PrepareAsync(ctx)
+T01_U001 --[dashed]> T01_S004
 state "stepSendResult" as T01_S006
 T01_S006 : SMVCachedMemoryRequest
 T01_S006 --> T01_S007 : PrepareAsync(ctx).WithoutAutoWakeUp()
@@ -24,8 +25,8 @@ T01_S004 --> T01_S005
 state "GetInitStateFor" as T00_S001
 T00_S001 : dSMVCachedMemoryRequest
 [*] --> T00_S001
-state "s.Init" as T00_U001
-T00_U001 : dSMVCachedMemoryRequest
-T00_U001 : UNKNOWN 
-T00_S001 --> T00_U001
+state "s.Init" as T00_U002
+T00_U002 : dSMVCachedMemoryRequest
+T00_U002 : UNKNOWN 
+T00_S001 --> T00_U002
 @enduml

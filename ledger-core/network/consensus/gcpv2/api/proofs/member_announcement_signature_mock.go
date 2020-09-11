@@ -23,12 +23,6 @@ type MemberAnnouncementSignatureMock struct {
 	beforeAsByteStringCounter uint64
 	AsByteStringMock          mMemberAnnouncementSignatureMockAsByteString
 
-	funcCopyOfSignature          func() (s1 cryptkit.Signature)
-	inspectFuncCopyOfSignature   func()
-	afterCopyOfSignatureCounter  uint64
-	beforeCopyOfSignatureCounter uint64
-	CopyOfSignatureMock          mMemberAnnouncementSignatureMockCopyOfSignature
-
 	funcCopyTo          func(p []byte) (i1 int)
 	inspectFuncCopyTo   func(p []byte)
 	afterCopyToCounter  uint64
@@ -74,8 +68,6 @@ func NewMemberAnnouncementSignatureMock(t minimock.Tester) *MemberAnnouncementSi
 	}
 
 	m.AsByteStringMock = mMemberAnnouncementSignatureMockAsByteString{mock: m}
-
-	m.CopyOfSignatureMock = mMemberAnnouncementSignatureMockCopyOfSignature{mock: m}
 
 	m.CopyToMock = mMemberAnnouncementSignatureMockCopyTo{mock: m}
 	m.CopyToMock.callArgs = []*MemberAnnouncementSignatureMockCopyToParams{}
@@ -235,149 +227,6 @@ func (m *MemberAnnouncementSignatureMock) MinimockAsByteStringInspect() {
 	// if func was set then invocations count should be greater than zero
 	if m.funcAsByteString != nil && mm_atomic.LoadUint64(&m.afterAsByteStringCounter) < 1 {
 		m.t.Error("Expected call to MemberAnnouncementSignatureMock.AsByteString")
-	}
-}
-
-type mMemberAnnouncementSignatureMockCopyOfSignature struct {
-	mock               *MemberAnnouncementSignatureMock
-	defaultExpectation *MemberAnnouncementSignatureMockCopyOfSignatureExpectation
-	expectations       []*MemberAnnouncementSignatureMockCopyOfSignatureExpectation
-}
-
-// MemberAnnouncementSignatureMockCopyOfSignatureExpectation specifies expectation struct of the MemberAnnouncementSignature.CopyOfSignature
-type MemberAnnouncementSignatureMockCopyOfSignatureExpectation struct {
-	mock *MemberAnnouncementSignatureMock
-
-	results *MemberAnnouncementSignatureMockCopyOfSignatureResults
-	Counter uint64
-}
-
-// MemberAnnouncementSignatureMockCopyOfSignatureResults contains results of the MemberAnnouncementSignature.CopyOfSignature
-type MemberAnnouncementSignatureMockCopyOfSignatureResults struct {
-	s1 cryptkit.Signature
-}
-
-// Expect sets up expected params for MemberAnnouncementSignature.CopyOfSignature
-func (mmCopyOfSignature *mMemberAnnouncementSignatureMockCopyOfSignature) Expect() *mMemberAnnouncementSignatureMockCopyOfSignature {
-	if mmCopyOfSignature.mock.funcCopyOfSignature != nil {
-		mmCopyOfSignature.mock.t.Fatalf("MemberAnnouncementSignatureMock.CopyOfSignature mock is already set by Set")
-	}
-
-	if mmCopyOfSignature.defaultExpectation == nil {
-		mmCopyOfSignature.defaultExpectation = &MemberAnnouncementSignatureMockCopyOfSignatureExpectation{}
-	}
-
-	return mmCopyOfSignature
-}
-
-// Inspect accepts an inspector function that has same arguments as the MemberAnnouncementSignature.CopyOfSignature
-func (mmCopyOfSignature *mMemberAnnouncementSignatureMockCopyOfSignature) Inspect(f func()) *mMemberAnnouncementSignatureMockCopyOfSignature {
-	if mmCopyOfSignature.mock.inspectFuncCopyOfSignature != nil {
-		mmCopyOfSignature.mock.t.Fatalf("Inspect function is already set for MemberAnnouncementSignatureMock.CopyOfSignature")
-	}
-
-	mmCopyOfSignature.mock.inspectFuncCopyOfSignature = f
-
-	return mmCopyOfSignature
-}
-
-// Return sets up results that will be returned by MemberAnnouncementSignature.CopyOfSignature
-func (mmCopyOfSignature *mMemberAnnouncementSignatureMockCopyOfSignature) Return(s1 cryptkit.Signature) *MemberAnnouncementSignatureMock {
-	if mmCopyOfSignature.mock.funcCopyOfSignature != nil {
-		mmCopyOfSignature.mock.t.Fatalf("MemberAnnouncementSignatureMock.CopyOfSignature mock is already set by Set")
-	}
-
-	if mmCopyOfSignature.defaultExpectation == nil {
-		mmCopyOfSignature.defaultExpectation = &MemberAnnouncementSignatureMockCopyOfSignatureExpectation{mock: mmCopyOfSignature.mock}
-	}
-	mmCopyOfSignature.defaultExpectation.results = &MemberAnnouncementSignatureMockCopyOfSignatureResults{s1}
-	return mmCopyOfSignature.mock
-}
-
-//Set uses given function f to mock the MemberAnnouncementSignature.CopyOfSignature method
-func (mmCopyOfSignature *mMemberAnnouncementSignatureMockCopyOfSignature) Set(f func() (s1 cryptkit.Signature)) *MemberAnnouncementSignatureMock {
-	if mmCopyOfSignature.defaultExpectation != nil {
-		mmCopyOfSignature.mock.t.Fatalf("Default expectation is already set for the MemberAnnouncementSignature.CopyOfSignature method")
-	}
-
-	if len(mmCopyOfSignature.expectations) > 0 {
-		mmCopyOfSignature.mock.t.Fatalf("Some expectations are already set for the MemberAnnouncementSignature.CopyOfSignature method")
-	}
-
-	mmCopyOfSignature.mock.funcCopyOfSignature = f
-	return mmCopyOfSignature.mock
-}
-
-// CopyOfSignature implements MemberAnnouncementSignature
-func (mmCopyOfSignature *MemberAnnouncementSignatureMock) CopyOfSignature() (s1 cryptkit.Signature) {
-	mm_atomic.AddUint64(&mmCopyOfSignature.beforeCopyOfSignatureCounter, 1)
-	defer mm_atomic.AddUint64(&mmCopyOfSignature.afterCopyOfSignatureCounter, 1)
-
-	if mmCopyOfSignature.inspectFuncCopyOfSignature != nil {
-		mmCopyOfSignature.inspectFuncCopyOfSignature()
-	}
-
-	if mmCopyOfSignature.CopyOfSignatureMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmCopyOfSignature.CopyOfSignatureMock.defaultExpectation.Counter, 1)
-
-		mm_results := mmCopyOfSignature.CopyOfSignatureMock.defaultExpectation.results
-		if mm_results == nil {
-			mmCopyOfSignature.t.Fatal("No results are set for the MemberAnnouncementSignatureMock.CopyOfSignature")
-		}
-		return (*mm_results).s1
-	}
-	if mmCopyOfSignature.funcCopyOfSignature != nil {
-		return mmCopyOfSignature.funcCopyOfSignature()
-	}
-	mmCopyOfSignature.t.Fatalf("Unexpected call to MemberAnnouncementSignatureMock.CopyOfSignature.")
-	return
-}
-
-// CopyOfSignatureAfterCounter returns a count of finished MemberAnnouncementSignatureMock.CopyOfSignature invocations
-func (mmCopyOfSignature *MemberAnnouncementSignatureMock) CopyOfSignatureAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmCopyOfSignature.afterCopyOfSignatureCounter)
-}
-
-// CopyOfSignatureBeforeCounter returns a count of MemberAnnouncementSignatureMock.CopyOfSignature invocations
-func (mmCopyOfSignature *MemberAnnouncementSignatureMock) CopyOfSignatureBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmCopyOfSignature.beforeCopyOfSignatureCounter)
-}
-
-// MinimockCopyOfSignatureDone returns true if the count of the CopyOfSignature invocations corresponds
-// the number of defined expectations
-func (m *MemberAnnouncementSignatureMock) MinimockCopyOfSignatureDone() bool {
-	for _, e := range m.CopyOfSignatureMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			return false
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.CopyOfSignatureMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterCopyOfSignatureCounter) < 1 {
-		return false
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcCopyOfSignature != nil && mm_atomic.LoadUint64(&m.afterCopyOfSignatureCounter) < 1 {
-		return false
-	}
-	return true
-}
-
-// MinimockCopyOfSignatureInspect logs each unmet expectation
-func (m *MemberAnnouncementSignatureMock) MinimockCopyOfSignatureInspect() {
-	for _, e := range m.CopyOfSignatureMock.expectations {
-		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Error("Expected call to MemberAnnouncementSignatureMock.CopyOfSignature")
-		}
-	}
-
-	// if default expectation was set then invocations count should be greater than zero
-	if m.CopyOfSignatureMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterCopyOfSignatureCounter) < 1 {
-		m.t.Error("Expected call to MemberAnnouncementSignatureMock.CopyOfSignature")
-	}
-	// if func was set then invocations count should be greater than zero
-	if m.funcCopyOfSignature != nil && mm_atomic.LoadUint64(&m.afterCopyOfSignatureCounter) < 1 {
-		m.t.Error("Expected call to MemberAnnouncementSignatureMock.CopyOfSignature")
 	}
 }
 
@@ -1461,8 +1310,6 @@ func (m *MemberAnnouncementSignatureMock) MinimockFinish() {
 	if !m.minimockDone() {
 		m.MinimockAsByteStringInspect()
 
-		m.MinimockCopyOfSignatureInspect()
-
 		m.MinimockCopyToInspect()
 
 		m.MinimockEqualsInspect()
@@ -1498,7 +1345,6 @@ func (m *MemberAnnouncementSignatureMock) minimockDone() bool {
 	done := true
 	return done &&
 		m.MinimockAsByteStringDone() &&
-		m.MinimockCopyOfSignatureDone() &&
 		m.MinimockCopyToDone() &&
 		m.MinimockEqualsDone() &&
 		m.MinimockFixedByteSizeDone() &&
