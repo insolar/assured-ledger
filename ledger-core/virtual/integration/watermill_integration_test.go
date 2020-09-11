@@ -19,12 +19,12 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/defaults"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/logwatermill"
 	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -124,7 +124,7 @@ func TestWatermill_HandleErrorCorrect(t *testing.T) {
 	wmStop := startWatermill(ctx, wmLogger, subscriber, newPublisherForConveyor(dispatchFn))
 	defer wmStop()
 
-	meta := payload.Meta{Pulse: pulse.Number(pulse.MinTimePulse + 1)}
+	meta := rms.Meta{Pulse: pulse.Number(pulse.MinTimePulse + 1)}
 	metaPl, _ := meta.Marshal()
 	msg := message.NewMessage("1", metaPl)
 	require.NoError(t, subscriber.Publish(defaults.TopicIncoming, msg))
@@ -160,7 +160,7 @@ func TestWatermill_HandlePanicCorrect(t *testing.T) {
 	wmStop := startWatermill(ctx, wmLogger, subscriber, newPublisherForConveyor(dispatchFn))
 	defer wmStop()
 
-	meta := payload.Meta{Pulse: pulse.Number(pulse.MinTimePulse + 1)}
+	meta := rms.Meta{Pulse: pulse.Number(pulse.MinTimePulse + 1)}
 	metaPl, _ := meta.Marshal()
 	msg := message.NewMessage("1", metaPl)
 	require.NoError(t, subscriber.Publish(defaults.TopicIncoming, msg))
