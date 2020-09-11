@@ -6,9 +6,13 @@
 package atomickit
 
 import (
-	"fmt"
+	"strconv"
 	"sync/atomic"
 )
+
+func NewInt32(v int32) Int32 {
+	return Int32{v}
+}
 
 type Int32 struct {
 	v int32
@@ -39,5 +43,27 @@ func (p *Int32) Sub(v int32) int32 {
 }
 
 func (p *Int32) String() string {
-	return fmt.Sprint(p.Load())
+	return strconv.FormatInt(int64(p.Load()), 10)
+}
+
+func (p *Int32) SetLesser(v int32) int32 {
+	for {
+		switch x := p.Load(); {
+		case x <= v:
+			return x
+		case p.CompareAndSwap(x, v):
+			return v
+		}
+	}
+}
+
+func (p *Int32) SetGreater(v int32) int32 {
+	for {
+		switch x := p.Load(); {
+		case x >= v:
+			return x
+		case p.CompareAndSwap(x, v):
+			return v
+		}
+	}
 }
