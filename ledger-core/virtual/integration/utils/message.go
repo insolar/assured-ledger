@@ -13,18 +13,19 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms/rmsreg"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 type RequestWrapper struct {
 	pulseNumber pulse.Number
-	payload     rms.GoGoSerializable
+	payload     rmsreg.GoGoSerializable
 
 	sender   reference.Global
 	receiver reference.Global
 }
 
-func NewRequestWrapper(pulseNumber pulse.Number, payload rms.GoGoSerializable) *RequestWrapper {
+func NewRequestWrapper(pulseNumber pulse.Number, payload rmsreg.GoGoSerializable) *RequestWrapper {
 	return &RequestWrapper{
 		pulseNumber: pulseNumber,
 		payload:     payload,

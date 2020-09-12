@@ -20,6 +20,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms/rmsreg"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/messagesender"
@@ -182,7 +183,7 @@ func TestVFindCallRequest(t *testing.T) {
 
 			smVFindCallRequest.messageSender = messageSenderAdapter.Mock()
 
-			checkMessage := func(msg rms.GoGoSerializable) {
+			checkMessage := func(msg rmsreg.GoGoSerializable) {
 				switch msg0 := msg.(type) {
 				case *rms.VFindCallResponse:
 					assert.Equal(t, pd.GetPulseNumber(), msg0.LookedAt)
@@ -229,7 +230,7 @@ func TestVFindCallRequest(t *testing.T) {
 
 			smVFindCallRequest.messageSender = messageSenderAdapter.Mock()
 
-			checkMessage := func(msg rms.GoGoSerializable) {
+			checkMessage := func(msg rmsreg.GoGoSerializable) {
 				switch msg0 := msg.(type) {
 				case *rms.VFindCallResponse:
 					assert.Equal(t, pd.GetPulseNumber(), msg0.LookedAt)

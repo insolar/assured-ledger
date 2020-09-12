@@ -15,12 +15,12 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/appctl/chorus"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
-	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/host"
-	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet/types"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms/legacyhost"
 )
 
 type Report struct {
@@ -35,7 +35,7 @@ type Report struct {
 type OnConsensusFinished func(ctx context.Context, report Report)
 
 type BootstrapResult struct {
-	Host *host.Host
+	Host *legacyhost.Host
 	// FirstPulseTime    time.Time
 	ReconnectRequired bool
 	NetworkSize       int
@@ -57,7 +57,7 @@ type HostNetwork interface {
 	// SendRequest send request to a remote node addressed by reference.
 	SendRequest(ctx context.Context, t types.PacketType, requestData interface{}, receiver reference.Global) (Future, error)
 	// SendRequestToHost send request packet to a remote host.
-	SendRequestToHost(ctx context.Context, t types.PacketType, requestData interface{}, receiver *host.Host) (Future, error)
+	SendRequestToHost(ctx context.Context, t types.PacketType, requestData interface{}, receiver *legacyhost.Host) (Future, error)
 	// RegisterRequestHandler register a handler function to process incoming requests of a specific type.
 	// All RegisterRequestHandler calls should be executed before Start.
 	RegisterRequestHandler(t types.PacketType, handler RequestHandler)
@@ -68,10 +68,10 @@ type HostNetwork interface {
 // Packet is a packet that is transported via network by HostNetwork.
 type Packet interface {
 	GetSender() reference.Global
-	GetSenderHost() *host.Host
+	GetSenderHost() *legacyhost.Host
 	GetType() types.PacketType
-	GetRequest() *packet.Request
-	GetResponse() *packet.Response
+	GetRequest() *rms.Request
+	GetResponse() *rms.Response
 	GetRequestID() types.RequestID
 	String() string
 }
@@ -94,7 +94,7 @@ type Future interface {
 // RoutingTable contains all routing information of the network.
 type RoutingTable interface {
 	// Resolve NodeID -> ShortID, Address. Can initiate network requests.
-	Resolve(reference.Global) (*host.Host, error)
+	Resolve(reference.Global) (*legacyhost.Host, error)
 }
 
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network.Gatewayer -o ../testutils/network -s _mock.go -g

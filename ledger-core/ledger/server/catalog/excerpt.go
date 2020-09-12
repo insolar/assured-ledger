@@ -7,6 +7,8 @@ package catalog
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms/rmsbox"
+	"github.com/insolar/assured-ledger/ledger-core/rms/rmsreg"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/protokit"
 )
 
@@ -30,7 +32,7 @@ func stopAfterExcerpt(b []byte) (int, error) {
 	return 0, nil
 }
 
-func ReadExcerptFromLazy(lazy rms.LazyValueReader) (Excerpt, error) {
+func ReadExcerptFromLazy(lazy rmsbox.LazyValueReader) (Excerpt, error) {
 	var r Excerpt
 	ok, err := lazy.UnmarshalAsAny(&r, stopAfterExcerpt)
 	if err != nil || !ok {
@@ -41,7 +43,7 @@ func ReadExcerptFromLazy(lazy rms.LazyValueReader) (Excerpt, error) {
 
 func ReadExcerptFromBytes(b []byte) (Excerpt, error) {
 	var r Excerpt
-	if err := rms.UnmarshalAs(b, &r, stopAfterExcerpt); err != nil {
+	if err := rmsreg.UnmarshalAs(b, &r, stopAfterExcerpt); err != nil {
 		return Excerpt{}, err
 	}
 	return r, nil

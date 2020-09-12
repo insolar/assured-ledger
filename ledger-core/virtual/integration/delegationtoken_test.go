@@ -19,6 +19,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms/rmsreg"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
@@ -106,7 +107,7 @@ func TestDelegationToken_SuccessCheckCorrectToken(t *testing.T) {
 			reflect.ValueOf(testMsg.msg).MethodByName("Reset").Call([]reflect.Value{})
 			insertToken(delegationToken, testMsg.msg)
 
-			server.SendPayload(ctx, testMsg.msg.(rms.GoGoSerializable))
+			server.SendPayload(ctx, testMsg.msg.(rmsreg.GoGoSerializable))
 			server.WaitActiveThenIdleConveyor()
 
 			assert.False(t, errorFound)
@@ -338,7 +339,7 @@ func TestDelegationToken_CheckMessageFromAuthorizedVirtual(t *testing.T) {
 				reflect.ValueOf(testMsg.msg).MethodByName("Reset").Call([]reflect.Value{})
 				insertToken(delegationToken, testMsg.msg)
 
-				server.SendPayload(ctx, testMsg.msg.(rms.GoGoSerializable))
+				server.SendPayload(ctx, testMsg.msg.(rmsreg.GoGoSerializable))
 				server.WaitIdleConveyor()
 
 				assert.True(t, errorFound, "Fail "+testMsg.name)

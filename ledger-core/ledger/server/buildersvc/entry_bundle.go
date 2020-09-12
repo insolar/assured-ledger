@@ -12,6 +12,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lineage"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms/rmsbox"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -178,7 +179,7 @@ func draftCatalogEntry(rec lineage.Record) catalog.Entry {
 		ProducerSignature:  rec.ProducerSignature,
 		ProducedBy:         rms.NewReference(rec.ProducedBy),
 
-		RegistrarSignature: rms.NewRaw(rec.RegistrarSignature.GetSignature()).AsBinary(),
+		RegistrarSignature: rmsbox.NewRaw(rec.RegistrarSignature.GetSignature()).AsBinary(),
 		RegisteredBy:       rms.NewReference(rec.RegisteredBy),
 	}
 }
