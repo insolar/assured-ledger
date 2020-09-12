@@ -10,6 +10,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
@@ -18,13 +19,13 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/metrics"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/future"
-	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/host"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet/types"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/pool"
 	"github.com/insolar/assured-ledger/ledger-core/network/sequence"
 	"github.com/insolar/assured-ledger/ledger-core/network/transport"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms/legacyhost"
 )
 
 // NewHostNetwork constructor creates new NewHostNetwork component
@@ -63,7 +64,7 @@ type hostNetwork struct {
 	pool              pool.ConnectionPool
 
 	muOrigin sync.RWMutex
-	origin   *host.Host
+	origin   *legacyhost.Host
 }
 
 // Start listening to network requests, should be started in goroutine.
@@ -90,7 +91,7 @@ func (hn *hostNetwork) Start(ctx context.Context) error {
 		return errors.W(err, "failed to start stream transport")
 	}
 
-	h, err := host.NewHostN(hn.transport.Address(), hn.nodeID)
+	h, err := legacyhost.NewHostN(hn.transport.Address(), hn.nodeID)
 	if err != nil {
 		return errors.W(err, "failed to create host")
 	}
@@ -113,7 +114,7 @@ func (hn *hostNetwork) Stop(ctx context.Context) error {
 }
 
 func (hn *hostNetwork) buildRequest(ctx context.Context, packetType types.PacketType,
-	requestData interface{}, receiver *host.Host) *packet.Packet {
+	requestData interface{}, receiver *legacyhost.Host) *rms.Packet {
 
 	result := packet.NewPacket(hn.getOrigin(), receiver, packetType, uint64(hn.sequenceGenerator.Generate()))
 	result.TraceID = inslogger.TraceID(ctx)
@@ -141,7 +142,7 @@ func (hn *hostNetwork) handleRequest(ctx context.Context, p *packet.ReceivedPack
 
 	if !exist {
 		logger.Warnf("No handler set for packet type %s from node %s", p.GetType(), p.Sender.NodeID)
-		ep := hn.BuildResponse(ctx, p, &packet.ErrorResponse{Error: "UNKNOWN RPC ENDPOINT"}).(*packet.Packet)
+		ep := hn.BuildResponse(ctx, p, &rms.ErrorResponse{Error: "UNKNOWN RPC ENDPOINT"}).(*rms.Packet)
 		ep.RequestID = p.RequestID
 		if err := SendPacket(ctx, hn.pool, ep); err != nil {
 			logger.Errorf("Error while returning error response for request %s from node %s: %s", p.GetType(), p.Sender.NodeID, err)
@@ -151,7 +152,7 @@ func (hn *hostNetwork) handleRequest(ctx context.Context, p *packet.ReceivedPack
 	response, err := handler(ctx, p)
 	if err != nil {
 		logger.Warnf("Error handling request %s from node %s: %s", p.GetType(), p.Sender.NodeID, err)
-		ep := hn.BuildResponse(ctx, p, &packet.ErrorResponse{Error: err.Error()}).(*packet.Packet)
+		ep := hn.BuildResponse(ctx, p, &rms.ErrorResponse{Error: err.Error()}).(*rms.Packet)
 		ep.RequestID = p.RequestID
 		if err = SendPacket(ctx, hn.pool, ep); err != nil {
 			logger.Errorf("Error while returning error response for request %s from node %s: %s", p.GetType(), p.Sender.NodeID, err)
@@ -163,7 +164,7 @@ func (hn *hostNetwork) handleRequest(ctx context.Context, p *packet.ReceivedPack
 		return
 	}
 
-	responsePacket := response.(*packet.Packet)
+	responsePacket := response.(*rms.Packet)
 	responsePacket.RequestID = p.RequestID
 	err = SendPacket(ctx, hn.pool, responsePacket)
 	if err != nil {
@@ -173,7 +174,7 @@ func (hn *hostNetwork) handleRequest(ctx context.Context, p *packet.ReceivedPack
 
 // SendRequestToHost send request packet to a remote node.
 func (hn *hostNetwork) SendRequestToHost(ctx context.Context, packetType types.PacketType,
-	requestData interface{}, receiver *host.Host) (network.Future, error) {
+	requestData interface{}, receiver *legacyhost.Host) (network.Future, error) {
 
 	if atomic.LoadUint32(&hn.started) == 0 {
 		return nil, errors.New("host network is not started")
@@ -234,7 +235,7 @@ func (hn *hostNetwork) RegisterRequestHandler(t types.PacketType, handler networ
 	hn.RegisterPacketHandler(t, handler)
 }
 
-func (hn *hostNetwork) getOrigin() *host.Host {
+func (hn *hostNetwork) getOrigin() *legacyhost.Host {
 	hn.muOrigin.RLock()
 	defer hn.muOrigin.RUnlock()
 

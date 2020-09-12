@@ -22,6 +22,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms/rmsreg"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/predicate"
@@ -373,7 +374,7 @@ func TestSMExecute_Semi_ConstructorOnBadObject(t *testing.T) {
 	slotMachine.PrepareMockedMessageSender(mc)
 	slotMachine.PrepareRunner(ctx, mc)
 
-	slotMachine.MessageSender.SendTarget.Set(func(_ context.Context, msg rms.GoGoSerializable, target reference.Global, _ ...messagesender.SendOption) error {
+	slotMachine.MessageSender.SendTarget.Set(func(_ context.Context, msg rmsreg.GoGoSerializable, target reference.Global, _ ...messagesender.SendOption) error {
 		res := msg.(*rms.VCallResult)
 		contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments.GetBytes())
 		require.NoError(t, sysErr)

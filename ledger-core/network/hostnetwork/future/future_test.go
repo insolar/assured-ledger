@@ -13,60 +13,61 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/network"
-	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/host"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet/types"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms/legacyhost"
 )
 
 func TestNewFuture(t *testing.T) {
-	n, _ := host.NewHost("127.0.0.1:8080")
+	n, _ := legacyhost.NewHost("127.0.0.1:8080")
 	cb := func(f Future) {}
-	m := &packet.Packet{}
+	m := &rms.Packet{}
 	f := NewFuture(types.RequestID(1), n, m, cb)
 
 	require.Implements(t, (*Future)(nil), f)
 }
 
 func TestFuture_ID(t *testing.T) {
-	n, _ := host.NewHost("127.0.0.1:8080")
+	n, _ := legacyhost.NewHost("127.0.0.1:8080")
 	cb := func(f Future) {}
-	m := &packet.Packet{}
+	m := &rms.Packet{}
 	f := NewFuture(types.RequestID(1), n, m, cb)
 
 	require.Equal(t, f.ID(), types.RequestID(1))
 }
 
 func TestFuture_Actor(t *testing.T) {
-	n, _ := host.NewHost("127.0.0.1:8080")
+	n, _ := legacyhost.NewHost("127.0.0.1:8080")
 	cb := func(f Future) {}
-	m := &packet.Packet{}
+	m := &rms.Packet{}
 	f := NewFuture(types.RequestID(1), n, m, cb)
 
 	require.Equal(t, f.Receiver(), n)
 }
 
 func TestFuture_Result(t *testing.T) {
-	n, _ := host.NewHost("127.0.0.1:8080")
+	n, _ := legacyhost.NewHost("127.0.0.1:8080")
 	cb := func(f Future) {}
-	m := &packet.Packet{}
+	m := &rms.Packet{}
 	f := NewFuture(types.RequestID(1), n, m, cb)
 
 	require.Empty(t, f.Response())
 }
 
 func TestFuture_Request(t *testing.T) {
-	n, _ := host.NewHost("127.0.0.1:8080")
+	n, _ := legacyhost.NewHost("127.0.0.1:8080")
 	cb := func(f Future) {}
-	m := &packet.Packet{}
+	m := &rms.Packet{}
 	f := NewFuture(types.RequestID(1), n, m, cb)
 
 	require.Equal(t, f.Request(), m)
 }
 
 func TestFuture_SetResponse(t *testing.T) {
-	n, _ := host.NewHost("127.0.0.1:8080")
+	n, _ := legacyhost.NewHost("127.0.0.1:8080")
 	cb := func(f Future) {}
-	m := &packet.Packet{}
+	m := &rms.Packet{}
 	f := NewFuture(types.RequestID(1), n, m, cb)
 
 	require.Empty(t, f.Response())
@@ -85,13 +86,13 @@ func TestFuture_SetResponse(t *testing.T) {
 }
 
 func TestFuture_Cancel(t *testing.T) {
-	n, _ := host.NewHost("127.0.0.1:8080")
+	n, _ := legacyhost.NewHost("127.0.0.1:8080")
 
 	cbCalled := false
 
 	cb := func(f Future) { cbCalled = true }
 
-	m := &packet.Packet{}
+	m := &rms.Packet{}
 	f := NewFuture(types.RequestID(1), n, m, cb)
 
 	f.Cancel()
@@ -103,12 +104,12 @@ func TestFuture_Cancel(t *testing.T) {
 }
 
 func TestFuture_WaitResponse_Cancel(t *testing.T) {
-	n, _ := host.NewHost("127.0.0.1:8080")
+	n, _ := legacyhost.NewHost("127.0.0.1:8080")
 	c := make(chan network.ReceivedPacket)
 	var f Future = &future{
 		response:       c,
 		receiver:       n,
-		request:        &packet.Packet{},
+		request:        &rms.Packet{},
 		requestID:      types.RequestID(1),
 		cancelCallback: func(f Future) {},
 	}
@@ -121,13 +122,13 @@ func TestFuture_WaitResponse_Cancel(t *testing.T) {
 }
 
 func TestFuture_WaitResponse_Timeout(t *testing.T) {
-	n, _ := host.NewHost("127.0.0.1:8080")
+	n, _ := legacyhost.NewHost("127.0.0.1:8080")
 	c := make(chan network.ReceivedPacket)
 	cancelled := false
 	var f Future = &future{
 		response:       c,
 		receiver:       n,
-		request:        &packet.Packet{},
+		request:        &rms.Packet{},
 		requestID:      types.RequestID(1),
 		cancelCallback: func(f Future) { cancelled = true },
 	}
@@ -138,17 +139,17 @@ func TestFuture_WaitResponse_Timeout(t *testing.T) {
 }
 
 func TestFuture_WaitResponse_Success(t *testing.T) {
-	n, _ := host.NewHost("127.0.0.1:8080")
+	n, _ := legacyhost.NewHost("127.0.0.1:8080")
 	c := make(chan network.ReceivedPacket, 1)
 	var f Future = &future{
 		response:       c,
 		receiver:       n,
-		request:        &packet.Packet{},
+		request:        &rms.Packet{},
 		requestID:      types.RequestID(1),
 		cancelCallback: func(f Future) {},
 	}
 
-	p := packet.NewReceivedPacket(&packet.Packet{}, nil)
+	p := packet.NewReceivedPacket(&rms.Packet{}, nil)
 	c <- p
 
 	res, err := f.WaitResponse(time.Minute)
@@ -157,13 +158,13 @@ func TestFuture_WaitResponse_Success(t *testing.T) {
 }
 
 func TestFuture_SetResponse_Cancel_Concurrency(t *testing.T) {
-	n, _ := host.NewHost("127.0.0.1:8080")
+	n, _ := legacyhost.NewHost("127.0.0.1:8080")
 
 	cbCalled := false
 
 	cb := func(f Future) { cbCalled = true }
 
-	m := &packet.Packet{}
+	m := &rms.Packet{}
 	f := NewFuture(types.RequestID(1), n, m, cb)
 
 	wg := &sync.WaitGroup{}
@@ -174,7 +175,7 @@ func TestFuture_SetResponse_Cancel_Concurrency(t *testing.T) {
 		wg.Done()
 	}()
 	go func() {
-		f.SetResponse(packet.NewReceivedPacket(&packet.Packet{}, nil))
+		f.SetResponse(packet.NewReceivedPacket(&rms.Packet{}, nil))
 		wg.Done()
 	}()
 
