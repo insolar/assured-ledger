@@ -11,9 +11,10 @@ import (
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/network"
-	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/host"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet/types"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms/legacyhost"
 )
 
 var (
@@ -30,7 +31,7 @@ type Future interface {
 	ID() types.RequestID
 
 	// Receiver returns the initiator of the packet.
-	Receiver() *host.Host
+	Receiver() *legacyhost.Host
 
 	// Request returns origin request.
 	Request() network.Packet
@@ -52,8 +53,8 @@ type Future interface {
 type CancelCallback func(Future)
 
 type Manager interface {
-	Get(packet *packet.Packet) Future
-	Create(packet *packet.Packet) Future
+	Get(packet *rms.Packet) Future
+	Create(packet *rms.Packet) Future
 }
 
 type PacketHandler interface {

@@ -28,10 +28,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/serialization"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/future"
-	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/host"
 	"github.com/insolar/assured-ledger/ledger-core/network/sequence"
 	"github.com/insolar/assured-ledger/ledger-core/network/transport"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms/legacyhost"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -49,7 +49,7 @@ type distributor struct {
 	pulseRequestTimeout time.Duration
 
 	publicAddress   string
-	pulsarHost      *host.Host
+	pulsarHost      *legacyhost.Host
 	bootstrapHosts  []string
 	futureManager   future.Manager
 	responseHandler future.PacketHandler
@@ -106,7 +106,7 @@ func (d *distributor) Start(ctx context.Context) error {
 	}
 	d.publicAddress = d.transport.Address()
 
-	pulsarHost, err := host.NewHost(d.publicAddress)
+	pulsarHost, err := legacyhost.NewHost(d.publicAddress)
 	if err != nil {
 		return errors.W(err, "[ NewDistributor ] failed to create pulsar host")
 	}

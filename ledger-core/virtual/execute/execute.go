@@ -21,6 +21,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms/rmsreg"
 	"github.com/insolar/assured-ledger/ledger-core/runner"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
@@ -1072,7 +1073,7 @@ func (s *SMExecute) getToken() rms.CallDelegationToken {
 	return s.delegationTokenSpec
 }
 
-func (s *SMExecute) sendResult(ctx smachine.ExecutionContext, message rms.GoGoSerializable) {
+func (s *SMExecute) sendResult(ctx smachine.ExecutionContext, message rmsreg.GoGoSerializable) {
 	target := s.Meta.Sender.GetValue()
 
 	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {

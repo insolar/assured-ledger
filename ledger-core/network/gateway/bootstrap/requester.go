@@ -15,6 +15,7 @@ import (
 	"github.com/opentracing/opentracing-go/log"
 
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/version"
 
@@ -25,10 +26,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/instracer"
 	"github.com/insolar/assured-ledger/ledger-core/network"
-	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/host"
-	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet/types"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
+	"github.com/insolar/assured-ledger/ledger-core/rms/legacyhost"
 )
 
 const bootstrapRetryCount = 2
@@ -36,10 +36,10 @@ const bootstrapRetryCount = 2
 //go:generate minimock -i github.com/insolar/assured-ledger/ledger-core/network/gateway/bootstrap.Requester -o ./ -s _mock.go -g
 
 type Requester interface {
-	Authorize(context.Context, nodeinfo.Certificate) (*packet.Permit, error)
-	Bootstrap(context.Context, *packet.Permit, adapters.Candidate) (*packet.BootstrapResponse, error)
-	UpdateSchedule(context.Context, *packet.Permit, pulse.Number) (*packet.UpdateScheduleResponse, error)
-	Reconnect(context.Context, *host.Host, *packet.Permit) (*packet.ReconnectResponse, error)
+	Authorize(context.Context, nodeinfo.Certificate) (*rms.Permit, error)
+	Bootstrap(context.Context, *rms.Permit, adapters.Candidate) (*rms.BootstrapResponse, error)
+	UpdateSchedule(context.Context, *rms.Permit, pulse.Number) (*rms.UpdateScheduleResponse, error)
+	Reconnect(context.Context, *legacyhost.Host, *rms.Permit) (*rms.ReconnectResponse, error)
 }
 
 func NewRequester(options *network.Options) Requester {
@@ -54,7 +54,7 @@ type requester struct {
 	retry   int
 }
 
-func (ac *requester) Authorize(ctx context.Context, cert nodeinfo.Certificate) (*packet.Permit, error) {
+func (ac *requester) Authorize(ctx context.Context, cert nodeinfo.Certificate) (*rms.Permit, error) {
 	logger := inslogger.FromContext(ctx)
 
 	discoveryNodes := network.ExcludeOrigin(cert.GetDiscoveryNodes(), cert.GetNodeRef())
@@ -70,10 +70,10 @@ func (ac *requester) Authorize(ctx context.Context, cert nodeinfo.Certificate) (
 		},
 	)
 
-	bestResult := &packet.AuthorizeResponse{}
+	bestResult := &rms.AuthorizeResponse{}
 
 	for _, n := range discoveryNodes {
-		h, err := host.NewHostN(n.GetHost(), n.GetNodeRef())
+		h, err := legacyhost.NewHostN(n.GetHost(), n.GetNodeRef())
 		if err != nil {
 			logger.Warnf("Error authorizing to mallformed host %s[%s]: %s",
 				n.GetHost(), n.GetNodeRef(), err.Error())
@@ -112,7 +112,7 @@ func (ac *requester) Authorize(ctx context.Context, cert nodeinfo.Certificate) (
 	return nil, throw.New("failed to authorize to any discovery node")
 }
 
-func (ac *requester) authorizeDiscovery(ctx context.Context, nodes []nodeinfo.DiscoveryNode, cert nodeinfo.AuthorizationCertificate) (*packet.Permit, error) {
+func (ac *requester) authorizeDiscovery(ctx context.Context, nodes []nodeinfo.DiscoveryNode, cert nodeinfo.AuthorizationCertificate) (*rms.Permit, error) {
 	if len(nodes) == 0 {
 		return nil, throw.Impossible()
 	}
@@ -125,7 +125,7 @@ func (ac *requester) authorizeDiscovery(ctx context.Context, nodes []nodeinfo.Di
 
 	logger := inslogger.FromContext(ctx)
 	for _, n := range nodes {
-		h, err := host.NewHostN(n.GetHost(), n.GetNodeRef())
+		h, err := legacyhost.NewHostN(n.GetHost(), n.GetNodeRef())
 		if err != nil {
 			logger.Warnf("Error authorizing to mallformed host %s[%s]: %s",
 				n.GetHost(), n.GetNodeRef(), err.Error())
@@ -145,7 +145,7 @@ func (ac *requester) authorizeDiscovery(ctx context.Context, nodes []nodeinfo.Di
 	return nil, throw.New("failed to authorize to any discovery node")
 }
 
-func (ac *requester) authorize(ctx context.Context, host *host.Host, cert nodeinfo.AuthorizationCertificate) (*packet.AuthorizeResponse, error) {
+func (ac *requester) authorize(ctx context.Context, host *legacyhost.Host, cert nodeinfo.AuthorizationCertificate) (*rms.AuthorizeResponse, error) {
 	inslogger.FromContext(ctx).Infof("Authorizing on host: %s", host.String())
 
 	ctx, span := instracer.StartSpan(ctx, "AuthorizationController.Authorize")
@@ -158,18 +158,18 @@ func (ac *requester) authorize(ctx context.Context, host *host.Host, cert nodein
 		return nil, throw.W(err, "Error serializing certificate")
 	}
 
-	authData := &packet.AuthorizeData{Certificate: serializedCert, Version: version.Version}
+	authData := &rms.AuthorizeData{Certificate: serializedCert, Version: version.Version}
 	response, err := ac.authorizeWithTimestamp(ctx, host, authData, time.Now().Unix())
 	if err != nil {
 		return nil, err
 	}
 
 	switch response.Code {
-	case packet.Success:
+	case rms.AuthorizeResponseCode_Success:
 		return response, nil
-	case packet.WrongMandate:
+	case rms.AuthorizeResponseCode_WrongMandate:
 		return response, throw.New("failed to authorize, wrong mandate")
-	case packet.WrongVersion:
+	case rms.AuthorizeResponseCode_WrongVersion:
 		return response, throw.New("failed to authorize, wrong version")
 	}
 
@@ -179,7 +179,7 @@ func (ac *requester) authorize(ctx context.Context, host *host.Host, cert nodein
 	return response, err
 }
 
-func (ac *requester) authorizeWithTimestamp(ctx context.Context, h *host.Host, authData *packet.AuthorizeData, timestamp int64) (*packet.AuthorizeResponse, error) {
+func (ac *requester) authorizeWithTimestamp(ctx context.Context, h *legacyhost.Host, authData *rms.AuthorizeData, timestamp int64) (*rms.AuthorizeResponse, error) {
 
 	authData.Timestamp = timestamp
 
@@ -193,7 +193,7 @@ func (ac *requester) authorizeWithTimestamp(ctx context.Context, h *host.Host, a
 		return nil, throw.W(err, "failed to sign permit")
 	}
 
-	req := &packet.AuthorizeRequest{AuthorizeData: authData, Signature: signature.Bytes()}
+	req := &rms.AuthorizeRequest{AuthorizeData: authData, Signature: signature.Bytes()}
 
 	f, err := ac.HostNetwork.SendRequestToHost(ctx, types.Authorize, req, h)
 	if err != nil {
@@ -215,9 +215,9 @@ func (ac *requester) authorizeWithTimestamp(ctx context.Context, h *host.Host, a
 	return response.GetResponse().GetAuthorize(), nil
 }
 
-func (ac *requester) Bootstrap(ctx context.Context, permit *packet.Permit, candidate adapters.Candidate) (*packet.BootstrapResponse, error) {
+func (ac *requester) Bootstrap(ctx context.Context, permit *rms.Permit, candidate adapters.Candidate) (*rms.BootstrapResponse, error) {
 
-	req := &packet.BootstrapRequest{
+	req := &rms.BootstrapRequest{
 		CandidateProfile: candidate.Profile(),
 		Permit:           permit,
 	}
@@ -238,15 +238,15 @@ func (ac *requester) Bootstrap(ctx context.Context, permit *packet.Permit, candi
 	}
 
 	switch respData.Code {
-	case packet.UpdateShortID:
+	case rms.BootstrapResponseCode_UpdateShortID:
 		return respData, throw.New("Bootstrap got UpdateShortID")
-	case packet.UpdateSchedule:
+	case rms.BootstrapResponseCode_UpdateSchedule:
 		// ac.UpdateSchedule(ctx, permit, p.Number)
 		// panic("call bootstrap again")
 		return respData, throw.New("Bootstrap got UpdateSchedule")
-	case packet.Reject:
+	case rms.BootstrapResponseCode_Reject:
 		return respData, throw.New("Bootstrap request rejected")
-	case packet.Retry:
+	case rms.BootstrapResponseCode_Retry:
 		time.Sleep(time.Second)
 		ac.retry++
 		if ac.retry > bootstrapRetryCount {
@@ -261,9 +261,9 @@ func (ac *requester) Bootstrap(ctx context.Context, permit *packet.Permit, candi
 
 }
 
-func (ac *requester) UpdateSchedule(ctx context.Context, permit *packet.Permit, pulse pulse.Number) (*packet.UpdateScheduleResponse, error) {
+func (ac *requester) UpdateSchedule(ctx context.Context, permit *rms.Permit, pulse pulse.Number) (*rms.UpdateScheduleResponse, error) {
 
-	req := &packet.UpdateScheduleRequest{
+	req := &rms.UpdateScheduleRequest{
 		LastNodePulse: pulse,
 		Permit:        permit,
 	}
@@ -281,8 +281,8 @@ func (ac *requester) UpdateSchedule(ctx context.Context, permit *packet.Permit, 
 	return resp.GetResponse().GetUpdateSchedule(), nil
 }
 
-func (ac *requester) Reconnect(ctx context.Context, h *host.Host, permit *packet.Permit) (*packet.ReconnectResponse, error) {
-	req := &packet.ReconnectRequest{
+func (ac *requester) Reconnect(ctx context.Context, h *legacyhost.Host, permit *rms.Permit) (*rms.ReconnectResponse, error) {
+	req := &rms.ReconnectRequest{
 		ReconnectTo: *permit.Payload.ReconnectTo,
 		Permit:      permit,
 	}

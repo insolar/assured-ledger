@@ -10,9 +10,9 @@ option (gogoproto.equal_all) = true;
 option (gogoproto.gostring_all) = true;
 
 message PulseProto {
-    uint32 PulseNumber = 1 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/pulse.Number", (gogoproto.nullable) = false];
-    uint32 PrevPulseNumber = 2 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/pulse.Number", (gogoproto.nullable) = false];
-    uint32 NextPulseNumber = 3 [(gogoproto.customtype) = "github.com/insolar/assured-ledger/ledger-core/pulse.Number", (gogoproto.nullable) = false];
+    uint32 PulseNumber = 1 [(gogoproto.casttype) = "PulseNumber", (gogoproto.nullable) = false];
+    uint32 PrevPulseNumber = 2 [(gogoproto.casttype) = "PulseNumber", (gogoproto.nullable) = false];
+    uint32 NextPulseNumber = 3 [(gogoproto.casttype) = "PulseNumber", (gogoproto.nullable) = false];
 
     int64 PulseTimestamp = 4;
     int32 EpochPulseNumber = 5;

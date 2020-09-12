@@ -19,6 +19,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms/rmsreg"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
@@ -788,7 +789,7 @@ func (s *deduplicateMethodUsingPrevVETest) setRunnerMock() {
 }
 
 func (s *deduplicateMethodUsingPrevVETest) addPayloadAndWaitIdle(
-	ctx context.Context, pl rms.GoGoSerializable,
+	ctx context.Context, pl rmsreg.GoGoSerializable,
 ) {
 	s.server.SuspendConveyorAndWaitThenResetActive()
 	s.server.SendPayload(ctx, pl)

@@ -17,6 +17,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms/rmsreg"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
@@ -76,7 +77,7 @@ func TestSMStateReport_SendVStateReport_IfDescriptorSet(t *testing.T) {
 	smReport.Report = buildStateReport(rms.StateStatusReady, descriptor.NewObject(reference.Global{}, reference.Local{}, reference.Global{}, nil, false))
 
 	messageService := messageSenderWrapper.NewServiceMockWrapper(mc)
-	checkMessageFn := func(msg rms.GoGoSerializable) {
+	checkMessageFn := func(msg rmsreg.GoGoSerializable) {
 		stateReport, ok := msg.(*rms.VStateReport)
 		require.True(t, ok)
 		require.NotNil(t, stateReport.ProvidedContent)
@@ -111,7 +112,7 @@ func TestSMStateReport_SendVStateReport_IfDescriptorNotSetAndStateEmpty(t *testi
 	smReport.Report = buildStateReport(rms.StateStatusEmpty, nil)
 
 	messageService := messageSenderWrapper.NewServiceMockWrapper(mc)
-	checkMessageFn := func(msg rms.GoGoSerializable) {
+	checkMessageFn := func(msg rmsreg.GoGoSerializable) {
 		stateReport, ok := msg.(*rms.VStateReport)
 		require.True(t, ok)
 		require.True(t, stateReport.LatestDirtyState.IsZero())
