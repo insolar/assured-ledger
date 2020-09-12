@@ -29,6 +29,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms/rmsreg"
 	"github.com/insolar/assured-ledger/ledger-core/runner"
 	"github.com/insolar/assured-ledger/ledger-core/runner/machine"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
@@ -486,20 +487,20 @@ func (s *Server) setWaitCallback(cycleFn ConveyorCycleFunc) {
 	})
 }
 
-func (s *Server) WrapPayload(pl rms.GoGoSerializable) *RequestWrapper {
+func (s *Server) WrapPayload(pl rmsreg.GoGoSerializable) *RequestWrapper {
 	return NewRequestWrapper(s.GetPulse().PulseNumber, pl).SetSender(s.caller)
 }
 
-func (s *Server) SendPayload(ctx context.Context, pl rms.GoGoSerializable) {
+func (s *Server) SendPayload(ctx context.Context, pl rmsreg.GoGoSerializable) {
 	msg := s.WrapPayload(pl).Finalize()
 	s.SendMessage(ctx, msg)
 }
 
-func (s *Server) WrapPayloadAsFuture(pl rms.GoGoSerializable) *RequestWrapper {
+func (s *Server) WrapPayloadAsFuture(pl rmsreg.GoGoSerializable) *RequestWrapper {
 	return NewRequestWrapper(s.GetPulse().NextPulseNumber(), pl).SetSender(s.caller)
 }
 
-func (s *Server) SendPayloadAsFuture(ctx context.Context, pl rms.GoGoSerializable) {
+func (s *Server) SendPayloadAsFuture(ctx context.Context, pl rmsreg.GoGoSerializable) {
 	msg := s.WrapPayloadAsFuture(pl).Finalize()
 	s.SendMessage(ctx, msg)
 }

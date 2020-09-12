@@ -15,12 +15,11 @@ var _ Validatable = &VDelegatedRequestFinished{}
 
 func (m *VDelegatedRequestFinished) validateUnimplemented() error {
 	switch {
-	case !m.ResultFlags.IsEmpty():
-		return throw.New("ResultFlags should be empty")
-	case !m.EntryHeadHash.IsEmpty():
-		return throw.New("EntryHeadHash should be empty")
+	case m.ResultFlags != 0:
+		return throw.New("ResultFlags should be zero")
+	default:
+		return nil
 	}
-	return nil
 }
 
 func (m *VDelegatedRequestFinished) isIntolerable() bool {

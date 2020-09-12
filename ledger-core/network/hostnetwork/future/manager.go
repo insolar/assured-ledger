@@ -8,8 +8,8 @@ package future
 import (
 	"sync"
 
-	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet/types"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 )
 
 type futureManager struct {
@@ -23,7 +23,7 @@ func NewManager() Manager {
 	}
 }
 
-func (fm *futureManager) Create(packet *packet.Packet) Future {
+func (fm *futureManager) Create(packet *rms.Packet) Future {
 	// TODO: replace wrapping with own types in protobuf
 	future := NewFuture(types.RequestID(packet.RequestID), packet.Receiver, packet, fm.canceler)
 
@@ -35,7 +35,7 @@ func (fm *futureManager) Create(packet *packet.Packet) Future {
 	return future
 }
 
-func (fm *futureManager) Get(packet *packet.Packet) Future {
+func (fm *futureManager) Get(packet *rms.Packet) Future {
 	// TODO: replace wrapping with own types in protobuf
 	fm.mutex.RLock()
 	defer fm.mutex.RUnlock()
