@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms/rmsreg"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/protokit"
 )
@@ -31,7 +32,7 @@ func TestExcerptReadFromLazy(t *testing.T) {
 	b, err := msg.Marshal()
 	require.NoError(t, err)
 
-	_, msgU, err := rms.Unmarshal(b)
+	_, msgU, err := rmsreg.Unmarshal(b)
 	require.NoError(t, err)
 	require.IsType(t, &rms.LRegisterRequest{}, msgU)
 
@@ -65,7 +66,7 @@ func TestExcerptReadPartial(t *testing.T) {
 	b = b[:len(b) - 1]
 
 	// Ensure it is broken
-	_, _, err = rms.Unmarshal(b)
+	_, _, err = rmsreg.Unmarshal(b)
 	require.Error(t, err)
 
 	// Excerpt can read, because it only reads a subset of fields

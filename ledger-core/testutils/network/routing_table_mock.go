@@ -8,15 +8,15 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
-	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/host"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms/legacyhost"
 )
 
 // RoutingTableMock implements network.RoutingTable
 type RoutingTableMock struct {
 	t minimock.Tester
 
-	funcResolve          func(g1 reference.Global) (hp1 *host.Host, err error)
+	funcResolve          func(g1 reference.Global) (hp1 *legacyhost.Host, err error)
 	inspectFuncResolve   func(g1 reference.Global)
 	afterResolveCounter  uint64
 	beforeResolveCounter uint64
@@ -60,7 +60,7 @@ type RoutingTableMockResolveParams struct {
 
 // RoutingTableMockResolveResults contains results of the RoutingTable.Resolve
 type RoutingTableMockResolveResults struct {
-	hp1 *host.Host
+	hp1 *legacyhost.Host
 	err error
 }
 
@@ -96,7 +96,7 @@ func (mmResolve *mRoutingTableMockResolve) Inspect(f func(g1 reference.Global)) 
 }
 
 // Return sets up results that will be returned by RoutingTable.Resolve
-func (mmResolve *mRoutingTableMockResolve) Return(hp1 *host.Host, err error) *RoutingTableMock {
+func (mmResolve *mRoutingTableMockResolve) Return(hp1 *legacyhost.Host, err error) *RoutingTableMock {
 	if mmResolve.mock.funcResolve != nil {
 		mmResolve.mock.t.Fatalf("RoutingTableMock.Resolve mock is already set by Set")
 	}
@@ -109,7 +109,7 @@ func (mmResolve *mRoutingTableMockResolve) Return(hp1 *host.Host, err error) *Ro
 }
 
 //Set uses given function f to mock the RoutingTable.Resolve method
-func (mmResolve *mRoutingTableMockResolve) Set(f func(g1 reference.Global) (hp1 *host.Host, err error)) *RoutingTableMock {
+func (mmResolve *mRoutingTableMockResolve) Set(f func(g1 reference.Global) (hp1 *legacyhost.Host, err error)) *RoutingTableMock {
 	if mmResolve.defaultExpectation != nil {
 		mmResolve.mock.t.Fatalf("Default expectation is already set for the RoutingTable.Resolve method")
 	}
@@ -138,13 +138,13 @@ func (mmResolve *mRoutingTableMockResolve) When(g1 reference.Global) *RoutingTab
 }
 
 // Then sets up RoutingTable.Resolve return parameters for the expectation previously defined by the When method
-func (e *RoutingTableMockResolveExpectation) Then(hp1 *host.Host, err error) *RoutingTableMock {
+func (e *RoutingTableMockResolveExpectation) Then(hp1 *legacyhost.Host, err error) *RoutingTableMock {
 	e.results = &RoutingTableMockResolveResults{hp1, err}
 	return e.mock
 }
 
 // Resolve implements network.RoutingTable
-func (mmResolve *RoutingTableMock) Resolve(g1 reference.Global) (hp1 *host.Host, err error) {
+func (mmResolve *RoutingTableMock) Resolve(g1 reference.Global) (hp1 *legacyhost.Host, err error) {
 	mm_atomic.AddUint64(&mmResolve.beforeResolveCounter, 1)
 	defer mm_atomic.AddUint64(&mmResolve.afterResolveCounter, 1)
 

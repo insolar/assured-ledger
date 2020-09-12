@@ -14,21 +14,21 @@ import (
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
-	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/host"
 	"github.com/insolar/assured-ledger/ledger-core/network/transport"
+	"github.com/insolar/assured-ledger/ledger-core/rms/legacyhost"
 )
 
-type onClose func(ctx context.Context, host *host.Host)
+type onClose func(ctx context.Context, host *legacyhost.Host)
 
 type entry struct {
 	sync.Mutex
 	transport transport.StreamTransport
-	host      *host.Host
+	host      *legacyhost.Host
 	onClose   onClose
 	conn      io.ReadWriteCloser
 }
 
-func newEntry(t transport.StreamTransport, conn io.ReadWriteCloser, host *host.Host, onClose onClose) *entry {
+func newEntry(t transport.StreamTransport, conn io.ReadWriteCloser, host *legacyhost.Host, onClose onClose) *entry {
 	return &entry{
 		transport: t,
 		conn:      conn,

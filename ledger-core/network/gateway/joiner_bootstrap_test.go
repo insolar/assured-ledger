@@ -18,10 +18,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
 	"github.com/insolar/assured-ledger/ledger-core/network/gateway/bootstrap"
-	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	mock "github.com/insolar/assured-ledger/ledger-core/testutils/network"
 )
 
@@ -66,7 +66,7 @@ func TestJoinerBootstrap_Run_AuthorizeRequestFailed(t *testing.T) {
 		assert.Equal(t, network.NoNetworkState, state)
 	})
 
-	f.requester.AuthorizeMock.Set(func(ctx context.Context, c2 nodeinfo.Certificate) (pp1 *packet.Permit, err error) {
+	f.requester.AuthorizeMock.Set(func(ctx context.Context, c2 nodeinfo.Certificate) (pp1 *rms.Permit, err error) {
 		return nil, ErrUnknown
 	})
 
@@ -85,11 +85,11 @@ func TestJoinerBootstrap_Run_BootstrapRequestFailed(t *testing.T) {
 		assert.Equal(t, network.NoNetworkState, state)
 	})
 
-	f.requester.AuthorizeMock.Set(func(ctx context.Context, c2 nodeinfo.Certificate) (pp1 *packet.Permit, err error) {
-		return &packet.Permit{}, nil
+	f.requester.AuthorizeMock.Set(func(ctx context.Context, c2 nodeinfo.Certificate) (pp1 *rms.Permit, err error) {
+		return &rms.Permit{}, nil
 	})
 
-	f.requester.BootstrapMock.Set(func(context.Context, *packet.Permit, adapters.Candidate) (bp1 *packet.BootstrapResponse, err error) {
+	f.requester.BootstrapMock.Set(func(context.Context, *rms.Permit, adapters.Candidate) (bp1 *rms.BootstrapResponse, err error) {
 		return nil, ErrUnknown
 	})
 
@@ -108,12 +108,12 @@ func TestJoinerBootstrap_Run_BootstrapSucceeded(t *testing.T) {
 		assert.Equal(t, network.WaitConsensus, state)
 	})
 
-	f.requester.AuthorizeMock.Set(func(ctx context.Context, c2 nodeinfo.Certificate) (pp1 *packet.Permit, err error) {
-		return &packet.Permit{}, nil
+	f.requester.AuthorizeMock.Set(func(ctx context.Context, c2 nodeinfo.Certificate) (pp1 *rms.Permit, err error) {
+		return &rms.Permit{}, nil
 	})
 
-	f.requester.BootstrapMock.Set(func(ctx context.Context, pp1 *packet.Permit, c2 adapters.Candidate) (bp1 *packet.BootstrapResponse, err error) {
-		return &packet.BootstrapResponse{
+	f.requester.BootstrapMock.Set(func(ctx context.Context, pp1 *rms.Permit, c2 adapters.Candidate) (bp1 *rms.BootstrapResponse, err error) {
+		return &rms.BootstrapResponse{
 			ETASeconds: 90,
 		}, nil
 	})
