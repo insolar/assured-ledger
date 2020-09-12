@@ -12,9 +12,9 @@ option (gogoproto.populate_all) = false;
 message Profile {
     string Address = 1;
     Reference Ref = 2 [(gogoproto.nullable) = false];
-    uint32 ShortID = 3 [(gogoproto.casttype) = "github.com/insolar/assured-ledger/ledger-core/insolar/node.ShortNodeID", (gogoproto.nullable) = false];
-    uint32 PrimaryRole = 4 [(gogoproto.casttype) = "github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member.PrimaryRole", (gogoproto.nullable) = false];
-    uint32 SpecialRole = 5 [(gogoproto.casttype) = "github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member.SpecialRole", (gogoproto.nullable) = false];
+    uint32 ShortID = 3 [(gogoproto.casttype) = "ShortNodeID", (gogoproto.nullable) = false];
+    uint32 PrimaryRole = 4 [(gogoproto.casttype) = "PrimaryRole", (gogoproto.nullable) = false];
+    uint32 SpecialRole = 5 [(gogoproto.casttype) = "SpecialRole", (gogoproto.nullable) = false];
     bytes Digest = 6;
     bytes Signature = 7;
     bytes PublicKey = 8;
