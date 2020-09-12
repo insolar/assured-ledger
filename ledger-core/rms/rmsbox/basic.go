@@ -17,6 +17,8 @@ type RecordVisitor interface {
 type BasicRecord interface {
 	Visit(RecordVisitor) error
 	GetRecordPayloads() RecordPayloads
+
+	// SetRecordPayloads is called after unmarshalling of the record to set content of record's payloads
 	SetRecordPayloads(RecordPayloads, cryptkit.DataDigester) error
 }
 

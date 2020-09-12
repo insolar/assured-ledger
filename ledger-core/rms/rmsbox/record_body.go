@@ -14,7 +14,6 @@ import (
 
 var _ rmsreg.GoGoSerializableWithText = &RecordBody{}
 
-
 type RecordBody struct {
 	rbd      RecordBodyDigests
 	digester cryptkit.DataDigester
