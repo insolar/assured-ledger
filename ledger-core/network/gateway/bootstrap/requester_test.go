@@ -14,15 +14,15 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 
 	"github.com/stretchr/testify/assert"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/network"
-	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/host"
-	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet/types"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
+	"github.com/insolar/assured-ledger/ledger-core/rms/legacyhost"
 	mock "github.com/insolar/assured-ledger/ledger-core/testutils/network"
 )
 
@@ -47,11 +47,11 @@ func TestRequester_Bootstrap(t *testing.T) {
 	options := network.ConfigureOptions(configuration.NewConfiguration())
 
 	hn := mock.NewHostNetworkMock(t)
-	hn.SendRequestToHostMock.Set(func(p context.Context, p1 types.PacketType, p2 interface{}, p3 *host.Host) (r network.Future, r1 error) {
+	hn.SendRequestToHostMock.Set(func(p context.Context, p1 types.PacketType, p2 interface{}, p3 *legacyhost.Host) (r network.Future, r1 error) {
 		return nil, errors.New("123")
 	})
 
-	p := &packet.Permit{}
+	p := &rms.Permit{}
 	candidateProfile := adapters.Candidate{}
 	r := NewRequester(options)
 	// inject HostNetwork

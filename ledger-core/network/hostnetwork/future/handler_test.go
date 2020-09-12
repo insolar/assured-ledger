@@ -12,15 +12,16 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/host"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet/types"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms/legacyhost"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 )
 
-func newPacket() *packet.Packet {
-	sender, _ := host.NewHostN("127.0.0.1:31337", gen.UniqueGlobalRef())
-	receiver, _ := host.NewHostN("127.0.0.2:31338", gen.UniqueGlobalRef())
+func newPacket() *rms.Packet {
+	sender, _ := legacyhost.NewHostN("127.0.0.1:31337", gen.UniqueGlobalRef())
+	receiver, _ := legacyhost.NewHostN("127.0.0.2:31338", gen.UniqueGlobalRef())
 	return packet.NewPacket(sender, receiver, types.Pulse, 123)
 }
 
@@ -35,13 +36,13 @@ func TestPacketHandler_Handle_Response(t *testing.T) {
 	ph := NewPacketHandler(m)
 
 	req := newPacket()
-	req.SetRequest(&packet.PulseRequest{})
+	req.SetRequest(&rms.PulseRequest{})
 
 	future := m.Create(req)
 	resp := newPacket()
 	resp.Receiver = req.Sender
 	resp.Sender = req.Receiver
-	resp.SetResponse(&packet.BasicResponse{})
+	resp.SetResponse(&rms.BasicResponse{})
 
 	receivedPacket := packet.NewReceivedPacket(resp, nil)
 	ph.Handle(context.Background(), receivedPacket)
@@ -76,11 +77,11 @@ func TestPacketHandler_Handle_NotProcessable(t *testing.T) {
 	ph := NewPacketHandler(m)
 
 	req := newPacket()
-	req.SetRequest(&packet.PulseRequest{})
+	req.SetRequest(&rms.PulseRequest{})
 	future := m.Create(req)
 
 	resp := newPacket()
-	resp.SetResponse(&packet.BasicResponse{})
+	resp.SetResponse(&rms.BasicResponse{})
 
 	ph.Handle(context.Background(), packet.NewReceivedPacket(resp, nil))
 

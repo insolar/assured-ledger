@@ -10,20 +10,20 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
-	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/host"
-	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms/legacyhost"
 )
 
 const permitTTL = 300
 
 // CreatePermit creates permit as signed protobuf for joiner node to
-func CreatePermit(authorityNodeRef reference.Holder, reconnectHost *host.Host, joinerPublicKey []byte, signer cryptography.Signer) (*packet.Permit, error) {
-	payload := packet.PermitPayload{
-		AuthorityNodeRef: reference.Copy(authorityNodeRef),
+func CreatePermit(authorityNodeRef reference.Holder, reconnectHost *legacyhost.Host, joinerPublicKey []byte, signer cryptography.Signer) (*rms.Permit, error) {
+	payload := rms.PermitPayload{
+		AuthorityNodeRef: rms.NewReference(authorityNodeRef),
 		ExpireTimestamp:  time.Now().Unix() + permitTTL,
 		ReconnectTo:      reconnectHost,
 		JoinerPublicKey:  joinerPublicKey,
@@ -37,12 +37,12 @@ func CreatePermit(authorityNodeRef reference.Holder, reconnectHost *host.Host, j
 	if err != nil {
 		return nil, errors.W(err, "failed to sign bootstrap permit")
 	}
-	return &packet.Permit{Payload: payload, Signature: signature.Bytes()}, nil
+	return &rms.Permit{Payload: payload, Signature: signature.Bytes()}, nil
 }
 
 // ValidatePermit validate granted permit and verifies signature of Authority Node
-func ValidatePermit(permit *packet.Permit, cert nodeinfo.Certificate, verifier cryptography.Service) error {
-	discovery := network.FindDiscoveryByRef(cert, permit.Payload.AuthorityNodeRef)
+func ValidatePermit(permit *rms.Permit, cert nodeinfo.Certificate, verifier cryptography.Service) error {
+	discovery := network.FindDiscoveryByRef(cert, permit.Payload.AuthorityNodeRef.Get())
 	if discovery == nil {
 		return errors.New("failed to find a discovery node from reference in permit")
 	}

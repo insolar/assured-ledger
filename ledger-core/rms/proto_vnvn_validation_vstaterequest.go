@@ -15,8 +15,6 @@ func (m *VStateRequest) validateUnimplemented() error {
 	switch {
 	case !m.RequestedContentLimit.IsEmpty():
 		return throw.New("RequestedContentLimit should be empty")
-	case !m.SupportedExtensions.IsEmpty():
-		return throw.New("SupportedExtensions should be empty")
 	case !m.ProducerSignature.IsEmpty():
 		return throw.New("ProducerSignature should be empty")
 	case m.CallRequestFlags != 0:

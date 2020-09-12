@@ -8,13 +8,27 @@ import "rms.proto";
 import "proto_records.proto";
 
 option (insproto.notation_all) = true;
+option (insproto.zeroable_all) = true;
+option (gogoproto.goproto_enum_prefix_all) = false;
+
 option (insproto.context_all) = "MessageVisitor";
 option (insproto.context_method_all) = "Visit";
 option (insproto.message_ctx_apply_all) = "Message";
 option (insproto.register_all) = "RegisterMessageType";
 option (insproto.projection_names) = "Head";
+
 option (gogoproto.goproto_getters_all) = true;
 option (gogoproto.equal_all) = true;
+
+message Meta {
+    option (insproto.id) = 1000;
+
+    Any Payload = 20;
+    Reference Sender = 21;
+    Reference Receiver = 22;
+    uint32 Pulse = 23 [(gogoproto.casttype) = "PulseNumber"];
+    Binary ID = 24;
+}
 
 message MessageExample {
     option (insproto.id) = 999999990;
@@ -36,6 +50,238 @@ message MessageExample {
     }
 }
 
+enum CallType {
+    CallTypeInvalid = 0; // zero value in Go
+    CallTypeInboundAPI = 1;
+    CallTypeOutboundAPI = 2;
+    CallTypeMethod = 3;
+    CallTypeConstructor = 4;
+    CallTypeNotify = 5;
+    CallTypeSAGA = 6;
+    CallTypeParallel = 7;
+    CallTypeSchedule = 8;
+}
+
+message VCallRequest {
+    option (insproto.id) = 1001;
+    CallType CallType = 20;
+    uint32 CallFlags = 21 [(gogoproto.casttype) = "CallFlags"];
+    uint32 CallAsOf = 22 [(gogoproto.casttype) = "PulseNumber"];
+    Reference Caller = 23;
+    Reference Callee = 24;
+
+    Reference CallSiteDeclaration = 25;
+    string CallSiteMethod = 26;
+
+    uint32 CallSequence = 27;
+    Reference CallReason = 28;
+    Reference RootTX = 29;
+    Reference CallTX = 30;
+
+    Reference ExpenseCenter = 31;
+    Reference ResourceCenter = 32;
+
+    CallDelegationToken DelegationSpec = 34;
+    Binary ProducerSignature = 36;
+    Binary RegistrarSignature = 37;
+    CallDelegationToken RegistrarDelegationSpec = 38;
+
+    int32 CallRequestFlags = 40 [(gogoproto.casttype) = "CallRequestFlags"];
+    Reference KnownCalleeIncoming = 41;
+    Reference CallOutgoing = 43;
+    uint32 TXExpiry = 44 [(gogoproto.casttype) = "PulseNumber"];
+
+    Binary SecurityContext = 45;
+    Binary TXContext = 46;
+    Binary Arguments = 47;
+}
+
+message VCallResult {
+    option (insproto.id) = 1002;
+    CallType CallType = 20;
+    uint32 CallFlags = 21 [(gogoproto.casttype) = "CallFlags"];
+    uint32 CallAsOf = 22 [(gogoproto.casttype) = "PulseNumber"];
+    Reference Caller = 23;
+    Reference Callee = 24;
+
+    uint32 ResultFlags = 25;
+    Reference CallOutgoing = 26;
+    Reference CallIncoming = 27;
+
+    CallDelegationToken DelegationSpec = 29;
+
+    Reference CallIncomingResult = 31;
+
+    Binary ProducerSignature = 32;
+    Binary RegistrarSignature = 33;
+    CallDelegationToken RegistrarDelegationSpec = 34;
+
+    Binary SecurityContext = 37;
+    Binary ReturnArguments = 38;
+}
+
+message VStateRequest {
+    option (insproto.id) = 1003;
+    uint32 AsOf = 20 [(gogoproto.casttype) = "PulseNumber"];
+    Reference Object = 21;
+
+    int32 RequestedContent = 22 [(gogoproto.casttype) = "StateRequestContentFlags"];
+    Binary RequestedContentLimit = 23;
+
+    CallDelegationToken DelegationSpec = 25;
+    Binary ProducerSignature = 27;
+
+    int32 CallRequestFlags = 28;
+}
+
+message VStateReport {
+    option (insproto.id) = 1004;
+
+    enum StateStatus {
+        StateStatusInvalid = 0; // zero value in Go
+        StateStatusReady = 1;
+        StateStatusEmpty = 2;
+        StateStatusInactive = 3;
+        StateStatusMissing = 4;
+    }
+    StateStatus Status = 37;
+
+    uint32 AsOf = 20 [(gogoproto.casttype) = "PulseNumber"];
+    Reference Object = 21;
+
+    CallDelegationToken DelegationSpec = 23;
+
+    int32 UnorderedPendingCount = 25;
+    uint32 UnorderedPendingEarliestPulse = 26 [(gogoproto.casttype) = "PulseNumber"];
+
+    int32 OrderedPendingCount = 27;
+    uint32 OrderedPendingEarliestPulse = 28 [(gogoproto.casttype) = "PulseNumber"];
+
+    int32 PreRegisteredQueueCount = 29;
+    uint32 PreRegisteredEarliestPulse = 30 [(gogoproto.casttype) = "PulseNumber"];
+
+    int32 PriorityCallQueueCount = 31;
+
+    Reference LatestValidatedState = 32;
+    Reference LatestValidatedCode = 33;
+
+    Reference LatestDirtyState = 34;
+    Reference LatestDirtyCode = 35;
+
+    message ProvidedContentBody {
+        option (insproto.id) = 0;
+        ObjectState LatestValidatedState = 21 [(gogoproto.nullable) = true];
+        ObjectState LatestDirtyState = 22 [(gogoproto.nullable) = true];
+        ObjectState LatestValidatedCode = 23 [(gogoproto.nullable) = true];
+        ObjectState LatestDirtyCode = 24 [(gogoproto.nullable) = true];
+        repeated Reference OrderedQueue = 25;
+        repeated Reference UnorderedQueue = 26;
+    }
+
+    ProvidedContentBody ProvidedContent = 36 [(gogoproto.nullable) = true];
+}
+
+message ObjectState {
+    Reference Reference = 20;
+    Reference Class = 22;
+    Binary State = 23;
+    Binary PreviousState = 24;
+    bool Deactivated = 25;
+}
+
+message VDelegatedRequestFinished {
+    option (insproto.id) = 1006;
+    CallType CallType = 20;
+    uint32 CallFlags = 21 [(gogoproto.casttype) = "CallFlags"];
+    Reference Callee = 22;
+
+    uint32 ResultFlags = 23;
+
+    Reference CallOutgoing = 24;
+    Reference CallIncoming = 25;
+
+    CallDelegationToken DelegationSpec = 26;
+
+    ObjectState LatestState = 29 [(gogoproto.nullable) = true];
+}
+
+message VDelegatedCallRequest {
+    option (insproto.id) = 1008;
+
+    Reference Callee = 20;
+    uint32 CallFlags = 21 [(gogoproto.casttype) = "CallFlags"];
+    Reference CallOutgoing = 22;
+    Reference CallIncoming = 24;
+    CallDelegationToken DelegationSpec = 25;
+}
+
+message VDelegatedCallResponse {
+    option (insproto.id) = 1009;
+
+    Reference Callee = 20;
+    Reference CallIncoming = 21;
+    CallDelegationToken ResponseDelegationSpec = 22;
+}
+
+message CallDelegationToken {
+    option (insproto.id) = 1010;
+
+    uint32 TokenTypeAndFlags = 20 [(gogoproto.casttype) = "CallDelegationTokenType"];
+    Reference Approver = 21;
+    Reference DelegateTo = 22;
+    uint32 PulseNumber = 23 [(gogoproto.casttype) = "PulseNumber"];
+    Reference Callee = 24;
+    Reference Caller = 25;
+    Reference Outgoing = 26;
+    Binary ApproverSignature = 27;
+}
+
+message VFindCallRequest {
+    option (insproto.id) = 1011;
+    uint32 LookAt = 20 [(gogoproto.casttype) = "PulseNumber"];
+    Reference Callee = 21;
+    Reference Outgoing = 22;
+}
+
+message VFindCallResponse {
+    option (insproto.id) = 1012;
+    enum CallState {
+        CallStateInvalid = 0; // zero value in Go
+        CallStateMissing = 1;
+        CallStateUnknown = 2;
+        CallStateFound = 3;
+    }
+    uint32 LookedAt = 20 [(gogoproto.casttype) = "PulseNumber"];
+    Reference Callee = 21;
+    Reference Outgoing = 22;
+    CallState Status = 23;
+    VCallResult CallResult = 24 [(gogoproto.nullable) = true];
+}
+
+message VCachedMemoryRequest {
+    option (insproto.id) = 1013;
+    Reference Object = 21;
+    Reference StateID = 50;
+}
+
+message VCachedMemoryResponse {
+    option (insproto.id) = 1014;
+    enum Status {
+        CachedMemoryStateUnknown = 0; // zero value in Go
+        CachedMemoryStateFound = 1;
+        CachedMemoryStateRedirect = 2;
+        CachedMemoryStateMissing = 3;
+    }
+
+    Reference Object = 21;
+    Reference StateID = 50;
+    Status CallStatus = 51;
+    Reference Node = 52;
+    Reference PrevStateID = 53;
+    bool Inactive = 25;
+    Binary Memory = 54;
+}
+
 message VObjectTranscriptReport {
     option (insproto.id) = 1015;
 
@@ -49,25 +295,25 @@ message VObjectTranscriptReport {
     Reference Object = 1801;
 
     message TranscriptEntryIncomingRequest {
-        option (insproto.id) = 0;
+        option (insproto.id) = 101501;
 
         Reference ObjectMemory = 1800;
         Reference Incoming = 1801;
         bytes Request = 1802; // fixme: waiting for messages to move to RMS package
     }
     message TranscriptEntryOutgoingRequest {
-        option (insproto.id) = 0;
+        option (insproto.id) = 101502;
 
         Reference Outgoing = 1800;
     }
     message TranscriptEntryOutgoingResult {
-        option (insproto.id) = 0;
+        option (insproto.id) = 101503;
 
         Reference OutgoingResult = 1800;
         bytes CallResult = 1801; // fixme: waiting for messages to move to RMS package
     }
     message TranscriptEntryIncomingResult {
-        option (insproto.id) = 0;
+        option (insproto.id) = 101504;
 
         Reference IncomingResult = 1800;
         Reference ObjectState = 1801;
@@ -85,3 +331,9 @@ message VObjectTranscriptReport {
     Transcript ObjectTranscript = 1804;
 }
 
+message VObjectValidationReport {
+    option (insproto.id) = 1016;
+    Reference Object = 21;
+    uint32 In = 55 [(gogoproto.casttype) = "PulseNumber"];
+    Reference Validated = 50;
+}

@@ -11,8 +11,8 @@ import (
 
 	"go.opencensus.io/stats"
 
-	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
@@ -51,7 +51,7 @@ func (rpc *rpcController) invoke(ctx context.Context, name string, data []byte) 
 }
 
 func (rpc *rpcController) SendBytes(ctx context.Context, nodeID reference.Global, name string, msgBytes []byte) ([]byte, error) {
-	request := &packet.RPCRequest{
+	request := &rms.RPCRequest{
 		Method: name,
 		Data:   msgBytes,
 	}
@@ -93,9 +93,9 @@ func (rpc *rpcController) processMessage(ctx context.Context, request network.Re
 	payload := request.GetRequest().GetRPC()
 	result, err := rpc.invoke(ctx, payload.Method, payload.Data)
 	if err != nil {
-		return rpc.Network.BuildResponse(ctx, request, &packet.RPCResponse{Error: err.Error()}), nil
+		return rpc.Network.BuildResponse(ctx, request, &rms.RPCResponse{Error: err.Error()}), nil
 	}
-	return rpc.Network.BuildResponse(ctx, request, &packet.RPCResponse{Result: result}), nil
+	return rpc.Network.BuildResponse(ctx, request, &rms.RPCResponse{Result: result}), nil
 }
 
 func (rpc *rpcController) Init(ctx context.Context) error {

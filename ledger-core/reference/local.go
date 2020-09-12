@@ -210,53 +210,6 @@ func (v *Local) asDecoderWriter() *byteWriter {
 	return &byteWriter{v: v}
 }
 
-// deprecated: use reference.EncodeLocal
-func (v Local) MarshalText() ([]byte, error) {
-	return []byte(EncodeLocal(v)), nil
-}
-
-// deprecated: use reference.BinarySizeLocal
-func (v Local) Size() int {
-	return BinarySizeLocal(v)
-}
-
-// deprecated: use reference.MarshalLocalToSizedBuffer
-func (v Local) MarshalToSizedBuffer(data []byte) (int, error) {
-	return MarshalLocalToSizedBuffer(v, data)
-}
-
-// deprecated: use reference.MarshalLocalTo
-func (v Local) MarshalTo(data []byte) (int, error) {
-	return MarshalLocalTo(v, data)
-}
-
-// deprecated: use reference.MarshalLocal
-func (v *Local) Marshal() ([]byte, error) {
-	return MarshalLocal(v)
-}
-
-// deprecated: use reference.UnmarshalLocal
-func (v *Local) Unmarshal(data []byte) (err error) {
-	if len(data) == 0 {
-		// backward compatibility
-		*v = Local{}
-		return nil
-	}
-	*v, err = UnmarshalLocal(data)
-	return
-}
-
-// deprecated: use reference.MarshalLocalJSON
-func (v *Local) MarshalJSON() ([]byte, error) {
-	return MarshalLocalJSON(v)
-}
-
-// deprecated: use reference.UnmarshalLocalJSON
-func (v *Local) UnmarshalJSON(data []byte) (err error) {
-	*v, err = UnmarshalLocalJSON(data)
-	return
-}
-
 /********************/
 
 var _ io.ByteWriter = &byteWriter{}

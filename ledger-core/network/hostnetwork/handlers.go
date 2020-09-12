@@ -10,6 +10,7 @@ import (
 	"io"
 
 	"github.com/insolar/assured-ledger/ledger-core/network"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
@@ -94,7 +95,7 @@ func (s *StreamHandler) HandleStream(ctx context.Context, address string, reader
 }
 
 // SendPacket sends packet using connection from pool
-func SendPacket(ctx context.Context, pool pool.ConnectionPool, p *packet.Packet) error {
+func SendPacket(ctx context.Context, pool pool.ConnectionPool, p *rms.Packet) error {
 	data, err := packet.SerializePacket(p)
 	if err != nil {
 		return errors.W(err, "Failed to serialize packet")
