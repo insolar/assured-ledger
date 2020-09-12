@@ -13,9 +13,6 @@ import (
 var _ Validatable = &VDelegatedCallRequest{}
 
 func (m *VDelegatedCallRequest) validateUnimplemented() error {
-	if !m.RecordHead.IsEmpty() {
-		return throw.New("RecordHead should be empty")
-	}
 	return nil
 }
 

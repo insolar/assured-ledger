@@ -16,6 +16,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms/rmsbox"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/atomickit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 )
@@ -42,7 +43,7 @@ func (p *generatorNewLifeline) makeSet(reasonRef reference.Holder) inspectsvc.Re
 		PrevRef:   rootRec.AnticipatedRef,
 	}
 	rMem.SetDigester(rb.RecordScheme.RecordDigester())
-	rMem.SetPayload(rms.NewRawBytes(p.body))
+	rMem.SetPayload(rmsbox.NewRawBytes(p.body))
 
 	rq := rb.Add(rMem)
 

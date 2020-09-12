@@ -12,6 +12,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/ledger/server/lineage"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms/rmsbox"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -43,7 +44,7 @@ func (p *WholeExtractor) AddLineRecord(record lineage.ReadRecord) bool {
 		RejoinRef:          record.Excerpt.RejoinRef,
 		ProducerSignature:  record.ProducerSignature,
 		ProducedBy:         rms.NewReference(record.ProducedBy),
-		RegistrarSignature: rms.NewRaw(record.RegistrarSignature.GetSignature()).AsBinary(),
+		RegistrarSignature: rmsbox.NewRaw(record.RegistrarSignature.GetSignature()).AsBinary(),
 		RegisteredBy:       rms.NewReference(record.RegisteredBy),
 		RecordSize:         0,
 		RecordPayloadsSize: 0,
