@@ -19,6 +19,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms/rmsreg"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -39,8 +40,8 @@ func WithSyncBody() SendOption {
 
 type Service interface {
 	// blocks if network unreachable
-	SendRole(ctx context.Context, msg rms.GoGoSerializable, role affinity.DynamicRole, object reference.Global, pn pulse.Number, opts ...SendOption) error
-	SendTarget(ctx context.Context, msg rms.GoGoSerializable, target reference.Global, opts ...SendOption) error
+	SendRole(ctx context.Context, msg rmsreg.GoGoSerializable, role affinity.DynamicRole, object reference.Global, pn pulse.Number, opts ...SendOption) error
+	SendTarget(ctx context.Context, msg rmsreg.GoGoSerializable, target reference.Global, opts ...SendOption) error
 }
 
 type DefaultService struct {
@@ -61,7 +62,7 @@ func (dm *DefaultService) Close() error {
 	return dm.pub.Close()
 }
 
-func (dm *DefaultService) SendRole(ctx context.Context, msg rms.GoGoSerializable, role affinity.DynamicRole, object reference.Global, pn pulse.Number, opts ...SendOption) error {
+func (dm *DefaultService) SendRole(ctx context.Context, msg rmsreg.GoGoSerializable, role affinity.DynamicRole, object reference.Global, pn pulse.Number, opts ...SendOption) error {
 	nodes, err := dm.affinity.QueryRole(role, object, pn)
 	if err != nil {
 		return throw.W(err, "failed to calculate role")
@@ -70,13 +71,13 @@ func (dm *DefaultService) SendRole(ctx context.Context, msg rms.GoGoSerializable
 	return dm.sendTarget(ctx, msg, nodes[0])
 }
 
-func (dm *DefaultService) SendTarget(ctx context.Context, msg rms.GoGoSerializable, target reference.Global, opts ...SendOption) error {
+func (dm *DefaultService) SendTarget(ctx context.Context, msg rmsreg.GoGoSerializable, target reference.Global, opts ...SendOption) error {
 	return dm.sendTarget(ctx, msg, target)
 }
 
 const TopicOutgoing = "TopicOutgoing"
 
-func (dm *DefaultService) sendTarget(ctx context.Context, msg rms.GoGoSerializable, target reference.Global) error {
+func (dm *DefaultService) sendTarget(ctx context.Context, msg rmsreg.GoGoSerializable, target reference.Global) error {
 	if target.Equal(dm.affinity.Me()) {
 		inslogger.FromContext(ctx).Debug("Send to myself")
 	}
