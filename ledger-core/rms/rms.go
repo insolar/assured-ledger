@@ -42,6 +42,7 @@ type BasicMessage = rmsbox.BasicMessage
 type Reference = rmsbox.Reference
 
 type RecordBody = rmsbox.RecordBody
+type RecordBodyDigests = rmsbox.RecordBodyDigests
 
 func RegisterRecordType(id uint64, special string, t BasicRecord) {
 	rmsreg.GetRegistry().PutSpecial(id, special, reflect.TypeOf(t))
