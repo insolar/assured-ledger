@@ -22,6 +22,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms/rmsreg"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
@@ -74,7 +75,7 @@ func TestSMTestAPICall_MethodResends(t *testing.T) {
 	smWrapper := slotMachine.AddStateMachine(ctx, &smRequest)
 
 	messageSent := make(chan struct{}, 1)
-	slotMachine.MessageSender.SendRole.Set(func(_ context.Context, msg rms.GoGoSerializable, role affinity.DynamicRole, object reference.Global, pn pulse.Number, _ ...messagesender.SendOption) error {
+	slotMachine.MessageSender.SendRole.Set(func(_ context.Context, msg rmsreg.GoGoSerializable, role affinity.DynamicRole, object reference.Global, pn pulse.Number, _ ...messagesender.SendOption) error {
 		res := msg.(*rms.VCallRequest)
 
 		// ensure that both times request is the same
@@ -194,7 +195,7 @@ func TestSMTestAPICall_Constructor(t *testing.T) {
 	smWrapper := slotMachine.AddStateMachine(ctx, &smRequest)
 
 	messageSent := make(chan struct{}, 1)
-	slotMachine.MessageSender.SendRole.Set(func(_ context.Context, msg rms.GoGoSerializable, role affinity.DynamicRole, object reference.Global, pn pulse.Number, _ ...messagesender.SendOption) error {
+	slotMachine.MessageSender.SendRole.Set(func(_ context.Context, msg rmsreg.GoGoSerializable, role affinity.DynamicRole, object reference.Global, pn pulse.Number, _ ...messagesender.SendOption) error {
 		res := msg.(*rms.VCallRequest)
 
 		// ensure that both times request is the same
@@ -245,7 +246,7 @@ func TestSMTestAPICall_RetriesExceeded(t *testing.T) {
 	smWrapper := slotMachine.AddStateMachine(ctx, &smRequest)
 
 	messageSent := make(chan struct{}, 1)
-	slotMachine.MessageSender.SendRole.Set(func(_ context.Context, msg rms.GoGoSerializable, role affinity.DynamicRole, object reference.Global, pn pulse.Number, _ ...messagesender.SendOption) error {
+	slotMachine.MessageSender.SendRole.Set(func(_ context.Context, msg rmsreg.GoGoSerializable, role affinity.DynamicRole, object reference.Global, pn pulse.Number, _ ...messagesender.SendOption) error {
 		messageSent <- struct{}{}
 		return nil
 	})

@@ -13,24 +13,16 @@ var _ Validatable = &VCallResult{}
 
 func (m *VCallResult) validateUnimplemented() error {
 	switch {
-	case !m.Extensions.IsEmpty():
-		return throw.New("Extensions should be empty")
-	case !m.ExtensionHashes.IsEmpty():
-		return throw.New("ExtensionHashes should be empty")
 	case !m.SecurityContext.IsEmpty():
 		return throw.New("SecurityContext should be empty")
-	case !m.EntryHeadHash.IsEmpty():
-		return throw.New("EntryHeadHash should be empty")
 	case !m.RegistrarDelegationSpec.IsZero():
 		return throw.New("RegistrarDelegationSpec should be zero")
 	case !m.RegistrarSignature.IsEmpty():
 		return throw.New("RegistrarSignature should be empty")
 	case !m.ProducerSignature.IsEmpty():
 		return throw.New("ProducerSignature should be empty")
-	case !m.PayloadHash.IsEmpty():
-		return throw.New("PayloadHash should be empty")
-	case !m.ResultFlags.IsEmpty():
-		return throw.New("ResultFlags should be empty")
+	case m.ResultFlags != 0:
+		return throw.New("ResultFlags should be zero")
 	case !m.CallIncomingResult.IsEmpty():
 		return throw.New("CallIncomingResult should be empty")
 	case !m.CallAsOf.IsUnknown():

@@ -18,13 +18,13 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/instracer"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
-	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet"
 	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet/types"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/rules"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
@@ -99,8 +99,8 @@ func (g *Complete) requestCertSign(ctx context.Context, discoveryNode nodeinfo.D
 		return sign.Bytes(), nil
 	}
 
-	request := &packet.SignCertRequest{
-		NodeRef: registeredNodeRef,
+	request := &rms.SignCertRequest{
+		NodeRef: rms.NewReference(registeredNodeRef),
 	}
 	future, err := g.HostNetwork.SendRequest(ctx, types.SignCert, request, discoveryNode.GetNodeRef())
 	if err != nil {
@@ -134,12 +134,12 @@ func (g *Complete) signCertHandler(ctx context.Context, request network.Received
 	if request.GetRequest() == nil || request.GetRequest().GetSignCert() == nil {
 		inslogger.FromContext(ctx).Warnf("process SignCert: got invalid request protobuf message: %s", request)
 	}
-	sign, err := g.signCert(ctx, request.GetRequest().GetSignCert().NodeRef)
+	sign, err := g.signCert(ctx, request.GetRequest().GetSignCert().NodeRef.GetValue())
 	if err != nil {
-		return g.HostNetwork.BuildResponse(ctx, request, &packet.ErrorResponse{Error: err.Error()}), nil
+		return g.HostNetwork.BuildResponse(ctx, request, &rms.ErrorResponse{Error: err.Error()}), nil
 	}
 
-	return g.HostNetwork.BuildResponse(ctx, request, &packet.SignCertResponse{Sign: sign.Bytes()}), nil
+	return g.HostNetwork.BuildResponse(ctx, request, &rms.SignCertResponse{Sign: sign.Bytes()}), nil
 }
 
 func (g *Complete) EphemeralMode(census.OnlinePopulation) bool {

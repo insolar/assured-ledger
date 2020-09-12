@@ -17,6 +17,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms/rmsreg"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
@@ -173,7 +174,7 @@ func TestVirtual_SenderCheck_With_ExpectedVE(t *testing.T) {
 						testMsg.msg = utils.GenerateVCallRequestMethod(server)
 					}
 
-					server.SendPayload(ctx, testMsg.msg.(rms.GoGoSerializable)) // default caller == server.GlobalCaller()
+					server.SendPayload(ctx, testMsg.msg.(rmsreg.GoGoSerializable)) // default caller == server.GlobalCaller()
 
 					expectNoError := cases.senderIsEqualExpectedVE || testMsg.ignoreSenderCheck == true
 					if expectNoError {

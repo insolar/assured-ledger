@@ -25,8 +25,6 @@ func (m *VCallRequest) validateUnimplemented() error {
 		return throw.New("ExpenseCenter should be empty")
 	case !m.ResourceCenter.IsZero():
 		return throw.New("ResourceCenter should be empty")
-	case !m.PayloadHash.IsEmpty():
-		return throw.New("PayloadHash should be nil")
 	case !m.ProducerSignature.IsEmpty():
 		return throw.New("ProducerSignature should be nil")
 	case !m.RegistrarSignature.IsEmpty():
@@ -35,18 +33,12 @@ func (m *VCallRequest) validateUnimplemented() error {
 		return throw.New("RegistrarDelegationSpec should be empty")
 	case !m.KnownCalleeIncoming.IsZero():
 		return throw.New("KnownCalleeIncoming should be empty")
-	case !m.EntryHeadHash.IsEmpty():
-		return throw.New("EntryHeadHash should be nil")
 	case !m.TXExpiry.IsUnknown():
 		return throw.New("TXExpiry should be unknown")
 	case !m.SecurityContext.IsEmpty():
 		return throw.New("SecurityContext should be nil")
 	case !m.TXContext.IsEmpty():
 		return throw.New("TXContext should be nil")
-	case !m.ExtensionHashes.IsEmpty():
-		return throw.New("ExtensionHashes should be nil")
-	case !m.Extensions.IsEmpty():
-		return throw.New("Extensions should be nil")
 	case !m.CallAsOf.IsUnknown():
 		return throw.New("CallAsOf should be zero")
 	}

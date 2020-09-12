@@ -15,9 +15,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/cryptography"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
-	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/host"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/rms/legacyhost"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 )
@@ -30,9 +30,9 @@ func createCryptographyService(t *testing.T) cryptography.Service {
 }
 
 func TestCreateAndVerifyPermit(t *testing.T) {
-	origin, err := host.NewHostN("127.0.0.1:123", gen.UniqueGlobalRef())
+	origin, err := legacyhost.NewHostN("127.0.0.1:123", gen.UniqueGlobalRef())
 	assert.NoError(t, err)
-	redirect, err := host.NewHostN("127.0.0.1:321", gen.UniqueGlobalRef())
+	redirect, err := legacyhost.NewHostN("127.0.0.1:321", gen.UniqueGlobalRef())
 	assert.NoError(t, err)
 
 	cryptographyService := createCryptographyService(t)
