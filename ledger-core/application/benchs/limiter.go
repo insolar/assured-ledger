@@ -16,7 +16,7 @@ type benchLimiter interface {
 }
 
 // -----
-
+// nolint:unused
 type countedBenchLimiter struct {
 	targetCount  int32
 	currentCount int32
@@ -31,7 +31,7 @@ func (bl *countedBenchLimiter) ShouldContinue() bool {
 }
 
 // -----
-
+// nolint:unused
 type timedBenchLimiter struct {
 	timeFinished chan struct{}
 	pulseTime    int
