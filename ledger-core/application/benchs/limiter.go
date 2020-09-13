@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-// nolint:unused
+// nolint:unused,deadcode
 type benchLimiter interface {
 	Reset()
 	ShouldContinue() bool
