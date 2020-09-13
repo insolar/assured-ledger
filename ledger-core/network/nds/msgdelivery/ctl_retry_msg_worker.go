@@ -147,7 +147,7 @@ func (p *retryMsgWorker) pushPostponed(msg *msgShipment, repeatFn func(retries.R
 	}
 	if prev := p.postponed[p.write]; prev.msg != nil {
 		if prev.msg.canSendHead() && prev.repeatFn != nil {
-			prev.repeatFn(retries.RetryID(msg.id))
+			prev.repeatFn(retries.RetryID(prev.msg.id))
 		} else {
 			prev.msg.markCancel()
 		}
