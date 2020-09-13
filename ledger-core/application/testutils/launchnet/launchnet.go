@@ -89,11 +89,6 @@ func GetPulseTime() int {
 	return defaultPulseTime
 }
 
-type CaseRunner struct {
-	run       func([]string, int) int
-	pulseTime int
-}
-
 func customRun(pulsarOneShot bool, numVirtual, numLight, numHeavy int, cb func([]string) int) int {
 	apiAddresses, teardown, err := newNetSetup(pulsarOneShot, numVirtual, numLight, numHeavy)
 	defer teardown()

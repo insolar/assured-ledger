@@ -61,7 +61,7 @@ func getTimeToExecute(pulseTime int) int {
 		numPulses       = 2
 	)
 	timeToRun := minimumExecTime
-	pulseTime = pulseTime / 1000 // convert to seconds
+	pulseTime /= 1000 // convert to seconds
 
 	pulseTime = numPulses * pulseTime
 	if timeToRun < pulseTime {
