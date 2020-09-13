@@ -10,6 +10,7 @@ import (
 	"time"
 )
 
+// nolint:unused
 type benchLimiter interface {
 	Reset()
 	ShouldContinue() bool
@@ -55,6 +56,7 @@ func (bl *timedBenchLimiter) ShouldContinue() bool {
 	}
 }
 
+// nolint:unused
 func getTimeToExecute(pulseTime int) int {
 	var (
 		minimumExecTime = 10 // seconds
