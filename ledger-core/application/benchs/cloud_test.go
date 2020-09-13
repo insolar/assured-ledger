@@ -45,7 +45,8 @@ func Benchmark_MultiPulseOnCloud_Timed(b *testing.B) {
 	}
 }
 
-// TODO: Stop pulsar after network startup
+// TODO: Stop pulsar after network startup.
+// This functionality should be done in PLAT-782
 func Benchmark_SinglePulseOnCloud_N(b *testing.B) {
 	instestlogger.SetTestOutput(b)
 
