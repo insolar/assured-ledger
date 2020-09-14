@@ -7,6 +7,7 @@ package benchs
 
 import (
 	"fmt"
+	"strconv"
 	"testing"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/testutils/launchnet"
@@ -25,8 +26,9 @@ func Benchmark_MultiPulseOnCloud_Timed(b *testing.B) {
 			}
 
 			runner := &benchRunner{
-				benchLimiter: &timedBenchLimiter{pulseTime: int(cloudRunner.ConfProvider.PulsarConfig.Pulsar.PulseTime)},
-				n:            100,
+				benchLimiterFactory: func(_ int) benchLimiter {
+					return &timedBenchLimiter{pulseTime: int(cloudRunner.ConfProvider.PulsarConfig.Pulsar.PulseTime)}
+				},
 			}
 
 			apiAddrs := []string{}
@@ -34,7 +36,7 @@ func Benchmark_MultiPulseOnCloud_Timed(b *testing.B) {
 				apiAddrs = append(apiAddrs, el.TestWalletAPI.Address)
 			}
 
-			run := runner.runBenchOnNetwork(b, numNodes)
+			run := runner.runBenchOnNetwork(b)
 			retCode := run(apiAddrs)
 			if retCode != 0 {
 				b.Fatal("failed test run")
@@ -52,29 +54,26 @@ func Benchmark_SinglePulseOnCloud_N(b *testing.B) {
 
 	for numNodes := 2; numNodes <= 5; numNodes++ {
 		b.Run(fmt.Sprintf("Nodes %d", numNodes), func(b *testing.B) {
-			b.ResetTimer()
-			b.StopTimer()
 			teardown, cloudRunner, err := runCloud(numNodes)
 			if err != nil {
 				b.Fatal("network run failed")
 			}
 
-			for i := 0; i <= b.N; i++ {
-				runner := benchRunner{
-					benchLimiter: &countedBenchLimiter{targetCount: int32(i + 1), currentCount: 0},
-					n:            i + 1,
-				}
+			runner := benchRunner{
+				benchLimiterFactory: func(n int) benchLimiter {
+					return &countedBenchLimiter{targetCount: int32(n), currentCount: 0}
+				},
+			}
 
-				apiAddrs := []string{}
-				for _, el := range cloudRunner.ConfProvider.GetAppConfigs() {
-					apiAddrs = append(apiAddrs, el.TestWalletAPI.Address)
-				}
+			apiAddrs := []string{}
+			for _, el := range cloudRunner.ConfProvider.GetAppConfigs() {
+				apiAddrs = append(apiAddrs, el.TestWalletAPI.Address)
+			}
 
-				run := runner.runBenchOnNetwork(b, numNodes)
-				retCode := run(apiAddrs)
-				if retCode != 0 {
-					b.Fatal("failed test run")
-				}
+			run := runner.runBenchOnNetwork(b)
+			retCode := run(apiAddrs)
+			if retCode != 0 {
+				b.Fatal("failed test run")
 			}
 
 			teardown()
@@ -82,11 +81,29 @@ func Benchmark_SinglePulseOnCloud_N(b *testing.B) {
 	}
 }
 
+func getPulseTime() int32 {
+	const (
+		defaultPulseTime = 3000
+	)
+	pulseTimeEnv := launchnet.GetPulseTimeEnv()
+	pulseTime, err := strconv.Atoi(pulseTimeEnv)
+	if err != nil {
+		panic(err)
+	}
+
+	if pulseTime != 0 {
+		return int32(pulseTime)
+	}
+
+	return defaultPulseTime
+}
+
 func runCloud(numNodes int) (func(), *launchnet.CloudRunner, error) {
 	runner := &launchnet.CloudRunner{}
 	runner.SetNumVirtuals(numNodes)
 	runner.PrepareConfig()
-	runner.ConfProvider.PulsarConfig.Pulsar.PulseTime = 3000
+
+	runner.ConfProvider.PulsarConfig.Pulsar.PulseTime = getPulseTime()
 	runner.ConfProvider.BaseConfig.Log.Level = "Fatal"
 
 	var apiAddresses []string

@@ -6,6 +6,7 @@
 package benchs
 
 import (
+	"fmt"
 	"sync/atomic"
 	"time"
 )
@@ -14,13 +15,20 @@ import (
 type benchLimiter interface {
 	Reset()
 	ShouldContinue() bool
+	NeedPrintStats() bool
 }
+
+type limiterFactory func(int) benchLimiter
 
 // -----
 // nolint:unused
 type countedBenchLimiter struct {
 	targetCount  int32
 	currentCount int32
+}
+
+func (bl *countedBenchLimiter) NeedPrintStats() bool {
+	return false
 }
 
 func (bl *countedBenchLimiter) Reset() {
@@ -39,12 +47,18 @@ type timedBenchLimiter struct {
 }
 
 func (bl *timedBenchLimiter) Reset() {
+
 	bl.timeFinished = make(chan struct{})
 	go func() {
 		timeToRun := getTimeToExecute(bl.pulseTime)
+		fmt.Printf("%d second bench\n", timeToRun)
 		time.Sleep(time.Duration(timeToRun) * time.Second)
 		close(bl.timeFinished)
 	}()
+}
+
+func (bl *timedBenchLimiter) NeedPrintStats() bool {
+	return true
 }
 
 func (bl *timedBenchLimiter) ShouldContinue() bool {

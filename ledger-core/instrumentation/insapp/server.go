@@ -41,6 +41,7 @@ type Server struct {
 	extra        []interface{}
 	confProvider ConfigurationProvider
 	gracefulStop chan os.Signal
+	waitChannel  chan struct{}
 }
 
 type defaultConfigurationProvider struct {
@@ -121,10 +122,10 @@ func (s *Server) Serve() {
 	signal.Notify(s.gracefulStop, syscall.SIGTERM)
 	signal.Notify(s.gracefulStop, syscall.SIGINT)
 
-	var waitChannel = make(chan bool)
+	s.waitChannel = make(chan struct{})
 
 	go func() {
-		defer close(waitChannel)
+		defer close(s.waitChannel)
 
 		sig := <-s.gracefulStop
 		baseLogger.Debug("caught sig: ", sig)
@@ -157,7 +158,7 @@ func (s *Server) Serve() {
 	}
 
 	fmt.Println("All components were started")
-	<-waitChannel
+	<-s.waitChannel
 }
 
 type LoggerInitFunc = func(ctx context.Context, cfg configuration.Log, nodeRef, nodeRole string) context.Context
@@ -184,4 +185,5 @@ func (s *Server) StartComponents(ctx context.Context, cfg configuration.Configur
 
 func (s *Server) Stop() {
 	s.gracefulStop <- syscall.SIGQUIT
+	<-s.waitChannel
 }
