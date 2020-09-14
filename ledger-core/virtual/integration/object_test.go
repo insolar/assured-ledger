@@ -7,7 +7,6 @@ package integration
 
 import (
 	"testing"
-	"time"
 
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
@@ -49,12 +48,14 @@ func TestInitViaCTMethod(t *testing.T) {
 		server.SendPayload(ctx, pl)
 	}
 
+	waitTime := server.GetPulseTime()
+
 	// potentially failing test, if execution would sleep for some time before that check
-	if server.PublisherMock.WaitCount(1, 500*time.Millisecond) {
+	if server.PublisherMock.WaitCount(1, waitTime/20) {
 		require.Failf(t, "", "SM Object needs to wait until sm.waitGetStateUntil (potentialy failing)")
 	}
 
-	if !server.PublisherMock.WaitCount(1, 1*time.Second) {
+	if !server.PublisherMock.WaitCount(1, waitTime/5) {
 		require.Failf(t, "", "timeout")
 	}
 }
