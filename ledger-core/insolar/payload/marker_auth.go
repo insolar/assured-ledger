@@ -67,6 +67,10 @@ func (m *VCachedMemoryRequest) customSubject() (Reference, AuthSubjectMode) {
 	return m.GetObject(), UseCurrentPulse
 }
 
+func (m *VCachedMemoryResponse) customSubject() (Reference, AuthSubjectMode) {
+	return m.GetObject(), UseCurrentPulse
+}
+
 func (m *VObjectValidationReport) customSubject() (Reference, AuthSubjectMode) {
 	return m.GetObject(), UsePrevPulse
 }
