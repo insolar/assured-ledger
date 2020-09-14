@@ -240,9 +240,9 @@ func (p *LineStages) addStage(bundle *BundleResolver, stage *updateStage, prevFi
 		rec := &bundle.records[i]
 
 		switch {
-		case rec.filamentStartIndex == 0:
-			panic(throw.Impossible())
 		case recNo != rec.recordNo:
+			panic(throw.Impossible())
+		case rec.filamentStartIndex == 0:
 			panic(throw.Impossible())
 		}
 		recNo++
@@ -424,9 +424,11 @@ func (p *LineStages) restoreLatest(cutOffRec recordNo) {
 
 	// mark open last records of filaments
 	for _, f := range p.latest.filaments {
-		latestRec := p.get(f.latest)
-		if next := latestRec.next; next >= cutOffRec && next != deadFilament {
-			latestRec.next = 0
+		if f.latest != deadFilament {
+			latestRec := p.get(f.latest)
+			if next := latestRec.next; next >= cutOffRec && next != deadFilament {
+				latestRec.next = 0
+			}
 		}
 	}
 }

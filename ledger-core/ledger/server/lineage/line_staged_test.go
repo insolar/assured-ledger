@@ -74,6 +74,15 @@ func TestLineStages_CreateWithCalls(t *testing.T) {
 	st1 := &stubTracker{}
 	require.True(t, line.addBundle(br, st1), describe(br))
 
+	require.Equal(t, stageNo(1), line.earliest.seqNo)
+	require.NotNil(t, line.earliest.tracker)
+
+	st1.ready = 7
+	line.TrimCommittedStages()
+
+	require.Equal(t, stageNo(1), line.earliest.seqNo)
+	require.Nil(t, line.earliest.tracker)
+
 	br = line.NewBundle()
 
 	refReason2 := gen.UniqueGlobalRefWithPulse(base.GetPulseNumber())
@@ -96,12 +105,6 @@ func TestLineStages_CreateWithCalls(t *testing.T) {
 	require.Equal(t, stageNo(1), line.earliest.seqNo)
 	require.Equal(t, stageNo(3), line.latest.seqNo)
 
-	line.TrimCommittedStages()
-
-	require.Equal(t, stageNo(1), line.earliest.seqNo)
-	require.NotNil(t, line.earliest.tracker)
-
-	st1.ready = 7
 	line.TrimCommittedStages()
 
 	require.Equal(t, stageNo(2), line.earliest.seqNo)
@@ -144,6 +147,10 @@ func TestLineStages_Rollback(t *testing.T) {
 	require.True(t, line.addBundle(br, st1), describe(br))
 	verifySequences(t, line)
 
+	st1.ready = 7
+	line.TrimCommittedStages()
+
+	verifySequences(t, line)
 
 	refReason2 := gen.UniqueGlobalRefWithPulse(base.GetPulseNumber())
 	refReason3 := gen.UniqueGlobalRefWithPulse(base.GetPulseNumber())
@@ -169,7 +176,6 @@ func TestLineStages_Rollback(t *testing.T) {
 
 	require.Equal(t, recordNo(17), line.getNextRecNo())
 
-	st1.ready = 7
 	st2.ready = 4
 	line.RollbackUncommittedRecords()
 
@@ -286,5 +292,11 @@ func (p *stubTracker) GetFutureAllocation() (isReady bool, allocations []ledger.
 	if p.ready == 0 {
 		return false, nil
 	}
-	return true, make([]ledger.DirectoryIndex, p.ready)
+	indices := make([]ledger.DirectoryIndex, p.ready)
+
+	for i := range indices {
+		indices[i] = ledger.NewDirectoryIndex(ledger.DefaultEntrySection, ledger.Ordinal(i + 1))
+	}
+
+	return true, indices
 }
