@@ -170,9 +170,11 @@ func runBench(name string, workerFunc func(ctx context.Context, iterator int) er
 	)
 
 	startBench := time.Now()
+	counterStopped := make(chan struct{})
 
 	if limiter.NeedPrintStats() {
 		go func() {
+			defer close(counterStopped)
 			reportTicker := time.NewTicker(time.Second)
 			for {
 				select {
@@ -240,6 +242,10 @@ func runBench(name string, workerFunc func(ctx context.Context, iterator int) er
 			timingCounter.Rate(),
 			counter.Rate(),
 		)
+	}
+
+	if limiter.NeedPrintStats() {
+		<-counterStopped
 	}
 
 	return nil
