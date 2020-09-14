@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/gojuno/minimock/v3"
-	"gotest.tools/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
@@ -23,56 +23,57 @@ import (
 func TestVirtual_ObjectValidationReport(t *testing.T) {
 	defer commonTestUtils.LeakTester(t)
 
-	mc := minimock.NewController(t)
+	testCases := []struct {
+		name       string
+		unknownKey bool
+		emptyCache bool
+	}{
+		// {name: "cache is empty", unknownKey: true, empty: true},
+		// {name: "unknown key", unknownKey: true},
+		{name: "known key", unknownKey: false},
+	}
 
-	server, ctx := utils.NewServer(nil, t)
-	defer server.Stop()
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			mc := minimock.NewController(t)
 
-	var (
-		prevPulse    = server.GetPulse().PulseNumber
-		objectGlobal = server.RandomGlobalWithPulse()
-		class        = server.RandomGlobalWithPulse()
-	)
+			server, ctx := utils.NewServer(nil, t)
+			defer server.Stop()
 
-	objDescriptor := descriptor.NewObject(objectGlobal, server.RandomLocalWithPulse(), class, []byte("new state"), false)
-	validatedStateRef := reference.NewRecordOf(objDescriptor.HeadRef(), objDescriptor.StateID())
+			var (
+				prevPulse    = server.GetPulse().PulseNumber
+				objectGlobal = server.RandomGlobalWithPulse()
+				class        = server.RandomGlobalWithPulse()
+			)
 
-	// add checker
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-	{
-		typedChecker.VCachedMemoryRequest.Set(func(request *rms.VCachedMemoryRequest) bool {
-			assert.Equal(t, objectGlobal, request.Object)
-			assert.Equal(t, validatedStateRef.GetLocal(), request.StateID)
+			objDescriptor := descriptor.NewObject(objectGlobal, server.RandomLocalWithPulse(), class, []byte("new state"), false)
+			validatedStateRef := reference.NewRecordOf(objDescriptor.HeadRef(), objDescriptor.StateID())
 
-			pl := &rms.VCachedMemoryResponse{
-				Object:     request.Object,
-				StateID:    request.StateID,
-				CallStatus: rms.CachedMemoryStateFound,
-				Node:       rms.NewReference(server.GlobalCaller()),
-				Inactive:   false,
-				Memory:     rms.NewBytes([]byte("new state")),
+			if !testCase.emptyCache {
+				err := server.MemoryCache.Set(ctx, validatedStateRef, objDescriptor)
+				require.Nil(t, err)
 			}
-			server.SendPayload(ctx, pl)
-			return false
+
+			server.IncrementPulse(ctx)
+
+			// send VObjectValidationReport
+			{
+				ref := rms.NewReference(validatedStateRef)
+				if testCase.unknownKey {
+					ref = rms.NewReference(server.RandomGlobalWithPulse())
+				}
+
+				validationReport := &rms.VObjectValidationReport{
+					Object:    rms.NewReference(objectGlobal),
+					In:        prevPulse,
+					Validated: ref,
+				}
+				waitValidationReport := server.Journal.WaitStopOf(&handlers.SMVObjectValidationReport{}, 1)
+				server.SendPayload(ctx, validationReport)
+				commonTestUtils.WaitSignalsTimed(t, 10*time.Second, waitValidationReport)
+			}
+
+			mc.Finish()
 		})
 	}
-
-	server.IncrementPulse(ctx)
-
-	// send VObjectValidationReport
-	{
-		validationReport := &rms.VObjectValidationReport{
-			Object:    rms.NewReference(objectGlobal),
-			In:        prevPulse,
-			Validated: rms.NewReference(validatedStateRef),
-		}
-		waitValidationReport := server.Journal.WaitStopOf(&handlers.SMVObjectValidationReport{}, 1)
-		server.SendPayload(ctx, validationReport)
-		commonTestUtils.WaitSignalsTimed(t, 10*time.Second, waitValidationReport)
-	}
-
-	commonTestUtils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VCachedMemoryRequest.Wait(ctx, 1))
-	assert.Equal(t, 1, typedChecker.VCachedMemoryRequest.Count())
-
-	mc.Finish()
 }
