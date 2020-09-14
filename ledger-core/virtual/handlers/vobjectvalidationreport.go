@@ -6,15 +6,14 @@
 package handlers
 
 import (
-	"context"
-
-	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
-	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/memorycache/statemachine"
 )
 
 type SMVObjectValidationReport struct {
@@ -25,6 +24,8 @@ type SMVObjectValidationReport struct {
 	// dependencies
 	pulseSlot     *conveyor.PulseSlot
 	messageSender messageSenderAdapter.MessageSender
+
+	objDesc descriptor.Object
 }
 
 /* -------- Declaration ------------- */
@@ -58,18 +59,27 @@ func (s *SMVObjectValidationReport) Init(ctx smachine.InitializationContext) sma
 }
 
 func (s *SMVObjectValidationReport) stepProcess(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	msg := rms.VCachedMemoryRequest{
-		Object:  s.Payload.Object,
-		StateID: rms.NewReferenceLocal(s.Payload.Validated.GetValue().GetLocal()),
+	if s.Payload.Object.IsEmpty() || s.Payload.Validated.IsEmpty() {
+		panic(throw.IllegalState())
 	}
 
-	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
-		err := svc.SendRole(goCtx, &msg, affinity.DynamicRoleVirtualValidator, s.Payload.Object.GetValue(), s.pulseSlot.CurrentPulseNumber())
-		return func(ctx smachine.AsyncResultContext) {
-			if err != nil {
-				ctx.Log().Error("failed to send message", err)
-			}
+	return ctx.Jump(s.stepGetMemory)
+}
+
+func (s *SMVObjectValidationReport) stepGetMemory(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	subSM := &statemachine.SMGetCachedMemory{
+		Object: s.Payload.Object.GetValue(), State: s.Payload.Validated.GetValue().GetLocal(),
+	}
+	return ctx.CallSubroutine(subSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
+		if subSM.Result == nil {
+			panic(throw.IllegalState())
 		}
-	}).WithoutAutoWakeUp().Start()
+		s.objDesc = subSM.Result
+		return ctx.Jump(s.stepIncomingRequest)
+	})
+}
+
+func (s *SMVObjectValidationReport) stepIncomingRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
+
 	return ctx.Stop()
 }
