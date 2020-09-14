@@ -81,8 +81,8 @@ func (p *PlashSummaryWriter) ReadCatalog(dirtyReader bundle.DirtyReader, dropCou
 			case fil.JetID != entry.Fil.JetID:
 				return throw.Impossible()
 			case flags & ledger.FilamentReopen != 0:
-				fil.Flags &^= ledger.FilamentClosed
-			case fil.Flags & ledger.FilamentClosed != 0:
+				fil.Flags &^= ledger.FilamentClose
+			case fil.Flags & ledger.FilamentClose != 0:
 				return throw.Impossible()
 			}
 			fil.Link = entryOrd

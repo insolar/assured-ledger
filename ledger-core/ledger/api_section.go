@@ -18,6 +18,10 @@ const (
 	DefaultDustSection
 )
 
+// RelativeEntry is used to reference an entry in the same bundle for filament binding logic on storage side.
+// Used by LineStage and UpdateBundle logic, which are not applicable for ControlSection entries.
+const RelativeEntry = ControlSection
+
 const MaxSectionID = (^SectionID(0))>>1
 
 // DefaultDataSection is to store data indefinitely (except for wiping out & evictions)

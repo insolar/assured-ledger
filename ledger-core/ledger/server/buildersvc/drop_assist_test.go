@@ -270,7 +270,12 @@ func prepareDropAssistForAppend(t *testing.T, local reference.Local, started, co
 	ds.GetNextDirectoryIndexMock.Return(dirIndex)
 	entryLoc := ledger.NewLocator(ledger.DefaultEntrySection, 2, 0)
 	ds.AllocateEntryStorageMock.Return(rcp, entryLoc, nil)
-	ds.AppendDirectoryEntryMock.Expect(dirIndex, bundle.DirectoryEntry{Key: reference.NewSelf(local), Loc: entryLoc}).Return(nil)
+	ds.AppendDirectoryEntryMock.Set(func(index ledger.DirectoryIndex, entry bundle.DirectoryEntry) (err error) {
+		require.Equal(t, dirIndex, index)
+		require.Equal(t, reference.NewSelf(local), entry.Key)
+		require.EqualValues(t, 1, entry.Fil.Link)
+		return nil
+	})
 
 	snap := bundle.NewSnapshotMock(t)
 	snap.GetDirectorySectionMock.Return(ds, nil)

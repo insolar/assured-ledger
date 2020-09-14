@@ -79,8 +79,7 @@ func (v DirectoryIndexAndFlags) WithFlags(flags DirectoryEntryFlags) DirectoryIn
 type DirectoryEntryFlags uint16
 
 const (
-	FilamentClosed DirectoryEntryFlags = 1<<iota
-	FilamentStart
+	FilamentClose DirectoryEntryFlags = 1<<iota
 	FilamentLocalStart
 	FilamentReopen
 )

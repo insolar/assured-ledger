@@ -6,6 +6,7 @@
 package lineage
 
 import (
+	"github.com/insolar/assured-ledger/ledger-core/ledger"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -17,7 +18,10 @@ func NewUpdateBundleForTestOnly(records []Record) UpdateBundle {
 
 	for i := range records {
 		rb.records[i].Record = records[i]
+		rb.records[i].filamentStartIndex = ledger.NewDirectoryIndex(0, 1).WithFlags(0)
 	}
+
+	rb.records[0].filamentStartIndex = ledger.NewDirectoryIndex(0, 1).WithFlags(ledger.FilamentLocalStart)
 
 	return rb
 }

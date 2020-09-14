@@ -49,9 +49,21 @@ func (p *dropAssistant) append(pa *plashAssistant, future AppendFuture, b lineag
 			bundleEntry.directory = ledger.DefaultDustSection
 			// dust record can't be considered as connected for cross-drop operations etc
 			// bundleEntry.filHead = 0
-		case recExt.FilHead == 0 && recExt.Flags == 0:
+		case recExt.FilHead.SectionID() == ledger.RelativeEntry:
+			// ordinal points to an entry of this bundle
+			switch relOrd := recExt.FilHead.Ordinal(); {
+			case relOrd == 0:
+				fallthrough
+			case int(relOrd - 1) > len(entries):
+				err = throw.E("invalid relative index")
+				return true // stop now
+			default:
+				bundleEntry.filHeadHere = true
+				bundleEntry.filHead = recExt.FilHead.Ordinal()
+				bundleEntry.filFlags = recExt.Flags
+			}
 		case recExt.FilHead.SectionID() != bundleEntry.directory:
-			err = throw.E("mismatched relative section")
+			err = throw.E("mismatched filament section")
 			return true // stop now
 		default:
 			bundleEntry.filHead = recExt.FilHead.Ordinal()

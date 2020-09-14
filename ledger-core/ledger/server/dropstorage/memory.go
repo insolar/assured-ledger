@@ -36,9 +36,6 @@ func NewMemoryStorageWriter(maxSection ledger.SectionID, pageSize int) *MemorySt
 	for i := ledger.SectionID(0); i <= maxSection; i++ {
 		s := &mc.sections[i]
 		s.sectionID = i
-		if i == ledger.ControlSection {
-			continue // not (yet) supported for memory storage
-		}
 		s.chapters = [][]byte{ make([]byte, 0, pageSize) }
 
 		if s.sectionID <= ledger.DefaultDustSection {
@@ -473,11 +470,11 @@ func (p *cabinetSection) commit(snapshot sectionSnapshot, testOnly bool) error {
 				return throw.Impossible()
 			case relEntry.Fil.Flags & ledger.FilamentLocalStart == 0:
 				return throw.E("wrong head type", struct { Current, Relative ledger.Ordinal }{ entryOrd, entry.Fil.Link })
-			// case relEntry.Fil.Flags & ledger.FilamentClosed != 0:
+			// case relEntry.Fil.Flags & ledger.FilamentClose != 0:
 			// 	if entry.Fil.Flags & ledger.FilamentReopen == 0 {
 			// 		return throw.E("closed head", struct { Current, Relative ledger.Ordinal }{ entryOrd, entry.Fil.Link })
 			// 	}
-			// case entry.Rel.Flags() &^ (ledger.FilamentClosed|ledger.FilamentReopen) != 0:
+			// case entry.Rel.Flags() &^ (ledger.FilamentClose|ledger.FilamentReopen) != 0:
 			// 	return throw.E("inconsistent entry relative", struct { Current, Relative ledger.Ordinal }{ entryOrd, entry.Rel.Ordinal() })
 			default:
 			}

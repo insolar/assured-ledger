@@ -41,9 +41,11 @@ func (p *entryWriter) PrepareWrite(snapshot bundle.Snapshot) error {
 	preparedEntries := make([]preparedEntry, n)
 
 	for i := range p.entries {
+		entry := &p.entries[i]
+
 		ord := p.dropBase + ledger.Ordinal(i)
 		var err error
-		preparedEntries[i], err = p.prepareRecord(snapshot, &p.entries[i], ledger.NewDropOrdinal(p.jetID, ord))
+		preparedEntries[i], err = p.prepareRecord(snapshot, entry, ledger.NewDropOrdinal(p.jetID, ord), preparedEntries[:i])
 		if err != nil {
 			return err
 		}
@@ -87,7 +89,9 @@ func (p *entryWriter) ApplyWrite() ([]ledger.DirectoryIndex, error) {
 	return indices, nil
 }
 
-func (p *entryWriter) prepareRecord(snapshot bundle.Snapshot, entry *draftEntry, dropOrdinal ledger.DropOrdinal) (preparedEntry, error) {
+func (p *entryWriter) prepareRecord(snapshot bundle.Snapshot, entry *draftEntry, dropOrdinal ledger.DropOrdinal,
+	prepBundle []preparedEntry,
+) (preparedEntry, error) {
 	ds, err := snapshot.GetDirectorySection(entry.directory)
 	if err != nil {
 		return preparedEntry{}, err
@@ -137,12 +141,19 @@ func (p *entryWriter) prepareRecord(snapshot bundle.Snapshot, entry *draftEntry,
 		return preparedEntry{}, err
 	}
 
+	filHead := entry.filHead
+	if entry.filHeadHere {
+		if filHead, err = p.remapLocalFilamentHead(filHead, prepBundle, entryIndex); err != nil {
+			return preparedEntry{}, err
+		}
+	}
+
 	if err := ds.AppendDirectoryEntry(entryIndex,
 		bundle.DirectoryEntry{
 			Key: reference.Copy(entry.entryKey),
 			Loc: entryLoc,
 			Fil: bundle.FilamentInfo{
-				Link:  entry.filHead,
+				Link:  filHead,
 				Flags: entry.filFlags,
 				JetID: p.jetID.ID(),
 			},
@@ -165,6 +176,30 @@ func (p *entryWriter) prepareRecord(snapshot bundle.Snapshot, entry *draftEntry,
 	}, nil
 }
 
+func (p *entryWriter) remapLocalFilamentHead(filHead ledger.Ordinal,
+	prepBundle []preparedEntry, selfIndex ledger.DirectoryIndex,
+) (ledger.Ordinal, error) {
+
+	// ordinal is local to this bundle
+	if filHead == 0 {
+		return 0, throw.E("invalid filament root")
+	}
+	filHead--
+	switch {
+	case int(filHead) > len(prepBundle):
+		return 0, throw.E("relative filament root is out of bound")
+	case int(filHead) == len(prepBundle):
+		return selfIndex.Ordinal(), nil
+	}
+
+	headIdx := prepBundle[filHead].entryIndex
+	if headIdx.SectionID() != selfIndex.SectionID() {
+		return 0, throw.E("different section for filament root")
+	}
+
+	return headIdx.Ordinal(), nil
+}
+
 type preparedEntry struct {
 	entryIndex ledger.DirectoryIndex
 	entryKey   reference.Holder
@@ -185,6 +220,7 @@ type draftEntry struct {
 	directory ledger.SectionID
 	filHead   ledger.Ordinal
 	filFlags  ledger.DirectoryEntryFlags
+	filHeadHere bool
 }
 
 type sectionPayload struct {

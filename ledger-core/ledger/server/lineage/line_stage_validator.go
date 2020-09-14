@@ -74,9 +74,9 @@ func (p *stageValidator) _addFilament(rec *resolvedRecord) error {
 	case rec.filNo != 0:
 	case p.filNo != 0:
 		rec.filNo = p.filNo
-	case p.bundle.branchStart == 0 || p.bundle.branchHead == 0:
+	case p.bundle.branchRoot == 0 || p.bundle.branchFirst == 0:
 		return throw.New("inconsistent filament data")
-	case p.bundle.branchHead + p.recDelta != rec.recordNo:
+	case p.bundle.branchFirst+ p.recDelta != rec.recordNo:
 		return throw.New("inconsistent filament head")
 	default:
 		p.stage.filaments = append(p.stage.filaments, filament{})
