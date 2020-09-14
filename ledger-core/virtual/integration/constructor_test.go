@@ -147,12 +147,9 @@ func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
 		result, ok := report.ObjectTranscript.Entries[1].Get().(*rms.VObjectTranscriptReport_TranscriptEntryIncomingResult)
 		require.True(t, ok)
 
-		expectedVCallRequest, err := pl.Marshal()
-		require.Nil(t, err)
-
 		assert.Empty(t, request.Incoming)
 		assert.Empty(t, request.ObjectMemory)
-		assert.Equal(t, expectedVCallRequest, request.Request)
+		assert.Equal(t, *pl, request.Request)
 
 		assert.Empty(t, result.IncomingResult)
 		assert.Equal(t, pl.CallOutgoing.GetValue().GetLocal().Pulse(), result.ObjectState.Get().GetLocal().Pulse())

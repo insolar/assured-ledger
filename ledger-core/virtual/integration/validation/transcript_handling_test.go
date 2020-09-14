@@ -11,7 +11,6 @@ import (
 
 	"github.com/gojuno/minimock/v3"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
@@ -44,9 +43,6 @@ func TestValidation_ObjectTranscriptReport_AfterConstructor(t *testing.T) {
 	objectRef := reference.NewSelf(outgoing.GetValue().GetLocal())
 	p := server.GetPulse().PulseNumber
 
-	callRequestBin, err := callRequest.Marshal()
-	require.NoError(t, err)
-
 	pl := rms.VObjectTranscriptReport{
 		AsOf:   p,
 		Object: rms.NewReference(objectRef),
@@ -59,7 +55,7 @@ func TestValidation_ObjectTranscriptReport_AfterConstructor(t *testing.T) {
 	pl.ObjectTranscript.Entries[0].Set(
 		&rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest{
 			ObjectMemory: rms.NewReference(reference.NewRecordOf(objectRef, server.RandomLocalWithPulse())),
-			Request:      callRequestBin,
+			Request:      *callRequest,
 		},
 	)
 

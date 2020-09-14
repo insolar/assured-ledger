@@ -25,16 +25,11 @@ func (t *Transcript) GetRMSTranscript() (rms.VObjectTranscriptReport_Transcript,
 
 		switch typedEntry := interface{}(entry.Custom).(type) {
 		case TranscriptEntryIncomingRequest:
-			requestMarshaled, err := typedEntry.CallRequest.Marshal()
-			if err != nil {
-				return objectTranscript, err
-			}
-
 			rmsEntry.Set(
 				&rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest{
 					ObjectMemory: rms.NewReference(typedEntry.ObjectMemory),
 					Incoming:     rms.NewReference(typedEntry.Incoming),
-					Request:      requestMarshaled, // fixme: fix it after moving all messages to RMS package
+					Request:      typedEntry.CallRequest,
 				})
 		case TranscriptEntryIncomingResult:
 			rmsEntry.Set(&rms.VObjectTranscriptReport_TranscriptEntryIncomingResult{

@@ -299,7 +299,7 @@ message VObjectTranscriptReport {
 
         Reference ObjectMemory = 1800;
         Reference Incoming = 1801;
-        bytes Request = 1802; // fixme: waiting for messages to move to RMS package
+        VCallRequest Request = 1802;
     }
     message TranscriptEntryOutgoingRequest {
         option (insproto.id) = 101502;
