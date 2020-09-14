@@ -119,7 +119,7 @@ func TestSMExecute_MigrationDuringSendOutgoing(t *testing.T) {
 			SleepMock.Set(
 			func() (c1 smachine.ConditionalBuilder) {
 				return smachine.NewStateConditionalBuilderMock(t).
-					ThenJumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepTakeLockAfterOutgoing))
+					ThenJumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepAfterTakeGlobalLock))
 			})
 
 		smExecute.stepSendOutgoing(execCtx)
@@ -140,7 +140,7 @@ func TestSMExecute_MigrationDuringSendOutgoing(t *testing.T) {
 			SleepMock.Set(
 			func() (c1 smachine.ConditionalBuilder) {
 				return smachine.NewStateConditionalBuilderMock(t).
-					ThenJumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepTakeLockAfterOutgoing))
+					ThenJumpMock.Set(testutils.AssertJumpStep(t, smExecute.stepAfterTakeGlobalLock))
 			})
 
 		smExecute.stepSendOutgoing(execCtx)

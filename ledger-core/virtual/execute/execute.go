@@ -86,6 +86,8 @@ type SMExecute struct {
 
 	findCallResponse *rms.VFindCallResponse
 
+	stepAfterTakeGlobalLock smachine.StateFunc
+
 	// registration in LMN
 	lmnObjectRef       reference.Global
 	lmnLastFilamentRef reference.Global
@@ -617,10 +619,14 @@ func (s *SMExecute) stepRegisterObjectLifeLine(ctx smachine.ExecutionContext) sm
 	subroutineSM := &SMRegisterOnLMN{
 		Incoming: s.Payload,
 	}
+
+	ctx.Release(s.globalSemaphore.PartialLink())
+
 	return ctx.CallSubroutine(subroutineSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
 		s.lmnObjectRef = subroutineSM.NewObjectRef
 		s.lmnLastLifelineRef = subroutineSM.NewLastLifelineRef
-		return ctx.Jump(s.stepExecuteStart)
+		s.stepAfterTakeGlobalLock = s.stepExecuteStart
+		return ctx.Jump(s.stepTakeGlobalLock)
 	})
 }
 
@@ -696,11 +702,15 @@ func (s *SMExecute) stepRegisterDoneOnLMN(ctx smachine.ExecutionContext) smachin
 		subroutineSM.Incoming = s.Payload
 		s.incomingRegistered = true
 	}
+
+	ctx.Release(s.globalSemaphore.PartialLink())
+
 	return ctx.CallSubroutine(subroutineSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
 		s.lmnObjectRef = subroutineSM.NewObjectRef
 		s.lmnLastLifelineRef = subroutineSM.NewLastLifelineRef
 		s.lmnLastFilamentRef = subroutineSM.NewLastFilamentRef
-		return ctx.Jump(s.stepSaveNewObject)
+		s.stepAfterTakeGlobalLock = s.stepSaveNewObject
+		return ctx.Jump(s.stepTakeGlobalLock)
 	})
 }
 
@@ -738,11 +748,15 @@ func (s *SMExecute) stepRegisterOutgoingOnLMN(ctx smachine.ExecutionContext) sma
 		subroutineSM.Incoming = s.Payload
 		s.incomingRegistered = true
 	}
+
+	ctx.Release(s.globalSemaphore.PartialLink())
+
 	return ctx.CallSubroutine(subroutineSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
 		s.lmnObjectRef = subroutineSM.NewObjectRef
 		s.lmnLastLifelineRef = subroutineSM.NewLastLifelineRef
 		s.lmnLastFilamentRef = subroutineSM.NewLastFilamentRef
-		return ctx.Jump(s.stepExecuteOutgoing)
+		s.stepAfterTakeGlobalLock = s.stepExecuteOutgoing
+		return ctx.Jump(s.stepTakeGlobalLock)
 	})
 }
 
@@ -873,17 +887,19 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 	ctx.Release(s.globalSemaphore.PartialLink())
 
 	// we'll wait for barge-in WakeUp here, not adapter
-	return ctx.Sleep().ThenJump(s.stepTakeLockAfterOutgoing)
+	s.stepAfterTakeGlobalLock = s.stepExecuteContinue
+	return ctx.Sleep().ThenJump(s.stepAfterTakeGlobalLock)
 }
 
-func (s *SMExecute) stepTakeLockAfterOutgoing(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	// parent semaphore was released in stepSendOutgoing
-	// acquire it again
+func (s *SMExecute) stepTakeGlobalLock(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	if s.stepAfterTakeGlobalLock == nil {
+		panic(throw.IllegalValue())
+	}
 	if ctx.Acquire(s.globalSemaphore.PartialLink()).IsNotPassed() {
 		return ctx.Sleep().ThenRepeat()
 	}
 
-	return ctx.Jump(s.stepExecuteContinue)
+	return ctx.Jump(s.stepAfterTakeGlobalLock)
 }
 
 func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.StateUpdate {
