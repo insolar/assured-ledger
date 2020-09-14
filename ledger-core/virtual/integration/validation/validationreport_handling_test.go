@@ -3,7 +3,7 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package integration
+package validation
 
 import (
 	"testing"
@@ -20,7 +20,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 )
 
-func TestVirtual_ValidationReport(t *testing.T) {
+func TestVirtual_ObjectValidationReport(t *testing.T) {
 	defer commonTestUtils.LeakTester(t)
 
 	mc := minimock.NewController(t)
@@ -29,8 +29,6 @@ func TestVirtual_ValidationReport(t *testing.T) {
 	defer server.Stop()
 
 	var (
-		initState    = []byte("init state")
-		initRef      = server.RandomLocalWithPulse()
 		prevPulse    = server.GetPulse().PulseNumber
 		objectGlobal = server.RandomGlobalWithPulse()
 		class        = server.RandomGlobalWithPulse()
@@ -62,24 +60,8 @@ func TestVirtual_ValidationReport(t *testing.T) {
 
 	server.IncrementPulse(ctx)
 
-	// send VStateReport and VObjectValidationReport
+	// send VObjectValidationReport
 	{
-		pl := &payload.VStateReport{
-			Status: payload.StateStatusReady,
-			Object: objectGlobal,
-			AsOf:   prevPulse,
-			ProvidedContent: &payload.VStateReport_ProvidedContentBody{
-				LatestDirtyState: &payload.ObjectState{
-					Reference: initRef,
-					Class:     class,
-					State:     initState,
-				},
-			},
-		}
-		waitReport := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
-		server.SendPayload(ctx, pl)
-		commonTestUtils.WaitSignalsTimed(t, 10*time.Second, waitReport)
-
 		validationReport := &payload.VObjectValidationReport{
 			Object:    objectGlobal,
 			In:        prevPulse,
