@@ -38,6 +38,13 @@ func rndBytes(n int) []byte {
 	return key
 }
 
+type serversData struct {
+	serv1 Service
+	serv2 Service
+	disp1 uniserver.Dispatcher
+	disp2 uniserver.Dispatcher
+}
+
 func TestShipToHead(t *testing.T) {
 	payloadLen := 64
 
@@ -46,8 +53,6 @@ func TestShipToHead(t *testing.T) {
 	sh := Shipment{
 		Head: &head,
 	}
-
-	var _, srv2 Service
 
 	ch1 := make(chan string, 1)
 	recv1 := func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
@@ -61,10 +66,10 @@ func TestShipToHead(t *testing.T) {
 		return nil
 	}
 
-	_, srv2, stop := startUniprotoServers(t, recv1, noopReceiver)
+	data, stop := startUniprotoServers(t, recv1, noopReceiver)
 	defer stop()
 
-	err := srv2.ShipTo(NewDirectAddress(1), sh)
+	err := data.serv2.ShipTo(NewDirectAddress(1), sh)
 	require.NoError(t, err)
 
 	expPayload := head.S
@@ -82,8 +87,6 @@ func TestShipToBody(t *testing.T) {
 		Body: &body,
 	}
 
-	var _, srv2 Service
-
 	ch1 := make(chan string, 1)
 	recv1 := func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
 		vo := v.(fmt.Stringer).String()
@@ -96,10 +99,10 @@ func TestShipToBody(t *testing.T) {
 		return nil
 	}
 
-	_, srv2, stop := startUniprotoServers(t, recv1, noopReceiver)
+	data, stop := startUniprotoServers(t, recv1, noopReceiver)
 	defer stop()
 
-	err := srv2.ShipTo(NewDirectAddress(1), sh)
+	err := data.serv2.ShipTo(NewDirectAddress(1), sh)
 	require.NoError(t, err)
 
 	expPayload := body.S
@@ -121,7 +124,7 @@ func TestShipToHeadAndBody(t *testing.T) {
 		Body: &body,
 	}
 
-	var srv1, srv2 Service
+	var data serversData
 
 	ch1 := make(chan string, 2)
 
@@ -134,7 +137,7 @@ func TestShipToHeadAndBody(t *testing.T) {
 		// Save received head
 		ch1 <- vo
 
-		err := srv1.PullBody(a, ShipmentRequest{
+		err := data.serv1.PullBody(a, ShipmentRequest{
 			ReceiveFn: func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
 				vo := v.(fmt.Stringer).String()
 				t.Log(a.String(), fmt.Sprintf("ctrl-1:"), len(vo))
@@ -152,10 +155,10 @@ func TestShipToHeadAndBody(t *testing.T) {
 		return nil
 	}
 
-	srv1, srv2, stop := startUniprotoServers(t, recv1, noopReceiver)
+	data, stop := startUniprotoServers(t, recv1, noopReceiver)
 	defer stop()
 
-	err := srv2.ShipTo(NewDirectAddress(1), sh)
+	err := data.serv2.ShipTo(NewDirectAddress(1), sh)
 	require.NoError(t, err)
 
 	expHeadPayload := head.S
@@ -167,7 +170,7 @@ func TestShipToHeadAndBody(t *testing.T) {
 	require.Equal(t, expBodyPayload, actlBodyPayload)
 }
 
-func TestEchoHead(t *testing.T) {
+func TestEchoHead(t *testing.T) { // не поняла суть теста
 	payloadLen := 64
 
 	head := TestString{string(rndBytes(payloadLen))}
@@ -176,7 +179,7 @@ func TestEchoHead(t *testing.T) {
 		Head: &head,
 	}
 
-	var srv1, srv2 Service
+	var data serversData
 
 	recv1 := func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
 		vo := v.(fmt.Stringer).String()
@@ -184,7 +187,7 @@ func TestEchoHead(t *testing.T) {
 
 		require.True(t, bool(done))
 
-		err := srv1.ShipReturn(a, Shipment{
+		err := data.serv1.ShipReturn(a, Shipment{
 			Head: &TestString{S: vo + "echo1"},
 		})
 
@@ -206,10 +209,10 @@ func TestEchoHead(t *testing.T) {
 		return nil
 	}
 
-	srv1, srv2, stop := startUniprotoServers(t, recv1, recv2)
+	data, stop := startUniprotoServers(t, recv1, recv2)
 	defer stop()
 
-	err := srv2.ShipTo(NewDirectAddress(1), sh)
+	err := data.serv2.ShipTo(NewDirectAddress(1), sh)
 	require.NoError(t, err)
 
 	expPayload := head.S + "echo1"
@@ -231,7 +234,7 @@ func TestEchoHeadAndBody(t *testing.T) {
 		Body: &body,
 	}
 
-	var srv1, srv2 Service
+	var data serversData
 
 	recv1 := func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
 		vo := v.(fmt.Stringer).String()
@@ -241,13 +244,13 @@ func TestEchoHeadAndBody(t *testing.T) {
 
 		echoHead := TestString{S: vo + "echo1"}
 
-		err := srv1.PullBody(a, ShipmentRequest{
+		err := data.serv1.PullBody(a, ShipmentRequest{
 			ReceiveFn: func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
 				vo := v.(fmt.Stringer).String()
 
 				require.True(t, bool(done))
 
-				err := srv1.ShipReturn(a, Shipment{
+				err := data.serv1.ShipReturn(a, Shipment{
 					Head: &echoHead,
 					Body: &TestString{S: vo + "echo1"},
 				})
@@ -273,7 +276,7 @@ func TestEchoHeadAndBody(t *testing.T) {
 
 		ch2 <- vo
 
-		err := srv2.PullBody(a, ShipmentRequest{
+		err := data.serv2.PullBody(a, ShipmentRequest{
 			ReceiveFn: func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
 				vo := v.(fmt.Stringer).String()
 				t.Log(a.String(), fmt.Sprintf("ctrl-2:"), len(vo))
@@ -291,10 +294,10 @@ func TestEchoHeadAndBody(t *testing.T) {
 		return nil
 	}
 
-	srv1, srv2, stop := startUniprotoServers(t, recv1, recv2)
+	data, stop := startUniprotoServers(t, recv1, recv2)
 	defer stop()
 
-	err := srv2.ShipTo(NewDirectAddress(1), sh)
+	err := data.serv2.ShipTo(NewDirectAddress(1), sh)
 	require.NoError(t, err)
 
 	expHeadPayload := head.S + "echo1"
@@ -321,7 +324,7 @@ func TestShipToCancel(t *testing.T) {
 
 	ch.Cancel()
 
-	var _, srv2 Service
+	var data serversData
 
 	ch1 := make(chan string, 1)
 	recv1 := func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
@@ -335,10 +338,10 @@ func TestShipToCancel(t *testing.T) {
 		return nil
 	}
 
-	_, srv2, stop := startUniprotoServers(t, recv1, noopReceiver)
+	data, stop := startUniprotoServers(t, recv1, noopReceiver)
 	defer stop()
 
-	err := srv2.ShipTo(NewDirectAddress(1), sh)
+	err := data.serv2.ShipTo(NewDirectAddress(1), sh)
 	require.NoError(t, err)
 
 	_, ok := <-ch1
@@ -357,7 +360,7 @@ func TestShipReturnCancel(t *testing.T) {
 		Head: &head,
 	}
 
-	var srv1, srv2 Service
+	var data serversData
 
 	recv1 := func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
 		vo := v.(fmt.Stringer).String()
@@ -368,7 +371,7 @@ func TestShipReturnCancel(t *testing.T) {
 		ch := synckit.NewChainedCancel()
 		ch.Cancel()
 
-		err := srv1.ShipReturn(a, Shipment{
+		err := data.serv1.ShipReturn(a, Shipment{
 			Head:   &TestString{S: vo + "echo1"},
 			Cancel: ch,
 		})
@@ -391,10 +394,10 @@ func TestShipReturnCancel(t *testing.T) {
 		return nil
 	}
 
-	srv1, srv2, stop := startUniprotoServers(t, recv1, recv2)
+	data, stop := startUniprotoServers(t, recv1, recv2)
 	defer stop()
 
-	err := srv2.ShipTo(NewDirectAddress(1), sh)
+	err := data.serv2.ShipTo(NewDirectAddress(1), sh)
 	require.NoError(t, err)
 
 	_, ok := <-ch2
@@ -417,7 +420,7 @@ func TestPullBodyCancel(t *testing.T) {
 		Body: &body,
 	}
 
-	var srv1, srv2 Service
+	var data serversData
 
 	ch1 := make(chan string, 1)
 
@@ -430,7 +433,7 @@ func TestPullBodyCancel(t *testing.T) {
 		ch := synckit.NewChainedCancel()
 		ch.Cancel()
 
-		err := srv1.PullBody(a, ShipmentRequest{
+		err := data.serv1.PullBody(a, ShipmentRequest{
 			ReceiveFn: func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
 				vo := v.(fmt.Stringer).String()
 				t.Log(a.String(), fmt.Sprintf("ctrl-1:"), len(vo))
@@ -448,10 +451,10 @@ func TestPullBodyCancel(t *testing.T) {
 		return nil
 	}
 
-	srv1, srv2, stop := startUniprotoServers(t, recv1, noopReceiver)
+	data, stop := startUniprotoServers(t, recv1, noopReceiver)
 	defer stop()
 
-	err := srv2.ShipTo(NewDirectAddress(1), sh)
+	err := data.serv2.ShipTo(NewDirectAddress(1), sh)
 	require.NoError(t, err)
 
 	_, ok := <-ch1
@@ -474,7 +477,7 @@ func TestRejectBody(t *testing.T) {
 		Body: &body,
 	}
 
-	var srv1, srv2 Service
+	var data serversData
 
 	ch1 := make(chan string, 2)
 
@@ -484,7 +487,7 @@ func TestRejectBody(t *testing.T) {
 
 		require.False(t, bool(done))
 
-		err := srv1.PullBody(a, ShipmentRequest{
+		err := data.serv1.PullBody(a, ShipmentRequest{
 			ReceiveFn: func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
 				vo := v.(fmt.Stringer).String()
 				t.Log(a.String(), fmt.Sprintf("ctrl-1:"), len(vo))
@@ -497,10 +500,10 @@ func TestRejectBody(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		err = srv1.RejectBody(a)
+		err = data.serv1.RejectBody(a)
 		require.NoError(t, err)
 
-		err = srv1.PullBody(a, ShipmentRequest{
+		err = data.serv1.PullBody(a, ShipmentRequest{
 			ReceiveFn: noopReceiver,
 		})
 
@@ -513,10 +516,10 @@ func TestRejectBody(t *testing.T) {
 		return nil
 	}
 
-	srv1, srv2, stop := startUniprotoServers(t, recv1, noopReceiver)
+	data, stop := startUniprotoServers(t, recv1, noopReceiver)
 	defer stop()
 
-	err := srv2.ShipTo(NewDirectAddress(1), sh)
+	err := data.serv2.ShipTo(NewDirectAddress(1), sh)
 	require.NoError(t, err)
 
 	expHeadPayload := head.S
@@ -527,13 +530,51 @@ func TestRejectBody(t *testing.T) {
 
 func TestShipToWithTTL(t *testing.T) {
 	t.Skip("https://insolar.atlassian.net/browse/PLAT-800")
+	payloadLen := 64
+
+	head := TestString{string(rndBytes(payloadLen))}
+	p1 := pulse.NewOnePulseRange(pulse.NewFirstPulsarData(5, longbits.Bits256{}))
+
+	sh := Shipment{
+		Head: &head,
+		PN:   p1.LeftBoundNumber(),
+		TTL:  1,
+	}
+
+	var _, srv2 Service
+
+	ch1 := make(chan string, 1)
+	recv1 := func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
+		vo := v.(fmt.Stringer).String()
+		t.Log(a.String(), fmt.Sprintf("ctrl-1:"), len(vo))
+
+		require.True(t, bool(done))
+
+		ch1 <- vo
+
+		return nil
+	}
+
+	data, stop := startUniprotoServers(t, recv1, noopReceiver)
+	defer stop()
+
+	err := srv2.ShipTo(NewDirectAddress(1), sh)
+	require.NoError(t, err)
+
+	p2 := pulse.NewOnePulseRange(pulse.NewFirstPulsarData(10, longbits.Bits256{}))
+	data.disp1.NextPulse(p2)
+
+	expPayload := head.S
+	actlPayload := <-ch1
+
+	require.Equal(t, expPayload, actlPayload)
 }
 
 func TestShipReturnWithTTL(t *testing.T) {
 	t.Skip("https://insolar.atlassian.net/browse/PLAT-800")
 }
 
-func startUniprotoServers(t *testing.T, recv1, recv2 ReceiverFunc) (Service, Service, func()) {
+func startUniprotoServers(t *testing.T, recv1, recv2 ReceiverFunc) (serversData, func()) {
 	const Server1 = "127.0.0.1:0"
 	const Server2 = "127.0.0.1:0"
 
@@ -628,8 +669,13 @@ func startUniprotoServers(t *testing.T, recv1, recv2 ReceiverFunc) (Service, Ser
 
 	require.NoError(t, err)
 
-	return srv1, srv2, func() {
-		dispatcher2.Stop()
-		dispatcher1.Stop()
-	}
+	return serversData{
+			serv1: srv1,
+			serv2: srv2,
+			disp1: dispatcher1,
+			disp2: dispatcher2,
+		}, func() {
+			dispatcher2.Stop()
+			dispatcher1.Stop()
+		}
 }
