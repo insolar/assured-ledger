@@ -54,14 +54,17 @@ func (s *SMVObjectValidationReport) GetStateMachineDeclaration() smachine.StateM
 	return dSMVObjectValidationReportInstance
 }
 
-func (s *SMVObjectValidationReport) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
-	return ctx.Jump(s.stepProcess)
+func (s *SMVObjectValidationReport) migrationDefault(ctx smachine.MigrationContext) smachine.StateUpdate {
+	ctx.Log().Trace("stop processing SMVObjectValidationReport since pulse was changed")
+	return ctx.Stop()
 }
 
-func (s *SMVObjectValidationReport) stepProcess(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (s *SMVObjectValidationReport) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
 	if s.Payload.Object.IsEmpty() || s.Payload.Validated.IsEmpty() {
 		panic(throw.IllegalState())
 	}
+
+	ctx.SetDefaultMigration(s.migrationDefault)
 
 	return ctx.Jump(s.stepGetMemory)
 }
@@ -70,9 +73,9 @@ func (s *SMVObjectValidationReport) stepGetMemory(ctx smachine.ExecutionContext)
 	subSM := &statemachine.SMGetCachedMemory{
 		Object: s.Payload.Object.GetValue(), State: s.Payload.Validated.GetValue().GetLocal(),
 	}
-	return ctx.CallSubroutine(subSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
+	return ctx.CallSubroutine(subSM, s.migrationDefault, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
 		if subSM.Result == nil {
-			panic(throw.IllegalState())
+			return ctx.Jump(s.stepWaitIndefinitely)
 		}
 		s.objDesc = subSM.Result
 		return ctx.Jump(s.stepIncomingRequest)
@@ -80,6 +83,9 @@ func (s *SMVObjectValidationReport) stepGetMemory(ctx smachine.ExecutionContext)
 }
 
 func (s *SMVObjectValidationReport) stepIncomingRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
-
 	return ctx.Stop()
+}
+
+func (s *SMVObjectValidationReport) stepWaitIndefinitely(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	return ctx.Sleep().ThenRepeat()
 }
