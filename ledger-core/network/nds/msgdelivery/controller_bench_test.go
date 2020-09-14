@@ -20,6 +20,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 )
 
+type BenchType func(v benchSender, payload []byte)
+
 // WARNING! Benchmark is unstable due to packet drops on overflow.
 func BenchmarkThroughput(b *testing.B) {
 	results := make(chan []byte, 16)
@@ -30,33 +32,54 @@ func BenchmarkThroughput(b *testing.B) {
 
 	sender.results = results
 
-	b.Run("localhost", func(b *testing.B) {
+	testCases := []BenchType{
+		shipToBody,
+		shipToHead,
+	}
+
+	for _, runFunc := range testCases {
 		bench := sender
 
 		b.Run("0.1k", func(b *testing.B) {
-			bench.throughput(b, 100)
+			bench.throughput(b, 100, runFunc)
 		})
 
 		b.Run("1k", func(b *testing.B) {
-			bench.throughput(b, 1<<10)
+			bench.throughput(b, 1<<10, runFunc)
 		})
 
 		b.Run("4k", func(b *testing.B) {
-			bench.throughput(b, 1<<12)
+			bench.throughput(b, 1<<12, runFunc)
 		})
 
 		b.Run("16k", func(b *testing.B) {
-			bench.throughput(b, 1<<14)
+			bench.throughput(b, 1<<14, runFunc)
 		})
 
 		b.Run("128k", func(b *testing.B) {
-			bench.throughput(b, 1<<17)
+			bench.throughput(b, 1<<17, runFunc)
 		})
 
-		// b.Run("1M", func(b *testing.B) {
-		// 	bench.bench(b, 1<<20)
-		// })
-	})
+		b.Run("1M", func(b *testing.B) {
+			bench.throughput(b, 1<<20, runFunc)
+		})
+
+		b.Run("8M", func(b *testing.B) {
+			bench.throughput(b, 1<<23, runFunc)
+		})
+
+		b.Run("32M", func(b *testing.B) {
+			bench.throughput(b, 1<<25, runFunc)
+		})
+
+		b.Run("64M", func(b *testing.B) {
+			bench.throughput(b, 1<<26, runFunc)
+		})
+
+		b.Run("128M", func(b *testing.B) {
+			bench.throughput(b, 1<<27, runFunc)
+		})
+	}
 
 	// b.Run("loopback", func(b *testing.B) {
 	// 	bench := sender
@@ -88,43 +111,49 @@ func BenchmarkLatency(b *testing.B) {
 
 	sender.results = results
 
-	oob := false
+	testCases := []BenchType{
+		shipToBody,
+		shipToHead,
+	}
 
-	b.Run("regular", func(b *testing.B) {
+	for _, runFunc := range testCases {
 		bench := sender
 
 		b.Run("0.1k", func(b *testing.B) {
-			bench.latency(b, 100, oob)
+			bench.latency(b, 100, runFunc)
 		})
 
 		b.Run("4k", func(b *testing.B) {
-			bench.latency(b, 1<<12, oob)
+			bench.latency(b, 1<<12, runFunc)
 		})
 
 		b.Run("128k", func(b *testing.B) {
-			bench.latency(b, 1<<17, oob)
-		})
-	})
-
-	oob = true
-	b.Run("asap", func(b *testing.B) {
-		bench := sender
-
-		b.Run("0.1k", func(b *testing.B) {
-			bench.latency(b, 100, oob)
+			bench.latency(b, 1<<17, runFunc)
 		})
 
-		b.Run("4k", func(b *testing.B) {
-			bench.latency(b, 1<<12, oob)
+		b.Run("1M", func(b *testing.B) {
+			bench.latency(b, 1<<20, runFunc)
 		})
 
-		b.Run("128k", func(b *testing.B) {
-			bench.latency(b, 1<<17, oob)
+		b.Run("8M", func(b *testing.B) {
+			bench.latency(b, 1<<23, runFunc)
 		})
-	})
+
+		b.Run("32M", func(b *testing.B) {
+			bench.latency(b, 1<<25, runFunc)
+		})
+
+		b.Run("64M", func(b *testing.B) {
+			bench.latency(b, 1<<26, runFunc)
+		})
+
+		b.Run("128M", func(b *testing.B) {
+			bench.latency(b, 1<<27, runFunc)
+		})
+	}
 }
 
-func createPipe(t testing.TB, server1, server2 string, udpMaxSize int, resultFn func([]byte)) (benchSender, func ()) {
+func createPipe(t testing.TB, server1, server2 string, udpMaxSize int, resultFn func([]byte)) (benchSender, func()) {
 
 	var idWithPortFn func(nwapi.Address) bool
 	if server1 == server2 {
@@ -221,8 +250,8 @@ func createPipe(t testing.TB, server1, server2 string, udpMaxSize int, resultFn 
 	ctl2 := controller2.NewFacade()
 
 	return benchSender{
-			toAddr:  NewDirectAddress(1),
-			ctl:     ctl2,
+			toAddr: NewDirectAddress(1),
+			ctl:    ctl2,
 		}, func() {
 			dispatcher1.Stop()
 			dispatcher2.Stop()
@@ -235,7 +264,7 @@ type benchSender struct {
 	ctl     Service
 }
 
-func (v benchSender) throughput(b *testing.B, payloadSize int) {
+func (v benchSender) throughput(b *testing.B, payloadSize int, funcName BenchType) {
 	payload := make([]byte, payloadSize)
 	b.ResetTimer()
 	b.ReportAllocs()
@@ -243,25 +272,22 @@ func (v benchSender) throughput(b *testing.B, payloadSize int) {
 
 	received := 100
 	for i := b.N; i > 0; i-- {
-		err := v.ctl.ShipTo(v.toAddr, Shipment{Body: &TestBytes{payload}})
-		if err != nil {
-			panic(err)
-		}
+		funcName(v, payload)
 		select {
-		case <- v.results:
+		case <-v.results:
 			received++
-			// println(received, b.N, " in-loop")
+			println(received, b.N, " in-loop")
 		default:
 		}
 	}
-	for ;received < b.N; {
-		<- v.results
+	for received < b.N {
+		<-v.results
 		received++
-		// println(received, b.N, " off-loop")
+		println(received, b.N, " off-loop")
 	}
 }
 
-func (v benchSender) latency(b *testing.B, payloadSize int, oob bool) {
+func (v benchSender) latency(b *testing.B, payloadSize int, funcName BenchType) {
 	payload := make([]byte, payloadSize)
 	b.SetBytes(int64(len(payload)))
 
@@ -271,10 +297,50 @@ func (v benchSender) latency(b *testing.B, payloadSize int, oob bool) {
 	for i := b.N; i > 0; i-- {
 		nanos := time.Now().UnixNano()
 		binary.LittleEndian.PutUint64(payload, uint64(nanos))
-		err := v.ctl.ShipTo(v.toAddr, Shipment{Body: &TestBytes{payload}})
-		if err != nil {
-			panic(err)
-		}
-		<- v.results
+		funcName(v, payload)
+		<-v.results
+	}
+}
+
+////////////////////////////
+
+func shipToBody(v benchSender, payload []byte) {
+	err := v.ctl.ShipTo(v.toAddr, Shipment{Body: &TestBytes{payload}})
+	if err != nil {
+		panic(err)
+	}
+}
+
+func shipToHead(v benchSender, payload []byte) {
+	err := v.ctl.ShipTo(v.toAddr, Shipment{Head: &TestBytes{payload[:64]}})
+	if err != nil {
+		panic(err)
+	}
+}
+
+func shipToHeadAndPullBody(v benchSender, payload []byte) {
+	head := TestString{string(payload[:64])}
+	body := TestString{string(payload)}
+
+	// recv1 := func(a ReturnAddress, done nwapi.PayloadCompleteness, _ interface{}) error {
+	// 	err := v.ctl.PullBody(a, ShipmentRequest{
+	// 		ReceiveFn: func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
+	// 			return nil
+	// 		},
+	// 	})
+	//
+	// 	if err != nil {
+	// 		panic(err)
+	// 	}
+	// 	return nil
+	// }
+	// todo receiver need before server init
+
+	err := v.ctl.ShipTo(v.toAddr, Shipment{
+		Head: &head,
+		Body: &body,
+	})
+	if err != nil {
+		panic(err)
 	}
 }
