@@ -85,17 +85,17 @@ func getPulseTime() int32 {
 	const (
 		defaultPulseTime = 3000
 	)
+	pulseTime := defaultPulseTime
 	pulseTimeEnv := launchnet.GetPulseTimeEnv()
-	pulseTime, err := strconv.Atoi(pulseTimeEnv)
-	if err != nil {
-		panic(err)
+	if len(pulseTimeEnv) != 0 {
+		var err error
+		pulseTime, err = strconv.Atoi(pulseTimeEnv)
+		if err != nil {
+			panic(err)
+		}
 	}
 
-	if pulseTime != 0 {
-		return int32(pulseTime)
-	}
-
-	return defaultPulseTime
+	return int32(pulseTime)
 }
 
 func runCloud(numNodes int) (func(), *launchnet.CloudRunner, error) {
