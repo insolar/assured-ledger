@@ -475,8 +475,6 @@ func waitForLaunch(cmd *exec.Cmd, verbose bool) error {
 	output := outputWriter{skip: !verbose}
 	go func() {
 		scanner := bufio.NewScanner(stdout)
-		if verbose {
-		}
 		output.log("Insolard output: ")
 		for scanner.Scan() {
 			line := scanner.Text()
