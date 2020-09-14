@@ -662,7 +662,8 @@ func (s *SMExecute) stepExecuteDecideNextStep(ctx smachine.ExecutionContext) sma
 	switch newState.Type {
 	case execution.Done:
 		// send VCallResult here
-		return ctx.Jump(s.stepRegisterDoneOnLMN)
+		s.stepAfterTakeGlobalLock = s.stepSaveNewObject
+		return ctx.Jump(s.stepRegisterExecutionDoneOnLMN)
 	case execution.Error:
 		if d := new(runner.ErrorDetail); throw.FindDetail(newState.Error, d) {
 			switch d.Type {
@@ -676,7 +677,8 @@ func (s *SMExecute) stepExecuteDecideNextStep(ctx smachine.ExecutionContext) sma
 			string
 			err error
 		}{"Failed to execute request", newState.Error})
-		return ctx.Jump(s.stepExecuteAborted)
+		s.stepAfterTakeGlobalLock = s.stepExecuteAborted
+		return ctx.Jump(s.stepRegisterExecutionDoneOnLMN)
 	case execution.Abort:
 		err := throw.E("execution aborted")
 		ctx.Log().Warn(err)
@@ -689,7 +691,7 @@ func (s *SMExecute) stepExecuteDecideNextStep(ctx smachine.ExecutionContext) sma
 	}
 }
 
-func (s *SMExecute) stepRegisterDoneOnLMN(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (s *SMExecute) stepRegisterExecutionDoneOnLMN(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	subroutineSM := &SMRegisterOnLMN{
 		IncomingResult:  s.executionNewState,
 		OutgoingResult:  s.outgoingVCallResult,
@@ -709,7 +711,7 @@ func (s *SMExecute) stepRegisterDoneOnLMN(ctx smachine.ExecutionContext) smachin
 		s.lmnObjectRef = subroutineSM.NewObjectRef
 		s.lmnLastLifelineRef = subroutineSM.NewLastLifelineRef
 		s.lmnLastFilamentRef = subroutineSM.NewLastFilamentRef
-		s.stepAfterTakeGlobalLock = s.stepSaveNewObject
+		// s.stepAfterTakeGlobalLock must be set before this step was called
 		return ctx.Jump(s.stepTakeGlobalLock)
 	})
 }

@@ -405,7 +405,7 @@ func (s *SMRegisterOnLMN) stepRegisterOutgoingResult(ctx smachine.ExecutionConte
 }
 
 func (s *SMRegisterOnLMN) stepRegisterIncomingResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if s.IncomingResult.Type != execution.Done {
+	if s.IncomingResult.Type != execution.Done && s.IncomingResult.Type != execution.Error {
 		panic(throw.IllegalState())
 	}
 
@@ -414,6 +414,7 @@ func (s *SMRegisterOnLMN) stepRegisterIncomingResult(ctx smachine.ExecutionConte
 		isConstructor = s.IncomingResult.Result.Type() == requestresult.SideEffectActivate
 		isDestructor  = s.IncomingResult.Result.Type() == requestresult.SideEffectDeactivate
 		isNone        = s.IncomingResult.Result.Type() == requestresult.SideEffectNone
+		isError       = s.IncomingResult.Error != nil
 	)
 
 	{ // result of execution
@@ -459,6 +460,9 @@ func (s *SMRegisterOnLMN) stepRegisterIncomingResult(ctx smachine.ExecutionConte
 				PrevRef: rms.NewReference(s.LastLifelineRef),
 			}
 		case isDestructor:
+			record = nil
+		case isError:
+			// TODO: ???
 			record = nil
 		case isNone:
 			// TODO: we should post here a link to previous memory
