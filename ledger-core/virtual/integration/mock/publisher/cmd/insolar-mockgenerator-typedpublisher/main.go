@@ -190,7 +190,7 @@ func loadFiles(files []*ast.File) []string {
 					switch {
 					case smName == "" || payloadType == "":
 						// do nothing
-					case !strings.HasPrefix(payloadType, "payload.") && !strings.HasPrefix(payloadType, "rms."):
+					case !strings.HasPrefix(payloadType, "rms."):
 						// do nothing
 					default:
 						payloadMapping[smName] = payloadType
@@ -255,19 +255,6 @@ func parseHandlers() ([]string, error) {
 	return messages, nil
 }
 
-func checkRMSIsUsed(messages []string) bool {
-	for _, message := range messages {
-		if strings.HasPrefix(message, "rms.") {
-			return true
-		}
-	}
-	return false
-}
-
-func checkPayloadIsUsed(messages []string) bool {
-	return true
-}
-
 func messageListToMessageDataList(messages []string) []MessageData {
 	messagesData := make([]MessageData, len(messages))
 
@@ -292,16 +279,12 @@ type MessageData struct {
 }
 
 type GeneratorData struct {
-	Messages      []MessageData
-	RMSIsUsed     bool
-	PayloadIsUsed bool
+	Messages []MessageData
 }
 
 func generateMock(messages []string) (*bytes.Buffer, error) {
 	data := GeneratorData{
-		Messages:      messageListToMessageDataList(messages),
-		RMSIsUsed:     checkRMSIsUsed(messages),
-		PayloadIsUsed: checkPayloadIsUsed(messages),
+		Messages: messageListToMessageDataList(messages),
 	}
 
 	var (

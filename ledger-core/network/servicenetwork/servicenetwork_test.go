@@ -33,8 +33,8 @@ import (
 	"github.com/insolar/component-manager"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 )
@@ -61,10 +61,9 @@ func TestSendMessageHandler_ReceiverNotSet(t *testing.T) {
 
 	serviceNetwork, _ := prepareNetwork(t, configuration.NewConfiguration())
 
-	p := []byte{1, 2, 3, 4, 5}
-	meta := payload.Meta{
-		Payload: p,
-	}
+	meta := rms.Meta{}
+	meta.Payload.Set(&rms.VCallRequest{})
+
 	data, err := meta.Marshal()
 	require.NoError(t, err)
 
@@ -81,11 +80,9 @@ func TestSendMessageHandler_SameNode(t *testing.T) {
 	pulseMock := beat.NewAppenderMock(t)
 	pulseMock.LatestTimeBeatMock.Return(pulsestor.GenesisPulse, nil)
 
-	p := []byte{1, 2, 3, 4, 5}
-	meta := payload.Meta{
-		Payload:  p,
-		Receiver: nodeRef,
-	}
+	meta := rms.Meta{Receiver: rms.NewReference(nodeRef)}
+	meta.Payload.Set(&rms.VCallRequest{})
+
 	data, err := meta.Marshal()
 	require.NoError(t, err)
 
@@ -107,11 +104,9 @@ func TestSendMessageHandler_SendError(t *testing.T) {
 	pulseMock.LatestTimeBeatMock.Return(pulsestor.GenesisPulse, nil)
 	svcNw.RPC = rpc
 
-	p := []byte{1, 2, 3, 4, 5}
-	meta := payload.Meta{
-		Payload:  p,
-		Receiver: gen.UniqueGlobalRef(),
-	}
+	meta := rms.Meta{Receiver: rms.NewReference(gen.UniqueGlobalRef())}
+	meta.Payload.Set(&rms.VCallRequest{})
+
 	data, err := meta.Marshal()
 	require.NoError(t, err)
 
@@ -133,11 +128,9 @@ func TestSendMessageHandler_WrongReply(t *testing.T) {
 	pulseMock.LatestTimeBeatMock.Return(pulsestor.GenesisPulse, nil)
 	svcNw.RPC = rpc
 
-	p := []byte{1, 2, 3, 4, 5}
-	meta := payload.Meta{
-		Payload:  p,
-		Receiver: gen.UniqueGlobalRef(),
-	}
+	meta := rms.Meta{Receiver: rms.NewReference(gen.UniqueGlobalRef())}
+	meta.Payload.Set(&rms.VCallRequest{})
+
 	data, err := meta.Marshal()
 	require.NoError(t, err)
 
@@ -159,11 +152,9 @@ func TestSendMessageHandler(t *testing.T) {
 	pulseMock.LatestTimeBeatMock.Return(pulsestor.GenesisPulse, nil)
 	svcNw.RPC = rpc
 
-	p := []byte{1, 2, 3, 4, 5}
-	meta := payload.Meta{
-		Payload:  p,
-		Receiver: gen.UniqueGlobalRef(),
-	}
+	meta := rms.Meta{Receiver: rms.NewReference(gen.UniqueGlobalRef())}
+	meta.Payload.Set(&rms.VCallRequest{})
+
 	data, err := meta.Marshal()
 	require.NoError(t, err)
 

@@ -11,9 +11,10 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms/rmsreg"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
@@ -43,7 +44,7 @@ type VFindCallRequestHandlingTestInfo struct {
 	requestFromP1        bool
 	requestIsConstructor bool
 
-	expectedStatus     payload.VFindCallResponse_CallState
+	expectedStatus     rms.VFindCallResponse_CallState
 	expectedResult     bool
 	expectedDelegation bool
 }
@@ -56,62 +57,62 @@ func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
 			name:   "don't know request, missing",
 			events: []TestStep{StepIncrementPulseToP3, StepFindMessage},
 
-			expectedStatus: payload.CallStateMissing,
+			expectedStatus: rms.CallStateMissing,
 		},
 		{
 			name:   "don't know request, missing, early msg",
 			events: []TestStep{StepFindMessage, StepIncrementPulseToP3},
 
-			expectedStatus: payload.CallStateMissing,
+			expectedStatus: rms.CallStateMissing,
 		},
 		{
 			name:          "don't know request, unknown",
 			events:        []TestStep{StepIncrementPulseToP3, StepFindMessage},
 			requestFromP1: true,
 
-			expectedStatus: payload.CallStateUnknown,
+			expectedStatus: rms.CallStateUnknown,
 		},
 		{
 			name:          "don't know request, unknown, early msg",
 			events:        []TestStep{StepFindMessage, StepIncrementPulseToP3},
 			requestFromP1: true,
 
-			expectedStatus: payload.CallStateUnknown,
+			expectedStatus: rms.CallStateUnknown,
 		},
 
 		{
 			name:   "found request, method, not pending, result",
 			events: []TestStep{StepMethodStartAndFinish, StepIncrementPulseToP3, StepFindMessage},
 
-			expectedStatus: payload.CallStateFound,
+			expectedStatus: rms.CallStateFound,
 			expectedResult: true,
 		},
 		{
 			name:   "found request, method, not pending, result, early msg",
 			events: []TestStep{StepFindMessage, StepMethodStartAndFinish, StepIncrementPulseToP3},
 
-			expectedStatus: payload.CallStateFound,
+			expectedStatus: rms.CallStateFound,
 			expectedResult: true,
 		},
 		{
 			name:   "found request, method, pending, no result",
 			events: []TestStep{StepMethodStart, StepIncrementPulseToP3, StepFindMessage, StepRequestFinish},
 
-			expectedStatus:     payload.CallStateFound,
+			expectedStatus:     rms.CallStateFound,
 			expectedDelegation: true,
 		},
 		{
 			name:   "found request, method, pending, no result, earlyMsg",
 			events: []TestStep{StepFindMessage, StepMethodStart, StepIncrementPulseToP3, StepRequestFinish},
 
-			expectedStatus:     payload.CallStateFound,
+			expectedStatus:     rms.CallStateFound,
 			expectedDelegation: true,
 		},
 		{
 			name:   "found request, method, pending, result",
 			events: []TestStep{StepMethodStart, StepIncrementPulseToP3, StepRequestFinish, StepFindMessage},
 
-			expectedStatus:     payload.CallStateFound,
+			expectedStatus:     rms.CallStateFound,
 			expectedDelegation: true,
 		},
 
@@ -120,7 +121,7 @@ func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
 			events:               []TestStep{StepConstructorStartAndFinish, StepIncrementPulseToP3, StepFindMessage},
 			requestIsConstructor: true,
 
-			expectedStatus: payload.CallStateFound,
+			expectedStatus: rms.CallStateFound,
 			expectedResult: true,
 		},
 		// TODO failed
@@ -129,7 +130,7 @@ func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
 			events:               []TestStep{StepFindMessage, StepConstructorStartAndFinish, StepIncrementPulseToP3},
 			requestIsConstructor: true,
 
-			expectedStatus: payload.CallStateFound,
+			expectedStatus: rms.CallStateFound,
 			expectedResult: true,
 		},
 		{
@@ -137,7 +138,7 @@ func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
 			events:               []TestStep{StepConstructorStart, StepIncrementPulseToP3, StepFindMessage, StepRequestFinish},
 			requestIsConstructor: true,
 
-			expectedStatus:     payload.CallStateFound,
+			expectedStatus:     rms.CallStateFound,
 			expectedDelegation: true,
 		},
 		{
@@ -145,7 +146,7 @@ func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
 			events:               []TestStep{StepFindMessage, StepConstructorStart, StepIncrementPulseToP3, StepRequestFinish},
 			requestIsConstructor: true,
 
-			expectedStatus:     payload.CallStateFound,
+			expectedStatus:     rms.CallStateFound,
 			expectedDelegation: true,
 		},
 		{
@@ -153,7 +154,7 @@ func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
 			events:               []TestStep{StepConstructorStart, StepIncrementPulseToP3, StepRequestFinish, StepFindMessage},
 			requestIsConstructor: true,
 
-			expectedStatus:     payload.CallStateFound,
+			expectedStatus:     rms.CallStateFound,
 			expectedDelegation: true,
 		},
 	}
@@ -215,10 +216,10 @@ func StepIncrementPulseToP3(s *VFindCallRequestHandlingSuite, ctx context.Contex
 }
 
 func StepFindMessage(s *VFindCallRequestHandlingSuite, ctx context.Context, t *testing.T) {
-	findMsg := payload.VFindCallRequest{
+	findMsg := rms.VFindCallRequest{
 		LookAt:   s.getP2(),
-		Callee:   s.getObject(),
-		Outgoing: s.outgoing,
+		Callee:   rms.NewReference(s.getObject()),
+		Outgoing: rms.NewReference(s.outgoing),
 	}
 	s.addPayloadAndWaitIdle(ctx, &findMsg)
 }
@@ -229,30 +230,30 @@ func StepMethodStart(s *VFindCallRequestHandlingSuite, ctx context.Context, t *t
 	}
 	s.executionPoint = synchronization.NewPoint(1)
 
-	report := payload.VStateReport{
+	report := rms.VStateReport{
 		AsOf:   s.getP1(),
-		Status: payload.StateStatusReady,
-		Object: s.getObject(),
+		Status: rms.StateStatusReady,
+		Object: rms.NewReference(s.getObject()),
 
-		ProvidedContent: &payload.VStateReport_ProvidedContentBody{
-			LatestDirtyState: &payload.ObjectState{
-				Reference: gen.UniqueLocalRefWithPulse(s.getP1()),
-				Class:     s.getClass(),
-				State:     []byte("object memory"),
+		ProvidedContent: &rms.VStateReport_ProvidedContentBody{
+			LatestDirtyState: &rms.ObjectState{
+				Reference: rms.NewReferenceLocal(gen.UniqueLocalRefWithPulse(s.getP1())),
+				Class:     rms.NewReference(s.getClass()),
+				State:     rms.NewBytes([]byte("object memory")),
 			},
-			LatestValidatedState: &payload.ObjectState{
-				Reference: gen.UniqueLocalRefWithPulse(s.getP1()),
-				Class:     s.getClass(),
-				State:     []byte("object memory"),
+			LatestValidatedState: &rms.ObjectState{
+				Reference: rms.NewReferenceLocal(gen.UniqueLocalRefWithPulse(s.getP1())),
+				Class:     rms.NewReference(s.getClass()),
+				State:     rms.NewBytes([]byte("object memory")),
 			},
 		},
 	}
 	s.addPayloadAndWaitIdle(ctx, &report)
 
 	req := utils.GenerateVCallRequestMethod(s.server)
-	req.Caller = s.getCaller()
-	req.Callee = s.getObject()
-	req.CallOutgoing = s.outgoing
+	req.Caller.Set(s.getCaller())
+	req.Callee.Set(s.getObject())
+	req.CallOutgoing.Set(s.outgoing)
 
 	s.addPayloadAndWaitIdle(ctx, req)
 	s.vStateReportSent = make(chan struct{})
@@ -267,18 +268,18 @@ func StepConstructorStart(s *VFindCallRequestHandlingSuite, ctx context.Context,
 	s.executionPoint = synchronization.NewPoint(1)
 
 	if s.getObject().GetLocal().GetPulseNumber() < s.getP2() {
-		report := payload.VStateReport{
+		report := rms.VStateReport{
 			AsOf:   s.getP1(),
-			Status: payload.StateStatusMissing,
-			Object: s.getObject(),
+			Status: rms.StateStatusMissing,
+			Object: rms.NewReference(s.getObject()),
 		}
 		s.addPayloadAndWaitIdle(ctx, &report)
 	}
 
 	req := utils.GenerateVCallRequestConstructor(s.server)
-	req.Caller = s.getCaller()
-	req.Callee = s.getClass()
-	req.CallOutgoing = s.outgoing
+	req.Caller.Set(s.getCaller())
+	req.Callee.Set(s.getClass())
+	req.CallOutgoing.Set(s.outgoing)
 
 	s.addPayloadAndWaitIdle(ctx, req)
 	s.vStateReportSent = make(chan struct{})
@@ -402,26 +403,26 @@ func (s *VFindCallRequestHandlingSuite) setMessageCheckers(
 	testInfo VFindCallRequestHandlingTestInfo,
 ) {
 
-	s.typedChecker.VFindCallResponse.Set(func(res *payload.VFindCallResponse) bool {
+	s.typedChecker.VFindCallResponse.Set(func(res *rms.VFindCallResponse) bool {
 		defer func() {
 			close(s.vFindCallResponseSent)
 		}()
 		assert.Equal(t, s.getP2(), res.LookedAt)
-		assert.Equal(t, s.getObject(), res.Callee)
-		assert.Equal(t, s.outgoing, res.Outgoing)
+		assert.Equal(t, s.getObject(), res.Callee.GetValue())
+		assert.Equal(t, s.outgoing, res.Outgoing.GetValue())
 		assert.Equal(t, testInfo.expectedStatus, res.Status)
 
 		if testInfo.expectedResult {
 			require.NotNil(t, res.CallResult)
-			require.Equal(t, s.outgoing, res.CallResult.CallOutgoing)
+			assert.Equal(t, s.outgoing, res.CallResult.CallOutgoing.GetValue())
 		}
 
 		return false
 	})
 
-	s.typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
+	s.typedChecker.VStateReport.Set(func(report *rms.VStateReport) bool {
 		assert.Equal(t, s.getP2(), report.AsOf)
-		assert.Equal(t, s.getObject(), report.Object)
+		assert.Equal(t, s.getObject(), report.Object.GetValue())
 		if s.vStateReportSent != nil {
 			close(s.vStateReportSent)
 		}
@@ -430,10 +431,10 @@ func (s *VFindCallRequestHandlingSuite) setMessageCheckers(
 
 	s.typedChecker.VCallResult.SetResend(false)
 
-	s.typedChecker.VDelegatedCallRequest.Set(func(req *payload.VDelegatedCallRequest) bool {
-		delegationToken := s.server.DelegationToken(req.CallOutgoing, s.getCaller(), req.Callee)
+	s.typedChecker.VDelegatedCallRequest.Set(func(req *rms.VDelegatedCallRequest) bool {
+		delegationToken := s.server.DelegationToken(req.CallOutgoing.GetValue(), s.getCaller(), req.Callee.GetValue())
 
-		s.server.SendPayload(ctx, &payload.VDelegatedCallResponse{
+		s.server.SendPayload(ctx, &rms.VDelegatedCallResponse{
 			Callee:                 req.Callee,
 			CallIncoming:           req.CallIncoming,
 			ResponseDelegationSpec: delegationToken,
@@ -443,16 +444,16 @@ func (s *VFindCallRequestHandlingSuite) setMessageCheckers(
 	})
 	s.typedChecker.VDelegatedRequestFinished.SetResend(false)
 
-	s.typedChecker.VFindCallRequest.Set(func(req *payload.VFindCallRequest) bool {
+	s.typedChecker.VFindCallRequest.Set(func(req *rms.VFindCallRequest) bool {
 		assert.Equal(t, s.getP2(), req.LookAt)
 		assert.Equal(t, s.getObject(), req.Callee)
 		assert.Equal(t, s.outgoing, req.Outgoing)
 
-		pl := payload.VFindCallResponse{
+		pl := rms.VFindCallResponse{
 			LookedAt: s.getP2(),
-			Callee:   s.getObject(),
-			Outgoing: s.outgoing,
-			Status:   payload.CallStateMissing,
+			Callee:   rms.NewReference(s.getObject()),
+			Outgoing: rms.NewReference(s.outgoing),
+			Status:   rms.CallStateMissing,
 		}
 		s.server.SendPayload(ctx, &pl)
 		return false
@@ -494,9 +495,7 @@ func (s *VFindCallRequestHandlingSuite) setRunnerMock() {
 	}
 }
 
-func (s *VFindCallRequestHandlingSuite) addPayloadAndWaitIdle(
-	ctx context.Context, pl payload.Marshaler,
-) {
+func (s *VFindCallRequestHandlingSuite) addPayloadAndWaitIdle(ctx context.Context, pl rmsreg.GoGoSerializable) {
 	s.server.SuspendConveyorAndWaitThenResetActive()
 	s.server.SendPayload(ctx, pl)
 	s.server.WaitActiveThenIdleConveyor()

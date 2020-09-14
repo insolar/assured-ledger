@@ -18,7 +18,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/convlog"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
@@ -29,6 +28,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms/rmsreg"
 	"github.com/insolar/assured-ledger/ledger-core/runner"
 	"github.com/insolar/assured-ledger/ledger-core/runner/machine"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
@@ -316,7 +317,7 @@ func (s *Server) RandomGlobalWithPulse() reference.Global {
 	return gen.UniqueGlobalRefWithPulse(s.GetPulse().PulseNumber)
 }
 
-func (s *Server) DelegationToken(outgoing reference.Global, to reference.Global, object reference.Global) payload.CallDelegationToken {
+func (s *Server) DelegationToken(outgoing reference.Global, to reference.Global, object reference.Global) rms.CallDelegationToken {
 	return s.virtual.AuthenticationService.GetCallDelegationToken(outgoing, to, s.GetPulse().PulseNumber, object)
 }
 
@@ -486,20 +487,20 @@ func (s *Server) setWaitCallback(cycleFn ConveyorCycleFunc) {
 	})
 }
 
-func (s *Server) WrapPayload(pl payload.Marshaler) *RequestWrapper {
+func (s *Server) WrapPayload(pl rmsreg.GoGoSerializable) *RequestWrapper {
 	return NewRequestWrapper(s.GetPulse().PulseNumber, pl).SetSender(s.caller)
 }
 
-func (s *Server) SendPayload(ctx context.Context, pl payload.Marshaler) {
+func (s *Server) SendPayload(ctx context.Context, pl rmsreg.GoGoSerializable) {
 	msg := s.WrapPayload(pl).Finalize()
 	s.SendMessage(ctx, msg)
 }
 
-func (s *Server) WrapPayloadAsFuture(pl payload.Marshaler) *RequestWrapper {
+func (s *Server) WrapPayloadAsFuture(pl rmsreg.GoGoSerializable) *RequestWrapper {
 	return NewRequestWrapper(s.GetPulse().NextPulseNumber(), pl).SetSender(s.caller)
 }
 
-func (s *Server) SendPayloadAsFuture(ctx context.Context, pl payload.Marshaler) {
+func (s *Server) SendPayloadAsFuture(ctx context.Context, pl rmsreg.GoGoSerializable) {
 	msg := s.WrapPayloadAsFuture(pl).Finalize()
 	s.SendMessage(ctx, msg)
 }

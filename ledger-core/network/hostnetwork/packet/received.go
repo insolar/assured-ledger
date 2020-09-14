@@ -5,12 +5,16 @@
 
 package packet
 
+import (
+	"github.com/insolar/assured-ledger/ledger-core/rms"
+)
+
 type ReceivedPacket struct {
-	*Packet
+	*rms.Packet
 	data []byte
 }
 
-func NewReceivedPacket(p *Packet, data []byte) *ReceivedPacket {
+func NewReceivedPacket(p *rms.Packet, data []byte) *ReceivedPacket {
 	return &ReceivedPacket{
 		Packet: p,
 		data:   data,
