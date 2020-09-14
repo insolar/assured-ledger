@@ -13,10 +13,11 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms/rmsreg"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
@@ -25,25 +26,25 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 )
 
-func buildStateReport(status payload.VStateReport_StateStatus, state descriptor.Object) payload.VStateReport {
+func buildStateReport(status rms.VStateReport_StateStatus, state descriptor.Object) rms.VStateReport {
 	var (
 		pd          = pulse.NewFirstPulsarData(10, longbits.Bits256{})
 		smGlobalRef = gen.UniqueGlobalRefWithPulse(pd.PulseNumber)
 	)
 
-	res := payload.VStateReport{
-		Object:          smGlobalRef,
-		ProvidedContent: &payload.VStateReport_ProvidedContentBody{},
+	res := rms.VStateReport{
+		Object:          rms.NewReference(smGlobalRef),
+		ProvidedContent: &rms.VStateReport_ProvidedContentBody{},
 		Status:          status,
 	}
 
 	if state != nil {
-		res.LatestDirtyState = state.HeadRef()
+		res.LatestDirtyState.Set(state.HeadRef())
 		class, _ := state.Class()
-		res.ProvidedContent.LatestDirtyState = &payload.ObjectState{
-			Reference: state.StateID(),
-			Class:     class,
-			State:     state.Memory(),
+		res.ProvidedContent.LatestDirtyState = &rms.ObjectState{
+			Reference: rms.NewReferenceLocal(state.StateID()),
+			Class:     rms.NewReference(class),
+			State:     rms.NewBytes(state.Memory()),
 		}
 	}
 	return res
@@ -73,11 +74,11 @@ func TestSMStateReport_SendVStateReport_IfDescriptorSet(t *testing.T) {
 	)
 
 	smReport := newSMReportWithPulse()
-	smReport.Report = buildStateReport(payload.StateStatusReady, descriptor.NewObject(reference.Global{}, reference.Local{}, reference.Global{}, nil, false))
+	smReport.Report = buildStateReport(rms.StateStatusReady, descriptor.NewObject(reference.Global{}, reference.Local{}, reference.Global{}, nil, false))
 
 	messageService := messageSenderWrapper.NewServiceMockWrapper(mc)
-	checkMessageFn := func(msg payload.Marshaler) {
-		stateReport, ok := msg.(*payload.VStateReport)
+	checkMessageFn := func(msg rmsreg.GoGoSerializable) {
+		stateReport, ok := msg.(*rms.VStateReport)
 		require.True(t, ok)
 		require.NotNil(t, stateReport.ProvidedContent)
 		require.NotNil(t, stateReport.ProvidedContent.LatestDirtyState)
@@ -108,11 +109,11 @@ func TestSMStateReport_SendVStateReport_IfDescriptorNotSetAndStateEmpty(t *testi
 	)
 
 	smReport := newSMReportWithPulse()
-	smReport.Report = buildStateReport(payload.StateStatusEmpty, nil)
+	smReport.Report = buildStateReport(rms.StateStatusEmpty, nil)
 
 	messageService := messageSenderWrapper.NewServiceMockWrapper(mc)
-	checkMessageFn := func(msg payload.Marshaler) {
-		stateReport, ok := msg.(*payload.VStateReport)
+	checkMessageFn := func(msg rmsreg.GoGoSerializable) {
+		stateReport, ok := msg.(*rms.VStateReport)
 		require.True(t, ok)
 		require.True(t, stateReport.LatestDirtyState.IsZero())
 		require.NotNil(t, stateReport.ProvidedContent)

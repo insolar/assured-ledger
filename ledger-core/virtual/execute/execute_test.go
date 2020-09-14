@@ -22,11 +22,12 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms/rmsreg"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
@@ -61,15 +62,15 @@ func expectedInitState(ctx context.Context, sm SMExecute) SMExecute {
 	sm.execution.Request = sm.Payload
 	sm.execution.Pulse = sm.pulseSlot.PulseData()
 
-	if sm.Payload.CallType == payload.CallTypeConstructor {
+	if sm.Payload.CallType == rms.CallTypeConstructor {
 		sm.isConstructor = true
-		sm.execution.Object = reference.NewSelf(sm.Payload.CallOutgoing.GetLocal())
+		sm.execution.Object = reference.NewSelf(sm.Payload.CallOutgoing.GetValue().GetLocal())
 	} else {
-		sm.execution.Object = sm.Payload.Callee
+		sm.execution.Object = sm.Payload.Callee.GetValue()
 	}
 
-	sm.execution.Incoming = reference.NewRecordOf(sm.Payload.Callee, sm.Payload.CallOutgoing.GetLocal())
-	sm.execution.Outgoing = sm.Payload.CallOutgoing
+	sm.execution.Incoming = reference.NewRecordOf(sm.Payload.Callee.GetValue(), sm.Payload.CallOutgoing.GetValue().GetLocal())
+	sm.execution.Outgoing = sm.Payload.CallOutgoing.GetValue()
 
 	sm.execution.Isolation = contract.MethodIsolation{
 		Interference: sm.Payload.CallFlags.GetInterference(),
@@ -93,18 +94,18 @@ func TestSMExecute_Init(t *testing.T) {
 		smObject        = object.NewStateMachineObject(smGlobalRef)
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 
-		callFlags = payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty)
+		callFlags = rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty)
 	)
 
 	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
-	request := &payload.VCallRequest{
-		CallType:       payload.CallTypeConstructor,
+	request := &rms.VCallRequest{
+		CallType:       rms.CallTypeConstructor,
 		CallFlags:      callFlags,
 		CallSiteMethod: "New",
-		Caller:         caller,
-		Callee:         callee,
-		CallOutgoing:   smGlobalRef,
-		Arguments:      insolar.MustSerialize([]interface{}{}),
+		Caller:         rms.NewReference(caller),
+		Callee:         rms.NewReference(callee),
+		CallOutgoing:   rms.NewReference(smGlobalRef),
+		Arguments:      rms.NewBytes(insolar.MustSerialize([]interface{}{})),
 	}
 
 	smExecute := SMExecute{
@@ -124,7 +125,7 @@ func TestSMExecute_Init(t *testing.T) {
 		smExecute.Init(initCtx)
 	}
 
-	require.Equal(t, initializedSMExecute, smExecute)
+	assert.Equal(t, initializedSMExecute, smExecute)
 
 	mc.Finish()
 }
@@ -144,18 +145,18 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 		smObject        = object.NewStateMachineObject(smGlobalRef)
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 
-		callFlags = payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty)
+		callFlags = rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty)
 	)
 
 	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
-	request := &payload.VCallRequest{
-		CallType:       payload.CallTypeConstructor,
+	request := &rms.VCallRequest{
+		CallType:       rms.CallTypeConstructor,
 		CallFlags:      callFlags,
-		Caller:         caller,
-		Callee:         callee,
+		Caller:         rms.NewReference(caller),
+		Callee:         rms.NewReference(callee),
 		CallSiteMethod: "New",
-		CallOutgoing:   smGlobalRef,
-		Arguments:      insolar.MustSerialize([]interface{}{}),
+		CallOutgoing:   rms.NewReference(smGlobalRef),
+		Arguments:      rms.NewBytes(insolar.MustSerialize([]interface{}{})),
 	}
 
 	smExecute := SMExecute{
@@ -168,8 +169,8 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 
 	smObject.SharedState.Info.KnownRequests.Add(callFlags.GetInterference(), smExecute.execution.Outgoing)
 
-	require.Equal(t, 0, smObject.KnownRequests.GetList(isolation.CallTolerable).CountActive())
-	require.Equal(t, 0, smObject.KnownRequests.GetList(isolation.CallIntolerable).CountActive())
+	assert.Equal(t, 0, smObject.KnownRequests.GetList(isolation.CallTolerable).CountActive())
+	assert.Equal(t, 0, smObject.KnownRequests.GetList(isolation.CallIntolerable).CountActive())
 
 	assert.Equal(t, 1, smObject.KnownRequests.Len())
 
@@ -182,8 +183,8 @@ func TestSMExecute_StartRequestProcessing(t *testing.T) {
 		smExecute.stepStartRequestProcessing(execCtx)
 	}
 
-	require.Equal(t, 1, smObject.KnownRequests.GetList(isolation.CallTolerable).CountActive())
-	require.Equal(t, 0, smObject.KnownRequests.GetList(isolation.CallIntolerable).CountActive())
+	assert.Equal(t, 1, smObject.KnownRequests.GetList(isolation.CallTolerable).CountActive())
+	assert.Equal(t, 0, smObject.KnownRequests.GetList(isolation.CallIntolerable).CountActive())
 
 	assert.Equal(t, 1, smObject.KnownRequests.Len())
 	assert.Equal(t, callregistry.RequestProcessing, smObject.KnownRequests.GetList(isolation.CallTolerable).GetState(smExecute.execution.Outgoing))
@@ -207,17 +208,17 @@ func TestSMExecute_DeduplicationUsingPendingsTableRequestNotExist(t *testing.T) 
 		smObject          = object.NewStateMachineObject(objectRef)
 		sharedStateData   = smachine.NewUnboundSharedData(&smObject.SharedState)
 
-		callFlags = payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty)
+		callFlags = rms.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty)
 	)
 
 	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
-	request := &payload.VCallRequest{
-		CallType:       payload.CallTypeConstructor,
+	request := &rms.VCallRequest{
+		CallType:       rms.CallTypeConstructor,
 		CallFlags:      callFlags,
-		Callee:         callee,
+		Callee:         rms.NewReference(callee),
 		CallSiteMethod: "New",
-		CallOutgoing:   constructorOutRef,
-		Arguments:      insolar.MustSerialize([]interface{}{}),
+		CallOutgoing:   rms.NewReference(constructorOutRef),
+		Arguments:      rms.NewBytes(insolar.MustSerialize([]interface{}{})),
 	}
 
 	smExecute := SMExecute{
@@ -257,17 +258,17 @@ func TestSMExecute_DeduplicationUsingPendingsTableRequestExist(t *testing.T) {
 		smObject          = object.NewStateMachineObject(objectRef)
 		sharedStateData   = smachine.NewUnboundSharedData(&smObject.SharedState)
 
-		callFlags = payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty)
+		callFlags = rms.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty)
 	)
 
 	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
-	request := &payload.VCallRequest{
-		CallType:       payload.CallTypeConstructor,
+	request := &rms.VCallRequest{
+		CallType:       rms.CallTypeConstructor,
 		CallFlags:      callFlags,
 		CallSiteMethod: "New",
-		Callee:         callee,
-		CallOutgoing:   constructorOutRef,
-		Arguments:      insolar.MustSerialize([]interface{}{}),
+		Callee:         rms.NewReference(callee),
+		CallOutgoing:   rms.NewReference(constructorOutRef),
+		Arguments:      rms.NewBytes(insolar.MustSerialize([]interface{}{})),
 	}
 
 	smExecute := SMExecute{
@@ -328,29 +329,29 @@ func TestSMExecute_DeduplicateThroughPreviousExecutor(t *testing.T) {
 		smObject        = object.NewStateMachineObject(objectRef)
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 
-		callFlags = payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty)
+		callFlags = rms.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty)
 	)
 
 	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
-	request := &payload.VCallRequest{
-		CallType:       payload.CallTypeMethod,
-		Callee:         objectRef,
+	request := &rms.VCallRequest{
+		CallType:       rms.CallTypeMethod,
+		Callee:         rms.NewReference(objectRef),
 		CallFlags:      callFlags,
 		CallSiteMethod: "Method",
-		CallOutgoing:   outgoingRef,
-		Arguments:      insolar.MustSerialize([]interface{}{}),
+		CallOutgoing:   rms.NewReference(outgoingRef),
+		Arguments:      rms.NewBytes(insolar.MustSerialize([]interface{}{})),
 	}
 
 	messageSender := messagesender.NewServiceMockWrapper(mc)
 	messageSenderAdapter := messageSender.NewAdapterMock()
 	messageSenderAdapter.SetDefaultPrepareAsyncCall(ctx)
 
-	checkMessage := func(msg payload.Marshaler) {
+	checkMessage := func(msg rmsreg.GoGoSerializable) {
 		switch msg0 := msg.(type) {
-		case *payload.VFindCallRequest:
-			require.Equal(t, oldPd.PulseNumber, msg0.LookAt)
-			require.Equal(t, objectRef, msg0.Callee)
-			require.Equal(t, request.CallOutgoing, msg0.Outgoing)
+		case *rms.VFindCallRequest:
+			assert.Equal(t, oldPd.PulseNumber, msg0.LookAt)
+			assert.Equal(t, objectRef, msg0.Callee.GetValue())
+			assert.Equal(t, request.CallOutgoing, msg0.Outgoing)
 		default:
 			panic("Unexpected message type")
 		}
@@ -383,9 +384,9 @@ func TestSMExecute_DeduplicateThroughPreviousExecutor(t *testing.T) {
 					panic("Unexpected message type")
 				}
 
-				require.Equal(t, oldPd.PulseNumber, res.LookAt)
-				require.Equal(t, smExecute.execution.Outgoing, res.Outgoing)
-				require.Equal(t, smExecute.execution.Object, res.Callee)
+				assert.Equal(t, oldPd.PulseNumber, res.LookAt)
+				assert.Equal(t, smExecute.execution.Outgoing, res.Outgoing)
+				assert.Equal(t, smExecute.execution.Object, res.Callee)
 
 				return true
 			}).
@@ -413,32 +414,32 @@ func TestSMExecute_ProcessFindCallResponse(t *testing.T) {
 		smObject        = object.NewStateMachineObject(objectRef)
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 
-		callFlags = payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty)
+		callFlags = rms.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty)
 
 		sender = gen.UniqueGlobalRef()
 	)
 
 	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
-	request := &payload.VCallRequest{
-		CallType:       payload.CallTypeMethod,
-		Callee:         objectRef,
+	request := &rms.VCallRequest{
+		CallType:       rms.CallTypeMethod,
+		Callee:         rms.NewReference(objectRef),
 		CallFlags:      callFlags,
 		CallSiteMethod: "Method",
-		CallOutgoing:   outgoingRef,
-		Arguments:      insolar.MustSerialize([]interface{}{}),
+		CallOutgoing:   rms.NewReference(outgoingRef),
+		Arguments:      rms.NewBytes(insolar.MustSerialize([]interface{}{})),
 	}
 
 	smExecute := SMExecute{
 		Payload:           request,
 		pulseSlot:         &pulseSlot,
 		objectSharedState: smObjectAccessor,
-		Meta:              &payload.Meta{Sender: sender},
+		Meta:              &rms.Meta{Sender: rms.NewReference(sender)},
 	}
 
 	smExecute = expectedInitState(ctx, smExecute)
 
 	{
-		smExecute.findCallResponse = &payload.VFindCallResponse{Status: payload.CallStateMissing}
+		smExecute.findCallResponse = &rms.VFindCallResponse{Status: rms.CallStateMissing}
 		pendingList := smObject.PendingTable.GetList(isolation.CallIntolerable)
 		pendingList.Add(smExecute.execution.Outgoing)
 
@@ -449,7 +450,7 @@ func TestSMExecute_ProcessFindCallResponse(t *testing.T) {
 	}
 
 	{
-		smExecute.findCallResponse = &payload.VFindCallResponse{Status: payload.CallStateUnknown}
+		smExecute.findCallResponse = &rms.VFindCallResponse{Status: rms.CallStateUnknown}
 		pendingList := smObject.PendingTable.GetList(isolation.CallIntolerable)
 		pendingList.Add(smExecute.execution.Outgoing)
 
@@ -460,8 +461,8 @@ func TestSMExecute_ProcessFindCallResponse(t *testing.T) {
 	}
 
 	{
-		smExecute.findCallResponse = &payload.VFindCallResponse{
-			Status:     payload.CallStateFound,
+		smExecute.findCallResponse = &rms.VFindCallResponse{
+			Status:     rms.CallStateFound,
 			CallResult: nil,
 		}
 
@@ -477,26 +478,26 @@ func TestSMExecute_ProcessFindCallResponse(t *testing.T) {
 
 	{
 		returnArguments := []byte{1, 2, 3}
-		smExecute.findCallResponse = &payload.VFindCallResponse{
-			Status: payload.CallStateFound,
-			CallResult: &payload.VCallResult{
-				ReturnArguments: returnArguments,
+		smExecute.findCallResponse = &rms.VFindCallResponse{
+			Status: rms.CallStateFound,
+			CallResult: &rms.VCallResult{
+				ReturnArguments: rms.NewBytes(returnArguments),
 			},
 		}
 
 		messageSender := messagesender.NewServiceMockWrapper(mc)
 		messageSenderAdapter := messageSender.NewAdapterMock()
 		messageSenderAdapter.SetDefaultPrepareAsyncCall(ctx)
-		checkMessage := func(msg payload.Marshaler) {
+		checkMessage := func(msg rmsreg.GoGoSerializable) {
 			switch msg0 := msg.(type) {
-			case *payload.VCallResult:
-				require.Equal(t, returnArguments, msg0.ReturnArguments)
+			case *rms.VCallResult:
+				assert.Equal(t, returnArguments, msg0.ReturnArguments.GetBytes())
 			default:
 				panic("Unexpected message type")
 			}
 		}
 		checkTarget := func(target reference.Global) {
-			require.Equal(t, smExecute.Meta.Sender, target)
+			assert.Equal(t, smExecute.Meta.Sender.GetValue(), target)
 		}
 
 		messageSender.SendTarget.SetCheckMessage(checkMessage)
@@ -530,18 +531,18 @@ func TestSMExecute_DeduplicationForOldRequest(t *testing.T) {
 		smObject        = object.NewStateMachineObject(objectRef)
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 
-		callFlags = payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty)
+		callFlags = rms.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty)
 	)
 
 	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
-	request := &payload.VCallRequest{
-		CallType:       payload.CallTypeMethod,
-		Caller:         caller,
-		Callee:         objectRef,
+	request := &rms.VCallRequest{
+		CallType:       rms.CallTypeMethod,
+		Caller:         rms.NewReference(caller),
+		Callee:         rms.NewReference(objectRef),
 		CallFlags:      callFlags,
 		CallSiteMethod: "Method",
-		CallOutgoing:   outgoingRef,
-		Arguments:      insolar.MustSerialize([]interface{}{}),
+		CallOutgoing:   rms.NewReference(outgoingRef),
+		Arguments:      rms.NewBytes(insolar.MustSerialize([]interface{}{})),
 	}
 
 	smExecute := SMExecute{
@@ -575,22 +576,22 @@ func TestSMExecute_TokenInOutgoingMessage(t *testing.T) {
 
 	tests := []struct {
 		name                 string
-		token                payload.CallDelegationToken
+		token                rms.CallDelegationToken
 		expectedTokenIsEmpty bool
 	}{
 		{
 			name: "SelfToken",
-			token: payload.CallDelegationToken{
-				Caller:   selfRef,
-				Approver: selfRef,
+			token: rms.CallDelegationToken{
+				Caller:   rms.NewReference(selfRef),
+				Approver: rms.NewReference(selfRef),
 			},
 			expectedTokenIsEmpty: true,
 		},
 		{
 			name: "OtherToken",
-			token: payload.CallDelegationToken{
-				Caller:   selfRef,
-				Approver: otherRef,
+			token: rms.CallDelegationToken{
+				Caller:   rms.NewReference(selfRef),
+				Approver: rms.NewReference(otherRef),
 			},
 			expectedTokenIsEmpty: false,
 		},
@@ -611,33 +612,33 @@ func TestSMExecute_TokenInOutgoingMessage(t *testing.T) {
 				smObject        = object.NewStateMachineObject(smGlobalRef)
 				sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 
-				callFlags = payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty)
+				callFlags = rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty)
 			)
 
 			smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
-			request := &payload.VCallRequest{
-				CallType:       payload.CallTypeConstructor,
+			request := &rms.VCallRequest{
+				CallType:       rms.CallTypeConstructor,
 				CallFlags:      callFlags,
-				Caller:         caller,
-				Callee:         callee,
+				Caller:         rms.NewReference(caller),
+				Callee:         rms.NewReference(callee),
 				CallSiteMethod: "New",
-				CallOutgoing:   smGlobalRef,
-				Arguments:      insolar.MustSerialize([]interface{}{}),
+				CallOutgoing:   rms.NewReference(smGlobalRef),
+				Arguments:      rms.NewBytes(insolar.MustSerialize([]interface{}{})),
 			}
 
 			affMock := affinity.NewHelperMock(t).MeMock.Return(selfRef)
 
 			authService := authentication.NewService(ctx, affMock)
 
-			checkMessage := func(msg payload.Marshaler) {
-				expectedToken := payload.CallDelegationToken{}
+			checkMessage := func(msg rmsreg.GoGoSerializable) {
+				expectedToken := rms.CallDelegationToken{}
 				if !test.expectedTokenIsEmpty {
 					expectedToken = test.token
 				}
 				switch msg0 := msg.(type) {
-				case *payload.VCallResult:
+				case *rms.VCallResult:
 					assert.Equal(t, expectedToken, msg0.DelegationSpec)
-				case *payload.VDelegatedRequestFinished:
+				case *rms.VDelegatedRequestFinished:
 					assert.Equal(t, expectedToken, msg0.DelegationSpec)
 				default:
 					panic("Unexpected message type")
@@ -651,8 +652,8 @@ func TestSMExecute_TokenInOutgoingMessage(t *testing.T) {
 			messageSenderAdapter.SetDefaultPrepareAsyncCall(ctx)
 
 			smExecute := SMExecute{
-				Meta: &payload.Meta{
-					Sender: otherRef,
+				Meta: &rms.Meta{
+					Sender: rms.NewReference(otherRef),
 				},
 				Payload:               request,
 				pulseSlot:             &pulseSlot,
@@ -702,23 +703,23 @@ func TestSMExecute_VCallResultPassedToSMObject(t *testing.T) {
 		smObject        = object.NewStateMachineObject(smGlobalRef)
 		sharedStateData = smachine.NewUnboundSharedData(&smObject.SharedState)
 
-		callFlags = payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty)
+		callFlags = rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty)
 	)
 
 	smObjectAccessor := object.SharedStateAccessor{SharedDataLink: sharedStateData}
-	request := &payload.VCallRequest{
-		CallType:       payload.CallTypeConstructor,
+	request := &rms.VCallRequest{
+		CallType:       rms.CallTypeConstructor,
 		CallFlags:      callFlags,
 		CallSiteMethod: "New",
-		CallOutgoing:   smGlobalRef,
-		Callee:         gen.UniqueGlobalRefWithPulse(pd.PulseNumber),
-		Caller:         caller,
-		Arguments:      insolar.MustSerialize([]interface{}{}),
+		CallOutgoing:   rms.NewReference(smGlobalRef),
+		Callee:         rms.NewReference(gen.UniqueGlobalRefWithPulse(pd.PulseNumber)),
+		Caller:         rms.NewReference(caller),
+		Arguments:      rms.NewBytes(insolar.MustSerialize([]interface{}{})),
 	}
 
 	smExecute := SMExecute{
-		Meta: &payload.Meta{
-			Sender: gen.UniqueGlobalRef(),
+		Meta: &rms.Meta{
+			Sender: rms.NewReference(gen.UniqueGlobalRef()),
 		},
 		Payload:           request,
 		pulseSlot:         &pulseSlot,
@@ -738,8 +739,8 @@ func TestSMExecute_VCallResultPassedToSMObject(t *testing.T) {
 
 	smExecute = expectedInitState(ctx, smExecute)
 
-	smObject.KnownRequests.Add(isolation.CallTolerable, request.CallOutgoing)
-	smObject.KnownRequests.SetActive(isolation.CallTolerable, request.CallOutgoing)
+	smObject.KnownRequests.Add(isolation.CallTolerable, request.CallOutgoing.GetValue())
+	smObject.KnownRequests.SetActive(isolation.CallTolerable, request.CallOutgoing.GetValue())
 
 	{
 		execCtx := smachine.NewExecutionContextMock(mc).
@@ -755,12 +756,12 @@ func TestSMExecute_VCallResultPassedToSMObject(t *testing.T) {
 
 		smExecute.stepFinishRequest(execCtx)
 	}
-	require.Equal(t, 1, smObject.KnownRequests.Len())
+	assert.Equal(t, 1, smObject.KnownRequests.Len())
 
 	result, ok := smObject.KnownRequests.GetResults()[smGlobalRef]
 
-	require.True(t, ok, "object not in map")
-	require.NotNil(t, result)
+	assert.True(t, ok, "object not in map")
+	assert.NotNil(t, result)
 
 	mc.Finish()
 }
@@ -796,13 +797,14 @@ func TestSendVStateReportWithMissingState_IfConstructorWasInterruptedBeforeRunne
 
 	var vStateReportRecv = make(chan struct{})
 	slotMachine.PrepareMockedMessageSender(mc)
-	slotMachine.MessageSender.SendRole.SetCheckMessage(func(msg payload.Marshaler) {
-		res, ok := msg.(*payload.VStateReport)
+	slotMachine.MessageSender.SendRole.SetCheckMessage(func(msg rmsreg.GoGoSerializable) {
+		res, ok := msg.(*rms.VStateReport)
 		if !ok {
+			//TODO: FIXME: switch to typed checker and check transcript content
 			return
 		}
-		assert.Equal(t, payload.StateStatusMissing, res.Status)
-		assert.Equal(t, reference.NewSelf(outgoing.GetLocal()), res.Object)
+		assert.Equal(t, rms.StateStatusMissing, res.Status)
+		assert.Equal(t, reference.NewSelf(outgoing.GetLocal()), res.Object.GetValue())
 		assert.Equal(t, int32(0), res.OrderedPendingCount)
 		assert.Equal(t, int32(0), res.UnorderedPendingCount)
 		assert.Empty(t, res.LatestDirtyState)
@@ -811,17 +813,17 @@ func TestSendVStateReportWithMissingState_IfConstructorWasInterruptedBeforeRunne
 	})
 
 	smExecute := SMExecute{
-		Payload: &payload.VCallRequest{
-			CallType:     payload.CallTypeConstructor,
-			CallFlags:    payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
-			CallOutgoing: outgoing,
+		Payload: &rms.VCallRequest{
+			CallType:     rms.CallTypeConstructor,
+			CallFlags:    rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
+			CallOutgoing: rms.NewReference(outgoing),
 
-			Caller:         caller,
-			Callee:         class,
+			Caller:         rms.NewReference(caller),
+			Callee:         rms.NewReference(class),
 			CallSiteMethod: "New",
 		},
-		Meta: &payload.Meta{
-			Sender: caller,
+		Meta: &rms.Meta{
+			Sender: rms.NewReference(caller),
 		},
 	}
 	slotMachine.Start()
@@ -900,17 +902,17 @@ func TestSMExecute_StopWithoutMessagesIfPulseChangedBeforeOutgoing(t *testing.T)
 	)
 
 	smExecute := SMExecute{
-		Payload: &payload.VCallRequest{
-			CallType:       payload.CallTypeMethod,
-			Caller:         caller,
-			Callee:         objectRef,
-			CallFlags:      payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
-			CallOutgoing:   outgoing,
+		Payload: &rms.VCallRequest{
+			CallType:       rms.CallTypeMethod,
+			Caller:         rms.NewReference(caller),
+			Callee:         rms.NewReference(objectRef),
+			CallFlags:      rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
+			CallOutgoing:   rms.NewReference(outgoing),
 			CallSiteMethod: "test",
-			Arguments:      insolar.MustSerialize([]interface{}{}),
+			Arguments:      rms.NewBytes(insolar.MustSerialize([]interface{}{})),
 		},
-		Meta: &payload.Meta{
-			Sender: caller,
+		Meta: &rms.Meta{
+			Sender: rms.NewReference(caller),
 		},
 	}
 	slotMachine.Start()
@@ -922,12 +924,12 @@ func TestSMExecute_StopWithoutMessagesIfPulseChangedBeforeOutgoing(t *testing.T)
 	slotMachine.RunTil(smWrapper.AfterStop())
 
 	report := obj.BuildStateReport()
-	assert.Equal(t, objectRef, report.Object)
-	assert.Equal(t, payload.StateStatusReady, report.Status)
+	assert.Equal(t, objectRef, report.Object.GetValue())
+	assert.Equal(t, rms.StateStatusReady, report.Status)
 	assert.Equal(t, int32(0), report.OrderedPendingCount)
 	assert.Equal(t, int32(0), report.UnorderedPendingCount)
 	state := obj.BuildLatestDirtyState()
-	assert.Equal(t, []byte(stateMemory), state.State)
+	assert.Equal(t, []byte(stateMemory), state.State.GetBytes())
 	assert.False(t, state.Deactivated)
 
 	mc.Finish()

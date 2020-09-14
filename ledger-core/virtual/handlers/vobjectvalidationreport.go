@@ -11,7 +11,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
@@ -19,8 +19,8 @@ import (
 
 type SMVObjectValidationReport struct {
 	// input arguments
-	Meta    *payload.Meta
-	Payload *payload.VObjectValidationReport
+	Meta    *rms.Meta
+	Payload *rms.VObjectValidationReport
 
 	// dependencies
 	pulseSlot     *conveyor.PulseSlot
@@ -58,13 +58,13 @@ func (s *SMVObjectValidationReport) Init(ctx smachine.InitializationContext) sma
 }
 
 func (s *SMVObjectValidationReport) stepProcess(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	msg := payload.VCachedMemoryRequest{
+	msg := rms.VCachedMemoryRequest{
 		Object:  s.Payload.Object,
-		StateID: s.Payload.Validated.GetLocal(),
+		StateID: rms.NewReferenceLocal(s.Payload.Validated.GetValue().GetLocal()),
 	}
 
 	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
-		err := svc.SendRole(goCtx, &msg, affinity.DynamicRoleVirtualValidator, s.Payload.Object, s.pulseSlot.CurrentPulseNumber())
+		err := svc.SendRole(goCtx, &msg, affinity.DynamicRoleVirtualValidator, s.Payload.Object.GetValue(), s.pulseSlot.CurrentPulseNumber())
 		return func(ctx smachine.AsyncResultContext) {
 			if err != nil {
 				ctx.Log().Error("failed to send message", err)

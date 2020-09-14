@@ -10,10 +10,10 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
@@ -40,7 +40,7 @@ type SMGetCachedMemory struct {
 	Result descriptor.Object
 
 	stateGlobal reference.Global
-	response    *payload.VCachedMemoryResponse
+	response    *rms.VCachedMemoryResponse
 }
 
 /* -------- Declaration ------------- */
@@ -114,7 +114,7 @@ func (s *SMGetCachedMemory) stepProcess(ctx smachine.ExecutionContext) smachine.
 
 func (s *SMGetCachedMemory) stepRequestMemory(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	bargeInCallback := ctx.NewBargeInWithParam(func(param interface{}) smachine.BargeInCallbackFunc {
-		res, ok := param.(*payload.VCachedMemoryResponse)
+		res, ok := param.(*rms.VCachedMemoryResponse)
 		if !ok || res == nil {
 			panic(throw.IllegalValue())
 		}
@@ -131,9 +131,9 @@ func (s *SMGetCachedMemory) stepRequestMemory(ctx smachine.ExecutionContext) sma
 		return ctx.Error(throw.E("failed to publish bargeIn callback"))
 	}
 
-	msg := payload.VCachedMemoryRequest{
-		Object:  s.Object,
-		StateID: s.State,
+	msg := rms.VCachedMemoryRequest{
+		Object:  rms.NewReference(s.Object),
+		StateID: rms.NewReferenceLocal(s.State),
 	}
 
 	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
@@ -156,11 +156,11 @@ func (s *SMGetCachedMemory) stepRequestMemory(ctx smachine.ExecutionContext) sma
 
 func (s *SMGetCachedMemory) stepProcessResponse(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	switch s.response.CallStatus {
-	case payload.CachedMemoryStateFound:
+	case rms.CachedMemoryStateFound:
 		// ok
-	case payload.CachedMemoryStateMissing:
+	case rms.CachedMemoryStateMissing:
 		return ctx.Error(throw.E("Not existing state"))
-	case payload.CachedMemoryStateUnknown:
+	case rms.CachedMemoryStateUnknown:
 		panic(throw.NotImplemented())
 	default:
 		panic(throw.Impossible())
@@ -170,7 +170,7 @@ func (s *SMGetCachedMemory) stepProcessResponse(ctx smachine.ExecutionContext) s
 		s.Object,
 		s.State,
 		reference.Global{},
-		s.response.Memory,
+		s.response.Memory.GetBytes(),
 		s.response.Inactive,
 	)
 

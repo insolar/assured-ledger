@@ -16,11 +16,12 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms/rmsreg"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
@@ -58,8 +59,8 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 		UnorderedPendingEarliestPulse pulse.Number
 		ActiveOrderedPendingCount     uint8
 		ActiveUnorderedPendingCount   uint8
-		callFlags                     payload.CallFlags
-		expectedResponse              *payload.VDelegatedCallResponse
+		callFlags                     rms.CallFlags
+		expectedResponse              *rms.VDelegatedCallResponse
 		PendingRequestTable           callregistry.PendingTable
 		expectedError                 bool
 	}{
@@ -69,12 +70,12 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 			requestRef:                  oneRandomOrderedRequest,
 			OrderedPendingEarliestPulse: pulse.OfNow() - 100,
 			ActiveOrderedPendingCount:   1,
-			callFlags:                   payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
-			expectedResponse: &payload.VDelegatedCallResponse{
-				ResponseDelegationSpec: payload.CallDelegationToken{
-					TokenTypeAndFlags: payload.DelegationTokenTypeCall,
-					ApproverSignature: deadBeef[:],
-					Outgoing:          oneRandomOrderedRequest,
+			callFlags:                   rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
+			expectedResponse: &rms.VDelegatedCallResponse{
+				ResponseDelegationSpec: rms.CallDelegationToken{
+					TokenTypeAndFlags: rms.DelegationTokenTypeCall,
+					ApproverSignature: rms.NewBytes(deadBeef[:]),
+					Outgoing:          rms.NewReference(oneRandomOrderedRequest),
 				},
 			},
 		},
@@ -84,12 +85,12 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 			requestRef:                    oneRandomUnorderedRequest,
 			UnorderedPendingEarliestPulse: pulse.OfNow() - 100,
 			ActiveUnorderedPendingCount:   1,
-			callFlags:                     payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty),
-			expectedResponse: &payload.VDelegatedCallResponse{
-				ResponseDelegationSpec: payload.CallDelegationToken{
-					TokenTypeAndFlags: payload.DelegationTokenTypeCall,
-					ApproverSignature: deadBeef[:],
-					Outgoing:          oneRandomUnorderedRequest,
+			callFlags:                     rms.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty),
+			expectedResponse: &rms.VDelegatedCallResponse{
+				ResponseDelegationSpec: rms.CallDelegationToken{
+					TokenTypeAndFlags: rms.DelegationTokenTypeCall,
+					ApproverSignature: rms.NewBytes(deadBeef[:]),
+					Outgoing:          rms.NewReference(oneRandomUnorderedRequest),
 				},
 			},
 		},
@@ -99,12 +100,12 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 			requestRef:                  retryOrderedRequestRef,
 			OrderedPendingEarliestPulse: pulse.OfNow() - 100,
 			ActiveOrderedPendingCount:   1,
-			callFlags:                   payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
-			expectedResponse: &payload.VDelegatedCallResponse{
-				ResponseDelegationSpec: payload.CallDelegationToken{
-					TokenTypeAndFlags: payload.DelegationTokenTypeCall,
-					ApproverSignature: deadBeef[:],
-					Outgoing:          retryOrderedRequestRef,
+			callFlags:                   rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
+			expectedResponse: &rms.VDelegatedCallResponse{
+				ResponseDelegationSpec: rms.CallDelegationToken{
+					TokenTypeAndFlags: rms.DelegationTokenTypeCall,
+					ApproverSignature: rms.NewBytes(deadBeef[:]),
+					Outgoing:          rms.NewReference(retryOrderedRequestRef),
 				},
 			},
 		},
@@ -114,13 +115,13 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 			requestRef:                    retryUnorderedRequestRef,
 			UnorderedPendingEarliestPulse: pulse.OfNow() - 100,
 			ActiveUnorderedPendingCount:   1,
-			callFlags:                     payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty),
-			expectedResponse: &payload.VDelegatedCallResponse{
-				ResponseDelegationSpec: payload.CallDelegationToken{
-					TokenTypeAndFlags: payload.DelegationTokenTypeCall,
+			callFlags:                     rms.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty),
+			expectedResponse: &rms.VDelegatedCallResponse{
+				ResponseDelegationSpec: rms.CallDelegationToken{
+					TokenTypeAndFlags: rms.DelegationTokenTypeCall,
 					PulseNumber:       pulse.OfNow(),
-					ApproverSignature: deadBeef[:],
-					Outgoing:          retryUnorderedRequestRef,
+					ApproverSignature: rms.NewBytes(deadBeef[:]),
+					Outgoing:          rms.NewReference(retryUnorderedRequestRef),
 				},
 			},
 		},
@@ -130,7 +131,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 			requestRef:                    gen.UniqueGlobalRefWithPulse(pulse.OfNow() - 110),
 			UnorderedPendingEarliestPulse: pulse.Unknown,
 			ActiveUnorderedPendingCount:   0,
-			callFlags:                     payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty),
+			callFlags:                     rms.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty),
 			expectedError:                 true,
 		},
 		{
@@ -139,7 +140,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 			requestRef:                  gen.UniqueGlobalRefWithPulse(pulse.OfNow() - 110),
 			OrderedPendingEarliestPulse: pulse.Unknown,
 			ActiveOrderedPendingCount:   0,
-			callFlags:                   payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
+			callFlags:                   rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 			expectedError:               true,
 		},
 		{
@@ -148,7 +149,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 			requestRef:                    gen.UniqueGlobalRefWithPulse(pulse.OfNow() - 110),
 			UnorderedPendingEarliestPulse: pulse.OfNow() - 100,
 			ActiveUnorderedPendingCount:   1,
-			callFlags:                     payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty),
+			callFlags:                     rms.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty),
 			expectedError:                 true,
 		},
 		{
@@ -157,7 +158,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 			requestRef:                  gen.UniqueGlobalRefWithPulse(pulse.OfNow() - 110),
 			OrderedPendingEarliestPulse: pulse.OfNow() - 100,
 			ActiveOrderedPendingCount:   1,
-			callFlags:                   payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
+			callFlags:                   rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 			expectedError:               true,
 		},
 		{
@@ -166,7 +167,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 			requestRef:                    gen.UniqueGlobalRefWithPulse(pulse.OfNow() - 110),
 			UnorderedPendingEarliestPulse: pulse.OfNow() - 100,
 			ActiveUnorderedPendingCount:   1,
-			callFlags:                     payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty),
+			callFlags:                     rms.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty),
 			expectedError:                 true,
 		},
 		{
@@ -175,7 +176,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 			requestRef:                  gen.UniqueGlobalRefWithPulse(pulse.OfNow() - 110),
 			OrderedPendingEarliestPulse: pulse.OfNow() - 100,
 			ActiveOrderedPendingCount:   1,
-			callFlags:                   payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
+			callFlags:                   rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 			expectedError:               true,
 		},
 		{
@@ -184,7 +185,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 			requestRef:                    gen.UniqueGlobalRefWithPulse(pulse.OfNow()),
 			UnorderedPendingEarliestPulse: pulse.OfNow() - 100,
 			ActiveUnorderedPendingCount:   1,
-			callFlags:                     payload.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
+			callFlags:                     rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
 			expectedError:                 true,
 		},
 		{
@@ -193,7 +194,7 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 			requestRef:                  gen.UniqueGlobalRefWithPulse(pulse.OfNow()),
 			OrderedPendingEarliestPulse: pulse.OfNow() - 100,
 			ActiveOrderedPendingCount:   1,
-			callFlags:                   payload.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty),
+			callFlags:                   rms.BuildCallFlags(isolation.CallIntolerable, isolation.CallDirty),
 			expectedError:               true,
 		},
 	} {
@@ -241,13 +242,13 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 			slotMachine.AddInterfaceDependency(&authenticationService)
 
 			smDelegatedCallRequest := SMVDelegatedCallRequest{
-				Payload: &payload.VDelegatedCallRequest{
-					CallOutgoing: tc.requestRef,
+				Payload: &rms.VDelegatedCallRequest{
+					CallOutgoing: rms.NewReference(tc.requestRef),
 					CallFlags:    callFlags,
-					Callee:       objectRef,
+					Callee:       rms.NewReference(objectRef),
 				},
-				Meta: &payload.Meta{
-					Sender: caller,
+				Meta: &rms.Meta{
+					Sender: rms.NewReference(caller),
 				},
 			}
 			catalogWrapper := object.NewCatalogMockWrapper(mc)
@@ -277,15 +278,15 @@ func TestSMVDelegatedCallRequest(t *testing.T) {
 			}
 
 			expectedResponse := tc.expectedResponse
-			expectedResponse.ResponseDelegationSpec.Approver = nodeRef
-			expectedResponse.ResponseDelegationSpec.DelegateTo = caller
-			expectedResponse.ResponseDelegationSpec.Caller = caller
+			expectedResponse.ResponseDelegationSpec.Approver.Set(nodeRef)
+			expectedResponse.ResponseDelegationSpec.DelegateTo.Set(caller)
+			expectedResponse.ResponseDelegationSpec.Caller.Set(caller)
 			expectedResponse.ResponseDelegationSpec.PulseNumber = pulse.OfNow()
-			expectedResponse.ResponseDelegationSpec.Callee = objectRef
-			expectedResponse.Callee = objectRef
+			expectedResponse.ResponseDelegationSpec.Callee.Set(objectRef)
+			expectedResponse.Callee.Set(objectRef)
 
-			slotMachine.MessageSender.SendTarget.Set(func(_ context.Context, msg payload.Marshaler, target reference.Global, _ ...messagesender.SendOption) error {
-				res := msg.(*payload.VDelegatedCallResponse)
+			slotMachine.MessageSender.SendTarget.Set(func(_ context.Context, msg rmsreg.GoGoSerializable, target reference.Global, _ ...messagesender.SendOption) error {
+				res := msg.(*rms.VDelegatedCallResponse)
 				// ensure that both times request is the same
 				require.Equal(t, caller, target)
 				require.Equal(t, expectedResponse, res)

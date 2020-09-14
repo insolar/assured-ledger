@@ -17,8 +17,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/application/builtin/contract/testwallet"
 	testwalletProxy "github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
@@ -38,26 +38,24 @@ func createWallet(
 	t *testing.T,
 	server *utils.Server,
 	object reference.Global,
-	pulse payload.PulseNumber,
+	pulse rms.PulseNumber,
 ) {
 	walletState := makeRawWalletState(initialBalance)
 
-	content := &payload.VStateReport_ProvidedContentBody{
-		LatestDirtyState: &payload.ObjectState{
-			Reference: reference.Local{},
-			Class:     testwalletProxy.GetClass(),
-			State:     walletState,
+	content := &rms.VStateReport_ProvidedContentBody{
+		LatestDirtyState: &rms.ObjectState{
+			Class: rms.NewReference(testwalletProxy.GetClass()),
+			State: rms.NewBytes(walletState),
 		},
-		LatestValidatedState: &payload.ObjectState{
-			Reference: reference.Local{},
-			Class:     testwalletProxy.GetClass(),
-			State:     walletState,
+		LatestValidatedState: &rms.ObjectState{
+			Class: rms.NewReference(testwalletProxy.GetClass()),
+			State: rms.NewBytes(walletState),
 		},
 	}
 
-	vsrPayload := &payload.VStateReport{
-		Status:          payload.StateStatusReady,
-		Object:          object,
+	vsrPayload := &rms.VStateReport{
+		Status:          rms.StateStatusReady,
+		Object:          rms.NewReference(object),
 		AsOf:            pulse,
 		ProvidedContent: content,
 	}

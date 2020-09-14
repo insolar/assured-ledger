@@ -9,7 +9,6 @@ package handlers
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
@@ -26,7 +25,7 @@ type CachedMemoryReportAwaitKey struct {
 
 type SMVObjectTranscriptReport struct {
 	// input arguments
-	Meta    *payload.Meta
+	Meta    *rms.Meta
 	Payload *rms.VObjectTranscriptReport
 
 	messageSender messageSenderAdapter.MessageSender

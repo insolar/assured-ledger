@@ -6,11 +6,15 @@
 package atomickit
 
 import (
-	"fmt"
 	"math/bits"
+	"strconv"
 	"sync/atomic"
 	"unsafe"
 )
+
+func NewInt(v int) Int {
+	return Int{v}
+}
 
 type Int struct {
 	v int
@@ -65,5 +69,27 @@ func (p *Int) Sub(v int) int {
 }
 
 func (p *Int) String() string {
-	return fmt.Sprint(p.Load())
+	return strconv.FormatInt(int64(p.Load()), 10)
+}
+
+func (p *Int) SetLesser(v int) int {
+	for {
+		switch x := p.Load(); {
+		case x <= v:
+			return x
+		case p.CompareAndSwap(x, v):
+			return v
+		}
+	}
+}
+
+func (p *Int) SetGreater(v int) int {
+	for {
+		switch x := p.Load(); {
+		case x >= v:
+			return x
+		case p.CompareAndSwap(x, v):
+			return v
+		}
+	}
 }

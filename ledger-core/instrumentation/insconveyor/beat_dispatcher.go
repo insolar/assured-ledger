@@ -12,9 +12,9 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
+	"github.com/insolar/assured-ledger/ledger-core/rms/rmsreg"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -77,14 +77,14 @@ func (c *conveyorDispatcher) CommitBeat(change beat.Beat) {
 
 type DispatchedMessage struct {
 	MessageMeta message.Metadata
-	PayloadMeta payload.Meta
+	PayloadMeta rms.Meta
 }
 
 func (c *conveyorDispatcher) Process(msg beat.Message) error {
 	msg.Ack()
 	dm := DispatchedMessage{MessageMeta: msg.Metadata}
 
-	if err := rms.UnmarshalAs(msg.Payload, &dm.PayloadMeta, nil); err != nil {
+	if err := rmsreg.UnmarshalAs(msg.Payload, &dm.PayloadMeta, nil); err != nil {
 		return throw.W(err, "failed to unmarshal payload.Meta")
 	}
 	return c.conveyor.AddInput(c.ctx, dm.PayloadMeta.Pulse, dm)

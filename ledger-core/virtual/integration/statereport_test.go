@@ -14,7 +14,6 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/application/builtin/contract/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
@@ -25,17 +24,17 @@ import (
 
 func makeVStateReportWithState(
 	objectRef reference.Global,
-	stateStatus payload.VStateReport_StateStatus,
-	state *payload.ObjectState,
-	asOf payload.PulseNumber,
-) *payload.VStateReport {
-	res := payload.VStateReport{
+	stateStatus rms.VStateReport_StateStatus,
+	state *rms.ObjectState,
+	asOf rms.PulseNumber,
+) *rms.VStateReport {
+	res := rms.VStateReport{
 		Status: stateStatus,
-		Object: objectRef,
+		Object: rms.NewReference(objectRef),
 		AsOf:   asOf,
 	}
 	if state != nil {
-		res.ProvidedContent = &payload.VStateReport_ProvidedContentBody{
+		res.ProvidedContent = &rms.VStateReport_ProvidedContentBody{
 			LatestDirtyState: state,
 		}
 	}
@@ -55,11 +54,11 @@ func TestVirtual_VStateReport_StateAlreadyExists(t *testing.T) {
 
 	table := []struct {
 		name   string
-		status payload.VStateReport_StateStatus
+		status rms.VStateReport_StateStatus
 	}{
-		{name: "ready state", status: payload.StateStatusReady},
-		{name: "inactive state", status: payload.StateStatusInactive},
-		{name: "missing state", status: payload.StateStatusMissing},
+		{name: "ready state", status: rms.StateStatusReady},
+		{name: "inactive state", status: rms.StateStatusInactive},
+		{name: "missing state", status: rms.StateStatusMissing},
 	}
 
 	for _, testCase := range table {
@@ -81,20 +80,20 @@ func TestVirtual_VStateReport_StateAlreadyExists(t *testing.T) {
 			{
 				server.IncrementPulse(ctx)
 
-				pl := &payload.VStateReport{
-					Status: payload.StateStatusReady,
-					Object: objectGlobal,
+				pl := &rms.VStateReport{
+					Status: rms.StateStatusReady,
+					Object: rms.NewReference(objectGlobal),
 					AsOf:   prevPulse,
-					ProvidedContent: &payload.VStateReport_ProvidedContentBody{
-						LatestDirtyState: &payload.ObjectState{
-							Reference: initRef,
-							Class:     class,
-							State:     initState,
+					ProvidedContent: &rms.VStateReport_ProvidedContentBody{
+						LatestDirtyState: &rms.ObjectState{
+							Reference: rms.NewReferenceLocal(initRef),
+							Class:     rms.NewReference(class),
+							State:     rms.NewBytes(initState),
 						},
-						LatestValidatedState: &payload.ObjectState{
-							Reference: initRef,
-							Class:     class,
-							State:     initState,
+						LatestValidatedState: &rms.ObjectState{
+							Reference: rms.NewReferenceLocal(initRef),
+							Class:     rms.NewReference(class),
+							State:     rms.NewBytes(initState),
 						},
 					},
 				}
@@ -107,13 +106,13 @@ func TestVirtual_VStateReport_StateAlreadyExists(t *testing.T) {
 			// add checker
 			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 			{
-				typedChecker.VStateReport.Set(func(report *payload.VStateReport) bool {
+				typedChecker.VStateReport.Set(func(report *rms.VStateReport) bool {
 					assert.NotNil(t, report.ProvidedContent)
-					assert.Equal(t, payload.StateStatusReady, report.Status)
-					assert.Equal(t, initRef, report.ProvidedContent.LatestDirtyState.Reference)
-					assert.Equal(t, initRef, report.ProvidedContent.LatestValidatedState.Reference)
-					assert.Equal(t, initState, report.ProvidedContent.LatestDirtyState.State)
-					assert.Equal(t, initState, report.ProvidedContent.LatestValidatedState.State)
+					assert.Equal(t, rms.StateStatusReady, report.Status)
+					assert.Equal(t, initRef, report.ProvidedContent.LatestDirtyState.Reference.GetValueWithoutBase())
+					assert.Equal(t, initRef, report.ProvidedContent.LatestValidatedState.Reference.GetValueWithoutBase())
+					assert.Equal(t, initState, report.ProvidedContent.LatestDirtyState.State.GetBytes())
+					assert.Equal(t, initState, report.ProvidedContent.LatestValidatedState.State.GetBytes())
 					return false
 				})
 				typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
@@ -126,17 +125,17 @@ func TestVirtual_VStateReport_StateAlreadyExists(t *testing.T) {
 
 			// send second VStateReport
 			{
-				pl := &payload.VStateReport{
+				pl := &rms.VStateReport{
 					Status: testCase.status,
-					Object: objectGlobal,
+					Object: rms.NewReference(objectGlobal),
 					AsOf:   prevPulse,
 				}
-				if testCase.status == payload.StateStatusReady {
-					pl.ProvidedContent = &payload.VStateReport_ProvidedContentBody{
-						LatestDirtyState: &payload.ObjectState{
-							Reference: server.RandomLocalWithPulse(),
-							Class:     class,
-							State:     []byte("new state"),
+				if testCase.status == rms.StateStatusReady {
+					pl.ProvidedContent = &rms.VStateReport_ProvidedContentBody{
+						LatestDirtyState: &rms.ObjectState{
+							Reference: rms.NewReferenceLocal(server.RandomLocalWithPulse()),
+							Class:     rms.NewReference(class),
+							State:     rms.NewBytes([]byte("new state")),
 						},
 					}
 				}

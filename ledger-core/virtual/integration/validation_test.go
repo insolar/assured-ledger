@@ -12,8 +12,8 @@ import (
 	"github.com/gojuno/minimock/v3"
 	"gotest.tools/assert"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	commonTestUtils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
@@ -42,18 +42,17 @@ func TestVirtual_ValidationReport(t *testing.T) {
 	// add checker
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	{
-		typedChecker.VCachedMemoryRequest.Set(func(request *payload.VCachedMemoryRequest) bool {
+		typedChecker.VCachedMemoryRequest.Set(func(request *rms.VCachedMemoryRequest) bool {
 			assert.Equal(t, objectGlobal, request.Object)
 			assert.Equal(t, validatedStateRef.GetLocal(), request.StateID)
 
-			pl := &payload.VCachedMemoryResponse{
-				Object:      request.Object,
-				StateID:     request.StateID,
-				CallStatus:  payload.CachedMemoryStateFound,
-				Node:        server.GlobalCaller(),
-				PrevStateID: payload.LocalReference{},
-				Inactive:    false,
-				Memory:      []byte("new state"),
+			pl := &rms.VCachedMemoryResponse{
+				Object:     request.Object,
+				StateID:    request.StateID,
+				CallStatus: rms.CachedMemoryStateFound,
+				Node:       rms.NewReference(server.GlobalCaller()),
+				Inactive:   false,
+				Memory:     rms.NewBytes([]byte("new state")),
 			}
 			server.SendPayload(ctx, pl)
 			return false
@@ -64,15 +63,15 @@ func TestVirtual_ValidationReport(t *testing.T) {
 
 	// send VStateReport and VObjectValidationReport
 	{
-		pl := &payload.VStateReport{
-			Status: payload.StateStatusReady,
-			Object: objectGlobal,
+		pl := &rms.VStateReport{
+			Status: rms.StateStatusReady,
+			Object: rms.NewReference(objectGlobal),
 			AsOf:   prevPulse,
-			ProvidedContent: &payload.VStateReport_ProvidedContentBody{
-				LatestDirtyState: &payload.ObjectState{
-					Reference: initRef,
-					Class:     class,
-					State:     initState,
+			ProvidedContent: &rms.VStateReport_ProvidedContentBody{
+				LatestDirtyState: &rms.ObjectState{
+					Reference: rms.NewReferenceLocal(initRef),
+					Class:     rms.NewReference(class),
+					State:     rms.NewBytes(initState),
 				},
 			},
 		}
@@ -80,10 +79,10 @@ func TestVirtual_ValidationReport(t *testing.T) {
 		server.SendPayload(ctx, pl)
 		commonTestUtils.WaitSignalsTimed(t, 10*time.Second, waitReport)
 
-		validationReport := &payload.VObjectValidationReport{
-			Object:    objectGlobal,
+		validationReport := &rms.VObjectValidationReport{
+			Object:    rms.NewReference(objectGlobal),
 			In:        prevPulse,
-			Validated: validatedStateRef,
+			Validated: rms.NewReference(validatedStateRef),
 		}
 		waitValidationReport := server.Journal.WaitStopOf(&handlers.SMVObjectValidationReport{}, 1)
 		server.SendPayload(ctx, validationReport)

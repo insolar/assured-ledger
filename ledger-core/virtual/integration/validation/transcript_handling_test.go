@@ -13,7 +13,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
@@ -36,13 +35,13 @@ func TestValidation_ObjectTranscriptReport_AfterConstructor(t *testing.T) {
 	server.Init(ctx)
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-	typedChecker.VCachedMemoryRequest.Set(func(report *payload.VCachedMemoryRequest) bool {
+	typedChecker.VCachedMemoryRequest.Set(func(report *rms.VCachedMemoryRequest) bool {
 		return false
 	})
 
 	callRequest := utils.GenerateVCallRequestConstructor(server)
 	outgoing := callRequest.CallOutgoing
-	objectRef := reference.NewSelf(outgoing.GetLocal())
+	objectRef := reference.NewSelf(outgoing.GetValue().GetLocal())
 	p := server.GetPulse().PulseNumber
 
 	callRequestBin, err := callRequest.Marshal()

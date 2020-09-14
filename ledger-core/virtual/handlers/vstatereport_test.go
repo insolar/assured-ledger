@@ -13,8 +13,8 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/payload"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/shareddata"
@@ -40,13 +40,13 @@ func TestVStateReport_CreateObjectWithoutState(t *testing.T) {
 	catalog.AllowAccessMode(object.CatalogMockAccessGetOrCreate)
 
 	smVStateReport := SMVStateReport{
-		Payload: &payload.VStateReport{
-			Status:                payload.StateStatusEmpty,
-			Object:                smGlobalRef,
+		Payload: &rms.VStateReport{
+			Status:                rms.StateStatusEmpty,
+			Object:                rms.NewReference(smGlobalRef),
 			AsOf:                  pd.PulseNumber,
 			UnorderedPendingCount: 1,
 			OrderedPendingCount:   1,
-			ProvidedContent:       &payload.VStateReport_ProvidedContentBody{},
+			ProvidedContent:       &rms.VStateReport_ProvidedContentBody{},
 		},
 		objectCatalog: catalog.Mock(),
 		pulseSlot:     &pulseSlot,
@@ -112,20 +112,20 @@ func TestVStateReport_StopSMIfAsOfOutdated(t *testing.T) {
 			mc := minimock.NewController(t)
 
 			smVStateReport := SMVStateReport{
-				Payload: &payload.VStateReport{
-					Status: payload.StateStatusReady,
-					Object: smGlobalRef,
+				Payload: &rms.VStateReport{
+					Status: rms.StateStatusReady,
+					Object: rms.NewReference(smGlobalRef),
 					AsOf:   testCase.asOf,
-					ProvidedContent: &payload.VStateReport_ProvidedContentBody{
-						LatestDirtyState: &payload.ObjectState{
-							Reference: initRef,
-							Class:     class,
-							State:     initState,
+					ProvidedContent: &rms.VStateReport_ProvidedContentBody{
+						LatestDirtyState: &rms.ObjectState{
+							Reference: rms.NewReferenceLocal(initRef),
+							Class:     rms.NewReference(class),
+							State:     rms.NewBytes(initState),
 						},
-						LatestValidatedState: &payload.ObjectState{
-							Reference: initRef,
-							Class:     class,
-							State:     initState,
+						LatestValidatedState: &rms.ObjectState{
+							Reference: rms.NewReferenceLocal(initRef),
+							Class:     rms.NewReference(class),
+							State:     rms.NewBytes(initState),
 						},
 					},
 				},
