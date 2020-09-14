@@ -65,7 +65,7 @@ func (s *SMVObjectTranscriptReport) GetStateMachineDeclaration() smachine.StateM
 }
 
 func (s *SMVObjectTranscriptReport) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
-	s.object = s.Payload.Object.GetGlobal()
+	s.object = s.Payload.Object.GetValue()
 
 	return ctx.Jump(s.stepProcess)
 }
@@ -78,7 +78,7 @@ func (s *SMVObjectTranscriptReport) stepProcess(ctx smachine.ExecutionContext) s
 	switch tEntry := entry.(type) {
 	case *rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest:
 		s.incomingRequest = tEntry
-		s.objState = s.incomingRequest.ObjectMemory.GetGlobal()
+		s.objState = s.incomingRequest.ObjectMemory.GetValue()
 		return ctx.Jump(s.stepGetMemory)
 	}
 

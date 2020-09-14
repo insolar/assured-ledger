@@ -713,8 +713,8 @@ func TestVirtual_CallContractFromContract_RetryLimit(t *testing.T) {
 			require.Equal(t, object, request.Callee.GetValue())
 
 		typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
-			assert.Equal(t, object, report.Object.GetGlobal())
-			assert.Equal(t, pl.CallOutgoing.GetLocal().Pulse(), report.AsOf)
+			assert.Equal(t, object, report.Object.GetValue())
+			assert.Equal(t, pl.CallOutgoing.GetValue().GetLocal().Pulse(), report.AsOf)
 			assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
 			return false
 		})

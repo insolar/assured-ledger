@@ -978,7 +978,7 @@ func TestVirtual_FutureMessageAddedToSlot(t *testing.T) {
 	typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool { return false })
 	typedChecker.VStateReport.Set(func(res *rms.VStateReport) bool { return false })
 	typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
-		assert.Equal(t, objectGlobal, report.Object.GetGlobal())
+		assert.Equal(t, objectGlobal, report.Object.GetValue())
 		assert.Equal(t, p, report.AsOf)
 		assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
 		return false
@@ -1183,7 +1183,7 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 					return false
 				})
 				typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
-					assert.Equal(t, objectRef, report.Object.GetGlobal())
+					assert.Equal(t, objectRef, report.Object.GetValue())
 					assert.Equal(t, outgoing.GetLocal().Pulse(), report.AsOf)
 					assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
 					return false
@@ -1593,7 +1593,7 @@ func TestVirtual_Method_IntolerableCallChangeState(t *testing.T) {
 			return false
 		})
 		typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
-			assert.Equal(t, objectRef, report.Object.GetGlobal())
+			assert.Equal(t, objectRef, report.Object.GetValue())
 			assert.Equal(t, outgoing.GetLocal().Pulse(), report.AsOf)
 			assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
 			return false
@@ -1708,7 +1708,7 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 	// add checks
 	{
 		typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
-			assert.Equal(t, objectGlobal, report.Object.GetGlobal())
+			assert.Equal(t, objectGlobal, report.Object.GetValue())
 			assert.Equal(t, currentPulse, report.AsOf)
 			assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
 			return false

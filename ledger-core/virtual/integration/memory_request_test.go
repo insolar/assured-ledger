@@ -76,7 +76,7 @@ func TestVirtual_VCachedMemoryRequestHandler(t *testing.T) {
 				return false // no resend msg
 			})
 			suite.typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
-				assert.Equal(t, suite.object, report.Object.GetGlobal())
+				assert.Equal(t, suite.object, report.Object.GetValue())
 				// TODO add asserts and check counter after https://insolar.atlassian.net/browse/PLAT-753
 				// write a method for checking the transcript after implementation
 				return false

@@ -163,7 +163,7 @@ func TestVirtual_CallMethodOutgoing_WithTwicePulseChange(t *testing.T) {
 			return false
 		})
 		typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
-			assert.Equal(t, objectAGlobal, report.Object.GetGlobal())
+			assert.Equal(t, objectAGlobal, report.Object.GetValue())
 			assert.Equal(t, outgoingCallRef.GetLocal().Pulse(), report.AsOf)
 			assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
 			return false
@@ -370,7 +370,7 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 			return false
 		})
 		typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
-			assert.Equal(t, objectRef, report.Object.GetGlobal())
+			assert.Equal(t, objectRef, report.Object.GetValue())
 			assert.Equal(t, outgoing.GetLocal().Pulse(), report.AsOf)
 			assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
 			return false

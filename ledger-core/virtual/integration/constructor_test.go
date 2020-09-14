@@ -136,8 +136,8 @@ func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
 	})
 
 	typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
-		assert.Equal(t, objectRef, report.Object.GetGlobal())
-		assert.Equal(t, pl.CallOutgoing.GetLocal().Pulse(), report.AsOf)
+		assert.Equal(t, objectRef, report.Object.GetValue())
+		assert.Equal(t, pl.CallOutgoing.GetValue().GetLocal().Pulse(), report.AsOf)
 
 		// todo check logic
 		assert.Len(t, report.ObjectTranscript.Entries, 2)
@@ -155,7 +155,7 @@ func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
 		assert.Equal(t, expectedVCallRequest, request.Request)
 
 		assert.Empty(t, result.IncomingResult)
-		assert.Equal(t, pl.CallOutgoing.GetLocal().Pulse(), result.ObjectState.Get().GetLocal().Pulse())
+		assert.Equal(t, pl.CallOutgoing.GetValue().GetLocal().Pulse(), result.ObjectState.Get().GetLocal().Pulse())
 		assert.Equal(t, objectRef.GetBase(), result.ObjectState.Get().GetBase())
 
 		return false
@@ -265,7 +265,7 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 		return false
 	})
 	typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
-		assert.Equal(t, objectRef, report.Object.GetGlobal())
+		assert.Equal(t, objectRef, report.Object.GetValue())
 		assert.Equal(t, currPulse, report.AsOf)
 		assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
 		return false
@@ -374,7 +374,7 @@ func TestVirtual_Constructor_PrevPulseStateWithMissingStatus(t *testing.T) {
 		return false
 	})
 	typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
-		assert.Equal(t, objectRef, report.Object.GetGlobal())
+		assert.Equal(t, objectRef, report.Object.GetValue())
 		assert.Equal(t, p2, report.AsOf)
 		assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
 		return false
@@ -642,8 +642,8 @@ func TestVirtual_Constructor_PulseChangedWhileOutgoing(t *testing.T) {
 			return false
 		})
 		typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
-			assert.Equal(t, objectRef, report.Object.GetGlobal())
-			assert.Equal(t, pl.CallOutgoing.GetLocal().Pulse(), report.AsOf)
+			assert.Equal(t, objectRef, report.Object.GetValue())
+			assert.Equal(t, pl.CallOutgoing.GetValue().GetLocal().Pulse(), report.AsOf)
 			assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
 			return false
 		})
@@ -817,7 +817,7 @@ func TestVirtual_CallConstructor_WithTwicePulseChange(t *testing.T) {
 			return false
 		})
 		typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
-			assert.Equal(t, objectRef, report.Object.GetGlobal())
+			assert.Equal(t, objectRef, report.Object.GetValue())
 			assert.Equal(t, outgoing.GetLocal().Pulse(), report.AsOf)
 			assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
 			// see all pulse change, add check for count

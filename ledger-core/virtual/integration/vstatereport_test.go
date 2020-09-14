@@ -431,7 +431,7 @@ func (s *stateReportCheckPendingCountersAndPulsesTest) setMessageCheckers(
 		return false // no resend msg
 	})
 	typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
-		assert.Equal(t, s.object, report.Object.GetGlobal())
+		assert.Equal(t, s.object, report.Object.GetValue())
 		assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
 		return false
 	})

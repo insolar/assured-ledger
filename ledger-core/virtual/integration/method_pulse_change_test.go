@@ -158,7 +158,7 @@ func TestVirtual_Method_PulseChanged(t *testing.T) {
 					return false
 				})
 				typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
-					assert.Equal(t, object, report.Object.GetGlobal())
+					assert.Equal(t, object, report.Object.GetValue())
 					assert.Equal(t, outgoing.GetLocal().Pulse(), report.AsOf)
 					assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
 					return false
@@ -345,7 +345,7 @@ func TestVirtual_Method_CheckPendingsCount(t *testing.T) {
 			return false
 		})
 		typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
-			assert.Equal(t, object, report.Object.GetGlobal())
+			assert.Equal(t, object, report.Object.GetValue())
 			assert.Equal(t, currPulse, report.AsOf)
 			assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
 			return false

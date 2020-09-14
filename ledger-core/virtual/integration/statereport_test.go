@@ -116,7 +116,7 @@ func TestVirtual_VStateReport_StateAlreadyExists(t *testing.T) {
 					return false
 				})
 				typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
-					assert.Equal(t, objectGlobal, report.Object.GetGlobal())
+					assert.Equal(t, objectGlobal, report.Object.GetValue())
 					assert.Equal(t, currentPulse, report.AsOf)
 					assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
 					return false
