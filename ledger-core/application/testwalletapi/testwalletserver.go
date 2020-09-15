@@ -77,6 +77,7 @@ func (s *TestWalletServer) Start(ctx context.Context) error {
 }
 
 func (s *TestWalletServer) Stop(ctx context.Context) error {
+
 	const timeOut = 5
 
 	ctxWithTimeout, cancel := context.WithTimeout(ctx, timeOut*time.Second)

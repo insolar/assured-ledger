@@ -32,7 +32,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/version"
 )
 
-const EnvPrefix = "PULSARD"
+const EnvPrefix = "pulsard"
 
 // Need to fix problem with start pulsar
 func main() {
