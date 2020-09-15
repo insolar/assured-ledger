@@ -29,8 +29,9 @@ func AppFactory(ctx context.Context, cfg configuration.Configuration, comps insa
 	virtualDispatcher.Affinity = comps.AffinityHelper
 	virtualDispatcher.AuthenticationService = authentication.NewService(ctx, comps.AffinityHelper)
 
-	// TODO: rewrite this after PLAT-432
-	if n := runtime.NumCPU() - 2; n > 4 {
+	if cfg.Virtual.MaxRunners > 0 {
+		virtualDispatcher.MaxRunners = cfg.Virtual.MaxRunners
+	} else if n := runtime.NumCPU() - 2; n > 4 {
 		virtualDispatcher.MaxRunners = n
 	} else {
 		virtualDispatcher.MaxRunners = 4

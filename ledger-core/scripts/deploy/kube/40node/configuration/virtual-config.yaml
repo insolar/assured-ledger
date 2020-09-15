@@ -22,6 +22,8 @@ log:
   outputparams: ""
   buffersize: 0
   llbuffersize: 0
+virtual:
+  maxrunners: 0
 metrics:
   listenaddress: 0.0.0.0:9091
   namespace: placeholder
