@@ -62,7 +62,7 @@ func TestVirtual_ObjectValidationReport(t *testing.T) {
 			{
 				typedChecker.VCachedMemoryResponse.Set(func(response *rms.VCachedMemoryResponse) bool {
 					assert.Equal(t, objectGlobal, response.Object.GetValue())
-					assert.Equal(t, validatedStateRef, response.StateID.GetValue())
+					assert.Equal(t, objDescriptor.StateID(), response.StateID.GetValue().GetLocal())
 					assert.Equal(t, []byte("new state"), response.Memory.GetBytes())
 					return false
 				})
@@ -88,7 +88,7 @@ func TestVirtual_ObjectValidationReport(t *testing.T) {
 					},
 				}
 				if testCase.validatedIsEqualDirty {
-					report.ProvidedContent.LatestDirtyState.Reference = rms.NewReference(validatedStateRef)
+					report.ProvidedContent.LatestDirtyState.Reference = rms.NewReferenceLocal(objDescriptor.StateID())
 					report.ProvidedContent.LatestDirtyState.State = rms.NewBytes([]byte("new state"))
 				}
 				waitReport := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
@@ -110,7 +110,7 @@ func TestVirtual_ObjectValidationReport(t *testing.T) {
 				executeDone := server.Journal.WaitStopOf(&handlers.SMVCachedMemoryRequest{}, 1)
 				pl := &rms.VCachedMemoryRequest{
 					Object:  rms.NewReference(objectGlobal),
-					StateID: rms.NewReference(validatedStateRef),
+					StateID: rms.NewReferenceLocal(objDescriptor.StateID()),
 				}
 				server.SendPayload(ctx, pl)
 				commonTestUtils.WaitSignalsTimed(t, 10*time.Second, executeDone)
