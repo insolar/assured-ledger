@@ -10,11 +10,13 @@ import (
 	"time"
 
 	"github.com/gojuno/minimock/v3"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	commonTestUtils "github.com/insolar/assured-ledger/ledger-core/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
@@ -24,13 +26,11 @@ func TestVirtual_ObjectValidationReport(t *testing.T) {
 	defer commonTestUtils.LeakTester(t)
 
 	testCases := []struct {
-		name       string
-		unknownKey bool
-		emptyCache bool
+		name                  string
+		validatedIsEqualDirty bool
 	}{
-		// {name: "cache is empty", unknownKey: true, empty: true},
-		// {name: "unknown key", unknownKey: true},
-		{name: "known key", unknownKey: false},
+		{name: "get memory from cache", validatedIsEqualDirty: false},
+		{name: "use memory from VStateReport", validatedIsEqualDirty: true},
 	}
 
 	for _, testCase := range testCases {
@@ -49,28 +49,74 @@ func TestVirtual_ObjectValidationReport(t *testing.T) {
 			objDescriptor := descriptor.NewObject(objectGlobal, server.RandomLocalWithPulse(), class, []byte("new state"), false)
 			validatedStateRef := reference.NewRecordOf(objDescriptor.HeadRef(), objDescriptor.StateID())
 
-			if !testCase.emptyCache {
+			// prepare cache
+			{
 				err := server.MemoryCache.Set(ctx, validatedStateRef, objDescriptor)
 				require.Nil(t, err)
 			}
 
 			server.IncrementPulse(ctx)
 
-			// send VObjectValidationReport
+			// add typedChecker
+			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 			{
-				ref := rms.NewReference(validatedStateRef)
-				if testCase.unknownKey {
-					ref = rms.NewReference(server.RandomGlobalWithPulse())
+				typedChecker.VCachedMemoryResponse.Set(func(response *rms.VCachedMemoryResponse) bool {
+					assert.Equal(t, objectGlobal, response.Object.GetValue())
+					assert.Equal(t, validatedStateRef, response.StateID.GetValue())
+					assert.Equal(t, []byte("new state"), response.Memory.GetBytes())
+					return false
+				})
+			}
+
+			// send VObjectValidationReport and VStateReport
+			{
+				report := &rms.VStateReport{
+					AsOf:   prevPulse,
+					Status: rms.StateStatusReady,
+					Object: rms.NewReference(objectGlobal),
+					ProvidedContent: &rms.VStateReport_ProvidedContentBody{
+						LatestDirtyState: &rms.ObjectState{
+							Reference: rms.NewReferenceLocal(gen.UniqueLocalRefWithPulse(prevPulse)),
+							Class:     rms.NewReference(class),
+							State:     rms.NewBytes([]byte("dirty state")),
+						},
+						LatestValidatedState: &rms.ObjectState{
+							Reference: rms.NewReferenceLocal(gen.UniqueLocalRefWithPulse(prevPulse)),
+							Class:     rms.NewReference(class),
+							State:     rms.NewBytes([]byte("dirty state")),
+						},
+					},
 				}
+				if testCase.validatedIsEqualDirty {
+					report.ProvidedContent.LatestDirtyState.Reference = rms.NewReference(validatedStateRef)
+					report.ProvidedContent.LatestDirtyState.State = rms.NewBytes([]byte("new state"))
+				}
+				waitReport := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
+				server.SendPayload(ctx, report)
+				commonTestUtils.WaitSignalsTimed(t, 10*time.Second, waitReport)
 
 				validationReport := &rms.VObjectValidationReport{
 					Object:    rms.NewReference(objectGlobal),
-					In:        prevPulse,
-					Validated: ref,
+					In:        server.GetPulse().PulseNumber,
+					Validated: rms.NewReference(validatedStateRef),
 				}
 				waitValidationReport := server.Journal.WaitStopOf(&handlers.SMVObjectValidationReport{}, 1)
 				server.SendPayload(ctx, validationReport)
 				commonTestUtils.WaitSignalsTimed(t, 10*time.Second, waitValidationReport)
+			}
+
+			// send VCachedMemoryRequest
+			{
+				executeDone := server.Journal.WaitStopOf(&handlers.SMVCachedMemoryRequest{}, 1)
+				pl := &rms.VCachedMemoryRequest{
+					Object:  rms.NewReference(objectGlobal),
+					StateID: rms.NewReference(validatedStateRef),
+				}
+				server.SendPayload(ctx, pl)
+				commonTestUtils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+				commonTestUtils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VCachedMemoryResponse.Wait(ctx, 1))
+
+				assert.Equal(t, 1, typedChecker.VCachedMemoryResponse.Count())
 			}
 
 			mc.Finish()

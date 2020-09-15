@@ -8,12 +8,13 @@ package handlers
 import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/rms"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
+	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/memorycache/statemachine"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 )
 
 type SMVObjectValidationReport struct {
@@ -24,8 +25,10 @@ type SMVObjectValidationReport struct {
 	// dependencies
 	pulseSlot     *conveyor.PulseSlot
 	messageSender messageSenderAdapter.MessageSender
+	objectCatalog object.Catalog
 
-	objDesc descriptor.Object
+	validatedObjectDescriptor descriptor.Object
+	objectSharedState         object.SharedStateAccessor
 }
 
 /* -------- Declaration ------------- */
@@ -39,6 +42,7 @@ type dSMVObjectValidationReport struct {
 func (*dSMVObjectValidationReport) InjectDependencies(sm smachine.StateMachine, _ smachine.SlotLink, injector injector.DependencyInjector) {
 	s := sm.(*SMVObjectValidationReport)
 
+	injector.MustInject(&s.objectCatalog)
 	injector.MustInject(&s.pulseSlot)
 	injector.MustInject(&s.messageSender)
 }
@@ -66,7 +70,47 @@ func (s *SMVObjectValidationReport) Init(ctx smachine.InitializationContext) sma
 
 	ctx.SetDefaultMigration(s.migrationDefault)
 
+	return ctx.Jump(s.stepGetObject)
+}
+
+func (s *SMVObjectValidationReport) stepGetObject(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	s.objectSharedState = s.objectCatalog.GetOrCreate(ctx, s.Payload.Object.GetValue())
+
+	var (
+		semaphoreReadyToWork smachine.SyncLink
+		descriptorDirty      descriptor.Object
+	)
+
+	action := func(state *object.SharedState) {
+		semaphoreReadyToWork = state.ReadyToWork
+		descriptorDirty = state.DescriptorDirty()
+	}
+
+	switch s.objectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
+	case smachine.NotPassed:
+		return ctx.WaitShared(s.objectSharedState.SharedDataLink).ThenRepeat()
+	case smachine.Impossible:
+		panic(throw.NotImplemented())
+	case smachine.Passed:
+		// go further
+	default:
+		panic(throw.Impossible())
+	}
+
+	if ctx.AcquireForThisStep(semaphoreReadyToWork).IsNotPassed() {
+		return ctx.Sleep().ThenRepeat()
+	}
+
+	if descriptorDirty.HeadRef().Equal(s.Payload.Object.GetValue()) && descriptorDirty.StateID().Equal(s.Payload.Validated.GetValue()) {
+		s.validatedObjectDescriptor = descriptorDirty
+		return ctx.Jump(s.stepUpdateSharedState)
+	}
+
 	return ctx.Jump(s.stepGetMemory)
+}
+
+func (s *SMVObjectValidationReport) stepWaitIndefinitely(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	return ctx.Sleep().ThenRepeat()
 }
 
 func (s *SMVObjectValidationReport) stepGetMemory(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -77,15 +121,31 @@ func (s *SMVObjectValidationReport) stepGetMemory(ctx smachine.ExecutionContext)
 		if subSM.Result == nil {
 			return ctx.Jump(s.stepWaitIndefinitely)
 		}
-		s.objDesc = subSM.Result
-		return ctx.Jump(s.stepIncomingRequest)
+		s.validatedObjectDescriptor = subSM.Result
+		return ctx.Jump(s.stepUpdateSharedState)
 	})
 }
 
-func (s *SMVObjectValidationReport) stepIncomingRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	return ctx.Stop()
-}
+func (s *SMVObjectValidationReport) stepUpdateSharedState(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	setStateFunc := func(data interface{}) (wakeup bool) {
+		state := data.(*object.SharedState)
+		if !state.IsReady() {
+			ctx.Log().Trace(stateIsNotReady{Object: s.Payload.Object.GetValue()})
+			return false
+		}
 
-func (s *SMVObjectValidationReport) stepWaitIndefinitely(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	return ctx.Sleep().ThenRepeat()
+		state.SetDescriptorValidated(s.validatedObjectDescriptor)
+
+		return false
+	}
+
+	switch s.objectSharedState.PrepareAccess(setStateFunc).TryUse(ctx).GetDecision() {
+	case smachine.Passed:
+	case smachine.NotPassed:
+		return ctx.WaitShared(s.objectSharedState.SharedDataLink).ThenRepeat()
+	default:
+		panic(throw.Impossible())
+	}
+
+	return ctx.Stop()
 }
