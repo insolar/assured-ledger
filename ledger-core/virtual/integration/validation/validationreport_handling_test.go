@@ -7,6 +7,7 @@ package validation
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -30,6 +31,67 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/memorycache/statemachine"
 )
+
+func TestVirtual_ObjectValidationReport_EmptyCache(t *testing.T) {
+	defer commonTestUtils.LeakTester(t)
+
+	mc := minimock.NewController(t)
+
+	server, ctx := utils.NewServerWithErrorFilter(nil, t, func(s string) bool {
+		return !(strings.Contains(s, "key not found") || strings.Contains(s, "not implemented"))
+	})
+	defer server.Stop()
+
+	var (
+		objectGlobal = rms.NewReference(server.RandomGlobalWithPulse())
+		stateRef     = rms.NewReference(server.RandomGlobalWithPulse())
+		class        = rms.NewReference(server.RandomGlobalWithPulse())
+	)
+
+	server.IncrementPulse(ctx)
+
+	// send VStateReport
+	{
+		prevPulse := server.GetPrevPulse().PulseNumber
+
+		report := &rms.VStateReport{
+			AsOf:   prevPulse,
+			Status: rms.StateStatusReady,
+			Object: objectGlobal,
+			ProvidedContent: &rms.VStateReport_ProvidedContentBody{
+				LatestDirtyState: &rms.ObjectState{
+					Reference: rms.NewReferenceLocal(gen.UniqueLocalRefWithPulse(prevPulse)),
+					Class:     class,
+					State:     rms.NewBytes([]byte("dirty state")),
+				},
+				LatestValidatedState: &rms.ObjectState{
+					Reference: rms.NewReferenceLocal(gen.UniqueLocalRefWithPulse(prevPulse)),
+					Class:     class,
+					State:     rms.NewBytes([]byte("dirty state")),
+				},
+			},
+		}
+		waitReport := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
+		server.SendPayload(ctx, report)
+		commonTestUtils.WaitSignalsTimed(t, 10*time.Second, waitReport)
+	}
+
+	// send VObjectValidationReport
+	{
+		validationReport := &rms.VObjectValidationReport{
+			Object:    objectGlobal,
+			In:        server.GetPulse().PulseNumber,
+			Validated: stateRef,
+		}
+		waitValidationReport := server.Journal.WaitStopOf(&handlers.SMVObjectValidationReport{}, 1)
+		waitSubroutine := server.Journal.WaitStopOf(&statemachine.SMGetCachedMemory{}, 1)
+		server.SendPayload(ctx, validationReport)
+		commonTestUtils.WaitSignalsTimed(t, 10*time.Second, waitValidationReport)
+		commonTestUtils.WaitSignalsTimed(t, 10*time.Second, waitSubroutine)
+	}
+
+	mc.Finish()
+}
 
 type testSuite struct {
 	server       *utils.Server
