@@ -26,7 +26,9 @@ func isCloudMode() bool {
 func Run(cb func() int) int {
 	setupFunc := setup
 	if isCloudMode() {
-		setupFunc = setupCloud
+		cr := CloudRunner{}
+		cr.PrepareConfig()
+		setupFunc = cr.SetupCloud
 	}
 	teardown, err := setupFunc()
 	defer teardown()

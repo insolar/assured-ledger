@@ -23,10 +23,11 @@ import (
 )
 
 type PulsarWrapper struct {
-	cm     *component.Manager
-	server *pulsar.Pulsar
-	cfg    configuration.PulsarConfiguration
-	ticker *time.Ticker
+	cm        *component.Manager
+	server    *pulsar.Pulsar
+	cfg       configuration.PulsarConfiguration
+	ticker    *time.Ticker
+	onePulsar sync.Once
 }
 
 func NewPulsarWrapper(distributor pulsar.PulseDistributor, cfg configuration.PulsarConfiguration, keyFactory insapp.KeyStoreFactory) *PulsarWrapper {
@@ -70,10 +71,8 @@ func NewPulsarWrapper(distributor pulsar.PulseDistributor, cfg configuration.Pul
 	}
 }
 
-var onePulsar sync.Once
-
 func (p *PulsarWrapper) Start(ctx context.Context) error {
-	onePulsar.Do(func() {
+	p.onePulsar.Do(func() {
 		p.ticker = runPulsar(ctx, p.server, p.cfg.Pulsar)
 	})
 	return nil
@@ -81,6 +80,7 @@ func (p *PulsarWrapper) Start(ctx context.Context) error {
 
 func (p *PulsarWrapper) Stop(ctx context.Context) error {
 	p.ticker.Stop()
+	p.onePulsar = sync.Once{}
 	return p.cm.Stop(ctx)
 }
 
