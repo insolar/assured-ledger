@@ -94,7 +94,8 @@ func (cr CloudRunner) SetupCloud() (func(), error) {
 		})
 	}
 
-	err := waitForNetworkState(appConfig{Nodes: nodes}, network.CompleteNetworkState, false)
+	SetVerbose(false)
+	err := waitForNetworkState(appConfig{Nodes: nodes}, network.CompleteNetworkState)
 	if err != nil {
 		return cancelFunc, throw.W(err, "Can't wait for NetworkState "+network.CompleteNetworkState.String())
 	}

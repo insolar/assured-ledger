@@ -55,7 +55,7 @@ func setupCloudWithConsensus() (func(), error) {
 		})
 	}
 
-	err = waitForNetworkState(appConfig{Nodes: nodes}, network.CompleteNetworkState, true)
+	err = waitForNetworkState(appConfig{Nodes: nodes}, network.CompleteNetworkState)
 	if err != nil {
 		return cancelFunc, throw.W(err, "Can't wait for NetworkState "+network.CompleteNetworkState.String())
 	}

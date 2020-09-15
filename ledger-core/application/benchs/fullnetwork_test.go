@@ -15,7 +15,7 @@ import (
 
 func Benchmark_MultiPulseFullNetwork_Timed(b *testing.B) {
 	instestlogger.SetTestOutput(b)
-
+	launchnet.SetVerbose(false)
 	for numNodes := 2; numNodes <= 5; numNodes++ {
 		b.Run(fmt.Sprintf("Nodes %d", numNodes), func(b *testing.B) {
 			runner := &benchRunner{
@@ -24,7 +24,7 @@ func Benchmark_MultiPulseFullNetwork_Timed(b *testing.B) {
 				},
 			}
 
-			res := launchnet.CustomRunWithPulsar(numNodes, 0, 0, runner.runBenchOnNetwork(b), false)
+			res := launchnet.CustomRunWithPulsar(numNodes, 0, 0, runner.runBenchOnNetwork(b))
 			if res != 0 {
 				b.Error("network run failed")
 				b.Fatal("failed test run")
@@ -35,18 +35,16 @@ func Benchmark_MultiPulseFullNetwork_Timed(b *testing.B) {
 
 func Benchmark_SinglePulseFullNetwork_N(b *testing.B) {
 	instestlogger.SetTestOutput(b)
-
+	launchnet.SetVerbose(false)
 	for numNodes := 2; numNodes <= 5; numNodes++ {
 		b.Run(fmt.Sprintf("Nodes %d", numNodes), func(b *testing.B) {
-			b.ResetTimer()
 			for i := 1; i <= b.N; i++ {
 				runner := &benchRunner{
 					benchLimiterFactory: func(n int) benchLimiter {
 						return &countedBenchLimiter{targetCount: int32(n), currentCount: 0}
 					},
 				}
-				b.StopTimer()
-				res := launchnet.CustomRunWithoutPulsar(numNodes, 0, 0, runner.runBenchOnNetwork(b), false)
+				res := launchnet.CustomRunWithoutPulsar(numNodes, 0, 0, runner.runBenchOnNetwork(b))
 				if res != 0 {
 					b.Error("network run failed")
 					b.Fatal("failed test run")
