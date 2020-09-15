@@ -22,7 +22,7 @@ var (
 	numHeavyMaterials = 0
 )
 
-func prepareConfigProvider() (*insapp.CloudConfigurationProvider, error) {
+func prepareConfigProvider() (*server.CloudConfigurationProvider, error) {
 	pulseEnv := os.Getenv("PULSARD_PULSAR_PULSETIME")
 	var pulseTime int
 	var err error
@@ -33,7 +33,7 @@ func prepareConfigProvider() (*insapp.CloudConfigurationProvider, error) {
 		}
 	}
 
-	cloudSettings := insapp.CloudSettings{
+	cloudSettings := CloudSettings{
 		Virtual: numVirtual,
 		Light:   numLightMaterials,
 		Heavy:   numHeavyMaterials,
@@ -47,11 +47,11 @@ func prepareConfigProvider() (*insapp.CloudConfigurationProvider, error) {
 		cloudSettings.Pulsar = struct{ PulseTime int }{PulseTime: pulseTime}
 	}
 
-	appConfigs, cloudConfig, certFactory, keyFactory := insapp.PrepareCloudConfiguration(cloudSettings)
+	appConfigs, cloudConfig, certFactory, keyFactory := PrepareCloudConfiguration(cloudSettings)
 
 	baseConf := configuration.Configuration{}
 	baseConf.Log = cloudConfig.Log
-	return &insapp.CloudConfigurationProvider{
+	return &server.CloudConfigurationProvider{
 		BaseConfig:         baseConf,
 		PulsarConfig:       cloudConfig.PulsarConfiguration,
 		CertificateFactory: certFactory,
@@ -63,7 +63,7 @@ func prepareConfigProvider() (*insapp.CloudConfigurationProvider, error) {
 }
 
 type CloudRunner struct {
-	ConfProvider *insapp.CloudConfigurationProvider
+	ConfProvider *server.CloudConfigurationProvider
 }
 
 func (cr CloudRunner) SetNumVirtuals(n int) {

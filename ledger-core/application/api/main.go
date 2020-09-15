@@ -18,14 +18,13 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
-	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
-	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
-
 	"github.com/insolar/assured-ledger/ledger-core/application/api/seedmanager"
-	"github.com/insolar/assured-ledger/ledger-core/network"
-
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/log"
+	"github.com/insolar/assured-ledger/ledger-core/network"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
+	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 // Runner implements Component for API
@@ -41,6 +40,7 @@ type Runner struct {
 
 	handler       http.Handler
 	server        *http.Server
+	logger        log.Logger
 	rpcServer     *rpc.Server
 	cfg           *configuration.APIRunner
 	keyCache      map[string]crypto.PublicKey
@@ -77,6 +77,7 @@ func (ar *Runner) registerPublicServices(rpcServer *rpc.Server) error {
 
 // NewRunner is C-tor for API Runner
 func NewRunner(cfg *configuration.APIRunner,
+	logger log.Logger,
 	certificateManager nodeinfo.CertificateManager,
 	// nolint
 	nodeNetwork beat.NodeNetwork,
@@ -102,6 +103,7 @@ func NewRunner(cfg *configuration.APIRunner,
 		NetworkStatus:       networkStatus,
 		AvailabilityChecker: availabilityChecker,
 		server:              &http.Server{Addr: cfg.Address},
+		logger:              logger,
 		rpcServer:           rpcServer,
 		cfg:                 cfg,
 		keyCache:            make(map[string]crypto.PublicKey),

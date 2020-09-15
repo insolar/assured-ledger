@@ -75,7 +75,8 @@ func (s *NodeService) getSeed(ctx context.Context, _ *http.Request, _ *SeedArgs,
 }
 
 func (s *NodeService) GetSeed(r *http.Request, args *SeedArgs, _ *rpc.RequestBody, reply *requester.SeedReply) error {
-	ctx, instr := instrumenter.NewMethodInstrument("NodeService.getSeed")
+	ctx := inslogger.SetLogger(context.Background(), s.runner.logger)
+	ctx, instr := instrumenter.NewMethodInstrument(ctx, "NodeService.getSeed")
 	defer instr.End()
 
 	msg := fmt.Sprint("Incoming request: ", r.RequestURI)
