@@ -13,6 +13,8 @@ service:
   cachedirectory: network_cache
 ledger:
   lightchainlimit: 5
+virtual:
+  maxrunners: 0
 log:
   level: Debug
   adapter: zerolog
