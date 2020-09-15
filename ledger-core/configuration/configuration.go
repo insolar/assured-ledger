@@ -40,6 +40,7 @@ type CommonAppConfig struct {
 type VirtualNodeConfig struct {
 	CommonAppConfig
 	LogicRunner LogicRunner
+	Virtual     Virtual
 }
 
 type LightNodeConfig struct {
@@ -66,6 +67,7 @@ type Configuration struct {
 	Log                 Log
 	Metrics             Metrics
 	LogicRunner         LogicRunner
+	Virtual             Virtual
 	APIRunner           APIRunner
 	AdminAPIRunner      APIRunner
 	TestWalletAPI       TestWalletAPI
@@ -101,6 +103,7 @@ func NewConfiguration() Configuration {
 		Log:                 NewLog(),
 		Metrics:             NewMetrics(),
 		LogicRunner:         NewLogicRunner(),
+		Virtual:             NewVirtual(),
 		APIRunner:           NewAPIRunner(false),
 		AdminAPIRunner:      NewAPIRunner(true),
 		AvailabilityChecker: NewAvailabilityChecker(),
