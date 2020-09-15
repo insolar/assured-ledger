@@ -6,7 +6,6 @@
 package launchnet
 
 import (
-	"fmt"
 	"os"
 	"strconv"
 
@@ -63,30 +62,40 @@ func prepareConfigProvider() (*insapp.CloudConfigurationProvider, error) {
 	}, nil
 }
 
-func setupCloud() (func(), error) {
-	cancelFunc := func() {
-		fmt.Println("Do nothing")
-	}
+type CloudRunner struct {
+	ConfProvider *insapp.CloudConfigurationProvider
+}
 
-	confProvider, err := prepareConfigProvider()
+func (cr CloudRunner) SetNumVirtuals(n int) {
+	numVirtual = n
+}
+
+func (cr *CloudRunner) PrepareConfig() {
+	var err error
+	cr.ConfProvider, err = prepareConfigProvider()
 	if err != nil {
-		return cancelFunc, throw.W(err, "Can't prepare config provider")
+		panic(throw.W(err, "Can't prepare config provider"))
 	}
+}
 
-	s := server.NewMultiServer(confProvider)
+func (cr CloudRunner) SetupCloud() (func(), error) {
+	s := server.NewMultiServer(cr.ConfProvider)
 	go func() {
 		s.Serve()
 	}()
 
+	cancelFunc := s.(*insapp.Server).Stop
+
 	var nodes []nodeConfig
-	for _, appCfg := range confProvider.GetAppConfigs() {
+	for _, appCfg := range cr.ConfProvider.GetAppConfigs() {
 		nodes = append(nodes, nodeConfig{
 			AdminAPIRunner: appCfg.AdminAPIRunner,
 			TestWalletAPI:  appCfg.TestWalletAPI,
 		})
 	}
 
-	err = waitForNetworkState(appConfig{Nodes: nodes}, network.CompleteNetworkState)
+	SetVerbose(false)
+	err := waitForNetworkState(appConfig{Nodes: nodes}, network.CompleteNetworkState)
 	if err != nil {
 		return cancelFunc, throw.W(err, "Can't wait for NetworkState "+network.CompleteNetworkState.String())
 	}
