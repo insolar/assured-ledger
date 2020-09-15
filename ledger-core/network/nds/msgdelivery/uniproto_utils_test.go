@@ -18,13 +18,24 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 )
 
+var (
+	servers = make([]*UnitProtoServer, 0)
+)
+
+func getServerByIndex(idx int) *UnitProtoServer {
+	if idx < 1 || idx > len(servers) {
+		panic("")
+	}
+
+	return servers[idx-1]
+}
+
 func createService(
 	t testing.TB,
-	index nwapi.HostID,
 	receiverFn func(a ReturnAddress, _ nwapi.PayloadCompleteness, v interface{}) error,
 	config uniserver.ServerConfig,
-	idWithPortFn func(nwapi.Address) bool) ServiceTest {
-
+	idWithPortFn func(nwapi.Address) bool,
+) *UnitProtoServer {
 	controller := NewController(Protocol, TestDeserializationByteFactory{}, receiverFn, nil, TestLogAdapter{t})
 
 	var dispatcher uniserver.Dispatcher
@@ -36,14 +47,17 @@ func createService(
 	srv.SetConfig(config)
 	srv.SetIdentityClassifier(idWithPortFn)
 
+	// This is min value for NodeID, o is not allowed
+	con := 1
+
 	peerFn := func(peer *uniserver.Peer) (remapTo nwapi.Address, err error) {
-		idx := connectionCount
-		connectionCount++
-		if connectionCount > len(StartedServers) {
+		idx := con
+		con++
+		if con > len(servers)+1 {
 			panic("")
 		}
 
-		peer.SetSignatureKey(StartedServers[idx].key)
+		peer.SetSignatureKey(servers[idx-1].key)
 		peer.SetNodeID(nwapi.ShortNodeID(idx))
 
 		return nwapi.NewHostID(nwapi.HostID(idx)), nil
@@ -56,7 +70,7 @@ func createService(
 	dispatcher.SetMode(uniproto.AllowAll)
 
 	manager := srv.PeerManager()
-	_, err := manager.AddHostID(manager.Local().GetPrimary(), index)
+	_, err := manager.AddHostID(manager.Local().GetPrimary(), nwapi.HostID(len(servers)))
 	require.NoError(t, err)
 
 	pr := pulse.NewOnePulseRange(pulse.NewFirstPulsarData(5, longbits.Bits256{}))
@@ -66,19 +80,26 @@ func createService(
 	skBytes[0] = 1
 	sk := cryptkit.NewSigningKey(longbits.CopyBytes(skBytes[:]), testSigningMethod, cryptkit.PublicAsymmetricKey)
 
-	serviceInfo := ServiceTest{
+	for _, s := range servers {
+		con, err := s.mng.Manager().ConnectPeer(manager.Local().GetPrimary())
+
+		require.NoError(t, err)
+		require.NoError(t, con.Transport().EnsureConnect())
+	}
+
+	info := &UnitProtoServer{
 		service: controller.NewFacade(),
 		key:     sk,
-		disp:    dispatcher,
+		disp:    &dispatcher,
 		mng:     manager,
 	}
-	StartedServers[index] = serviceInfo
-	return serviceInfo
+	servers = append(servers, info)
+	return info
 }
 
-type ServiceTest struct {
+type UnitProtoServer struct {
 	service Service
 	key     cryptkit.SigningKey
-	disp    uniserver.Dispatcher
+	disp    *uniserver.Dispatcher
 	mng     *uniserver.PeerManager
 }

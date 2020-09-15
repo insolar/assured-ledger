@@ -10,18 +10,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto/l2/uniserver"
 	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
 )
 
 type BenchType func(v benchSender, payload []byte)
-
-var (
-	StartedServers  []ServiceTest
-	connectionCount = 0
-)
 
 // WARNING! Benchmark is unstable due to packet drops on overflow.
 func BenchmarkThroughput(b *testing.B) {
@@ -158,8 +151,12 @@ func BenchmarkLatency(b *testing.B) {
 	}
 }
 
-func createPipe(t testing.TB, server1, server2 string, udpMaxSize int, f func(a ReturnAddress, _ nwapi.PayloadCompleteness, v interface{}) error) (benchSender, func()) {
-
+func createPipe(
+	t testing.TB,
+	server1, server2 string,
+	udpMaxSize int,
+	f func(a ReturnAddress, _ nwapi.PayloadCompleteness, v interface{}) error,
+) (benchSender, func()) {
 	var idWithPortFn func(nwapi.Address) bool
 	if server1 == server2 {
 		addr := nwapi.NewHostPort(server1, true)
@@ -171,8 +168,6 @@ func createPipe(t testing.TB, server1, server2 string, udpMaxSize int, f func(a 
 		}
 	}
 
-	StartedServers = make([]ServiceTest, 3)
-
 	config := uniserver.ServerConfig{
 		BindingAddress: server1,
 		UDPMaxSize:     udpMaxSize,
@@ -180,14 +175,10 @@ func createPipe(t testing.TB, server1, server2 string, udpMaxSize int, f func(a 
 		PeerLimit:      -1,
 	}
 
-	srv1 := createService(t, 1, f, config, idWithPortFn)
+	srv1 := createService(t, f, config, idWithPortFn)
 
 	config.BindingAddress = server2
-	srv2 := createService(t, 2, f, config, idWithPortFn)
-
-	conn21, err := srv2.mng.Manager().ConnectPeer(srv1.mng.Local().GetPrimary())
-	require.NoError(t, err)
-	require.NoError(t, conn21.Transport().EnsureConnect())
+	srv2 := createService(t, f, config, idWithPortFn)
 
 	return benchSender{
 			toAddr: NewDirectAddress(1),
@@ -216,14 +207,14 @@ func (v benchSender) throughput(b *testing.B, payloadSize int, funcName BenchTyp
 		select {
 		case <-v.results:
 			received++
-			println(received, b.N, " in-loop")
+			//println(received, b.N, " in-loop")
 		default:
 		}
 	}
 	for received < b.N {
 		<-v.results
 		received++
-		println(received, b.N, " off-loop")
+		//println(received, b.N, " off-loop")
 	}
 }
 
