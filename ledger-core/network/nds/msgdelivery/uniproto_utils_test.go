@@ -19,10 +19,10 @@ import (
 )
 
 var (
-	servers = make([]*UnitProtoServer, 0)
+	servers = make([]*UniprotoServer, 0)
 )
 
-func getServerByIndex(idx int) *UnitProtoServer {
+func getServerByIndex(idx int) *UniprotoServer {
 	if idx < 1 || idx > len(servers) {
 		panic("")
 	}
@@ -30,7 +30,7 @@ func getServerByIndex(idx int) *UnitProtoServer {
 	return servers[idx-1]
 }
 
-type UnitProtoServer struct {
+type UniprotoServer struct {
 	service Service
 	key     cryptkit.SigningKey
 	disp    *uniserver.Dispatcher
@@ -42,7 +42,7 @@ func createService(
 	receiverFn ReceiverFunc,
 	config uniserver.ServerConfig,
 	idWithPortFn func(nwapi.Address) bool,
-) *UnitProtoServer {
+) *UniprotoServer {
 
 	controller := NewController(Protocol, TestDeserializationByteFactory{}, receiverFn, nil, TestLogAdapter{t})
 
@@ -55,7 +55,7 @@ func createService(
 	srv.SetConfig(config)
 	srv.SetIdentityClassifier(idWithPortFn)
 
-	// This is min value for NodeID, o is not allowed
+	// This is min value for NodeID, 0 is not allowed
 	con := 1
 
 	peerFn := func(peer *uniserver.Peer) (remapTo nwapi.Address, err error) {
@@ -98,7 +98,7 @@ func createService(
 		require.NoError(t, con.Transport().EnsureConnect())
 	}
 
-	info := &UnitProtoServer{
+	info := &UniprotoServer{
 		service: controller.NewFacade(),
 		key:     sk,
 		disp:    &dispatcher,
