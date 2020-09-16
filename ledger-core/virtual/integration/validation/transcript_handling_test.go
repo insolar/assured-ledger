@@ -38,6 +38,9 @@ func TestValidation_ObjectTranscriptReport_AfterConstructor(t *testing.T) {
 	authService.CheckMessageFromAuthorizedVirtualMock.Return(false, nil)
 	server.ReplaceAuthenticationService(authService)
 
+	runnerMock := logicless.NewServiceMock(ctx, mc, nil)
+	server.ReplaceRunner(runnerMock)
+
 	server.Init(ctx)
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
@@ -46,6 +49,20 @@ func TestValidation_ObjectTranscriptReport_AfterConstructor(t *testing.T) {
 	outgoing := callRequest.CallOutgoing
 	objectRef := reference.NewSelf(outgoing.GetValue().GetLocal())
 	p := server.GetPulse().PulseNumber
+
+	// add runnerMock
+	{
+		requestResult := requestresult.New([]byte("call result"), server.RandomGlobalWithPulse())
+		requestResult.SetActivate(server.RandomGlobalWithPulse(), server.RandomGlobalWithPulse(), []byte("init state"))
+		runnerMock.AddExecutionClassify(outgoing.GetValue(), contract.MethodIsolation{Interference: isolation.CallTolerable, State: isolation.CallDirty}, nil)
+		runnerMock.AddExecutionMock(outgoing.GetValue()).AddStart(
+			nil,
+			&execution.Update{
+				Type:   execution.Done,
+				Result: requestResult,
+			},
+		)
+	}
 
 	pl := rms.VObjectTranscriptReport{
 		AsOf:   p,
@@ -59,12 +76,11 @@ func TestValidation_ObjectTranscriptReport_AfterConstructor(t *testing.T) {
 	}
 	pl.ObjectTranscript.Entries[0].Set(
 		&rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest{
-			Request:      *callRequest,
+			Request: *callRequest,
 		},
 	)
 	pl.ObjectTranscript.Entries[1].Set(
-		&rms.VObjectTranscriptReport_TranscriptEntryIncomingResult{
-		},
+		&rms.VObjectTranscriptReport_TranscriptEntryIncomingResult{},
 	)
 
 	done := server.Journal.WaitStopOf(&handlers.SMVObjectTranscriptReport{}, 1)
@@ -125,7 +141,7 @@ func TestValidation_ObjectTranscriptReport_AfterMethod(t *testing.T) {
 		newObjDescr := descriptor.NewObject(objectRef.GetValue(), server.RandomLocalWithPulse(), server.RandomGlobalWithPulse(), []byte("new state"), false)
 		newStateRef = reference.NewRecordOf(newObjDescr.HeadRef(), newObjDescr.StateID())
 		requestResult := requestresult.New([]byte("call result"), server.RandomGlobalWithPulse())
-		requestResult.SetAmend(objDescriptor, []byte("new state"))
+		requestResult.SetAmend(newObjDescr, []byte("new state"))
 		runnerMock.AddExecutionClassify(outgoing.GetValue(), contract.MethodIsolation{Interference: isolation.CallTolerable, State: isolation.CallDirty}, nil)
 		runnerMock.AddExecutionMock(outgoing.GetValue()).AddStart(
 			nil,
