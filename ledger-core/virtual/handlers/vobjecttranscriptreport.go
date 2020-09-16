@@ -102,6 +102,9 @@ func (s *SMVObjectTranscriptReport) stepProcess(ctx smachine.ExecutionContext) s
 	case *rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest:
 		s.incomingRequest = tEntry
 		s.objState = s.incomingRequest.ObjectMemory.GetValue()
+		if s.objState.IsEmpty() {
+			return ctx.Jump(s.stepIncomingRequest)
+		}
 		return ctx.Jump(s.stepGetMemory)
 	default:
 		// TODO: no idea how deal here with this
@@ -125,7 +128,6 @@ func (s *SMVObjectTranscriptReport) stepGetMemory(ctx smachine.ExecutionContext)
 }
 
 func (s *SMVObjectTranscriptReport) stepIncomingRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
-
 	return ctx.Jump(s.stepExecuteStart)
 }
 
