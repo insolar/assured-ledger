@@ -149,6 +149,8 @@ func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
 
 		assert.Empty(t, request.Incoming)
 		assert.Empty(t, request.ObjectMemory)
+		args := pl.Arguments.AsByteString()
+		pl.Arguments.Set(args)
 		assert.Equal(t, *pl, request.Request)
 
 		assert.Empty(t, result.IncomingResult)
