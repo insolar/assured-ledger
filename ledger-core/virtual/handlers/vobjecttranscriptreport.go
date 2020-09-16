@@ -8,14 +8,19 @@
 package handlers
 
 import (
+	"context"
+
+	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/rms/rmsreg"
 	"github.com/insolar/assured-ledger/ledger-core/runner"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
+	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
@@ -43,6 +48,8 @@ type SMVObjectTranscriptReport struct {
 	objDesc         descriptor.Object
 	entryIndex      int
 	incomingRequest *rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest
+
+	validatedState  reference.Global
 
 	execution         execution.Context
 	executionNewState *execution.Update
@@ -151,16 +158,75 @@ func (s *SMVObjectTranscriptReport) stepExecuteDecideNextStep(ctx smachine.Execu
 		panic(throw.IllegalValue())
 	}
 
-	entry := s.peekNextEntry()
-	_ = entry.(*rms.VObjectTranscriptReport_TranscriptEntryIncomingResult)
+	var newDesc descriptor.Object
 
-	// TODO: next step is to compare results here
+	switch s.executionNewState.Result.Type() {
+	case requestresult.SideEffectNone:
+	case requestresult.SideEffectActivate:
+		_, class, memory := s.executionNewState.Result.Activate()
+		newDesc = s.makeNewDescriptor(class, memory, false)
+	case requestresult.SideEffectAmend:
+		_, class, memory := s.executionNewState.Result.Amend()
+		newDesc = s.makeNewDescriptor(class, memory, false)
+	case requestresult.SideEffectDeactivate:
+		class, memory := s.executionNewState.Result.Deactivate()
+		newDesc = s.makeNewDescriptor(class, memory, true)
+	default:
+		panic(throw.IllegalValue())
+	}
+
+	entry := s.peekNextEntry()
+	expected := entry.(*rms.VObjectTranscriptReport_TranscriptEntryIncomingResult)
+
+	// fixme: stateid vs stateref
+	stateRef := reference.NewRecordOf(newDesc.HeadRef(),newDesc.StateID())
+	equal := stateRef.Equal(expected.ObjectState.GetValue())
+	if equal {
+		s.validatedState = stateRef
+		return ctx.Jump(s.stepAdvanceToNextRequest)
+	}
+
+	// todo: validation failed
+	panic(throw.NotImplemented())
+}
+
+func (s *SMVObjectTranscriptReport) stepAdvanceToNextRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	s.entryIndex++
+	if s.entryIndex >= s.entriesCount() {
+		if !s.validatedState.IsEmpty() {
+			return ctx.Jump(s.stepSendValidationReport)
+		} else {
+			panic(throw.NotImplemented())
+		}
+	}
+	return ctx.Stop()
+}
+
+func (s *SMVObjectTranscriptReport) stepSendValidationReport(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	msg := rms.VObjectValidationReport{
+		Object:    rms.NewReference(s.object),
+		In:        s.pulseSlot.PulseNumber(),
+		Validated: rms.NewReference(s.validatedState),
+	}
+	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
+		err := svc.SendRole(goCtx, &msg, affinity.DynamicRoleVirtualExecutor, s.object, s.pulseSlot.PulseNumber())
+		return func(ctx smachine.AsyncResultContext) {
+			if err != nil {
+				ctx.Log().Error("failed to send message", err)
+			}
+		}
+	}).WithoutAutoWakeUp().Start()
+
 	return ctx.Stop()
 }
 
 func (s *SMVObjectTranscriptReport) peekEntry(index int) rmsreg.GoGoSerializable {
 	entries := s.Payload.ObjectTranscript.GetEntries()
 	return entries[index].Get()
+}
+
+func (s *SMVObjectTranscriptReport) entriesCount() int {
+	return len(s.Payload.ObjectTranscript.GetEntries())
 }
 
 func (s *SMVObjectTranscriptReport) peekCurrentEntry() rmsreg.GoGoSerializable {
