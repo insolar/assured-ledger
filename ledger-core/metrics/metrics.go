@@ -67,8 +67,9 @@ func (m *Metrics) Init(ctx context.Context) error {
 		zpages.Handle(mux, "/debug")
 	}
 
+	inslogger.FromContext(ctx).Warn("ignoring config param INSOLAR_METRICS_NAMESPACE = %s", m.config.Namespace)
 	_, err := insmetrics.RegisterPrometheus(
-		m.config.Namespace,
+		insolarNamespace,
 		m.registry,
 		m.config.ReportingPeriod,
 		errLogger,

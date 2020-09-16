@@ -7,6 +7,7 @@ package virtual
 
 import (
 	"context"
+	"fmt"
 	"runtime"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/testwalletapi"
@@ -36,6 +37,8 @@ func AppFactory(ctx context.Context, cfg configuration.Configuration, comps insa
 	} else {
 		virtualDispatcher.MaxRunners = 4
 	}
+
+	fmt.Println("======= MAX RUNNERS: ", virtualDispatcher.MaxRunners)
 
 	testAPI := testwalletapi.NewTestWalletServer(cfg.TestWalletAPI, virtualDispatcher, comps.BeatHistory)
 
