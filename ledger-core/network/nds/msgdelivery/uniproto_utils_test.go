@@ -32,10 +32,11 @@ func getServerByIndex(idx int) *UnitProtoServer {
 
 func createService(
 	t testing.TB,
-	receiverFn func(a ReturnAddress, _ nwapi.PayloadCompleteness, v interface{}) error,
+	receiverFn ReceiverFunc,
 	config uniserver.ServerConfig,
 	idWithPortFn func(nwapi.Address) bool,
 ) *UnitProtoServer {
+
 	controller := NewController(Protocol, TestDeserializationByteFactory{}, receiverFn, nil, TestLogAdapter{t})
 
 	var dispatcher uniserver.Dispatcher

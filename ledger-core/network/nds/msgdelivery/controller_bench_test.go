@@ -14,69 +14,99 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
 )
 
-type BenchType func(v benchSender, payload []byte)
+type testCasesStruct struct {
+	testName string
+	receiver ReceiverFunc
+	sendFunc SendFuncType
+}
+type SendFuncType func(v benchSender, payload []byte)
+
+var s Service
+
+type initServerData struct {
+	serverConf uniserver.ServerConfig
+	receiver   ReceiverFunc
+}
 
 // WARNING! Benchmark is unstable due to packet drops on overflow.
 func BenchmarkThroughput(b *testing.B) {
+
+	testCases := []testCasesStruct{
+		// shipToBody,
+		// shipToHead,
+		{"shipToHeadAndPullBody",
+			receiverPullBody,
+			shipToHeadAndPullBody,
+		},
+	}
+
 	results := make(chan []byte, 16)
-	recv := func(a ReturnAddress, _ nwapi.PayloadCompleteness, v interface{}) error {
-		results <- nil
-		return nil
+
+	srv2 := initServerData{
+		serverConf: uniserver.ServerConfig{
+			BindingAddress: "127.0.0.1:0",
+			UDPMaxSize:     0,
+			UDPParallelism: 4,
+			PeerLimit:      -1,
+		},
+		receiver: noopReceiver,
 	}
+	srv1 := srv2
 
-	sender, stopFn := createPipe(b, "127.0.0.1:0", "127.0.0.1:0", 0, recv)
-	defer stopFn()
+	for _, testCase := range testCases {
+		b.Run(testCase.testName, func(b *testing.B) {
 
-	sender.results = results
+			srv1.receiver = testCase.receiver
 
-	testCases := []BenchType{
-		shipToBody,
-		shipToHead,
-	}
+			sender, stopFn := createPipe(b, srv1, srv2) // config for servers is equal
+			defer stopFn()
 
-	for _, runFunc := range testCases {
-		bench := sender
+			s = sender.ctl1 // set server for receiver
 
-		b.Run("0.1k", func(b *testing.B) {
-			bench.throughput(b, 100, runFunc)
+			sender.results = results
+			bench := sender
+
+			b.Run("0.1k", func(b *testing.B) {
+				bench.throughput(b, 100, testCase.sendFunc)
+			})
+
+			b.Run("1k", func(b *testing.B) {
+				bench.throughput(b, 1<<10, testCase.sendFunc)
+			})
+
+			b.Run("4k", func(b *testing.B) {
+				bench.throughput(b, 1<<12, testCase.sendFunc)
+			})
+
+			b.Run("16k", func(b *testing.B) {
+				bench.throughput(b, 1<<14, testCase.sendFunc)
+			})
+
+			b.Run("128k", func(b *testing.B) {
+				bench.throughput(b, 1<<17, testCase.sendFunc)
+			})
+
+			// head -
+			b.Run("1M", func(b *testing.B) {
+				bench.throughput(b, 1<<20, testCase.sendFunc)
+			})
+
+			b.Run("8M", func(b *testing.B) {
+				bench.throughput(b, 1<<23, testCase.sendFunc)
+			})
+
+			b.Run("32M", func(b *testing.B) {
+				bench.throughput(b, 1<<25, testCase.sendFunc)
+			})
+
+			b.Run("64M", func(b *testing.B) {
+				bench.throughput(b, 1<<26, testCase.sendFunc)
+			})
+
+			b.Run("128M", func(b *testing.B) {
+				bench.throughput(b, 1<<27, testCase.sendFunc)
+			})
 		})
-
-		// b.Run("1k", func(b *testing.B) {
-		// 	bench.throughput(b, 1<<10, runFunc)
-		// })
-		//
-		// b.Run("4k", func(b *testing.B) {
-		// 	bench.throughput(b, 1<<12, runFunc)
-		// })
-		//
-		// b.Run("16k", func(b *testing.B) {
-		// 	bench.throughput(b, 1<<14, runFunc)
-		// })
-		//
-		// b.Run("128k", func(b *testing.B) {
-		// 	bench.throughput(b, 1<<17, runFunc)
-		// })
-		//
-		// // head -
-		// b.Run("1M", func(b *testing.B) {
-		// 	bench.throughput(b, 1<<20, runFunc)
-		// })
-		//
-		// b.Run("8M", func(b *testing.B) {
-		// 	bench.throughput(b, 1<<23, runFunc)
-		// })
-		//
-		// b.Run("32M", func(b *testing.B) {
-		// 	bench.throughput(b, 1<<25, runFunc)
-		// })
-		//
-		// b.Run("64M", func(b *testing.B) {
-		// 	bench.throughput(b, 1<<26, runFunc)
-		// })
-		//
-		// b.Run("128M", func(b *testing.B) {
-		// 	bench.throughput(b, 1<<27, runFunc)
-		// })
 	}
 
 	// b.Run("loopback", func(b *testing.B) {
@@ -98,7 +128,7 @@ func BenchmarkThroughput(b *testing.B) {
 }
 
 // WARNING! Benchmark is unstable due to packet drops on overflow.
-func BenchmarkLatency(b *testing.B) {
+/*func BenchmarkLatency(b *testing.B) {
 	results := make(chan []byte, 1)
 	recv := func(a ReturnAddress, _ nwapi.PayloadCompleteness, v interface{}) error {
 		results <- nil
@@ -109,7 +139,7 @@ func BenchmarkLatency(b *testing.B) {
 
 	sender.results = results
 
-	testCases := []BenchType{
+	testCases := []testCasesStruct{
 		shipToBody,
 		shipToHead,
 	}
@@ -149,17 +179,12 @@ func BenchmarkLatency(b *testing.B) {
 			bench.latency(b, 1<<27, runFunc)
 		})
 	}
-}
+}*/
 
-func createPipe(
-	t testing.TB,
-	server1, server2 string,
-	udpMaxSize int,
-	f func(a ReturnAddress, _ nwapi.PayloadCompleteness, v interface{}) error,
-) (benchSender, func()) {
+func createPipe(t testing.TB, server1, server2 initServerData) (benchSender, func()) {
 	var idWithPortFn func(nwapi.Address) bool
-	if server1 == server2 {
-		addr := nwapi.NewHostPort(server1, true)
+	if server1.serverConf.BindingAddress == server2.serverConf.BindingAddress {
+		addr := nwapi.NewHostPort(server1.serverConf.BindingAddress, true)
 		if !addr.IsLoopback() {
 			addr = addr.HostIdentity()
 			idWithPortFn = func(address nwapi.Address) bool {
@@ -168,21 +193,13 @@ func createPipe(
 		}
 	}
 
-	config := uniserver.ServerConfig{
-		BindingAddress: server1,
-		UDPMaxSize:     udpMaxSize,
-		UDPParallelism: 4,
-		PeerLimit:      -1,
-	}
-
-	srv1 := createService(t, f, config, idWithPortFn)
-
-	config.BindingAddress = server2
-	srv2 := createService(t, f, config, idWithPortFn)
+	srv1 := createService(t, server1.receiver, server1.serverConf, idWithPortFn)
+	srv2 := createService(t, server2.receiver, server2.serverConf, idWithPortFn)
 
 	return benchSender{
 			toAddr: NewDirectAddress(1),
-			ctl:    srv2.service,
+			ctl2:   srv2.service,
+			ctl1:   srv1.service,
 		}, func() {
 			srv1.disp.Stop()
 			srv2.disp.Stop()
@@ -192,10 +209,11 @@ func createPipe(
 type benchSender struct {
 	toAddr  DeliveryAddress
 	results chan []byte
-	ctl     Service
+	ctl1    Service
+	ctl2    Service
 }
 
-func (v benchSender) throughput(b *testing.B, payloadSize int, funcName BenchType) {
+func (v benchSender) throughput(b *testing.B, payloadSize int, funcName SendFuncType) {
 	payload := make([]byte, payloadSize)
 	b.ResetTimer()
 	b.ReportAllocs()
@@ -207,18 +225,18 @@ func (v benchSender) throughput(b *testing.B, payloadSize int, funcName BenchTyp
 		select {
 		case <-v.results:
 			received++
-			//println(received, b.N, " in-loop")
+			println(received, b.N, " in-loop")
 		default:
 		}
 	}
 	for received < b.N {
 		<-v.results
 		received++
-		//println(received, b.N, " off-loop")
+		println(received, b.N, " off-loop")
 	}
 }
 
-func (v benchSender) latency(b *testing.B, payloadSize int, funcName BenchType) {
+func (v benchSender) latency(b *testing.B, payloadSize int, funcName SendFuncType) {
 	payload := make([]byte, payloadSize)
 	b.SetBytes(int64(len(payload)))
 
@@ -236,14 +254,14 @@ func (v benchSender) latency(b *testing.B, payloadSize int, funcName BenchType) 
 // //////////////////////////
 
 func shipToBody(v benchSender, payload []byte) {
-	err := v.ctl.ShipTo(v.toAddr, Shipment{Body: &TestBytes{payload}})
+	err := v.ctl2.ShipTo(v.toAddr, Shipment{Body: &TestBytes{payload}})
 	if err != nil {
 		panic(err)
 	}
 }
 
 func shipToHead(v benchSender, payload []byte) {
-	err := v.ctl.ShipTo(v.toAddr, Shipment{Head: &TestBytes{payload}})
+	err := v.ctl2.ShipTo(v.toAddr, Shipment{Head: &TestBytes{payload}})
 	if err != nil {
 		panic(err)
 	}
@@ -253,25 +271,23 @@ func shipToHeadAndPullBody(v benchSender, payload []byte) {
 	head := TestString{string(payload[:64])}
 	body := TestString{string(payload)}
 
-	// recv1 := func(a ReturnAddress, done nwapi.PayloadCompleteness, _ interface{}) error {
-	// 	err := v.ctl.PullBody(a, ShipmentRequest{
-	// 		ReceiveFn: func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
-	// 			return nil
-	// 		},
-	// 	})
-	//
-	// 	if err != nil {
-	// 		panic(err)
-	// 	}
-	// 	return nil
-	// }
-	// todo receiver need before server init
-
-	err := v.ctl.ShipTo(v.toAddr, Shipment{
+	err := v.ctl2.ShipTo(v.toAddr, Shipment{
 		Head: &head,
 		Body: &body,
 	})
 	if err != nil {
 		panic(err)
 	}
+}
+
+func receiverPullBody(a ReturnAddress, done nwapi.PayloadCompleteness, _ interface{}) error {
+	println("recv>>>>>>>>>>>>")
+	err := s.PullBody(a, ShipmentRequest{
+		ReceiveFn: noopReceiver,
+	})
+
+	if err != nil {
+		panic(err)
+	}
+	return nil
 }
