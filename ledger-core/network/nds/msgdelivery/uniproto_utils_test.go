@@ -71,7 +71,7 @@ func createService(
 	dispatcher.SetMode(uniproto.AllowAll)
 
 	manager := srv.PeerManager()
-	_, err := manager.AddHostID(manager.Local().GetPrimary(), nwapi.HostID(len(servers)))
+	_, err := manager.AddHostID(manager.Local().GetPrimary(), nwapi.HostID(len(servers)+1))
 	require.NoError(t, err)
 
 	pr := pulse.NewOnePulseRange(pulse.NewFirstPulsarData(5, longbits.Bits256{}))
@@ -82,7 +82,10 @@ func createService(
 	sk := cryptkit.NewSigningKey(longbits.CopyBytes(skBytes[:]), testSigningMethod, cryptkit.PublicAsymmetricKey)
 
 	for _, s := range servers {
-		con, err := s.mng.Manager().ConnectPeer(manager.Local().GetPrimary())
+		// println("len servers %d", len(servers))
+		// println("con %d",con)
+		// it is not worked, server.go:313: error {127.0.0.1:60936 127.0.0.1:60937};	remap to loopback
+		con, err := manager.Manager().ConnectPeer(s.mng.Local().GetPrimary())
 
 		require.NoError(t, err)
 		require.NoError(t, con.Transport().EnsureConnect())

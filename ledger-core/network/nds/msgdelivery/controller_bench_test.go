@@ -21,24 +21,29 @@ type testCasesStruct struct {
 }
 type SendFuncType func(v benchSender, payload []byte)
 
-var s Service
-
 type initServerData struct {
 	serverConf uniserver.ServerConfig
 	receiver   ReceiverFunc
 }
 
+var testCases = []testCasesStruct{
+	{"shipToBody",
+		noopReceiver,
+		shipToBody,
+	},
+	{
+		"shipToHead",
+		noopReceiver,
+		shipToHead,
+	},
+	{"shipToHeadAndBody",
+		receiverPullBody,
+		shipToHeadAndBody,
+	},
+}
+
 // WARNING! Benchmark is unstable due to packet drops on overflow.
 func BenchmarkThroughput(b *testing.B) {
-
-	testCases := []testCasesStruct{
-		// shipToBody,
-		// shipToHead,
-		{"shipToHeadAndPullBody",
-			receiverPullBody,
-			shipToHeadAndPullBody,
-		},
-	}
 
 	results := make(chan []byte, 16)
 
@@ -58,10 +63,8 @@ func BenchmarkThroughput(b *testing.B) {
 
 			srv1.receiver = testCase.receiver
 
-			sender, stopFn := createPipe(b, srv1, srv2) // config for servers is equal
+			sender, stopFn := createPipe(b, srv1, srv2)
 			defer stopFn()
-
-			s = sender.ctl1 // set server for receiver
 
 			sender.results = results
 			bench := sender
@@ -128,58 +131,64 @@ func BenchmarkThroughput(b *testing.B) {
 }
 
 // WARNING! Benchmark is unstable due to packet drops on overflow.
-/*func BenchmarkLatency(b *testing.B) {
+func BenchmarkLatency(b *testing.B) {
 	results := make(chan []byte, 1)
-	recv := func(a ReturnAddress, _ nwapi.PayloadCompleteness, v interface{}) error {
-		results <- nil
-		return nil
+	srv2 := initServerData{
+		serverConf: uniserver.ServerConfig{
+			BindingAddress: "127.0.0.1:0",
+			UDPMaxSize:     0,
+			UDPParallelism: 4,
+			PeerLimit:      -1,
+		},
+		receiver: noopReceiver,
 	}
-	sender, stopFn := createPipe(b, "127.0.0.1:0", "127.0.0.1:0", 0, recv)
-	defer stopFn()
+	srv1 := srv2
 
-	sender.results = results
+	for _, testCase := range testCases {
+		b.Run(testCase.testName, func(b *testing.B) {
 
-	testCases := []testCasesStruct{
-		shipToBody,
-		shipToHead,
+			srv1.receiver = testCase.receiver
+
+			sender, stopFn := createPipe(b, srv1, srv2)
+			defer stopFn()
+
+			sender.results = results
+			bench := sender
+
+			b.Run("0.1k", func(b *testing.B) {
+				bench.latency(b, 100, testCase.sendFunc)
+			})
+
+			b.Run("4k", func(b *testing.B) {
+				bench.latency(b, 1<<12, testCase.sendFunc)
+			})
+
+			b.Run("128k", func(b *testing.B) {
+				bench.latency(b, 1<<17, testCase.sendFunc)
+			})
+
+			b.Run("1M", func(b *testing.B) {
+				bench.latency(b, 1<<20, testCase.sendFunc)
+			})
+
+			b.Run("8M", func(b *testing.B) {
+				bench.latency(b, 1<<23, testCase.sendFunc)
+			})
+
+			b.Run("32M", func(b *testing.B) {
+				bench.latency(b, 1<<25, testCase.sendFunc)
+			})
+
+			b.Run("64M", func(b *testing.B) {
+				bench.latency(b, 1<<26, testCase.sendFunc)
+			})
+
+			b.Run("128M", func(b *testing.B) {
+				bench.latency(b, 1<<27, testCase.sendFunc)
+			})
+		})
 	}
-
-	for _, runFunc := range testCases {
-		bench := sender
-
-		b.Run("0.1k", func(b *testing.B) {
-			bench.latency(b, 100, runFunc)
-		})
-
-		b.Run("4k", func(b *testing.B) {
-			bench.latency(b, 1<<12, runFunc)
-		})
-
-		b.Run("128k", func(b *testing.B) {
-			bench.latency(b, 1<<17, runFunc)
-		})
-
-		b.Run("1M", func(b *testing.B) {
-			bench.latency(b, 1<<20, runFunc)
-		})
-
-		b.Run("8M", func(b *testing.B) {
-			bench.latency(b, 1<<23, runFunc)
-		})
-
-		b.Run("32M", func(b *testing.B) {
-			bench.latency(b, 1<<25, runFunc)
-		})
-
-		b.Run("64M", func(b *testing.B) {
-			bench.latency(b, 1<<26, runFunc)
-		})
-
-		b.Run("128M", func(b *testing.B) {
-			bench.latency(b, 1<<27, runFunc)
-		})
-	}
-}*/
+}
 
 func createPipe(t testing.TB, server1, server2 initServerData) (benchSender, func()) {
 	var idWithPortFn func(nwapi.Address) bool
@@ -199,7 +208,6 @@ func createPipe(t testing.TB, server1, server2 initServerData) (benchSender, fun
 	return benchSender{
 			toAddr: NewDirectAddress(1),
 			ctl2:   srv2.service,
-			ctl1:   srv1.service,
 		}, func() {
 			srv1.disp.Stop()
 			srv2.disp.Stop()
@@ -209,7 +217,6 @@ func createPipe(t testing.TB, server1, server2 initServerData) (benchSender, fun
 type benchSender struct {
 	toAddr  DeliveryAddress
 	results chan []byte
-	ctl1    Service
 	ctl2    Service
 }
 
@@ -225,14 +232,14 @@ func (v benchSender) throughput(b *testing.B, payloadSize int, funcName SendFunc
 		select {
 		case <-v.results:
 			received++
-			println(received, b.N, " in-loop")
+			// println(received, b.N, " in-loop")
 		default:
 		}
 	}
 	for received < b.N {
 		<-v.results
 		received++
-		println(received, b.N, " off-loop")
+		// println(received, b.N, " off-loop")
 	}
 }
 
@@ -251,8 +258,6 @@ func (v benchSender) latency(b *testing.B, payloadSize int, funcName SendFuncTyp
 	}
 }
 
-// //////////////////////////
-
 func shipToBody(v benchSender, payload []byte) {
 	err := v.ctl2.ShipTo(v.toAddr, Shipment{Body: &TestBytes{payload}})
 	if err != nil {
@@ -267,7 +272,7 @@ func shipToHead(v benchSender, payload []byte) {
 	}
 }
 
-func shipToHeadAndPullBody(v benchSender, payload []byte) {
+func shipToHeadAndBody(v benchSender, payload []byte) {
 	head := TestString{string(payload[:64])}
 	body := TestString{string(payload)}
 
@@ -281,8 +286,9 @@ func shipToHeadAndPullBody(v benchSender, payload []byte) {
 }
 
 func receiverPullBody(a ReturnAddress, done nwapi.PayloadCompleteness, _ interface{}) error {
-	println("recv>>>>>>>>>>>>")
-	err := s.PullBody(a, ShipmentRequest{
+	srv1 := getServerByIndex(1)
+
+	err := srv1.service.PullBody(a, ShipmentRequest{
 		ReceiveFn: noopReceiver,
 	})
 
