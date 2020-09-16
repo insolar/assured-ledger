@@ -34,15 +34,6 @@ func TestValidation_ObjectTranscriptReport_AfterConstructor(t *testing.T) {
 	server.Init(ctx)
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-	typedChecker.VCachedMemoryRequest.Set(func(report *rms.VCachedMemoryRequest) bool {
-		pl := &rms.VCachedMemoryResponse{
-			Object:     report.Object,
-			StateID:    report.StateID,
-			CallStatus: rms.CachedMemoryStateMissing,
-		}
-		server.SendPayload(ctx, pl)
-		return false
-	})
 
 	callRequest := utils.GenerateVCallRequestConstructor(server)
 	outgoing := callRequest.CallOutgoing
@@ -55,13 +46,17 @@ func TestValidation_ObjectTranscriptReport_AfterConstructor(t *testing.T) {
 		ObjectTranscript: rms.VObjectTranscriptReport_Transcript{
 			Entries: []rms.Any{
 				{},
+				{},
 			},
 		},
 	}
 	pl.ObjectTranscript.Entries[0].Set(
 		&rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest{
-			ObjectMemory: rms.NewReference(reference.NewRecordOf(objectRef, server.RandomLocalWithPulse())),
 			Request:      *callRequest,
+		},
+	)
+	pl.ObjectTranscript.Entries[1].Set(
+		&rms.VObjectTranscriptReport_TranscriptEntryIncomingResult{
 		},
 	)
 
