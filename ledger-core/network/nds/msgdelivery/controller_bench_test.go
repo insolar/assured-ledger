@@ -51,7 +51,8 @@ var testCases = []testCasesStruct{
 
 // WARNING! Benchmark is unstable due to packet drops on overflow.
 func BenchmarkThroughput(b *testing.B) {
-
+	//TODO https://insolar.atlassian.net/browse/PLAT-826
+	// workaround with set max value for case above
 	results := make(chan []byte, 16)
 
 	srv2 := initServerData{
@@ -139,6 +140,8 @@ func BenchmarkThroughput(b *testing.B) {
 
 // WARNING! Benchmark is unstable due to packet drops on overflow.
 func BenchmarkLatency(b *testing.B) {
+	//TODO https://insolar.atlassian.net/browse/PLAT-826
+	// workaround with set max value for case above
 	results := make(chan []byte, 1)
 	srv2 := initServerData{
 		serverConf: uniserver.ServerConfig{

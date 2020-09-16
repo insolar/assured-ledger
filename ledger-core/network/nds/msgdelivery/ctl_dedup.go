@@ -13,7 +13,8 @@ import (
 
 type DedupID uint32
 
-const (
+// TODO  https://insolar.atlassian.net/browse/PLAT-826
+var (
 	maxReceiveExceptions = 1 << 8
 	maxReceiveWindow     = 1 << 16
 	minReceiveWindow     = maxReceiveWindow - maxReceiveExceptions>>1
@@ -122,8 +123,11 @@ func (p *receiveDeduplicator) Add(id DedupID) bool {
 	p.received[id] = struct{}{}
 	n := len(p.received)
 	p.updatePeakSize(n)
-	if n > minReceiveWindow && p.minReceived+maxReceiveWindow < p.maxReceived {
-		p._forceMinReceived(p.maxReceived - minReceiveWindow)
+	maxReceived := int(p.maxReceived)
+	minReceived := int(p.minReceived)
+
+	if n > minReceiveWindow && minReceived+maxReceiveWindow < maxReceived {
+		p._forceMinReceived(DedupID(maxReceived - minReceiveWindow))
 	}
 	return true
 

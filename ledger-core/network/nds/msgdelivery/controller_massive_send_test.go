@@ -7,6 +7,7 @@ package msgdelivery
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"sync"
 	"testing"
@@ -24,6 +25,9 @@ import (
 )
 
 func TestMassiveSend(t *testing.T) {
+	//TODO https://insolar.atlassian.net/browse/PLAT-826
+	// workaround with set max value for case above
+	maxReceiveExceptions = math.MaxInt64
 	const Server1 = "127.0.0.1:0"
 	const Server2 = "127.0.0.1:0"
 
@@ -162,7 +166,7 @@ func TestMassiveSend(t *testing.T) {
 		}
 	}()
 
-	time.Sleep(time.Second*10)
+	time.Sleep(time.Second * 10)
 
 	if n := totalCount.Load(); n > 0 {
 		sentMap.Range(func(key, value interface{}) bool {
