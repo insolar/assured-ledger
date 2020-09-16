@@ -783,6 +783,20 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 
 	s.outgoingSentCounter++
 
+	action := func(state *object.SharedState) {
+		state.Transcript.Add(
+			validation.TranscriptEntry{
+				Custom: validation.TranscriptEntryOutgoingRequest{
+					Request: *s.outgoing,
+				},
+			},
+		)
+	}
+
+	if stepUpdate := s.shareObjectAccess(ctx, action); !stepUpdate.IsEmpty() {
+		return stepUpdate
+	}
+
 	// someone else can process other requests while we  waiting for outgoing results
 	ctx.Release(s.globalSemaphore.PartialLink())
 
@@ -807,6 +821,21 @@ func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.
 		if outgoingResult == nil {
 			panic(throw.IllegalValue())
 		}
+	}
+
+	action := func(state *object.SharedState) {
+		state.Transcript.Add(
+			validation.TranscriptEntry{
+				Custom: validation.TranscriptEntryOutgoingResult{
+					OutgoingResult: reference.Global{},
+					CallResult: outgoingResult,
+				},
+			},
+		)
+	}
+
+	if stepUpdate := s.shareObjectAccess(ctx, action); !stepUpdate.IsEmpty() {
+		return stepUpdate
 	}
 
 	// unset all outgoing fields in case we have new outgoing request
