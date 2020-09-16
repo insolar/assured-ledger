@@ -75,8 +75,6 @@ func (dm *DefaultService) SendTarget(ctx context.Context, msg rmsreg.GoGoSeriali
 	return dm.sendTarget(ctx, msg, target)
 }
 
-const TopicOutgoing = "TopicOutgoing"
-
 func (dm *DefaultService) sendTarget(ctx context.Context, msg rmsreg.GoGoSerializable, target reference.Global) error {
 	if target.Equal(dm.affinity.Me()) {
 		inslogger.FromContext(ctx).Debug("Send to myself")
@@ -119,9 +117,10 @@ func (dm *DefaultService) sendTarget(ctx context.Context, msg rmsreg.GoGoSeriali
 	watermillMsg.SetContext(ctx)
 
 	logger.Debugf("sending message")
-	err = dm.pub.Publish(TopicOutgoing, watermillMsg)
+
+	err = dm.pub.Publish(defaults.TopicOutgoing, watermillMsg)
 	if err != nil {
-		return throw.W(err, "can't publish message", struct{ Topic string }{Topic: TopicOutgoing})
+		return throw.W(err, "can't publish message", struct{ Topic string }{Topic: defaults.TopicOutgoing})
 	}
 
 	return nil

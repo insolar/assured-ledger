@@ -5,7 +5,7 @@
 
 //go:generate sm-uml-gen -f $GOFILE
 
-package execute
+package lmn
 
 import (
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
@@ -15,32 +15,33 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 )
 
-type SMLMNSafeHandler struct {
-	ObjectSharedState object.SharedStateAccessor
-	ExpectedKey       LMNResultAwaitKey
+type SMWaitSafeResponse struct {
+	ObjectSharedState     object.SharedStateAccessor
+	ExpectedKey           ResultAwaitKey
+	SafeResponseDecrement smachine.SyncAdjustment
 
 	resultReceived bool
 }
 
-var dSMLMNSafeHandlerInstance smachine.StateMachineDeclaration = &dSMLMNSafeHandler{}
+var dSMWaitSafeResponseInstance smachine.StateMachineDeclaration = &dSMWaitSafeResponse{}
 
-type dSMLMNSafeHandler struct {
+type dSMWaitSafeResponse struct {
 	smachine.StateMachineDeclTemplate
 }
 
-func (*dSMLMNSafeHandler) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLink, _ injector.DependencyInjector) {
+func (*dSMWaitSafeResponse) InjectDependencies(_ smachine.StateMachine, _ smachine.SlotLink, _ injector.DependencyInjector) {
 }
 
-func (*dSMLMNSafeHandler) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc {
-	s := sm.(*SMLMNSafeHandler)
+func (*dSMWaitSafeResponse) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc {
+	s := sm.(*SMWaitSafeResponse)
 	return s.Init
 }
 
-func (s *SMLMNSafeHandler) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
-	return dSMLMNSafeHandlerInstance
+func (s *SMWaitSafeResponse) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
+	return dSMWaitSafeResponseInstance
 }
 
-func (s *SMLMNSafeHandler) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
+func (s *SMWaitSafeResponse) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
 	bargeIn := ctx.NewBargeInWithParam(func(param interface{}) smachine.BargeInCallbackFunc {
 		res, ok := param.(*rms.LRegisterResponse)
 		if !ok || res == nil {
@@ -51,7 +52,9 @@ func (s *SMLMNSafeHandler) Init(ctx smachine.InitializationContext) smachine.Sta
 			if res.AnticipatedRef != s.ExpectedKey.AnticipatedRef || res.Flags != s.ExpectedKey.RequiredFlag {
 				panic(throw.IllegalValue())
 			}
+
 			s.resultReceived = true
+
 			return ctx.WakeUp()
 		}
 	})
@@ -59,27 +62,20 @@ func (s *SMLMNSafeHandler) Init(ctx smachine.InitializationContext) smachine.Sta
 	if !ctx.PublishGlobalAliasAndBargeIn(s.ExpectedKey, bargeIn) {
 		panic(throw.E("failed to publish bargeIn"))
 	}
-	return ctx.Stop()
+	return ctx.JumpExt(smachine.SlotStep{
+		Transition: s.stepWaitResult,
+		Migration:  func(ctx smachine.MigrationContext) smachine.StateUpdate { return ctx.Stop() },
+	})
 }
 
-func (s *SMLMNSafeHandler) stepWaitResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (s *SMWaitSafeResponse) stepWaitResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	if !s.resultReceived {
 		return ctx.Sleep().ThenRepeat()
 	}
-	return ctx.Jump(s.stepDecreaseCounter)
-}
 
-func (s *SMLMNSafeHandler) stepDecreaseCounter(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	action := func(state *object.SharedState) {
-		state.RequiredSafeCounter--
+	if !ctx.ApplyAdjustment(s.SafeResponseDecrement) {
+		return ctx.Error(throw.New("failed to apply adjustment"))
 	}
 
-	switch s.ObjectSharedState.Prepare(action).TryUse(ctx).GetDecision() {
-	case smachine.NotPassed:
-		return ctx.WaitShared(s.ObjectSharedState.SharedDataLink).ThenRepeat()
-	case smachine.Passed:
-		return ctx.Stop()
-	default:
-		panic(throw.Impossible())
-	}
+	return ctx.Stop()
 }
