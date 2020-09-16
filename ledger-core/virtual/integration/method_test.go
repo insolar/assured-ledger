@@ -20,6 +20,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/synchronization"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
@@ -63,12 +64,14 @@ func Method_PrepareObject(
 	case rms.StateStatusReady:
 		content = &rms.VStateReport_ProvidedContentBody{
 			LatestDirtyState: &rms.ObjectState{
-				Class: rms.NewReference(testwalletProxy.GetClass()),
-				State: rms.NewBytes(walletState),
+				Reference: rms.NewReference(reference.NewRecordOf(object, gen.UniqueLocalRefWithPulse(pulse))),
+				Class:     rms.NewReference(testwalletProxy.GetClass()),
+				State:     rms.NewBytes(walletState),
 			},
 			LatestValidatedState: &rms.ObjectState{
-				Class: rms.NewReference(testwalletProxy.GetClass()),
-				State: rms.NewBytes(walletState),
+				Reference: rms.NewReference(reference.NewRecordOf(object, gen.UniqueLocalRefWithPulse(pulse))),
+				Class:     rms.NewReference(testwalletProxy.GetClass()),
+				State:     rms.NewBytes(walletState),
 			},
 		}
 	case rms.StateStatusInactive:
@@ -225,7 +228,8 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 	server.Init(ctx)
 
 	var (
-		waitInputChannel  = make(chan struct{}, 2)
+		parallelCount     = 1
+		waitInputChannel  = make(chan struct{}, parallelCount)
 		waitOutputChannel = make(chan struct{}, 0)
 
 		objectGlobal = server.RandomGlobalWithPulse()
@@ -246,10 +250,35 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 
 			return false // no resend msg
 		})
+		typedChecker.LRegisterRequest.Set(func(request *rms.LRegisterRequest) bool {
+			if request.Flags == rms.RegistrationFlags_FastSafe {
+				server.SendPayload(ctx, &rms.LRegisterResponse{
+					Flags:              rms.RegistrationFlags_Fast,
+					AnticipatedRef:     request.AnticipatedRef,
+					RegistrarSignature: rms.NewBytes([]byte("123")),
+				})
+
+				time.Sleep(10 * time.Millisecond)
+
+				server.SendPayload(ctx, &rms.LRegisterResponse{
+					Flags:              rms.RegistrationFlags_Safe,
+					AnticipatedRef:     request.AnticipatedRef,
+					RegistrarSignature: rms.NewBytes([]byte("123")),
+				})
+			} else {
+				server.SendPayload(ctx, &rms.LRegisterResponse{
+					Flags:              request.Flags,
+					AnticipatedRef:     request.AnticipatedRef,
+					RegistrarSignature: rms.NewBytes([]byte("123")),
+				})
+			}
+
+			return false
+		})
 
 		countBefore := server.PublisherMock.GetCount()
 
-		for i := 0; i < 2; i++ {
+		for i := 0; i < parallelCount; i++ {
 			pl := utils.GenerateVCallRequestMethodImmutable(server)
 			pl.Callee.Set(objectGlobal)
 			pl.CallSiteMethod = "GetBalance"
@@ -276,7 +305,7 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 			server.SendPayload(ctx, pl)
 		}
 
-		for i := 0; i < 2; i++ {
+		for i := 0; i < parallelCount; i++ {
 			select {
 			case <-waitInputChannel:
 			case <-time.After(10 * time.Second):
@@ -284,7 +313,7 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 			}
 		}
 
-		for i := 0; i < 2; i++ {
+		for i := 0; i < parallelCount; i++ {
 			waitOutputChannel <- struct{}{}
 		}
 
@@ -296,7 +325,7 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
 
 	{
-		assert.Equal(t, 2, typedChecker.VCallResult.Count())
+		assert.Equal(t, parallelCount, typedChecker.VCallResult.Count())
 	}
 
 	mc.Finish()
@@ -1315,7 +1344,7 @@ func TestVirtual_Method_ForbiddenIsolation(t *testing.T) {
 			dirtyStateBuilder: func(objectRef, classRef reference.Global, pn pulse.Number) descriptor.Object {
 				return descriptor.NewObject(
 					objectRef,
-					execute.NewStateID(pn, []byte("ok case")),
+					reference.Local{},
 					classRef,
 					[]byte("ok case"),
 					false,
@@ -1324,7 +1353,7 @@ func TestVirtual_Method_ForbiddenIsolation(t *testing.T) {
 			validatedStateBuilder: func(objectRef, classRef reference.Global, pn pulse.Number) descriptor.Object {
 				return descriptor.NewObject(
 					objectRef,
-					execute.NewStateID(pn, []byte("not ok case")),
+					reference.Local{},
 					classRef,
 					[]byte("not ok case"),
 					false,
@@ -1340,7 +1369,7 @@ func TestVirtual_Method_ForbiddenIsolation(t *testing.T) {
 			dirtyStateBuilder: func(objectRef, classRef reference.Global, pn pulse.Number) descriptor.Object {
 				return descriptor.NewObject(
 					objectRef,
-					execute.NewStateID(pn, []byte("ok case")),
+					reference.Local{},
 					classRef,
 					[]byte("ok case"),
 					false,
@@ -1686,7 +1715,7 @@ func TestVirtual_Method_CheckValidatedState(t *testing.T) {
 	{
 		objectDescriptor := descriptor.NewObject(
 			objectGlobal,
-			execute.NewStateID(server.GetPulse().PulseNumber, newState),
+			reference.Local{},
 			class,
 			newState,
 			false,

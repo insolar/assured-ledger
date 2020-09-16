@@ -7,6 +7,7 @@ package messagesender
 
 import (
 	"context"
+	"reflect"
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
@@ -76,9 +77,11 @@ func (dm *DefaultService) SendTarget(ctx context.Context, msg rmsreg.GoGoSeriali
 }
 
 func (dm *DefaultService) sendTarget(ctx context.Context, msg rmsreg.GoGoSerializable, target reference.Global) error {
-	if target.Equal(dm.affinity.Me()) {
-		inslogger.FromContext(ctx).Debug("Send to myself")
-	}
+	watermillMsgUUID := watermill.NewUUID()
+	ctx, logger := inslogger.WithField(ctx, "sending_uuid", watermillMsgUUID)
+	ctx, logger = inslogger.WithField(ctx, "from", dm.affinity.Me().String())
+	ctx, logger = inslogger.WithField(ctx, "to", target.String())
+	ctx, logger = inslogger.WithField(ctx, "type", reflect.TypeOf(msg).String()) // TODO: change that in the future
 
 	latestPulse, err := dm.pulses.LatestTimeBeat()
 	if err != nil {
@@ -100,9 +103,6 @@ func (dm *DefaultService) sendTarget(ctx context.Context, msg rmsreg.GoGoSeriali
 		inslogger.FromContext(ctx).Error(throw.W(err, "failed to send message"))
 		return throw.W(err, "failed to serialize meta message")
 	}
-
-	watermillMsgUUID := watermill.NewUUID()
-	ctx, logger := inslogger.WithField(ctx, "sending_uuid", watermillMsgUUID)
 
 	watermillMsg := message.NewMessage(watermillMsgUUID, wrapPayloadBytes)
 	watermillMsg.Metadata.Set(defaults.TraceID, inslogger.TraceID(ctx))

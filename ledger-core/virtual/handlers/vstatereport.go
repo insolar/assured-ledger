@@ -191,7 +191,7 @@ func (s *SMVStateReport) gotLatestValidated() bool {
 func buildObjectDescriptor(headRef reference.Global, state rms.ObjectState) descriptor.Object {
 	return descriptor.NewObject(
 		headRef,
-		state.Reference.GetValueWithoutBase(),
+		state.Reference.GetValue().GetLocal(),
 		state.Class.GetValue(),
 		state.State.GetBytes(),
 		state.Deactivated,

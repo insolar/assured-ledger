@@ -41,25 +41,30 @@ func (s *SMWaitSafeResponse) GetStateMachineDeclaration() smachine.StateMachineD
 	return dSMWaitSafeResponseInstance
 }
 
-func (s *SMWaitSafeResponse) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
-	bargeIn := ctx.NewBargeInWithParam(func(param interface{}) smachine.BargeInCallbackFunc {
-		res, ok := param.(*rms.LRegisterResponse)
-		if !ok || res == nil {
+func (s *SMWaitSafeResponse) bargeInHandler(param interface{}) smachine.BargeInCallbackFunc {
+	res, ok := param.(*rms.LRegisterResponse)
+	if !ok || res == nil {
+		panic(throw.IllegalValue())
+	}
+
+	return func(ctx smachine.BargeInContext) smachine.StateUpdate {
+		if res.AnticipatedRef != s.ExpectedKey.AnticipatedRef || res.Flags != s.ExpectedKey.RequiredFlag {
 			panic(throw.IllegalValue())
 		}
 
-		return func(ctx smachine.BargeInContext) smachine.StateUpdate {
-			if res.AnticipatedRef != s.ExpectedKey.AnticipatedRef || res.Flags != s.ExpectedKey.RequiredFlag {
-				panic(throw.IllegalValue())
-			}
+		s.resultReceived = true
 
-			s.resultReceived = true
+		return ctx.WakeUp()
+	}
+}
 
-			return ctx.WakeUp()
-		}
-	})
+func (s *SMWaitSafeResponse) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
+	var (
+		expectedKey = s.ExpectedKey
+		bargeIn     = ctx.NewBargeInWithParam(s.bargeInHandler)
+	)
 
-	if !ctx.PublishGlobalAliasAndBargeIn(s.ExpectedKey, bargeIn) {
+	if !ctx.PublishGlobalAliasAndBargeIn(expectedKey, bargeIn) {
 		panic(throw.E("failed to publish bargeIn"))
 	}
 	return ctx.JumpExt(smachine.SlotStep{
@@ -73,9 +78,7 @@ func (s *SMWaitSafeResponse) stepWaitResult(ctx smachine.ExecutionContext) smach
 		return ctx.Sleep().ThenRepeat()
 	}
 
-	if !ctx.ApplyAdjustment(s.SafeResponseDecrement) {
-		return ctx.Error(throw.New("failed to apply adjustment"))
-	}
+	ctx.ApplyAdjustment(s.SafeResponseDecrement)
 
 	return ctx.Stop()
 }

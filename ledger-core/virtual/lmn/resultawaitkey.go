@@ -6,6 +6,8 @@
 package lmn
 
 import (
+	"fmt"
+
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 )
 
@@ -19,4 +21,8 @@ func NewResultAwaitKey(ref rms.Reference, RequiredFlag rms.RegistrationFlags) Re
 		AnticipatedRef: ref,
 		RequiredFlag:   RequiredFlag,
 	}
+}
+
+func (k *ResultAwaitKey) String() string {
+	return fmt.Sprintf("[ %s - %s ]", k.AnticipatedRef.GetValue().String(), k.RequiredFlag.String())
 }

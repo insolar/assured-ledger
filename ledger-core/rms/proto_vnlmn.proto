@@ -34,7 +34,7 @@ message LRegisterRequest {
 
     //*** Start of predefined section ***//
     reserved 1 to 18, 20 to 1799;
-    AnyRecordLazy Record = 19 [(gogoproto.embed) = true, (insproto.ctx_apply)="MsgRecord"]; // put proper Record type here
+    AnyRecord Record = 19 [(insproto.ctx_apply)="MsgRecord"]; // put proper Record type here
     //*** End of predefined section ***//
 
     // Add here custom fields

@@ -27,11 +27,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 )
 
-func mustRecordToAnyRecordLazy(rec rms.BasicRecord) rms.AnyRecordLazy {
-	rv := rms.AnyRecordLazy{}
-	if err := rv.SetAsLazy(rec); err != nil {
-		panic(err)
-	}
+func recordToAnyRecord(rec rms.BasicRecord) rms.AnyRecord {
+	rv := rms.AnyRecord{}
+	rv.Set(rec)
 	return rv
 }
 
@@ -46,7 +44,7 @@ type Message struct {
 }
 
 func (m Message) ResultReceived() bool {
-	return m.registrarSignature.IsEmpty()
+	return !m.registrarSignature.IsEmpty()
 }
 
 func (m *Message) SetResult(signature rms.Binary) {
@@ -262,7 +260,7 @@ func (s *SubSMRegister) stepRegisterLifeline(ctx smachine.ExecutionContext) smac
 	if err := s.registerMessage(ctx, &rms.LRegisterRequest{
 		AnticipatedRef: rms.NewReference(anticipatedRef),
 		Flags:          rms.RegistrationFlags_FastSafe,
-		AnyRecordLazy:  mustRecordToAnyRecordLazy(record), // it should be based on
+		Record:         recordToAnyRecord(record), // it should be based on
 		// TODO: here we should set all overrides, since RLifelineStart contains
 		//       ROutboundRequest and it has bad RootRef/PrevRef.
 		// OverrideRecordType: rms.RLifelineStart,
@@ -303,7 +301,7 @@ func (s *SubSMRegister) stepRegisterIncoming(ctx smachine.ExecutionContext) smac
 	if err := s.registerMessage(ctx, &rms.LRegisterRequest{
 		AnticipatedRef: rms.NewReference(anticipatedRef),
 		Flags:          rms.RegistrationFlags_FastSafe,
-		AnyRecordLazy:  mustRecordToAnyRecordLazy(record), // TODO: here we should provide record from incoming
+		Record:         recordToAnyRecord(record), // TODO: here we should provide record from incoming
 	}); err != nil {
 		return ctx.Error(err)
 	}
@@ -346,7 +344,7 @@ func (s *SubSMRegister) stepRegisterOutgoing(ctx smachine.ExecutionContext) smac
 	if err := s.registerMessage(ctx, &rms.LRegisterRequest{
 		AnticipatedRef: rms.NewReference(anticipatedRef),
 		Flags:          rms.RegistrationFlags_FastSafe,
-		AnyRecordLazy:  mustRecordToAnyRecordLazy(record), // TODO: here we should provide record from incoming
+		Record:         recordToAnyRecord(record), // TODO: here we should provide record from incoming
 	}); err != nil {
 		return ctx.Error(err)
 	}
@@ -371,7 +369,7 @@ func (s *SubSMRegister) stepRegisterOutgoingResult(ctx smachine.ExecutionContext
 	if err := s.registerMessage(ctx, &rms.LRegisterRequest{
 		AnticipatedRef: rms.NewReference(anticipatedRef),
 		Flags:          rms.RegistrationFlags_FastSafe,
-		AnyRecordLazy:  mustRecordToAnyRecordLazy(record), // TODO: here we should provide record from incoming
+		Record:         recordToAnyRecord(record), // TODO: here we should provide record from incoming
 	}); err != nil {
 		return ctx.Error(err)
 	}
@@ -421,7 +419,7 @@ func (s *SubSMRegister) stepRegisterIncomingResult(ctx smachine.ExecutionContext
 		if err := s.registerMessage(ctx, &rms.LRegisterRequest{
 			AnticipatedRef: rms.NewReference(anticipatedRef),
 			Flags:          rms.RegistrationFlags_Safe,
-			AnyRecordLazy:  mustRecordToAnyRecordLazy(record),
+			Record:         recordToAnyRecord(record),
 		}); err != nil {
 			return ctx.Error(err)
 		}
@@ -467,7 +465,7 @@ func (s *SubSMRegister) stepRegisterIncomingResult(ctx smachine.ExecutionContext
 			if err := s.registerMessage(ctx, &rms.LRegisterRequest{
 				AnticipatedRef: rms.NewReference(anticipatedRef),
 				Flags:          rms.RegistrationFlags_Safe,
-				AnyRecordLazy:  mustRecordToAnyRecordLazy(record),
+				Record:         recordToAnyRecord(record),
 			}); err != nil {
 				return ctx.Error(err)
 			}
@@ -501,7 +499,7 @@ func (s *SubSMRegister) stepRegisterIncomingResult(ctx smachine.ExecutionContext
 			if err := s.registerMessage(ctx, &rms.LRegisterRequest{
 				AnticipatedRef: rms.NewReference(anticipatedRef),
 				Flags:          rms.RegistrationFlags_Safe,
-				AnyRecordLazy:  mustRecordToAnyRecordLazy(record),
+				Record:         recordToAnyRecord(record),
 			}); err != nil {
 				return ctx.Error(err)
 			}
@@ -523,9 +521,7 @@ func (s *SubSMRegister) stepSaveSafeCounter(ctx smachine.ExecutionContext) smach
 		panic(throw.IllegalState())
 	} else if s.requiredSafe > 0 {
 		adjustment := s.SafeResponseIncrement(s.requiredSafe)
-		if !ctx.ApplyAdjustment(adjustment) {
-			return ctx.Error(throw.New("failed to apply adjustment"))
-		}
+		ctx.ApplyAdjustment(adjustment)
 	}
 
 	return ctx.Jump(s.stepSendMessage)

@@ -607,6 +607,7 @@ func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) sm
 
 	ctx.SetDefaultMigration(s.migrateDuringExecution)
 	s.execution.ObjectDescriptor = objectDescriptor
+	s.lmnLastLifelineRef = reference.NewRecordOf(objectDescriptor.HeadRef(), objectDescriptor.StateID())
 
 	return ctx.Jump(s.stepExecuteStart)
 }
@@ -904,19 +905,19 @@ func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.
 }
 
 func (s *SMExecute) stepWaitSafeAnswers(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	ctx.Release(s.globalSemaphore.PartialLink())
+
 	// waiting for all save responses to be there
-	syncLink := s.lmnSafeResponseSemaphore.SyncLink()
-	if !ctx.Acquire(syncLink).IsPassed() {
-		return ctx.Sleep().ThenRepeat()
-	}
+	// syncLink := s.lmnSafeResponseSemaphore.SyncLink()
+	// if !ctx.AcquireForThisStep(syncLink).IsPassed() {
+	// 	return ctx.Sleep().ThenRepeat()
+	// }
 
 	// now it's time to write result
 	return ctx.Jump(s.stepSaveExecutionResult)
 }
 
 func (s *SMExecute) stepSaveExecutionResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	ctx.Release(s.globalSemaphore.PartialLink())
-
 	subroutineSM := s.constructSubSMRegister(RegisterIncomingResult)
 	subroutineSM.IncomingResult = s.executionNewState
 
