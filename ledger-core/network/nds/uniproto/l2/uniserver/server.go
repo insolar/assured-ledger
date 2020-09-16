@@ -51,6 +51,7 @@ func NewUnifiedServer(dispatcher uniproto.Dispatcher, logger MiniLogger) *Unifie
 		panic(throw.IllegalValue())
 	}
 	s := &UnifiedServer{logger: logger}
+	s.transportProvider = defaultProvider
 	s.receiver.Parser.Dispatcher = dispatcher
 	return s
 }
@@ -62,10 +63,10 @@ type UnifiedServer struct {
 
 	transportProvider AllTransportProvider
 
-	ptf        peerTransportFactory
-	peers      PeerManager
-	receiver   PeerReceiver
-	udpSema    synckit.Semaphore
+	ptf      peerTransportFactory
+	peers    PeerManager
+	receiver PeerReceiver
+	udpSema  synckit.Semaphore
 }
 
 func (p *UnifiedServer) SetConfig(config ServerConfig) {
@@ -177,23 +178,10 @@ func (p *UnifiedServer) StartNoListen() {
 		udpSize = math.MaxUint16
 	}
 
-	var updProvider l1.SessionlessTransportProvider
-	if p.transportProvider != nil {
-		updProvider = p.transportProvider.CreateSessionlessProvider(binding, p.config.NetPreference, uint16(udpSize))
-	} else {
-		updProvider = l1.NewUDP(binding, p.config.NetPreference, uint16(udpSize))
-	}
+	updProvider := p.transportProvider.CreateSessionlessProvider(binding, p.config.NetPreference, uint16(udpSize))
 	p.ptf.SetSessionless(updProvider, p.receiveSessionless)
 
-	var tcpProvider l1.SessionfulTransportProvider
-	switch {
-	case p.transportProvider != nil:
-		tcpProvider = p.transportProvider.CreateSessionfulProvider(binding, p.config.NetPreference, p.config.TLSConfig)
-	case p.config.TLSConfig != nil:
-		tcpProvider = l1.NewTLS(binding, p.config.NetPreference, p.config.TLSConfig)
-	default:
-		tcpProvider = l1.NewTCP(binding, p.config.NetPreference)
-	}
+	tcpProvider := p.transportProvider.CreateSessionfulProvider(binding, p.config.NetPreference, p.config.TLSConfig)
 	p.ptf.SetSessionful(tcpProvider, p.connectSessionful, p.connectSessionfulListen)
 
 	p.receiver.PeerManager = &p.peers
@@ -304,6 +292,21 @@ func (p *UnifiedServer) reportToBlacklist(remote nwapi.Address, err error) {
 	}
 }
 
+var defaultProvider AllTransportProvider = &TransportProvider{}
+
 func (p *UnifiedServer) reportError(err error) {
 	p.logger.LogError(err)
+}
+
+type TransportProvider struct{}
+
+func (p *TransportProvider) CreateSessionlessProvider(binding nwapi.Address, preference nwapi.Preference, maxUDPSize uint16) l1.SessionlessTransportProvider {
+	return l1.NewUDP(binding, preference, maxUDPSize)
+}
+
+func (p *TransportProvider) CreateSessionfulProvider(binding nwapi.Address, preference nwapi.Preference, tlsCfg *tls.Config) l1.SessionfulTransportProvider {
+	if tlsCfg != nil {
+		return l1.NewTLS(binding, preference, tlsCfg)
+	}
+	return l1.NewTCP(binding, preference)
 }

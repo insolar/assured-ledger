@@ -6,6 +6,9 @@
 package uniserver
 
 import (
+	"crypto/tls"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/ratelimiter"
+	"io"
 	"strings"
 	"testing"
 
@@ -171,4 +174,69 @@ func TestHTTPLikeness(t *testing.T) {
 
 	require.Equal(t, uniproto.ErrPossibleHTTPRequest, h.DeserializeMinFromBytes([]byte("HEAD /0123456789ABCDEF")))
 	require.Equal(t, uniproto.ErrPossibleHTTPRequest, h.DeserializeMinFromBytes([]byte("HEAD 0123456789ABCDEF")))
+}
+
+type TestOneWayTransport struct {
+}
+
+func (t TestOneWayTransport) Send(payload io.WriterTo) error {
+	panic("implement me")
+}
+
+func (t TestOneWayTransport) SendBytes(b []byte) error {
+	panic("implement me")
+}
+
+func (t TestOneWayTransport) Close() error {
+	panic("implement me")
+}
+
+func (t TestOneWayTransport) GetTag() int {
+	panic("implement me")
+}
+
+func (t TestOneWayTransport) SetTag(i int) {
+	panic("implement me")
+}
+
+func (t TestOneWayTransport) WithQuota(quota ratelimiter.RateQuota) l1.OneWayTransport {
+	panic("implement me")
+}
+
+func Test(t *testing.T) {
+	var disp Dispatcher
+	ups := NewUnifiedServer(&disp, TestLogAdapter{t})
+
+	provider := &TestTransportProvider{}
+
+	var delegate l1.OneWayTransport = &TestOneWayTransport{}
+
+	provider.less = func(p l1.SessionlessTransportProvider) l1.SessionlessTransportProvider {
+		return l1.WrapSessionLessProvider(func(factory l1.OutTransportFactory) l1.OutTransportFactory {
+			return l1.WrapOutPutFactory(func(transport l1.OneWayTransport) l1.OneWayTransport {
+				return l1.WrapTransport(delegate, transport)
+			}, factory)
+		}, p)
+	}
+
+	ups.SetTransportProvider(provider)
+
+}
+
+type TestTransportProvider struct {
+	AllTransportProvider
+	less func(l1.SessionlessTransportProvider) l1.SessionlessTransportProvider
+	full func(l1.SessionfulTransportProvider) l1.SessionfulTransportProvider
+}
+
+func (p *TestTransportProvider) CreateSessionlessProvider(binding nwapi.Address, preference nwapi.Preference, maxUDPSize uint16) l1.SessionlessTransportProvider {
+	prov := p.AllTransportProvider.CreateSessionlessProvider(binding, preference, maxUDPSize)
+	return p.less(prov)
+}
+
+func (p *TestTransportProvider) CreateSessionfulProvider(binding nwapi.Address, preference nwapi.Preference, tlsCfg *tls.Config) l1.SessionfulTransportProvider {
+	if tlsCfg != nil {
+		return p.full(l1.NewTLS(binding, preference, tlsCfg))
+	}
+	return p.full(l1.NewTCP(binding, preference))
 }
