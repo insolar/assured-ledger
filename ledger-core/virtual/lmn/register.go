@@ -39,19 +39,13 @@ func isConstructor(request *rms.VCallRequest) bool {
 	return request.CallType == rms.CallTypeConstructor
 }
 
-type ResultAwaitKey struct {
-	Object         reference.Global
-	AnticipatedRef rms.Reference
-	RequiredFlag   rms.RegistrationFlags
-}
-
 type Message struct {
 	payload            rmsreg.GoGoSerializable
 	registrarSignature rms.Binary
 	resultKey          ResultAwaitKey
 }
 
-func (m *Message) ResultReceived() bool {
+func (m Message) ResultReceived() bool {
 	return m.registrarSignature.IsEmpty()
 }
 
@@ -59,7 +53,7 @@ func (m *Message) SetResult(signature rms.Binary) {
 	m.registrarSignature = signature
 }
 
-func (m *Message) Payload() rmsreg.GoGoSerializable {
+func (m Message) Payload() rmsreg.GoGoSerializable {
 	return m.payload
 }
 
@@ -70,13 +64,6 @@ func (m *Message) CheckKey(key ResultAwaitKey) bool {
 type MessagesHolder struct {
 	messages     []*Message
 	sentPosition int
-}
-
-func NewMessagesHolder() *MessagesHolder {
-	return &MessagesHolder{
-		messages:     make([]*Message, 0),
-		sentPosition: -1,
-	}
 }
 
 func (s *MessagesHolder) AppendMessage(record rmsreg.GoGoSerializable, resultKey ResultAwaitKey) {
@@ -118,10 +105,9 @@ type SubSMRegister struct {
 	SafeResponseDecrement smachine.SyncAdjustment
 
 	// internal data
-	messages        *MessagesHolder
-	bargeInCallback smachine.BargeInHolder
-	requiredSafe    int
-	sendError       error
+	messages     MessagesHolder
+	requiredSafe int
+	sendError    error
 
 	// output arguments
 	NewObjectRef       reference.Global
@@ -175,30 +161,24 @@ func (s *SubSMRegister) getRecordAnticipatedRef(object reference.Global, _ rms.B
 	return reference.NewRecordOf(object, uniqueLocal)
 }
 
-func (s *SubSMRegister) createBargeInCallback(ctx smachine.InitializationContext) {
-	s.bargeInCallback = ctx.NewBargeInWithParam(func(param interface{}) smachine.BargeInCallbackFunc {
-		res, ok := param.(*rms.LRegisterResponse)
-		if !ok || res == nil {
-			panic(throw.IllegalValue())
+func (s *SubSMRegister) bargeInHandler(param interface{}) smachine.BargeInCallbackFunc {
+	res, ok := param.(*rms.LRegisterResponse)
+	if !ok || res == nil {
+		panic(throw.IllegalValue())
+	}
+
+	return func(ctx smachine.BargeInContext) smachine.StateUpdate {
+		var key = NewResultAwaitKey(res.AnticipatedRef, res.Flags)
+
+		unsentMsg := s.messages.CurrentSentMessage()
+		if !unsentMsg.CheckKey(key) {
+			panic(throw.E("Message order is broken"))
 		}
 
-		return func(ctx smachine.BargeInContext) smachine.StateUpdate {
-			var key = ResultAwaitKey{
-				Object:         s.Object,
-				AnticipatedRef: res.AnticipatedRef,
-				RequiredFlag:   res.Flags,
-			}
+		unsentMsg.SetResult(res.RegistrarSignature)
 
-			unsentMsg := s.messages.CurrentSentMessage()
-			if !unsentMsg.CheckKey(key) {
-				panic(throw.E("Message order is broken"))
-			}
-
-			unsentMsg.SetResult(res.RegistrarSignature)
-
-			return ctx.WakeUp()
-		}
-	})
+		return ctx.WakeUp()
+	}
 }
 
 func (s *SubSMRegister) registerMessage(ctx smachine.ExecutionContext, msg *rms.LRegisterRequest) error {
@@ -210,12 +190,8 @@ func (s *SubSMRegister) registerMessage(ctx smachine.ExecutionContext, msg *rms.
 
 		ctx.InitChild(func(ctx smachine.ConstructionContext) smachine.StateMachine {
 			return &SMWaitSafeResponse{
-				ObjectSharedState: s.ObjectSharedState,
-				ExpectedKey: ResultAwaitKey{
-					Object:         s.Object,
-					AnticipatedRef: msg.AnticipatedRef,
-					RequiredFlag:   rms.RegistrationFlags_Safe,
-				},
+				ObjectSharedState:     s.ObjectSharedState,
+				ExpectedKey:           NewResultAwaitKey(msg.AnticipatedRef, rms.RegistrationFlags_Safe),
 				SafeResponseDecrement: s.SafeResponseDecrement,
 			}
 		})
@@ -224,13 +200,12 @@ func (s *SubSMRegister) registerMessage(ctx smachine.ExecutionContext, msg *rms.
 
 		fallthrough
 	case rms.RegistrationFlags_Fast, rms.RegistrationFlags_Safe:
-		bargeInKey := ResultAwaitKey{
-			Object:         s.Object,
-			AnticipatedRef: msg.AnticipatedRef,
-			RequiredFlag:   waitFlag,
-		}
+		var (
+			bargeInKey = NewResultAwaitKey(msg.AnticipatedRef, waitFlag)
+			bargeIn    = ctx.NewBargeInWithParam(s.bargeInHandler)
+		)
 
-		if !ctx.PublishGlobalAliasAndBargeIn(bargeInKey, s.bargeInCallback) {
+		if !ctx.PublishGlobalAliasAndBargeIn(bargeInKey, bargeIn) {
 			return throw.E("failed to publish bargeIn callback")
 		}
 		s.messages.AppendMessage(msg, bargeInKey)
@@ -242,8 +217,9 @@ func (s *SubSMRegister) registerMessage(ctx smachine.ExecutionContext, msg *rms.
 }
 
 func (s *SubSMRegister) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
-	s.messages = NewMessagesHolder()
-	s.createBargeInCallback(ctx)
+	// initialize message handler
+	s.messages.sentPosition = -1
+
 	// possible variants here:
 	// all
 	// CTConstructor -> Register (RLifelineStart and RInboundRequest) in one message (??)

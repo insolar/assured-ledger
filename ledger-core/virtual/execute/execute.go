@@ -13,6 +13,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
@@ -87,10 +88,13 @@ type SMExecute struct {
 	findCallResponse *rms.VFindCallResponse
 
 	// registration in LMN
-	lmnObjectRef       reference.Global
-	lmnLastFilamentRef reference.Global
-	lmnLastLifelineRef reference.Global
-	incomingRegistered bool
+	lmnObjectRef             reference.Global
+	lmnLastFilamentRef       reference.Global
+	lmnLastLifelineRef       reference.Global
+	lmnSafeResponseSemaphore smsync.ConditionalLink
+	lmnSafeResponseIncrement func(count int) smachine.SyncAdjustment
+	lmnSafeResponseDecrement smachine.SyncAdjustment
+	incomingRegistered       bool
 }
 
 /* -------- Declaration ------------- */
@@ -155,6 +159,10 @@ func (s *SMExecute) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 	s.prepareExecution(ctx.GetContext())
 
 	ctx.SetDefaultMigration(s.migrationDefault)
+
+	s.lmnSafeResponseSemaphore = smsync.NewConditional(1, "LMNSafeResponseSemaphore")
+	s.lmnSafeResponseIncrement = func(n int) smachine.SyncAdjustment { return s.lmnSafeResponseSemaphore.NewDelta(-n) }
+	s.lmnSafeResponseDecrement = s.lmnSafeResponseSemaphore.NewDelta(1)
 
 	return ctx.Jump(s.stepCheckRequest)
 }
@@ -672,7 +680,7 @@ func (s *SMExecute) stepExecuteDecideNextStep(ctx smachine.ExecutionContext) sma
 	switch newState.Type {
 	case execution.Done:
 		// send VCallResult here
-		return ctx.Jump(s.stepSaveExecutionResult)
+		return ctx.Jump(s.stepWaitSafeAnswers)
 	case execution.Error:
 		if d := new(runner.ErrorDetail); throw.FindDetail(newState.Error, d) {
 			switch d.Type {
@@ -895,6 +903,17 @@ func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.
 	}).DelayedStart().ThenJump(s.StepWaitExecutionResult)
 }
 
+func (s *SMExecute) stepWaitSafeAnswers(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	// waiting for all save responses to be there
+	syncLink := s.lmnSafeResponseSemaphore.SyncLink()
+	if !ctx.Acquire(syncLink).IsPassed() {
+		return ctx.Sleep().ThenRepeat()
+	}
+
+	// now it's time to write result
+	return ctx.Jump(s.stepSaveExecutionResult)
+}
+
 func (s *SMExecute) stepSaveExecutionResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	ctx.Release(s.globalSemaphore.PartialLink())
 
@@ -905,7 +924,6 @@ func (s *SMExecute) stepSaveExecutionResult(ctx smachine.ExecutionContext) smach
 		s.lmnLastLifelineRef = subroutineSM.NewLastLifelineRef
 		s.lmnLastFilamentRef = subroutineSM.NewLastFilamentRef
 
-		// s.stepAfterTakeGlobalLock must be set before this step was called
 		return ctx.Jump(s.stepSaveNewObject)
 	})
 }
@@ -1216,10 +1234,13 @@ const (
 	RegisterIncomingResult
 )
 
-func (s *SMExecute) constructSubSMRegister(tp RegisterVariant) lmn.SubSMRegister {
-	subroutineSM := lmn.SubSMRegister{}
+func (s *SMExecute) constructSubSMRegister(v RegisterVariant) lmn.SubSMRegister {
+	subroutineSM := lmn.SubSMRegister{
+		SafeResponseDecrement: s.lmnSafeResponseDecrement,
+		SafeResponseIncrement: s.lmnSafeResponseIncrement,
+	}
 
-	switch tp {
+	switch v {
 	case RegisterLifeLine:
 		if s.incomingRegistered {
 			panic(throw.IllegalState())
