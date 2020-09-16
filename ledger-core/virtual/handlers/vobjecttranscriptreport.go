@@ -13,7 +13,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -271,18 +270,8 @@ func (s *SMVObjectTranscriptReport) makeNewDescriptor(
 }
 
 func (s *SMVObjectTranscriptReport) prepareExecution(ctx context.Context) {
+	s.execution = execute.ExecContextFromRequest(s.incomingRequest)
+
 	s.execution.Context = ctx
-	s.execution.Sequence = 0
 	s.execution.Pulse = s.pulseSlot.PulseData()
-
-	s.execution.Request = s.incomingRequest
-	s.execution.Object = s.object
-
-	s.execution.Incoming = reference.NewRecordOf(s.incomingRequest.Callee.GetValue(), s.incomingRequest.CallOutgoing.GetValue().GetLocal())
-	s.execution.Outgoing = s.incomingRequest.CallOutgoing.GetValue()
-
-	s.execution.Isolation = contract.MethodIsolation{
-		Interference: s.incomingRequest.CallFlags.GetInterference(),
-		State:        s.incomingRequest.CallFlags.GetState(),
-	}
 }

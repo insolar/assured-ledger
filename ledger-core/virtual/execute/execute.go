@@ -118,25 +118,34 @@ func (s *SMExecute) GetStateMachineDeclaration() smachine.StateMachineDeclaratio
 	return dSMExecuteInstance
 }
 
+func ExecContextFromRequest(request *rms.VCallRequest) execution.Context {
+	res := execution.Context{
+		Request:          request,
+	}
+	if request.CallType == rms.CallTypeConstructor {
+		res.Object = reference.NewSelf(request.CallOutgoing.GetValue().GetLocal())
+	} else {
+		res.Object = request.Callee.GetValue()
+	}
+
+	res.Incoming = reference.NewRecordOf(request.Callee.GetValue(), request.CallOutgoing.GetValue().GetLocal())
+	res.Outgoing = request.CallOutgoing.GetValue()
+
+	res.Isolation = contract.MethodIsolation{
+		Interference: request.CallFlags.GetInterference(),
+		State:        request.CallFlags.GetState(),
+	}
+	return res
+}
+
 func (s *SMExecute) prepareExecution(ctx context.Context) {
+	s.execution = ExecContextFromRequest(s.Payload)
+
 	s.execution.Context = ctx
-	s.execution.Sequence = 0
-	s.execution.Request = s.Payload
 	s.execution.Pulse = s.pulseSlot.PulseData()
 
 	if s.Payload.CallType == rms.CallTypeConstructor {
 		s.isConstructor = true
-		s.execution.Object = reference.NewSelf(s.Payload.CallOutgoing.GetValue().GetLocal())
-	} else {
-		s.execution.Object = s.Payload.Callee.GetValue()
-	}
-
-	s.execution.Incoming = reference.NewRecordOf(s.Payload.Callee.GetValue(), s.Payload.CallOutgoing.GetValue().GetLocal())
-	s.execution.Outgoing = s.Payload.CallOutgoing.GetValue()
-
-	s.execution.Isolation = contract.MethodIsolation{
-		Interference: s.Payload.CallFlags.GetInterference(),
-		State:        s.Payload.CallFlags.GetState(),
 	}
 }
 
