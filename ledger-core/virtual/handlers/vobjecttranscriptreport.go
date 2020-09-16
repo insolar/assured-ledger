@@ -13,6 +13,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -51,7 +52,7 @@ type SMVObjectTranscriptReport struct {
 	objState        reference.Global
 	objDesc         descriptor.Object
 	entryIndex      int
-	incomingRequest *rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest
+	incomingRequest *rms.VCallRequest
 
 	validatedState  reference.Global
 
@@ -100,8 +101,8 @@ func (s *SMVObjectTranscriptReport) stepProcess(ctx smachine.ExecutionContext) s
 
 	switch tEntry := entry.(type) {
 	case *rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest:
-		s.incomingRequest = tEntry
-		s.objState = s.incomingRequest.ObjectMemory.GetValue()
+		s.incomingRequest = &tEntry.Request
+		s.objState = tEntry.ObjectMemory.GetValue()
 		if s.objState.IsEmpty() {
 			return ctx.Jump(s.stepIncomingRequest)
 		}
@@ -128,6 +129,7 @@ func (s *SMVObjectTranscriptReport) stepGetMemory(ctx smachine.ExecutionContext)
 }
 
 func (s *SMVObjectTranscriptReport) stepIncomingRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	s.prepareExecution(ctx.GetContext())
 	return ctx.Jump(s.stepExecuteStart)
 }
 
@@ -266,4 +268,21 @@ func (s *SMVObjectTranscriptReport) makeNewDescriptor(
 		memory,
 		deactivated,
 	)
+}
+
+func (s *SMVObjectTranscriptReport) prepareExecution(ctx context.Context) {
+	s.execution.Context = ctx
+	s.execution.Sequence = 0
+	s.execution.Pulse = s.pulseSlot.PulseData()
+
+	s.execution.Request = s.incomingRequest
+	s.execution.Object = s.object
+
+	s.execution.Incoming = reference.NewRecordOf(s.incomingRequest.Callee.GetValue(), s.incomingRequest.CallOutgoing.GetValue().GetLocal())
+	s.execution.Outgoing = s.incomingRequest.CallOutgoing.GetValue()
+
+	s.execution.Isolation = contract.MethodIsolation{
+		Interference: s.incomingRequest.CallFlags.GetInterference(),
+		State:        s.incomingRequest.CallFlags.GetState(),
+	}
 }
