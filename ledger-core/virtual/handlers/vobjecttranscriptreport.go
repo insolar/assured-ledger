@@ -38,12 +38,16 @@ type SMVObjectTranscriptReport struct {
 	Meta    *rms.Meta
 	Payload *rms.VObjectTranscriptReport
 
+	// deps
 	runner        runner.ServiceAdapter
 	pulseSlot     *conveyor.PulseSlot
 	messageSender messageSenderAdapter.MessageSender
 	memoryCache   memoryCacheAdapter.MemoryCache
 
+	// unboxed from message, often used
 	object          reference.Global
+	entries         []rms.Any
+
 	objState        reference.Global
 	objDesc         descriptor.Object
 	entryIndex      int
@@ -86,6 +90,7 @@ func (s *SMVObjectTranscriptReport) GetStateMachineDeclaration() smachine.StateM
 
 func (s *SMVObjectTranscriptReport) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
 	s.object = s.Payload.Object.GetValue()
+	s.entries = s.Payload.ObjectTranscript.GetEntries()
 
 	return ctx.Jump(s.stepProcess)
 }
@@ -98,6 +103,9 @@ func (s *SMVObjectTranscriptReport) stepProcess(ctx smachine.ExecutionContext) s
 		s.incomingRequest = tEntry
 		s.objState = s.incomingRequest.ObjectMemory.GetValue()
 		return ctx.Jump(s.stepGetMemory)
+	default:
+		// TODO: no idea how deal here with this
+		panic(throw.IllegalValue())
 	}
 
 	return ctx.Stop()
@@ -192,7 +200,7 @@ func (s *SMVObjectTranscriptReport) stepExecuteDecideNextStep(ctx smachine.Execu
 
 func (s *SMVObjectTranscriptReport) stepAdvanceToNextRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	s.entryIndex++
-	if s.entryIndex >= s.entriesCount() {
+	if s.entryIndex >= len(s.entries) {
 		if !s.validatedState.IsEmpty() {
 			return ctx.Jump(s.stepSendValidationReport)
 		} else {
@@ -221,12 +229,7 @@ func (s *SMVObjectTranscriptReport) stepSendValidationReport(ctx smachine.Execut
 }
 
 func (s *SMVObjectTranscriptReport) peekEntry(index int) rmsreg.GoGoSerializable {
-	entries := s.Payload.ObjectTranscript.GetEntries()
-	return entries[index].Get()
-}
-
-func (s *SMVObjectTranscriptReport) entriesCount() int {
-	return len(s.Payload.ObjectTranscript.GetEntries())
+	return s.entries[index].Get()
 }
 
 func (s *SMVObjectTranscriptReport) peekCurrentEntry() rmsreg.GoGoSerializable {
