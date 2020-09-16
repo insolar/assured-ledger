@@ -35,6 +35,12 @@ func TestValidation_ObjectTranscriptReport_AfterConstructor(t *testing.T) {
 
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	typedChecker.VCachedMemoryRequest.Set(func(report *rms.VCachedMemoryRequest) bool {
+		pl := &rms.VCachedMemoryResponse{
+			Object:     report.Object,
+			StateID:    report.StateID,
+			CallStatus: rms.CachedMemoryStateMissing,
+		}
+		server.SendPayload(ctx, pl)
 		return false
 	})
 
