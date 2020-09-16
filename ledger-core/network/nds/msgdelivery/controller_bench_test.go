@@ -24,6 +24,8 @@ type BenchType func(v benchSender, payload []byte)
 
 // WARNING! Benchmark is unstable due to packet drops on overflow.
 func BenchmarkThroughput(b *testing.B) {
+	//TODO https://insolar.atlassian.net/browse/PLAT-826
+	// workaround with set max value for case above
 	results := make(chan []byte, 16)
 	sender, stopFn := createPipe(b, "127.0.0.1:0", "127.0.0.1:0", 0, func(bb []byte) {
 		results <- bb
@@ -101,6 +103,8 @@ func BenchmarkThroughput(b *testing.B) {
 
 // WARNING! Benchmark is unstable due to packet drops on overflow.
 func BenchmarkLatency(b *testing.B) {
+	//TODO https://insolar.atlassian.net/browse/PLAT-826
+	// workaround with set max value for case above
 	results := make(chan []byte, 1)
 	sender, stopFn := createPipe(b, "127.0.0.1:0", "127.0.0.1:0", 0, func(bb []byte) {
 		// nanos := time.Now().UnixNano()
@@ -276,14 +280,14 @@ func (v benchSender) throughput(b *testing.B, payloadSize int, funcName BenchTyp
 		select {
 		case <-v.results:
 			received++
-			println(received, b.N, " in-loop")
+			//println(received, b.N, " in-loop")
 		default:
 		}
 	}
 	for received < b.N {
 		<-v.results
 		received++
-		println(received, b.N, " off-loop")
+		//println(received, b.N, " off-loop")
 	}
 }
 
