@@ -30,6 +30,13 @@ func getServerByIndex(idx int) *UnitProtoServer {
 	return servers[idx-1]
 }
 
+type UnitProtoServer struct {
+	service Service
+	key     cryptkit.SigningKey
+	disp    *uniserver.Dispatcher
+	mng     *uniserver.PeerManager
+}
+
 func createService(
 	t testing.TB,
 	receiverFn ReceiverFunc,
@@ -99,11 +106,4 @@ func createService(
 	}
 	servers = append(servers, info)
 	return info
-}
-
-type UnitProtoServer struct {
-	service Service
-	key     cryptkit.SigningKey
-	disp    *uniserver.Dispatcher
-	mng     *uniserver.PeerManager
 }

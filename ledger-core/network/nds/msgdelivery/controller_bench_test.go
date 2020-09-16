@@ -14,16 +14,23 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
 )
 
+type SendFuncType func(v benchSender, payload []byte)
+
 type testCasesStruct struct {
 	testName string
 	receiver ReceiverFunc
 	sendFunc SendFuncType
 }
-type SendFuncType func(v benchSender, payload []byte)
 
 type initServerData struct {
 	serverConf uniserver.ServerConfig
 	receiver   ReceiverFunc
+}
+
+type benchSender struct {
+	toAddr  DeliveryAddress
+	results chan []byte
+	ctl2    Service
 }
 
 var testCases = []testCasesStruct{
@@ -212,12 +219,6 @@ func createPipe(t testing.TB, server1, server2 initServerData) (benchSender, fun
 			srv1.disp.Stop()
 			srv2.disp.Stop()
 		}
-}
-
-type benchSender struct {
-	toAddr  DeliveryAddress
-	results chan []byte
-	ctl2    Service
 }
 
 func (v benchSender) throughput(b *testing.B, payloadSize int, funcName SendFuncType) {
