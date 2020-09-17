@@ -544,6 +544,28 @@ func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) sm
 			panic(throw.Impossible())
 		}
 
+		var objectMemory reference.Global
+		if s.Payload.CallType == rms.CallTypeConstructor {
+			objectMemory = reference.Global{}
+		} else if s.execution.ObjectDescriptor == nil {
+			panic(throw.Impossible())
+		} else {
+			objectMemory = reference.NewRecordOf(
+				s.newObjectDescriptor.HeadRef(),
+				s.newObjectDescriptor.StateID(),
+			)
+		}
+
+		state.Transcript.Add(
+			validation.TranscriptEntry{
+				Custom: validation.TranscriptEntryIncomingRequest{
+					ObjectMemory: objectMemory,
+					Incoming:     reference.Global{},
+					CallRequest:  *s.Payload,
+				},
+			},
+		)
+
 		objectDescriptor = s.getDescriptor(state)
 		if state.GetState() == object.Inactive || (objectDescriptor != nil && objectDescriptor.Deactivated()) {
 			isDeactivated = true
@@ -906,28 +928,6 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 
 	action := func(state *object.SharedState) {
 		state.SetDescriptorDirty(s.newObjectDescriptor)
-
-		var objectMemory reference.Global
-		if s.Payload.CallType == rms.CallTypeConstructor {
-			objectMemory = reference.Global{}
-		} else if s.execution.ObjectDescriptor == nil {
-			panic(throw.Impossible())
-		} else {
-			objectMemory = reference.NewRecordOf(
-				s.newObjectDescriptor.HeadRef(),
-				s.newObjectDescriptor.StateID(),
-			)
-		}
-
-		state.Transcript.Add(
-			validation.TranscriptEntry{
-				Custom: validation.TranscriptEntryIncomingRequest{
-					ObjectMemory: objectMemory,
-					Incoming:     reference.Global{},
-					CallRequest:  *s.Payload,
-				},
-			},
-		)
 
 		state.Transcript.Add(
 			validation.TranscriptEntry{
