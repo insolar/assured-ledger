@@ -101,6 +101,11 @@ func generatePulsarConfig(nodes []nodeInfo, settings CloudSettings) configuratio
 		pulsarConfig.Pulsar.PulseTime = int32(settings.Pulsar.PulseTime)
 	}
 
+	if cloudFileLogging {
+		pulsarConfig.Log.OutputType = logoutput.FileOutput.String()
+		pulsarConfig.Log.OutputParams = launchnetPath("logs", "pulsar.log")
+	}
+
 	return pulsarConfig
 }
 
