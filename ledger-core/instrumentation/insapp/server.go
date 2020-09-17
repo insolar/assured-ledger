@@ -145,7 +145,7 @@ func (s *Server) Serve() {
 	}()
 
 	for i, cm := range cms {
-		if err := cm.Start(contexts[i]); err != nil {
+		if err := cm.Start(contexts[i]); err != nil && err != context.DeadlineExceeded {
 			baseLogger.Fatalf("start failed [%d]: %s", i, throw.ErrorWithStack(err))
 		}
 	}
