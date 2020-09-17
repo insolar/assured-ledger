@@ -47,7 +47,7 @@ func (v wrapper) Start(ctx context.Context) error {
 	if err := v.apiServer.Start(ctx); err != nil {
 		return err
 	}
-	inslogger.FromContext(ctx).Info("All components has started")
+	inslogger.FromContext(ctx).Info("All components have started")
 	return nil
 }
 
