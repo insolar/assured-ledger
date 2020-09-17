@@ -23,6 +23,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/execute"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/utils"
 )
@@ -64,6 +65,19 @@ func TestValidation_ObjectTranscriptReport_AfterConstructor(t *testing.T) {
 		)
 	}
 
+	stateHash := append([]byte("init state"), objectRef.AsBytes()...)
+	stateID := execute.NewStateID(p, stateHash)
+	stateRef := reference.NewRecordOf(objectRef, stateID)
+
+	typedChecker.VObjectValidationReport.Set(func(report *rms.VObjectValidationReport) bool {
+		require.Equal(t, objectRef, report.Object.GetValue())
+		require.Equal(t, p, report.In)
+		require.Equal(t, stateRef, report.Validated.GetValue())
+
+		return false
+	})
+
+
 	pl := rms.VObjectTranscriptReport{
 		AsOf:   p,
 		Object: rms.NewReference(objectRef),
@@ -80,7 +94,9 @@ func TestValidation_ObjectTranscriptReport_AfterConstructor(t *testing.T) {
 		},
 	)
 	pl.ObjectTranscript.Entries[1].Set(
-		&rms.VObjectTranscriptReport_TranscriptEntryIncomingResult{},
+		&rms.VObjectTranscriptReport_TranscriptEntryIncomingResult{
+			ObjectState: rms.NewReference(stateRef),
+		},
 	)
 
 	done := server.Journal.WaitStopOf(&handlers.SMVObjectTranscriptReport{}, 1)
