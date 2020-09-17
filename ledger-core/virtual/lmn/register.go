@@ -24,6 +24,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/execute/shared"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 )
 
@@ -99,8 +100,7 @@ type SubSMRegister struct {
 	LastFilamentRef reference.Global
 	LastLifelineRef reference.Global
 
-	SafeResponseIncrement func(count int) smachine.SyncAdjustment
-	SafeResponseDecrement smachine.SyncAdjustment
+	SafeResponseCounter smachine.SharedDataLink
 
 	// internal data
 	messages     MessagesHolder
@@ -188,9 +188,9 @@ func (s *SubSMRegister) registerMessage(ctx smachine.ExecutionContext, msg *rms.
 
 		ctx.InitChild(func(ctx smachine.ConstructionContext) smachine.StateMachine {
 			return &SMWaitSafeResponse{
-				ObjectSharedState:     s.ObjectSharedState,
-				ExpectedKey:           NewResultAwaitKey(msg.AnticipatedRef, rms.RegistrationFlags_Safe),
-				SafeResponseDecrement: s.SafeResponseDecrement,
+				ObjectSharedState:   s.ObjectSharedState,
+				ExpectedKey:         NewResultAwaitKey(msg.AnticipatedRef, rms.RegistrationFlags_Safe),
+				SafeResponseCounter: s.SafeResponseCounter,
 			}
 		})
 
@@ -298,9 +298,14 @@ func (s *SubSMRegister) stepRegisterIncoming(ctx smachine.ExecutionContext) smac
 
 	var anticipatedRef = s.getRecordAnticipatedRef(s.Object, record)
 
+	flags := rms.RegistrationFlags_FastSafe
+	if s.Incoming != nil {
+		flags = rms.RegistrationFlags_Safe
+	}
+
 	if err := s.registerMessage(ctx, &rms.LRegisterRequest{
 		AnticipatedRef: rms.NewReference(anticipatedRef),
-		Flags:          rms.RegistrationFlags_FastSafe,
+		Flags:          flags,
 		Record:         recordToAnyRecord(record), // TODO: here we should provide record from incoming
 	}); err != nil {
 		return ctx.Error(err)
@@ -519,9 +524,11 @@ func (s *SubSMRegister) stepSaveSafeCounter(ctx smachine.ExecutionContext) smach
 
 	if s.requiredSafe < 0 {
 		panic(throw.IllegalState())
-	} else if s.requiredSafe > 0 {
-		adjustment := s.SafeResponseIncrement(s.requiredSafe)
-		ctx.ApplyAdjustment(adjustment)
+	}
+
+	stateUpdate := shared.CounterIncrement(ctx, s.SafeResponseCounter, s.requiredSafe)
+	if !stateUpdate.IsEmpty() {
+		return stateUpdate
 	}
 
 	return ctx.Jump(s.stepSendMessage)

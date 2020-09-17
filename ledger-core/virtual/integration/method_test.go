@@ -220,8 +220,6 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 	server, ctx := utils.NewUninitializedServer(nil, t)
 	defer server.Stop()
 
-	executeDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 2)
-
 	runnerMock := logicless.NewServiceMock(ctx, t, nil)
 	server.ReplaceRunner(runnerMock)
 
@@ -231,6 +229,7 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 		parallelCount     = 1
 		waitInputChannel  = make(chan struct{}, parallelCount)
 		waitOutputChannel = make(chan struct{}, 0)
+		executeDone       = server.Journal.WaitStopOf(&execute.SMExecute{}, parallelCount)
 
 		objectGlobal = server.RandomGlobalWithPulse()
 		prevPulse    = server.GetPulse().PulseNumber
@@ -323,6 +322,7 @@ func TestVirtual_Method_WithoutExecutor_Unordered(t *testing.T) {
 	}
 
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 	{
 		assert.Equal(t, parallelCount, typedChecker.VCallResult.Count())

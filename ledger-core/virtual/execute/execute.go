@@ -13,7 +13,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
-	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine/smsync"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
@@ -32,6 +31,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/callsummary"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/execute/shared"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/lmn"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/memorycache"
 	memoryCacheAdapter "github.com/insolar/assured-ledger/ledger-core/virtual/memorycache/adapter"
@@ -88,13 +88,12 @@ type SMExecute struct {
 	findCallResponse *rms.VFindCallResponse
 
 	// registration in LMN
-	lmnObjectRef             reference.Global
-	lmnLastFilamentRef       reference.Global
-	lmnLastLifelineRef       reference.Global
-	lmnSafeResponseSemaphore smsync.ConditionalLink
-	lmnSafeResponseIncrement func(count int) smachine.SyncAdjustment
-	lmnSafeResponseDecrement smachine.SyncAdjustment
-	incomingRegistered       bool
+	lmnObjectRef               reference.Global
+	lmnLastFilamentRef         reference.Global
+	lmnLastLifelineRef         reference.Global
+	lmnSafeResponseCounter     shared.SafeResponseCounter
+	lmnSafeResponseCounterLink smachine.SharedDataLink
+	incomingRegistered         bool
 }
 
 /* -------- Declaration ------------- */
@@ -160,9 +159,7 @@ func (s *SMExecute) Init(ctx smachine.InitializationContext) smachine.StateUpdat
 
 	ctx.SetDefaultMigration(s.migrationDefault)
 
-	s.lmnSafeResponseSemaphore = smsync.NewConditional(1, "LMNSafeResponseSemaphore")
-	s.lmnSafeResponseIncrement = func(n int) smachine.SyncAdjustment { return s.lmnSafeResponseSemaphore.NewDelta(-n) }
-	s.lmnSafeResponseDecrement = s.lmnSafeResponseSemaphore.NewDelta(1)
+	s.lmnSafeResponseCounterLink = ctx.Share(&s.lmnSafeResponseCounter, 0)
 
 	return ctx.Jump(s.stepCheckRequest)
 }
@@ -908,13 +905,15 @@ func (s *SMExecute) stepWaitSafeAnswers(ctx smachine.ExecutionContext) smachine.
 	ctx.Release(s.globalSemaphore.PartialLink())
 
 	// waiting for all save responses to be there
-	// syncLink := s.lmnSafeResponseSemaphore.SyncLink()
-	// if !ctx.AcquireForThisStep(syncLink).IsPassed() {
-	// 	return ctx.Sleep().ThenRepeat()
-	// }
+	return ctx.Jump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
+		stateUpdate := shared.CounterAwaitZero(ctx, s.lmnSafeResponseCounterLink)
+		if !stateUpdate.IsEmpty() {
+			return stateUpdate
+		}
 
-	// now it's time to write result
-	return ctx.Jump(s.stepSaveExecutionResult)
+		// now it's time to write result
+		return ctx.Jump(s.stepSaveExecutionResult)
+	})
 }
 
 func (s *SMExecute) stepSaveExecutionResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -1236,9 +1235,9 @@ const (
 )
 
 func (s *SMExecute) constructSubSMRegister(v RegisterVariant) lmn.SubSMRegister {
+
 	subroutineSM := lmn.SubSMRegister{
-		SafeResponseDecrement: s.lmnSafeResponseDecrement,
-		SafeResponseIncrement: s.lmnSafeResponseIncrement,
+		SafeResponseCounter: s.lmnSafeResponseCounterLink,
 	}
 
 	switch v {

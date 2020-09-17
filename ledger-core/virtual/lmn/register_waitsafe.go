@@ -12,13 +12,14 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/execute/shared"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 )
 
 type SMWaitSafeResponse struct {
-	ObjectSharedState     object.SharedStateAccessor
-	ExpectedKey           ResultAwaitKey
-	SafeResponseDecrement smachine.SyncAdjustment
+	ObjectSharedState   object.SharedStateAccessor
+	ExpectedKey         ResultAwaitKey
+	SafeResponseCounter smachine.SharedDataLink
 
 	resultReceived bool
 }
@@ -78,7 +79,10 @@ func (s *SMWaitSafeResponse) stepWaitResult(ctx smachine.ExecutionContext) smach
 		return ctx.Sleep().ThenRepeat()
 	}
 
-	ctx.ApplyAdjustment(s.SafeResponseDecrement)
+	stateUpdate := shared.CounterDecrement(ctx, s.SafeResponseCounter)
+	if !stateUpdate.IsEmpty() {
+		return stateUpdate
+	}
 
 	return ctx.Stop()
 }
