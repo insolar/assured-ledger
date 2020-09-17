@@ -174,10 +174,10 @@ func (s *SMVObjectTranscriptReport) stepExecuteDecideNextStep(ctx smachine.Execu
 	switch s.executionNewState.Result.Type() {
 	case requestresult.SideEffectNone:
 	case requestresult.SideEffectActivate:
-		_, class, memory := s.executionNewState.Result.Activate()
+		class, memory := s.executionNewState.Result.Activate()
 		newDesc = s.makeNewDescriptor(class, memory, false)
 	case requestresult.SideEffectAmend:
-		_, class, memory := s.executionNewState.Result.Amend()
+		class, memory := s.executionNewState.Result.Amend()
 		newDesc = s.makeNewDescriptor(class, memory, false)
 	case requestresult.SideEffectDeactivate:
 		class, memory := s.executionNewState.Result.Deactivate()

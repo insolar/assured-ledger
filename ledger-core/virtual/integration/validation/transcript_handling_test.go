@@ -58,7 +58,7 @@ func TestValidation_ObjectTranscriptReport_AfterConstructor(t *testing.T) {
 	// add runnerMock
 	{
 		requestResult := requestresult.New([]byte("call result"), objectRef)
-		requestResult.SetActivate(objectRef, server.RandomGlobalWithPulse(), []byte("init state"))
+		requestResult.SetActivate(server.RandomGlobalWithPulse(), []byte("init state"))
 		runnerMock.AddExecutionMock(outgoing.GetValue()).AddStart(
 			nil,
 			&execution.Update{
