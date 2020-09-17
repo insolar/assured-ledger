@@ -16,7 +16,6 @@ type RequestResult struct {
 	RawObjectReference reference.Global // every
 
 	ObjectImage     reference.Global // amend + activate
-	ObjectStateID   reference.Local  // amend + deactivate
 	Memory          []byte           // amend + activate
 }
 
@@ -36,8 +35,8 @@ func (s *RequestResult) Activate() (reference.Global, []byte) {
 	return s.ObjectImage, s.Memory
 }
 
-func (s *RequestResult) Amend() (reference.Local, reference.Global, []byte) {
-	return s.ObjectStateID, s.ObjectImage, s.Memory
+func (s *RequestResult) Amend() (reference.Global, []byte) {
+	return s.ObjectImage, s.Memory
 }
 
 func (s *RequestResult) Deactivate() (reference.Global, []byte) {
@@ -54,8 +53,6 @@ func (s *RequestResult) SetActivate(image reference.Global, memory []byte) {
 func (s *RequestResult) SetAmend(object descriptor.Object, memory []byte) {
 	s.SideEffectType = SideEffectAmend
 	s.Memory = memory
-	s.ObjectStateID = object.StateID()
-
 	class, _ := object.Class()
 	s.ObjectImage = class
 }
@@ -64,7 +61,6 @@ func (s *RequestResult) SetDeactivate(object descriptor.Object) {
 	s.SideEffectType = SideEffectDeactivate
 	class, _ := object.Class()
 	s.ObjectImage = class
-	s.ObjectStateID = object.StateID()
 }
 
 func (s RequestResult) Type() Type {
