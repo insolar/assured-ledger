@@ -40,7 +40,7 @@ func (t *Transcript) GetRMSTranscript() (rms.VObjectTranscriptReport_Transcript,
 		case TranscriptEntryOutgoingRequest:
 			rmsEntry.Set(
 				&rms.VObjectTranscriptReport_TranscriptEntryOutgoingRequest{
-					Request: typedEntry.Request,
+					Request: rms.NewReference(typedEntry.Request),
 				})
 		case TranscriptEntryOutgoingResult:
 			rmsEntry.Set(&rms.VObjectTranscriptReport_TranscriptEntryOutgoingResult{

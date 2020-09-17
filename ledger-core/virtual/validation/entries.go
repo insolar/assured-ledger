@@ -39,7 +39,7 @@ func (TranscriptEntryIncomingResult) TranscriptEntryMarker() {
 var _ CustomTranscriptEntryPart = TranscriptEntryOutgoingRequest{}
 
 type TranscriptEntryOutgoingRequest struct {
-	Request rms.VCallRequest
+	Request reference.Global
 }
 
 func (TranscriptEntryOutgoingRequest) TranscriptEntryMarker() {

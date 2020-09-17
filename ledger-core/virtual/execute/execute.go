@@ -85,6 +85,8 @@ type SMExecute struct {
 	stepAfterTokenGet   smachine.SlotStep
 
 	findCallResponse *rms.VFindCallResponse
+
+	incomingAddedToTranscript bool
 }
 
 /* -------- Declaration ------------- */
@@ -544,28 +546,6 @@ func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) sm
 			panic(throw.Impossible())
 		}
 
-		var objectMemory reference.Global
-		if s.Payload.CallType == rms.CallTypeConstructor {
-			objectMemory = reference.Global{}
-		} else if s.execution.ObjectDescriptor == nil {
-			panic(throw.Impossible())
-		} else {
-			objectMemory = reference.NewRecordOf(
-				s.newObjectDescriptor.HeadRef(),
-				s.newObjectDescriptor.StateID(),
-			)
-		}
-
-		state.Transcript.Add(
-			validation.TranscriptEntry{
-				Custom: validation.TranscriptEntryIncomingRequest{
-					ObjectMemory: objectMemory,
-					Incoming:     reference.Global{},
-					CallRequest:  *s.Payload,
-				},
-			},
-		)
-
 		objectDescriptor = s.getDescriptor(state)
 		if state.GetState() == object.Inactive || (objectDescriptor != nil && objectDescriptor.Deactivated()) {
 			isDeactivated = true
@@ -815,10 +795,12 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 	s.outgoingSentCounter++
 
 	action := func(state *object.SharedState) {
+		s.addIncomingToTranscriptOnce(state)
+
 		state.Transcript.Add(
 			validation.TranscriptEntry{
 				Custom: validation.TranscriptEntryOutgoingRequest{
-					Request: *s.outgoing,
+					Request: s.outgoing.CallOutgoing.GetValue(),
 				},
 			},
 		)
@@ -833,6 +815,36 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 
 	// we'll wait for barge-in WakeUp here, not adapter
 	return ctx.Sleep().ThenJump(s.stepTakeLockAfterOutgoing)
+}
+
+func (s *SMExecute) addIncomingToTranscriptOnce(state *object.SharedState) {
+	if s.incomingAddedToTranscript {
+		return
+	}
+
+	var objectMemory reference.Global
+	if s.Payload.CallType == rms.CallTypeConstructor {
+		objectMemory = reference.Global{}
+	} else if s.execution.ObjectDescriptor == nil {
+		panic(throw.Impossible())
+	} else {
+		objectMemory = reference.NewRecordOf(
+			s.newObjectDescriptor.HeadRef(),
+			s.newObjectDescriptor.StateID(),
+		)
+	}
+
+	state.Transcript.Add(
+		validation.TranscriptEntry{
+			Custom: validation.TranscriptEntryIncomingRequest{
+				ObjectMemory: objectMemory,
+				Incoming:     reference.Global{},
+				CallRequest:  *s.Payload,
+			},
+		},
+	)
+
+	s.incomingAddedToTranscript = true
 }
 
 func (s *SMExecute) stepTakeLockAfterOutgoing(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -928,6 +940,7 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 
 	action := func(state *object.SharedState) {
 		state.SetDescriptorDirty(s.newObjectDescriptor)
+		s.addIncomingToTranscriptOnce(state)
 
 		state.Transcript.Add(
 			validation.TranscriptEntry{

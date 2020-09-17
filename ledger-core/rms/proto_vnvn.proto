@@ -304,7 +304,7 @@ message VObjectTranscriptReport {
     message TranscriptEntryOutgoingRequest {
         option (insproto.id) = 101502;
 
-        VCallRequest Request = 1800;
+        Reference Request = 1800;
     }
     message TranscriptEntryOutgoingResult {
         option (insproto.id) = 101503;
