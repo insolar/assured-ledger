@@ -126,7 +126,8 @@ func (s *Server) Serve() {
 		baseLogger.Info("stopping gracefully")
 
 		for i, cm := range cms {
-			if err := cm.GracefulStop(baseCtx); err != nil {
+			// http server can hang upon Shutdown. It should not be treated as error
+			if err := cm.GracefulStop(baseCtx); err != nil && !throw.FindDetail(err, context.DeadlineExceeded) {
 				baseLogger.Fatalf("graceful stop failed [%d]: %s", i, throw.ErrorWithStack(err))
 			}
 		}
@@ -138,14 +139,15 @@ func (s *Server) Serve() {
 		}
 
 		for i, cm := range cms {
-			if err := cm.Stop(contexts[i]); err != nil {
+			// http server can hang upon Shutdown. It should not be treated as error
+			if err := cm.Stop(contexts[i]); err != nil && !throw.FindDetail(err, context.DeadlineExceeded) {
 				baseLogger.Fatalf("stop failed [%d]: %s", i, throw.ErrorWithStack(err))
 			}
 		}
 	}()
 
 	for i, cm := range cms {
-		if err := cm.Start(contexts[i]); err != nil && err != context.DeadlineExceeded {
+		if err := cm.Start(contexts[i]); err != nil {
 			baseLogger.Fatalf("start failed [%d]: %s", i, throw.ErrorWithStack(err))
 		}
 	}
