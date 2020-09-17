@@ -45,15 +45,15 @@ type SMVObjectTranscriptReport struct {
 	memoryCache   memoryCacheAdapter.MemoryCache
 
 	// unboxed from message, often used
-	object          reference.Global
-	entries         []rms.Any
+	object  reference.Global
+	entries []rms.Any
 
 	objState        reference.Global
 	objDesc         descriptor.Object
 	entryIndex      int
 	incomingRequest *rms.VCallRequest
 
-	validatedState  reference.Global
+	validatedState reference.Global
 
 	execution         execution.Context
 	executionNewState *execution.Update
@@ -190,7 +190,7 @@ func (s *SMVObjectTranscriptReport) stepExecuteDecideNextStep(ctx smachine.Execu
 	expected := entry.(*rms.VObjectTranscriptReport_TranscriptEntryIncomingResult)
 
 	// fixme: stateid vs stateref
-	stateRef := reference.NewRecordOf(newDesc.HeadRef(),newDesc.StateID())
+	stateRef := reference.NewRecordOf(newDesc.HeadRef(), newDesc.StateID())
 	equal := stateRef.Equal(expected.ObjectState.GetValue())
 	if equal {
 		s.validatedState = stateRef
@@ -203,7 +203,7 @@ func (s *SMVObjectTranscriptReport) stepExecuteDecideNextStep(ctx smachine.Execu
 
 func (s *SMVObjectTranscriptReport) stepAdvanceToNextRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	s.entryIndex++
-	if s.entryIndex >= len(s.entries) {
+	if s.entryIndex >= len(s.entries)-1 {
 		if !s.validatedState.IsEmpty() {
 			return ctx.Jump(s.stepSendValidationReport)
 		} else {

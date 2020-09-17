@@ -51,11 +51,14 @@ func TestValidation_ObjectTranscriptReport_AfterConstructor(t *testing.T) {
 	objectRef := reference.NewSelf(outgoing.GetValue().GetLocal())
 	p := server.GetPulse().PulseNumber
 
+	stateHash := append([]byte("init state"), objectRef.AsBytes()...)
+	stateID := execute.NewStateID(p, stateHash)
+	stateRef := reference.NewRecordOf(objectRef, stateID)
+
 	// add runnerMock
 	{
-		requestResult := requestresult.New([]byte("call result"), server.RandomGlobalWithPulse())
-		requestResult.SetActivate(server.RandomGlobalWithPulse(), server.RandomGlobalWithPulse(), []byte("init state"))
-		runnerMock.AddExecutionClassify(outgoing.GetValue(), contract.MethodIsolation{Interference: isolation.CallTolerable, State: isolation.CallDirty}, nil)
+		requestResult := requestresult.New([]byte("call result"), objectRef)
+		requestResult.SetActivate(objectRef, server.RandomGlobalWithPulse(), []byte("init state"))
 		runnerMock.AddExecutionMock(outgoing.GetValue()).AddStart(
 			nil,
 			&execution.Update{
@@ -65,47 +68,48 @@ func TestValidation_ObjectTranscriptReport_AfterConstructor(t *testing.T) {
 		)
 	}
 
-	stateHash := append([]byte("init state"), objectRef.AsBytes()...)
-	stateID := execute.NewStateID(p, stateHash)
-	stateRef := reference.NewRecordOf(objectRef, stateID)
+	// add typedChecker
+	{
+		typedChecker.VObjectValidationReport.Set(func(report *rms.VObjectValidationReport) bool {
+			require.Equal(t, objectRef, report.Object.GetValue())
+			require.Equal(t, p, report.In)
+			require.Equal(t, stateRef, report.Validated.GetValue())
 
-	typedChecker.VObjectValidationReport.Set(func(report *rms.VObjectValidationReport) bool {
-		require.Equal(t, objectRef, report.Object.GetValue())
-		require.Equal(t, p, report.In)
-		require.Equal(t, stateRef, report.Validated.GetValue())
-
-		return false
-	})
-
-
-	pl := rms.VObjectTranscriptReport{
-		AsOf:   p,
-		Object: rms.NewReference(objectRef),
-		ObjectTranscript: rms.VObjectTranscriptReport_Transcript{
-			Entries: []rms.Any{
-				{},
-				{},
-			},
-		},
+			return false
+		})
 	}
-	pl.ObjectTranscript.Entries[0].Set(
-		&rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest{
-			Request: *callRequest,
-		},
-	)
-	pl.ObjectTranscript.Entries[1].Set(
-		&rms.VObjectTranscriptReport_TranscriptEntryIncomingResult{
-			ObjectState: rms.NewReference(stateRef),
-		},
-	)
 
-	done := server.Journal.WaitStopOf(&handlers.SMVObjectTranscriptReport{}, 1)
-	server.SendPayload(ctx, &pl)
+	// send VObjectTranscriptReport
+	{
+		pl := rms.VObjectTranscriptReport{
+			AsOf:   p,
+			Object: rms.NewReference(objectRef),
+			ObjectTranscript: rms.VObjectTranscriptReport_Transcript{
+				Entries: []rms.Any{
+					{},
+					{},
+				},
+			},
+		}
+		pl.ObjectTranscript.Entries[0].Set(
+			&rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest{
+				Request: *callRequest,
+			},
+		)
+		pl.ObjectTranscript.Entries[1].Set(
+			&rms.VObjectTranscriptReport_TranscriptEntryIncomingResult{
+				ObjectState: rms.NewReference(stateRef),
+			},
+		)
 
-	commontestutils.WaitSignalsTimed(t, 10*time.Second, done)
-	commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+		done := server.Journal.WaitStopOf(&handlers.SMVObjectTranscriptReport{}, 1)
+		server.SendPayload(ctx, &pl)
 
-	assert.Equal(t, 1, typedChecker.VObjectTranscriptReport.Count())
+		commontestutils.WaitSignalsTimed(t, 10*time.Second, done)
+		commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VObjectValidationReport.Wait(ctx, 1))
+
+		assert.Equal(t, 1, typedChecker.VObjectValidationReport.Count())
+	}
 
 	mc.Finish()
 }
@@ -190,7 +194,7 @@ func TestValidation_ObjectTranscriptReport_AfterMethod(t *testing.T) {
 		)
 		pl.ObjectTranscript.Entries[1].Set(
 			&rms.VObjectTranscriptReport_TranscriptEntryIncomingResult{
-				ObjectState:    rms.NewReference(newStateRef),
+				ObjectState: rms.NewReference(newStateRef),
 			},
 		)
 
