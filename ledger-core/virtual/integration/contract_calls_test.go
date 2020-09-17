@@ -554,7 +554,7 @@ func TestVirtual_CallMethodFromConstructor(t *testing.T) {
 			{
 				outgoingCall := execution.NewRPCBuilder(incomingA, objectAGlobal).CallMethod(objectBGlobal, classB, "Foo", byteArguments)
 				objectAResult := requestresult.New([]byte("finish A.New"), objectAGlobal)
-				objectAResult.SetActivate(reference.Global{}, classA, []byte("state A"))
+				objectAResult.SetActivate(classA, []byte("state A"))
 				objectAExecutionMock := runnerMock.AddExecutionMock("New")
 				objectAExecutionMock.AddStart(
 					func(ctx execution.Context) {

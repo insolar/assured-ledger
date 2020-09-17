@@ -256,7 +256,7 @@ func (r *DefaultService) executeConstructor(
 	// form and return executionResult
 	res := requestresult.New(executionResult, executionContext.Object)
 	if newState != nil {
-		res.SetActivate(request.Callee.GetValue(), logicContext.CallerClass, newState)
+		res.SetActivate(logicContext.CallerClass, newState)
 	}
 
 	return res, nil

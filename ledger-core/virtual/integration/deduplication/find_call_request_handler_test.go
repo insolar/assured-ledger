@@ -493,7 +493,7 @@ func (s *VFindCallRequestHandlingSuite) setRunnerMock() {
 
 	{
 		constructorResult := requestresult.New([]byte("exection"), s.getObject())
-		constructorResult.SetActivate(reference.Global{}, s.getClass(), []byte("new memory"))
+		constructorResult.SetActivate(s.getClass(), []byte("new memory"))
 
 		executionMock := s.runnerMock.AddExecutionMock("New")
 		executionMock.AddStart(func(ctx execution.Context) {

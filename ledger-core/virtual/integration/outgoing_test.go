@@ -342,7 +342,7 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 	{
 		outgoingCall := execution.NewRPCBuilder(outgoing, objectRef).CallMethod(objectBGlobal, classB, "Bar", []byte("123"))
 		objectAResult := requestresult.New([]byte("finish A.New"), outgoing)
-		objectAResult.SetActivate(reference.Global{}, classA, []byte("state A"))
+		objectAResult.SetActivate(classA, []byte("state A"))
 
 		runnerMock.AddExecutionMock(outgoing).AddStart(func(_ execution.Context) {
 			server.IncrementPulse(ctx)
