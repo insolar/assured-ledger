@@ -13,8 +13,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/insolar/contract"
-	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
@@ -161,13 +159,20 @@ func TestValidation_ObjectTranscriptReport_AfterMethod(t *testing.T) {
 			server.SendPayload(ctx, pl)
 			return false
 		})
+		typedChecker.VObjectValidationReport.Set(func(report *rms.VObjectValidationReport) bool {
+			require.Equal(t, objectRef, report.Object.GetValue())
+			require.Equal(t, p, report.In)
+			require.Equal(t, newStateRef, report.Validated.GetValue())
+
+			return false
+		})
 	}
 
 	// add runnerMock
 	{
 		requestResult := requestresult.New([]byte("call result"), objectRef)
 		requestResult.SetAmend(objDescriptor, []byte("new state"))
-		runnerMock.AddExecutionClassify(outgoing.GetValue(), contract.MethodIsolation{Interference: isolation.CallTolerable, State: isolation.CallDirty}, nil)
+		// runnerMock.AddExecutionClassify(outgoing.GetValue(), contract.MethodIsolation{Interference: isolation.CallTolerable, State: isolation.CallDirty}, nil)
 		runnerMock.AddExecutionMock(outgoing.GetValue()).AddStart(
 			nil,
 			&execution.Update{
@@ -204,6 +209,7 @@ func TestValidation_ObjectTranscriptReport_AfterMethod(t *testing.T) {
 		commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 		assert.Equal(t, 1, typedChecker.VCachedMemoryRequest.Count())
+		assert.Equal(t, 1, typedChecker.VObjectValidationReport.Count())
 	}
 
 	mc.Finish()

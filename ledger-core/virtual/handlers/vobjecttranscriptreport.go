@@ -210,9 +210,6 @@ func (s *SMVObjectTranscriptReport) stepExecuteOutgoing(ctx smachine.ExecutionCo
 		panic(throw.IllegalValue())
 	}
 
-	// todo: validation failed
-	panic(throw.NotImplemented())
-
 	return ctx.Jump(s.stepExecuteContinue)
 }
 
@@ -298,18 +295,18 @@ func (s *SMVObjectTranscriptReport) makeNewDescriptor(
 	deactivated bool,
 ) descriptor.Object {
 	var prevStateIDBytes []byte
-	objDescriptor := s.execution.ObjectDescriptor
+	objDescriptor := s.objDesc
 	if objDescriptor != nil {
 		prevStateIDBytes = objDescriptor.StateID().AsBytes()
 	}
 
-	objectRefBytes := s.execution.Object.AsBytes()
+	objectRefBytes := s.object.AsBytes()
 	stateHash := append(memory, objectRefBytes...)
 	stateHash = append(stateHash, prevStateIDBytes...)
 
 	stateID := execute.NewStateID(s.pulseSlot.PulseData().GetPulseNumber(), stateHash)
 	return descriptor.NewObject(
-		s.execution.Object,
+		s.object,
 		stateID,
 		class,
 		memory,
