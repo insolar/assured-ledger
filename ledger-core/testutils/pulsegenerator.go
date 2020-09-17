@@ -50,6 +50,10 @@ func (g *PulseGenerator) GetPrevBeat() beat.Beat {
 	return g.prev
 }
 
+func (g *PulseGenerator) GetDelta() uint16 {
+	return g.delta
+}
+
 func generateEntropy() (entropy longbits.Bits256) {
 	if _, err := rand.Read(entropy[:]); err != nil {
 		panic(err)
@@ -63,7 +67,7 @@ func (g *PulseGenerator) Generate() pulse.Data {
 	} else {
 		g.prev = g.last
 		g.last = beat.Beat{
-			Data: g.last.CreateNextPulsarPulse(g.delta, generateEntropy),
+			Data:   g.last.CreateNextPulsarPulse(g.delta, generateEntropy),
 			Online: g.prev.Online,
 		}
 	}
