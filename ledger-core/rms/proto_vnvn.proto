@@ -310,7 +310,7 @@ message VObjectTranscriptReport {
         option (insproto.id) = 101503;
 
         Reference OutgoingResult = 1800;
-        bytes CallResult = 1801; // fixme: waiting for messages to move to RMS package
+        VCallResult CallResult = 1801;
     }
     message TranscriptEntryIncomingResult {
         option (insproto.id) = 101504;
