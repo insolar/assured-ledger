@@ -33,6 +33,8 @@ type benchSender struct {
 	ctl2    Service
 }
 
+var x = XXX{ch: make(chan struct{})}
+
 var testCases = []testCasesStruct{
 	{"shipToBody",
 		noopReceiver,
@@ -44,8 +46,8 @@ var testCases = []testCasesStruct{
 		shipToHead,
 	},
 	{"shipToHeadAndBody",
-		receiverPullBody,
-		shipToHeadAndBody,
+		x.receiverPullBody,
+		x.shipToHeadAndBody,
 	},
 }
 
@@ -276,7 +278,11 @@ func shipToHead(v benchSender, payload []byte) {
 	}
 }
 
-func shipToHeadAndBody(v benchSender, payload []byte) {
+type XXX struct {
+	ch chan struct{}
+}
+
+func (s *XXX) shipToHeadAndBody(v benchSender, payload []byte) {
 	head := TestString{string(payload[:64])}
 	body := TestString{string(payload)}
 
@@ -287,13 +293,23 @@ func shipToHeadAndBody(v benchSender, payload []byte) {
 	if err != nil {
 		panic(err)
 	}
+
+	<-s.ch
 }
 
-func receiverPullBody(a ReturnAddress, done nwapi.PayloadCompleteness, _ interface{}) error {
+func (r *XXX) receiverPullBody(a ReturnAddress, done nwapi.PayloadCompleteness, _ interface{}) error {
 	srv1 := getServerByIndex(1)
 
 	err := srv1.service.PullBody(a, ShipmentRequest{
-		ReceiveFn: noopReceiver,
+		ReceiveFn: func(add ReturnAddress, done nwapi.PayloadCompleteness, body interface{}) error {
+			if !done {
+				panic("")
+			}
+
+			r.ch <- struct{}{}
+
+			return nil
+		},
 	})
 
 	if err != nil {
