@@ -70,7 +70,7 @@ jobs:
           if: always()
           uses: actions/upload-artifact@v1
           with:
-            name: functional_test_cloud_linux
+            name: functional_test_cloud_windows
             path: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/functional_test_cloud.log
       - name: Add coverage.html to artifacts
         uses: actions/upload-artifact@v1
