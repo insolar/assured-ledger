@@ -7,6 +7,7 @@ package msgdelivery
 
 import (
 	"encoding/binary"
+	"math"
 	"testing"
 	"time"
 
@@ -55,6 +56,7 @@ var testCases = []testCasesStruct{
 func BenchmarkThroughput(b *testing.B) {
 	//TODO https://insolar.atlassian.net/browse/PLAT-826
 	// workaround with set max value for case above
+	maxReceiveExceptions = math.MaxInt64
 	results := make(chan []byte, 16)
 
 	srv2 := initServerData{
@@ -144,6 +146,7 @@ func BenchmarkThroughput(b *testing.B) {
 func BenchmarkLatency(b *testing.B) {
 	//TODO https://insolar.atlassian.net/browse/PLAT-826
 	// workaround with set max value for case above
+	maxReceiveExceptions = math.MaxInt64
 	results := make(chan []byte, 1)
 	srv2 := initServerData{
 		serverConf: uniserver.ServerConfig{
