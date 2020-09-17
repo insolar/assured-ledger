@@ -181,6 +181,7 @@ func (s *SMVObjectTranscriptReport) stepExecuteOutgoing(ctx smachine.ExecutionCo
 
 	switch outgoing := s.executionNewState.Outgoing.(type) {
 	case execution.Deactivate:
+		panic(throw.NotImplemented())
 	case execution.CallConstructor:
 		s.outgoingRequest = outgoing.ConstructVCallRequest(s.execution)
 		newOutgoing := reference.NewRecordOf(s.outgoingRequest.Caller.GetValue(), gen.UniqueLocalRefWithPulse(pulseNumber))
@@ -196,19 +197,23 @@ func (s *SMVObjectTranscriptReport) stepExecuteOutgoing(ctx smachine.ExecutionCo
 	entry := s.peekNextEntry()
 	expectedRequest, ok := entry.(*rms.VObjectTranscriptReport_TranscriptEntryOutgoingRequest)
 	if !ok {
-		panic(throw.IllegalValue())
+		panic(throw.NotImplemented())
 	}
 	equal := s.outgoingRequest.CallOutgoing.Equal(&expectedRequest.Outgoing)
 	if !equal {
-		// todo: validation failed
-		panic(throw.NotImplemented())
+		// todo: fixme: validation failed, CallOutgoing is random for now
+		//panic(throw.NotImplemented())
 	}
+	s.entryIndex++
 
 	entry = s.peekNextEntry()
 	_, isOk := entry.(*rms.VObjectTranscriptReport_TranscriptEntryOutgoingResult)
 	if !isOk {
-		panic(throw.IllegalValue())
+		panic(throw.NotImplemented())
 	}
+
+	// TODO: FIXME: return result into runner
+	panic(throw.NotImplemented())
 
 	return ctx.Jump(s.stepExecuteContinue)
 }
