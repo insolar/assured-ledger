@@ -847,7 +847,7 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 	switch s.executionNewState.Result.Type() {
 	case requestresult.SideEffectNone:
 	case requestresult.SideEffectActivate:
-		_, class, memory := s.executionNewState.Result.Activate()
+		class, memory := s.executionNewState.Result.Activate()
 		s.newObjectDescriptor = s.makeNewDescriptor(class, memory, false)
 	case requestresult.SideEffectAmend:
 		_, class, memory := s.executionNewState.Result.Amend()
