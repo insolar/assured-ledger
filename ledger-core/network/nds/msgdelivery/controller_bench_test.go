@@ -29,32 +29,15 @@ type initServerData struct {
 }
 
 type benchSender struct {
-	toAddr  DeliveryAddress
-	results chan []byte
-	ctl2    Service
+	toAddr DeliveryAddress
+	ctl2   Service
 }
 
-var x = XXX{ch: make(chan struct{})}
-
-var testCases = []testCasesStruct{
-	{"shipToBody",
-		noopReceiver,
-		shipToBody,
-	},
-	{
-		"shipToHead",
-		noopReceiver,
-		shipToHead,
-	},
-	{"shipToHeadAndBody",
-		x.receiverPullBody,
-		x.shipToHeadAndBody,
-	},
-}
+var result = resultChan{ch: make(chan []byte)}
 
 // WARNING! Benchmark is unstable due to packet drops on overflow.
 func BenchmarkThroughput(b *testing.B) {
-	//TODO https://insolar.atlassian.net/browse/PLAT-826
+	// TODO https://insolar.atlassian.net/browse/PLAT-826
 	// workaround with set max value for case above
 	maxReceiveExceptions = math.MaxInt64
 	results := make(chan []byte, 16)
@@ -70,28 +53,36 @@ func BenchmarkThroughput(b *testing.B) {
 	}
 	srv1 := srv2
 
+	var testCases = []testCasesStruct{
+		{"shipToBody", result.receiverResults, result.shipToBody},
+		{"shipToHead", result.receiverResults, result.shipToHead},
+		{"shipToHeadAndBody", result.receiverPullBody, result.shipToHeadAndBody},
+	}
+
 	for _, testCase := range testCases {
-		b.Run(testCase.testName, func(b *testing.B) {
+		println(testCase.testName)
 
-			srv1.receiver = testCase.receiver
+		srv1.receiver = testCase.receiver
 
-			sender, stopFn := createPipe(b, srv1, srv2)
-			defer stopFn()
+		sender, stopFn := createPipe(b, srv1, srv2)
+		defer stopFn()
 
-			sender.results = results
-			bench := sender
+		result.ch = results
+		bench := sender
 
-			b.Run("0.1k", func(b *testing.B) {
-				bench.throughput(b, 100, testCase.sendFunc)
-			})
+		b.Run("0.1k", func(b *testing.B) {
+			bench.throughput(b, 100, testCase.sendFunc)
+		})
 
-			b.Run("1k", func(b *testing.B) {
-				bench.throughput(b, 1<<10, testCase.sendFunc)
-			})
+		b.Run("1k", func(b *testing.B) {
+			bench.throughput(b, 1<<10, testCase.sendFunc)
+		})
 
-			b.Run("4k", func(b *testing.B) {
-				bench.throughput(b, 1<<12, testCase.sendFunc)
-			})
+		b.Run("4k", func(b *testing.B) {
+			bench.throughput(b, 1<<12, testCase.sendFunc)
+		})
+
+		if testCase.testName != "shipToHead" {
 
 			b.Run("16k", func(b *testing.B) {
 				bench.throughput(b, 1<<14, testCase.sendFunc)
@@ -101,7 +92,6 @@ func BenchmarkThroughput(b *testing.B) {
 				bench.throughput(b, 1<<17, testCase.sendFunc)
 			})
 
-			// head -
 			b.Run("1M", func(b *testing.B) {
 				bench.throughput(b, 1<<20, testCase.sendFunc)
 			})
@@ -109,19 +99,7 @@ func BenchmarkThroughput(b *testing.B) {
 			b.Run("8M", func(b *testing.B) {
 				bench.throughput(b, 1<<23, testCase.sendFunc)
 			})
-
-			b.Run("32M", func(b *testing.B) {
-				bench.throughput(b, 1<<25, testCase.sendFunc)
-			})
-
-			b.Run("64M", func(b *testing.B) {
-				bench.throughput(b, 1<<26, testCase.sendFunc)
-			})
-
-			b.Run("128M", func(b *testing.B) {
-				bench.throughput(b, 1<<27, testCase.sendFunc)
-			})
-		})
+		}
 	}
 
 	// b.Run("loopback", func(b *testing.B) {
@@ -144,7 +122,7 @@ func BenchmarkThroughput(b *testing.B) {
 
 // WARNING! Benchmark is unstable due to packet drops on overflow.
 func BenchmarkLatency(b *testing.B) {
-	//TODO https://insolar.atlassian.net/browse/PLAT-826
+	// TODO https://insolar.atlassian.net/browse/PLAT-826
 	// workaround with set max value for case above
 	maxReceiveExceptions = math.MaxInt64
 	results := make(chan []byte, 1)
@@ -159,53 +137,47 @@ func BenchmarkLatency(b *testing.B) {
 	}
 	srv1 := srv2
 
+	var testCases = []testCasesStruct{
+		{"shipToBody", result.receiverEmpty, result.shipToBody},
+		{"shipToHead", result.receiverEmpty, result.shipToHead},
+		{"shipToHeadAndBody", result.receiverPullBody, result.shipToHeadAndBody},
+	}
+
 	for _, testCase := range testCases {
-		b.Run(testCase.testName, func(b *testing.B) {
+		println(testCase.testName)
 
-			srv1.receiver = testCase.receiver
+		srv1.receiver = testCase.receiver
 
-			sender, stopFn := createPipe(b, srv1, srv2)
-			defer stopFn()
+		sender, stopFn := createPipe(b, srv1, srv2)
+		defer stopFn()
 
-			sender.results = results
-			bench := sender
+		result.ch = results
+		bench := sender
 
-			b.Run("0.1k", func(b *testing.B) {
-				bench.latency(b, 100, testCase.sendFunc)
-			})
+		b.Run("0.1k", func(b *testing.B) {
+			bench.latency(b, 100, testCase.sendFunc)
+		})
 
-			b.Run("4k", func(b *testing.B) {
-				bench.latency(b, 1<<12, testCase.sendFunc)
-			})
+		b.Run("4k", func(b *testing.B) {
+			bench.latency(b, 1<<12, testCase.sendFunc)
+		})
 
-			b.Run("128k", func(b *testing.B) {
-				bench.latency(b, 1<<17, testCase.sendFunc)
-			})
+		b.Run("128k", func(b *testing.B) {
+			bench.latency(b, 1<<17, testCase.sendFunc)
+		})
 
-			b.Run("1M", func(b *testing.B) {
-				bench.latency(b, 1<<20, testCase.sendFunc)
-			})
+		b.Run("1M", func(b *testing.B) {
+			bench.latency(b, 1<<20, testCase.sendFunc)
+		})
 
-			b.Run("8M", func(b *testing.B) {
-				bench.latency(b, 1<<23, testCase.sendFunc)
-			})
-
-			b.Run("32M", func(b *testing.B) {
-				bench.latency(b, 1<<25, testCase.sendFunc)
-			})
-
-			b.Run("64M", func(b *testing.B) {
-				bench.latency(b, 1<<26, testCase.sendFunc)
-			})
-
-			b.Run("128M", func(b *testing.B) {
-				bench.latency(b, 1<<27, testCase.sendFunc)
-			})
+		b.Run("8M", func(b *testing.B) {
+			bench.latency(b, 1<<23, testCase.sendFunc)
 		})
 	}
 }
 
 func createPipe(t testing.TB, server1, server2 initServerData) (benchSender, func()) {
+	servers = make([]*UniprotoServer, 0)
 	var idWithPortFn func(nwapi.Address) bool
 	if server1.serverConf.BindingAddress == server2.serverConf.BindingAddress {
 		addr := nwapi.NewHostPort(server1.serverConf.BindingAddress, true)
@@ -239,14 +211,14 @@ func (v benchSender) throughput(b *testing.B, payloadSize int, funcName SendFunc
 	for i := b.N; i > 0; i-- {
 		funcName(v, payload)
 		select {
-		case <-v.results:
+		case <-result.ch:
 			received++
 			// println(received, b.N, " in-loop")
 		default:
 		}
 	}
 	for received < b.N {
-		<-v.results
+		<-result.ch
 		received++
 		// println(received, b.N, " off-loop")
 	}
@@ -263,29 +235,29 @@ func (v benchSender) latency(b *testing.B, payloadSize int, funcName SendFuncTyp
 		nanos := time.Now().UnixNano()
 		binary.LittleEndian.PutUint64(payload, uint64(nanos))
 		funcName(v, payload)
-		<-v.results
+		<-result.ch
 	}
 }
 
-func shipToBody(v benchSender, payload []byte) {
+func (r *resultChan) shipToBody(v benchSender, payload []byte) {
 	err := v.ctl2.ShipTo(v.toAddr, Shipment{Body: &TestBytes{payload}})
 	if err != nil {
 		panic(err)
 	}
 }
 
-func shipToHead(v benchSender, payload []byte) {
+func (r *resultChan) shipToHead(v benchSender, payload []byte) {
 	err := v.ctl2.ShipTo(v.toAddr, Shipment{Head: &TestBytes{payload}})
 	if err != nil {
 		panic(err)
 	}
 }
 
-type XXX struct {
-	ch chan struct{}
+type resultChan struct {
+	ch chan []byte
 }
 
-func (s *XXX) shipToHeadAndBody(v benchSender, payload []byte) {
+func (s *resultChan) shipToHeadAndBody(v benchSender, payload []byte) {
 	head := TestString{string(payload[:64])}
 	body := TestString{string(payload)}
 
@@ -300,7 +272,7 @@ func (s *XXX) shipToHeadAndBody(v benchSender, payload []byte) {
 	<-s.ch
 }
 
-func (r *XXX) receiverPullBody(a ReturnAddress, done nwapi.PayloadCompleteness, _ interface{}) error {
+func (r *resultChan) receiverPullBody(a ReturnAddress, done nwapi.PayloadCompleteness, _ interface{}) error {
 	srv1 := getServerByIndex(1)
 
 	err := srv1.service.PullBody(a, ShipmentRequest{
@@ -309,7 +281,7 @@ func (r *XXX) receiverPullBody(a ReturnAddress, done nwapi.PayloadCompleteness, 
 				panic("")
 			}
 
-			r.ch <- struct{}{}
+			r.ch <- []byte{}
 
 			return nil
 		},
@@ -318,5 +290,14 @@ func (r *XXX) receiverPullBody(a ReturnAddress, done nwapi.PayloadCompleteness, 
 	if err != nil {
 		panic(err)
 	}
+	return nil
+}
+
+func (r *resultChan) receiverResults(a ReturnAddress, _ nwapi.PayloadCompleteness, v interface{}) error {
+	r.ch <- v.(*TestBytes).S
+	return nil
+}
+func (r *resultChan) receiverEmpty(_ ReturnAddress, _ nwapi.PayloadCompleteness, _ interface{}) error {
+	r.ch <- nil
 	return nil
 }

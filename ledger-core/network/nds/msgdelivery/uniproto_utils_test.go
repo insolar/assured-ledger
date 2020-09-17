@@ -56,18 +56,20 @@ func createService(
 	srv.SetIdentityClassifier(idWithPortFn)
 
 	// This is min value for NodeID, 0 is not allowed
-	con := 1
+	// con := 0
 
 	peerFn := func(peer *uniserver.Peer) (remapTo nwapi.Address, err error) {
-		idx := con
-		con++
-		if con > len(servers)+1 {
-			panic("")
-		}
+		idx := len(servers)
+		// if con != len(servers)-1 {
+		// 	panic("")
+		// }
 
 		peer.SetSignatureKey(servers[idx-1].key)
 		peer.SetNodeID(nwapi.ShortNodeID(idx))
 
+		println("setted idx %d, con %d", idx, len(servers))
+		// println("idx %d, con %d", idx, con)
+		// con++
 		return nwapi.NewHostID(nwapi.HostID(idx)), nil
 	}
 
