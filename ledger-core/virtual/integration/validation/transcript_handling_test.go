@@ -58,6 +58,7 @@ func TestValidation_ObjectTranscriptReport_AfterConstructor(t *testing.T) {
 		requestResult := requestresult.New([]byte("call result"), objectRef)
 		requestResult.SetActivate(server.RandomGlobalWithPulse(), []byte("init state"))
 		runnerMock.AddExecutionMock(outgoing.GetValue()).AddStart(
+			// todo: fixme: check arguments
 			nil,
 			&execution.Update{
 				Type:   execution.Done,
@@ -174,6 +175,7 @@ func TestValidation_ObjectTranscriptReport_AfterMethod(t *testing.T) {
 		requestResult.SetAmend(objDescriptor, []byte("new state"))
 		// runnerMock.AddExecutionClassify(outgoing.GetValue(), contract.MethodIsolation{Interference: isolation.CallTolerable, State: isolation.CallDirty}, nil)
 		runnerMock.AddExecutionMock(outgoing.GetValue()).AddStart(
+			// todo: fixme: check arguments
 			nil,
 			&execution.Update{
 				Type:   execution.Done,
@@ -234,8 +236,9 @@ func TestValidation_ObjectTranscriptReport_AfterConstructorWithOutgoing(t *testi
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 
 	callRequest := utils.GenerateVCallRequestConstructor(server)
-	outgoing := callRequest.CallOutgoing
-	objectRef := reference.NewSelf(outgoing.GetValue().GetLocal())
+	outgoing := callRequest.CallOutgoing.GetValue()
+	objectRef := reference.NewSelf(outgoing.GetLocal())
+	class := callRequest.Caller.GetValue()
 	p := server.GetPulse().PulseNumber
 
 	stateHash := append([]byte("init state"), objectRef.AsBytes()...)
@@ -243,18 +246,29 @@ func TestValidation_ObjectTranscriptReport_AfterConstructorWithOutgoing(t *testi
 	stateRef := reference.NewRecordOf(objectRef, stateID)
 
 	outgoingRefFromConstructor := reference.NewRecordOf(objectRef, server.RandomLocalWithPulse())
+	calledObjectRef := server.RandomGlobalWithPulse()
+
 
 	// add runnerMock
 	{
+		outgoingCall := execution.NewRPCBuilder(outgoing, objectRef).
+			CallMethod(calledObjectRef, class, "Bar", []byte("123"))
+
 		requestResult := requestresult.New([]byte("call result"), objectRef)
 		requestResult.SetActivate(server.RandomGlobalWithPulse(), []byte("init state"))
-		runnerMock.AddExecutionMock(outgoing.GetValue()).AddStart(
-			nil,
-			&execution.Update{
-				Type:   execution.Done,
-				Result: requestResult,
-			},
-		)
+		runnerMock.AddExecutionMock(outgoing).AddStart(func(_ execution.Context) {
+			// todo: fixme: check arguments
+		}, &execution.Update{
+			Type:     execution.OutgoingCall,
+			Error:    nil,
+			Outgoing: outgoingCall,
+		}).AddContinue(func(result []byte) {
+			assert.Equal(t, []byte("finish B.Bar"), result)
+		}, &execution.Update{
+			Type:   execution.Done,
+			Result: requestResult,
+		})
+
 	}
 
 	// add typedChecker
@@ -289,7 +303,14 @@ func TestValidation_ObjectTranscriptReport_AfterConstructorWithOutgoing(t *testi
 		)
 		pl.ObjectTranscript.Entries[2].Set(
 			&rms.VObjectTranscriptReport_TranscriptEntryOutgoingResult{
-				// todo, fixme: here should be complete reply VCallResult
+				CallResult: rms.VCallResult{
+					CallType:                rms.CallTypeMethod,
+					CallFlags:               rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
+					Caller:                  rms.NewReference(objectRef),
+					Callee:                  rms.NewReference(class),
+					CallOutgoing:            rms.NewReference(outgoingRefFromConstructor),
+					ReturnArguments:         rms.NewBytes([]byte("finish B.Bar")),
+				},
 			},
 		)
 		pl.ObjectTranscript.Entries[3].Set(
