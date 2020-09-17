@@ -127,19 +127,24 @@ func TestValidation_ObjectTranscriptReport_AfterMethod(t *testing.T) {
 	server.Init(ctx)
 
 	callRequest := utils.GenerateVCallRequestMethod(server)
-	objectRef := callRequest.Callee
+	objectRef := callRequest.Callee.GetValue()
 	outgoing := callRequest.CallOutgoing
 	p := server.GetPulse().PulseNumber
 
-	objDescriptor := descriptor.NewObject(objectRef.GetValue(), server.RandomLocalWithPulse(), server.RandomGlobalWithPulse(), []byte("init state"), false)
+	objDescriptor := descriptor.NewObject(objectRef, server.RandomLocalWithPulse(), server.RandomGlobalWithPulse(), []byte("init state"), false)
 	stateRef := reference.NewRecordOf(objDescriptor.HeadRef(), objDescriptor.StateID())
-	var newStateRef reference.Global
+
+	newStateHash := append([]byte("new state"), objectRef.AsBytes()...)
+	newStateHash = append(newStateHash, objDescriptor.StateID().AsBytes()...)
+	newStateID := execute.NewStateID(p, newStateHash)
+	newStateRef := reference.NewRecordOf(objectRef, newStateID)
 
 	// add typedChecker
 	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	{
 		typedChecker.VCachedMemoryRequest.Set(func(report *rms.VCachedMemoryRequest) bool {
-			require.Equal(t, stateRef.GetLocal(), report.StateID.GetValue().GetLocal())
+			require.Equal(t, objectRef, report.Object.GetValue())
+			require.Equal(t, objDescriptor.StateID(), report.StateID.GetValueWithoutBase())
 
 			pl := &rms.VCachedMemoryResponse{
 				Object:     report.Object,
@@ -154,7 +159,7 @@ func TestValidation_ObjectTranscriptReport_AfterMethod(t *testing.T) {
 
 	// add runnerMock
 	{
-		newObjDescr := descriptor.NewObject(objectRef.GetValue(), server.RandomLocalWithPulse(), server.RandomGlobalWithPulse(), []byte("new state"), false)
+		newObjDescr := descriptor.NewObject(objectRef, server.RandomLocalWithPulse(), server.RandomGlobalWithPulse(), []byte("new state"), false)
 		newStateRef = reference.NewRecordOf(newObjDescr.HeadRef(), newObjDescr.StateID())
 		requestResult := requestresult.New([]byte("call result"), server.RandomGlobalWithPulse())
 		requestResult.SetAmend(newObjDescr, []byte("new state"))
@@ -172,7 +177,7 @@ func TestValidation_ObjectTranscriptReport_AfterMethod(t *testing.T) {
 	{
 		pl := rms.VObjectTranscriptReport{
 			AsOf:   p,
-			Object: objectRef,
+			Object: rms.NewReference(objectRef),
 			ObjectTranscript: rms.VObjectTranscriptReport_Transcript{
 				Entries: []rms.Any{{}, {}},
 			},
@@ -185,7 +190,6 @@ func TestValidation_ObjectTranscriptReport_AfterMethod(t *testing.T) {
 		)
 		pl.ObjectTranscript.Entries[1].Set(
 			&rms.VObjectTranscriptReport_TranscriptEntryIncomingResult{
-				IncomingResult: rms.NewReference(reference.Global{}),
 				ObjectState:    rms.NewReference(newStateRef),
 			},
 		)
