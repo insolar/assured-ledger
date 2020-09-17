@@ -119,7 +119,7 @@ jobs:
         if: always()
         run: make test_func_cloud_race > functional_test_cloud.log
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
-    - name: Upload functional_test_cloud.log to artifacts
+      - name: Upload functional_test_cloud.log to artifacts
         if: always()
         uses: actions/upload-artifact@v1
         with:
