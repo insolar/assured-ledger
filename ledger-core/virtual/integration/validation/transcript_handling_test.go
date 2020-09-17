@@ -132,11 +132,13 @@ func TestValidation_ObjectTranscriptReport_AfterMethod(t *testing.T) {
 
 	callRequest := utils.GenerateVCallRequestMethod(server)
 	objectRef := callRequest.Callee.GetValue()
+	classRef := server.RandomGlobalWithPulse()
 	outgoing := callRequest.CallOutgoing
 	p := server.GetPulse().PulseNumber
 
-	objDescriptor := descriptor.NewObject(objectRef, server.RandomLocalWithPulse(), server.RandomGlobalWithPulse(), []byte("init state"), false)
-	stateRef := reference.NewRecordOf(objDescriptor.HeadRef(), objDescriptor.StateID())
+	stateId := server.RandomLocalWithPulse()
+	stateRef := reference.NewRecordOf(objectRef, stateId)
+	objDescriptor := descriptor.NewObject(objectRef, stateId, classRef, []byte("init state"), false)
 
 	newStateHash := append([]byte("new state"), objectRef.AsBytes()...)
 	newStateHash = append(newStateHash, objDescriptor.StateID().AsBytes()...)
@@ -163,10 +165,8 @@ func TestValidation_ObjectTranscriptReport_AfterMethod(t *testing.T) {
 
 	// add runnerMock
 	{
-		newObjDescr := descriptor.NewObject(objectRef, server.RandomLocalWithPulse(), server.RandomGlobalWithPulse(), []byte("new state"), false)
-		newStateRef = reference.NewRecordOf(newObjDescr.HeadRef(), newObjDescr.StateID())
-		requestResult := requestresult.New([]byte("call result"), server.RandomGlobalWithPulse())
-		requestResult.SetAmend(newObjDescr, []byte("new state"))
+		requestResult := requestresult.New([]byte("call result"), objectRef)
+		requestResult.SetAmend(objDescriptor, []byte("new state"))
 		runnerMock.AddExecutionClassify(outgoing.GetValue(), contract.MethodIsolation{Interference: isolation.CallTolerable, State: isolation.CallDirty}, nil)
 		runnerMock.AddExecutionMock(outgoing.GetValue()).AddStart(
 			nil,
