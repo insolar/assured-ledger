@@ -208,3 +208,98 @@ func TestValidation_ObjectTranscriptReport_AfterMethod(t *testing.T) {
 
 	mc.Finish()
 }
+
+func TestValidation_ObjectTranscriptReport_AfterConstructorWithOutgoing(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+	mc := minimock.NewController(t)
+
+	server, ctx := utils.NewUninitializedServer(nil, t)
+	defer server.Stop()
+
+	authService := authentication.NewServiceMock(t)
+	authService.CheckMessageFromAuthorizedVirtualMock.Return(false, nil)
+	server.ReplaceAuthenticationService(authService)
+
+	runnerMock := logicless.NewServiceMock(ctx, mc, nil)
+	server.ReplaceRunner(runnerMock)
+
+	server.Init(ctx)
+
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+
+	callRequest := utils.GenerateVCallRequestConstructor(server)
+	outgoing := callRequest.CallOutgoing
+	objectRef := reference.NewSelf(outgoing.GetValue().GetLocal())
+	p := server.GetPulse().PulseNumber
+
+	stateHash := append([]byte("init state"), objectRef.AsBytes()...)
+	stateID := execute.NewStateID(p, stateHash)
+	stateRef := reference.NewRecordOf(objectRef, stateID)
+
+	outgoingRefFromConstructor := reference.NewRecordOf(objectRef, server.RandomLocalWithPulse())
+
+	// add runnerMock
+	{
+		requestResult := requestresult.New([]byte("call result"), objectRef)
+		requestResult.SetActivate(server.RandomGlobalWithPulse(), []byte("init state"))
+		runnerMock.AddExecutionMock(outgoing.GetValue()).AddStart(
+			nil,
+			&execution.Update{
+				Type:   execution.Done,
+				Result: requestResult,
+			},
+		)
+	}
+
+	// add typedChecker
+	{
+		typedChecker.VObjectValidationReport.Set(func(report *rms.VObjectValidationReport) bool {
+			require.Equal(t, objectRef, report.Object.GetValue())
+			require.Equal(t, p, report.In)
+			require.Equal(t, stateRef, report.Validated.GetValue())
+
+			return false
+		})
+	}
+
+	// send VObjectTranscriptReport
+	{
+		pl := rms.VObjectTranscriptReport{
+			AsOf:   p,
+			Object: rms.NewReference(objectRef),
+			ObjectTranscript: rms.VObjectTranscriptReport_Transcript{
+				Entries: []rms.Any{{}, {}, {}, {}},
+			},
+		}
+		pl.ObjectTranscript.Entries[0].Set(
+			&rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest{
+				Request: *callRequest,
+			},
+		)
+		pl.ObjectTranscript.Entries[1].Set(
+			&rms.VObjectTranscriptReport_TranscriptEntryOutgoingRequest{
+				Outgoing: rms.NewReference(outgoingRefFromConstructor),
+			},
+		)
+		pl.ObjectTranscript.Entries[2].Set(
+			&rms.VObjectTranscriptReport_TranscriptEntryOutgoingResult{
+				// todo, fixme: here should be complete reply VCallResult
+			},
+		)
+		pl.ObjectTranscript.Entries[3].Set(
+			&rms.VObjectTranscriptReport_TranscriptEntryIncomingResult{
+				ObjectState: rms.NewReference(stateRef),
+			},
+		)
+
+		done := server.Journal.WaitStopOf(&handlers.SMVObjectTranscriptReport{}, 1)
+		server.SendPayload(ctx, &pl)
+
+		commontestutils.WaitSignalsTimed(t, 10*time.Second, done)
+		commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VObjectValidationReport.Wait(ctx, 1))
+
+		assert.Equal(t, 1, typedChecker.VObjectValidationReport.Count())
+	}
+
+	mc.Finish()
+}
