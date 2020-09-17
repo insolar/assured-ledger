@@ -25,11 +25,15 @@ type MainAPISuite struct {
 }
 
 func (suite *MainAPISuite) TestNewApiRunnerNilConfig() {
+	instestlogger.SetTestOutput(suite.T())
+
 	_, err := NewRunner(nil, global.Logger(), nil, nil, nil, nil, nil, nil, nil)
 	suite.Contains(err.Error(), "config is nil")
 }
 
 func (suite *MainAPISuite) TestNewApiRunnerNoRequiredParams() {
+	instestlogger.SetTestOutput(suite.T())
+
 	cfg := configuration.APIRunner{}
 	_, err := NewRunner(&cfg, global.Logger(), nil, nil, nil, nil, nil, nil, nil)
 	suite.Contains(err.Error(), "Address must not be empty")
@@ -50,11 +54,11 @@ func (suite *MainAPISuite) TestNewApiRunnerNoRequiredParams() {
 func TestMainTestSuite(t *testing.T) {
 	instestlogger.SetTestOutput(t)
 
-	ctx, _ := inslogger.WithTraceField(context.Background(), "APItests")
+	ctx, logger := inslogger.WithTraceField(context.Background(), "APItests")
 	http.DefaultServeMux = new(http.ServeMux)
 	cfg := configuration.NewAPIRunner(false)
 	cfg.SwaggerPath = "spec/api-exported.yaml"
-	api, err := NewRunner(&cfg, global.Logger(), nil, nil, nil, nil, nil, nil, nil)
+	api, err := NewRunner(&cfg, logger, nil, nil, nil, nil, nil, nil, nil)
 	require.NoError(t, err, "new runner constructor")
 
 	cm := mandates.NewCertificateManager(&mandates.Certificate{})
