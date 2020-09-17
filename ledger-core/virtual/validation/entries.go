@@ -49,7 +49,7 @@ var _ CustomTranscriptEntryPart = TranscriptEntryOutgoingResult{}
 
 type TranscriptEntryOutgoingResult struct {
 	OutgoingResult reference.Global
-	CallResult []byte
+	CallResult     []byte
 }
 
 func (TranscriptEntryOutgoingResult) TranscriptEntryMarker() {

@@ -120,7 +120,7 @@ func (s *SMExecute) GetStateMachineDeclaration() smachine.StateMachineDeclaratio
 
 func ExecContextFromRequest(request *rms.VCallRequest) execution.Context {
 	res := execution.Context{
-		Request:          request,
+		Request: request,
 	}
 	if request.CallType == rms.CallTypeConstructor {
 		res.Object = reference.NewSelf(request.CallOutgoing.GetValue().GetLocal())
@@ -859,7 +859,7 @@ func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.
 			validation.TranscriptEntry{
 				Custom: validation.TranscriptEntryOutgoingResult{
 					OutgoingResult: reference.Global{},
-					CallResult: outgoingResult,
+					CallResult:     outgoingResult,
 				},
 			},
 		)

@@ -538,7 +538,6 @@ func TestVirtual_CallConstructorFromConstructor(t *testing.T) {
 	require.Equal(t, 2, typedChecker.VCallResult.Count())
 
 	// check transcripts
-
 	typedChecker.VStateReport.Set(func(report *rms.VStateReport) bool {
 		return false
 	})
