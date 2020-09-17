@@ -51,7 +51,7 @@ func NewUnifiedServer(dispatcher uniproto.Dispatcher, logger MiniLogger) *Unifie
 		panic(throw.IllegalValue())
 	}
 	s := &UnifiedServer{logger: logger}
-	s.transportProvider = defaultProvider
+	s.transportProvider = &DefaultTransportProvider{}
 	s.receiver.Parser.Dispatcher = dispatcher
 	return s
 }
@@ -295,8 +295,6 @@ func (p *UnifiedServer) reportToBlacklist(remote nwapi.Address, err error) {
 func (p *UnifiedServer) reportError(err error) {
 	p.logger.LogError(err)
 }
-
-var defaultProvider AllTransportProvider = &DefaultTransportProvider{}
 
 type DefaultTransportProvider struct{}
 

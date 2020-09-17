@@ -49,7 +49,7 @@ func TestServerWrappedFactory(t *testing.T) {
 
 	ch := make(chan string, 3)
 
-	provider := MapTransportProvider(defaultProvider,
+	provider := MapTransportProvider(&DefaultTransportProvider{},
 		func(lessProvider l1.SessionlessTransportProvider) l1.SessionlessTransportProvider {
 			return l1.MapSessionlessProvider(lessProvider, func(factory l1.OutTransportFactory) l1.OutTransportFactory {
 				return l1.MapOutputFactory(factory, func(transport l1.OneWayTransport) l1.OneWayTransport {
