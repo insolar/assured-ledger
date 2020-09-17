@@ -744,7 +744,7 @@ func TestVirtual_Deactivation_Deduplicate(t *testing.T) {
 
 		// Constructor mock
 		result := requestresult.New([]byte("new"), outgoing)
-		result.SetActivate(reference.Global{}, class, []byte("state"))
+		result.SetActivate(class, []byte("state"))
 
 		constructorMock := runnerMock.AddExecutionMock(outgoing)
 		constructorMock.AddStart(nil, &execution.Update{

@@ -8,6 +8,7 @@ package utils
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/ThreeDotsLabs/watermill/message"
 
@@ -98,27 +99,48 @@ type Tester interface {
 }
 
 func NewServer(ctx context.Context, t Tester) (*Server, context.Context) {
-	return newServerExt(ctx, t, nil, true)
+	return newServerExt(ctx, t, NewDefaultServerOpts())
 }
 
 func NewServerWithErrorFilter(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFilterFunc) (*Server, context.Context) {
-	return newServerExt(ctx, t, errorFilterFn, true)
+	def := NewDefaultServerOpts()
+	def.ErrorFilter = errorFilterFn
+	return newServerExt(ctx, t, def)
 }
 
 func NewUninitializedServer(ctx context.Context, t Tester) (*Server, context.Context) {
-	return newServerExt(ctx, t, nil, false)
+	def := NewDefaultServerOpts()
+	def.Initialization = false
+	return newServerExt(ctx, t, def)
 }
 
 func NewUninitializedServerWithErrorFilter(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFilterFunc) (*Server, context.Context) {
-	return newServerExt(ctx, t, errorFilterFn, false)
+	def := NewDefaultServerOpts()
+	def.ErrorFilter = errorFilterFn
+	def.Initialization = false
+	return newServerExt(ctx, t, def)
 }
 
 func generateGlobalCaller() reference.Global {
 	return reference.NewSelf(reference.NewLocal(pulse.MinTimePulse, 0, gen.UniqueLocalRef().GetHash()))
 }
 
-func newServerExt(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFilterFunc, init bool) (*Server, context.Context) {
-	instestlogger.SetTestOutputWithErrorFilter(t, errorFilterFn)
+type ServerOpts struct {
+	ErrorFilter    logcommon.ErrorFilterFunc
+	Initialization bool
+	Delta          uint16
+}
+
+func NewDefaultServerOpts() ServerOpts {
+	return ServerOpts{
+		ErrorFilter:    nil,
+		Initialization: true,
+		Delta:          1,
+	}
+}
+
+func newServerExt(ctx context.Context, t Tester, opts ServerOpts) (*Server, context.Context) {
+	instestlogger.SetTestOutputWithErrorFilter(t, opts.ErrorFilter)
 
 	if ctx == nil {
 		ctx = instestlogger.TestContext(t)
@@ -145,7 +167,7 @@ func newServerExt(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFi
 	s.pulseManager = PulseManager
 	s.pulseStorage = Pulses
 	censusMock := testpop.CreateOneNodePopulationMock(t, s.caller, member.PrimaryRoleVirtual)
-	s.pulseGenerator = testutils.NewPulseGenerator(10, censusMock)
+	s.pulseGenerator = testutils.NewPulseGenerator(opts.Delta, censusMock)
 	s.incrementPulse()
 
 	s.JetCoordinatorMock = affinity.NewHelperMock(t).
@@ -193,7 +215,7 @@ func newServerExt(ctx context.Context, t Tester, errorFilterFn logcommon.ErrorFi
 	testWalletAPIConfig := configuration.TestWalletAPI{Address: "very naughty address"}
 	s.testWalletServer = testwalletapi.NewTestWalletServer(testWalletAPIConfig, virtualDispatcher, Pulses)
 
-	if init {
+	if opts.Initialization {
 		s.Init(ctx)
 	}
 
@@ -503,4 +525,8 @@ func (s *Server) WrapPayloadAsFuture(pl rmsreg.GoGoSerializable) *RequestWrapper
 func (s *Server) SendPayloadAsFuture(ctx context.Context, pl rmsreg.GoGoSerializable) {
 	msg := s.WrapPayloadAsFuture(pl).Finalize()
 	s.SendMessage(ctx, msg)
+}
+
+func (s *Server) GetPulseTime() time.Duration {
+	return time.Duration(s.pulseGenerator.GetDelta()) * time.Second
 }
