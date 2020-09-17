@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
@@ -248,7 +249,6 @@ func TestValidation_ObjectTranscriptReport_AfterConstructorWithOutgoing(t *testi
 	outgoingRefFromConstructor := reference.NewRecordOf(objectRef, server.RandomLocalWithPulse())
 	calledObjectRef := server.RandomGlobalWithPulse()
 
-
 	// add runnerMock
 	{
 		outgoingCall := execution.NewRPCBuilder(outgoing, objectRef).
@@ -304,12 +304,12 @@ func TestValidation_ObjectTranscriptReport_AfterConstructorWithOutgoing(t *testi
 		pl.ObjectTranscript.Entries[2].Set(
 			&rms.VObjectTranscriptReport_TranscriptEntryOutgoingResult{
 				CallResult: rms.VCallResult{
-					CallType:                rms.CallTypeMethod,
-					CallFlags:               rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
-					Caller:                  rms.NewReference(objectRef),
-					Callee:                  rms.NewReference(class),
-					CallOutgoing:            rms.NewReference(outgoingRefFromConstructor),
-					ReturnArguments:         rms.NewBytes([]byte("finish B.Bar")),
+					CallType:        rms.CallTypeMethod,
+					CallFlags:       rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
+					Caller:          rms.NewReference(objectRef),
+					Callee:          rms.NewReference(class),
+					CallOutgoing:    rms.NewReference(outgoingRefFromConstructor),
+					ReturnArguments: rms.NewBytes([]byte("finish B.Bar")),
 				},
 			},
 		)
