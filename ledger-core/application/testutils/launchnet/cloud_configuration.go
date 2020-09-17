@@ -155,12 +155,6 @@ func generateNodeConfigs(nodes []nodeInfo, cloudSettings CloudSettings) []config
 		role := getRole(&cloudSettings.Virtual, &cloudSettings.Light, &cloudSettings.Heavy)
 		nodes[i].role = role.String()
 
-		// prepare directory for logs
-
-		if err := os.MkdirAll(launchnetPath("logs", "discoverynodes", strconv.Itoa(i)), os.ModeSticky|os.ModePerm); err != nil {
-
-		}
-
 		conf := configuration.NewConfiguration()
 		conf.AvailabilityChecker.Enabled = false
 		{
@@ -199,9 +193,15 @@ func generateNodeConfigs(nodes []nodeInfo, cloudSettings CloudSettings) []config
 			nodes[i].certName = conf.CertificatePath
 			nodes[i].keyName = conf.KeysPath
 		}
-		{
+
+		if cloudFileLogging {
+			// prepare directory for logs
+			if err := os.MkdirAll(launchnetPath("logs", "discoverynodes", strconv.Itoa(i+1)), os.ModePerm); err != nil {
+				panic(err)
+			}
+
 			conf.Log.OutputType = logoutput.FileOutput.String()
-			conf.Log.OutputParams = launchnetPath("logs", "discoverynodes", strconv.Itoa(i), "output.log")
+			conf.Log.OutputParams = launchnetPath("logs", "discoverynodes", strconv.Itoa(i+1), "output.log")
 		}
 
 		appConfigs = append(appConfigs, conf)

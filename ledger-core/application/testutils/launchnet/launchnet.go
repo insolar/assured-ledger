@@ -57,11 +57,16 @@ var (
 	rootOnce    sync.Once
 	projectRoot string
 
-	verbose = true
+	verbose          = true
+	cloudFileLogging = false
 )
 
 func SetVerbose(v bool) {
 	verbose = v
+}
+
+func SetCloudFileLogging(v bool) {
+	cloudFileLogging = v
 }
 
 // rootPath returns project root folder
@@ -426,7 +431,6 @@ func readAppConfig() (appConfig, error) {
 
 func readNodeConfig(path string) (nodeConfig, error) {
 	var conf nodeConfig
-	
 	buff, err := ioutil.ReadFile(launchnetPath(path))
 	if err != nil {
 		return conf, throw.W(err, "[ getNumberNodes ] Can't read bootstrap config")
