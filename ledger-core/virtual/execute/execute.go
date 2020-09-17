@@ -850,7 +850,7 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 		class, memory := s.executionNewState.Result.Activate()
 		s.newObjectDescriptor = s.makeNewDescriptor(class, memory, false)
 	case requestresult.SideEffectAmend:
-		_, class, memory := s.executionNewState.Result.Amend()
+		class, memory := s.executionNewState.Result.Amend()
 		s.newObjectDescriptor = s.makeNewDescriptor(class, memory, false)
 	case requestresult.SideEffectDeactivate:
 		class, memory := s.executionNewState.Result.Deactivate()
@@ -961,7 +961,7 @@ func (s *SMExecute) stepSendDelegatedRequestFinished(ctx smachine.ExecutionConte
 		}
 
 		lastState = &rms.ObjectState{
-			Reference:   rms.NewReferenceLocal(s.executionNewState.Result.ObjectStateID),
+			Reference:   rms.NewReferenceLocal(s.newObjectDescriptor.StateID()),
 			State:       rms.NewBytes(s.executionNewState.Result.Memory),
 			Class:       rms.NewReference(class),
 			Deactivated: s.executionNewState.Result.SideEffectType == requestresult.SideEffectDeactivate,
