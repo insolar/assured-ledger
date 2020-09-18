@@ -43,7 +43,7 @@ func createService(
 	config uniserver.ServerConfig,
 	idWithPortFn func(nwapi.Address) bool,
 ) *UniprotoServer {
-
+	println("idWithPortFn", idWithPortFn)
 	controller := NewController(Protocol, TestDeserializationByteFactory{}, receiverFn, nil, TestLogAdapter{t})
 
 	var dispatcher uniserver.Dispatcher

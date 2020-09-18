@@ -60,7 +60,6 @@ func BenchmarkThroughput(b *testing.B) {
 	}
 
 	for _, testCase := range testCases {
-		println(testCase.testName)
 
 		srv1.receiver = testCase.receiver
 
@@ -70,33 +69,33 @@ func BenchmarkThroughput(b *testing.B) {
 		result.ch = results
 		bench := sender
 
-		b.Run("0.1k", func(b *testing.B) {
+		b.Run(testCase.testName+"/0.1k", func(b *testing.B) {
 			bench.throughput(b, 100, testCase.sendFunc)
 		})
 
-		b.Run("1k", func(b *testing.B) {
+		b.Run(testCase.testName+"/1k", func(b *testing.B) {
 			bench.throughput(b, 1<<10, testCase.sendFunc)
 		})
 
-		b.Run("4k", func(b *testing.B) {
+		b.Run(testCase.testName+"/4k", func(b *testing.B) {
 			bench.throughput(b, 1<<12, testCase.sendFunc)
 		})
 
 		if testCase.testName != "shipToHead" {
 
-			b.Run("16k", func(b *testing.B) {
+			b.Run(testCase.testName+"/16k", func(b *testing.B) {
 				bench.throughput(b, 1<<14, testCase.sendFunc)
 			})
 
-			b.Run("128k", func(b *testing.B) {
+			b.Run(testCase.testName+"/128k", func(b *testing.B) {
 				bench.throughput(b, 1<<17, testCase.sendFunc)
 			})
 
-			b.Run("1M", func(b *testing.B) {
+			b.Run(testCase.testName+"/1M", func(b *testing.B) {
 				bench.throughput(b, 1<<20, testCase.sendFunc)
 			})
 
-			b.Run("8M", func(b *testing.B) {
+			b.Run(testCase.testName+"/8M", func(b *testing.B) {
 				bench.throughput(b, 1<<23, testCase.sendFunc)
 			})
 		}
@@ -144,7 +143,6 @@ func BenchmarkLatency(b *testing.B) {
 	}
 
 	for _, testCase := range testCases {
-		println(testCase.testName)
 
 		srv1.receiver = testCase.receiver
 
@@ -154,25 +152,27 @@ func BenchmarkLatency(b *testing.B) {
 		result.ch = results
 		bench := sender
 
-		b.Run("0.1k", func(b *testing.B) {
+		b.Run(testCase.testName+"/0.1k", func(b *testing.B) {
 			bench.latency(b, 100, testCase.sendFunc)
 		})
 
-		b.Run("4k", func(b *testing.B) {
+		b.Run(testCase.testName+"/4k", func(b *testing.B) {
 			bench.latency(b, 1<<12, testCase.sendFunc)
 		})
+		if testCase.testName != "shipToHead" {
 
-		b.Run("128k", func(b *testing.B) {
-			bench.latency(b, 1<<17, testCase.sendFunc)
-		})
+			b.Run(testCase.testName+"/128k", func(b *testing.B) {
+				bench.latency(b, 1<<17, testCase.sendFunc)
+			})
 
-		b.Run("1M", func(b *testing.B) {
-			bench.latency(b, 1<<20, testCase.sendFunc)
-		})
+			b.Run(testCase.testName+"/1M", func(b *testing.B) {
+				bench.latency(b, 1<<20, testCase.sendFunc)
+			})
 
-		b.Run("8M", func(b *testing.B) {
-			bench.latency(b, 1<<23, testCase.sendFunc)
-		})
+			b.Run(testCase.testName+"/8M", func(b *testing.B) {
+				bench.latency(b, 1<<23, testCase.sendFunc)
+			})
+		}
 	}
 }
 
