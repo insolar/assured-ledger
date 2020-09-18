@@ -22,14 +22,14 @@ func NewNode(cfg configuration.Configuration) Server {
 	return insapp.New(cfg, appFactory)
 }
 
-func NewMultiServer(configProvider *insapp.CloudConfigurationProvider) Server {
+func NewMultiServer(configProvider *CloudConfigurationProvider) Server {
 	controller := cloud.NewController()
 	if configProvider.GetAppConfigs == nil {
 		panic("GetAppConfigs cannot be nil")
 	}
 
 	multiFn := func(provider insapp.ConfigurationProvider) ([]configuration.Configuration, insapp.NetworkInitFunc) {
-		conf := provider.(*insapp.CloudConfigurationProvider)
+		conf := provider.(*CloudConfigurationProvider)
 		return conf.GetAppConfigs(), controller.NetworkInitFunc
 	}
 
@@ -41,13 +41,13 @@ func NewMultiServer(configProvider *insapp.CloudConfigurationProvider) Server {
 	)
 }
 
-func NewMultiServerWithConsensus(configProvider *insapp.CloudConfigurationProvider) Server { // nolint:interfacer
+func NewMultiServerWithConsensus(configProvider *CloudConfigurationProvider) Server { // nolint:interfacer
 	if configProvider.GetAppConfigs == nil {
 		panic("GetAppConfigs cannot be nil")
 	}
 
 	multiFn := func(provider insapp.ConfigurationProvider) ([]configuration.Configuration, insapp.NetworkInitFunc) {
-		conf := provider.(*insapp.CloudConfigurationProvider)
+		conf := provider.(*CloudConfigurationProvider)
 		return conf.GetAppConfigs(), nil
 	}
 
@@ -66,4 +66,24 @@ func NewMultiServerWithConsensus(configProvider *insapp.CloudConfigurationProvid
 
 func NewHeadlessNetworkNodeServer(cfg configuration.Configuration) Server {
 	return insapp.New(cfg, nil, &headless.AppComponent{})
+}
+
+type CloudConfigurationProvider struct {
+	PulsarConfig       configuration.PulsarConfiguration
+	BaseConfig         configuration.Configuration
+	CertificateFactory insapp.CertManagerFactory
+	KeyFactory         insapp.KeyStoreFactory
+	GetAppConfigs      func() []configuration.Configuration
+}
+
+func (cp CloudConfigurationProvider) Config() configuration.Configuration {
+	return cp.BaseConfig
+}
+
+func (cp CloudConfigurationProvider) GetCertManagerFactory() insapp.CertManagerFactory {
+	return cp.CertificateFactory
+}
+
+func (cp CloudConfigurationProvider) GetKeyStoreFactory() insapp.KeyStoreFactory {
+	return cp.KeyFactory
 }
