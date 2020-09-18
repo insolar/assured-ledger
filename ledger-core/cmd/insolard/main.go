@@ -7,6 +7,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"path/filepath"
 
@@ -26,6 +27,8 @@ import (
 const cmdName = "insolard"
 
 func main() {
+	fmt.Println("Version: ", version.GetFullVersion())
+
 	var (
 		configPath string
 	)
@@ -76,7 +79,9 @@ func runInsolardServer(configPath, genesisConfigPath, roleString string) {
 	default:
 		panic("unknown role")
 	}
-	s = server.NewNode(readConfig(configPath))
+	cfg := readConfig(configPath)
+	fmt.Printf("Starts with configuration:\n%s\n", configuration.ToString(&cfg))
+	s = server.NewNode(cfg)
 	s.Serve()
 }
 
@@ -86,8 +91,9 @@ func runHeadlessNetwork(configPath string) {
 	if err := psAgentLauncher(); err != nil {
 		global.Warnf("Failed to launch gops agent: %s", err)
 	}
-
-	server.NewHeadlessNetworkNodeServer(readConfig(configPath)).Serve()
+	cfg := readConfig(configPath)
+	fmt.Printf("Starts with configuration:\n%s\n", configuration.ToString(&cfg))
+	server.NewHeadlessNetworkNodeServer(cfg).Serve()
 }
 
 func readRoleFromCertificate(path string) (member.PrimaryRole, error) {

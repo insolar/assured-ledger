@@ -3,16 +3,16 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package insapp_test
+package launchnet
 
 import (
 	"testing"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
 	"github.com/insolar/assured-ledger/ledger-core/server"
 )
 
+// this is not actually test, but it provides convenient way to start cloud network with breakpoints
 func Test_RunCloud(t *testing.T) {
 	t.Skip()
 	var (
@@ -21,13 +21,13 @@ func Test_RunCloud(t *testing.T) {
 		numHeavyMaterials = 0
 	)
 
-	cloudSettings := insapp.CloudSettings{Virtual: numVirtual, Light: numLightMaterials, Heavy: numHeavyMaterials}
+	cloudSettings := CloudSettings{Virtual: numVirtual, Light: numLightMaterials, Heavy: numHeavyMaterials}
 
-	appConfigs, cloudBaseConf, certFactory, keyFactory := insapp.PrepareCloudConfiguration(cloudSettings)
+	appConfigs, cloudBaseConf, certFactory, keyFactory := PrepareCloudConfiguration(cloudSettings)
 	baseConfig := configuration.Configuration{}
 	baseConfig.Log = cloudBaseConf.Log
 
-	confProvider := &insapp.CloudConfigurationProvider{
+	confProvider := &server.CloudConfigurationProvider{
 		PulsarConfig:       cloudBaseConf.PulsarConfiguration,
 		BaseConfig:         baseConfig,
 		CertificateFactory: certFactory,
