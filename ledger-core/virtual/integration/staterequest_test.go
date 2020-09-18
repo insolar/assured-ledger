@@ -193,8 +193,8 @@ func TestVirtual_VStateRequest_WhenObjectIsDeactivated(t *testing.T) {
 
 			// Send VStateReport
 			{
-				server.SendPayload(ctx, vStateReport)
 				reportSend := server.Journal.WaitStopOf(&handlers.SMVStateReport{}, 1)
+				server.SendPayload(ctx, vStateReport)
 				commontestutils.WaitSignalsTimed(t, 10*time.Second, reportSend)
 			}
 
