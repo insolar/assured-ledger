@@ -81,7 +81,7 @@ func (s *TestWalletServer) Create(w http.ResponseWriter, req *http.Request) {
 		logger  log.Logger
 	)
 
-	ctx, logger = inslogger.WithTraceField(ctx, traceID)
+	ctx, logger = inslogger.WithTraceField(inslogger.SetLogger(ctx, s.logger), traceID)
 	logger.Infom(logIncomingRequest{URL: req.URL.String(), Handler: "Create"})
 
 	result := TestWalletServerCreateResult{
@@ -144,7 +144,7 @@ func (s *TestWalletServer) Transfer(w http.ResponseWriter, req *http.Request) {
 		logger  log.Logger
 	)
 
-	ctx, logger = inslogger.WithTraceField(ctx, traceID)
+	ctx, logger = inslogger.WithTraceField(inslogger.SetLogger(ctx, s.logger), traceID)
 	logger.Infom(logIncomingRequest{URL: req.URL.String(), Handler: "Transfer"})
 
 	params := TransferParams{}
@@ -232,7 +232,7 @@ func (s *TestWalletServer) getBalance(w http.ResponseWriter, req *http.Request, 
 		logger  log.Logger
 	)
 
-	ctx, logger = inslogger.WithTraceField(ctx, traceID)
+	ctx, logger = inslogger.WithTraceField(inslogger.SetLogger(ctx, s.logger), traceID)
 	logger.Infom(logIncomingRequest{URL: req.URL.String(), Handler: "GetBalance", State: state})
 
 	params := GetBalanceParams{}
@@ -319,7 +319,7 @@ func (s *TestWalletServer) AddAmount(w http.ResponseWriter, req *http.Request) {
 		logger  log.Logger
 	)
 
-	ctx, logger = inslogger.WithTraceField(ctx, traceID)
+	ctx, logger = inslogger.WithTraceField(inslogger.SetLogger(ctx, s.logger), traceID)
 	logger.Infom(logIncomingRequest{URL: req.URL.String(), Handler: "AddAmount"})
 
 	params := AddAmountParams{}
@@ -399,7 +399,7 @@ func (s *TestWalletServer) Delete(w http.ResponseWriter, req *http.Request) {
 		logger  log.Logger
 	)
 
-	ctx, logger = inslogger.WithTraceField(ctx, traceID)
+	ctx, logger = inslogger.WithTraceField(inslogger.SetLogger(ctx, s.logger), traceID)
 	logger.Infom(logIncomingRequest{URL: req.URL.String(), Handler: "Delete"})
 
 	params := DeleteParams{}
