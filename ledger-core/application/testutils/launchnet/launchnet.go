@@ -57,11 +57,16 @@ var (
 	rootOnce    sync.Once
 	projectRoot string
 
-	verbose = true
+	verbose          = true
+	cloudFileLogging = false
 )
 
 func SetVerbose(v bool) {
 	verbose = v
+}
+
+func SetCloudFileLogging(v bool) {
+	cloudFileLogging = v
 }
 
 // rootPath returns project root folder
@@ -141,13 +146,13 @@ type User struct {
 }
 
 // launchnetPath builds a path from either INSOLAR_FUNC_KEYS_PATH or LAUNCHNET_BASE_DIR
-func launchnetPath(a ...string) (string, error) { // nolint:unparam
+func launchnetPath(a ...string) string { // nolint:unparam
 	// Path set in Enviroment
 	keysPath := os.Getenv(keysPathVar)
 	if keysPath != "" {
 		p := []string{keysPath}
 		p = append(p, a[len(a)-1])
-		return filepath.Join(p...), nil
+		return filepath.Join(p...)
 	}
 	d := defaults.LaunchnetDir()
 	var parts []string
@@ -158,7 +163,7 @@ func launchnetPath(a ...string) (string, error) { // nolint:unparam
 	}
 
 	parts = append(parts, a...)
-	return filepath.Join(parts...), nil
+	return filepath.Join(parts...)
 }
 
 func GetDiscoveryNodesCount() (int, error) {
@@ -168,11 +173,7 @@ func GetDiscoveryNodesCount() (int, error) {
 
 	var conf nodesConf
 
-	path, err := launchnetPath("bootstrap.yaml")
-	if err != nil {
-		return 0, err
-	}
-	buff, err := ioutil.ReadFile(path)
+	buff, err := ioutil.ReadFile(launchnetPath("bootstrap.yaml"))
 	if err != nil {
 		return 0, throw.W(err, "[ getNumberNodes ] Can't read bootstrap config")
 	}
@@ -197,11 +198,7 @@ func GetNodesCount() (int, error) {
 
 	var conf nodesConf
 
-	path, err := launchnetPath("bootstrap.yaml")
-	if err != nil {
-		return 0, err
-	}
-	buff, err := ioutil.ReadFile(path)
+	buff, err := ioutil.ReadFile(launchnetPath("bootstrap.yaml"))
 	if err != nil {
 		return 0, throw.W(err, "[ getNumberNodes ] Can't read bootstrap config")
 	}
@@ -434,12 +431,7 @@ func readAppConfig() (appConfig, error) {
 
 func readNodeConfig(path string) (nodeConfig, error) {
 	var conf nodeConfig
-
-	path, err := launchnetPath(path)
-	if err != nil {
-		return conf, err
-	}
-	buff, err := ioutil.ReadFile(path)
+	buff, err := ioutil.ReadFile(launchnetPath(path))
 	if err != nil {
 		return conf, throw.W(err, "[ getNumberNodes ] Can't read bootstrap config")
 	}

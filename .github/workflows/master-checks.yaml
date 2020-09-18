@@ -114,10 +114,10 @@ jobs:
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
       - name: Run benchmarks
         run: make benchmarks
-          working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
+        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
       - name: Aggregate logs after benchmarks
         run: tar --warning=no-file-changed -cvzf benchamrks-nodes-output.tgz .artifacts/launchnet/logs/discoverynodes/*/output.log || true
-          working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
+        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
       - name: Upload logs to artifacts
         if: always()
         uses: actions/upload-artifact@v1
