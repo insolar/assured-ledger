@@ -12,6 +12,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/application/testwalletapi"
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/runner"
 	"github.com/insolar/assured-ledger/ledger-core/virtual"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
@@ -37,7 +38,7 @@ func AppFactory(ctx context.Context, cfg configuration.Configuration, comps insa
 		virtualDispatcher.MaxRunners = 4
 	}
 
-	testAPI := testwalletapi.NewTestWalletServer(cfg.TestWalletAPI, virtualDispatcher, comps.BeatHistory)
+	testAPI := testwalletapi.NewTestWalletServer(inslogger.FromContext(ctx), cfg.TestWalletAPI, virtualDispatcher, comps.BeatHistory)
 
 	// ComponentManager can only work with by-pointer objects
 	return &wrapper{runnerService, virtualDispatcher, testAPI}, nil
