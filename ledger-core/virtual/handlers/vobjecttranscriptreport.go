@@ -224,7 +224,7 @@ func (s *SMVObjectTranscriptReport) stepExecuteOutgoing(ctx smachine.ExecutionCo
 	if !ok {
 		panic(throw.NotImplemented())
 	}
-	equal := s.outgoingRequest.CallOutgoing.Equal(&expectedRequest.Outgoing)
+	equal := s.outgoingRequest.CallOutgoing.Equal(&expectedRequest.Request)
 	if !equal {
 		// todo: fixme: validation failed, CallOutgoing is random for now
 		//panic(throw.NotImplemented())

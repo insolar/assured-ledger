@@ -537,6 +537,47 @@ func TestVirtual_CallConstructorFromConstructor(t *testing.T) {
 	require.Equal(t, 1, typedChecker.VCallRequest.Count())
 	require.Equal(t, 2, typedChecker.VCallResult.Count())
 
+	// check transcripts
+	typedChecker.VStateReport.Set(func(report *rms.VStateReport) bool {
+		return false
+	})
+
+	typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
+		if report.Object.GetValue() == objectA {
+			assert.Len(t, report.ObjectTranscript.Entries, 4)
+
+			_, ok := report.ObjectTranscript.Entries[0].Get().(*rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest)
+			require.True(t, ok)
+
+			_, ok = report.ObjectTranscript.Entries[1].Get().(*rms.VObjectTranscriptReport_TranscriptEntryOutgoingRequest)
+			require.True(t, ok)
+
+			_, ok = report.ObjectTranscript.Entries[2].Get().(*rms.VObjectTranscriptReport_TranscriptEntryOutgoingResult)
+			require.True(t, ok)
+
+			_, ok = report.ObjectTranscript.Entries[3].Get().(*rms.VObjectTranscriptReport_TranscriptEntryIncomingResult)
+			require.True(t, ok)
+		} else {
+			assert.Len(t, report.ObjectTranscript.Entries, 2)
+
+			_, ok := report.ObjectTranscript.Entries[0].Get().(*rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest)
+			require.True(t, ok)
+
+			_, ok = report.ObjectTranscript.Entries[1].Get().(*rms.VObjectTranscriptReport_TranscriptEntryIncomingResult)
+			require.True(t, ok)
+		}
+
+		return false
+	})
+
+	server.IncrementPulseAndWaitIdle(ctx)
+
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 1))
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VObjectTranscriptReport.Wait(ctx, 1))
+
+	// 2 objects, 2 transcripts
+	assert.Equal(t, 2, typedChecker.VObjectTranscriptReport.Count())
+
 	mc.Finish()
 }
 

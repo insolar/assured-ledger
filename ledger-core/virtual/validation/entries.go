@@ -39,6 +39,7 @@ func (TranscriptEntryIncomingResult) TranscriptEntryMarker() {
 var _ CustomTranscriptEntryPart = TranscriptEntryOutgoingRequest{}
 
 type TranscriptEntryOutgoingRequest struct {
+	Request reference.Global
 }
 
 func (TranscriptEntryOutgoingRequest) TranscriptEntryMarker() {
@@ -47,6 +48,8 @@ func (TranscriptEntryOutgoingRequest) TranscriptEntryMarker() {
 var _ CustomTranscriptEntryPart = TranscriptEntryOutgoingResult{}
 
 type TranscriptEntryOutgoingResult struct {
+	OutgoingResult reference.Global
+	CallResult     rms.VCallResult
 }
 
 func (TranscriptEntryOutgoingResult) TranscriptEntryMarker() {

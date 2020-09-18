@@ -59,7 +59,8 @@ type SMExecute struct {
 
 	// execution step
 	executionNewState   *execution.Update
-	outgoingResult      []byte
+	outgoingResultBytes []byte
+	outgoingResult      *rms.VCallResult
 	deactivate          bool
 	run                 runner.RunState
 	newObjectDescriptor descriptor.Object
@@ -85,6 +86,8 @@ type SMExecute struct {
 	stepAfterTokenGet   smachine.SlotStep
 
 	findCallResponse *rms.VFindCallResponse
+
+	incomingAddedToTranscript bool
 }
 
 /* -------- Declaration ------------- */
@@ -120,7 +123,7 @@ func (s *SMExecute) GetStateMachineDeclaration() smachine.StateMachineDeclaratio
 
 func ExecContextFromRequest(request *rms.VCallRequest) execution.Context {
 	res := execution.Context{
-		Request:          request,
+		Request: request,
 	}
 	if request.CallType == rms.CallTypeConstructor {
 		res.Object = reference.NewSelf(request.CallOutgoing.GetValue().GetLocal())
@@ -690,7 +693,7 @@ func (s *SMExecute) prepareOutgoingError(err error) {
 		panic(throw.W(err, "can't create error result"))
 	}
 
-	s.outgoingResult = resultWithErr
+	s.outgoingResultBytes = resultWithErr
 }
 
 func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -758,7 +761,8 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 			}
 
 			return func(ctx smachine.BargeInContext) smachine.StateUpdate {
-				s.outgoingResult = res.ReturnArguments.GetBytes()
+				s.outgoingResultBytes = res.ReturnArguments.GetBytes()
+				s.outgoingResult = res
 
 				return ctx.WakeUp()
 			}
@@ -792,11 +796,57 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 
 	s.outgoingSentCounter++
 
+	action := func(state *object.SharedState) {
+		s.addIncomingToTranscriptOnce(state)
+
+		state.Transcript.Add(
+			validation.TranscriptEntry{
+				Custom: validation.TranscriptEntryOutgoingRequest{
+					Request: s.outgoing.CallOutgoing.GetValue(),
+				},
+			},
+		)
+	}
+
+	if stepUpdate := s.shareObjectAccess(ctx, action); !stepUpdate.IsEmpty() {
+		return stepUpdate
+	}
+
 	// someone else can process other requests while we  waiting for outgoing results
 	ctx.Release(s.globalSemaphore.PartialLink())
 
 	// we'll wait for barge-in WakeUp here, not adapter
 	return ctx.Sleep().ThenJump(s.stepTakeLockAfterOutgoing)
+}
+
+func (s *SMExecute) addIncomingToTranscriptOnce(state *object.SharedState) {
+	if s.incomingAddedToTranscript {
+		return
+	}
+
+	var objectMemory reference.Global
+	if s.Payload.CallType == rms.CallTypeConstructor {
+		objectMemory = reference.Global{}
+	} else if s.execution.ObjectDescriptor == nil {
+		panic(throw.Impossible())
+	} else {
+		objectMemory = reference.NewRecordOf(
+			s.newObjectDescriptor.HeadRef(),
+			s.newObjectDescriptor.StateID(),
+		)
+	}
+
+	state.Transcript.Add(
+		validation.TranscriptEntry{
+			Custom: validation.TranscriptEntryIncomingRequest{
+				ObjectMemory: objectMemory,
+				Incoming:     reference.Global{},
+				CallRequest:  *s.Payload,
+			},
+		},
+	)
+
+	s.incomingAddedToTranscript = true
 }
 
 func (s *SMExecute) stepTakeLockAfterOutgoing(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -810,7 +860,7 @@ func (s *SMExecute) stepTakeLockAfterOutgoing(ctx smachine.ExecutionContext) sma
 }
 
 func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	outgoingResult := s.outgoingResult
+	outgoingResult := s.outgoingResultBytes
 	switch s.executionNewState.Outgoing.(type) {
 	case execution.CallConstructor, execution.CallMethod:
 		if outgoingResult == nil {
@@ -818,11 +868,26 @@ func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.
 		}
 	}
 
+	action := func(state *object.SharedState) {
+		state.Transcript.Add(
+			validation.TranscriptEntry{
+				Custom: validation.TranscriptEntryOutgoingResult{
+					OutgoingResult: reference.Global{},
+					CallResult:     *s.outgoingResult,
+				},
+			},
+		)
+	}
+
+	if stepUpdate := s.shareObjectAccess(ctx, action); !stepUpdate.IsEmpty() {
+		return stepUpdate
+	}
+
 	// unset all outgoing fields in case we have new outgoing request
 	s.outgoingSentCounter = 0
 	s.outgoingObject = reference.Global{}
 	s.outgoing = nil
-	s.outgoingResult = []byte{}
+	s.outgoingResultBytes = []byte{}
 	ctx.SetDefaultMigration(s.migrateDuringExecution)
 
 	s.executionNewState = nil
@@ -877,28 +942,7 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 
 	action := func(state *object.SharedState) {
 		state.SetDescriptorDirty(s.newObjectDescriptor)
-
-		var objectMemory reference.Global
-		if s.Payload.CallType == rms.CallTypeConstructor {
-			objectMemory = reference.Global{}
-		} else if s.execution.ObjectDescriptor == nil {
-			panic(throw.Impossible())
-		} else {
-			objectMemory = reference.NewRecordOf(
-				s.newObjectDescriptor.HeadRef(),
-				s.newObjectDescriptor.StateID(),
-			)
-		}
-
-		state.Transcript.Add(
-			validation.TranscriptEntry{
-				Custom: validation.TranscriptEntryIncomingRequest{
-					ObjectMemory: objectMemory,
-					Incoming:     reference.Global{},
-					CallRequest:  *s.Payload,
-				},
-			},
-		)
+		s.addIncomingToTranscriptOnce(state)
 
 		state.Transcript.Add(
 			validation.TranscriptEntry{
