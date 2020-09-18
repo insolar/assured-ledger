@@ -43,7 +43,6 @@ func createService(
 	config uniserver.ServerConfig,
 	idWithPortFn func(nwapi.Address) bool,
 ) *UniprotoServer {
-	println("idWithPortFn", idWithPortFn)
 	controller := NewController(Protocol, TestDeserializationByteFactory{}, receiverFn, nil, TestLogAdapter{t})
 
 	var dispatcher uniserver.Dispatcher
@@ -55,21 +54,12 @@ func createService(
 	srv.SetConfig(config)
 	srv.SetIdentityClassifier(idWithPortFn)
 
-	// This is min value for NodeID, 0 is not allowed
-	// con := 0
-
 	peerFn := func(peer *uniserver.Peer) (remapTo nwapi.Address, err error) {
 		idx := len(servers)
-		// if con != len(servers)-1 {
-		// 	panic("")
-		// }
 
 		peer.SetSignatureKey(servers[idx-1].key)
 		peer.SetNodeID(nwapi.ShortNodeID(idx))
 
-		println("setted idx %d, con %d", idx, len(servers))
-		// println("idx %d, con %d", idx, con)
-		// con++
 		return nwapi.NewHostID(nwapi.HostID(idx)), nil
 	}
 
