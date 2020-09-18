@@ -22,6 +22,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/convlog"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/log/logcommon"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
@@ -213,7 +214,7 @@ func newServerExt(ctx context.Context, t Tester, opts ServerOpts) (*Server, cont
 
 	// re HTTP testing
 	testWalletAPIConfig := configuration.TestWalletAPI{Address: "very naughty address"}
-	s.testWalletServer = testwalletapi.NewTestWalletServer(testWalletAPIConfig, virtualDispatcher, Pulses)
+	s.testWalletServer = testwalletapi.NewTestWalletServer(inslogger.FromContext(ctx), testWalletAPIConfig, virtualDispatcher, Pulses)
 
 	if opts.Initialization {
 		s.Init(ctx)

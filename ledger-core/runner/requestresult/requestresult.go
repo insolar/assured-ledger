@@ -43,7 +43,7 @@ func (s *RequestResult) Deactivate() (reference.Global, []byte) {
 	return s.ObjectImage, s.Memory
 }
 
-func (s *RequestResult) SetActivate(parent, image reference.Global, memory []byte) {
+func (s *RequestResult) SetActivate(image reference.Global, memory []byte) {
 	s.SideEffectType = SideEffectActivate
 
 	s.ObjectImage = image

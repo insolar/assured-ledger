@@ -12,6 +12,7 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/application/testwalletapi"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/runner"
 	"github.com/insolar/assured-ledger/ledger-core/virtual"
 )
@@ -46,6 +47,7 @@ func (v wrapper) Start(ctx context.Context) error {
 	if err := v.apiServer.Start(ctx); err != nil {
 		return err
 	}
+	inslogger.FromContext(ctx).Info("All components have started")
 	return nil
 }
 

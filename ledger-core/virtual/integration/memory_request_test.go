@@ -155,7 +155,7 @@ func constructorPrecondition(s *memoryCacheTest, ctx context.Context, t *testing
 	s.object = reference.NewSelf(pl.CallOutgoing.GetValue().GetLocal())
 
 	result := requestresult.New([]byte("result"), s.object)
-	result.SetActivate(reference.Global{}, s.class, []byte(newState))
+	result.SetActivate(s.class, []byte(newState))
 
 	key := pl.CallOutgoing.GetValue()
 	s.runnerMock.AddExecutionMock(key).AddStart(nil, &execution.Update{
