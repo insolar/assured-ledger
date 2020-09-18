@@ -103,7 +103,7 @@ func TestVirtual_VStateReport_StateAlreadyExists(t *testing.T) {
 			}
 
 			// add checker
-			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+			typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 			{
 				typedChecker.VStateReport.Set(func(report *rms.VStateReport) bool {
 					assert.NotNil(t, report.ProvidedContent)

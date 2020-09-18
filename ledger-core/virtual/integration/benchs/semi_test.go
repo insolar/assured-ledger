@@ -30,7 +30,7 @@ func BenchmarkOnWallets(b *testing.B) {
 
 	wallets := make([]reference.Global, 0, 1000)
 
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, b, server)
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, b, server)
 	typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
 		if result.CallType == rms.CallTypeConstructor {
 			var (
@@ -100,7 +100,7 @@ func BenchmarkOnWallets(b *testing.B) {
 	})
 
 	b.Run("Set", func(b *testing.B) {
-		typedChecker := server.PublisherMock.SetTypedChecker(ctx, b, server)
+		typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, b, server)
 		typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
 			resultSignal <- struct{}{}
 			return false

@@ -428,7 +428,7 @@ func TestDelegationToken_OldVEVDelegatedCallRequest(t *testing.T) {
 				assert.Equal(t, delegationToken.DelegateTo, expectedToken.DelegateTo)
 			}
 
-			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+			typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 			typedChecker.VDelegatedCallResponse.Set(func(response *rms.VDelegatedCallResponse) bool {
 				assert.Equal(t, object, response.Callee.GetValue())
 				utils.AssertCallDelegationTokenEqual(t, &expectedToken, &response.ResponseDelegationSpec)

@@ -244,6 +244,10 @@ func (s *Server) GetPulse() beat.Beat {
 	return s.pulseGenerator.GetLastBeat()
 }
 
+func (s *Server) GetPulseNumber() pulse.Number {
+	return s.pulseGenerator.GetLastBeat().PulseNumber
+}
+
 func (s *Server) GetPrevPulse() beat.Beat {
 	return s.pulseGenerator.GetPrevBeat()
 }

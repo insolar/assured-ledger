@@ -539,17 +539,35 @@ func (s *SMExecute) stepRegisterObjectLifeLine(ctx smachine.ExecutionContext) sm
 		}
 
 		if subroutineSM.NewObjectRef != s.execution.Object {
-			panic(throw.NotImplemented())
+			// TODO: do nothing for now, later we should replace that mechanism
+			// panic(throw.NotImplemented())
 		}
 
-		s.lmnLastLifelineRef = subroutineSM.NewLastLifelineRef
+		s.lmnLastLifelineRef = reference.NewRecordOf(s.execution.Object, subroutineSM.NewLastLifelineRef.GetLocal())
 
 		return ctx.Jump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
 			if ctx.Acquire(s.globalSemaphore.PartialLink()).IsNotPassed() {
 				return ctx.Sleep().ThenRepeat()
 			}
 
-			return ctx.Jump(s.stepStartRequestProcessing)
+			// TODO: dirty hack in case when we must set initial (empty) descriptor
+			return ctx.Jump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
+				action := func(state *object.SharedState) {
+					state.SetDescriptorDirty(descriptor.NewObject(
+						s.execution.Object,
+						subroutineSM.NewLastLifelineRef.GetLocal(),
+						s.Payload.Callee.GetValue(),
+						[]byte(""),
+						false,
+					))
+				}
+
+				if stepUpdate := s.shareObjectAccess(ctx, action); !stepUpdate.IsEmpty() {
+					return stepUpdate
+				}
+
+				return ctx.Jump(s.stepStartRequestProcessing)
+			})
 		})
 	})
 }
@@ -603,6 +621,7 @@ func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) sm
 	}
 
 	ctx.SetDefaultMigration(s.migrateDuringExecution)
+
 	s.execution.ObjectDescriptor = objectDescriptor
 	s.lmnLastLifelineRef = reference.NewRecordOf(objectDescriptor.HeadRef(), objectDescriptor.StateID())
 
@@ -678,7 +697,7 @@ func (s *SMExecute) stepExecuteDecideNextStep(ctx smachine.ExecutionContext) sma
 	switch newState.Type {
 	case execution.Done:
 		// send VCallResult here
-		return ctx.Jump(s.stepWaitSafeAnswers)
+		return ctx.Jump(s.stepWaitSafeAnswersRelease)
 	case execution.Error:
 		if d := new(runner.ErrorDetail); throw.FindDetail(newState.Error, d) {
 			switch d.Type {
@@ -808,8 +827,8 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 			}
 
 			return func(ctx smachine.BargeInContext) smachine.StateUpdate {
-				s.outgoingResult = res.ReturnArguments.GetBytes()
 				s.outgoingVCallResult = res
+				s.outgoingResult = res.ReturnArguments.GetBytes()
 
 				return ctx.WakeUp()
 			}
@@ -848,7 +867,7 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 }
 
 func (s *SMExecute) stepWaitAndRegisterOutgoingResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if s.outgoingVCallResult != nil {
+	if s.outgoingVCallResult == nil {
 		return ctx.Sleep().ThenRepeat()
 	}
 
@@ -880,6 +899,7 @@ func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.
 	}
 
 	// unset all outgoing fields in case we have new outgoing request
+	s.outgoingVCallResult = nil
 	s.outgoingSentCounter = 0
 	s.outgoingObject = reference.Global{}
 	s.outgoing = nil
@@ -901,17 +921,26 @@ func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.
 	}).DelayedStart().ThenJump(s.StepWaitExecutionResult)
 }
 
-func (s *SMExecute) stepWaitSafeAnswers(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (s *SMExecute) stepWaitSafeAnswersRelease(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	ctx.Release(s.globalSemaphore.PartialLink())
 
 	// waiting for all save responses to be there
+	return ctx.Jump(s.stepWaitSafeAnswersReal)
+}
+
+func (s *SMExecute) stepWaitSafeAnswersReal(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	// waiting for all save responses to be there
+	stateUpdate := shared.CounterAwaitZero(ctx, s.lmnSafeResponseCounterLink)
+	if !stateUpdate.IsEmpty() {
+		return stateUpdate
+	}
+
+	// now it's time to write result
 	return ctx.Jump(func(ctx smachine.ExecutionContext) smachine.StateUpdate {
-		stateUpdate := shared.CounterAwaitZero(ctx, s.lmnSafeResponseCounterLink)
-		if !stateUpdate.IsEmpty() {
-			return stateUpdate
+		if !ctx.Acquire(s.globalSemaphore.PartialLink()).IsPassed() {
+			return ctx.Sleep().ThenRepeat()
 		}
 
-		// now it's time to write result
 		return ctx.Jump(s.stepSaveExecutionResult)
 	})
 }
@@ -1264,6 +1293,9 @@ func (s *SMExecute) constructSubSMRegister(v RegisterVariant) lmn.SubSMRegister 
 	subroutineSM.Object = s.execution.Object
 	subroutineSM.LastLifelineRef = s.lmnLastLifelineRef
 	subroutineSM.LastFilamentRef = s.lmnLastFilamentRef
+	if s.lmnLastFilamentRef.IsEmpty() {
+		subroutineSM.LastFilamentRef = subroutineSM.LastLifelineRef
+	}
 
 	return subroutineSM
 }

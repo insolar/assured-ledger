@@ -43,7 +43,7 @@ func TestConstructor_SamePulse_WhileExecution(t *testing.T) {
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
 
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 	typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
 		return false
 	})
@@ -112,7 +112,7 @@ func TestConstructor_SamePulse_AfterExecution(t *testing.T) {
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
 
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 	typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
 		return false
 	})

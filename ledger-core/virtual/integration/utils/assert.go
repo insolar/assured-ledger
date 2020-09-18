@@ -34,8 +34,8 @@ func AssertVStateReportsEqual(t TestingT, expected, actual *rms.VStateReport, ms
 
 	ok := assert.True(t, expected.Equal(actual), msgAndArgs...)
 	if !ok {
-		t.Logf("expected: %#v", expected)
-		t.Logf("actual:   %#v", actual)
+		t.Logf("expected: %#v", expected.ProvidedContent.LatestDirtyState)
+		t.Logf("actual:   %#v", actual.ProvidedContent.LatestDirtyState)
 	}
 
 	return ok

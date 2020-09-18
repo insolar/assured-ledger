@@ -16,12 +16,21 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 )
 
+type ReceivedType int
+
+const (
+	ReceivedNothing ReceivedType = iota
+	ReceivedLRegisterResponse
+	ReceivedLStateVerifyResponse
+)
+
 type SMWaitSafeResponse struct {
 	ObjectSharedState   object.SharedStateAccessor
 	ExpectedKey         ResultAwaitKey
 	SafeResponseCounter smachine.SharedDataLink
 
-	resultReceived bool
+	receivedType    ReceivedType
+	receivedMessage interface{}
 }
 
 var dSMWaitSafeResponseInstance smachine.StateMachineDeclaration = &dSMWaitSafeResponse{}
@@ -42,7 +51,7 @@ func (s *SMWaitSafeResponse) GetStateMachineDeclaration() smachine.StateMachineD
 	return dSMWaitSafeResponseInstance
 }
 
-func (s *SMWaitSafeResponse) bargeInHandler(param interface{}) smachine.BargeInCallbackFunc {
+func (s *SMWaitSafeResponse) bargeInLRegisterResponseHandler(param interface{}) smachine.BargeInCallbackFunc {
 	res, ok := param.(*rms.LRegisterResponse)
 	if !ok || res == nil {
 		panic(throw.IllegalValue())
@@ -53,8 +62,31 @@ func (s *SMWaitSafeResponse) bargeInHandler(param interface{}) smachine.BargeInC
 			panic(throw.IllegalValue())
 		}
 
-		s.resultReceived = true
+		if s.receivedType <= ReceivedLRegisterResponse {
+			s.receivedType = ReceivedLRegisterResponse
+		}
 
+		s.receivedMessage = param
+		return ctx.WakeUp()
+	}
+}
+
+func (s *SMWaitSafeResponse) bargeInLStateVerifyResponseHandler(param interface{}) smachine.BargeInCallbackFunc {
+	// res, ok := param.(*rms.LStateVerifyResponse)
+	// if !ok || res == nil {
+	// 	panic(throw.IllegalValue())
+	// }
+
+	return func(ctx smachine.BargeInContext) smachine.StateUpdate {
+		// if res.AnticipatedRef != s.ExpectedKey.AnticipatedRef || res.Flags != s.ExpectedKey.RequiredFlag {
+		// 	panic(throw.IllegalValue())
+		// }
+
+		if s.receivedType <= ReceivedLStateVerifyResponse {
+			s.receivedType = ReceivedLStateVerifyResponse
+		}
+
+		s.receivedMessage = param
 		return ctx.WakeUp()
 	}
 }
@@ -62,22 +94,50 @@ func (s *SMWaitSafeResponse) bargeInHandler(param interface{}) smachine.BargeInC
 func (s *SMWaitSafeResponse) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
 	var (
 		expectedKey = s.ExpectedKey
-		bargeIn     = ctx.NewBargeInWithParam(s.bargeInHandler)
+		bargeIn     = ctx.NewBargeInWithParam(s.bargeInLRegisterResponseHandler)
 	)
+
+	// ctx.SetDefaultMigration(s.migrateDefault)
 
 	if !ctx.PublishGlobalAliasAndBargeIn(expectedKey, bargeIn) {
 		panic(throw.E("failed to publish bargeIn"))
 	}
-	return ctx.JumpExt(smachine.SlotStep{
-		Transition: s.stepWaitResult,
-		Migration:  func(ctx smachine.MigrationContext) smachine.StateUpdate { return ctx.Stop() },
-	})
+	return ctx.Jump(s.stepWaitResult)
+}
+
+func (s *SMWaitSafeResponse) migrateDefault(ctx smachine.MigrationContext) smachine.StateUpdate {
+	ctx.Unpublish(s.ExpectedKey)
+
+	return ctx.Jump(s.stepSendCheckStatus)
 }
 
 func (s *SMWaitSafeResponse) stepWaitResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if !s.resultReceived {
+	if s.receivedType == ReceivedNothing {
+		return ctx.Sleep().ThenRepeat()
+	} else if s.receivedType == ReceivedLStateVerifyResponse {
+		panic(throw.IllegalState())
+	}
+
+	stateUpdate := shared.CounterDecrement(ctx, s.SafeResponseCounter)
+	if !stateUpdate.IsEmpty() {
+		return stateUpdate
+	}
+
+	return ctx.Stop()
+}
+
+func (s *SMWaitSafeResponse) stepSendCheckStatus(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	// TODO: send message here
+
+	return ctx.Jump(s.stepWaitStatusResult)
+}
+
+func (s *SMWaitSafeResponse) stepWaitStatusResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	if s.receivedType < ReceivedLStateVerifyResponse {
 		return ctx.Sleep().ThenRepeat()
 	}
+
+	// TODO: check everything here
 
 	stateUpdate := shared.CounterDecrement(ctx, s.SafeResponseCounter)
 	if !stateUpdate.IsEmpty() {

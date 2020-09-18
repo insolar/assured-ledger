@@ -146,7 +146,7 @@ func TestVirtual_DeactivateObject(t *testing.T) {
 				)
 			}
 
-			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+			typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 
 			// typedChecker mock
 			{
@@ -279,7 +279,7 @@ func TestVirtual_CallMethod_On_CompletelyDeactivatedObject(t *testing.T) {
 				prevPulse = server.GetPulse().PulseNumber
 			)
 
-			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+			typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 			typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
 				assert.Equal(t, object, res.Callee.GetValue())
 				contractErr, sysErr := foundation.UnmarshalMethodResult(res.ReturnArguments.GetBytes())
@@ -344,6 +344,7 @@ func TestVirtual_CallDeactivate_Intolerable(t *testing.T) {
 				class        = server.RandomGlobalWithPulse()
 				objectGlobal = server.RandomGlobalWithPulse()
 				prevPulse    = server.GetPulse().PulseNumber
+				stateID      = reference.NewRecordOf(objectGlobal, server.RandomLocalWithPulse())
 			)
 
 			// Create object
@@ -356,12 +357,14 @@ func TestVirtual_CallDeactivate_Intolerable(t *testing.T) {
 					AsOf:   prevPulse,
 					ProvidedContent: &rms.VStateReport_ProvidedContentBody{
 						LatestDirtyState: &rms.ObjectState{
-							Class: rms.NewReference(class),
-							State: rms.NewBytes([]byte("initial state")),
+							Reference: rms.NewReference(stateID),
+							Class:     rms.NewReference(class),
+							State:     rms.NewBytes([]byte("initial state")),
 						},
 						LatestValidatedState: &rms.ObjectState{
-							Class: rms.NewReference(class),
-							State: rms.NewBytes([]byte("initial state")),
+							Reference: rms.NewReference(stateID),
+							Class:     rms.NewReference(class),
+							State:     rms.NewBytes([]byte("initial state")),
 						},
 					},
 				}
@@ -370,7 +373,7 @@ func TestVirtual_CallDeactivate_Intolerable(t *testing.T) {
 				commonTestUtils.WaitSignalsTimed(t, 10*time.Second, wait)
 			}
 
-			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+			typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 			outgoing := server.BuildRandomOutgoingWithPulse()
 
 			// Add VCallResult check
@@ -457,6 +460,8 @@ func TestVirtual_DeactivateObject_ChangePulse(t *testing.T) {
 			Interference: isolation.CallTolerable,
 			State:        isolation.CallDirty,
 		}
+		dStateID = reference.NewRecordOf(objectRef, server.RandomLocalWithPulse())
+		vStateID = reference.NewRecordOf(objectRef, server.RandomLocalWithPulse())
 	)
 
 	server.IncrementPulseAndWaitIdle(ctx)
@@ -489,7 +494,7 @@ func TestVirtual_DeactivateObject_ChangePulse(t *testing.T) {
 		)
 	}
 
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 	{
 		typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
 			assert.Equal(t, objectRef, res.Callee.GetValue())
@@ -539,12 +544,14 @@ func TestVirtual_DeactivateObject_ChangePulse(t *testing.T) {
 			Object: rms.NewReference(objectRef),
 			ProvidedContent: &rms.VStateReport_ProvidedContentBody{
 				LatestDirtyState: &rms.ObjectState{
-					Class: rms.NewReference(class),
-					State: rms.NewBytes([]byte(origDirtyMem)),
+					Reference: rms.NewReference(dStateID),
+					Class:     rms.NewReference(class),
+					State:     rms.NewBytes([]byte(origDirtyMem)),
 				},
 				LatestValidatedState: &rms.ObjectState{
-					Class: rms.NewReference(class),
-					State: rms.NewBytes([]byte(origValidatedMem)),
+					Reference: rms.NewReference(vStateID),
+					Class:     rms.NewReference(class),
+					State:     rms.NewBytes([]byte(origValidatedMem)),
 				},
 			},
 		}
@@ -633,7 +640,7 @@ func TestVirtual_CallMethod_After_Deactivation(t *testing.T) {
 		runnerMock.AddExecutionClassify(outgoingSomeMethod, deactivateIsolation, nil)
 	}
 
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 
 	// Add check
 	{
@@ -738,7 +745,7 @@ func TestVirtual_Deactivation_Deduplicate(t *testing.T) {
 		runnerMock.AddExecutionClassify(outgoing, isolation, nil)
 	}
 
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 	// Add check
 	{
 		typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
@@ -824,7 +831,7 @@ func TestVirtual_DeduplicateCallAfterDeactivation_PrevVE(t *testing.T) {
 				commonTestUtils.WaitSignalsTimed(t, 10*time.Second, wait)
 			}
 
-			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+			typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 			// Add checker mock
 			{
 				typedChecker.VFindCallRequest.Set(func(request *rms.VFindCallRequest) bool {
@@ -945,7 +952,7 @@ func TestVirtual_DeactivateObject_FinishPartialDeactivation(t *testing.T) {
 				}
 			}
 
-			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+			typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 			typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
 				assert.Equal(t, objectRef, res.Callee.GetValue())
 				assert.Equal(t, checkOutgoing, res.CallOutgoing.GetValue())

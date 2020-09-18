@@ -190,7 +190,7 @@ func (s *memoryCacheTest) initServer(t *testing.T) context.Context {
 
 	server.Init(ctx)
 
-	s.typedChecker = s.server.PublisherMock.SetTypedChecker(ctx, s.mc, server)
+	s.typedChecker = s.server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, s.mc, server)
 
 	return ctx
 }

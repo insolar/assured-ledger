@@ -50,11 +50,13 @@ func (s *SMLRegisterResponse) stepProcess(ctx smachine.ExecutionContext) smachin
 
 	switch link, bargeInCallback := ctx.GetPublishedGlobalAliasAndBargeIn(key); {
 	case link.IsZero():
-		return ctx.Error(throw.E("no one is waiting"))
+		ctx.Log().Warn("no one is waiting")
+		return ctx.Stop()
 	case bargeInCallback == nil:
 		return ctx.Error(throw.Impossible())
 	case !bargeInCallback.CallWithParam(s.Payload):
-		return ctx.Error(throw.E("no one is waiting anymore"))
+		ctx.Log().Warn("no one is waiting anymore")
+		return ctx.Stop()
 	}
 
 	return ctx.Stop()

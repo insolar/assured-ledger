@@ -55,7 +55,7 @@ func BenchmarkVCallRequestGetMethod(b *testing.B) {
 
 	resultSignal := make(synckit.ClosableSignalChannel, 1)
 
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, b, server)
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, b, server)
 	typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
 		resultSignal <- struct{}{}
 		return false
@@ -115,7 +115,7 @@ func BenchmarkVCallRequestAcceptMethod(b *testing.B) {
 
 	resultSignal := make(synckit.ClosableSignalChannel, 1)
 
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, b, server)
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, b, server)
 	typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
 		resultSignal <- struct{}{}
 		return false
@@ -145,7 +145,7 @@ func BenchmarkVCallRequestConstructor(b *testing.B) {
 
 	resultSignal := make(synckit.ClosableSignalChannel, 1)
 
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, b, server)
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, b, server)
 	typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
 		resultSignal <- struct{}{}
 		return false

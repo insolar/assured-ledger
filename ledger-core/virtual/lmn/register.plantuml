@@ -12,7 +12,6 @@ state "stepRegisterIncoming" as T01_S003
 T01_S003 : SubSMRegister
 T01_S003 --> [*] : [err!=nil]\nError
 T01_S003 --> T01_S004 : [s.Outgoing!=nil]
-T01_S003 --> T01_S005 : [s.OutgoingResult!=nil]
 T01_S003 --> T01_S006 : [s.IncomingResult!=nil]
 state "stepRegisterIncomingResult" as T01_S006
 T01_S006 : SubSMRegister
@@ -31,11 +30,10 @@ T01_S004 --> T01_S007
 state "stepRegisterOutgoingResult" as T01_S005
 T01_S005 : SubSMRegister
 T01_S005 --> [*] : [err!=nil]\nError
-T01_S005 --> T01_S004 : [s.Outgoing!=nil]
-T01_S005 --> T01_S006 : [s.IncomingResult!=nil]
+T01_S005 --> T01_S007
 state "stepSaveSafeCounter" as T01_S007
 T01_S007 : SubSMRegister
-T01_S007 --> [*] : [!ctx.ApplyAdjustment()]\nError
+T01_S007 --> T01_S007 : [!stateUpdate.IsEmpty()]
 T01_S007 --> T01_S008
 state "stepSendMessage" as T01_S008
 T01_S008 : SubSMRegister

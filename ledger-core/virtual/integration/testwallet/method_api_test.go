@@ -24,6 +24,12 @@ func TestVirtual_Method_API(t *testing.T) {
 	server, ctx := utils.NewServer(nil, t)
 	defer server.Stop()
 
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, t, server)
+	typedChecker.VCallRequest.SetResend(true)
+	typedChecker.VCallResult.SetResend(true)
+	// typedChecker.VStateReport.SetResend(true)
+	// typedChecker.VStateRequest.SetResend(true)
+
 	var (
 		walletReference1 reference.Global
 		walletReference2 reference.Global

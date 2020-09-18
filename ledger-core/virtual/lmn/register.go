@@ -255,7 +255,7 @@ func (s *SubSMRegister) stepRegisterLifeline(ctx smachine.ExecutionContext) smac
 	)
 
 	s.Object = anticipatedRef
-	s.LastFilamentRef = anticipatedRef
+	s.LastLifelineRef = anticipatedRef
 
 	if err := s.registerMessage(ctx, &rms.LRegisterRequest{
 		AnticipatedRef: rms.NewReference(anticipatedRef),
@@ -279,7 +279,7 @@ func (s *SubSMRegister) stepRegisterIncoming(ctx smachine.ExecutionContext) smac
 
 	switch s.Interference {
 	case isolation.CallTolerable:
-		if !s.LastLifelineRef.IsEmpty() {
+		if s.LastLifelineRef.IsEmpty() {
 			panic(throw.IllegalState())
 		}
 		record = &rms.RLineInboundRequest{
@@ -287,7 +287,7 @@ func (s *SubSMRegister) stepRegisterIncoming(ctx smachine.ExecutionContext) smac
 			PrevRef: rms.NewReference(s.LastLifelineRef),
 		}
 	case isolation.CallIntolerable:
-		if !s.LastFilamentRef.IsEmpty() {
+		if s.LastFilamentRef.IsEmpty() {
 			panic(throw.IllegalState())
 		}
 		record = &rms.RInboundRequest{
@@ -321,8 +321,6 @@ func (s *SubSMRegister) stepRegisterIncoming(ctx smachine.ExecutionContext) smac
 	switch {
 	case s.Outgoing != nil:
 		return ctx.Jump(s.stepRegisterOutgoing)
-	case s.OutgoingResult != nil:
-		return ctx.Jump(s.stepRegisterOutgoingResult)
 	case s.IncomingResult != nil:
 		return ctx.Jump(s.stepRegisterIncomingResult)
 	default:
@@ -360,7 +358,7 @@ func (s *SubSMRegister) stepRegisterOutgoing(ctx smachine.ExecutionContext) smac
 }
 
 func (s *SubSMRegister) stepRegisterOutgoingResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if !s.LastFilamentRef.IsEmpty() {
+	if s.LastFilamentRef.IsEmpty() {
 		panic(throw.IllegalState())
 	}
 
@@ -381,14 +379,7 @@ func (s *SubSMRegister) stepRegisterOutgoingResult(ctx smachine.ExecutionContext
 
 	s.LastFilamentRef = anticipatedRef
 
-	switch {
-	case s.Outgoing != nil:
-		return ctx.Jump(s.stepRegisterOutgoing)
-	case s.IncomingResult != nil:
-		return ctx.Jump(s.stepRegisterIncomingResult)
-	default:
-		panic(throw.Unsupported())
-	}
+	return ctx.Jump(s.stepSaveSafeCounter)
 }
 
 func (s *SubSMRegister) stepRegisterIncomingResult(ctx smachine.ExecutionContext) smachine.StateUpdate {

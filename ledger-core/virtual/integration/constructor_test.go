@@ -54,7 +54,7 @@ func TestVirtual_Constructor_BadClassRef(t *testing.T) {
 	expectedError, err := foundation.MarshalMethodErrorResult(errors.New("bad class reference"))
 	require.NoError(t, err)
 
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 
 	typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
 		assert.Equal(t, expectedError, res.ReturnArguments.GetBytes())
@@ -103,7 +103,7 @@ func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
 		class        = pl.Callee.GetValue()
 	)
 
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 	typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
 		assert.Equal(t, runnerResult, res.ReturnArguments.GetBytes())
 		assert.Equal(t, objectRef, res.Callee.GetValue())
@@ -206,7 +206,7 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 		})
 	}
 
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 	typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
 		require.Equal(t, []byte("123"), res.ReturnArguments.GetBytes())
 		require.Equal(t, objectRef, res.Callee.GetValue())
@@ -284,7 +284,7 @@ func TestVirtual_Constructor_PrevPulseStateWithMissingStatus(t *testing.T) {
 	server.IncrementPulseAndWaitIdle(ctx)
 	p2 := server.GetPulse().PulseNumber
 
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 	typedChecker.VStateRequest.Set(func(req *rms.VStateRequest) bool {
 		require.Equal(t, p1, req.AsOf)
 		require.Equal(t, objectRef, req.Object.GetValue())
@@ -391,7 +391,7 @@ func TestVirtual_CallConstructorFromConstructor(t *testing.T) {
 	server.ReplaceRunner(runnerMock)
 	server.Init(ctx)
 
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 
 	var (
 		isolation = contract.ConstructorIsolation()
@@ -521,7 +521,7 @@ func TestVirtual_Constructor_WrongConstructorName(t *testing.T) {
 		objectRef = reference.NewSelf(outgoing.GetLocal())
 	)
 
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 
 	typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
 		require.Equal(t, objectRef, res.Callee.GetValue())
@@ -578,7 +578,7 @@ func TestVirtual_Constructor_PulseChangedWhileOutgoing(t *testing.T) {
 		delegationToken rms.CallDelegationToken
 	)
 
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 
 	// add type checks
 	{
@@ -723,7 +723,7 @@ func TestVirtual_CallConstructor_WithTwicePulseChange(t *testing.T) {
 
 	server.Init(ctx)
 
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 
 	var (
 		classA    = server.RandomGlobalWithPulse()
@@ -903,7 +903,7 @@ func TestVirtual_Constructor_IsolationNegotiation(t *testing.T) {
 				callIsolation:   test.isolation,
 			})
 
-			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+			typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 			typedChecker.VCallResult.Set(func(result *rms.VCallResult) bool {
 				require.Equal(t, objectRef, result.Callee.GetValue())
 				require.Equal(t, outgoing, result.CallOutgoing.GetValue())
