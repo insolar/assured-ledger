@@ -33,9 +33,9 @@ type MethodInstrumenter struct {
 	traceID       string
 }
 
-func NewMethodInstrument(methodName string) (context.Context, *MethodInstrumenter) {
+func NewMethodInstrument(ctx context.Context, methodName string) (context.Context, *MethodInstrumenter) {
 	traceID := trace.RandID()
-	ctx, _ := inslogger.WithTraceField(context.Background(), traceID)
+	ctx, _ = inslogger.WithTraceField(ctx, traceID)
 	ctx, span := instracer.StartSpanWithSpanID(ctx, methodName, instracer.MakeUintSpan([]byte(trace.RandID())))
 
 	trace.RandID()

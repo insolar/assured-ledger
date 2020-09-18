@@ -136,11 +136,11 @@ func (s *Server) initComponents(ctx context.Context, cfg configuration.Configura
 		cm.Register(affine)
 
 		if ns != nil {
-			API, err := api.NewRunner(&cfg.APIRunner,
+			API, err := api.NewRunner(&cfg.APIRunner, logger,
 				comps.CertificateManager, nw, nw, pulses, affine, ns, availabilityChecker)
 			checkError(ctx, err, "failed to start ApiRunner")
 
-			AdminAPIRunner, err := api.NewRunner(&cfg.AdminAPIRunner,
+			AdminAPIRunner, err := api.NewRunner(&cfg.AdminAPIRunner, logger,
 				comps.CertificateManager, nw, nw, pulses, affine, ns, availabilityChecker)
 			checkError(ctx, err, "failed to start AdminAPIRunner")
 

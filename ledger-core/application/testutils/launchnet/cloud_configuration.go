@@ -3,11 +3,12 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-package insapp
+package launchnet
 
 import (
 	"crypto"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -18,6 +19,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/secrets"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/defaults"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
+	"github.com/insolar/assured-ledger/ledger-core/log/logoutput"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -49,16 +52,17 @@ func makeNodeWithKeys() (nodeInfo, error) {
 	return node, nil
 }
 
-func generateNodeKeys(num int, nodes []nodeInfo) error {
+func generateNodeKeys(num int) ([]nodeInfo, error) {
+	nodes := make([]nodeInfo, 0, num)
 	for i := 0; i < num; i++ {
 		node, err := makeNodeWithKeys()
 		if err != nil {
-			return errors.W(err, "couldn't make node with keys")
+			return nil, errors.W(err, "couldn't make node with keys")
 		}
-		nodes[i] = node
+		nodes = append(nodes, node)
 	}
 
-	return nil
+	return nodes, nil
 }
 
 type inMemoryKeyStore struct {
@@ -68,7 +72,7 @@ type inMemoryKeyStore struct {
 func (ks inMemoryKeyStore) GetPrivateKey(string) (crypto.PrivateKey, error) {
 	return ks.key, nil
 }
-func makeKeyFactory(nodes []nodeInfo) KeyStoreFactory {
+func makeKeyFactory(nodes []nodeInfo) insapp.KeyStoreFactory {
 	keysMap := make(map[string]crypto.PrivateKey)
 	for _, n := range nodes {
 		if _, ok := keysMap[n.keyName]; ok {
@@ -95,6 +99,11 @@ func generatePulsarConfig(nodes []nodeInfo, settings CloudSettings) configuratio
 	pulsarConfig.KeysPath = "pulsar.yaml"
 	if settings.Pulsar.PulseTime != 0 {
 		pulsarConfig.Pulsar.PulseTime = int32(settings.Pulsar.PulseTime)
+	}
+
+	if cloudFileLogging {
+		pulsarConfig.Log.OutputType = logoutput.FileOutput.String()
+		pulsarConfig.Log.OutputParams = launchnetPath("logs", "pulsar.log")
 	}
 
 	return pulsarConfig
@@ -125,7 +134,6 @@ func getRole(virtual, light, heavy *int) member.PrimaryRole {
 }
 
 func generateNodeConfigs(nodes []nodeInfo, cloudSettings CloudSettings) []configuration.Configuration {
-
 	var (
 		metricsPort      = 8001
 		LRRPCPort        = 13001
@@ -147,7 +155,7 @@ func generateNodeConfigs(nodes []nodeInfo, cloudSettings CloudSettings) []config
 		adminAPIPort = cloudSettings.API.AdminPort
 	}
 
-	appConfigs := []configuration.Configuration{}
+	appConfigs := make([]configuration.Configuration, 0, len(nodes))
 	for i := 0; i < len(nodes); i++ {
 		role := getRole(&cloudSettings.Virtual, &cloudSettings.Light, &cloudSettings.Heavy)
 		nodes[i].role = role.String()
@@ -191,13 +199,23 @@ func generateNodeConfigs(nodes []nodeInfo, cloudSettings CloudSettings) []config
 			nodes[i].keyName = conf.KeysPath
 		}
 
+		if cloudFileLogging {
+			// prepare directory for logs
+			if err := os.MkdirAll(launchnetPath("logs", "discoverynodes", strconv.Itoa(i+1)), os.ModePerm); err != nil {
+				panic(err)
+			}
+
+			conf.Log.OutputType = logoutput.FileOutput.String()
+			conf.Log.OutputParams = launchnetPath("logs", "discoverynodes", strconv.Itoa(i+1), "output.log")
+		}
+
 		appConfigs = append(appConfigs, conf)
 	}
 
 	return appConfigs
 }
 
-func makeCertManagerFactory(certs map[string]*mandates.Certificate) CertManagerFactory {
+func makeCertManagerFactory(certs map[string]*mandates.Certificate) insapp.CertManagerFactory {
 	return func(publicKey crypto.PublicKey, keyProcessor cryptography.KeyProcessor, certPath string) (*mandates.CertificateManager, error) {
 		return mandates.NewCertificateManager(certs[certPath]), nil
 	}
@@ -316,15 +334,14 @@ type CloudSettings struct {
 func PrepareCloudConfiguration(cloudSettings CloudSettings) (
 	[]configuration.Configuration,
 	configuration.BaseCloudConfig,
-	CertManagerFactory,
-	KeyStoreFactory,
+	insapp.CertManagerFactory,
+	insapp.KeyStoreFactory,
 ) {
 	totalNum := cloudSettings.Virtual + cloudSettings.Light + cloudSettings.Heavy
 	if totalNum < 1 {
 		panic("no nodes given")
 	}
-	nodes := make([]nodeInfo, totalNum)
-	err := generateNodeKeys(totalNum, nodes)
+	nodes, err := generateNodeKeys(totalNum)
 	if err != nil {
 		panic(throw.W(err, "Failed to gen keys"))
 	}
@@ -353,26 +370,4 @@ func PrepareCloudConfiguration(cloudSettings CloudSettings) (
 	pulsarKeys.keyName = baseCloudConf.PulsarConfiguration.KeysPath
 
 	return appConfigs, baseCloudConf, makeCertManagerFactory(certs), makeKeyFactory(append(nodes, pulsarKeys))
-}
-
-// CloudConfigurationProvider
-
-type CloudConfigurationProvider struct {
-	PulsarConfig       configuration.PulsarConfiguration
-	BaseConfig         configuration.Configuration
-	CertificateFactory CertManagerFactory
-	KeyFactory         KeyStoreFactory
-	GetAppConfigs      func() []configuration.Configuration
-}
-
-func (cp CloudConfigurationProvider) Config() configuration.Configuration {
-	return cp.BaseConfig
-}
-
-func (cp CloudConfigurationProvider) GetCertManagerFactory() CertManagerFactory {
-	return cp.CertificateFactory
-}
-
-func (cp CloudConfigurationProvider) GetKeyStoreFactory() KeyStoreFactory {
-	return cp.KeyFactory
 }

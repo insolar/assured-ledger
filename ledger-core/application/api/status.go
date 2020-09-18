@@ -23,7 +23,8 @@ import (
 // Get returns status info
 func (s *NodeService) GetStatus(r *http.Request, args *interface{}, requestBody *rpc.RequestBody, reply *requester.StatusResponse) error {
 	traceID := trace.RandID()
-	_, inslog := inslogger.WithTraceField(context.Background(), traceID)
+	ctx := inslogger.SetLogger(context.Background(), s.runner.logger)
+	_, inslog := inslogger.WithTraceField(ctx, traceID)
 
 	inslog.Infof("[ NodeService.GetStatus ] Incoming request: %s", r.RequestURI)
 	if !s.runner.cfg.IsAdmin {

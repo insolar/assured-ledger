@@ -15,7 +15,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
-	"github.com/insolar/assured-ledger/ledger-core/log/global"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/network/transport"
 	"github.com/insolar/assured-ledger/ledger-core/pulsar"
 	"github.com/insolar/assured-ledger/ledger-core/pulsar/entropygenerator"
@@ -42,7 +42,8 @@ func NewPulsarWrapper(distributor pulsar.PulseDistributor, cfg configuration.Pul
 	keyProcessor := platformpolicy.NewKeyProcessor()
 
 	cm := component.NewManager(nil)
-	cm.SetLogger(global.Logger())
+	ctx, logger := inslogger.InitNodeLogger(ctx, cfg.Log, "", "pulsar")
+	cm.SetLogger(logger)
 
 	cm.Register(cryptographyScheme, keyStore, keyProcessor, transport.NewFactory(cfg.Pulsar.DistributionTransport))
 	cm.Inject(cryptographyService, distributor)

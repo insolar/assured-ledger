@@ -6,6 +6,7 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 
 	jww "github.com/spf13/jwalterweatherman"
@@ -13,7 +14,6 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/keystore"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/server"
@@ -48,19 +48,20 @@ func runInsolardCloud(configPath string) {
 
 	baseConfig := configuration.Configuration{}
 	baseConfig.Log = cloudConf.Log
-	configProvider := &insapp.CloudConfigurationProvider{
+	configProvider := &server.CloudConfigurationProvider{
 		CertificateFactory: mandates.NewManagerReadCertificate,
 		KeyFactory:         keystore.NewKeyStore,
 		BaseConfig:         baseConfig,
 		PulsarConfig:       cloudConf.PulsarConfiguration,
 		GetAppConfigs: func() []configuration.Configuration {
 			appConfigs := make([]configuration.Configuration, 0, len(cloudConf.NodeConfigPaths))
-			for _, conf := range cloudConf.NodeConfigPaths {
+			for i, conf := range cloudConf.NodeConfigPaths {
 				cfgHolder := configuration.NewHolder(conf)
 				err := cfgHolder.Load()
 				if err != nil {
 					global.Fatal("failed to load configuration from file: ", err.Error())
 				}
+				fmt.Printf("Starts with configuration [%d/%d]:\n%s\n", i+1, len(cloudConf.NodeConfigPaths), configuration.ToString(&cfgHolder.Configuration))
 				appConfigs = append(appConfigs, *cfgHolder.Configuration)
 			}
 			return appConfigs
