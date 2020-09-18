@@ -54,6 +54,7 @@ type SMVObjectTranscriptReport struct {
 	entryIndex      int
 	incomingRequest *rms.VCallRequest
 	outgoingRequest *rms.VCallRequest
+	outgoingResult  *rms.VCallResult
 
 	validatedState reference.Global
 
@@ -149,6 +150,30 @@ func (s *SMVObjectTranscriptReport) stepExecuteStart(ctx smachine.ExecutionConte
 	}).DelayedStart().ThenJump(s.stepWaitExecutionResult)
 }
 
+func (s *SMVObjectTranscriptReport) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	outgoingResult := s.outgoingResult
+	switch s.executionNewState.Outgoing.(type) {
+	case execution.CallConstructor, execution.CallMethod:
+		if outgoingResult == nil {
+			panic(throw.IllegalValue())
+		}
+	}
+
+	s.executionNewState = nil
+
+	executionResult := requestresult.NewOutgoingExecutionResult(outgoingResult.ReturnArguments.GetBytes(), nil)
+	return s.runner.PrepareExecutionContinue(ctx, s.run, executionResult, func() {
+		if s.run == nil {
+			panic(throw.IllegalState())
+		}
+
+		s.executionNewState = s.run.GetResult()
+		if s.executionNewState == nil {
+			panic(throw.IllegalState())
+		}
+	}).DelayedStart().ThenJump(s.stepWaitExecutionResult)
+}
+
 func (s *SMVObjectTranscriptReport) stepWaitExecutionResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	if s.executionNewState == nil {
 		return ctx.Sleep().ThenRepeat()
@@ -173,7 +198,7 @@ func (s *SMVObjectTranscriptReport) stepExecuteDecideNextStep(ctx smachine.Execu
 		panic(throw.IllegalValue())
 	}
 
-	return ctx.Jump(s.stepExecuteContinue)
+	return ctx.Jump(s.stepExecuteFinish)
 }
 
 func (s *SMVObjectTranscriptReport) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -207,18 +232,17 @@ func (s *SMVObjectTranscriptReport) stepExecuteOutgoing(ctx smachine.ExecutionCo
 	s.entryIndex++
 
 	entry = s.peekNextEntry()
-	_, isOk := entry.(*rms.VObjectTranscriptReport_TranscriptEntryOutgoingResult)
-	if !isOk {
+	outgoingResult, ok := entry.(*rms.VObjectTranscriptReport_TranscriptEntryOutgoingResult)
+	if !ok {
 		panic(throw.NotImplemented())
 	}
-
-	// TODO: FIXME: return result into runner
-	panic(throw.NotImplemented())
+	s.outgoingResult = &outgoingResult.CallResult
+	s.entryIndex++
 
 	return ctx.Jump(s.stepExecuteContinue)
 }
 
-func (s *SMVObjectTranscriptReport) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.StateUpdate {
+func (s *SMVObjectTranscriptReport) stepExecuteFinish(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var newDesc descriptor.Object
 
 	switch s.executionNewState.Result.Type() {
@@ -242,11 +266,15 @@ func (s *SMVObjectTranscriptReport) stepExecuteContinue(ctx smachine.ExecutionCo
 	// fixme: stateid vs stateref
 	stateRef := reference.NewRecordOf(newDesc.HeadRef(), newDesc.StateID())
 	equal := stateRef.Equal(expected.ObjectState.GetValue())
-	if equal {
-		s.validatedState = stateRef
-		return ctx.Jump(s.stepAdvanceToNextRequest)
+	if !equal {
+		return ctx.Jump(s.stepValidationFailed)
 	}
 
+	s.validatedState = stateRef
+	return ctx.Jump(s.stepAdvanceToNextRequest)
+}
+
+func (s *SMVObjectTranscriptReport) stepValidationFailed(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	// todo: validation failed
 	panic(throw.NotImplemented())
 }
