@@ -2,7 +2,13 @@
 state "Init" as T01_S001
 T01_S001 : SMVCachedMemoryResponse
 [*] --> T01_S001
-T01_S001 --> [*]
+T01_S001 --> T01_S002
+state "stepProcess" as T01_S002
+T01_S002 : SMVCachedMemoryResponse
+T01_S002 --> [*] : [link.IsZero()]\nError
+T01_S002 --> [*] : [bargeInCallback==nil]\nError
+T01_S002 --> [*] : [!done]\nError
+T01_S002 --> [*]
 state "GetInitStateFor" as T00_S001
 T00_S001 : dSMVCachedMemoryResponse
 [*] --> T00_S001

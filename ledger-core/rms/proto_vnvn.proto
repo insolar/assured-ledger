@@ -311,12 +311,14 @@ message VObjectTranscriptReport {
 
         Reference OutgoingResult = 1800;
         VCallResult CallResult = 1801;
+        Reference Reason = 1802;
     }
     message TranscriptEntryIncomingResult {
         option (insproto.id) = 101504;
 
         Reference IncomingResult = 1800;
         Reference ObjectState = 1801;
+        Reference Reason = 1802;
     }
 
     message Transcript {
