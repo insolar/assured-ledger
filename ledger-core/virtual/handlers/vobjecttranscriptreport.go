@@ -21,6 +21,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
@@ -52,6 +53,7 @@ type SMVObjectTranscriptReport struct {
 	objDesc         descriptor.Object
 	entryIndex      int
 	incomingRequest *rms.VCallRequest
+	outgoingRequest *rms.VCallRequest
 
 	validatedState reference.Global
 
@@ -163,12 +165,55 @@ func (s *SMVObjectTranscriptReport) stepExecuteDecideNextStep(ctx smachine.Execu
 
 	switch newState.Type {
 	case execution.Done:
-	case execution.Error, execution.Abort, execution.OutgoingCall:
+	case execution.OutgoingCall:
+		return ctx.Jump(s.stepExecuteOutgoing)
+	case execution.Error, execution.Abort:
 		panic(throw.NotImplemented())
 	default:
 		panic(throw.IllegalValue())
 	}
 
+	return ctx.Jump(s.stepExecuteContinue)
+}
+
+func (s *SMVObjectTranscriptReport) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	pulseNumber := s.execution.Pulse.PulseNumber
+
+	switch outgoing := s.executionNewState.Outgoing.(type) {
+	case execution.Deactivate:
+	case execution.CallConstructor:
+		s.outgoingRequest = outgoing.ConstructVCallRequest(s.execution)
+		newOutgoing := reference.NewRecordOf(s.outgoingRequest.Caller.GetValue(), gen.UniqueLocalRefWithPulse(pulseNumber))
+		s.outgoingRequest.CallOutgoing.Set(newOutgoing)
+	case execution.CallMethod:
+		s.outgoingRequest = outgoing.ConstructVCallRequest(s.execution)
+		newOutgoing := reference.NewRecordOf(s.outgoingRequest.Caller.GetValue(), gen.UniqueLocalRefWithPulse(pulseNumber))
+		s.outgoingRequest.CallOutgoing.Set(newOutgoing)
+	default:
+		panic(throw.IllegalValue())
+	}
+
+	entry := s.peekNextEntry()
+	expectedRequest, ok := entry.(*rms.VObjectTranscriptReport_TranscriptEntryOutgoingRequest)
+	if !ok {
+		panic(throw.IllegalValue())
+	}
+	equal := s.outgoingRequest.CallOutgoing.Equal(&expectedRequest.Request)
+	if !equal {
+		// todo: validation failed
+		panic(throw.NotImplemented())
+	}
+
+	entry = s.peekNextEntry()
+	_, isOk := entry.(*rms.VObjectTranscriptReport_TranscriptEntryOutgoingResult)
+	if !isOk {
+		panic(throw.IllegalValue())
+	}
+
+	return ctx.Jump(s.stepExecuteContinue)
+}
+
+func (s *SMVObjectTranscriptReport) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var newDesc descriptor.Object
 
 	switch s.executionNewState.Result.Type() {
@@ -250,18 +295,18 @@ func (s *SMVObjectTranscriptReport) makeNewDescriptor(
 	deactivated bool,
 ) descriptor.Object {
 	var prevStateIDBytes []byte
-	objDescriptor := s.execution.ObjectDescriptor
+	objDescriptor := s.objDesc
 	if objDescriptor != nil {
 		prevStateIDBytes = objDescriptor.StateID().AsBytes()
 	}
 
-	objectRefBytes := s.execution.Object.AsBytes()
+	objectRefBytes := s.object.AsBytes()
 	stateHash := append(memory, objectRefBytes...)
 	stateHash = append(stateHash, prevStateIDBytes...)
 
 	stateID := execute.NewStateID(s.pulseSlot.PulseData().GetPulseNumber(), stateHash)
 	return descriptor.NewObject(
-		s.execution.Object,
+		s.object,
 		stateID,
 		class,
 		memory,
