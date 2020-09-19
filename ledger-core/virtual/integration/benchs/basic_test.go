@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/builtin/contract/testwallet"
+	testwalletProxy "github.com/insolar/assured-ledger/ledger-core/application/builtin/proxy/testwallet"
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/convlog"
@@ -199,7 +200,7 @@ func BenchmarkTestAPIGetBalance(b *testing.B) {
 
 	var (
 		prevPulse = server.GetPulse()
-		class     = server.RandomGlobalWithPulse()
+		class     = testwalletProxy.GetClass()
 		object    = server.RandomGlobalWithPulse()
 	)
 	server.IncrementPulseAndWaitIdle(ctx)
@@ -240,7 +241,7 @@ func BenchmarkTestAPIGetBalanceParallel(b *testing.B) {
 
 	var (
 		prevPulse = server.GetPulse()
-		class     = server.RandomGlobalWithPulse()
+		class     = testwalletProxy.GetClass()
 		object    = server.RandomGlobalWithPulse()
 	)
 	server.IncrementPulseAndWaitIdle(ctx)
