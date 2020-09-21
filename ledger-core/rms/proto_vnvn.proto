@@ -305,6 +305,7 @@ message VObjectTranscriptReport {
         option (insproto.id) = 101502;
 
         Reference Request = 1800;
+        Reference Reason = 1801;
     }
     message TranscriptEntryOutgoingResult {
         option (insproto.id) = 101503;

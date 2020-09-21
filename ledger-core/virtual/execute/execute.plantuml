@@ -56,6 +56,7 @@ T01_U001 --[dashed]> T01_S032
 state "stepExecuteContinue" as T01_S027
 T01_S027 : SMExecute
 T01_S027 --[dotted]> T01_S016
+T01_S027 --> T01_S027 : [!stepUpdate.IsEmpty()]
 state T01_U002 <<fork>>
 T01_S027 --> T01_U002
 T01_U002 --> T01_S008 : Migrate: s
@@ -155,6 +156,7 @@ T01_S025 --[dotted]> T01_S016
 T01_S025 --> [*] : [!(...).PublishGlobalAliasAndBargeIn()]\nError
 T01_S025 --> [*] : [(...).outgoingSentCounter>=MaxOutgoingSendCount]\nError
 T01_S025 --> T01_S011 : PrepareAsync(ctx).WithoutAutoWakeUp()
+T01_S025 --> T01_S025 : [!stepUpdate.IsEmpty()]
 T01_S025 --[dashed]> T01_S026 : Sleep
 state "stepStartRequestProcessing" as T01_S015
 T01_S015 : SMExecute
