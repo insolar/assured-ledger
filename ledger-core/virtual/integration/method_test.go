@@ -1096,11 +1096,28 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 				class     = server.RandomGlobalWithPulse()
 				objectRef = server.RandomGlobalWithPulse()
 				p1        = server.GetPulse().PulseNumber
+
+				dirtyStateHash = append([]byte(origDirtyObjectMem), objectRef.AsBytes()...)
+				dirtyStateID   = execute.NewStateID(p1, dirtyStateHash)
+
+				validatedStateHash = append([]byte(origValidatedObjectMem), objectRef.AsBytes()...)
+				validatedStateID   = execute.NewStateID(p1, validatedStateHash)
+
+				pl *rms.VCallRequest
 			)
 
 			server.IncrementPulseAndWaitIdle(ctx)
 			outgoing := server.BuildRandomOutgoingWithPulse()
+			p2 := server.GetPulse()
 
+			// prepare VCallRequest payload
+			{
+				pl = utils.GenerateVCallRequestMethod(server)
+				pl.CallFlags = rms.BuildCallFlags(testCase.isolation.Interference, testCase.isolation.State)
+				pl.Callee.Set(objectRef)
+				pl.CallSiteMethod = "SomeMethod"
+				pl.CallOutgoing.Set(outgoing)
+			}
 			// add ExecutionMock to runnerMock
 			{
 				runnerMock.AddExecutionClassify(outgoing, testCase.isolation, nil)
@@ -1138,12 +1155,12 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 
 					content := &rms.VStateReport_ProvidedContentBody{
 						LatestDirtyState: &rms.ObjectState{
-							Reference: rms.NewReferenceLocal(reference.Local{}),
+							Reference: rms.NewReferenceLocal(dirtyStateID),
 							Class:     rms.NewReference(class),
 							State:     rms.NewBytes([]byte(origDirtyObjectMem)),
 						},
 						LatestValidatedState: &rms.ObjectState{
-							Reference: rms.NewReferenceLocal(reference.Local{}),
+							Reference: rms.NewReferenceLocal(validatedStateID),
 							Class:     rms.NewReference(class),
 							State:     rms.NewBytes([]byte(origValidatedObjectMem)),
 						},
@@ -1183,28 +1200,46 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 				})
 				typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
 					assert.Equal(t, objectRef, report.Object.GetValue())
-					assert.Equal(t, outgoing.GetLocal().Pulse(), report.AsOf)
-					assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
+					assert.Equal(t, p2.PulseNumber, report.AsOf)
+
+					if testCase.canChangeState {
+						assert.Len(t, report.ObjectTranscript.Entries, 2)
+
+						request, ok := report.ObjectTranscript.Entries[0].Get().(*rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest)
+						require.True(t, ok)
+						result, ok := report.ObjectTranscript.Entries[1].Get().(*rms.VObjectTranscriptReport_TranscriptEntryIncomingResult)
+						require.True(t, ok)
+
+						assert.Empty(t, request.Incoming)
+						switch testCase.isolation.State {
+						case isolation.CallDirty:
+							assert.Equal(t, dirtyStateID, request.ObjectMemory.GetValue().GetLocal())
+						case isolation.CallValidated:
+							assert.Equal(t, validatedStateID, request.ObjectMemory.GetValue().GetLocal())
+						default:
+							t.Fatal("unexpected isolation state")
+						}
+						utils.AssertVCallRequestEqual(t, pl, &request.Request)
+
+						assert.Empty(t, result.IncomingResult)
+						assert.Equal(t, pl.CallOutgoing.GetValue().GetLocal().Pulse(), result.ObjectState.Get().GetLocal().Pulse())
+						assert.Equal(t, objectRef.GetBase(), result.ObjectState.Get().GetBase())
+					} else {
+						assert.Len(t, report.ObjectTranscript.Entries, 0)
+					}
+
 					return false
 				})
 			}
 
-			// VCallRequest
-			{
-				pl := utils.GenerateVCallRequestMethod(server)
-				pl.CallFlags = rms.BuildCallFlags(testCase.isolation.Interference, testCase.isolation.State)
-				pl.Callee.Set(objectRef)
-				pl.CallSiteMethod = "SomeMethod"
-				pl.CallOutgoing.Set(outgoing)
-
-				server.SendPayload(ctx, pl)
-			}
+			server.SendPayload(ctx, pl)
 
 			commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)
 
 			server.IncrementPulseAndWaitIdle(ctx)
 
 			commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 1))
+			commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VObjectTranscriptReport.Wait(ctx, 1))
 			commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 			assert.Equal(t, 1, typedChecker.VStateReport.Count())

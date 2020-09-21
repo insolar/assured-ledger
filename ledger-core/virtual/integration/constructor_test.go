@@ -139,7 +139,6 @@ func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
 		assert.Equal(t, objectRef, report.Object.GetValue())
 		assert.Equal(t, pl.CallOutgoing.GetValue().GetLocal().Pulse(), report.AsOf)
 
-		// todo check logic
 		assert.Len(t, report.ObjectTranscript.Entries, 2)
 
 		request, ok := report.ObjectTranscript.Entries[0].Get().(*rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest)
@@ -264,7 +263,22 @@ func TestVirtual_Constructor_HasStateWithMissingStatus(t *testing.T) {
 	typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
 		assert.Equal(t, objectRef, report.Object.GetValue())
 		assert.Equal(t, currPulse, report.AsOf)
-		assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
+
+		assert.Len(t, report.ObjectTranscript.Entries, 2)
+
+		request, ok := report.ObjectTranscript.Entries[0].Get().(*rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest)
+		require.True(t, ok)
+		result, ok := report.ObjectTranscript.Entries[1].Get().(*rms.VObjectTranscriptReport_TranscriptEntryIncomingResult)
+		require.True(t, ok)
+
+		assert.Empty(t, request.Incoming)
+		assert.Empty(t, request.ObjectMemory)
+		utils.AssertVCallRequestEqual(t, pl, &request.Request)
+
+		assert.Empty(t, result.IncomingResult)
+		assert.Equal(t, currPulse, result.ObjectState.Get().GetLocal().Pulse())
+		assert.Equal(t, objectRef.GetBase(), result.ObjectState.Get().GetBase())
+
 		return false
 	})
 
