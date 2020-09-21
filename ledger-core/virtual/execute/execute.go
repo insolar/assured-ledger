@@ -827,11 +827,14 @@ func (s *SMExecute) addIncomingToTranscriptOnce(state *object.SharedState) {
 	}
 
 	var objectMemory reference.Global
-	if s.Payload.CallType == rms.CallTypeConstructor {
+
+	switch s.Payload.CallType {
+	case rms.CallTypeConstructor:
 		objectMemory = reference.Global{}
-	} else if s.execution.ObjectDescriptor == nil {
-		panic(throw.Impossible())
-	} else {
+	default:
+		if s.execution.ObjectDescriptor == nil {
+			panic(throw.Impossible())
+		}
 		objectMemory = reference.NewRecordOf(
 			s.execution.ObjectDescriptor.HeadRef(),
 			s.execution.ObjectDescriptor.StateID(),
