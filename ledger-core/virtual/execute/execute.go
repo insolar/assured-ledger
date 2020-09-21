@@ -88,6 +88,7 @@ type SMExecute struct {
 	findCallResponse *rms.VFindCallResponse
 
 	incomingAddedToTranscript bool
+	outgoingAddedToTranscript bool
 }
 
 /* -------- Declaration ------------- */
@@ -806,6 +807,7 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 				},
 			},
 		)
+		s.outgoingAddedToTranscript = true
 	}
 
 	if stepUpdate := s.shareObjectAccess(ctx, action); !stepUpdate.IsEmpty() {
@@ -831,8 +833,8 @@ func (s *SMExecute) addIncomingToTranscriptOnce(state *object.SharedState) {
 		panic(throw.Impossible())
 	} else {
 		objectMemory = reference.NewRecordOf(
-			s.newObjectDescriptor.HeadRef(),
-			s.newObjectDescriptor.StateID(),
+			s.execution.ObjectDescriptor.HeadRef(),
+			s.execution.ObjectDescriptor.StateID(),
 		)
 	}
 
@@ -868,19 +870,25 @@ func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.
 		}
 	}
 
-	action := func(state *object.SharedState) {
-		state.Transcript.Add(
-			validation.TranscriptEntry{
-				Custom: validation.TranscriptEntryOutgoingResult{
-					OutgoingResult: reference.Global{},
-					CallResult:     *s.outgoingResult,
-				},
-			},
-		)
-	}
+	if s.outgoingAddedToTranscript {
+		if s.outgoingResult == nil {
+			panic(throw.IllegalValue())
+		}
 
-	if stepUpdate := s.shareObjectAccess(ctx, action); !stepUpdate.IsEmpty() {
-		return stepUpdate
+		action := func(state *object.SharedState) {
+			state.Transcript.Add(
+				validation.TranscriptEntry{
+					Custom: validation.TranscriptEntryOutgoingResult{
+						OutgoingResult: reference.Global{},
+						CallResult:     *s.outgoingResult,
+					},
+				},
+			)
+		}
+
+		if stepUpdate := s.shareObjectAccess(ctx, action); !stepUpdate.IsEmpty() {
+			return stepUpdate
+		}
 	}
 
 	// unset all outgoing fields in case we have new outgoing request

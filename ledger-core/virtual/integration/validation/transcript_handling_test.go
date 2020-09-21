@@ -298,7 +298,7 @@ func TestValidation_ObjectTranscriptReport_AfterConstructorWithOutgoing(t *testi
 		)
 		pl.ObjectTranscript.Entries[1].Set(
 			&rms.VObjectTranscriptReport_TranscriptEntryOutgoingRequest{
-				Outgoing: rms.NewReference(outgoingRefFromConstructor),
+				Request: rms.NewReference(outgoingRefFromConstructor),
 			},
 		)
 		pl.ObjectTranscript.Entries[2].Set(
