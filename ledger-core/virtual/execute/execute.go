@@ -1274,6 +1274,7 @@ func (s *SMExecute) constructSubSMRegister(v RegisterVariant) lmn.SubSMRegister 
 		if s.incomingRegistered {
 			panic(throw.IllegalState())
 		}
+		subroutineSM.Incoming = s.Payload
 		return subroutineSM
 	case RegisterOutgoingRequest, RegisterIncomingResult:
 		if !s.incomingRegistered {

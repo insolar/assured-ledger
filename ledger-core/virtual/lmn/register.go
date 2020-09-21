@@ -21,14 +21,18 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/rms/rmsreg"
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/execute/shared"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
 )
 
-func recordToAnyRecord(rec rms.BasicRecord) rms.AnyRecord {
+type SerializableBasicRecord interface {
+	rmsreg.GoGoSerializable
+	rms.BasicRecord
+}
+
+func recordToAnyRecord(rec SerializableBasicRecord) rms.AnyRecord {
 	rv := rms.AnyRecord{}
 	rv.Set(rec)
 	return rv
@@ -115,6 +119,7 @@ type SubSMRegister struct {
 	// DI
 	messageSender messageSenderAdapter.MessageSender
 	pulseSlot     *conveyor.PulseSlot
+	refBuilder    RecordReferenceBuilderService
 }
 
 var dSubSMRegisterInstance smachine.StateMachineDeclaration = &dSubSMRegister{}
@@ -128,6 +133,7 @@ func (*dSubSMRegister) InjectDependencies(sm smachine.StateMachine, _ smachine.S
 
 	injector.MustInject(&s.messageSender)
 	injector.MustInject(&s.pulseSlot)
+	injector.MustInject(&s.refBuilder)
 }
 
 func (*dSubSMRegister) GetInitStateFor(_ smachine.StateMachine) smachine.InitFunc {
@@ -144,19 +150,16 @@ func (s *SubSMRegister) GetStateMachineDeclaration() smachine.StateMachineDeclar
 	return dSubSMRegisterInstance
 }
 
-func (s *SubSMRegister) getRecordAnticipatedRef(object reference.Global, _ rms.BasicRecord) reference.Global {
+func (s *SubSMRegister) getRecordAnticipatedRef(record SerializableBasicRecord) reference.Global {
 	var (
-		currentPulseNumber = s.pulseSlot.CurrentPulseNumber()
-		uniqueLocal        = gen.UniqueLocalRefWithPulse(currentPulseNumber)
+		data        = make([]byte, 0)
+		pulseNumber = s.pulseSlot.CurrentPulseNumber()
 	)
-
-	if object.IsEmpty() {
-		return reference.NewSelf(uniqueLocal)
-	} else if !object.IsSelfScope() {
-		panic(throw.IllegalState())
+	_, err := record.MarshalTo(data)
+	if err != nil {
+		panic(throw.W(err, "Fail to serialize record"))
 	}
-
-	return reference.NewRecordOf(object, uniqueLocal)
+	return s.refBuilder.AnticipatedRefFromBytes(s.Object, pulseNumber, data)
 }
 
 func (s *SubSMRegister) bargeInHandler(param interface{}) smachine.BargeInCallbackFunc {
@@ -215,6 +218,9 @@ func (s *SubSMRegister) registerMessage(ctx smachine.ExecutionContext, msg *rms.
 }
 
 func (s *SubSMRegister) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
+	// do not do anything on migration, let parent SM to decide what needs to be done
+	ctx.SetDefaultMigration(func(ctx smachine.MigrationContext) smachine.StateUpdate { return ctx.Stop() })
+
 	// initialize message handler
 	s.messages.sentPosition = -1
 
@@ -242,6 +248,51 @@ func (s *SubSMRegister) Init(ctx smachine.InitializationContext) smachine.StateU
 	}
 }
 
+func GetNewLifelineAnticipatedReference(
+	pulseSlot *conveyor.PulseSlot,
+	builder RecordReferenceBuilder,
+	request *rms.VCallRequest,
+) reference.Global {
+	sm := SubSMRegister{
+		pulseSlot:  pulseSlot,
+		Incoming:   request,
+		refBuilder: builder,
+	}
+	return sm.getRecordAnticipatedRef(sm.getLifelineRecord())
+}
+
+func (s *SubSMRegister) getLifelineRecord() *rms.RLifelineStart {
+	if s.Incoming == nil {
+		panic(throw.IllegalState())
+	}
+	return &rms.RLifelineStart{
+		CallType:                s.Incoming.CallType,
+		CallFlags:               s.Incoming.CallFlags,
+		CallAsOf:                s.Incoming.CallAsOf,
+		Caller:                  s.Incoming.Caller,
+		Callee:                  s.Incoming.Callee,
+		CallSiteDeclaration:     s.Incoming.CallSiteDeclaration,
+		CallSiteMethod:          s.Incoming.CallSiteMethod,
+		CallSequence:            s.Incoming.CallSequence,
+		CallReason:              s.Incoming.CallReason,
+		RootTX:                  s.Incoming.RootTX,
+		CallTX:                  s.Incoming.CallTX,
+		ExpenseCenter:           s.Incoming.ExpenseCenter,
+		ResourceCenter:          s.Incoming.ResourceCenter,
+		DelegationSpec:          s.Incoming.DelegationSpec,
+		ProducerSignature:       s.Incoming.ProducerSignature,
+		RegistrarSignature:      s.Incoming.RegistrarSignature,
+		RegistrarDelegationSpec: s.Incoming.RegistrarDelegationSpec,
+		CallRequestFlags:        s.Incoming.CallRequestFlags,
+		KnownCalleeIncoming:     s.Incoming.KnownCalleeIncoming,
+		CallOutgoing:            s.Incoming.CallOutgoing,
+		TXExpiry:                s.Incoming.TXExpiry,
+		SecurityContext:         s.Incoming.SecurityContext,
+		TXContext:               s.Incoming.TXContext,
+		Arguments:               s.Incoming.Arguments, // TODO: move later to RecordBody
+	}
+}
+
 func (s *SubSMRegister) stepRegisterLifeline(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	if !s.Object.IsEmpty() {
 		panic(throw.IllegalValue())
@@ -250,8 +301,8 @@ func (s *SubSMRegister) stepRegisterLifeline(ctx smachine.ExecutionContext) smac
 	}
 
 	var (
-		record         = &rms.RLifelineStart{}
-		anticipatedRef = s.getRecordAnticipatedRef(s.Object, record)
+		record         = s.getLifelineRecord()
+		anticipatedRef = s.getRecordAnticipatedRef(record)
 	)
 
 	s.Object = anticipatedRef
@@ -275,7 +326,7 @@ func (s *SubSMRegister) stepRegisterLifeline(ctx smachine.ExecutionContext) smac
 }
 
 func (s *SubSMRegister) stepRegisterIncoming(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	var record rms.BasicRecord
+	var record SerializableBasicRecord
 
 	switch s.Interference {
 	case isolation.CallTolerable:
@@ -296,7 +347,7 @@ func (s *SubSMRegister) stepRegisterIncoming(ctx smachine.ExecutionContext) smac
 		}
 	}
 
-	var anticipatedRef = s.getRecordAnticipatedRef(s.Object, record)
+	var anticipatedRef = s.getRecordAnticipatedRef(record)
 
 	flags := rms.RegistrationFlags_FastSafe
 	if s.Incoming != nil {
@@ -342,7 +393,7 @@ func (s *SubSMRegister) stepRegisterOutgoing(ctx smachine.ExecutionContext) smac
 		PrevRef: rms.NewReference(prevRef),
 	}
 
-	var anticipatedRef = s.getRecordAnticipatedRef(s.Object, record)
+	var anticipatedRef = s.getRecordAnticipatedRef(record)
 
 	if err := s.registerMessage(ctx, &rms.LRegisterRequest{
 		AnticipatedRef: rms.NewReference(anticipatedRef),
@@ -367,7 +418,7 @@ func (s *SubSMRegister) stepRegisterOutgoingResult(ctx smachine.ExecutionContext
 		PrevRef: rms.NewReference(s.LastFilamentRef),
 	}
 
-	var anticipatedRef = s.getRecordAnticipatedRef(s.Object, record)
+	var anticipatedRef = s.getRecordAnticipatedRef(record)
 
 	if err := s.registerMessage(ctx, &rms.LRegisterRequest{
 		AnticipatedRef: rms.NewReference(anticipatedRef),
@@ -410,7 +461,7 @@ func (s *SubSMRegister) stepRegisterIncomingResult(ctx smachine.ExecutionContext
 			PrevRef: rms.NewReference(prevRef),
 		}
 
-		var anticipatedRef = s.getRecordAnticipatedRef(s.Object, record)
+		var anticipatedRef = s.getRecordAnticipatedRef(record)
 
 		if err := s.registerMessage(ctx, &rms.LRegisterRequest{
 			AnticipatedRef: rms.NewReference(anticipatedRef),
@@ -429,7 +480,7 @@ func (s *SubSMRegister) stepRegisterIncomingResult(ctx smachine.ExecutionContext
 			panic(throw.IllegalState())
 		}
 
-		var record rms.BasicRecord
+		var record SerializableBasicRecord
 
 		switch {
 		case !haveFilament && isConstructor:
@@ -456,7 +507,7 @@ func (s *SubSMRegister) stepRegisterIncomingResult(ctx smachine.ExecutionContext
 		}
 
 		if record != nil {
-			var anticipatedRef = s.getRecordAnticipatedRef(s.Object, record)
+			var anticipatedRef = s.getRecordAnticipatedRef(record)
 
 			if err := s.registerMessage(ctx, &rms.LRegisterRequest{
 				AnticipatedRef: rms.NewReference(anticipatedRef),
@@ -472,7 +523,7 @@ func (s *SubSMRegister) stepRegisterIncomingResult(ctx smachine.ExecutionContext
 
 	// TODO: RejoinRef to LastFilamentRef
 	{
-		var record rms.BasicRecord
+		var record SerializableBasicRecord
 
 		switch {
 		case isConstructor:
@@ -490,7 +541,7 @@ func (s *SubSMRegister) stepRegisterIncomingResult(ctx smachine.ExecutionContext
 		}
 
 		if record != nil {
-			var anticipatedRef = s.getRecordAnticipatedRef(s.Object, record)
+			var anticipatedRef = s.getRecordAnticipatedRef(record)
 
 			if err := s.registerMessage(ctx, &rms.LRegisterRequest{
 				AnticipatedRef: rms.NewReference(anticipatedRef),

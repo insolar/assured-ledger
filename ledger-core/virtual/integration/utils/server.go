@@ -19,6 +19,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
+	"github.com/insolar/assured-ledger/ledger-core/crypto"
+	"github.com/insolar/assured-ledger/ledger-core/crypto/legacyadapter"
+	"github.com/insolar/assured-ledger/ledger-core/cryptography/keystore"
+	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/convlog"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insconveyor"
@@ -45,8 +49,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/descriptor"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/integration/mock/publisher"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/lmn"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/memorycache"
 )
+
+const testCryptoKey = "../../cryptography/keystore/testdata/keys.json"
 
 type Server struct {
 	pulseLock sync.Mutex
@@ -124,6 +131,17 @@ func NewUninitializedServerWithErrorFilter(ctx context.Context, t Tester, errorF
 
 func generateGlobalCaller() reference.Global {
 	return reference.NewSelf(reference.NewLocal(pulse.MinTimePulse, 0, gen.UniqueLocalRef().GetHash()))
+}
+
+func platformScheme() crypto.PlatformScheme {
+	keyStore, err := keystore.NewKeyStore(testCryptoKey)
+	if err != nil {
+		panic(throw.W(err, "failed to load KeyStore: "))
+	}
+
+	platformCryptographyScheme := platformpolicy.NewPlatformCryptographyScheme()
+	keyProcessor := platformpolicy.NewKeyProcessor()
+	return legacyadapter.New(platformCryptographyScheme, keyProcessor, keyStore)
 }
 
 type ServerOpts struct {
@@ -210,6 +228,7 @@ func newServerExt(ctx context.Context, t Tester, opts ServerOpts) (*Server, cont
 	virtualDispatcher.EventlessSleep = -1 // disable EventlessSleep for proper WaitActiveThenIdleConveyor behavior
 	virtualDispatcher.MachineLogger = machineLogger
 	virtualDispatcher.MaxRunners = 4
+	virtualDispatcher.ReferenceBuilder = lmn.NewRecordReferenceBuilder(platformScheme().RecordScheme(), gen.UniqueGlobalRef())
 	s.virtual = virtualDispatcher
 
 	// re HTTP testing

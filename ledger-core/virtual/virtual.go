@@ -79,6 +79,7 @@ type Dispatcher struct {
 	AuthenticationService authentication.Service
 	Affinity              affinity.Helper
 	MemoryCache           memorycache.Service
+	ReferenceBuilder      lmn.RecordReferenceBuilderService
 
 	EventlessSleep            time.Duration
 	FactoryLogContextOverride context.Context
@@ -141,6 +142,7 @@ func (lr *Dispatcher) Init(ctx context.Context) error {
 	lr.Conveyor.AddInterfaceDependency(&lr.messageSenderAdapter)
 	lr.Conveyor.AddInterfaceDependency(&lr.memoryCacheAdapter)
 	lr.Conveyor.AddInterfaceDependency(&lr.AuthenticationService)
+	lr.Conveyor.AddInterfaceDependency(&lr.ReferenceBuilder)
 
 	var objectCatalog object.Catalog = object.NewLocalCatalog()
 	lr.Conveyor.AddInterfaceDependency(&objectCatalog)
