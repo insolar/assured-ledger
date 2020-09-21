@@ -80,9 +80,17 @@ jobs:
           GOTEST: 'go test -json'
         run: make test_func_race > functional_test.log
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
+      - name: Aggregate logs into a single archive
+        if: always()
+        run: tar --warning=no-file-changed -cvzf func-nodes-output.tgz .artifacts/launchnet/logs/discoverynodes/*/output.log || true
+        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
       - name: Run functional tests multiple times with race detector as local cloud
         if: always()
         run: make test_func_cloud_race > functional_test_cloud.log
+        working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
+      - name: Aggregate logs into a single archive
+        if: always()
+        run: tar --warning=no-file-changed -cvzf cloud-nodes-output.tgz .artifacts/launchnet/logs/discoverynodes/*/output.log || true
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
       - name: Run functional tests many times on `master` with reduced pulse time
         # if: always() # don't uncomment. this will rewrite logs of a previous run!
