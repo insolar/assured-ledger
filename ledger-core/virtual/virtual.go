@@ -23,6 +23,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
+	"github.com/insolar/assured-ledger/ledger-core/virtual/lmn"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/memorycache"
 	memoryCacheAdapter "github.com/insolar/assured-ledger/ledger-core/virtual/memorycache/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/object"
@@ -151,6 +152,8 @@ func (lr *Dispatcher) Init(ctx context.Context) error {
 	lr.ConveyorWorker.AttachTo(lr.Conveyor)
 
 	lr.FlowDispatcher = insconveyor.NewConveyorDispatcher(ctx, lr.Conveyor)
+
+	lr.MessageSender.AddInterceptor(lmn.LRegisterRequestInterceptor)
 
 	return nil
 }
