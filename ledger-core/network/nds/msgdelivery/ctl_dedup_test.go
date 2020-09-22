@@ -107,7 +107,7 @@ func TestDeduplicator_Gaps(t *testing.T) {
 		id--
 	}
 
-	id -= maxReceiveWindow // coverage in this area may vary
+	id -= DedupID(maxReceiveWindow) // coverage in this area may vary
 
 	for ; id > 0; id-- {
 		if !dd.Has(id) {

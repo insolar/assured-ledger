@@ -39,7 +39,7 @@ type msgShipment struct {
 }
 
 func (p *msgShipment) isImmediateSend() bool {
-	return false
+	return true
 }
 
 func (p *msgShipment) isFireAndForget() bool {

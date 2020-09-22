@@ -16,6 +16,7 @@ type PeerMap struct {
 	unusedCount uint32
 	unusedMin   uint32
 	aliases     map[nwapi.Address]uint32
+	idWithPortFn func(nwapi.Address) bool
 }
 
 func (p *PeerMap) ensureEmpty() {
@@ -29,14 +30,14 @@ func (p *PeerMap) isEmpty() bool {
 }
 
 func (p *PeerMap) get(a nwapi.Address) (uint32, *Peer) {
-	if idx, ok := p.aliases[mapID(a)]; ok {
+	if idx, ok := p.aliases[p.mapID(a)]; ok {
 		return idx, p.peers[idx]
 	}
 	return 0, nil
 }
 
-func mapID(a nwapi.Address) nwapi.Address {
-	if a.IsLoopback() {
+func (p *PeerMap) mapID(a nwapi.Address) nwapi.Address {
+	if a.IsLoopback() || p.idWithPortFn != nil && p.idWithPortFn(a) {
 		return a.WithoutName()
 	}
 	return a.HostIdentity()
@@ -45,7 +46,7 @@ func mapID(a nwapi.Address) nwapi.Address {
 func (p *PeerMap) checkAliases(peer *Peer, peerIndex uint32, aliases []nwapi.Address) ([]nwapi.Address, error) {
 	j := 0
 	for i, a := range aliases {
-		switch conflictIndex, hasConflict := p.aliases[mapID(a)]; {
+		switch conflictIndex, hasConflict := p.aliases[p.mapID(a)]; {
 		case !hasConflict:
 			if i != j {
 				aliases[j] = a
@@ -89,7 +90,7 @@ outer:
 func (p *PeerMap) remove(idx uint32) {
 	peer := p.peers[idx]
 	for _, a := range peer.onRemoved() {
-		delete(p.aliases, mapID(a))
+		delete(p.aliases, p.mapID(a))
 	}
 	p.peers[idx] = nil
 	p.unusedCount++
@@ -105,7 +106,7 @@ func (p *PeerMap) removeAlias(a nwapi.Address) bool {
 	}
 
 	if peer.removeAlias(a) {
-		delete(p.aliases, mapID(a))
+		delete(p.aliases, p.mapID(a))
 		return true
 	}
 	return false
@@ -124,7 +125,7 @@ func (p *PeerMap) addAliases(peerIndex uint32, aliases []nwapi.Address) error {
 			p.aliases = make(map[nwapi.Address]uint32)
 		}
 		for _, a := range aliases {
-			p.aliases[mapID(a)] = peerIndex
+			p.aliases[p.mapID(a)] = peerIndex
 		}
 	}
 	return nil
@@ -161,7 +162,7 @@ func (p *PeerMap) addPeer(peer *Peer) uint32 {
 		p.aliases = make(map[nwapi.Address]uint32)
 	}
 	for _, a := range peer.transport.aliases {
-		p.aliases[mapID(a)] = peerIndex
+		p.aliases[p.mapID(a)] = peerIndex
 	}
 	return peerIndex
 }
@@ -172,18 +173,17 @@ func (p *PeerMap) updatePrimary(primary nwapi.Address, index uint32) {
 		panic(throw.IllegalState())
 	}
 
-	addr := mapID(primary)
+	addr := p.mapID(primary)
 	switch idx, ok := p.aliases[addr]; {
 	case !ok:
 		//
 	case idx == index:
-		// unexpected
-		panic(throw.IllegalValue())
+		// port has changed
 	default:
 		panic(throw.IllegalValue())
 	}
-	p.aliases[addr] = index
 	if prev := peer.updatePrimary(primary); !prev.IsZero() {
-		delete(p.aliases, mapID(prev))
+		delete(p.aliases, p.mapID(prev))
 	}
+	p.aliases[addr] = index
 }

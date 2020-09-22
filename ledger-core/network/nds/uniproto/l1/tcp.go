@@ -181,9 +181,7 @@ func (p *tcpOutTransport) Write(b []byte) (n int, err error) {
 }
 
 func (p *tcpOutTransport) Close() error {
-	err := p.conn.Close()
-	p.conn = nil
-	return err
+	return p.conn.Close()
 }
 
 func (p *tcpOutTransport) ReadFrom(r io.Reader) (int64, error) {
