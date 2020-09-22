@@ -21,9 +21,8 @@ import (
 )
 
 func TestShipToWithTTL(t *testing.T) {
-
 	head := TestString{string(rndBytes(64))}
-	sleepChan := make(chan string, 1)
+	sleepChan := make(chan string)
 	const Server1 = "127.0.0.1:0"
 	const Server2 = "127.0.0.1:0"
 	p1 := pulse.OfNow()
@@ -161,8 +160,14 @@ type TestOneWayTransport struct {
 	ch chan string
 }
 
+func (t TestOneWayTransport) SendBytes(b []byte) error {
+	println("chan sleep SendBytes")
+	<-t.ch
+	return t.OneWayTransport.SendBytes(b)
+}
+
 func (t TestOneWayTransport) Send(payload io.WriterTo) error {
-	println("chan sleep")
+	println("chan sleep Send")
 	<-t.ch
 	return t.OneWayTransport.Send(payload)
 }
