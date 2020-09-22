@@ -952,6 +952,11 @@ func TestVirtual_FutureMessageAddedToSlot(t *testing.T) {
 	jetCoordinatorMock.QueryRoleMock.Return([]reference.Global{server.GlobalCaller()}, nil)
 	jetCoordinatorMock.MeMock.Return(server.GlobalCaller())
 
+	const (
+		validatedMem = "12345"
+		dirtyMem     = "54321"
+	)
+
 	var (
 		objectGlobal      = server.RandomGlobalWithPulse()
 		class             = server.RandomGlobalWithPulse()
@@ -960,11 +965,12 @@ func TestVirtual_FutureMessageAddedToSlot(t *testing.T) {
 		validatedStateRef = server.RandomLocalWithPulse()
 		validatedState    = reference.NewSelf(validatedStateRef)
 		prevPulse         = server.GetPulse().PulseNumber
-	)
 
-	const (
-		validatedMem = "12345"
-		dirtyMem     = "54321"
+		dirtyStateHash = append([]byte(dirtyMem), objectGlobal.AsBytes()...)
+		dirtyStateID   = execute.NewStateID(prevPulse, dirtyStateHash)
+
+		validatedStateHash = append([]byte(validatedMem), objectGlobal.AsBytes()...)
+		validatedStateID   = execute.NewStateID(prevPulse, validatedStateHash)
 	)
 
 	server.IncrementPulseAndWaitIdle(ctx)
@@ -979,7 +985,7 @@ func TestVirtual_FutureMessageAddedToSlot(t *testing.T) {
 	typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
 		assert.Equal(t, objectGlobal, report.Object.GetValue())
 		assert.Equal(t, p, report.AsOf)
-		assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
+		assert.Len(t, report.ObjectTranscript.Entries, 0)
 		return false
 	})
 	typedChecker.VStateRequest.Set(func(res *rms.VStateRequest) bool {
@@ -991,12 +997,12 @@ func TestVirtual_FutureMessageAddedToSlot(t *testing.T) {
 			LatestDirtyState:     rms.NewReference(dirtyState),
 			ProvidedContent: &rms.VStateReport_ProvidedContentBody{
 				LatestValidatedState: &rms.ObjectState{
-					Reference: rms.NewReferenceLocal(validatedStateRef),
+					Reference: rms.NewReferenceLocal(validatedStateID),
 					Class:     rms.NewReference(class),
 					State:     rms.NewBytes([]byte(validatedMem)),
 				},
 				LatestDirtyState: &rms.ObjectState{
-					Reference: rms.NewReferenceLocal(dirtyStateRef),
+					Reference: rms.NewReferenceLocal(dirtyStateID),
 					Class:     rms.NewReference(class),
 					State:     rms.NewBytes([]byte(dirtyMem)),
 				},
@@ -1557,6 +1563,9 @@ func TestVirtual_Method_IntolerableCallChangeState(t *testing.T) {
 			Interference: isolation.CallIntolerable,
 			State:        isolation.CallValidated,
 		}
+
+		dirtyStateHash = append([]byte(origObjectMem), objectRef.AsBytes()...)
+		dirtyStateID   = execute.NewStateID(p1, dirtyStateHash)
 	)
 
 	server.IncrementPulseAndWaitIdle(ctx)
@@ -1590,12 +1599,14 @@ func TestVirtual_Method_IntolerableCallChangeState(t *testing.T) {
 
 			content := &rms.VStateReport_ProvidedContentBody{
 				LatestDirtyState: &rms.ObjectState{
-					Class: rms.NewReference(testwalletProxy.GetClass()),
-					State: rms.NewBytes([]byte(origObjectMem)),
+					Reference: rms.NewReferenceLocal(dirtyStateID),
+					Class:     rms.NewReference(testwalletProxy.GetClass()),
+					State:     rms.NewBytes([]byte(origObjectMem)),
 				},
 				LatestValidatedState: &rms.ObjectState{
-					Class: rms.NewReference(testwalletProxy.GetClass()),
-					State: rms.NewBytes([]byte(origObjectMem)),
+					Reference: rms.NewReferenceLocal(dirtyStateID),
+					Class:     rms.NewReference(testwalletProxy.GetClass()),
+					State:     rms.NewBytes([]byte(origObjectMem)),
 				},
 			}
 			report := rms.VStateReport{
@@ -1629,7 +1640,7 @@ func TestVirtual_Method_IntolerableCallChangeState(t *testing.T) {
 		typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
 			assert.Equal(t, objectRef, report.Object.GetValue())
 			assert.Equal(t, outgoing.GetLocal().Pulse(), report.AsOf)
-			assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
+			assert.Len(t, report.ObjectTranscript.Entries, 0)
 			return false
 		})
 	}
