@@ -332,69 +332,88 @@ func TestVirtual_Constructor_PrevPulseStateWithMissingStatus(t *testing.T) {
 	server.IncrementPulseAndWaitIdle(ctx)
 	p2 := server.GetPulse().PulseNumber
 
-	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
-	typedChecker.VStateRequest.Set(func(req *rms.VStateRequest) bool {
-		require.Equal(t, p1, req.AsOf)
-		require.Equal(t, objectRef, req.Object.GetValue())
-
-		flags := rms.StateRequestContentFlags(0)
-		flags.Set(
-			rms.RequestLatestDirtyState,
-			rms.RequestLatestValidatedState,
-			rms.RequestOrderedQueue,
-			rms.RequestUnorderedQueue,
-		)
-		require.Equal(t, flags, req.RequestedContent)
-
-		report := rms.VStateReport{
-			Status: rms.StateStatusMissing,
-			AsOf:   p1,
-			Object: rms.NewReference(objectRef),
-		}
-
-		server.SendMessage(ctx, utils.NewRequestWrapper(p2, &report).SetSender(server.JetCoordinatorMock.Me()).Finalize())
-
-		return false // no resend msg
-	})
-	typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
-		assert.Equal(t, []byte("123"), res.ReturnArguments.GetBytes())
-		assert.Equal(t, objectRef, res.Callee.GetValue())
-		assert.Equal(t, outgoing, res.CallOutgoing.GetValue())
-
-		return false // no resend msg
-	})
-	typedChecker.VStateReport.Set(func(report *rms.VStateReport) bool {
-		objectState := rms.ObjectState{
-			State: rms.NewBytes([]byte("some memory")),
-			Class: rms.NewReference(class),
-		}
-		expected := &rms.VStateReport{
-			Status:           rms.StateStatusReady,
-			AsOf:             p2,
-			Object:           rms.NewReference(objectRef),
-			LatestDirtyState: rms.NewReference(objectRef),
-			ProvidedContent: &rms.VStateReport_ProvidedContentBody{
-				LatestDirtyState:     &objectState,
-				LatestValidatedState: &objectState,
-			},
-		}
-		report.ProvidedContent.LatestDirtyState.Reference = rms.Reference{}
-		report.ProvidedContent.LatestValidatedState.Reference = rms.Reference{}
-		utils.AssertVStateReportsEqual(t, expected, report)
-
-		return false
-	})
-	typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
-		assert.Equal(t, objectRef, report.Object.GetValue())
-		assert.Equal(t, p2, report.AsOf)
-		assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
-		return false
-	})
-
+	// generate VCallRequest
 	pl := utils.GenerateVCallRequestConstructor(server)
 	pl.Callee = rms.NewReference(class)
 	pl.CallOutgoing = rms.NewReference(outgoing)
 	pl.Arguments = rms.NewBytes([]byte("arguments"))
+
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	// typedChecks
+	{
+		typedChecker.VStateRequest.Set(func(req *rms.VStateRequest) bool {
+			require.Equal(t, p1, req.AsOf)
+			require.Equal(t, objectRef, req.Object.GetValue())
+
+			flags := rms.StateRequestContentFlags(0)
+			flags.Set(
+				rms.RequestLatestDirtyState,
+				rms.RequestLatestValidatedState,
+				rms.RequestOrderedQueue,
+				rms.RequestUnorderedQueue,
+			)
+			require.Equal(t, flags, req.RequestedContent)
+
+			report := rms.VStateReport{
+				Status: rms.StateStatusMissing,
+				AsOf:   p1,
+				Object: rms.NewReference(objectRef),
+			}
+
+			server.SendMessage(ctx, utils.NewRequestWrapper(p2, &report).SetSender(server.JetCoordinatorMock.Me()).Finalize())
+
+			return false // no resend msg
+		})
+		typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
+			assert.Equal(t, []byte("123"), res.ReturnArguments.GetBytes())
+			assert.Equal(t, objectRef, res.Callee.GetValue())
+			assert.Equal(t, outgoing, res.CallOutgoing.GetValue())
+
+			return false // no resend msg
+		})
+		typedChecker.VStateReport.Set(func(report *rms.VStateReport) bool {
+			objectState := rms.ObjectState{
+				State: rms.NewBytes([]byte("some memory")),
+				Class: rms.NewReference(class),
+			}
+			expected := &rms.VStateReport{
+				Status:           rms.StateStatusReady,
+				AsOf:             p2,
+				Object:           rms.NewReference(objectRef),
+				LatestDirtyState: rms.NewReference(objectRef),
+				ProvidedContent: &rms.VStateReport_ProvidedContentBody{
+					LatestDirtyState:     &objectState,
+					LatestValidatedState: &objectState,
+				},
+			}
+			report.ProvidedContent.LatestDirtyState.Reference = rms.Reference{}
+			report.ProvidedContent.LatestValidatedState.Reference = rms.Reference{}
+			utils.AssertVStateReportsEqual(t, expected, report)
+
+			return false
+		})
+		typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
+			assert.Equal(t, objectRef, report.Object.GetValue())
+			assert.Equal(t, p2, report.AsOf)
+
+			assert.Len(t, report.ObjectTranscript.Entries, 2)
+
+			request, ok := report.ObjectTranscript.Entries[0].Get().(*rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest)
+			require.True(t, ok)
+			result, ok := report.ObjectTranscript.Entries[1].Get().(*rms.VObjectTranscriptReport_TranscriptEntryIncomingResult)
+			require.True(t, ok)
+
+			assert.Empty(t, request.Incoming)
+			assert.Empty(t, request.ObjectMemory)
+			utils.AssertVCallRequestEqual(t, pl, &request.Request)
+
+			assert.Empty(t, result.IncomingResult)
+			assert.Equal(t, p2, result.ObjectState.Get().GetLocal().Pulse())
+			assert.Equal(t, objectRef.GetBase(), result.ObjectState.Get().GetBase())
+
+			return false
+		})
+	}
 
 	{
 		requestResult := requestresult.New([]byte("123"), server.RandomGlobalWithPulse())
@@ -587,7 +606,7 @@ func TestVirtual_CallConstructorFromConstructor(t *testing.T) {
 	server.IncrementPulseAndWaitIdle(ctx)
 
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 1))
-	commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VObjectTranscriptReport.Wait(ctx, 1))
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VObjectTranscriptReport.Wait(ctx, 2))
 
 	// 2 objects, 2 transcripts
 	assert.Equal(t, 2, typedChecker.VObjectTranscriptReport.Count())
@@ -695,8 +714,9 @@ func TestVirtual_Constructor_PulseChangedWhileOutgoing(t *testing.T) {
 		})
 		typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
 			assert.Equal(t, objectRef, report.Object.GetValue())
-			assert.Equal(t, pl.CallOutgoing.GetValue().GetLocal().Pulse(), report.AsOf)
-			assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
+			assert.Equal(t, constructorPulse, report.AsOf)
+			require.Len(t, report.ObjectTranscript.Entries, 0)
+
 			return false
 		})
 		typedChecker.VDelegatedCallRequest.Set(func(msg *rms.VDelegatedCallRequest) bool {
@@ -790,11 +810,10 @@ func TestVirtual_Constructor_PulseChangedWhileOutgoing(t *testing.T) {
 
 	server.SendPayload(ctx, &msgVStateRequest)
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VStateReport.Wait(ctx, 2))
-	commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VObjectTranscriptReport.Wait(ctx, 1)) // one pulse change, 2 obj
-
-	assert.Equal(t, 1, typedChecker.VObjectTranscriptReport.Count())
+	commontestutils.WaitSignalsTimed(t, 10*time.Second, typedChecker.VObjectTranscriptReport.Wait(ctx, 1))
 
 	{
+		assert.Equal(t, 1, typedChecker.VObjectTranscriptReport.Count())
 		assert.Equal(t, 1, typedChecker.VCallResult.Count())
 		assert.Equal(t, 1, typedChecker.VDelegatedCallRequest.Count())
 		assert.Equal(t, 0, typedChecker.VDelegatedCallResponse.Count())
@@ -859,6 +878,11 @@ func TestVirtual_CallConstructor_WithTwicePulseChange(t *testing.T) {
 		})
 	}
 
+	// generate VCallRequest
+	pl := utils.GenerateVCallRequestConstructor(server)
+	pl.Callee.Set(classA)
+	pl.CallOutgoing.Set(outgoing)
+
 	// add checks to typedChecker
 	{
 		typedChecker.VStateReport.Set(func(report *rms.VStateReport) bool {
@@ -870,9 +894,9 @@ func TestVirtual_CallConstructor_WithTwicePulseChange(t *testing.T) {
 		})
 		typedChecker.VObjectTranscriptReport.Set(func(report *rms.VObjectTranscriptReport) bool {
 			assert.Equal(t, objectRef, report.Object.GetValue())
-			assert.Equal(t, outgoing.GetLocal().Pulse(), report.AsOf)
-			assert.NotEmpty(t, report.ObjectTranscript.Entries) // todo fix assert
-			// see all pulse change, add check for count
+			assert.Equal(t, pl.CallOutgoing.GetValue().GetLocal().Pulse(), report.AsOf)
+			require.Len(t, report.ObjectTranscript.Entries, 0)
+
 			return false
 		})
 		typedChecker.VDelegatedCallRequest.Set(func(request *rms.VDelegatedCallRequest) bool {
@@ -933,9 +957,6 @@ func TestVirtual_CallConstructor_WithTwicePulseChange(t *testing.T) {
 		})
 	}
 
-	pl := utils.GenerateVCallRequestConstructor(server)
-	pl.Callee.Set(classA)
-	pl.CallOutgoing.Set(outgoing)
 	execDone := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 	server.SendPayload(ctx, pl)
 
