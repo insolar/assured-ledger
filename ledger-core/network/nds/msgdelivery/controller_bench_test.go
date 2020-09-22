@@ -7,6 +7,7 @@ package msgdelivery
 
 import (
 	"encoding/binary"
+	"math"
 	"testing"
 	"time"
 
@@ -26,6 +27,11 @@ type BenchType func(v benchSender, payload []byte)
 func BenchmarkThroughput(b *testing.B) {
 	//TODO https://insolar.atlassian.net/browse/PLAT-826
 	// workaround with set max value for case above
+	maxReceiveExceptions = math.MaxInt64
+	defer func() {
+		maxReceiveExceptions = 1 << 8
+	}()
+
 	results := make(chan []byte, 16)
 	sender, stopFn := createPipe(b, "127.0.0.1:0", "127.0.0.1:0", 0, func(bb []byte) {
 		results <- bb
@@ -105,6 +111,11 @@ func BenchmarkThroughput(b *testing.B) {
 func BenchmarkLatency(b *testing.B) {
 	//TODO https://insolar.atlassian.net/browse/PLAT-826
 	// workaround with set max value for case above
+	maxReceiveExceptions = math.MaxInt64
+	defer func() {
+		maxReceiveExceptions = 1 << 8
+	}()
+
 	results := make(chan []byte, 1)
 	sender, stopFn := createPipe(b, "127.0.0.1:0", "127.0.0.1:0", 0, func(bb []byte) {
 		// nanos := time.Now().UnixNano()
