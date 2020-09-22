@@ -8,17 +8,14 @@ package msgdelivery
 import (
 	"fmt"
 	"math/rand"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto"
 	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto/l2/uniserver"
 	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
-	"github.com/insolar/assured-ledger/ledger-core/pulse"
-	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
-	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
 )
 
@@ -38,94 +35,172 @@ func rndBytes(n int) []byte {
 	return key
 }
 
+func TestManyServersEcho(t *testing.T) {
+	numberServers := 50
+	cfg := uniserver.ServerConfig{
+		BindingAddress: "127.0.0.1:0",
+		UDPMaxSize:     1400,
+		UDPParallelism: 2,
+		PeerLimit:      -1,
+	}
+
+	h := NewUnitProtoServersHolder(TestLogAdapter{t: t})
+	defer h.stop()
+
+	chRes := make(chan string)
+
+	for idx := 1; idx <= numberServers; idx++ {
+		servId := idx
+
+		_, err := h.createService(cfg, func(a ReturnAddress, done nwapi.PayloadCompleteness, val interface{}) error {
+			self := h.server(servId)
+			v := val.(fmt.Stringer).String()
+
+			switch {
+			case strings.HasPrefix(v, "echo"):
+				chRes <- v
+			default:
+				sh := Shipment{
+					Head: &TestString{fmt.Sprintf("echo%s<-%d", v, servId)},
+				}
+
+				err := self.service.ShipReturn(a, sh)
+				require.NoError(t, err)
+			}
+			return nil
+		})
+
+		require.NoError(t, err)
+	}
+
+	for sendIdx := 1; sendIdx <= numberServers; sendIdx++ {
+		srv := h.server(sendIdx)
+
+		text := fmt.Sprintf("%d", sendIdx)
+		sh := Shipment{
+			Head: &TestString{text},
+		}
+
+		for recvIdx := 1; recvIdx <= numberServers; recvIdx++ {
+			if sendIdx == recvIdx {
+				continue
+			}
+
+			err := srv.service.ShipTo(NewDirectAddress(nwapi.ShortNodeID(recvIdx)), sh)
+			require.NoError(t, err)
+			res := <-chRes
+			require.Equal(t, fmt.Sprintf("echo%s<-%d", text, recvIdx), res)
+		}
+	}
+}
+
 func TestShipToHead(t *testing.T) {
+	cfg := uniserver.ServerConfig{
+		BindingAddress: "127.0.0.1:0",
+		UDPMaxSize:     1400,
+		UDPParallelism: 2,
+		PeerLimit:      -1,
+	}
+
+	h := NewUnitProtoServersHolder(TestLogAdapter{t: t})
+	defer h.stop()
+
 	payloadLen := 64
-
 	head := TestString{string(rndBytes(payloadLen))}
-
 	sh := Shipment{
 		Head: &head,
 	}
 
-	var _, srv2 Service
+	ch := make(chan string)
 
-	ch1 := make(chan string, 1)
-	recv1 := func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
+	srv1, err := h.createService(cfg, func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
 		vo := v.(fmt.Stringer).String()
 		t.Log(a.String(), fmt.Sprintf("ctrl-1:"), len(vo))
 
 		require.True(t, bool(done))
 
-		ch1 <- vo
+		ch <- vo
 
 		return nil
-	}
-
-	_, srv2, stop := startUniprotoServers(t, recv1, noopReceiver)
-	defer stop()
-
-	err := srv2.ShipTo(NewDirectAddress(1), sh)
+	})
 	require.NoError(t, err)
 
-	expPayload := head.S
-	actlPayload := <-ch1
+	srv2, err := h.createService(cfg, noopReceiver)
+	require.NoError(t, err)
 
-	require.Equal(t, expPayload, actlPayload)
+	err = srv2.service.ShipTo(srv1.directAddress(), sh)
+	require.NoError(t, err)
+
+	require.Equal(t, head.S, <-ch)
 }
 
 func TestShipToBody(t *testing.T) {
+	cfg := uniserver.ServerConfig{
+		BindingAddress: "127.0.0.1:0",
+		UDPMaxSize:     1400,
+		UDPParallelism: 2,
+		PeerLimit:      -1,
+	}
+
+	h := NewUnitProtoServersHolder(TestLogAdapter{t: t})
+	defer h.stop()
+
 	payloadLen := 1024 * 1024 * 64
-
 	body := TestString{string(rndBytes(payloadLen))}
-
 	sh := Shipment{
 		Body: &body,
 	}
 
-	var _, srv2 Service
+	ch := make(chan string)
 
-	ch1 := make(chan string, 1)
-	recv1 := func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
+	srv1, err := h.createService(cfg, func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
 		vo := v.(fmt.Stringer).String()
 		t.Log(a.String(), fmt.Sprintf("ctrl-1:"), len(vo))
 
 		require.True(t, bool(done))
 
-		ch1 <- vo
+		ch <- vo
 
 		return nil
-	}
+	})
+	require.NoError(t, err)
 
-	_, srv2, stop := startUniprotoServers(t, recv1, noopReceiver)
-	defer stop()
+	srv2, err := h.createService(cfg, noopReceiver)
+	require.NoError(t, err)
 
-	err := srv2.ShipTo(NewDirectAddress(1), sh)
+	err = srv2.service.ShipTo(srv1.directAddress(), sh)
 	require.NoError(t, err)
 
 	expPayload := body.S
-	actlPayload := <-ch1
+	actlPayload := <-ch
 
 	require.Equal(t, expPayload, actlPayload)
 }
 
 func TestShipToHeadAndBody(t *testing.T) {
+	cfg := uniserver.ServerConfig{
+		BindingAddress: "127.0.0.1:0",
+		UDPMaxSize:     1400,
+		UDPParallelism: 2,
+		PeerLimit:      -1,
+	}
+
+	h := NewUnitProtoServersHolder(TestLogAdapter{t: t})
+	defer h.stop()
+
 	payloadLen := 1024 * 1024 * 64
-
 	bytes := rndBytes(payloadLen)
-
 	head := TestString{string(bytes[:64])}
 	body := TestString{string(bytes)}
-
 	sh := Shipment{
 		Head: &head,
 		Body: &body,
 	}
 
 	var srv1, srv2 Service
-
 	ch1 := make(chan string, 2)
 
-	recv1 := func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
+	server1, err := h.createService(cfg, func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
 		vo := v.(fmt.Stringer).String()
 		t.Log(a.String(), fmt.Sprintf("ctrl-1:"), len(vo))
 
@@ -150,12 +225,17 @@ func TestShipToHeadAndBody(t *testing.T) {
 		require.NoError(t, err)
 
 		return nil
-	}
+	})
+	require.NoError(t, err)
 
-	srv1, srv2, stop := startUniprotoServers(t, recv1, noopReceiver)
-	defer stop()
+	srv1 = server1.service
 
-	err := srv2.ShipTo(NewDirectAddress(1), sh)
+	server2, err := h.createService(cfg, noopReceiver)
+	require.NoError(t, err)
+
+	srv2 = server2.service
+
+	err = srv2.ShipTo(server1.directAddress(), sh)
 	require.NoError(t, err)
 
 	expHeadPayload := head.S
@@ -168,17 +248,25 @@ func TestShipToHeadAndBody(t *testing.T) {
 }
 
 func TestEchoHead(t *testing.T) {
+	cfg := uniserver.ServerConfig{
+		BindingAddress: "127.0.0.1:0",
+		UDPMaxSize:     1400,
+		UDPParallelism: 2,
+		PeerLimit:      -1,
+	}
+
+	h := NewUnitProtoServersHolder(TestLogAdapter{t: t})
+	defer h.stop()
+
 	payloadLen := 64
-
 	head := TestString{string(rndBytes(payloadLen))}
-
 	sh := Shipment{
 		Head: &head,
 	}
 
-	var srv1, srv2 Service
+	var srv1 Service
 
-	recv1 := func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
+	server1, err := h.createService(cfg, func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
 		vo := v.(fmt.Stringer).String()
 		t.Log(a.String(), fmt.Sprintf("ctrl-1:"), len(vo))
 
@@ -191,11 +279,14 @@ func TestEchoHead(t *testing.T) {
 		require.NoError(t, err)
 
 		return nil
-	}
+	})
+	require.NoError(t, err)
 
-	ch2 := make(chan string, 1)
+	srv1 = server1.service
 
-	recv2 := func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
+	ch2 := make(chan string)
+
+	server2, err := h.createService(cfg, func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
 		vo := v.(fmt.Stringer).String()
 		t.Log(a.String(), fmt.Sprintf("ctrl-2:"), len(vo))
 
@@ -204,12 +295,10 @@ func TestEchoHead(t *testing.T) {
 		ch2 <- vo
 
 		return nil
-	}
+	})
+	require.NoError(t, err)
 
-	srv1, srv2, stop := startUniprotoServers(t, recv1, recv2)
-	defer stop()
-
-	err := srv2.ShipTo(NewDirectAddress(1), sh)
+	err = server2.service.ShipTo(server1.directAddress(), sh)
 	require.NoError(t, err)
 
 	expPayload := head.S + "echo1"
@@ -219,13 +308,20 @@ func TestEchoHead(t *testing.T) {
 }
 
 func TestEchoHeadAndBody(t *testing.T) {
+	cfg := uniserver.ServerConfig{
+		BindingAddress: "127.0.0.1:0",
+		UDPMaxSize:     1400,
+		UDPParallelism: 2,
+		PeerLimit:      -1,
+	}
+
+	h := NewUnitProtoServersHolder(TestLogAdapter{t: t})
+	defer h.stop()
+
 	payloadLen := 1024 * 1024 * 64
-
 	bytes := rndBytes(payloadLen)
-
 	head := TestString{string(bytes[:64])}
 	body := TestString{string(bytes)}
-
 	sh := Shipment{
 		Head: &head,
 		Body: &body,
@@ -233,7 +329,7 @@ func TestEchoHeadAndBody(t *testing.T) {
 
 	var srv1, srv2 Service
 
-	recv1 := func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
+	server1, err := h.createService(cfg, func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
 		vo := v.(fmt.Stringer).String()
 		t.Log(a.String(), fmt.Sprintf("ctrl-1:"), len(vo))
 
@@ -259,13 +355,14 @@ func TestEchoHeadAndBody(t *testing.T) {
 		})
 
 		require.NoError(t, err)
-
 		return nil
-	}
+	})
+	require.NoError(t, err)
+	srv1 = server1.service
 
 	ch2 := make(chan string, 2)
 
-	recv2 := func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
+	server2, err := h.createService(cfg, func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
 		vo := v.(fmt.Stringer).String()
 		t.Log(a.String(), fmt.Sprintf("ctrl-2:"), len(vo))
 
@@ -287,14 +384,12 @@ func TestEchoHeadAndBody(t *testing.T) {
 		})
 
 		require.NoError(t, err)
-
 		return nil
-	}
+	})
+	require.NoError(t, err)
+	srv2 = server2.service
 
-	srv1, srv2, stop := startUniprotoServers(t, recv1, recv2)
-	defer stop()
-
-	err := srv2.ShipTo(NewDirectAddress(1), sh)
+	err = server2.service.ShipTo(server1.directAddress(), sh)
 	require.NoError(t, err)
 
 	expHeadPayload := head.S + "echo1"
@@ -309,10 +404,18 @@ func TestEchoHeadAndBody(t *testing.T) {
 func TestShipToCancel(t *testing.T) {
 	t.Skip("https://insolar.atlassian.net/browse/PLAT-798")
 
+	cfg := uniserver.ServerConfig{
+		BindingAddress: "127.0.0.1:0",
+		UDPMaxSize:     1400,
+		UDPParallelism: 2,
+		PeerLimit:      -1,
+	}
+
+	h := NewUnitProtoServersHolder(TestLogAdapter{t: t})
+	defer h.stop()
+
 	payloadLen := 64
-
 	head := TestString{string(rndBytes(payloadLen))}
-
 	ch := synckit.NewChainedCancel()
 	sh := Shipment{
 		Head:   &head,
@@ -321,10 +424,9 @@ func TestShipToCancel(t *testing.T) {
 
 	ch.Cancel()
 
-	var _, srv2 Service
+	ch1 := make(chan string)
 
-	ch1 := make(chan string, 1)
-	recv1 := func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
+	server1, err := h.createService(cfg, func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
 		vo := v.(fmt.Stringer).String()
 		t.Log(a.String(), fmt.Sprintf("ctrl-1:"), len(vo))
 
@@ -333,12 +435,13 @@ func TestShipToCancel(t *testing.T) {
 		ch1 <- vo
 
 		return nil
-	}
+	})
+	require.NoError(t, err)
 
-	_, srv2, stop := startUniprotoServers(t, recv1, noopReceiver)
-	defer stop()
+	server2, err := h.createService(cfg, noopReceiver)
+	require.NoError(t, err)
 
-	err := srv2.ShipTo(NewDirectAddress(1), sh)
+	err = server2.service.ShipTo(server1.directAddress(), sh)
 	require.NoError(t, err)
 
 	_, ok := <-ch1
@@ -349,17 +452,25 @@ func TestShipToCancel(t *testing.T) {
 func TestShipReturnCancel(t *testing.T) {
 	t.Skip("https://insolar.atlassian.net/browse/PLAT-798")
 
+	cfg := uniserver.ServerConfig{
+		BindingAddress: "127.0.0.1:0",
+		UDPMaxSize:     1400,
+		UDPParallelism: 2,
+		PeerLimit:      -1,
+	}
+
+	h := NewUnitProtoServersHolder(TestLogAdapter{t: t})
+	defer h.stop()
+
 	payloadLen := 64
-
 	head := TestString{string(rndBytes(payloadLen))}
-
 	sh := Shipment{
 		Head: &head,
 	}
 
-	var srv1, srv2 Service
+	var srv1 Service
 
-	recv1 := func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
+	server1, err := h.createService(cfg, func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
 		vo := v.(fmt.Stringer).String()
 		t.Log(a.String(), fmt.Sprintf("ctrl-1:"), len(vo))
 
@@ -374,13 +485,15 @@ func TestShipReturnCancel(t *testing.T) {
 		})
 
 		require.NoError(t, err)
-
 		return nil
-	}
+	})
+	require.NoError(t, err)
 
-	ch2 := make(chan string, 1)
+	srv1 = server1.service
 
-	recv2 := func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
+	ch2 := make(chan string)
+
+	server2, err := h.createService(cfg, func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
 		vo := v.(fmt.Stringer).String()
 		t.Log(a.String(), fmt.Sprintf("ctrl-2:"), len(vo))
 
@@ -389,12 +502,10 @@ func TestShipReturnCancel(t *testing.T) {
 		ch2 <- vo
 
 		return nil
-	}
+	})
+	require.NoError(t, err)
 
-	srv1, srv2, stop := startUniprotoServers(t, recv1, recv2)
-	defer stop()
-
-	err := srv2.ShipTo(NewDirectAddress(1), sh)
+	err = server2.service.ShipTo(server1.directAddress(), sh)
 	require.NoError(t, err)
 
 	_, ok := <-ch2
@@ -405,23 +516,30 @@ func TestShipReturnCancel(t *testing.T) {
 func TestPullBodyCancel(t *testing.T) {
 	t.Skip("https://insolar.atlassian.net/browse/PLAT-798")
 
+	cfg := uniserver.ServerConfig{
+		BindingAddress: "127.0.0.1:0",
+		UDPMaxSize:     1400,
+		UDPParallelism: 2,
+		PeerLimit:      -1,
+	}
+
+	h := NewUnitProtoServersHolder(TestLogAdapter{t: t})
+	defer h.stop()
+
 	payloadLen := 1024 * 1024 * 64
-
 	bytes := rndBytes(payloadLen)
-
 	head := TestString{string(bytes[:64])}
 	body := TestString{string(bytes)}
-
 	sh := Shipment{
 		Head: &head,
 		Body: &body,
 	}
 
-	var srv1, srv2 Service
+	var srv1 Service
 
-	ch1 := make(chan string, 1)
+	ch1 := make(chan string)
 
-	recv1 := func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
+	server1, err := h.createService(cfg, func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
 		vo := v.(fmt.Stringer).String()
 		t.Log(a.String(), fmt.Sprintf("ctrl-1:"), len(vo))
 
@@ -444,14 +562,14 @@ func TestPullBodyCancel(t *testing.T) {
 		})
 
 		require.NoError(t, err)
-
 		return nil
-	}
+	})
+	require.NoError(t, err)
+	srv1 = server1.service
 
-	srv1, srv2, stop := startUniprotoServers(t, recv1, noopReceiver)
-	defer stop()
+	server2, err := h.createService(cfg, noopReceiver)
 
-	err := srv2.ShipTo(NewDirectAddress(1), sh)
+	err = server2.service.ShipTo(server1.directAddress(), sh)
 	require.NoError(t, err)
 
 	_, ok := <-ch1
@@ -462,10 +580,18 @@ func TestPullBodyCancel(t *testing.T) {
 func TestRejectBody(t *testing.T) {
 	t.Skip("https://insolar.atlassian.net/browse/PLAT-799")
 
+	cfg := uniserver.ServerConfig{
+		BindingAddress: "127.0.0.1:0",
+		UDPMaxSize:     1400,
+		UDPParallelism: 2,
+		PeerLimit:      -1,
+	}
+
+	h := NewUnitProtoServersHolder(TestLogAdapter{t: t})
+	defer h.stop()
+
 	payloadLen := 1024 * 1024 * 512
-
 	bytes := rndBytes(payloadLen)
-
 	head := TestString{string(bytes[:64])}
 	body := TestString{string(bytes)}
 
@@ -474,11 +600,11 @@ func TestRejectBody(t *testing.T) {
 		Body: &body,
 	}
 
-	var srv1, srv2 Service
+	var srv1 Service
 
 	ch1 := make(chan string, 2)
 
-	recv1 := func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
+	server1, err := h.createService(cfg, func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
 		vo := v.(fmt.Stringer).String()
 		t.Log(a.String(), fmt.Sprintf("ctrl-1:"), len(vo))
 
@@ -511,12 +637,14 @@ func TestRejectBody(t *testing.T) {
 		ch1 <- vo
 
 		return nil
-	}
+	})
+	require.Error(t, err)
+	srv1 = server1.service
 
-	srv1, srv2, stop := startUniprotoServers(t, recv1, noopReceiver)
-	defer stop()
+	server2, err := h.createService(cfg, noopReceiver)
+	require.Error(t, err)
 
-	err := srv2.ShipTo(NewDirectAddress(1), sh)
+	err = server2.service.ShipTo(server1.directAddress(), sh)
 	require.NoError(t, err)
 
 	expHeadPayload := head.S
@@ -531,105 +659,4 @@ func TestShipToWithTTL(t *testing.T) {
 
 func TestShipReturnWithTTL(t *testing.T) {
 	t.Skip("https://insolar.atlassian.net/browse/PLAT-800")
-}
-
-func startUniprotoServers(t *testing.T, recv1, recv2 ReceiverFunc) (Service, Service, func()) {
-	const Server1 = "127.0.0.1:0"
-	const Server2 = "127.0.0.1:0"
-
-	vf := TestVerifierFactory{}
-	skBytes := [testDigestSize]byte{}
-	sk1 := cryptkit.NewSigningKey(longbits.CopyBytes(skBytes[:]), testSigningMethod, cryptkit.PublicAsymmetricKey)
-	skBytes[0] = 1
-	sk2 := cryptkit.NewSigningKey(longbits.CopyBytes(skBytes[:]), testSigningMethod, cryptkit.PublicAsymmetricKey)
-
-	var srv1 Service
-	ctrl1 := NewController(
-		Protocol,
-		TestDeserializationFactory{},
-		recv1,
-		nil,
-		TestLogAdapter{t},
-	)
-
-	srv1 = ctrl1.NewFacade()
-
-	var dispatcher1 uniserver.Dispatcher
-	ctrl1.RegisterWith(dispatcher1.RegisterProtocol)
-
-	ups1 := uniserver.NewUnifiedServer(&dispatcher1, TestLogAdapter{t})
-	ups1.SetConfig(uniserver.ServerConfig{
-		BindingAddress: Server1,
-		UDPMaxSize:     1400,
-		UDPParallelism: 2,
-		PeerLimit:      -1,
-	})
-
-	ups1.SetPeerFactory(func(peer *uniserver.Peer) (remapTo nwapi.Address, err error) {
-		peer.SetSignatureKey(sk2)
-		peer.SetNodeID(2)
-		return nwapi.NewHostID(2), nil
-	})
-	ups1.SetSignatureFactory(vf)
-
-	ups1.StartListen()
-	dispatcher1.SetMode(uniproto.AllowAll)
-
-	pm1 := ups1.PeerManager()
-	_, err := pm1.AddHostID(pm1.Local().GetPrimary(), 1)
-	require.NoError(t, err)
-
-	pr := pulse.NewOnePulseRange(pulse.NewFirstPulsarData(5, longbits.Bits256{}))
-	dispatcher1.NextPulse(pr)
-
-	/********************************/
-
-	ctrl2 := NewController(
-		Protocol,
-		TestDeserializationFactory{},
-		recv2,
-		nil,
-		TestLogAdapter{t},
-	)
-
-	srv2 := ctrl2.NewFacade()
-
-	var dispatcher2 uniserver.Dispatcher
-	dispatcher2.SetMode(uniproto.NewConnectionMode(0, Protocol))
-	ctrl2.RegisterWith(dispatcher2.RegisterProtocol)
-	dispatcher2.Seal()
-
-	ups2 := uniserver.NewUnifiedServer(&dispatcher2, TestLogAdapter{t})
-	ups2.SetConfig(uniserver.ServerConfig{
-		BindingAddress: Server2,
-		UDPMaxSize:     1400,
-		UDPParallelism: 2,
-		PeerLimit:      -1,
-	})
-
-	ups2.SetPeerFactory(func(peer *uniserver.Peer) (remapTo nwapi.Address, err error) {
-		peer.SetSignatureKey(sk1)
-		peer.SetNodeID(1)
-		return nwapi.NewHostID(1), nil
-	})
-	ups2.SetSignatureFactory(vf)
-
-	ups2.StartListen()
-	dispatcher2.NextPulse(pr)
-
-	pm2 := ups2.PeerManager()
-	_, err = pm2.AddHostID(pm2.Local().GetPrimary(), 2)
-	require.NoError(t, err)
-
-	conn21, err := pm2.Manager().ConnectPeer(pm1.Local().GetPrimary())
-	require.NoError(t, err)
-	require.NotNil(t, conn21)
-	require.NoError(t, conn21.Transport().EnsureConnect())
-
-	require.NoError(t, err)
-
-	return srv1, srv2, func() {
-		dispatcher2.Stop()
-		dispatcher1.Stop()
-	}
 }
