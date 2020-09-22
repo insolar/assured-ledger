@@ -65,9 +65,10 @@ func (p *retryMsgWorker) runRetry() {
 			case oob, ok = <-p.sender.oob:
 			case job, ok = <-p.sender.jobs:
 			case <-p.wakeup:
-				if p.isEmptyPostponed() {
-					continue
+				if !p.isEmptyPostponed() {
+					p.processPostponed()
 				}
+				continue
 			}
 		}
 
@@ -76,12 +77,10 @@ func (p *retryMsgWorker) runRetry() {
 			return
 		case oob != nil:
 			p.processOoB(oob)
-		case !p.isEmptyPostponed():
-			p.processPostponed()
-		}
-
-		for _, id := range job.ids {
-			p.processMsg(p.sender.get(ShipmentID(id)), job.repeatFn)
+		default:
+			for _, id := range job.ids {
+				p.processMsg(p.sender.get(ShipmentID(id)), job.repeatFn)
+			}
 		}
 	}
 }
@@ -104,13 +103,23 @@ func (p *retryMsgWorker) sendHead(msg *msgShipment, repeatFn func(retries.RetryI
 	}
 }
 
+func noRetryFn(retries.RetryID) {}
+
 func (p *retryMsgWorker) processOoB(msg *msgShipment) {
+	var repeatFn func(retries.RetryID)
+
+	if msg.isFireAndForget() {
+		repeatFn = noRetryFn
+	} else {
+		repeatFn = p.sender.stages.AddHeadForRetry
+	}
+
 	switch {
 	case p.marks.mark(msg.id):
 		p.sema.Lock()
-		go p.sendHead(msg, p.sender.stages.AddHeadForRetry)
+		go p.sendHead(msg, repeatFn)
 	case msg.canSendHead():
-		p.pushPostponed(msg, p.sender.stages.AddHeadForRetry)
+		p.pushPostponed(msg, repeatFn)
 	}
 }
 
@@ -137,7 +146,11 @@ func (p *retryMsgWorker) pushPostponed(msg *msgShipment, repeatFn func(retries.R
 		return
 	}
 	if prev := p.postponed[p.write]; prev.msg != nil {
-		prev.msg.markCancel()
+		if prev.msg.canSendHead() && prev.repeatFn != nil {
+			prev.repeatFn(retries.RetryID(prev.msg.id))
+		} else {
+			prev.msg.markCancel()
+		}
 	}
 	p.postponed[p.write] = postponedMsg{msg, repeatFn}
 	if p.write++; p.write >= int32(len(p.postponed)) {

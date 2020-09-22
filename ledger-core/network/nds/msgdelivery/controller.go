@@ -57,7 +57,7 @@ func NewController(pt uniproto.ProtocolType, factory nwapi.DeserializationFactor
 		c.parcelOutType = uniproto.SessionfulAny
 	}
 
-	c.senderConfig = SenderWorkerConfig{1, 5, 100}
+	c.senderConfig = SenderWorkerConfig{1, 5, 1000}
 	c.sender.init(10, 10)
 	c.sender.stages.InitStages(minHeadBatchWeight, [...]int{10, 50, 100})
 
@@ -499,7 +499,7 @@ func (p *Controller) send(to nwapi.Address, returnID ShortShipmentID, shipment S
 		msg.markBodyRq()
 		p.sender.sendBodyOnly(msg)
 	case msg.shipment.Body == nil && msg.isFireAndForget():
-		p.sender.sendHeadNoRetry(msg)
+		p.sender.sendHeadNow(msg)
 	default:
 		p.sender.sendHead(msg, sendSize, currentCycle)
 	}

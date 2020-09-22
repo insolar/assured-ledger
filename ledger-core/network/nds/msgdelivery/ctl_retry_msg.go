@@ -67,13 +67,13 @@ func (p *msgSender) init(oobQueue, jobQueue int) {
 func (p *msgSender) sendHead(msg *msgShipment, sz uint, currentCycle uint32) {
 	p.tracks.put(msg, currentCycle)
 
-	if !msg.isImmediateSend() || !p.sendHeadNoRetry(msg) {
+	if !msg.isImmediateSend() || !p.sendHeadNow(msg) {
 		p.stages.Add(retries.RetryID(msg.id), sz, p)
 	}
 }
 
 // ATTN! This method MUST return asap
-func (p *msgSender) sendHeadNoRetry(msg *msgShipment) bool {
+func (p *msgSender) sendHeadNow(msg *msgShipment) bool {
 	select {
 	case p.oob <- msg:
 		return true
@@ -82,10 +82,10 @@ func (p *msgSender) sendHeadNoRetry(msg *msgShipment) bool {
 	}
 }
 
-// ATTN! This method MUST return asap
+// ATTN! This method should return asap
 func (p *msgSender) sendBodyOnly(msg *msgShipment) {
-	// TODO get rid of "go", use limiter somehow?
-	go msg.sendBody()
+	// TODO use "go" with limiter somehow?
+	msg.sendBody()
 }
 
 func (p *msgSender) Retry(ids []retries.RetryID, repeatFn func(retries.RetryID)) {
