@@ -26,12 +26,14 @@ func TestShipToWithTTL(t *testing.T) {
 	sleepChan := make(chan string, 1)
 	const Server1 = "127.0.0.1:0"
 	const Server2 = "127.0.0.1:0"
-	pr := pulse.NewOnePulseRange(pulse.NewFirstPulsarData(5, longbits.Bits256{}))
+	p1 := pulse.OfNow()
+	r1 := pulse.NewPulseRange([]pulse.Data{pulse.NewPulsarData(p1, 10, 1, longbits.Bits256{})})
+	r2 := pulse.NewPulseRange([]pulse.Data{pulse.NewPulsarData(p1.Next(10), 10, 1, longbits.Bits256{})})
 
 	sh := Shipment{
 		Head: &head,
 		TTL:  1,
-		PN:   pr.LeftBoundNumber(),
+		PN:   p1,
 	}
 
 	vf := TestVerifierFactory{}
@@ -44,7 +46,7 @@ func TestShipToWithTTL(t *testing.T) {
 		Protocol,
 		TestDeserializationFactory{},
 		func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
-			require.FailNow(t, "it is not recend")
+			require.FailNow(t, "fail")
 			return nil
 		},
 		nil,
@@ -93,7 +95,7 @@ func TestShipToWithTTL(t *testing.T) {
 	_, err := pm1.AddHostID(pm1.Local().GetPrimary(), 1)
 	require.NoError(t, err)
 
-	dispatcher1.NextPulse(pr)
+	dispatcher1.NextPulse(r1)
 
 	/********************************/
 
@@ -128,7 +130,7 @@ func TestShipToWithTTL(t *testing.T) {
 	ups2.SetSignatureFactory(vf)
 
 	ups2.StartListen()
-	dispatcher2.NextPulse(pr)
+	dispatcher2.NextPulse(r1)
 
 	pm2 := ups2.PeerManager()
 	_, err = pm2.AddHostID(pm2.Local().GetPrimary(), 2)
@@ -142,11 +144,8 @@ func TestShipToWithTTL(t *testing.T) {
 	err = srv2.ShipTo(NewDirectAddress(1), sh)
 	require.NoError(t, err)
 
-	pn := pulse.NewOnePulseRange(pulse.NewFirstPulsarData(10, longbits.Bits256{}))
-	dispatcher1.NextPulse(pn)
-	// dispatcher1.NextPulse(pn)
-	// dispatcher2.NextPulse(pn)
-	dispatcher2.NextPulse(pn)
+	dispatcher1.NextPulse(r2)
+	dispatcher1.NextPulse(r2)
 
 	sleepChan <- ""
 
