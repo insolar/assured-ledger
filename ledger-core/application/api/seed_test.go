@@ -24,6 +24,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/application/api/seedmanager"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/pulsestor"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
+	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
 )
 
@@ -61,6 +62,7 @@ func TestNodeService_GetSeed(t *testing.T) {
 		PulseAccessor:       accessor,
 		SeedManager:         seedmanager.New(),
 		SeedGenerator:       seedmanager.SeedGenerator{},
+		logger:              global.Logger(),
 	}
 	s := NewNodeService(&runner)
 	defer runner.SeedManager.Stop()

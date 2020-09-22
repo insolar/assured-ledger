@@ -18,6 +18,8 @@ import (
 func TestMain(m *testing.M) {
 	instestlogger.SetTestOutputWithStub()
 
+	launchnet.SetCloudFileLogging(true)
+
 	os.Exit(launchnet.Run(func() int {
 		return m.Run()
 	}))

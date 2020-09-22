@@ -8,7 +8,6 @@ package insapp
 import (
 	"context"
 	"crypto"
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -23,7 +22,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
-	"github.com/insolar/assured-ledger/ledger-core/version"
 )
 
 type CertManagerFactory func(publicKey crypto.PublicKey, keyProcessor cryptography.KeyProcessor, certPath string) (*mandates.CertificateManager, error)
@@ -75,11 +73,7 @@ func (s *Server) Serve() {
 		networkFn NetworkInitFunc
 	)
 
-	fmt.Println("Version: ", version.GetFullVersion())
-
 	if s.multiFn != nil {
-		baseConfig := s.confProvider.Config()
-		fmt.Println("Starts with multi-node configuration base:\n", configuration.ToString(&baseConfig))
 		configs, networkFn = s.multiFn(s.confProvider)
 	} else {
 		configs = append(configs, s.confProvider.Config())
@@ -95,7 +89,6 @@ func (s *Server) Serve() {
 
 	for i := range configs {
 		cfg := configs[i]
-		fmt.Printf("Starts with configuration [%d/%d]:\n%s\n", i+1, n, configuration.ToString(&cfg))
 
 		cm, stopFunc := s.StartComponents(baseCtx, cfg, networkFn,
 			func(_ context.Context, cfg configuration.Log, nodeRef, nodeRole string) context.Context {
@@ -133,7 +126,8 @@ func (s *Server) Serve() {
 		baseLogger.Info("stopping gracefully")
 
 		for i, cm := range cms {
-			if err := cm.GracefulStop(baseCtx); err != nil {
+			// http server can hang upon Shutdown. It should not be treated as error
+			if err := cm.GracefulStop(baseCtx); err != nil && !throw.FindDetail(err, &context.DeadlineExceeded) {
 				baseLogger.Fatalf("graceful stop failed [%d]: %s", i, throw.ErrorWithStack(err))
 			}
 		}
@@ -145,7 +139,8 @@ func (s *Server) Serve() {
 		}
 
 		for i, cm := range cms {
-			if err := cm.Stop(contexts[i]); err != nil {
+			// http server can hang upon Shutdown. It should not be treated as error
+			if err := cm.Stop(contexts[i]); err != nil && !throw.FindDetail(err, &context.DeadlineExceeded) {
 				baseLogger.Fatalf("stop failed [%d]: %s", i, throw.ErrorWithStack(err))
 			}
 		}
@@ -157,7 +152,6 @@ func (s *Server) Serve() {
 		}
 	}
 
-	fmt.Println("All components were started")
 	<-s.waitChannel
 }
 

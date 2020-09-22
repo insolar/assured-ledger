@@ -18,14 +18,13 @@ import (
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
-	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
-	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
-
 	"github.com/insolar/assured-ledger/ledger-core/application/api/seedmanager"
-	"github.com/insolar/assured-ledger/ledger-core/network"
-
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
+	"github.com/insolar/assured-ledger/ledger-core/log"
+	"github.com/insolar/assured-ledger/ledger-core/network"
+	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 // Runner implements Component for API
@@ -41,6 +40,7 @@ type Runner struct {
 
 	handler       http.Handler
 	server        *http.Server
+	logger        log.Logger
 	rpcServer     *rpc.Server
 	cfg           *configuration.APIRunner
 	keyCache      map[string]crypto.PublicKey
@@ -51,16 +51,16 @@ type Runner struct {
 
 func checkConfig(cfg *configuration.APIRunner) error {
 	if cfg == nil {
-		return errors.New("[ checkConfig ] config is nil")
+		return throw.New("[ checkConfig ] config is nil")
 	}
 	if cfg.Address == "" {
-		return errors.New("[ checkConfig ] Address must not be empty")
+		return throw.New("[ checkConfig ] Address must not be empty")
 	}
 	if len(cfg.RPC) == 0 {
-		return errors.New("[ checkConfig ] RPC must exist")
+		return throw.New("[ checkConfig ] RPC must exist")
 	}
 	if len(cfg.SwaggerPath) == 0 {
-		return errors.New("[ checkConfig ] Missing openAPI spec file path")
+		return throw.New("[ checkConfig ] Missing openAPI spec file path")
 	}
 
 	return nil
@@ -69,7 +69,7 @@ func checkConfig(cfg *configuration.APIRunner) error {
 func (ar *Runner) registerPublicServices(rpcServer *rpc.Server) error {
 	err := rpcServer.RegisterService(NewNodeService(ar), "node")
 	if err != nil {
-		return errors.W(err, "[ registerServices ] Can't RegisterService: node")
+		return throw.W(err, "[ registerServices ] Can't RegisterService: node")
 	}
 
 	return nil
@@ -77,6 +77,7 @@ func (ar *Runner) registerPublicServices(rpcServer *rpc.Server) error {
 
 // NewRunner is C-tor for API Runner
 func NewRunner(cfg *configuration.APIRunner,
+	logger log.Logger,
 	certificateManager nodeinfo.CertificateManager,
 	// nolint
 	nodeNetwork beat.NodeNetwork,
@@ -89,7 +90,7 @@ func NewRunner(cfg *configuration.APIRunner,
 
 	err := checkConfig(cfg)
 	if err != nil {
-		return nil, errors.W(err, "[ NewAPIRunner ] Bad config")
+		return nil, throw.W(err, "[ NewAPIRunner ] Bad config")
 	}
 
 	rpcServer := rpc.NewServer()
@@ -102,6 +103,7 @@ func NewRunner(cfg *configuration.APIRunner,
 		NetworkStatus:       networkStatus,
 		AvailabilityChecker: availabilityChecker,
 		server:              &http.Server{Addr: cfg.Address},
+		logger:              logger,
 		rpcServer:           rpcServer,
 		cfg:                 cfg,
 		keyCache:            make(map[string]crypto.PublicKey),
@@ -111,7 +113,7 @@ func NewRunner(cfg *configuration.APIRunner,
 	rpcServer.RegisterCodec(jsonrpc.NewCodec(), "application/json")
 
 	if err := ar.registerPublicServices(rpcServer); err != nil {
-		return nil, errors.W(err, "[ NewAPIRunner ] Can't register public services:")
+		return nil, throw.W(err, "[ NewAPIRunner ] Can't register public services:")
 	}
 
 	// init handler
@@ -123,7 +125,7 @@ func NewRunner(cfg *configuration.APIRunner,
 
 	server, err := NewRequestValidator(cfg.SwaggerPath, ar.rpcServer)
 	if err != nil {
-		return nil, errors.W(err, "failed to prepare api validator")
+		return nil, throw.W(err, "failed to prepare api validator")
 	}
 
 	router.HandleFunc("/healthcheck", hc.CheckHandler)
@@ -150,7 +152,7 @@ func (ar *Runner) Start(ctx context.Context) error {
 	logger.Info("Config: ", ar.cfg)
 	listener, err := net.Listen("tcp", ar.server.Addr)
 	if err != nil {
-		return errors.W(err, "Can't start listening")
+		return throw.W(err, "Can't start listening")
 	}
 	go func() {
 		if err := ar.server.Serve(listener); err != http.ErrServerClosed {
@@ -169,7 +171,7 @@ func (ar *Runner) Stop(ctx context.Context) error {
 	defer cancel()
 	err := ar.server.Shutdown(ctxWithTimeout)
 	if err != nil {
-		return errors.W(err, "Can't gracefully stop API server")
+		return throw.W(err, "Can't gracefully stop API server")
 	}
 
 	ar.SeedManager.Stop()
