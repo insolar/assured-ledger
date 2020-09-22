@@ -22,6 +22,24 @@ func NewNode(cfg configuration.Configuration) Server {
 	return insapp.New(cfg, appFactory)
 }
 
+func NewMultiServerWithCustomPulsar(configProvider *CloudConfigurationProvider) (Server, *cloud.ManualPulsar) {
+	controller := cloud.NewController()
+	if configProvider.GetAppConfigs == nil {
+		panic("GetAppConfigs cannot be nil")
+	}
+
+	multiFn := func(provider insapp.ConfigurationProvider) ([]configuration.Configuration, insapp.NetworkInitFunc) {
+		conf := provider.(*CloudConfigurationProvider)
+		return conf.GetAppConfigs(), controller.NetworkInitFunc
+	}
+
+	return insapp.NewMulti(
+		configProvider,
+		appFactory,
+		multiFn,
+	), cloud.NewHandyPulsar(&controller, uint16(configProvider.PulsarConfig.Pulsar.NumberDelta))
+}
+
 func NewMultiServer(configProvider *CloudConfigurationProvider) Server {
 	controller := cloud.NewController()
 	if configProvider.GetAppConfigs == nil {

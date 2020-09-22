@@ -10,6 +10,7 @@ import (
 	"crypto"
 	"os"
 	"os/signal"
+	"sync/atomic"
 	"syscall"
 
 	"github.com/insolar/component-manager"
@@ -40,6 +41,7 @@ type Server struct {
 	confProvider ConfigurationProvider
 	gracefulStop chan os.Signal
 	waitChannel  chan struct{}
+	started      uint32
 }
 
 type defaultConfigurationProvider struct {
@@ -152,6 +154,7 @@ func (s *Server) Serve() {
 		}
 	}
 
+	atomic.StoreUint32(&s.started, 1)
 	<-s.waitChannel
 }
 
@@ -180,4 +183,8 @@ func (s *Server) StartComponents(ctx context.Context, cfg configuration.Configur
 func (s *Server) Stop() {
 	s.gracefulStop <- syscall.SIGQUIT
 	<-s.waitChannel
+}
+
+func (s *Server) Started() bool {
+	return atomic.LoadUint32(&s.started) == 1
 }

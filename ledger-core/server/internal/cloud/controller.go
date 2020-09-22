@@ -30,6 +30,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/watermill"
 	"github.com/insolar/assured-ledger/ledger-core/pulsar"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
@@ -137,6 +138,66 @@ func (n Controller) sendMessageHandler(msg *message.Message) error {
 	return nil
 }
 
+func (n Controller) GetLastPulseNumberOnNode(ref reference.Global) (pulse.Number, error) {
+	node, err := n.getNode(ref)
+	if err != nil {
+		return 0, throw.W(err, "can't get node")
+	}
+	lastBeat, err := node.beatAppender.LatestTimeBeat()
+	if err != nil {
+		return 0, throw.W(err, "can't get last beat")
+	}
+	return lastBeat.PulseNumber, nil
+}
+
+func (n Controller) ChangePulseForNode(_ context.Context, ref reference.Global, packet pulsar.PulsePacket) error {
+	n.lock.Lock()
+	defer n.lock.Unlock()
+
+	node, err := n.unsafeGetNode(ref)
+	if err != nil {
+		return throw.W(err, "can't get node")
+	}
+
+	newBeatData := beat.Beat{
+		Data:      adapters.NewPulseData(packet),
+		StartedAt: time.Now(),
+	}
+
+	profiles := make([]profiles.StaticProfile, 0, len(n.nodes))
+	for _, netNode := range n.nodes {
+		profiles = append(profiles, netNode.profile)
+	}
+
+	updatePulseOnNode(node, newBeatData, profiles)
+
+	return nil
+
+}
+
+func updatePulseOnNode(netNode *controlledNode, newBeatData beat.Beat, profiles []profiles.StaticProfile) {
+	onlinePopulation := censusimpl.NewManyNodePopulation(profiles, netNode.profile.GetStaticNodeID(), netNode.svf)
+
+	newBeat := beat.Beat{
+		Data:      newBeatData.Data,
+		StartedAt: newBeatData.StartedAt,
+		Online:    prepareManyNodePopulation(netNode.profile.GetStaticNodeID(), onlinePopulation),
+	}
+
+	err := netNode.beatAppender.AddCommittedBeat(newBeat)
+	if err != nil {
+		panic(err)
+	}
+
+	sink, ackFn := beat.NewAck(func(data beat.AckData) {})
+
+	netNode.dispatcher.PrepareBeat(sink)
+
+	ackFn(true)
+
+	netNode.dispatcher.CommitBeat(newBeat)
+}
+
 func (n Controller) Distribute(_ context.Context, packet pulsar.PulsePacket) {
 	n.lock.Lock()
 	defer n.lock.Unlock()
@@ -157,26 +218,27 @@ func (n Controller) Distribute(_ context.Context, packet pulsar.PulsePacket) {
 	}
 
 	for _, netNode := range n.nodes {
-		onlinePopulation := censusimpl.NewManyNodePopulation(profiles, netNode.profile.GetStaticNodeID(), netNode.svf)
-
-		newBeat := beat.Beat{
-			Data:      newBeatData.Data,
-			StartedAt: newBeatData.StartedAt,
-			Online:    prepareManyNodePopulation(netNode.profile.GetStaticNodeID(), onlinePopulation),
-		}
-
-		err := netNode.beatAppender.AddCommittedBeat(newBeat)
-		if err != nil {
-			panic(err)
-		}
-
-		sink, ackFn := beat.NewAck(func(data beat.AckData) {})
-
-		netNode.dispatcher.PrepareBeat(sink)
-
-		ackFn(true)
-
-		netNode.dispatcher.CommitBeat(newBeat)
+		updatePulseOnNode(netNode, newBeatData, profiles)
+		// onlinePopulation := censusimpl.NewManyNodePopulation(profiles, netNode.profile.GetStaticNodeID(), netNode.svf)
+		//
+		// newBeat := beat.Beat{
+		// 	Data:      newBeatData.Data,
+		// 	StartedAt: newBeatData.StartedAt,
+		// 	Online:    prepareManyNodePopulation(netNode.profile.GetStaticNodeID(), onlinePopulation),
+		// }
+		//
+		// err := netNode.beatAppender.AddCommittedBeat(newBeat)
+		// if err != nil {
+		// 	panic(err)
+		// }
+		//
+		// sink, ackFn := beat.NewAck(func(data beat.AckData) {})
+		//
+		// netNode.dispatcher.PrepareBeat(sink)
+		//
+		// ackFn(true)
+		//
+		// netNode.dispatcher.CommitBeat(newBeat)
 	}
 }
 

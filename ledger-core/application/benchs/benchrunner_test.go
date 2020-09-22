@@ -242,9 +242,6 @@ func runBench(name string, workerFunc func(ctx context.Context, iterator int) er
 			timingCounter.Rate(),
 			counter.Rate(),
 		)
-	}
-
-	if limiter.NeedPrintStats() {
 		<-counterStopped
 	}
 
