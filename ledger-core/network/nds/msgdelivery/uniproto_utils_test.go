@@ -6,6 +6,8 @@
 package msgdelivery
 
 import (
+	"time"
+
 	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto"
 	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto/l1"
 	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto/l2/uniserver"
@@ -52,6 +54,8 @@ func (h *UnitProtoServersHolder) server(idx int) *UnitProtoServer {
 }
 
 func (h *UnitProtoServersHolder) stop() {
+	// TODO workaround for avoid race on receive package and stop dispatcher
+	time.Sleep(1 * time.Second)
 	for _, s := range h.servers {
 		s.dispatcher.Stop()
 	}
