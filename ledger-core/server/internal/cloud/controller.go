@@ -219,26 +219,6 @@ func (n Controller) Distribute(_ context.Context, packet pulsar.PulsePacket) {
 
 	for _, netNode := range n.nodes {
 		updatePulseOnNode(netNode, newBeatData, profiles)
-		// onlinePopulation := censusimpl.NewManyNodePopulation(profiles, netNode.profile.GetStaticNodeID(), netNode.svf)
-		//
-		// newBeat := beat.Beat{
-		// 	Data:      newBeatData.Data,
-		// 	StartedAt: newBeatData.StartedAt,
-		// 	Online:    prepareManyNodePopulation(netNode.profile.GetStaticNodeID(), onlinePopulation),
-		// }
-		//
-		// err := netNode.beatAppender.AddCommittedBeat(newBeat)
-		// if err != nil {
-		// 	panic(err)
-		// }
-		//
-		// sink, ackFn := beat.NewAck(func(data beat.AckData) {})
-		//
-		// netNode.dispatcher.PrepareBeat(sink)
-		//
-		// ackFn(true)
-		//
-		// netNode.dispatcher.CommitBeat(newBeat)
 	}
 }
 
