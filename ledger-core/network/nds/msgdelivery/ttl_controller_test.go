@@ -32,8 +32,8 @@ func TestShipToWithTTL(t *testing.T) {
 
 	sh := Shipment{
 		Head: &head,
-		TTL:  1,
-		PN:   p1,
+		// TTL:  1,
+		// PN:   p1,
 	}
 
 	vf := TestVerifierFactory{}
@@ -45,7 +45,7 @@ func TestShipToWithTTL(t *testing.T) {
 	ctrl1 := NewController(
 		Protocol,
 		TestDeserializationFactory{},
-		func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
+		func(_ ReturnAddress, _ nwapi.PayloadCompleteness, _ interface{}) error {
 			require.FailNow(t, "fail")
 			return nil
 		},
@@ -70,24 +70,6 @@ func TestShipToWithTTL(t *testing.T) {
 		return nwapi.NewHostID(2), nil
 	})
 	ups1.SetSignatureFactory(vf)
-
-	provider := uniserver.MapTransportProvider(&uniserver.DefaultTransportProvider{},
-		func(lessProvider l1.SessionlessTransportProvider) l1.SessionlessTransportProvider {
-			return l1.MapSessionlessProvider(lessProvider, func(factory l1.OutTransportFactory) l1.OutTransportFactory {
-				return l1.MapOutputFactory(factory, func(transport l1.OneWayTransport) l1.OneWayTransport {
-					return &TestOneWayTransport{transport, sleepChan}
-				})
-			})
-		},
-		func(fullProvider l1.SessionfulTransportProvider) l1.SessionfulTransportProvider {
-			return l1.MapSessionFullProvider(fullProvider, func(factory l1.OutTransportFactory) l1.OutTransportFactory {
-				return l1.MapOutputFactory(factory, func(transport l1.OneWayTransport) l1.OneWayTransport {
-					return &TestOneWayTransport{transport, sleepChan}
-				})
-			})
-		})
-
-	ups1.SetTransportProvider(provider)
 	ups1.StartListen()
 	dispatcher1.SetMode(uniproto.AllowAll)
 
@@ -129,6 +111,24 @@ func TestShipToWithTTL(t *testing.T) {
 	})
 	ups2.SetSignatureFactory(vf)
 
+	provider := uniserver.MapTransportProvider(&uniserver.DefaultTransportProvider{},
+		func(lessProvider l1.SessionlessTransportProvider) l1.SessionlessTransportProvider {
+			return l1.MapSessionlessProvider(lessProvider, func(factory l1.OutTransportFactory) l1.OutTransportFactory {
+				return l1.MapOutputFactory(factory, func(transport l1.OneWayTransport) l1.OneWayTransport {
+					return &TestOneWayTransport{transport, sleepChan}
+				})
+			})
+		},
+		func(fullProvider l1.SessionfulTransportProvider) l1.SessionfulTransportProvider {
+			return l1.MapSessionFullProvider(fullProvider, func(factory l1.OutTransportFactory) l1.OutTransportFactory {
+				return l1.MapOutputFactory(factory, func(transport l1.OneWayTransport) l1.OneWayTransport {
+					return &TestOneWayTransport{transport, sleepChan}
+				})
+			})
+		})
+
+	ups2.SetTransportProvider(provider)
+
 	ups2.StartListen()
 	dispatcher2.NextPulse(r1)
 
@@ -144,13 +144,18 @@ func TestShipToWithTTL(t *testing.T) {
 	err = srv2.ShipTo(NewDirectAddress(1), sh)
 	require.NoError(t, err)
 
-	dispatcher1.NextPulse(r2)
-	dispatcher1.NextPulse(r2)
+	dispatcher2.NextPulse(r2)
+	println("chan start")
 
 	sleepChan <- ""
 
+	close(sleepChan)
 	dispatcher1.Stop()
 	dispatcher2.Stop()
+}
+
+func TestShipReturnWithTTL(t *testing.T) {
+	t.Skip("https://insolar.atlassian.net/browse/PLAT-800")
 }
 
 type TestOneWayTransport struct {
@@ -159,6 +164,7 @@ type TestOneWayTransport struct {
 }
 
 func (t TestOneWayTransport) Send(payload io.WriterTo) error {
+	println("chan sleep")
 	<-t.ch
 	return t.OneWayTransport.Send(payload)
 }

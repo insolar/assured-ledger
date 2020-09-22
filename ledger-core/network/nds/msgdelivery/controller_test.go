@@ -652,7 +652,3 @@ func TestRejectBody(t *testing.T) {
 
 	require.Equal(t, expHeadPayload, actlHeadPayload)
 }
-
-func TestShipReturnWithTTL(t *testing.T) {
-	t.Skip("https://insolar.atlassian.net/browse/PLAT-800")
-}
