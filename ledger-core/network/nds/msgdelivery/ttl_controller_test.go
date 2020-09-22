@@ -32,9 +32,24 @@ func TestShipToWithTTL(t *testing.T) {
 
 	sh := Shipment{
 		Head: &head,
-		// TTL:  1,
-		// PN:   p1,
+		TTL:  1,
+		PN:   p1,
 	}
+	provider := uniserver.MapTransportProvider(&uniserver.DefaultTransportProvider{},
+		func(lessProvider l1.SessionlessTransportProvider) l1.SessionlessTransportProvider {
+			return l1.MapSessionlessProvider(lessProvider, func(factory l1.OutTransportFactory) l1.OutTransportFactory {
+				return l1.MapOutputFactory(factory, func(transport l1.OneWayTransport) l1.OneWayTransport {
+					return &TestOneWayTransport{transport, sleepChan}
+				})
+			})
+		},
+		func(fullProvider l1.SessionfulTransportProvider) l1.SessionfulTransportProvider {
+			return l1.MapSessionFullProvider(fullProvider, func(factory l1.OutTransportFactory) l1.OutTransportFactory {
+				return l1.MapOutputFactory(factory, func(transport l1.OneWayTransport) l1.OneWayTransport {
+					return &TestOneWayTransport{transport, sleepChan}
+				})
+			})
+		})
 
 	vf := TestVerifierFactory{}
 	skBytes := [testDigestSize]byte{}
@@ -70,6 +85,7 @@ func TestShipToWithTTL(t *testing.T) {
 		return nwapi.NewHostID(2), nil
 	})
 	ups1.SetSignatureFactory(vf)
+	ups1.SetTransportProvider(provider)
 	ups1.StartListen()
 	dispatcher1.SetMode(uniproto.AllowAll)
 
@@ -110,25 +126,7 @@ func TestShipToWithTTL(t *testing.T) {
 		return nwapi.NewHostID(1), nil
 	})
 	ups2.SetSignatureFactory(vf)
-
-	provider := uniserver.MapTransportProvider(&uniserver.DefaultTransportProvider{},
-		func(lessProvider l1.SessionlessTransportProvider) l1.SessionlessTransportProvider {
-			return l1.MapSessionlessProvider(lessProvider, func(factory l1.OutTransportFactory) l1.OutTransportFactory {
-				return l1.MapOutputFactory(factory, func(transport l1.OneWayTransport) l1.OneWayTransport {
-					return &TestOneWayTransport{transport, sleepChan}
-				})
-			})
-		},
-		func(fullProvider l1.SessionfulTransportProvider) l1.SessionfulTransportProvider {
-			return l1.MapSessionFullProvider(fullProvider, func(factory l1.OutTransportFactory) l1.OutTransportFactory {
-				return l1.MapOutputFactory(factory, func(transport l1.OneWayTransport) l1.OneWayTransport {
-					return &TestOneWayTransport{transport, sleepChan}
-				})
-			})
-		})
-
 	ups2.SetTransportProvider(provider)
-
 	ups2.StartListen()
 	dispatcher2.NextPulse(r1)
 
