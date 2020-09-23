@@ -8,6 +8,7 @@ package msgdelivery
 import (
 	"io"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -140,12 +141,13 @@ func TestShipToWithTTL(t *testing.T) {
 
 	err = srv2.ShipTo(NewDirectAddress(1), sh)
 	require.NoError(t, err)
+	<-sleepChan
 
 	dispatcher2.NextPulse(r2)
 	println("chan start")
 
 	sleepChan <- ""
-
+	time.Sleep(4 * time.Second)
 	close(sleepChan)
 	dispatcher1.Stop()
 	dispatcher2.Stop()
@@ -162,12 +164,14 @@ type TestOneWayTransport struct {
 
 func (t TestOneWayTransport) SendBytes(b []byte) error {
 	println("chan sleep SendBytes")
+	t.ch <- ""
 	<-t.ch
 	return t.OneWayTransport.SendBytes(b)
 }
 
 func (t TestOneWayTransport) Send(payload io.WriterTo) error {
 	println("chan sleep Send")
+	t.ch <- ""
 	<-t.ch
 	return t.OneWayTransport.Send(payload)
 }
