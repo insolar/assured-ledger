@@ -6,12 +6,15 @@
 package launchnet
 
 import (
+	"context"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
 	"github.com/insolar/assured-ledger/ledger-core/network"
+	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/server"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
@@ -78,8 +81,43 @@ func (cr *CloudRunner) PrepareConfig() {
 	}
 }
 
+func prepareCloudForOneShotRegime(confProvider *server.CloudConfigurationProvider) server.Server {
+	s, pulseDistributor := server.NewMultiServerWithoutPulsar(confProvider)
+	go func() {
+		// wait for starting all components
+		for !s.(*insapp.Server).Started() {
+			time.Sleep(time.Millisecond)
+		}
+
+		allNodes := make(map[reference.Global]struct{})
+		for _, conf := range confProvider.GetAppConfigs() {
+			cert, err := confProvider.CertificateFactory(nil, nil, conf.CertificatePath)
+			if err != nil {
+				panic(err)
+			}
+			allNodes[cert.GetCertificate().GetNodeRef()] = struct{}{}
+		}
+
+		pulseGenerator := NewPulseGenerator(uint16(confProvider.PulsarConfig.Pulsar.NumberDelta))
+		for i := 0; i < 2; i++ {
+			pulseDistributor.PartialDistribute(context.Background(), pulseGenerator.Generate(), allNodes)
+		}
+	}()
+
+	return s
+}
+
 func (cr CloudRunner) SetupCloud() (func(), error) {
-	s := server.NewMultiServer(cr.ConfProvider)
+	return cr.SetupCloudCustom(false)
+}
+
+func (cr CloudRunner) SetupCloudCustom(pulsarOneShot bool) (func(), error) {
+	var s server.Server
+	if pulsarOneShot {
+		s = prepareCloudForOneShotRegime(cr.ConfProvider)
+	} else {
+		s = server.NewMultiServer(cr.ConfProvider)
+	}
 	go func() {
 		s.Serve()
 	}()

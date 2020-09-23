@@ -20,7 +20,7 @@ func Benchmark_MultiPulseOnCloud_Timed(b *testing.B) {
 
 	for numNodes := 2; numNodes <= 5; numNodes++ {
 		b.Run(fmt.Sprintf("Nodes %d", numNodes), func(b *testing.B) {
-			teardown, cloudRunner, err := runCloud(numNodes)
+			teardown, cloudRunner, err := runCloud(numNodes, false)
 			if err != nil {
 				b.Fatal("network run failed")
 			}
@@ -47,14 +47,12 @@ func Benchmark_MultiPulseOnCloud_Timed(b *testing.B) {
 	}
 }
 
-// TODO: Stop pulsar after network startup.
-// This functionality should be done in PLAT-782
 func Benchmark_SinglePulseOnCloud_N(b *testing.B) {
 	instestlogger.SetTestOutput(b)
 
 	for numNodes := 2; numNodes <= 5; numNodes++ {
 		b.Run(fmt.Sprintf("Nodes %d", numNodes), func(b *testing.B) {
-			teardown, cloudRunner, err := runCloud(numNodes)
+			teardown, cloudRunner, err := runCloud(numNodes, true)
 			if err != nil {
 				b.Fatal("network run failed")
 			}
@@ -98,7 +96,7 @@ func getPulseTime() int32 {
 	return int32(pulseTime)
 }
 
-func runCloud(numNodes int) (func(), *launchnet.CloudRunner, error) {
+func runCloud(numNodes int, pulsarOneShot bool) (func(), *launchnet.CloudRunner, error) {
 	runner := &launchnet.CloudRunner{}
 	runner.SetNumVirtuals(numNodes)
 	runner.PrepareConfig()
@@ -111,7 +109,7 @@ func runCloud(numNodes int) (func(), *launchnet.CloudRunner, error) {
 		runner.ConfProvider.GetAppConfigs()[i].Log.Level = "Fatal"
 		apiAddresses = append(apiAddresses, el.TestWalletAPI.Address)
 	}
-	teardown, err := runner.SetupCloud()
+	teardown, err := runner.SetupCloudCustom(pulsarOneShot)
 	if err != nil {
 		return func() {}, nil, throw.W(err, "Can't run cloud")
 	}
