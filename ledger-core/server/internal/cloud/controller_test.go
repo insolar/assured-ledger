@@ -26,6 +26,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/server"
+	"github.com/insolar/assured-ledger/ledger-core/testutils"
 )
 
 func TestController_PartialDistribute(t *testing.T) {
@@ -69,11 +70,12 @@ func TestController_PartialDistribute(t *testing.T) {
 		require.NoError(t, err)
 		allNodes[cert.GetCertificate().GetNodeRef()] = struct{}{}
 	}
-	pulseGenerator := launchnet.NewPulseGenerator(uint16(confProvider.PulsarConfig.Pulsar.NumberDelta))
+	pulseGenerator := testutils.NewPulseGenerator(uint16(confProvider.PulsarConfig.Pulsar.NumberDelta), nil)
 
 	{ // Change pulse on all nodes
 		for i := 0; i < 3; i++ {
-			packet := pulseGenerator.Generate()
+			_ = pulseGenerator.Generate()
+			packet := pulseGenerator.GetLastPulsePacket()
 			pulseDistributor.PartialDistribute(context.Background(), packet, allNodes)
 
 			for _, conf := range appConfigs {
@@ -101,10 +103,10 @@ func TestController_PartialDistribute(t *testing.T) {
 	}
 
 	{ // Partial pulse change
-		prevPacket, err := pulseGenerator.Last()
-		require.NoError(t, err)
+		prevPacket := pulseGenerator.GetLastPulsePacket()
 		for i := 0; i < 3; i++ {
-			packet := pulseGenerator.Generate()
+			_ = pulseGenerator.Generate()
+			packet := pulseGenerator.GetLastPulsePacket()
 
 			pulseDistributor.PartialDistribute(context.Background(), packet, halfOfNodes)
 			for _, conf := range appConfigs {
