@@ -65,7 +65,14 @@ func (h *UnitProtoServersHolder) createService(
 	config uniserver.ServerConfig,
 	receiverFn ReceiverFunc,
 ) (*UnitProtoServer, error) {
-	controller := NewController(Protocol, TestDeserializationFactory{}, receiverFn, nil, h.log)
+	return h.createServiceWithProfile(NewUnitProtoServerProfile(config), receiverFn)
+}
+
+func (h *UnitProtoServersHolder) createServiceWithProfile(
+	profile *UnitProtoServerProfile,
+	receiverFn ReceiverFunc,
+) (*UnitProtoServer, error) {
+	controller := NewController(Protocol, profile.getDesFactory(), receiverFn, profile.getResolverFn(), h.log)
 
 	var dispatcher uniserver.Dispatcher
 	dispatcher.SetMode(uniproto.AllowAll)
@@ -73,7 +80,7 @@ func (h *UnitProtoServersHolder) createService(
 	dispatcher.Seal()
 
 	srv := uniserver.NewUnifiedServer(&dispatcher, h.log)
-	srv.SetConfig(config)
+	srv.SetConfig(profile.getConfig())
 
 	// add self hostId mapping
 	hostId := nwapi.HostID(len(h.servers) + 1)
@@ -186,4 +193,40 @@ func (r regAddrOutTransportFactory) ConnectTo(address nwapi.Address) (l1.OneWayT
 	}
 
 	return t, err
+}
+
+type UnitProtoServerProfile struct {
+	config       uniserver.ServerConfig
+	provider     uniserver.AllTransportProvider
+	desFactory   nwapi.DeserializationFactory
+	idWithPortFn func(nwapi.Address) bool
+	resolverFn   ResolverFunc
+}
+
+func NewUnitProtoServerProfile(config uniserver.ServerConfig) *UnitProtoServerProfile {
+	return &UnitProtoServerProfile{config: config}
+}
+
+func (p *UnitProtoServerProfile) getConfig() uniserver.ServerConfig {
+	return p.config
+}
+
+func (p *UnitProtoServerProfile) getProvider() uniserver.AllTransportProvider {
+	return p.provider
+}
+
+func (p *UnitProtoServerProfile) getDesFactory() nwapi.DeserializationFactory {
+	if p.desFactory != nil {
+		return p.desFactory
+	}
+
+	return &TestDeserializationFactory{}
+}
+
+func (p *UnitProtoServerProfile) getIdWithPortFn() func(nwapi.Address) bool {
+	return p.idWithPortFn
+}
+
+func (p *UnitProtoServerProfile) getResolverFn() ResolverFunc {
+	return p.resolverFn
 }
