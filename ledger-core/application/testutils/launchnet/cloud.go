@@ -16,6 +16,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/server"
+	"github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -98,9 +99,10 @@ func prepareCloudForOneShotMode(confProvider *server.CloudConfigurationProvider)
 			allNodes[cert.GetCertificate().GetNodeRef()] = struct{}{}
 		}
 
-		pulseGenerator := NewPulseGenerator(uint16(confProvider.PulsarConfig.Pulsar.NumberDelta))
+		pulseGenerator := testutils.NewPulseGenerator(uint16(confProvider.PulsarConfig.Pulsar.NumberDelta), nil)
 		for i := 0; i < 2; i++ {
-			pulseDistributor.PartialDistribute(context.Background(), pulseGenerator.Generate(), allNodes)
+			_ = pulseGenerator.Generate()
+			pulseDistributor.PartialDistribute(context.Background(), pulseGenerator.GetLastPulsePacket(), allNodes)
 		}
 	}()
 
