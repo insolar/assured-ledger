@@ -41,8 +41,6 @@ func BenchmarkThroughput(b *testing.B) {
 		maxReceiveExceptions = 1 << 8
 	}()
 
-	results := make(chan []byte, 16)
-
 	prf := &UnitProtoServerProfile{
 		config: uniserver.ServerConfig{
 			BindingAddress: "127.0.0.1:0",
@@ -63,24 +61,15 @@ func BenchmarkThroughput(b *testing.B) {
 		h = NewUnitProtoServersHolder(TestLogAdapter{t: b})
 		defer h.stop()
 
-		srv1, err := h.createServiceWithProfile(prf, func(a ReturnAddress, done nwapi.PayloadCompleteness, val interface{}) error {
-			bb := val.(*TestBytes).S
-			results <- bb
-			return nil
-		})
+		srv1, err := h.createServiceWithProfile(prf, testCase.receiver)
 		require.NoError(b, err)
 
-		srv2, err := h.createServiceWithProfile(prf, func(a ReturnAddress, done nwapi.PayloadCompleteness, val interface{}) error {
-			bb := val.(*TestBytes).S
-			results <- bb
-			return nil
-		})
+		srv2, err := h.createServiceWithProfile(prf, noopReceiver)
 		require.NoError(b, err)
 
 		bench := benchSender{
-			toAddr:  srv1.directAddress(),
-			results: results,
-			ctl:     srv2.service,
+			toAddr: srv1.directAddress(),
+			ctl:    srv2.service,
 		}
 
 		b.Run(testCase.testName+"/0.1k", func(b *testing.B) {
@@ -156,8 +145,6 @@ func BenchmarkLatency(b *testing.B) {
 		maxReceiveExceptions = 1 << 8
 	}()
 
-	results := make(chan []byte, 1)
-
 	prf := &UnitProtoServerProfile{
 		config: uniserver.ServerConfig{
 			BindingAddress: "127.0.0.1:0",
@@ -178,22 +165,15 @@ func BenchmarkLatency(b *testing.B) {
 		h := NewUnitProtoServersHolder(TestLogAdapter{t: b})
 		defer h.stop()
 
-		srv1, err := h.createServiceWithProfile(prf, func(a ReturnAddress, done nwapi.PayloadCompleteness, val interface{}) error {
-			results <- nil
-			return nil
-		})
+		srv1, err := h.createServiceWithProfile(prf, testCase.receiver)
 		require.NoError(b, err)
 
-		srv2, err := h.createServiceWithProfile(prf, func(a ReturnAddress, done nwapi.PayloadCompleteness, val interface{}) error {
-			results <- nil
-			return nil
-		})
+		srv2, err := h.createServiceWithProfile(prf, noopReceiver)
 		require.NoError(b, err)
 
 		bench := benchSender{
-			toAddr:  srv1.directAddress(),
-			results: results,
-			ctl:     srv2.service,
+			toAddr: srv1.directAddress(),
+			ctl:    srv2.service,
 		}
 
 		b.Run(testCase.testName+"/0.1k", func(b *testing.B) {
@@ -260,9 +240,8 @@ func BenchmarkLatency(b *testing.B) {
 }
 
 type benchSender struct {
-	toAddr  DeliveryAddress
-	results chan []byte
-	ctl     Service
+	toAddr DeliveryAddress
+	ctl    Service
 }
 
 func (v benchSender) throughput(b *testing.B, payloadSize int, funcName BenchType) {
@@ -275,14 +254,14 @@ func (v benchSender) throughput(b *testing.B, payloadSize int, funcName BenchTyp
 	for i := b.N; i > 0; i-- {
 		funcName(v, payload)
 		select {
-		case <-v.results:
+		case <-result.ch:
 			received++
 			// println(received, b.N, " in-loop")
 		default:
 		}
 	}
 	for received < b.N {
-		<-v.results
+		<-result.ch
 		received++
 		// println(received, b.N, " off-loop")
 	}
@@ -299,7 +278,7 @@ func (v benchSender) latency(b *testing.B, payloadSize int, funcName BenchType) 
 		nanos := time.Now().UnixNano()
 		binary.LittleEndian.PutUint64(payload, uint64(nanos))
 		funcName(v, payload)
-		<-v.results
+		<-result.ch
 	}
 }
 
@@ -351,7 +330,7 @@ func (r *resultChan) receiverPullBody(a ReturnAddress, done nwapi.PayloadComplet
 	return nil
 }
 
-func (r *resultChan) receiverResults(a ReturnAddress, _ nwapi.PayloadCompleteness, v interface{}) error {
+func (r *resultChan) receiverResults(_ ReturnAddress, _ nwapi.PayloadCompleteness, v interface{}) error {
 	r.ch <- v.(*TestBytes).S
 	return nil
 }
