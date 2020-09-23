@@ -34,7 +34,7 @@ func BenchmarkThroughput(b *testing.B) {
 	defer h.stop()
 
 	prf := &UnitProtoServerProfile{
-		config: uniserver.ServerConfig{
+		config: &uniserver.ServerConfig{
 			BindingAddress: "127.0.0.1:0",
 			UDPMaxSize:     0,
 			UDPParallelism: 4,
@@ -144,7 +144,7 @@ func BenchmarkLatency(b *testing.B) {
 	defer h.stop()
 
 	prf := &UnitProtoServerProfile{
-		config: uniserver.ServerConfig{
+		config: &uniserver.ServerConfig{
 			BindingAddress: "127.0.0.1:0",
 			UDPMaxSize:     0,
 			UDPParallelism: 4,
