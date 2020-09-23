@@ -75,6 +75,7 @@ type Server struct {
 	pulseGenerator     *testutils.PulseGenerator
 	pulseStorage       *memstor.StorageMem
 	pulseManager       *insapp.PulseManager
+	platformScheme     crypto.PlatformScheme
 	Journal            *journal.Journal
 
 	// wait and suspend operations
@@ -133,17 +134,6 @@ func generateGlobalCaller() reference.Global {
 	return reference.NewSelf(reference.NewLocal(pulse.MinTimePulse, 0, gen.UniqueLocalRef().GetHash()))
 }
 
-func platformScheme() crypto.PlatformScheme {
-	keyStore, err := keystore.NewKeyStore(testCryptoKey)
-	if err != nil {
-		panic(throw.W(err, "failed to load KeyStore: "))
-	}
-
-	platformCryptographyScheme := platformpolicy.NewPlatformCryptographyScheme()
-	keyProcessor := platformpolicy.NewKeyProcessor()
-	return legacyadapter.New(platformCryptographyScheme, keyProcessor, keyStore)
-}
-
 type ServerOpts struct {
 	ErrorFilter    logcommon.ErrorFilterFunc
 	Initialization bool
@@ -189,6 +179,18 @@ func newServerExt(ctx context.Context, t Tester, opts ServerOpts) (*Server, cont
 	s.pulseGenerator = testutils.NewPulseGenerator(opts.Delta, censusMock)
 	s.incrementPulse()
 
+	{
+		keyProcessor := platformpolicy.NewKeyProcessor()
+		pk, err := keyProcessor.GeneratePrivateKey()
+		if err != nil {
+			panic(throw.W(err, "failed to generate node PK"))
+		}
+		keyStore := keystore.NewInplaceKeyStore(pk)
+
+		platformCryptographyScheme := platformpolicy.NewPlatformCryptographyScheme()
+		s.platformScheme = legacyadapter.New(platformCryptographyScheme, keyProcessor, keyStore)
+	}
+
 	s.JetCoordinatorMock = affinity.NewHelperMock(t).
 		MeMock.Return(s.caller).
 		QueryRoleMock.Return([]reference.Global{s.caller}, nil)
@@ -228,7 +230,7 @@ func newServerExt(ctx context.Context, t Tester, opts ServerOpts) (*Server, cont
 	virtualDispatcher.EventlessSleep = -1 // disable EventlessSleep for proper WaitActiveThenIdleConveyor behavior
 	virtualDispatcher.MachineLogger = machineLogger
 	virtualDispatcher.MaxRunners = 4
-	virtualDispatcher.ReferenceBuilder = lmn.NewRecordReferenceBuilder(platformScheme().RecordScheme(), gen.UniqueGlobalRef())
+	virtualDispatcher.ReferenceBuilder = lmn.NewRecordReferenceBuilder(s.platformScheme.RecordScheme(), s.caller)
 	s.virtual = virtualDispatcher
 
 	// re HTTP testing
@@ -246,6 +248,7 @@ func (s *Server) Init(ctx context.Context) {
 	if err := s.virtual.Init(ctx); err != nil {
 		panic(err)
 	}
+	s.virtual.MessageSender.InterceptorClear()
 
 	s.pulseManager.AddDispatcher(s.virtual.FlowDispatcher)
 	s.incrementPulse() // for sake of simplicity make sure that there is no "hanging" first pulse

@@ -19,11 +19,17 @@ import (
 type ServiceMock struct {
 	t minimock.Tester
 
-	funcAddInterceptor          func(fn InterceptorFn)
-	inspectFuncAddInterceptor   func(fn InterceptorFn)
-	afterAddInterceptorCounter  uint64
-	beforeAddInterceptorCounter uint64
-	AddInterceptorMock          mServiceMockAddInterceptor
+	funcInterceptorAdd          func(fn InterceptorFn)
+	inspectFuncInterceptorAdd   func(fn InterceptorFn)
+	afterInterceptorAddCounter  uint64
+	beforeInterceptorAddCounter uint64
+	InterceptorAddMock          mServiceMockInterceptorAdd
+
+	funcInterceptorClear          func()
+	inspectFuncInterceptorClear   func()
+	afterInterceptorClearCounter  uint64
+	beforeInterceptorClearCounter uint64
+	InterceptorClearMock          mServiceMockInterceptorClear
 
 	funcSendRole          func(ctx context.Context, msg rmsreg.GoGoSerializable, role affinity.DynamicRole, object reference.Global, pn pulse.Number, opts ...SendOption) (err error)
 	inspectFuncSendRole   func(ctx context.Context, msg rmsreg.GoGoSerializable, role affinity.DynamicRole, object reference.Global, pn pulse.Number, opts ...SendOption)
@@ -45,8 +51,10 @@ func NewServiceMock(t minimock.Tester) *ServiceMock {
 		controller.RegisterMocker(m)
 	}
 
-	m.AddInterceptorMock = mServiceMockAddInterceptor{mock: m}
-	m.AddInterceptorMock.callArgs = []*ServiceMockAddInterceptorParams{}
+	m.InterceptorAddMock = mServiceMockInterceptorAdd{mock: m}
+	m.InterceptorAddMock.callArgs = []*ServiceMockInterceptorAddParams{}
+
+	m.InterceptorClearMock = mServiceMockInterceptorClear{mock: m}
 
 	m.SendRoleMock = mServiceMockSendRole{mock: m}
 	m.SendRoleMock.callArgs = []*ServiceMockSendRoleParams{}
@@ -57,190 +65,325 @@ func NewServiceMock(t minimock.Tester) *ServiceMock {
 	return m
 }
 
-type mServiceMockAddInterceptor struct {
+type mServiceMockInterceptorAdd struct {
 	mock               *ServiceMock
-	defaultExpectation *ServiceMockAddInterceptorExpectation
-	expectations       []*ServiceMockAddInterceptorExpectation
+	defaultExpectation *ServiceMockInterceptorAddExpectation
+	expectations       []*ServiceMockInterceptorAddExpectation
 
-	callArgs []*ServiceMockAddInterceptorParams
+	callArgs []*ServiceMockInterceptorAddParams
 	mutex    sync.RWMutex
 }
 
-// ServiceMockAddInterceptorExpectation specifies expectation struct of the Service.AddInterceptor
-type ServiceMockAddInterceptorExpectation struct {
+// ServiceMockInterceptorAddExpectation specifies expectation struct of the Service.InterceptorAdd
+type ServiceMockInterceptorAddExpectation struct {
 	mock   *ServiceMock
-	params *ServiceMockAddInterceptorParams
+	params *ServiceMockInterceptorAddParams
 
 	Counter uint64
 }
 
-// ServiceMockAddInterceptorParams contains parameters of the Service.AddInterceptor
-type ServiceMockAddInterceptorParams struct {
+// ServiceMockInterceptorAddParams contains parameters of the Service.InterceptorAdd
+type ServiceMockInterceptorAddParams struct {
 	fn InterceptorFn
 }
 
-// Expect sets up expected params for Service.AddInterceptor
-func (mmAddInterceptor *mServiceMockAddInterceptor) Expect(fn InterceptorFn) *mServiceMockAddInterceptor {
-	if mmAddInterceptor.mock.funcAddInterceptor != nil {
-		mmAddInterceptor.mock.t.Fatalf("ServiceMock.AddInterceptor mock is already set by Set")
+// Expect sets up expected params for Service.InterceptorAdd
+func (mmInterceptorAdd *mServiceMockInterceptorAdd) Expect(fn InterceptorFn) *mServiceMockInterceptorAdd {
+	if mmInterceptorAdd.mock.funcInterceptorAdd != nil {
+		mmInterceptorAdd.mock.t.Fatalf("ServiceMock.InterceptorAdd mock is already set by Set")
 	}
 
-	if mmAddInterceptor.defaultExpectation == nil {
-		mmAddInterceptor.defaultExpectation = &ServiceMockAddInterceptorExpectation{}
+	if mmInterceptorAdd.defaultExpectation == nil {
+		mmInterceptorAdd.defaultExpectation = &ServiceMockInterceptorAddExpectation{}
 	}
 
-	mmAddInterceptor.defaultExpectation.params = &ServiceMockAddInterceptorParams{fn}
-	for _, e := range mmAddInterceptor.expectations {
-		if minimock.Equal(e.params, mmAddInterceptor.defaultExpectation.params) {
-			mmAddInterceptor.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmAddInterceptor.defaultExpectation.params)
+	mmInterceptorAdd.defaultExpectation.params = &ServiceMockInterceptorAddParams{fn}
+	for _, e := range mmInterceptorAdd.expectations {
+		if minimock.Equal(e.params, mmInterceptorAdd.defaultExpectation.params) {
+			mmInterceptorAdd.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmInterceptorAdd.defaultExpectation.params)
 		}
 	}
 
-	return mmAddInterceptor
+	return mmInterceptorAdd
 }
 
-// Inspect accepts an inspector function that has same arguments as the Service.AddInterceptor
-func (mmAddInterceptor *mServiceMockAddInterceptor) Inspect(f func(fn InterceptorFn)) *mServiceMockAddInterceptor {
-	if mmAddInterceptor.mock.inspectFuncAddInterceptor != nil {
-		mmAddInterceptor.mock.t.Fatalf("Inspect function is already set for ServiceMock.AddInterceptor")
+// Inspect accepts an inspector function that has same arguments as the Service.InterceptorAdd
+func (mmInterceptorAdd *mServiceMockInterceptorAdd) Inspect(f func(fn InterceptorFn)) *mServiceMockInterceptorAdd {
+	if mmInterceptorAdd.mock.inspectFuncInterceptorAdd != nil {
+		mmInterceptorAdd.mock.t.Fatalf("Inspect function is already set for ServiceMock.InterceptorAdd")
 	}
 
-	mmAddInterceptor.mock.inspectFuncAddInterceptor = f
+	mmInterceptorAdd.mock.inspectFuncInterceptorAdd = f
 
-	return mmAddInterceptor
+	return mmInterceptorAdd
 }
 
-// Return sets up results that will be returned by Service.AddInterceptor
-func (mmAddInterceptor *mServiceMockAddInterceptor) Return() *ServiceMock {
-	if mmAddInterceptor.mock.funcAddInterceptor != nil {
-		mmAddInterceptor.mock.t.Fatalf("ServiceMock.AddInterceptor mock is already set by Set")
+// Return sets up results that will be returned by Service.InterceptorAdd
+func (mmInterceptorAdd *mServiceMockInterceptorAdd) Return() *ServiceMock {
+	if mmInterceptorAdd.mock.funcInterceptorAdd != nil {
+		mmInterceptorAdd.mock.t.Fatalf("ServiceMock.InterceptorAdd mock is already set by Set")
 	}
 
-	if mmAddInterceptor.defaultExpectation == nil {
-		mmAddInterceptor.defaultExpectation = &ServiceMockAddInterceptorExpectation{mock: mmAddInterceptor.mock}
+	if mmInterceptorAdd.defaultExpectation == nil {
+		mmInterceptorAdd.defaultExpectation = &ServiceMockInterceptorAddExpectation{mock: mmInterceptorAdd.mock}
 	}
 
-	return mmAddInterceptor.mock
+	return mmInterceptorAdd.mock
 }
 
-//Set uses given function f to mock the Service.AddInterceptor method
-func (mmAddInterceptor *mServiceMockAddInterceptor) Set(f func(fn InterceptorFn)) *ServiceMock {
-	if mmAddInterceptor.defaultExpectation != nil {
-		mmAddInterceptor.mock.t.Fatalf("Default expectation is already set for the Service.AddInterceptor method")
+//Set uses given function f to mock the Service.InterceptorAdd method
+func (mmInterceptorAdd *mServiceMockInterceptorAdd) Set(f func(fn InterceptorFn)) *ServiceMock {
+	if mmInterceptorAdd.defaultExpectation != nil {
+		mmInterceptorAdd.mock.t.Fatalf("Default expectation is already set for the Service.InterceptorAdd method")
 	}
 
-	if len(mmAddInterceptor.expectations) > 0 {
-		mmAddInterceptor.mock.t.Fatalf("Some expectations are already set for the Service.AddInterceptor method")
+	if len(mmInterceptorAdd.expectations) > 0 {
+		mmInterceptorAdd.mock.t.Fatalf("Some expectations are already set for the Service.InterceptorAdd method")
 	}
 
-	mmAddInterceptor.mock.funcAddInterceptor = f
-	return mmAddInterceptor.mock
+	mmInterceptorAdd.mock.funcInterceptorAdd = f
+	return mmInterceptorAdd.mock
 }
 
-// AddInterceptor implements Service
-func (mmAddInterceptor *ServiceMock) AddInterceptor(fn InterceptorFn) {
-	mm_atomic.AddUint64(&mmAddInterceptor.beforeAddInterceptorCounter, 1)
-	defer mm_atomic.AddUint64(&mmAddInterceptor.afterAddInterceptorCounter, 1)
+// InterceptorAdd implements Service
+func (mmInterceptorAdd *ServiceMock) InterceptorAdd(fn InterceptorFn) {
+	mm_atomic.AddUint64(&mmInterceptorAdd.beforeInterceptorAddCounter, 1)
+	defer mm_atomic.AddUint64(&mmInterceptorAdd.afterInterceptorAddCounter, 1)
 
-	if mmAddInterceptor.inspectFuncAddInterceptor != nil {
-		mmAddInterceptor.inspectFuncAddInterceptor(fn)
+	if mmInterceptorAdd.inspectFuncInterceptorAdd != nil {
+		mmInterceptorAdd.inspectFuncInterceptorAdd(fn)
 	}
 
-	mm_params := &ServiceMockAddInterceptorParams{fn}
+	mm_params := &ServiceMockInterceptorAddParams{fn}
 
 	// Record call args
-	mmAddInterceptor.AddInterceptorMock.mutex.Lock()
-	mmAddInterceptor.AddInterceptorMock.callArgs = append(mmAddInterceptor.AddInterceptorMock.callArgs, mm_params)
-	mmAddInterceptor.AddInterceptorMock.mutex.Unlock()
+	mmInterceptorAdd.InterceptorAddMock.mutex.Lock()
+	mmInterceptorAdd.InterceptorAddMock.callArgs = append(mmInterceptorAdd.InterceptorAddMock.callArgs, mm_params)
+	mmInterceptorAdd.InterceptorAddMock.mutex.Unlock()
 
-	for _, e := range mmAddInterceptor.AddInterceptorMock.expectations {
+	for _, e := range mmInterceptorAdd.InterceptorAddMock.expectations {
 		if minimock.Equal(e.params, mm_params) {
 			mm_atomic.AddUint64(&e.Counter, 1)
 			return
 		}
 	}
 
-	if mmAddInterceptor.AddInterceptorMock.defaultExpectation != nil {
-		mm_atomic.AddUint64(&mmAddInterceptor.AddInterceptorMock.defaultExpectation.Counter, 1)
-		mm_want := mmAddInterceptor.AddInterceptorMock.defaultExpectation.params
-		mm_got := ServiceMockAddInterceptorParams{fn}
+	if mmInterceptorAdd.InterceptorAddMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmInterceptorAdd.InterceptorAddMock.defaultExpectation.Counter, 1)
+		mm_want := mmInterceptorAdd.InterceptorAddMock.defaultExpectation.params
+		mm_got := ServiceMockInterceptorAddParams{fn}
 		if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
-			mmAddInterceptor.t.Errorf("ServiceMock.AddInterceptor got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+			mmInterceptorAdd.t.Errorf("ServiceMock.InterceptorAdd got unexpected parameters, want: %#v, got: %#v%s\n", *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
 		}
 
 		return
 
 	}
-	if mmAddInterceptor.funcAddInterceptor != nil {
-		mmAddInterceptor.funcAddInterceptor(fn)
+	if mmInterceptorAdd.funcInterceptorAdd != nil {
+		mmInterceptorAdd.funcInterceptorAdd(fn)
 		return
 	}
-	mmAddInterceptor.t.Fatalf("Unexpected call to ServiceMock.AddInterceptor. %v", fn)
+	mmInterceptorAdd.t.Fatalf("Unexpected call to ServiceMock.InterceptorAdd. %v", fn)
 
 }
 
-// AddInterceptorAfterCounter returns a count of finished ServiceMock.AddInterceptor invocations
-func (mmAddInterceptor *ServiceMock) AddInterceptorAfterCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmAddInterceptor.afterAddInterceptorCounter)
+// InterceptorAddAfterCounter returns a count of finished ServiceMock.InterceptorAdd invocations
+func (mmInterceptorAdd *ServiceMock) InterceptorAddAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmInterceptorAdd.afterInterceptorAddCounter)
 }
 
-// AddInterceptorBeforeCounter returns a count of ServiceMock.AddInterceptor invocations
-func (mmAddInterceptor *ServiceMock) AddInterceptorBeforeCounter() uint64 {
-	return mm_atomic.LoadUint64(&mmAddInterceptor.beforeAddInterceptorCounter)
+// InterceptorAddBeforeCounter returns a count of ServiceMock.InterceptorAdd invocations
+func (mmInterceptorAdd *ServiceMock) InterceptorAddBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmInterceptorAdd.beforeInterceptorAddCounter)
 }
 
-// Calls returns a list of arguments used in each call to ServiceMock.AddInterceptor.
+// Calls returns a list of arguments used in each call to ServiceMock.InterceptorAdd.
 // The list is in the same order as the calls were made (i.e. recent calls have a higher index)
-func (mmAddInterceptor *mServiceMockAddInterceptor) Calls() []*ServiceMockAddInterceptorParams {
-	mmAddInterceptor.mutex.RLock()
+func (mmInterceptorAdd *mServiceMockInterceptorAdd) Calls() []*ServiceMockInterceptorAddParams {
+	mmInterceptorAdd.mutex.RLock()
 
-	argCopy := make([]*ServiceMockAddInterceptorParams, len(mmAddInterceptor.callArgs))
-	copy(argCopy, mmAddInterceptor.callArgs)
+	argCopy := make([]*ServiceMockInterceptorAddParams, len(mmInterceptorAdd.callArgs))
+	copy(argCopy, mmInterceptorAdd.callArgs)
 
-	mmAddInterceptor.mutex.RUnlock()
+	mmInterceptorAdd.mutex.RUnlock()
 
 	return argCopy
 }
 
-// MinimockAddInterceptorDone returns true if the count of the AddInterceptor invocations corresponds
+// MinimockInterceptorAddDone returns true if the count of the InterceptorAdd invocations corresponds
 // the number of defined expectations
-func (m *ServiceMock) MinimockAddInterceptorDone() bool {
-	for _, e := range m.AddInterceptorMock.expectations {
+func (m *ServiceMock) MinimockInterceptorAddDone() bool {
+	for _, e := range m.InterceptorAddMock.expectations {
 		if mm_atomic.LoadUint64(&e.Counter) < 1 {
 			return false
 		}
 	}
 
 	// if default expectation was set then invocations count should be greater than zero
-	if m.AddInterceptorMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterAddInterceptorCounter) < 1 {
+	if m.InterceptorAddMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterInterceptorAddCounter) < 1 {
 		return false
 	}
 	// if func was set then invocations count should be greater than zero
-	if m.funcAddInterceptor != nil && mm_atomic.LoadUint64(&m.afterAddInterceptorCounter) < 1 {
+	if m.funcInterceptorAdd != nil && mm_atomic.LoadUint64(&m.afterInterceptorAddCounter) < 1 {
 		return false
 	}
 	return true
 }
 
-// MinimockAddInterceptorInspect logs each unmet expectation
-func (m *ServiceMock) MinimockAddInterceptorInspect() {
-	for _, e := range m.AddInterceptorMock.expectations {
+// MinimockInterceptorAddInspect logs each unmet expectation
+func (m *ServiceMock) MinimockInterceptorAddInspect() {
+	for _, e := range m.InterceptorAddMock.expectations {
 		if mm_atomic.LoadUint64(&e.Counter) < 1 {
-			m.t.Errorf("Expected call to ServiceMock.AddInterceptor with params: %#v", *e.params)
+			m.t.Errorf("Expected call to ServiceMock.InterceptorAdd with params: %#v", *e.params)
 		}
 	}
 
 	// if default expectation was set then invocations count should be greater than zero
-	if m.AddInterceptorMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterAddInterceptorCounter) < 1 {
-		if m.AddInterceptorMock.defaultExpectation.params == nil {
-			m.t.Error("Expected call to ServiceMock.AddInterceptor")
+	if m.InterceptorAddMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterInterceptorAddCounter) < 1 {
+		if m.InterceptorAddMock.defaultExpectation.params == nil {
+			m.t.Error("Expected call to ServiceMock.InterceptorAdd")
 		} else {
-			m.t.Errorf("Expected call to ServiceMock.AddInterceptor with params: %#v", *m.AddInterceptorMock.defaultExpectation.params)
+			m.t.Errorf("Expected call to ServiceMock.InterceptorAdd with params: %#v", *m.InterceptorAddMock.defaultExpectation.params)
 		}
 	}
 	// if func was set then invocations count should be greater than zero
-	if m.funcAddInterceptor != nil && mm_atomic.LoadUint64(&m.afterAddInterceptorCounter) < 1 {
-		m.t.Error("Expected call to ServiceMock.AddInterceptor")
+	if m.funcInterceptorAdd != nil && mm_atomic.LoadUint64(&m.afterInterceptorAddCounter) < 1 {
+		m.t.Error("Expected call to ServiceMock.InterceptorAdd")
+	}
+}
+
+type mServiceMockInterceptorClear struct {
+	mock               *ServiceMock
+	defaultExpectation *ServiceMockInterceptorClearExpectation
+	expectations       []*ServiceMockInterceptorClearExpectation
+}
+
+// ServiceMockInterceptorClearExpectation specifies expectation struct of the Service.InterceptorClear
+type ServiceMockInterceptorClearExpectation struct {
+	mock *ServiceMock
+
+	Counter uint64
+}
+
+// Expect sets up expected params for Service.InterceptorClear
+func (mmInterceptorClear *mServiceMockInterceptorClear) Expect() *mServiceMockInterceptorClear {
+	if mmInterceptorClear.mock.funcInterceptorClear != nil {
+		mmInterceptorClear.mock.t.Fatalf("ServiceMock.InterceptorClear mock is already set by Set")
+	}
+
+	if mmInterceptorClear.defaultExpectation == nil {
+		mmInterceptorClear.defaultExpectation = &ServiceMockInterceptorClearExpectation{}
+	}
+
+	return mmInterceptorClear
+}
+
+// Inspect accepts an inspector function that has same arguments as the Service.InterceptorClear
+func (mmInterceptorClear *mServiceMockInterceptorClear) Inspect(f func()) *mServiceMockInterceptorClear {
+	if mmInterceptorClear.mock.inspectFuncInterceptorClear != nil {
+		mmInterceptorClear.mock.t.Fatalf("Inspect function is already set for ServiceMock.InterceptorClear")
+	}
+
+	mmInterceptorClear.mock.inspectFuncInterceptorClear = f
+
+	return mmInterceptorClear
+}
+
+// Return sets up results that will be returned by Service.InterceptorClear
+func (mmInterceptorClear *mServiceMockInterceptorClear) Return() *ServiceMock {
+	if mmInterceptorClear.mock.funcInterceptorClear != nil {
+		mmInterceptorClear.mock.t.Fatalf("ServiceMock.InterceptorClear mock is already set by Set")
+	}
+
+	if mmInterceptorClear.defaultExpectation == nil {
+		mmInterceptorClear.defaultExpectation = &ServiceMockInterceptorClearExpectation{mock: mmInterceptorClear.mock}
+	}
+
+	return mmInterceptorClear.mock
+}
+
+//Set uses given function f to mock the Service.InterceptorClear method
+func (mmInterceptorClear *mServiceMockInterceptorClear) Set(f func()) *ServiceMock {
+	if mmInterceptorClear.defaultExpectation != nil {
+		mmInterceptorClear.mock.t.Fatalf("Default expectation is already set for the Service.InterceptorClear method")
+	}
+
+	if len(mmInterceptorClear.expectations) > 0 {
+		mmInterceptorClear.mock.t.Fatalf("Some expectations are already set for the Service.InterceptorClear method")
+	}
+
+	mmInterceptorClear.mock.funcInterceptorClear = f
+	return mmInterceptorClear.mock
+}
+
+// InterceptorClear implements Service
+func (mmInterceptorClear *ServiceMock) InterceptorClear() {
+	mm_atomic.AddUint64(&mmInterceptorClear.beforeInterceptorClearCounter, 1)
+	defer mm_atomic.AddUint64(&mmInterceptorClear.afterInterceptorClearCounter, 1)
+
+	if mmInterceptorClear.inspectFuncInterceptorClear != nil {
+		mmInterceptorClear.inspectFuncInterceptorClear()
+	}
+
+	if mmInterceptorClear.InterceptorClearMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmInterceptorClear.InterceptorClearMock.defaultExpectation.Counter, 1)
+
+		return
+
+	}
+	if mmInterceptorClear.funcInterceptorClear != nil {
+		mmInterceptorClear.funcInterceptorClear()
+		return
+	}
+	mmInterceptorClear.t.Fatalf("Unexpected call to ServiceMock.InterceptorClear.")
+
+}
+
+// InterceptorClearAfterCounter returns a count of finished ServiceMock.InterceptorClear invocations
+func (mmInterceptorClear *ServiceMock) InterceptorClearAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmInterceptorClear.afterInterceptorClearCounter)
+}
+
+// InterceptorClearBeforeCounter returns a count of ServiceMock.InterceptorClear invocations
+func (mmInterceptorClear *ServiceMock) InterceptorClearBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmInterceptorClear.beforeInterceptorClearCounter)
+}
+
+// MinimockInterceptorClearDone returns true if the count of the InterceptorClear invocations corresponds
+// the number of defined expectations
+func (m *ServiceMock) MinimockInterceptorClearDone() bool {
+	for _, e := range m.InterceptorClearMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.InterceptorClearMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterInterceptorClearCounter) < 1 {
+		return false
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcInterceptorClear != nil && mm_atomic.LoadUint64(&m.afterInterceptorClearCounter) < 1 {
+		return false
+	}
+	return true
+}
+
+// MinimockInterceptorClearInspect logs each unmet expectation
+func (m *ServiceMock) MinimockInterceptorClearInspect() {
+	for _, e := range m.InterceptorClearMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Error("Expected call to ServiceMock.InterceptorClear")
+		}
+	}
+
+	// if default expectation was set then invocations count should be greater than zero
+	if m.InterceptorClearMock.defaultExpectation != nil && mm_atomic.LoadUint64(&m.afterInterceptorClearCounter) < 1 {
+		m.t.Error("Expected call to ServiceMock.InterceptorClear")
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcInterceptorClear != nil && mm_atomic.LoadUint64(&m.afterInterceptorClearCounter) < 1 {
+		m.t.Error("Expected call to ServiceMock.InterceptorClear")
 	}
 }
 
@@ -685,7 +828,9 @@ func (m *ServiceMock) MinimockSendTargetInspect() {
 // MinimockFinish checks that all mocked methods have been called the expected number of times
 func (m *ServiceMock) MinimockFinish() {
 	if !m.minimockDone() {
-		m.MinimockAddInterceptorInspect()
+		m.MinimockInterceptorAddInspect()
+
+		m.MinimockInterceptorClearInspect()
 
 		m.MinimockSendRoleInspect()
 
@@ -713,7 +858,8 @@ func (m *ServiceMock) MinimockWait(timeout mm_time.Duration) {
 func (m *ServiceMock) minimockDone() bool {
 	done := true
 	return done &&
-		m.MinimockAddInterceptorDone() &&
+		m.MinimockInterceptorAddDone() &&
+		m.MinimockInterceptorClearDone() &&
 		m.MinimockSendRoleDone() &&
 		m.MinimockSendTargetDone()
 }

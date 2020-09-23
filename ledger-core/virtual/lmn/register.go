@@ -9,11 +9,13 @@ package lmn
 
 import (
 	"context"
+	"reflect"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/affinity"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor"
 	"github.com/insolar/assured-ledger/ledger-core/conveyor/smachine"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
+	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -33,6 +35,9 @@ type SerializableBasicRecord interface {
 }
 
 func recordToAnyRecord(rec SerializableBasicRecord) rms.AnyRecord {
+	if rec == nil {
+		panic(throw.IllegalValue())
+	}
 	rv := rms.AnyRecord{}
 	rv.Set(rec)
 	return rv
@@ -152,7 +157,7 @@ func (s *SubSMRegister) GetStateMachineDeclaration() smachine.StateMachineDeclar
 
 func (s *SubSMRegister) getRecordAnticipatedRef(record SerializableBasicRecord) reference.Global {
 	var (
-		data        = make([]byte, 0)
+		data        = make([]byte, record.ProtoSize())
 		pulseNumber = s.pulseSlot.CurrentPulseNumber()
 	)
 	_, err := record.MarshalTo(data)
@@ -182,6 +187,13 @@ func (s *SubSMRegister) bargeInHandler(param interface{}) smachine.BargeInCallba
 	}
 }
 
+type logRegisterBargeIn struct {
+	*log.Msg       `txt:"publishing bargeIn callback"`
+	AnticipatedRef reference.Global
+	Flag           rms.RegistrationFlags
+	Type           reflect.Type
+}
+
 func (s *SubSMRegister) registerMessage(ctx smachine.ExecutionContext, msg *rms.LRegisterRequest) error {
 	waitFlag := msg.Flags
 
@@ -189,6 +201,7 @@ func (s *SubSMRegister) registerMessage(ctx smachine.ExecutionContext, msg *rms.
 	case rms.RegistrationFlags_FastSafe:
 		s.requiredSafe++
 
+		// TODO: add destructor to finish that SM's if not all answers were
 		ctx.InitChild(func(ctx smachine.ConstructionContext) smachine.StateMachine {
 			return &SMWaitSafeResponse{
 				ObjectSharedState:   s.ObjectSharedState,
@@ -285,6 +298,87 @@ func (s *SubSMRegister) getLifelineRecord() *rms.RLifelineStart {
 		RegistrarDelegationSpec: s.Incoming.RegistrarDelegationSpec,
 		CallRequestFlags:        s.Incoming.CallRequestFlags,
 		KnownCalleeIncoming:     s.Incoming.KnownCalleeIncoming,
+		TXExpiry:                s.Incoming.TXExpiry,
+		SecurityContext:         s.Incoming.SecurityContext,
+		TXContext:               s.Incoming.TXContext,
+		Arguments:               s.Incoming.Arguments, // TODO: move later to RecordBody
+	}
+}
+
+func (s *SubSMRegister) getInboundRecord() *rms.RInboundRequest {
+	switch {
+	case s.Incoming == nil:
+		panic(throw.IllegalState())
+	case s.LastFilamentRef.IsEmpty():
+		panic(throw.IllegalState())
+	case s.Object.IsEmpty():
+		panic(throw.IllegalState())
+	}
+
+	return &rms.RInboundRequest{
+		RootRef: rms.NewReference(s.Object),
+		PrevRef: rms.NewReference(s.LastFilamentRef),
+
+		CallType:                s.Incoming.CallType,
+		CallFlags:               s.Incoming.CallFlags,
+		CallAsOf:                s.Incoming.CallAsOf,
+		Caller:                  s.Incoming.Caller,
+		Callee:                  s.Incoming.Callee,
+		CallSiteDeclaration:     s.Incoming.CallSiteDeclaration,
+		CallSiteMethod:          s.Incoming.CallSiteMethod,
+		CallSequence:            s.Incoming.CallSequence,
+		CallReason:              s.Incoming.CallReason,
+		RootTX:                  s.Incoming.RootTX,
+		CallTX:                  s.Incoming.CallTX,
+		ExpenseCenter:           s.Incoming.ExpenseCenter,
+		ResourceCenter:          s.Incoming.ResourceCenter,
+		DelegationSpec:          s.Incoming.DelegationSpec,
+		ProducerSignature:       s.Incoming.ProducerSignature,
+		RegistrarSignature:      s.Incoming.RegistrarSignature,
+		RegistrarDelegationSpec: s.Incoming.RegistrarDelegationSpec,
+		CallRequestFlags:        s.Incoming.CallRequestFlags,
+		KnownCalleeIncoming:     s.Incoming.KnownCalleeIncoming,
+		CallOutgoing:            s.Incoming.CallOutgoing,
+		TXExpiry:                s.Incoming.TXExpiry,
+		SecurityContext:         s.Incoming.SecurityContext,
+		TXContext:               s.Incoming.TXContext,
+		Arguments:               s.Incoming.Arguments, // TODO: move later to RecordBody
+	}
+}
+
+func (s *SubSMRegister) getLineInboundRecord() *rms.RLineInboundRequest {
+	switch {
+	case s.Incoming == nil:
+		panic(throw.IllegalState())
+	case s.LastLifelineRef.IsEmpty():
+		panic(throw.IllegalState())
+	case s.Object.IsEmpty():
+		panic(throw.IllegalState())
+	}
+
+	return &rms.RLineInboundRequest{
+		RootRef: rms.NewReference(s.Object),
+		PrevRef: rms.NewReference(s.LastLifelineRef),
+
+		CallType:                s.Incoming.CallType,
+		CallFlags:               s.Incoming.CallFlags,
+		CallAsOf:                s.Incoming.CallAsOf,
+		Caller:                  s.Incoming.Caller,
+		Callee:                  s.Incoming.Callee,
+		CallSiteDeclaration:     s.Incoming.CallSiteDeclaration,
+		CallSiteMethod:          s.Incoming.CallSiteMethod,
+		CallSequence:            s.Incoming.CallSequence,
+		CallReason:              s.Incoming.CallReason,
+		RootTX:                  s.Incoming.RootTX,
+		CallTX:                  s.Incoming.CallTX,
+		ExpenseCenter:           s.Incoming.ExpenseCenter,
+		ResourceCenter:          s.Incoming.ResourceCenter,
+		DelegationSpec:          s.Incoming.DelegationSpec,
+		ProducerSignature:       s.Incoming.ProducerSignature,
+		RegistrarSignature:      s.Incoming.RegistrarSignature,
+		RegistrarDelegationSpec: s.Incoming.RegistrarDelegationSpec,
+		CallRequestFlags:        s.Incoming.CallRequestFlags,
+		KnownCalleeIncoming:     s.Incoming.KnownCalleeIncoming,
 		CallOutgoing:            s.Incoming.CallOutgoing,
 		TXExpiry:                s.Incoming.TXExpiry,
 		SecurityContext:         s.Incoming.SecurityContext,
@@ -330,21 +424,11 @@ func (s *SubSMRegister) stepRegisterIncoming(ctx smachine.ExecutionContext) smac
 
 	switch s.Interference {
 	case isolation.CallTolerable:
-		if s.LastLifelineRef.IsEmpty() {
-			panic(throw.IllegalState())
-		}
-		record = &rms.RLineInboundRequest{
-			RootRef: rms.NewReference(s.Object),
-			PrevRef: rms.NewReference(s.LastLifelineRef),
-		}
+		record = s.getLineInboundRecord()
 	case isolation.CallIntolerable:
-		if s.LastFilamentRef.IsEmpty() {
-			panic(throw.IllegalState())
-		}
-		record = &rms.RInboundRequest{
-			RootRef: rms.NewReference(s.Object),
-			PrevRef: rms.NewReference(s.LastFilamentRef),
-		}
+		record = s.getInboundRecord()
+	default:
+		panic(throw.IllegalValue())
 	}
 
 	var anticipatedRef = s.getRecordAnticipatedRef(record)
@@ -440,6 +524,7 @@ func (s *SubSMRegister) stepRegisterIncomingResult(ctx smachine.ExecutionContext
 
 	var (
 		haveFilament  = true
+		isIntolerable = s.Interference == isolation.CallIntolerable
 		isConstructor = s.IncomingResult.Result.Type() == requestresult.SideEffectActivate
 		isDestructor  = s.IncomingResult.Result.Type() == requestresult.SideEffectDeactivate
 		isNone        = s.IncomingResult.Result.Type() == requestresult.SideEffectNone
@@ -483,6 +568,8 @@ func (s *SubSMRegister) stepRegisterIncomingResult(ctx smachine.ExecutionContext
 		var record SerializableBasicRecord
 
 		switch {
+		case isIntolerable:
+			record = nil
 		case !haveFilament && isConstructor:
 			record = &rms.RLineMemoryInit{
 				RootRef: rms.NewReference(s.Object),
@@ -587,12 +674,14 @@ func (s *SubSMRegister) stepSendMessage(ctx smachine.ExecutionContext) smachine.
 		return ctx.Stop()
 	}
 
-	return s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
+	s.messageSender.PrepareAsync(ctx, func(goCtx context.Context, svc messagesender.Service) smachine.AsyncResultFunc {
 		err := svc.SendRole(goCtx, msg.Payload(), affinity.DynamicRoleLightExecutor, obj, currentPulse)
 		return func(ctx smachine.AsyncResultContext) {
 			s.sendError = throw.W(err, "failed to send LRegisterRequest message")
 		}
-	}).DelayedStart().ThenJump(s.stepWaitResponse)
+	}).Start()
+
+	return ctx.Jump(s.stepWaitResponse)
 }
 
 func (s *SubSMRegister) stepWaitResponse(ctx smachine.ExecutionContext) smachine.StateUpdate {

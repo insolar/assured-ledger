@@ -45,7 +45,8 @@ type Service interface {
 	SendRole(ctx context.Context, msg rmsreg.GoGoSerializable, role affinity.DynamicRole, object reference.Global, pn pulse.Number, opts ...SendOption) error
 	SendTarget(ctx context.Context, msg rmsreg.GoGoSerializable, target reference.Global, opts ...SendOption) error
 
-	AddInterceptor(fn InterceptorFn)
+	InterceptorAdd(fn InterceptorFn)
+	InterceptorClear()
 }
 
 type DefaultService struct {
@@ -202,9 +203,16 @@ func (dm *DefaultService) sendTarget(ctx context.Context, msg rmsreg.GoGoSeriali
 	return nil
 }
 
-func (dm *DefaultService) AddInterceptor(fn InterceptorFn) {
+func (dm *DefaultService) InterceptorAdd(fn InterceptorFn) {
 	dm.interceptorsLock.Lock()
 	defer dm.interceptorsLock.Unlock()
 
 	dm.interceptors = append(dm.interceptors, fn)
+}
+
+func (dm *DefaultService) InterceptorClear() {
+	dm.interceptorsLock.Lock()
+	defer dm.interceptorsLock.Unlock()
+
+	dm.interceptors = []InterceptorFn{}
 }

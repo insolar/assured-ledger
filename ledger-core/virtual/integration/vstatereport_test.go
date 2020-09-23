@@ -219,6 +219,11 @@ func TestVirtual_StateReport_CheckPendingCountersAndPulses(t *testing.T) {
 			suite.releaseNewlyCreatedPendings()
 			expectedPublished += len(test.start) * 2 // pending finished + result
 			expectedPublished += len(test.start) * 3 // register messages on lmn
+			for _, start := range test.start {
+				if start == isolation.CallIntolerable {
+					expectedPublished -= 1
+				}
+			}
 			suite.waitMessagePublications(ctx, t, expectedPublished)
 
 			// request state again

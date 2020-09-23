@@ -135,6 +135,37 @@ message RLineInboundRequest {
 
     Reference PrevRef = 24;
     Reference RootRef = 25;
+
+    CallType CallType = 40;
+    uint32 CallFlags = 41 [(gogoproto.casttype) = "CallFlags"];
+    uint32 CallAsOf  = 42 [(gogoproto.casttype) = "PulseNumber"];
+    Reference Caller = 43;
+    Reference Callee = 44;
+
+    Reference CallSiteDeclaration = 45;
+    string CallSiteMethod = 46;
+
+    uint32 CallSequence = 47;
+    Reference CallReason = 48;
+    Reference RootTX = 49;
+    Reference CallTX = 50;
+
+    Reference ExpenseCenter = 51;
+    Reference ResourceCenter = 52;
+
+    CallDelegationToken DelegationSpec = 54;
+    Binary ProducerSignature = 55;
+    Binary RegistrarSignature = 56;
+    CallDelegationToken RegistrarDelegationSpec = 57;
+
+    int32 CallRequestFlags = 58 [(gogoproto.casttype) = "CallRequestFlags"];
+    Reference KnownCalleeIncoming = 59;
+    Reference CallOutgoing = 61;
+    uint32 TXExpiry = 62 [(gogoproto.casttype) = "PulseNumber"];
+
+    Binary SecurityContext = 63;
+    Binary TXContext = 64;
+    Binary Arguments = 65;
 }
 
 message RInboundRequest {
@@ -143,6 +174,37 @@ message RInboundRequest {
 
     Reference PrevRef = 24;
     Reference RootRef = 25;
+
+    CallType CallType = 40;
+    uint32 CallFlags = 41 [(gogoproto.casttype) = "CallFlags"];
+    uint32 CallAsOf  = 42 [(gogoproto.casttype) = "PulseNumber"];
+    Reference Caller = 43;
+    Reference Callee = 44;
+
+    Reference CallSiteDeclaration = 45;
+    string CallSiteMethod = 46;
+
+    uint32 CallSequence = 47;
+    Reference CallReason = 48;
+    Reference RootTX = 49;
+    Reference CallTX = 50;
+
+    Reference ExpenseCenter = 51;
+    Reference ResourceCenter = 52;
+
+    CallDelegationToken DelegationSpec = 54;
+    Binary ProducerSignature = 55;
+    Binary RegistrarSignature = 56;
+    CallDelegationToken RegistrarDelegationSpec = 57;
+
+    int32 CallRequestFlags = 58 [(gogoproto.casttype) = "CallRequestFlags"];
+    Reference KnownCalleeIncoming = 59;
+    Reference CallOutgoing = 61;
+    uint32 TXExpiry = 62 [(gogoproto.casttype) = "PulseNumber"];
+
+    Binary SecurityContext = 63;
+    Binary TXContext = 64;
+    Binary Arguments = 65;
 }
 
 message RInboundResponse {
@@ -202,7 +264,6 @@ message ROutboundRequest {
 
     int32 CallRequestFlags = 58 [(gogoproto.casttype) = "CallRequestFlags"];
     Reference KnownCalleeIncoming = 59;
-    Reference CallOutgoing = 61;
     uint32 TXExpiry = 62 [(gogoproto.casttype) = "PulseNumber"];
 
     Binary SecurityContext = 63;

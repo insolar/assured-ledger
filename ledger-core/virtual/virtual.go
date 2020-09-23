@@ -155,7 +155,7 @@ func (lr *Dispatcher) Init(ctx context.Context) error {
 
 	lr.FlowDispatcher = insconveyor.NewConveyorDispatcher(ctx, lr.Conveyor)
 
-	lr.MessageSender.AddInterceptor(lmn.LRegisterRequestInterceptor)
+	lr.MessageSender.InterceptorAdd(lmn.LRegisterRequestInterceptor)
 
 	return nil
 }

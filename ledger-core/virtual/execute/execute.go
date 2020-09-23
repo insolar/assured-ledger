@@ -1264,9 +1264,9 @@ const (
 )
 
 func (s *SMExecute) constructSubSMRegister(v RegisterVariant) lmn.SubSMRegister {
-
 	subroutineSM := lmn.SubSMRegister{
 		SafeResponseCounter: s.lmnSafeResponseCounterLink,
+		Interference:        s.methodIsolation.Interference,
 	}
 
 	switch v {
@@ -1276,17 +1276,19 @@ func (s *SMExecute) constructSubSMRegister(v RegisterVariant) lmn.SubSMRegister 
 		}
 		subroutineSM.Incoming = s.Payload
 		return subroutineSM
+
 	case RegisterOutgoingRequest, RegisterIncomingResult:
 		if !s.incomingRegistered {
 			subroutineSM.Incoming = s.Payload
-			subroutineSM.Interference = s.methodIsolation.Interference
 
 			s.incomingRegistered = true
 		}
+
 	case RegisterOutgoingResult:
 		if !s.incomingRegistered {
 			panic(throw.IllegalState())
 		}
+
 	default:
 		panic(throw.IllegalValue())
 	}
@@ -1294,6 +1296,7 @@ func (s *SMExecute) constructSubSMRegister(v RegisterVariant) lmn.SubSMRegister 
 	subroutineSM.Object = s.execution.Object
 	subroutineSM.LastLifelineRef = s.lmnLastLifelineRef
 	subroutineSM.LastFilamentRef = s.lmnLastFilamentRef
+
 	if s.lmnLastFilamentRef.IsEmpty() {
 		subroutineSM.LastFilamentRef = subroutineSM.LastLifelineRef
 	}

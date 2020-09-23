@@ -30,8 +30,8 @@ type RecordReferenceBuilder struct {
 	LocalNodeRef   reference.Holder
 }
 
-func NewRecordReferenceBuilder(rs crypto.RecordScheme, localNodeRef reference.Holder) RecordReferenceBuilder {
-	return RecordReferenceBuilder{
+func NewRecordReferenceBuilder(rs crypto.RecordScheme, localNodeRef reference.Holder) *RecordReferenceBuilder {
+	return &RecordReferenceBuilder{
 		RecordScheme:   rs,
 		ProducerSigner: cryptkit.AsDataSigner(rs.RecordDigester(), rs.RecordSigner()),
 		LocalNodeRef:   localNodeRef,
