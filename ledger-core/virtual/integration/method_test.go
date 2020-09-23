@@ -21,6 +21,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/recordchecker"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/synchronization"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/handlers"
@@ -1047,7 +1048,8 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 				server.Init(ctx)
 			}
 
-			typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
+			typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+			recordChecker := recordchecker.NewLMNMessageChecker(mc)
 
 			var (
 				class     = server.RandomGlobalWithPulse()
@@ -1057,6 +1059,35 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 
 			server.IncrementPulseAndWaitIdle(ctx)
 			outgoing := server.BuildRandomOutgoingWithPulse()
+
+			// setup LMN record checker
+			{
+				chain := recordChecker.NewChain(rms.NewReference(objectRef))
+				switch testCase.isolation.Interference {
+				case isolation.CallIntolerable:
+					inbound := chain.AddRootMessage(
+						&rms.RInboundRequest{},
+						recordchecker.ProduceResponse(ctx, server),
+					)
+					inbound.AddChild(
+						&rms.RInboundResponse{},
+						recordchecker.ProduceResponse(ctx, server),
+					)
+				case isolation.CallTolerable:
+					inbound := chain.AddRootMessage(
+						&rms.RLineInboundRequest{},
+						recordchecker.ProduceResponse(ctx, server),
+					)
+					inbound.AddChild(
+						&rms.RInboundResponse{},
+						recordchecker.ProduceResponse(ctx, server),
+					)
+					inbound.AddChild(
+						&rms.RLineMemory{},
+						recordchecker.ProduceResponse(ctx, server),
+					)
+				}
+			}
 
 			// add ExecutionMock to runnerMock
 			{
@@ -1122,6 +1153,10 @@ func Test_MethodCall_HappyPath(t *testing.T) {
 					default:
 						t.Fatal("StateStatusInvalid test case isolation interference")
 					}
+					return false
+				})
+				typedChecker.LRegisterRequest.Set(func(request *rms.LRegisterRequest) bool {
+					assert.NoError(t, recordChecker.ProcessMessage(*request))
 					return false
 				})
 			}

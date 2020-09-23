@@ -27,6 +27,7 @@ import (
 	commontestutils "github.com/insolar/assured-ledger/ledger-core/testutils"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/insrail"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/predicate"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/recordchecker"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/runner/logicless"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/synchronization"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -107,7 +108,7 @@ func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
 		class        = pl.Callee.GetValue()
 	)
 
-	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
 	typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
 		assert.Equal(t, runnerResult, res.ReturnArguments.GetBytes())
 		assert.Equal(t, objectRef, res.Callee.GetValue())
@@ -136,6 +137,31 @@ func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
 		report.ProvidedContent.LatestValidatedState.Reference = rms.Reference{}
 		utils.AssertVStateReportsEqual(t, expected, report)
 
+		return false
+	})
+	checker := recordchecker.NewLMNMessageChecker(mc)
+	{
+		inb := checker.NewChain(rms.NewReference(objectRef)).AddRootMessage(
+			&rms.RLifelineStart{},
+			recordchecker.ProduceResponse(ctx, server),
+		).AddChild(
+			&rms.RLineInboundRequest{},
+			recordchecker.ProduceResponse(ctx, server),
+		)
+		inb.AddChild(
+			&rms.RInboundResponse{},
+			recordchecker.ProduceResponse(ctx, server),
+		)
+		inb.AddChild(
+			&rms.RLineMemory{},
+			recordchecker.ProduceResponse(ctx, server),
+		).AddChild(
+			&rms.RLineActivate{},
+			recordchecker.ProduceResponse(ctx, server),
+		)
+	}
+	typedChecker.LRegisterRequest.Set(func(request *rms.LRegisterRequest) bool {
+		assert.NoError(t, checker.ProcessMessage(*request))
 		return false
 	})
 
@@ -405,6 +431,7 @@ func TestVirtual_CallConstructorFromConstructor(t *testing.T) {
 	server.Init(ctx)
 
 	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
+	recordChecker := recordchecker.NewLMNMessageChecker(mc)
 
 	var (
 		isolation = contract.ConstructorIsolation()
@@ -465,6 +492,32 @@ func TestVirtual_CallConstructorFromConstructor(t *testing.T) {
 			},
 		)
 	}
+	{
+		inbA := recordChecker.NewChain(rms.NewReference(objectA)).AddRootMessage(
+			&rms.RLifelineStart{},
+			recordchecker.ProduceResponse(ctx, server),
+		).AddChild(
+			&rms.RLineInboundRequest{},
+			recordchecker.ProduceResponse(ctx, server),
+		)
+		inbA.AddChild(
+			&rms.ROutboundRequest{},
+			recordchecker.ProduceResponse(ctx, server),
+		).AddChild(
+			&rms.ROutboundResponse{},
+			recordchecker.ProduceResponse(ctx, server),
+		).AddChild(
+			&rms.RInboundResponse{},
+			recordchecker.ProduceResponse(ctx, server),
+		)
+		inbA.AddChild(
+			&rms.RLineMemory{},
+			recordchecker.ProduceResponse(ctx, server),
+		).AddChild(
+			&rms.RLineActivate{},
+			recordchecker.ProduceResponse(ctx, server),
+		)
+	}
 
 	// add checks to typedChecker
 	{
@@ -476,6 +529,30 @@ func TestVirtual_CallConstructorFromConstructor(t *testing.T) {
 			assert.Equal(t, uint32(1), request.CallSequence)
 			assert.Equal(t, callFlags, request.CallFlags)
 			assert.Equal(t, server.GetPulseNumber(), request.CallOutgoing.GetPulseOfLocal())
+
+			{ // add chain for constructor of object B
+				plBWrapper := utils.GenerateVCallRequestConstructorFromRequest(server, *request)
+				objBRef := plBWrapper.GetObject()
+				inbB := recordChecker.NewChain(rms.NewReference(objBRef)).AddRootMessage(
+					&rms.RLifelineStart{},
+					recordchecker.ProduceResponse(ctx, server),
+				).AddChild(
+					&rms.RLineInboundRequest{},
+					recordchecker.ProduceResponse(ctx, server),
+				)
+				inbB.AddChild(
+					&rms.RInboundResponse{},
+					recordchecker.ProduceResponse(ctx, server),
+				)
+				inbB.AddChild(
+					&rms.RLineMemory{},
+					recordchecker.ProduceResponse(ctx, server),
+				).AddChild(
+					&rms.RLineActivate{},
+					recordchecker.ProduceResponse(ctx, server),
+				)
+			}
+
 			return true // resend
 		})
 		typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
@@ -494,6 +571,10 @@ func TestVirtual_CallConstructorFromConstructor(t *testing.T) {
 			}
 			// we should resend that message only if it's CallResult from B to A
 			return res.Caller.GetValue() == objectA
+		})
+		typedChecker.LRegisterRequest.Set(func(request *rms.LRegisterRequest) bool {
+			assert.NoError(t, recordChecker.ProcessMessage(*request))
+			return false
 		})
 	}
 
@@ -537,7 +618,16 @@ func TestVirtual_Constructor_WrongConstructorName(t *testing.T) {
 		pl        = plWrapper.Get()
 	)
 
-	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	recordChecker := recordchecker.NewLMNMessageChecker(mc)
+
+	{
+		// TODO: check in docs that we must only register lifeline
+		recordChecker.NewChain(rms.NewReference(objectRef)).AddRootMessage(
+			&rms.RLifelineStart{},
+			recordchecker.ProduceResponse(ctx, server),
+		)
+	}
 
 	typedChecker.VCallResult.Set(func(res *rms.VCallResult) bool {
 		require.Equal(t, objectRef, res.Callee.GetValue())
@@ -548,6 +638,10 @@ func TestVirtual_Constructor_WrongConstructorName(t *testing.T) {
 		require.NoError(t, sysErr)
 
 		return false // no resend msg
+	})
+	typedChecker.LRegisterRequest.Set(func(request *rms.LRegisterRequest) bool {
+		assert.NoError(t, recordChecker.ProcessMessage(*request))
+		return false
 	})
 
 	server.SendPayload(ctx, &pl)
