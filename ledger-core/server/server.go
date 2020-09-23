@@ -23,7 +23,7 @@ func NewNode(cfg configuration.Configuration) Server {
 	return insapp.New(cfg, appFactory)
 }
 
-func NewMultiServerWithoutPulsar(configProvider *CloudConfigurationProvider) (Server, pulsar.SelectivePulseDistributor) {
+func NewMultiServerWithoutPulsar(configProvider *CloudConfigurationProvider) (Server, pulsar.SelectivePulseDistributor) { // nolint:interfacer
 	controller := cloud.NewController()
 	if configProvider.GetAppConfigs == nil {
 		panic("GetAppConfigs cannot be nil")
