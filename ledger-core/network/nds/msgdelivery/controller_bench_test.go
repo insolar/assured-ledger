@@ -95,37 +95,37 @@ func BenchmarkThroughput(b *testing.B) {
 			})
 		})
 
-		b.Run("loopback", func(b *testing.B) {
-			bench := benchSender{
-				toAddr:  srv2.directAddress(), // loopback
-				results: results,
-				ctl:     srv2.service,
-			}
-
-			b.Run("0.1k", func(b *testing.B) {
-				bench.throughput(b, 100, runFunc)
-			})
-
-			b.Run("1k", func(b *testing.B) {
-				bench.throughput(b, 1<<10, runFunc)
-			})
-
-			b.Run("4k", func(b *testing.B) {
-				bench.throughput(b, 1<<12, runFunc)
-			})
-
-			b.Run("16k", func(b *testing.B) {
-				bench.throughput(b, 1<<14, runFunc)
-			})
-
-			b.Run("128k", func(b *testing.B) {
-				bench.throughput(b, 1<<17, runFunc)
-			})
-
-			b.Run("1M", func(b *testing.B) {
-				bench.throughput(b, 1<<20, runFunc)
-			})
-		})
+		//b.Run("loopback", func(b *testing.B) {
+		//	bench := benchSender{
+		//		toAddr:  srv2.directAddress(), // loopback
+		//		results: results,
+		//		ctl:     srv2.service,
+		//	}
+		//
+		//	b.Run("0.1k", func(b *testing.B) {
+		//		bench.throughput(b, 100, runFunc)
+		//	})
+		//
+		//	b.Run("1k", func(b *testing.B) {
+		//		bench.throughput(b, 1<<10, runFunc)
+		//	})
+		//
+		//	b.Run("4k", func(b *testing.B) {
+		//		bench.throughput(b, 1<<12, runFunc)
+		//	})
+		//
+		//	b.Run("16k", func(b *testing.B) {
+		//		bench.throughput(b, 1<<14, runFunc)
+		//	})
+		//
+		//	b.Run("128k", func(b *testing.B) {
+		//		bench.throughput(b, 1<<17, runFunc)
+		//	})
+		//
+		//	b.Run("1M", func(b *testing.B) {
+		//		bench.throughput(b, 1<<20, runFunc)
+		//	})
+		//})
 	}
 }
 
@@ -211,45 +211,45 @@ func BenchmarkLatency(b *testing.B) {
 			})
 		})
 
-		b.Run("loopback", func(b *testing.B) {
-			bench := benchSender{
-				toAddr:  srv2.directAddress(),
-				results: results,
-				ctl:     srv2.service,
-			}
-
-			b.Run("0.1k", func(b *testing.B) {
-				bench.latency(b, 100, runFunc)
-			})
-
-			b.Run("4k", func(b *testing.B) {
-				bench.latency(b, 1<<12, runFunc)
-			})
-
-			b.Run("128k", func(b *testing.B) {
-				bench.latency(b, 1<<17, runFunc)
-			})
-
-			b.Run("1M", func(b *testing.B) {
-				bench.latency(b, 1<<20, runFunc)
-			})
-
-			b.Run("8M", func(b *testing.B) {
-				bench.latency(b, 1<<23, runFunc)
-			})
-
-			b.Run("32M", func(b *testing.B) {
-				bench.latency(b, 1<<25, runFunc)
-			})
-
-			b.Run("64M", func(b *testing.B) {
-				bench.latency(b, 1<<26, runFunc)
-			})
-
-			b.Run("128M", func(b *testing.B) {
-				bench.latency(b, 1<<27, runFunc)
-			})
-		})
+		//b.Run("loopback", func(b *testing.B) {
+		//	bench := benchSender{
+		//		toAddr:  srv2.directAddress(),
+		//		results: results,
+		//		ctl:     srv2.service,
+		//	}
+		//
+		//	b.Run("0.1k", func(b *testing.B) {
+		//		bench.latency(b, 100, runFunc)
+		//	})
+		//
+		//	b.Run("4k", func(b *testing.B) {
+		//		bench.latency(b, 1<<12, runFunc)
+		//	})
+		//
+		//	b.Run("128k", func(b *testing.B) {
+		//		bench.latency(b, 1<<17, runFunc)
+		//	})
+		//
+		//	b.Run("1M", func(b *testing.B) {
+		//		bench.latency(b, 1<<20, runFunc)
+		//	})
+		//
+		//	b.Run("8M", func(b *testing.B) {
+		//		bench.latency(b, 1<<23, runFunc)
+		//	})
+		//
+		//	b.Run("32M", func(b *testing.B) {
+		//		bench.latency(b, 1<<25, runFunc)
+		//	})
+		//
+		//	b.Run("64M", func(b *testing.B) {
+		//		bench.latency(b, 1<<26, runFunc)
+		//	})
+		//
+		//	b.Run("128M", func(b *testing.B) {
+		//		bench.latency(b, 1<<27, runFunc)
+		//	})
+		//})
 	}
 }
 
