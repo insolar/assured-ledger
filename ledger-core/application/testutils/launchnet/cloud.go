@@ -81,7 +81,7 @@ func (cr *CloudRunner) PrepareConfig() {
 	}
 }
 
-func prepareCloudForOneShotRegime(confProvider *server.CloudConfigurationProvider) server.Server {
+func prepareCloudForOneShotMode(confProvider *server.CloudConfigurationProvider) server.Server {
 	s, pulseDistributor := server.NewMultiServerWithoutPulsar(confProvider)
 	go func() {
 		// wait for starting all components
@@ -114,7 +114,7 @@ func (cr CloudRunner) SetupCloud() (func(), error) {
 func (cr CloudRunner) SetupCloudCustom(pulsarOneShot bool) (func(), error) {
 	var s server.Server
 	if pulsarOneShot {
-		s = prepareCloudForOneShotRegime(cr.ConfProvider)
+		s = prepareCloudForOneShotMode(cr.ConfProvider)
 	} else {
 		s = server.NewMultiServer(cr.ConfProvider)
 	}
