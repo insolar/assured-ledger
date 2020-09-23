@@ -17,6 +17,7 @@ func TestPulseGenerator(t *testing.T) {
 
 	require.Equal(t, delta, pg.GetDelta())
 
+	require.Panics(t, func() { pg.GetPrevBeat() })
 	require.Panics(t, func() { pg.GetLastPulsePacket() })
 
 	{
