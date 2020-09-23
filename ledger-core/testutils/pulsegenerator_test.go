@@ -13,7 +13,7 @@ import (
 
 func TestPulseGenerator(t *testing.T) {
 	delta := uint16(13)
-	pg := NewPulseGenerator(delta, nil)
+	pg := NewPulseGenerator(delta, nil, nil)
 
 	require.Equal(t, delta, pg.GetDelta())
 

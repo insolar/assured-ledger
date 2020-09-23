@@ -99,7 +99,7 @@ func prepareCloudForOneShotMode(confProvider *server.CloudConfigurationProvider)
 			allNodes[cert.GetCertificate().GetNodeRef()] = struct{}{}
 		}
 
-		pulseGenerator := testutils.NewPulseGenerator(uint16(confProvider.PulsarConfig.Pulsar.NumberDelta), nil)
+		pulseGenerator := testutils.NewPulseGenerator(uint16(confProvider.PulsarConfig.Pulsar.NumberDelta), nil, nil)
 		for i := 0; i < 2; i++ {
 			_ = pulseGenerator.Generate()
 			pulseDistributor.PartialDistribute(context.Background(), pulseGenerator.GetLastPulsePacket(), allNodes)

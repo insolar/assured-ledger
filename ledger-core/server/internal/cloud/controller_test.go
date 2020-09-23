@@ -70,7 +70,7 @@ func TestController_PartialDistribute(t *testing.T) {
 		require.NoError(t, err)
 		allNodes[cert.GetCertificate().GetNodeRef()] = struct{}{}
 	}
-	pulseGenerator := testutils.NewPulseGenerator(uint16(confProvider.PulsarConfig.Pulsar.NumberDelta), nil)
+	pulseGenerator := testutils.NewPulseGenerator(uint16(confProvider.PulsarConfig.Pulsar.NumberDelta), nil, nil)
 
 	{ // Change pulse on all nodes
 		for i := 0; i < 3; i++ {

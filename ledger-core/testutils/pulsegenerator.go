@@ -6,12 +6,12 @@
 package testutils
 
 import (
-	"crypto/rand"
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/appctl/beat"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	"github.com/insolar/assured-ledger/ledger-core/pulsar"
+	"github.com/insolar/assured-ledger/ledger-core/pulsar/entropygenerator"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
@@ -19,16 +19,23 @@ import (
 )
 
 type PulseGenerator struct {
-	delta      uint16
-	history    []beat.Beat
-	population census.OnlinePopulation
+	delta            uint16
+	history          []beat.Beat
+	population       census.OnlinePopulation
+	entropyGenerator entropygenerator.EntropyGenerator
 }
 
-func NewPulseGenerator(delta uint16, online census.OnlinePopulation) *PulseGenerator {
-	return &PulseGenerator{
+func NewPulseGenerator(delta uint16, online census.OnlinePopulation, entropyGenerator entropygenerator.EntropyGenerator) *PulseGenerator {
+	pulseGenerator := &PulseGenerator{
 		delta:      delta,
 		population: online,
 	}
+	if entropyGenerator == nil {
+		pulseGenerator.entropyGenerator = &entropygenerator.StandardEntropyGenerator{}
+	} else {
+		pulseGenerator.entropyGenerator = entropyGenerator
+	}
+	return pulseGenerator
 }
 
 func (g *PulseGenerator) GetLastPulseData() pulse.Data {
@@ -81,23 +88,21 @@ func (g *PulseGenerator) GetDelta() uint16 {
 	return g.delta
 }
 
-func generateEntropy() (entropy longbits.Bits256) {
-	if _, err := rand.Read(entropy[:]); err != nil {
-		panic(err)
-	}
-	return
+func (g *PulseGenerator) generateEntropy() longbits.Bits256 {
+	entropy := g.entropyGenerator.GenerateEntropy()
+	return longbits.NewBits256FromBytes(entropy[:])
 }
 
 func (g *PulseGenerator) Generate() pulse.Data {
 	var newBeat beat.Beat
 	if len(g.history) == 0 {
 		newBeat = beat.Beat{
-			Data:   pulse.NewFirstPulsarData(g.delta, generateEntropy()),
+			Data:   pulse.NewFirstPulsarData(g.delta, g.generateEntropy()),
 			Online: g.population,
 		}
 	} else {
 		newBeat = beat.Beat{
-			Data:   g.GetLastBeat().CreateNextPulsarPulse(g.delta, generateEntropy),
+			Data:   g.GetLastBeat().CreateNextPulsarPulse(g.delta, g.generateEntropy),
 			Online: g.population,
 		}
 	}
