@@ -52,12 +52,12 @@ func TestWalletGetBalanceConcurrently(t *testing.T) {
 
 	for i := 0; i < count; i++ {
 		for _, port := range defaultPorts {
-			go func(port string) {
+			go func(port, walletRef string) {
 				getBalanceURL := getURL(walletGetBalancePath, "", port)
 				balance, err := getWalletBalance(getBalanceURL, walletRef)
 				// testing.T isn't goroutine safe, so that we will check responses in main goroutine
 				outChan <- result{balance: balance, err: err}
-			}(port)
+			}(port, walletRef)
 		}
 	}
 

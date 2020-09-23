@@ -46,12 +46,12 @@ func TestWalletAddAmountConcurrently(t *testing.T) {
 
 	for i := 0; i < count; i++ {
 		for _, port := range defaultPorts {
-			go func(port string) {
+			go func(port, walletRef string) {
 				addAmountURL := getURL(walletAddAmountPath, "", port)
 				resultErr := addAmountToWallet(addAmountURL, walletRef, 100)
 				// testing.T isn't goroutine safe, so that we will check responses in main goroutine
 				outChan <- resultErr
-			}(port)
+			}(port, walletRef)
 		}
 	}
 
