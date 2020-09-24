@@ -26,6 +26,13 @@ var (
 	numHeavyMaterials = 0
 )
 
+type PulsarMode uint8
+
+const (
+	RegularPulsar PulsarMode = iota
+	ManualPulsar
+)
+
 func prepareConfigProvider() (*server.CloudConfigurationProvider, error) {
 	pulseEnv := os.Getenv("PULSARD_PULSAR_PULSETIME")
 	var pulseTime int
@@ -110,12 +117,12 @@ func prepareCloudForOneShotMode(confProvider *server.CloudConfigurationProvider)
 }
 
 func (cr CloudRunner) SetupCloud() (func(), error) {
-	return cr.SetupCloudCustom(false)
+	return cr.SetupCloudCustom(RegularPulsar)
 }
 
-func (cr CloudRunner) SetupCloudCustom(pulsarOneShot bool) (func(), error) {
+func (cr CloudRunner) SetupCloudCustom(pulsarMode PulsarMode) (func(), error) {
 	var s server.Server
-	if pulsarOneShot {
+	if pulsarMode == ManualPulsar {
 		s = prepareCloudForOneShotMode(cr.ConfProvider)
 	} else {
 		s = server.NewMultiServer(cr.ConfProvider)
