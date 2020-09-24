@@ -12,6 +12,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
 	"github.com/stretchr/testify/require"
 	"io"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -36,6 +37,12 @@ func TestParallelismSend(t *testing.T) {
 
 	pause := make(chan struct{})
 
+	var (
+		srv1 *UnitProtoServer
+		srv2 *UnitProtoServer
+		srv3 *UnitProtoServer
+	)
+
 	prf1.provider = uniserver.MapTransportProvider(&uniserver.DefaultTransportProvider{},
 		func(provider l1.SessionlessTransportProvider) l1.SessionlessTransportProvider {
 			return l1.MapSessionlessProvider(provider, func(factory l1.OutTransportFactory) l1.OutTransportFactory {
@@ -47,10 +54,22 @@ func TestParallelismSend(t *testing.T) {
 		},
 		func(provider l1.SessionfulTransportProvider) l1.SessionfulTransportProvider {
 			return l1.MapSessionFullProvider(provider, func(factory l1.OutTransportFactory) l1.OutTransportFactory {
-				return l1.MapOutputFactory(factory, func(transport l1.OneWayTransport) l1.OneWayTransport {
-					fmt.Printf("create sesstion full connnection\n")
-					return &testPausedSendOutputTransport{transport, pause}
-				})
+				return &testPauseSendOutputFactory{
+					pure: factory,
+					paused: l1.MapOutputFactory(factory, func(transport l1.OneWayTransport) l1.OneWayTransport {
+						fmt.Printf("create sesstion full connnection\n")
+						return &testPausedSendOutputTransport{transport, pause}
+					}),
+					needPaused: func(addr nwapi.Address) bool {
+						switch {
+						case srv2.ingoing == addr:
+							return true
+						default:
+							return false
+						}
+					},
+				}
+
 			})
 		})
 
@@ -77,14 +96,14 @@ func TestParallelismSend(t *testing.T) {
 
 	srv1, err := h.createServiceWithProfile(&prf1, noopReceiver)
 	require.NoError(t, err)
-	srv2, err := h.createServiceWithProfile(&prf2, receiver2)
+	srv2, err = h.createServiceWithProfile(&prf2, receiver2)
 	require.NoError(t, err)
-	srv3, err := h.createServiceWithProfile(&prf3, receiver3)
+	srv3, err = h.createServiceWithProfile(&prf3, receiver3)
 	require.NoError(t, err)
 
 	fmt.Print("Start sending\n")
 
-	for i := 0; i < numberMessage; i++ {
+	for i := 0; i < 1; i++ {
 		err := srv1.service.ShipTo(srv2.directAddress(), Shipment{Head: &TestString{fmt.Sprintf("%d", i)}})
 		require.NoError(t, err)
 	}
@@ -142,15 +161,20 @@ func TestParallelismReceive(t *testing.T) {
 	receivedFrom1 := make(chan string, numberMessage)
 	receivedFrom3 := make(chan string, numberMessage)
 
+	first := true
+
 	receiver2 := func(a ReturnAddress, done nwapi.PayloadCompleteness, val interface{}) error {
 		require.True(t, bool(done))
 		s := val.(fmt.Stringer).String()
 
-		fmt.Printf("%s\n", s)
 		switch {
 		case strings.HasPrefix(s, "1"):
-			pause <- struct{}{}
-			<-pause
+			if first {
+				pause <- struct{}{}
+				<-pause
+				first = false
+			}
+
 			receivedFrom1 <- s
 		case strings.HasPrefix(s, "3"):
 			receivedFrom3 <- s
@@ -186,17 +210,30 @@ func TestParallelismReceive(t *testing.T) {
 		// channel is empty, this okay
 	}
 
-	for i := 0; i < numberMessage; i++ {
-		res := <-receivedFrom3
-		require.Equal(t, fmt.Sprintf("3%d", i), res)
+	checker := func(from string, ch chan string) {
+		res := make(map[int]string)
+
+		for i := 0; i < numberMessage; i++ {
+			val := <-ch
+
+			val0 := strings.TrimPrefix(val, from)
+
+			parseInt, e := strconv.ParseInt(val0, 10, 32)
+			require.NoError(t, e)
+			res[int(parseInt)] = val
+		}
+
+		for i := 0; i < numberMessage; i++ {
+			val := res[i]
+			require.Equal(t, fmt.Sprintf("%s%d", from, i), val)
+		}
 	}
+
+	checker("3", receivedFrom3)
 
 	pause <- struct{}{}
 
-	for i := 0; i < numberMessage; i++ {
-		res := <-receivedFrom1
-		require.Equal(t, fmt.Sprintf("1%d", i), res)
-	}
+	checker("1", receivedFrom1)
 }
 
 type testPausedSendOutputTransport struct {
@@ -205,13 +242,33 @@ type testPausedSendOutputTransport struct {
 }
 
 func (t testPausedSendOutputTransport) Send(payload io.WriterTo) error {
-	t.pause <- struct{}{}
+	//t.pause <- struct{}{}
+	fmt.Printf("paused Send\n")
 	<-t.pause
 	return t.OneWayTransport.Send(payload)
 }
 
 func (t testPausedSendOutputTransport) SendBytes(b []byte) error {
 	t.pause <- struct{}{}
+	fmt.Printf("paused SendBytes\n")
 	<-t.pause
 	return t.OneWayTransport.SendBytes(b)
+}
+
+type testPauseSendOutputFactory struct {
+	pure       l1.OutTransportFactory
+	paused     l1.OutTransportFactory
+	needPaused func(addr nwapi.Address) bool
+}
+
+func (t testPauseSendOutputFactory) Close() error {
+	return t.pure.Close()
+}
+
+func (t testPauseSendOutputFactory) ConnectTo(address nwapi.Address) (l1.OneWayTransport, error) {
+	if t.needPaused(address) {
+		return t.paused.ConnectTo(address)
+	}
+
+	return t.pure.ConnectTo(address)
 }
