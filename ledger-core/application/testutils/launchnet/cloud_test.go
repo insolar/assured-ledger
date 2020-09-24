@@ -6,9 +6,14 @@
 package launchnet
 
 import (
+	"context"
+	"os"
+	"os/signal"
+	"syscall"
 	"testing"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
+	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/server"
 )
 
@@ -20,6 +25,18 @@ func Test_RunCloud(t *testing.T) {
 		numLightMaterials = 0
 		numHeavyMaterials = 0
 	)
+
+	signChan := make(chan os.Signal, 1)
+	signal.Notify(signChan, os.Interrupt, syscall.SIGTERM)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		sig := <-signChan
+
+		global.Infof("%v signal received\n", sig)
+
+		cancel()
+	}()
 
 	cloudSettings := CloudSettings{Virtual: numVirtual, Light: numLightMaterials, Heavy: numHeavyMaterials}
 
@@ -37,6 +54,6 @@ func Test_RunCloud(t *testing.T) {
 		},
 	}
 
-	s := server.NewMultiServer(confProvider)
+	s := server.NewMultiServer(ctx, confProvider)
 	s.Serve()
 }

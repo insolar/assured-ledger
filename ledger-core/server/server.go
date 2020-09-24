@@ -6,6 +6,8 @@
 package server
 
 import (
+	"context"
+
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
 	"github.com/insolar/assured-ledger/ledger-core/network/pulsenetwork"
@@ -18,24 +20,25 @@ type Server interface {
 	Serve()
 }
 
-func NewNode(cfg configuration.Configuration) Server {
-	return insapp.New(cfg, appFactory)
+func NewNode(ctx context.Context, cfg configuration.Configuration) Server {
+	return insapp.New(ctx, cfg, appFactory)
 }
 
-func NewControlledMultiServer(controller cloud.Controller, configProvider insapp.ConfigurationProvider) *insapp.Server {
+func NewControlledMultiServer(ctx context.Context, controller cloud.Controller, configProvider insapp.ConfigurationProvider) *insapp.Server {
 	multiFn := func(provider insapp.ConfigurationProvider) ([]configuration.Configuration, insapp.NetworkInitFunc) {
 		conf := provider.(*CloudConfigurationProvider)
 		return conf.GetAppConfigs(), controller.NetworkInitFunc
 	}
 
 	return insapp.NewMulti(
+		ctx,
 		configProvider,
 		appFactory,
 		multiFn,
 	)
 }
 
-func NewMultiServer(configProvider *CloudConfigurationProvider) Server {
+func NewMultiServer(ctx context.Context, configProvider *CloudConfigurationProvider) Server {
 	controller := cloud.NewController()
 	if configProvider.GetAppConfigs == nil {
 		panic("GetAppConfigs cannot be nil")
@@ -47,6 +50,7 @@ func NewMultiServer(configProvider *CloudConfigurationProvider) Server {
 	}
 
 	return insapp.NewMulti(
+		ctx,
 		configProvider,
 		appFactory,
 		multiFn,
@@ -54,7 +58,7 @@ func NewMultiServer(configProvider *CloudConfigurationProvider) Server {
 	)
 }
 
-func NewMultiServerWithConsensus(configProvider *CloudConfigurationProvider) Server { // nolint:interfacer
+func NewMultiServerWithConsensus(ctx context.Context, configProvider *CloudConfigurationProvider) Server { // nolint:interfacer
 	if configProvider.GetAppConfigs == nil {
 		panic("GetAppConfigs cannot be nil")
 	}
@@ -70,6 +74,7 @@ func NewMultiServerWithConsensus(configProvider *CloudConfigurationProvider) Ser
 	}
 
 	return insapp.NewMulti(
+		ctx,
 		configProvider,
 		appFactory,
 		multiFn,
@@ -77,8 +82,8 @@ func NewMultiServerWithConsensus(configProvider *CloudConfigurationProvider) Ser
 	)
 }
 
-func NewHeadlessNetworkNodeServer(cfg configuration.Configuration) Server {
-	return insapp.New(cfg, nil, &headless.AppComponent{})
+func NewHeadlessNetworkNodeServer(ctx context.Context, cfg configuration.Configuration) Server {
+	return insapp.New(ctx, cfg, nil, &headless.AppComponent{})
 }
 
 type CloudConfigurationProvider struct {

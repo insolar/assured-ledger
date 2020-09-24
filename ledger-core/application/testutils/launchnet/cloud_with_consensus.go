@@ -29,7 +29,7 @@ func Run(cb func() int) int {
 	}
 
 	code := cb()
-	cancelFunc()
+	defer cancelFunc()
 
 	return code
 }

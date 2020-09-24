@@ -11,7 +11,6 @@ import (
 	"strconv"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/server"
@@ -89,9 +88,9 @@ func (cr *CloudRunner) PrepareConfig() {
 	}
 }
 
-func prepareCloudForOneShotMode(confProvider *server.CloudConfigurationProvider) server.Server {
+func prepareCloudForOneShotMode(ctx context.Context, confProvider *server.CloudConfigurationProvider) server.Server {
 	controller := cloud.NewController()
-	s := server.NewControlledMultiServer(controller, confProvider)
+	s := server.NewControlledMultiServer(ctx, controller, confProvider)
 	go func() {
 		s.WaitStarted()
 
@@ -127,22 +126,20 @@ func (cr CloudRunner) getPulseModeFromEnv() PulsarMode {
 	}
 }
 
-func (cr CloudRunner) SetupCloud() (func(), error) {
-	return cr.SetupCloudCustom(cr.getPulseModeFromEnv())
+func (cr CloudRunner) SetupCloud(ctx context.Context) (func(), error) {
+	return cr.SetupCloudCustom(ctx, cr.getPulseModeFromEnv())
 }
 
-func (cr CloudRunner) SetupCloudCustom(pulsarMode PulsarMode) (func(), error) {
+func (cr CloudRunner) SetupCloudCustom(ctx context.Context, pulsarMode PulsarMode) (func(), error) {
 	var s server.Server
 	if pulsarMode == ManualPulsar {
-		s = prepareCloudForOneShotMode(cr.ConfProvider)
+		s = prepareCloudForOneShotMode(ctx, cr.ConfProvider)
 	} else {
-		s = server.NewMultiServer(cr.ConfProvider)
+		s = server.NewMultiServer(ctx, cr.ConfProvider)
 	}
 	go func() {
 		s.Serve()
 	}()
-
-	cancelFunc := s.(*insapp.Server).Stop
 
 	var nodes []nodeConfig
 	for _, appCfg := range cr.ConfProvider.GetAppConfigs() {
@@ -153,9 +150,9 @@ func (cr CloudRunner) SetupCloudCustom(pulsarMode PulsarMode) (func(), error) {
 	}
 
 	SetVerbose(false)
-	err := waitForNetworkState(appConfig{Nodes: nodes}, network.CompleteNetworkState)
+	err := waitForNetworkState(ctx, appConfig{Nodes: nodes}, network.CompleteNetworkState)
 	if err != nil {
-		return cancelFunc, throw.W(err, "Can't wait for NetworkState "+network.CompleteNetworkState.String())
+		return nil, throw.W(err, "Can't wait for NetworkState "+network.CompleteNetworkState.String())
 	}
-	return cancelFunc, nil
+	return func() {}, nil
 }

@@ -9,10 +9,12 @@ package functest
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/application/api/requester"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -65,10 +67,21 @@ type rpcStatusResponse struct {
 	Result statusResponse `json:"result"`
 }
 
+const (
+	apiTimeout = 10 * time.Second
+)
+
 func getRPSResponseBody(t testing.TB, URL string, postParams map[string]interface{}) []byte {
 	jsonValue, _ := json.Marshal(postParams)
 
-	postResp, err := http.Post(URL, "application/json", bytes.NewBuffer(jsonValue))
+	request, err := http.NewRequest(http.MethodPost, URL, bytes.NewBuffer(jsonValue))
+	require.NoError(t, err)
+	request.Header["Content-type"] = []string{"application/json"}
+	ctx, cancel := context.WithTimeout(context.Background(), apiTimeout)
+	defer cancel()
+	request = request.WithContext(ctx)
+
+	postResp, err := http.DefaultClient.Do(request)
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, postResp.StatusCode)
 	body, err := ioutil.ReadAll(postResp.Body)

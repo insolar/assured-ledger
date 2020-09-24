@@ -7,6 +7,7 @@ package launchnet
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -126,19 +127,23 @@ func GetPulseTime() int {
 }
 
 func customRun(pulsarOneShot OneShotMode, numVirtual, numLight, numHeavy int, cb func([]string) int) int {
-	apiAddresses, teardown, err := newNetSetup(pulsarOneShot, numVirtual, numLight, numHeavy)
-	defer teardown()
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+
+	ctx, abort := context.WithCancel(context.Background())
+	defer abort()
+
+	apiAddresses, teardown, err := newNetSetup(ctx, pulsarOneShot, numVirtual, numLight, numHeavy)
 	if err != nil {
 		fmt.Println("error while setup, skip tests: ", err)
 		return 1
 	}
-
-	c := make(chan os.Signal)
-	signal.Notify(c, os.Interrupt)
+	defer teardown()
 
 	go func() {
 		sig := <-c
 		fmt.Printf("Got %s signal. Aborting...\n", sig)
+		abort()
 		teardown()
 
 		os.Exit(2)
@@ -265,7 +270,7 @@ func (ow outputWriter) log(a ...interface{}) {
 	}
 }
 
-func waitForNetworkState(cfg appConfig, state network.State) error {
+func waitForNetworkState(ctx context.Context, cfg appConfig, state network.State) error {
 	numAttempts := 270
 	numNodes := len(cfg.Nodes)
 	currentOk := 0
@@ -274,6 +279,11 @@ func waitForNetworkState(cfg appConfig, state network.State) error {
 	output.log("Waiting for Network state: ", state.String())
 
 	for i := 0; i < numAttempts; i++ {
+		select {
+		case <-ctx.Done():
+			break
+		default:
+		}
 		currentOk = 0
 		for _, node := range cfg.Nodes {
 			resp, err := requester.Status(fmt.Sprintf("http://%s%s", node.AdminAPIRunner.Address, TestAdminRPCUrl))
@@ -341,8 +351,8 @@ parentSwitch:
 	return nil
 }
 
-func waitForNet(cfg appConfig, oneShot OneShotMode) error {
-	err := waitForNetworkState(cfg, network.WaitPulsar)
+func waitForNet(ctx context.Context, cfg appConfig, oneShot OneShotMode) error {
+	err := waitForNetworkState(ctx, cfg, network.WaitPulsar)
 	if err != nil {
 		return throw.W(err, "Can't wait for NetworkState "+network.WaitPulsar.String())
 	}
@@ -352,7 +362,7 @@ func waitForNet(cfg appConfig, oneShot OneShotMode) error {
 		return throw.W(err, "Can't run pulsar")
 	}
 
-	err = waitForNetworkState(cfg, network.CompleteNetworkState)
+	err = waitForNetworkState(ctx, cfg, network.CompleteNetworkState)
 	if err != nil {
 		return throw.W(err, "Can't wait for NetworkState "+network.CompleteNetworkState.String())
 	}
@@ -360,7 +370,7 @@ func waitForNet(cfg appConfig, oneShot OneShotMode) error {
 	return nil
 }
 
-func startCustomNet(pulsarOneShot OneShotMode, numVirtual, numLight, numHeavy int) (*exec.Cmd, []string, error) {
+func startCustomNet(ctx context.Context, pulsarOneShot OneShotMode, numVirtual, numLight, numHeavy int) (*exec.Cmd, []string, error) {
 	cwd, err := os.Getwd()
 	if err != nil {
 		return nil, nil, throw.W(err, "failed to get working directory")
@@ -381,7 +391,7 @@ func startCustomNet(pulsarOneShot OneShotMode, numVirtual, numLight, numHeavy in
 	cmd.Env = append(cmd.Env, fmt.Sprintf("NUM_DISCOVERY_LIGHT_NODES=%d", numLight))
 	cmd.Env = append(cmd.Env, fmt.Sprintf("NUM_DISCOVERY_HEAVY_NODES=%d", numHeavy))
 
-	err = waitForLaunch(cmd)
+	err = waitForLaunch(ctx, cmd)
 	if err != nil {
 		return cmd, nil, throw.W(err, "[ startNet ] couldn't waitForLaunch more")
 	}
@@ -391,7 +401,7 @@ func startCustomNet(pulsarOneShot OneShotMode, numVirtual, numLight, numHeavy in
 		return cmd, nil, throw.W(err, "[ startNet ] couldn't read nodes config")
 	}
 
-	err = waitForNet(appCfg, pulsarOneShot)
+	err = waitForNet(ctx, appCfg, pulsarOneShot)
 	if err != nil {
 		return cmd, nil, throw.W(err, "[ startNet ] couldn't waitForNet more")
 	}
@@ -404,7 +414,7 @@ func startCustomNet(pulsarOneShot OneShotMode, numVirtual, numLight, numHeavy in
 	return cmd, apiAddresses, nil
 }
 
-func startNet() (*exec.Cmd, error) {
+func startNet(ctx context.Context) (*exec.Cmd, error) {
 	cwd, err := os.Getwd()
 	if err != nil {
 		return nil, throw.W(err, "failed to get working directory")
@@ -425,7 +435,7 @@ func startNet() (*exec.Cmd, error) {
 	}
 
 	cmd := exec.Command("./scripts/insolard/launchnet.sh", args)
-	err = waitForLaunch(cmd)
+	err = waitForLaunch(ctx, cmd)
 	if err != nil {
 		return cmd, throw.W(err, "[ startNet ] couldn't waitForLaunch more")
 	}
@@ -435,7 +445,7 @@ func startNet() (*exec.Cmd, error) {
 		return cmd, throw.W(err, "[ startNet ] couldn't read nodes config")
 	}
 
-	err = waitForNet(appCfg, OneShotUndefined)
+	err = waitForNet(ctx, appCfg, OneShotUndefined)
 	if err != nil {
 		return cmd, throw.W(err, "[ startNet ] couldn't waitForNet more")
 	}
@@ -493,7 +503,7 @@ func LogRotateEnabled() bool {
 	return os.Getenv(logRotatorEnableVar) == "1"
 }
 
-func waitForLaunch(cmd *exec.Cmd) error {
+func waitForLaunch(ctx context.Context, cmd *exec.Cmd) error {
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return throw.W(err, "[ startNet] could't set stderr: ")
@@ -535,8 +545,18 @@ func waitForLaunch(cmd *exec.Cmd) error {
 	}
 
 	cmdCompleted := make(chan error, 1)
-	go func() { cmdCompleted <- cmd.Wait() }()
+	go func() {
+		err := cmd.Wait()
+		if exitError, ok := err.(*exec.ExitError); ok {
+			if exitCode := exitError.ExitCode(); exitCode != 0 {
+				panic(fmt.Sprintf("launchnet failed with exitcode %d\n", exitCode))
+			}
+		}
+		cmdCompleted <- err
+	}()
 	select {
+	case <-ctx.Done():
+		return nil
 	case err := <-cmdCompleted:
 		cmdCompleted <- nil
 		return throw.New("[ waitForLaunch ] insolard finished unexpectedly: " + err.Error())
@@ -553,8 +573,8 @@ func RunOnlyWithLaunchnet(t *testing.T) {
 	}
 }
 
-func newNetSetup(pulsarOneShot OneShotMode, numVirtual, numLight, numHeavy int) (apiAddresses []string, cancelFunc func(), err error) {
-	cmd, apiAddresses, err := startCustomNet(pulsarOneShot, numVirtual, numLight, numHeavy)
+func newNetSetup(ctx context.Context, pulsarOneShot OneShotMode, numVirtual, numLight, numHeavy int) (apiAddresses []string, cancelFunc func(), err error) {
+	cmd, apiAddresses, err := startCustomNet(ctx, pulsarOneShot, numVirtual, numLight, numHeavy)
 	cancelFunc = func() {}
 	if cmd != nil {
 		cancelFunc = func() {
@@ -573,7 +593,7 @@ func newNetSetup(pulsarOneShot OneShotMode, numVirtual, numLight, numHeavy int) 
 	return apiAddresses, cancelFunc, nil
 }
 
-func setup() (cancelFunc func(), err error) {
+func setup(ctx context.Context) (cancelFunc func(), err error) {
 	testRPCUrl := os.Getenv(testRPCUrlVar)
 	testRPCUrlPublic := os.Getenv(testRPCUrlPublicVar)
 
@@ -588,7 +608,7 @@ func setup() (cancelFunc func(), err error) {
 		return func() {}, nil
 	}
 
-	cmd, err := startNet()
+	cmd, err := startNet(ctx)
 	cancelFunc = func() {}
 	if cmd != nil {
 		cancelFunc = func() {

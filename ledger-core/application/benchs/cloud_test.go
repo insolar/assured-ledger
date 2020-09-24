@@ -6,6 +6,7 @@
 package benchs
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"testing"
@@ -26,6 +27,7 @@ func Benchmark_MultiPulseOnCloud_Timed(b *testing.B) {
 			if err != nil {
 				b.Fatal("network run failed")
 			}
+			defer teardown()
 
 			runner := &benchRunner{
 				benchLimiterFactory: func(_ int) benchLimiter {
@@ -43,8 +45,6 @@ func Benchmark_MultiPulseOnCloud_Timed(b *testing.B) {
 			if retCode != 0 {
 				b.Fatal("failed test run")
 			}
-
-			teardown()
 		})
 	}
 }
@@ -58,6 +58,7 @@ func Benchmark_SinglePulseOnCloud_N(b *testing.B) {
 			if err != nil {
 				b.Fatal("network run failed")
 			}
+			defer teardown()
 
 			runner := benchRunner{
 				benchLimiterFactory: func(n int) benchLimiter {
@@ -75,8 +76,6 @@ func Benchmark_SinglePulseOnCloud_N(b *testing.B) {
 			if retCode != 0 {
 				b.Fatal("failed test run")
 			}
-
-			teardown()
 		})
 	}
 }
@@ -111,9 +110,9 @@ func runCloud(numNodes int, pulsarMode launchnet.PulsarMode) (func(), *launchnet
 		runner.ConfProvider.GetAppConfigs()[i].Log.Level = "Fatal"
 		apiAddresses = append(apiAddresses, el.TestWalletAPI.Address)
 	}
-	teardown, err := runner.SetupCloudCustom(pulsarMode)
+	teardown, err := runner.SetupCloudCustom(context.Background(), pulsarMode)
 	if err != nil {
-		return func() {}, nil, throw.W(err, "Can't run cloud")
+		return nil, nil, throw.W(err, "Can't run cloud")
 	}
 
 	return teardown, runner, nil

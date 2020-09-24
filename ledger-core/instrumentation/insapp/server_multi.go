@@ -39,12 +39,13 @@ type NetworkInitFunc = func(configuration.Configuration, *component.Manager) (Ne
 // to initialize instantiate a network support for each app compartment (one per node). A default implementation is applied when NetworkInitFunc is nil.
 type MultiNodeConfigFunc = func(baseCfg ConfigurationProvider) ([]configuration.Configuration, NetworkInitFunc)
 
-func NewMulti(cfgProvider ConfigurationProvider, appFn AppFactoryFunc, multiFn MultiNodeConfigFunc, extraComponents ...interface{}) *Server {
+func NewMulti(ctx context.Context, cfgProvider ConfigurationProvider, appFn AppFactoryFunc, multiFn MultiNodeConfigFunc, extraComponents ...interface{}) *Server {
 	if multiFn == nil {
 		panic(throw.IllegalValue())
 	}
 
 	return &Server{
+		ctx:          ctx,
 		appFn:        appFn,
 		multiFn:      multiFn,
 		extra:        extraComponents,

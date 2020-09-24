@@ -6,8 +6,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"gopkg.in/yaml.v2"
 
@@ -65,7 +69,14 @@ func runInsolardCloud(configPath string) {
 		},
 	}
 
-	s := server.NewMultiServer(configProvider)
+	signChan := make(chan os.Signal, 1)
+	signal.Notify(signChan, os.Interrupt, syscall.SIGTERM)
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	go stopper(cancel, signChan)
+
+	s := server.NewMultiServer(ctx, configProvider)
 
 	s.Serve()
 }

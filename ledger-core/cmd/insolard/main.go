@@ -6,10 +6,14 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os"
+	"os/signal"
 	"path/filepath"
+	"syscall"
 
 	"github.com/spf13/cobra"
 
@@ -78,7 +82,15 @@ func runInsolardServer(configPath, genesisConfigPath, roleString string) {
 	}
 	cfg := readConfig(configPath)
 	fmt.Printf("Starts with configuration:\n%s\n", configuration.ToString(&cfg))
-	s = server.NewNode(cfg)
+
+	signChan := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	go stopper(cancel, signChan)
+
+	s = server.NewNode(ctx, cfg)
 	s.Serve()
 }
 
@@ -88,7 +100,15 @@ func runHeadlessNetwork(configPath string) {
 	}
 	cfg := readConfig(configPath)
 	fmt.Printf("Starts with configuration:\n%s\n", configuration.ToString(&cfg))
-	server.NewHeadlessNetworkNodeServer(cfg).Serve()
+
+	signChan := make(chan os.Signal, 1)
+	signal.Notify(signChan, os.Interrupt, syscall.SIGTERM)
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	go stopper(cancel, signChan)
+
+	server.NewHeadlessNetworkNodeServer(ctx, cfg).Serve()
 }
 
 func readRoleFromCertificate(path string) (member.PrimaryRole, error) {
@@ -114,4 +134,12 @@ func readRoleFromCertificate(path string) (member.PrimaryRole, error) {
 		return member.PrimaryRoleUnknown, errors.W(err, "failed to parse certificate json")
 	}
 	return cert.GetRole(), nil
+}
+
+func stopper(cancel context.CancelFunc, signChan chan os.Signal) {
+	sig := <-signChan
+
+	global.Infof("%v signal received\n", sig)
+
+	cancel()
 }
