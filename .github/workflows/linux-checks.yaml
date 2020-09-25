@@ -1,9 +1,9 @@
 name: linux-checks # checks executed on Linux, only on pull requests
 on:
-  push:
-    branches:
-      - staging
-      - trying
+  #push:
+  #  branches:
+  #    - staging
+  #    - trying
   pull_request:
 env:
   KUBECONFIG: k3s.yaml
