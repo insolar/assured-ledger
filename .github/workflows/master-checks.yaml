@@ -212,8 +212,8 @@ jobs:
         working-directory: ${{env.V2_PATH}}
       - name: push assured ledger image to local registry
         run: |
-          docker tag insolar/assured-ledger:latest localhost/assured-ledger:latest
-          docker push localhost/assured-ledger:latest
+          docker tag insolar/assured-ledger:latest localhost/assured-ledger:$INSOLAR_TAG
+          docker push localhost/assured-ledger:$INSOLAR_TAG
       - name: build tools
         run: make install-build-tools
         working-directory: ${{env.V2_PATH}}

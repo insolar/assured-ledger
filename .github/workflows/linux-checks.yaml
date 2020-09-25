@@ -194,7 +194,6 @@ jobs:
           custom_registry: true
           registries_yaml_path: "ledger-core/scripts/deploy/kube/registries.yaml"
           kubectl_version: "v1.18.2"
-          k3s_tag: v1.17.12-k3s1
       - name: deploy traefik
         run: kubectl apply -k ledger-core/scripts/deploy/kube/gitops/traefik
       - name: wait for traefik to be up and running
@@ -225,36 +224,10 @@ jobs:
       - name: build tools
         run: make install-build-tools
         working-directory: ${{env.V2_PATH}}
-      - name: test registry
-        run: |
-          docker pull gcr.io/kuar-demo/kuard-amd64:blue
-          docker tag gcr.io/kuar-demo/kuard-amd64:blue localhost/kuard:checker
-          docker push localhost/kuard:checker
-          kubectl create ns $INSOLAR_NAMESPACE
-          kubectl -n $INSOLAR_NAMESPACE run --restart=Never --image=ci:5000/kuard:checker kuard
-          sleep 17
-          kubectl -n $INSOLAR_NAMESPACE describe po kuard 
-          kubectl -n $INSOLAR_NAMESPACE get po          
       - name: Deploy network
         run: kubectl kustomize ledger-core/scripts/deploy/kube/gitops/"$INSOLAR_NETWORK_SIZE" | envsubst '${INSOLAR_NAMESPACE} ${INSOLAR_TAG}' | kubectl -n $INSOLAR_NAMESPACE apply -f -
       - name: Rollout check (IF THIS STEP FAILED - CALL DEV, CHECK LOGS, YELLOW ALERT)
         run: kubectl -n $INSOLAR_NAMESPACE rollout status sts/virtual --timeout=5m
-      - name: debug-info
-        if: always()
-        run: |
-          kubectl get all --all-namespaces
-          kubectl -n $INSOLAR_NAMESPACE describe po bootstrap
-          kubectl -n $INSOLAR_NAMESPACE describe deploy/pulsewatcher
-          kubectl -n $INSOLAR_NAMESPACE describe sts/virtual
-      - name: even more debug
-        if: always()
-        run: |
-          docker ps
-          docker exec -t k3s cat /etc/rancher/k3s/registries.yaml
-          echo '##########'
-          docker exec -t k3s cat /var/lib/rancher/k3s/agent/etc/containerd/config.toml
-          echo '##########'
-          docker logs k3s
       - name: run tests
         run: make test_func_kubernetes_ci
         working-directory: ${{env.V2_PATH}}
