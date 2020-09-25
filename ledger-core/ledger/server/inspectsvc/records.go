@@ -13,18 +13,18 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-// func NewRegisterRequestSet(reqs ...*rms.LRegisterRequest) (RegisterRequestSet, error) {
-// 	var err error
-// 	if len(reqs) > 0 {
-// 		if lv := reqs[0].Record.Get(); lv != nil {
-// 			ex, err := catalog.ReadExcerptFromLazy(lv)
-// 			if err == nil {
-// 				return RegisterRequestSet{Requests: reqs, Excerpt: ex}, nil
-// 			}
-// 		}
-// 	}
-// 	return RegisterRequestSet{}, throw.WithDetails(err, "invalid record set")
-// }
+func NewRegisterRequestSet(reqs ...*rms.LRegisterRequest) (RegisterRequestSet, error) {
+	var err error
+	if len(reqs) > 0 {
+		if lv := reqs[0].AnyRecordLazy.TryGetLazy(); !lv.IsZero() {
+			ex, err := catalog.ReadExcerptFromLazy(lv)
+			if err == nil {
+				return RegisterRequestSet{Requests: reqs, Excerpt: ex}, nil
+			}
+		}
+	}
+	return RegisterRequestSet{}, throw.WithDetails(err, "invalid record set")
+}
 
 type RegisterRequestSet struct {
 	Requests []*rms.LRegisterRequest

@@ -35,12 +35,14 @@ type SerializableBasicRecord interface {
 	rms.BasicRecord
 }
 
-func recordToAnyRecord(rec SerializableBasicRecord) rms.AnyRecord {
+func mustRecordToAnyRecordLazy(rec SerializableBasicRecord) rms.AnyRecordLazy {
 	if rec == nil {
 		panic(throw.IllegalValue())
 	}
-	rv := rms.AnyRecord{}
-	rv.Set(rec)
+	rv := rms.AnyRecordLazy{}
+	if err := rv.SetAsLazy(rec); err != nil {
+		panic(err)
+	}
 	return rv
 }
 
@@ -485,7 +487,7 @@ func (s *SubSMRegister) stepRegisterLifeline(ctx smachine.ExecutionContext) smac
 	if err := s.registerMessage(ctx, &rms.LRegisterRequest{
 		AnticipatedRef: rms.NewReference(anticipatedRef),
 		Flags:          rms.RegistrationFlags_FastSafe,
-		Record:         recordToAnyRecord(record), // it should be based on
+		AnyRecordLazy:  mustRecordToAnyRecordLazy(record), // it should be based on
 		// TODO: here we should set all overrides, since RLifelineStart contains
 		//       ROutboundRequest and it has bad RootRef/PrevRef.
 		// OverrideRecordType: rms.RLifelineStart,
@@ -521,7 +523,7 @@ func (s *SubSMRegister) stepRegisterIncoming(ctx smachine.ExecutionContext) smac
 	if err := s.registerMessage(ctx, &rms.LRegisterRequest{
 		AnticipatedRef: rms.NewReference(anticipatedRef),
 		Flags:          flags,
-		Record:         recordToAnyRecord(record), // TODO: here we should provide record from incoming
+		AnyRecordLazy:  mustRecordToAnyRecordLazy(record), // TODO: here we should provide record from incoming
 	}); err != nil {
 		return ctx.Error(err)
 	}
@@ -559,7 +561,7 @@ func (s *SubSMRegister) stepRegisterOutgoing(ctx smachine.ExecutionContext) smac
 	if err := s.registerMessage(ctx, &rms.LRegisterRequest{
 		AnticipatedRef: rms.NewReference(anticipatedRef),
 		Flags:          rms.RegistrationFlags_FastSafe,
-		Record:         recordToAnyRecord(record), // TODO: here we should provide record from incoming
+		AnyRecordLazy:  mustRecordToAnyRecordLazy(record), // TODO: here we should provide record from incoming
 	}); err != nil {
 		return ctx.Error(err)
 	}
@@ -584,7 +586,7 @@ func (s *SubSMRegister) stepRegisterOutgoingResult(ctx smachine.ExecutionContext
 	if err := s.registerMessage(ctx, &rms.LRegisterRequest{
 		AnticipatedRef: rms.NewReference(anticipatedRef),
 		Flags:          rms.RegistrationFlags_FastSafe,
-		Record:         recordToAnyRecord(record), // TODO: here we should provide record from incoming
+		AnyRecordLazy:  mustRecordToAnyRecordLazy(record), // TODO: here we should provide record from incoming
 	}); err != nil {
 		return ctx.Error(err)
 	}
@@ -628,7 +630,7 @@ func (s *SubSMRegister) stepRegisterIncomingResult(ctx smachine.ExecutionContext
 		if err := s.registerMessage(ctx, &rms.LRegisterRequest{
 			AnticipatedRef: rms.NewReference(anticipatedRef),
 			Flags:          rms.RegistrationFlags_Safe,
-			Record:         recordToAnyRecord(record),
+			AnyRecordLazy:  mustRecordToAnyRecordLazy(record),
 		}); err != nil {
 			return ctx.Error(err)
 		}
@@ -676,7 +678,7 @@ func (s *SubSMRegister) stepRegisterIncomingResult(ctx smachine.ExecutionContext
 			if err := s.registerMessage(ctx, &rms.LRegisterRequest{
 				AnticipatedRef: rms.NewReference(anticipatedRef),
 				Flags:          rms.RegistrationFlags_Safe,
-				Record:         recordToAnyRecord(record),
+				AnyRecordLazy:  mustRecordToAnyRecordLazy(record),
 			}); err != nil {
 				return ctx.Error(err)
 			}
@@ -710,7 +712,7 @@ func (s *SubSMRegister) stepRegisterIncomingResult(ctx smachine.ExecutionContext
 			if err := s.registerMessage(ctx, &rms.LRegisterRequest{
 				AnticipatedRef: rms.NewReference(anticipatedRef),
 				Flags:          rms.RegistrationFlags_Safe,
-				Record:         recordToAnyRecord(record),
+				AnyRecordLazy:  mustRecordToAnyRecordLazy(record),
 			}); err != nil {
 				return ctx.Error(err)
 			}

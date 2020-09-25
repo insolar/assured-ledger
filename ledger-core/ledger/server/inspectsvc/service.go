@@ -28,10 +28,10 @@ func NewService(registrarRef reference.Holder, rs crypto.RecordScheme) Service {
 	signer := rs.RecordSigner()
 
 	return &serviceImpl{
-		registrarRef:    reference.Copy(registrarRef),
-		digester:        digester,
-		signer:          signer,
-		localSV:         rs.SelfVerifier(),
+		registrarRef: reference.Copy(registrarRef),
+		digester: digester,
+		signer:   signer,
+		localSV:  rs.SelfVerifier(),
 		signatureMethod: digester.GetDigestMethod().SignedBy(signer.GetSigningMethod()),
 	}
 }
@@ -70,8 +70,8 @@ func (p *serviceImpl) inspectRecord(req *rms.LRegisterRequest, rec *lineage.Reco
 		return throw.E("empty producer")
 	}
 
-	lrv := req.Record.Get()
-	if lrv == nil {
+	lrv := req.AnyRecordLazy.TryGetLazy()
+	if lrv.IsZero() {
 		return throw.E("lazy record is required")
 	}
 
@@ -84,10 +84,10 @@ func (p *serviceImpl) inspectRecord(req *rms.LRegisterRequest, rec *lineage.Reco
 	}
 
 	rh := p.digester.NewDataAndRefHasher()
-	// rh.DigestOf(lrv)
+	rh.DigestOf(lrv)
 
 	var refDigest cryptkit.Digest
-	rh, refDigest = p.digester.GetRefDigestAndContinueData(rh)
+ 	rh, refDigest = p.digester.GetRefDigestAndContinueData(rh)
 
 	if recRef := req.AnticipatedRef.Get().GetLocal(); !longbits.Equal(recRef.IdentityHash(), refDigest) {
 		return throw.E("reference mismatched content")
@@ -97,9 +97,9 @@ func (p *serviceImpl) inspectRecord(req *rms.LRegisterRequest, rec *lineage.Reco
 	if req.OverrideRecordType != 0 {
 		rc := rms.LRegisterRequest{
 			OverrideRecordType: req.OverrideRecordType,
-			OverrideRootRef:    req.OverrideRootRef,
-			OverridePrevRef:    req.OverridePrevRef,
-			OverrideReasonRef:  req.OverrideReasonRef,
+			OverrideRootRef: req.OverrideRootRef,
+			OverridePrevRef: req.OverridePrevRef,
+			OverrideReasonRef: req.OverrideReasonRef,
 		}
 		b, err := rc.Marshal()
 		if err != nil {
@@ -123,11 +123,11 @@ func (p *serviceImpl) inspectRecord(req *rms.LRegisterRequest, rec *lineage.Reco
 	if exr != nil {
 		*rec = lineage.NewRegRecord(*exr, req)
 	} else {
-		// excerpt, err := catalog.ReadExcerptFromLazy(lrv)
-		// if err != nil {
-		// 	return throw.W(err, "cant read excerpt")
-		// }
-		// *rec = lineage.NewRegRecord(excerpt, req)
+		excerpt, err := catalog.ReadExcerptFromLazy(lrv)
+		if err != nil {
+			return throw.W(err, "cant read excerpt")
+		}
+		*rec = lineage.NewRegRecord(excerpt, req)
 	}
 
 	p.applyRegistrarSignature(dataDigest, rec)
@@ -151,3 +151,4 @@ func (p *serviceImpl) getProducerSignatureVerifier(producer reference.Holder) cr
 func (p *serviceImpl) InspectRecap() (InspectedRecordSet, error) {
 	panic(throw.NotImplemented())
 }
+

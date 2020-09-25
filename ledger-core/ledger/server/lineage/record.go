@@ -15,11 +15,11 @@ import (
 
 func NewRegRecord(excerpt catalog.Excerpt, req *rms.LRegisterRequest) Record {
 	return Record{
-		Excerpt:           excerpt,
-		RecRef:            req.AnticipatedRef.Get(),
-		ProducedBy:        req.ProducedBy.Get(),
-		ProducerSignature: req.ProducerSignature,
-		regReq:            req,
+		Excerpt:            excerpt,
+		RecRef:             req.AnticipatedRef.Get(),
+		ProducedBy: 		req.ProducedBy.Get(),
+		ProducerSignature:  req.ProducerSignature,
+		regReq:             req,
 	}
 }
 
@@ -32,10 +32,10 @@ func NewRecapRecord(excerpt catalog.Excerpt, recRef reference.Holder, recap *rms
 	}
 
 	return Record{
-		Excerpt: excerpt,
-		RecRef:  recRef,
+		Excerpt:            excerpt,
+		RecRef:             recRef,
 		// ProducedBy: 		recap.ProducedBy.Get(), // TODO
-		recapRec: recap,
+		recapRec:           recap,
 	}
 }
 
@@ -45,14 +45,14 @@ type Record struct {
 	RecapRef           reference.Holder
 	ProducedBy         reference.Holder
 	ProducerSignature  rms.Binary
-	RegisteredBy       reference.Holder
+	RegisteredBy	   reference.Holder
 	RegistrarSignature cryptkit.SignedDigest
 
-	regReq   *rms.LRegisterRequest
-	recapRec *rms.RLineRecap
+	regReq     *rms.LRegisterRequest
+	recapRec   *rms.RLineRecap
 }
 
-func (v Record) cleanup() {
+func (v Record) cleanup()  {
 	v.regReq = nil
 }
 
@@ -69,8 +69,7 @@ func (v Record) IsValid() bool {
 	case reference.IsEmpty(v.GetRecordRef()):
 		return false
 	case v.regReq != nil:
-		// return !v.regReq.AnyRecordLazy.IsZero()
-		return v.regReq.Record.Get() == nil
+		return !v.regReq.AnyRecordLazy.IsZero()
 	case v.recapRec != nil:
 		return true
 	default:
@@ -81,8 +80,7 @@ func (v Record) IsValid() bool {
 func (v Record) asBasicRecord() rms.BasicRecord {
 	switch {
 	case v.regReq != nil:
-		// return &v.regReq.AnyRecordLazy
-		return v.regReq.Record.Get()
+		return &v.regReq.AnyRecordLazy
 	case v.recapRec != nil:
 		return v.recapRec
 	default:

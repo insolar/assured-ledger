@@ -75,10 +75,8 @@ T01_S013 --[dotted]> T01_S004
 T01_S013 --[dotted]> T01_S005
 T01_S013 --[dotted]> T01_S006
 T01_S013 --> [*] : [msg==nil]
-state T01_U001 <<fork>>
-T01_S013 --> T01_U001
-T01_U001 --> T01_S014 : PrepareAsync(ctx)
-T01_U001 --[dashed]> T01_S015
+T01_S013 --> T01_S014 : PrepareAsync(ctx)
+T01_S013 --> T01_S015
 state "stepWaitResponse" as T01_S015
 T01_S015 : SubSMRegister
 T01_S015 --[dotted]> T01_S002
@@ -92,8 +90,8 @@ T01_S015 --> T01_S013
 state "GetInitStateFor" as T00_S001
 T00_S001 : dSubSMRegister
 [*] --> T00_S001
-state "nil" as T00_U002
-T00_U002 : dSubSMRegister
-T00_U002 : UNKNOWN 
-T00_S001 --> T00_U002
+state "nil" as T00_U001
+T00_U001 : dSubSMRegister
+T00_U001 : UNKNOWN 
+T00_S001 --> T00_U001
 @enduml
