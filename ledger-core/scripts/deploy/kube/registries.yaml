@@ -1,4 +1,4 @@
 mirrors:
-  "ci:5000":
+  "mylocalregistry:5000":
     endpoint:
       - "http://localhost"
