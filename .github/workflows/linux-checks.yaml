@@ -227,7 +227,7 @@ jobs:
       - name: Deploy network
         run: kubectl kustomize ledger-core/scripts/deploy/kube/gitops/"$INSOLAR_NETWORK_SIZE" | envsubst '${INSOLAR_NAMESPACE} ${INSOLAR_TAG}' | kubectl -n $INSOLAR_NAMESPACE apply -f -
       - name: deploy ingress
-        run: cat ledger-core/scripts/deploy/kube/k3s-ingressroute.yaml | envsubst '${INSOLAR_NAMESPACE}' | kubectl -n $INSOLAR_NAMESPACE apply -f -
+        run: cat ledger-core/scripts/deploy/kube/k3s-ingressroute.yaml | envsubst '${INSOLAR_NAMESPACE}' | kubectl apply -f -
       - name: Rollout check (IF THIS STEP FAILED - CALL DEV, CHECK LOGS, YELLOW ALERT)
         run: kubectl -n $INSOLAR_NAMESPACE rollout status sts/virtual --timeout=5m
       - name: run tests
