@@ -53,11 +53,11 @@ jobs:
         with:
           name: integration_extended_test_master
           path: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core/integration_extended_test.log
-      - name: Send failure notification to Slack
-        if: ${{ failure() }}
-        uses: 8398a7/action-slack@v3
-        with:
-          status: ${{ job.status }}
-          fields: repo,message,commit,author,action,eventName,ref,workflow
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.ACTIONS_NOTIFICATIONS_SLACK_HOOK_URL }}
+#      - name: Send failure notification to Slack
+#        if: ${{ failure() }}
+#        uses: 8398a7/action-slack@v3
+#        with:
+#          status: ${{ job.status }}
+#          fields: repo,message,commit,author,action,eventName,ref,workflow
+#        env:
+#          SLACK_WEBHOOK_URL: ${{ secrets.ACTIONS_NOTIFICATIONS_SLACK_HOOK_URL }}

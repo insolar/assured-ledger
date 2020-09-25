@@ -82,11 +82,11 @@ jobs:
         with:
           name: windows-coverage-out
           path: ${{env.WORKDIR}}/coverage.out
-      - name: Send failure notification to Slack
-        if: ${{ github.event_name == 'push' && failure() }}
-        uses: 8398a7/action-slack@v3
-        with:
-          status: ${{ job.status }}
-          fields: repo,message,commit,author,action,eventName,ref,workflow
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.ACTIONS_NOTIFICATIONS_SLACK_HOOK_URL }}
+#      - name: Send failure notification to Slack
+#        if: ${{ github.event_name == 'push' && failure() }}
+#        uses: 8398a7/action-slack@v3
+#        with:
+#          status: ${{ job.status }}
+#          fields: repo,message,commit,author,action,eventName,ref,workflow
+#        env:
+#          SLACK_WEBHOOK_URL: ${{ secrets.ACTIONS_NOTIFICATIONS_SLACK_HOOK_URL }}

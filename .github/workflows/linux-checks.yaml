@@ -227,13 +227,18 @@ jobs:
       - name: Deploy network
         run: kubectl kustomize ledger-core/scripts/deploy/kube/gitops/"$INSOLAR_NETWORK_SIZE" | envsubst '${INSOLAR_NAMESPACE} ${INSOLAR_TAG}' | kubectl -n $INSOLAR_NAMESPACE apply -f -
       - name: Rollout check (IF THIS STEP FAILED - CALL DEV, CHECK LOGS, YELLOW ALERT)
-        run: kubectl -n $INSOLAR_NAMESPACE rollout status sts/virtual --timeout=10m
+        run: kubectl -n $INSOLAR_NAMESPACE rollout status sts/virtual --timeout=5m
       - name: debug-info
         if: always()
         run: |
           kubectl get all --all-namespaces
           kubectl -n $INSOLAR_NAMESPACE describe po bootstrap
           kubectl -n $INSOLAR_NAMESPACE describe deploy/pulsewatcher
+          kubectl -n $INSOLAR_NAMESPACE describe sts/virtual
+      - name: even more debug
+        run: |
+          docker ps
+          docker logs k3s
       - name: run tests
         run: make test_func_kubernetes_ci
         working-directory: ${{env.V2_PATH}}
