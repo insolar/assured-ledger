@@ -15,7 +15,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -58,10 +57,7 @@ func TestController_PartialDistribute(t *testing.T) {
 		s.Serve()
 	}()
 
-	// wait for starting all components
-	for !s.Started() {
-		time.Sleep(time.Millisecond)
-	}
+	s.WaitStarted()
 
 	defer s.Stop()
 

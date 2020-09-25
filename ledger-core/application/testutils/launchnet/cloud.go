@@ -9,7 +9,6 @@ import (
 	"context"
 	"os"
 	"strconv"
-	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
@@ -94,10 +93,7 @@ func prepareCloudForOneShotMode(confProvider *server.CloudConfigurationProvider)
 	controller := cloud.NewController()
 	s := server.NewControlledMultiServer(controller, confProvider)
 	go func() {
-		// wait for starting all components
-		for !s.Started() {
-			time.Sleep(time.Millisecond)
-		}
+		s.WaitStarted()
 
 		allNodes := make(map[reference.Global]struct{})
 		for _, conf := range confProvider.GetAppConfigs() {
