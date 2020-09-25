@@ -93,7 +93,7 @@ func BenchmarkThroughput(b *testing.B) {
 
 		// b.Run("head+body", func(b *testing.B) {
 		// 	bench.runAllSizes(b, func(b *testing.B, payloadSize int) {
-		// 		bench.throughput(b, payloadSize, shipToBody)
+		// 		bench.throughput(b, payloadSize, shipToHead)
 		// 	})
 		// })
 
@@ -175,7 +175,7 @@ func BenchmarkLatency(b *testing.B) {
 
 		// b.Run("head+body", func(b *testing.B) {
 		// 	bench.runAllSizes(b, func(b *testing.B, payloadSize int) {
-		// 		bench.throughput(b, payloadSize, shipToBody)
+		// 		bench.throughput(b, payloadSize, shipToHead)
 		// 	})
 		// })
 
@@ -195,7 +195,7 @@ func BenchmarkLatency(b *testing.B) {
 
 		// b.Run("head+body", func(b *testing.B) {
 		// 	bench.runAllSizes(b, func(b *testing.B, payloadSize int) {
-		// 		bench.throughput(b, payloadSize, shipToBody)
+		// 		bench.throughput(b, payloadSize, shipToHead)
 		// 	})
 		// })
 
@@ -283,33 +283,6 @@ func shipToBody(v benchSender, payload []byte) {
 
 func shipToHead(v benchSender, payload []byte) {
 	err := v.ctl.ShipTo(v.toAddr, Shipment{Head: &TestBytes{payload[:64]}, Body: &TestBytes{payload}})
-	if err != nil {
-		panic(err)
-	}
-}
-
-func shipToHeadAndPullBody(v benchSender, payload []byte) {
-	head := TestString{string(payload[:64])}
-	body := TestString{string(payload)}
-
-	// recv1 := func(a ReturnAddress, done nwapi.PayloadCompleteness, _ interface{}) error {
-	// 	err := v.ctl.PullBody(a, ShipmentRequest{
-	// 		ReceiveFn: func(a ReturnAddress, done nwapi.PayloadCompleteness, v interface{}) error {
-	// 			return nil
-	// 		},
-	// 	})
-	//
-	// 	if err != nil {
-	// 		panic(err)
-	// 	}
-	// 	return nil
-	// }
-	// todo receiver need before server init
-
-	err := v.ctl.ShipTo(v.toAddr, Shipment{
-		Head: &head,
-		Body: &body,
-	})
 	if err != nil {
 		panic(err)
 	}
