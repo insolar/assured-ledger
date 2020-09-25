@@ -22,11 +22,7 @@ func NewNode(cfg configuration.Configuration) Server {
 	return insapp.New(cfg, appFactory)
 }
 
-func NewControlledMultiServer(controller cloud.Controller, configProvider *CloudConfigurationProvider) *insapp.Server { // nolint:interfacer
-	if configProvider.GetAppConfigs == nil {
-		panic("GetAppConfigs cannot be nil")
-	}
-
+func NewControlledMultiServer(controller cloud.Controller, configProvider insapp.ConfigurationProvider) *insapp.Server {
 	multiFn := func(provider insapp.ConfigurationProvider) ([]configuration.Configuration, insapp.NetworkInitFunc) {
 		conf := provider.(*CloudConfigurationProvider)
 		return conf.GetAppConfigs(), controller.NetworkInitFunc
