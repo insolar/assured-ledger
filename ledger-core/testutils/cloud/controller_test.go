@@ -22,7 +22,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/application/api/requester"
 	"github.com/insolar/assured-ledger/ledger-core/application/testutils/launchnet"
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
-	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/server"
@@ -60,11 +59,11 @@ func TestController_PartialDistribute(t *testing.T) {
 	}()
 
 	// wait for starting all components
-	for !s.(*insapp.Server).Started() {
+	for !s.Started() {
 		time.Sleep(time.Millisecond)
 	}
 
-	defer s.(*insapp.Server).Stop()
+	defer s.Stop()
 
 	allNodes := make(map[reference.Global]struct{})
 	for i := 0; i < len(appConfigs); i++ {

@@ -95,7 +95,7 @@ func prepareCloudForOneShotMode(confProvider *server.CloudConfigurationProvider)
 	s := server.NewControlledMultiServer(controller, confProvider)
 	go func() {
 		// wait for starting all components
-		for !s.(*insapp.Server).Started() {
+		for !s.Started() {
 			time.Sleep(time.Millisecond)
 		}
 

@@ -22,7 +22,7 @@ func NewNode(cfg configuration.Configuration) Server {
 	return insapp.New(cfg, appFactory)
 }
 
-func NewControlledMultiServer(controller cloud.Controller, configProvider *CloudConfigurationProvider) Server { // nolint:interfacer
+func NewControlledMultiServer(controller cloud.Controller, configProvider *CloudConfigurationProvider) *insapp.Server { // nolint:interfacer
 	if configProvider.GetAppConfigs == nil {
 		panic("GetAppConfigs cannot be nil")
 	}
