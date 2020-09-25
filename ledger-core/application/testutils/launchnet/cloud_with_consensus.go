@@ -49,7 +49,7 @@ func RunCloudWithConsensus(numVirtual, numLight, numHeavy int, cb func() int) in
 		})
 	}
 
-	err = waitForNetworkState(ctx, appConfig{Nodes: nodes}, network.CompleteNetworkState)
+	err := waitForNetworkState(ctx, appConfig{Nodes: nodes}, network.CompleteNetworkState)
 	if err != nil {
 		fmt.Println(throw.W(err, "Can't wait for NetworkState "+network.CompleteNetworkState.String()).Error())
 		return 1
