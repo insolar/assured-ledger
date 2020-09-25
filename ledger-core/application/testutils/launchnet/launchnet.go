@@ -216,10 +216,6 @@ func GetDiscoveryNodesCount() (int, error) {
 }
 
 func GetNodesCount() (int, error) {
-	if isCloudMode() {
-		return numVirtual + numLightMaterials + numHeavyMaterials, nil
-	}
-
 	type nodesConf struct {
 		DiscoverNodes []interface{} `yaml:"discovery_nodes"`
 		Nodes         []interface{} `yaml:"nodes"`
@@ -245,7 +241,7 @@ func stopInsolard(cmd *exec.Cmd) error {
 		return nil
 	}
 
-	err := cmd.Process.Signal(syscall.SIGHUP)
+	err := cmd.Process.Signal(syscall.SIGINT)
 	if err != nil {
 		return throw.W(err, "[ stopInsolard ] failed to kill process:")
 	}
@@ -429,12 +425,7 @@ func startNet(ctx context.Context) (*exec.Cmd, error) {
 		_ = os.Chdir(cwd)
 	}()
 
-	args := "-pwdg"
-	if isCloudMode() {
-		args += "m"
-	}
-
-	cmd := exec.Command("./scripts/insolard/launchnet.sh", args)
+	cmd := exec.Command("./scripts/insolard/launchnet.sh", "-pwdg")
 	err = waitForLaunch(ctx, cmd)
 	if err != nil {
 		return cmd, throw.W(err, "[ startNet ] couldn't waitForLaunch more")

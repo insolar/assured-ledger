@@ -13,15 +13,8 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
-	"strconv"
 	"syscall"
 )
-
-func isCloudMode() bool {
-	cloudMode := os.Getenv("CLOUD_MODE")
-	v, err := strconv.ParseBool(cloudMode)
-	return err == nil && v
-}
 
 // Run starts launchnet before execution of callback function (cb) and stops launchnet after.
 // Returns exit code as a result from calling callback function.
@@ -32,18 +25,12 @@ func Run(cb func() int) int {
 	ctx, abort := context.WithCancel(context.Background())
 	defer abort()
 
-	setupFunc := setup
-	if isCloudMode() {
-		cr := CloudRunner{}
-		cr.PrepareConfig()
-		setupFunc = cr.SetupCloud
-	}
-	teardown, err := setupFunc(ctx)
-	defer teardown()
+	teardown, err := setup(ctx)
 	if err != nil {
 		fmt.Println("error while setup, skip tests: ", err)
 		return 1
 	}
+	defer teardown()
 
 	go func() {
 		sig := <-c

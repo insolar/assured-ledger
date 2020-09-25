@@ -7,10 +7,14 @@ package launchnet
 
 import (
 	"context"
+	"fmt"
 	"os"
-	"strconv"
+	"os/exec"
+	"os/signal"
+	"syscall"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
+	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/server"
@@ -19,11 +23,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-var (
-	numVirtual        = 5
-	numLightMaterials = 0
-	numHeavyMaterials = 0
-)
+type cloudOption func(runner *CloudRunner)
 
 type PulsarMode uint8
 
@@ -32,17 +32,89 @@ const (
 	ManualPulsar
 )
 
-func prepareConfigProvider() (*server.CloudConfigurationProvider, error) {
-	pulseEnv := os.Getenv("PULSARD_PULSAR_PULSETIME")
-	var pulseTime int
-	var err error
-	if len(pulseEnv) != 0 {
-		pulseTime, err = strconv.Atoi(pulseEnv)
-		if err != nil {
-			return nil, throw.W(err, "Can't convert env var")
-		}
+func WithNumVirtual(num int) func(runner *CloudRunner) {
+	return func(runner *CloudRunner) {
+		runner.numVirtual = num
+	}
+}
+
+func WithNumLightMaterials(num int) func(runner *CloudRunner) {
+	return func(runner *CloudRunner) {
+		runner.numLightMaterials = num
+	}
+}
+
+func WithNumHeavyMaterials(num int) func(runner *CloudRunner) {
+	return func(runner *CloudRunner) {
+		runner.numHeavyMaterials = num
+	}
+}
+
+func WithDefaultLogLevel(level log.Level) func(runner *CloudRunner) {
+	return func(runner *CloudRunner) {
+		runner.defaultLogLevel = level
+	}
+}
+
+func WithPulsarMode(mode PulsarMode) func(runner *CloudRunner) {
+	return func(runner *CloudRunner) {
+		runner.pulsarMode = mode
+	}
+}
+
+func RunCloud(cb func([]string) int, options ...cloudOption) int {
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+
+	ctx, abort := context.WithCancel(context.Background())
+	defer abort()
+
+	cr := CloudRunner{
+		defaultLogLevel: log.DebugLevel,
+		pulsarMode:      RegularPulsar,
+	}
+	for _, o := range options {
+		o(&cr)
+	}
+	cr.PrepareConfig()
+
+	teardown, err := cr.SetupCloudCustom(ctx, cr.pulsarMode)
+	defer teardown()
+	if err != nil {
+		fmt.Println("error while setup, skip tests: ", err)
+		return 1
 	}
 
+	go func() {
+		sig := <-c
+		abort()
+		fmt.Printf("Got %s signal. Aborting...\n", sig)
+		teardown()
+
+		os.Exit(2)
+	}()
+
+	pulseWatcher, config := pulseWatcherPath()
+
+	apiAddresses := make([]string, 0, len(cr.ConfProvider.GetAppConfigs()))
+	for _, el := range cr.ConfProvider.GetAppConfigs() {
+		apiAddresses = append(apiAddresses, el.TestWalletAPI.Address)
+	}
+
+	code := cb(apiAddresses)
+
+	if code != 0 {
+		out, err := exec.Command(pulseWatcher, "-c", config, "-s").CombinedOutput()
+		if err != nil {
+			fmt.Println("PulseWatcher execution error: ", err)
+			return 1
+		}
+		fmt.Println(string(out))
+	}
+	return code
+}
+
+func prepareConfigProvider(numVirtual, numLightMaterials, numHeavyMaterials int, defaultLogLevel log.Level) (*server.CloudConfigurationProvider, error) {
 	cloudSettings := CloudSettings{
 		Virtual: numVirtual,
 		Light:   numLightMaterials,
@@ -51,11 +123,10 @@ func prepareConfigProvider() (*server.CloudConfigurationProvider, error) {
 			TestWalletAPIPortStart int
 			AdminPort              int
 		}{TestWalletAPIPortStart: 32302, AdminPort: 19002},
+		Log: struct{ Level string }{Level: defaultLogLevel.String()},
 	}
 
-	if pulseTime != 0 {
-		cloudSettings.Pulsar = struct{ PulseTime int }{PulseTime: pulseTime}
-	}
+	cloudSettings.Pulsar = struct{ PulseTime int }{PulseTime: GetPulseTime()}
 
 	appConfigs, cloudConfig, certFactory, keyFactory := PrepareCloudConfiguration(cloudSettings)
 
@@ -73,16 +144,18 @@ func prepareConfigProvider() (*server.CloudConfigurationProvider, error) {
 }
 
 type CloudRunner struct {
-	ConfProvider *server.CloudConfigurationProvider
-}
+	numVirtual, numLightMaterials, numHeavyMaterials int
 
-func (cr CloudRunner) SetNumVirtuals(n int) {
-	numVirtual = n
+	pulsarMode PulsarMode
+
+	defaultLogLevel log.Level
+
+	ConfProvider *server.CloudConfigurationProvider
 }
 
 func (cr *CloudRunner) PrepareConfig() {
 	var err error
-	cr.ConfProvider, err = prepareConfigProvider()
+	cr.ConfProvider, err = prepareConfigProvider(cr.numVirtual, cr.numLightMaterials, cr.numHeavyMaterials, cr.defaultLogLevel)
 	if err != nil {
 		panic(throw.W(err, "Can't prepare config provider"))
 	}

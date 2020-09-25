@@ -3,46 +3,44 @@
 // This material is licensed under the Insolar License version 1.0,
 // available at https://github.com/insolar/assured-ledger/blob/master/LICENSE.md.
 
-// +build cloud_with_consensus
-
 package launchnet
 
 import (
+	"context"
 	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
 
+	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/server"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
-func isCloudMode() bool {
-	return true
-}
-
-func Run(cb func() int) int {
+func RunCloudWithConsensus(numVirtual, numLight, numHeavy int, cb func() int) int {
 	fmt.Println("Run tests on cloud with consensus")
 
-	cancelFunc, err := setupCloudWithConsensus()
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+
+	ctx, abort := context.WithCancel(context.Background())
+	defer abort()
+	go func() {
+		sig := <-c
+		abort()
+		fmt.Printf("Got %s signal. Aborting...\n", sig)
+
+		os.Exit(2)
+	}()
+
+	confProvider, err := prepareConfigProvider(numVirtual, numLight, numHeavy, log.DebugLevel)
 	if err != nil {
-		fmt.Println("error while setup cloud with consensus, skip tests: ", err)
+		fmt.Println(throw.W(err, "Can't prepare config provider").Error())
 		return 1
 	}
 
-	code := cb()
-	defer cancelFunc()
-
-	return code
-}
-
-func setupCloudWithConsensus() (func(), error) {
-	cancelFunc := func() {}
-
-	confProvider, err := prepareConfigProvider()
-	if err != nil {
-		return cancelFunc, throw.W(err, "Can't prepare config provider")
-	}
-
-	s := server.NewMultiServerWithConsensus(confProvider)
+	s := server.NewMultiServerWithConsensus(ctx, confProvider)
 	go func() {
 		s.Serve()
 	}()
@@ -55,9 +53,13 @@ func setupCloudWithConsensus() (func(), error) {
 		})
 	}
 
-	err = waitForNetworkState(appConfig{Nodes: nodes}, network.CompleteNetworkState)
+	err = waitForNetworkState(ctx, appConfig{Nodes: nodes}, network.CompleteNetworkState)
 	if err != nil {
-		return cancelFunc, throw.W(err, "Can't wait for NetworkState "+network.CompleteNetworkState.String())
+		fmt.Println(throw.W(err, "Can't wait for NetworkState "+network.CompleteNetworkState.String()).Error())
+		return 1
 	}
-	return cancelFunc, nil
+
+	code := cb()
+
+	return code
 }

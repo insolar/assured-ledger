@@ -31,11 +31,11 @@ test_func: ## run functest FUNCTEST_COUNT times
 
 .PHONY: test_func_cloud
 test_func_cloud: ## run functest on insolard in cloud mode
-	PULSARD_ONESHOT=TRUE CLOUD_MODE=TRUE PULSARD_PULSAR_PULSETIME=2000 FUNCTEST_COUNT=100 $(MAKE) test_func
+	PULSARD_ONESHOT=TRUE FUNCTEST_BUILD_TAGS=cloud PULSARD_PULSAR_PULSETIME=2000 FUNCTEST_COUNT=100 $(MAKE) test_func
 
 .PHONY: test_func_cloud_race
 test_func_cloud_race: ## run functest on insolard in cloud mode with race
-	TEST_ARGS='-timeout 1200s -race -failfast' PULSARD_ONESHOT=TRUE CLOUD_MODE=TRUE PULSARD_PULSAR_PULSETIME=2000 FUNCTEST_COUNT=20 $(MAKE) test_func
+	FUNCTEST_BUILD_TAGS=cloud TEST_ARGS='-timeout 1200s -race -failfast' PULSARD_ONESHOT=TRUE CLOUD_MODE=TRUE PULSARD_PULSAR_PULSETIME=2000 FUNCTEST_COUNT=20 $(MAKE) test_func
 
 .PHONY: test_func_cloud_with_consensus
 test_func_cloud_with_consensus: ## run functest on insolard in cloud mode
