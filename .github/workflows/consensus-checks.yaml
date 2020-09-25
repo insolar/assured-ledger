@@ -1,40 +1,28 @@
 name: consensus-checks # consensus perfomance checks
 on:
-  schedule:
-    - cron: '0 0 * * 6' # run at midnight on saturdays
+  pull_request:
+  #schedule:
+  #  - cron: '0 0 * * 6' # run at midnight on saturdays
 env:
-  KUBECONFIG: "${{ github.workspace }}/k3s.yaml"
+  KUBECONFIG: "${{ github.workspace }}/aks.yaml"
   GO_VERSION: 1.14
   CI_GOMAXPROCS: 0
   INSOLAR_LOG_LEVEL: warn
   GOPATH: /home/runner/work/
   GOPROXY: https://proxy.golang.org,https://gocenter.io,direct
   CORE_PATH: /home/runner/work/assured-ledger/assured-ledger/ledger-core
-  USE_MANIFESTS: ci
-  KUBEVAL_VERSION: 0.15.0
+  ACR_HOST: usciregistry.azurecr.io
+  PROMETHEUS_USER: ${{secrets.PROMETHEUS_USER}}	
+  PROMETHEUS_PASS: ${{secrets.PROMETHEUS_PASS}}
+  REPORT_WEBDAV_HOST: "https://reports.garage.insolar.io"
+  REPORT_WEBDAV_USERNAME: "${{secrets.WEBDAV_USERNAME}}"
+  REPORT_WEBDAV_PASSWORD: "${{secrets.WEBDAV_PASSWORD}}"
+  REPORT_WEBDAV_TIMEOUT: "1m"
 jobs:
-  consensus:
-    name: consensus # don't change, this name is used in repository restricts!
+  prepare:
+    name: prepare # don't change, this name is used in repository restricts!
     runs-on: ubuntu-latest
     steps:
-      - name: Create short git sha and git ref vars
-        id: set-vars
-        uses: actions/github-script@v2
-        with:
-          script: |
-            const shortSha = context.sha.substring(0, 8);
-            let shortRef;
-            if (context.ref.search(/^refs\/pull/) > -1) {
-              shortRef = "pull-" + context.ref.match(/\d+/);
-            } else {
-              shortRef = context.ref.replace(/^refs\/(heads|tags)\//, "").replace(/\//g, "-");
-            }
-            const result = {
-              shortSha: shortSha,
-              shortRef: shortRef,
-            }
-            console.log(result);
-            return result;
       - name: Checkout code
         uses: actions/checkout@master
       - name: Set up go ${{ env.GO_VERSION }}
@@ -42,71 +30,80 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
       - name: Add bin to path
-        run: echo "::add-path::${{ env.GOPATH }}/bin"
-      - name: Get kubeval
-        run: |
-          mkdir bin
-          curl -L -s --create-dirs https://github.com/instrumenta/kubeval/releases/download/$KUBEVAL_VERSION/kubeval-linux-amd64.tar.gz | tar xvz --exclude='LICENSE' --exclude='README.md' -C $GITHUB_WORKSPACE/bin
-          chmod +x $GITHUB_WORKSPACE/bin/kubeval
-      - name: Add workspace/bin to path
-        run: echo "::add-path::$GITHUB_WORKSPACE/bin"
-      - name: Check resources
-        run: |
-          sudo lscpu
-          free -h
-      - name: Install k3s
-        uses: insolar/k3s-gha@master
-        with:
-          custom_registry: true
-          registries_yaml_path: "ledger-core/scripts/deploy/kube/ci/registries.yaml"
-          kubectl_version: "v1.18.2"
-      - name: Deploy k3s-registry
-        run: kubectl apply -k ledger-core/scripts/deploy/kube/k3s-registry
-      - name: Wait for registry to be up and running
-        run: kubectl -n registry rollout status deploy/registry --timeout=80s
-      - name: Deploy ingress
-        run: make kube_apply_ingress
-        working-directory: ${{ env.CORE_PATH }}
-      - name: Go mod cache setup
-        uses: actions/cache@v2
-        with:
-          path: ${{env.GOPATH}}/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
-      - name: Prepare environment
-        run: |
-          go mod download
-          make vendor install-build-tools
-        working-directory: ${{env.CORE_PATH}}
+        run: echo "::add-path::${{ env.GOPATH }}/bin:$GITHUB_WORKSPACE/bin"
       - name: Build docker images
         run: make docker-build
         working-directory: ${{ env.CORE_PATH }}
-      - name: Push assured ledger image to local registry
+      - name: Push assured ledger image to Azure container registry registry
         run: |
-          docker tag insolar/assured-ledger:latest localhost/assured-ledger:latest
-          docker push localhost/assured-ledger:latest
-        working-directory: ${{ env.CORE_PATH }}
-      - name: Build kube-deploy-tool
-        run: go build -o ./bin/kube-deploy-tool ./scripts/deploy/kube-deploy-tool
-        working-directory: ${{ env.CORE_PATH }}
-      - name: Run headless network and generate performance report
+          docker login $ACR_HOST --username ${{secrets.ACR_SP_ID}} --password ${{secrets.ACR_SP_SECRET}}
+          docker tag insolar/assured-ledger:latest $ACR_HOST/assured-ledger:"${GITHUB_SHA:0:8}"
+          docker push $ACR_HOST/assured-ledger:"${GITHUB_SHA:0:8}"
+  consensus:
+    name: consensus # don't change, this name is used in repository restricts!
+    needs: prepare
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 1
+      matrix:
+        target: [aks-60node, aks-80node, aks-100node]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@master
+      - name: Preparation - set prerequisite variables, full sha is ${{github.sha}}
         env:
-          KUBEDEPLOYTOOL_METRICPARAMS_WEBDAV_HOST: https://reports.garage.insolar.io
-          KUBEDEPLOYTOOL_METRICPARAMS_WEBDAV_USERNAME: ${{ secrets.WEBDAV_USERNAME }}
-          KUBEDEPLOYTOOL_METRICPARAMS_WEBDAV_PASSWORD: ${{ secrets.WEBDAV_PASSWORD }}
-          KUBEDEPLOYTOOL_METRICPARAMS_WEBDAV_DIRECTORY: consensus-checks
-          KUBEDEPLOYTOOL_KUBEPARAMS_ENV: ci
-          KUBEDEPLOYTOOL_METRICPARAMS_GIT_COMMIT: ${{ fromJson(steps.set-vars.outputs.result).shortSha }}
-          KUBEDEPLOYTOOL_METRICPARAMS_GIT_HEAD: ${{ fromJson(steps.set-vars.outputs.result).shortRef }}
-        run: bin/kube-deploy-tool --config=scripts/deploy/kube-deploy-tool/config.yaml
-        working-directory: ${{ env.CORE_PATH }}
-      - name: Aggregate logs into a single archive
+          TARGET: ${{matrix.target}}
+        run: |
+          echo "::set-env name=INSOLAR_TAG::${GITHUB_SHA:0:8}"
+          echo "::set-env name=INSOLAR_NETWORK_SIZE::${TARGET}"
+          echo "::set-env name=INSOLAR_NAMESPACE::${GITHUB_SHA:0:8}-${TARGET}"
+          echo "::set-env name=INSOLAR_DESIRED_UPTIME::300"
+          echo "::set-env name=INSOLAR_BRANCH::$(echo "pull-$(echo ${{github.ref}} | cut -d '/' -f3)")"
+          echo "::set-env name=INSOLAR_NETWORK_SIZE_INT::$(echo $TARGET | awk '{gsub(/[^[0-9]]*/,"");print}')"
+          echo "::set-env name=REPORT_WEBDAV_DIRECTORY::consensus-checks/$(date +"%Y%m%d-%H%M")-pull-$(echo ${{github.ref}} | cut -d '/' -f3)-${GITHUB_SHA:0:8}"
+      - name: Preparation - copy docker auth secret
+        run: |
+          docker login $ACR_HOST --username ${{secrets.ACR_SP_ID}} --password ${{secrets.ACR_SP_SECRET}}
+          cp /home/runner/.docker/config.json ledger-core/scripts/deploy/kube/gitops/"$INSOLAR_NETWORK_SIZE"/dockerconfigjson
+      - name: Preparation - save kubeconfig
+        run: echo "${{secrets.CLOUD_KUBECONFIG}}" >> aks.yaml
+      - name: Praparation - github token for gitops access
+        run: git config --global url."https://${{secrets.INS_SERVICE_PAT}}@github.com/".insteadOf "https://github.com/"
+      - name: Ingress access check (IF THIS STEP FAILED - CALL DEVOPS, RED ALERT)
+        run:  curl -s "https://$PROMETHEUS_USER:$PROMETHEUS_PASS@prometheus.uscifarm.insolar.io/prometheus/api/v1/labels" | jq -r '.status'
+      - name: Deploy network
+        run: kubectl kustomize ledger-core/scripts/deploy/kube/gitops/"$INSOLAR_NETWORK_SIZE" | envsubst '${INSOLAR_NAMESPACE} ${INSOLAR_TAG}' | kubectl -n $INSOLAR_NAMESPACE apply -f -
+      - name: Rollout check (IF THIS STEP FAILED - CALL DEV, CHECK LOGS, YELLOW ALERT)
+        run: kubectl -n $INSOLAR_NAMESPACE rollout status sts/virtual --timeout=10m
+      - name: Provide link to grafana
+        run:  echo "https://monitoring.uscifarm.insolar.io/d/LmD-fXFZz/ins-network?orgId=1&refresh=10s&var-phase=All&var-packetType=All&var-namespace=$INSOLAR_NAMESPACE&from=now-10m&to=now"
+      - name: Set network start time variable
+        run:  echo "::set-env name=INSOLAR_START_TIME::$(date +'%s')"
+      - name: Keep network running for a desired period of time
+        run:  sleep $INSOLAR_DESIRED_UPTIME
+      - name: Add bin to path
+        run: echo "::add-path::$GITHUB_WORKSPACE/bin"
+      - name: Grab utility binaries
+        run: |
+          wget -q https://github.com/insolar/consensus-reports/releases/download/v1.0.4/{report,metricreplicator} -P bin/
+          chmod +x bin/{report,metricreplicator}
+      - name: gather metrics and generate report (IF THIS STEP FAILED - CALL DEV, READ LOGS BLUE ALERT)
+        run: |
+          cat ledger-core/scripts/deploy/kube/report.yaml | envsubst '${INTERVAL} ${INSOLAR_START_TIME} ${INSOLAR_NETWORK_SIZE_INT} ${INSOLAR_BRANCH} ${INSOLAR_TAG}' >> config.yaml
+          metricreplicator --config config.yaml
+        env:
+          INTERVAL: "3m"
+          REPORT_PROMETHEUS_HOST: "https://${{secrets.PROMETHEUS_USER}}:${{secrets.PROMETHEUS_PASS}}@prometheus.uscifarm.insolar.io/prometheus"
+      - name: generate report
+        run: report
+        env:
+          REPORT_GIT_BRANCH: ${{env.INSOLAR_BRANCH}}
+          REPORT_GIT_HASH: ${{env.INSOLAR_TAG}}
+      - name: report URL
+        run: echo $REPORT_WEBDAV_HOST/$REPORT_WEBDAV_DIRECTORY
+      - name: mandatory debug
         if: always()
-        run: tar --warning=no-file-changed -cvzf ${{ env.CORE_PATH }}/kube-nodes-output.tgz /tmp/insolar/logs/* || true
-      - name: Upload logs to artifacts
+        run: kubectl get all --all-namespaces
+      - name: cleanup
         if: always()
-        uses: actions/upload-artifact@v1
-        with:
-          name: kube-nodes-output
-          path: ${{ env.CORE_PATH }}/kube-nodes-output.tgz
+        run: kubectl delete ns $INSOLAR_NAMESPACE --ignore-not-found=true
