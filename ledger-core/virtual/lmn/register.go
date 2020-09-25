@@ -18,6 +18,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
 	messageSenderAdapter "github.com/insolar/assured-ledger/ledger-core/network/messagesender/adapter"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/rms/rmsreg"
@@ -100,6 +101,7 @@ type SubSMRegister struct {
 	// input arguments
 	Incoming          *rms.VCallRequest
 	Outgoing          *rms.VCallRequest
+	OutgoingRepeat    bool
 	OutgoingResult    *rms.VCallResult
 	IncomingResult    *execution.Update
 	Interference      isolation.InterferenceFlag
@@ -110,6 +112,7 @@ type SubSMRegister struct {
 	LastLifelineRef reference.Global
 
 	SafeResponseCounter smachine.SharedDataLink
+	PulseNumber         pulse.Number
 
 	// internal data
 	messages     MessagesHolder
@@ -158,8 +161,13 @@ func (s *SubSMRegister) GetStateMachineDeclaration() smachine.StateMachineDeclar
 func (s *SubSMRegister) getRecordAnticipatedRef(record SerializableBasicRecord) reference.Global {
 	var (
 		data        = make([]byte, record.ProtoSize())
-		pulseNumber = s.pulseSlot.CurrentPulseNumber()
+		pulseNumber = s.PulseNumber
 	)
+
+	if s.pulseSlot != nil {
+		pulseNumber = s.pulseSlot.CurrentPulseNumber()
+	}
+
 	_, err := record.MarshalTo(data)
 	if err != nil {
 		panic(throw.W(err, "Fail to serialize record"))
@@ -261,17 +269,89 @@ func (s *SubSMRegister) Init(ctx smachine.InitializationContext) smachine.StateU
 	}
 }
 
-func GetNewLifelineAnticipatedReference(
-	pulseSlot *conveyor.PulseSlot,
-	builder RecordReferenceBuilder,
+func GetLifelineAnticipatedReference(
+	builder RecordReferenceBuilderService,
 	request *rms.VCallRequest,
+	pn pulse.Number,
 ) reference.Global {
 	sm := SubSMRegister{
-		pulseSlot:  pulseSlot,
-		Incoming:   request,
-		refBuilder: builder,
+		PulseNumber: pn,
+		Incoming:    request,
+		refBuilder:  builder,
 	}
 	return sm.getRecordAnticipatedRef(sm.getLifelineRecord())
+}
+
+func GetOutgoingAnticipatedReference(
+	builder RecordReferenceBuilderService,
+	request *rms.VCallRequest,
+	previousRef reference.Global,
+	pn pulse.Number,
+) reference.Global {
+	sm := SubSMRegister{
+		PulseNumber:     pn,
+		Object:          request.Callee.GetValue(),
+		Outgoing:        request,
+		refBuilder:      builder,
+		LastLifelineRef: previousRef,
+	}
+	return sm.getRecordAnticipatedRef(sm.getOutboundRecord())
+}
+
+func (s *SubSMRegister) getOutboundRecord() *rms.ROutboundRequest {
+	if s.Outgoing == nil {
+		panic(throw.IllegalState())
+	}
+
+	// first outgoing of incoming should be branched from
+	prevRef := s.LastFilamentRef
+	if prevRef.IsEmpty() {
+		prevRef = s.LastLifelineRef
+	}
+	if prevRef.IsEmpty() {
+		panic(throw.IllegalState())
+	}
+
+	return &rms.ROutboundRequest{
+		CallType:                s.Outgoing.CallType,
+		CallFlags:               s.Outgoing.CallFlags,
+		CallAsOf:                s.Outgoing.CallAsOf,
+		Caller:                  s.Outgoing.Caller,
+		Callee:                  s.Outgoing.Callee,
+		CallSiteDeclaration:     s.Outgoing.CallSiteDeclaration,
+		CallSiteMethod:          s.Outgoing.CallSiteMethod,
+		CallSequence:            s.Outgoing.CallSequence,
+		CallReason:              s.Outgoing.CallReason,
+		RootTX:                  s.Outgoing.RootTX,
+		CallTX:                  s.Outgoing.CallTX,
+		ExpenseCenter:           s.Outgoing.ExpenseCenter,
+		ResourceCenter:          s.Outgoing.ResourceCenter,
+		DelegationSpec:          s.Outgoing.DelegationSpec,
+		ProducerSignature:       s.Outgoing.ProducerSignature,
+		RegistrarSignature:      s.Outgoing.RegistrarSignature,
+		RegistrarDelegationSpec: s.Outgoing.RegistrarDelegationSpec,
+		CallRequestFlags:        s.Outgoing.CallRequestFlags,
+		KnownCalleeIncoming:     s.Outgoing.KnownCalleeIncoming,
+		TXExpiry:                s.Outgoing.TXExpiry,
+		SecurityContext:         s.Outgoing.SecurityContext,
+		TXContext:               s.Outgoing.TXContext,
+		Arguments:               s.Outgoing.Arguments, // TODO: move later to RecordBody
+
+		RootRef: rms.NewReference(s.Object),
+		PrevRef: rms.NewReference(prevRef),
+	}
+}
+
+func (s *SubSMRegister) getOutboundRetryableRequest() *rms.ROutboundRetryableRequest {
+	retryableOutbound := rms.ROutboundRetryableRequest(*s.getOutboundRecord())
+
+	return &retryableOutbound
+}
+
+func (s *SubSMRegister) getOutboundRetryRequest() *rms.ROutboundRetryRequest {
+	retryOutbound := rms.ROutboundRetryRequest(*s.getOutboundRecord())
+
+	return &retryOutbound
 }
 
 func (s *SubSMRegister) getLifelineRecord() *rms.RLifelineStart {
@@ -464,17 +544,14 @@ func (s *SubSMRegister) stepRegisterIncoming(ctx smachine.ExecutionContext) smac
 }
 
 func (s *SubSMRegister) stepRegisterOutgoing(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	prevRef := s.LastFilamentRef
-	if prevRef.IsEmpty() {
-		prevRef = s.LastLifelineRef
-	}
-	if prevRef.IsEmpty() {
-		panic(throw.IllegalState())
-	}
-
-	record := &rms.ROutboundRequest{
-		RootRef: rms.NewReference(s.Object),
-		PrevRef: rms.NewReference(prevRef),
+	var record SerializableBasicRecord
+	switch {
+	case s.Outgoing.CallType == rms.CallTypeConstructor && s.OutgoingRepeat:
+		record = s.getOutboundRetryRequest()
+	case s.Outgoing.CallType == rms.CallTypeConstructor && !s.OutgoingRepeat:
+		record = s.getOutboundRetryableRequest()
+	case s.Outgoing.CallType == rms.CallTypeMethod:
+		record = s.getOutboundRecord()
 	}
 
 	var anticipatedRef = s.getRecordAnticipatedRef(record)
@@ -664,6 +741,10 @@ func (s *SubSMRegister) stepSaveSafeCounter(ctx smachine.ExecutionContext) smach
 }
 
 func (s *SubSMRegister) stepSendMessage(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	if s.pulseSlot == nil {
+		panic(throw.IllegalState())
+	}
+
 	var (
 		obj          = s.Object
 		msg          = s.messages.NextUnsentMessage()

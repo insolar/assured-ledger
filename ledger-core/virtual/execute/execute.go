@@ -25,7 +25,6 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/runner/execution"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
 	"github.com/insolar/assured-ledger/ledger-core/runner/requestresult"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/injector"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 	"github.com/insolar/assured-ledger/ledger-core/virtual/authentication"
@@ -94,6 +93,7 @@ type SMExecute struct {
 	lmnSafeResponseCounter     shared.SafeResponseCounter
 	lmnSafeResponseCounterLink smachine.SharedDataLink
 	incomingRegistered         bool
+	referenceBuilder           lmn.RecordReferenceBuilderService
 }
 
 /* -------- Declaration ------------- */
@@ -114,6 +114,7 @@ func (*dSMExecute) InjectDependencies(sm smachine.StateMachine, _ smachine.SlotL
 	injector.MustInject(&s.objectCatalog)
 	injector.MustInject(&s.authenticationService)
 	injector.MustInject(&s.globalSemaphore)
+	injector.MustInject(&s.referenceBuilder)
 }
 
 func (*dSMExecute) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc {
@@ -128,6 +129,8 @@ func (s *SMExecute) GetStateMachineDeclaration() smachine.StateMachineDeclaratio
 }
 
 func (s *SMExecute) prepareExecution(ctx context.Context) {
+	currentPulse := s.pulseSlot.CurrentPulseNumber()
+
 	s.execution.Context = ctx
 	s.execution.Sequence = 0
 	s.execution.Request = s.Payload
@@ -135,7 +138,7 @@ func (s *SMExecute) prepareExecution(ctx context.Context) {
 
 	if s.Payload.CallType == rms.CallTypeConstructor {
 		s.isConstructor = true
-		s.execution.Object = reference.NewSelf(s.Payload.CallOutgoing.GetValue().GetLocal())
+		s.execution.Object = lmn.GetLifelineAnticipatedReference(s.referenceBuilder, s.Payload, currentPulse)
 	} else {
 		s.execution.Object = s.Payload.Callee.GetValue()
 	}
@@ -748,8 +751,6 @@ func (s *SMExecute) prepareOutgoingError(err error) {
 }
 
 func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	pulseNumber := s.pulseSlot.CurrentPulseNumber()
-
 	switch outgoing := s.executionNewState.Outgoing.(type) {
 	case execution.Deactivate:
 		if s.intolerableCall() {
@@ -768,11 +769,11 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 		}
 
 		s.outgoing = outgoing.ConstructVCallRequest(s.execution)
-		newOutgoing := reference.NewRecordOf(s.outgoing.Caller.GetValue(), gen.UniqueLocalRefWithPulse(pulseNumber))
-		s.outgoing.CallOutgoing.Set(newOutgoing)
+		// newOutgoing := reference.NewRecordOf(s.outgoing.Caller.GetValue(), gen.UniqueLocalRefWithPulse(pulseNumber))
+		// s.outgoing.CallOutgoing.Set(newOutgoing)
 		s.execution.Sequence++
 		s.outgoing.CallSequence = s.execution.Sequence
-		s.outgoingObject = reference.NewSelf(newOutgoing.GetLocal())
+		// s.outgoingObject = reference.NewSelf(newOutgoing.GetLocal())
 	case execution.CallMethod:
 		if s.intolerableCall() && outgoing.Interference() == isolation.CallTolerable {
 			err := throw.E("interference violation: ordered call from unordered call")
@@ -782,8 +783,8 @@ func (s *SMExecute) stepExecuteOutgoing(ctx smachine.ExecutionContext) smachine.
 		}
 
 		s.outgoing = outgoing.ConstructVCallRequest(s.execution)
-		newOutgoing := reference.NewRecordOf(s.outgoing.Caller.GetValue(), gen.UniqueLocalRefWithPulse(pulseNumber))
-		s.outgoing.CallOutgoing.Set(newOutgoing)
+		// newOutgoing := reference.NewRecordOf(s.outgoing.Caller.GetValue(), gen.UniqueLocalRefWithPulse(pulseNumber))
+		// s.outgoing.CallOutgoing.Set(newOutgoing)
 		s.execution.Sequence++
 		s.outgoing.CallSequence = s.execution.Sequence
 		s.outgoingObject = s.outgoing.Callee.GetValue()
@@ -814,11 +815,19 @@ func (s *SMExecute) stepRegisterOutgoing(ctx smachine.ExecutionContext) smachine
 		s.lmnLastLifelineRef = subroutineSM.NewLastLifelineRef
 		s.lmnLastFilamentRef = subroutineSM.NewLastFilamentRef
 
+		s.outgoing.CallOutgoing = rms.NewReference(s.lmnLastFilamentRef)
+
 		return ctx.Jump(s.stepSendOutgoing)
 	})
 }
 
 func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	currentPulse := s.pulseSlot.CurrentPulseNumber()
+
+	if s.outgoing.CallType == rms.CallTypeConstructor {
+		s.outgoingObject = lmn.GetLifelineAnticipatedReference(s.referenceBuilder, s.outgoing, currentPulse)
+	}
+
 	if s.outgoingSentCounter == 0 {
 		bargeInCallback := ctx.NewBargeInWithParam(func(param interface{}) smachine.BargeInCallbackFunc {
 			res, ok := param.(*rms.VCallResult)
