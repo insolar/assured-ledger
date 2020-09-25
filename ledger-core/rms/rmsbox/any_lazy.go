@@ -252,7 +252,7 @@ func (p LazyValue) MarshalTo(b []byte) (int, error) {
 
 func (p LazyValue) MarshalToSizedBuffer(b []byte) (int, error) {
 	if len(b) < len(p.value) {
-		return 0, throw.IllegalState()
+		return 0, io.ErrShortBuffer
 	}
 	return copy(b, p.value), nil
 }
