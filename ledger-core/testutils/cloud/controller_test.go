@@ -27,6 +27,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/server"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/cloud"
 )
 
 func TestController_PartialDistribute(t *testing.T) {
@@ -52,7 +53,8 @@ func TestController_PartialDistribute(t *testing.T) {
 		},
 	}
 
-	s, pulseDistributor := server.NewMultiServerWithoutPulsar(confProvider)
+	controller := cloud.NewController()
+	s := server.NewControlledMultiServer(controller, confProvider)
 	go func() {
 		s.Serve()
 	}()
@@ -76,7 +78,7 @@ func TestController_PartialDistribute(t *testing.T) {
 		for i := 0; i < 3; i++ {
 			_ = pulseGenerator.Generate()
 			packet := pulseGenerator.GetLastPulsePacket()
-			pulseDistributor.PartialDistribute(context.Background(), packet, allNodes)
+			controller.PartialDistribute(context.Background(), packet, allNodes)
 
 			for _, conf := range appConfigs {
 
@@ -108,7 +110,7 @@ func TestController_PartialDistribute(t *testing.T) {
 			_ = pulseGenerator.Generate()
 			packet := pulseGenerator.GetLastPulsePacket()
 
-			pulseDistributor.PartialDistribute(context.Background(), packet, halfOfNodes)
+			controller.PartialDistribute(context.Background(), packet, halfOfNodes)
 			for _, conf := range appConfigs {
 				body := getRPSResponseBody(t, getURL(conf.AdminAPIRunner.Address), makeStatusBody())
 

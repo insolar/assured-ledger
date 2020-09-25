@@ -17,6 +17,7 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/server"
 	"github.com/insolar/assured-ledger/ledger-core/testutils"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/cloud"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -90,7 +91,8 @@ func (cr *CloudRunner) PrepareConfig() {
 }
 
 func prepareCloudForOneShotMode(confProvider *server.CloudConfigurationProvider) server.Server {
-	s, pulseDistributor := server.NewMultiServerWithoutPulsar(confProvider)
+	controller := cloud.NewController()
+	s := server.NewControlledMultiServer(controller, confProvider)
 	go func() {
 		// wait for starting all components
 		for !s.(*insapp.Server).Started() {
@@ -109,7 +111,7 @@ func prepareCloudForOneShotMode(confProvider *server.CloudConfigurationProvider)
 		pulseGenerator := testutils.NewPulseGenerator(uint16(confProvider.PulsarConfig.Pulsar.NumberDelta), nil, nil)
 		for i := 0; i < 2; i++ {
 			_ = pulseGenerator.Generate()
-			pulseDistributor.PartialDistribute(context.Background(), pulseGenerator.GetLastPulsePacket(), allNodes)
+			controller.PartialDistribute(context.Background(), pulseGenerator.GetLastPulsePacket(), allNodes)
 		}
 	}()
 

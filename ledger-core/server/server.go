@@ -9,9 +9,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
 	"github.com/insolar/assured-ledger/ledger-core/network/pulsenetwork"
-	"github.com/insolar/assured-ledger/ledger-core/pulsar"
-	"github.com/insolar/assured-ledger/ledger-core/server/internal/cloud"
 	"github.com/insolar/assured-ledger/ledger-core/server/internal/headless"
+	"github.com/insolar/assured-ledger/ledger-core/testutils/cloud"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -23,8 +22,7 @@ func NewNode(cfg configuration.Configuration) Server {
 	return insapp.New(cfg, appFactory)
 }
 
-func NewMultiServerWithoutPulsar(configProvider *CloudConfigurationProvider) (Server, pulsar.SelectivePulseDistributor) { // nolint:interfacer
-	controller := cloud.NewController()
+func NewControlledMultiServer(controller cloud.Controller, configProvider *CloudConfigurationProvider) Server {
 	if configProvider.GetAppConfigs == nil {
 		panic("GetAppConfigs cannot be nil")
 	}
@@ -38,7 +36,7 @@ func NewMultiServerWithoutPulsar(configProvider *CloudConfigurationProvider) (Se
 		configProvider,
 		appFactory,
 		multiFn,
-	), controller
+	)
 }
 
 func NewMultiServer(configProvider *CloudConfigurationProvider) Server {
