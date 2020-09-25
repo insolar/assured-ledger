@@ -14,6 +14,7 @@ import (
 	"syscall"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
+	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insapp"
 	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/network"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
@@ -67,7 +68,6 @@ func RunCloud(cb func([]string) int, options ...cloudOption) int {
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
 	ctx, abort := context.WithCancel(context.Background())
-	defer abort()
 
 	cr := CloudRunner{
 		defaultLogLevel: log.DebugLevel,
@@ -78,12 +78,13 @@ func RunCloud(cb func([]string) int, options ...cloudOption) int {
 	}
 	cr.PrepareConfig()
 
-	teardown, err := cr.SetupCloudCustom(ctx, cr.pulsarMode)
-	defer teardown()
+	teardown, err := cr.SetupCloud(ctx)
 	if err != nil {
 		fmt.Println("error while setup, skip tests: ", err)
 		return 1
 	}
+	defer teardown()
+	defer abort()
 
 	go func() {
 		sig := <-c
@@ -227,5 +228,7 @@ func (cr CloudRunner) SetupCloudCustom(ctx context.Context, pulsarMode PulsarMod
 	if err != nil {
 		return nil, throw.W(err, "Can't wait for NetworkState "+network.CompleteNetworkState.String())
 	}
-	return func() {}, nil
+	return func() {
+		s.(*insapp.Server).WaitStop()
+	}, nil
 }
