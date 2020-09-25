@@ -34,11 +34,7 @@ func RunCloudWithConsensus(numVirtual, numLight, numHeavy int, cb func() int) in
 		os.Exit(2)
 	}()
 
-	confProvider, err := prepareConfigProvider(numVirtual, numLight, numHeavy, log.DebugLevel)
-	if err != nil {
-		fmt.Println(throw.W(err, "Can't prepare config provider").Error())
-		return 1
-	}
+	confProvider := prepareConfigProvider(numVirtual, numLight, numHeavy, log.DebugLevel)
 
 	s := server.NewMultiServerWithConsensus(ctx, confProvider)
 	go func() {

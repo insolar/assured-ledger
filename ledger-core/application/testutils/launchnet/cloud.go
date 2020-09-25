@@ -68,7 +68,6 @@ func RunCloud(cb func([]string) int, options ...cloudOption) int {
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
 	ctx, abort := context.WithCancel(context.Background())
-
 	cr := CloudRunner{
 		defaultLogLevel: log.DebugLevel,
 		pulsarMode:      RegularPulsar,
@@ -80,6 +79,7 @@ func RunCloud(cb func([]string) int, options ...cloudOption) int {
 
 	teardown, err := cr.SetupCloud(ctx)
 	if err != nil {
+		abort()
 		fmt.Println("error while setup, skip tests: ", err)
 		return 1
 	}
@@ -115,7 +115,7 @@ func RunCloud(cb func([]string) int, options ...cloudOption) int {
 	return code
 }
 
-func prepareConfigProvider(numVirtual, numLightMaterials, numHeavyMaterials int, defaultLogLevel log.Level) (*server.CloudConfigurationProvider, error) {
+func prepareConfigProvider(numVirtual, numLightMaterials, numHeavyMaterials int, defaultLogLevel log.Level) *server.CloudConfigurationProvider {
 	cloudSettings := CloudSettings{
 		Virtual: numVirtual,
 		Light:   numLightMaterials,
@@ -141,7 +141,7 @@ func prepareConfigProvider(numVirtual, numLightMaterials, numHeavyMaterials int,
 		GetAppConfigs: func() []configuration.Configuration {
 			return appConfigs
 		},
-	}, nil
+	}
 }
 
 type CloudRunner struct {
@@ -155,11 +155,7 @@ type CloudRunner struct {
 }
 
 func (cr *CloudRunner) PrepareConfig() {
-	var err error
-	cr.ConfProvider, err = prepareConfigProvider(cr.numVirtual, cr.numLightMaterials, cr.numHeavyMaterials, cr.defaultLogLevel)
-	if err != nil {
-		panic(throw.W(err, "Can't prepare config provider"))
-	}
+	cr.ConfProvider = prepareConfigProvider(cr.numVirtual, cr.numLightMaterials, cr.numHeavyMaterials, cr.defaultLogLevel)
 }
 
 func prepareCloudForOneShotMode(ctx context.Context, confProvider *server.CloudConfigurationProvider) server.Server {

@@ -241,7 +241,7 @@ func stopInsolard(cmd *exec.Cmd) error {
 		return nil
 	}
 
-	err := cmd.Process.Signal(syscall.SIGINT)
+	err := cmd.Process.Signal(syscall.SIGHUP)
 	if err != nil {
 		return throw.W(err, "[ stopInsolard ] failed to kill process:")
 	}
