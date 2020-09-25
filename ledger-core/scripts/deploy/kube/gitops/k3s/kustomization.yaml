@@ -8,5 +8,5 @@ bases:
   - https://github.com/insolar/gitops/assured-ledger/base
 images:
   - name: insolar/assured-ledger
-    newName: mylocalregistry:5000/assured-ledger
+    newName: ci:5000/assured-ledger
     newTag: ${INSOLAR_TAG}

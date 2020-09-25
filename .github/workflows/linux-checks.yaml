@@ -194,6 +194,7 @@ jobs:
           custom_registry: true
           registries_yaml_path: "ledger-core/scripts/deploy/kube/registries.yaml"
           kubectl_version: "v1.18.2"
+          k3s_tag: v1.17.12-k3s1
       - name: deploy traefik
         run: kubectl apply -k ledger-core/scripts/deploy/kube/gitops/traefik
       - name: wait for traefik to be up and running
