@@ -46,7 +46,7 @@ jobs:
     strategy:
       max-parallel: 1
       matrix:
-        target: [aks-60node, aks-80node, aks-100node]
+        target: [aks-10node]
     steps:
       - name: Checkout code
         uses: actions/checkout@master

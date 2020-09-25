@@ -228,21 +228,11 @@ jobs:
         run: kubectl kustomize ledger-core/scripts/deploy/kube/gitops/"$INSOLAR_NETWORK_SIZE" | envsubst '${INSOLAR_NAMESPACE} ${INSOLAR_TAG}' | kubectl -n $INSOLAR_NAMESPACE apply -f -
       - name: Rollout check (IF THIS STEP FAILED - CALL DEV, CHECK LOGS, YELLOW ALERT)
         run: kubectl -n $INSOLAR_NAMESPACE rollout status sts/virtual --timeout=10m
+      - name: debug-info
+        if: always()
+        run: |
+          kubectl get all --all-namespaces
+          kubectl -n $INSOLAR_NAMESPACE logs deploy/pulsewatcher
       - name: run tests
         run: make test_func_kubernetes_ci
         working-directory: ${{env.V2_PATH}}
-      - name: collect artifacts
-        if: always()
-        run: |
-          export KUBECONFIG=$GITHUB_WORKSPACE/k3s.yaml
-          make kube_collect_artifacts
-        working-directory: ${{env.V2_PATH}}
-      - name: Aggregate logs into a single archive
-        if: always()
-        run: tar --warning=no-file-changed -cvzf ${{env.V2_PATH}}/kube-nodes-output.tgz /tmp/insolar/logs/* || true
-      - name: Upload logs to artifacts
-        if: always()
-        uses: actions/upload-artifact@v1
-        with:
-          name: kube-nodes-output
-          path: ${{env.V2_PATH}}/kube-nodes-output.tgz
