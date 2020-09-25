@@ -230,8 +230,8 @@ jobs:
         run: cat ledger-core/scripts/deploy/kube/k3s-ingressroute.yaml | envsubst '${INSOLAR_NAMESPACE}' | kubectl apply -f -
       - name: Rollout check (IF THIS STEP FAILED - CALL DEV, CHECK LOGS, YELLOW ALERT)
         run: kubectl -n $INSOLAR_NAMESPACE rollout status sts/virtual --timeout=5m
-      - name: Prepare test utils and check succesful build
-        run: make install-build-tools pre-build proto build
+      - name: Check succesful build
+        run: make pre-build proto build
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
       - name: run tests
         run: make test_func_kubernetes_ci

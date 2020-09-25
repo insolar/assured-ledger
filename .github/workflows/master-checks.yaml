@@ -224,7 +224,7 @@ jobs:
       - name: Rollout check (IF THIS STEP FAILED - CALL DEV, CHECK LOGS, YELLOW ALERT)
         run: kubectl -n $INSOLAR_NAMESPACE rollout status sts/virtual --timeout=10m
       - name: Prepare test utils and check succesful build
-        run: make install-build-tools pre-build proto build
+        run: make pre-build proto build
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
       - name: run tests
         run: make test_func_kubernetes_ci
