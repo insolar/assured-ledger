@@ -84,7 +84,7 @@ func runInsolardServer(configPath, genesisConfigPath, roleString string) {
 	fmt.Printf("Starts with configuration:\n%s\n", configuration.ToString(&cfg))
 
 	signChan := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	signal.Notify(signChan, os.Interrupt, syscall.SIGTERM)
 
 	ctx, cancel := context.WithCancel(context.Background())
 
