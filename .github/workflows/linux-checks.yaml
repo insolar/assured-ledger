@@ -232,7 +232,8 @@ jobs:
         if: always()
         run: |
           kubectl get all --all-namespaces
-          kubectl -n $INSOLAR_NAMESPACE logs deploy/pulsewatcher
+          kubectl -n $INSOLAR_NAMESPACE describe po bootstrap
+          kubectl -n $INSOLAR_NAMESPACE describe deploy/pulsewatcher
       - name: run tests
         run: make test_func_kubernetes_ci
         working-directory: ${{env.V2_PATH}}
