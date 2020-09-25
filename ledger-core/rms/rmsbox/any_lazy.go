@@ -48,7 +48,7 @@ func (p *AnyLazy) asLazy(v rmsreg.MarshalerTo) (LazyValue, error) {
 			return LazyValue{}, io.ErrShortWrite
 		}
 	}
-	return LazyValue{b, reflect.TypeOf(v) }, nil
+	return LazyValue{b, reflect.TypeOf(v)}, nil
 }
 
 func (p *AnyLazy) SetAsLazy(v rmsreg.MarshalerTo) error {
@@ -100,7 +100,7 @@ func (p *AnyLazy) unmarshalCustom(b []byte, copyBytes bool, typeFn func(uint64) 
 	if copyBytes {
 		b = append([]byte(nil), b...)
 	}
-	return LazyValue{b, t }, nil
+	return LazyValue{b, t}, nil
 }
 
 func (p *AnyLazy) MarshalTo(b []byte) (int, error) {
@@ -149,7 +149,7 @@ func (p *AnyLazy) Equal(that interface{}) bool {
 		return false
 	}
 
-	if eq, ok := thatValue.(interface{ Equal(that interface{}) bool}); ok {
+	if eq, ok := thatValue.(interface{ Equal(that interface{}) bool }); ok {
 		return eq.Equal(p.value)
 	}
 	return false
@@ -178,7 +178,7 @@ type LazyValueReader interface {
 
 type LazyValue struct {
 	value []byte
-	vType  reflect.Type
+	vType reflect.Type
 }
 
 func (p LazyValue) WriteTo(w io.Writer) (int64, error) {
@@ -220,10 +220,10 @@ func (p LazyValue) UnmarshalAsType(vType reflect.Type, skipFn rmsreg.UnknownCall
 	case p.value == nil:
 		return nil, nil
 	}
-	
+
 	obj, err := rmsreg.UnmarshalAsType(p.value, vType, skipFn)
 	if err != nil {
-		return nil, err		
+		return nil, err
 	}
 	return obj.(rmsreg.GoGoSerializable), nil
 }
@@ -251,7 +251,7 @@ func (p LazyValue) MarshalTo(b []byte) (int, error) {
 }
 
 func (p LazyValue) MarshalToSizedBuffer(b []byte) (int, error) {
-	if len(b) != len(p.value) {
+	if len(b) < len(p.value) {
 		return 0, throw.IllegalState()
 	}
 	return copy(b, p.value), nil
