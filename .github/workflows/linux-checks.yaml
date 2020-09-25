@@ -225,6 +225,16 @@ jobs:
       - name: build tools
         run: make install-build-tools
         working-directory: ${{env.V2_PATH}}
+      - name: test registry
+        run: |
+          docker pull gcr.io/kuar-demo/kuard-amd64:blue
+          docker tag gcr.io/kuar-demo/kuard-amd64:blue localhost/kuard:checker
+          docker push localhost/kuard:checker
+          kubectl create ns $INSOLAR_NAMESPACE
+          kubectl -n $INSOLAR_NAMESPACE run --restart=Never --image=ci:5000/kuard:checker kuard
+          sleep 17
+          kubectl -n $INSOLAR_NAMESPACE describe po kuard 
+          kubectl -n $INSOLAR_NAMESPACE get po          
       - name: Deploy network
         run: kubectl kustomize ledger-core/scripts/deploy/kube/gitops/"$INSOLAR_NETWORK_SIZE" | envsubst '${INSOLAR_NAMESPACE} ${INSOLAR_TAG}' | kubectl -n $INSOLAR_NAMESPACE apply -f -
       - name: Rollout check (IF THIS STEP FAILED - CALL DEV, CHECK LOGS, YELLOW ALERT)
