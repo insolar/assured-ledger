@@ -45,26 +45,16 @@ func TestFactory_Positive(t *testing.T) {
 			f := NewFactory(test.cfg)
 			require.NotNil(t, f)
 
-			udp, err := f.CreateDatagramTransport(nil)
-			assert.NoError(t, err)
-			require.NotNil(t, udp)
-
 			tcp, err := f.CreateStreamTransport(nil)
 			assert.NoError(t, err)
 			require.NotNil(t, tcp)
 
-			assert.NoError(t, udp.Start(ctx))
 			assert.NoError(t, tcp.Start(ctx))
-
-			addrUDP, err := net.ResolveUDPAddr("udp", udp.Address())
-			assert.NoError(t, err)
-			assert.NotEqual(t, 0, addrUDP.Port)
 
 			addrTCP, err := net.ResolveTCPAddr("tcp", tcp.Address())
 			assert.NoError(t, err)
 			assert.NotEqual(t, 0, addrTCP.Port)
 
-			assert.NoError(t, udp.Stop(ctx))
 			assert.NoError(t, tcp.Stop(ctx))
 
 		})

@@ -33,8 +33,6 @@ type fakeNode struct {
 	component.Stopper
 
 	tcp    StreamTransport
-	udp    DatagramTransport
-	udpBuf chan []byte
 	tcpBuf chan []byte
 }
 
@@ -50,26 +48,19 @@ func (f *fakeNode) HandleStream(ctx context.Context, address string, stream io.R
 	f.tcpBuf <- b
 }
 
-func (f *fakeNode) HandleDatagram(ctx context.Context, address string, buf []byte) {
-	inslogger.FromContext(ctx).Info("HandleDatagram from %s: %v", address, buf)
-	f.udpBuf <- buf
-}
-
 func (f *fakeNode) Start(ctx context.Context) error {
-	err1 := f.udp.Start(ctx)
-	err2 := f.tcp.Start(ctx)
-	if err1 != nil || err2 != nil {
-		return err1
+	err := f.tcp.Start(ctx)
+	if err != nil {
+		return err
 	} else {
 		return nil
 	}
 }
 
 func (f *fakeNode) Stop(ctx context.Context) error {
-	err1 := f.udp.Stop(ctx)
-	err2 := f.tcp.Stop(ctx)
-	if err1 != nil || err2 != nil {
-		return err1
+	err := f.tcp.Stop(ctx)
+	if err != nil {
+		return err
 	} else {
 		return nil
 	}
@@ -77,10 +68,8 @@ func (f *fakeNode) Stop(ctx context.Context) error {
 
 func newFakeNode(f Factory) *fakeNode {
 	n := &fakeNode{}
-	n.udp, _ = f.CreateDatagramTransport(n)
 	n.tcp, _ = f.CreateStreamTransport(n)
 
-	n.udpBuf = make(chan []byte, 1)
 	n.tcpBuf = make(chan []byte, 1)
 	return n
 }
@@ -112,47 +101,6 @@ func (s *suiteTest) TestStreamTransport() {
 
 	s.NoError(n1.Stop(ctx))
 	s.NoError(n2.Stop(ctx))
-}
-
-func (s *suiteTest) TestDatagramTransport() {
-	ctx := context.Background()
-	n1 := newFakeNode(s.factory1)
-	n2 := newFakeNode(s.factory2)
-	s.NotNil(n2)
-
-	s.NoError(n1.Start(ctx))
-	s.NoError(n2.Start(ctx))
-
-	err := n1.udp.SendDatagram(ctx, n2.udp.Address(), []byte{1, 2, 3})
-	s.NoError(err)
-
-	err = n2.udp.SendDatagram(ctx, n1.udp.Address(), []byte{5, 4, 3})
-	s.NoError(err)
-
-	err = n2.udp.SendDatagram(ctx, "invalid address", []byte{9, 9, 9})
-	s.Error(err)
-
-	bigBuff := make([]byte, udpMaxPacketSize+1)
-	err = n2.udp.SendDatagram(ctx, n1.udp.Address(), bigBuff)
-	s.Error(err)
-
-	s.Equal([]byte{1, 2, 3}, <-n2.udpBuf)
-	s.Equal([]byte{5, 4, 3}, <-n1.udpBuf)
-
-	s.NoError(n1.Stop(ctx))
-	s.NoError(n2.Stop(ctx))
-}
-
-func TestFakeTransport(t *testing.T) {
-	instestlogger.SetTestOutput(t)
-
-	cfg1 := configuration.Transport{Protocol: "TCP", Address: "127.0.0.1:8080"}
-	cfg2 := configuration.Transport{Protocol: "TCP", Address: "127.0.0.1:4200"}
-
-	f1 := NewFakeFactory(cfg1)
-	f2 := NewFakeFactory(cfg2)
-
-	suite.Run(t, &suiteTest{factory1: f1, factory2: f2})
 }
 
 func TestTransport(t *testing.T) {

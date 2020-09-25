@@ -9,6 +9,7 @@ import (
 	"errors"
 
 	"github.com/insolar/assured-ledger/ledger-core/configuration"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
 // Factory interface provides methods for creating stream or datagram transports
@@ -38,5 +39,5 @@ func (f *factory) CreateStreamTransport(handler StreamHandler) (StreamTransport,
 
 // CreateDatagramTransport creates new UDP transport
 func (f *factory) CreateDatagramTransport(handler DatagramHandler) (DatagramTransport, error) {
-	return newUDPTransport(f.cfg.Address, f.cfg.FixedPublicAddress, handler), nil
+	return nil, throw.Impossible()
 }
