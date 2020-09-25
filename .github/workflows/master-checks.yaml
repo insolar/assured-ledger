@@ -190,7 +190,7 @@ jobs:
       - name: deploy traefik
         run: kubectl apply -k ledger-core/scripts/deploy/kube/gitops/traefik
       - name: wait for traefik to be up and running
-        run: kubectl -n kube-system rollout status deploy/traefik --timeout=80s
+        run: kubectl -n kube-system rollout status deploy/traefik-ingress-controller --timeout=80s
       - name: deploy k3s-registry
         run: kubectl apply -k ledger-core/scripts/deploy/kube/gitops/k3s-registry
       - name: wait for registry to be up and running
