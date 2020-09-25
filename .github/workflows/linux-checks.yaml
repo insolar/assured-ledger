@@ -241,6 +241,9 @@ jobs:
         run: |
           docker ps
           docker exec -t k3s cat /etc/rancher/k3s/registries.yaml
+          echo '##########'
+          docker exec -t k3s cat /var/lib/rancher/k3s/agent/etc/containerd/config.toml
+          echo '##########'
           docker logs k3s
       - name: run tests
         run: make test_func_kubernetes_ci
