@@ -236,6 +236,7 @@ jobs:
           kubectl -n $INSOLAR_NAMESPACE describe deploy/pulsewatcher
           kubectl -n $INSOLAR_NAMESPACE describe sts/virtual
       - name: even more debug
+        if: always()
         run: |
           docker ps
           docker logs k3s
