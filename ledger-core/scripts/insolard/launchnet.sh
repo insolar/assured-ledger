@@ -253,7 +253,7 @@ headless=false
 
 process_input_params()
 {
-    echo "run arguments: $*"
+    echo "run arguments: $@"
 
     # shell does not reset OPTIND automatically;
     # it must be manually reset between multiple calls to getopts

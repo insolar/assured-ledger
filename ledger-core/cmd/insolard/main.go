@@ -83,12 +83,7 @@ func runInsolardServer(configPath, genesisConfigPath, roleString string) {
 	cfg := readConfig(configPath)
 	fmt.Printf("Starts with configuration:\n%s\n", configuration.ToString(&cfg))
 
-	signChan := make(chan os.Signal, 1)
-	signal.Notify(signChan, os.Interrupt, syscall.SIGTERM)
-
-	ctx, cancel := context.WithCancel(context.Background())
-
-	go stopper(cancel, signChan)
+	ctx := cancelableContext()
 
 	s = server.NewNode(ctx, cfg)
 	s.Serve()
@@ -101,13 +96,7 @@ func runHeadlessNetwork(configPath string) {
 	cfg := readConfig(configPath)
 	fmt.Printf("Starts with configuration:\n%s\n", configuration.ToString(&cfg))
 
-	signChan := make(chan os.Signal, 1)
-	signal.Notify(signChan, os.Interrupt, syscall.SIGTERM)
-
-	ctx, cancel := context.WithCancel(context.Background())
-
-	go stopper(cancel, signChan)
-
+	ctx := cancelableContext()
 	server.NewHeadlessNetworkNodeServer(ctx, cfg).Serve()
 }
 
@@ -142,4 +131,13 @@ func stopper(cancel context.CancelFunc, signChan chan os.Signal) {
 	global.Infof("%v signal received\n", sig)
 
 	cancel()
+}
+
+func cancelableContext() context.Context {
+	signChan := make(chan os.Signal, 1)
+	signal.Notify(signChan, os.Interrupt, syscall.SIGTERM)
+	ctx, cancel := context.WithCancel(context.Background())
+	go stopper(cancel, signChan)
+
+	return ctx
 }

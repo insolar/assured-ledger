@@ -15,6 +15,10 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 )
 
+func getNodesCount() (int, error) {
+	return launchnet.GetNodesCount()
+}
+
 func TestMain(m *testing.M) {
 	instestlogger.SetTestOutputWithStub()
 

@@ -13,6 +13,8 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"os"
+	"strconv"
 	"testing"
 	"time"
 
@@ -99,4 +101,34 @@ func unmarshalRPCResponse(t testing.TB, body []byte, response RPCResponseInterfa
 func unmarshalCallResponse(t testing.TB, body []byte, response *requester.ContractResponse) {
 	err := json.Unmarshal(body, &response)
 	require.NoError(t, err)
+}
+
+func getTestNodesSetup() (numVirtual int, numLight int, numHeavy int) {
+	// default num nodes
+	{
+		numVirtual, numLight, numHeavy = 5, 0, 0
+	}
+
+	var (
+		err error
+	)
+	if numVirtualStr := os.Getenv("NUM_DISCOVERY_VIRTUAL_NODES"); numVirtualStr != "" {
+		numVirtual, err = strconv.Atoi(numVirtualStr)
+		if err != nil {
+			panic(err)
+		}
+	}
+	if numLightStr := os.Getenv("NUM_DISCOVERY_LIGHT_NODES"); numLightStr != "" {
+		numLight, err = strconv.Atoi(numLightStr)
+		if err != nil {
+			panic(err)
+		}
+	}
+	if numHeavyStr := os.Getenv("NUM_DISCOVERY_HEAVY_NODES"); numHeavyStr != "" {
+		numHeavy, err = strconv.Atoi(numHeavyStr)
+		if err != nil {
+			panic(err)
+		}
+	}
+	return numVirtual, numLight, numHeavy
 }

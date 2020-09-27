@@ -9,7 +9,6 @@ package functest
 
 import (
 	"os"
-	"strconv"
 	"testing"
 
 	"github.com/google/gops/agent"
@@ -25,35 +24,22 @@ func init() {
 	}
 }
 
+var (
+	numNodes int
+)
+
+func getNodesCount() (int, error) {
+	return numNodes, nil
+}
+
 func TestMain(m *testing.M) {
 	instestlogger.SetTestOutputWithStub()
 
 	launchnet.SetCloudFileLogging(true)
 
-	var (
-		numVirtual = 5
-		numLight   = 0
-		numHeavy   = 0
-		err        error
-	)
-	if numVirtualStr := os.Getenv("NUM_DISCOVERY_VIRTUAL_NODES"); numVirtualStr != "" {
-		numVirtual, err = strconv.Atoi(numVirtualStr)
-		if err != nil {
-			panic(err)
-		}
-	}
-	if numLightStr := os.Getenv("NUM_DISCOVERY_LIGHT_NODES"); numLightStr != "" {
-		numLight, err = strconv.Atoi(numLightStr)
-		if err != nil {
-			panic(err)
-		}
-	}
-	if numHeavyStr := os.Getenv("NUM_DISCOVERY_HEAVY_NODES"); numHeavyStr != "" {
-		numHeavy, err = strconv.Atoi(numHeavyStr)
-		if err != nil {
-			panic(err)
-		}
-	}
+	numVirtual, numLight, numHeavy := getTestNodesSetup()
+
+	numNodes = numVirtual + numLight + numHeavy
 
 	os.Exit(launchnet.RunCloudWithConsensus(numVirtual, numLight, numHeavy, func() int {
 		return m.Run()
