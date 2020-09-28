@@ -85,3 +85,14 @@ func TestAnyLazyRecordWithPayloads(t *testing.T) {
 	require.Equal(t, 1, recBody.GetExtensionPayloadCount())
 	require.True(t, recBody.IsPostUnmarshalCompleted())
 }
+
+func TestAnyRecordLazyInMessage(t *testing.T) {
+	m := &rms.MessageExample2{MsgParam: 11, MsgBytes: []byte("abc")}
+	e := rms.RecordExample{Str: rms.NewBytes([]byte("---"))}
+
+	require.NoError(t, m.AnyRecordLazy.SetAsLazy(&e))
+	b, err := m.Marshal()
+	require.NoError(t, err)
+	mo := &rms.MessageExample2{}
+	require.NoError(t, mo.Unmarshal(b))
+}

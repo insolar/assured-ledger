@@ -40,6 +40,7 @@ type Server struct {
 	confProvider ConfigurationProvider
 	gracefulStop chan os.Signal
 	waitChannel  chan struct{}
+	started      chan struct{}
 }
 
 type defaultConfigurationProvider struct {
@@ -64,6 +65,7 @@ func New(cfg configuration.Configuration, appFn AppFactoryFunc, extraComponents 
 		confProvider: &defaultConfigurationProvider{config: cfg},
 		appFn:        appFn,
 		extra:        extraComponents,
+		started:      make(chan struct{}),
 	}
 }
 
@@ -152,6 +154,7 @@ func (s *Server) Serve() {
 		}
 	}
 
+	close(s.started)
 	<-s.waitChannel
 }
 
@@ -180,4 +183,8 @@ func (s *Server) StartComponents(ctx context.Context, cfg configuration.Configur
 func (s *Server) Stop() {
 	s.gracefulStop <- syscall.SIGQUIT
 	<-s.waitChannel
+}
+
+func (s *Server) WaitStarted() {
+	<-s.started
 }
