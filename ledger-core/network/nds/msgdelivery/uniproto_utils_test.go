@@ -6,6 +6,7 @@
 package msgdelivery
 
 import (
+	"sync"
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto"
@@ -35,7 +36,7 @@ type UnitProtoServer struct {
 	hostId     nwapi.HostID
 	service    Service
 	ingoing    nwapi.Address
-	outgoing   []nwapi.Address
+	outgoing   sync.Map
 	key        cryptkit.SigningKey
 	dispatcher *uniserver.Dispatcher
 	manager    *uniserver.PeerManager
@@ -85,31 +86,51 @@ func (h *UnitProtoServersHolder) createServiceWithProfile(
 	// add self hostId mapping
 	hostId := nwapi.HostID(len(h.servers) + 1)
 	serv := &UnitProtoServer{
-		outgoing: make([]nwapi.Address, 0),
+		hostId:     hostId,
+		service:    controller.NewFacade(),
+		key:        newSkKey(),
+		dispatcher: &dispatcher,
 	}
+	h.servers = append(h.servers, serv)
 
 	peerFn := func(peer *uniserver.Peer) (remapTo nwapi.Address, err error) {
 		reg := func(idx int, s *UnitProtoServer) (nwapi.Address, error) {
 			id := idx + 1
 			peer.SetNodeID(nwapi.ShortNodeID(id))
 			peer.SetSignatureKey(s.key)
+
 			return nwapi.NewHostID(nwapi.HostID(id)), nil
 		}
 
-		for idx, s := range h.servers {
-			for _, a := range s.outgoing {
-				if a == peer.GetPrimary() {
-					return reg(idx, s)
+		var addr *nwapi.Address
+
+	outer:
+		for {
+			for idx, s := range h.servers {
+				s.outgoing.Range(func(key, value interface{}) bool {
+					key0 := key.(nwapi.Address)
+					if key0 == peer.GetPrimary() {
+						add0, _ := reg(idx, s)
+						addr = &add0
+						return false
+					}
+					return true
+				})
+
+				if addr != nil {
+					break outer
 				}
-			}
-			if s.ingoing == peer.GetPrimary() {
-				return reg(idx, s)
+				if addr == nil {
+					if s.ingoing == peer.GetPrimary() {
+						add0, _ := reg(idx, s)
+						addr = &add0
+						break outer
+					}
+				}
 			}
 		}
 
-		peer.SetSignatureKey(newSkKey())
-
-		return nwapi.Address{}, nil
+		return *addr, nil
 	}
 
 	// provider for intercept outgoing connections
@@ -123,7 +144,7 @@ func (h *UnitProtoServersHolder) createServiceWithProfile(
 					OutTransportFactory: factory,
 					regAddr: func(addr nwapi.Address) {
 						// save all outgoing addresses for future matching address -> hostId
-						serv.outgoing = append(serv.outgoing, addr)
+						serv.outgoing.Store(addr, nil)
 					},
 				}
 			})
@@ -145,7 +166,13 @@ func (h *UnitProtoServersHolder) createServiceWithProfile(
 		return nil, err
 	}
 
+	serv.manager = manager
+	serv.ingoing = primaryAddr
+
 	for _, s := range h.servers {
+		if s == serv {
+			break
+		}
 		_, err = manager.Manager().ConnectPeer(s.manager.Local().GetPrimary())
 		if err != nil {
 			return nil, err
@@ -154,20 +181,8 @@ func (h *UnitProtoServersHolder) createServiceWithProfile(
 		if err != nil {
 			return nil, err
 		}
-		_, err = s.manager.AddHostID(primaryAddr, hostId)
-		if err != nil {
-			return nil, err
-		}
 	}
 
-	serv.service = controller.NewFacade()
-	serv.key = newSkKey()
-	serv.dispatcher = &dispatcher
-	serv.manager = manager
-	serv.ingoing = primaryAddr
-	serv.hostId = hostId
-
-	h.servers = append(h.servers, serv)
 	return serv, nil
 }
 
