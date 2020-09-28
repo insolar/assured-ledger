@@ -87,22 +87,20 @@ func TestValidation_ObjectTranscriptReport_AfterConstructor(t *testing.T) {
 			Object: rms.NewReference(objectRef),
 			ObjectTranscript: rms.VObjectTranscriptReport_Transcript{
 				Entries: []rms.Any{
-					{},
-					{},
+					rms.NewAny(
+						&rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest{
+							Request: *callRequest,
+						},
+					),
+					rms.NewAny(
+						&rms.VObjectTranscriptReport_TranscriptEntryIncomingResult{
+							ObjectState: rms.NewReference(stateRef),
+							Reason:      callRequest.CallOutgoing,
+						},
+					),
 				},
 			},
 		}
-		pl.ObjectTranscript.Entries[0].Set(
-			&rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest{
-				Request: *callRequest,
-			},
-		)
-		pl.ObjectTranscript.Entries[1].Set(
-			&rms.VObjectTranscriptReport_TranscriptEntryIncomingResult{
-				ObjectState: rms.NewReference(stateRef),
-				Reason:      callRequest.CallOutgoing,
-			},
-		)
 
 		done := server.Journal.WaitStopOf(&handlers.SMVObjectTranscriptReport{}, 1)
 		server.SendPayload(ctx, &pl)
@@ -193,21 +191,22 @@ func TestValidation_ObjectTranscriptReport_AfterMethod(t *testing.T) {
 			AsOf:   p,
 			Object: rms.NewReference(objectRef),
 			ObjectTranscript: rms.VObjectTranscriptReport_Transcript{
-				Entries: []rms.Any{{}, {}},
+				Entries: []rms.Any{
+					rms.NewAny(
+						&rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest{
+							ObjectMemory: rms.NewReference(stateRef),
+							Request:      *callRequest,
+						},
+					),
+					rms.NewAny(
+						&rms.VObjectTranscriptReport_TranscriptEntryIncomingResult{
+							ObjectState: rms.NewReference(newStateRef),
+							Reason:      callRequest.CallOutgoing,
+						},
+					),
+				},
 			},
 		}
-		pl.ObjectTranscript.Entries[0].Set(
-			&rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest{
-				ObjectMemory: rms.NewReference(stateRef),
-				Request:      *callRequest,
-			},
-		)
-		pl.ObjectTranscript.Entries[1].Set(
-			&rms.VObjectTranscriptReport_TranscriptEntryIncomingResult{
-				ObjectState: rms.NewReference(newStateRef),
-				Reason:      callRequest.CallOutgoing,
-			},
-		)
 
 		done := server.Journal.WaitStopOf(&handlers.SMVObjectTranscriptReport{}, 1)
 		server.SendPayload(ctx, &pl)
@@ -290,40 +289,39 @@ func TestValidation_ObjectTranscriptReport_AfterConstructorWithOutgoing(t *testi
 		pl := rms.VObjectTranscriptReport{
 			AsOf:   p,
 			Object: rms.NewReference(objectRef),
-			ObjectTranscript: rms.VObjectTranscriptReport_Transcript{
-				Entries: []rms.Any{{}, {}, {}, {}},
-			},
 		}
-		pl.ObjectTranscript.Entries[0].Set(
-			&rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest{
-				Request: *callRequest,
-			},
-		)
-		pl.ObjectTranscript.Entries[1].Set(
-			&rms.VObjectTranscriptReport_TranscriptEntryOutgoingRequest{
-				Request: rms.NewReference(outgoingRefFromConstructor),
-				Reason:  callRequest.CallOutgoing,
-			},
-		)
-		pl.ObjectTranscript.Entries[2].Set(
-			&rms.VObjectTranscriptReport_TranscriptEntryOutgoingResult{
-				CallResult: rms.VCallResult{
-					CallType:        rms.CallTypeMethod,
-					CallFlags:       rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
-					Caller:          rms.NewReference(objectRef),
-					Callee:          rms.NewReference(class),
-					CallOutgoing:    rms.NewReference(outgoingRefFromConstructor),
-					ReturnArguments: rms.NewBytes([]byte("finish B.Bar")),
+		pl.ObjectTranscript.Entries = []rms.Any{
+			rms.NewAny(
+				&rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest{
+					Request: *callRequest,
 				},
-				Reason: callRequest.CallOutgoing,
-			},
-		)
-		pl.ObjectTranscript.Entries[3].Set(
-			&rms.VObjectTranscriptReport_TranscriptEntryIncomingResult{
-				ObjectState: rms.NewReference(stateRef),
-				Reason:      callRequest.CallOutgoing,
-			},
-		)
+			),
+			rms.NewAny(
+				&rms.VObjectTranscriptReport_TranscriptEntryOutgoingRequest{
+					Request: rms.NewReference(outgoingRefFromConstructor),
+					Reason:  callRequest.CallOutgoing,
+				},
+			),
+			rms.NewAny(
+				&rms.VObjectTranscriptReport_TranscriptEntryOutgoingResult{
+					CallResult: rms.VCallResult{
+						CallType:        rms.CallTypeMethod,
+						CallFlags:       rms.BuildCallFlags(isolation.CallTolerable, isolation.CallDirty),
+						Caller:          rms.NewReference(objectRef),
+						Callee:          rms.NewReference(class),
+						CallOutgoing:    rms.NewReference(outgoingRefFromConstructor),
+						ReturnArguments: rms.NewBytes([]byte("finish B.Bar")),
+					},
+					Reason: callRequest.CallOutgoing,
+				},
+			),
+			rms.NewAny(
+				&rms.VObjectTranscriptReport_TranscriptEntryIncomingResult{
+					ObjectState: rms.NewReference(stateRef),
+					Reason:      callRequest.CallOutgoing,
+				},
+			),
+		}
 
 		done := server.Journal.WaitStopOf(&handlers.SMVObjectTranscriptReport{}, 1)
 		server.SendPayload(ctx, &pl)
@@ -433,34 +431,33 @@ func TestValidation_ObjectTranscriptReport_AfterTwoInterleaving(t *testing.T) {
 		pl := rms.VObjectTranscriptReport{
 			AsOf:   p,
 			Object: rms.NewReference(objectRef),
-			ObjectTranscript: rms.VObjectTranscriptReport_Transcript{
-				Entries: []rms.Any{{}, {}, {}, {}},
-			},
 		}
-		pl.ObjectTranscript.Entries[0].Set(
-			&rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest{
-				ObjectMemory: rms.NewReference(stateRef),
-				Request:      *callRequest1,
-			},
-		)
-		pl.ObjectTranscript.Entries[1].Set(
-			&rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest{
-				ObjectMemory: rms.NewReference(stateRef),
-				Request:      *callRequest2,
-			},
-		)
-		pl.ObjectTranscript.Entries[2].Set(
-			&rms.VObjectTranscriptReport_TranscriptEntryIncomingResult{
-				ObjectState: rms.NewReference(newStateRef),
-				Reason:      callRequest1.CallOutgoing,
-			},
-		)
-		pl.ObjectTranscript.Entries[3].Set(
-			&rms.VObjectTranscriptReport_TranscriptEntryIncomingResult{
-				ObjectState: rms.NewReference(stateRef),
-				Reason:      callRequest2.CallOutgoing,
-			},
-		)
+		pl.ObjectTranscript.Entries = []rms.Any{
+			rms.NewAny(
+				&rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest{
+					ObjectMemory: rms.NewReference(stateRef),
+					Request:      *callRequest1,
+				},
+			),
+			rms.NewAny(
+				&rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest{
+					ObjectMemory: rms.NewReference(stateRef),
+					Request:      *callRequest2,
+				},
+			),
+			rms.NewAny(
+				&rms.VObjectTranscriptReport_TranscriptEntryIncomingResult{
+					ObjectState: rms.NewReference(newStateRef),
+					Reason:      callRequest1.CallOutgoing,
+				},
+			),
+			rms.NewAny(
+				&rms.VObjectTranscriptReport_TranscriptEntryIncomingResult{
+					ObjectState: rms.NewReference(stateRef),
+					Reason:      callRequest2.CallOutgoing,
+				},
+			),
+		}
 
 		done := server.Journal.WaitStopOf(&handlers.SMVObjectTranscriptReport{}, 1)
 		server.SendPayload(ctx, &pl)
@@ -570,34 +567,33 @@ func TestValidation_ObjectTranscriptReport_AfterTwoSequential(t *testing.T) {
 		pl := rms.VObjectTranscriptReport{
 			AsOf:   p,
 			Object: rms.NewReference(objectRef),
-			ObjectTranscript: rms.VObjectTranscriptReport_Transcript{
-				Entries: []rms.Any{{}, {}, {}, {}},
-			},
 		}
-		pl.ObjectTranscript.Entries[0].Set(
-			&rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest{
-				ObjectMemory: rms.NewReference(stateRef),
-				Request:      *callRequest1,
-			},
-		)
-		pl.ObjectTranscript.Entries[1].Set(
-			&rms.VObjectTranscriptReport_TranscriptEntryIncomingResult{
-				ObjectState: rms.NewReference(newStateRef),
-				Reason:      callRequest1.CallOutgoing,
-			},
-		)
-		pl.ObjectTranscript.Entries[2].Set(
-			&rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest{
-				ObjectMemory: rms.NewReference(stateRef),
-				Request:      *callRequest2,
-			},
-		)
-		pl.ObjectTranscript.Entries[3].Set(
-			&rms.VObjectTranscriptReport_TranscriptEntryIncomingResult{
-				ObjectState: rms.NewReference(stateRef),
-				Reason:      callRequest2.CallOutgoing,
-			},
-		)
+		pl.ObjectTranscript.Entries = []rms.Any{
+			rms.NewAny(
+				&rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest{
+					ObjectMemory: rms.NewReference(stateRef),
+					Request:      *callRequest1,
+				},
+			),
+			rms.NewAny(
+				&rms.VObjectTranscriptReport_TranscriptEntryIncomingResult{
+					ObjectState: rms.NewReference(newStateRef),
+					Reason:      callRequest1.CallOutgoing,
+				},
+			),
+			rms.NewAny(
+				&rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest{
+					ObjectMemory: rms.NewReference(stateRef),
+					Request:      *callRequest2,
+				},
+			),
+			rms.NewAny(
+				&rms.VObjectTranscriptReport_TranscriptEntryIncomingResult{
+					ObjectState: rms.NewReference(stateRef),
+					Reason:      callRequest2.CallOutgoing,
+				},
+			),
+		}
 
 		done := server.Journal.WaitStopOf(&handlers.SMVObjectTranscriptReport{}, 1)
 		server.SendPayload(ctx, &pl)
