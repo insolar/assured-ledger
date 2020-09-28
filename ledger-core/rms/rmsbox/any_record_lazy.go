@@ -113,12 +113,7 @@ func stopAfterRecordBodyField(b []byte) (int, error) {
 }
 
 func (p *AnyRecordLazy) unmarshalCustom(b []byte, copyBytes bool, registry *rmsreg.TypeRegistry) error {
-	v, err := p.anyLazy.unmarshalValue(b, copyBytes, registry)
-	if err != nil {
-		p.value = nil
-		return err
-	}
-
+	v := p.anyLazy.unmarshalValue(b, copyBytes, registry)
 	p.value = &LazyRecordValue{v, nil }
 	return nil
 }
