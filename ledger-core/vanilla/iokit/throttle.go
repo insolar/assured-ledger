@@ -75,6 +75,14 @@ func (r RateLimitedWriter) Write(p []byte) (int, error) {
 	return RateLimitedByteCopy(r.W.Write, p, r.Q)
 }
 
+func (r RateLimitedWriter) Close() error {
+	if c, ok := r.W.(io.Closer); ok {
+		return c.Close()
+	}
+	return nil
+}
+
+
 /****************************/
 
 const rateLimitBlockMin = 4096
