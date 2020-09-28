@@ -46,8 +46,9 @@ type SMVObjectTranscriptReport struct {
 	memoryCache   memoryCacheAdapter.MemoryCache
 
 	// unboxed from message, often used
-	object  reference.Global
-	entries []rms.Any
+	object   reference.Global
+	entries  []rms.Any
+	pendings []rms.VObjectTranscriptReport_Transcript
 
 	objState        reference.Global
 	objDesc         descriptor.Object
@@ -93,7 +94,16 @@ func (s *SMVObjectTranscriptReport) GetStateMachineDeclaration() smachine.StateM
 
 func (s *SMVObjectTranscriptReport) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
 	s.object = s.Payload.Object.GetValue()
-	s.entries = s.Payload.ObjectTranscript.GetEntries()
+	s.pendings = s.Payload.PendingTranscripts
+
+	if len(s.pendings) != 0 {
+		s.entries = make([]rms.Any, 0, len(s.pendings)*2)
+		for _, transcript := range s.pendings {
+			s.entries = append(s.entries, transcript.Entries...)
+		}
+	}
+
+	s.entries = append(s.entries, s.Payload.ObjectTranscript.GetEntries()...)
 
 	return ctx.Jump(s.stepProcess)
 }
@@ -244,18 +254,19 @@ func (s *SMVObjectTranscriptReport) stepExecuteOutgoing(ctx smachine.ExecutionCo
 
 func (s *SMVObjectTranscriptReport) stepExecuteFinish(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	var newDesc descriptor.Object
+	pulse := s.pulseSlot.PulseData().GetPulseNumber()
 
 	switch s.executionNewState.Result.Type() {
 	case requestresult.SideEffectNone:
 	case requestresult.SideEffectActivate:
 		class, memory := s.executionNewState.Result.Activate()
-		newDesc = s.makeNewDescriptor(class, memory, false)
+		newDesc = s.makeNewDescriptor(class, memory, false, pulse)
 	case requestresult.SideEffectAmend:
 		class, memory := s.executionNewState.Result.Amend()
-		newDesc = s.makeNewDescriptor(class, memory, false)
+		newDesc = s.makeNewDescriptor(class, memory, false, pulse)
 	case requestresult.SideEffectDeactivate:
 		class, memory := s.executionNewState.Result.Deactivate()
-		newDesc = s.makeNewDescriptor(class, memory, true)
+		newDesc = s.makeNewDescriptor(class, memory, true, pulse)
 	default:
 		panic(throw.IllegalValue())
 	}
@@ -326,6 +337,7 @@ func (s *SMVObjectTranscriptReport) makeNewDescriptor(
 	class reference.Global,
 	memory []byte,
 	deactivated bool,
+	pulse rms.PulseNumber,
 ) descriptor.Object {
 	var prevStateIDBytes []byte
 	objDescriptor := s.objDesc
@@ -337,7 +349,7 @@ func (s *SMVObjectTranscriptReport) makeNewDescriptor(
 	stateHash := append(memory, objectRefBytes...)
 	stateHash = append(stateHash, prevStateIDBytes...)
 
-	stateID := execute.NewStateID(s.pulseSlot.PulseData().GetPulseNumber(), stateHash)
+	stateID := execute.NewStateID(pulse, stateHash)
 	return descriptor.NewObject(
 		s.object,
 		stateID,

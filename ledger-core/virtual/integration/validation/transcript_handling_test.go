@@ -330,3 +330,125 @@ func TestValidation_ObjectTranscriptReport_AfterConstructorWithOutgoing(t *testi
 
 	mc.Finish()
 }
+
+func TestValidation_ObjectTranscriptReport_WithPending(t *testing.T) {
+	defer commontestutils.LeakTester(t)
+	mc := minimock.NewController(t)
+
+	server, ctx := utils.NewUninitializedServer(nil, t)
+	defer server.Stop()
+
+	authService := authentication.NewServiceMock(t)
+	authService.CheckMessageFromAuthorizedVirtualMock.Return(false, nil)
+	server.ReplaceAuthenticationService(authService)
+
+	runnerMock := logicless.NewServiceMock(ctx, mc, nil)
+	server.ReplaceRunner(runnerMock)
+
+	server.Init(ctx)
+
+	callRequest := utils.GenerateVCallRequestMethod(server)
+	objectRef := callRequest.Callee.GetValue()
+	classRef := server.RandomGlobalWithPulse()
+	outgoing := callRequest.CallOutgoing
+
+	stateId := server.RandomLocalWithPulse()
+	stateRef := reference.NewRecordOf(objectRef, stateId)
+	objDescriptor := descriptor.NewObject(objectRef, stateId, classRef, []byte("init state"), false)
+
+	newStateHash := append([]byte("new state"), objectRef.AsBytes()...)
+	newStateHash = append(newStateHash, objDescriptor.StateID().AsBytes()...)
+	newStateID := execute.NewStateID(server.GetPulse().PulseNumber, newStateHash)
+	newStateRef := reference.NewRecordOf(objectRef, newStateID)
+
+	server.IncrementPulse(ctx)
+	currentPulse := server.GetPulse().PulseNumber
+
+	// add typedChecker
+	typedChecker := server.PublisherMock.SetTypedChecker(ctx, mc, server)
+	{
+		typedChecker.VCachedMemoryRequest.Set(func(report *rms.VCachedMemoryRequest) bool {
+			require.Equal(t, objectRef, report.Object.GetValue())
+			require.Equal(t, objDescriptor.StateID(), report.StateID.GetValueWithoutBase())
+
+			pl := &rms.VCachedMemoryResponse{
+				Object:     report.Object,
+				StateID:    report.StateID,
+				CallStatus: rms.CachedMemoryStateFound,
+				Memory:     rms.NewBytes(objDescriptor.Memory()),
+			}
+			server.SendPayload(ctx, pl)
+			return false
+		})
+		typedChecker.VObjectValidationReport.Set(func(report *rms.VObjectValidationReport) bool {
+			require.Equal(t, objectRef, report.Object.GetValue())
+			// require.Equal(t, currentPulse, report.In)
+			require.Equal(t, newStateRef, report.Validated.GetValue())
+
+			return false
+		})
+	}
+
+	// add runnerMock
+	{
+		requestResult := requestresult.New([]byte("call result"), objectRef)
+		requestResult.SetAmend(objDescriptor, []byte("new state"))
+		// runnerMock.AddExecutionClassify(outgoing.GetValue(), contract.MethodIsolation{Interference: isolation.CallTolerable, State: isolation.CallDirty}, nil)
+		runnerMock.AddExecutionMock(outgoing.GetValue()).AddStart(
+			// todo: fixme: check arguments
+			nil,
+			&execution.Update{
+				Type:   execution.Done,
+				Result: requestResult,
+			},
+		)
+	}
+
+	// send VObjectTranscriptReport
+	{
+		pl := rms.VObjectTranscriptReport{
+			AsOf:   currentPulse,
+			Object: rms.NewReference(objectRef),
+			PendingTranscripts: []rms.VObjectTranscriptReport_Transcript{
+				{
+					Entries: []rms.Any{{}, {}},
+				},
+			},
+			// ObjectTranscript: rms.VObjectTranscriptReport_Transcript{
+			// 	Entries: []rms.Any{{}, {}},
+			// },
+		}
+		// pl.ObjectTranscript.Entries[0].Set(
+		// 	&rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest{
+		// 		ObjectMemory: rms.NewReference(stateRef),
+		// 		Request:      *callRequest,
+		// 	},
+		// )
+		// pl.ObjectTranscript.Entries[1].Set(
+		// 	&rms.VObjectTranscriptReport_TranscriptEntryIncomingResult{
+		// 		ObjectState: rms.NewReference(newStateRef),
+		// 	},
+		// )
+		pl.PendingTranscripts[0].Entries[0].Set(
+			&rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest{
+				ObjectMemory: rms.NewReference(stateRef),
+				Request:      *callRequest,
+			},
+		)
+		pl.PendingTranscripts[0].Entries[1].Set(
+			&rms.VObjectTranscriptReport_TranscriptEntryIncomingResult{
+				ObjectState: rms.NewReference(newStateRef),
+			},
+		)
+
+		done := server.Journal.WaitStopOf(&handlers.SMVObjectTranscriptReport{}, 1)
+		server.SendPayload(ctx, &pl)
+		commontestutils.WaitSignalsTimed(t, 10*time.Second, done)
+		commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
+
+		assert.Equal(t, 1, typedChecker.VCachedMemoryRequest.Count())
+		assert.Equal(t, 1, typedChecker.VObjectValidationReport.Count())
+	}
+
+	mc.Finish()
+}
