@@ -85,11 +85,15 @@ func (p *AnyRecordLazy) SetRecordPayloads(payloads RecordPayloads, digester cryp
 }
 
 func (p *AnyRecordLazy) Unmarshal(b []byte) error {
-	return p.unmarshalCustom(b, false, rmsreg.GetRegistry().Get)
+	return p.unmarshalCustom(b, false, rmsreg.GetRegistry())
 }
 
-func (p *AnyRecordLazy) UnmarshalCustom(b []byte, copyBytes bool, typeFn func(uint64) reflect.Type) error {
-	return p.unmarshalCustom(b, copyBytes, typeFn)
+func (p *AnyRecordLazy) UnmarshalCustom(b []byte, registry *rmsreg.TypeRegistry) error {
+	if registry == nil {
+		panic(throw.IllegalValue())
+	}
+
+	return p.unmarshalCustom(b, false, registry)
 }
 
 func stopAfterRecordBodyField(b []byte) (int, error) {
@@ -108,13 +112,8 @@ func stopAfterRecordBodyField(b []byte) (int, error) {
 	return 0, nil
 }
 
-func (p *AnyRecordLazy) unmarshalCustom(b []byte, copyBytes bool, typeFn func(uint64) reflect.Type) error {
-	v, err := p.anyLazy.unmarshalCustom(b, copyBytes, typeFn)
-	if err != nil {
-		p.value = nil
-		return err
-	}
-
+func (p *AnyRecordLazy) unmarshalCustom(b []byte, copyBytes bool, registry *rmsreg.TypeRegistry) error {
+	v := p.anyLazy.unmarshalValue(b, copyBytes, registry)
 	p.value = &LazyRecordValue{v, nil }
 	return nil
 }
@@ -158,7 +157,15 @@ type AnyRecordLazyCopy struct {
 }
 
 func (p *AnyRecordLazyCopy) Unmarshal(b []byte) error {
-	return p.UnmarshalCustom(b, true, rmsreg.GetRegistry().Get)
+	return p.unmarshalCustom(b, true, rmsreg.GetRegistry())
+}
+
+func (p *AnyRecordLazyCopy) UnmarshalCustom(b []byte, registry *rmsreg.TypeRegistry) error {
+	if registry == nil {
+		panic(throw.IllegalValue())
+	}
+
+	return p.unmarshalCustom(b, true, registry)
 }
 
 /************************/
@@ -204,13 +211,16 @@ func (p *LazyRecordValue) SetRecordPayloads(payloads RecordPayloads, digester cr
 }
 
 func (p *LazyRecordValue) Unmarshal() (BasicRecord, error) {
-	switch {
-	case p.value == nil:
-		return nil, nil
-	case p.vType == nil:
-		panic(throw.IllegalState())
+	switch vType := p.vType.(type) {
+	case nil:
+		return p.unmarshalCustom(rmsreg.GetRegistry(), nil)
+	case *rmsreg.TypeRegistry:
+		return p.unmarshalCustom(vType, nil)
+	case reflect.Type:
+		return p.UnmarshalAsType(vType, nil)
+	default:
+		panic(throw.Impossible())
 	}
-	return p.UnmarshalAsType(p.vType, nil)
 }
 
 var typeBasicRecord = reflect.TypeOf((*BasicRecord)(nil)).Elem()
@@ -240,6 +250,21 @@ func (p *LazyRecordValue) UnmarshalAsType(vType reflect.Type, skipFn rmsreg.Unkn
 	}
 
 	return br, nil
+}
+
+func (p *LazyRecordValue) unmarshalCustom(registry *rmsreg.TypeRegistry, skipFn rmsreg.UnknownCallbackFunc) (BasicRecord, error) {
+	id, t, err := rmsreg.UnmarshalType(p.value, registry.Get)
+	if err != nil {
+		return nil, err
+	}
+
+	var br BasicRecord
+	br, err = p.UnmarshalAsType(t, skipFn)
+	if err == nil {
+		return br, nil
+	}
+
+	return nil, throw.WithDetails(err, struct { ID uint64 }{ id })
 }
 
 func (p *LazyRecordValue) UnmarshalAs(v BasicRecord, skipFn rmsreg.UnknownCallbackFunc) (bool, error) {
