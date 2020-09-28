@@ -51,6 +51,15 @@ func (s *testSMFinalize) stepExecutionStop(ctx smachine.ExecutionContext) smachi
 	return ctx.Stop()
 }
 
+func (s *testSMFinalize) stepExecutionWithSubroutine(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	subroutineSM := &StateMachine3{count: 0}
+	return ctx.CallSubroutine(subroutineSM, nil, func(ctx smachine.SubroutineExitContext) smachine.StateUpdate {
+//		param := ctx.EventParam()
+//		direct := subroutineSM.count
+		return ctx.Stop()
+	})
+}
+
 func (s *testSMFinalize) finalize(ctx smachine.FinalizationContext) {
 	s.nFinalizeCalls ++
 	return
@@ -75,6 +84,10 @@ func TestSlotMachine_FinalizeTable(t *testing.T) {
 		}, {
 			name: "No Call from Stop",
 			execFunc: s.stepExecutionStop,
+			nExpectedFinalizeRuns: 0,
+		}, {
+			name: "No Call from Subroutine",
+			execFunc: s.stepExecutionWithSubroutine,
 			nExpectedFinalizeRuns: 0,
 		},
 	}
@@ -125,4 +138,49 @@ func TestSlotMachine_FinalizeTable(t *testing.T) {
 			assert.Equal(t, test.nExpectedFinalizeRuns, s.nFinalizeCalls)
 		})
 	}
+}
+
+
+type StateMachine3 struct {
+	smachine.StateMachineDeclTemplate
+	count int
+	nFinalizeCalls int
+}
+
+func (StateMachine3) GetInitStateFor(sm smachine.StateMachine) smachine.InitFunc {
+	return sm.(*StateMachine3).Init
+}
+
+/* -------- Instance ------------- */
+
+func (s *StateMachine3) GetSubroutineInitState(smachine.SubroutineStartContext) smachine.InitFunc {
+	return s.Init
+}
+
+func (s *StateMachine3) GetStateMachineDeclaration() smachine.StateMachineDeclaration {
+	return s
+}
+
+func (s *StateMachine3) Init(ctx smachine.InitializationContext) smachine.StateUpdate {
+	ctx.SetFinalizer(s.finalize)
+	return ctx.Jump(s.State0)
+}
+
+func (s *StateMachine3) State0(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	s.count++
+	return ctx.Jump(s.State1)
+}
+
+func (s *StateMachine3) State1(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	if s.count&1 == 1 {
+		ctx.SetTerminationResult(s.count)
+		return ctx.Stop()
+	}
+	// return ctx.Stop()
+	panic("stop by panic")
+}
+
+func (s *StateMachine3) finalize(ctx smachine.FinalizationContext) {
+	s.nFinalizeCalls ++
+	return
 }
