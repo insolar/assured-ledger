@@ -39,7 +39,7 @@ func NewTestServerTemplate(t logcommon.TestingLogger, filterFn logcommon.ErrorFi
 	s := &ServerTemplate{t: t.(minimock.Tester)}
 
 	pop := testpop.CreateManyNodePopulationMock(s.t, 1, member.PrimaryRoleLightMaterial)
-	s.pg = testutils.NewPulseGenerator(10, pop)
+	s.pg = testutils.NewPulseGenerator(10, pop, nil)
 	s.pg.Generate()
 
 	return s
