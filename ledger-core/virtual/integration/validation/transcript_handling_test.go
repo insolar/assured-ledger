@@ -714,6 +714,7 @@ func TestValidation_ObjectTranscriptReport_WithPending(t *testing.T) {
 		pl.PendingTranscripts[0].Entries[1].Set(
 			&rms.VObjectTranscriptReport_TranscriptEntryIncomingResult{
 				ObjectState: rms.NewReference(newStateRef),
+				Reason:      callRequest.CallOutgoing,
 			},
 		)
 

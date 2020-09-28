@@ -114,6 +114,7 @@ func (s *SMVObjectTranscriptReport) Init(ctx smachine.InitializationContext) sma
 func (s *SMVObjectTranscriptReport) stepProcess(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	entry := s.peekEntry(s.startIndex)
 	if entry == nil {
+		ctx.Log().Warn("validation failed: can't find TranscriptEntryIncomingRequest")
 		return ctx.Jump(s.stepValidationFailed)
 	}
 	s.entryIndex = s.startIndex
@@ -217,11 +218,13 @@ func (s *SMVObjectTranscriptReport) stepExecuteOutgoing(ctx smachine.ExecutionCo
 
 	entry := s.findNextEntry()
 	if entry == nil {
+		ctx.Log().Warn("validation failed: can't find TranscriptEntryOutgoingRequest")
 		return ctx.Jump(s.stepValidationFailed)
 	}
 	s.counter++
 	expectedRequest, ok := entry.(*rms.VObjectTranscriptReport_TranscriptEntryOutgoingRequest)
 	if !ok {
+		ctx.Log().Warn("validation failed: failed to convert GoGoSerializable object to VObjectTranscriptReport_TranscriptEntryOutgoingRequest")
 		return ctx.Jump(s.stepValidationFailed)
 	}
 	equal := s.outgoingRequest.CallOutgoing.Equal(&expectedRequest.Request)
@@ -232,11 +235,13 @@ func (s *SMVObjectTranscriptReport) stepExecuteOutgoing(ctx smachine.ExecutionCo
 
 	entry = s.findNextEntry()
 	if entry == nil {
+		ctx.Log().Warn("validation failed: can't find TranscriptEntryOutgoingResult")
 		return ctx.Jump(s.stepValidationFailed)
 	}
 	s.counter++
 	outgoingResult, ok := entry.(*rms.VObjectTranscriptReport_TranscriptEntryOutgoingResult)
 	if !ok {
+		ctx.Log().Warn("validation failed: failed to convert GoGoSerializable object to VObjectTranscriptReport_TranscriptEntryOutgoingResult")
 		return ctx.Jump(s.stepValidationFailed)
 	}
 	s.outgoingResult = &outgoingResult.CallResult
@@ -293,11 +298,13 @@ func (s *SMVObjectTranscriptReport) stepExecuteFinish(ctx smachine.ExecutionCont
 
 	entry := s.findNextEntry()
 	if entry == nil {
+		ctx.Log().Warn("validation failed: can't find TranscriptEntryIncomingResult")
 		return ctx.Jump(s.stepValidationFailed)
 	}
 	s.counter++
 	expected, ok := entry.(*rms.VObjectTranscriptReport_TranscriptEntryIncomingResult)
 	if !ok {
+		ctx.Log().Warn("validation failed: failed to convert GoGoSerializable object to VObjectTranscriptReport_TranscriptEntryIncomingResult")
 		return ctx.Jump(s.stepValidationFailed)
 	}
 
@@ -306,6 +313,7 @@ func (s *SMVObjectTranscriptReport) stepExecuteFinish(ctx smachine.ExecutionCont
 		stateRef := reference.NewRecordOf(newDesc.HeadRef(), newDesc.StateID())
 		equal := stateRef.Equal(expected.ObjectState.GetValue())
 		if !equal {
+			ctx.Log().Warn("validation failed: wrong stateRef")
 			return ctx.Jump(s.stepValidationFailed)
 		}
 
@@ -422,6 +430,19 @@ func (s *SMVObjectTranscriptReport) makeNewDescriptor(
 		memory,
 		deactivated,
 	)
+}
+
+func (s *SMVObjectTranscriptReport) makeStateHash(memory []byte) []byte {
+	var prevStateIDBytes []byte
+	objDescriptor := s.objDesc
+	if objDescriptor != nil {
+		prevStateIDBytes = objDescriptor.StateID().AsBytes()
+	}
+
+	objectRefBytes := s.object.AsBytes()
+	stateHash := append(memory, objectRefBytes...)
+	stateHash = append(stateHash, prevStateIDBytes...)
+	return stateHash
 }
 
 func (s *SMVObjectTranscriptReport) prepareExecution(ctx context.Context) {
