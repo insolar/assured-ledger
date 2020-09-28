@@ -49,5 +49,6 @@ func NewMulti(cfgProvider ConfigurationProvider, appFn AppFactoryFunc, multiFn M
 		multiFn:      multiFn,
 		extra:        extraComponents,
 		confProvider: cfgProvider,
+		started:      make(chan struct{}),
 	}
 }

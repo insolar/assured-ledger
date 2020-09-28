@@ -1,0 +1,73 @@
+@startuml
+
+package uniproto {
+package l1 {
+
+
+    interface SessionfulTransportProvider {
+        CreateListeningFactory(SessionfulConnectFunc): OutTransportFactory, nwapi.Address
+        CreateOutgoingOnlyFactory(SessionfulConnectFunc): OutTransportFactory
+    }
+    tcpProvider --|> SessionfulTransportProvider
+    tlsProvider --|> SessionfulTransportProvider
+    interface SessionlessTransportProvider {
+        CreateListeningFactory(SessionlessReceiveFunc): OutTransportFactory, nwapi.Address
+        CreateListeningFactoryWithAddress(SessionlessReceiveFunc, nwapi.Address): OutTransportFactory
+        CreateOutgoingOnlyFactory(): OutTransportFactory
+    }
+    udpProvider ---|> SessionlessTransportProvider
+
+    interface BasicOutTransport {
+    	Send(payload io.WriterTo)
+    	SendBytes(b []byte)
+    }
+    interface OneWayTransport {
+        	GetTag() int
+        	SetTag(int)
+        	WithQuota(ratelimiter.RateQuota) OutTransport
+    }
+    BasicOutTransport -|> OneWayTransport
+    interface TwoWayTransport {
+        TwoWayConn() io.ReadWriteCloser
+    }
+    OneWayTransport --|> TwoWayTransport
+    interface SemiTransport {
+        ConnectReceiver(SessionfulConnectFunc): TwoWayTransport
+    }
+    TwoWayTransport --|> SemiTransport
+    interface OutNetTransport {
+    NetConn() net.Conn
+    }
+    OneWayTransport -|> OutNetTransport
+    note bottom of OutNetTransport : не используется
+
+    interface OutTransportFactory {
+        ConnectTo(nwapi.Address): OneWayTransport
+    }
+    OutTransportFactory <|-- tcpTransportFactory
+    OutTransportFactory <|--- tlsTransportFactory
+    OutTransportFactory <|-- udpTransportFactory
+}
+package l2 {
+
+    class TrafficController {
+        ratelimiter
+        Start()
+    }
+    note bottom of TrafficController : не используется
+
+    package uniserver {
+        class UnifiedServer
+    }
+}
+
+interface Peer
+interface PeerManager
+interface OutTransport
+PeerTransport --|> OutTransport
+
+
+
+
+}
+@enduml
