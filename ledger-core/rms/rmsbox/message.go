@@ -7,6 +7,7 @@ package rmsbox
 
 import (
 	"io"
+	"reflect"
 
 	"github.com/insolar/assured-ledger/ledger-core/rms/rmsreg"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
@@ -40,7 +41,16 @@ func ProtoSizeMessageWithPayloads(m BasicMessage) (sz int) {
 	return sz
 }
 
-func MarshalMessageWithPayloadsToBytes(m BasicMessage) ([]byte, error) {
+func MarshalMessageWithPayloads(m BasicMessage) ([]byte, error) {
+	return marshalMessageWithPayloadsToBytes(m, nil, true)
+}
+
+func MarshalMessageWithPayloadsTo(m BasicMessage, b []byte) (int, error) {
+	b2, err := marshalMessageWithPayloadsToBytes(m, b, false)
+	return len(b2), err
+}
+
+func MarshalMessageWithPayloadsToSizedBuffer(m BasicMessage, b []byte) (int, error) {
 	payloads := RecordPayloads{}
 	switch ph, err := MessagePayloadHolder(m); {
 	case err != nil:
@@ -49,46 +59,80 @@ func MarshalMessageWithPayloadsToBytes(m BasicMessage) ([]byte, error) {
 		payloads = ph.GetRecordPayloads()
 	}
 
-	ms := m.(rmsreg.GoGoSerializable)
-	mSize := ms.ProtoSize()
 	pSize := 0
 	if !payloads.IsEmpty() {
 		pSize = payloads.ProtoSize()
 	}
 
-	if pSize == 0 {
-		b := make([]byte, mSize)
-		n, err := ms.MarshalTo(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
+	ms := m.(rmsreg.GoGoSerializable)
+
+	n, err := ms.MarshalToSizedBuffer(b)
+	switch {
+	case err != nil:
+		return 0, err
+	case pSize == 0:
+		return n, nil
 	}
 
-	b := make([]byte, mSize+pSize)
+	nn := n + pSize
+	if err := marshalPayloadsToBytes(payloads, b[len(b) - nn:], pSize); err != nil {
+		return 0, err
+	}
+	return nn, nil
+}
 
-	switch n, err := ms.MarshalTo(b[pSize:]); {
+func marshalMessageWithPayloadsToBytes(m BasicMessage, b []byte, allocate bool) ([]byte, error) {
+	payloads := RecordPayloads{}
+	switch ph, err := MessagePayloadHolder(m); {
+	case err != nil:
+		panic(err)
+	case ph != nil:
+		payloads = ph.GetRecordPayloads()
+	}
+
+	pSize := 0
+	if !payloads.IsEmpty() {
+		pSize = payloads.ProtoSize()
+	}
+
+	ms := m.(rmsreg.GoGoSerializable)
+
+	if allocate {
+		mSize := ms.ProtoSize()
+		b = make([]byte, mSize+pSize)
+	}
+
+	n, err := ms.MarshalTo(b[pSize:])
+	switch {
 	case err != nil:
 		return nil, err
-	case n != mSize:
+	case allocate && n != len(b)-pSize:
 		panic(throw.IllegalState())
+	case pSize == 0:
+		return b, nil
+	default:
+		b = b[:pSize+n]
 	}
 
-	switch _, polySize, err := protokit.DecodePolymorphFromBytes(b[pSize:], false); {
+	return b, marshalPayloadsToBytes(payloads, b, pSize)
+}
+
+func marshalPayloadsToBytes(payloads RecordPayloads, b []byte, offset int) error {
+	switch _, headSize, err := protokit.DecodePolymorphFromBytes(b[offset:], false); {
 	case err != nil:
-		return nil, throw.W(err, "missing message type")
+		return throw.W(err, "missing message type")
 	default:
 		// move first field to the beginning
-		copy(b[:polySize], b[pSize:pSize + polySize])
+		copy(b[:headSize], b[offset:offset+headSize])
 
 		// insert payload(s) right after the first field
-		switch n, err := payloads.MarshalTo(b[polySize:pSize + polySize]); {
+		switch n, err := payloads.MarshalTo(b[headSize:headSize+offset]); {
 		case err != nil:
-			return nil, err
-		case n != pSize:
+			return err
+		case n != offset:
 			panic(throw.IllegalState())
 		}
-		return b, nil
+		return nil
 	}
 }
 
@@ -99,18 +143,18 @@ func UnmarshalMessageWithPayloadsFromBytes(b []byte, digester cryptkit.DataDiges
 		return id, nil, err
 	}
 
-	switch m, err := UnmarshalMessageApplyPayloads(id, um, digester, payloads); {
+	switch m, err := UnmarshalMessageApplyPayloads(um, digester, payloads); {
 	case err != nil:
-		return id, nil, err
+		return id, nil, throw.WithDetails(err, struct{ ID uint64 }{id})
 	default:
 		return id, m, nil
 	}
 }
 
-func UnmarshalMessageApplyPayloads(id uint64, um interface{}, digester cryptkit.DataDigester, payloads RecordPayloads) (BasicMessage, error) {
+func UnmarshalMessageApplyPayloads(um interface{}, digester cryptkit.DataDigester, payloads RecordPayloads) (BasicMessage, error) {
 	m, ok := um.(BasicMessage)
 	if !ok {
-		return nil, throw.E("expected BasicMessage", struct{ ID uint64 }{id})
+		return nil, throw.E("expected BasicMessage", struct { Type reflect.Type }{ reflect.TypeOf(um) })
 	}
 
 	switch ph, err := MessagePayloadHolder(m); {
@@ -122,18 +166,18 @@ func UnmarshalMessageApplyPayloads(id uint64, um interface{}, digester cryptkit.
 	case payloads.IsEmpty():
 		return m, nil
 	default:
-		return m, throw.E("message doesn't support payloads", struct{ ID uint64 }{id})
+		return m, throw.E("message doesn't support payloads", struct { Type reflect.Type }{ reflect.TypeOf(um) })
 	}
 }
 
-func MarshalMessageWithPayloads(m BasicMessage, w io.Writer) error {
+func MarshalMessageWithPayloadsToWriter(m BasicMessage, w io.Writer) error {
 	panic(throw.NotImplemented())
 	// TODO Implementation of MarshalMessageWithPayloads must first write payloads into the io.Writer
 	// and calculate digests without making full in-memory copy of the payloads.
 	// Then use the calculated digests to marshal the message and record.
 }
 
-func UnmarshalMessageWithPayloads(m BasicMessage, r io.Reader) (BasicMessage, error) {
+func UnmarshalMessageWithPayloadsFromReader(m BasicMessage, r io.Reader) (BasicMessage, error) {
 	panic(throw.NotImplemented())
 	// TODO Implementation of UnmarshalMessageWithPayloads must first read payloads from the io.Reader
 	// and calculate digests without making full in-memory copy of the payloads.

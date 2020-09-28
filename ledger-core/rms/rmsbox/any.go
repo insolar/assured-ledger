@@ -11,7 +11,6 @@ import (
 	"reflect"
 
 	"github.com/insolar/assured-ledger/ledger-core/rms/rmsreg"
-	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -41,59 +40,34 @@ func (p *Any) ProtoSize() int {
 }
 
 func (p *Any) Unmarshal(b []byte) error {
-	return p.UnmarshalWithRegistry(b, rmsreg.GetRegistry(), nil)
+	return p.UnmarshalCustom(b, rmsreg.GetRegistry(), nil)
 }
 
-func (p *Any) UnmarshalWithRegistry(b []byte, registry *rmsreg.TypeRegistry, skipFn rmsreg.UnknownCallbackFunc) error {
+func (p *Any) UnmarshalCustom(b []byte, registry *rmsreg.TypeRegistry, skipFn rmsreg.UnknownCallbackFunc) error {
 	if registry == nil {
 		panic(throw.IllegalValue())
 	}
-	return p.UnmarshalCustom(b, registry.Get, registry.GetPayloadDigester, skipFn)
-}
 
-func (p *Any) UnmarshalCustom(b []byte, typeFn rmsreg.UnmarshalTypeFunc, digesterFn rmsreg.PayloadDigesterFunc, skipFn rmsreg.UnknownCallbackFunc) error {
 	if len(b) == 0 {
 		p.value = nil
 		return nil
 	}
 
 	payloads := RecordPayloads{}
-	if skipFn == nil {
-		skipFn = payloads.TryUnmarshalPayloadFromBytes
-	} else {
-		skipFnArg := skipFn
-		skipFn = func(b []byte) (int, error) {
-			if n, err := skipFnArg(b); n != 0 || err != nil {
-				return n, err
-			}
-			return payloads.TryUnmarshalPayloadFromBytes(b)
-		}
-	}
+	skipFn = payloads.WrapSkipFunc(skipFn)
 
-	id, v, err := rmsreg.UnmarshalCustom(b, typeFn, skipFn)
-
-	var digester cryptkit.DataDigester
-	if digesterFn != nil {
-		digester = digesterFn(id)
-	}
+	id, v, err := rmsreg.UnmarshalCustom(b, registry.Get, skipFn)
 
 	switch {
 	case err != nil:
 	case !payloads.IsEmpty():
-		_, err = UnmarshalMessageApplyPayloads(id, v, digester, payloads)
-	case digester != nil:
-		// when digester is provided then we have to set it explicitly if possible
-		if m, ok := v.(BasicMessage); ok {
-			ph, err := MessagePayloadHolder(m)
-			if err == nil {
-				err = payloads.ApplyPayloadsTo(ph, digester)
-			}
-		}
+		digester := registry.GetPayloadDigester(id)
+		_, err = UnmarshalMessageApplyPayloads(v, digester, payloads)
 	}
 
 	if err != nil {
 		p.value = nil
-		return err
+		return throw.WithDetails(err, struct{ ID uint64 }{id})
 	}
 
 	if vv, ok := v.(rmsreg.GoGoSerializable); ok {
@@ -109,24 +83,32 @@ func dummyResolveType(uint64) reflect.Type {
 	return dummyType
 }
 
-func (p *Any) MarshalTo(b []byte) (int, error) {
-	if p.value == nil {
+func (p *Any) MarshalTo(b []byte) (n int, err error) {
+	switch m := p.value.(type) {
+	case nil:
 		return 0, nil
+	case BasicMessage:
+		n, err = MarshalMessageWithPayloadsTo(m, b)
+	default:
+		n, err = p.value.MarshalTo(b)
 	}
 
-	n, err := p.value.MarshalTo(b)
 	if err == nil {
 		_, _, err = rmsreg.UnmarshalType(b, dummyResolveType)
 	}
 	return n, err
 }
 
-func (p *Any) MarshalToSizedBuffer(b []byte) (int, error) {
-	if p.value == nil {
+func (p *Any) MarshalToSizedBuffer(b []byte) (n int, err error) {
+	switch m := p.value.(type) {
+	case nil:
 		return 0, nil
+	case BasicMessage:
+		n, err = MarshalMessageWithPayloadsToSizedBuffer(m, b)
+	default:
+		n, err = p.value.MarshalToSizedBuffer(b)
 	}
 
-	n, err := p.value.MarshalToSizedBuffer(b)
 	if err == nil {
 		_, _, err = rmsreg.UnmarshalType(b[len(b)-n:], dummyResolveType)
 	}

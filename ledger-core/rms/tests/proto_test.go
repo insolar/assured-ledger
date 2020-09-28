@@ -320,7 +320,7 @@ func TestExampleMessageWithEmbeddedPayloads(t *testing.T) {
 	extension := rmsbox.NewRaw(longbits.WrapStr("SomeExtData"))
 	m.AddExtensionPayload(extension)
 
-	b, err := rmsbox.MarshalMessageWithPayloadsToBytes(m)
+	b, err := rmsbox.MarshalMessageWithPayloads(m)
 
 	// Polymorph == 0 uses default value on serialization
 	// so it has to be set explicitly to equal with a deserialized form
@@ -353,4 +353,39 @@ func TestExampleMessageWithEmbeddedPayloads(t *testing.T) {
 	require.Error(t, err)
 	err = m2e.VerifyAnyPayload(-1, extension)
 	require.Error(t, err)
+}
+
+func TestAnyWithExampleMessageWithEmbeddedPayloads(t *testing.T) {
+	m := &rms.MessageExample{MsgParam: 11, MsgBytes: []byte("abc")}
+	m.Str.Set(longbits.WrapStr("xyz"))
+
+	m.SetDigester(TestDigester{})
+
+	payload := rmsbox.NewRaw(longbits.WrapStr("SomeData"))
+	m.SetPayload(payload)
+
+	extension := rmsbox.NewRaw(longbits.WrapStr("SomeExtData"))
+	m.AddExtensionPayload(extension)
+
+	b, err := rmsbox.MarshalMessageWithPayloads(m)
+	require.NoError(t, err)
+
+	anyRec := rmsbox.Any{}
+	anyRec.Set(m)
+
+	sz := anyRec.ProtoSize()
+	require.Equal(t, len(b), sz)
+
+	b2 := make([]byte, sz + 16)
+	n, err := anyRec.MarshalTo(b2)
+	require.NoError(t, err)
+
+	require.Equal(t, sz, n)
+	require.Equal(t, b, b2[:n])
+
+	b2 = make([]byte, sz + 16)
+	n, err = anyRec.MarshalToSizedBuffer(b2)
+	require.NoError(t, err)
+	require.Equal(t, sz, n)
+	require.Equal(t, b, b2[len(b2) - n:])
 }

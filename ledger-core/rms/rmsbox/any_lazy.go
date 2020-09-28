@@ -12,6 +12,7 @@ import (
 	"reflect"
 
 	"github.com/insolar/assured-ledger/ledger-core/rms/rmsreg"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/protokit"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
@@ -79,11 +80,19 @@ func (p *AnyLazy) ProtoSize() int {
 }
 
 func (p *AnyLazy) Unmarshal(b []byte) error {
-	return p.UnmarshalCustom(b, false, rmsreg.GetRegistry().Get)
+	return p.unmarshalCustom(b, false, rmsreg.GetRegistry())
 }
 
-func (p *AnyLazy) UnmarshalCustom(b []byte, copyBytes bool, typeFn func(uint64) reflect.Type) error {
-	v, err := p.unmarshalCustom(b, copyBytes, typeFn)
+func (p *AnyLazy) UnmarshalCustom(b []byte, registry *rmsreg.TypeRegistry) error {
+	if registry == nil {
+		panic(throw.IllegalValue())
+	}
+
+	return p.unmarshalCustom(b, false, registry)
+}
+
+func (p *AnyLazy) unmarshalCustom(b []byte, copyBytes bool, registry *rmsreg.TypeRegistry) error {
+	v, err := p.unmarshalValue(b, copyBytes, registry)
 	if err != nil {
 		p.value = nil
 		return err
@@ -92,15 +101,16 @@ func (p *AnyLazy) UnmarshalCustom(b []byte, copyBytes bool, typeFn func(uint64) 
 	return nil
 }
 
-func (p *AnyLazy) unmarshalCustom(b []byte, copyBytes bool, typeFn func(uint64) reflect.Type) (LazyValue, error) {
-	_, t, err := rmsreg.UnmarshalType(b, typeFn)
-	if err != nil {
-		return LazyValue{}, err
-	}
-	if copyBytes {
+var emptyBytes = make([]byte, 0) // to distinguish zero and empty states of LazyValue
+
+func (p *AnyLazy) unmarshalValue(b []byte, copyBytes bool, registry *rmsreg.TypeRegistry) (LazyValue, error) {
+	switch {
+	case len(b) == 0:
+		b = emptyBytes // to distinguish zero and empty states of LazyValue
+	case copyBytes:
 		b = append([]byte(nil), b...)
 	}
-	return LazyValue{b, t}, nil
+	return LazyValue{b, registry}, nil
 }
 
 func (p *AnyLazy) MarshalTo(b []byte) (int, error) {
@@ -163,7 +173,15 @@ type AnyLazyCopy struct {
 }
 
 func (p *AnyLazyCopy) Unmarshal(b []byte) error {
-	return p.UnmarshalCustom(b, true, rmsreg.GetRegistry().Get)
+	return p.unmarshalCustom(b, true, rmsreg.GetRegistry())
+}
+
+func (p *AnyLazyCopy) UnmarshalWithRegistry(b []byte, registry *rmsreg.TypeRegistry) error {
+	if registry == nil {
+		panic(throw.IllegalValue())
+	}
+
+	return p.unmarshalCustom(b, true, registry)
 }
 
 /************************/
@@ -172,13 +190,16 @@ var _ rmsreg.GoGoMarshaler = LazyValue{}
 var _ io.WriterTo = LazyValue{}
 
 type LazyValueReader interface {
-	Type() reflect.Type
 	UnmarshalAsAny(v interface{}, skipFn rmsreg.UnknownCallbackFunc) (bool, error)
+}
+
+type lazyValueType interface {
+	// either *rmsreg.TypeRegistry or reflect.Type
 }
 
 type LazyValue struct {
 	value []byte
-	vType reflect.Type
+	vType lazyValueType
 }
 
 func (p LazyValue) WriteTo(w io.Writer) (int64, error) {
@@ -190,56 +211,117 @@ func (p LazyValue) WriteTo(w io.Writer) (int64, error) {
 }
 
 func (p LazyValue) IsZero() bool {
-	return p.value == nil && p.vType == nil
+	return p.value == nil
 }
 
 func (p LazyValue) IsEmpty() bool {
 	return len(p.value) == 0
 }
 
-func (p LazyValue) Type() reflect.Type {
-	return p.vType
-}
-
 func (p LazyValue) Unmarshal() (rmsreg.GoGoSerializable, error) {
-	switch {
-	case p.value == nil:
-		return nil, nil
-	case p.vType == nil:
-		panic(throw.IllegalState())
+	switch vType := p.vType.(type) {
+	case nil:
+		return p.UnmarshalCustom(rmsreg.GetRegistry(), nil)
+	case *rmsreg.TypeRegistry:
+		return p.UnmarshalCustom(vType, nil)
+	case reflect.Type:
+		return p.UnmarshalAsType(vType, nil)
+	default:
+		panic(throw.Impossible())
 	}
-	return p.UnmarshalAsType(p.vType, nil)
 }
 
 var typeGoGoSerializable = reflect.TypeOf((*rmsreg.GoGoSerializable)(nil)).Elem()
 
 func (p LazyValue) UnmarshalAsType(vType reflect.Type, skipFn rmsreg.UnknownCallbackFunc) (rmsreg.GoGoSerializable, error) {
 	switch {
-	case vType == nil || !vType.Implements(typeGoGoSerializable):
+	case vType == nil:
+		panic(throw.IllegalValue())
+	case !vType.Implements(typeGoGoSerializable) && !reflect.PtrTo(vType).Implements(typeGoGoSerializable):
 		panic(throw.IllegalValue())
 	case p.value == nil:
 		return nil, nil
 	}
 
-	obj, err := rmsreg.UnmarshalAsType(p.value, vType, skipFn)
-	if err != nil {
+	v := reflect.New(vType).Interface()
+	if err := p.unmarshalAsAny(v, skipFn); err != nil {
 		return nil, err
 	}
-	return obj.(rmsreg.GoGoSerializable), nil
+	return v.(rmsreg.GoGoSerializable), nil
 }
 
-func (p LazyValue) UnmarshalAs(v rmsreg.GoGoSerializable, skipFn rmsreg.UnknownCallbackFunc) (bool, error) {
-	if p.value == nil {
-		return false, nil
+var typeBasicMessage = reflect.TypeOf((*BasicMessage)(nil)).Elem()
+
+func (p LazyValue) UnmarshalCustom(registry *rmsreg.TypeRegistry, skipFn rmsreg.UnknownCallbackFunc) (rmsreg.GoGoSerializable, error) {
+	switch {
+	case registry == nil:
+		panic(throw.IllegalValue())
+	case p.value == nil:
+		return nil, nil
 	}
-	return true, rmsreg.UnmarshalAs(p.value, v, skipFn)
+
+	id, t, err := rmsreg.UnmarshalType(p.value, registry.Get)
+
+	var v interface{}
+	switch {
+	case err != nil:
+	case !t.Implements(typeGoGoSerializable):
+		err = throw.E("incompatible with GoGoSerializable", struct { Type reflect.Type }{ t })
+
+	case t.Implements(typeBasicMessage):
+		payloads := RecordPayloads{}
+		skipFn = payloads.WrapSkipFunc(skipFn)
+
+		v, err = rmsreg.UnmarshalAsType(p.value, t, skipFn)
+
+		if err == nil && !payloads.IsEmpty() {
+			// postprocessing for message payloads
+			digester := registry.GetPayloadDigester(id)
+			_, err = UnmarshalMessageApplyPayloads(v, digester, payloads)
+		}
+
+	default:
+		v, err = rmsreg.UnmarshalAsType(p.value, t, skipFn)
+	}
+
+	if err != nil {
+		return nil, throw.WithDetails(err, struct{ ID uint64 }{id})
+	}
+
+	return v.(rmsreg.GoGoSerializable), nil
 }
 
 func (p LazyValue) UnmarshalAsAny(v interface{}, skipFn rmsreg.UnknownCallbackFunc) (bool, error) {
 	if p.value == nil {
 		return false, nil
 	}
-	return true, rmsreg.UnmarshalAs(p.value, v, skipFn)
+	return true, p.unmarshalAsAny(v, skipFn)
+}
+
+func (p LazyValue) unmarshalAsAny(v interface{}, skipFn rmsreg.UnknownCallbackFunc) error {
+	if _, ok := v.(BasicMessage); !ok {
+		return rmsreg.UnmarshalAs(p.value, v, skipFn)
+	}
+
+	payloads := RecordPayloads{}
+	skipFn = payloads.WrapSkipFunc(skipFn)
+
+	err := rmsreg.UnmarshalAs(p.value, v, skipFn)
+
+	if err == nil && !payloads.IsEmpty() {
+		// postprocessing for message payloads
+		_, err = UnmarshalMessageApplyPayloads(v, nil, payloads)
+	}
+	if err == nil {
+		return nil
+	}
+
+	// try to get polymorph id
+	if id, _, err2 := protokit.DecodePolymorphFromBytes(p.value, false); err2 == nil {
+		err = throw.WithDetails(err, struct{ ID uint64 }{id })
+	}
+
+	return throw.WithDetails(err, struct{ Type reflect.Type }{ reflect.TypeOf(v) })
 }
 
 func (p LazyValue) ProtoSize() int {
@@ -258,5 +340,5 @@ func (p LazyValue) MarshalToSizedBuffer(b []byte) (int, error) {
 }
 
 func (p LazyValue) MarshalText() ([]byte, error) {
-	return []byte(fmt.Sprintf("%T{[%d]byte, %v}", p, len(p.value), p.vType)), nil
+	return []byte(fmt.Sprintf("LazyValue{[%d]byte}", len(p.value))), nil
 }

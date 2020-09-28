@@ -167,3 +167,16 @@ func (p *RecordPayloads) GetExtensionID(index int) uint32 {
 		return 0
 	}
 }
+
+func (p *RecordPayloads) WrapSkipFunc(skipFn rmsreg.UnknownCallbackFunc) rmsreg.UnknownCallbackFunc {
+	if skipFn == nil {
+		return p.TryUnmarshalPayloadFromBytes
+	}
+
+	return func(b []byte) (int, error) {
+		if n, err := skipFn(b); n != 0 || err != nil {
+			return n, err
+		}
+		return p.TryUnmarshalPayloadFromBytes(b)
+	}
+}
