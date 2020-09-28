@@ -166,7 +166,10 @@ func (s *SubSMRegister) getRecordAnticipatedRef(record SerializableBasicRecord) 
 		pulseNumber = s.PulseNumber
 	)
 
-	if s.pulseSlot != nil {
+	if pulseNumber == pulse.Unknown {
+		if s.pulseSlot == nil {
+			panic(throw.IllegalState())
+		}
 		pulseNumber = s.pulseSlot.CurrentPulseNumber()
 	}
 
@@ -276,8 +279,12 @@ func GetLifelineAnticipatedReference(
 	request *rms.VCallRequest,
 	pn pulse.Number,
 ) reference.Global {
+	if request.CallOutgoing.IsEmpty() {
+		panic(throw.IllegalState())
+	}
+
 	sm := SubSMRegister{
-		PulseNumber: pn,
+		PulseNumber: request.CallOutgoing.GetPulseOfLocal(),
 		Incoming:    request,
 		refBuilder:  builder,
 	}
@@ -360,6 +367,7 @@ func (s *SubSMRegister) getLifelineRecord() *rms.RLifelineStart {
 	if s.Incoming == nil {
 		panic(throw.IllegalState())
 	}
+
 	return &rms.RLifelineStart{
 		CallType:                s.Incoming.CallType,
 		CallFlags:               s.Incoming.CallFlags,
@@ -476,10 +484,14 @@ func (s *SubSMRegister) stepRegisterLifeline(ctx smachine.ExecutionContext) smac
 		panic(throw.IllegalValue())
 	}
 
+	s.PulseNumber = s.Incoming.CallOutgoing.GetPulseOfLocal()
+
 	var (
 		record         = s.getLifelineRecord()
 		anticipatedRef = s.getRecordAnticipatedRef(record)
 	)
+
+	s.PulseNumber = pulse.Unknown
 
 	s.Object = anticipatedRef
 	s.LastLifelineRef = anticipatedRef

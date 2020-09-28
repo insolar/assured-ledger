@@ -149,15 +149,16 @@ func methodPrecondition(s *memoryCacheTest, ctx context.Context, t *testing.T) {
 }
 
 func constructorPrecondition(s *memoryCacheTest, ctx context.Context, t *testing.T) {
-	pl := utils.GenerateVCallRequestConstructor(s.server)
-	pl.Caller.Set(s.class)
+	plWrapper := utils.GenerateVCallRequestConstructor(s.server)
+	plWrapper.SetClass(s.class)
+	pl := plWrapper.Get()
 
-	s.object = reference.NewSelf(pl.CallOutgoing.GetValue().GetLocal())
+	s.object = plWrapper.GetObject()
 
 	result := requestresult.New([]byte("result"), s.object)
 	result.SetActivate(s.class, []byte(newState))
 
-	key := pl.CallOutgoing.GetValue()
+	key := plWrapper.GetOutgoing()
 	s.runnerMock.AddExecutionMock(key).AddStart(nil, &execution.Update{
 		Type:   execution.Done,
 		Result: result,
@@ -174,7 +175,7 @@ func constructorPrecondition(s *memoryCacheTest, ctx context.Context, t *testing
 	})
 
 	executeDone := s.server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
-	s.server.SendPayload(ctx, pl)
+	s.server.SendPayload(ctx, &pl)
 	commonTestUtils.WaitSignalsTimed(t, 10*time.Second, executeDone)
 	commonTestUtils.WaitSignalsTimed(t, 10*time.Second, s.server.Journal.WaitAllAsyncCallsDone())
 }

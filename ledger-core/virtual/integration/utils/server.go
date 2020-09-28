@@ -275,6 +275,10 @@ func (s *Server) GetPrevPulse() beat.Beat {
 	return s.pulseGenerator.GetPrevBeat()
 }
 
+func (s *Server) GetPrevPulseNumber() pulse.Number {
+	return s.pulseGenerator.GetPrevBeat().PulseNumber
+}
+
 func (s *Server) incrementPulse() {
 	s.pulseGenerator.Generate()
 
@@ -343,7 +347,7 @@ func (s *Server) ReplaceAuthenticationService(svc authentication.Service) {
 }
 
 func (s *Server) AddInput(ctx context.Context, msg interface{}) error {
-	return s.virtual.Conveyor.AddInput(ctx, s.GetPulse().PulseNumber, msg)
+	return s.virtual.Conveyor.AddInput(ctx, s.GetPulseNumber(), msg)
 }
 
 func (s *Server) GlobalCaller() reference.Global {
@@ -351,7 +355,7 @@ func (s *Server) GlobalCaller() reference.Global {
 }
 
 func (s *Server) RandomLocalWithPulse() reference.Local {
-	return gen.UniqueLocalRefWithPulse(s.GetPulse().PulseNumber)
+	return gen.UniqueLocalRefWithPulse(s.GetPulseNumber())
 }
 
 func (s *Server) BuildRandomOutgoingWithGivenPulse(pn pulse.Number) reference.Global {
@@ -363,11 +367,23 @@ func (s *Server) BuildRandomOutgoingWithPulse() reference.Global {
 }
 
 func (s *Server) RandomGlobalWithPulse() reference.Global {
-	return gen.UniqueGlobalRefWithPulse(s.GetPulse().PulseNumber)
+	return gen.UniqueGlobalRefWithPulse(s.GetPulseNumber())
+}
+
+func (s *Server) RandomLocalWithPrevPulse() reference.Local {
+	return gen.UniqueLocalRefWithPulse(s.GetPrevPulseNumber())
+}
+
+func (s *Server) BuildRandomOutgoingWithPrevPulse() reference.Global {
+	return reference.NewRecordOf(s.GlobalCaller(), s.RandomLocalWithPrevPulse())
+}
+
+func (s *Server) RandomGlobalWithPrevPulse() reference.Global {
+	return gen.UniqueGlobalRefWithPulse(s.GetPrevPulseNumber())
 }
 
 func (s *Server) DelegationToken(outgoing reference.Global, to reference.Global, object reference.Global) rms.CallDelegationToken {
-	return s.virtual.AuthenticationService.GetCallDelegationToken(outgoing, to, s.GetPulse().PulseNumber, object)
+	return s.virtual.AuthenticationService.GetCallDelegationToken(outgoing, to, s.GetPulseNumber(), object)
 }
 
 func (s *Server) Stop() {
@@ -537,7 +553,7 @@ func (s *Server) setWaitCallback(cycleFn ConveyorCycleFunc) {
 }
 
 func (s *Server) WrapPayload(pl rmsreg.GoGoSerializable) *RequestWrapper {
-	return NewRequestWrapper(s.GetPulse().PulseNumber, pl).SetSender(s.caller)
+	return NewRequestWrapper(s.GetPulseNumber(), pl).SetSender(s.caller)
 }
 
 func (s *Server) SendPayload(ctx context.Context, pl rmsreg.GoGoSerializable) {

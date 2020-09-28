@@ -22,8 +22,10 @@ type VCallRequestConstructorHandler struct {
 	builder lmn.RecordReferenceBuilderService
 
 	object      reference.Global
-	outgoing    reference.Global
 	previousRef reference.Global
+
+	outgoing          reference.Global
+	outgoingRewritten bool
 }
 
 func (h VCallRequestConstructorHandler) GetObject() reference.Global {
@@ -34,17 +36,26 @@ func (h VCallRequestConstructorHandler) GetOutgoing() reference.Global {
 	return h.outgoing
 }
 
+func (h VCallRequestConstructorHandler) GetIncoming() reference.Global {
+	return reference.NewRecordOf(h.request.Callee.GetValue(), h.outgoing.GetLocal())
+}
+
 func (h VCallRequestConstructorHandler) Get() rms.VCallRequest {
 	return h.request
 }
 
 func (h *VCallRequestConstructorHandler) regenerate() {
-	duplicateRequest := h.request
-	duplicateRequest.CallOutgoing = rms.NewReference(reference.Global{})
+	if !h.outgoingRewritten {
+		duplicateRequest := h.request
+		duplicateRequest.CallOutgoing = rms.NewReference(reference.Global{})
 
-	h.object = lmn.GetLifelineAnticipatedReference(h.builder, &duplicateRequest, h.pn)
-	h.outgoing = lmn.GetOutgoingAnticipatedReference(h.builder, &duplicateRequest, h.previousRef, h.pn)
+		h.outgoing = lmn.GetOutgoingAnticipatedReference(h.builder, &duplicateRequest, h.previousRef, h.pn)
+	}
+
 	h.request.CallOutgoing = rms.NewReference(h.outgoing)
+
+	h.object = lmn.GetLifelineAnticipatedReference(h.builder, &h.request, h.pn)
+
 }
 
 func (h *VCallRequestConstructorHandler) SetClass(ref reference.Global) {
@@ -52,8 +63,35 @@ func (h *VCallRequestConstructorHandler) SetClass(ref reference.Global) {
 	h.regenerate()
 }
 
+func (h *VCallRequestConstructorHandler) SetCallFlags(flags rms.CallFlags) {
+	h.request.CallFlags = flags
+	h.regenerate()
+}
+
+func (h *VCallRequestConstructorHandler) SetCallFlagsFromMethodIsolation(mi contract.MethodIsolation) {
+	h.request.CallFlags = rms.BuildCallFlags(mi.Interference, mi.State)
+	h.regenerate()
+}
+
 func (h *VCallRequestConstructorHandler) SetCallSequence(sequence uint32) {
 	h.request.CallSequence = sequence
+	h.regenerate()
+}
+
+func (h *VCallRequestConstructorHandler) SetArguments(args []byte) {
+	h.request.Arguments = rms.NewBytes(args)
+	h.regenerate()
+}
+
+func (h *VCallRequestConstructorHandler) SetMethod(method string) {
+	h.request.CallSiteMethod = method
+	h.regenerate()
+}
+
+// deprecated
+func (h *VCallRequestConstructorHandler) SetCallOutgoing(callOutgoing reference.Global) {
+	h.outgoing = callOutgoing
+	h.outgoingRewritten = true
 	h.regenerate()
 }
 

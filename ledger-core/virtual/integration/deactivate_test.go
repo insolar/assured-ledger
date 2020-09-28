@@ -709,14 +709,18 @@ func TestVirtual_Deactivation_Deduplicate(t *testing.T) {
 	server.Init(ctx)
 
 	var (
-		class              = server.RandomGlobalWithPulse()
-		outgoing           = server.BuildRandomOutgoingWithPulse()
-		objectRef          = reference.NewSelf(outgoing.GetLocal())
 		outgoingDeactivate = server.BuildRandomOutgoingWithPulse()
 		isolation          = contract.MethodIsolation{
 			Interference: isolation.CallTolerable,
 			State:        isolation.CallDirty,
 		}
+
+		// Constructor
+		constructorWrapper = utils.GenerateVCallRequestConstructor(server)
+		outgoing           = constructorWrapper.GetOutgoing()
+		objectRef          = constructorWrapper.GetObject()
+		constructorRequest = constructorWrapper.Get()
+		class              = constructorRequest.Callee.GetValue()
 	)
 
 	// mock
@@ -761,19 +765,13 @@ func TestVirtual_Deactivation_Deduplicate(t *testing.T) {
 		})
 	}
 
-	// Constructor
-	constructRequest := utils.GenerateVCallRequestConstructor(server)
-	constructRequest.Callee.Set(objectRef)
-	constructRequest.CallSiteMethod = "Destroy"
-	constructRequest.CallOutgoing.Set(outgoing)
-
 	// Deactivation
 	deactivateRequest := utils.GenerateVCallRequestMethod(server)
 	deactivateRequest.Callee.Set(objectRef)
 	deactivateRequest.CallSiteMethod = "Destroy"
 	deactivateRequest.CallOutgoing.Set(outgoingDeactivate)
 
-	requests := []*rms.VCallRequest{constructRequest, deactivateRequest, constructRequest, deactivateRequest}
+	requests := []*rms.VCallRequest{&constructorRequest, deactivateRequest, &constructorRequest, deactivateRequest}
 	for _, r := range requests {
 		await := server.Journal.WaitStopOf(&execute.SMExecute{}, 1)
 		server.SendPayload(ctx, r)

@@ -543,7 +543,7 @@ func (s *SMExecute) stepRegisterObjectLifeLine(ctx smachine.ExecutionContext) sm
 
 		if subroutineSM.NewObjectRef != s.execution.Object {
 			// TODO: do nothing for now, later we should replace that mechanism
-			// panic(throw.NotImplemented())
+			panic(throw.NotImplemented())
 		}
 
 		s.lmnLastLifelineRef = reference.NewRecordOf(s.execution.Object, subroutineSM.NewLastLifelineRef.GetLocal())
@@ -624,6 +624,10 @@ func (s *SMExecute) stepStartRequestProcessing(ctx smachine.ExecutionContext) sm
 	}
 
 	ctx.SetDefaultMigration(s.migrateDuringExecution)
+
+	if objectDescriptor == nil {
+		panic(throw.IllegalState())
+	}
 
 	s.execution.ObjectDescriptor = objectDescriptor
 	s.lmnLastLifelineRef = reference.NewRecordOf(objectDescriptor.HeadRef(), objectDescriptor.StateID())

@@ -102,7 +102,7 @@ func (p *Mock) SetTypedCheckerWithLightStubs(ctx context.Context, t minimock.Tes
 
 	typed.LRegisterRequest.Set(func(request *rms.LRegisterRequest) bool {
 		if request.Flags == rms.RegistrationFlags_FastSafe {
-			logger.Info("Sending Fast and Safe")
+			logger.Info("sending Fast and Safe")
 
 			sender.SendPayload(ctx, &rms.LRegisterResponse{
 				Flags:              rms.RegistrationFlags_Fast,
@@ -118,7 +118,7 @@ func (p *Mock) SetTypedCheckerWithLightStubs(ctx context.Context, t minimock.Tes
 				RegistrarSignature: rms.NewBytes([]byte("123")),
 			})
 		} else {
-			logger.Info("Sending ", request.Flags.String())
+			logger.Info("sending ", request.Flags.String())
 
 			sender.SendPayload(ctx, &rms.LRegisterResponse{
 				Flags:              request.Flags,

@@ -541,14 +541,15 @@ func TestVirtual_CallMethodFromConstructor(t *testing.T) {
 			Method_PrepareObject(ctx, server, rms.StateStatusReady, objectBGlobal, prevPulse)
 
 			var (
+				plWrapper     = utils.GenerateVCallRequestConstructor(server)
+				pl            = plWrapper.Get()
+				classA        = pl.Callee.GetValue()
+				outgoingA     = plWrapper.GetOutgoing()
+				objectAGlobal = plWrapper.GetObject()
+				incomingA     = plWrapper.GetIncoming()
+
 				callFlags = tolerableFlags()
-
-				classA        = server.RandomGlobalWithPulse()
-				outgoingA     = server.BuildRandomOutgoingWithPulse()
-				objectAGlobal = reference.NewSelf(outgoingA.GetLocal())
-				incomingA     = reference.NewRecordOf(objectAGlobal, outgoingA.GetLocal())
-
-				classB = server.RandomGlobalWithPulse()
+				classB    = server.RandomGlobalWithPulse()
 			)
 			// add ExecutionMocks to runnerMock
 			{
@@ -626,10 +627,7 @@ func TestVirtual_CallMethodFromConstructor(t *testing.T) {
 				})
 			}
 
-			pl := utils.GenerateVCallRequestConstructor(server)
-			pl.Callee.Set(classA)
-			pl.CallOutgoing.Set(outgoingA)
-			server.SendPayload(ctx, pl)
+			server.SendPayload(ctx, &pl)
 
 			// wait for all calls and SMs
 			commontestutils.WaitSignalsTimed(t, 10*time.Second, executeDone)

@@ -298,16 +298,10 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 	typedChecker := server.PublisherMock.SetTypedCheckerWithLightStubs(ctx, mc, server)
 
 	var (
-		constructorIsolation = contract.ConstructorIsolation()
-
 		barIsolation = contract.MethodIsolation{
 			Interference: isolation.CallTolerable,
 			State:        isolation.CallDirty,
 		}
-
-		classA    = server.RandomGlobalWithPulse()
-		outgoing  = server.BuildRandomOutgoingWithPulse()
-		objectRef = reference.NewSelf(outgoing.GetLocal())
 
 		classB        = server.RandomGlobalWithPulse()
 		objectBGlobal = server.RandomGlobalWithPulse()
@@ -319,6 +313,13 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 		secondApprover = server.RandomGlobalWithPulse()
 
 		firstExpectedToken, secondExpectedToken rms.CallDelegationToken
+
+		plWrapper = utils.GenerateVCallRequestConstructor(server)
+		pl        = plWrapper.Get()
+
+		classA    = pl.Callee.GetValue()
+		outgoing  = plWrapper.GetOutgoing()
+		objectRef = plWrapper.GetObject()
 
 		expectedVCallRequest = rms.VCallRequest{
 			CallType:         rms.CallTypeMethod,
@@ -455,12 +456,7 @@ func TestVirtual_CallConstructorOutgoing_WithTwicePulseChange(t *testing.T) {
 		})
 	}
 
-	pl := utils.GenerateVCallRequestConstructor(server)
-	pl.CallFlags = rms.BuildCallFlags(constructorIsolation.Interference, constructorIsolation.State)
-	pl.Callee.Set(classA)
-	pl.CallOutgoing.Set(outgoing)
-
-	server.SendPayload(ctx, pl)
+	server.SendPayload(ctx, &pl)
 
 	// wait for all calls and SMs
 	{

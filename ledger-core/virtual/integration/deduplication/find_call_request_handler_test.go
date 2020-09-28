@@ -172,17 +172,17 @@ func TestDeduplication_VFindCallRequestHandling(t *testing.T) {
 
 			suite.initPulsesP1andP2(ctx)
 			suite.generateClass()
-			suite.generateCaller()
 
 			outgoingPulse := suite.getP2()
 			if test.requestFromP1 {
 				outgoingPulse = suite.getP1()
 			}
-			suite.generateOutgoing(outgoingPulse)
 
 			suite.isConstructor = test.requestIsConstructor
 
+			suite.generateCallRequestConstructor(outgoingPulse)
 			suite.generateObjectRef()
+			suite.generateOutgoing(outgoingPulse)
 
 			suite.setMessageCheckers(ctx, t, test)
 			suite.setRunnerMock()
@@ -276,12 +276,12 @@ func StepConstructorStart(s *VFindCallRequestHandlingSuite, ctx context.Context,
 		s.addPayloadAndWaitIdle(ctx, &report)
 	}
 
-	req := utils.GenerateVCallRequestConstructor(s.server)
-	req.Caller.Set(s.getCaller())
-	req.Callee.Set(s.getClass())
-	req.CallOutgoing.Set(s.outgoing)
+	reqWrapper := utils.GenerateVCallRequestConstructor(s.server)
+	reqWrapper.SetClass(s.getClass())
+	reqWrapper.SetCallOutgoing(s.outgoing)
+	req := reqWrapper.Get()
 
-	s.addPayloadAndWaitIdle(ctx, req)
+	s.addPayloadAndWaitIdle(ctx, &req)
 	s.vStateReportSent = make(chan struct{})
 
 	commontestutils.WaitSignalsTimed(t, 10*time.Second, s.executionPoint.Wait())
@@ -313,7 +313,6 @@ type VFindCallRequestHandlingSuite struct {
 	p1       pulse.Number
 	p2       pulse.Number
 	class    reference.Global
-	caller   reference.Global
 	object   reference.Global
 	outgoing reference.Global
 
@@ -323,6 +322,7 @@ type VFindCallRequestHandlingSuite struct {
 	executeIsFinished     synckit.SignalChannel
 	vStateReportSent      chan struct{}
 	vFindCallResponseSent chan struct{}
+	constructorHandler    utils.VCallRequestConstructorHandler
 }
 
 func (s *VFindCallRequestHandlingSuite) initServer(t *testing.T) context.Context {
@@ -364,21 +364,25 @@ func (s *VFindCallRequestHandlingSuite) switchToP3(ctx context.Context) {
 	s.server.IncrementPulseAndWaitIdle(ctx)
 }
 
-func (s *VFindCallRequestHandlingSuite) generateCaller() {
-	s.caller = s.server.GlobalCaller()
+func (s *VFindCallRequestHandlingSuite) generateCallRequestConstructor(requestPulse pulse.Number) {
+	s.constructorHandler = utils.GenerateVCallRequestConstructorForPulse(s.server, requestPulse)
+	s.constructorHandler.SetClass(s.class)
 }
 
 func (s *VFindCallRequestHandlingSuite) generateObjectRef() {
 	if s.isConstructor {
-		s.object = reference.NewSelf(s.outgoing.GetLocal())
-		return
+		s.object = s.constructorHandler.GetObject()
+	} else {
+		s.object = gen.UniqueGlobalRefWithPulse(s.getP1())
 	}
-	p := s.getP1()
-	s.object = gen.UniqueGlobalRefWithPulse(p)
 }
 
 func (s *VFindCallRequestHandlingSuite) generateOutgoing(p pulse.Number) {
-	s.outgoing = s.server.BuildRandomOutgoingWithGivenPulse(p)
+	if s.isConstructor {
+		s.outgoing = s.constructorHandler.GetOutgoing()
+	} else {
+		s.outgoing = s.server.BuildRandomOutgoingWithGivenPulse(p)
+	}
 }
 
 func (s *VFindCallRequestHandlingSuite) generateClass() {
@@ -390,7 +394,7 @@ func (s *VFindCallRequestHandlingSuite) getObject() reference.Global {
 }
 
 func (s *VFindCallRequestHandlingSuite) getCaller() reference.Global {
-	return s.caller
+	return s.server.GlobalCaller()
 }
 
 func (s *VFindCallRequestHandlingSuite) getClass() reference.Global {
@@ -423,6 +427,7 @@ func (s *VFindCallRequestHandlingSuite) setMessageCheckers(
 	s.typedChecker.VStateReport.Set(func(report *rms.VStateReport) bool {
 		assert.Equal(t, s.getP2(), report.AsOf)
 		assert.Equal(t, s.getObject(), report.Object.GetValue())
+
 		if s.vStateReportSent != nil {
 			close(s.vStateReportSent)
 		}
