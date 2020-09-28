@@ -78,7 +78,7 @@ jobs:
         if: always()
         env: # for testrail
           GOTEST: 'go test -json'
-        run: make test_func_race > functional_test.log
+        run: make test_func_race
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
       - name: Aggregate logs into a single archive
         if: always()
@@ -86,7 +86,7 @@ jobs:
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
       - name: Run functional tests multiple times with race detector as local cloud
         if: always()
-        run: make test_func_cloud_race > functional_test_cloud.log
+        run: make test_func_cloud_race
         working-directory: ${{env.GOPATH}}/src/github.com/insolar/assured-ledger/ledger-core
       - name: Aggregate logs into a single archive
         if: always()
