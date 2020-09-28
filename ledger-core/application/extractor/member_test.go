@@ -8,9 +8,10 @@ package extractor
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/insolar/assured-ledger/ledger-core/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/runner/executor/common/foundation"
-	"github.com/stretchr/testify/require"
 )
 
 func TestPublicKeyResponse(t *testing.T) {
