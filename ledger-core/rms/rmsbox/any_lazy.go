@@ -92,25 +92,20 @@ func (p *AnyLazy) UnmarshalCustom(b []byte, registry *rmsreg.TypeRegistry) error
 }
 
 func (p *AnyLazy) unmarshalCustom(b []byte, copyBytes bool, registry *rmsreg.TypeRegistry) error {
-	v, err := p.unmarshalValue(b, copyBytes, registry)
-	if err != nil {
-		p.value = nil
-		return err
-	}
-	p.value = v
+	p.value = p.unmarshalValue(b, copyBytes, registry)
 	return nil
 }
 
 var emptyBytes = make([]byte, 0) // to distinguish zero and empty states of LazyValue
 
-func (p *AnyLazy) unmarshalValue(b []byte, copyBytes bool, registry *rmsreg.TypeRegistry) (LazyValue, error) {
+func (p *AnyLazy) unmarshalValue(b []byte, copyBytes bool, registry *rmsreg.TypeRegistry) LazyValue {
 	switch {
 	case len(b) == 0:
 		b = emptyBytes // to distinguish zero and empty states of LazyValue
 	case copyBytes:
 		b = append([]byte(nil), b...)
 	}
-	return LazyValue{b, registry}, nil
+	return LazyValue{b, registry}
 }
 
 func (p *AnyLazy) MarshalTo(b []byte) (int, error) {
