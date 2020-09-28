@@ -36,7 +36,7 @@ type UnitProtoServer struct {
 	hostId     nwapi.HostID
 	service    Service
 	ingoing    nwapi.Address
-	outgoing   *sync.Map
+	outgoing   sync.Map
 	key        cryptkit.SigningKey
 	dispatcher *uniserver.Dispatcher
 	manager    *uniserver.PeerManager
@@ -89,7 +89,7 @@ func (h *UnitProtoServersHolder) createServiceWithProfile(
 		hostId:     hostId,
 		service:    controller.NewFacade(),
 		ingoing:    nwapi.Address{},
-		outgoing:   &sync.Map{},
+		outgoing:   sync.Map{},
 		key:        newSkKey(),
 		dispatcher: &dispatcher,
 	}
