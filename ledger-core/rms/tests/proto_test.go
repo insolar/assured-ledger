@@ -388,4 +388,42 @@ func TestAnyWithExampleMessageWithEmbeddedPayloads(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, sz, n)
 	require.Equal(t, b, b2[len(b2) - n:])
+
+	registry := rmsreg.GetRegistry()
+	registry.SetDefaultPayloadDigester(TestDigester{})
+	defer registry.SetDefaultPayloadDigester(nil)
+
+	anyRec = rmsbox.Any{}
+	err = anyRec.Unmarshal(b)
+	require.NoError(t, err)
+
+	m2 := anyRec.Get()
+
+	// Polymorph == 0 uses default value on serialization
+	// so it has to be set explicitly to equal with a deserialized form
+	m.RecordExample.Polymorph = uint32(m.RecordExample.GetDefaultPolymorphID())
+
+	require.True(t, m.Equal(m2))
+
+	m2e := m2.(*rms.MessageExample)
+	require.True(t, m2e.HasPayload())
+	require.True(t, m2e.HasPayloadDigest())
+	require.Equal(t, 1, m2e.GetExtensionDigestCount())
+	require.Equal(t, 1, m2e.GetExtensionPayloadCount())
+	require.True(t, m2e.IsPostUnmarshalCompleted())
+
+	require.True(t, payload.EqualRaw(m2e.GetPayload()))
+	require.True(t, extension.EqualRaw(m2e.GetExtensionPayload(0)))
+	require.Panics(t, func() { m2e.GetExtensionPayload(1) })
+	require.False(t, extension.EqualRaw(m2e.GetPayload()))
+	require.False(t, payload.EqualRaw(m2e.GetExtensionPayload(0)))
+
+	err = m2e.VerifyAnyPayload(-1, payload)
+	require.NoError(t, err)
+	err = m2e.VerifyAnyPayload(0, extension)
+	require.NoError(t, err)
+	err = m2e.VerifyAnyPayload(0, payload)
+	require.Error(t, err)
+	err = m2e.VerifyAnyPayload(-1, extension)
+	require.Error(t, err)
 }
