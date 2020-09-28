@@ -88,8 +88,6 @@ func (h *UnitProtoServersHolder) createServiceWithProfile(
 	serv := &UnitProtoServer{
 		hostId:     hostId,
 		service:    controller.NewFacade(),
-		ingoing:    nwapi.Address{},
-		outgoing:   sync.Map{},
 		key:        newSkKey(),
 		dispatcher: &dispatcher,
 	}
