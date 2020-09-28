@@ -14,6 +14,12 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 )
 
+func NewAny(v rmsreg.GoGoSerializable) Any {
+	r := Any{}
+	r.Set(v)
+	return r
+}
+
 var _ rmsreg.GoGoSerializableWithText = &Any{}
 
 type Any struct {

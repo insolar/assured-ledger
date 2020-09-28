@@ -176,7 +176,7 @@ func newServerExt(ctx context.Context, t Tester, opts ServerOpts) (*Server, cont
 	s.pulseManager = PulseManager
 	s.pulseStorage = Pulses
 	censusMock := testpop.CreateOneNodePopulationMock(t, s.caller, member.PrimaryRoleVirtual)
-	s.pulseGenerator = testutils.NewPulseGenerator(opts.Delta, censusMock)
+	s.pulseGenerator = testutils.NewPulseGenerator(opts.Delta, censusMock, nil)
 	s.incrementPulse()
 
 	{
