@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/insolar/assured-ledger/ledger-core/insolar"
 	"github.com/insolar/assured-ledger/ledger-core/insolar/contract/isolation"
 	"github.com/insolar/assured-ledger/ledger-core/reference"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
@@ -465,7 +466,6 @@ func TestValidation_ObjectTranscriptReport_AfterTwoInterleaving(t *testing.T) {
 
 	mc.Finish()
 }
-
 
 func TestValidation_ObjectTranscriptReport_WithPending(t *testing.T) {
 	defer commontestutils.LeakTester(t)
