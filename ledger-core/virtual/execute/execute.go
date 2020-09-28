@@ -804,6 +804,7 @@ func (s *SMExecute) stepSendOutgoing(ctx smachine.ExecutionContext) smachine.Sta
 			validation.TranscriptEntry{
 				Custom: validation.TranscriptEntryOutgoingRequest{
 					Request: s.outgoing.CallOutgoing.GetValue(),
+					Reason:  s.execution.Outgoing,
 				},
 			},
 		)
@@ -884,6 +885,7 @@ func (s *SMExecute) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.
 					Custom: validation.TranscriptEntryOutgoingResult{
 						OutgoingResult: reference.Global{},
 						CallResult:     *s.outgoingResult,
+						Reason:         s.execution.Outgoing,
 					},
 				},
 			)
@@ -961,7 +963,9 @@ func (s *SMExecute) stepSaveNewObject(ctx smachine.ExecutionContext) smachine.St
 					IncomingResult: reference.Global{},
 					ObjectMemory: reference.NewRecordOf(
 						s.newObjectDescriptor.HeadRef(),
-						s.newObjectDescriptor.StateID()),
+						s.newObjectDescriptor.StateID(),
+					),
+					Reason: s.execution.Outgoing,
 				},
 			},
 		)

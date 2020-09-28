@@ -152,6 +152,7 @@ func TestVirtual_Constructor_CurrentPulseWithoutObject(t *testing.T) {
 
 		assert.Empty(t, result.IncomingResult)
 		assert.Equal(t, pl.CallOutgoing.GetValue().GetLocal().Pulse(), result.ObjectState.Get().GetLocal().Pulse())
+		assert.True(t, request.Request.CallOutgoing.Equal(&result.Reason))
 		assert.Equal(t, objectRef.GetBase(), result.ObjectState.Get().GetBase())
 
 		return false
