@@ -112,7 +112,7 @@ func (s *SMVObjectTranscriptReport) Init(ctx smachine.InitializationContext) sma
 }
 
 func (s *SMVObjectTranscriptReport) stepProcess(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	entry := s.peekStartEntry()
+	entry := s.peekEntry(s.startIndex)
 	if entry == nil {
 		return ctx.Jump(s.stepValidationFailed)
 	}
@@ -170,30 +170,6 @@ func (s *SMVObjectTranscriptReport) stepExecuteStart(ctx smachine.ExecutionConte
 	}).DelayedStart().ThenJump(s.stepWaitExecutionResult)
 }
 
-func (s *SMVObjectTranscriptReport) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	outgoingResult := s.outgoingResult
-	switch s.executionNewState.Outgoing.(type) {
-	case execution.CallConstructor, execution.CallMethod:
-		if outgoingResult == nil {
-			panic(throw.IllegalValue())
-		}
-	}
-
-	s.executionNewState = nil
-
-	executionResult := requestresult.NewOutgoingExecutionResult(outgoingResult.ReturnArguments.GetBytes(), nil)
-	return s.runner.PrepareExecutionContinue(ctx, s.run, executionResult, func() {
-		if s.run == nil {
-			panic(throw.IllegalState())
-		}
-
-		s.executionNewState = s.run.GetResult()
-		if s.executionNewState == nil {
-			panic(throw.IllegalState())
-		}
-	}).DelayedStart().ThenJump(s.stepWaitExecutionResult)
-}
-
 func (s *SMVObjectTranscriptReport) stepWaitExecutionResult(ctx smachine.ExecutionContext) smachine.StateUpdate {
 	if s.executionNewState == nil {
 		return ctx.Sleep().ThenRepeat()
@@ -239,7 +215,7 @@ func (s *SMVObjectTranscriptReport) stepExecuteOutgoing(ctx smachine.ExecutionCo
 		panic(throw.IllegalValue())
 	}
 
-	entry := s.peekNextEntry()
+	entry := s.findNextEntry()
 	if entry == nil {
 		return ctx.Jump(s.stepValidationFailed)
 	}
@@ -254,7 +230,7 @@ func (s *SMVObjectTranscriptReport) stepExecuteOutgoing(ctx smachine.ExecutionCo
 		//panic(throw.NotImplemented())
 	}
 
-	entry = s.peekNextEntry()
+	entry = s.findNextEntry()
 	if entry == nil {
 		return ctx.Jump(s.stepValidationFailed)
 	}
@@ -266,6 +242,30 @@ func (s *SMVObjectTranscriptReport) stepExecuteOutgoing(ctx smachine.ExecutionCo
 	s.outgoingResult = &outgoingResult.CallResult
 
 	return ctx.Jump(s.stepExecuteContinue)
+}
+
+func (s *SMVObjectTranscriptReport) stepExecuteContinue(ctx smachine.ExecutionContext) smachine.StateUpdate {
+	outgoingResult := s.outgoingResult
+	switch s.executionNewState.Outgoing.(type) {
+	case execution.CallConstructor, execution.CallMethod:
+		if outgoingResult == nil {
+			panic(throw.IllegalValue())
+		}
+	}
+
+	s.executionNewState = nil
+
+	executionResult := requestresult.NewOutgoingExecutionResult(outgoingResult.ReturnArguments.GetBytes(), nil)
+	return s.runner.PrepareExecutionContinue(ctx, s.run, executionResult, func() {
+		if s.run == nil {
+			panic(throw.IllegalState())
+		}
+
+		s.executionNewState = s.run.GetResult()
+		if s.executionNewState == nil {
+			panic(throw.IllegalState())
+		}
+	}).DelayedStart().ThenJump(s.stepWaitExecutionResult)
 }
 
 func (s *SMVObjectTranscriptReport) stepExecuteFinish(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -291,7 +291,7 @@ func (s *SMVObjectTranscriptReport) stepExecuteFinish(ctx smachine.ExecutionCont
 		panic(throw.IllegalValue())
 	}
 
-	entry := s.peekNextEntry()
+	entry := s.findNextEntry()
 	if entry == nil {
 		return ctx.Jump(s.stepValidationFailed)
 	}
@@ -321,17 +321,29 @@ func (s *SMVObjectTranscriptReport) stepValidationFailed(ctx smachine.ExecutionC
 }
 
 func (s *SMVObjectTranscriptReport) stepAdvanceToNextRequest(ctx smachine.ExecutionContext) smachine.StateUpdate {
-	if s.counter != len(s.entries) {
-		s.startIndex++
-		s.entryIndex = 0
-		return ctx.Jump(s.stepProcess)
+	if s.counter == len(s.entries) {
+		// everything is checked
+		if s.validatedState.IsEmpty() {
+			panic(throw.NotImplemented())
+		}
+
+		return ctx.Jump(s.stepSendValidationReport)
 	}
 
-	if s.validatedState.IsEmpty() {
-		panic(throw.NotImplemented())
+	s.startIndex++
+	s.entryIndex = 0
+
+	for ind := s.startIndex; ind < len(s.entries); ind++ {
+		entry := s.peekEntry(ind)
+		switch entry.(type) {
+		case *rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest:
+			s.startIndex = ind
+		default:
+			// do nothing
+		}
 	}
 
-	return ctx.Jump(s.stepSendValidationReport)
+	return ctx.Jump(s.stepProcess)
 }
 
 func (s *SMVObjectTranscriptReport) stepSendValidationReport(ctx smachine.ExecutionContext) smachine.StateUpdate {
@@ -356,21 +368,7 @@ func (s *SMVObjectTranscriptReport) peekEntry(index int) rmsreg.GoGoSerializable
 	return s.entries[index].Get()
 }
 
-func (s *SMVObjectTranscriptReport) peekStartEntry() rmsreg.GoGoSerializable {
-	for ind := s.startIndex; ind < len(s.entries); ind++ {
-		entry := s.peekEntry(ind)
-		switch entry.(type) {
-		case *rms.VObjectTranscriptReport_TranscriptEntryIncomingRequest:
-			s.startIndex = ind
-			return entry
-		default:
-			// do nothing
-		}
-	}
-	return nil
-}
-
-func (s *SMVObjectTranscriptReport) peekNextEntry() rmsreg.GoGoSerializable {
+func (s *SMVObjectTranscriptReport) findNextEntry() rmsreg.GoGoSerializable {
 	for ind := s.entryIndex + 1; ind < len(s.entries); ind++ {
 		entry := s.peekEntry(ind)
 		switch entry.(type) {
