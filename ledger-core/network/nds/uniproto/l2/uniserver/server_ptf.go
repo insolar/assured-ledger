@@ -34,8 +34,8 @@ type peerTransportFactory struct {
 	updateLocalAddr func(nwapi.Address)
 
 	// mutex protects outgoing factories
-	mutex sync.RWMutex
-	tcpOutgoing l1.OutTransportFactory
+	mutex              sync.RWMutex
+	tcpOutgoing        l1.OutTransportFactory
 	maxSessionlessSize uint16
 }
 
@@ -153,6 +153,7 @@ func (p *peerTransportFactory) SessionfulConnectTo(to nwapi.Address) (l1.OneWayT
 	return t.ConnectTo(to)
 }
 
+// todo bugfix if StartNoListen
 func (p *peerTransportFactory) IsSessionlessAllowed(size int) bool {
 	switch {
 	case size < 0:

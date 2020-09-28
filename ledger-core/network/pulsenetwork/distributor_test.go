@@ -7,6 +7,7 @@ package pulsenetwork
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -19,70 +20,102 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/cryptography/platformpolicy"
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger/instestlogger"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
-	"github.com/insolar/assured-ledger/ledger-core/network"
-	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork"
-	"github.com/insolar/assured-ledger/ledger-core/network/hostnetwork/packet/types"
-	"github.com/insolar/assured-ledger/ledger-core/network/transport"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/common/endpoints"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/transport"
+	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto"
+	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto/l2/uniserver"
+	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
+	"github.com/insolar/assured-ledger/ledger-core/network/servicenetwork"
 	"github.com/insolar/assured-ledger/ledger-core/pulsar"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
-	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
-	mock "github.com/insolar/assured-ledger/ledger-core/testutils/network"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 )
 
 const (
 	PULSENUMBER = pulse.MinTimePulse + 155
 )
 
-func createHostNetwork(t *testing.T) (network.HostNetwork, error) {
-	m := mock.NewRoutingTableMock(t)
+type pProcessor struct{}
 
-	cm1 := component.NewManager(nil)
-	cm1.SetLogger(global.Logger())
+func (pp *pProcessor) ProcessPacket(ctx context.Context, payload transport.PacketParser, from endpoints.Inbound) error {
+	fmt.Printf("ProcessPacket from %s : %v", from.GetNameAddress(), payload)
+	return nil
+}
 
-	f1 := transport.NewFactory(configuration.NewHostNetwork().Transport)
-	n1, err := hostnetwork.NewHostNetwork(gen.UniqueGlobalRef().String())
-	if err != nil {
-		return nil, err
+func createUniserver(id nwapi.ShortNodeID, address string) *uniserver.UnifiedServer {
+	var unifiedServer *uniserver.UnifiedServer
+	var dispatcher uniserver.Dispatcher
+
+	vf := servicenetwork.TestVerifierFactory{}
+	skBytes := [servicenetwork.TestDigestSize]byte{}
+	sk := cryptkit.NewSigningKey(longbits.CopyBytes(skBytes[:]), servicenetwork.TestSigningMethod, cryptkit.PublicAsymmetricKey)
+	skBytes[0] = 1
+
+	unifiedServer = uniserver.NewUnifiedServer(&dispatcher, servicenetwork.TestLogAdapter{context.Background()})
+	unifiedServer.SetConfig(uniserver.ServerConfig{
+		BindingAddress: address,
+		UDPMaxSize:     1400,
+		UDPParallelism: 1,
+		PeerLimit:      -1,
+	})
+
+	unifiedServer.SetPeerFactory(func(peer *uniserver.Peer) (remapTo nwapi.Address, err error) {
+		peer.SetSignatureKey(sk)
+		peer.SetNodeID(id) // todo: ??
+		return nwapi.NewHostID(nwapi.HostID(id)), nil
+		// return nwapi.Address{}, nil
+	})
+	unifiedServer.SetSignatureFactory(vf)
+
+	var desc = uniproto.Descriptor{
+		SupportedPackets: uniproto.PacketDescriptors{
+			0: {Flags: uniproto.NoSourceID | uniproto.OptionalTarget | uniproto.DatagramAllowed | uniproto.DatagramOnly, LengthBits: 16},
+		},
 	}
-	cm1.Inject(f1, n1, m)
 
-	ctx := context.Background()
+	datagramHandler := adapters.NewDatagramHandler()
+	datagramHandler.SetPacketProcessor(&pProcessor{})
 
-	err = n1.Start(ctx)
-	if err != nil {
-		return nil, err
-	}
+	marshaller := &adapters.ConsensusProtocolMarshaller{HandlerAdapter: datagramHandler}
+	dispatcher.SetMode(uniproto.NewConnectionMode(uniproto.AllowUnknownPeer, 0))
+	dispatcher.RegisterProtocol(0, desc, marshaller, marshaller)
 
-	return n1, nil
+	return unifiedServer
 }
 
 func TestDistributor_Distribute(t *testing.T) {
 	instestlogger.SetTestOutput(t)
 
-	n1, err := createHostNetwork(t)
-	require.NoError(t, err)
+	nodeServ := createUniserver(1, "127.0.0.1:0")
+	pulsarServ := createUniserver(2, "127.0.0.1:0")
+	nodeServ.StartListen()
+	pulsarServ.StartListen()
+
 	ctx := context.Background()
 
-	handler := func(ctx context.Context, r network.ReceivedPacket) (network.Packet, error) {
-		global.Info("handle Pulse")
-		pulse := r.GetRequest().GetPulse()
-		assert.EqualValues(t, PULSENUMBER, pulse.Pulse.PulseNumber)
-		return nil, nil
-	}
-	n1.RegisterRequestHandler(types.Pulse, handler)
+	// handler := func(ctx context.Context, r network.ReceivedPacket) (network.Packet, error) {
+	// 	global.Info("handle Pulse")
+	// 	pulse := r.GetRequest().GetPulse()
+	// 	assert.EqualValues(t, PULSENUMBER, pulse.Pulse.PulseNumber)
+	// 	return nil, nil
+	// }
+	// n1.RegisterRequestHandler(types.Pulse, handler)
 
-	err = n1.Start(ctx)
-	require.NoError(t, err)
-	defer func() {
-		err = n1.Stop(ctx)
-		require.NoError(t, err)
-	}()
+	// err = n1.Start(ctx)
+	// require.NoError(t, err)
+	// defer func() {
+	// 	err = n1.Stop(ctx)
+	// 	require.NoError(t, err)
+	// }()
+
+	address := nodeServ.PeerManager().Local().GetPrimary().String()
 
 	pulsarCfg := configuration.NewPulsar()
-	pulsarCfg.DistributionTransport.Address = "127.0.0.1:0"
-	pulsarCfg.PulseDistributor.BootstrapHosts = []string{n1.PublicAddress()}
+	pulsarCfg.PulseDistributor.BootstrapHosts = []string{address}
 
-	d, err := NewDistributor(pulsarCfg.PulseDistributor)
+	d, err := NewDistributor(pulsarCfg.PulseDistributor, pulsarServ)
 	require.NoError(t, err)
 	assert.NotNil(t, d)
 
@@ -92,7 +125,7 @@ func TestDistributor_Distribute(t *testing.T) {
 	key, err := platformpolicy.NewKeyProcessor().GeneratePrivateKey()
 	require.NoError(t, err)
 
-	cm.Inject(d, transport.NewFactory(pulsarCfg.DistributionTransport), platformpolicy.NewPlatformCryptographyScheme(), keystore.NewInplaceKeyStore(key))
+	cm.Inject(d, platformpolicy.NewPlatformCryptographyScheme(), keystore.NewInplaceKeyStore(key))
 	err = cm.Init(ctx)
 	require.NoError(t, err)
 	err = cm.Start(ctx)

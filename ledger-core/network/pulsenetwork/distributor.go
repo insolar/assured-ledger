@@ -84,6 +84,8 @@ func (d *distributor) Init(context.Context) error {
 }
 
 func (d *distributor) Start(ctx context.Context) error {
+	d.unifiedServer.StartListen()
+
 	pulsarHost, err := legacyhost.NewHost(d.publicAddress)
 	if err != nil {
 		return errors.W(err, "[ NewDistributor ] failed to create pulsar host")
@@ -95,17 +97,18 @@ func (d *distributor) Start(ctx context.Context) error {
 }
 
 func (d *distributor) Stop(ctx context.Context) error {
+	d.unifiedServer.Stop()
 	return nil
 }
 
 // Distribute starts a fire-and-forget process of pulse distribution to bootstrap hosts
 func (d *distributor) Distribute(ctx context.Context, puls pulsar.PulsePacket) {
 	logger := inslogger.FromContext(ctx)
-	defer func() {
-		if r := recover(); r != nil {
-			logger.Errorf("sendPulseToNetwork failed with panic: %v", r)
-		}
-	}()
+	// defer func() {
+	// 	if r := recover(); r != nil {
+	// 		logger.Errorf("sendPulseToNetwork failed with panic: %v", r)
+	// 	}
+	// }()
 
 	pulseCtx := inslogger.SetLogger(context.Background(), logger)
 
@@ -148,12 +151,12 @@ func (d *distributor) Distribute(ctx context.Context, puls pulsar.PulsePacket) {
 }
 
 func (d *distributor) sendPulseToHost(ctx context.Context, p *pulsar.PulsePacket, host string) error {
-	logger := inslogger.FromContext(ctx)
-	defer func() {
-		if x := recover(); x != nil {
-			logger.Errorf("sendPulseToHost failed with panic: %v", x)
-		}
-	}()
+	// logger := inslogger.FromContext(ctx)
+	// defer func() {
+	// 	if x := recover(); x != nil {
+	// 		logger.Errorf("sendPulseToHost failed with panic: %v", x)
+	// 	}
+	// }()
 
 	ctx, span := instracer.StartSpan(ctx, "distributor.sendPulseToHosts")
 	defer span.Finish()

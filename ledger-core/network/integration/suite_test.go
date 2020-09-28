@@ -60,7 +60,6 @@ var (
 )
 
 const (
-	UseFakeTransport = false
 	UseFakeBootstrap = true
 
 	reqTimeoutMs = 2000
@@ -202,6 +201,7 @@ func (s *consensusSuite) Setup() {
 	require.Equal(s.t, len(s.bootstrapNodes), len(activeNodes))
 
 	global.Info("Start test pulsar")
+	pulseReceivers = pulseReceivers[:1]
 	err = s.pulsar.Start(initLogger(s.ctx, s.t, log.ErrorLevel), pulseReceivers)
 	require.NoError(s.t, err)
 }
@@ -340,7 +340,7 @@ func (s *consensusSuite) assertNetworkInConsistentState(p pulse.Number) {
 
 		require.Equal(s.t, len(nodes), len(activeNodes))
 
-		for i, n  := range nodes {
+		for i, n := range nodes {
 			an := activeNodes[i]
 			require.True(s.t, profiles.EqualStaticProfiles(n.GetStatic(), an.GetStatic(), true))
 			require.Equal(s.t, n.GetNodeID(), an.GetNodeID(), i)
@@ -420,7 +420,7 @@ func (s *testSuite) GracefulStop(node *networkNode) {
 
 type networkNode struct {
 	ref                 reference.Global
-	id 					node.ShortNodeID
+	id                  node.ShortNodeID
 	role                member.PrimaryRole
 	privateKey          crypto.PrivateKey
 	cryptographyService cryptography.Service
@@ -471,7 +471,7 @@ func (s *testSuite) newNetworkNodeWithRole(name string, role member.PrimaryRole)
 }
 
 func incrementTestPort() int {
-	result := atomic.AddUint32(&testNetworkPort, 1)
+	result := atomic.AddUint32(&testNetworkPort, 2)
 	return int(result)
 }
 
@@ -563,13 +563,8 @@ func (s *testSuite) preInitNode(nd *networkNode) {
 	keyProc := platformpolicy.NewKeyProcessor()
 
 	pubMock := &PublisherMock{}
-	if UseFakeTransport {
-		// little hack: this Register will override transport.Factory
-		// in servicenetwork internal component manager with fake factory
-		nd.componentManager.Register(transport.NewFakeFactory(cfg.Host.Transport))
-	} else {
-		nd.componentManager.Register(transport.NewFactory(cfg.Host.Transport))
-	}
+
+	nd.componentManager.Register(transport.NewFactory(cfg.Host.Transport))
 
 	pulseManager := chorus.NewConductorMock(s.t)
 	pulseManager.RequestNodeStateMock.Set(func(fn chorus.NodeStateFunc) {
@@ -631,7 +626,7 @@ func (s *testSuite) afterInitNode(nd *networkNode) {
 
 func (s *testSuite) AssertActiveNodesCountDelta(delta int) {
 	activeNodes := s.bootstrapNodes[1].GetActiveNodes()
-	n := s.getNodesCount()+delta
+	n := s.getNodesCount() + delta
 	require.Equal(s.t, n, len(activeNodes))
 }
 

@@ -44,8 +44,8 @@ var signer = func() cryptkit.DigestSigner {
 type Pulsar struct {
 	pulseDelta  uint16
 	pulseNumber pulse.Number
-	transports  []transport.DatagramTransport
-	addresses   []string
+	// transports  []transport.DatagramTransport
+	addresses []string
 
 	mu *sync.Mutex
 }
@@ -55,8 +55,8 @@ func NewPulsar(pulseDelta uint16, addresses []string, transports []transport.Dat
 		pulseDelta:  pulseDelta,
 		pulseNumber: initialPulse,
 		addresses:   addresses,
-		transports:  transports,
-		mu:          &sync.Mutex{},
+		// transports:  transports,
+		mu: &sync.Mutex{},
 	}
 }
 

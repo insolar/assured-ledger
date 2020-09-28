@@ -47,8 +47,8 @@ func NewRequester(options *network.Options) Requester {
 }
 
 type requester struct {
-	HostNetwork         network.HostNetwork    `inject:""`
-	CryptographyService cryptography.Service   `inject:""`
+	HostNetwork         network.HostNetwork  `inject:""`
+	CryptographyService cryptography.Service `inject:""`
 
 	options *network.Options
 	retry   int
@@ -222,7 +222,9 @@ func (ac *requester) Bootstrap(ctx context.Context, permit *rms.Permit, candidat
 		Permit:           permit,
 	}
 
-	f, err := ac.HostNetwork.SendRequestToHost(ctx, types.Bootstrap, req, permit.Payload.ReconnectTo)
+	reconnectAddr := permit.Payload.ReconnectTo
+	reconnectAddr.Address.Port -= 1
+	f, err := ac.HostNetwork.SendRequestToHost(ctx, types.Bootstrap, req, reconnectAddr)
 	if err != nil {
 		return nil, throw.W(err, "Error sending Bootstrap request")
 	}

@@ -13,6 +13,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/member"
 	"github.com/insolar/assured-ledger/ledger-core/network/messagesender"
+	"github.com/insolar/assured-ledger/ledger-core/network/nds/msgdelivery"
+	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto"
+	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto/l2/uniserver"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/network/watermill"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
@@ -53,6 +56,10 @@ type ServiceNetwork struct {
 	BaseGateway *gateway.Base
 
 	router watermill.Router
+
+	unifiedServer      *uniserver.UnifiedServer
+	dispatcher         uniserver.Dispatcher
+	msgdeliveryService msgdelivery.Service
 }
 
 func (n *ServiceNetwork) GetBeatHistory() beat.History {
@@ -90,7 +97,8 @@ func (n *ServiceNetwork) Init(ctx context.Context) error {
 		return throw.W(err, "failed to create NodeNetwork")
 	}
 
-	n.BaseGateway = &gateway.Base{Options: options}
+	n.initUniproto(ctx)
+	n.BaseGateway = &gateway.Base{Options: options, UnifiedServer: n.unifiedServer, Dispatcher: &n.dispatcher}
 	n.Gatewayer = gateway.NewGatewayer(n.BaseGateway.NewGateway(ctx, network.NoNetworkState))
 
 	table := &routing.Table{}
@@ -108,6 +116,20 @@ func (n *ServiceNetwork) Init(ctx context.Context) error {
 		n.Gatewayer,
 		termination.NewHandler(n),
 	)
+
+	n.BaseGateway.InitConsensusProtocolMarshaller() // must before unifiedServer.StartListen() coz Seal issue
+	n.unifiedServer.StartListen()
+	n.dispatcher.SetMode(uniproto.AllowAll)
+	pm := n.unifiedServer.PeerManager() // todo ?
+	_, err = pm.AddHostID(pm.Local().GetPrimary(), 0)
+	if err != nil {
+		panic(err)
+	}
+
+	err = n.BaseGateway.InitConsensus(ctx)
+	if err != nil {
+		return throw.W(err, "failed to init consensus")
+	}
 
 	err = n.cm.Init(ctx)
 	if err != nil {

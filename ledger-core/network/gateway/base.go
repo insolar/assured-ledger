@@ -20,6 +20,8 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/census"
 	transport2 "github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/transport"
+	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto"
+	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto/l2/uniserver"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
 	"github.com/insolar/assured-ledger/ledger-core/rms"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
@@ -65,10 +67,12 @@ type Base struct {
 	KeyProcessor        cryptography.KeyProcessor               `inject:""`
 	Aborter             network.Aborter                         `inject:""`
 	TransportFactory    transport.Factory                       `inject:""`
+	UnifiedServer       *uniserver.UnifiedServer
+	Dispatcher          *uniserver.Dispatcher
 
-	transportCrypt    transport2.CryptographyAssistant
-	datagramHandler   *adapters.DatagramHandler
-	datagramTransport transport.DatagramTransport
+	transportCrypt  transport2.CryptographyAssistant
+	datagramHandler *adapters.DatagramHandler
+	// datagramTransport transport.DatagramTransport
 
 	ConsensusMode       consensus.Mode
 	consensusInstaller  consensus.Installer
@@ -135,53 +139,64 @@ func (g *Base) Init(ctx context.Context) error {
 
 	g.bootstrapETA = g.Options.BootstrapTimeout
 
-	return g.initConsensus(ctx)
+	return nil
 }
 
 func (g *Base) Stop(ctx context.Context) error {
-	err := g.datagramTransport.Stop(ctx)
-	if err != nil {
-		return throw.W(err, "failed to stop datagram transport")
-	}
-
+	g.UnifiedServer.Stop()
 	g.pulseWatchdog.Stop()
 	return nil
 }
 
-func (g *Base) initConsensus(ctx context.Context) error {
-	g.ConsensusMode = consensus.Joiner
+func (g *Base) InitConsensusProtocolMarshaller() {
 	g.datagramHandler = adapters.NewDatagramHandler()
-	datagramTransport, err := g.TransportFactory.CreateDatagramTransport(g.datagramHandler)
-	if err != nil {
-		return throw.W(err, "failed to create datagramTransport")
+
+	// uniproto.ProtocolTypeGlobulaConsensus
+	var desc = uniproto.Descriptor{
+		SupportedPackets: uniproto.PacketDescriptors{
+			0: {Flags: uniproto.NoSourceID | uniproto.OptionalTarget | uniproto.DatagramAllowed, LengthBits: 16},
+		},
 	}
-	g.datagramTransport = datagramTransport
+
+	marshaller := &adapters.ConsensusProtocolMarshaller{HandlerAdapter: g.datagramHandler}
+	g.Dispatcher.SetMode(uniproto.NewConnectionMode(uniproto.AllowUnknownPeer, 0))
+	g.Dispatcher.RegisterProtocol(0, desc, marshaller, marshaller)
+}
+
+func (g *Base) InitConsensus(ctx context.Context) error {
+	g.ConsensusMode = consensus.Joiner
+
+	// todo: use uniproto here
+	// datagramTransport, err := g.TransportFactory.CreateDatagramTransport(g.datagramHandler)
+	// if err != nil {
+	// 	return throw.W(err, "failed to create datagramTransport")
+	// }
+	// g.datagramTransport = datagramTransport
 	g.transportCrypt = adapters.NewTransportCryptographyFactory(g.CryptographyScheme)
-
-
-	// transport start should be here because of TestComponents tests, couldn't localNodeAsCandidate with 0 port
-	err = g.datagramTransport.Start(ctx)
-	if err != nil {
-		return throw.W(err, "failed to start datagram transport")
-	}
-
-	err = g.localNodeAsCandidate()
+	//
+	// // transport start should be here because of TestComponents tests, couldn't localNodeAsCandidate with 0 port
+	// err = g.datagramTransport.Start(ctx)
+	// if err != nil {
+	// 	return throw.W(err, "failed to start datagram transport")
+	// }
+	//
+	err := g.localNodeAsCandidate()
 	if err != nil {
 		return throw.W(err, "failed to localNodeAsCandidate")
 	}
 
 	proxy := consensusProxy{g.Gatewayer}
 	g.consensusInstaller = consensus.New(ctx, consensus.Dep{
-		KeyProcessor:        g.KeyProcessor,
-		CertificateManager:  g.CertificateManager,
-		KeyStore:            getKeyStore(g.CryptographyService),
-		NodeKeeper:          g.NodeKeeper,
-		LocalNodeProfile:    g.localStatic, // initialized by localNodeAsCandidate()
-		StateGetter:         proxy,
-		PulseChanger:        proxy,
-		StateUpdater:        proxy,
-		DatagramTransport:   g.datagramTransport,
-		EphemeralController: g,
+		KeyProcessor:          g.KeyProcessor,
+		CertificateManager:    g.CertificateManager,
+		KeyStore:              getKeyStore(g.CryptographyService),
+		NodeKeeper:            g.NodeKeeper,
+		LocalNodeProfile:      g.localStatic, // initialized by localNodeAsCandidate()
+		StateGetter:           proxy,
+		PulseChanger:          proxy,
+		StateUpdater:          proxy,
+		UnifiedServer:         g.UnifiedServer,
+		EphemeralController:   g,
 		TransportCryptography: g.transportCrypt,
 	})
 
@@ -192,7 +207,7 @@ func (g *Base) localNodeAsCandidate() error {
 	cert := g.CertificateManager.GetCertificate()
 
 	staticProfile, err := CreateLocalNodeProfile(g.NodeKeeper, cert,
-		g.datagramTransport.Address(),
+		g.UnifiedServer.PeerManager().Local().GetPrimary().String(),
 		g.KeyProcessor, g.CryptographyService, g.CryptographyScheme)
 
 	if err != nil {
@@ -210,7 +225,6 @@ func (g *Base) GetLocalNodeStaticProfile() profiles.StaticProfile {
 	}
 	return g.localStatic
 }
-
 
 func (g *Base) StartConsensus(ctx context.Context) error {
 
@@ -369,11 +383,11 @@ func (g *Base) HandleNodeBootstrapRequest(ctx context.Context, request network.R
 		return g.HostNetwork.BuildResponse(ctx, request, &rms.BootstrapResponse{Code: rms.BootstrapResponseCode_UpdateShortID}), nil
 	}
 
-	err := bootstrap.ValidatePermit(data.Permit, g.CertificateManager.GetCertificate(), g.CryptographyService)
-	if err != nil {
-		inslogger.FromContext(ctx).Warnf("Rejected bootstrap request from node %s: %s", request.GetSender(), err.Error())
-		return g.HostNetwork.BuildResponse(ctx, request, &rms.BootstrapResponse{Code: rms.BootstrapResponseCode_Reject}), nil
-	}
+	// err := bootstrap.ValidatePermit(data.Permit, g.CertificateManager.GetCertificate(), g.CryptographyService)
+	// if err != nil {
+	// 	inslogger.FromContext(ctx).Warnf("Rejected bootstrap request from node %s: %s", request.GetSender(), err.Error())
+	// 	return g.HostNetwork.BuildResponse(ctx, request, &rms.BootstrapResponse{Code: rms.BootstrapResponseCode_Reject}), nil
+	// }
 
 	type candidate struct {
 		profiles.StaticProfile
@@ -382,7 +396,7 @@ func (g *Base) HandleNodeBootstrapRequest(ctx context.Context, request network.R
 
 	profile := adapters.Candidate(data.CandidateProfile).StaticProfile(g.KeyProcessor)
 
-	err = g.ConsensusController.AddJoinCandidate(candidate{profile, profile.GetExtension()})
+	err := g.ConsensusController.AddJoinCandidate(candidate{profile, profile.GetExtension()})
 	if err != nil {
 		inslogger.FromContext(ctx).Warnf("Retry Failed to AddJoinCandidate  %s: %s", request.GetSender(), err.Error())
 		return g.HostNetwork.BuildResponse(ctx, request, &rms.BootstrapResponse{Code: rms.BootstrapResponseCode_Retry}), nil

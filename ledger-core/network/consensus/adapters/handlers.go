@@ -15,6 +15,11 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/inslogger"
 	"github.com/insolar/assured-ledger/ledger-core/log"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/core/errors"
+	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto"
+	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
+	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/iokit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/insmetrics"
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/common/warning"
@@ -119,6 +124,8 @@ func (dh *DatagramHandler) isInitialized(ctx context.Context) bool {
 }
 
 func (dh *DatagramHandler) HandleDatagram(ctx context.Context, address string, buf []byte) {
+	// todo replace with new
+
 	ctx, logger := PacketEarlyLogger(ctx, address)
 
 	if !dh.isInitialized(ctx) {
@@ -136,4 +143,76 @@ func (dh *DatagramHandler) HandleDatagram(ctx context.Context, address string, b
 	stats.Record(ctx, network.ConsensusPacketsRecv.M(int64(len(buf))))
 
 	dh.packetHandler.handlePacket(ctx, packetParser, address)
+}
+
+var _ uniproto.Controller = &ConsensusProtocolMarshaller{}
+var _ uniproto.Receiver = &ConsensusProtocolMarshaller{}
+
+type ConsensusProtocolMarshaller struct {
+	HandlerAdapter *DatagramHandler
+
+	LastFrom   nwapi.Address
+	LastPacket uniproto.Packet
+	LastBytes  []byte
+	LastMsg    string
+	LastSigLen int
+	LastLarge  bool
+	LastError  error
+	ReportErr  error
+}
+
+func (p *ConsensusProtocolMarshaller) Start(manager uniproto.PeerManager) {}
+func (p *ConsensusProtocolMarshaller) NextPulse(p2 pulse.Range)           {}
+func (p *ConsensusProtocolMarshaller) Stop()                              {}
+
+func (p *ConsensusProtocolMarshaller) PrepareHeader(_ *uniproto.Header, pn pulse.Number) (pulse.Number, error) {
+	return pn, nil
+}
+
+func (p *ConsensusProtocolMarshaller) VerifyHeader(*uniproto.Header, pulse.Number) error {
+	return nil
+}
+
+func (p *ConsensusProtocolMarshaller) ReceiveSmallPacket(packet *uniproto.ReceivedPacket, b []byte) {
+	// todo: forward packet
+
+	p.LastFrom = packet.From
+	p.LastPacket = packet.Packet
+	p.LastBytes = append([]byte(nil), b...)
+	p.LastSigLen = packet.GetSignatureSize()
+	p.LastLarge = false
+
+	p.HandlerAdapter.HandleDatagram(context.Background(), packet.From.String(), b[packet.GetPayloadOffset():len(b)-int(p.LastSigLen)])
+
+	// p.LastMsg = string(b[packet.GetPayloadOffset() : len(b)-int(p.LastSigLen)])
+	//
+	// p.LastError = packet.NewSmallPayloadDeserializer(b)(nil, func(_ nwapi.DeserializationContext, packet *uniproto.Packet, reader *iokit.LimitedReader) error {
+	// 	b := make([]byte, reader.RemainingBytes())
+	// 	n, err := io.ReadFull(reader, b)
+	// 	p.LastMsg = string(b[:n])
+	// 	return err
+	// })
+
+	return
+}
+
+func (p *ConsensusProtocolMarshaller) ReceiveLargePacket(packet *uniproto.ReceivedPacket, preRead []byte, r io.LimitedReader) error {
+	return throw.Unsupported()
+}
+
+func (p *ConsensusProtocolMarshaller) SerializeMsg(pt uniproto.ProtocolType, pkt uint8, pn pulse.Number, msg string) []byte {
+	packet := uniproto.NewSendingPacket(nil, nil)
+	packet.Header.SetProtocolType(pt)
+	packet.Header.SetPacketType(pkt)
+	packet.Header.SetRelayRestricted(true)
+	packet.PulseNumber = pn
+
+	b, err := packet.SerializeToBytes(uint(len(msg)), func(_ nwapi.SerializationContext, _ *uniproto.Packet, w *iokit.LimitedWriter) error {
+		_, err := w.Write([]byte(msg))
+		return err
+	})
+	if err != nil {
+		panic(throw.ErrorWithStack(err))
+	}
+	return b
 }

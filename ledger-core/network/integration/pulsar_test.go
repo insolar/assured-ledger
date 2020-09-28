@@ -10,6 +10,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
+	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto"
+	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto/l2/uniserver"
+	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
+	"github.com/insolar/assured-ledger/ledger-core/network/servicenetwork"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	errors "github.com/insolar/assured-ledger/ledger-core/vanilla/throw"
 
 	"github.com/insolar/component-manager"
@@ -53,10 +60,50 @@ type testPulsar struct {
 	pulseDelta   uint16
 
 	cancellationToken chan struct{}
+
+	unifiedServer *uniserver.UnifiedServer
+	dispatcher    uniserver.Dispatcher
+}
+
+func (tp *testPulsar) InitUniserver(ctx context.Context) {
+	vf := servicenetwork.TestVerifierFactory{}
+	skBytes := [servicenetwork.TestDigestSize]byte{}
+	sk := cryptkit.NewSigningKey(longbits.CopyBytes(skBytes[:]), servicenetwork.TestSigningMethod, cryptkit.PublicAsymmetricKey)
+	skBytes[0] = 1
+
+	tp.unifiedServer = uniserver.NewUnifiedServer(&tp.dispatcher, servicenetwork.TestLogAdapter{ctx})
+	tp.unifiedServer.SetConfig(uniserver.ServerConfig{
+		BindingAddress: "127.0.0.1:0",
+		UDPMaxSize:     1400,
+		UDPParallelism: 2,
+		PeerLimit:      -1,
+	})
+
+	tp.unifiedServer.SetPeerFactory(func(peer *uniserver.Peer) (remapTo nwapi.Address, err error) {
+		peer.SetSignatureKey(sk)
+		// peer.SetNodeID(2) // todo: ??
+		// return nwapi.NewHostID(2), nil
+		return nwapi.Address{}, nil
+	})
+	tp.unifiedServer.SetSignatureFactory(vf)
+
+	var desc = uniproto.Descriptor{
+		SupportedPackets: uniproto.PacketDescriptors{
+			0: {Flags: uniproto.NoSourceID | uniproto.OptionalTarget | uniproto.DatagramAllowed, LengthBits: 16},
+		},
+	}
+
+	datagramHandler := adapters.NewDatagramHandler()
+	marshaller := &adapters.ConsensusProtocolMarshaller{HandlerAdapter: datagramHandler}
+	tp.dispatcher.SetMode(uniproto.NewConnectionMode(uniproto.AllowUnknownPeer, 0))
+	tp.dispatcher.RegisterProtocol(0, desc, marshaller, marshaller)
 }
 
 func (tp *testPulsar) Start(ctx context.Context, bootstrapHosts []string) error {
 	var err error
+
+	tp.InitUniserver(ctx)
+	// tp.unifiedServer.StartListen()
 
 	distributorCfg := configuration.PulseDistributor{
 		BootstrapHosts:      bootstrapHosts,
@@ -68,7 +115,7 @@ func (tp *testPulsar) Start(ctx context.Context, bootstrapHosts []string) error 
 		return err
 	}
 
-	tp.distributor, err = pulsenetwork.NewDistributor(distributorCfg)
+	tp.distributor, err = pulsenetwork.NewDistributor(distributorCfg, tp.unifiedServer)
 	if err != nil {
 		return errors.W(err, "Failed to create pulse distributor")
 	}
@@ -80,11 +127,8 @@ func (tp *testPulsar) Start(ctx context.Context, bootstrapHosts []string) error 
 
 	cfg := configuration.NewHostNetwork()
 	cfg.Transport.Protocol = "udp"
-	if UseFakeTransport {
-		tp.cm.Register(transport.NewFakeFactory(cfg.Transport))
-	} else {
-		tp.cm.Register(transport.NewFactory(cfg.Transport))
-	}
+
+	tp.cm.Register(transport.NewFactory(cfg.Transport))
 	tp.cm.Inject(tp.distributor)
 
 	if err = tp.cm.Init(ctx); err != nil {
@@ -204,5 +248,6 @@ func (tp *testPulsar) Stop(ctx context.Context) error {
 		return errors.W(err, "Failed to stop test pulsar components")
 	}
 	close(tp.cancellationToken)
+	tp.unifiedServer.Stop()
 	return nil
 }

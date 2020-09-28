@@ -34,8 +34,9 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/network/consensus/gcpv2/api/profiles"
 	"github.com/insolar/assured-ledger/ledger-core/network/gateway"
 	"github.com/insolar/assured-ledger/ledger-core/network/mandates"
+	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto"
+	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto/l2/uniserver"
 	"github.com/insolar/assured-ledger/ledger-core/network/nodeinfo"
-	"github.com/insolar/assured-ledger/ledger-core/network/transport"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/gen"
 	"github.com/insolar/assured-ledger/ledger-core/testutils/network/mutable"
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
@@ -79,7 +80,7 @@ type InitializedNodes struct {
 	addresses      []string
 	controllers    []consensus.Controller
 	nodeKeepers    []beat.NodeKeeper
-	transports     []transport.DatagramTransport
+	uniservers     []*uniserver.UnifiedServer
 	contexts       []context.Context
 	staticProfiles []profiles.StaticProfile
 }
@@ -114,7 +115,7 @@ func newNodes(size int) InitializedNodes {
 	return InitializedNodes{
 		addresses:      make([]string, size),
 		controllers:    make([]consensus.Controller, size),
-		transports:     make([]transport.DatagramTransport, size),
+		uniservers:     make([]*uniserver.UnifiedServer, size),
 		contexts:       make([]context.Context, size),
 		staticProfiles: make([]profiles.StaticProfile, size),
 		nodeKeepers:    make([]beat.NodeKeeper, size),
@@ -136,23 +137,38 @@ func initNodes(ctx context.Context, mode consensus.Mode, nodes GeneratedNodes, s
 		conf.Address = nodeinfo.NodeAddr(n)
 		ns.addresses[i] = conf.Address
 
-		transportFactory := transport.NewFactory(conf)
-		datagramTransport, err := transportFactory.CreateDatagramTransport(datagramHandler)
-		if err != nil {
-			return InitializedNodes{}, err
+		// use uniserver here
+		// transportFactory := transport.NewFactory(conf)
+		// datagramTransport, err := transportFactory.CreateDatagramTransport(datagramHandler)
+
+		// uniproto.ProtocolTypeGlobulaConsensus
+		var desc = uniproto.Descriptor{
+			SupportedPackets: uniproto.PacketDescriptors{
+				0: {Flags: uniproto.NoSourceID | uniproto.OptionalTarget | uniproto.DatagramOnly, LengthBits: 16},
+			},
 		}
 
-		delayTransport := strategy.GetLink(datagramTransport)
-		ns.transports[i] = delayTransport
+		marshaller := &adapters.ConsensusProtocolMarshaller{HandlerAdapter: datagramHandler}
+		g.Dispatcher.RegisterProtocol(0, desc, marshaller, marshaller)
+		// =====
+		// if err != nil {
+		// 	return InitializedNodes{}, err
+		// }
+
+		// delayTransport := strategy.GetLink(datagramTransport)
+		// ns.transports[i] = delayTransport
+		// ns.uniservers[i] = // todo: ??
 
 		controller := consensus.New(ctx, consensus.Dep{
-			KeyProcessor:       keyProcessor,
-			CertificateManager: certificateManager,
-			KeyStore:           keystore.NewInplaceKeyStore(nodes.meta[i].privateKey),
+			KeyProcessor:          keyProcessor,
+			CertificateManager:    certificateManager,
+			KeyStore:              keystore.NewInplaceKeyStore(nodes.meta[i].privateKey),
 			TransportCryptography: adapters.NewTransportCryptographyFactory(scheme),
 
-			NodeKeeper:        nodeKeeper,
-			DatagramTransport: delayTransport,
+			NodeKeeper:    nodeKeeper,
+			UnifiedServer: nil,
+
+			// DatagramTransport: delayTransport,
 
 			LocalNodeProfile: nil, // TODO
 

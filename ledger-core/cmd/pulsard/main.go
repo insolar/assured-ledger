@@ -24,11 +24,18 @@ import (
 	"github.com/insolar/assured-ledger/ledger-core/instrumentation/instracer"
 	"github.com/insolar/assured-ledger/ledger-core/log/global"
 	"github.com/insolar/assured-ledger/ledger-core/metrics"
+	"github.com/insolar/assured-ledger/ledger-core/network/consensus/adapters"
+	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto"
+	"github.com/insolar/assured-ledger/ledger-core/network/nds/uniproto/l2/uniserver"
+	"github.com/insolar/assured-ledger/ledger-core/network/nwapi"
 	"github.com/insolar/assured-ledger/ledger-core/network/pulsenetwork"
+	"github.com/insolar/assured-ledger/ledger-core/network/servicenetwork"
 	"github.com/insolar/assured-ledger/ledger-core/network/transport"
 	"github.com/insolar/assured-ledger/ledger-core/pulsar"
 	"github.com/insolar/assured-ledger/ledger-core/pulsar/entropygenerator"
 	"github.com/insolar/assured-ledger/ledger-core/pulse"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/cryptkit"
+	"github.com/insolar/assured-ledger/ledger-core/vanilla/longbits"
 	"github.com/insolar/assured-ledger/ledger-core/version"
 )
 
@@ -125,7 +132,7 @@ func initPulsar(ctx context.Context, cfg configuration.PulsarConfiguration) (*co
 	cryptographyService := platformpolicy.NewCryptographyService()
 	keyProcessor := platformpolicy.NewKeyProcessor()
 
-	pulseDistributor, err := pulsenetwork.NewDistributor(cfg.Pulsar.PulseDistributor)
+	pulseDistributor, err := pulsenetwork.NewDistributor(cfg.Pulsar.PulseDistributor, createUniserver(100))
 	if err != nil {
 		panic(err)
 	}
@@ -174,4 +181,45 @@ func runPulsar(ctx context.Context, server *pulsar.Pulsar, cfg configuration.Pul
 	}()
 
 	return pulseTicker
+}
+
+func createUniserver(id nwapi.ShortNodeID) *uniserver.UnifiedServer {
+	var unifiedServer *uniserver.UnifiedServer
+	var dispatcher uniserver.Dispatcher
+
+	vf := servicenetwork.TestVerifierFactory{}
+	skBytes := [servicenetwork.TestDigestSize]byte{}
+	sk := cryptkit.NewSigningKey(longbits.CopyBytes(skBytes[:]), servicenetwork.TestSigningMethod, cryptkit.PublicAsymmetricKey)
+	skBytes[0] = 1
+
+	unifiedServer = uniserver.NewUnifiedServer(&dispatcher, servicenetwork.TestLogAdapter{context.Background()})
+	unifiedServer.SetConfig(uniserver.ServerConfig{
+		BindingAddress: "127.0.0.1:0",
+		UDPMaxSize:     1400,
+		UDPParallelism: 1,
+		PeerLimit:      -1,
+	})
+
+	unifiedServer.SetPeerFactory(func(peer *uniserver.Peer) (remapTo nwapi.Address, err error) {
+		peer.SetSignatureKey(sk)
+		peer.SetNodeID(id) // todo: ??
+		return nwapi.NewHostID(nwapi.HostID(id)), nil
+		// return nwapi.Address{}, nil
+	})
+	unifiedServer.SetSignatureFactory(vf)
+
+	var desc = uniproto.Descriptor{
+		SupportedPackets: uniproto.PacketDescriptors{
+			0: {Flags: uniproto.NoSourceID | uniproto.OptionalTarget | uniproto.DatagramAllowed | uniproto.DatagramOnly, LengthBits: 16},
+		},
+	}
+
+	datagramHandler := adapters.NewDatagramHandler()
+	// datagramHandler.SetPacketProcessor(&pProcessor{})
+
+	marshaller := &adapters.ConsensusProtocolMarshaller{HandlerAdapter: datagramHandler}
+	dispatcher.SetMode(uniproto.NewConnectionMode(uniproto.AllowUnknownPeer, 0))
+	dispatcher.RegisterProtocol(0, desc, marshaller, marshaller)
+
+	return unifiedServer
 }
