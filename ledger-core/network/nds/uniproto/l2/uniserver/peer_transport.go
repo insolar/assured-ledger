@@ -445,9 +445,9 @@ func (p *PeerTransport) useTransport(getTransportFn transportGetterFunc, session
 
 	if err != nil {
 		return throw.W(err, "retry limit exceeded")
-	} else {
-		return throw.E("retry limit exceeded")
 	}
+
+	return throw.E("retry limit exceeded")
 }
 
 func (p *PeerTransport) EnsureConnect() error {
