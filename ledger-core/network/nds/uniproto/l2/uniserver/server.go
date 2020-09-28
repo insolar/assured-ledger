@@ -8,9 +8,11 @@ package uniserver
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"io"
 	"math"
 	"net"
+	"os/exec"
 	"time"
 
 	"github.com/insolar/assured-ledger/ledger-core/vanilla/synckit"
@@ -201,6 +203,15 @@ func (p *UnifiedServer) StartListen() {
 	}
 
 	if err := p.ptf.Listen(); err != nil {
+		c := exec.Command("netstat", "-a")
+		out, err := c.Output()
+
+		if err != nil {
+			fmt.Println("NETSTAT ERROR: ", err)
+		} else {
+			fmt.Printf("NETSTAT: %s\n", out)
+		}
+
 		panic(err)
 	}
 }
