@@ -464,8 +464,8 @@ func TestValidation_ObjectTranscriptReport_AfterTwoInterleaving(t *testing.T) {
 
 		done := server.Journal.WaitStopOf(&handlers.SMVObjectTranscriptReport{}, 1)
 		server.SendPayload(ctx, &pl)
-		commontestutils.WaitSignalsTimed(t, 60*time.Second, done)
-		commontestutils.WaitSignalsTimed(t, 60*time.Second, server.Journal.WaitAllAsyncCallsDone())
+		commontestutils.WaitSignalsTimed(t, 10*time.Second, done)
+		commontestutils.WaitSignalsTimed(t, 10*time.Second, server.Journal.WaitAllAsyncCallsDone())
 
 		assert.Equal(t, 1, typedChecker.VCachedMemoryRequest.Count())
 		assert.Equal(t, 1, typedChecker.VObjectValidationReport.Count())
