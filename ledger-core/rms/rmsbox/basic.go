@@ -14,10 +14,14 @@ type RecordVisitor interface {
 	RecReference(BasicRecord, uint64, *Reference) error
 }
 
-type BasicRecord interface {
-	Visit(RecordVisitor) error
+type PayloadHolder interface {
 	GetRecordPayloads() RecordPayloads
 	SetRecordPayloads(RecordPayloads, cryptkit.DataDigester) error
+}
+
+type BasicRecord interface {
+	PayloadHolder
+	Visit(RecordVisitor) error
 }
 
 type MessageVisitor interface {
@@ -26,5 +30,6 @@ type MessageVisitor interface {
 }
 
 type BasicMessage interface {
+	// PayloadHolder
 	Visit(MessageVisitor) error
 }
